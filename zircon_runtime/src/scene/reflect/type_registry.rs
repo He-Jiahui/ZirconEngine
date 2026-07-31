@@ -251,40 +251,49 @@ impl TypeRegistry {
     }
 
     fn update_short_path_lookup(&mut self, type_path: &str, short_type_path: &str) {
-        if self.ambiguous_short_paths.contains(short_type_path) {
+        Self::update_short_path_maps(
+            &mut self.short_paths,
+            &mut self.ambiguous_short_paths,
+            type_path,
+            short_type_path,
+        );
+    }
+
+    fn update_short_path_maps(
+        short_paths: &mut BTreeMap<String, String>,
+        ambiguous_short_paths: &mut BTreeSet<String>,
+        type_path: &str,
+        short_type_path: &str,
+    ) {
+        if ambiguous_short_paths.contains(short_type_path) {
             return;
         }
 
-        match self.short_paths.get(short_type_path) {
+        match short_paths.get(short_type_path) {
             None => {
-                self.short_paths
-                    .insert(short_type_path.to_string(), type_path.to_string());
+                short_paths.insert(short_type_path.to_string(), type_path.to_string());
             }
             Some(existing) if existing == type_path => {}
             Some(_) => {
-                self.short_paths.remove(short_type_path);
-                self.ambiguous_short_paths
-                    .insert(short_type_path.to_string());
+                short_paths.remove(short_type_path);
+                ambiguous_short_paths.insert(short_type_path.to_string());
             }
         }
     }
 
     fn rebuild_short_path_lookup(&mut self) {
-        self.short_paths.clear();
-        self.ambiguous_short_paths.clear();
-        let paths = self
-            .registrations
-            .iter()
-            .map(|(type_path, registration)| {
-                (
-                    type_path.clone(),
-                    registration.registration.type_path.short_type_path.clone(),
-                )
-            })
-            .collect::<Vec<_>>();
-        for (type_path, short_type_path) in paths {
-            self.update_short_path_lookup(&type_path, &short_type_path);
+        let mut short_paths = BTreeMap::new();
+        let mut ambiguous_short_paths = BTreeSet::new();
+        for (type_path, registration) in &self.registrations {
+            Self::update_short_path_maps(
+                &mut short_paths,
+                &mut ambiguous_short_paths,
+                type_path,
+                &registration.registration.type_path.short_type_path,
+            );
         }
+        self.short_paths = short_paths;
+        self.ambiguous_short_paths = ambiguous_short_paths;
     }
 }
 

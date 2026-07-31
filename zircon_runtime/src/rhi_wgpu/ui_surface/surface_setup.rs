@@ -23,7 +23,7 @@ pub(super) fn configure_surface(
         ));
     };
     let config = wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        usage: choose_surface_usage(caps.usages),
         format,
         width: size.0.max(1),
         height: size.1.max(1),
@@ -34,6 +34,14 @@ pub(super) fn configure_surface(
     };
     surface.configure(device, &config);
     Ok(config)
+}
+
+pub(super) fn choose_surface_usage(supported_usages: wgpu::TextureUsages) -> wgpu::TextureUsages {
+    let mut usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
+    if supported_usages.contains(wgpu::TextureUsages::COPY_DST) {
+        usage |= wgpu::TextureUsages::COPY_DST;
+    }
+    usage
 }
 
 pub(super) fn choose_surface_format(

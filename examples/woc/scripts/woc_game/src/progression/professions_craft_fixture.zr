@@ -1,0 +1,173 @@
+// Current-head source fixture for the two recipes and result shapes exercised
+// by professions_craft.json. It deliberately models only recipe/instance
+// facts; the authoritative WOS layer still owns events, persistence, item
+// stat recomputation and the post-world-construction RNG stream.
+var crafting = %import("progression/crafting_transaction");
+var inventory = %import("progression/inventory_instance_ledger");
+var itemBudget = %import("progression/masterwork_item_budget");
+var rng = %import("kernel/rng");
+var contract = %import("generated/professions_craft_parity_contract");
+
+pub class ProfessionsCraftFixtureState {
+    pub var transaction: crafting.CraftingTransactionState;
+    // Mirrors target PlayerMeta.inventory enough to retain signed masterwork
+    // output as a non-fungible slot rather than an out-of-band stat projection.
+    pub var itemLedger: inventory.InventoryInstanceLedger;
+    // The current result is stored by transaction. These two fields project
+    // the baked stats of PlayerMeta.lastMasterwork's latest instance.
+    pub var latestMasterworkIntBonus: int;
+    pub var latestMasterworkSpiBonus: int;
+
+    pub @constructor() {
+        this.transaction = new crafting.CraftingTransactionState();
+        this.itemLedger = new inventory.InventoryInstanceLedger();
+        this.latestMasterworkIntBonus = 0;
+        this.latestMasterworkSpiBonus = 0;
+    }
+}
+
+makeMinorHealingPotionRecipe(): crafting.CraftRecipe {
+    var recipe = new crafting.CraftRecipe();
+    recipe.id = contract.recipeId0(true);
+    recipe.professionId = contract.recipeProfession0(true);
+    recipe.outputItemId = contract.recipeResultItem0(true);
+    recipe.outputCount = contract.recipeResultCount0(true);
+    recipe.requiredSkill = contract.recipeSkillReq0(true);
+    recipe.itemLevelBudget = contract.recipeBudget0(true);
+    recipe.outputQuality = contract.recipeQuality0(true);
+    recipe.masterworkCapable = contract.recipeMasterworkCapable0(true);
+    recipe.bumpedTier = contract.recipeMasterworkBumpedTier0(true);
+    recipe.reagents.add(contract.recipe0ReagentId0(true));
+    recipe.reagentCounts.add(contract.recipe0ReagentAmount0(true));
+    recipe.reagents.add(contract.recipe0ReagentId1(true));
+    recipe.reagentCounts.add(contract.recipe0ReagentAmount1(true));
+    return recipe;
+}
+
+makeRitualVestmentsRecipe(): crafting.CraftRecipe {
+    var recipe = new crafting.CraftRecipe();
+    recipe.id = contract.recipeId1(true);
+    recipe.professionId = contract.recipeProfession1(true);
+    recipe.outputItemId = contract.recipeResultItem1(true);
+    recipe.outputCount = contract.recipeResultCount1(true);
+    recipe.requiredSkill = contract.recipeSkillReq1(true);
+    recipe.itemLevelBudget = contract.recipeBudget1(true);
+    recipe.outputQuality = contract.recipeQuality1(true);
+    recipe.masterworkCapable = contract.recipeMasterworkCapable1(true);
+    recipe.bumpedTier = contract.recipeMasterworkBumpedTier1(true);
+    recipe.reagents.add(contract.recipe1ReagentId0(true));
+    recipe.reagentCounts.add(contract.recipe1ReagentAmount0(true));
+    recipe.reagents.add(contract.recipe1ReagentId1(true));
+    recipe.reagentCounts.add(contract.recipe1ReagentAmount1(true));
+    return recipe;
+}
+
+pub installProfessionsCraftFixture(state: ProfessionsCraftFixtureState): void {
+    state.transaction.atHub = true;
+    // The source fee clamps, rather than rejects, a broke crafter. This fixture
+    // supplies enough copper so recipe-output checks do not obscure that rule.
+    state.transaction.copper = 1000;
+    crafting.addRecipe(state.transaction, makeMinorHealingPotionRecipe());
+    crafting.addRecipe(state.transaction, makeRitualVestmentsRecipe());
+}
+
+pub primeMinorHealingPotionMaterials(state: ProfessionsCraftFixtureState): void {
+    crafting.setMaterial(state.transaction, contract.recipe0ReagentId0(true), 1, false, false);
+    crafting.setMaterial(state.transaction, contract.recipe0ReagentId1(true), 1, false, false);
+}
+
+// Tailoring skill 200 is specialized. A self-signed linen stack of three
+// becomes one after the source's self-signed then 0.8 specialization floors;
+// the count-one spider reagent remains one. Either signer still feeds proc RNG.
+pub primeRitualVestmentsMaterials(state: ProfessionsCraftFixtureState): void {
+    crafting.setCraftSkill(state.transaction, contract.recipeProfession1(true), 200.0);
+    state.transaction.archetypeCeilingTier = contract.recipeMasterworkBumpedTier1(true);
+    crafting.setMaterial(state.transaction, contract.recipe1ReagentId0(true), 1, true, true);
+    crafting.setMaterial(state.transaction, contract.recipe1ReagentId1(true), 1, true, true);
+}
+
+pub craftFixtureRecipe(
+    state: ProfessionsCraftFixtureState,
+    recipeIndex: int,
+    stream: rng.Mulberry32
+): bool {
+    var recipeId = recipeIndex == 0
+        ? contract.recipeId0(true)
+        : recipeIndex == 1 ? contract.recipeId1(true) : "";
+    if (recipeId == "") return false;
+    var accepted = crafting.craft(state.transaction, recipeId, stream);
+    if (!accepted) return false;
+    if (state.transaction.lastMasterwork && recipeIndex == 1) {
+        var baked = itemBudget.masterworkBonusStats(
+            contract.recipeLevel1(true),
+            contract.recipeQuality1(true),
+            contract.recipeSlot1(true),
+            contract.recipePrimaryStr1(true),
+            contract.recipePrimaryAgi1(true),
+            contract.recipePrimarySta1(true),
+            contract.recipePrimaryInt1(true),
+            contract.recipePrimarySpi1(true)
+        );
+        state.latestMasterworkIntBonus = baked.intel;
+        state.latestMasterworkSpiBonus = baked.spi;
+        var instance = new inventory.ItemInstanceData();
+        instance.signer = contract.masterworkSigner(true);
+        instance.rolledMasterwork = true;
+        instance.intel = baked.intel;
+        instance.spi = baked.spi;
+        inventory.addItemInstance(state.itemLedger, state.transaction.lastResultItemId, instance);
+    } else {
+        inventory.addStacked(
+            state.itemLedger,
+            state.transaction.lastResultItemId,
+            state.transaction.lastResultCount
+        );
+    }
+    return true;
+}
+
+pub contractTest(): int {
+    var state = new ProfessionsCraftFixtureState();
+    installProfessionsCraftFixture(state);
+    var stream = new rng.Mulberry32(<uint>7);
+    // No reagents: source denial mirrors recipe id/reason and consumes no RNG.
+    if (craftFixtureRecipe(state, 0, stream) || state.transaction.lastReason != 5 ||
+        state.transaction.lastResultOk ||
+        state.transaction.lastResultRecipeId != contract.recipeId0(true) ||
+        stream.draws != <uint>0) return -1;
+
+    primeMinorHealingPotionMaterials(state);
+    if (!craftFixtureRecipe(state, 0, stream) || state.transaction.lastMasterwork ||
+        !state.transaction.lastResultOk ||
+        state.transaction.lastResultItemId != contract.recipeResultItem0(true) ||
+        state.transaction.lastResultQuality != "common" || stream.draws != <uint>1 ||
+        inventory.countItem(state.itemLedger, contract.recipeResultItem0(true)) != 1 ||
+        inventory.slotHasInstance(state.itemLedger, 0)) return -2;
+
+    primeRitualVestmentsMaterials(state);
+    if (!craftFixtureRecipe(state, 1, stream) || !state.transaction.lastMasterwork ||
+        state.transaction.lastResultQuality != "uncommon" ||
+        state.transaction.latestMasterworkRecipeId != contract.recipeId1(true) ||
+        state.transaction.latestMasterworkItemId != contract.recipeResultItem1(true) ||
+        state.latestMasterworkIntBonus != contract.recipeMasterworkIntBonus1(true) ||
+        state.latestMasterworkSpiBonus != contract.recipeMasterworkSpiBonus1(true) ||
+        stream.draws != <uint>2 || inventory.usedSlots(state.itemLedger) != 2 ||
+        !inventory.slotHasInstance(state.itemLedger, 1) ||
+        inventory.slotItemId(state.itemLedger, 1) != contract.recipeResultItem1(true)) return -3;
+    var masterworkInstance = inventory.slotInstance(state.itemLedger, 1);
+    if (masterworkInstance.signer != contract.masterworkSigner(true) ||
+        !masterworkInstance.rolledMasterwork ||
+        masterworkInstance.intel != contract.recipeMasterworkIntBonus1(true) ||
+        masterworkInstance.spi != contract.recipeMasterworkSpiBonus1(true)) return -30;
+
+    primeMinorHealingPotionMaterials(state);
+    if (!craftFixtureRecipe(state, 0, stream) || state.transaction.lastMasterwork ||
+        state.transaction.lastResultQuality != "common" || stream.draws != <uint>3 ||
+        state.transaction.latestMasterworkRecipeId != contract.recipeId1(true) ||
+        state.latestMasterworkIntBonus != contract.recipeMasterworkIntBonus1(true) ||
+        state.latestMasterworkSpiBonus != contract.recipeMasterworkSpiBonus1(true) ||
+        inventory.countItem(state.itemLedger, contract.recipeResultItem0(true)) != 2 ||
+        inventory.usedSlots(state.itemLedger) != 2 ||
+        !inventory.slotHasInstance(state.itemLedger, 1)) return -4;
+    return 1;
+}

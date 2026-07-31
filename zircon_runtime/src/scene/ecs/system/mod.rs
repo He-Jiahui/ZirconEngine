@@ -20,7 +20,7 @@ pub use messages::{MessageReader, MessageReaderParam, MessageWriter, MessageWrit
 pub use native::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, FunctionRuntimeSceneSystem, FunctionSceneSystem,
     IntoSceneSystem, RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem,
-    SceneSystemMetadata,
+    SceneSystemMetadata, SceneSystemThreadAffinity,
 };
 pub use param_set::{ParamSet, ParamSetItem, ParamSetParam};
 pub use query::Query;

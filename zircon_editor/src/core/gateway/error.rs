@@ -2,6 +2,8 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum GatewayError {
+    #[error("runtime gateway generation exhausted")]
+    GenerationExhausted,
     #[error("runtime session is no longer available")]
     SessionLost,
     #[error("runtime access requires a serialized gateway operation")]

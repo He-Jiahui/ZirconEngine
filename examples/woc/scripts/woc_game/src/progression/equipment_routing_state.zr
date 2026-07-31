@@ -1,0 +1,119 @@
+// Current-head equipment slot routing from equipment_rules.ts and items.ts.
+// itemEligible is the preceding source canEquipItem result. The catalog owner
+// retains ItemDef.requiredClass collection/proficiency evaluation rather than
+// narrowing it into a WOC-specific scalar representation.
+var contract = %import("generated/equipment_routing_contract");
+
+weaponHandOrDefault(hand: string): string {
+    return hand == "" ? contract.onehand() : hand;
+}
+
+pub canDualWield(playerClass: string, spec: string): bool {
+    return playerClass == contract.rogue() ||
+        (playerClass == contract.warrior() && spec == contract.fury());
+}
+
+pub canDualWieldTwoHand(playerClass: string, spec: string): bool {
+    return playerClass == contract.warrior() && spec == contract.fury();
+}
+
+pub resolveEquipSlot(itemSlot: string, ringOneOccupied: bool, ringTwoOccupied: bool): string {
+    if (itemSlot == "") return "";
+    if (itemSlot != contract.ringKind()) return itemSlot;
+    if (!ringOneOccupied) return contract.ringOne();
+    if (!ringTwoOccupied) return contract.ringTwo();
+    return contract.ringOne();
+}
+
+pub slotAcceptsItem(itemSlot: string, targetSlot: string): bool {
+    if (itemSlot == "") return false;
+    if (itemSlot == contract.ringKind()) {
+        return targetSlot == contract.ringOne() || targetSlot == contract.ringTwo();
+    }
+    return itemSlot == targetSlot;
+}
+
+// This is the weapon branch of canEquipItemInSlot after the source's preceding
+// canEquipItem content/proficiency decision. It intentionally does not replace
+// ItemDef.requiredClass array evaluation.
+pub canEquipWeaponInSlot(
+    itemEligible: bool,
+    playerClass: string,
+    spec: string,
+    rawHand: string,
+    targetSlot: string
+): bool {
+    if (!itemEligible) return false;
+    var hand = weaponHandOrDefault(rawHand);
+    if (targetSlot == contract.mainhand()) return true;
+    if (targetSlot != contract.offhand() || !canDualWield(playerClass, spec)) return false;
+    return hand == contract.onehand() ||
+        (hand == contract.twohand() && canDualWieldTwoHand(playerClass, spec));
+}
+
+// Mirrors desiredEquipSlot after content lookup. mainhandWeapon/twohand describe
+// the currently worn mainhand; this helper chooses a slot but performs no swap.
+pub desiredEquipSlot(
+    itemSlot: string,
+    itemKind: string,
+    rawHand: string,
+    itemEligible: bool,
+    playerClass: string,
+    spec: string,
+    ringOneOccupied: bool,
+    ringTwoOccupied: bool,
+    mainhandOccupied: bool,
+    mainhandWeapon: bool,
+    mainhandTwohand: bool,
+    offhandOccupied: bool
+): string {
+    if (itemSlot == "") return "";
+    if (itemKind != contract.weaponKind()) {
+        return resolveEquipSlot(itemSlot, ringOneOccupied, ringTwoOccupied);
+    }
+    var hand = weaponHandOrDefault(rawHand);
+    if (hand == contract.mainhand()) return contract.mainhand();
+    if (hand == contract.twohand()) {
+        if (!canDualWieldTwoHand(playerClass, spec)) return contract.mainhand();
+        if (mainhandWeapon && mainhandTwohand && !offhandOccupied) return contract.offhand();
+        return contract.mainhand();
+    }
+    if (!mainhandOccupied) return contract.mainhand();
+    if (!canDualWield(playerClass, spec)) return contract.mainhand();
+    if (!canEquipWeaponInSlot(itemEligible, playerClass, spec, hand, contract.offhand())) {
+        return contract.mainhand();
+    }
+    if (!canDualWieldTwoHand(playerClass, spec) && mainhandWeapon && mainhandTwohand) {
+        return contract.mainhand();
+    }
+    return contract.offhand();
+}
+
+pub contractTest(): int {
+    if (!canDualWield(contract.rogue(), "") ||
+        !canDualWield(contract.warrior(), contract.fury()) ||
+        canDualWield(contract.warrior(), "arms") ||
+        canDualWieldTwoHand(contract.rogue(), "") ||
+        !canDualWieldTwoHand(contract.warrior(), contract.fury())) return -1;
+
+    if (resolveEquipSlot(contract.ringKind(), false, false) != contract.ringOne() ||
+        resolveEquipSlot(contract.ringKind(), true, false) != contract.ringTwo() ||
+        resolveEquipSlot(contract.ringKind(), true, true) != contract.ringOne() ||
+        resolveEquipSlot("", false, false) != "" ||
+        !slotAcceptsItem(contract.ringKind(), contract.ringOne()) ||
+        !slotAcceptsItem(contract.ringKind(), contract.ringTwo()) ||
+        slotAcceptsItem(contract.ringKind(), contract.mainhand())) return -2;
+
+    if (!canEquipWeaponInSlot(true, contract.rogue(), "", "", contract.offhand()) ||
+        canEquipWeaponInSlot(true, contract.rogue(), "", contract.twohand(), contract.offhand()) ||
+        !canEquipWeaponInSlot(true, contract.warrior(), contract.fury(), contract.twohand(), contract.offhand()) ||
+        canEquipWeaponInSlot(false, contract.warrior(), contract.fury(), contract.onehand(), contract.mainhand())) return -3;
+
+    if (desiredEquipSlot(contract.ringKind(), "armor", "", true, "mage", "", false, true, false, false, false, false) != contract.ringOne() ||
+        desiredEquipSlot(contract.weaponKind(), contract.weaponKind(), contract.twohand(), true, contract.warrior(), "arms", false, false, true, true, true, false) != contract.mainhand() ||
+        desiredEquipSlot(contract.weaponKind(), contract.weaponKind(), contract.twohand(), true, contract.warrior(), contract.fury(), false, false, true, true, true, false) != contract.offhand() ||
+        desiredEquipSlot(contract.weaponKind(), contract.weaponKind(), contract.onehand(), true, contract.rogue(), "", false, false, false, false, false, false) != contract.mainhand() ||
+        desiredEquipSlot(contract.weaponKind(), contract.weaponKind(), contract.onehand(), true, contract.rogue(), "", false, false, true, true, false, false) != contract.offhand() ||
+        desiredEquipSlot(contract.weaponKind(), contract.weaponKind(), contract.onehand(), false, contract.rogue(), "", false, false, true, true, false, false) != contract.mainhand()) return -4;
+    return 1;
+}

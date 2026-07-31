@@ -811,6 +811,16 @@ LS-M4(PCF 与 contact shadow):
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
+- fixed 已修复：[deferred-lighting-cache-test-hard-cut](../../mvp/00/fixed-2026-07-28-deferred-lighting-cache-test-hard-cut.md)
+
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`05/2026-07-09-lighting-shadows-output-records.md`](05/2026-07-09-lighting-shadows-output-records.md)
+- 2026-07-18 light extract性能交接：每个可见rect light、每camera、每frame仍分配固定degradation String，snapshot clone继续复制；stats又重扫ambient/rect列表统计ready/degraded。Lighting owner需用Copy reason ID进入snapshot并只在UI/export格式化，extract/pack单遍累加readiness report；1/1k/100k lights×1/8 cameras下frame reason alloc=0、每light readiness visit≤1。见PERF-MVP-338。
+- 2026-07-18 clustered-lighting上传交接：disabled分支的per-frame CPU zero Vec与整块queue upload已改为command-encoder clear，directional lights改为count>0只写active prefix。Lighting owner继续把cluster/light参数接入persistent upload ring与resource-generation binding bundle，并记录clear bytes、active light upload bytes、bind-group creates；当前止损与最终预算见PERF-MVP-370。
+- 2026-07-18 light-grid neutral绑定交接：compiled graph声明light-grid externals但本帧无producer时，binder逐帧创建params/zbins/tile-mask三个fallback buffers并分配backing names。Lighting owner联动Render01按device/resource generation持久化neutral trio并使用static binding IDs，stable create/name alloc=0；见PERF-MVP-375。
+- 2026-07-18 shadow atlas完整性能交接：point-light固定6面per-light Vec已改栈数组。LS owner仍须解决allocator每帧dedup/hash/sort、preemption近O(P²)、free-rect反复O(F²) compact、plan/matrix/container全重建及slot/global全量上传；allocation按light generation、matrix按camera/light transform generation、upload按dirty ranges拆分，stable全0。见PERF-MVP-392及shadow静态证据。
+- 2026-07-18 shadow atlas录制交接：当前每slot创建uniform buffer/bind group/pass label与独立render pass，构造可见实体BTreeSet后全扫shadow commands。LS联动Render04/02交付单atlas pass、persistent scene-uniform ring/dynamic offset和per-view dense visible command ranges；warm per-slot对象/String/set=0、pass≤1、visits近visible commands。见PERF-MVP-391。
+- 2026-07-18 light-grid generation交接：同一lighting extract当前被GPUScene与grid重复pack，grid每view/frame重建并清零三张CPU表，随后无条件执行bins×tiles×words stats扫描并全量上传。LS联动Render03/18发布唯一packed artifact，以camera+lighting generation持久复用grid capacity或GPU compute；stats融合主build/diagnostics gate，stable grid build/upload=0、off时Cartesian stats=0。见PERF-MVP-393。
+- 2026-07-18 Deferred lighting owner交接：普通/SSS source/module/layout重复准备已由2→1，attachment Vec已删除；LS仍须联动Render02/18按shadow/grid/environment/lightmap/advanced generation缓存20+ entry lighting bundle和params ring，并让SSS pipeline按compiled feature懒建。stable binding create/entry alloc=0、无SSS pipeline=0；见PERF-MVP-368/390。
+- 2026-07-18 shadow visibility补充：1 directional 4 cascades + 1 point 6 faces + 1 spot会产生11个shadow views，当前每view仍遍历全部primitive并在frustum后才过滤shadow relevance；matrix/tan与candidate重复已局部清零。Render05联动Render04按PERF-MVP-419预发布shadow view descriptors，先caster/layer/static-cell过滤，再并行/GPU cull；stable primitive SoA build=0、frustum visits近eligible casters。

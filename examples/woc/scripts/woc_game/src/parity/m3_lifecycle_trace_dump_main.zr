@@ -1,0 +1,5 @@
+var console = %import("zr.system.console");
+var trace = %import("parity/m3_lifecycle_trace");
+
+console.printLine(trace.traceHexForValidation(true));
+return 0;

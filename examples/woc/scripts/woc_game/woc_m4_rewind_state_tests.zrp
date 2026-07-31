@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_rewind_state_tests",
+  "source": "src",
+  "binary": "bin-m4-rewind-state-tests",
+  "entry": "combat/rewind_state_test_main"
+}

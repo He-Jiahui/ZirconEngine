@@ -108,7 +108,7 @@ fn pending_mesh_command_cache_plan_item(
         } else {
             pending_draw.static_state
         },
-        pending_draw.cast_shadows,
+        pending_draw.common.cast_shadows.casts_shadows(),
     )
 }
 
@@ -178,8 +178,8 @@ mod tests {
     };
 
     use super::{
-        summarize_pending_mesh_command_cache_plan_items, PendingMeshCommandCachePlanItem,
-        PendingMeshCommandCacheVisibility,
+        PendingMeshCommandCachePlanItem, PendingMeshCommandCacheVisibility,
+        summarize_pending_mesh_command_cache_plan_items,
     };
 
     #[test]

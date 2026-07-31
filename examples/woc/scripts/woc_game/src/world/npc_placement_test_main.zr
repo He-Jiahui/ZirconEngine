@@ -1,0 +1,41 @@
+// Current-source static NPC construction vectors after safe-position and
+// ground-height placement. Dynamic NPC systems are intentionally excluded.
+
+var placement = %import("world/npc_placement");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+var seed = <uint>20061;
+
+if (placement.staticNpcCount(true) != 31 ||
+    placement.staticNpcId(0, true) != "the_merchant" ||
+    placement.staticNpcId(30, true) != "brother_halven_marsh") {
+    throw "woc static NPC catalog vector failed";
+}
+
+if (!closeEnough(placement.finalStaticNpcCoordinate(seed, 0, 1, true), 1.3374754980036003) ||
+    !closeEnough(placement.finalStaticNpcCoordinate(seed, 0, 2, true), 8.04001394108025) ||
+    !closeEnough(placement.finalStaticNpcGroundY(seed, 0, true), 1.5)) {
+    throw "woc merchant safe-position construction vector failed";
+}
+
+if (placement.finalStaticNpcCoordinate(seed, 1, 1, true) != 4.0 ||
+    placement.finalStaticNpcCoordinate(seed, 1, 2, true) != 6.0 ||
+    placement.finalStaticNpcGroundY(seed, 1, true) != 1.5) {
+    throw "woc marshal static placement vector failed";
+}
+
+if (!closeEnough(placement.finalStaticNpcCoordinate(seed, 2, 1, true), -5.6625245019963995) ||
+    !closeEnough(placement.finalStaticNpcCoordinate(seed, 2, 2, true), 1.540013941080251) ||
+    !closeEnough(placement.finalStaticNpcGroundY(seed, 2, true), 1.5) ||
+    !closeEnough(placement.staticNpcFacing(2, true), 1.5707963267948966)) {
+    throw "woc trader safe-position construction vector failed";
+}
+
+return 0;

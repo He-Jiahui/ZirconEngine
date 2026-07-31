@@ -1,9 +1,9 @@
 use crate::core::framework::render::ViewportCameraSnapshot;
 use crate::core::framework::scene::EntityId;
-use crate::core::{parallel_for, TaskPool};
+use crate::core::{TaskPool, parallel_for};
 use crate::graphics::visibility::VisibilityBounds;
 
-use super::is_mesh_visible::is_bounds_visible;
+use super::is_mesh_visible::BoundsVisibilityTest;
 
 const PARALLEL_FRUSTUM_MIN_MESHES: usize = 64;
 const PARALLEL_FRUSTUM_CHUNK_SIZE: usize = 32;
@@ -33,6 +33,7 @@ pub(crate) fn mesh_frustum_visibility(
         return serial_mesh_frustum_visibility(candidates, camera);
     }
 
+    let visibility_test = BoundsVisibilityTest::new(camera);
     let mut work_items = candidates
         .iter()
         .map(|candidate| MeshFrustumWorkItem {
@@ -47,7 +48,7 @@ pub(crate) fn mesh_frustum_visibility(
         PARALLEL_FRUSTUM_CHUNK_SIZE,
         |chunk| {
             for item in chunk {
-                item.visible = is_bounds_visible(item.candidate.bounds, camera);
+                item.visible = visibility_test.is_visible(item.candidate.bounds);
             }
         },
     );
@@ -71,11 +72,12 @@ pub(crate) fn serial_mesh_frustum_visibility(
     candidates: &[MeshFrustumCandidate],
     camera: &ViewportCameraSnapshot,
 ) -> Vec<MeshFrustumVisibility> {
+    let visibility_test = BoundsVisibilityTest::new(camera);
     candidates
         .iter()
         .map(|candidate| MeshFrustumVisibility {
             entity: candidate.entity,
-            visible: is_bounds_visible(candidate.bounds, camera),
+            visible: visibility_test.is_visible(candidate.bounds),
         })
         .collect()
 }
@@ -86,7 +88,7 @@ mod tests {
     use crate::core::{TaskPool, TaskPoolDescriptor};
     use crate::graphics::visibility::VisibilityBounds;
 
-    use super::{mesh_frustum_visibility, serial_mesh_frustum_visibility, MeshFrustumCandidate};
+    use super::{MeshFrustumCandidate, mesh_frustum_visibility, serial_mesh_frustum_visibility};
 
     #[test]
     fn parallel_frustum_visibility_matches_serial_order_and_results() {
@@ -112,6 +114,15 @@ mod tests {
                 .collect::<Vec<_>>(),
             (1..=96).collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn frustum_visibility_precomputes_camera_test_once_per_path() {
+        let source = include_str!("parallel_frustum.rs");
+        let constructor = concat!("BoundsVisibility", "Test::new(camera)");
+
+        assert_eq!(source.matches(constructor).count(), 2);
+        assert!(!source.contains(concat!("is_bounds_visible(", "item.candidate.bounds")));
     }
 
     fn candidate_at(entity: u64, center: Vec3) -> MeshFrustumCandidate {

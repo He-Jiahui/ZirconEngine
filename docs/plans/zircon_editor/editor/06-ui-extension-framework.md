@@ -47,7 +47,7 @@ status: planned
 
 ### 描述符类型定义分居两文件
 
-`editor_authoring_extension.rs`（474 行）是 8 类 authoring 描述符的**纯类型定义**：`AssetCreationTemplateDescriptor / ViewportToolModeDescriptor / GraphPinDescriptor / GraphNodeDescriptor / GraphNodePaletteDescriptor / GraphEditorDescriptor / TimelineTrackDescriptor / TimelineEditorDescriptor`——图/时间轴词汇已有雏形（07 直接消费）；其余描述符定义在 `editor_extension.rs` 内。
+`editor_authoring_extension.rs` 是 authoring 描述符的纯类型定义入口之一，其中 scene mode 元数据已硬切为 `SceneModeDescriptor`；可执行行为由 `SceneModeRegistration` 的 factory 单独持有并通过 `register_scene_mode` 注册，不保留 descriptor-only tool mode 接口。图/时间轴词汇由 07 直接消费，其余描述符定义在 `editor_extension.rs` 内。
 
 ### 宿主与布局
 
@@ -177,3 +177,16 @@ pub trait DocumentToolkit: Send {
 - `FieldEditorDefinition` 以反射类型名为 key，依赖 runtime 反射名稳定性——类型改名需 11 迁移链同步，契约注释显式声明。
 - `ExclusivePage` 是否也是 toolkit：倾向是（欢迎页/设置页=无资产 toolkit），M3 定稿记状态节。
 - `register_operation/operations` 在 store 内的过渡存放与 08 合一注册表的迁移时点：08 M1 先行则直接跳过过渡；排程冲突时 store 保留 operations 字段一个里程碑并记债。
+- 2026-07-22 Workbench menu/control性能交接：PERF-MVP-560已把responsive toolbar约39×全tree control scan止损为单次借用HashMap index，静态合同1/1。asset creation menu仍每layout重建labels/map/set/String，单action点击又重建整map；Editor06联动Editor09发布template+asset generation的compiled action/control slots，见[open failure](06/failure-2026-07-22-workbench-menu-control-generation.md)。
+- 2026-07-22 Workbench test反查补充：PERF-MVP-128已让componentized template surface构造期一次建立`control_id→UiNodeId`，required frame与visible frame不再每项全tree scan，Editor06源码合同2/2。remaining `RetainedUiHostModel/Projection`与动态virtual node必须由EditorUI01/08的surface generation owner维护duplicate-aware索引；禁止插件/bridge缓存跨generation node id。
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- §现状与证据「注册表：13 张表 + 批模型」把 `editor_extension.rs` 记作 **896 行**、`editor_authoring_extension.rs` 记作 **474 行**、`register_*` 记作 **14 个**；实读 `zircon_editor/src/core/editor_extension.rs` 为 **606 行**、`editor_authoring_extension.rs` 为 **419 行**，`register_*` 为 **15 个**（`grep -c 'pub fn register_'`）。§迁移映射的「两文件删除」前提也已部分失效：`editor_extension.rs` 旁已出现同名文件夹 `zircon_editor/src/core/editor_extension/`（`contribution_descriptors.rs / template_contributions.rs / view_descriptor.rs / viewport_overlay_provider.rs`），即部分描述符/贡献类型已迁出主文件。建议把行号/行数/文件数刷新为「主文件 + `editor_extension/` 子文件夹」的现状，并把 §架构设计目标目录 `core/extension/` 与既存 `core/editor_extension/` 的关系说清（是重命名还是并存），避免执行 M1 时误判为从单文件起步。
+- §关键类型的 `ContributionStore` / `ContributionTicket` / `ContributionBatch` / `revoke` / `changed_since` 均尚未落地：`core/editor_extension.rs:43` 仍是 `EditorExtensionRegistry`、`:380` 仍是 `EditorExtensionRegistration`，无 `contribute/revoke/changed_since` 方法（grep 零命中）。作为 `planned` 计划这是预期的，但因为 §现状把批模型说成「已在」，建议在目标节明确区分「已在：批 + 能力门控（`EditorExtensionRegistration.is_enabled_by`）」与「未落地：ticket/revoke/changed_since/合并索引」，防止读者误以为 store 已具备撤销能力。
+
+### 验证缺口
+
+- §现状与 §M3.2 都以 `persistence.rs` 为「无 IO 空实现」作为待补缺口，实读 `zircon_editor/src/ui/workbench/layout/manager/persistence.rs:6-27` 确认四函数仍是 passthrough / clone（`load_*` 直接回传入参、`save_*` 仅 `layout.clone()`），无任何落盘。该证据仍准确，但计划把文件路径写作 `ui/workbench/layout/manager/persistence.rs`（front-matter 里则是 `ui/workbench/layout/manager/persistence.rs`），而函数签名已从 §现状描述的 `load/save_global_default、load/save_project_workspace` 演化为接收 `Option<WorkbenchLayout>` / `Option<ProjectEditorWorkspace>` 并回传同类型。建议把 §现状的签名描述更新为当前形态，使 M3.2「布局保存→重载逐字段等价」的验收能对齐真实入参类型。

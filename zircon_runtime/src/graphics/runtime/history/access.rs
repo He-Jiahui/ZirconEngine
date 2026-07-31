@@ -1,7 +1,7 @@
 use crate::core::framework::render::FrameHistoryHandle;
 
-use crate::graphics::visibility::VisibilityStaticIndex;
 use crate::graphics::VisibilityHistorySnapshot;
+use crate::graphics::visibility::VisibilityStaticIndex;
 
 use super::viewport_frame_history::ViewportFrameHistory;
 

@@ -20,10 +20,7 @@ pub(in super::super) fn welcome_main_column_frames(
         hero: top.hero,
         status: top.status,
         header: top.header,
-        name: form.name,
-        location: form.location,
         preview: form.preview,
         validation: form.validation,
-        actions: form.actions,
     }
 }

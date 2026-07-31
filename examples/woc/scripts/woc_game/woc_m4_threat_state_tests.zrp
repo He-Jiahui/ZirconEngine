@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_threat_state_tests",
+  "source": "src",
+  "binary": "bin-m4-threat-state-tests",
+  "entry": "combat/threat_state_test_main"
+}

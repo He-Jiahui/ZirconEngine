@@ -87,8 +87,12 @@ fn workbench_panel_header_exposes_compact_title_and_action_slots() {
         "component = \"Slot\"",
         "name = \"title\"",
         "name = \"actions\"",
-        "container = { kind = \"HorizontalBox\", gap = 2.0 }",
-        "height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" }",
+        "styles = [\"res://ui/editor/theme/editor_tokens.zui\"]",
+        "background_color = \"$editor.surface.1\"",
+        "border_color = \"$editor.separator.soft\"",
+        "border_width = \"$editor.control.border_width\"",
+        "container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.small\" }",
+        "height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" }",
     ] {
         assert!(
             source.contains(required),
@@ -96,12 +100,14 @@ fn workbench_panel_header_exposes_compact_title_and_action_slots() {
         );
     }
     for forbidden in [
-        "background_color =",
-        "border_color =",
         "foreground_color =",
         "font_size =",
         "font_weight =",
         "position =",
+        "#111416",
+        "gap = 2.0",
+        "min = 28.0",
+        "max = 30.0",
     ] {
         assert!(
             !source.contains(forbidden),

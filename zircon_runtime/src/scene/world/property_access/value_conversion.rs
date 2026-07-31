@@ -8,6 +8,8 @@ use crate::core::resource::{ResourceHandle, ResourceId, ResourceMarker};
 use crate::scene::components::{JointKind, Mobility, RigidBodyType};
 use crate::scene::{EntityId, SceneError, SceneResult};
 
+use super::super::World;
+
 pub(super) fn expect_segment_count(
     segments: &[String],
     expected: usize,
@@ -76,6 +78,53 @@ pub(super) fn normalized_identifier(value: &str) -> String {
         }
     }
     normalized
+}
+
+impl World {
+    /// Canonicalizes a component-property DTO once before Runtime interns it.
+    pub(in crate::scene::world) fn canonical_component_field_key(
+        property_path: &ComponentPropertyPath,
+    ) -> String {
+        let component = normalized_identifier(property_path.component());
+        let segments = property_path.property_segments();
+        let mut key = String::with_capacity(
+            component.len() + segments.iter().map(String::len).sum::<usize>() + segments.len(),
+        );
+        key.push_str(&component);
+        for segment in segments {
+            key.push('.');
+            key.push_str(&normalized_identifier(segment));
+        }
+        key
+    }
+
+    pub(in crate::scene::world) fn compiled_property_expect_scalar(
+        value: ScenePropertyValue,
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<Real> {
+        expect_scalar(value, property_path)
+    }
+
+    pub(in crate::scene::world) fn compiled_property_expect_vec3(
+        value: ScenePropertyValue,
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<Vec3> {
+        expect_vec3(value, property_path)
+    }
+
+    pub(in crate::scene::world) fn compiled_property_expect_quat(
+        value: ScenePropertyValue,
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<Quat> {
+        expect_quat(value, property_path)
+    }
+
+    pub(in crate::scene::world) fn compiled_property_validate_quat_array(
+        value: [Real; 4],
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<()> {
+        validate_quat_array(value, property_path)
+    }
 }
 
 pub(super) fn normalized_identifier_matches(value: &str, target: &str) -> bool {

@@ -685,7 +685,7 @@ fn decode_visbuffer64_entry(
                     entry_index,
                     packed_value,
                 },
-            )
+            );
         }
     };
     let instance_word = ((packed_value >> INSTANCE_SHIFT) & INSTANCE_MASK) as u32;

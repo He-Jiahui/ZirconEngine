@@ -59,11 +59,22 @@ def is_burst_eligible_cpu_check(
     command: tuple[str, ...],
     target_dir: str | None,
 ) -> bool:
-    """Keep the caller declaration narrow before any resource probe runs."""
+    """Keep automatic isolated validation narrow before any resource probe runs."""
+
+    is_check = command[:2] == ("cargo", "check")
+    has_package = any(
+        part in {"-p", "--package"} or part.startswith("--package=") for part in command
+    )
+    is_targeted_library_test = (
+        command[:2] == ("cargo", "test")
+        and "--lib" in command
+        and has_package
+        and "--workspace" not in command
+    )
 
     return (
         lane_scope == "cpu"
         and burst_eligible
         and target_dir is None
-        and command[:2] == ("cargo", "check")
+        and (is_check or is_targeted_library_test)
     )

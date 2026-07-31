@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var pvpPower = %import("combat/pvp_power_state");
+
+console.printLine("m6-pvp-power-state-test");
+var result = pvpPower.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

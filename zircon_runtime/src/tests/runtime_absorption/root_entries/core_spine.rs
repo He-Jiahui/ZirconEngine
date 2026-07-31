@@ -167,10 +167,12 @@ fn core_root_splits_event_dto_from_runtime_event_bus() {
     let required_files: &[&[&str]] = &[
         &["framework", "events.rs"],
         &["runtime", "events.rs"],
-        &["runtime", "events", "failure.rs"],
+        &["runtime", "events", "diagnostics.rs"],
         &["runtime", "events", "prune.rs"],
         &["runtime", "events", "publish.rs"],
         &["runtime", "events", "subscribe.rs"],
+        &["runtime", "events", "subscriber.rs"],
+        &["runtime", "events", "topic.rs"],
     ];
 
     for required_file in required_files {

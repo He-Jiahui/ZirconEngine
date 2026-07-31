@@ -1,0 +1,281 @@
+// Authoritative M6 raid-marker ownership projected from source commit
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. Target ordering stays in
+// world/target_selection; this module owns only party-scoped marker state.
+var container = %import("zr.container");
+var selection = %import("world/target_selection");
+
+class MarkerState {
+    pub var playerParty: container.Array<int>;
+    pub var entityIds: container.Array<int>;
+    pub var entityKinds: container.Array<int>;
+    pub var entityDead: container.Array<bool>;
+    pub var entityHostile: container.Array<bool>;
+    pub var entityOwnerIds: container.Array<int>;
+    pub var markPartyIds: container.Array<int>;
+    pub var markEntityIds: container.Array<int>;
+    pub var markSymbols: container.Array<int>;
+    pub var mutationEvents: int;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.playerParty = new container.Array<int>();
+        this.entityIds = new container.Array<int>();
+        this.entityKinds = new container.Array<int>();
+        this.entityDead = new container.Array<bool>();
+        this.entityHostile = new container.Array<bool>();
+        this.entityOwnerIds = new container.Array<int>();
+        this.markPartyIds = new container.Array<int>();
+        this.markEntityIds = new container.Array<int>();
+        this.markSymbols = new container.Array<int>();
+        this.mutationEvents = 0;
+        this.lastError = 0;
+    }
+}
+
+pub setParty(state: MarkerState, player: int, partyId: int): void {
+    if (player < 1) { return; }
+    var parties = state.playerParty;
+    while (parties.length < player) { parties.add(0); }
+    parties[player - 1] = partyId > 0 ? partyId : 0;
+}
+
+partyFor(state: MarkerState, player: int): int {
+    if (player < 1 || player > state.playerParty.length) { return 0; }
+    var parties = state.playerParty;
+    return <int>parties[player - 1];
+}
+
+pub addEntity(
+    state: MarkerState,
+    id: int,
+    kind: int,
+    dead: bool,
+    hostile: bool,
+    ownerId: int
+): void {
+    var ids = state.entityIds;
+    var kinds = state.entityKinds;
+    var deadFlags = state.entityDead;
+    var hostileFlags = state.entityHostile;
+    var owners = state.entityOwnerIds;
+    ids.add(id);
+    kinds.add(kind);
+    deadFlags.add(dead);
+    hostileFlags.add(hostile);
+    owners.add(ownerId);
+}
+
+entityIndex(state: MarkerState, entityId: int): int {
+    var ids = state.entityIds;
+    var index = 0;
+    while (index < ids.length) {
+        if (<int>ids[index] == entityId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+markable(state: MarkerState, entityId: int): bool {
+    var index = entityIndex(state, entityId);
+    if (index < 0) { return false; }
+    var kinds = state.entityKinds;
+    var deadFlags = state.entityDead;
+    var hostileFlags = state.entityHostile;
+    var owners = state.entityOwnerIds;
+    return <int>kinds[index] == 2 && !<bool>deadFlags[index] &&
+        <bool>hostileFlags[index] && <int>owners[index] == 0;
+}
+
+markIndex(state: MarkerState, partyId: int, entityId: int): int {
+    var parties = state.markPartyIds;
+    var entities = state.markEntityIds;
+    var index = 0;
+    while (index < parties.length) {
+        if (<int>parties[index] == partyId && <int>entities[index] == entityId) {
+            return index;
+        }
+        index = index + 1;
+    }
+    return -1;
+}
+
+removeMarkAt(state: MarkerState, index: int): void {
+    var parties = state.markPartyIds;
+    var entities = state.markEntityIds;
+    var symbols = state.markSymbols;
+    parties.removeAt(index);
+    entities.removeAt(index);
+    symbols.removeAt(index);
+}
+
+pub markerFor(state: MarkerState, player: int, entityId: int): int {
+    var partyId = partyFor(state, player);
+    if (partyId == 0) { return -1; }
+    var index = markIndex(state, partyId, entityId);
+    if (index < 0) { return -1; }
+    var symbols = state.markSymbols;
+    return <int>symbols[index];
+}
+
+pub markCountForParty(state: MarkerState, partyId: int): int {
+    var parties = state.markPartyIds;
+    var count = 0;
+    var index = 0;
+    while (index < parties.length) {
+        if (<int>parties[index] == partyId) { count = count + 1; }
+        index = index + 1;
+    }
+    return count;
+}
+
+pub setMarker(state: MarkerState, actor: int, entityId: int, symbol: int): bool {
+    state.lastError = 0;
+    var partyId = partyFor(state, actor);
+    if (partyId == 0) { state.lastError = -1; return false; }
+    if (symbol < 0 || symbol > 7) { state.lastError = -2; return false; }
+    if (!markable(state, entityId)) { state.lastError = -3; return false; }
+
+    var existing = markIndex(state, partyId, entityId);
+    var symbols = state.markSymbols;
+    if (existing >= 0 && <int>symbols[existing] == symbol) {
+        removeMarkAt(state, existing);
+        state.mutationEvents = state.mutationEvents + 1;
+        return true;
+    }
+
+    var parties = state.markPartyIds;
+    var index = parties.length - 1;
+    while (index >= 0) {
+        if (<int>parties[index] == partyId && <int>symbols[index] == symbol) {
+            removeMarkAt(state, index);
+        }
+        index = index - 1;
+    }
+    existing = markIndex(state, partyId, entityId);
+    symbols = state.markSymbols;
+    if (existing >= 0) {
+        symbols[existing] = symbol;
+    } else {
+        var entities = state.markEntityIds;
+        parties = state.markPartyIds;
+        parties.add(partyId);
+        entities.add(entityId);
+        symbols.add(symbol);
+    }
+    state.mutationEvents = state.mutationEvents + 1;
+    return true;
+}
+
+pub clearMarker(state: MarkerState, actor: int, entityId: int): bool {
+    var partyId = partyFor(state, actor);
+    if (partyId == 0) { return false; }
+    var index = markIndex(state, partyId, entityId);
+    if (index < 0) { return false; }
+    removeMarkAt(state, index);
+    state.mutationEvents = state.mutationEvents + 1;
+    return true;
+}
+
+pub clearEntityMarker(state: MarkerState, entityId: int): int {
+    var entities = state.markEntityIds;
+    var removed = 0;
+    var index = entities.length - 1;
+    while (index >= 0) {
+        if (<int>entities[index] == entityId) {
+            removeMarkAt(state, index);
+            removed = removed + 1;
+        }
+        index = index - 1;
+    }
+    if (removed > 0) { state.mutationEvents = state.mutationEvents + 1; }
+    return removed;
+}
+
+pub dropPartyMarkers(state: MarkerState, partyId: int): int {
+    var parties = state.markPartyIds;
+    var removed = 0;
+    var index = parties.length - 1;
+    while (index >= 0) {
+        if (<int>parties[index] == partyId) {
+            removeMarkAt(state, index);
+            removed = removed + 1;
+        }
+        index = index - 1;
+    }
+    if (removed > 0) { state.mutationEvents = state.mutationEvents + 1; }
+    return removed;
+}
+
+markerScenarioTest(): int {
+    var state = new MarkerState();
+    setParty(state, 1, 1);
+    setParty(state, 2, 1);
+    setParty(state, 3, 1);
+    addEntity(state, 408, 1, false, false, 0);
+    addEntity(state, 409, 1, false, false, 0);
+    addEntity(state, 410, 1, false, false, 0);
+    addEntity(state, 411, 2, false, true, 0);
+    addEntity(state, 412, 2, false, true, 0);
+    addEntity(state, 413, 2, false, true, 0);
+
+    if (!setMarker(state, 1, 411, 0) || markerFor(state, 2, 411) != 0 ||
+        !setMarker(state, 1, 411, 0) || markerFor(state, 1, 411) != -1) {
+        return -1;
+    }
+    if (!setMarker(state, 1, 411, 0) || !setMarker(state, 1, 413, 1) ||
+        !setMarker(state, 1, 412, 0) || markerFor(state, 1, 411) != -1 ||
+        markerFor(state, 2, 412) != 0 || markerFor(state, 3, 413) != 1 ||
+        markCountForParty(state, 1) != 2) {
+        return -2;
+    }
+    if (clearEntityMarker(state, 412) != 1 || markerFor(state, 1, 412) != -1 ||
+        markerFor(state, 1, 413) != 1 || markCountForParty(state, 1) != 1 ||
+        state.mutationEvents != 6) {
+        return -3;
+    }
+    return 1;
+}
+
+markerInvariantTest(): int {
+    var state = new MarkerState();
+    addEntity(state, 10, 2, false, true, 0);
+    addEntity(state, 11, 1, false, false, 0);
+    addEntity(state, 12, 2, true, true, 0);
+    addEntity(state, 13, 2, false, true, 99);
+    if (setMarker(state, 1, 10, 0) || state.lastError != -1) { return -1; }
+    setParty(state, 1, 1);
+    if (setMarker(state, 1, 10, 8) || state.lastError != -2 ||
+        setMarker(state, 1, 11, 0) || setMarker(state, 1, 12, 0) ||
+        setMarker(state, 1, 13, 0) || markCountForParty(state, 1) != 0) {
+        return -2;
+    }
+
+    setParty(state, 2, 2);
+    if (!setMarker(state, 1, 10, 0) || !setMarker(state, 2, 10, 1) ||
+        markerFor(state, 1, 10) != 0 || markerFor(state, 2, 10) != 1 ||
+        clearEntityMarker(state, 10) != 2 || markerFor(state, 1, 10) != -1 ||
+        markerFor(state, 2, 10) != -1) {
+        return -3;
+    }
+    addEntity(state, 14, 2, false, true, 0);
+    setMarker(state, 1, 10, 0);
+    setMarker(state, 1, 14, 1);
+    if (dropPartyMarkers(state, 1) != 2 || markCountForParty(state, 1) != 0) {
+        return -4;
+    }
+    setParty(state, 4, 2);
+    if (!setMarker(state, 4, 14, 2) || markerFor(state, 4, 14) != 2) {
+        return -5;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var selectionResult = selection.contractTest();
+    if (selectionResult != 1) { return -100 + selectionResult; }
+    var result = markerScenarioTest();
+    if (result != 1) { return -200 + result; }
+    result = markerInvariantTest();
+    if (result != 1) { return -300 + result; }
+    return 1;
+}

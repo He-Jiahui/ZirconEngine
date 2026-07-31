@@ -17,6 +17,7 @@ pub(super) fn template_popup_row_hit(
     value_text: SharedString,
 ) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        pane_id: SharedString::new(),
         control_id: node.control_id.clone(),
         action_id,
         binding_id: String::new(),
@@ -26,6 +27,10 @@ pub(super) fn template_popup_row_hit(
         value_text,
         edit_action_id: node.edit_action_id.clone(),
         commit_action_id: node.commit_action_id.clone(),
+        disabled: node.disabled,
         frame,
+        table_row_source_index: None,
+        table_row_identity_kind: SharedString::new(),
+        table_row_identity_text: SharedString::new(),
     }
 }

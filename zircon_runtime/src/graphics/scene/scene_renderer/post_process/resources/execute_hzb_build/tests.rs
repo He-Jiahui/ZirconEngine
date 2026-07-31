@@ -2,19 +2,33 @@ use std::sync::mpsc;
 
 use crate::core::math::UVec2;
 use crate::graphics::shader::{
-    create_compute_shader_bind_group_layout, hzb_build_dispatch_plan, hzb_build_msaa_dispatch_plan,
-    ShaderWgpuResourceDescriptor, HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE,
-    HZB_TARGET_RESOURCE,
+    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
+    ShaderWgpuResourceDescriptor, create_compute_shader_bind_group_layout, hzb_build_dispatch_plan,
+    hzb_build_msaa_dispatch_plan,
 };
 use crate::graphics::visibility::HzbBuilder;
 
 use super::execute_hzb_build::{
-    create_hzb_params_upload_buffer, execute_hzb_build_mip_with_resources, HzbBuildMipResources,
+    HzbBuildMipResources, create_hzb_params_upload_buffer, execute_hzb_build_mip_with_resources,
 };
 
 const TEST_SCENE_SIZE: UVec2 = UVec2::new(4, 4);
 const F16_ONE_BITS: u16 = 0x3c00;
 const COPY_BYTES_PER_ROW: u32 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+
+#[test]
+fn hzb_params_upload_uses_fixed_stack_storage() {
+    let source = include_str!("execute_hzb_build.rs");
+
+    assert!(
+        !source.contains("collect::<Vec<_>>"),
+        "per-frame HZB parameter packing should not allocate a temporary Vec"
+    );
+    assert!(
+        source.contains("HZB_MAX_MIP_COUNT"),
+        "HZB parameter packing should use the bounded u32 mip domain"
+    );
+}
 
 const SINGLE_SAMPLE_MIP0_TEXELS: [[u16; 4]; 4] = [
     [0x3200, 0x2800, 0x3100, F16_ONE_BITS],

@@ -130,5 +130,6 @@ pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'
         manifest_override,
         registrations,
         feature_registrations,
+        None,
     )
 }

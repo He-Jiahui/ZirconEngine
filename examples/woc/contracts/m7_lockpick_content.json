@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_lockpick_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/lockpick.ts": "c3d3e3a8b1dd5382d8ab0870f2a95f65c60596d08791fea9277bbfae720c090b",
+    "src/sim/content/delves/lockpick_tiers.ts": "b9b2ff24883243b8011fd78986dd337516b773c641a001bfd2a69b7747b532a7",
+    "src/sim/delves/lockpick_controller.ts": "4f44c2522299a732738f26f8d2523b317808e6e166d1acb9ddfea9b61de6ae4f",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "content": {
+    "actions": [
+      {
+        "id": "hardSet",
+        "index": 0,
+        "delta": -2
+      },
+      {
+        "id": "set",
+        "index": 1,
+        "delta": -1
+      },
+      {
+        "id": "steady",
+        "index": 2,
+        "delta": 0
+      },
+      {
+        "id": "ease",
+        "index": 3,
+        "delta": 1
+      },
+      {
+        "id": "drop",
+        "index": 4,
+        "delta": 2
+      }
+    ],
+    "antes": [
+      {
+        "ante": 1,
+        "loot_tier": "premium",
+        "pages": 3,
+        "tries": 1,
+        "step_timeout_ms": 3000
+      },
+      {
+        "ante": 2,
+        "loot_tier": "medium",
+        "pages": 2,
+        "tries": 2,
+        "step_timeout_ms": 6000
+      },
+      {
+        "ante": 3,
+        "loot_tier": "low",
+        "pages": 1,
+        "tries": 3,
+        "step_timeout_ms": 9000
+      }
+    ],
+    "presets": [
+      {
+        "id": "normal",
+        "index": 0,
+        "cols": 12,
+        "rows": 6,
+        "width": 1,
+        "gateCount": 2,
+        "visibilityWindow": 4,
+        "trapCount": 3,
+        "allowedActions": [
+          "hardSet",
+          "set",
+          "steady",
+          "ease",
+          "drop"
+        ]
+      },
+      {
+        "id": "heroic",
+        "index": 1,
+        "cols": 16,
+        "rows": 6,
+        "width": 1,
+        "gateCount": 3,
+        "visibilityWindow": 3,
+        "trapCount": 5,
+        "allowedActions": [
+          "hardSet",
+          "set",
+          "steady",
+          "ease",
+          "drop"
+        ]
+      }
+    ],
+    "rewards": {
+      "premium": {
+        "bonusMarks": 2,
+        "copperMult": 2
+      },
+      "medium": {
+        "bonusMarks": 1,
+        "copperMult": 1.5
+      },
+      "low": {
+        "bonusMarks": 0,
+        "copperMult": 1
+      }
+    },
+    "tick_milliseconds": 50,
+    "base_seed_multiplier": 2654435761,
+    "page_seed_multiplier": 2654435761,
+    "retry_seed_multiplier": 2246822507
+  },
+  "catalog_sha256": "adfcb65467451e98d5b8ff14bd2fca5deee1c06215798d900428d25d4a584d52"
+}

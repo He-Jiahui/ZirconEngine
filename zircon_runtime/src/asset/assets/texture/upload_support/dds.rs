@@ -1,8 +1,8 @@
 use super::super::TextureAsset;
 use super::bytes::read_u32_le;
 use super::{
-    texture_descriptor_layer_count, texture_descriptor_mip_count, TextureUploadCompressionFamily,
-    TextureUploadPlan,
+    TextureUploadCompressionFamily, TextureUploadPlan, texture_descriptor_layer_count,
+    texture_descriptor_mip_count,
 };
 
 const DDPF_FOURCC: u32 = 0x0000_0004;

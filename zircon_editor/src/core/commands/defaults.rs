@@ -21,6 +21,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands.extend(view_commands());
     commands.extend(window_commands());
     commands.push(migrate_assets_commandlet());
+    commands.push(plugin_list_commandlet());
     commands.push(
         EditorCommandDescriptor::operation(
             path("inspector.field.apply_batch"),
@@ -46,15 +47,37 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
 }
 
 fn migrate_assets_commandlet() -> EditorCommandDescriptor {
-    EditorCommandDescriptor::operation(
+    EditorCommandDescriptor::new(
         path("asset.migration.migrate_assets"),
         "Migrate Project Assets",
+        EditorCommandCategory::Command,
+        EditorCommandAction::HeadlessAssetMigration,
     )
-    .with_category(EditorCommandCategory::Command)
     .with_description("Migrate authoring assets through the headless migrate-assets commandlet")
     .with_keywords(["asset", "migration", "migrate-assets", "headless"])
     .with_payload_schema_id("editor.commandlet.migrate-assets")
+    .with_headless_commandlet_route(path("commandlet.route.migrate_assets"))
+    .with_headless_commandlet_name("migrate-assets")
+    .with_callable_from_remote(true)
     .with_required_capabilities(["asset.migration"])
+}
+
+fn plugin_list_commandlet() -> EditorCommandDescriptor {
+    EditorCommandDescriptor::new(
+        path("plugin.catalog.list"),
+        "List Editor Plugins",
+        EditorCommandCategory::Command,
+        EditorCommandAction::HeadlessPluginList,
+    )
+    .with_description(
+        "List the canonical editor plugin catalog through the headless plugin-list commandlet",
+    )
+    .with_keywords(["plugin", "plugins", "catalog", "plugin-list", "headless"])
+    .with_payload_schema_id("editor.commandlet.plugin-list")
+    .with_headless_commandlet_route(path("commandlet.route.plugin_list"))
+    .with_headless_commandlet_name("plugin-list")
+    .with_callable_from_remote(true)
+    .with_required_capabilities(["plugin.catalog.read"])
 }
 
 fn command_palette_command() -> EditorCommandDescriptor {
@@ -94,7 +117,38 @@ fn file_commands() -> Vec<EditorCommandDescriptor> {
             WhenClause::ProjectOpen,
             ["project", "save"],
         ),
+        command(
+            "file.project.close",
+            "Close Project",
+            EditorCommandCategory::File,
+            "File/Close Project",
+            EditorEvent::WorkbenchMenu(MenuAction::CloseProject),
+            None,
+            WhenClause::ProjectOpen,
+            ["project", "close"],
+        ),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn close_project_is_a_project_scoped_file_menu_command() {
+        let close_project = default_workbench_commands()
+            .into_iter()
+            .find(|command| command.id().as_str() == "file.project.close")
+            .expect("the default workbench command registry should expose Close Project");
+
+        assert_eq!(close_project.display_name(), "Close Project");
+        assert_eq!(close_project.menu_path(), Some("File/Close Project"));
+        assert!(matches!(close_project.when(), WhenClause::ProjectOpen));
+        assert!(matches!(
+            close_project.event(),
+            Some(EditorEvent::WorkbenchMenu(MenuAction::CloseProject))
+        ));
+    }
 }
 
 fn edit_commands() -> Vec<EditorCommandDescriptor> {

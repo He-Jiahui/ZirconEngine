@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/known_ability_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/classes.ts": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889"
+  },
+  "id": "known_ability_selection",
+  "rules": [
+    "base_class_order_is_preserved",
+    "grant_order_is_appended_only_when_absent",
+    "missing_definitions_are_skipped_before_all_other_gates",
+    "grants_bypass_level_and_spec_gates",
+    "exclude_specs_apply_at_the_optional_minimum_level",
+    "talent_modifiers_apply_after_selection"
+  ]
+}

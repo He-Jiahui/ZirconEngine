@@ -1,4 +1,4 @@
-use super::super::model::{can_save_dirty_view, PendingClosePrompt};
+use super::super::model::{PendingClosePrompt, can_save_dirty_view};
 use super::layout::close_prompt_layout;
 use super::text::{dirty_details, prompt_message, prompt_title, target_window_id};
 use crate::ui::retained_host::{FrameRect, HostClosePromptData, UiHostWindow};

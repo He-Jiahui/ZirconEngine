@@ -5,9 +5,10 @@ use crate::core::framework::render::{
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
 
+use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::backend::ViewportSurface;
 #[cfg(test)]
 use crate::graphics::backend::read_texture_rgba;
-use crate::graphics::backend::ViewportSurface;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphLightGridReport;
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
 use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
@@ -15,7 +16,6 @@ use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
 use crate::graphics::shader::ShaderVariantCacheDisk;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 use crate::graphics::visibility::HzbOcclusionCullReport;
-use crate::graphics::CompiledRenderPipeline;
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
 use super::super::runtime_features::runtime_features_from_pipeline;
@@ -129,6 +129,11 @@ impl SceneRenderer {
     ) -> Result<u64, GraphicsError> {
         reset_last_runtime_outputs(self);
         self.core.mesh_pipelines.reset_shader_variant_miss_report();
+        self.last_gpu_timer_frame_result = self
+            .gpu_pass_timer
+            .as_mut()
+            .and_then(|timer| timer.try_collect(&self.backend.device));
+        let frame_generation = self.generation.wrapping_add(1);
 
         self.streamer.ensure_scene_resources(
             &self.backend.device,
@@ -181,7 +186,8 @@ impl SceneRenderer {
                 volumetric_history_quality,
             );
             let target = self.target.as_mut().expect("offscreen target");
-            self.core.render_compiled_scene(
+            let (core, gpu_pass_timer) = (&mut self.core, self.gpu_pass_timer.as_mut());
+            core.render_compiled_scene(
                 &self.backend.device,
                 &self.backend.queue,
                 &self.streamer,
@@ -193,6 +199,8 @@ impl SceneRenderer {
                 runtime_features,
                 history_textures,
                 history_available,
+                frame_generation,
+                gpu_pass_timer,
             )?
         };
         let direct_imported = runtime_outputs
@@ -271,6 +279,12 @@ impl SceneRenderer {
 
     pub(crate) fn last_render_graph_executed_passes(&self) -> &[String] {
         self.last_render_graph_execution.executed_passes()
+    }
+
+    pub(crate) fn last_gpu_timer_frame_result(
+        &self,
+    ) -> Option<&crate::graphics::backend::GpuTimerFrameResult> {
+        self.last_gpu_timer_frame_result.as_ref()
     }
 
     pub(crate) fn last_render_graph_executed_executor_ids(&self) -> &[String] {

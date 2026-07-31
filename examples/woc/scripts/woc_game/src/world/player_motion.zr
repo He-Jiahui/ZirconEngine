@@ -1,0 +1,484 @@
+// Source-aligned pure portion of src/sim/player_motion.ts. Terrain, water,
+// collision and vertical state remain explicit reducer dependencies; this module
+// owns only the deterministic input-to-horizontal-wish transformation.
+
+pub simulationStepSeconds(required: bool): float {
+    if (!required) {
+        throw "woc player motion step is required";
+    }
+    return 0.05;
+}
+
+pub runSpeed(required: bool): float {
+    if (!required) {
+        throw "woc player motion run speed is required";
+    }
+    return 7.0;
+}
+
+pub turnSpeed(required: bool): float {
+    if (!required) {
+        throw "woc player motion turn speed is required";
+    }
+    return 3.141592653589793;
+}
+
+pub backpedalMultiplier(required: bool): float {
+    if (!required) {
+        throw "woc player motion backpedal multiplier is required";
+    }
+    return 0.65;
+}
+
+pub swimSpeedMultiplier(required: bool): float {
+    if (!required) {
+        throw "woc player motion swim multiplier is required";
+    }
+    return 0.65;
+}
+
+pub gravity(required: bool): float {
+    if (!required) {
+        throw "woc player motion gravity is required";
+    }
+    return 16.0;
+}
+
+pub jumpVelocity(required: bool): float {
+    if (!required) {
+        throw "woc player motion jump velocity is required";
+    }
+    return 6.0;
+}
+
+pub fallSafeDistance(required: bool): float {
+    if (!required) {
+        throw "woc player motion fall safety is required";
+    }
+    return 12.0;
+}
+
+pub steepSlideSpeed(required: bool): float {
+    if (!required) {
+        throw "woc player motion steep slide speed is required";
+    }
+    return runSpeed(true);
+}
+
+pub maxClimbSlope(required: bool): float {
+    if (!required) {
+        throw "woc player motion climb slope is required";
+    }
+    return 1.5;
+}
+
+pub playerBodyRadius(required: bool): float {
+    if (!required) {
+        throw "woc player motion body radius is required";
+    }
+    return 0.5;
+}
+
+pub swimDepth(required: bool): float {
+    if (!required) {
+        throw "woc player motion swim depth is required";
+    }
+    return 0.8;
+}
+
+pub normalizeFacing(value: float, required: bool): float {
+    if (!required) {
+        throw "woc player motion facing is required";
+    }
+    var pi = 3.141592653589793;
+    var twoPi = 6.283185307179586;
+    var result = value;
+    while (result > pi) {
+        result = result - twoPi;
+    }
+    while (result < -pi) {
+        result = result + twoPi;
+    }
+    return result;
+}
+
+pub turnFacing(
+    facing: float,
+    turnLeft: bool,
+    turnRight: bool,
+    stunned: bool,
+    required: bool
+): float {
+    if (!required) {
+        throw "woc player motion turn is required";
+    }
+    var next = facing;
+    if (!stunned) {
+        if (turnLeft) {
+            next = normalizeFacing(next + turnSpeed(true) * simulationStepSeconds(true), true);
+        }
+        if (turnRight) {
+            next = normalizeFacing(next - turnSpeed(true) * simulationStepSeconds(true), true);
+        }
+    }
+    return next;
+}
+
+pub localX(strafeLeft: bool, strafeRight: bool, required: bool): float {
+    if (!required) {
+        throw "woc player motion local x is required";
+    }
+    var value = 0.0;
+    if (strafeLeft) {
+        value = value - 1.0;
+    }
+    if (strafeRight) {
+        value = value + 1.0;
+    }
+    return value;
+}
+
+pub localZ(forward: bool, back: bool, required: bool): float {
+    if (!required) {
+        throw "woc player motion local z is required";
+    }
+    var value = 0.0;
+    if (forward) {
+        value = value + 1.0;
+    }
+    if (back) {
+        value = value - 1.0;
+    }
+    return value;
+}
+
+pub hasPlanarInput(
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player motion planar input is required";
+    }
+    return localX(strafeLeft, strafeRight, true) != 0.0 ||
+        localZ(forward, back, true) != 0.0;
+}
+
+pub wantsMove(
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    jump: bool,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player motion intent is required";
+    }
+    return hasPlanarInput(forward, back, strafeLeft, strafeRight, true) || jump;
+}
+
+normalizedLocalX(
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool
+): float {
+    var x = localX(strafeLeft, strafeRight, true);
+    var z = localZ(forward, back, true);
+    var math = %import("zr.zircon.math");
+    var length = math.sqrt(x * x + z * z);
+    return length == 0.0 ? 0.0 : x / length;
+}
+
+normalizedLocalZ(
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool
+): float {
+    var x = localX(strafeLeft, strafeRight, true);
+    var z = localZ(forward, back, true);
+    var math = %import("zr.zircon.math");
+    var length = math.sqrt(x * x + z * z);
+    return length == 0.0 ? 0.0 : z / length;
+}
+
+pub wishX(
+    facing: float,
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    required: bool
+): float {
+    if (!required) {
+        throw "woc player motion wish x is required";
+    }
+    var mx = normalizedLocalX(forward, back, strafeLeft, strafeRight);
+    var mz = normalizedLocalZ(forward, back, strafeLeft, strafeRight);
+    var math = %import("zr.zircon.math");
+    return mz * math.sin(facing) - mx * math.cos(facing);
+}
+
+pub wishZ(
+    facing: float,
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    required: bool
+): float {
+    if (!required) {
+        throw "woc player motion wish z is required";
+    }
+    var mx = normalizedLocalX(forward, back, strafeLeft, strafeRight);
+    var mz = normalizedLocalZ(forward, back, strafeLeft, strafeRight);
+    var math = %import("zr.zircon.math");
+    return mz * math.cos(facing) + mx * math.sin(facing);
+}
+
+pub wishSpeed(
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    moveSpeedMultiplier: float,
+    swimming: bool,
+    required: bool
+): float {
+    if (!required) {
+        throw "woc player motion wish speed is required";
+    }
+    if (!hasPlanarInput(forward, back, strafeLeft, strafeRight, true)) {
+        return 0.0;
+    }
+    var speed = runSpeed(true) * moveSpeedMultiplier;
+    if (normalizedLocalZ(forward, back, strafeLeft, strafeRight) < 0.0) {
+        speed = speed * backpedalMultiplier(true);
+    }
+    if (swimming) {
+        speed = speed * swimSpeedMultiplier(true);
+    }
+    return speed;
+}
+
+pub horizontalStepDistance(
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    moveSpeedMultiplier: float,
+    swimming: bool,
+    required: bool
+): float {
+    if (!required) {
+        throw "woc player motion horizontal step is required";
+    }
+    return wishSpeed(
+        forward,
+        back,
+        strafeLeft,
+        strafeRight,
+        moveSpeedMultiplier,
+        swimming,
+        true
+    ) * simulationStepSeconds(true);
+}
+
+// These functions mirror the vertical branch of player_motion.ts. The reducer reaches
+// the generated built-in terrain and collision callbacks only through the
+// atomic transition; this module remains a pure scalar helper.
+pub swimSurfaceY(waterHeight: float, required: bool): float {
+    if (!required) {
+        throw "woc player motion water height is required";
+    }
+    return waterHeight - 0.75;
+}
+
+pub isDeepWater(groundHeight: float, waterHeight: float, required: bool): bool {
+    if (!required) {
+        throw "woc player motion water query is required";
+    }
+    return groundHeight < waterHeight - swimDepth(true);
+}
+
+pub isSwimmingAt(
+    groundHeight: float,
+    waterHeight: float,
+    positionY: float,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player motion swimming query is required";
+    }
+    return isDeepWater(groundHeight, waterHeight, true) &&
+        positionY <= swimSurfaceY(waterHeight, true) + 0.15;
+}
+
+pub shouldTreadWater(
+    groundHeight: float,
+    waterHeight: float,
+    positionY: float,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player motion tread query is required";
+    }
+    return isDeepWater(groundHeight, waterHeight, true) &&
+        positionY <= swimSurfaceY(waterHeight, true) + 0.05;
+}
+
+pub canStartGroundJump(
+    jump: bool,
+    onGround: bool,
+    rooted: bool,
+    steepGround: bool,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player motion ground jump query is required";
+    }
+    return jump && onGround && !rooted && !steepGround;
+}
+
+pub canStartSwimHop(jump: bool, rooted: bool, required: bool): bool {
+    if (!required) {
+        throw "woc player motion swim hop query is required";
+    }
+    return jump && !rooted;
+}
+
+pub jumpStartVelocity(
+    jumpMultiplier: float,
+    fromSwimming: bool,
+    required: bool
+): float {
+    if (!required || jumpMultiplier <= 0.0) {
+        throw "woc player motion jump multiplier is invalid";
+    }
+    var velocity = jumpVelocity(true) * jumpMultiplier;
+    return fromSwimming ? velocity * 0.7 : velocity;
+}
+
+pub nextAirborneVelocity(velocityY: float, required: bool): float {
+    if (!required) {
+        throw "woc player motion vertical velocity is required";
+    }
+    return velocityY - gravity(true) * simulationStepSeconds(true);
+}
+
+pub airborneStepDistance(velocityY: float, required: bool): float {
+    if (!required) {
+        throw "woc player motion vertical step is required";
+    }
+    return velocityY * simulationStepSeconds(true);
+}
+
+pub fallDamage(
+    maximumHealth: int,
+    fallStartY: float,
+    groundY: float,
+    required: bool
+): int {
+    if (!required || maximumHealth < 0) {
+        throw "woc player motion fall damage input is invalid";
+    }
+    var drop = fallStartY - groundY;
+    if (drop <= fallSafeDistance(true)) {
+        return 0;
+    }
+    return <int>(<float>maximumHealth * (drop - fallSafeDistance(true)) * 0.07 + 0.5);
+}
+
+pub maxWalkableStepDown(run: float, required: bool): float {
+    if (!required || run < 0.0) {
+        throw "woc player motion walkable run is invalid";
+    }
+    return 0.4 + run * maxClimbSlope(true);
+}
+
+pub contractTest(): int {
+    if (simulationStepSeconds(true) != 0.05 || runSpeed(true) != 7.0 ||
+        turnSpeed(true) < 3.141592 || turnSpeed(true) > 3.141593 ||
+        backpedalMultiplier(true) != 0.65 || swimSpeedMultiplier(true) != 0.65) {
+        return -1;
+    }
+    var turnedLeft = turnFacing(0.0, true, false, false, true);
+    var turnedRight = turnFacing(0.0, false, true, false, true);
+    if (turnedLeft < 0.157079 || turnedLeft > 0.157080 ||
+        turnedRight > -0.157079 || turnedRight < -0.157080 ||
+        turnFacing(3.1, true, false, false, true) >= -2.9 ||
+        turnFacing(0.5, true, false, true, true) != 0.5 ||
+        turnFacing(0.0, true, true, false, true) < -0.000001 ||
+        turnFacing(0.0, true, true, false, true) > 0.000001) {
+        return -2;
+    }
+    if (!wantsMove(false, false, false, false, true, true) ||
+        wantsMove(false, false, false, false, false, true) ||
+        !hasPlanarInput(true, false, false, true, true)) {
+        return -3;
+    }
+    var diagonalX = wishX(0.0, true, false, false, true, true);
+    var diagonalZ = wishZ(0.0, true, false, false, true, true);
+    if (diagonalX > -0.707106 || diagonalX < -0.707107 ||
+        diagonalZ < 0.707106 || diagonalZ > 0.707107 ||
+        wishX(0.0, false, false, false, true, true) != -1.0 ||
+        wishZ(0.0, true, false, false, false, true) != 1.0) {
+        return -4;
+    }
+    var forwardSpeed = wishSpeed(true, false, false, false, 1.0, false, true);
+    var backSpeed = wishSpeed(false, true, false, false, 1.0, false, true);
+    var diagonalBackSpeed = wishSpeed(false, true, false, true, 1.0, false, true);
+    var swimmingBackSpeed = wishSpeed(false, true, false, false, 1.0, true, true);
+    var forwardStep = horizontalStepDistance(true, false, false, false, 1.0, false, true);
+    if (forwardSpeed < 6.999999 || forwardSpeed > 7.000001 ||
+        backSpeed < 4.549999 || backSpeed > 4.550001 ||
+        diagonalBackSpeed < 4.549999 || diagonalBackSpeed > 4.550001 ||
+        swimmingBackSpeed < 2.957499 || swimmingBackSpeed > 2.957501 ||
+        forwardStep < 0.349999 || forwardStep > 0.350001) {
+        return -5;
+    }
+    return 1;
+}
+
+pub verticalContractTest(): int {
+    if (gravity(true) != 16.0 || jumpVelocity(true) != 6.0 ||
+        fallSafeDistance(true) != 12.0 || steepSlideSpeed(true) != 7.0 ||
+        maxClimbSlope(true) != 1.5 || playerBodyRadius(true) != 0.5 ||
+        swimDepth(true) != 0.8) {
+        return -1;
+    }
+    if (swimSurfaceY(10.0, true) != 9.25 ||
+        !isDeepWater(9.19, 10.0, true) || isDeepWater(9.2, 10.0, true) ||
+        !isSwimmingAt(9.0, 10.0, 9.4, true) ||
+        isSwimmingAt(9.0, 10.0, 9.401, true) ||
+        !shouldTreadWater(9.0, 10.0, 9.3, true) ||
+        shouldTreadWater(9.0, 10.0, 9.301, true)) {
+        return -2;
+    }
+    if (!canStartGroundJump(true, true, false, false, true) ||
+        canStartGroundJump(true, true, true, false, true) ||
+        canStartGroundJump(true, true, false, true, true) ||
+        !canStartSwimHop(true, false, true) ||
+        canStartSwimHop(true, true, true)) {
+        return -3;
+    }
+    var normalJump = jumpStartVelocity(1.0, false, true);
+    var swimJump = jumpStartVelocity(1.0, true, true);
+    var nextVelocity = nextAirborneVelocity(0.0, true);
+    if (normalJump != 6.0 || swimJump < 4.199999 || swimJump > 4.200001 ||
+        nextVelocity < -0.800001 || nextVelocity > -0.799999 ||
+        airborneStepDistance(nextVelocity, true) < -0.040001 ||
+        airborneStepDistance(nextVelocity, true) > -0.039999) {
+        return -4;
+    }
+    if (fallDamage(1000, 12.0, 0.0, true) != 0 ||
+        fallDamage(1000, 13.0, 0.0, true) != 70 ||
+        maxWalkableStepDown(2.0, true) != 3.4) {
+        return -5;
+    }
+    return 1;
+}

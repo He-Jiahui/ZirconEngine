@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn command_list_records_raster_draws_and_submit_validates_bound_buffers() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let vertex_shader = device
         .create_shader_module(&ShaderModuleDesc::new(
             "raster-vs",
@@ -104,7 +104,7 @@ fn command_list_records_raster_draws_and_submit_validates_bound_buffers() {
 
 #[test]
 fn command_list_allows_generated_vertex_draws_without_vertex_buffers() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let vertex_shader = device
         .create_shader_module(&ShaderModuleDesc::new(
             "fullscreen-vs",
@@ -141,7 +141,7 @@ fn command_list_allows_generated_vertex_draws_without_vertex_buffers() {
 
 #[test]
 fn command_list_raster_draw_submit_validates_pipeline_queue_and_counts() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let compute_shader = device
         .create_shader_module(&ShaderModuleDesc::new(
             "compute-fill",

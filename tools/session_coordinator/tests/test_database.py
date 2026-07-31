@@ -125,6 +125,54 @@ class DatabaseTests(unittest.TestCase):
                 <= indexes
             )
 
+    def test_schema_51_persists_failure_barriers_deferrals_and_durable_cargo_copy_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+
+            with database.connect() as connection:
+                reservation_columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(cargo_lane_reservations)"
+                    )
+                }
+                job_columns = {
+                    row[1] for row in connection.execute("PRAGMA table_info(cargo_jobs)")
+                }
+                copy_columns = {
+                    row[1]
+                    for row in connection.execute("PRAGMA table_info(validation_copies)")
+                }
+                tables = {
+                    row[0]
+                    for row in connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    )
+                }
+
+        self.assertTrue(
+            {"dependency_lifecycle_key", "dependency_fixed_sha256", "source_copy_job_id"}
+            <= reservation_columns
+        )
+        self.assertTrue({"source_copy_job_id", "source_copy_manifest_hash"} <= job_columns)
+        self.assertTrue(
+            {
+                "external_sources_json",
+                "input_manifest_hash",
+                "error_code",
+                "error_stage",
+                "error_path",
+                "materialization_kind",
+                "materialization_request_json",
+                "materialization_phase",
+                "materialization_worker_id",
+                "materialization_attempt",
+            }
+            <= copy_columns
+        )
+        self.assertIn("workflow_failure_deferrals", tables)
+
     def test_schema_41_preserves_evidence_progress_and_adds_reservation_payload(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Database(Path(directory) / "coordinator.sqlite3")

@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::{RenderMeshLodSelection, RenderMeshStaticState};
+use crate::core::framework::render::{
+    RenderMeshLodSelection, RenderMeshStaticState, RendererCommon,
+};
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::resources::{
@@ -24,7 +26,7 @@ pub(super) fn create_mesh_draw(
     material_uniform: Arc<GpuMaterialUniformResource>,
     standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pipeline_key: PipelineKey,
-    cast_shadows: bool,
+    common: &RendererCommon,
     disabled_passes: MaterialDisabledPasses,
     taa_reactive_mask_strength: f32,
     has_previous_velocity_transform: bool,
@@ -84,7 +86,7 @@ pub(super) fn create_mesh_draw(
         material_uniform,
         standard_material_uniform,
         pipeline_key,
-        cast_shadows,
+        common.cast_shadows,
         disabled_passes,
         taa_reactive_mask_strength,
         gpu_scene_bind_group,

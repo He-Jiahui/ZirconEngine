@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
-use super::meta_io::atomic_write;
+use crate::foundation::persistence::atomic_file::atomic_write;
 
 const ASSET_META_FORMAT_VERSION: u32 = 7;
 
@@ -295,14 +295,19 @@ impl AssetMetaDocument {
             return Err(AssetMetaError::RetiredSourceHashField);
         }
         validate_serialized_tags(table)?;
-        let meta: Self = toml::from_str(document).map_err(deserialize_error)?;
+        let meta: Self = value.try_into().map_err(deserialize_error)?;
         Ok(meta)
     }
 
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), std::io::Error> {
+        let document = self.to_pretty_bytes()?;
+        atomic_write(path.as_ref(), &document)
+    }
+
+    pub(crate) fn to_pretty_bytes(&self) -> Result<Vec<u8>, std::io::Error> {
         self.validate_current().map_err(invalid_data)?;
         let document = toml::to_string_pretty(self).map_err(invalid_data)?;
-        atomic_write(path.as_ref(), document.as_bytes())
+        Ok(document.into_bytes())
     }
 }
 

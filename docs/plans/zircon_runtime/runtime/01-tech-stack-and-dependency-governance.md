@@ -8,7 +8,7 @@ related_code:
   - zircon_plugins/sound/runtime/Cargo.toml
   - zircon_plugins/physics/runtime/Cargo.toml
   - zircon_plugins/physics/runtime/src/manager.rs
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/ui/text
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
@@ -22,15 +22,16 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
-status: completed
-last_refined: 2026-07-16
+status: in_progress
+last_refined: 2026-07-31
 ---
 
 # 01 技术选型与依赖治理
 
 ## 现状与证据（2026-06-12 重核）
 
-- 声称栈 5 处失实（cosmic-text、kira、zip/tar、rfd、arboard）：五库在全仓任何 `Cargo.toml` 均 0 命中（2026-06-12 grep 重核属实）。核对表全文见 `docs/plans/zircon_runtime/runtime/index.md` §1.1；本次细化只复核了五库缺席这一项，§1.1 其余行执行时逐项核验（命令见"执行前检查清单"）。
+- 2026-06-12 历史基线中 cosmic-text、kira、zip/tar、rfd、arboard 均为 0 命中；该基线已被后续 hard cut 部分取代，不能作为当前事实。当前 Kira 0.12.2 只允许 `zircon_plugins/sound/runtime/Cargo.toml` 单一结构化 dependency declaration，zip 只允许 archive materializer owner；其余 non-dependencies 继续全产品树拒绝。
+- 2026-07-31 Runtime01 reopen：Python/权威文档的 Kira Sound owner合同已实现；唯一 pin 只接受 package/target 的普通 runtime dependencies，dev/build/workspace 表只参与泄漏检测，任一产品 manifest 扫描错误都 fail closed。Runtime Rust dependency/mirror guards仍待 source-safe hard cut，完整 managed gate与fixed return未完成。因此本计划保持 `in_progress`，旧 completion记录只描述当时五门快照，不覆盖当前 open failure。
 - 文本栈三库并存且口径未定：glyphon `0.11.0`（`zircon_runtime/Cargo.toml:77`）、fontsdf `0.5.3`（L78）、unicode-segmentation `1.13.2`（L95）；fontdue `0.9.3` 仅在 editor（`zircon_editor/Cargo.toml:11`）。自研 text shaper / hit-testing 在 `zircon_runtime/src/ui/text/`（mod.rs、shaper.rs、hit_test.rs、layout_engine.rs 约 25.8KB、edit_state.rs、grapheme.rs、rich_text.rs）。
 - glyphon 口径矫正（2026-07-01 重核）：原文"glyphon 承担 runtime GPU 文本渲染"只对了一半——渲染侧仍由 glyphon 承担 native text/render intent，但 shaping/layout 当前已统一到 `SharedTextService`：`shaper.rs:99-104` 的 `active_layout_backend_for_intent` 对 `SharedTextService` / `NativeGlyphon` / `SdfAtlas` 均返回 `SharedTextService`，`fallback_reason_for_backend` 返回 `None`，且测试 `text_shaper_stack_uses_shared_text_service_for_font_backends` 锁定 Native/SDF render mode 通过共享文本服务获得 layout metrics。
 - 公共面注意（2026-06-12 重核）：`ui/text` 对外仅 `pub use shaper::layout_text`（`layout_text(text, style, frame, clip_frame) -> UiResolvedTextLayout`，shaper.rs:196-203）；`UiTextShaper` trait（shaper.rs:34-37）、`hit_test_text_layout`、`UiTextHitTest` 等均 `pub(crate)`。文档示例不得引用不出 crate 的类型。
@@ -38,7 +39,7 @@ last_refined: 2026-07-16
 - `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` 是指向仓库外 `../../zr_vm/...` 的路径依赖（`zircon_runtime/Cargo.toml`，optional），由 feature `backend-zr-vm` 门控。2026-06-12 的 plugin lifecycle 修复已在 `../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs` 落地空参数导出调用 marshalling 防御，当前 `backend-zr-vm` 验证必须与这份本地 binding 修复配对。
 - 物理现状矫正（2026-06-12 重核）：原文"`zircon_plugins/physics/runtime` 为空壳"已过时。该插件现有 37 个文件 / 4353 行 Rust：自研 builtin 物理（manager/ 7 文件 859 行：builtin_step、clock、query、service、settings、validation、world_sync）、query_contact（raycast aabb/capsule/sphere、overlap、contact/filter/geometry）、trigger、scene_hook，外加 1707 行 `physics_manager_runtime_contract` 集成测试。"无任何物理依赖"仍属实：`zircon_plugins/physics/runtime/Cargo.toml` 仅依赖 `zircon_runtime`。jolt 空 feature 有两处：`zircon_runtime/Cargo.toml:18` 与 `zircon_plugins/physics/runtime/Cargo.toml:10`（原文漏列后者）；`backend.rs:5-10` 中 `JOLT_ENABLED = cfg!(feature = "jolt")` 而 `JOLT_BACKEND_AVAILABLE = false` 硬编码——jolt 是"可声明但永不可用"的后端槽位。
 - 物理当前落地（2026-07-10）：上述 2026-06-12 基线已被 Plugins 03 M1-T3 硬切取代。Runtime manifest 只保留 `backend-jolt` profile vocabulary；Physics plugin 通过 optional `joltc-sys` 独占真实 Jolt backend，feature-on 为 Ready/native step，feature-off 为 Unavailable，且两条路径均不静默降级 builtin。当前守卫为 `physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned`；具体状态归 Runtime 01 编号产出记录。
-- 导出打包：`ExportPackagingStrategy` 三变体 Copy 枚举（SourceTemplate / LibraryEmbed / NativeDynamic，serde snake_case，`plugin/export_profile.rs:115-121`）；`ExportProfile.strategies: Vec<ExportPackagingStrategy>`（L131），默认 `[SourceTemplate, LibraryEmbed]`（L188-193）。仓内唯一压缩/归档依赖是 zstd `0.13.3`（`zircon_runtime/Cargo.toml:100`），无 zip/tar/容器实现。全仓 `ExportPackagingStrategy` 引用 76 个代码文件 / 386 处。
+- 导出打包：`ExportPackagingStrategy` 与 `ExportProfile` 的唯一 owner 已硬切到 `core/framework/project/export_profile.rs`。三种策略仍为 SourceTemplate / LibraryEmbed / NativeDynamic，默认组合仍为 `[SourceTemplate, LibraryEmbed]`；Rust 构造必须显式传入 `RuntimeProfileId`，反序列化缺失 identity 只能进入 fatal export-plan 诊断，不再按 name/target 推断或回退。zstd `0.13.3` 用于缓存压缩；导出归档已由 zip `9.0.0-pre2` 与 `materialize/archive.rs` 的 `ZipWriter` 实现，tar 未引入。
 - 守卫口径矫正（2026-06-12 重核）：原 M1 切片 4"锁定 `zircon_runtime_interface`、`zircon_editor` 不出现 `wgpu`/`winit` 直依（现状已满足）"对 zircon_editor 不成立——`zircon_editor/Cargo.toml:23` 存在 `winit.workspace = true` 直依（softbuffer `0.4.6`（L19）自绘 retained host 需要 winit 类型）。`zircon_runtime_interface` 确认无 wgpu/winit（依赖仅 glam/serde/serde_json/thiserror/toml/unicode-segmentation/uuid）。守卫口径已在 M1 切片 1.4 修正。
 - 参考引擎对照矫正（2026-06-12 重核）：原 M3 称 `dev/Fyrox` 为"自研物理"失实——`dev/Fyrox/fyrox-impl/Cargo.toml:30-31` 依赖 rapier2d/rapier3d `0.32`，Fyrox 是 rapier 外挂形态。
 
@@ -95,7 +96,7 @@ last_refined: 2026-07-16
 #### 切片 1.1 权威技术选型文档
 
 - 目标文件：`docs/engine-architecture/runtime-tech-stack.md`（新建；2026-06-12 已核验该目录现有 21 个文档，无 tech-stack/选型类重名）；`docs/engine-architecture/index.md`（挂接一行链接）。
-- 改动形态：新增文档，含权威依赖矩阵（列：库 / 版本 / owner crate / feature 门 / 替换条件 / 升级 gate），逐项矫正 §1.1 五处失实（cosmic-text、kira、zip/tar、rfd、arboard 均不在仓内），并收录 §1.2"声称未列但实际承重"的依赖（rayon、libloading、zstd、accesskit、taffy 等）。无代码改动。
+- 改动形态：本条保留 2026-06-12 建档历史；当前权威矩阵已前向更新为 Kira 0.12.2 由 Sound runtime 唯一拥有、zip 由 archive materializer 唯一拥有，cosmic-text/rfd/arboard/tar 继续是 non-dependencies。任何旧“kira 全仓不存在”判词均被当前 owner合同取代。
 - 调用方迁移：无代码调用方；文档入口在 `docs/engine-architecture/index.md` 增链接。
 - 验收：`runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index`（归属切片 1.4 新建的 `zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs`）——断言新文档文件存在、`index.md` 文本含 `runtime-tech-stack`。
 - DoD：`test -f docs/engine-architecture/runtime-tech-stack.md && grep -q runtime-tech-stack docs/engine-architecture/index.md` 均真。
@@ -130,7 +131,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
   #[test]
   fn interface_and_editor_dependency_boundaries_stay_documented_and_guarded() { /* 断言 interface 不含 wgpu/winit，editor 不含 wgpu 且记录 winit 直依现状 */ }
   #[test]
-  fn removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack() { /* 断言 cosmic-text/kira/rfd/arboard/zip/tar 不静默进 manifest */ }
+  fn removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack() { /* 断言 cosmic-text/rfd/arboard/tar 不进入产品 manifest；Kira/zip 只能由各自唯一 owner以精确版本声明 */ }
   #[test]
   fn runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index() { /* 断言文档存在且 index.md 挂接 */ }
   ```

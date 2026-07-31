@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_damage_state_tests",
+  "source": "src",
+  "binary": "bin-m4-damage-state-tests",
+  "entry": "combat/damage_state_test_main"
+}

@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "protocol_version": 3,
+  "namespace": "woc",
+  "finite_number_policy": "reject",
+  "limits": {
+    "frame_payload_bytes": 134217728,
+    "commands_per_tick": 4096,
+    "events_per_tick": 8192,
+    "entities_per_snapshot": 65536,
+    "rl_environments_per_batch": 4096,
+    "opaque_state_bytes": 67108864
+  },
+  "reserved_ids": {
+    "contracts": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109],
+    "fields": [250, 251, 252, 253, 254, 255],
+    "enum_values": [250, 251, 252, 253, 254, 255]
+  },
+  "enums": [
+    {
+      "name": "MessageKind",
+      "id": 1,
+      "values": [
+        { "name": "FixedTickInput", "id": 1 },
+        { "name": "Command", "id": 2 },
+        { "name": "Event", "id": 3 },
+        { "name": "WorldSnapshot", "id": 4 },
+        { "name": "SaveState", "id": 5 },
+        { "name": "NetworkEnvelope", "id": 6 },
+        { "name": "RlObservationBatch", "id": 7 },
+        { "name": "RlActionBatch", "id": 8 }
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "name": "EntityRef",
+      "id": 1,
+      "fields": [
+        { "name": "id", "id": 1, "wire_type": "u64" },
+        { "name": "generation", "id": 2, "wire_type": "u32" }
+      ]
+    },
+    {
+      "name": "FixedTickInput",
+      "id": 2,
+      "fields": [
+        { "name": "tick", "id": 1, "wire_type": "u64" },
+        { "name": "commands", "id": 2, "wire_type": "vector", "element_type": "Command", "max_length": 4096 },
+        { "name": "wall_time_forbidden", "id": 3, "wire_type": "bool" },
+        { "name": "committed_state", "id": 4, "wire_type": "bytes", "max_length": 67108864 },
+        { "name": "committed_state_digest", "id": 5, "wire_type": "u32" },
+        { "name": "generation", "id": 6, "wire_type": "u64" },
+        { "name": "movement_frames", "id": 7, "wire_type": "vector", "element_type": "MovementFrame", "max_length": 65536 },
+        { "name": "offline_bootstrap", "id": 8, "wire_type": "bytes", "max_length": 64 }
+      ]
+    },
+    {
+      "name": "Command",
+      "id": 3,
+      "fields": [
+        { "name": "command_id", "id": 1, "wire_type": "u16" },
+        { "name": "actor", "id": 2, "wire_type": "EntityRef" },
+        { "name": "sequence", "id": 3, "wire_type": "u32" },
+        { "name": "payload", "id": 4, "wire_type": "bytes", "max_length": 65536 }
+      ]
+    },
+    {
+      "name": "Event",
+      "id": 4,
+      "fields": [
+        { "name": "event_id", "id": 1, "wire_type": "u16" },
+        { "name": "sequence", "id": 2, "wire_type": "u32" },
+        { "name": "payload", "id": 3, "wire_type": "bytes", "max_length": 65536 }
+      ]
+    },
+    {
+      "name": "WorldSnapshot",
+      "id": 5,
+      "fields": [
+        { "name": "tick", "id": 1, "wire_type": "u64" },
+        { "name": "state_digest", "id": 2, "wire_type": "u32" },
+        { "name": "event_digest", "id": 3, "wire_type": "u32" },
+        { "name": "state", "id": 4, "wire_type": "bytes", "max_length": 67108864 },
+        { "name": "events", "id": 5, "wire_type": "vector", "element_type": "Event", "max_length": 8192 }
+      ]
+    },
+    {
+      "name": "SaveState",
+      "id": 6,
+      "fields": [
+        { "name": "schema_fingerprint", "id": 1, "wire_type": "bytes", "max_length": 32 },
+        { "name": "generation", "id": 2, "wire_type": "u64" },
+        { "name": "tick", "id": 3, "wire_type": "u64" },
+        { "name": "state", "id": 4, "wire_type": "bytes", "max_length": 67108864 }
+      ]
+    },
+    {
+      "name": "NetworkEnvelope",
+      "id": 7,
+      "fields": [
+        { "name": "protocol_version", "id": 1, "wire_type": "u16" },
+        { "name": "kind", "id": 2, "wire_type": "MessageKind" },
+        { "name": "sequence", "id": 3, "wire_type": "u64" },
+        { "name": "acknowledgement", "id": 4, "wire_type": "u64" },
+        { "name": "payload", "id": 5, "wire_type": "bytes", "max_length": 1048576 }
+      ]
+    },
+    {
+      "name": "RlObservationBatch",
+      "id": 8,
+      "fields": [
+        { "name": "tick", "id": 1, "wire_type": "u64" },
+        { "name": "environment_ids", "id": 2, "wire_type": "vector", "element_type": "u32", "max_length": 4096 },
+        { "name": "offsets", "id": 3, "wire_type": "vector", "element_type": "u32", "max_length": 4097 },
+        { "name": "observations", "id": 4, "wire_type": "bytes", "max_length": 67108864 }
+      ]
+    },
+    {
+      "name": "RlActionBatch",
+      "id": 9,
+      "fields": [
+        { "name": "tick", "id": 1, "wire_type": "u64" },
+        { "name": "environment_ids", "id": 2, "wire_type": "vector", "element_type": "u32", "max_length": 4096 },
+        { "name": "offsets", "id": 3, "wire_type": "vector", "element_type": "u32", "max_length": 4097 },
+        { "name": "actions", "id": 4, "wire_type": "bytes", "max_length": 16777216 }
+      ]
+    },
+    {
+      "name": "MovementFrame",
+      "id": 10,
+      "fields": [
+        { "name": "actor", "id": 1, "wire_type": "EntityRef" },
+        { "name": "sequence", "id": 2, "wire_type": "u32" },
+        { "name": "forward", "id": 3, "wire_type": "bool" },
+        { "name": "back", "id": 4, "wire_type": "bool" },
+        { "name": "turn_left", "id": 5, "wire_type": "bool" },
+        { "name": "turn_right", "id": 6, "wire_type": "bool" },
+        { "name": "strafe_left", "id": 7, "wire_type": "bool" },
+        { "name": "strafe_right", "id": 8, "wire_type": "bool" },
+        { "name": "jump", "id": 9, "wire_type": "bool" },
+        { "name": "has_facing", "id": 10, "wire_type": "bool" },
+        { "name": "facing", "id": 11, "wire_type": "f64" }
+      ]
+    },
+    {
+      "name": "OfflineSessionBootstrap",
+      "id": 11,
+      "fields": [
+        { "name": "launch_version", "id": 1, "wire_type": "u16" },
+        { "name": "world_seed", "id": 2, "wire_type": "u32" },
+        { "name": "player_class", "id": 3, "wire_type": "u8" },
+        { "name": "player_name", "id": 4, "wire_type": "bytes", "max_length": 16 },
+        { "name": "skin_variant", "id": 5, "wire_type": "u16" }
+      ]
+    }
+  ]
+}

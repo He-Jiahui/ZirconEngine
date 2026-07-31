@@ -93,6 +93,26 @@ fn sdf_cpu_preparation_preserves_canonical_resolved_advances() {
 }
 
 #[test]
+fn sdf_font_resolver_reuses_registered_asset_owner_without_manifest_io() {
+    let asset_ref = "res://fonts/does-not-exist.font.toml";
+    let source =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
+    let mut font_database = FontDatabase::default();
+    let registered = font_database
+        .replace_font_source(asset_ref, &source, Some("Cached SDF Face"), 0)
+        .expect("register cached SDF face");
+
+    let resolved = resolve_font_face(
+        Some(asset_ref),
+        &mut font_database,
+        &ProjectAssetManager::default(),
+    );
+
+    assert_eq!(resolved, Some(registered.faces[0]));
+    assert_eq!(font_database.face_count(), 1);
+}
+
+#[test]
 fn sdf_cpu_preparation_caches_shaped_metrics_across_frames() {
     let mut bake = SdfFontBakeCache::new();
     let mut font_database = FontDatabase::with_default_fallbacks();

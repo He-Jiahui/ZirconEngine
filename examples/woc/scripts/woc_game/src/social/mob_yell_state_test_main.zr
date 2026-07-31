@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var mobYell = %import("social/mob_yell_state");
+
+var result = mobYell.contractTest();
+
+console.printLine("m6-mob-yell-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -33,9 +33,5 @@ pub fn planar_oblique_near_clip_projection(
 }
 
 const fn far_corner_axis(plane_axis: f32) -> f32 {
-    if plane_axis < 0.0 {
-        -1.0
-    } else {
-        1.0
-    }
+    if plane_axis < 0.0 { -1.0 } else { 1.0 }
 }

@@ -2,8 +2,9 @@ use std::collections::BTreeMap;
 
 use zircon_runtime::core::framework::animation::AnimationPoseOutput;
 use zircon_runtime::core::math::Transform;
-use zircon_runtime::scene::components::SceneNode;
-use zircon_runtime::scene::{EntityId, LevelSystem, World};
+use zircon_runtime::scene::{EntityId, LevelSystem};
+
+use super::AnimationEvaluationPipeline;
 
 pub(super) fn apply_pose_transforms_to_scene_nodes(
     level: &LevelSystem,
@@ -14,7 +15,21 @@ pub(super) fn apply_pose_transforms_to_scene_nodes(
     }
 
     level.with_world_mut(|world| {
-        let updates = node_pose_transform_updates(world, poses);
+        let compiled_bindings = {
+            let pipeline = world.resource::<AnimationEvaluationPipeline>();
+            poses
+                .keys()
+                .filter(|root| !pipeline.pose_target_binding_is_current(**root, world))
+                .filter_map(|root| world.compile_descendant_name_index(*root))
+                .collect::<Vec<_>>()
+        };
+        let updates = {
+            let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
+            for binding in compiled_bindings {
+                pipeline.cache_pose_target_binding(binding);
+            }
+            node_pose_transform_updates(pipeline, poses)
+        };
         for (entity, transform) in updates {
             let _ = world.update_transform(entity, transform);
         }
@@ -22,96 +37,20 @@ pub(super) fn apply_pose_transforms_to_scene_nodes(
 }
 
 fn node_pose_transform_updates(
-    world: &World,
+    pipeline: &AnimationEvaluationPipeline,
     poses: &BTreeMap<EntityId, AnimationPoseOutput>,
 ) -> Vec<(EntityId, Transform)> {
-    let nodes = world.node_records();
-    let parent_by_entity = nodes
-        .iter()
-        .map(|node| (node.id, node.parent))
-        .collect::<BTreeMap<_, _>>();
     let mut updates = Vec::new();
 
     for (root, pose) in poses {
         for bone in &pose.bones {
-            if let Some(entity) =
-                find_descendant_pose_target(*root, &bone.name, &nodes, &parent_by_entity)
-            {
+            if let Some(entity) = pipeline.resolve_pose_target(*root, &bone.name) {
                 updates.push((entity, bone.local_transform));
             }
         }
     }
 
     updates
-}
-
-fn find_descendant_pose_target(
-    root: EntityId,
-    bone_name: &str,
-    nodes: &[SceneNode],
-    parent_by_entity: &BTreeMap<EntityId, Option<EntityId>>,
-) -> Option<EntityId> {
-    let candidate_names = pose_target_names(bone_name);
-    for candidate in &candidate_names {
-        if let Some(node) = nodes.iter().find(|node| {
-            node.name == *candidate
-                && node.id != root
-                && is_descendant_of(node.id, root, parent_by_entity)
-        }) {
-            return Some(node.id);
-        }
-    }
-
-    for candidate in &candidate_names {
-        if let Some(node) = nodes.iter().find(|node| {
-            short_node_name(&node.name) == *candidate
-                && node.id != root
-                && is_descendant_of(node.id, root, parent_by_entity)
-        }) {
-            return Some(node.id);
-        }
-    }
-
-    None
-}
-
-fn pose_target_names(bone_name: &str) -> Vec<&str> {
-    let trimmed = bone_name.trim();
-    if trimmed.is_empty() {
-        return Vec::new();
-    }
-
-    let path_tail = trimmed.rsplit('/').next().unwrap_or(trimmed);
-    let short_name = short_node_name(path_tail);
-    let mut names = vec![trimmed, path_tail, short_name];
-    names.dedup();
-    names
-}
-
-fn short_node_name(name: &str) -> &str {
-    name.rsplit_once(':')
-        .map(|(_, short)| short.trim())
-        .unwrap_or(name.trim())
-}
-
-fn is_descendant_of(
-    entity: EntityId,
-    root: EntityId,
-    parent_by_entity: &BTreeMap<EntityId, Option<EntityId>>,
-) -> bool {
-    let mut current = Some(entity);
-    let mut depth = 0usize;
-    while let Some(entity) = current {
-        if entity == root {
-            return true;
-        }
-        depth += 1;
-        if depth > parent_by_entity.len() {
-            return false;
-        }
-        current = parent_by_entity.get(&entity).copied().flatten();
-    }
-    false
 }
 
 #[cfg(test)]
@@ -122,10 +61,10 @@ mod tests {
         AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
     };
     use zircon_runtime::core::math::{Transform, Vec3};
-    use zircon_runtime::scene::components::NodeKind;
     use zircon_runtime::scene::World;
+    use zircon_runtime::scene::components::NodeKind;
 
-    use super::node_pose_transform_updates;
+    use super::{AnimationEvaluationPipeline, node_pose_transform_updates};
 
     #[test]
     fn node_pose_updates_named_descendants_without_touching_root_or_outsiders() {
@@ -171,7 +110,9 @@ mod tests {
             },
         )]);
 
-        let updates = node_pose_transform_updates(&world, &poses);
+        let mut pipeline = AnimationEvaluationPipeline::default();
+        pipeline.cache_pose_target_binding(world.compile_descendant_name_index(actor).unwrap());
+        let updates = node_pose_transform_updates(&pipeline, &poses);
         for (entity, transform) in updates {
             world.update_transform(entity, transform).unwrap();
         }

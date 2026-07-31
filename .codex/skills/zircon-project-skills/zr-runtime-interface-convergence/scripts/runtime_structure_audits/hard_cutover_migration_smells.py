@@ -177,6 +177,7 @@ def _is_production_rust_file(root: Path, path: Path) -> bool:
         "tests" not in relative_parts
         and "target" not in relative_parts
         and path.name != "tests.rs"
+        and not path.name.endswith("_tests.rs")
     )
 
 

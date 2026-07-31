@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ui::template::{
-    UiAssetError, UiAssetFingerprint, UiCompiledAssetArtifact, UiCompiledAssetCacheRecord,
-    UiCompiledAssetDependencyManifest, UiCompiledAssetHeader,
-    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION, UiAssetError, UiAssetFingerprint,
+    UiCompiledAssetArtifact, UiCompiledAssetCacheRecord, UiCompiledAssetDependencyManifest,
+    UiCompiledAssetHeader,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

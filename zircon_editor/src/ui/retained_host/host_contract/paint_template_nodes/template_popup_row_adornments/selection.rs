@@ -27,30 +27,49 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn menu_ro
         return Some(PopupRowAdornmentKind::Check);
     }
     if let Some(icon) = menu_item_flag_value(item, "icon") {
-        return popup_row_adornment_from_icon(&icon);
+        return popup_row_adornment_from_icon(icon);
     }
-    menu_item_default_icon(item.label.as_str()).and_then(popup_row_adornment_from_icon)
+    menu_item_default_adornment(item.label.as_str())
 }
 
 fn popup_row_adornment_from_icon(icon: &str) -> Option<PopupRowAdornmentKind> {
-    match icon.trim().to_ascii_lowercase().as_str() {
-        "add" | "new" | "plus" => Some(PopupRowAdornmentKind::Plus),
-        "open" | "folder" => Some(PopupRowAdornmentKind::Folder),
-        "save" | "disk" => Some(PopupRowAdornmentKind::Save),
-        "delete" | "remove" | "trash" => Some(PopupRowAdornmentKind::Trash),
-        "submenu" | "more" | "chevron" => Some(PopupRowAdornmentKind::Chevron),
-        "check" | "checked" => Some(PopupRowAdornmentKind::Check),
-        _ => None,
+    let icon = icon.trim();
+    if ascii_matches_any(icon, &["add", "new", "plus"]) {
+        Some(PopupRowAdornmentKind::Plus)
+    } else if ascii_matches_any(icon, &["open", "folder"]) {
+        Some(PopupRowAdornmentKind::Folder)
+    } else if ascii_matches_any(icon, &["save", "disk"]) {
+        Some(PopupRowAdornmentKind::Save)
+    } else if ascii_matches_any(icon, &["delete", "remove", "trash"]) {
+        Some(PopupRowAdornmentKind::Trash)
+    } else if ascii_matches_any(icon, &["submenu", "more", "chevron"]) {
+        Some(PopupRowAdornmentKind::Chevron)
+    } else if ascii_matches_any(icon, &["check", "checked"]) {
+        Some(PopupRowAdornmentKind::Check)
+    } else {
+        None
     }
 }
 
-fn menu_item_default_icon(label: &str) -> Option<&'static str> {
-    match label.trim().to_ascii_lowercase().as_str() {
-        "new" => Some("plus"),
-        "open" => Some("folder"),
-        "save" => Some("save"),
-        "delete" => Some("trash"),
-        "more tools" => Some("submenu"),
-        _ => None,
+fn menu_item_default_adornment(label: &str) -> Option<PopupRowAdornmentKind> {
+    let label = label.trim();
+    if label.eq_ignore_ascii_case("new") {
+        Some(PopupRowAdornmentKind::Plus)
+    } else if label.eq_ignore_ascii_case("open") {
+        Some(PopupRowAdornmentKind::Folder)
+    } else if label.eq_ignore_ascii_case("save") {
+        Some(PopupRowAdornmentKind::Save)
+    } else if label.eq_ignore_ascii_case("delete") {
+        Some(PopupRowAdornmentKind::Trash)
+    } else if label.eq_ignore_ascii_case("more tools") {
+        Some(PopupRowAdornmentKind::Chevron)
+    } else {
+        None
     }
+}
+
+fn ascii_matches_any(value: &str, candidates: &[&str]) -> bool {
+    candidates
+        .iter()
+        .any(|candidate| value.eq_ignore_ascii_case(candidate))
 }

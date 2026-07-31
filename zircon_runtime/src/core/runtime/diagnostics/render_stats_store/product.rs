@@ -12,7 +12,7 @@ mod visibility;
 
 use crate::core::framework::render::RenderStats;
 
-use super::{record_bool, record_bytes, record_count, DiagnosticStore};
+use super::{DiagnosticStore, record_bool, record_bytes, record_count};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     camera::record(store, stats);

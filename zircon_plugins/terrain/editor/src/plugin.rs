@@ -2,14 +2,13 @@ use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
 };
 use zircon_editor::core::commands::EditorCommandDescriptor;
-use zircon_editor::core::editor_authoring_extension::ViewportToolModeDescriptor;
 use zircon_editor::core::editor_extension::{
     AssetImporterDescriptor, ComponentDrawerDescriptor, EditorMenuItemDescriptor,
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
-    register_authoring_contribution_batch, register_authoring_extensions,
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
+    register_authoring_contribution_batch, register_authoring_extensions,
 };
 use zircon_runtime_interface::resource::ResourceKind;
 
@@ -147,34 +146,27 @@ fn terrain_authoring_batch() -> EditorAuthoringContributionBatch {
             ))
             .with_required_capabilities([CAPABILITY]),
         ],
-        asset_type_contributions: vec![AssetTypeContribution::augment(
-            AssetTypeId::from_resource_kind(ResourceKind::Terrain),
-        )
-        .with_toolkit(
-            AssetToolkitDescriptor::new(TERRAIN_AUTHORING_VIEW_ID, open)
-                .with_required_capabilities([CAPABILITY]),
-        )
-        .with_creation_template(
-            AssetCreationTemplateDescriptor::new(
-                "terrain.template.heightfield",
-                "Terrain Heightfield",
-                create,
-            )
-            .with_default_document("plugins://terrain/templates/default_heightfield.toml")
-            .with_required_capabilities([CAPABILITY]),
-        )],
+        asset_type_contributions: vec![
+            AssetTypeContribution::augment(AssetTypeId::from_resource_kind(ResourceKind::Terrain))
+                .with_toolkit(
+                    AssetToolkitDescriptor::new(TERRAIN_AUTHORING_VIEW_ID, open)
+                        .with_required_capabilities([CAPABILITY]),
+                )
+                .with_creation_template(
+                    AssetCreationTemplateDescriptor::new(
+                        "terrain.template.heightfield",
+                        "Terrain Heightfield",
+                        create,
+                    )
+                    .with_default_document("plugins://terrain/templates/default_heightfield.toml")
+                    .with_required_capabilities([CAPABILITY]),
+                ),
+        ],
         component_drawers: vec![ComponentDrawerDescriptor::new(
             zircon_plugin_terrain_runtime::TERRAIN_COMPONENT_TYPE,
             "plugins://terrain/editor/terrain_component.zui",
             "terrain.editor.component",
         )],
-        viewport_tool_modes: vec![ViewportToolModeDescriptor::new(
-            "terrain.tool.sculpt",
-            "Sculpt Terrain",
-            TERRAIN_AUTHORING_VIEW_ID,
-            sculpt,
-        )
-        .with_required_capabilities([CAPABILITY])],
         ..Default::default()
     }
 }

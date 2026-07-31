@@ -1,0 +1,1 @@
+{ "name": "woc_m4_heroic_leap_state_tests", "source": "src", "binary": "bin-m4-heroic-leap-state-tests", "entry": "combat/heroic_leap_state_test_main" }

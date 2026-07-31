@@ -1,11 +1,16 @@
-use std::ffi::{c_char, CStr, CString};
+use std::ffi::{c_char, c_void, CStr, CString};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use serde::{Deserialize, Serialize};
 pub use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
 
+#[path = "native_manifest.rs"]
+mod native_manifest;
+
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3: u32 = 3;
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3;
+pub const ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH: u32 = 5;
+pub const ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4: u32 = 4;
 pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3: &[u8] =
     b"zircon_native_plugin_descriptor_v3\0";
 pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL: &[u8] = ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3;
@@ -38,11 +43,13 @@ pub struct NativePluginSchemaVersionsV3 {
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct NativePluginEntryReportV3 {
-    pub abi_version: u32,
+    pub layout_epoch: u32,
     pub package_manifest_toml: *const c_char,
     pub diagnostics: *const c_char,
     pub negotiated_capabilities: *const c_char,
-    pub behavior: *const NativePluginBehaviorV3,
+    pub required_capabilities: *const c_char,
+    pub denied_capabilities: *const c_char,
+    pub behavior: *const NativePluginBehaviorV4,
     pub bridge_methods: *const NativePluginBridgeMethodTableV3,
 }
 
@@ -96,14 +103,54 @@ pub struct NativePluginCallbackStatusV2 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub struct NativePluginBehaviorV3 {
+pub struct NativePluginOutputSinkV4 {
+    pub context: *mut c_void,
+    pub max_output_bytes: usize,
+    pub write: Option<NativePluginOutputWriteFnV4>,
+}
+
+impl NativePluginOutputSinkV4 {
+    /// Writes one borrowed chunk into the host-owned command output.
+    ///
+    /// # Safety
+    ///
+    /// The sink must be the unmodified value supplied by the host for the active callback. Its
+    /// context and writer are valid only for that callback's duration.
+    pub unsafe fn write(self, bytes: &[u8]) -> NativePluginCallbackStatusV2 {
+        if bytes.len() > self.max_output_bytes {
+            return callback_status(
+                ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+                NATIVE_OUTPUT_SINK_LIMIT_EXCEEDED_DIAGNOSTICS_V4,
+            );
+        }
+        let Some(write) = self.write else {
+            return callback_status(
+                ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+                NATIVE_OUTPUT_SINK_MISSING_WRITER_DIAGNOSTICS_V4,
+            );
+        };
+        unsafe {
+            write(
+                self.context,
+                NativePluginByteSliceV2 {
+                    data: bytes.as_ptr(),
+                    len: bytes.len(),
+                },
+            )
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginBehaviorV4 {
     pub abi_version: u32,
     pub is_stateless: u32,
     pub schema_versions: NativePluginSchemaVersionsV3,
     pub command_manifest: *const c_char,
     pub event_manifest: *const c_char,
     pub registration_manifest: *const c_char,
-    pub invoke_command: Option<NativePluginInvokeCommandFnV3>,
+    pub invoke_command: Option<NativePluginInvokeCommandFnV4>,
     pub save_state: Option<NativePluginSaveStateFnV3>,
     pub restore_state: Option<NativePluginRestoreStateFnV3>,
     pub unload: Option<NativePluginUnloadFnV3>,
@@ -138,10 +185,12 @@ pub struct NativePluginBridgeMethodCallV3 {
 
 pub type NativePluginFreeBytesFnV2 =
     unsafe extern "C" fn(NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
-pub type NativePluginInvokeCommandFnV2 = unsafe extern "C" fn(
-    *const c_char,
+pub type NativePluginOutputWriteFnV4 =
+    unsafe extern "C" fn(*mut c_void, NativePluginByteSliceV2) -> NativePluginCallbackStatusV2;
+pub type NativePluginInvokeCommandFnV4 = unsafe extern "C" fn(
+    u32,
     NativePluginByteSliceV2,
-    *mut NativePluginOwnedByteBufferV2,
+    NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV2;
 pub type NativePluginSaveStateFnV2 =
     unsafe extern "C" fn(*mut NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
@@ -151,7 +200,6 @@ pub type NativePluginUnloadFnV2 = unsafe extern "C" fn() -> NativePluginCallback
 pub type NativePluginByteSliceV3 = NativePluginByteSliceV2;
 pub type NativePluginOwnedByteBufferV3 = NativePluginOwnedByteBufferV2;
 pub type NativePluginCallbackStatusV3 = NativePluginCallbackStatusV2;
-pub type NativePluginInvokeCommandFnV3 = NativePluginInvokeCommandFnV2;
 pub type NativePluginSaveStateFnV3 = NativePluginSaveStateFnV2;
 pub type NativePluginRestoreStateFnV3 = NativePluginRestoreStateFnV2;
 pub type NativePluginUnloadFnV3 = NativePluginUnloadFnV2;
@@ -173,17 +221,43 @@ pub type NativePluginHostDiagnosticFnV3 = unsafe extern "C" fn(
     *const c_char,
 ) -> u32;
 
-pub const NATIVE_COMMAND_MANIFEST_SCHEMA_V3: &[u8] = b"zircon.native.command-manifest/3\0";
+pub const NATIVE_COMMAND_MANIFEST_SCHEMA_V4: &[u8] = b"zircon.native.command-manifest/4\0";
 pub const NATIVE_EVENT_MANIFEST_SCHEMA_V3: &[u8] = b"zircon.native.event-manifest/3\0";
 pub const NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3: &[u8] =
     b"zircon.native.registration-manifest/3\0";
 pub const NATIVE_EMPTY_CSTR: &[u8] = b"\0";
 pub const NATIVE_FREE_OWNER_MISMATCH_DIAGNOSTICS: &[u8] =
     b"native plugin SDK allocation owner mismatch\0";
+pub const NATIVE_FREE_INVALID_BUFFER_DIAGNOSTICS: &[u8] =
+    b"native plugin SDK buffer descriptor is malformed\0";
+pub const NATIVE_OUTPUT_SINK_LIMIT_EXCEEDED_DIAGNOSTICS_V4: &[u8] =
+    b"native plugin command output exceeds the host-owned sink limit\0";
+pub const NATIVE_OUTPUT_SINK_MISSING_WRITER_DIAGNOSTICS_V4: &[u8] =
+    b"native plugin command output sink is missing its host writer\0";
 const SDK_OWNER_TOKEN_SALT: u64 = 0x5a17_c0de_f11e_d00d;
 
+pub const NATIVE_COMMAND_MANIFEST_SCHEMA_V4_TEXT: &str = "zircon.native.command-manifest/4";
+pub const NATIVE_COMMAND_MAX_OUTPUT_BYTES_V4: usize = 256 * 1024 * 1024;
 pub const NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3_TEXT: &str =
     "zircon.native.registration-manifest/3";
+pub const NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY_V3_TEXT: &str = "runtime.native.system.worker_safe";
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NativePluginCommandManifestV4 {
+    pub schema: String,
+    #[serde(default)]
+    pub commands: Vec<NativePluginCommandV4>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NativePluginCommandV4 {
+    pub name: String,
+    pub slot: u32,
+    pub payload_schema: String,
+    pub max_output_bytes: usize,
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NativePluginRegistrationManifestV3 {
@@ -224,9 +298,19 @@ pub struct NativePluginRegistrationSystemV3 {
     #[serde(default)]
     pub access: Vec<String>,
     #[serde(default)]
+    pub thread_affinity: NativePluginRegistrationThreadAffinityV3,
+    #[serde(default)]
     pub bridge_interface: Option<String>,
     #[serde(default)]
     pub bridge_method: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NativePluginRegistrationThreadAffinityV3 {
+    #[default]
+    MainThreadOnly,
+    WorkerSafe,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -342,6 +426,36 @@ pub fn owned_bytes(mut bytes: Vec<u8>) -> NativePluginOwnedByteBufferV2 {
     }
 }
 
+pub fn command_manifest_v4_to_toml(
+    manifest: &NativePluginCommandManifestV4,
+) -> Result<String, toml::ser::Error> {
+    toml::to_string(manifest)
+}
+
+pub fn command_manifest_v4_from_toml(
+    text: &str,
+) -> Result<NativePluginCommandManifestV4, toml::de::Error> {
+    toml::from_str(text)
+}
+
+pub fn command_manifest_v4_is_current_and_dense(manifest: &NativePluginCommandManifestV4) -> bool {
+    if manifest.schema.trim() != NATIVE_COMMAND_MANIFEST_SCHEMA_V4_TEXT {
+        return false;
+    }
+    let mut names = std::collections::BTreeSet::new();
+    manifest
+        .commands
+        .iter()
+        .enumerate()
+        .all(|(index, command)| {
+            command.slot == u32::try_from(index).unwrap_or(u32::MAX)
+                && !command.name.is_empty()
+                && !command.payload_schema.trim().is_empty()
+                && command.max_output_bytes <= NATIVE_COMMAND_MAX_OUTPUT_BYTES_V4
+                && names.insert(command.name.as_str())
+        })
+}
+
 pub fn registration_manifest_v3_to_toml(
     manifest: &NativePluginRegistrationManifestV3,
 ) -> Result<String, toml::ser::Error> {
@@ -363,19 +477,34 @@ pub fn registration_manifest_v3_schema_is_current(
 pub unsafe extern "C" fn free_owned_bytes_v2(
     buffer: NativePluginOwnedByteBufferV2,
 ) -> NativePluginCallbackStatusV2 {
-    if buffer.data.is_null() || buffer.capacity == 0 {
+    // The descriptor can cross an FFI boundary. Validate its shape before constructing a Vec.
+    if buffer.data.is_null() {
+        return if buffer.len == 0 && buffer.capacity == 0 {
+            callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR)
+        } else {
+            callback_status(
+                ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+                NATIVE_FREE_INVALID_BUFFER_DIAGNOSTICS,
+            )
+        };
+    }
+    if buffer.len > buffer.capacity {
+        return callback_status(
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+            NATIVE_FREE_INVALID_BUFFER_DIAGNOSTICS,
+        );
+    }
+    if buffer.capacity == 0 {
         return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR);
     }
-    let owner_matches = buffer.owner_token == owner_token(buffer.data, buffer.len, buffer.capacity);
-    let _ = unsafe { Vec::from_raw_parts(buffer.data, buffer.len, buffer.capacity) };
-    if owner_matches {
-        callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR)
-    } else {
-        callback_status(
+    if buffer.owner_token != owner_token(buffer.data, buffer.len, buffer.capacity) {
+        return callback_status(
             ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
             NATIVE_FREE_OWNER_MISMATCH_DIAGNOSTICS,
-        )
+        );
     }
+    let _ = unsafe { Vec::from_raw_parts(buffer.data, buffer.len, buffer.capacity) };
+    callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR)
 }
 
 pub unsafe fn bytes_from_slice<'a>(slice: NativePluginByteSliceV2) -> &'a [u8] {
@@ -393,10 +522,7 @@ pub fn catch_native_callback_panic<F>(
 where
     F: FnOnce() -> NativePluginCallbackStatusV2,
 {
-    let previous_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
     let result = catch_unwind(AssertUnwindSafe(callback));
-    std::panic::set_hook(previous_hook);
     match result {
         Ok(status) => status,
         Err(_) => callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_PANIC, panic_diagnostics),
@@ -497,7 +623,7 @@ macro_rules! native_command_plugin_v3 {
         runtime_entry: $runtime_entry:ident,
         runtime_entry_name: $runtime_entry_name:expr,
         requested_capabilities: $requested_capabilities:expr,
-        required_capabilities: [$($required_capability:expr),* $(,)?],
+        required_capabilities: [$($required_capability:literal),* $(,)?],
         negotiated_capabilities: $negotiated_capabilities:expr,
         diagnostics: $diagnostics:expr,
         missing_host_diagnostics: $missing_host_diagnostics:expr,
@@ -516,14 +642,14 @@ macro_rules! native_command_plugin_v3 {
             requested_capabilities: ($requested_capabilities).as_ptr().cast(),
         });
 
-        static __ZIRCON_NATIVE_SDK_BEHAVIOR_V3: $crate::native::NativePluginStatic<
-            $crate::native::NativePluginBehaviorV3,
-        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+        static __ZIRCON_NATIVE_SDK_BEHAVIOR_V4: $crate::native::NativePluginStatic<
+            $crate::native::NativePluginBehaviorV4,
+        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV4 {
+            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4,
             is_stateless: 1,
             schema_versions: $crate::native::NativePluginSchemaVersionsV3 {
                 state_schema_version: 0,
-                command_manifest_schema: $crate::native::NATIVE_COMMAND_MANIFEST_SCHEMA_V3
+                command_manifest_schema: $crate::native::NATIVE_COMMAND_MANIFEST_SCHEMA_V4
                     .as_ptr()
                     .cast(),
                 event_manifest_schema: $crate::native::NATIVE_EVENT_MANIFEST_SCHEMA_V3
@@ -540,24 +666,35 @@ macro_rules! native_command_plugin_v3 {
             unload: None,
         });
 
+        const __ZIRCON_NATIVE_SDK_REQUIRED_CAPABILITIES_TEXT_V3: &str =
+            concat!($($required_capability, "\n",)* "\0");
+
         static __ZIRCON_NATIVE_SDK_REPORT_V3: $crate::native::NativePluginStatic<
             $crate::native::NativePluginEntryReportV3,
         > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
             diagnostics: ($diagnostics).as_ptr().cast(),
             negotiated_capabilities: ($negotiated_capabilities).as_ptr().cast(),
-            behavior: __ZIRCON_NATIVE_SDK_BEHAVIOR_V3.as_ptr(),
+            required_capabilities: __ZIRCON_NATIVE_SDK_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: $crate::native::NATIVE_EMPTY_CSTR.as_ptr().cast(),
+            behavior: __ZIRCON_NATIVE_SDK_BEHAVIOR_V4.as_ptr(),
             bridge_methods: ::core::ptr::null(),
         });
 
         static __ZIRCON_NATIVE_SDK_MISSING_HOST_REPORT_V3: $crate::native::NativePluginStatic<
             $crate::native::NativePluginEntryReportV3,
         > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
             diagnostics: ($missing_host_diagnostics).as_ptr().cast(),
             negotiated_capabilities: $crate::native::NATIVE_EMPTY_CSTR.as_ptr().cast(),
+            required_capabilities: __ZIRCON_NATIVE_SDK_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: $crate::native::NATIVE_EMPTY_CSTR.as_ptr().cast(),
             behavior: ::core::ptr::null(),
             bridge_methods: ::core::ptr::null(),
         });
@@ -588,19 +725,23 @@ mod tests {
 
     static REPORT: NativePluginStatic<NativePluginEntryReportV3> =
         NativePluginStatic::new(NativePluginEntryReportV3 {
-            abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+            layout_epoch: ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: b"\0".as_ptr().cast(),
             diagnostics: b"ready\0".as_ptr().cast(),
             negotiated_capabilities: b"runtime.plugin.weather\0".as_ptr().cast(),
+            required_capabilities: b"runtime.plugin.weather\0".as_ptr().cast(),
+            denied_capabilities: b"runtime.plugin.denied\0".as_ptr().cast(),
             behavior: std::ptr::null(),
             bridge_methods: std::ptr::null(),
         });
     static MISSING: NativePluginStatic<NativePluginEntryReportV3> =
         NativePluginStatic::new(NativePluginEntryReportV3 {
-            abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+            layout_epoch: ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: b"\0".as_ptr().cast(),
             diagnostics: b"missing host\0".as_ptr().cast(),
             negotiated_capabilities: b"\0".as_ptr().cast(),
+            required_capabilities: b"runtime.plugin.weather\0".as_ptr().cast(),
+            denied_capabilities: b"runtime.plugin.denied\0".as_ptr().cast(),
             behavior: std::ptr::null(),
             bridge_methods: std::ptr::null(),
         });
@@ -656,10 +797,72 @@ mod tests {
     }
 
     #[test]
+    fn native_owned_bytes_free_rejects_malformed_length_before_reclaiming() {
+        let backing = *b"ok";
+        let status = unsafe {
+            free_owned_bytes_v2(NativePluginOwnedByteBufferV2 {
+                data: backing.as_ptr() as *mut u8,
+                len: backing.len(),
+                capacity: backing.len() - 1,
+                owner_token: 0,
+                free: None,
+            })
+        };
+
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+    }
+
+    #[test]
+    fn native_owned_bytes_free_rejects_null_pointer_with_owned_capacity() {
+        let status = unsafe {
+            free_owned_bytes_v2(NativePluginOwnedByteBufferV2 {
+                data: std::ptr::null_mut(),
+                len: 0,
+                capacity: 1,
+                owner_token: 0,
+                free: None,
+            })
+        };
+
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+    }
+
+    #[test]
+    fn native_owned_bytes_free_rejects_owner_mismatch_without_consuming_allocation() {
+        let buffer = owned_bytes(b"payload".to_vec());
+        let mut malformed = buffer;
+        malformed.owner_token ^= 1;
+
+        let malformed_status = unsafe { free_owned_bytes_v2(malformed) };
+        assert_eq!(malformed_status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+
+        let recovered_status = unsafe { free_owned_bytes_v2(buffer) };
+        assert_eq!(recovered_status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    }
+
+    #[test]
     fn native_panic_guard_maps_panic_to_callback_status() {
         let status = catch_native_callback_panic(b"panic caught\0", || panic!("fixture panic"));
 
         assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC);
+    }
+
+    #[test]
+    fn native_panic_guard_does_not_replace_the_process_global_hook() {
+        let source = include_str!("native.rs");
+        let guard = source
+            .split("pub fn catch_native_callback_panic")
+            .nth(1)
+            .and_then(|text| {
+                text.split("pub fn host_supports_all_capabilities_v3")
+                    .next()
+            })
+            .expect("read native callback panic guard");
+
+        assert!(guard.contains("catch_unwind(AssertUnwindSafe(callback))"));
+        assert!(!guard.contains("std::panic::take_hook()"));
+        assert!(!guard.contains("std::panic::set_hook("));
+        assert!(!guard.contains("Box::new(|_| {})"));
     }
 
     #[test]
@@ -678,7 +881,8 @@ mod tests {
                 sets: vec!["fixture".to_string()],
                 before: vec!["render".to_string()],
                 after: vec!["physics".to_string()],
-                access: vec!["read:scene.time".to_string()],
+                access: vec!["write:resource:fixture.resource".to_string()],
+                thread_affinity: NativePluginRegistrationThreadAffinityV3::WorkerSafe,
                 bridge_interface: Some("fixture.runtime".to_string()),
                 bridge_method: Some("tick".to_string()),
             }],
@@ -698,7 +902,10 @@ mod tests {
                 contribution: Some("fixture.data_json".to_string()),
                 schema: None,
             }],
-            capabilities: vec!["runtime.plugin.fixture".to_string()],
+            capabilities: vec![
+                "runtime.plugin.fixture".to_string(),
+                NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY_V3_TEXT.to_string(),
+            ],
         };
 
         let text =
@@ -708,6 +915,113 @@ mod tests {
 
         assert!(registration_manifest_v3_schema_is_current(&parsed));
         assert_eq!(parsed, manifest);
+    }
+
+    #[test]
+    fn native_command_manifest_v4_round_trips_dense_slots_and_output_limits() {
+        let manifest = NativePluginCommandManifestV4 {
+            schema: NATIVE_COMMAND_MANIFEST_SCHEMA_V4_TEXT.to_string(),
+            commands: vec![
+                NativePluginCommandV4 {
+                    name: "echo\0binary-safe".to_string(),
+                    slot: 0,
+                    payload_schema: "bytes".to_string(),
+                    max_output_bytes: 1024,
+                },
+                NativePluginCommandV4 {
+                    name: "asset.import/data".to_string(),
+                    slot: 1,
+                    payload_schema: "zircon.asset.import/1".to_string(),
+                    max_output_bytes: NATIVE_COMMAND_MAX_OUTPUT_BYTES_V4,
+                },
+            ],
+        };
+
+        let text = command_manifest_v4_to_toml(&manifest).expect("command manifest serializes");
+        let parsed =
+            command_manifest_v4_from_toml(&text).expect("command manifest parses from TOML");
+
+        assert!(command_manifest_v4_is_current_and_dense(&parsed));
+        assert_eq!(parsed, manifest);
+    }
+
+    #[test]
+    fn native_command_manifest_v4_rejects_whitespace_only_payload_schema() {
+        let manifest = NativePluginCommandManifestV4 {
+            schema: NATIVE_COMMAND_MANIFEST_SCHEMA_V4_TEXT.to_string(),
+            commands: vec![NativePluginCommandV4 {
+                name: "echo".to_string(),
+                slot: 0,
+                payload_schema: " \t\r\n".to_string(),
+                max_output_bytes: 1024,
+            }],
+        };
+
+        assert!(!command_manifest_v4_is_current_and_dense(&manifest));
+    }
+
+    #[test]
+    fn native_command_manifest_v4_rejects_unknown_root_and_command_fields() {
+        for text in [
+            r#"schema = "zircon.native.command-manifest/4"
+unexpected_root_field = true"#,
+            r#"schema = "zircon.native.command-manifest/4"
+[[commands]]
+name = "echo"
+slot = 0
+payload_schema = "bytes"
+max_output_bytes = 1
+unexpected_command_field = true"#,
+        ] {
+            assert!(command_manifest_v4_from_toml(text).is_err());
+        }
+    }
+
+    #[test]
+    fn native_output_sink_v4_writes_into_host_owned_context() {
+        unsafe extern "C" fn append(
+            context: *mut std::ffi::c_void,
+            bytes: NativePluginByteSliceV2,
+        ) -> NativePluginCallbackStatusV2 {
+            let output = unsafe { &mut *context.cast::<Vec<u8>>() };
+            output.extend_from_slice(unsafe { bytes_from_slice(bytes) });
+            callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR)
+        }
+
+        let mut output = Vec::new();
+        let sink = NativePluginOutputSinkV4 {
+            context: (&mut output as *mut Vec<u8>).cast(),
+            max_output_bytes: 8,
+            write: Some(append),
+        };
+
+        assert_eq!(
+            unsafe { sink.write(b"echo:") }.code,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK
+        );
+        assert_eq!(
+            unsafe { sink.write(b"ok") }.code,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK
+        );
+        assert_eq!(output, b"echo:ok");
+    }
+
+    #[test]
+    fn native_output_sink_v4_rejects_missing_writer_and_oversized_chunk() {
+        let sink = NativePluginOutputSinkV4 {
+            context: std::ptr::null_mut(),
+            max_output_bytes: 4,
+            write: None,
+        };
+
+        assert_eq!(
+            unsafe { sink.write(b"12345") }.code,
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR
+        );
+        assert_eq!(
+            unsafe { sink.write(b"ok") }.code,
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR
+        );
     }
 
     unsafe extern "C" fn host_abi_version() -> u32 {

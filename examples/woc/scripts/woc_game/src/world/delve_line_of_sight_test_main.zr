@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var sight = %import("world/delve_line_of_sight");
+
+console.printLine("m3-delve-line-of-sight-test");
+var result = sight.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

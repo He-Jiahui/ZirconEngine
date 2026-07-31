@@ -15,6 +15,12 @@ Read `references/handoff-template.md` before creating or closing a handoff.
 
 An open `failure-*.md` in the registered fixing child plan is the first executable item. Set the Session to `resolving_failure`, claim only the diagnostic/fix scope, and complete architectural repair, upward validation, and `failure return` before starting any normal fixing-plan slice. The originating plan may continue only slices that do not depend on the failed contract.
 
+## Coordinator Validation Failures
+
+- Treat a canonical `failure-*.md` materialized from coordinator validation as an immediate forward-fix continuation for its fixing Plan, even when the original source snapshot is already on `main` as `integrated_validation_pending`.
+- Preserve the original integrated commit for ordinary test or behavioral failures. Repair forward and return `fixed-*`; consider rollback only for ownership/provenance failure, false compile evidence, or demonstrated irreversible repository or persistent-data damage.
+- Do not wait for another validation ticket before diagnosing the Failure. The fixing primary enters `resolving_failure` immediately; the origin Plan continues only dependency-independent work.
+
 ## Start-of-Session Priority
 
 Before normal feature work, scan the current numbered child-plan directory for `failure-*.md`.

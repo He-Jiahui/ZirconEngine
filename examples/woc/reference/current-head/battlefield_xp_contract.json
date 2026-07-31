@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/battlefield_xp_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/battlefield_xp.ts": "c822529c4e3a6f2b5c74bc16d1ffc10a644730001d81af1c670e95b14e163589",
+    "src/sim/professions/gathering.ts": "e25b174f9b9d1b7e5e223795fbe345b20ccf6f56b34d2fdd2f2e5e04da62f67c"
+  },
+  "trickle": 0.25,
+  "signable_qualities": [
+    "rare",
+    "epic",
+    "legendary"
+  ],
+  "semantics": {
+    "observation_scope": "self-observation only: the instance signer must equal the observer",
+    "rarity": "prefer an instance rolled quality when present, otherwise use the resolved item-definition quality; only signable rare-or-better qualities continue",
+    "profession": "the caller resolves recipeForResultItem and the item definition; the returned profession must be either active major",
+    "mutation": "a successful observation adds the fixed trickle to the recipe profession skill and no rejection mutates skill"
+  }
+}

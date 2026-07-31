@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::core::framework::foundation::{ConfigManager, EventManager};
+use crate::core::framework::foundation::{ConfigManager, EventManager, FOUNDATION_MODULE_NAME};
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
@@ -10,7 +10,6 @@ use crate::engine_module::{factory, qualified_name, EngineModule};
 
 use super::{ConfigDriver, DefaultConfigManager, DefaultEventManager, EventDriver};
 
-pub const FOUNDATION_MODULE_NAME: &str = "FoundationModule";
 pub const CONFIG_DRIVER_NAME: &str = "FoundationModule.Driver.ConfigDriver";
 pub const EVENT_DRIVER_NAME: &str = "FoundationModule.Driver.EventDriver";
 
@@ -41,7 +40,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         StartupMode::Immediate,
         Vec::new(),
         factory(|core| {
-            let manager = Arc::new(DefaultConfigManager::new(core));
+            let manager = Arc::new(DefaultConfigManager::new(core)?);
             Ok(
                 Arc::new(RegisteredManagerService::<dyn ConfigManager>::new(manager))
                     as ServiceObject,

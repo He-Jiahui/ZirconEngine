@@ -1,0 +1,21 @@
+// Pure horizontal projection of delveMemberSpawnPos for valid solo/duo Delve entries.
+var content = %import("instances/delve_member_spawn_content");
+
+pub horizontalCoordinate(
+    entryCoordinate: float,
+    slotIndex: int,
+    axis: int
+): float {
+    return entryCoordinate + content.slotOffsetCoordinate(slotIndex, axis, true);
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 ||
+        horizontalCoordinate(-3.0, 0, 1) != -3.0 ||
+        horizontalCoordinate(-3.0, 0, 2) != -3.0 ||
+        horizontalCoordinate(0.0, 1, 1) != 1.1000000000000003 ||
+        horizontalCoordinate(0.0, 1, 2) != 1.905255888325765) {
+        return -1;
+    }
+    return 1;
+}

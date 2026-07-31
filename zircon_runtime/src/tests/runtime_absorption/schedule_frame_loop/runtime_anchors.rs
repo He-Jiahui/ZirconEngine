@@ -73,7 +73,8 @@ fn assert_world_driver_has_no_second_time_advance() {
 fn assert_schedule_runner_contract() {
     let schedule_runner = include_str!("../../../scene/ecs/schedule_runner.rs");
     for runner_anchor in [
-        "runtime_frame_schedule_stage.{stage:?}",
+        "profile_scope!",
+        "schedule_stage_profile_name(stage)",
         "ScheduledSceneStepRef::Internal",
         "ScheduledSceneStepRef::ApplyDeferred",
         "ScheduledSceneStepRef::Hook",
@@ -84,6 +85,27 @@ fn assert_schedule_runner_contract() {
             "schedule runner should retain stage/deferred/hook anchor `{runner_anchor}`"
         );
     }
+    for stage_name in [
+        "First",
+        "PreUpdate",
+        "FixedFirst",
+        "FixedUpdate",
+        "FixedPostUpdate",
+        "Update",
+        "PostUpdate",
+        "Last",
+        "RenderExtract",
+    ] {
+        let profile_name = format!("runtime_frame_schedule_stage.{stage_name}");
+        assert!(
+            schedule_runner.contains(&profile_name),
+            "schedule runner should retain static stage profile label `{profile_name}`"
+        );
+    }
+    assert!(
+        !schedule_runner.contains("format!(\"runtime_frame_schedule_stage"),
+        "schedule runner should not format static stage labels per frame"
+    );
 }
 
 fn assert_behavior_test_anchors() {

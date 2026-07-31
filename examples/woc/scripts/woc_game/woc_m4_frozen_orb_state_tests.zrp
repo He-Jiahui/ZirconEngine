@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_frozen_orb_state_tests",
+  "source": "src",
+  "binary": "bin-m4-frozen-orb-state-tests",
+  "entry": "combat/frozen_orb_state_test_main"
+}

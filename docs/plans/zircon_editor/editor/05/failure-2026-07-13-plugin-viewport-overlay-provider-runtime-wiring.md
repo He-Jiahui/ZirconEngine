@@ -27,7 +27,7 @@ tests:
 
 ## 失败现象与复现证据
 
-Navigation 已声明稳定 provider id，并实现 toggle controller 与 `NavigationViewportGizmoSink`，但当前 `ViewportToolModeDescriptor` 只保存字符串；host 不解析 provider id，也不安装 controller/sink。toggle operation 同时受 Editor 03 factory 缺口影响。离线构造测试不能证明 viewport 实际显示或清除 overlay。
+Navigation 已声明稳定 provider id，并实现 toggle controller 与 `NavigationViewportGizmoSink`。Editor host 已硬切为 `SceneModeRegistration` 与独立 overlay provider factory 的可执行安装契约，不再接受仅保存字符串的 descriptor-only tool mode；Navigation 仍需在其责任计划内注册真实 provider 并提供端到端显示/清除证据。toggle operation 同时受 Editor 03 factory 缺口影响。离线构造测试不能证明 viewport 实际显示或清除 overlay。
 
 ## 最低共享层根因
 
@@ -47,4 +47,11 @@ Editor viewport/tool-mode 扩展模型缺少 provider 实例注册、capability 
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `host wiring 实现完成，端到端仍待 Plugins05`; host 已验证并安装 provider registration、按 capability gate toggle，并把 provider/mode gizmo 合并到 render 与 pointer 共用的 immutable interaction extract。扩展 scene mode 入口也已 hard-cut 为 executable registration，descriptor-only provider string 不再能冒充运行时 mode。Navigation 仍没有注册可实例化 provider，也没有发布包含 NavMesh 与 PIE frame 的 canonical overlay frame；该最低插件原因由当前 [Plugins05 navigation overlay frame handoff](failure-2026-07-30-navigation-overlay-frame-publication.md) 负责。Editor05 不创建全局 overlay cache 或插件专用 bypass；待 Plugins05 返回真实 provider/frame 后，以 host toggle -> shared extract 的受管产品验证恢复本 handoff。
+
+## 产出记录与时间
+
+| 日期 | 项目 | 状态 | 证据 |
+| --- | --- | --- | --- |
+| 2026-07-31 | viewport overlay provider host audit | open | Editor05 registry 已具备 duplicate validation、factory install、capability disable cleanup、toggle 及 `RenderOverlayExtract.scene_gizmos` 合并；Navigation `register_navigation_overlay` 仍只声明 descriptor/provider id，仓库没有 Navigation `register_viewport_overlay_provider` consumer。真实 frame/provider 缺口已链接至 Plugins05；端到端 managed product gate 保持 open。 |
+| 2026-08-01 | executable host registry + shared pick/render extract | implementation_complete / managed_validation_pending | provider install/toggle/capability changes invalidate the shared interaction cache；provider 与 mode gizmo 在 cache rebuild 内合并，render/pointer 同消费一份 `Arc`。descriptor-only scene-mode API 已删除；Navigation pseudo mode 同步移除，真实 provider/frame 仍由 Plugins05 failure 负责。 |

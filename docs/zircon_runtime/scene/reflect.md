@@ -9,9 +9,16 @@ related_code:
   - zircon_reflect_derive/src/fields.rs
   - zircon_runtime_interface/src/reflect/zr_reflect.rs
   - zircon_runtime_interface/src/reflect/zr_reflect_value.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/identity.rs
+  - zircon_runtime/src/scene/components/scene/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/components/scene/lighting.rs
   - zircon_runtime/src/scene/components/scene/reflection
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection
   - zircon_runtime/src/scene/reflect/derived
   - zircon_runtime/src/scene/reflect/mod.rs
@@ -44,9 +51,16 @@ implementation_files:
   - zircon_reflect_derive/src/fields.rs
   - zircon_runtime_interface/src/reflect/zr_reflect.rs
   - zircon_runtime_interface/src/reflect/zr_reflect_value.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/identity.rs
+  - zircon_runtime/src/scene/components/scene/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/components/scene/lighting.rs
   - zircon_runtime/src/scene/components/scene/reflection
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection
   - zircon_runtime/src/scene/reflect/derived
   - zircon_runtime/src/scene/reflect/mod.rs

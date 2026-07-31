@@ -1,6 +1,6 @@
 use crate::core::framework::render::ViewportCameraSnapshot;
 
-use super::{viewport_record::ViewportRecord, ViewportCameraHistoryKey};
+use super::{ViewportCameraHistoryKey, viewport_record::ViewportRecord};
 
 impl ViewportRecord {
     pub(in crate::graphics::runtime::render_framework) fn motion_vector_camera(

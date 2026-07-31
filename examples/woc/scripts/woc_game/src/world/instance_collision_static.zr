@@ -1,0 +1,80 @@
+// Source-order local resolveAgainst for generated dungeon_layout colliders.
+
+var collisionGeometry = %import("world/collision_geometry");
+var collisionContent = %import("world/instance_collision_content");
+
+pub resolveCoordinate(
+    layoutIndex: int,
+    x: float,
+    z: float,
+    bodyRadius: float,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc instance collision arguments are invalid";
+    }
+    var positionX = x;
+    var positionZ = z;
+    var iteration = 0;
+    while (iteration < 3) {
+        var moved = false;
+        var colliderIndex = 0;
+        while (colliderIndex < collisionContent.layoutColliderCount(layoutIndex, true)) {
+            var kind = collisionContent.colliderKind(layoutIndex, colliderIndex, true);
+            var centerX = collisionContent.colliderFloat(layoutIndex, colliderIndex, 1, true);
+            var centerZ = collisionContent.colliderFloat(layoutIndex, colliderIndex, 2, true);
+            var resolvedX = positionX;
+            var resolvedZ = positionZ;
+            if (kind == 1) {
+                var radius = collisionContent.colliderFloat(layoutIndex, colliderIndex, 3, true);
+                resolvedX = collisionGeometry.circleResolvedX(
+                    positionX, positionZ, bodyRadius, centerX, centerZ, radius, true
+                );
+                resolvedZ = collisionGeometry.circleResolvedZ(
+                    positionX, positionZ, bodyRadius, centerX, centerZ, radius, true
+                );
+            } else {
+                var halfWidth = collisionContent.colliderFloat(layoutIndex, colliderIndex, 4, true);
+                var halfDepth = collisionContent.colliderFloat(layoutIndex, colliderIndex, 5, true);
+                var rotation = collisionContent.colliderFloat(layoutIndex, colliderIndex, 6, true);
+                resolvedX = collisionGeometry.obbResolvedX(
+                    positionX, positionZ, bodyRadius, centerX, centerZ,
+                    halfWidth, halfDepth, rotation, true
+                );
+                resolvedZ = collisionGeometry.obbResolvedZ(
+                    positionX, positionZ, bodyRadius, centerX, centerZ,
+                    halfWidth, halfDepth, rotation, true
+                );
+            }
+            if (resolvedX != positionX || resolvedZ != positionZ) {
+                positionX = resolvedX;
+                positionZ = resolvedZ;
+                moved = true;
+            }
+            colliderIndex = colliderIndex + 1;
+        }
+        if (!moved) {
+            iteration = 3;
+        } else {
+            iteration = iteration + 1;
+        }
+    }
+    return axis == 1 ? positionX : positionZ;
+}
+
+pub contractTest(): int {
+    if (resolveCoordinate(0, 0.0, 0.0, 0.5, 1, true) != 0.0 ||
+        resolveCoordinate(0, 0.0, 0.0, 0.5, 2, true) != 0.0 ||
+        resolveCoordinate(0, -23.0, 47.0, 0.5, 1, true) != -21.5 ||
+        resolveCoordinate(0, -23.0, 47.0, 0.5, 2, true) != 47.0 ||
+        resolveCoordinate(1, -14.0, 67.0, 0.5, 1, true) != -14.0 ||
+        resolveCoordinate(1, -14.0, 67.0, 0.5, 2, true) != 72.5 ||
+        resolveCoordinate(4, 0.0, -4.0, 0.5, 1, true) != 1.5 ||
+        resolveCoordinate(4, 0.0, -4.0, 0.5, 2, true) != -4.0 ||
+        resolveCoordinate(5, 0.0, -44.0, 0.5, 1, true) != 0.0 ||
+        resolveCoordinate(5, 0.0, -44.0, 0.5, 2, true) != -43.375) {
+        return -1;
+    }
+    return 1;
+}

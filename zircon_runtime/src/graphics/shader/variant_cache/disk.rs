@@ -25,12 +25,7 @@ impl ShaderVariantCacheDiskKey {
         include_content_hashes: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Self {
         let canonical_string = key.canonical_string();
-        let hash = shader_variant_cache_hash(
-            canonical_string.as_str(),
-            include_content_hashes
-                .into_iter()
-                .map(|hash| hash.as_ref().to_string()),
-        );
+        let hash = shader_variant_cache_hash(canonical_string.as_str(), include_content_hashes);
         Self {
             hash,
             canonical_string,
@@ -238,13 +233,13 @@ struct ShaderVariantCacheDiskPath {
 
 fn shader_variant_cache_hash(
     canonical_string: &str,
-    include_content_hashes: impl IntoIterator<Item = String>,
+    include_content_hashes: impl IntoIterator<Item = impl AsRef<str>>,
 ) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(canonical_string.as_bytes());
     for include_hash in include_content_hashes {
         hasher.update(b"\0");
-        hasher.update(include_hash.as_bytes());
+        hasher.update(include_hash.as_ref().as_bytes());
     }
     hasher.finalize().to_hex().to_string()
 }
@@ -282,8 +277,8 @@ mod tests {
     use std::fs;
 
     use crate::core::framework::render::{
-        GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
-        SHADING_MODEL_ID_STANDARD_PBR,
+        GeometrySourceId, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
+        ShaderQualityTier, ShaderVariantKey,
     };
     use crate::core::resource::ResourceId;
 

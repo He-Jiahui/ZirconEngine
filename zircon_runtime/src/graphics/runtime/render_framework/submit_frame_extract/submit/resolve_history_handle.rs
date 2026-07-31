@@ -44,7 +44,8 @@ pub(super) fn resolve_history_handle(
     context: &FrameSubmissionContext,
 ) -> ResolvedHistoryHandle {
     let allocated_history =
-        should_rotate_history(state, viewport, context).then(|| allocate_history_handle(state));
+        history_invalidation_requires_reallocation(context.history_invalidation_reason())
+            .then(|| allocate_history_handle(state));
     let current_history_handle =
         allocated_history.or_else(|| current_history_handle(state, viewport, context));
     let previous_history_available = current_history_handle.is_some()
@@ -56,26 +57,6 @@ pub(super) fn resolve_history_handle(
         current_history_handle,
         previous_history_available,
     )
-}
-
-fn should_rotate_history(
-    state: &RenderFrameworkState,
-    viewport: RenderViewportHandle,
-    context: &FrameSubmissionContext,
-) -> bool {
-    state
-        .viewports
-        .get(&viewport)
-        .and_then(|record| record.history(context.camera_history_key()))
-        .is_none_or(|history| {
-            history_invalidation_requires_reallocation(history.incompatibility_reason(
-                context.size(),
-                context.render_size(),
-                context.pipeline_handle(),
-                &context.compiled_pipeline().history_bindings,
-                context.history_validation_key(),
-            ))
-        })
 }
 
 const fn history_invalidation_requires_reallocation(
@@ -121,5 +102,13 @@ mod tests {
         assert!(history_invalidation_requires_reallocation(Some(
             FrameHistoryInvalidationReason::PipelineChanged
         )));
+    }
+
+    #[test]
+    fn history_resolution_reuses_context_invalidation_without_recomparing_history() {
+        let source = include_str!("resolve_history_handle.rs");
+
+        assert!(source.contains("context.history_invalidation_reason()"));
+        assert!(!source.contains(concat!("history", ".incompatibility_reason")));
     }
 }

@@ -1,0 +1,154 @@
+// Current-head projection of item_budget.ts plus masterworkBonusStats' pure
+// primary-profile baking. Equipment/instance persistence remains a WOS owner;
+// this module returns only the additive primary-stat record.
+var container = %import("zr.container");
+var budget = %import("generated/item_budget_contract");
+var masterwork = %import("progression/masterwork_rules");
+
+pub class PrimaryStatLine {
+    pub var present: bool;
+    pub var str: int;
+    pub var agi: int;
+    pub var sta: int;
+    pub var intel: int;
+    pub var spi: int;
+
+    pub @constructor() {
+        this.present = false;
+        this.str = 0;
+        this.agi = 0;
+        this.sta = 0;
+        this.intel = 0;
+        this.spi = 0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+normalizedQuality(quality: string): string {
+    // Empty is the Zr representation of source's undefined ItemDef quality.
+    return quality == "" ? "common" : quality;
+}
+
+pub primaryStatBudget(level: int, quality: string, slot: string): int {
+    if (slot == "" || level <= 0) return 0;
+    var value = <float>level * budget.qualityMultiplier(normalizedQuality(quality)) *
+        budget.slotMultiplier(slot) * budget.statPerIlvl(true);
+    if (value <= 0.0) return 0;
+    return roundPositive(value);
+}
+
+// Largest-remainder allocation in the source PRIMARY_STATS order: str, agi,
+// sta, int, spi. Strict comparison preserves that order for equal fractions.
+pub redistributePrimaryStats(
+    sourceStr: int,
+    sourceAgi: int,
+    sourceSta: int,
+    sourceInt: int,
+    sourceSpi: int,
+    targetBudget: int
+): PrimaryStatLine {
+    var result = new PrimaryStatLine();
+    if (targetBudget <= 0) return result;
+    var source = new container.Array<int>();
+    source.add(sourceStr > 0 ? sourceStr : 0);
+    source.add(sourceAgi > 0 ? sourceAgi : 0);
+    source.add(sourceSta > 0 ? sourceSta : 0);
+    source.add(sourceInt > 0 ? sourceInt : 0);
+    source.add(sourceSpi > 0 ? sourceSpi : 0);
+    var total = 0;
+    var index = 0;
+    while (index < source.length) {
+        total = total + <int>source[index];
+        index = index + 1;
+    }
+    if (total <= 0) return result;
+    var allocated = new container.Array<int>();
+    var fractions = new container.Array<float>();
+    var assigned = 0;
+    index = 0;
+    while (index < source.length) {
+        var exact = <float>targetBudget * <float>source[index] / <float>total;
+        var base = <int>exact;
+        allocated.add(base);
+        fractions.add(exact - <float>base);
+        assigned = assigned + base;
+        index = index + 1;
+    }
+    while (assigned < targetBudget) {
+        var bestIndex = 0;
+        var bestFraction = -1.0;
+        index = 0;
+        while (index < fractions.length) {
+            if (<float>fractions[index] > bestFraction) {
+                bestFraction = <float>fractions[index];
+                bestIndex = index;
+            }
+            index = index + 1;
+        }
+        allocated[bestIndex] = <int>allocated[bestIndex] + 1;
+        // The source remainder is always below the number of primary slots.
+        // Excluding this slot implements its stable one-pass sorted ordering.
+        fractions[bestIndex] = -1.0;
+        assigned = assigned + 1;
+    }
+    result.present = true;
+    result.str = <int>allocated[0];
+    result.agi = <int>allocated[1];
+    result.sta = <int>allocated[2];
+    result.intel = <int>allocated[3];
+    result.spi = <int>allocated[4];
+    return result;
+}
+
+pub masterworkBonusStats(
+    level: int,
+    quality: string,
+    slot: string,
+    sourceStr: int,
+    sourceAgi: int,
+    sourceSta: int,
+    sourceInt: int,
+    sourceSpi: int
+): PrimaryStatLine {
+    var result = new PrimaryStatLine();
+    if (slot == "") return result;
+    var baseQuality = normalizedQuality(quality);
+    var bumpedQuality = masterwork.masterworkBumpedQuality(baseQuality);
+    if (bumpedQuality == "") return result;
+    var bonusBudget = primaryStatBudget(level, bumpedQuality, slot) -
+        primaryStatBudget(level, baseQuality, slot);
+    if (bonusBudget <= 0) return result;
+    return redistributePrimaryStats(
+        sourceStr, sourceAgi, sourceSta, sourceInt, sourceSpi, bonusBudget
+    );
+}
+
+pub primaryStatSum(line: PrimaryStatLine): int {
+    return line.str + line.agi + line.sta + line.intel + line.spi;
+}
+
+pub contractTest(): int {
+    if (primaryStatBudget(9, "uncommon", "chest") != 3 ||
+        primaryStatBudget(9, "rare", "chest") != 5 ||
+        primaryStatBudget(1, "uncommon", "ring") != 0 ||
+        primaryStatBudget(10, "common", "") != 0 ||
+        primaryStatBudget(10, "unknown", "chest") != 0) return -1;
+
+    var vestments = masterworkBonusStats(9, "uncommon", "chest", 0, 0, 0, 2, 1);
+    if (!vestments.present || vestments.intel != 1 || vestments.spi != 1 ||
+        primaryStatSum(vestments) != 2) return -2;
+    var armorFiltered = masterworkBonusStats(10, "common", "chest", 2, 0, 2, 0, 0);
+    if (!armorFiltered.present || armorFiltered.str != 2 || armorFiltered.sta != 2 ||
+        primaryStatSum(armorFiltered) != 4) return -3;
+    var tie = redistributePrimaryStats(1, 1, 0, 0, 0, 1);
+    if (!tie.present || tie.str != 1 || tie.agi != 0) return -4;
+    var slotless = masterworkBonusStats(9, "uncommon", "", 0, 0, 0, 2, 1);
+    var armorOnly = masterworkBonusStats(10, "common", "chest", 0, 0, 0, 0, 0);
+    var legendary = masterworkBonusStats(20, "legendary", "mainhand", 2, 0, 0, 0, 0);
+    var tiny = masterworkBonusStats(1, "common", "ring", 0, 0, 0, 1, 0);
+    if (slotless.present || armorOnly.present || legendary.present || tiny.present) return -5;
+    return 1;
+}

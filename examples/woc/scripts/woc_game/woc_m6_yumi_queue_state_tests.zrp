@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_yumi_queue_state_tests",
+  "source": "src",
+  "binary": "bin-m6-yumi-queue-state-tests",
+  "entry": "social/yumi_queue_state_test_main"
+}

@@ -1,13 +1,74 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::{
     PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleKind, PluginModuleManifest,
     PluginPackageManifest,
 };
 
 use super::{manifests::merge_package_manifest, NativePluginLoadReport};
-use crate::plugin::native_plugin_loader::NativePluginCandidate;
+use crate::plugin::native_plugin_loader::{
+    LoadedNativePlugin, NativePluginBehaviorValidationReport, NativePluginCandidate,
+    NativePluginDescriptor, NativePluginEntryReport, NativePluginLoadProjection,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+};
+
+#[test]
+fn diagnostic_only_report_preserves_private_projection_initialization() {
+    let report = NativePluginLoadReport::diagnostic_only("collector I/O lane is unavailable");
+
+    assert!(report.discovered().is_empty());
+    assert!(report.loaded().is_empty());
+    assert_eq!(
+        report.diagnostics(),
+        ["collector I/O lane is unavailable".to_owned()]
+    );
+    assert!(report.has_failures());
+
+    let first_projection = report.projection() as *const NativePluginLoadProjection;
+    let second_projection = report.projection() as *const NativePluginLoadProjection;
+    assert_eq!(first_projection, second_projection);
+}
+
+#[test]
+fn report_owner_mutation_refreshes_a_frozen_projection() {
+    let mut report = NativePluginLoadReport::diagnostic_only(
+        "native plugin refreshable: collector I/O lane is unavailable",
+    );
+
+    assert_eq!(
+        report.diagnostics_for_plugin("refreshable"),
+        ["native plugin refreshable: collector I/O lane is unavailable".to_owned()]
+    );
+
+    report.push_diagnostic("native plugin refreshable: ABI negotiation failed");
+
+    assert_eq!(
+        report.diagnostics_for_plugin("refreshable"),
+        [
+            "native plugin refreshable: ABI negotiation failed".to_owned(),
+            "native plugin refreshable: collector I/O lane is unavailable".to_owned(),
+        ]
+    );
+}
+
+#[test]
+fn consuming_a_mixed_report_as_discovery_preserves_the_report() {
+    let mut report = projection_fixture(1, 0, 0);
+    report.push_diagnostic("native plugin projection_0000: discovery handoff diagnostic");
+
+    let report = report
+        .try_into_discovered()
+        .expect_err("a report containing loaded plugins is not discovery-only");
+
+    assert_eq!(report.discovered().len(), 1);
+    assert_eq!(report.loaded().len(), 1);
+    assert_eq!(
+        report.diagnostics(),
+        ["native plugin projection_0000: discovery handoff diagnostic".to_owned()]
+    );
+}
 
 #[test]
 fn native_manifest_merge_preserves_runtime_and_editor_entry_modules() {
@@ -138,6 +199,7 @@ fn native_load_report_projects_optional_features_as_runtime_feature_registration
         }],
         loaded: Vec::new(),
         diagnostics: Vec::new(),
+        ..Default::default()
     };
 
     let feature_reports = report.runtime_plugin_feature_registration_reports();
@@ -193,6 +255,7 @@ fn native_load_report_projects_feature_extension_packages_as_runtime_feature_reg
         }],
         loaded: Vec::new(),
         diagnostics: Vec::new(),
+        ..Default::default()
     };
 
     assert!(report.runtime_plugin_registration_reports().is_empty());
@@ -212,4 +275,408 @@ fn native_load_report_projects_feature_extension_packages_as_runtime_feature_reg
             .as_deref(),
         Some("sound_timeline_animation_track")
     );
+}
+
+#[test]
+fn projection_preserves_descriptor_runtime_editor_precedence_as_json_bytes() {
+    let plugin_id = "projection_merge_contract";
+    let discovered = stage_manifest(plugin_id, "Discovered", "1.0.0", "discovered");
+    let descriptor = stage_manifest(plugin_id, "Descriptor", "2.0.0", "descriptor");
+    let runtime = stage_manifest(plugin_id, "Runtime", "3.0.0", "runtime").with_runtime_module(
+        PluginModuleManifest::runtime(
+            format!("{plugin_id}.runtime"),
+            format!("zircon_plugin_{plugin_id}_runtime"),
+        ),
+    );
+    let editor = stage_manifest(plugin_id, "Editor", "4.0.0", "editor").with_editor_module(
+        PluginModuleManifest::editor(
+            format!("{plugin_id}.editor"),
+            format!("zircon_plugin_{plugin_id}_editor"),
+        ),
+    );
+    let report = NativePluginLoadReport {
+        discovered: vec![candidate(discovered.clone())],
+        loaded: vec![loaded_projection_plugin(
+            plugin_id,
+            descriptor.clone(),
+            runtime.clone(),
+            editor.clone(),
+        )],
+        diagnostics: Vec::new(),
+        ..Default::default()
+    };
+
+    let mut expected = discovered;
+    expected.version = editor.version.clone();
+    expected.display_name = editor.display_name.clone();
+    expected.description = editor.description.clone();
+    expected.capabilities.extend([
+        format!("runtime.plugin.{plugin_id}.descriptor"),
+        format!("runtime.plugin.{plugin_id}.runtime"),
+        format!("runtime.plugin.{plugin_id}.editor"),
+    ]);
+    expected.modules.extend(runtime.modules);
+    expected.modules.extend(editor.modules);
+
+    let projected_bytes =
+        serde_json::to_vec(report.projection().package_manifests()).expect("projected JSON");
+    let expected_bytes = serde_json::to_vec(&vec![expected]).expect("expected JSON");
+    assert_eq!(projected_bytes, expected_bytes);
+}
+
+#[test]
+fn projection_preserves_registration_and_diagnostic_outputs_as_json_bytes() {
+    let report = projection_fixture(2, 2, 4);
+    let projection = report.projection();
+    let registrations = projection.runtime_plugin_registration_reports();
+    let features = projection.runtime_plugin_feature_registration_reports();
+    let registration_signature = registrations
+        .iter()
+        .map(|registration| {
+            serde_json::json!({
+                "package": registration.package_manifest.id,
+                "manifest_modules": registration
+                    .package_manifest
+                    .modules
+                    .iter()
+                    .map(|module| module.name.as_str())
+                    .collect::<Vec<_>>(),
+                "selection": registration.project_selection.id,
+                "runtime_crate": registration.project_selection.runtime_crate,
+                "extension_modules": registration
+                    .extensions
+                    .modules()
+                    .iter()
+                    .map(|module| module.name.as_str())
+                    .collect::<Vec<_>>(),
+                "diagnostics": registration.diagnostics,
+            })
+        })
+        .collect::<Vec<_>>();
+    let feature_signature = features
+        .iter()
+        .map(|feature| {
+            serde_json::json!({
+                "feature": feature.manifest.id,
+                "provider": feature.provider_package_id,
+                "selection": feature.project_selection.id,
+                "runtime_crate": feature.project_selection.runtime_crate,
+                "extension_modules": feature
+                    .extensions
+                    .modules()
+                    .iter()
+                    .map(|module| module.name.as_str())
+                    .collect::<Vec<_>>(),
+                "diagnostics": feature.diagnostics,
+            })
+        })
+        .collect::<Vec<_>>();
+    let diagnostic_signature = projection
+        .package_manifests()
+        .iter()
+        .map(|manifest| {
+            serde_json::json!({
+                "package": manifest.id,
+                "all": projection.diagnostics_for_plugin(&manifest.id),
+                "runtime": projection.runtime_diagnostics_for_plugin(&manifest.id),
+                "editor": projection.editor_diagnostics_for_plugin(&manifest.id),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        serde_json::to_vec(&registration_signature).expect("registration signature JSON"),
+        br#"[{"diagnostics":["native plugin projection_0000: Runtime entry diagnostic","native plugin projection_0000: diagnostic 00000","native plugin projection_0000: diagnostic 00002","native plugin projection_0000: native plugin projection_0000 runtime behavior is missing"],"extension_modules":["projection_0000.runtime"],"manifest_modules":["projection_0000.runtime"],"package":"projection_0000","runtime_crate":"zircon_plugin_projection_0000_runtime","selection":"projection_0000"},{"diagnostics":["native plugin projection_0001: Runtime entry diagnostic","native plugin projection_0001: diagnostic 00001","native plugin projection_0001: diagnostic 00003","native plugin projection_0001: native plugin projection_0001 runtime behavior is missing"],"extension_modules":["projection_0001.runtime"],"manifest_modules":["projection_0001.runtime"],"package":"projection_0001","runtime_crate":"zircon_plugin_projection_0001_runtime","selection":"projection_0001"}]"#
+    );
+    assert_eq!(
+        serde_json::to_vec(&feature_signature).expect("feature signature JSON"),
+        br#"[{"diagnostics":["native plugin projection_0000: Runtime entry diagnostic","native plugin projection_0000: diagnostic 00000","native plugin projection_0000: diagnostic 00002","native plugin projection_0000: native plugin projection_0000 runtime behavior is missing"],"extension_modules":["projection_0000.feature_00.runtime"],"feature":"projection_0000.feature_00","provider":null,"runtime_crate":"zircon_plugin_projection_0000_feature_00_runtime","selection":"projection_0000.feature_00"},{"diagnostics":["native plugin projection_0000: Runtime entry diagnostic","native plugin projection_0000: diagnostic 00000","native plugin projection_0000: diagnostic 00002","native plugin projection_0000: native plugin projection_0000 runtime behavior is missing"],"extension_modules":["projection_0000.feature_01.runtime"],"feature":"projection_0000.feature_01","provider":null,"runtime_crate":"zircon_plugin_projection_0000_feature_01_runtime","selection":"projection_0000.feature_01"},{"diagnostics":["native plugin projection_0001: Runtime entry diagnostic","native plugin projection_0001: diagnostic 00001","native plugin projection_0001: diagnostic 00003","native plugin projection_0001: native plugin projection_0001 runtime behavior is missing"],"extension_modules":["projection_0001.feature_00.runtime"],"feature":"projection_0001.feature_00","provider":null,"runtime_crate":"zircon_plugin_projection_0001_feature_00_runtime","selection":"projection_0001.feature_00"},{"diagnostics":["native plugin projection_0001: Runtime entry diagnostic","native plugin projection_0001: diagnostic 00001","native plugin projection_0001: diagnostic 00003","native plugin projection_0001: native plugin projection_0001 runtime behavior is missing"],"extension_modules":["projection_0001.feature_01.runtime"],"feature":"projection_0001.feature_01","provider":null,"runtime_crate":"zircon_plugin_projection_0001_feature_01_runtime","selection":"projection_0001.feature_01"}]"#
+    );
+    assert_eq!(
+        serde_json::to_vec(&diagnostic_signature).expect("diagnostic signature JSON"),
+        br#"[{"all":["native plugin projection_0000: Editor entry diagnostic","native plugin projection_0000: Runtime entry diagnostic","native plugin projection_0000: diagnostic 00000","native plugin projection_0000: diagnostic 00002","native plugin projection_0000: native plugin projection_0000 editor behavior is missing","native plugin projection_0000: native plugin projection_0000 runtime behavior is missing"],"editor":["native plugin projection_0000: Editor entry diagnostic","native plugin projection_0000: diagnostic 00000","native plugin projection_0000: diagnostic 00002","native plugin projection_0000: native plugin projection_0000 editor behavior is missing"],"package":"projection_0000","runtime":["native plugin projection_0000: Runtime entry diagnostic","native plugin projection_0000: diagnostic 00000","native plugin projection_0000: diagnostic 00002","native plugin projection_0000: native plugin projection_0000 runtime behavior is missing"]},{"all":["native plugin projection_0001: Editor entry diagnostic","native plugin projection_0001: Runtime entry diagnostic","native plugin projection_0001: diagnostic 00001","native plugin projection_0001: diagnostic 00003","native plugin projection_0001: native plugin projection_0001 editor behavior is missing","native plugin projection_0001: native plugin projection_0001 runtime behavior is missing"],"editor":["native plugin projection_0001: Editor entry diagnostic","native plugin projection_0001: diagnostic 00001","native plugin projection_0001: diagnostic 00003","native plugin projection_0001: native plugin projection_0001 editor behavior is missing"],"package":"projection_0001","runtime":["native plugin projection_0001: Runtime entry diagnostic","native plugin projection_0001: diagnostic 00001","native plugin projection_0001: diagnostic 00003","native plugin projection_0001: native plugin projection_0001 runtime behavior is missing"]}]"#
+    );
+}
+
+#[test]
+fn native_load_projection_preserves_order_and_projection_statistics() {
+    for package_count in [1, 100, 1_000] {
+        for feature_count in [0, 10] {
+            let report = projection_fixture(package_count, feature_count, 10_000);
+            let projection = report.projection();
+            let registrations = projection.runtime_plugin_registration_reports();
+            let features = projection.runtime_plugin_feature_registration_reports();
+            let projected_diagnostic_count = projection
+                .package_manifests()
+                .iter()
+                .map(|package| {
+                    assert!(projection.is_loaded(&package.id));
+                    assert!(projection.has_descriptor(&package.id));
+                    projection.diagnostics_for_plugin(&package.id).len()
+                })
+                .sum::<usize>();
+            let stats = projection.stats();
+
+            assert_eq!(stats.projection_builds, 1);
+            assert_eq!(stats.manifest_sources_scanned, package_count * 4);
+            assert_eq!(stats.packages_projected, package_count);
+            assert_eq!(stats.features_projected, package_count * feature_count);
+            assert_eq!(stats.loaded_plugins_scanned, package_count);
+            assert_eq!(stats.raw_diagnostics_scanned, 10_000);
+            assert_eq!(registrations.len(), package_count);
+            assert_eq!(features.len(), package_count * feature_count);
+            assert_eq!(projected_diagnostic_count, 10_000 + package_count * 4);
+            assert!(projection.descriptor_diagnostics().is_empty());
+            assert_eq!(projection.entry_diagnostics().len(), package_count * 4);
+
+            let package_ids = projection
+                .package_manifests()
+                .iter()
+                .map(|manifest| manifest.id.as_str())
+                .collect::<Vec<_>>();
+            assert!(package_ids.windows(2).all(|ids| ids[0] < ids[1]));
+        }
+    }
+}
+
+#[test]
+fn public_load_report_getters_share_one_frozen_projection() {
+    let report = projection_fixture(100, 10, 10_000);
+    let first_projection = report.projection() as *const NativePluginLoadProjection;
+
+    assert_eq!(report.package_manifests().len(), 100);
+    assert_eq!(report.runtime_plugin_registration_reports().len(), 100);
+    assert_eq!(
+        report.runtime_plugin_feature_registration_reports().len(),
+        1_000
+    );
+    assert!(report.entry_diagnostics().len() >= 100);
+    assert!(report.descriptor_diagnostics().is_empty());
+    assert!(!report
+        .diagnostics_for_runtime_plugin("projection_0000")
+        .is_empty());
+    assert!(!report
+        .diagnostics_for_editor_plugin("projection_0000")
+        .is_empty());
+    assert!(!report.diagnostics_for_plugin("projection_0000").is_empty());
+
+    let projection = report.projection();
+    assert_eq!(
+        first_projection,
+        projection as *const NativePluginLoadProjection
+    );
+    assert_eq!(projection.stats().projection_builds, 1);
+    assert_eq!(projection.stats().manifest_sources_scanned, 400);
+    assert_eq!(projection.stats().raw_diagnostics_scanned, 10_000);
+}
+
+#[test]
+fn live_host_builds_one_projection_per_native_report() {
+    let loading = include_str!("../native_plugin_live_host/loading.rs");
+    let body = loading
+        .split_once("fn load_reported_plugins_result")
+        .expect("load result function")
+        .1
+        .split_once("pub(super) fn lock_loaded_native_plugins")
+        .expect("loading helpers follow load result")
+        .0;
+
+    assert_eq!(body.matches("report.projection()").count(), 1);
+    assert!(!body.contains("report.runtime_plugin_registration_reports()"));
+    assert!(!body.contains("report.runtime_plugin_feature_registration_reports()"));
+
+    let lifecycle = include_str!("../native_plugin_live_host/lifecycle.rs");
+    let hot_reload = lifecycle
+        .split_once("fn hot_reload_reported_plugin_result")
+        .expect("hot reload result function")
+        .1
+        .split_once("pub(super) fn load_for_module_kind")
+        .expect("module-kind loader follows hot reload")
+        .0;
+    assert_eq!(hot_reload.matches("report.projection()").count(), 1);
+    assert!(hot_reload.contains("load_projected_report_diagnostics(&report, &projection)"));
+    assert!(hot_reload.contains("projected_diagnostics_for_plugin("));
+    assert!(!hot_reload.contains("report.diagnostics_for_"));
+}
+
+fn projection_fixture(
+    package_count: usize,
+    feature_count: usize,
+    diagnostic_count: usize,
+) -> NativePluginLoadReport {
+    let discovered = (0..package_count)
+        .rev()
+        .map(|package_index| {
+            let plugin_id = format!("projection_{package_index:04}");
+            let package_capability = format!("runtime.plugin.{plugin_id}");
+            let mut manifest = PluginPackageManifest::new(&plugin_id, &plugin_id)
+                .with_capability(package_capability.clone())
+                .with_runtime_module(valid_projection_runtime_module(
+                    &plugin_id,
+                    &package_capability,
+                ));
+            for feature_index in 0..feature_count {
+                let feature_id = format!("{plugin_id}.feature_{feature_index:02}");
+                let feature_capability = format!("runtime.feature.{feature_id}");
+                manifest = manifest.with_optional_feature(
+                    PluginFeatureBundleManifest::new(&feature_id, &feature_id, &plugin_id)
+                        .with_dependency(PluginFeatureDependency::primary(
+                            &plugin_id,
+                            &package_capability,
+                        ))
+                        .with_capability(feature_capability.clone())
+                        .with_runtime_module(
+                            PluginModuleManifest::runtime(
+                                format!("{feature_id}.runtime"),
+                                format!(
+                                    "zircon_plugin_{plugin_id}_feature_{feature_index:02}_runtime"
+                                ),
+                            )
+                            .with_target_modes([RuntimeTargetMode::ClientRuntime])
+                            .with_capabilities([feature_capability]),
+                        ),
+                );
+            }
+            NativePluginCandidate {
+                plugin_id: plugin_id.clone(),
+                package_manifest: manifest,
+                manifest_path: PathBuf::from(format!("{plugin_id}/plugin.toml")),
+                library_path: PathBuf::from(format!("{plugin_id}/native/plugin.dll")),
+            }
+        })
+        .collect();
+    let loaded = (0..package_count)
+        .map(|package_index| {
+            let plugin_id = format!("projection_{package_index:04}");
+            loaded_projection_plugin(
+                &plugin_id,
+                stage_manifest(&plugin_id, &plugin_id, "0.2.0", "descriptor"),
+                stage_manifest(&plugin_id, &plugin_id, "0.3.0", "runtime")
+                    .with_capability(format!("runtime.plugin.{plugin_id}"))
+                    .with_runtime_module(valid_projection_runtime_module(
+                        &plugin_id,
+                        &format!("runtime.plugin.{plugin_id}"),
+                    )),
+                stage_manifest(&plugin_id, &plugin_id, "0.4.0", "editor").with_editor_module(
+                    PluginModuleManifest::editor(
+                        format!("{plugin_id}.editor"),
+                        format!("zircon_plugin_{plugin_id}_editor"),
+                    ),
+                ),
+            )
+        })
+        .collect();
+    let diagnostics = (0..diagnostic_count)
+        .map(|diagnostic_index| {
+            let plugin_index = diagnostic_index % package_count;
+            format!("native plugin projection_{plugin_index:04}: diagnostic {diagnostic_index:05}")
+        })
+        .collect();
+    NativePluginLoadReport {
+        discovered,
+        loaded,
+        diagnostics,
+        ..Default::default()
+    }
+}
+
+fn valid_projection_runtime_module(plugin_id: &str, capability: &str) -> PluginModuleManifest {
+    PluginModuleManifest::runtime(
+        format!("{plugin_id}.runtime"),
+        format!("zircon_plugin_{plugin_id}_runtime"),
+    )
+    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+    .with_capabilities([capability.to_string()])
+}
+
+fn stage_manifest(
+    plugin_id: &str,
+    display_name: &str,
+    version: &str,
+    stage: &str,
+) -> PluginPackageManifest {
+    let mut manifest = PluginPackageManifest::new(plugin_id, display_name)
+        .with_capability(format!("runtime.plugin.{plugin_id}.{stage}"));
+    manifest.version = version.to_string();
+    manifest.description = format!("{stage} description");
+    manifest
+}
+
+fn candidate(package_manifest: PluginPackageManifest) -> NativePluginCandidate {
+    let plugin_id = package_manifest.id.clone();
+    NativePluginCandidate {
+        plugin_id: plugin_id.clone(),
+        package_manifest,
+        manifest_path: PathBuf::from(format!("{plugin_id}/plugin.toml")),
+        library_path: PathBuf::from(format!("{plugin_id}/native/plugin.dll")),
+    }
+}
+
+fn loaded_projection_plugin(
+    plugin_id: &str,
+    descriptor_manifest: PluginPackageManifest,
+    runtime_manifest: PluginPackageManifest,
+    editor_manifest: PluginPackageManifest,
+) -> LoadedNativePlugin {
+    LoadedNativePlugin {
+        plugin_id: plugin_id.to_string(),
+        library_path: PathBuf::from(format!("{plugin_id}.test.dll")),
+        descriptor: Some(NativePluginDescriptor {
+            abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            plugin_id: plugin_id.to_string(),
+            package_manifest: Some(descriptor_manifest),
+            runtime_entry_name: None,
+            editor_entry_name: None,
+            requested_capabilities: Vec::new(),
+        }),
+        runtime_entry_report: Some(entry_report(
+            plugin_id,
+            PluginModuleKind::Runtime,
+            runtime_manifest,
+        )),
+        editor_entry_report: Some(entry_report(
+            plugin_id,
+            PluginModuleKind::Editor,
+            editor_manifest,
+        )),
+        library: LoadedNativePlugin::stable_library(this_process_library()),
+    }
+}
+
+fn entry_report(
+    plugin_id: &str,
+    module_kind: PluginModuleKind,
+    package_manifest: PluginPackageManifest,
+) -> NativePluginEntryReport {
+    NativePluginEntryReport {
+        plugin_id: plugin_id.to_string(),
+        module_kind,
+        package_manifest: Some(package_manifest),
+        diagnostics: vec![format!("{module_kind:?} entry diagnostic")],
+        negotiated_capabilities: Vec::new(),
+        missing_required_capabilities: Vec::new(),
+        denied_capabilities: Vec::new(),
+        bridge_method_bindings: Vec::new(),
+        editor_contribution_batch: None,
+        behavior: None,
+        behavior_validation: NativePluginBehaviorValidationReport::from_behavior(
+            plugin_id,
+            module_kind,
+            ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            None,
+        ),
+    }
+}
+
+fn this_process_library() -> libloading::Library {
+    #[cfg(unix)]
+    {
+        libloading::os::unix::Library::this().into()
+    }
+    #[cfg(windows)]
+    {
+        libloading::os::windows::Library::this()
+            .expect("current process library handle should be available")
+            .into()
+    }
 }

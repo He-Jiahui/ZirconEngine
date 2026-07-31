@@ -7,14 +7,13 @@ use zircon_editor::core::editor_extension::{
     EditorExtensionRegistry, EditorExtensionRegistryError,
 };
 use zircon_plugin_editor_support::{
-    register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
+    EditorAuthoringExtensions, EditorAuthoringSurface, register_authoring_extensions,
 };
 
 use crate::extension_ids::{
     NAVIGATION_AGENTS_VIEW_ID, NAVIGATION_AUTHORING_VIEW_ID, NAVIGATION_BAKE_VIEW_ID,
     NAVIGATION_DEBUG_VIEW_ID, NAVIGATION_DRAWER_ID, NAVIGATION_TEMPLATE_ID,
 };
-use crate::overlay::register_navigation_overlay;
 
 pub(crate) fn register_navigation_extensions(
     registry: &mut EditorExtensionRegistry,
@@ -57,6 +56,5 @@ pub(crate) fn register_navigation_extensions(
     templates::register(registry)?;
     components::register(registry)?;
     operations::register(registry)?;
-    register_navigation_overlay(registry)?;
     assets::register(registry)
 }

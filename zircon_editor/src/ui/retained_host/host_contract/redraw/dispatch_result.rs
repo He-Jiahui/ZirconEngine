@@ -33,6 +33,12 @@ impl NativePointerDispatchResult {
         }
     }
 
+    pub(in crate::ui::retained_host::host_contract) fn merge(self, next: Self) -> Self {
+        Self {
+            redraw: self.redraw.merge(next.redraw),
+        }
+    }
+
     pub(crate) fn request_redraw(&self) -> bool {
         self.redraw.request_redraw()
     }

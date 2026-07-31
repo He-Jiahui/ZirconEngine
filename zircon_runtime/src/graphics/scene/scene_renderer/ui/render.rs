@@ -3,26 +3,25 @@ use std::ops::Range;
 use wgpu::util::DeviceExt;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    normalize_ui_text_language_tag, UiPaintPayload, UiRenderCommand, UiRenderCommandKind,
-    UiRenderExtract, UiResolvedStyle, UiTextAlign, UiTextDecorations, UiTextDirection,
-    UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
-    UiTextWritingMode,
+    UiPaintElement, UiPaintPayload, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
+    UiResolvedStyle, UiTextAlign, UiTextDecorations, UiTextDirection, UiTextPaintDecorationKind,
+    UiTextRange, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap, UiTextWritingMode,
+    normalize_ui_text_language_tag,
 };
 
 use crate::core::framework::render::SkyboxMode;
 use crate::core::framework::text::TextLayoutError;
-use crate::graphics::scene::resources::{ui_image_resource_id, ResourceStreamer};
-use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
-use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::scene::resources::ui_image_resource_id;
+use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::{RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps};
 use crate::text::sdf::SdfMode;
 
 use super::image::ScreenSpaceUiImageBatch;
-use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
 
 mod background;
 mod color;
 mod geometry;
+mod record;
 mod rich_text;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_advances;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_decorations;
@@ -31,17 +30,17 @@ pub(in crate::graphics::scene::scene_renderer::ui) mod text_effects;
 mod text_paint;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_projection;
 
-use background::{text_batch_background_color, ScreenSpaceUiBackgroundTracker};
+use background::{ScreenSpaceUiBackgroundTracker, text_batch_background_color};
 use color::parse_color;
 pub(super) use geometry::ScreenSpaceUiVertex;
-pub(super) use geometry::{frame_to_scissor, ScreenSpaceUiScissor};
+pub(super) use geometry::{ScreenSpaceUiScissor, frame_to_scissor};
 use geometry::{push_border, push_rect};
 pub(super) use text_advances::ScreenSpaceUiShapedGlyph;
 use text_decorations::{
-    resolve_text_decorations, resolved_text_decoration_baseline, ScreenSpaceUiTextDecorations,
+    ScreenSpaceUiTextDecorations, resolve_text_decorations, resolved_text_decoration_baseline,
 };
 use text_distance_field::resolved_text_distance_field_mode;
-use text_effects::{resolve_text_effects, ScreenSpaceUiTextEffects};
+use text_effects::{ScreenSpaceUiTextEffects, resolve_text_effects};
 
 struct PreparedScreenSpaceUi {
     vertex_buffer: Option<wgpu::Buffer>,
@@ -85,104 +84,6 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) text_decorations: ScreenSpaceUiTextDecorations,
     pub(super) text_decoration_baseline: Option<f32>,
     pub(super) clip_transform: Option<text_projection::ScreenSpaceUiTextClipTransform>,
-}
-
-impl ScreenSpaceUiRenderer {
-    pub(crate) fn record(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        encoder: &mut wgpu::CommandEncoder,
-        color_view: &wgpu::TextureView,
-        frame: &ViewportRenderFrame,
-        attachment_ops: RenderGraphAttachmentOps,
-        streamer: Option<&ResourceStreamer>,
-    ) -> Result<(), GraphicsError> {
-        let pass_clear_color = wgpu::Color::TRANSPARENT;
-        let Some(prepared) =
-            prepare_screen_space_ui(device, frame, attachment_ops, pass_clear_color)
-        else {
-            self.last_text_prepare_report = Default::default();
-            return Ok(());
-        };
-        self.last_attachment_ops = attachment_ops;
-        self.text_system
-            .prepare(
-                device,
-                queue,
-                frame.viewport_size,
-                &prepared.auto_texts,
-                &prepared.native_texts,
-                &prepared.sdf_texts,
-            )
-            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-        self.last_text_prepare_report = self.text_system.prepare_report();
-        let prepared_images =
-            self.image_system
-                .prepare(device, frame.viewport_size, &prepared.images, streamer);
-
-        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("zircon-screen-space-ui-pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: color_view,
-                depth_slice: None,
-                resolve_target: None,
-                ops: color_attachment_operations(attachment_ops, pass_clear_color),
-            })],
-            depth_stencil_attachment: None,
-            occlusion_query_set: None,
-            timestamp_writes: None,
-            multiview_mask: None,
-        });
-        pass.set_pipeline(&self.pipeline);
-        if let Some(vertex_buffer) = prepared.vertex_buffer.as_ref() {
-            pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-        }
-
-        for draw in &prepared.draws {
-            pass.set_scissor_rect(
-                draw.scissor.x,
-                draw.scissor.y,
-                draw.scissor.width,
-                draw.scissor.height,
-            );
-            pass.draw(draw.vertices.clone(), 0..1);
-        }
-        self.image_system.render(&mut pass, &prepared_images);
-        pass.set_scissor_rect(
-            0,
-            0,
-            frame.viewport_size.x.max(1),
-            frame.viewport_size.y.max(1),
-        );
-        self.text_system.render(&mut pass);
-
-        if !prepared.post_text_draws.is_empty() {
-            pass.set_pipeline(&self.pipeline);
-            if let Some(vertex_buffer) = prepared.vertex_buffer.as_ref() {
-                pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-            }
-            for draw in &prepared.post_text_draws {
-                pass.set_scissor_rect(
-                    draw.scissor.x,
-                    draw.scissor.y,
-                    draw.scissor.width,
-                    draw.scissor.height,
-                );
-                pass.draw(draw.vertices.clone(), 0..1);
-            }
-        }
-        Ok(())
-    }
-
-    pub(crate) fn text_prepare_report(&self) -> super::text::ScreenSpaceUiTextPrepareReport {
-        self.last_text_prepare_report.clone()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn last_attachment_ops(&self) -> RenderGraphAttachmentOps {
-        self.last_attachment_ops
-    }
 }
 
 fn prepare_screen_space_ui(
@@ -279,9 +180,10 @@ fn plan_screen_space_ui_batches_with_framebuffer_background(
     );
 
     for command in &extract.list.commands {
+        let paint_elements = command.to_paint_elements(0);
         let scissor = command_scissor(command, viewport, full_scissor);
         let start = plan.vertices.len() as u32;
-        plan_command_batches(command, viewport, &backgrounds, &mut plan);
+        plan_command_batches(command, &paint_elements, viewport, &backgrounds, &mut plan);
         let end = plan.vertices.len() as u32;
         if end > start {
             plan.draws.push(ScreenSpaceUiDraw {
@@ -291,7 +193,13 @@ fn plan_screen_space_ui_batches_with_framebuffer_background(
         }
 
         let post_text_start = plan.vertices.len() as u32;
-        push_text_decoration_vertices(command, viewport, &mut plan.vertices, false);
+        push_text_decoration_vertices(
+            &paint_elements,
+            command.opacity,
+            viewport,
+            &mut plan.vertices,
+            false,
+        );
         let post_text_end = plan.vertices.len() as u32;
         if post_text_end > post_text_start {
             plan.post_text_draws.push(ScreenSpaceUiDraw {
@@ -385,6 +293,7 @@ fn command_scissor(
 
 fn plan_command_batches(
     command: &UiRenderCommand,
+    paint_elements: &[UiPaintElement],
     viewport: UiFrame,
     backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
@@ -457,22 +366,37 @@ fn plan_command_batches(
             command.opacity,
         )
         .unwrap_or([0.96, 0.96, 0.96, command.opacity]);
-        push_text_decoration_vertices(command, viewport, &mut plan.vertices, true);
-        push_text_batches(command, frame, color, viewport, backgrounds, plan);
+        push_text_decoration_vertices(
+            paint_elements,
+            command.opacity,
+            viewport,
+            &mut plan.vertices,
+            true,
+        );
+        push_text_batches(
+            command,
+            paint_elements,
+            frame,
+            color,
+            viewport,
+            backgrounds,
+            plan,
+        );
     }
 }
 
 fn push_text_decoration_vertices(
-    command: &UiRenderCommand,
+    paint_elements: &[UiPaintElement],
+    command_opacity: f32,
     viewport: UiFrame,
     vertices: &mut Vec<ScreenSpaceUiVertex>,
     before_text: bool,
 ) {
-    for element in command.to_paint_elements(0) {
-        let UiPaintPayload::Text { text } = element.payload else {
+    for element in paint_elements {
+        let UiPaintPayload::Text { text } = &element.payload else {
             continue;
         };
-        for decoration in text.decorations {
+        for decoration in &text.decorations {
             let decoration_before_text = matches!(
                 decoration.kind,
                 UiTextPaintDecorationKind::Selection
@@ -487,7 +411,7 @@ fn push_text_decoration_vertices(
             let color = parse_color(
                 Some(decoration.color.as_str()),
                 text_decoration_fallback_color(decoration.kind),
-                command.opacity,
+                command_opacity,
             )
             .unwrap_or_else(|| text_decoration_fallback_color(decoration.kind));
             if matches!(decoration.kind, UiTextPaintDecorationKind::TableCellBorder) {
@@ -512,6 +436,7 @@ fn text_decoration_fallback_color(kind: UiTextPaintDecorationKind) -> [f32; 4] {
 
 fn push_text_batches(
     command: &UiRenderCommand,
+    paint_elements: &[UiPaintElement],
     fallback_frame: UiFrame,
     color: [f32; 4],
     viewport: UiFrame,
@@ -539,16 +464,16 @@ fn push_text_batches(
         }
     }
 
-    if let Some(text_paint) = text_paint::command_text_paint(command) {
+    if let Some(text_paint) = text_paint::command_text_paint(paint_elements) {
         if !text_paint.runs.is_empty() {
             let parsed_rich = rich_text::parse_command_rich_text(command);
-            for run in text_paint.runs {
+            for run in &text_paint.runs {
                 let rich_run = parsed_rich
                     .as_ref()
                     .and_then(|parsed| rich_text::run_for_range(parsed, run.source_range));
                 if rich_text::plan_inline_run(
                     command,
-                    &run,
+                    run,
                     rich_run,
                     viewport,
                     color,
@@ -558,10 +483,10 @@ fn push_text_batches(
                     continue;
                 }
                 let presentation =
-                    rich_text::prepare_text_run(command, &run, rich_run, viewport, color, plan);
+                    rich_text::prepare_text_run(command, run, rich_run, viewport, color, plan);
                 push_text_batch(
                     command,
-                    run.text,
+                    run.text.clone(),
                     run.frame,
                     Some(run.source_range),
                     Vec::new(),

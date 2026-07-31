@@ -162,8 +162,8 @@ pub(crate) fn build_binding_fields(
         return fields;
     };
 
-    let payload_key = selected_payload_key_for_binding(binding, selected_payload_key);
     let payload_entries = binding_payload_item_entries(binding);
+    let payload_key = selected_payload_key_from_entries(&payload_entries, selected_payload_key);
     let selected_payload = payload_key
         .as_deref()
         .and_then(|key| {
@@ -193,7 +193,6 @@ pub(crate) fn build_binding_fields(
             .into_iter()
             .map(|(key, value)| format!("{key} = {}", value.to_string()))
             .collect();
-    fields.binding_schema_items = binding_schema_items(binding);
     fields.binding_payload_selected_index = selected_payload
         .map(|(index, _)| index as i32)
         .unwrap_or(-1);
@@ -227,9 +226,10 @@ pub(crate) fn reconcile_selected_binding_payload_key(
     selected_index: Option<usize>,
     current: Option<&str>,
 ) -> Option<String> {
-    let binding = selected_node(document, selection)
-        .and_then(|node| selected_binding_index_for_node(node, selected_index))
-        .and_then(|index| selected_node(document, selection)?.bindings.get(index))?;
+    let binding = selected_node(document, selection).and_then(|node| {
+        selected_binding_index_for_node(node, selected_index)
+            .and_then(|index| node.bindings.get(index))
+    })?;
     selected_payload_key_for_binding(binding, current)
 }
 
@@ -345,8 +345,10 @@ pub(crate) fn set_selected_binding_route(
     value: &str,
 ) -> bool {
     let current_kind = selected_node(document, selection)
-        .and_then(|node| selected_binding_index_for_node(node, selected_index))
-        .and_then(|index| selected_node(document, selection)?.bindings.get(index))
+        .and_then(|node| {
+            selected_binding_index_for_node(node, selected_index)
+                .and_then(|index| node.bindings.get(index))
+        })
         .map(binding_action_kind);
     if current_kind == Some(UiBindingActionKind::Action) {
         return set_selected_binding_action_target(document, selection, selected_index, value);
@@ -463,8 +465,9 @@ pub(crate) fn delete_selected_binding_payload(
     let Some(action) = binding.action.as_mut() else {
         return false;
     };
-    let removed = action.payload != table.clone().into_iter().collect();
-    action.payload = table.clone().into_iter().collect();
+    let next_payload = table.clone().into_iter().collect();
+    let removed = action.payload != next_payload;
+    action.payload = next_payload;
     if removed {
         compact_binding_action(binding);
     }
@@ -478,15 +481,13 @@ pub(crate) fn apply_selected_binding_payload_suggestion(
     selected_payload_key: Option<&str>,
     suggestion_index: usize,
 ) -> Option<String> {
-    let binding = selected_node(document, selection)
-        .and_then(|node| selected_binding_index_for_node(node, selected_index))
-        .and_then(|index| selected_node(document, selection)?.bindings.get(index))
-        .cloned();
-    let Some((payload_key, payload_value)) = binding
-        .as_ref()
-        .map(|binding| binding_payload_suggestions(binding, selected_payload_key))
-        .and_then(|suggestions| suggestions.get(suggestion_index).cloned())
-    else {
+    let Some((payload_key, payload_value)) = selected_node(document, selection).and_then(|node| {
+        let index = selected_binding_index_for_node(node, selected_index)?;
+        let binding = node.bindings.get(index)?;
+        binding_payload_suggestions(binding, selected_payload_key)
+            .into_iter()
+            .nth(suggestion_index)
+    }) else {
         return None;
     };
 
@@ -516,8 +517,8 @@ pub(crate) fn apply_selected_binding_route_suggestion(
         return false;
     };
     let Some(target) = binding_route_suggestions(node, binding)
-        .get(suggestion_index)
-        .cloned()
+        .into_iter()
+        .nth(suggestion_index)
     else {
         return false;
     };
@@ -540,8 +541,8 @@ pub(crate) fn apply_selected_binding_action_suggestion(
         return false;
     };
     let Some(target) = binding_action_suggestions(node, binding)
-        .get(suggestion_index)
-        .cloned()
+        .into_iter()
+        .nth(suggestion_index)
     else {
         return false;
     };

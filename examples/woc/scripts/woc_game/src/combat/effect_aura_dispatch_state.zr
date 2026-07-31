@@ -1,0 +1,742 @@
+// Stateful M4 projection of aura, crowd-control, stance and armor-debuff
+// effects. Numeric damage/heal effects and world/pet effects have separate
+// owners so each effect is consumed exactly once by the future world reducer.
+var container = %import("zr.container");
+var abilities = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+
+class AuraEntity {
+    pub var id: uint;
+    pub var kind: string;
+    pub var dead: bool;
+    pub var hostileToSource: bool;
+    pub var inCombat: bool;
+    pub var level: int;
+    pub var meleeMissChance: float;
+    pub var threat: float;
+    pub var fearDrStage: int;
+    pub var fearDrResetAt: float;
+    pub var controlledStunDrStage: int;
+    pub var controlledStunDrResetAt: float;
+    pub var auraIds: container.Array<string>;
+    pub var auraNames: container.Array<string>;
+    pub var auraKinds: container.Array<string>;
+    pub var auraValues: container.Array<float>;
+    pub var auraValues2: container.Array<float>;
+    pub var auraValues3: container.Array<float>;
+    pub var auraRemaining: container.Array<float>;
+    pub var auraDurations: container.Array<float>;
+    pub var auraStacks: container.Array<int>;
+    pub var auraBreaksOnDamage: container.Array<bool>;
+    // Zero means the source aura has no graded damage-break scale and retains
+    // the classic immediate break-on-damage rule.
+    pub var auraBreakChanceScales: container.Array<float>;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.kind = "mob";
+        this.dead = false;
+        this.hostileToSource = true;
+        this.inCombat = false;
+        this.level = 1;
+        this.meleeMissChance = 0.0;
+        this.threat = 0.0;
+        this.fearDrStage = 0;
+        this.fearDrResetAt = 0.0;
+        this.controlledStunDrStage = 0;
+        this.controlledStunDrResetAt = 0.0;
+        this.auraIds = new container.Array<string>();
+        this.auraNames = new container.Array<string>();
+        this.auraKinds = new container.Array<string>();
+        this.auraValues = new container.Array<float>();
+        this.auraValues2 = new container.Array<float>();
+        this.auraValues3 = new container.Array<float>();
+        this.auraRemaining = new container.Array<float>();
+        this.auraDurations = new container.Array<float>();
+        this.auraStacks = new container.Array<int>();
+        this.auraBreaksOnDamage = new container.Array<bool>();
+        this.auraBreakChanceScales = new container.Array<float>();
+    }
+}
+
+class AuraDispatchState {
+    pub var source: AuraEntity;
+    pub var target: AuraEntity;
+    pub var targetPresent: bool;
+    pub var time: float;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var auraGainedEvents: int;
+    pub var auraLostEvents: int;
+    pub var damageMissEvents: int;
+    pub var statsRecalcEvents: int;
+    pub var enterCombatEvents: int;
+
+    pub @constructor() {
+        this.source = new AuraEntity();
+        this.target = new AuraEntity();
+        this.targetPresent = true;
+        this.time = 0.0;
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.auraGainedEvents = 0;
+        this.auraLostEvents = 0;
+        this.damageMissEvents = 0;
+        this.statsRecalcEvents = 0;
+        this.enterCombatEvents = 0;
+    }
+}
+
+removeAuraAt(entity: AuraEntity, index: int): void {
+    entity.auraIds.removeAt(index);
+    entity.auraNames.removeAt(index);
+    entity.auraKinds.removeAt(index);
+    entity.auraValues.removeAt(index);
+    entity.auraValues2.removeAt(index);
+    entity.auraValues3.removeAt(index);
+    entity.auraRemaining.removeAt(index);
+    entity.auraDurations.removeAt(index);
+    entity.auraStacks.removeAt(index);
+    entity.auraBreaksOnDamage.removeAt(index);
+    entity.auraBreakChanceScales.removeAt(index);
+}
+
+appendAura(
+    entity: AuraEntity,
+    id: string,
+    name: string,
+    kind: string,
+    value: float,
+    value2: float,
+    value3: float,
+    duration: float,
+    stacks: int,
+    breaksOnDamage: bool
+): void {
+    appendAuraWithBreakChance(
+        entity,
+        id,
+        name,
+        kind,
+        value,
+        value2,
+        value3,
+        duration,
+        stacks,
+        breaksOnDamage,
+        0.0
+    );
+}
+
+appendAuraWithBreakChance(
+    entity: AuraEntity,
+    id: string,
+    name: string,
+    kind: string,
+    value: float,
+    value2: float,
+    value3: float,
+    duration: float,
+    stacks: int,
+    breaksOnDamage: bool,
+    breakChanceScale: float
+): void {
+    entity.auraIds.add(id);
+    entity.auraNames.add(name);
+    entity.auraKinds.add(kind);
+    entity.auraValues.add(value);
+    entity.auraValues2.add(value2);
+    entity.auraValues3.add(value3);
+    entity.auraRemaining.add(duration);
+    entity.auraDurations.add(duration);
+    entity.auraStacks.add(stacks);
+    entity.auraBreaksOnDamage.add(breaksOnDamage);
+    entity.auraBreakChanceScales.add(breakChanceScale);
+}
+
+applyAura(
+    state: AuraDispatchState,
+    entity: AuraEntity,
+    id: string,
+    name: string,
+    kind: string,
+    value: float,
+    value2: float,
+    value3: float,
+    duration: float,
+    stacks: int,
+    breaksOnDamage: bool
+): void {
+    applyAuraWithBreakChance(
+        state,
+        entity,
+        id,
+        name,
+        kind,
+        value,
+        value2,
+        value3,
+        duration,
+        stacks,
+        breaksOnDamage,
+        0.0
+    );
+}
+
+applyAuraWithBreakChance(
+    state: AuraDispatchState,
+    entity: AuraEntity,
+    id: string,
+    name: string,
+    kind: string,
+    value: float,
+    value2: float,
+    value3: float,
+    duration: float,
+    stacks: int,
+    breaksOnDamage: bool,
+    breakChanceScale: float
+): void {
+    var index = entity.auraIds.length - 1;
+    while (index >= 0) {
+        if (<string>entity.auraIds[index] == id) { removeAuraAt(entity, index); }
+        index = index - 1;
+    }
+    appendAuraWithBreakChance(
+        entity,
+        id,
+        name,
+        kind,
+        value,
+        value2,
+        value3,
+        duration,
+        stacks,
+        breaksOnDamage,
+        breakChanceScale
+    );
+    state.auraGainedEvents = state.auraGainedEvents + 1;
+}
+
+isFormKind(kind: string): bool {
+    return kind == "form_bear" ||
+        kind == "form_cat" ||
+        kind == "form_travel" ||
+        kind == "form_moonkin" ||
+        kind == "form_shadow";
+}
+
+findAuraKind(entity: AuraEntity, kind: string): int {
+    var index = 0;
+    while (index < entity.auraKinds.length) {
+        if (<string>entity.auraKinds[index] == kind) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+findAuraId(entity: AuraEntity, id: string): int {
+    var index = 0;
+    while (index < entity.auraIds.length) {
+        if (<string>entity.auraIds[index] == id) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+takeRandomUnit(state: AuraDispatchState): float {
+    if (state.randomIndex < 0 || state.randomIndex >= state.randomUnits.length) {
+        throw "aura effect random stream is exhausted";
+    }
+    var result = <float>state.randomUnits[state.randomIndex];
+    state.randomIndex = state.randomIndex + 1;
+    return result;
+}
+
+randomRange(state: AuraDispatchState, minimum: float, maximum: float): float {
+    return minimum + (maximum - minimum) * takeRandomUnit(state);
+}
+
+isHostilePlayerPair(state: AuraDispatchState): bool {
+    return state.source.kind == "player" &&
+        state.target.kind == "player" &&
+        state.target.hostileToSource;
+}
+
+fearDuration(state: AuraDispatchState, baseDuration: float): float {
+    if (!isHostilePlayerPair(state)) { return baseDuration; }
+    var stage = state.target.fearDrResetAt > state.time ? state.target.fearDrStage : 0;
+    state.target.fearDrStage = stage + 1;
+    state.target.fearDrResetAt = state.time + 60.0;
+    if (stage == 0) { return 8.0; }
+    if (stage == 1) { return 4.0; }
+    if (stage == 2) { return 2.0; }
+    return 1.0;
+}
+
+controlledStunDuration(state: AuraDispatchState, baseDuration: float): float {
+    if (!isHostilePlayerPair(state)) { return baseDuration; }
+    var stage = state.target.controlledStunDrResetAt > state.time ?
+        state.target.controlledStunDrStage : 0;
+    if (stage >= 3) { return -1.0; }
+    state.target.controlledStunDrStage = stage + 1;
+    state.target.controlledStunDrResetAt = state.time + 18.0;
+    if (stage == 0) { return baseDuration; }
+    if (stage == 1) { return baseDuration * 0.5; }
+    return baseDuration * 0.25;
+}
+
+enterCombat(state: AuraDispatchState): void {
+    state.source.inCombat = true;
+    state.target.inCombat = true;
+    state.enterCombatEvents = state.enterCombatEvents + 1;
+}
+
+physicalThreatModifier(source: AuraEntity): float {
+    var result = 1.0;
+    var index = 0;
+    while (index < source.auraKinds.length) {
+        var kind = <string>source.auraKinds[index];
+        if (kind == "defensive_stance" || kind == "form_bear") {
+            result = result * 1.3;
+        } else if (kind == "form_cat") {
+            result = result * 0.71;
+        }
+        index = index + 1;
+    }
+    return result;
+}
+
+dispatchSlow(
+    state: AuraDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    if (!state.targetPresent || state.target.dead) { return; }
+    var id = abilities.text(abilityIndex, "id") + "_slow";
+    applyAura(
+        state,
+        state.target,
+        id,
+        abilities.text(abilityIndex, "name"),
+        "slow",
+        effects.metric(abilityIndex, rank, effectIndex, "mult"),
+        0.0,
+        0.0,
+        effects.metric(abilityIndex, rank, effectIndex, "duration"),
+        0,
+        false
+    );
+    enterCombat(state);
+}
+
+dispatchIncapacitate(
+    state: AuraDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    if (!state.targetPresent || state.target.dead) { return; }
+    var abilityId = abilities.text(abilityIndex, "id");
+    var duration = effects.metric(abilityIndex, rank, effectIndex, "duration");
+    if (abilityId == "fear") { duration = fearDuration(state, duration); }
+    var facing = abilityId == "fear" ?
+        randomRange(state, -3.141592653589793, 3.141592653589793) : 0.0;
+    applyAuraWithBreakChance(
+        state,
+        state.target,
+        abilityId + "_incap",
+        abilities.text(abilityIndex, "name"),
+        "incapacitate",
+        facing,
+        0.0,
+        0.0,
+        duration,
+        0,
+        true,
+        abilityId == "fear" ? 0.1 : 0.0
+    );
+    enterCombat(state);
+}
+
+dispatchFinisherStun(
+    state: AuraDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int,
+    spentCombo: int
+): void {
+    if (!state.targetPresent || state.target.dead || spentCombo <= 0) { return; }
+    var duration = effects.metric(abilityIndex, rank, effectIndex, "base") +
+        effects.metric(abilityIndex, rank, effectIndex, "perCombo") * <float>spentCombo;
+    duration = controlledStunDuration(state, duration);
+    if (duration < 0.0) { return; }
+    applyAura(
+        state,
+        state.target,
+        abilities.text(abilityIndex, "id") + "_stun",
+        abilities.text(abilityIndex, "name"),
+        "stun",
+        0.0,
+        0.0,
+        0.0,
+        duration,
+        0,
+        false
+    );
+    enterCombat(state);
+}
+
+dispatchImbue(
+    state: AuraDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    var abilityId = abilities.text(abilityIndex, "id");
+    var index = state.source.auraKinds.length - 1;
+    while (index >= 0) {
+        if (<string>state.source.auraKinds[index] == "imbue" &&
+            <string>state.source.auraIds[index] != abilityId) {
+            removeAuraAt(state.source, index);
+            state.auraLostEvents = state.auraLostEvents + 1;
+        }
+        index = index - 1;
+    }
+    applyAura(
+        state,
+        state.source,
+        abilityId,
+        abilities.text(abilityIndex, "name"),
+        "imbue",
+        effects.metric(abilityIndex, rank, effectIndex, "bonus"),
+        effects.metric(abilityIndex, rank, effectIndex, "judgeMin"),
+        effects.metric(abilityIndex, rank, effectIndex, "judgeMax"),
+        effects.metric(abilityIndex, rank, effectIndex, "duration"),
+        0,
+        false
+    );
+}
+
+dispatchSelfBuff(
+    state: AuraDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    var abilityId = abilities.text(abilityIndex, "id");
+    var kind = effects.text(abilityIndex, rank, effectIndex, "kind");
+    var toggle = isFormKind(kind) ||
+        kind == "defensive_stance" ||
+        kind == "stealth" ||
+        abilityId == "ghost_wolf";
+    var existing = findAuraId(state.source, abilityId);
+    if (toggle && existing >= 0) {
+        removeAuraAt(state.source, existing);
+        state.auraLostEvents = state.auraLostEvents + 1;
+        state.statsRecalcEvents = state.statsRecalcEvents + 1;
+        return;
+    }
+    if (isFormKind(kind)) {
+        var index = state.source.auraKinds.length - 1;
+        while (index >= 0) {
+            var oldKind = <string>state.source.auraKinds[index];
+            if (isFormKind(oldKind) && oldKind != kind) {
+                removeAuraAt(state.source, index);
+                state.auraLostEvents = state.auraLostEvents + 1;
+            }
+            index = index - 1;
+        }
+    }
+    applyAura(
+        state,
+        state.source,
+        abilityId,
+        abilities.text(abilityIndex, "name"),
+        kind,
+        effects.metric(abilityIndex, rank, effectIndex, "value"),
+        0.0,
+        0.0,
+        effects.metric(abilityIndex, rank, effectIndex, "duration"),
+        0,
+        false
+    );
+    state.statsRecalcEvents = state.statsRecalcEvents + 1;
+}
+
+dispatchSunder(
+    state: AuraDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    if (!state.targetPresent || state.target.dead) { return; }
+    if (takeRandomUnit(state) < state.source.meleeMissChance) {
+        state.damageMissEvents = state.damageMissEvents + 1;
+        enterCombat(state);
+        return;
+    }
+    var existing = findAuraKind(state.target, "sunder");
+    var armor = effects.metric(abilityIndex, rank, effectIndex, "armor");
+    var maxStacks = <int>effects.metric(abilityIndex, rank, effectIndex, "maxStacks");
+    if (existing >= 0) {
+        var stacks = <int>state.target.auraStacks[existing] + 1;
+        if (stacks > maxStacks) { stacks = maxStacks; }
+        state.target.auraStacks[existing] = stacks;
+        state.target.auraValues[existing] = armor;
+        state.target.auraRemaining[existing] = <float>state.target.auraDurations[existing];
+        state.auraGainedEvents = state.auraGainedEvents + 1;
+    } else {
+        applyAura(
+            state,
+            state.target,
+            abilities.text(abilityIndex, "id"),
+            abilities.text(abilityIndex, "name"),
+            "sunder",
+            armor,
+            0.0,
+            0.0,
+            30.0,
+            1,
+            false
+        );
+    }
+    state.target.threat = state.target.threat +
+        abilities.metric(abilityIndex, state.source.level, "threatFlat") *
+        physicalThreatModifier(state.source);
+    enterCombat(state);
+}
+
+pub dispatchAuraEffect(
+    state: AuraDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int,
+    spentCombo: int
+): bool {
+    var effectType = effects.typeAt(abilityIndex, rank, effectIndex);
+    if (effectType == "slow") {
+        dispatchSlow(state, abilityIndex, rank, effectIndex);
+        return true;
+    }
+    if (effectType == "incapacitate") {
+        dispatchIncapacitate(state, abilityIndex, rank, effectIndex);
+        return true;
+    }
+    if (effectType == "finisherStun") {
+        dispatchFinisherStun(state, abilityIndex, rank, effectIndex, spentCombo);
+        return true;
+    }
+    if (effectType == "imbue") {
+        dispatchImbue(state, abilityIndex, rank, effectIndex);
+        return true;
+    }
+    if (effectType == "selfBuff") {
+        dispatchSelfBuff(state, abilityIndex, rank, effectIndex);
+        return true;
+    }
+    if (effectType == "sunder") {
+        dispatchSunder(state, abilityIndex, rank, effectIndex);
+        return true;
+    }
+    return false;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var slow = new AuraDispatchState();
+    slow.source.id = <uint>1;
+    slow.target.id = <uint>2;
+    if (!dispatchAuraEffect(slow, 2, 4, 1, 0) ||
+        slow.target.auraIds.length != 1 ||
+        <string>slow.target.auraIds[0] != "frostbolt_slow" ||
+        <string>slow.target.auraKinds[0] != "slow" ||
+        !closeEnough(<float>slow.target.auraValues[0], 0.6) ||
+        !closeEnough(<float>slow.target.auraDurations[0], 9.0) ||
+        slow.enterCombatEvents != 1 || slow.randomIndex != 0) {
+        return -1;
+    }
+
+    var guarded = new AuraDispatchState();
+    guarded.target.dead = true;
+    dispatchAuraEffect(guarded, 8, 1, 0, 0);
+    if (guarded.target.auraIds.length != 0 || guarded.randomIndex != 0 ||
+        guarded.target.fearDrStage != 0) {
+        return -2;
+    }
+
+    var fear = new AuraDispatchState();
+    fear.source.kind = "player";
+    fear.target.kind = "player";
+    fear.randomUnits.add(0.25);
+    fear.randomUnits.add(0.75);
+    fear.randomUnits.add(0.5);
+    fear.randomUnits.add(0.5);
+    fear.randomUnits.add(0.5);
+    var expectedFearDurations = new container.Array<float>();
+    expectedFearDurations.add(8.0);
+    expectedFearDurations.add(4.0);
+    expectedFearDurations.add(2.0);
+    expectedFearDurations.add(1.0);
+    expectedFearDurations.add(1.0);
+    var fearCast = 0;
+    while (fearCast < expectedFearDurations.length) {
+        dispatchAuraEffect(fear, 8, 1, 0, 0);
+        if (!closeEnough(
+            <float>fear.target.auraDurations[0],
+            <float>expectedFearDurations[fearCast]
+        )) {
+            return -3;
+        }
+        fearCast = fearCast + 1;
+    }
+    if (fear.randomIndex != 5 || fear.target.fearDrStage != 5 ||
+        !closeEnough(<float>fear.target.auraValues[0], 0.0) ||
+        !closeEnough(<float>fear.target.auraBreakChanceScales[0], 0.1)) {
+        return -4;
+    }
+    fear.time = 61.0;
+    fear.randomUnits.add(0.5);
+    dispatchAuraEffect(fear, 8, 1, 0, 0);
+    if (!closeEnough(<float>fear.target.auraDurations[0], 8.0) ||
+        fear.target.fearDrStage != 1) {
+        return -5;
+    }
+
+    var stun = new AuraDispatchState();
+    stun.source.kind = "player";
+    stun.target.kind = "player";
+    var expectedStunDurations = new container.Array<float>();
+    expectedStunDurations.add(6.0);
+    expectedStunDurations.add(3.0);
+    expectedStunDurations.add(1.5);
+    var stunCast = 0;
+    while (stunCast < expectedStunDurations.length) {
+        dispatchAuraEffect(stun, 13, 1, 0, 5);
+        if (!closeEnough(
+            <float>stun.target.auraDurations[0],
+            <float>expectedStunDurations[stunCast]
+        )) {
+            return -6;
+        }
+        removeAuraAt(stun.target, 0);
+        stunCast = stunCast + 1;
+    }
+    dispatchAuraEffect(stun, 13, 1, 0, 5);
+    if (stun.target.auraIds.length != 0 ||
+        stun.target.controlledStunDrStage != 3 ||
+        stun.enterCombatEvents != 3) {
+        return -7;
+    }
+
+    var seal = new AuraDispatchState();
+    appendAura(
+        seal.source,
+        "old_seal_a",
+        "Old A",
+        "imbue",
+        1.0,
+        2.0,
+        3.0,
+        20.0,
+        0,
+        false
+    );
+    appendAura(
+        seal.source,
+        "buff",
+        "Buff",
+        "buff_armor",
+        5.0,
+        0.0,
+        0.0,
+        60.0,
+        0,
+        false
+    );
+    appendAura(
+        seal.source,
+        "old_seal_b",
+        "Old B",
+        "imbue",
+        1.0,
+        2.0,
+        3.0,
+        20.0,
+        0,
+        false
+    );
+    dispatchAuraEffect(seal, 14, 3, 0, 0);
+    var sealIndex = findAuraId(seal.source, "seal_of_righteousness");
+    if (seal.source.auraIds.length != 2 || sealIndex < 0 ||
+        findAuraId(seal.source, "buff") < 0 || seal.auraLostEvents != 2 ||
+        !closeEnough(<float>seal.source.auraValues[sealIndex], 11.0) ||
+        !closeEnough(<float>seal.source.auraValues2[sealIndex], 30.0) ||
+        !closeEnough(<float>seal.source.auraValues3[sealIndex], 44.0)) {
+        return -8;
+    }
+
+    var form = new AuraDispatchState();
+    dispatchAuraEffect(form, 17, 1, 0, 0);
+    dispatchAuraEffect(form, 18, 1, 0, 0);
+    if (form.source.auraIds.length != 1 ||
+        <string>form.source.auraIds[0] != "cat_form" ||
+        <string>form.source.auraKinds[0] != "form_cat" ||
+        form.auraLostEvents != 1 || form.statsRecalcEvents != 2) {
+        return -9;
+    }
+    dispatchAuraEffect(form, 18, 1, 0, 0);
+    if (form.source.auraIds.length != 0 || form.auraLostEvents != 2 ||
+        form.statsRecalcEvents != 3) {
+        return -10;
+    }
+
+    var sunder = new AuraDispatchState();
+    sunder.source.level = 16;
+    sunder.source.meleeMissChance = 0.05;
+    appendAura(
+        sunder.source,
+        "bear_form",
+        "Bruin Form",
+        "form_bear",
+        0.65,
+        0.0,
+        0.0,
+        3600.0,
+        0,
+        false
+    );
+    sunder.randomUnits.add(0.01);
+    sunder.randomUnits.add(0.9);
+    sunder.randomUnits.add(0.9);
+    sunder.randomUnits.add(0.9);
+    sunder.randomUnits.add(0.9);
+    sunder.randomUnits.add(0.9);
+    sunder.randomUnits.add(0.9);
+    var sunderCast = 0;
+    while (sunderCast < 7) {
+        dispatchAuraEffect(sunder, 10, 2, 0, 0);
+        sunderCast = sunderCast + 1;
+    }
+    if (sunder.damageMissEvents != 1 || sunder.randomIndex != 7 ||
+        sunder.target.auraIds.length != 1 ||
+        <int>sunder.target.auraStacks[0] != 5 ||
+        !closeEnough(<float>sunder.target.auraValues[0], 40.0) ||
+        !closeEnough(sunder.target.threat, 1014.0) ||
+        sunder.auraGainedEvents != 6 || sunder.enterCombatEvents != 7) {
+        return -11;
+    }
+
+    var unsupported = new AuraDispatchState();
+    if (dispatchAuraEffect(unsupported, 1, 1, 0, 0) ||
+        unsupported.auraGainedEvents != 0 || unsupported.randomIndex != 0) {
+        return -12;
+    }
+    return 1;
+}

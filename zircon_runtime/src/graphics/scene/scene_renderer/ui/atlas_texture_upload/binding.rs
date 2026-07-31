@@ -1,6 +1,6 @@
 use crate::text::atlas::{GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapTextureUploadRequest};
 
-use super::write::{write_glyph_atlas_texture_upload_bytes, GlyphAtlasTextureUploadWrite};
+use super::write::{GlyphAtlasTextureUploadWrite, write_glyph_atlas_texture_upload_bytes};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct GlyphAtlasBitmapTextureUploadBinding<'a> {
@@ -14,6 +14,7 @@ pub(super) enum GlyphAtlasBitmapTextureUploadBindingFailureReason {
     MissingStagingPage,
     StagingPageKeyMismatch,
     StagingPageGenerationMismatch,
+    StagingPageTargetRectMismatch,
     StagingPageRowStrideMismatch,
     StagingPageByteLengthMismatch,
     RequestRangeOutOfBounds,
@@ -67,6 +68,17 @@ pub(super) fn glyph_atlas_bitmap_texture_upload_binding_plan<'a>(
             failures.push(bitmap_upload_binding_failure(
                 request_index,
                 GlyphAtlasBitmapTextureUploadBindingFailureReason::StagingPageGenerationMismatch,
+            ));
+            continue;
+        }
+        if staging_page.target_rect.x != request.origin_xy.x
+            || staging_page.target_rect.y != request.origin_xy.y
+            || staging_page.target_rect.width != request.extent.x
+            || staging_page.target_rect.height != request.extent.y
+        {
+            failures.push(bitmap_upload_binding_failure(
+                request_index,
+                GlyphAtlasBitmapTextureUploadBindingFailureReason::StagingPageTargetRectMismatch,
             ));
             continue;
         }

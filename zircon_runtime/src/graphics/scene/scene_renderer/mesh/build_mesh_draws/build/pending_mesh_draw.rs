@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::asset::ModelPrimitiveAsset;
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, RenderMeshLodSelection, RenderMeshStaticState,
+    RendererCommon,
 };
 use crate::core::framework::scene::EntityId;
 use crate::core::framework::scene::Mobility;
@@ -77,8 +78,7 @@ pub(super) struct PendingMeshDraw {
     pub(super) source_morph_weights: Option<Vec<f32>>,
     pub(super) morph_payload_slot: Option<u32>,
     pub(super) mesh_lod: Option<RenderMeshLodSelection>,
-    pub(super) cast_shadows: bool,
-    pub(super) receive_shadows: bool,
+    pub(super) common: Arc<RendererCommon>,
     pub(super) disabled_passes: MaterialDisabledPasses,
     pub(super) taa_reactive_mask_strength: f32,
     pub(super) model_matrix: [[f32; 4]; 4],

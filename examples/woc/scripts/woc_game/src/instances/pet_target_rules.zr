@@ -1,0 +1,77 @@
+// Source-locked from src/sim/pet/pet_ai.ts at 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a.
+// This module decides candidate eligibility and strict replacement only. The authoritative
+// world owns spatial-grid iteration, entity hostility, threat lookup and target mutation.
+
+pub assistRange(): float {
+    return 50.0;
+}
+
+pub aggressiveRange(): float {
+    return 18.0;
+}
+
+pub ownerIdleTicks(): int {
+    return 1200;
+}
+
+pub canSelectTarget(passiveMode: bool): bool {
+    return !passiveMode;
+}
+
+pub initialBestDistance(aggressiveMode: bool): float {
+    return aggressiveMode ? aggressiveRange() : assistRange();
+}
+
+pub candidateEligible(
+    candidateIsSelf: bool,
+    candidateDead: bool,
+    candidateHostile: bool,
+    candidateIsMob: bool,
+    candidateAggroOwner: bool,
+    candidateAggroPet: bool,
+    ownerTargetsCandidate: bool,
+    ownerAutoAttack: bool,
+    ownerHasCandidateThreat: bool,
+    aggressiveMode: bool,
+    ownerIdle: bool,
+    petDistance: float,
+): bool {
+    if (candidateIsSelf || candidateDead || !candidateHostile) {
+        return false;
+    }
+    var engagingUs = candidateIsMob && (candidateAggroOwner || candidateAggroPet);
+    var ownerOffense = ownerTargetsCandidate &&
+        (ownerAutoAttack || (candidateIsMob && ownerHasCandidateThreat));
+    var aggressive = aggressiveMode && !ownerIdle && petDistance <= aggressiveRange();
+    return engagingUs || ownerOffense || aggressive;
+}
+
+pub shouldReplaceCandidate(candidateDistance: float, bestDistance: float): bool {
+    return candidateDistance < bestDistance;
+}
+
+pub contractTest(): int {
+    if (assistRange() != 50.0 || aggressiveRange() != 18.0 || ownerIdleTicks() != 1200 ||
+        !canSelectTarget(false) || canSelectTarget(true) ||
+        initialBestDistance(false) != 50.0 || initialBestDistance(true) != 18.0) {
+        return -1;
+    }
+    if (candidateEligible(true, false, true, true, true, false, false, false, false, false, false, 0.0) ||
+        candidateEligible(false, true, true, true, true, false, false, false, false, false, false, 5.0) ||
+        candidateEligible(false, false, false, true, true, false, false, false, false, false, false, 5.0) ||
+        !candidateEligible(false, false, true, true, true, false, false, false, false, false, true, 50.0)) {
+        return -2;
+    }
+    if (!candidateEligible(false, false, true, false, false, false, true, true, false, false, true, 50.0) ||
+        !candidateEligible(false, false, true, true, false, false, true, false, true, false, true, 50.0) ||
+        candidateEligible(false, false, true, false, false, false, true, false, true, false, true, 50.0) ||
+        !candidateEligible(false, false, true, false, false, false, false, false, false, true, false, 18.0) ||
+        candidateEligible(false, false, true, false, false, false, false, false, false, true, false, 18.0001) ||
+        candidateEligible(false, false, true, false, false, false, false, false, false, true, true, 1.0)) {
+        return -3;
+    }
+    if (!shouldReplaceCandidate(17.9999, 18.0) || shouldReplaceCandidate(18.0, 18.0)) {
+        return -4;
+    }
+    return 1;
+}

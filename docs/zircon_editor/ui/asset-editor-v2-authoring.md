@@ -9,8 +9,10 @@ related_code:
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring/promotion.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/hydration.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/imports.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/parsed_document.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/collect.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/job.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/commit.rs
   - zircon_editor/src/tests/support.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/bootstrap_assets.rs
@@ -25,8 +27,10 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/promotion_state.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring/promotion.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/hydration.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/imports.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/parsed_document.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/collect.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/job.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/commit.rs
   - zircon_runtime_interface/src/ui/v2/asset.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
@@ -51,7 +55,7 @@ The editor keeps `UiAssetDocument` as its in-memory authoring projection while e
 
 `session/lifecycle/v2_projection.rs` owns both projection directions and the single V2 serializer. The serializer reparses its output through `UiZuiAssetLoader` before returning, so schema and profile errors fail before any file effect is applied. `lifecycle.rs` selects the source schema and uses that serializer for canonical source. `lifecycle/external_source.rs` owns external widget/style source snapshots and chooses the V2 serializer for `.zui` restoration. `promotion_state.rs` uses the same boundary for promoted widget and theme files, while host `editing/node_ops.rs` uses it for the initial external write, so initial write, redo, and restoration cannot diverge.
 
-`host/asset_editor_sessions/imports.rs` owns production import loading. It normalizes fragment references before selecting a loader: `.zui` imports use `UiZuiAssetLoader` only, while non-`.zui` imports use the legacy document loader. Each V2 import contributes both its untouched `UiV2AssetDocument` to the preview prototype store and its internal authoring projection to hierarchy/Inspector tooling. `hydration.rs` and `refresh.rs` commit all four widget/style maps through one `replace_resolved_imports` call before revalidation, so preview and authoring views cannot observe different import generations.
+`host/asset_editor_sessions/imports/{parsed_document,collect}.rs` owns production import loading. It normalizes fragment references before selecting a loader: `.zui` imports use `UiZuiAssetLoader` only, while non-`.zui` imports use the legacy document loader. Each V2 import contributes both its untouched `UiV2AssetDocument` to the preview prototype store and its internal authoring projection to hierarchy/Inspector tooling. `hydration.rs` and `refresh/pipeline/commit.rs` commit all four widget/style maps plus reverse dependency edges in one dependency-generation epoch before revalidation, so preview, authoring views, and watcher routing cannot observe different import generations.
 
 Reference nodes preserve their full asset locator in V2 `node.component`; local component instances preserve the local component name; slot placeholders use `component = "Slot"` plus `props.name`; child mounts use `slot.name`. V2-to-editor projection restores those distinctions for hierarchy, Inspector, reference navigation, and promotion commands. Hierarchy labels resolve native widget type, external reference, then local component name, so local components and `Slot` placeholders cannot collapse to an untyped `Node` label.
 

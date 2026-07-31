@@ -10,11 +10,6 @@ pub(super) fn install_builtin_scene_runtime_hooks(
     register_missing_scene_hook(
         runtime,
         &mut extensions,
-        crate::animation::scene_hook_registration(),
-    )?;
-    register_missing_scene_hook(
-        runtime,
-        &mut extensions,
         crate::script::script_scene_fixed_update_hook_registration(),
     )?;
     register_missing_scene_hook(
@@ -53,4 +48,27 @@ fn register_missing_scene_hook(
     extensions
         .register_scene_hook(registration)
         .map_err(|source| RuntimeDynamicSessionError::RegisterSceneRuntimeHook { hook, source })
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::scene::{scene_runtime_hooks_for_stage, SystemStage};
+
+    use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
+
+    #[test]
+    fn builtin_dynamic_session_does_not_install_animation_evaluator_hook() {
+        let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+            .expect("build headless runtime session");
+        let post_update_hooks =
+            scene_runtime_hooks_for_stage(&session.runtime.handle(), SystemStage::PostUpdate)
+                .expect("inspect post-update runtime hooks");
+
+        assert!(
+            post_update_hooks
+                .iter()
+                .all(|hook| hook.descriptor().id != "animation.scene.post_update"),
+            "the built-in animation hook would duplicate the plugin animation.evaluate owner"
+        );
+    }
 }

@@ -1,0 +1,86 @@
+[asset]
+kind = "view"
+id = "res://ui/windows/settings_window.zui"
+version = 2
+display_name = "World of ClaudeCraft Settings Window"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui", "res://ui/hud/hud_theme.zui"]
+resources = []
+
+[root]
+node = "settings_root"
+
+[nodes.settings_title]
+component = "Label"
+control_id = "SettingsTitle"
+classes = ["woc-screen-title"]
+props = { text = "Settings", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.settings_close]
+component = "Button"
+control_id = "SettingsClose"
+classes = ["woc-secondary-action"]
+props = { text = "Close" }
+layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocSettings/Close", event = "Click", route = "woc.window.settings.close" }]
+
+[nodes.settings_back]
+component = "Button"
+control_id = "SettingsBack"
+classes = ["woc-secondary-action"]
+props = { text = "Back" }
+layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocSettings/Back", event = "Click", route = "woc.window.settings.back" }]
+
+[nodes.settings_header]
+component = "HorizontalBox"
+control_id = "SettingsHeader"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "settings_back" }, { node = "settings_title" }, { node = "settings_close" }]
+
+[nodes.settings_loading]
+component = "Label"
+control_id = "SettingsLoading"
+classes = ["woc-muted"]
+props = { text = "", visibility = "collapsed", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 64.0, max = 80.0, stretch = "Fixed" } }
+
+[nodes.settings_content]
+component = "ScrollBox"
+control_id = "SettingsControlHost"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true, supported_panels = ["keybinds", "controller", "graphics", "interface", "audio", "performance", "bugreport"] }
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, padding = { left = 14.0, right = 14.0, top = 12.0, bottom = 12.0 }, width = { stretch = "Stretch" }, height = { min = 400.0, preferred = 560.0, max = 720.0, stretch = "Stretch" } }
+children = [{ node = "settings_loading" }]
+
+[nodes.settings_note]
+component = "Label"
+control_id = "SettingsApplicationNote"
+classes = ["woc-muted"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 44.0, max = 72.0, stretch = "Fixed" } }
+
+[nodes.settings_reset]
+component = "Button"
+control_id = "SettingsReset"
+classes = ["woc-secondary-action"]
+props = { text = "Reset to Defaults" }
+layout = { width = { min = 148.0, preferred = 168.0, max = 196.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocSettings/Reset", event = "Click", route = "woc.window.settings.reset" }]
+
+[nodes.settings_footer]
+component = "HorizontalBox"
+control_id = "SettingsFooter"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 72.0, stretch = "Fixed" } }
+children = [{ node = "settings_note" }, { node = "settings_reset" }]
+
+[nodes.settings_root]
+component = "Container"
+control_id = "SettingsWindow"
+classes = ["woc-panel"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, padding = { left = 14.0, right = 14.0, top = 12.0, bottom = 14.0 }, width = { min = 340.0, preferred = 820.0, max = 900.0, stretch = "Fixed" }, height = { min = 560.0, preferred = 720.0, max = 860.0, stretch = "Fixed" } }
+children = [{ node = "settings_header" }, { node = "settings_content" }, { node = "settings_footer" }]

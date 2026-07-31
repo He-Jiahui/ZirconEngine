@@ -1,0 +1,69 @@
+// Source projection of terrainWallStandoff from src/sim/world.ts. It samples
+// eight body-radius directions and returns a capped downhill setback.
+
+var math = %import("zr.zircon.math");
+var terrainGround = %import("world/terrain_ground");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+minimum(first: float, second: float): float {
+    return first < second ? first : second;
+}
+
+pub coordinate(
+    x: float,
+    z: float,
+    seed: uint,
+    radius: float,
+    maxSlope: float,
+    axis: int,
+    required: bool
+): float {
+    if (!required || radius < 0.0 || maxSlope <= 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc terrain wall-standoff arguments are invalid";
+    }
+    var ground = terrainGround.builtinGroundHeight(x, z, seed, true);
+    var wallRise = radius * maxSlope;
+    var pushX = 0.0;
+    var pushZ = 0.0;
+    var sample = 0;
+    while (sample < 8) {
+        var angle = (<float>sample / 8.0) * 6.283185307179586;
+        var sampleX = math.sin(angle);
+        var sampleZ = math.cos(angle);
+        var rise = terrainGround.builtinGroundHeight(
+            x + sampleX * radius,
+            z + sampleZ * radius,
+            seed,
+            true
+        ) - ground;
+        if (rise > wallRise) {
+            var setback = minimum((rise - wallRise) / maxSlope, radius);
+            pushX = pushX - sampleX * setback;
+            pushZ = pushZ - sampleZ * setback;
+        }
+        sample = sample + 1;
+    }
+    if (pushX == 0.0 && pushZ == 0.0) {
+        return axis == 1 ? x : z;
+    }
+    var magnitude = math.sqrt(pushX * pushX + pushZ * pushZ);
+    var scale = minimum(magnitude, radius) / magnitude;
+    return axis == 1 ? x + pushX * scale : z + pushZ * scale;
+}
+
+pub contractTest(): int {
+    if (coordinate(0.0, 0.0, <uint>20061, 0.5, 1.5, 1, true) != 0.0 ||
+        coordinate(0.0, 0.0, <uint>20061, 0.5, 1.5, 2, true) != 0.0 ||
+        !closeEnough(coordinate(-11.0, -95.3, <uint>20061, 0.5, 1.5, 1, true), -11.0) ||
+        !closeEnough(coordinate(-11.0, -95.3, <uint>20061, 0.5, 1.5, 2, true), -95.3)) {
+        return -1;
+    }
+    return 1;
+}

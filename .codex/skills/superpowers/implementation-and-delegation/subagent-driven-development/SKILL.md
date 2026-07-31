@@ -270,11 +270,8 @@ Done!
 
 ## Integration
 
-**Required workflow skills:**
-- **superpowers:using-git-worktrees** - Use only when the repository policy allows isolated worktrees
-- **superpowers:writing-plans** - Creates the plan this skill executes
+**Related workflow skills:**
 - **superpowers:requesting-code-review** - Code review template for reviewer subagents
-- **superpowers:finishing-a-development-branch** - Use only when the repository is actually following a branch-based closeout flow
 
 **Subagents should use:**
 - **superpowers:test-driven-development** - Use only when no repository-local milestone policy overrides TDD cadence

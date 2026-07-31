@@ -57,7 +57,11 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
         system: S,
     ) -> RuntimePluginRuntimeSceneSystemBuilder<'_, S>
     where
-        S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
+        S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError>
+            + Send
+            + Sync
+            + Clone
+            + 'static,
     {
         RuntimePluginRuntimeSceneSystemBuilder {
             registry: self.registry,
@@ -160,7 +164,11 @@ pub struct RuntimePluginRuntimeSceneSystemBuilder<'registry, S> {
 
 impl<'registry, S> RuntimePluginRuntimeSceneSystemBuilder<'registry, S>
 where
-    S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
+    S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError>
+        + Send
+        + Sync
+        + Clone
+        + 'static,
 {
     pub fn in_set(mut self, set: impl Into<String>) -> Self {
         self.sets.push(set.into());

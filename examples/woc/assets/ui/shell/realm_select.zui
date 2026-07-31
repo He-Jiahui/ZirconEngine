@@ -1,0 +1,89 @@
+[asset]
+kind = "view"
+id = "res://ui/shell/realm_select.zui"
+version = 2
+display_name = "World of ClaudeCraft Realm Directory"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui"]
+resources = [
+  { kind = "image", uri = "res://m8/env/vale_backdrop.webp", fallback = { mode = "optional" } },
+]
+
+[root]
+node = "realm_select_root"
+
+[nodes.stage_scrim]
+component = "Space"
+classes = ["woc-stage-scrim"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.title_label]
+component = "Label"
+classes = ["woc-screen-title"]
+props = { text = "World List" }
+layout = { width = { min = 120.0, preferred = 150.0, max = 180.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.account_name]
+component = "Label"
+control_id = "RealmDirectoryAccountName"
+classes = ["woc-section-title"]
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.title_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "title_label" }, { node = "account_name" }]
+
+[nodes.loading]
+component = "Label"
+control_id = "RealmDirectoryLoading"
+classes = ["woc-muted"]
+props = { text = "Loading worlds...", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+
+[nodes.empty]
+component = "Label"
+control_id = "RealmDirectoryEmpty"
+classes = ["woc-muted"]
+props = { text = "No worlds are available", text_align = "center", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+
+[nodes.error]
+component = "Label"
+control_id = "RealmDirectoryError"
+classes = ["woc-error"]
+props = { text = "", text_align = "center", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.realm_list_host]
+component = "ScrollBox"
+control_id = "RealmDirectoryListHost"
+classes = ["woc-roster-host"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true, dynamic_route_prefix = "woc.shell.realms.row", row_fields = ["name", "type", "character_count", "status", "population", "recommended"] }
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 160.0, preferred = 420.0, max = 640.0, stretch = "Stretch" } }
+
+[nodes.back]
+component = "Button"
+control_id = "RealmDirectoryBack"
+classes = ["woc-secondary-action"]
+props = { text = "Back", button_variant = "outlined" }
+layout = { width = { min = 120.0, preferred = 160.0, max = 220.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocRealms/Back", event = "Click", route = "woc.shell.realms.back" }]
+
+[nodes.panel]
+component = "VerticalBox"
+control_id = "RealmDirectoryPanel"
+classes = ["woc-panel-strong"]
+layout = { container = { kind = "VerticalBox", gap = 12.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, padding = { left = 18.0, right = 18.0, top = 18.0, bottom = 18.0 }, width = { min = 300.0, preferred = 720.0, max = 860.0, stretch = "Stretch" }, height = { min = 300.0, preferred = 600.0, max = 760.0, stretch = "Stretch" } }
+children = [{ node = "title_row" }, { node = "loading" }, { node = "empty" }, { node = "error" }, { node = "realm_list_host" }, { node = "back" }]
+
+[nodes.realm_select_root]
+component = "Overlay"
+control_id = "RealmDirectory"
+classes = ["woc-shell", "woc-realm-directory"]
+props = { background_image = "res://m8/env/vale_backdrop.webp" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "stage_scrim" }, { node = "panel" }]

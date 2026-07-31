@@ -1,0 +1,25 @@
+var rules = %import("instances/pet_follow_rules");
+
+if (rules.pathRecalcInterval() != 0.5 || rules.pathSearchSpan() != 96 ||
+    !rules.shouldClearPath(3.5) || rules.shouldClearPath(3.5001) ||
+    !rules.shouldRecomputePath(0.0, false, 0.0) ||
+    !rules.shouldRecomputePath(0.0, true, 4.0001) ||
+    rules.shouldRecomputePath(0.0001, false, 0.0) ||
+    rules.shouldRecomputePath(0.0, true, 4.0) ||
+    !rules.shouldDropReachedWaypoint(2, 0.9999) ||
+    rules.shouldDropReachedWaypoint(1, 0.0) ||
+    rules.shouldDropReachedWaypoint(2, 1.0) ||
+    rules.shouldWarpAfterFreshPath(60.0, 1, false, 1) ||
+    !rules.shouldWarpAfterFreshPath(60.0001, 1, false, 1) ||
+    rules.shouldWarpAfterFreshPath(80.0, 1, true, 1) ||
+    rules.shouldWarpAfterFreshPath(96.0, 1, true, 1) ||
+    !rules.shouldWarpAfterFreshPath(96.0001, 1, true, 1) ||
+    rules.shouldWarpAfterFreshPath(100.0, 2, false, 1) ||
+    rules.shouldWarpAfterFreshPath(100.0, 1, false, 2) ||
+    rules.followSpeed(6.0, 1.0) != 7.7 ||
+    rules.followSpeed(8.0, 1.25) != 10.0 ||
+    rules.contractTest() != 1) {
+    return -1;
+}
+
+return 0;

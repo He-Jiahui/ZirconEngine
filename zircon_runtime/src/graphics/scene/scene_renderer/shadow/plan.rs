@@ -2,20 +2,20 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::core::framework::render::{
     GpuLightData, LightShadowSettings, LightingExtract, RenderDirectionalLightSnapshot,
-    ViewportCameraSnapshot, SHADOW_SLOT_NONE,
+    SHADOW_SLOT_NONE, ViewportCameraSnapshot,
 };
 use crate::core::math::Mat4;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
 
 use super::atlas::{
-    ShadowAtlasAllocator, ShadowAtlasRect, ShadowAtlasResourceConfig, ShadowSlotAllocation,
-    ShadowSlotKey, ShadowSlotRequest, SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
+    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasRect,
+    ShadowAtlasResourceConfig, ShadowSlotAllocation, ShadowSlotKey, ShadowSlotRequest,
 };
-use super::cascade::{compute_cascade_ranges, CascadeSplitConfig};
+use super::cascade::{CascadeSplitConfig, compute_cascade_ranges};
 use super::slot::{
-    GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE,
-    GPU_SHADOW_SLOT_FLAG_POINT_FACE, GPU_SHADOW_SLOT_FLAG_SPOT,
+    GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE, GPU_SHADOW_SLOT_FLAG_POINT_FACE,
+    GPU_SHADOW_SLOT_FLAG_SPOT, GpuShadowGlobals, GpuShadowSlot,
 };
 use super::view_projection::{
     directional_cascade_view_projection, point_light_face_view_projection,
@@ -341,18 +341,17 @@ fn append_point_light_slots(
         if slots_remaining(resource_config, slots.len()) < POINT_LIGHT_SHADOW_FACE_COUNT {
             return;
         }
-        let allocations = (0..POINT_LIGHT_SHADOW_FACE_COUNT)
-            .map(|face| {
+        let allocations: [Option<ShadowSlotAllocation>; POINT_LIGHT_SHADOW_FACE_COUNT as usize] =
+            std::array::from_fn(|face| {
                 allocations_by_key
                     .get(&ShadowSlotKey::new(light.light_id, face as u8))
                     .copied()
-            })
-            .collect::<Option<Vec<_>>>();
-        let Some(allocations) = allocations else {
+            });
+        if allocations.iter().any(Option::is_none) {
             continue;
-        };
+        }
         let first_slot = slots.len() as u32;
-        for allocation in allocations {
+        for allocation in allocations.into_iter().flatten() {
             let view_proj = point_light_face_view_projection(light, allocation.key.face_index);
             let slot_index = slots.len() as u32;
             atlas_passes.push(ShadowAtlasSlotPass::new(

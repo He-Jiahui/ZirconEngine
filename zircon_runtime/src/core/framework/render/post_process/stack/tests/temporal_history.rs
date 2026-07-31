@@ -13,56 +13,82 @@ fn taa_resolve_declares_history_velocity_and_output_transfer_input() {
         &AntiAliasSettings::taa(),
     );
 
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string()));
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string()));
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string())
+    );
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string())
+    );
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string())
+    );
     let taa_resolve = stack
         .effects
         .iter()
         .find(|effect| effect.kind == PostProcessEffectKind::TaaResolve)
         .expect("TAA should enable a temporal resolve node");
-    assert!(taa_resolve
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
-    assert!(taa_resolve
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
-    assert!(taa_resolve
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
-    assert!(taa_resolve
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string()));
-    assert!(taa_resolve
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string()));
-    assert!(taa_resolve
-        .produced_outputs
-        .contains(&PostProcessGraphResourceNames::TAA_OUTPUT.to_string()));
-    assert!(taa_resolve
-        .produced_outputs
-        .contains(&PostProcessGraphResourceNames::TAA_HISTORY_CURRENT.to_string()));
+    assert!(
+        taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string())
+    );
+    assert!(
+        taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string())
+    );
+    assert!(
+        taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string())
+    );
+    assert!(
+        taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string())
+    );
+    assert!(
+        taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string())
+    );
+    assert!(
+        taa_resolve
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::TAA_OUTPUT.to_string())
+    );
+    assert!(
+        taa_resolve
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::TAA_HISTORY_CURRENT.to_string())
+    );
 
     let output_transfer = stack
         .effects
         .iter()
         .find(|effect| effect.kind == PostProcessEffectKind::OutputTransfer)
         .expect("TAA stack should keep final composite");
-    assert!(output_transfer
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::TAA_OUTPUT.to_string()));
-    assert!(!output_transfer
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
-    assert!(output_transfer
-        .after
-        .contains(&PostProcessEffectKind::TaaResolve));
+    assert!(
+        output_transfer
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_OUTPUT.to_string())
+    );
+    assert!(
+        !output_transfer
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string())
+    );
+    assert!(
+        output_transfer
+            .after
+            .contains(&PostProcessEffectKind::TaaResolve)
+    );
 
     let graph = stack.validated_graph();
     let taa_index = graph
@@ -91,31 +117,42 @@ fn without_history_resources_disables_taa_and_restores_scene_color_input() {
     .without_history_resources();
     let graph = stack.validated_graph();
 
-    assert!(!graph
-        .nodes
-        .iter()
-        .any(|node| node.kind == PostProcessEffectKind::TaaResolve));
-    assert!(!stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string()));
-    assert!(!stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
-    assert!(!graph.nodes.iter().any(|node| node
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string())));
+    assert!(
+        !graph
+            .nodes
+            .iter()
+            .any(|node| node.kind == PostProcessEffectKind::TaaResolve)
+    );
+    assert!(
+        !stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string())
+    );
+    assert!(
+        !stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string())
+    );
+    assert!(!graph.nodes.iter().any(|node| {
+        node.required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string())
+    }));
 
     let output_transfer = graph
         .nodes
         .iter()
         .find(|node| node.kind == PostProcessEffectKind::OutputTransfer)
         .expect("history-stripped stack should keep final composite");
-    assert!(output_transfer
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
-    assert!(!output_transfer
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::TAA_OUTPUT.to_string()));
+    assert!(
+        output_transfer
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string())
+    );
+    assert!(
+        !output_transfer
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_OUTPUT.to_string())
+    );
 }
 
 #[test]
@@ -136,12 +173,16 @@ fn without_history_resources_keeps_scene_velocity_for_motion_blur() {
     )
     .without_history_resources();
 
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string())
+    );
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string())
+    );
 }
 
 #[test]
@@ -157,22 +198,30 @@ fn without_history_resources_keeps_scene_velocity_for_hybrid_gi_rejection() {
     .with_hybrid_gi_lighting_input()
     .without_history_resources();
 
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::HYBRID_GI_LIGHTING.to_string()));
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::HYBRID_GI_LIGHTING.to_string())
+    );
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string())
+    );
 }
 
 #[test]
 fn hybrid_gi_lighting_input_declares_scene_velocity_for_motion_rejection() {
     let stack = PostProcessStackDescriptor::default().with_hybrid_gi_lighting_input();
 
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::HYBRID_GI_LIGHTING.to_string()));
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::HYBRID_GI_LIGHTING.to_string())
+    );
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string())
+    );
 }

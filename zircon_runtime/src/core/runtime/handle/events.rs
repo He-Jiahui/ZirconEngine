@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::core::framework::channel::ChannelReceiver;
-use crate::core::framework::events::EngineEvent;
+use crate::core::framework::events::{
+    EngineEvent, EngineEventDeliveryPolicy, EngineEventSubscription, EventBusDiagnosticsSnapshot,
+};
 use crate::core::CoreError;
 
 use super::CoreHandle;
@@ -17,8 +19,16 @@ impl CoreHandle {
         });
     }
 
-    pub fn subscribe_events(&self, topic: impl Into<String>) -> ChannelReceiver<EngineEvent> {
-        self.inner.event_bus.subscribe(topic)
+    pub fn subscribe_events(
+        &self,
+        topic: impl Into<String>,
+        policy: EngineEventDeliveryPolicy,
+    ) -> Box<dyn EngineEventSubscription> {
+        self.inner.event_bus.subscribe(topic, policy)
+    }
+
+    pub fn event_bus_diagnostics(&self) -> EventBusDiagnosticsSnapshot {
+        self.inner.event_bus.diagnostic_report()
     }
 
     pub fn store_config_value(&self, key: impl Into<String>, value: Value) {
@@ -31,6 +41,13 @@ impl CoreHandle {
 
     pub fn snapshot_config_values(&self) -> HashMap<String, Value> {
         self.inner.config_store.snapshot_values()
+    }
+
+    pub(crate) fn config_snapshot_source(
+        &self,
+    ) -> Arc<dyn Fn() -> HashMap<String, Value> + Send + Sync> {
+        let config_store = self.inner.config_store.clone();
+        Arc::new(move || config_store.snapshot_values())
     }
 
     pub fn store_config<T: serde::Serialize>(

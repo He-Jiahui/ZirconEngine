@@ -8,6 +8,12 @@ const index = readFileSync(indexPath, "utf8");
 if (!/<base\s+href=["']\/ui\/["']\s*\/?>/i.test(index)) fail("control console base path must be /ui/");
 const files = walk(dist).filter((path) => path !== indexPath);
 const reachable = reachableAssets(indexPath, dist);
+const faviconTag = (index.match(/<link\b[^>]*>/gi) ?? []).find((tag) => /\brel=["']icon["']/i.test(tag));
+const faviconReference = faviconTag?.match(/\bhref=["'](\.\/assets\/favicon-[0-9A-Za-z_-]{8,}\.svg)["']/i)?.[1];
+if (!faviconReference) fail("control console must reference a hashed favicon");
+const favicon = resolve(dist, faviconReference);
+if (!files.includes(favicon)) fail("control console favicon is missing from production assets");
+reachable.add(favicon);
 const sourceFiles = walk(resolve(root, "src")).filter((path) => /\.[cm]?[jt]sx?$/.test(path));
 const forbidden = [
   /https?:\/\/(?:localhost|127\.0\.0\.1):\d+/i,

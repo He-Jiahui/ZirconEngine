@@ -3,12 +3,12 @@ use std::collections::BTreeMap;
 use super::super::constraints::aggregate_row_constraints;
 use super::super::region_state::RegionState;
 use super::super::{
-    compact_bottom_defaults, compact_side_defaults, minimum_document_width_fraction,
-    WorkbenchChromeMetrics,
+    compact_side_defaults, minimum_document_width_fraction, WorkbenchChromeMetrics,
 };
 use super::super::{solve_axis_constraints, ShellFrame, ShellRegionId, ShellSizePx};
 use super::resolved_region_frames::ResolvedRegionFrames;
 use super::side_width_allocation::balanced_side_widths_for_budget;
+use super::vertical_bands::{resolve_vertical_flex_bands, VerticalFlexBandRequest};
 
 pub(super) fn build_region_frames(
     size: ShellSizePx,
@@ -18,39 +18,18 @@ pub(super) fn build_region_frames(
     bottom: RegionState,
     metrics: &WorkbenchChromeMetrics,
 ) -> ResolvedRegionFrames {
-    let center_y = metrics.top_bar_height
-        + metrics.separator_thickness
-        + metrics.host_bar_height
-        + metrics.separator_thickness;
-    let fixed_vertical = metrics.top_bar_height
-        + metrics.separator_thickness
-        + metrics.host_bar_height
-        + metrics.separator_thickness
-        + metrics.separator_thickness
-        + metrics.status_bar_height
-        + if bottom.visible {
-            metrics.separator_thickness
-        } else {
-            0.0
-        };
-    let center_and_bottom_available = (size.height - fixed_vertical).max(0.0);
-
     let row_height_constraint =
         aggregate_row_constraints(&[left.constraints, document.constraints, right.constraints]);
-    let mut center_height = center_and_bottom_available;
-    let mut bottom_height = 0.0;
-    if bottom.visible {
-        let band_heights = solve_axis_constraints(
-            center_and_bottom_available,
-            &[row_height_constraint.height, bottom.constraints.height],
-        );
-        center_height = band_heights[0].resolved;
-        bottom_height = band_heights[1].resolved;
-        if let Some(compact_limit) = compact_bottom_height_limit(center_and_bottom_available) {
-            bottom_height = bottom_height.min(compact_limit);
-            center_height = (center_and_bottom_available - bottom_height).max(0.0);
-        }
-    }
+    let vertical = resolve_vertical_flex_bands(
+        size,
+        VerticalFlexBandRequest::new(
+            row_height_constraint.height,
+            bottom.visible.then_some(bottom.constraints.height),
+            *metrics,
+        ),
+    );
+    let center_y = vertical.center_band_frame.y;
+    let center_height = vertical.center_band_frame.height;
 
     let visible_row_count = [left.visible, true, right.visible]
         .into_iter()
@@ -108,51 +87,18 @@ pub(super) fn build_region_frames(
         .copied()
         .unwrap_or_default();
 
-    let bottom_y = center_y
-        + center_height
-        + if bottom.visible {
-            metrics.separator_thickness
-        } else {
-            0.0
-        };
-    let bottom_frame = if bottom.visible {
-        ShellFrame::new(0.0, bottom_y, size.width, bottom_height)
-    } else {
-        ShellFrame::default()
-    };
+    let bottom_frame = vertical.bottom_frame;
     region_frames.insert(ShellRegionId::Bottom, bottom_frame);
 
     ResolvedRegionFrames {
         center_band_frame,
+        status_bar_frame: vertical.status_bar_frame,
         region_frames,
         left_frame,
         document_frame,
         right_frame,
         bottom_frame,
     }
-}
-
-pub(crate) fn compact_bottom_height_limit(available_height: f32) -> Option<f32> {
-    let defaults = compact_bottom_defaults();
-    if available_height <= defaults.ultra_available_height {
-        return Some(round_to_layout_pixel(
-            (available_height * defaults.ultra_max_available_fraction)
-                .min(defaults.ultra_max_height)
-                .max(defaults.ultra_min_height),
-        ));
-    }
-
-    (available_height <= defaults.available_height).then(|| {
-        round_to_layout_pixel(
-            (available_height * defaults.max_available_fraction)
-                .min(defaults.max_height)
-                .max(defaults.min_height),
-        )
-    })
-}
-
-fn round_to_layout_pixel(value: f32) -> f32 {
-    value.round()
 }
 
 pub(crate) fn compact_side_width_limit(region: ShellRegionId, available_width: f32) -> Option<f32> {

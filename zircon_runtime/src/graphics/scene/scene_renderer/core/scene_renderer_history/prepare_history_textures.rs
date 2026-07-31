@@ -1,7 +1,7 @@
 use crate::core::framework::render::{FrameHistoryHandle, FroxelGridQuality};
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::temporal::taa::{
-    TemporalHistoryKey, TAA_SCENE_COLOR_HISTORY_FORMAT,
+    TAA_SCENE_COLOR_HISTORY_FORMAT, TemporalHistoryKey,
 };
 use crate::graphics::visibility::HzbBuilder;
 

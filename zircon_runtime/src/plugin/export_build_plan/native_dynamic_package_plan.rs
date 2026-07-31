@@ -12,9 +12,9 @@ const NATIVE_DYNAMIC_RUNTIME_ENTRY_SOURCE_V3: &str = "NativePluginAbiV3.runtime_
 const NATIVE_DYNAMIC_EDITOR_ENTRY_SOURCE_V3: &str = "NativePluginAbiV3.editor_entry_name";
 const NATIVE_DYNAMIC_HOST_FUNCTION_TABLE_V3: &str = "NativePluginHostFunctionTableV3";
 const NATIVE_DYNAMIC_ENTRY_REPORT_CONTRACT_V3: &str = "NativePluginEntryReportV3";
-const NATIVE_DYNAMIC_BEHAVIOR_CONTRACT_V3: &str = "NativePluginBehaviorV3";
-const NATIVE_DYNAMIC_STATE_SNAPSHOT_CONTRACT_V3: &str =
-    "NativePluginBehaviorV3.save_state/restore_state";
+const NATIVE_DYNAMIC_BEHAVIOR_CONTRACT_V4: &str = "NativePluginBehaviorV4";
+const NATIVE_DYNAMIC_STATE_SNAPSHOT_CONTRACT_V4: &str =
+    "NativePluginBehaviorV4.save_state/restore_state";
 const NATIVE_DYNAMIC_BRIDGE_METHOD_TABLE_V3: &str = "NativePluginBridgeMethodTableV3";
 
 pub(super) struct NativeDynamicPackagePlan {
@@ -107,8 +107,8 @@ impl NativeDynamicPackageAbiV3Contract {
             editor_entry_source: NATIVE_DYNAMIC_EDITOR_ENTRY_SOURCE_V3.to_string(),
             host_function_table: NATIVE_DYNAMIC_HOST_FUNCTION_TABLE_V3.to_string(),
             entry_report_contract: NATIVE_DYNAMIC_ENTRY_REPORT_CONTRACT_V3.to_string(),
-            behavior_contract: NATIVE_DYNAMIC_BEHAVIOR_CONTRACT_V3.to_string(),
-            state_snapshot_contract: NATIVE_DYNAMIC_STATE_SNAPSHOT_CONTRACT_V3.to_string(),
+            behavior_contract: NATIVE_DYNAMIC_BEHAVIOR_CONTRACT_V4.to_string(),
+            state_snapshot_contract: NATIVE_DYNAMIC_STATE_SNAPSHOT_CONTRACT_V4.to_string(),
             bridge_method_table: NATIVE_DYNAMIC_BRIDGE_METHOD_TABLE_V3.to_string(),
         }
     }

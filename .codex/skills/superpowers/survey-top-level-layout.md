@@ -5,8 +5,8 @@
 
 ## Current Shape
 
-- Root branch directories: 4
-- Direct leaf skills under category folders: 14
+- Root branch directories: 3
+- Direct leaf skills under category folders: 8
 - Root helper directory: `scripts/`
 
 ## Progressive Tree
@@ -17,14 +17,10 @@ superpowers/
   survey-top-level-layout.md
   foundations-and-planning/
     SKILL.md
-    using-superpowers/
-    brainstorming/
-    writing-plans/
     executing-plans/
   implementation-and-delegation/
     SKILL.md
     test-driven-development/
-    using-git-worktrees/
     dispatching-parallel-agents/
     subagent-driven-development/
   review-and-stabilization/
@@ -33,10 +29,6 @@ superpowers/
     requesting-code-review/
     receiving-code-review/
     verification-before-completion/
-    finishing-a-development-branch/
-  skill-authoring/
-    SKILL.md
-    writing-skills/
   scripts/
     list-superpowers-skill-groups.ps1
     list-superpowers-skill-groups.sh

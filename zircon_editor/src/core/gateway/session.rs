@@ -1,24 +1,33 @@
 use std::slice;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use serde::de::DeserializeOwned;
 use zircon_runtime_interface::{
-    ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV2,
-    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeOperationHandle,
-    ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
-    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
+    ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV3,
+    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
+    ZrRuntimeOperationHandle, ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1,
+    ZrRuntimeOperationSubmitRequestV1, ZrRuntimePluginEventDeliveryBatchV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
     ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V2,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V3, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
 };
 
-use super::{EditorRuntimeFrame, EditorRuntimeGateway, GatewayError, RuntimeCapabilities};
+use super::{
+    EditorRuntimeFrame, EditorRuntimeFrameDemand, EditorRuntimeFramePixels, EditorRuntimeGateway,
+    EditorRuntimePluginEventPage, GatewayError, RuntimeCapabilities,
+};
+
+const MAX_EDITOR_RUNTIME_FRAME_DELAY: Duration = Duration::from_secs(60);
 
 pub struct SessionGateway {
     _runtime_owner: Arc<dyn Send + Sync>,
-    api: ZrRuntimeApiV2,
+    api: ZrRuntimeApiV3,
     session: ZrRuntimeSessionHandle,
-    capabilities: RuntimeCapabilities,
+    capabilities: Arc<RuntimeCapabilities>,
 }
 
 struct GatewayOwnedOutput {
@@ -34,6 +43,10 @@ impl GatewayOwnedOutput {
         self.raw.as_ref().is_none_or(|raw| raw.len == 0)
     }
 
+    fn len(&self) -> usize {
+        self.raw.as_ref().map_or(0, |raw| raw.len)
+    }
+
     fn validate(&self, operation: &'static str) -> Result<(), GatewayError> {
         let Some(raw) = self.raw.as_ref() else {
             return Err(GatewayError::Protocol {
@@ -44,6 +57,14 @@ impl GatewayOwnedOutput {
             return Err(GatewayError::Protocol {
                 message: format!(
                     "{operation} returned malformed storage: len {} exceeds capacity {}",
+                    raw.len, raw.capacity
+                ),
+            });
+        }
+        if raw.len > isize::MAX as usize || raw.capacity > isize::MAX as usize {
+            return Err(GatewayError::Protocol {
+                message: format!(
+                    "{operation} returned malformed storage: len {} and capacity {} exceed the maximum Rust slice allocation",
                     raw.len, raw.capacity
                 ),
             });
@@ -88,19 +109,6 @@ impl GatewayOwnedOutput {
         }
         Ok(())
     }
-
-    fn into_vec(self, operation: &'static str) -> Result<Vec<u8>, GatewayError> {
-        let copied = self.bytes(operation).map(|bytes| bytes.to_vec());
-        let released = self.release();
-        match (copied, released) {
-            (Ok(bytes), Ok(())) => Ok(bytes),
-            (Err(error), Ok(())) => Err(error),
-            (Ok(_), Err(error)) => Err(error),
-            (Err(error), Err(release_error)) => Err(GatewayError::Protocol {
-                message: format!("{error}; cleanup also failed: {release_error}"),
-            }),
-        }
-    }
 }
 
 impl Drop for GatewayOwnedOutput {
@@ -114,6 +122,23 @@ impl Drop for GatewayOwnedOutput {
     }
 }
 
+struct SessionRuntimeFramePixels {
+    _runtime_owner: Arc<dyn Send + Sync>,
+    output: GatewayOwnedOutput,
+    operation: &'static str,
+}
+
+impl EditorRuntimeFramePixels for SessionRuntimeFramePixels {
+    fn rgba(&self) -> Result<&[u8], GatewayError> {
+        self.output.bytes(self.operation)
+    }
+
+    fn release(self: Box<Self>) -> Result<(), GatewayError> {
+        let Self { output, .. } = *self;
+        output.release()
+    }
+}
+
 impl SessionGateway {
     /// Creates a gateway over a validated runtime API table.
     ///
@@ -123,17 +148,17 @@ impl SessionGateway {
     /// function pointer in `api` loaded until the gateway is dropped.
     pub unsafe fn new(
         runtime_owner: Arc<dyn Send + Sync>,
-        api: ZrRuntimeApiV2,
+        api: ZrRuntimeApiV3,
         session: ZrRuntimeSessionHandle,
         capabilities: RuntimeCapabilities,
     ) -> Result<Self, GatewayError> {
         if !session.is_valid() {
             return Err(GatewayError::SessionLost);
         }
-        if api.abi_version != ZIRCON_RUNTIME_API_VERSION_V2 {
+        if api.abi_version != ZIRCON_RUNTIME_API_VERSION_V3 {
             return Err(GatewayError::Protocol {
                 message: format!(
-                    "session gateway requires runtime API V2, received version {}",
+                    "session gateway requires runtime API V3, received version {}",
                     api.abi_version
                 ),
             });
@@ -142,7 +167,7 @@ impl SessionGateway {
             _runtime_owner: runtime_owner,
             api,
             session,
-            capabilities,
+            capabilities: Arc::new(capabilities),
         })
     }
 
@@ -154,21 +179,14 @@ impl SessionGateway {
         output: GatewayOwnedOutput,
         operation: &'static str,
     ) -> Result<T, GatewayError> {
-        let decoded = if let Err(error) = output.validate(operation) {
-            Err(error)
-        } else if output.is_empty() {
-            Err(GatewayError::Protocol {
+        let decoded = match output.bytes(operation) {
+            Ok([]) => Err(GatewayError::Protocol {
                 message: format!("{operation} returned an empty payload"),
-            })
-        } else {
-            match output.bytes(operation) {
-                Ok(bytes) => {
-                    serde_json::from_slice(bytes).map_err(|error| GatewayError::Protocol {
-                        message: format!("{operation} returned invalid JSON: {error}"),
-                    })
-                }
-                Err(error) => Err(error),
-            }
+            }),
+            Ok(bytes) => serde_json::from_slice(bytes).map_err(|error| GatewayError::Protocol {
+                message: format!("{operation} returned invalid JSON: {error}"),
+            }),
+            Err(error) => Err(error),
         };
         let released = output.release();
         match (decoded, released) {
@@ -187,14 +205,31 @@ impl SessionGateway {
         operation: &'static str,
     ) -> Result<GatewayOwnedOutput, GatewayError> {
         let output = GatewayOwnedOutput::new(output);
-        let Err(status_error) = ensure_status(status, operation) else {
+        let validation_error = output.validate(operation).err();
+        let status_error = ensure_status(status, operation).err();
+        if status_error.is_none() && validation_error.is_none() {
             return Ok(output);
-        };
-        match output.release() {
-            Ok(()) => Err(status_error),
-            Err(release_error) => Err(GatewayError::Protocol {
-                message: format!("{status_error}; cleanup also failed: {release_error}"),
+        }
+
+        let released = output.release();
+        match (status_error, validation_error, released) {
+            (Some(status_error), None, Ok(())) => Err(status_error),
+            (status_error, Some(validation_error), Ok(())) => Err(GatewayError::Protocol {
+                message: match status_error {
+                    Some(status_error) => format!("{status_error}; {validation_error}"),
+                    None => validation_error.to_string(),
+                },
             }),
+            (status_error, validation_error, Err(release_error)) => Err(GatewayError::Protocol {
+                message: format!(
+                    "{}; cleanup also failed: {release_error}",
+                    status_error
+                        .map(|error| error.to_string())
+                        .or_else(|| validation_error.map(|error| error.to_string()))
+                        .unwrap_or_else(|| operation.to_string())
+                ),
+            }),
+            (None, None, Ok(())) => unreachable!("successful validated output returned above"),
         }
     }
 }
@@ -210,7 +245,7 @@ impl std::fmt::Debug for SessionGateway {
 }
 
 impl EditorRuntimeGateway for SessionGateway {
-    fn capabilities(&self) -> RuntimeCapabilities {
+    fn capabilities(&self) -> Arc<RuntimeCapabilities> {
         self.capabilities.clone()
     }
 
@@ -218,10 +253,14 @@ impl EditorRuntimeGateway for SessionGateway {
         self.session
     }
 
-    fn tick_frame(&self) -> Result<bool, GatewayError> {
+    fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
         let tick = Self::required(self.api.tick_frame, "runtime.frame.tick")?;
-        ensure_status(unsafe { tick(self.session) }, "tick runtime frame")?;
-        Ok(true)
+        let mut demand = ZrRuntimeFrameDemandV1::idle();
+        ensure_status(
+            unsafe { tick(self.session, &mut demand) },
+            "tick runtime frame",
+        )?;
+        frame_demand_from_runtime(demand)
     }
 
     fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), GatewayError> {
@@ -246,15 +285,25 @@ impl EditorRuntimeGateway for SessionGateway {
                 &mut frame,
             )
         };
-        let rgba = Self::validate_output_status(status, frame.rgba, "capture runtime frame")?
-            .into_vec("capture runtime frame")?;
-        ensure_output_abi(frame.abi_version, "runtime frame")?;
-        Ok(EditorRuntimeFrame::new(
+        let output = Self::validate_output_status(status, frame.rgba, "capture runtime frame")?;
+        let validation = ensure_output_abi(frame.abi_version, "runtime frame").and_then(|()| {
+            output
+                .bytes("capture runtime frame")
+                .and_then(|rgba| ensure_frame_rgba_shape(frame.width, frame.height, rgba))
+        });
+        if let Err(error) = validation {
+            return release_output_after_error(output, error);
+        }
+        Ok(EditorRuntimeFrame::from_pixels(
             frame.abi_version,
             frame.width,
             frame.height,
             frame.generation,
-            rgba,
+            Box::new(SessionRuntimeFramePixels {
+                _runtime_owner: self._runtime_owner.clone(),
+                output,
+                operation: "capture runtime frame",
+            }),
         ))
     }
 
@@ -340,20 +389,69 @@ impl EditorRuntimeGateway for SessionGateway {
     fn drain_plugin_events(
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
-    ) -> Result<Vec<ZrRuntimePluginEventDeliveryV1>, GatewayError> {
+    ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
         let drain = Self::required(self.api.drain_plugin_events, "runtime.plugin_event.drain")?;
         let mut output = ZrOwnedByteBuffer::empty();
+        let runtime_drain_started = Instant::now();
         let status = unsafe { drain(self.session, subscription, &mut output) };
+        let runtime_drain_elapsed = runtime_drain_started.elapsed();
         let output = Self::validate_output_status(status, output, "drain runtime plugin events")?;
-        output.validate("drain runtime plugin events")?;
         if output.is_empty() {
             output.release()?;
-            return Ok(Vec::new());
+            return Ok(EditorRuntimePluginEventPage::new(
+                Vec::new(),
+                0,
+                runtime_drain_elapsed,
+                Duration::ZERO,
+            ));
         }
+        let encoded_bytes = output.len();
+        if encoded_bytes > ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1 {
+            return release_output_after_error(
+                output,
+                GatewayError::Protocol {
+                    message: format!(
+                        "runtime plugin event page returned {encoded_bytes} encoded bytes; maximum is {ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1}"
+                    ),
+                },
+            );
+        }
+        let decode_started = Instant::now();
         let batch: ZrRuntimePluginEventDeliveryBatchV1 =
             Self::decode_owned_output(output, "drain runtime plugin events")?;
+        let decode_elapsed = decode_started.elapsed();
         ensure_output_abi(batch.abi_version, "runtime plugin event batch")?;
-        Ok(batch.deliveries)
+        if batch.deliveries.len() > ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1 {
+            return Err(GatewayError::Protocol {
+                message: format!(
+                    "runtime plugin event batch returned {} deliveries; maximum is {ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1}",
+                    batch.deliveries.len()
+                ),
+            });
+        }
+        if let Some(delivery) = batch
+            .deliveries
+            .iter()
+            .find(|delivery| delivery.subscription != subscription)
+        {
+            return Err(GatewayError::Protocol {
+                message: format!(
+                    "runtime plugin event delivery subscription {} did not match requested subscription {}",
+                    delivery.subscription.raw(),
+                    subscription.raw()
+                ),
+            });
+        }
+        Ok(EditorRuntimePluginEventPage::new(
+            batch.deliveries,
+            encoded_bytes,
+            runtime_drain_elapsed,
+            decode_elapsed,
+        )
+        .with_runtime_backlog(
+            batch.remaining_deliveries as usize,
+            batch.oldest_pending_age_millis,
+        ))
     }
 
     fn submit_operation(
@@ -397,6 +495,7 @@ impl EditorRuntimeGateway for SessionGateway {
         let progress: ZrRuntimeOperationProgressV1 =
             Self::decode_owned_output(output, "poll runtime operation")?;
         ensure_output_abi(progress.abi_version, "runtime operation progress")?;
+        ensure_operation_handle(progress.handle, handle, "runtime operation progress")?;
         Ok(progress)
     }
 
@@ -411,8 +510,94 @@ impl EditorRuntimeGateway for SessionGateway {
         let result: ZrRuntimeOperationResultV1 =
             Self::decode_owned_output(output, "harvest runtime operation")?;
         ensure_output_abi(result.abi_version, "runtime operation result")?;
+        ensure_operation_handle(result.handle, handle, "runtime operation result")?;
         Ok(result)
     }
+}
+
+fn ensure_frame_rgba_shape(width: u32, height: u32, rgba: &[u8]) -> Result<(), GatewayError> {
+    if rgba.is_empty() {
+        return Ok(());
+    }
+    let expected = u64::from(width)
+        .checked_mul(u64::from(height))
+        .and_then(|pixels| pixels.checked_mul(4))
+        .and_then(|bytes| usize::try_from(bytes).ok())
+        .ok_or_else(|| GatewayError::Protocol {
+            message: format!("runtime frame dimensions {width}x{height} overflow RGBA byte length"),
+        })?;
+    if rgba.len() == expected {
+        return Ok(());
+    }
+    Err(GatewayError::Protocol {
+        message: format!(
+            "runtime frame {width}x{height} returned {} RGBA bytes; expected {expected}",
+            rgba.len()
+        ),
+    })
+}
+
+fn release_output_after_error<T>(
+    output: GatewayOwnedOutput,
+    error: GatewayError,
+) -> Result<T, GatewayError> {
+    match output.release() {
+        Ok(()) => Err(error),
+        Err(release_error) => Err(GatewayError::Protocol {
+            message: format!("{error}; cleanup also failed: {release_error}"),
+        }),
+    }
+}
+
+fn frame_demand_from_runtime(
+    demand: ZrRuntimeFrameDemandV1,
+) -> Result<EditorRuntimeFrameDemand, GatewayError> {
+    if demand.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+        return Err(GatewayError::Protocol {
+            message: format!(
+                "runtime frame demand used unsupported ABI version {}",
+                demand.abi_version
+            ),
+        });
+    }
+    if !demand.has_known_kind() {
+        return Err(GatewayError::Protocol {
+            message: format!("runtime frame demand used unknown kind {}", demand.kind),
+        });
+    }
+    if demand.is_valid() {
+        return match demand.kind {
+            ZR_RUNTIME_FRAME_DEMAND_IDLE_V1 => Ok(EditorRuntimeFrameDemand::OnDemand),
+            ZR_RUNTIME_FRAME_DEMAND_AFTER_V1 => Ok(EditorRuntimeFrameDemand::SleepUntil(
+                Duration::from_nanos(demand.delay_nanoseconds).min(MAX_EDITOR_RUNTIME_FRAME_DELAY),
+            )),
+            ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1 => Ok(EditorRuntimeFrameDemand::Continuous),
+            _ => unreachable!("known frame demand kind was validated above"),
+        };
+    }
+    Err(GatewayError::Protocol {
+        message: format!(
+            "runtime frame demand kind {} returned invalid delay {}ns",
+            demand.kind, demand.delay_nanoseconds
+        ),
+    })
+}
+
+fn ensure_operation_handle(
+    response: ZrRuntimeOperationHandle,
+    requested: ZrRuntimeOperationHandle,
+    output_kind: &'static str,
+) -> Result<(), GatewayError> {
+    if response == requested {
+        return Ok(());
+    }
+    Err(GatewayError::Protocol {
+        message: format!(
+            "{output_kind} handle {} did not match requested handle {}",
+            response.raw(),
+            requested.raw()
+        ),
+    })
 }
 
 fn ensure_output_abi(abi_version: u32, output_kind: &'static str) -> Result<(), GatewayError> {
@@ -436,4 +621,27 @@ fn ensure_status(status: ZrStatus, operation: &'static str) -> Result<(), Gatewa
             status.status_code()
         ),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn owned_output_decode_validates_the_payload_once() {
+        let source = include_str!("session.rs");
+        let decode_body = source
+            .split("fn decode_owned_output")
+            .nth(1)
+            .and_then(|body| body.split("fn validate_output_status").next())
+            .expect("decode-owned-output body should remain available");
+        let repeated_validation = ["output.val", "idate(operation)"].concat();
+        assert!(!decode_body.contains(&repeated_validation));
+
+        let drain_body = source
+            .split("fn drain_plugin_events")
+            .nth(1)
+            .and_then(|body| body.split("fn submit_operation").next())
+            .expect("session drain body should remain available");
+        let explicit_validation = ["output.val", "idate(\"drain runtime plugin events\")"].concat();
+        assert!(!drain_body.contains(&explicit_validation));
+    }
 }

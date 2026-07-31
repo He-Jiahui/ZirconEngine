@@ -35,6 +35,21 @@ impl World {
         let _ = self.entity_registry.despawn(entity);
     }
 
+    pub(super) fn remove_entity_from_archetype(&mut self, entity: EntityId) {
+        let Some(stable_location) = self.entity_registry.location_for_stable(entity) else {
+            return;
+        };
+        let location = stable_location.location;
+        let swapped_entity = self.archetype_index.remove_entity_at(
+            location.archetype_id,
+            location.table_row,
+            entity,
+        );
+        if let Some((swapped_entity, row)) = swapped_entity {
+            self.update_entity_archetype_row(swapped_entity, row);
+        }
+    }
+
     pub(super) fn refresh_stable_entity_locations(&mut self) {
         self.rebuild_archetype_index();
     }
@@ -48,7 +63,10 @@ impl World {
 
     pub(super) fn refresh_entity_archetype(&mut self, entity: EntityId) {
         let previous = match self.entity_registry.location_for_stable(entity) {
-            Some(location) => Some(location.location.archetype_id),
+            Some(location) => {
+                let location = location.location;
+                Some((location.archetype_id, location.table_row))
+            }
             None => None,
         };
         self.assign_entity_archetype(entity, previous);
@@ -62,7 +80,11 @@ impl World {
         }
     }
 
-    fn assign_entity_archetype(&mut self, entity: EntityId, previous: Option<ArchetypeId>) {
+    fn assign_entity_archetype(
+        &mut self,
+        entity: EntityId,
+        previous: Option<(ArchetypeId, usize)>,
+    ) {
         let Some(internal) = self.internal_entity(entity) else {
             return;
         };

@@ -311,6 +311,18 @@ fn hot_reload_plan_rebuild_dirty_surface_consumes_planned_dirty_domains() {
     assert!(!surface.dirty_flags().any());
 }
 
+#[test]
+fn hot_reload_classifier_borrows_normalized_lowercase_asset_paths() {
+    assert_eq!(
+        classify_ui_hot_reload_asset(" RES://UI/VIEWS/MAIN.ZUI#Root "),
+        UiHotReloadAssetKind::Template
+    );
+
+    let source = include_str!("../template/asset/hot_reload_plan.rs");
+    assert!(source.contains("Cow::Borrowed(path)"));
+    assert!(source.contains("Cow::Owned(path.to_ascii_lowercase())"));
+}
+
 fn report_for_change(
     changed: &str,
     compiled_edges: &[(&str, &str)],

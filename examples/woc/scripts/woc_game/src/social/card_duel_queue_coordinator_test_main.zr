@@ -1,0 +1,35 @@
+var console = %import("zr.system.console");
+var coordinator = %import("social/card_duel_queue_coordinator");
+
+contractTest(): int {
+    var queue = new coordinator.CardDuelQueueCoordinator();
+    queue.upsert(<uint>10, true);
+    if (queue.availableFor(<uint>10) || queue.join(<uint>10, true, false) != -3) return -1;
+
+    queue.upsert(<uint>20, false);
+    if (queue.availableFor(<uint>10) || queue.join(<uint>10, true, false) != -3) return -2;
+    queue.upsert(<uint>20, true);
+    if (!queue.availableFor(<uint>10) || queue.join(<uint>10, false, false) != -2 ||
+        queue.join(<uint>10, true, true) != -1 || queue.join(<uint>10, true, false) != 1 ||
+        queue.join(<uint>10, true, false) != 0) {
+        return -3;
+    }
+    // A stale/dead queue row is removed before FIFO matching, leaving the
+    // still-live player available to pair with the next eligible participant.
+    queue.upsert(<uint>30, true);
+    if (queue.join(<uint>30, true, false) != 1) return -4;
+    queue.upsert(<uint>30, false);
+    queue.upsert(<uint>40, true);
+    if (queue.join(<uint>40, true, false) != 1) return -5;
+    var pair = queue.pairNext();
+    if (!pair.ready || pair.a != <uint>10 || pair.b != <uint>40 || queue.size() != 0) {
+        return -6;
+    }
+    if (queue.leave(<uint>10) || queue.pairNext().ready) return -7;
+    return 1;
+}
+
+console.printLine("card-duel-queue-coordinator-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

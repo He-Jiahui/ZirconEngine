@@ -78,8 +78,11 @@ PHYSICS_CONTRACT_ROOT = (
 SCENE_PHYSICS_ROOT = (
     REPO_ROOT / "zircon_runtime" / "src" / "core" / "framework" / "scene" / "physics"
 )
-RUNTIME_DIAGNOSTICS_ROOT = (
+CORE_RUNTIME_DIAGNOSTICS_ROOT = (
     REPO_ROOT / "zircon_runtime" / "src" / "core" / "runtime" / "diagnostics"
+)
+RUNTIME_DIAGNOSTICS_FACADE_ROOT = (
+    REPO_ROOT / "zircon_runtime" / "src" / "runtime_diagnostics"
 )
 LEVEL_SYSTEM_SOURCE = REPO_ROOT / "zircon_runtime" / "src" / "scene" / "level_system.rs"
 GRAPHICS_RICH_TEXT_RENDER_SOURCE = (
@@ -500,15 +503,37 @@ use zircon_runtime::core::framework::physics::{
         )
 
     def test_runtime_physics_diagnostics_use_a_neutral_projection_adapter(self) -> None:
-        diagnostics_root = (RUNTIME_DIAGNOSTICS_ROOT / "mod.rs").read_text(
+        diagnostics_root = (CORE_RUNTIME_DIAGNOSTICS_ROOT / "mod.rs").read_text(
             encoding="utf-8"
         )
-        physics_projection = (RUNTIME_DIAGNOSTICS_ROOT / "physics.rs").read_text(
+        facade_root = (RUNTIME_DIAGNOSTICS_FACADE_ROOT / "mod.rs").read_text(
             encoding="utf-8"
         )
-        backend_projection_path = RUNTIME_DIAGNOSTICS_ROOT / "physics_backend.rs"
-        diagnostics_collection = (RUNTIME_DIAGNOSTICS_ROOT / "collect.rs").read_text(
+        physics_projection = (
+            CORE_RUNTIME_DIAGNOSTICS_ROOT / "physics.rs"
+        ).read_text(
             encoding="utf-8"
+        )
+        backend_projection_path = (
+            CORE_RUNTIME_DIAGNOSTICS_ROOT / "physics_backend.rs"
+        )
+        diagnostics_collection = (
+            RUNTIME_DIAGNOSTICS_FACADE_ROOT / "collect.rs"
+        ).read_text(encoding="utf-8")
+        enabled_collection = (
+            RUNTIME_DIAGNOSTICS_FACADE_ROOT / "physics_collection_enabled.rs"
+        ).read_text(encoding="utf-8")
+        disabled_collection = (
+            RUNTIME_DIAGNOSTICS_FACADE_ROOT / "physics_collection_disabled.rs"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn("core::framework::physics", diagnostics_root)
+        self.assertNotIn("core::manager", diagnostics_root)
+        self.assertNotIn("core::manager", physics_projection)
+        self.assertNotIn("core::manager", disabled_collection)
+        self.assertIn("core::manager", enabled_collection)
+        self.assertIn(
+            "super::physics_collection::collect(core)", diagnostics_collection
         )
 
         self.assertNotIn("core::framework::physics", physics_projection)
@@ -526,13 +551,13 @@ use zircon_runtime::core::framework::physics::{
             '#[cfg(feature = "physics-contracts")]\n'
             '#[path = "physics_collection_enabled.rs"]\n'
             "mod physics_collection;",
-            diagnostics_root,
+            facade_root,
         )
         self.assertIn(
             '#[cfg(not(feature = "physics-contracts"))]\n'
             '#[path = "physics_collection_disabled.rs"]\n'
             "mod physics_collection;",
-            diagnostics_root,
+            facade_root,
         )
 
     def test_graphics_does_not_require_the_ui_domain(self) -> None:

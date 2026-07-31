@@ -1,8 +1,8 @@
+use super::GlyphAtlasPageKey;
 use super::render_contract::GlyphAtlasRenderContract;
 use super::render_plan::{
-    glyph_atlas_draw_quad, GlyphAtlasDrawGlyph, GlyphAtlasDrawQuad, GlyphAtlasScreenRect,
+    GlyphAtlasDrawGlyph, GlyphAtlasDrawInstance, GlyphAtlasScreenRect, glyph_atlas_draw_instance,
 };
-use super::GlyphAtlasPageKey;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasDrawBatchKey {
@@ -13,7 +13,7 @@ pub(crate) struct GlyphAtlasDrawBatchKey {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct GlyphAtlasDrawBatch {
     pub(crate) key: GlyphAtlasDrawBatchKey,
-    pub(crate) quads: Vec<GlyphAtlasDrawQuad>,
+    pub(crate) instances: Vec<GlyphAtlasDrawInstance>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -21,7 +21,7 @@ pub(crate) struct GlyphAtlasDrawBatchPlan {
     pub(crate) batches: Vec<GlyphAtlasDrawBatch>,
     pub(crate) visible_glyph_count: usize,
     pub(crate) skipped_glyph_count: usize,
-    pub(crate) vertex_count: usize,
+    pub(crate) instance_count: usize,
     pub(crate) requires_background_composite: bool,
 }
 
@@ -35,25 +35,28 @@ where
     let mut plan = GlyphAtlasDrawBatchPlan::default();
 
     for glyph in glyphs {
-        let Some(quad) = glyph_atlas_draw_quad(glyph, clip_rect) else {
+        let Some(instance) = glyph_atlas_draw_instance(glyph, clip_rect) else {
             plan.skipped_glyph_count += 1;
             continue;
         };
 
         let key = GlyphAtlasDrawBatchKey {
-            page_key: quad.page_key,
-            render_contract: quad.render_contract,
+            page_key: instance.page_key,
+            render_contract: instance.render_contract,
         };
         plan.visible_glyph_count += 1;
-        plan.vertex_count += quad.vertices.len();
-        plan.requires_background_composite |= quad.render_contract.requires_background_composite();
+        plan.instance_count += 1;
+        plan.requires_background_composite |=
+            instance.render_contract.requires_background_composite();
 
-        if let Some(batch) = plan.batches.iter_mut().find(|batch| batch.key == key) {
-            batch.quads.push(quad);
+        // Only merge adjacent compatible glyphs. Joining a later matching page/contract back
+        // into an earlier batch would reorder Alpha/Color/Subpixel overlap in painter order.
+        if let Some(batch) = plan.batches.last_mut().filter(|batch| batch.key == key) {
+            batch.instances.push(instance);
         } else {
             plan.batches.push(GlyphAtlasDrawBatch {
                 key,
-                quads: vec![quad],
+                instances: vec![instance],
             });
         }
     }

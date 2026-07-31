@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_raise_dead_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff"
+  },
+  "content": {
+    "channel_seconds": 5,
+    "interrupt_object_kind": "cracked_grave",
+    "completion_requires_living_boss": true,
+    "completion_spawns_boss_adds": true,
+    "start_requires_cracked_grave": true
+  },
+  "catalog_sha256": "0626ff615d47142580a753894c9b69c5d7cccb507d178852552d7ce817c51770"
+}

@@ -1,17 +1,19 @@
+use std::sync::Arc;
+
 use crate::builtin::{
     runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
 };
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;
 use crate::plugin::{
-    RuntimeExtensionRegistry, RuntimePluginCatalog, RuntimePluginRegistrationReport,
+    RuntimeExtensionCatalogReport, RuntimePluginCatalog, RuntimePluginRegistrationReport,
 };
 
 use super::error::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
 
 pub(super) struct LinkedRuntimePluginPlan {
     modules: RuntimeModuleLoadReport,
-    extensions: RuntimeExtensionRegistry,
+    extensions: Arc<RuntimeExtensionCatalogReport>,
     package_ids: Vec<String>,
 }
 
@@ -61,7 +63,7 @@ impl LinkedRuntimePluginPlan {
 
         Ok(Self {
             modules,
-            extensions: extension_report.registry,
+            extensions: extension_report,
             package_ids: registrations
                 .iter()
                 .filter(|registration| {
@@ -76,7 +78,9 @@ impl LinkedRuntimePluginPlan {
         self.package_ids.iter().any(|id| id == package_id)
     }
 
-    pub(super) fn into_parts(self) -> (RuntimeModuleLoadReport, RuntimeExtensionRegistry) {
+    pub(super) fn into_parts(
+        self,
+    ) -> (RuntimeModuleLoadReport, Arc<RuntimeExtensionCatalogReport>) {
         (self.modules, self.extensions)
     }
 }

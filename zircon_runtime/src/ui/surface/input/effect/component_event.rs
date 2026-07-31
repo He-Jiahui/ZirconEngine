@@ -37,5 +37,6 @@ pub(super) fn component_event_report_for_effect(
         event: event.clone(),
         delivered: true,
         drag: None,
+        template_action: None,
     })
 }

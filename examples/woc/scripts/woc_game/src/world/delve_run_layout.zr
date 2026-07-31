@@ -1,0 +1,736 @@
+// Active Delve run-layout projection. Callers supply scalar fields from the
+// authoritative run: delve index, slot, seed, tier route and module offset.
+// It must not be used as the no-active-run default collision fallback.
+
+var content = %import("world/delve_run_layout_content");
+var collisionContent = %import("world/delve_collision_content");
+var rngModule = %import("kernel/rng");
+
+pub runModuleCount(delveIndex: int, tierIndex: int, required: bool): int {
+    if (!required) {
+        throw "woc active Delve run module count is required";
+    }
+    return content.moduleCountForTier(delveIndex, tierIndex, true) + 1;
+}
+
+pub activeRunModuleIndex(
+    delveIndex: int,
+    tierIndex: int,
+    seed: int,
+    moduleOffset: int,
+    required: bool
+): int {
+    if (!required) {
+        throw "woc active Delve module query is required";
+    }
+    var runCount = runModuleCount(delveIndex, tierIndex, true);
+    if (moduleOffset < 0 || moduleOffset >= runCount) {
+        throw "woc active Delve module offset is invalid";
+    }
+    if (moduleOffset + 1 == runCount) {
+        return content.finaleModuleIndex(delveIndex, true);
+    }
+    var poolCount = content.nonFinalModuleCount(delveIndex, true);
+    var entry0 = content.nonFinalModuleIndex(delveIndex, 0, true);
+    var entry1 = 0;
+    if (poolCount > 1) {
+        entry1 = content.nonFinalModuleIndex(delveIndex, 1, true);
+    }
+    var entry2 = 0;
+    if (poolCount > 2) {
+        entry2 = content.nonFinalModuleIndex(delveIndex, 2, true);
+    }
+    var entry3 = 0;
+    if (poolCount > 3) {
+        entry3 = content.nonFinalModuleIndex(delveIndex, 3, true);
+    }
+    var entry4 = 0;
+    if (poolCount > 4) {
+        entry4 = content.nonFinalModuleIndex(delveIndex, 4, true);
+    }
+    var entry5 = 0;
+    if (poolCount > 5) {
+        entry5 = content.nonFinalModuleIndex(delveIndex, 5, true);
+    }
+    var rng = new rngModule.Mulberry32(<uint>seed);
+    var remaining = poolCount - 1;
+    while (remaining > 0) {
+        var selected = <int>(rng.next() * <float>(remaining + 1));
+        if (remaining == 5) {
+            var swap5 = entry5;
+            if (selected == 0) {
+                entry5 = entry0;
+                entry0 = swap5;
+            }
+            if (selected == 1) {
+                entry5 = entry1;
+                entry1 = swap5;
+            }
+            if (selected == 2) {
+                entry5 = entry2;
+                entry2 = swap5;
+            }
+            if (selected == 3) {
+                entry5 = entry3;
+                entry3 = swap5;
+            }
+            if (selected == 4) {
+                entry5 = entry4;
+                entry4 = swap5;
+            }
+        }
+        if (remaining == 4) {
+            var swap4 = entry4;
+            if (selected == 0) {
+                entry4 = entry0;
+                entry0 = swap4;
+            }
+            if (selected == 1) {
+                entry4 = entry1;
+                entry1 = swap4;
+            }
+            if (selected == 2) {
+                entry4 = entry2;
+                entry2 = swap4;
+            }
+            if (selected == 3) {
+                entry4 = entry3;
+                entry3 = swap4;
+            }
+        }
+        if (remaining == 3) {
+            var swap3 = entry3;
+            if (selected == 0) {
+                entry3 = entry0;
+                entry0 = swap3;
+            }
+            if (selected == 1) {
+                entry3 = entry1;
+                entry1 = swap3;
+            }
+            if (selected == 2) {
+                entry3 = entry2;
+                entry2 = swap3;
+            }
+        }
+        if (remaining == 2) {
+            var swap2 = entry2;
+            if (selected == 0) {
+                entry2 = entry0;
+                entry0 = swap2;
+            }
+            if (selected == 1) {
+                entry2 = entry1;
+                entry1 = swap2;
+            }
+        }
+        if (remaining == 1) {
+            var swap1 = entry1;
+            if (selected == 0) {
+                entry1 = entry0;
+                entry0 = swap1;
+            }
+        }
+        remaining = remaining - 1;
+    }
+    if (moduleOffset == 0) {
+        return entry0;
+    }
+    if (moduleOffset == 1) {
+        return entry1;
+    }
+    if (moduleOffset == 2) {
+        return entry2;
+    }
+    if (moduleOffset == 3) {
+        return entry3;
+    }
+    if (moduleOffset == 4) {
+        return entry4;
+    }
+    return entry5;
+}
+
+pub activeRunModuleOriginCoordinate(
+    delveIndex: int,
+    slot: int,
+    tierIndex: int,
+    seed: int,
+    moduleOffset: int,
+    axis: int,
+    required: bool
+): float {
+    if (!required || slot < 0 || slot >= collisionContent.delveSlotCount(true) ||
+        (axis != 1 && axis != 2)) {
+        throw "woc active Delve module origin is invalid";
+    }
+    activeRunModuleIndex(delveIndex, tierIndex, seed, moduleOffset, true);
+    var cursorZ = collisionContent.delveModuleZStart(true);
+    var previous = 0;
+    while (previous < moduleOffset) {
+        var previousModule = activeRunModuleIndex(
+            delveIndex, tierIndex, seed, previous, true
+        );
+        cursorZ = cursorZ + collisionContent.moduleSpan(previousModule, true) +
+            collisionContent.delveModuleGap(true);
+        previous = previous + 1;
+    }
+    return axis == 1 ?
+        collisionContent.delveOriginBaseX(true) +
+            <float>delveIndex * collisionContent.delveOriginIndexSpacing(true) :
+        collisionContent.delveOriginZ0(true) +
+            <float>slot * collisionContent.delveSlotSpacing(true) + cursorZ;
+}
+
+// Matches delveOccupancyRadius for the scalar active-run layout.
+pub activeRunOccupancyRadius(
+    delveIndex: int,
+    tierIndex: int,
+    seed: int,
+    required: bool
+): float {
+    if (!required) {
+        throw "woc active Delve occupancy radius is required";
+    }
+    var finalOffset = runModuleCount(delveIndex, tierIndex, true) - 1;
+    var cursorZ = collisionContent.delveModuleZStart(true);
+    var previous = 0;
+    while (previous < finalOffset) {
+        var previousModule = activeRunModuleIndex(
+            delveIndex, tierIndex, seed, previous, true
+        );
+        cursorZ = cursorZ + collisionContent.moduleSpan(previousModule, true) +
+            collisionContent.delveModuleGap(true);
+        previous = previous + 1;
+    }
+    var finalModule = activeRunModuleIndex(
+        delveIndex, tierIndex, seed, finalOffset, true
+    );
+    return cursorZ + collisionContent.moduleSpan(finalModule, true) + 40.0;
+}
+
+pub contractTest(): int {
+    if (runModuleCount(0, 0, true) != 4 || runModuleCount(1, 1, true) != 4 ||
+        runModuleCount(0, -1, true) != 4) {
+        return -1;
+    }
+    if (activeRunModuleIndex(0, 0, 0, 0, true) != 2) {
+        return -2;
+    }
+    if (activeRunModuleIndex(0, 0, 0, 1, true) != 0) {
+        return -3;
+    }
+    if (activeRunModuleIndex(0, 0, 0, 2, true) != 1) {
+        return -4;
+    }
+    if (activeRunModuleIndex(0, 0, 0, 3, true) != 3) {
+        return -5;
+    }
+    if (activeRunModuleIndex(0, 0, 1, 0, true) != 2) {
+        return -6;
+    }
+    if (activeRunModuleIndex(0, 0, 1, 1, true) != 0) {
+        return -7;
+    }
+    if (activeRunModuleIndex(0, 0, 1, 2, true) != 1) {
+        return -8;
+    }
+    if (activeRunModuleIndex(0, 0, 1, 3, true) != 3) {
+        return -9;
+    }
+    if (activeRunModuleIndex(0, 0, 2, 0, true) != 1) {
+        return -10;
+    }
+    if (activeRunModuleIndex(0, 0, 2, 1, true) != 0) {
+        return -11;
+    }
+    if (activeRunModuleIndex(0, 0, 2, 2, true) != 2) {
+        return -12;
+    }
+    if (activeRunModuleIndex(0, 0, 2, 3, true) != 3) {
+        return -13;
+    }
+    if (activeRunModuleIndex(0, 0, 5, 0, true) != 0) {
+        return -14;
+    }
+    if (activeRunModuleIndex(0, 0, 5, 1, true) != 1) {
+        return -15;
+    }
+    if (activeRunModuleIndex(0, 0, 5, 2, true) != 2) {
+        return -16;
+    }
+    if (activeRunModuleIndex(0, 0, 5, 3, true) != 3) {
+        return -17;
+    }
+    if (activeRunModuleIndex(0, 0, 42, 0, true) != 2) {
+        return -18;
+    }
+    if (activeRunModuleIndex(0, 0, 42, 1, true) != 0) {
+        return -19;
+    }
+    if (activeRunModuleIndex(0, 0, 42, 2, true) != 1) {
+        return -20;
+    }
+    if (activeRunModuleIndex(0, 0, 42, 3, true) != 3) {
+        return -21;
+    }
+    if (activeRunModuleIndex(0, 0, 20061, 0, true) != 1) {
+        return -22;
+    }
+    if (activeRunModuleIndex(0, 0, 20061, 1, true) != 2) {
+        return -23;
+    }
+    if (activeRunModuleIndex(0, 0, 20061, 2, true) != 0) {
+        return -24;
+    }
+    if (activeRunModuleIndex(0, 0, 20061, 3, true) != 3) {
+        return -25;
+    }
+    if (activeRunModuleIndex(0, 0, 2147483647, 0, true) != 2) {
+        return -26;
+    }
+    if (activeRunModuleIndex(0, 0, 2147483647, 1, true) != 0) {
+        return -27;
+    }
+    if (activeRunModuleIndex(0, 0, 2147483647, 2, true) != 1) {
+        return -28;
+    }
+    if (activeRunModuleIndex(0, 0, 2147483647, 3, true) != 3) {
+        return -29;
+    }
+    if (activeRunModuleIndex(0, 1, 0, 0, true) != 2) {
+        return -30;
+    }
+    if (activeRunModuleIndex(0, 1, 0, 1, true) != 0) {
+        return -31;
+    }
+    if (activeRunModuleIndex(0, 1, 0, 2, true) != 1) {
+        return -32;
+    }
+    if (activeRunModuleIndex(0, 1, 0, 3, true) != 3) {
+        return -33;
+    }
+    if (activeRunModuleIndex(0, 1, 1, 0, true) != 2) {
+        return -34;
+    }
+    if (activeRunModuleIndex(0, 1, 1, 1, true) != 0) {
+        return -35;
+    }
+    if (activeRunModuleIndex(0, 1, 1, 2, true) != 1) {
+        return -36;
+    }
+    if (activeRunModuleIndex(0, 1, 1, 3, true) != 3) {
+        return -37;
+    }
+    if (activeRunModuleIndex(0, 1, 2, 0, true) != 1) {
+        return -38;
+    }
+    if (activeRunModuleIndex(0, 1, 2, 1, true) != 0) {
+        return -39;
+    }
+    if (activeRunModuleIndex(0, 1, 2, 2, true) != 2) {
+        return -40;
+    }
+    if (activeRunModuleIndex(0, 1, 2, 3, true) != 3) {
+        return -41;
+    }
+    if (activeRunModuleIndex(0, 1, 5, 0, true) != 0) {
+        return -42;
+    }
+    if (activeRunModuleIndex(0, 1, 5, 1, true) != 1) {
+        return -43;
+    }
+    if (activeRunModuleIndex(0, 1, 5, 2, true) != 2) {
+        return -44;
+    }
+    if (activeRunModuleIndex(0, 1, 5, 3, true) != 3) {
+        return -45;
+    }
+    if (activeRunModuleIndex(0, 1, 42, 0, true) != 2) {
+        return -46;
+    }
+    if (activeRunModuleIndex(0, 1, 42, 1, true) != 0) {
+        return -47;
+    }
+    if (activeRunModuleIndex(0, 1, 42, 2, true) != 1) {
+        return -48;
+    }
+    if (activeRunModuleIndex(0, 1, 42, 3, true) != 3) {
+        return -49;
+    }
+    if (activeRunModuleIndex(0, 1, 20061, 0, true) != 1) {
+        return -50;
+    }
+    if (activeRunModuleIndex(0, 1, 20061, 1, true) != 2) {
+        return -51;
+    }
+    if (activeRunModuleIndex(0, 1, 20061, 2, true) != 0) {
+        return -52;
+    }
+    if (activeRunModuleIndex(0, 1, 20061, 3, true) != 3) {
+        return -53;
+    }
+    if (activeRunModuleIndex(0, 1, 2147483647, 0, true) != 2) {
+        return -54;
+    }
+    if (activeRunModuleIndex(0, 1, 2147483647, 1, true) != 0) {
+        return -55;
+    }
+    if (activeRunModuleIndex(0, 1, 2147483647, 2, true) != 1) {
+        return -56;
+    }
+    if (activeRunModuleIndex(0, 1, 2147483647, 3, true) != 3) {
+        return -57;
+    }
+    if (activeRunModuleIndex(0, -1, 0, 0, true) != 2) {
+        return -58;
+    }
+    if (activeRunModuleIndex(0, -1, 0, 1, true) != 0) {
+        return -59;
+    }
+    if (activeRunModuleIndex(0, -1, 0, 2, true) != 1) {
+        return -60;
+    }
+    if (activeRunModuleIndex(0, -1, 0, 3, true) != 3) {
+        return -61;
+    }
+    if (activeRunModuleIndex(0, -1, 1, 0, true) != 2) {
+        return -62;
+    }
+    if (activeRunModuleIndex(0, -1, 1, 1, true) != 0) {
+        return -63;
+    }
+    if (activeRunModuleIndex(0, -1, 1, 2, true) != 1) {
+        return -64;
+    }
+    if (activeRunModuleIndex(0, -1, 1, 3, true) != 3) {
+        return -65;
+    }
+    if (activeRunModuleIndex(0, -1, 2, 0, true) != 1) {
+        return -66;
+    }
+    if (activeRunModuleIndex(0, -1, 2, 1, true) != 0) {
+        return -67;
+    }
+    if (activeRunModuleIndex(0, -1, 2, 2, true) != 2) {
+        return -68;
+    }
+    if (activeRunModuleIndex(0, -1, 2, 3, true) != 3) {
+        return -69;
+    }
+    if (activeRunModuleIndex(0, -1, 5, 0, true) != 0) {
+        return -70;
+    }
+    if (activeRunModuleIndex(0, -1, 5, 1, true) != 1) {
+        return -71;
+    }
+    if (activeRunModuleIndex(0, -1, 5, 2, true) != 2) {
+        return -72;
+    }
+    if (activeRunModuleIndex(0, -1, 5, 3, true) != 3) {
+        return -73;
+    }
+    if (activeRunModuleIndex(0, -1, 42, 0, true) != 2) {
+        return -74;
+    }
+    if (activeRunModuleIndex(0, -1, 42, 1, true) != 0) {
+        return -75;
+    }
+    if (activeRunModuleIndex(0, -1, 42, 2, true) != 1) {
+        return -76;
+    }
+    if (activeRunModuleIndex(0, -1, 42, 3, true) != 3) {
+        return -77;
+    }
+    if (activeRunModuleIndex(0, -1, 20061, 0, true) != 1) {
+        return -78;
+    }
+    if (activeRunModuleIndex(0, -1, 20061, 1, true) != 2) {
+        return -79;
+    }
+    if (activeRunModuleIndex(0, -1, 20061, 2, true) != 0) {
+        return -80;
+    }
+    if (activeRunModuleIndex(0, -1, 20061, 3, true) != 3) {
+        return -81;
+    }
+    if (activeRunModuleIndex(0, -1, 2147483647, 0, true) != 2) {
+        return -82;
+    }
+    if (activeRunModuleIndex(0, -1, 2147483647, 1, true) != 0) {
+        return -83;
+    }
+    if (activeRunModuleIndex(0, -1, 2147483647, 2, true) != 1) {
+        return -84;
+    }
+    if (activeRunModuleIndex(0, -1, 2147483647, 3, true) != 3) {
+        return -85;
+    }
+    if (activeRunModuleIndex(1, 0, 0, 0, true) != 5) {
+        return -86;
+    }
+    if (activeRunModuleIndex(1, 0, 0, 1, true) != 8) {
+        return -87;
+    }
+    if (activeRunModuleIndex(1, 0, 0, 2, true) != 7) {
+        return -88;
+    }
+    if (activeRunModuleIndex(1, 0, 0, 3, true) != 10) {
+        return -89;
+    }
+    if (activeRunModuleIndex(1, 0, 1, 0, true) != 8) {
+        return -90;
+    }
+    if (activeRunModuleIndex(1, 0, 1, 1, true) != 5) {
+        return -91;
+    }
+    if (activeRunModuleIndex(1, 0, 1, 2, true) != 9) {
+        return -92;
+    }
+    if (activeRunModuleIndex(1, 0, 1, 3, true) != 10) {
+        return -93;
+    }
+    if (activeRunModuleIndex(1, 0, 2, 0, true) != 4) {
+        return -94;
+    }
+    if (activeRunModuleIndex(1, 0, 2, 1, true) != 6) {
+        return -95;
+    }
+    if (activeRunModuleIndex(1, 0, 2, 2, true) != 7) {
+        return -96;
+    }
+    if (activeRunModuleIndex(1, 0, 2, 3, true) != 10) {
+        return -97;
+    }
+    if (activeRunModuleIndex(1, 0, 5, 0, true) != 6) {
+        return -98;
+    }
+    if (activeRunModuleIndex(1, 0, 5, 1, true) != 9) {
+        return -99;
+    }
+    if (activeRunModuleIndex(1, 0, 5, 2, true) != 5) {
+        return -100;
+    }
+    if (activeRunModuleIndex(1, 0, 5, 3, true) != 10) {
+        return -101;
+    }
+    if (activeRunModuleIndex(1, 0, 42, 0, true) != 5) {
+        return -102;
+    }
+    if (activeRunModuleIndex(1, 0, 42, 1, true) != 4) {
+        return -103;
+    }
+    if (activeRunModuleIndex(1, 0, 42, 2, true) != 8) {
+        return -104;
+    }
+    if (activeRunModuleIndex(1, 0, 42, 3, true) != 10) {
+        return -105;
+    }
+    if (activeRunModuleIndex(1, 0, 20061, 0, true) != 6) {
+        return -106;
+    }
+    if (activeRunModuleIndex(1, 0, 20061, 1, true) != 7) {
+        return -107;
+    }
+    if (activeRunModuleIndex(1, 0, 20061, 2, true) != 9) {
+        return -108;
+    }
+    if (activeRunModuleIndex(1, 0, 20061, 3, true) != 10) {
+        return -109;
+    }
+    if (activeRunModuleIndex(1, 0, 2147483647, 0, true) != 9) {
+        return -110;
+    }
+    if (activeRunModuleIndex(1, 0, 2147483647, 1, true) != 8) {
+        return -111;
+    }
+    if (activeRunModuleIndex(1, 0, 2147483647, 2, true) != 7) {
+        return -112;
+    }
+    if (activeRunModuleIndex(1, 0, 2147483647, 3, true) != 10) {
+        return -113;
+    }
+    if (activeRunModuleIndex(1, 1, 0, 0, true) != 5) {
+        return -114;
+    }
+    if (activeRunModuleIndex(1, 1, 0, 1, true) != 8) {
+        return -115;
+    }
+    if (activeRunModuleIndex(1, 1, 0, 2, true) != 7) {
+        return -116;
+    }
+    if (activeRunModuleIndex(1, 1, 0, 3, true) != 10) {
+        return -117;
+    }
+    if (activeRunModuleIndex(1, 1, 1, 0, true) != 8) {
+        return -118;
+    }
+    if (activeRunModuleIndex(1, 1, 1, 1, true) != 5) {
+        return -119;
+    }
+    if (activeRunModuleIndex(1, 1, 1, 2, true) != 9) {
+        return -120;
+    }
+    if (activeRunModuleIndex(1, 1, 1, 3, true) != 10) {
+        return -121;
+    }
+    if (activeRunModuleIndex(1, 1, 2, 0, true) != 4) {
+        return -122;
+    }
+    if (activeRunModuleIndex(1, 1, 2, 1, true) != 6) {
+        return -123;
+    }
+    if (activeRunModuleIndex(1, 1, 2, 2, true) != 7) {
+        return -124;
+    }
+    if (activeRunModuleIndex(1, 1, 2, 3, true) != 10) {
+        return -125;
+    }
+    if (activeRunModuleIndex(1, 1, 5, 0, true) != 6) {
+        return -126;
+    }
+    if (activeRunModuleIndex(1, 1, 5, 1, true) != 9) {
+        return -127;
+    }
+    if (activeRunModuleIndex(1, 1, 5, 2, true) != 5) {
+        return -128;
+    }
+    if (activeRunModuleIndex(1, 1, 5, 3, true) != 10) {
+        return -129;
+    }
+    if (activeRunModuleIndex(1, 1, 42, 0, true) != 5) {
+        return -130;
+    }
+    if (activeRunModuleIndex(1, 1, 42, 1, true) != 4) {
+        return -131;
+    }
+    if (activeRunModuleIndex(1, 1, 42, 2, true) != 8) {
+        return -132;
+    }
+    if (activeRunModuleIndex(1, 1, 42, 3, true) != 10) {
+        return -133;
+    }
+    if (activeRunModuleIndex(1, 1, 20061, 0, true) != 6) {
+        return -134;
+    }
+    if (activeRunModuleIndex(1, 1, 20061, 1, true) != 7) {
+        return -135;
+    }
+    if (activeRunModuleIndex(1, 1, 20061, 2, true) != 9) {
+        return -136;
+    }
+    if (activeRunModuleIndex(1, 1, 20061, 3, true) != 10) {
+        return -137;
+    }
+    if (activeRunModuleIndex(1, 1, 2147483647, 0, true) != 9) {
+        return -138;
+    }
+    if (activeRunModuleIndex(1, 1, 2147483647, 1, true) != 8) {
+        return -139;
+    }
+    if (activeRunModuleIndex(1, 1, 2147483647, 2, true) != 7) {
+        return -140;
+    }
+    if (activeRunModuleIndex(1, 1, 2147483647, 3, true) != 10) {
+        return -141;
+    }
+    if (activeRunModuleIndex(1, -1, 0, 0, true) != 5) {
+        return -142;
+    }
+    if (activeRunModuleIndex(1, -1, 0, 1, true) != 8) {
+        return -143;
+    }
+    if (activeRunModuleIndex(1, -1, 0, 2, true) != 7) {
+        return -144;
+    }
+    if (activeRunModuleIndex(1, -1, 0, 3, true) != 10) {
+        return -145;
+    }
+    if (activeRunModuleIndex(1, -1, 1, 0, true) != 8) {
+        return -146;
+    }
+    if (activeRunModuleIndex(1, -1, 1, 1, true) != 5) {
+        return -147;
+    }
+    if (activeRunModuleIndex(1, -1, 1, 2, true) != 9) {
+        return -148;
+    }
+    if (activeRunModuleIndex(1, -1, 1, 3, true) != 10) {
+        return -149;
+    }
+    if (activeRunModuleIndex(1, -1, 2, 0, true) != 4) {
+        return -150;
+    }
+    if (activeRunModuleIndex(1, -1, 2, 1, true) != 6) {
+        return -151;
+    }
+    if (activeRunModuleIndex(1, -1, 2, 2, true) != 7) {
+        return -152;
+    }
+    if (activeRunModuleIndex(1, -1, 2, 3, true) != 10) {
+        return -153;
+    }
+    if (activeRunModuleIndex(1, -1, 5, 0, true) != 6) {
+        return -154;
+    }
+    if (activeRunModuleIndex(1, -1, 5, 1, true) != 9) {
+        return -155;
+    }
+    if (activeRunModuleIndex(1, -1, 5, 2, true) != 5) {
+        return -156;
+    }
+    if (activeRunModuleIndex(1, -1, 5, 3, true) != 10) {
+        return -157;
+    }
+    if (activeRunModuleIndex(1, -1, 42, 0, true) != 5) {
+        return -158;
+    }
+    if (activeRunModuleIndex(1, -1, 42, 1, true) != 4) {
+        return -159;
+    }
+    if (activeRunModuleIndex(1, -1, 42, 2, true) != 8) {
+        return -160;
+    }
+    if (activeRunModuleIndex(1, -1, 42, 3, true) != 10) {
+        return -161;
+    }
+    if (activeRunModuleIndex(1, -1, 20061, 0, true) != 6) {
+        return -162;
+    }
+    if (activeRunModuleIndex(1, -1, 20061, 1, true) != 7) {
+        return -163;
+    }
+    if (activeRunModuleIndex(1, -1, 20061, 2, true) != 9) {
+        return -164;
+    }
+    if (activeRunModuleIndex(1, -1, 20061, 3, true) != 10) {
+        return -165;
+    }
+    if (activeRunModuleIndex(1, -1, 2147483647, 0, true) != 9) {
+        return -166;
+    }
+    if (activeRunModuleIndex(1, -1, 2147483647, 1, true) != 8) {
+        return -167;
+    }
+    if (activeRunModuleIndex(1, -1, 2147483647, 2, true) != 7) {
+        return -168;
+    }
+    if (activeRunModuleIndex(1, -1, 2147483647, 3, true) != 10) {
+        return -169;
+    }
+    if (content.nonFinalModuleIndex(0, 0, true) ==
+        activeRunModuleIndex(0, 0, 1, 0, true)) {
+        return -170;
+    }
+    if (activeRunOccupancyRadius(0, 0, 0, true) != 536.0 ||
+        activeRunOccupancyRadius(0, 1, 42, true) != 536.0) {
+        return -171;
+    }
+    if (activeRunModuleOriginCoordinate(0, 0, 0, 1, 0, 1, true) != 4800.0 ||
+        activeRunModuleOriginCoordinate(0, 0, 0, 1, 0, 2, true) != -1242.0 ||
+        activeRunModuleOriginCoordinate(1, 3, 0, 42, 0, 1, true) != 5400.0 ||
+        activeRunModuleOriginCoordinate(1, 3, 0, 42, 0, 2, true) != 618.0) {
+        return -172;
+    }
+    return 1;
+}

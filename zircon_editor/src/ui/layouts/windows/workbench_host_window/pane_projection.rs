@@ -22,6 +22,40 @@ pub(super) fn side_pane(
     module_plugins: &ModulePluginsPaneViewData,
     build_export: &BuildExportPaneViewData,
 ) -> PaneData {
+    let template_v2_data = std::collections::BTreeMap::new();
+    side_pane_with_template_v2_data(
+        model,
+        chrome,
+        slots,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        &template_v2_data,
+    )
+}
+
+pub(super) fn side_pane_with_template_v2_data(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    slots: &[ActivityDrawerSlot],
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
+) -> PaneData {
     let stack = slots
         .iter()
         .filter_map(|slot| model.tool_windows.get(slot))
@@ -54,7 +88,7 @@ pub(super) fn side_pane(
     let Some(tab) = tab else {
         return blank_pane();
     };
-    pane_from_tab(
+    pane_from_tab_with_template_v2_data(
         &tab.instance_id.0,
         drawer_slot_key(stack.slot),
         &tab.title,
@@ -68,6 +102,7 @@ pub(super) fn side_pane(
         runtime_diagnostics,
         module_plugins,
         build_export,
+        template_v2_data,
     )
 }
 
@@ -86,6 +121,38 @@ pub(crate) fn document_pane(
     module_plugins: &ModulePluginsPaneViewData,
     build_export: &BuildExportPaneViewData,
 ) -> PaneData {
+    let template_v2_data = std::collections::BTreeMap::new();
+    document_pane_with_template_v2_data(
+        model,
+        chrome,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        &template_v2_data,
+    )
+}
+
+pub(crate) fn document_pane_with_template_v2_data(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
+) -> PaneData {
     let tab = model
         .document_tabs
         .iter()
@@ -94,7 +161,7 @@ pub(crate) fn document_pane(
     let Some(tab) = tab else {
         return blank_pane();
     };
-    pane_from_tab(
+    pane_from_tab_with_template_v2_data(
         &tab.instance_id.0,
         "",
         &tab.title,
@@ -108,6 +175,7 @@ pub(crate) fn document_pane(
         runtime_diagnostics,
         module_plugins,
         build_export,
+        template_v2_data,
     )
 }
 
@@ -125,6 +193,44 @@ pub(super) fn pane_from_tab(
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
     module_plugins: &ModulePluginsPaneViewData,
     build_export: &BuildExportPaneViewData,
+) -> PaneData {
+    let template_v2_data = std::collections::BTreeMap::new();
+    pane_from_tab_with_template_v2_data(
+        instance_id,
+        slot,
+        title,
+        icon_key,
+        kind,
+        empty_state,
+        snapshot,
+        chrome,
+        ui_asset_pane,
+        animation_pane,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        &template_v2_data,
+    )
+}
+
+pub(super) fn pane_from_tab_with_template_v2_data(
+    instance_id: &str,
+    slot: &str,
+    title: &str,
+    icon_key: &str,
+    kind: ViewContentKind,
+    empty_state: Option<&PaneEmptyStateModel>,
+    snapshot: Option<&ViewTabSnapshot>,
+    chrome: &EditorChromeSnapshot,
+    ui_asset_pane: Option<&crate::ui::asset_editor::UiAssetEditorPanePresentation>,
+    animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
 ) -> PaneData {
     let (subtitle, info, show_toolbar) = pane_metadata(kind, snapshot, chrome);
     let viewport = match kind {
@@ -194,6 +300,7 @@ pub(super) fn pane_from_tab(
         runtime_diagnostics,
         module_plugins,
         build_export,
+        template_v2_data,
     );
 
     PaneData {
@@ -350,6 +457,10 @@ fn build_pane_presentation(
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
     module_plugins: &ModulePluginsPaneViewData,
     build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        std::collections::BTreeMap<String, zircon_runtime_interface::ui::component::UiValue>,
+    >,
 ) -> Option<PanePresentation> {
     let pane_template = snapshot.and_then(|snapshot| snapshot.pane_template.as_ref())?;
     let mut context = PanePayloadBuildContext::new(chrome);
@@ -361,6 +472,9 @@ fn build_pane_presentation(
     }
     context = context.with_module_plugins(module_plugins);
     context = context.with_build_export(build_export);
+    if let Some(snapshot) = template_v2_data.get(&pane_template.body.document_id) {
+        context = context.with_template_v2_snapshot(snapshot);
+    }
 
     Some(PanePresentation::new(
         PaneShellPresentation::new(

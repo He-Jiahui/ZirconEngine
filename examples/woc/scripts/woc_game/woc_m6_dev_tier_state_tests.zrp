@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_dev_tier_state_tests",
+  "source": "src",
+  "binary": "bin-m6-dev-tier-state-tests",
+  "entry": "social/dev_tier_state_test_main"
+}

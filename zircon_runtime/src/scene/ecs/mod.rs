@@ -11,6 +11,7 @@ mod frame_performance_diagnostics;
 mod internal_scene_system;
 mod lifecycle;
 mod messages;
+mod native_system_schedule_diagnostics;
 mod observer;
 mod query;
 mod removal;
@@ -35,9 +36,9 @@ pub use archetype::{
 };
 pub use bundle::Bundle;
 pub use change_detection::{
-    ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, ComponentTicks, Mut, Ref,
+    ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, ComponentTicks,
     ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
-    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, Mut, Ref,
 };
 pub use commands::{
     Command, CommandQueue, Commands, CommandsParam, DeferredCommandError, DeferredCommandOperation,
@@ -50,28 +51,39 @@ pub use entity::{
     DespawnedEntity, EntityLocation, EntityRegistry, EntityRegistryError, InternalEntity,
     StableEntityLocation,
 };
+pub(crate) use events::EventObserverHandle;
 pub use events::{
-    Event, EventCapacityMetrics, EventCursor, EventPayloadProfile, EventPayloadStorage,
-    EventReadIter, EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
-    EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES,
+    EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES, Event,
+    EventCapacityMetrics, EventCursor, EventPayloadProfile, EventPayloadStorage, EventReadIter,
+    EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
 };
 pub use frame_performance_diagnostics::EcsFramePerformanceDiagnostics;
 pub use internal_scene_system::InternalSceneSystem;
 pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};
 pub use messages::{Message, MessageCursor, MessageId, MessageReadIter, MessageStore, Messages};
+pub(crate) use native_system_schedule_diagnostics::NativeSystemCallbackTiming;
+pub use native_system_schedule_diagnostics::{
+    NATIVE_SYSTEM_CALLBACK_COUNT_DIAGNOSTIC, NATIVE_SYSTEM_CALLBACK_P95_MS_DIAGNOSTIC,
+    NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC,
+    NATIVE_SYSTEM_CONSERVATIVE_WORLD_WRITER_COUNT_DIAGNOSTIC,
+    NATIVE_SYSTEM_READY_DELAY_MS_DIAGNOSTIC, NATIVE_SYSTEM_WORKER_BATCH_COUNT_DIAGNOSTIC,
+    NATIVE_SYSTEM_WORKER_UTILIZATION_DIAGNOSTIC, NativeSystemScheduleDiagnostics,
+};
 pub use observer::{ObserverId, ObserverStore};
 pub use query::{
     Added, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter, Changed,
-    QueryAccess, QueryAccessError, QueryCombinationIter, QueryCombinationMutIter, QueryData,
-    QueryDataAccess, QueryEntityError, QueryEntityItem, QueryFilter, QueryIter,
-    QueryManyCachedIter, QueryManyIter, QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData,
-    QueryMutIter, QuerySingleError, QueryState, QueryStateCacheStats, UniqueEntityArray, With,
-    Without, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
-    ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
-    ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
+    ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC, QueryAccess, QueryAccessError, QueryCombinationIter,
+    QueryCombinationMutIter, QueryData, QueryDataAccess, QueryEntityError, QueryEntityItem,
+    QueryFilter, QueryIter, QueryManyCachedIter, QueryManyIter, QueryManyMutIter,
+    QueryManyUniqueMutIter, QueryMutData, QueryMutIter, QuerySingleError, QueryState,
+    QueryStateCacheStats, UniqueEntityArray, With, Without,
 };
 pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
-pub use resource::{Resource, ResourceDescriptor, ResourceId, ResourceRegistry};
+pub use resource::{
+    Resource, ResourceDescriptor, ResourceDescriptorSource, ResourceId, ResourceRegistry,
+};
 pub use resource_store::ResourceStore;
 pub use scene_system_descriptor::{SceneSystemDescriptor, SystemOrderingConstraint, SystemRef};
 pub use scene_system_registry::SceneSystemRegistry;
@@ -82,9 +94,9 @@ pub use schedule_conflict_graph::{
 };
 pub use schedule_error::ScheduleError;
 pub use schedule_parallel_executor::{
+    SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC, SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC,
     ScheduleParallelExecutionReport, ScheduleParallelExecutor, ScheduleParallelExecutorError,
-    ScheduleParallelTaskRegistry, SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC,
-    SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC,
+    ScheduleParallelTaskRegistry,
 };
 pub use storage::{
     ComponentRemoveResult, ComponentStorage, ComponentStorageLocation, StorageError,
@@ -96,8 +108,9 @@ pub use system::{
     FunctionSceneSystem, IntoSceneSystem, Local, LocalParam, MessageReader, MessageReaderParam,
     MessageWriter, MessageWriterParam, ParamSet, ParamSetItem, ParamSetParam, Query,
     RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam, ResParam,
-    RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem, SceneSystemMetadata, SystemParam,
-    SystemParamAccess, SystemParamConflictKind, SystemParamError, SystemState,
+    RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem, SceneSystemMetadata,
+    SceneSystemThreadAffinity, SystemParam, SystemParamAccess, SystemParamConflictKind,
+    SystemParamError, SystemState,
 };
 pub use system_set::{SystemSetId, SystemSetRegistry};
 

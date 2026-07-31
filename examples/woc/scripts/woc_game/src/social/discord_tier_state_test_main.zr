@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var discordTier = %import("social/discord_tier_state");
+
+var result = discordTier.contractTest();
+
+console.printLine("m6-discord-tier-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

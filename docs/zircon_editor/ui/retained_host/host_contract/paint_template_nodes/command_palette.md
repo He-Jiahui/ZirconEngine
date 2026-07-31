@@ -41,9 +41,16 @@ Closed `CommandPalette` roots are consumed without drawing. This prevents closed
 
 Open roots draw the whole palette inside the node frame: popup panel, focused search field, query or placeholder text, and command rows. The panel uses the Workbench popup surface and border colors, the search field uses the inset surface plus focus-ring border, and the row region starts below the search field with the same compact row metrics used by the runtime render extractor.
 
-Rows come from `TemplatePaneNodeData.structured_options`, which is filled by the `pane_component_projection/command_palette/` owner tree from `commands`, `filtered_commands`, `selected_command_id`, `focused_index`, `recent_commands`, and `query`. The painter does not re-filter commands; it renders the already-projected host contract.
+Rows come from `TemplatePaneNodeData.structured_options`, which is filled by the `pane_component_projection/command_palette/` owner tree from the typed query window projection, selection/focus, recent commands, and query state. The painter does not re-filter commands; it renders the already-projected host contract.
 
-Real editor command rows are projected from the shared `EditorCommandRegistry::command_palette_entries(CommandEvalCtx)`. Descriptors whose effective `when` evaluates to false are removed by that registry query before any `UiValue` or retained-host row is created; the command palette has no separate disabled-row side channel and does not keep unavailable command rows visible. This is the same effective-when gate used by menu and invocation paths.
+Real editor command rows are projected from `EditorCommandRegistry::command_palette_query_window` over the generation-owned immutable catalog. Descriptors whose effective `when` evaluates to false are removed by that registry query before any `UiValue` or retained-host row is created; the command palette has no separate disabled-row side channel and does not keep unavailable command rows visible. This is the same effective-when gate used by menu and invocation paths.
+
+The native painter intersects the panel list extent with the current clip, derives the exact visible
+row range, and expands it by one row on each side for overscan. Only that range is visited. Row data
+is borrowed through `ModelRc::get`; the deleted `0..row_count` plus `row_data` path cannot clone or
+build text for rows outside the visible window. Absolute catalog row indices still feed row geometry
+and paint ordering, so selection/focus/commit identity and pixels do not change when a window begins
+after row zero.
 
 Row visual state still goes through `select_workbench_popup_row_style(...)` and `WorkbenchPopupRowState`, so selected, focused, loading-style colors, and recent-command emphasis stay aligned with the popup-row selector contract. The painter draws rows locally because `template_popup_rows.rs` positions dropdown rows outside the owner frame, while `CommandPalette` rows are embedded inside the palette panel.
 

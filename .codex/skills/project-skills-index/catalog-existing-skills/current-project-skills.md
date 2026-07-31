@@ -1,6 +1,6 @@
 # Current Project Skills
 
-Updated: 2026-07-15
+Updated: 2026-07-31
 
 ## Shallow Tree
 
@@ -18,14 +18,11 @@ Updated: 2026-07-15
     foundations-and-planning/
     implementation-and-delegation/
     review-and-stabilization/
-    skill-authoring/
     scripts/
-    brainstorm.md
     code-reviewer.md
     execute-plan.md
     SKILL.md
     survey-top-level-layout.md
-    write-plan.md
   zircon-dev/
     agents/
     references/

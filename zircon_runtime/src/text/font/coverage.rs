@@ -1,5 +1,3 @@
-use ttf_parser::Face;
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum FontCoverage {
     Known(Vec<(u32, u32)>),
@@ -7,36 +5,35 @@ pub(super) enum FontCoverage {
 }
 
 impl FontCoverage {
-    pub(super) fn from_sfnt_bytes(bytes: &[u8], face_index: u32) -> Self {
-        let Ok(face) = Face::parse(bytes, face_index) else {
-            return Self::Unknown;
-        };
-        let Some(cmap) = face.tables().cmap else {
-            return Self::Unknown;
-        };
-
-        let mut codepoints = Vec::new();
-        for subtable in cmap.subtables {
-            if !subtable.is_unicode() {
-                continue;
-            }
-            subtable.codepoints(|codepoint| {
-                if char::from_u32(codepoint)
-                    .and_then(|ch| face.glyph_index(ch))
-                    .is_some()
-                {
-                    codepoints.push(codepoint);
-                }
-            });
-        }
+    pub(super) fn from_codepoint_values(mut codepoints: Vec<u32>) -> Self {
         codepoints.sort_unstable();
         codepoints.dedup();
+        Self::from_sorted_unique_codepoints(codepoints)
+    }
 
-        if codepoints.is_empty() {
-            Self::Unknown
-        } else {
-            Self::Known(compact_codepoint_ranges(codepoints))
+    /// Compacts a canonical codepoint stream without copying or re-sorting it.
+    pub(super) fn from_sorted_unique_codepoints(codepoints: impl IntoIterator<Item = u32>) -> Self {
+        let mut codepoints = codepoints.into_iter();
+        let Some(mut start) = codepoints.next() else {
+            return Self::Unknown;
+        };
+
+        let mut end = start;
+        let mut ranges = Vec::new();
+        for codepoint in codepoints {
+            if codepoint <= end {
+                continue;
+            }
+            if codepoint == end.saturating_add(1) {
+                end = codepoint;
+                continue;
+            }
+            ranges.push((start, end));
+            start = codepoint;
+            end = codepoint;
         }
+        ranges.push((start, end));
+        Self::Known(ranges)
     }
 
     pub(super) fn contains(&self, codepoint: char) -> bool {
@@ -61,34 +58,12 @@ impl FontCoverage {
 
     #[cfg(test)]
     pub(super) fn from_codepoints(codepoints: &[char]) -> Self {
-        let mut codepoints = codepoints
+        let codepoints = codepoints
             .iter()
             .map(|codepoint| *codepoint as u32)
             .collect::<Vec<_>>();
-        codepoints.sort_unstable();
-        codepoints.dedup();
-        Self::Known(compact_codepoint_ranges(codepoints))
+        Self::from_codepoint_values(codepoints)
     }
-}
-
-fn compact_codepoint_ranges(codepoints: Vec<u32>) -> Vec<(u32, u32)> {
-    let mut ranges = Vec::new();
-    let mut iter = codepoints.into_iter();
-    let Some(mut start) = iter.next() else {
-        return ranges;
-    };
-    let mut end = start;
-    for codepoint in iter {
-        if codepoint == end.saturating_add(1) {
-            end = codepoint;
-            continue;
-        }
-        ranges.push((start, end));
-        start = codepoint;
-        end = codepoint;
-    }
-    ranges.push((start, end));
-    ranges
 }
 
 #[cfg(test)]

@@ -7,7 +7,7 @@ mod error;
 use crate::core::framework::script::ScriptHostValue;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
-use crate::diagnostic_log::write_log;
+use crate::diagnostic_log::write_log_lazy;
 use crate::scene::{EntityId, LevelSystem, SystemStage};
 use crate::scene::{
     SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
@@ -242,16 +242,15 @@ fn trace_script_binding_export(
     if !trace_script_bindings_enabled() {
         return;
     }
-    let success = success
-        .map(|success| format!(" success={success}"))
-        .unwrap_or_default();
-    write_log(
-        "zr_vm_project_backend",
+    write_log_lazy("zr_vm_project_backend", || {
+        let success = success
+            .map(|success| format!(" success={success}"))
+            .unwrap_or_default();
         format!(
             "script_binding_export_{phase} package={} module={} entity={} export={export_name}{success}",
             binding.package, binding.module, entity
-        ),
-    );
+        )
+    });
 }
 
 fn trace_script_bindings_enabled() -> bool {

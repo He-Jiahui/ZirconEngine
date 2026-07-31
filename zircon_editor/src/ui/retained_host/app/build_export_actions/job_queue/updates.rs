@@ -1,5 +1,5 @@
 use super::super::DesktopExportExecutionSummary;
-use super::worker::{desktop_export_summary_from_job_result, DesktopExportJobProgress};
+use super::worker::{DesktopExportJobProgress, desktop_export_summary_from_job_result};
 use super::{DesktopExportActiveJob, DesktopExportJobQueue, DesktopExportProgressSnapshot};
 use crate::core::jobs::JobError;
 use std::sync::mpsc::Receiver;
@@ -88,7 +88,7 @@ mod tests {
 
     use super::drain_progress_for_active;
     use crate::ui::retained_host::app::build_export_actions::{
-        job_queue::worker::DesktopExportJobProgress, DesktopExportProgressSnapshot,
+        DesktopExportProgressSnapshot, job_queue::worker::DesktopExportJobProgress,
     };
 
     #[test]

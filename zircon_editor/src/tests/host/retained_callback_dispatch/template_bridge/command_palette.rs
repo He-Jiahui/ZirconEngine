@@ -2,6 +2,8 @@ use super::super::support::*;
 
 const COMMAND_PALETTE_CONTROL_ID: &str = "WorkbenchCommandPalette";
 const COMMAND_PALETTE_COMMIT_BINDING_ID: &str = "CommandPalette/Commit";
+const COMMAND_PALETTE_QUERY_BINDING_ID: &str = "CommandPalette/QueryChanged";
+const COMMAND_PALETTE_WINDOW_BINDING_ID: &str = "CommandPalette/WindowRequested";
 
 #[test]
 fn workbench_command_palette_surface_exposes_commit_route() {
@@ -18,6 +20,22 @@ fn workbench_command_palette_surface_exposes_commit_route() {
         EditorUiBindingPayload::EditorCommand { command_id }
             if command_id == "editor.command.palette"
     ));
+    let query_binding = bridge
+        .binding_for_control(COMMAND_PALETTE_CONTROL_ID, UiEventKind::Change)
+        .expect("workbench command palette should expose query change binding");
+    assert_eq!(query_binding.path().event_kind, EditorUiEventKind::Change);
+    assert_eq!(
+        bridge
+            .binding_id_for_action_id(COMMAND_PALETTE_QUERY_BINDING_ID)
+            .as_deref(),
+        Some(COMMAND_PALETTE_QUERY_BINDING_ID)
+    );
+    assert_eq!(
+        bridge
+            .binding_id_for_action_id(COMMAND_PALETTE_WINDOW_BINDING_ID)
+            .as_deref(),
+        Some(COMMAND_PALETTE_WINDOW_BINDING_ID)
+    );
 
     let node = bridge
         .host_projection()
@@ -43,6 +61,7 @@ fn workbench_command_palette_open_state_populates_visible_overlay() {
 
     let opened = bridge
         .open_command_palette(WorkbenchCommandPaletteOpenState {
+            query: String::new(),
             commands: UiValue::Array(vec![
                 UiValue::String("file.project.open|label=Open Project".to_string()),
                 UiValue::String("file.project.save|label=Save Project".to_string()),
@@ -53,6 +72,9 @@ fn workbench_command_palette_open_state_populates_visible_overlay() {
             ]),
             selected_command_id: "file.project.open".to_string(),
             focused_index: 0,
+            catalog_generation: 7,
+            total_match_count: 2,
+            window_offset: 0,
         })
         .expect("command palette should open");
 
@@ -64,8 +86,40 @@ fn workbench_command_palette_open_state_populates_visible_overlay() {
     );
     assert_eq!(control_bool_attribute(&bridge, "popup_open"), Some(true));
     assert_eq!(
+        control_integer_attribute(&bridge, "catalog_generation"),
+        Some(7)
+    );
+    assert_eq!(control_integer_attribute(&bridge, "match_count"), Some(2));
+    assert_eq!(
         control_string_list_attribute(&bridge, "filtered_commands"),
         vec!["file.project.open", "file.project.save"]
+    );
+
+    bridge
+        .update_command_palette_query(WorkbenchCommandPaletteOpenState {
+            query: "save".to_string(),
+            commands: UiValue::Array(vec![UiValue::String(
+                "file.project.save|label=Save Project".to_string(),
+            )]),
+            filtered_commands: UiValue::Array(vec![UiValue::String(
+                "file.project.save".to_string(),
+            )]),
+            selected_command_id: "file.project.save".to_string(),
+            focused_index: 0,
+            catalog_generation: 7,
+            total_match_count: 1,
+            window_offset: 0,
+        })
+        .expect("query state should update while palette stays open");
+
+    assert!(bridge.command_palette_open());
+    assert_eq!(
+        control_string_attribute(&bridge, "query").as_deref(),
+        Some("save")
+    );
+    assert_eq!(
+        control_string_list_attribute(&bridge, "filtered_commands"),
+        vec!["file.project.save"]
     );
     assert!(bridge
         .close_command_palette()
@@ -102,6 +156,15 @@ fn workbench_command_palette_commit_dispatches_editor_command() {
     assert_eq!(
         record.event,
         EditorEvent::WorkbenchMenu(MenuAction::OpenProject)
+    );
+    assert_eq!(
+        harness
+            .runtime
+            .command_palette_mru()
+            .entries()
+            .first()
+            .map(|command| command.as_str()),
+        Some("file.project.open")
     );
 }
 
@@ -147,6 +210,13 @@ fn control_bool_attribute(
     property: &str,
 ) -> Option<bool> {
     control_attribute(bridge, property).and_then(toml::Value::as_bool)
+}
+
+fn control_integer_attribute(
+    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    property: &str,
+) -> Option<i64> {
+    control_attribute(bridge, property).and_then(toml::Value::as_integer)
 }
 
 fn control_string_list_attribute(

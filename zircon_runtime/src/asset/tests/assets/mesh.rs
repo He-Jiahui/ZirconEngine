@@ -22,6 +22,19 @@ mod summaries;
 mod tangent_generation;
 mod validation;
 
+#[test]
+fn mesh_conversion_and_derived_attributes_borrow_source_index_buffers() {
+    let mesh_asset = include_str!("../../assets/mesh/mesh_asset.rs");
+    assert!(!mesh_asset.contains("let mut primitive = primitive.clone()"));
+
+    let normals = include_str!("../../assets/mesh/normals.rs");
+    assert!(!normals.contains("indices.to_u32_vec()"));
+
+    let tangents = include_str!("../../assets/mesh/tangents.rs");
+    assert!(!tangents.contains("element_indices"));
+    assert!(!tangents.contains("to_u32_vec()"));
+}
+
 fn sample_zmesh_document(indices: MeshIndices) -> ZMeshDocument {
     ZMeshDocument {
         version: crate::asset::ZMESH_DOCUMENT_VERSION,

@@ -20,7 +20,7 @@ This is a playable Zircon Runtime game slice set in a jungle-ruin clearing. It c
 Run from the repository root after building with the first-party runtime plugin features:
 
 ```powershell
-cargo run -p zircon_app --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,first-party-zr-vm-real-backend" --bin zircon_runtime -- --project E:\Git\ZirconEngine\examples\vampire
+cargo run -p zircon_app --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,backend-zr-vm" --bin zircon_runtime -- --project E:\Git\ZirconEngine\examples\vampire
 ```
 
 The scene uses generated project-local jungle assets plus the checked-in CC0 Kenney Graveyard Kit subset under `assets/models/kenney_graveyard`. GLB import is handled by the runtime built-in glTF importer, and the project still selects the first-party `gltf_importer` plugin when the host exposes that catalog path.

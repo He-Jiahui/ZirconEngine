@@ -5,23 +5,28 @@ mod pose;
 mod sampling;
 mod state_machine;
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSkeletonAsset, AnimationStateMachineAsset,
 };
 use zircon_runtime::core::framework::animation::{
-    AnimationGraphEvaluation, AnimationManager, AnimationParameterMap, AnimationParameterValue,
-    AnimationPlaybackSettings, AnimationPoseOutput, AnimationStateMachineEvaluation,
-    AnimationTrackPath,
+    AnimationGraphEvaluation, AnimationIkCommand, AnimationIkCommandError, AnimationManager,
+    AnimationParameterMap, AnimationParameterValue, AnimationPlaybackSettings, AnimationPoseOutput,
+    AnimationResult, AnimationStateMachineEvaluation, AnimationTrackPath,
 };
+use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
+
+const MAX_PENDING_IK_COMMANDS_PER_WORLD: usize = 4_096;
 
 #[derive(Clone, Debug)]
 pub struct DefaultAnimationManager {
     // The registry owns this service, so its runtime back-reference must not complete an Arc cycle.
     core: Option<CoreWeak>,
     playback_settings: Arc<Mutex<AnimationPlaybackSettings>>,
+    ik_commands: Arc<Mutex<HashMap<WorldHandle, Vec<AnimationIkCommand>>>>,
 }
 
 impl Default for DefaultAnimationManager {
@@ -38,6 +43,7 @@ impl DefaultAnimationManager {
         Self {
             core: core.map(CoreHandle::downgrade),
             playback_settings: Arc::new(Mutex::new(playback_settings)),
+            ik_commands: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -106,7 +112,28 @@ impl AnimationManager for DefaultAnimationManager {
         clip: &AnimationClipAsset,
         time_seconds: zircon_runtime::core::math::Real,
         looping: bool,
-    ) -> Result<AnimationPoseOutput, String> {
+    ) -> AnimationResult<AnimationPoseOutput> {
         pose::sample_clip_pose(skeleton, clip, time_seconds, looping)
+    }
+
+    fn queue_ik_command(&self, command: AnimationIkCommand) -> Result<(), AnimationIkCommandError> {
+        command.validate()?;
+        let world = command.world();
+        let mut queues = poison_recovery::lock_recover(&self.ik_commands);
+        let queue = queues.entry(world).or_default();
+        if queue.len() >= MAX_PENDING_IK_COMMANDS_PER_WORLD {
+            return Err(AnimationIkCommandError::QueueFull {
+                world,
+                capacity: MAX_PENDING_IK_COMMANDS_PER_WORLD,
+            });
+        }
+        queue.push(command);
+        Ok(())
+    }
+
+    fn drain_ik_commands(&self, world: WorldHandle) -> Vec<AnimationIkCommand> {
+        poison_recovery::lock_recover(&self.ik_commands)
+            .remove(&world)
+            .unwrap_or_default()
     }
 }

@@ -1,8 +1,3 @@
-use zircon_editor::core::editor_authoring_extension::ViewportToolModeDescriptor;
-use zircon_editor::core::editor_extension::{
-    EditorExtensionRegistry, EditorExtensionRegistryError,
-};
-use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_runtime::core::framework::navigation::NavigationGizmoSnapshot;
 use zircon_runtime::core::framework::render::{
     OverlayLineSegment, OverlayPickShape, SceneGizmoOverlayExtract,
@@ -10,11 +5,8 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::math::{Vec3, Vec4};
 
-use crate::capability::NAVIGATION_GIZMOS_CAPABILITY;
-use crate::extension_ids::{NAVIGATION_DEBUG_VIEW_ID, NAVIGATION_TOGGLE_GIZMOS_OPERATION};
 use crate::runtime_mirror::NavigationPieFrame;
 
-pub const NAVIGATION_OVERLAY_MODE_ID: &str = "navigation.viewport.overlay";
 pub const NAVIGATION_OVERLAY_PROVIDER_ID: &str = "navigation.viewport.overlay.provider";
 
 pub trait NavigationViewportGizmoSink {
@@ -91,23 +83,6 @@ impl Default for NavigationOverlayOptions {
             avoidance_velocity: true,
         }
     }
-}
-
-pub(crate) fn register_navigation_overlay(
-    registry: &mut EditorExtensionRegistry,
-) -> Result<(), EditorExtensionRegistryError> {
-    let operation = EditorOperationPath::parse(NAVIGATION_TOGGLE_GIZMOS_OPERATION)
-        .map_err(EditorExtensionRegistryError::OperationPath)?;
-    registry.register_viewport_tool_mode(
-        ViewportToolModeDescriptor::new(
-            NAVIGATION_OVERLAY_MODE_ID,
-            "Navigation Overlay",
-            NAVIGATION_DEBUG_VIEW_ID,
-            operation,
-        )
-        .with_overlay_provider_id(NAVIGATION_OVERLAY_PROVIDER_ID)
-        .with_required_capabilities([NAVIGATION_GIZMOS_CAPABILITY]),
-    )
 }
 
 pub fn build_navigation_overlay(

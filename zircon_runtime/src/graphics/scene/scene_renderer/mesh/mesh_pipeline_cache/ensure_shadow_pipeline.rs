@@ -3,8 +3,8 @@ use crate::graphics::scene::resources::{PipelineKey, ResourceStreamer};
 
 use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::create_shadow_mesh_pipeline;
-use super::shader_source::mesh_pipeline_shadow_template_source_for_geometry_descriptor_with_streamer;
 use super::MeshPipelineCache;
+use super::shader_source::mesh_pipeline_shadow_template_source_for_geometry_descriptor_with_streamer;
 
 const SHADOW_MESH_SHADER_KEY_PREFIX: &str = "zircon.builtin.shadow-mesh@1";
 
@@ -59,6 +59,9 @@ impl MeshPipelineCache {
         streamer: &ResourceStreamer,
         variant_id: MeshPipelineVariantId,
     ) -> Option<&'a wgpu::RenderPipeline> {
+        if self.shadow_mesh_pipelines.contains_key(&variant_id) {
+            return self.shadow_mesh_pipelines.get(&variant_id);
+        }
         let (kind, pipeline_key, shader_variant_key) =
             self.pipeline_and_shader_key_for_variant(variant_id)?;
         match kind {
@@ -91,7 +94,7 @@ mod tests {
     use crate::graphics::scene::resources::default_pipeline_key;
 
     use super::super::mesh_pipeline_shadow_template_source_for_geometry;
-    use super::{shadow_mesh_shader_key, SHADOW_MESH_SHADER_KEY_PREFIX};
+    use super::{SHADOW_MESH_SHADER_KEY_PREFIX, shadow_mesh_shader_key};
 
     #[test]
     fn shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash() {

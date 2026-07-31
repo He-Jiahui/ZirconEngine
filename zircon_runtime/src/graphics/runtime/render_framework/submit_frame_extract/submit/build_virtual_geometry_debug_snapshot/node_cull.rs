@@ -16,7 +16,7 @@ use crate::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullTraversalOp,
     RenderVirtualGeometryNodeAndClusterCullTraversalRecord,
 };
-use crate::core::math::{view_matrix, Mat4};
+use crate::core::math::{Mat4, view_matrix};
 use crate::graphics::VisibilityViewKey;
 
 pub(super) struct NodeAndClusterCullSnapshot {

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use crate::core::framework::render::{render_mesh_stable_instance_key, PrimitiveRelevance};
+use crate::core::framework::render::{PrimitiveRelevance, render_mesh_stable_instance_key};
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::gpu_scene::{GpuScene, GpuSceneUploadReport};
 use crate::graphics::scene::resources::{
@@ -18,25 +18,25 @@ use super::super::super::mesh_draw::{
 };
 use super::super::super::mesh_pass::MeshPassCommandBuffers;
 use super::super::super::prepared_queue::{
-    summarize_prepared_mesh_queue_items, PreparedMeshQueueStats,
+    PreparedMeshQueueStats, summarize_prepared_mesh_queue_items,
 };
 use super::super::create_mesh_draw::create_mesh_draw;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
 use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh_instance;
 use super::geometry_source_selection::{
-    pending_draw_has_enabled_skinned_gpu_source, pending_mesh_draw_geometry_source,
-    pending_mesh_source_selection, PendingMeshSourceSelection,
+    PendingMeshSourceSelection, pending_draw_has_enabled_skinned_gpu_source,
+    pending_mesh_draw_geometry_source, pending_mesh_source_selection,
 };
-use super::gpu_scene_sync::{sync_gpu_scene_pending_draws, SyncedGpuSceneEntry};
+use super::gpu_scene_sync::{SyncedGpuSceneEntry, sync_gpu_scene_pending_draws};
 use super::morph_payload_upload::upload_morph_payloads;
 use super::pending_command_cache_extract::{
-    extract_pending_static_mesh_command_cache_hits, PendingMeshCommandCacheExtractionContext,
-    PendingMeshCommandCacheExtractionStats,
+    PendingMeshCommandCacheExtractionContext, PendingMeshCommandCacheExtractionStats,
+    PendingMeshDrawRemainder, extract_pending_static_mesh_command_cache_hits,
 };
 use super::pending_command_cache_plan::{
-    summarize_pending_mesh_command_cache_plan, PendingMeshCommandCachePlanStats,
-    PendingMeshCommandCacheVisibility,
+    PendingMeshCommandCachePlanStats, PendingMeshCommandCacheVisibility,
+    summarize_pending_mesh_command_cache_plan,
 };
 use super::pending_mesh_draw::{PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::phase_ordering::phase_ordered_meshes;
@@ -68,8 +68,8 @@ impl BuiltMeshDraws {
         self.prepared_mesh_queue_stats
     }
 
-    pub(crate) fn prebuilt_mesh_pass_command_buffers(&self) -> MeshPassCommandBuffers {
-        self.prebuilt_mesh_pass_command_buffers.clone()
+    pub(crate) fn prebuilt_mesh_pass_command_buffers(&mut self) -> MeshPassCommandBuffers {
+        std::mem::take(&mut self.prebuilt_mesh_pass_command_buffers)
     }
 
     pub(crate) fn gpu_scene_upload_report(&self) -> GpuSceneUploadReport {
@@ -84,24 +84,24 @@ impl BuiltMeshDraws {
         self.indirect_args_count
     }
 
-    pub(crate) fn indirect_args_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_args_buffer.clone()
+    pub(crate) fn indirect_args_buffer(&mut self) -> Option<std::sync::Arc<wgpu::Buffer>> {
+        self.indirect_args_buffer.take()
     }
 
-    pub(crate) fn indirect_submission_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_submission_buffer.clone()
+    pub(crate) fn indirect_submission_buffer(&mut self) -> Option<std::sync::Arc<wgpu::Buffer>> {
+        self.indirect_submission_buffer.take()
     }
 
-    pub(crate) fn indirect_authority_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_authority_buffer.clone()
+    pub(crate) fn indirect_authority_buffer(&mut self) -> Option<std::sync::Arc<wgpu::Buffer>> {
+        self.indirect_authority_buffer.take()
     }
 
-    pub(crate) fn indirect_draw_ref_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_draw_ref_buffer.clone()
+    pub(crate) fn indirect_draw_ref_buffer(&mut self) -> Option<std::sync::Arc<wgpu::Buffer>> {
+        self.indirect_draw_ref_buffer.take()
     }
 
-    pub(crate) fn indirect_segment_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_segment_buffer.clone()
+    pub(crate) fn indirect_segment_buffer(&mut self) -> Option<std::sync::Arc<wgpu::Buffer>> {
+        self.indirect_segment_buffer.take()
     }
 
     pub(crate) fn pending_command_cache_plan_stats(&self) -> PendingMeshCommandCachePlanStats {
@@ -202,7 +202,6 @@ pub(crate) fn build_mesh_draws(
     let indirect_args_buffer = indirect_plan.args_buffer;
     let indirect_args_stride = std::mem::size_of::<IndexedIndirectArgs>() as u64;
 
-    let pending_draws = pending_draws.into_iter().map(Some).collect::<Vec<_>>();
     let (pending_draws, prebuilt_mesh_pass_command_buffers, pending_command_cache_extraction_stats) =
         if let Some(command_cache_extraction) = command_cache_extraction {
             let extraction = extract_pending_static_mesh_command_cache_hits(
@@ -227,49 +226,53 @@ pub(crate) fn build_mesh_draws(
             )
         } else {
             (
-                pending_draws,
+                PendingMeshDrawRemainder::all(pending_draws),
                 MeshPassCommandBuffers::default(),
                 PendingMeshCommandCacheExtractionStats::default(),
             )
         };
-    let mut ordered_pending_draws = Vec::new();
-    ordered_pending_draws.extend(pending_draws.into_iter().enumerate().filter_map(
-        |(index, pending_draw)| {
-            let pending_draw = pending_draw?;
+    let indexed_pending_draws = pending_draws
+        .into_iter()
+        .map(|(original_index, pending_draw)| {
             let indirect_args_offset = indirect_args_offsets
-                .get(index)
+                .get(original_index)
                 .copied()
                 .flatten()
-                .unwrap_or((index as u64) * indirect_args_stride);
-            Some((
+                .unwrap_or((original_index as u64) * indirect_args_stride);
+            let draw_indirect_args_buffer =
+                indirect_args_buffers.get(original_index).cloned().flatten();
+            let submission_detail = pending_draw_submission_details
+                .get(original_index)
+                .copied()
+                .flatten()
+                .or_else(|| {
+                    submission_detail_from_draw_ref(
+                        pending_draw.indirect_draw_ref,
+                        pending_draw_submission_tokens
+                            .get(original_index)
+                            .copied()
+                            .flatten(),
+                        pending_draw_draw_ref_indices
+                            .get(original_index)
+                            .copied()
+                            .flatten(),
+                        Some(indirect_args_offset),
+                        indirect_args_stride,
+                    )
+                });
+            (
                 indirect_args_offset,
-                indirect_args_buffers.get(index).cloned().flatten(),
-                index,
-                pending_draw_submission_details
-                    .get(index)
-                    .copied()
-                    .flatten()
-                    .or_else(|| {
-                        submission_detail_from_draw_ref(
-                            pending_draw.indirect_draw_ref,
-                            pending_draw_submission_tokens.get(index).copied().flatten(),
-                            pending_draw_draw_ref_indices.get(index).copied().flatten(),
-                            Some(indirect_args_offset),
-                            indirect_args_stride,
-                        )
-                    }),
+                draw_indirect_args_buffer,
+                submission_detail,
                 pending_draw,
-            ))
-        },
-    ));
+            )
+        });
     BuiltMeshDraws {
-        draws: ordered_pending_draws
-            .into_iter()
+        draws: indexed_pending_draws
             .map(
                 |(
                     indirect_args_offset,
                     draw_indirect_args_buffer,
-                    original_index,
                     submission_detail,
                     pending_draw,
                 )| {
@@ -363,7 +366,7 @@ pub(crate) fn build_mesh_draws(
                         material_uniform,
                         pending_draw.standard_material_uniform,
                         pending_draw.pipeline_key,
-                        pending_draw.cast_shadows,
+                        pending_draw.common.as_ref(),
                         pending_draw.disabled_passes,
                         pending_draw.taa_reactive_mask_strength,
                         has_previous_velocity_transform,
@@ -379,21 +382,7 @@ pub(crate) fn build_mesh_draws(
                         pending_draw.draw_index_count,
                         draw_indirect_args_buffer,
                         indirect_args_offset,
-                        submission_detail.or_else(|| {
-                            submission_detail_from_draw_ref(
-                                pending_draw.indirect_draw_ref,
-                                pending_draw_submission_tokens
-                                    .get(original_index)
-                                    .copied()
-                                    .flatten(),
-                                pending_draw_draw_ref_indices
-                                    .get(original_index)
-                                    .copied()
-                                    .flatten(),
-                                Some(indirect_args_offset),
-                                indirect_args_stride,
-                            )
-                        }),
+                        submission_detail,
                     )
                     .with_gpu_scene_instance_span(
                         gpu_scene_instance_span.0,
@@ -496,7 +485,8 @@ fn prepared_mesh_queue_stats_for_pending_draws(
         );
         (
             queue_profile,
-            pending_draw.cast_shadows && queue_profile.phase().casts_shadow(),
+            pending_draw.common.cast_shadows.casts_shadows()
+                && queue_profile.phase().casts_shadow(),
             has_previous_velocity_transform,
             pending_draw.skinned,
             pending_draw.skinned_joint_palette.is_some(),
@@ -559,11 +549,7 @@ fn material_uniform_override_signature(
         unsupported.reason.hash(&mut hasher);
     }
     let hash = hasher.finish();
-    if hash == 0 {
-        1
-    } else {
-        hash
-    }
+    if hash == 0 { 1 } else { hash }
 }
 
 fn pending_mesh_identity(pending_draw: &super::pending_mesh_draw::PendingMeshDraw) -> usize {
@@ -683,11 +669,11 @@ mod tests {
     };
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{UVec2, Vec4};
+    use crate::graphics::ViewportRenderFrame;
     use crate::graphics::visibility::{
         FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityBounds,
         VisibilityViewKey,
     };
-    use crate::graphics::ViewportRenderFrame;
 
     #[test]
     fn mesh_visibility_states_preserve_shadow_only_casters() {

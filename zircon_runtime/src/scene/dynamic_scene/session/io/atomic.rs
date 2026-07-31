@@ -1,7 +1,8 @@
 use std::fs;
-use std::io;
+use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
+use super::super::construction;
 use super::super::{RuntimeSessionArchive, RuntimeSessionArchiveError};
 use super::load_save::preview_save_to_path;
 use super::support::{ensure_parent_dir, temporary_archive_path};
@@ -14,10 +15,16 @@ pub(in crate::scene::dynamic_scene::session) fn save_to_path_atomically(
     preview_save_to_path(archive, path)?;
     ensure_parent_dir(path)?;
     let temp_path = temporary_archive_path(path, "tmp");
-    let payload = archive.to_versioned_json_pretty()?;
-    if let Err(error) = fs::write(&temp_path, payload) {
+    let write_result = (|| -> Result<(), RuntimeSessionArchiveError> {
+        let file = fs::File::create(&temp_path)?;
+        let mut writer = BufWriter::with_capacity(ARCHIVE_WRITE_BUFFER_BYTES, file);
+        construction::to_versioned_json_pretty_to(archive, &mut writer)?;
+        writer.flush()?;
+        Ok(())
+    })();
+    if let Err(error) = write_result {
         let _ = fs::remove_file(&temp_path);
-        return Err(error.into());
+        return Err(error);
     }
 
     let backup_path = prepare_existing_target_backup(path, &temp_path)?;
@@ -36,6 +43,8 @@ pub(in crate::scene::dynamic_scene::session) fn save_to_path_atomically(
         }
     }
 }
+
+const ARCHIVE_WRITE_BUFFER_BYTES: usize = 64 * 1024;
 
 fn prepare_existing_target_backup(
     path: &Path,

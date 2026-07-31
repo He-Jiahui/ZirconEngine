@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use toml::{map::Map, Value as TomlValue};
+use toml::{Value as TomlValue, map::Map};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 /// Describes the typed value family accepted by Runtime UI component props and state.

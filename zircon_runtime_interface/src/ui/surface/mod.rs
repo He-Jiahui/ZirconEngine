@@ -11,12 +11,13 @@ mod timeline;
 
 pub use arranged::{UiArrangedNode, UiArrangedSlotSummary, UiArrangedTree, UiCanvasLayerGroup};
 pub use diagnostics::{
-    UiBackendRenderDebugStats, UiDamageDebugReport, UiDebugEventRecord, UiDebugOverlayPrimitive,
-    UiDebugOverlayPrimitiveKind, UiHitGridCellDebugRecord, UiHitGridDebugStats,
-    UiInvalidationDebugReport, UiMaterialBatchDebugStat, UiOverdrawCellDebugRecord,
-    UiOverdrawDebugStats, UiRenderCommandDebugRecord, UiRenderDebugStats,
-    UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
-    UiSurfaceRebuildDebugStats, UiWidgetReflectorNode, UI_SURFACE_DEBUG_SCHEMA_VERSION,
+    UI_SURFACE_DEBUG_SCHEMA_VERSION, UiBackendRenderDebugStats, UiDamageDebugReport,
+    UiDebugEventRecord, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
+    UiHitGridCellDebugRecord, UiHitGridDebugStats, UiInvalidationDebugReport,
+    UiMaterialBatchDebugStat, UiOverdrawCellDebugRecord, UiOverdrawDebugStats,
+    UiRenderCommandDebugRecord, UiRenderDebugStats, UiSurfaceDebugCaptureContext,
+    UiSurfaceDebugOptions, UiSurfaceDebugSnapshot, UiSurfaceRebuildDebugStats,
+    UiWidgetReflectorNode,
 };
 pub use focus_state::{UiFocusPath, UiFocusState, UiModalFocusRestoreState};
 pub use frame::{UiSurfaceFrame, UiSurfaceWindowState};
@@ -29,7 +30,7 @@ pub use navigation::{UiNavigationEventKind, UiNavigationRoute};
 pub use navigation_state::UiNavigationState;
 pub use pointer::{UiPointerActivationPhase, UiPointerButton, UiPointerEventKind, UiPointerRoute};
 pub use render::{
-    normalize_ui_text_language_tag, resolve_ui_text_render_mode, UiBatch, UiBatchKey, UiBatchPlan,
+    MAX_TEXT_EFFECT_EXTENT_PX, MAX_UI_SLIDER_TICK_COUNT, UiBatch, UiBatchKey, UiBatchPlan,
     UiBatchPrimitive, UiBatchRange, UiBatchShader, UiBatchSplitReason, UiBatchStats,
     UiBorderBrushPayload, UiBrushPayload, UiBrushSet, UiClipMode, UiClipState, UiDrawEffect,
     UiEditableTextState, UiGradientBrushPayload, UiGradientStop, UiImageBrushPayload,
@@ -53,7 +54,8 @@ pub use render::{
     UiTextPaint, UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextPaintRun, UiTextRange,
     UiTextRenderMode, UiTextRunKind, UiTextRunPaintStyle, UiTextSelection, UiTextShadowEffect,
     UiTextVisualBoundaryBias, UiTextVisualSpan, UiTextWrap, UiTextWritingMode,
-    UiVectorBrushPayload, UiVisualAssetRef, MAX_TEXT_EFFECT_EXTENT_PX,
+    UiVectorBrushPayload, UiVisualAssetRef, bounded_ui_slider_tick_count,
+    normalize_ui_text_language_tag, resolve_ui_text_render_mode, ui_slider_tick_count_for_track,
 };
 pub use timeline::{
     UiDebugTimelineFrameHandle, UiDebugTimelineFrameSummary, UiDebugTimelineRetention,

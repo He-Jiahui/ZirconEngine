@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var rules = %import("instances/delve_blackwater_rules");
+
+console.printLine("m7-delve-blackwater-rules-test");
+var result = rules.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

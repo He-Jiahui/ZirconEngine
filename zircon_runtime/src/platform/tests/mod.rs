@@ -16,6 +16,7 @@ mod headless;
 mod headless_synthetic_input;
 mod linux;
 mod matrix_cross_product;
+mod preferences;
 mod status_semantics;
 mod structure;
 mod target_modes;

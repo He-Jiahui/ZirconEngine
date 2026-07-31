@@ -1,0 +1,2 @@
+var rules = %import("instances/delve_raise_dead_rules");
+return rules.contractTest() == 1 ? 0 : -1;

@@ -1,0 +1,642 @@
+var {Array} = %import("zr.container");
+var container = %import("zr.container");
+
+class MobTable {
+    pub var ids: Array<uint>;
+    pub var templates: Array<string>;
+    pub var x: Array<float>;
+    pub var z: Array<float>;
+    pub var spawnX: Array<float>;
+    pub var spawnZ: Array<float>;
+    pub var hp: Array<int>;
+    pub var maxHp: Array<int>;
+    pub var dead: Array<bool>;
+    pub var active: Array<bool>;
+    pub var hostile: Array<bool>;
+    pub var ownerIds: Array<uint>;
+    pub var aiStates: Array<string>;
+    pub var inCombat: Array<bool>;
+    pub var lootable: Array<bool>;
+    pub var corpseTimers: Array<float>;
+    pub var respawnTimers: Array<float>;
+    pub var wanderTimers: Array<float>;
+    pub var frenzyRemaining: Array<float>;
+    pub var frenzyHaste: Array<float>;
+    pub var detonateArmed: Array<bool>;
+    pub var detonated: Array<bool>;
+    pub var detonateTimers: Array<float>;
+    pub var summonedByIds: Array<uint>;
+
+    pub @constructor() {
+        var container = %import("zr.container");
+        this.ids = new container.Array<uint>();
+        this.templates = new container.Array<string>();
+        this.x = new container.Array<float>();
+        this.z = new container.Array<float>();
+        this.spawnX = new container.Array<float>();
+        this.spawnZ = new container.Array<float>();
+        this.hp = new container.Array<int>();
+        this.maxHp = new container.Array<int>();
+        this.dead = new container.Array<bool>();
+        this.active = new container.Array<bool>();
+        this.hostile = new container.Array<bool>();
+        this.ownerIds = new container.Array<uint>();
+        this.aiStates = new container.Array<string>();
+        this.inCombat = new container.Array<bool>();
+        this.lootable = new container.Array<bool>();
+        this.corpseTimers = new container.Array<float>();
+        this.respawnTimers = new container.Array<float>();
+        this.wanderTimers = new container.Array<float>();
+        this.frenzyRemaining = new container.Array<float>();
+        this.frenzyHaste = new container.Array<float>();
+        this.detonateArmed = new container.Array<bool>();
+        this.detonated = new container.Array<bool>();
+        this.detonateTimers = new container.Array<float>();
+        this.summonedByIds = new container.Array<uint>();
+    }
+}
+
+class PlayerTable {
+    pub var ids: Array<uint>;
+    pub var x: Array<float>;
+    pub var z: Array<float>;
+    pub var hp: Array<int>;
+    pub var dead: Array<bool>;
+
+    pub @constructor() {
+        var container = %import("zr.container");
+        this.ids = new container.Array<uint>();
+        this.x = new container.Array<float>();
+        this.z = new container.Array<float>();
+        this.hp = new container.Array<int>();
+        this.dead = new container.Array<bool>();
+    }
+}
+
+class RandomStream {
+    pub var units: Array<float>;
+    pub var index: int;
+    pub var drawRequests: int;
+
+    pub @constructor() {
+        var container = %import("zr.container");
+        this.units = new container.Array<float>();
+        this.index = 0;
+        this.drawRequests = 0;
+    }
+}
+
+class LifecycleWorld {
+    pub var mobs: MobTable;
+    pub var players: PlayerTable;
+    pub var random: RandomStream;
+
+    pub @constructor() {
+        this.mobs = new MobTable();
+        this.players = new PlayerTable();
+        this.random = new RandomStream();
+    }
+}
+
+class LifecycleScenario {
+    pub var wolfBFrenzied: bool;
+    pub var wolfCFrenzied: bool;
+    pub var boarFrenzied: bool;
+    pub var frenzyDigest: uint;
+    pub var bogArmedMicros: int;
+    pub var armedDigest: uint;
+    pub var bogDetonated: bool;
+    pub var playerHpAfterBurst: int;
+    pub var detonateDigest: uint;
+    pub var wildRespawned: bool;
+    pub var wildIdle: bool;
+    pub var wildAtSpawn: bool;
+    pub var addDespawned: bool;
+    pub var wildWanderMicros: int;
+    pub var respawnDigest: uint;
+    pub var dungeonStaysDead: bool;
+    pub var finalDigest: uint;
+    pub var draws: uint;
+
+    pub @constructor() {
+        this.wolfBFrenzied = false;
+        this.wolfCFrenzied = false;
+        this.boarFrenzied = false;
+        this.frenzyDigest = <uint>2166136261;
+        this.bogArmedMicros = 0;
+        this.armedDigest = <uint>2166136261;
+        this.bogDetonated = false;
+        this.playerHpAfterBurst = 0;
+        this.detonateDigest = <uint>2166136261;
+        this.wildRespawned = false;
+        this.wildIdle = false;
+        this.wildAtSpawn = false;
+        this.addDespawned = false;
+        this.wildWanderMicros = 0;
+        this.respawnDigest = <uint>2166136261;
+        this.dungeonStaysDead = false;
+        this.finalDigest = <uint>2166136261;
+        this.draws = <uint>0;
+    }
+}
+
+addMob(world: LifecycleWorld, id: uint, templateId: string, x: float, z: float): int {
+    var mobs = world.mobs;
+    mobs.ids.add(id);
+    mobs.templates.add(templateId);
+    mobs.x.add(x);
+    mobs.z.add(z);
+    mobs.spawnX.add(x);
+    mobs.spawnZ.add(z);
+    mobs.hp.add(100);
+    mobs.maxHp.add(100);
+    mobs.dead.add(false);
+    mobs.active.add(true);
+    mobs.hostile.add(true);
+    mobs.ownerIds.add(<uint>0);
+    mobs.aiStates.add("idle");
+    mobs.inCombat.add(false);
+    mobs.lootable.add(false);
+    mobs.corpseTimers.add(0.0);
+    mobs.respawnTimers.add(0.0);
+    mobs.wanderTimers.add(0.0);
+    mobs.frenzyRemaining.add(0.0);
+    mobs.frenzyHaste.add(1.0);
+    mobs.detonateArmed.add(false);
+    mobs.detonated.add(false);
+    mobs.detonateTimers.add(0.0);
+    mobs.summonedByIds.add(<uint>0);
+    return mobs.ids.length - 1;
+}
+
+addPlayer(world: LifecycleWorld, id: uint, x: float, z: float): int {
+    var players = world.players;
+    players.ids.add(id);
+    players.x.add(x);
+    players.z.add(z);
+    players.hp.add(1000000);
+    players.dead.add(false);
+    return players.ids.length - 1;
+}
+
+mobIndex(world: LifecycleWorld, id: uint): int {
+    var ids = world.mobs.ids;
+    var index = 0;
+    while (index < ids.length) {
+        if (<uint>ids[index] == id) {
+            return index;
+        }
+        index = index + 1;
+    }
+    return -1;
+}
+
+distance2d(ax: float, az: float, bx: float, bz: float): float {
+    var dx = ax - bx;
+    var dz = az - bz;
+    var math = %import("zr.zircon.math");
+    return math.sqrt(dx * dx + dz * dz);
+}
+
+takeRandomUnit(world: LifecycleWorld): float {
+    var random = world.random;
+    var units = random.units;
+    var value: float;
+    if (random.index >= 0 && random.index < units.length) {
+        value = <float>units[random.index];
+        random.index = random.index + 1;
+    } else if (units.length == 0) {
+        var rng = %import("kernel/rng");
+        value = <float>rng.sharedNextU32(true) / 4294967296.0;
+    } else {
+        throw "lifecycle random stream exhausted";
+    }
+    random.drawRequests = random.drawRequests + 1;
+    return value;
+}
+
+frenzyPackmates(world: LifecycleWorld, deadId: uint): void {
+    var deadIndex = mobIndex(world, deadId);
+    var mobs = world.mobs;
+    if (deadIndex < 0 || <string>mobs.templates[deadIndex] != "forest_wolf") {
+        return;
+    }
+    var ids = mobs.ids;
+    var templates = mobs.templates;
+    var x = mobs.x;
+    var z = mobs.z;
+    var active = mobs.active;
+    var dead = mobs.dead;
+    var hostile = mobs.hostile;
+    var owners = mobs.ownerIds;
+    var frenzyRemaining = mobs.frenzyRemaining;
+    var frenzyHaste = mobs.frenzyHaste;
+    var deadX = <float>x[deadIndex];
+    var deadZ = <float>z[deadIndex];
+    var deadTemplate = <string>templates[deadIndex];
+    var index = 0;
+    while (index < ids.length) {
+        if (<uint>ids[index] != deadId && <bool>active[index] && !<bool>dead[index] &&
+            <bool>hostile[index] && <uint>owners[index] == <uint>0 &&
+            <string>templates[index] == deadTemplate &&
+            distance2d(<float>x[index], <float>z[index], deadX, deadZ) <= 12.0) {
+            frenzyRemaining[index] = 8.0;
+            frenzyHaste[index] = 1.3;
+        }
+        index = index + 1;
+    }
+}
+
+armDeathThroes(world: LifecycleWorld, id: uint): void {
+    var index = mobIndex(world, id);
+    var mobs = world.mobs;
+    if (index < 0 || <string>mobs.templates[index] != "bog_bloat") {
+        return;
+    }
+    var armed = mobs.detonateArmed;
+    var detonated = mobs.detonated;
+    var timers = mobs.detonateTimers;
+    armed[index] = true;
+    detonated[index] = false;
+    timers[index] = 1.5;
+}
+
+detonateCorpse(world: LifecycleWorld, mobIndexValue: int): void {
+    var mobs = world.mobs;
+    var players = world.players;
+    if (<string>mobs.templates[mobIndexValue] != "bog_bloat") {
+        return;
+    }
+    var playerX = players.x;
+    var playerZ = players.z;
+    var playerHp = players.hp;
+    var playerDead = players.dead;
+    var mobX = <float>mobs.x[mobIndexValue];
+    var mobZ = <float>mobs.z[mobIndexValue];
+    var index = 0;
+    while (index < players.ids.length) {
+        if (!<bool>playerDead[index] &&
+            distance2d(<float>playerX[index], <float>playerZ[index], mobX, mobZ) <= 8.0) {
+            var randomUnit = takeRandomUnit(world);
+            var damage = <int>(14.0 + randomUnit * 8.0 + 0.5);
+            playerHp[index] = <int>playerHp[index] - damage;
+        }
+        index = index + 1;
+    }
+}
+
+respawnMob(world: LifecycleWorld, index: int): void {
+    var mobs = world.mobs;
+    var active = mobs.active;
+    var owners = mobs.ownerIds;
+    if (<uint>owners[index] != <uint>0) {
+        active[index] = false;
+        return;
+    }
+    var dead = mobs.dead;
+    var lootable = mobs.lootable;
+    var hostile = mobs.hostile;
+    var x = mobs.x;
+    var z = mobs.z;
+    var hp = mobs.hp;
+    var aiStates = mobs.aiStates;
+    var inCombat = mobs.inCombat;
+    var wanderTimers = mobs.wanderTimers;
+    dead[index] = false;
+    lootable[index] = false;
+    hostile[index] = true;
+    x[index] = <float>mobs.spawnX[index];
+    z[index] = <float>mobs.spawnZ[index];
+    hp[index] = <int>mobs.maxHp[index];
+    aiStates[index] = "idle";
+    inCombat[index] = false;
+    var bossId = <uint>mobs.ids[index];
+    var summonedBy = mobs.summonedByIds;
+    var addIndex = 0;
+    while (addIndex < summonedBy.length) {
+        if (<uint>summonedBy[addIndex] == bossId) {
+            active[addIndex] = false;
+            summonedBy[addIndex] = <uint>0;
+        }
+        addIndex = addIndex + 1;
+    }
+    wanderTimers[index] = 2.0 + takeRandomUnit(world) * 6.0;
+}
+
+corpseTick(world: LifecycleWorld, id: uint): void {
+    var index = mobIndex(world, id);
+    var mobs = world.mobs;
+    if (index < 0 || !<bool>mobs.dead[index]) {
+        return;
+    }
+    var corpseTimers = mobs.corpseTimers;
+    var respawnTimers = mobs.respawnTimers;
+    var armed = mobs.detonateArmed;
+    var detonated = mobs.detonated;
+    var detonateTimers = mobs.detonateTimers;
+    corpseTimers[index] = <float>corpseTimers[index] - 0.05;
+    respawnTimers[index] = <float>respawnTimers[index] - 0.05;
+    if (<bool>armed[index] && !<bool>detonated[index]) {
+        detonateTimers[index] = <float>detonateTimers[index] - 0.05;
+        if (<float>detonateTimers[index] <= 0.0) {
+            armed[index] = false;
+            detonated[index] = true;
+            detonateCorpse(world, index);
+        }
+    }
+    if (<float>mobs.spawnX[index] <= 600.0 && <float>respawnTimers[index] <= 0.0 &&
+        (<float>corpseTimers[index] <= 0.0 || !<bool>mobs.lootable[index])) {
+        respawnMob(world, index);
+    }
+}
+
+discardDeathDraws(world: LifecycleWorld, count: int): void {
+    var remaining = count;
+    while (remaining > 0) {
+        takeRandomUnit(world);
+        remaining = remaining - 1;
+    }
+}
+
+runScenario(): LifecycleScenario {
+    var rng = %import("kernel/rng");
+    rng.prepareSharedAfterConstruction(<uint>1015, 306, 5, 1, true);
+    var world = new LifecycleWorld();
+    var mobs = world.mobs;
+    var players = world.players;
+    var result = new LifecycleScenario();
+    var player = addPlayer(world, <uint>408, 0.0, 0.0);
+
+    var wolfA = addMob(world, <uint>409, "forest_wolf", 3.0, 3.0);
+    var wolfB = addMob(world, <uint>410, "forest_wolf", 5.0, 3.0);
+    var wolfC = addMob(world, <uint>411, "forest_wolf", 7.0, 3.0);
+    var boar = addMob(world, <uint>412, "wild_boar", 4.0, 4.0);
+    var dead = mobs.dead;
+    dead[wolfA] = true;
+    discardDeathDraws(world, 5);
+    frenzyPackmates(world, <uint>409);
+    var frenzyHaste = mobs.frenzyHaste;
+    result.wolfBFrenzied = <float>frenzyHaste[wolfB] == 1.3;
+    result.wolfCFrenzied = <float>frenzyHaste[wolfC] == 1.3;
+    result.boarFrenzied = <float>frenzyHaste[boar] != 1.0;
+    result.frenzyDigest = rng.sharedMetric(2, true);
+
+    var bog = addMob(world, <uint>413, "bog_bloat", 2.0, 2.0);
+    dead[bog] = true;
+    var corpseTimers = mobs.corpseTimers;
+    var respawnTimers = mobs.respawnTimers;
+    corpseTimers[bog] = 10.0;
+    respawnTimers[bog] = 10.0;
+    discardDeathDraws(world, 3);
+    armDeathThroes(world, <uint>413);
+    result.bogArmedMicros = <int>(<float>mobs.detonateTimers[bog] * 1000000.0 + 0.5);
+    result.armedDigest = rng.sharedMetric(2, true);
+    var tick = 0;
+    while (tick < 31) {
+        corpseTick(world, <uint>413);
+        tick = tick + 1;
+    }
+    result.bogDetonated = <bool>mobs.detonated[bog];
+    result.playerHpAfterBurst = <int>players.hp[player];
+    result.detonateDigest = rng.sharedMetric(2, true);
+
+    var wild = addMob(world, <uint>414, "forest_wolf", 300.0, 300.0);
+    var add = addMob(world, <uint>415, "wild_boar", 302.0, 300.0);
+    discardDeathDraws(world, 5);
+    dead[wild] = true;
+    var hp = mobs.hp;
+    hp[wild] = 0;
+    corpseTimers[wild] = 0.0;
+    respawnTimers[wild] = 0.0;
+    var lootable = mobs.lootable;
+    lootable[wild] = false;
+    var summonedBy = mobs.summonedByIds;
+    summonedBy[add] = <uint>414;
+    corpseTick(world, <uint>414);
+    result.wildRespawned = !<bool>dead[wild];
+    result.wildIdle = <string>mobs.aiStates[wild] == "idle";
+    result.wildAtSpawn = <float>mobs.x[wild] == 300.0 && <float>mobs.z[wild] == 300.0;
+    result.addDespawned = !<bool>mobs.active[add];
+    result.wildWanderMicros = <int>(<float>mobs.wanderTimers[wild] * 1000000.0 + 0.5);
+    result.respawnDigest = rng.sharedMetric(2, true);
+
+    var dungeon = addMob(world, <uint>416, "forest_wolf", 700.0, 300.0);
+    discardDeathDraws(world, 5);
+    dead[dungeon] = true;
+    hp[dungeon] = 0;
+    corpseTimers[dungeon] = 0.0;
+    respawnTimers[dungeon] = 0.0;
+    corpseTick(world, <uint>416);
+    result.dungeonStaysDead = <bool>dead[dungeon];
+    result.finalDigest = rng.sharedMetric(2, true);
+    result.draws = rng.sharedMetric(1, true);
+    return result;
+}
+
+scenarioVector(required: bool): container.Array<int> {
+    if (!required) {
+        throw "mob lifecycle scenario vector must be observed";
+    }
+    var scenario = runScenario();
+    var values = new container.Array<int>();
+    values.add(1015);
+    values.add(1);
+    values.add(0);
+    values.add(7);
+    values.add(417);
+    values.add(scenario.wolfBFrenzied ? 1 : 0);
+    values.add(scenario.wolfCFrenzied ? 1 : 0);
+    values.add(scenario.boarFrenzied ? 1 : 0);
+    values.add(<int>scenario.frenzyDigest);
+    values.add(scenario.bogArmedMicros);
+    values.add(<int>scenario.armedDigest);
+    values.add(scenario.bogDetonated ? 1 : 0);
+    values.add(scenario.playerHpAfterBurst);
+    values.add(<int>scenario.detonateDigest);
+    values.add(scenario.wildRespawned ? 1 : 0);
+    values.add(scenario.wildIdle ? 1 : 0);
+    values.add(scenario.wildAtSpawn ? 1 : 0);
+    values.add(scenario.addDespawned ? 1 : 0);
+    values.add(scenario.wildWanderMicros);
+    values.add(<int>scenario.respawnDigest);
+    values.add(scenario.dungeonStaysDead ? 1 : 0);
+    values.add(<int>scenario.finalDigest);
+    values.add(<int>scenario.draws);
+    return values;
+}
+
+pub scenarioMetric(metric: int, required: bool): int {
+    if (!required || metric < 0 || metric > 22) {
+        throw "mob lifecycle scenario metric is invalid";
+    }
+    var values = scenarioVector(true);
+    var index = 0;
+    for (var value in values) {
+        if (index == metric) {
+            return <int>value;
+        }
+        index = index + 1;
+    }
+    throw "mob lifecycle scenario metric is missing";
+}
+
+pub scenarioContractTest(): int {
+    var expected = new container.Array<int>();
+    expected.add(1015);
+    expected.add(1);
+    expected.add(0);
+    expected.add(7);
+    expected.add(417);
+    expected.add(1);
+    expected.add(1);
+    expected.add(0);
+    expected.add(<int>3397107356);
+    expected.add(1500000);
+    expected.add(<int>3402092466);
+    expected.add(1);
+    expected.add(999982);
+    expected.add(<int>2292892409);
+    expected.add(1);
+    expected.add(1);
+    expected.add(1);
+    expected.add(1);
+    expected.add(3932005);
+    expected.add(<int>3396338987);
+    expected.add(1);
+    expected.add(<int>3859941660);
+    expected.add(20);
+    var actual = scenarioVector(true);
+    if (actual.length != expected.length) {
+        return -100;
+    }
+    var metric = 0;
+    for (var value in actual) {
+        if (<int>value != <int>expected[metric]) {
+            return -(metric + 1);
+        }
+        metric = metric + 1;
+    }
+    return 1;
+}
+
+pub parityRulesTest(): int {
+    var world = new LifecycleWorld();
+    var mobs = world.mobs;
+    var players = world.players;
+    var random = world.random;
+    random.units.add(0.5);
+    random.units.add(0.25);
+    var player = addPlayer(world, <uint>1, 0.0, 0.0);
+    var wolfA = addMob(world, <uint>2, "forest_wolf", 3.0, 3.0);
+    var wolfB = addMob(world, <uint>3, "forest_wolf", 5.0, 3.0);
+    var wolfC = addMob(world, <uint>4, "forest_wolf", 7.0, 3.0);
+    var boar = addMob(world, <uint>5, "wild_boar", 4.0, 4.0);
+    var dead = mobs.dead;
+    dead[wolfA] = true;
+    frenzyPackmates(world, <uint>2);
+    if (<float>mobs.frenzyHaste[wolfB] != 1.3) {
+        return -11;
+    }
+    if (<float>mobs.frenzyHaste[wolfC] != 1.3) {
+        return -12;
+    }
+    if (<float>mobs.frenzyHaste[boar] != 1.0 || random.drawRequests != 0) {
+        return -13;
+    }
+
+    var bog = addMob(world, <uint>6, "bog_bloat", 2.0, 2.0);
+    dead[bog] = true;
+    var corpseTimers = mobs.corpseTimers;
+    var respawnTimers = mobs.respawnTimers;
+    corpseTimers[bog] = 10.0;
+    respawnTimers[bog] = 10.0;
+    armDeathThroes(world, <uint>6);
+    if (!<bool>mobs.detonateArmed[bog] || <float>mobs.detonateTimers[bog] != 1.5) {
+        return -2;
+    }
+    var tick = 0;
+    while (tick < 31) {
+        corpseTick(world, <uint>6);
+        tick = tick + 1;
+    }
+    if (!<bool>mobs.detonated[bog] || <bool>mobs.detonateArmed[bog] ||
+        <int>players.hp[player] != 999982 || random.drawRequests != 1) {
+        return -3;
+    }
+
+    var wild = addMob(world, <uint>7, "forest_wolf", 300.0, 300.0);
+    var add = addMob(world, <uint>8, "wild_boar", 302.0, 300.0);
+    dead[wild] = true;
+    var hp = mobs.hp;
+    hp[wild] = 0;
+    corpseTimers[wild] = 0.0;
+    respawnTimers[wild] = 0.0;
+    var lootable = mobs.lootable;
+    lootable[wild] = false;
+    var summonedBy = mobs.summonedByIds;
+    summonedBy[add] = <uint>7;
+    corpseTick(world, <uint>7);
+    if (<bool>mobs.dead[wild] || <int>mobs.hp[wild] != <int>mobs.maxHp[wild] ||
+        <string>mobs.aiStates[wild] != "idle" || <float>mobs.x[wild] != 300.0 ||
+        <float>mobs.z[wild] != 300.0 || <bool>mobs.active[add] ||
+        <float>mobs.wanderTimers[wild] < 3.499999 ||
+        <float>mobs.wanderTimers[wild] > 3.500001 || random.drawRequests != 2) {
+        return -4;
+    }
+
+    var dungeon = addMob(world, <uint>9, "forest_wolf", 700.0, 300.0);
+    dead[dungeon] = true;
+    hp[dungeon] = 0;
+    corpseTimers[dungeon] = 0.0;
+    respawnTimers[dungeon] = 0.0;
+    corpseTick(world, <uint>9);
+    if (!<bool>mobs.dead[dungeon] || <int>mobs.hp[dungeon] != 0 ||
+        random.drawRequests != 2) {
+        return -5;
+    }
+    return 1;
+}
+
+pub sharedRngScenarioTest(): int {
+    var rng = %import("kernel/rng");
+    rng.resetShared(<uint>1015, 1, true);
+    var world = new LifecycleWorld();
+    var mobs = world.mobs;
+    var players = world.players;
+    var player = addPlayer(world, <uint>1, 0.0, 0.0);
+    var bog = addMob(world, <uint>2, "bog_bloat", 2.0, 2.0);
+    var dead = mobs.dead;
+    var corpseTimers = mobs.corpseTimers;
+    var respawnTimers = mobs.respawnTimers;
+    dead[bog] = true;
+    corpseTimers[bog] = 10.0;
+    respawnTimers[bog] = 10.0;
+    armDeathThroes(world, <uint>2);
+    var tick = 0;
+    while (tick < 31) {
+        corpseTick(world, <uint>2);
+        tick = tick + 1;
+    }
+    if (<int>players.hp[player] != 999984) {
+        return -1;
+    }
+    var wild = addMob(world, <uint>3, "forest_wolf", 300.0, 300.0);
+    var add = addMob(world, <uint>4, "wild_boar", 302.0, 300.0);
+    dead[wild] = true;
+    corpseTimers[wild] = 0.0;
+    respawnTimers[wild] = 0.0;
+    var lootable = mobs.lootable;
+    lootable[wild] = false;
+    var summonedBy = mobs.summonedByIds;
+    summonedBy[add] = <uint>3;
+    corpseTick(world, <uint>3);
+    if (<float>mobs.wanderTimers[wild] < 7.6940 ||
+        <float>mobs.wanderTimers[wild] > 7.6943 || <bool>mobs.active[add]) {
+        return -2;
+    }
+    if (world.random.drawRequests != 2 || rng.sharedMetric(1, true) != <uint>2 ||
+        rng.sharedMetric(2, true) != <uint>2155884148) {
+        return -3;
+    }
+    return 1;
+}

@@ -1,3 +1,4 @@
+mod adaptive;
 mod commands;
 mod geometry;
 mod identity;

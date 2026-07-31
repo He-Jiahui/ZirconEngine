@@ -1,4 +1,5 @@
 use super::super::assert_contains_all;
+use super::super::support::assert_contains_all_exact;
 use super::{read_repo, read_runtime_src, runtime_source_path, DEAD_CODE_ALLOW_ATTRIBUTE};
 
 #[test]
@@ -8,14 +9,18 @@ fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
     let graphics_types_mod = read_runtime_src("graphics/types/mod.rs");
     let runtime_ui_support_mod = read_runtime_src("ui/tests/runtime_ui_support/mod.rs");
     let runtime_ui_manager = read_runtime_src("ui/tests/runtime_ui_support/runtime_ui_manager.rs");
-    let runtime_15_plan = read_repo(
+    let runtime_15_plan_output = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = runtime_15_plan.clone();
-    let review_findings = read_repo(
+    let runtime_index_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings_output = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let structure_convention = runtime_15_plan.clone();
+    let structure_convention_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(
@@ -86,13 +91,25 @@ fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
     );
 
     for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
+        (
+            "Runtime 15 archived output",
+            runtime_15_plan_output.as_str(),
+        ),
+        (
+            "runtime index archived output",
+            runtime_index_output.as_str(),
+        ),
+        (
+            "review findings archived output",
+            review_findings_output.as_str(),
+        ),
+        (
+            "structure convention archived output",
+            structure_convention_output.as_str(),
+        ),
         ("module convention doc", module_doc.as_str()),
     ] {
-        assert_contains_all(
+        assert_contains_all_exact(
             label,
             source,
             &[
@@ -103,7 +120,7 @@ fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
             ],
         );
     }
-    let f10_row = review_findings
+    let f10_row = review_findings_output
         .lines()
         .find(|line| line.starts_with("| F10 |"))
         .expect("F10 review findings top row");

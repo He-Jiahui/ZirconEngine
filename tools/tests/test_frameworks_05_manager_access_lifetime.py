@@ -16,7 +16,8 @@ class Frameworks05ManagerAccessLifetimeTests(unittest.TestCase):
             REPO_ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs"
         ).read_text(encoding="utf-8")
         render_source = (
-            REPO_ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+            REPO_ROOT
+            / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs"
         ).read_text(encoding="utf-8")
         scene_source = (
             REPO_ROOT

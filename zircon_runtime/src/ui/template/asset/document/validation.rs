@@ -4,11 +4,11 @@ use zircon_runtime_interface::ui::template::{
     UiAssetError, UiNodeDefinition, UiSelector, UiStyleSheet,
 };
 
-pub(super) fn validate_node_tree(
+pub(super) fn validate_node_tree<'a>(
     asset_id: &str,
     scope: &str,
-    node: &UiNodeDefinition,
-    seen: &mut BTreeMap<String, UiNodeDefinition>,
+    node: &'a UiNodeDefinition,
+    seen: &mut BTreeMap<&'a str, &'a UiNodeDefinition>,
 ) -> Result<(), UiAssetError> {
     if node.node_id.trim().is_empty() {
         return Err(UiAssetError::InvalidDocument {
@@ -16,8 +16,8 @@ pub(super) fn validate_node_tree(
             detail: format!("{scope} contains a node with an empty node_id"),
         });
     }
-    if let Some(existing) = seen.get(&node.node_id) {
-        if existing == node {
+    if let Some(existing) = seen.get(node.node_id.as_str()) {
+        if *existing == node {
             return Ok(());
         }
         return Err(UiAssetError::InvalidDocument {
@@ -28,7 +28,7 @@ pub(super) fn validate_node_tree(
             ),
         });
     }
-    let _ = seen.insert(node.node_id.clone(), node.clone());
+    let _ = seen.insert(node.node_id.as_str(), node);
     for child in &node.children {
         validate_node_tree(asset_id, scope, &child.node, seen)?;
     }

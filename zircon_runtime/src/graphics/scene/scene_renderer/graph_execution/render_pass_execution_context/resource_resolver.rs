@@ -78,12 +78,13 @@ impl<'a> RgResourceResolver<'a> {
     }
 
     pub fn pass_declares_resource(&self, resource: RenderGraphResource) -> bool {
-        let Some(declaration) = self.resource_declaration(resource) else {
-            return false;
-        };
-        self.pass_resources()
-            .iter()
-            .any(|access| access.name == declaration.name && access.kind == declaration.kind)
+        self.graph
+            .pass_resource_access(self.pass_id, resource, RenderGraphResourceAccessKind::Read)
+            .is_some()
+            || self
+                .graph
+                .pass_resource_access(self.pass_id, resource, RenderGraphResourceAccessKind::Write)
+                .is_some()
     }
 
     pub fn pass_declares_resource_access(
@@ -99,14 +100,8 @@ impl<'a> RgResourceResolver<'a> {
         resource: RenderGraphResource,
         access: RenderGraphResourceAccessKind,
     ) -> Option<&'a RenderGraphPassResourceAccess> {
-        let Some(declaration) = self.resource_declaration(resource) else {
-            return None;
-        };
-        self.pass_resources().iter().find(|pass_access| {
-            pass_access.name == declaration.name
-                && pass_access.kind == declaration.kind
-                && pass_access.access == access
-        })
+        self.graph
+            .pass_resource_access(self.pass_id, resource, access)
     }
 
     pub fn pass_resource_access_by_name(
@@ -244,10 +239,7 @@ impl<'a> RgResourceResolver<'a> {
     }
 
     fn pass(&self) -> Option<&'a CompiledRenderPass> {
-        self.graph
-            .passes()
-            .iter()
-            .find(|pass| pass.id == self.pass_id)
+        self.graph.pass(self.pass_id)
     }
 
     fn has_physical_resources(&self) -> bool {
@@ -266,9 +258,56 @@ impl<'a> RgResourceResolver<'a> {
 mod tests {
     use super::RgResourceResolver;
     use crate::graphics::backend::RenderBackend;
-    use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
-    use crate::render_graph::{QueueLane, RenderGraphBuilder, RenderGraphResourceAccessKind};
+    use crate::graphics::scene::scene_renderer::graph_execution::{
+        RenderGraphExecutionResources, TransientResourcePool,
+    };
+    use crate::render_graph::{
+        PassFlags, QueueLane, RenderGraphBuilder, RenderGraphResourceAccessKind,
+    };
     use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
+
+    #[test]
+    fn rg_resource_resolver_materialization_indices_follow_topologically_reordered_passes() {
+        let mut builder = RenderGraphBuilder::new("resolver-compiled-indices");
+        let color = builder.create_texture(TextureDesc::new(
+            "scene-color",
+            16,
+            16,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ));
+        let consumer = builder.add_pass("consumer", QueueLane::Graphics);
+        let producer = builder.add_pass("producer", QueueLane::Graphics);
+        builder.write_texture(producer, color).unwrap();
+        builder.read_texture(consumer, color).unwrap();
+        builder.add_dependency(producer, consumer).unwrap();
+        builder
+            .set_pass_flags(
+                consumer,
+                PassFlags {
+                    has_side_effects: true,
+                    ..PassFlags::default()
+                },
+            )
+            .unwrap();
+
+        let graph = builder.compile().unwrap();
+        assert_eq!(graph.passes()[0].id, producer);
+        assert_eq!(graph.passes()[1].id, consumer);
+        let color = graph
+            .resource_declaration_by_name("scene-color")
+            .expect("compiled graph retains scene-color")
+            .resource;
+        let resolver = RgResourceResolver::new(&graph, consumer);
+
+        assert!(resolver.pass_declares_resource(color));
+        assert!(resolver.pass_declares_resource_access(color, RenderGraphResourceAccessKind::Read));
+        assert!(
+            !resolver.pass_declares_resource_access(color, RenderGraphResourceAccessKind::Write)
+        );
+        assert_eq!(resolver.pass_resources().len(), 1);
+        assert_eq!(resolver.pass_resources()[0].name, "scene-color");
+    }
 
     #[test]
     fn rg_resource_resolver_requires_pass_declared_access_before_physical_texture_lookup() {
@@ -304,8 +343,10 @@ mod tests {
             .find(|pass| pass.name == "opaque")
             .unwrap();
         let mut resources = RenderGraphExecutionResources::new();
+        let mut transient_pool = TransientResourcePool::default();
+        transient_pool.begin_frame();
         resources
-            .materialize_transient_resources(&backend.device, &graph)
+            .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
             .unwrap();
         let resolver = RgResourceResolver::with_physical(&graph, opaque_pass.id, &resources);
 

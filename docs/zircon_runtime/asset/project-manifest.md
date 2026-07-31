@@ -12,6 +12,8 @@ related_code:
   - zircon_runtime/src/asset/project/paths.rs
   - zircon_runtime/src/asset/project/manager/open.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
@@ -34,6 +36,9 @@ implementation_files:
   - zircon_runtime/src/asset/project/package_asset_registry.rs
   - zircon_runtime/src/asset/project/manager/open.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
@@ -77,7 +82,9 @@ Save validates the manifest, forces `format_version = 2` on the serialized copy,
 
 Binary imported artifacts live under `.zircon/cache/assets`, registry state belongs under `.zircon/registry`, and editor previews/atlases use named children below `.zircon/cache`. These roots are not aliases: each describes one derived-data responsibility.
 
-The scanner and runtime watcher cover every registered project root. URI construction strips the specific owning root, so all roots share the `res://` namespace. Existing-source lookup and source-root ownership return only a unique match; missing and ambiguous cases are typed. New destinations use `primary_project_source_path_for_uri` or `existing_or_primary_project_source_path_for_uri`, making first-root selection explicit rather than a hidden fallback. Editor model animation derivation uses source-root ownership, so a model in the second root writes sibling products back to that same root.
+The scanner and runtime watcher cover every registered project root. URI construction strips the specific owning root, so all roots share the `res://` namespace. `ProjectAssetManager` scans a detached candidate generation (cloned from the active generation for import/watch refresh), resolves its source-path index, preloads every artifact payload, and prepares replacement watchers before publication. A short generation write gate then commits ResourceManager records, the source index, `ProjectManager`, and watcher ownership under the project write lock; preparation failure leaves the active generation unchanged. Watchers queue events between spawn and activation, and retired watchers cannot dispatch into the replacement generation. The index keys physical sources by scheme and normalized path, so root and labelled subassets share one resolved path. Existing `res://` and `package://` lookup reads that index and performs no `exists`/directory probe per locator; a miss is typed rather than synthesized from the first root. Standalone `ProjectManager` setup and explicit destination selection may still use the typed filesystem preflight. New destinations use `primary_project_source_path_for_uri` or `existing_or_primary_project_source_path_for_uri`, making first-root selection explicit rather than a hidden fallback. Editor model animation derivation uses source-root ownership, so a model in the second root writes sibling products back to that same root.
+
+The public `AssetManager::import_asset(uri)` operation still delegates to the full project import pipeline. Replacing it with a true target transaction remains open under Runtime04: the target commit must atomically coordinate sidecar/artifact/AssetRegistry/ResourceManager publication, refresh affected dependency and reverse edges, retain duplicate-GUID owner/remint semantics, and rebuild or reject compound-source topology changes. The manager-owned source-path index does not weaken those requirements or disguise the full scan as a targeted operation.
 
 Package roots retain their existing `package://<id>/` namespace and are not mixed into project duplicate checks.
 
@@ -120,7 +127,7 @@ it cannot panic or silently reopen the path.
 
 ## Test Coverage and Status
 
-Manifest tests cover a real v1 migration report, future rejection, stable v2 persistence, and equality with the interface summary projection. Project tests cover default and explicit ordered root registration, canonical link escape rejection, successful two-root scan, duplicate URI rejection, and a real watcher event emitted from the second root. Editor tests cover animation derivatives remaining beside a model in a non-primary root and typed project-path error sources. The interface managed build/test gate passes 212/212 plus doc-tests. Runtime production build completes, but its lib-test target is currently blocked before these tests by Render 11 source-cubemap test API drift; the failure is archived under that plan and no Runtime test pass is claimed.
+Manifest tests cover a real v1 migration report, future rejection, stable v2 persistence, and equality with the interface summary projection. Project tests cover default and explicit ordered root registration, canonical link escape rejection, successful two-root scan, duplicate URI rejection, and a real watcher event emitted from the second root. The current source-index regression additionally deletes a source after full scan and requires locator lookup to return the indexed generation path without stat. Editor tests cover animation derivatives remaining beside a model in a non-primary root and typed project-path error sources. The interface managed build/test gate passes 212/212 plus doc-tests. Current-source Runtime/Editor focused Cargo evidence for the 2026-07-18 source-index slice remains pending and is not inferred from historical binaries; targeted import remains a separate open acceptance item.
 
 The Runtime10 foundation contract `project_session_startup_reuses_one_prepared_project_manager_snapshot`
 locks the abstract single prepare/transfer route and rejects a second scene open/scan.

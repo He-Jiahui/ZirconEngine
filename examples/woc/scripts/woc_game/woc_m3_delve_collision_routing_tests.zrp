@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_delve_collision_routing_tests",
+  "source": "src",
+  "binary": "bin-m3-delve-collision-routing-tests",
+  "entry": "world/delve_collision_routing_test_main"
+}

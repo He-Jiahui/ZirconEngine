@@ -1,0 +1,64 @@
+// Pure charge and internal-cooldown bookkeeping for Thorns-style reactions.
+// The WOS combat reducer owns aura storage, reflected damage, events and removal.
+var contract = %import("generated/thorns_charge_contract");
+
+pub class ThornsChargeState {
+    pub var limited: bool;
+    pub var charges: int;
+    pub var hasIcd: bool;
+    pub var icd: float;
+    pub var hasIcdMax: bool;
+    pub var icdMax: float;
+    pub @constructor(limited: bool, charges: int, hasIcd: bool, icd: float, hasIcdMax: bool, icdMax: float) {
+        this.limited = limited;
+        this.charges = charges;
+        this.hasIcd = hasIcd;
+        this.icd = icd;
+        this.hasIcdMax = hasIcdMax;
+        this.icdMax = icdMax;
+    }
+}
+
+// Source `undefined` charges are represented by `limited == false`.
+pub thornsHasCharge(a: ThornsChargeState): bool { return !a.limited || a.charges > 0; }
+pub thornsDepleted(a: ThornsChargeState): bool { return a.limited && a.charges <= 0; }
+
+pub tickThornsCooldown(a: ThornsChargeState): void {
+    if (a.hasIcd && a.icd > 0.0) {
+        a.icd = a.icd - contract.dt();
+        if (a.icd < 0.0) a.icd = 0.0;
+    }
+}
+
+// Returns whether the reducer must reflect this hit. On success it spends a
+// finite charge first and then arms the configured internal cooldown.
+pub consumeThornsCharge(a: ThornsChargeState): bool {
+    if (!thornsHasCharge(a)) return false;
+    if (a.hasIcd && a.icd > contract.castCompleteEps()) return false;
+    if (a.limited) a.charges = a.charges - 1;
+    if (a.hasIcdMax && a.icdMax != 0.0) {
+        a.hasIcd = true;
+        a.icd = a.icdMax;
+    }
+    return true;
+}
+
+pub contractTest(): int {
+    var unlimited = new ThornsChargeState(false, 0, false, 0.0, false, 0.0);
+    if (!thornsHasCharge(unlimited) || thornsDepleted(unlimited) || !consumeThornsCharge(unlimited)) return -1;
+
+    var limited = new ThornsChargeState(true, 2, true, 0.0, true, 0.1);
+    if (!consumeThornsCharge(limited) || limited.charges != 1 || limited.icd != 0.1) return -2;
+    if (consumeThornsCharge(limited)) return -3;
+    tickThornsCooldown(limited);
+    if (limited.icd != 0.05) return -4;
+    tickThornsCooldown(limited);
+    if (limited.icd != 0.0 || !consumeThornsCharge(limited) || !thornsDepleted(limited)) return -5;
+
+    var firstArm = new ThornsChargeState(true, 1, false, 0.0, true, 0.1);
+    if (!consumeThornsCharge(firstArm) || !firstArm.hasIcd || firstArm.icd != 0.1) return -6;
+
+    var spent = new ThornsChargeState(true, 0, false, 0.0, false, 0.0);
+    if (thornsHasCharge(spent) || !thornsDepleted(spent) || consumeThornsCharge(spent)) return -7;
+    return contract.thornsKind() == "thorns" ? 1 : -8;
+}

@@ -1,9 +1,5 @@
-use std::fs;
-
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
-
 use super::metadata::{class_list_offenders, class_name_prop_offenders};
-use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
+use super::support::{collect_zui_files, editor_asset_root, load_zui_document, runtime_asset_root};
 
 #[test]
 fn production_zui_class_lists_are_clean_and_unique() {
@@ -16,10 +12,7 @@ fn production_zui_class_lists_are_clean_and_unique() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for (component_name, component) in &document.components {
                 if !component.default_classes.is_empty() {
@@ -78,10 +71,7 @@ fn production_zui_class_name_props_are_clean_style_anchors() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 if node.props.is_empty() {

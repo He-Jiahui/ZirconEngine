@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
@@ -58,7 +59,12 @@ pub(super) fn create_project_with_default_world(project_root: &Path) {
     let world = DefaultLevelManager::default()
         .create_default_level()
         .snapshot();
-    EditorProjectDocument::save_to_path(project_root, &world, None)
+    let mut project =
+        ProjectManager::open(project_root).expect("created manager test project should open");
+    project
+        .scan_and_import()
+        .expect("created manager test project should scan");
+    EditorProjectDocument::save_to_project(&project, &world, None)
         .expect("existing manager test project should save");
 }
 

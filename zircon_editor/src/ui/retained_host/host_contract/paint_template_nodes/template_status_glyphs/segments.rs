@@ -10,6 +10,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     segments: &[FrameRect],
 ) {
     for segment in segments {
+        if !segment.x.is_finite()
+            || !segment.y.is_finite()
+            || !segment.width.is_finite()
+            || !segment.height.is_finite()
+            || segment.width <= 0.0
+            || segment.height <= 0.0
+        {
+            continue;
+        }
         commands.push(HostPaintCommand::quad(
             segment.clone(),
             Some(clip.clone()),

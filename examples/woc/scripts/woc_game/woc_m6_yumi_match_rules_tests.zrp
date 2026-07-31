@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_yumi_match_rules_tests",
+  "source": "src",
+  "binary": "bin-m6-yumi-match-rules-tests",
+  "entry": "social/yumi_match_rules_test_main"
+}

@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use zircon_runtime::asset::AssetId;
 use zircon_runtime::core::framework::animation::{AnimationParameterMap, AnimationPoseSource};
 use zircon_runtime::core::math::Real;
@@ -12,6 +14,7 @@ pub(super) struct AnimationSceneScan {
     pub(super) state_machine_samples: Vec<PendingStateMachinePoseSample>,
     pub(super) skeletons_by_entity:
         std::collections::BTreeMap<EntityId, zircon_runtime::asset::AssetId>,
+    pub(super) pose_source_entities: BTreeSet<EntityId>,
     pub(super) next_graph_times: std::collections::BTreeMap<EntityId, Real>,
     pub(super) next_state_machine_times: std::collections::BTreeMap<EntityId, Real>,
 }

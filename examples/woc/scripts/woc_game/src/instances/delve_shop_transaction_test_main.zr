@@ -1,0 +1,38 @@
+var ledger = %import("progression/inventory_instance_ledger");
+var delve = %import("instances/delve_state");
+
+var state = new delve.DelveState();
+state.delveMarks = 100;
+
+// The vendor rejects unknown and still-locked offers before it takes Marks or
+// grants anything. Clears are maintained per source Delve/tier, just as the
+// target's persisted `${delveId}:${tierId}` map is interpreted.
+if (delve.buyShopOffer(state, 2, 0) || state.lastError != -6 ||
+    ledger.countItem(state.inventory, "reliquary_legs") != 0 ||
+    delve.buyShopOffer(state, 0, 6) || state.lastError != -7) {
+    return -1;
+}
+
+if (!delve.setShopClears(state, 0, 3, 0, 0) ||
+    !delve.buyShopOffer(state, 0, 6) ||
+    state.delveMarks != 88 ||
+    ledger.countItem(state.inventory, "reliquary_helm") != 1 ||
+    delve.buyShopOffer(state, 0, 7) || state.lastError != -7) {
+    return -2;
+}
+
+if (!delve.recordShopClear(state, 0, 1) ||
+    !delve.buyShopOffer(state, 0, 7) ||
+    state.delveMarks != 60 ||
+    ledger.countItem(state.inventory, "deacon_reliquary_helm") != 1) {
+    return -3;
+}
+
+if (!delve.setShopClears(state, 1, 0, 0, 0) ||
+    !delve.buyShopOffer(state, 1, 0) ||
+    state.delveMarks != 44 ||
+    ledger.countItem(state.inventory, "litany_legs") != 1) {
+    return -4;
+}
+
+return 0;

@@ -1,8 +1,8 @@
-use super::ktx::{KTX2_IDENTIFIER, KTX2_LEVEL_INDEX_OFFSET};
 use super::TextureUploadSupport;
+use super::ktx::{KTX2_IDENTIFIER, KTX2_LEVEL_INDEX_OFFSET};
 use crate::asset::{
-    AssetUri, TextureAsset, TextureAssetDescriptor, LIGHTMAP_RGBA16F_FORMAT,
-    LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    AssetUri, LIGHTMAP_RGBA16F_FORMAT, LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT,
+    RGBA8_UNORM_SRGB_FORMAT, TextureAsset, TextureAssetDescriptor,
 };
 use crate::core::framework::render::{RenderImageColorSpace, RenderImageDimension};
 

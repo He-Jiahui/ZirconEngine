@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use toml::Value;
 
 pub const UI_V2_REPEAT_ATTRIBUTE: &str = "repeat";
@@ -23,26 +24,45 @@ pub struct UiV2Repeat {
     pub node_path_namespace: String,
 }
 
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum UiV2RepeatValidationError {
+    #[error("node {node_id} repeat.kind {kind} is unsupported; expected {expected}")]
+    UnsupportedKind {
+        node_id: String,
+        kind: String,
+        expected: &'static str,
+    },
+    #[error("node {node_id} repeat.prototype must not be empty")]
+    EmptyPrototype { node_id: String },
+    #[error("node {node_id} repeat.virtual_control_prefix must not be empty")]
+    EmptyVirtualControlPrefix { node_id: String },
+    #[error("node {node_id} repeat.authored_count must be greater than 0")]
+    ZeroAuthoredCount { node_id: String },
+}
+
 impl UiV2Repeat {
-    pub fn validate(&self, node_id: &str) -> Result<(), String> {
+    pub fn validate(&self, node_id: &str) -> Result<(), UiV2RepeatValidationError> {
         if self.kind != UI_V2_REPEAT_KIND_VIRTUAL_ROWS {
-            return Err(format!(
-                "node {node_id} repeat.kind {} is unsupported; expected {UI_V2_REPEAT_KIND_VIRTUAL_ROWS}",
-                self.kind
-            ));
+            return Err(UiV2RepeatValidationError::UnsupportedKind {
+                node_id: node_id.to_string(),
+                kind: self.kind.clone(),
+                expected: UI_V2_REPEAT_KIND_VIRTUAL_ROWS,
+            });
         }
         if self.prototype.trim().is_empty() {
-            return Err(format!("node {node_id} repeat.prototype must not be empty"));
+            return Err(UiV2RepeatValidationError::EmptyPrototype {
+                node_id: node_id.to_string(),
+            });
         }
         if self.virtual_control_prefix.trim().is_empty() {
-            return Err(format!(
-                "node {node_id} repeat.virtual_control_prefix must not be empty"
-            ));
+            return Err(UiV2RepeatValidationError::EmptyVirtualControlPrefix {
+                node_id: node_id.to_string(),
+            });
         }
         if self.authored_count == 0 {
-            return Err(format!(
-                "node {node_id} repeat.authored_count must be greater than 0"
-            ));
+            return Err(UiV2RepeatValidationError::ZeroAuthoredCount {
+                node_id: node_id.to_string(),
+            });
         }
         Ok(())
     }

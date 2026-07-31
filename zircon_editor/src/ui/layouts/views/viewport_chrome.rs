@@ -1,7 +1,8 @@
 use crate::ui::retained_host::primitives::SharedString;
 
+use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportSettings, SceneViewportTool,
+    DisplayMode, GridMode, ProjectionMode, SceneViewportChromeSettings, TransformHandleKind,
     TransformSpace, ViewOrientation,
 };
 
@@ -9,7 +10,7 @@ use super::SceneViewportChromeData;
 
 pub(crate) fn blank_viewport_chrome() -> SceneViewportChromeData {
     SceneViewportChromeData {
-        tool: SharedString::default(),
+        mode: SharedString::default(),
         transform_space: SharedString::default(),
         projection_mode: SharedString::default(),
         view_orientation: SharedString::default(),
@@ -27,9 +28,11 @@ pub(crate) fn blank_viewport_chrome() -> SceneViewportChromeData {
     }
 }
 
-pub(crate) fn scene_viewport_chrome(settings: &SceneViewportSettings) -> SceneViewportChromeData {
+pub(crate) fn scene_viewport_chrome(
+    settings: &SceneViewportChromeSettings,
+) -> SceneViewportChromeData {
     SceneViewportChromeData {
-        tool: scene_tool_label(settings.tool).into(),
+        mode: scene_mode_label(&settings.mode).into(),
         transform_space: transform_space_label(settings.transform_space).into(),
         projection_mode: projection_mode_label(settings.projection_mode).into(),
         view_orientation: view_orientation_label(settings.view_orientation).into(),
@@ -47,12 +50,15 @@ pub(crate) fn scene_viewport_chrome(settings: &SceneViewportSettings) -> SceneVi
     }
 }
 
-fn scene_tool_label(tool: SceneViewportTool) -> &'static str {
-    match tool {
-        SceneViewportTool::Drag => "Drag",
-        SceneViewportTool::Move => "Move",
-        SceneViewportTool::Rotate => "Rotate",
-        SceneViewportTool::Scale => "Scale",
+fn scene_mode_label(mode: &SceneModeActivation) -> String {
+    match mode {
+        SceneModeActivation::Select => "Select".to_string(),
+        SceneModeActivation::Transform(TransformHandleKind::Move) => "Transform.Move".to_string(),
+        SceneModeActivation::Transform(TransformHandleKind::Rotate) => {
+            "Transform.Rotate".to_string()
+        }
+        SceneModeActivation::Transform(TransformHandleKind::Scale) => "Transform.Scale".to_string(),
+        SceneModeActivation::Custom(mode_id) => format!("Custom:{}", mode_id.as_str()),
     }
 }
 

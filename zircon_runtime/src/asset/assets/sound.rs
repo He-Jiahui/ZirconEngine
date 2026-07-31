@@ -137,7 +137,6 @@ impl SoundAsset {
                 b"data" => data = Some(&bytes[chunk_start..chunk_end]),
                 _ => {}
             }
-
             cursor = chunk_end + (chunk_size % 2);
         }
 
@@ -249,7 +248,7 @@ fn decode_samples(format: &WavFormat, data: &[u8]) -> SoundAssetResult<Vec<f32>>
         24 => 3,
         32 => 4,
         bits_per_sample => {
-            return Err(SoundAssetError::UnsupportedBitsPerSample { bits_per_sample })
+            return Err(SoundAssetError::UnsupportedBitsPerSample { bits_per_sample });
         }
     };
     let expected_block_align = format.channel_count as usize * bytes_per_sample;
@@ -274,8 +273,8 @@ fn decode_samples(format: &WavFormat, data: &[u8]) -> SoundAssetResult<Vec<f32>>
             .collect()),
         (PCM_FORMAT, 16) => Ok(data
             .chunks_exact(2)
-            .map(|chunk| Ok(read_i16(chunk, 0)? as f32 / 32768.0))
-            .collect::<SoundAssetResult<Vec<_>>>()?),
+            .map(|chunk| i16::from_le_bytes([chunk[0], chunk[1]]) as f32 / 32768.0)
+            .collect()),
         (PCM_FORMAT, 24) => Ok(data
             .chunks_exact(3)
             .map(|chunk| {
@@ -286,12 +285,17 @@ fn decode_samples(format: &WavFormat, data: &[u8]) -> SoundAssetResult<Vec<f32>>
             .collect()),
         (PCM_FORMAT, 32) => Ok(data
             .chunks_exact(4)
-            .map(|chunk| Ok(read_i32(chunk, 0)? as f32 / 2_147_483_648.0))
-            .collect::<SoundAssetResult<Vec<_>>>()?),
+            .map(|chunk| {
+                i32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]) as f32
+                    / 2_147_483_648.0
+            })
+            .collect()),
         (IEEE_FLOAT_FORMAT, 32) => Ok(data
             .chunks_exact(4)
-            .map(|chunk| Ok(read_f32(chunk, 0)?.clamp(-1.0, 1.0)))
-            .collect::<SoundAssetResult<Vec<_>>>()?),
+            .map(|chunk| {
+                f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]).clamp(-1.0, 1.0)
+            })
+            .collect()),
         (audio_format, bits_per_sample) => Err(SoundAssetError::UnsupportedFormat {
             audio_format,
             bits_per_sample,
@@ -369,18 +373,6 @@ fn read_u16(bytes: &[u8], offset: usize) -> SoundAssetResult<u16> {
 
 fn read_u32(bytes: &[u8], offset: usize) -> SoundAssetResult<u32> {
     Ok(u32::from_le_bytes(read_fixed_bytes::<4>(bytes, offset)?))
-}
-
-fn read_i16(bytes: &[u8], offset: usize) -> SoundAssetResult<i16> {
-    Ok(i16::from_le_bytes(read_fixed_bytes::<2>(bytes, offset)?))
-}
-
-fn read_i32(bytes: &[u8], offset: usize) -> SoundAssetResult<i32> {
-    Ok(i32::from_le_bytes(read_fixed_bytes::<4>(bytes, offset)?))
-}
-
-fn read_f32(bytes: &[u8], offset: usize) -> SoundAssetResult<f32> {
-    Ok(f32::from_le_bytes(read_fixed_bytes::<4>(bytes, offset)?))
 }
 
 fn read_fixed_bytes<const N: usize>(bytes: &[u8], offset: usize) -> SoundAssetResult<[u8; N]> {

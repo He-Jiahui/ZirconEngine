@@ -13,7 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ri
     color: [u8; 4],
     opacity_multiplier: f32,
 ) {
-    if !node.ripple_enabled || is_button_disabled(node) || (!node.pressed && !node.enter_pressed) {
+    if !ripple_is_visible(node) {
         return;
     }
     commands.push(HostPaintCommand::quad(
@@ -26,4 +26,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ri
         ripple_radius(rect),
         MATERIAL_STATE_LAYER_OPACITY_PRESS * opacity_multiplier,
     ));
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn ripple_is_visible(
+    node: &TemplatePaneNodeData,
+) -> bool {
+    node.ripple_enabled && !is_button_disabled(node) && (node.pressed || node.enter_pressed)
 }

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_mass_resurrection_state_tests",
+  "source": "src",
+  "binary": "bin-m4-mass-resurrection-state-tests",
+  "entry": "combat/mass_resurrection_state_test_main"
+}

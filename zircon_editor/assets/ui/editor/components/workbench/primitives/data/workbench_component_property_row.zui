@@ -6,7 +6,7 @@ display_name = "Workbench Component Property Row"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchComponentPropertyRow]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-component-property-row", "workbench-primitive"]
 component = "InputField"
 control_id = "WorkbenchComponentPropertyRowRoot"
 classes = ["workbench-component-property-row"]
-props = { text = "Property", value = "", value_text = "-", placeholder = "", focused = false, hovered = false, disabled = false, editable_text = true, layout_label_width = 92.0, layout_padding_left = 0.0, layout_padding_right = 0.0, layout_padding_top = 0.0, layout_padding_bottom = 0.0, layout_min_height = 28.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Property", value = "", value_text = "-", placeholder = "", validation_level = "normal", focused = false, hovered = false, disabled = false, editable_text = true, layout_label_width = 92.0, background_color = "$editor.surface.recessed", hover_background_color = "$editor.surface.hover", pressed_background_color = "$editor.surface.3", focused_background_color = "$editor.surface.recessed", disabled_background_color = "$editor.surface.disabled", border_color = "$editor.separator.soft", hover_border_color = "$editor.border", focus_border_color = "$editor.accent", disabled_border_color = "$editor.border.disabled", foreground_color = "$editor.text.primary", placeholder_color = "$editor.text.secondary", disabled_foreground_color = "$editor.text.disabled", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_min_height = "$editor.control.height.dense", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }

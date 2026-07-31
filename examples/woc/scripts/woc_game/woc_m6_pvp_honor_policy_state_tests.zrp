@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_pvp_honor_policy_state_tests",
+  "source": "src",
+  "binary": "bin-m6-pvp-honor-policy-state-tests",
+  "entry": "social/pvp_honor_policy_state_test_main"
+}

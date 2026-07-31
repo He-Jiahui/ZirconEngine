@@ -1,0 +1,29 @@
+var rules = %import("instances/delve_lockpick_rules");
+
+var normal = new rules.LockpickBoard();
+rules.initialize(normal, <uint>20061, 0, true);
+var heroic = new rules.LockpickBoard();
+rules.initialize(heroic, <uint>2024, 1, true);
+
+if (rules.actionDelta(0, true) != -2 || rules.actionDelta(4, true) != 2 ||
+    rules.pagesForAnte(1, true) != 3 || rules.triesForAnte(3, true) != 3 ||
+    rules.timeoutTicksForAnte(2, true) != 120 || rules.tierColumns(0, true) != 12 ||
+    rules.tierColumns(1, true) != 16 || rules.visibleLastColumn(10, 0, true) != 11 ||
+    rules.visibleLastColumn(10, 1, true) != 13 ||
+    rules.baseSeed(<uint>20061, <uint>423, true) != <uint>1839881514 ||
+    rules.pageSeed(<uint>1839881514, 0, true) != <uint>4087162011 ||
+    rules.retrySeed(<uint>1839881514, 2, 1, true) != <uint>3896612673 ||
+    rules.startRow(normal, true) != 0 || rules.seatRow(normal, true) != 1 ||
+    !rules.isGate(normal, 2, true) || !rules.isGate(normal, 10, true) ||
+    rules.cellKind(normal, 6, 2, true) != 4 || rules.visibleCellCount(normal, 0, true) != 10 ||
+    rules.stepResult(normal, 1, 0, 0, true) != 2 ||
+    rules.stepResult(normal, 5, 1, 3, true) != 3 ||
+    rules.stepResult(normal, 10, 0, 3, true) != 4 ||
+    rules.startRow(heroic, true) != 4 || rules.seatRow(heroic, true) != 1 ||
+    !rules.isGate(heroic, 4, true) || !rules.isGate(heroic, 6, true) ||
+    !rules.isGate(heroic, 8, true) || rules.cellKind(heroic, 1, 3, true) != 4 ||
+    rules.visibleCellCount(heroic, 0, true) != 12 ||
+    rules.contractTest() != 1) {
+    return -1;
+}
+return 0;

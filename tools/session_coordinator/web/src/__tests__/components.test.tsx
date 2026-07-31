@@ -4,7 +4,7 @@ import { JSDOM } from "jsdom";
 import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@mui/material/styles";
-import type { AuditEvent, CargoLaneProjection, CodexSessionsProjection, ControlSnapshot, FailureNode, FinalizeRequestProjection, WorkflowNode } from "../api/contracts";
+import type { AuditEvent, CargoLaneProjection, CodexSessionsProjection, ControlSnapshot, FailureNode, FinalizeRequestProjection, SessionProjection, WorkflowNode } from "../api/contracts";
 import { StatusText } from "../components/StatusText";
 import { FixedSizeList } from "../components/audit/fixedList";
 import { NodeDetailDrawer } from "../components/workflow/NodeDetailDrawer";
@@ -12,10 +12,11 @@ import { LogViewer } from "../components/logs/LogViewer";
 import { controlTheme } from "../theme";
 import { ValidationLaneTable } from "../components/validation/ValidationLaneTable";
 import { MilestoneCommitEvidence } from "../components/git/MilestoneCommitEvidence";
-import { admissionSummary, cleanupDebtSummary, continuationGuidance, interventionGuidance, OverviewPage, overviewMetrics, resourceBlockers, resourceBlockerSummary, sessionLivenessSummary, syncHealthSummary, validationFlowHealth, validationFlowSummary, workBoard } from "../pages/OverviewPage";
+import { admissionSummary, cleanupDebtSummary, continuationCoverageSummary, continuationGuidance, interventionGuidance, OverviewPage, overviewMetrics, resourceBlockers, resourceBlockerSummary, sessionLivenessSummary, syncHealthSummary, validationFlowHealth, validationFlowSummary, workBoard, workspaceBaselineSummary } from "../pages/OverviewPage";
 import { ArtifactLifecycleSummary, artifactLifecycleCounts } from "../components/validation/ArtifactLifecycleSummary";
 import { SessionsPage } from "../pages/SessionsPage";
-import { ValidationPage } from "../pages/ValidationPage";
+import { reservationAge, ValidationPage } from "../pages/ValidationPage";
+import { coalesceAuditEvents } from "../pages/AuditPage";
 
 setupDom();
 
@@ -33,6 +34,40 @@ test("virtual list mounts only visible rows", async () => {
   assert.ok(host.querySelectorAll('[role="listitem"]').length < 40);
   assert.equal(host.querySelector('[role="list"]')?.getAttribute("aria-label"), "test，共 500 行");
   await act(async () => root.unmount()); host.remove();
+});
+
+test("running validation reports completed queue wait instead of a stale wait state", () => {
+  const now = new Date("2026-07-18T07:20:00+08:00");
+  assert.equal(
+    reservationAge("2026-07-18T04:15:00+08:00", now, "running"),
+    "排队等待 185 分钟后已运行",
+  );
+});
+
+test("audit keeps the newest rollover wait while coalescing identical retries", () => {
+  const waiting = (eventId: number, createdAt: string): AuditEvent => ({
+    eventId,
+    sessionId: null,
+    type: "lifecycle.rollover_waiting_for_cargo",
+    payload: {
+      actionId: "rollover-1",
+      intentId: "intent-1",
+      jobs: [{ jobId: "job-1", sessionId: "owner", status: "running", liveProcessPids: [10, 20] }],
+      requestedBy: "local-runtime",
+    },
+    createdAt,
+  });
+  const events = [
+    waiting(30, "2026-07-18T06:58:20+08:00"),
+    waiting(29, "2026-07-18T06:58:19+08:00"),
+    { ...waiting(28, "2026-07-18T06:58:18+08:00"), payload: { ...waiting(28, "now").payload, jobs: [{ jobId: "job-1", sessionId: "owner", status: "running", liveProcessPids: [10, 30] }] } },
+  ];
+
+  const compact = coalesceAuditEvents(events);
+  assert.equal(compact.length, 2);
+  assert.equal(compact[0]?.eventId, 30);
+  assert.equal(compact[0]?.repeatCount, 2);
+  assert.equal(compact[1]?.repeatCount, 1);
 });
 
 test("log pause freezes incoming events and resume follows", async () => {
@@ -129,6 +164,10 @@ test("validation page shows queue order without treating it as Session admission
     cargoJobs: [], currentCargoTargets: [], validationCopies: [],
     artifactLifecycle: { reusablePools: 0, ephemeralTargets: 0, pendingCleanup: 0, failedCleanup: 0 },
     cpuBurst: { capacity: 1, active: 1, eligiblePending: 1 },
+    runHealth: [
+      { jobId: "silent-job", sessionId: "owner", runId: "run-silent", startedAt: "now", outputState: "awaiting_output" },
+      { jobId: "active-job", sessionId: "runner", runId: "run-active", startedAt: "now", outputState: "output_observed", lastOutputAt: "2026-07-18T06:50:00+08:00" },
+    ],
     cargoReservations: [
       { reservationId: "cpu-running", sessionId: "owner", laneScope: "cpu", executionMode: "warm", burstEligible: false, status: "running", queuePosition: 1, createdAt: "now", expiresAt: "later" },
       { reservationId: "cpu-next", sessionId: "next", laneScope: "cpu", executionMode: "warm", burstEligible: true, status: "pending", queuePosition: 2, createdAt: "now", expiresAt: "later" },
@@ -143,10 +182,27 @@ test("validation page shows queue order without treating it as Session admission
   assert.match(host.textContent ?? "", /CPU #1 · 隔离突发/);
   assert.match(host.textContent ?? "", /可隔离检查/);
   assert.match(host.textContent ?? "", /CPU 突发 WIP：1\/1 · 可隔离检查 1/);
+  assert.match(host.textContent ?? "", /验证运行健康/);
+  assert.match(host.textContent ?? "", /1 个受管验证作业尚未写出输出/);
+  assert.match(host.textContent ?? "", /1 个受管验证作业已有输出/);
+  assert.match(host.textContent ?? "", /runner · active-job · 最后输出 2026-07-18T06:50:00\+08:00/);
   assert.match(host.textContent ?? "", /只排验证，不阻塞 Session/);
   assert.match(host.textContent ?? "", /作业健康检测中；预约到期不影响运行/);
   assert.doesNotMatch(host.textContent ?? "", /owner · 等待时间未知 · 到期 later/);
-  assert.match(host.textContent ?? "", /next · 等待时间未知 · 到期 later/);
+  assert.match(host.textContent ?? "", /next · 等待时间未知 · 活跃 Session 保持队位；失联才释放/);
+  await act(async () => root.unmount()); host.remove();
+});
+
+test("validation page explains that a pre-start lease releases the queue automatically", async () => {
+  const validation = {
+    cargoJobs: [], currentCargoTargets: [], validationCopies: [], runHealth: [],
+    artifactLifecycle: { reusablePools: 0, ephemeralTargets: 0, pendingCleanup: 0, failedCleanup: 0 },
+    cpuBurst: { capacity: 1, active: 0, eligiblePending: 0 },
+    cargoReservations: [{ reservationId: "leased", sessionId: "starter", laneScope: "cpu", executionMode: "warm", burstEligible: false, status: "leased", queuePosition: 1, createdAt: "now", expiresAt: "soon" }],
+  } as unknown as ControlSnapshot["validation"];
+  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><ValidationPage validation={validation} /></ThemeProvider>));
+  assert.match(host.textContent ?? "", /预启动租约：到期 soon 将自动释放给下一项/);
   await act(async () => root.unmount()); host.remove();
 });
 
@@ -175,6 +231,8 @@ test("validation flow health exposes lane WIP, queue head, and bounded waiting a
   assert.match(host.textContent ?? "", /下一个 next/);
   assert.match(host.textContent ?? "", /CPU 热缓存：运行 1 · 排队 2/);
   assert.match(host.textContent ?? "", /CPU 突发 WIP：0\/1 · 可隔离检查 2/);
+  assert.match(host.textContent ?? "", /无 target-dir 的 cargo check 或定向 cargo test --lib 会自动申请隔离突发候选/);
+  assert.match(host.textContent ?? "", /资源不足时保持热缓存 FIFO/);
   assert.match(host.textContent ?? "", /只排验证，不阻塞 Session/);
   await act(async () => root.unmount()); host.remove();
 });
@@ -230,9 +288,34 @@ test("overview distinguishes a local validation wait from Session admission", ()
     detail: "1 条独占验证通道正在使用；仅等待该通道，其他 Session 不排空、不暂停。",
   });
   assert.equal(
-    sessionLivenessSummary({ service: { sessionTtlSeconds: 3600 } } as unknown as ControlSnapshot),
-    "业务 Session 活跃窗口 60 分钟；资源租约和预约 TTL 仍独立回收。",
+    sessionLivenessSummary({ service: { sessionTtlSeconds: 86_400 } } as unknown as ControlSnapshot),
+    "业务 Session 活跃窗口 24 小时；资源租约和预约 TTL 仍独立回收。",
   );
+});
+
+test("overview presents a degraded shared baseline as observation rather than Session admission gate", async () => {
+  const snapshot = {
+    service: { mode: "read_write" },
+    collaboration: {
+      baseline: {
+        epoch_id: 204, head_commit: "head", index_tree: "tree", health: "degraded",
+        created_at: "now", degraded_at: "now", degraded_reason: "449 unaccepted workspace change(s)", manifest_bytes: 1,
+      },
+      leases: [], patches: [],
+    },
+    workflows: [], sessions: [], failures: { nodes: [] }, validation: { currentCargoTargets: [] },
+  } as unknown as ControlSnapshot;
+
+  assert.deepEqual(workspaceBaselineSummary(snapshot), {
+    title: "共享工作树存在未归属改动",
+    detail: "449 unaccepted workspace change(s)；这只影响全局工作树对账，Session 准入和已归属作用域提交保持开放。",
+  });
+  assert.equal(admissionSummary(snapshot).title, "Session 准入开放");
+  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><OverviewPage snapshot={snapshot} /></ThemeProvider>));
+  assert.match(host.textContent ?? "", /共享工作树存在未归属改动/);
+  assert.match(host.textContent ?? "", /Session 准入和已归属作用域提交保持开放/);
+  await act(async () => root.unmount()); host.remove();
 });
 
 test("overview turns a local validation wait into one same-plan continuation and primary return", async () => {
@@ -251,16 +334,72 @@ test("overview turns a local validation wait into one same-plan continuation and
   } as unknown as ControlSnapshot;
 
   assert.deepEqual(continuationGuidance(snapshot), [{
-    sessionId: "waiting-owner", waitKind: "validation", milestone: "M1",
+    sessionId: "waiting-owner", waitKind: "validation", kind: "same_plan",
+    targetPlanPath: "docs/plans/tooling/01-workflow.md", milestone: "M1",
     title: "Write the remaining module documentation.", returnToPrimary: true,
   }]);
 
   const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
   await act(async () => root.render(<ThemeProvider theme={controlTheme}><OverviewPage snapshot={snapshot} /></ThemeProvider>));
   assert.match(host.textContent ?? "", /不要等待/);
+  assert.match(host.textContent ?? "", /验证通道排队时/);
   assert.match(host.textContent ?? "", /Write the remaining module documentation/);
   assert.match(host.textContent ?? "", /先领取作用域/);
   assert.match(host.textContent ?? "", /完成后优先回到主任务/);
+  await act(async () => root.unmount()); host.remove();
+});
+
+test("overview identifies an unowned code Failure pull before returning to the primary plan", async () => {
+  const snapshot = {
+    service: { mode: "read_write" },
+    workflows: [], sessions: [], failures: { nodes: [] }, validation: { currentCargoTargets: [] },
+    experience: {
+      sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 },
+      blockers: [],
+      continuations: [{
+        sessionId: "waiting-owner", planPath: "docs/plans/tooling/01-primary.md", waitKind: "validation",
+        candidate: {
+          kind: "unowned_failure", planPath: "docs/plans/runtime/02-code.md",
+          milestone: "Failure P10", title: "repair-runtime-command-path",
+        },
+        scopeClaimRequired: true, returnToPrimary: true,
+      }],
+    },
+  } as unknown as ControlSnapshot;
+
+  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><OverviewPage snapshot={snapshot} /></ThemeProvider>));
+  assert.match(host.textContent ?? "", /拉取无人负责的代码 Failure/);
+  assert.match(host.textContent ?? "", /docs\/plans\/runtime\/02-code.md/);
+  assert.match(host.textContent ?? "", /每个 Session 一次只拉取一个责任计划/);
+  assert.match(host.textContent ?? "", /完成后优先回到主任务/);
+  await act(async () => root.unmount()); host.remove();
+});
+
+test("overview makes validation continuation coverage visible without changing FIFO", async () => {
+  const snapshot = {
+    service: { mode: "read_write" },
+    workflows: [], sessions: [], failures: { nodes: [] }, validation: { currentCargoTargets: [] },
+    experience: {
+      sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 },
+      blockers: [],
+      continuations: ["one", "two"].map((sessionId) => ({
+        sessionId, planPath: `docs/plans/${sessionId}.md`, waitKind: "validation",
+        candidate: { kind: "unowned_failure", planPath: `docs/plans/failure-${sessionId}.md`, milestone: "Failure P0", title: `repair-${sessionId}` },
+        scopeClaimRequired: true, returnToPrimary: true,
+      })),
+      intervention: {
+        openFailureCount: 2, responsiblePlanCount: 2, mode: "single_plan", maxConcurrentPlans: 1,
+        suggestedNext: null,
+        validation: { waitingSessionCount: 2, pendingReservationCount: 2, nextReservation: { sessionId: "one", queuePosition: 1, executionMode: "warm" } },
+      },
+    },
+  } as unknown as ControlSnapshot;
+
+  assert.equal(continuationCoverageSummary(snapshot), "验证等待代码续作覆盖 2/2；可继续编码。");
+  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><OverviewPage snapshot={snapshot} /></ThemeProvider>));
+  assert.match(host.textContent ?? "", /验证等待代码续作覆盖 2\/2；可继续编码/);
   await act(async () => root.unmount()); host.remove();
 });
 
@@ -318,7 +457,42 @@ test("overview converts open failures into one plan-level intervention recommend
     failureCount: 3,
     planCount: 2,
     next: { summary: "first", fixingPlan: "docs/plans/editor-a.md" },
+    waitingSessionCount: 0,
+    pendingReservationCount: 0,
+    nextReservation: null,
   });
+});
+
+test("overview uses the server intervention card to keep validation waits nonblocking", async () => {
+  const snapshot = {
+    workflows: [], sessions: [], failures: { nodes: [] }, validation: { currentCargoTargets: [] },
+    experience: {
+      sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 },
+      blockers: [], continuations: [],
+      intervention: {
+        openFailureCount: 103, responsiblePlanCount: 44, mode: "single_plan", maxConcurrentPlans: 1,
+        suggestedNext: { kind: "failure", planPath: "docs/plans/editor/16-cli-args-and-hub-integration.md", summary: "migrate-assets-commandlet-registry", priority: 0, action: "resolve_one_failure" },
+        validation: { waitingSessionCount: 5, pendingReservationCount: 8, nextReservation: { sessionId: "runtime12-input-event-bounds-guard-fix-r6-20260717", queuePosition: 1, executionMode: "warm" } },
+      },
+    },
+  } as unknown as ControlSnapshot;
+
+  assert.deepEqual(interventionGuidance(snapshot), {
+    failureCount: 103,
+    planCount: 44,
+    next: { summary: "migrate-assets-commandlet-registry", fixingPlan: "docs/plans/editor/16-cli-args-and-hub-integration.md" },
+    waitingSessionCount: 5,
+    pendingReservationCount: 8,
+    nextReservation: { sessionId: "runtime12-input-event-bounds-guard-fix-r6-20260717", queuePosition: 1, executionMode: "warm" },
+  });
+
+  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><OverviewPage snapshot={snapshot} /></ThemeProvider>));
+  assert.match(host.textContent ?? "", /验证等待 5 个 Session，CPU 队列 8/);
+  assert.match(host.textContent ?? "", /runtime12-input-event-bounds-guard-fix-r6-20260717/);
+  assert.match(host.textContent ?? "", /不阻塞代码工作/);
+  assert.match(host.textContent ?? "", /先处理介入方式的建议项/);
+  await act(async () => root.unmount()); host.remove();
 });
 
 test("overview groups bounded work into actionable operator lanes", () => {
@@ -334,18 +508,74 @@ test("overview groups bounded work into actionable operator lanes", () => {
       { sessionId: "attention-stale", displayName: "Stale", planPath: null, status: "stale", statusReason: null, baseHead: null, baselineEpoch: null, writeScope: [], updatedAt: "now", lastHeartbeatAt: "now" },
     ],
     failures: { nodes: [
-      { ...failure, node_id: 2, summary_slug: "open-failure", status: "open" },
+      { ...failure, node_id: 2, summary_slug: "open-failure-a", priority: 0, status: "open" },
+      { ...failure, node_id: 4, summary_slug: "open-failure-b", priority: 3, status: "open" },
+      { ...failure, node_id: 5, summary_slug: "open-other-plan", fixing_plan: "docs/plans/z/01.md", priority: 1, status: "open" },
       { ...failure, node_id: 3, summary_slug: "fixed-failure", status: "fixed" },
     ] },
   } as unknown as ControlSnapshot;
 
   const board = workBoard(snapshot);
   assert.deepEqual(board.map((lane) => [lane.key, lane.cards.length, lane.overflowCount]), [
-    ["ready", 8, 1], ["waiting", 1, 0], ["attention", 1, 0], ["intervention", 1, 0],
+    ["ready", 8, 1], ["waiting", 1, 0], ["attention", 1, 0], ["intervention", 2, 0],
   ]);
   assert.equal(board[0].cards[0].title, "ready-0");
-  assert.equal(board[1].cards[0].detail, "GPU lane busy");
-  assert.equal(board[3].cards[0].title, "open-failure");
+  assert.equal(board[1].cards[0].detail, "外部条件等待；GPU lane busy");
+  assert.equal(board[3].cards[0].title, "docs/plans/y/02.md");
+  assert.equal(board[3].cards[0].detail, "P0 · 2 个开放 Failure · open-failure-a");
+});
+
+test("work board promotes an external wait with a safe continuation into ready work", () => {
+  const snapshot = {
+    sessions: [{
+      sessionId: "wait-validation", displayName: "Validation", planPath: "docs/plan.md", status: "waiting_validation", statusReason: "CPU lane busy", baseHead: null,
+      baselineEpoch: null, writeScope: [], updatedAt: "now", lastHeartbeatAt: "now",
+    }],
+    failures: { nodes: [] },
+    experience: {
+      sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 }, blockers: [],
+      continuations: [{
+        sessionId: "wait-validation", planPath: "docs/plan.md", waitKind: "external",
+        candidate: { kind: "unowned_failure", planPath: "docs/failure.md", milestone: "Failure P0", title: "repair-runtime-path" },
+        scopeClaimRequired: true, returnToPrimary: true,
+      }],
+    },
+  } as unknown as ControlSnapshot;
+
+  const board = workBoard(snapshot);
+  assert.deepEqual(board.map((lane) => [lane.key, lane.total]), [
+    ["ready", 1], ["waiting", 0], ["attention", 0], ["intervention", 0],
+  ]);
+  assert.equal(board[0].cards[0]?.detail, "外部条件等待；可继续 Failure P0 · repair-runtime-path");
+});
+
+test("work board prioritizes visible validation continuations over ordinary active cards", () => {
+  const active = Array.from({ length: 8 }, (_, index) => ({
+    sessionId: `active-${index}`, displayName: `Active ${index}`, planPath: "docs/plan.md", status: "active", statusReason: null, baseHead: null,
+    baselineEpoch: null, writeScope: [], updatedAt: "now", lastHeartbeatAt: "now",
+  }));
+  const snapshot = {
+    sessions: [
+      ...active,
+      { sessionId: "wait-validation", displayName: "Validation", planPath: "docs/plan.md", status: "waiting_validation", statusReason: "CPU lane busy", baseHead: null, baselineEpoch: null, writeScope: [], updatedAt: "now", lastHeartbeatAt: "now" },
+    ],
+    failures: { nodes: [] },
+    experience: {
+      sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 }, blockers: [],
+      continuations: [{
+        sessionId: "wait-validation", planPath: "docs/plan.md", waitKind: "validation",
+        candidate: { kind: "unowned_failure", planPath: "docs/failure.md", milestone: "Failure P0", title: "repair-runtime-path" },
+        scopeClaimRequired: true, returnToPrimary: true,
+      }],
+    },
+  } as unknown as ControlSnapshot;
+
+  const board = workBoard(snapshot);
+  assert.deepEqual(board.map((lane) => [lane.key, lane.total, lane.overflowCount]), [
+    ["ready", 9, 1], ["waiting", 0, 0], ["attention", 0, 0], ["intervention", 0, 0],
+  ]);
+  assert.equal(board[0].cards[0]?.id, "session:wait-validation");
+  assert.equal(board[0].cards[0]?.detail, "验证已排队；可继续 Failure P0 · repair-runtime-path");
 });
 
 test("overview renders the four operator work-board lanes", async () => {
@@ -357,7 +587,7 @@ test("overview renders the four operator work-board lanes", async () => {
   } as unknown as ControlSnapshot;
   const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
   await act(async () => root.render(<ThemeProvider theme={controlTheme}><OverviewPage snapshot={snapshot} /></ThemeProvider>));
-  for (const label of ["可继续", "等待资源", "需关注", "需介入", "Ready session", "intervention-needed"])
+  for (const label of ["可继续", "局部等待", "需关注", "需介入", "Ready session", "intervention-needed"])
     assert.match(host.textContent ?? "", new RegExp(label));
   await act(async () => root.unmount()); host.remove();
 });
@@ -369,8 +599,10 @@ test("Sessions page separates business authority from text-only Codex presence",
     rows: [{ threadId: "thread-12345678901234567890", sourceLocation: "active", state: "active", originator: "Codex Desktop", cliVersion: "0.test", threadSource: "user", lastEvent: "task_started", lastTurnId: "turn-one", boundSessionId: "business-one", diagnosticCode: diagnostic, firstSeenAt: "now", lastActivityAt: "now", lastSyncedAt: "now" }],
     total: 1, truncated: false, stateCounts: { active: 1, idle: 0, archived: 0, unavailable: 0 }, sourceCounts: { active: 1, archived: 0, missing: 0 }, queueDepth: 2, lastSuccessfulAt: "now", lastTerminalCode: "succeeded", lastRun: null,
   };
-  await act(async () => root.render(<ThemeProvider theme={controlTheme}><SessionsPage sessions={[]} codexSessions={codex} /></ThemeProvider>));
+  const sessions: SessionProjection[] = [{ sessionId: "external-wait", displayName: "External wait", planPath: "docs/plans/runtime/01.md", status: "waiting_validation", waitKind: "external", statusReason: "Waiting for an external review", baseHead: null, baselineEpoch: null, writeScope: [], updatedAt: "now", lastHeartbeatAt: "now" }];
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><SessionsPage sessions={sessions} codexSessions={codex} /></ThemeProvider>));
   assert.match(host.textContent ?? "", /业务 Session（计划与写入权威）/);
+  assert.match(host.textContent ?? "", /外部条件等待（不占用验证队列）/);
   assert.match(host.textContent ?? "", /Codex 来源 Session（只读存在性）/);
   assert.match(host.textContent ?? "", /队列 2/);
   assert.match(host.textContent ?? "", /thread-12345678…/);

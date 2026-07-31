@@ -112,7 +112,7 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 
 fn base_package_manifest() -> PluginPackageManifest {
     PluginPackageManifest::new(PLUGIN_ID, "Desktop Build Export")
-        .with_sdk_api_version("0.1.0")
+        .with_sdk_api_version(zircon_plugin_sdk::SDK_API_VERSION)
         .with_category("platform")
         .with_supported_targets([RuntimeTargetMode::EditorHost])
         .with_supported_platforms([

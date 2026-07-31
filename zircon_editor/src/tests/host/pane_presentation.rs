@@ -27,7 +27,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiVisibility},
 };
 
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
@@ -119,7 +119,7 @@ fn editor_data_fixture() -> EditorDataSnapshot {
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
-        scene_viewport_settings: SceneViewportSettings::default(),
+        scene_viewport_settings: SceneViewportChromeSettings::default(),
         mesh_import_path: String::new(),
         project_overview: ProjectOverviewSnapshot::default(),
         asset_activity: AssetWorkspaceSnapshot::default(),
@@ -819,7 +819,7 @@ fn pane_presentation_keeps_shell_and_body_split_without_erasing_payload_type() {
     assert_eq!(presentation.shell.subtitle, "Task Output");
     assert_eq!(presentation.shell.info, "Console ready");
     assert!(!presentation.shell.show_toolbar);
-    assert_eq!(presentation.shell.viewport.tool, "");
+    assert_eq!(presentation.shell.viewport.mode, "");
     assert_eq!(
         presentation
             .shell

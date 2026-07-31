@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var terrainGround = %import("world/terrain_ground");
+
+console.printLine("m3-terrain-ground-test");
+var result = terrainGround.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

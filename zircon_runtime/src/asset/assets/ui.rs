@@ -286,7 +286,7 @@ pub fn ui_asset_references(document: &UiAssetDocument) -> Vec<AssetReference> {
     }
 
     for uri in collect_resource_uris(document) {
-        push_reference(&uri, &mut references, &mut seen);
+        push_reference(uri, &mut references, &mut seen);
     }
     references
 }

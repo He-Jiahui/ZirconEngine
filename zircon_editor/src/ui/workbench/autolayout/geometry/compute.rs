@@ -6,8 +6,8 @@ use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use crate::ui::workbench::view::ViewDescriptor;
 
 use super::super::region::{build_document_region_state, build_tool_region_state};
-use super::super::right_drawer_should_collapse_for_physical_width;
-use super::super::{ShellFrame, ShellRegionId, ShellSizePx};
+use super::super::right_drawer_should_collapse_for_logical_width;
+use super::super::{ResolutionContext, ShellFrame, ShellRegionId, ShellSizePx};
 use super::super::{WorkbenchChromeMetrics, WorkbenchShellGeometry};
 use super::floating_window_frames::build_floating_window_frames;
 use super::region_frames::build_region_frames;
@@ -29,9 +29,21 @@ pub fn compute_workbench_shell_geometry(
         .iter()
         .map(|descriptor| (descriptor.descriptor_id.0.as_str(), descriptor))
         .collect();
-    let size = ShellSizePx::new(shell_size.width.max(1.0), shell_size.height.max(1.0));
+    let resolution = ResolutionContext::from_physical_size(shell_size, scale_factor);
+    let logical_size = resolution.logical_size();
+    let size = ShellSizePx::new(logical_size.width.max(1.0), logical_size.height.max(1.0));
+    // Resize capture records host-space pointer deltas and frame extents, while
+    // the solver below owns logical layout units. Convert this transient input
+    // at the same root boundary as the window size to avoid double scaling.
+    let logical_transient_region_preferred = transient_region_preferred.map(|preferred| {
+        preferred
+            .iter()
+            .map(|(region, physical_extent)| (*region, resolution.to_logical(*physical_extent)))
+            .collect::<BTreeMap<_, _>>()
+    });
+    let transient_region_preferred = logical_transient_region_preferred.as_ref();
     let collapse_right_drawer =
-        right_drawer_should_collapse_for_physical_width(size.width, scale_factor);
+        right_drawer_should_collapse_for_logical_width(resolution.logical_width());
 
     let left = build_tool_region_state(
         model,
@@ -69,12 +81,6 @@ pub fn compute_workbench_shell_geometry(
     let document =
         build_document_region_state(model, layout, &descriptor_map, transient_region_preferred);
 
-    let status_bar_frame = ShellFrame::new(
-        0.0,
-        size.height - metrics.status_bar_height,
-        size.width,
-        metrics.status_bar_height,
-    );
     let resolved_frames = build_region_frames(size, left, document, right, bottom, metrics);
     let splitter_frames = build_splitter_frames(
         left,
@@ -95,7 +101,7 @@ pub fn compute_workbench_shell_geometry(
     let viewport_content_frame =
         build_viewport_content_frame(model, resolved_frames.document_frame, metrics);
     let window_min_width =
-        compute_window_min_width(left, document, right, metrics, size.width, scale_factor);
+        compute_window_min_width(left, document, right, metrics, resolution.logical_width());
     let window_min_height =
         compute_window_min_height(left, document, right, bottom, metrics, size.height);
 
@@ -103,12 +109,13 @@ pub fn compute_workbench_shell_geometry(
         window_min_width,
         window_min_height,
         center_band_frame: resolved_frames.center_band_frame,
-        status_bar_frame,
+        status_bar_frame: resolved_frames.status_bar_frame,
         region_frames: resolved_frames.region_frames,
         splitter_frames,
         floating_window_frames,
         viewport_content_frame,
     }
+    .scaled_to_physical(resolution)
 }
 
 #[cfg(test)]

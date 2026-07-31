@@ -2,10 +2,17 @@
 related_code:
   - zircon_editor/src/core/commands/registry.rs
   - zircon_editor/src/core/commands/registry_handle.rs
+  - zircon_editor/src/core/commands/descriptor.rs
+  - zircon_editor/src/core/commands/when.rs
   - zircon_editor/src/core/commands/keymap.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/tools/scheduler.rs
+  - zircon_editor/src/core/context/tool_scheduler.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/module.rs
+  - zircon_editor/src/ui/host/editor_extension_registration.rs
+  - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
 reference_sources:
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Public/EditorModeManager.h
   - dev/Fyrox/editor/src/message.rs
@@ -23,7 +30,7 @@ status: in_progress
 - fixed 已修复：[command-registry-hard-cut-cli](08/fixed-2026-07-12-command-registry-hard-cut-cli.md)
 - fixed 已修复：[editor-operation-path-deserialize-validation-bypass](09/fixed-2026-07-15-editor-operation-path-deserialize-validation-bypass.md)
 - 跨计划失败交接（`open / Editor04 接管 Building/Play 权威状态投影`）：[`04/failure-2026-07-12-command-eval-play-state-projection.md`](04/failure-2026-07-12-command-eval-play-state-projection.md)
-- 跨计划失败交接（`open / Editor05 接管 SceneModeId/SelectionModel 权威投影`）：[`05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md`](05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md)
+- fixed 已修复：[command-eval-scene-mode-selection-projection](08/fixed-2026-07-26-command-eval-scene-mode-selection-projection.md)
 - fixed 已修复：[command-eval-focused-document-projection](08/fixed-2026-07-15-command-eval-focused-document-projection.md)
 - M1 全量行为门失败交接（`open / Editor10 接管项目与资产引用回归`）：[`10/failure-2026-07-12-project-asset-reference-full-gate-regressions.md`](10/failure-2026-07-12-project-asset-reference-full-gate-regressions.md)
 - fixed 已修复：[plugin-extension-validation-regressions](08/fixed-2026-07-15-plugin-extension-validation-regressions.md)
@@ -39,46 +46,36 @@ status: in_progress
 
 **UE 模式调度**（`EditorModeManager.h`）：`FEditorModeTools` 是独占资源仲裁者——视口输入先问活跃模式栈；互斥组内先退后进。`ToolScheduler` 直译并泛化到「模态向导/独占面板」。
 
-## 现状与证据（zircon，2026-07-05 实读）
+## 现状与证据（zircon，2026-08-01 current-source 复核）
 
-### 命令注册表比 v2 记载成熟（两处修正）
+### 命令与操作已收敛到 core 单一注册表
 
-`EditorCommandRegistry`（`ui/host/commands/registry.rs:20-186`）完整 API：
+`EditorCommandRegistry` 现位于 `core/commands/registry.rs`，以 `BTreeMap<EditorOperationPath, EditorCommandDescriptor>` 持有唯一命令元数据，并在同一 owner 内保存 operation factory registration、generation 与 `OnceLock<Arc<EditorCommandPaletteCatalog>>`。`EditorCommandDescriptor` 已包含 menu/when/payload/headless/remote/capability/asset-write 元数据；`EditorCommandAction` 的当前形状是 `Emit(EditorEvent) | Operation | HeadlessAssetMigration | HeadlessPluginList`，operation factory 由 registry 内部 map 绑定，不内联到 enum，也没有旧 `Menu` 变体。
 
-```rust
-pub struct EditorCommandRegistry { commands: Vec<EditorCommandDescriptor>, by_id: BTreeMap<String, usize> }
-// new(Vec) -> Result（DuplicateCommand 守卫已有，:26-36）
-// default_workbench() / commands() / command(id)
-// event_for_command(id) -> Result<EditorEvent, _>            // 分派：Menu→WorkbenchMenu 事件；Operation→操作事件
-// command_palette_entries(context) / command_palette_value(context) -> UiValue
-// menu_bar_model(context) -> MenuBarModel                    // ← 菜单物化已存在（v2「有表无消费」失实）
-// menu_model(label, context) -> Option<MenuModel>
-// missing_default_keymap_bindings(...)                       // ← 注册表↔keymap 一致性检查已有
-```
+### when 与 keymap 已落地，域感知冲突仍待完成
 
-**修正一：菜单物化已有**——`menu_bar_model/menu_model(context)` 从命令生成菜单模型；缺的是与 06 `menu_items` 贡献表的合流（现只出注册命令，插件贡献菜单项不进模型）。
-**修正二：命令→操作已单向链接**——`EditorCommandAction::{Menu(action), Operation(operation_id)}`（:52-60 分派处实读）：命令可指向操作 id，但两套描述符、两个 id 空间、操作字段（`menu_path/callable_from_remote/required_capabilities/payload_schema_id`）在命令侧不可见。
+`WhenClause` 已覆盖 `ProjectOpen/UndoAvailable/RedoAvailable/FocusedDocumentKind/SceneModeActive/SelectionNonEmpty/AssetWritable/PlayMode/Capability` 与 `All/Any/Not`。`CommandEvalCtx` 以 `interactive` 区分 UI/headless；headless 对不可求值的 UI 谓词返回 inapplicable，组合子按 `Option<bool>` 传播，最终 `eval` 才把 inapplicable 收敛为 false。
 
-### keymap（`keymap.rs:12-84`）
+`EditorKeymap` 已支持内建 preset + typed settings override、chord conflict 列表、borrowed keyboard signature index 与按 command id 二分回查。当前 conflict/resolve 只按 chord，不读取 `WhenClause` 域；“同 chord 异域可并存”的最终合同仍未落地。
 
-`EditorKeymap { bindings: Vec<EditorKeyBinding{command_id, chord}> }`：`default_workbench/from_toml/bindings/resolve(chord)->Option<&str>/resolve_keyboard_input(UiKeyboardInputEvent)/chord_for_command`。输入事件直连解析已有；无用户覆盖层、无冲突检测、无上下文域。
+### 菜单与 ToolScheduler 的真实边界
 
-### 操作层与 CLI
+菜单当前是两阶段投影：`core/commands/menu.rs` 只物化 `CommandRegistry` owner；`ui/workbench/model/menu/extension_menu.rs` 再按 priority/path 合并 extension `menu_items` 和 extension views，并通过 canonical command registry 求值 enablement。仓库中没有 `DocumentToolkit::contribute_menus` owner，因此原“三源合成”目标尚未完成，不能把 `EditorCommandMenuProjection::{CommandRegistry, ExtensionRegistry}` 二选一误写成三源合成器。
 
-`EditorOperationDescriptor` 字段（03 已核）：`menu_path/payload_schema_id/callable_from_remote/required_capabilities` 声明先进于消费。CLI `--operation/--args/--operation-group/--list-operations/--operation-history/--headless` 通过 `EditorHostEventController` 进入操作控制面；history factory 就绪前返回 `OperationHistoryPendingFactory`，不伪造空栈——**无头调用面已存在**。
+`ToolScheduler` 已实现单资源和 canonical `ToolResourceSet` 原子租约、FIFO set queue、有界拒绝、withdraw/release-all，以及 `#[must_use] ToolScheduleReport` 生命周期事件发布合同；`ToolSchedulerService` 已挂入 `EditorContext`。当前源码只有 service/core tests 使用 acquire API，05 scene-mode 与 15 export-wizard 的真实生产接入仍是开放项。
 
-### 缺口（重新定界）
+### 剩余缺口
 
-双描述符仅单向链接，字段不同源；`EditorCommandContext` 无谓词体系（when 缺）；`menu_bar_model` 不消费 `menu_items` 贡献表；keymap 无双层/冲突/域；无 `ToolScheduler`（05 模式栈只管视口，模态向导/独占面板无仲裁）；registry 住 `ui/host/` 使 headless 路径被迫拉起 ui host。
+1. toolkit 菜单第三源与统一去重/排序合同；2. keymap 的 when-domain 冲突和分派；3. scene mode/export wizard 对 set-lease scheduler 的生产接入；4. palette/menu 的 1k/10k 规模、锁等待和 clone-byte 产品证据。上述缺口保持 open，不恢复已删除的 `ui/host/commands`、全量 `command_palette_value` 或第二 operation registry。
 
 ## 目标
 
-1. **命令-操作合一**：`EditorCommandDescriptor` 吸收操作描述符全字段，单一 id 空间（`EditorOperationPath` 沿用为 id 类型）；`CommandAction::Operation` 从「链接外部 id」改为「内联 03 命令工厂」；`EditorOperationRegistry` 删除；CLI `--operation`/面板/菜单三入口同源。
-2. **when 谓词**：结构化 `WhenClause` 枚举树；`command_palette_entries/menu_bar_model` 的 context 参数升级为求值环境（既有两方法签名保留语义升级）。
-3. **菜单合流**：`menu_bar_model` 扩为消费「命令 menu_path + 06 `menu_items` 贡献 + `DocumentToolkit::contribute_menus`」三源合成（既有 MenuBarModel/MenuModel 产物类型保留）。
-4. **keymap 双层**：内建预设（`from_toml` 沿用）+ 用户覆盖（17 settings）；`missing_default_keymap_bindings` 既有检查扩为冲突检测数据源（同 chord 同 when 域告警）；按 when 域分派。
-5. **`ToolScheduler`**：独占资源仲裁（`ViewportInput/ModalSurface/SceneModeSlot`）；05 模式栈与 15 导出向导注册为受调度工具；生命周期事件入 bus。
-6. **命令面板成型**：模糊匹配 + when 过滤 + MRU（外观归 editor_layout）。
+1. **单一命令权威**：保持 `EditorCommandDescriptor` + registry-owned operation factory 的单一 id/metadata owner；CLI、面板和菜单都从该 registry 解析，不再引入 enum-inline factory 或第二 operation registry。
+2. **when 谓词**：保留当前结构化 `WhenClause` 与 interactive/headless applicability 语义，所有入口复用同一 `CommandEvalCtx`。
+3. **菜单合流**：在现有 command-base + extension-append 两阶段投影上补 toolkit 第三源、稳定去重/排序和统一 enablement，不把 projection ownership enum 伪装成已完成的三源合成。
+4. **keymap 双层**：保留内建 preset + settings override + signature index；补 when-domain 冲突与域感知分派，使同 chord 同域告警、异域放行。
+5. **`ToolScheduler`**：保留单资源/set-lease、有界队列和 lifecycle report；完成 05 模式栈与 15 导出向导生产接入。
+6. **命令面板成型**：保留 generation-owned catalog、typed query window、when 过滤与 MRU，并补规模/锁/分配验收（外观归 editor_layout）。
 
 ## 非目标
 
@@ -91,14 +88,16 @@ pub struct EditorCommandRegistry { commands: Vec<EditorCommandDescriptor>, by_id
 ```
 zircon_editor/src/core/commands/
   mod.rs
-  descriptor.rs        # 合一 descriptor + CommandAction
-  registry.rs          # 现 registry.rs 迁入（owner ui→core：headless 直用）
+  descriptor.rs        # canonical descriptor + action route
+  registry.rs          # command metadata + operation factories + palette generation
   when.rs              # WhenClause + CommandEvalCtx
-  keymap.rs            # 现 keymap.rs 迁入 + 用户层
-  menu.rs              # menu_bar_model 三源合成（MenuBarModel/MenuModel 类型迁入）
-  palette.rs           # 面板数据源（模糊/MRU）
+  keymap.rs            # preset + settings override + signature index
+  menu.rs              # command-registry base menu projection
+  palette.rs           # generation-owned catalog/query window/MRU
 zircon_editor/src/core/tools/
   mod.rs / scheduler.rs
+zircon_editor/src/ui/workbench/model/menu/
+  extension_menu.rs    # extension menu/view append；toolkit 第三源待接入
 ```
 
 ### 关键类型
@@ -106,50 +105,40 @@ zircon_editor/src/core/tools/
 ```rust
 // when.rs
 pub enum WhenClause {
-    Always,
-    FocusedDocumentKind(DocumentKind),
-    SceneModeActive(String),             // 05 模式 id
-    SelectionNonEmpty,
-    PlayMode(PlayModePredicate),         // 04 状态
-    Capability(String),
+    Always, ProjectOpen, UndoAvailable, RedoAvailable,
+    FocusedDocumentKind(DocumentKind), SceneModeActive(SceneModeId),
+    SelectionNonEmpty, AssetWritable, PlayMode(PlayModePredicate), Capability(String),
     All(Vec<WhenClause>), Any(Vec<WhenClause>), Not(Box<WhenClause>),
 }
 impl WhenClause { pub fn eval(&self, ctx: &CommandEvalCtx) -> bool; }
-// CommandEvalCtx 由 EditorContext 投影：焦点文档/模式栈顶/选中数/Play 态/能力集
-// headless 求值环境：无文档无模式，仅能力集 + Always —— commandlet 门禁一致
+// UI-only predicates in a headless context are inapplicable, not silently true.
 
 // descriptor.rs
-pub struct EditorCommandDescriptor {
-    pub id: EditorOperationPath,
-    pub display_name: String, pub category: String,
-    pub menu_path: Option<String>,
-    pub when: WhenClause,
-    pub payload_schema_id: Option<String>,
-    pub callable_from_remote: bool,
-    pub required_capabilities: Vec<String>,   // 注册时折算为 when 的 Capability 合取
-    pub default_chord: Option<EditorKeyChord>,
-    pub action: CommandAction,
+pub enum EditorCommandAction {
+    Emit(EditorEvent),
+    Operation,
+    HeadlessAssetMigration,
+    HeadlessPluginList,
 }
-pub enum CommandAction {
-    Emit(EditorMessagePayload),               // 纯消息（首选；01 类型化载荷）
-    Operation(OperationCommandFactory),       // 内联 03 工厂（现 Operation(id) 链接升级）
-    Menu(WorkbenchMenuAction),                // 既有 Menu 变体过渡保留，M2 菜单合流后清点收敛
-}
+// OperationCommandFactoryRegistration is stored by EditorCommandRegistry under the same id.
 
 // tools/scheduler.rs
 pub enum ExclusiveResource { ViewportInput, ModalSurface, SceneModeSlot }
 impl ToolScheduler {
-    pub fn acquire(&mut self, tool: ToolId, res: ExclusiveResource) -> AcquireOutcome; // Acquired|Queued|Denied(holder)
-    pub fn release(&mut self, tool: ToolId, res: ExclusiveResource);   // 队首唤醒
+    pub fn acquire(...) -> ToolScheduleReport<AcquireOutcome>;
+    pub fn acquire_set(...) -> ToolScheduleReport<AcquireSetOutcome>;
+    pub fn release_set(...) -> ToolScheduleReport<ReleaseSetOutcome>;
+    pub fn withdraw_set(...) -> ToolScheduleReport<WithdrawSetOutcome>;
+    pub fn release_all(...) -> ToolScheduleReport<ReleaseAllOutcome>;
 }
-// 事件 ToolActivated/ToolDeactivated/ToolDenied 入 bus
+// ToolSchedulerService publishes every report event to the editor bus before exposing new state.
 ```
 
 ### 三入口同源
 
 | 入口 | 路径 | 过滤 |
 | --- | --- | --- |
-| 菜单/工具栏 | `menu.rs` 三源合成 → 点击发 action | when 置灰 |
+| 菜单/工具栏 | `commands/menu.rs` base + workbench extension append；toolkit 第三源待接入 | when 置灰 |
 | 命令面板 | `palette.rs` 模糊+MRU | when 隐藏 |
 | CLI `--run/--operation` | 16 commandlet → `command(id)` | `callable_from_remote` 且 headless-when 通过 |
 
@@ -157,11 +146,11 @@ impl ToolScheduler {
 
 | 现物 | 去向 |
 | --- | --- |
-| `EditorCommandRegistry`（ui/host/commands） | `core/commands/registry.rs`（API 面保留：`command/commands/event_for_command/command_palette_entries/menu_bar_model/menu_model/missing_default_keymap_bindings` 签名不破坏，context 类型升级） |
-| `EditorCommandAction::Operation(operation_id)` 字符串链接 | `Operation(OperationCommandFactory)` 内联；分派处 `event_for_operation_command` 删除 |
-| `EditorOperationDescriptor/Registry` | 字段并入 descriptor；registry 删除；06 store 的 operations 位改存命令 id 集 |
-| `EditorKeymap` | `core/commands/keymap.rs`；`missing_default_keymap_bindings` 扩冲突检测 |
-| `EditorModule` 的两 manager 注册（`EDITOR_COMMAND_REGISTRY_NAME/EDITOR_KEYMAP_NAME`） | 指向 core 新位（名称常量与解析行为保持，00 §9 约定） |
+| 旧 `ui/host/commands` owner | 已硬切到 `core/commands/registry.rs`；全量 palette value 入口已删除，统一为 generation-owned query window |
+| 旧 command→operation 字符串链接/第二 registry | 已收敛为 descriptor `Operation` route + 同 registry id 下的 factory registration；不内联 factory，不恢复第二 registry |
+| 旧无 when descriptor | 已并入 `WhenClause`、`CommandEvalCtx`、remote/headless/capability/asset-write metadata |
+| 旧单层 `EditorKeymap` | 已收敛为 preset + settings override + signature index + chord conflicts；when-domain 仍 pending |
+| 旧无调度 owner | `ToolSchedulerService` 已挂 `EditorContext`；05/15 真实 consumer 接入仍 pending |
 
 ### 深度测试
 
@@ -171,21 +160,20 @@ impl ToolScheduler {
 
 ### M1 合一注册表与 when（排 01 M1 之后）
 
-- 切片 1.1：`core/commands/` 迁入（ui/host/commands 删除，module.rs re-wire）；descriptor 合一；`EditorOperationRegistry` 消费方迁移删除（含 CLI `--list-operations` 改读命令注册表）。
-- 切片 1.2：`WhenClause/CommandEvalCtx`；`required_capabilities` 折算；求值矩阵（All/Any/Not、Play 态变迁、能力缺失、headless 环境）。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（commands 既有测试迁移后须过 + id 冲突守卫沿用 + `--list-operations` 输出一致性断言）。更新 `docs/zircon_editor/core/commands.md`。
+- 源码状态：`core/commands`、单一 descriptor/registry、registry-owned operation factories、`WhenClause/CommandEvalCtx` 与 headless applicability 已落地；旧 `ui/host/commands` 和第二 operation registry 不再是当前 owner。
+- 剩余门：current-source `cargo test -p zircon_editor --lib --locked`、CLI/list-operations 一致性和当前模块文档验收；未取得这些证据前 M1 不标 completed。
 
 ### M2 菜单合流与 keymap 双层
 
-- 切片 2.1：`menu.rs` 三源合成（命令 menu_path + `menu_items` 贡献 + toolkit 菜单）；`CommandAction::Menu` 变体消费点清点收敛；主菜单硬编码项迁移清单（Grep 定稿）删除。
-- 切片 2.2：keymap 用户层（17 settings）+ 冲突检测（`missing_default_keymap_bindings` 扩展）+ when 域分派（`resolve_keyboard_input` 升级为域感知）。
-- 测试阶段：菜单三源合成快照测试（含 when 置灰、插件贡献项出现）；冲突矩阵（同 chord 同域告警/异域放行）；chord 端到端（输入事件夹具→命令消息）。
+- 切片 2.1：command base 与 extension menu/view append 已落地；toolkit 第三源、跨源去重/排序和三源快照测试仍 pending。`CommandAction::Menu` 已不存在，不再保留其迁移任务。
+- 切片 2.2：settings override、signature index 与 chord-only conflict 已落地；when-domain 分派/冲突仍 pending。
+- 测试阶段：补 toolkit 第三源快照、同 chord 同域告警/异域放行，以及输入事件→域感知命令端到端。
 
 ### M3 面板与 ToolScheduler
 
-- 切片 3.1：`palette.rs`（模糊 + MRU 入 17 会话层）；`command_palette_value` UiValue 投影保留对接 editor_layout 呈现。
-- 切片 3.2：`ToolScheduler` + 05 模式栈/15 导出向导注册；`ViewportInput` 争抢矩阵（模式激活期间向导启动→Queued）。
-- 测试阶段：调度矩阵（acquire/release/queue/deny+事件序）；手验面板全链路（打开→搜索→执行→撤销）；证据记状态节。
+- 切片 3.1：共享 immutable catalog generation、typed query window 与 MRU 已落地；禁止恢复 `command_palette_value` 全量投影。1k/10k query、锁等待和 clone-byte 产品门仍 pending。
+- 切片 3.2：scheduler core/service 已支持 single/set lease、withdraw/release-all、有界 queue 与 typed lifecycle report；05 模式栈/15 导出向导生产接入仍 pending。
+- 测试阶段：复用 `core/tools/tests.rs` 的现有调度矩阵，新增真实 mode/wizard 竞争集成与面板产品链路；证据记状态节。
 
 ## 风险与开放问题
 
@@ -196,9 +184,17 @@ impl ToolScheduler {
 
 ## 产出记录与时间
 
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
 | 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
 | 2026-07-12 | M1 / Editor16 CLI 命令注册表硬切回传 | 已修复-目标行为门通过-全量门仍由外部失败阻断 | `zircon_app` 已删除 `EditorEventRuntime`、`QueryOperationStack` 与 `--operation-stack`，改由 `EditorHostEventController` 复用 `EditorManager.context().commands()` 唯一注册表；CLI 硬切为 `--operation-history` / `QueryOperationHistory`，factory 未就绪时保留 `OperationHistoryPendingFactory` 类型化失败。App 旧符号扫描为 0，`cargo +nightly fmt --all -- --check` 通过，`target-editor-host` 的 `editor_cli_operation_` 目标测试 14/14 通过；回传记录见 [fixed artifact](08/fixed-2026-07-12-command-registry-hard-cut-cli.md)。六 profile 聚合复跑仍仅被并发 Runtime Text 的 `RichTable*` 导出缺失阻断，不归属本修复。 |
 | 2026-07-15 | M1.2 / focused document 权威投影回传 | 已修复（fixed） | Editor07 将 typed `ViewDescriptor.document_kind` 与唯一 `focused_view` 接入共享 `CommandEvalCtx`；默认项目无显式焦点保持 `None`，失效的显式焦点才回退 active document。current-source 16/16 通过，见 [fixed artifact](08/fixed-2026-07-15-command-eval-focused-document-projection.md)。 |
 | 2026-07-14 | M1 / full-lib harness 线程耗尽回传 | 已修复（fixed） | Runtime service CoreWeak 硬切与两个确定性测试夹具修复后，3157-test full-lib 自然结束并产生 summary；功能断言与 Runtime11 瞬时峰值预算继续独立处理，见 [fixed artifact](08/fixed-2026-07-14-editor-full-gate-thread-exhaustion.md)。 |
 | 2026-07-12 | M1 / rigid-body sleep policy consumer hard-cut | 已修复（fixed） | Physics consumer 已统一到 `PhysicsSleepPolicy::{Allow,Never}`，未恢复 `can_sleep` 字段或兼容 getter；Physics 27/27、reflection 1/1、property/project round-trip 2/2 与 Editor compile gate 通过，见 [fixed artifact](08/fixed-2026-07-12-rigid-body-sleep-policy-consumer-cutover.md)。 |
+| 2026-07-18 | M3.1 / command palette catalog generation 与 typed query window | 源码完成，受管编译/性能/独立复核待协调器屏障 | `EditorCommandRegistry` 新增 generation-owned `Arc<EditorCommandPaletteCatalog>`，成功变更才推进代际并失效缓存；旧 `command_palette_entries/command_palette_value` 已硬删除。查询以 256 固定评分桶两遍流式扫描，只保留 `offset/limit` 页句柄且完整 match count 可分页；Workbench open/query edit 均收敛为 8 visible + 4 overscan，`.zui` Change route、binding authority、host intercept 与 bridge generation/match/window metadata 已接通且 registry lock 在 UI refresh 前释放。TDD RED 3+2、叶文件 rustfmt、ZUI 2/2、旧 API 扫描 0、静态合同 12/12、changed 15/scope 16、scoped diff check、staged 0 通过；Coordinator01 full-input snapshot failure 未关闭，故不声明 Cargo、1,000 输入 p95、独立 review、failure fixed 或 commit。深页键盘缺口已按组件所有权交接 [EditorUI06 failure](../editor_ui/06/failure-2026-07-18-command-palette-paged-keyboard-navigation.md)。子记录见 [2026-07-18-command-palette-catalog-query-generation.md](08/2026-07-18-command-palette-catalog-query-generation.md)。 |
+| 2026-07-18 | M3.1 / CommandPalette 深页键盘窗口适配 | 源码完成，受管行为门待协调器屏障 | Editor08 新增权威 `CommandPalette/WindowRequested` Change route；host 校验请求 current offset，读取当前 query/catalog generation，复用 `command_palette_query_window` 查询目标页，并在 generation 漂移时无副作用拒绝。bridge 只投影 12 行容量、实际 visible count、total count 与 offset，不恢复完整 catalog。EditorUI06 typed request 与 native 有界导航见 [failure record](../editor_ui/06/failure-2026-07-18-command-palette-paged-keyboard-navigation.md)；Python 3/3、ZUI TOML、rustfmt、scoped diff check 通过，Cargo/产品交互/独立 review 未执行。 |
+| 2026-07-22 | commands/keymap current-source性能复核 | 局部止损完成 / 索引与规模门待执行 | key normalize/Display删除临时lowercase与parts Vec，command→chord改有序binary search；每keyboard event按chord线性扫bindings仍归PERF-MVP-074，需compact signature index。Palette generation/window已成立，但非空query仍两遍全document fuzzy scan并按String id二次BTree查descriptor；PERF-MVP-211更新为slot/enablement index与增量候选目标。源码守卫/rustfmt/diff通过，Cargo/1M keyboard/1k query p95未执行。 |
+| 2026-07-30 | commands current-source全量复核 | 17/17静态完成 / current-source动态门待执行 | 当前`key_chord/keymap`已发布borrowed keyboard signature与`HashMap<signature,candidate indices>`，故PERF-MVP-074旧的owned chord+全bindings扫描结论失效，只待collision/probe/alloc、Cargo与F4门。Palette已按catalog slot直接enablement且不再String id回查registry，但每query仍clone含capability Strings的context、持command mutex全scan，并最多substring+subsequence两遍；继续PERF-MVP-211的incremental index/immutable context generation。`menu_bar_model`每model build在mutex内按7个label重复registry scan并物化rows，纳入PERF-MVP-076/099；extension batch/route-name index归079/538。17/17 rustfmt通过，无Rust edit/Cargo/RenderDoc；证据见performance `01/2026-07-30-editor-core-commands-current-review.md`。 |
+| 2026-07-22 | command retired-symbol test infrastructure | 源码止损 / Cargo待执行 | PERF-MVP-561把`command_owner_hard_cut...`从“读取全部editor Rust并拼成巨型String”改为逐文件stream检查5个退役符号，peak source owner收为单文件；Python源码合同2/2中的对应门通过。后续统一结构inventory/changed-file audit与current-source Cargo仍待。 |
+| 2026-07-22 | workbench layout/view-model tests静态复核 | 40/40静态完成 / 产品规模门待执行 | layout/focus/resize/registry测试仅有1–3个view，plugin menu仅2项，未覆盖PERF-MVP-077/097/099/538的增量复杂度。Editor08验收补1k/10k views、rapid focus/resize/page switch与plugin menu generation，记录placement/menu/reflection build、clone bytes、changed=false、持久化I/O和主线程p95；证据见performance `01/2026-07-22-editor-workbench-tests-static-review.md`。 |

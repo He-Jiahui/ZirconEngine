@@ -3,10 +3,10 @@ mod uniqueness;
 
 use crate::asset::AssetImporterDescriptor;
 
-pub(super) fn validate_runtime_plugin_package_asset_importer_identity<'a>(
+pub(super) fn validate_runtime_plugin_package_asset_importer_identity(
     package_id: &str,
-    importer: &'a AssetImporterDescriptor,
-    seen_ids: &mut Vec<&'a str>,
+    importer: &AssetImporterDescriptor,
+    is_duplicate: bool,
     diagnostics: &mut Vec<String>,
 ) {
     metadata::validate_runtime_plugin_package_asset_importer_metadata(
@@ -16,7 +16,7 @@ pub(super) fn validate_runtime_plugin_package_asset_importer_identity<'a>(
     );
     uniqueness::validate_runtime_plugin_package_asset_importer_id_uniqueness(
         importer.id.as_str(),
-        seen_ids,
+        is_duplicate,
         diagnostics,
     );
 }

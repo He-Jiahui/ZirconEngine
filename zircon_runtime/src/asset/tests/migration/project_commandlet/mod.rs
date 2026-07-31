@@ -1,18 +1,20 @@
 mod command_flow;
 mod crash_windows;
 mod document_migration;
+mod resolver_index;
+mod scale_acceptance;
 mod source_boundary;
 mod transaction_recovery;
 
 use std::fs;
 
 use crate::asset::migration::{
-    migrate_project_assets, migrate_project_assets_with_commit_fault,
-    migrate_project_assets_with_commit_window_fault,
+    AssetMigrationIssueKind, AssetMigrationMode, AssetMigrationOptions,
+    AssetMigrationTransactionPhase, migrate_project_assets,
+    migrate_project_assets_with_commit_fault, migrate_project_assets_with_commit_window_fault,
     migrate_project_assets_with_process_interruption, migrate_project_assets_with_restore_fault,
     migrate_project_assets_with_rollback_cleanup_fault, migrate_project_assets_with_stage_fault,
-    migrate_project_assets_with_terminal_interruption, AssetMigrationIssueKind, AssetMigrationMode,
-    AssetMigrationOptions, AssetMigrationTransactionPhase,
+    migrate_project_assets_with_terminal_interruption,
 };
 use crate::asset::{
     AssetKind, AssetReference, AssetUri, AssetUuid, ReferenceResolutionError, ZMaterialDocument,

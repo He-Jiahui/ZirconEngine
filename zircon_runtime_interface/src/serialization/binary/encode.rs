@@ -6,7 +6,7 @@ use crate::serialization::{PayloadHeader, WriteError};
 
 use super::envelope::BinaryEnvelope;
 use super::value::BinaryValue;
-use super::wire::{append_prefix, options, BINARY_PREFIX_LEN, MAX_BINARY_BODY_BYTES};
+use super::wire::{BINARY_PREFIX_LEN, MAX_BINARY_BODY_BYTES, append_prefix, options};
 
 pub(in crate::serialization) fn encode_binary_payload(
     header: PayloadHeader,

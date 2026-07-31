@@ -10,7 +10,7 @@ from pathlib import Path
 # loopback endpoint stable so the browser, tray and Codex Hook have one URL.
 # Isolated test coordinators explicitly request port 0.
 DEFAULT_COORDINATOR_PORT = 6518
-DEFAULT_SESSION_TTL_SECONDS = 3600
+DEFAULT_SESSION_TTL_SECONDS = 24 * 60 * 60
 
 
 def _normalize_windows_extended_path(value: str | Path) -> str | Path:

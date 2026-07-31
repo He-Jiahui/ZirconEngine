@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var resistState = %import("combat/spell_resist_state");
+
+console.printLine("m4-spell-resist-state-test");
+var result = resistState.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

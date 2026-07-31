@@ -1,11 +1,11 @@
 use super::*;
 use crate::core::framework::render::{
-    resolve_camera_sequence, resolve_camera_sequence_borrowed, CameraRenderType,
-    FallbackSkyboxKind, PlanarReflectionProbeData, PlanarReflectionUpdateState, PlanarUpdateMode,
-    PreviewEnvironmentExtract, RenderCameraTarget, RenderLayerSet, RenderOverlayExtract,
-    RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs, RenderPreparedRuntimeSidebands,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportRect,
-    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    CameraRenderType, FallbackSkyboxKind, PlanarReflectionProbeData, PlanarReflectionUpdateState,
+    PlanarUpdateMode, PreviewEnvironmentExtract, RenderCameraTarget, RenderLayerSet,
+    RenderOverlayExtract, RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
+    RenderPreparedRuntimeSidebands, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportRect, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot, resolve_camera_sequence, resolve_camera_sequence_borrowed,
 };
 use crate::core::math::{Mat4, UVec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -555,6 +555,36 @@ fn viewport_terminal_camera_target_falls_back_to_last_base_without_primary() {
             size: UVec2 { x: 64, y: 32 }
         }
     ));
+}
+
+#[test]
+fn viewport_terminal_camera_target_preserves_empty_sequence_error() {
+    let mut extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(1),
+        empty_scene_snapshot(),
+    );
+    extract.view.cameras.clear();
+
+    let error = viewport_terminal_camera_target(&extract).expect_err("empty camera sequence");
+
+    assert!(matches!(
+        error,
+        RenderFrameworkError::UnsupportedCapability { capability }
+            if capability == "active camera sequence"
+    ));
+}
+
+#[test]
+fn camera_loop_hot_path_uses_direct_terminal_lookup_and_planar_target_index() {
+    let source = include_str!("../camera_loop.rs");
+    let terminal_source = source
+        .split("pub(super) fn viewport_terminal_camera_target")
+        .nth(1)
+        .and_then(|source| source.split("fn camera_loop_submissions").next())
+        .expect("terminal target function source");
+
+    assert!(!terminal_source.contains("camera_loop_submissions(extract)"));
+    assert!(source.contains("submitted_texture_targets"));
 }
 
 fn descriptor(

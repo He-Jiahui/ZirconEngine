@@ -9,7 +9,7 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/chrome/workbench_chip.zui#WorkbenchChip",
   "res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel",
 ]
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchViewportPanel]
 root = "viewport_panel"
@@ -669,14 +669,14 @@ layout = { anchor = { x = 0.142, y = 0.0 }, pivot = { x = 1.0, y = 0.5 }, positi
 component = "WorkbenchLabel"
 control_id = "WorkbenchViewportAxisXLabel"
 classes = ["workbench-viewport-axis-label"]
-props = { text = "X", text_tone = "error", font_size = 12.0, font_weight = 700 }
+props = { text = "X", text_tone = "error", font_size = "$editor.typography.overlay.size", font_weight = "$editor.typography.emphasis.weight" }
 layout = { anchor = { x = 0.142, y = 0.0 }, pivot = { x = 0.0, y = 0.5 }, position = { x = 152.0, y = 276.0 }, width = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.viewport_axis_y_label]
 component = "WorkbenchLabel"
 control_id = "WorkbenchViewportAxisYLabel"
 classes = ["workbench-viewport-axis-label"]
-props = { text = "Y", text_tone = "success", font_size = 12.0, font_weight = 700 }
+props = { text = "Y", text_tone = "success", font_size = "$editor.typography.overlay.size", font_weight = "$editor.typography.emphasis.weight" }
 layout = { anchor = { x = 0.142, y = 0.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 39.0, y = 162.0 }, width = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.viewport_floor_axis_x]
@@ -704,21 +704,21 @@ layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position
 component = "WorkbenchLabel"
 control_id = "WorkbenchViewportGizmoY"
 classes = ["workbench-viewport-gizmo-axis"]
-props = { text = "Y", text_tone = "success", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
+props = { text = "Y", text_tone = "success", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = "$editor.typography.overlay.size", font_weight = "$editor.typography.emphasis.weight" }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 0.5, y = 0.5 }, position = { x = -66.0, y = 46.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.viewport_gizmo_z]
 component = "WorkbenchLabel"
 control_id = "WorkbenchViewportGizmoZ"
 classes = ["workbench-viewport-gizmo-axis"]
-props = { text = "Z", text_tone = "success", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
+props = { text = "Z", text_tone = "success", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = "$editor.typography.overlay.size", font_weight = "$editor.typography.emphasis.weight" }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 0.5, y = 0.5 }, position = { x = -94.0, y = 81.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.viewport_gizmo_x]
 component = "WorkbenchLabel"
 control_id = "WorkbenchViewportGizmoX"
 classes = ["workbench-viewport-gizmo-axis"]
-props = { text = "X", text_tone = "error", background_color = "#00000000", foreground_color = "#ef493f", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
+props = { text = "X", text_tone = "error", background_color = "#00000000", foreground_color = "#ef493f", border_width = 0.0, corner_radius = 3.0, font_size = "$editor.typography.overlay.size", font_weight = "$editor.typography.emphasis.weight" }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 0.5, y = 0.5 }, position = { x = -34.0, y = 81.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.viewport_gizmo_center]

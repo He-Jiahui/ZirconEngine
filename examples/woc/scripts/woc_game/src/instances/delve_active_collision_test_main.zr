@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var delve = %import("instances/delve_state");
+
+console.printLine("m3-delve-active-collision-test");
+var result = delve.delveActiveRunCollisionScenarioTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

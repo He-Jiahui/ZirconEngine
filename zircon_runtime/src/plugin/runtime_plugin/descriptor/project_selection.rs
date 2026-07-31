@@ -11,7 +11,7 @@ use super::RuntimePluginDescriptor;
 impl RuntimePluginDescriptor {
     pub fn project_selection(&self) -> ProjectPluginSelection {
         let mut selection = ProjectPluginSelection::runtime_plugin(
-            self.runtime_id,
+            self.runtime_id.clone(),
             self.enabled_by_default,
             self.required_by_default,
         )

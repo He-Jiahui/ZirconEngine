@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_pathfind_state_tests",
+  "source": "src",
+  "binary": "bin-m3-pathfind-state-tests",
+  "entry": "world/pathfind_state_test_main"
+}

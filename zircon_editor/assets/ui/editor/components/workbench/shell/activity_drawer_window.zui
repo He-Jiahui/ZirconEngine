@@ -4,6 +4,10 @@ id = "res://ui/editor/components/workbench/shell/activity_drawer_window.zui"
 version = 2
 display_name = "activity drawer window"
 
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
 [components.ActivityDrawerWindow]
 root = "root"
 
@@ -44,7 +48,7 @@ children = [{ node = "left_column" }, { node = "content_slot" }, { node = "right
 [nodes.left_column]
 component = "VerticalGroup"
 control_id = "ActivityDrawerWindowLeftColumn"
-layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { min = 240.0, preferred = 280.0, max = 420.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { min = "$editor.density.compact_side_min_width", preferred = "$editor.density.left_drawer_width", max = "$editor.density.left_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "left_top_slot" }, { node = "left_bottom_slot" }]
 
 [nodes.left_top_slot]
@@ -68,7 +72,7 @@ layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "S
 [nodes.right_column]
 component = "VerticalGroup"
 control_id = "ActivityDrawerWindowRightColumn"
-layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { min = 240.0, preferred = 300.0, max = 460.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { min = "$editor.density.compact_side_min_width", preferred = "$editor.density.right_drawer_width", max = "$editor.density.right_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "right_top_slot" }, { node = "right_bottom_slot" }]
 
 [nodes.right_top_slot]
@@ -86,7 +90,7 @@ layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "S
 [nodes.bottom_band]
 component = "HorizontalGroup"
 control_id = "ActivityDrawerWindowBottomBand"
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 170.0, preferred = 220.0, max = 320.0, stretch = "Fixed" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.density.ultra_compact_bottom_min_height", preferred = "$editor.density.bottom_output_height", max = "$editor.density.bottom_output_height", stretch = "Fixed" } }
 children = [{ node = "bottom_left_slot" }, { node = "bottom_right_slot" }]
 
 [nodes.bottom_left_slot]

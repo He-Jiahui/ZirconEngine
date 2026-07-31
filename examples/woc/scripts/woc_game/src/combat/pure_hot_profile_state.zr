@@ -1,0 +1,101 @@
+// Source-pinned pure HoTs snapshot spell power when their Aura applies. This
+// compact module owns the reconstructed rank/power profile used by WOS64.
+var abilities = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+var scaling = %import("combat/spell_scaling");
+
+class PureHotProfile {
+    pub var valid: bool;
+    pub var snapshotPower: int;
+    pub var heal: int;
+    pub var duration: float;
+    pub var interval: float;
+
+    pub @constructor() {
+        this.valid = false;
+        this.snapshotPower = 0;
+        this.heal = 0;
+        this.duration = 0.0;
+        this.interval = 0.0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pureHotProfileFromSnapshot(
+    abilityIndex: int,
+    rank: int,
+    snapshotPower: int
+): PureHotProfile {
+    var profile = new PureHotProfile();
+    if (abilityIndex < 0 || abilityIndex >= abilities.count() || rank <= 0 ||
+        rank > abilities.rankCount(abilityIndex) || snapshotPower < 0 ||
+        effects.count(abilityIndex, rank) != 1 ||
+        effects.typeAt(abilityIndex, rank, 0) != "hot") {
+        return profile;
+    }
+    var duration = effects.metric(abilityIndex, rank, 0, "duration");
+    var interval = effects.metric(abilityIndex, rank, 0, "interval");
+    if (duration <= 0.0 || interval <= 0.0 || duration < interval) { return profile; }
+    var ticks = duration / interval;
+    var base = roundPositive(effects.metric(abilityIndex, rank, 0, "total") / ticks);
+    if (base < 1) { base = 1; }
+    profile.valid = true;
+    profile.snapshotPower = snapshotPower;
+    profile.heal = base + scaling.hotTickBonus(<float>snapshotPower, duration, interval);
+    profile.duration = duration;
+    profile.interval = interval;
+    return profile;
+}
+
+pub resolvePureHotProfile(
+    abilityIndex: int,
+    rank: int,
+    spellPower: int
+): PureHotProfile {
+    if (spellPower < 0) { return new PureHotProfile(); }
+    return pureHotProfileFromSnapshot(abilityIndex, rank, spellPower);
+}
+
+pub pureHotProfileMatches(
+    abilityIndex: int,
+    rank: int,
+    snapshotPower: int,
+    heal: int,
+    duration: float,
+    interval: float
+): bool {
+    var profile = pureHotProfileFromSnapshot(abilityIndex, rank, snapshotPower);
+    return profile.valid && profile.heal == heal &&
+        closeEnough(profile.duration, duration) && closeEnough(profile.interval, interval);
+}
+
+pub contractTest(): int {
+    var rejuvenation = abilities.indexOf("rejuvenation");
+    var renew = abilities.indexOf("renew");
+    var rejuvenationProfile = resolvePureHotProfile(rejuvenation, 1, 150);
+    var renewProfile = resolvePureHotProfile(renew, 1, 150);
+    if (!rejuvenationProfile.valid || rejuvenationProfile.snapshotPower != 150 ||
+        rejuvenationProfile.heal != 38 || !closeEnough(rejuvenationProfile.duration, 12.0) ||
+        !closeEnough(rejuvenationProfile.interval, 3.0)) {
+        return -1;
+    }
+    if (!renewProfile.valid || renewProfile.snapshotPower != 150 || renewProfile.heal != 39 ||
+        !closeEnough(renewProfile.duration, 15.0) ||
+        !closeEnough(renewProfile.interval, 3.0)) {
+        return -2;
+    }
+    if (!pureHotProfileMatches(renew, 1, 150, 39, 15.0, 3.0) ||
+        pureHotProfileMatches(renew, 1, 151, 39, 15.0, 3.0)) {
+        return -3;
+    }
+    return 1;
+}

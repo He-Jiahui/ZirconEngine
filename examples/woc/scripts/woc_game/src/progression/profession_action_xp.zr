@@ -1,0 +1,55 @@
+// Current-head professions/profession_xp.ts projection. This module computes
+// only the action award; the caller owns event timing and ProgressionState.
+var contract = %import("generated/profession_action_xp_contract");
+
+roundNearest(value: float): int {
+    if (value >= 0.0) return <int>(value + 0.5);
+    var magnitude = 0.0 - value;
+    return 0 - <int>(magnitude + 0.5);
+}
+
+// This is the source's shared green/gray curve. The integer inputs model its
+// node/recipe and player levels; no craft-skill state is read or mutated here.
+pub professionActionXp(base: int, contentLevel: int, playerLevel: int): int {
+    var diff = contentLevel - playerLevel;
+    if (diff >= 0) {
+        var raisedLevels = diff;
+        if (raisedLevels > contract.higherLevelBonusCap()) {
+            raisedLevels = contract.higherLevelBonusCap();
+        }
+        return roundNearest(<float>base * (
+            1.0 + contract.higherLevelBonusPerLevel() * <float>raisedLevels
+        ));
+    }
+    var zeroDiff = contract.zeroDiff(playerLevel);
+    var levelsBelow = 0 - diff;
+    if (levelsBelow >= zeroDiff) return 0;
+    return roundNearest(<float>base * (1.0 - <float>levelsBelow / <float>zeroDiff));
+}
+
+pub gatherActionXp(nodeLevel: int, playerLevel: int): int {
+    var base = contract.gatherXpBase() + contract.gatherXpPerLevel() * nodeLevel;
+    return professionActionXp(base, nodeLevel, playerLevel);
+}
+
+pub craftActionXp(recipeLevel: int, playerLevel: int): int {
+    var base = contract.craftXpBase() + contract.craftXpPerLevel() * recipeLevel;
+    return professionActionXp(base, recipeLevel, playerLevel);
+}
+
+pub contractTest(): int {
+    if (contract.zeroDiff(1) != 5 || contract.zeroDiff(7) != 5 ||
+        contract.zeroDiff(8) != 6 || contract.zeroDiff(9) != 6 ||
+        contract.zeroDiff(10) != 7 || contract.zeroDiff(15) != 7 ||
+        contract.zeroDiff(16) != 8) return -1;
+    if (gatherActionXp(1, 1) != 12 || gatherActionXp(5, 1) != 24 ||
+        gatherActionXp(0, 1) != 8 || gatherActionXp(3, 5) != 10 ||
+        gatherActionXp(3, 10) != 0) return -2;
+    if (craftActionXp(1, 1) != 24 || craftActionXp(5, 1) != 48 ||
+        craftActionXp(0, 1) != 16 || craftActionXp(3, 10) != 0) return -3;
+    if (professionActionXp(10, 20, 1) != 12 ||
+        professionActionXp(10, 1, 1) != 10 ||
+        professionActionXp(10, -1, 1) != 6 ||
+        professionActionXp(10, -4, 1) != 0) return -4;
+    return 1;
+}

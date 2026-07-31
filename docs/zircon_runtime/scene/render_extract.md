@@ -1,6 +1,14 @@
 ---
 related_code:
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
+  - zircon_runtime/src/scene/components/scene/post_process.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render/lights.rs
@@ -44,7 +52,15 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
 implementation_files:
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
+  - zircon_runtime/src/scene/components/scene/post_process.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render/lights.rs
@@ -189,7 +205,7 @@ The follow-up Plan 09 CO-M4 world visibility input owner split moves the `Visibi
 
 Runtime 15 M4 scene world render light collection owner split is recorded as `runtime_15_scene_world_render_lights_owner_split_static_passed_cargo_deferred`. `scene/world/render.rs` remains the scene render extract orchestrator and shared camera-layer boundary, while `scene/world/render/lights.rs` owns ambient, directional, point, rect, and spot light snapshot collection. Guard `runtime_15_scene_world_render_light_collectors_are_child_owner` locks the moved collectors, the parent/child file budget, and the Runtime 15/status/docs mirrors without changing `RenderFrameExtract::lighting` semantics.
 
-Runtime 15 M4 scene component lighting/post-process owner split is recorded as `runtime_15_scene_component_light_postprocess_owner_split_static_passed_cargo_deferred`. `scene/components/scene.rs` remains the scene component aggregate and public re-export surface, while `scene/components/scene/lighting.rs` owns ambient/directional/point/rect/spot component DTOs and `scene/components/scene/post_process.rs` owns post-process settings/volume DTOs and builder helpers. Guard `runtime_15_scene_components_light_postprocess_are_child_owners` locks the moved declarations, the parent/child file budget, and the Runtime 15/status/docs mirrors without changing light extraction, selected-camera post-process settings, or volume extraction semantics.
+Runtime 15 M4 scene component lighting/post-process owner split is recorded as `runtime_15_scene_component_light_postprocess_owner_split_static_passed_cargo_deferred`. `scene/components/scene/mod.rs` is the curated scene component facade and public re-export surface, while `scene/components/scene/lighting.rs` owns ambient/directional/point/rect/spot component DTOs and `scene/components/scene/post_process.rs` owns post-process settings/volume DTOs and builder helpers. Guard `runtime_15_scene_components_light_postprocess_are_child_owners` locks the moved declarations, the facade/child file budget, and the Runtime 15/status/docs mirrors without changing light extraction, selected-camera post-process settings, or volume extraction semantics.
 
 The scene producer builds `RenderViewExtract.cameras` from active scene cameras in deterministic scheduling order. The selected scene camera descriptor is rebuilt from the effective `view.camera` payload so request projection-mode and viewport-size overrides do not leave the descriptor list stale. Runtime 05 keeps that selected descriptor in the list even when the selected camera entity is inactive, preserving selected-camera target/layer metadata for diagnostics and consumers while inactive non-selected camera descriptors remain filtered out. `RenderViewExtract::selected_camera_descriptor()` is the scene/extract helper for consumers that need selected camera layers or target facts. Explicit `SceneViewportExtractRequest::camera` descriptors do not attach scene camera metadata and keep a single synthetic descriptor with `entity = None`, because their provenance is outside the scene world. Asset-preserving worlds that contain no scene camera now use the same non-persistent synthetic descriptor with the default render layer mask, allowing sparse imported assets to produce safe empty or mesh-only extracts without adding camera nodes to the world or to `SceneAsset` serialization.
 

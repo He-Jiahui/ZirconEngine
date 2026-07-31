@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var knownAbilities = %import("combat/known_ability_state");
+
+console.printLine("m4-known-ability-state-test");
+var result = knownAbilities.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

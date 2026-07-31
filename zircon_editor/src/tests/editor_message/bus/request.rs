@@ -18,7 +18,7 @@ impl EditorRequestHandler for EchoHandler {
 #[test]
 fn request_validates_target_and_records_delivery() {
     let mut bus = EditorMessageBus::default();
-    let target = bus.register_subscriber([topic("editor.document")]);
+    let target = bus.register_subscriber([topic("editor.document")]).unwrap();
     let mut handler = EchoHandler;
     let (_, request_message) = typed_messages().remove(0);
 
@@ -67,8 +67,10 @@ impl EditorRequestHandler for ReentrantHandler {
 #[test]
 fn shared_request_releases_the_bus_lock_before_invoking_the_handler() {
     let bus = SharedEditorMessageBus::default();
-    let request_target = bus.register_subscriber([topic("editor.document")]);
-    let nested_target = bus.register_subscriber([topic("editor.transaction")]);
+    let request_target = bus.register_subscriber([topic("editor.document")]).unwrap();
+    let nested_target = bus
+        .register_subscriber([topic("editor.transaction")])
+        .unwrap();
     let mut handler = ReentrantHandler { bus: bus.clone() };
     let (_, request_message) = typed_messages().remove(0);
 
@@ -101,7 +103,7 @@ impl EditorRequestHandler for RemovingHandler {
 #[test]
 fn shared_request_revalidates_the_target_after_the_handler_returns() {
     let bus = SharedEditorMessageBus::default();
-    let target = bus.register_subscriber([topic("editor.document")]);
+    let target = bus.register_subscriber([topic("editor.document")]).unwrap();
     let mut handler = RemovingHandler {
         bus: bus.clone(),
         target,

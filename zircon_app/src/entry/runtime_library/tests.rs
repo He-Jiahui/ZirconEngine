@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use super::library_path::{
     default_runtime_library_path, platform_runtime_library_name,
@@ -6,17 +7,20 @@ use super::library_path::{
 };
 use super::loaded_runtime::{
     runtime_api_field_available, runtime_api_required_layout_available,
-    runtime_api_supports_viewport_surface_present, validate_runtime_api_pointer, LoadedRuntime,
+    runtime_api_supports_viewport_surface_present, runtime_library_startup_error_for_request,
+    validate_runtime_api_pointer, LoadedRuntime,
 };
 use zircon_runtime_interface::runtime_api::{
-    ZrRuntimeDrainHostRequestsFnV1, ZrRuntimeProfileControlFnV1, ZrRuntimeTickFrameFnV1,
+    ZrRuntimeDrainHostRequestsFnV1, ZrRuntimeProfileControlFnV1, ZrRuntimeTickFrameFnV2,
 };
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV2, ZrRuntimeBindViewportSurfaceRequestV1,
+    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV3, ZrRuntimeBindViewportSurfaceRequestV1,
     ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeOperationHandle,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV2, ZrRuntimeSessionHandle,
     ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
 };
+
+use super::runtime_session::{RuntimeFrameDemand, MAX_HOST_RUNTIME_FRAME_DELAY};
 
 #[cfg(feature = "target-editor-host")]
 #[test]
@@ -52,6 +56,10 @@ fn editor_gateway_api_table_strips_session_lifecycle_authority() {
         editor_api.destroy_session.is_none(),
         "SessionGateway must not receive session destruction authority"
     );
+    assert!(editor_api.bind_viewport_surface.is_none());
+    assert!(editor_api.unbind_viewport_surface.is_none());
+    assert!(editor_api.present_viewport.is_none());
+    assert!(editor_api.drain_host_requests.is_none());
 
     let runtime_session_source = include_str!("runtime_session.rs");
     let drop_body = runtime_session_source
@@ -142,13 +150,13 @@ fn editor_product_ticks_selected_navigation_plugin_into_typed_consumer() {
         .unwrap();
     host.begin_play_session(1, &[capability]).unwrap();
 
-    assert!(runtime.tick_frame().unwrap());
+    runtime.tick_frame().unwrap();
     assert_eq!(host.pump().unwrap(), 0);
-    assert!(runtime.tick_frame().unwrap());
+    runtime.tick_frame().unwrap();
     assert_eq!(host.pump().unwrap(), 1);
 
     host.reconcile_enabled_capabilities(&[]).unwrap();
-    assert!(runtime.tick_frame().unwrap());
+    runtime.tick_frame().unwrap();
     assert_eq!(host.pump().unwrap(), 0);
     host.end_play_session(1).unwrap();
 }
@@ -165,7 +173,11 @@ fn runtime_library_path_uses_environment_override() {
         Some(previous) => std::env::set_var("ZIRCON_RUNTIME_LIBRARY", previous),
         None => std::env::remove_var("ZIRCON_RUNTIME_LIBRARY"),
     }
-    assert_eq!(actual, expected);
+    assert!(matches!(
+        actual,
+        super::library_path::RuntimeLibraryPathSelection::EnvironmentOverride(_)
+    ));
+    assert_eq!(actual.path(), expected);
 }
 
 #[test]
@@ -220,8 +232,21 @@ fn runtime_api_field_availability_rejects_truncated_or_overflowing_fields() {
 }
 
 #[test]
+fn default_runtime_library_resolution_uses_the_startup_diagnostic_contract() {
+    let error = runtime_library_startup_error_for_request(
+        "<runtime-library-default>",
+        "failed to resolve current executable: access denied",
+    );
+
+    assert_eq!(
+        error.to_string(),
+        "runtime startup diagnostic: component=runtime_library requested_path=<runtime-library-default> cause=failed to resolve current executable: access denied recovery=stage the runtime library beside the product executable or set ZIRCON_RUNTIME_LIBRARY to a compatible absolute path"
+    );
+}
+
+#[test]
 fn runtime_api_required_layout_must_cover_operation_harvest_field() {
-    let required_size = core::mem::offset_of!(ZrRuntimeApiV2, harvest_operation)
+    let required_size = core::mem::offset_of!(ZrRuntimeApiV3, harvest_operation)
         + core::mem::size_of::<Option<zircon_runtime_interface::ZrRuntimeHarvestOperationFnV1>>();
 
     assert!(runtime_api_required_layout_available(required_size));
@@ -241,17 +266,17 @@ fn runtime_api_pointer_rejects_null_from_entry_symbol() {
 
 #[test]
 fn runtime_api_pointer_rejects_version_mismatch_before_session_creation() {
-    let api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V2 + 1);
+    let api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V3 + 1);
 
     let error = validate_runtime_api_pointer(&api)
         .expect_err("unsupported runtime API table version should be rejected");
 
-    assert_eq!(error.to_string(), "unsupported runtime API table version 3");
+    assert_eq!(error.to_string(), "unsupported runtime API table version 4");
 }
 
 #[test]
 fn runtime_api_pointer_rejects_missing_required_functions_before_session_creation() {
-    let mut api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V2);
+    let mut api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V3);
     api.create_session = None;
 
     let error = validate_runtime_api_pointer(&api)
@@ -265,11 +290,11 @@ fn runtime_api_pointer_rejects_missing_required_functions_before_session_creatio
 
 #[test]
 fn runtime_api_pointer_rejects_missing_required_operation_functions() {
-    let mut api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V2);
+    let mut api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V3);
     api.harvest_operation = None;
 
     let error = validate_runtime_api_pointer(&api)
-        .expect_err("V2 runtime API must provide the operation lifecycle");
+        .expect_err("V3 runtime API must provide the operation lifecycle");
 
     assert_eq!(
         error.to_string(),
@@ -278,7 +303,21 @@ fn runtime_api_pointer_rejects_missing_required_operation_functions() {
 }
 
 #[test]
-fn runtime_session_does_not_recheck_required_v2_mirror_or_operation_capabilities() {
+fn runtime_api_pointer_rejects_missing_v3_tick_demand_function() {
+    let mut api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V3);
+    api.tick_frame = None;
+
+    let error = validate_runtime_api_pointer(&api)
+        .expect_err("V3 runtime API must provide frame-demand ticks");
+
+    assert_eq!(
+        error.to_string(),
+        "runtime API table is missing required functions"
+    );
+}
+
+#[test]
+fn runtime_session_does_not_recheck_required_v3_mirror_or_operation_capabilities() {
     let session_source = include_str!("runtime_session.rs");
     let operation_source = include_str!("runtime_session/operation.rs");
 
@@ -292,7 +331,7 @@ fn runtime_session_does_not_recheck_required_v2_mirror_or_operation_capabilities
     ] {
         assert!(
             !session_source.contains(forbidden),
-            "validated V2 required entry must not retain capability fallback `{forbidden}`"
+            "validated V3 required entry must not retain capability fallback `{forbidden}`"
         );
     }
     for forbidden in [
@@ -302,7 +341,7 @@ fn runtime_session_does_not_recheck_required_v2_mirror_or_operation_capabilities
     ] {
         assert!(
             !operation_source.contains(forbidden),
-            "validated V2 required entry must not retain capability fallback `{forbidden}`"
+            "validated V3 required entry must not retain capability fallback `{forbidden}`"
         );
     }
 }
@@ -311,11 +350,93 @@ fn runtime_session_does_not_recheck_required_v2_mirror_or_operation_capabilities
 fn runtime_library_loader_reports_missing_entry_symbol_source_path() {
     let source = include_str!("loaded_runtime.rs");
 
-    assert!(source.contains(".get::<ZrRuntimeGetApiFnV2>(ZR_RUNTIME_GET_API_SYMBOL_V2)"));
-    assert!(!source.contains("ZrRuntimeGetApiFnV1"));
-    assert!(!source.contains("ZR_RUNTIME_GET_API_SYMBOL_V1"));
-    assert!(!source.contains("RuntimeApi::V1"));
-    assert!(source.contains("failed to resolve zircon runtime API V2 symbol"));
+    assert!(source.contains(".get::<ZrRuntimeGetApiFnV3>(ZR_RUNTIME_GET_API_SYMBOL_V3)"));
+    assert!(!source.contains("ZrRuntimeGetApiFnV2"));
+    assert!(!source.contains("ZR_RUNTIME_GET_API_SYMBOL_V2"));
+    assert!(source.contains("failed to resolve zircon runtime API V3 symbol"));
+}
+
+#[test]
+fn runtime_library_hard_cuts_to_v3_wake_and_frame_demand_contract() {
+    let loader = include_str!("loaded_runtime.rs");
+    let session = include_str!("runtime_session.rs");
+    let runner = include_str!("../entry_runner/runtime.rs");
+
+    assert!(loader.contains("ZrRuntimeGetApiFnV3"));
+    assert!(loader.contains("ZR_RUNTIME_GET_API_SYMBOL_V3"));
+    assert!(loader.contains("ZrRuntimeApiV3"));
+    assert!(!loader.contains("ZrRuntimeApiV2"));
+    assert!(!loader.contains("ZR_RUNTIME_GET_API_SYMBOL_V2"));
+    assert!(!loader.contains("ZrRuntimeGetApiFnV2"));
+
+    assert!(session.contains("ZrRuntimeSessionConfigV2"));
+    assert!(session.contains("wake_sink:"));
+    assert!(session.contains("ZrRuntimeFrameDemandV1"));
+    assert!(session.contains("RuntimeFrameDemand::try_from"));
+    assert!(session.contains("unsupported runtime frame demand kind"));
+    assert!(!session.contains("ZrRuntimeSessionConfigV1"));
+
+    let event_loop = runner.find("EventLoop::new()?").unwrap();
+    let proxy = runner.find("create_proxy()").unwrap();
+    let session_create = runner
+        .find("RuntimeSession::create_with_profile_and_project")
+        .unwrap();
+    assert!(event_loop < proxy && proxy < session_create);
+}
+
+#[test]
+fn runtime_frame_demand_checked_conversion_rejects_unknowns_and_clamps_delay() {
+    use zircon_runtime_interface::{
+        ZrRuntimeFrameDemandV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    };
+
+    assert_eq!(
+        RuntimeFrameDemand::try_from(ZrRuntimeFrameDemandV1::idle()).unwrap(),
+        RuntimeFrameDemand::Idle
+    );
+    assert_eq!(
+        RuntimeFrameDemand::try_from(ZrRuntimeFrameDemandV1::immediate()).unwrap(),
+        RuntimeFrameDemand::Immediate
+    );
+    assert_eq!(
+        RuntimeFrameDemand::try_from(ZrRuntimeFrameDemandV1::after(u64::MAX)).unwrap(),
+        RuntimeFrameDemand::After(MAX_HOST_RUNTIME_FRAME_DELAY)
+    );
+
+    let unknown = ZrRuntimeFrameDemandV1 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+        kind: 99,
+        delay_nanoseconds: 0,
+    };
+    assert!(RuntimeFrameDemand::try_from(unknown)
+        .unwrap_err()
+        .to_string()
+        .contains("unsupported runtime frame demand kind 99"));
+
+    let malformed = ZrRuntimeFrameDemandV1 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+        kind: ZR_RUNTIME_FRAME_DEMAND_AFTER_V1 - 1,
+        delay_nanoseconds: Duration::from_millis(1).as_nanos() as u64,
+    };
+    assert!(RuntimeFrameDemand::try_from(malformed)
+        .unwrap_err()
+        .to_string()
+        .contains("requires zero delay"));
+}
+
+#[test]
+fn runtime_session_destroys_before_releasing_host_wake_token() {
+    let session = include_str!("runtime_session.rs");
+    let drop_body = session
+        .split("impl Drop for RuntimeSession")
+        .nth(1)
+        .expect("RuntimeSession should own session teardown");
+    let destroy = drop_body.find("destroy_session(self.handle)").unwrap();
+    let unregister = drop_body.find("wake_registration.unregister()").unwrap();
+
+    assert!(destroy < unregister);
+    assert!(drop_body.contains("if destroy_status.is_ok()"));
+    assert!(drop_body.contains("std::mem::forget(wake_registration)"));
 }
 
 #[test]
@@ -328,9 +449,45 @@ fn runtime_library_loader_reports_missing_entry_symbol_from_dynamic_library() {
     let message = error.to_string();
 
     assert!(
-        message.contains("failed to resolve zircon runtime API V2 symbol"),
+        message.starts_with("runtime startup diagnostic: component=runtime_library "),
         "{message}"
     );
+    assert!(
+        message.contains(&format!(
+            "requested_path={}",
+            missing_entry_symbol_fixture_library()
+        )),
+        "{message}"
+    );
+    assert!(
+        message.contains("failed to resolve zircon runtime API V3 symbol"),
+        "{message}"
+    );
+    assert!(
+        message.contains("recovery=stage the runtime library"),
+        "{message}"
+    );
+}
+
+#[test]
+fn runtime_library_loader_reports_missing_library_with_recovery() {
+    let missing = runtime_library_temp_dir("missing-library").join(platform_runtime_library_name());
+    let error = match LoadedRuntime::load(&missing) {
+        Ok(_) => panic!("a missing runtime library must not load"),
+        Err(error) => error,
+    };
+    let message = error.to_string();
+
+    assert!(
+        message.starts_with("runtime startup diagnostic: component=runtime_library "),
+        "{message}"
+    );
+    assert!(
+        message.contains(&format!("requested_path={}", missing.display())),
+        "{message}"
+    );
+    assert!(message.contains("cause="), "{message}");
+    assert!(message.contains("recovery="), "{message}");
 }
 
 #[test]
@@ -347,10 +504,10 @@ fn runtime_session_create_reports_first_call_failure_context() {
 
 #[test]
 fn runtime_surface_present_support_requires_all_optional_fields_in_size() {
-    let full_size = core::mem::size_of::<ZrRuntimeApiV2>();
-    let before_bind = core::mem::offset_of!(ZrRuntimeApiV2, bind_viewport_surface);
-    let before_unbind = core::mem::offset_of!(ZrRuntimeApiV2, unbind_viewport_surface);
-    let before_present = core::mem::offset_of!(ZrRuntimeApiV2, present_viewport);
+    let full_size = core::mem::size_of::<ZrRuntimeApiV3>();
+    let before_bind = core::mem::offset_of!(ZrRuntimeApiV3, bind_viewport_surface);
+    let before_unbind = core::mem::offset_of!(ZrRuntimeApiV3, unbind_viewport_surface);
+    let before_present = core::mem::offset_of!(ZrRuntimeApiV3, present_viewport);
     let bind = Some(fake_bind_viewport_surface as _);
     let unbind = Some(fake_unbind_viewport_surface as _);
     let present = Some(fake_present_viewport as _);
@@ -383,11 +540,11 @@ fn runtime_surface_present_support_requires_all_optional_fields_in_size() {
 
 #[test]
 fn runtime_api_profile_control_is_optional_after_present_prefix() {
-    let full_size = core::mem::size_of::<ZrRuntimeApiV2>();
-    let before_profile = core::mem::offset_of!(ZrRuntimeApiV2, profile_control);
-    let api = ZrRuntimeApiV2 {
+    let full_size = core::mem::size_of::<ZrRuntimeApiV3>();
+    let before_profile = core::mem::offset_of!(ZrRuntimeApiV3, profile_control);
+    let api = ZrRuntimeApiV3 {
         profile_control: Some(fake_profile_control as _),
-        ..ZrRuntimeApiV2::empty()
+        ..ZrRuntimeApiV3::empty()
     };
 
     assert!(runtime_api_field_available(
@@ -403,23 +560,23 @@ fn runtime_api_profile_control_is_optional_after_present_prefix() {
 }
 
 #[test]
-fn runtime_api_tick_frame_is_optional_after_profile_control() {
-    let full_size = core::mem::size_of::<ZrRuntimeApiV2>();
-    let before_tick = core::mem::offset_of!(ZrRuntimeApiV2, tick_frame);
-    let api = ZrRuntimeApiV2 {
+fn runtime_api_tick_frame_follows_profile_control_in_v3_layout() {
+    let full_size = core::mem::size_of::<ZrRuntimeApiV3>();
+    let before_tick = core::mem::offset_of!(ZrRuntimeApiV3, tick_frame);
+    let api = ZrRuntimeApiV3 {
         tick_frame: Some(fake_tick_frame as _),
-        ..ZrRuntimeApiV2::empty()
+        ..ZrRuntimeApiV3::empty()
     };
 
     assert_eq!(
         before_tick,
-        core::mem::offset_of!(ZrRuntimeApiV2, profile_control)
+        core::mem::offset_of!(ZrRuntimeApiV3, profile_control)
             + core::mem::size_of::<Option<ZrRuntimeProfileControlFnV1>>()
     );
     assert!(runtime_api_field_available(
         full_size,
         before_tick,
-        core::mem::size_of::<Option<ZrRuntimeTickFrameFnV1>>()
+        core::mem::size_of::<Option<ZrRuntimeTickFrameFnV2>>()
     ));
     assert!(!runtime_api_field_available(
         before_tick,
@@ -430,17 +587,17 @@ fn runtime_api_tick_frame_is_optional_after_profile_control() {
 
 #[test]
 fn runtime_api_drain_host_requests_is_optional_after_tick_frame() {
-    let full_size = core::mem::size_of::<ZrRuntimeApiV2>();
-    let before_drain = core::mem::offset_of!(ZrRuntimeApiV2, drain_host_requests);
-    let api = ZrRuntimeApiV2 {
+    let full_size = core::mem::size_of::<ZrRuntimeApiV3>();
+    let before_drain = core::mem::offset_of!(ZrRuntimeApiV3, drain_host_requests);
+    let api = ZrRuntimeApiV3 {
         drain_host_requests: Some(fake_drain_host_requests as _),
-        ..ZrRuntimeApiV2::empty()
+        ..ZrRuntimeApiV3::empty()
     };
 
     assert_eq!(
         before_drain,
-        core::mem::offset_of!(ZrRuntimeApiV2, tick_frame)
-            + core::mem::size_of::<Option<ZrRuntimeTickFrameFnV1>>()
+        core::mem::offset_of!(ZrRuntimeApiV3, tick_frame)
+            + core::mem::size_of::<Option<ZrRuntimeTickFrameFnV2>>()
     );
     assert!(runtime_api_field_available(
         full_size,
@@ -455,20 +612,20 @@ fn runtime_api_drain_host_requests_is_optional_after_tick_frame() {
 }
 
 #[test]
-fn runtime_operation_api_is_the_v2_table_tail() {
-    let api = ZrRuntimeApiV2::empty();
-    let full_size = core::mem::size_of::<ZrRuntimeApiV2>();
+fn runtime_operation_api_is_the_v3_table_tail() {
+    let api = ZrRuntimeApiV3::empty();
+    let full_size = core::mem::size_of::<ZrRuntimeApiV3>();
     for (offset, field_size) in [
         (
-            core::mem::offset_of!(ZrRuntimeApiV2, submit_operation),
+            core::mem::offset_of!(ZrRuntimeApiV3, submit_operation),
             core::mem::size_of_val(&api.submit_operation),
         ),
         (
-            core::mem::offset_of!(ZrRuntimeApiV2, poll_operation),
+            core::mem::offset_of!(ZrRuntimeApiV3, poll_operation),
             core::mem::size_of_val(&api.poll_operation),
         ),
         (
-            core::mem::offset_of!(ZrRuntimeApiV2, harvest_operation),
+            core::mem::offset_of!(ZrRuntimeApiV3, harvest_operation),
             core::mem::size_of_val(&api.harvest_operation),
         ),
     ] {
@@ -493,6 +650,7 @@ fn runtime_library_project_capture_frame_draws_vampire_hud() {
         runtime,
         b"runtime",
         Some(project_root.as_path()),
+        None,
     )
     .unwrap();
 
@@ -567,10 +725,10 @@ fn missing_entry_symbol_fixture_library() -> &'static str {
     }
 }
 
-fn valid_runtime_api_table(api_version: u32) -> ZrRuntimeApiV2 {
-    let mut api = ZrRuntimeApiV2::empty();
+fn valid_runtime_api_table(api_version: u32) -> ZrRuntimeApiV3 {
+    let mut api = ZrRuntimeApiV3::empty();
     api.abi_version = api_version;
-    api.size_bytes = core::mem::size_of::<ZrRuntimeApiV2>();
+    api.size_bytes = core::mem::size_of::<ZrRuntimeApiV3>();
     api.create_session = Some(fake_create_session);
     api.destroy_session = Some(fake_destroy_session);
     api.handle_event = Some(fake_handle_event);
@@ -581,6 +739,7 @@ fn valid_runtime_api_table(api_version: u32) -> ZrRuntimeApiV2 {
     api.submit_operation = Some(fake_submit_operation);
     api.poll_operation = Some(fake_poll_operation);
     api.harvest_operation = Some(fake_harvest_operation);
+    api.tick_frame = Some(fake_tick_frame);
     api
 }
 
@@ -609,7 +768,7 @@ unsafe extern "C" fn fake_harvest_operation(
 }
 
 unsafe extern "C" fn fake_create_session(
-    _config: ZrRuntimeSessionConfigV1,
+    _config: ZrRuntimeSessionConfigV2,
     _out_session: *mut ZrRuntimeSessionHandle,
 ) -> ZrStatus {
     ZrStatus::ok()
@@ -663,7 +822,13 @@ unsafe extern "C" fn fake_profile_control(
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn fake_tick_frame(_session: ZrRuntimeSessionHandle) -> ZrStatus {
+unsafe extern "C" fn fake_tick_frame(
+    _session: ZrRuntimeSessionHandle,
+    out_demand: *mut zircon_runtime_interface::ZrRuntimeFrameDemandV1,
+) -> ZrStatus {
+    if !out_demand.is_null() {
+        unsafe { *out_demand = zircon_runtime_interface::ZrRuntimeFrameDemandV1::idle() };
+    }
     ZrStatus::ok()
 }
 

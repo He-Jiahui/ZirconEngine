@@ -1,6 +1,324 @@
 use super::*;
 
 #[test]
+fn migration_document_mutates_one_typed_artifact_without_full_value_clones() {
+    const MIGRATION_DOCUMENT_SOURCE: &str = include_str!("../../../migration/document.rs");
+    const PROJECT_DOCUMENT_SOURCE: &str = include_str!("../../../assets/project_document.rs");
+    const PROJECT_DOCUMENT_CODEC_SOURCE: &str =
+        include_str!("../../../assets/project_document/codec.rs");
+    const MATERIAL_READER_SOURCE: &str =
+        include_str!("../../../assets/project_document/material.rs");
+    const MODEL_READER_SOURCE: &str = include_str!("../../../assets/project_document/model.rs");
+    const SCENE_READER_SOURCE: &str = include_str!("../../../assets/project_document/scene.rs");
+
+    assert_eq!(
+        PROJECT_DOCUMENT_CODEC_SOURCE.matches("from_str").count(),
+        1,
+        "project document codec must own the one mutable TOML parse per document"
+    );
+    assert!(PROJECT_DOCUMENT_CODEC_SOURCE.contains("toml::from_str::<toml::Value>"));
+    assert!(!PROJECT_DOCUMENT_CODEC_SOURCE.contains("Clone"));
+    assert!(!MIGRATION_DOCUMENT_SOURCE.contains("toml::from_str::<toml::Value>"));
+    assert!(PROJECT_DOCUMENT_SOURCE.contains("ProjectDocumentArtifact"));
+    assert!(MIGRATION_DOCUMENT_SOURCE.contains("artifact.into_project_document()"));
+    assert!(!MIGRATION_DOCUMENT_SOURCE.contains("from_project_toml_str"));
+    for formal_reader in [
+        MATERIAL_READER_SOURCE,
+        MODEL_READER_SOURCE,
+        SCENE_READER_SOURCE,
+    ] {
+        assert!(!formal_reader.contains("from_str"));
+        assert!(formal_reader.contains("ProjectDocumentArtifact"));
+    }
+    for retired_full_document_copy in [
+        "original.clone()",
+        "omit_toml_null_subfields",
+        "artifact.clone()",
+        "artifact.value().clone()",
+        "self.value.clone()",
+    ] {
+        assert!(
+            !MIGRATION_DOCUMENT_SOURCE.contains(retired_full_document_copy),
+            "retired full-document copy owner remains: {retired_full_document_copy}"
+        );
+    }
+    assert!(MIGRATION_DOCUMENT_SOURCE.contains("struct MigrationDocumentArtifact"));
+    assert!(MIGRATION_DOCUMENT_SOURCE.contains("artifact.to_pretty_bytes(path)"));
+    assert!(MIGRATION_DOCUMENT_SOURCE.contains("artifact.record_change"));
+}
+
+#[test]
+fn unsupported_material_version_does_not_mask_reference_resolution_failure() {
+    let root = fixture_root("material-version-reference-error-order");
+    write_manifest(&root, &["assets"]);
+    let material = root.join("assets/materials/unsupported.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    let source = "version = 1\n\n[shader]\nuuid = \"d1111111-2222-4333-8444-555555555555\"\nurl = \"res://shaders/missing.zshader\"\n";
+    fs::write(&material, source).unwrap();
+
+    let report = migrate_project_assets(AssetMigrationOptions::new(
+        &root,
+        AssetMigrationMode::DryRun,
+    ))
+    .unwrap();
+
+    assert!(!report.succeeded());
+    assert_eq!(
+        report.issues()[0].kind(),
+        AssetMigrationIssueKind::DanglingReference
+    );
+    assert_eq!(fs::read_to_string(&material).unwrap(), source);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn resolvable_unsupported_material_version_uses_canonical_validator_without_writing() {
+    let root = fixture_root("material-unsupported-version-validator");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "d2111111-2222-4333-8444-555555555555".parse().unwrap();
+    write_registered_source(
+        &root,
+        "assets",
+        "shaders/pbr.zshader",
+        guid,
+        AssetKind::Shader,
+    );
+    let material = root.join("assets/materials/unsupported.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    let source = format!(
+        "version = 1\n\n[shader]\nuuid = \"{guid}\"\nurl = \"res://shaders/pbr.zshader\"\n"
+    );
+    fs::write(&material, &source).unwrap();
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(!report.succeeded());
+    assert_eq!(
+        report.issues()[0].kind(),
+        AssetMigrationIssueKind::InvalidDocument
+    );
+    assert!(report.issues()[0].message().contains(
+        "zmaterial v2 document version `1` is unsupported; migrate material files to version = 2"
+    ));
+    assert_eq!(fs::read_to_string(&material).unwrap(), source);
+    assert!(
+        !material
+            .with_file_name("unsupported.zmaterial.zmeta")
+            .exists()
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn formal_schema_failure_after_reference_rewrite_does_not_write_staged_bytes() {
+    let root = fixture_root("formal-schema-failure-after-rewrite");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "e1111111-2222-4333-8444-555555555555".parse().unwrap();
+    write_registered_source(
+        &root,
+        "assets",
+        "textures/registered.png",
+        guid,
+        AssetKind::Texture,
+    );
+    let model = root.join("assets/models/formal-invalid.model.toml");
+    fs::create_dir_all(model.parent().unwrap()).unwrap();
+    let source = format!(
+        "uri = \"res://models/formal-invalid.model.toml\"\n\n[unexpected_reference]\nuuid = \"{guid}\"\nurl = \"res://textures/registered.png\"\n"
+    );
+    fs::write(&model, &source).unwrap();
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(!report.succeeded());
+    assert_eq!(
+        report.issues()[0].kind(),
+        AssetMigrationIssueKind::InvalidDocument
+    );
+    assert!(
+        report.issues()[0]
+            .message()
+            .contains("formal authoring reader rejected document")
+    );
+    assert_eq!(fs::read_to_string(&model).unwrap(), source);
+    assert!(
+        !model
+            .with_file_name("formal-invalid.model.toml.zmeta")
+            .exists()
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn scene_reference_rewrite_is_formally_decoded_from_the_shared_artifact() {
+    let root = fixture_root("scene-shared-document-artifact");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "e2111111-2222-4333-8444-555555555555".parse().unwrap();
+    write_registered_source(&root, "assets", "models/hero.glb", guid, AssetKind::Model);
+    let scene = root.join("assets/scenes/main.scene.toml");
+    fs::create_dir_all(scene.parent().unwrap()).unwrap();
+    fs::write(
+        &scene,
+        format!(
+            "[[entities]]\nentity = 1\nname = \"Hero\"\ntransform = {{ translation = [0.0, 0.0, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }}\n\n[entities.mesh.model]\nuuid = \"{guid}\"\nurl = \"res://models/hero.glb\"\n[entities.mesh.material]\nuuid = \"{guid}\"\nurl = \"res://models/hero.glb\"\n"
+        ),
+    )
+    .unwrap();
+
+    let first =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(first.succeeded());
+    let migrated = fs::read_to_string(&scene).unwrap();
+    assert!(migrated.contains("kind = \"project\""));
+    let second =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+    assert!(second.succeeded());
+    assert!(second.changed_files().is_empty());
+    assert_eq!(fs::read_to_string(&scene).unwrap(), migrated);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn missing_material_version_fails_formal_decode_without_writing_staged_reference_bytes() {
+    let root = fixture_root("material-missing-version-formal-failure");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "e3111111-2222-4333-8444-555555555555".parse().unwrap();
+    write_registered_source(
+        &root,
+        "assets",
+        "shaders/pbr.zshader",
+        guid,
+        AssetKind::Shader,
+    );
+    let material = root.join("assets/materials/missing-version.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    let source = format!("[shader]\nuuid = \"{guid}\"\nurl = \"res://shaders/pbr.zshader\"\n");
+    fs::write(&material, &source).unwrap();
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(!report.succeeded());
+    assert_eq!(
+        report.issues()[0].kind(),
+        AssetMigrationIssueKind::InvalidDocument
+    );
+    assert!(
+        report.issues()[0]
+            .message()
+            .contains("formal authoring reader rejected document")
+    );
+    assert_eq!(fs::read_to_string(&material).unwrap(), source);
+    assert!(
+        !material
+            .with_file_name("missing-version.zmaterial.zmeta")
+            .exists()
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn changed_document_preserves_unrepaired_current_reference_fields_and_counts_only_repair() {
+    let root = fixture_root("mixed-repaired-and-unchanged-current-references");
+    write_manifest(&root, &["assets"]);
+    let repaired_guid: AssetUuid = "71111111-2222-4333-8444-555555555555".parse().unwrap();
+    let stale_guid: AssetUuid = "81111111-2222-4333-8444-555555555555".parse().unwrap();
+    const UNTOUCHED_GUID_TEXT: &str = "AA111111-2222-4333-8444-555555555555";
+    let untouched_guid: AssetUuid = UNTOUCHED_GUID_TEXT.parse().unwrap();
+    write_registered_source(
+        &root,
+        "assets",
+        "textures/repaired.png",
+        repaired_guid,
+        AssetKind::Texture,
+    );
+    write_registered_source(
+        &root,
+        "assets",
+        "textures/untouched.png",
+        untouched_guid,
+        AssetKind::Texture,
+    );
+    let model = root.join("assets/models/mixed.model.toml");
+    fs::create_dir_all(model.parent().unwrap()).unwrap();
+    fs::write(
+        &model,
+        format!(
+            "uri = \"res://models/mixed.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{stale_guid}\"\npath_hint = \"textures/repaired.png\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{UNTOUCHED_GUID_TEXT}\"\npath_hint = \"textures/untouched.png\"\n"
+        ),
+    )
+    .unwrap();
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(report.succeeded());
+    let document_change = report
+        .changed_files()
+        .iter()
+        .find(|change| change.path() == model)
+        .expect("mixed document should be rewritten for the repaired reference");
+    assert_eq!(document_change.reference_count(), 1);
+    let migrated: toml::Value = toml::from_str(&fs::read_to_string(&model).unwrap()).unwrap();
+    assert_eq!(
+        migrated["primitives"][1]["mesh"]["guid"].as_str(),
+        Some(UNTOUCHED_GUID_TEXT)
+    );
+    assert!(migrated["primitives"][1]["mesh"].get("sub").is_none());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn malformed_current_reference_keeps_canonical_serde_issue_message() {
+    let root = fixture_root("malformed-current-reference-message");
+    write_manifest(&root, &["assets"]);
+    let model = root.join("assets/models/malformed.model.toml");
+    fs::create_dir_all(model.parent().unwrap()).unwrap();
+    fs::write(
+        &model,
+        "uri = \"res://models/malformed.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"a1111111-2222-4333-8444-555555555555\"\npath_hint = \"textures/malformed.png\"\nsub = 7\n",
+    )
+    .unwrap();
+    let expected = serde_json::from_value::<
+        zircon_runtime_interface::project::PersistedAssetReference,
+    >(serde_json::json!({
+        "kind": "project",
+        "guid": "a1111111-2222-4333-8444-555555555555",
+        "path_hint": "textures/malformed.png",
+        "sub": 7,
+    }))
+    .unwrap_err()
+    .to_string();
+
+    let report = migrate_project_assets(AssetMigrationOptions::new(
+        &root,
+        AssetMigrationMode::DryRun,
+    ))
+    .unwrap();
+
+    assert!(!report.succeeded());
+    assert_eq!(
+        report.issues()[0].kind(),
+        AssetMigrationIssueKind::InvalidDocument
+    );
+    assert_eq!(report.issues()[0].message(), expected);
+    assert_eq!(
+        fs::read_to_string(&model).unwrap(),
+        "uri = \"res://models/malformed.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"a1111111-2222-4333-8444-555555555555\"\npath_hint = \"textures/malformed.png\"\nsub = 7\n"
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn missing_sidecars_are_minted_in_the_same_transaction_as_reference_rewrite() {
     let root = fixture_root("mint-missing-sidecars");
     write_manifest(&root, &["assets"]);
@@ -48,6 +366,49 @@ fn missing_sidecars_are_minted_in_the_same_transaction_as_reference_rewrite() {
         sidecar_bytes
     );
     assert_eq!(fs::read(&document).unwrap(), document_bytes);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn retired_project_reference_without_subasset_omits_toml_null_and_is_idempotent() {
+    let root = fixture_root("retired-project-reference-without-subasset");
+    write_manifest(&root, &["assets"]);
+    let shader_guid: AssetUuid = "90111111-2222-4333-8444-555555555555".parse().unwrap();
+    write_registered_source(
+        &root,
+        "assets",
+        "shaders/pbr.zshader",
+        shader_guid,
+        AssetKind::Shader,
+    );
+    let material = root.join("assets/materials/no-subasset.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    fs::write(
+        &material,
+        format!(
+            "version = 2\n\n[shader]\nuuid = \"{shader_guid}\"\nurl = \"res://shaders/pbr.zshader\"\n"
+        ),
+    )
+    .unwrap();
+
+    let first =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(first.succeeded(), "migration issues: {:?}", first.issues());
+    let migrated_bytes = fs::read(&material).unwrap();
+    let migrated_text = std::str::from_utf8(&migrated_bytes).unwrap();
+    let migrated: toml::Value = toml::from_str(migrated_text).unwrap();
+    assert_eq!(migrated["shader"]["kind"].as_str(), Some("project"));
+    assert!(migrated["shader"].get("sub").is_none());
+    assert!(!migrated_text.contains("sub ="));
+
+    let second =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+    assert!(second.succeeded());
+    assert!(second.changed_files().is_empty());
+    assert_eq!(fs::read(&material).unwrap(), migrated_bytes);
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -197,9 +558,11 @@ fn retired_meta_toml_and_source_hash_migrate_with_authoring_references_in_one_tr
     assert!(current_text.contains("format_version = 7"));
     assert!(current_text.contains("source_digest = \"legacy-digest\""));
     assert!(!current_text.contains("source_hash"));
-    assert!(fs::read_to_string(&material)
-        .unwrap()
-        .contains("kind = \"project\""));
+    assert!(
+        fs::read_to_string(&material)
+            .unwrap()
+            .contains("kind = \"project\"")
+    );
 
     let second =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
@@ -355,10 +718,12 @@ fn guid_path_repair_is_not_applied_when_another_document_is_fully_dangling() {
             .unwrap();
 
     assert!(!report.succeeded());
-    assert!(report
-        .issues()
-        .iter()
-        .any(|issue| issue.kind() == AssetMigrationIssueKind::DanglingReference));
+    assert!(
+        report
+            .issues()
+            .iter()
+            .any(|issue| issue.kind() == AssetMigrationIssueKind::DanglingReference)
+    );
     assert_eq!(
         fs::read_to_string(scenes.join("repair.model.toml")).unwrap(),
         missing_path

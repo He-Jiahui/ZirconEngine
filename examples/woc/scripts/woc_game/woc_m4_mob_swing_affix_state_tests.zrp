@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_mob_swing_affix_state_tests",
+  "source": "src",
+  "binary": "bin-m4-mob-swing-affix-state-tests",
+  "entry": "combat/mob_swing_affix_state_test_main"
+}

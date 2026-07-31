@@ -6,7 +6,7 @@ display_name = "Workbench Rail Button"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchRailButton]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-rail-button", "workbench-primitive"]
 component = "IconButton"
 control_id = "WorkbenchRailButtonRoot"
 classes = ["workbench-rail-button"]
-props = { icon = "zircon_editor_shell/activity/play.svg", text = "", label = "Activity", button_variant = "text", button_color = "secondary", button_size = "large", button_interaction_state = "normal", icon_placement = "icon_only", selected = false, focused = false, hovered = false, pressed = false, disabled = false, layout_padding_left = 9.0, layout_padding_right = 9.0, layout_padding_top = 9.0, layout_padding_bottom = 9.0, layout_spacing = 0.0, layout_min_width = 44.0, layout_min_height = 44.0, layout_icon_size = 22.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { min = 46.0, preferred = 48.0, max = 50.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 48.0, max = 50.0, stretch = "Fixed" } }
+props = { icon = "zircon_editor_shell/activity/play.svg", text = "", label = "Activity", button_variant = "text", button_color = "secondary", button_size = "large", button_interaction_state = "normal", icon_placement = "icon_only", selected = false, focused = false, hovered = false, pressed = false, disabled = false, background_color = "$editor.surface.2", hover_background_color = "$editor.surface.hover", pressed_background_color = "$editor.surface.3", selected_background_color = "$editor.surface.selected", disabled_background_color = "$editor.surface.disabled", border_color = "$editor.border", focus_border_color = "$editor.accent", disabled_border_color = "$editor.border.disabled", icon_color = "$editor.text.secondary", selected_icon_color = "$editor.accent", disabled_foreground_color = "$editor.text.disabled", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.medium", layout_padding_bottom = "$editor.density.gap.medium", layout_min_width = "$editor.control.height.large", layout_min_height = "$editor.control.height.large", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }

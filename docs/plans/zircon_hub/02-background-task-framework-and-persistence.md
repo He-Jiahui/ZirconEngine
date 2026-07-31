@@ -797,3 +797,15 @@ pub fn install_package_to_device(
 - 【2026-06-12 核实补充】`zircon_hub/Cargo.toml` 的 `[lib] test = false`（10-13 行）使 `cargo test -p zircon_hub --locked` 默认只跑 `tests/` 下集成契约；src 内单测必须 `cargo test -p zircon_hub --lib --locked` 显式选中。本计划所有单测验证命令均已显式带 `--lib`，里程碑收尾需两条命令都跑。
 - 【2026-06-12 核实补充】目标 2 的 task_id / 排队信息原里程碑切片未覆盖，已补为 M1 切片 4；队列长度放 `HubSnapshot.queued_background_actions` 而非 `TaskStatus`，避免破坏 `action_tasks.rs:406-409` 附近「排队不得改写运行中状态」的既有单测断言（`assert_eq!(session.task_status, running_status, ...)`）。
 - 【2026-06-12 设计注记】persist 单点化后每次落盘同时重写 editor recent JSON（此前 `persist_hub_config` 不写）：内容幂等、文件小，写放大可接受；`save_editor_recent_projects` 自身的原子化不在本计划范围（hub.toml 原子性是本计划目标）。worker 队列续接由「每队列项新开线程」改为单线程循环消费，FIFO 单工语义不变。
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- front-matter `status: planned` 与实仓不符：M1/M2/M3 均已落地。核对——M1：`zircon_hub/src/tauri_app/runtime_state/action_tasks.rs:18`（`trait BackgroundTask`）、`:26`（`lock_session`）、`:35`（`execute_background_task`）、`:86`（`dispatch_background_request`）、`:142`（`catch_unwind` worker loop）、`:342`（`record_background_worker_panic`），`commands.rs` 已收敛到 79 行终态（计划预估约 80 行，吻合）；M2：`zircon_hub/src/settings/hub_config.rs:64/83-95`（`write_atomic`/`replace_file`）、`zircon_hub/src/tauri_app/runtime_state.rs:513-528`（`persist`/`persist_unchecked`），全仓 `persist_hub_config`/`persist_with_last_project` 零命中；M3：`zircon_hub/src/projects/local_paths.rs:20-44`（`create_owned_dir`/`cleanup_dir_on_error`）、`package.rs:83-90`、`device_install.rs:59-67` 均已接线，`runtime_state/tests.rs:334` 的 `persist_failure_sets_recoverable_status_and_recovers_after_retry` 也已存在。建议状态改 `completed`。
+- M3 目标代码形状中 `create_owned_dir` 的签名（第 633-644 行）写 `already_exists_message: impl FnOnce() -> String`，实仓为 `impl FnOnce() -> HubMessage` 且错误经 `HubError::status(message, None)` 构造（`zircon_hub/src/projects/local_paths.rs:20-31`）——07 计划的 `HubMessage` schema 落地后消息类型整体升级。同理 `package.rs`/`device_install.rs` 代码块里 `format!("... already exists: {}")` 的字符串构造均已改为结构化 `HubMessage`（如 `Delivery(PackageDirectoryExists)` 类 id）。建议在 M3 目标代码形状块顶部标注「消息构造已由 07 计划升级为 `HubMessage`，以实仓为准」。
+- M1 切片 4 与目标代码形状 (d) 的 `localized.rs` 词条方案（`status_detail` strip_prefix 补 `"Background task panicked: "`，第 458 行）已过时：`localized.rs` 已无 `status_detail`，该消息由 `state/hub_message/shell.rs:17` 的 `ShellMessageId::BackgroundTaskPanicked` 双语模板承载。
+
+### 验证缺口
+
+- 计划 M1 新增测试清单（契约联动节）承诺的 7 个行为测试（`execute_background_task_emits_running_then_completion_states_in_order`、`execute_background_task_records_prepare_target_failure_and_emits_once`、`execute_background_task_surfaces_run_failure_as_recorded_history`、`execute_background_task_surfaces_complete_failure_as_error_state`、`background_worker_dispatch_processes_queue_in_fifo_order`、`worker_panic_records_error_resets_worker_flag_and_continues_queue`、`lock_session_recovers_poisoned_session_lock`）在实仓 `zircon_hub/src/tauri_app/runtime_state/action_tasks.rs` 测试区（434-632 行仅有 `background_action_status_*`/`background_actions_queue_*` 等 7 个旧口径测试）中**全部缺失**——`execute_background_task`/`run_background_worker_loop`/`lock_session`/panic 路径目前没有任何直接单测覆盖。框架代码已上线但其失败/panic/poisoned 分支属未验证状态，这是本计划关闭前最重要的剩余工作，建议补齐后再改状态。

@@ -1,0 +1,6 @@
+{
+  "name": "woc_archetype_tests",
+  "source": "src",
+  "binary": "bin-archetype-tests",
+  "entry": "progression/archetype_test_main"
+}

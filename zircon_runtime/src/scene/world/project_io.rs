@@ -23,6 +23,7 @@ use crate::core::resource::{
     AnimationStateMachineMarker, PhysicsMaterialMarker, ResourceHandle, ResourceId,
     ResourceLocator, ResourceMarker, ResourceScheme, TextureMarker,
 };
+use crate::foundation::persistence::atomic_write;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -90,6 +91,12 @@ pub enum SceneProjectError {
 struct ProjectDocument {
     format_version: u32,
     world: World,
+}
+
+#[derive(Serialize)]
+struct ProjectDocumentRef<'world> {
+    format_version: u32,
+    world: &'world World,
 }
 
 impl World {
@@ -642,18 +649,26 @@ impl World {
         Ok(SceneAsset { entities })
     }
 
+    pub fn save_scene_to_project(
+        &self,
+        project: &ProjectManager,
+        uri: &ResourceLocator,
+    ) -> Result<(), SceneProjectError> {
+        let scene = self.to_scene_asset(project)?;
+        let path = project.existing_or_primary_project_source_path_for_uri(uri)?;
+        let document = scene
+            .to_project_toml_string(|reference| project.persist_runtime_reference(reference))?;
+        atomic_write(&path, document.as_bytes())?;
+        Ok(())
+    }
+
     pub fn save_project_to_path(&self, path: impl AsRef<Path>) -> Result<(), SceneProjectError> {
         let path = path.as_ref();
-        if let Some(parent) = path.parent() {
-            if !parent.as_os_str().is_empty() {
-                fs::create_dir_all(parent)?;
-            }
-        }
-        let document = ProjectDocument {
+        let document = ProjectDocumentRef {
             format_version: PROJECT_FORMAT_VERSION,
-            world: self.clone(),
+            world: self,
         };
-        fs::write(path, serde_json::to_string_pretty(&document)?)?;
+        atomic_write(path, serde_json::to_string_pretty(&document)?.as_bytes())?;
         Ok(())
     }
 
@@ -704,6 +719,7 @@ impl World {
                 self.kinds.insert(*entity, kind);
             }
         }
+        self.rebuild_node_kind_ordinals();
         self.next_id = self.entities.iter().copied().max().unwrap_or(0) + 1;
         if ensure_default_nodes && self.cameras.is_empty() {
             self.spawn_node(NodeKind::Camera);
@@ -714,7 +730,8 @@ impl World {
         if ensure_default_nodes && self.directional_lights.is_empty() {
             self.spawn_node(NodeKind::DirectionalLight);
         }
-        for entity in self.entities.iter().copied().collect::<Vec<_>>() {
+        for entity_index in 0..self.entities.len() {
+            let entity = self.entities[entity_index];
             self.active_self.entry(entity).or_default();
             self.render_layer_masks.entry(entity).or_default();
             self.mobility.entry(entity).or_default();

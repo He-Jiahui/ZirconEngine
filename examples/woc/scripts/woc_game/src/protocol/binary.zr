@@ -1,0 +1,563 @@
+var container = %import("zr.container");
+
+pub class TickInput {
+    pub var tick: uint;
+    pub var generation: uint;
+    pub var committedStateDigest: uint;
+    pub var committedState: container.Array<uint>;
+    pub var commandCount: int;
+    pub var commandIds: container.Array<uint>;
+    pub var commandActorIds: container.Array<uint>;
+    pub var commandActorGenerations: container.Array<uint>;
+    pub var commandSequences: container.Array<uint>;
+    pub var commandPayloadOffsets: container.Array<uint>;
+    pub var commandPayloadLengths: container.Array<uint>;
+    pub var commandPayloadBytes: container.Array<uint>;
+    pub var movementFrameCount: int;
+    pub var movementActorIds: container.Array<uint>;
+    pub var movementActorGenerations: container.Array<uint>;
+    pub var movementSequences: container.Array<uint>;
+    pub var movementForward: container.Array<bool>;
+    pub var movementBack: container.Array<bool>;
+    pub var movementTurnLeft: container.Array<bool>;
+    pub var movementTurnRight: container.Array<bool>;
+    pub var movementStrafeLeft: container.Array<bool>;
+    pub var movementStrafeRight: container.Array<bool>;
+    pub var movementJump: container.Array<bool>;
+    pub var movementFacingPresent: container.Array<bool>;
+    pub var movementFacing: container.Array<float>;
+    pub var offlineBootstrap: container.Array<uint>;
+
+    pub @constructor() {
+        this.tick = <uint>0;
+        this.generation = <uint>0;
+        this.committedStateDigest = <uint>0;
+        this.committedState = new container.Array<uint>();
+        this.commandCount = 0;
+        this.commandIds = new container.Array<uint>();
+        this.commandActorIds = new container.Array<uint>();
+        this.commandActorGenerations = new container.Array<uint>();
+        this.commandSequences = new container.Array<uint>();
+        this.commandPayloadOffsets = new container.Array<uint>();
+        this.commandPayloadLengths = new container.Array<uint>();
+        this.commandPayloadBytes = new container.Array<uint>();
+        this.movementFrameCount = 0;
+        this.movementActorIds = new container.Array<uint>();
+        this.movementActorGenerations = new container.Array<uint>();
+        this.movementSequences = new container.Array<uint>();
+        this.movementForward = new container.Array<bool>();
+        this.movementBack = new container.Array<bool>();
+        this.movementTurnLeft = new container.Array<bool>();
+        this.movementTurnRight = new container.Array<bool>();
+        this.movementStrafeLeft = new container.Array<bool>();
+        this.movementStrafeRight = new container.Array<bool>();
+        this.movementJump = new container.Array<bool>();
+        this.movementFacingPresent = new container.Array<bool>();
+        this.movementFacing = new container.Array<float>();
+        this.offlineBootstrap = new container.Array<uint>();
+    }
+}
+
+class ByteReader {
+    pri var bytes: container.Array<uint>;
+    pri var offset: int;
+    pri var byteLength: int;
+
+    pub @constructor(source: container.Array<uint>) {
+        this.bytes = new container.Array<uint>();
+        var target = this.bytes;
+        for (var value in source) {
+            target.add(<uint>value);
+        }
+        this.offset = 0;
+        this.byteLength = target.length;
+    }
+
+    pub readByte(width: int): uint {
+        var source = this.bytes;
+        if (width != 1 || this.offset < 0 || this.offset >= source.length) {
+            throw "woc payload is truncated";
+        }
+        var value: uint = <uint>source[this.offset];
+        if (value > <uint>255) {
+            throw "woc byte value exceeds 255";
+        }
+        this.offset = this.offset + 1;
+        return value;
+    }
+
+    pub readBool(width: int): bool {
+        var value = this.readByte(width);
+        if (value == <uint>0) {
+            return false;
+        }
+        if (value == <uint>1) {
+            return true;
+        }
+        throw "woc boolean byte is invalid";
+    }
+
+    pub readU16(lowBytes: int, highBytes: int): uint {
+        if (lowBytes != 1 || highBytes != 1) {
+            throw "woc u16 layout is invalid";
+        }
+        var value = this.readByte(1);
+        value = value + this.readByte(1) * <uint>256;
+        return value;
+    }
+
+    pub readU32(a: int, b: int, c: int): uint {
+        if (a != 1 || b != 1 || c != 2) {
+            throw "woc u32 layout is invalid";
+        }
+        var value = this.readU16(1, 1);
+        value = value + this.readU16(1, 1) * <uint>65536;
+        return value;
+    }
+
+    pub readU64(a: int, b: int, c: int, d: int): uint {
+        if (a != 1 || b != 1 || c != 2 || d != 4) {
+            throw "woc u64 layout is invalid";
+        }
+        var value = this.readU32(1, 1, 2);
+        value = value + this.readU32(1, 1, 2) * <uint>4294967296;
+        return value;
+    }
+
+    pub readF64(a: int, b: int, c: int, d: int, e: int): float {
+        if (a != 1 || b != 1 || c != 2 || d != 4 || e != 8) {
+            throw "woc f64 layout is invalid";
+        }
+        var bits = this.readU64(1, 1, 2, 4);
+        var sign = ((bits >> 63) & <uint>1) == <uint>0 ? 1.0 : -1.0;
+        var exponent = <int>((bits >> 52) & <uint>2047);
+        var mantissa = bits & <uint>4503599627370495;
+        if (exponent == 2047) {
+            throw "woc f64 must be finite";
+        }
+        if (exponent == 0) {
+            if (mantissa == <uint>0) {
+                return sign < 0.0 ? -0.0 : 0.0;
+            }
+            return sign * <float>mantissa * this.powerOfTwo(-1074, true);
+        }
+        var fraction = <float>mantissa / 4503599627370496.0;
+        return sign * (1.0 + fraction) * this.powerOfTwo(exponent - 1023, true);
+    }
+
+    pub powerOfTwo(exponent: int, required: bool): float {
+        if (!required || exponent < -1074 || exponent > 1023) {
+            throw "woc f64 exponent is invalid";
+        }
+        var value = 1.0;
+        var remaining = exponent;
+        while (remaining > 0) {
+            value = value * 2.0;
+            remaining = remaining - 1;
+        }
+        while (remaining < 0) {
+            value = value / 2.0;
+            remaining = remaining + 1;
+        }
+        return value;
+    }
+
+    pub readBytes(
+        maxLength: uint,
+        a: int,
+        b: int,
+        c: int,
+        d: int,
+        e: int
+    ): container.Array<uint> {
+        if (a != 1 || b != 1 || c != 2 || d != 4 || e != 8) {
+            throw "woc byte field layout is invalid";
+        }
+        var length: uint = this.readU32(1, 1, 2);
+        if (length > maxLength) {
+            throw "woc byte field exceeds contract limit";
+        }
+        if (length > <uint>2147483647) {
+            throw "woc byte field does not fit container length";
+        }
+        if (this.offset > this.byteLength - <int>length) {
+            throw "woc payload is truncated";
+        }
+        var result = new container.Array<uint>();
+        var index = 0;
+        while (index < <int>length) {
+            result.add(this.readByte(1));
+            index = index + 1;
+        }
+        return result;
+    }
+
+    pub finish(required: bool, a: int, b: int, c: int, d: int): void {
+        if (!required || a != 1 || b != 1 || c != 2 || d != 4 ||
+            this.offset != this.byteLength) {
+            throw "woc payload contains trailing bytes";
+        }
+    }
+}
+
+// Command payloads are concatenated in a shared byte column. Expose the
+// existing finite f64 decoder at an explicit byte offset so reducers do not
+// need a second floating-point wire implementation.
+pub readF64LeAt(
+    source: container.Array<uint>, offset: uint, width: uint
+): float {
+    if (width != <uint>8 || offset > <uint>source.length ||
+        width > <uint>source.length - offset) {
+        throw "woc f64 payload range is invalid";
+    }
+    var reader = new ByteReader(source);
+    var skipped: uint = <uint>0;
+    while (skipped < offset) {
+        reader.readByte(1);
+        skipped = skipped + <uint>1;
+    }
+    return reader.readF64(1, 1, 2, 4, 8);
+}
+
+class ByteWriter {
+    pri var bytes: container.Array<uint>;
+
+    pub @constructor() {
+        this.bytes = new container.Array<uint>();
+    }
+
+    pub writeByte(value: uint, width: int): void {
+        if (width != 1 || value > <uint>255) {
+            throw "woc byte value exceeds 255";
+        }
+        var target = this.bytes;
+        target.add(value);
+    }
+
+    pub writeU16(value: uint, lowBytes: int, highBytes: int): void {
+        if (lowBytes != 1 || highBytes != 1) {
+            throw "woc u16 layout is invalid";
+        }
+        this.writeByte(value & <uint>255, 1);
+        this.writeByte((value >> 8) & <uint>255, 1);
+    }
+
+    pub writeU32(value: uint, a: int, b: int, c: int): void {
+        if (a != 1 || b != 1 || c != 2) {
+            throw "woc u32 layout is invalid";
+        }
+        this.writeU16(value & <uint>65535, 1, 1);
+        this.writeU16((value >> 16) & <uint>65535, 1, 1);
+    }
+
+    pub writeU64(value: uint, a: int, b: int, c: int, d: int): void {
+        if (a != 1 || b != 1 || c != 2 || d != 4) {
+            throw "woc u64 layout is invalid";
+        }
+        this.writeU32(value & <uint>4294967295, 1, 1, 2);
+        this.writeU32(value >> 32, 1, 1, 2);
+    }
+
+    pub writeBytes(
+        value: container.Array<uint>,
+        maxLength: uint,
+        a: int,
+        b: int,
+        c: int,
+        d: int
+    ): void {
+        if (a != 1 || b != 1 || c != 2 || d != 4 || <uint>value.length > maxLength) {
+            throw "woc byte field exceeds contract limit";
+        }
+        this.writeU32(<uint>value.length, 1, 1, 2);
+        for (var item in value) {
+            this.writeByte(<uint>item, 1);
+        }
+    }
+
+    pub finish(required: bool): container.Array<uint> {
+        if (!required) {
+            throw "woc byte writer was not finalized";
+        }
+        var copy = new container.Array<uint>();
+        var source = this.bytes;
+        for (var value in source) {
+            copy.add(<uint>value);
+        }
+        return copy;
+    }
+}
+
+decodeFixedTickInputLocal(bytes: container.Array<uint>, marker: int): TickInput {
+    if (marker != 1) {
+        throw "woc fixed tick decoder marker is invalid";
+    }
+    var contracts = %import("generated/contracts");
+    var commands = %import("protocol/commands");
+    if (<uint>bytes.length > <uint>contracts.limitFramePayloadBytes()) {
+        throw "woc fixed tick payload exceeds frame limit";
+    }
+    var reader = new ByteReader(bytes);
+    var input = new TickInput();
+    input.tick = reader.readU64(1, 1, 2, 4);
+    var commandCount: uint = reader.readU32(1, 1, 2);
+    if (commandCount > <uint>contracts.fieldFixedTickInputCommandsMaxLength()) {
+        throw "woc command batch exceeds contract limit";
+    }
+    var commandIds = input.commandIds;
+    var commandActorIds = input.commandActorIds;
+    var commandActorGenerations = input.commandActorGenerations;
+    var commandSequences = input.commandSequences;
+    var commandPayloadOffsets = input.commandPayloadOffsets;
+    var commandPayloadLengths = input.commandPayloadLengths;
+    var commandPayloadBytes = input.commandPayloadBytes;
+    var commandIndex: uint = <uint>0;
+    while (commandIndex < commandCount) {
+        var commandId = reader.readU16(1, 1);
+        if (!commands.isKnown(commandId)) {
+            throw "woc command id is unknown";
+        }
+        commandIds.add(commandId);
+        commandActorIds.add(reader.readU64(1, 1, 2, 4));
+        commandActorGenerations.add(reader.readU32(1, 1, 2));
+        commandSequences.add(reader.readU32(1, 1, 2));
+        var payload = reader.readBytes(
+            <uint>contracts.fieldCommandPayloadMaxLength(), 1, 1, 2, 4, 8
+        );
+        commandPayloadOffsets.add(<uint>commandPayloadBytes.length);
+        commandPayloadLengths.add(<uint>payload.length);
+        for (var byte in payload) {
+            commandPayloadBytes.add(<uint>byte);
+        }
+        commandIndex = commandIndex + <uint>1;
+    }
+    var wallTimeForbidden = reader.readByte(1);
+    if (wallTimeForbidden != <uint>1) {
+        throw "woc fixed tick must forbid wall time";
+    }
+    input.committedState = reader.readBytes(
+        <uint>contracts.fieldFixedTickInputCommittedStateMaxLength(), 1, 1, 2, 4, 8
+    );
+    input.committedStateDigest = reader.readU32(1, 1, 2);
+    input.generation = reader.readU64(1, 1, 2, 4);
+    var movementCount: uint = reader.readU32(1, 1, 2);
+    if (movementCount > <uint>contracts.fieldFixedTickInputMovementFramesMaxLength()) {
+        throw "woc movement frame batch exceeds contract limit";
+    }
+    var movementActorIds = input.movementActorIds;
+    var movementActorGenerations = input.movementActorGenerations;
+    var movementSequences = input.movementSequences;
+    var movementForward = input.movementForward;
+    var movementBack = input.movementBack;
+    var movementTurnLeft = input.movementTurnLeft;
+    var movementTurnRight = input.movementTurnRight;
+    var movementStrafeLeft = input.movementStrafeLeft;
+    var movementStrafeRight = input.movementStrafeRight;
+    var movementJump = input.movementJump;
+    var movementFacingPresent = input.movementFacingPresent;
+    var movementFacing = input.movementFacing;
+    var previousActorId: uint = <uint>0;
+    var previousActorGeneration: uint = <uint>0;
+    var movementIndex: uint = <uint>0;
+    while (movementIndex < movementCount) {
+        var actorId = reader.readU64(1, 1, 2, 4);
+        var actorGeneration = reader.readU32(1, 1, 2);
+        var sequence = reader.readU32(1, 1, 2);
+        if (actorId == <uint>0 || sequence == <uint>0 ||
+            (movementIndex > <uint>0 &&
+                (actorId < previousActorId ||
+                    (actorId == previousActorId && actorGeneration <= previousActorGeneration)))) {
+            throw "woc movement frame identity or order is invalid";
+        }
+        movementActorIds.add(actorId);
+        movementActorGenerations.add(actorGeneration);
+        movementSequences.add(sequence);
+        movementForward.add(reader.readBool(1));
+        movementBack.add(reader.readBool(1));
+        movementTurnLeft.add(reader.readBool(1));
+        movementTurnRight.add(reader.readBool(1));
+        movementStrafeLeft.add(reader.readBool(1));
+        movementStrafeRight.add(reader.readBool(1));
+        movementJump.add(reader.readBool(1));
+        var hasFacing = reader.readBool(1);
+        var facing = reader.readF64(1, 1, 2, 4, 8);
+        if ((hasFacing && (facing < -1000.0 || facing > 1000.0)) ||
+            (!hasFacing && facing != 0.0)) {
+            throw "woc movement facing is invalid";
+        }
+        movementFacingPresent.add(hasFacing);
+        movementFacing.add(facing);
+        previousActorId = actorId;
+        previousActorGeneration = actorGeneration;
+        movementIndex = movementIndex + <uint>1;
+    }
+    input.commandCount = <int>commandCount;
+    input.movementFrameCount = <int>movementCount;
+    input.offlineBootstrap = reader.readBytes(
+        <uint>contracts.fieldFixedTickInputOfflineBootstrapMaxLength(), 1, 1, 2, 4, 8
+    );
+    reader.finish(true, 1, 1, 2, 4);
+    return input;
+}
+
+pub decodeFixedTickInput(bytes: container.Array<uint>): TickInput {
+    return decodeFixedTickInputLocal(bytes, 1);
+}
+
+encodeWorldSnapshotLocal(
+    input: TickInput,
+    state: container.Array<uint>,
+    stateDigest: uint
+): container.Array<uint> {
+    var contracts = %import("generated/contracts");
+    var writer = new ByteWriter();
+    writer.writeU64(input.tick, 1, 1, 2, 4);
+    writer.writeU32(stateDigest, 1, 1, 2);
+    writer.writeU32(<uint>2166136261, 1, 1, 2);
+    writer.writeBytes(state, <uint>contracts.fieldWorldSnapshotStateMaxLength(), 1, 1, 2, 4);
+    writer.writeU32(<uint>0, 1, 1, 2);
+    return writer.finish(true);
+}
+
+pub encodeWorldSnapshot(
+    input: TickInput,
+    state: container.Array<uint>,
+    stateDigest: uint
+): container.Array<uint> {
+    return encodeWorldSnapshotLocal(input, state, stateDigest);
+}
+
+pub selfTest(): int {
+    var inputWriter = new ByteWriter();
+    inputWriter.writeU64(<uint>7, 1, 1, 2, 4);
+    inputWriter.writeU32(<uint>1, 1, 1, 2);
+    inputWriter.writeU16(<uint>42, 1, 1);
+    inputWriter.writeU64(<uint>9, 1, 1, 2, 4);
+    inputWriter.writeU32(<uint>3, 1, 1, 2);
+    inputWriter.writeU32(<uint>6, 1, 1, 2);
+    var commandPayload = new container.Array<uint>();
+    commandPayload.add(<uint>9);
+    commandPayload.add(<uint>8);
+    inputWriter.writeBytes(commandPayload, <uint>16, 1, 1, 2, 4);
+    inputWriter.writeByte(<uint>1, 1);
+    var committed = new container.Array<uint>();
+    committed.add(<uint>10);
+    committed.add(<uint>20);
+    committed.add(<uint>30);
+    var directReader = new ByteReader(committed);
+    if (directReader.readByte(1) != <uint>10) {
+        return -70;
+    }
+    inputWriter.writeBytes(committed, <uint>16, 1, 1, 2, 4);
+    inputWriter.writeU32(<uint>3650832939, 1, 1, 2);
+    inputWriter.writeU64(<uint>2, 1, 1, 2, 4);
+    inputWriter.writeU32(<uint>0, 1, 1, 2);
+    inputWriter.writeU32(<uint>0, 1, 1, 2);
+    var inputBytes = inputWriter.finish(true);
+    if (inputBytes.length != 64) {
+        return -10 - inputBytes.length;
+    }
+    if (<uint>inputBytes[0] != <uint>7 || <uint>inputBytes[63] != <uint>0) {
+        return -60;
+    }
+    var probe = new ByteReader(inputBytes);
+    if (probe.readByte(1) != <uint>7) {
+        return -50;
+    }
+    var decoded = decodeFixedTickInputLocal(inputBytes, 1);
+    if (decoded.tick != <uint>7 || decoded.generation != <uint>2 ||
+        decoded.commandCount != 1 || decoded.movementFrameCount != 0 ||
+        decoded.committedStateDigest != <uint>3650832939 ||
+        decoded.committedState.length != 3 ||
+        decoded.offlineBootstrap.length != 0 ||
+        <uint>decoded.committedState[0] != <uint>10 ||
+        <uint>decoded.committedState[1] != <uint>20 ||
+        <uint>decoded.committedState[2] != <uint>30) {
+        return -1;
+    }
+    if (decoded.commandIds.length != 1 || <uint>decoded.commandIds[0] != <uint>42 ||
+        <uint>decoded.commandActorIds[0] != <uint>9 ||
+        <uint>decoded.commandActorGenerations[0] != <uint>3 ||
+        <uint>decoded.commandSequences[0] != <uint>6 ||
+        <uint>decoded.commandPayloadOffsets[0] != <uint>0 ||
+        <uint>decoded.commandPayloadLengths[0] != <uint>2 ||
+        decoded.commandPayloadBytes.length != 2 ||
+        <uint>decoded.commandPayloadBytes[0] != <uint>9 ||
+        <uint>decoded.commandPayloadBytes[1] != <uint>8) {
+        return -4;
+    }
+
+    var half = new container.Array<uint>();
+    half.add(<uint>0);
+    half.add(<uint>0);
+    half.add(<uint>0);
+    half.add(<uint>0);
+    half.add(<uint>0);
+    half.add(<uint>0);
+    half.add(<uint>224);
+    half.add(<uint>63);
+    var halfReader = new ByteReader(half);
+    var halfValue = halfReader.readF64(1, 1, 2, 4, 8);
+    halfReader.finish(true, 1, 1, 2, 4);
+    if (halfValue < 0.499999 || halfValue > 0.500001) {
+        return -8;
+    }
+
+    var movementWriter = new ByteWriter();
+    movementWriter.writeU64(<uint>8, 1, 1, 2, 4);
+    movementWriter.writeU32(<uint>0, 1, 1, 2);
+    movementWriter.writeByte(<uint>1, 1);
+    var emptyState = new container.Array<uint>();
+    movementWriter.writeBytes(emptyState, <uint>16, 1, 1, 2, 4);
+    movementWriter.writeU32(<uint>99, 1, 1, 2);
+    movementWriter.writeU64(<uint>3, 1, 1, 2, 4);
+    movementWriter.writeU32(<uint>1, 1, 1, 2);
+    movementWriter.writeU64(<uint>13, 1, 1, 2, 4);
+    movementWriter.writeU32(<uint>2, 1, 1, 2);
+    movementWriter.writeU32(<uint>5, 1, 1, 2);
+    movementWriter.writeByte(<uint>1, 1);
+    movementWriter.writeByte(<uint>0, 1);
+    movementWriter.writeByte(<uint>0, 1);
+    movementWriter.writeByte(<uint>1, 1);
+    movementWriter.writeByte(<uint>0, 1);
+    movementWriter.writeByte(<uint>0, 1);
+    movementWriter.writeByte(<uint>1, 1);
+    movementWriter.writeByte(<uint>1, 1);
+    for (var byte in half) {
+        movementWriter.writeByte(<uint>byte, 1);
+    }
+    movementWriter.writeU32(<uint>0, 1, 1, 2);
+    var movementDecoded = decodeFixedTickInputLocal(movementWriter.finish(true), 1);
+    if (movementDecoded.tick != <uint>8 || movementDecoded.commandCount != 0 ||
+        movementDecoded.movementFrameCount != 1 ||
+        movementDecoded.movementActorIds.length != 1 ||
+        <uint>movementDecoded.movementActorIds[0] != <uint>13 ||
+        <uint>movementDecoded.movementActorGenerations[0] != <uint>2 ||
+        <uint>movementDecoded.movementSequences[0] != <uint>5 ||
+        !movementDecoded.movementForward[0] || movementDecoded.movementBack[0] ||
+        movementDecoded.movementTurnLeft[0] || !movementDecoded.movementTurnRight[0] ||
+        movementDecoded.movementStrafeLeft[0] || movementDecoded.movementStrafeRight[0] ||
+        !movementDecoded.movementJump[0] || !movementDecoded.movementFacingPresent[0] ||
+        movementDecoded.movementFacing[0] < 0.499999 ||
+        movementDecoded.movementFacing[0] > 0.500001) {
+        return -9;
+    }
+
+    var candidate = new container.Array<uint>();
+    candidate.add(<uint>40);
+    candidate.add(<uint>50);
+    var snapshot = encodeWorldSnapshotLocal(decoded, candidate, <uint>123456);
+    var reader = new ByteReader(snapshot);
+    if (reader.readU64(1, 1, 2, 4) != <uint>7 ||
+        reader.readU32(1, 1, 2) != <uint>123456 ||
+        reader.readU32(1, 1, 2) != <uint>2166136261) {
+        return -2;
+    }
+    var state = reader.readBytes(<uint>16, 1, 1, 2, 4, 8);
+    if (state.length != 2 || <uint>state[0] != <uint>40 || <uint>state[1] != <uint>50 ||
+        reader.readU32(1, 1, 2) != <uint>0) {
+        return -3;
+    }
+    reader.finish(true, 1, 1, 2, 4);
+    return 1;
+}

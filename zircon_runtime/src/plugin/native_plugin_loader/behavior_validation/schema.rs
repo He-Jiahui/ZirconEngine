@@ -1,12 +1,22 @@
 use crate::plugin::PluginModuleKind;
+use zircon_runtime_interface::SERIALIZED_EDITOR_CONTRIBUTION_BATCH_SCHEMA_V1;
 
 use super::super::abi_declarations::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3;
 use super::diagnostics::{invalid_diagnostic, module_kind_label, ValidationDiagnostic};
 
-pub const ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V3: &str = "zircon.native.command-manifest/3";
+pub const ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4: &str = "zircon.native.command-manifest/4";
 pub const ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3: &str = "zircon.native.event-manifest/3";
 pub const ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3: &str =
     "zircon.native.registration-manifest/3";
+
+pub(super) fn expected_registration_manifest_schema(module_kind: PluginModuleKind) -> &'static str {
+    match module_kind {
+        PluginModuleKind::Editor => SERIALIZED_EDITOR_CONTRIBUTION_BATCH_SCHEMA_V1,
+        PluginModuleKind::Runtime | PluginModuleKind::Native | PluginModuleKind::Vm => {
+            ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3
+        }
+    }
+}
 
 pub(super) fn validate_v3_schema(
     diagnostics: &mut Vec<ValidationDiagnostic>,

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_dungeon_door_clearance_tests",
+  "source": "src",
+  "binary": "bin-m3-dungeon-door-clearance-tests",
+  "entry": "world/dungeon_door_clearance_test_main"
+}

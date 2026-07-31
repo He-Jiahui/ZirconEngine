@@ -179,7 +179,7 @@ mod tests {
     };
     use zircon_runtime::core::framework::render::{
         render_mesh_stable_instance_key, render_mesh_transform_revision, RenderLayerSet,
-        RenderMeshStaticState,
+        RenderMeshStaticState, RendererCommon,
     };
     use zircon_runtime::core::math::{Transform, Vec3, Vec4};
     use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
@@ -206,9 +206,11 @@ mod tests {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: RenderMeshStaticState::from_transform_static(false),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                default_render_layer_mask(),
-            ),
+            common: RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+                is_static: false,
+                ..RendererCommon::default()
+            },
         };
         let mut load_model = |requested_id| (requested_id == model_id).then(|| model.clone());
 

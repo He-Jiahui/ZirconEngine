@@ -1,12 +1,12 @@
 use std::collections::BTreeSet;
 
-use zircon_runtime_interface::ui::surface::{normalize_ui_text_language_tag, UiResolvedStyle};
+use zircon_runtime_interface::ui::surface::{UiResolvedStyle, normalize_ui_text_language_tag};
 
 use crate::core::framework::text::TextFontFaceHandle;
 use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
-use crate::text::sdf::{sdf_scalar_requires_atlas_slot, SdfBakeParams};
+use crate::text::sdf::{SdfBakeParams, sdf_scalar_requires_atlas_slot};
 
 use super::SdfAtlasGlyphKey;
 

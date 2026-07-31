@@ -2,11 +2,7 @@ use crate::core::framework::project::ProjectPluginFeatureSelection;
 use crate::core::CoreError;
 use crate::plugin::{PluginFeatureBundleManifest, PluginPackageManifest};
 
-use super::bridge_dependencies::{
-    bridge_dependents_for_provider, bridge_disable_blockers_for_provider,
-    RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker,
-};
-use super::feature_definition_collection::feature_definition_map;
+use super::bridge_dependencies::{RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker};
 use super::{
     RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
@@ -20,11 +16,10 @@ impl RuntimePluginCatalog {
         &self.feature_registrations
     }
 
-    pub fn package_manifests(&self) -> Vec<PluginPackageManifest> {
+    pub fn package_manifests(&self) -> impl ExactSizeIterator<Item = &PluginPackageManifest> + '_ {
         self.registrations
             .iter()
-            .map(|registration| registration.package_manifest.clone())
-            .collect()
+            .map(|registration| &registration.package_manifest)
     }
 
     pub fn feature_manifest_for_selection(
@@ -32,7 +27,8 @@ impl RuntimePluginCatalog {
         owner_plugin_id: &str,
         selection: &ProjectPluginFeatureSelection,
     ) -> Option<PluginFeatureBundleManifest> {
-        feature_definition_map(&self.registrations, &self.feature_registrations)
+        self.projection
+            .feature_definitions()
             .definition_for_selection(owner_plugin_id, selection)
             .map(|definition| {
                 let mut manifest = definition.manifest.clone();
@@ -57,13 +53,35 @@ impl RuntimePluginCatalog {
         &self,
         provider_package_id: &str,
     ) -> Vec<RuntimePluginBridgeDependent> {
-        bridge_dependents_for_provider(&self.registrations, provider_package_id)
+        self.projection
+            .bridge_dependents_for_provider(provider_package_id)
+            .to_vec()
     }
 
     pub fn strong_bridge_disable_blockers(
         &self,
         provider_package_id: &str,
     ) -> Vec<RuntimePluginBridgeDisableBlocker> {
-        bridge_disable_blockers_for_provider(&self.registrations, provider_package_id)
+        self.projection
+            .bridge_dependents_for_provider(provider_package_id)
+            .iter()
+            .cloned()
+            .map(|dependent| RuntimePluginBridgeDisableBlocker {
+                provider_package_id: provider_package_id.to_string(),
+                dependent_package_id: dependent.package_id,
+                interface_ids: dependent.interface_ids,
+            })
+            .collect()
+    }
+
+    pub fn projection_metrics(&self) -> super::RuntimePluginCatalogProjectionMetrics {
+        self.projection.metrics()
+    }
+
+    #[cfg(test)]
+    pub(super) fn projection_stats(
+        &self,
+    ) -> super::derived_projection::RuntimePluginCatalogProjectionStats {
+        self.projection.stats()
     }
 }

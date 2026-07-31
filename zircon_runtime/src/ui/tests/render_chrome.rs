@@ -1,11 +1,99 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::{EditorDesignTokens, EditorTypographyTokens},
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn chrome_separator_parsing_does_not_allocate_lowercase_text() {
+    let source = include_str!("../surface/render/chrome.rs");
+
+    assert!(!source.contains("to_ascii_lowercase"));
+    assert!(source.contains("EditorDesignTokens"));
+    assert!(!source.contains("const SURFACE_RAISED"));
+    assert!(!source.contains("const FONT_SIZE"));
+}
+
+#[test]
+fn chrome_projects_shared_density_control_and_typography_metrics() {
+    let source = include_str!("../surface/render/chrome.rs");
+    for local_metric in [
+        "const TEXT_INSET_X",
+        "const TEXT_INSET_Y",
+        "const ICON_SIZE",
+        "const ICON_GAP",
+    ] {
+        assert!(
+            !source.contains(local_metric),
+            "Chrome geometry must derive from EditorDesignTokens, not {local_metric}"
+        );
+    }
+
+    let tokens = EditorDesignTokens::workbench_dark();
+    let horizontal_inset = tokens.density.gap_large - tokens.controls.border_width * 2.0;
+    let vertical_inset = tokens.density.gap_medium - tokens.controls.border_width;
+    let icon_size = tokens.controls.dense_height - tokens.density.gap_large;
+    let icon_gap = tokens.density.gap_medium - tokens.controls.border_width * 2.0;
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.chrome.metrics"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 240.0, 48.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "TopToolbar",
+        UiFrame::new(0.0, 0.0, 240.0, 48.0),
+        r##"
+label = "Scene"
+icon = "folder"
+separator_edge = "bottom"
+"##,
+        visible_state(),
+    );
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let icon = commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.kind == UiRenderCommandKind::Image
+        })
+        .expect("toolbar icon command");
+    assert_eq!(
+        icon.frame,
+        UiFrame::new(
+            horizontal_inset,
+            (48.0 - icon_size) * 0.5,
+            icon_size,
+            icon_size,
+        )
+    );
+
+    let text = commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.kind == UiRenderCommandKind::Text
+        })
+        .expect("toolbar text command");
+    assert_eq!(text.frame.x, horizontal_inset + icon_size + icon_gap);
+    assert_eq!(text.frame.y, vertical_inset);
+    assert_eq!(text.style.font_size, tokens.typography.body_size);
+    assert_eq!(
+        text.style.line_height,
+        tokens.typography.body_size * tokens.typography.line_height
+    );
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(0.0, 47.0, 240.0, tokens.controls.border_width)
+    }));
+}
 
 #[test]
 fn render_extract_expands_workbench_chrome_surfaces() {
@@ -93,7 +181,7 @@ title = "Scene"
     let rail_surface = chrome_surface(commands, UiNodeId::new(3));
     assert_eq!(
         rail_surface.style.background_color.as_deref(),
-        Some("#1b2226")
+        Some("#1b1f23")
     );
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
@@ -111,7 +199,7 @@ title = "Scene"
     let viewport_surface = chrome_surface(commands, UiNodeId::new(5));
     assert_eq!(
         viewport_surface.style.background_color.as_deref(),
-        Some("#0b1115")
+        Some("#0f1316")
     );
     assert_eq!(viewport_surface.style.border_width, 0.0);
 }
@@ -203,14 +291,15 @@ selected_background_color = "#184c54"
     );
     assert_eq!(
         status_surface.style.background_color.as_deref(),
-        Some("#20262a")
+        Some("#1b1f23")
     );
     assert!(surface.render_extract.list.commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Text
             && command.style.painter_family == UiPainterFamily::Chrome
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
+            && command.style.font_size == EditorTypographyTokens::WORKBENCH_BODY_SIZE
     }));
 }
 

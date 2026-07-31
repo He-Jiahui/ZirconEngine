@@ -10,6 +10,9 @@ from typing import Any
 from .path_resolve import resolve_stage_optional_path
 
 
+GENERATED_CONTENTS_ARTIFACT_FILE_NAME = "generated-contents.json"
+
+
 def validate_preflight_failure_report(
     *,
     args: argparse.Namespace,
@@ -50,6 +53,8 @@ def validate_command(
         args.profile,
         "--report",
         str(report_path),
+        "--contents-artifact",
+        str(stage_dir / GENERATED_CONTENTS_ARTIFACT_FILE_NAME),
         "--stage-output",
         str(stage_dir),
     ]

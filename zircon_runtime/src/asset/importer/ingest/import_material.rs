@@ -9,13 +9,14 @@ pub(crate) fn import_material(
         context.resolve_project_asset_ref(reference)
     })?;
     let material = MaterialAsset::from_zmaterial_document(material_document);
-    let mut outcome = AssetImportOutcome::new(
-        context.uri.clone(),
-        ImportedAsset::Material(material.clone()),
-    )
-    .with_dependency(material.shader.locator.clone());
+    let mut dependencies = vec![material.shader.locator.clone()];
     for (_, texture) in material.all_texture_slots() {
-        outcome = outcome.with_dependency(texture.locator.clone());
+        dependencies.push(texture.locator.clone());
+    }
+    let mut outcome =
+        AssetImportOutcome::new(context.uri.clone(), ImportedAsset::Material(material));
+    for dependency in dependencies {
+        outcome = outcome.with_dependency(dependency);
     }
     Ok(outcome.with_reference_repairs(context.reference_repairs()))
 }

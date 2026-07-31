@@ -1,4 +1,4 @@
-use super::super::super::{callback_dispatch, RetainedEditorHost, UiPoint};
+use super::super::super::{RetainedEditorHost, UiPoint, callback_dispatch};
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn asset_content_pointer_clicked(

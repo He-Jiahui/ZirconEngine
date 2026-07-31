@@ -49,15 +49,20 @@ fn button_content_metrics() -> WorkbenchButtonContentMetrics {
 
 pub(super) fn button_label_font_size(node: &TemplatePaneNodeData, rect: &FrameRect) -> f32 {
     let metrics = button_content_metrics();
+    if !rect.height.is_finite() || rect.height <= 0.0 {
+        return 0.0;
+    }
     if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size.min(rect.height.max(1.0))
+        node.font_size.min(rect.height)
     } else {
-        metrics.font_size
+        metrics.font_size.min(rect.height)
     }
 }
 
 pub(super) fn button_label_line_height(font_size: f32) -> f32 {
-    let font_size = font_size.max(1.0);
+    if !font_size.is_finite() || font_size <= 0.0 {
+        return 0.0;
+    }
     button_content_metrics()
         .line_height(font_size)
         .round()
@@ -92,9 +97,7 @@ pub(super) fn measured_label_ink_width(
 }
 
 pub(super) fn label_text_slot_width(ink_width: f32, max_width: f32) -> f32 {
-    (ink_width.max(0.0) + button_content_metrics().text_clip_guard)
-        .min(max_width.max(1.0))
-        .max(1.0)
+    (ink_width.max(0.0) + button_content_metrics().text_clip_guard).min(max_width.max(0.0))
 }
 
 pub(super) fn max_label_slot_width(node: &TemplatePaneNodeData, rect: &FrameRect) -> f32 {
@@ -106,7 +109,7 @@ pub(super) fn max_label_slot_width(node: &TemplatePaneNodeData, rect: &FrameRect
     } else {
         metrics.button_pad_x
     };
-    (rect.width - pad_x * 2.0).max(1.0)
+    (rect.width - pad_x * 2.0).max(0.0)
 }
 
 pub(super) fn button_icon_gap(node: &TemplatePaneNodeData) -> f32 {

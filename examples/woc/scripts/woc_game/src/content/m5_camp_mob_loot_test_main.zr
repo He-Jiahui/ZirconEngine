@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var loot = %import("generated/m5_camp_mob_loot");
+
+console.printLine("m5-camp-mob-loot-test");
+var result = loot.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

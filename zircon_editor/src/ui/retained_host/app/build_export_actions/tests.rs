@@ -163,12 +163,16 @@ fn desktop_export_job_snapshot_projects_stage_progress() {
 
     assert_eq!(target.status.as_str(), "Running");
     assert!(!target.fatal);
-    assert!(target
-        .diagnostics
-        .as_str()
-        .contains("Stage: 72% cargo-build"));
-    assert!(target
-        .diagnostics
-        .as_str()
-        .contains("Running generated SourceTemplate Cargo build"));
+    assert!(
+        target
+            .diagnostics
+            .as_str()
+            .contains("Stage: 72% cargo-build")
+    );
+    assert!(
+        target
+            .diagnostics
+            .as_str()
+            .contains("Running generated SourceTemplate Cargo build")
+    );
 }

@@ -3,7 +3,7 @@ use crate::core::framework::render::{
     RenderCaptureSource, RenderStats,
 };
 
-use super::{record_bool, record_count, DiagnosticStore};
+use super::{DiagnosticStore, record_bool, record_count};
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_camera_target_resolution(store, frame_index, stats);

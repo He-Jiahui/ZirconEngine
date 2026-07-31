@@ -1,0 +1,67 @@
+// Pure source-order projection from src/sim/dungeon_door_clearance.ts.
+// Callers use this before safe-position and ground-height resolution, so no
+// construction RNG is consumed while door clearance adjusts a spawn point.
+
+var math = %import("zr.zircon.math");
+var content = %import("world/dungeon_door_content");
+
+projectCoordinate(x: float, z: float, coordinate: int, required: bool): float {
+    if (!required || (coordinate != 1 && coordinate != 2)) {
+        throw "woc dungeon door projection coordinate is invalid";
+    }
+    var px = x;
+    var pz = z;
+    var index = 0;
+    while (index < content.dungeonDoorCount(true)) {
+        var doorX = content.dungeonDoorX(index, true);
+        var doorZ = content.dungeonDoorZ(index, true);
+        var dx = px - doorX;
+        var dz = pz - doorZ;
+        var distance = math.sqrt(dx * dx + dz * dz);
+        var radius = content.dungeonDoorClearRadius(true);
+        if (distance < radius) {
+            if (distance < 0.000001) {
+                px = doorX + radius;
+                pz = doorZ;
+            } else {
+                var scale = radius / distance;
+                px = doorX + dx * scale;
+                pz = doorZ + dz * scale;
+            }
+        }
+        index = index + 1;
+    }
+    return coordinate == 1 ? px : pz;
+}
+
+pub projectOutsideDungeonDoorsX(x: float, z: float, required: bool): float {
+    return projectCoordinate(x, z, 1, required);
+}
+
+pub projectOutsideDungeonDoorsZ(x: float, z: float, required: bool): float {
+    return projectCoordinate(x, z, 2, required);
+}
+
+pub contractTest(): int {
+    if (projectOutsideDungeonDoorsX(0.0, 0.0, true) != 0.0 ||
+        projectOutsideDungeonDoorsZ(0.0, 0.0, true) != 0.0) {
+        return -1;
+    }
+    if (projectOutsideDungeonDoorsX(80.0, 90.0, true) != 100.0 ||
+        projectOutsideDungeonDoorsZ(80.0, 90.0, true) != 90.0) {
+        return -2;
+    }
+    if (projectOutsideDungeonDoorsX(90.0, 90.0, true) != 100.0 ||
+        projectOutsideDungeonDoorsZ(90.0, 90.0, true) != 90.0) {
+        return -3;
+    }
+    if (projectOutsideDungeonDoorsX(100.0, 90.0, true) != 100.0 ||
+        projectOutsideDungeonDoorsZ(100.0, 90.0, true) != 90.0) {
+        return -4;
+    }
+    if (projectOutsideDungeonDoorsX(45.0, 505.0, true) != 45.0 ||
+        projectOutsideDungeonDoorsZ(45.0, 505.0, true) != 495.0) {
+        return -5;
+    }
+    return 1;
+}

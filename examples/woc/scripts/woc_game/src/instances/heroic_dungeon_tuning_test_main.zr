@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var tuning = %import("instances/heroic_dungeon_tuning");
+
+console.printLine("m7-heroic-dungeon-tuning-test");
+var result = tuning.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

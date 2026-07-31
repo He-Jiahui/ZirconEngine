@@ -1,12 +1,11 @@
 //! Runtime foundation services and shared process configuration.
 
 mod module;
+pub mod persistence;
 mod runtime;
 
-pub use module::{
-    module_descriptor, FoundationModule, CONFIG_DRIVER_NAME, EVENT_DRIVER_NAME,
-    FOUNDATION_MODULE_NAME,
-};
+pub use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;
+pub use module::{module_descriptor, FoundationModule, CONFIG_DRIVER_NAME, EVENT_DRIVER_NAME};
 pub use runtime::{ConfigDriver, DefaultConfigManager, DefaultEventManager, EventDriver};
 
 #[cfg(test)]

@@ -29,6 +29,7 @@ const EXPECTED_REPORT_KEYS: &[&str] = &[
     "platform.gamepad_events",
     "platform.gamepad_rumble",
     "platform.file_drag_drop",
+    "platform.persistent_preferences",
     "platform.linux_x11",
     "platform.linux_wayland",
 ];

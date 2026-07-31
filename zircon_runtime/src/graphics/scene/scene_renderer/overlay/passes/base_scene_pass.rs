@@ -9,17 +9,17 @@ use crate::graphics::scene::resources::{GpuTextureResource, ResourceStreamer};
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommand, MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats,
     MeshSceneDataBindHandle,
 };
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::scene::scene_renderer::sprite::{
-    build_sprite_vertices, SpriteRenderer, SpriteVertex,
+    SpriteRenderer, SpriteVertex, build_sprite_vertices,
 };
 use crate::graphics::scene::scene_renderer::transparent::{
-    build_transparent_submission_order, TransparentSubmissionSource,
+    TransparentSubmissionSource, build_transparent_submission_order,
 };
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
@@ -53,6 +53,13 @@ impl BaseScenePass {
     where
         I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
     {
+        if wire_only_load_store_can_skip(
+            frame.overlays().display_mode,
+            attachment_ops,
+            depth_attachment_ops,
+        ) {
+            return MeshDrawReplayStats::default();
+        }
         let forward_shadow_receiver_bind_group = mesh_pipelines.create_forward_shading_bind_group(
             device,
             frame,
@@ -145,6 +152,13 @@ impl BaseScenePass {
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> MeshDrawReplayStats {
+        if wire_only_load_store_can_skip(
+            frame.overlays().display_mode,
+            attachment_ops,
+            depth_attachment_ops,
+        ) {
+            return MeshDrawReplayStats::default();
+        }
         let submission_order = build_transparent_submission_order(
             mesh_draw_commands,
             &frame.extract.sprites.phase_queue,
@@ -251,6 +265,16 @@ impl BaseScenePass {
     }
 }
 
+fn wire_only_load_store_can_skip(
+    display_mode: DisplayMode,
+    color_ops: RenderGraphAttachmentOps,
+    depth_ops: RenderGraphAttachmentOps,
+) -> bool {
+    display_mode == DisplayMode::WireOnly
+        && color_ops == RenderGraphAttachmentOps::load_store()
+        && depth_ops == RenderGraphAttachmentOps::load_store()
+}
+
 struct PreparedTransparentSpriteDraw {
     sprite_index: usize,
     texture: Arc<GpuTextureResource>,
@@ -286,4 +310,64 @@ fn create_sprite_vertex_buffer(device: &wgpu::Device, vertices: &[SpriteVertex])
         contents: bytemuck::cast_slice(vertices),
         usage: wgpu::BufferUsages::VERTEX,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wire_only_skips_only_when_color_and_depth_preserve_contents() {
+        assert!(wire_only_load_store_can_skip(
+            DisplayMode::WireOnly,
+            RenderGraphAttachmentOps::load_store(),
+            RenderGraphAttachmentOps::load_store(),
+        ));
+        assert!(!wire_only_load_store_can_skip(
+            DisplayMode::WireOnly,
+            RenderGraphAttachmentOps::clear_store(),
+            RenderGraphAttachmentOps::load_store(),
+        ));
+        assert!(!wire_only_load_store_can_skip(
+            DisplayMode::WireOnly,
+            RenderGraphAttachmentOps::load_store(),
+            RenderGraphAttachmentOps::clear_store(),
+        ));
+        assert!(!wire_only_load_store_can_skip(
+            DisplayMode::Shaded,
+            RenderGraphAttachmentOps::load_store(),
+            RenderGraphAttachmentOps::load_store(),
+        ));
+    }
+
+    #[test]
+    fn wire_only_guards_precede_binding_and_sprite_preparation() {
+        let source = include_str!("base_scene_pass.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("base scene implementation");
+        let opaque = implementation
+            .split("pub(crate) fn record_commands_with_attachment_ops")
+            .nth(1)
+            .expect("opaque base scene function")
+            .split("pub(crate) fn record_transparent_mixed_with_attachment_ops")
+            .next()
+            .expect("opaque base scene body");
+        let transparent = implementation
+            .split("pub(crate) fn record_transparent_mixed_with_attachment_ops")
+            .nth(1)
+            .expect("transparent base scene function");
+
+        assert!(
+            opaque.find("wire_only_load_store_can_skip").unwrap()
+                < opaque.find("create_forward_shading_bind_group").unwrap()
+        );
+        assert!(
+            transparent.find("wire_only_load_store_can_skip").unwrap()
+                < transparent
+                    .find("build_transparent_submission_order")
+                    .unwrap()
+        );
+    }
 }

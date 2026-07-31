@@ -67,7 +67,7 @@ fn sample_user_lut(color: vec3<f32>) -> vec3<f32> {
 }
 
 fn apply_tonemap(color: vec3<f32>) -> vec3<f32> {
-    let exposure = exp2(params.tonemap_lut.x);
+    let exposure = exp2(params.tonemap_lut.x) * max(exposure_buffer[0].x, 0.0);
     let white_point = max(params.tonemap_lut.y, 0.001);
     var mapped = max(color * exposure, vec3<f32>(0.0));
     if (params.lut_size_and_flags.z == 1u) {
@@ -98,7 +98,7 @@ fn apply_tonemap(color: vec3<f32>) -> vec3<f32> {
 }
 
 fn apply_color_grading(color: vec3<f32>) -> vec3<f32> {
-    let exposure = params.grading.x * max(exposure_buffer[0].x, 0.0);
+    let exposure = params.grading.x;
     let contrast = params.grading.y;
     let saturation = params.grading.z;
     let gamma = params.grading.w;

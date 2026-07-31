@@ -1,0 +1,115 @@
+var console = %import("zr.system.console");
+var serviceModule = %import("social/card_duel_service");
+
+highestHeld(state: serviceModule.CardDuelService, pid: uint): uint {
+    var highest: uint = <uint>0;
+    var index = 0;
+    while (index < serviceModule.handCount(state, pid)) {
+        var value = serviceModule.heldCardAt(state, pid, index);
+        if (value > highest) highest = value;
+        index = index + 1;
+    }
+    return highest;
+}
+
+lowestHeld(state: serviceModule.CardDuelService, pid: uint): uint {
+    var lowest: uint = <uint>0;
+    var index = 0;
+    while (index < serviceModule.handCount(state, pid)) {
+        var value = serviceModule.heldCardAt(state, pid, index);
+        if (lowest == <uint>0 || value < lowest) lowest = value;
+        index = index + 1;
+    }
+    return lowest;
+}
+
+serviceLifecycleTest(): int {
+    var state = new serviceModule.CardDuelService(<uint>1010);
+    serviceModule.upsertPlayer(state, <uint>1, true, true);
+    if (serviceModule.joinQueue(state, <uint>1) != -4) return -1;
+
+    serviceModule.upsertPlayer(state, <uint>2, true, false);
+    if (serviceModule.joinQueue(state, <uint>1) != 1 ||
+        serviceModule.joinQueue(state, <uint>2) != -3) {
+        return -2;
+    }
+    serviceModule.upsertPlayer(state, <uint>2, true, true);
+    if (serviceModule.joinQueue(state, <uint>2) != 1) return -3;
+    serviceModule.update(state, 0.0);
+    if (!serviceModule.inMatch(state, <uint>1) || !serviceModule.inMatch(state, <uint>2) ||
+        serviceModule.queueSize(state) != 0) {
+        return -4;
+    }
+
+    // The source only credits a forfeit after a side has earned a round.
+    if (serviceModule.handCount(state, <uint>1) != 4 ||
+        serviceModule.handCount(state, <uint>2) != 4) return -5;
+    var guard = 0;
+    while (serviceModule.myRounds(state, <uint>1) == 0 &&
+        serviceModule.myRounds(state, <uint>2) == 0 && guard < 20) {
+        var aCard = highestHeld(state, <uint>1);
+        var bCard = lowestHeld(state, <uint>2);
+        if (aCard == <uint>0 || bCard == <uint>0 ||
+            serviceModule.play(state, <uint>1, aCard, 0.0) != 1 ||
+            serviceModule.play(state, <uint>2, bCard, 0.0) != 1) {
+            return -6;
+        }
+        guard = guard + 1;
+    }
+    var winner = serviceModule.myRounds(state, <uint>1) > 0 ? <uint>1 : <uint>2;
+    var forfeiter = winner == <uint>1 ? <uint>2 : <uint>1;
+    if (guard == 20 || serviceModule.forfeit(state, forfeiter) != 1 ||
+        serviceModule.inMatch(state, <uint>1) ||
+        serviceModule.wins(state, winner) != 1 ||
+        serviceModule.wins(state, forfeiter) != 0) {
+        return -6;
+    }
+    return 1;
+}
+
+serviceStaleAndDeadlineTest(): int {
+    var stale = new serviceModule.CardDuelService(<uint>1010);
+    serviceModule.upsertPlayer(stale, <uint>1, true, true);
+    serviceModule.upsertPlayer(stale, <uint>2, true, true);
+    if (serviceModule.joinQueue(stale, <uint>1) != 1 ||
+        serviceModule.joinQueue(stale, <uint>2) != 1) {
+        return -1;
+    }
+    serviceModule.upsertPlayer(stale, <uint>1, false, false);
+    serviceModule.update(stale, 0.0);
+    if (serviceModule.inMatch(stale, <uint>1) || serviceModule.inMatch(stale, <uint>2) ||
+        serviceModule.queueSize(stale) != 1 || !serviceModule.queued(stale, <uint>2)) {
+        return -2;
+    }
+
+    var idle = new serviceModule.CardDuelService(<uint>1010);
+    serviceModule.upsertPlayer(idle, <uint>1, true, true);
+    serviceModule.upsertPlayer(idle, <uint>2, true, true);
+    if (serviceModule.joinQueue(idle, <uint>1) != 1 ||
+        serviceModule.joinQueue(idle, <uint>2) != 1) {
+        return -3;
+    }
+    serviceModule.update(idle, 0.0);
+    var deadline = serviceModule.roundDeadlineFor(idle, <uint>1);
+    if (deadline != 90.0) return -4;
+    serviceModule.update(idle, deadline);
+    if (serviceModule.inMatch(idle, <uint>1) || serviceModule.inMatch(idle, <uint>2) ||
+        serviceModule.wins(idle, <uint>1) != 0 || serviceModule.wins(idle, <uint>2) != 0 ||
+        !serviceModule.lastMatchVoided(idle)) {
+        return -5;
+    }
+    return 1;
+}
+
+contractTest(): int {
+    var result = serviceLifecycleTest();
+    if (result != 1) return -100 + result;
+    result = serviceStaleAndDeadlineTest();
+    if (result != 1) return -200 + result;
+    return 1;
+}
+
+console.printLine("card-duel-service-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

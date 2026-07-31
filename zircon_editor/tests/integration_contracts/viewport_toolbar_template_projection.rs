@@ -27,10 +27,13 @@ fn viewport_toolbar_template_projects_surface_backed_group_frames() {
         .expect("viewport toolbar root should exist");
     assert_eq!(root.frame, UiFrame::new(0.0, 0.0, 1280.0, 28.0));
 
-    let set_tool = host_model
-        .node_by_control_id("SetTool")
-        .expect("set tool group should exist");
-    assert_eq!(set_tool.frame, UiFrame::new(0.0, 0.0, 58.0, 28.0));
+    let activate_scene_mode = host_model
+        .node_by_control_id("ActivateSceneMode")
+        .expect("scene mode activation group should exist");
+    assert_eq!(
+        activate_scene_mode.frame,
+        UiFrame::new(0.0, 0.0, 58.0, 28.0)
+    );
 
     let set_transform_space = host_model
         .node_by_control_id("SetTransformSpace")
@@ -38,7 +41,7 @@ fn viewport_toolbar_template_projects_surface_backed_group_frames() {
     assert_eq!(
         set_transform_space.frame,
         UiFrame::new(
-            set_tool.frame.x + set_tool.frame.width + 4.0,
+            activate_scene_mode.frame.x + activate_scene_mode.frame.width + 4.0,
             0.0,
             68.0,
             28.0

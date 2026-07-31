@@ -1,0 +1,18 @@
+[[entities]]
+entity = 1
+name = "WOC Bootstrap Camera"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.0, 3.0, -6.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.camera]
+fov_y_radians = 0.88
+z_near = 0.1
+z_far = 1000.0
+hdr = true
+exposure_ev100 = 9.0

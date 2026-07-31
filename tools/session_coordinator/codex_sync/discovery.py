@@ -226,7 +226,7 @@ class CodexSessionDiscovery:
         payload = record.get("payload")
         if not isinstance(payload, dict):
             return None
-        thread_id = self._safe_id(payload.get("session_id") or payload.get("id"))
+        thread_id = self._safe_id(payload.get("id") or payload.get("session_id"))
         cwd = self._safe_path_text(payload.get("cwd"))
         if thread_id is None or cwd is None:
             return None

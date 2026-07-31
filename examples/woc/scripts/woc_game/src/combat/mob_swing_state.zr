@@ -1,0 +1,355 @@
+// Stateful M4 projection of the base mobSwing shell. The landed result is
+// passed to mob_swing_affix_state; this module never re-rolls an affix proc.
+var container = %import("zr.container");
+
+pub class MobSwingState {
+    pub var sourceLevel: int;
+    pub var weaponMinimum: float;
+    pub var weaponMaximum: float;
+    pub var weaponSpeed: float;
+    pub var effectiveAttackPower: float;
+    pub var sourceEnraged: bool;
+    pub var enrageDamageMultiplier: float;
+    pub var petDamageMultiplier: float;
+    pub var targetKind: string;
+    pub var targetDodgeChance: float;
+    pub var targetParryChance: float;
+    pub var targetBlockChance: float;
+    pub var targetBlockValue: int;
+    pub var targetArmorReduction: float;
+    pub var targetDead: bool;
+    pub var missChance: float;
+    pub var nextDamageKillsTarget: bool;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var authoritativeRngEnabled: bool;
+    pub var rngState: uint;
+    pub var rngDraws: uint;
+    pub var rngDigest: uint;
+    pub var missEvents: int;
+    pub var dodgeEvents: int;
+    pub var parryEvents: int;
+    pub var blockEvents: int;
+    pub var damageEvents: int;
+    pub var damageAmounts: container.Array<int>;
+    pub var damageCrits: container.Array<bool>;
+    pub var lastRawDamage: float;
+    pub var affixCascadeCalls: int;
+    pub var affixDealt: int;
+    pub var affixCrit: bool;
+    pub var affixRawDamage: float;
+
+    pub @constructor() {
+        this.sourceLevel = 1;
+        this.weaponMinimum = 1.0;
+        this.weaponMaximum = 2.0;
+        this.weaponSpeed = 2.0;
+        this.effectiveAttackPower = 0.0;
+        this.sourceEnraged = false;
+        this.enrageDamageMultiplier = 1.0;
+        this.petDamageMultiplier = 1.0;
+        this.targetKind = "player";
+        this.targetDodgeChance = 0.0;
+        this.targetParryChance = 0.0;
+        this.targetBlockChance = 0.0;
+        this.targetBlockValue = 0;
+        this.targetArmorReduction = 0.0;
+        this.targetDead = false;
+        this.missChance = 0.0;
+        this.nextDamageKillsTarget = false;
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.authoritativeRngEnabled = false;
+        this.rngState = <uint>0;
+        this.rngDraws = <uint>0;
+        this.rngDigest = <uint>2166136261;
+        this.missEvents = 0;
+        this.dodgeEvents = 0;
+        this.parryEvents = 0;
+        this.blockEvents = 0;
+        this.damageEvents = 0;
+        this.damageAmounts = new container.Array<int>();
+        this.damageCrits = new container.Array<bool>();
+        this.lastRawDamage = 0.0;
+        this.affixCascadeCalls = 0;
+        this.affixDealt = 0;
+        this.affixCrit = false;
+        this.affixRawDamage = 0.0;
+    }
+}
+
+takeRandomUnit(state: MobSwingState): float {
+    if (state.randomIndex >= 0 && state.randomIndex < state.randomUnits.length) {
+        var result = <float>state.randomUnits[state.randomIndex];
+        state.randomIndex = state.randomIndex + 1;
+        return result;
+    }
+    if (!state.authoritativeRngEnabled) {
+        throw "mob swing random stream is exhausted";
+    }
+    var rng = %import("kernel/rng");
+    state.rngState = (state.rngState + <uint>1831565813) & <uint>4294967295;
+    var value = rng.mix(state.rngState, 1);
+    state.rngDraws = state.rngDraws + <uint>1;
+    state.rngDigest = rng.fold(state.rngDigest, value, 1);
+    return <float>value / 4294967296.0;
+}
+
+randomRange(state: MobSwingState, minimum: float, maximum: float): float {
+    return minimum + takeRandomUnit(state) * (maximum - minimum);
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+maximum(first: float, second: float): float {
+    return first > second ? first : second;
+}
+
+minimum(first: float, second: float): float {
+    return first < second ? first : second;
+}
+
+// Matches types.ts meleeMissChance/swingMissChance, including the special
+// hostile-mob-versus-player-side cap before any hit-bonus adjustment.
+pub sourceSwingMissChance(
+    attackerLevel: int,
+    targetLevel: int,
+    attackerIsHostileOwnerlessMob: bool,
+    targetIsPlayerSide: bool,
+    attackerHitBonus: float,
+    required: bool
+): float {
+    if (!required || attackerLevel < 1 || targetLevel < 1) {
+        throw "mob swing miss chance arguments are invalid";
+    }
+    var levelDifference = targetLevel - attackerLevel;
+    var percent = 0.0;
+    if (levelDifference <= 0) {
+        percent = 5.0 + <float>levelDifference * 0.2;
+    } else if (levelDifference == 1) {
+        percent = 7.5;
+    } else if (levelDifference == 2) {
+        percent = 19.0;
+    } else {
+        percent = 26.0;
+    }
+    var miss = minimum(0.95, maximum(0.005, percent / 100.0));
+    if (attackerIsHostileOwnerlessMob && targetIsPlayerSide) {
+        return minimum(miss, 0.2);
+    }
+    return maximum(0.0, miss - attackerHitBonus);
+}
+
+// Matches types.ts armorReduction for the physical-mob-swing branch.
+pub armorReductionFromArmor(armor: float, attackerLevel: int, required: bool): float {
+    if (!required || attackerLevel < 1) {
+        throw "mob swing armor reduction arguments are invalid";
+    }
+    var effectiveArmor = maximum(0.0, armor);
+    var reduction = effectiveArmor /
+        (effectiveArmor + 85.0 * <float>attackerLevel + 400.0);
+    return minimum(0.75, reduction);
+}
+
+pub initializeAuthoritativeRng(
+    state: MobSwingState,
+    rngState: uint,
+    rngDraws: uint,
+    rngDigest: uint,
+    required: bool
+): void {
+    if (!required) {
+        throw "mob swing authoritative rng initialization is required";
+    }
+    state.authoritativeRngEnabled = true;
+    state.rngState = rngState;
+    state.rngDraws = rngDraws;
+    state.rngDigest = rngDigest;
+}
+
+pub authoritativeRngState(state: MobSwingState, required: bool): uint {
+    if (!required || !state.authoritativeRngEnabled) {
+        throw "mob swing authoritative rng state is unavailable";
+    }
+    return state.rngState;
+}
+
+pub authoritativeRngDraws(state: MobSwingState, required: bool): uint {
+    if (!required || !state.authoritativeRngEnabled) {
+        throw "mob swing authoritative rng draw count is unavailable";
+    }
+    return state.rngDraws;
+}
+
+pub authoritativeRngDigest(state: MobSwingState, required: bool): uint {
+    if (!required || !state.authoritativeRngEnabled) {
+        throw "mob swing authoritative rng digest is unavailable";
+    }
+    return state.rngDigest;
+}
+
+pub swing(state: MobSwingState): string {
+    var dodgeChance = state.targetKind == "player" ?
+        state.targetDodgeChance : 0.05;
+    var roll = takeRandomUnit(state);
+    if (roll < state.missChance) {
+        state.missEvents = state.missEvents + 1;
+        return "miss";
+    }
+    if (roll < state.missChance + dodgeChance) {
+        state.dodgeEvents = state.dodgeEvents + 1;
+        return "dodge";
+    }
+    if (roll < state.missChance + dodgeChance + state.targetParryChance) {
+        state.parryEvents = state.parryEvents + 1;
+        return "parry";
+    }
+    var damage = randomRange(state, state.weaponMinimum, state.weaponMaximum) +
+        (state.effectiveAttackPower / 14.0) * state.weaponSpeed;
+    var crit = takeRandomUnit(state) < 0.05;
+    if (crit) { damage = damage * 2.0; }
+    if (state.sourceEnraged) { damage = damage * state.enrageDamageMultiplier; }
+    damage = damage * state.petDamageMultiplier;
+    state.lastRawDamage = damage;
+    damage = damage * (1.0 - state.targetArmorReduction);
+    if (state.targetBlockChance > 0.0 &&
+        roll < state.missChance + dodgeChance + state.targetParryChance +
+            state.targetBlockChance) {
+        damage = maximum(1.0, damage - <float>state.targetBlockValue);
+        state.blockEvents = state.blockEvents + 1;
+    }
+    var dealt = roundPositive(damage);
+    if (dealt < 1) { dealt = 1; }
+    state.damageAmounts.add(dealt);
+    state.damageCrits.add(crit);
+    state.damageEvents = state.damageEvents + 1;
+    if (state.nextDamageKillsTarget) {
+        state.targetDead = true;
+        state.nextDamageKillsTarget = false;
+    }
+    // runMobSwingAffixes follows dealDamage even if thorns/death changed state.
+    state.affixCascadeCalls = state.affixCascadeCalls + 1;
+    state.affixDealt = dealt;
+    state.affixCrit = crit;
+    state.affixRawDamage = state.lastRawDamage;
+    return "hit";
+}
+
+pub contractTest(): int {
+    var miss = new MobSwingState();
+    miss.missChance = 0.1;
+    miss.targetDodgeChance = 0.2;
+    miss.randomUnits.add(0.05);
+    if (swing(miss) != "miss" || miss.randomIndex != 1 ||
+        miss.missEvents != 1 || miss.affixCascadeCalls != 0) {
+        return -1;
+    }
+
+    var dodge = new MobSwingState();
+    dodge.missChance = 0.1;
+    dodge.targetDodgeChance = 0.2;
+    dodge.randomUnits.add(0.15);
+    if (swing(dodge) != "dodge" || dodge.randomIndex != 1 ||
+        dodge.dodgeEvents != 1 || dodge.affixCascadeCalls != 0) {
+        return -2;
+    }
+
+    var parry = new MobSwingState();
+    parry.targetParryChance = 0.2;
+    parry.randomUnits.add(0.15);
+    if (swing(parry) != "parry" || parry.randomIndex != 1 ||
+        parry.parryEvents != 1 || parry.affixCascadeCalls != 0) {
+        return -3;
+    }
+
+    var hit = new MobSwingState();
+    hit.sourceLevel = 18;
+    hit.weaponMinimum = 10.0;
+    hit.weaponMaximum = 20.0;
+    hit.weaponSpeed = 2.0;
+    hit.effectiveAttackPower = 140.0;
+    hit.sourceEnraged = true;
+    hit.enrageDamageMultiplier = 1.5;
+    hit.petDamageMultiplier = 0.8;
+    hit.targetDodgeChance = 0.1;
+    hit.targetArmorReduction = 0.25;
+    hit.missChance = 0.1;
+    hit.randomUnits.add(0.5);
+    hit.randomUnits.add(0.25);
+    hit.randomUnits.add(0.04);
+    if (swing(hit) != "hit" || hit.randomIndex != 3 ||
+        hit.damageAmounts.length != 1 || <int>hit.damageAmounts[0] != 59 ||
+        <bool>hit.damageCrits[0] != true ||
+        !closeEnough(hit.lastRawDamage, 78.0) ||
+        hit.affixCascadeCalls != 1 || hit.affixDealt != 59 ||
+        !hit.affixCrit || !closeEnough(hit.affixRawDamage, 78.0)) {
+        return -4;
+    }
+
+    var mobTarget = new MobSwingState();
+    mobTarget.targetKind = "mob";
+    mobTarget.targetDodgeChance = 0.9;
+    mobTarget.missChance = 0.05;
+    mobTarget.randomUnits.add(0.08);
+    if (swing(mobTarget) != "dodge" || mobTarget.randomIndex != 1) {
+        return -5;
+    }
+
+    var clamp = new MobSwingState();
+    clamp.weaponMinimum = 0.0;
+    clamp.weaponMaximum = 0.0;
+    clamp.targetArmorReduction = 1.0;
+    clamp.randomUnits.add(0.5);
+    clamp.randomUnits.add(0.5);
+    clamp.randomUnits.add(0.5);
+    swing(clamp);
+    if (<int>clamp.damageAmounts[0] != 1 || clamp.affixDealt != 1) {
+        return -6;
+    }
+
+    var lethal = new MobSwingState();
+    lethal.nextDamageKillsTarget = true;
+    lethal.randomUnits.add(0.5);
+    lethal.randomUnits.add(0.5);
+    lethal.randomUnits.add(0.5);
+    swing(lethal);
+    if (!lethal.targetDead || lethal.affixCascadeCalls != 1) { return -7; }
+
+    var block = new MobSwingState();
+    block.weaponMinimum = 20.0;
+    block.weaponMaximum = 20.0;
+    block.targetBlockChance = 0.2;
+    block.targetBlockValue = 5;
+    block.randomUnits.add(0.1);
+    block.randomUnits.add(0.5);
+    block.randomUnits.add(0.9);
+    if (swing(block) != "hit" || block.blockEvents != 1 ||
+        block.damageAmounts.length != 1 || <int>block.damageAmounts[0] != 15) {
+        return -8;
+    }
+
+    var authoritative = new MobSwingState();
+    authoritative.weaponMinimum = 10.0;
+    authoritative.weaponMaximum = 10.0;
+    initializeAuthoritativeRng(authoritative, <uint>1, <uint>0, <uint>2166136261, true);
+    if (swing(authoritative) != "hit" || authoritative.rngDraws != <uint>3 ||
+        authoritativeRngState(authoritative, true) == <uint>1 ||
+        authoritativeRngDigest(authoritative, true) == <uint>2166136261) {
+        return -9;
+    }
+
+    if (!closeEnough(sourceSwingMissChance(1, 4, true, true, 0.0, true), 0.2) ||
+        !closeEnough(sourceSwingMissChance(4, 1, true, true, 0.0, true), 0.044) ||
+        !closeEnough(armorReductionFromArmor(100.0, 1, true), 100.0 / 585.0)) {
+        return -10;
+    }
+    return 1;
+}

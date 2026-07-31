@@ -42,6 +42,7 @@ fn generated_browser_hosts_instantiate_wasm_exports_and_gate_asset_origins() {
             profile_name.clone(),
             RuntimeTargetMode::ClientRuntime,
             platform,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate)
         .with_strategy(ExportPackagingStrategy::LibraryEmbed)];

@@ -33,11 +33,19 @@ where
     P: TextShapeRunProvider + ?Sized,
 {
     let metrics = line_metrics_with_provider(style, provider);
-    let width = text
+    let (width, line_count) = text
         .lines()
-        .map(|line| measure_line_width_with_provider(line, style, provider))
-        .fold(0.0_f32, f32::max);
-    let line_count = text.lines().count().max(1) as f32;
+        .fold((0.0_f32, 0_usize), |(width, line_count), line| {
+            (
+                width.max(measure_line_width_with_provider(line, style, provider)),
+                line_count.saturating_add(1),
+            )
+        });
+    // Layout preserves the empty line after a trailing newline, so measurement must account for
+    // it even though `str::lines()` deliberately omits that final empty slice.
+    let line_count = line_count
+        .saturating_add(usize::from(text.ends_with('\n')))
+        .max(1) as f32;
     TextSize::new(width, metrics.line_height * line_count)
 }
 
@@ -85,12 +93,7 @@ where
     P: TextShapeRunProvider + ?Sized,
 {
     let shaped = shape_unconstrained_line_with_provider(text, style, provider);
-    text.grapheme_indices(true)
-        .map(|(start, grapheme)| {
-            let end = start + grapheme.len();
-            measured_width(&shaped, start, end, true)
-        })
-        .collect()
+    measured_grapheme_widths_from_shaped(&shaped, text)
 }
 
 pub(crate) fn measure_text_source_range_width(
@@ -181,6 +184,47 @@ pub(crate) fn measured_width(
             )
         })
         .fold(0.0_f32, f32::max)
+}
+
+fn measured_grapheme_widths_from_shaped(shaped: &ShapedGlyphRun, text: &str) -> Vec<f32> {
+    let source_offset = shaped.source_range.start;
+    let graphemes = text
+        .grapheme_indices(true)
+        .map(|(start, grapheme)| {
+            let end = start + grapheme.len();
+            (source_offset + start, source_offset + end)
+        })
+        .collect::<Vec<_>>();
+    let mut widths = vec![0.0; graphemes.len()];
+
+    // Glyphs may be in visual order, so map each source interval directly instead of scanning the
+    // complete shaped run once for every grapheme. A ligature can cover many graphemes; compute
+    // its total span once and reuse it while projecting that glyph into source order.
+    for glyph in shaped.lines.iter().flat_map(|line| &line.glyphs) {
+        let first_overlapping =
+            graphemes.partition_point(|&(_, end)| end <= glyph.source_range.start);
+        let after_last_overlapping =
+            graphemes.partition_point(|&(start, _)| start < glyph.source_range.end);
+        if first_overlapping >= after_last_overlapping {
+            continue;
+        }
+
+        let glyph_span =
+            source_grapheme_span(&shaped.source_text, source_offset, glyph.source_range);
+        for index in first_overlapping..after_last_overlapping {
+            let (source_start, source_end) = graphemes[index];
+            widths[index] += measured_glyph_source_overlap_with_span(
+                &shaped.source_text,
+                source_offset,
+                glyph,
+                source_start,
+                source_end,
+                glyph_span,
+            );
+        }
+    }
+
+    widths
 }
 
 pub(crate) fn line_metrics_with_provider<P>(style: &TextStyle, provider: &mut P) -> TextLineMetrics
@@ -345,6 +389,25 @@ fn measured_glyph_source_overlap(
     source_start: usize,
     source_end: usize,
 ) -> f32 {
+    let glyph_span = source_grapheme_span(source_text, source_offset, glyph.source_range);
+    measured_glyph_source_overlap_with_span(
+        source_text,
+        source_offset,
+        glyph,
+        source_start,
+        source_end,
+        glyph_span,
+    )
+}
+
+fn measured_glyph_source_overlap_with_span(
+    source_text: &str,
+    source_offset: usize,
+    glyph: &ShapedGlyph,
+    source_start: usize,
+    source_end: usize,
+    glyph_span: f32,
+) -> f32 {
     let overlap_start = glyph.source_range.start.max(source_start);
     let overlap_end = glyph.source_range.end.min(source_end);
     if overlap_start >= overlap_end {
@@ -356,7 +419,6 @@ fn measured_glyph_source_overlap(
         return advance;
     }
 
-    let glyph_span = source_grapheme_span(source_text, source_offset, glyph.source_range);
     let overlap_span = source_grapheme_span(
         source_text,
         source_offset,
@@ -451,6 +513,116 @@ mod tests {
     }
 
     #[test]
+    fn measured_grapheme_widths_projects_visual_glyphs_into_source_order() {
+        let shaped = ShapedGlyphRun {
+            source_text: "abc".to_string(),
+            source_range: TextRange { start: 0, end: 3 },
+            direction: TextDirection::LeftToRight,
+            orientation: crate::text::TextOrientation::Horizontal,
+            vertical_mode: crate::text::VerticalMode::Mixed,
+            include_kerning: true,
+            measured_width: 50.0,
+            measured_height: 12.0,
+            lines: vec![crate::text::ShapedTextLine {
+                line_index: 0,
+                text: "abc".to_string(),
+                source_range: TextRange { start: 0, end: 3 },
+                visual_range: TextRange { start: 0, end: 3 },
+                measured_width: 50.0,
+                baseline: 9.0,
+                line_height: 12.0,
+                glyphs: vec![test_glyph(2, 3, 30.0), test_glyph(0, 2, 20.0)],
+            }],
+        };
+
+        assert_eq!(
+            measured_grapheme_widths_from_shaped(&shaped, "abc"),
+            vec![10.0, 10.0, 30.0]
+        );
+    }
+
+    #[test]
+    fn measured_grapheme_widths_distributes_a_multi_grapheme_cluster_once_per_glyph() {
+        let shaped = ShapedGlyphRun {
+            source_text: "abcd".to_string(),
+            source_range: TextRange { start: 0, end: 4 },
+            direction: TextDirection::LeftToRight,
+            orientation: crate::text::TextOrientation::Horizontal,
+            vertical_mode: crate::text::VerticalMode::Mixed,
+            include_kerning: true,
+            measured_width: 40.0,
+            measured_height: 12.0,
+            lines: vec![crate::text::ShapedTextLine {
+                line_index: 0,
+                text: "abcd".to_string(),
+                source_range: TextRange { start: 0, end: 4 },
+                visual_range: TextRange { start: 0, end: 4 },
+                measured_width: 40.0,
+                baseline: 9.0,
+                line_height: 12.0,
+                glyphs: vec![test_glyph(0, 4, 40.0)],
+            }],
+        };
+
+        assert_eq!(
+            measured_grapheme_widths_from_shaped(&shaped, "abcd"),
+            vec![10.0, 10.0, 10.0, 10.0]
+        );
+    }
+
+    #[test]
+    fn measured_grapheme_widths_shapes_the_complete_text_once() {
+        let shaped = Arc::new(ShapedGlyphRun {
+            source_text: "abcd".to_string(),
+            source_range: TextRange { start: 0, end: 4 },
+            direction: TextDirection::LeftToRight,
+            orientation: crate::text::TextOrientation::Horizontal,
+            vertical_mode: crate::text::VerticalMode::Mixed,
+            include_kerning: true,
+            measured_width: 40.0,
+            measured_height: 12.0,
+            lines: vec![crate::text::ShapedTextLine {
+                line_index: 0,
+                text: "abcd".to_string(),
+                source_range: TextRange { start: 0, end: 4 },
+                visual_range: TextRange { start: 0, end: 4 },
+                measured_width: 40.0,
+                baseline: 9.0,
+                line_height: 12.0,
+                glyphs: vec![test_glyph(0, 4, 40.0)],
+            }],
+        });
+        let mut provider = CountingShapeRunProvider {
+            shaped,
+            shape_calls: 0,
+        };
+
+        assert_eq!(
+            measured_grapheme_widths_with_provider("abcd", &test_style(), &mut provider),
+            vec![10.0, 10.0, 10.0, 10.0]
+        );
+        assert_eq!(provider.shape_calls, 1);
+    }
+
+    #[test]
+    fn measure_text_size_preserves_a_trailing_empty_line() {
+        let style = test_style();
+        let line_metrics = line_metrics_with_provider(&style, &mut DirectTextShapeRunProvider);
+        let measured = measure_text_size("line\n", &style);
+
+        assert!((measured.height - line_metrics.line_height * 2.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn measure_text_size_preserves_consecutive_trailing_empty_lines() {
+        let style = test_style();
+        let line_metrics = line_metrics_with_provider(&style, &mut DirectTextShapeRunProvider);
+        let measured = measure_text_size("line\n\n", &style);
+
+        assert!((measured.height - line_metrics.line_height * 3.0).abs() < 0.1);
+    }
+
+    #[test]
     fn measure_source_range_can_request_unkerned_backend_shape() {
         let style = test_style();
         let range = TextRange { start: 0, end: 2 };
@@ -471,6 +643,51 @@ mod tests {
             font_size: 10.0,
             line_height: 12.0,
             ..TextStyle::default()
+        }
+    }
+
+    fn test_glyph(source_start: usize, source_end: usize, advance: f32) -> ShapedGlyph {
+        ShapedGlyph {
+            glyph_id: 0,
+            font_id: None,
+            font_instance_id: None,
+            source_range: TextRange {
+                start: source_start,
+                end: source_end,
+            },
+            visual_range: TextRange {
+                start: source_start,
+                end: source_end,
+            },
+            advance,
+            x: 0.0,
+            y: 0.0,
+            offset_x: 0.0,
+            offset_y: 0.0,
+            direction: TextDirection::LeftToRight,
+            bidi_level: 0,
+            cluster_flags: crate::text::ShapedGlyphClusterFlags::default(),
+            rotation: crate::text::ShapedGlyphRotation::None,
+            script: crate::text::ShapedGlyphScript::default(),
+        }
+    }
+
+    struct CountingShapeRunProvider {
+        shaped: Arc<ShapedGlyphRun>,
+        shape_calls: usize,
+    }
+
+    impl TextShapeRunProvider for CountingShapeRunProvider {
+        fn shape_horizontal_line_with_kerning(
+            &mut self,
+            _text: &str,
+            _style: &TextStyle,
+            _direction: TextDirection,
+            _source_range: TextRange,
+            _include_kerning: bool,
+        ) -> Arc<ShapedGlyphRun> {
+            self.shape_calls += 1;
+            Arc::clone(&self.shaped)
         }
     }
 }

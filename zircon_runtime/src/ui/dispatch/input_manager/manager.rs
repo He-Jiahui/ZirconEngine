@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use zircon_runtime_interface::ui::{
     component::{UiComponentEvent, UiValue},
     dispatch::{
@@ -60,6 +62,10 @@ impl UiInputManager {
 
     pub fn timers(&self) -> &UiInputTimerState {
         &self.timers
+    }
+
+    pub fn next_frame_visible_delay(&self, now: UiInputTimestamp) -> Option<Duration> {
+        self.timers.next_frame_visible_delay(now)
     }
 
     pub fn drain_ime_host_requests(&mut self) -> Vec<ImeHostRequest> {

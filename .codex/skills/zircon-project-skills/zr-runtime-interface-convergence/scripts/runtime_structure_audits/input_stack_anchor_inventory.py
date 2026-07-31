@@ -5,6 +5,7 @@ INPUT_MOD_DECLARATIONS = (
     "mod module;",
     "pub mod prelude;",
     "mod runtime;",
+    "pub use crate::core::framework::input::INPUT_MODULE_NAME;",
     "pub use crate::core::framework::input::{",
     "DefaultInputActionManager, DefaultInputManager, InputActionEvaluator, InputDriver,",
 )
@@ -41,7 +42,9 @@ FRAMEWORK_MOD_DECLARATIONS = (
     "mod input_event;",
     "mod input_frame_snapshot;",
     "mod input_manager;",
+    "mod module_identity;",
     "pub use input_manager::InputManager;",
+    "pub use module_identity::INPUT_MODULE_NAME;",
 )
 INPUT_PRELUDE_ANCHORS = (
     "pub use super::{",
@@ -49,6 +52,7 @@ INPUT_PRELUDE_ANCHORS = (
     "InputActionManager",
     "InputEventRecordingStatus",
     "InputRecordingFrame",
+    "INPUT_MODULE_NAME",
     "DEFAULT_INPUT_EVENT_RECORDING_CAPACITY",
 )
 CRATE_PRELUDE_ANCHORS = ("pub use crate::input::prelude::*;",)
@@ -91,6 +95,7 @@ PUBLIC_SURFACE_ANCHORS = (
     "InputEventRecordingStatus",
     "DEFAULT_INPUT_EVENT_RECORDING_CAPACITY",
     "INPUT_ACTION_MANAGER_NAME",
+    "INPUT_MODULE_NAME",
 )
 ACTION_EVALUATOR_ANCHORS = (
     "pub struct InputActionEvaluator",
@@ -104,8 +109,8 @@ ACTION_EVALUATOR_ANCHORS = (
     "action_context_is_active",
     "InputActionState::from_sets_and_values",
     "binding_axis_consumed",
-    "binding_axis_value",
-    "binding_axis_transition",
+    "evaluate_binding_axes",
+    "BindingAxisEvaluation",
     "dominant_action_value",
     "binding_index.indices_for_action",
     "FrameAxisIndex::from_frame",

@@ -1,5 +1,5 @@
-use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::MeshAsset;
+use crate::asset::pipeline::manager::ProjectAssetManager;
 #[cfg(test)]
 use crate::asset::{
     AssetManagementFamilyIssueBucket, AssetManagementFamilyIssueIndex,
@@ -23,8 +23,8 @@ use crate::core::framework::render::{
     RenderMaterialReadinessSummary, RenderShaderDefinitionValue,
 };
 use crate::core::resource::ResourceId;
-use crate::graphics::shader::ShaderTemplateInclude;
 use crate::graphics::GraphicsError;
+use crate::graphics::shader::ShaderTemplateInclude;
 
 mod material_capture;
 #[cfg(test)]

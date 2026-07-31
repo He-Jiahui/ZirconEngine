@@ -1,0 +1,99 @@
+// Pure source contract for updateDelveCompanion target acquisition and movement
+// choice. Entity iteration, hostility, threat and actual movement remain in the
+// authoritative Delve reducer; these scalar predicates preserve its branch and
+// tie ordering without exporting collections across the ZrVM ABI.
+
+pub meleeReach(required: bool): float {
+    if (!required) { throw "woc Delve companion melee reach is required"; }
+    return 4.5;
+}
+
+pub fallbackAcquireRange(required: bool): float {
+    if (!required) { throw "woc Delve companion fallback range is required"; }
+    return 40.0;
+}
+
+pub followDistance(required: bool): float {
+    if (!required) { throw "woc Delve companion follow range is required"; }
+    return 4.0;
+}
+
+pub teleportDistance(required: bool): float {
+    if (!required) { throw "woc Delve companion teleport range is required"; }
+    return 60.0;
+}
+
+pub ownerTargetEligible(targetExists: bool, targetAlive: bool, targetHostile: bool, required: bool): bool {
+    if (!required) { throw "woc Delve companion owner target query is required"; }
+    return targetExists && targetAlive && targetHostile;
+}
+
+pub fallbackTargetEligible(
+    candidateIsMob: bool,
+    candidateAlive: bool,
+    candidateHostile: bool,
+    engagingOwner: bool,
+    ownerTargetsCandidate: bool,
+    ownerAutoAttack: bool,
+    ownerInCombat: bool,
+    ownerThreat: bool,
+    required: bool
+): bool {
+    if (!required) { throw "woc Delve companion fallback target query is required"; }
+    if (!candidateIsMob || !candidateAlive || !candidateHostile) { return false; }
+    return engagingOwner || (ownerTargetsCandidate &&
+        (ownerAutoAttack || ownerInCombat || ownerThreat));
+}
+
+// Source selects only on d < bestD, preserving first entity iteration order
+// for equal distances and excluding the initial 40-yard boundary.
+pub shouldReplaceFallbackTarget(candidateDistance: float, bestDistance: float, required: bool): bool {
+    if (!required || candidateDistance < 0.0 || bestDistance < 0.0) {
+        throw "woc Delve companion fallback distance is invalid";
+    }
+    return candidateDistance < bestDistance;
+}
+
+// Result 0=hold, 1=move toward combat target, 2=swing. updateDelveCompanion
+// subtracts two 50ms fixed steps before its swing comparison.
+pub combatAction(distance: float, swingTimerBeforeTick: float, rooted: bool, required: bool): int {
+    if (!required || distance < 0.0) {
+        throw "woc Delve companion combat action is invalid";
+    }
+    if (distance > meleeReach(true)) { return rooted ? 0 : 1; }
+    return swingTimerBeforeTick - 0.1 <= 0.0 ? 2 : 0;
+}
+
+// Result 0=hold, 1=follow move, 2=teleport. The source checks teleport first
+// and ignores rooted state for that last-resort correction.
+pub followAction(distance: float, rooted: bool, required: bool): int {
+    if (!required || distance < 0.0) {
+        throw "woc Delve companion follow action is invalid";
+    }
+    if (distance > teleportDistance(true)) { return 2; }
+    return distance > followDistance(true) && !rooted ? 1 : 0;
+}
+
+pub contractTest(): int {
+    if (meleeReach(true) != 4.5 || fallbackAcquireRange(true) != 40.0 ||
+        followDistance(true) != 4.0 || teleportDistance(true) != 60.0 ||
+        !ownerTargetEligible(true, true, true, true) ||
+        ownerTargetEligible(true, false, true, true) ||
+        !fallbackTargetEligible(true, true, true, true, false, false, false, false, true) ||
+        !fallbackTargetEligible(true, true, true, false, true, false, false, true, true) ||
+        fallbackTargetEligible(true, true, true, false, true, false, false, false, true) ||
+        !shouldReplaceFallbackTarget(39.999, 40.0, true) ||
+        shouldReplaceFallbackTarget(40.0, 40.0, true)) {
+        return -1;
+    }
+    if (combatAction(4.5001, 0.0, false, true) != 1 ||
+        combatAction(4.5001, 0.0, true, true) != 0 ||
+        combatAction(4.5, 0.1001, false, true) != 0 ||
+        combatAction(4.5, 0.1, false, true) != 2 ||
+        followAction(60.001, true, true) != 2 ||
+        followAction(60.0, false, true) != 1 ||
+        followAction(4.001, true, true) != 0) {
+        return -2;
+    }
+    return 1;
+}

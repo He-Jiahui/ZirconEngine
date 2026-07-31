@@ -11,6 +11,7 @@ from pathlib import Path
 from tools.session_coordinator.baselines import BaselineService
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
+from tools.session_coordinator.failures import FailureGraphService
 from tools.session_coordinator.git_finalize import GitFinalizeService
 from tools.session_coordinator.leases import LeaseService, PathPolicy
 from tools.session_coordinator.migrations import migrate
@@ -18,11 +19,13 @@ from tools.session_coordinator.models import SessionStatus, WorkflowNodeState
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.notifications import WeComNotificationService
 from tools.session_coordinator.sessions import SessionService
+from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture, FixturePlan
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.workflows.gates import GateEvidenceStore, MilestoneGateEvaluator
 from tools.session_coordinator.workflows.milestones import MilestoneWorkflowService
 from tools.session_coordinator.workflows.plan_import import TopologyImporter
 from tools.session_coordinator.workflows.store import WorkflowStore
+from tools.session_coordinator.workflows.topology import TopologyParser
 
 
 class WorkflowCommitTests(unittest.TestCase):
@@ -107,6 +110,38 @@ class WorkflowCommitTests(unittest.TestCase):
             failures=failures,
         )
 
+    def _append_future_milestone(self) -> None:
+        plan = self.repo / "docs/plans/runtime/01-control.md"
+        old_topology_hash = TopologyParser(self.repo).parse(
+            "docs/plans/runtime/01-control.md"
+        ).topology_hash
+        plan_text = plan.read_text(encoding="utf-8")
+        prefix, fenced = plan_text.split("```zircon-workflow\n", 1)
+        payload_text, suffix = fenced.split("\n```", 1)
+        payload = json.loads(payload_text)
+        payload["milestones"].append(
+            {"id": "M3", "title": "Future", "depends_on": ["M2"]}
+        )
+        plan.write_text(
+            prefix
+            + "```zircon-workflow\n"
+            + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+            + "\n```"
+            + suffix,
+            encoding="utf-8",
+        )
+        new_topology_hash = TopologyParser(self.repo).parse(
+            "docs/plans/runtime/01-control.md"
+        ).topology_hash
+        self.assertNotEqual(old_topology_hash, new_topology_hash)
+        imported = TopologyImporter(self.database, self.repo).import_plan(
+            "session-a",
+            "docs/plans/runtime/01-control.md",
+            activate_candidate=True,
+        )
+        self.run_id = imported.run_id
+        self.topology_version_id = imported.topology_version_id
+
     def test_failure_node_keys_are_exact_for_slice_and_aggregate_for_parent(self) -> None:
         service = self._service()
 
@@ -115,6 +150,152 @@ class WorkflowCommitTests(unittest.TestCase):
         self.assertEqual(
             ("M2", "M2.1", "M2.2"),
             service._failure_node_keys(self.run_id, "M2"),
+        )
+
+    def test_future_fixer_failure_deferral_excludes_source_milestone_but_not_successor(
+        self,
+    ) -> None:
+        self._append_future_milestone()
+        fixture = FailureGraphFixture(self.repo)
+        origin = fixture.add_plan("docs/plans/performance/01-origin.md")
+        fixing = FixturePlan(
+            self.repo / "docs/plans/runtime/01-control.md",
+            self.repo / "docs/plans/runtime/01",
+        )
+        fixing.child.mkdir(parents=True, exist_ok=True)
+        artifact = fixture.add_handoff(
+            origin,
+            fixing,
+            "future-m3-compile-analysis",
+        )
+        failures = FailureGraphService(self.database, self.repo)
+        audit = failures.import_repository()
+        lifecycle_key = next(
+            node.lifecycle_key
+            for node in audit.nodes
+            if node.artifact_path == artifact.relative_to(self.repo).as_posix()
+        )
+        service = self._service(failures=failures)
+
+        deferral = service.defer_failure(
+            session_id="session-a",
+            source_milestone_key="M2",
+            target_milestone_key="M3",
+            failure_lifecycle_key=lifecycle_key,
+            actor="session-a",
+            action_id="defer-m3-failure",
+        )
+
+        self.assertEqual("M2", deferral["sourceMilestoneId"])
+        self.assertEqual("M3", deferral["targetMilestoneId"])
+        self.assertEqual(
+            [],
+            service.open_failures_for_milestone(
+                run_id=self.run_id,
+                milestone_key="M2",
+                paths=(),
+            ),
+        )
+        self.assertEqual(
+            [artifact.relative_to(self.repo).as_posix()],
+            [
+                node.artifact_path
+                for node in service.open_failures_for_milestone(
+                    run_id=self.run_id,
+                    milestone_key="M3",
+                    paths=(),
+                )
+            ],
+        )
+
+    def test_failure_deferral_rejects_reverse_or_foreign_owner_and_stales_on_topology_change(
+        self,
+    ) -> None:
+        self._append_future_milestone()
+        fixture = FailureGraphFixture(self.repo)
+        origin = fixture.add_plan("docs/plans/performance/01-origin.md")
+        fixing = FixturePlan(
+            self.repo / "docs/plans/runtime/01-control.md",
+            self.repo / "docs/plans/runtime/01",
+        )
+        fixing.child.mkdir(parents=True, exist_ok=True)
+        artifact = fixture.add_handoff(origin, fixing, "future-topology-bound-failure")
+        failures = FailureGraphService(self.database, self.repo)
+        audit = failures.import_repository()
+        lifecycle_key = next(
+            node.lifecycle_key
+            for node in audit.nodes
+            if node.artifact_path == artifact.relative_to(self.repo).as_posix()
+        )
+        service = self._service(failures=failures)
+
+        with self.assertRaises(CoordinatorError) as reverse:
+            service.defer_failure(
+                session_id="session-a",
+                source_milestone_key="M3",
+                target_milestone_key="M2",
+                failure_lifecycle_key=lifecycle_key,
+                actor="session-a",
+                action_id="reverse",
+            )
+        self.assertEqual("milestone_failure_deferral_target_invalid", reverse.exception.code)
+
+        with self.assertRaises(CoordinatorError) as foreign:
+            service.defer_failure(
+                session_id="reviewer-b",
+                source_milestone_key="M2",
+                target_milestone_key="M3",
+                failure_lifecycle_key=lifecycle_key,
+                actor="reviewer-b",
+                action_id="foreign",
+            )
+        self.assertEqual("workflow_run_owner_mismatch", foreign.exception.code)
+
+        service.defer_failure(
+            session_id="session-a",
+            source_milestone_key="M2",
+            target_milestone_key="M3",
+            failure_lifecycle_key=lifecycle_key,
+            actor="session-a",
+            action_id="valid",
+        )
+        plan = self.repo / "docs/plans/runtime/01-control.md"
+        old_topology_hash = TopologyParser(self.repo).parse(
+            "docs/plans/runtime/01-control.md"
+        ).topology_hash
+        plan_text = plan.read_text(encoding="utf-8")
+        prefix, fenced = plan_text.split("```zircon-workflow\n", 1)
+        payload_text, suffix = fenced.split("\n```", 1)
+        payload = json.loads(payload_text)
+        milestone = next(item for item in payload["milestones"] if item["id"] == "M3")
+        milestone["depends_on"] = ["M1"]
+        plan.write_text(
+            prefix
+            + "```zircon-workflow\n"
+            + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+            + "\n```"
+            + suffix,
+            encoding="utf-8",
+        )
+        new_topology_hash = TopologyParser(self.repo).parse(
+            "docs/plans/runtime/01-control.md"
+        ).topology_hash
+        self.assertNotEqual(old_topology_hash, new_topology_hash)
+        imported = TopologyImporter(self.database, self.repo).import_plan(
+            "session-a", "docs/plans/runtime/01-control.md"
+        )
+        self.run_id = imported.run_id
+
+        self.assertEqual(
+            [artifact.relative_to(self.repo).as_posix()],
+            [
+                node.artifact_path
+                for node in service.open_failures_for_milestone(
+                    run_id=self.run_id,
+                    milestone_key="M2",
+                    paths=(),
+                )
+            ],
         )
 
     def test_prepare_context_rejects_invalid_failure_scope(self) -> None:
@@ -834,6 +1015,30 @@ class WorkflowCommitTests(unittest.TestCase):
             )
 
         self.assertEqual("workflow_topology_plan_changed", rejected.exception.code)
+
+    def test_refreshing_unchanged_topology_updates_active_plan_content_hash(self) -> None:
+        plan = self.repo / "docs/plans/runtime/01-control.md"
+        plan.write_text(plan.read_text(encoding="utf-8") + "\nstatus update\n", encoding="utf-8")
+
+        imported = TopologyImporter(self.database, self.repo).import_plan(
+            "session-a",
+            "docs/plans/runtime/01-control.md",
+            activate_candidate=True,
+        )
+        current = TopologyParser(self.repo).parse("docs/plans/runtime/01-control.md")
+        source = self.repo / "src/runtime.py"
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("current source\n", encoding="utf-8")
+
+        context = self._service().prepare_context(
+            self.run_id,
+            ["src/runtime.py"],
+            failure_workflow_node_keys=("M1", "M1.1"),
+        )
+
+        self.assertEqual(current.content_hash, imported.content_hash)
+        self.assertEqual(imported.topology_version_id, context.topology_version_id)
+        self.assertEqual(current.content_hash, context.plan_content_hash)
 
     def test_managed_validation_result_creates_node_scoped_gate_evidence(self) -> None:
         service = self._service()

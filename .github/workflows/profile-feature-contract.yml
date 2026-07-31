@@ -21,18 +21,31 @@ jobs:
           - label: zircon_app target-server
             package: zircon_app
             features: target-server
+            bin: ""
           - label: zircon_app target-client-platform
             package: zircon_app
             features: target-client,platform-winit,input-gamepad,gamepad-gilrs
+            bin: ""
+          - label: zircon_app target-editor-host
+            package: zircon_app
+            features: target-editor-host
+            bin: ""
+          - label: zircon_app target-client shader-pbr-viewer
+            package: zircon_app
+            features: target-client,platform-winit,input-gamepad,gamepad-gilrs
+            bin: zircon_shader_pbr_viewer
           - label: zircon_runtime target-client
             package: zircon_runtime
             features: target-client
+            bin: ""
           - label: zircon_runtime target-editor-host
             package: zircon_runtime
             features: target-editor-host
+            bin: ""
           - label: zircon_runtime target-server
             package: zircon_runtime
             features: target-server
+            bin: ""
     steps:
       - uses: actions/checkout@v5
 
@@ -65,4 +78,12 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Check profile features for ${{ matrix.label }}
-        run: cargo check -p ${{ matrix.package }} --no-default-features --features ${{ matrix.features }} --locked --verbose
+        env:
+          PROFILE_FEATURE_BIN: ${{ matrix.bin }}
+        run: |
+          cargo_args=(check -p "${{ matrix.package }}")
+          if [[ -n "${PROFILE_FEATURE_BIN}" ]]; then
+            cargo_args+=(--bin "${PROFILE_FEATURE_BIN}")
+          fi
+          cargo_args+=(--no-default-features --features "${{ matrix.features }}" --locked --verbose)
+          cargo "${cargo_args[@]}"

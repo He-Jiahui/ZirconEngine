@@ -16,6 +16,7 @@ mod pane_constraint_override;
 mod region;
 mod region_binding;
 mod region_state;
+mod resolution_context;
 mod shell_region_id;
 mod shell_regions_asset;
 mod workbench_chrome_metrics;
@@ -23,6 +24,7 @@ mod workbench_shell_geometry;
 mod workbench_skeleton;
 
 pub use axis_constraint_override::AxisConstraintOverride;
+pub(crate) use constraints::fixed_axis;
 pub use constraints::{default_constraints_for_content, default_region_constraints};
 pub(crate) use floating_window::{clamp_floating_window_frame, default_floating_window_frame};
 pub use geometry::compute_workbench_shell_geometry;
@@ -33,15 +35,17 @@ pub(crate) use geometry::{
 pub(crate) use layout_tier::workbench_layout_defaults;
 pub(crate) use layout_tier::{
     compact_bottom_defaults, compact_side_defaults, minimum_document_width_fraction,
+    right_drawer_should_collapse_for_logical_width,
     right_drawer_should_collapse_for_physical_width, window_min_height_limit_for_height,
-    window_min_width_limit_for_physical_width, workbench_layout_tier_for_logical_width,
-    workbench_layout_tier_for_physical_width, workbench_logical_width_for_scale,
-    WorkbenchLayoutTier,
+    window_min_width_limit_for_logical_width, window_min_width_limit_for_physical_width,
+    workbench_layout_tier_for_logical_width, workbench_layout_tier_for_physical_width,
+    workbench_logical_width_for_scale, WorkbenchLayoutTier,
 };
 pub use pane_constraint_override::PaneConstraintOverride;
 pub use region_binding::{
     EditorRegion, EditorRegionRole, RegionBinding, RegionBindingError, WorkbenchConstraintTokenName,
 };
+pub use resolution_context::ResolutionContext;
 pub use shell_region_id::ShellRegionId;
 pub use shell_regions_asset::{
     WorkbenchShellRegionsAsset, WorkbenchShellRegionsAssetError, WorkbenchShellRegionsAssetHeader,

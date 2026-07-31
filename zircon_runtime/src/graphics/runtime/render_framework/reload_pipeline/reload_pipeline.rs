@@ -10,16 +10,17 @@ pub(in crate::graphics::runtime::render_framework) fn reload_pipeline(
     pipeline: RenderPipelineHandle,
 ) -> Result<(), RenderFrameworkError> {
     let _operation_guard = framework.lock_operation();
-    let mut state = framework.lock_state();
     let pipeline_asset =
-        state
-            .pipelines
-            .get(&pipeline)
-            .cloned()
-            .ok_or(RenderFrameworkError::UnknownPipeline {
-                pipeline: pipeline.raw(),
-            })?;
+        {
+            let state = framework.lock_state();
+            state.pipelines.get(&pipeline).cloned().ok_or(
+                RenderFrameworkError::UnknownPipeline {
+                    pipeline: pipeline.raw(),
+                },
+            )?
+        };
     let compiled = compile_pipeline_for_validation(&pipeline_asset)?;
+    let mut state = framework.lock_state();
     state
         .renderer
         .validate_compiled_pipeline_executors(&compiled)
@@ -27,7 +28,7 @@ pub(in crate::graphics::runtime::render_framework) fn reload_pipeline(
             pipeline: pipeline.raw(),
             message,
         })?;
-    let default_pipeline = RenderPipelineAsset::default_forward_plus().handle;
+    let default_pipeline = RenderPipelineAsset::DEFAULT_FORWARD_PLUS_HANDLE;
     let active_for_viewport = state
         .viewports
         .values()
@@ -56,6 +57,34 @@ mod tests {
     use crate::render_graph::QueueLane;
 
     use super::reload_pipeline;
+
+    #[test]
+    fn reload_pipeline_compiles_outside_framework_state_lock() {
+        let source = include_str!("reload_pipeline.rs");
+        let compile = source
+            .find(concat!(
+                "let compiled = compile_",
+                "pipeline_for_validation"
+            ))
+            .expect("reload should compile the validation graph");
+        let snapshot = source[..compile]
+            .rfind(concat!("let pipeline_", "asset ="))
+            .expect("pipeline asset should be snapshotted in a short lock scope");
+        let relock = compile
+            + source[compile..]
+                .find(concat!("let mut state = framework.", "lock_state();"))
+                .expect("framework state should be reacquired after compilation");
+
+        assert!(snapshot < compile && compile < relock);
+    }
+
+    #[test]
+    fn reload_pipeline_does_not_construct_the_default_asset_for_its_handle() {
+        let source = include_str!("reload_pipeline.rs");
+
+        assert!(!source.contains(concat!("default_forward_plus()", ".handle")));
+        assert!(source.contains("DEFAULT_FORWARD_PLUS_HANDLE"));
+    }
 
     #[test]
     fn reload_pipeline_rejects_plugin_executor_without_linked_descriptor() {
@@ -151,13 +180,15 @@ mod tests {
             "plugin.virtual_geometry.reload_asset",
             Vec::new(),
             Vec::new(),
-            vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::DepthPrepass,
-                "plugin-virtual-geometry-reload-asset",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("virtual-geometry.prepare")
-            .with_side_effects()],
+            vec![
+                RenderFeaturePassDescriptor::new(
+                    RenderPassStage::DepthPrepass,
+                    "plugin-virtual-geometry-reload-asset",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("virtual-geometry.prepare")
+                .with_side_effects(),
+            ],
         )
         .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
     }

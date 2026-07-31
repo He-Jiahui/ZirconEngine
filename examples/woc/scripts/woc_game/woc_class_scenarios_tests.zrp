@@ -1,0 +1,6 @@
+{
+  "name": "woc_class_scenarios_tests",
+  "source": "src",
+  "binary": "bin-class-scenarios-tests",
+  "entry": "combat/class_scenarios_test_main"
+}

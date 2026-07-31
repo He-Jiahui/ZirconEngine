@@ -9,6 +9,8 @@ mod runtime;
 mod runtime_session_args;
 
 pub use bootstrap::{EntryRuntimeBootstrap, NativePluginRuntimeBootstrap};
+#[cfg(feature = "target-editor-host")]
+pub use editor::EditorApplicationComposition;
 
 #[derive(Debug, Default)]
 pub struct EntryRunner;

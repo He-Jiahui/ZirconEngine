@@ -2,7 +2,7 @@ use super::{MigrateError, MigrationChain};
 use crate::serialization::SchemaId;
 
 impl<T> MigrationChain<T> {
-    pub(super) fn validate(
+    pub(in crate::serialization) fn validate(
         &self,
         schema_id: &SchemaId,
         target_version: u32,

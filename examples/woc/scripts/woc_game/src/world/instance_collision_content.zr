@@ -1,0 +1,3868 @@
+// Generated instance-local layoutColliders projection from pinned dungeon_layout.ts.
+// Layout indices: 0=crypt, 1=sanctum, 2=temple, 3=nythraxis, 4=arena, 5=yumi.
+// Kinds: 1=circle, 2=rotated OBB. Float fields: 1=x, 2=z, 3=radius,
+// 4=half-width, 5=half-depth, 6=rotation.
+
+layoutIndexIsValid(index: int): bool {
+    return index >= 0 && index < 6;
+}
+
+pub layoutCount(required: bool): int {
+    if (!required) {
+        throw "woc instance layout count is required";
+    }
+    return 6;
+}
+
+pub layoutColliderCount(layoutIndex: int, required: bool): int {
+    if (!required || !layoutIndexIsValid(layoutIndex)) {
+        throw "woc instance collider count is invalid";
+    }
+    if (layoutIndex == 0) {
+        return 28;
+    }
+    if (layoutIndex == 1) {
+        return 24;
+    }
+    if (layoutIndex == 2) {
+        return 24;
+    }
+    if (layoutIndex == 3) {
+        return 30;
+    }
+    if (layoutIndex == 4) {
+        return 16;
+    }
+    return 48;
+}
+
+pub colliderKind(layoutIndex: int, colliderIndex: int, required: bool): int {
+    if (!required || !layoutIndexIsValid(layoutIndex)) {
+        throw "woc instance collider kind is invalid";
+    }
+    if (layoutIndex == 0) {
+        if (colliderIndex < 0 || colliderIndex >= 28) {
+            throw "woc instance collider kind is invalid";
+        }
+        if (colliderIndex == 0) {
+            return 2;
+        }
+        if (colliderIndex == 1) {
+            return 2;
+        }
+        if (colliderIndex == 2) {
+            return 2;
+        }
+        if (colliderIndex == 3) {
+            return 2;
+        }
+        if (colliderIndex == 4) {
+            return 1;
+        }
+        if (colliderIndex == 5) {
+            return 1;
+        }
+        if (colliderIndex == 6) {
+            return 1;
+        }
+        if (colliderIndex == 7) {
+            return 1;
+        }
+        if (colliderIndex == 8) {
+            return 1;
+        }
+        if (colliderIndex == 9) {
+            return 1;
+        }
+        if (colliderIndex == 10) {
+            return 1;
+        }
+        if (colliderIndex == 11) {
+            return 1;
+        }
+        if (colliderIndex == 12) {
+            return 1;
+        }
+        if (colliderIndex == 13) {
+            return 1;
+        }
+        if (colliderIndex == 14) {
+            return 1;
+        }
+        if (colliderIndex == 15) {
+            return 1;
+        }
+        if (colliderIndex == 16) {
+            return 1;
+        }
+        if (colliderIndex == 17) {
+            return 1;
+        }
+        if (colliderIndex == 18) {
+            return 2;
+        }
+        if (colliderIndex == 19) {
+            return 2;
+        }
+        if (colliderIndex == 20) {
+            return 2;
+        }
+        if (colliderIndex == 21) {
+            return 2;
+        }
+        if (colliderIndex == 22) {
+            return 2;
+        }
+        if (colliderIndex == 23) {
+            return 2;
+        }
+        if (colliderIndex == 24) {
+            return 2;
+        }
+        if (colliderIndex == 25) {
+            return 2;
+        }
+        if (colliderIndex == 26) {
+            return 2;
+        }
+        return 2;
+    }
+    if (layoutIndex == 1) {
+        if (colliderIndex < 0 || colliderIndex >= 24) {
+            throw "woc instance collider kind is invalid";
+        }
+        if (colliderIndex == 0) {
+            return 2;
+        }
+        if (colliderIndex == 1) {
+            return 2;
+        }
+        if (colliderIndex == 2) {
+            return 2;
+        }
+        if (colliderIndex == 3) {
+            return 2;
+        }
+        if (colliderIndex == 4) {
+            return 2;
+        }
+        if (colliderIndex == 5) {
+            return 2;
+        }
+        if (colliderIndex == 6) {
+            return 2;
+        }
+        if (colliderIndex == 7) {
+            return 2;
+        }
+        if (colliderIndex == 8) {
+            return 1;
+        }
+        if (colliderIndex == 9) {
+            return 1;
+        }
+        if (colliderIndex == 10) {
+            return 1;
+        }
+        if (colliderIndex == 11) {
+            return 1;
+        }
+        if (colliderIndex == 12) {
+            return 1;
+        }
+        if (colliderIndex == 13) {
+            return 1;
+        }
+        if (colliderIndex == 14) {
+            return 1;
+        }
+        if (colliderIndex == 15) {
+            return 1;
+        }
+        if (colliderIndex == 16) {
+            return 1;
+        }
+        if (colliderIndex == 17) {
+            return 1;
+        }
+        if (colliderIndex == 18) {
+            return 1;
+        }
+        if (colliderIndex == 19) {
+            return 1;
+        }
+        if (colliderIndex == 20) {
+            return 1;
+        }
+        if (colliderIndex == 21) {
+            return 1;
+        }
+        if (colliderIndex == 22) {
+            return 1;
+        }
+        return 1;
+    }
+    if (layoutIndex == 2) {
+        if (colliderIndex < 0 || colliderIndex >= 24) {
+            throw "woc instance collider kind is invalid";
+        }
+        if (colliderIndex == 0) {
+            return 2;
+        }
+        if (colliderIndex == 1) {
+            return 2;
+        }
+        if (colliderIndex == 2) {
+            return 2;
+        }
+        if (colliderIndex == 3) {
+            return 2;
+        }
+        if (colliderIndex == 4) {
+            return 2;
+        }
+        if (colliderIndex == 5) {
+            return 2;
+        }
+        if (colliderIndex == 6) {
+            return 1;
+        }
+        if (colliderIndex == 7) {
+            return 1;
+        }
+        if (colliderIndex == 8) {
+            return 1;
+        }
+        if (colliderIndex == 9) {
+            return 1;
+        }
+        if (colliderIndex == 10) {
+            return 1;
+        }
+        if (colliderIndex == 11) {
+            return 1;
+        }
+        if (colliderIndex == 12) {
+            return 1;
+        }
+        if (colliderIndex == 13) {
+            return 1;
+        }
+        if (colliderIndex == 14) {
+            return 1;
+        }
+        if (colliderIndex == 15) {
+            return 1;
+        }
+        if (colliderIndex == 16) {
+            return 1;
+        }
+        if (colliderIndex == 17) {
+            return 1;
+        }
+        if (colliderIndex == 18) {
+            return 1;
+        }
+        if (colliderIndex == 19) {
+            return 1;
+        }
+        if (colliderIndex == 20) {
+            return 2;
+        }
+        if (colliderIndex == 21) {
+            return 2;
+        }
+        if (colliderIndex == 22) {
+            return 2;
+        }
+        return 2;
+    }
+    if (layoutIndex == 3) {
+        if (colliderIndex < 0 || colliderIndex >= 30) {
+            throw "woc instance collider kind is invalid";
+        }
+        if (colliderIndex == 0) {
+            return 2;
+        }
+        if (colliderIndex == 1) {
+            return 2;
+        }
+        if (colliderIndex == 2) {
+            return 2;
+        }
+        if (colliderIndex == 3) {
+            return 2;
+        }
+        if (colliderIndex == 4) {
+            return 1;
+        }
+        if (colliderIndex == 5) {
+            return 1;
+        }
+        if (colliderIndex == 6) {
+            return 1;
+        }
+        if (colliderIndex == 7) {
+            return 1;
+        }
+        if (colliderIndex == 8) {
+            return 1;
+        }
+        if (colliderIndex == 9) {
+            return 1;
+        }
+        if (colliderIndex == 10) {
+            return 1;
+        }
+        if (colliderIndex == 11) {
+            return 1;
+        }
+        if (colliderIndex == 12) {
+            return 1;
+        }
+        if (colliderIndex == 13) {
+            return 1;
+        }
+        if (colliderIndex == 14) {
+            return 1;
+        }
+        if (colliderIndex == 15) {
+            return 1;
+        }
+        if (colliderIndex == 16) {
+            return 1;
+        }
+        if (colliderIndex == 17) {
+            return 1;
+        }
+        if (colliderIndex == 18) {
+            return 1;
+        }
+        if (colliderIndex == 19) {
+            return 1;
+        }
+        if (colliderIndex == 20) {
+            return 1;
+        }
+        if (colliderIndex == 21) {
+            return 1;
+        }
+        if (colliderIndex == 22) {
+            return 1;
+        }
+        if (colliderIndex == 23) {
+            return 1;
+        }
+        if (colliderIndex == 24) {
+            return 2;
+        }
+        if (colliderIndex == 25) {
+            return 2;
+        }
+        if (colliderIndex == 26) {
+            return 2;
+        }
+        if (colliderIndex == 27) {
+            return 2;
+        }
+        if (colliderIndex == 28) {
+            return 2;
+        }
+        return 2;
+    }
+    if (layoutIndex == 4) {
+        if (colliderIndex < 0 || colliderIndex >= 16) {
+            throw "woc instance collider kind is invalid";
+        }
+        if (colliderIndex == 0) {
+            return 2;
+        }
+        if (colliderIndex == 1) {
+            return 2;
+        }
+        if (colliderIndex == 2) {
+            return 2;
+        }
+        if (colliderIndex == 3) {
+            return 2;
+        }
+        if (colliderIndex == 4) {
+            return 2;
+        }
+        if (colliderIndex == 5) {
+            return 2;
+        }
+        if (colliderIndex == 6) {
+            return 1;
+        }
+        if (colliderIndex == 7) {
+            return 1;
+        }
+        if (colliderIndex == 8) {
+            return 1;
+        }
+        if (colliderIndex == 9) {
+            return 1;
+        }
+        if (colliderIndex == 10) {
+            return 1;
+        }
+        if (colliderIndex == 11) {
+            return 1;
+        }
+        if (colliderIndex == 12) {
+            return 1;
+        }
+        if (colliderIndex == 13) {
+            return 1;
+        }
+        if (colliderIndex == 14) {
+            return 1;
+        }
+        return 1;
+    }
+    if (layoutIndex == 5) {
+        if (colliderIndex < 0 || colliderIndex >= 48) {
+            throw "woc instance collider kind is invalid";
+        }
+        if (colliderIndex == 0) {
+            return 2;
+        }
+        if (colliderIndex == 1) {
+            return 2;
+        }
+        if (colliderIndex == 2) {
+            return 2;
+        }
+        if (colliderIndex == 3) {
+            return 2;
+        }
+        if (colliderIndex == 4) {
+            return 2;
+        }
+        if (colliderIndex == 5) {
+            return 2;
+        }
+        if (colliderIndex == 6) {
+            return 2;
+        }
+        if (colliderIndex == 7) {
+            return 2;
+        }
+        if (colliderIndex == 8) {
+            return 2;
+        }
+        if (colliderIndex == 9) {
+            return 2;
+        }
+        if (colliderIndex == 10) {
+            return 2;
+        }
+        if (colliderIndex == 11) {
+            return 2;
+        }
+        if (colliderIndex == 12) {
+            return 2;
+        }
+        if (colliderIndex == 13) {
+            return 2;
+        }
+        if (colliderIndex == 14) {
+            return 2;
+        }
+        if (colliderIndex == 15) {
+            return 2;
+        }
+        if (colliderIndex == 16) {
+            return 2;
+        }
+        if (colliderIndex == 17) {
+            return 2;
+        }
+        if (colliderIndex == 18) {
+            return 2;
+        }
+        if (colliderIndex == 19) {
+            return 2;
+        }
+        if (colliderIndex == 20) {
+            return 2;
+        }
+        if (colliderIndex == 21) {
+            return 2;
+        }
+        if (colliderIndex == 22) {
+            return 2;
+        }
+        if (colliderIndex == 23) {
+            return 2;
+        }
+        if (colliderIndex == 24) {
+            return 2;
+        }
+        if (colliderIndex == 25) {
+            return 2;
+        }
+        if (colliderIndex == 26) {
+            return 2;
+        }
+        if (colliderIndex == 27) {
+            return 2;
+        }
+        if (colliderIndex == 28) {
+            return 2;
+        }
+        if (colliderIndex == 29) {
+            return 2;
+        }
+        if (colliderIndex == 30) {
+            return 2;
+        }
+        if (colliderIndex == 31) {
+            return 2;
+        }
+        if (colliderIndex == 32) {
+            return 2;
+        }
+        if (colliderIndex == 33) {
+            return 2;
+        }
+        if (colliderIndex == 34) {
+            return 2;
+        }
+        if (colliderIndex == 35) {
+            return 2;
+        }
+        if (colliderIndex == 36) {
+            return 2;
+        }
+        if (colliderIndex == 37) {
+            return 2;
+        }
+        if (colliderIndex == 38) {
+            return 2;
+        }
+        if (colliderIndex == 39) {
+            return 2;
+        }
+        if (colliderIndex == 40) {
+            return 2;
+        }
+        if (colliderIndex == 41) {
+            return 2;
+        }
+        if (colliderIndex == 42) {
+            return 2;
+        }
+        if (colliderIndex == 43) {
+            return 2;
+        }
+        if (colliderIndex == 44) {
+            return 2;
+        }
+        if (colliderIndex == 45) {
+            return 2;
+        }
+        if (colliderIndex == 46) {
+            return 2;
+        }
+        return 2;
+    }
+    throw "woc instance collider kind is invalid";
+}
+
+pub colliderFloat(layoutIndex: int, colliderIndex: int, field: int, required: bool): float {
+    if (!required || !layoutIndexIsValid(layoutIndex) || field < 1 || field > 6) {
+        throw "woc instance collider float is invalid";
+    }
+    if (layoutIndex == 0) {
+        if (colliderIndex < 0 || colliderIndex >= 28) {
+            throw "woc instance collider float is invalid";
+        }
+        if (colliderIndex == 0) {
+            if (field == 1) {
+                return -23.0;
+            }
+            if (field == 2) {
+                return 47.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 66.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 1) {
+            if (field == 1) {
+                return 23.0;
+            }
+            if (field == 2) {
+                return 47.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 66.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 2) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return 112.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 24.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 3) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return -19.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 24.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 4) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 5) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 6) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 25.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 7) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 25.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 8) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 40.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 9) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 40.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 10) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 55.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 11) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 55.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 12) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 70.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 13) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 70.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 14) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 85.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 15) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 85.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 16) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 100.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 17) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 100.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 18) {
+            if (field == 1) {
+                return -19.0;
+            }
+            if (field == 2) {
+                return 16.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 19) {
+            if (field == 1) {
+                return 19.0;
+            }
+            if (field == 2) {
+                return 16.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 20) {
+            if (field == 1) {
+                return -19.0;
+            }
+            if (field == 2) {
+                return 35.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 21) {
+            if (field == 1) {
+                return 19.0;
+            }
+            if (field == 2) {
+                return 35.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 22) {
+            if (field == 1) {
+                return -19.0;
+            }
+            if (field == 2) {
+                return 54.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 23) {
+            if (field == 1) {
+                return 19.0;
+            }
+            if (field == 2) {
+                return 54.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 24) {
+            if (field == 1) {
+                return -19.0;
+            }
+            if (field == 2) {
+                return 73.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 25) {
+            if (field == 1) {
+                return 19.0;
+            }
+            if (field == 2) {
+                return 73.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 26) {
+            if (field == 1) {
+                return -19.0;
+            }
+            if (field == 2) {
+                return 92.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (field == 1) {
+            return 19.0;
+        }
+        if (field == 2) {
+            return 92.0;
+        }
+        if (field == 3) {
+            return 0.0;
+        }
+        if (field == 4) {
+            return 1.1;
+        }
+        if (field == 5) {
+            return 2.1;
+        }
+        return 0.0;
+    }
+    if (layoutIndex == 1) {
+        if (colliderIndex < 0 || colliderIndex >= 24) {
+            throw "woc instance collider float is invalid";
+        }
+        if (colliderIndex == 0) {
+            if (field == 1) {
+                return -23.0;
+            }
+            if (field == 2) {
+                return 69.5;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 89.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 1) {
+            if (field == 1) {
+                return 23.0;
+            }
+            if (field == 2) {
+                return 69.5;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 89.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 2) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return 158.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 24.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 3) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return -19.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 24.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 4) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 67.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 9.0;
+            }
+            if (field == 5) {
+                return 5.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 5) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 115.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 9.0;
+            }
+            if (field == 5) {
+                return 3.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 6) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 67.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 9.0;
+            }
+            if (field == 5) {
+                return 5.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 7) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 115.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 9.0;
+            }
+            if (field == 5) {
+                return 3.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 8) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 9) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 10) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 25.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 11) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 25.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 12) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 40.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 13) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 40.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 14) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 55.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 15) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 55.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 16) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 85.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 17) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 85.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 18) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 100.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 19) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 100.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 20) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 125.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 21) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 125.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 22) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 140.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (field == 1) {
+            return 14.0;
+        }
+        if (field == 2) {
+            return 140.0;
+        }
+        if (field == 3) {
+            return 1.0;
+        }
+        if (field == 4) {
+            return 0.0;
+        }
+        if (field == 5) {
+            return 0.0;
+        }
+        return 0.0;
+    }
+    if (layoutIndex == 2) {
+        if (colliderIndex < 0 || colliderIndex >= 24) {
+            throw "woc instance collider float is invalid";
+        }
+        if (colliderIndex == 0) {
+            if (field == 1) {
+                return -23.0;
+            }
+            if (field == 2) {
+                return 56.5;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 75.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 1) {
+            if (field == 1) {
+                return 23.0;
+            }
+            if (field == 2) {
+                return 56.5;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 75.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 2) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return 132.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 24.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 3) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return -19.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 24.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 4) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 66.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 9.0;
+            }
+            if (field == 5) {
+                return 4.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 5) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 66.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 9.0;
+            }
+            if (field == 5) {
+                return 4.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 6) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 7) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 8) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 25.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 9) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 25.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 10) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 40.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 11) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 40.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 12) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 55.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 13) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 55.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 14) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 80.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 15) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 80.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 16) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 95.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 17) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 95.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 18) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 110.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 19) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 110.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 20) {
+            if (field == 1) {
+                return -19.0;
+            }
+            if (field == 2) {
+                return 18.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 21) {
+            if (field == 1) {
+                return 19.0;
+            }
+            if (field == 2) {
+                return 18.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 22) {
+            if (field == 1) {
+                return -19.0;
+            }
+            if (field == 2) {
+                return 40.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (field == 1) {
+            return 19.0;
+        }
+        if (field == 2) {
+            return 40.0;
+        }
+        if (field == 3) {
+            return 0.0;
+        }
+        if (field == 4) {
+            return 1.1;
+        }
+        if (field == 5) {
+            return 2.1;
+        }
+        return 0.0;
+    }
+    if (layoutIndex == 3) {
+        if (colliderIndex < 0 || colliderIndex >= 30) {
+            throw "woc instance collider float is invalid";
+        }
+        if (colliderIndex == 0) {
+            if (field == 1) {
+                return -230.0;
+            }
+            if (field == 2) {
+                return 53.5;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 73.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 1) {
+            if (field == 1) {
+                return 230.0;
+            }
+            if (field == 2) {
+                return 53.5;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 73.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 2) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return 126.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 231.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 3) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return -19.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 231.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 4) {
+            if (field == 1) {
+                return -90.0;
+            }
+            if (field == 2) {
+                return 18.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 5) {
+            if (field == 1) {
+                return -45.0;
+            }
+            if (field == 2) {
+                return 18.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 6) {
+            if (field == 1) {
+                return 45.0;
+            }
+            if (field == 2) {
+                return 18.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 7) {
+            if (field == 1) {
+                return 90.0;
+            }
+            if (field == 2) {
+                return 18.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 8) {
+            if (field == 1) {
+                return -90.0;
+            }
+            if (field == 2) {
+                return 38.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 9) {
+            if (field == 1) {
+                return -45.0;
+            }
+            if (field == 2) {
+                return 38.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 10) {
+            if (field == 1) {
+                return 45.0;
+            }
+            if (field == 2) {
+                return 38.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 11) {
+            if (field == 1) {
+                return 90.0;
+            }
+            if (field == 2) {
+                return 38.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 12) {
+            if (field == 1) {
+                return -90.0;
+            }
+            if (field == 2) {
+                return 60.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 13) {
+            if (field == 1) {
+                return -45.0;
+            }
+            if (field == 2) {
+                return 60.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 14) {
+            if (field == 1) {
+                return 45.0;
+            }
+            if (field == 2) {
+                return 60.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 15) {
+            if (field == 1) {
+                return 90.0;
+            }
+            if (field == 2) {
+                return 60.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 16) {
+            if (field == 1) {
+                return -90.0;
+            }
+            if (field == 2) {
+                return 82.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 17) {
+            if (field == 1) {
+                return -45.0;
+            }
+            if (field == 2) {
+                return 82.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 18) {
+            if (field == 1) {
+                return 45.0;
+            }
+            if (field == 2) {
+                return 82.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 19) {
+            if (field == 1) {
+                return 90.0;
+            }
+            if (field == 2) {
+                return 82.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 20) {
+            if (field == 1) {
+                return -90.0;
+            }
+            if (field == 2) {
+                return 106.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 21) {
+            if (field == 1) {
+                return -45.0;
+            }
+            if (field == 2) {
+                return 106.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 22) {
+            if (field == 1) {
+                return 45.0;
+            }
+            if (field == 2) {
+                return 106.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 23) {
+            if (field == 1) {
+                return 90.0;
+            }
+            if (field == 2) {
+                return 106.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 24) {
+            if (field == 1) {
+                return -210.0;
+            }
+            if (field == 2) {
+                return 20.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 25) {
+            if (field == 1) {
+                return 210.0;
+            }
+            if (field == 2) {
+                return 20.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 26) {
+            if (field == 1) {
+                return -210.0;
+            }
+            if (field == 2) {
+                return 42.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 27) {
+            if (field == 1) {
+                return 210.0;
+            }
+            if (field == 2) {
+                return 42.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 28) {
+            if (field == 1) {
+                return -210.0;
+            }
+            if (field == 2) {
+                return 64.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.1;
+            }
+            if (field == 5) {
+                return 2.1;
+            }
+            return 0.0;
+        }
+        if (field == 1) {
+            return 210.0;
+        }
+        if (field == 2) {
+            return 64.0;
+        }
+        if (field == 3) {
+            return 0.0;
+        }
+        if (field == 4) {
+            return 1.1;
+        }
+        if (field == 5) {
+            return 2.1;
+        }
+        return 0.0;
+    }
+    if (layoutIndex == 4) {
+        if (colliderIndex < 0 || colliderIndex >= 16) {
+            throw "woc instance collider float is invalid";
+        }
+        if (colliderIndex == 0) {
+            if (field == 1) {
+                return -23.0;
+            }
+            if (field == 2) {
+                return 2.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 23.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 1) {
+            if (field == 1) {
+                return 23.0;
+            }
+            if (field == 2) {
+                return 2.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 1.0;
+            }
+            if (field == 5) {
+                return 23.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 2) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return 24.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 24.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 3) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return -20.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 24.0;
+            }
+            if (field == 5) {
+                return 1.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 4) {
+            if (field == 1) {
+                return -11.0;
+            }
+            if (field == 2) {
+                return 2.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.6;
+            }
+            if (field == 5) {
+                return 4.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 5) {
+            if (field == 1) {
+                return 11.0;
+            }
+            if (field == 2) {
+                return 2.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.6;
+            }
+            if (field == 5) {
+                return 4.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 6) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return -10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 7) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return -10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 8) {
+            if (field == 1) {
+                return -14.0;
+            }
+            if (field == 2) {
+                return 14.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 9) {
+            if (field == 1) {
+                return 14.0;
+            }
+            if (field == 2) {
+                return 14.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 10) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return -4.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 11) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return 8.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 12) {
+            if (field == 1) {
+                return -9.0;
+            }
+            if (field == 2) {
+                return -10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 13) {
+            if (field == 1) {
+                return 9.0;
+            }
+            if (field == 2) {
+                return -10.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 14) {
+            if (field == 1) {
+                return -9.0;
+            }
+            if (field == 2) {
+                return 14.0;
+            }
+            if (field == 3) {
+                return 1.0;
+            }
+            if (field == 4) {
+                return 0.0;
+            }
+            if (field == 5) {
+                return 0.0;
+            }
+            return 0.0;
+        }
+        if (field == 1) {
+            return 9.0;
+        }
+        if (field == 2) {
+            return 14.0;
+        }
+        if (field == 3) {
+            return 1.0;
+        }
+        if (field == 4) {
+            return 0.0;
+        }
+        if (field == 5) {
+            return 0.0;
+        }
+        return 0.0;
+    }
+    if (layoutIndex == 5) {
+        if (colliderIndex < 0 || colliderIndex >= 48) {
+            throw "woc instance collider float is invalid";
+        }
+        if (colliderIndex == 0) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return -44.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 44.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 1) {
+            if (field == 1) {
+                return 0.0;
+            }
+            if (field == 2) {
+                return 44.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 44.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 2) {
+            if (field == 1) {
+                return -44.375;
+            }
+            if (field == 2) {
+                return 0.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 44.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 3) {
+            if (field == 1) {
+                return 44.375;
+            }
+            if (field == 2) {
+                return 0.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 44.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 4) {
+            if (field == 1) {
+                return -37.125;
+            }
+            if (field == 2) {
+                return -27.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 5) {
+            if (field == 1) {
+                return -37.125;
+            }
+            if (field == 2) {
+                return 20.25;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 6) {
+            if (field == 1) {
+                return -30.375;
+            }
+            if (field == 2) {
+                return -33.75;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 7) {
+            if (field == 1) {
+                return -30.375;
+            }
+            if (field == 2) {
+                return -13.5;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 8) {
+            if (field == 1) {
+                return -23.625;
+            }
+            if (field == 2) {
+                return -27.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 9) {
+            if (field == 1) {
+                return -23.625;
+            }
+            if (field == 2) {
+                return 33.75;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 10) {
+            if (field == 1) {
+                return -16.875;
+            }
+            if (field == 2) {
+                return -33.75;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 11) {
+            if (field == 1) {
+                return -10.125;
+            }
+            if (field == 2) {
+                return -27.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 12) {
+            if (field == 1) {
+                return -10.125;
+            }
+            if (field == 2) {
+                return -6.75;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 13) {
+            if (field == 1) {
+                return 10.125;
+            }
+            if (field == 2) {
+                return 6.75;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 14) {
+            if (field == 1) {
+                return 10.125;
+            }
+            if (field == 2) {
+                return 27.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 15) {
+            if (field == 1) {
+                return 16.875;
+            }
+            if (field == 2) {
+                return 33.75;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 16) {
+            if (field == 1) {
+                return 23.625;
+            }
+            if (field == 2) {
+                return -33.75;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 17) {
+            if (field == 1) {
+                return 23.625;
+            }
+            if (field == 2) {
+                return 27.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 18) {
+            if (field == 1) {
+                return 30.375;
+            }
+            if (field == 2) {
+                return 13.5;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 19) {
+            if (field == 1) {
+                return 30.375;
+            }
+            if (field == 2) {
+                return 33.75;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 20) {
+            if (field == 1) {
+                return 37.125;
+            }
+            if (field == 2) {
+                return -20.25;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 21) {
+            if (field == 1) {
+                return 37.125;
+            }
+            if (field == 2) {
+                return 27.0;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 0.5;
+            }
+            if (field == 5) {
+                return 3.875;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 22) {
+            if (field == 1) {
+                return 13.5;
+            }
+            if (field == 2) {
+                return -37.125;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 23) {
+            if (field == 1) {
+                return 6.75;
+            }
+            if (field == 2) {
+                return -30.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 10.625;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 24) {
+            if (field == 1) {
+                return 33.75;
+            }
+            if (field == 2) {
+                return -30.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 25) {
+            if (field == 1) {
+                return -33.75;
+            }
+            if (field == 2) {
+                return -23.625;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 26) {
+            if (field == 1) {
+                return 6.75;
+            }
+            if (field == 2) {
+                return -23.625;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 27) {
+            if (field == 1) {
+                return 20.25;
+            }
+            if (field == 2) {
+                return -23.625;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 28) {
+            if (field == 1) {
+                return -3.375;
+            }
+            if (field == 2) {
+                return -16.875;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 7.25;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 29) {
+            if (field == 1) {
+                return 27.0;
+            }
+            if (field == 2) {
+                return -16.875;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 30) {
+            if (field == 1) {
+                return -20.25;
+            }
+            if (field == 2) {
+                return -10.125;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 31) {
+            if (field == 1) {
+                return 6.75;
+            }
+            if (field == 2) {
+                return -10.125;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 32) {
+            if (field == 1) {
+                return 20.25;
+            }
+            if (field == 2) {
+                return -10.125;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 33) {
+            if (field == 1) {
+                return -33.75;
+            }
+            if (field == 2) {
+                return -3.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 34) {
+            if (field == 1) {
+                return 30.375;
+            }
+            if (field == 2) {
+                return -3.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 7.25;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 35) {
+            if (field == 1) {
+                return -30.375;
+            }
+            if (field == 2) {
+                return 3.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 7.25;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 36) {
+            if (field == 1) {
+                return 33.75;
+            }
+            if (field == 2) {
+                return 3.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 37) {
+            if (field == 1) {
+                return -20.25;
+            }
+            if (field == 2) {
+                return 10.125;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 38) {
+            if (field == 1) {
+                return -6.75;
+            }
+            if (field == 2) {
+                return 10.125;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 39) {
+            if (field == 1) {
+                return 20.25;
+            }
+            if (field == 2) {
+                return 10.125;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 40) {
+            if (field == 1) {
+                return -27.0;
+            }
+            if (field == 2) {
+                return 16.875;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 41) {
+            if (field == 1) {
+                return 3.375;
+            }
+            if (field == 2) {
+                return 16.875;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 7.25;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 42) {
+            if (field == 1) {
+                return -20.25;
+            }
+            if (field == 2) {
+                return 23.625;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 43) {
+            if (field == 1) {
+                return -6.75;
+            }
+            if (field == 2) {
+                return 23.625;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 44) {
+            if (field == 1) {
+                return 33.75;
+            }
+            if (field == 2) {
+                return 23.625;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 45) {
+            if (field == 1) {
+                return -33.75;
+            }
+            if (field == 2) {
+                return 30.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 3.875;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (colliderIndex == 46) {
+            if (field == 1) {
+                return -6.75;
+            }
+            if (field == 2) {
+                return 30.375;
+            }
+            if (field == 3) {
+                return 0.0;
+            }
+            if (field == 4) {
+                return 10.625;
+            }
+            if (field == 5) {
+                return 0.5;
+            }
+            return 0.0;
+        }
+        if (field == 1) {
+            return -13.5;
+        }
+        if (field == 2) {
+            return 37.125;
+        }
+        if (field == 3) {
+            return 0.0;
+        }
+        if (field == 4) {
+            return 3.875;
+        }
+        if (field == 5) {
+            return 0.5;
+        }
+        return 0.0;
+    }
+    throw "woc instance collider float is invalid";
+}
+
+dungeonRouteIndexIsValid(index: int): bool {
+    return index >= 0 && index < 6;
+}
+
+pub dungeonRouteCount(required: bool): int {
+    if (!required) {
+        throw "woc dungeon route count is required";
+    }
+    return 6;
+}
+
+pub dungeonIndexAtRoute(routeIndex: int, required: bool): int {
+    if (!required || !dungeonRouteIndexIsValid(routeIndex)) {
+        throw "woc dungeon route index is invalid";
+    }
+    if (routeIndex == 0) {
+        return 0;
+    }
+    if (routeIndex == 1) {
+        return 1;
+    }
+    if (routeIndex == 2) {
+        return 2;
+    }
+    if (routeIndex == 3) {
+        return 3;
+    }
+    if (routeIndex == 4) {
+        return 4;
+    }
+    return 5;
+}
+
+pub dungeonLayoutIndexAtRoute(routeIndex: int, required: bool): int {
+    if (!required || !dungeonRouteIndexIsValid(routeIndex)) {
+        throw "woc dungeon route layout is invalid";
+    }
+    if (routeIndex == 0) {
+        return 0;
+    }
+    if (routeIndex == 1) {
+        return 0;
+    }
+    if (routeIndex == 2) {
+        return 1;
+    }
+    if (routeIndex == 3) {
+        return 2;
+    }
+    if (routeIndex == 4) {
+        return 0;
+    }
+    return 3;
+}
+
+pub dungeonXThreshold(required: bool): float {
+    if (!required) {
+        throw "woc instance dungeon_x_threshold is required";
+    }
+    return 600.0;
+}
+
+pub dungeonSlotCount(required: bool): int {
+    if (!required) {
+        throw "woc instance dungeon_slot_count is required";
+    }
+    return 24;
+}
+
+pub dungeonOriginBaseX(required: bool): float {
+    if (!required) {
+        throw "woc instance dungeon_origin_base_x is required";
+    }
+    return 900.0;
+}
+
+pub dungeonOriginIndexSpacing(required: bool): float {
+    if (!required) {
+        throw "woc instance dungeon_origin_index_spacing is required";
+    }
+    return 600.0;
+}
+
+pub dungeonOriginZ0(required: bool): float {
+    if (!required) {
+        throw "woc instance dungeon_origin_z0 is required";
+    }
+    return -1250.0;
+}
+
+pub dungeonSlotSpacing(required: bool): float {
+    if (!required) {
+        throw "woc instance dungeon_slot_spacing is required";
+    }
+    return 500.0;
+}
+
+pub arenaX(required: bool): float {
+    if (!required) {
+        throw "woc instance arena_x is required";
+    }
+    return 4200.0;
+}
+
+pub arenaXMin(required: bool): float {
+    if (!required) {
+        throw "woc instance arena_x_min is required";
+    }
+    return 4200.0;
+}
+
+pub arenaSlotCount(required: bool): int {
+    if (!required) {
+        throw "woc instance arena_slot_count is required";
+    }
+    return 4;
+}
+
+pub arenaOriginZ0(required: bool): float {
+    if (!required) {
+        throw "woc instance arena_origin_z0 is required";
+    }
+    return -1250.0;
+}
+
+pub arenaSlotSpacing(required: bool): float {
+    if (!required) {
+        throw "woc instance arena_slot_spacing is required";
+    }
+    return 120.0;
+}
+
+pub delveBandXMin(required: bool): float {
+    if (!required) {
+        throw "woc instance delve_band_x_min is required";
+    }
+    return 4773.0;
+}
+
+pub yumiBandXMin(required: bool): float {
+    if (!required) {
+        throw "woc instance yumi_band_x_min is required";
+    }
+    return 8000.0;
+}
+
+pub yumiBandXMax(required: bool): float {
+    if (!required) {
+        throw "woc instance yumi_band_x_max is required";
+    }
+    return 12000.0;
+}
+
+pub yumiMazeX(required: bool): float {
+    if (!required) {
+        throw "woc instance yumi_maze_x is required";
+    }
+    return 8400.0;
+}
+
+pub yumiMazeSlotCount(required: bool): int {
+    if (!required) {
+        throw "woc instance yumi_maze_slot_count is required";
+    }
+    return 4;
+}
+
+pub yumiMazeOriginZ0(required: bool): float {
+    if (!required) {
+        throw "woc instance yumi_maze_origin_z0 is required";
+    }
+    return -1250.0;
+}
+
+pub yumiMazeSlotSpacing(required: bool): float {
+    if (!required) {
+        throw "woc instance yumi_maze_slot_spacing is required";
+    }
+    return 200.0;
+}
+
+pub yumiMazeSeed(required: bool): int {
+    if (!required) {
+        throw "woc instance yumi_maze_seed is required";
+    }
+    return 212332557;
+}
+
+
+pub contractTest(): int {
+    if (layoutCount(true) != 6 || layoutColliderCount(0, true) != 28 ||
+        layoutColliderCount(5, true) != 48) {
+        return -1;
+    }
+    if (colliderKind(0, 0, true) != 2 || colliderFloat(0, 1, 1, true) != 23.0 ||
+        colliderKind(5, 0, true) != 2 || colliderFloat(5, 0, 2, true) != -44.375) {
+        return -2;
+    }
+    if (dungeonRouteCount(true) != 6 || dungeonIndexAtRoute(0, true) != 0 ||
+        dungeonIndexAtRoute(5, true) != 5 || dungeonLayoutIndexAtRoute(2, true) != 1 ||
+        dungeonXThreshold(true) != 600.0 || dungeonSlotCount(true) != 24 ||
+        dungeonOriginBaseX(true) != 900.0 || dungeonOriginIndexSpacing(true) != 600.0 ||
+        dungeonOriginZ0(true) != -1250.0 || dungeonSlotSpacing(true) != 500.0 ||
+        arenaX(true) != 4200.0 || arenaSlotCount(true) != 4 || delveBandXMin(true) != 4773.0 ||
+        yumiBandXMin(true) != 8000.0 || yumiBandXMax(true) != 12000.0 || yumiMazeX(true) != 8400.0 ||
+        yumiMazeSlotCount(true) != 4 || yumiMazeOriginZ0(true) != -1250.0 || yumiMazeSlotSpacing(true) != 200.0 || yumiMazeSeed(true) != 212332557) {
+        return -3;
+    }
+    return 1;
+}

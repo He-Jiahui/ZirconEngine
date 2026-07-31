@@ -1,11 +1,41 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn drag_overlay_rendering_uses_central_tokens_and_validated_overrides() {
+    let source = include_str!("../surface/render/drag_overlay.rs");
+    for needle in [
+        "EditorDesignTokens",
+        "EditorTypographyTokens",
+        "DragOverlayVisual",
+        "style_overrides",
+        "parse_css_color",
+        "value_as_f32",
+    ] {
+        assert!(
+            source.contains(needle),
+            "missing drag overlay renderer feature: {needle}"
+        );
+    }
+    for legacy in [
+        "const PREVIEW_SURFACE",
+        "const FONT_SIZE",
+        "const ICON_LEFT",
+    ] {
+        assert!(
+            !source.contains(legacy),
+            "legacy drag overlay visual remains: {legacy}"
+        );
+    }
+    assert_eq!(EditorTypographyTokens::WORKBENCH_OVERLAY_SIZE, 12.0);
+}
 
 #[test]
 fn render_extract_drag_overlay_draws_preview_chip_and_drop_indicator() {
@@ -37,9 +67,9 @@ drop_indicator_edge = "bottom"
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(88.0, 66.0, 184.0, 36.0)
-            && command.style.background_color.as_deref() == Some("#153035")
-            && command.style.border_color.as_deref() == Some("#35c7d0")
-            && command.style.corner_radius == 6.0
+            && command.style.background_color.as_deref() == Some("#17434d")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
+            && command.style.corner_radius == 5.0
             && command.style.painter_family == UiPainterFamily::Chrome
             && command.style.painter_state == UiPainterResolvedState::Dragging
     }));
@@ -47,21 +77,21 @@ drop_indicator_edge = "bottom"
         command.kind == UiRenderCommandKind::Image
             && command.frame == UiFrame::new(100.0, 75.0, 18.0, 18.0)
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("package".to_string()))
-            && command.style.foreground_color.as_deref() == Some("#35c7d0")
+            && command.style.foreground_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_family == UiPainterFamily::Chrome
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("StoneWall.mesh")
             && command.frame == UiFrame::new(126.0, 76.8, 134.0, 14.4)
-            && command.style.foreground_color.as_deref() == Some("#cee0e2")
+            && command.style.foreground_color.as_deref() == Some("#e8ecee")
             && command.style.painter_family == UiPainterFamily::Chrome
             && command.style.painter_state == UiPainterResolvedState::Dragging
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(24.0, 176.0, 280.0, 2.0)
-            && command.style.background_color.as_deref() == Some("#35c7d0")
+            && command.style.background_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_family == UiPainterFamily::Chrome
             && command.style.painter_state == UiPainterResolvedState::DropHovered
     }));

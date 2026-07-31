@@ -3,9 +3,13 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
     let parent = read_runtime_src("rhi_wgpu/ui_surface.rs");
+    let batching = read_runtime_src("rhi_wgpu/ui_surface/batching.rs");
+    let batching_tests = read_runtime_src("rhi_wgpu/ui_surface/batching/tests.rs");
     let render_pass = read_runtime_src("rhi_wgpu/ui_surface/render_pass.rs");
+    let retained_cache = read_runtime_src("rhi_wgpu/ui_surface/retained_cache.rs");
     let surface_setup = read_runtime_src("rhi_wgpu/ui_surface/surface_setup.rs");
     let tests = read_runtime_src("rhi_wgpu/ui_surface/tests.rs");
+    let text = read_runtime_src("rhi_wgpu/ui_surface/text.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -22,9 +26,20 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
         &parent,
         &[
             "mod render_pass;",
+            "mod retained_cache;",
             "mod surface_setup;",
-            "use render_pass::{record_draw_ops_to_view, TargetLoad, WgpuUiDrawBuffers};",
+            "mod text;",
+            "use render_pass::{",
+            "record_draw_ops_to_view",
+            "TargetLoad",
+            "WgpuUiDrawBufferCache",
+            "WgpuUiDrawBufferStats",
+            "WgpuUiRecordedDrawStats",
+            "stats.render_pass_count",
+            "stats.retained_cache_copy_bytes",
+            "use retained_cache::WgpuRetainedSurfaceCache;",
             "use surface_setup::{configure_surface, create_surface, instance_descriptor, request_device};",
+            "use text::{WgpuUiTextPrepareStats, WgpuUiTextRenderer};",
             "fn present(",
             "fn render_draw_list_to_surface",
             "struct WgpuUiImageResource",
@@ -36,6 +51,8 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
     for moved_owner in [
         "struct WgpuUiDrawBuffers",
         "fn begin_ui_surface_pass",
+        "struct WgpuRetainedSurfaceCache",
+        "struct WgpuUiTextRenderer",
         "fn set_surface_viewport",
         "fn choose_surface_format",
         "fn choose_present_mode",
@@ -48,16 +65,54 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
         );
     }
     assert_contains_all(
+        "batching child keeps full-projection planning while its focused tests stay external",
+        &batching,
+        &[
+            "struct CompiledUiBatchPlanCache",
+            "pub(super) struct TextDraw",
+            "pub(super) solid_vertices: Vec<SolidVertex>",
+            "pub(super) image_vertices: Vec<ImageVertex>",
+            "#[path = \"batching/tests.rs\"]",
+            "mod tests;",
+        ],
+    );
+    assert_contains_all(
+        "batching tests child keeps full-projection and damage-culling coverage",
+        &batching_tests,
+        &[
+            "fn compiled_plan_cache_reuses_the_full_projection_for_versioned_damage",
+            "fn text_batch_keeps_union_bounds_for_damage_culling",
+        ],
+    );
+    assert_contains_all(
         "render-pass child owns draw buffers and render-pass recording",
         &render_pass,
         &[
             "pub(super) struct WgpuUiDrawBuffers",
+            "pub(super) struct WgpuUiDrawBufferCache",
+            "pub(super) struct WgpuUiRecordedDrawStats",
             "pub(super) enum TargetLoad",
             "pub(super) fn record_draw_ops_to_view",
+            "render_pass_count",
+            "retained_cache_copy_bytes",
+            "bytemuck::cast_slice(draw_plan.solid_vertices.as_slice())",
+            "bytemuck::cast_slice(draw_plan.image_vertices.as_slice())",
             "fn begin_ui_surface_pass",
             "fn set_surface_viewport",
+            "fn damage_scissor",
             "super::batching::DrawOp",
             "super::geometry::{ImageVertex, SolidVertex}",
+        ],
+    );
+    assert_contains_all(
+        "retained-cache child owns persistent target copy and restore",
+        &retained_cache,
+        &[
+            "pub(super) struct WgpuRetainedSurfaceCache",
+            "pub(super) fn record_copy_to_surface",
+            "fn retained_copy_byte_count",
+            "pub(super) fn record_restore",
+            "fn restore_quad_vertices",
         ],
     );
     assert_contains_all(
@@ -84,15 +139,35 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
             "image_cache_keys_to_prune",
         ],
     );
+    assert_contains_all(
+        "text child owns glyphon preparation and draw execution",
+        &text,
+        &[
+            "pub(super) struct WgpuUiTextRenderer",
+            "pub(super) fn prepare",
+            "pub(super) fn render_batch",
+            "fn text_has_visible_content",
+        ],
+    );
 
     for (path, source) in [
         ("rhi_wgpu/ui_surface.rs", parent.as_str()),
+        ("rhi_wgpu/ui_surface/batching.rs", batching.as_str()),
+        (
+            "rhi_wgpu/ui_surface/batching/tests.rs",
+            batching_tests.as_str(),
+        ),
         ("rhi_wgpu/ui_surface/render_pass.rs", render_pass.as_str()),
+        (
+            "rhi_wgpu/ui_surface/retained_cache.rs",
+            retained_cache.as_str(),
+        ),
         (
             "rhi_wgpu/ui_surface/surface_setup.rs",
             surface_setup.as_str(),
         ),
         ("rhi_wgpu/ui_surface/tests.rs", tests.as_str()),
+        ("rhi_wgpu/ui_surface/text.rs", text.as_str()),
     ] {
         let line_count = source.lines().count();
         assert!(

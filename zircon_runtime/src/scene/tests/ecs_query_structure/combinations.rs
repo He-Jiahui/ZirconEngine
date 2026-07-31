@@ -86,19 +86,16 @@ fn cached_combinations_trust_query_state_data_membership() {
         owned_read_constructor.contains("entities: &[EntityId]")
             && owned_read_constructor.contains("if K > entities.len()")
             && owned_read_constructor.contains("return Self::empty(world, ticks);")
-            && owned_read_constructor.contains("let candidate_count =")
-            && owned_read_constructor
-                .contains("read_only_combination_candidate_count::<D, F>(world, entities, ticks)")
-            && owned_read_constructor.contains("if candidate_count < K")
-            && owned_read_constructor
-                .contains("let mut matched_entities = Vec::with_capacity(candidate_count);")
+            && owned_read_constructor.contains("let mut matched_entities = Vec::new();")
             && owned_read_constructor.contains("for entity in entities.iter().copied()")
             && owned_read_constructor
                 .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)")
             && owned_read_constructor.contains("matched_entities.push(entity)")
+            && owned_read_constructor.contains("if matched_entities.len() < K")
+            && !owned_read_constructor.contains("candidate_count")
             && !owned_read_constructor.contains(".collect::<Vec<_>>()")
             && !owned_read_constructor.contains("filter(|entity|"),
-        "uncached read-only combinations must skip impossible group sizes, then count candidates first and push into an exact-capacity Vec"
+        "uncached read-only combinations must skip impossible group sizes and match each candidate once"
     );
     assert!(
         read_combo_text.contains("fn empty(world: &'world World, ticks: ChangeTickWindow) -> Self")

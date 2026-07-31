@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type PropsWithChildren } from "react";
 import { controlClient } from "../api/client";
 import { openControlEvents } from "../api/events";
+import { createResyncDebouncer } from "./refreshDebouncer";
 import { controlReducer, initialControlState, type ControlState } from "./reducer";
 
 interface ControlContextValue extends ControlState { refresh: () => void }
@@ -9,6 +10,9 @@ const ControlContext = createContext<ControlContextValue | null>(null);
 export function ControlStoreProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(controlReducer, initialControlState);
   const refresh = useCallback(() => dispatch({ type: "resync" }), []);
+  const resyncDebouncer = useMemo(() => createResyncDebouncer(refresh), [refresh]);
+
+  useEffect(() => () => resyncDebouncer.cancel(), [resyncDebouncer]);
 
   useEffect(() => {
     if (!state.loading && !state.needsRefresh) return;
@@ -25,12 +29,12 @@ export function ControlStoreProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!state.snapshot || state.needsRefresh) return;
     return openControlEvents(state.cursor, {
-      onEvent: (event) => dispatch({ type: "event", event }),
-      onResync: () => dispatch({ type: "resync" }),
+      onEvent: () => resyncDebouncer.schedule(),
+      onResync: () => resyncDebouncer.flush(),
       onConnection: (connected) => dispatch({ type: "connection", connected }),
       onError: (message) => dispatch({ type: "error", message }),
     });
-  }, [state.snapshot, state.cursor, state.needsRefresh]);
+  }, [state.snapshot, state.cursor, state.needsRefresh, resyncDebouncer]);
 
   const value = useMemo(() => ({ ...state, refresh }), [state, refresh]);
   return <ControlContext.Provider value={value}>{children}</ControlContext.Provider>;

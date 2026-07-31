@@ -140,11 +140,14 @@ impl RendererDataEditorProjection {
 
 fn feature_row(
     feature: &RendererFeatureAsset,
-    diagnostic_counts: &BTreeMap<String, usize>,
+    diagnostic_counts: &HashMap<&str, usize>,
 ) -> RendererDataFeatureRow {
     let name = feature.feature_name();
     RendererDataFeatureRow {
-        diagnostic_count: diagnostic_counts.get(&name).copied().unwrap_or_default(),
+        diagnostic_count: diagnostic_counts
+            .get(name.as_str())
+            .copied()
+            .unwrap_or_default(),
         name,
         source: feature_source_name(&feature.feature),
         enabled: feature.enabled,
@@ -157,12 +160,10 @@ fn feature_row(
     }
 }
 
-fn diagnostic_counts_by_feature(
-    diagnostics: &[RendererDataDiagnosticRow],
-) -> BTreeMap<String, usize> {
-    let mut counts = BTreeMap::new();
+fn diagnostic_counts_by_feature(diagnostics: &[RendererDataDiagnosticRow]) -> HashMap<&str, usize> {
+    let mut counts = HashMap::new();
     for diagnostic in diagnostics {
-        *counts.entry(diagnostic.feature.clone()).or_insert(0) += 1;
+        *counts.entry(diagnostic.feature.as_str()).or_insert(0) += 1;
     }
     counts
 }

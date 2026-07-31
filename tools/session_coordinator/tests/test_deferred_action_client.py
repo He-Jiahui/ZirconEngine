@@ -84,6 +84,41 @@ class DeferredActionClientTests(unittest.TestCase):
         )
         self.assertEqual(2, request.call_count)
 
+    def test_rollover_status_poll_recovers_after_listener_transition(self) -> None:
+        executing = {
+            "actionId": "action-a",
+            "status": "executing",
+            "result": None,
+        }
+        succeeded = {
+            "actionId": "action-a",
+            "status": "succeeded",
+            "result": {"successorInstanceId": "daemon-b"},
+        }
+        with (
+            mock.patch.object(
+                CoordinatorClient,
+                "control_request",
+                autospec=True,
+                side_effect=(
+                    self._preview(),
+                    {"action": executing},
+                    CoordinatorClientError("offline", "listener is restarting"),
+                    {"action": succeeded},
+                ),
+            ) as request,
+            mock.patch("tools.session_coordinator.client.time.sleep", return_value=None),
+        ):
+            result = self._client().execute_control_action(
+                "service.rollover",
+                {"timeoutSeconds": 30},
+                reason="recover the successor action record after listener handoff",
+            )
+
+        self.assertEqual(succeeded, result)
+        self.assertEqual(4, request.call_count)
+        self.assertTrue(str(request.call_args_list[1].args[2]).endswith("/confirm"))
+
     def test_malformed_polled_detail_is_typed_invalid_response(self) -> None:
         executing = {
             "actionId": "action-a",

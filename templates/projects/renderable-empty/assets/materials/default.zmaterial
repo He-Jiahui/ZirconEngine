@@ -1,5 +1,11 @@
+version = 2
 name = "Default"
-shader = { uuid = "00000000-0000-0000-0000-000000000000", locator = "res://shaders/pbr_shader" }
+
+[shader]
+kind = "builtin"
+locator = "builtin://shader/pbr.wgsl"
+
+[overrides]
 base_color = [0.85, 0.85, 0.85, 1.0]
 metallic = 0.0
 roughness = 1.0

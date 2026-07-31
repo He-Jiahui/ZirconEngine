@@ -1,12 +1,13 @@
 use crate::plugin::{PluginEventManifest, RuntimeExtensionRegistry};
 use std::sync::{Arc, Mutex};
 
+use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::CoreRuntime;
 use crate::scene::ecs::{
     Res, ResMut, ResMutParam, ResParam, Resource, RuntimeSceneSystemContext, SystemRef, SystemStage,
 };
 use crate::scene::World;
-use crate::scene::{create_default_level, module_descriptor, SCENE_MODULE_NAME};
+use crate::scene::{create_default_level, module_descriptor};
 
 #[derive(Debug, PartialEq, Eq)]
 struct WeatherConfig(u32);
@@ -130,6 +131,82 @@ fn plugin_system_constraints_order_registered_native_systems() {
         world.resource::<WeatherObserved>(),
         &WeatherObserved(vec![1, 2])
     );
+}
+
+#[test]
+fn plugin_system_lands_in_stage_plan() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let owner = registry
+        .intern_plugin_module("weather.runtime")
+        .expect("plugin module id");
+    let set = registry
+        .intern_system_set("weather.main")
+        .expect("plugin system set id");
+    registry
+        .register_resource::<WeatherConfig>(owner, || WeatherConfig(7))
+        .unwrap();
+    registry
+        .register_native_system::<ResParam<WeatherConfig>, _>(
+            owner,
+            "weather.stage-plan-reader",
+            SystemStage::Update,
+            |_: Res<'_, WeatherConfig>| {},
+        )
+        .in_set(set)
+        .register()
+        .unwrap();
+
+    let mut world = World::empty();
+    registry.apply_to_world(&mut world).unwrap();
+
+    let graph = world
+        .schedule()
+        .native_system_conflict_graph_for_stage(SystemStage::Update);
+    assert!(graph.nodes().iter().any(|node| {
+        node.system_id() == "weather.stage-plan-reader" && node.stage() == SystemStage::Update
+    }));
+}
+
+#[test]
+fn plugin_system_access_joins_conflict_graph() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let owner = registry
+        .intern_plugin_module("weather.runtime")
+        .expect("plugin module id");
+    registry
+        .register_resource::<WeatherConfig>(owner, || WeatherConfig(7))
+        .unwrap();
+    registry
+        .register_native_system::<ResParam<WeatherConfig>, _>(
+            owner,
+            "weather.read-config",
+            SystemStage::Update,
+            |_: Res<'_, WeatherConfig>| {},
+        )
+        .register()
+        .unwrap();
+    registry
+        .register_native_system::<ResMutParam<WeatherConfig>, _>(
+            owner,
+            "weather.write-config",
+            SystemStage::Update,
+            |_: ResMut<'_, WeatherConfig>| {},
+        )
+        .register()
+        .unwrap();
+
+    let mut world = World::empty();
+    registry.apply_to_world(&mut world).unwrap();
+
+    let graph = world
+        .schedule()
+        .native_system_conflict_graph_for_stage(SystemStage::Update);
+    assert!(graph.has_conflicts());
+    assert!(graph.edges().iter().any(|edge| {
+        let endpoints = (edge.left_system_id(), edge.right_system_id());
+        endpoints == ("weather.read-config", "weather.write-config")
+            || endpoints == ("weather.write-config", "weather.read-config")
+    }));
 }
 
 #[test]

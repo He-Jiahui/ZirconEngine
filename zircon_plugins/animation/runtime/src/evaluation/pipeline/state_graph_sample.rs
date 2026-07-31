@@ -1,4 +1,3 @@
-use zircon_runtime::animation::sample_clip_events;
 use zircon_runtime::asset::ProjectAssetManager;
 use zircon_runtime::core::framework::animation::{
     AnimationParameterMap, AnimationPoseOutput, AnimationPoseSource,
@@ -7,9 +6,9 @@ use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::EntityId;
 
 use super::clip_sample::sample_pose_request;
-use super::graph_evaluate::{sample_compiled_graph_clip_events, sample_compiled_graph_pose};
+use super::graph_evaluate::{sample_compiled_graph_clip_event_samples, sample_compiled_graph_pose};
 use super::pose_blend::blend_weighted_poses;
-use super::requests::PendingPoseSample;
+use super::requests::{PendingClipEventSample, PendingPoseSample};
 use super::AnimationEvaluationPipeline;
 use crate::state_machine::CompiledGraphSamples;
 use crate::CompiledAnimationStateMachine;
@@ -85,17 +84,20 @@ pub(super) fn sample_state_clip_events(
     entity: EntityId,
     from_time_seconds: Real,
     to_time_seconds: Real,
-) -> Vec<crate::AnimationClipEvent> {
+) -> Vec<PendingClipEventSample> {
     let Some(clip) = state_machine.clip_for_state(state_name) else {
         return Vec::new();
     };
     let Some(clip_id) = asset_manager.resolve_asset_id(&clip.locator) else {
         return Vec::new();
     };
-    let Ok(clip) = asset_manager.load_animation_clip_asset(clip_id) else {
-        return Vec::new();
-    };
-    sample_clip_events(&clip, entity, from_time_seconds, to_time_seconds, false)
+    vec![PendingClipEventSample {
+        entity,
+        clip_id,
+        from_time_seconds,
+        to_time_seconds,
+        looping: false,
+    }]
 }
 
 pub(super) fn sample_state_clip_pose(
@@ -134,7 +136,7 @@ pub(super) fn sample_state_events(
     skeleton_id: zircon_runtime::asset::AssetId,
     from_time_seconds: Real,
     to_time_seconds: Real,
-) -> Vec<crate::AnimationClipEvent> {
+) -> Vec<PendingClipEventSample> {
     if state_machine.clip_for_state(state_name).is_some() {
         return sample_state_clip_events(
             asset_manager,
@@ -203,7 +205,7 @@ pub(super) fn sample_state_graph_clip_events(
     skeleton_id: zircon_runtime::asset::AssetId,
     from_time_seconds: Real,
     to_time_seconds: Real,
-) -> Vec<crate::AnimationClipEvent> {
+) -> Vec<PendingClipEventSample> {
     let mut events = Vec::new();
     for (graph_reference, weight) in graph_samples.into_iter().flatten() {
         if weight <= 0.0 {
@@ -217,7 +219,7 @@ pub(super) fn sample_state_graph_clip_events(
         else {
             continue;
         };
-        events.extend(sample_compiled_graph_clip_events(
+        events.extend(sample_compiled_graph_clip_event_samples(
             asset_manager,
             entity,
             from_time_seconds,

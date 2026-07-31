@@ -1,12 +1,10 @@
-use std::collections::BTreeSet;
-
 use crate::core::framework::render::PostProcessPassGraph;
 use crate::core::framework::render::{
-    MotionVectorCameraStatus, RenderColorLutReadbackReport, RenderExposureReadbackReport,
-    RenderGraphExecutionAliasReport, RenderGraphExecutionProfileReport,
-    RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
-    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderHistoryCopyReport,
-    RenderSceneVelocityReadbackReport,
+    MotionVectorCameraStatus, RenderBudgetKey, RenderColorLutReadbackReport,
+    RenderExposureReadbackReport, RenderGraphExecutionAliasReport,
+    RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
+    RenderGraphMaterializationReport, RenderGraphPassProfileMetrics, RenderGraphPassProfileRecord,
+    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridStats;
@@ -224,12 +222,55 @@ impl RenderGraphExecutionRecord {
         executor_id: impl Into<String>,
         cpu_elapsed_micros: u64,
     ) {
-        self.pass_profile_records
-            .push(RenderGraphPassProfileRecord::new(
-                pass_name,
-                executor_id,
-                cpu_elapsed_micros,
-            ));
+        self.push_pass_profile_with_budget_key(
+            pass_name,
+            executor_id,
+            RenderBudgetKey::Other,
+            cpu_elapsed_micros,
+        );
+    }
+
+    pub fn push_pass_profile_with_budget_key(
+        &mut self,
+        pass_name: impl Into<String>,
+        executor_id: impl Into<String>,
+        budget_key: RenderBudgetKey,
+        cpu_elapsed_micros: u64,
+    ) {
+        self.push_pass_profile_with_budget_key_and_compute_dispatches(
+            pass_name,
+            executor_id,
+            budget_key,
+            cpu_elapsed_micros,
+            RenderGraphPassProfileMetrics::default(),
+            &[],
+        );
+    }
+
+    pub fn push_pass_profile_with_budget_key_and_compute_dispatches(
+        &mut self,
+        pass_name: impl Into<String>,
+        executor_id: impl Into<String>,
+        budget_key: RenderBudgetKey,
+        cpu_elapsed_micros: u64,
+        render_metrics: RenderGraphPassProfileMetrics,
+        compute_dispatches: &[RenderGraphComputeDispatchRecord],
+    ) {
+        let (dispatch_count, upload_bytes) = compute_dispatches.iter().fold(
+            (0_u32, 0_u64),
+            |(dispatch_count, upload_bytes), dispatch| {
+                (
+                    dispatch_count.saturating_add(1),
+                    upload_bytes.saturating_add(dispatch.uploaded_bytes),
+                )
+            },
+        );
+        self.pass_profile_records.push(
+            RenderGraphPassProfileRecord::new(pass_name, executor_id, cpu_elapsed_micros)
+                .with_budget_key(budget_key)
+                .with_render_metrics(render_metrics)
+                .with_compute_metrics(dispatch_count, upload_bytes),
+        );
     }
 
     pub fn set_history_copy_report(&mut self, report: RenderHistoryCopyReport) {
@@ -279,20 +320,18 @@ impl RenderGraphExecutionRecord {
         dispatch_context: RenderGraphComputeWorkloadDispatchContext,
         dispatches: &[RenderGraphComputeDispatchRecord],
     ) {
-        let (matching_dispatches, unexpected_dispatches): (Vec<_>, Vec<_>) =
-            dispatches.iter().partition(|dispatch| {
+        if let Some(planned) = planned_workload {
+            let first_matching_dispatch_index = dispatches.iter().position(|dispatch| {
                 dispatch.pass_name == pass_name && dispatch.executor_id == executor_id
             });
-
-        if let Some(planned) = planned_workload {
-            if let Some(actual) = matching_dispatches.first() {
+            if let Some(index) = first_matching_dispatch_index {
                 self.compute_workload_audit.push(
                     RenderGraphComputeWorkloadAuditRecord::matched_or_mismatched(
                         pass_name,
                         executor_id,
                         planned,
                         dispatch_context,
-                        actual,
+                        &dispatches[index],
                     ),
                 );
             } else {
@@ -305,11 +344,23 @@ impl RenderGraphExecutionRecord {
                     ),
                 );
             }
-            for unexpected in matching_dispatches
-                .into_iter()
-                .skip(1)
-                .chain(unexpected_dispatches)
+            for unexpected in dispatches
+                .iter()
+                .enumerate()
+                .filter_map(|(index, dispatch)| {
+                    (Some(index) != first_matching_dispatch_index
+                        && dispatch.pass_name == pass_name
+                        && dispatch.executor_id == executor_id)
+                        .then_some(dispatch)
+                })
             {
+                self.compute_workload_audit.push(
+                    RenderGraphComputeWorkloadAuditRecord::unexpected_dispatch(unexpected),
+                );
+            }
+            for unexpected in dispatches.iter().filter(|dispatch| {
+                dispatch.pass_name != pass_name || dispatch.executor_id != executor_id
+            }) {
                 self.compute_workload_audit.push(
                     RenderGraphComputeWorkloadAuditRecord::unexpected_dispatch(unexpected),
                 );
@@ -369,9 +420,10 @@ impl RenderGraphExecutionRecord {
     }
 
     pub fn stage_execution_report(&self) -> RenderGraphStageExecutionReport {
-        let mut unique_stages = BTreeSet::new();
+        let mut seen_stages = [false; RenderPassStage::ALL.len()];
         let mut staged_pass_count = 0;
         let mut unstaged_pass_count = 0;
+        let mut unique_stage_count = 0;
         let mut stage_transition_count = 0;
         let mut stage_order_violation_count = 0;
         let mut previous_stage = None;
@@ -379,7 +431,11 @@ impl RenderGraphExecutionRecord {
         for executed_stage in &self.executed_pass_stages {
             if let Some(stage) = executed_stage {
                 staged_pass_count += 1;
-                unique_stages.insert(*stage);
+                let stage_index = stage.index();
+                if !seen_stages[stage_index] {
+                    seen_stages[stage_index] = true;
+                    unique_stage_count += 1;
+                }
                 if let Some(previous) = previous_stage {
                     if previous != *stage {
                         stage_transition_count += 1;
@@ -398,7 +454,7 @@ impl RenderGraphExecutionRecord {
         RenderGraphStageExecutionReport::new(
             staged_pass_count,
             unstaged_pass_count,
-            unique_stages.len(),
+            unique_stage_count,
             stage_transition_count,
             stage_order_violation_count,
         )

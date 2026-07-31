@@ -8,6 +8,7 @@ implementation_files:
   - zircon_editor/src/core/runtime_event_consumer/error.rs
   - zircon_editor/src/core/runtime_event_consumer/registration.rs
   - zircon_editor/src/core/runtime_event_consumer/host.rs
+  - zircon_editor/src/core/runtime_event_consumer/pump.rs
   - zircon_editor/src/core/gateway/contract.rs
   - zircon_editor/src/core/gateway/handle.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
@@ -20,6 +21,7 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_editor/src/tests/runtime_event_consumer.rs
+  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump.rs
   - zircon_plugins/navigation/editor/src/tests.rs
 doc_type: module-detail
 ---
@@ -54,13 +56,42 @@ boundary to `String`.
 
 `EditorPluginRegistrationReport` carries the typed registry and validates that its data manifests exactly match `EditorPluginDescriptor`. Host extension registration installs that registry alongside the plugin's editor extensions.
 
-## Performance review status
+## Bounded pump and pressure reporting
 
-The current `pump` keeps the active-consumer mutex while calling the gateway drain, validating and
-decoding every delivery, and invoking typed/plugin callbacks. It also drains the full backlog on one
-retained tick without count/time quotas. This can block reconcile/count calls, deadlock a reentrant
-consumer, and transfer arbitrary backlog latency to the editor main thread.
+`pump` now snapshots stable consumer id, registration, subscription, and generation while holding
+the registry mutex, then releases that mutex before gateway drain, JSON decoding, and typed/plugin
+callbacks. A reentrant callback may therefore inspect host state without waiting on the pump's
+registry lock. Concurrent or recursively reentered pumps return an empty report instead of creating
+a second delivery owner. A callback that tries to mutate the consumer lifecycle receives the typed
+`LifecycleMutationBusy` error instead of recursively taking its own typed-state mutex. Pump and
+lifecycle mutation acquire one atomic execution state, so lifecycle cannot pass a check and then
+race unsubscribe/end-session against a newly started pump.
+Subscribe, unsubscribe, begin-session, and end-session calls also execute outside the active-map
+critical section, so a slow gateway or lifecycle callback cannot pin host observation behind that
+map lock.
 
-Editor02 owns the linked lock-free snapshot, bounded fair pump, and generation-safe sequence-commit
-repair, with Plugins01/runtime transport as a shared implementation dependency. Slow/reentrant and
-1k/10k storm tests are pending; no dynamic acceptance is claimed.
+Every drained delivery moves into the matching generation's editor-owned pending queue before
+callbacks run. `EditorRuntimeEventPumpBudget` applies global event, per-consumer event, elapsed-time,
+and slow-callback thresholds. A round-robin cursor changes the first consumer on the next tick, so a
+hot subscription cannot monopolize a small budget. Gateway, validation, and payload failures retain
+the first typed error but continue visiting later consumers before returning it, preventing one bad
+consumer from pinning the fair-pump head. Successful sequence writeback is conditional on the same
+consumer generation and subscription still being active.
+
+`EditorRuntimeEventPumpReport` exposes applied, drained, deferred, dropped, slow-callback, queue-depth,
+and pending-sequence-span pressure. The span is a backlog sequence range, not wall-clock age. Invalid
+or consumer-rejected deliveries return their typed error and increment dropped explicitly; every
+remaining delivery stays queued in order for a later tick. Delivery payload ownership moves directly
+into the typed callback without cloning the JSON value.
+
+The current runtime/session transport still returns one fully encoded and decoded delivery vector.
+Therefore callback elapsed budgets are bounded, but transport encode/decode is not yet a complete
+frame-time bound. Plugins01 owns the required count/byte bounded drain contract; see
+`docs/plans/zircon_plugins/01/failure-2026-07-22-plugin-event-drain-frame-budget.md`. This Editor02
+failure remains open until that dependency has managed dynamic evidence.
+
+The focused static contract and Rust regressions cover count deferral, order, normal/error-path
+round-robin fairness, reentrant observation, concurrent typed-busy lifecycle mutation, and slow
+callbacks. Independent re-review is clean at Critical/Important/Minor=`0/0/0`. Managed Cargo and
+Plugins01 bounded transport evidence remain required before the linked failure can be returned as
+fixed.

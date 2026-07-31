@@ -11,6 +11,8 @@ pub(crate) enum NativeBitmapAtlasHandoff {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum NativeBitmapAtlasGlyphonFallbackReason {
     MissingRasterImage,
+    RetryByteBudgetRejected,
+    RetryQueueCapacityExceeded,
     NoVisibleRasterGlyphs,
     UnsupportedGlyphFormat,
     IncompleteSourceCoverage,
@@ -36,6 +38,10 @@ pub(crate) fn native_bitmap_atlas_handoff_for_report(
         NativeBitmapAtlasHandoff::SingleStorageReplacement
     } else if report.mixed_storage_replacement_ready {
         NativeBitmapAtlasHandoff::MixedStorageReplacement
+    } else if report.retry_submission.has_byte_budget_rejections() {
+        NativeBitmapAtlasHandoff::GlyphonFallback
+    } else if report.retry_state.has_queue_overflow() {
+        NativeBitmapAtlasHandoff::GlyphonFallback
     } else if report.submission.has_placeholder_work() {
         NativeBitmapAtlasHandoff::TransparentPlaceholder
     } else {
@@ -55,6 +61,12 @@ pub(crate) fn native_bitmap_atlas_glyphon_fallback_reason_for_report(
 
     if report.missing_raster_image_count > 0 {
         return Some(NativeBitmapAtlasGlyphonFallbackReason::MissingRasterImage);
+    }
+    if report.retry_submission.has_byte_budget_rejections() {
+        return Some(NativeBitmapAtlasGlyphonFallbackReason::RetryByteBudgetRejected);
+    }
+    if report.retry_state.has_queue_overflow() {
+        return Some(NativeBitmapAtlasGlyphonFallbackReason::RetryQueueCapacityExceeded);
     }
     if report.visible_raster_glyph_count == 0 {
         return Some(NativeBitmapAtlasGlyphonFallbackReason::NoVisibleRasterGlyphs);

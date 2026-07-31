@@ -13,7 +13,7 @@ related_code:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
@@ -28,7 +28,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs

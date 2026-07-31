@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::SharedString;
+use crate::ui::v2_design_tokens::prepare_editor_v2_document;
 use thiserror::Error;
 use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
@@ -98,9 +99,10 @@ impl NodeProjectionSession {
                 .document
                 .as_ref()
                 .expect("v2 projection document should be initialized");
+            let prepared_document = prepare_editor_v2_document(document.root_document.as_ref());
             let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
                 UiTreeId::new("ui_asset_editor.node_projection".to_string()),
-                document.root_document.as_ref(),
+                &prepared_document,
                 document.compiled.as_ref(),
             )?;
             surface.compute_layout(size)?;
@@ -150,8 +152,9 @@ fn node_projection_v2_store_file_cache() -> &'static Mutex<UiV2PrototypeStoreFil
 }
 
 fn mark_surface_roots_layout_dirty(surface: &mut UiSurface) {
-    for root_id in surface.tree.roots.clone() {
-        if let Some(root) = surface.tree.nodes.get_mut(&root_id) {
+    let (roots, nodes) = (&surface.tree.roots, &mut surface.tree.nodes);
+    for root_id in roots {
+        if let Some(root) = nodes.get_mut(root_id) {
             root.dirty.layout = true;
             root.dirty.hit_test = true;
             root.dirty.render = true;
@@ -177,8 +180,10 @@ fn project_ui_asset_editor_nodes(
             .corner_radius
             .max(command.style.corner_radius.max(0.0));
         entry.text_align = command.style.text_align;
-        if command.kind == UiRenderCommandKind::Text && command.text.is_some() {
-            entry.text = command.text.clone();
+        if command.kind == UiRenderCommandKind::Text {
+            if let Some(text) = command.text {
+                entry.text = Some(text);
+            }
         }
     }
 

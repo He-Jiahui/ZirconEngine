@@ -1,0 +1,320 @@
+// Current-head Talents V2 allocation-commit projection. This module receives
+// canonical numeric catalog codes after WOS command decoding; the host remains
+// the sole owner of entities, modifiers, pets, auras, logs, and persistence.
+var rows = %import("generated/talent_row_contract");
+var catalog = %import("generated/current_talent_selection_catalog");
+var contract = %import("generated/talent_allocation_commit_contract");
+
+pub class TalentAllocationCandidate {
+    // Code zero represents source null / an omitted row.
+    pub var specCode: uint;
+    pub var row5: uint;
+    pub var row8: uint;
+    pub var row11: uint;
+    pub var row14: uint;
+    pub var row17: uint;
+    pub var row20: uint;
+
+    pub @constructor() {
+        this.specCode = <uint>0;
+        this.row5 = <uint>0;
+        this.row8 = <uint>0;
+        this.row11 = <uint>0;
+        this.row14 = <uint>0;
+        this.row17 = <uint>0;
+        this.row20 = <uint>0;
+    }
+}
+
+pub class TalentCommitEffects {
+    pub var applied: bool;
+    pub var needsModifierRecompute: bool;
+    pub var needsStatRecalc: bool;
+    pub var needsKnownAbilityRefresh: bool;
+    pub var needsProcStateCleanup: bool;
+    pub var needsChargeNormalization: bool;
+    pub var needsFormAuraCleanup: bool;
+    pub var needsSpecOffhandRevalidation: bool;
+    pub var needsSpecPetDismissal: bool;
+    pub var needsTemporalEchoCleanup: bool;
+    // 0 none, 1 "Talents updated.", 2 "Talents reset.".
+    pub var successLogKind: int;
+
+    pub @constructor() {
+        this.applied = false;
+        this.needsModifierRecompute = false;
+        this.needsStatRecalc = false;
+        this.needsKnownAbilityRefresh = false;
+        this.needsProcStateCleanup = false;
+        this.needsChargeNormalization = false;
+        this.needsFormAuraCleanup = false;
+        this.needsSpecOffhandRevalidation = false;
+        this.needsSpecPetDismissal = false;
+        this.needsTemporalEchoCleanup = false;
+        this.successLogKind = 0;
+    }
+}
+
+pub class TalentAllocationCommitState {
+    pub var classId: string;
+    pub var playerLevel: int;
+    pub var inCombat: bool;
+    pub var inArena: bool;
+    pub var specCode: uint;
+    pub var row5: uint;
+    pub var row8: uint;
+    pub var row11: uint;
+    pub var row14: uint;
+    pub var row17: uint;
+    pub var row20: uint;
+    // Mirrors the target's successful recompute wire revision boundary.
+    pub var allocationRevision: int;
+    // 0 none, -1 invalid, -2 combat lock, -3 arena lock, -4 unknown spec.
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.classId = "warrior";
+        this.playerLevel = 1;
+        this.inCombat = false;
+        this.inArena = false;
+        this.specCode = <uint>0;
+        this.row5 = <uint>0;
+        this.row8 = <uint>0;
+        this.row11 = <uint>0;
+        this.row14 = <uint>0;
+        this.row17 = <uint>0;
+        this.row20 = <uint>0;
+        this.allocationRevision = 0;
+        this.lastError = 0;
+    }
+}
+
+pub errorInvalid(): int { return -1; }
+pub errorCombatLock(): int { return -2; }
+pub errorArenaLock(): int { return -3; }
+pub errorUnknownSpecialization(): int { return -4; }
+
+resetEffects(effects: TalentCommitEffects): void {
+    effects.applied = false;
+    effects.needsModifierRecompute = false;
+    effects.needsStatRecalc = false;
+    effects.needsKnownAbilityRefresh = false;
+    effects.needsProcStateCleanup = false;
+    effects.needsChargeNormalization = false;
+    effects.needsFormAuraCleanup = false;
+    effects.needsSpecOffhandRevalidation = false;
+    effects.needsSpecPetDismissal = false;
+    effects.needsTemporalEchoCleanup = false;
+    effects.successLogKind = 0;
+}
+
+pub candidateFromState(state: TalentAllocationCommitState): TalentAllocationCandidate {
+    var candidate = new TalentAllocationCandidate();
+    candidate.specCode = state.specCode;
+    candidate.row5 = state.row5;
+    candidate.row8 = state.row8;
+    candidate.row11 = state.row11;
+    candidate.row14 = state.row14;
+    candidate.row17 = state.row17;
+    candidate.row20 = state.row20;
+    return candidate;
+}
+
+validRow(state: TalentAllocationCommitState, level: int, optionCode: uint): bool {
+    if (optionCode == <uint>0) return true;
+    return state.playerLevel >= level &&
+        catalog.optionMatchesClassRow(state.classId, level, optionCode);
+}
+
+// Equivalent to validateAllocation for the canonical decoded shape. The source
+// performs JSON record/key/string-length checks before this adapter receives it.
+pub validCandidate(state: TalentAllocationCommitState, candidate: TalentAllocationCandidate): bool {
+    if (!rows.knownClass(state.classId)) return false;
+    if (candidate.specCode != <uint>0 &&
+        (state.playerLevel < contract.specUnlockLevel(true) ||
+        !catalog.specMatchesClass(state.classId, candidate.specCode))) {
+        return false;
+    }
+    return validRow(state, 5, candidate.row5) &&
+        validRow(state, 8, candidate.row8) &&
+        validRow(state, 11, candidate.row11) &&
+        validRow(state, 14, candidate.row14) &&
+        validRow(state, 17, candidate.row17) &&
+        validRow(state, 20, candidate.row20);
+}
+
+sameAllocation(state: TalentAllocationCommitState, candidate: TalentAllocationCandidate): bool {
+    return state.specCode == candidate.specCode &&
+        state.row5 == candidate.row5 && state.row8 == candidate.row8 &&
+        state.row11 == candidate.row11 && state.row14 == candidate.row14 &&
+        state.row17 == candidate.row17 && state.row20 == candidate.row20;
+}
+
+copyCandidate(state: TalentAllocationCommitState, candidate: TalentAllocationCandidate): void {
+    state.specCode = candidate.specCode;
+    state.row5 = candidate.row5;
+    state.row8 = candidate.row8;
+    state.row11 = candidate.row11;
+    state.row14 = candidate.row14;
+    state.row17 = candidate.row17;
+    state.row20 = candidate.row20;
+}
+
+markChangedEffects(effects: TalentCommitEffects, specChanged: bool, successLogKind: int): void {
+    effects.applied = true;
+    // The source recompute path bakes modifiers, recalculates stats, refreshes
+    // known abilities, clears removed proc state, normalizes charges, and strips
+    // form auras. WOS performs those mutations in its canonical world layer.
+    effects.needsModifierRecompute = true;
+    effects.needsStatRecalc = true;
+    effects.needsKnownAbilityRefresh = true;
+    effects.needsProcStateCleanup = true;
+    effects.needsChargeNormalization = true;
+    effects.needsFormAuraCleanup = true;
+    effects.needsSpecOffhandRevalidation = specChanged;
+    effects.needsSpecPetDismissal = true;
+    effects.needsTemporalEchoCleanup = true;
+    effects.successLogKind = successLogKind;
+}
+
+// This preserves commitTalentAllocation ordering: combat lock, arena lock,
+// allocation validation, equality short-circuit, then mutation/effect planning.
+commit(
+    state: TalentAllocationCommitState,
+    candidate: TalentAllocationCandidate,
+    effects: TalentCommitEffects,
+    successLogKind: int
+): bool {
+    resetEffects(effects);
+    state.lastError = 0;
+    if (state.inCombat) {
+        state.lastError = errorCombatLock();
+        return false;
+    }
+    if (state.inArena) {
+        state.lastError = errorArenaLock();
+        return false;
+    }
+    if (!validCandidate(state, candidate)) {
+        state.lastError = errorInvalid();
+        return false;
+    }
+    if (sameAllocation(state, candidate)) return true;
+    var specChanged = state.specCode != candidate.specCode;
+    copyCandidate(state, candidate);
+    state.allocationRevision = state.allocationRevision + 1;
+    markChangedEffects(effects, specChanged, successLogKind);
+    return true;
+}
+
+// applyTalentAllocation's public entrypoint.
+pub apply(
+    state: TalentAllocationCommitState,
+    candidate: TalentAllocationCandidate,
+    effects: TalentCommitEffects
+): bool {
+    return commit(state, candidate, effects, 1);
+}
+
+// setTalentSpec validates an unknown source id before applyTalentAllocation, so
+// it deliberately outranks the lock only for this public entrypoint.
+pub setSpec(
+    state: TalentAllocationCommitState,
+    nextSpecCode: uint,
+    effects: TalentCommitEffects
+): bool {
+    resetEffects(effects);
+    state.lastError = 0;
+    if (nextSpecCode != <uint>0 && !catalog.specMatchesClass(state.classId, nextSpecCode)) {
+        state.lastError = errorUnknownSpecialization();
+        return false;
+    }
+    var candidate = candidateFromState(state);
+    candidate.specCode = nextSpecCode;
+    return apply(state, candidate, effects);
+}
+
+// selectTalentRow performs its row and option validation before entering apply.
+pub selectRow(
+    state: TalentAllocationCommitState,
+    level: int,
+    optionCode: uint,
+    clear: bool,
+    effects: TalentCommitEffects
+): bool {
+    resetEffects(effects);
+    state.lastError = 0;
+    if (!rows.knownClass(state.classId) || !rows.isRowLevel(level) ||
+        state.playerLevel < level ||
+        (!clear && !catalog.optionMatchesClassRow(state.classId, level, optionCode))) {
+        state.lastError = errorInvalid();
+        return false;
+    }
+    var candidate = candidateFromState(state);
+    var code = clear ? <uint>0 : optionCode;
+    if (level == 5) candidate.row5 = code;
+    if (level == 8) candidate.row8 = code;
+    if (level == 11) candidate.row11 = code;
+    if (level == 14) candidate.row14 = code;
+    if (level == 17) candidate.row17 = code;
+    if (level == 20) candidate.row20 = code;
+    return apply(state, candidate, effects);
+}
+
+// respecTalents retains specialization and clears the six row choices.
+pub respec(state: TalentAllocationCommitState, effects: TalentCommitEffects): bool {
+    var candidate = new TalentAllocationCandidate();
+    candidate.specCode = state.specCode;
+    return commit(state, candidate, effects, 2);
+}
+
+pub contractTest(): int {
+    if (catalog.specCount() != 27 || catalog.optionCount() != 162) return -1;
+    var state = new TalentAllocationCommitState();
+    state.classId = "mage";
+    state.playerLevel = 20;
+    var effects = new TalentCommitEffects();
+    var fire = catalog.specCode("mage", "fire");
+    var iceFloes = catalog.optionCode("mage", 5, "mag_r5_ice_floes");
+    if (fire == <uint>0 || iceFloes == <uint>0) return -2;
+
+    // Whole-allocation apply checks the shared combat lock before malformed data.
+    state.inCombat = true;
+    var malformed = new TalentAllocationCandidate();
+    malformed.specCode = <uint>999;
+    malformed.row5 = <uint>999;
+    if (apply(state, malformed, effects) || state.lastError != errorCombatLock()) return -3;
+    state.inCombat = false;
+    state.inArena = true;
+    if (apply(state, malformed, effects) || state.lastError != errorArenaLock()) return -4;
+    state.inArena = false;
+    if (apply(state, malformed, effects) || state.lastError != errorInvalid()) return -5;
+
+    // setSpec performs its own unknown-spec precheck before the shared lock.
+    state.inCombat = true;
+    if (setSpec(state, <uint>999, effects) || state.lastError != errorUnknownSpecialization()) return -6;
+    // selectTalentRow likewise rejects an invalid row option before apply/lock.
+    if (selectRow(state, 5, <uint>999, false, effects) || state.lastError != errorInvalid()) return -7;
+    state.inCombat = false;
+
+    if (!setSpec(state, fire, effects) || state.specCode != fire ||
+        !effects.applied || !effects.needsSpecOffhandRevalidation ||
+        effects.successLogKind != 1 || state.allocationRevision != 1) return -8;
+    if (!selectRow(state, 5, iceFloes, false, effects) || state.row5 != iceFloes ||
+        !effects.needsModifierRecompute || !effects.needsStatRecalc ||
+        !effects.needsKnownAbilityRefresh || !effects.needsProcStateCleanup ||
+        !effects.needsChargeNormalization || !effects.needsFormAuraCleanup ||
+        !effects.needsSpecPetDismissal || !effects.needsTemporalEchoCleanup ||
+        effects.needsSpecOffhandRevalidation || state.allocationRevision != 2) return -9;
+
+    // An equal candidate succeeds without a recompute, revision, or success log.
+    var equal = candidateFromState(state);
+    if (!apply(state, equal, effects) || effects.applied || effects.successLogKind != 0 ||
+        state.allocationRevision != 2) return -10;
+    if (!respec(state, effects) || state.specCode != fire || state.row5 != <uint>0 ||
+        !effects.applied || effects.successLogKind != 2 || state.allocationRevision != 3) return -11;
+
+    state.playerLevel = 4;
+    if (setSpec(state, fire, effects) || state.lastError != errorInvalid()) return -12;
+    return 1;
+}

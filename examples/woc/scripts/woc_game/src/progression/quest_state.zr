@@ -1,0 +1,468 @@
+// Current-head M5 quest state for the two projected parity quests. State codes
+// are 0 available, 1 active, 2 ready and 3 done; collect credit is recomputed
+// from live bags. Current source also owns craft/gather credit and required-item
+// fallbacks, but neither has a target objective in this bounded content subset.
+// This source-contract fixture is not imported by main or world/state. Its local
+// arrays stand in for host facts only while the production byte bridge is absent.
+var container = %import("zr.container");
+var catalog = %import("generated/m5_content_catalog");
+var MAX_SAFE_LIFETIME_XP = 9007199254740991;
+
+class QuestState {
+    pub var deadA: bool;
+    pub var deadB: bool;
+    pub var partyTogether: bool;
+    pub var nearBoarNpcA: bool;
+    pub var nearBoarNpcB: bool;
+    pub var nearWolfNpcA: bool;
+    pub var nearWolfNpcB: bool;
+    pub var boarsStateA: int;
+    pub var boarsStateB: int;
+    pub var wolvesStateA: int;
+    pub var wolvesStateB: int;
+    pub var boarsCountA: int;
+    pub var boarsCountB: int;
+    pub var wolvesCountA: int;
+    pub var wolvesCountB: int;
+    pub var inventoryAIds: container.Array<string>;
+    pub var inventoryACounts: container.Array<int>;
+    pub var inventoryBIds: container.Array<string>;
+    pub var inventoryBCounts: container.Array<int>;
+    pub var levelA: int;
+    pub var levelB: int;
+    pub var xpA: int;
+    pub var xpB: int;
+    pub var lifetimeXpA: int;
+    pub var lifetimeXpB: int;
+    pub var copperA: int;
+    pub var copperB: int;
+    pub var questProgressA: int;
+    pub var questProgressB: int;
+    pub var questsCompletedA: int;
+    pub var questsCompletedB: int;
+    pub var acceptedEvents: int;
+    pub var progressEvents: int;
+    pub var readyEvents: int;
+    pub var doneEvents: int;
+    pub var abandonEvents: int;
+    pub var shareNotices: int;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.deadA = false;
+        this.deadB = false;
+        this.partyTogether = false;
+        this.nearBoarNpcA = false;
+        this.nearBoarNpcB = false;
+        this.nearWolfNpcA = false;
+        this.nearWolfNpcB = false;
+        this.boarsStateA = 0;
+        this.boarsStateB = 0;
+        this.wolvesStateA = 0;
+        this.wolvesStateB = 0;
+        this.boarsCountA = 0;
+        this.boarsCountB = 0;
+        this.wolvesCountA = 0;
+        this.wolvesCountB = 0;
+        this.inventoryAIds = new container.Array<string>();
+        this.inventoryACounts = new container.Array<int>();
+        this.inventoryBIds = new container.Array<string>();
+        this.inventoryBCounts = new container.Array<int>();
+        this.levelA = 1;
+        this.levelB = 1;
+        this.xpA = 0;
+        this.xpB = 0;
+        this.lifetimeXpA = 0;
+        this.lifetimeXpB = 0;
+        this.copperA = 0;
+        this.copperB = 0;
+        this.questProgressA = 0;
+        this.questProgressB = 0;
+        this.questsCompletedA = 0;
+        this.questsCompletedB = 0;
+        this.acceptedEvents = 0;
+        this.progressEvents = 0;
+        this.readyEvents = 0;
+        this.doneEvents = 0;
+        this.abandonEvents = 0;
+        this.shareNotices = 0;
+        this.lastError = 0;
+    }
+}
+
+questIndex(questId: string): int {
+    return catalog.indexOf("quest", questId);
+}
+
+pub stateFor(state: QuestState, player: int, questId: string): int {
+    if (questId == "q_boars") { return player == 1 ? state.boarsStateA : state.boarsStateB; }
+    if (questId == "q_wolves") { return player == 1 ? state.wolvesStateA : state.wolvesStateB; }
+    return -1;
+}
+
+setState(state: QuestState, player: int, questId: string, value: int): void {
+    if (questId == "q_boars" && player == 1) { state.boarsStateA = value; }
+    if (questId == "q_boars" && player == 2) { state.boarsStateB = value; }
+    if (questId == "q_wolves" && player == 1) { state.wolvesStateA = value; }
+    if (questId == "q_wolves" && player == 2) { state.wolvesStateB = value; }
+}
+
+pub objectiveCount(state: QuestState, player: int, questId: string): int {
+    if (questId == "q_boars") { return player == 1 ? state.boarsCountA : state.boarsCountB; }
+    if (questId == "q_wolves") { return player == 1 ? state.wolvesCountA : state.wolvesCountB; }
+    return 0;
+}
+
+setObjectiveCount(state: QuestState, player: int, questId: string, value: int): void {
+    if (questId == "q_boars" && player == 1) { state.boarsCountA = value; }
+    if (questId == "q_boars" && player == 2) { state.boarsCountB = value; }
+    if (questId == "q_wolves" && player == 1) { state.wolvesCountA = value; }
+    if (questId == "q_wolves" && player == 2) { state.wolvesCountB = value; }
+}
+
+nearNpc(state: QuestState, player: int, questId: string): bool {
+    if (questId == "q_boars") { return player == 1 ? state.nearBoarNpcA : state.nearBoarNpcB; }
+    if (questId == "q_wolves") { return player == 1 ? state.nearWolfNpcA : state.nearWolfNpcB; }
+    return false;
+}
+
+dead(state: QuestState, player: int): bool {
+    return player == 1 ? state.deadA : state.deadB;
+}
+
+countIn(ids: container.Array<string>, counts: container.Array<int>, itemId: string): int {
+    var total = 0;
+    var index = 0;
+    while (index < ids.length) {
+        if (<string>ids[index] == itemId) { total = total + <int>counts[index]; }
+        index = index + 1;
+    }
+    return total;
+}
+
+addStacked(ids: container.Array<string>, counts: container.Array<int>, itemId: string, count: int): void {
+    var remaining = count;
+    var index = 0;
+    while (index < ids.length && remaining > 0) {
+        if (<string>ids[index] == itemId && <int>counts[index] < 20) {
+            var room = 20 - <int>counts[index];
+            var take = remaining < room ? remaining : room;
+            counts[index] = <int>counts[index] + take;
+            remaining = remaining - take;
+        }
+        index = index + 1;
+    }
+    while (remaining > 0) {
+        var fresh = remaining < 20 ? remaining : 20;
+        ids.add(itemId);
+        counts.add(fresh);
+        remaining = remaining - fresh;
+    }
+}
+
+removeStacked(
+    ids: container.Array<string>,
+    counts: container.Array<int>,
+    itemId: string,
+    requestedCount: int
+): int {
+    var remaining = requestedCount;
+    var index = ids.length - 1;
+    while (index >= 0 && remaining > 0) {
+        if (<string>ids[index] == itemId) {
+            var available = <int>counts[index];
+            var take = remaining < available ? remaining : available;
+            available = available - take;
+            remaining = remaining - take;
+            if (available <= 0) {
+                ids.removeAt(index);
+                counts.removeAt(index);
+            } else {
+                counts[index] = available;
+            }
+        }
+        index = index - 1;
+    }
+    return requestedCount - remaining;
+}
+
+pub countItem(state: QuestState, player: int, itemId: string): int {
+    if (player == 1) { return countIn(state.inventoryAIds, state.inventoryACounts, itemId); }
+    if (player == 2) { return countIn(state.inventoryBIds, state.inventoryBCounts, itemId); }
+    return 0;
+}
+
+checkReady(state: QuestState, player: int, questId: string): void {
+    var quest = questIndex(questId);
+    var needed = <int>catalog.metric("quest", quest, "objectiveCount");
+    var ready = objectiveCount(state, player, questId) >= needed;
+    var current = stateFor(state, player, questId);
+    if (ready && current == 1) {
+        setState(state, player, questId, 2);
+        state.readyEvents = state.readyEvents + 1;
+    } else if (!ready && current == 2) {
+        setState(state, player, questId, 1);
+    }
+}
+
+syncCollect(state: QuestState, player: int): void {
+    var current = stateFor(state, player, "q_boars");
+    if (current != 1 && current != 2) { return; }
+    var quest = questIndex("q_boars");
+    var needed = <int>catalog.metric("quest", quest, "objectiveCount");
+    var itemId = catalog.text("quest", quest, "objectiveItemId");
+    var have = countItem(state, player, itemId);
+    if (have > needed) { have = needed; }
+    var previous = objectiveCount(state, player, "q_boars");
+    if (have != previous) {
+        if (have > previous) {
+            if (player == 1) { state.questProgressA = state.questProgressA + have - previous; }
+            if (player == 2) { state.questProgressB = state.questProgressB + have - previous; }
+        }
+        setObjectiveCount(state, player, "q_boars", have);
+        state.progressEvents = state.progressEvents + 1;
+        checkReady(state, player, "q_boars");
+    }
+}
+
+pub addItem(state: QuestState, player: int, itemId: string, count: int): void {
+    if (player == 1) { addStacked(state.inventoryAIds, state.inventoryACounts, itemId, count); }
+    if (player == 2) { addStacked(state.inventoryBIds, state.inventoryBCounts, itemId, count); }
+    syncCollect(state, player);
+}
+
+pub removeItem(state: QuestState, player: int, itemId: string, count: int): int {
+    var removed = 0;
+    if (player == 1) {
+        removed = removeStacked(state.inventoryAIds, state.inventoryACounts, itemId, count);
+    }
+    if (player == 2) {
+        removed = removeStacked(state.inventoryBIds, state.inventoryBCounts, itemId, count);
+    }
+    syncCollect(state, player);
+    return removed;
+}
+
+xpToReachLevel(level: int): int {
+    var capped = level;
+    if (capped < 1) { capped = 1; }
+    if (capped > catalog.maxLevel()) { capped = catalog.maxLevel(); }
+    var current = 1;
+    var total = 0;
+    while (current < capped) {
+        total = total + catalog.xpForLevel(current);
+        current = current + 1;
+    }
+    return total;
+}
+
+pub setLevel(state: QuestState, player: int, level: int): void {
+    var capped = level;
+    if (capped < 1) { capped = 1; }
+    if (capped > catalog.maxLevel()) { capped = catalog.maxLevel(); }
+    var floor = xpToReachLevel(capped);
+    if (player == 1) {
+        state.levelA = capped;
+        if (state.lifetimeXpA < floor) { state.lifetimeXpA = floor; }
+    }
+    if (player == 2) {
+        state.levelB = capped;
+        if (state.lifetimeXpB < floor) { state.lifetimeXpB = floor; }
+    }
+}
+
+grantXp(state: QuestState, player: int, amount: int): void {
+    var level = player == 1 ? state.levelA : state.levelB;
+    var xp = player == 1 ? state.xpA : state.xpB;
+    var lifetime = player == 1 ? state.lifetimeXpA : state.lifetimeXpB;
+    var nextLifetimeXp = lifetime + amount;
+    lifetime = nextLifetimeXp < MAX_SAFE_LIFETIME_XP ?
+        nextLifetimeXp : MAX_SAFE_LIFETIME_XP;
+    if (level < catalog.maxLevel()) {
+        xp = xp + amount;
+        while (level < catalog.maxLevel() && xp >= catalog.xpForLevel(level)) {
+            xp = xp - catalog.xpForLevel(level);
+            level = level + 1;
+        }
+        if (level >= catalog.maxLevel()) { xp = 0; }
+    }
+    if (player == 1) { state.levelA = level; state.xpA = xp; state.lifetimeXpA = lifetime; }
+    if (player == 2) { state.levelB = level; state.xpB = xp; state.lifetimeXpB = lifetime; }
+}
+
+pub acceptQuest(state: QuestState, player: int, questId: string): bool {
+    state.lastError = 0;
+    if (dead(state, player) || questIndex(questId) < 0 ||
+        stateFor(state, player, questId) != 0 || !nearNpc(state, player, questId)) {
+        state.lastError = -1;
+        return false;
+    }
+    setState(state, player, questId, 1);
+    setObjectiveCount(state, player, questId, 0);
+    state.acceptedEvents = state.acceptedEvents + 1;
+    syncCollect(state, player);
+    return true;
+}
+
+pub acceptLinkedQuest(state: QuestState, player: int, questId: string): bool {
+    state.lastError = 0;
+    if (!state.partyTogether) { state.lastError = -2; return false; }
+    if (questIndex(questId) < 0 || stateFor(state, player, questId) != 0) {
+        state.lastError = -1;
+        return false;
+    }
+    setState(state, player, questId, 1);
+    setObjectiveCount(state, player, questId, 0);
+    state.acceptedEvents = state.acceptedEvents + 1;
+    state.shareNotices = state.shareNotices + 1;
+    syncCollect(state, player);
+    return true;
+}
+
+pub abandonQuest(state: QuestState, player: int, questId: string): bool {
+    var current = stateFor(state, player, questId);
+    if (current != 1 && current != 2) { return false; }
+    setState(state, player, questId, 0);
+    setObjectiveCount(state, player, questId, 0);
+    state.abandonEvents = state.abandonEvents + 1;
+    return true;
+}
+
+pub creditKill(state: QuestState, player: int, mobId: string): bool {
+    if (stateFor(state, player, "q_wolves") != 1) { return false; }
+    var quest = questIndex("q_wolves");
+    if (catalog.text("quest", quest, "objectiveMobId") != mobId) { return false; }
+    var needed = <int>catalog.metric("quest", quest, "objectiveCount");
+    var count = objectiveCount(state, player, "q_wolves");
+    if (count >= needed) { return false; }
+    count = count + 1;
+    setObjectiveCount(state, player, "q_wolves", count);
+    if (player == 1) { state.questProgressA = state.questProgressA + 1; }
+    if (player == 2) { state.questProgressB = state.questProgressB + 1; }
+    state.progressEvents = state.progressEvents + 1;
+    checkReady(state, player, "q_wolves");
+    return true;
+}
+
+pub turnInQuest(state: QuestState, player: int, questId: string): bool {
+    state.lastError = 0;
+    var quest = questIndex(questId);
+    if (dead(state, player) || quest < 0 || stateFor(state, player, questId) != 2 ||
+        !nearNpc(state, player, questId)) {
+        state.lastError = -3;
+        return false;
+    }
+    var itemId = catalog.text("quest", quest, "objectiveItemId");
+    var needed = <int>catalog.metric("quest", quest, "objectiveCount");
+    if (itemId != "" && countItem(state, player, itemId) < needed) {
+        state.lastError = -3;
+        return false;
+    }
+    if (itemId != "") { removeItem(state, player, itemId, needed); }
+    setState(state, player, questId, 3);
+    if (player == 1) {
+        state.copperA = state.copperA + <int>catalog.metric("quest", quest, "copperReward");
+        state.questsCompletedA = state.questsCompletedA + 1;
+    }
+    if (player == 2) {
+        state.copperB = state.copperB + <int>catalog.metric("quest", quest, "copperReward");
+        state.questsCompletedB = state.questsCompletedB + 1;
+    }
+    grantXp(state, player, <int>catalog.metric("quest", quest, "xpReward"));
+    state.doneEvents = state.doneEvents + 1;
+    return true;
+}
+
+pub killCreditScenarioTest(): int {
+    var kills = new QuestState();
+    kills.nearWolfNpcA = true;
+    setLevel(kills, 1, 10);
+    if (!acceptQuest(kills, 1, "q_wolves") || stateFor(kills, 1, "q_wolves") != 1) {
+        return -1;
+    }
+    var kill = 0;
+    while (kill < 8) {
+        if (!creditKill(kills, 1, "forest_wolf")) { return -2; }
+        kill = kill + 1;
+    }
+    if (stateFor(kills, 1, "q_wolves") != 2 ||
+        objectiveCount(kills, 1, "q_wolves") != 8 || kills.questProgressA != 8 ||
+        !turnInQuest(kills, 1, "q_wolves") || stateFor(kills, 1, "q_wolves") != 3 ||
+        kills.copperA != 75 || kills.xpA != 250 || kills.questsCompletedA != 1) {
+        return -3;
+    }
+    return 1;
+}
+
+pub collectTurnInScenarioTest(): int {
+    var collect = new QuestState();
+    collect.nearBoarNpcA = true;
+    if (!acceptQuest(collect, 1, "q_boars")) { return -1; }
+    var item = 0;
+    while (item < 5) {
+        addItem(collect, 1, "boar_hide", 1);
+        item = item + 1;
+    }
+    if (stateFor(collect, 1, "q_boars") != 2 ||
+        objectiveCount(collect, 1, "q_boars") != 5) {
+        return -2;
+    }
+    removeItem(collect, 1, "boar_hide", 1);
+    if (stateFor(collect, 1, "q_boars") != 1 ||
+        objectiveCount(collect, 1, "q_boars") != 4) {
+        return -3;
+    }
+    addItem(collect, 1, "boar_hide", 1);
+    if (stateFor(collect, 1, "q_boars") != 2 || !turnInQuest(collect, 1, "q_boars") ||
+        stateFor(collect, 1, "q_boars") != 3 || countItem(collect, 1, "boar_hide") != 0 ||
+        collect.copperA != 120 || collect.xpA != 350 || collect.questProgressA != 6) {
+        return -4;
+    }
+    return 1;
+}
+
+pub linkedAbandonScenarioTest(): int {
+    var linked = new QuestState();
+    if (acceptLinkedQuest(linked, 2, "q_wolves") || linked.lastError != -2 ||
+        stateFor(linked, 2, "q_wolves") != 0 || abandonQuest(linked, 2, "q_wolves")) {
+        return -1;
+    }
+    linked.partyTogether = true;
+    if (!acceptLinkedQuest(linked, 2, "q_wolves") ||
+        stateFor(linked, 2, "q_wolves") != 1 || linked.shareNotices != 1 ||
+        !abandonQuest(linked, 2, "q_wolves") ||
+        stateFor(linked, 2, "q_wolves") != 0 || linked.abandonEvents != 1) {
+        return -2;
+    }
+    return 1;
+}
+
+questInvariantTest(): int {
+    var rejected = new QuestState();
+    rejected.nearBoarNpcA = true;
+    if (!acceptQuest(rejected, 1, "q_boars") || turnInQuest(rejected, 1, "q_boars") ||
+        rejected.copperA != 0 || rejected.xpA != 0 ||
+        stateFor(rejected, 1, "q_boars") != 1) {
+        return -1;
+    }
+    var ceiling = new QuestState();
+    setLevel(ceiling, 1, catalog.maxLevel());
+    ceiling.lifetimeXpA = MAX_SAFE_LIFETIME_XP - 1;
+    grantXp(ceiling, 1, 10);
+    if (ceiling.lifetimeXpA != MAX_SAFE_LIFETIME_XP || ceiling.xpA != 0) {
+        return -2;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = killCreditScenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = collectTurnInScenarioTest();
+    if (result != 1) { return -200 + result; }
+    result = linkedAbandonScenarioTest();
+    if (result != 1) { return -300 + result; }
+    result = questInvariantTest();
+    if (result != 1) { return -400 + result; }
+    return 1;
+}

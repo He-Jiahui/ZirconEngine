@@ -3,7 +3,7 @@ use super::*;
 
 const PRESERVED_TYPED_ERROR_REVIEW_GUARDS: &[&str] = &[
     "fn review_f5_animation_manager_uses_animation_error",
-    "fn review_f6_core_resource_registry_rename_uses_core_error",
+    "fn review_f6_core_resource_registry_rename_uses_resource_error",
     "fn review_f5_texture_loader_uses_typed_error",
     "fn review_f5_mesh_loader_and_obj_decoder_use_typed_errors",
     "fn review_f5_animation_asset_binary_uses_typed_errors",

@@ -1,0 +1,79 @@
+// Current-head source port of src/sim/social/card_duel_queue.ts at
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. Match ownership, world liveness
+// and player-facing events remain in the later Card Duel world reducer.
+var container = %import("zr.container");
+
+pub class CardDuelPair {
+    pub var ready: bool;
+    pub var a: uint;
+    pub var b: uint;
+
+    pub @constructor() {
+        this.ready = false;
+        this.a = <uint>0;
+        this.b = <uint>0;
+    }
+}
+
+pub class CardDuelQueue {
+    pri var entries: container.Array<uint>;
+
+    pub @constructor() {
+        this.entries = new container.Array<uint>();
+    }
+
+    // 1 = joined; 0 = already queued; -1 = already in a live duel.
+    pub join(pid: uint, alreadyInDuel: bool): int {
+        if (pid == <uint>0) throw "card duel queue player id is invalid";
+        if (alreadyInDuel) return -1;
+        if (this.contains(pid)) return 0;
+        this.entries.add(pid);
+        return 1;
+    }
+
+    pub leave(pid: uint): bool {
+        var index = 0;
+        while (index < this.entries.length) {
+            if (<uint>this.entries[index] == pid) {
+                this.entries.removeAt(index);
+                return true;
+            }
+            index = index + 1;
+        }
+        return false;
+    }
+
+    pub contains(pid: uint): bool {
+        var index = 0;
+        while (index < this.entries.length) {
+            if (<uint>this.entries[index] == pid) return true;
+            index = index + 1;
+        }
+        return false;
+    }
+
+    pub size(): int {
+        return this.entries.length;
+    }
+
+    // Read-only FIFO projection for the durable service snapshot. Keeping this
+    // narrow prevents callers from mutating queue order outside join/leave.
+    pub at(index: int): uint {
+        if (index < 0 || index >= this.entries.length) {
+            throw "card duel queue index is invalid";
+        }
+        return <uint>this.entries[index];
+    }
+
+    // Removes the two oldest entries, exactly matching two FIFO `shift()` calls.
+    pub pairFirst(): CardDuelPair {
+        var pair = new CardDuelPair();
+        if (this.entries.length < 2) return pair;
+        pair.ready = true;
+        pair.a = <uint>this.entries[0];
+        this.entries.removeAt(0);
+        pair.b = <uint>this.entries[0];
+        this.entries.removeAt(0);
+        return pair;
+    }
+}

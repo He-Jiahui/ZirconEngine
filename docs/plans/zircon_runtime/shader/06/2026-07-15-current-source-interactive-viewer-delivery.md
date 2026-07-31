@@ -1,9 +1,9 @@
 # Shader06 EC-M5 Current-Source Interactive Viewer Delivery
 
 Plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
-Milestone: M5
-Status: completed
-Files: ["docs/plans/zircon_runtime/shader/06/2026-07-15-current-source-interactive-viewer-delivery.md", "docs/tests/runtime/shader/runtime_shader_pbr_interactive_viewer_current_source_20260715.png", "docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_source_20260715_validation.md", "docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_source_dx12_renderdoc_20260715_capture.rdc", "docs/zircon_runtime/tests/runtime_shader_pbr_hdri_export.md", "zircon_app/src/bin/zircon_shader_pbr_viewer/camera.rs", "zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs"]
+Milestone: EC-M5
+Status: historical-baseline; current-source revalidation pending
+Files: ["docs/plans/zircon_runtime/shader/06/2026-07-15-current-source-interactive-viewer-delivery.md", "docs/tests/runtime/shader/runtime_shader_pbr_interactive_viewer_current_source_20260715.png", "docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_source_20260715_validation.md", "docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_source_dx12_renderdoc_20260715_capture.rdc", "docs/zircon_runtime/tests/runtime_shader_pbr_hdri_export.md", "zircon_app/src/bin/zircon_shader_pbr_viewer/camera.rs", "zircon_app/src/bin/zircon_shader_pbr_viewer/hdri.rs", "zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs"]
 
 ## 状态与产出记录
 
@@ -13,6 +13,22 @@ Files: ["docs/plans/zircon_runtime/shader/06/2026-07-15-current-source-interacti
 | EC-M5 | Windows production build 与手动控制 | `completed` | 2026-07-15 | 受管 job `1b86e228d43f4fad9edd9f0ef69d48df` 对 `zircon_app` build/test 均 exit 0。fresh EXE `--help` exit 0；Lakes 2K + source512 + PMREM512 DX12 窗口 26/26 个 5 秒样本保持响应并进入 Ready。原生滚轮令 446,585 像素发生变化，平均 RGB 绝对差 8.4627；343 像素左键拖动将标题从 yaw 0 改为 yaw 120。 |
 | EC-M5 | 实际窗口截图与 RenderDoc | `completed` | 2026-07-15 | 1296x999 窗口截图 SHA256 `90D45BD3256C323275BCF112551264DD26DBFEA7D5550F24C7685C7B1D3A1354`；原尺寸复核确认 Lakes 道路、湖岸、树木、天空和球面镜像连续清晰，镜面球不是白球且无低分辨率马赛克。fresh DX12 RDC 为 48,462,499 bytes、SHA256 `1F12B9B03C0E3C2B8D1ED5068868C3FD589DB76578F639E06E277C11ABDBD0BC`，一次性捕获和 replay 均退出 0。 |
 | M5 | 产物位置与范围审计 | `completed` | 2026-07-15 | PNG、RDC 和验证 Markdown 均位于 `docs/tests/runtime/shader`；仓库 `target` 与本次受管 Cargo target 的精确文件名扫描均为 0。生产 EXE、交互、截图、捕获和回放晚于全部生产修正；其后的测试专用搜索范围修正已由受管 job `03c5072d8e5b4214b146fd620027324d` 重新执行 viewer 18/18。 |
+
+## Current-Source Status
+
+The entries above remain immutable 2026-07-15 baseline evidence only. They do not close the current M5 gate after later runtime, importer, task-pool, and shader changes.
+
+- The viewer now passes the `CoreRuntime` TasksModule compute pool into parallel HDRI staging, so equirectangular projection, source mip generation, and PMREM filtering do not consume the asset I/O worker.
+- The viewer now reuses `ProjectAssetManager::current_project_manager()` after `open_project`; it no longer reopens and rescans the same temporary project before loading the scene.
+- Viewer teardown now drops the world, renderer, and runtime watcher before attempting to remove its temporary project directory, preserving repeated Windows launch/capture runs.
+- The HDRI loader now emits `Written` or `Reused` together with staging and total elapsed time, which the current-source first/second bake evidence must record.
+- The ready window title consumes that immutable loader report, keeping the cache outcome plus staging/total timings visible while orbiting or zooming; loading-time interaction cannot falsely promote the title to `Ready`.
+- The viewer IBL artifact cache now lives under the stable system-temporary `zircon_shader_pbr_viewer_ibl_cache` directory rather than the disposable per-launch project root, so the second process can actually exercise the `Reused` path.
+- `--ibl-cache-dir <directory>` overrides that stable default for a controlled cold/hot pair; the invoking validation workflow must provide a caller-owned directory outside the repository and Cargo target directories.
+- Viewer exposure/layout inspection and parallel staging now share one decoded RGBA32F HDR image, avoiding a second full source decode before either `Written` or `Reused` staging completes.
+- The direct viewer path accepts Radiance `.hdr` input only and rejects decoded images that are not non-empty 2:1 equirectangular maps before cubemap or PMREM staging.
+- The viewer remains a background scene loader; the UI event loop stays responsible for loading progress, orbit, zoom, and presentation.
+- Current-source managed dev/release builds, dated DX12 screenshot, and RenderDoc capture/replay are recorded in `06/2026-07-27-m5-current-source-pbr-and-viewer-validation.md`. That record remains subject to coordinator validation, independent review, and a managed milestone commit; this 2026-07-15 record remains historical baseline evidence.
 
 ## Scope Delivered
 

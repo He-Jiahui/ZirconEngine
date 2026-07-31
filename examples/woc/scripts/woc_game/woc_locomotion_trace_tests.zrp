@@ -1,0 +1,6 @@
+{
+  "name": "woc_locomotion_trace_tests",
+  "source": "src",
+  "binary": "bin-locomotion-trace-tests",
+  "entry": "parity/m3_locomotion_trace_test_main"
+}

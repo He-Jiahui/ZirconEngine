@@ -164,6 +164,22 @@ fn material_button_style_resolves_slint_state_layer_priority() {
     assert_eq!(style.interaction_state, ButtonInteractionState::Pressed);
 }
 
+#[test]
+fn material_button_single_map_resolution_borrows_style_values() {
+    let source = include_str!("../style.rs");
+    let resolver = source
+        .split("pub fn resolve_button_style_from_values")
+        .nth(1)
+        .and_then(|source| source.split("\n}\n\nfn value_or_default").next())
+        .expect("single-map button resolver source");
+
+    assert!(!resolver.contains("values.clone()"));
+    assert!(!resolver.contains("Arc::downgrade"));
+    assert!(!source.contains("to_ascii_lowercase()"));
+    assert!(source.contains("-> Option<&'a str>"));
+    assert!(source.contains("fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value>;"));
+}
+
 fn scope<'a, const N: usize>(values: [(&'a str, &'a str); N]) -> Arc<StyleSheetScope> {
     Arc::new(StyleSheetScope::new(UiV2ResolvedStyle {
         self_values: values

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use super::super::*;
+use crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot;
 use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, ModulePluginsPaneViewData,
 };
@@ -19,6 +20,7 @@ pub(super) struct HostLifecyclePanePayloads {
     pub(super) runtime_diagnostics: RuntimeDiagnosticsSnapshot,
     pub(super) module_plugins: ModulePluginsPaneViewData,
     pub(super) build_export: BuildExportPaneViewData,
+    pub(super) template_v2_data: BTreeMap<String, EditorUiTemplatePaneDataSnapshot>,
 }
 
 impl RetainedEditorHost {
@@ -89,6 +91,10 @@ impl RetainedEditorHost {
             zircon_runtime::profile_scope!("editor", "retained_host", "collect_build_export_pane");
             self.collect_build_export_pane_payload(model, chrome)
         };
+        let template_v2_data = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "collect_template_v2_data");
+            self.runtime.ui_template_pane_data_snapshots()
+        };
 
         HostLifecyclePanePayloads {
             preset_names,
@@ -97,6 +103,7 @@ impl RetainedEditorHost {
             runtime_diagnostics,
             module_plugins,
             build_export,
+            template_v2_data,
         }
     }
 }

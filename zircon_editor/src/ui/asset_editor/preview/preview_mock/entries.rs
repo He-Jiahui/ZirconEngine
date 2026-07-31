@@ -31,14 +31,20 @@ pub(super) fn preview_mock_entries(
             })
         })
         .collect::<Vec<_>>();
-    entries.sort_by_key(|entry| preview_mock_sort_key(&entry.key, entry.kind));
+    entries.sort_by(|left, right| {
+        preview_mock_sort_key(&left.key, left.kind)
+            .cmp(&preview_mock_sort_key(&right.key, right.kind))
+    });
     entries
 }
 
 pub(super) fn preview_mock_nested_entries(value: &Value) -> Vec<UiAssetPreviewMockNestedEntry> {
     let mut entries = Vec::new();
     collect_preview_mock_nested_entries(value, None, &mut entries);
-    entries.sort_by_key(|entry| preview_mock_sort_key(&entry.key, entry.kind));
+    entries.sort_by(|left, right| {
+        preview_mock_sort_key(&left.key, left.kind)
+            .cmp(&preview_mock_sort_key(&right.key, right.kind))
+    });
     entries
 }
 
@@ -68,7 +74,7 @@ pub(super) fn resolved_preview_mock_subject_node_id<'a>(
         .or_else(|| {
             document
                 .iter_nodes()
-                .filter(|node| preview_mock_node_has_entries(document, &node.node_id))
+                .filter(|node| preview_mock_node_has_entries_for_node(node))
                 .min_by(|left, right| {
                     preview_mock_subject_sort_key(left).cmp(&preview_mock_subject_sort_key(right))
                 })
@@ -123,21 +129,12 @@ pub(super) fn selected_nested_entry_index(
         .or(Some(0))
 }
 
-pub(super) fn property_kind(
-    document: &UiAssetDocument,
-    node_id: &str,
-    key: &str,
-) -> Option<UiAssetPreviewMockKind> {
-    let value = document.node(node_id)?.props.get(key)?;
-    preview_mock_kind_for_property(key, value)
-}
-
 pub(super) fn preview_mock_subject_entries(
     document: &UiAssetDocument,
 ) -> Vec<UiAssetPreviewMockSubjectEntry> {
     let mut entries = document
         .iter_nodes()
-        .filter(|node| preview_mock_node_has_entries(document, &node.node_id))
+        .filter(|node| preview_mock_node_has_entries_for_node(node))
         .map(|node| UiAssetPreviewMockSubjectEntry {
             node_id: node.node_id.clone(),
             label: preview_mock_subject_label(node),
@@ -165,12 +162,14 @@ pub(super) fn preview_mock_subject_sort_key(node: &UiNodeDefinition) -> (&str, &
 pub(super) fn preview_mock_node_has_entries(document: &UiAssetDocument, node_id: &str) -> bool {
     document
         .node(node_id)
-        .map(|node| {
-            node.props
-                .iter()
-                .any(|(key, value)| preview_mock_kind_for_property(key, value).is_some())
-        })
+        .map(preview_mock_node_has_entries_for_node)
         .unwrap_or(false)
+}
+
+fn preview_mock_node_has_entries_for_node(node: &UiNodeDefinition) -> bool {
+    node.props
+        .iter()
+        .any(|(key, value)| preview_mock_kind_for_property(key, value).is_some())
 }
 
 pub(super) fn evaluate_preview_mock_expression(
@@ -337,10 +336,21 @@ pub(super) fn parse_toml_inline_value(value: &str) -> Option<Value> {
 }
 
 pub(super) fn parse_bool(value: &str) -> Option<bool> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "true" | "1" | "yes" | "on" => Some(true),
-        "false" | "0" | "no" | "off" => Some(false),
-        _ => None,
+    let value = value.trim();
+    if value == "1"
+        || ["true", "yes", "on"]
+            .iter()
+            .any(|candidate| value.eq_ignore_ascii_case(candidate))
+    {
+        Some(true)
+    } else if value == "0"
+        || ["false", "no", "off"]
+            .iter()
+            .any(|candidate| value.eq_ignore_ascii_case(candidate))
+    {
+        Some(false)
+    } else {
+        None
     }
 }
 
@@ -439,9 +449,9 @@ pub(super) fn qualified_preview_mock_nested_display_key(base: &str, nested_key: 
     format!("{base}{relative}")
 }
 
-pub(super) fn preview_mock_sort_key(key: &str, kind: UiAssetPreviewMockKind) -> (u8, String) {
+pub(super) fn preview_mock_sort_key(key: &str, kind: UiAssetPreviewMockKind) -> (u8, &str) {
     if key == "text" {
-        return (0, key.to_string());
+        return (0, key);
     }
     let priority = match kind {
         UiAssetPreviewMockKind::Bool => 1,
@@ -453,7 +463,7 @@ pub(super) fn preview_mock_sort_key(key: &str, kind: UiAssetPreviewMockKind) -> 
         UiAssetPreviewMockKind::Expression => 7,
         UiAssetPreviewMockKind::Text => 8,
     };
-    (priority, key.to_string())
+    (priority, key)
 }
 
 pub(super) fn set_preview_mock_override_value(
@@ -560,12 +570,9 @@ pub(super) fn collect_preview_mock_nested_entries(
             }
         }
         Value::Table(table) => {
-            let mut keys = table.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            for key in keys {
-                let Some(item) = table.get(&key) else {
-                    continue;
-                };
+            let mut sorted_entries = table.iter().collect::<Vec<_>>();
+            sorted_entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+            for (key, item) in sorted_entries {
                 let Some(kind) = preview_mock_kind_for_nested_value(item) else {
                     continue;
                 };

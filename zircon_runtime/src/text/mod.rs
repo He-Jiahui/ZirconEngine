@@ -34,7 +34,7 @@ pub use model::{
     VerticalMode, MAX_RICH_TABLE_ROW_SPAN,
 };
 
-pub(crate) use language::normalize_text_language_tag;
+pub(crate) use language::{default_text_locale, normalize_text_language_tag, system_text_locale};
 pub(crate) use layout_session::SharedTextLayoutSession;
 pub use layout_session::{shared_text_layout_fallback_report, TextLayoutFallbackReport};
 pub(crate) use model::{BackendShapeRequest, TextFrame, TextSize, TextStyle};
@@ -44,5 +44,8 @@ pub use rich::{
     EmojiShortcodeRegistrationError, RichTextDecoration, RichTextDecorator,
     RichTextDecoratorRegistrationError, RichTextParser,
 };
-pub(crate) use service::fallback_spans_for_request;
+pub(crate) use service::{
+    fallback_spans_for_request, shared_text_layout_generation_retry_report,
+    TextLayoutGenerationRetryReport,
+};
 pub use service::{shared_text_layout_service, SharedTextLayoutService};

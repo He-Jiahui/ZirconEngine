@@ -1,0 +1,9 @@
+var console = %import("zr.system.console");
+var trace = %import("parity/m3_roster_trace");
+
+console.printLine("m3-roster-trace-test");
+console.printLine(trace.byteMetric(0, true));
+console.printLine(trace.byteMetric(1, true));
+var result: int = <int>trace.selfTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

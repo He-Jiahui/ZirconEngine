@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/glacial_front_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/glacial_front.ts": "c0aa8e140712709084b069d7de99e72c9cfc01327f8424411548bee47e216260"
+  },
+  "angle_degrees": 70,
+  "min_range": 7,
+  "max_range": 16,
+  "presentation_ranges": [
+    7,
+    10,
+    13,
+    16
+  ],
+  "stage_count": 4
+}

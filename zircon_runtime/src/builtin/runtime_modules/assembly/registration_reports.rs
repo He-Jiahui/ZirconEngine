@@ -13,7 +13,7 @@ use super::feature_reports::feature_reports_for_plugin_and_feature_registration_
 use super::registration_inputs::{
     registration_inputs_for_plugin_and_feature_reports, registration_inputs_for_plugin_reports,
 };
-use super::target_modules::runtime_modules_for_target_with_registration_inputs_for_manifest;
+use super::target_modules::runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability;
 use crate::core::framework::platform::RuntimeTargetMode;
 
 pub(super) fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
@@ -24,15 +24,19 @@ pub(super) fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
     let registrations = active_plugin_registration_refs(target, registrations);
     let inputs = registration_inputs_for_plugin_reports(&registrations);
     let manifest = manifest_with_mode_baseline(target, manifest_override);
-    let mut report = runtime_modules_for_target_with_registration_inputs_for_manifest(
-        target, &manifest, &inputs,
-    );
-    extend_asset_importer_errors(&mut report, &inputs);
-    report.runtime_plugin_availability = target_manifest_availability_for_registration_reports(
+    let availability = target_manifest_availability_for_registration_reports(
         target,
         &manifest,
         registrations.iter().copied(),
     );
+    let mut report =
+        runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability(
+            target,
+            &manifest,
+            &inputs,
+            availability,
+        );
+    extend_asset_importer_errors(&mut report, &inputs);
     report
 }
 
@@ -44,11 +48,16 @@ pub(super) fn runtime_modules_for_profile_manifest_with_plugin_registration_repo
 ) -> RuntimeModuleLoadReport {
     let registrations = active_plugin_registration_refs(target, registrations);
     let inputs = registration_inputs_for_plugin_reports(&registrations);
-    let mut report =
-        runtime_modules_for_target_with_registration_inputs_for_manifest(target, manifest, &inputs);
-    extend_asset_importer_errors(&mut report, &inputs);
-    report.runtime_plugin_availability =
+    let availability =
         runtime_profile_manifest_availability(profile, manifest, registrations.iter().copied());
+    let mut report =
+        runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability(
+            target,
+            manifest,
+            &inputs,
+            availability,
+        );
+    extend_asset_importer_errors(&mut report, &inputs);
     report
 }
 
@@ -57,6 +66,7 @@ pub(super) fn runtime_modules_for_target_with_plugin_and_feature_registration_re
     manifest_override: Option<&ProjectPluginManifest>,
     registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
     feature_registrations: impl IntoIterator<Item = &'a RuntimePluginFeatureRegistrationReport>,
+    availability_profile: Option<&RuntimeProfileDescriptor>,
 ) -> RuntimeModuleLoadReport {
     let registrations = registrations.into_iter().cloned().collect::<Vec<_>>();
     let feature_registrations = feature_registrations
@@ -75,16 +85,28 @@ pub(super) fn runtime_modules_for_target_with_plugin_and_feature_registration_re
         &active_registrations,
         feature_reports.active_feature_registrations(),
     );
-    let mut report = runtime_modules_for_target_with_registration_inputs_for_manifest(
-        target, &manifest, &inputs,
-    );
+    let availability = if let Some(profile) = availability_profile {
+        runtime_profile_manifest_availability(
+            profile,
+            manifest_override.unwrap_or(&manifest),
+            registrations.iter(),
+        )
+    } else {
+        target_manifest_availability_for_registration_reports(
+            target,
+            &manifest,
+            registrations.iter(),
+        )
+    };
+    let mut report =
+        runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability(
+            target,
+            &manifest,
+            &inputs,
+            availability,
+        );
     feature_reports.extend_load_report_diagnostics(&mut report);
     extend_asset_importer_errors(&mut report, &inputs);
-    report.runtime_plugin_availability = target_manifest_availability_for_registration_reports(
-        target,
-        &manifest,
-        registrations.iter(),
-    );
     report
 }
 

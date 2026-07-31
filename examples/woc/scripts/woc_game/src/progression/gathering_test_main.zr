@@ -1,0 +1,8 @@
+var gathering = %import("progression/gathering_state");
+
+console.printLine("m5-gathering-test");
+var result = gathering.contractTest();
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "gathering contract failed";
+}

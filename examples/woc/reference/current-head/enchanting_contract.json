@@ -1,0 +1,557 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/enchanting_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/enchanting.ts": "fc4beec259c0134568119e4cca384364edcc2100017fd992c4815333aa6d33b8",
+    "src/sim/content/enchants.ts": "a15262d94059f1a7c464879209698e6185cfa86d1e6459b4b1c9338b4c5113a1",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "quality_order": [
+    "poor",
+    "common",
+    "uncommon",
+    "rare",
+    "epic",
+    "legendary"
+  ],
+  "disenchant_material_by_quality": {
+    "common": "arcane_dust",
+    "uncommon": "arcane_dust",
+    "rare": "arcane_essence",
+    "epic": "arcane_shard",
+    "legendary": "arcane_shard"
+  },
+  "material_fallback": "arcane_dust",
+  "tier_levels_per_bonus": 10,
+  "roll_threshold": 0.5,
+  "skill_gain": 1,
+  "enchants": [
+    {
+      "id": "enchant_weapon_might",
+      "item_slot": "mainhand",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "str": 5
+      }
+    },
+    {
+      "id": "enchant_weapon_intellect",
+      "item_slot": "mainhand",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "int": 5
+      }
+    },
+    {
+      "id": "enchant_helmet_fortitude",
+      "item_slot": "helmet",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "sta": 8
+      }
+    },
+    {
+      "id": "enchant_neck_spirit",
+      "item_slot": "neck",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "spi": 5
+      }
+    },
+    {
+      "id": "enchant_shoulder_agility",
+      "item_slot": "shoulder",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "agi": 5
+      }
+    },
+    {
+      "id": "enchant_chest_stamina",
+      "item_slot": "chest",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "sta": 10
+      }
+    },
+    {
+      "id": "enchant_waist_stamina",
+      "item_slot": "waist",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "sta": 6
+      }
+    },
+    {
+      "id": "enchant_legs_stamina",
+      "item_slot": "legs",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "sta": 8
+      }
+    },
+    {
+      "id": "enchant_gloves_agility",
+      "item_slot": "gloves",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "agi": 6
+      }
+    },
+    {
+      "id": "enchant_gloves_intellect",
+      "item_slot": "gloves",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "int": 6
+      }
+    },
+    {
+      "id": "enchant_feet_agility",
+      "item_slot": "feet",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "agi": 4
+      }
+    },
+    {
+      "id": "enchant_ring_spirit",
+      "item_slot": "ring",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "spi": 4
+      }
+    },
+    {
+      "id": "enchant_weapon_agility",
+      "item_slot": "mainhand",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "agi": 5
+      }
+    },
+    {
+      "id": "enchant_helmet_intellect",
+      "item_slot": "helmet",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "int": 8
+      }
+    },
+    {
+      "id": "enchant_helmet_armor",
+      "item_slot": "helmet",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 1
+        }
+      ],
+      "stats": {
+        "armor": 30
+      }
+    },
+    {
+      "id": "enchant_neck_intellect",
+      "item_slot": "neck",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "int": 5
+      }
+    },
+    {
+      "id": "enchant_neck_agility",
+      "item_slot": "neck",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "agi": 5
+      }
+    },
+    {
+      "id": "enchant_shoulder_strength",
+      "item_slot": "shoulder",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "str": 5
+      }
+    },
+    {
+      "id": "enchant_shoulder_intellect",
+      "item_slot": "shoulder",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "int": 5
+      }
+    },
+    {
+      "id": "enchant_chest_spirit",
+      "item_slot": "chest",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "spi": 8
+      }
+    },
+    {
+      "id": "enchant_chest_armor",
+      "item_slot": "chest",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "armor": 40
+      }
+    },
+    {
+      "id": "enchant_waist_strength",
+      "item_slot": "waist",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "str": 6
+      }
+    },
+    {
+      "id": "enchant_waist_agility",
+      "item_slot": "waist",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "agi": 6
+      }
+    },
+    {
+      "id": "enchant_legs_intellect",
+      "item_slot": "legs",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "int": 8
+      }
+    },
+    {
+      "id": "enchant_gloves_strength",
+      "item_slot": "gloves",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 5
+        }
+      ],
+      "stats": {
+        "str": 6
+      }
+    },
+    {
+      "id": "enchant_feet_strength",
+      "item_slot": "feet",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "str": 4
+      }
+    },
+    {
+      "id": "enchant_feet_stamina",
+      "item_slot": "feet",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "sta": 5
+      }
+    },
+    {
+      "id": "enchant_ring_strength",
+      "item_slot": "ring",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "str": 4
+      }
+    },
+    {
+      "id": "enchant_ring_agility",
+      "item_slot": "ring",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "agi": 4
+      }
+    },
+    {
+      "id": "enchant_ring_intellect",
+      "item_slot": "ring",
+      "reagents": [
+        {
+          "item_id": "arcane_dust",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "int": 4
+      }
+    },
+    {
+      "id": "enchant_weapon_greater_might",
+      "item_slot": "mainhand",
+      "reagents": [
+        {
+          "item_id": "arcane_shard",
+          "count": 1
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "str": 8
+      }
+    },
+    {
+      "id": "enchant_weapon_greater_spellpower",
+      "item_slot": "mainhand",
+      "reagents": [
+        {
+          "item_id": "arcane_shard",
+          "count": 1
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "int": 8
+      }
+    },
+    {
+      "id": "enchant_helmet_greater_fortitude",
+      "item_slot": "helmet",
+      "reagents": [
+        {
+          "item_id": "arcane_shard",
+          "count": 1
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "sta": 12
+      }
+    },
+    {
+      "id": "enchant_chest_greater_stamina",
+      "item_slot": "chest",
+      "reagents": [
+        {
+          "item_id": "arcane_shard",
+          "count": 1
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "sta": 14
+      }
+    },
+    {
+      "id": "enchant_legs_greater_stamina",
+      "item_slot": "legs",
+      "reagents": [
+        {
+          "item_id": "arcane_shard",
+          "count": 1
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 3
+        }
+      ],
+      "stats": {
+        "sta": 12
+      }
+    },
+    {
+      "id": "enchant_gloves_greater_agility",
+      "item_slot": "gloves",
+      "reagents": [
+        {
+          "item_id": "arcane_shard",
+          "count": 1
+        },
+        {
+          "item_id": "arcane_essence",
+          "count": 2
+        }
+      ],
+      "stats": {
+        "agi": 9
+      }
+    }
+  ],
+  "semantics": {
+    "eligible_item": "only non-poor weapon and armor definitions are disenchantable",
+    "eligible_copy": "plain stacks are selected before unenchanted instances; explicit enchant markers and legacy rolled stats without masterwork are excluded",
+    "disenchant": "successful disenchant removes one eligible copy before one RNG draw, grants an arcane material yield, then grants enchanting skill",
+    "apply": "validates item, enchant, slot, held copy and every reagent before mutation; success preserves instance fields and adds the enchant stats into a fresh marked instance"
+  }
+}

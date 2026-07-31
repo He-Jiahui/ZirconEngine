@@ -1,6 +1,7 @@
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::super::data::FrameRect;
+use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 use super::super::super::visual_assets::HostPaintImagePixels;
 use super::kind::HostPaintCommandKind;
 
@@ -29,4 +30,28 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Hos
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) image_pixels:
         Option<HostPaintImagePixels>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) opacity: f32,
+}
+
+impl HostPaintCommand {
+    pub(super) fn fallback_text_metrics_from_host(metrics: HostControlMetrics) -> (f32, f32) {
+        (metrics.font_body, metrics.line_height(metrics.font_body))
+    }
+
+    pub(super) fn fallback_text_metrics() -> (f32, f32) {
+        Self::fallback_text_metrics_from_host(current_host_metrics())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::paint_theme::METRICS;
+
+    #[test]
+    fn fallback_text_metrics_project_from_host_control_metrics() {
+        assert_eq!(
+            HostPaintCommand::fallback_text_metrics_from_host(METRICS),
+            (METRICS.font_body, METRICS.line_height(METRICS.font_body))
+        );
+    }
 }

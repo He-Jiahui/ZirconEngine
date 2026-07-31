@@ -61,14 +61,38 @@ fn runtime_12_action_mapping_keeps_ui_filtered_evaluation_path() {
         "action_context_is_active",
         "InputActionState::from_sets_and_values",
         "binding_axis_consumed",
-        "binding_axis_value",
-        "binding_axis_transition",
+        "evaluate_binding_axes",
+        "BindingAxisEvaluation",
         "dominant_action_value",
     ] {
         assert!(
             evaluator.contains(required_evaluator_anchor)
                 || default_action_manager.contains(required_evaluator_anchor),
             "Runtime 12 action evaluator should retain `{required_evaluator_anchor}`"
+        );
+    }
+
+    assert_eq!(
+        evaluator
+            .matches("let axis = evaluate_binding_axes(")
+            .count(),
+        1,
+        "Runtime 12 should evaluate each binding's axis value and transition state through one owner call"
+    );
+    assert!(
+        evaluator.contains("self.binding_index.context_enabled(context)"),
+        "Runtime 12 should resolve context enabled-state from the compiled binding index"
+    );
+    for stale_hot_path_anchor in [
+        "self.action_map.context_enabled(context)",
+        "fn binding_axis_value(",
+        "fn binding_axis_transition(",
+        "binding_axis_value(&frame_axes",
+        "binding_axis_transition(&frame_axes",
+    ] {
+        assert!(
+            !evaluator.contains(stale_hot_path_anchor),
+            "Runtime 12 action evaluation must not restore stale hot-path anchor `{stale_hot_path_anchor}`"
         );
     }
 

@@ -13,8 +13,8 @@ use super::compute_workload::{
     HZB_OCCLUSION_STATS_RESOURCE, HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
 };
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
-) -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
+-> RenderFeatureDescriptor {
     let hzb_build_dispatch = hzb_build_dispatch_plan();
 
     RenderFeatureDescriptor::new(

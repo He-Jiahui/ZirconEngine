@@ -1,10 +1,10 @@
-use zircon_runtime::scene::NodeId;
+use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::math::Vec3;
 use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest, ReflectedValue};
 use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
-use crate::core::editing::command::{EditorCommand, NodeEditState};
-use crate::core::editing::history::HistorySelectionSnapshot;
+use crate::core::editing::command::EditorCommand;
+use crate::core::editing::engine::MergeMode;
 use crate::core::editing::intent::EditorIntent;
 
 use super::editor_state::EditorState;
@@ -18,15 +18,22 @@ const LOCAL_TRANSFORM_COMPONENT_TYPE_PATH: &str =
 
 impl EditorState {
     pub fn delete_selected(&mut self) -> Result<bool, String> {
-        let selected = self.viewport_controller.selection().active_primary();
-        let Some(node_id) = selected else {
+        let selected = self
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
+        if selected.is_empty() {
             self.status_line = "Nothing selected".to_string();
             return Ok(false);
-        };
-        self.apply_intent(EditorIntent::DeleteNode(node_id))
+        }
+        self.apply_intent(EditorIntent::DeleteNodes(selected))
     }
 
     pub fn apply_inspector_changes(&mut self) -> Result<bool, String> {
+        self.prepare_non_gizmo_scene_action()?;
         let selected = self
             .viewport_controller
             .selection()
@@ -52,53 +59,29 @@ impl EditorState {
         let mut reflected_updates =
             self.prepare_reflected_node_updates(parent, Vec3::new(x, y, z))?;
         reflected_updates.extend(self.prepare_reflected_component_updates(node_id)?);
-        let selected = self.viewport_controller.selection().active_primary();
         let mut commands = Vec::new();
 
         for update in reflected_updates {
-            let result = self
-                .world
-                .try_with_world_mut(|scene| {
-                    EditorCommand::set_reflected_scene_field(
-                        scene,
-                        selected,
-                        node_id,
-                        update.component_type_path,
-                        update.field_name,
-                        update.value,
-                    )
-                })
-                .ok_or_else(no_project_open)?;
-            match result {
-                Ok(Some(command)) => commands.push(command),
-                Ok(None) => {}
-                Err(error) => {
-                    self.rollback_inspector_commands(&commands)?;
-                    self.sync_selection_state();
-                    return Err(error);
-                }
+            let result = self.capture_scene_command(|scene| {
+                EditorCommand::set_reflected_scene_field(
+                    scene,
+                    node_id,
+                    update.component_type_path,
+                    update.field_name,
+                    update.value,
+                )
+            })?;
+            if let Some(command) = result {
+                commands.push(command);
             }
         }
 
-        let Some(command) = EditorCommand::batch(commands) else {
+        if commands.is_empty() {
             return Ok(false);
-        };
-        self.history.push(command);
-        self.sync_selection_state();
+        }
+        self.execute_scene_commands("Apply inspector changes", commands, MergeMode::Disable)?;
         self.status_line = format!("Applied inspector changes to node {node_id}");
         Ok(true)
-    }
-
-    fn rollback_inspector_commands(&mut self, commands: &[EditorCommand]) -> Result<(), String> {
-        self.world
-            .try_with_world_mut(|scene| {
-                for command in commands.iter().rev() {
-                    command.undo(scene)?;
-                }
-                Ok::<(), String>(())
-            })
-            .ok_or_else(no_project_open)??;
-        Ok(())
     }
 
     fn prepare_reflected_node_updates(
@@ -167,31 +150,15 @@ impl EditorState {
         material: ResourceHandle<MaterialMarker>,
         display_path: impl Into<String>,
     ) -> Result<bool, String> {
-        let selection = self.viewport_controller.selection();
-        let selected = selection.active_primary();
-        let selection_before = HistorySelectionSnapshot::new(
-            selection.active_items().iter().copied().collect(),
-            selected,
-        );
-        let command = self
-            .world
-            .try_with_world_mut(|scene| {
-                EditorCommand::import_mesh(scene, selected, model, material)
-            })
-            .ok_or_else(no_project_open)??;
-        let id = command.target_node();
+        self.prepare_non_gizmo_scene_action()?;
+        let command = EditorCommand::import_mesh(model, material);
+        self.execute_scene_command("Import mesh scene node", command)?;
+        let id = self
+            .viewport_controller
+            .selection()
+            .active_primary()
+            .ok_or_else(|| "imported mesh node did not become selected".to_string())?;
         self.mesh_import_path = display_path.into();
-        self.viewport_controller
-            .selection_mut()
-            .select_only_active(command.target_node());
-        let selection = self.viewport_controller.selection();
-        let selection_after = HistorySelectionSnapshot::new(
-            selection.active_items().iter().copied().collect(),
-            selection.active_primary(),
-        );
-        self.history
-            .push_with_selection(command, selection_before, selection_after);
-        self.sync_selection_state();
         self.status_line = format!("Imported mesh node {id}");
         Ok(true)
     }
@@ -203,17 +170,10 @@ impl EditorState {
             .active_primary()
             .and_then(|selected| {
                 self.world
-                    .try_with_world(|scene| {
-                        scene.find_node(selected).map(|node| NodeEditState {
-                            name: node.name.clone(),
-                            parent: node.parent,
-                            transform: node.transform,
-                        })
-                    })
+                    .try_with_world(|scene| selected_inspector_state(scene, selected))
                     .flatten()
             });
         if let Some(node) = selected_state {
-            let translation = node.transform.translation;
             self.inspector_dynamic_fields.clear();
             self.name_field = node.name;
             self.parent_field = node
@@ -221,11 +181,11 @@ impl EditorState {
                 .map(|value| value.to_string())
                 .unwrap_or_default();
             self.transform_fields = [
-                format!("{:.2}", translation.x),
-                format!("{:.2}", translation.y),
-                format!("{:.2}", translation.z),
+                format!("{:.2}", node.translation.x),
+                format!("{:.2}", node.translation.y),
+                format!("{:.2}", node.translation.z),
             ];
-            self.viewport_controller.set_orbit_target(translation);
+            self.viewport_controller.set_orbit_target(node.translation);
             return;
         }
 
@@ -240,6 +200,34 @@ struct ReflectedInspectorUpdate {
     component_type_path: String,
     field_name: String,
     value: ReflectedValue,
+}
+
+struct SelectedInspectorState {
+    name: String,
+    parent: Option<NodeId>,
+    translation: Vec3,
+}
+
+fn selected_inspector_state(scene: &Scene, selected: NodeId) -> Option<SelectedInspectorState> {
+    let hierarchy = scene.inspection_artifact();
+    let row = hierarchy.hierarchy_row(selected)?;
+    let translation = scene
+        .inspection_fields_artifact(selected)?
+        .fields()
+        .iter()
+        .find(|field| {
+            field.component_type_path == LOCAL_TRANSFORM_COMPONENT_TYPE_PATH
+                && field.field_name == "translation"
+        })
+        .and_then(|field| match &field.value {
+            ReflectedValue::Vec3([x, y, z]) => Some(Vec3::new(*x, *y, *z)),
+            _ => None,
+        })?;
+    Some(SelectedInspectorState {
+        name: row.display_name.clone(),
+        parent: row.parent,
+        translation,
+    })
 }
 
 fn split_reflected_field_id(field_id: &str) -> Result<(String, String), String> {

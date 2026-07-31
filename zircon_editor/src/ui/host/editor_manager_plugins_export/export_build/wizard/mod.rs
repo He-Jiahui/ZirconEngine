@@ -3,6 +3,7 @@ mod controller;
 mod execution;
 mod job;
 mod options;
+mod output_tail;
 mod panel_host_projection;
 mod panel_projection;
 mod plan;
@@ -47,7 +48,7 @@ pub use progress::{
 };
 pub use run::{
     run_export_wizard_job, ExportWizardCancelSignal, ExportWizardJobEvent,
-    ExportWizardJobEventKind, ExportWizardNeverCancel,
+    ExportWizardJobEventKind, ExportWizardNeverCancel, ExportWizardStageOutputDelta,
 };
 pub use session::{
     export_wizard_panel_action_call, export_wizard_panel_action_for_control,

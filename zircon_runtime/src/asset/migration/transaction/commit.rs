@@ -4,11 +4,11 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use super::schema::{CommitFault, JournalPhase};
+use super::journal::record_document_state;
+use super::schema::{CommitFault, JournalPhase, JournalState};
 use super::stage::StagedDocument;
-use super::{remove_if_exists, sync_journal, transaction_error};
+use super::{record_phase, remove_if_exists, transaction_error};
 use crate::asset::migration::{AssetMigrationError, AssetMigrationTransactionPhase};
-use crate::asset::project::meta_io::atomic_write;
 
 pub(super) fn commit_document(
     document: &mut StagedDocument,
@@ -17,8 +17,7 @@ pub(super) fn commit_document(
 ) -> io::Result<()> {
     #[cfg(not(test))]
     let _ = (fault, document_index);
-    let bytes = fs::read(&document.staging)?;
-    atomic_write(&document.target, &bytes)?;
+    replace_synced_file(&document.staging, &document.target)?;
     document.committed = true;
     #[cfg(test)]
     if matches!(fault, CommitFault::CrashAfterTargetReplace(index) if index == document_index) {
@@ -29,6 +28,7 @@ pub(super) fn commit_document(
     }
     if let Some(retired) = &document.retired_path {
         fs::remove_file(retired)?;
+        sync_parent_directory(retired)?;
         #[cfg(test)]
         if matches!(fault, CommitFault::CrashAfterRetiredDelete(index) if index == document_index) {
             return Err(io::Error::new(
@@ -37,6 +37,119 @@ pub(super) fn commit_document(
             ));
         }
     }
+    Ok(())
+}
+
+fn replace_synced_file(staging: &Path, target: &Path) -> io::Result<()> {
+    if target.exists() {
+        replace_existing_synced_file(staging, target)?;
+    } else {
+        replace_missing_synced_file(staging, target)?;
+    }
+    sync_parent_directory(target)
+}
+
+#[cfg(not(windows))]
+fn replace_existing_synced_file(staging: &Path, target: &Path) -> io::Result<()> {
+    fs::rename(staging, target)
+}
+
+#[cfg(not(windows))]
+fn replace_missing_synced_file(staging: &Path, target: &Path) -> io::Result<()> {
+    fs::rename(staging, target)
+}
+
+#[cfg(windows)]
+fn replace_existing_synced_file(staging: &Path, target: &Path) -> io::Result<()> {
+    use std::ffi::c_void;
+    use std::os::windows::ffi::OsStrExt;
+
+    const REPLACEFILE_WRITE_THROUGH: u32 = 0x0000_0001;
+
+    #[link(name = "Kernel32")]
+    unsafe extern "system" {
+        fn ReplaceFileW(
+            replaced_file_name: *const u16,
+            replacement_file_name: *const u16,
+            backup_file_name: *const u16,
+            replace_flags: u32,
+            exclude: *mut c_void,
+            reserved: *mut c_void,
+        ) -> i32;
+    }
+
+    let target_wide = target
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
+    let staging_wide = staging
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
+    let replaced = unsafe {
+        ReplaceFileW(
+            target_wide.as_ptr(),
+            staging_wide.as_ptr(),
+            std::ptr::null(),
+            REPLACEFILE_WRITE_THROUGH,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    };
+    if replaced == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn replace_missing_synced_file(staging: &Path, target: &Path) -> io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+
+    const MOVEFILE_WRITE_THROUGH: u32 = 0x0000_0008;
+
+    #[link(name = "Kernel32")]
+    unsafe extern "system" {
+        fn MoveFileExW(
+            existing_file_name: *const u16,
+            new_file_name: *const u16,
+            flags: u32,
+        ) -> i32;
+    }
+
+    let staging_wide = staging
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
+    let target_wide = target
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
+    let moved = unsafe {
+        MoveFileExW(
+            staging_wide.as_ptr(),
+            target_wide.as_ptr(),
+            MOVEFILE_WRITE_THROUGH,
+        )
+    };
+    if moved == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn sync_parent_directory(path: &Path) -> io::Result<()> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    fs::File::open(parent)?.sync_all()
+}
+
+#[cfg(not(unix))]
+fn sync_parent_directory(_path: &Path) -> io::Result<()> {
     Ok(())
 }
 
@@ -51,6 +164,7 @@ pub(super) fn rollback_and_cleanup(
         if !document.committed {
             continue;
         }
+        record_document_state(journal, index, JournalState::RollingBack)?;
         let mut restored = true;
         if should_fail_restore(fault, index) {
             first_error.get_or_insert_with(|| {
@@ -59,7 +173,7 @@ pub(super) fn rollback_and_cleanup(
             continue;
         }
         if let Some(backup) = document.backup.as_ref() {
-            match fs::read(&backup).and_then(|bytes| atomic_write(&document.target, &bytes)) {
+            match replace_synced_file(backup, &document.target) {
                 Ok(()) => {}
                 Err(error) => {
                     first_error.get_or_insert(error);
@@ -76,7 +190,7 @@ pub(super) fn rollback_and_cleanup(
             document.retired_path.as_ref(),
             document.retired_backup.as_ref(),
         ) {
-            match fs::read(&backup).and_then(|bytes| atomic_write(retired, &bytes)) {
+            match replace_synced_file(backup, retired) {
                 Ok(()) => {}
                 Err(error) => {
                     first_error.get_or_insert(error);
@@ -95,7 +209,7 @@ pub(super) fn rollback_and_cleanup(
             error,
         ));
     }
-    sync_journal(journal, staged, JournalPhase::RollbackCompleted)?;
+    record_phase(journal, JournalPhase::RollbackCompleted)?;
     #[cfg(test)]
     if matches!(fault, CommitFault::CrashAfterRollbackCompleted { .. }) {
         return Err(transaction_error(
@@ -107,7 +221,7 @@ pub(super) fn rollback_and_cleanup(
             ),
         ));
     }
-    sync_journal(journal, staged, JournalPhase::CleanupRollback)?;
+    record_phase(journal, JournalPhase::CleanupRollback)?;
     cleanup_rollback_artifacts(journal, staged, fault)
 }
 

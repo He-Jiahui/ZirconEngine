@@ -1,6 +1,7 @@
 use crate::core::project::{NewProjectDraft, ProjectAuthority};
 use crate::ui::workbench::project::EditorProjectDocument;
 use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
+use zircon_runtime::asset::project::ProjectManager;
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
@@ -11,6 +12,21 @@ impl EditorUiHost {
         path: impl AsRef<std::path::Path>,
     ) -> Result<EditorStartupSessionDocument, EditorError> {
         let document = self.open_project(&path)?;
+        self.remember_prepared_project(document)
+    }
+
+    pub(crate) fn open_prepared_project_and_remember(
+        &self,
+        project: ProjectManager,
+    ) -> Result<EditorStartupSessionDocument, EditorError> {
+        let document = self.open_prepared_project(project)?;
+        self.remember_prepared_project(document)
+    }
+
+    fn remember_prepared_project(
+        &self,
+        document: EditorProjectDocument,
+    ) -> Result<EditorStartupSessionDocument, EditorError> {
         let status_message = project_open_status_message(&document);
         self.remember_opened_project(&document.root_path, document.manifest.summary())?;
         self.dismiss_welcome_page()?;
@@ -21,6 +37,8 @@ impl EditorUiHost {
             open_builtin_view: None,
             recent_projects: self.recent_projects_snapshot()?,
             draft: NewProjectDraft::renderable_empty_default(),
+            creation_validation: String::new(),
+            can_open_existing: false,
             status_message,
         })
     }
@@ -30,16 +48,34 @@ impl EditorUiHost {
         draft: NewProjectDraft,
     ) -> Result<EditorStartupSessionDocument, EditorError> {
         let created = ProjectAuthority::default().create_project(&draft)?;
-        self.open_project_and_remember(created.root)
+        self.open_prepared_project_and_remember(created.into_project())
     }
 }
 
-fn project_open_status_message(document: &EditorProjectDocument) -> String {
+pub(super) fn project_open_status_message(document: &EditorProjectDocument) -> String {
+    project_activation_status_message("Project opened", document)
+}
+
+pub(super) fn restored_project_status_message(document: &EditorProjectDocument) -> String {
+    project_activation_status_message("Restored recent project", document)
+}
+
+fn project_activation_status_message(action: &str, document: &EditorProjectDocument) -> String {
+    let summary = format!(
+        "{action}: {} (scene={} assets={} ready={} failed={} registry_diagnostics={} project_settings={})",
+        document.project_info.name,
+        document.project_info.default_scene_uri,
+        document.project_info.asset_count,
+        document.project_info.ready_asset_count,
+        document.project_info.failed_asset_count,
+        document.project_info.registry_diagnostic_count,
+        document.project_settings.startup_status(),
+    );
     let Some(diagnostic) = document.workspace_restore_diagnostics.first() else {
-        return "Project opened".to_string();
+        return summary;
     };
     format!(
-        "Project opened with default layout; failed to restore workspace layout from {}: {}",
+        "{summary}; using default layout after workspace restore failed from {}: {}",
         diagnostic.path.display(),
         diagnostic.message
     )

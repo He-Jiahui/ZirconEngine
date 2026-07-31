@@ -1,19 +1,19 @@
 use crate::core::framework::render::{
-    AdvancedProfileRuntimePlan, CorePipelineKind, RenderFrameExtract, RenderFrameworkError,
-    RenderPipelineHandle, RenderProductFeature, RenderProductProfile, RenderProfileBundle,
-    RenderQualityProfile, RenderViewportHandle, SolariProviderAvailability, SolariRuntimeReport,
+    AdvancedProfileRuntimePlan, RenderFrameExtract, RenderFrameworkError, RenderPipelineHandle,
+    RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
+    RenderViewportHandle, SolariProviderAvailability, SolariRuntimeReport,
 };
 
 use crate::graphics::RenderPipelineAsset;
 
 use super::super::super::capability_validation::validate_quality_profile_capabilities;
 use super::super::super::compile_options_for_profile::compile_options_for_profile;
-use super::super::super::wgpu_render_framework::WgpuRenderFramework;
+use super::super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 use super::camera_history_key::camera_history_key_for_extract;
 use super::viewport_record_state::ViewportRecordState;
 
 pub(super) fn resolve_viewport_record_state(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     extract: &RenderFrameExtract,
 ) -> Result<ViewportRecordState, RenderFrameworkError> {
@@ -131,10 +131,7 @@ pub(super) fn resolve_viewport_record_state(
 }
 
 fn default_pipeline_for_extract(extract: &RenderFrameExtract) -> RenderPipelineHandle {
-    match extract.view.core_pipeline {
-        CorePipelineKind::Core2d => RenderPipelineAsset::default_core2d().handle,
-        CorePipelineKind::Core3d => RenderPipelineAsset::default_forward_plus().handle,
-    }
+    RenderPipelineAsset::default_handle_for_core_pipeline(extract.view.core_pipeline)
 }
 
 fn runtime_profile_bundle_for_quality_profile(
@@ -194,6 +191,15 @@ mod tests {
     };
 
     use super::runtime_profile_bundle_for_quality_profile;
+
+    #[test]
+    fn default_pipeline_resolution_does_not_construct_builtin_assets() {
+        let source = include_str!("resolve_viewport_record_state.rs");
+
+        assert!(!source.contains(concat!("default_core2d()", ".handle")));
+        assert!(!source.contains(concat!("default_forward_plus()", ".handle")));
+        assert!(source.contains("default_handle_for_core_pipeline"));
+    }
 
     #[test]
     fn runtime_profile_bundle_for_quality_profile_requests_only_enabled_advanced_features() {

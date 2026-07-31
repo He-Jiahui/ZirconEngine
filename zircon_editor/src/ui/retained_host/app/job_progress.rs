@@ -106,8 +106,10 @@ mod tests {
     #[test]
     fn controller_exposes_the_full_read_only_job_progress_snapshot() {
         let source = include_str!("../../host/editor_event_runtime_access.rs");
-        assert!(source
-            .contains("pub fn job_progress_snapshot(&self) -> Vec<EditorJobProgressSnapshot>"));
+        assert!(
+            source
+                .contains("pub fn job_progress_snapshot(&self) -> Vec<EditorJobProgressSnapshot>")
+        );
         assert!(source.contains("self.context().jobs().progress().snapshot()"));
         assert!(source.contains("self.context().jobs().progress().primary_snapshot()"));
         let production_source = include_str!("job_progress.rs");

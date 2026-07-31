@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::framework::render::{
-    interp_bool, interp_float_lerp, interp_vec3_lerp, RenderLayerSet,
-    RenderResolvedPostProcessSettings, ShaderQualityTier, VolumeComponentApplyError,
-    VolumeComponentDescriptor, VolumeParamSchema, VolumeParamValue,
+    RenderLayerSet, RenderResolvedPostProcessSettings, ShaderQualityTier,
+    VolumeComponentApplyError, VolumeComponentDescriptor, VolumeParamSchema, VolumeParamValue,
+    interp_bool, interp_float_lerp, interp_vec3_lerp,
 };
 use crate::core::math::{Real, Vec3};
 
@@ -274,11 +274,7 @@ fn finite_non_negative(value: Real) -> Real {
 }
 
 fn finite_or(value: Real, fallback: Real) -> Real {
-    if value.is_finite() {
-        value
-    } else {
-        fallback
-    }
+    if value.is_finite() { value } else { fallback }
 }
 
 #[cfg(test)]

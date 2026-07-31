@@ -7,6 +7,9 @@ use super::super::render::{
 };
 use super::font_assets::{UiFontAssetCache, effective_text_render_mode, ensure_font_asset_record};
 use crate::asset::ProjectAssetManager;
+use crate::text::raster::{
+    GlyphRasterEffects, GlyphRasterPath, GlyphRasterPolicyRequest, raster_path_for_request,
+};
 use crate::text::{TextLayoutFallbackReport, TextRenderState};
 
 #[derive(Clone, Debug, Default)]
@@ -77,6 +80,33 @@ impl ResolvedScreenSpaceUiTextBatches {
     }
 }
 
+pub(super) fn resolved_auto_text_render_mode(
+    text: &ScreenSpaceUiTextBatch,
+    font_asset: Option<&super::font_assets::LoadedUiFontAsset>,
+) -> UiTextRenderMode {
+    let resolved_font_mode = effective_text_render_mode(UiTextRenderMode::Auto, font_asset);
+    if font_asset
+        .and_then(|asset| asset.render_mode)
+        .is_some_and(|mode| !matches!(mode, UiTextRenderMode::Auto))
+    {
+        return resolved_font_mode;
+    }
+
+    let mut request = GlyphRasterPolicyRequest::new(text.font_size, false);
+    request.effects = GlyphRasterEffects {
+        outline: text.text_effects.outline.is_some(),
+        shadow: text.text_effects.shadow.is_some(),
+        glow: text.text_effects.glow.is_some(),
+        true_distance_effects: text.text_effects.glow.is_some(),
+    };
+    match raster_path_for_request(request) {
+        GlyphRasterPath::Bitmap => UiTextRenderMode::Native,
+        GlyphRasterPath::Sdf => UiTextRenderMode::Sdf,
+        GlyphRasterPath::Msdf => UiTextRenderMode::Msdf,
+        GlyphRasterPath::Mtsdf => UiTextRenderMode::Mtsdf,
+    }
+}
+
 pub(super) fn resolve_text_batches(
     text_state: &mut TextRenderState,
     font_assets: &mut UiFontAssetCache,
@@ -124,7 +154,7 @@ pub(super) fn resolve_text_batches(
             .and_then(|entry| entry.loaded_asset());
         resolved.push_resolved_auto_text(
             text.clone(),
-            effective_text_render_mode(UiTextRenderMode::Auto, font_asset),
+            resolved_auto_text_render_mode(text, font_asset),
         );
     }
 

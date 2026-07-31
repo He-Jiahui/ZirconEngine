@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_quest_fallback_state_tests",
+  "source": "src",
+  "binary": "bin-m5-quest-fallback-state-tests",
+  "entry": "progression/quest_fallback_state_test_main"
+}

@@ -1,0 +1,623 @@
+[asset]
+kind = "view"
+id = "res://ui/shell/offline_picker.zui"
+version = 2
+display_name = "World of ClaudeCraft Offline Character Picker"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui"]
+resources = [
+  { kind = "image", uri = "res://m8/env/vale_backdrop.webp", fallback = { mode = "optional" } },
+]
+
+[root]
+node = "offline_root"
+
+[nodes.preview_host]
+component = "Space"
+control_id = "OfflineCharacterPreviewHost"
+classes = ["woc-preview-host"]
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.stage_scrim]
+component = "Space"
+classes = ["woc-stage-scrim"]
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.title]
+component = "Label"
+control_id = "OfflineCharacterTitle"
+classes = ["woc-screen-title"]
+props = { text = "Offline Character", text_align = "center" }
+layout = { anchor = { x = 0.5, y = 0.0 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 18.0 }, width = { min = 300.0, preferred = 420.0, max = 560.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.name_label]
+component = "Label"
+control_id = "OfflineCharacterNameLabel"
+classes = ["woc-label"]
+props = { text = "Character Name", text_align = "center" }
+layout = { anchor = { x = 0.5, y = 0.0 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 58.0 }, width = { min = 180.0, preferred = 300.0, max = 300.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.name_field]
+component = "TextField"
+control_id = "OfflineCharacterName"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Character name", helper_text = "", variant = "outlined" }
+layout = { anchor = { x = 0.5, y = 0.0 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 82.0 }, width = { min = 240.0, preferred = 300.0, max = 300.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocOffline/CharacterNameChanged", event = "Change", route = "woc.shell.offline.set_name" },
+  { id = "WocOffline/CharacterNameSubmitted", event = "Submit", route = "woc.shell.offline.enter_world" },
+]
+
+[nodes.error]
+component = "Label"
+control_id = "OfflineCharacterError"
+classes = ["woc-error"]
+props = { text = "", text_align = "center" }
+layout = { anchor = { x = 0.5, y = 0.0 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 132.0 }, width = { min = 300.0, preferred = 520.0, max = 640.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 40.0, stretch = "Fixed" } }
+
+[nodes.skin_title]
+component = "Label"
+control_id = "OfflineSkinTitle"
+classes = ["woc-section-title"]
+props = { text = "Appearance", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.skin_0]
+component = "ToggleButton"
+control_id = "OfflineSkin0"
+classes = ["woc-skin-swatch"]
+props = { text = "1", checked = true, selection_state = "exclusive" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectSkin/0", event = "Toggle", route = "woc.shell.offline.select_skin.0" }]
+
+[nodes.skin_1]
+component = "ToggleButton"
+control_id = "OfflineSkin1"
+classes = ["woc-skin-swatch"]
+props = { text = "2", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectSkin/1", event = "Toggle", route = "woc.shell.offline.select_skin.1" }]
+
+[nodes.skin_2]
+component = "ToggleButton"
+control_id = "OfflineSkin2"
+classes = ["woc-skin-swatch"]
+props = { text = "3", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectSkin/2", event = "Toggle", route = "woc.shell.offline.select_skin.2" }]
+
+[nodes.skin_3]
+component = "ToggleButton"
+control_id = "OfflineSkin3"
+classes = ["woc-skin-swatch"]
+props = { text = "4", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectSkin/3", event = "Toggle", route = "woc.shell.offline.select_skin.3" }]
+
+[nodes.skin_column]
+component = "VerticalBox"
+control_id = "OfflineSkinPicker"
+layout = { container = { kind = "VerticalBox", gap = 12.0 }, anchor = { x = 0.0, y = 0.5 }, pivot = { x = 0.0, y = 0.5 }, position = { x = 26.0, y = 0.0 }, width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = 300.0, preferred = 300.0, max = 300.0, stretch = "Fixed" } }
+children = [{ node = "skin_title" }, { node = "skin_0" }, { node = "skin_1" }, { node = "skin_2" }, { node = "skin_3" }]
+
+[nodes.details_name]
+component = "Label"
+control_id = "OfflineClassName"
+classes = ["woc-screen-title"]
+props = { text = "Warrior" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.details_role]
+component = "Label"
+control_id = "OfflineClassRole"
+classes = ["woc-section-title"]
+props = { text = "Hybrid" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.details_lore]
+component = "Label"
+control_id = "OfflineClassLore"
+classes = ["woc-muted"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 60.0, preferred = 72.0, max = 96.0, stretch = "Fixed" } }
+
+[nodes.details_stats_title]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Combat Profile" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.details_stats]
+component = "Label"
+control_id = "OfflineClassStats"
+classes = ["woc-label"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 54.0, preferred = 64.0, max = 84.0, stretch = "Fixed" } }
+
+[nodes.details_gear_title]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Armor & Weapons" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.details_armor]
+component = "Label"
+control_id = "OfflineClassArmor"
+classes = ["woc-muted"]
+props = { text = "Chain, Leather, Cloth" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.details_weapons]
+component = "Label"
+control_id = "OfflineClassWeapons"
+classes = ["woc-muted"]
+props = { text = "Swords, Maces, Axes" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.details_abilities_title]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Signature Abilities" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.details_ability_0]
+component = "Label"
+control_id = "OfflineClassAbility0"
+classes = ["woc-label"]
+props = { text = "Charge" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.details_ability_1]
+component = "Label"
+control_id = "OfflineClassAbility1"
+classes = ["woc-label"]
+props = { text = "Heroic Strike" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.details_ability_2]
+component = "Label"
+control_id = "OfflineClassAbility2"
+classes = ["woc-label"]
+props = { text = "Execute" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.details_panel]
+component = "ScrollBox"
+control_id = "OfflineClassDetails"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -26.0, y = 110.0 }, padding = { left = 14.0, right = 14.0, top = 14.0, bottom = 14.0 }, width = { min = 320.0, preferred = 360.0, max = 360.0, stretch = "Fixed" }, height = { min = 360.0, preferred = 500.0, max = 560.0, stretch = "Fixed" } }
+children = [
+  { node = "details_name" },
+  { node = "details_role" },
+  { node = "details_lore" },
+  { node = "details_stats_title" },
+  { node = "details_stats" },
+  { node = "details_gear_title" },
+  { node = "details_armor" },
+  { node = "details_weapons" },
+  { node = "details_abilities_title" },
+  { node = "details_ability_0" },
+  { node = "details_ability_1" },
+  { node = "details_ability_2" },
+]
+
+[nodes.class_warrior]
+component = "ToggleButton"
+control_id = "OfflineClassWarrior"
+classes = ["woc-class-button", "class-warrior"]
+props = { text = "Warrior", checked = true, selection_state = "exclusive" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectClass/warrior", event = "Toggle", route = "woc.shell.offline.select_class.warrior" }]
+
+[nodes.class_paladin]
+component = "ToggleButton"
+control_id = "OfflineClassPaladin"
+classes = ["woc-class-button", "class-paladin"]
+props = { text = "Paladin", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectClass/paladin", event = "Toggle", route = "woc.shell.offline.select_class.paladin" }]
+
+[nodes.class_hunter]
+component = "ToggleButton"
+control_id = "OfflineClassHunter"
+classes = ["woc-class-button", "class-hunter"]
+props = { text = "Hunter", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectClass/hunter", event = "Toggle", route = "woc.shell.offline.select_class.hunter" }]
+
+[nodes.class_rogue]
+component = "ToggleButton"
+control_id = "OfflineClassRogue"
+classes = ["woc-class-button", "class-rogue"]
+props = { text = "Rogue", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectClass/rogue", event = "Toggle", route = "woc.shell.offline.select_class.rogue" }]
+
+[nodes.class_priest]
+component = "ToggleButton"
+control_id = "OfflineClassPriest"
+classes = ["woc-class-button", "class-priest"]
+props = { text = "Priest", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectClass/priest", event = "Toggle", route = "woc.shell.offline.select_class.priest" }]
+
+[nodes.class_shaman]
+component = "ToggleButton"
+control_id = "OfflineClassShaman"
+classes = ["woc-class-button", "class-shaman"]
+props = { text = "Shaman", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectClass/shaman", event = "Toggle", route = "woc.shell.offline.select_class.shaman" }]
+
+[nodes.class_mage]
+component = "ToggleButton"
+control_id = "OfflineClassMage"
+classes = ["woc-class-button", "class-mage"]
+props = { text = "Mage", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectClass/mage", event = "Toggle", route = "woc.shell.offline.select_class.mage" }]
+
+[nodes.class_warlock]
+component = "ToggleButton"
+control_id = "OfflineClassWarlock"
+classes = ["woc-class-button", "class-warlock"]
+props = { text = "Warlock", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectClass/warlock", event = "Toggle", route = "woc.shell.offline.select_class.warlock" }]
+
+[nodes.class_druid]
+component = "ToggleButton"
+control_id = "OfflineClassDruid"
+classes = ["woc-class-button", "class-druid"]
+props = { text = "Druid", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/SelectClass/druid", event = "Toggle", route = "woc.shell.offline.select_class.druid" }]
+
+[nodes.class_rail]
+component = "HorizontalBox"
+control_id = "OfflineClassPicker"
+layout = { container = { kind = "HorizontalBox", gap = 14.0 }, anchor = { x = 0.5, y = 1.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 0.0, y = -26.0 }, width = { min = 832.0, preferred = 832.0, max = 832.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+children = [
+  { node = "class_warrior" },
+  { node = "class_paladin" },
+  { node = "class_hunter" },
+  { node = "class_rogue" },
+  { node = "class_priest" },
+  { node = "class_shaman" },
+  { node = "class_mage" },
+  { node = "class_warlock" },
+  { node = "class_druid" },
+]
+
+[nodes.back]
+component = "Button"
+control_id = "OfflineBack"
+classes = ["woc-secondary-action"]
+props = { text = "Back", button_variant = "outlined" }
+layout = { anchor = { x = 0.0, y = 1.0 }, pivot = { x = 0.0, y = 1.0 }, position = { x = 26.0, y = -30.0 }, width = { min = 140.0, preferred = 140.0, max = 140.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/Back", event = "Click", route = "woc.shell.offline.back" }]
+
+[nodes.enter_world]
+component = "Button"
+control_id = "OfflineEnterWorld"
+classes = ["woc-primary-action"]
+props = { text = "Enter World", button_variant = "contained", disabled = false }
+layout = { anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -26.0, y = -30.0 }, width = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocOffline/EnterWorld", event = "Click", route = "woc.shell.offline.enter_world" }]
+
+[nodes.desktop_layer]
+component = "Overlay"
+control_id = "OfflineDesktopLayer"
+props = { visibility = { xs = "collapsed", md = "visible" } }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "preview_host" },
+  { node = "stage_scrim" },
+  { node = "title" },
+  { node = "name_label" },
+  { node = "name_field" },
+  { node = "error" },
+  { node = "skin_column" },
+  { node = "details_panel" },
+  { node = "class_rail" },
+  { node = "back" },
+  { node = "enter_world" },
+]
+
+[nodes.compact_title]
+component = "Label"
+control_id = "OfflineCompactCharacterTitle"
+classes = ["woc-screen-title"]
+props = { text = "Offline Character", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.compact_name_label]
+component = "Label"
+control_id = "OfflineCompactCharacterNameLabel"
+classes = ["woc-label"]
+props = { text = "Character Name" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.compact_name_field]
+component = "TextField"
+control_id = "OfflineCompactCharacterName"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Character name", helper_text = "", variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "WocOfflineCompact/CharacterNameChanged", event = "Change", route = "woc.shell.offline.set_name" },
+  { id = "WocOfflineCompact/CharacterNameSubmitted", event = "Submit", route = "woc.shell.offline.enter_world" },
+]
+
+[nodes.compact_class_warrior]
+component = "ToggleButton"
+control_id = "OfflineCompactClassWarrior"
+classes = ["woc-class-button", "class-warrior"]
+props = { text = "Warrior", checked = true, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectClass/warrior", event = "Toggle", route = "woc.shell.offline.select_class.warrior" }]
+
+[nodes.compact_class_paladin]
+component = "ToggleButton"
+control_id = "OfflineCompactClassPaladin"
+classes = ["woc-class-button", "class-paladin"]
+props = { text = "Paladin", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectClass/paladin", event = "Toggle", route = "woc.shell.offline.select_class.paladin" }]
+
+[nodes.compact_class_hunter]
+component = "ToggleButton"
+control_id = "OfflineCompactClassHunter"
+classes = ["woc-class-button", "class-hunter"]
+props = { text = "Hunter", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectClass/hunter", event = "Toggle", route = "woc.shell.offline.select_class.hunter" }]
+
+[nodes.compact_class_rogue]
+component = "ToggleButton"
+control_id = "OfflineCompactClassRogue"
+classes = ["woc-class-button", "class-rogue"]
+props = { text = "Rogue", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectClass/rogue", event = "Toggle", route = "woc.shell.offline.select_class.rogue" }]
+
+[nodes.compact_class_priest]
+component = "ToggleButton"
+control_id = "OfflineCompactClassPriest"
+classes = ["woc-class-button", "class-priest"]
+props = { text = "Priest", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectClass/priest", event = "Toggle", route = "woc.shell.offline.select_class.priest" }]
+
+[nodes.compact_class_shaman]
+component = "ToggleButton"
+control_id = "OfflineCompactClassShaman"
+classes = ["woc-class-button", "class-shaman"]
+props = { text = "Shaman", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectClass/shaman", event = "Toggle", route = "woc.shell.offline.select_class.shaman" }]
+
+[nodes.compact_class_mage]
+component = "ToggleButton"
+control_id = "OfflineCompactClassMage"
+classes = ["woc-class-button", "class-mage"]
+props = { text = "Mage", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectClass/mage", event = "Toggle", route = "woc.shell.offline.select_class.mage" }]
+
+[nodes.compact_class_warlock]
+component = "ToggleButton"
+control_id = "OfflineCompactClassWarlock"
+classes = ["woc-class-button", "class-warlock"]
+props = { text = "Warlock", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectClass/warlock", event = "Toggle", route = "woc.shell.offline.select_class.warlock" }]
+
+[nodes.compact_class_druid]
+component = "ToggleButton"
+control_id = "OfflineCompactClassDruid"
+classes = ["woc-class-button", "class-druid"]
+props = { text = "Druid", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectClass/druid", event = "Toggle", route = "woc.shell.offline.select_class.druid" }]
+
+[nodes.compact_class_grid]
+component = "GridGroup"
+control_id = "OfflineCompactClassPicker"
+layout = { container = { kind = "GridBox", columns = 3, rows = 3, column_gap = 4.0, row_gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 98.0, preferred = 98.0, max = 98.0, stretch = "Fixed" } }
+children = [
+  { node = "compact_class_warrior" },
+  { node = "compact_class_paladin" },
+  { node = "compact_class_hunter" },
+  { node = "compact_class_rogue" },
+  { node = "compact_class_priest" },
+  { node = "compact_class_shaman" },
+  { node = "compact_class_mage" },
+  { node = "compact_class_warlock" },
+  { node = "compact_class_druid" },
+]
+
+[nodes.compact_skin_title]
+component = "Label"
+control_id = "OfflineCompactSkinTitle"
+classes = ["woc-section-title"]
+props = { text = "Appearance" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.compact_skin_0]
+component = "ToggleButton"
+control_id = "OfflineCompactSkin0"
+classes = ["woc-skin-swatch"]
+props = { text = "1", checked = true, selection_state = "exclusive" }
+layout = { width = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectSkin/0", event = "Toggle", route = "woc.shell.offline.select_skin.0" }]
+
+[nodes.compact_skin_1]
+component = "ToggleButton"
+control_id = "OfflineCompactSkin1"
+classes = ["woc-skin-swatch"]
+props = { text = "2", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectSkin/1", event = "Toggle", route = "woc.shell.offline.select_skin.1" }]
+
+[nodes.compact_skin_2]
+component = "ToggleButton"
+control_id = "OfflineCompactSkin2"
+classes = ["woc-skin-swatch"]
+props = { text = "3", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectSkin/2", event = "Toggle", route = "woc.shell.offline.select_skin.2" }]
+
+[nodes.compact_skin_3]
+component = "ToggleButton"
+control_id = "OfflineCompactSkin3"
+classes = ["woc-skin-swatch"]
+props = { text = "4", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/SelectSkin/3", event = "Toggle", route = "woc.shell.offline.select_skin.3" }]
+
+[nodes.compact_skin_row]
+component = "HorizontalBox"
+control_id = "OfflineCompactSkinPicker"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "compact_skin_0" }, { node = "compact_skin_1" }, { node = "compact_skin_2" }, { node = "compact_skin_3" }]
+
+[nodes.compact_error]
+component = "Label"
+control_id = "OfflineCompactCharacterError"
+classes = ["woc-error"]
+props = { text = "", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.compact_back]
+component = "Button"
+control_id = "OfflineCompactBack"
+classes = ["woc-secondary-action"]
+props = { text = "Back", button_variant = "outlined" }
+layout = { width = { min = 90.0, preferred = 100.0, max = 110.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/Back", event = "Click", route = "woc.shell.offline.back" }]
+
+[nodes.compact_enter_world]
+component = "Button"
+control_id = "OfflineCompactEnterWorld"
+classes = ["woc-primary-action"]
+props = { text = "Enter World", button_variant = "contained", disabled = false }
+layout = { width = { min = 120.0, preferred = 140.0, max = 150.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WocOfflineCompact/EnterWorld", event = "Click", route = "woc.shell.offline.enter_world" }]
+
+[nodes.compact_actions]
+component = "HorizontalBox"
+control_id = "OfflineCompactActions"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "compact_back" }, { node = "compact_enter_world" }]
+
+[nodes.compact_left]
+component = "ScrollBox"
+control_id = "OfflineCompactCreateColumn"
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { min = 220.0, preferred = 280.0, max = 360.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "compact_name_label" },
+  { node = "compact_name_field" },
+  { node = "compact_class_grid" },
+  { node = "compact_skin_title" },
+  { node = "compact_skin_row" },
+  { node = "compact_error" },
+  { node = "compact_actions" },
+]
+
+[nodes.compact_preview_host]
+component = "Space"
+control_id = "OfflineCompactCharacterPreviewHost"
+classes = ["woc-panel-strong", "woc-preview-host"]
+layout = { width = { stretch = "Stretch" }, height = { min = 100.0, preferred = 100.0, max = 100.0, stretch = "Fixed" } }
+
+[nodes.compact_details_name]
+component = "Label"
+control_id = "OfflineCompactClassName"
+classes = ["woc-screen-title"]
+props = { text = "Warrior" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.compact_details_role]
+component = "Label"
+control_id = "OfflineCompactClassRole"
+classes = ["woc-section-title"]
+props = { text = "Hybrid" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.compact_details_lore]
+component = "Label"
+control_id = "OfflineCompactClassLore"
+classes = ["woc-muted"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 56.0, max = 72.0, stretch = "Fixed" } }
+
+[nodes.compact_details_stats]
+component = "Label"
+control_id = "OfflineCompactClassStats"
+classes = ["woc-label"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 50.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.compact_details_gear]
+component = "Label"
+control_id = "OfflineCompactClassGear"
+classes = ["woc-muted"]
+props = { text = "Chain, Leather, Cloth / Swords, Maces, Axes", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 42.0, max = 56.0, stretch = "Fixed" } }
+
+[nodes.compact_details_abilities]
+component = "Label"
+control_id = "OfflineCompactClassAbilities"
+classes = ["woc-label"]
+props = { text = "Charge / Heroic Strike / Execute", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 50.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.compact_details_panel]
+component = "ScrollBox"
+control_id = "OfflineCompactClassDetails"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, padding = { left = 10.0, right = 10.0, top = 10.0, bottom = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "compact_details_name" },
+  { node = "compact_details_role" },
+  { node = "compact_details_lore" },
+  { node = "compact_details_stats" },
+  { node = "compact_details_gear" },
+  { node = "compact_details_abilities" },
+]
+
+[nodes.compact_right]
+component = "VerticalBox"
+control_id = "OfflineCompactDetailColumn"
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 260.0, preferred = 340.0, max = 480.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "compact_preview_host" }, { node = "compact_details_panel" }]
+
+[nodes.compact_body]
+component = "HorizontalBox"
+control_id = "OfflineCompactBody"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "compact_left" }, { node = "compact_right" }]
+
+[nodes.compact_layer]
+component = "VerticalBox"
+control_id = "OfflineCompactLayer"
+props = { visibility = { xs = "visible", md = "collapsed" } }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, padding = { left = 14.0, right = 14.0, top = 8.0, bottom = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "compact_title" }, { node = "compact_body" }]
+
+[nodes.offline_root]
+component = "Overlay"
+control_id = "OfflineCharacterPicker"
+classes = ["woc-shell", "woc-offline-picker"]
+props = { background_image = "res://m8/env/vale_backdrop.webp" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "desktop_layer" },
+  { node = "compact_layer" },
+]

@@ -14,6 +14,21 @@ use zircon_runtime_interface::ui::style::UiRgbaColor;
 use zircon_runtime_interface::ui::template::{UiAssetError, UiAssetKind};
 use zircon_runtime_interface::ui::v2::{UiV2AssetError, UiV2AssetKind};
 
+#[test]
+fn ui_resource_reference_collection_borrows_document_uris() {
+    let collector = include_str!("../../assets/ui/resource_references.rs");
+    assert!(collector.contains("Vec<&str>"));
+    assert!(!collector.contains("uris.push(uri.to_string())"));
+}
+
+#[test]
+fn sprite_atlas_validation_borrows_and_preallocates_entry_names() {
+    let validation = include_str!("../../assets/sprite_atlas/validation.rs");
+    assert!(validation.contains("HashSet::with_capacity(asset.entries.len())"));
+    assert!(validation.contains("names.insert(name)"));
+    assert!(!validation.contains("names.insert(name.to_string())"));
+}
+
 const LAYOUT_UI_TOML: &str = r#"
 [asset]
 kind = "layout"

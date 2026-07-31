@@ -27,6 +27,17 @@ fn text_raster_subpixel_bins_are_part_of_bitmap_key() {
 }
 
 #[test]
+fn text_raster_vertical_subpixel_phase_is_part_of_bitmap_key() {
+    let base = GlyphRasterKey::from_request(request(13.0, 1.0, 0.0));
+    let shifted = GlyphRasterKey {
+        vertical_subpixel_bin: 2,
+        ..base
+    };
+
+    assert_ne!(base, shifted);
+}
+
+#[test]
 fn text_raster_subpixel_placement_snaps_quad_to_bin_origin() {
     let placement = GlyphRasterPlacement::from_request(request(13.0, 1.0, 10.45));
 

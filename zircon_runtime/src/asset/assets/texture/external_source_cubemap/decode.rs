@@ -1,13 +1,14 @@
 use thiserror::Error;
 
 use super::{
-    external_source_cubemap_container_info, ExternalSourceCubemapContainerError,
-    ExternalSourceCubemapContainerInfo, ExternalSourceCubemapContainerKind,
+    ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
+    ExternalSourceCubemapContainerKind, external_source_cubemap_container_info,
 };
 use crate::asset::assets::{TextureAsset, TexturePayload};
 use crate::core::framework::render::{
-    build_source_cubemap_from_source_mips, decode_rgba16f_texels, source_cubemap_face_mip_offset,
-    source_cubemap_mip_size, source_cubemap_sample_count, CubemapFace, SourceCubemapMipChain,
+    CubemapFace, SourceCubemapMipChain, build_source_cubemap_from_source_mips,
+    decode_rgba16f_texels, source_cubemap_face_mip_offset, source_cubemap_mip_size,
+    source_cubemap_sample_count,
 };
 
 const DDS_HEADER_SIZE: usize = 128;
@@ -57,7 +58,9 @@ pub enum ExternalSourceCubemapDecodeError {
         kind: ExternalSourceCubemapContainerKind,
         format: String,
     },
-    #[error("{kind:?} source cubemap payload is truncated at byte {offset}: need through byte {required}, file has {actual} bytes")]
+    #[error(
+        "{kind:?} source cubemap payload is truncated at byte {offset}: need through byte {required}, file has {actual} bytes"
+    )]
     TruncatedPayload {
         kind: ExternalSourceCubemapContainerKind,
         offset: usize,

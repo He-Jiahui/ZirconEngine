@@ -41,6 +41,7 @@ fn popup_rows_do_not_spawn_nested_context_menus() {
 
 fn hit(control_id: &str) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        pane_id: SharedString::new(),
         control_id: control_id.into(),
         action_id: SharedString::new(),
         binding_id: SharedString::new(),
@@ -50,6 +51,10 @@ fn hit(control_id: &str) -> TemplateNodePointerHit {
         value_text: SharedString::new(),
         edit_action_id: SharedString::new(),
         commit_action_id: SharedString::new(),
+        disabled: false,
         frame: FrameRect::default(),
+        table_row_source_index: None,
+        table_row_identity_kind: SharedString::new(),
+        table_row_identity_text: SharedString::new(),
     }
 }

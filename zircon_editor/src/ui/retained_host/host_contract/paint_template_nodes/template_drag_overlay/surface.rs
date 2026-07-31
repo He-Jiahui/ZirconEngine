@@ -9,15 +9,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pr
     clip: &FrameRect,
     order: i32,
     opacity: f32,
+    palette: style::DragOverlayPalette,
+    metrics: &layout::DragOverlayMetrics,
 ) {
     commands.push(HostPaintCommand::quad(
         preview_rect.clone(),
         Some(clip.clone()),
         order,
-        Some(style::preview_surface_color(node)),
-        Some(style::preview_accent_color(node)),
-        1.0,
-        layout::PREVIEW_RADIUS,
+        Some(style::preview_surface_color(node, palette)),
+        Some(style::preview_accent_color(node, palette)),
+        metrics.border_width,
+        metrics.preview_radius,
         opacity,
     ));
 }
@@ -29,15 +31,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pr
     clip: &FrameRect,
     order: i32,
     opacity: f32,
+    palette: style::DragOverlayPalette,
+    metrics: &layout::DragOverlayMetrics,
 ) {
+    let icon = layout::preview_icon_frame(preview_rect, metrics);
+    if icon.width <= 0.0 || icon.height <= 0.0 {
+        return;
+    }
     commands.push(HostPaintCommand::quad(
-        layout::preview_icon_frame(preview_rect),
+        icon,
         Some(clip.clone()),
         order,
-        Some(style::preview_accent_color(node)),
+        Some(style::preview_accent_color(node, palette)),
         None,
         0.0,
-        layout::ICON_RADIUS,
+        metrics.icon_radius,
         opacity,
     ));
 }
@@ -49,12 +57,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
     clip: &FrameRect,
     order: i32,
     opacity: f32,
+    palette: style::DragOverlayPalette,
 ) {
     commands.push(HostPaintCommand::quad(
         indicator,
         Some(clip.clone()),
         order,
-        Some(style::preview_accent_color(node)),
+        Some(style::preview_accent_color(node, palette)),
         None,
         0.0,
         1.0,

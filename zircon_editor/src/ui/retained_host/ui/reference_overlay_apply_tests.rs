@@ -102,6 +102,7 @@ fn apply_presentation_projects_open_workbench_command_palette_rows_for_native_in
         .expect("componentized workbench window template should project");
     workbench_window_bridge
         .open_command_palette(WorkbenchCommandPaletteOpenState {
+            query: String::new(),
             commands: ui_string_values([
                 "file.project.open|label=Open Project",
                 "file.project.save|label=Save Project",
@@ -109,6 +110,9 @@ fn apply_presentation_projects_open_workbench_command_palette_rows_for_native_in
             filtered_commands: ui_string_values(["file.project.open", "file.project.save"]),
             selected_command_id: "file.project.open".to_string(),
             focused_index: 0,
+            catalog_generation: 0,
+            total_match_count: 2,
+            window_offset: 0,
         })
         .expect("command palette state should apply to the workbench window bridge");
     apply_template_projection_from_workbench_window_projection(

@@ -2,14 +2,14 @@ use std::fs;
 use std::path::Path;
 
 use crate::core::framework::render::{
-    RenderStats, ShaderPassType, ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount,
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
-    ShaderVariantRuntimeDimensionCount, ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    SHADING_MODEL_ID_STANDARD_PBR,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, RenderStats, SHADING_MODEL_ID_STANDARD_PBR, ShaderPassType,
+    ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest, ShaderVariantRuntimeDimensionCount,
+    ShadingModelId,
 };
 
 use super::case::RegistryShaderCase;
-use super::manifest::{raw_wgsl_hash, REGISTRY_MATERIAL_PASS_TYPES};
+use super::manifest::{REGISTRY_MATERIAL_PASS_TYPES, raw_wgsl_hash};
 
 pub(super) fn assert_registry_material_pass_prewarm_written(
     manifest: &ShaderVariantPrewarmManifest,
@@ -275,7 +275,7 @@ fn assert_registry_material_pass_velocity_executor(stats: &RenderStats, case: Re
         stats
             .last_graph_executed_executor_ids
             .iter()
-        .any(|executor| executor == "temporal.velocity-object"),
+            .any(|executor| executor == "temporal.velocity-object"),
         "registry material pass should execute `temporal.velocity-object` for {}; executed={:?}; anti_alias={:?}; post_process_nodes={:?}",
         case.locator,
         stats.last_graph_executed_executor_ids,

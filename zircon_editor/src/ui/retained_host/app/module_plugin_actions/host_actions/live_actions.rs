@@ -2,8 +2,8 @@ use std::path::Path;
 
 use super::super::super::RetainedEditorHost;
 use super::super::live_host::{
-    dispatch_live_plugin_backend_action, live_plugin_backend_success_message,
-    ModulePluginLiveHostCommand,
+    ModulePluginLiveHostCommand, dispatch_live_plugin_backend_action,
+    live_plugin_backend_success_message,
 };
 
 impl RetainedEditorHost {

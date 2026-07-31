@@ -12,6 +12,14 @@ mod constraints_children;
 mod field_values;
 mod row_label_metrics;
 
+#[test]
+fn material_layout_resolves_metrics_without_preflight_attribute_rescan() {
+    let source = include_str!("../layout/pass/material.rs");
+
+    assert!(!source.contains("has_layout_attribute"));
+    assert!(source.contains("let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else"));
+}
+
 fn measure_material_leaf(
     component: &str,
     attributes: &str,

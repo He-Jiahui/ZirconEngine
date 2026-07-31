@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_dungeon_entrance_placement_tests",
+  "source": "src",
+  "binary": "bin-m3-dungeon-entrance-placement-tests",
+  "entry": "world/dungeon_entrance_placement_test_main"
+}

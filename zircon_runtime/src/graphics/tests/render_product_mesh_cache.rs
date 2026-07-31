@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AlphaMode, AssetUri, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, MeshSkinAsset,
-    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    AlphaMode, AssetUri, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0, MaterialAsset, MeshAsset,
+    MeshAttributeValues, MeshIndices, MeshSkinAsset,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
@@ -23,8 +23,8 @@ use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind,
     ResourceRecord,
 };
-use crate::graphics::shader::standard_material_surface_source_for_features;
 use crate::graphics::WgpuRenderFramework;
+use crate::graphics::shader::standard_material_surface_source_for_features;
 
 use super::render_product_submit::{
     material_with_import_note, snapshot_with_projection_for_mesh_cache_tests,
@@ -39,6 +39,8 @@ mod shading_model_parity;
 #[cfg(feature = "dynamic-api")]
 mod staged_prewarm;
 mod virtual_geometry;
+
+const STATIC_CACHE_HEAVY_INSTANCE_COUNT: usize = 64;
 
 #[test]
 fn render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse() {
@@ -60,30 +62,52 @@ fn render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse
         .unwrap();
 
     framework
-        .submit_frame_extract(viewport, static_cache_extract(material_id, 97))
+        .submit_frame_extract(
+            viewport,
+            static_cache_extract_with_instance_count(
+                material_id,
+                97,
+                STATIC_CACHE_HEAVY_INSTANCE_COUNT,
+            ),
+        )
         .unwrap();
     let first = framework.query_stats().unwrap();
-    assert!(
-        first.last_mesh_pending_static_command_cache_draw_candidate_count >= 1,
-        "first submit should identify the static draw as a cache candidate",
+    assert_eq!(
+        first.last_mesh_pending_static_command_cache_draw_candidate_count,
+        STATIC_CACHE_HEAVY_INSTANCE_COUNT,
+        "first submit should identify every static-heavy draw as a cache candidate",
     );
     assert!(
-        first.last_mesh_pending_static_command_cache_phase_candidate_count >= 1,
-        "first submit should identify at least one cacheable phase",
+        first.last_mesh_pending_static_command_cache_phase_candidate_count
+            >= STATIC_CACHE_HEAVY_INSTANCE_COUNT,
+        "first submit should identify at least one cacheable phase per static-heavy draw",
+    );
+    assert!(
+        first.last_mesh_command_rebuild_count >= STATIC_CACHE_HEAVY_INSTANCE_COUNT,
+        "the cold frame should rebuild at least one command per static-heavy draw",
     );
     assert_eq!(first.last_mesh_cached_command_hit_count, 0);
 
     framework
-        .submit_frame_extract(viewport, static_cache_extract(material_id, 98))
+        .submit_frame_extract(
+            viewport,
+            static_cache_extract_with_instance_count(
+                material_id,
+                98,
+                STATIC_CACHE_HEAVY_INSTANCE_COUNT,
+            ),
+        )
         .unwrap();
     let second = framework.query_stats().unwrap();
-    assert!(
-        second.last_mesh_pre_mesh_draw_static_command_cache_skipped_draw_count >= 1,
-        "second submit should skip the already cached static draw before MeshDraw",
+    assert_eq!(
+        second.last_mesh_pre_mesh_draw_static_command_cache_skipped_draw_count,
+        STATIC_CACHE_HEAVY_INSTANCE_COUNT,
+        "second submit should skip every cached static-heavy draw before MeshDraw",
     );
     assert!(
-        second.last_mesh_pre_mesh_draw_static_command_cache_skipped_phase_count >= 1,
-        "second submit should reuse at least one cached static command phase",
+        second.last_mesh_pre_mesh_draw_static_command_cache_skipped_phase_count
+            >= STATIC_CACHE_HEAVY_INSTANCE_COUNT,
+        "second submit should reuse at least one command phase per static-heavy draw",
     );
     assert!(
         second.last_mesh_cached_command_hit_count
@@ -576,14 +600,27 @@ fn static_cache_skinned_extract(
 }
 
 fn static_cache_extract(material_id: ResourceId, world: u64) -> RenderFrameExtract {
+    static_cache_extract_with_instance_count(material_id, world, 1)
+}
+
+fn static_cache_extract_with_instance_count(
+    material_id: ResourceId,
+    world: u64,
+    instance_count: usize,
+) -> RenderFrameExtract {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(world),
         snapshot_with_projection_for_mesh_cache_tests(ProjectionMode::Perspective),
     );
-    extract.geometry = GeometryExtract::from_meshes(
-        extract.view.core_pipeline,
-        vec![static_command_cache_mesh(material_id)],
-    );
+    let meshes = (0..instance_count)
+        .map(|instance_index| {
+            let mut mesh = static_command_cache_mesh(material_id);
+            mesh.node_id += instance_index as u64;
+            mesh.stable_instance_key = mesh.node_id << 16;
+            mesh
+        })
+        .collect();
+    extract.geometry = GeometryExtract::from_meshes(extract.view.core_pipeline, meshes);
     extract
 }
 
@@ -614,7 +651,11 @@ fn static_command_cache_mesh(material_id: ResourceId) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::new(true, 1, 1),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: true,
+            ..Default::default()
+        },
     }
 }
 

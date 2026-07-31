@@ -28,7 +28,7 @@ pub(super) fn register_host_modules(
     if host.vm_owner().is_some() {
         registrations.push(register_extension_host_module(runtime, host)?);
     }
-    let call_table = host.host_exports.script_call_table()?;
+    let call_table = host.host_exports.script_call_table();
     for module in host.host_exports.modules() {
         let mut builder = zrvm::ModuleBuilder::new(&module.descriptor.name)
             .module_version(&module.descriptor.version);
@@ -59,6 +59,7 @@ pub(super) fn register_host_modules(
         for function in &module.descriptor.functions {
             let call_site = call_table
                 .resolve(&module.descriptor.name, &function.name)
+                .cloned()
                 .ok_or_else(|| {
                     VmError::Operation(format!(
                         "script call table did not contain {}.{}",

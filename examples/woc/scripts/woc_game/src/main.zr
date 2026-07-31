@@ -1,0 +1,160 @@
+var container = %import("zr.container");
+
+var packageActive = false;
+var restoredState = "{\"schema_version\":3,\"generation\":0}";
+
+pub activate(): int {
+    packageActive = true;
+    return 0;
+}
+
+pub deactivate(): int {
+    packageActive = false;
+    return 0;
+}
+
+pub fixedTick(inputBytes: container.Array<uint>): container.Array<uint> {
+    if (!packageActive) {
+        throw "woc_game fixedTick called while package is inactive";
+    }
+    var world = %import("world/state");
+    return world.fixedTick(inputBytes);
+}
+
+pub saveState(): string {
+    return restoredState;
+}
+
+pub restoreState(state: string): int {
+    restoredState = state;
+    return 0;
+}
+
+pub stateSchema(): string {
+    var contracts = %import("generated/contracts");
+    var commands = %import("protocol/commands");
+    var payloads = %import("protocol/command_payloads");
+    return "{\"schema_version\":3,\"package\":\"woc_game\",\"contract\":\"" +
+        contracts.schemaFingerprint() + "\",\"command_catalog\":\"" +
+        commands.fingerprintHex(1, 1, 2, 3, 5, 8, 13, 21) +
+        "\",\"command_payload_schema\":\"" + payloads.fingerprintHex(true) +
+        "\",\"world_state\":\"WOS71\"," +
+        "\"simulation_hz\":20,\"presentation_hz\":60}";
+}
+
+pub packageName(): string {
+    var identity = %import("identity");
+    return identity.packageName();
+}
+
+pub lifecycleSelfTest(): int {
+    packageActive = false;
+    restoredState = "{\"schema_version\":3,\"generation\":0}";
+    if (activate() != 0 || !packageActive) {
+        return -1;
+    }
+    var checkpoint = "{\"schema_version\":3,\"generation\":7}";
+    if (restoreState(checkpoint) != 0 || saveState() != checkpoint) {
+        return -2;
+    }
+    if (packageName() != "woc_game") {
+        return -3;
+    }
+    var schema = stateSchema();
+    var contracts = %import("generated/contracts");
+    var commands = %import("protocol/commands");
+    var payloads = %import("protocol/command_payloads");
+    var bootstrap = %import("generated/m8_offline_bootstrap_content");
+    var freshPlayerStats = %import("generated/m8_fresh_player_stats");
+    var classBaselineStats = %import("generated/m5_class_baseline_stats");
+    var xpState = %import("progression/xp_state");
+    var statCoreRules = %import("progression/stat_core_rules");
+    var m5Equipment = %import("progression/m5_equipment_state");
+    var m5InventoryRules = %import("progression/m5_inventory_rules");
+    var playerStatInputs = %import("progression/player_stat_input_state");
+    var petFollowRules = %import("instances/pet_follow_rules");
+    var petTargetRules = %import("instances/pet_target_rules");
+    var spiritGraveyards = %import("world/spirit_graveyards");
+    var dungeonDifficulty = %import("world/dungeon_difficulty_state");
+    var deeds = %import("progression/deed_completion_state");
+    var heroicDungeonTuning = %import("instances/heroic_dungeon_tuning");
+    var temporalReversal = %import("generated/temporal_reversal_offer_contract");
+    var groupTargeting = %import("combat/group_targeting_state");
+    var forms = %import("combat/forms_state");
+    var formTransitions = %import("combat/form_transition_state");
+    var formDerivedStats = %import("combat/form_derived_stats");
+    var world = %import("world/state");
+    var expectedSchema = "{\"schema_version\":3,\"package\":\"woc_game\",\"contract\":\"" +
+        contracts.schemaFingerprint() + "\",\"command_catalog\":\"" +
+        commands.fingerprintHex(1, 1, 2, 3, 5, 8, 13, 21) +
+        "\",\"command_payload_schema\":\"" + payloads.fingerprintHex(true) +
+        "\",\"world_state\":\"WOS71\"," +
+        "\"simulation_hz\":20,\"presentation_hz\":60}";
+    if (schema != expectedSchema) {
+        return -4;
+    }
+    if (bootstrap.contractTest() != 1) {
+        return -5;
+    }
+    if (freshPlayerStats.contractTest() != 1) {
+        return -6;
+    }
+    if (classBaselineStats.contractTest() != 1) {
+        return -7;
+    }
+    if (xpState.contractTest() != 1) {
+        return -8;
+    }
+    if (statCoreRules.contractTest() != 1) {
+        return -9;
+    }
+    if (playerStatInputs.contractTest() != 1) {
+        return -10;
+    }
+    if (m5Equipment.contractTest() != 1) {
+        return -23;
+    }
+    if (m5InventoryRules.contractTest() != 1) {
+        return -24;
+    }
+    if (petFollowRules.contractTest() != 1) {
+        return -11;
+    }
+    if (petTargetRules.contractTest() != 1) {
+        return -12;
+    }
+    if (spiritGraveyards.contractTest() != 1) {
+        return -13;
+    }
+    if (temporalReversal.contractTest() != 1) {
+        return -14;
+    }
+    if (groupTargeting.contractTest() != 1) {
+        return -15;
+    }
+    if (dungeonDifficulty.contractTest() != 1) {
+        return -16;
+    }
+    if (deeds.contractTest() != 1) {
+        return -17;
+    }
+    if (heroicDungeonTuning.contractTest() != 1) {
+        return -18;
+    }
+    if (forms.contractTest() != 1) {
+        return -19;
+    }
+    if (formTransitions.contractTest() != 1) {
+        return -20;
+    }
+    if (formDerivedStats.contractTest() != 1) {
+        return -21;
+    }
+    if (world.selfTest() != 1) {
+        return -25;
+    }
+    if (deactivate() != 0 || packageActive) {
+        return -22;
+    }
+    return 1;
+}

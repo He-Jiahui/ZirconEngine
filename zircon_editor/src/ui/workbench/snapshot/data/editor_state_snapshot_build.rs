@@ -1,8 +1,8 @@
+use crate::core::editing::engine::HistoryContextId;
 use crate::core::editor_extension::ComponentDrawerDescriptor;
 use crate::ui::workbench::state::EditorState;
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use zircon_runtime::scene::components::SceneNode;
+use std::collections::{BTreeMap, BTreeSet};
 use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::reflect::{
     ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress, ReflectTypeRegistration,
@@ -29,11 +29,12 @@ impl EditorState {
         let (scene_entries, inspector) = self
             .world
             .try_with_world(|scene| {
-                let selected = selected.filter(|entity| scene.contains_entity(*entity));
+                let hierarchy = scene.inspection_artifact();
+                let selected = selected.filter(|entity| hierarchy.hierarchy_row(*entity).is_some());
                 let selected_items = selected_items
                     .iter()
                     .copied()
-                    .filter(|entity| scene.contains_entity(*entity))
+                    .filter(|entity| hierarchy.hierarchy_row(*entity).is_some())
                     .collect::<BTreeSet<_>>();
                 let inspector = selected.map(|id| InspectorSnapshot {
                     id,
@@ -47,15 +48,14 @@ impl EditorState {
                         component_drawers,
                     ),
                 });
-                let node_records = scene.node_records();
-                let hierarchy_depths = hierarchy_depths(&node_records);
-                let scene_entries = node_records
+                let scene_entries = hierarchy
+                    .hierarchy_rows()
                     .iter()
-                    .map(|node| SceneEntry {
-                        id: node.id,
-                        name: node.name.clone(),
-                        depth: hierarchy_depths.get(&node.id).copied().unwrap_or_default(),
-                        selected: selected_items.contains(&node.id),
+                    .map(|row| SceneEntry {
+                        id: row.entity,
+                        name: row.display_name.clone(),
+                        depth: row.depth as usize,
+                        selected: selected_items.contains(&row.entity),
                     })
                     .collect();
 
@@ -64,6 +64,9 @@ impl EditorState {
             .unwrap_or_else(|| (Vec::new(), None));
         let (asset_activity, asset_browser) = self.asset_workspace.build_surface_snapshots();
 
+        let history = (!self.is_playing())
+            .then(|| self.transactions().history_status(HistoryContextId::Global))
+            .and_then(Result::ok);
         EditorDataSnapshot {
             scene_entries,
             inspector,
@@ -71,7 +74,7 @@ impl EditorState {
             status_task_progress: self.status_task_progress.clone(),
             hovered_axis: self.viewport_controller.hovered_axis(),
             viewport_size: self.viewport_controller.viewport().size,
-            scene_viewport_settings: self.viewport_controller.settings().clone(),
+            scene_viewport_settings: self.viewport_controller.chrome_settings(),
             mesh_import_path: self.mesh_import_path.clone(),
             project_overview: self.asset_workspace.project_overview(),
             asset_activity,
@@ -80,8 +83,8 @@ impl EditorState {
             session_mode: self.session_mode,
             welcome: self.welcome.clone(),
             project_open: self.project_open,
-            can_undo: self.history.can_undo(),
-            can_redo: self.history.can_redo(),
+            can_undo: history.is_some_and(|history| history.can_undo),
+            can_redo: history.is_some_and(|history| history.can_redo),
             bridge_diagnostics: self.bridge_diagnostics.clone(),
         }
     }
@@ -389,70 +392,4 @@ fn reflected_value_primitive_editable(value: &ReflectedValue) -> bool {
             | ReflectedValue::Quaternion(_)
             | ReflectedValue::Entity(_)
     )
-}
-
-fn hierarchy_depths(nodes: &[SceneNode]) -> HashMap<NodeId, usize> {
-    let parents = nodes
-        .iter()
-        .map(|node| (node.id, node.parent))
-        .collect::<HashMap<_, _>>();
-    hierarchy_depths_from_parents(&parents)
-}
-
-fn hierarchy_depths_from_parents(
-    parents: &HashMap<NodeId, Option<NodeId>>,
-) -> HashMap<NodeId, usize> {
-    let mut depths = HashMap::with_capacity(parents.len());
-    let mut unresolved = Vec::with_capacity(parents.len());
-    let mut visiting = HashSet::with_capacity(parents.len());
-    for node_id in parents.keys().copied() {
-        if depths.contains_key(&node_id) {
-            continue;
-        }
-        unresolved.clear();
-        visiting.clear();
-        let mut cursor = Some(node_id);
-        let mut resolved_depth = 0;
-        while let Some(current) = cursor {
-            if let Some(depth) = depths.get(&current) {
-                resolved_depth = *depth + 1;
-                break;
-            }
-            if !visiting.insert(current) {
-                break;
-            }
-            unresolved.push(current);
-            cursor = parents.get(&current).copied().flatten();
-        }
-        for current in unresolved.drain(..).rev() {
-            depths.entry(current).or_insert(resolved_depth);
-            resolved_depth += 1;
-        }
-    }
-    depths
-}
-
-#[cfg(test)]
-mod performance_tests {
-    use std::collections::HashMap;
-
-    use super::hierarchy_depths_from_parents;
-
-    #[test]
-    fn hierarchy_depth_projection_memoizes_parent_chains() {
-        let parents = HashMap::from([
-            (1, None),
-            (2, Some(1)),
-            (3, Some(2)),
-            (4, Some(1)),
-            (5, None),
-        ]);
-        let depths = hierarchy_depths_from_parents(&parents);
-
-        assert_eq!(depths.get(&1), Some(&0));
-        assert_eq!(depths.get(&2), Some(&1));
-        assert_eq!(depths.get(&3), Some(&2));
-        assert_eq!(depths.get(&4), Some(&1));
-        assert_eq!(depths.get(&5), Some(&0));
-    }
 }

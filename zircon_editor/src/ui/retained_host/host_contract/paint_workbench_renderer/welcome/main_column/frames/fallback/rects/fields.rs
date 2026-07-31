@@ -50,15 +50,3 @@ pub(in super::super::super) fn validation_fallback(
         36.0,
     )
 }
-
-pub(in super::super::super) fn actions_fallback(
-    metrics: &WelcomeMainColumnFrameMetrics,
-    validation: &FrameRect,
-) -> FrameRect {
-    fallback(
-        metrics.content_x,
-        validation.y + validation.height + 12.0,
-        metrics.content_width,
-        32.0,
-    )
-}

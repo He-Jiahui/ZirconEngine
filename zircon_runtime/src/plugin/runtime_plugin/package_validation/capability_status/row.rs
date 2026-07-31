@@ -3,6 +3,7 @@ mod note;
 mod references;
 mod targets;
 
+use super::super::projection::RuntimePluginPackageValidationProjection;
 use crate::plugin::{CapabilityStatusManifest, PluginPackageManifest};
 
 use self::{
@@ -12,17 +13,17 @@ use self::{
     targets::validate_runtime_plugin_package_capability_status_row_targets,
 };
 
-pub(super) fn validate_runtime_plugin_package_capability_status_row<'a>(
+pub(super) fn validate_runtime_plugin_package_capability_status_row(
     package_manifest: &PluginPackageManifest,
-    status: &'a CapabilityStatusManifest,
-    owned_capabilities: &[&str],
-    seen_capabilities: &mut Vec<&'a str>,
+    status: &CapabilityStatusManifest,
+    status_index: usize,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     diagnostics: &mut Vec<String>,
 ) {
     validate_runtime_plugin_package_capability_status_row_identity(
         status,
-        owned_capabilities,
-        seen_capabilities,
+        status_index,
+        projection,
         diagnostics,
     );
     validate_runtime_plugin_package_capability_status_row_targets(
@@ -30,6 +31,11 @@ pub(super) fn validate_runtime_plugin_package_capability_status_row<'a>(
         status,
         diagnostics,
     );
-    validate_runtime_plugin_package_capability_status_row_bevy_references(status, diagnostics);
+    validate_runtime_plugin_package_capability_status_row_bevy_references(
+        status,
+        status_index,
+        projection,
+        diagnostics,
+    );
     validate_runtime_plugin_package_capability_status_row_note(status, diagnostics);
 }

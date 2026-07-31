@@ -4,6 +4,7 @@ mod module;
 pub mod prelude;
 mod runtime;
 
+pub use crate::core::framework::input::INPUT_MODULE_NAME;
 pub use crate::core::framework::input::{
     ButtonInputState, CursorGrabMode, CursorHostRequest, CursorPosition, FileDragDropEvent,
     GamepadAxis, GamepadAxisInput, GamepadAxisSettings, GamepadAxisState, GamepadAxisTransition,
@@ -23,7 +24,7 @@ pub use crate::core::framework::input::{
 pub use crate::core::framework::input::{InputButton, InputEvent, InputEventRecord, InputSnapshot};
 pub use module::{
     module_descriptor, module_descriptor_with_config, InputConfig, InputModule,
-    INPUT_ACTION_MANAGER_NAME, INPUT_DRIVER_NAME, INPUT_MANAGER_NAME, INPUT_MODULE_NAME,
+    INPUT_ACTION_MANAGER_NAME, INPUT_DRIVER_NAME, INPUT_MANAGER_NAME,
 };
 pub use runtime::{
     DefaultInputActionManager, DefaultInputManager, InputActionEvaluator, InputDriver,

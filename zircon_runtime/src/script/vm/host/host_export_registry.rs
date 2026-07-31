@@ -65,7 +65,14 @@ impl fmt::Debug for HostExportModuleEntry {
 #[derive(Clone, Debug)]
 pub struct HostExportRegistry {
     host_registry: HostRegistry,
-    modules: Arc<Mutex<HashMap<String, HostExportModuleEntry>>>,
+    state: Arc<Mutex<HostExportRegistryState>>,
+}
+
+#[derive(Debug, Default)]
+struct HostExportRegistryState {
+    generation: u64,
+    modules: HashMap<String, HostExportModuleEntry>,
+    call_table: ScriptCallTable,
 }
 
 impl Default for HostExportRegistry {
@@ -78,12 +85,12 @@ impl HostExportRegistry {
     pub fn new(host_registry: HostRegistry) -> Self {
         Self {
             host_registry,
-            modules: Arc::new(Mutex::new(HashMap::new())),
+            state: Arc::new(Mutex::new(HostExportRegistryState::default())),
         }
     }
 
-    fn lock_modules(&self) -> MutexGuard<'_, HashMap<String, HostExportModuleEntry>> {
-        self.modules
+    fn lock_state(&self) -> MutexGuard<'_, HostExportRegistryState> {
+        self.state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
@@ -97,37 +104,45 @@ impl HostExportRegistry {
         let callbacks = collect_callbacks(&descriptor.name, callbacks)?;
         validate_callbacks(&descriptor, &callbacks)?;
 
-        let mut modules = self.lock_modules();
-        if modules.contains_key(&descriptor.name) {
+        let mut state = self.lock_state();
+        if state.modules.contains_key(&descriptor.name) {
             return Err(VmError::Operation(format!(
                 "host export module already registered: {}",
                 descriptor.name
             )));
         }
+        let next_generation = state.generation.checked_add(1).ok_or_else(|| {
+            VmError::Operation("host export registry generation exhausted".to_string())
+        })?;
 
         let handle = self
             .host_registry
             .register_capability(format!("host.module.{}", descriptor.name))
             .map_err(|error| VmError::Operation(error.to_string()))?;
-        modules.insert(
+        state.modules.insert(
             descriptor.name.clone(),
             HostExportModuleEntry {
                 record: HostExportModuleRecord { handle, descriptor },
                 callbacks,
             },
         );
+        let call_table = build_script_call_table(next_generation, &state.modules);
+        state.generation = next_generation;
+        state.call_table = call_table;
         Ok(handle)
     }
 
     pub fn module(&self, module_name: &str) -> Option<HostExportModuleRecord> {
-        self.lock_modules()
+        self.lock_state()
+            .modules
             .get(module_name)
             .map(|entry| entry.record.clone())
     }
 
     pub fn modules(&self) -> Vec<HostExportModuleRecord> {
         let mut records = self
-            .lock_modules()
+            .lock_state()
+            .modules
             .values()
             .map(|entry| entry.record.clone())
             .collect::<Vec<_>>();
@@ -135,35 +150,8 @@ impl HostExportRegistry {
         records
     }
 
-    pub fn script_call_table(&self) -> Result<ScriptCallTable, VmError> {
-        let modules = self.lock_modules();
-        let mut module_names = modules.keys().cloned().collect::<Vec<_>>();
-        module_names.sort();
-
-        let mut builder = ScriptCallTableBuilder::new();
-        for module_name in module_names {
-            let entry = modules.get(&module_name).ok_or_else(|| {
-                VmError::Operation(format!(
-                    "host export module disappeared while building script call table: {module_name}"
-                ))
-            })?;
-            let module_name = Arc::<str>::from(module_name.as_str());
-            for function in &entry.record.descriptor.functions {
-                let callback = entry
-                    .callbacks
-                    .get(&function.name)
-                    .cloned()
-                    .ok_or_else(|| {
-                        VmError::Operation(format!(
-                            "host export callback missing while building script call table: {}.{}",
-                            entry.record.descriptor.name, function.name
-                        ))
-                    })?;
-                builder.add(module_name.clone(), function.clone(), callback);
-            }
-        }
-
-        Ok(builder.build())
+    pub fn script_call_table(&self) -> ScriptCallTable {
+        self.lock_state().call_table.clone()
     }
 
     pub fn call(
@@ -187,52 +175,51 @@ impl HostExportRegistry {
         arguments: Vec<ScriptHostValue>,
         granted_capabilities: &CapabilitySet,
     ) -> Result<ScriptHostValue, VmError> {
-        let (descriptor, callback) = {
-            let modules = self.lock_modules();
-            let entry = modules.get(module_name).ok_or_else(|| {
-                VmError::Operation(format!("host export module not registered: {module_name}"))
-            })?;
-            let descriptor = entry
-                .record
-                .descriptor
-                .functions
-                .iter()
-                .find(|function| function.name == function_name)
-                .cloned()
-                .ok_or_else(|| {
-                    VmError::Operation(format!(
-                        "host export function not registered: {module_name}.{function_name}"
-                    ))
-                })?;
-            let callback = entry.callbacks.get(function_name).cloned().ok_or_else(|| {
+        let call_table = {
+            let state = self.lock_state();
+            if !state.modules.contains_key(module_name) {
+                return Err(VmError::Operation(format!(
+                    "host export module not registered: {module_name}"
+                )));
+            }
+            state.call_table.clone()
+        };
+        let call_site = call_table
+            .resolve(module_name, function_name)
+            .ok_or_else(|| {
                 VmError::Operation(format!(
-                    "host export callback missing: {module_name}.{function_name}"
+                    "host export function not registered: {module_name}.{function_name}"
                 ))
             })?;
-            (descriptor, callback)
-        };
-
-        validate_call_arity(module_name, function_name, &descriptor, arguments.len())?;
-        validate_call_capabilities(
-            module_name,
-            function_name,
-            &descriptor,
-            granted_capabilities,
-        )?;
-
-        let context = ScriptHostCallContext {
-            module_name: module_name.to_string(),
-            function_name: function_name.to_string(),
-            arguments,
-            granted_capabilities: granted_capabilities.capabilities.clone(),
-        };
-        callback(&context).map_err(|error| {
-            VmError::Operation(format!(
-                "host export call failed: {module_name}.{function_name}: {}",
-                error.message
-            ))
-        })
+        call_site.call(arguments, granted_capabilities)
     }
+}
+
+fn build_script_call_table(
+    generation: u64,
+    modules: &HashMap<String, HostExportModuleEntry>,
+) -> ScriptCallTable {
+    let mut entries = modules.values().collect::<Vec<_>>();
+    entries.sort_by(|left, right| {
+        left.record
+            .descriptor
+            .name
+            .cmp(&right.record.descriptor.name)
+    });
+
+    let mut builder = ScriptCallTableBuilder::new(generation);
+    for entry in entries {
+        let module_name = Arc::<str>::from(entry.record.descriptor.name.as_str());
+        for function in &entry.record.descriptor.functions {
+            let callback = entry
+                .callbacks
+                .get(&function.name)
+                .expect("validated host export callback must remain registered")
+                .clone();
+            builder.add(module_name.clone(), function.clone(), callback);
+        }
+    }
+    builder.build()
 }
 
 fn collect_callbacks(
@@ -400,39 +387,6 @@ fn validate_callbacks(
     Ok(())
 }
 
-fn validate_call_arity(
-    module_name: &str,
-    function_name: &str,
-    descriptor: &ScriptHostFunctionDescriptor,
-    argument_count: usize,
-) -> Result<(), VmError> {
-    if argument_count < descriptor.min_argument_count
-        || argument_count > descriptor.max_argument_count
-    {
-        return Err(VmError::Operation(format!(
-            "host export call {module_name}.{function_name} expected {}..={} arguments, received {argument_count}",
-            descriptor.min_argument_count, descriptor.max_argument_count
-        )));
-    }
-    Ok(())
-}
-
-fn validate_call_capabilities(
-    module_name: &str,
-    function_name: &str,
-    descriptor: &ScriptHostFunctionDescriptor,
-    granted_capabilities: &CapabilitySet,
-) -> Result<(), VmError> {
-    for capability in &descriptor.required_capabilities {
-        if !granted_capabilities.capabilities.contains(capability) {
-            return Err(VmError::Operation(format!(
-                "host export call {module_name}.{function_name} missing capability {capability}"
-            )));
-        }
-    }
-    Ok(())
-}
-
 fn validate_names(label: &str, names: &[String]) -> Result<(), VmError> {
     let mut seen = HashSet::new();
     for name in names {
@@ -481,7 +435,7 @@ mod tests {
         let registry = HostExportRegistry::default();
 
         let poison_result = catch_unwind(AssertUnwindSafe(|| {
-            let _guard = registry.modules.lock().unwrap();
+            let _guard = registry.state.lock().unwrap();
             panic!("poison host export registry");
         }));
         assert!(poison_result.is_err());
@@ -504,7 +458,7 @@ mod tests {
             registry.call("test.host", "ping", Vec::new()).unwrap(),
             ScriptHostValue::Null
         );
-        let call_table = registry.script_call_table().unwrap();
+        let call_table = registry.script_call_table();
         let call_site = call_table.resolve("test.host", "ping").unwrap();
         assert_eq!(
             call_site

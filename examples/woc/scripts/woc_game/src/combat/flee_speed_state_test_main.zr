@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var flee = %import("combat/flee_speed_state");
+
+console.printLine("m4-flee-speed-state-test");
+var result = flee.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

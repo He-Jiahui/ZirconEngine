@@ -1,0 +1,14 @@
+// Generated Raise Dead channel contract from pinned source.
+// Source 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub channelSeconds(required: bool): float { if (!required) { throw "woc Raise Dead channel is required"; } return 5.0; }
+pub interruptObjectKind(required: bool): string { if (!required) { throw "woc Raise Dead interrupt object is required"; } return "cracked_grave"; }
+pub completionRequiresLivingBoss(required: bool): bool { if (!required) { throw "woc Raise Dead completion rule is required"; } return true; }
+pub completionSpawnsBossAdds(required: bool): bool { if (!required) { throw "woc Raise Dead boss-add completion rule is required"; } return true; }
+pub startRequiresCrackedGrave(required: bool): bool { if (!required) { throw "woc Raise Dead start requirement is required"; } return true; }
+pub contractTest(): int {
+    return channelSeconds(true) == 5.0 &&
+        interruptObjectKind(true) == "cracked_grave" &&
+        completionRequiresLivingBoss(true) == true &&
+        completionSpawnsBossAdds(true) == true &&
+        startRequiresCrackedGrave(true) == true ? 1 : -1;
+}

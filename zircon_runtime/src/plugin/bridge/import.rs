@@ -1,5 +1,7 @@
 use std::fmt;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
+
+use arc_swap::ArcSwapOption;
 
 use crate::core::framework::bridge::{BridgeError, PluginInterface};
 
@@ -8,7 +10,7 @@ use super::{FrozenBridgeTable, WeakBridge};
 /// Cloneable consumer-side bridge handle bound after the runtime catalog has
 /// merged and finalized every plugin contribution.
 pub struct BridgeImport<T: ?Sized> {
-    binding: Arc<Mutex<Option<WeakBridge<T>>>>,
+    binding: Arc<ArcSwapOption<WeakBridge<T>>>,
 }
 
 impl<T: ?Sized> Clone for BridgeImport<T> {
@@ -21,11 +23,7 @@ impl<T: ?Sized> Clone for BridgeImport<T> {
 
 impl<T: ?Sized> fmt::Debug for BridgeImport<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let bound = self
-            .binding
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .is_some();
+        let bound = self.binding.load().is_some();
         formatter
             .debug_struct("BridgeImport")
             .field("bound", &bound)
@@ -38,41 +36,34 @@ where
     T: PluginInterface + ?Sized,
 {
     pub(crate) fn new() -> (Self, InterfaceImport) {
-        let binding = Arc::new(Mutex::new(None));
+        let binding = Arc::new(ArcSwapOption::empty());
         let imported = Self {
             binding: Arc::clone(&binding),
         };
         let erased = InterfaceImport {
             interface_id: T::INTERFACE_ID.to_string(),
             update: Arc::new(move |table| {
-                let mut binding = binding
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner());
-                *binding = table.map(FrozenBridgeTable::resolve_weak::<T>);
+                binding.store(
+                    table
+                        .map(FrozenBridgeTable::resolve_weak::<T>)
+                        .map(Arc::new),
+                );
             }),
         };
         (imported, erased)
     }
 
     pub fn call<R>(&self, callback: impl FnOnce(&T) -> R) -> Result<R, BridgeError> {
-        let bridge = self
-            .lock_binding()
-            .as_ref()
-            .cloned()
-            .ok_or(BridgeError::Absent)?;
+        let binding = self.binding.load();
+        let bridge = binding.as_ref().ok_or(BridgeError::Absent)?;
         bridge.call(callback)
     }
 
     pub fn is_enabled(&self) -> bool {
-        self.lock_binding()
-            .as_ref()
-            .is_some_and(WeakBridge::is_enabled)
-    }
-
-    fn lock_binding(&self) -> MutexGuard<'_, Option<WeakBridge<T>>> {
         self.binding
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .load()
+            .as_deref()
+            .is_some_and(WeakBridge::is_enabled)
     }
 }
 

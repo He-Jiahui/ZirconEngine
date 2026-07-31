@@ -13,6 +13,19 @@ struct Marker;
 impl Component for Marker {}
 
 #[test]
+fn deferred_command_queue_reuses_its_allocation_after_apply() {
+    let source = include_str!("../ecs/commands/command_queue.rs");
+    let apply = source
+        .split("pub fn apply(&mut self, world: &mut World) -> DeferredCommandReport")
+        .nth(1)
+        .and_then(|source| source.split("pub fn len(&self)").next())
+        .expect("read CommandQueue::apply body");
+
+    assert!(apply.contains("self.commands.drain(..)"));
+    assert!(!apply.contains("std::mem::take(&mut self.commands)"));
+}
+
+#[test]
 fn deferred_command_success_report_counts_applied_commands_without_errors() {
     let mut world = World::empty();
     let entity = world.spawn((Name("Target".to_string()),)).unwrap();

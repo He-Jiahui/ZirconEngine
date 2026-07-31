@@ -1,0 +1,82 @@
+// Pure protective Temporal Hourglass aura state. Spatial capture, visibility,
+// hostile suspension, events and threat are composed by the WOS reducer.
+var contract = %import("generated/temporal_hourglass_contract");
+
+pub class TemporalHourglassState {
+    pub var id: string;
+    pub var kind: string;
+    pub var cooldownRate: float;
+    pub var hp: int;
+    pub var maxHp: int;
+    pub var temporalHealRemaining: int;
+    pub var temporalHealTicksRemaining: int;
+
+    pub @constructor() {
+        this.id = "";
+        this.kind = "";
+        this.cooldownRate = 1.0;
+        this.hp = 0;
+        this.maxHp = 0;
+        this.temporalHealRemaining = 0;
+        this.temporalHealTicksRemaining = 0;
+    }
+}
+
+pub isProtectiveTemporalHourglass(state: TemporalHourglassState): bool {
+    return state.id == contract.id(true) && state.kind == contract.stasisKind(true);
+}
+
+pub temporalHourglassCooldownDelta(state: TemporalHourglassState, abilityId: string): float {
+    if (abilityId == contract.id(true) || !isProtectiveTemporalHourglass(state)) {
+        return contract.defaultCooldownDelta(true);
+    }
+    return contract.defaultCooldownDelta(true) * state.cooldownRate;
+}
+
+ceilPositiveDiv(numerator: int, denominator: int): int {
+    if (numerator <= 0 || denominator <= 0) return 0;
+    return <int>((numerator + denominator - 1) / denominator);
+}
+
+// Mirrors tickTemporalHourglassHealing. Schedule state is consumed before the
+// missing-HP clamp, so a target at full health still consumes a healing tick.
+pub tickTemporalHourglassHealing(state: TemporalHourglassState): int {
+    var ticks = state.temporalHealTicksRemaining;
+    var remaining = state.temporalHealRemaining;
+    if (ticks <= 0 || remaining <= 0) return 0;
+    var planned = ceilPositiveDiv(remaining, ticks);
+    state.temporalHealRemaining = remaining - planned;
+    if (state.temporalHealRemaining < 0) state.temporalHealRemaining = 0;
+    state.temporalHealTicksRemaining = ticks - 1;
+    var missing = state.maxHp - state.hp;
+    if (missing <= 0) return 0;
+    var healed = planned < missing ? planned : missing;
+    state.hp = state.hp + healed;
+    return healed;
+}
+
+pub contractTest(): int {
+    if (!contract.consumesScheduleBeforeHpClamp(true)) return -1;
+    var state = new TemporalHourglassState();
+    state.id = contract.id(true);
+    state.kind = contract.stasisKind(true);
+    state.cooldownRate = 0.5;
+    state.hp = 980;
+    state.maxHp = 1000;
+    state.temporalHealRemaining = 20;
+    state.temporalHealTicksRemaining = 3;
+    if (!isProtectiveTemporalHourglass(state) ||
+        temporalHourglassCooldownDelta(state, "other") != 0.025 ||
+        temporalHourglassCooldownDelta(state, contract.id(true)) != 0.05) return -2;
+    if (tickTemporalHourglassHealing(state) != 7 || state.hp != 987 ||
+        state.temporalHealRemaining != 13 || state.temporalHealTicksRemaining != 2) return -3;
+    if (tickTemporalHourglassHealing(state) != 7 || tickTemporalHourglassHealing(state) != 6 ||
+        state.hp != 1000 || state.temporalHealRemaining != 0 ||
+        state.temporalHealTicksRemaining != 0) return -4;
+    state.hp = 1000;
+    state.temporalHealRemaining = 7;
+    state.temporalHealTicksRemaining = 2;
+    if (tickTemporalHourglassHealing(state) != 0 || state.temporalHealRemaining != 3 ||
+        state.temporalHealTicksRemaining != 1) return -5;
+    return 1;
+}

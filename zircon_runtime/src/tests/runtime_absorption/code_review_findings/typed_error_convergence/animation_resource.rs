@@ -103,10 +103,12 @@ fn review_f5_animation_manager_uses_animation_error() {
 }
 
 #[test]
-fn review_f6_core_resource_registry_rename_uses_core_error() {
+fn review_f6_core_resource_registry_rename_uses_resource_error() {
     let registry = include_str!("../../../../core/resource/registry.rs");
     let registry_ops = include_str!("../../../../core/resource/manager/registry_ops.rs");
-    let core_error = include_str!("../../../../core/framework/error.rs");
+    let resource_error = include_str!("../../../../core/resource/error.rs");
+    let resource_mod = include_str!("../../../../core/resource/mod.rs");
+    let runtime_error = include_str!("../../../../core/runtime/error.rs");
     let core_mod = include_str!("../../../../core/mod.rs");
     let resource_tests = include_str!("../../../../core/resource/tests.rs");
     let review_findings = include_str!(
@@ -124,18 +126,40 @@ fn review_f6_core_resource_registry_rename_uses_core_error() {
     let resource_doc = include_str!("../../../../../../docs/zircon_runtime/core/resource.md");
 
     for required in [
-        "pub type CoreResult<T> = std::result::Result<T, CoreError>;",
-        "MissingResourceRecordForLocator { locator: String }",
-        "MissingResourceRecordForId { id: String }",
+        "pub type ResourceResult<T> = std::result::Result<T, ResourceRegistryError>;",
+        "MissingRecordForLocator { locator: String }",
+        "MissingRecordForId { id: String }",
     ] {
         assert!(
-            core_error.contains(required),
-            "F6 CoreError contract should contain `{required}`"
+            resource_error.contains(required),
+            "F6 ResourceRegistryError contract should contain `{required}`"
         );
     }
     assert!(
-        core_mod.contains("pub use framework::error::{CoreError, CoreResult};"),
-        "CoreResult should be exported beside the single CoreError surface"
+        resource_mod.contains("pub use error::{ResourceRegistryError, ResourceResult};"),
+        "resource result should be exported only from the resource owner"
+    );
+    for forbidden in [
+        "MissingResourceRecordForLocator",
+        "MissingResourceRecordForId",
+    ] {
+        assert!(
+            !runtime_error.contains(forbidden),
+            "runtime CoreError must not recover legacy resource variant `{forbidden}`"
+        );
+    }
+    for forbidden in ["ResourceRegistryError", "ResourceResult"] {
+        assert!(
+            !core_mod.contains(forbidden),
+            "core root must not re-export or alias resource-owned `{forbidden}`"
+        );
+    }
+    assert!(
+        !runtime_error.contains("ResourceRegistryError")
+            && !resource_error.contains("CoreError")
+            && !registry.contains("CoreError")
+            && !registry_ops.contains("CoreError"),
+        "resource/framework errors must not be reconnected by a conversion shim"
     );
     for forbidden in [
         ") -> Result<ResourceRecord, String>",
@@ -147,10 +171,10 @@ fn review_f6_core_resource_registry_rename_uses_core_error() {
         );
     }
     for required in [
-        ") -> CoreResult<ResourceRecord>",
-        "CoreError::MissingResourceRecordForLocator",
-        "CoreError::MissingResourceRecordForId",
-        "registry_rename_reports_missing_locator_with_core_error",
+        ") -> ResourceResult<ResourceRecord>",
+        "ResourceRegistryError::MissingRecordForLocator",
+        "ResourceRegistryError::MissingRecordForId",
+        "registry_rename_reports_missing_locator_with_resource_error",
     ] {
         assert!(
             registry.contains(required)
@@ -162,8 +186,8 @@ fn review_f6_core_resource_registry_rename_uses_core_error() {
     for doc_anchor in [
         "F6 core resource registry typed errors",
         "core_resource_registry_typed_errors_coremin_check_passed",
-        "review_f6_core_resource_registry_rename_uses_core_error",
-        "MissingResourceRecordForLocator",
+        "review_f6_core_resource_registry_rename_uses_resource_error",
+        "MissingRecordForLocator",
         "f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred",
     ] {
         assert!(

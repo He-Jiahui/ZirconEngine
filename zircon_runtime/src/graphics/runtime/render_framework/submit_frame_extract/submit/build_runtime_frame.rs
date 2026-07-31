@@ -6,6 +6,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Vec3, Vec4};
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::graphics::{ViewportCameraStackOutputPolicy, ViewportRenderFrame};
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
@@ -35,7 +36,7 @@ pub(super) fn build_runtime_frame(
         .with_frame_visibility(context.visibility_context().frame_visibility.clone())
         .with_previous_motion_vector_camera(context.previous_motion_vector_camera().cloned())
         .with_prepared_runtime_sidebands(prepared.into_prepared_runtime_sidebands())
-        .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot);
+        .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot.map(Arc::new));
     frame.render_region = frame.render_region().with_local_size(context.render_size());
     if let Some(runtime_overlays) = runtime_overlays {
         frame = frame.with_runtime_overlays(runtime_overlays);
@@ -161,12 +162,12 @@ fn build_virtual_geometry_visbuffer_scene_gizmos(
 
 fn build_current_frame_visbuffer_debug_marks(
     snapshot: &RenderVirtualGeometryDebugSnapshot,
-) -> Vec<RenderVirtualGeometryVisBufferMark> {
+) -> &[RenderVirtualGeometryVisBufferMark] {
     if !snapshot.debug.visualize_visbuffer {
-        return Vec::new();
+        return &[];
     }
 
-    snapshot.visbuffer_debug_marks.clone()
+    &snapshot.visbuffer_debug_marks
 }
 
 fn build_virtual_geometry_visbuffer_lines(
@@ -308,8 +309,8 @@ mod tests {
     };
     use crate::core::math::{Transform, UVec2, Vec3, Vec4};
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
-    use crate::graphics::types::{ViewportTextureWritebackStatus, FRAMEWORK_OUTPUT_FORMAT_LABEL};
     use crate::graphics::VisibilityContext;
+    use crate::graphics::types::{FRAMEWORK_OUTPUT_FORMAT_LABEL, ViewportTextureWritebackStatus};
     use crate::graphics::{CompiledRenderPipeline, RenderPassStage};
     use crate::render_graph::RenderGraphBuilder;
 
@@ -425,9 +426,11 @@ mod tests {
                 .status(),
             ViewportTextureWritebackStatus::ReadyForSrgbCopy
         );
-        assert!(!frame
-            .camera_stack_output_policy()
-            .owns_final_target_output());
+        assert!(
+            !frame
+                .camera_stack_output_policy()
+                .owns_final_target_output()
+        );
         assert_eq!(
             frame.previous_motion_vector_camera(),
             Some(&previous_camera)
@@ -463,6 +466,14 @@ mod tests {
             frame.effective_camera().temporal_jitter,
             TemporalJitterSample::default()
         );
+    }
+
+    #[test]
+    fn runtime_frame_visbuffer_overlay_borrows_snapshot_marks() {
+        let source = include_str!("build_runtime_frame.rs");
+
+        assert!(source.contains("&snapshot.visbuffer_debug_marks"));
+        assert!(!source.contains(concat!("snapshot.visbuffer_debug_marks", ".", "clone()")));
     }
 
     fn empty_pipeline() -> CompiledRenderPipeline {
@@ -538,7 +549,10 @@ mod tests {
             tint: Vec4::ONE,
             mobility: crate::core::framework::scene::Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
+                ..Default::default()
+            },
         }
     }
 }

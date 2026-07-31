@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_collision_content_tests",
+  "source": "src",
+  "binary": "bin-m3-collision-content-tests",
+  "entry": "world/collision_content_test_main"
+}

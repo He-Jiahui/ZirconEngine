@@ -1,0 +1,363 @@
+var container = %import("zr.container");
+var auraRules = %import("combat/auras");
+
+class AuraSpec {
+    pub var id: string;
+    pub var sourceId: uint;
+    pub var kind: string;
+    pub var value: float;
+    pub var remaining: float;
+    pub var duration: float;
+    pub var tickInterval: float;
+    pub var school: string;
+    pub var leechPercent: float;
+    pub var sourceHp: int;
+    pub var sourceMaxHp: int;
+    pub var statAffecting: bool;
+
+    pub @constructor() {
+        this.id = "";
+        this.sourceId = <uint>0;
+        this.kind = "";
+        this.value = 0.0;
+        this.remaining = 0.0;
+        this.duration = 0.0;
+        this.tickInterval = 0.0;
+        this.school = "physical";
+        this.leechPercent = 0.0;
+        this.sourceHp = 0;
+        this.sourceMaxHp = 0;
+        this.statAffecting = false;
+    }
+}
+
+class AuraState {
+    pub var hp: int;
+    pub var maxHp: int;
+    pub var dead: bool;
+    pub var friendlyNpc: bool;
+    pub var healingTakenMultiplier: float;
+    pub var stealthed: bool;
+    pub var ids: container.Array<string>;
+    pub var sourceIds: container.Array<uint>;
+    pub var kinds: container.Array<string>;
+    pub var values: container.Array<float>;
+    pub var remaining: container.Array<float>;
+    pub var durations: container.Array<float>;
+    pub var tickIntervals: container.Array<float>;
+    pub var tickTimers: container.Array<float>;
+    pub var schools: container.Array<string>;
+    pub var leechPercents: container.Array<float>;
+    pub var sourceHp: container.Array<int>;
+    pub var sourceMaxHp: container.Array<int>;
+    pub var statAffecting: container.Array<bool>;
+    pub var damageEvents: int;
+    pub var healEvents: int;
+    pub var auraGainedEvents: int;
+    pub var auraLostEvents: int;
+    pub var statsRecalcCount: int;
+    pub var lastPeriodicDirectAttack: bool;
+
+    pub @constructor() {
+        this.hp = 100;
+        this.maxHp = 100;
+        this.dead = false;
+        this.friendlyNpc = false;
+        this.healingTakenMultiplier = 1.0;
+        this.stealthed = false;
+        this.ids = new container.Array<string>();
+        this.sourceIds = new container.Array<uint>();
+        this.kinds = new container.Array<string>();
+        this.values = new container.Array<float>();
+        this.remaining = new container.Array<float>();
+        this.durations = new container.Array<float>();
+        this.tickIntervals = new container.Array<float>();
+        this.tickTimers = new container.Array<float>();
+        this.schools = new container.Array<string>();
+        this.leechPercents = new container.Array<float>();
+        this.sourceHp = new container.Array<int>();
+        this.sourceMaxHp = new container.Array<int>();
+        this.statAffecting = new container.Array<bool>();
+        this.damageEvents = 0;
+        this.healEvents = 0;
+        this.auraGainedEvents = 0;
+        this.auraLostEvents = 0;
+        this.statsRecalcCount = 0;
+        this.lastPeriodicDirectAttack = true;
+    }
+}
+
+removeAuraAt(state: AuraState, index: int): void {
+    state.ids.removeAt(index);
+    state.sourceIds.removeAt(index);
+    state.kinds.removeAt(index);
+    state.values.removeAt(index);
+    state.remaining.removeAt(index);
+    state.durations.removeAt(index);
+    state.tickIntervals.removeAt(index);
+    state.tickTimers.removeAt(index);
+    state.schools.removeAt(index);
+    state.leechPercents.removeAt(index);
+    state.sourceHp.removeAt(index);
+    state.sourceMaxHp.removeAt(index);
+    state.statAffecting.removeAt(index);
+}
+
+refreshStealth(state: AuraState): void {
+    state.stealthed = false;
+    var index = 0;
+    while (index < state.kinds.length) {
+        if (<string>state.kinds[index] == "stealth") {
+            state.stealthed = true;
+            return;
+        }
+        index = index + 1;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+percentValue(value: float): float {
+    return value > 1.0 ? value / 100.0 : value;
+}
+
+pub applyAura(state: AuraState, spec: AuraSpec): bool {
+    if (spec.id == "" || spec.kind == "" || spec.duration <= 0.0 ||
+        spec.remaining <= 0.0 || spec.tickInterval < 0.0) {
+        throw "aura specification is invalid";
+    }
+    if (state.friendlyNpc && auraRules.rejectedFriendlyNpcAura(spec.kind, 1)) {
+        return false;
+    }
+    var index = state.ids.length - 1;
+    while (index >= 0) {
+        if (<string>state.ids[index] == spec.id &&
+            <uint>state.sourceIds[index] == spec.sourceId) {
+            removeAuraAt(state, index);
+        }
+        index = index - 1;
+    }
+    state.ids.add(spec.id);
+    state.sourceIds.add(spec.sourceId);
+    state.kinds.add(spec.kind);
+    state.values.add(spec.value);
+    state.remaining.add(spec.remaining);
+    state.durations.add(spec.duration);
+    state.tickIntervals.add(spec.tickInterval);
+    state.tickTimers.add(spec.tickInterval);
+    state.schools.add(spec.school);
+    state.leechPercents.add(spec.leechPercent);
+    state.sourceHp.add(spec.sourceHp);
+    state.sourceMaxHp.add(spec.sourceMaxHp);
+    state.statAffecting.add(spec.statAffecting);
+    state.auraGainedEvents = state.auraGainedEvents + 1;
+    if (spec.kind == "stealth") { state.stealthed = true; }
+    return true;
+}
+
+pub cleanseFriendlyNpcAuras(state: AuraState): void {
+    var index = state.ids.length - 1;
+    while (index >= 0) {
+        if (auraRules.rejectedFriendlyNpcAura(<string>state.kinds[index], 1)) {
+            removeAuraAt(state, index);
+            state.auraLostEvents = state.auraLostEvents + 1;
+        }
+        index = index - 1;
+    }
+}
+
+pub updateAuras(state: AuraState): void {
+    if (state.dead) { refreshStealth(state); return; }
+    var statsDirty = false;
+    var index = state.ids.length - 1;
+    while (index >= 0) {
+        state.remaining[index] = <float>state.remaining[index] - 0.05;
+        var interval = <float>state.tickIntervals[index];
+        if (interval > 0.0) {
+            state.tickTimers[index] = <float>state.tickTimers[index] - 0.05;
+            if (<float>state.tickTimers[index] <= 0.000000001) {
+                state.tickTimers[index] = <float>state.tickTimers[index] + interval;
+                var kind = <string>state.kinds[index];
+                if (kind == "dot") {
+                    var tickDamage = <float>state.values[index];
+                    if (<string>state.schools[index] == "physical") {
+                        var bleedAmplification = 0.0;
+                        var targetIndex = 0;
+                        while (targetIndex < state.kinds.length) {
+                            if (<string>state.kinds[targetIndex] == "bleed_vuln") {
+                                bleedAmplification = bleedAmplification +
+                                    percentValue(<float>state.values[targetIndex]);
+                            }
+                            targetIndex = targetIndex + 1;
+                        }
+                        if (bleedAmplification > 0.0) {
+                            tickDamage = <float>roundPositive(
+                                tickDamage * (1.0 + bleedAmplification)
+                            );
+                        }
+                    }
+                    var damage = roundPositive(tickDamage);
+                    state.hp = state.hp > damage ? state.hp - damage : 0;
+                    state.damageEvents = state.damageEvents + 1;
+                    state.lastPeriodicDirectAttack = false;
+                    var leech = <float>state.leechPercents[index];
+                    if (leech > 0.0 && state.sourceHp[index] > 0) {
+                        var healed = roundPositive(tickDamage * leech);
+                        var missing = state.sourceMaxHp[index] - state.sourceHp[index];
+                        if (healed > missing) { healed = missing; }
+                        if (healed > 0) {
+                            state.sourceHp[index] = state.sourceHp[index] + healed;
+                            state.healEvents = state.healEvents + 1;
+                        }
+                    }
+                    if (state.hp <= 0) { state.dead = true; return; }
+                } else if (kind == "hot") {
+                    var healed = roundPositive(
+                        <float>state.values[index] * state.healingTakenMultiplier
+                    );
+                    var missingHp = state.maxHp - state.hp;
+                    if (healed > missingHp) { healed = missingHp; }
+                    if (healed > 0) {
+                        state.hp = state.hp + healed;
+                        state.healEvents = state.healEvents + 1;
+                    }
+                } else if (kind == "polymorph") {
+                    var polymorphHeal = roundPositive(<float>state.maxHp * 0.1);
+                    state.hp = state.hp + polymorphHeal;
+                    if (state.hp > state.maxHp) { state.hp = state.maxHp; }
+                }
+            }
+        }
+        if (<float>state.remaining[index] <= 0.000000001) {
+            if (state.statAffecting[index]) { statsDirty = true; }
+            removeAuraAt(state, index);
+            state.auraLostEvents = state.auraLostEvents + 1;
+        }
+        index = index - 1;
+    }
+    if (statsDirty) { state.statsRecalcCount = state.statsRecalcCount + 1; }
+    refreshStealth(state);
+}
+
+makeSpec(
+    id: string,
+    kind: string,
+    value: float,
+    duration: float,
+    interval: float
+): AuraSpec {
+    var spec = new AuraSpec();
+    spec.id = id;
+    spec.sourceId = <uint>1;
+    spec.kind = kind;
+    spec.value = value;
+    spec.remaining = duration;
+    spec.duration = duration;
+    spec.tickInterval = interval;
+    spec.school = "shadow";
+    return spec;
+}
+
+pub contractTest(): int {
+    var deadState = new AuraState();
+    deadState.dead = true;
+    var stealth = makeSpec("stealth", "stealth", 0.0, 5.0, 0.0);
+    applyAura(deadState, stealth);
+    updateAuras(deadState);
+    if (!deadState.stealthed || deadState.remaining[0] != 5.0) { return -1; }
+
+    var lethal = new AuraState();
+    lethal.hp = 10;
+    var rider = makeSpec("rider", "hot", 50.0, 2.0, 0.05);
+    applyAura(lethal, rider);
+    var killer = makeSpec("killer", "dot", 20.0, 2.0, 0.05);
+    applyAura(lethal, killer);
+    updateAuras(lethal);
+    if (!lethal.dead || lethal.damageEvents != 1 || lethal.healEvents != 0 ||
+        lethal.remaining[0] != 2.0) {
+        return -2;
+    }
+
+    var expiry = new AuraState();
+    var armor = makeSpec("armor", "buff_armor", 20.0, 0.05, 0.0);
+    armor.statAffecting = true;
+    applyAura(expiry, armor);
+    var form = makeSpec("form", "form_cat", 0.71, 0.05, 0.0);
+    form.statAffecting = true;
+    applyAura(expiry, form);
+    updateAuras(expiry);
+    if (expiry.ids.length != 0 || expiry.auraLostEvents != 2 ||
+        expiry.statsRecalcCount != 1) {
+        return -3;
+    }
+
+    var bleed = new AuraState();
+    var vulnerable = makeSpec("vuln", "bleed_vuln", 20.0, 5.0, 0.0);
+    applyAura(bleed, vulnerable);
+    var physicalDot = makeSpec("bleed", "dot", 10.0, 5.0, 0.05);
+    physicalDot.school = "physical";
+    applyAura(bleed, physicalDot);
+    updateAuras(bleed);
+    if (bleed.hp != 88 || bleed.damageEvents != 1 || bleed.lastPeriodicDirectAttack) {
+        return -4;
+    }
+
+    var healing = new AuraState();
+    healing.hp = 80;
+    healing.healingTakenMultiplier = 1.5;
+    var hot = makeSpec("hot", "hot", 30.0, 5.0, 0.05);
+    applyAura(healing, hot);
+    updateAuras(healing);
+    if (healing.hp != 100 || healing.healEvents != 1) { return -5; }
+
+    var polymorph = new AuraState();
+    polymorph.hp = 40;
+    polymorph.maxHp = 100;
+    var sheep = makeSpec("sheep", "polymorph", 0.0, 5.0, 0.05);
+    applyAura(polymorph, sheep);
+    updateAuras(polymorph);
+    if (polymorph.hp != 50) { return -6; }
+
+    var leechState = new AuraState();
+    var leech = makeSpec("leech", "dot", 20.0, 5.0, 0.05);
+    leech.leechPercent = 0.5;
+    leech.sourceHp = 95;
+    leech.sourceMaxHp = 100;
+    applyAura(leechState, leech);
+    updateAuras(leechState);
+    if (leechState.hp != 80 || leechState.sourceHp[0] != 100 ||
+        leechState.healEvents != 1) {
+        return -7;
+    }
+
+    var npc = new AuraState();
+    npc.friendlyNpc = true;
+    var rejected = makeSpec("slow", "slow", 0.6, 5.0, 0.0);
+    if (applyAura(npc, rejected) || npc.ids.length != 0) { return -8; }
+    npc.friendlyNpc = false;
+    applyAura(npc, rejected);
+    var welcome = makeSpec("armor", "buff_armor", 10.0, 5.0, 0.0);
+    applyAura(npc, welcome);
+    npc.friendlyNpc = true;
+    cleanseFriendlyNpcAuras(npc);
+    if (npc.ids.length != 1 || <string>npc.kinds[0] != "buff_armor" ||
+        npc.auraLostEvents != 1) {
+        return -9;
+    }
+
+    var refresh = new AuraState();
+    var first = makeSpec("dot", "dot", 5.0, 4.0, 2.0);
+    applyAura(refresh, first);
+    var blocker = makeSpec("blocker", "hot", 1.0, 3.0, 1.0);
+    applyAura(refresh, blocker);
+    var second = makeSpec("dot", "dot", 9.0, 8.0, 2.0);
+    applyAura(refresh, second);
+    if (refresh.ids.length != 2 || <string>refresh.ids[0] != "blocker" ||
+        <string>refresh.ids[1] != "dot" || refresh.values[1] != 9.0 ||
+        refresh.remaining[1] != 8.0 || refresh.auraGainedEvents != 3) {
+        return -10;
+    }
+    return 1;
+}

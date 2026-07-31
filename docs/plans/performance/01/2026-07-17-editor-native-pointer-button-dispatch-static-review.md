@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md
@@ -20,7 +20,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与覆盖
 
-`native_pointer/button_dispatch/**`共 **104/104** 个Rust文件、**2,000** 行已逐文件阅读，并核对press/release、capture、close prompt、popup/menu/chrome、Workbench、pane callback、text focus与damage顺序。当前源Cargo与产品交互计数trace未完成，因此仍留在`pending.md`。
+`native_pointer/button_dispatch/` directory tree 共 **104/104** 个Rust文件、**2,000** 行已逐文件阅读，并核对press/release、capture、close prompt、popup/menu/chrome、Workbench、pane callback、text focus与damage顺序。当前源Cargo与产品交互计数trace未完成，因此仍留在`pending.md`。
 
 ## 已有正确边界
 

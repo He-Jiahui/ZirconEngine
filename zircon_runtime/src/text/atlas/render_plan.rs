@@ -88,26 +88,24 @@ pub(crate) struct GlyphAtlasDrawGlyph {
     pub(crate) background_color: [f32; 4],
 }
 
+/// One glyph occurrence after clipping, before GPU instance packing.
+///
+/// This is the only CPU draw artifact: the shader expands it to two triangles from
+/// `vertex_index`, so no per-glyph six-vertex intermediate is materialized.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct GlyphAtlasDrawQuad {
+pub(crate) struct GlyphAtlasDrawInstance {
     pub(crate) page_key: GlyphAtlasPageKey,
     pub(crate) render_contract: GlyphAtlasRenderContract,
-    pub(crate) vertices: [GlyphAtlasDrawVertex; 6],
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct GlyphAtlasDrawVertex {
-    pub(crate) position_px: [f32; 2],
-    pub(crate) uv: [f32; 2],
+    pub(crate) screen_rect: GlyphAtlasScreenRect,
+    pub(crate) uv_rect: GlyphAtlasUvRect,
     pub(crate) foreground_color: [f32; 4],
     pub(crate) background_color: [f32; 4],
-    pub(crate) page_index: u32,
 }
 
-pub(crate) fn glyph_atlas_draw_quad(
+pub(crate) fn glyph_atlas_draw_instance(
     glyph: GlyphAtlasDrawGlyph,
     clip_rect: GlyphAtlasScreenRect,
-) -> Option<GlyphAtlasDrawQuad> {
+) -> Option<GlyphAtlasDrawInstance> {
     let clipped = glyph.screen_rect.clipped_to(clip_rect)?;
     let uv = glyph_atlas_content_uv_rect(glyph.atlas_rect, glyph.content_size, glyph.atlas_size)?;
     let left = (clipped.x - glyph.screen_rect.x) / glyph.screen_rect.width;
@@ -119,25 +117,25 @@ pub(crate) fn glyph_atlas_draw_quad(
     let uv_height = uv.y1 - uv.y0;
     let uv0 = [uv.x0 + uv_width * left, uv.y0 + uv_height * top];
     let uv1 = [uv.x0 + uv_width * right, uv.y0 + uv_height * bottom];
-    let x0 = clipped.x;
-    let y0 = clipped.y;
-    let x1 = clipped.right();
-    let y1 = clipped.bottom();
     let contract = GlyphAtlasRenderContract::for_sampling_semantics(
         glyph.page_key.format.sampling_semantics(),
     );
 
-    Some(GlyphAtlasDrawQuad {
+    Some(GlyphAtlasDrawInstance {
         page_key: glyph.page_key,
         render_contract: contract,
-        vertices: [
-            glyph_atlas_draw_vertex(&glyph, contract, [x0, y0], [uv0[0], uv0[1]]),
-            glyph_atlas_draw_vertex(&glyph, contract, [x1, y0], [uv1[0], uv0[1]]),
-            glyph_atlas_draw_vertex(&glyph, contract, [x1, y1], [uv1[0], uv1[1]]),
-            glyph_atlas_draw_vertex(&glyph, contract, [x0, y0], [uv0[0], uv0[1]]),
-            glyph_atlas_draw_vertex(&glyph, contract, [x1, y1], [uv1[0], uv1[1]]),
-            glyph_atlas_draw_vertex(&glyph, contract, [x0, y1], [uv0[0], uv1[1]]),
-        ],
+        screen_rect: clipped,
+        uv_rect: GlyphAtlasUvRect {
+            x0: uv0[0],
+            y0: uv0[1],
+            x1: uv1[0],
+            y1: uv1[1],
+        },
+        foreground_color: glyph.foreground_color,
+        background_color: glyph_atlas_background_color_for_contract(
+            glyph.background_color,
+            contract,
+        ),
     })
 }
 
@@ -164,24 +162,6 @@ fn glyph_atlas_content_uv_rect(
         x1: atlas_rect.x.saturating_add(content_width) as f32 / atlas_width,
         y1: atlas_rect.y.saturating_add(content_height) as f32 / atlas_height,
     })
-}
-
-fn glyph_atlas_draw_vertex(
-    glyph: &GlyphAtlasDrawGlyph,
-    render_contract: GlyphAtlasRenderContract,
-    position_px: [f32; 2],
-    uv: [f32; 2],
-) -> GlyphAtlasDrawVertex {
-    GlyphAtlasDrawVertex {
-        position_px,
-        uv,
-        foreground_color: glyph.foreground_color,
-        background_color: glyph_atlas_background_color_for_contract(
-            glyph.background_color,
-            render_contract,
-        ),
-        page_index: glyph.page_key.page_index,
-    }
 }
 
 fn glyph_atlas_background_color_for_contract(

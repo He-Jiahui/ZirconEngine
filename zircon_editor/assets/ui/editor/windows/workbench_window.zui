@@ -86,7 +86,7 @@ children = [
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchToolbarMainMenu"
 classes = ["workbench-popup-menu", "workbench-toolbar-menu"]
-props = { value = "Menu", value_text = "Menu", menu_items = ["New Asset|icon=plus", "Open Project|icon=folder", "Save Project|icon=save", "---", "Command Palette|submenu"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { value = "Menu", value_text = "Menu", menu_items = ["Asset Browser|icon=folder", "Open Project|icon=folder", "Save Project|icon=save", "---", "Command Palette|submenu"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 72.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 148.0, preferred = 148.0, max = 148.0, stretch = "Fixed" }, z_index = 200 }
 
 [nodes.toolbar_run_mode_menu]
@@ -113,14 +113,14 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.command_palette]
 component = "WorkbenchCommandPalette"
 control_id = "WorkbenchCommandPalette"
-props = { open = false, popup_open = false, visibility = "collapsed" }
-events = [{ id = "CommandPalette/Commit", event = "Submit", route = "editor.command_palette.commit" }]
+props = { open = false, popup_open = false, visibility = "collapsed", catalog_generation = 0, match_count = 0, window_count = 12, window_offset = 0, window_request_current_offset = 0, window_request_offset = -1, window_request_focus = "", window_request_generation = 0, virtualization_enabled = true, total_count = 0, viewport_start = 0, viewport_count = 0, page_size = 12 }
+events = [{ id = "CommandPalette/QueryChanged", event = "Change", route = "editor.command_palette.query_changed" }, { id = "CommandPalette/WindowRequested", event = "Change", route = "editor.command_palette.window_requested" }, { id = "CommandPalette/Commit", event = "Submit", route = "editor.command_palette.commit" }]
 
 [nodes.notification_center]
 component = "WorkbenchNotificationCenter"
 control_id = "WorkbenchNotificationCenter"
 classes = ["workbench-notification-center", "workbench-overlay-notification-center"]
-props = { open = false, popup_open = false, focused = false, selected = false, visibility = "visible", title = "Notifications", unread_count = 0, notifications = [], selected_notification_id = "", focused_index = 0, visible_limit = 8, empty_text = "No notifications", placement = "bottom-end", popup_anchor_x = 0.0, popup_anchor_y = 0.0, popup_anchor_width = 320.0, popup_anchor_height = 0.0, anchor_origin_vertical = "top", anchor_origin_horizontal = "right", transform_origin_vertical = "top", transform_origin_horizontal = "right", popup_offset_x = 0.0, popup_offset_y = 18.0, close_on_backdrop_click = true, keep_mounted = true, aria_modal = false, aria_labelledby = "Workbench notification center", aria_describedby = "Editor notifications", z_index = 1490, disable_portal = false, portal_layer = "notification-center", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+props = { open = false, popup_open = false, focused = false, selected = false, visibility = "visible", title = "Notifications", notification_generation = 0, unread_count = 0, overflow_count = 0, notifications = [], selected_notification_id = "", focused_index = 0, visible_limit = 8, empty_text = "No notifications", placement = "bottom-end", popup_anchor_x = 0.0, popup_anchor_y = 0.0, popup_anchor_width = 320.0, popup_anchor_height = 0.0, anchor_origin_vertical = "top", anchor_origin_horizontal = "right", transform_origin_vertical = "top", transform_origin_horizontal = "right", popup_offset_x = 0.0, popup_offset_y = 18.0, close_on_backdrop_click = true, keep_mounted = true, aria_modal = false, aria_labelledby = "Workbench notification center", aria_describedby = "Editor notifications", z_index = 1490, disable_portal = false, portal_layer = "notification-center", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -24.0, y = 76.0 }, width = { min = 300.0, preferred = 340.0, max = 380.0, stretch = "Fixed" }, height = { min = 190.0, preferred = 246.0, max = 320.0, stretch = "Fixed" }, z_index = 255 }
 
 [nodes.toast_overlay]

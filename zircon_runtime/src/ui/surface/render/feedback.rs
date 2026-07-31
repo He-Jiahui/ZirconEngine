@@ -1,6 +1,7 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{
     component::UiComponentState,
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
     surface::UiRenderCommand,
@@ -24,27 +25,32 @@ const TOOLTIP_PADDING_X: f32 = 8.0;
 const TOOLTIP_TITLE_TOP: f32 = 7.0;
 const TOOLTIP_BODY_TOP: f32 = 23.0;
 const TOOLTIP_ICON_SIZE: f32 = 18.0;
-const TOOLTIP_TITLE_FONT_SIZE: f32 = 12.0;
-const TOOLTIP_TITLE_LINE_HEIGHT: f32 = 14.0;
-const TOOLTIP_BODY_FONT_SIZE: f32 = 11.0;
-const TOOLTIP_BODY_LINE_HEIGHT: f32 = 13.0;
+const TOOLTIP_TITLE_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_OVERLAY_SIZE;
+const TOOLTIP_TITLE_LINE_HEIGHT: f32 =
+    TOOLTIP_TITLE_FONT_SIZE * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+const TOOLTIP_BODY_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
+const TOOLTIP_BODY_LINE_HEIGHT: f32 =
+    TOOLTIP_BODY_FONT_SIZE * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 const ALERT_ICON_LEFT: f32 = 10.0;
 const ALERT_ICON_SIZE: f32 = 18.0;
 const ALERT_TEXT_GAP: f32 = 8.0;
 const ALERT_TEXT_RIGHT_INSET: f32 = 10.0;
 const ALERT_ACTION_WIDTH: f32 = 44.0;
-const ALERT_FONT_SIZE: f32 = 12.0;
-const ALERT_LINE_HEIGHT: f32 = ALERT_FONT_SIZE * 1.2;
-const ALERT_TITLE_FONT_SIZE: f32 = 13.0;
-const ALERT_TITLE_LINE_HEIGHT: f32 = ALERT_TITLE_FONT_SIZE * 1.2;
+const ALERT_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
+const ALERT_LINE_HEIGHT: f32 =
+    ALERT_FONT_SIZE * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+const ALERT_TITLE_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
+const ALERT_TITLE_LINE_HEIGHT: f32 =
+    ALERT_TITLE_FONT_SIZE * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 const TOAST_ICON_LEFT: f32 = 12.0;
 const TOAST_ICON_SIZE: f32 = 18.0;
 const TOAST_TEXT_GAP: f32 = 9.0;
 const TOAST_TRAILING_INSET: f32 = 10.0;
 const TOAST_ACTION_WIDTH: f32 = 44.0;
 const TOAST_CLOSE_SIZE: f32 = 14.0;
-const TOAST_FONT_SIZE: f32 = 11.5;
-const TOAST_LINE_HEIGHT: f32 = TOAST_FONT_SIZE * 1.25;
+const TOAST_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
+const TOAST_LINE_HEIGHT: f32 =
+    TOAST_FONT_SIZE * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 
 pub(super) fn feedback_suppresses_owner_text(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
     metadata.is_some_and(|metadata| feedback_kind(metadata).is_some())
@@ -422,29 +428,43 @@ fn tooltip_title(metadata: &UiTemplateNodeMetadata) -> Option<String> {
 }
 
 fn alert_tone(metadata: &UiTemplateNodeMetadata) -> AlertTone {
-    let joined = [
+    let values = [
         string_attribute(metadata, "severity"),
         string_attribute(metadata, "color"),
         string_attribute(metadata, "validation_level"),
         string_attribute(metadata, "text_tone"),
         string_attribute(metadata, "component_variant"),
         string_attribute(metadata, "icon"),
-    ]
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>()
-    .join(" ")
-    .to_ascii_lowercase();
+    ];
 
-    if joined.contains("warning") {
+    if values
+        .iter()
+        .flatten()
+        .any(|value| contains_ascii_case(value, "warning"))
+    {
         AlertTone::Warning
-    } else if joined.contains("error") || joined.contains("danger") || joined.contains("failed") {
+    } else if values.iter().flatten().any(|value| {
+        contains_ascii_case(value, "error")
+            || contains_ascii_case(value, "danger")
+            || contains_ascii_case(value, "failed")
+    }) {
         AlertTone::Error
-    } else if joined.contains("info") {
+    } else if values
+        .iter()
+        .flatten()
+        .any(|value| contains_ascii_case(value, "info"))
+    {
         AlertTone::Info
     } else {
         AlertTone::Success
     }
+}
+
+fn contains_ascii_case(value: &str, needle: &str) -> bool {
+    value
+        .as_bytes()
+        .windows(needle.len())
+        .any(|window| window.eq_ignore_ascii_case(needle.as_bytes()))
 }
 
 fn alert_has_icon(metadata: &UiTemplateNodeMetadata) -> bool {
@@ -567,7 +587,11 @@ fn first_string(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> Option<Stri
 }
 
 fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
-    metadata.attributes.get(key).and_then(value_as_f32)
+    metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))
+        .and_then(value_as_f32)
 }
 
 fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
@@ -587,8 +611,9 @@ pub(super) fn color_attribute<'a>(
 }
 
 fn value_as_f32(value: &Value) -> Option<f32> {
-    value
+    let value = value
         .as_float()
         .or_else(|| value.as_integer().map(|value| value as f64))
-        .map(|value| value as f32)
+        .filter(|value| value.is_finite())? as f32;
+    value.is_finite().then_some(value)
 }

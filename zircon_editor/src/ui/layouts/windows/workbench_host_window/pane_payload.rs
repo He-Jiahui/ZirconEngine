@@ -1,7 +1,11 @@
+use std::collections::BTreeMap;
+
+use zircon_runtime_interface::ui::component::{UiComponentProjectionPatch, UiValue};
 use zircon_runtime_interface::ui::surface::UiDebugOverlayPrimitive;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PanePayload {
+    TemplateV2(TemplateV2PanePayload),
     ConsoleV1(ConsolePanePayload),
     InspectorV1(InspectorPanePayload),
     HierarchyV1(HierarchyPanePayload),
@@ -13,6 +17,12 @@ pub enum PanePayload {
     BuildExportV1(BuildExportPanePayload),
     GeneratedBottomV1(GeneratedBottomPanePayload),
     UiComponentShowcaseV1(UiComponentShowcasePanePayload),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TemplateV2PanePayload {
+    pub values: BTreeMap<String, UiValue>,
+    pub component_patches: Vec<UiComponentProjectionPatch>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

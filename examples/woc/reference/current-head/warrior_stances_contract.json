@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/warrior_stances_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/warrior_stances.ts": "4383312df0144d8d47d36a419736bf5d1bde56afe6aba60010af8183947f6c83"
+  },
+  "stances": [
+    "battle_stance",
+    "defensive_stance",
+    "berserker_stance"
+  ]
+}

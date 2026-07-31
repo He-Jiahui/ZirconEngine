@@ -135,3 +135,32 @@ fn hover_map_builds_from_multiple_backend_outputs() {
         .collect::<Vec<_>>();
     assert_eq!(targets, vec![HitTarget::handle_axis(1, PickingAxis::Y)]);
 }
+
+#[test]
+fn picking_hit_resolution_avoids_repeated_projection_work() {
+    let hover_map_source = include_str!("../../core/framework/picking/hover_map.rs");
+    assert!(
+        !hover_map_source.contains("collect::<BTreeSet<_>>()"),
+        "hover-map construction must group backend outputs in one pass"
+    );
+    assert!(
+        !hover_map_source.contains("hovered_hits_for_pointer(outputs, pointer)"),
+        "hover-map construction must not rescan every backend output per pointer"
+    );
+
+    let pointer_hits_source = include_str!("../../core/framework/picking/pointer_hits.rs");
+    assert!(
+        !pointer_hits_source.contains("hovered.push(hit.clone())"),
+        "hover resolution owns sorted hits and must move them into its result"
+    );
+
+    let report_source = include_str!("../../core/framework/picking/report.rs");
+    assert!(
+        !report_source.contains("hovered_hits_for_pointer(outputs, pointer)"),
+        "pipeline reports must derive hover metrics from their existing sorted hit list"
+    );
+    assert!(
+        !report_source.contains("sorted_hits_for_pointer(outputs, pointer)"),
+        "pipeline reports must group and sort all pointer outputs in one pass"
+    );
+}

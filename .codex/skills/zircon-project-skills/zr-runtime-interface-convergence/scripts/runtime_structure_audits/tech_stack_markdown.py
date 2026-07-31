@@ -25,6 +25,13 @@ def render_tech_stack_boundary_markdown(boundary: dict[str, object]) -> list[str
         f"{boundary['jolt_feature_slot_count']}",
         "- removed/editor-only dependencies declared in manifests: "
         f"{len(boundary['declared_removed_dependencies'])}",
+        "- Kira dependency owners: "
+        f"{', '.join(boundary['kira_dependency_owners'])}",
+        "- Sound runtime Kira 0.12.2 pin: "
+        f"{'current' if boundary['kira_owner_version_pinned'] else 'drifted'}",
+        "- Sound runtime Kira declarations: "
+        f"{boundary['kira_owner_dependency_declaration_count']} "
+        f"(versions: {', '.join(version or '<missing>' for version in boundary['kira_owner_dependency_versions'])})",
         "- Rapier/Avian dependencies declared in manifests: "
         f"{len(boundary['rapier_or_avian_dependencies'])}",
         "- mirror-doc aggregate guard: "
@@ -41,6 +48,11 @@ def render_tech_stack_boundary_markdown(boundary: dict[str, object]) -> list[str
         lines.append(
             "- missing manifest files: "
             f"{', '.join(boundary['missing_manifest_files'])}"
+        )
+    if boundary["manifest_scan_errors"]:
+        lines.append(
+            "- product manifest scan errors: "
+            f"{', '.join(boundary['manifest_scan_errors'])}"
         )
     if boundary["declared_removed_dependencies"]:
         lines.append(
@@ -66,6 +78,16 @@ def render_tech_stack_boundary_markdown(boundary: dict[str, object]) -> list[str
         lines.append(
             "- missing tech-stack doc anchors: "
             f"{', '.join(boundary['missing_tech_stack_doc_anchors'])}"
+        )
+    if boundary["missing_kira_tech_stack_doc_anchors"]:
+        lines.append(
+            "- missing Kira Sound owner doc anchors: "
+            f"{', '.join(boundary['missing_kira_tech_stack_doc_anchors'])}"
+        )
+    if boundary["kira_owner_violations"]:
+        lines.append(
+            "- Kira owner violations: "
+            f"{', '.join(boundary['kira_owner_violations'])}"
         )
     if boundary["missing_text_doc_anchors"]:
         lines.append(

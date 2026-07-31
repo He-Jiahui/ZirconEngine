@@ -1,0 +1,27 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub fireSchool(): string { return "fire"; }
+pub combustionKind(): string { return "combustion"; }
+pub combustionId(): string { return "combustion"; }
+pub heatingUpId(): string { return "heating_up"; }
+pub hotStreakId(): string { return "hot_streak"; }
+pub hotStreakInstantId(): string { return "hot_streak_instant"; }
+pub temporalBarrierId(): string { return "temporal_barrier"; }
+pub blazingBarrierId(): string { return "blazing_barrier"; }
+pub iceBarrierId(): string { return "ice_barrier"; }
+pub cauterizeFatigueKind(): string { return "cauterize_fatigue"; }
+pub cauterizingId(): string { return "cauterizing"; }
+pub igniteId(): string { return "ignite"; }
+pub scorchExecuteHp(): float { return 0.3; }
+pub heatingUpWindow(): float { return 10.0; }
+pub hotStreakDuration(): float { return 12.0; }
+pub combustionCdrPerCrit(): float { return 1.0; }
+pub cauterizeIcd(): float { return 300.0; }
+pub cauterizeBurnDuration(): float { return 6.0; }
+pub cauterizeHealDivisor(): int { return 4; }
+pub cauterizeBurnDivisor(): int { return 20; }
+pub cauterizeFireDamageBonus(): float { return 0.12; }
+pub igniteDuration(): float { return 6.0; }
+pub igniteInterval(): float { return 2.0; }
+pub igniteTickCount(): int { return 3; }
+pub isHotStreakBuilder(abilityId: string): bool { return abilityId == "fireball" || abilityId == "fire_blast" || abilityId == "scorch" || abilityId == "pyroblast" || abilityId == "flamestrike" || abilityId == "dragons_breath"; }
+pub isHotStreakSpender(abilityId: string): bool { return abilityId == "pyroblast" || abilityId == "flamestrike"; }

@@ -7,8 +7,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::popup_rows::{
-    option_popup_frame_within, option_popup_layout_bounds, option_row_frame_within, popup_base_z,
-    push_popup_background, push_popup_row_label, push_popup_row_surface, PopupRowPaintState,
+    option_popup_frame_within, option_popup_layout_bounds, popup_base_z, push_popup_background,
+    push_popup_row_label, push_popup_row_surface, PopupRowPaintState,
 };
 
 pub(super) fn popup_option_render_commands(
@@ -37,6 +37,7 @@ pub(super) fn popup_option_render_commands(
     };
     let render_clip = layout_bounds;
     let base_z = popup_base_z(z_index);
+    let row_height = popup_frame.height / options.len() as f32;
     let mut commands = Vec::new();
     push_popup_background(
         &mut commands,
@@ -47,12 +48,13 @@ pub(super) fn popup_option_render_commands(
         opacity,
     );
 
-    for (row, option) in options.iter().enumerate() {
-        let Some(row_frame) =
-            option_row_frame_within(metadata, frame, options.len(), row, layout_bounds)
-        else {
-            continue;
-        };
+    for (row, option) in options.into_iter().enumerate() {
+        let row_frame = UiFrame::new(
+            popup_frame.x,
+            popup_frame.y + row as f32 * row_height,
+            popup_frame.width,
+            row_height,
+        );
         let row_z = base_z.saturating_add(1 + row as i32);
         let row_state = option.paint_state();
         push_popup_row_surface(
@@ -70,7 +72,7 @@ pub(super) fn popup_option_render_commands(
             row_frame,
             render_clip,
             row_z.saturating_add(2),
-            option.label.clone(),
+            option.label,
             row_state.text_color(false),
             row_state,
             opacity,

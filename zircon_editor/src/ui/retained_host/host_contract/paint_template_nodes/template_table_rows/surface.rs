@@ -27,12 +27,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         opacity,
     ));
     if !is_selected_row(node) {
+        let separator_height = metrics.separator_height.min(rect.height).max(0.0);
         commands.push(HostPaintCommand::quad(
             FrameRect {
                 x: rect.x,
-                y: rect.y + (rect.height - metrics.separator_height).max(0.0),
+                y: rect.y + (rect.height - separator_height).max(0.0),
                 width: rect.width,
-                height: metrics.separator_height,
+                height: separator_height,
             },
             Some(clip.clone()),
             separator_order(order),

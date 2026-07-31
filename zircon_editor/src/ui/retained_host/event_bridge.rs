@@ -1,10 +1,10 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventRecord, LayoutCommand, MenuAction,
 };
-use crate::ui::retained_host::workbench_notifications::{
-    workbench_notifications_for_record, WorkbenchNotification,
-};
 use crate::ui::retained_host::HostInvalidationMask;
+use crate::ui::retained_host::workbench_notifications::{
+    WorkbenchNotification, workbench_notifications_for_record,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiHostEventEffects {
@@ -15,6 +15,7 @@ pub(crate) struct UiHostEventEffects {
     pub active_layout_preset_name: Option<String>,
     pub present_welcome_surface: bool,
     pub sync_asset_workspace: bool,
+    pub close_active_project: bool,
     pub refresh_asset_details: bool,
     pub refresh_visible_asset_previews: bool,
     pub import_model_requested: bool,
@@ -106,6 +107,11 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
                 target.sync_asset_workspace = true;
                 target.request_presentation();
             }
+            EditorEventEffect::ProjectCloseRequested => {
+                target.close_active_project = true;
+                target.sync_asset_workspace = true;
+                target.request_presentation();
+            }
             EditorEventEffect::AssetDetailsRefreshRequested => {
                 target.refresh_asset_details = true;
                 target.request_presentation();
@@ -135,5 +141,53 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
             target.reset_active_layout_preset = true;
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::editor_event::{
+        EditorEvent, EditorEventEffect, EditorEventId, EditorEventRecord, EditorEventResult,
+        EditorEventSequence, EditorEventSource, EditorEventUndoPolicy, MenuAction,
+    };
+
+    use super::{UiHostEventEffects, apply_record_effects};
+
+    #[test]
+    fn project_close_effect_requests_retained_close_and_empty_asset_sync() {
+        let record = EditorEventRecord {
+            event_id: EditorEventId::new(1),
+            sequence: EditorEventSequence::new(1),
+            source: EditorEventSource::RetainedHost,
+            event: EditorEvent::WorkbenchMenu(MenuAction::CloseProject),
+            binding_path: None,
+            operation_id: None,
+            operation_display_name: None,
+            operation_arguments: None,
+            operation_group: None,
+            transaction_id: None,
+            save_generation: None,
+            effects: vec![
+                EditorEventEffect::ProjectCloseRequested,
+                EditorEventEffect::PresentationChanged,
+                EditorEventEffect::ReflectionChanged,
+            ],
+            undo_policy: EditorEventUndoPolicy::FutureInverseEvent,
+            before_revision: 0,
+            after_revision: 0,
+            result: EditorEventResult::success(serde_json::json!({
+                "revision": 0,
+                "changed": false,
+            })),
+        };
+        let mut effects = UiHostEventEffects::default();
+
+        apply_record_effects(&mut effects, &record);
+
+        assert!(effects.close_active_project);
+        assert!(effects.sync_asset_workspace);
+        assert!(effects.presentation_dirty);
+        assert!(!effects.layout_dirty);
+        assert!(!effects.render_dirty);
     }
 }

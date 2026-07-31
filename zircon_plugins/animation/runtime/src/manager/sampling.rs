@@ -1,5 +1,7 @@
 use zircon_runtime::core::framework::animation::AnimationChannelValueAsset;
-use zircon_runtime::core::framework::animation::AnimationParameterValue;
+use zircon_runtime::core::framework::animation::{
+    AnimationError, AnimationParameterValue, AnimationResult,
+};
 use zircon_runtime::core::math::{Quat, Real, Vec3};
 
 pub(super) const DEFAULT_GRAPH_CLIP_PLAYBACK_SPEED: Real = 1.0;
@@ -59,35 +61,49 @@ pub(super) fn quaternion_array_is_normalizable(value: &[Real; 4]) -> bool {
         > Real::EPSILON
 }
 
-pub(super) fn sample_vec3(value: &AnimationChannelValueAsset) -> Result<Vec3, String> {
+pub(super) fn sample_vec3(value: &AnimationChannelValueAsset) -> AnimationResult<Vec3> {
     match value {
         AnimationChannelValueAsset::Vec3(value) if value.iter().all(|c| c.is_finite()) => {
             Ok(Vec3::from_array(*value))
         }
-        AnimationChannelValueAsset::Vec3(value) => {
-            Err(format!("non-finite vec3 animation sample: {value:?}"))
-        }
-        other => Err(format!("expected vec3 animation sample, found {other:?}")),
+        AnimationChannelValueAsset::Vec3(_) => Err(AnimationError::NonFiniteSample {
+            sample_kind: "vec3",
+        }),
+        other => Err(AnimationError::SampleTypeMismatch {
+            expected: "vec3",
+            actual: animation_channel_value_kind(other),
+        }),
     }
 }
 
-pub(super) fn sample_quaternion(value: &AnimationChannelValueAsset) -> Result<Quat, String> {
+pub(super) fn sample_quaternion(value: &AnimationChannelValueAsset) -> AnimationResult<Quat> {
     match value {
         AnimationChannelValueAsset::Quaternion(value)
             if value.iter().all(|c| c.is_finite()) && quaternion_array_is_normalizable(value) =>
         {
             Ok(Quat::from_array(*value).normalize())
         }
-        AnimationChannelValueAsset::Quaternion(value) if value.iter().all(|c| c.is_finite()) => {
-            Err(format!(
-                "zero-length quaternion animation sample: {value:?}"
-            ))
+        AnimationChannelValueAsset::Quaternion(_) if value.iter().all(|c| c.is_finite()) => {
+            Err(AnimationError::ZeroLengthQuaternionSample)
         }
-        AnimationChannelValueAsset::Quaternion(value) => {
-            Err(format!("non-finite quaternion animation sample: {value:?}"))
-        }
-        other => Err(format!(
-            "expected quaternion animation sample, found {other:?}"
-        )),
+        AnimationChannelValueAsset::Quaternion(_) => Err(AnimationError::NonFiniteSample {
+            sample_kind: "quaternion",
+        }),
+        other => Err(AnimationError::SampleTypeMismatch {
+            expected: "quaternion",
+            actual: animation_channel_value_kind(other),
+        }),
+    }
+}
+
+fn animation_channel_value_kind(value: &AnimationChannelValueAsset) -> &'static str {
+    match value {
+        AnimationChannelValueAsset::Bool(_) => "bool",
+        AnimationChannelValueAsset::Integer(_) => "integer",
+        AnimationChannelValueAsset::Scalar(_) => "scalar",
+        AnimationChannelValueAsset::Vec2(_) => "vec2",
+        AnimationChannelValueAsset::Vec3(_) => "vec3",
+        AnimationChannelValueAsset::Vec4(_) => "vec4",
+        AnimationChannelValueAsset::Quaternion(_) => "quaternion",
     }
 }

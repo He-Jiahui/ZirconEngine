@@ -20,6 +20,7 @@ pub(super) fn projected_collection(
 
     ProjectedCollection {
         items: items::projected_collection_items(attributes, &virtualization),
+        rows: items::projected_collection_rows(attributes, &virtualization),
         fields: fields::projected_collection_fields(component, attributes, bindings),
         virtualization_enabled: virtualization.enabled,
         virtualization_item_extent: virtualization.item_extent,

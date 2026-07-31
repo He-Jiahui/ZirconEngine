@@ -1,0 +1,90 @@
+// Pure source-ordered direct spell resolution. The world reducer supplies the
+// authoritative random units and commits damage, threat and lifecycle state.
+var container = %import("zr.container");
+var spellScaling = %import("combat/spell_scaling");
+
+pub class TimedSpellSpec {
+    pub var minimum: float;
+    pub var maximum: float;
+    pub var spellPower: float;
+    pub var school: string;
+    pub var castTime: float;
+    pub var critChance: float;
+    pub var critDamageBonus: float;
+    pub var damageMultiplier: float;
+
+    pub @constructor() {
+        this.minimum = 0.0;
+        this.maximum = 0.0;
+        this.spellPower = 0.0;
+        this.school = "arcane";
+        this.castTime = 0.0;
+        this.critChance = 0.0;
+        this.critDamageBonus = 0.0;
+        this.damageMultiplier = 1.0;
+    }
+}
+
+pub class TimedSpellResult {
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var damage: int;
+    pub var critical: bool;
+
+    pub @constructor() {
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.damage = 0;
+        this.critical = false;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+takeRandomUnit(result: TimedSpellResult): float {
+    if (result.randomIndex < 0 || result.randomIndex >= result.randomUnits.length) {
+        throw "timed spell random stream is exhausted";
+    }
+    var value = <float>result.randomUnits[result.randomIndex];
+    result.randomIndex = result.randomIndex + 1;
+    return value;
+}
+
+pub resolveTimedSpellHit(result: TimedSpellResult, spec: TimedSpellSpec): void {
+    if (spec.minimum < 0.0 || spec.maximum < spec.minimum || spec.spellPower < 0.0 ||
+        spec.castTime < 0.0 || spec.critChance < 0.0 || spec.critChance > 1.0 ||
+        spec.critDamageBonus < 0.0 || spec.damageMultiplier < 0.0) {
+        throw "timed spell specification is invalid";
+    }
+    var damage = spec.minimum + (spec.maximum - spec.minimum) * takeRandomUnit(result);
+    damage = damage + <float>spellScaling.directHitBonus(
+        spec.spellPower, spec.school, false, spec.castTime, false
+    );
+    result.critical = takeRandomUnit(result) < spec.critChance;
+    if (result.critical) { damage = damage * (1.5 + spec.critDamageBonus); }
+    result.damage = roundPositive(damage * spec.damageMultiplier);
+}
+
+pub contractTest(): int {
+    var spec = new TimedSpellSpec();
+    spec.minimum = 18.0;
+    spec.maximum = 20.0;
+    spec.castTime = 1.5;
+    spec.critChance = 0.5;
+    var critical = new TimedSpellResult();
+    critical.randomUnits.add(0.5);
+    critical.randomUnits.add(0.4);
+    resolveTimedSpellHit(critical, spec);
+    if (critical.damage != 29 || !critical.critical || critical.randomIndex != 2) { return -1; }
+
+    spec.spellPower = 7.0;
+    spec.critChance = 0.0;
+    var normal = new TimedSpellResult();
+    normal.randomUnits.add(1.0);
+    normal.randomUnits.add(0.9);
+    resolveTimedSpellHit(normal, spec);
+    if (normal.damage != 23 || normal.critical || normal.randomIndex != 2) { return -2; }
+    return 1;
+}

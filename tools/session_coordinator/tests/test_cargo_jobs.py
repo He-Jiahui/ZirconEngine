@@ -265,6 +265,70 @@ class CargoJobTests(unittest.TestCase):
         self.assertTrue(stdout_path.exists())
         self.assertTrue(stderr_path.exists())
 
+    def test_runner_reconciles_dead_orphaned_and_exitless_released_run_projections(self) -> None:
+        log_root = Path(self.temporary_directory.name) / "reconciled-run-logs"
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=log_root,
+        )
+        jobs = []
+        for run_id, job_status in (("run-orphaned", "orphaned"), ("run-released", "released")):
+            job = self.service.acquire("session-a", CargoLaneKind.TEST)
+            jobs.append((run_id, job, job_status))
+            run_root = log_root / job.job_id / run_id
+            run_root.mkdir(parents=True)
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """
+                    UPDATE cargo_jobs
+                    SET status=?, exit_code=NULL, process_tree_live_pids_json='[]',
+                        released_at='2026-07-16T11:10:00+00:00'
+                    WHERE job_id=?
+                    """,
+                    (job_status, job.job_id),
+                )
+                connection.execute(
+                    """INSERT INTO cargo_job_runs(
+                           run_id, job_id, session_id, command_json, environment_json, status,
+                           stdout_path, stderr_path, started_at
+                       ) VALUES (?, ?, 'session-a', '[]', '{}', 'running', ?, ?, ?)""",
+                    (
+                        run_id,
+                        job.job_id,
+                        str(run_root / "stdout.log"),
+                        str(run_root / "stderr.log"),
+                        "2026-07-16T11:00:00+00:00",
+                    ),
+                )
+
+        self.assertEqual(
+            ("run-orphaned", "run-released"), runner.reconcile_terminal_runs()
+        )
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                "SELECT run_id, status, exit_code, error_code FROM cargo_job_runs ORDER BY run_id"
+            ).fetchall()
+
+        self.assertEqual(
+            [
+                (
+                    "run-orphaned",
+                    "completed",
+                    None,
+                    "cargo_run_reconciled_from_orphaned_job",
+                ),
+                (
+                    "run-released",
+                    "completed",
+                    None,
+                    "cargo_run_reconciled_from_released_job_missing_exit_code",
+                ),
+            ],
+            [tuple(row) for row in rows],
+        )
+
     def test_runner_releases_bound_cpu_reservation_after_owner_becomes_stale(self) -> None:
         compatibility = self.compatibility()
         command = (
@@ -955,6 +1019,28 @@ class CargoJobTests(unittest.TestCase):
             "session-b", CargoLaneKind.TEST, compatibility=compatibility
         )
 
+        self.assertEqual(released.target_dir, reused.target_dir)
+
+    def test_terminal_job_with_recorded_exit_ignores_unreadable_reused_pid(self) -> None:
+        compatibility = self.compatibility()
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=compatibility
+        )
+        self.process_creation_times[4242] = "cargo-root-v1"
+        self.service.start(
+            job.job_id, session_id="session-a", pid=4242, command=["cargo", "test"]
+        )
+        self.service.process_tree_pids = lambda _root_pid: ()
+        self.service.finish(job.job_id, session_id="session-a", exit_code=0)
+        released = self.service.release(job.job_id, session_id="session-a")
+        self.service.process_creation_time = lambda _pid: None
+        self.service.process_tree_pids = lambda root_pid: (4242,) if root_pid == 4242 else ()
+
+        reused = self.service.acquire(
+            "session-b", CargoLaneKind.TEST, compatibility=compatibility
+        )
+
+        self.assertIsNotNone(released.process_tree_exited_at)
         self.assertEqual(released.target_dir, reused.target_dir)
 
     def test_pid_reuse_orphans_the_original_job_and_allows_target_reuse(self) -> None:

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_npc_placement_tests",
+  "source": "src",
+  "binary": "bin-m3-npc-placement-tests",
+  "entry": "world/npc_placement_test_main"
+}

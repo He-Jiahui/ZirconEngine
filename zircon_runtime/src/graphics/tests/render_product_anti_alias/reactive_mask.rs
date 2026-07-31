@@ -16,9 +16,9 @@ use crate::core::resource::{
 use crate::graphics::WgpuRenderFramework;
 
 use super::{
-    anti_alias_product_profile, assert_taa_resolve_product_stats,
-    submit_and_capture_anti_alias_product, TAA_REACTIVE_MASK_CLEAR_EXECUTOR_ID,
-    TAA_REACTIVE_MASK_MESH_EXECUTOR_ID, TAA_RESOLVE_EXECUTOR_ID,
+    TAA_REACTIVE_MASK_CLEAR_EXECUTOR_ID, TAA_REACTIVE_MASK_MESH_EXECUTOR_ID,
+    TAA_RESOLVE_EXECUTOR_ID, anti_alias_product_profile, assert_taa_resolve_product_stats,
+    submit_and_capture_anti_alias_product,
 };
 
 #[test]
@@ -281,7 +281,11 @@ fn authored_reactive_mask_mesh(node_id: u64, material: ResourceId) -> RenderMesh
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: true,
+            ..Default::default()
+        },
     }
 }
 

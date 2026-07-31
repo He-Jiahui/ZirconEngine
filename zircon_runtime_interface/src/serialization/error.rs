@@ -15,6 +15,8 @@ pub enum LoadError {
         #[source]
         source: serde_json::Error,
     },
+    #[error("versioned text is too large: maximum {max} bytes, found {found}")]
+    TextDocumentTooLarge { max: usize, found: usize },
     #[error(
         "binary payload header is truncated: expected at least {expected} bytes, found {found}"
     )]

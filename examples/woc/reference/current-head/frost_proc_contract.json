@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/frost_proc_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/frost_mage.ts": "62b99bbb5adbf1f38814545e6e38e8820b5ac95ab3acc391d9f2ab79445748a5"
+  },
+  "id": "frost_proc",
+  "constants": {
+    "FINGERS_OF_FROST_CHANCE": 0.15,
+    "FINGERS_OF_FROST_MAX_STACKS": 2,
+    "FINGERS_OF_FROST_DURATION": 15,
+    "BRAIN_FREEZE_CHANCE": 0.2,
+    "BRAIN_FREEZE_DURATION": 15,
+    "BRAIN_FREEZE_FLURRY_MULT": 1.3,
+    "WINTERS_CHILL_CHARGES": 2,
+    "WINTERS_CHILL_DURATION": 5,
+    "ICICLE_MAX": 5,
+    "ICICLE_DURATION": 30
+  },
+  "draw_order": "committed_frost_only; exactly_two_draws; fingers_then_brain; capped_or_active_results_are_discarded_after_draw"
+}

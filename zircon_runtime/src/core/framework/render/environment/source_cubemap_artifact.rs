@@ -1,7 +1,7 @@
 use super::{
-    source_cubemap_sample_count, IblBakeArtifactContents, IblBakeArtifactPayload,
-    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapMipChain,
-    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    IblBakeArtifactContents, IblBakeArtifactPayload, SOURCE_CUBEMAP_FACE_COUNT,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, SourceCubemapEnvironment,
+    SourceCubemapIrradianceCube, SourceCubemapMipChain, source_cubemap_sample_count,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -82,11 +82,11 @@ pub fn source_cubemap_environment_with_bake_artifact(
     mut environment: SourceCubemapEnvironment,
     payload: &IblBakeArtifactPayload,
 ) -> Result<SourceCubemapEnvironment, SourceCubemapBakeArtifactError> {
-    let bake_artifact_hash = bake_artifact_payload_hash(payload);
     let mip_chain = source_cubemap_mip_chain_with_bake_artifact(&environment.mip_chain, payload)?;
     environment.irradiance_sh9 = *mip_chain.irradiance_sh9();
     environment.mip_chain = mip_chain;
-    environment.bake_artifact_hash = bake_artifact_hash;
+    environment.pmrem_hash = pmrem_payload_hash(payload);
+    environment.bake_artifact_hash = bake_artifact_payload_hash(payload);
     environment.irradiance_cube = if payload
         .descriptor()
         .contents()
@@ -116,6 +116,19 @@ fn bake_artifact_payload_hash(payload: &IblBakeArtifactPayload) -> [u32; 4] {
     hasher.update(&descriptor.mip_count().to_le_bytes());
     hasher.update(&descriptor.contents().bits().to_le_bytes());
     hasher.update(payload.bytes());
+    hash_words(hasher.finalize())
+}
+
+fn pmrem_payload_hash(payload: &IblBakeArtifactPayload) -> [u32; 4] {
+    let descriptor = payload.descriptor();
+    let pmrem = payload
+        .pmrem_rgba16f_byte_range()
+        .expect("validated source-cubemap artifacts always contain PMREM");
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(&descriptor.algorithm_version().to_le_bytes());
+    hasher.update(&descriptor.face_size().to_le_bytes());
+    hasher.update(&descriptor.mip_count().to_le_bytes());
+    hasher.update(&payload.bytes()[pmrem]);
     hash_words(hasher.finalize())
 }
 

@@ -1,4 +1,5 @@
 mod asset_workspace;
+mod authoring_world;
 mod context_transactions;
 mod editor_projection;
 mod history;

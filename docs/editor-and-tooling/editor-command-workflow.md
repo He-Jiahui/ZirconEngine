@@ -11,11 +11,13 @@ related_code:
   - zircon_editor/src/core/commandlet/runner.rs
   - zircon_app/src/entry/cli/launch_args.rs
   - zircon_app/src/entry/entry_runner/editor.rs
-  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editing/engine/history.rs
+  - zircon_editor/src/core/editing/engine/transaction.rs
   - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/binding_dispatch/inspector/apply.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs
@@ -44,12 +46,14 @@ related_code:
 implementation_files:
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/core/editing/command.rs
-  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editing/engine/history.rs
+  - zircon_editor/src/core/editing/engine/transaction.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/binding_dispatch/inspector/apply.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
@@ -122,7 +126,9 @@ doc_type: module-detail
 
 - `zircon_editor/src/core/editing/command.rs`: 命令类型、创建/删除/更新节点逻辑
 - `zircon_editor/src/core/editor_operation.rs`: menu/toolbar/editor 插件 operation descriptor registry
-- `zircon_editor/src/core/editing/history.rs`: undo/redo 栈和 gizmo drag 聚合逻辑
+- `zircon_editor/src/core/editing/engine/transaction.rs`: `EditorTransactionEngine`、`TransactionScope`、命令 apply/rollback 与 transaction commit owner
+- `zircon_editor/src/core/editing/engine/history.rs`: `HistoryStore`、transaction records 与按 `HistoryContextId` 分区的 undo/redo 状态
+- `zircon_editor/src/ui/workbench/state/editor_state_viewport.rs`: `GizmoTransactionCapture` 与 drag step 命令捕获；结束拖拽时交给 `EditorTransactionEngine` 收束为同一事务模型
 - `zircon_editor/src/core/editing/intent.rs`: headless `EditorIntent` 声明 owner；具体执行与 inspector 草稿态由上方列出的 workbench state 模块分别持有
 - `zircon_editor/src/ui/retained_host/app.rs`: 统一接住项目保存/加载和多窗口 workbench 宿主消息，再驱动命令执行
 - `zircon_editor/src/ui/host/editor_manager.rs`: 提供布局、view registry、项目 workspace 的 editor 域协调入口
@@ -195,8 +201,8 @@ Material/Fyrox/JetBrains/Unreal 设计栈里的顶层功能编辑器也走同一
 2. `EditorApp` 区分宿主类消息和场景编辑类消息
 3. 场景编辑类消息进一步转换或调用 `EditorIntent`
 4. `EditorState::apply_intent` 根据意图创建对应 `EditorCommand`
-5. 命令在构造阶段直接修改 `LevelSystem` 所托管的 `World`
-6. 成功后命令进入 `EditorHistory` 的 undo 栈
+5. `EditorTransactionEngine` 打开 transaction scope；`TransactionScope::push` 通过 `EditContext` 调用 `EditCommand::apply`，此时才修改 `LevelSystem` 所托管的 `World`；apply 失败会在同一 owner 内回滚并取消事务
+6. `TransactionScope::commit` 把非空命令序列提交到 `HistoryStore` 的全局 history context
 7. `EditorState::sync_selection_state` 从当前世界回填 inspector 草稿和 orbit target
 
 `EditorState::snapshot_with_component_drawers(...)` 读取场景树时使用 `World::node_records()`，而不是 schedule-maintained `World::nodes()` 缓存。原因是 editor 命令在同一交互帧内需要立刻投影刚创建、导入、撤销或重做的节点；runtime ECS 的 `nodes()` 缓存仍遵守 `PostUpdate`/`RenderExtract` 刷新边界，不能作为 live authoring snapshot 的数据源。
@@ -214,11 +220,11 @@ Material/Fyrox/JetBrains/Unreal 设计栈里的顶层功能编辑器也走同一
 
 ### Gizmo 拖拽
 
-1. `BeginGizmoDrag` 让 `EditorHistory` 记录拖拽起点状态
-2. 拖拽过程中的世界变换由 viewport 控制器实时更新，服务于预览
-3. `EndGizmoDrag` 比较拖拽起点和当前节点状态
-4. 如果节点确实发生变化，收束为一个 `UpdateNodeCommand`
-5. undo/redo 因此与 inspector 或场景树命令共享同一历史模型
+1. `BeginGizmoDrag` 先在 `EditorState` 的 `GizmoTransactionCapture` 中记录拖拽起点；此时尚不向 history 提交事务
+2. 每个 `DragGizmo` preview step 在 viewport 更新世界后捕获 `last→current` 增量，追加一个已应用命令并推进 `capture.last`
+3. `EndGizmoDrag` 只补录最后一个尚未捕获的增量；累积命令为空时不创建 history 记录
+4. 存在累积命令时，`EndGizmoDrag` 以 `MergeMode::Ends` 通过 `EditorTransactionEngine` 一次提交到全局 history context
+5. undo/redo 因此与 inspector 或场景树命令共享同一 `HistoryStore` 模型
 
 ## Design And Rationale
 

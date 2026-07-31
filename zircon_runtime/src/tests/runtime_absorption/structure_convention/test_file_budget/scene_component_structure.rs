@@ -98,6 +98,7 @@ fn runtime_15_scene_component_structure_tests_are_folder_backed() {
         &runtime_world_domains,
         &[
             "fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutover",
+            "fn scene_component_owner_tree_stays_domain_split_without_active_alias",
             "fn world_property_access_moves_into_folder_backed_subtree",
             "fn scene_render_extract_does_not_use_snapshot_adapter_for_frame_extract",
             "fn runtime_scene_exposes_neutral_world_inspection_surface",
@@ -127,8 +128,8 @@ fn runtime_15_scene_component_structure_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        child_test_total, 23,
-        "component_structure children should preserve all 23 tests, including existing runtime_08_owner_tree coverage"
+        child_test_total, 24,
+        "component_structure children should preserve all 24 tests, including scene component owner-tree and existing runtime_08_owner_tree coverage"
     );
 
     for (path, source) in [

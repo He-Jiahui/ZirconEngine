@@ -235,11 +235,13 @@ fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
         virtual_geometry_workload.dispatch_extent,
         RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
     );
-    assert!(enabled
-        .history_bindings
-        .contains(&FrameHistoryBinding::read_write(
-            FrameHistorySlot::GlobalIllumination
-        )));
+    assert!(
+        enabled
+            .history_bindings
+            .contains(&FrameHistoryBinding::read_write(
+                FrameHistorySlot::GlobalIllumination
+            ))
+    );
 }
 
 #[test]
@@ -266,9 +268,11 @@ fn builtin_smaa_terminal_aa_pass_compiles_after_output_transfer_when_requested()
 
     assert!(pass_names.contains(&"smaa"));
     assert!(!pass_names.contains(&"fxaa"));
-    assert!(compiled
-        .capability_requirements
-        .contains(&RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias));
+    assert!(
+        compiled
+            .capability_requirements
+            .contains(&RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias)
+    );
 
     let output_index = pass_names
         .iter()
@@ -344,12 +348,16 @@ fn plugin_render_feature_asset_compiles_descriptor_without_builtin_feature_ident
         plugin_feature.builtin_feature().is_none(),
         "plugin renderer feature should not masquerade as a built-in feature"
     );
-    assert!(compiled
-        .required_extract_sections
-        .contains(&"plugin_virtual_geometry".to_string()));
-    assert!(compiled
-        .capability_requirements
-        .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry));
+    assert!(
+        compiled
+            .required_extract_sections
+            .contains(&"plugin_virtual_geometry".to_string())
+    );
+    assert!(
+        compiled
+            .capability_requirements
+            .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry)
+    );
 }
 
 #[test]
@@ -433,12 +441,16 @@ fn plugin_neural_compute_feature_respects_capability_opt_in_gate() {
         workload.dispatch_extent,
         RenderGraphComputeDispatchExtent::Viewport
     );
-    assert!(enabled
-        .required_extract_sections
-        .contains(&"plugin_neural_compute".to_string()));
-    assert!(enabled
-        .capability_requirements
-        .contains(&RenderFeatureCapabilityRequirement::NeuralCompute));
+    assert!(
+        enabled
+            .required_extract_sections
+            .contains(&"plugin_neural_compute".to_string())
+    );
+    assert!(
+        enabled
+            .capability_requirements
+            .contains(&RenderFeatureCapabilityRequirement::NeuralCompute)
+    );
 }
 
 #[test]
@@ -448,16 +460,20 @@ fn plugin_render_feature_descriptors_replace_advanced_builtin_slots() {
         replacement_hybrid_gi_descriptor(),
     ]);
 
-    assert!(!pipeline
-        .renderer
-        .features
-        .iter()
-        .any(|feature| feature.is_builtin(BuiltinRenderFeature::VirtualGeometry)));
-    assert!(!pipeline
-        .renderer
-        .features
-        .iter()
-        .any(|feature| feature.is_builtin(BuiltinRenderFeature::GlobalIllumination)));
+    assert!(
+        !pipeline
+            .renderer
+            .features
+            .iter()
+            .any(|feature| feature.is_builtin(BuiltinRenderFeature::VirtualGeometry))
+    );
+    assert!(
+        !pipeline
+            .renderer
+            .features
+            .iter()
+            .any(|feature| feature.is_builtin(BuiltinRenderFeature::GlobalIllumination))
+    );
     assert!(pipeline.renderer.features.iter().any(|feature| {
         feature.feature_name() == "virtual_geometry" && feature.builtin_feature().is_none()
     }));
@@ -504,13 +520,15 @@ fn pipeline_compile_rejects_duplicate_plugin_render_feature_names() {
             "plugin.duplicate_feature",
             Vec::new(),
             Vec::new(),
-            vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::Overlay,
-                "plugin-duplicate-feature-a",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("plugin.duplicate.a")
-            .with_side_effects()],
+            vec![
+                RenderFeaturePassDescriptor::new(
+                    RenderPassStage::Overlay,
+                    "plugin-duplicate-feature-a",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("plugin.duplicate.a")
+                .with_side_effects(),
+            ],
         )));
     pipeline
         .renderer
@@ -519,13 +537,15 @@ fn pipeline_compile_rejects_duplicate_plugin_render_feature_names() {
             "plugin.duplicate_feature",
             Vec::new(),
             Vec::new(),
-            vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::Overlay,
-                "plugin-duplicate-feature-b",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("plugin.duplicate.b")
-            .with_side_effects()],
+            vec![
+                RenderFeaturePassDescriptor::new(
+                    RenderPassStage::Overlay,
+                    "plugin-duplicate-feature-b",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("plugin.duplicate.b")
+                .with_side_effects(),
+            ],
         )));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -541,13 +561,15 @@ fn plugin_virtual_geometry_descriptor() -> RenderFeatureDescriptor {
         "plugin.virtual_geometry",
         vec!["plugin_virtual_geometry".to_string()],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::DepthPrepass,
-            "plugin-virtual-geometry-prepare",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("plugin.virtual-geometry.prepare")
-        .write_buffer("plugin-virtual-geometry-page-requests")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::DepthPrepass,
+                "plugin-virtual-geometry-prepare",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("plugin.virtual-geometry.prepare")
+            .write_buffer("plugin-virtual-geometry-page-requests"),
+        ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
 }
@@ -557,18 +579,20 @@ fn plugin_neural_compute_descriptor() -> RenderFeatureDescriptor {
         "plugin.neural_compute",
         vec!["plugin_neural_compute".to_string()],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "plugin-neural-inference",
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id("plugin.neural.inference")
-        .with_compute_workload(RenderGraphComputeWorkload::viewport(
-            "zircon-neural-inference",
-            [8, 8, 1],
-        ))
-        .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
-        .write_buffer("plugin-neural-output")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "plugin-neural-inference",
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id("plugin.neural.inference")
+            .with_compute_workload(RenderGraphComputeWorkload::viewport(
+                "zircon-neural-inference",
+                [8, 8, 1],
+            ))
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_buffer("plugin-neural-output"),
+        ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::NeuralCompute)
 }
@@ -578,13 +602,15 @@ fn replacement_virtual_geometry_descriptor() -> RenderFeatureDescriptor {
         "virtual_geometry",
         Vec::new(),
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::DepthPrepass,
-            "plugin-virtual-geometry-replacement",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("plugin.virtual-geometry.replacement")
-        .write_buffer("plugin-virtual-geometry-replacement")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::DepthPrepass,
+                "plugin-virtual-geometry-replacement",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("plugin.virtual-geometry.replacement")
+            .write_buffer("plugin-virtual-geometry-replacement"),
+        ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
 }
@@ -596,13 +622,15 @@ fn replacement_hybrid_gi_descriptor() -> RenderFeatureDescriptor {
         vec![FrameHistoryBinding::read_write(
             FrameHistorySlot::GlobalIllumination,
         )],
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Lighting,
-            "plugin-hybrid-gi-replacement",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("plugin.hybrid-gi.replacement")
-        .write_texture("plugin-hybrid-gi-lighting")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Lighting,
+                "plugin-hybrid-gi-replacement",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("plugin.hybrid-gi.replacement")
+            .write_texture("plugin-hybrid-gi-lighting"),
+        ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
 }

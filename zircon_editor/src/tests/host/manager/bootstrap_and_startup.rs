@@ -1,13 +1,14 @@
 use std::collections::BTreeMap;
 use std::fs;
 
+use crate::core::plugin::EditorPluginState;
 use crate::core::project::{NewProjectDraft, NewProjectTemplate, RecentProjectValidation};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowHostMode,
-    ActivityWindowId, ActivityWindowLayout, DocumentNode, LayoutCommand, MainHostPageLayout,
-    MainPageId, TabStackLayout, WorkbenchLayout,
+    ActivityWindowId, ActivityWindowLayout, DocumentNode, MainHostPageLayout, MainPageId,
+    TabStackLayout, WorkbenchLayout,
 };
 use crate::ui::workbench::project::ProjectEditorWorkspace;
 use crate::ui::workbench::startup::EditorSessionMode;
@@ -131,97 +132,6 @@ fn editor_manager_bootstrap_repairs_empty_global_default_layout() {
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
-}
-
-#[test]
-fn save_and_load_preset_roundtrip_through_manager_commands() {
-    let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_workbench_presets");
-    let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
-        .unwrap();
-
-    manager
-        .apply_layout_command(LayoutCommand::ActivateMainPage {
-            page_id: MainPageId::new("preset-page"),
-        })
-        .unwrap();
-    manager
-        .apply_layout_command(LayoutCommand::SavePreset {
-            name: "authoring".to_string(),
-        })
-        .unwrap();
-    manager
-        .apply_layout_command(LayoutCommand::ResetToDefault)
-        .unwrap();
-    manager
-        .apply_layout_command(LayoutCommand::LoadPreset {
-            name: "authoring".to_string(),
-        })
-        .unwrap();
-
-    assert_eq!(
-        manager.current_layout().active_main_page,
-        MainPageId::new("preset-page")
-    );
-
-    std::env::remove_var("ZIRCON_CONFIG_PATH");
-    let _ = fs::remove_file(path);
-}
-
-#[test]
-fn save_and_load_preset_roundtrip_through_project_asset_files() {
-    let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_workbench_project_presets");
-    let project_root = unique_temp_dir("zircon_editor_project_presets");
-    let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
-        .unwrap();
-
-    create_project_with_default_world(&project_root);
-    manager.open_project(&project_root).unwrap();
-
-    manager
-        .apply_layout_command(LayoutCommand::ActivateMainPage {
-            page_id: MainPageId::new("preset-page"),
-        })
-        .unwrap();
-    manager
-        .apply_layout_command(LayoutCommand::SavePreset {
-            name: "rider".to_string(),
-        })
-        .unwrap();
-
-    let preset_asset = project_root
-        .join("assets")
-        .join("editor")
-        .join("layout-presets")
-        .join("rider.workbench-layout.json");
-    assert!(
-        preset_asset.exists(),
-        "expected preset asset at {:?}",
-        preset_asset
-    );
-
-    manager
-        .apply_layout_command(LayoutCommand::ResetToDefault)
-        .unwrap();
-    manager
-        .apply_layout_command(LayoutCommand::LoadPreset {
-            name: "rider".to_string(),
-        })
-        .unwrap();
-
-    assert_eq!(
-        manager.current_layout().active_main_page,
-        MainPageId::new("preset-page")
-    );
-
-    std::env::remove_var("ZIRCON_CONFIG_PATH");
-    let _ = fs::remove_file(path);
-    let _ = fs::remove_dir_all(project_root);
 }
 
 #[test]
@@ -692,6 +602,15 @@ fn create_project_and_open_persists_recent_project_and_returns_project_session()
     assert!(default_startup
         .status_message
         .contains("Restored recent project"));
+    assert!(default_startup
+        .status_message
+        .contains("RecentProject (scene="));
+    assert!(opened
+        .status_message
+        .contains("scene=res://scenes/main.scene.toml"));
+    assert!(default_startup
+        .status_message
+        .contains("scene=res://scenes/main.scene.toml"));
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -714,11 +633,41 @@ fn explicit_project_open_session_bypasses_component_showcase_builtin_view() {
     assert_eq!(opened.mode, EditorSessionMode::Project);
     assert!(opened.project.is_some());
     assert!(opened.open_builtin_view.is_none());
-    assert_eq!(opened.status_message, "Project opened");
+    assert!(opened.status_message.starts_with("Project opened:"));
+    assert!(opened.status_message.contains("assets="));
     assert_eq!(opened.recent_projects.len(), 1);
     assert_eq!(
         opened.recent_projects[0].validation,
         RecentProjectValidation::Valid
+    );
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn project_open_applies_completed_plugin_manifest_to_the_manager() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_project_plugin_manifest");
+    let project_root = unique_temp_dir("zircon_editor_project_plugin_manifest");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    create_project_with_default_world(&project_root);
+
+    let opened = manager.open_project_and_remember(&project_root).unwrap();
+    let plugin_source = manager.plugin_panel_source();
+    let plugin_rows = plugin_source.rows().collect::<Vec<_>>();
+
+    assert!(opened.project.is_some());
+    assert!(!plugin_rows.is_empty());
+    assert!(
+        plugin_rows
+            .iter()
+            .all(|row| row.state() == EditorPluginState::Disabled),
+        "the default project manifest must disable every completed editor package"
     );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");

@@ -34,7 +34,7 @@ description: Use when Codex needs repository-local `zirconEngine`-specific guida
   - `support-first-regression-testing/SKILL.md`
 - For Hub visual verification and real Windows window screenshots:
   - `capture-hub-window-screenshot/SKILL.md`
-- For repository coordination, documentation synchronization, or maintenance-focused structure work:
+- For repository coordination, minimal plan/failure record ownership, or a durable-documentation exception:
   - `cross-session-coordination/SKILL.md`
   - `close-session-goal-milestones/SKILL.md`
   - `handle-plan-failure-handoffs/SKILL.md`
@@ -47,6 +47,7 @@ description: Use when Codex needs repository-local `zirconEngine`-specific guida
 - Keep this parent file short and navigational.
 - Treat this folder as a classified skill collection, not as a flat dump of unrelated repository skills.
 - Treat `milestone-first-workflow-policy.md` as the repository-level execution cadence for plans, implementation slices, validation, and docs.
+- Do not route ordinary source work into documentation maintenance: source, focused tests, coordinator state, and one accepted milestone row are the default record; load `code-module-docs-maintenance` only when a durable fact would otherwise be false or absent.
 - Treat coordinator SQLite state as a local query/index layer only. Git history and canonical Markdown plans/failure artifacts remain repository truth.
 - Add new child skills only when their scope is specific enough to deserve a dedicated folder and `SKILL.md`.
 - Update this parent index whenever a child skill is added, renamed, split, merged, or materially repurposed.

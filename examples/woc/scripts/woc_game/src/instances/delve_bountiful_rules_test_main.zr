@@ -1,0 +1,18 @@
+var rules = %import("instances/delve_bountiful_rules");
+var zeroDerivedDraw = rules.bountifulDraw(rules.seedXor(true), true);
+
+if (rules.seedXor(true) != <uint>1611514111 || rules.bountifulChance("normal", true) != 0.02 ||
+    rules.bountifulChance("heroic", true) != 0.05 || rules.bountifulChance("unknown", true) != 0.02 ||
+    rules.bountifulDraw(<uint>0, true) < 0.0 || rules.bountifulDraw(<uint>0, true) >= 1.0 ||
+    !rules.isBountiful(<uint>71, "normal", true) || !rules.isBountiful(<uint>71, "heroic", true) ||
+    rules.isBountiful(<uint>2147483647, "normal", true) ||
+    !rules.isBountiful(<uint>2147483647, "heroic", true) ||
+    rules.isBountiful(<uint>0, "normal", true) || rules.isBountiful(<uint>0, "heroic", true) ||
+    zeroDerivedDraw <= 0.35888 || zeroDerivedDraw >= 0.35890 ||
+    rules.isBountiful(rules.seedXor(true), "normal", true) ||
+    rules.isBountiful(rules.seedXor(true), "heroic", true) ||
+    rules.contractTest() != 1) {
+    return -1;
+}
+
+return 0;

@@ -70,18 +70,7 @@ fn tangents_for_mesh(
 ) -> Vec<[f32; 4]> {
     let mut tangent_sums = vec![[0.0, 0.0, 0.0]; positions.len()];
     let mut bitangent_sums = vec![[0.0, 0.0, 0.0]; positions.len()];
-    let element_indices = indices.map_or_else(
-        || (0..positions.len()).collect::<Vec<_>>(),
-        |indices| {
-            indices
-                .to_u32_vec()
-                .into_iter()
-                .map(|index| index as usize)
-                .collect::<Vec<_>>()
-        },
-    );
-
-    for triangle in element_indices.chunks_exact(3) {
+    let mut accumulate = |triangle: [usize; 3]| {
         accumulate_triangle_tangent(
             [triangle[0], triangle[1], triangle[2]],
             positions,
@@ -89,6 +78,13 @@ fn tangents_for_mesh(
             &mut tangent_sums,
             &mut bitangent_sums,
         );
+    };
+    if let Some(indices) = indices {
+        indices.for_each_triangle(&mut accumulate);
+    } else {
+        for start in (0..positions.len()).step_by(3) {
+            accumulate([start, start + 1, start + 2]);
+        }
     }
 
     (0..positions.len())

@@ -32,12 +32,11 @@ pub(super) struct HotspotInventorySources {
     pub(super) asset_worker_source: &'static str,
     pub(super) asset_worker_manager: &'static str,
     pub(super) asset_worker_tests: &'static str,
-    pub(super) animation_scene_diagnostics: &'static str,
-    pub(super) animation_scene_events: &'static str,
-    pub(super) animation_scene_node_pose: &'static str,
-    pub(super) animation_scene_pending: &'static str,
-    pub(super) animation_scene_scan: &'static str,
-    pub(super) animation_scene_tick: &'static str,
+    pub(super) animation_plugin_runtime_system: &'static str,
+    pub(super) animation_plugin_tick: &'static str,
+    pub(super) animation_plugin_events: &'static str,
+    pub(super) animation_clip_events: &'static str,
+    pub(super) animation_level_system: &'static str,
     pub(super) root_manifest: &'static str,
     pub(super) runtime_manifest: &'static str,
     pub(super) zircon_build: &'static str,
@@ -117,16 +116,17 @@ impl HotspotInventorySources {
                 "../../../../asset/pipeline/manager/project_asset_manager/construction.rs"
             ),
             asset_worker_tests: include_str!("../../../../asset/tests/pipeline/worker_pool.rs"),
-            animation_scene_diagnostics: include_str!(
-                "../../../../animation/scene_hook/diagnostics.rs"
+            animation_plugin_runtime_system: include_str!(
+                "../../../../../../zircon_plugins/animation/runtime/src/runtime_system.rs"
             ),
-            animation_scene_events: include_str!("../../../../animation/scene_hook/events.rs"),
-            animation_scene_node_pose: include_str!(
-                "../../../../animation/scene_hook/node_pose.rs"
+            animation_plugin_tick: include_str!(
+                "../../../../../../zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs"
             ),
-            animation_scene_pending: include_str!("../../../../animation/scene_hook/pending.rs"),
-            animation_scene_scan: include_str!("../../../../animation/scene_hook/scan.rs"),
-            animation_scene_tick: include_str!("../../../../animation/scene_hook/tick.rs"),
+            animation_plugin_events: include_str!(
+                "../../../../../../zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs"
+            ),
+            animation_clip_events: include_str!("../../../../animation/clip_event.rs"),
+            animation_level_system: include_str!("../../../../scene/level_system.rs"),
             root_manifest: include_str!("../../../../../../Cargo.toml"),
             runtime_manifest: include_str!("../../../../../../zircon_runtime/Cargo.toml"),
             zircon_build: include_str!("../../../../../../tools/zircon_build.py"),

@@ -13,6 +13,7 @@ impl ViewportRecord {
             generation: 0,
             temporal_frame_index: 0,
             compiled_pipeline: None,
+            last_capture_pipeline: None,
             hybrid_gi_runtimes: Default::default(),
             virtual_geometry_runtimes: Default::default(),
             light_grid_reports: Default::default(),

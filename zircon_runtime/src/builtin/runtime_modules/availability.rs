@@ -1,8 +1,13 @@
+use std::collections::HashSet;
+
 use crate::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
 use crate::plugin::{
     RuntimePluginAvailabilityReport, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
     RuntimeProfileDescriptor,
 };
+
+#[cfg(test)]
+use std::cell::Cell;
 
 use crate::core::framework::platform::RuntimeTargetMode;
 
@@ -30,10 +35,10 @@ pub(super) fn runtime_profile_manifest_availability<'a>(
     )
 }
 
-pub(super) fn target_manifest_availability<'a>(
+pub(super) fn target_manifest_availability(
     target: RuntimeTargetMode,
     manifest: &ProjectPluginManifest,
-    linked_plugin_ids: impl IntoIterator<Item = &'a String>,
+    linked_plugin_ids: &HashSet<String>,
 ) -> RuntimePluginAvailabilityReport {
     let profile = RuntimeProfileDescriptor::new(
         runtime_profile_id_for_target_availability(target),
@@ -41,11 +46,10 @@ pub(super) fn target_manifest_availability<'a>(
         target,
     );
     let descriptors = runtime_plugin_descriptors();
-    profile.availability_report_for_manifest_with_providers(
+    profile.availability_report_for_manifest_with_linked_membership(
         descriptors.iter(),
         manifest,
         linked_plugin_ids,
-        std::iter::empty::<String>(),
     )
 }
 
@@ -76,5 +80,22 @@ fn runtime_profile_id_for_target_availability(target: RuntimeTargetMode) -> Runt
 }
 
 fn runtime_plugin_descriptors() -> Vec<RuntimePluginDescriptor> {
+    #[cfg(test)]
+    PROJECTION_BUILD_COUNT.with(|count| count.set(count.get().saturating_add(1)));
     RuntimePluginDescriptor::builtin_catalog()
+}
+
+#[cfg(test)]
+thread_local! {
+    static PROJECTION_BUILD_COUNT: Cell<usize> = const { Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(super) fn reset_projection_build_count() {
+    PROJECTION_BUILD_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+pub(super) fn projection_build_count() -> usize {
+    PROJECTION_BUILD_COUNT.with(Cell::get)
 }

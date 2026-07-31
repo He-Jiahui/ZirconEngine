@@ -1,0 +1,36 @@
+var console = %import("zr.system.console");
+var content = %import("content/m3_mobs");
+var rules = %import("content/rules");
+var rng = %import("kernel/rng");
+var targeting = %import("kernel/targeting");
+var locomotion = %import("kernel/locomotion");
+var playerMotion = %import("world/player_motion");
+var lifecycle = %import("kernel/lifecycle");
+var roster = %import("kernel/roster");
+var container = %import("zr.container");
+
+console.printLine("m3-foundation-test");
+var results = new container.Array<int>();
+results.add(content.contractTest(1, 1, 2, 3, 5, 8, 13));
+results.add(rules.contractTest());
+results.add(rng.constructionStreamTest());
+results.add(targeting.parityRulesTest());
+results.add(targeting.tieBreakTest());
+results.add(targeting.scenarioContractTest());
+results.add(locomotion.parityRulesTest());
+results.add(locomotion.sharedRngScenarioTest());
+results.add(locomotion.scenarioContractTest());
+results.add(playerMotion.contractTest());
+results.add(lifecycle.parityRulesTest());
+results.add(lifecycle.sharedRngScenarioTest());
+results.add(lifecycle.scenarioContractTest());
+results.add(roster.parityRulesTest());
+results.add(roster.scenarioContractTest());
+
+for (var result in results) {
+    console.printLine(<int>result);
+    if (<int>result != 1) {
+        return <int>result;
+    }
+}
+return 0;

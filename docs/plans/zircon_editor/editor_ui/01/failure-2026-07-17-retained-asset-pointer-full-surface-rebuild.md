@@ -57,6 +57,12 @@ Menu bridge 的 root popup scroll 也在 offset 变化后重建全部 menu butto
 
 Welcome Recent bridge 对每个项目创建 item、open、remove 三类节点；scroll offset 变化后整棵重建，且 Open/Remove route 各 clone 一份 project path，move 命中也会物化 owned path。近期项目通常较少，但它处于最小编辑器的首屏路径，必须复用同一 stable-row/visible-range机制，不能作为“数据量小”例外长期保留。
 
+2026-07-31 current app 4/4与bridge 20/20补证：稳定move在`sync_pane_size`内先投影三项Slint状态，dispatch后又投影三项；action hover仍从route-intent map clone owned project path，即使app只消费state。每click还先构造完整chrome snapshot并clone全部recent paths再做单row hit。PERF-MVP-117因此要求same-hover move为0 path clone/0 UI write，stable click复用generation-owned typed route/path，不得把bridge equality当作上游O(N)工作的门禁。完整证据见`../../../performance/01/2026-07-31-editor-retained-welcome-recent-pointer-current-review.md`。
+
+2026-07-30 app pointer-layout current-source 11/11补充了scroll之外的上游放大：activity/browser在bridge equality前先clone两份workspace snapshot并构造tree/content/references/used-by共8个owned layout；hierarchy先复制完整scene-entry slice并为每row格式化String id；menu保留完整layout后再clone给bridge，Welcome重收集owned paths且click先建完整chrome。即使bridge最终判定相等、surface rebuild=0，row visit/clone/format/layout bytes仍为O(N)。EditorUI08负责stable generation整组短路；本EditorUI01 failure负责changed generation只接typed delta并物化visible rows，二者不得各建全量cache。
+
+2026-07-31 asset-drag payload current 3/3补证：content route已携`item_index`，reference route已携`row_index`，但press均丢弃索引并按UUID线性重扫；每普通left-down还在threshold前构造完整owned payload与status。PERF-MVP-109要求同一row generation authority提供typed drag candidate，down只arm，Begin才O(1)解引用Editor09 metadata并一次物化；不得给drag consumer另建UUID map。完整证据见`../../../performance/01/2026-07-31-editor-retained-asset-drag-payload-current-review.md`。
+
 Slint repeater 只更新 dirty row/range，Godot ItemList/Tree 也以滚动窗口和可见项驱动绘制/命中。Zircon 应保留 typed route 与稳定 node identity，但不应把 scroll transform 表达成全树销毁重建。
 
 ## 最低共享层根因
@@ -70,6 +76,9 @@ Pointer surface 把数据 projection、scroll transform、hit-grid materializati
 - move-only API 返回 hovered row/state，不 clone UUID/folder String；只有 click/press/drag 需要 owned route 时才物化 stable id。
 - content list/grid、folder tree、scene hierarchy、welcome recent open/remove、root/nested menu、known/unknown references、scroll clamp、child-window resize、drag payload、disabled/action rows 与 public route 顺序/identity 等价。
 - 1k scroll/move storm 记录 surface rebuild count、node/path/target alloc bytes、hit-grid updates、p95 与 queue age；unchanged move rebuild=0，scroll 不全树重建。
+- stable generation在app/bridge两层的workspace/scene clone、row visit/String format、owned layout build与deep equality bytes均为0；1% changed工作随delta+visible rows而非总N，click不为单row命中构造完整chrome/list projection。
+- welcome recent same-hover move的owned path clone与Slint setter均为0；stable open/remove click的full chrome snapshot、全path Vec与deep layout compare为0，只有最终action边界物化一个owned path。
+- asset click-only down的row scan、UUID compare、full drag payload、metadata/summary/status String bytes均为0；真实drag Begin按generation+slot近O(1)解引用且payload只物化一次，stale generation不可命中。
 
 ## 禁止临时方案
 
@@ -80,3 +89,7 @@ Pointer surface 把数据 projection、scroll transform、hit-grid materializati
 ## 修复结果与回传
 
 Open state: `待 EditorUI01 建立 stable row identity、visible-range pointer surface 与增量 scroll/hit update，并回传 10k-row storm/route parity 证据`。
+
+2026-07-31 menu app adapter增量证据：`app/menu_pointer.rs`当前1/1、47行、SHA-256 `FC58D55CEA13DCD011B4B9CBF496BA721EC4E8D8E5C72DD8F992E44B790E9F2D`完成静态复读。bridge unchanged layout避免部分rebuild，但move/scroll仍clone完整state，app无条件替换owner并写全部Slint字段；有效scroll/submenu仍可full rebuild。PERF-MVP-112验收补充same hover与zero/clamped scroll的state/path clone、setter、rebuild=0，并要求typed changed/damage返回；managed Cargo、1M input/10k rows、F4与independent review未完成，failure保持open。完整证据见`../../../performance/01/2026-07-31-editor-retained-small-input-adapters-current-review.md`。
+
+2026-07-31 asset reference state增量证据：`app/{asset_surface_pointer_state.rs,reference_drop_payload.rs}`当前2/2、104行完成静态复读。两文件自身是常数state match与最多三槽drop take；高频consumer仍让reference bridge克隆完整state，host对单列表stable event重写8项asset UI字段，有效scroll重建全部rows。PERF-MVP-109补充same hover/zero-clamped scroll的state clone、setter、rebuild=0；drop owner move/probe保持常数。managed Cargo、1M event/10k row、F4与independent review未完成，failure保持open。完整证据见`../../../performance/01/2026-07-31-editor-retained-state-visibility-helpers-current-review.md`。

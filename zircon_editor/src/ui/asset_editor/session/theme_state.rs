@@ -135,8 +135,8 @@ impl UiAssetEditorSession {
             &self.compiler_imports.styles,
             self.selected_theme_source_key.as_deref(),
         )
-        .get(index)
-        .cloned()
+        .into_iter()
+        .nth(index)
     }
 
     pub fn apply_theme_rule_helper_item(
@@ -217,8 +217,8 @@ impl UiAssetEditorSession {
 
     pub(crate) fn theme_refactor_action(&self, index: usize) -> Option<UiAssetThemeRefactorAction> {
         theme_refactor_actions(&self.last_valid_document, &self.compiler_imports.styles)
-            .get(index)
-            .cloned()
+            .into_iter()
+            .nth(index)
     }
 
     pub fn apply_theme_refactor_item(

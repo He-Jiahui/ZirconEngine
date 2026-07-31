@@ -6,7 +6,7 @@ display_name = "Workbench Toggle"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchToggle]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-toggle", "workbench-primitive"]
 component = "Toggle"
 control_id = "WorkbenchToggleRoot"
 classes = ["workbench-toggle"]
-props = { text = "Switch", value = false, checked = false, layout_spacing = 10.0, track_width = 34.0, track_height = 18.0, thumb_size = 12.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { min = 48.0, preferred = 56.0, max = 72.0, stretch = "Fixed" }, height = { min = 26.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+props = { text = "Switch", value = false, checked = false, toggle_background_color = "$editor.surface.2", hover_background_color = "$editor.surface.hover", pressed_background_color = "$editor.surface.3", selected_background_color = "$editor.surface.selected", disabled_background_color = "$editor.surface.disabled", border_color = "$editor.separator.strong", focus_border_color = "$editor.accent", accent_color = "$editor.accent", disabled_border_color = "$editor.border.disabled", thumb_color = "$editor.text.secondary", selected_thumb_color = "$editor.text.primary", disabled_foreground_color = "$editor.text.disabled", border_width = "$editor.control.border_width", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", layout_spacing = "$editor.density.gap.medium", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.control.height.default", stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.compact", stretch = "Fixed" } }

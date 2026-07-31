@@ -11,7 +11,10 @@ mod session;
 pub use capabilities::{
     PluginActivationState, PluginSummaryEntry, RuntimeCapabilities, SessionProfileKind,
 };
-pub use contract::{EditorRuntimeFrame, EditorRuntimeGateway};
+pub use contract::{
+    EditorRuntimeFrame, EditorRuntimeFrameDemand, EditorRuntimeGateway,
+    EditorRuntimePluginEventPage,
+};
 pub use detached::DetachedEditorRuntimeGateway;
 pub use error::GatewayError;
 pub use handle::EditorRuntimeGatewayHandle;

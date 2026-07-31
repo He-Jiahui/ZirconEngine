@@ -12,15 +12,15 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Mat4, UVec2, Vec3, Vec4};
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
-    build_light_grid, LightGridProjection, LightGridViewInfo,
+    LightGridProjection, LightGridViewInfo, build_light_grid,
 };
 use crate::graphics::scene::scene_renderer::shadow::slot::{
-    GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_FLAG_VALID,
+    GPU_SHADOW_SLOT_FLAG_VALID, GpuShadowGlobals, GpuShadowSlot,
 };
 
+use super::super::GpuFroxelTemporalReprojection;
 use super::super::light_scatter::{FroxelLightScatterPipeline, FroxelLightScatterRequest};
 use super::super::media_inject::{FroxelMediaInjectPipeline, FroxelMediaInjectRequest};
-use super::super::GpuFroxelTemporalReprojection;
 
 mod temporal_product;
 

@@ -61,4 +61,23 @@ validated bindings 和 bridge call owner 没有共同 generation/lifetime author
 
 ## 修复结果与回传
 
-Open state: `待 Plugins01 建立按 plugin generation 共享的 registration replay context 并完成规模基准`。
+Open state: `共享 registration replay context 源实现、current-source focused 与完整规模基准已 GREEN；broad parity、独立复审、fixed return 与 owner milestone commit 仍待完成`。
+
+## 2026-07-22 current-source 编译修复
+
+- Layout15 snapshot `680` 的 fresh locked upward gate job `8e229f6cd2c749f495b0f701e0c07bc0` / run `b410b0de35d14f2d9980be50241c640e` 已进入 `zircon_runtime`，在 `registration_replay.rs:392` 暴露 E0308：新共享 context 的 `method_slot_result` 返回 `NativePluginBridgeMethodError`，而既有 `NativePluginRegistrationReplayError::BridgeMethodSlot` 稳定诊断合同继续存储 `source: String`。
+- `map_err` 现在只在错误边界执行 `source.to_string()`；没有扩大 replay error enum、复制 method map 或改变 system 注册顺序/共享 `Arc<NativeHostBridgeCallScope>` 生命周期。
+- scoped `rustfmt --check`、`git diff --check` 与 error-diagnostic adapter source contract 已通过。受管 current-source gate 必须与 BridgeImport `as_deref()` 修复一起重跑；在 fresh GREEN 前本 failure 保持 `open`。
+- current-source owner gate job `378142f7f96e45baa800695a357b2002` / run `6b2c040c395a4adfb76ec31ea0dd6a8a` 执行 `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1`，exit `0` 并自动 release；同一 `registration_replay.rs` snapshot `df339dd58d5afe843cedf01e362ba53bf7b288470d3da3e431d7b0c5fd3ce176` 通过 owner feature 编译。Layout15 warm upward gate 也确认 E0308 消失，随后仅被外部 Text01 E0502 截断；下述 focused/scale 证据补齐后，仅 broad parity、独立复审与 fixed return 仍未完成。
+- managed job `93f88e221e244b93b176afa90a07cdff` 保留的 current-source test binary（SHA-256
+  `0EAD8F289E845A8730E84EAEB51D7A97C545C306421BF2D623EAC0BCFB12B5A7`）执行完整
+  `registration_replay` 过滤组为 `5 passed / 0 failed / 1 ignored / 4304 filtered`。忽略的
+  scale benchmark 又单独通过 `1/1`；`systems={1,100,1000} × methods={1,100}` 六组均为
+  `manifest_snapshots=1, binding_snapshots=1, method_lookup_builds=1, bridge_call_scope_builds=1`，
+  wall 为 `3026/3863/10249/14603/177688/134896 us`。
+
+### 2026-07-22 typed live-host generation增量证据
+
+shared replay context已把单次replay的manifest/binding/method lookup/scope build降为每plugin一次；但live-host所有查询仍先`format!("runtime:{plugin_id}")`分配String key，公开bridge scope/single-method辅助路径还会clone完整package manifest与installed binding Vec。registration manifest source也在每次replay从loaded entry clone全文并重新parse TOML。PERF-MVP-543要求把typed plugin key、parsed registration manifest、validated bindings和dense method slots纳入同一native load generation；replay继续借用一个context，其他查询不得绕过它。
+
+补充验收：1M stable lookups key allocation=0，单generation manifest parse=1、package/binding full clone=0、method lookup O(1)；reload只重建受影响plugin generation，旧system/scope由in-flight Arc延寿。既有5+1 focused/scale证据不失效，但broad parity、typed generation验收、独立复审与fixed return完成前保持open。

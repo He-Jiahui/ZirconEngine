@@ -1,8 +1,8 @@
-use std::collections::BTreeMap;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::MutexGuard;
 
 use crate::plugin::PluginModuleKind;
 
+use super::super::loaded_native_plugin::NativePluginLifecycleTransitionError;
 use super::super::{LoadedNativePlugin, NativePluginLoadReport};
 use super::bridge_methods::{
     discovered_runtime_bridge_method_binding_diagnostics,
@@ -10,12 +10,13 @@ use super::bridge_methods::{
     discovered_runtime_bridge_method_bindings_result, NativePluginBridgeMethodError,
 };
 use super::diagnostics::{
-    diagnostics_from_behavior_report, load_report_diagnostics, NativePluginBehaviorDiagnosticError,
+    diagnostics_from_behavior_report, load_projected_report_diagnostics,
+    NativePluginBehaviorDiagnosticError,
 };
-use super::keys::{live_key, live_key_prefix, module_kind_label};
+use super::keys::{live_key, module_kind_label, NativePluginLiveRegistry};
 use super::reports::NativePluginLiveHostLoadReport;
 use super::runtime_behavior::unload_behavior;
-use super::NativePluginLiveHost;
+use super::{NativePluginLiveHost, ObservedLoadedNativePlugins};
 
 pub(super) type NativePluginLiveHostLoadingResult<T> =
     std::result::Result<T, NativePluginLiveHostLoadingError>;
@@ -23,6 +24,11 @@ pub(super) type NativePluginLiveHostLoadingResult<T> =
 #[derive(Debug)]
 pub(super) enum NativePluginLiveHostLoadingError {
     LiveHostLockPoisoned,
+    PluginBusy {
+        plugin_id: String,
+        module_kind: PluginModuleKind,
+        source: NativePluginLifecycleTransitionError,
+    },
     UnloadBeforeReload {
         plugin_id: String,
         module_kind: PluginModuleKind,
@@ -40,6 +46,15 @@ impl std::fmt::Display for NativePluginLiveHostLoadingError {
             Self::LiveHostLockPoisoned => {
                 formatter.write_str("native plugin live host lock is poisoned")
             }
+            Self::PluginBusy {
+                plugin_id,
+                module_kind,
+                source,
+            } => write!(
+                formatter,
+                "{} plugin {plugin_id} lifecycle is busy during load: {source}",
+                module_kind_label(*module_kind)
+            ),
             Self::UnloadBeforeReload {
                 plugin_id,
                 module_kind,
@@ -60,6 +75,7 @@ impl std::fmt::Display for NativePluginLiveHostLoadingError {
 impl std::error::Error for NativePluginLiveHostLoadingError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
+            Self::PluginBusy { source, .. } => Some(source),
             Self::UnloadBeforeReload { source, .. } => Some(source),
             Self::RuntimeBridgeMethodBindings { source, .. } => Some(source.as_ref()),
             Self::LiveHostLockPoisoned => None,
@@ -106,12 +122,7 @@ impl NativePluginLiveHost {
 
     pub fn loaded_plugin_ids(&self, module_kind: PluginModuleKind) -> Result<Vec<String>, String> {
         let loaded = lock_loaded_native_plugins(&self.loaded).map_err(|error| error.to_string())?;
-        let prefix = live_key_prefix(module_kind);
-        Ok(loaded
-            .keys()
-            .filter_map(|key| key.strip_prefix(prefix))
-            .map(str::to_string)
-            .collect())
+        Ok(loaded.plugin_ids(module_kind).map(str::to_string).collect())
     }
 
     pub(super) fn load_reported_plugins(
@@ -128,24 +139,21 @@ impl NativePluginLiveHost {
         mut report: NativePluginLoadReport,
         module_kind: PluginModuleKind,
     ) -> NativePluginLiveHostLoadingResult<NativePluginLiveHostLoadReport> {
-        let runtime_plugin_registration_reports = match module_kind {
-            PluginModuleKind::Runtime => report.runtime_plugin_registration_reports(),
-            PluginModuleKind::Editor | PluginModuleKind::Native | PluginModuleKind::Vm => {
-                Vec::new()
-            }
-        };
-        let runtime_plugin_feature_registration_reports = match module_kind {
-            PluginModuleKind::Runtime => report.runtime_plugin_feature_registration_reports(),
-            PluginModuleKind::Editor | PluginModuleKind::Native | PluginModuleKind::Vm => {
-                Vec::new()
-            }
-        };
-        let mut diagnostics = load_report_diagnostics(&report);
-        let mut loaded = lock_loaded_native_plugins(&self.loaded)?;
+        let projection = report.projection();
+        let (runtime_plugin_registration_reports, runtime_plugin_feature_registration_reports) =
+            match module_kind {
+                PluginModuleKind::Runtime => (
+                    projection.runtime_plugin_registration_reports(),
+                    projection.runtime_plugin_feature_registration_reports(),
+                ),
+                PluginModuleKind::Editor | PluginModuleKind::Native | PluginModuleKind::Vm => {
+                    (Vec::new(), Vec::new())
+                }
+            };
+        let mut diagnostics = load_projected_report_diagnostics(&report, &projection);
         let mut loaded_plugin_ids = Vec::new();
-        let mut bridge_binding_updates = Vec::new();
 
-        for plugin in std::mem::take(&mut report.loaded) {
+        for plugin in report.take_loaded() {
             let plugin_id = plugin.plugin_id.clone();
             let key = live_key(module_kind, &plugin_id);
             let bridge_binding_update = if module_kind == PluginModuleKind::Runtime {
@@ -169,38 +177,72 @@ impl NativePluginLiveHost {
             } else {
                 None
             };
-            if let Some(existing) = loaded.remove(&key) {
-                match diagnostics_from_behavior_report(
-                    &format!("{} unload before reload", module_kind_label(module_kind)),
-                    unload_behavior(&existing, module_kind),
-                ) {
-                    Ok(unload_diagnostics) => diagnostics.extend(unload_diagnostics),
-                    Err(error) => {
-                        loaded.insert(key, existing);
-                        return Err(NativePluginLiveHostLoadingError::UnloadBeforeReload {
-                            plugin_id,
-                            module_kind,
-                            source: error,
-                        });
+            let existing = {
+                let mut loaded = lock_loaded_native_plugins(&self.loaded)?;
+                let Some(existing) = loaded.get(&key) else {
+                    if let Some((binding_plugin_id, bindings)) = bridge_binding_update {
+                        self.replace_runtime_bridge_method_bindings_result(
+                            &binding_plugin_id,
+                            bindings,
+                        )
+                        .map_err(|source| {
+                            NativePluginLiveHostLoadingError::RuntimeBridgeMethodBindings {
+                                plugin_id: binding_plugin_id,
+                                source: Box::new(source),
+                            }
+                        })?;
                     }
+                    loaded.insert(key, plugin);
+                    if module_kind == PluginModuleKind::Runtime {
+                        // Binding installation happens before the loaded entry is published. Bump
+                        // once more after publication so a concurrent replay cannot cache the
+                        // preceding library under the newly installed bindings.
+                        self.invalidate_runtime_registration_replay_generation(&plugin_id);
+                    }
+                    loaded_plugin_ids.push(plugin_id.clone());
+                    continue;
+                };
+                if let Err(source) = existing.begin_lifecycle_transition() {
+                    return Err(NativePluginLiveHostLoadingError::PluginBusy {
+                        plugin_id,
+                        module_kind,
+                        source,
+                    });
+                }
+                existing.clone()
+            };
+            match diagnostics_from_behavior_report(
+                &format!("{} unload before reload", module_kind_label(module_kind)),
+                unload_behavior(&existing, module_kind),
+            ) {
+                Ok(unload_diagnostics) => diagnostics.extend(unload_diagnostics),
+                Err(error) => {
+                    existing.cancel_lifecycle_transition();
+                    return Err(NativePluginLiveHostLoadingError::UnloadBeforeReload {
+                        plugin_id,
+                        module_kind,
+                        source: error,
+                    });
                 }
             }
-            loaded.insert(key, plugin);
-            loaded_plugin_ids.push(plugin_id);
-            if let Some(update) = bridge_binding_update {
-                bridge_binding_updates.push(update);
+            if let Some((binding_plugin_id, bindings)) = bridge_binding_update {
+                if let Err(source) =
+                    self.replace_runtime_bridge_method_bindings_result(&binding_plugin_id, bindings)
+                {
+                    existing.cancel_lifecycle_transition();
+                    return Err(
+                        NativePluginLiveHostLoadingError::RuntimeBridgeMethodBindings {
+                            plugin_id: binding_plugin_id,
+                            source: Box::new(source),
+                        },
+                    );
+                }
             }
-        }
-        drop(loaded);
-
-        for (plugin_id, bindings) in bridge_binding_updates {
-            self.replace_runtime_bridge_method_bindings_result(&plugin_id, bindings)
-                .map_err(|source| {
-                    NativePluginLiveHostLoadingError::RuntimeBridgeMethodBindings {
-                        plugin_id,
-                        source: Box::new(source),
-                    }
-                })?;
+            lock_loaded_native_plugins(&self.loaded)?.insert(key, plugin);
+            if module_kind == PluginModuleKind::Runtime {
+                self.invalidate_runtime_registration_replay_generation(&plugin_id);
+            }
+            loaded_plugin_ids.push(plugin_id);
         }
 
         loaded_plugin_ids.sort();
@@ -219,8 +261,9 @@ impl NativePluginLiveHost {
 }
 
 pub(super) fn lock_loaded_native_plugins(
-    loaded: &Mutex<BTreeMap<String, LoadedNativePlugin>>,
-) -> NativePluginLiveHostLoadingResult<MutexGuard<'_, BTreeMap<String, LoadedNativePlugin>>> {
+    loaded: &ObservedLoadedNativePlugins,
+) -> NativePluginLiveHostLoadingResult<MutexGuard<'_, NativePluginLiveRegistry<LoadedNativePlugin>>>
+{
     loaded
         .lock()
         .map_err(|_| NativePluginLiveHostLoadingError::LiveHostLockPoisoned)

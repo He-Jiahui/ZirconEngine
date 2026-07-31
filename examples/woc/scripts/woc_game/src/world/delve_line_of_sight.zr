@@ -1,0 +1,98 @@
+// Line-of-sight sampler for one explicitly selected Delve module. Active-run
+// code supplies the selected module context; default fallback selection lives in
+// delve_default_line_of_sight.zr.
+
+var math = %import("zr.zircon.math");
+var geometry = %import("world/collision_geometry");
+var content = %import("world/delve_collision_content");
+
+moduleOverlaps(moduleIndex: int, localX: float, localZ: float, radius: float): bool {
+    var colliderIndex = 0;
+    while (colliderIndex < content.moduleColliderCount(moduleIndex, true)) {
+        var kind = content.colliderKind(moduleIndex, colliderIndex, true);
+        var centerX = content.colliderFloat(moduleIndex, colliderIndex, 1, true);
+        var centerZ = content.colliderFloat(moduleIndex, colliderIndex, 2, true);
+        var resolvedX = localX;
+        var resolvedZ = localZ;
+        if (kind == 1) {
+            var colliderRadius = content.colliderFloat(moduleIndex, colliderIndex, 3, true);
+            resolvedX = geometry.circleResolvedX(
+                localX, localZ, radius, centerX, centerZ, colliderRadius, true
+            );
+            resolvedZ = geometry.circleResolvedZ(
+                localX, localZ, radius, centerX, centerZ, colliderRadius, true
+            );
+        } else {
+            resolvedX = geometry.obbResolvedX(
+                localX, localZ, radius, centerX, centerZ,
+                content.colliderFloat(moduleIndex, colliderIndex, 4, true),
+                content.colliderFloat(moduleIndex, colliderIndex, 5, true),
+                content.colliderFloat(moduleIndex, colliderIndex, 6, true), true
+            );
+            resolvedZ = geometry.obbResolvedZ(
+                localX, localZ, radius, centerX, centerZ,
+                content.colliderFloat(moduleIndex, colliderIndex, 4, true),
+                content.colliderFloat(moduleIndex, colliderIndex, 5, true),
+                content.colliderFloat(moduleIndex, colliderIndex, 6, true), true
+            );
+        }
+        if (resolvedX != localX || resolvedZ != localZ) {
+            return true;
+        }
+        colliderIndex = colliderIndex + 1;
+    }
+    return false;
+}
+
+pub isClearInModule(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    moduleOriginX: float,
+    moduleOriginZ: float,
+    moduleIndex: int,
+    radius: float,
+    required: bool
+): bool {
+    if (!required || radius < 0.0) {
+        throw "woc Delve line-of-sight arguments are invalid";
+    }
+    var deltaX = toX - fromX;
+    var deltaZ = toZ - fromZ;
+    var distance = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    if (distance < 0.000001) {
+        return true;
+    }
+    var fromLocalX = fromX - moduleOriginX;
+    var fromLocalZ = fromZ - moduleOriginZ;
+    var toLocalX = toX - moduleOriginX;
+    var toLocalZ = toZ - moduleOriginZ;
+    var steps = <int>math.ceil(distance / 0.5);
+    if (steps < 2) {
+        steps = 2;
+    }
+    var sample = 1;
+    while (sample < steps) {
+        var fraction = <float>sample / <float>steps;
+        var localX = fromLocalX + (toLocalX - fromLocalX) * fraction;
+        var localZ = fromLocalZ + (toLocalZ - fromLocalZ) * fraction;
+        if (moduleOverlaps(moduleIndex, localX, localZ, radius)) {
+            return false;
+        }
+        sample = sample + 1;
+    }
+    return true;
+}
+
+pub contractTest(): int {
+    if (isClearInModule(4770.0, -1206.0, 4780.0, -1206.0, 4800.0, -1242.0, 0, 0.05, true) ||
+        !isClearInModule(4800.0, -1220.0, 4802.0, -1220.0, 4800.0, -1242.0, 0, 0.05, true) ||
+        isClearInModule(
+            5395.333333333333, -1248.0, 5395.333333333333, -1262.0,
+            5400.0, -1242.0, 4, 0.05, true
+        ) || !isClearInModule(5400.0, -1240.0, 5400.0, -1230.0, 5400.0, -1242.0, 4, 0.05, true)) {
+        return -1;
+    }
+    return 1;
+}

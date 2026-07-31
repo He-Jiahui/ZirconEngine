@@ -1,8 +1,10 @@
-use crate::core::editing::engine::HistoryContextId;
+use crate::core::editing::engine::{HistoryContextId, TransactionId};
 use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::{
     DocumentId, DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic, FocusMessage,
-    ModeMessage, PlayStateKind, SceneModeId, SelectionDomain, TransactionMessage,
+    ModeMessage, PlayStateKind, SceneInspectionFieldsDelta, SceneInspectionMessage,
+    SceneInspectionPropertyPath, SceneModeId, SelectionDomain, TransactionMessage,
+    TOPIC_SCENE_INSPECTION,
 };
 
 pub(super) fn topic(value: &str) -> EditorTopic {
@@ -25,8 +27,10 @@ pub(super) fn typed_messages() -> Vec<(&'static str, EditorMessage)> {
             "editor.transaction",
             EditorMessage::new(EditorMessagePayload::Transaction(
                 TransactionMessage::Committed {
+                    transaction: TransactionId::from_sequence(1),
                     history: HistoryContextId::Document(DocumentId::new(11)),
                     label: "Move entity".to_string(),
+                    timestamp_frame: 0,
                 },
             )),
         ),
@@ -44,6 +48,30 @@ pub(super) fn typed_messages() -> Vec<(&'static str, EditorMessage)> {
                     domain: SelectionDomain::Scene,
                     revision: 13,
                 },
+            )),
+        ),
+        (
+            TOPIC_SCENE_INSPECTION,
+            EditorMessage::new(EditorMessagePayload::SceneInspection(
+                SceneInspectionMessage::delta(
+                    12,
+                    13,
+                    Some(42),
+                    vec![40],
+                    vec![42],
+                    vec![7],
+                    SceneInspectionFieldsDelta::delta(
+                        42,
+                        vec![SceneInspectionPropertyPath::new(
+                            "zircon_runtime::scene::components::LocalTransform",
+                            "translation",
+                        )],
+                        vec![SceneInspectionPropertyPath::new(
+                            "zircon_runtime::scene::components::Name",
+                            "value",
+                        )],
+                    ),
+                ),
             )),
         ),
     ]

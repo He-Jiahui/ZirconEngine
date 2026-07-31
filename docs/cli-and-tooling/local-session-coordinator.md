@@ -206,9 +206,9 @@ The service validates the active Git branch. A checkout that is not on `main` is
 
 ### Local offline intent queue
 
-The coordinator never introduces a global drain barrier: `service.drain` is an audit-only blocker observation, and production rejects global stop, restart, and force-stop before they can close admission. When the local runtime descriptor is absent or the fixed loopback endpoint explicitly refuses the connection, the CLI may atomically persist only these state-convergent requests under `.codex/state/session-coordinator/offline-command-queue/`: `session.register`, `session.heartbeat`, and `lease.heartbeat`. An offline registration must already carry `--session-id` or `CODEX_THREAD_ID`; the CLI never serializes a fresh random manual identity for later replay. Timeout and uncertain post-dispatch transport loss remain typed `offline` errors and are never queued, so the client does not guess whether a daemon already applied a request. Every JSON envelope is repository-key-bound, size-limited, exact-schema validated, written through a flushed temporary file, and placed in FIFO order. The same allowlist is enforced while reading queue files, so a locally planted queue file cannot elevate into a Cargo, lifecycle, finalization, or controlled-action request.
+The coordinator never introduces a global drain barrier: `service.drain` is an audit-only blocker observation, and production rejects global stop, restart, and force-stop before they can close admission. When the local runtime descriptor is absent or the fixed loopback endpoint explicitly refuses the connection, the CLI may atomically persist only these state-convergent requests under `.codex/state/session-coordinator/offline-command-queue/`: `session.register`, `session.heartbeat`, and `lease.heartbeat`. An offline registration must already carry `--session-id` or `CODEX_THREAD_ID`; the CLI never serializes a fresh random manual identity for later replay. A preflight timeout is typed `command_preflight_timeout`; timeout or uncertain transport loss after POST is typed `command_post_timeout` or `command_post_transport_unknown` with its request ID and is never queued. The client queries that durable request instead of guessing whether the daemon applied it. Every JSON envelope is repository-key-bound, size-limited, exact-schema validated, written through a flushed temporary file, and placed in FIFO order. The same allowlist is enforced while reading queue files, so a locally planted queue file cannot elevate into a Cargo, lifecycle, finalization, or controlled-action request.
 
-Cargo operations, reservations, process starts, lifecycle requests, controlled actions, commits, cleanup, retention, and finalization are never queued. They keep their typed `offline` failure because replaying them could create work, alter a safety boundary, or duplicate an irreversible side effect. A queued command is not local execution: it has no effect until a healthy daemon acknowledges it.
+Cargo operations, reservations, process starts, lifecycle requests, controlled actions, commits, cleanup, retention, and finalization are never queued. A post-dispatch failure retains its request-bound query path because replaying it could create work, alter a safety boundary, or duplicate an irreversible side effect. A queued command is not local execution: it has no effect until a healthy daemon acknowledges it.
 
 `tools/zircon-session.ps1 start` ends with the normal `status` request. A healthy `status` automatically replays pending local intents in FIFO order through a non-waiting local single-consumer lock, deletes only acknowledged items, stops at a new transport loss without reordering, and moves a terminal server rejection to the visible `failed/` queue directory while retaining its later suffix. Operators can inspect the queue or directly replay pending items:
 
@@ -435,10 +435,22 @@ job only after rechecking the same durable command fingerprint.
 After the coordinator has restored that Session to `active` through its controlled
 action path, its exact reservation-bound command uses `cargo run-reserved`, not generic
 `cargo run`. This path accepts the reservation ID, job ID, Session ID, and command only;
-it rechecks the durable command fingerprint and derives allowed `RUSTFLAGS`/
-`CARGO_INCREMENTAL` values from the canonical reservation payload before the daemon
-spawns the supervised process. A stale Session, a different command, or a client
-environment/target override is rejected without starting Cargo.
+it atomically records a durable `start_pending` acknowledgement and its dedicated
+launch deadline for that exact reservation/job/command binding before returning. The
+daemon then rechecks the source manifest, derives allowed `RUSTFLAGS`/
+`CARGO_INCREMENTAL` values from the canonical reservation payload, and spawns the
+supervised process asynchronously. A valid pending launch is protected from the generic
+300-second leased-job watchdog. A stale Session, a different command, or a client
+environment/target override is rejected without starting Cargo; a pre-spawn or launch
+failure becomes an explicit `launch_failed` disposition without fabricating a Cargo run
+or exit result. Repeating the same command request ID returns the same acknowledgement
+and cannot launch a second process. If a process was registered but cleanup cannot prove
+it stopped, the request is terminal `launch_failed` while the job/reservation remain
+owned and non-reusable until process-tree reconciliation proves death. On successor
+startup, a predecessor `start_pending` with an already registered PID/run is restored as
+`started`; one with no registered process is immediately terminalized as
+`cargo_launch_interrupted_before_spawn`. It is never silently left until the 900-second
+deadline and never rescheduled across daemons.
 
 ```powershell
 .\tools\zircon-session.ps1 cargo run-reserved --session-id <session-id> `
@@ -604,7 +616,7 @@ Owned-scope eligibility is Session-relative, not global-baseline-relative. Attri
 
 Every requested path must be attributed to the completed Session at its current SHA-256 hash. Every other dirty path attributed to that Session must also appear in the manifest, so untracked files, documentation, tests and scripts cannot be silently omitted. The durable finalize request records four categories (`code`, `docs`, `tests`, `scripts`) and a separate `untracked_paths` inventory.
 
-Before index mutation, the service requires the baseline `HEAD` to remain current, rejects an active Git mutex, foreign leases, queued or `needs_rebase` patches, foreign staged paths, protected/global plan output, output outside the registered numbered child plan, and an unresolved Failure routed to the Session plan. A degraded baseline is retained as a workspace-health observation rather than a global finalization gate: an exactly attributed, scope-complete Session may commit without waiting for unrelated worktree changes to be reconciled. Staged added lines are also scanned for Enterprise WeChat webhook URLs and credential markers. Webhook configuration remains local and must never enter Git.
+Before index mutation, the service requires the baseline `HEAD` to remain current, rejects an active Git mutex, foreign leases, queued or `needs_rebase` patches, foreign staged paths, protected/global plan output, output outside the registered numbered child plan, and an unresolved Failure routed to the Session plan. A degraded baseline is retained as a workspace-health observation rather than a global finalization gate: an exactly attributed, scope-complete Session may commit without waiting for unrelated worktree changes to be reconciled. Staged added lines are scanned for maintenance capabilities and generic credentials. An intentional Enterprise WeChat webhook URL or `WECOM_WEBHOOK_KEY` configuration may enter a service-managed Git commit, but its value remains absent from coordinator persistence and error output.
 
 The service persists the pre-transaction HEAD and exact Git index bytes after taking its database mutex, calculates each approved worktree file's Git-cleaned blob identity, stages only the approved paths, then verifies both the exact staged name set and staged blob identities. This closes the last-write race between attribution checking and staging. After optional validation commands, it repeats scope, blob and secret checks. The final commit is built from the verified index tree and advances `HEAD` with an expected-old-SHA compare-and-swap, so repository hooks or validation cannot silently widen the commit. A pre-commit or validation failure atomically restores the prior index and preserves every worktree file. Successful commits record their SHA and open a new baseline epoch that advances only committed paths; other Sessions' dirty files remain visible as baseline differences.
 
@@ -619,7 +631,49 @@ record, does not alter baseline manifests, and does not introduce a global drain
 or registration gate. If physical compaction fails, the schema marker remains
 absent so a later safe startup retries rather than reporting reclaimed storage.
 
-Health probes keep a short three-second timeout. Mutating service commands use a separate five-minute client timeout. If that deadline is genuinely reached, the client reports typed `command_timeout` with the command and deadline rather than falsely reporting the daemon as offline; callers inspect the typed job/session status before retrying. `session heartbeat`, lease claim/release, and the complete Cargo acquire/start/heartbeat/finish/release lifecycle each use their own short SQLite transaction and never wait behind baseline observation or validation-copy work. Baseline observation and direct validation-copy materialize/run/cleanup keep their own durable status transitions and do not own that foreground lifecycle lane; shared-worktree patch, finalization and Failure mutations remain serialized.
+Health probes keep a short three-second timeout. A health timeout is reported as
+`command_preflight_timeout` with `submission=not_submitted`, which is the only timeout
+state that permits a fresh submission. Every command receives a request ID before that
+probe, and `/command` durably records `accepted` before dispatch. A five-minute POST
+response timeout is reported as `command_post_timeout` with `submission=accepted` or
+`unknown`; callers query `GET /command/requests/<request-id>` and must not blindly replay
+the command. Completed and failed requests return their durable result. Durable mutation
+request IDs are exactly-once for the same command payload; replay-safe commands retain
+that guarantee within their documented key window. `session heartbeat`, lease
+claim/release, and the complete Cargo acquire/start/heartbeat/finish/release lifecycle
+each use their own short SQLite transaction and never wait behind baseline observation
+or validation-copy work. Baseline observation and direct validation-copy
+materialize/run/cleanup keep their own durable status transitions and do not own that
+foreground lifecycle lane; shared-worktree patch, finalization and Failure mutations
+remain serialized.
+
+The wrapper exposes the same repository-verified recovery query:
+
+```powershell
+.\tools\zircon-session.ps1 request-status <request-id>
+```
+
+This recovery command directly reads the request endpoint and validates the
+`repositoryKey` carried by that response. It intentionally does not depend on `/health`,
+so a slow health projection cannot block the only durable request lookup.
+
+Journal payload storage is bounded. The first successful caller still receives its full
+live response, but a response larger than 256 KiB is persisted as a digest tombstone;
+later duplicate or recovery queries report `responseOmitted` and never re-execute the
+command. For mutating commands, full terminal payloads are compacted after seven days or
+outside the newest 10,000 terminal requests. Their minimal request ID, command/payload
+fingerprint, terminal status, and result digest remain durable without expiry so
+compaction cannot make an old mutation request executable again. Non-persisting,
+replay-safe read-only commands and the state-convergent Session/lease/Cargo heartbeat
+commands use a separate replay-safe key window: terminal rows expire after one day and
+are capped at the newest 10,000. `cleanup.plan` persists an apply-capable plan and
+therefore remains durable rather than entering that bounded key window.
+Those operations cannot create a second Cargo start or irreversible mutation if an old
+ID is later reused. `cargo.run_reserved` is always durable, and its attached start audit
+and original start acknowledgement are never removed by request-payload compaction or
+replay-safe-key cleanup. Maintenance shares a fixed 256-row budget across expiry,
+count-window cleanup, and durable payload compaction; large backlogs converge over
+multiple ticks instead of producing an unbounded scan or transaction.
 
 Workflow/skill maintenance uses the same transaction with explicit `--maintenance`; the daemon authorizes it with a separate local `ZIRCON_COORDINATOR_MAINTENANCE_TOKEN` capability that is never written to the runtime descriptor or Git. The ordinary shared service bearer and a client boolean are insufficient. Authorized maintenance bypasses business attribution/status checks but retains index scope, repository path, semantic-message and secret guards. Business intermediate versions continue to live in coordinator snapshots rather than Git history.
 

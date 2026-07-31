@@ -1,4 +1,5 @@
 use std::sync::{Arc, MutexGuard};
+use std::time::Instant;
 
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFrameworkError, RenderViewportHandle,
@@ -6,24 +7,27 @@ use crate::core::framework::render::{
 use crate::graphics::ViewportCameraStackOutputPolicy;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
+use super::super::super::frame_profiler::FrameProfiler;
 use super::super::super::graphics_debugger_capture::{
     begin_graphics_debugger_capture, fail_pending_graphics_debugger_capture,
     finish_active_capture_and_relock,
 };
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::super::render_framework_state::RenderFrameworkState;
-use super::super::super::wgpu_render_framework::WgpuRenderFramework;
+use super::super::super::wgpu_render_framework::{
+    WgpuRenderFramework, WgpuRenderFrameworkAccess,
+};
 use super::super::build_frame_submission_context::{
-    build_frame_submission_context_from_runtime_frame_extract, FrameSubmissionSourcePayloads,
+    FrameSubmissionSourcePayloads, build_frame_submission_context_from_runtime_frame_extract,
 };
 use super::super::prepare_runtime_submission::prepare_runtime_submission;
 use super::super::record_submission::record_submission;
-use super::super::update_stats::{update_stats, SharedViewportProductReports};
+use super::super::update_stats::{SharedViewportProductReports, update_stats};
 use super::super::viewport_generation_guard::{
     validate_viewport_generation, viewport_record_mut_after_generation_check,
 };
 use super::build_runtime_frame::build_runtime_frame;
-use super::camera_loop::{submit_camera_loop, CameraLoopOutputPolicy};
+use super::camera_loop::{CameraLoopOutputPolicy, submit_camera_loop};
 use super::collect_runtime_feedback::collect_runtime_feedback;
 use super::record_camera_history::record_non_viewport_camera_state_after_success;
 use super::release_previous_history::release_previous_history;
@@ -46,22 +50,47 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
     ui: Option<UiRenderExtract>,
 ) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "submit_frame_extract");
-    let _operation_guard = framework.lock_operation();
+    framework.dispatch_submission(
+        submit_frame_extract_with_ui_on_core,
+        viewport,
+        extract,
+        ui,
+    )
+}
+
+fn submit_frame_extract_with_ui_on_core(
+    framework: &super::super::super::wgpu_render_framework::WgpuRenderFrameworkCore,
+    viewport: RenderViewportHandle,
+    extract: RenderFrameExtract,
+    ui: Option<UiRenderExtract>,
+) -> Result<(), RenderFrameworkError> {
+    submit_frame_extract_with_ui_locked(framework, viewport, extract, ui)
+}
+
+pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_ui_locked(
+    framework: &dyn WgpuRenderFrameworkAccess,
+    viewport: RenderViewportHandle,
+    extract: RenderFrameExtract,
+    ui: Option<UiRenderExtract>,
+) -> Result<(), RenderFrameworkError> {
+    let submit_started = Instant::now();
     submit_camera_loop(
         framework,
         viewport,
         extract,
         ui,
+        &submit_started,
         submit_selected_camera_frame,
     )
 }
 
 fn submit_selected_camera_frame(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     extract: &mut Arc<RenderFrameExtract>,
     source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
     ui: Option<UiRenderExtract>,
+    submit_started: &Instant,
     output_policy: CameraLoopOutputPolicy,
 ) -> Result<(), RenderFrameworkError> {
     let output_policy = ViewportCameraStackOutputPolicy::from(output_policy);
@@ -194,13 +223,20 @@ fn submit_selected_camera_frame(
     release_previous_history(&mut state.renderer, &record_update);
     if owns_shared_viewport_products {
         let shared_product_reports = SharedViewportProductReports::new(camera_light_grid_report);
-        update_stats(
+        let frame_profile_write = update_stats(
             &mut state,
             &context,
             &record_update,
             frame_generation,
+            FrameProfiler::elapsed_micros(*submit_started),
             shared_product_reports,
         );
+        let viewport_record =
+            viewport_record_mut_after_generation_check(&mut state, viewport, &context)?;
+        viewport_record.attach_capture_frame_profile(&frame_profile_write.capture_profile);
+        if let Some(profile) = frame_profile_write.resolved_gpu_profile.as_deref() {
+            viewport_record.attach_capture_frame_profile(profile);
+        }
     }
     crate::profile_counter!(
         "runtime",
@@ -211,7 +247,7 @@ fn submit_selected_camera_frame(
 }
 
 fn finish_or_fail_capture_after_submission_error(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     mut state: MutexGuard<'_, RenderFrameworkState>,
     viewport: RenderViewportHandle,
     active_capture: bool,
@@ -231,7 +267,7 @@ fn finish_or_fail_capture_after_submission_error(
 }
 
 fn fail_pending_capture_after_preflight_error(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     error: &RenderFrameworkError,
 ) {

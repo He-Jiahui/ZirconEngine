@@ -28,7 +28,10 @@ pub use compiled_graph::{
     CompiledGraphClipInstance,
 };
 pub(crate) use pipeline::tick_animation_world;
-pub use pipeline::AnimationEvaluationPipeline;
+pub use pipeline::{
+    AnimationEvaluationPipeline, AnimationEvaluationProjectionStats, DirectClipWorkerStats,
+    MAX_DIRECT_CLIP_WORKER_SHARDS,
+};
 pub use pose_blend_error::PoseBlendError;
 pub use pose_buffer::{PoseBuffer, PoseLayer, PoseLayerBlendMode};
 pub use pose_buffer_error::PoseBufferError;

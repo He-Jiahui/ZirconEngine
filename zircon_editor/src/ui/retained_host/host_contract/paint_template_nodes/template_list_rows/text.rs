@@ -18,13 +18,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
         return;
     }
     let metrics = workbench_row_metrics();
+    let text_frame = FrameRect {
+        x: rect.x + metrics.text_inset_x,
+        y: rect.y + metrics.text_inset_y,
+        width: rect.width - metrics.text_inset_x - metrics.right_reserve,
+        height: rect.height - metrics.text_inset_y * 2.0,
+    };
+    if text_frame.width <= 0.0 || text_frame.height <= 0.0 {
+        return;
+    }
     commands.push(HostPaintCommand::text(
-        FrameRect {
-            x: rect.x + metrics.text_inset_x,
-            y: rect.y + metrics.text_inset_y,
-            width: (rect.width - metrics.text_inset_x - metrics.right_reserve).max(1.0),
-            height: (rect.height - metrics.text_inset_y * 2.0).max(1.0),
-        },
+        text_frame,
         Some(clip.clone()),
         order,
         label,

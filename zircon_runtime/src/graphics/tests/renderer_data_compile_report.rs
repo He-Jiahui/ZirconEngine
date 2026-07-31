@@ -107,16 +107,18 @@ fn render_pipeline_compile_report_groups_diagnostics_by_feature_material_and_sha
             .len(),
         1
     );
-    assert!(!diagnostics_by_source
-        .values()
-        .flatten()
-        .any(|diagnostic| matches!(
-            diagnostic,
-            RendererFeatureContractDiagnostic::MaterialValidation {
-                error: RenderMaterialValidationError::InvalidMaskCutoff { .. },
-                ..
-            }
-        )));
+    assert!(
+        !diagnostics_by_source
+            .values()
+            .flatten()
+            .any(|diagnostic| matches!(
+                diagnostic,
+                RendererFeatureContractDiagnostic::MaterialValidation {
+                    error: RenderMaterialValidationError::InvalidMaskCutoff { .. },
+                    ..
+                }
+            ))
+    );
 
     let diagnostics_by_shader = report.diagnostics_by_shader();
     let feature_shader_rows = diagnostics_by_shader.get(&feature_shader).unwrap();

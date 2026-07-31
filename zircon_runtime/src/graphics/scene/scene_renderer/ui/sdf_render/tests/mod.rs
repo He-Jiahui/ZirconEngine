@@ -1,32 +1,32 @@
 use super::super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadPageReport};
 use super::super::text_pixel_snap::text_frame_device_origin;
 use super::vertices::{
-    aligned_text_start_x, build_sdf_vertices, horizontal_sdf_glyph_frame, pixel_to_ndc_x,
-    pixel_to_ndc_y, resolve_sdf_glyph_advances, resolve_vertical_sdf_glyph_advances,
-    sdf_screen_px_range, sdf_uv_at_destination, vertical_sdf_glyph_frame,
-    vertical_shaped_sdf_glyph_frame, RunGlyph, SdfUvRect,
+    RunGlyph, SdfUvRect, aligned_text_start_x, build_sdf_vertices, horizontal_sdf_glyph_frame,
+    pixel_to_ndc_x, pixel_to_ndc_y, resolve_sdf_glyph_advances,
+    resolve_vertical_sdf_glyph_advances, sdf_screen_px_range, sdf_uv_at_destination,
+    vertical_sdf_glyph_frame, vertical_shaped_sdf_glyph_frame,
 };
 use super::*;
 use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiShapedGlyph;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
-    plan_sdf_atlas, SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasPlan,
-    SdfAtlasRun,
+    SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasPlan, SdfAtlasRun,
+    plan_sdf_atlas,
 };
+use crate::text::TextRenderState;
 use crate::text::atlas::{
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphRasterPlacement,
     GlyphSmoothingMode,
 };
 use crate::text::font::{FontDatabase, SystemFontPolicy};
 use crate::text::sdf::{
-    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph,
-    SdfFontBakeCache, SdfGlyphMetrics,
+    SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics,
+    scale_sdf_metrics_for_display,
 };
 use crate::text::sdf::{SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot};
 use crate::text::sdf::{SdfBakeParams, SdfMode};
 use crate::text::shaping::vertical_glyph_rotation;
-use crate::text::TextRenderState;
 use crate::text::{ShapedGlyphRotation, VerticalMode};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{

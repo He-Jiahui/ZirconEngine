@@ -1,0 +1,99 @@
+pub generationReuse(): int {
+    var entityModule = %import("kernel/entity");
+    return entityModule.generationReuseTest();
+}
+
+pub sortedIteration(): int {
+    var entityModule = %import("kernel/entity");
+    return entityModule.sortedIterationTest();
+}
+
+pub snapshotIsolation(): int {
+    var entityModule = %import("kernel/entity");
+    return entityModule.snapshotIsolationTest();
+}
+
+pub rngKnownVector(): int {
+    var rngModule = %import("kernel/rng");
+    return rngModule.knownVectorTest();
+}
+
+pub sharedRngStream(): int {
+    var rng = %import("kernel/rng");
+    return rng.sharedStreamTest();
+}
+
+pub fixedClock(): int {
+    var clock = %import("kernel/clock");
+    return clock.fixedStepTest();
+}
+
+pub worldContract(): int {
+    var world = %import("kernel/world");
+    return world.contractTest();
+}
+
+pub authoritativeWorldState(): int {
+    var world = %import("world/state");
+    return world.selfTest();
+}
+
+pub binaryProtocol(): int {
+    var binary = %import("protocol/binary");
+    return binary.selfTest();
+}
+
+pub commandCatalog(): int {
+    var commands = %import("protocol/commands");
+    return commands.contractTest(1, 1, 2, 3, 5, 8, 13);
+}
+
+pub packageLifecycle(): int {
+    var package = %import("main");
+    return package.lifecycleSelfTest();
+}
+
+pub movementIntegration(): int {
+    var entityModule = %import("kernel/entity");
+    return entityModule.movementIntegrationTest();
+}
+
+pub movementBoundary(): int {
+    var entity = %import("kernel/entity");
+    return entity.movementBoundaryTest();
+}
+
+pub targetingThresholds(): int {
+    var targeting = %import("kernel/targeting");
+    return targeting.parityRulesTest();
+}
+
+pub targetingTies(): int {
+    var targeting = %import("kernel/targeting");
+    return targeting.tieBreakTest();
+}
+
+pub lifecycleRules(): int {
+    var lifecycle = %import("kernel/lifecycle");
+    return lifecycle.parityRulesTest();
+}
+
+pub lifecycleSharedRng(): int {
+    var lifecycle = %import("kernel/lifecycle");
+    return lifecycle.sharedRngScenarioTest();
+}
+
+pub mobLocomotionRules(): int {
+    var locomotion = %import("kernel/locomotion");
+    return locomotion.parityRulesTest();
+}
+
+pub locomotionSharedRng(): int {
+    var locomotion = %import("kernel/locomotion");
+    return locomotion.sharedRngScenarioTest();
+}
+
+pub rosterRules(): int {
+    var roster = %import("kernel/roster");
+    return roster.parityRulesTest();
+}

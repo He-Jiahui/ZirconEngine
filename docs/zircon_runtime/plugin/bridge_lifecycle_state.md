@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/access.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/plugin/runtime_plugin/mod.rs
   - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_bridge_dependencies.rs
@@ -19,7 +19,7 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/access.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
   - zircon_runtime/src/plugin/runtime_plugin/mod.rs
   - zircon_runtime/src/plugin/mod.rs

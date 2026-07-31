@@ -21,6 +21,7 @@ pub(in crate::graphics::runtime::render_framework) fn capability_summary(
         supports_async_compute: caps.supports_async_compute,
         supports_async_copy: caps.supports_async_copy,
         supports_pipeline_cache: caps.supports_pipeline_cache,
+        supports_gpu_timestamp: caps.supports_gpu_timestamp,
         supports_storage_buffers: caps.supports_storage_buffers,
         supports_fragment_writable_storage: caps.supports_fragment_writable_storage,
         max_storage_buffers_per_shader_stage: caps.max_storage_buffers_per_shader_stage,
@@ -65,5 +66,12 @@ mod tests {
 
         assert!(with_offscreen.supports_taa);
         assert!(!without_offscreen.supports_taa);
+    }
+
+    #[test]
+    fn capability_summary_preserves_the_gpu_timestamp_gate() {
+        let caps = RenderBackendCaps::new("timestamps").with_gpu_timestamp(true);
+
+        assert!(capability_summary(&caps).supports_gpu_timestamp);
     }
 }

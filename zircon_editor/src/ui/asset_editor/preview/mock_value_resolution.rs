@@ -82,7 +82,6 @@ fn resolve_reference_expression(
     current_node_id: &str,
     reference: &str,
 ) -> Option<Value> {
-    mock_expression::parse_preview_mock_reference(reference)?;
     let wrapped = Value::String(format!("={reference}"));
     resolve_preview_mock_expression(document, state, current_node_id, &wrapped)
         .map(|(_, _, resolved)| resolved.clone())
@@ -272,7 +271,6 @@ fn resolve_reference_dependency(
     current_node_id: &str,
     reference: &str,
 ) -> Option<(String, String, Value)> {
-    mock_expression::parse_preview_mock_reference(reference)?;
     let wrapped = Value::String(format!("={reference}"));
     resolve_preview_mock_expression(document, state, current_node_id, &wrapped).map(
         |(target_node_id, target_path, target_value)| {
@@ -381,24 +379,20 @@ fn evaluate_expression_argument(
     if trimmed.starts_with('=') {
         return resolve_expression_value(document, state, current_node_id, trimmed);
     }
-    if parse_function_expression(trimmed).is_some() {
-        return evaluate_function_expression_from_text(document, state, current_node_id, trimmed);
+    if let Some((function_name, args)) = parse_function_expression(trimmed) {
+        return evaluate_function_expression(
+            document,
+            state,
+            current_node_id,
+            &function_name,
+            &args,
+        );
     }
     if let Some(reference) = resolve_reference_expression(document, state, current_node_id, trimmed)
     {
         return Some(reference);
     }
     parse_expression_literal(trimmed)
-}
-
-fn evaluate_function_expression_from_text(
-    document: &UiAssetDocument,
-    state: &UiAssetPreviewMockState,
-    current_node_id: &str,
-    expression: &str,
-) -> Option<Value> {
-    let (function_name, args) = parse_function_expression(expression)?;
-    evaluate_function_expression(document, state, current_node_id, &function_name, &args)
 }
 
 fn parse_function_expression(expression: &str) -> Option<(String, Vec<String>)> {
@@ -698,12 +692,9 @@ fn collect_binding_payload_expression_graph_items(
             }
         }
         Value::Table(entries) => {
-            let mut keys = entries.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            for key in keys {
-                let Some(entry) = entries.get(&key) else {
-                    continue;
-                };
+            let mut sorted_entries = entries.iter().collect::<Vec<_>>();
+            sorted_entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+            for (key, entry) in sorted_entries {
                 collect_binding_payload_expression_graph_items(
                     document,
                     state,

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_professions_craft_fixture_tests",
+  "source": "src",
+  "binary": "bin-m5-professions-craft-fixture-tests",
+  "entry": "progression/professions_craft_fixture_test_main"
+}

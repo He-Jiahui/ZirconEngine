@@ -88,6 +88,10 @@ impl FreeCameraController {
             return;
         }
 
+        if self.state.velocity == Vec3::ZERO {
+            return;
+        }
+
         let damping = (-self.settings.friction.max(0.0) * delta_seconds).exp();
         self.state.velocity *= damping;
         if self.state.velocity.length_squared() < VELOCITY_STOP_EPSILON {

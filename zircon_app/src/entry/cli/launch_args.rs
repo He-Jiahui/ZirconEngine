@@ -1,4 +1,4 @@
-use zircon_editor::core::commandlet::{parse_commandlet_args, CommandletReport, CommandletRequest};
+use zircon_editor::core::commandlet::{CommandletReport, CommandletRequest, parse_commandlet_args};
 
 /// The first routing decision in the editor executable. Commandlets are recognized before GUI
 /// startup parsing so a headless task never instantiates an editor host or workbench.

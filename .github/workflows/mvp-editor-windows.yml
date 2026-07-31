@@ -1,0 +1,167 @@
+name: MVP Editor Windows
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  CARGO_TARGET_DIR: D:\ZirconBuilds\cargo-target
+
+jobs:
+  mvp-editor-windows:
+    name: MVP editor/runtime smoke
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@v2
+
+      - name: Verify managed Cargo output root
+        shell: pwsh
+        run: |
+          $managedTargetRoot = 'D:\ZirconBuilds\cargo-target'
+          if ($env:CARGO_TARGET_DIR -ne $managedTargetRoot) {
+            throw "MVP Windows builds require CARGO_TARGET_DIR=$managedTargetRoot; got '$env:CARGO_TARGET_DIR'."
+          }
+          New-Item -ItemType Directory -Force -Path $env:CARGO_TARGET_DIR | Out-Null
+
+      - name: Prepare MVP diagnostic evidence directory
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path test-results | Out-Null
+          @(
+            "rustc: $(& rustc -Vv | Out-String)",
+            "cargo: $(& cargo -V | Out-String)"
+          ) | Set-Content -Encoding utf8 test-results/environment.txt
+
+      - name: Build editor host binary
+        shell: pwsh
+        run: |
+          & cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked 2>&1 |
+            Tee-Object -FilePath test-results/build-editor.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+
+      - name: Build runtime desktop binary
+        shell: pwsh
+        run: |
+          & cargo build -p zircon_app --bin zircon_runtime --no-default-features --features target-client --locked 2>&1 |
+            Tee-Object -FilePath test-results/build-runtime.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+
+      - name: Test project-scoped editor automation CLI contract
+        shell: pwsh
+        run: |
+          & cargo test -p zircon_app --lib --no-default-features --features target-editor-host --locked project_automation_ -- --test-threads=1 2>&1 |
+            Tee-Object -FilePath test-results/project-automation.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+
+      - name: Test F1 RenderableEmpty template and registry contract
+        shell: pwsh
+        run: |
+          & cargo test -p zircon_editor --lib renderable_empty_template_has_the_f2_camera_cube_and_sun_contract --locked -- --exact --test-threads=1 2>&1 |
+            Tee-Object -FilePath test-results/f1-template.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+
+      - name: Test F2 persisted WGPU scene and input contract
+        shell: pwsh
+        run: |
+          $env:ZR_F2_BASIC_SCENE_CAPTURE_PNG = Join-Path $PWD 'test-results/f2-runtime-frame.png'
+          & cargo test -p zircon_runtime --lib render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down --locked -- --exact --test-threads=1 2>&1 |
+            Tee-Object -FilePath test-results/f2-runtime.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) {
+            Write-Error 'WGPU adapter unavailable or F2 MVP scene/render/input contract failed; blank captures are never accepted.'
+            exit $cargoExitCode
+          }
+
+      - name: Test F3 persisted project roundtrip
+        shell: pwsh
+        run: |
+          & cargo test -p zircon_editor --lib editor_project_document_roundtrips_world_and_workspace --locked -- --exact --test-threads=1 2>&1 |
+            Tee-Object -FilePath test-results/f3-persistence.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+
+      - name: Test F4 application authoring restart contract
+        shell: pwsh
+        run: |
+          & cargo test -p zircon_app --test editor_mvp_authoring --no-default-features --features target-editor-host --locked f4_project_authoring_survives_full_application_restart -- --exact --test-threads=1 2>&1 |
+            Tee-Object -FilePath test-results/f4-authoring.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+
+      - name: Run source-bound staged F5 product smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $binaryInputRoot = Join-Path $env:RUNNER_TEMP 'zircon-mvp-binary-inputs'
+          $targetDebugDirectory = Join-Path $env:CARGO_TARGET_DIR 'debug'
+          New-Item -ItemType Directory -Force -Path $binaryInputRoot | Out-Null
+
+          & cargo build -p zircon_runtime --lib --no-default-features --features target-editor-host --locked 2>&1 |
+            Tee-Object -FilePath test-results/f5-editor-runtime-library.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+          $editorRuntimeLibrary = Join-Path $binaryInputRoot 'zircon_runtime_editor.dll'
+          Copy-Item -LiteralPath (Join-Path $targetDebugDirectory 'zircon_runtime.dll') -Destination $editorRuntimeLibrary -Force
+
+          & cargo build -p zircon_runtime --lib --no-default-features --features target-client --locked 2>&1 |
+            Tee-Object -FilePath test-results/f5-runtime-library.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+          $runtimeLibrary = Join-Path $binaryInputRoot 'zircon_runtime.dll'
+          Copy-Item -LiteralPath (Join-Path $targetDebugDirectory 'zircon_runtime.dll') -Destination $runtimeLibrary -Force
+
+          $stageJson = & .\tools\mvp\Stage-MvpProducts.ps1 `
+            -RuntimeExecutable (Join-Path $targetDebugDirectory 'zircon_runtime.exe') `
+            -EditorExecutable (Join-Path $targetDebugDirectory 'zircon_editor.exe') `
+            -RuntimeLibrary $runtimeLibrary `
+            -EditorRuntimeLibrary $editorRuntimeLibrary `
+            -TemplateRoot (Join-Path $PWD 'templates\projects') `
+            -EngineAssetRoot (Join-Path $PWD 'zircon_editor\assets') `
+            -AuthoringAutomationRequest (Join-Path $PWD 'tools\mvp\mvp-authoring-automation.json') `
+            -ReopenAutomationRequest (Join-Path $PWD 'tools\mvp\mvp-reopen-automation.json') `
+            -CreateProject `
+            -ProjectName 'ZirconMvpFixture' `
+            -StagingRoot 'D:\ZirconBuilds' `
+            -SourceFingerprint $env:GITHUB_SHA `
+            -RepeatCount 2 `
+            -TimeoutSeconds 90 `
+            -Json
+          $stage = $stageJson | ConvertFrom-Json
+
+          $evidenceRoot = Join-Path $env:RUNNER_TEMP 'zircon-mvp-f5-evidence'
+          $acceptanceJson = & .\tools\mvp\Invoke-MvpAcceptance.ps1 `
+            -StagingRoot $stage.staging_root `
+            -EvidenceRoot $evidenceRoot `
+            -ExpectedSourceFingerprint $env:GITHUB_SHA `
+            -RequireF5Evidence `
+            -Json
+          $acceptance = $acceptanceJson | ConvertFrom-Json
+
+          $artifactRoot = Join-Path $PWD 'test-results\f5-product'
+          Copy-Item -LiteralPath $evidenceRoot -Destination $artifactRoot -Recurse -Force
+
+      - name: Upload MVP diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvp-editor-windows-evidence
+          path: test-results
+          if-no-files-found: error
+          retention-days: 7

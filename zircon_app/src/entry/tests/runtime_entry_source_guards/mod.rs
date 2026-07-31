@@ -5,6 +5,7 @@ mod entry_tree;
 mod event_loop_policy;
 mod frame_loop;
 mod host_requests;
+mod product_teardown;
 mod runtime_session;
 mod sources;
 mod viewport;

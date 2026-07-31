@@ -1,34 +1,174 @@
+use std::sync::OnceLock;
+
 use toml::Value;
 use zircon_runtime_interface::ui::{
     component::{UiComponentState, UiValue},
+    design_tokens::{EditorDesignTokens, EditorTypographyTokens},
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
     tree::UiTemplateNodeMetadata,
 };
 
 use super::painter_state::UiRenderPainterStateSource;
 
-const HORIZONTAL_INSET: f32 = 8.0;
-const CARET_SIZE: f32 = 12.0;
-const CARET_RIGHT_INSET: f32 = 12.0;
-const OPEN_MARK_WIDTH: f32 = 2.0;
-const LABEL_FONT_SIZE: f32 = 10.0;
-const LABEL_LINE_HEIGHT: f32 = 12.0;
-const VALUE_FONT_SIZE: f32 = 11.0;
-const VALUE_LINE_HEIGHT: f32 = VALUE_FONT_SIZE * 1.2;
-const SURFACE_IDLE: &str = "#10161a";
-const SURFACE_HOVER: &str = "#1a2429";
-const SURFACE_PRESSED: &str = "#203239";
-const SURFACE_OPEN: &str = "#16282d";
-const SURFACE_DISABLED: &str = "#252c31";
-const BORDER_IDLE: &str = "#323f47";
-const BORDER_FOCUS: &str = "#35c7d0";
-const BORDER_DISABLED: &str = "#343f47";
-const TEXT: &str = "#c5d0d5";
-const LABEL_TEXT: &str = "#7f8c94";
-const TEXT_DISABLED: &str = "#59656c";
+#[derive(Clone, Copy, Debug)]
+struct DropdownVisual {
+    surface_idle: UiRgbaColor,
+    surface_hover: UiRgbaColor,
+    surface_pressed: UiRgbaColor,
+    surface_open: UiRgbaColor,
+    surface_disabled: UiRgbaColor,
+    border_idle: UiRgbaColor,
+    border_focus: UiRgbaColor,
+    border_disabled: UiRgbaColor,
+    text: UiRgbaColor,
+    label_text: UiRgbaColor,
+    icon: UiRgbaColor,
+    text_disabled: UiRgbaColor,
+    horizontal_inset: f32,
+    caret_size: f32,
+    caret_right_inset: f32,
+    caret_gap: f32,
+    open_mark_width: f32,
+    open_mark_inset: f32,
+    border_width: f32,
+    corner_radius: f32,
+    label_top: f32,
+    label_font_size: f32,
+    label_line_height: f32,
+    value_bottom_inset: f32,
+    value_font_size: f32,
+    value_line_height: f32,
+    two_line_min_height: f32,
+    min_frame_extent: f32,
+}
+
+impl DropdownVisual {
+    fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
+        let mut visual = *default_dropdown_visual();
+        visual.surface_idle =
+            first_rgba_attribute(metadata, &["background_color"]).unwrap_or(visual.surface_idle);
+        visual.surface_hover = first_rgba_attribute(metadata, &["hover_background_color"])
+            .unwrap_or(visual.surface_hover);
+        visual.surface_pressed = first_rgba_attribute(metadata, &["pressed_background_color"])
+            .unwrap_or(visual.surface_pressed);
+        visual.surface_open = first_rgba_attribute(metadata, &["open_background_color"])
+            .unwrap_or(visual.surface_open);
+        visual.surface_disabled = first_rgba_attribute(metadata, &["disabled_background_color"])
+            .unwrap_or(visual.surface_disabled);
+        visual.border_idle =
+            first_rgba_attribute(metadata, &["border_color"]).unwrap_or(visual.border_idle);
+        visual.border_focus =
+            first_rgba_attribute(metadata, &["focus_border_color"]).unwrap_or(visual.border_focus);
+        visual.border_disabled = first_rgba_attribute(metadata, &["disabled_border_color"])
+            .unwrap_or(visual.border_disabled);
+        visual.text = first_rgba_attribute(metadata, &["foreground_color", "text_color"])
+            .unwrap_or(visual.text);
+        visual.label_text =
+            first_rgba_attribute(metadata, &["label_color"]).unwrap_or(visual.label_text);
+        visual.icon = first_rgba_attribute(metadata, &["icon_color"]).unwrap_or(visual.icon);
+        visual.text_disabled = first_rgba_attribute(metadata, &["disabled_foreground_color"])
+            .unwrap_or(visual.text_disabled);
+        visual.border_width = metric_attribute(metadata, "border_width")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.border_width);
+        visual.corner_radius = metric_attribute(metadata, "corner_radius")
+            .or_else(|| metric_attribute(metadata, "radius"))
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.corner_radius);
+        visual.horizontal_inset = metric_attribute(metadata, "horizontal_inset")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.horizontal_inset);
+        visual.caret_size = metric_attribute(metadata, "caret_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.caret_size);
+        visual.caret_right_inset = metric_attribute(metadata, "caret_right_inset")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.caret_right_inset);
+        visual.caret_gap = metric_attribute(metadata, "caret_gap")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.caret_gap);
+        visual.open_mark_width = metric_attribute(metadata, "open_mark_width")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.open_mark_width);
+        visual.open_mark_inset = metric_attribute(metadata, "open_mark_inset")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.open_mark_inset);
+        visual.label_top = metric_attribute(metadata, "label_top")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.label_top);
+        visual.value_bottom_inset = metric_attribute(metadata, "value_bottom_inset")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.value_bottom_inset);
+        visual.label_font_size = metric_attribute(metadata, "label_font_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.label_font_size);
+        visual.value_font_size = metric_attribute(metadata, "font_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.value_font_size);
+        visual.label_line_height = line_height(
+            metadata,
+            "label_line_height",
+            "label_line_height_ratio",
+            visual.label_font_size,
+            visual.label_line_height,
+        );
+        visual.value_line_height = line_height(
+            metadata,
+            "line_height",
+            "line_height_ratio",
+            visual.value_font_size,
+            visual.value_line_height,
+        );
+        visual.min_frame_extent = visual.border_width.max(f32::EPSILON);
+        visual
+    }
+}
+
+fn default_dropdown_visual() -> &'static DropdownVisual {
+    static VISUAL: OnceLock<DropdownVisual> = OnceLock::new();
+    VISUAL.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let colors = &tokens.palette;
+        let controls = &tokens.controls;
+        let density = &tokens.density;
+        let typography = &tokens.typography;
+        DropdownVisual {
+            surface_idle: colors.surface_recessed,
+            surface_hover: colors.surface_hover,
+            surface_pressed: colors.surface[3],
+            surface_open: colors.accent_soft,
+            surface_disabled: colors.surface_disabled,
+            border_idle: colors.border,
+            border_focus: colors.accent,
+            border_disabled: colors.border_disabled,
+            text: colors.text_primary,
+            label_text: colors.text_secondary,
+            icon: colors.text_secondary,
+            text_disabled: colors.text_disabled,
+            horizontal_inset: density.gap_medium,
+            caret_size: typography.overlay_size,
+            caret_right_inset: density.gap_large,
+            caret_gap: density.gap_small,
+            open_mark_width: controls.border_width * 2.0,
+            open_mark_inset: density.gap_small + controls.border_width,
+            border_width: controls.border_width,
+            corner_radius: controls.small_radius,
+            label_top: controls.border_width,
+            label_font_size: typography.caption_size,
+            label_line_height: typography.caption_size
+                * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+            value_bottom_inset: controls.border_width,
+            value_font_size: typography.overlay_size,
+            value_line_height: typography.overlay_size
+                * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+            two_line_min_height: controls.compact_height,
+            min_frame_extent: controls.border_width.max(f32::EPSILON),
+        }
+    })
+}
 
 pub(super) fn dropdown_suppresses_owner_text(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
     metadata.is_some_and(is_dropdown)
@@ -47,10 +187,14 @@ pub(super) fn dropdown_render_commands(
     let Some(metadata) = metadata else {
         return Vec::new();
     };
-    if !is_dropdown(metadata) || frame.width <= 1.0 || frame.height <= 1.0 {
+    if !is_dropdown(metadata) {
         return Vec::new();
     }
 
+    let visual = DropdownVisual::resolve(metadata);
+    if frame.width <= visual.min_frame_extent || frame.height <= visual.min_frame_extent {
+        return Vec::new();
+    }
     let state = DropdownRenderState::resolve(metadata, state_flags, component_state);
     let mut commands = Vec::new();
     commands.push(quad_command(
@@ -58,31 +202,34 @@ pub(super) fn dropdown_render_commands(
         frame,
         clip_frame,
         z_index.saturating_add(1),
-        surface_color(metadata, &state),
-        Some(border_color(metadata, &state)),
-        border_width(metadata),
-        corner_radius(metadata),
+        surface_color(&state, &visual),
+        Some(border_color(&state, &visual)),
+        visual.border_width,
+        visual.corner_radius,
         &state,
         opacity,
     ));
 
-    let caret = caret_rect(frame);
-    let text_right = (caret.x - 4.0).max(frame.x + HORIZONTAL_INSET + 1.0);
-    if let Some(label) = dropdown_label(metadata) {
+    let caret = caret_rect(frame, &visual);
+    let text_right = (caret.x - visual.caret_gap)
+        .max(frame.x + visual.horizontal_inset + visual.min_frame_extent);
+    let label = dropdown_label(metadata);
+    let has_label = label.is_some();
+    if let Some(label) = label {
         commands.push(text_command(
             node_id,
             UiFrame::new(
-                frame.x + HORIZONTAL_INSET,
-                frame.y + 4.0,
-                text_right - frame.x - HORIZONTAL_INSET,
-                LABEL_LINE_HEIGHT,
+                frame.x + visual.horizontal_inset,
+                frame.y + visual.label_top,
+                (text_right - frame.x - visual.horizontal_inset).max(visual.min_frame_extent),
+                visual.label_line_height.min(frame.height),
             ),
             clip_frame,
             z_index.saturating_add(3),
             label,
-            label_color(metadata, &state),
-            LABEL_FONT_SIZE,
-            LABEL_LINE_HEIGHT,
+            label_color(&state, &visual),
+            visual.label_font_size,
+            visual.label_line_height,
             &state,
             opacity,
         ));
@@ -90,13 +237,13 @@ pub(super) fn dropdown_render_commands(
     if let Some(value) = selected_value_text(metadata) {
         commands.push(text_command(
             node_id,
-            value_rect(frame, text_right, dropdown_label(metadata).is_some()),
+            value_rect(frame, text_right, has_label, &visual),
             clip_frame,
             z_index.saturating_add(3),
             value,
-            text_color(metadata, &state),
-            VALUE_FONT_SIZE,
-            VALUE_LINE_HEIGHT,
+            text_color(&state, &visual),
+            visual.value_font_size,
+            visual.value_line_height,
             &state,
             opacity,
         ));
@@ -112,7 +259,7 @@ pub(super) fn dropdown_render_commands(
         } else {
             "chevron-down"
         },
-        icon_color(metadata, &state),
+        icon_color(metadata, &state, &visual),
         &state,
         opacity,
     ));
@@ -120,17 +267,17 @@ pub(super) fn dropdown_render_commands(
         commands.push(quad_command(
             node_id,
             UiFrame::new(
-                (frame.right() - OPEN_MARK_WIDTH - 2.0).max(frame.x),
-                frame.y + 5.0,
-                OPEN_MARK_WIDTH,
-                (frame.height - 10.0).max(1.0),
+                (frame.right() - visual.open_mark_width - visual.border_width).max(frame.x),
+                frame.y + visual.open_mark_inset,
+                visual.open_mark_width,
+                (frame.height - visual.open_mark_inset * 2.0).max(visual.min_frame_extent),
             ),
             clip_frame,
             z_index.saturating_add(5),
-            border_color(metadata, &state),
+            border_color(&state, &visual),
             None,
             0.0,
-            1.0,
+            visual.border_width,
             &state,
             opacity,
         ));
@@ -210,30 +357,35 @@ fn is_dropdown(metadata: &UiTemplateNodeMetadata) -> bool {
     )
 }
 
-fn value_rect(frame: UiFrame, text_right: f32, has_label: bool) -> UiFrame {
-    if has_label && frame.height >= 28.0 {
+fn value_rect(
+    frame: UiFrame,
+    text_right: f32,
+    has_label: bool,
+    visual: &DropdownVisual,
+) -> UiFrame {
+    if has_label && frame.height >= visual.two_line_min_height {
         UiFrame::new(
-            frame.x + HORIZONTAL_INSET,
-            (frame.y + frame.height - VALUE_LINE_HEIGHT - 2.0).round(),
-            text_right - frame.x - HORIZONTAL_INSET,
-            VALUE_LINE_HEIGHT,
+            frame.x + visual.horizontal_inset,
+            (frame.y + frame.height - visual.value_line_height - visual.value_bottom_inset).round(),
+            (text_right - frame.x - visual.horizontal_inset).max(visual.min_frame_extent),
+            visual.value_line_height.min(frame.height),
         )
     } else {
         UiFrame::new(
-            frame.x + HORIZONTAL_INSET,
-            (frame.y + (frame.height - VALUE_LINE_HEIGHT).max(0.0) * 0.5).round(),
-            text_right - frame.x - HORIZONTAL_INSET,
-            VALUE_LINE_HEIGHT,
+            frame.x + visual.horizontal_inset,
+            (frame.y + (frame.height - visual.value_line_height).max(0.0) * 0.5).round(),
+            (text_right - frame.x - visual.horizontal_inset).max(visual.min_frame_extent),
+            visual.value_line_height.min(frame.height),
         )
     }
 }
 
-fn caret_rect(frame: UiFrame) -> UiFrame {
+fn caret_rect(frame: UiFrame, visual: &DropdownVisual) -> UiFrame {
     UiFrame::new(
-        frame.x + frame.width - CARET_RIGHT_INSET - CARET_SIZE,
-        frame.y + (frame.height - CARET_SIZE).max(0.0) * 0.5,
-        CARET_SIZE,
-        CARET_SIZE,
+        frame.x + frame.width - visual.caret_right_inset - visual.caret_size,
+        frame.y + (frame.height - visual.caret_size).max(0.0) * 0.5,
+        visual.caret_size,
+        visual.caret_size,
     )
 }
 
@@ -330,89 +482,128 @@ fn dropdown_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
         .map(str::to_string)
 }
 
-fn surface_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
+fn surface_color(state: &DropdownRenderState, visual: &DropdownVisual) -> UiRgbaColor {
     if state.unavailable() {
-        SURFACE_DISABLED
+        visual.surface_disabled
     } else if state.open() {
-        color_attribute(metadata, "open_background_color").unwrap_or(SURFACE_OPEN)
+        visual.surface_open
     } else if state.pressed() {
-        color_attribute(metadata, "pressed_background_color").unwrap_or(SURFACE_PRESSED)
+        visual.surface_pressed
     } else if state.surface_hot() {
-        color_attribute(metadata, "hover_background_color").unwrap_or(SURFACE_HOVER)
+        visual.surface_hover
     } else {
-        color_attribute(metadata, "background_color").unwrap_or(SURFACE_IDLE)
+        visual.surface_idle
     }
 }
 
-fn border_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
+fn border_color(state: &DropdownRenderState, visual: &DropdownVisual) -> UiRgbaColor {
     if state.unavailable() {
-        BORDER_DISABLED
+        visual.border_disabled
     } else if state.open() || state.pressed() || state.focused() || state.active_border() {
-        color_attribute(metadata, "focus_border_color").unwrap_or(BORDER_FOCUS)
+        visual.border_focus
     } else {
-        color_attribute(metadata, "border_color").unwrap_or(BORDER_IDLE)
+        visual.border_idle
     }
 }
 
-fn label_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
+fn label_color(state: &DropdownRenderState, visual: &DropdownVisual) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else {
-        color_attribute(metadata, "label_color").unwrap_or(LABEL_TEXT)
+        visual.label_text
     }
 }
 
-fn text_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
+fn text_color(state: &DropdownRenderState, visual: &DropdownVisual) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else {
-        color_attribute(metadata, "foreground_color").unwrap_or(TEXT)
+        visual.text
     }
 }
 
-fn icon_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
+fn icon_color(
+    metadata: &UiTemplateNodeMetadata,
+    state: &DropdownRenderState,
+    visual: &DropdownVisual,
+) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else {
-        color_attribute(metadata, "icon_color").unwrap_or_else(|| text_color(metadata, state))
+        first_rgba_attribute(metadata, &["icon_color", "foreground_color"]).unwrap_or(visual.icon)
     }
 }
 
-fn border_width(metadata: &UiTemplateNodeMetadata) -> f32 {
-    number_attribute(metadata, "border_width")
-        .unwrap_or(1.0)
-        .max(0.0)
-}
-
-fn corner_radius(metadata: &UiTemplateNodeMetadata) -> f32 {
-    number_attribute(metadata, "corner_radius")
-        .or_else(|| number_attribute(metadata, "radius"))
-        .unwrap_or(4.0)
-        .max(0.0)
-}
-
-fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
-    metadata.attributes.get(key).and_then(value_as_f32)
+fn metric_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
+    metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))
+        .and_then(value_as_f32)
 }
 
 fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
     metadata.attributes.get(key).and_then(Value::as_str)
 }
 
-fn color_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
-    metadata
-        .style_overrides
-        .get(key)
-        .or_else(|| metadata.attributes.get(key))
-        .and_then(Value::as_str)
-        .filter(|color| !color.trim().is_empty())
+fn first_rgba_attribute(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> Option<UiRgbaColor> {
+    keys.iter().find_map(|key| {
+        metadata
+            .style_overrides
+            .get(*key)
+            .or_else(|| metadata.attributes.get(*key))
+            .and_then(Value::as_str)
+            .and_then(parse_css_color)
+    })
 }
 
 fn value_as_f32(value: &Value) -> Option<f32> {
-    value
-        .as_float()
-        .or_else(|| value.as_integer().map(|value| value as f64))
-        .map(|value| value as f32)
+    let value = match value {
+        Value::Integer(value) => *value as f64,
+        Value::Float(value) if value.is_finite() => *value,
+        _ => return None,
+    } as f32;
+    value.is_finite().then_some(value)
+}
+
+fn line_height(
+    metadata: &UiTemplateNodeMetadata,
+    absolute_key: &str,
+    ratio_key: &str,
+    font_size: f32,
+    default: f32,
+) -> f32 {
+    metric_attribute(metadata, absolute_key)
+        .filter(|value| *value > 0.0)
+        .or_else(|| {
+            metric_attribute(metadata, ratio_key)
+                .filter(|value| *value > 0.0)
+                .map(|ratio| font_size * ratio)
+        })
+        .unwrap_or(default)
+}
+
+fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
+    let encoded = value.trim().strip_prefix('#')?;
+    if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
+        return None;
+    }
+    let (red, green, blue, alpha) = match encoded.len() {
+        6 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::MAX,
+        ),
+        8 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::from_str_radix(&encoded[6..8], 16).ok()?,
+        ),
+        _ => return None,
+    };
+    Some(UiRgbaColor::from_u8(red, green, blue, alpha))
 }
 
 fn quad_command(
@@ -420,8 +611,8 @@ fn quad_command(
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
-    background: &str,
-    border: Option<&str>,
+    background: UiRgbaColor,
+    border: Option<UiRgbaColor>,
     border_width: f32,
     corner_radius: f32,
     state: &DropdownRenderState,
@@ -434,8 +625,8 @@ fn quad_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            background_color: Some(background.to_string()),
-            border_color: border.map(str::to_string),
+            background_color: Some(css_color(background)),
+            border_color: border.map(css_color),
             border_width,
             corner_radius,
             ..UiResolvedStyle::default()
@@ -454,7 +645,7 @@ fn text_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     text: String,
-    foreground: &str,
+    foreground: UiRgbaColor,
     font_size: f32,
     line_height: f32,
     state: &DropdownRenderState,
@@ -467,7 +658,7 @@ fn text_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
+            foreground_color: Some(css_color(foreground)),
             font_size,
             line_height,
             ..UiResolvedStyle::default()
@@ -486,7 +677,7 @@ fn icon_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     icon: &str,
-    foreground: &str,
+    foreground: UiRgbaColor,
     state: &DropdownRenderState,
     opacity: f32,
 ) -> UiRenderCommand {
@@ -497,7 +688,7 @@ fn icon_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
+            foreground_color: Some(css_color(foreground)),
             ..UiResolvedStyle::default()
         }
         .with_painter_state(state.family, state.visual_state),
@@ -506,4 +697,15 @@ fn icon_command(
         image: Some(UiVisualAssetRef::Icon(icon.to_string())),
         opacity,
     }
+}
+
+fn css_color(color: UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    let mut value = if alpha == u8::MAX {
+        format!("{red:02x}{green:02x}{blue:02x}")
+    } else {
+        format!("{red:02x}{green:02x}{blue:02x}{alpha:02x}")
+    };
+    value.insert(0, '#');
+    value
 }

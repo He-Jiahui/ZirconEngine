@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, VecDeque};
 use zircon_runtime::core::runtime::tasks::JobHandle;
 
 use super::super::{EditorJobLimits, JobCategory, JobId, JobSubmitError, MutexGroup};
-use super::pending::PendingJob;
+use super::pending::{PendingJob, PendingJobQueue};
 
 // Completed dependencies only need a bounded late-submission history, not runtime handles.
 pub(super) const TERMINAL_RECORD_RETENTION_LIMIT: usize = 256;
@@ -14,7 +14,7 @@ pub(super) struct EditorJobSystemState {
     closed: bool,
     records: BTreeMap<JobId, EditorJobRecord>,
     terminal_records: VecDeque<JobId>,
-    pub(super) pending: Vec<PendingJob>,
+    pending: PendingJobQueue,
     running_by_category: BTreeMap<JobCategory, usize>,
     mutex_group_tails: BTreeMap<MutexGroup, MutexGroupTail>,
 }
@@ -62,7 +62,31 @@ impl EditorJobSystemState {
 
     pub(super) fn begin_shutdown(&mut self) -> Vec<PendingJob> {
         self.closed = true;
-        std::mem::take(&mut self.pending)
+        self.pending.drain()
+    }
+
+    pub(super) fn enqueue_pending(&mut self, pending: PendingJob) {
+        let unscheduled = pending
+            .spec
+            .after
+            .iter()
+            .copied()
+            .filter(|dependency| {
+                matches!(
+                    self.records.get(dependency),
+                    Some(EditorJobRecord::AwaitingSchedule)
+                )
+            })
+            .collect::<Vec<_>>();
+        self.pending.insert(pending, &unscheduled);
+    }
+
+    pub(super) fn remove_pending(&mut self, id: JobId) -> Option<PendingJob> {
+        self.pending.remove(id)
+    }
+
+    pub(super) fn pending_len(&self) -> usize {
+        self.pending.len()
     }
 
     pub(super) fn dependency_handle(&self, id: JobId) -> Option<JobHandle> {
@@ -80,16 +104,12 @@ impl EditorJobSystemState {
         if !matches!(record, EditorJobRecord::Terminal) {
             *record = EditorJobRecord::Scheduled(handle);
         }
+        self.pending.mark_dependency_schedulable(id);
         self.prune_terminal_records();
     }
 
-    pub(super) fn next_admissible_index(&self, limits: &EditorJobLimits) -> Option<usize> {
-        self.pending
-            .iter()
-            .enumerate()
-            .filter(|(_, pending)| self.is_admissible(pending, limits))
-            .min_by_key(|(_, pending)| (pending.spec.priority.admission_rank(), pending.id))
-            .map(|(index, _)| index)
+    pub(super) fn take_next_admissible(&mut self, limits: &EditorJobLimits) -> Option<PendingJob> {
+        self.pending.take_next(limits, &self.running_by_category)
     }
 
     pub(super) fn mark_started(&mut self, pending: &PendingJob) {
@@ -154,20 +174,9 @@ impl EditorJobSystemState {
         self.mutex_group_tails.len()
     }
 
-    fn is_admissible(&self, pending: &PendingJob, limits: &EditorJobLimits) -> bool {
-        let dependencies_scheduled = pending.spec.after.iter().all(|dependency| {
-            matches!(
-                self.records.get(dependency),
-                Some(EditorJobRecord::Scheduled(_) | EditorJobRecord::Terminal)
-            )
-        });
-        let category_available = self
-            .running_by_category
-            .get(&pending.spec.category)
-            .copied()
-            .unwrap_or_default()
-            < limits.limit(pending.spec.category);
-        dependencies_scheduled && category_available
+    #[cfg(test)]
+    pub(super) fn admission_probe_count(&self) -> usize {
+        self.pending.admission_probe_count()
     }
 
     fn mark_terminal(&mut self, id: JobId) {
@@ -181,18 +190,18 @@ impl EditorJobSystemState {
         // Replacing the scheduled handle first releases runtime task state at completion.
         *record = EditorJobRecord::Terminal;
         self.terminal_records.push_back(id);
+        self.pending.mark_dependency_schedulable(id);
         self.mutex_group_tails.retain(|_, tail| tail.id != id);
         self.prune_terminal_records();
     }
 
     fn prune_terminal_records(&mut self) {
         while self.terminal_records.len() > TERMINAL_RECORD_RETENTION_LIMIT {
-            let Some(index) = self.terminal_records.iter().position(|candidate| {
-                !self
-                    .pending
-                    .iter()
-                    .any(|pending| pending.spec.after.contains(candidate))
-            }) else {
+            let Some(index) = self
+                .terminal_records
+                .iter()
+                .position(|candidate| !self.pending.depends_on(*candidate))
+            else {
                 // Accepted pending submissions pin their dependencies until scheduling.
                 break;
             };
@@ -227,7 +236,7 @@ mod tests {
                 EditorJobSpec::new(format!("blocked-{index}"), JobCategory::Export)
                     .after(dependency);
             state.register(dependent);
-            state.pending.push(PendingJob::new(
+            state.enqueue_pending(PendingJob::new(
                 dependent,
                 dependent_spec,
                 Box::new(|_| {}),
@@ -236,11 +245,11 @@ mod tests {
             state.mark_cancelled(dependency);
         }
 
-        assert!(state.next_admissible_index(&limits).is_none());
+        assert!(state.take_next_admissible(&limits).is_none());
         assert!(state.terminal_records.len() > TERMINAL_RECORD_RETENTION_LIMIT);
         assert!(state.retained_record_count() > TERMINAL_RECORD_RETENTION_LIMIT);
 
-        while let Some(pending) = state.pending.pop() {
+        for pending in state.pending.drain() {
             state.mark_cancelled(pending.id);
         }
 

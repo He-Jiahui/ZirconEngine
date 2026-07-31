@@ -83,3 +83,5 @@ Slint 用 `PropertyTracker::evaluate_if_dirty` 控制 component factory/属性�
 ## 修复结果与回传
 
 Open state: `待 EditorUI05 实现 compiled-document/prototype generation owner、锁外 build、stable alias handle 与 typed incremental projection，并向性能计划回传 clone/build/cache/lock 产品证据`。
+
+2026-07-22增量证据：`zircon_editor/src/tests/host/template_runtime`当前18/18逐文件复核，parity/showcase/pane测试会反复执行document projection→surface→host model→retained adapter，规模主要为27节点或单showcase document；`node_by_control_id`仍线性扫描，未有stable generation build=0或1/100/10k clone-byte门。本轮仅按PERF-MVP-136把74次静态showcase binding查找与7次pane descriptor运行时启动收为test-process `OnceLock`，源码合同10/10；这不改变本failure open状态，也不得转化为consumer私有产品cache。

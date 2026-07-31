@@ -1,0 +1,159 @@
+// Source-locked from src/sim/entity.ts and src/sim/types.ts at
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. These are container-independent
+// recalcPlayerStats formulas; item, set, aura and talent aggregation stays authoritative.
+
+var math = %import("zr.zircon.math");
+
+pub roundJs(value: float): int {
+    return <int>math.floor(value + 0.5);
+}
+
+pub primaryAtLevel(baseValue: int, perLevel: int, level: int): int {
+    return baseValue + perLevel * (level - 1);
+}
+
+pub hpFromStamina(stamina: int): int {
+    var value = stamina;
+    if (value < 0) {
+        value = 0;
+    }
+    var firstTwenty = value;
+    if (firstTwenty > 20) {
+        firstTwenty = 20;
+    }
+    var remaining = value - 20;
+    if (remaining < 0) {
+        remaining = 0;
+    }
+    return firstTwenty + remaining * 10;
+}
+
+pub manaFromIntellect(intellect: int): int {
+    var value = intellect;
+    if (value < 0) {
+        value = 0;
+    }
+    var firstTwenty = value;
+    if (firstTwenty > 20) {
+        firstTwenty = 20;
+    }
+    var remaining = value - 20;
+    if (remaining < 0) {
+        remaining = 0;
+    }
+    return firstTwenty + remaining * 15;
+}
+
+pub attackPower(
+    classId: string,
+    strength: int,
+    agility: int,
+    bonusAp: int,
+    apPercent: float,
+): int {
+    var base = strength;
+    if (classId == "warrior" || classId == "paladin" || classId == "shaman" ||
+        classId == "druid") {
+        base = strength * 2;
+    } else if (classId == "rogue" || classId == "hunter") {
+        base = strength + agility;
+    }
+    var result = roundJs(<float>(base + bonusAp) * (1.0 + apPercent));
+    return result < 0 ? 0 : result;
+}
+
+pub rangedPower(isHunter: bool, agility: int, bonusAp: int, apPercent: float): int {
+    if (!isHunter) {
+        return 0;
+    }
+    var result = roundJs(<float>(agility * 2 + bonusAp) * (1.0 + apPercent));
+    return result < 0 ? 0 : result;
+}
+
+pub spellPower(intellect: int, bonusSpellPower: int): int {
+    var result = roundJs(<float>intellect * 0.5 + <float>bonusSpellPower);
+    return result < 0 ? 0 : result;
+}
+
+pub critChance(agility: int, bonusCrit: float): float {
+    return 0.05 + <float>agility * 0.0005 + bonusCrit;
+}
+
+pub dodgeChance(agility: int, bonusDodge: float): float {
+    var result = 0.05 + <float>agility * 0.0005 + bonusDodge;
+    return result < 0.0 ? 0.0 : result;
+}
+
+pub maxHp(
+    baseHp: int,
+    hpPerLevel: int,
+    level: int,
+    stamina: int,
+    bearForm: bool,
+    maxHpPercent: float,
+    scaleMultiplier: float,
+): int {
+    return maxHpWithFormMultiplier(
+        baseHp,
+        hpPerLevel,
+        level,
+        stamina,
+        bearForm ? 1.15 : 1.0,
+        maxHpPercent,
+        scaleMultiplier
+    );
+}
+
+// Form-specific callers supply their source-extracted multiplier so the
+// contribution graph retains the exact entity.ts ordering without duplicating it.
+pub maxHpWithFormMultiplier(
+    baseHp: int,
+    hpPerLevel: int,
+    level: int,
+    stamina: int,
+    formMaxHpMultiplier: float,
+    maxHpPercent: float,
+    scaleMultiplier: float,
+): int {
+    var result = baseHp + hpPerLevel * (level - 1) + hpFromStamina(stamina);
+    if (formMaxHpMultiplier != 1.0) {
+        result = roundJs(<float>result * formMaxHpMultiplier);
+    }
+    if (maxHpPercent != 0.0) {
+        result = roundJs(<float>result * (1.0 + maxHpPercent));
+    }
+    if (scaleMultiplier > 1.0) {
+        result = roundJs(<float>result * scaleMultiplier);
+    }
+    return result;
+}
+
+pub maxMana(baseMana: int, manaPerLevel: int, level: int, intellect: int): int {
+    return baseMana + manaPerLevel * (level - 1) + manaFromIntellect(intellect);
+}
+
+pub contractTest(): int {
+    if (primaryAtLevel(23, 2, 1) != 23 || primaryAtLevel(23, 2, 20) != 61 ||
+        hpFromStamina(-1) != 0 || hpFromStamina(20) != 20 || hpFromStamina(22) != 40 ||
+        hpFromStamina(60) != 420 || manaFromIntellect(-1) != 0 ||
+        manaFromIntellect(20) != 20 || manaFromIntellect(25) != 95) {
+        return -1;
+    }
+    if (attackPower("warrior", 23, 20, 0, 0.0) != 46 ||
+        attackPower("rogue", 17, 25, 0, 0.0) != 42 ||
+        attackPower("mage", 10, 12, 0, 0.0) != 10 ||
+        attackPower("hunter", 14, 25, 0, 0.0) != 39 ||
+        rangedPower(true, 25, 0, 0.0) != 50 || rangedPower(false, 25, 0, 0.0) != 0 ||
+        spellPower(25, 0) != 13 || spellPower(-10, 0) != 0) {
+        return -2;
+    }
+    if (critChance(20, 0.0) != 0.06 || dodgeChance(20, 0.0) != 0.06 ||
+        dodgeChance(0, -0.1) != 0.0 ||
+        maxHp(50, 18, 20, 60, false, 0.0, 1.0) != 812 ||
+        maxHp(50, 18, 1, 22, true, 0.1, 1.0) != 114 ||
+        maxHp(50, 18, 1, 22, true, 0.1, 1.35) != 154 ||
+        maxMana(100, 24, 1, 25) != 195) {
+        return -3;
+    }
+    return 1;
+}

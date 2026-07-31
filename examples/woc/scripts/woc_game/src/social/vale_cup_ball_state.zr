@@ -1,0 +1,334 @@
+// Source-compatible Vale Cup boarball physics from
+// src/sim/vale_cup_ball.ts at the pinned current-head commit. This stays a
+// pure kinematics leaf: the future cup match driver owns scheduling, players
+// and scoring state, while this module only mutates one ball record.
+var math = %import("zr.zircon.math");
+var contract = %import("generated/vale_cup_ball_contract");
+
+// score uses 0 for no score, 1 for source team A and 2 for source team B.
+// Pocket side uses 1 for west and 2 for east.
+pub class ValeCupBall {
+    pub var x: float;
+    pub var y: float;
+    pub var z: float;
+    pub var vx: float;
+    pub var vy: float;
+    pub var vz: float;
+
+    pub @constructor(x: float, y: float, z: float, vx: float, vy: float, vz: float) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.vx = vx;
+        this.vy = vy;
+        this.vz = vz;
+    }
+}
+
+minimum(left: float, right: float): float {
+    return left < right ? left : right;
+}
+
+maximum(left: float, right: float): float {
+    return left > right ? left : right;
+}
+
+closeEnough(left: float, right: float): bool {
+    var difference = left - right;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+horizontalSpeed(ball: ValeCupBall): float {
+    return math.sqrt(ball.vx * ball.vx + ball.vz * ball.vz);
+}
+
+capSpeed(ball: ValeCupBall): void {
+    var speed = horizontalSpeed(ball);
+    if (speed > contract.max_speed(true)) {
+        var scale = contract.max_speed(true) / speed;
+        ball.vx = ball.vx * scale;
+        ball.vz = ball.vz * scale;
+    }
+}
+
+applyRollFriction(ball: ValeCupBall, deceleration: float): void {
+    var speed = horizontalSpeed(ball);
+    if (speed <= 0.0) return;
+    var rate = speed < contract.slow_speed(true)
+        ? maximum(deceleration, contract.slow_decel(true))
+        : deceleration;
+    var nextSpeed = maximum(0.0, speed - rate * contract.dt(true));
+    if (nextSpeed == 0.0) {
+        ball.vx = 0.0;
+        ball.vz = 0.0;
+        return;
+    }
+    var scale = nextSpeed / speed;
+    ball.vx = ball.vx * scale;
+    ball.vz = ball.vz * scale;
+}
+
+integrateVertical(ball: ValeCupBall, groundY: float): void {
+    ball.vy = ball.vy - contract.gravity(true) * contract.dt(true);
+    ball.y = ball.y + ball.vy * contract.dt(true);
+    if (ball.y <= groundY) {
+        ball.y = groundY;
+        if (ball.vy < -contract.bounce_min_vy(true)) {
+            ball.vy = -ball.vy * contract.ground_restitution(true);
+        } else {
+            ball.vy = 0.0;
+        }
+    }
+}
+
+onGround(ball: ValeCupBall, groundY: float): bool {
+    return ball.y <= groundY + contract.groundEpsilon(true) &&
+        (ball.vy < contract.groundEpsilon(true) && ball.vy > -contract.groundEpsilon(true));
+}
+
+reflectOffWall(ball: ValeCupBall, index: int): bool {
+    var nx = contract.wallNx(index);
+    var nz = contract.wallNz(index);
+    if (nx != 0.0) {
+        var planeX = contract.wallX1(index) + nx * contract.radius(true);
+        var penetratedX = nx > 0.0 ? ball.x < planeX : ball.x > planeX;
+        var outboundX = nx > 0.0 ? ball.vx < 0.0 : ball.vx > 0.0;
+        if (!penetratedX || !outboundX) return false;
+        var z0 = minimum(contract.wallZ1(index), contract.wallZ2(index)) - contract.radius(true);
+        var z1 = maximum(contract.wallZ1(index), contract.wallZ2(index)) + contract.radius(true);
+        if (ball.z < z0 || ball.z > z1) return false;
+        ball.x = 2.0 * planeX - ball.x;
+        ball.vx = -ball.vx * contract.wall_restitution(true);
+        ball.vz = ball.vz * contract.wall_restitution(true);
+        return true;
+    }
+    var planeZ = contract.wallZ1(index) + nz * contract.radius(true);
+    var penetratedZ = nz > 0.0 ? ball.z < planeZ : ball.z > planeZ;
+    var outboundZ = nz > 0.0 ? ball.vz < 0.0 : ball.vz > 0.0;
+    if (!penetratedZ || !outboundZ) return false;
+    var x0 = minimum(contract.wallX1(index), contract.wallX2(index)) - contract.radius(true);
+    var x1 = maximum(contract.wallX1(index), contract.wallX2(index)) + contract.radius(true);
+    if (ball.x < x0 || ball.x > x1) return false;
+    ball.z = 2.0 * planeZ - ball.z;
+    ball.vz = -ball.vz * contract.wall_restitution(true);
+    ball.vx = ball.vx * contract.wall_restitution(true);
+    return true;
+}
+
+// One pinned-source 20 Hz step. Goal scoring takes precedence over board
+// reflection: a center crossing through a mouth never rebounds off its flank.
+pub stepBallPhysics(ball: ValeCupBall, groundY: float): int {
+    capSpeed(ball);
+    var previousX = ball.x;
+    var previousZ = ball.z;
+    var previousY = ball.y;
+    ball.x = ball.x + ball.vx * contract.dt(true);
+    ball.z = ball.z + ball.vz * contract.dt(true);
+    integrateVertical(ball, groundY);
+    if (onGround(ball, groundY)) applyRollFriction(ball, contract.roll_decel(true));
+
+    if (previousX >= contract.goalWestX(true) && ball.x < contract.goalWestX(true)) {
+        var westT = (previousX - contract.goalWestX(true)) /
+            maximum(contract.goalCrossingEpsilon(true), previousX - ball.x);
+        var westZ = previousZ + (ball.z - previousZ) * westT;
+        var westY = previousY + (ball.y - previousY) * westT;
+        if (westZ >= contract.goalZMin(true) && westZ <= contract.goalZMax(true) &&
+            westY - groundY < contract.goalHeight(true)) return 2;
+    } else if (previousX <= contract.goalEastX(true) && ball.x > contract.goalEastX(true)) {
+        var eastT = (contract.goalEastX(true) - previousX) /
+            maximum(contract.goalCrossingEpsilon(true), ball.x - previousX);
+        var eastZ = previousZ + (ball.z - previousZ) * eastT;
+        var eastY = previousY + (ball.y - previousY) * eastT;
+        if (eastZ >= contract.goalZMin(true) && eastZ <= contract.goalZMax(true) &&
+            eastY - groundY < contract.goalHeight(true)) return 1;
+    }
+
+    var index = 0;
+    while (index < contract.wallCount(true)) {
+        reflectOffWall(ball, index);
+        index = index + 1;
+    }
+    return 0;
+}
+
+// One source-compatible pocket step after a goal. Pockets settle rather than
+// bank, and side is 1 west or 2 east.
+pub settleBallInPocket(ball: ValeCupBall, side: int, groundY: float): void {
+    ball.x = ball.x + ball.vx * contract.dt(true);
+    ball.z = ball.z + ball.vz * contract.dt(true);
+    integrateVertical(ball, groundY);
+    applyRollFriction(ball, contract.pocket_decel(true));
+    var west = side == 1;
+    var line = west ? contract.goalWestX(true) : contract.goalEastX(true);
+    var direction = west ? -1.0 : 1.0;
+    var back = line + direction * (contract.goalDepth(true) - contract.radius(true));
+    var lowX = minimum(line, back);
+    var highX = maximum(line, back);
+    if (ball.x < lowX) {
+        ball.x = lowX;
+        ball.vx = 0.0;
+        ball.vz = 0.0;
+    } else if (ball.x > highX) {
+        ball.x = highX;
+        ball.vx = 0.0;
+        ball.vz = 0.0;
+    }
+    var lowZ = contract.goalZMin(true) + contract.radius(true);
+    var highZ = contract.goalZMax(true) - contract.radius(true);
+    if (ball.z < lowZ) {
+        ball.z = lowZ;
+        ball.vx = 0.0;
+        ball.vz = 0.0;
+    } else if (ball.z > highZ) {
+        ball.z = highZ;
+        ball.vx = 0.0;
+        ball.vz = 0.0;
+    }
+}
+
+pub applyDribbleNudge(ball: ValeCupBall, moverDx: float, moverDz: float): bool {
+    var step = math.sqrt(moverDx * moverDx + moverDz * moverDz);
+    var moverSpeed = step / contract.dt(true);
+    if (moverSpeed < contract.dribble_min_mover_speed(true)) return false;
+    var target = moverSpeed * contract.dribble_speed_mult(true);
+    if (horizontalSpeed(ball) >= target) return false;
+    ball.vx = moverDx / step * target;
+    ball.vz = moverDz / step * target;
+    return true;
+}
+
+pub applyBodyTrap(
+    ball: ValeCupBall, moverDx: float, moverDz: float, facing: float
+): bool {
+    if (horizontalSpeed(ball) < contract.trap_min_speed(true)) return false;
+    var step = math.sqrt(moverDx * moverDx + moverDz * moverDz);
+    var directionX = 0.0;
+    var directionZ = 0.0;
+    if (step / contract.dt(true) >= contract.dribble_min_mover_speed(true)) {
+        directionX = moverDx / step;
+        directionZ = moverDz / step;
+    } else {
+        directionX = math.sin(facing);
+        directionZ = math.cos(facing);
+    }
+    ball.vx = directionX * contract.trap_roll_speed(true);
+    ball.vz = directionZ * contract.trap_roll_speed(true);
+    ball.vy = ball.vy * contract.trap_vy_damp(true);
+    return true;
+}
+
+pub launchBall(
+    ball: ValeCupBall, directionX: float, directionZ: float, power: float, loft: float
+): void {
+    var length = math.sqrt(directionX * directionX + directionZ * directionZ);
+    if (length < contract.directionEpsilon(true)) return;
+    var speed = minimum(contract.max_speed(true), maximum(0.0, power));
+    ball.vx = directionX / length * speed;
+    ball.vz = directionZ / length * speed;
+    ball.vy = maximum(0.0, loft);
+}
+
+// Static target cases, usable once the math plugin is linked into the ZrVM
+// backend. They mirror the pinned source leaf's friction, banking, bounce,
+// cap, goal, pocket, carry and trap coverage without match-state ABI.
+pub contractTest(): int {
+    var roll = new ValeCupBall(-11.0, 0.0, -112.0, 10.0, 0.0, 0.0);
+    var index = 0;
+    while (index < 20) {
+        stepBallPhysics(roll, 0.0);
+        index = index + 1;
+    }
+    if (!closeEnough(horizontalSpeed(roll), 6.0)) return -1;
+
+    var slowRoll = new ValeCupBall(-11.0, 0.0, -112.0, 1.5, 0.0, 0.0);
+    index = 0;
+    while (index < 8) {
+        stepBallPhysics(slowRoll, 0.0);
+        index = index + 1;
+    }
+    if (horizontalSpeed(slowRoll) != 0.0) return -2;
+
+    var airborne = new ValeCupBall(-11.0, 3.0, -112.0, 10.0, 2.0, 0.0);
+    stepBallPhysics(airborne, 0.0);
+    if (!closeEnough(airborne.vx, 10.0)) return -3;
+
+    var northBoard = new ValeCupBall(-11.0, 1.5, -97.54, 3.0, 0.0, 8.0);
+    var northSpeed = horizontalSpeed(northBoard);
+    if (stepBallPhysics(northBoard, 0.0) != 0 || northBoard.vz >= 0.0 ||
+        northBoard.vx <= 0.0 ||
+        !closeEnough(horizontalSpeed(northBoard), northSpeed * contract.wall_restitution(true)) ||
+        northBoard.z > -97.49) return -4;
+
+    var westBoard = new ValeCupBall(-47.46, 0.0, -119.5, -9.0, 0.0, 0.0);
+    if (stepBallPhysics(westBoard, 0.0) != 0 || westBoard.vx <= 0.0 ||
+        westBoard.x < -47.51) return -5;
+
+    var falling = new ValeCupBall(-11.0, 3.0, -112.0, 0.0, 0.0, 0.0);
+    var lastVyDown = 0.0;
+    index = 0;
+    while (falling.vy <= 0.0 && falling.y > 0.0 && index < 100) {
+        lastVyDown = falling.vy;
+        stepBallPhysics(falling, 0.0);
+        if (falling.vy > 0.0) break;
+        index = index + 1;
+    }
+    if (falling.vy <= 0.0 ||
+        !closeEnough(falling.vy, -lastVyDown * contract.ground_restitution(true))) return -6;
+    index = 0;
+    while (index < 120) {
+        stepBallPhysics(falling, 0.0);
+        index = index + 1;
+    }
+    if (falling.y != 0.0 || falling.vy != 0.0) return -7;
+
+    var capped = new ValeCupBall(-11.0, 0.0, -112.0, 40.0, 0.0, 30.0);
+    stepBallPhysics(capped, 0.0);
+    if (horizontalSpeed(capped) > contract.max_speed(true) + contract.goalCrossingEpsilon(true)) return -8;
+    var launched = new ValeCupBall(-11.0, 0.0, -112.0, 0.0, 0.0, 0.0);
+    launchBall(launched, 1.0, 0.0, 99.0, 4.0);
+    if (!closeEnough(horizontalSpeed(launched), contract.max_speed(true)) ||
+        !closeEnough(launched.vy, 4.0)) return -9;
+
+    var westGoal = new ValeCupBall(-47.7, 0.0, -112.0, -12.0, 0.0, 0.0);
+    if (stepBallPhysics(westGoal, 0.0) != 2) return -10;
+    var eastGoal = new ValeCupBall(25.7, 0.0, -112.0, 12.0, 0.0, 0.0);
+    if (stepBallPhysics(eastGoal, 0.0) != 1) return -11;
+    var postGoal = new ValeCupBall(-47.7, 0.0, -118.0, -12.0, 0.0, 0.0);
+    if (stepBallPhysics(postGoal, 0.0) != 2) return -12;
+    var outsidePost = new ValeCupBall(-47.46, 0.0, -118.2, -12.0, 0.0, 0.0);
+    if (stepBallPhysics(outsidePost, 0.0) != 0 || outsidePost.vx <= 0.0) return -13;
+
+    var westPocket = new ValeCupBall(-48.2, 0.0, -112.0, -14.0, 0.0, 3.0);
+    index = 0;
+    while (index < 60) {
+        settleBallInPocket(westPocket, 1, 0.0);
+        index = index + 1;
+    }
+    if (horizontalSpeed(westPocket) != 0.0 || westPocket.x < -50.5 ||
+        westPocket.x > contract.goalWestX(true) ||
+        westPocket.z < contract.goalZMin(true) ||
+        westPocket.z > contract.goalZMax(true)) return -14;
+
+    var carried = new ValeCupBall(-11.0, 0.0, -112.0, 1.0, 0.0, 0.0);
+    if (!applyDribbleNudge(carried, 0.35, 0.0) || !closeEnough(carried.vx, 8.05) ||
+        !closeEnough(carried.vz, 0.0)) return -15;
+    var fastBall = new ValeCupBall(-11.0, 0.0, -112.0, 15.0, 0.0, 0.0);
+    if (applyDribbleNudge(fastBall, 0.35, 0.0) || !closeEnough(fastBall.vx, 15.0)) return -16;
+    var stationary = new ValeCupBall(-11.0, 0.0, -112.0, 0.5, 0.0, 0.0);
+    if (applyDribbleNudge(stationary, 0.0, 0.0)) return -17;
+
+    var stillTrap = new ValeCupBall(-11.0, 0.0, -112.0, 19.0, 4.0, 0.0);
+    if (!applyBodyTrap(stillTrap, 0.0, 0.0, 0.0) ||
+        !closeEnough(horizontalSpeed(stillTrap), contract.trap_roll_speed(true)) ||
+        !closeEnough(stillTrap.vx, 0.0) ||
+        !closeEnough(stillTrap.vz, contract.trap_roll_speed(true)) ||
+        stillTrap.vy >= 4.0) return -18;
+    var movingTrap = new ValeCupBall(-11.0, 0.0, -112.0, 23.0, 0.0, 0.0);
+    if (!applyBodyTrap(movingTrap, 0.0, 0.4, 0.0) ||
+        !closeEnough(movingTrap.vx, 0.0) ||
+        !closeEnough(movingTrap.vz, contract.trap_roll_speed(true))) return -19;
+    var belowTrap = new ValeCupBall(-11.0, 0.0, -112.0, 12.0, 0.0, 0.0);
+    if (applyBodyTrap(belowTrap, 0.0, 0.0, 0.0) || !closeEnough(belowTrap.vx, 12.0)) return -20;
+    return 1;
+}

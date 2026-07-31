@@ -1,0 +1,49 @@
+// Pure projection of delveShopGateUnlocked and resolveDelveShopOffers.
+var content = %import("instances/delve_shop_content");
+
+pub delveIndex(delveId: string): int {
+    if (delveId == "collapsed_reliquary") { return 0; }
+    if (delveId == "drowned_litany") { return 1; }
+    return -1;
+}
+
+pub offerCount(delveId: string): int {
+    var index = delveIndex(delveId);
+    return index < 0 ? 0 : content.offerCount(index, true);
+}
+
+pub offerUnlocked(
+    delveId: string,
+    offerIndex: int,
+    normalClears: int,
+    heroicClears: int,
+    otherTierClears: int
+): bool {
+    var index = delveIndex(delveId);
+    if (index < 0 || offerIndex < 0 || offerIndex >= content.offerCount(index, true)) {
+        return false;
+    }
+    var gate = content.offerGateKind(index, offerIndex, true);
+    if (gate == 1) { return true; }
+    if (gate == 3) { return heroicClears > 0; }
+    return normalClears + heroicClears + otherTierClears >=
+        content.offerRequiredClears(index, offerIndex, true);
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || offerCount("collapsed_reliquary") != 9 ||
+        offerCount("drowned_litany") != 9 || offerCount("missing") != 0) {
+        return -1;
+    }
+    if (!offerUnlocked("collapsed_reliquary", 0, 0, 0, 0) ||
+        offerUnlocked("collapsed_reliquary", 6, 2, 0, 0) ||
+        !offerUnlocked("collapsed_reliquary", 6, 3, 0, 0) ||
+        !offerUnlocked("collapsed_reliquary", 6, 0, 0, 3) ||
+        offerUnlocked("collapsed_reliquary", 7, 99, 0, 0) ||
+        !offerUnlocked("collapsed_reliquary", 7, 0, 1, 0) ||
+        !offerUnlocked("drowned_litany", 6, 2, 1, 0) ||
+        offerUnlocked("missing", 0, 99, 99, 99)) {
+        return -2;
+    }
+    return 1;
+}

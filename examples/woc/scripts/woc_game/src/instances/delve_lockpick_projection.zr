@@ -1,0 +1,224 @@
+// Host-neutral scalar projection of the active Tumbler's Path session. This
+// mirrors target lockpickViewFor()/visibleCells() without exporting a ZrVM
+// container or giving presentation code any mutable DelveRun authority.
+var sessionModule = %import("instances/delve_lockpick_session");
+var rules = %import("instances/delve_lockpick_rules");
+var content = %import("instances/delve_lockpick_content");
+
+// Target LockpickView exists only for its active owner. A false result is the
+// ZrVM-side equivalent of its nullable view; scalar accessors below require it.
+pub isVisibleTo(session: sessionModule.LockpickSession, viewerId: uint, required: bool): bool {
+    if (!required) { return false; }
+    return session.initialized && session.active && session.owner == viewerId;
+}
+
+requireVisible(session: sessionModule.LockpickSession, viewerId: uint, required: bool): void {
+    if (!isVisibleTo(session, viewerId, required)) {
+        throw "woc lockpick projection is unavailable";
+    }
+}
+
+// The source emits the fogged cells in ascending column then ascending row
+// order. Keep that ordering addressable by scalar ordinal for the future host
+// bridge instead of leaking a ZrVM collection across the ABI.
+visibleOrdinal(
+    session: sessionModule.LockpickSession,
+    viewerId: uint,
+    requested: int,
+    part: int,
+    required: bool
+): int {
+    requireVisible(session, viewerId, required);
+    if (requested < 0 || part < 0 || part > 2) { throw "woc lockpick visible cell is invalid"; }
+    var ordinal = 0;
+    var last = rules.visibleLastColumn(session.column, session.tier, true);
+    var column = 0;
+    while (column <= last) {
+        var row = 0;
+        while (row < session.board.rows) {
+            var kind = rules.cellKind(session.board, column, row, true);
+            if (kind != 0) {
+                if (ordinal == requested) {
+                    if (part == 0) { return column; }
+                    if (part == 1) { return row; }
+                    return kind;
+                }
+                ordinal = ordinal + 1;
+            }
+            row = row + 1;
+        }
+        column = column + 1;
+    }
+    throw "woc lockpick visible cell is invalid";
+}
+
+pub sessionId(session: sessionModule.LockpickSession, viewerId: uint, required: bool): string {
+    requireVisible(session, viewerId, required);
+    return session.id;
+}
+
+pub objectId(session: sessionModule.LockpickSession, viewerId: uint, required: bool): uint {
+    requireVisible(session, viewerId, required);
+    return session.chest;
+}
+
+pub columns(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    return session.board.columns;
+}
+
+pub rows(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    return session.board.rows;
+}
+
+pub currentColumn(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    return session.column;
+}
+
+pub currentRow(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    return session.row;
+}
+
+// Target LockpickView presents pageIndex + 1 while the authoritative session
+// stores a zero-based page index for seed derivation.
+pub page(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    return session.page + 1;
+}
+
+pub pageCount(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    return session.pages;
+}
+
+pub tries(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    return session.tries;
+}
+
+pub triesTotal(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    return session.triesTotal;
+}
+
+pub lootTier(session: sessionModule.LockpickSession, viewerId: uint, required: bool): string {
+    requireVisible(session, viewerId, required);
+    return content.anteLootTier(session.ante, true);
+}
+
+pub stepTimeoutMilliseconds(
+    session: sessionModule.LockpickSession,
+    viewerId: uint,
+    required: bool
+): int {
+    requireVisible(session, viewerId, required);
+    return content.anteStepTimeoutMilliseconds(session.ante, true);
+}
+
+pub actionCount(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    var count = 0;
+    var action = 0;
+    while (action < 5) {
+        if (content.tierActionAllowed(session.tier, action, true)) { count = count + 1; }
+        action = action + 1;
+    }
+    return count;
+}
+
+// Returns the target action code (hardSet=0 through drop=4) at its retained
+// UI ordinal. Abort remains a distinct command and is intentionally absent.
+pub actionAt(
+    session: sessionModule.LockpickSession,
+    viewerId: uint,
+    ordinal: int,
+    required: bool
+): int {
+    requireVisible(session, viewerId, required);
+    if (ordinal < 0) { throw "woc lockpick action ordinal is invalid"; }
+    var included = 0;
+    var action = 0;
+    while (action < 5) {
+        if (content.tierActionAllowed(session.tier, action, true)) {
+            if (included == ordinal) { return action; }
+            included = included + 1;
+        }
+        action = action + 1;
+    }
+    throw "woc lockpick action ordinal is invalid";
+}
+
+pub visibleCellCount(session: sessionModule.LockpickSession, viewerId: uint, required: bool): int {
+    requireVisible(session, viewerId, required);
+    return rules.visibleCellCount(session.board, session.column, true);
+}
+
+// Kind values mirror the generated board: open=1, gate=2, seat=3, trap=4.
+pub visibleCellColumn(
+    session: sessionModule.LockpickSession,
+    viewerId: uint,
+    ordinal: int,
+    required: bool
+): int {
+    return visibleOrdinal(session, viewerId, ordinal, 0, required);
+}
+
+pub visibleCellRow(
+    session: sessionModule.LockpickSession,
+    viewerId: uint,
+    ordinal: int,
+    required: bool
+): int {
+    return visibleOrdinal(session, viewerId, ordinal, 1, required);
+}
+
+pub visibleCellKind(
+    session: sessionModule.LockpickSession,
+    viewerId: uint,
+    ordinal: int,
+    required: bool
+): int {
+    return visibleOrdinal(session, viewerId, ordinal, 2, required);
+}
+
+// Matches the view-model timer identity: it changes on a new session, page,
+// try or current tumbler so the 60 Hz display can re-anchor to 20 Hz state.
+pub timerKey(session: sessionModule.LockpickSession, viewerId: uint, required: bool): string {
+    requireVisible(session, viewerId, required);
+    return session.id + ":" + <string>(session.page + 1) + ":" + <string>session.tries +
+        ":" + <string>session.column;
+}
+
+// Mirrors anteOptions(): a Bountiful Coffer admits only the premium ante.
+pub anteOffered(coffer: bool, ante: int, required: bool): bool {
+    if (!required || ante < 1 || ante > 3) { return false; }
+    return !coffer || ante == 1;
+}
+
+pub contractTest(): int {
+    var session = new sessionModule.LockpickSession();
+    if (sessionModule.engage(session, <uint>20061, <uint>423, <uint>77, 2, 0, 100, true) != 1 ||
+        !isVisibleTo(session, <uint>77, true) || isVisibleTo(session, <uint>78, true) ||
+        page(session, <uint>77, true) != 1 || lootTier(session, <uint>77, true) != "medium" ||
+        stepTimeoutMilliseconds(session, <uint>77, true) != 6000 ||
+        actionCount(session, <uint>77, true) != 5 || actionAt(session, <uint>77, 4, true) != 4 ||
+        visibleCellCount(session, <uint>77, true) != 13 ||
+        visibleCellKind(session, <uint>77, 5, true) != 4 ||
+        visibleCellKind(session, <uint>77, 9, true) != 2 ||
+        timerKey(session, <uint>77, true) != "lp_423_100:1:2:0" ||
+        !anteOffered(false, 3, true) || !anteOffered(true, 1, true) ||
+        anteOffered(true, 2, true)) {
+        return -1;
+    }
+    if (sessionModule.applyAction(session, 3, 101, <uint>77, "lp_423_100", true, true) != 2 ||
+        currentColumn(session, <uint>77, true) != 1 || currentRow(session, <uint>77, true) != 2 ||
+        timerKey(session, <uint>77, true) != "lp_423_100:1:2:1" ||
+        sessionModule.abandon(session, <uint>77, "lp_423_100", true, true) != 7 ||
+        isVisibleTo(session, <uint>77, true)) {
+        return -2;
+    }
+    return 1;
+}

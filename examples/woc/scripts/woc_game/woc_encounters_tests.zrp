@@ -1,0 +1,6 @@
+{
+  "name": "woc_encounters_tests",
+  "source": "src",
+  "binary": "bin-encounters-tests",
+  "entry": "combat/encounters_test_main"
+}

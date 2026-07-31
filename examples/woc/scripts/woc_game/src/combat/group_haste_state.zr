@@ -1,0 +1,86 @@
+// Pure shared group-haste application planning. The WOS reducer selects live
+// candidates and commits the returned aura descriptions atomically.
+var container = %import("zr.container");
+var contract = %import("generated/group_haste_contract");
+
+pub class GroupHasteTarget {
+    pub var id: int;
+    pub var alreadySated: bool;
+    pub @constructor(id: int, alreadySated: bool) {
+        this.id = id;
+        this.alreadySated = alreadySated;
+    }
+}
+
+pub class GroupHasteParams {
+    pub var multiplier: float;
+    pub var duration: float;
+    pub var spell: bool;
+    pub var exhaust: bool;
+    pub @constructor(multiplier: float, duration: float, spell: bool, exhaust: bool) {
+        this.multiplier = multiplier;
+        this.duration = duration;
+        this.spell = spell;
+        this.exhaust = exhaust;
+    }
+}
+
+pub class GroupHasteApplication {
+    pub var targetId: int;
+    pub var attackHasteValue: float;
+    pub var addSpellHaste: bool;
+    pub var spellHasteValue: float;
+    pub var addSated: bool;
+    pub var satedDuration: float;
+    pub @constructor() {
+        this.targetId = 0;
+        this.attackHasteValue = 0.0;
+        this.addSpellHaste = false;
+        this.spellHasteValue = 0.0;
+        this.addSated = false;
+        this.satedDuration = 0.0;
+    }
+}
+
+// Mirrors applyGroupHaste after the source has selected either group or
+// friendlies-in-radius candidates. Existing Sated blocks only exhausting casts.
+pub planGroupHaste(
+    candidates: container.Array<GroupHasteTarget>,
+    params: GroupHasteParams
+): container.Array<GroupHasteApplication> {
+    var applications = new container.Array<GroupHasteApplication>();
+    var index = 0;
+    while (index < candidates.length) {
+        var target = <GroupHasteTarget>candidates[index];
+        if (!(params.exhaust && target.alreadySated)) {
+            var application = new GroupHasteApplication();
+            application.targetId = target.id;
+            application.attackHasteValue = params.multiplier;
+            application.addSpellHaste = params.spell;
+            application.spellHasteValue = params.multiplier - 1.0;
+            application.addSated = params.exhaust;
+            application.satedDuration = params.exhaust ? contract.satedDuration(true) : 0.0;
+            applications.add(application);
+        }
+        index = index + 1;
+    }
+    return applications;
+}
+
+pub contractTest(): int {
+    var candidates = new container.Array<GroupHasteTarget>();
+    candidates.add(new GroupHasteTarget(3, true));
+    candidates.add(new GroupHasteTarget(8, false));
+    var exhausting = planGroupHaste(candidates, new GroupHasteParams(1.3, 12.0, true, true));
+    if (exhausting.length != 1) return -1;
+    var applied = <GroupHasteApplication>exhausting[0];
+    if (applied.targetId != 8 || applied.attackHasteValue != 1.3 ||
+        !applied.addSpellHaste || applied.spellHasteValue != 0.3 ||
+        !applied.addSated || applied.satedDuration != 600.0 ||
+        contract.satedId(true) != "sated" || contract.satedName(true) != "Temporal Exhaustion") return -2;
+    var nonExhausting = planGroupHaste(candidates, new GroupHasteParams(1.3, 12.0, false, false));
+    if (nonExhausting.length != 2) return -3;
+    var firstNonExhausting = <GroupHasteApplication>nonExhausting[0];
+    if (firstNonExhausting.addSpellHaste || firstNonExhausting.addSated) return -4;
+    return 1;
+}

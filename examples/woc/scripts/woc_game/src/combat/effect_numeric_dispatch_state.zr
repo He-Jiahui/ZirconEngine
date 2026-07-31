@@ -1,0 +1,855 @@
+// Stateful M4 projection of numeric effect dispatch. This module preserves
+// effect-local guards, RNG order and scaling, then records requests for the
+// existing damage/heal/aura state owners instead of duplicating those pipelines.
+var container = %import("zr.container");
+var abilities = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+var scaling = %import("combat/spell_scaling");
+
+class NumericEntity {
+    pub var id: uint;
+    pub var kind: string;
+    pub var dead: bool;
+    pub var hostileToSource: bool;
+    pub var level: int;
+    pub var spellPower: float;
+    pub var rangedPower: float;
+    pub var attackPower: float;
+    pub var effectiveAttackPower: float;
+    pub var critChance: float;
+    pub var spellCritChance: float;
+    pub var critDmgSpellBonus: float;
+    pub var critDmgPhysBonus: float;
+    pub var spellDamageMultiplier: float;
+    pub var armorReduction: float;
+    pub var rootedOrChilled: bool;
+    pub var comboPoints: int;
+    pub var auraIds: container.Array<string>;
+    pub var auraKinds: container.Array<string>;
+    pub var auraValues: container.Array<float>;
+    pub var auraValues2: container.Array<float>;
+    pub var auraValues3: container.Array<float>;
+    pub var auraHasJudgement: container.Array<bool>;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.kind = "player";
+        this.dead = false;
+        this.hostileToSource = true;
+        this.level = 1;
+        this.spellPower = 0.0;
+        this.rangedPower = 0.0;
+        this.attackPower = 0.0;
+        this.effectiveAttackPower = 0.0;
+        this.critChance = 0.0;
+        this.spellCritChance = 0.0;
+        this.critDmgSpellBonus = 0.0;
+        this.critDmgPhysBonus = 0.0;
+        this.spellDamageMultiplier = 1.0;
+        this.armorReduction = 0.0;
+        this.rootedOrChilled = false;
+        this.comboPoints = 0;
+        this.auraIds = new container.Array<string>();
+        this.auraKinds = new container.Array<string>();
+        this.auraValues = new container.Array<float>();
+        this.auraValues2 = new container.Array<float>();
+        this.auraValues3 = new container.Array<float>();
+        this.auraHasJudgement = new container.Array<bool>();
+    }
+}
+
+class NumericDispatchState {
+    pub var source: NumericEntity;
+    pub var target: NumericEntity;
+    pub var targetPresent: bool;
+    pub var globalCritVsRooted: float;
+    pub var nextAttackCrit: bool;
+    pub var nextDamageKillsTarget: bool;
+    pub var meleeSwingHit: bool;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var damageAmounts: container.Array<int>;
+    pub var damageCrits: container.Array<bool>;
+    pub var damageSchools: container.Array<string>;
+    pub var damageAbilityIds: container.Array<string>;
+    pub var damageThreatFlat: container.Array<float>;
+    pub var damageThreatMult: container.Array<float>;
+    pub var healAmounts: container.Array<float>;
+    pub var healTargetIds: container.Array<uint>;
+    pub var periodicIds: container.Array<string>;
+    pub var periodicKinds: container.Array<string>;
+    pub var periodicValues: container.Array<int>;
+    pub var periodicDurations: container.Array<float>;
+    pub var periodicIntervals: container.Array<float>;
+    pub var periodicTargetIds: container.Array<uint>;
+    pub var meleeSwingCalls: int;
+    pub var lastMeleeBonus: float;
+    pub var comboAwardEvents: int;
+    pub var comboAwarded: bool;
+    pub var spellHitNotes: int;
+    pub var spellDamageWeaponProcCalls: int;
+    pub var auraLostEvents: int;
+    pub var enterCombatEvents: int;
+    pub var errorEvents: int;
+    pub var consumedEffects: int;
+
+    pub @constructor() {
+        this.source = new NumericEntity();
+        this.target = new NumericEntity();
+        this.targetPresent = true;
+        this.globalCritVsRooted = 0.0;
+        this.nextAttackCrit = false;
+        this.nextDamageKillsTarget = false;
+        this.meleeSwingHit = false;
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.damageAmounts = new container.Array<int>();
+        this.damageCrits = new container.Array<bool>();
+        this.damageSchools = new container.Array<string>();
+        this.damageAbilityIds = new container.Array<string>();
+        this.damageThreatFlat = new container.Array<float>();
+        this.damageThreatMult = new container.Array<float>();
+        this.healAmounts = new container.Array<float>();
+        this.healTargetIds = new container.Array<uint>();
+        this.periodicIds = new container.Array<string>();
+        this.periodicKinds = new container.Array<string>();
+        this.periodicValues = new container.Array<int>();
+        this.periodicDurations = new container.Array<float>();
+        this.periodicIntervals = new container.Array<float>();
+        this.periodicTargetIds = new container.Array<uint>();
+        this.meleeSwingCalls = 0;
+        this.lastMeleeBonus = 0.0;
+        this.comboAwardEvents = 0;
+        this.comboAwarded = false;
+        this.spellHitNotes = 0;
+        this.spellDamageWeaponProcCalls = 0;
+        this.auraLostEvents = 0;
+        this.enterCombatEvents = 0;
+        this.errorEvents = 0;
+        this.consumedEffects = 0;
+    }
+}
+
+// A pure periodic-damage spell snapshots the selected source power when its
+// effect actually applies. WOS84 persists this compact profile beside its
+// generic DoT row, so restore validation never reuses a later gear value.
+class PureDotProfile {
+    pub var valid: bool;
+    pub var snapshotPower: int;
+    pub var damage: int;
+    pub var duration: float;
+    pub var interval: float;
+
+    pub @constructor() {
+        this.valid = false;
+        this.snapshotPower = 0;
+        this.damage = 0;
+        this.duration = 0.0;
+        this.interval = 0.0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+takeRandomUnit(state: NumericDispatchState): float {
+    if (state.randomIndex < 0 || state.randomIndex >= state.randomUnits.length) {
+        throw "numeric effect random stream is exhausted";
+    }
+    var result = <float>state.randomUnits[state.randomIndex];
+    state.randomIndex = state.randomIndex + 1;
+    return result;
+}
+
+randomRange(state: NumericDispatchState, minimum: float, maximum: float): float {
+    return minimum + takeRandomUnit(state) * (maximum - minimum);
+}
+
+randomChance(state: NumericDispatchState, chance: float): bool {
+    return takeRandomUnit(state) < chance;
+}
+
+consumeNextAttackCrit(state: NumericDispatchState): bool {
+    var result = state.nextAttackCrit;
+    state.nextAttackCrit = false;
+    return result;
+}
+
+removeAuraAt(entity: NumericEntity, index: int): void {
+    entity.auraIds.removeAt(index);
+    entity.auraKinds.removeAt(index);
+    entity.auraValues.removeAt(index);
+    entity.auraValues2.removeAt(index);
+    entity.auraValues3.removeAt(index);
+    entity.auraHasJudgement.removeAt(index);
+}
+
+appendAura(
+    entity: NumericEntity,
+    id: string,
+    kind: string,
+    value: float,
+    value2: float,
+    value3: float,
+    hasJudgement: bool
+): void {
+    entity.auraIds.add(id);
+    entity.auraKinds.add(kind);
+    entity.auraValues.add(value);
+    entity.auraValues2.add(value2);
+    entity.auraValues3.add(value3);
+    entity.auraHasJudgement.add(hasJudgement);
+}
+
+recordDamage(
+    state: NumericDispatchState,
+    amount: int,
+    crit: bool,
+    school: string,
+    abilityIndex: int,
+    threatFlat: float,
+    threatMult: float
+): void {
+    state.damageAmounts.add(amount);
+    state.damageCrits.add(crit);
+    state.damageSchools.add(school);
+    state.damageAbilityIds.add(abilities.text(abilityIndex, "id"));
+    state.damageThreatFlat.add(threatFlat);
+    state.damageThreatMult.add(threatMult);
+    if (state.nextDamageKillsTarget) {
+        state.target.dead = true;
+        state.nextDamageKillsTarget = false;
+    }
+}
+
+recordPeriodic(
+    state: NumericDispatchState,
+    target: NumericEntity,
+    abilityIndex: int,
+    kind: string,
+    value: int,
+    duration: float,
+    interval: float
+): void {
+    state.periodicIds.add(abilities.text(abilityIndex, "id"));
+    state.periodicKinds.add(kind);
+    state.periodicValues.add(value);
+    state.periodicDurations.add(duration);
+    state.periodicIntervals.add(interval);
+    state.periodicTargetIds.add(target.id);
+}
+
+hasEffectType(abilityIndex: int, rank: int, expected: string): bool {
+    var index = 0;
+    while (index < effects.count(abilityIndex, rank)) {
+        if (effects.typeAt(abilityIndex, rank, index) == expected) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+abilityScalesWithRanged(abilityIndex: int): bool {
+    return abilities.text(abilityIndex, "scalesWith") == "ranged";
+}
+
+scalingPower(state: NumericDispatchState, abilityIndex: int, school: string): float {
+    return scaling.abilityScalingPower(
+        state.source.spellPower,
+        state.source.rangedPower,
+        state.source.attackPower,
+        school,
+        abilityScalesWithRanged(abilityIndex)
+    );
+}
+
+pureDotProfileFromSnapshot(
+    abilityIndex: int,
+    rank: int,
+    snapshotPower: int
+): PureDotProfile {
+    var profile = new PureDotProfile();
+    if (abilityIndex < 0 || abilityIndex >= abilities.count() || rank <= 0 ||
+        rank > abilities.rankCount(abilityIndex) || snapshotPower < 0 ||
+        effects.count(abilityIndex, rank) != 1 ||
+        effects.typeAt(abilityIndex, rank, 0) != "dot") {
+        return profile;
+    }
+    var duration = effects.metric(abilityIndex, rank, 0, "duration");
+    var interval = effects.metric(abilityIndex, rank, 0, "interval");
+    if (duration <= 0.0 || interval <= 0.0 || duration < interval) { return profile; }
+    var ticks = duration / interval;
+    var base = roundPositive(effects.metric(abilityIndex, rank, 0, "total") / ticks);
+    if (base < 1) { base = 1; }
+    var school = abilities.text(abilityIndex, "school");
+    var bonus = scaling.dotTickBonus(
+        <float>snapshotPower,
+        school,
+        abilityScalesWithRanged(abilityIndex),
+        duration,
+        interval
+    );
+    profile.valid = true;
+    profile.snapshotPower = snapshotPower;
+    profile.damage = base + bonus;
+    profile.duration = duration;
+    profile.interval = interval;
+    return profile;
+}
+
+pub resolvePureDotProfile(
+    abilityIndex: int,
+    rank: int,
+    spellPower: int,
+    rangedPower: int,
+    attackPower: int
+): PureDotProfile {
+    var profile = new PureDotProfile();
+    if (abilityIndex < 0 || abilityIndex >= abilities.count() || spellPower < 0 ||
+        rangedPower < 0 || attackPower < 0) {
+        return profile;
+    }
+    var power = scaling.abilityScalingPower(
+        <float>spellPower,
+        <float>rangedPower,
+        <float>attackPower,
+        abilities.text(abilityIndex, "school"),
+        abilityScalesWithRanged(abilityIndex)
+    );
+    if (power < 0.0) { return profile; }
+    return pureDotProfileFromSnapshot(abilityIndex, rank, <int>power);
+}
+
+pub pureDotProfileMatches(
+    abilityIndex: int,
+    rank: int,
+    snapshotPower: int,
+    damage: int,
+    duration: float,
+    interval: float
+): bool {
+    var profile = pureDotProfileFromSnapshot(abilityIndex, rank, snapshotPower);
+    return profile.valid && profile.damage == damage &&
+        closeEnough(profile.duration, duration) && closeEnough(profile.interval, interval);
+}
+
+awardCombo(state: NumericDispatchState, amount: int): void {
+    if (amount <= 0 || state.comboAwarded) { return; }
+    state.source.comboPoints = state.source.comboPoints + amount;
+    if (state.source.comboPoints > 5) { state.source.comboPoints = 5; }
+    state.comboAwardEvents = state.comboAwardEvents + 1;
+    state.comboAwarded = true;
+}
+
+dispatchWeaponStrike(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    if (!state.targetPresent) { return; }
+    state.meleeSwingCalls = state.meleeSwingCalls + 1;
+    state.lastMeleeBonus = effects.metric(abilityIndex, rank, effectIndex, "bonus");
+    if (state.meleeSwingHit) {
+        var awardsCombo = abilities.metric(
+            abilityIndex,
+            state.source.level,
+            "awardsCombo"
+        );
+        awardCombo(state, <int>awardsCombo);
+    }
+}
+
+dispatchDirectDamage(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    if (!state.targetPresent || !state.target.hostileToSource) { return; }
+    var school = abilities.text(abilityIndex, "school");
+    var isSpell = school != "physical";
+    var critChance = isSpell ? state.source.spellCritChance : state.source.critChance;
+    if (isSpell && state.target.rootedOrChilled) {
+        critChance = critChance + state.globalCritVsRooted;
+    }
+    var damage = randomRange(
+        state,
+        effects.metric(abilityIndex, rank, effectIndex, "min"),
+        effects.metric(abilityIndex, rank, effectIndex, "max")
+    );
+    var directHitBonus = scaling.directHitBonus(
+        scalingPower(state, abilityIndex, school),
+        school,
+        abilityScalesWithRanged(abilityIndex),
+        abilities.metric(abilityIndex, state.source.level, "castTime"),
+        false
+    );
+    damage = damage + <float>directHitBonus;
+    var forced = consumeNextAttackCrit(state);
+    var crit = randomChance(state, forced ? 1.0 : critChance);
+    if (crit) {
+        damage = damage * (
+            isSpell ? 1.5 + state.source.critDmgSpellBonus :
+                2.0 + state.source.critDmgPhysBonus
+        );
+    }
+    if (isSpell) {
+        damage = damage * state.source.spellDamageMultiplier;
+    } else {
+        damage = damage * (1.0 - state.target.armorReduction);
+    }
+    recordDamage(
+        state,
+        roundPositive(damage),
+        crit,
+        school,
+        abilityIndex,
+        abilities.metric(abilityIndex, state.source.level, "threatFlat"),
+        abilities.metric(abilityIndex, state.source.level, "threatMult")
+    );
+    if (isSpell) {
+        state.spellHitNotes = state.spellHitNotes + 1;
+        state.spellDamageWeaponProcCalls = state.spellDamageWeaponProcCalls + 1;
+    }
+    if (!state.target.dead) {
+        var awardsCombo = abilities.metric(
+            abilityIndex,
+            state.source.level,
+            "awardsCombo"
+        );
+        awardCombo(state, <int>awardsCombo);
+    }
+}
+
+dispatchFinisherDamage(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int,
+    spentCombo: int
+): void {
+    if (!state.targetPresent || spentCombo <= 0) { return; }
+    var damage = effects.metric(abilityIndex, rank, effectIndex, "base") +
+        effects.metric(abilityIndex, rank, effectIndex, "perCombo") * <float>spentCombo +
+        randomRange(
+            state,
+            0.0,
+            effects.metric(abilityIndex, rank, effectIndex, "variance")
+        ) +
+        state.source.effectiveAttackPower / 14.0;
+    var forced = consumeNextAttackCrit(state);
+    var crit = randomChance(state, forced ? 1.0 : state.source.critChance);
+    if (crit) { damage = damage * (2.0 + state.source.critDmgPhysBonus); }
+    damage = damage * (1.0 - state.target.armorReduction);
+    recordDamage(
+        state,
+        roundPositive(damage),
+        crit,
+        "physical",
+        abilityIndex,
+        abilities.metric(abilityIndex, state.source.level, "threatFlat"),
+        abilities.metric(abilityIndex, state.source.level, "threatMult")
+    );
+}
+
+dispatchHeal(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    var healTarget = state.targetPresent ? state.target : state.source;
+    if (healTarget.id != state.source.id && healTarget.hostileToSource) { return; }
+    var directHealBonus = scaling.directHealBonus(
+        state.source.spellPower,
+        abilities.metric(abilityIndex, state.source.level, "castTime")
+    );
+    var amount = randomRange(
+        state,
+        effects.metric(abilityIndex, rank, effectIndex, "min"),
+        effects.metric(abilityIndex, rank, effectIndex, "max")
+    ) + <float>directHealBonus;
+    state.healAmounts.add(amount);
+    state.healTargetIds.add(healTarget.id);
+}
+
+dispatchDot(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    if (!state.targetPresent || state.target.dead) { return; }
+    var duration = effects.metric(abilityIndex, rank, effectIndex, "duration");
+    var interval = effects.metric(abilityIndex, rank, effectIndex, "interval");
+    var ticks = duration / interval;
+    var base = roundPositive(effects.metric(abilityIndex, rank, effectIndex, "total") / ticks);
+    if (base < 1) { base = 1; }
+    var hybrid = hasEffectType(abilityIndex, rank, "directDamage") ||
+        hasEffectType(abilityIndex, rank, "aoeDamage") ||
+        hasEffectType(abilityIndex, rank, "aoeRoot");
+    var bonus = hybrid ? 0 : scaling.dotTickBonus(
+        scalingPower(state, abilityIndex, abilities.text(abilityIndex, "school")),
+        abilities.text(abilityIndex, "school"),
+        abilityScalesWithRanged(abilityIndex),
+        duration,
+        interval
+    );
+    recordPeriodic(
+        state,
+        state.target,
+        abilityIndex,
+        "dot",
+        base + bonus,
+        duration,
+        interval
+    );
+    state.enterCombatEvents = state.enterCombatEvents + 1;
+}
+
+dispatchHot(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    var hotTarget = state.targetPresent ? state.target : state.source;
+    var duration = effects.metric(abilityIndex, rank, effectIndex, "duration");
+    var interval = effects.metric(abilityIndex, rank, effectIndex, "interval");
+    var ticks = duration / interval;
+    var base = roundPositive(effects.metric(abilityIndex, rank, effectIndex, "total") / ticks);
+    if (base < 1) { base = 1; }
+    var bonus = hasEffectType(abilityIndex, rank, "heal") ? 0 :
+        scaling.hotTickBonus(state.source.spellPower, duration, interval);
+    recordPeriodic(
+        state,
+        hotTarget,
+        abilityIndex,
+        "hot",
+        base + bonus,
+        duration,
+        interval
+    );
+}
+
+findJudgementSeal(source: NumericEntity): int {
+    var index = 0;
+    while (index < source.auraKinds.length) {
+        if (<string>source.auraKinds[index] == "imbue" &&
+            <bool>source.auraHasJudgement[index]) {
+            return index;
+        }
+        index = index + 1;
+    }
+    return -1;
+}
+
+dispatchJudgement(state: NumericDispatchState, abilityIndex: int): void {
+    if (!state.targetPresent) { return; }
+    var sealIndex = findJudgementSeal(state.source);
+    if (sealIndex < 0) {
+        state.errorEvents = state.errorEvents + 1;
+        return;
+    }
+    var minimum = <float>state.source.auraValues2[sealIndex];
+    var maximum = <float>state.source.auraValues3[sealIndex];
+    removeAuraAt(state.source, sealIndex);
+    state.auraLostEvents = state.auraLostEvents + 1;
+    var directHitBonus = scaling.directHitBonus(
+        state.source.spellPower,
+        "holy",
+        false,
+        abilities.metric(abilityIndex, state.source.level, "castTime"),
+        false
+    );
+    var damage = randomRange(state, minimum, maximum) + <float>directHitBonus;
+    var forced = consumeNextAttackCrit(state);
+    var crit = randomChance(state, forced ? 1.0 : state.source.spellCritChance);
+    if (crit) { damage = damage * (1.5 + state.source.critDmgSpellBonus); }
+    recordDamage(state, roundPositive(damage), crit, "holy", abilityIndex, 0.0, 1.0);
+    state.spellHitNotes = state.spellHitNotes + 1;
+}
+
+// consumeAura selects the first target-local hot/dot row in source insertion
+// order. The persisted world queue owns full aura identity; this numeric
+// projection owns only the effect-local removal and follow-up magnitude.
+consumeAuraMatchIndex(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): int {
+    var selectorKind = effects.text(abilityIndex, rank, effectIndex, "auraKind");
+    var auraIndex = 0;
+    while (auraIndex < state.target.auraIds.length) {
+        var auraKind = <string>state.target.auraKinds[auraIndex];
+        if (auraKind != "dot" && auraKind != "hot") {
+            auraIndex = auraIndex + 1;
+            continue;
+        }
+        var matchesId = false;
+        var slot = 0;
+        var idCount = effects.consumeAuraIdCount(abilityIndex, rank, effectIndex);
+        while (slot < idCount) {
+            var expectedId = effects.consumeAuraIdAt(abilityIndex, rank, effectIndex, slot);
+            if (expectedId == <string>state.target.auraIds[auraIndex]) {
+                matchesId = true;
+                break;
+            }
+            slot = slot + 1;
+        }
+        if (matchesId || (selectorKind != "" && selectorKind == auraKind)) {
+            return auraIndex;
+        }
+        auraIndex = auraIndex + 1;
+    }
+    return -1;
+}
+
+dispatchConsumeAura(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    if (!state.targetPresent || state.target.dead) {
+        state.errorEvents = state.errorEvents + 1;
+        return;
+    }
+    var auraIndex = consumeAuraMatchIndex(state, abilityIndex, rank, effectIndex);
+    if (auraIndex < 0) {
+        state.errorEvents = state.errorEvents + 1;
+        return;
+    }
+    removeAuraAt(state.target, auraIndex);
+    state.auraLostEvents = state.auraLostEvents + 1;
+    if (abilities.text(abilityIndex, "targetType") == "friendly") {
+        dispatchHeal(state, abilityIndex, rank, effectIndex);
+    } else {
+        dispatchDirectDamage(state, abilityIndex, rank, effectIndex);
+    }
+}
+
+pub dispatchNumericEffect(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int,
+    spentCombo: int
+): bool {
+    var effectType = effects.typeAt(abilityIndex, rank, effectIndex);
+    if (effectType == "weaponStrike") {
+        dispatchWeaponStrike(state, abilityIndex, rank, effectIndex);
+    } else if (effectType == "directDamage") {
+        dispatchDirectDamage(state, abilityIndex, rank, effectIndex);
+    } else if (effectType == "finisherDamage") {
+        dispatchFinisherDamage(state, abilityIndex, rank, effectIndex, spentCombo);
+    } else if (effectType == "heal") {
+        dispatchHeal(state, abilityIndex, rank, effectIndex);
+    } else if (effectType == "dot") {
+        dispatchDot(state, abilityIndex, rank, effectIndex);
+    } else if (effectType == "hot") {
+        dispatchHot(state, abilityIndex, rank, effectIndex);
+    } else if (effectType == "judgement") {
+        dispatchJudgement(state, abilityIndex);
+    } else if (effectType == "consumeAura") {
+        dispatchConsumeAura(state, abilityIndex, rank, effectIndex);
+    } else if (effectType != "weaponDamage" && effectType != "drainTick") {
+        return false;
+    }
+    state.consumedEffects = state.consumedEffects + 1;
+    return true;
+}
+
+pub dispatchNumericAbility(
+    state: NumericDispatchState,
+    abilityIndex: int,
+    rank: int,
+    spentCombo: int
+): int {
+    state.comboAwarded = false;
+    var handled = 0;
+    var index = 0;
+    while (index < effects.count(abilityIndex, rank)) {
+        if (dispatchNumericEffect(state, abilityIndex, rank, index, spentCombo)) {
+            handled = handled + 1;
+        }
+        if (state.targetPresent && state.target.dead) { state.targetPresent = false; }
+        index = index + 1;
+    }
+    return handled;
+}
+
+pub contractTest(): int {
+    var fireball = new NumericDispatchState();
+    fireball.source.id = <uint>1;
+    fireball.source.level = 12;
+    fireball.source.spellPower = 140.0;
+    fireball.source.spellCritChance = 0.25;
+    fireball.source.spellDamageMultiplier = 1.2;
+    fireball.target.id = <uint>2;
+    fireball.randomUnits.add(0.5);
+    fireball.randomUnits.add(0.2);
+    if (dispatchNumericAbility(fireball, 1, 3, 0) != 2 ||
+        fireball.randomIndex != 2 || fireball.damageAmounts.length != 1 ||
+        <int>fireball.damageAmounts[0] != 256 ||
+        <bool>fireball.damageCrits[0] != true ||
+        <string>fireball.damageSchools[0] != "fire" ||
+        fireball.periodicIds.length != 1 ||
+        <string>fireball.periodicKinds[0] != "dot" ||
+        <int>fireball.periodicValues[0] != 2 ||
+        fireball.spellHitNotes != 1 ||
+        fireball.spellDamageWeaponProcCalls != 1 ||
+        fireball.enterCombatEvents != 1) {
+        return -1;
+    }
+
+    var lethal = new NumericDispatchState();
+    lethal.source.level = 1;
+    lethal.target.hostileToSource = true;
+    lethal.nextDamageKillsTarget = true;
+    lethal.randomUnits.add(0.5);
+    lethal.randomUnits.add(0.9);
+    dispatchNumericAbility(lethal, 1, 1, 0);
+    if (lethal.damageAmounts.length != 1 || lethal.periodicIds.length != 0 ||
+        lethal.targetPresent || !lethal.target.dead) {
+        return -2;
+    }
+
+    var finisher = new NumericDispatchState();
+    finisher.source.level = 1;
+    finisher.source.effectiveAttackPower = 140.0;
+    finisher.source.critChance = 0.2;
+    finisher.target.armorReduction = 0.2;
+    finisher.randomUnits.add(0.5);
+    finisher.randomUnits.add(0.9);
+    dispatchNumericAbility(finisher, 12, 1, 3);
+    if (finisher.randomIndex != 2 || finisher.damageAmounts.length != 1 ||
+        <int>finisher.damageAmounts[0] != 30 || <bool>finisher.damageCrits[0]) {
+        return -3;
+    }
+
+    var emptyFinisher = new NumericDispatchState();
+    dispatchNumericAbility(emptyFinisher, 12, 1, 0);
+    if (emptyFinisher.randomIndex != 0 || emptyFinisher.damageAmounts.length != 0) {
+        return -4;
+    }
+
+    var heal = new NumericDispatchState();
+    heal.source.id = <uint>5;
+    heal.source.level = 1;
+    heal.source.spellPower = 70.0;
+    heal.target.id = <uint>6;
+    heal.target.hostileToSource = false;
+    heal.randomUnits.add(0.4);
+    dispatchNumericAbility(heal, 6, 1, 0);
+    if (heal.randomIndex != 1 || heal.healAmounts.length != 1 ||
+        !closeEnough(<float>heal.healAmounts[0], 91.4) ||
+        <uint>heal.healTargetIds[0] != <uint>6) {
+        return -5;
+    }
+
+    var hostileHeal = new NumericDispatchState();
+    hostileHeal.source.id = <uint>5;
+    hostileHeal.target.id = <uint>6;
+    hostileHeal.target.hostileToSource = true;
+    dispatchNumericAbility(hostileHeal, 6, 1, 0);
+    if (hostileHeal.randomIndex != 0 || hostileHeal.healAmounts.length != 0) {
+        return -6;
+    }
+
+    var hot = new NumericDispatchState();
+    hot.source.id = <uint>7;
+    hot.source.level = 4;
+    hot.source.spellPower = 150.0;
+    hot.target.id = <uint>8;
+    dispatchNumericAbility(hot, 19, 1, 0);
+    if (hot.randomIndex != 0 || hot.periodicIds.length != 1 ||
+        <string>hot.periodicKinds[0] != "hot" ||
+        <int>hot.periodicValues[0] != 38 ||
+        !closeEnough(<float>hot.periodicDurations[0], 12.0) ||
+        !closeEnough(<float>hot.periodicIntervals[0], 3.0)) {
+        return -7;
+    }
+
+    var strike = new NumericDispatchState();
+    strike.source.level = 14;
+    strike.source.comboPoints = 2;
+    strike.meleeSwingHit = true;
+    dispatchNumericAbility(strike, 3, 3, 0);
+    if (strike.randomIndex != 0 || strike.meleeSwingCalls != 1 ||
+        !closeEnough(strike.lastMeleeBonus, 12.0) ||
+        strike.source.comboPoints != 3 || strike.comboAwardEvents != 1) {
+        return -8;
+    }
+
+    var judgement = new NumericDispatchState();
+    judgement.source.id = <uint>9;
+    judgement.source.level = 4;
+    judgement.source.spellPower = 70.0;
+    judgement.source.spellCritChance = 0.2;
+    judgement.target.id = <uint>10;
+    appendAura(
+        judgement.source,
+        "seal_of_righteousness",
+        "imbue",
+        11.0,
+        30.0,
+        44.0,
+        true
+    );
+    judgement.randomUnits.add(0.5);
+    judgement.randomUnits.add(0.9);
+    dispatchNumericAbility(judgement, 15, 1, 0);
+    if (judgement.source.auraIds.length != 0 || judgement.auraLostEvents != 1 ||
+        judgement.randomIndex != 2 || judgement.damageAmounts.length != 1 ||
+        <int>judgement.damageAmounts[0] != 67 ||
+        <string>judgement.damageSchools[0] != "holy" ||
+        judgement.spellHitNotes != 1) {
+        return -9;
+    }
+
+    var noSeal = new NumericDispatchState();
+    dispatchNumericAbility(noSeal, 15, 1, 0);
+    if (noSeal.errorEvents != 1 || noSeal.randomIndex != 0 ||
+        noSeal.damageAmounts.length != 0) {
+        return -10;
+    }
+
+    var noOps = new NumericDispatchState();
+    if (dispatchNumericAbility(noOps, 0, 1, 0) != 1 ||
+        dispatchNumericAbility(noOps, 7, 1, 0) != 1 ||
+        noOps.consumedEffects != 2 || noOps.randomIndex != 0 ||
+        noOps.damageAmounts.length != 0) {
+        return -11;
+    }
+
+    var unsupported = new NumericDispatchState();
+    if (dispatchNumericEffect(unsupported, 2, 1, 1, 0) ||
+        unsupported.consumedEffects != 0 || unsupported.randomIndex != 0) {
+        return -12;
+    }
+
+    var serpent = resolvePureDotProfile(23, 1, 0, 300, 0);
+    if (!serpent.valid || serpent.snapshotPower != 300 || serpent.damage != 13 ||
+        !closeEnough(serpent.duration, 15.0) || !closeEnough(serpent.interval, 3.0) ||
+        !pureDotProfileMatches(23, 1, 300, 13, 15.0, 3.0) ||
+        pureDotProfileMatches(23, 1, 300, 12, 15.0, 3.0)) {
+        return -13;
+    }
+
+    var shadowPain = resolvePureDotProfile(24, 1, 150, 0, 0);
+    if (!shadowPain.valid || shadowPain.snapshotPower != 150 || shadowPain.damage != 35 ||
+        !closeEnough(shadowPain.duration, 18.0) || !closeEnough(shadowPain.interval, 3.0) ||
+        !pureDotProfileMatches(24, 1, 150, 35, 18.0, 3.0)) {
+        return -14;
+    }
+    return 1;
+}

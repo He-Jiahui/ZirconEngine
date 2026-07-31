@@ -1,0 +1,39 @@
+// Primitive-only projection of src/sim/weapon_stow.ts. The WOS command reducer
+// will own persistence once stow_weapon receives a canonical payload schema.
+pub class WeaponStowState {
+    pub var dead: bool;
+    pub var weaponStowed: bool;
+
+    pub @constructor() {
+        this.dead = false;
+        this.weaponStowed = false;
+    }
+}
+
+pub toggleWeaponStow(state: WeaponStowState): bool {
+    if (state.dead) return state.weaponStowed;
+    state.weaponStowed = !state.weaponStowed;
+    return state.weaponStowed;
+}
+
+pub drawWeapon(state: WeaponStowState): void {
+    state.weaponStowed = false;
+}
+
+pub contractTest(): int {
+    var living = new WeaponStowState();
+    if (!toggleWeaponStow(living) || !living.weaponStowed ||
+        toggleWeaponStow(living) || living.weaponStowed) {
+        return -1;
+    }
+    living.weaponStowed = true;
+    living.dead = true;
+    if (!toggleWeaponStow(living) || !living.weaponStowed) {
+        return -2;
+    }
+    drawWeapon(living);
+    if (living.weaponStowed) {
+        return -3;
+    }
+    return 1;
+}

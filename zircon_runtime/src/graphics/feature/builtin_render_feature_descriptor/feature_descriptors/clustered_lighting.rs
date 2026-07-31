@@ -5,8 +5,8 @@ use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 use super::compute_workload::clustered_lighting_dispatch_plan;
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
-) -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
+-> RenderFeatureDescriptor {
     let light_grid_dispatch = clustered_lighting_dispatch_plan();
 
     RenderFeatureDescriptor::new(
@@ -17,13 +17,15 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             "visibility".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Lighting,
-            "light-grid-build",
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id("lighting.light-grid")
-        .with_compute_dispatch_plan(&light_grid_dispatch)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Lighting,
+                "light-grid-build",
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id("lighting.light-grid")
+            .with_compute_dispatch_plan(light_grid_dispatch),
+        ],
     )
 }
 
@@ -34,6 +36,14 @@ mod tests {
     };
     use super::*;
     use crate::core::framework::render::PostProcessGraphResourceNames;
+
+    #[test]
+    fn clustered_lighting_reuses_the_static_dispatch_contract() {
+        assert!(std::ptr::eq(
+            clustered_lighting_dispatch_plan(),
+            clustered_lighting_dispatch_plan()
+        ));
+    }
 
     #[test]
     fn clustered_lighting_declares_light_grid_build_outputs() {

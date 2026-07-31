@@ -5,12 +5,12 @@ use std::sync::Arc;
 use crate::scene::ecs::{ComponentId, ComponentLifecycleEvent, LifecycleEventKind};
 use crate::scene::{EntityId, World};
 
+use super::ObserverId;
 use super::callback_registry::{
     entity_event_callback_count, event_callback_count, lifecycle_callback_count,
     remove_observer_by_id,
 };
 use super::entry::{EntityEventObserver, EventObserver, LifecycleObserver};
-use super::ObserverId;
 use super::{EntityEventCallback, EventCallback, LifecycleCallback};
 
 #[derive(Default)]

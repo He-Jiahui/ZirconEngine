@@ -1,0 +1,137 @@
+// Source-compatible deferred projectile travel from sim/projectile_travel.ts.
+// The caller owns the pending collection and resolves impact/fizzle in its own
+// transaction; this module owns only one deterministic homing-flight step.
+var math = %import("zr.zircon.math");
+
+pub class ProjectileStepResult {
+    pub var x: float;
+    pub var z: float;
+    pub var hit: bool;
+
+    pub @constructor() {
+        this.x = 0.0;
+        this.z = 0.0;
+        this.hit = false;
+    }
+}
+
+pub class ProjectileTravelState {
+    pub var x: float;
+    pub var z: float;
+    pub var sourceId: uint;
+    pub var targetId: uint;
+    pub var ttl: float;
+
+    pub @constructor(sourceId: uint, targetId: uint, sourceX: float, sourceZ: float) {
+        this.x = sourceX;
+        this.z = sourceZ;
+        this.sourceId = sourceId;
+        this.targetId = targetId;
+        this.ttl = projectileMaxFlight();
+    }
+}
+
+pub class ProjectileAdvanceResult {
+    pub var disposition: int;
+
+    pub @constructor() {
+        this.disposition = continueDisposition();
+    }
+}
+
+// Yards per second, impact reach and forced-land deadline. These match the
+// source simulation's renderer-aligned homing constants.
+pub projectileSpeed(): float {
+    return 26.0;
+}
+
+pub projectileReach(): float {
+    return 0.7;
+}
+
+pub projectileMaxFlight(): float {
+    return 3.0;
+}
+
+pub projectileTickSeconds(): float {
+    return 0.05;
+}
+
+pub projectileStepDistance(): float {
+    return projectileSpeed() * projectileTickSeconds();
+}
+
+// Stable output tags for the caller's own pending-list reducer. A fizzle has
+// no damage/resolve; impact is the source callback's resolve branch.
+pub continueDisposition(): int {
+    return 1;
+}
+
+pub impactDisposition(): int {
+    return 2;
+}
+
+pub fizzleDisposition(): int {
+    return 3;
+}
+
+// Exact stepProjectile projection: arrival radius is max(reach, one tick's
+// travel), so a target within one step is snapped to rather than overshot.
+pub stepProjectile(
+    x: float,
+    z: float,
+    targetX: float,
+    targetZ: float,
+    step: float,
+    output: ProjectileStepResult
+): void {
+    var deltaX = targetX - x;
+    var deltaZ = targetZ - z;
+    var distance = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    var arrivalDistance = projectileReach();
+    if (step > arrivalDistance) { arrivalDistance = step; }
+    if (distance <= arrivalDistance) {
+        output.x = targetX;
+        output.z = targetZ;
+        output.hit = true;
+        return;
+    }
+    var scale = step / distance;
+    output.x = x + deltaX * scale;
+    output.z = z + deltaZ * scale;
+    output.hit = false;
+}
+
+// Exact advance ordering from advancePendingProjectiles for one state item.
+// The owner discards on fizzle/impact and invokes the authoritative resolve
+// only for impact; `state` is updated only when the projectile keeps flying.
+pub advanceProjectile(
+    state: ProjectileTravelState,
+    sourceLive: bool,
+    targetLive: bool,
+    targetX: float,
+    targetZ: float,
+    output: ProjectileAdvanceResult
+): void {
+    if (!sourceLive || !targetLive) {
+        output.disposition = fizzleDisposition();
+        return;
+    }
+    var next = new ProjectileStepResult();
+    stepProjectile(state.x, state.z, targetX, targetZ, projectileStepDistance(), next);
+    if (next.hit) {
+        output.disposition = impactDisposition();
+        return;
+    }
+    var remaining = state.ttl - projectileTickSeconds();
+    if (remaining <= 0.0) {
+        // A released projectile is forced to land when its renderer-matched
+        // flight TTL elapses; only death/despawn may make it fizzle.
+        output.disposition = impactDisposition();
+        return;
+    }
+    state.x = next.x;
+    state.z = next.z;
+    state.ttl = remaining;
+    output.disposition = continueDisposition();
+}

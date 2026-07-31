@@ -52,7 +52,14 @@ impl UiHostWindowEventLoop {
             point.y
         };
         self.last_pointer_position = Some((x, y));
-        let result = dispatch_native_pointer_button(&self.host, state, pointer.event.button, x, y);
+        let result = dispatch_native_pointer_button(
+            &self.host,
+            state,
+            pointer.event.button,
+            pointer.metadata.modifiers,
+            x,
+            y,
+        );
         self.dispatch_pointer_result(result);
         self.sync_ime_allowed();
     }

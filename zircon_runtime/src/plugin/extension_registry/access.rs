@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::asset::AssetImporterRegistry;
 #[cfg(feature = "graphics")]
 use crate::graphics::{
@@ -61,13 +63,12 @@ impl RuntimeExtensionRegistry {
     pub(crate) fn interface_exports_owned_by(
         &self,
         owner: PluginModuleId,
-    ) -> Vec<(String, InterfaceExport)> {
+    ) -> impl Iterator<Item = (&str, &InterfaceExport)> {
         self.plugin_interfaces
             .iter()
-            .filter_map(|(candidate, interface_id, export)| {
-                (candidate == owner).then(|| (interface_id.clone(), export.clone()))
+            .filter_map(move |(candidate, interface_id, export)| {
+                (candidate == owner).then_some((interface_id.as_str(), export))
             })
-            .collect()
     }
 
     pub fn interface_owners_for_runtime_modules<I, S>(&self, module_names: I) -> Vec<PluginModuleId>
@@ -78,16 +79,13 @@ impl RuntimeExtensionRegistry {
         let module_names = module_names
             .into_iter()
             .map(|module_name| module_name.as_ref().to_string())
-            .collect::<Vec<_>>();
+            .collect::<HashSet<_>>();
         let mut owners = self
             .plugin_interfaces
             .iter()
             .filter_map(|(owner, _, _)| {
                 let module_name = self.plugin_module_name(owner)?;
-                module_names
-                    .iter()
-                    .any(|candidate| candidate == module_name)
-                    .then_some(owner)
+                module_names.contains(module_name).then_some(owner)
             })
             .collect::<Vec<_>>();
         owners.sort_by_key(|owner| owner.raw());

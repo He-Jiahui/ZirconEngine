@@ -1,0 +1,358 @@
+// Authoritative M5 personal-bank state projected from source commit
+// 7c10f280eec380e9877e66ce16333089e171fe42. Moves validate the complete
+// destination fit before mutating either container; instance slots are atomic.
+var container = %import("zr.container");
+var catalog = %import("generated/m5_content_catalog");
+
+class BankState {
+    pub var dead: bool;
+    pub var bankerNear: bool;
+    pub var copper: int;
+    pub var carriedCapacity: int;
+    pub var carriedIds: container.Array<string>;
+    pub var carriedCounts: container.Array<int>;
+    pub var carriedInstances: container.Array<string>;
+    pub var bankIds: container.Array<string>;
+    pub var bankCounts: container.Array<int>;
+    pub var bankInstances: container.Array<string>;
+    pub var purchasedSlots: int;
+    pub var bonusSlots: int;
+    pub var businessEvents: int;
+    pub var inventoryChangedEvents: int;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.dead = false;
+        this.bankerNear = false;
+        this.copper = 0;
+        this.carriedCapacity = 16;
+        this.carriedIds = new container.Array<string>();
+        this.carriedCounts = new container.Array<int>();
+        this.carriedInstances = new container.Array<string>();
+        this.bankIds = new container.Array<string>();
+        this.bankCounts = new container.Array<int>();
+        this.bankInstances = new container.Array<string>();
+        this.purchasedSlots = 0;
+        this.bonusSlots = 0;
+        this.businessEvents = 0;
+        this.inventoryChangedEvents = 0;
+        this.lastError = 0;
+    }
+}
+
+stackSize(itemId: string): int {
+    var index = catalog.indexOf("item", itemId);
+    if (index < 0) { return 20; }
+    var kind = catalog.text("item", index, "kind");
+    if (kind == "weapon" || kind == "armor" || kind == "bag" || kind == "tool") {
+        return 1;
+    }
+    return 20;
+}
+
+addFungible(
+    ids: container.Array<string>,
+    counts: container.Array<int>,
+    instances: container.Array<string>,
+    itemId: string,
+    requestedCount: int
+): void {
+    var remaining = requestedCount;
+    var maximum = stackSize(itemId);
+    var index = 0;
+    while (index < ids.length && remaining > 0) {
+        if (<string>ids[index] == itemId && <string>instances[index] == "" &&
+            <int>counts[index] < maximum) {
+            var room = maximum - <int>counts[index];
+            var take = remaining < room ? remaining : room;
+            counts[index] = <int>counts[index] + take;
+            remaining = remaining - take;
+        }
+        index = index + 1;
+    }
+    while (remaining > 0) {
+        var fresh = remaining < maximum ? remaining : maximum;
+        ids.add(itemId);
+        counts.add(fresh);
+        instances.add("");
+        remaining = remaining - fresh;
+    }
+}
+
+countFit(
+    ids: container.Array<string>,
+    counts: container.Array<int>,
+    instances: container.Array<string>,
+    capacity: int,
+    itemId: string,
+    requestedCount: int
+): int {
+    var maximum = stackSize(itemId);
+    var room = 0;
+    var index = 0;
+    while (index < ids.length) {
+        if (<string>ids[index] == itemId && <string>instances[index] == "" &&
+            <int>counts[index] < maximum) {
+            room = room + maximum - <int>counts[index];
+        }
+        index = index + 1;
+    }
+    var free = capacity - ids.length;
+    if (free > 0) { room = room + free * maximum; }
+    return requestedCount < room ? requestedCount : room;
+}
+
+moveSlot(
+    sourceIds: container.Array<string>,
+    sourceCounts: container.Array<int>,
+    sourceInstances: container.Array<string>,
+    sourceIndex: int,
+    requestedCount: int,
+    destinationIds: container.Array<string>,
+    destinationCounts: container.Array<int>,
+    destinationInstances: container.Array<string>,
+    destinationCapacity: int
+): int {
+    if (sourceIndex < 0 || sourceIndex >= sourceIds.length) { return -1; }
+    var itemId = <string>sourceIds[sourceIndex];
+    var slotCount = <int>sourceCounts[sourceIndex];
+    var instanceKey = <string>sourceInstances[sourceIndex];
+    if (instanceKey != "") {
+        if (destinationIds.length >= destinationCapacity) { return -2; }
+        destinationIds.add(itemId);
+        destinationCounts.add(1);
+        destinationInstances.add(instanceKey);
+        sourceIds.removeAt(sourceIndex);
+        sourceCounts.removeAt(sourceIndex);
+        sourceInstances.removeAt(sourceIndex);
+        return 1;
+    }
+
+    var wanted = requestedCount <= 0 ? slotCount : requestedCount;
+    if (wanted <= 0 || wanted > slotCount) { return -1; }
+    if (countFit(
+            destinationIds, destinationCounts, destinationInstances,
+            destinationCapacity, itemId, wanted
+        ) < wanted) {
+        return -2;
+    }
+    addFungible(destinationIds, destinationCounts, destinationInstances, itemId, wanted);
+    if (wanted >= slotCount) {
+        sourceIds.removeAt(sourceIndex);
+        sourceCounts.removeAt(sourceIndex);
+        sourceInstances.removeAt(sourceIndex);
+    } else {
+        sourceCounts[sourceIndex] = slotCount - wanted;
+    }
+    return wanted;
+}
+
+pub bankCapacity(state: BankState): int {
+    return 24 + state.purchasedSlots + state.bonusSlots;
+}
+
+pub sanitizeCapacity(state: BankState, requestedPurchased: int, requestedBonus: int): void {
+    var purchased = requestedPurchased;
+    if (purchased < 0) { purchased = 0; }
+    var maximumPurchased = catalog.bankExpansionCount() * 6;
+    if (purchased > maximumPurchased) { purchased = maximumPurchased; }
+    var aligned = 0;
+    while (purchased >= 6) {
+        aligned = aligned + 6;
+        purchased = purchased - 6;
+    }
+    var bonus = requestedBonus;
+    if (bonus < 0) { bonus = 0; }
+    if (bonus > 16) { bonus = 16; }
+    state.purchasedSlots = aligned;
+    state.bonusSlots = bonus;
+}
+
+pub addCarried(state: BankState, itemId: string, count: int): void {
+    addFungible(
+        state.carriedIds, state.carriedCounts, state.carriedInstances,
+        itemId, count
+    );
+}
+
+pub addBanked(state: BankState, itemId: string, count: int): void {
+    addFungible(state.bankIds, state.bankCounts, state.bankInstances, itemId, count);
+}
+
+pub addCarriedInstance(state: BankState, itemId: string, instanceKey: string): void {
+    state.carriedIds.add(itemId);
+    state.carriedCounts.add(1);
+    state.carriedInstances.add(instanceKey);
+}
+
+countIn(
+    ids: container.Array<string>,
+    counts: container.Array<int>,
+    itemId: string
+): int {
+    var total = 0;
+    var index = 0;
+    while (index < ids.length) {
+        if (<string>ids[index] == itemId) { total = total + <int>counts[index]; }
+        index = index + 1;
+    }
+    return total;
+}
+
+pub carriedCount(state: BankState, itemId: string): int {
+    return countIn(state.carriedIds, state.carriedCounts, itemId);
+}
+
+pub bankedCount(state: BankState, itemId: string): int {
+    return countIn(state.bankIds, state.bankCounts, itemId);
+}
+
+pub bankedInstanceAt(state: BankState, index: int): string {
+    if (index < 0 || index >= state.bankInstances.length) { return ""; }
+    var instances = state.bankInstances;
+    return <string>instances[index];
+}
+
+serviceAllowed(state: BankState): bool {
+    if (state.dead) { state.lastError = -1; return false; }
+    if (!state.bankerNear) { state.lastError = -2; return false; }
+    return true;
+}
+
+pub deposit(state: BankState, slotIndex: int, requestedCount: int): int {
+    state.lastError = 0;
+    if (!serviceAllowed(state)) { return 0; }
+    if (slotIndex < 0 || slotIndex >= state.carriedIds.length) {
+        state.lastError = -3;
+        return 0;
+    }
+    var itemId = <string>state.carriedIds[slotIndex];
+    var item = catalog.indexOf("item", itemId);
+    if (item >= 0 && catalog.text("item", item, "kind") == "quest") {
+        state.lastError = -4;
+        return 0;
+    }
+    var moved = moveSlot(
+        state.carriedIds, state.carriedCounts, state.carriedInstances,
+        slotIndex, requestedCount,
+        state.bankIds, state.bankCounts, state.bankInstances, bankCapacity(state)
+    );
+    if (moved < 0) { state.lastError = moved == -2 ? -5 : -3; return 0; }
+    state.businessEvents = state.businessEvents + 1;
+    state.inventoryChangedEvents = state.inventoryChangedEvents + 1;
+    return moved;
+}
+
+pub withdraw(state: BankState, slotIndex: int, requestedCount: int): int {
+    state.lastError = 0;
+    if (!serviceAllowed(state)) { return 0; }
+    var moved = moveSlot(
+        state.bankIds, state.bankCounts, state.bankInstances,
+        slotIndex, requestedCount,
+        state.carriedIds, state.carriedCounts, state.carriedInstances,
+        state.carriedCapacity
+    );
+    if (moved < 0) { state.lastError = moved == -2 ? -6 : -3; return 0; }
+    state.businessEvents = state.businessEvents + 1;
+    state.inventoryChangedEvents = state.inventoryChangedEvents + 1;
+    return moved;
+}
+
+purchaseCount(state: BankState): int {
+    var slots = state.purchasedSlots;
+    var count = 0;
+    while (slots >= 6) {
+        slots = slots - 6;
+        count = count + 1;
+    }
+    return count;
+}
+
+pub buySlots(state: BankState): bool {
+    state.lastError = 0;
+    if (!serviceAllowed(state)) { return false; }
+    var purchase = purchaseCount(state);
+    if (purchase >= catalog.bankExpansionCount()) { state.lastError = -7; return false; }
+    var price = catalog.bankExpansionPrice(purchase);
+    if (state.copper < price) { state.lastError = -8; return false; }
+    state.copper = state.copper - price;
+    state.purchasedSlots = state.purchasedSlots + 6;
+    state.businessEvents = state.businessEvents + 1;
+    return true;
+}
+
+pub contractTest(): int {
+    var scenario = new BankState();
+    scenario.bankerNear = true;
+    scenario.copper = 1000;
+    addCarried(scenario, "wolf_fang", 5);
+    if (deposit(scenario, 0, 2) != 2 || carriedCount(scenario, "wolf_fang") != 3 ||
+        bankedCount(scenario, "wolf_fang") != 2 || scenario.bankIds.length != 1) {
+        return -1;
+    }
+    if (deposit(scenario, 0, 0) != 3 || carriedCount(scenario, "wolf_fang") != 0 ||
+        bankedCount(scenario, "wolf_fang") != 5 || scenario.bankIds.length != 1) {
+        return -2;
+    }
+    if (withdraw(scenario, 0, 1) != 1 || carriedCount(scenario, "wolf_fang") != 1 ||
+        bankedCount(scenario, "wolf_fang") != 4) {
+        return -3;
+    }
+    if (withdraw(scenario, 0, 0) != 4 || carriedCount(scenario, "wolf_fang") != 5 ||
+        bankedCount(scenario, "wolf_fang") != 0 || scenario.bankIds.length != 0) {
+        return -4;
+    }
+    if (!buySlots(scenario) || scenario.copper != 500 || scenario.purchasedSlots != 6 ||
+        bankCapacity(scenario) != 30 || scenario.businessEvents != 5 ||
+        scenario.inventoryChangedEvents != 4) {
+        return -5;
+    }
+
+    var instance = new BankState();
+    instance.bankerNear = true;
+    addCarriedInstance(instance, "cryptbone_helm", "enchant:sta");
+    if (deposit(instance, 0, 99) != 1 || instance.carriedIds.length != 0 ||
+        instance.bankIds.length != 1 || bankedInstanceAt(instance, 0) != "enchant:sta" ||
+        withdraw(instance, 0, 1) != 1 || instance.carriedIds.length != 1 ||
+        instance.bankIds.length != 0) {
+        return -6;
+    }
+
+    var rejected = new BankState();
+    addCarried(rejected, "wolf_fang", 5);
+    if (deposit(rejected, 0, 2) != 0 || rejected.lastError != -2 ||
+        carriedCount(rejected, "wolf_fang") != 5 || rejected.bankIds.length != 0) {
+        return -7;
+    }
+    rejected.bankerNear = true;
+    if (deposit(rejected, 0, 6) != 0 || rejected.lastError != -3 ||
+        carriedCount(rejected, "wolf_fang") != 5 || rejected.bankIds.length != 0) {
+        return -8;
+    }
+
+    var full = new BankState();
+    full.bankerNear = true;
+    addCarried(full, "cryptbone_helm", 1);
+    addBanked(full, "roadwardens_helm", 24);
+    if (full.bankIds.length != 24 || deposit(full, 0, 1) != 0 ||
+        full.lastError != -5 || full.carriedIds.length != 1 || full.bankIds.length != 24) {
+        return -9;
+    }
+
+    var fullBags = new BankState();
+    fullBags.bankerNear = true;
+    addBanked(fullBags, "roadwardens_helm", 1);
+    addCarried(fullBags, "cryptbone_helm", 16);
+    if (withdraw(fullBags, 0, 1) != 0 || fullBags.lastError != -6 ||
+        fullBags.bankIds.length != 1 || fullBags.carriedIds.length != 16) {
+        return -10;
+    }
+
+    var sanitized = new BankState();
+    sanitizeCapacity(sanitized, 17, 99);
+    if (sanitized.purchasedSlots != 12 || sanitized.bonusSlots != 16 ||
+        bankCapacity(sanitized) != 52) {
+        return -11;
+    }
+    return 1;
+}

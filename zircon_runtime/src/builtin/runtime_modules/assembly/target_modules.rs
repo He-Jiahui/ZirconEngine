@@ -1,8 +1,6 @@
-use std::collections::HashSet;
-
 use crate::builtin::RuntimePluginId;
 use crate::core::framework::project::ProjectPluginManifest;
-use crate::plugin::RuntimePluginAvailabilityCategory;
+use crate::plugin::{RuntimePluginAvailabilityCategory, RuntimePluginAvailabilityReport};
 
 use super::super::availability::target_manifest_availability;
 use super::super::core_modules::{
@@ -28,11 +26,21 @@ pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest(
     manifest: &ProjectPluginManifest,
     inputs: &RuntimeModuleRegistrationInputs,
 ) -> RuntimeModuleLoadReport {
-    let linked_plugin_ids = inputs
-        .linked_plugin_ids()
-        .iter()
-        .cloned()
-        .collect::<HashSet<_>>();
+    let availability = target_manifest_availability(target, manifest, inputs.linked_plugin_ids());
+    runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability(
+        target,
+        manifest,
+        inputs,
+        availability,
+    )
+}
+
+pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability(
+    target: RuntimeTargetMode,
+    manifest: &ProjectPluginManifest,
+    inputs: &RuntimeModuleRegistrationInputs,
+    availability: RuntimePluginAvailabilityReport,
+) -> RuntimeModuleLoadReport {
     #[cfg(feature = "graphics")]
     let core_modules = runtime_core_modules_for_target_with_render_features(
         target,
@@ -51,11 +59,13 @@ pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest(
         runtime_core_modules_for_target_with_render_features(target, inputs.asset_importers());
     let core_modules = match core_modules {
         Ok(modules) => modules,
-        Err(error) => return RuntimeModuleLoadReport::from_core_error(error),
+        Err(error) => {
+            return RuntimeModuleLoadReport::from_core_error(error)
+                .with_runtime_plugin_availability(availability);
+        }
     };
-    let mut report = RuntimeModuleLoadReport::new(core_modules);
-    report.runtime_plugin_availability =
-        target_manifest_availability(target, manifest, linked_plugin_ids.iter());
+    let mut report =
+        RuntimeModuleLoadReport::new(core_modules).with_runtime_plugin_availability(availability);
 
     for selection in manifest.enabled_for_target(target) {
         let Some(runtime_id) = RuntimePluginId::parse_key(&selection.id) else {
@@ -65,13 +75,13 @@ pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest(
             });
             continue;
         };
-        if report
-            .runtime_plugin_availability
-            .contains(RuntimePluginAvailabilityCategory::Linked, runtime_id)
-            || report
-                .runtime_plugin_availability
-                .contains(RuntimePluginAvailabilityCategory::NativeDynamic, runtime_id)
-        {
+        if report.runtime_plugin_availability.contains(
+            RuntimePluginAvailabilityCategory::Linked,
+            runtime_id.clone(),
+        ) || report.runtime_plugin_availability.contains(
+            RuntimePluginAvailabilityCategory::NativeDynamic,
+            runtime_id.clone(),
+        ) {
             continue;
         }
         if let Some(module) = module_for_plugin(runtime_id) {

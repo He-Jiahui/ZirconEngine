@@ -5,7 +5,7 @@ use crate::rhi::{
     PipelineHandle, PipelineKind, RhiError, VertexBufferLayoutDesc,
 };
 
-use super::super::device::WgpuRenderDeviceState;
+use super::super::device::DeterministicRhiContractDeviceState;
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct IndexBufferBinding {
@@ -70,7 +70,7 @@ impl<'a> RecordedRenderState<'a> {
 
     pub(super) fn ensure_required_bind_groups(
         &self,
-        state: &WgpuRenderDeviceState,
+        state: &DeterministicRhiContractDeviceState,
         pipeline: &PipelineDesc,
         command: &str,
     ) -> Result<(), RhiError> {
@@ -165,7 +165,7 @@ impl<'a> RecordedRenderState<'a> {
 }
 
 pub(super) fn validate_bind_group_slot(
-    state: &WgpuRenderDeviceState,
+    state: &DeterministicRhiContractDeviceState,
     pipeline: &PipelineDesc,
     slot: u32,
     bind_group: BindGroupHandle,
@@ -191,7 +191,7 @@ pub(super) fn validate_bind_group_slot(
 }
 
 fn pipeline_layout_for_command<'a>(
-    state: &'a WgpuRenderDeviceState,
+    state: &'a DeterministicRhiContractDeviceState,
     pipeline: &PipelineDesc,
 ) -> Result<&'a crate::rhi::PipelineLayoutDesc, RhiError> {
     let layout = pipeline
@@ -206,7 +206,7 @@ pub(super) trait CommandResourceLookup {
     fn buffer_desc(&self, handle: BufferHandle) -> Result<&BufferDesc, RhiError>;
 }
 
-impl CommandResourceLookup for WgpuRenderDeviceState {
+impl CommandResourceLookup for DeterministicRhiContractDeviceState {
     fn buffer_desc(&self, handle: BufferHandle) -> Result<&BufferDesc, RhiError> {
         self.buffers
             .get(&handle)

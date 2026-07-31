@@ -14,6 +14,7 @@ mod embedded_features;
 mod interfaces;
 mod layout;
 mod modules;
+mod projection;
 mod roots;
 mod shape;
 mod versions;
@@ -29,6 +30,14 @@ pub(in crate::plugin::runtime_plugin) use embedded_features::validate_runtime_pl
 pub(in crate::plugin::runtime_plugin) use interfaces::validate_runtime_plugin_package_interfaces;
 pub(in crate::plugin::runtime_plugin) use layout::validate_runtime_plugin_package_layout;
 pub(in crate::plugin::runtime_plugin) use modules::validate_runtime_plugin_package_modules;
+#[cfg(test)]
+pub(in crate::plugin::runtime_plugin) use projection::{
+    begin_package_projection_build_observation, observed_package_projection_builds,
+};
+pub(in crate::plugin::runtime_plugin) use projection::{
+    EmbeddedFeatureKind, RuntimePluginPackageValidationMetrics,
+    RuntimePluginPackageValidationProjection,
+};
 pub(in crate::plugin::runtime_plugin) use shape::{
     is_lowercase_runtime_plugin_token, validate_runtime_plugin_package_field,
     validate_runtime_plugin_package_id, validate_runtime_plugin_package_namespace,

@@ -168,19 +168,20 @@ pub(super) fn merge_pointer_text_result(
         result.reply.handler = text_result.reply.handler.or(result.reply.handler);
         result.reply.phase = text_result.reply.phase.or(result.reply.phase);
     }
-    let mut effect_index_map = Vec::new();
+    let effect_index_offset = result.reply.effects.len();
+    let text_effect_count = text_result.reply.effects.len();
     for (local_effect_index, effect) in text_result.reply.effects.into_iter().enumerate() {
-        let effect_index = result.reply.effects.len();
+        debug_assert_eq!(
+            result.reply.effects.len(),
+            effect_index_offset + local_effect_index
+        );
         result.reply.effects.push(effect);
-        effect_index_map.push((local_effect_index, effect_index));
     }
     result
         .applied_effects
         .extend(text_result.applied_effects.into_iter().map(|mut applied| {
-            if let Some(effect_index) =
-                remap_text_effect_index(&effect_index_map, applied.effect_index)
-            {
-                applied.effect_index = effect_index;
+            if applied.effect_index < text_effect_count {
+                applied.effect_index += effect_index_offset;
             }
             applied
         }));
@@ -189,10 +190,8 @@ pub(super) fn merge_pointer_text_result(
     result
         .host_requests
         .extend(text_result.host_requests.into_iter().map(|mut request| {
-            if let Some(effect_index) =
-                remap_text_effect_index(&effect_index_map, request.effect_index)
-            {
-                request.effect_index = effect_index;
+            if request.effect_index < text_effect_count {
+                request.effect_index += effect_index_offset;
             }
             request
         }));
@@ -201,10 +200,8 @@ pub(super) fn merge_pointer_text_result(
             .rejected_effects
             .into_iter()
             .map(|mut rejected| {
-                if let Some(effect_index) =
-                    remap_text_effect_index(&effect_index_map, rejected.effect_index)
-                {
-                    rejected.effect_index = effect_index;
+                if rejected.effect_index < text_effect_count {
+                    rejected.effect_index += effect_index_offset;
                 }
                 rejected
             }),
@@ -223,15 +220,6 @@ pub(super) fn merge_pointer_text_result(
         .diagnostics
         .notes
         .extend(text_result.diagnostics.notes);
-}
-
-fn remap_text_effect_index(
-    effect_index_map: &[(usize, usize)],
-    local_effect_index: usize,
-) -> Option<usize> {
-    effect_index_map
-        .iter()
-        .find_map(|(local, merged)| (*local == local_effect_index).then_some(*merged))
 }
 
 #[cfg(test)]

@@ -1,0 +1,8 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub battlefieldXpTrickle(): float { return 0.25; }
+pub isSignableMaterialRarity(quality: string): bool {
+    if (quality == "rare") return true;
+    if (quality == "epic") return true;
+    if (quality == "legendary") return true;
+    return false;
+}

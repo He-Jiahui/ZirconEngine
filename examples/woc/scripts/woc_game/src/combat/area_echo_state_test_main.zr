@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var echo = %import("combat/area_echo_state");
+
+console.printLine("m4-area-echo-state-test");
+var result = echo.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

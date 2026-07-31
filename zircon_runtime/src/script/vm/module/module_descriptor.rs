@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
 use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor, StartupMode};
 use crate::engine_module::{dependency_on, factory, plugin_factory, qualified_name};
 
-use crate::scene::SCENE_MODULE_NAME;
 use crate::script::{
     PluginHostDriver, VmPluginManager, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME,
     VM_PLUGIN_RUNTIME_NAME,

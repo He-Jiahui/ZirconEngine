@@ -1,22 +1,22 @@
 use std::sync::Arc;
 
 use zircon_runtime_interface::{
-    ui::accessibility::UiAccessibilityTreeSnapshot, ZrRuntimeAccessibilityTreeRequestV1,
-    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
-    ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ui::accessibility::UiAccessibilityTreeSnapshot, RuntimeInputDiagnosticsSnapshot,
+    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
+    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
-use crate::core::diagnostics::collect_runtime_diagnostics;
 use crate::core::framework::input::{InputEvent, InputManager};
 use crate::core::framework::render::RenderViewportSurfaceDescriptor;
 use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
 use crate::core::math::{UVec2, Vec2};
 use crate::core::CoreRuntime;
 use crate::diagnostic_log::{
-    write_diagnostic_store_snapshot, write_log, DiagnosticStoreLogSchedule,
+    write_diagnostic_store_snapshot, write_log, write_log_lazy, DiagnosticStoreLogSchedule,
 };
 use crate::operation::RuntimeOperationService;
 use crate::plugin::RuntimePluginRegistrationReport;
+use crate::runtime_diagnostics::collect_runtime_diagnostics;
 use crate::scene::{
     DynamicSceneAssetReloadFrameApplyReport, DynamicSceneAssetReloadQueue, LevelSystem,
 };
@@ -32,10 +32,52 @@ use super::host_requests::{
 use super::preview::{dynamic_preview_accessibility_snapshot, empty_captured_frame};
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
+use super::registry::RuntimeFrameDemand;
 use super::scene_asset_reload_diagnostics::record_scene_asset_reload_frame_report;
 use super::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
 
 const DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE: &str = "runtime_diagnostics";
+
+#[derive(Default)]
+pub(super) struct RuntimeInputDiagnostics {
+    pointer_move_count: u64,
+    mouse_button_press_count: u64,
+    mouse_button_release_count: u64,
+    keyboard_press_count: u64,
+    keyboard_release_count: u64,
+}
+
+impl RuntimeInputDiagnostics {
+    fn record_pointer_move(&mut self) {
+        self.pointer_move_count = self.pointer_move_count.saturating_add(1);
+    }
+
+    fn record_mouse_button_press(&mut self) {
+        self.mouse_button_press_count = self.mouse_button_press_count.saturating_add(1);
+    }
+
+    fn record_mouse_button_release(&mut self) {
+        self.mouse_button_release_count = self.mouse_button_release_count.saturating_add(1);
+    }
+
+    fn record_keyboard_press(&mut self) {
+        self.keyboard_press_count = self.keyboard_press_count.saturating_add(1);
+    }
+
+    fn record_keyboard_release(&mut self) {
+        self.keyboard_release_count = self.keyboard_release_count.saturating_add(1);
+    }
+
+    pub(super) fn snapshot(&self) -> RuntimeInputDiagnosticsSnapshot {
+        RuntimeInputDiagnosticsSnapshot {
+            pointer_move_count: self.pointer_move_count,
+            mouse_button_press_count: self.mouse_button_press_count,
+            mouse_button_release_count: self.mouse_button_release_count,
+            keyboard_press_count: self.keyboard_press_count,
+            keyboard_release_count: self.keyboard_release_count,
+        }
+    }
+}
 
 pub(super) struct RuntimeDynamicSession {
     pub(super) runtime: CoreRuntime,
@@ -45,14 +87,32 @@ pub(super) struct RuntimeDynamicSession {
     pub(super) level: LevelSystem,
     pub(super) scene_asset_reload_queue: Option<DynamicSceneAssetReloadQueue>,
     pub(super) last_scene_asset_reload_report: Option<DynamicSceneAssetReloadFrameApplyReport>,
+    pub(super) project_identity: Option<String>,
+    pub(super) scene_uri: Option<String>,
+    pub(super) selected_model_resource_id: Option<String>,
+    pub(super) selected_material_resource_id: Option<String>,
     pub(super) camera_controller: RuntimeCameraController,
     pub(super) extract_cache: super::extract_cache::RuntimeFrameExtractCache,
     pub(super) cursor: Vec2,
     pub(super) input_manager: ManagerServiceHandle<dyn InputManager>,
+    pub(super) input_diagnostics: RuntimeInputDiagnostics,
     pub(super) next_plugin_event_subscription: u64,
     pub(super) plugin_event_subscriptions:
         std::collections::HashMap<u64, event_mirror::RuntimePluginEventSubscriptionState>,
     pub(super) operations: RuntimeOperationService,
+}
+
+impl Drop for RuntimeDynamicSession {
+    fn drop(&mut self) {
+        let core = self.runtime.handle();
+        let Ok(handle) = crate::asset::project_asset_manager_handle(&core) else {
+            return;
+        };
+        let Ok(manager) = resolve_manager_service(&core, handle) else {
+            return;
+        };
+        manager.shutdown_project_watchers();
+    }
 }
 
 impl RuntimeDynamicSession {
@@ -87,6 +147,13 @@ impl RuntimeDynamicSession {
                     source,
                 })?;
         }
+        {
+            crate::profile_scope!("runtime", "frame", "runtime_operation_owner_apply");
+            let core = self.runtime.handle();
+            let operations = &self.operations;
+            self.level
+                .with_world_mut(|world| operations.tick(&core, world));
+        }
         self.resolve_input_manager()
             .map_err(|source| RuntimeDynamicSessionError::CoreStep {
                 step: "resolve input for frame",
@@ -98,6 +165,14 @@ impl RuntimeDynamicSession {
             write_diagnostic_store_snapshot(DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE, &snapshot);
         }
         Ok(())
+    }
+
+    pub(super) fn frame_demand(&self) -> RuntimeFrameDemand {
+        animation_frame_demand(&self.level)
+    }
+
+    pub(super) fn reset_frame_demand_after_failed_tick(&self) {
+        self.level.record_animation_requires_continuous_frame(false);
     }
 
     fn tick_scene_asset_reload(&mut self) {
@@ -113,8 +188,7 @@ impl RuntimeDynamicSession {
             || report.stale_count() > 0
             || report.superseded_pending_count() > 0
         {
-            write_log(
-                "runtime_session",
+            write_log_lazy("runtime_session", || {
                 format!(
                     "runtime_scene_asset_reload_frame drained={} scheduled={} applied={} failed={} stale={} superseded={} pending={}",
                     report.events_drained(),
@@ -124,8 +198,8 @@ impl RuntimeDynamicSession {
                     report.stale_count(),
                     report.superseded_pending_count(),
                     report.pending_count()
-                ),
-            );
+                )
+            });
         }
         self.last_scene_asset_reload_report = Some(report);
     }
@@ -134,10 +208,9 @@ impl RuntimeDynamicSession {
         let input_manager = match self.resolve_input_manager() {
             Ok(input_manager) => input_manager,
             Err(error) => {
-                write_log(
-                    "runtime_session",
-                    format!("runtime_input_manager_stale error={error}"),
-                );
+                write_log_lazy("runtime_session", || {
+                    format!("runtime_input_manager_stale error={error}")
+                });
                 return ZrRuntimeHostRequestBatchV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
             }
         };
@@ -170,14 +243,39 @@ impl RuntimeDynamicSession {
         resolve_manager_service(&self.runtime.handle(), self.input_manager.clone())
     }
 
-    pub(super) fn submit_input_event(&self, event: InputEvent) {
+    pub(super) fn submit_input_event(&self, event: InputEvent) -> bool {
         match self.resolve_input_manager() {
-            Ok(input_manager) => input_manager.submit_event(event),
-            Err(error) => write_log(
-                "runtime_session",
-                format!("runtime_input_event_dropped_for_stale_manager error={error}"),
-            ),
+            Ok(input_manager) => {
+                input_manager.submit_event(event);
+                true
+            }
+            Err(error) => {
+                write_log_lazy("runtime_session", || {
+                    format!("runtime_input_event_dropped_for_stale_manager error={error}")
+                });
+                false
+            }
         }
+    }
+
+    pub(super) fn record_submitted_pointer_move(&mut self) {
+        self.input_diagnostics.record_pointer_move();
+    }
+
+    pub(super) fn record_submitted_mouse_button_press(&mut self) {
+        self.input_diagnostics.record_mouse_button_press();
+    }
+
+    pub(super) fn record_submitted_mouse_button_release(&mut self) {
+        self.input_diagnostics.record_mouse_button_release();
+    }
+
+    pub(super) fn record_submitted_keyboard_press(&mut self) {
+        self.input_diagnostics.record_keyboard_press();
+    }
+
+    pub(super) fn record_submitted_keyboard_release(&mut self) {
+        self.input_diagnostics.record_keyboard_release();
     }
 
     pub(super) fn capture_frame(
@@ -258,5 +356,40 @@ impl RuntimeDynamicSession {
             request.size.height.max(1),
         ));
         Ok(dynamic_preview_accessibility_snapshot())
+    }
+}
+
+pub(super) fn animation_frame_demand(level: &LevelSystem) -> RuntimeFrameDemand {
+    if level.animation_requires_continuous_frame() {
+        RuntimeFrameDemand::Immediate
+    } else {
+        RuntimeFrameDemand::Idle
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RuntimeInputDiagnostics;
+
+    #[test]
+    fn input_diagnostics_accumulate_successfully_submitted_product_events() {
+        let mut diagnostics = RuntimeInputDiagnostics::default();
+
+        diagnostics.record_pointer_move();
+        diagnostics.record_mouse_button_press();
+        diagnostics.record_mouse_button_release();
+        diagnostics.record_keyboard_press();
+        diagnostics.record_keyboard_release();
+
+        assert_eq!(
+            diagnostics.snapshot(),
+            zircon_runtime_interface::RuntimeInputDiagnosticsSnapshot {
+                pointer_move_count: 1,
+                mouse_button_press_count: 1,
+                mouse_button_release_count: 1,
+                keyboard_press_count: 1,
+                keyboard_release_count: 1,
+            }
+        );
     }
 }

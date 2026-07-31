@@ -84,6 +84,13 @@ fn text_vertical_bidi_direction_maps_ltr_to_ttb_and_rtl_to_btt() {
     );
 }
 
+#[test]
+fn text_vertical_database_has_no_per_glyph_compatibility_helper() {
+    let source = include_str!("../../font/vertical_metrics.rs");
+
+    assert!(!source.contains("vertical_glyph_advance_px"));
+}
+
 #[cfg(target_os = "windows")]
 #[test]
 fn text_vertical_cjk_uses_backend_face_vmtx_advance() {
@@ -112,7 +119,8 @@ fn text_vertical_cjk_uses_backend_face_vmtx_advance() {
     let face = glyph.font_id.expect("actual backend face ID");
     let (_, database) = shared_font_database_snapshot();
     let native_advance = database
-        .vertical_glyph_advance_px(face, glyph.glyph_id, style.font_size)
+        .vertical_metrics(face, style.font_size)
+        .and_then(|metrics| metrics.glyph_advance_px(glyph.glyph_id))
         .expect("Microsoft YaHei UI vmtx metrics");
 
     assert!((glyph.advance - native_advance).abs() < 0.01);

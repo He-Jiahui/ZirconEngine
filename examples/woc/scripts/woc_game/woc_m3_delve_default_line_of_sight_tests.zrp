@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_delve_default_line_of_sight_tests",
+  "source": "src",
+  "binary": "bin-m3-delve-default-line-of-sight-tests",
+  "entry": "world/delve_default_line_of_sight_test_main"
+}

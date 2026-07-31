@@ -31,11 +31,37 @@ pub(super) fn viewport_record_mut_after_generation_check<'a>(
     viewport: RenderViewportHandle,
     context: &FrameSubmissionContext,
 ) -> Result<&'a mut ViewportRecord, RenderFrameworkError> {
-    validate_viewport_generation(state, viewport, context)?;
-    state
-        .viewports
-        .get_mut(&viewport)
-        .ok_or(RenderFrameworkError::UnknownViewport {
+    let record =
+        state
+            .viewports
+            .get_mut(&viewport)
+            .ok_or(RenderFrameworkError::UnknownViewport {
+                viewport: viewport.raw(),
+            })?;
+    let actual_generation = record.generation();
+    if actual_generation != context.viewport_generation() {
+        return Err(RenderFrameworkError::ViewportChanged {
             viewport: viewport.raw(),
-        })
+            expected_generation: context.viewport_generation(),
+            actual_generation,
+        });
+    }
+    Ok(record)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn mutable_generation_guard_uses_one_viewport_lookup() {
+        let source = include_str!("viewport_generation_guard.rs");
+        let mutable_guard = source
+            .split("fn viewport_record_mut_after_generation_check")
+            .nth(1)
+            .expect("mutable generation guard source");
+        let nested_validation =
+            concat!("validate_viewport_generation(", "state, viewport, context");
+
+        assert!(!mutable_guard.contains(nested_validation));
+        assert_eq!(mutable_guard.matches(".get_mut(&viewport)").count(), 1);
+    }
 }

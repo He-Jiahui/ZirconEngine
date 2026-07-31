@@ -37,26 +37,25 @@ impl VirtualGeometryGpuCompletion {
     ) -> Option<Self> {
         let page_table_entries =
             page_table_entries_from_neutral_outputs(outputs.page_table_entries);
-        let completed_page_assignments = outputs
-            .completed_page_assignments
-            .into_iter()
-            .filter_map(|assignment| {
-                Some((
-                    u32::try_from(assignment.page_id).ok()?,
-                    assignment.physical_slot,
-                ))
-            })
-            .collect::<Vec<_>>();
-        let completed_page_replacements = outputs
-            .page_replacements
-            .into_iter()
-            .filter_map(|replacement| {
-                Some((
-                    u32::try_from(replacement.new_page_id).ok()?,
-                    u32::try_from(replacement.old_page_id).ok()?,
-                ))
-            })
-            .collect::<Vec<_>>();
+        let assignment_records = outputs.completed_page_assignments;
+        let mut completed_page_assignments = Vec::with_capacity(assignment_records.len());
+        for assignment in assignment_records {
+            let Ok(page_id) = u32::try_from(assignment.page_id) else {
+                continue;
+            };
+            completed_page_assignments.push((page_id, assignment.physical_slot));
+        }
+        let replacement_records = outputs.page_replacements;
+        let mut completed_page_replacements = Vec::with_capacity(replacement_records.len());
+        for replacement in replacement_records {
+            let (Ok(new_page_id), Ok(old_page_id)) = (
+                u32::try_from(replacement.new_page_id),
+                u32::try_from(replacement.old_page_id),
+            ) else {
+                continue;
+            };
+            completed_page_replacements.push((new_page_id, old_page_id));
+        }
 
         if page_table_entries.is_empty()
             && completed_page_assignments.is_empty()
@@ -114,10 +113,12 @@ mod tests {
 
     #[test]
     fn gpu_completion_skips_empty_neutral_virtual_geometry_readback_outputs() {
-        assert!(VirtualGeometryGpuCompletion::from_readback_outputs(
-            RenderVirtualGeometryReadbackOutputs::default()
-        )
-        .is_none());
+        assert!(
+            VirtualGeometryGpuCompletion::from_readback_outputs(
+                RenderVirtualGeometryReadbackOutputs::default()
+            )
+            .is_none()
+        );
     }
 
     #[test]
@@ -131,5 +132,51 @@ mod tests {
         .expect("complete page table pair should create completion");
 
         assert_eq!(completion.page_table_entries(), &[(20, 2)]);
+    }
+
+    #[test]
+    fn gpu_completion_preallocates_filtered_record_projections() {
+        let source = include_str!("gpu_completion.rs");
+        let assignments = concat!("Vec::with_capacity(", "assignment_records.len())");
+        let replacements = concat!("Vec::with_capacity(", "replacement_records.len())");
+
+        assert!(source.contains(assignments));
+        assert!(source.contains(replacements));
+    }
+
+    #[test]
+    fn gpu_completion_skips_records_outside_runtime_page_id_range() {
+        let overflow = u64::from(u32::MAX) + 1;
+        let completion = VirtualGeometryGpuCompletion::from_readback_outputs(
+            RenderVirtualGeometryReadbackOutputs {
+                completed_page_assignments: vec![
+                    RenderVirtualGeometryPageAssignmentRecord {
+                        page_id: 30,
+                        physical_slot: 3,
+                    },
+                    RenderVirtualGeometryPageAssignmentRecord {
+                        page_id: overflow,
+                        physical_slot: 4,
+                    },
+                ],
+                page_replacements: vec![
+                    RenderVirtualGeometryPageReplacementRecord {
+                        old_page_id: 10,
+                        new_page_id: 30,
+                        physical_slot: 3,
+                    },
+                    RenderVirtualGeometryPageReplacementRecord {
+                        old_page_id: overflow,
+                        new_page_id: 40,
+                        physical_slot: 4,
+                    },
+                ],
+                ..RenderVirtualGeometryReadbackOutputs::default()
+            },
+        )
+        .expect("valid page records should keep completion");
+
+        assert_eq!(completion.completed_page_assignments(), &[(30, 3)]);
+        assert_eq!(completion.completed_page_replacements(), &[(30, 10)]);
     }
 }

@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var mobMotion = %import("world/mob_motion_world");
+
+var result = mobMotion.contractTest();
+
+console.printLine("m8-mob-motion-world-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

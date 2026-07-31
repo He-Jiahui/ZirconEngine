@@ -5,14 +5,14 @@ use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::core::CoreError;
 
 #[derive(Clone, Default)]
 pub struct ConfigStore {
-    values: Arc<Mutex<HashMap<String, Value>>>,
+    values: Arc<Mutex<HashMap<String, Arc<Value>>>>,
 }
 
 impl fmt::Debug for ConfigStore {
@@ -22,18 +22,20 @@ impl fmt::Debug for ConfigStore {
 }
 
 impl ConfigStore {
-    fn lock_values(&self) -> MutexGuard<'_, HashMap<String, Value>> {
+    fn lock_values(&self) -> MutexGuard<'_, HashMap<String, Arc<Value>>> {
         self.values
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub fn store_value(&self, key: impl Into<String>, value: Value) {
-        self.lock_values().insert(key.into(), value);
+        self.lock_values().insert(key.into(), Arc::new(value));
     }
 
     pub fn load_value(&self, key: &str) -> Option<Value> {
-        self.lock_values().get(key).cloned()
+        self.lock_values()
+            .get(key)
+            .map(|value| value.as_ref().clone())
     }
 
     pub fn store<T: Serialize>(&self, key: impl Into<String>, value: &T) -> Result<(), CoreError> {
@@ -46,14 +48,19 @@ impl ConfigStore {
 
     pub fn load<T: DeserializeOwned>(&self, key: &str) -> Result<T, CoreError> {
         let value = self
-            .load_value(key)
+            .lock_values()
+            .get(key)
+            .cloned()
             .ok_or_else(|| CoreError::MissingConfig(key.to_string()))?;
-        serde_json::from_value(value)
+        T::deserialize(value.as_ref())
             .map_err(|error| CoreError::ConfigParse(key.to_string(), error.to_string()))
     }
 
     pub fn snapshot_values(&self) -> HashMap<String, Value> {
-        self.lock_values().clone()
+        self.lock_values()
+            .iter()
+            .map(|(key, value)| (key.clone(), value.as_ref().clone()))
+            .collect()
     }
 }
 
@@ -85,5 +92,18 @@ mod tests {
         let snapshot = store.snapshot_values();
         assert_eq!(snapshot.get("before"), Some(&Value::from(1)));
         assert_eq!(snapshot.get("after"), Some(&Value::from(2)));
+    }
+
+    #[test]
+    fn config_store_typed_load_borrows_shared_json_storage() {
+        let source = include_str!("config_store.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("config store implementation");
+
+        assert!(implementation.contains("HashMap<String, Arc<Value>>"));
+        assert!(implementation.contains("T::deserialize(value.as_ref())"));
+        assert!(!implementation.contains(".load_value(key)"));
     }
 }

@@ -76,6 +76,48 @@ fn assets_activity_bootstrap_layout_self_hosts_shell_sections() {
 }
 
 #[test]
+fn assets_activity_tree_shell_uses_the_standardized_panel_surface_metrics() {
+    let pane = assets_activity_pane_data(
+        &AssetWorkspaceSnapshot::default(),
+        UiSize::new(1280.0, 820.0),
+    );
+    let nodes = (0..pane.nodes.row_count())
+        .filter_map(|row| pane.nodes.row_data(row))
+        .collect::<Vec<_>>();
+
+    let header = nodes
+        .iter()
+        .find(|node| node.control_id == "AssetsActivityTreeHeaderPanel");
+    let scroll_body = nodes
+        .iter()
+        .find(|node| node.control_id == "AssetsActivityTreeScrollBody");
+    let row = nodes
+        .iter()
+        .find(|node| node.control_id == "AssetsActivityTreeRowPanel");
+    assert!(header.is_some(), "assets tree header panel node");
+    assert!(scroll_body.is_some(), "assets tree scroll body node");
+    assert!(row.is_some(), "assets tree row panel node");
+    let (Some(header), Some(scroll_body), Some(row)) = (header, scroll_body, row) else {
+        return;
+    };
+
+    assert_eq!(header.surface_variant.to_string(), "inset");
+    assert_eq!(header.corner_radius, 4.0);
+    assert_eq!(header.border_width, 1.0);
+    assert_eq!(scroll_body.surface_variant.to_string(), "inset");
+    assert_eq!(scroll_body.corner_radius, 4.0);
+    assert_eq!(scroll_body.border_width, 1.0);
+    assert_eq!(row.corner_radius, 3.0);
+    assert_eq!(row.border_width, 1.0);
+    assert!(row.frame.x >= scroll_body.frame.x);
+    assert!(row.frame.y >= scroll_body.frame.y);
+    assert!(
+        row.frame.x + row.frame.width <= scroll_body.frame.x + scroll_body.frame.width,
+        "tree row should remain inside the scroll body"
+    );
+}
+
+#[test]
 fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
     let pane = assets_activity_pane_data(
         &AssetWorkspaceSnapshot {
@@ -225,7 +267,7 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert_eq!(tree_title.text.to_string(), "Folders");
     assert_eq!(tree_subtitle.text.to_string(), "Browse project assets");
     assert_eq!(tree_scroll_body.role.to_string(), "Panel");
-    assert_eq!(tree_scroll_body.surface_variant.to_string(), "scroll-body");
+    assert_eq!(tree_scroll_body.surface_variant.to_string(), "inset");
     assert_eq!(open_browser.role.to_string(), "Button");
     assert_eq!(open_browser.dispatch_kind.to_string(), "asset");
     assert_eq!(
@@ -407,6 +449,101 @@ fn assets_activity_regular_drawer_references_use_one_readable_summary_column() {
     assert_eq!(right.width, 0.0);
     assert!(summary.width > 0.0);
     assert!(summary.x + summary.width <= 226.0 + f32::EPSILON);
+}
+
+#[test]
+fn wide_assets_activity_utility_uses_mutually_exclusive_relative_composites() {
+    let preview_pane = assets_activity_pane_data(
+        &AssetWorkspaceSnapshot {
+            utility_tab: AssetUtilityTab::Preview,
+            ..AssetWorkspaceSnapshot::default()
+        },
+        UiSize::new(1280.0, 820.0),
+    );
+    let preview_nodes = (0..preview_pane.nodes.row_count())
+        .filter_map(|row| preview_pane.nodes.row_data(row))
+        .collect::<Vec<_>>();
+    let preview_node = |control_id: &str| {
+        preview_nodes
+            .iter()
+            .find(|node| node.control_id == control_id)
+            .unwrap_or_else(|| panic!("missing wide preview node `{control_id}`"))
+    };
+    let preview = preview_node("AssetsActivityPreviewPanel");
+    let preview_visual = preview_node("AssetsActivityPreviewVisualPanel");
+    let references_left = preview_node("AssetsActivityReferenceLeftPanel");
+    let references_right = preview_node("AssetsActivityReferenceRightPanel");
+
+    assert!(preview.frame.width > 0.0 && preview.frame.height > 0.0);
+    assert_eq!(references_left.frame.width, 0.0);
+    assert_eq!(references_right.frame.width, 0.0);
+    assert!(preview_visual.frame.x >= preview.frame.x);
+    assert!(preview_visual.frame.y >= preview.frame.y);
+    assert!(
+        preview_visual.frame.x + preview_visual.frame.width
+            <= preview.frame.x + preview.frame.width
+    );
+    assert!(
+        preview_visual.frame.y + preview_visual.frame.height
+            <= preview.frame.y + preview.frame.height
+    );
+
+    let preview_text = [
+        "AssetsActivityPreviewNameText",
+        "AssetsActivityPreviewLocatorText",
+        "AssetsActivityPreviewKindText",
+        "AssetsActivityPreviewIdentityText",
+        "AssetsActivityPreviewToolkitText",
+        "AssetsActivityPreviewMetaPathText",
+        "AssetsActivityPreviewDiagnosticsText",
+    ]
+    .map(preview_node);
+    for text in preview_text {
+        assert!(text.frame.x >= preview.frame.x);
+        assert!(text.frame.y >= preview.frame.y);
+        assert!(text.frame.x + text.frame.width <= preview.frame.x + preview.frame.width);
+        assert!(text.frame.y + text.frame.height <= preview.frame.y + preview.frame.height);
+    }
+    for pair in preview_text.windows(2) {
+        assert!(
+            pair[0].frame.y + pair[0].frame.height <= pair[1].frame.y,
+            "preview text slots must not overlap: {:?} then {:?}",
+            pair[0].control_id,
+            pair[1].control_id
+        );
+    }
+
+    let references_pane = assets_activity_pane_data(
+        &AssetWorkspaceSnapshot {
+            utility_tab: AssetUtilityTab::References,
+            ..AssetWorkspaceSnapshot::default()
+        },
+        UiSize::new(1280.0, 820.0),
+    );
+    let reference_nodes = (0..references_pane.nodes.row_count())
+        .filter_map(|row| references_pane.nodes.row_data(row))
+        .collect::<Vec<_>>();
+    let reference_node = |control_id: &str| {
+        reference_nodes
+            .iter()
+            .find(|node| node.control_id == control_id)
+            .unwrap_or_else(|| panic!("missing wide references node `{control_id}`"))
+    };
+    let hidden_preview = reference_node("AssetsActivityPreviewPanel");
+    let left = reference_node("AssetsActivityReferenceLeftPanel");
+    let right = reference_node("AssetsActivityReferenceRightPanel");
+    let left_title = reference_node("AssetsActivityReferenceLeftTitleText");
+    let left_body = reference_node("AssetsActivityReferenceLeftScrollBody");
+    let right_title = reference_node("AssetsActivityReferenceRightTitleText");
+    let right_body = reference_node("AssetsActivityReferenceRightScrollBody");
+
+    assert_eq!(hidden_preview.frame.width, 0.0);
+    assert!(left.frame.width > 0.0 && right.frame.width > 0.0);
+    assert!(left.frame.x + left.frame.width <= right.frame.x);
+    assert!(left_title.frame.y + left_title.frame.height <= left_body.frame.y);
+    assert!(right_title.frame.y + right_title.frame.height <= right_body.frame.y);
+    assert!(left_body.frame.y + left_body.frame.height <= left.frame.y + left.frame.height);
+    assert!(right_body.frame.y + right_body.frame.height <= right.frame.y + right.frame.height);
 }
 
 #[test]

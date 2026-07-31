@@ -1,3 +1,4 @@
+mod adaptive;
 mod asset;
 mod identity;
 mod paint;

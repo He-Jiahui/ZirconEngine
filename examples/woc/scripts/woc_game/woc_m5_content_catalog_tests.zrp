@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_content_catalog_tests",
+  "source": "src",
+  "binary": "bin-m5-content-catalog-tests",
+  "entry": "content/m5_content_catalog_test_main"
+}

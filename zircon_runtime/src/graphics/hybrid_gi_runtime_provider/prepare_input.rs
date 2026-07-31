@@ -3,7 +3,7 @@ use crate::core::framework::render::{
     RenderMeshSnapshot, RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
 use crate::graphics::{
-    runtime_provider::RuntimeProviderPrepareInput, VisibilityHybridGiUpdatePlan,
+    VisibilityHybridGiUpdatePlan, runtime_provider::RuntimeProviderPrepareInput,
 };
 
 pub struct HybridGiRuntimePrepareInput<'a> {

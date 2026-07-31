@@ -11,6 +11,25 @@ use crate::error::ShaderPrewarmResourceRegistryError;
 use super::*;
 
 #[test]
+fn nested_resource_arrays_are_moved_out_of_the_json_document() {
+    let source = include_str!("../resource_registry.rs")
+        .split_once("#[cfg(test)]")
+        .unwrap()
+        .0;
+    let function = source
+        .split("fn resource_records_from_json_value")
+        .nth(1)
+        .unwrap()
+        .split("impl From<")
+        .next()
+        .unwrap();
+
+    assert!(function.contains(".remove(\"resources\")"));
+    assert!(function.contains(".remove(\"records\")"));
+    assert!(!function.contains("records.clone()"));
+}
+
+#[test]
 fn shader_prewarm_resource_registry_read_reports_typed_read_error() {
     let missing_path = unique_root("zircon_shader_prewarm_missing_resource_registry")
         .join("shader_resource_records.json");

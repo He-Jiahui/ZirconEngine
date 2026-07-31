@@ -55,6 +55,68 @@ fn text_field_hover_uses_hover_outline_without_impersonating_keyboard_focus() {
 }
 
 #[test]
+fn text_field_dynamic_outlines_ignore_normal_style_overrides() {
+    let override_surface = UiStyleColor::Rgba(UiRgbaColor::from_u8(93, 97, 101, 255));
+    let override_border = UiStyleColor::Rgba(UiRgbaColor::from_u8(106, 111, 116, 255));
+
+    let mut normal = TemplatePaneNodeData::default();
+    normal.button_style.element.background_color = Some(override_surface.clone());
+    normal.button_style.element.border_color = Some(override_border.clone());
+    let normal_style = select_workbench_text_field_style(&normal, false);
+
+    let mut hovered = TemplatePaneNodeData::default();
+    hovered.hovered = true;
+    hovered.button_style.element.background_color = Some(override_surface.clone());
+    hovered.button_style.element.border_color = Some(override_border.clone());
+    let hovered_style = select_workbench_text_field_style(&hovered, false);
+
+    let mut focused = TemplatePaneNodeData::default();
+    focused.focused = true;
+    focused.button_style.element.background_color = Some(override_surface.clone());
+    focused.button_style.element.border_color = Some(override_border.clone());
+    let focused_style = select_workbench_text_field_style(&focused, false);
+
+    let mut pressed = TemplatePaneNodeData::default();
+    pressed.pressed = true;
+    pressed.button_style.element.background_color = Some(override_surface.clone());
+    pressed.button_style.element.border_color = Some(override_border.clone());
+    let pressed_style = select_workbench_text_field_style(&pressed, false);
+
+    let mut selected = TemplatePaneNodeData::default();
+    selected.selected = true;
+    selected.button_style.element.background_color = Some(override_surface.clone());
+    selected.button_style.element.border_color = Some(override_border.clone());
+    let selected_style = select_workbench_text_field_style(&selected, false);
+
+    let mut checked = TemplatePaneNodeData::default();
+    checked.checked = true;
+    checked.button_style.element.background_color = Some(override_surface.clone());
+    checked.button_style.element.border_color = Some(override_border.clone());
+    let checked_style = select_workbench_text_field_style(&checked, false);
+
+    let mut invalid = TemplatePaneNodeData::default();
+    invalid.validation_level = "error".into();
+    invalid.button_style.element.background_color = Some(override_surface);
+    invalid.button_style.element.border_color = Some(override_border);
+    let invalid_style = select_workbench_text_field_style(&invalid, false);
+
+    assert_eq!(normal_style.surface, [93, 97, 101, 255]);
+    assert_eq!(normal_style.border, [106, 111, 116, 255]);
+    assert_eq!(hovered_style.surface, PALETTE.surface_inset);
+    assert_eq!(hovered_style.border, PALETTE.surface_hover);
+    assert_eq!(focused_style.surface, PALETTE.surface_inset);
+    assert_eq!(focused_style.border, PALETTE.focus_ring);
+    assert_eq!(pressed_style.surface, PALETTE.surface_inset);
+    assert_eq!(pressed_style.border, PALETTE.focus_ring);
+    assert_eq!(selected_style.surface, PALETTE.surface_inset);
+    assert_eq!(selected_style.border, PALETTE.separator_soft);
+    assert_eq!(checked_style.surface, PALETTE.surface_inset);
+    assert_eq!(checked_style.border, PALETTE.separator_soft);
+    assert_eq!(invalid_style.surface, PALETTE.surface_inset);
+    assert_eq!(invalid_style.border, PALETTE.error);
+}
+
+#[test]
 fn text_field_palette_projects_from_global_appearance_palette() {
     let mut tokens = EditorDesignTokens::workbench_dark();
     tokens.palette.surface_recessed = UiRgbaColor::from_u8(11, 15, 18, 255);

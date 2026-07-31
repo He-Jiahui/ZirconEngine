@@ -11,6 +11,9 @@ use super::ViewTemplateNodeData;
 const HIERARCHY_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/hierarchy.zui";
 const HIERARCHY_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
 const HIERARCHY_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
+const HIERARCHY_HEADER_PANEL: &str = "HierarchyHeaderPanel";
+const HIERARCHY_LIST_PANEL: &str = "HierarchyListPanel";
+const HIERARCHY_EMPTY_STATE_MESSAGE: &str = "HierarchyEmptyStateMessage";
 
 pub(crate) fn hierarchy_pane_nodes(
     entries: &[SceneEntry],
@@ -18,11 +21,14 @@ pub(crate) fn hierarchy_pane_nodes(
 ) -> ModelRc<ViewTemplateNodeData> {
     let mut text_overrides = BTreeMap::new();
     let active_entry = entries.iter().find(|entry| entry.selected);
+    text_overrides.insert(HIERARCHY_HEADER_PANEL.to_string(), "Hierarchy".to_string());
     text_overrides.insert(
-        "HierarchyListPanel".to_string(),
-        active_entry
-            .map(|entry| format!("{} selected", entry.name))
-            .unwrap_or_else(|| format!("{} scene nodes", entries.len())),
+        HIERARCHY_EMPTY_STATE_MESSAGE.to_string(),
+        if entries.is_empty() {
+            "No scene nodes".to_string()
+        } else {
+            String::new()
+        },
     );
 
     let mut nodes = build_view_template_nodes(
@@ -40,10 +46,10 @@ pub(crate) fn hierarchy_pane_nodes(
 fn apply_hierarchy_visual_state(nodes: &mut [ViewTemplateNodeData], has_selection: bool) {
     if let Some(node) = nodes
         .iter_mut()
-        .find(|node| node.control_id == "HierarchyListPanel")
+        .find(|node| node.control_id == HIERARCHY_LIST_PANEL)
     {
         node.selected = has_selection;
-        node.focused = has_selection;
+        node.focused = false;
         node.surface_variant = if has_selection {
             "panel".into()
         } else {
@@ -54,5 +60,22 @@ fn apply_hierarchy_visual_state(nodes: &mut [ViewTemplateNodeData], has_selectio
         } else {
             "muted".into()
         };
+    }
+
+    if let Some(node) = nodes
+        .iter_mut()
+        .find(|node| node.control_id == HIERARCHY_HEADER_PANEL)
+    {
+        node.focused = false;
+        node.surface_variant = "inset".into();
+        node.text_tone = "default".into();
+    }
+
+    if let Some(node) = nodes
+        .iter_mut()
+        .find(|node| node.control_id == HIERARCHY_EMPTY_STATE_MESSAGE)
+    {
+        node.focused = false;
+        node.text_tone = "muted".into();
     }
 }

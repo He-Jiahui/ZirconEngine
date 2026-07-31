@@ -1,0 +1,50 @@
+{
+  "bindings": [
+    {
+      "path": {
+        "view_id": "Hierarchy",
+        "control_id": "SelectCube",
+        "event_kind": "Click"
+      },
+      "payload": {
+        "SelectionCommand": {
+          "SelectSceneNode": {
+            "node_id": 3
+          }
+        }
+      }
+    },
+    {
+      "path": {
+        "view_id": "Inspector",
+        "control_id": "TransformPositionXCommit",
+        "event_kind": "Submit"
+      },
+      "payload": {
+        "InspectorFieldBatch": {
+          "subject_path": "entity://selected",
+          "changes": [
+            {
+              "field_id": "transform.translation.x",
+              "value": {
+                "Float": 42.0
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "path": {
+        "view_id": "WorkbenchMenuBar",
+        "control_id": "SaveProject",
+        "event_kind": "Click"
+      },
+      "payload": {
+        "MenuAction": {
+          "action_id": "workbench.project.save"
+        }
+      }
+    }
+  ]
+}

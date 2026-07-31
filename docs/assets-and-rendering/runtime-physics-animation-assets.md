@@ -25,8 +25,8 @@ related_code:
   - zircon_runtime/src/animation/clip_event.rs
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/animation/module.rs
-  - zircon_runtime/src/animation/scene_hook.rs
-  - zircon_runtime/src/animation/scene_hook/node_pose.rs
+  - zircon_plugins/animation/runtime/src/runtime_system.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
@@ -61,7 +61,8 @@ related_code:
   - zircon_plugins/physics/runtime/src/manager.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact.rs
   - zircon_plugins/physics/runtime/src/runtime_system.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
+  - zircon_runtime/src/scene/components/scene/animation.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
   - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -184,8 +185,8 @@ implementation_files:
   - zircon_runtime/src/animation/clip_event.rs
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/animation/module.rs
-  - zircon_runtime/src/animation/scene_hook.rs
-  - zircon_runtime/src/animation/scene_hook/node_pose.rs
+  - zircon_plugins/animation/runtime/src/runtime_system.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
@@ -220,7 +221,8 @@ implementation_files:
   - zircon_plugins/physics/runtime/src/manager.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact.rs
   - zircon_plugins/physics/runtime/src/runtime_system.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
+  - zircon_runtime/src/scene/components/scene/animation.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
   - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -449,7 +451,7 @@ doc_type: module-detail
 
 - `zircon_runtime::core::framework::{scene, physics, animation}` 提供共享 DTO、路径契约与 manager-facing settings
 - `zircon_runtime::{asset, scene}` 负责 physics material、五类动画资产、scene 组件、以及 `SceneAsset <-> World` 的 typed roundtrip
-- `zircon_plugins/{animation,physics}/runtime` 提供 sequence/property runtime、manager state/runtime config 行为、以及 scene hook 执行
+- `zircon_plugins/{animation,physics}/runtime` 提供 manager state/runtime config 行为；动画执行由唯一的 `animation.evaluate` runtime system 负责
 
 同时，这两块 framework root 也已经完成结构收口：
 
@@ -500,12 +502,12 @@ doc_type: module-detail
   - scene 组件存储、typed getter/setter、project JSON roundtrip
 - `zircon_runtime::animation`
   - `AnimationModule` / `AnimationDriver` / `AnimationManagerHandle` descriptor wiring
-  - `DefaultAnimationManager` / sequence property writeback / animation scene hook
-  - sequence track sampling, clip pose sampling, graph evaluation, state-machine evaluation, and node-transform pose writeback
+  - `DefaultAnimationManager` / sequence property writeback / Level-owned clip-event queue
+  - runtime contract、manager access 和 sequence helpers；plugin evaluator owns clip, graph, state-machine and node-transform pose evaluation
   - animation playback settings manager surface
 - `zircon_plugins/animation/runtime`
-  - forwards the same runtime implementation for plugin package registration
-  - keeps the `AnimationRuntimePlugin` descriptor, project selection, and capability metadata as the external plugin-facing surface
+  - owns the `AnimationRuntimePlugin` descriptor, `animation.evaluate` system registration, and evaluation pipeline
+  - publishes pose and clip events through the runtime world without a built-in fallback evaluator
 - `zircon_plugins/physics/runtime`
   - `PhysicsModule` / `PhysicsDriver` / `PhysicsManagerHandle` descriptor wiring
   - plugin-local backend selector for `builtin`, disabled, unconfigured, unknown, and unavailable `jolt` states
@@ -517,8 +519,8 @@ doc_type: module-detail
 
 - `core::framework::physics` 与 `core::framework::animation` 内部现在都和 `input/`、`render/`、`scene/` 一样采用 folder-backed subtree
 - `zircon_runtime/src/physics/` 已删除，physics manager、scene sync、fallback query/contact 行为已进入 `zircon_plugins/physics/runtime`
-- `zircon_runtime/src/animation/` 是当前 runtime 主干里的动画实现位置，包含 manager、module、scene hook、sequence、graph/state-machine evaluator 和 node-pose writeback；`zircon_plugins/animation/runtime` 只转发这些实现并保留插件 descriptor/registration 面
-- `PhysicsModule` 的 module registration、driver 和 scene hook 仍由 `zircon_plugins/physics/runtime/src/{module,scene_hook}.rs` 提供；`AnimationModule` 的实现和 scene hook 现在由 `zircon_runtime::animation` 提供，插件包注册时复用同一 descriptor
+- `zircon_runtime/src/animation/` 保留 manager、module、sequence 和 clip-event contract；`zircon_plugins/animation/runtime` owns the evaluator and pose writeback.
+- `PhysicsModule` 的 module registration、driver 和 scene hook 仍由 `zircon_plugins/physics/runtime/src/{module,scene_hook}.rs` 提供；动画插件注册唯一的 `animation.evaluate`，不再保留 runtime fallback hook
 - canonical manager service name 仍由 `zircon_runtime::core::manager` 统一命名，插件 descriptor 只消费这个 manager contract
 - root `mod.rs` 不再允许重新吸收 DTO、trait、default impl 或 parse helper
 - 后续新增 physics/animation contract 时，应该继续进入子文件，而不是回到 umbrella root
@@ -828,17 +830,17 @@ scene 默认阶段顺序已经按当前计划固定为：
   - 推进 `AnimationPlayerComponent` / `AnimationSequencePlayerComponent` 组件时钟
   - 通过 `zircon_runtime::animation::apply_sequence_to_world(...)` 解析并应用 asset-backed sequence property track
   - 对 clip / graph / state machine 生成 `AnimationPoseOutput` 并缓存到 level runtime state
-  - 对带节点变换动画的角色，`scene_hook::node_pose` 会把 pose bone 名称匹配到动画根节点下的同名 scene descendants，并写回这些子节点的 local transform
+  - 动画插件把 pose bone 名称匹配到动画根节点下的同名 scene descendants，并写回这些子节点的 local transform
 
 这条主干现在通过 linked plugin report 拿到基础 runtime service：
 
-- `zircon_plugins/physics/runtime` 和 `zircon_plugins/animation/runtime` 贡献 `PhysicsModule` / `AnimationModule` 与对应 scene hook
+- `zircon_plugins/physics/runtime` 贡献 `PhysicsModule` scene hook；动画插件贡献唯一的 `animation.evaluate` runtime system
 - `builtin_runtime_modules()` 不再直接注册 physics / animation module；target loader 会根据 linked plugin registration report 接受对应模块
 - legacy project manifest 里仍选择 `RuntimePluginId::Physics` / `RuntimePluginId::Animation` 时，会走外置 plugin 缺失诊断，而不是静默落回 runtime built-in module
 - `resolve_physics_manager(...)` / `resolve_animation_manager(...)` 能从同一个 `CoreHandle` 解析到 plugin-backed manager handle
 - `LevelSystem::tick(...)` 会通过 `RuntimeExtensionRegistry` 安装的 scene hook 使用这些 manager 推进 physics step、contacts 与 sequence property writeback
 
-动态运行时会话还有一条独立保障：`zircon_runtime/src/dynamic_api/session.rs` 在创建 runtime session 时会把 `crate::animation::AnimationModule` 加入模块集合，并安装 `crate::animation::scene_hook_registration()`。这让 `zircon_runtime.exe --project <project>` 即使没有从项目插件清单加载外置 animation crate，也能在 standalone runtime 会话里解析动画 manager、推进 state-machine、执行 PostUpdate 动画钩子，并把示例里的 Kenney 节点动画姿态写回角色子节点。
+动态运行时会话会继续把 `crate::animation::AnimationModule` 加入模块集合以提供 manager contract，但不再安装 `animation.scene.post_update` fallback。要执行动画，项目必须链接 `zircon_plugins/animation/runtime`，由其 `animation.evaluate` 在 `PostUpdate` 中成为唯一生产求值器。
 
 `examples/vampire` 现在也把同一条 runtime scene authority 用在 terrain、屏幕 HUD、shader 材质和攻击 VFX 上。`Baked Jungle Terrain` 同时拥有 visible mesh 与 `TerrainAsset` 引用，terrain source 是 `res://terrain/jungle_clearing.terrain.toml`，项目导入会生成 ready `.zmeta`，导航网格的 Y 值按同一崎岖地形高度更新。战斗血条不再由 world 中同步的 cube scene nodes 实现，而是由 `gameplay.hud_text` 和脚本 HP 绑定驱动的 screen-space HUD 承担；脚本与 fallback gameplay 会把攻击瞬间写成 `render.particle_sprites`，颜色根据 attack/haste/shield buff 组合变化；`default_pbr` 则采样材质贴图并叠加 detail normal、shadow visibility、micro occlusion 与 wet reflection 项。frame capture 同时经过 render extract、particle extract、shadow stats 和 HUD overlay 路径验证这些资产与运行时效果。
 
@@ -1006,7 +1008,7 @@ render extract seam 和 skinned vertex resource surface 现在已经接成一条
   - `LevelSystem::tick(...)` 会使用 runtime physics manager 生成 fixed-step plan、同步 world snapshot，并缓存 contact event
   - `LevelSystem::tick(...)` 会应用 ready `AnimationSequenceAsset` property track，并把 sequence player time 写回 world
   - `LevelSystem::tick(...)` 会缓存 clip / graph / state-machine pose 输出
-  - standalone dynamic runtime session 会内建注册 `zircon_runtime::animation::AnimationModule` 和 `animation.scene.post_update` hook，因此项目运行路径不依赖外置 animation plugin crate 才能播放基础状态机动画
+  - standalone dynamic runtime session 只提供 `zircon_runtime::animation::AnimationModule` manager contract；基础状态机动画必须由链接的 animation plugin `animation.evaluate` 执行
   - node-transform clip/state-machine pose 会按 bone name 匹配动画根节点下的 scene descendants 并写回 local transform；纯 transform 父节点必须通过 `World::from_scene_asset(...)` 保留下来，否则 descendant 安全检查不会放行 pose 写回
   - `LevelSystem::build_render_frame_extract(...)` 会把 skinned mesh entity 的 cached pose 投影到 render extract
   - skinned glTF primitive 的 `JOINTS_0` / `WEIGHTS_0` 会保留到 `ModelAsset`、`MeshVertex` 和 `GpuMeshVertex`；glTF `TANGENT` / `COLOR_0` 也会以 authored value 贯通到 mesh subasset 和 GPU vertex ABI，缺失时继续使用 neutral default

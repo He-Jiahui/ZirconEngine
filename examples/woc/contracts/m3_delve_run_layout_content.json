@@ -1,0 +1,518 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_delve_run_layout_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff",
+    "src/sim/rng.ts": "d516034919a56ce15f3a893cfd07345b851a2eb833704009fbfbace24c446713",
+    "src/sim/delve_layout.ts": "bab9792386316e45b9d04ae920d056755f1e7facaa2bec30d4dc6793dc3fdd1e",
+    "src/sim/content/delves/collapsed_reliquary.ts": "f12a3538da887f8e7dd2fcf804287df7609f0c706284be51a377e70ea5e1b00d",
+    "src/sim/content/delves/drowned_litany.ts": "8f747166e6a63d36b8c20bae0d4feb43ba592376d2df0eb6139f4489aab1acb3"
+  },
+  "delves": [
+    {
+      "id": "collapsed_reliquary",
+      "index": 0,
+      "non_final_module_indices": [
+        0,
+        1,
+        2
+      ],
+      "finale_module_index": 3,
+      "tier_ids": [
+        "normal",
+        "heroic"
+      ],
+      "module_counts": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "drowned_litany",
+      "index": 1,
+      "non_final_module_indices": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "finale_module_index": 10,
+      "tier_ids": [
+        "normal",
+        "heroic"
+      ],
+      "module_counts": [
+        3,
+        3
+      ]
+    }
+  ],
+  "selection_vectors": [
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 0,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 1,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 2,
+      "module_indices": [
+        1,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 5,
+      "module_indices": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 42,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 20061,
+      "module_indices": [
+        1,
+        2,
+        0,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 2147483647,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 0,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 1,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 2,
+      "module_indices": [
+        1,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 5,
+      "module_indices": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 42,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 20061,
+      "module_indices": [
+        1,
+        2,
+        0,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 2147483647,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "unknown",
+      "seed": 0,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "unknown",
+      "seed": 1,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "unknown",
+      "seed": 2,
+      "module_indices": [
+        1,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "unknown",
+      "seed": 5,
+      "module_indices": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "unknown",
+      "seed": 42,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "unknown",
+      "seed": 20061,
+      "module_indices": [
+        1,
+        2,
+        0,
+        3
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "unknown",
+      "seed": 2147483647,
+      "module_indices": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 0,
+      "module_indices": [
+        5,
+        8,
+        7,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 1,
+      "module_indices": [
+        8,
+        5,
+        9,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 2,
+      "module_indices": [
+        4,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 5,
+      "module_indices": [
+        6,
+        9,
+        5,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 42,
+      "module_indices": [
+        5,
+        4,
+        8,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 20061,
+      "module_indices": [
+        6,
+        7,
+        9,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 2147483647,
+      "module_indices": [
+        9,
+        8,
+        7,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 0,
+      "module_indices": [
+        5,
+        8,
+        7,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 1,
+      "module_indices": [
+        8,
+        5,
+        9,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 2,
+      "module_indices": [
+        4,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 5,
+      "module_indices": [
+        6,
+        9,
+        5,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 42,
+      "module_indices": [
+        5,
+        4,
+        8,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 20061,
+      "module_indices": [
+        6,
+        7,
+        9,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 2147483647,
+      "module_indices": [
+        9,
+        8,
+        7,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "unknown",
+      "seed": 0,
+      "module_indices": [
+        5,
+        8,
+        7,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "unknown",
+      "seed": 1,
+      "module_indices": [
+        8,
+        5,
+        9,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "unknown",
+      "seed": 2,
+      "module_indices": [
+        4,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "unknown",
+      "seed": 5,
+      "module_indices": [
+        6,
+        9,
+        5,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "unknown",
+      "seed": 42,
+      "module_indices": [
+        5,
+        4,
+        8,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "unknown",
+      "seed": 20061,
+      "module_indices": [
+        6,
+        7,
+        9,
+        10
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "unknown",
+      "seed": 2147483647,
+      "module_indices": [
+        9,
+        8,
+        7,
+        10
+      ]
+    }
+  ],
+  "catalog_sha256": "e095f9c1a313dbd67aaaf123574b35401b80363e9a9b84f3226436216ca57d68"
+}

@@ -10,10 +10,13 @@ fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
-  - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
+  - zircon_runtime/src/scene/ecs/schedule_stage_plan.rs
+  - zircon_runtime/src/scene/ecs/schedule_runner.rs
+  - zircon_runtime/src/scene/ecs/native_system_schedule_diagnostics.rs
 tests:
   - disjoint native-system parallel schedule fixture
   - conflicting native-system serialization fixture
@@ -70,3 +73,44 @@ thread-affinity/reentrancy 声明。当前 conservative writer 是正确安全 f
 ## 修复结果与回传
 
 Open state: `待 Plugins01 定义 native access/thread-affinity ABI，并由 Runtime08/11 验证 conflict graph 与 worker 调度`。
+
+### 2026-07-22 Plugins01 实现状态
+
+| 里程碑 | 状态 | 完成日期 | 完成项目与剩余证据 |
+|---|---|---|---|
+| stable access / affinity contract and production runner | `implementation_complete / managed_broad_and_perf_acceptance_pending` | 2026-07-22 | registration manifest v3 现解析 `read|write:component|resource:<stable-id>` 与 `main-thread-only` / `worker-safe`；empty/独占 `write:world` 保持保守主线程 fallback，mixed world、未知 ID、重复/读写冲突、未授予 worker capability 与越权 foreign access 均显式拒绝。replay 使用 descriptor requested + runtime module capability 的实际宿主授权，编译真实 `SystemParamAccess`；direct ABI-v3 注册仍保持 conservative/main-thread hard fallback。`SceneScheduleStagePlan` 缓存 native conflict graph，生产 runner 只批处理无约束、worldless、worker-safe 且互不冲突的相邻 system，通过 `JobScheduler::join` 在 World lock 外执行；main/runtime/hook/internal/deferred/conflict 均为 barrier。callback panic 会先恢复 boxed system、poisoned callback mutex 与 stage deferred-flush 状态，再传播 panic，generation-owned `NativeHostBridgeCallScope` 继续持有 DLL owner。每帧新增 `conflict_count`、`ready_delay_ms`、`worker_utilization`、`callback_p95_ms`、worker batch、callback 与 `conservative_world_writer_count` 七条 DiagnosticStore 指标；SDK DTO/fixture/docs 同步 hard cut，旧 `read:scene.time` 占位语法已清除。scoped rustfmt、`git diff --check` 与 Rust 1.94 tuple/slice + fixed-array 类型探针通过；`python tools/audit_plugin_structure.py --json` 通过（37 manifests、39 dist targets，capability/registration/skeleton/SDK mirror 违例均为 0）。current-source reservation `443ed28a879c42228127596358928d6a` / job `a2f858fdd9894cb88df122fb92780da9` / run `255a862363d74b699f0b23cf308dfe3b` 已自然 `exit 0`，完整 lib-test 构建耗时 19m53s；`native_callback` 过滤组为 `5 passed / 0 failed / 1 ignored`。随后不可变二进制的 access-manifest 分组暴露 `physics.Body` 已登记 descriptor 但尚无实例时没有 ECS `ComponentId`，导致 `6 passed / 1 failed`；根因是 `World::register_component_type` 未预分配 dynamic access id。生产修复已让 component descriptor/reflection 注册成功后同步建立稳定 ECS id。旧 r10 `ed339385ebc94690a60ef20d83a8be1a` 与 r11 `7b0564dd8fe94805ae300bb697d78d51` 分别因共享 projection 变化和随后发现的 event-test 私有模块导入而主动释放；r12 又因 core-min 不编译 linked-plugin test 而主动释放。包含边界修复并启用默认 feature 的 current-hash r13 `41a0329396404c4d830c6987fe663225` 正按 FIFO 等待复验。尚需该 GREEN、其余 focused/broad、真实 trace 的 overlap/冲突/main-thread/panic 与 Runtime08/11 性能预算动态证据，因此本 failure 保持 open。 |
+
+同一 `r9` 不可变二进制中，与 ECS id 增量修复无关的生产调度回归已通过：
+`scene::ecs::schedule_runner::tests` 为 `4 passed / 0 failed`（disjoint overlap、conflict serial、
+main-thread affinity、panic restore），native schedule diagnostics 为 `1/1`，scheduled native systems
+为 `7/7`。registration replay 为 `6 passed / 1 failed / 1 ignored`，唯一失败同样是
+`physics.Body` access id 未安装，没有暴露第二根因；`apply_to_world` 已确认组件先于系统应用，
+因此 eager dynamic id 修复覆盖该集成路径。这些结果关闭对应行为回归疑点，但不替代 `r13`
+对 access-id 修复的 current-source GREEN。
+
+### 2026-07-30 current-source static re-audit
+
+本轮只完成了不启动 Cargo 的当前源码审计，failure 继续保持 `open`，不得据此声明已修复或验收：
+
+- manifest/replay 与 direct ABI 都复用
+  `NativeSystemAccessPlan`。manifest 路径把 `access` 与 `thread_affinity` 解析为受 capability
+  约束的 stable component/resource access，并经 `register_external_native_system` 在 build 时
+  生成实际 `SystemParamAccess`；V3 direct ABI 仍保守，V4 的独立
+  `ZrSystemRegistrationV2` 在 layout、access、affinity、stable ID 和 capability 校验后走同一
+  external-system 路径，没有扩展 V1 布局或引入第二个 scheduler authority。
+- 当前源码的 interface、adapter、manifest/replay 和对应 contract test 已执行
+  `rustfmt +1.94.1 --check --edition 2024 --config skip_children=true ...`，结果 exit 0；同范围
+  `git diff --check` 结果 exit 0（仅报告既有 LF/CRLF 提示）。
+- `python tools/audit_plugin_structure.py --json` 结果 exit 0：38 个 manifest 与 40 个
+  distribution target 均通过，capability、registration、skeleton 违例均为 0。
+- 参考对照：Bevy 的
+  `dev/bevy/tests/ecs/ambiguity_detection.rs` 以 schedule conflict graph 统计冲突系统；Godot 的
+  `dev/godot/core/extension/gdextension.cpp` 与
+  `dev/godot/tests/compatibility_test/src/compat_checker.c` 展示版本化 C ABI 入口在取得函数表后
+  显式设置 initialize/deinitialize 与最低初始化级别。Zircon 采用相同的“显式契约后可调度”原则，
+  但不复制 Rust trait-object ABI 或 Godot 的 class API。
+- 尚未执行任何新的 managed Cargo。Coordinator FIFO 当时由
+  `runtime15-structure-guard-path-repair-20260729` 的 job
+  `191a43af42de46b18f2d3529a48a875a` 占用；已 materialize 的 validation-copy
+  `5945e3ef29d74bd69602adca02e243b5` 不是 Cargo run，未被重建、重试或清理。仍待 current-source
+  focused/broad、真实 DLL/runner trace 与 Runtime08/11 性能预算证据，再决定 failure return。

@@ -400,11 +400,11 @@ impl UiAssetSurfaceIndex {
         &'a self,
         asset_ids: impl IntoIterator<Item = &'a str>,
         output: &mut Vec<UiTreeId>,
-        seen: &mut BTreeSet<UiTreeId>,
+        seen: &mut BTreeSet<&'a UiTreeId>,
     ) {
         for asset_id in asset_ids {
             for surface in self.surfaces_for_asset(asset_id) {
-                if seen.insert(surface.clone()) {
+                if seen.insert(surface) {
                     output.push(surface.clone());
                 }
             }
@@ -415,11 +415,11 @@ impl UiAssetSurfaceIndex {
         &'a self,
         asset_ids: impl IntoIterator<Item = &'a str>,
         output: &mut Vec<UiAssetNodeTarget>,
-        seen: &mut BTreeSet<UiAssetNodeTarget>,
+        seen: &mut BTreeSet<&'a UiAssetNodeTarget>,
     ) {
         for asset_id in asset_ids {
             for target in self.nodes_for_asset(asset_id) {
-                if seen.insert(target.clone()) {
+                if seen.insert(target) {
                     output.push(target.clone());
                 }
             }
@@ -435,13 +435,13 @@ impl UiAssetSurfaceIndex {
     ) -> Result<Option<UiAssetHotReloadNodeDirtyReport>, UiTreeError> {
         let mut target_nodes = Vec::new();
         let mut seen = BTreeSet::new();
-        push_nodes_for_surface(
+        let mut expected_target_count = push_nodes_for_surface(
             &mut target_nodes,
             &mut seen,
             tree_id,
             &targets.theme_restyle_nodes,
         );
-        push_nodes_for_surface(
+        expected_target_count += push_nodes_for_surface(
             &mut target_nodes,
             &mut seen,
             tree_id,
@@ -452,8 +452,6 @@ impl UiAssetSurfaceIndex {
             return Ok(None);
         }
 
-        let expected_target_count = target_surface_count(tree_id, &targets.theme_restyle_nodes)
-            + target_surface_count(tree_id, &targets.resource_damage_nodes);
         if target_nodes.len() != expected_target_count {
             return Ok(None);
         }
@@ -562,13 +560,13 @@ where
     assets
 }
 
-fn push_unique_surfaces(
+fn push_unique_surfaces<'a>(
     targets: &mut Vec<UiTreeId>,
-    seen: &mut BTreeSet<UiTreeId>,
-    surfaces: &[UiTreeId],
+    seen: &mut BTreeSet<&'a UiTreeId>,
+    surfaces: &'a [UiTreeId],
 ) {
     for surface in surfaces {
-        if seen.insert(surface.clone()) {
+        if seen.insert(surface) {
             targets.push(surface.clone());
         }
     }
@@ -579,28 +577,26 @@ fn push_nodes_for_surface(
     seen: &mut BTreeSet<UiNodeId>,
     tree_id: &UiTreeId,
     nodes: &[UiAssetNodeTarget],
-) {
+) -> usize {
+    let mut matched = 0;
     for target in nodes {
-        if &target.tree_id == tree_id && seen.insert(target.node_id) {
-            targets.push(target.node_id);
+        if &target.tree_id == tree_id {
+            matched += 1;
+            if seen.insert(target.node_id) {
+                targets.push(target.node_id);
+            }
         }
     }
+    matched
 }
 
-fn target_surface_count(tree_id: &UiTreeId, nodes: &[UiAssetNodeTarget]) -> usize {
-    nodes
-        .iter()
-        .filter(|target| &target.tree_id == tree_id)
-        .count()
-}
-
-fn push_unique_nodes(
+fn push_unique_nodes<'a>(
     targets: &mut Vec<UiAssetNodeTarget>,
-    seen: &mut BTreeSet<UiAssetNodeTarget>,
-    nodes: &[UiAssetNodeTarget],
+    seen: &mut BTreeSet<&'a UiAssetNodeTarget>,
+    nodes: &'a [UiAssetNodeTarget],
 ) {
     for node in nodes {
-        if seen.insert(node.clone()) {
+        if seen.insert(node) {
             targets.push(node.clone());
         }
     }

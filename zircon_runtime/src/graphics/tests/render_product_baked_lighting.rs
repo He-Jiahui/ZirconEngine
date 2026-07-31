@@ -7,18 +7,18 @@ use std::{
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::assets::{
-    texture_asset_from_lightmap_bake_output, AlphaMode, MaterialAsset, ModelAsset,
-    ModelPrimitiveAsset,
+    AlphaMode, MaterialAsset, ModelAsset, ModelPrimitiveAsset,
+    texture_asset_from_lightmap_bake_output,
 };
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AssetReference, AssetUri, MeshVertex, TextureAsset};
 use crate::core::framework::render::{
-    render_mesh_stable_instance_key, CapturedFrame, CorePipelineKind, DisplayMode,
-    EnvironmentExtract, LightmapBakeOutput, PreviewEnvironmentExtract, ProjectionMode,
-    RenderFrameExtract, RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
-    RenderOverlayExtract, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot,
+    CapturedFrame, CorePipelineKind, DisplayMode, EnvironmentExtract, LightmapBakeOutput,
+    PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderPipelineHandle,
+    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    render_mesh_stable_instance_key,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -292,7 +292,11 @@ fn fixture_mesh(
         tint: Vec4::ONE,
         mobility,
         static_state: RenderMeshStaticState::new(mobility == Mobility::Static, 1, 1),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: mobility == Mobility::Static,
+            ..Default::default()
+        },
     }
 }
 

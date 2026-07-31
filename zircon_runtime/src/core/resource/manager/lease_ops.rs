@@ -15,8 +15,7 @@ impl ResourceManager {
         TMarker: ResourceMarker,
         TData: ResourceData,
     {
-        let snapshot = self.snapshot::<TMarker, TData>(handle)?;
-        let payload = Arc::clone(snapshot.resource());
+        let payload = self.get::<TMarker, TData>(handle)?;
         {
             let mut runtime = self.lock_runtime_write();
             let slot = runtime.entry(handle.id()).or_default();

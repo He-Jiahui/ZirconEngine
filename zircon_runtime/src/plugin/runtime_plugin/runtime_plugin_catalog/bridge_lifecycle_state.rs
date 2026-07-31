@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::core::framework::bridge::BridgeOwnerTransitionMode;
 use crate::core::{RuntimeModuleLifecycleBlock, RuntimeModuleLifecycleObserver};
 use crate::plugin::{BridgeTableDiagnosticsSummary, FrozenBridgeTable};
@@ -10,7 +12,7 @@ use super::{
 #[derive(Clone, Debug)]
 pub struct RuntimePluginBridgeLifecycleState {
     catalog: RuntimePluginCatalog,
-    extension_report: RuntimeExtensionCatalogReport,
+    extension_report: Arc<RuntimeExtensionCatalogReport>,
     bridge_table: FrozenBridgeTable,
 }
 
@@ -71,13 +73,13 @@ impl RuntimePluginBridgeLifecycleOutcome {
 
 impl RuntimePluginBridgeLifecycleState {
     pub fn from_catalog(catalog: RuntimePluginCatalog) -> Self {
-        let extension_report = catalog.runtime_extensions();
+        let extension_report = Arc::new(catalog.runtime_extensions());
         Self::from_extension_report(catalog, extension_report)
     }
 
     pub fn from_extension_report(
         catalog: RuntimePluginCatalog,
-        extension_report: RuntimeExtensionCatalogReport,
+        extension_report: Arc<RuntimeExtensionCatalogReport>,
     ) -> Self {
         let bridge_table = extension_report.registry.frozen_bridge_table();
         Self {
@@ -92,7 +94,7 @@ impl RuntimePluginBridgeLifecycleState {
     }
 
     pub fn extension_report(&self) -> &RuntimeExtensionCatalogReport {
-        &self.extension_report
+        self.extension_report.as_ref()
     }
 
     pub fn bridge_table(&self) -> &FrozenBridgeTable {
@@ -198,5 +200,25 @@ impl RuntimeModuleLifecycleObserver for RuntimePluginBridgeLifecycleState {
         self.deactivate_provider_at_frame_boundary(&provider_package_id)
             .map(|_| ())
             .map_err(|error| RuntimeModuleLifecycleBlock::new(error.diagnostic()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::*;
+
+    #[test]
+    fn bridge_lifecycle_state_keeps_shared_extension_report_snapshot() {
+        let catalog = RuntimePluginCatalog::from_descriptors([]);
+        let extension_report = Arc::new(catalog.runtime_extensions());
+
+        let state = RuntimePluginBridgeLifecycleState::from_extension_report(
+            catalog,
+            Arc::clone(&extension_report),
+        );
+
+        assert!(Arc::ptr_eq(&extension_report, &state.extension_report));
     }
 }

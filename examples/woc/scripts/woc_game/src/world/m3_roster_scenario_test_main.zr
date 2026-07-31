@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var roster = %import("kernel/roster");
+
+console.printLine("m3-roster-scenario-test");
+var result: int = <int>roster.scenarioContractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

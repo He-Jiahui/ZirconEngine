@@ -100,6 +100,7 @@ fn finish_accepted_popup_dismiss(
         event: UiComponentEvent::ClosePopup,
         delivered: true,
         drag: None,
+        template_action: None,
     });
     append_binding_report_diagnostic(&mut result, &report);
     result

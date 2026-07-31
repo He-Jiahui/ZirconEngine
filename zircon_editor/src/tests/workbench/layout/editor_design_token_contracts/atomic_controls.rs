@@ -1,0 +1,339 @@
+use super::assert_tokenized_assets;
+
+macro_rules! workbench_asset {
+    ($path:literal) => {
+        include_str!(concat!(
+            "../../../../../assets/ui/editor/components/workbench/",
+            $path
+        ))
+    };
+}
+#[test]
+fn atomic_controls_share_editor_visual_and_density_tokens() {
+    assert_tokenized_assets(&[
+        (
+            "workbench_button.zui",
+            workbench_asset!("primitives/inputs/workbench_button.zui"),
+            &[
+                "$editor.surface.1",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.selected",
+                "$editor.surface.disabled",
+                "$editor.border",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.primary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.small",
+                "$editor.density.gap.large",
+                "$editor.density.gap.medium",
+                "$editor.control.height.dense",
+                "$editor.control.height.compact",
+                "$editor.control.height.default",
+                "$editor.typography.body.size",
+                "$editor.typography.line_height",
+            ],
+        ),
+        (
+            "workbench_icon_button.zui",
+            workbench_asset!("primitives/inputs/workbench_icon_button.zui"),
+            &[
+                "$editor.surface.2",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.selected",
+                "$editor.surface.disabled",
+                "$editor.border",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.control",
+                "$editor.density.gap.medium",
+                "$editor.density.gap.small",
+                "$editor.control.height.default",
+            ],
+        ),
+        (
+            "workbench_rail_button.zui",
+            workbench_asset!("primitives/chrome/workbench_rail_button.zui"),
+            &[
+                "$editor.surface.2",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.selected",
+                "$editor.surface.disabled",
+                "$editor.border",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.control",
+                "$editor.density.gap.medium",
+                "$editor.control.height.large",
+            ],
+        ),
+        (
+            "workbench_axis_value_field.zui",
+            workbench_asset!("primitives/chrome/workbench_axis_value_field.zui"),
+            &[
+                "$editor.surface.recessed",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.disabled",
+                "$editor.separator.soft",
+                "$editor.border",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.primary",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.control",
+                "$editor.density.gap.small",
+                "$editor.density.gap.medium",
+                "$editor.control.height.dense",
+                "$editor.control.height.compact",
+                "$editor.typography.body.size",
+                "$editor.typography.line_height",
+            ],
+        ),
+        (
+            "workbench_tab.zui",
+            workbench_asset!("primitives/inputs/workbench_tab.zui"),
+            &[
+                "$editor.surface.2",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.selected",
+                "$editor.surface.disabled",
+                "$editor.border",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.small",
+                "$editor.density.gap.small",
+                "$editor.density.gap.medium",
+                "$editor.control.height.dense",
+                "$editor.control.height.compact",
+                "$editor.control.height.default",
+                "$editor.typography.body.size",
+                "$editor.typography.line_height",
+            ],
+        ),
+        (
+            "workbench_divider.zui",
+            workbench_asset!("primitives/data/workbench_divider.zui"),
+            &[
+                "$editor.separator.soft",
+                "$editor.border.disabled",
+                "$editor.control.border_width",
+                "$editor.density.gap.medium",
+            ],
+        ),
+        (
+            "workbench_search_input.zui",
+            workbench_asset!("primitives/inputs/workbench_search_input.zui"),
+            &[
+                "$editor.surface.recessed",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.disabled",
+                "$editor.separator.soft",
+                "$editor.border",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.primary",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.control",
+                "$editor.density.gap.small",
+                "$editor.density.gap.large",
+                "$editor.control.height.dense",
+                "$editor.control.height.compact",
+                "$editor.control.height.default",
+                "$editor.typography.body.size",
+                "$editor.typography.line_height",
+            ],
+        ),
+        (
+            "workbench_dropdown.zui",
+            workbench_asset!("primitives/inputs/workbench_dropdown.zui"),
+            &[
+                "$editor.surface.recessed",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.accent.soft",
+                "$editor.surface.disabled",
+                "$editor.border",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.primary",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.small",
+                "$editor.density.gap.medium",
+                "$editor.density.gap.small",
+                "$editor.density.gap.large",
+                "$editor.control.height.dense",
+                "$editor.control.height.compact",
+                "$editor.control.height.default",
+                "$editor.typography.caption.size",
+                "$editor.typography.overlay.size",
+                "$editor.typography.line_height",
+            ],
+        ),
+        (
+            "workbench_field.zui",
+            workbench_asset!("primitives/inputs/workbench_field.zui"),
+            &[
+                "$editor.surface.recessed",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.disabled",
+                "$editor.separator.soft",
+                "$editor.border",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.primary",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.control",
+                "$editor.density.gap.medium",
+                "$editor.density.gap.small",
+                "$editor.control.height.dense",
+                "$editor.control.height.compact",
+                "$editor.control.height.default",
+                "$editor.typography.body.size",
+                "$editor.typography.line_height",
+            ],
+        ),
+        (
+            "workbench_number_field.zui",
+            workbench_asset!("primitives/inputs/workbench_number_field.zui"),
+            &[
+                "$editor.surface.recessed",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.disabled",
+                "$editor.separator.soft",
+                "$editor.border",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.primary",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.control",
+                "$editor.density.gap.medium",
+                "$editor.density.gap.small",
+                "$editor.control.height.dense",
+                "$editor.control.height.compact",
+                "$editor.control.height.default",
+                "$editor.typography.body.size",
+                "$editor.typography.line_height",
+            ],
+        ),
+        (
+            "workbench_toggle.zui",
+            workbench_asset!("primitives/inputs/workbench_toggle.zui"),
+            &[
+                "$editor.surface.2",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.selected",
+                "$editor.surface.disabled",
+                "$editor.separator.strong",
+                "$editor.border.disabled",
+                "$editor.accent",
+                "$editor.text.primary",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.density.gap.medium",
+                "$editor.control.height.dense",
+                "$editor.control.height.compact",
+                "$editor.control.height.default",
+                "$editor.typography.body.size",
+                "$editor.typography.line_height",
+            ],
+        ),
+        (
+            "workbench_segmented_control.zui",
+            workbench_asset!("primitives/inputs/workbench_segmented_control.zui"),
+            &[
+                "$editor.surface.2",
+                "$editor.surface.hover",
+                "$editor.surface.3",
+                "$editor.surface.selected",
+                "$editor.surface.disabled",
+                "$editor.border",
+                "$editor.accent",
+                "$editor.text.primary",
+                "$editor.text.secondary",
+                "$editor.text.disabled",
+                "$editor.control.border_width",
+                "$editor.control.radius.control",
+                "$editor.control.height.dense",
+                "$editor.control.height.compact",
+                "$editor.control.height.default",
+                "$editor.typography.body.size",
+                "$editor.typography.line_height",
+            ],
+        ),
+    ]);
+}
+
+#[test]
+fn workbench_tab_uses_tokenized_states_and_stretch_width() {
+    let asset = workbench_asset!("primitives/inputs/workbench_tab.zui");
+
+    assert!(
+        asset.contains("width = { stretch = \"Stretch\" }"),
+        "the reusable tab must let its parent allocate horizontal width"
+    );
+    assert!(
+        [
+            "layout_padding_right = 10.0",
+            "layout_padding_top = 3.0",
+            "layout_min_width = 72.0",
+            "layout_icon_size = 14.0",
+            "width = { min = 88.0, preferred = 96.0, max = 140.0, stretch = \"Fixed\" }",
+        ]
+        .iter()
+        .all(|legacy_metric| !asset.contains(legacy_metric)),
+        "the reusable tab must not retain local spacing, icon, or width metrics"
+    );
+}
+
+#[test]
+fn workbench_rail_button_uses_shared_large_control_geometry() {
+    let asset = workbench_asset!("primitives/chrome/workbench_rail_button.zui");
+
+    assert!(
+        asset.matches("$editor.control.height.large").count() >= 3,
+        "the activity-rail button must use the shared large control size for both hit axes"
+    );
+    assert!(
+        [
+            "layout_spacing = 0.0",
+            "layout_min_width = 44.0",
+            "layout_min_height = 44.0",
+            "layout_icon_size = 22.0",
+            "width = { min = 46.0, preferred = 48.0, max = 50.0, stretch = \"Fixed\" }",
+            "height = { min = 46.0, preferred = 48.0, max = 50.0, stretch = \"Fixed\" }",
+        ]
+        .iter()
+        .all(|legacy_metric| !asset.contains(legacy_metric)),
+        "the activity-rail button must not retain private fixed geometry"
+    );
+}

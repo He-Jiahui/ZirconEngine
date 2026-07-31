@@ -4,10 +4,10 @@ use zircon_editor::core::editing::operation::{
 };
 use zircon_editor::core::editor_operation::{EditorOperationInvocation, EditorOperationPath};
 use zircon_runtime::core::framework::navigation::{
-    NavMeshBakeRequest, NavigationClearBakeRequest, NAVIGATION_BAKE_SCENE_OPERATION,
-    NAVIGATION_BAKE_SURFACE_OPERATION, NAVIGATION_CLEAR_SURFACE_OPERATION,
+    NAVIGATION_BAKE_SCENE_OPERATION, NAVIGATION_BAKE_SURFACE_OPERATION,
+    NAVIGATION_CLEAR_SURFACE_OPERATION, NavMeshBakeRequest, NavigationClearBakeRequest,
 };
-use zircon_runtime_interface::{ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1};
+use zircon_runtime_interface::{ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationSubmitRequestV1};
 
 use super::NavigationOperationCommand;
 
@@ -47,7 +47,8 @@ impl NavigationOperationCommandFactory {
                 serde_json::to_value(request)
             }
             NAVIGATION_BAKE_SURFACE_OPERATION => {
-                let request = decode_bake_surface_arguments(&self.operation, arguments)?;
+                let request =
+                    decode_arguments(&self.operation, arguments, NavMeshBakeRequest::default())?;
                 if request.surface_entity.is_none() {
                     return Err(OperationCommandFactoryError::InvalidArguments {
                         operation: self.operation.clone(),
@@ -57,7 +58,11 @@ impl NavigationOperationCommandFactory {
                 serde_json::to_value(request)
             }
             NAVIGATION_CLEAR_SURFACE_OPERATION => {
-                let request = decode_clear_surface_arguments(&self.operation, arguments)?;
+                let request = decode_arguments(
+                    &self.operation,
+                    arguments,
+                    NavigationClearBakeRequest::default(),
+                )?;
                 if request.surface_entity.is_none() {
                     return Err(OperationCommandFactoryError::InvalidArguments {
                         operation: self.operation.clone(),
@@ -82,62 +87,6 @@ impl NavigationOperationCommandFactory {
             self.operation.to_string(),
             payload,
         ))
-    }
-}
-
-fn decode_bake_surface_arguments(
-    operation: &EditorOperationPath,
-    arguments: serde_json::Value,
-) -> Result<NavMeshBakeRequest, OperationCommandFactoryError> {
-    match arguments {
-        serde_json::Value::Array(values) => {
-            let [surface_entity, force_full_rebuild]: [serde_json::Value; 2] =
-                values.try_into().map_err(|_| {
-                    invalid_arguments(operation, "expected [surface_entity, force_full_rebuild]")
-                })?;
-            let surface_entity = surface_entity.as_u64().ok_or_else(|| {
-                invalid_arguments(operation, "surface_entity must be an unsigned integer")
-            })?;
-            let force_full_rebuild = force_full_rebuild.as_bool().ok_or_else(|| {
-                invalid_arguments(operation, "force_full_rebuild must be a boolean")
-            })?;
-            Ok(NavMeshBakeRequest {
-                surface_entity: Some(surface_entity),
-                force_full_rebuild,
-                ..NavMeshBakeRequest::default()
-            })
-        }
-        arguments => decode_arguments(operation, arguments, NavMeshBakeRequest::default()),
-    }
-}
-
-fn decode_clear_surface_arguments(
-    operation: &EditorOperationPath,
-    arguments: serde_json::Value,
-) -> Result<NavigationClearBakeRequest, OperationCommandFactoryError> {
-    match arguments {
-        serde_json::Value::Array(values) => {
-            let [surface_entity]: [serde_json::Value; 1] = values
-                .try_into()
-                .map_err(|_| invalid_arguments(operation, "expected [surface_entity]"))?;
-            let surface_entity = surface_entity.as_u64().ok_or_else(|| {
-                invalid_arguments(operation, "surface_entity must be an unsigned integer")
-            })?;
-            Ok(NavigationClearBakeRequest {
-                surface_entity: Some(surface_entity),
-            })
-        }
-        arguments => decode_arguments(operation, arguments, NavigationClearBakeRequest::default()),
-    }
-}
-
-fn invalid_arguments(
-    operation: &EditorOperationPath,
-    reason: impl Into<String>,
-) -> OperationCommandFactoryError {
-    OperationCommandFactoryError::InvalidArguments {
-        operation: operation.clone(),
-        reason: reason.into(),
     }
 }
 

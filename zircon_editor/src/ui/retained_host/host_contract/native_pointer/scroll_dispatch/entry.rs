@@ -5,6 +5,7 @@ use crate::ui::retained_host::ui_perf::{
 };
 
 use super::menu::dispatch_menu_pointer_scroll;
+use super::page_overflow::dispatch_host_page_overflow_menu_scroll;
 use super::pane::dispatch_pane_pointer_scroll;
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_native_pointer_scroll(
@@ -17,6 +18,9 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_native_pointer_scrol
     let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::IdleHover);
 
     let presentation = ui.get_host_presentation();
+    if let Some(result) = dispatch_host_page_overflow_menu_scroll(ui, &presentation, x, y, delta) {
+        return result;
+    }
     if let Some(result) = dispatch_menu_pointer_scroll(ui, &presentation, x, y, delta) {
         return result;
     }

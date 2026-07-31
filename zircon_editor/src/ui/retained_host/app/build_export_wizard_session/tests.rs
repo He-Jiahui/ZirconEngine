@@ -1,10 +1,10 @@
 use super::super::build_export_actions;
-use super::surface_actions::{build_export_wizard_surface_action, BuildExportWizardSurfaceAction};
+use super::surface_actions::{BuildExportWizardSurfaceAction, build_export_wizard_surface_action};
 use super::*;
 use crate::core::jobs::test_job_system;
 use crate::ui::host::{
-    EditorExportBuildError, ExportWizardCommandExecution, ExportWizardCommandRunner,
-    ExportWizardJobStatus, ExportWizardPipelineStageCommand, DESKTOP_EXPORT_START_BUTTON,
+    DESKTOP_EXPORT_START_BUTTON, EditorExportBuildError, ExportWizardCommandExecution,
+    ExportWizardCommandRunner, ExportWizardJobStatus, ExportWizardPipelineStageCommand,
 };
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime_interface::export::ExportStage;
@@ -128,20 +128,24 @@ fn desktop_export_wizard_sessions_start_refreshes_existing_plan_options() {
         .get_mut("desktop_windows")
         .expect("profile session should remain stored after start");
     assert_eq!(session.plan().out, second_options.out);
-    assert!(session
-        .plan()
-        .command(ExportStage::CookAssets)
-        .expect("cook assets stage should exist")
-        .consumed_artifacts
-        .iter()
-        .any(|artifact| artifact.path == "D:\\zircon-export-new\\assets\\assets.json"));
-    assert!(session
-        .plan()
-        .command(ExportStage::PlatformBundle)
-        .expect("platform bundle stage should exist")
-        .consumed_artifacts
-        .iter()
-        .any(|artifact| artifact.path == "D:\\zircon-export-new\\host\\zircon_game.exe"));
+    assert!(
+        session
+            .plan()
+            .command(ExportStage::CookAssets)
+            .expect("cook assets stage should exist")
+            .consumed_artifacts
+            .iter()
+            .any(|artifact| artifact.path == "D:\\zircon-export-new\\assets\\assets.json")
+    );
+    assert!(
+        session
+            .plan()
+            .command(ExportStage::PlatformBundle)
+            .expect("platform bundle stage should exist")
+            .consumed_artifacts
+            .iter()
+            .any(|artifact| artifact.path == "D:\\zircon-export-new\\host\\zircon_game.exe")
+    );
     assert_eq!(
         session
             .finish_job()
@@ -171,15 +175,19 @@ fn desktop_export_wizard_sessions_use_profile_strategies_for_stage_plan() {
         .sessions
         .get("browser_webgpu")
         .expect("browser profile session should exist");
-    assert!(session
-        .plan()
-        .command(ExportStage::SourceTemplate)
-        .is_some());
+    assert!(
+        session
+            .plan()
+            .command(ExportStage::SourceTemplate)
+            .is_some()
+    );
     assert!(session.plan().command(ExportStage::NativeDynamic).is_none());
-    assert!(session
-        .plan()
-        .command(ExportStage::PlatformBundle)
-        .is_some());
+    assert!(
+        session
+            .plan()
+            .command(ExportStage::PlatformBundle)
+            .is_some()
+    );
 }
 
 #[test]

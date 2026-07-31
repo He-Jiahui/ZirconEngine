@@ -1,3 +1,6 @@
+use std::time::{Duration, Instant};
+
+use crate::core::gateway::EditorRuntimeFrameDemand;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
 use super::super::data::FrameRect;
@@ -5,7 +8,58 @@ use super::super::globals::UiHostContext;
 use super::super::redraw::HostRedrawRequest;
 use super::UiHostWindow;
 
+const MAX_RUNTIME_FRAME_WAKE_DELAY: Duration = Duration::from_secs(60);
+
 impl UiHostWindow {
+    /// Replaces the prior runtime request because each completed runtime tick owns the next wake.
+    pub(crate) fn apply_runtime_frame_demand(
+        &self,
+        demand: EditorRuntimeFrameDemand,
+        now: Instant,
+    ) {
+        let queue_immediate_frame = match demand {
+            EditorRuntimeFrameDemand::OnDemand => {
+                self.state.borrow_mut().runtime_frame_wake_deadline = None;
+                false
+            }
+            EditorRuntimeFrameDemand::SleepUntil(delay) => {
+                let delay = delay.min(MAX_RUNTIME_FRAME_WAKE_DELAY);
+                self.state.borrow_mut().runtime_frame_wake_deadline =
+                    Some(now.checked_add(delay).unwrap_or(now));
+                false
+            }
+            EditorRuntimeFrameDemand::Continuous => {
+                self.state.borrow_mut().runtime_frame_wake_deadline = None;
+                true
+            }
+        };
+        if queue_immediate_frame {
+            self.queue_external_redraw(HostRedrawRequest::full_frame());
+        }
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn runtime_frame_wake_deadline(
+        &self,
+    ) -> Option<Instant> {
+        self.state.borrow().runtime_frame_wake_deadline
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn take_due_runtime_frame_wake(
+        &self,
+        now: Instant,
+    ) -> bool {
+        let due = self
+            .state
+            .borrow()
+            .runtime_frame_wake_deadline
+            .is_some_and(|deadline| deadline <= now);
+        if due {
+            self.state.borrow_mut().runtime_frame_wake_deadline = None;
+            self.queue_external_redraw(HostRedrawRequest::full_frame());
+        }
+        due
+    }
+
     pub(crate) fn request_frame_update(&self) {
         self.global::<UiHostContext>().invoke_frame_requested();
     }
@@ -69,5 +123,49 @@ impl UiHostWindow {
                 state.external_redraw_drained_count.saturating_add(1);
         }
         redraw
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use crate::core::gateway::EditorRuntimeFrameDemand;
+
+    #[test]
+    fn runtime_frame_wake_replaces_stale_requests_and_bounds_extreme_delays() {
+        let host = super::UiHostWindow::new().expect("host window");
+        let now = Instant::now();
+
+        host.apply_runtime_frame_demand(EditorRuntimeFrameDemand::Continuous, now);
+        assert!(host.take_external_redraw().requires_frame_update());
+        assert_eq!(host.runtime_frame_wake_deadline(), None);
+
+        host.apply_runtime_frame_demand(
+            EditorRuntimeFrameDemand::SleepUntil(Duration::from_millis(25)),
+            now,
+        );
+        assert_eq!(
+            host.runtime_frame_wake_deadline(),
+            Some(now + Duration::from_millis(25))
+        );
+        host.apply_runtime_frame_demand(EditorRuntimeFrameDemand::OnDemand, now);
+        assert_eq!(host.runtime_frame_wake_deadline(), None);
+        assert!(!host.take_due_runtime_frame_wake(now + Duration::from_millis(25)));
+
+        host.apply_runtime_frame_demand(
+            EditorRuntimeFrameDemand::SleepUntil(Duration::from_millis(25)),
+            now,
+        );
+        assert!(!host.take_due_runtime_frame_wake(now));
+        assert!(host.take_due_runtime_frame_wake(now + Duration::from_millis(25)));
+        assert!(host.take_external_redraw().requires_frame_update());
+
+        host.apply_runtime_frame_demand(EditorRuntimeFrameDemand::SleepUntil(Duration::MAX), now);
+        assert_eq!(
+            host.runtime_frame_wake_deadline(),
+            Some(now + Duration::from_secs(60)),
+            "an extreme transport delay must remain a bounded native wake"
+        );
     }
 }

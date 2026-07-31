@@ -36,17 +36,27 @@ class LifecycleService:
         self._force_stop_timers: dict[str, threading.Timer] = {}
         self._force_stop_handoffs: set[str] = set()
         self._lock = threading.Lock()
+        self._closed = threading.Event()
 
     def set_shutdown(self, callback: Callable[[LifecycleKind], None]) -> None:
         self._shutdown = callback
 
     def close(self) -> None:
-        """Cancel local bounded-drain timers before their backing store closes."""
+        """Stop local lifecycle workers before their backing store closes."""
+        self._closed.set()
         with self._lock:
-            timers = tuple(self._drain_timers.values())
+            timers = tuple(self._drain_timers.values()) + tuple(
+                self._force_stop_timers.values()
+            )
             self._drain_timers.clear()
+            self._force_stop_timers.clear()
+            workers = tuple(self._workers.values())
         for timer in timers:
             timer.cancel()
+        current = threading.current_thread()
+        for worker in workers:
+            if worker is not current:
+                worker.join()
 
     def request(
         self,
@@ -230,9 +240,10 @@ class LifecycleService:
                 )
             return {"intentId": intent_id, "state": "healthy", "deferred": False}
         if kind is LifecycleKind.DRAIN:
-            # A drain is now an auditable blocker observation, not a global
-            # admission gate.  Long-running work must time out/reconcile at
-            # the job level without freezing unrelated Sessions.
+            # Draining is an observation receipt, not a global admission gate.
+            # Per-job timeout/reconciliation owns recovery; turning this into a
+            # maintenance hold strands unrelated Sessions behind a validation
+            # queue and makes daemon restart recovery preserve a false drain.
             blockers = self.supervision.snapshot(exclude_action_id=action_id).blockers
             self.supervision.update_intent(
                 intent_id,
@@ -258,8 +269,8 @@ class LifecycleService:
                 actor=actor,
             )
             worker = threading.Thread(
-                target=self._shutdown_after_commit,
-                args=(kind, action_id),
+                target=self._complete_rollover,
+                args=(intent_id, action_id, actor, bool(result.get("waitingForCargo"))),
                 name=f"zircon-lifecycle-rollover-{intent_id[:8]}",
                 daemon=True,
             )
@@ -317,27 +328,57 @@ class LifecycleService:
                 self._drain_timers.pop(intent_id, None)
 
     def _require_matching_maintenance_hold(self, action_id: str | None) -> None:
-        """Only the explicit drain that established the current hold may release it."""
+        """Release a proof-bound hold only after its scoped reservations terminally release."""
         if not action_id:
             raise CoordinatorError(
                 "maintenance_hold_release_id_required",
                 "Releasing a maintenance hold requires its controlled drain action ID",
             )
-        with self.supervision.database.connect() as connection:
-            source = connection.execute(
-                """
-                SELECT action_id
-                FROM action_requests
-                WHERE action_kind='service.drain' AND status='succeeded'
-                ORDER BY completed_at DESC, action_id DESC
-                LIMIT 1
-                """
-            ).fetchone()
+        source = self.supervision.proof_bound_drain()
         if source is None or source["action_id"] != action_id:
             raise CoordinatorError(
                 "maintenance_hold_release_mismatch",
                 "Maintenance hold may only be released by its current drain action",
                 details={"maintenanceHoldActionId": source["action_id"] if source else None},
+            )
+        try:
+            parameters = json.loads(source["parameters_json"])
+            session_ids = tuple(
+                session_id.strip()
+                for session_id in parameters.get("maintenanceSessionIds", [])
+                if isinstance(session_id, str) and session_id.strip()
+            )
+        except (TypeError, ValueError, json.JSONDecodeError):
+            session_ids = ()
+        if not session_ids:
+            return
+        placeholders = ", ".join("?" for _ in session_ids)
+        with self.supervision.database.connect() as connection:
+            active = connection.execute(
+                f"""
+                SELECT reservation_id, session_id, status
+                FROM cargo_lane_reservations
+                WHERE session_id IN ({placeholders})
+                  AND status NOT IN ('released', 'expired')
+                ORDER BY created_at, reservation_id
+                """,
+                session_ids,
+            ).fetchall()
+        if active:
+            raise CoordinatorError(
+                "maintenance_proof_reservation_active",
+                "The proof-bound maintenance reservation must release before admission resumes",
+                details={
+                    "maintenanceHoldActionId": source["action_id"],
+                    "reservations": [
+                        {
+                            "reservationId": row["reservation_id"],
+                            "sessionId": row["session_id"],
+                            "status": row["status"],
+                        }
+                        for row in active
+                    ],
+                },
             )
 
     def recover_restart_intents(self) -> int:
@@ -502,12 +543,12 @@ class LifecycleService:
     ) -> None:
         try:
             while time.monotonic() < deadline:
-                if self._intent_cancelled(intent_id):
+                if self._closed.is_set() or self._intent_cancelled(intent_id):
                     return
                 blockers = self.supervision.snapshot(exclude_action_id=action_id).blockers
                 if not any(item.blocking for item in blockers):
                     break
-                time.sleep(self.poll_seconds)
+                self._closed.wait(self.poll_seconds)
             else:
                 self.supervision.fail_lifecycle(
                     action_id, actor="daemon", error_code="lifecycle_drain_timeout"
@@ -521,7 +562,7 @@ class LifecycleService:
                 )
                 return
             with self._lock:
-                if self._intent_cancelled(intent_id):
+                if self._closed.is_set() or self._intent_cancelled(intent_id):
                     return
                 self.supervision.commit_lifecycle_offline(
                     intent_id,
@@ -546,6 +587,42 @@ class LifecycleService:
         except Exception:
             self.supervision.fail_lifecycle(
                 action_id, actor="daemon", error_code="lifecycle_worker_failed"
+            )
+        finally:
+            with self._lock:
+                self._workers.pop(intent_id, None)
+
+    def _complete_rollover(
+        self,
+        intent_id: str,
+        action_id: str,
+        actor: str,
+        wait_for_cargo: bool,
+    ) -> None:
+        """Wait for an existing Cargo tree without closing task admission or FIFO."""
+        try:
+            while wait_for_cargo and not self._closed.is_set():
+                if self._intent_cancelled(intent_id):
+                    return
+                result = self.supervision.arm_rollover(
+                    intent_id,
+                    action_id=action_id,
+                    actor=actor,
+                )
+                if not result.get("waitingForCargo"):
+                    break
+                self._closed.wait(self.poll_seconds)
+            if self._closed.is_set() or self._intent_cancelled(intent_id):
+                return
+            self._shutdown_after_commit(LifecycleKind.ROLLOVER, action_id)
+        except CoordinatorError as error:
+            if not self._intent_cancelled(intent_id):
+                self.supervision.fail_lifecycle(
+                    action_id, actor="daemon", error_code=error.code
+                )
+        except Exception:
+            self.supervision.fail_lifecycle(
+                action_id, actor="daemon", error_code="lifecycle_rollover_worker_failed"
             )
         finally:
             with self._lock:

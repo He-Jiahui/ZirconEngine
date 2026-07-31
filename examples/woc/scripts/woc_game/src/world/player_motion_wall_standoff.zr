@@ -1,0 +1,147 @@
+// Post-vertical terrain-wall standoff composition from stepPlayerMotion. This
+// consumes transient coordinates and returns corrected X/Z/Y fields only.
+
+var playerMotion = %import("world/player_motion");
+var motionWorld = %import("world/player_motion_world");
+var terrainGradient = %import("world/terrain_gradient");
+var terrainGround = %import("world/terrain_ground");
+var terrainWallStandoff = %import("world/terrain_wall_standoff");
+var worldCollision = %import("world/world_collision_router");
+
+distance(x0: float, z0: float, x1: float, z1: float): float {
+    var math = %import("zr.zircon.math");
+    var dx = x1 - x0;
+    var dz = z1 - z0;
+    return math.sqrt(dx * dx + dz * dz);
+}
+
+pub coordinate(
+    stepStartX: float,
+    stepStartZ: float,
+    currentX: float,
+    currentZ: float,
+    currentY: float,
+    onGround: bool,
+    movingOnGround: bool,
+    wishX: float,
+    wishZ: float,
+    wishSpeed: float,
+    seed: uint,
+    field: int,
+    required: bool
+): float {
+    if (!required || wishSpeed < 0.0 || (field != 1 && field != 2 && field != 3)) {
+        throw "woc player wall-standoff arguments are invalid";
+    }
+    if (!onGround || motionWorld.isSwimmingInBuiltinWorld(currentX, currentZ, currentY, seed, true)) {
+        return field == 1 ? currentX : (field == 2 ? currentZ : currentY);
+    }
+    var standoffX = terrainWallStandoff.coordinate(
+        currentX,
+        currentZ,
+        seed,
+        playerMotion.playerBodyRadius(true),
+        playerMotion.maxClimbSlope(true),
+        1,
+        true
+    );
+    var standoffZ = terrainWallStandoff.coordinate(
+        currentX,
+        currentZ,
+        seed,
+        playerMotion.playerBodyRadius(true),
+        playerMotion.maxClimbSlope(true),
+        2,
+        true
+    );
+    if (standoffX == currentX && standoffZ == currentZ) {
+        return field == 1 ? currentX : (field == 2 ? currentZ : currentY);
+    }
+    var standX = worldCollision.resolveSupportedWorldMovementCoordinate(
+        currentX,
+        currentZ,
+        standoffX,
+        standoffZ,
+        playerMotion.playerBodyRadius(true),
+        false,
+        1,
+        true
+    );
+    var standZ = worldCollision.resolveSupportedWorldMovementCoordinate(
+        currentX,
+        currentZ,
+        standoffX,
+        standoffZ,
+        playerMotion.playerBodyRadius(true),
+        false,
+        2,
+        true
+    );
+    if (movingOnGround && wishSpeed > 0.0) {
+        var startStandoffX = terrainWallStandoff.coordinate(
+            stepStartX,
+            stepStartZ,
+            seed,
+            playerMotion.playerBodyRadius(true),
+            playerMotion.maxClimbSlope(true),
+            1,
+            true
+        );
+        var startStandoffZ = terrainWallStandoff.coordinate(
+            stepStartX,
+            stepStartZ,
+            seed,
+            playerMotion.playerBodyRadius(true),
+            playerMotion.maxClimbSlope(true),
+            2,
+            true
+        );
+        var alreadyClear = distance(startStandoffX, startStandoffZ, stepStartX, stepStartZ) < 0.0001;
+        var progress = (standX - stepStartX) * wishX + (standZ - stepStartZ) * wishZ;
+        if (alreadyClear && progress < -0.000001) {
+            var slideX = standX - wishX * progress;
+            var slideZ = standZ - wishZ * progress;
+            standX = worldCollision.resolveSupportedWorldMovementCoordinate(
+                stepStartX,
+                stepStartZ,
+                slideX,
+                slideZ,
+                playerMotion.playerBodyRadius(true),
+                false,
+                1,
+                true
+            );
+            standZ = worldCollision.resolveSupportedWorldMovementCoordinate(
+                stepStartX,
+                stepStartZ,
+                slideX,
+                slideZ,
+                playerMotion.playerBodyRadius(true),
+                false,
+                2,
+                true
+            );
+        }
+    }
+    if (terrainGradient.builtinTerrainSteepnessAt(standX, standZ, seed, true) <=
+        playerMotion.maxClimbSlope(true)) {
+        currentX = standX;
+        currentZ = standZ;
+        currentY = terrainGround.builtinGroundHeight(standX, standZ, seed, true);
+    }
+    return field == 1 ? currentX : (field == 2 ? currentZ : currentY);
+}
+
+pub contractTest(): int {
+    if (coordinate(0.0, 0.0, 0.0, 0.0, 1.5, true, true, 0.0, 1.0, 7.0, <uint>20061, 1, true) != 0.0 ||
+        coordinate(0.0, 0.0, 0.0, 0.0, 1.5, true, true, 0.0, 1.0, 7.0, <uint>20061, 2, true) != 0.0 ||
+        coordinate(0.0, 0.0, 0.0, 0.0, 1.5, true, true, 0.0, 1.0, 7.0, <uint>20061, 3, true) != 1.5) {
+        return -1;
+    }
+    if (coordinate(0.0, 0.0, 1.0, 2.0, 3.0, false, false, 0.0, 0.0, 0.0, <uint>20061, 1, true) != 1.0 ||
+        coordinate(0.0, 0.0, 1.0, 2.0, 3.0, false, false, 0.0, 0.0, 0.0, <uint>20061, 2, true) != 2.0 ||
+        coordinate(0.0, 0.0, 1.0, 2.0, 3.0, false, false, 0.0, 0.0, 0.0, <uint>20061, 3, true) != 3.0) {
+        return -2;
+    }
+    return 1;
+}

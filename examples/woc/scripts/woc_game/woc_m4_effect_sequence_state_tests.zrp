@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_effect_sequence_state_tests",
+  "source": "src",
+  "binary": "bin-m4-effect-sequence-state-tests",
+  "entry": "combat/effect_sequence_state_test_main"
+}

@@ -1,0 +1,36 @@
+// Pure target selection for Chronomancy mass resurrection. The WOS reducer
+// converts these ids into authoritative resurrection offers and spell effects.
+var container = %import("zr.container");
+var targeting = %import("combat/group_targeting_state");
+var contract = %import("generated/mass_resurrection_contract");
+
+pub hasDeadGroupMember(state: targeting.GroupTargetingState): bool {
+    var targets = targeting.deadOrGhostGroupPlayerIds(state);
+    return targets.length > 0;
+}
+
+// Returned ids are in party roster order, exactly as the source iterates when
+// issuing offers. A solo caster has no eligible mass-resurrection targets.
+pub resurrectDeadGroupMembers(state: targeting.GroupTargetingState): container.Array<int> {
+    return targeting.deadOrGhostGroupPlayerIds(state);
+}
+
+pub contractTest(): int {
+    if (!contract.noTargetsWhenSolo(true) || !contract.includesDeadOrGhostPlayers(true) ||
+        !contract.preservesPartyRosterOrder(true)) return -1;
+    var state = new targeting.GroupTargetingState();
+    targeting.setMember(state, 9, true, false, false, 0.0, 0.0);
+    targeting.setMember(state, 7, true, false, true, 1.0, 0.0);
+    targeting.setMember(state, 3, true, true, false, 2.0, 0.0);
+    targeting.setMember(state, 2, false, true, false, 3.0, 0.0);
+    var soloOffers = resurrectDeadGroupMembers(state);
+    if (hasDeadGroupMember(state) || soloOffers.length != 0) return -2;
+    targeting.addPartyMember(state, 7);
+    targeting.addPartyMember(state, 2);
+    targeting.addPartyMember(state, 3);
+    targeting.addPartyMember(state, 9);
+    var offered = resurrectDeadGroupMembers(state);
+    if (!hasDeadGroupMember(state) || offered.length != 2 ||
+        <int>offered[0] != 7 || <int>offered[1] != 3) return -3;
+    return 1;
+}

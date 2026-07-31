@@ -1,0 +1,19 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub castNthTriggerCode(): int { return 1; }
+pub spellCritTriggerCode(): int { return 2; }
+pub shieldConsumedTriggerCode(): int { return 3; }
+pub hotExpiredTriggerCode(): int { return 4; }
+pub bigHitTakenTriggerCode(): int { return 5; }
+pub meleeSwingWhileTriggerCode(): int { return 6; }
+pub thornsReflectTriggerCode(): int { return 7; }
+pub empowerNextResponseCode(): int { return 1; }
+pub cooldownRefundResponseCode(): int { return 2; }
+pub resourceResponseCode(): int { return 3; }
+pub healResponseCode(): int { return 4; }
+pub absorbResponseCode(): int { return 5; }
+pub auraResponseCode(): int { return 6; }
+pub echoResponseCode(): int { return 7; }
+pub defaultSchool(): string { return "holy"; }
+pub personalBarrierSentinel(): string { return "personal_barrier"; }
+pub procFx(): string { return "procSurge"; }
+pub wardFx(): string { return "wardBloom"; }

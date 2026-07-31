@@ -1,0 +1,18 @@
+// Pure projection of unlockNextDelveLore's ordered-set insertion behavior.
+var content = %import("instances/delve_lore_content");
+
+pub nextLoreId(unlockedCount: int): string {
+    if (unlockedCount < 0) {
+        throw "woc Delve lore unlock count is invalid";
+    }
+    return unlockedCount >= content.loreCount(true) ? "" : content.loreId(unlockedCount, true);
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || nextLoreId(0) != "eastbrook_ledger" ||
+        nextLoreId(1) != "first_collapse" || nextLoreId(4) != "tessa_note" ||
+        nextLoreId(5) != "") {
+        return -1;
+    }
+    return 1;
+}

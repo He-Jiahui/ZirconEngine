@@ -5,13 +5,15 @@ use std::path::{Path, PathBuf};
 const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
     (
         "src/runtime_api/api_table.rs",
-        &["ZrHostApiV1", "ZrRuntimeApiV2"],
+        &["ZrHostApiV1", "ZrRuntimeApiV3"],
     ),
     (
         "src/plugin_api.rs",
         &[
             "ZrHostApiV3",
+            "ZrHostApiV4",
             "ZrHostEcsApiV1",
+            "ZrHostEcsApiV2",
             "ZrHostAssetApiV1",
             "ZrHostEventApiV1",
             "ZrHostBridgeApiV1",
@@ -23,9 +25,11 @@ const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
 ];
 const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/runtime_api/api_table.rs", "ZrHostApiV1", 4),
-    ("src/runtime_api/api_table.rs", "ZrRuntimeApiV2", 19),
+    ("src/runtime_api/api_table.rs", "ZrRuntimeApiV3", 19),
     ("src/plugin_api.rs", "ZrHostApiV3", 7),
+    ("src/plugin_api.rs", "ZrHostApiV4", 7),
     ("src/plugin_api.rs", "ZrHostEcsApiV1", 3),
+    ("src/plugin_api.rs", "ZrHostEcsApiV2", 3),
     ("src/plugin_api.rs", "ZrHostAssetApiV1", 1),
     ("src/plugin_api.rs", "ZrHostEventApiV1", 2),
     ("src/plugin_api.rs", "ZrHostBridgeApiV1", 1),
@@ -33,7 +37,7 @@ const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/plugin_api.rs", "ZrPluginStateSnapshotApiV1", 4),
     ("src/plugin_api.rs", "ZrPluginApiV1", 4),
 ];
-const RUNTIME_API_V2_SESSION_OPERATION_FIELDS: &[&str] = &[
+const RUNTIME_API_V3_SESSION_OPERATION_FIELDS: &[&str] = &[
     "create_session",
     "destroy_session",
     "handle_event",
@@ -109,9 +113,9 @@ fn function_table_field_counts_match_runtime_10_inventory() {
 #[test]
 fn runtime_api_session_operation_surface_matches_inventory() {
     let source = read_manifest_source("src/runtime_api/api_table.rs");
-    let v2_fields =
-        discover_struct_fields(&source, "src/runtime_api/api_table.rs", "ZrRuntimeApiV2");
-    let v2_operation_fields = v2_fields
+    let v3_fields =
+        discover_struct_fields(&source, "src/runtime_api/api_table.rs", "ZrRuntimeApiV3");
+    let v3_operation_fields = v3_fields
         .iter()
         .filter_map(|field| match field.as_str() {
             "abi_version" | "size_bytes" => None,
@@ -120,25 +124,100 @@ fn runtime_api_session_operation_surface_matches_inventory() {
         .collect::<Vec<_>>();
 
     assert_eq!(
-        v2_operation_fields, RUNTIME_API_V2_SESSION_OPERATION_FIELDS,
-        "ZrRuntimeApiV2 session operation surface changed; update runtime 10 docs and failure-path tests before changing the guard"
+        v3_operation_fields, RUNTIME_API_V3_SESSION_OPERATION_FIELDS,
+        "ZrRuntimeApiV3 session operation surface changed; update runtime 10 docs and failure-path tests before changing the guard"
     );
 }
 
 #[test]
-fn runtime_table_v1_export_and_loader_fallback_stay_hard_deleted() {
+fn runtime_v3_reactive_wake_dtos_keep_explicit_c_layout_and_raw_kind() {
+    let session_source = read_manifest_source("src/runtime_api/session.rs");
+    let demand_source = read_manifest_source("src/runtime_api/frame_demand.rs");
+
+    assert_repr_c_before_struct(
+        &session_source,
+        "src/runtime_api/session.rs",
+        "ZrRuntimeWakeSinkV1",
+    );
+    assert_repr_c_before_struct(
+        &session_source,
+        "src/runtime_api/session.rs",
+        "ZrRuntimeSessionConfigV2",
+    );
+    assert_repr_c_before_struct(
+        &demand_source,
+        "src/runtime_api/frame_demand.rs",
+        "ZrRuntimeFrameDemandV1",
+    );
+    assert_eq!(
+        discover_struct_fields(
+            &session_source,
+            "src/runtime_api/session.rs",
+            "ZrRuntimeWakeSinkV1",
+        ),
+        ["abi_version", "token", "wake"]
+            .map(str::to_string)
+            .to_vec()
+    );
+    assert_eq!(
+        discover_struct_fields(
+            &session_source,
+            "src/runtime_api/session.rs",
+            "ZrRuntimeSessionConfigV2",
+        ),
+        ["abi_version", "profile", "project_manifest", "wake_sink"]
+            .map(str::to_string)
+            .to_vec()
+    );
+    assert_eq!(
+        discover_struct_fields(
+            &demand_source,
+            "src/runtime_api/frame_demand.rs",
+            "ZrRuntimeFrameDemandV1",
+        ),
+        ["abi_version", "kind", "delay_nanoseconds"]
+            .map(str::to_string)
+            .to_vec()
+    );
+    assert!(session_source.contains("pub wake: Option<unsafe extern \"C\" fn(u64)>,"));
+    assert!(demand_source.contains("pub kind: u32,"));
+    assert!(!demand_source.contains("pub enum ZrRuntimeFrameDemand"));
+}
+
+#[test]
+fn runtime_table_v2_export_and_loader_fallback_stay_hard_deleted() {
     let sources = [
         (
             "zircon_runtime_interface/src/runtime_api/api_table.rs",
             read_manifest_source("src/runtime_api/api_table.rs"),
         ),
         (
+            "zircon_runtime_interface/src/lib.rs",
+            read_manifest_source("src/lib.rs"),
+        ),
+        (
+            "zircon_runtime_interface/src/version.rs",
+            read_manifest_source("src/version.rs"),
+        ),
+        (
             "zircon_runtime/src/dynamic_api/exports.rs",
             read_repo_file("zircon_runtime/src/dynamic_api/exports.rs"),
         ),
         (
+            "zircon_runtime/src/dynamic_api/mod.rs",
+            read_repo_file("zircon_runtime/src/dynamic_api/mod.rs"),
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/ffi.rs",
+            read_repo_file("zircon_runtime/src/dynamic_api/session/ffi.rs"),
+        ),
+        (
             "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
             read_repo_file("zircon_app/src/entry/runtime_library/loaded_runtime.rs"),
+        ),
+        (
+            "zircon_app/src/entry/runtime_library/runtime_session.rs",
+            read_repo_file("zircon_app/src/entry/runtime_library/runtime_session.rs"),
         ),
     ];
     let forbidden = [
@@ -147,6 +226,14 @@ fn runtime_table_v1_export_and_loader_fallback_stay_hard_deleted() {
         "ZR_RUNTIME_GET_API_SYMBOL_V1",
         "zircon_runtime_get_api_v1",
         "RuntimeApi::V1",
+        "ZrRuntimeApiV2",
+        "ZrRuntimeGetApiFnV2",
+        "ZR_RUNTIME_GET_API_SYMBOL_V2",
+        "zircon_runtime_get_api_v2",
+        "RuntimeApi::V2",
+        "ZrRuntimeSessionConfigV1",
+        "ZrRuntimeCreateSessionFnV1",
+        "ZrRuntimeTickFrameFnV1",
     ];
     let violations = sources
         .iter()
@@ -159,7 +246,7 @@ fn runtime_table_v1_export_and_loader_fallback_stay_hard_deleted() {
 
     assert!(
         violations.is_empty(),
-        "the runtime table is V2-only; remove old table/export/loader fallback:\n{}",
+        "the runtime table is V3-only; remove the V2 table/export/loader fallback and retired signatures:\n{}",
         violations.join("\n")
     );
 }
@@ -184,6 +271,15 @@ fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
     assert!(
         version_source.contains("pub const ZIRCON_RUNTIME_ABI_VERSION_V1: u32 = 1;"),
         "runtime interface ABI version constant should remain the documented V1 owner"
+    );
+    assert!(
+        version_source.contains("pub const ZIRCON_RUNTIME_ABI_VERSION_V2: u32 = 2;")
+            && version_source.contains("pub const ZIRCON_RUNTIME_API_VERSION_V3: u32 = 3;"),
+        "the V3 table and changed V2 session config need explicit version owners"
+    );
+    assert!(
+        !version_source.contains("ZIRCON_RUNTIME_API_VERSION_V2"),
+        "the retired V2 table version constant must not remain as a compatibility surface"
     );
 }
 
@@ -242,7 +338,11 @@ fn discover_api_struct_names(source: &str) -> BTreeSet<String> {
             let line = line.trim_start();
             let rest = line.strip_prefix("pub struct ")?;
             let name = rest.split_whitespace().next()?.trim_end_matches('{');
-            if name.ends_with("ApiV1") || name.ends_with("ApiV3") {
+            if name.ends_with("ApiV1")
+                || name.ends_with("ApiV2")
+                || name.ends_with("ApiV3")
+                || name.ends_with("ApiV4")
+            {
                 Some(name.to_string())
             } else {
                 None

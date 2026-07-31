@@ -98,12 +98,17 @@ fn shape_with_cosmic(
 
         let line_breaks = LineBreakOpportunityMap::new(text_view.shaping_text());
         let scripts = script_segments(text_view.shaping_text());
+        let line_starts = line_visual_starts(text_view.shaping_text());
         let mut lines = Vec::new();
         for run in buffer.layout_runs() {
             lines.push(line_from_layout_run(
                 request,
                 text_view,
                 &run,
+                line_starts
+                    .get(run.line_i)
+                    .copied()
+                    .unwrap_or(text_view.shaping_text().len()),
                 &line_breaks,
                 &scripts,
                 bidi,
@@ -158,13 +163,13 @@ fn line_from_layout_run(
     request: BackendShapeRequest<'_>,
     text_view: &ShapingTextView<'_>,
     run: &glyphon::LayoutRun<'_>,
+    line_visual_start: usize,
     line_breaks: &LineBreakOpportunityMap,
     scripts: &[ScriptSegment],
     bidi: &BidiParagraph<'_>,
     fallback_spans: &[super::fallback_spans::FallbackTextSpan],
     font_database: &FontDatabase,
 ) -> ShapedTextLine {
-    let line_visual_start = line_visual_start(text_view.shaping_text(), run.line_i);
     let line_shaping_range = line_visual_start..line_visual_start + run.text.len();
     let line_source_range = text_view.source_range_for_shaping_range(line_shaping_range);
     let line_source_start = request.source_range.start + line_source_range.start;
@@ -315,15 +320,13 @@ fn finite_offset_px(font_size: f32, offset: f32) -> f32 {
     }
 }
 
-fn line_visual_start(text: &str, line_i: usize) -> usize {
-    let mut offset = 0;
-    for (index, segment) in text.split_inclusive('\n').enumerate() {
-        if index == line_i {
-            return offset;
-        }
-        offset += segment.len();
-    }
-    offset
+fn line_visual_starts(text: &str) -> Vec<usize> {
+    let mut starts = vec![0];
+    starts.extend(
+        text.match_indices('\n')
+            .map(|(line_break, _)| line_break.saturating_add(1)),
+    );
+    starts
 }
 
 fn empty_run(request: BackendShapeRequest<'_>, bidi: &BidiParagraph<'_>) -> ShapedGlyphRun {
@@ -562,7 +565,7 @@ mod tests {
     use crate::text::{TextRange, TextStyle};
     use glyphon::cosmic_text::FeatureTag;
 
-    use super::{attrs_for_style, glyph_layout_offset_px};
+    use super::{attrs_for_style, glyph_layout_offset_px, line_visual_starts};
     use crate::text::{BackendShapeRequest, OpenTypeFeature};
 
     #[test]
@@ -652,5 +655,12 @@ mod tests {
             .features
             .iter()
             .any(|feature| feature.tag == FeatureTag::new(b"vrt2") && feature.value == 1));
+    }
+
+    #[test]
+    fn line_visual_starts_are_precomputed_once_for_multiline_text() {
+        assert_eq!(line_visual_starts(""), vec![0]);
+        assert_eq!(line_visual_starts("one"), vec![0]);
+        assert_eq!(line_visual_starts("one\ntwo\n"), vec![0, 4, 8]);
     }
 }

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_frost_utility_state_tests",
+  "source": "src",
+  "binary": "bin-m4-frost-utility-state-tests",
+  "entry": "combat/frost_utility_state_test_main"
+}

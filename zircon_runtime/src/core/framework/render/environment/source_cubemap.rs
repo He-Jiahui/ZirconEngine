@@ -1,16 +1,20 @@
 use super::{
     cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
-    cubemap_face_size_from_equirect_height, cubemap_texel_direction, cubemap_texel_solid_angle,
-    equirect_uv_from_direction, CubemapFace,
+    cubemap_texel_direction, cubemap_texel_solid_angle, CubemapFace,
 };
 use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;
+use std::sync::Arc;
 
 mod mipmap;
 mod pmrem;
 mod pmrem_layout;
+mod projection;
 
 pub(super) use pmrem_layout::SourceCubemapPmremLayout;
+pub use projection::{
+    build_source_cubemap_from_equirect, source_cubemap_face_size_from_equirect_height,
+};
 
 pub const SOURCE_CUBEMAP_FACE_COUNT: usize = 6;
 pub const SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT: usize = 9;
@@ -36,10 +40,10 @@ pub type SourceCubemapIrradianceSh9 = [[Real; 4]; SOURCE_CUBEMAP_IRRADIANCE_COEF
 pub struct SourceCubemapMipChain {
     source_face_size: u32,
     source_mip_count: u32,
-    source_texels: Vec<[Real; 4]>,
+    source_texels: Arc<[[Real; 4]]>,
     pmrem_face_size: u32,
     pmrem_mip_count: u32,
-    pmrem_texels: Vec<[Real; 4]>,
+    pmrem_texels: Arc<[[Real; 4]]>,
     irradiance_sh9: SourceCubemapIrradianceSh9,
 }
 
@@ -104,10 +108,10 @@ impl SourceCubemapMipChain {
         Self {
             source_face_size,
             source_mip_count,
-            source_texels,
+            source_texels: source_texels.into(),
             pmrem_face_size,
             pmrem_mip_count,
-            pmrem_texels,
+            pmrem_texels: pmrem_texels.into(),
             irradiance_sh9,
         }
     }
@@ -163,66 +167,9 @@ impl SourceCubemapMipChain {
         build_source_cubemap_from_source_mips_with_pmrem_layout(
             self.source_face_size,
             self.source_mip_count,
-            self.source_texels.clone(),
+            self.source_texels.to_vec(),
             SourceCubemapPmremLayout::from_face_size(pmrem_face_size),
             quality,
-        )
-    }
-
-    /// Projects an equirectangular source and bakes PMREM directly at an
-    /// independent destination layout without first producing the default PMREM.
-    pub fn from_equirect_with_pmrem_layout<F>(
-        source_face_size: u32,
-        pmrem_face_size: u32,
-        pmrem_mip_count: u32,
-        quality: SourceCubemapPrefilterQuality,
-        sample_equirect: F,
-    ) -> Self
-    where
-        F: FnMut(Real, Real) -> [Real; 4],
-    {
-        build_source_cubemap_from_equirect_with_pmrem_layout(
-            source_face_size,
-            SourceCubemapPmremLayout::new(pmrem_face_size, pmrem_mip_count),
-            quality,
-            sample_equirect,
-        )
-    }
-
-    pub fn from_equirect_with_parallel_executor<E, F>(
-        source_face_size: u32,
-        parallel_executor: &E,
-        sample_equirect: F,
-    ) -> Self
-    where
-        E: ParallelSliceExecutor,
-        F: FnMut(Real, Real) -> [Real; 4],
-    {
-        build_source_cubemap_from_equirect_with_parallel_executor(
-            source_face_size,
-            parallel_executor,
-            sample_equirect,
-        )
-    }
-
-    pub fn from_equirect_with_pmrem_layout_and_parallel_executor<E, F>(
-        source_face_size: u32,
-        pmrem_face_size: u32,
-        pmrem_mip_count: u32,
-        quality: SourceCubemapPrefilterQuality,
-        parallel_executor: &E,
-        sample_equirect: F,
-    ) -> Self
-    where
-        E: ParallelSliceExecutor,
-        F: FnMut(Real, Real) -> [Real; 4],
-    {
-        build_source_cubemap_from_equirect_with_pmrem_layout_and_parallel_executor(
-            source_face_size,
-            SourceCubemapPmremLayout::new(pmrem_face_size, pmrem_mip_count),
-            quality,
-            parallel_executor,
-            sample_equirect,
         )
     }
 
@@ -257,12 +204,6 @@ impl SourceCubemapMipChain {
             parallel_executor,
         )
     }
-}
-
-pub fn source_cubemap_face_size_from_equirect_height(equirect_height: u32) -> u32 {
-    cubemap_face_size_from_equirect_height(equirect_height)
-        .next_power_of_two()
-        .clamp(SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_MAX_FACE_SIZE)
 }
 
 pub fn source_cubemap_mip_count(face_size: u32) -> u32 {
@@ -315,114 +256,6 @@ pub fn source_cubemap_face_mip_offset(
     let mip_level = mip_level.min(mip_count.saturating_sub(1));
     face.index() * source_cubemap_samples_per_face(face_size, mip_count)
         + source_cubemap_mip_offset_within_face(face_size, mip_level)
-}
-
-pub fn build_source_cubemap_from_equirect<F>(
-    face_size: u32,
-    sample_equirect: F,
-) -> SourceCubemapMipChain
-where
-    F: FnMut(Real, Real) -> [Real; 4],
-{
-    build_source_cubemap_from_equirect_with_pmrem_layout(
-        face_size,
-        SourceCubemapPmremLayout::default(),
-        SourceCubemapPrefilterQuality::Normal,
-        sample_equirect,
-    )
-}
-
-fn build_source_cubemap_from_equirect_with_parallel_executor<E, F>(
-    face_size: u32,
-    parallel_executor: &E,
-    sample_equirect: F,
-) -> SourceCubemapMipChain
-where
-    E: ParallelSliceExecutor,
-    F: FnMut(Real, Real) -> [Real; 4],
-{
-    build_source_cubemap_from_equirect_with_pmrem_layout_and_parallel_executor(
-        face_size,
-        SourceCubemapPmremLayout::default(),
-        SourceCubemapPrefilterQuality::Normal,
-        parallel_executor,
-        sample_equirect,
-    )
-}
-
-fn build_source_cubemap_from_equirect_with_pmrem_layout<F>(
-    face_size: u32,
-    pmrem_layout: SourceCubemapPmremLayout,
-    quality: SourceCubemapPrefilterQuality,
-    sample_equirect: F,
-) -> SourceCubemapMipChain
-where
-    F: FnMut(Real, Real) -> [Real; 4],
-{
-    let (face_size, mip_count, source_storage) =
-        source_cubemap_base_from_equirect(face_size, sample_equirect);
-    let source_mips = mipmap::source_cubemap_mips_from_base(&source_storage, face_size, mip_count);
-    build_source_cubemap_from_source_mips_with_pmrem_layout(
-        face_size,
-        mip_count,
-        source_mips,
-        pmrem_layout,
-        quality,
-    )
-}
-
-fn build_source_cubemap_from_equirect_with_pmrem_layout_and_parallel_executor<E, F>(
-    face_size: u32,
-    pmrem_layout: SourceCubemapPmremLayout,
-    quality: SourceCubemapPrefilterQuality,
-    parallel_executor: &E,
-    sample_equirect: F,
-) -> SourceCubemapMipChain
-where
-    E: ParallelSliceExecutor,
-    F: FnMut(Real, Real) -> [Real; 4],
-{
-    let (face_size, mip_count, source_storage) =
-        source_cubemap_base_from_equirect(face_size, sample_equirect);
-    let source_mips = mipmap::source_cubemap_mips_from_base_with_parallel_executor(
-        &source_storage,
-        face_size,
-        mip_count,
-        parallel_executor,
-    );
-    build_source_cubemap_from_source_mips_with_pmrem_layout(
-        face_size,
-        mip_count,
-        source_mips,
-        pmrem_layout,
-        quality,
-    )
-}
-
-fn source_cubemap_base_from_equirect<F>(
-    face_size: u32,
-    mut sample_equirect: F,
-) -> (u32, u32, Vec<[Real; 4]>)
-where
-    F: FnMut(Real, Real) -> [Real; 4],
-{
-    let face_size = face_size.max(1);
-    let mip_count = source_cubemap_mip_count(face_size);
-    let mut source_storage = vec![[0.0; 4]; source_cubemap_sample_count(face_size, mip_count)];
-
-    for face in CubemapFace::ALL {
-        let base_offset = source_cubemap_face_mip_offset(face_size, mip_count, face, 0);
-        for y in 0..face_size {
-            for x in 0..face_size {
-                let direction = cubemap_texel_direction(face, x, y, face_size);
-                let uv = equirect_uv_from_direction(direction);
-                source_storage[base_offset + y as usize * face_size as usize + x as usize] =
-                    sample_equirect(uv[0], uv[1]);
-            }
-        }
-    }
-
-    (face_size, mip_count, source_storage)
 }
 
 /// Builds the source mip pyramid, PMREM chain, and SH9 data from six captured
@@ -482,7 +315,14 @@ where
         mip_count,
         parallel_executor,
     );
-    build_source_cubemap_from_source_mips_with_quality(face_size, mip_count, source_mips, quality)
+    build_source_cubemap_from_source_mips_with_pmrem_layout_and_parallel_executor(
+        face_size,
+        mip_count,
+        source_mips,
+        SourceCubemapPmremLayout::default(),
+        quality,
+        parallel_executor,
+    )
 }
 
 fn source_cubemap_base_from_captured_faces(
@@ -550,6 +390,73 @@ fn build_source_cubemap_from_source_mips_with_pmrem_layout(
     pmrem_layout: SourceCubemapPmremLayout,
     quality: SourceCubemapPrefilterQuality,
 ) -> SourceCubemapMipChain {
+    build_source_cubemap_from_source_mips_with_pmrem_layout_and_prefilter(
+        face_size,
+        mip_count,
+        source_texels,
+        pmrem_layout,
+        |pmrem_texels,
+         pmrem_face_size,
+         pmrem_mip_count,
+         source_texels,
+         source_face_size,
+         source_mip_count| {
+            pmrem::prefilter_pmrem_mips_from_source(
+                pmrem_texels,
+                pmrem_face_size,
+                pmrem_mip_count,
+                source_texels,
+                source_face_size,
+                source_mip_count,
+                quality,
+            );
+        },
+    )
+}
+
+fn build_source_cubemap_from_source_mips_with_pmrem_layout_and_parallel_executor<E>(
+    face_size: u32,
+    mip_count: u32,
+    source_texels: Vec<[Real; 4]>,
+    pmrem_layout: SourceCubemapPmremLayout,
+    quality: SourceCubemapPrefilterQuality,
+    parallel_executor: &E,
+) -> SourceCubemapMipChain
+where
+    E: ParallelSliceExecutor,
+{
+    build_source_cubemap_from_source_mips_with_pmrem_layout_and_prefilter(
+        face_size,
+        mip_count,
+        source_texels,
+        pmrem_layout,
+        |pmrem_texels,
+         pmrem_face_size,
+         pmrem_mip_count,
+         source_texels,
+         source_face_size,
+         source_mip_count| {
+            pmrem::prefilter_pmrem_mips_from_source_with_parallel_executor(
+                pmrem_texels,
+                pmrem_face_size,
+                pmrem_mip_count,
+                source_texels,
+                source_face_size,
+                source_mip_count,
+                quality,
+                parallel_executor,
+            );
+        },
+    )
+}
+
+fn build_source_cubemap_from_source_mips_with_pmrem_layout_and_prefilter(
+    face_size: u32,
+    mip_count: u32,
+    source_texels: Vec<[Real; 4]>,
+    pmrem_layout: SourceCubemapPmremLayout,
+    prefilter_pmrem: impl FnOnce(&mut [[Real; 4]], u32, u32, &[[Real; 4]], u32, u32),
+) -> SourceCubemapMipChain {
     let face_size = face_size.max(1);
     let mip_count = mip_count.clamp(1, source_cubemap_mip_count(face_size));
     let pmrem_face_size = pmrem_layout.face_size();
@@ -567,14 +474,13 @@ fn build_source_cubemap_from_source_mips_with_pmrem_layout(
     );
     let mut pmrem_texels =
         vec![[0.0; 4]; source_cubemap_sample_count(pmrem_face_size, pmrem_mip_count)];
-    pmrem::prefilter_pmrem_mips_from_source(
+    prefilter_pmrem(
         &mut pmrem_texels,
         pmrem_face_size,
         pmrem_mip_count,
         &source_texels,
         face_size,
         mip_count,
-        quality,
     );
     average_last_mip_faces(&mut pmrem_texels, pmrem_face_size, pmrem_mip_count);
     SourceCubemapMipChain::new_with_source_texels_and_irradiance_sh9(
@@ -594,9 +500,10 @@ pub fn source_cubemap_pmrem_mip_from_roughness(roughness: Real, mip_count: u32) 
     if roughness <= Real::EPSILON || max_mip <= 0.0 {
         return 0.0;
     }
-    (max_mip - 1.0 - SOURCE_CUBEMAP_ROUGHEST_MIP
-        + SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE * roughness.log2())
-    .clamp(0.0, max_mip)
+    // Reserve the terminal 1x1 PMREM mip for its averaged energy; full
+    // roughness samples the preceding filtered mip through the shared contract.
+    (max_mip - SOURCE_CUBEMAP_ROUGHEST_MIP + SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE * roughness.log2())
+        .clamp(0.0, max_mip)
 }
 
 pub fn source_cubemap_roughness_from_pmrem_mip(mip_level: u32, mip_count: u32) -> Real {
@@ -604,9 +511,7 @@ pub fn source_cubemap_roughness_from_pmrem_mip(mip_level: u32, mip_count: u32) -
     if max_mip == 0 || mip_level == 0 {
         return 0.0;
     }
-    let level_from_1x1 = max_mip
-        .saturating_sub(1)
-        .saturating_sub(mip_level.min(max_mip)) as Real;
+    let level_from_1x1 = max_mip.saturating_sub(mip_level.min(max_mip)) as Real;
     2.0_f32
         .powf((SOURCE_CUBEMAP_ROUGHEST_MIP - level_from_1x1) / SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE)
         .clamp(0.0, 1.0)

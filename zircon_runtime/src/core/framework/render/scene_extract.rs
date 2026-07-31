@@ -11,8 +11,8 @@ use super::light::{
     RenderRectLightSnapshot, RenderSpotLightSnapshot,
 };
 use super::{
-    EnvironmentExtract, FallbackSkyboxKind, RenderLayerSet, RenderOverlayExtract, SkyboxMode,
-    ViewportCameraSnapshot,
+    EnvironmentExtract, FallbackSkyboxKind, RenderLayerSet, RenderOverlayExtract, RendererCommon,
+    SkyboxMode, ViewportCameraSnapshot,
 };
 
 pub const RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS: u32 = 16;
@@ -106,7 +106,7 @@ pub struct RenderMeshSnapshot {
     pub tint: Vec4,
     pub mobility: Mobility,
     pub static_state: RenderMeshStaticState,
-    pub render_layer_mask: RenderLayerSet,
+    pub common: RendererCommon,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -474,11 +474,7 @@ impl RenderHybridGiExtract {
 }
 
 const fn non_zero_override(value: u32, profile_default: u32) -> u32 {
-    if value == 0 {
-        profile_default
-    } else {
-        value
-    }
+    if value == 0 { profile_default } else { value }
 }
 
 impl Default for RenderHybridGiExtract {

@@ -52,7 +52,7 @@ pub fn halton(mut index: u32, base: u32) -> Real {
 
 #[cfg(test)]
 mod tests {
-    use super::{halton, TemporalJitterSequence};
+    use super::{TemporalJitterSequence, halton};
 
     #[test]
     fn render_taa_halton_matches_reference_values() {

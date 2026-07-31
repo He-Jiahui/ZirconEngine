@@ -1,6 +1,6 @@
 use crate::scene::event_mirror::{
-    RuntimeEventMirrorDescriptor, RuntimeEventMirrorError, RuntimeEventMirrorRegistration,
-    RuntimeEventMirrorSubscription,
+    RuntimeEventMirrorDescriptor, RuntimeEventMirrorDrainPage, RuntimeEventMirrorError,
+    RuntimeEventMirrorRegistration, RuntimeEventMirrorSubscription,
 };
 
 use super::World;
@@ -97,6 +97,14 @@ impl World {
         &self,
         subscription: &mut RuntimeEventMirrorSubscription,
     ) -> Result<Vec<serde_json::Value>, RuntimeEventMirrorError> {
-        subscription.drain(self)
+        subscription.drain()
+    }
+
+    pub(crate) fn drain_runtime_event_mirror_payloads(
+        &self,
+        subscription: &mut RuntimeEventMirrorSubscription,
+        max_deliveries: usize,
+    ) -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorError> {
+        subscription.drain_payloads_up_to(max_deliveries)
     }
 }

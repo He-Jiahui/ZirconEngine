@@ -255,3 +255,15 @@ fn source_template_fixture_converts_through_schema_migrator() {
     assert_eq!(root.widget_type.as_deref(), Some("VerticalBox"));
     assert_eq!(root.children[0].node.widget_type.as_deref(), Some("Button"));
 }
+
+#[test]
+fn schema_migrator_reuses_single_parsed_toml_value_for_all_source_shapes() {
+    let migrator = include_str!("../template/asset/schema/migrator.rs");
+    let flat_nodes = include_str!("../template/asset/schema/flat_nodes.rs");
+
+    assert!(migrator.contains("Self::migrate_tree_asset(value)"));
+    assert!(migrator.contains("Self::migrate_flat_asset(value, header)"));
+    assert!(!migrator.contains("parse_asset_header(input)"));
+    assert!(!migrator.contains("Self::migrate_tree_asset(input)"));
+    assert!(flat_nodes.contains("pub(super) fn migrate_flat_value(value: Value)"));
+}

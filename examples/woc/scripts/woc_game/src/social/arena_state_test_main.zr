@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var arena = %import("social/arena_state");
+
+console.printLine("m6-ranked-arena-state-test");
+var result = arena.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

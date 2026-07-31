@@ -445,6 +445,7 @@ pub(crate) struct HostPageChromeData {
     pub project_path_frame: FrameRect,
     pub overflow_frame: FrameRect,
     pub overflow_hidden_tab_indices: Vec<usize>,
+    pub overflow_widest_title_width_px: f32,
     pub tab_frames: ModelRc<HostChromeTabData>,
     pub tabs: ModelRc<TabData>,
     pub project_path: SharedString,

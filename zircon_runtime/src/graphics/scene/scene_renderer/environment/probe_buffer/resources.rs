@@ -3,13 +3,13 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{
-    derive_planar_reflection_camera, ProbeInfluenceShape, ReflectionProbeData, RenderCameraTarget,
+    ProbeInfluenceShape, ReflectionProbeData, RenderCameraTarget, derive_planar_reflection_camera,
 };
-use crate::core::math::{view_matrix, Vec3};
+use crate::core::math::{Vec3, view_matrix};
 #[cfg(test)]
 use crate::graphics::backend::{
-    read_buffer_bytes, read_texture_rgba16float_region, BufferByteReadback,
-    Rgba16FloatTextureRegionReadback,
+    BufferByteReadback, Rgba16FloatTextureRegionReadback, read_buffer_bytes,
+    read_texture_rgba16float_region,
 };
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
@@ -19,8 +19,8 @@ use super::gpu_layout::{
 };
 use super::slot_allocator::ProbeCubemapSlotAllocator;
 use super::upload::{
-    upload_probe_pmrem_texture, validate_probe_pmrem_texture, ReflectionProbeAssetError,
-    ReflectionProbeAssetRejection,
+    ReflectionProbeAssetError, ReflectionProbeAssetRejection, upload_probe_pmrem_texture,
+    validate_probe_pmrem_texture,
 };
 
 pub(super) const MAX_REFLECTION_PROBES: usize = 64;
@@ -273,17 +273,17 @@ impl SceneReflectionProbeResources {
             .environment()
             .probes
             .iter()
-            .filter(|probe| {
-                probe.baked_cubemap().is_some()
-                    && probe.intensity() > 0.0
-                    && probe.layer_mask().intersects(camera_layers)
+            .filter_map(|probe| {
+                let cubemap = probe.baked_cubemap()?;
+                (probe.intensity() > 0.0 && probe.layer_mask().intersects(camera_layers))
+                    .then_some((probe, cubemap, None))
             })
             .collect::<Vec<_>>();
         candidates.sort_by(|left, right| {
-            probe_distance_to_influence(left, camera_position)
-                .total_cmp(&probe_distance_to_influence(right, camera_position))
-                .then_with(|| right.priority().cmp(&left.priority()))
-                .then_with(|| left.probe_id().cmp(&right.probe_id()))
+            probe_distance_to_influence(left.0, camera_position)
+                .total_cmp(&probe_distance_to_influence(right.0, camera_position))
+                .then_with(|| right.0.priority().cmp(&left.0.priority()))
+                .then_with(|| left.0.probe_id().cmp(&right.0.probe_id()))
         });
         candidates.truncate(MAX_REFLECTION_PROBES);
 
@@ -292,20 +292,21 @@ impl SceneReflectionProbeResources {
             Err(_) => return report,
         };
         let resource_manager = asset_manager.resource_manager();
-        let mut gpu_probes = Vec::with_capacity(candidates.len());
-        for probe in candidates {
-            let Some(cubemap) = probe.baked_cubemap() else {
-                continue;
-            };
+        {
             let registry = resource_manager.registry();
-            let Some(record) = registry.get(cubemap) else {
+            for (_, cubemap, revision) in &mut candidates {
+                *revision = registry.get(*cubemap).map(|record| record.revision);
+            }
+        }
+        let mut gpu_probes = Vec::with_capacity(candidates.len());
+        for (probe, cubemap, revision) in candidates {
+            let Some(revision) = revision else {
                 record_probe_asset_rejection(
                     &mut report,
                     ReflectionProbeAssetError::MissingResource { cubemap },
                 );
                 continue;
             };
-            let revision = record.revision;
             let slot = match self.slots.get(cubemap) {
                 Some(slot) if slot.revision == revision => {
                     self.slots.acquire(cubemap, revision).slot

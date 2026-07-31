@@ -3,20 +3,24 @@ use std::sync::{Mutex, MutexGuard};
 
 use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
 
+use crate::core::jobs::EditorJobSystem;
 use crate::ui::workbench::layout::LayoutManager;
 use crate::ui::workbench::view::{ViewInstanceId, ViewRegistry};
 use crate::ui::workbench::window_registry::EditorWindowRegistry;
 
 use super::animation_editor_sessions::AnimationEditorWorkspaceEntry;
-use super::asset_editor_sessions::{UiAssetWorkspaceEntry, UiAssetWorkspaceWatcher};
+use super::asset_editor_sessions::{
+    UiAssetDependencyGeneration, UiAssetWorkspaceEntry, UiAssetWorkspaceRefreshPipeline,
+    UiAssetWorkspaceWatcher,
+};
 use super::editor_capabilities::EditorCapabilitySnapshot;
 use super::editor_error::EditorError;
 use super::editor_session_state::EditorSessionState;
 use super::editor_subsystems::{
-    editor_runtime_sandbox_enabled, editor_subsystem_report_from_core, EditorSubsystemReport,
+    EditorSubsystemReport, editor_runtime_sandbox_enabled, editor_subsystem_report_from_core,
 };
-use super::host_capability_bridge::{register_vm_host_capabilities, EditorHostVmBridgeReport};
-use super::minimal_host_contract::{editor_host_minimal_contract, EditorHostMinimalReport};
+use super::host_capability_bridge::{EditorHostVmBridgeReport, register_vm_host_capabilities};
+use super::minimal_host_contract::{EditorHostMinimalReport, editor_host_minimal_contract};
 use super::window_host_manager::WindowHostManager;
 
 pub(super) struct EditorUiHost {
@@ -30,6 +34,8 @@ pub(super) struct EditorUiHost {
     pub(super) animation_editor_sessions:
         Mutex<BTreeMap<ViewInstanceId, AnimationEditorWorkspaceEntry>>,
     pub(super) ui_asset_sessions: Mutex<BTreeMap<ViewInstanceId, UiAssetWorkspaceEntry>>,
+    pub(super) ui_asset_dependency_generation: Mutex<UiAssetDependencyGeneration>,
+    pub(super) ui_asset_refresh_pipeline: Mutex<UiAssetWorkspaceRefreshPipeline>,
     pub(super) ui_asset_workspace_watcher: Mutex<Option<UiAssetWorkspaceWatcher>>,
     pub(super) minimal_report: EditorHostMinimalReport,
     pub(super) subsystem_report: Mutex<EditorSubsystemReport>,
@@ -72,6 +78,18 @@ impl EditorUiHost {
         Self::recover_lock(&self.ui_asset_sessions)
     }
 
+    pub(super) fn lock_ui_asset_dependency_generation(
+        &self,
+    ) -> MutexGuard<'_, UiAssetDependencyGeneration> {
+        Self::recover_lock(&self.ui_asset_dependency_generation)
+    }
+
+    pub(super) fn lock_ui_asset_refresh_pipeline(
+        &self,
+    ) -> MutexGuard<'_, UiAssetWorkspaceRefreshPipeline> {
+        Self::recover_lock(&self.ui_asset_refresh_pipeline)
+    }
+
     pub(super) fn lock_ui_asset_workspace_watcher(
         &self,
     ) -> MutexGuard<'_, Option<UiAssetWorkspaceWatcher>> {
@@ -92,7 +110,7 @@ impl EditorUiHost {
             .ok_or_else(|| CoreError::RuntimeUnavailable.into())
     }
 
-    pub(super) fn new(core: &CoreHandle) -> Self {
+    pub(super) fn new(core: &CoreHandle, jobs: EditorJobSystem) -> Self {
         let minimal_report = editor_host_minimal_contract().self_check();
         let subsystem_report = editor_subsystem_report_from_core(core);
         let capability_snapshot =
@@ -109,6 +127,8 @@ impl EditorUiHost {
             session: Mutex::new(EditorSessionState::default()),
             animation_editor_sessions: Mutex::new(BTreeMap::new()),
             ui_asset_sessions: Mutex::new(BTreeMap::new()),
+            ui_asset_dependency_generation: Mutex::new(UiAssetDependencyGeneration::default()),
+            ui_asset_refresh_pipeline: Mutex::new(UiAssetWorkspaceRefreshPipeline::new(jobs)),
             ui_asset_workspace_watcher: Mutex::new(None),
             minimal_report,
             subsystem_report: Mutex::new(subsystem_report),
@@ -117,8 +137,8 @@ impl EditorUiHost {
         }
     }
 
-    pub(super) fn bootstrap(core: &CoreHandle) -> Result<Self, EditorError> {
-        let host = Self::new(core);
+    pub(super) fn bootstrap(core: &CoreHandle, jobs: EditorJobSystem) -> Result<Self, EditorError> {
+        let host = Self::new(core, jobs);
         host.register_builtin_views()?;
         host.bootstrap_default_layout()?;
         Ok(host)
@@ -126,7 +146,14 @@ impl EditorUiHost {
 
     pub(super) fn refresh_capabilities(&self) -> Result<EditorCapabilitySnapshot, EditorError> {
         let core = self.runtime_core()?;
-        let subsystem_report = editor_subsystem_report_from_core(&core);
+        self.refresh_capabilities_from_core(&core)
+    }
+
+    pub(super) fn refresh_capabilities_from_core(
+        &self,
+        core: &CoreHandle,
+    ) -> Result<EditorCapabilitySnapshot, EditorError> {
+        let subsystem_report = editor_subsystem_report_from_core(core);
         let snapshot =
             EditorCapabilitySnapshot::from_reports(&self.minimal_report, &subsystem_report);
         *self.lock_subsystem_report() = subsystem_report;

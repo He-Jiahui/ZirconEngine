@@ -1,5 +1,6 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, btree_map::Entry};
 use std::fmt;
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
@@ -11,14 +12,33 @@ use crate::core::commands::{
 };
 use crate::core::editing::operation::OperationCommandFactoryRegistration;
 use crate::core::editor_authoring_extension::{
-    GraphEditorDescriptor, GraphNodePaletteDescriptor, TimelineEditorDescriptor,
-    TimelineTrackDescriptor, ViewportToolModeDescriptor,
+    GraphEditorDescriptor, GraphNodePaletteDescriptor, SceneModeDescriptor,
+    TimelineEditorDescriptor, TimelineTrackDescriptor,
 };
 use crate::core::editor_operation::{EditorOperationPath, EditorOperationPathError};
+use crate::core::settings::SettingsPageDescriptor;
+use crate::scene::modes::SceneModeRegistration;
 
+use contribution_descriptors::{
+    validate_asset_importer, validate_component_drawer, validate_menu_item_path,
+};
+
+mod contribution_descriptors;
+mod template_contributions;
 mod view_descriptor;
+mod viewport_overlay_provider;
 
-pub use view_descriptor::ViewDescriptor;
+pub use contribution_descriptors::{
+    AssetImporterDescriptor, ComponentDrawerDescriptor, DrawerDescriptor, EditorMenuItemDescriptor,
+};
+pub use template_contributions::EditorUiTemplateDescriptor;
+pub use view_descriptor::{
+    EditorUiTemplatePaneDataSnapshot, EditorUiTemplatePaneDataSource, ViewDescriptor,
+};
+pub use viewport_overlay_provider::{
+    ViewportOverlayProvider, ViewportOverlayProviderContext, ViewportOverlayProviderFactory,
+    ViewportOverlayProviderRegistration,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct EditorExtensionRegistry {
@@ -27,9 +47,20 @@ pub struct EditorExtensionRegistry {
     menu_items: BTreeMap<String, EditorMenuItemDescriptor>,
     component_drawers: BTreeMap<String, ComponentDrawerDescriptor>,
     ui_templates: BTreeMap<String, EditorUiTemplateDescriptor>,
+    #[serde(skip)]
+    ui_template_root: Option<PathBuf>,
+    #[serde(skip)]
+    ui_template_pane_data_sources:
+        BTreeMap<String, template_contributions::EditorUiTemplatePaneDataSourceRegistration>,
     asset_importers: BTreeMap<String, AssetImporterDescriptor>,
     asset_type_contributions: BTreeMap<AssetTypeId, AssetTypeContribution>,
-    viewport_tool_modes: BTreeMap<String, ViewportToolModeDescriptor>,
+    settings_pages: BTreeMap<String, SettingsPageDescriptor>,
+    #[serde(skip)]
+    scene_mode_descriptors: BTreeMap<String, SceneModeDescriptor>,
+    #[serde(skip)]
+    scene_mode_registrations: BTreeMap<String, SceneModeRegistration>,
+    #[serde(skip)]
+    viewport_overlay_providers: BTreeMap<String, ViewportOverlayProviderRegistration>,
     graph_editors: BTreeMap<AssetTypeId, GraphEditorDescriptor>,
     graph_node_palettes: BTreeMap<String, GraphNodePaletteDescriptor>,
     timeline_editors: BTreeMap<AssetTypeId, TimelineEditorDescriptor>,
@@ -87,19 +118,6 @@ impl EditorExtensionRegistry {
         )
     }
 
-    pub fn register_ui_template(
-        &mut self,
-        descriptor: EditorUiTemplateDescriptor,
-    ) -> Result<(), EditorExtensionRegistryError> {
-        validate_ui_template_document("ui template document", descriptor.ui_document())?;
-        insert_unique(
-            &mut self.ui_templates,
-            descriptor.id.clone(),
-            descriptor,
-            "ui template",
-        )
-    }
-
     pub fn register_asset_importer(
         &mut self,
         descriptor: AssetImporterDescriptor,
@@ -129,20 +147,60 @@ impl EditorExtensionRegistry {
         Ok(())
     }
 
-    pub fn register_viewport_tool_mode(
+    pub fn register_settings_page(
         &mut self,
-        descriptor: ViewportToolModeDescriptor,
+        descriptor: SettingsPageDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
-        validate_contribution_id("viewport tool mode", descriptor.id())?;
-        validate_contribution_id("viewport tool view", descriptor.view_id())?;
+        validate_contribution_id("settings page", descriptor.id())?;
+        if !descriptor.is_valid_category_path() {
+            return Err(EditorExtensionRegistryError::InvalidContributionId {
+                kind: "settings page category",
+                id: descriptor.category_path().to_string(),
+            });
+        }
+        insert_unique(
+            &mut self.settings_pages,
+            descriptor.id().to_string(),
+            descriptor,
+            "settings page",
+        )
+    }
+
+    pub fn register_scene_mode(
+        &mut self,
+        registration: SceneModeRegistration,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        let descriptor = registration.descriptor().clone();
+        validate_contribution_id("scene mode", descriptor.id())?;
+        validate_contribution_id("scene mode view", descriptor.view_id())?;
         if let Some(provider_id) = descriptor.overlay_provider_id() {
             validate_contribution_id("viewport overlay provider", provider_id)?;
         }
+        let mode_id = descriptor.id().to_string();
+        if self.scene_mode_descriptors.contains_key(&mode_id)
+            || self.scene_mode_registrations.contains_key(&mode_id)
+        {
+            return Err(EditorExtensionRegistryError::DuplicateContribution {
+                kind: "scene mode",
+                id: mode_id,
+            });
+        }
+        self.scene_mode_descriptors
+            .insert(mode_id.clone(), descriptor);
+        self.scene_mode_registrations.insert(mode_id, registration);
+        Ok(())
+    }
+
+    pub fn register_viewport_overlay_provider(
+        &mut self,
+        registration: ViewportOverlayProviderRegistration,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        validate_contribution_id("viewport overlay provider", registration.provider_id())?;
         insert_unique(
-            &mut self.viewport_tool_modes,
-            descriptor.id().to_string(),
-            descriptor,
-            "viewport tool mode",
+            &mut self.viewport_overlay_providers,
+            registration.provider_id().to_string(),
+            registration,
+            "viewport overlay provider",
         )
     }
 
@@ -240,8 +298,18 @@ impl EditorExtensionRegistry {
         self.component_drawers.values().collect()
     }
 
-    pub fn ui_templates(&self) -> Vec<&EditorUiTemplateDescriptor> {
-        self.ui_templates.values().collect()
+    pub(crate) fn bind_matching_ui_templates_to_views(&mut self) {
+        let template_ids = self
+            .ui_templates
+            .iter()
+            .filter(|(_, template)| template.ui_document().starts_with("plugins://"))
+            .map(|(template_id, _)| template_id.clone())
+            .collect::<std::collections::BTreeSet<_>>();
+        for view in self.views.values_mut() {
+            if view.ui_template_id().is_none() && template_ids.contains(view.id()) {
+                view.bind_ui_template_id(view.id().to_string());
+            }
+        }
     }
 
     pub fn asset_importers(&self) -> Vec<&AssetImporterDescriptor> {
@@ -252,8 +320,34 @@ impl EditorExtensionRegistry {
         self.asset_type_contributions.values().collect()
     }
 
-    pub fn viewport_tool_modes(&self) -> Vec<&ViewportToolModeDescriptor> {
-        self.viewport_tool_modes.values().collect()
+    pub fn settings_pages(&self) -> Vec<&SettingsPageDescriptor> {
+        self.settings_pages.values().collect()
+    }
+
+    pub fn scene_mode_descriptors(&self) -> Vec<&SceneModeDescriptor> {
+        self.scene_mode_descriptors.values().collect()
+    }
+
+    pub(crate) fn scene_mode_registrations(&self) -> Vec<&SceneModeRegistration> {
+        self.scene_mode_registrations.values().collect()
+    }
+
+    pub(crate) fn take_scene_modes(&mut self) -> Vec<SceneModeRegistration> {
+        std::mem::take(&mut self.scene_mode_registrations)
+            .into_values()
+            .collect()
+    }
+
+    pub(crate) fn has_viewport_overlay_provider(&self, provider_id: &str) -> bool {
+        self.viewport_overlay_providers.contains_key(provider_id)
+    }
+
+    pub(crate) fn take_viewport_overlay_providers(
+        &mut self,
+    ) -> Vec<ViewportOverlayProviderRegistration> {
+        std::mem::take(&mut self.viewport_overlay_providers)
+            .into_values()
+            .collect()
     }
 
     pub fn graph_editors(&self) -> Vec<&GraphEditorDescriptor> {
@@ -363,390 +457,6 @@ impl EditorExtensionRegistration {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DrawerDescriptor {
-    id: String,
-    display_name: String,
-}
-
-impl DrawerDescriptor {
-    pub fn new(id: impl Into<String>, display_name: impl Into<String>) -> Self {
-        Self {
-            id: id.into(),
-            display_name: display_name.into(),
-        }
-    }
-
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn display_name(&self) -> &str {
-        &self.display_name
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EditorMenuItemDescriptor {
-    path: String,
-    operation: EditorOperationPath,
-    #[serde(default)]
-    priority: i32,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    shortcut: Option<String>,
-    #[serde(default = "default_menu_item_enabled")]
-    enabled: bool,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    required_capabilities: Vec<String>,
-}
-
-impl EditorMenuItemDescriptor {
-    pub fn new(path: impl Into<String>, operation: EditorOperationPath) -> Self {
-        Self {
-            path: path.into(),
-            operation,
-            priority: 0,
-            shortcut: None,
-            enabled: true,
-            required_capabilities: Vec::new(),
-        }
-    }
-
-    pub fn with_priority(mut self, priority: i32) -> Self {
-        self.priority = priority;
-        self
-    }
-
-    pub fn with_shortcut(mut self, shortcut: impl Into<String>) -> Self {
-        self.shortcut = Some(shortcut.into());
-        self
-    }
-
-    pub fn with_enabled(mut self, enabled: bool) -> Self {
-        self.enabled = enabled;
-        self
-    }
-
-    pub fn with_required_capabilities<I, S>(mut self, capabilities: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        self.required_capabilities
-            .extend(capabilities.into_iter().map(Into::into));
-        self.required_capabilities.sort();
-        self.required_capabilities.dedup();
-        self
-    }
-
-    pub fn path(&self) -> &str {
-        &self.path
-    }
-
-    pub fn operation(&self) -> &EditorOperationPath {
-        &self.operation
-    }
-
-    pub fn priority(&self) -> i32 {
-        self.priority
-    }
-
-    pub fn shortcut(&self) -> Option<&str> {
-        self.shortcut.as_deref()
-    }
-
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-
-    pub fn required_capabilities(&self) -> &[String] {
-        &self.required_capabilities
-    }
-}
-
-fn default_menu_item_enabled() -> bool {
-    true
-}
-
-fn validate_menu_item_path(
-    descriptor: &EditorMenuItemDescriptor,
-) -> Result<(), EditorExtensionRegistryError> {
-    let segments = descriptor.path.split('/').collect::<Vec<_>>();
-    if segments.len() < MIN_MENU_PATH_SEGMENTS
-        || segments
-            .iter()
-            .any(|segment| segment.trim().is_empty() || segment.trim() != *segment)
-    {
-        return Err(EditorExtensionRegistryError::InvalidMenuPath(
-            descriptor.path.clone(),
-        ));
-    }
-    Ok(())
-}
-
-const MIN_MENU_PATH_SEGMENTS: usize = 2;
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ComponentDrawerDescriptor {
-    component_type: String,
-    ui_document: String,
-    controller: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    template_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    data_root: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    bindings: Vec<String>,
-}
-
-impl ComponentDrawerDescriptor {
-    pub fn new(
-        component_type: impl Into<String>,
-        ui_document: impl Into<String>,
-        controller: impl Into<String>,
-    ) -> Self {
-        Self {
-            component_type: component_type.into(),
-            ui_document: ui_document.into(),
-            controller: controller.into(),
-            template_id: None,
-            data_root: None,
-            bindings: Vec::new(),
-        }
-    }
-
-    pub fn with_template_id(mut self, template_id: impl Into<String>) -> Self {
-        self.template_id = Some(template_id.into());
-        self
-    }
-
-    pub fn with_data_root(mut self, data_root: impl Into<String>) -> Self {
-        self.data_root = Some(data_root.into());
-        self
-    }
-
-    pub fn with_binding(mut self, binding: impl Into<String>) -> Self {
-        self.bindings.push(binding.into());
-        self
-    }
-
-    pub fn component_type(&self) -> &str {
-        &self.component_type
-    }
-
-    pub fn ui_document(&self) -> &str {
-        &self.ui_document
-    }
-
-    pub fn controller(&self) -> &str {
-        &self.controller
-    }
-
-    pub fn template_id(&self) -> Option<&str> {
-        self.template_id.as_deref()
-    }
-
-    pub fn data_root(&self) -> Option<&str> {
-        self.data_root.as_deref()
-    }
-
-    pub fn bindings(&self) -> &[String] {
-        &self.bindings
-    }
-}
-
-fn validate_component_drawer(
-    descriptor: &ComponentDrawerDescriptor,
-) -> Result<(), EditorExtensionRegistryError> {
-    validate_zui_component_document("component drawer document", descriptor.ui_document())?;
-    if let Some(template_id) = descriptor.template_id() {
-        validate_contribution_id("component drawer template", template_id)?;
-    }
-    if let Some(data_root) = descriptor.data_root() {
-        validate_contribution_id("component drawer data root", data_root)?;
-    }
-    for binding in descriptor.bindings() {
-        EditorOperationPath::parse(binding.clone())
-            .map_err(EditorExtensionRegistryError::OperationPath)?;
-    }
-    Ok(())
-}
-
-fn validate_ui_template_document(
-    kind: &'static str,
-    document: &str,
-) -> Result<(), EditorExtensionRegistryError> {
-    if is_invalid_ui_document(document) || !document.ends_with(".zui") {
-        return Err(EditorExtensionRegistryError::InvalidUiDocument {
-            kind,
-            document: document.to_string(),
-        });
-    }
-    Ok(())
-}
-
-fn validate_zui_component_document(
-    kind: &'static str,
-    document: &str,
-) -> Result<(), EditorExtensionRegistryError> {
-    if is_invalid_ui_document(document) || !document.ends_with(".zui") {
-        return Err(EditorExtensionRegistryError::InvalidUiDocument {
-            kind,
-            document: document.to_string(),
-        });
-    }
-    Ok(())
-}
-
-fn is_invalid_ui_document(document: &str) -> bool {
-    document.trim().is_empty() || document.trim() != document
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EditorUiTemplateDescriptor {
-    id: String,
-    ui_document: String,
-}
-
-impl EditorUiTemplateDescriptor {
-    pub fn new(id: impl Into<String>, ui_document: impl Into<String>) -> Self {
-        Self {
-            id: id.into(),
-            ui_document: ui_document.into(),
-        }
-    }
-
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn ui_document(&self) -> &str {
-        &self.ui_document
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AssetImporterDescriptor {
-    id: String,
-    display_name: String,
-    operation: EditorOperationPath,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    source_extensions: Vec<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    output_type: Option<AssetTypeId>,
-    #[serde(default)]
-    priority: i32,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    required_capabilities: Vec<String>,
-}
-
-impl AssetImporterDescriptor {
-    pub fn new(
-        id: impl Into<String>,
-        display_name: impl Into<String>,
-        operation: EditorOperationPath,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            display_name: display_name.into(),
-            operation,
-            source_extensions: Vec::new(),
-            output_type: None,
-            priority: 0,
-            required_capabilities: Vec::new(),
-        }
-    }
-
-    pub fn with_source_extension(mut self, extension: impl AsRef<str>) -> Self {
-        push_normalized_extension(&mut self.source_extensions, extension.as_ref());
-        self
-    }
-
-    pub fn with_source_extensions<I, S>(mut self, extensions: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<str>,
-    {
-        for extension in extensions {
-            push_normalized_extension(&mut self.source_extensions, extension.as_ref());
-        }
-        self
-    }
-
-    pub fn with_output_type(mut self, output_type: AssetTypeId) -> Self {
-        self.output_type = Some(output_type);
-        self
-    }
-
-    pub fn with_priority(mut self, priority: i32) -> Self {
-        self.priority = priority;
-        self
-    }
-
-    pub fn with_required_capabilities<I, S>(mut self, capabilities: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        self.required_capabilities
-            .extend(capabilities.into_iter().map(Into::into));
-        self.required_capabilities.sort();
-        self.required_capabilities.dedup();
-        self
-    }
-
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn display_name(&self) -> &str {
-        &self.display_name
-    }
-
-    pub fn operation(&self) -> &EditorOperationPath {
-        &self.operation
-    }
-
-    pub fn source_extensions(&self) -> &[String] {
-        &self.source_extensions
-    }
-
-    pub fn output_type(&self) -> Option<&AssetTypeId> {
-        self.output_type.as_ref()
-    }
-
-    pub fn priority(&self) -> i32 {
-        self.priority
-    }
-
-    pub fn required_capabilities(&self) -> &[String] {
-        &self.required_capabilities
-    }
-}
-
-fn push_normalized_extension(extensions: &mut Vec<String>, extension: &str) {
-    let extension = extension
-        .trim()
-        .trim_start_matches('.')
-        .to_ascii_lowercase();
-    if !extension.is_empty() && !extensions.contains(&extension) {
-        extensions.push(extension);
-        extensions.sort();
-    }
-}
-
-fn validate_asset_importer(
-    descriptor: &AssetImporterDescriptor,
-) -> Result<(), EditorExtensionRegistryError> {
-    validate_contribution_id("asset importer", &descriptor.id)?;
-    if descriptor.source_extensions.is_empty() {
-        return Err(
-            EditorExtensionRegistryError::InvalidAssetImporterExtensions(descriptor.id.clone()),
-        );
-    }
-    Ok(())
-}
-
 fn validate_graph_node_palette(
     descriptor: &GraphNodePaletteDescriptor,
 ) -> Result<(), EditorExtensionRegistryError> {
@@ -797,6 +507,12 @@ pub enum EditorExtensionRegistryError {
         kind: &'static str,
         document: String,
     },
+    MissingUiTemplate {
+        template_id: String,
+    },
+    UnknownExtensionOwner {
+        owner_id: String,
+    },
     InvalidAssetImporterExtensions(String),
     InvalidMenuPath(String),
     CommandViewTargetConflict {
@@ -806,6 +522,11 @@ pub enum EditorExtensionRegistryError {
     MenuCapabilitiesRequireContributedCommand {
         command_id: EditorOperationPath,
     },
+    MissingViewportOverlayProvider {
+        provider_id: String,
+    },
+    SceneMode(String),
+    ViewportOverlayProvider(String),
     Command(EditorCommandRegistryError),
     OperationPath(EditorOperationPathError),
     AssetTypeId(AssetTypeIdError),
@@ -826,6 +547,16 @@ impl fmt::Display for EditorExtensionRegistryError {
                 formatter,
                 "editor {kind} `{document}` must reference a supported editor UI asset"
             ),
+            Self::MissingUiTemplate { template_id } => write!(
+                formatter,
+                "editor UI template pane data source references missing template `{template_id}`"
+            ),
+            Self::UnknownExtensionOwner { owner_id } => {
+                write!(
+                    formatter,
+                    "editor extension owner `{owner_id}` is not registered"
+                )
+            }
             Self::InvalidAssetImporterExtensions(id) => {
                 write!(
                     formatter,
@@ -846,6 +577,19 @@ impl fmt::Display for EditorExtensionRegistryError {
                 formatter,
                 "editor menu capability constraints for {command_id} must be owned by a command contributed by the same extension"
             ),
+            Self::MissingViewportOverlayProvider { provider_id } => write!(
+                formatter,
+                "editor scene mode references unregistered overlay provider `{provider_id}`"
+            ),
+            Self::SceneMode(error) => {
+                write!(formatter, "editor scene mode registration failed: {error}")
+            }
+            Self::ViewportOverlayProvider(error) => {
+                write!(
+                    formatter,
+                    "editor viewport overlay provider registration failed: {error}"
+                )
+            }
             Self::Command(error) => write!(formatter, "{error}"),
             Self::OperationPath(error) => write!(formatter, "{error}"),
             Self::AssetTypeId(error) => write!(formatter, "{error}"),
@@ -875,9 +619,14 @@ fn insert_unique<T>(
     descriptor: T,
     kind: &'static str,
 ) -> Result<(), EditorExtensionRegistryError> {
-    if map.contains_key(&id) {
-        return Err(EditorExtensionRegistryError::DuplicateContribution { kind, id });
+    match map.entry(id) {
+        Entry::Occupied(entry) => Err(EditorExtensionRegistryError::DuplicateContribution {
+            kind,
+            id: entry.key().clone(),
+        }),
+        Entry::Vacant(entry) => {
+            entry.insert(descriptor);
+            Ok(())
+        }
     }
-    map.insert(id, descriptor);
-    Ok(())
 }

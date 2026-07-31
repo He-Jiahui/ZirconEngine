@@ -1,0 +1,97 @@
+// Frost utility decisions. WOS owns actual cooldown maps and aura mutations.
+var container = %import("zr.container");
+var contract = %import("generated/frost_utility_contract");
+
+pub class FrostUtilityAura {
+    pub var kind: string;
+    pub var hasStacks: bool;
+    pub var stacks: int;
+    pub @constructor(kind: string, hasStacks: bool, stacks: int) {
+        this.kind = kind;
+        this.hasStacks = hasStacks;
+        this.stacks = stacks;
+    }
+}
+
+pub class BlizzardChannelPlan {
+    pub var resetBudget: bool;
+    pub var updateBudget: bool;
+    pub var budget: float;
+    pub var updateCooldown: bool;
+    pub var deleteCooldown: bool;
+    pub var cooldown: float;
+    pub @constructor(resetBudget: bool, updateBudget: bool, budget: float, updateCooldown: bool, deleteCooldown: bool, cooldown: float) {
+        this.resetBudget = resetBudget;
+        this.updateBudget = updateBudget;
+        this.budget = budget;
+        this.updateCooldown = updateCooldown;
+        this.deleteCooldown = deleteCooldown;
+        this.cooldown = cooldown;
+    }
+}
+
+pub frostProcGlowActive(auras: container.Array<FrostUtilityAura>, abilityId: string): bool {
+    var i = 0;
+    while (i < auras.length) {
+        var kind = (<FrostUtilityAura>auras[i]).kind;
+        if (kind == contract.fingersKind() && abilityId == contract.iceLanceId()) return true;
+        if (kind == contract.brainFreezeKind() && abilityId == contract.flurryId()) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub frostIcicleCharges(auras: container.Array<FrostUtilityAura>): int {
+    var i = 0;
+    while (i < auras.length) {
+        var aura = <FrostUtilityAura>auras[i];
+        if (aura.kind == contract.iciclesKind()) return aura.hasStacks ? aura.stacks : 1;
+        i = i + 1;
+    }
+    return 0;
+}
+
+pub brainFreezeBypassesCooldown(auras: container.Array<FrostUtilityAura>, abilityId: string): bool {
+    if (abilityId != contract.flurryId()) return false;
+    var i = 0;
+    while (i < auras.length) {
+        if ((<FrostUtilityAura>auras[i]).kind == contract.brainFreezeKind()) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub channelStartPlan(abilityId: string): BlizzardChannelPlan {
+    return new BlizzardChannelPlan(abilityId == contract.blizzardId(), false, 0.0, false, false, 0.0);
+}
+
+pub channelPulsePlan(abilityId: string, struck: int, spent: float, hasFrozenOrbCooldown: bool, frozenOrbCooldown: float): BlizzardChannelPlan {
+    var inert = new BlizzardChannelPlan(false, false, spent, false, false, frozenOrbCooldown);
+    if (abilityId != contract.blizzardId() || struck <= 0) return inert;
+    var refund = <float>struck * contract.blizzardOrbCdrPerEnemy();
+    var remainingBudget = contract.blizzardOrbCdrCap() - spent;
+    if (refund > remainingBudget) refund = remainingBudget;
+    if (refund <= 0.0) return inert;
+    var nextBudget = spent + refund;
+    if (!hasFrozenOrbCooldown) return new BlizzardChannelPlan(false, true, nextBudget, false, false, frozenOrbCooldown);
+    if (frozenOrbCooldown <= refund) return new BlizzardChannelPlan(false, true, nextBudget, false, true, frozenOrbCooldown);
+    return new BlizzardChannelPlan(false, true, nextBudget, true, false, frozenOrbCooldown - refund);
+}
+
+pub contractTest(): int {
+    var auras = new container.Array<FrostUtilityAura>();
+    auras.add(new FrostUtilityAura(contract.fingersKind(), true, 2));
+    auras.add(new FrostUtilityAura(contract.brainFreezeKind(), false, 0));
+    auras.add(new FrostUtilityAura(contract.iciclesKind(), false, 0));
+    if (!frostProcGlowActive(auras, contract.iceLanceId()) || !frostProcGlowActive(auras, contract.flurryId()) || frostProcGlowActive(auras, "frostbolt")) return -1;
+    if (frostIcicleCharges(auras) != 1 || !brainFreezeBypassesCooldown(auras, contract.flurryId()) || brainFreezeBypassesCooldown(auras, contract.iceLanceId())) return -2;
+    if (!channelStartPlan(contract.blizzardId()).resetBudget || channelStartPlan("arcane_missiles").resetBudget) return -3;
+    var noCooldown = channelPulsePlan(contract.blizzardId(), 2, 0.0, false, 0.0);
+    if (!noCooldown.updateBudget || noCooldown.budget != 1.0 || noCooldown.updateCooldown || noCooldown.deleteCooldown) return -4;
+    var reduce = channelPulsePlan(contract.blizzardId(), 4, 1.0, true, 4.0);
+    if (!reduce.updateBudget || reduce.budget != 3.0 || !reduce.updateCooldown || reduce.cooldown != 2.0) return -5;
+    var delete = channelPulsePlan(contract.blizzardId(), 1, 2.75, true, 0.2);
+    if (!delete.deleteCooldown || delete.budget != 3.0) return -6;
+    if (channelPulsePlan(contract.blizzardId(), 0, 0.0, true, 4.0).updateBudget) return -7;
+    return 1;
+}

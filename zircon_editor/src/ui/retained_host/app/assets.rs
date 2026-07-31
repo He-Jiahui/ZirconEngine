@@ -12,6 +12,8 @@ mod controls;
 mod refresh;
 mod workspace;
 
+pub(super) use refresh::AssetRefreshQueueAgeState;
+
 impl RetainedEditorHost {
     fn asset_manager_at_use_point(
         &self,

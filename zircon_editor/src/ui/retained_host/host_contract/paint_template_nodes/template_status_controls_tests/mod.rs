@@ -1,3 +1,4 @@
+mod adaptive;
 mod chips;
 mod icons;
 mod identity;

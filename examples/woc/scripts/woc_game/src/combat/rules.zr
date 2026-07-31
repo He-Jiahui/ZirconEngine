@@ -1,0 +1,132 @@
+// One scalar entry is intentional while ZrVM same-module helper dispatch and
+// cross-module container ABI gaps are owned by Plugins 08.
+pub metric(
+    kind: int,
+    first: float,
+    second: float,
+    third: float,
+    fourth: float
+): float {
+    if (kind == 0) {
+        var spellDifference = <int>second - <int>first;
+        var hitPercent = 0.0;
+        if (spellDifference <= 0) {
+            hitPercent = 96.0 + <float>(-spellDifference);
+        } else if (spellDifference == 1) {
+            hitPercent = 93.5;
+        } else if (spellDifference == 2) {
+            hitPercent = 82.0;
+        } else {
+            hitPercent = 75.0;
+        }
+        var spellChance = hitPercent / 100.0;
+        if (spellChance < 0.05) { return 0.05; }
+        return spellChance > 0.99 ? 0.99 : spellChance;
+    }
+
+    if (kind == 1 || kind == 2) {
+        var meleeDifference = <int>second - <int>first;
+        var missPercent = 0.0;
+        if (meleeDifference <= 0) {
+            missPercent = 5.0 + <float>meleeDifference * 0.2;
+        } else if (meleeDifference == 1) {
+            missPercent = 7.5;
+        } else if (meleeDifference == 2) {
+            missPercent = 19.0;
+        } else {
+            missPercent = 26.0;
+        }
+        var missChance = missPercent / 100.0;
+        if (missChance < 0.005) { missChance = 0.005; }
+        if (missChance > 0.95) { missChance = 0.95; }
+        if (kind == 1) { return missChance; }
+        if (<int>fourth == 1) {
+            return missChance < 0.2 ? missChance : 0.2;
+        }
+        var adjustedMiss = missChance - third;
+        return adjustedMiss > 0.0 ? adjustedMiss : 0.0;
+    }
+
+    if (kind == 3) {
+        var armor = first > 0.0 ? first : 0.0;
+        var denominator = armor + 85.0 * second + 400.0;
+        if (denominator <= 0.0) { return 0.0; }
+        var reduction = armor / denominator;
+        return reduction < 0.75 ? reduction : 0.75;
+    }
+
+    if (kind == 4 || kind == 5) {
+        var rageLevel = kind == 4 ? first : second;
+        var conversion = 0.0091 * rageLevel * rageLevel +
+            3.23 * rageLevel + 4.27;
+        if (kind == 4) { return conversion; }
+        return 7.5 * first / conversion;
+    }
+
+    if (kind == 6) {
+        var attackerLevel = second > 1.0 ? second : 1.0;
+        return first / (attackerLevel * 1.5);
+    }
+
+    if (kind == 7) {
+        var flags = <int>fourth;
+        var modifier = 1.0;
+        if ((flags & 1) != 0) { modifier = modifier * 1.3; }
+        if ((flags & 2) != 0) { modifier = modifier * 1.3; }
+        if ((flags & 4) != 0) { modifier = modifier * 0.71; }
+        if ((flags & 8) != 0 && (flags & 16) != 0) {
+            modifier = modifier * 1.6;
+        }
+        return modifier;
+    }
+
+    if (kind == 8) {
+        var threat = (first * third + second) * fourth;
+        return threat > 0.0 ? threat : 0.0;
+    }
+
+    if (kind == 9) {
+        if (first <= 0.0 || second <= 0.0) { return 0.0; }
+        return first * 0.5 / second;
+    }
+
+    if (kind == 10) {
+        var damageHp = <int>first;
+        var damageAmount = <int>second;
+        if (damageHp <= 0 || damageAmount <= 0) { return 0.0; }
+        return <float>(damageAmount < damageHp ? damageAmount : damageHp);
+    }
+
+    if (kind == 11) {
+        var postDamageHp = <int>first;
+        var postDamageAmount = <int>second;
+        if (postDamageHp <= 0 || postDamageAmount <= 0) {
+            return <float>postDamageHp;
+        }
+        return <float>(
+            postDamageAmount < postDamageHp ?
+                postDamageHp - postDamageAmount : 0
+        );
+    }
+
+    if (kind == 12 || kind == 13) {
+        var healingHp = <int>first;
+        var maximumHp = <int>second;
+        var healingAmount = <int>third;
+        if (healingAmount <= 0 || maximumHp <= healingHp) {
+            return kind == 12 ? 0.0 : <float>healingHp;
+        }
+        var missingHp = maximumHp - healingHp;
+        var effectiveHealing = healingAmount < missingHp ? healingAmount : missingHp;
+        return kind == 12 ?
+            <float>effectiveHealing : <float>(healingHp + effectiveHealing);
+    }
+
+    if (kind == 14) {
+        var resource = first + third;
+        if (resource < 0.0) { return 0.0; }
+        return resource > second ? second : resource;
+    }
+
+    throw "combat rule metric is invalid";
+}

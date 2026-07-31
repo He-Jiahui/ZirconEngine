@@ -1,0 +1,12 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub ringKind(): string { return "ring"; }
+pub ringOne(): string { return "ring1"; }
+pub ringTwo(): string { return "ring2"; }
+pub mainhand(): string { return "mainhand"; }
+pub offhand(): string { return "offhand"; }
+pub weaponKind(): string { return "weapon"; }
+pub onehand(): string { return "onehand"; }
+pub twohand(): string { return "twohand"; }
+pub warrior(): string { return "warrior"; }
+pub rogue(): string { return "rogue"; }
+pub fury(): string { return "fury"; }

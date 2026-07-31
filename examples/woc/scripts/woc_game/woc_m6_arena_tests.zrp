@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_arena_tests",
+  "source": "src",
+  "binary": "bin-m6-arena-tests",
+  "entry": "social/arena_state_test_main"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "woc_target_selection_tests",
+  "source": "src",
+  "binary": "bin-target-selection-tests",
+  "entry": "world/target_selection_test_main"
+}

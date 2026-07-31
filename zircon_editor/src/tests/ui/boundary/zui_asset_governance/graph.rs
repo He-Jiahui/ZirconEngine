@@ -1,7 +1,4 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 use super::metadata::{is_lower_snake_case_identifier, string_metadata_offender};
 use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
@@ -15,10 +12,7 @@ fn production_zui_component_node_tables_are_reachable_from_the_component_root() 
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
             let (component_name, component) = document
                 .components
                 .iter()
@@ -81,10 +75,7 @@ fn production_zui_component_root_references_are_non_empty_and_trimmed() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (component_name, component) in &document.components {
                 checked_components += 1;
@@ -125,10 +116,7 @@ fn production_zui_node_ids_are_lower_snake_case() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for node_id in document.nodes.keys() {
                 checked_node_ids += 1;
@@ -167,10 +155,7 @@ fn production_zui_child_mount_node_references_are_non_empty_and_trimmed() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (parent_node_id, node) in &document.nodes {
                 for (child_index, child) in node.children.iter().enumerate() {
@@ -214,10 +199,7 @@ fn production_zui_component_node_graphs_are_single_root_trees() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
             let (component_name, component) = document
                 .components
                 .iter()

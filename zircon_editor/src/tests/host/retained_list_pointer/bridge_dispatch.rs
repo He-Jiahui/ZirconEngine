@@ -9,6 +9,9 @@ use crate::ui::retained_host::callback_dispatch::{
 use crate::ui::retained_host::hierarchy_pointer::{
     HierarchyPointerBridge, HierarchyPointerLayout, HierarchyPointerRoute, HierarchyPointerState,
 };
+use crate::ui::retained_host::welcome_recent_geometry::{
+    welcome_recent_row_geometry, welcome_recent_viewport,
+};
 use crate::ui::retained_host::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,
     WelcomeRecentPointerRoute, WelcomeRecentPointerState,
@@ -22,20 +25,28 @@ fn shared_welcome_recent_pointer_bridge_scrolls_and_dispatches_remove_action() {
     let bridge =
         BuiltinWelcomeSurfaceTemplateBridge::new().expect("builtin welcome bridge should build");
     let mut pointer_bridge = WelcomeRecentPointerBridge::new();
-    pointer_bridge.sync(welcome_layout(8), WelcomeRecentPointerState::default());
+    pointer_bridge.sync(welcome_layout(12), WelcomeRecentPointerState::default());
 
     let scrolled = pointer_bridge
         .handle_scroll(UiPoint::new(120.0, 190.0), 140.0)
         .expect("welcome recent list should accept shared scroll input");
     assert!(scrolled.state.scroll_offset > 0.0);
 
-    pointer_bridge.sync(welcome_layout(8), scrolled.state.clone());
+    pointer_bridge.sync(welcome_layout(12), scrolled.state.clone());
     let item_index = 3usize;
-    let click_y = 112.0 + item_index as f32 * 122.0 - scrolled.state.scroll_offset + 92.0;
+    let remove = welcome_recent_row_geometry(
+        welcome_recent_viewport(UiSize::new(720.0, 620.0)),
+        item_index,
+        scrolled.state.scroll_offset,
+    )
+    .remove;
     let dispatched = dispatch_shared_welcome_recent_pointer_click(
         &bridge,
         &mut pointer_bridge,
-        UiPoint::new(168.0, click_y),
+        UiPoint::new(
+            remove.x + remove.width * 0.5,
+            remove.y + remove.height * 0.5,
+        ),
     )
     .expect("shared welcome pointer route should dispatch remove recent project");
     assert_eq!(

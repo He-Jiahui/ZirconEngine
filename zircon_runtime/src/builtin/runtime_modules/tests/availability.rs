@@ -48,6 +48,15 @@ fn minimal_runtime_profile_load_report_has_structured_core_availability() {
         .is_empty());
 }
 
+#[test]
+fn runtime_profile_module_assembly_builds_one_availability_projection() {
+    super::super::availability::reset_projection_build_count();
+
+    let _ = runtime_modules_for_runtime_profile(RuntimeProfileId::Client2d);
+
+    assert_eq!(super::super::availability::projection_build_count(), 1);
+}
+
 #[cfg(not(feature = "ui"))]
 #[test]
 fn required_ui_without_compiled_ui_feature_is_structured_missing() {

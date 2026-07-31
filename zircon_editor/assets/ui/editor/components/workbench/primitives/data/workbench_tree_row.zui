@@ -6,7 +6,7 @@ display_name = "Workbench Tree Row"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchTreeRow]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-tree-item", "workbench-tree-row", "workbench-primi
 component = "TreeRow"
 control_id = "WorkbenchTreeRowRoot"
 classes = ["workbench-tree-item", "workbench-tree-row"]
-props = { text = "Tree item", expanded = true, tree_depth = 0, tree_indent_px = 18.0, selected = false, focused = false, hovered = false, pressed = false, layout_padding_left = 8.0, layout_padding_right = 8.0, layout_spacing = 4.0, layout_min_height = 28.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Tree item", expanded = true, tree_depth = 0, selected = false, focused = false, hovered = false, pressed = false, background_color = "$editor.surface.1", hover_background_color = "$editor.surface.hover", selected_background_color = "$editor.surface.selected", selected_hover_background_color = "$editor.accent.soft", pressed_background_color = "$editor.surface.3", disabled_background_color = "$editor.surface.disabled", separator_color = "$editor.separator.soft", focus_border_color = "$editor.accent", foreground_color = "$editor.text.primary", secondary_foreground_color = "$editor.text.secondary", selected_foreground_color = "$editor.text.primary", disabled_foreground_color = "$editor.text.disabled", icon_color = "$editor.text.secondary", selected_icon_color = "$editor.text.primary", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.small", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_icon_size = "$editor.density.gap.large", layout_action_gap = "$editor.density.gap.medium", layout_min_height = "$editor.control.height.dense", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }

@@ -8,8 +8,8 @@ use crate::core::manager::PHYSICS_MANAGER_NAME;
 use crate::core::manager::SOUND_MANAGER_NAME;
 use crate::core::manager::{
     ManagerResolver, ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
-    INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, RENDERING_MANAGER_NAME,
-    RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
+    INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, PLATFORM_MANAGER_NAME,
+    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
 };
 use crate::core::{CoreError, CoreRuntime};
 
@@ -26,6 +26,10 @@ fn manager_service_names_cover_runtime_owned_modules() {
         "FoundationModule.Manager.ConfigManager"
     );
     assert_eq!(EVENT_MANAGER_NAME, "FoundationModule.Manager.EventManager");
+    assert_eq!(
+        PLATFORM_MANAGER_NAME,
+        "PlatformModule.Manager.PlatformManager"
+    );
     assert_eq!(
         RENDERING_MANAGER_NAME,
         "GraphicsModule.Manager.RenderingManager"

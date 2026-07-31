@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var instanceCollisionContent = %import("world/instance_collision_content");
+
+console.printLine("m3-instance-collision-content-test");
+var result = instanceCollisionContent.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

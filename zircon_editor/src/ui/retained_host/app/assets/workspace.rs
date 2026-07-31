@@ -21,7 +21,7 @@ impl RetainedEditorHost {
             .editor_manager
             .create_runtime_level(world)
             .map_err(|error| error.to_string())?;
-        self.runtime.replace_world(level, project_info.root_path);
+        self.runtime.replace_world(level, project_info.root_path)?;
         Ok(())
     }
 

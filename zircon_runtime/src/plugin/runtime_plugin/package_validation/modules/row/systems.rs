@@ -1,3 +1,4 @@
+use super::super::super::projection::RuntimePluginPackageValidationProjection;
 use crate::plugin::PluginModuleManifest;
 
 use super::super::super::validate_runtime_plugin_package_namespace;
@@ -5,6 +6,8 @@ use super::super::super::validate_runtime_plugin_package_namespace;
 pub(super) fn validate_runtime_plugin_package_module_system_contracts(
     package_id: &str,
     module: &PluginModuleManifest,
+    module_index: usize,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     diagnostics: &mut Vec<String>,
 ) {
     validate_runtime_plugin_package_module_system_names(
@@ -12,6 +15,7 @@ pub(super) fn validate_runtime_plugin_package_module_system_contracts(
         module,
         "system_set",
         &module.system_sets,
+        |index| projection.package_module_system_set_is_duplicate(module_index, index),
         diagnostics,
     );
     validate_runtime_plugin_package_module_system_names(
@@ -19,6 +23,7 @@ pub(super) fn validate_runtime_plugin_package_module_system_contracts(
         module,
         "system_anchor",
         &module.system_anchors,
+        |index| projection.package_module_system_anchor_is_duplicate(module_index, index),
         diagnostics,
     );
 }
@@ -28,10 +33,10 @@ fn validate_runtime_plugin_package_module_system_names(
     module: &PluginModuleManifest,
     field_name: &str,
     values: &[String],
+    is_duplicate: impl Fn(usize) -> bool,
     diagnostics: &mut Vec<String>,
 ) {
-    let mut seen = Vec::new();
-    for value in values {
+    for (index, value) in values.iter().enumerate() {
         validate_runtime_plugin_package_namespace(field_name, value, diagnostics);
         if !runtime_plugin_package_system_name_has_owner(package_id, value) {
             diagnostics.push(format!(
@@ -39,13 +44,11 @@ fn validate_runtime_plugin_package_module_system_names(
                 module.name
             ));
         }
-        if seen.contains(&value.as_str()) {
+        if is_duplicate(index) {
             diagnostics.push(format!(
                 "runtime plugin package manifest module `{}` {field_name} `{value}` must be unique",
                 module.name
             ));
-        } else {
-            seen.push(value.as_str());
         }
     }
 }

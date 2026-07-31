@@ -7,6 +7,8 @@ mod counters;
 mod events;
 mod snapshots;
 
+pub(in crate::ui::retained_host::app) use events::AssetRefreshQueueAgeState;
+
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn refresh_project_assets(
         &mut self,

@@ -26,6 +26,10 @@ impl RetainedEditorHost {
                 );
             }
         }
+        let workbench_mount_frame = self
+            .template_bridge
+            .root_shell_frames()
+            .componentized_workbench_mount_frame(shell_size);
         {
             zircon_runtime::profile_scope!(
                 "editor",
@@ -34,8 +38,8 @@ impl RetainedEditorHost {
             );
             if let Err(error) = self
                 .workbench_window_bridge
-                .recompute_layout_with_workbench_model_at_scale(
-                    shell_size,
+                .recompute_mounted_layout_with_workbench_model_at_scale(
+                    workbench_mount_frame,
                     self.shell_scale_factor,
                     model,
                     &self.chrome_metrics,

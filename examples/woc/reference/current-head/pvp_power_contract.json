@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/pvp_power_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/pvp/power.ts": "1b17d679a7e2c669baf310059756d30034c84d6cbc0bad496702b62eaff00e27"
+  },
+  "rating_per_pct": 10,
+  "offense_cap": 0.2,
+  "defense_cap": 0.2,
+  "rating_denominator": 1000,
+  "damage_multiplier": "(1 + clamp(offense, 0, offense_cap)) * (1 - clamp(defense, 0, defense_cap))"
+}

@@ -1,4 +1,4 @@
-use crate::scene::{ecs::ComponentId, EntityId};
+use crate::scene::{EntityId, ecs::ComponentId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LifecycleEventKind {

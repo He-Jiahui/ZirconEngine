@@ -14,43 +14,47 @@ node = "inspector_root"
 
 [nodes.top_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.left_space]
 component = "Space"
-layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.header_panel]
-component = "Space"
+component = "Overlay"
 control_id = "InspectorHeaderPanel"
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, font_weight = 600, overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.header_name_gap]
 component = "Space"
 layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
 
 [nodes.name_row]
-component = "Space"
+component = "Overlay"
 control_id = "InspectorNameRow"
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = 3.0, border_width = 1.0, text_tone = "muted", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.name_parent_gap]
 component = "Space"
 layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
 
 [nodes.parent_row]
-component = "Space"
+component = "Overlay"
 control_id = "InspectorParentRow"
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = 3.0, border_width = 1.0, text_tone = "muted", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.parent_position_gap]
 component = "Space"
 layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
 
 [nodes.position_row]
-component = "Space"
+component = "Overlay"
 control_id = "InspectorPositionRow"
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = 3.0, border_width = 1.0, text_tone = "muted", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.position_separator_gap]
 component = "Space"
@@ -66,13 +70,23 @@ component = "Space"
 layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
 
 [nodes.actions_row]
-component = "Space"
+component = "Overlay"
 control_id = "InspectorActionsRow"
-layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = 3.0, border_width = 1.0, text_tone = "muted", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.empty_state_message]
+component = "Label"
+control_id = "InspectorEmptyStateMessage"
+props = { text = "", text_tone = "muted", text_align = "center", overflow = "elide" }
+layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
 
 [nodes.bottom_fill]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+component = "Overlay"
+control_id = "InspectorEmptyState"
+props = { surface_variant = "frame_only", radius = 4.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "empty_state_message" }]
 
 [nodes.content_panel]
 component = "VerticalBox"
@@ -82,7 +96,7 @@ children = [{ node = "header_panel" }, { node = "header_name_gap" }, { node = "n
 
 [nodes.right_space]
 component = "Space"
-layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.content_row]
 component = "HorizontalBox"
@@ -91,7 +105,7 @@ children = [{ node = "left_space" }, { node = "content_panel" }, { node = "right
 
 [nodes.bottom_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.inspector_root]
 component = "VerticalBox"

@@ -19,7 +19,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/attachment_ops.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
@@ -55,7 +55,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/attachment_ops.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs

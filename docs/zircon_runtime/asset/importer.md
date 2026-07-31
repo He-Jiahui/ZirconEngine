@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/asset/reference_resolver.rs
+  - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/importer/contract.rs
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/importer/native.rs
@@ -154,6 +155,7 @@ related_code:
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 implementation_files:
+  - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/importer/contract.rs
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/importer/native.rs
@@ -623,6 +625,17 @@ This makes import formats a runtime extension point. The runtime still owns the 
 The hard-cutover rule is that importer code must call `AssetImportOutcome::new(locator, asset)` with an explicit locator. No compatibility constructor derives a locator from the asset payload, because several asset payloads do not own source URIs and subasset identity is label-based. Structured duplicate-label and missing-label errors carry `source_uri` plus `label` so `thiserror` does not treat the source locator as an error source.
 
 Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-suffix importer; unknown typed TOML fails as an error resource instead of silently becoming a generic data file. The registry rejects `.ui.toml` source-template and `.v2.ui.toml` source-template importer descriptors on the production path, so plugin manifests cannot reintroduce recursive UI source schemas or the pre-`.zui` mixed view/component/style UI v2 importer. Only explicit unit-test source-template fixtures are allowed to register those matchers for schema migration coverage.
+
+### Data import error sources
+
+`AssetImportContext::source_text()` reports invalid UTF-8 as
+`AssetImportError::SourceTextDecode { path, source }`, preserving the original
+`FromUtf8Error`. Plain TOML and JSON data import use the contextual
+`TomlDeserialize` and `JsonDeserialize` variants, so callers can inspect the parser error through
+`std::error::Error::source()` instead of receiving a flattened `Parse(String)`.
+
+This is a hard cut for these three paths. There is no conversion back to the old string variant,
+and semantic import rejections may continue to use their dedicated non-source variants.
 
 ### Project reference repair ordering
 

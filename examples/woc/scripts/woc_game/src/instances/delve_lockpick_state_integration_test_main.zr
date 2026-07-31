@@ -1,0 +1,29 @@
+var rng = %import("kernel/rng");
+var delve = %import("instances/delve_state");
+
+var success = new delve.DelveState();
+if (!delve.enterRun(success, 1) || !delve.spawnModule(success) ||
+    !delve.killFinalBoss(success) ||
+    !delve.configureLockpickIdentity(success, <uint>20061, <uint>423, <uint>77) ||
+    !delve.lockpickEngage(success, 1) || success.lockpickSession.id != "lp_423_0" ||
+    !delve.lockpickCorrectPage(success) || !delve.lockpickCorrectPage(success) ||
+    !delve.lockpickCorrectPage(success) || !success.chestOpen ||
+    success.lockpickSession.state != 2 || success.lockpickActive) {
+    return -1;
+}
+
+var failure = new delve.DelveState();
+var stream = new rng.Mulberry32(<uint>20061);
+if (!delve.enterRun(failure, 1) || !delve.spawnModule(failure) ||
+    !delve.killFinalBoss(failure) ||
+    !delve.configureLockpickIdentity(failure, <uint>20061, <uint>423, <uint>77) ||
+    !delve.lockpickEngage(failure, 1)) {
+    return -2;
+}
+delve.tickMany(failure, 60, stream);
+if (failure.lockpickSession.state != 3 || failure.lockpickActive ||
+    failure.chestAttemptAvailable || !failure.surfaceExitOpen) {
+    return -3;
+}
+
+return 0;

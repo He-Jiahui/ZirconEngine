@@ -43,15 +43,18 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
     return output;
 }
 
-fn skybox_rotated_direction(direction: vec3<f32>) -> vec3<f32> {
+fn skybox_rotated_direction_normalized(direction: vec3<f32>) -> vec3<f32> {
     let rotation = scene.environment_params.z;
+    if (rotation == 0.0) {
+        return direction;
+    }
     let s = sin(rotation);
     let c = cos(rotation);
-    return normalize(vec3<f32>(
+    return vec3<f32>(
         direction.x * c - direction.z * s,
         direction.y,
         direction.x * s + direction.z * c,
-    ));
+    );
 }
 
 fn skybox_normalize_or_fallback(value: vec3<f32>, fallback: vec3<f32>) -> vec3<f32> {
@@ -120,7 +123,7 @@ fn skybox_world_direction_from_ndc(ndc: vec2<f32>) -> vec3<f32> {
 }
 
 fn source_cubemap_sky_color(direction: vec3<f32>) -> vec3<f32> {
-    let rotated = skybox_rotated_direction(direction);
+    let rotated = skybox_rotated_direction_normalized(direction);
     return textureSampleLevel(
         zr_environment_source_cube,
         zr_environment_sampler,
@@ -130,15 +133,14 @@ fn source_cubemap_sky_color(direction: vec3<f32>) -> vec3<f32> {
 }
 
 fn procedural_sun_radiance(direction: vec3<f32>) -> vec3<f32> {
-    let sun_direction_length = length(scene.sky_sun_direction.xyz);
-    if (scene.sky_sun_direction.w < 0.5 || scene.sky_sun_params.x <= 0.0 || sun_direction_length <= SKYBOX_EPSILON) {
+    if (scene.sky_sun_direction.w < 0.5 || scene.sky_sun_params.x <= 0.0) {
         return vec3<f32>(0.0);
     }
-    let sun_direction = scene.sky_sun_direction.xyz / sun_direction_length;
-    let angular_radius = clamp(scene.sky_sun_color_radius.w, 0.0001, 1.5707963);
-    let inner_cosine = cos(angular_radius * 0.72);
-    let outer_cosine = cos(angular_radius);
-    let sun_mask = smoothstep(outer_cosine, inner_cosine, dot(direction, sun_direction));
+    let sun_mask = smoothstep(
+        scene.sky_sun_params.y,
+        scene.sky_sun_params.z,
+        dot(direction, scene.sky_sun_direction.xyz),
+    );
     return scene.sky_sun_color_radius.rgb * scene.sky_sun_params.x * sun_mask;
 }
 
@@ -155,8 +157,9 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
         let intensity = max(scene.environment_params.y, 0.0);
         let sky = mix(scene.sky_horizon_color.rgb, scene.sky_zenith_color.rgb, sky_t);
         let ground = mix(scene.sky_ground_color.rgb, scene.sky_horizon_color.rgb, ground_t);
-        color = select(ground, sky, direction.y >= 0.0) * intensity
-            + procedural_sun_radiance(direction);
+        color = (select(ground, sky, direction.y >= 0.0)
+            + procedural_sun_radiance(direction))
+            * intensity;
     }
     return vec4<f32>(zr_volumetric_apply(color, input.clip_position.xy, 1.0), 1.0);
 }

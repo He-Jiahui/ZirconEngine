@@ -2,6 +2,10 @@ use crate::ui::retained_host::host_contract::data::{PaneData, TemplatePaneNodeDa
 use crate::ui::retained_host::primitives::ModelRc;
 
 pub(super) fn pane_template_nodes(pane: &PaneData) -> Option<&ModelRc<TemplatePaneNodeData>> {
+    if pane.template_v2.nodes.row_count() > 0 {
+        return Some(&pane.template_v2.nodes);
+    }
+
     match pane.kind.as_str() {
         "Hierarchy" => Some(&pane.hierarchy.nodes),
         "Inspector" => Some(&pane.inspector.nodes),

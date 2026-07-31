@@ -1,20 +1,40 @@
+use std::collections::HashSet;
+
 use crate::text::{FontFamilyName, FontStretch, FontStyle, FontWeight};
 
-use super::database::normalized_family_key;
+const FONT_FAMILY_IDENTITY_HASH_DOMAIN: &[u8] = b"zircon-font-family-identity-v1";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(super) struct FontFamilyIdentity([u8; 16]);
+
+impl FontFamilyIdentity {
+    pub(super) const fn as_bytes(&self) -> &[u8; 16] {
+        &self.0
+    }
+}
+
+pub(super) fn font_family_identity(family: &str) -> FontFamilyIdentity {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(FONT_FAMILY_IDENTITY_HASH_DOMAIN);
+    let family = family.trim();
+    for byte in family.bytes() {
+        hasher.update(&[byte.to_ascii_lowercase()]);
+    }
+    let mut identity = [0_u8; 16];
+    identity.copy_from_slice(&hasher.finalize().as_bytes()[..16]);
+    FontFamilyIdentity(identity)
+}
 
 pub(super) fn dedupe_families(
     families: impl IntoIterator<Item = FontFamilyName>,
 ) -> Vec<FontFamilyName> {
-    let mut result: Vec<FontFamilyName> = Vec::new();
+    let mut identities = HashSet::new();
+    let mut result = Vec::new();
     for family in families {
         if family.is_empty() {
             continue;
         }
-        let key = normalized_family_key(family.as_str());
-        if result
-            .iter()
-            .any(|existing| normalized_family_key(existing.as_str()) == key)
-        {
+        if !identities.insert(font_family_identity(family.as_str())) {
             continue;
         }
         result.push(family);

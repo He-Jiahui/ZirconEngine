@@ -1,0 +1,17 @@
+var console = %import("zr.system.console");
+var stacks = %import("progression/vendor_stack_state");
+
+var result = 1;
+if (stacks.vendorStackSize() != 5 || stacks.vendorPurchaseQuantity("food") != 5 ||
+    stacks.vendorPurchaseQuantity("drink") != 5) {
+    result = -1;
+}
+if (result == 1 && (stacks.vendorPurchaseQuantity("potion") != 1 ||
+    stacks.vendorPurchaseQuantity("weapon") != 1 || stacks.vendorPurchaseQuantity("junk") != 1 ||
+    stacks.vendorPurchaseQuantity("elixir") != 1 || stacks.vendorPurchaseQuantity("") != 1)) {
+    result = -2;
+}
+
+console.printLine("m5-vendor-stack-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::UiFrame,
@@ -11,8 +13,8 @@ pub(super) fn quad_command(
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
-    background: &str,
-    border: Option<&str>,
+    background: Cow<'_, str>,
+    border: Option<Cow<'_, str>>,
     border_width: f32,
     corner_radius: f32,
     state: &FeedbackRenderState,
@@ -25,8 +27,8 @@ pub(super) fn quad_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            background_color: Some(background.to_string()),
-            border_color: border.map(str::to_string),
+            background_color: Some(background.into_owned()),
+            border_color: border.map(Cow::into_owned),
             border_width,
             corner_radius,
             ..UiResolvedStyle::default()
@@ -45,7 +47,7 @@ pub(super) fn text_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     text: String,
-    foreground: &str,
+    foreground: Cow<'_, str>,
     font_size: f32,
     line_height: f32,
     state: &FeedbackRenderState,
@@ -58,7 +60,7 @@ pub(super) fn text_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
+            foreground_color: Some(foreground.into_owned()),
             font_size,
             line_height,
             ..UiResolvedStyle::default()
@@ -77,7 +79,7 @@ pub(super) fn icon_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     icon: String,
-    foreground: &str,
+    foreground: Cow<'_, str>,
     state: &FeedbackRenderState,
     opacity: f32,
 ) -> UiRenderCommand {
@@ -88,7 +90,7 @@ pub(super) fn icon_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
+            foreground_color: Some(foreground.into_owned()),
             ..UiResolvedStyle::default()
         }
         .with_painter_state(state.family, state.visual_state),

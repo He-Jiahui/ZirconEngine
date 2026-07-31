@@ -119,7 +119,7 @@ fn scene_pane() -> PaneData {
         title: "Scene".into(),
         show_toolbar: true,
         viewport: SceneViewportChromeData {
-            tool: "Move".into(),
+            mode: "Transform.Move".into(),
             transform_space: "Global".into(),
             display_mode: "Lit".into(),
             grid_mode: "Grid".into(),

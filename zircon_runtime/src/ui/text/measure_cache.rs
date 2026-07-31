@@ -1,16 +1,19 @@
 use crate::core::framework::text::TextDirection;
 use crate::core::runtime::tasks::TaskPool;
 use crate::text::{
+    SharedTextLayoutSession, TextRange,
     cache::{
+        DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY, DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
         ShapedRunCacheReport, TextFrameDedup, TextFrameDedupReport, TextLayoutCache,
         TextLayoutCacheReport, TextLayoutWidthValidity, TextMeasureCache, TextMeasureCacheReport,
-        DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY, DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
     },
     layout::measure_line_width,
     parallel::shape_pool::{TextParallelShapeBatchReport, TextShapeParagraph},
-    SharedTextLayoutSession, TextRange,
 };
-use std::sync::Arc;
+use std::{
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiRichTextFormat, UiTextDirection, UiTextRange, UiTextWrap,
@@ -18,12 +21,12 @@ use zircon_runtime_interface::ui::surface::{
 
 use super::adapter::text_style;
 use super::resolved_layout::{
-    resolve_text_layout_with_provider, UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey,
+    UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey, resolve_text_layout_with_provider,
 };
 use super::rich_text::parse_source_text;
 use super::shaper::measure_text_size_with_provider as measure_backend_text_size_with_provider;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
 pub(crate) struct UiWidthBucket(u32);
 
 impl UiWidthBucket {
@@ -56,6 +59,16 @@ pub(crate) struct UiTextMeasureKey {
     pub style: UiTextStyleKey,
 }
 
+impl Hash for UiTextMeasureKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.content_hash.hash(state);
+        self.frame.hash(state);
+        self.clip_frame.hash(state);
+        self.width_bucket.hash(state);
+        self.style.hash(state);
+    }
+}
+
 impl UiTextMeasureKey {
     pub(crate) fn from_request(request: &UiTextLayoutRequest<'_>) -> Self {
         Self {
@@ -74,6 +87,13 @@ pub(crate) struct UiTextMeasureSizeKey {
     pub style: UiTextStyleKey,
 }
 
+impl Hash for UiTextMeasureSizeKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.content_hash.hash(state);
+        self.style.hash(state);
+    }
+}
+
 impl UiTextMeasureSizeKey {
     pub(crate) fn from_text_style(
         text: &str,
@@ -86,7 +106,7 @@ impl UiTextMeasureSizeKey {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub(crate) struct UiFrameKey {
     x_bits: u32,
     y_bits: u32,
@@ -326,16 +346,17 @@ impl UiTextMeasureCache {
         let resolved_text = request.resolved_text();
         if let Some(resolution) = self
             .layout_frame_dedup
-            .get(&key, resolved_text.as_str())
+            .get(&key, resolved_text.as_ref())
             .cloned()
         {
             return resolution;
         }
 
+        let resolved_text: Arc<str> = Arc::from(resolved_text.as_ref());
         let width_validity = TextLayoutWidthValidity::exact(request.frame.width);
         let resolution = if let Some(resolution) = self
             .layout_cache
-            .get(&key, resolved_text.as_str(), request.frame.width)
+            .get(&key, resolved_text.as_ref(), request.frame.width)
             .cloned()
         {
             resolution
@@ -345,7 +366,7 @@ impl UiTextMeasureCache {
             self.layout_cache
                 .insert(
                     key.clone(),
-                    resolved_text.as_str(),
+                    Arc::clone(&resolved_text),
                     width_validity,
                     resolution,
                 )

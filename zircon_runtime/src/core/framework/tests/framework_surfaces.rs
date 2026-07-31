@@ -49,6 +49,21 @@ fn time_framework_tracks_real_virtual_and_fixed_clocks() {
 }
 
 #[test]
+fn fixed_step_drain_batches_large_catch_up_plans() {
+    let mut fixed = Time::<Fixed>::from_duration(Duration::from_nanos(1));
+    fixed.accumulate_overstep(Duration::from_millis(1));
+
+    let plan = fixed.drain_steps(1_000_000);
+
+    assert_eq!(plan.step_count, 1_000_000);
+    assert_eq!(plan.consumed, Duration::from_millis(1));
+    assert_eq!(plan.remaining_overstep, Duration::ZERO);
+    assert_eq!(fixed.frame_index(), 1_000_000);
+    let source = include_str!("../time/clock.rs");
+    assert!(!source.contains("while step_count < max_steps"));
+}
+
+#[test]
 fn task_framework_contracts_describe_pools_status_and_poll_budget() {
     let compute = TaskPoolDescriptor::compute().with_worker_threads(0);
     let async_compute = TaskPoolDescriptor::async_compute().with_thread_name("async-streaming");

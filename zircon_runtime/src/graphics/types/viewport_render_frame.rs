@@ -23,7 +23,7 @@ pub struct ViewportRenderFrame {
     pub(crate) output_target: super::ViewportRenderOutputTarget,
     pub(crate) previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     pub(crate) frame_visibility: Option<FrameVisibility>,
-    pub(crate) virtual_geometry_debug_snapshot: Option<RenderVirtualGeometryDebugSnapshot>,
+    pub(crate) virtual_geometry_debug_snapshot: Option<Arc<RenderVirtualGeometryDebugSnapshot>>,
     pub(crate) runtime_overlay_override: Option<RenderOverlayExtract>,
     pub(crate) prepared_runtime_sidebands: RenderPreparedRuntimeSidebands,
     pub(crate) camera_stack_attachment_policy: ViewportCameraStackAttachmentPolicy,

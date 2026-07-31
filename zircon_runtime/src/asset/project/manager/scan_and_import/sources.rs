@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use crate::asset::project::{AssetMetaDocument, AssetSourceUnit};
 use crate::asset::reference_resolver::persisted_source_path_for_locator;
 use crate::asset::{AssetImportError, AssetUri};
+use crate::core::resource::ResourceScheme;
 
 use super::super::{
     collect_files::collect_files, meta_path_for_source::meta_path_for_source,
@@ -22,6 +23,101 @@ pub(super) struct AssetImportSource {
 }
 
 impl ProjectManager {
+    pub(super) fn prepare_targeted_import_source(
+        &self,
+        uri: &AssetUri,
+        indexed_path: &Path,
+    ) -> Result<AssetImportSource, AssetImportError> {
+        let uri = AssetUri::new(uri.scheme(), uri.path().to_string(), None)?;
+        if !indexed_path.is_dir() {
+            return Ok(AssetImportSource {
+                path: indexed_path.to_path_buf(),
+                uri,
+                meta_path: meta_path_for_source(indexed_path),
+                unit: AssetSourceUnit::Single,
+                included_files: Vec::new(),
+                included_paths: Vec::new(),
+                compound_root: None,
+            });
+        }
+
+        let meta_path = meta_path_for_source(indexed_path);
+        let meta = AssetMetaDocument::load(&meta_path)?;
+        if meta.unit != AssetSourceUnit::Compound || meta.url != uri {
+            return Err(targeted_full_scan(
+                uri,
+                "indexed directory does not match its compound source descriptor",
+            ));
+        }
+        let mut included_paths = Vec::new();
+        collect_files(indexed_path, &mut included_paths)?;
+        included_paths.sort();
+        let included_files =
+            self.included_uris_for_targeted_source(&uri, indexed_path, &included_paths)?;
+        if included_files != meta.included_files {
+            return Err(targeted_full_scan(
+                uri,
+                "compound source membership changed since the active generation",
+            ));
+        }
+        Ok(AssetImportSource {
+            path: meta_path.clone(),
+            uri,
+            meta_path,
+            unit: AssetSourceUnit::Compound,
+            included_files,
+            included_paths,
+            compound_root: Some(indexed_path.to_path_buf()),
+        })
+    }
+
+    fn included_uris_for_targeted_source(
+        &self,
+        uri: &AssetUri,
+        compound_root: &Path,
+        included_paths: &[PathBuf],
+    ) -> Result<Vec<AssetUri>, AssetImportError> {
+        match uri.scheme() {
+            ResourceScheme::Res => {
+                let roots = self
+                    .package_assets
+                    .project_roots()
+                    .iter()
+                    .filter(|root| compound_root.starts_with(root))
+                    .collect::<Vec<_>>();
+                let [root] = roots.as_slice() else {
+                    return Err(targeted_full_scan(
+                        uri.clone(),
+                        "compound members do not belong to one unambiguous project root",
+                    ));
+                };
+                included_paths
+                    .iter()
+                    .map(|path| self.source_uri_for_path(root, path))
+                    .collect()
+            }
+            ResourceScheme::Package => {
+                let package_id = uri.package_id().ok_or_else(|| {
+                    targeted_full_scan(uri.clone(), "package source is missing a package id")
+                })?;
+                let root = self
+                    .package_assets
+                    .root_for_package(package_id)
+                    .ok_or_else(|| {
+                        targeted_full_scan(uri.clone(), "package source root is not registered")
+                    })?;
+                included_paths
+                    .iter()
+                    .map(|path| self.source_uri_for_package_path(package_id, root, path))
+                    .collect()
+            }
+            _ => Err(targeted_full_scan(
+                uri.clone(),
+                "only project and package sources support targeted import",
+            )),
+        }
+    }
+
     pub(super) fn collect_import_sources(
         &self,
     ) -> Result<Vec<AssetImportSource>, AssetImportError> {
@@ -136,6 +232,13 @@ impl ProjectManager {
         } else {
             self.source_uri_for_path(root, path)
         }
+    }
+}
+
+fn targeted_full_scan(uri: AssetUri, reason: impl Into<String>) -> AssetImportError {
+    AssetImportError::TargetedImportRequiresFullScan {
+        uri,
+        reason: reason.into(),
     }
 }
 

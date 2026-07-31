@@ -26,5 +26,6 @@ pub(super) fn value_changed_event(
         },
         delivered: true,
         drag: None,
+        template_action: None,
     }
 }

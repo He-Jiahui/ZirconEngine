@@ -177,13 +177,14 @@ impl ExportProfile {
         name: impl Into<String>,
         target_mode: RuntimeTargetMode,
         target_platform: ExportTargetPlatform,
+        runtime_profile_id: RuntimeProfileId,
     ) -> Self {
         let name = name.into();
         Self {
             output_name: name.clone(),
             name,
             target_mode,
-            runtime_profile_id: None,
+            runtime_profile_id: Some(runtime_profile_id),
             target_platform,
             strategies: default_export_strategies(),
             build_mode: ExportBuildMode::Debug,
@@ -191,11 +192,6 @@ impl ExportProfile {
             features: BTreeMap::new(),
             asset_filter: None,
         }
-    }
-
-    pub fn with_runtime_profile_id(mut self, runtime_profile_id: RuntimeProfileId) -> Self {
-        self.runtime_profile_id = Some(runtime_profile_id);
-        self
     }
 
     pub fn with_strategy(mut self, strategy: ExportPackagingStrategy) -> Self {
@@ -248,8 +244,8 @@ impl Default for ExportProfile {
             "client",
             RuntimeTargetMode::ClientRuntime,
             ExportTargetPlatform::Windows,
+            RuntimeProfileId::Client2d,
         )
-        .with_runtime_profile_id(RuntimeProfileId::Client2d)
     }
 }
 

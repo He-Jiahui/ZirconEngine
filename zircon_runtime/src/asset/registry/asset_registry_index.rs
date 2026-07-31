@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use crate::asset::{AssetUri, AssetUuid};
+use crate::asset::{AssetId, AssetUri, AssetUuid};
 
 use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError};
 
@@ -9,6 +9,11 @@ use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError};
 pub struct AssetRegistryIndex {
     pub(super) entries_by_uuid: HashMap<AssetUuid, AssetRegistryEntry>,
     pub(super) uuids_by_path: HashMap<AssetUri, AssetUuid>,
+    pub(super) uuid_by_asset_id: HashMap<AssetId, AssetUuid>,
+    pub(super) referencers_by_uuid: HashMap<AssetUuid, HashSet<AssetUuid>>,
+    pub(super) entry_uuids_by_source: HashMap<AssetUri, HashSet<AssetUuid>>,
+    pub(super) dependency_paths_by_uuid: HashMap<AssetUuid, Vec<AssetUri>>,
+    pub(super) referencers_by_path: HashMap<AssetUri, HashSet<AssetUuid>>,
     pub(super) diagnostics: Vec<AssetRegistryDiagnostic>,
 }
 
@@ -71,22 +76,92 @@ impl AssetRegistryIndex {
         }
         self.uuids_by_path
             .insert(entry.path().clone(), entry.uuid());
+        self.uuid_by_asset_id
+            .insert(AssetId::from_asset_uuid(entry.uuid()), entry.uuid());
+        self.entry_uuids_by_source
+            .entry(source_locator(entry.path()))
+            .or_default()
+            .insert(entry.uuid());
+        for dependency in entry.dependencies() {
+            self.referencers_by_uuid
+                .entry(*dependency)
+                .or_default()
+                .insert(entry.uuid());
+        }
         self.entries_by_uuid.insert(entry.uuid(), entry);
         Ok(())
     }
 
     pub(super) fn remove_source_path(&mut self, path: &AssetUri) {
         let removed = self
-            .entries_by_uuid
-            .values()
-            .filter(|entry| same_source_path(entry.path(), path))
-            .map(AssetRegistryEntry::uuid)
-            .collect::<Vec<_>>();
+            .entry_uuids_by_source
+            .remove(&source_locator(path))
+            .unwrap_or_default();
         for uuid in removed {
             if let Some(entry) = self.entries_by_uuid.remove(&uuid) {
                 self.uuids_by_path.remove(entry.path());
+                self.uuid_by_asset_id
+                    .remove(&AssetId::from_asset_uuid(uuid));
+                for dependency in entry.dependencies() {
+                    if let Some(referencers) = self.referencers_by_uuid.get_mut(dependency) {
+                        referencers.remove(&uuid);
+                    }
+                }
+                self.replace_dependency_paths(uuid, Vec::new());
             }
         }
+        self.referencers_by_uuid
+            .retain(|_, referencers| !referencers.is_empty());
+    }
+
+    pub(super) fn replace_dependency_paths(
+        &mut self,
+        uuid: AssetUuid,
+        dependencies: Vec<AssetUri>,
+    ) {
+        for dependency in self
+            .dependency_paths_by_uuid
+            .remove(&uuid)
+            .unwrap_or_default()
+        {
+            if let Some(referencers) = self.referencers_by_path.get_mut(&dependency) {
+                referencers.remove(&uuid);
+            }
+        }
+        for dependency in &dependencies {
+            self.referencers_by_path
+                .entry(dependency.clone())
+                .or_default()
+                .insert(uuid);
+        }
+        if !dependencies.is_empty() {
+            self.dependency_paths_by_uuid.insert(uuid, dependencies);
+        }
+        self.referencers_by_path
+            .retain(|_, referencers| !referencers.is_empty());
+    }
+
+    pub(super) fn replace_dependencies(&mut self, uuid: AssetUuid, dependencies: Vec<AssetUuid>) {
+        let Some(entry) = self.entries_by_uuid.get_mut(&uuid) else {
+            return;
+        };
+        let previous = entry.dependencies().to_vec();
+        entry.set_dependencies(dependencies);
+        let current = entry.dependencies().to_vec();
+
+        for dependency in previous {
+            if let Some(referencers) = self.referencers_by_uuid.get_mut(&dependency) {
+                referencers.remove(&uuid);
+            }
+        }
+        for dependency in current {
+            self.referencers_by_uuid
+                .entry(dependency)
+                .or_default()
+                .insert(uuid);
+        }
+        self.referencers_by_uuid
+            .retain(|_, referencers| !referencers.is_empty());
     }
 
     pub(super) fn push_diagnostic(&mut self, diagnostic: AssetRegistryDiagnostic) {
@@ -107,6 +182,7 @@ impl AssetRegistryIndex {
     }
 }
 
-fn same_source_path(left: &AssetUri, right: &AssetUri) -> bool {
-    left.scheme() == right.scheme() && left.path() == right.path()
+pub(super) fn source_locator(locator: &AssetUri) -> AssetUri {
+    AssetUri::new(locator.scheme(), locator.path().to_string(), None)
+        .expect("a parsed asset URI remains valid when its label is removed")
 }

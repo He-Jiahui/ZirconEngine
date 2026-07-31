@@ -73,6 +73,159 @@ fn render_rewrites_only_manifest_identity_and_preserves_current_schema() {
 }
 
 #[test]
+fn renderable_empty_scene_declares_a_static_cube_with_persisted_project_references() {
+    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "Scene Contract")
+        .expect("render project template");
+    let scene = rendered
+        .entries
+        .iter()
+        .find(|entry| entry.path.as_str() == "assets/scenes/main.scene.toml")
+        .expect("default scene entry");
+    let scene = toml::from_str::<toml::Value>(
+        std::str::from_utf8(&scene.bytes).expect("default scene must be UTF-8"),
+    )
+    .expect("default scene must be valid TOML");
+    let entities = scene
+        .get("entities")
+        .and_then(toml::Value::as_array)
+        .expect("default scene must contain entities");
+    assert_eq!(entities.len(), 3);
+
+    let camera = entity_named(entities, "Camera");
+    assert!(camera.contains_key("camera"));
+    assert_eq!(
+        camera.get("active").and_then(toml::Value::as_bool),
+        Some(true)
+    );
+    let sun = entity_named(entities, "Sun");
+    assert!(sun.contains_key("directional_light"));
+    assert_eq!(sun.get("active").and_then(toml::Value::as_bool), Some(true));
+    assert_eq!(
+        sun.get("mobility").and_then(toml::Value::as_str),
+        Some("Static")
+    );
+    let cube = entity_named(entities, "Cube");
+    assert_eq!(
+        cube.get("active").and_then(toml::Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        cube.get("mobility").and_then(toml::Value::as_str),
+        Some("Static")
+    );
+    let transform = cube
+        .get("transform")
+        .and_then(toml::Value::as_table)
+        .expect("cube transform");
+    assert_eq!(
+        transform.get("scale").and_then(toml::Value::as_array),
+        Some(&vec![
+            toml::Value::Float(1.0),
+            toml::Value::Float(1.0),
+            toml::Value::Float(1.0),
+        ])
+    );
+    let mesh = cube
+        .get("mesh")
+        .and_then(toml::Value::as_table)
+        .expect("cube mesh");
+    assert_project_reference(
+        mesh.get("model").and_then(toml::Value::as_table),
+        "00000000-0000-0000-0000-000000000002",
+        "assets/models/cube.obj",
+    );
+    assert_project_reference(
+        mesh.get("material").and_then(toml::Value::as_table),
+        "00000000-0000-0000-0000-000000000003",
+        "assets/materials/default.zmaterial",
+    );
+}
+
+#[test]
+fn renderable_empty_asset_metadata_matches_its_persisted_references() {
+    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "Asset Contract")
+        .expect("render project template");
+    let cube = template_toml(&rendered, "assets/models/cube.obj.zmeta");
+    assert_eq!(
+        cube.get("uuid").and_then(toml::Value::as_str),
+        Some("00000000-0000-0000-0000-000000000002")
+    );
+    assert_eq!(
+        cube.get("url").and_then(toml::Value::as_str),
+        Some("res://models/cube.obj")
+    );
+
+    let material = template_toml(&rendered, "assets/materials/default.zmaterial.zmeta");
+    assert_eq!(
+        material.get("uuid").and_then(toml::Value::as_str),
+        Some("00000000-0000-0000-0000-000000000003")
+    );
+    assert_eq!(
+        material.get("url").and_then(toml::Value::as_str),
+        Some("res://materials/default.zmaterial")
+    );
+
+    let shader = template_toml(&rendered, "assets/shaders/pbr_shader.zmeta");
+    assert_eq!(
+        shader.get("uuid").and_then(toml::Value::as_str),
+        Some("00000000-0000-0000-0000-000000000001")
+    );
+    let default_material = template_toml(&rendered, "assets/materials/default.zmaterial");
+    assert_builtin_reference(
+        default_material
+            .get("shader")
+            .and_then(toml::Value::as_table),
+        "builtin://shader/pbr.wgsl",
+    );
+}
+
+fn template_toml(rendered: &super::super::RenderedProjectTemplate, path: &str) -> toml::Value {
+    let entry = rendered
+        .entries
+        .iter()
+        .find(|entry| entry.path.as_str() == path)
+        .unwrap_or_else(|| panic!("template is missing {path}"));
+    toml::from_str(std::str::from_utf8(&entry.bytes).expect("template entry must be UTF-8"))
+        .unwrap_or_else(|error| panic!("template entry {path} must be valid TOML: {error}"))
+}
+
+fn entity_named<'a>(entities: &'a [toml::Value], name: &str) -> &'a toml::Table {
+    entities
+        .iter()
+        .filter_map(toml::Value::as_table)
+        .find(|entity| entity.get("name").and_then(toml::Value::as_str) == Some(name))
+        .unwrap_or_else(|| panic!("default scene is missing {name}"))
+}
+
+fn assert_project_reference(reference: Option<&toml::Table>, guid: &str, path_hint: &str) {
+    let reference = reference.expect("cube asset reference");
+    assert_eq!(
+        reference.get("kind").and_then(toml::Value::as_str),
+        Some("project")
+    );
+    assert_eq!(
+        reference.get("guid").and_then(toml::Value::as_str),
+        Some(guid)
+    );
+    assert_eq!(
+        reference.get("path_hint").and_then(toml::Value::as_str),
+        Some(path_hint)
+    );
+}
+
+fn assert_builtin_reference(reference: Option<&toml::Table>, locator: &str) {
+    let reference = reference.expect("builtin asset reference");
+    assert_eq!(
+        reference.get("kind").and_then(toml::Value::as_str),
+        Some("builtin")
+    );
+    assert_eq!(
+        reference.get("locator").and_then(toml::Value::as_str),
+        Some(locator)
+    );
+}
+
+#[test]
 fn template_source_tree_contains_no_links_or_reparse_points() {
     let root = template_source_root();
     let mut pending = vec![root.clone()];

@@ -41,7 +41,7 @@ impl UiDocumentCompiler {
         self.validate_compiler_preconditions(document)?;
         let cache_key = compile_cache_key_from_compiler(self, document)?;
         let invalidation_snapshot = cache_key.invalidation_snapshot();
-        let compiled = self.compile(document)?;
+        let compiled = self.compile_validated(document)?;
         let localization_report = collect_document_localization_report(document);
 
         let header = compiled_asset_header_from_cache_key(document.asset.clone(), cache_key);

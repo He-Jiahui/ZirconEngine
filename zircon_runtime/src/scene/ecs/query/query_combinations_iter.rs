@@ -56,17 +56,15 @@ where
         if K > entities.len() {
             return Self::empty(world, ticks);
         }
-        let candidate_count = read_only_combination_candidate_count::<D, F>(world, entities, ticks);
-        if candidate_count < K {
-            return Self::empty(world, ticks);
-        }
-        let mut matched_entities = Vec::with_capacity(candidate_count);
+        let mut matched_entities = Vec::new();
         for entity in entities.iter().copied() {
             if read_only_combination_candidate_matches::<D, F>(world, entity, ticks) {
                 matched_entities.push(entity);
             }
         }
-        debug_assert_eq!(matched_entities.len(), candidate_count);
+        if matched_entities.len() < K {
+            return Self::empty(world, ticks);
+        }
         let candidates = QueryCombinationCandidates::Owned(matched_entities);
         let remaining = combination_count(candidates.len(), K);
         Self {
@@ -230,24 +228,6 @@ where
     D: QueryData,
     F: QueryFilter,
 {
-}
-
-fn read_only_combination_candidate_count<D, F>(
-    world: &World,
-    entities: &[EntityId],
-    ticks: ChangeTickWindow,
-) -> usize
-where
-    D: QueryData,
-    F: QueryFilter,
-{
-    let mut count = 0_usize;
-    for entity in entities.iter().copied() {
-        if read_only_combination_candidate_matches::<D, F>(world, entity, ticks) {
-            count += 1;
-        }
-    }
-    count
 }
 
 fn read_only_combination_candidate_matches<D, F>(

@@ -2,7 +2,10 @@
 related_code:
   - zircon_runtime/assets/fonts/default.font.toml
   - zircon_runtime/src/graphics/mod.rs
+  - zircon_runtime/Cargo.toml
   - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/language.rs
+  - zircon_runtime/src/text/render_state.rs
   - zircon_runtime/src/text/cache/mod.rs
   - zircon_runtime/src/text/cache/frame_dedup.rs
   - zircon_runtime/src/text/cache/layout_cache.rs
@@ -75,6 +78,7 @@ related_code:
   - zircon_runtime/src/text/font/composite_resolve.rs
   - zircon_runtime/src/text/font/vertical_metrics.rs
   - zircon_runtime/src/text/font/database/tests.rs
+  - zircon_runtime/src/text/font/database/tests/system_policy.rs
   - zircon_runtime/src/text/font/descriptors.rs
   - zircon_runtime/src/text/font/matching.rs
   - zircon_runtime/src/text/font/asset_registration.rs
@@ -322,6 +326,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
 implementation_files:
   - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/language.rs
+  - zircon_runtime/src/text/render_state.rs
   - zircon_runtime/src/text/cache/mod.rs
   - zircon_runtime/src/text/cache/frame_dedup.rs
   - zircon_runtime/src/text/cache/layout_cache.rs
@@ -385,6 +391,7 @@ implementation_files:
   - zircon_runtime/src/text/font/composite_resolve.rs
   - zircon_runtime/src/text/font/vertical_metrics.rs
   - zircon_runtime/src/text/font/database/tests.rs
+  - zircon_runtime/src/text/font/database/tests/system_policy.rs
   - zircon_runtime/src/text/font/descriptors.rs
   - zircon_runtime/src/text/font/matching.rs
   - zircon_runtime/src/text/font/asset_registration.rs
@@ -611,6 +618,8 @@ plan_sources:
   - docs/superpowers/specs/2026-07-12-runtime-rich-table-cell-box-design.md
   - docs/superpowers/plans/2026-07-12-runtime-rich-table-cell-box.md
 tests:
+- zircon_runtime/src/text/language.rs (`default_text_locale_is_normalized`; `system_text_locale_is_nonempty_and_normalized`)
+- zircon_runtime/src/text/font/database/tests/system_policy.rs (disabled policy, idempotent discovery, and lazy system-face coverage)
 - zircon_runtime/src/text/font/shared/tests.rs (`identical_shared_font_database_publish_preserves_generation`; semantic font mutations advance once)
 - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs (parallel SDF cache residency and authoritative system-face generation guards)
 - zircon_runtime/src/text/font/database/tests.rs (`text_font_database_composite_activation_is_explicit_and_replaceable`; `text_font_runtime_default_composite_selects_checked_in_zh_hans_face`)
@@ -1531,6 +1540,21 @@ them cannot change a rendered glyph. Shared byte sources use `Arc::ptr_eq` first
 clone-and-republish path is O(face count); byte comparison is only the fallback for independently
 materialized but equivalent databases.
 
+System-font discovery is also idempotent at the `FontDatabase` owner. `fontdb 0.23` appends a fresh
+backend catalog every time `load_system_fonts()` runs, even if Zircon's source index rejects the
+same neutral faces afterward. The database now records that discovery policy has already been
+applied; renderer clones inherit that state and return from repeated `Discover` calls without
+rescanning OS font directories or duplicating backend faces. A future explicit hot-refresh API must
+own invalidation separately instead of overloading ordinary renderer initialization.
+
+`TextRenderState::new(...)` also avoids cosmic-text's independent startup scan. It resolves and
+normalizes the system locale through the text-owned language helper, then constructs
+`FontSystem::new_with_locale_and_db(...)` directly from the shared backend database. The previous
+`FontSystem::new()` temporary—which called `load_system_fonts()` before being immediately
+overwritten—has been removed. `sys-locale` is optional under the existing `text` feature, so
+target-server builds that do not enable Text do not gain the dependency. The raw `"en-us"` fallback
+remains in one `text/language.rs` constant and is reused by the bounded locale cache.
+
 Snapshot reads and publish equality/replacement/generation updates use the same `RwLock` boundary.
 The database replacement and generation increment therefore occur in one write-locked critical
 section, preventing a reader from pairing the new database with the old generation. No shaping or
@@ -1544,6 +1568,54 @@ fixtures against unrelated global publishers without adding a production lock or
 behavior. The initial focused shared-publication batch passed 2/2 in managed job
 `82420bdd20f8450eabaf5e08fd009759`; the expanded default-family guard and parallel SDF batch remain
 in the milestone testing queue, so this implementation is recorded as active rather than accepted.
+
+## 2026-07-17 Text MVP raster worker fail-closed submission
+
+`text/parallel/raster_pool.rs::request(...)` no longer assumes the optional request sender is alive
+with a production `expect`. A missing sender returns `CoreError::ChannelSend` before the work id is
+inserted, so renderer preparation can keep the existing transparent/approximate-glyph degradation
+policy instead of panicking or leaving a permanent in-flight entry. Full and disconnected channels
+continue to remove an inserted id and update diagnostics through the existing error path.
+
+The normal request path adds only one `Option` branch before the existing in-flight lock and channel
+send; worker scheduling, queue depth, deduplication, rasterization, and completion handling are
+unchanged. A test-only disconnect helper makes the otherwise destructor-only state directly
+testable, and `text_raster_worker_pool_disconnected_request_channel_fails_without_panicking` locks
+the returned error plus zero `in_flight`/`queue_peak` counters. The code and scoped formatting are
+complete; the focused `text_raster_worker_pool` execution remains part of the pending managed Text
+MVP testing stage.
+
+## 2026-07-17 Text MVP raster-source ownership hard cut
+
+Async raster work no longer carries the fixed `page_generation=0` target. A swash `GlyphBitmap` is
+produced and cached before the atlas allocator knows its page, so atlas page churn must not discard
+that reusable CPU source. `TextRasterWorkItem` and `TextRasterWorkResult` now carry only the current
+font `face_epoch`; completion drain accepts same-face results and removes work from invalidated font
+faces. The obsolete stale-page worker ids/counts and source-cache telemetry were removed without a
+compatibility field.
+
+Real page generation remains authoritative after allocation. Bitmap run allocation, staging,
+texture-upload request planning, and renderer binding still propagate and validate each page's
+generation before a WGPU write. The new focused worker test locks atlas-independent acceptance plus
+old-face rejection, while the existing staging/upload tests retain stale-page coverage.
+`render_perf_text_async_upload_merges_per_page` additionally locks that two glyphs on one page
+produce one dirty rect, upload command, staging page, staged upload, and texture request. Scoped Rust
+1.94.1 formatting, old-symbol scan, and diff check are green; Cargo execution remains pending.
+
+## 2026-07-17 Text MVP shaping and SDF fail-closed invariants
+
+The primary-coverage fast path in `text/shaping/fallback_spans.rs` now obtains the face from the
+same filtered resolver expression that proved full coverage. It no longer performs a second
+`expect` based on a repeated optional-state assumption. Normal one-span projection, logical family,
+variable instance, and backend face identity are unchanged.
+
+`text/sdf/font_bake.rs::measure_key(...)` similarly treats an unexpected missing map entry after
+`ensure_sdf_font(...)` as a rejected face candidate. It continues through the ordered candidates
+and ultimately returns the existing fallback metrics if none remain, instead of panicking during
+basic text preparation. This does not create a renderer reconstruction path or hide a glyph
+generation failure; the ordinary ensure/lookup path and typed bake failures remain authoritative.
+Existing fallback-span and SDF bake suites cover the normal behavior, while the managed milestone
+testing stage remains pending for the current shared source boundary.
 
 ## 2026-07-10 Text 06 backend face identity hard cut
 
@@ -2037,13 +2109,13 @@ The component-command follow-up keeps the same owner instead of adding component
 
 ## 2026-07-07 Runtime Text Async Raster Worker Queue
 
-`text/parallel` is now the PF-M2/PF-M3 owner for CPU text work queues. `parallel/mod.rs` remains a thin mount point and `parallel/raster_pool.rs` owns the real swash glyph raster worker pool: named worker threads, per-worker `SwashRasterizer`, bounded or unbounded request channels, in-flight work id rejection, async-compute thread budget projection, completion diagnostics, and main-thread completion draining by `page_generation` plus `face_epoch`. Workers only return `GlyphBitmap` results; atlas mutation, page allocation, WGPU upload, and stale/invalidated completion policy stay on the render/main-thread side.
+`text/parallel` is now the PF-M2/PF-M3 owner for CPU text work queues. `parallel/mod.rs` remains a thin mount point and `parallel/raster_pool.rs` owns the real swash glyph raster worker pool: named worker threads, per-worker `SwashRasterizer`, bounded or unbounded request channels, in-flight work id rejection, async-compute thread budget projection, completion diagnostics, and main-thread completion draining by `face_epoch`. Workers only return atlas-independent `GlyphBitmap` results; atlas mutation, page allocation, page-generation validation, and WGPU upload stay on the render/main-thread side. The 2026-07-17 owner hard cut supersedes the original worker-level page-generation contract.
 
 This slice is a data-plane fix for the runtime path behind the editor text-spacing work: it removes another reason for future native bitmap atlas paths to rely on synchronous approximations or silent missing-raster skips. It does not yet connect production atlas misses to the worker queue, does not replace first-frame placeholder/approx buckets, and is not live editor-window typography QA. No new PNG is expected for this slice.
 
 ## 2026-07-07 Runtime Text Worker Completion Bridge
 
-The native bitmap atlas source cache now has the main-thread landing point for raster worker results. `TextRasterCompletionDrain` carries rejected work ids for stale page generations and face invalidations, not just counts, so owners can clear pending work deterministically. `text/native_bitmap_atlas/source_cache.rs` tracks `TextRasterWorkId -> CacheKey`, applies accepted worker completions, converts `GlyphBitmap` into cached `SwashContent`/bearing/size/bytes, and reports worker insert/failed/unknown/invalid/stale/face-invalidated/pending counters through `NativeBitmapAtlasSourceCacheFrameReport`. Idle native-text frames and face invalidation clear pending worker keys alongside cached source bytes.
+The native bitmap atlas source cache now has the main-thread landing point for raster worker results. `TextRasterCompletionDrain` carries rejected work ids for face invalidations so owners can clear pending work deterministically. `text/native_bitmap_atlas/source_cache.rs` tracks `TextRasterWorkId -> CacheKey`, applies accepted worker completions, converts `GlyphBitmap` into cached `SwashContent`/bearing/size/bytes, and reports worker insert/failed/unknown/invalid/face-invalidated/pending counters through `NativeBitmapAtlasSourceCacheFrameReport`. Idle native-text frames and face invalidation clear pending worker keys alongside cached source bytes. Stale page generations belong to the later upload request boundary, not this source cache.
 
 This keeps atlas mutation on the render/main-thread side and leaves workers as CPU bitmap producers. It is not the production miss scheduler yet: deriving parity-correct `SwashRasterRequest` from glyphon `CacheKey`, requesting work from `native_bitmap_atlas_frame(...)`, merging completed glyphs into per-page uploads, and live editor-window typography QA remain open. Validation used the already generated runtime lib-test binary directly: `runtime_text_worker_completion_source_cache_direct_20260707.log` passed 5/5 with SHA256 `C4E26C1EF98E95BBDA75609F7925CC658D19052A8E4F3DC0FCD187AB15B770F5`, and `runtime_text_worker_completion_raster_pool_direct_20260707.log` passed 1/1 with SHA256 `71FE22F34EA45DD9AAE6390131E1909AA4BFC7284903F1D2A4CB3020F63584FF`. No PNG is expected for this nonvisual data-plane slice; target/cargo-target worker/source-cache PNG scan returned 0 with SHA256 `C77FEC3A1A2BED814E3EC387015923C6DA97DCD71A80BE15E75E6DD1178CD64E`.
 
@@ -2059,7 +2131,7 @@ Validation: scoped rustfmt passed with SHA256 `4C1FC20D031D667F0648C6D3FAE8EF01C
 
 Production native bitmap atlas misses now schedule worker raster requests instead of synchronously borrowing glyphon `SwashCache` on the miss path. `scene_renderer/ui/text.rs` owns the optional `TextRasterWorkerPool` lifecycle for `ScreenSpaceUiTextBackend`; `text/native_bitmap_atlas.rs` drains worker completions at frame start and only consumes cached source images; `text/native_bitmap_atlas/source_cache.rs` owns `CacheKey` pending de-duplication and request construction.
 
-The scheduled request uses the selected `fontdb` face index, copied font bytes, and glyphon `CacheKey` to build `SwashRasterRequest::glyphon_cache_key(...)`, then submits a `TextRasterWorkItem` to the pool. Current-frame native replacement remains fail-closed through the existing missing-raster/handoff path until the worker result is accepted into the source cache on a later frame. The temporary `page_generation=0` target remains a known gap until per-page upload merge lands; live editor-window typography QA and full glyphon `TextAtlas` cutover remain open.
+The scheduled request uses the selected `fontdb` face index, copied font bytes, and glyphon `CacheKey` to build `SwashRasterRequest::glyphon_cache_key(...)`, then submits a face-epoch-scoped `TextRasterWorkItem` to the pool. Current-frame native replacement remains fail-closed through the existing missing-raster/handoff path until the worker result is accepted into the source cache on a later frame. The former `page_generation=0` target was removed on 2026-07-17; per-page upload merge remains an independent render-thread optimization, while live editor-window typography QA and full glyphon `TextAtlas` cutover remain open.
 
 Validation: scoped rustfmt check passed with SHA256 `A9F58776A09B5DAC438049683F24BF85764E0FF8E7455952456165C68C158627`; focused `CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib native_bitmap_atlas_source_cache_schedules_glyphon_cache_key_worker_request --target-dir target/codex` passed 1/1(7258 filtered) with log `docs/tests/runtime/text/runtime_text_native_atlas_worker_request_lib_test_no_incremental_20260707.log` SHA256 `609DAB916950E0DACF5FDDEBE32426A2454DCE8844229B5DF12D6324DE8445BC`. The broader wrapper failed before this focused test because of an unrelated Cargo incremental cgu object cache error, log SHA256 `8A94A88A4216168A33632131E1D418E6CC24660C90ED8317D9D9967261AAFF81`. Final static checks: scoped diff-check exited 0 with LF/CRLF warnings only, SHA256 `BBCB97E285A1EBDB018484688CE98F98803A9D2EAEE5F74282662BB220ECE3A8`; conflict scan SHA256 `A7A70B507D034585B09441AED8ED16C250976DA21F33F59B1F69974F8DD39466`; target/cargo-target same-stem PNG scan returned 0 with SHA256 `EC2BCB08A6452B3A5CAF4FF6C384B66F9FC60AE01F36273A7061A0B9028FF1F0`. No PNG is expected for this nonvisual worker-request data-plane slice.
 

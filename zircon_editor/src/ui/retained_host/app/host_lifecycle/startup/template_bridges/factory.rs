@@ -25,9 +25,12 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn create_startup
     };
     let workbench_window_bridge = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_workbench_window_bridge");
-        callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge::new_with_runtime(
+        let mount_frame = template_bridge
+            .root_shell_frames()
+            .componentized_workbench_mount_frame(template_size);
+        callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge::new_mounted_with_runtime(
             builtin_template_runtime.clone(),
-            template_size,
+            mount_frame,
         )?
     };
     let floating_window_source_bridge = {

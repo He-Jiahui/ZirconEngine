@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_yumi_maze_layout_tests",
+  "source": "src",
+  "binary": "bin-m6-yumi-maze-layout-tests",
+  "entry": "social/yumi_maze_layout_test_main"
+}

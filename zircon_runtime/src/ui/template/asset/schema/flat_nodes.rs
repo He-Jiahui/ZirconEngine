@@ -16,9 +16,10 @@ use zircon_runtime_interface::ui::template::{
 };
 use zircon_runtime_interface::ui::widget::UiWidgetContract;
 
-pub(super) fn migrate_flat_toml_str(input: &str) -> Result<UiAssetDocument, UiAssetError> {
-    let flat: FlatUiAssetDocument =
-        toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
+pub(super) fn migrate_flat_value(value: Value) -> Result<UiAssetDocument, UiAssetError> {
+    let flat: FlatUiAssetDocument = value
+        .try_into()
+        .map_err(|error: toml::de::Error| UiAssetError::ParseToml(error.to_string()))?;
     flat.into_tree_document()
 }
 

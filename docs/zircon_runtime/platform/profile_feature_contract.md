@@ -46,6 +46,8 @@ M5 requires the Bevy-style profile promises to compile independently from the br
 
 - `zircon_app` `target-server` must remain headless and avoid window/gilrs defaults.
 - `zircon_app` `target-client,platform-winit,input-gamepad,gamepad-gilrs` must compile the windowed client host profile with desktop gamepad support.
+- `zircon_app` `zircon_shader_pbr_viewer` must compile as that explicit windowed client binary; a package-only check does not prove its entry point remains usable.
+- `zircon_app` `target-editor-host` must compile its editor host profile independently from the default client profile.
 - `zircon_runtime` `target-client` and `target-editor-host` must carry the default platform feature topology.
 - `zircon_runtime` `target-server` must remain headless.
 
@@ -60,6 +62,8 @@ See `docs/zircon_runtime/platform/export_platform_contract.md` for the generated
 ```powershell
 cargo check -p zircon_app --no-default-features --features target-server --locked --verbose
 cargo check -p zircon_app --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked --verbose
+cargo check -p zircon_app --no-default-features --features target-editor-host --locked --verbose
+cargo check -p zircon_app --bin zircon_shader_pbr_viewer --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked --verbose
 cargo check -p zircon_runtime --no-default-features --features target-client --locked --verbose
 cargo check -p zircon_runtime --no-default-features --features target-editor-host --locked --verbose
 cargo check -p zircon_runtime --no-default-features --features target-server --locked --verbose
@@ -92,7 +96,8 @@ The dry-run form is safe during active shared compile queues:
 - the generated Cargo arguments keep `--no-default-features`, `--features`, `--locked`, and the selected target directory;
 - selected dry-run commands include `--verbose` when `-VerboseOutput` is set, matching the verbose CI command shape;
 - selected dry-run commands omit `--locked` only when `-NoLocked` is explicitly requested;
-- the CLI dry-run entry point emits all five profile-feature commands when `-RunProfileFeatureContract` is used without a selector;
+- the CLI dry-run entry point emits all seven profile-feature commands when `-RunProfileFeatureContract` is used without a selector;
+- the shader PBR viewer case carries an explicit `--bin zircon_shader_pbr_viewer` selector in local validation and CI, and its manifest entry remains gated by `target-client`;
 - the single-profile selector is rejected unless `-RunProfileFeatureContract` is also set, so a focused profile request cannot be silently ignored;
 - the CLI dry-run entry point also rejects the single-profile selector when the profile feature stage switch is omitted;
 - the CLI dry-run entry point emits only the selected single-profile command when `-ProfileFeatureContractLabel` is used;
@@ -129,9 +134,9 @@ On 2026-05-27, script-level validation passed:
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -SkipTest -RunProfileFeatureContract -ProfileFeatureContractLabel "zircon_runtime target-server" -DryRun -TargetDir target\manual-check`: emitted only the `zircon_runtime target-server` no-default-features profile check.
 - Passing `-ProfileFeatureContractLabel` without `-RunProfileFeatureContract` is covered by the Pester suite at helper and CLI entry-point level, and rejects with an explicit diagnostic.
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -SkipTest -RunProfileFeatureContract -ProfileFeatureContractLabel "zircon_runtime target-server" -TargetDir F:\cargo-targets\zircon-platform-m5-profile-runtime-server -VerboseOutput` passed: profile feature contract `(zircon_runtime target-server)` OK.
-- Full real profile-feature validator coverage also passed through `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -SkipTest -RunProfileFeatureContract -TargetDir F:\cargo-targets\zircon-platform-m5-profile-runtime-server -VerboseOutput`: `zircon_app target-server`, `zircon_app target-client-platform`, `zircon_runtime target-client`, `zircon_runtime target-editor-host`, and `zircon_runtime target-server` all reported OK.
+- Full real profile-feature validator coverage also passed through `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -SkipTest -RunProfileFeatureContract -TargetDir F:\cargo-targets\zircon-platform-m5-profile-runtime-server -VerboseOutput`: the historical five-case set (`zircon_app target-server`, `zircon_app target-client-platform`, `zircon_runtime target-client`, `zircon_runtime target-editor-host`, and `zircon_runtime target-server`) all reported OK.
 
-The full five-case Cargo validator path is accepted for the focused profile-feature contract. Broader workspace build/test gates remain part of the full M5 testing stage.
+The current seven-case contract adds `zircon_app target-editor-host` and the explicitly selected `zircon_shader_pbr_viewer` entry point. Fresh real Cargo evidence for those two additions remains required before treating the expanded matrix as accepted. Broader workspace build/test gates remain part of the full M5 testing stage.
 
 ## Low-Interference Follow-Up
 

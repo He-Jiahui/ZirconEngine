@@ -10,6 +10,22 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+fn surface_node_pool_detach_filters_slots_once_for_the_entire_subtree() {
+    let source = include_str!("../surface/node_pool.rs");
+    let retain = source
+        .find("tree.slots")
+        .expect("node-pool detach should remove detached slots");
+    let recycle_loop = source
+        .find("for node_id in detached.iter().copied().rev()")
+        .expect("node-pool detach should recycle nodes bottom-up");
+
+    assert!(
+        retain < recycle_loop,
+        "slot filtering must run once before the detached-node recycle loop"
+    );
+}
+
+#[test]
 fn surface_node_pool_reuses_detached_template_node_and_resets_transient_state() {
     let mut surface = pooled_surface();
     surface.focus.focused = Some(child_id());

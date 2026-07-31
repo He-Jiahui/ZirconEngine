@@ -3,8 +3,8 @@ use super::{
     MeshGeometryHandle, MeshPassPipelineKind, MeshPipelineVariantId,
 };
 use crate::core::framework::render::{
-    packed_sort_key_u64, PrimitiveRelevance, RenderMeshStaticState, RenderPhase,
-    RenderPhaseSortComponents, ShaderQualityTier,
+    PrimitiveRelevance, RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+    ShaderQualityTier, packed_sort_key_u64,
 };
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::{MaterialDisabledPasses, PipelineKey};
@@ -326,11 +326,11 @@ pub(crate) trait MeshPassProcessor {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GeometrySourceId, RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
-        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GeometrySourceId,
+        RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
     };
     use crate::core::framework::scene::Mobility;
-    use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
+    use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
     use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
         MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
     };

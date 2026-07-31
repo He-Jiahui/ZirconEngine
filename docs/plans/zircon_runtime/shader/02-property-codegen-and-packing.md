@@ -148,3 +148,15 @@ pub struct MaterialOptionTable {
 - uniform 空间上限:group2 uniform 单 buffer,属性槽超预算(>256 vec4)时 import 诊断;bindless/storage 化属于后续能力档,不在本计划双轨。
 - 打包算法演进:算法版本号进 layout_hash,升级即全量失效重编(宁可多失效,与计划 08 磁盘缓存口径一致);不做旧算法兼容读取。
 - 访问函数内联开销:naga/wgpu 下游会内联平凡函数,不做手工展开;若抓帧证实开销,再评估生成期展开,不改用户 API。
+
+## Code Review 建议 (2026-07-30)
+
+基于对布局契约与上传侧实现的实际阅读。
+
+### 与代码现状不符，需修订
+
+- 「Rust 上传侧单一来源」与 SH02-M2 切片写「删除 `property_uniform.rs`」,但 `zircon_runtime/src/core/framework/render/material/property_uniform.rs` 仍存在,并已重构为布局表驱动的 `RenderMaterialPropertyUniformPayload::from_layout_and_values(...)`(`property_uniform.rs:24-52`),按 `MaterialPropertyLayout.properties` 遍历写偏移,不再逐 standard 字段手写。实现方向与计划一致,但「删除该文件」的措辞已过时。建议把描述改为「`property_uniform.rs` 改为消费 `MaterialPropertyLayout` 的 payload builder,删除逐字段手写映射」,与保留下来的文件对齐。
+
+### 设计优化建议
+
+- `property_uniform.rs:36-40` 写出的 `RenderMaterialPropertyUniformField.alignment` 恒为 4,`size` 为 `component_count*4`。这对 vec3(component_count=3)会报 size=12/alignment=4,与 WGSL `vec4` 槽的 16 字节对齐语义有落差。SH02-M1 的打包器已用 vec4 槽 first-fit,但该 field 元数据把对齐降级为标量粒度。若下游(Inspector/校验)按此 alignment 推断布局会与 WGSL 实际 16 对齐不符,建议在计划里明确该 field 元数据的 alignment 语义(标量偏移粒度 vs vec4 槽对齐),避免消费方误用。

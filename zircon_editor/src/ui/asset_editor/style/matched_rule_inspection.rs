@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::UiMatchedStyleRuleReflection;
-use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinition, UiStyleSheet};
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiNodeDefinition, UiSelectorSpecificity, UiStyleSheet,
+};
 
 use super::style_rule_declarations::{declaration_entries, UiStyleRuleDeclarationEntry};
 
@@ -10,6 +12,7 @@ pub(crate) struct MatchedStyleRuleEntry {
     pub(crate) origin_id: String,
     pub(crate) selector: String,
     pub(crate) specificity: usize,
+    cascade_specificity: UiSelectorSpecificity,
     pub(crate) source_order: usize,
     pub(crate) declarations: Vec<UiStyleRuleDeclarationEntry>,
 }
@@ -81,7 +84,7 @@ pub(crate) fn matched_style_rule_entries(
         &document.stylesheets,
         &mut order,
     );
-    matched.sort_by_key(|rule| (rule.specificity, rule.source_order));
+    matched.sort_by_key(|rule| (rule.cascade_specificity, rule.source_order));
     matched
 }
 
@@ -101,10 +104,12 @@ fn collect_matching_rules(
         for rule in &stylesheet.rules {
             if let Some(selector) = InspectorSelector::parse(&rule.selector) {
                 if selector.matches_path(path) {
+                    let cascade_specificity = selector.cascade_specificity();
                     output.push(MatchedStyleRuleEntry {
                         origin_id: origin_id.clone(),
                         selector: rule.selector.clone(),
-                        specificity: selector.specificity(),
+                        specificity: cascade_specificity.legacy_display_score(),
+                        cascade_specificity,
                         source_order: *order,
                         declarations: declaration_entries(&rule.set),
                     });
@@ -237,18 +242,24 @@ impl InspectorSelector {
         (!segments.is_empty()).then_some(Self { segments })
     }
 
-    fn specificity(&self) -> usize {
-        self.segments
+    fn cascade_specificity(&self) -> UiSelectorSpecificity {
+        let mut id_count = 0;
+        let mut class_like_count = 0;
+        let mut type_count = 0;
+        for token in self
+            .segments
             .iter()
             .flat_map(|segment| segment.tokens.iter())
-            .map(|token| match token {
-                InspectorSelectorToken::Id(_) => 100,
+        {
+            match token {
+                InspectorSelectorToken::Id(_) => id_count += 1,
                 InspectorSelectorToken::Class(_)
                 | InspectorSelectorToken::State(_)
-                | InspectorSelectorToken::Host => 10,
-                InspectorSelectorToken::Type(_) => 1,
-            })
-            .sum()
+                | InspectorSelectorToken::Host => class_like_count += 1,
+                InspectorSelectorToken::Type(_) => type_count += 1,
+            }
+        }
+        UiSelectorSpecificity::new(id_count, class_like_count, type_count)
     }
 
     fn matches_path(&self, path: &[StyleMatchNode<'_>]) -> bool {

@@ -1,4 +1,5 @@
 use crate::core::resource::ResourceRegistry;
+use crate::core::runtime::tasks::TaskPool;
 
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::{ArtifactStore, AssetImporter};
@@ -21,6 +22,7 @@ mod scan_and_import;
 mod source_mtime_unix_ms;
 mod source_path_for_uri;
 mod source_uri_for_path;
+mod targeted_transaction;
 
 pub(crate) use load_or_create_meta::mint_meta_for_migration;
 
@@ -33,4 +35,5 @@ pub struct ProjectManager {
     package_assets: PackageAssetRegistry,
     importer: AssetImporter,
     artifact_store: ArtifactStore,
+    environment_ibl_parallel_executor: Option<TaskPool>,
 }

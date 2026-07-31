@@ -1,0 +1,60 @@
+// Fixed M6 scenario-to-owner routing for nine historical social/PvP factories
+// plus the current-head Card Duel factory at 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a.
+// These focused state contracts remain separate from real-M2 world replay and
+// exact WTR1 comparison.
+var chat = %import("social/chat_state");
+var party = %import("social/party_raid_state");
+var targeting = %import("social/targeting_markers_state");
+var arena = %import("social/arena_state");
+var duel = %import("social/duel_state");
+var fiesta = %import("social/fiesta_state");
+var cardDuel = %import("social/card_duel_service");
+
+pub scenarioCount(required: bool): int {
+    if (!required) { return 0; }
+    return 10;
+}
+
+pub scenarioName(index: int): string {
+    if (index == 0) { return "chat_social"; }
+    if (index == 1) { return "party_raid"; }
+    if (index == 2) { return "targeting_markers"; }
+    if (index == 3) { return "arena_1v1"; }
+    if (index == 4) { return "arena_2v2_wipe"; }
+    if (index == 5) { return "duel_to_winner"; }
+    if (index == 6) { return "fiesta"; }
+    if (index == 7) { return "fiesta_powerups"; }
+    if (index == 8) { return "fiesta_midcast_kill"; }
+    if (index == 9) { return "card_duel"; }
+    return "";
+}
+
+pub runScenario(index: int): int {
+    if (index == 0) { return chat.scenarioTest(); }
+    if (index == 1) { return party.scenarioTest(); }
+    if (index == 2) { return targeting.contractTest(); }
+    if (index == 3) { return arena.arena1v1ScenarioTest(); }
+    if (index == 4) { return arena.arena2v2WipeScenarioTest(); }
+    if (index == 5) { return duel.scenarioTest(); }
+    if (index == 6) { return fiesta.fiestaScenarioTest(); }
+    if (index == 7) { return fiesta.fiestaPowerupsScenarioTest(); }
+    if (index == 8) { return fiesta.fiestaMidcastKillScenarioTest(); }
+    if (index == 9) { return cardDuel.scenarioTest(); }
+    return -1;
+}
+
+pub contractTest(): int {
+    if (scenarioCount(true) != 10 || scenarioCount(false) != 0 ||
+        scenarioName(-1) != "" || scenarioName(10) != "" || runScenario(-1) != -1 ||
+        runScenario(10) != -1) {
+        return -1;
+    }
+    var index = 0;
+    while (index < scenarioCount(true)) {
+        if (scenarioName(index) == "") { return -10 - index; }
+        var result = runScenario(index);
+        if (result != 1) { return -100 - index; }
+        index = index + 1;
+    }
+    return 1;
+}

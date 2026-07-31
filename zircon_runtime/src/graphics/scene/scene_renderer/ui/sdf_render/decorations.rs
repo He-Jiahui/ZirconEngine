@@ -1,11 +1,11 @@
 use crate::core::math::UVec2;
-use crate::text::font::{text_decoration_frame, TextDecorationKind, TextDecorationMetrics};
+use crate::text::font::{TextDecorationKind, TextDecorationMetrics, text_decoration_frame};
 use crate::text::sdf::SdfRunCpuPreparation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 
 use super::super::render::ScreenSpaceUiTextBatch;
-use super::vertices::{push_clipped_solid_quad, transform_sdf_vertices, ScreenSpaceUiSdfVertex};
+use super::vertices::{ScreenSpaceUiSdfVertex, push_clipped_solid_quad, transform_sdf_vertices};
 
 pub(super) fn build_text_decoration_vertices(
     texts: &[ScreenSpaceUiTextBatch],

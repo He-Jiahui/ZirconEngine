@@ -1,8 +1,8 @@
-use std::{collections::HashSet, path::Path};
+use std::collections::HashSet;
 use zircon_runtime::asset::project::ProjectManifest;
 
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::plugin::native::NativePluginLoader;
+use zircon_runtime::plugin::native::NativePluginLoadReport;
 use zircon_runtime::{
     core::framework::project::ExportPackagingStrategy, plugin::PluginModuleKind,
     plugin::PluginPackageManifest, plugin::RuntimePluginCatalog,
@@ -22,17 +22,26 @@ use super::builtin::{
 use super::native_load_state::native_load_state;
 
 impl EditorManager {
-    pub fn native_plugin_status_report(
+    pub(in crate::ui::host) fn publish_project_plugin_status_from_load_report(
         &self,
-        project_root: impl AsRef<Path>,
         manifest: &ProjectManifest,
+        native_report: &NativePluginLoadReport,
+    ) {
+        self.publish_project_plugin_status(
+            self.native_plugin_status_report_from_load_report(manifest, native_report),
+        );
+    }
+
+    pub(crate) fn native_plugin_status_report_from_load_report(
+        &self,
+        manifest: &ProjectManifest,
+        native_report: &NativePluginLoadReport,
     ) -> EditorPluginStatusReport {
-        let native_report =
-            NativePluginLoader.load_discovered_all(self.plugin_directory(project_root));
-        let native_packages = native_report.package_manifests();
+        let native_projection = native_report.projection();
+        let native_packages = native_projection.package_manifests().to_vec();
         let mut status_report = self.plugin_status_report(manifest);
         let status_target = RuntimeTargetMode::EditorHost;
-        let native_runtime_registrations = native_report.runtime_plugin_registration_reports();
+        let native_runtime_registrations = native_projection.runtime_plugin_registration_reports();
         let status_runtime_catalog = RuntimePluginCatalog::from_registration_reports(
             self.runtime_plugin_catalog()
                 .registrations()
@@ -41,9 +50,10 @@ impl EditorManager {
                 .chain(native_runtime_registrations),
             [],
         );
-        let completed_plugins = status_runtime_catalog.complete_project_manifest(&manifest.plugins);
+        let completed_plugins =
+            status_runtime_catalog.complete_project_manifest(&manifest.plugins, status_target);
         let feature_report =
-            status_runtime_catalog.feature_dependency_report(&completed_plugins, status_target);
+            status_runtime_catalog.feature_dependency_report(&manifest.plugins, status_target);
         let available_feature_ids = feature_report
             .available_features
             .iter()
@@ -65,20 +75,20 @@ impl EditorManager {
             blocked_feature_diagnostic_map(&feature_report.blocked_features);
         status_report
             .diagnostics
-            .extend(native_report.diagnostics.iter().cloned());
+            .extend(native_report.diagnostics().iter().cloned());
         status_report
             .diagnostics
-            .extend(native_report.descriptor_diagnostics());
+            .extend(native_projection.descriptor_diagnostics().iter().cloned());
         status_report
             .diagnostics
-            .extend(native_report.entry_diagnostics());
+            .extend(native_projection.entry_diagnostics().iter().cloned());
         status_report
             .diagnostics
             .extend(feature_report.diagnostics.iter().cloned());
 
         for package in native_packages {
-            let package_diagnostics = native_report.diagnostics_for_plugin(&package.id);
-            let load_state = native_load_state(&native_report, &package.id);
+            let package_diagnostics = native_projection.diagnostics_for_plugin(&package.id);
+            let load_state = native_load_state(&native_projection, &package.id);
             let completed_project_selection = completed_plugins
                 .selections
                 .iter()

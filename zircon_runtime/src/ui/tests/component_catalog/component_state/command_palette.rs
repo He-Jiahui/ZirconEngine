@@ -211,6 +211,100 @@ fn command_palette_selects_enabled_command_and_rejects_disabled_command() {
     );
 }
 
+#[test]
+fn command_palette_keyboard_requests_deep_windows_without_local_wrap() {
+    let registry = UiComponentDescriptorRegistry::material_editor_foundation();
+    let palette = registry
+        .descriptor("CommandPalette")
+        .expect("CommandPalette descriptor");
+
+    for count in [1_usize, 12] {
+        let mut state = command_palette_window_state(count, 0, count - 1, 7);
+        state
+            .apply_event(
+                palette,
+                UiComponentEvent::KeyboardAction {
+                    action: UiComponentKeyboardAction::Next,
+                },
+            )
+            .unwrap();
+
+        assert_eq!(state.value("window_request_offset"), None);
+        assert_eq!(
+            state.value("focused_index"),
+            Some(&UiValue::Int((count - 1) as i64))
+        );
+    }
+
+    let mut thirteen = command_palette_window_state(13, 0, 11, 11);
+    thirteen
+        .apply_event(
+            palette,
+            UiComponentEvent::KeyboardAction {
+                action: UiComponentKeyboardAction::Next,
+            },
+        )
+        .unwrap();
+    assert_window_request(&thirteen, 12, "first", 11);
+
+    let mut thousand = command_palette_window_state(1_000, 0, 0, 19);
+    thousand
+        .apply_event(
+            palette,
+            UiComponentEvent::KeyboardAction {
+                action: UiComponentKeyboardAction::Last,
+            },
+        )
+        .unwrap();
+    assert_window_request(&thousand, 996, "last", 19);
+}
+
+fn command_palette_window_state(
+    total_count: usize,
+    window_offset: usize,
+    focused_index: usize,
+    catalog_generation: i64,
+) -> UiComponentState {
+    let window_count = total_count.saturating_sub(window_offset).min(12);
+    let commands = (0..window_count)
+        .map(|index| {
+            UiValue::String(format!(
+                "command_{:04}|label=Command {:04}",
+                window_offset + index,
+                window_offset + index
+            ))
+        })
+        .collect::<Vec<_>>();
+    let selected = format!("command_{:04}", window_offset + focused_index);
+    UiComponentState::new()
+        .with_value("commands", UiValue::Array(commands))
+        .with_value("selected_command_id", UiValue::String(selected))
+        .with_value("focused_index", UiValue::Int(focused_index as i64))
+        .with_value("catalog_generation", UiValue::Int(catalog_generation))
+        .with_value("match_count", UiValue::Int(total_count as i64))
+        .with_value("window_count", UiValue::Int(12))
+        .with_value("window_offset", UiValue::Int(window_offset as i64))
+}
+
+fn assert_window_request(state: &UiComponentState, offset: i64, focus: &str, generation: i64) {
+    assert_eq!(
+        state.value("window_request_current_offset"),
+        state.value("window_offset")
+    );
+    assert_eq!(
+        state.value("window_request_offset"),
+        Some(&UiValue::Int(offset))
+    );
+    assert_eq!(
+        state.value("window_request_focus"),
+        Some(&UiValue::String(focus.to_string()))
+    );
+    assert_eq!(
+        state.value("window_request_generation"),
+        Some(&UiValue::Int(generation))
+    );
+}
+
 fn command(id: &str, label: &str, source: &str, shortcut: &str) -> UiValue {
     UiValue::Map(
         [

@@ -30,12 +30,9 @@ impl EditorUiHost {
 
     pub(super) fn preset_names(&self) -> Result<Vec<String>, EditorError> {
         let mut names = Vec::new();
-        if let Some(project_root) = self.current_project_root()? {
-            names.extend(
-                list_layout_preset_assets(&project_root)
-                    .map_err(|error| EditorError::Project(error.to_string()))?,
-            );
-        }
+        names.extend(list_layout_preset_assets(
+            self.asset_manager()?.current_project_asset_uris(),
+        ));
         names.extend(self.load_presets()?.into_keys());
         names.sort();
         names.dedup();
@@ -77,9 +74,10 @@ impl EditorUiHost {
     }
 
     pub(super) fn save_preset(&self, name: &str) -> Result<(), EditorError> {
-        if let Some(project_root) = self.current_project_root()? {
-            save_layout_preset_asset(&project_root, name, &self.current_layout())
-                .map_err(|error| EditorError::Project(error.to_string()))?;
+        if let Some(project) = self.current_project_snapshot()? {
+            let path = save_layout_preset_asset(&project, name, &self.current_layout())?;
+            let locator = project.project_uri_for_source_path(&path)?;
+            let _ = self.asset_manager()?.import_asset(&locator.to_string())?;
             return Ok(());
         }
         let mut presets = self.load_presets()?;
@@ -94,10 +92,8 @@ impl EditorUiHost {
     }
 
     pub(super) fn load_preset(&self, name: &str) -> Result<bool, EditorError> {
-        if let Some(project_root) = self.current_project_root()? {
-            if let Some(layout) = load_layout_preset_asset(&project_root, name)
-                .map_err(|error| EditorError::Project(error.to_string()))?
-            {
+        if let Some(project) = self.current_project_snapshot()? {
+            if let Some(layout) = load_layout_preset_asset(&project, name)? {
                 let mut session = self.lock_session();
                 session.layout = layout;
                 self.recompute_session_metadata(&mut session);
@@ -140,5 +136,27 @@ impl EditorUiHost {
                     .map_err(|error| EditorError::Project(error.to_string()))?,
             )
             .map_err(|error| EditorError::Project(error.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+    use std::io;
+
+    use zircon_runtime::scene::world::SceneProjectError;
+
+    use super::EditorError;
+
+    #[test]
+    fn scene_project_conversion_preserves_the_typed_source_chain() {
+        let error: EditorError =
+            SceneProjectError::from(io::Error::other("layout preset source")).into();
+        let source = error
+            .source()
+            .expect("EditorError should expose its source");
+
+        assert!(source.downcast_ref::<SceneProjectError>().is_some());
+        assert!(source.source().is_some());
     }
 }

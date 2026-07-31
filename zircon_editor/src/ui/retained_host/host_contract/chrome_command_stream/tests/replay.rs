@@ -1,12 +1,12 @@
 use super::super::{
-    build_chrome_command_stream, paint_chrome_command_stream_to_frame,
-    repaint_chrome_command_stream_region, ChromeCommandKind,
+    ChromeCommandKind, build_chrome_command_stream, paint_chrome_command_stream_to_frame,
+    repaint_chrome_command_stream_region,
 };
 use super::support::{
-    first_pixel_difference, pixel, presentation_with_root_overlay_image,
-    presentation_with_viewport_image, root_overlay_image_command, solid_rgba, ROOT_OVERLAY_COLOR,
-    ROOT_OVERLAY_FRAME_SIZE, ROOT_OVERLAY_IMAGE_HEIGHT, ROOT_OVERLAY_IMAGE_WIDTH,
-    ROOT_OVERLAY_UPLOAD_BYTES,
+    ROOT_OVERLAY_COLOR, ROOT_OVERLAY_FRAME_SIZE, ROOT_OVERLAY_IMAGE_HEIGHT,
+    ROOT_OVERLAY_IMAGE_WIDTH, ROOT_OVERLAY_UPLOAD_BYTES, first_pixel_difference, pixel,
+    presentation_with_root_overlay_image, presentation_with_viewport_image,
+    root_overlay_image_command, solid_rgba,
 };
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostClosePromptData};
 use crate::ui::retained_host::host_contract::paint_workbench::{

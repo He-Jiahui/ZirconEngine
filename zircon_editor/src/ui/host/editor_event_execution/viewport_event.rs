@@ -3,108 +3,75 @@ use crate::scene::viewport::ViewportFeedback;
 use crate::ui::binding::ViewportCommand;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
-use crate::EditorIntent;
 
 use super::execution_outcome::ExecutionOutcome;
+
 pub(super) fn execute_viewport_event(
-    controller: &EditorHostEventController,
+    _controller: &EditorHostEventController,
     shell: &mut WorkbenchShellStateData,
     event: &EditorViewportEvent,
 ) -> Result<ExecutionOutcome, String> {
-    let feedback = match event {
+    let command = match event {
         EditorViewportEvent::PointerMoved { x, y } => {
-            let feedback = shell
-                .state
-                .apply_viewport_command(&ViewportCommand::PointerMoved { x: *x, y: *y });
-            if controller.gizmo_drag().is_active() && feedback.transformed_node.is_some() {
-                shell.state.apply_intent(EditorIntent::DragGizmo)?;
+            ViewportCommand::PointerMoved { x: *x, y: *y }
+        }
+        EditorViewportEvent::LeftPressed {
+            x,
+            y,
+            selection_mutation,
+        } => ViewportCommand::LeftPressed {
+            x: *x,
+            y: *y,
+            selection_mutation: *selection_mutation,
+        },
+        EditorViewportEvent::LeftReleased => ViewportCommand::LeftReleased,
+        EditorViewportEvent::RightPressed { x, y } => {
+            ViewportCommand::RightPressed { x: *x, y: *y }
+        }
+        EditorViewportEvent::RightReleased => ViewportCommand::RightReleased,
+        EditorViewportEvent::MiddlePressed { x, y } => {
+            ViewportCommand::MiddlePressed { x: *x, y: *y }
+        }
+        EditorViewportEvent::MiddleReleased => ViewportCommand::MiddleReleased,
+        EditorViewportEvent::Scrolled { delta } => ViewportCommand::Scrolled { delta: *delta },
+        EditorViewportEvent::Resized { width, height } => ViewportCommand::Resized {
+            width: *width,
+            height: *height,
+        },
+        EditorViewportEvent::ActivateSceneMode { mode } => {
+            ViewportCommand::ActivateSceneMode(mode.clone())
+        }
+        EditorViewportEvent::SetTransformSpace { space } => {
+            ViewportCommand::SetTransformSpace(*space)
+        }
+        EditorViewportEvent::SetProjectionMode { mode } => {
+            ViewportCommand::SetProjectionMode(*mode)
+        }
+        EditorViewportEvent::AlignView { orientation } => ViewportCommand::AlignView(*orientation),
+        EditorViewportEvent::SetDisplayMode { mode } => ViewportCommand::SetDisplayMode(*mode),
+        EditorViewportEvent::SetGridMode { mode } => ViewportCommand::SetGridMode(*mode),
+        EditorViewportEvent::SetTranslateSnap { step } => ViewportCommand::SetTranslateSnap(*step),
+        EditorViewportEvent::SetRotateSnapDegrees { step } => {
+            ViewportCommand::SetRotateSnapDegrees(*step)
+        }
+        EditorViewportEvent::SetScaleSnap { step } => ViewportCommand::SetScaleSnap(*step),
+        EditorViewportEvent::SetPreviewLighting { enabled } => {
+            ViewportCommand::SetPreviewLighting(*enabled)
+        }
+        EditorViewportEvent::SetPreviewSkybox { enabled } => {
+            ViewportCommand::SetPreviewSkybox(*enabled)
+        }
+        EditorViewportEvent::SetGizmosEnabled { enabled } => {
+            ViewportCommand::SetGizmosEnabled(*enabled)
+        }
+        EditorViewportEvent::ToggleOverlayProvider { provider_id } => {
+            ViewportCommand::ToggleOverlayProvider {
+                provider_id: provider_id.clone(),
             }
-            feedback
         }
-        EditorViewportEvent::LeftPressed { x, y } => {
-            let feedback = shell
-                .state
-                .apply_viewport_command(&ViewportCommand::LeftPressed { x: *x, y: *y });
-            controller
-                .gizmo_drag()
-                .set_active(feedback.hovered_axis.is_some());
-            if controller.gizmo_drag().is_active() {
-                shell.state.apply_intent(EditorIntent::BeginGizmoDrag)?;
-            }
-            feedback
-        }
-        EditorViewportEvent::LeftReleased => {
-            if controller.gizmo_drag().is_active() {
-                shell.state.apply_intent(EditorIntent::EndGizmoDrag)?;
-            }
-            controller.gizmo_drag().clear();
-            shell
-                .state
-                .apply_viewport_command(&ViewportCommand::LeftReleased)
-        }
-        EditorViewportEvent::RightPressed { x, y } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::RightPressed { x: *x, y: *y }),
-        EditorViewportEvent::RightReleased => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::RightReleased),
-        EditorViewportEvent::MiddlePressed { x, y } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::MiddlePressed { x: *x, y: *y }),
-        EditorViewportEvent::MiddleReleased => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::MiddleReleased),
-        EditorViewportEvent::Scrolled { delta } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::Scrolled { delta: *delta }),
-        EditorViewportEvent::Resized { width, height } => {
-            shell
-                .state
-                .apply_viewport_command(&ViewportCommand::Resized {
-                    width: *width,
-                    height: *height,
-                })
-        }
-        EditorViewportEvent::SetTool { tool } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetTool(*tool)),
-        EditorViewportEvent::SetTransformSpace { space } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetTransformSpace(*space)),
-        EditorViewportEvent::SetProjectionMode { mode } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetProjectionMode(*mode)),
-        EditorViewportEvent::AlignView { orientation } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::AlignView(*orientation)),
-        EditorViewportEvent::SetDisplayMode { mode } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetDisplayMode(*mode)),
-        EditorViewportEvent::SetGridMode { mode } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetGridMode(*mode)),
-        EditorViewportEvent::SetTranslateSnap { step } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetTranslateSnap(*step)),
-        EditorViewportEvent::SetRotateSnapDegrees { step } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetRotateSnapDegrees(*step)),
-        EditorViewportEvent::SetScaleSnap { step } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetScaleSnap(*step)),
-        EditorViewportEvent::SetPreviewLighting { enabled } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetPreviewLighting(*enabled)),
-        EditorViewportEvent::SetPreviewSkybox { enabled } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetPreviewSkybox(*enabled)),
-        EditorViewportEvent::SetGizmosEnabled { enabled } => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::SetGizmosEnabled(*enabled)),
-        EditorViewportEvent::FrameSelection => shell
-            .state
-            .apply_viewport_command(&ViewportCommand::FrameSelection),
+        EditorViewportEvent::FrameSelection => ViewportCommand::FrameSelection,
     };
+    let feedback = shell.state.apply_viewport_command(&command)?;
     let structural_viewport_change = structural_viewport_event(event);
     let changed = structural_viewport_change
         || feedback.camera_updated
@@ -121,7 +88,7 @@ fn structural_viewport_event(event: &EditorViewportEvent) -> bool {
         event,
         EditorViewportEvent::LeftReleased
             | EditorViewportEvent::Resized { .. }
-            | EditorViewportEvent::SetTool { .. }
+            | EditorViewportEvent::ActivateSceneMode { .. }
             | EditorViewportEvent::SetTransformSpace { .. }
             | EditorViewportEvent::SetProjectionMode { .. }
             | EditorViewportEvent::AlignView { .. }
@@ -133,6 +100,7 @@ fn structural_viewport_event(event: &EditorViewportEvent) -> bool {
             | EditorViewportEvent::SetPreviewLighting { .. }
             | EditorViewportEvent::SetPreviewSkybox { .. }
             | EditorViewportEvent::SetGizmosEnabled { .. }
+            | EditorViewportEvent::ToggleOverlayProvider { .. }
             | EditorViewportEvent::FrameSelection
     )
 }

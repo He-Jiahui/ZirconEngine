@@ -92,6 +92,7 @@ impl UiSurface {
                 event: UiComponentEvent::Hover { hovered: false },
                 delivered: true,
                 drag: None,
+                template_action: None,
             });
         }
         Ok(())

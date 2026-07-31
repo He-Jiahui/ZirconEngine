@@ -29,6 +29,29 @@ fn default_physics_settings_match_disabled_contract() {
 }
 
 #[test]
+fn physics_settings_store_errors_are_domain_owned_and_stable() {
+    let read_only = PhysicsSettingsStoreError::read_only_backend("readonly");
+    let persistence = PhysicsSettingsStoreError::persistence("config store unavailable");
+
+    assert_eq!(
+        read_only,
+        PhysicsSettingsStoreError::ReadOnlyBackend {
+            backend: "readonly".to_string(),
+        }
+    );
+    assert_eq!(
+        persistence,
+        PhysicsSettingsStoreError::Persistence {
+            message: "config store unavailable".to_string(),
+        }
+    );
+    assert_eq!(
+        read_only.to_string(),
+        "physics settings are read-only for backend readonly"
+    );
+}
+
+#[test]
 fn collider_body_and_joint_contracts_use_snake_case_serde() {
     let shape = PhysicsColliderShape::Capsule {
         radius: 0.5,

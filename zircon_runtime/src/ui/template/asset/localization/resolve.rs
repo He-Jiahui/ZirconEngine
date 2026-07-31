@@ -10,7 +10,7 @@ const DEFAULT_LOCALIZATION_TABLE: &str = "default";
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiLocalizationTableCatalog {
-    tables: BTreeMap<(String, String), UiLocalizationTableEntry>,
+    tables: BTreeMap<String, BTreeMap<String, UiLocalizationTableEntry>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -39,12 +39,16 @@ impl UiLocalizationTableCatalog {
                 .filter(|key: &String| !key.trim().is_empty())
                 .collect(),
         };
-        let _ = self.tables.insert((locale.into(), table.into()), entry);
+        let _ = self
+            .tables
+            .entry(locale.into())
+            .or_default()
+            .insert(table.into(), entry);
         self
     }
 
     fn table(&self, locale: &str, table: &str) -> Option<&UiLocalizationTableEntry> {
-        self.tables.get(&(locale.to_string(), table.to_string()))
+        self.tables.get(locale)?.get(table)
     }
 }
 

@@ -1,0 +1,119 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub craftCount(): int { return 10; }
+pub craftAt(index: int): string {
+    if (index == 0) return "engineering";
+    if (index == 1) return "alchemy";
+    if (index == 2) return "cooking";
+    if (index == 3) return "leatherworking";
+    if (index == 4) return "tailoring";
+    if (index == 5) return "inscription";
+    if (index == 6) return "enchanting";
+    if (index == 7) return "jewelcrafting";
+    if (index == 8) return "weaponcrafting";
+    if (index == 9) return "armorcrafting";
+    return "";
+}
+pub craftIndex(id: string): int {
+    if (id == "engineering") return 0;
+    if (id == "alchemy") return 1;
+    if (id == "cooking") return 2;
+    if (id == "leatherworking") return 3;
+    if (id == "tailoring") return 4;
+    if (id == "inscription") return 5;
+    if (id == "enchanting") return 6;
+    if (id == "jewelcrafting") return 7;
+    if (id == "weaponcrafting") return 8;
+    if (id == "armorcrafting") return 9;
+    return -1;
+}
+pub previousCraft(id: string): string {
+    if (id == "engineering") return "armorcrafting";
+    if (id == "alchemy") return "engineering";
+    if (id == "cooking") return "alchemy";
+    if (id == "leatherworking") return "cooking";
+    if (id == "tailoring") return "leatherworking";
+    if (id == "inscription") return "tailoring";
+    if (id == "enchanting") return "inscription";
+    if (id == "jewelcrafting") return "enchanting";
+    if (id == "weaponcrafting") return "jewelcrafting";
+    if (id == "armorcrafting") return "weaponcrafting";
+    return "";
+}
+pub nextCraft(id: string): string {
+    if (id == "engineering") return "alchemy";
+    if (id == "alchemy") return "cooking";
+    if (id == "cooking") return "leatherworking";
+    if (id == "leatherworking") return "tailoring";
+    if (id == "tailoring") return "inscription";
+    if (id == "inscription") return "enchanting";
+    if (id == "enchanting") return "jewelcrafting";
+    if (id == "jewelcrafting") return "weaponcrafting";
+    if (id == "weaponcrafting") return "armorcrafting";
+    if (id == "armorcrafting") return "engineering";
+    return "";
+}
+pub oppositeCraft(id: string): string {
+    if (id == "engineering") return "inscription";
+    if (id == "alchemy") return "enchanting";
+    if (id == "cooking") return "jewelcrafting";
+    if (id == "leatherworking") return "weaponcrafting";
+    if (id == "tailoring") return "armorcrafting";
+    if (id == "inscription") return "engineering";
+    if (id == "enchanting") return "alchemy";
+    if (id == "jewelcrafting") return "cooking";
+    if (id == "weaponcrafting") return "leatherworking";
+    if (id == "armorcrafting") return "tailoring";
+    return "";
+}
+pub archetypePairCount(): int { return 10; }
+pub archetypePairIdAt(index: int): string {
+    if (index == 0) return "engineering+alchemy";
+    if (index == 1) return "alchemy+cooking";
+    if (index == 2) return "cooking+leatherworking";
+    if (index == 3) return "leatherworking+tailoring";
+    if (index == 4) return "tailoring+inscription";
+    if (index == 5) return "inscription+enchanting";
+    if (index == 6) return "enchanting+jewelcrafting";
+    if (index == 7) return "jewelcrafting+weaponcrafting";
+    if (index == 8) return "weaponcrafting+armorcrafting";
+    if (index == 9) return "armorcrafting+engineering";
+    return "";
+}
+pub archetypePairActiveAt(index: int): string {
+    if (index == 0) return "engineering";
+    if (index == 1) return "alchemy";
+    if (index == 2) return "cooking";
+    if (index == 3) return "leatherworking";
+    if (index == 4) return "tailoring";
+    if (index == 5) return "inscription";
+    if (index == 6) return "enchanting";
+    if (index == 7) return "jewelcrafting";
+    if (index == 8) return "weaponcrafting";
+    if (index == 9) return "armorcrafting";
+    return "";
+}
+pub archetypePairPairedAt(index: int): string {
+    if (index == 0) return "alchemy";
+    if (index == 1) return "cooking";
+    if (index == 2) return "leatherworking";
+    if (index == 3) return "tailoring";
+    if (index == 4) return "inscription";
+    if (index == 5) return "enchanting";
+    if (index == 6) return "jewelcrafting";
+    if (index == 7) return "weaponcrafting";
+    if (index == 8) return "armorcrafting";
+    if (index == 9) return "engineering";
+    return "";
+}
+pub comboPartner(craftId: string): string {
+    if (craftId == "armorcrafting") return "weaponcrafting";
+    if (craftId == "weaponcrafting") return "armorcrafting";
+    if (craftId == "alchemy") return "engineering";
+    if (craftId == "engineering") return "alchemy";
+    return "";
+}
+pub commonCeilingTier(): int { return 0; }
+pub rareCeilingTier(): int { return 2; }
+pub amendsBase(): float { return 5.0; }
+pub amendsStep(): float { return 3.0; }
+pub tierSkillStep(): float { return 25.0; }

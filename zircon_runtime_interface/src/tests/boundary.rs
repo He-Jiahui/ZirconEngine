@@ -36,14 +36,19 @@ const FORBIDDEN_SOURCE_NEEDLES: &[&str] = &[
     "std::sync",
 ];
 
+const CANONICAL_TEXT_SPOOL_OS_NEEDLES: &[&str] = &["std::fs", "std::process", "std::sync"];
+const CANONICAL_TEXT_SPOOL_PATH: &str = "src/serialization/text/canonical_spool.rs";
+
 const EXPECTED_RUNTIME_API_MODULES: &[&str] = &[
     "api_table",
     "constants",
     "events",
+    "frame_demand",
     "host_requests",
     "operation",
     "plugin_event_mirror",
     "requests",
+    "session",
     "viewport",
 ];
 const RUNTIME_API_FACADE_LINE_BUDGET: usize = 20;
@@ -92,7 +97,9 @@ fn production_source_does_not_include_or_import_implementation_crates() {
     for source in sources {
         let text = std::fs::read_to_string(&source).expect("read interface source");
         for needle in FORBIDDEN_SOURCE_NEEDLES {
-            if template_pack_embedding_is_reviewed(&source, needle) {
+            if template_pack_embedding_is_reviewed(&source, needle)
+                || canonical_text_spool_os_access_is_reviewed(&source, needle)
+            {
                 continue;
             }
             if text.contains(needle) {
@@ -114,6 +121,27 @@ fn production_source_does_not_include_or_import_implementation_crates() {
 fn template_pack_embedding_is_reviewed(source: &Path, needle: &str) -> bool {
     needle == "include_bytes!("
         && relative_to_manifest(source) == Path::new("src/project/template_pack/embedded.rs")
+}
+
+fn canonical_text_spool_os_access_is_reviewed(source: &Path, needle: &str) -> bool {
+    relative_to_manifest(source) == Path::new(CANONICAL_TEXT_SPOOL_PATH)
+        && CANONICAL_TEXT_SPOOL_OS_NEEDLES.contains(&needle)
+}
+
+#[test]
+fn canonical_text_spool_os_exception_stays_exact() {
+    let source = manifest_dir().join(CANONICAL_TEXT_SPOOL_PATH);
+    let text = std::fs::read_to_string(source).expect("read canonical text spool");
+    let actual: Vec<_> = FORBIDDEN_SOURCE_NEEDLES
+        .iter()
+        .copied()
+        .filter(|needle| text.contains(needle))
+        .collect();
+
+    assert_eq!(
+        actual, CANONICAL_TEXT_SPOOL_OS_NEEDLES,
+        "canonical text sorting may use only its reviewed disk-spool OS primitives"
+    );
 }
 
 #[test]

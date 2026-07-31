@@ -7,8 +7,8 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/host_interface/rpc.rs
   - zircon_plugins/zr_vm_language/runtime/src/host_interface/editor_op.rs
   - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_interfaces.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/extension_host.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
 implementation_files:
   - zircon_plugins/zr_vm_language/plugin.toml
   - zircon_plugins/zr_vm_language/runtime/src/host_interface/mod.rs
@@ -17,8 +17,8 @@ implementation_files:
   - zircon_plugins/zr_vm_language/runtime/src/host_interface/rpc.rs
   - zircon_plugins/zr_vm_language/runtime/src/host_interface/editor_op.rs
   - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_interfaces.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/extension_host.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
 plan_sources:
   - user: 2026-07-13 implement the complete engine plugin architecture plan
   - docs/plans/zircon_plugins/08-zr-vm.md

@@ -41,7 +41,7 @@ pub(super) fn shape_horizontal_run(
     }
 
     let variations = database
-        .effective_instance_variations(face_id, instance_id, font_weight)
+        .effective_instance_variations_shared(face_id, instance_id, font_weight)
         .ok()?;
     let language = language.and_then(|value| Language::from_str(value).ok());
     if variations.0.is_empty() && language.is_none() {

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m8_mob_motion_world_tests",
+  "source": "src",
+  "binary": "bin-m8-mob-motion-world-tests",
+  "entry": "world/mob_motion_world_test_main"
+}

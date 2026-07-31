@@ -4,10 +4,11 @@ mod linux;
 mod policy;
 mod window;
 
-use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::platform::{PreferenceStorageBackendKind, RuntimeTargetMode};
 
 use super::backends::{EventLoopPolicy, LinuxWindowProtocol};
 use super::report::PlatformCapabilityReport;
+use super::status::CapabilityStatus;
 use crate::platform::{PlatformFeatureSelection, PlatformTarget};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -76,6 +77,7 @@ impl PlatformCapabilityMatrix {
             gamepad_events: self.gamepad_event_backend(target, target_mode),
             gamepad_rumble: self.gamepad_rumble_backend(target, target_mode),
             file_drag_drop: self.file_drag_drop_backend(target, target_mode),
+            persistent_preferences: preference_storage_backend(target, target_mode),
             linux_x11: self.linux_protocol(
                 target,
                 self.features.platform_x11,
@@ -105,4 +107,18 @@ impl PlatformCapabilityMatrix {
             self.explicit_event_loop_policy(target, target_mode, event_loop_policy);
         report
     }
+}
+
+const fn preference_storage_backend(
+    target: PlatformTarget,
+    target_mode: RuntimeTargetMode,
+) -> CapabilityStatus<PreferenceStorageBackendKind> {
+    let reason = if matches!(target_mode, RuntimeTargetMode::ServerRuntime)
+        || matches!(target, PlatformTarget::Headless)
+    {
+        "server or headless runtime requires an explicitly injected persistent preference backend"
+    } else {
+        "host persistent preference backend is not installed"
+    };
+    CapabilityStatus::Unavailable { reason }
 }

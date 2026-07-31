@@ -1,0 +1,73 @@
+// Shared form-kind predicates used by combat and WOS action admission.
+var container = %import("zr.container");
+var contract = %import("generated/forms_contract");
+
+pub isFormAuraKind(kind: string): bool { return contract.isForm(kind); }
+pub isResourceShiftFormAuraKind(kind: string): bool { return contract.isResourceShift(kind); }
+pub isActionLockingFormAuraKind(kind: string): bool { return contract.isActionLocking(kind); }
+pub isTravelFormAuraKind(kind: string): bool { return contract.isTravel(kind); }
+pub formAbilityCode(kind: string): uint { return contract.formAbilityCode(kind); }
+pub formKindForAbilityCode(code: uint): string { return contract.formKindForAbilityCode(code); }
+pub isFormAbilityCode(code: uint): bool { return contract.isFormAbilityCode(code); }
+pub formAbilityCodeForExactPayload(
+    payloadBytes: container.Array<uint>, offset: uint, length: uint
+): uint { return contract.formAbilityCodeForExactPayload(payloadBytes, offset, length); }
+pub formCost(code: uint): int { return contract.formCost(code); }
+pub formCastTime(code: uint): float { return contract.formCastTime(code); }
+pub formCooldown(code: uint): float { return contract.formCooldown(code); }
+pub formAuraValue(code: uint): float { return contract.formAuraValue(code); }
+pub bearArmorMultiplier(): float { return contract.bearArmorMultiplier(); }
+pub bearBonusAttackPowerFlat(): int { return contract.bearBonusAttackPowerFlat(); }
+pub bearBonusAttackPowerPerAgility(): float { return contract.bearBonusAttackPowerPerAgility(); }
+pub bearMaxHpMultiplier(): float { return contract.bearMaxHpMultiplier(); }
+pub catBonusAttackPowerFlat(): int { return contract.catBonusAttackPowerFlat(); }
+pub catBonusAttackPowerPerLevel(): int { return contract.catBonusAttackPowerPerLevel(); }
+pub catAgilityMinimum(): int { return contract.catAgilityMinimum(); }
+pub catAgilityLevelDivisor(): int { return contract.catAgilityLevelDivisor(); }
+pub moonkinArmorMultiplier(): float { return contract.moonkinArmorMultiplier(); }
+pub bearThreatMultiplier(): float { return contract.bearThreatMultiplier(); }
+pub catThreatMultiplier(): float { return contract.catThreatMultiplier(); }
+pub moonkinSpellDamageBonus(): float { return contract.moonkinSpellDamageBonus(); }
+pub isResourceShiftFormAbilityCode(code: uint): bool { return contract.isResourceShiftAbilityCode(code); }
+pub isResourceBarShiftFormAbilityCode(code: uint): bool { return contract.isResourceBarShiftAbilityCode(code); }
+pub resourceKindForFormAbilityCode(code: uint): uint { return contract.resourceKindForFormAbilityCode(code); }
+pub isActionLockingFormAbilityCode(code: uint): bool { return contract.isActionLockingAbilityCode(code); }
+pub isTravelFormAbilityCode(code: uint): bool { return contract.isTravelAbilityCode(code); }
+
+pub contractTest(): int {
+    if (!isFormAuraKind("form_moonkin") || !isFormAuraKind("form_shadow") || isFormAuraKind("other")) return -1;
+    if (!isResourceShiftFormAuraKind("form_bear") || isResourceShiftFormAuraKind("form_fireball")) return -2;
+    if (!isActionLockingFormAuraKind("form_fireball") || !isActionLockingFormAuraKind("form_cat")) return -3;
+    if (!isTravelFormAuraKind("form_travel") || !isTravelFormAuraKind("form_fireball") || isTravelFormAuraKind("form_cat")) return -4;
+    var cat = formAbilityCode("form_cat");
+    var fireball = formAbilityCode("form_fireball");
+    var travel = formAbilityCode("form_travel");
+    if (cat == <uint>0 || formKindForAbilityCode(cat) != "form_cat" ||
+        !isFormAbilityCode(cat) || formCost(cat) != 30 || formCastTime(cat) != 0.0 ||
+        formCooldown(cat) != 0.0 || formAuraValue(cat) != 0.71 ||
+        !isResourceShiftFormAbilityCode(cat) ||
+        !isResourceBarShiftFormAbilityCode(cat) || resourceKindForFormAbilityCode(cat) != <uint>3 ||
+        isTravelFormAbilityCode(cat) || fireball == <uint>0 ||
+        formCastTime(fireball) != 2.0 || formCooldown(fireball) != 10.0 ||
+        travel == <uint>0 || formAuraValue(travel) != 1.4 ||
+        isResourceBarShiftFormAbilityCode(fireball) ||
+        !isActionLockingFormAbilityCode(fireball) || !isTravelFormAbilityCode(fireball)) return -5;
+    var catPayload = new container.Array<uint>();
+    catPayload.add(<uint>99); // c
+    catPayload.add(<uint>97); // a
+    catPayload.add(<uint>116); // t
+    catPayload.add(<uint>95); // _
+    catPayload.add(<uint>102); // f
+    catPayload.add(<uint>111); // o
+    catPayload.add(<uint>114); // r
+    catPayload.add(<uint>109); // m
+    if (formAbilityCodeForExactPayload(catPayload, <uint>0, <uint>8) != cat ||
+        formAbilityCodeForExactPayload(catPayload, <uint>0, <uint>7) != <uint>0) return -6;
+    if (bearArmorMultiplier() != 1.9 || bearBonusAttackPowerFlat() != 15 ||
+        bearBonusAttackPowerPerAgility() != 1.5 || bearMaxHpMultiplier() != 1.15 ||
+        catBonusAttackPowerFlat() != 8 || catBonusAttackPowerPerLevel() != 2 ||
+        catAgilityMinimum() != 2 || catAgilityLevelDivisor() != 2 ||
+        moonkinArmorMultiplier() != 1.5 || bearThreatMultiplier() != 1.3 ||
+        catThreatMultiplier() != 0.71 || moonkinSpellDamageBonus() != 0.2) return -7;
+    return 1;
+}

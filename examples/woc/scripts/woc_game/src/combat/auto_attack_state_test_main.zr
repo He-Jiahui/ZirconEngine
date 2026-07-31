@@ -1,0 +1,10 @@
+var console = %import("zr.system.console");
+var autoAttack = %import("combat/auto_attack_state");
+
+console.printLine("m4-auto-attack-state-test");
+var result = autoAttack.contractTest();
+if (result == 1) {
+    result = autoAttack.authoritativeRngContractTest();
+}
+console.printLine(result);
+return result == 1 ? 0 : result;

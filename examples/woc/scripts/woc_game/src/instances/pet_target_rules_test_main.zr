@@ -1,0 +1,24 @@
+var rules = %import("instances/pet_target_rules");
+
+if (rules.assistRange() != 50.0 || rules.aggressiveRange() != 18.0 ||
+    rules.ownerIdleTicks() != 1200 || !rules.canSelectTarget(false) ||
+    rules.canSelectTarget(true) || rules.initialBestDistance(false) != 50.0 ||
+    rules.initialBestDistance(true) != 18.0 ||
+    rules.candidateEligible(true, false, true, true, true, false, false, false, false, false, false, 0.0) ||
+    rules.candidateEligible(false, true, true, true, true, false, false, false, false, false, false, 5.0) ||
+    rules.candidateEligible(false, false, false, true, true, false, false, false, false, false, false, 5.0) ||
+    !rules.candidateEligible(false, false, true, true, true, false, false, false, false, false, true, 50.0) ||
+    rules.candidateEligible(false, false, true, false, true, false, false, false, false, false, false, 5.0) ||
+    // A hostile non-self pet-like candidate is not filtered by kind; world hostility decides it.
+    !rules.candidateEligible(false, false, true, false, false, false, true, true, false, false, true, 50.0) ||
+    !rules.candidateEligible(false, false, true, true, false, false, true, false, true, false, true, 50.0) ||
+    rules.candidateEligible(false, false, true, false, false, false, true, false, true, false, true, 50.0) ||
+    !rules.candidateEligible(false, false, true, false, false, false, false, false, false, true, false, 18.0) ||
+    rules.candidateEligible(false, false, true, false, false, false, false, false, false, true, false, 18.0001) ||
+    rules.candidateEligible(false, false, true, false, false, false, false, false, false, true, true, 1.0) ||
+    !rules.shouldReplaceCandidate(17.9999, 18.0) || rules.shouldReplaceCandidate(18.0, 18.0) ||
+    rules.contractTest() != 1) {
+    return -1;
+}
+
+return 0;

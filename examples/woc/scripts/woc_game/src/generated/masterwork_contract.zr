@@ -1,0 +1,6 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub baseChance(required: bool): float { return required ? 0.03 : 0.0; }
+pub perTierAboveChance(required: bool): float { return required ? 0.01 : 0.0; }
+pub signedReagentChance(required: bool): float { return required ? 0.02 : 0.0; }
+pub specializationChance(required: bool): float { return required ? 0.03 : 0.0; }
+pub chanceCap(required: bool): float { return required ? 0.15 : 0.0; }

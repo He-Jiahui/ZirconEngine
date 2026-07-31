@@ -37,6 +37,9 @@ use proof_commands::{
     proof_vertical_rich_text, proof_vertical_text,
 };
 
+const TEXT_RASTER_SETTLE_MAX_FRAMES: u64 = 120;
+const TEXT_RASTER_SETTLE_FRAME_DELAY_MILLIS: u64 = 2;
+
 #[cfg(target_os = "windows")]
 #[test]
 #[ignore = "exports an explicit runtime WGPU multilingual text framebuffer proof"]
@@ -217,6 +220,19 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     );
 
     assert_eq!(stats.last_ui_text_payload_count, samples.len());
+    assert_eq!(
+        stats.last_ui_text_unmapped_glyph_count, 0,
+        "the product framebuffer must resolve every requested glyph through the configured font chain: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_raster_worker_pending_count,
+        0,
+        "the settled product framebuffer must not capture transparent native-atlas placeholders: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_raster_worker_failed_count, 0,
+        "the settled product framebuffer must not leave failed native raster work: {stats:#?}"
+    );
     for sample in &samples {
         let changed = count_changed_pixels_in_frame(
             &capture.rgba,
@@ -506,17 +522,19 @@ fn render_ui_extract_frame(
                 .with_temporal_history(false),
         )
         .expect("text proof quality profile");
-    let settle_frame_count = if ui
+    let contains_text = ui
         .list
         .commands
         .iter()
-        .any(|command| command.text.is_some())
-    {
-        24_u64
+        .any(|command| command.text.is_some());
+    let settle_frame_limit = if contains_text {
+        TEXT_RASTER_SETTLE_MAX_FRAMES
     } else {
         2_u64
     };
-    for frame_index in 0..settle_frame_count {
+    let mut final_stats = None;
+    let mut raster_was_settled = false;
+    for frame_index in 0..settle_frame_limit {
         server
             .submit_frame_extract_with_ui(
                 viewport,
@@ -524,10 +542,22 @@ fn render_ui_extract_frame(
                 Some(ui.clone()),
             )
             .expect("submit multilingual text settle frame");
-        std::thread::sleep(std::time::Duration::from_millis(2));
+        let stats = server.query_stats().expect("text proof render stats");
+        let raster_is_settled = stats.last_ui_text_raster_worker_pending_count == 0
+            || stats.last_ui_text_raster_worker_failed_count > 0;
+        final_stats = Some(stats);
+        if contains_text && raster_was_settled {
+            break;
+        }
+        raster_was_settled = contains_text && raster_is_settled;
+        // This only yields CPU time between fresh statistics polls; the raster condition above
+        // decides completion, and the bounded frame limit remains the failure guard.
+        std::thread::sleep(std::time::Duration::from_millis(
+            TEXT_RASTER_SETTLE_FRAME_DELAY_MILLIS,
+        ));
     }
 
-    let stats = server.query_stats().expect("text proof render stats");
+    let stats = final_stats.expect("the settle loop submits at least one frame");
     let capture = server
         .capture_frame(viewport)
         .expect("capture multilingual text frame")
@@ -767,5 +797,5 @@ fn proof_path() -> PathBuf {
         .join("tests")
         .join("runtime")
         .join("text")
-        .join("runtime_text_mixed_bidi_source_geometry_product_framebuffer_20260715.png")
+        .join("runtime_text_mvp_foundation_product_framebuffer_20260729.png")
 }

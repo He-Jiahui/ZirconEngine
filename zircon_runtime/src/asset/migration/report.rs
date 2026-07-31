@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use super::AssetMigrationMode;
@@ -72,6 +73,57 @@ impl AssetMigrationChange {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AssetMigrationMetrics {
+    pub(super) entry_visits: usize,
+    pub(super) directory_reads: usize,
+    pub(super) directory_sorts: usize,
+    pub(super) resolver_filesystem_probes: usize,
+    pub(super) document_reads: usize,
+    pub(super) document_parses: usize,
+    pub(super) reference_visits: usize,
+    pub(super) full_value_clones: usize,
+    pub(super) output_bytes: usize,
+}
+
+impl AssetMigrationMetrics {
+    pub fn entry_visits(&self) -> usize {
+        self.entry_visits
+    }
+
+    pub fn directory_reads(&self) -> usize {
+        self.directory_reads
+    }
+
+    pub fn directory_sorts(&self) -> usize {
+        self.directory_sorts
+    }
+
+    pub fn resolver_filesystem_probes(&self) -> usize {
+        self.resolver_filesystem_probes
+    }
+
+    pub fn document_reads(&self) -> usize {
+        self.document_reads
+    }
+
+    pub fn document_parses(&self) -> usize {
+        self.document_parses
+    }
+
+    pub fn reference_visits(&self) -> usize {
+        self.reference_visits
+    }
+
+    pub fn full_value_clones(&self) -> usize {
+        self.full_value_clones
+    }
+
+    pub fn output_bytes(&self) -> usize {
+        self.output_bytes
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AssetMigrationReport {
     mode: AssetMigrationMode,
@@ -79,6 +131,7 @@ pub struct AssetMigrationReport {
     changed_files: Vec<AssetMigrationChange>,
     issues: Vec<AssetMigrationIssue>,
     applied: bool,
+    pub(super) metrics: AssetMigrationMetrics,
 }
 
 impl AssetMigrationReport {
@@ -89,6 +142,7 @@ impl AssetMigrationReport {
             changed_files: Vec::new(),
             issues: Vec::new(),
             applied: false,
+            metrics: AssetMigrationMetrics::default(),
         }
     }
 
@@ -116,34 +170,42 @@ impl AssetMigrationReport {
         self.issues.is_empty()
     }
 
+    pub fn metrics(&self) -> &AssetMigrationMetrics {
+        &self.metrics
+    }
+
     pub fn format_text(&self) -> String {
-        let mut lines = vec![format!(
+        let mut output = String::new();
+        write!(
+            output,
             "migrate-assets mode={:?} scanned={} changed={} issues={} applied={}",
             self.mode,
             self.scanned_files,
             self.changed_files.len(),
             self.issues.len(),
             self.applied
-        )];
-        lines.extend(self.changed_files.iter().map(|change| {
-            format!(
-                "change path={} references={}",
+        )
+        .expect("writing to String cannot fail");
+        for change in &self.changed_files {
+            write!(
+                output,
+                "\nchange path={} references={}",
                 change.path.display(),
                 change.reference_count
             )
-        }));
-        lines.extend(self.issues.iter().map(|issue| {
-            format!(
-                "issue kind={:?} path={} message={}",
-                issue.kind,
-                issue.path.as_deref().map_or_else(
-                    || "<project>".to_string(),
-                    |path| path.display().to_string()
-                ),
-                issue.message
-            )
-        }));
-        lines.join("\n")
+            .expect("writing to String cannot fail");
+        }
+        for issue in &self.issues {
+            write!(output, "\nissue kind={:?} path=", issue.kind)
+                .expect("writing to String cannot fail");
+            if let Some(path) = &issue.path {
+                write!(output, "{}", path.display()).expect("writing to String cannot fail");
+            } else {
+                output.push_str("<project>");
+            }
+            write!(output, " message={}", issue.message).expect("writing to String cannot fail");
+        }
+        output
     }
 
     pub(super) fn set_scanned_files(&mut self, scanned_files: usize) {

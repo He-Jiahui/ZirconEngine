@@ -1,0 +1,5 @@
+var container=%import("zr.container");var contract=%import("generated/form_swing_contract");
+contains(forms:container.Array<string>,kind:string):bool{var i=0;while(i<forms.length){if(<string>forms[i]==kind)return true;i=i+1;}return false;}
+pub baseSwingSpeed(forms:container.Array<string>,weaponSpeed:float,rogueBaseSpeed:float):float{return contains(forms,contract.cat())?rogueBaseSpeed:weaponSpeed;}
+pub wandAllowedInForm(forms:container.Array<string>):bool{var i=0;while(i<forms.length){if(contract.wandless(<string>forms[i]))return false;i=i+1;}return true;}
+pub contractTest():int{var forms=new container.Array<string>();if(baseSwingSpeed(forms,2.4,1.8)!=2.4||!wandAllowedInForm(forms))return -1;forms.add(contract.cat());if(baseSwingSpeed(forms,2.4,1.8)!=1.8||wandAllowedInForm(forms))return -2;forms.clear();forms.add("form_moonkin");if(!wandAllowedInForm(forms))return -3;forms.clear();forms.add("form_travel");if(wandAllowedInForm(forms))return -4;return 1;}

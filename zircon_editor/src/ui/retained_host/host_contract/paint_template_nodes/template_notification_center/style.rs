@@ -1,71 +1,98 @@
 use super::super::super::data::TemplatePaneOptionData;
+use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const PANEL_SURFACE: [u8; 4] =
-    [17, 24, 29, 255];
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const PANEL_BORDER: [u8; 4] =
-    [45, 58, 66, 255];
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const HEADER_TEXT: [u8; 4] =
-    [231, 238, 240, 255];
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const MUTED_TEXT: [u8; 4] =
-    [127, 143, 149, 255];
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct NotificationCenterPalette
+{
+    pub panel_surface: [u8; 4],
+    pub panel_border: [u8; 4],
+    pub header_text: [u8; 4],
+    pub muted_text: [u8; 4],
+    pub row_surface: [u8; 4],
+    pub row_unread_surface: [u8; 4],
+    pub row_disabled_surface: [u8; 4],
+    pub row_border: [u8; 4],
+    pub row_focus_border: [u8; 4],
+    pub accent: [u8; 4],
+    pub error: [u8; 4],
+    pub success: [u8; 4],
+    pub warning: [u8; 4],
+}
 
-const ROW_SURFACE: [u8; 4] = [21, 30, 35, 255];
-const ROW_UNREAD_SURFACE: [u8; 4] = [21, 48, 53, 255];
-const ROW_DISABLED_SURFACE: [u8; 4] = [37, 44, 49, 255];
-const ROW_BORDER: [u8; 4] = [40, 56, 66, 255];
-const ROW_FOCUSED_BORDER: [u8; 4] = [24, 58, 63, 255];
-const ACCENT: [u8; 4] = [53, 199, 208, 255];
-const ERROR: [u8; 4] = [239, 112, 102, 255];
-const SUCCESS: [u8; 4] = [66, 184, 131, 255];
-const WARNING: [u8; 4] = [224, 163, 58, 255];
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn current_notification_center_palette(
+) -> NotificationCenterPalette {
+    notification_center_palette_from_host(current_host_palette())
+}
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn row_background(
-    option: &TemplatePaneOptionData,
-) -> [u8; 4] {
-    if option.disabled {
-        ROW_DISABLED_SURFACE
-    } else if option.unread {
-        ROW_UNREAD_SURFACE
-    } else {
-        ROW_SURFACE
+fn notification_center_palette_from_host(
+    palette: HostMaterialPalette,
+) -> NotificationCenterPalette {
+    NotificationCenterPalette {
+        panel_surface: palette.popup,
+        panel_border: palette.border,
+        header_text: palette.text,
+        muted_text: palette.text_muted,
+        row_surface: palette.surface_inset,
+        row_unread_surface: palette.accent_soft,
+        row_disabled_surface: palette.surface_disabled,
+        row_border: palette.border,
+        row_focus_border: palette.focus_ring,
+        accent: palette.accent,
+        error: palette.error,
+        success: palette.success,
+        warning: palette.warning,
     }
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn row_border(
+pub(super) fn row_background(
     option: &TemplatePaneOptionData,
+    palette: NotificationCenterPalette,
+) -> [u8; 4] {
+    if option.disabled {
+        palette.row_disabled_surface
+    } else if option.unread {
+        palette.row_unread_surface
+    } else {
+        palette.row_surface
+    }
+}
+
+pub(super) fn row_border(
+    option: &TemplatePaneOptionData,
+    palette: NotificationCenterPalette,
 ) -> [u8; 4] {
     if option.selected {
-        ACCENT
+        palette.accent
     } else if option.focused {
-        ROW_FOCUSED_BORDER
+        palette.row_focus_border
     } else {
-        ROW_BORDER
+        palette.row_border
     }
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn title_color(
+pub(super) fn title_color(
     option: &TemplatePaneOptionData,
+    palette: NotificationCenterPalette,
 ) -> [u8; 4] {
     if option.disabled {
-        MUTED_TEXT
+        palette.muted_text
     } else {
-        HEADER_TEXT
+        palette.header_text
     }
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn severity_color(
-    tone: &str,
-) -> [u8; 4] {
+pub(super) fn severity_color(tone: &str, palette: NotificationCenterPalette) -> [u8; 4] {
     match tone {
-        "success" => SUCCESS,
-        "warning" => WARNING,
-        "error" => ERROR,
-        _ => ACCENT,
+        "success" => palette.success,
+        "warning" => palette.warning,
+        "error" => palette.error,
+        _ => palette.accent,
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::super::super::paint_theme::PALETTE;
     use super::*;
 
     fn row() -> TemplatePaneOptionData {
@@ -73,49 +100,62 @@ mod tests {
     }
 
     #[test]
-    fn focused_notification_row_keeps_normal_background() {
-        let option = TemplatePaneOptionData {
-            focused: true,
-            ..row()
-        };
+    fn palette_projects_each_notification_role_from_the_host_theme() {
+        let mut host = PALETTE;
+        host.popup = [1, 2, 3, 4];
+        host.border = [5, 6, 7, 8];
+        host.text = [9, 10, 11, 12];
+        host.text_muted = [13, 14, 15, 16];
+        host.surface_inset = [17, 18, 19, 20];
+        host.accent_soft = [21, 22, 23, 24];
+        host.surface_disabled = [25, 26, 27, 28];
+        host.focus_ring = [29, 30, 31, 32];
+        host.accent = [33, 34, 35, 36];
+        host.error = [37, 38, 39, 40];
+        host.success = [41, 42, 43, 44];
+        host.warning = [45, 46, 47, 48];
 
-        assert_eq!(row_background(&option), ROW_SURFACE);
-        assert_eq!(row_border(&option), ROW_FOCUSED_BORDER);
-        assert_ne!(row_border(&option), ACCENT);
+        let palette = notification_center_palette_from_host(host);
+
+        assert_eq!(palette.panel_surface, [1, 2, 3, 4]);
+        assert_eq!(palette.panel_border, [5, 6, 7, 8]);
+        assert_eq!(palette.header_text, [9, 10, 11, 12]);
+        assert_eq!(palette.muted_text, [13, 14, 15, 16]);
+        assert_eq!(palette.row_surface, [17, 18, 19, 20]);
+        assert_eq!(palette.row_unread_surface, [21, 22, 23, 24]);
+        assert_eq!(palette.row_disabled_surface, [25, 26, 27, 28]);
+        assert_eq!(palette.row_border, [5, 6, 7, 8]);
+        assert_eq!(palette.row_focus_border, [29, 30, 31, 32]);
+        assert_eq!(palette.accent, [33, 34, 35, 36]);
+        assert_eq!(palette.error, [37, 38, 39, 40]);
+        assert_eq!(palette.success, [41, 42, 43, 44]);
+        assert_eq!(palette.warning, [45, 46, 47, 48]);
     }
 
     #[test]
-    fn focused_unread_notification_row_keeps_unread_background() {
-        let option = TemplatePaneOptionData {
-            focused: true,
+    fn notification_row_state_priority_keeps_disabled_and_selected_explicit() {
+        let palette = current_notification_center_palette();
+        let disabled = TemplatePaneOptionData {
+            disabled: true,
             unread: true,
+            focused: true,
             ..row()
         };
-
-        assert_eq!(row_background(&option), ROW_UNREAD_SURFACE);
-        assert_eq!(row_border(&option), ROW_FOCUSED_BORDER);
-    }
-
-    #[test]
-    fn selected_notification_row_still_uses_accent_border() {
-        let option = TemplatePaneOptionData {
+        let selected = TemplatePaneOptionData {
             selected: true,
             focused: true,
             ..row()
         };
 
-        assert_eq!(row_border(&option), ACCENT);
-    }
-
-    #[test]
-    fn disabled_notification_row_keeps_disabled_background() {
-        let option = TemplatePaneOptionData {
-            disabled: true,
-            focused: true,
-            unread: true,
-            ..row()
-        };
-
-        assert_eq!(row_background(&option), ROW_DISABLED_SURFACE);
+        assert_eq!(
+            row_background(&disabled, palette),
+            palette.row_disabled_surface
+        );
+        assert_eq!(row_border(&selected, palette), palette.accent);
+        assert_eq!(
+            severity_color("warning", palette),
+            palette.warning,
+            "semantic tones must not use local RGB literals"
+        );
     }
 }

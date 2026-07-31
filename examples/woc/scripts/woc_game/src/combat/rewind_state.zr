@@ -1,0 +1,60 @@
+// Pure Chronomancy Rewind amount calculation. Group/raid target selection and
+// canonical heal/threat/event application are composed by the WOS reducer.
+var history = %import("combat/damage_history_state");
+var targeting = %import("combat/group_targeting_state");
+var contract = %import("generated/rewind_contract");
+var container = %import("zr.container");
+
+pub rewindHealAmount(
+    recentDamage: int,
+    hp: int,
+    maxHp: int,
+    fractionPercent: int,
+    maxHpFractionPercent: int
+): int {
+    var fromDamage = <int>((recentDamage * fractionPercent + 50) / 100);
+    var maxHpCap = <int>((maxHp * maxHpFractionPercent + 50) / 100);
+    var missing = maxHp - hp;
+    if (fromDamage < 0) fromDamage = 0;
+    if (maxHpCap < 0) maxHpCap = 0;
+    if (missing < 0) missing = 0;
+    var result = fromDamage < maxHpCap ? fromDamage : maxHpCap;
+    return result < missing ? result : missing;
+}
+
+pub rewindHealFor(
+    state: history.DamageHistoryState,
+    now: int,
+    hp: int,
+    maxHp: int,
+    windowTicks: int
+): int {
+    return rewindHealAmount(
+        history.damageTakenWithin(state, now, windowTicks), hp, maxHp,
+        contract.fractionPercent(true), contract.maxHpFractionPercent(true)
+    );
+}
+
+// The WOS cast reducer supplies the party snapshot and applies each computed
+// heal through its canonical transaction. This preserves the source's shared
+// group-targeting owner without embedding world mutation in this pure module.
+pub selectRewindTargets(
+    state: targeting.GroupTargetingState,
+    casterId: int,
+    radius: float
+): container.Array<int> {
+    return targeting.livingGroupRaidInRadius(state, casterId, radius);
+}
+
+pub contractTest(): int {
+    if (rewindHealAmount(1000, 500, 1000, 30, 35) != 300 ||
+        rewindHealAmount(10000, 0, 1000, 30, 35) != 350 ||
+        rewindHealAmount(1000, 900, 1000, 30, 35) != 100 ||
+        // Target uses Math.round: 5 * 0.30 is 1.5 and heals for 2.
+        rewindHealAmount(5, 0, 1000, 30, 35) != 2) return -1;
+    var state = new history.DamageHistoryState();
+    history.recordDamageTaken(state, 10000, 100);
+    if (rewindHealFor(state, 100, 94000, 100000, 100) != 3000 ||
+        rewindHealFor(state, 201, 94000, 100000, 100) != 0) return -2;
+    return 1;
+}

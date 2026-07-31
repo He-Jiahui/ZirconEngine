@@ -1,8 +1,12 @@
+use std::collections::{BTreeSet, VecDeque};
+use std::convert::Infallible;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use super::PLUGIN_MANIFEST_FILE;
+
+pub(super) const MAX_DISCOVERY_DEPTH: usize = 16;
 
 pub(super) type NativePluginManifestCollectionResult<T> =
     std::result::Result<T, NativePluginManifestCollectionError>;
@@ -38,29 +42,275 @@ impl std::error::Error for NativePluginManifestCollectionError {
     }
 }
 
-pub(super) fn collect_plugin_manifests(
-    root: &Path,
-    manifest_paths: &mut Vec<PathBuf>,
-) -> NativePluginManifestCollectionResult<()> {
-    let entries = fs::read_dir(root).map_err(|source| {
-        NativePluginManifestCollectionError::EnumerateRoot {
-            root: root.to_path_buf(),
-            source,
-        }
-    })?;
-    for entry in entries {
-        let entry = entry.map_err(|source| NativePluginManifestCollectionError::InspectEntry {
-            root: root.to_path_buf(),
-            source,
-        })?;
-        let path = entry.path();
-        if path.is_dir() {
-            collect_plugin_manifests(&path, manifest_paths)?;
-        } else if path.file_name().and_then(|value| value.to_str()) == Some(PLUGIN_MANIFEST_FILE) {
-            manifest_paths.push(path);
+pub(super) trait NativePluginManifestTraversalVisitor {
+    type Error;
+
+    fn checkpoint(&mut self) -> Result<(), Self::Error>;
+
+    fn reserve_scratch(&mut self, total_bytes: u64) -> Result<(), Self::Error>;
+
+    fn manifest(&mut self, manifest_path: PathBuf) -> Result<(), Self::Error>;
+
+    fn diagnostic(
+        &mut self,
+        build: impl FnOnce() -> NativePluginManifestTraversalDiagnostic,
+    ) -> Result<(), Self::Error>;
+}
+
+pub(super) enum NativePluginManifestTraversalError<E> {
+    Collection(NativePluginManifestCollectionError),
+    Visitor(E),
+}
+
+pub(super) enum NativePluginManifestTraversalDiagnostic {
+    IgnoredSymbolicLink(PathBuf),
+    MaximumDepth { child: PathBuf, maximum: usize },
+    OutsideCanonicalRoot(PathBuf),
+    CanonicalDirectoryCycle(PathBuf),
+}
+
+impl NativePluginManifestTraversalDiagnostic {
+    pub(super) fn into_message(self) -> String {
+        match self {
+            Self::IgnoredSymbolicLink(path) => {
+                format!(
+                    "native plugin discovery ignored symbolic link {}",
+                    path.display()
+                )
+            }
+            Self::MaximumDepth { child, maximum } => format!(
+                "native plugin discovery maximum depth {maximum} reached at {}",
+                child.display()
+            ),
+            Self::OutsideCanonicalRoot(child) => format!(
+                "native plugin discovery ignored directory outside canonical root: {}",
+                child.display()
+            ),
+            Self::CanonicalDirectoryCycle(child) => format!(
+                "native plugin discovery ignored canonical directory cycle at {}",
+                child.display()
+            ),
         }
     }
-    Ok(())
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub(super) struct NativePluginManifestTraversal {
+    pub(super) enumerated_directories: u64,
+    pub(super) inspected_entries: u64,
+}
+
+#[derive(Debug, Default)]
+pub(super) struct NativePluginManifestCollection {
+    pub(super) manifest_paths: Vec<PathBuf>,
+    pub(super) diagnostics: Vec<String>,
+    pub(super) enumerated_directories: u64,
+    pub(super) inspected_entries: u64,
+}
+
+struct CollectingManifestVisitor<'a> {
+    collection: &'a mut NativePluginManifestCollection,
+}
+
+impl NativePluginManifestTraversalVisitor for CollectingManifestVisitor<'_> {
+    type Error = Infallible;
+
+    fn checkpoint(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn reserve_scratch(&mut self, _total_bytes: u64) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn manifest(&mut self, manifest_path: PathBuf) -> Result<(), Self::Error> {
+        self.collection.manifest_paths.push(manifest_path);
+        Ok(())
+    }
+
+    fn diagnostic(
+        &mut self,
+        build: impl FnOnce() -> NativePluginManifestTraversalDiagnostic,
+    ) -> Result<(), Self::Error> {
+        self.collection.diagnostics.push(build().into_message());
+        Ok(())
+    }
+}
+
+/// Performs the cold editor/dev scan. Product exports use `native_plugins.toml` instead. The
+/// traversal is deterministic, does not follow directory links, and stops below a package root
+/// once its `plugin.toml` is found, matching the package-boundary behavior of mature engines.
+pub(super) fn collect_plugin_manifests(
+    root: &Path,
+) -> NativePluginManifestCollectionResult<NativePluginManifestCollection> {
+    let mut collection = NativePluginManifestCollection::default();
+    let mut visitor = CollectingManifestVisitor {
+        collection: &mut collection,
+    };
+    let traversal = match traverse_plugin_manifests(root, &mut visitor) {
+        Ok(traversal) => traversal,
+        Err(NativePluginManifestTraversalError::Collection(error)) => return Err(error),
+        Err(NativePluginManifestTraversalError::Visitor(never)) => match never {},
+    };
+    collection.enumerated_directories = traversal.enumerated_directories;
+    collection.inspected_entries = traversal.inspected_entries;
+    collection.manifest_paths.sort();
+    collection.diagnostics.sort();
+    collection.diagnostics.dedup();
+    Ok(collection)
+}
+
+pub(super) fn traverse_plugin_manifests<V>(
+    root: &Path,
+    visitor: &mut V,
+) -> Result<NativePluginManifestTraversal, NativePluginManifestTraversalError<V::Error>>
+where
+    V: NativePluginManifestTraversalVisitor,
+{
+    visitor
+        .checkpoint()
+        .map_err(NativePluginManifestTraversalError::Visitor)?;
+    let canonical_root = fs::canonicalize(root).map_err(|source| {
+        NativePluginManifestTraversalError::Collection(
+            NativePluginManifestCollectionError::EnumerateRoot {
+                root: root.to_path_buf(),
+                source,
+            },
+        )
+    })?;
+    let mut retained_scratch_bytes = scratch_bytes_for_path(&canonical_root);
+    visitor
+        .reserve_scratch(retained_scratch_bytes)
+        .map_err(NativePluginManifestTraversalError::Visitor)?;
+    let mut visited = BTreeSet::from([canonical_root.clone()]);
+    let mut pending = VecDeque::from([(canonical_root.clone(), 0_usize)]);
+    let mut traversal = NativePluginManifestTraversal::default();
+
+    while let Some((directory, depth)) = pending.pop_front() {
+        visitor
+            .checkpoint()
+            .map_err(NativePluginManifestTraversalError::Visitor)?;
+        let entries = fs::read_dir(&directory).map_err(|source| {
+            NativePluginManifestTraversalError::Collection(
+                NativePluginManifestCollectionError::EnumerateRoot {
+                    root: directory.clone(),
+                    source,
+                },
+            )
+        })?;
+        traversal.enumerated_directories = traversal.enumerated_directories.saturating_add(1);
+
+        let mut child_directories = Vec::new();
+        let mut package_manifest_found = false;
+        let mut entries = entries;
+        loop {
+            visitor
+                .checkpoint()
+                .map_err(NativePluginManifestTraversalError::Visitor)?;
+            let Some(entry) = entries.next() else {
+                break;
+            };
+            traversal.inspected_entries = traversal.inspected_entries.saturating_add(1);
+            let entry = entry.map_err(|source| {
+                NativePluginManifestTraversalError::Collection(
+                    NativePluginManifestCollectionError::InspectEntry {
+                        root: directory.clone(),
+                        source,
+                    },
+                )
+            })?;
+            visitor
+                .checkpoint()
+                .map_err(NativePluginManifestTraversalError::Visitor)?;
+            let path = entry.path();
+            let file_type = entry.file_type().map_err(|source| {
+                NativePluginManifestTraversalError::Collection(
+                    NativePluginManifestCollectionError::InspectEntry {
+                        root: directory.clone(),
+                        source,
+                    },
+                )
+            })?;
+            if file_type.is_symlink() {
+                visitor
+                    .diagnostic(|| {
+                        NativePluginManifestTraversalDiagnostic::IgnoredSymbolicLink(path)
+                    })
+                    .map_err(NativePluginManifestTraversalError::Visitor)?;
+                continue;
+            }
+            if file_type.is_file()
+                && path.file_name().and_then(|value| value.to_str()) == Some(PLUGIN_MANIFEST_FILE)
+            {
+                visitor
+                    .manifest(path)
+                    .map_err(NativePluginManifestTraversalError::Visitor)?;
+                package_manifest_found = true;
+            } else if file_type.is_dir() {
+                retained_scratch_bytes =
+                    retained_scratch_bytes.saturating_add(scratch_bytes_for_path(&path));
+                visitor
+                    .reserve_scratch(retained_scratch_bytes)
+                    .map_err(NativePluginManifestTraversalError::Visitor)?;
+                child_directories.push(path);
+            }
+        }
+
+        if package_manifest_found {
+            continue;
+        }
+        for child in child_directories {
+            if depth >= MAX_DISCOVERY_DEPTH {
+                visitor
+                    .diagnostic(|| NativePluginManifestTraversalDiagnostic::MaximumDepth {
+                        child,
+                        maximum: MAX_DISCOVERY_DEPTH,
+                    })
+                    .map_err(NativePluginManifestTraversalError::Visitor)?;
+                continue;
+            }
+            visitor
+                .checkpoint()
+                .map_err(NativePluginManifestTraversalError::Visitor)?;
+            let canonical_child = fs::canonicalize(&child).map_err(|source| {
+                NativePluginManifestTraversalError::Collection(
+                    NativePluginManifestCollectionError::InspectEntry {
+                        root: directory.clone(),
+                        source,
+                    },
+                )
+            })?;
+            if !canonical_child.starts_with(&canonical_root) {
+                visitor
+                    .diagnostic(|| {
+                        NativePluginManifestTraversalDiagnostic::OutsideCanonicalRoot(child)
+                    })
+                    .map_err(NativePluginManifestTraversalError::Visitor)?;
+                continue;
+            }
+            if visited.contains(&canonical_child) {
+                visitor
+                    .diagnostic(|| {
+                        NativePluginManifestTraversalDiagnostic::CanonicalDirectoryCycle(child)
+                    })
+                    .map_err(NativePluginManifestTraversalError::Visitor)?;
+                continue;
+            }
+            retained_scratch_bytes =
+                retained_scratch_bytes.saturating_add(scratch_bytes_for_path(&canonical_child));
+            visitor
+                .reserve_scratch(retained_scratch_bytes)
+                .map_err(NativePluginManifestTraversalError::Visitor)?;
+            visited.insert(canonical_child.clone());
+            pending.push_back((canonical_child, depth + 1));
+        }
+    }
+
+    Ok(traversal)
+}
+
+fn scratch_bytes_for_path(path: &Path) -> u64 {
+    path.as_os_str().len() as u64 + 64
 }
 
 #[cfg(test)]
@@ -77,8 +327,7 @@ mod tests {
                 .expect("system time should be after unix epoch")
                 .as_nanos()
         ));
-        let mut manifest_paths = Vec::new();
-        let error = collect_plugin_manifests(&missing_root, &mut manifest_paths)
+        let error = collect_plugin_manifests(&missing_root)
             .expect_err("missing root should report typed manifest collection error");
 
         match error {

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var cc = %import("combat/cc_state");
+
+console.printLine("m4-cc-state-test");
+var result = cc.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

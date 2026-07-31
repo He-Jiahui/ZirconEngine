@@ -36,20 +36,68 @@ test("runtime contracts preserve the bounded coordinator experience projection",
   );
 });
 
-test("runtime contracts accept only bounded same-plan continuation advice", () => {
+test("runtime contracts distinguish bounded external continuation advice from validation queue work", () => {
   const snapshot = validSnapshot();
   (snapshot as Record<string, unknown>).experience = {
     sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 },
     blockers: [],
     continuations: [{
-      sessionId: "waiting-owner", planPath: "docs/plans/tooling/01-workflow.md", waitKind: "validation",
+      sessionId: "waiting-owner", planPath: "docs/plans/tooling/01-workflow.md", waitKind: "external",
       candidate: { milestone: "M1", title: "Write the remaining module documentation." },
       scopeClaimRequired: true, returnToPrimary: true,
     }],
   };
-  assert.equal(parseSnapshot(snapshot).experience.continuations[0]?.candidate.milestone, "M1");
+  assert.equal(parseSnapshot(snapshot).experience.continuations[0]?.waitKind, "external");
 
   (snapshot as unknown as { experience: { continuations: Array<{ waitKind: string }> } }).experience.continuations[0]!.waitKind = "global_drain";
+  assert.throws(() => parseSnapshot(snapshot));
+});
+
+test("runtime contracts accept one unowned code-Failure pull without widening the queue", () => {
+  const snapshot = validSnapshot();
+  (snapshot as Record<string, unknown>).experience = {
+    sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 },
+    blockers: [],
+    continuations: [{
+      sessionId: "waiting-owner", planPath: "docs/plans/tooling/01-primary.md", waitKind: "validation",
+      candidate: {
+        kind: "unowned_failure", planPath: "docs/plans/runtime/02-code.md",
+        milestone: "Failure P10", title: "repair-runtime-command-path",
+      },
+      scopeClaimRequired: true, returnToPrimary: true,
+    }],
+  };
+
+  const continuation = parseSnapshot(snapshot).experience.continuations[0];
+  assert.equal(continuation?.candidate.kind, "unowned_failure");
+  assert.equal(continuation?.candidate.planPath, "docs/plans/runtime/02-code.md");
+});
+
+test("runtime contracts accept one bounded intervention card", () => {
+  const snapshot = validSnapshot();
+  (snapshot as Record<string, unknown>).experience = {
+    sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 },
+    blockers: [],
+    continuations: [],
+    intervention: {
+      openFailureCount: 103,
+      responsiblePlanCount: 44,
+      mode: "single_plan",
+      maxConcurrentPlans: 1,
+      suggestedNext: {
+        kind: "failure", planPath: "docs/plans/editor/16-cli-args-and-hub-integration.md",
+        summary: "migrate-assets-commandlet-registry", priority: 0, action: "resolve_one_failure",
+      },
+      validation: {
+        waitingSessionCount: 5,
+        pendingReservationCount: 8,
+        nextReservation: { sessionId: "runtime12-input-event-bounds-guard-fix-r6-20260717", queuePosition: 1, executionMode: "warm" },
+      },
+    },
+  };
+  assert.equal(parseSnapshot(snapshot).experience.intervention?.openFailureCount, 103);
+
+  ((snapshot as unknown as { experience: { intervention: { mode: string } } }).experience.intervention.mode) = "all_at_once";
   assert.throws(() => parseSnapshot(snapshot));
 });
 

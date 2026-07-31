@@ -39,6 +39,7 @@ mod tests {
     };
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::append_ibl_bake_artifact_graph_plan;
+    use crate::graphics::scene::scene_renderer::graph_execution::TransientResourcePool;
     use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
 
     use super::*;
@@ -75,8 +76,10 @@ mod tests {
         };
         let graph = ibl_bake_graph();
         let mut resources = RenderGraphExecutionResources::new();
+        let mut transient_pool = TransientResourcePool::default();
+        transient_pool.begin_frame();
         resources
-            .materialize_transient_resources(&backend.device, &graph)
+            .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
             .expect("IBL bake transient resources should materialize");
 
         bind_environment_ibl_graph_resources(&graph, None, &mut resources);

@@ -8,7 +8,7 @@ use zircon_runtime::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
     RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    RendererCommon, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -421,7 +421,11 @@ fn contact_shadow_mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: default_render_layer_set(),
+        common: RendererCommon {
+            layer_mask: default_render_layer_set(),
+            is_static: false,
+            ..RendererCommon::default()
+        },
     }
 }
 

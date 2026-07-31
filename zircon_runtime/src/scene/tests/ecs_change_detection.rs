@@ -248,13 +248,14 @@ fn resource_store_hot_paths_use_direct_branches() {
         .and_then(|text| text.split("pub fn len(&self)").next())
         .expect("read ResourceStore::ticks body");
 
-    assert!(
-        insert_source.contains("let ticks = if let Some(stored) = self.resources.get(&type_id)")
-    );
+    assert!(insert_source.contains("match self.resources.entry(type_id)"));
+    assert!(insert_source.contains("Entry::Occupied(mut occupied)"));
+    assert!(insert_source.contains("let stored = occupied.get_mut();"));
     assert!(insert_source.contains("ticks.set_changed(tick);"));
-    assert!(insert_source.contains("} else {\n            ComponentTicks::new(tick)\n        };"));
-    assert!(insert_source.contains("let Some(stored) = self.resources.insert("));
-    assert!(insert_source.contains("let Ok(boxed) = stored.value.downcast::<T>() else"));
+    assert!(insert_source.contains("std::mem::replace(&mut stored.value, Box::new(resource))"));
+    assert!(insert_source.contains("Entry::Vacant(vacant)"));
+    assert!(insert_source.contains("ticks: ComponentTicks::new(tick)"));
+    assert!(insert_source.contains("let Ok(boxed) = previous.downcast::<T>() else"));
     assert!(insert_source.contains("Some(*boxed)"));
     assert!(get_source.contains("let stored = self.resources.get(&TypeId::of::<T>())?;"));
     assert!(get_source.contains("stored.value.downcast_ref::<T>()"));
@@ -270,6 +271,8 @@ fn resource_store_hot_paths_use_direct_branches() {
     assert!(ticks_source.contains("let stored = self.resources.get(&TypeId::of::<T>())?;"));
     assert!(ticks_source.contains("Some(stored.ticks)"));
     assert!(!insert_source.contains(".map(|stored|"));
+    assert!(!insert_source.contains("self.resources.get(&type_id)"));
+    assert!(!insert_source.contains("self.resources.insert("));
     assert!(!insert_source.contains(".unwrap_or_else(|| ComponentTicks::new(tick))"));
     assert!(!insert_source.contains(".and_then(|stored| stored.value.downcast::<T>().ok())"));
     assert!(!insert_source.contains(".map(|boxed| *boxed)"));

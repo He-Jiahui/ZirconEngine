@@ -22,14 +22,14 @@ default_classes = ["workbench-floating", "workbench-preferences"]
 component = "HorizontalGroup"
 control_id = "WorkbenchPreferences"
 classes = ["workbench-floating", "workbench-preferences"]
-style = { self = { background = { color = "editor.surface.1" }, foreground = { color = "editor.text.primary" }, border = { color = "editor.border", width = 1.0, radius = 8.0 } } }
+style = { self = { background = { color = "$editor.surface.1" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.large" } } }
 layout = { clip = true, container = { kind = "HorizontalBox", gap = 8.0 }, width = { min = 720.0, preferred = 860.0, max = 960.0, stretch = "Fixed" }, height = { min = 480.0, preferred = 560.0, max = 680.0, stretch = "Fixed" } }
 children = [{ node = "navigation" }, { node = "content" }]
 
 [nodes.navigation]
 component = "VerticalGroup"
 control_id = "WorkbenchPreferencesNavigation"
-style = { self = { background = { color = "editor.surface.0" }, foreground = { color = "editor.text.secondary" }, border = { color = "editor.border", width = 1.0, radius = 5.0 } } }
+style = { self = { background = { color = "$editor.surface.0" }, foreground = { color = "$editor.text.secondary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
 layout = { clip = true, container = { kind = "VerticalBox", gap = 2.0 }, width = { min = 192.0, preferred = 224.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "nav_general" }, { node = "nav_layout" }]
 
@@ -48,7 +48,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 2
 [nodes.content]
 component = "VerticalGroup"
 control_id = "WorkbenchPreferencesContent"
-style = { self = { background = { color = "editor.surface.2" }, foreground = { color = "editor.text.primary" }, border = { color = "editor.border", width = 1.0, radius = 5.0 } } }
+style = { self = { background = { color = "$editor.surface.2" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
 layout = { clip = true, container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "title" }]
 

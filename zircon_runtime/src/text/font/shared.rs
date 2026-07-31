@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(test)]
-use std::sync::RwLockReadGuard;
+use std::sync::{Mutex, MutexGuard, RwLockReadGuard};
 use std::sync::{OnceLock, RwLock};
 
 use super::{FontDatabase, SystemFontPolicy};
@@ -36,21 +36,20 @@ impl SharedFontDatabase {
         (generation, database.clone())
     }
 
-    fn publish(&self, database: &FontDatabase) -> u64 {
-        // Equality, replacement, and the generation transition share one
-        // critical section. Repeated renderer construction therefore keeps
-        // SDF/shaping caches resident when the effective font inputs did not
-        // change, while a real mutation remains an atomic lineage change.
+    fn mutate<R>(&self, mutation: impl FnOnce(&mut FontDatabase) -> R) -> (u64, FontDatabase, R) {
         let mut current = self
             .database
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let generation = self.generation.load(Ordering::Acquire);
-        if current.has_same_render_inputs(database) {
-            return generation;
-        }
-        *current = database.clone();
-        self.generation.fetch_add(1, Ordering::AcqRel) + 1
+        let before = current.clone();
+        let result = mutation(&mut current);
+        let render_inputs_changed = !before.has_same_render_inputs(&current);
+        let generation = if render_inputs_changed {
+            self.generation.fetch_add(1, Ordering::AcqRel) + 1
+        } else {
+            self.generation.load(Ordering::Acquire)
+        };
+        (generation, current.clone(), result)
     }
 
     #[cfg(test)]
@@ -77,12 +76,10 @@ pub(crate) fn shared_font_database_snapshot() -> (u64, FontDatabase) {
     shared_database().snapshot()
 }
 
-/// Publish the authoritative renderer lineage after project-font mutation.
-///
-/// Readers keep immutable clones and refresh by generation at a shaping-call
-/// boundary, so no shaping hot path holds the process-wide lock.
-pub(crate) fn publish_shared_font_database(database: &FontDatabase) -> u64 {
-    shared_database().publish(database)
+pub(crate) fn mutate_shared_font_database<R>(
+    mutation: impl FnOnce(&mut FontDatabase) -> R,
+) -> (u64, FontDatabase, R) {
+    shared_database().mutate(mutation)
 }
 
 #[cfg(test)]
@@ -100,6 +97,16 @@ pub(crate) fn shared_font_database_test_read_guard() -> (u64, RwLockReadGuard<'s
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let generation = shared.generation.load(Ordering::Acquire);
     (generation, database)
+}
+
+#[cfg(test)]
+pub(crate) fn shared_font_database_test_serial_guard() -> MutexGuard<'static, ()> {
+    // Shared database tests hold this across the complete mutation and observation window.
+    static SERIAL: OnceLock<Mutex<()>> = OnceLock::new();
+    SERIAL
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 #[cfg(test)]

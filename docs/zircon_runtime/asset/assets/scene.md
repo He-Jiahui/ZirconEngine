@@ -17,7 +17,16 @@ related_code:
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
+  - zircon_runtime/src/scene/components/scene/animation.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_runtime/src/scene/world/render.rs
@@ -58,7 +67,16 @@ implementation_files:
   - zircon_runtime/src/asset/assets/scene/transform.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
+  - zircon_runtime/src/scene/components/scene/animation.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_runtime/src/scene/world/render.rs

@@ -76,60 +76,28 @@ pub struct ShaderAssetManagementRecordSet {
 
 impl ShaderAssetManagementRecordSetSummary {
     pub fn from_records(records: &[ShaderAssetManagementRecord]) -> Self {
-        Self {
+        let mut summary = Self {
             shader_count: records.len(),
-            ready_count: records.iter().filter(|record| record.summary.ready).count(),
-            not_ready_count: records
-                .iter()
-                .filter(|record| !record.summary.ready)
-                .count(),
-            runtime_wgsl_count: records
-                .iter()
-                .filter(|record| record.summary.uses_runtime_wgsl)
-                .count(),
-            unavailable_runtime_source_count: records
-                .iter()
-                .filter(|record| {
-                    record.summary.runtime_source_kind == ShaderRuntimeSourceKind::Unavailable
-                })
-                .count(),
-            redirected_import_count: records
-                .iter()
-                .map(|record| record.summary.redirected_import_count)
-                .sum(),
-            dependency_count: records
-                .iter()
-                .map(|record| record.summary.dependency_count)
-                .sum(),
-            entry_point_diagnostic_count: records
-                .iter()
-                .map(|record| record.summary.entry_point_diagnostic_count)
-                .sum(),
-            shader_definition_diagnostic_count: records
-                .iter()
-                .map(|record| record.summary.shader_definition_diagnostic_count)
-                .sum(),
-            validation_diagnostic_count: records
-                .iter()
-                .map(|record| record.summary.validation_diagnostic_count)
-                .sum(),
-            pipeline_layout_count: records
-                .iter()
-                .filter(|record| record.summary.has_pipeline_layout)
-                .count(),
-            bind_group_count: records
-                .iter()
-                .map(|record| record.summary.bind_group_count)
-                .sum(),
-            binding_count: records
-                .iter()
-                .map(|record| record.summary.binding_count)
-                .sum(),
-            push_constant_range_count: records
-                .iter()
-                .map(|record| record.summary.push_constant_range_count)
-                .sum(),
+            ..Self::default()
+        };
+        for record in records {
+            let record = &record.summary;
+            summary.ready_count += usize::from(record.ready);
+            summary.not_ready_count += usize::from(!record.ready);
+            summary.runtime_wgsl_count += usize::from(record.uses_runtime_wgsl);
+            summary.unavailable_runtime_source_count +=
+                usize::from(record.runtime_source_kind == ShaderRuntimeSourceKind::Unavailable);
+            summary.redirected_import_count += record.redirected_import_count;
+            summary.dependency_count += record.dependency_count;
+            summary.entry_point_diagnostic_count += record.entry_point_diagnostic_count;
+            summary.shader_definition_diagnostic_count += record.shader_definition_diagnostic_count;
+            summary.validation_diagnostic_count += record.validation_diagnostic_count;
+            summary.pipeline_layout_count += usize::from(record.has_pipeline_layout);
+            summary.bind_group_count += record.bind_group_count;
+            summary.binding_count += record.binding_count;
+            summary.push_constant_range_count += record.push_constant_range_count;
         }
+        summary
     }
 
     pub fn issue_row_count(&self) -> usize {

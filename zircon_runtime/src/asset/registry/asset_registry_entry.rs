@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -73,8 +73,9 @@ impl AssetRegistryEntry {
 
 fn unique_dependencies(dependencies: Vec<AssetUuid>) -> Vec<AssetUuid> {
     let mut unique = Vec::with_capacity(dependencies.len());
+    let mut seen = HashSet::with_capacity(dependencies.len());
     for dependency in dependencies {
-        if !unique.contains(&dependency) {
+        if seen.insert(dependency) {
             unique.push(dependency);
         }
     }

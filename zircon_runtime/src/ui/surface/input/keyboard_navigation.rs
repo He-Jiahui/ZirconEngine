@@ -43,19 +43,25 @@ fn directional_navigation_kind(keyboard: &UiKeyboardInputEvent) -> Option<UiNavi
 }
 
 fn logical_directional_navigation_kind(logical_key: &str) -> Option<UiNavigationEventKind> {
-    let normalized = normalized_key_name(logical_key);
-    match normalized.as_str() {
-        "arrowleft" | "left" | "gamepaddpadleft" => Some(UiNavigationEventKind::Left),
-        "arrowup" | "up" | "gamepaddpadup" => Some(UiNavigationEventKind::Up),
-        "arrowright" | "right" | "gamepaddpadright" => Some(UiNavigationEventKind::Right),
-        "arrowdown" | "down" | "gamepaddpaddown" => Some(UiNavigationEventKind::Down),
-        _ => None,
+    if normalized_key_matches_any(logical_key, &["arrowleft", "left", "gamepaddpadleft"]) {
+        Some(UiNavigationEventKind::Left)
+    } else if normalized_key_matches_any(logical_key, &["arrowup", "up", "gamepaddpadup"]) {
+        Some(UiNavigationEventKind::Up)
+    } else if normalized_key_matches_any(logical_key, &["arrowright", "right", "gamepaddpadright"])
+    {
+        Some(UiNavigationEventKind::Right)
+    } else if normalized_key_matches_any(logical_key, &["arrowdown", "down", "gamepaddpaddown"]) {
+        Some(UiNavigationEventKind::Down)
+    } else {
+        None
     }
 }
 
-fn normalized_key_name(key: &str) -> String {
-    key.chars()
-        .filter(|ch| ch.is_ascii_alphanumeric())
-        .flat_map(char::to_lowercase)
-        .collect()
+fn normalized_key_matches_any(key: &str, expected: &[&str]) -> bool {
+    expected.iter().any(|expected| {
+        key.bytes()
+            .filter(u8::is_ascii_alphanumeric)
+            .map(|byte| byte.to_ascii_lowercase())
+            .eq(expected.bytes())
+    })
 }

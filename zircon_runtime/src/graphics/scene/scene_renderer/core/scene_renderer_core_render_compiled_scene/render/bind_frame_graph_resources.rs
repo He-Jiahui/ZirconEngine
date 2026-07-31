@@ -171,7 +171,7 @@ mod tests {
     use crate::core::math::UVec2;
     use crate::graphics::backend::{OffscreenTarget, RenderBackend};
     use crate::graphics::scene::scene_renderer::graph_execution::{
-        RenderGraphExecutionResources, RenderGraphImportedFinalTarget,
+        RenderGraphExecutionResources, RenderGraphImportedFinalTarget, TransientResourcePool,
     };
     use crate::render_graph::{
         CompiledRenderGraph, PassFlags, QueueLane, RenderGraphBuilder,
@@ -334,8 +334,10 @@ mod tests {
             );
         }
 
+        let mut transient_pool = TransientResourcePool::default();
+        transient_pool.begin_frame();
         resources
-            .materialize_transient_resources(&backend.device, &graph)
+            .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
             .expect("advanced post-process transient graph resources should materialize");
 
         for resource in ADVANCED_POST_PROCESS_TRANSIENTS {

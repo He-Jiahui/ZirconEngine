@@ -15,15 +15,20 @@ impl SceneViewportController {
     ) -> ViewportCameraSnapshot {
         let camera = self.current_camera(scene);
         let selected = self.projected_selected_node(scene);
-        let handles = self.handle_overlays(scene, &camera);
-        self.pointer_bridge.sync_scene(
+        let handles = &self.handles;
+        let settings = &self.state.settings;
+        let handle_kind = self.active_transform_handle();
+        let interaction_extract = self.interaction_extract.resolve_for_pointer(
             scene,
             selected,
-            &self.state.settings,
+            settings,
             &camera,
             self.state.viewport.size,
-            handles,
+            || handles.build_overlays(scene, selected, settings, handle_kind, &camera),
+            || self.viewport_overlay_gizmos(scene, selected),
         );
+        self.pointer_bridge
+            .sync_scene(&camera, self.state.viewport.size, interaction_extract);
         camera
     }
 

@@ -14,6 +14,7 @@ use crate::core::framework::{
     foundation::{ConfigManager, EventManager},
     input::{InputActionManager, InputManager},
     navigation::NavigationManager,
+    platform::PreferenceStorage,
     render::{RenderFramework, RenderingManager},
     scene::LevelManager,
 };
@@ -30,8 +31,8 @@ use super::SOUND_MANAGER_NAME;
 use super::{
     manager_service_handle, ManagerServiceHandle, ManagerServiceResolver, ANIMATION_MANAGER_NAME,
     CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME,
-    LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
-    RESOURCE_MANAGER_NAME,
+    LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME, PLATFORM_MANAGER_NAME, RENDERING_MANAGER_NAME,
+    RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
 };
 
 macro_rules! define_manager_handle_access {
@@ -165,4 +166,10 @@ define_manager_handle_access!(
     navigation_manager_handle,
     NAVIGATION_MANAGER_NAME,
     navigation_handle
+);
+define_manager_handle_access!(
+    PreferenceStorage,
+    platform_preference_storage_handle,
+    PLATFORM_MANAGER_NAME,
+    platform_preferences_handle
 );

@@ -1,10 +1,22 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
+use toml::Value;
 
 use super::style::{
     UiPainterFamily, UiPainterResolvedState, UiPainterState, UiPainterStyleSelector, UiRgbaColor,
     UiThemeControlSizes, UiThemeDocument, UiThemeElevation, UiThemePalette, UiThemeShape,
     UiThemeTypographyVariant,
 };
+
+mod cascade_registry;
+mod state_roles;
+
+use cascade_registry::{
+    insert_color_token, insert_float_token, insert_integer_token, insert_string_token,
+};
+
+pub use state_roles::{EditorStateColorRole, EditorStateRoleTokens};
 
 pub const EDITOR_WORKBENCH_TOKENS_ID: &str = "zircon.editor.workbench";
 
@@ -43,60 +55,17 @@ impl EditorDesignTokens {
             .resolve(&self.palette)
     }
 
+    /// Returns the canonical editor tokens plus their cascade custom-property aliases.
+    ///
+    /// Canonical entries are the only stored values. Each `--editor-*` entry resolves
+    /// through its matching `$editor.*` token so inline and cascade consumers cannot
+    /// drift into separate token-to-value maps.
+    pub fn cascade_token_values(&self) -> BTreeMap<String, Value> {
+        cascade_registry::cascade_token_values(self)
+    }
+
     pub fn density_value_for_token_name(&self, token_name: &str) -> Option<f32> {
-        match token_name {
-            "editor.density.gap.small" => Some(self.density.gap_small),
-            "editor.density.gap.medium" => Some(self.density.gap_medium),
-            "editor.density.gap.large" => Some(self.density.gap_large),
-            "editor.density.drawer_padding" => Some(self.density.drawer_padding),
-            "editor.density.panel_padding" => Some(self.density.panel_padding),
-            "editor.density.row_height" => Some(self.density.row_height),
-            "--left-drawer-width" => Some(self.density.left_drawer_width),
-            "--right-drawer-width" => Some(self.density.right_drawer_width),
-            "--bottom-output-height" => Some(self.density.bottom_output_height),
-            "--breakpoint-ultra-width" => Some(self.density.breakpoint_ultra_width),
-            "--breakpoint-narrow-width" => Some(self.density.breakpoint_narrow_width),
-            "--breakpoint-wide-width" => Some(self.density.breakpoint_wide_width),
-            "--compact-side-width" => Some(self.density.compact_side_width),
-            "--ultra-compact-side-width" => Some(self.density.ultra_compact_side_width),
-            "--compact-left-drawer-max-width" => Some(self.density.compact_left_drawer_max_width),
-            "--compact-right-drawer-max-width" => Some(self.density.compact_right_drawer_max_width),
-            "--compact-side-min-width" => Some(self.density.compact_side_min_width),
-            "--minimum-document-width-fraction" => {
-                Some(self.density.minimum_document_width_fraction)
-            }
-            "--ultra-compact-left-drawer-max-width" => {
-                Some(self.density.ultra_compact_left_drawer_max_width)
-            }
-            "--ultra-compact-right-drawer-max-width" => {
-                Some(self.density.ultra_compact_right_drawer_max_width)
-            }
-            "--compact-bottom-available-height" => {
-                Some(self.density.compact_bottom_available_height)
-            }
-            "--compact-bottom-max-height" => Some(self.density.compact_bottom_max_height),
-            "--compact-bottom-max-available-fraction" => {
-                Some(self.density.compact_bottom_max_available_fraction)
-            }
-            "--compact-bottom-min-height" => Some(self.density.compact_bottom_min_height),
-            "--ultra-compact-bottom-available-height" => {
-                Some(self.density.ultra_compact_bottom_available_height)
-            }
-            "--ultra-compact-bottom-max-height" => {
-                Some(self.density.ultra_compact_bottom_max_height)
-            }
-            "--ultra-compact-bottom-max-available-fraction" => {
-                Some(self.density.ultra_compact_bottom_max_available_fraction)
-            }
-            "--ultra-compact-bottom-min-height" => {
-                Some(self.density.ultra_compact_bottom_min_height)
-            }
-            "--minimum-window-width" => Some(self.density.minimum_window_width),
-            "--minimum-window-height" => Some(self.density.minimum_window_height),
-            "--ultra-minimum-window-width" => Some(self.density.ultra_minimum_window_width),
-            "--ultra-minimum-window-height" => Some(self.density.ultra_minimum_window_height),
-            _ => None,
-        }
+        cascade_registry::numeric_token_value(&self.cascade_token_values(), token_name)
     }
 
     pub fn resolve_painter_style(
@@ -141,6 +110,7 @@ impl EditorDesignTokens {
             },
             spacing: vec![
                 0.0,
+                self.density.gap_xsmall,
                 self.density.gap_small,
                 self.density.gap_medium,
                 self.density.gap_large,
@@ -275,10 +245,14 @@ pub struct EditorTypographyTokens {
     pub body_size: f32,
     /// Caption font size in 96-DPI logical pixels, after converting authored points.
     pub caption_size: f32,
+    /// Viewport overlay font size in 96-DPI logical pixels, after converting authored points.
+    pub overlay_size: f32,
     /// Title font size in 96-DPI logical pixels, after converting authored points.
     pub title_size: f32,
     pub body_weight: u16,
+    pub medium_weight: u16,
     pub strong_weight: u16,
+    pub emphasis_weight: u16,
     pub code_weight: u16,
     pub line_height: f32,
 }
@@ -310,6 +284,7 @@ impl EditorTypographyTokens {
     pub const DEFAULT_CODE_FAMILY: &'static str = "monospace";
     pub const WORKBENCH_BODY_SIZE: f32 = Self::points_to_logical_pixels(10.0);
     pub const WORKBENCH_CAPTION_SIZE: f32 = Self::points_to_logical_pixels(8.0);
+    pub const WORKBENCH_OVERLAY_SIZE: f32 = Self::points_to_logical_pixels(9.0);
     pub const WORKBENCH_TITLE_SIZE: f32 = Self::points_to_logical_pixels(14.0);
     pub const WORKBENCH_LINE_HEIGHT_RATIO: f32 = 1.2;
 
@@ -327,9 +302,12 @@ impl EditorTypographyTokens {
             font_smoothing: EditorFontSmoothing::Grayscale,
             body_size: Self::WORKBENCH_BODY_SIZE,
             caption_size: Self::WORKBENCH_CAPTION_SIZE,
+            overlay_size: Self::WORKBENCH_OVERLAY_SIZE,
             title_size: Self::WORKBENCH_TITLE_SIZE,
             body_weight: 400,
+            medium_weight: 500,
             strong_weight: 600,
+            emphasis_weight: 700,
             code_weight: 400,
             line_height: Self::WORKBENCH_LINE_HEIGHT_RATIO,
         }
@@ -352,6 +330,13 @@ impl EditorTypographyTokens {
                 line_height: self.line_height,
             },
             UiThemeTypographyVariant {
+                variant: "overlay".to_string(),
+                family: self.ui_strong_family.clone(),
+                size: self.overlay_size,
+                weight: self.emphasis_weight,
+                line_height: self.line_height,
+            },
+            UiThemeTypographyVariant {
                 variant: "title".to_string(),
                 family: self.ui_strong_family.clone(),
                 size: self.title_size,
@@ -366,6 +351,66 @@ impl EditorTypographyTokens {
                 line_height: self.line_height,
             },
         ]
+    }
+
+    fn insert_cascade_tokens(&self, values: &mut BTreeMap<String, Value>) {
+        insert_string_token(values, "editor.typography.ui.family", &self.ui_family);
+        insert_string_token(
+            values,
+            "editor.typography.ui.strong.family",
+            &self.ui_strong_family,
+        );
+        insert_string_token(values, "editor.typography.code.family", &self.code_family);
+        insert_string_token(
+            values,
+            "editor.typography.utility_tab.text_role",
+            self.utility_tab_text_role.token_value(),
+        );
+        insert_string_token(
+            values,
+            "editor.typography.font_smoothing",
+            self.font_smoothing.token_value(),
+        );
+        insert_float_token(values, "editor.typography.body.size", self.body_size);
+        insert_float_token(values, "editor.typography.caption.size", self.caption_size);
+        insert_float_token(values, "editor.typography.overlay.size", self.overlay_size);
+        insert_float_token(values, "editor.typography.title.size", self.title_size);
+        insert_integer_token(values, "editor.typography.body.weight", self.body_weight);
+        insert_integer_token(
+            values,
+            "editor.typography.medium.weight",
+            self.medium_weight,
+        );
+        insert_integer_token(
+            values,
+            "editor.typography.strong.weight",
+            self.strong_weight,
+        );
+        insert_integer_token(
+            values,
+            "editor.typography.emphasis.weight",
+            self.emphasis_weight,
+        );
+        insert_integer_token(values, "editor.typography.code.weight", self.code_weight);
+        insert_float_token(values, "editor.typography.line_height", self.line_height);
+    }
+}
+
+impl EditorFontSmoothing {
+    fn token_value(self) -> &'static str {
+        match self {
+            Self::Grayscale => "grayscale",
+            Self::Subpixel => "subpixel",
+        }
+    }
+}
+
+impl EditorUtilityTabTextRole {
+    fn token_value(self) -> &'static str {
+        match self {
+            Self::Ui => "ui",
+            Self::Code => "code",
+        }
     }
 }
 
@@ -433,7 +478,7 @@ impl EditorPaletteTokens {
     pub const WORKBENCH_SURFACE_HOVER: [u8; 4] = [42, 48, 54, 255];
     pub const WORKBENCH_SURFACE_SELECTED: [u8; 4] = [23, 57, 66, 255];
     pub const WORKBENCH_SURFACE_DISABLED: [u8; 4] = [34, 39, 43, 255];
-    pub const WORKBENCH_ACCENT: [u8; 4] = [42, 166, 184, 255];
+    pub const WORKBENCH_ACCENT: [u8; 4] = [60, 199, 214, 255];
     pub const WORKBENCH_ACCENT_SOFT: [u8; 4] = [23, 67, 77, 255];
     pub const WORKBENCH_BORDER: [u8; 4] = [50, 58, 65, 255];
     pub const WORKBENCH_BORDER_DISABLED: [u8; 4] = [44, 50, 55, 255];
@@ -488,6 +533,53 @@ impl EditorPaletteTokens {
 
     fn rgba(bytes: [u8; 4]) -> UiRgbaColor {
         UiRgbaColor::from_u8(bytes[0], bytes[1], bytes[2], bytes[3])
+    }
+
+    fn insert_cascade_tokens(&self, values: &mut BTreeMap<String, Value>) {
+        for (index, color) in self.surface.iter().copied().enumerate() {
+            insert_color_token(values, &format!("editor.surface.{index}"), color);
+        }
+        insert_color_token(values, "editor.surface.recessed", self.surface_recessed);
+        insert_color_token(values, "editor.surface.hover", self.surface_hover);
+        insert_color_token(values, "editor.surface.selected", self.surface_selected);
+        insert_color_token(values, "editor.surface.disabled", self.surface_disabled);
+        insert_color_token(values, "editor.accent", self.accent);
+        insert_color_token(values, "editor.accent.soft", self.accent_soft);
+        insert_color_token(values, "editor.border", self.border);
+        insert_color_token(values, "editor.border.disabled", self.border_disabled);
+        insert_color_token(values, "editor.separator.strong", self.separator_strong);
+        insert_color_token(values, "editor.separator.soft", self.separator_soft);
+        insert_color_token(values, "editor.text.primary", self.text_primary);
+        insert_color_token(values, "editor.text.secondary", self.text_secondary);
+        insert_color_token(values, "editor.text.disabled", self.text_disabled);
+        insert_color_token(values, "editor.semantic.success", self.success);
+        insert_color_token(
+            values,
+            "editor.semantic.success.container",
+            self.success_container,
+        );
+        insert_color_token(values, "editor.semantic.info", self.info);
+        insert_color_token(
+            values,
+            "editor.semantic.info.container",
+            self.info_container,
+        );
+        insert_color_token(values, "editor.semantic.warning", self.warning);
+        insert_color_token(
+            values,
+            "editor.semantic.warning.container",
+            self.warning_container,
+        );
+        insert_color_token(values, "editor.semantic.error", self.error);
+        insert_color_token(
+            values,
+            "editor.semantic.error.container",
+            self.error_container,
+        );
+        insert_color_token(values, "editor.popup", self.popup);
+        insert_color_token(values, "editor.track", self.track);
+        insert_color_token(values, "editor.focus.ring", self.focus_ring);
+        insert_color_token(values, "editor.shadow", self.shadow);
     }
 }
 
@@ -558,6 +650,7 @@ fn default_palette_shadow() -> UiRgbaColor {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct EditorControlTokens {
+    pub large_height: f32,
     pub default_height: f32,
     pub compact_height: f32,
     pub dense_height: f32,
@@ -577,8 +670,9 @@ impl Default for EditorControlTokens {
 impl EditorControlTokens {
     pub fn workbench_dense() -> Self {
         Self {
+            large_height: 48.0,
             default_height: 32.0,
-            compact_height: 32.0,
+            compact_height: 30.0,
             dense_height: 28.0,
             small_radius: 4.0,
             control_radius: 5.0,
@@ -587,16 +681,30 @@ impl EditorControlTokens {
             border_width: 1.0,
         }
     }
+
+    fn insert_cascade_tokens(&self, values: &mut BTreeMap<String, Value>) {
+        insert_float_token(values, "editor.control.height.large", self.large_height);
+        insert_float_token(values, "editor.control.height.default", self.default_height);
+        insert_float_token(values, "editor.control.height.compact", self.compact_height);
+        insert_float_token(values, "editor.control.height.dense", self.dense_height);
+        insert_float_token(values, "editor.control.radius.small", self.small_radius);
+        insert_float_token(values, "editor.control.radius.control", self.control_radius);
+        insert_float_token(values, "editor.control.radius.large", self.large_radius);
+        insert_float_token(values, "editor.control.radius.panel", self.panel_radius);
+        insert_float_token(values, "editor.control.border_width", self.border_width);
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct EditorDensityTokens {
+    pub gap_xsmall: f32,
     pub gap_small: f32,
     pub gap_medium: f32,
     pub gap_large: f32,
     pub drawer_padding: f32,
     pub panel_padding: f32,
+    pub activity_rail_width: f32,
     pub row_height: f32,
     pub left_drawer_width: f32,
     pub right_drawer_width: f32,
@@ -637,11 +745,13 @@ impl EditorDensityTokens {
 
     pub fn workbench_dense() -> Self {
         Self {
+            gap_xsmall: 2.0,
             gap_small: 4.0,
             gap_medium: 8.0,
             gap_large: 12.0,
             drawer_padding: 12.0,
             panel_padding: 16.0,
+            activity_rail_width: 72.0,
             row_height: Self::WORKBENCH_ROW_HEIGHT,
             left_drawer_width: 332.0,
             right_drawer_width: 404.0,
@@ -671,86 +781,149 @@ impl EditorDensityTokens {
             ultra_minimum_window_height: 360.0,
         }
     }
-}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EditorStateColorRole {
-    Surface0,
-    Surface1,
-    Surface2,
-    Surface3,
-    SurfaceSelected,
-    Accent,
-    FocusRing,
-    Border,
-    TextPrimary,
-    TextSecondary,
-    TextDisabled,
-}
-
-impl EditorStateColorRole {
-    pub fn resolve(self, palette: &EditorPaletteTokens) -> UiRgbaColor {
-        match self {
-            Self::Surface0 => palette.surface[0],
-            Self::Surface1 => palette.surface[1],
-            Self::Surface2 => palette.surface[2],
-            Self::Surface3 => palette.surface[3],
-            Self::SurfaceSelected => palette.surface_selected,
-            Self::Accent => palette.accent,
-            Self::FocusRing => palette.focus_ring,
-            Self::Border => palette.border,
-            Self::TextPrimary => palette.text_primary,
-            Self::TextSecondary => palette.text_secondary,
-            Self::TextDisabled => palette.text_disabled,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(default)]
-pub struct EditorStateRoleTokens {
-    pub default: EditorStateColorRole,
-    pub hovered: EditorStateColorRole,
-    pub pressed: EditorStateColorRole,
-    pub selected: EditorStateColorRole,
-    pub focused: EditorStateColorRole,
-    pub disabled: EditorStateColorRole,
-    pub loading: EditorStateColorRole,
-}
-
-impl Default for EditorStateRoleTokens {
-    fn default() -> Self {
-        Self::workbench_dark()
-    }
-}
-
-impl EditorStateRoleTokens {
-    pub fn workbench_dark() -> Self {
-        Self {
-            default: EditorStateColorRole::Surface1,
-            hovered: EditorStateColorRole::Surface2,
-            pressed: EditorStateColorRole::Surface3,
-            selected: EditorStateColorRole::SurfaceSelected,
-            focused: EditorStateColorRole::SurfaceSelected,
-            disabled: EditorStateColorRole::TextDisabled,
-            loading: EditorStateColorRole::Accent,
-        }
-    }
-
-    pub fn role_for_state(self, state: UiPainterResolvedState) -> EditorStateColorRole {
-        match state {
-            UiPainterResolvedState::Disabled => self.disabled,
-            UiPainterResolvedState::Loading => self.loading,
-            UiPainterResolvedState::Pressed => self.pressed,
-            UiPainterResolvedState::Focused => self.focused,
-            UiPainterResolvedState::Selected
-            | UiPainterResolvedState::Checked
-            | UiPainterResolvedState::Open => self.selected,
-            UiPainterResolvedState::Hovered
-            | UiPainterResolvedState::Dragging
-            | UiPainterResolvedState::DropHovered => self.hovered,
-            UiPainterResolvedState::Normal => self.default,
-        }
+    fn insert_cascade_tokens(&self, values: &mut BTreeMap<String, Value>) {
+        insert_float_token(values, "editor.density.gap.xsmall", self.gap_xsmall);
+        insert_float_token(values, "editor.density.gap.small", self.gap_small);
+        insert_float_token(values, "editor.density.gap.medium", self.gap_medium);
+        insert_float_token(values, "editor.density.gap.large", self.gap_large);
+        insert_float_token(values, "editor.density.drawer_padding", self.drawer_padding);
+        insert_float_token(values, "editor.density.panel_padding", self.panel_padding);
+        insert_float_token(
+            values,
+            "editor.density.activity_rail_width",
+            self.activity_rail_width,
+        );
+        insert_float_token(values, "editor.density.row_height", self.row_height);
+        insert_float_token(
+            values,
+            "editor.density.left_drawer_width",
+            self.left_drawer_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.right_drawer_width",
+            self.right_drawer_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.bottom_output_height",
+            self.bottom_output_height,
+        );
+        insert_float_token(
+            values,
+            "editor.density.breakpoint_ultra_width",
+            self.breakpoint_ultra_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.breakpoint_narrow_width",
+            self.breakpoint_narrow_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.breakpoint_wide_width",
+            self.breakpoint_wide_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.compact_side_width",
+            self.compact_side_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.ultra_compact_side_width",
+            self.ultra_compact_side_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.compact_left_drawer_max_width",
+            self.compact_left_drawer_max_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.compact_right_drawer_max_width",
+            self.compact_right_drawer_max_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.compact_side_min_width",
+            self.compact_side_min_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.minimum_document_width_fraction",
+            self.minimum_document_width_fraction,
+        );
+        insert_float_token(
+            values,
+            "editor.density.ultra_compact_left_drawer_max_width",
+            self.ultra_compact_left_drawer_max_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.ultra_compact_right_drawer_max_width",
+            self.ultra_compact_right_drawer_max_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.compact_bottom_available_height",
+            self.compact_bottom_available_height,
+        );
+        insert_float_token(
+            values,
+            "editor.density.compact_bottom_max_height",
+            self.compact_bottom_max_height,
+        );
+        insert_float_token(
+            values,
+            "editor.density.compact_bottom_max_available_fraction",
+            self.compact_bottom_max_available_fraction,
+        );
+        insert_float_token(
+            values,
+            "editor.density.compact_bottom_min_height",
+            self.compact_bottom_min_height,
+        );
+        insert_float_token(
+            values,
+            "editor.density.ultra_compact_bottom_available_height",
+            self.ultra_compact_bottom_available_height,
+        );
+        insert_float_token(
+            values,
+            "editor.density.ultra_compact_bottom_max_height",
+            self.ultra_compact_bottom_max_height,
+        );
+        insert_float_token(
+            values,
+            "editor.density.ultra_compact_bottom_max_available_fraction",
+            self.ultra_compact_bottom_max_available_fraction,
+        );
+        insert_float_token(
+            values,
+            "editor.density.ultra_compact_bottom_min_height",
+            self.ultra_compact_bottom_min_height,
+        );
+        insert_float_token(
+            values,
+            "editor.density.minimum_window_width",
+            self.minimum_window_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.minimum_window_height",
+            self.minimum_window_height,
+        );
+        insert_float_token(
+            values,
+            "editor.density.ultra_minimum_window_width",
+            self.ultra_minimum_window_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.ultra_minimum_window_height",
+            self.ultra_minimum_window_height,
+        );
     }
 }

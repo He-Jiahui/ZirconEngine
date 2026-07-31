@@ -18,7 +18,8 @@ fn runtime_entry_application_handler_stays_folder_backed_hook_surface() {
         "runtime application-handler root should stay structural and delegate trait hooks"
     );
     assert!(
-        !root.join("runtime_entry_app/application_handler.rs")
+        !root
+            .join("runtime_entry_app/application_handler.rs")
             .exists(),
         "runtime application handler should stay folder-backed instead of returning to an umbrella application_handler.rs file"
     );
@@ -28,10 +29,16 @@ fn runtime_entry_application_handler_stays_folder_backed_hook_surface() {
             "impl ApplicationHandler for RuntimeEntryApp",
             "fn resumed",
             "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"resumed\");",
-            "self.create_primary_window_surface(event_loop);",
+            "if self.create_primary_window_surface(event_loop) {",
+            "self.submit_mvp_input_probe_if_requested(event_loop);",
+            "self.request_runtime_frame();",
             "fn can_create_surfaces",
             "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"can_create_surfaces\");",
-            "self.create_primary_window_surface(event_loop);",
+            "if self.create_primary_window_surface(event_loop) {",
+            "self.submit_mvp_input_probe_if_requested(event_loop);",
+            "self.request_runtime_frame();",
+            "fn proxy_wake_up",
+            "self.request_runtime_frame();",
             "fn window_event",
             "self.handle_window_event(event_loop, event);",
             "fn about_to_wait",
@@ -40,5 +47,12 @@ fn runtime_entry_application_handler_stays_folder_backed_hook_surface() {
             "self.handle_device_event(event_loop, event);",
         ],
         "runtime ApplicationHandler hooks should remain a narrow profile-and-delegate surface",
+    );
+    assert_eq!(
+        runtime_handler_source
+            .matches("if !self.failure_state.is_recorded() {")
+            .count(),
+        4,
+        "after a terminal callback failure, proxy, window, frame-loop, and device hooks must not submit new work"
     );
 }

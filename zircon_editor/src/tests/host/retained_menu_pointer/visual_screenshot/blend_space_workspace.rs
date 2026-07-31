@@ -31,8 +31,8 @@ fn workbench_caption_owns_unreal_compact_typography_contract() {
     for required in [
         "[components.WorkbenchCaption]",
         "component = \"Label\"",
-        "font_size = 10.666667",
-        "font_weight = 600",
+        "font_size = \"$editor.typography.caption.size\"",
+        "font_weight = \"$editor.typography.strong.weight\"",
         "text_tone = \"secondary\"",
         "height = { min = 18.0, preferred = 20.0, max = 22.0, stretch = \"Fixed\" }",
     ] {
@@ -366,18 +366,17 @@ fn assert_blend_space_native_parent_chain_and_paint(ui: &UiHostWindow, width: u3
         .find(|node| node.control_id.as_str() == "WorkbenchExtensionBlendSpaceSampleGrid")
         .expect("Blend Space sample grid should be present in the native model");
     assert_eq!(grid.component_variant.as_str(), "sample-grid");
-    assert_eq!(grid.sample_grid.x_axis_label.as_str(), "Direction (deg)");
-    assert_eq!(grid.sample_grid.y_axis_label.as_str(), "Speed (cm/s)");
-    assert_eq!(grid.sample_grid.x_ticks.row_count(), 9);
-    assert_eq!(grid.sample_grid.y_ticks.row_count(), 6);
-    assert_eq!(grid.sample_grid.points.row_count(), 8);
+    let sample_grid = &grid.sample_grid.generation;
+    assert_eq!(sample_grid.x_axis_label(), "Direction (deg)");
+    assert_eq!(sample_grid.y_axis_label(), "Speed (cm/s)");
+    assert_eq!(sample_grid.x_ticks().len(), 9);
+    assert_eq!(sample_grid.y_ticks().len(), 6);
+    assert_eq!(sample_grid.points().len(), 8);
     assert!(
-        (0..grid.sample_grid.points.row_count()).any(|row| {
-            grid.sample_grid
-                .points
-                .row_data(row)
-                .is_some_and(|point| point.selected && point.label.as_str() == "Run_Fwd")
-        }),
+        sample_grid
+            .points()
+            .iter()
+            .any(|point| point.selected() && point.label() == "Run_Fwd"),
         "Blend Space sample grid should preserve the selected authored sample"
     );
     if width >= 900 {

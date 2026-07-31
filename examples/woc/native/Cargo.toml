@@ -1,0 +1,28 @@
+[workspace]
+members = [
+    "crates/woc_contract_codegen",
+    "crates/woc_protocol",
+    "crates/woc_parity",
+    "plugins/woc_runtime",
+    "apps/woc_client",
+    "apps/woc_server",
+    "apps/woc_bot",
+    "apps/woc_headless",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+sha2 = "0.10.9"
+thiserror = "2.0.18"
+toml = "1.1.2"
+woc_contract_codegen = { path = "crates/woc_contract_codegen" }
+woc_parity = { path = "crates/woc_parity" }
+woc_protocol = { path = "crates/woc_protocol" }
+woc_runtime = { path = "plugins/woc_runtime" }

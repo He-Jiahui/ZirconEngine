@@ -2,8 +2,9 @@
 related_code:
   - zircon_editor/src/scene/selection
   - zircon_editor/src/scene/modes
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_state.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
+  - zircon_editor/src/scene/viewport/settings.rs
+  - zircon_editor/src/scene/viewport/handles/transform_handle_kind.rs
+  - zircon_editor/src/scene/viewport/controller
 plan_sources:
   - docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md
   - docs/plans/zircon_editor/editor/05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md
@@ -60,9 +61,16 @@ Input is offered from the top overlay downward and stops at the first
 
 Mode ids are typed `SceneModeId` values. The stack rejects duplicate active ids,
 calls `enter` exactly once on insertion, calls `exit` on pop, and exposes the
-topmost id for command evaluation. `SceneModeCtx` currently contains the shared
-selection model and viewport settings. Transaction and gateway access will be
-added when Editor05 M2 connects transform operations.
+topmost id for command evaluation. `SceneModeCtx` exposes the shared selection
+model, immutable viewport settings, and one inline input effect for the current
+dispatch. Built-in modes may emit a pointer move, primary press, or primary
+release effect; the controller applies only the effect from the mode that
+consumed the input. Effects emitted by an overlay that returns `PassThrough`
+are discarded, so an overlay cannot leak a partially handled interaction to
+the base mode. Transform modes publish geometry-only preview requests; the
+workbench applies those requests inside the Editor03 gizmo transaction lane,
+records each accepted preview, and commits one command when the handle session
+ends. The controller never writes the scene transform directly.
 
 `SceneModeStack::project_command_eval_ctx` is the neutral command-state
 projection. It preserves the caller's existing project, play, document,
@@ -77,7 +85,7 @@ provider registry; providers do not mutate viewport state directly.
 
 ## Mode factory registry
 
-`SceneModeRegistration` binds one validated `ViewportToolModeDescriptor` to a
+`SceneModeRegistration` binds one validated `SceneModeDescriptor` to a
 thread-safe `SceneModeFactory`. `SceneModeRegistry` is the runtime owner of
 these registrations: duplicate typed ids are rejected at registration,
 unknown ids are rejected at creation, and every created mode must report the
@@ -87,15 +95,49 @@ fails before the mode can enter a stack or consume viewport input.
 The descriptor remains the metadata and capability-facing contract; the
 factory is the executable contract. Neither a provider string nor descriptor
 presence is treated as proof that a runtime mode instance exists. Production
-host ingestion of extension registrations is still pending behind the current
-Editor07 host ownership boundary.
+host ingestion prepares and validates a candidate registry before mutating the
+workbench, then installs that prepared registry without invoking factories a
+second time.
+
+Registry-created modes retain their extension owner and execute factory/id,
+enter/exit/update/input, and overlay callbacks through the editor plugin panic
+boundary. A callback panic rolls back the current context or overlay-builder
+increment, faults that mode instance, and cannot interrupt shutdown of the
+remaining stack. Overlay-provider factories are prepared before host mutation;
+provider extraction uses the same owner-scoped containment boundary.
+
+## Activation and transform handles
+
+`SceneModeActivation` is the command and UI transition value. `Select` and
+`Transform(TransformHandleKind)` resolve to the built-in `scene.select` and
+`scene.transform` descriptor ids; `Custom(SceneModeId)` uses the same registry
+path for extension modes. A missing registry entry is an activation error, not
+a controller panic, and a failed activation restores the prior transform-handle
+configuration.
+
+The mode stack is the sole owner of the current base mode. `SceneViewportSettings`
+does not contain a current-mode or tool enum; it retains only the transform
+handle kind used when the active base mode is `scene.transform`. Select and
+custom modes therefore produce no transform handles. UI binding, editor events,
+and the retained toolbar use `ActivateSceneMode`; the retired viewport-tool
+enum and command protocol have no compatibility parser or controller fallback.
 
 ## Current integration boundary
 
-This implementation completes the selection-authority hard cut, independent
-mode-stack contract, and descriptor-backed factory registry. The 28 production
-consumers have migrated atomically and the parallel legacy field and helper
-API are both absent. Fresh managed validation is still required before the
-Editor07 failure is returned as fixed. Production host ingestion, built-in
-Select/Transform registrations, and Navigation overlay-provider lifecycle
-wiring remain open parts of Editor05 M1 and its other inbound handoffs.
+This implementation has the selection-authority hard cut, the independent
+mode-stack contract, descriptor-backed factory registry, and built-in
+Select/Transform registrations. Production extension ingestion accepts only a
+`SceneModeRegistration`, derives the descriptor projection from it, validates
+the factory id atomically, and installs the executable factory into the
+controller registry. Push/pop/update/shutdown lifecycle is connected through
+the host and state lifetime.
+
+`SceneModeActivation` is wired through the viewport controller, editor event
+path, binding codec, and retained toolbar; custom ids remain intact in toolbar
+projection. Primary pointer modifiers map to replace/extend/toggle selection,
+and drag rectangles query the shared renderable interaction extract rather than
+scanning the scene. Mode/provider gizmos are merged into that same immutable
+extract, so render and pointer routing consume one overlay snapshot. Fresh
+managed validation remains required before the Editor05 failure is returned as
+fixed. Multi-selection transform pivots, Escape cancellation, and Editor03's
+accepted transaction gate remain open work.

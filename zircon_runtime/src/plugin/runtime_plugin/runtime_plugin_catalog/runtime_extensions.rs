@@ -1,10 +1,9 @@
+use std::sync::Arc;
+
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;
 
-use super::extension_report::{
-    runtime_extension_report, runtime_extension_report_for_project, RuntimeExtensionCatalogReport,
-};
-use super::features::feature_dependency_report;
+use super::extension_report::{runtime_extension_report, RuntimeExtensionCatalogReport};
 use super::RuntimePluginCatalog;
 
 impl RuntimePluginCatalog {
@@ -16,21 +15,8 @@ impl RuntimePluginCatalog {
         &self,
         manifest: &ProjectPluginManifest,
         target: RuntimeTargetMode,
-    ) -> RuntimeExtensionCatalogReport {
-        let completed = self.complete_project_manifest(manifest);
-        let feature_report = feature_dependency_report(
-            &self.registrations,
-            &self.feature_registrations,
-            &completed,
-            target,
-        );
-        runtime_extension_report_for_project(
-            &self.registrations,
-            &self.feature_registrations,
-            &completed,
-            target,
-            &feature_report,
-        )
+    ) -> Arc<RuntimeExtensionCatalogReport> {
+        Arc::clone(self.project_plan_for(manifest, target).extension_report())
     }
 }
 

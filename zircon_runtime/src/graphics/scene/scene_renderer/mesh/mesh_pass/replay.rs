@@ -1,9 +1,9 @@
 use std::cell::Cell;
 
 use super::{
-    IndirectDrawBatch, MeshBindHandle, MeshDrawCommand, MeshDrawCommandStream,
-    MeshIndirectDrawExecution, MeshPassPipelineKind, MeshPipelineVariantId,
-    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
+    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES, IndirectDrawBatch,
+    MeshBindHandle, MeshDrawCommand, MeshDrawCommandStream, MeshIndirectDrawExecution,
+    MeshPassPipelineKind, MeshPipelineVariantId,
 };
 
 pub(crate) const FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT: u32 = 1;
@@ -330,7 +330,7 @@ mod tests {
         MeshPassPipelineKind, MeshPipelineVariantId,
     };
 
-    use super::{MeshDrawCommandReplayer, FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT};
+    use super::{FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, MeshDrawCommandReplayer};
 
     #[test]
     fn mesh_draw_command_replayer_rebinds_after_external_pipeline() {

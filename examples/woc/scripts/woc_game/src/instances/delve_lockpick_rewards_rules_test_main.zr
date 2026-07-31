@@ -1,0 +1,67 @@
+var rewards = %import("instances/delve_lockpick_rewards_rules");
+
+if (rewards.classArchetypeIndex("warrior", true) != 0 ||
+    rewards.classArchetypeIndex("shaman", true) != 0 ||
+    rewards.classArchetypeIndex("rogue", true) != 1 ||
+    rewards.classArchetypeIndex("hunter", true) != 1 ||
+    rewards.classArchetypeIndex("mage", true) != 2 ||
+    rewards.classArchetypeIndex("priest", true) != 2 ||
+    rewards.classArchetypeIndex("druid", true) != 2 ||
+    rewards.classArchetypeIndex("unknown", true) != 0 ||
+    !rewards.requiresObservedDraw(1, "warrior", false, true) ||
+    !rewards.requiresObservedDraw(3, "rogue", false, true) ||
+    rewards.requiresObservedDraw(1, "rogue", false, true) ||
+    rewards.requiresObservedDraw(2, "mage", false, true) ||
+    rewards.requiresObservedDraw(1, "warrior", true, true)) {
+    return -1;
+}
+
+if (rewards.itemCount(1, "warrior", true, true) != 2 ||
+    rewards.itemCount(1, "rogue", false, true) != 2 ||
+    rewards.itemCount(1, "warrior", false, true) != 1 ||
+    rewards.itemCount(2, "mage", false, true) != 1 ||
+    rewards.itemCount(3, "rogue", false, true) != 1) {
+    return -2;
+}
+
+// lockpickSucceed awards this bonus to each party member after the base clear
+// reward. Its copper midpoint comes from the source Normal/base range.
+if (rewards.bonusMarks(1, true) != 2 || rewards.bonusMarks(2, true) != 1 ||
+    rewards.bonusMarks(3, true) != 0 ||
+    rewards.bonusCopper("collapsed_reliquary", 1, true) != 11 ||
+    rewards.bonusCopper("collapsed_reliquary", 2, true) != 6 ||
+    rewards.bonusCopper("collapsed_reliquary", 3, true) != 0 ||
+    rewards.bonusCopper("drowned_litany", 1, true) != 24 ||
+    rewards.bonusCopper("drowned_litany", 2, true) != 12 ||
+    rewards.bonusCopper("drowned_litany", 3, true) != 0) {
+    return -3;
+}
+
+// Bountiful bypasses the normal chance branch: the supplied observed draw is
+// not consumed by this projection and every class gets its exact two-item pair.
+if (rewards.itemId(1, "warrior", true, 0.9, 0, true) != "deacon_reliquary_helm" ||
+    rewards.itemId(1, "warrior", true, 0.1, 1, true) != "reliquary_plate_chest" ||
+    rewards.itemId(1, "rogue", true, 0.9, 0, true) != "reliquary_leather_chest" ||
+    rewards.itemId(1, "rogue", true, 0.1, 1, true) != "reliquary_gloves_rog" ||
+    rewards.itemId(1, "mage", true, 0.9, 0, true) != "varric_shadow_cowl" ||
+    rewards.itemId(1, "mage", true, 0.1, 1, true) != "reliquary_cloth_chest") {
+    return -4;
+}
+
+// Source chance comparisons are strict: 0.5 selects the second item.
+if (rewards.itemId(1, "warrior", false, 0.499999, 0, true) != "deacon_reliquary_helm" ||
+    rewards.itemId(1, "warrior", false, 0.5, 0, true) != "reliquary_plate_chest" ||
+    rewards.itemId(1, "mage", false, 0.499999, 0, true) != "varric_shadow_cowl" ||
+    rewards.itemId(1, "mage", false, 0.5, 0, true) != "reliquary_cloth_chest" ||
+    rewards.itemId(1, "rogue", false, 0.0, 0, true) != "reliquary_leather_chest" ||
+    rewards.itemId(1, "rogue", false, 0.0, 1, true) != "reliquary_gloves_rog" ||
+    rewards.itemId(2, "warrior", false, 0.0, 0, true) != "reliquary_plate_chest" ||
+    rewards.itemId(2, "rogue", false, 0.0, 0, true) != "reliquary_leather_chest" ||
+    rewards.itemId(2, "mage", false, 0.0, 0, true) != "reliquary_cloth_chest" ||
+    rewards.itemId(3, "warrior", false, 0.499999, 0, true) != "reliquary_legs" ||
+    rewards.itemId(3, "warrior", false, 0.5, 0, true) != "reliquary_shoulder" ||
+    rewards.contractTest() != 1) {
+    return -5;
+}
+
+return 0;

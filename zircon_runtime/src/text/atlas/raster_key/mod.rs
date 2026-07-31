@@ -98,6 +98,8 @@ pub(crate) struct GlyphRasterKey {
     pub(crate) glyph_id: u32,
     pub(crate) px_size_bucket: u32,
     pub(crate) subpixel_bin: u8,
+    /// Vertical phase is retained for backends whose cache key rasterizes y subpixel offsets.
+    pub(crate) vertical_subpixel_bin: u8,
     pub(crate) format: GlyphAtlasFormat,
     pub(crate) hinting: GlyphHintingMode,
     pub(crate) smoothing: GlyphSmoothingMode,
@@ -120,6 +122,7 @@ impl GlyphRasterKey {
             glyph_id: request.glyph_id,
             px_size_bucket,
             subpixel_bin,
+            vertical_subpixel_bin: 0,
             format: request.format,
             hinting,
             smoothing,

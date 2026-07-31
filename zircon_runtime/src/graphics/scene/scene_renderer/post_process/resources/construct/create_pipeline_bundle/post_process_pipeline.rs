@@ -1,31 +1,17 @@
 use crate::graphics::scene::anti_alias::fxaa::FXAA_SHADER_ENTRY_POINT;
 use crate::graphics::scene::scene_renderer::post_process::POST_PROCESS_TONEMAPPED_FORMAT;
 
-use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
-use super::super::super::shader_sources::POST_PROCESS_SHADER;
-
 pub(super) fn post_process_pipeline(
     device: &wgpu::Device,
     target_format: wgpu::TextureFormat,
-    post_process_bind_group_layout: &wgpu::BindGroupLayout,
-    depth_sampling_mode: PostProcessDepthSamplingMode,
+    pipeline_layout: &wgpu::PipelineLayout,
+    shader: &wgpu::ShaderModule,
 ) -> wgpu::RenderPipeline {
-    let shader_source = depth_sampling_mode.post_process_shader_source(POST_PROCESS_SHADER);
-    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("zircon-post-process-shader"),
-        source: wgpu::ShaderSource::Wgsl(shader_source),
-    });
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("zircon-post-process-pipeline-layout"),
-        bind_group_layouts: &[Some(post_process_bind_group_layout)],
-        immediate_size: 0,
-    });
-
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("zircon-post-process-pipeline"),
-        layout: Some(&pipeline_layout),
+        layout: Some(pipeline_layout),
         vertex: wgpu::VertexState {
-            module: &shader,
+            module: shader,
             entry_point: Some("vs_main"),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             buffers: &[],
@@ -34,7 +20,7 @@ pub(super) fn post_process_pipeline(
         depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
         fragment: Some(wgpu::FragmentState {
-            module: &shader,
+            module: shader,
             entry_point: Some(FXAA_SHADER_ENTRY_POINT),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: &[
@@ -57,8 +43,8 @@ pub(super) fn post_process_pipeline(
 
 #[cfg(test)]
 mod tests {
+    use super::super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
     use super::super::super::super::shader_sources::POST_PROCESS_SHADER;
-    use super::PostProcessDepthSamplingMode;
 
     fn validate_post_process_shader_source(name: &str, shader_source: &str) {
         let module = naga::front::wgsl::parse_str(shader_source)
@@ -97,11 +83,13 @@ mod tests {
     }
 
     #[test]
-    fn post_process_shader_multiplies_color_grading_by_resolved_exposure() {
+    fn post_process_shader_applies_resolved_exposure_before_tonemap() {
         assert!(POST_PROCESS_SHADER
             .contains("@group(0) @binding(28) var<storage, read> exposure_buffer"));
-        assert!(POST_PROCESS_SHADER
-            .contains("let exposure = params.grading.x * max(exposure_buffer[0].x, 0.0);"));
+        assert!(POST_PROCESS_SHADER.contains(
+            "let exposure = exp2(params.effect_tonemap_lut.x) * max(exposure_buffer[0].x, 0.0);"
+        ));
+        assert!(POST_PROCESS_SHADER.contains("let exposure = params.grading.x;"));
     }
 
     #[test]

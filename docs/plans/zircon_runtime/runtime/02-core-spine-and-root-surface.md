@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/framework/channel.rs
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/core/framework/events.rs
   - zircon_runtime/src/core/runtime/config_store.rs
   - zircon_runtime/src/core/runtime/events.rs
@@ -122,7 +122,7 @@ last_refined: 2026-07-16
   | `event_bus.rs`+`event_bus/` | ≥12 | `core::framework` | 中性事件原语 |
   | `channel_util.rs` | 5 | `core::framework` | 通道原语（外部调用方仅 asset 两处） |
   | `types.rs` | — | `core::framework` | `ChannelSender/Receiver/ServiceObject` 共享原语 |
-  | `error.rs` | current-source: `CoreError` 108 文件 / `CoreResult` 13 文件 | `core::framework` | 单一 `CoreError` / `CoreResult` 中性契约，不保留旧错误枚举兼容层 |
+  | `error.rs` | current-source: `CoreError` 108 文件 / `CoreResult` 13 文件 | `core::runtime` | 单一 kernel-owned `CoreError` / `CoreResult`，不保留旧错误枚举或 framework owner 兼容层 |
   | `config_store.rs` | 4 | `core::resource` 或 `core::manager` | 二选一并记录理由（配置即资源定位 vs 配置即受管服务） |
   | `diagnostics/` | ≥12 | `core::runtime::diagnostics` 或 spine 第六席 | 若留第六席必须同步修订收束计划文档 spine 口径 |
 
@@ -134,7 +134,7 @@ last_refined: 2026-07-16
   | `frame_clock.rs` | 6 文件 / 10 行 | `core::runtime::frame_clock` | 暂保留 curated facade，03 固定步接通后复核 | 帧 delta 原语由 runtime tick 驱动，03 计划会继续扩展。 |
   | `channel_util.rs` | 5 文件 / 12 行 | 拆分：`recv_latest`/`wait_for` -> `core::framework::channel`，`spawn_named_thread` -> `core::runtime::tasks` | 收回三函数根再导出 | 通道等待是中性 primitive；线程创建是 runtime task 执行基础设施。 |
   | `types.rs` | 51 文件 / 355 行 | 拆分：`ChannelSender/Receiver` -> `core::framework::channel`，`ServiceObject` -> `core::runtime::descriptors` | `Channel*` 可经 framework facade，`ServiceObject` 不再从根导出 | channel aliases 是中性 ABI/contract 辅助；`ServiceObject` 是 runtime registry 内部对象槽。 |
-  | `error.rs` | current-source: `CoreError` 108 文件 / `CoreResult` 13 文件 | `core::framework::error` | 根 facade 只保留 `CoreError` / `CoreResult` | 错误类型穿过 framework trait、manager handle 与 runtime services，是共享契约而非具体行为；不得增加别名、shim 或兼容再导出。 |
+  | `error.rs` | current-source: `CoreError` 108 文件 / `CoreResult` 13 文件 | `core::runtime::error` | 根 facade 只保留 `CoreError` / `CoreResult` | 错误变体依赖 kernel `ServiceKind` 并描述 registry/lifecycle 行为；framework 旧 owner 物理删除，不得增加别名、shim 或兼容再导出。 |
   | `event_bus.rs` + `event_bus/` | 20 文件 / 127 行 | 拆分：`EngineEvent` -> `core::framework::events`，`EventBus` 实现 -> `core::runtime::events` | 保留 `EngineEvent`/`EventBus` 根 facade 到事件切片结束 | 事件 DTO 中性；订阅表、delivery lock、prune/publish 行为由 `CoreRuntime` 拥有。 |
   | `time.rs` | 8 文件 / 46 行 | `core::runtime::time` | 保留 `RuntimeTime*` 与诊断常量根 facade | `RuntimeTimeClocks` 消费 `framework::time::{Real,Virtual,Fixed}`，但外层 advance 语义属于 runtime tick。 |
   | `job_scheduler.rs` | 10 文件 / 26 行 | `core::runtime::tasks::job_scheduler` | 保留 `JobScheduler` 到 task 切片结束，随后复核 prelude | 它只是 `TaskPool` 的 compute facade，归 runtime task pool owner。 |
@@ -171,7 +171,7 @@ last_refined: 2026-07-16
   4. `types.rs` 拆分到 `core::framework::channel` / `core::runtime::descriptors`；收回 `ServiceObject` root facade。
   5. `time.rs` -> `core::runtime::time`；保留 `RuntimeTime*` facade。
   6. `job_scheduler.rs` -> `core::runtime::tasks::job_scheduler`；与 `tasks/` 同切片收束。
-  7. `error.rs` -> `core::framework::error`；保留 error facade。
+  7. `error.rs` -> `core::runtime::error`；只保留 `core::{CoreError, CoreResult}` curated facade。
   8. `event_bus.rs` + `event_bus/` 拆分 DTO 与实现；保留事件 facade 到切片结束。
   9. `tasks/` -> `core::runtime::tasks`。
   10. `state/` -> `core::framework::state`。
@@ -197,7 +197,7 @@ last_refined: 2026-07-16
   - `git mv zircon_runtime/src/core/config_store.rs zircon_runtime/src/core/<owner>/config_store.rs`
   - `git mv zircon_runtime/src/core/frame_clock.rs zircon_runtime/src/core/runtime/frame_clock.rs`
   - split `zircon_runtime/src/core/channel_util.rs` into `zircon_runtime/src/core/framework/channel.rs` and `zircon_runtime/src/core/runtime/tasks/mod.rs`
-  - `git mv zircon_runtime/src/core/error.rs zircon_runtime/src/core/framework/error.rs`
+  - `git mv zircon_runtime/src/core/framework/error.rs zircon_runtime/src/core/runtime/error.rs`
   - `git mv zircon_runtime/src/core/time.rs zircon_runtime/src/core/runtime/time.rs`
   - `git mv zircon_runtime/src/core/job_scheduler.rs zircon_runtime/src/core/runtime/tasks/job_scheduler.rs`
   - 同切片更新 `core/mod.rs`（删 6 行 `mod`，按 M1 处置表改/删 `pub use`）与目标 owner 的 `mod.rs`。
@@ -285,7 +285,7 @@ last_refined: 2026-07-16
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`02/2026-07-09-core-spine-and-root-surface-output-records.md`](02/2026-07-09-core-spine-and-root-surface-output-records.md)
-- 当前状态：`in_progress`。2026-07-14 已关闭并回传 service registry `CoreHandle` retention cycle；Runtime02 父计划仍等待当前源码静态门与其余计划内 Cargo/下游门完整收口，不以本切片完成冒充整份子计划完成。
+- 当前状态：`in_progress`。2026-07-14 已关闭并回传 service registry `CoreHandle` retention cycle；2026-07-18 `CoreError/CoreResult` 已从 framework 旧 owner 硬切到 runtime kernel owner，公开 root facade 不变且无兼容模块。Runtime02 父计划仍等待当前源码 Cargo/下游门与其余范围完整收口，不以本切片完成冒充整份子计划完成。
 - fixed 已修复：[service-corehandle-retention-cycle](../../zircon_editor/editor/14/fixed-2026-07-14-service-corehandle-retention-cycle.md)
 - fixed 已修复：[editor-manager-weak-runtime-caller-lifetime](../../zircon_editor/editor/09/fixed-2026-07-13-editor-manager-weak-runtime-caller-lifetime.md)
 - fixed 已修复：[project-authority-test-fixture-cutover](02/fixed-2026-07-13-project-authority-test-fixture-cutover.md)
@@ -294,3 +294,27 @@ last_refined: 2026-07-16
 - fixed 已修复：[core-filter-runtime-fixture-contracts](02/fixed-2026-07-12-core-filter-runtime-fixture-contracts.md)
 - fixed 已修复：[system-stage-owner-guard-drift](08/fixed-2026-07-14-system-stage-owner-guard-drift.md)
 - fixed 已修复：[level-manager-export-cutover-incomplete](02/fixed-2026-07-14-level-manager-export-cutover-incomplete.md)
+- open 性能交接：[config-manager-synchronous-full-file-rewrite](02/failure-2026-07-18-config-manager-synchronous-full-file-rewrite.md)；同值零写、失败dirty重试与进程内写串行化止损已落地，最终dirty-generation worker、atomic replace与shutdown flush仍由Runtime02收口。
+- 2026-07-18 性能审计交接：`ConfigStore::load<T>`已先以共享`Arc<Value>`删除每次typed load的完整JSON深复制，`CoreRuntime` facade也已删除纯委托调用的临时owned-handle Arc增减；Runtime02仍须建立generation snapshot/typed config cache并清点root facade的borrowed delegation。责任与规模预算见PERF-MVP-318/319及`docs/plans/performance/01/2026-07-18-runtime-core-root-static-review.md`，current-source Cargo/WPR前不视为验收。
+- 2026-07-18 state性能交接：重复`init_state<T>`的registry二次锁已局部降为一次；`StateMachine<T>`仍无界保留全部transition history且查询整段clone，三类hook每transition线性全扫。Runtime02需先明确history消费/兼容契约，再引入cursor drain或bounded retention及state-pair hook index；见PERF-MVP-320。
+- 2026-07-18 activation性能交接：module ready启动线程busy-yield已先改为1 ms bounded sleep；Runtime02最终需提供可取消ready notification，冻结module activation DAG/order与单generation context，并维护service reverse-dependency index，删除batch descriptor/list重复投影和blocked-unload全registry扫描；见PERF-MVP-321。
+- 2026-07-18 registration性能交接：当前descriptor、service entry与module三套order重复拥有RegistryName/dependency/factory，且1至5 service组合展开超过2k行。Runtime02需以冻结service arena、interned owner和index/range order收敛；参考Bevy TypeId map+order authority，但必须先量化小数组快路的startup收益再硬切。见PERF-MVP-322。
+- 2026-07-18 module DAG交接：activation sort的HashMap/DFS临时name clone已止损为借用name+usize stack；Runtime02仍须把递归sort硬切为冻结generation的迭代Kahn/显式frame order cache，避免batch每次clone完整descriptors并让100k深链可验证。见PERF-MVP-325。
+- 2026-07-23 App entry descriptor所有权补充：`ResolvedPluginGroup` single snapshot止损仍成立，但`DescriptorBackedEngineModule`因`EngineModule`名称/描述返回`&'static str`而逐构造`Box::leak`动态name+description。Runtime02按PERF-MVP-004与open [`02/failure-2026-07-17-module-descriptor-regeneration.md`](02/failure-2026-07-17-module-descriptor-regeneration.md)硬切为owner-borrowed读口或可回收冻结`Arc<str>`；禁止global永久interner。dynamic modules 1/100/1,000、entry/report/reload 1/1,000/100,000要求descriptor generation≤1/module、leaked bytes=0、drop/retire后动态文本回收，report/order/activation等价。
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- 「现状与证据」节仍以 2026-06-12 快照描述 M2/M3/M4 尚未执行的形态，与当前代码严重不符，建议整节标注「已由 M2/M3 硬切换落地」并保留为历史证据：
+  - 「core 根散件 13 件待归属」已不成立。`zircon_runtime/src/core/mod.rs:3-8` 现只声明 `runtime/framework/manager/math/resource` 五件套 spine + `mod.rs`；`config_store.rs`、`frame_clock.rs`、`error.rs`、`time.rs`、`events.rs`、`lifecycle.rs` 均已落在 `zircon_runtime/src/core/runtime/` 下（见 `core/runtime/` 目录：`config_store.rs`、`frame_clock.rs`、`error.rs`、`time.rs`、`events.rs`+`events/`、`lifecycle.rs`、`tasks/`、`modules/`、`state/`、`diagnostics/`），`channel.rs`/`state/`/`tasks/`/`events.rs` 已落 `core/framework/`。M1 定稿执行序 13 步与 M2 切片 2.1/2.2 的目标态在代码中均已实现。
+  - 「`lib.rs:39-72` 的 `pub(crate) use` graphics 别名块约 70 类型 + 8 模块名 + `#[allow(unused_imports)]`」已不存在。当前 `zircon_runtime/src/lib.rs` 共 50 行，仅含模块声明、`pub use crate::core::resource`（:23）、reflection 宏再导出（:45-47），无任何 `pub(crate) use graphics::{...}` 与 `#[allow(unused_imports)]`。M3 切片 3.1/3.2 的 DoD（lib.rs ≤45 行、无别名块）已达成（当前 50 行，略超 45 行目标，建议复核该阈值或更新为实际值）。
+- §「目标」1/2 描述的「13 件散件全部硬切换」「删除 lib.rs 别名块全部 34 行」为已完成目标，建议在目标项后标注「已达成，见 M2/M3」，避免读者误判为待办。
+
+### 设计优化建议
+
+- M2/M3/M4 三个里程碑对应的结构守卫已在代码中落地（`zircon_runtime/src/tests/runtime_absorption/root_entries.rs`、`core_spine_root_generated.rs`+`core_spine_root_generated/`、`generated_code_guard.rs`+`generated_code_guard/`）。建议把里程碑标题从计划态改为「已落地 + 守卫文件锚点」，并在状态节把 M2/M3/M4 逐条勾选为 done，仅保留「current-source Cargo/下游门」作为唯一 pending，与底部状态记录（2026-07-18 已说明父计划仅等 Cargo/下游门）口径统一。
+
+### 验证缺口
+
+- 底部状态节 2026-07-18 起累积了 8 条性能交接（PERF-MVP-004/318/319/320/321/322/325 等）与 2 条 open failure（`config-manager-synchronous-full-file-rewrite`、`module-descriptor-regeneration`），均以「current-source Cargo/WPR 前不视为验收」结尾但未在里程碑测试阶段命令清单中体现。建议在 M2/M3 测试阶段补一行显式指向这些 open failure 的收口门（如 `cargo test -p zircon_runtime --lib core::runtime::config_store --locked` 与 module descriptor generation 断言），使「未验收」有可执行的验证锚点而非仅散落在状态记录。

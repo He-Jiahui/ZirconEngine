@@ -1,0 +1,25 @@
+name = "woc_game"
+version = "0.1.0"
+entry = "main"
+backend = "zr_vm:project"
+
+[capabilities]
+capabilities = [
+  "foundation.log",
+]
+
+[management]
+hot_reload = "preserve_state"
+
+[management.memory]
+soft_limit_bytes = 67108864
+hard_limit_bytes = 134217728
+
+[management.garbage_collection]
+mode = "cooperative"
+interval_frames = 1
+
+[zr_vm]
+project = "woc_game.zrp"
+entry_module = "main"
+execution_mode = "interp"

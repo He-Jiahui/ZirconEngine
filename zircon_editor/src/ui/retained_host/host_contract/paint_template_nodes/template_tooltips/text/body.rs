@@ -1,5 +1,6 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
+use super::super::layout::frame_is_within;
 use super::super::metrics::tooltip_metrics;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -19,13 +20,17 @@ pub(super) fn push_tooltip_body(
     }
     let metrics = tooltip_metrics();
 
+    let frame = FrameRect {
+        x: bubble.x + metrics.text_left,
+        y: bubble.y + metrics.body_top,
+        width: text_width,
+        height: metrics.body_line_height,
+    };
+    if !frame_is_within(bubble, &frame) {
+        return;
+    }
     commands.push(HostPaintCommand::text(
-        FrameRect {
-            x: bubble.x + metrics.text_left,
-            y: bubble.y + metrics.body_top,
-            width: text_width,
-            height: metrics.body_line_height,
-        },
+        frame,
         Some(clip.clone()),
         order,
         body,

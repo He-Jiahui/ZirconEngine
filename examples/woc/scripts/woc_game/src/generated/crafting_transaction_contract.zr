@@ -1,0 +1,8 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub craftSkillGain(required: bool): float { return required ? 1 : 0.0; }
+pub goldSinkCopperPerBudget(required: bool): float { return required ? 2 : 0.0; }
+pub throttleWindowSeconds(required: bool): float { return required ? 60 : 0.0; }
+pub throttleMaxPerWindow(required: bool): int { return required ? 10 : 0; }
+pub tierSkillStep(required: bool): int { return required ? 25 : 0; }
+pub specializedSkillThreshold(required: bool): int { return required ? 75 : 0; }
+pub specializedMaterialMultiplier(required: bool): float { return required ? 0.8 : 1.0; }

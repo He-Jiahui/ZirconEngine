@@ -15,8 +15,9 @@ pub(super) fn update_particle_previous_state_after_success(
         .extract
         .particles
         .anonymous_stream_ambiguity_entities();
-    record.replace_particle_previous_sprites(
-        camera_history_key.clone(),
+    let previous_sprites = record.particle_previous_sprites_for_update(camera_history_key.clone());
+    previous_sprites.clear();
+    previous_sprites.extend(
         frame
             .extract
             .particles
@@ -30,8 +31,7 @@ pub(super) fn update_particle_previous_state_after_success(
                 RenderParticlePreviousSpriteSnapshot::from_current_with_billboard_basis(
                     sprite, right, up,
                 )
-            })
-            .collect(),
+            }),
     );
 }
 
@@ -42,10 +42,10 @@ mod tests {
         RenderParticleSpriteSnapshot, RenderViewportDescriptor, RenderWorldSnapshotHandle,
     };
     use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
+    use crate::graphics::ViewportRenderFrame;
     use crate::graphics::runtime::render_framework::viewport_record::{
         ViewportCameraHistoryKey, ViewportRecord,
     };
-    use crate::graphics::ViewportRenderFrame;
     use crate::scene::world::World;
 
     use super::update_particle_previous_state_after_success;

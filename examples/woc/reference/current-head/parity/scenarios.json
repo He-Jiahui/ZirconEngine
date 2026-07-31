@@ -1,0 +1,688 @@
+{
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "entries": [
+    {
+      "name": "solo_warrior",
+      "source_owner": "tests/parity/scenarios.ts#soloWarrior",
+      "golden": "tests/parity/golden/solo_warrior.json",
+      "golden_sha256": "7f4f1a2f67e7083a6c248d0fdffaa325b6d9dcd1b90405fbec3ea0a71526dcf2",
+      "coverage": [
+        "class:warrior",
+        "meleeSwing weaponStrike (heroic_strike via castAbility ~3736)",
+        "player auto-attack (C5)",
+        "base mobSwing (mob swings the player)",
+        "rollLoot via mob death (L1, ~5876/6036)"
+      ]
+    },
+    {
+      "name": "solo_mage",
+      "source_owner": "tests/parity/scenarios.ts#soloMage",
+      "golden": "tests/parity/golden/solo_mage.json",
+      "golden_sha256": "601a4ab54898cc864c20a13a7e275ff1bb8747579cd18171ec38e1b823e05ef3",
+      "coverage": [
+        "class:mage (caster)",
+        "casting lifecycle (C4a)",
+        "effect dispatch + spell damage (C4b/C1)"
+      ]
+    },
+    {
+      "name": "solo_rogue",
+      "source_owner": "tests/parity/scenarios.ts#soloRogue",
+      "golden": "tests/parity/golden/solo_rogue.json",
+      "golden_sha256": "2bb86d4556a8cb33c1879d56d55170175c59b0f85359d478ff89adbf1dd3025f",
+      "coverage": [
+        "class:rogue",
+        "meleeSwing weaponStrike (sinister_strike via castAbility ~3736)",
+        "combo points"
+      ]
+    },
+    {
+      "name": "affix_mob",
+      "source_owner": "tests/parity/scenarios.ts#affixMob",
+      "golden": "tests/parity/golden/affix_mob.json",
+      "golden_sha256": "1019521f7a95e63e107a3f59063e3a2fa058dc0bf25bef09afb89baf36aced80",
+      "coverage": [
+        "frenzyOnHit (old_greyjaw -> blood_frenzy)",
+        "on-hit affix cascade via mobSwing (ridge_stalker bleed, ~7070/7100)",
+        "applyTaunt player-cast arm (taunt ability, ~4279)",
+        "class:warrior"
+      ]
+    },
+    {
+      "name": "mob_swing_affixes",
+      "source_owner": "tests/parity/scenarios.ts#mobSwingAffixes",
+      "golden": "tests/parity/golden/mob_swing_affixes.json",
+      "golden_sha256": "533ee5220d4a436846ab64221b542574528677ff5d987efc2131ce43fd9facdc",
+      "coverage": [
+        "mobSwing affix cascade: stunOnHit (mogger_lackey -> stun aura on player)",
+        "mobSwing affix cascade: venom DoT (webwood_spider -> dot aura on player)",
+        "mobSwing affix cascade: silence (gravecaller_summoner -> silence aura on player)",
+        "mobSwing affix cascade: rampage stacking buff_ap (warlord_drogmar self-buff)",
+        "friendly-pet mobSwing: mob.hostile=false short-circuits every proc (no debuff on its target)"
+      ]
+    },
+    {
+      "name": "hunter_pet",
+      "source_owner": "tests/parity/scenarios.ts#hunterPet",
+      "golden": "tests/parity/golden/hunter_pet.json",
+      "golden_sha256": "fa19c8558ed86a770ef1b6142cee32135e20a89066bccabf74bc8a07bf485994",
+      "coverage": [
+        "class:hunter",
+        "updateRangedPetAttack friendly pet arm (~8093/8217)",
+        "updateRangedPetAttack hostile-mob arm (~6776)"
+      ]
+    },
+    {
+      "name": "warlock_pet",
+      "source_owner": "tests/parity/scenarios.ts#warlockPet",
+      "golden": "tests/parity/golden/warlock_pet.json",
+      "golden_sha256": "878594a110848914a1c827939bcd22d14ac2ad83436c90386244c9b3d813bcf1",
+      "coverage": [
+        "class:warlock (caster)",
+        "mobSwing pet arm (voidwalker melee ~8117)",
+        "applyTaunt pet auto-taunt arm (~8110)",
+        "applyTaunt pet manual-taunt arm (petTaunt, ~4885)"
+      ]
+    },
+    {
+      "name": "pet_ai",
+      "source_owner": "tests/parity/scenarios.ts#petAi",
+      "golden": "tests/parity/golden/pet_ai.json",
+      "golden_sha256": "570efc518a1f11eaa6dbe84b4e4c477cf88d22a6843eaf81718e54d4734cd27d",
+      "coverage": [
+        "class:hunter (pet owner)",
+        "petRangedAttack imp-bolt arm (petRanged crit roll + AP-scaled fire damage)",
+        "petPickTarget aggressive auto-pull",
+        "updatePet melee arm: close + auto-taunt + mobSwing (PET_COMBAT_LINGER owner inCombat)",
+        "petFollow heel transition (pets return to a moved owner)"
+      ]
+    },
+    {
+      "name": "pet_commands",
+      "source_owner": "tests/parity/scenarios.ts#petCommands",
+      "golden": "tests/parity/golden/pet_commands.json",
+      "golden_sha256": "61046454058dc78699530f3ac9100a604372049c5ea85f83c003c6491b5034af",
+      "coverage": [
+        "class:hunter (tame/feed/revive/abandon/stow)",
+        "class:warlock (summon/demon-swap/healPet channel)",
+        "completeTame + syncPetLevel (tamePet target -> owned pet scaled to owner)",
+        "despawnPersistentPet threat-scrub + retargetMob (abandon, demon swap, stow beast)",
+        "despawnPet player-target + threat scrub + retargetMob (stow demon)",
+        "feedPet feed_pet HoT (replace-then-apply)",
+        "revivePet (dead pet -> alive at 35%)",
+        "setPetMode passive clears aggroTargetId/inCombat/autoAttack",
+        "applyDemonHealTick (heal2 + healingThreat) via the Demon Heal channel",
+        "petTaunt -> applyTaunt manual arm + PET_GROWL_INTERVAL cooldown",
+        "stowPetForDelve/restorePetFromDelveStash (serializePet/restorePet round-trip)"
+      ]
+    },
+    {
+      "name": "paladin_consecration",
+      "source_owner": "tests/parity/scenarios.ts#paladinConsecration",
+      "golden": "tests/parity/golden/paladin_consecration.json",
+      "golden_sha256": "aa889685f4291a092126dc72cf2e199d791e2191912eb450205bf6c0270fb2f2",
+      "coverage": [
+        "class:paladin",
+        "updateGroundAoEs first-in-tick (~2256)",
+        "pulseGroundAoE both callers (immediate ~4097 + deferred ~3052)"
+      ]
+    },
+    {
+      "name": "arena_1v1",
+      "source_owner": "tests/parity/scenarios.ts#arena1v1",
+      "golden": "tests/parity/golden/arena_1v1.json",
+      "golden_sha256": "89bd03c639140662946abd9ac45798cf468000d3df5df1166d1cc3a37a0a0936",
+      "coverage": [
+        "arena 1v1 match + Elo result",
+        "multi-player PlayerMeta sampling",
+        "classes:warrior,mage"
+      ]
+    },
+    {
+      "name": "card_duel",
+      "source_owner": "tests/parity/scenarios.ts#cardDuel",
+      "golden": "tests/parity/golden/card_duel.json",
+      "golden_sha256": "77e311647867846827086ca071f56e47c15d0543af4fd39cd4c6d0c7d8e4a5e9",
+      "coverage": [
+        "Card Duel minigame: queue + matchmake at the Card Master",
+        "createCardHand rng draw (match start, both sides)",
+        "drawOne rng draw (round resolution, both sides)"
+      ]
+    },
+    {
+      "name": "fiesta",
+      "source_owner": "tests/parity/scenarios.ts#fiesta",
+      "golden": "tests/parity/golden/fiesta.json",
+      "golden_sha256": "dc5f6a4229cc385a24dea0205cefd38392ac3cc42cc041c5972db460b84bc5be",
+      "coverage": [
+        "fiesta match (2v2 score mode)",
+        "cross-team takedown + respawn bench",
+        "augment wave: fiestaPickOffers + arenaAugmentPick (fiestaAugments on meta + augmentOffer/Chosen events)",
+        "multi-player meta"
+      ]
+    },
+    {
+      "name": "fiesta_powerups",
+      "source_owner": "tests/parity/scenarios.ts#fiestaPowerups",
+      "golden": "tests/parity/golden/fiesta_powerups.json",
+      "golden_sha256": "595a165bdb7b4ad5d48c8fb31a5880aa3c26e8efb7d66cf42f65ac884b1a5e36",
+      "coverage": [
+        "fiesta power-up spawn (f.rng pick/next) + telegraph + grab (buff aura)",
+        "hazard ring burn (fiestaRingDamage) outside the closing ring",
+        "down + respawn-timer revive (fiestaRevive)"
+      ]
+    },
+    {
+      "name": "duel_to_winner",
+      "source_owner": "tests/parity/scenarios.ts#duelToWinner",
+      "golden": "tests/parity/golden/duel_to_winner.json",
+      "golden_sha256": "8b2a4c930591d7385139ccfc1c178a3d88100de86a2bfa0804a67e44cc31ed2c",
+      "coverage": [
+        "duelRequest/duelAccept duel formation (~11982/12022)",
+        "updateDuels countdown -> active + duelStart",
+        "endDuel on a PvP finishing blow (winner/loser + this.duels cleared)"
+      ]
+    },
+    {
+      "name": "arena_2v2_wipe",
+      "source_owner": "tests/parity/scenarios.ts#arena2v2Wipe",
+      "golden": "tests/parity/golden/arena_2v2_wipe.json",
+      "golden_sha256": "e4f1e01d9b25237feed2de145838c995d8e14c94fb2cfaf0ddad74d641352809",
+      "coverage": [
+        "arena 2v2 matchmaking (matchmakeTeamFormat: four solos -> two teams)",
+        "first kill does not end the match; team wipe (isArenaTeamWiped) does",
+        "endArenaMatch ranked Elo on both teams (arena2v2 standings) + returnFromArena"
+      ]
+    },
+    {
+      "name": "delve_lockpick",
+      "source_owner": "tests/parity/scenarios.ts#delveLockpick",
+      "golden": "tests/parity/golden/delve_lockpick.json",
+      "golden_sha256": "f85873fb5fe751ef1bdc97b5585a87ec5d6ecb91071fdbdbe421b068640a7a74",
+      "coverage": [
+        "delve run (collapsed_reliquary finale)",
+        "mobSwing delve-companion caller (~16762)",
+        "lockpick minigame (flawless solve)",
+        "reward chest + delve marks"
+      ]
+    },
+    {
+      "name": "delve_lockpick_fail",
+      "source_owner": "tests/parity/scenarios.ts#delveLockpickFail",
+      "golden": "tests/parity/golden/delve_lockpick_fail.json",
+      "golden_sha256": "598cafaa990fd04a848deb94bba1faa01f167a9fc4ec25a5035d8e0f0be73749",
+      "coverage": [
+        "delve run (collapsed_reliquary finale)",
+        "lockpick minigame (server-authoritative timeout jam)",
+        "tickLockpickTimeout -> lockpickStepTimeout -> lockpickBurnTry -> lockpickFail",
+        "jammed chest (attemptAvailable=false) + surface exit opens"
+      ]
+    },
+    {
+      "name": "drowned_litany",
+      "source_owner": "tests/parity/scenarios.ts#drownedLitany",
+      "golden": "tests/parity/golden/drowned_litany.json",
+      "golden_sha256": "1b5f7e5ecd7a06e5d121f467f2cc63e729268c827020573134a51f4ceee7e352",
+      "coverage": [
+        "drowned_litany heroic run (ruin affix roll + module advance)",
+        "bell-rope pull -> Bell Shock on live cantors (delveInteract)",
+        "Sister Nhalia driver: Blackwater Mark + Tolling Bells volley rng draws",
+        "cantor phases + Final Bell + rite choose -> playback pulses"
+      ]
+    },
+    {
+      "name": "party_loot",
+      "source_owner": "tests/parity/scenarios.ts#partyLoot",
+      "golden": "tests/parity/golden/party_loot.json",
+      "golden_sha256": "c4eaa35604d0cd6822b7a8651302da23b332470a410c98fe1f8f8528c63c3876",
+      "coverage": [
+        "party need/greed loot roll (lootCorpse/submitLootRoll)",
+        "multi-player party"
+      ]
+    },
+    {
+      "name": "party_raid",
+      "source_owner": "tests/parity/scenarios.ts#partyRaid",
+      "golden": "tests/parity/golden/party_raid.json",
+      "golden_sha256": "24813eec04aaf9b2885af29dc0b2dd7a8da5db90418b4d308c7e008de994442b",
+      "coverage": [
+        "partyInvite/partyAccept party formation (~11864/11901)",
+        "convertPartyToRaid full-party gate (RAID_MIN) + normalizeRaidGroups",
+        "raid fill to two subgroups (nextRaidGroupFor) + moveRaidMember (RAID_GROUP_MAX)",
+        "removeFromParty leadership handoff + disband + partyOf via SimContext"
+      ]
+    },
+    {
+      "name": "l1_loot_distribution",
+      "source_owner": "tests/parity/scenarios.ts#l1LootDistribution",
+      "golden": "tests/parity/golden/l1_loot_distribution.json",
+      "golden_sha256": "ecca17672945c738599cebb56c0495787ae4e310ee284e0421a17629ae2d3aba",
+      "coverage": [
+        "fair-split copper with remainder (Fisher-Yates rng.int draw)",
+        "need/greed/pass roll in party-member order (need beats greed)",
+        "everyone-passes returnLootRollItemToCorpse",
+        "looter-takes-all common item + personal-loot visibility"
+      ]
+    },
+    {
+      "name": "entity_roster",
+      "source_owner": "tests/parity/scenarios.ts#entityRoster",
+      "golden": "tests/parity/golden/entity_roster.json",
+      "golden_sha256": "66e42e062db5f4b8cad0bf165607afd151d881701ff99aac2a946df8d741326e",
+      "coverage": [
+        "addEntity roster + spatial grids",
+        "despawn prologue: despawnTimer + DAMAGE_IDLE_DESPAWN idle-despawn (collect-then-drop)",
+        "emitDueDelayedEvents drain (fires / guard-drops / stays-pending)",
+        "releaseSpirit ghost release + Spirit Healer resurrect (Resurrection Sickness)"
+      ]
+    },
+    {
+      "name": "delve_death",
+      "source_owner": "tests/parity/scenarios.ts#delveDeath",
+      "golden": "tests/parity/golden/delve_death.json",
+      "golden_sha256": "92de77715e327c6010cb256141fbc067940561fad2a0f61c051526543818ab5f",
+      "coverage": [
+        "releaseSpiritInDelve first death (50% hp respawn at module entry, ~16345)",
+        "releaseSpiritInDelve second death fails the run (deathsThisRun >= 2)",
+        "rebucket after delve respawn teleport"
+      ]
+    },
+    {
+      "name": "fiesta_midcast_kill",
+      "source_owner": "tests/parity/scenarios.ts#fiestaMidcastKill",
+      "golden": "tests/parity/golden/fiesta_midcast_kill.json",
+      "golden_sha256": "5c3c53854d000743e128d82a25a30b11a72fa02a4fdc1baa6c12d2d42a258caf",
+      "coverage": [
+        "dealDamage fiesta mid-cast pushback (pushbackCast ~5664)",
+        "dealDamage fiesta mid-cast fishing-cancel (cancelCast ~5663)",
+        "dealDamage fiesta cross-team takedown emit-then-fiestaTakedown order (~5512-5525)",
+        "fiesta lifesteal augment arm (~5499)",
+        "multi-player fiesta meta"
+      ]
+    },
+    {
+      "name": "multi_class_frenzy",
+      "source_owner": "tests/parity/scenarios.ts#multiClassFrenzy",
+      "golden": "tests/parity/golden/multi_class_frenzy.json",
+      "golden_sha256": "58bac321ca265b814a52deaf1934d4df6387532ca9f5846e1f48ed6b9d762b3f",
+      "coverage": [
+        "dealDamage -> maybeFrenzyOnHit rng draw (the only in-slice draw, ~5651/5702)",
+        "blood_frenzy push then refresh branches",
+        "amp stack + threat handoff + tap rights across multiple attackers",
+        "multi-class sources: warrior/mage/rogue"
+      ]
+    },
+    {
+      "name": "mob_targeting",
+      "source_owner": "tests/parity/scenarios.ts#mobTargeting",
+      "golden": "tests/parity/golden/mob_targeting.json",
+      "golden_sha256": "f529a90967f55901bab107c60d08347bfac294023f3c2d4e65fd828a427e251e",
+      "coverage": [
+        "updateMobTarget 110% melee pull-over (MELEE_SWITCH_MULT, inMelee MELEE_RANGE*1.2)",
+        "updateMobTarget 130% ranged pull-over (RANGED_SWITCH_MULT) + strict-boundary no-switch",
+        "forced-target/taunt branch + forcedTargetTimer -= DT expiry + forcedTargetId clear",
+        "retargetMob highest-threat pick + prune-to-evade (highestThreatTarget delete-during-iterate)",
+        "nythraxisAddFallbackTarget / scheduleNythraxisAddDespawnIfBossReset seam callbacks (non-add -> no-op)"
+      ]
+    },
+    {
+      "name": "delve_companion",
+      "source_owner": "tests/parity/scenarios.ts#delveCompanion",
+      "golden": "tests/parity/golden/delve_companion.json",
+      "golden_sha256": "de6cea461006d725331e2675cb44f4b6402ef80f61785d70b75682e50ac3ba35",
+      "coverage": [
+        "updateDelveCompanion combat arm: acquire owner target -> close-to-reach -> mobSwing on cadence (~16762 rng draws)",
+        "updateDelveCompanion rank-2 heal arm: DELVE_COMPANION_HEAL_PCT[2] percent heal of the lowest-HP party member (heal + spellfx tick)",
+        "updateDelveCompanion heel arm: moveToward owner past DELVE_COMPANION_FOLLOW, then warp + rebucket past PET_TELEPORT_DISTANCE",
+        "combat_start/low_hp barks via maybeCompanionBark (stays on Sim)"
+      ]
+    },
+    {
+      "name": "quest_kill_credit",
+      "source_owner": "tests/parity/scenarios.ts#questKillCredit",
+      "golden": "tests/parity/golden/quest_kill_credit.json",
+      "golden_sha256": "15d9f66de6d3cd0c5b0e62c22f4316dd0f41d6b584676732ebe99aed0e1cbfdd",
+      "coverage": [
+        "onMobKilledForQuests kill credit via handleDeath party loop (~5925)",
+        "checkQuestReady promotion (active -> ready)",
+        "acceptQuest -> finalizeQuestAccept -> onInventoryChangedForQuests",
+        "turnInQuest (xp + copper reward)"
+      ]
+    },
+    {
+      "name": "quest_collect_turnin",
+      "source_owner": "tests/parity/scenarios.ts#questCollectTurnIn",
+      "golden": "tests/parity/golden/quest_collect_turnin.json",
+      "golden_sha256": "517e89f191348be24f9443eb02fabf6f0feb0d3deef84bae2b4587c92e9fe269",
+      "coverage": [
+        "onInventoryChangedForQuests via addItem/removeItem inventory hub (~9782/9800)",
+        "checkQuestReady promotion AND demotion (ready <-> active)",
+        "acceptQuest -> finalizeQuestAccept -> onInventoryChangedForQuests",
+        "turnInQuest -> removeItem -> onInventoryChangedForQuests (xp + copper)"
+      ]
+    },
+    {
+      "name": "quest_link_abandon",
+      "source_owner": "tests/parity/scenarios.ts#questLinkAbandon",
+      "golden": "tests/parity/golden/quest_link_abandon.json",
+      "golden_sha256": "8f563d7d7a259c690bcdc372090421f27034ad3d053b033d965928bb1db1afe1",
+      "coverage": [
+        "acceptLinkedQuest party-gate: not-in-party error then in-party share",
+        "finalizeQuestAccept via the linked-share path (questLog.set + fallback re-grant + sharer notice)",
+        "abandonQuest questLog.delete + log emit, plus the not-in-log early-return guard"
+      ]
+    },
+    {
+      "name": "talents_progression",
+      "source_owner": "tests/parity/scenarios.ts#talentsProgression",
+      "golden": "tests/parity/golden/talents_progression.json",
+      "golden_sha256": "8a82781e67fe0c6293ba94e4fbb2b0698f136e2f0a7b5dbc0e634a6232932e39",
+      "coverage": [
+        "applyTalents valid spec+rows build (G1a) + recomputeTalents flat-struct bake",
+        "respec wipes row choices, keeps spec",
+        "saveLoadout (object-alloc overload) + switchLoadout (2 of 4 slots)",
+        "setSpec preserves class-wide row choices",
+        "refreshKnownAbilities(announce=false): known-ability list flips per change"
+      ]
+    },
+    {
+      "name": "warrior_row_capstones",
+      "source_owner": "tests/parity/scenarios.ts#warriorRowCapstones",
+      "golden": "tests/parity/golden/warrior_row_capstones.json",
+      "golden_sha256": "ecd55ed2a58e2f88ec7d8301d734a3a0aa801a26af0e5b5d45ca4d3921bc2b2a",
+      "coverage": [
+        "double charge: two spends while one recharge runs",
+        "aoeFear headings + Lingering Dread breakThreshold",
+        "victory rush on-kill window + selfHealPctMax",
+        "bladestorm self-centered channel ticks"
+      ]
+    },
+    {
+      "name": "multi_class_heal",
+      "source_owner": "tests/parity/scenarios.ts#multiClassHeal",
+      "golden": "tests/parity/golden/multi_class_heal.json",
+      "golden_sha256": "b15f766500967dd133a65df904b47b2edfb89bf56df57c116feb42072ea3f4ce",
+      "coverage": [
+        "applyHeal core: crit branch (rng.chance(spellCrit) draw), overheal clamp, heal2 emit",
+        "hexOutputMult outgoing cut (hex on source) + healingTakenMult Mortal-Wound cut (target)",
+        "consumeHealAbsorb soak: small shield depletes+filters, big shield survives",
+        "healingThreat even split across multiple aware mobs (entities.values insertion order)",
+        "threatEntryMatchesEntity direct-target + pet-owner branches",
+        "hot aura-tick heal path (healingTakenMult ~3089 + healingThreat ~3101)",
+        "dealDamage consumers: critVulnBonus (crit-only) + hexOutputMult on a damage hit",
+        "multi-class healers: priest/paladin/druid/shaman"
+      ]
+    },
+    {
+      "name": "mob_locomotion",
+      "source_owner": "tests/parity/scenarios.ts#mobLocomotion",
+      "golden": "tests/parity/golden/mob_locomotion.json",
+      "golden_sha256": "43cff5984856934bd4bffa49485635ae04fd14e1676b7e204b40cca2de0a99e9",
+      "coverage": [
+        "attack arm aoePulse rng.range(pulse.min,pulse.max) + spellfx (mogger Ground Pound)",
+        "attack arm War Stomp rng.range(stomp.min,stomp.max) + stomp_stun aura (korgath)",
+        "attack arm Banshee terrify rng.range(-PI,PI) fear facing + fear_incap aura (sister_nhalia)",
+        "idle arm wander draws (range(0,2PI) heading + range(2,9) radius -> groundPos wanderTarget)",
+        "evade arm arrival -> resetEvadingMob (rng.range(2,8), full-heal, clearThreat, telegraph re-arm)",
+        "cowardly flee: maybeFlee at FLEE_HP_THRESHOLD -> flee arm (fleeMoveSpeed run-away)"
+      ]
+    },
+    {
+      "name": "delve_progression",
+      "source_owner": "tests/parity/scenarios.ts#delveProgression",
+      "golden": "tests/parity/golden/delve_progression.json",
+      "golden_sha256": "1884f4df598c70a60d3f844d6fda17eb7c907a5a0e8431bb3d2dd59cf2beb5a8",
+      "coverage": [
+        "multi-module delve: spawnDelveModule(non-finale) -> clear -> advanceDelveModule",
+        "tickDelvePressurePlates + exit portal open + tombstone advance",
+        "Marks shop buy (delveBuyShopItem gate + addItem + vendor)",
+        "companionUpgrade rank bump + refreshDelveDaily day rollover"
+      ]
+    },
+    {
+      "name": "dungeon_instances",
+      "source_owner": "tests/parity/scenarios.ts#dungeonInstances",
+      "golden": "tests/parity/golden/dungeon_instances.json",
+      "golden_sha256": "96acc111f9482c9e6cc439e4537b645654b0cf4f167c7e4a5d2093a0f8ff6cc4",
+      "coverage": [
+        "updateDoorTriggers door-trigger enter (~14612)",
+        "enterDungeon -> claimInstance rng.int per spawn (~14774) + addEntity mobs/objects/exit",
+        "party shares ONE instance via instanceKeyFor (second member joins, no re-claim)",
+        "updateDoorTriggers exit portal -> leaveDungeon (~14620)",
+        "updateInstances empty-reset -> freeInstance despawn + partyKey null (~14841/14816)"
+      ]
+    },
+    {
+      "name": "dungeon_raid_lockout",
+      "source_owner": "tests/parity/scenarios.ts#dungeonRaidLockout",
+      "golden": "tests/parity/golden/dungeon_raid_lockout.json",
+      "golden_sha256": "0c85d91d3641d1d1263b6493cf3ba5fd227ffaab53923128830c19054732a6c8",
+      "coverage": [
+        "enterDungeon raid gating: convertPartyToRaid + canEnterNythraxisRaid attunement (~14640)",
+        "isRaidLocked active lockout blocks entry (~14706) + locked-to-arena emit"
+      ]
+    },
+    {
+      "name": "nythraxis_full_pull",
+      "source_owner": "tests/parity/scenarios.ts#nythraxisFullPull",
+      "golden": "tests/parity/golden/nythraxis_full_pull.json",
+      "golden_sha256": "3d0fddb2b26ee35d70aa2f682e39d165de4061ce5449182167290f1ecc7dc184",
+      "coverage": [
+        "updateNythraxisEncounter full pull (phase 1 -> transition -> phase 2 -> final stand -> death)",
+        "Gravebreaker rng.range weapon draw + front-cone Gravebreaker damage",
+        "Raise Fallen add wave (spawnNythraxisAdds) in phase one",
+        "transition: nythraxis_transition_stun room stun + Aldric spawn/walk-in + wardstones lit",
+        "Soul Rend rng.int marks pick + mark-expiry damage",
+        "Deathless Rage interrupt via tryStartNythraxisWardChannel (object-click channel) + boss self-stun",
+        "Final Stand enrage at 5% + grantNythraxisLockout (raidLockouts) + onBossDeath death dialogue",
+        "class:warrior"
+      ]
+    },
+    {
+      "name": "c3_aura_runner",
+      "source_owner": "tests/parity/scenarios.ts#c3AuraRunner",
+      "golden": "tests/parity/golden/c3_aura_runner.json",
+      "golden_sha256": "0c95d96543b82b6ca97169dbd277329cf7f89aa1330276e846958f4d49d1898f",
+      "coverage": [
+        "updateAuras dot-tick kills target mid-walk -> e.dead guard short-circuits (~3095)",
+        "updateAuras aura-expiry statsDirty -> recalcPlayerStats + applyNonPlayerStatAura",
+        "updateRegen eat/drink path (ctx.healingTakenMult + 'heal' emit) + out-of-combat regen",
+        "pulseGroundAoE over 2+ in-radius hostiles: rng.range per target, stable order",
+        "class:paladin"
+      ]
+    },
+    {
+      "name": "c4a_casting_lifecycle",
+      "source_owner": "tests/parity/scenarios.ts#c4aCastingLifecycle",
+      "golden": "tests/parity/golden/c4a_casting_lifecycle.json",
+      "golden_sha256": "4eb0540ac33960f7bbc99ef92fae75b28df43f91dbb213b73459e68f51c41375",
+      "coverage": [
+        "castAbility timed-cast START (mage fireball) + Math.max gcd arm",
+        "updateCasting progress + finish -> applyAbility spell-hit roll (rng) -> runEffects",
+        "single-slot spell queue (#1360): tail-window press queues, fires on completion",
+        "pushbackCast timed branch (+CAST_PUSHBACK_SEC) via dealDamage mid-cast",
+        "updateCasting silence branch -> cancelCast (priest lesser_heal, holy)",
+        "castAbility channel START (warlock drain_life): spend+arm at START",
+        "applyChannelTick drainTick (rng.range draw + dealDamage + self-heal + healingThreat)",
+        "pushbackCast channel-fraction branch via dealDamage mid-channel",
+        "cancelCast fishing arm via dealDamage (FISHING_CAST_ID, not pushback)",
+        "multi-class casters: mage/priest/warlock"
+      ]
+    },
+    {
+      "name": "mob_lifecycle",
+      "source_owner": "tests/parity/scenarios.ts#mobLifecycle",
+      "golden": "tests/parity/golden/mob_lifecycle.json",
+      "golden_sha256": "23a218932d2f8de13598f42b1a36efd9efc80de09298b42aea6776fe29539699",
+      "coverage": [
+        "death -> frenzyPackmates: a packFrenzy mob death gives same-template hostile neighbors the Pack Frenzy buff_haste aura (different-template boar unaffected; no rng)",
+        "death -> armDeathThroes: a deathThroes mob arms its detonateTimer fuse + swell telegraph (no rng)",
+        "corpse-tick -> detonateCorpse: fuse reaches 0, rng.range(dt.min,dt.max) per in-radius living player + dealDamage burst, fires once",
+        "corpse-tick -> respawnMob: a slain wild mob respawns at spawnPos (rng.range(2,8) wanderTimer) and despawnSummonedAdds drops its summoned add",
+        "corpse-tick gate: a dungeon mob (spawnPos.x > DUNGEON_X_THRESHOLD) stays dead, no respawn"
+      ]
+    },
+    {
+      "name": "targeting_markers",
+      "source_owner": "tests/parity/scenarios.ts#targetingMarkers",
+      "golden": "tests/parity/golden/targeting_markers.json",
+      "golden_sha256": "e3620997fac67e3539032acebbbc23a645f1b0b491e24742400cdc9652db22c6",
+      "coverage": [
+        "tabTarget cycle over visible enemies via orderTabTargets + grid order (~9690)",
+        "targetNearestEnemy / enemyCandidates grid scan, engaged vs idle (~9724/9740)",
+        "targetNearestFriendly + friendlyTabTarget wrap, autoAttack never armed (~9782/9797)",
+        "setMarker set/toggle-off/symbol-uniqueness + clearEntityMarker death-strip (~11956/12002)"
+      ]
+    },
+    {
+      "name": "c4b_effect_dispatch",
+      "source_owner": "tests/parity/scenarios.ts#c4bEffectDispatch",
+      "golden": "tests/parity/golden/c4b_effect_dispatch.json",
+      "golden_sha256": "ce53095893cb1f24ef875c5849a8bdce11eba83d50a177f8762e7233d2e4afe0",
+      "coverage": [
+        "runEffects multi-class multi-effect dispatch",
+        "directDamage/finisherDamage range-then-chance (druid moonfire, rogue eviscerate)",
+        "judgement range-then-chance (paladin seal -> judgement)",
+        "incapacitate fear-angle draw rng.range(-PI,PI) (warlock fear)",
+        "aoeDamage per-target rng.range (mage arcane_explosion, 2 mobs)",
+        "sunder miss rng.chance (warrior sunder_armor)",
+        "groundAoE on-cast pulse (paladin consecration)",
+        "summonDemon -> summonPet (warlock summon_imp) + selfBuff form switch (druid)",
+        "weaponStrike awardCombo latch + finisher combo-spend reset"
+      ]
+    },
+    {
+      "name": "hit_rating_heroic_ungeared",
+      "source_owner": "tests/parity/scenarios.ts#hitRatingHeroic",
+      "golden": "tests/parity/golden/hit_rating_heroic_ungeared.json",
+      "golden_sha256": "f263d5818458318244a7a953d81c41407eec2083d771e448438d9163563e8086",
+      "coverage": [
+        "Hit rating from authored gear vs a +3 target",
+        "same shared-RNG draw count/order as the ungeared spell-resist path"
+      ]
+    },
+    {
+      "name": "hit_rating_heroic_geared",
+      "source_owner": "tests/parity/scenarios.ts#hitRatingHeroic",
+      "golden": "tests/parity/golden/hit_rating_heroic_geared.json",
+      "golden_sha256": "09684f4f23e9d7957011067bb00de534538a934e400906eca07199a17ddcf143",
+      "coverage": [
+        "Hit rating from authored gear vs a +3 target",
+        "same shared-RNG draw count/order as the ungeared spell-resist path"
+      ]
+    },
+    {
+      "name": "c5_auto_attack",
+      "source_owner": "tests/parity/scenarios.ts#c5AutoAttack",
+      "golden": "tests/parity/golden/c5_auto_attack.json",
+      "golden_sha256": "e9e74b9bfad22e84797dfe4ff8b83ca0d2f1c754496482be3a0025fdfac91c7e",
+      "coverage": [
+        "player auto-attack driver updatePlayerAutoAttack (swingTimer cadence, facing/range gates)",
+        "meleeSwing white-hit table: single rng.next() miss/dodge + crit + armor mitigation",
+        "queuedOnSwing heroic_strike spend + bonus (warrior, cooldown 0)",
+        "queuedOnSwing raptor_strike spend + bonus + on-next-swing cooldown set (hunter, cooldown 6)",
+        "overpowerUntil window set on a melee dodge",
+        "spiked-hide reflect tail of meleeSwing (wild_boar Bristled Hide)",
+        "rangedSwing Auto Shot (hunter, physical, armor-mitigated, 8yd dead zone)",
+        "rangedSwing Wand (mage, arcane, no armor, no dead zone)",
+        "stopAutoAttack public entry"
+      ]
+    },
+    {
+      "name": "market_round_trip",
+      "source_owner": "tests/parity/scenarios.ts#marketRoundTrip",
+      "golden": "tests/parity/golden/market_round_trip.json",
+      "golden_sha256": "4208bef9f73fd79f0ef95adfa502fa6ce268a0b4b8a29181d53e5aa67d4ae7dd",
+      "coverage": [
+        "World Market: marketList escrow (ctx.removeItem pulls the stack from bags)",
+        "marketSearch browse filter (narrow to a substring, then clear)",
+        "marketBuy cross-player sale: buyer copper - price + addItem; seller proceeds = floor(price*(1-MARKET_CUT))",
+        "marketCancel reclaim escrow to bags",
+        "updateMarket once-a-second expiry sweep (% 20): expired listing -> seller collection",
+        "marketCollect: gold + expired items move to bags, collection cleared"
+      ]
+    },
+    {
+      "name": "inventory_vendor",
+      "source_owner": "tests/parity/scenarios.ts#inventoryVendor",
+      "golden": "tests/parity/golden/inventory_vendor.json",
+      "golden_sha256": "e93d6b64ca6ccdd9d727f53ceac6ad956ffc33f1eee41ed26dabc62ab892c429",
+      "coverage": [
+        "buyItem: meta.copper - buyValue*stackSize + addItem stack at trader_wilkes (vendor proximity gate)",
+        "equipItem empty-slot equip + recalcPlayerStats",
+        "equipItem same-slot SWAP: old piece returned to bags via addItemSilent + recalc",
+        "unequipItem: piece back to bags, slot emptied, recalc",
+        "useItem food/drink (sit + eating/drinking slot), potion (heal + cooldown), elixir (applyAura)",
+        "discardItem: removeItem the discarded count",
+        "sellItem: vendorInRange gate + recordVendorBuyback + meta.copper payout",
+        "sellAllJunk: bulk gray sweep, per-stack buyback record, one summary line",
+        "buyBackItem: meta.copper spend + addItemSilent + onInventoryChangedForQuests"
+      ]
+    },
+    {
+      "name": "bank_round_trip",
+      "source_owner": "tests/parity/scenarios.ts#bankRoundTrip",
+      "golden": "tests/parity/golden/bank_round_trip.json",
+      "golden_sha256": "cd1c79e114f055bfde492a0c8bc4152ef0b23395174246661320f49d06e294b5",
+      "coverage": [
+        "bankDeposit partial: a fraction of a fungible stack moves bags -> bank",
+        "bankDeposit whole: the remaining stack merges into the bank slot",
+        "bankWithdraw partial then whole: bank -> bags, gated by bag capacity",
+        "bankBuySlots: meta.copper - BANK_EXPANSION_PRICES[0] + purchasedSlots + 6",
+        "banker-proximity gate (nearBanker) satisfied by standing at a bursar"
+      ]
+    },
+    {
+      "name": "g1b_xp_prestige",
+      "source_owner": "tests/parity/scenarios.ts#g1bXpPrestige",
+      "golden": "tests/parity/golden/g1b_xp_prestige.json",
+      "golden_sha256": "5faea3e4b0c7ebdd17cb68a2245ed78aaf98242882f66eac4b415f2649f7647b",
+      "coverage": [
+        "rested-XP accrual inside an inn footprint (updateRested + isResting, G1b)",
+        "rested double-up on a kill award (grantXp restedBonus consumption, C1)",
+        "a level-up ding (grantXp level loop, C1)",
+        "max-level overflow -> lifetimeXp / virtualLevelUp (accrueLifetimeXp, C1)",
+        "cosmetic prestige accept + below-threshold reject (prestige, G1b)"
+      ]
+    },
+    {
+      "name": "player_trade",
+      "source_owner": "tests/parity/scenarios.ts#playerTrade",
+      "golden": "tests/parity/golden/player_trade.json",
+      "golden_sha256": "f2af38fd283139c796a55e51790d85ab0dc687f1488eb55632081be4e741f438",
+      "coverage": [
+        "tradeRequest + tradeAccept open a shared session (both pids point at it)",
+        "tradeSetOffer validates items against bags; tradeConfirm swaps items + copper atomically",
+        "tradeCancel closes an open session with both sides notified",
+        "updateTradesAndInvites drift cancel when the traders walk out of range"
+      ]
+    },
+    {
+      "name": "chat_social",
+      "source_owner": "tests/parity/scenarios.ts#chatSocial",
+      "golden": "tests/parity/golden/chat_social.json",
+      "golden_sha256": "df097bbd0a520bb83df0b8c5d09e863fb542eddf12d0e651a6f3b15b2250b522",
+      "coverage": [
+        "say/yell range delivery + party/general/world/lfg channel routing",
+        "whisper /w + /r round-trip via resolveWhisperTarget (exact-then-unambiguous-CI)",
+        "/me + predefined /wave emotes via broadcastEmote + findPlayerByName; playEmote bubble",
+        "handleChannelMembership /join opt-in channels; chatAllowed token-bucket throttle"
+      ]
+    },
+    {
+      "name": "professions_craft",
+      "source_owner": "tests/parity/scenarios.ts#professionsCraft",
+      "golden": "tests/parity/golden/professions_craft.json",
+      "golden_sha256": "7ef02fafbbc097cd522f6bfdefceae201b35b92cf32f2f412501866a6897a0d9",
+      "coverage": [
+        "class:warrior (crafter)",
+        "craft denial (insufficient_materials): draws zero rng, lastCraftResult ok:false",
+        "plain craft (recipe_minor_healing_potion): one masterwork-proc draw, no masterwork effect (consumable def), lastCraftResult quality common",
+        "masterwork proc craft (recipe_eastbrook_ritual_vestments, tailoring major @ skill 200): the single proc draw fires",
+        "masterwork effect: signed instance rolled.masterwork + baked tier-delta stats, masterwork SimEvent, PlayerMeta.lastMasterwork",
+        "lastCraftResult mirror fields (quality + masterwork?) on a proc",
+        "post-proc plain craft: the draw stream continues (one draw per successful craft)"
+      ]
+    }
+  ]
+}

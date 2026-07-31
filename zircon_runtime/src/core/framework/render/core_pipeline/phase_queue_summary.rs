@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    RenderPhase, RenderPhaseItem, RenderPhaseQueueOrderingKey, RENDER_PHASES_BY_QUEUE_ORDER,
+    RENDER_PHASES_BY_QUEUE_ORDER, RenderPhase, RenderPhaseItem, RenderPhaseQueueOrderingKey,
 };
 
 /// Diagnostics snapshot for an already-sorted render phase queue.
@@ -88,17 +88,9 @@ impl RenderPhaseQueueSummary {
         let mut phase_order_spans = phase_order_spans();
 
         for (index, item) in items.iter().enumerate() {
-            if let Some(count) = phase_counts
-                .iter_mut()
-                .find(|count| count.phase == item.phase)
-            {
-                count.item_count += 1;
-            }
+            phase_counts[phase_count_index(item.phase)].item_count += 1;
 
-            if let Some(span) = phase_order_spans
-                .iter_mut()
-                .find(|span| span.phase_order == item.phase.queue_order())
-            {
+            if let Some(span) = phase_order_spans.get_mut(usize::from(item.phase.queue_order())) {
                 span.push_item(index, item.ordering_key());
             }
         }
@@ -174,6 +166,24 @@ impl RenderPhaseQueueSummary {
     }
 }
 
+const fn phase_count_index(phase: RenderPhase) -> usize {
+    match phase {
+        RenderPhase::Prepass => 0,
+        RenderPhase::Shadow => 1,
+        RenderPhase::Opaque2d => 2,
+        RenderPhase::Opaque3d => 3,
+        RenderPhase::AlphaMask2d => 4,
+        RenderPhase::AlphaMask3d => 5,
+        RenderPhase::Deferred => 6,
+        RenderPhase::Transparent2d => 7,
+        RenderPhase::Transparent3d => 8,
+        RenderPhase::PostProcess => 9,
+        RenderPhase::Ui => 10,
+        RenderPhase::Overlay => 11,
+        RenderPhase::Debug => 12,
+    }
+}
+
 fn phase_order_spans() -> Vec<RenderPhaseQueueSummaryPhaseOrderSpan> {
     let mut spans: Vec<RenderPhaseQueueSummaryPhaseOrderSpan> = Vec::new();
     for phase in RENDER_PHASES_BY_QUEUE_ORDER {
@@ -195,9 +205,35 @@ fn phase_order_spans() -> Vec<RenderPhaseQueueSummaryPhaseOrderSpan> {
 }
 
 fn phase_diagnostic_name(phases: &[RenderPhase]) -> String {
-    phases
+    let capacity = phases
         .iter()
-        .map(|phase| phase.diagnostic_name())
-        .collect::<Vec<_>>()
-        .join("+")
+        .map(|phase| phase.diagnostic_name().len())
+        .sum::<usize>()
+        .saturating_add(phases.len().saturating_sub(1));
+    let mut diagnostic_name = String::with_capacity(capacity);
+    for (index, phase) in phases.iter().enumerate() {
+        if index > 0 {
+            diagnostic_name.push('+');
+        }
+        diagnostic_name.push_str(phase.diagnostic_name());
+    }
+    diagnostic_name
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn summary_updates_phase_and_order_rows_without_per_item_linear_search() {
+        let source = include_str!("phase_queue_summary.rs");
+
+        assert!(source.contains(concat!("phase_count_index", "(item.phase)")));
+        assert!(source.contains(concat!("usize::from(item.phase.", "queue_order())")));
+        assert!(!source.contains(concat!(".find(|count| count.phase", " == item.phase)")));
+        assert!(!source.contains(concat!(
+            ".find(|span| span.phase_order",
+            " == item.phase.queue_order())"
+        )));
+        assert!(!source.contains(concat!(".collect::<Vec<_>>()", ".join(\"+\")")));
+        assert!(source.contains(concat!("String::with_", "capacity(capacity)")));
+    }
 }

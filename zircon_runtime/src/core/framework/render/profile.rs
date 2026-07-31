@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     AdvancedRenderFeature, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-    RenderCapabilitySummary, SolariCapabilityRequirement,
+    RenderCapabilitySummary, RenderSubmissionConfig, SolariCapabilityRequirement,
 };
 
 pub const RENDER_PROFILE_CONFIG_KEY: &str = "zircon.render.profile_bundle";
@@ -44,6 +44,8 @@ pub struct RenderProfileBundle {
     profile: RenderProductProfile,
     includes: Vec<RenderProductProfile>,
     features: Vec<RenderProductFeature>,
+    #[serde(default)]
+    submission_config: RenderSubmissionConfig,
 }
 
 impl RenderProfileBundle {
@@ -52,6 +54,7 @@ impl RenderProfileBundle {
             profile,
             includes: Vec::new(),
             features: Vec::new(),
+            submission_config: RenderSubmissionConfig::default(),
         }
     }
 
@@ -110,6 +113,11 @@ impl RenderProfileBundle {
         &self.features
     }
 
+    /// Keeps scheduling independent from the selected render feature set.
+    pub const fn submission_config(&self) -> RenderSubmissionConfig {
+        self.submission_config
+    }
+
     pub fn with_includes(
         mut self,
         includes: impl IntoIterator<Item = RenderProductProfile>,
@@ -127,6 +135,11 @@ impl RenderProfileBundle {
         for feature in features {
             push_unique(&mut self.features, feature);
         }
+        self
+    }
+
+    pub fn with_submission_config(mut self, submission_config: RenderSubmissionConfig) -> Self {
+        self.submission_config = submission_config;
         self
     }
 
@@ -369,6 +382,7 @@ mod tests {
     use super::{RenderProductFeature, RenderProfileBundle, RenderProfileValidationError};
     use crate::core::framework::render::{
         RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
+        RenderSubmissionConfig,
     };
 
     #[test]
@@ -409,6 +423,35 @@ mod tests {
 
         assert!(bundle.has_feature(RenderProductFeature::AntiAlias));
         bundle.validate_capabilities(&capabilities).unwrap();
+    }
+
+    #[test]
+    fn render_profile_bundle_exposes_explicit_pipelined_submission() {
+        let bundle = RenderProfileBundle::default_render()
+            .with_submission_config(RenderSubmissionConfig::pipelined());
+
+        assert_eq!(
+            bundle.submission_config(),
+            RenderSubmissionConfig::pipelined()
+        );
+    }
+
+    #[test]
+    fn legacy_profile_bundle_deserialization_defaults_to_synchronous_submission() {
+        let mut serialized = serde_json::to_value(RenderProfileBundle::default_render())
+            .expect("render profile bundle should serialize");
+        serialized
+            .as_object_mut()
+            .expect("render profile bundle should serialize as an object")
+            .remove("submission_config");
+
+        let restored: RenderProfileBundle = serde_json::from_value(serialized)
+            .expect("legacy render profile bundle should deserialize");
+
+        assert_eq!(
+            restored.submission_config(),
+            RenderSubmissionConfig::synchronous()
+        );
     }
 
     #[test]

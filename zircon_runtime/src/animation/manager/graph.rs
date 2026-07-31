@@ -77,22 +77,19 @@ fn collect_graph_clips(
                     .and_then(|name| parameter_scalar(parameters, name))
                     .unwrap_or(1.0)
                     .clamp(0.0, 1.0);
-                let input_count = inputs.len().max(1);
-                let input_weights = if input_count == 1 {
-                    vec![1.0]
-                } else {
-                    let trailing = if input_count > 1 {
-                        scalar / (input_count - 1) as Real
-                    } else {
-                        0.0
-                    };
-                    std::iter::once(1.0 - scalar)
-                        .chain(std::iter::repeat_n(trailing, input_count - 1))
-                        .collect::<Vec<_>>()
-                };
+                let input_count = inputs.len();
+                let trailing_weight = (input_count > 1)
+                    .then(|| scalar / (input_count - 1) as Real)
+                    .unwrap_or(1.0);
                 let mut clips = Vec::new();
                 for (index, input) in inputs.iter().enumerate() {
-                    let weight = input_weights.get(index).copied().unwrap_or(1.0);
+                    let weight = if input_count <= 1 {
+                        1.0
+                    } else if index == 0 {
+                        1.0 - scalar
+                    } else {
+                        trailing_weight
+                    };
                     clips.extend(
                         collect_graph_clips(
                             graph,
@@ -159,4 +156,18 @@ fn collect_unique_graph_target_ids(clips: &[AnimationGraphClipInstance]) -> Vec<
         }
     }
     target_ids
+}
+
+#[cfg(test)]
+mod performance_contract_tests {
+    #[test]
+    fn blend_weights_do_not_allocate_a_temporary_vector() {
+        let source = include_str!("graph.rs")
+            .split_once("#[cfg(test)]")
+            .unwrap()
+            .0;
+
+        assert!(!source.contains("let input_weights = if"));
+        assert!(source.contains("let trailing_weight ="));
+    }
 }

@@ -54,6 +54,16 @@ fn endpoint_transport_and_security_policy_are_neutral_contracts() {
 }
 
 #[test]
+fn shared_state_poison_error_keeps_typed_resource_identity() {
+    let error = NetError::SharedStatePoisoned {
+        resource: "net.udp_sockets".to_string(),
+    };
+    let json = serde_json::to_value(&error).unwrap();
+
+    assert_eq!(serde_json::from_value::<NetError>(json).unwrap(), error);
+}
+
+#[test]
 fn http_and_websocket_descriptors_keep_protocol_state_data_only() {
     let request = NetHttpRequestDescriptor::new(
         NetRequestId::new(7),

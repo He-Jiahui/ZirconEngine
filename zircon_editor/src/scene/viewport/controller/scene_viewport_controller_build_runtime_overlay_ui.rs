@@ -1,4 +1,5 @@
-use crate::scene::viewport::{DisplayMode, GridMode, ProjectionMode, SceneViewportTool};
+use crate::scene::modes::SceneModeActivation;
+use crate::scene::viewport::{DisplayMode, GridMode, ProjectionMode, TransformHandleKind};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiTreeId},
     layout::UiFrame,
@@ -69,7 +70,7 @@ impl SceneViewportController {
     fn runtime_hud_text(&self) -> String {
         format!(
             "{} | {} | {} | {}",
-            tool_label(self.state.settings.tool),
+            scene_mode_label(&self.active_scene_mode()),
             projection_label(self.state.settings.projection_mode),
             display_label(self.state.settings.display_mode),
             grid_label(self.state.settings.grid_mode)
@@ -77,12 +78,13 @@ impl SceneViewportController {
     }
 }
 
-fn tool_label(tool: SceneViewportTool) -> &'static str {
-    match tool {
-        SceneViewportTool::Drag => "Drag",
-        SceneViewportTool::Move => "Move",
-        SceneViewportTool::Rotate => "Rotate",
-        SceneViewportTool::Scale => "Scale",
+fn scene_mode_label(mode: &SceneModeActivation) -> String {
+    match mode {
+        SceneModeActivation::Select => "Select".to_string(),
+        SceneModeActivation::Transform(TransformHandleKind::Move) => "Move".to_string(),
+        SceneModeActivation::Transform(TransformHandleKind::Rotate) => "Rotate".to_string(),
+        SceneModeActivation::Transform(TransformHandleKind::Scale) => "Scale".to_string(),
+        SceneModeActivation::Custom(mode_id) => mode_id.as_str().to_string(),
     }
 }
 

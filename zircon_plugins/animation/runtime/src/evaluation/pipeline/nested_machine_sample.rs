@@ -9,6 +9,7 @@ use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
 
 use super::machine_instance_key::MachineInstanceKey;
 use super::pose_blend::blend_weighted_poses;
+use super::requests::PendingClipEventSample;
 use super::state_graph_sample::{normalized_state_time, sample_state_events, sample_state_pose};
 use super::state_machine_cache::resolve_sub_machine_id;
 use super::AnimationEvaluationPipeline;
@@ -177,7 +178,7 @@ pub(super) fn sample_machine_state_events(
     skeleton_id: zircon_runtime::asset::AssetId,
     from_time_seconds: Real,
     to_time_seconds: Real,
-) -> Vec<crate::AnimationClipEvent> {
+) -> Vec<PendingClipEventSample> {
     let Some((child_instance, child, child_state)) = resolve_child_state(
         pipeline,
         asset_manager,

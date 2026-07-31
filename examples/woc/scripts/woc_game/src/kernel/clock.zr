@@ -1,0 +1,48 @@
+pub class FixedClock {
+    pri var tickValue: uint = <uint>0;
+    pri var timeValue: float = 0.0;
+
+    pub @constructor() {
+        this.tickValue = <uint>0;
+        this.timeValue = 0.0;
+    }
+
+    pub get tick: uint {
+        return this.tickValue;
+    }
+
+    pub get time: float {
+        return this.timeValue;
+    }
+
+    pub step(): void {
+        this.tickValue = this.tickValue + <uint>1;
+        this.timeValue = this.timeValue + 0.05;
+    }
+
+    pub copy(): FixedClock {
+        var result = new FixedClock();
+        result.tickValue = this.tickValue;
+        result.timeValue = this.timeValue;
+        return result;
+    }
+}
+
+pub fixedStepTest(): int {
+    var clock = new FixedClock();
+    if (clock.tick != <uint>0 || clock.time != 0.0) {
+        return -1;
+    }
+    clock.step();
+    clock.step();
+    if (clock.tick != <uint>2 || clock.time < 0.099999 || clock.time > 0.100001) {
+        return -2;
+    }
+    var snapshot = clock.copy();
+    clock.step();
+    if (clock.tick != <uint>3 || snapshot.tick != <uint>2 ||
+        snapshot.time < 0.099999 || snapshot.time > 0.100001) {
+        return -3;
+    }
+    return 1;
+}

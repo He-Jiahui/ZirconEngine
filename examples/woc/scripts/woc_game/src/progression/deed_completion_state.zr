@@ -1,0 +1,108 @@
+// Source-compatible projection of src/sim/deeds_completion.ts at
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. The catalog owns id-to-index
+// lookup; this rule owns the completion-set predicate over catalog order.
+
+var container = %import("zr.container");
+
+pub class DeedCompletionState {
+    pub var defined: container.Array<bool>;
+    pub var feat: container.Array<bool>;
+    pub var hidden: container.Array<bool>;
+    pub var earned: container.Array<bool>;
+
+    pub @constructor() {
+        this.defined = new container.Array<bool>();
+        this.feat = new container.Array<bool>();
+        this.hidden = new container.Array<bool>();
+        this.earned = new container.Array<bool>();
+    }
+}
+
+// Appending preserves the content catalog's append-only deed order. `defined`
+// is separate because a historical earned id must not count after its content
+// definition has been removed.
+pub append(
+    state: DeedCompletionState,
+    defined: bool,
+    feat: bool,
+    hidden: bool,
+    earned: bool
+): void {
+    state.defined.add(defined);
+    state.feat.add(feat);
+    state.hidden.add(hidden);
+    state.earned.add(earned);
+}
+
+pub setEarned(state: DeedCompletionState, index: int, earned: bool): bool {
+    if (index < 0 || index >= state.earned.length) {
+        return false;
+    }
+    state.earned[index] = earned;
+    return true;
+}
+
+// Feats never count. Hidden deeds enter both numerator and denominator only
+// when earned; all other live definitions count, including zero-Renown deeds.
+pub countsTowardCompletion(
+    state: DeedCompletionState,
+    index: int
+): bool {
+    if (index < 0 || index >= state.defined.length ||
+        !<bool>state.defined[index]) {
+        return false;
+    }
+    if (<bool>state.feat[index]) {
+        return false;
+    }
+    if (<bool>state.hidden[index] && !<bool>state.earned[index]) {
+        return false;
+    }
+    return true;
+}
+
+pub total(state: DeedCompletionState): int {
+    var total = 0;
+    var index = 0;
+    while (index < state.defined.length) {
+        if (countsTowardCompletion(state, index)) {
+            total = total + 1;
+        }
+        index = index + 1;
+    }
+    return total;
+}
+
+pub earnedTotal(state: DeedCompletionState): int {
+    var total = 0;
+    var index = 0;
+    while (index < state.defined.length) {
+        if (countsTowardCompletion(state, index) && <bool>state.earned[index]) {
+            total = total + 1;
+        }
+        index = index + 1;
+    }
+    return total;
+}
+
+pub contractTest(): int {
+    var state = new DeedCompletionState();
+    append(state, true, false, false, false);
+    append(state, true, true, false, true);
+    append(state, true, false, true, false);
+    append(state, true, false, true, true);
+    append(state, false, false, false, true);
+    append(state, true, false, false, true);
+
+    if (total(state) != 3 || earnedTotal(state) != 2) {
+        return -1;
+    }
+    if (!setEarned(state, 0, true) || total(state) != 3 ||
+        earnedTotal(state) != 3) {
+        return -2;
+    }
+    if (setEarned(state, -1, true) || setEarned(state, 6, true)) {
+        return -3;
+    }
+    return 1;
+}

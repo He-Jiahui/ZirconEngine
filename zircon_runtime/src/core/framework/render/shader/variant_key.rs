@@ -3,8 +3,8 @@ use zircon_runtime_interface::resource::ResourceId;
 
 use crate::core::framework::render::ShadingModelId;
 
-use super::geometry_source::GeometrySourceId;
 use super::RenderShaderDefinitionValue;
+use super::geometry_source::GeometrySourceId;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RenderShaderVariantKey {
@@ -169,8 +169,8 @@ mod tests {
     use zircon_runtime_interface::resource::ResourceId;
 
     use crate::core::framework::render::{
-        GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
-        SHADING_MODEL_ID_BLINN_PHONG,
+        GeometrySourceId, SHADING_MODEL_ID_BLINN_PHONG, ShaderFeatureBits, ShaderPassType,
+        ShaderQualityTier, ShaderVariantKey,
     };
 
     #[test]

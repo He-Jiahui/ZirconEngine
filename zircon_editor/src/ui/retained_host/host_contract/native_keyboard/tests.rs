@@ -11,4 +11,12 @@ fn workbench_popup_keyboard_command_maps_boundary_keys() {
         workbench_popup_keyboard_command(&Key::Named(NamedKey::End)),
         Some(WorkbenchPopupKeyboardCommand::Last)
     );
+    assert_eq!(
+        workbench_popup_keyboard_command(&Key::Named(NamedKey::PageDown)),
+        Some(WorkbenchPopupKeyboardCommand::PageDown)
+    );
+    assert_eq!(
+        workbench_popup_keyboard_command(&Key::Named(NamedKey::PageUp)),
+        Some(WorkbenchPopupKeyboardCommand::PageUp)
+    );
 }

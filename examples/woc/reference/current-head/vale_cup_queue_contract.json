@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/vale_cup_queue_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/social/vale_cup.ts": "9758e5013348b440300aadd6a6f98ceb22c68d3a754c762d460d13b0b7aaf8d2",
+    "src/sim/content/vale_cup.ts": "082939bf1c2bcb367dbd9f8c8dc8a09680d52a8f39d8ace2c2311613580df1b1"
+  },
+  "brackets": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "nations": [
+    "vale",
+    "mirefen",
+    "thornpeak",
+    "coliseum",
+    "choir",
+    "ogre",
+    "moon",
+    "copperdig"
+  ],
+  "role_codes": {
+    "allrounder": 0,
+    "keeper": 1,
+    "sweeper": 2,
+    "striker": 3
+  },
+  "selection": {
+    "first_fit_team_order": [
+      "A",
+      "B"
+    ],
+    "cross_bracket_key": "oldest_joined_at_tick",
+    "equal_tick_tiebreak": "lower_bracket"
+  }
+}

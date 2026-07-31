@@ -36,14 +36,23 @@ fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_retain
         ]
     );
 
-    let set_tool = projection
+    let activate_scene_mode = projection
         .bindings
         .iter()
-        .find(|binding| binding.binding_id == "ViewportToolbar/SetTool")
+        .find(|binding| binding.binding_id == "ViewportToolbar/ActivateSceneMode")
         .unwrap();
-    assert_eq!(set_tool.binding.path().event_kind, UiEventKind::Change);
-    assert_eq!(set_tool.binding.path().view_id, "ViewportToolbar");
-    assert_eq!(set_tool.binding.path().control_id, "SetTool");
+    assert_eq!(
+        activate_scene_mode.binding.path().event_kind,
+        UiEventKind::Change
+    );
+    assert_eq!(
+        activate_scene_mode.binding.path().view_id,
+        "ViewportToolbar"
+    );
+    assert_eq!(
+        activate_scene_mode.binding.path().control_id,
+        "ActivateSceneMode"
+    );
 
     let frame_selection = projection
         .bindings
@@ -83,13 +92,19 @@ fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() 
         .expect("viewport toolbar root should exist");
     assert_eq!(root.frame, UiFrame::new(0.0, 0.0, 1280.0, 28.0));
 
-    let set_tool = host_model
-        .node_by_control_id("SetTool")
-        .expect("set tool group should exist");
-    assert_eq!(set_tool.frame, UiFrame::new(0.0, 0.0, 58.0, 28.0));
-    assert_eq!(set_tool.component, "IconButton");
+    let activate_scene_mode = host_model
+        .node_by_control_id("ActivateSceneMode")
+        .expect("scene mode group should exist");
     assert_eq!(
-        set_tool.attributes.get("label").and_then(Value::as_str),
+        activate_scene_mode.frame,
+        UiFrame::new(0.0, 0.0, 28.0, 28.0)
+    );
+    assert_eq!(activate_scene_mode.component, "IconButton");
+    assert_eq!(
+        activate_scene_mode
+            .attributes
+            .get("label")
+            .and_then(Value::as_str),
         Some("Tool")
     );
 
@@ -99,7 +114,7 @@ fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() 
     assert_eq!(set_transform_space.component, "IconButton");
     assert_eq!(
         set_transform_space.frame,
-        UiFrame::new(62.0, 0.0, 68.0, 28.0)
+        UiFrame::new(32.0, 0.0, 28.0, 28.0)
     );
 
     let set_projection_mode = host_model
@@ -107,17 +122,70 @@ fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() 
         .expect("projection mode group should exist");
     assert_eq!(
         set_projection_mode.frame,
-        UiFrame::new(1100.0, 0.0, 88.0, 28.0)
+        UiFrame::new(1184.0, 0.0, 46.0, 28.0)
     );
 
     let align_view = host_model
         .node_by_control_id("AlignView")
         .expect("align view group should exist");
-    assert_eq!(align_view.frame, UiFrame::new(1192.0, 0.0, 88.0, 28.0));
+    assert_eq!(align_view.frame, UiFrame::new(1234.0, 0.0, 46.0, 28.0));
 
     let frame_selection = host_model
         .node_by_control_id("FrameSelection")
         .expect("frame selection control should exist");
     assert_eq!(frame_selection.component, "IconButton");
-    assert_eq!(frame_selection.frame, UiFrame::new(674.0, 0.0, 68.0, 28.0));
+    assert_eq!(frame_selection.frame, UiFrame::new(320.0, 0.0, 28.0, 28.0));
+}
+
+#[test]
+fn editor_ui_host_runtime_keeps_play_and_view_controls_non_overlapping_at_640px() {
+    let mut runtime = EditorUiHostRuntime::default();
+    let loaded = runtime.load_builtin_host_templates();
+    assert!(loaded.is_ok());
+    if loaded.is_err() {
+        return;
+    }
+    let projection = runtime.project_document("res://ui/editor/host/scene_viewport_toolbar.zui");
+    assert!(projection.is_ok());
+    let Ok(projection) = projection else {
+        return;
+    };
+    let surface = runtime.build_shared_surface("res://ui/editor/host/scene_viewport_toolbar.zui");
+    assert!(surface.is_ok());
+    let Ok(mut surface) = surface else {
+        return;
+    };
+    let computed = surface.compute_layout(UiSize::new(640.0, 28.0));
+    assert!(computed.is_ok());
+    if computed.is_err() {
+        return;
+    }
+    let host_model = runtime.build_host_model_with_surface(&projection, &surface);
+    assert!(host_model.is_ok());
+    let Ok(host_model) = host_model else {
+        return;
+    };
+
+    assert!(host_model.node_by_control_id("EnterPlayMode").is_some());
+    assert!(host_model.node_by_control_id("ExitPlayMode").is_some());
+    assert!(host_model.node_by_control_id("SetProjectionMode").is_some());
+    assert!(host_model.node_by_control_id("AlignView").is_some());
+    let Some(play) = host_model.node_by_control_id("EnterPlayMode") else {
+        return;
+    };
+    let Some(stop) = host_model.node_by_control_id("ExitPlayMode") else {
+        return;
+    };
+    let Some(projection_mode) = host_model.node_by_control_id("SetProjectionMode") else {
+        return;
+    };
+    let Some(align_view) = host_model.node_by_control_id("AlignView") else {
+        return;
+    };
+
+    assert_eq!(play.frame, UiFrame::new(352.0, 0.0, 28.0, 28.0));
+    assert_eq!(stop.frame, UiFrame::new(384.0, 0.0, 28.0, 28.0));
+    assert!(stop.frame.x + stop.frame.width <= projection_mode.frame.x);
+    assert!(projection_mode.frame.x + projection_mode.frame.width <= align_view.frame.x);
+    assert!(align_view.frame.x + align_view.frame.width <= 640.0);
 }

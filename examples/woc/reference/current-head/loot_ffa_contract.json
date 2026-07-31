@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/loot_ffa_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/loot/loot_ffa.ts": "7d54256753e8c29d198b2f06721c31be735ee2954cfbc3bd6a0e248ecbf35584"
+  },
+  "loot_ffa_delay_seconds": 60,
+  "semantics": {
+    "timer_lapse": "timer <= 0",
+    "shared_loot_rights": [
+      "ffa_unlocked",
+      "untapped",
+      "tapper",
+      "tapper_party_member"
+    ],
+    "party_boundary": "an empty typed member array is behaviorally equivalent to the source null party for this membership query"
+  }
+}

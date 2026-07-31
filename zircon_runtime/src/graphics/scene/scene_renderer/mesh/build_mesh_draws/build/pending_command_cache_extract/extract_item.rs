@@ -38,7 +38,7 @@ pub(super) fn pending_mesh_command_cache_extract_item(
         } else {
             pending_draw.static_state
         },
-        casts_shadow: pending_draw.cast_shadows,
+        casts_shadow: pending_draw.common.cast_shadows.casts_shadows(),
         disabled_passes: pending_draw.disabled_passes,
         taa_reactive_mask_strength: pending_draw.taa_reactive_mask_strength,
         skinned: pending_draw.skinned,

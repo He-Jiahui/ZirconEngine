@@ -50,6 +50,7 @@ impl EditorUiHost {
                 ensure_builtin_shell_instances(&mut registry, &mut session, &snapshot)?;
                 self.lock_animation_editor_sessions().clear();
                 self.lock_ui_asset_sessions().clear();
+                self.lock_ui_asset_dependency_generation().clear();
                 session.layout = self.layout_manager.default_layout();
                 self.recompute_session_metadata(&mut session);
                 return Ok(true);
@@ -124,6 +125,8 @@ impl EditorUiHost {
             self.lock_session().open_view_instances.remove(instance_id);
             self.lock_animation_editor_sessions().remove(instance_id);
             self.lock_ui_asset_sessions().remove(instance_id);
+            self.lock_ui_asset_dependency_generation()
+                .remove(instance_id);
             self.lock_view_registry().remove_instance(instance_id);
         }
         Ok(changed)

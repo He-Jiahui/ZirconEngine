@@ -101,3 +101,17 @@ fn action_policy_allows_asset_io_in_editor_profile_but_not_network() {
         UiActionSideEffectClass::Network
     );
 }
+
+#[test]
+fn action_policy_document_iteration_reserves_component_root_frontier() {
+    let source = include_str!("../template/asset/document.rs");
+    let iterator = source
+        .split_once("fn iter_nodes(&self) -> UiAssetNodeIter<'_> {")
+        .expect("document node iteration must remain available")
+        .1;
+
+    assert!(
+        iterator.contains("Vec::with_capacity(self.components.len()"),
+        "document validation passes must reserve the known component-root frontier"
+    );
+}

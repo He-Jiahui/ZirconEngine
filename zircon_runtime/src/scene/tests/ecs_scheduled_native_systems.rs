@@ -276,6 +276,9 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!hook_state_source.contains("by_stage: self.by_stage.clone()"));
     assert!(!hook_state_source
         .contains("#[derive(Clone, Debug)]\npub(crate) struct SceneRuntimeHookStagePlan"));
+    assert!(hook_state_source.contains("HashSet::with_capacity("));
+    assert!(hook_state_source.contains("drop(hook_ids);"));
+    assert!(!hook_state_source.contains("ordered.iter().any("));
 
     let runner_source = include_str!("../ecs/schedule_runner.rs");
     assert!(runner_source.contains("internal_systems: &[SceneSystemDescriptor]"));

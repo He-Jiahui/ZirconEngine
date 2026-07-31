@@ -1,0 +1,9 @@
+[package]
+name = "woc_bot"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WOC network bot role bootstrap."
+
+[dependencies]
+woc_runtime.workspace = true

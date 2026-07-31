@@ -7,7 +7,23 @@ use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 use crate::rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceTextStyle};
 
 use super::batching::DrawOp;
-use super::geometry::{command_effective_rect, text_bounds_from_rect};
+use super::geometry::{
+    command_effective_rect, full_projection_effective_rect, text_bounds_from_rect,
+};
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct WgpuUiTextPrepareStats {
+    pub(super) text_shape_count: u64,
+    pub(super) text_renderer_build_count: u64,
+    pub(super) text_renderer_cache_hit_count: u64,
+    pub(super) text_prepare_failure_count: u64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct TextBatchCacheKey {
+    generation: u64,
+    surface_size: (u32, u32),
+}
 
 pub(super) struct WgpuUiTextRenderer {
     _cache: Cache,
@@ -15,11 +31,12 @@ pub(super) struct WgpuUiTextRenderer {
     atlas: TextAtlas,
     font_system: FontSystem,
     swash_cache: SwashCache,
+    batch_cache_key: Option<TextBatchCacheKey>,
     batches: Vec<WgpuUiTextBatch>,
 }
 
 struct WgpuUiTextBatch {
-    renderer: TextRenderer,
+    renderer: Option<TextRenderer>,
 }
 
 impl WgpuUiTextRenderer {
@@ -37,6 +54,7 @@ impl WgpuUiTextRenderer {
             atlas,
             font_system: FontSystem::new(),
             swash_cache: SwashCache::new(),
+            batch_cache_key: None,
             batches: Vec::new(),
         }
     }
@@ -48,7 +66,21 @@ impl WgpuUiTextRenderer {
         surface_size: (u32, u32),
         draw_list: &UiSurfaceDrawList,
         draw_ops: &[DrawOp],
-    ) {
+    ) -> WgpuUiTextPrepareStats {
+        let cache_key = text_batch_cache_key(draw_list, surface_size);
+        if let Some(cache_key) = cache_key {
+            if self.batch_cache_key == Some(cache_key) {
+                return WgpuUiTextPrepareStats {
+                    text_renderer_cache_hit_count: self
+                        .batches
+                        .iter()
+                        .filter(|batch| batch.renderer.is_some())
+                        .count() as u64,
+                    ..WgpuUiTextPrepareStats::default()
+                };
+            }
+        }
+
         self.viewport.update(
             queue,
             Resolution {
@@ -57,6 +89,8 @@ impl WgpuUiTextRenderer {
             },
         );
         self.batches.clear();
+        self.batch_cache_key = None;
+        let mut stats = WgpuUiTextPrepareStats::default();
         for op in draw_ops {
             let DrawOp::Text(text_draw) = op else {
                 continue;
@@ -80,7 +114,15 @@ impl WgpuUiTextRenderer {
                 else {
                     continue;
                 };
-                let Some(clip) = command_effective_rect(command, draw_list) else {
+                if !text_has_visible_content(text) {
+                    continue;
+                }
+                let clip = if cache_key.is_some() {
+                    full_projection_effective_rect(command, draw_list)
+                } else {
+                    command_effective_rect(command, draw_list)
+                };
+                let Some(clip) = clip else {
                     continue;
                 };
                 let mut buffer = Buffer::new(
@@ -96,58 +138,103 @@ impl WgpuUiTextRenderer {
                     *font_weight,
                     *style,
                 );
+                stats.text_shape_count = stats.text_shape_count.saturating_add(1);
                 buffers.push(buffer);
                 text_commands.push(command);
                 text_clips.push(clip);
             }
-            if buffers.is_empty() {
-                continue;
-            }
-            let text_areas = text_commands
+            let has_visible_glyphs = buffers
                 .iter()
-                .zip(buffers.iter())
-                .zip(text_clips.iter())
-                .map(|((command, buffer), clip)| TextArea {
-                    buffer,
-                    left: command.frame.x,
-                    top: command.frame.y,
-                    scale: 1.0,
-                    bounds: text_bounds_from_rect(*clip),
-                    default_color: text_color(command),
-                    custom_glyphs: &[],
-                })
-                .collect::<Vec<_>>();
-            let mut renderer = TextRenderer::new(
-                &mut self.atlas,
-                device,
-                wgpu::MultisampleState::default(),
-                None,
-            );
+                .any(|buffer| buffer.layout_runs().any(|run| !run.glyphs.is_empty()));
+            let renderer = if has_visible_glyphs {
+                let text_areas = text_commands
+                    .iter()
+                    .zip(buffers.iter())
+                    .zip(text_clips.iter())
+                    .map(|((command, buffer), clip)| TextArea {
+                        buffer,
+                        left: command.frame.x,
+                        top: command.frame.y,
+                        scale: 1.0,
+                        bounds: text_bounds_from_rect(*clip),
+                        default_color: text_color(command),
+                        custom_glyphs: &[],
+                    })
+                    .collect::<Vec<_>>();
+                let mut renderer = TextRenderer::new(
+                    &mut self.atlas,
+                    device,
+                    wgpu::MultisampleState::default(),
+                    None,
+                );
 
-            let _ = renderer.prepare(
-                device,
-                queue,
-                &mut self.font_system,
-                &mut self.atlas,
-                &self.viewport,
-                text_areas,
-                &mut self.swash_cache,
-            );
+                let prepared = renderer.prepare(
+                    device,
+                    queue,
+                    &mut self.font_system,
+                    &mut self.atlas,
+                    &self.viewport,
+                    text_areas,
+                    &mut self.swash_cache,
+                );
+                match prepared {
+                    Ok(()) => Some(renderer),
+                    Err(_) => {
+                        stats.text_prepare_failure_count =
+                            stats.text_prepare_failure_count.saturating_add(1);
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+            let renderer_built = renderer.is_some();
             debug_assert_eq!(self.batches.len(), text_draw.batch_index);
+            // Preserve the compiled batch index even when this draw produces no glyph vertices.
             self.batches.push(WgpuUiTextBatch { renderer });
+            stats.text_renderer_build_count = stats
+                .text_renderer_build_count
+                .saturating_add(u64::from(renderer_built));
         }
+        self.batch_cache_key =
+            committed_text_batch_cache_key(cache_key, stats.text_prepare_failure_count);
+        stats
     }
 
     pub(super) fn render_batch<'pass>(
         &'pass mut self,
         batch_index: usize,
         pass: &mut wgpu::RenderPass<'pass>,
-    ) {
+    ) -> bool {
         let Some(batch) = self.batches.get_mut(batch_index) else {
-            return;
+            return false;
         };
-        let _ = batch.renderer.render(&self.atlas, &self.viewport, pass);
+        let Some(renderer) = batch.renderer.as_mut() else {
+            return false;
+        };
+        renderer.render(&self.atlas, &self.viewport, pass).is_ok()
     }
+}
+
+fn text_has_visible_content(text: &str) -> bool {
+    text.chars().any(|character| !character.is_whitespace())
+}
+
+fn text_batch_cache_key(
+    draw_list: &UiSurfaceDrawList,
+    surface_size: (u32, u32),
+) -> Option<TextBatchCacheKey> {
+    draw_list.generation().map(|generation| TextBatchCacheKey {
+        generation,
+        surface_size,
+    })
+}
+
+fn committed_text_batch_cache_key(
+    cache_key: Option<TextBatchCacheKey>,
+    prepare_failure_count: u64,
+) -> Option<TextBatchCacheKey> {
+    (prepare_failure_count == 0).then_some(cache_key).flatten()
 }
 
 fn prepare_buffer(
@@ -236,5 +323,39 @@ mod tests {
         let emphasis_attrs = text_attrs(None, 450, UiSurfaceTextStyle::Emphasis);
         assert_eq!(emphasis_attrs.weight, Weight(450));
         assert_eq!(emphasis_attrs.style, Style::Italic);
+    }
+
+    #[test]
+    fn text_batch_cache_key_allows_a_versioned_damage_projection() {
+        let versioned = UiSurfaceDrawList::with_generation((64, 32), None, Vec::new(), 9);
+        let damaged = UiSurfaceDrawList::with_generation(
+            (64, 32),
+            Some(crate::rhi::UiSurfaceRect::new(0.0, 0.0, 8.0, 8.0)),
+            Vec::new(),
+            9,
+        );
+        let legacy = UiSurfaceDrawList::new((64, 32), None, Vec::new());
+
+        assert!(text_batch_cache_key(&versioned, (64, 32)).is_some());
+        assert!(text_batch_cache_key(&damaged, (64, 32)).is_some());
+        assert_eq!(text_batch_cache_key(&legacy, (64, 32)), None);
+    }
+
+    #[test]
+    fn text_preparation_skips_content_that_cannot_produce_visible_glyphs() {
+        assert!(!text_has_visible_content(""));
+        assert!(!text_has_visible_content(" \t\r\n"));
+        assert!(text_has_visible_content("Zircon"));
+    }
+
+    #[test]
+    fn text_prepare_failure_does_not_publish_the_generation_cache_key() {
+        let cache_key = Some(TextBatchCacheKey {
+            generation: 7,
+            surface_size: (320, 240),
+        });
+
+        assert_eq!(committed_text_batch_cache_key(cache_key, 0), cache_key);
+        assert_eq!(committed_text_batch_cache_key(cache_key, 1), None);
     }
 }

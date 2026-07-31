@@ -1,0 +1,1 @@
+var e=%import("combat/empower_next_state");var r=e.contractTest();return r==1?0:r;

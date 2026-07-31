@@ -1,0 +1,88 @@
+var console = %import("zr.system.console");
+var container = %import("zr.container");
+var hand = %import("social/card_duel_hand");
+var duel = %import("social/card_duel_match");
+var rng = %import("kernel/rng");
+
+setHand(target: hand.CardHandState, card: uint, refill: uint): void {
+    target.deck = new container.Array<uint>();
+    target.hand = new container.Array<uint>();
+    target.discard = new container.Array<uint>();
+    target.hand.add(card);
+    target.deck.add(refill);
+}
+
+contractTest(): int {
+    var stream = new rng.Mulberry32(<uint>20061);
+    var match = duel.createCardDuelMatch(<uint>10, <uint>20, stream, 0.0);
+    if (match.a != <uint>10 || match.b != <uint>20 || match.roundDeadline != 90.0 ||
+        match.handA.hand.length != 4 || match.handB.hand.length != 4) {
+        return -1;
+    }
+
+    setHand(match.handA, <uint>9, <uint>1);
+    setHand(match.handB, <uint>4, <uint>2);
+    var firstPlay = duel.playCard(match, <uint>10, <uint>9, stream, 1.0);
+    if (!firstPlay.accepted || firstPlay.roundResolved || firstPlay.finished ||
+        match.playedA != 9 || match.playedB != 0) {
+        return -2;
+    }
+    var resolved = duel.playCard(match, <uint>20, <uint>4, stream, 1.0);
+    if (!resolved.accepted || !resolved.roundResolved || resolved.finished ||
+        match.roundsA != 1 || match.roundsB != 0 || match.playedA != 0 ||
+        match.playedB != 0 || match.roundDeadline != 91.0) {
+        return -3;
+    }
+
+    setHand(match.handA, <uint>8, <uint>3);
+    setHand(match.handB, <uint>2, <uint>4);
+    duel.playCard(match, <uint>10, <uint>8, stream, 2.0);
+    var finalRound = duel.playCard(match, <uint>20, <uint>2, stream, 2.0);
+    if (!finalRound.finished || finalRound.voided || finalRound.winner != <uint>10 ||
+        match.roundsA != 2 || match.roundsB != 0) {
+        return -4;
+    }
+
+    var pushed = duel.createCardDuelMatch(<uint>10, <uint>20, stream, 0.0);
+    setHand(pushed.handA, <uint>6, <uint>3);
+    setHand(pushed.handB, <uint>6, <uint>4);
+    duel.playCard(pushed, <uint>10, <uint>6, stream, 3.0);
+    var pushResult = duel.playCard(pushed, <uint>20, <uint>6, stream, 3.0);
+    if (!pushResult.roundResolved || pushResult.finished || pushed.roundsA != 0 ||
+        pushed.roundsB != 0 || pushed.roundDeadline != 93.0) {
+        return -5;
+    }
+
+    var manualForfeit = duel.createCardDuelMatch(<uint>10, <uint>20, stream, 0.0);
+    var forfeitResult = duel.forfeit(manualForfeit, <uint>10);
+    if (!forfeitResult.finished || !forfeitResult.voided || forfeitResult.winner != <uint>0) {
+        return -6;
+    }
+    var idleMatch = duel.createCardDuelMatch(<uint>10, <uint>20, stream, 0.0);
+    var idleDeadline = duel.expireDeadline(idleMatch, 90.0);
+    if (!idleDeadline.finished || !idleDeadline.voided || idleDeadline.winner != <uint>0) {
+        return -7;
+    }
+
+    var oneIdle = duel.createCardDuelMatch(<uint>10, <uint>20, stream, 0.0);
+    oneIdle.playedA = 3;
+    var deadlineWin = duel.expireDeadline(oneIdle, 90.0);
+    if (!deadlineWin.finished || !deadlineWin.voided || deadlineWin.winner != <uint>0 ||
+        deadlineWin.forfeiter != <uint>20) {
+        return -8;
+    }
+    var scoredIdle = duel.createCardDuelMatch(<uint>10, <uint>20, stream, 0.0);
+    scoredIdle.roundsA = 1;
+    scoredIdle.playedA = 3;
+    var scoredDeadlineWin = duel.expireDeadline(scoredIdle, 90.0);
+    if (!scoredDeadlineWin.finished || scoredDeadlineWin.voided ||
+        scoredDeadlineWin.winner != <uint>10 || scoredDeadlineWin.forfeiter != <uint>20) {
+        return -9;
+    }
+    return 1;
+}
+
+console.printLine("card-duel-match-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

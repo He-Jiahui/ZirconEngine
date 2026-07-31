@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -83,11 +84,16 @@ impl EmojiShortcodeRegistry {
         Ok(())
     }
 
-    pub(super) fn expand(&self, text: &str) -> String {
-        let mut expanded = String::with_capacity(text.len());
-        let mut cursor = 0;
-        while let Some(open_offset) = text[cursor..].find(':') {
-            let open = cursor + open_offset;
+    pub(super) fn expand<'a>(&self, text: &'a str) -> Cow<'a, str> {
+        if !text.contains(':') {
+            return Cow::Borrowed(text);
+        }
+
+        let mut expanded = None;
+        let mut scan = 0;
+        let mut copied = 0;
+        while let Some(open_offset) = text[scan..].find(':') {
+            let open = scan + open_offset;
             let name_start = open + 1;
             let Some(close_offset) = text[name_start..].find(':') else {
                 break;
@@ -98,16 +104,20 @@ impl EmojiShortcodeRegistry {
                 .as_ref()
                 .and_then(|name| self.replacements.get(name))
             else {
-                expanded.push_str(&text[cursor..=close]);
-                cursor = close + 1;
+                scan = close + 1;
                 continue;
             };
-            expanded.push_str(&text[cursor..open]);
-            expanded.push_str(replacement);
-            cursor = close + 1;
+            let output = expanded.get_or_insert_with(|| String::with_capacity(text.len()));
+            output.push_str(&text[copied..open]);
+            output.push_str(replacement);
+            copied = close + 1;
+            scan = copied;
         }
-        expanded.push_str(&text[cursor..]);
-        expanded
+        let Some(mut expanded) = expanded else {
+            return Cow::Borrowed(text);
+        };
+        expanded.push_str(&text[copied..]);
+        Cow::Owned(expanded)
     }
 }
 

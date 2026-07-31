@@ -1,0 +1,84 @@
+var console = %import("zr.system.console");
+var container = %import("zr.system.container");
+var ledger = %import("progression/inventory_instance_ledger");
+var order = %import("progression/inventory_order_state");
+
+cell(cells: container.Array<int>, index: int): int {
+    return index < 0 || index >= cells.length ? -99 : <int>cells[index];
+}
+
+var result = 1;
+var basic = new ledger.InventoryInstanceLedger();
+ledger.addStacked(basic, "bread", 1);
+ledger.addStacked(basic, "sword", 1);
+var cells = order.layoutCellIndices(basic, 4);
+if (cells.length != 4 || cell(cells, 0) != 0 || cell(cells, 1) != 1 ||
+    cell(cells, 2) != -1 || cell(cells, 3) != -1) {
+    result = -1;
+}
+if (result == 1 && (!ledger.setManualSlot(basic, 0, 3) ||
+    !ledger.setManualSlot(basic, 1, -1))) {
+    result = -2;
+}
+cells = order.layoutCellIndices(basic, 4);
+if (result == 1 && (cell(cells, 0) != 1 || cell(cells, 1) != -1 ||
+    cell(cells, 2) != -1 || cell(cells, 3) != 0)) {
+    result = -3;
+}
+var indices = order.cellOfIndices(basic, 4);
+if (result == 1 && (indices.length != 2 || <int>indices[0] != 3 ||
+    <int>indices[1] != 0)) {
+    result = -4;
+}
+
+var contested = new ledger.InventoryInstanceLedger();
+ledger.addStacked(contested, "bread", 1);
+ledger.addStacked(contested, "sword", 1);
+ledger.setManualSlot(contested, 0, 2);
+ledger.setManualSlot(contested, 1, 2);
+cells = order.layoutCellIndices(contested, 4);
+if (result == 1 && (cell(cells, 0) != 1 || cell(cells, 1) != -1 ||
+    cell(cells, 2) != 0 || cell(cells, 3) != -1)) {
+    result = -5;
+}
+
+var overflow = new ledger.InventoryInstanceLedger();
+ledger.addStacked(overflow, "a", 1);
+ledger.addStacked(overflow, "b", 1);
+ledger.addStacked(overflow, "c", 1);
+cells = order.layoutCellIndices(overflow, 2);
+if (result == 1 && (cells.length != 3 || cell(cells, 0) != 0 ||
+    cell(cells, 1) != 1 || cell(cells, 2) != 2)) {
+    result = -6;
+}
+
+var moved = new ledger.InventoryInstanceLedger();
+ledger.addStacked(moved, "bread", 1);
+ledger.addStacked(moved, "sword", 1);
+if (result == 1 && !order.moveStackToCell(moved, 0, 5, 8)) {
+    result = -7;
+}
+cells = order.layoutCellIndices(moved, 8);
+if (result == 1 && (cell(cells, 0) != -1 || cell(cells, 1) != 1 ||
+    cell(cells, 5) != 0)) {
+    result = -8;
+}
+
+var swapped = new ledger.InventoryInstanceLedger();
+ledger.addStacked(swapped, "bread", 1);
+ledger.addStacked(swapped, "sword", 1);
+ledger.addStacked(swapped, "potion", 1);
+if (result == 1 && !order.moveStackToCell(swapped, 0, 2, 8)) {
+    result = -9;
+}
+cells = order.layoutCellIndices(swapped, 8);
+if (result == 1 && (cell(cells, 0) != 2 || cell(cells, 1) != 1 ||
+    cell(cells, 2) != 0 || order.moveStackToCell(swapped, 0, 2, 8) ||
+    order.moveStackToCell(swapped, 3, 2, 8) ||
+    order.moveStackToCell(swapped, 0, 8, 8))) {
+    result = -10;
+}
+
+console.printLine("m5-inventory-order-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

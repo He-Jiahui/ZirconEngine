@@ -5,9 +5,9 @@ use crate::graphics::{
 };
 
 use super::{
-    assert_material_validation, asset_reference, material_with_contract_gaps,
-    pipeline_with_mesh_feature, shader_contract, shader_with_validation_diagnostic, test_extract,
-    InMemoryRenderPipelineAssetContext,
+    InMemoryRenderPipelineAssetContext, assert_material_validation, asset_reference,
+    material_with_contract_gaps, pipeline_with_mesh_feature, shader_contract,
+    shader_with_validation_diagnostic, test_extract,
 };
 
 #[test]
@@ -28,12 +28,14 @@ fn asset_aware_compile_reports_missing_shader_and_material_without_blocking_grap
         )
         .unwrap();
 
-    assert!(report
-        .pipeline
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "opaque-mesh"));
+    assert!(
+        report
+            .pipeline
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "opaque-mesh")
+    );
     assert!(report.diagnostics.iter().any(|diagnostic| matches!(
         diagnostic,
         RendererFeatureContractDiagnostic::ShaderMissing { feature, reference }
@@ -190,12 +192,14 @@ fn asset_aware_compile_reports_material_contract_diagnostics() {
         )
         .unwrap();
 
-    assert!(report
-        .pipeline
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "opaque-mesh"));
+    assert!(
+        report
+            .pipeline
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "opaque-mesh")
+    );
     assert!(report.diagnostics.iter().any(|diagnostic| matches!(
         diagnostic,
         RendererFeatureContractDiagnostic::MaterialShaderMismatch {

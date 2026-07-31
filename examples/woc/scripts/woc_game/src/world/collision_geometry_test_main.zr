@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var collisionGeometry = %import("world/collision_geometry");
+
+console.printLine("m3-collision-geometry-test");
+var result = collisionGeometry.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

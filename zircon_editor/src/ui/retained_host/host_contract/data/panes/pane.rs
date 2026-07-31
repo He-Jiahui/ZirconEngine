@@ -44,6 +44,7 @@ pub(crate) struct PaneData {
     pub assets_activity: AssetsActivityPaneData,
     pub asset_browser: AssetBrowserPaneData,
     pub project_overview: ProjectOverviewPaneData,
+    pub template_v2: TemplateV2PaneData,
     pub runtime_diagnostics: RuntimeDiagnosticsPaneData,
     pub performance_timeline: PerformanceTimelinePaneData,
     pub module_plugins: ModulePluginsPaneData,

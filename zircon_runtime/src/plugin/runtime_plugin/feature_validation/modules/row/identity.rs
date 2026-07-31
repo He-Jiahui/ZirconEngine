@@ -8,12 +8,12 @@ use self::{
     name::validate_runtime_plugin_feature_module_name,
 };
 
-pub(super) fn validate_runtime_plugin_feature_module_identity<'a>(
+pub(super) fn validate_runtime_plugin_feature_module_identity(
     feature: &PluginFeatureBundleManifest,
-    module: &'a PluginModuleManifest,
-    seen_names: &mut Vec<&'a str>,
+    module: &PluginModuleManifest,
+    is_duplicate: bool,
     diagnostics: &mut Vec<String>,
 ) {
-    validate_runtime_plugin_feature_module_name(feature, module, seen_names, diagnostics);
+    validate_runtime_plugin_feature_module_name(feature, module, is_duplicate, diagnostics);
     validate_runtime_plugin_feature_module_crate_name(&module.crate_name, diagnostics);
 }

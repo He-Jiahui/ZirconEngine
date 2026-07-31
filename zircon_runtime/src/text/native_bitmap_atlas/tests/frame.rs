@@ -9,6 +9,7 @@ const TEST_FRAME_FONT_BYTES: &[u8] = include_bytes!(concat!(
 #[test]
 fn native_bitmap_atlas_frame_replaces_glyphon_only_when_alpha_sources_cover_visible_glyphs() {
     let source = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(4.0, 4.0, 8.0, 8.0),
@@ -72,6 +73,7 @@ fn native_bitmap_atlas_frame_replaces_glyphon_only_when_alpha_sources_cover_visi
 #[test]
 fn native_bitmap_atlas_frame_keeps_glyphon_when_raster_image_is_missing() {
     let source = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(4.0, 4.0, 8.0, 8.0),
@@ -307,6 +309,7 @@ fn native_bitmap_atlas_frame_reuses_approximate_bucket_while_exact_worker_is_pen
 #[test]
 fn native_bitmap_atlas_prepare_report_carries_frame_index() {
     let source = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(4.0, 4.0, 8.0, 8.0),
@@ -348,6 +351,7 @@ fn native_bitmap_atlas_prepare_report_carries_frame_index() {
 #[test]
 fn native_bitmap_atlas_frame_reports_face_validity_from_source_epochs() {
     let source = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(4.0, 4.0, 8.0, 8.0),
@@ -386,6 +390,7 @@ fn native_bitmap_atlas_frame_reports_face_validity_from_source_epochs() {
 #[test]
 fn native_bitmap_atlas_frame_marks_contiguous_mixed_storage_ready_for_renderer_handoff() {
     let alpha = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(4.0, 4.0, 8.0, 8.0),
@@ -394,6 +399,7 @@ fn native_bitmap_atlas_frame_marks_contiguous_mixed_storage_ready_for_renderer_h
         source_byte_len: 64,
     };
     let color = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::Color,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(18.0, 4.0, 8.0, 8.0),
@@ -413,8 +419,7 @@ fn native_bitmap_atlas_frame_marks_contiguous_mixed_storage_ready_for_renderer_h
         0,
     );
 
-    let report = frame.prepare_report();
-    let storage_submissions = frame.storage_submissions();
+    let (report, storage_submissions) = frame.prepare_report_with_storage_submissions();
 
     assert!(!frame.replaces_glyphon());
     assert_eq!(frame.atlas_storage_format(), None);
@@ -434,6 +439,13 @@ fn native_bitmap_atlas_frame_marks_contiguous_mixed_storage_ready_for_renderer_h
         storage_submissions[1].storage_format,
         GlyphAtlasStorageFormat::Rgba8Unorm
     );
+    assert_eq!(
+        storage_submissions
+            .iter()
+            .map(|submission| submission.atlas_format)
+            .collect::<Vec<_>>(),
+        vec![GlyphAtlasFormat::AlphaMask, GlyphAtlasFormat::Color]
+    );
     assert_eq!(storage_submissions[0].source_bytes()[0].source_index, 0);
     assert_eq!(storage_submissions[0].source_bytes()[0].bytes.len(), 64);
     assert_eq!(storage_submissions[1].source_bytes()[0].source_index, 0);
@@ -445,8 +457,72 @@ fn native_bitmap_atlas_frame_marks_contiguous_mixed_storage_ready_for_renderer_h
 }
 
 #[test]
+fn native_bitmap_atlas_frame_separates_same_storage_format_atlas_layers() {
+    let subpixel = GlyphAtlasBitmapSource {
+        raster_key: None,
+        format: GlyphAtlasFormat::SubpixelMask,
+        content_size: UVec2::new(8, 8),
+        screen_rect: GlyphAtlasScreenRect::new(4.0, 4.0, 8.0, 8.0),
+        foreground_color: [1.0, 1.0, 1.0, 1.0],
+        background_color: [0.0, 0.0, 0.0, 1.0],
+        source_byte_len: 256,
+    };
+    let color = GlyphAtlasBitmapSource {
+        raster_key: None,
+        format: GlyphAtlasFormat::Color,
+        content_size: UVec2::new(8, 8),
+        screen_rect: GlyphAtlasScreenRect::new(18.0, 4.0, 8.0, 8.0),
+        foreground_color: [1.0, 1.0, 1.0, 1.0],
+        background_color: [0.0, 0.0, 0.0, 1.0],
+        source_byte_len: 256,
+    };
+    let mut frame = test_frame(
+        test_submission([subpixel, color]),
+        vec![
+            test_source_image(subpixel, vec![255; 256]),
+            test_source_image(color, vec![127; 256]),
+        ],
+        2,
+        0,
+        0,
+    );
+    frame.background_composite_glyph_count = 1;
+
+    let storage_submissions = frame.storage_submissions();
+    let report = frame.prepare_report();
+
+    assert_eq!(
+        frame.atlas_storage_format(),
+        Some(GlyphAtlasStorageFormat::Rgba8Unorm)
+    );
+    assert_eq!(frame.atlas_format(), None);
+    assert!(!frame.replaces_glyphon());
+    assert!(!report.mixed_atlas_storage_format);
+    assert!(report.mixed_storage_replacement_ready);
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::MixedStorageReplacement
+    );
+    assert_eq!(storage_submissions.len(), 2);
+    assert_eq!(
+        storage_submissions
+            .iter()
+            .map(|submission| submission.atlas_format)
+            .collect::<Vec<_>>(),
+        vec![GlyphAtlasFormat::SubpixelMask, GlyphAtlasFormat::Color]
+    );
+    assert!(storage_submissions
+        .iter()
+        .all(|submission| submission.storage_format == GlyphAtlasStorageFormat::Rgba8Unorm));
+    assert!(storage_submissions
+        .iter()
+        .all(|submission| submission.atlas_layer_count() == 1));
+}
+
+#[test]
 fn native_bitmap_atlas_storage_submissions_inherit_persistent_frame_atlas() {
     let alpha = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(4.0, 4.0, 8.0, 8.0),
@@ -455,6 +531,7 @@ fn native_bitmap_atlas_storage_submissions_inherit_persistent_frame_atlas() {
         source_byte_len: 64,
     };
     let color = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::Color,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(18.0, 4.0, 8.0, 8.0),
@@ -514,7 +591,7 @@ fn native_bitmap_atlas_storage_submissions_inherit_persistent_frame_atlas() {
             .atlas
             .page(GlyphAtlasFormat::AlphaMask, 0)
             .map(|page| page.generation),
-        Some(frame_alpha_generation.saturating_add(1))
+        Some(frame_alpha_generation)
     );
     assert_eq!(
         storage_submissions[1]
@@ -523,81 +600,24 @@ fn native_bitmap_atlas_storage_submissions_inherit_persistent_frame_atlas() {
             .atlas
             .page(GlyphAtlasFormat::Color, 0)
             .map(|page| page.generation),
-        Some(frame_color_generation.saturating_add(1))
+        Some(frame_color_generation)
     );
-}
-
-#[test]
-fn native_bitmap_atlas_frame_preserves_repeated_storage_order_without_glyphon() {
-    let first_alpha = GlyphAtlasBitmapSource {
-        format: GlyphAtlasFormat::AlphaMask,
-        content_size: UVec2::new(8, 8),
-        screen_rect: GlyphAtlasScreenRect::new(4.0, 4.0, 8.0, 8.0),
-        foreground_color: [1.0, 1.0, 1.0, 1.0],
-        background_color: [0.0, 0.0, 0.0, 1.0],
-        source_byte_len: 64,
-    };
-    let color = GlyphAtlasBitmapSource {
-        format: GlyphAtlasFormat::Color,
-        content_size: UVec2::new(8, 8),
-        screen_rect: GlyphAtlasScreenRect::new(18.0, 4.0, 8.0, 8.0),
-        foreground_color: [1.0, 1.0, 1.0, 1.0],
-        background_color: [0.0, 0.0, 0.0, 1.0],
-        source_byte_len: 256,
-    };
-    let second_alpha = GlyphAtlasBitmapSource {
-        screen_rect: GlyphAtlasScreenRect::new(30.0, 4.0, 8.0, 8.0),
-        ..first_alpha
-    };
-    let submission = test_submission([first_alpha, color, second_alpha]);
-    let frame = test_frame(
-        submission,
-        vec![
-            test_source_image(first_alpha, vec![255; 64]),
-            test_source_image(color, vec![255; 256]),
-            test_source_image(second_alpha, vec![127; 64]),
-        ],
-        3,
-        0,
-        0,
-    );
-    let report = frame.prepare_report();
-    let storage_submissions = frame.storage_submissions();
-
-    assert!(report.mixed_atlas_storage_format);
-    assert_eq!(report.storage_submission_count, 3);
-    assert_eq!(report.storage_submission_visible_glyph_count, 3);
-    assert!(report.mixed_storage_replacement_ready);
-    assert!(!report.replaces_glyphon);
-    assert!(!frame.replaces_glyphon());
     assert_eq!(
-        native_bitmap_atlas_handoff_for_report(&report),
-        NativeBitmapAtlasHandoff::MixedStorageReplacement
+        storage_submissions[0].submission.run.glyphs[0].atlas_rect,
+        frame.submission.run.glyphs[0].atlas_rect
     );
-    assert_eq!(report.glyphon_fallback_reason, None);
-    assert_eq!(storage_submissions.len(), 3);
     assert_eq!(
-        storage_submissions
-            .iter()
-            .map(|submission| submission.storage_format)
-            .collect::<Vec<_>>(),
-        vec![
-            GlyphAtlasStorageFormat::R8Unorm,
-            GlyphAtlasStorageFormat::Rgba8Unorm,
-            GlyphAtlasStorageFormat::R8Unorm,
-        ]
+        storage_submissions[1].submission.run.glyphs[0].atlas_rect,
+        frame.submission.run.glyphs[1].atlas_rect
     );
-    assert!(storage_submissions
-        .iter()
-        .all(|submission| submission.visible_glyph_count() == 1));
-    assert_eq!(storage_submissions[0].source_bytes()[0].bytes[0], 255);
-    assert_eq!(storage_submissions[1].source_bytes()[0].bytes[0], 255);
-    assert_eq!(storage_submissions[2].source_bytes()[0].bytes[0], 127);
+    assert_eq!(storage_submissions[0].submission.run.upload_copies.len(), 1);
+    assert_eq!(storage_submissions[1].submission.run.upload_copies.len(), 1);
 }
 
 #[test]
 fn native_bitmap_atlas_frame_replaces_glyphon_for_single_color_storage_submission() {
     let color = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::Color,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(18.0, 4.0, 8.0, 8.0),
@@ -631,6 +651,7 @@ fn native_bitmap_atlas_frame_replaces_glyphon_for_single_color_storage_submissio
 #[test]
 fn native_bitmap_atlas_frame_keeps_glyphon_for_subpixel_background_composite() {
     let subpixel = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::SubpixelMask,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(18.0, 4.0, 8.0, 8.0),
@@ -673,6 +694,7 @@ fn native_bitmap_atlas_frame_keeps_glyphon_for_subpixel_background_composite() {
 #[test]
 fn native_bitmap_atlas_frame_replaces_glyphon_for_known_subpixel_background_composite() {
     let subpixel = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::SubpixelMask,
         content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(18.0, 4.0, 8.0, 8.0),

@@ -77,12 +77,13 @@ pub fn run_picking_pipeline(
         return disabled_output(input);
     }
 
-    let mut stages = vec![PickingPipelineStageReport::new(
+    let mut stages = Vec::with_capacity(5);
+    stages.push(PickingPipelineStageReport::new(
         PickingScheduleLabel::Input,
         true,
         input.pointer_locations.len() + input.pointer_inputs.len(),
         input.pointer_locations.len(),
-    )];
+    ));
 
     let mut ray_map = RayMap::default();
     if input.settings.ray_map_enabled {

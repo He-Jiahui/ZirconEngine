@@ -8,7 +8,9 @@ use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_palette, METRICS, PALETTE,
 };
 use crate::ui::retained_host::primitives::Color;
-use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};
+use zircon_runtime_interface::ui::style::{
+    ButtonColor, UiPainterResolvedState, UiRgbaColor, UiStyleColor,
+};
 
 #[test]
 fn icon_button_loading_state_uses_unavailable_visuals() {
@@ -110,6 +112,19 @@ fn toolbar_icon_button_uses_starship_quiet_simple_button_chrome() {
     assert_eq!(focused.background, None);
     assert_eq!(focused.border, Some(PALETTE.focus_ring));
     assert_eq!(focused.border_width, 1.0);
+}
+
+#[test]
+fn toolbar_icon_button_normal_glyph_uses_semantic_button_tone() {
+    let mut node = TemplatePaneNodeData::default();
+    node.control_id = "WorkbenchRunPlay".into();
+    node.button_style.color = ButtonColor::Success;
+
+    let normal = select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Toolbar);
+
+    assert_eq!(normal.state, UiPainterResolvedState::Normal);
+    assert_eq!(normal.glyph, PALETTE.success);
+    assert_eq!(normal.background, None);
 }
 
 #[test]

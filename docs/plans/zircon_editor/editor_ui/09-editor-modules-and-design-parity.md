@@ -218,3 +218,5 @@ pub struct HierarchyViewModel {                    // 新增（workbench/model/ 
 | Console/日志面板 | `dev/godot/editor`（log/output 面板） | `dev/Fyrox/fyrox-ui/src/log.rs` | 级别过滤、详情区、虚拟滚动日志的交互组织 |
 | 时间轴模块 | `dev/theatre/packages/studio` | `dev/godot/editor`（animation 面板） | keyframe 编辑交互（协同 07 M4） |
 | 图编辑画布（Material Editor） | `dev/godot/scene/gui/{graph_edit.cpp, graph_edit_arranger.cpp}` | — | 节点图画布的平移/缩放/连线/框选语义（Canvas 容器 + 节点组合的行为标准） |
+
+- 2026-07-22 UI/sprite asset性能交接：PERF-MVP-526已删除UI v1资源发现的per-URI String和sprite atlas成功校验的per-name clone；EditorUI09按529只消费Runtime04 UI direct-reference/sprite dense-index generation，preview/hover不得递归整DOM或线性扫atlas entries。stable 60Hz DOM/locator/index build=0，selected detail借用共享document/entry。

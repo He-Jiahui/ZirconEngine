@@ -1,11 +1,15 @@
 use serde_json::json;
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::scene::components::NodeKind;
-use zircon_runtime::scene::{NodeId, Scene};
+use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, LevelSystem, NodeId, Scene};
 use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest, ReflectedValue};
 
 use crate::core::editing::command::EditorCommand;
+use crate::core::editing::context::CoreEditContext;
+use crate::core::editing::engine::{EditorTransactionEngine, HistoryContextId};
 use crate::core::editing::intent::EditorIntent;
+use crate::core::editing::selection::SceneSelection;
+use crate::core::gateway::EditorRuntimeGatewayHandle;
 
 use super::support::{cube_and_camera, cube_id, test_state};
 
@@ -22,8 +26,7 @@ fn reflected_editor_command_updates_fixed_component_and_undoes() {
     let original_name = scene.find_node(entity).unwrap().name.clone();
 
     let command = EditorCommand::set_reflected_scene_field(
-        &mut scene,
-        Some(entity),
+        &scene,
         entity,
         NAME_TYPE_PATH,
         "value",
@@ -32,25 +35,36 @@ fn reflected_editor_command_updates_fixed_component_and_undoes() {
     .expect("fixed reflected field command should be captured")
     .expect("name change should create a command");
 
-    assert_eq!(scene.find_node(entity).unwrap().name, "Cloud");
-    assert_eq!(command.target_node(), entity);
-    assert_eq!(command.selection_after(), Some(entity));
-
-    assert_eq!(command.undo(&mut scene).unwrap(), Some(entity));
     assert_eq!(scene.find_node(entity).unwrap().name, original_name);
 
-    assert_eq!(command.apply(&mut scene).unwrap(), Some(entity));
-    assert_eq!(scene.find_node(entity).unwrap().name, "Cloud");
+    let (level, transactions) = transaction_scene(scene, entity);
+    commit_command(&transactions, command);
+    assert_eq!(
+        level.with_world(|scene| scene.find_node(entity).unwrap().name.clone()),
+        "Cloud"
+    );
+    assert!(transactions.undo(HistoryContextId::Global).unwrap());
+    assert_eq!(
+        level.with_world(|scene| scene.find_node(entity).unwrap().name.clone()),
+        original_name
+    );
 
-    let no_op = EditorCommand::set_reflected_scene_field(
-        &mut scene,
-        Some(entity),
-        entity,
-        NAME_TYPE_PATH,
-        "value",
-        ReflectedValue::String("Cloud".to_string()),
-    )
-    .expect("same reflected value should be a valid no-op");
+    assert!(transactions.redo(HistoryContextId::Global).unwrap());
+    assert_eq!(
+        level.with_world(|scene| scene.find_node(entity).unwrap().name.clone()),
+        "Cloud"
+    );
+
+    let no_op = level.with_world(|scene| {
+        EditorCommand::set_reflected_scene_field(
+            scene,
+            entity,
+            NAME_TYPE_PATH,
+            "value",
+            ReflectedValue::String("Cloud".to_string()),
+        )
+    });
+    let no_op = no_op.expect("same reflected value should be a valid no-op");
     assert!(no_op.is_none());
 }
 
@@ -67,8 +81,7 @@ fn reflected_editor_command_updates_dynamic_plugin_component_and_undoes() {
         .expect("dynamic component should attach");
 
     let command = EditorCommand::set_reflected_scene_field(
-        &mut scene,
-        Some(entity),
+        &scene,
         entity,
         CLOUD_LAYER_TYPE_PATH,
         "coverage",
@@ -79,18 +92,40 @@ fn reflected_editor_command_updates_dynamic_plugin_component_and_undoes() {
 
     assert_eq!(
         read_reflected_field(&scene, entity, CLOUD_LAYER_TYPE_PATH, "coverage"),
-        ReflectedValue::Scalar(0.75)
-    );
-
-    assert_eq!(command.undo(&mut scene).unwrap(), Some(entity));
-    assert_eq!(
-        read_reflected_field(&scene, entity, CLOUD_LAYER_TYPE_PATH, "coverage"),
         ReflectedValue::Scalar(0.25)
     );
 
-    assert_eq!(command.apply(&mut scene).unwrap(), Some(entity));
+    let (level, transactions) = transaction_scene(scene, entity);
+    commit_command(&transactions, command);
     assert_eq!(
-        read_reflected_field(&scene, entity, CLOUD_LAYER_TYPE_PATH, "coverage"),
+        level.with_world(|scene| read_reflected_field(
+            scene,
+            entity,
+            CLOUD_LAYER_TYPE_PATH,
+            "coverage"
+        )),
+        ReflectedValue::Scalar(0.75)
+    );
+
+    assert!(transactions.undo(HistoryContextId::Global).unwrap());
+    assert_eq!(
+        level.with_world(|scene| read_reflected_field(
+            scene,
+            entity,
+            CLOUD_LAYER_TYPE_PATH,
+            "coverage"
+        )),
+        ReflectedValue::Scalar(0.25)
+    );
+
+    assert!(transactions.redo(HistoryContextId::Global).unwrap());
+    assert_eq!(
+        level.with_world(|scene| read_reflected_field(
+            scene,
+            entity,
+            CLOUD_LAYER_TYPE_PATH,
+            "coverage"
+        )),
         ReflectedValue::Scalar(0.75)
     );
 }
@@ -108,8 +143,7 @@ fn reflected_editor_command_rejects_readonly_dynamic_field() {
         .expect("dynamic component should attach");
 
     let error = EditorCommand::set_reflected_scene_field(
-        &mut scene,
-        Some(entity),
+        &scene,
         entity,
         CLOUD_LAYER_TYPE_PATH,
         "label",
@@ -117,7 +151,7 @@ fn reflected_editor_command_rejects_readonly_dynamic_field() {
     )
     .expect_err("read-only reflected dynamic fields must be rejected");
 
-    assert!(error.contains("not editable"));
+    assert!(error.to_string().contains("not editable"));
     assert_eq!(
         read_reflected_field(&scene, entity, CLOUD_LAYER_TYPE_PATH, "label"),
         ReflectedValue::String("thin".to_string())
@@ -163,6 +197,26 @@ fn reflected_editor_command_rejects_dynamic_field_when_reflection_schema_is_unlo
         .expect("selection should succeed");
 
     assert!(!state.can_edit_dynamic_component_field(&format!("{CLOUD_LAYER_TYPE_PATH}.coverage")));
+}
+
+fn transaction_scene(scene: Scene, selected: NodeId) -> (LevelSystem, EditorTransactionEngine) {
+    let level = DefaultLevelManager::default().create_level(scene, LevelMetadata::default());
+    let mut context = CoreEditContext::new(EditorRuntimeGatewayHandle::detached());
+    context
+        .bind_scene(
+            level.clone(),
+            SceneSelection::new(vec![selected], Some(selected)),
+        )
+        .unwrap();
+    (level, EditorTransactionEngine::new(context))
+}
+
+fn commit_command(transactions: &EditorTransactionEngine, command: EditorCommand) {
+    let mut scope = transactions
+        .begin("Set reflected scene field", HistoryContextId::Global)
+        .expect("transaction should begin");
+    scope.push(command).expect("command should apply");
+    scope.commit().expect("transaction should commit");
 }
 
 #[test]
@@ -465,6 +519,57 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
             "coverage"
         )),
         ReflectedValue::Scalar(0.8)
+    );
+}
+
+#[test]
+fn reflected_edit_preserves_active_multi_selection() {
+    let mut state = test_state();
+    let (entity, camera) = cube_and_camera(&state);
+    assert!(state.viewport_controller.selection_mut().replace(
+        crate::scene::selection::WorldDomain::Edit,
+        [camera, entity],
+        Some(entity),
+    ));
+    state.update_name_field("Reflected Multi Selection".to_string());
+
+    assert!(state.apply_inspector_changes().unwrap());
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera, entity]
+    );
+    assert_eq!(
+        state.viewport_controller.selection().active_primary(),
+        Some(entity)
+    );
+
+    assert!(state.apply_intent(EditorIntent::Undo).unwrap());
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera, entity]
+    );
+    assert!(state.apply_intent(EditorIntent::Redo).unwrap());
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera, entity]
     );
 }
 

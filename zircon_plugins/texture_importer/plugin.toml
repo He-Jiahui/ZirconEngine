@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "texture_importer"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Texture Importer"
 category = "asset_importer"
 description = "Runtime texture and image importer package."

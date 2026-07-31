@@ -316,6 +316,7 @@ fn render_product_post_full_chain_all_effects_on() {
     for resource_name in [PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM] {
         assert_buffer_backing_exists(&stats, resource_name);
     }
+    assert_transient_texture_pool_aliases_logical_resources(&stats);
     assert!(stats.last_frame_history_copy_report.exposure_copied);
     assert_texture_backings_are_distinct(
         &stats,
@@ -343,6 +344,15 @@ fn render_product_post_full_chain_all_effects_on() {
         frame_delta > 15_000,
         "all-effects chain should produce a measurable final-frame delta; delta={frame_delta}, baseline_rgb_sum={baseline_rgb_sum}, full_rgb_sum={full_rgb_sum}, aliases={:?}",
         stats.last_graph_execution_alias_report.texture_aliases
+    );
+    assert_terminal_signal_covers_frame(&full_frame);
+    assert_terminal_signal_has_chromatic_content(
+        &full_frame,
+        Some(&baseline),
+        Some(format!(
+            "baseline={:?}; full={:?}",
+            baseline_stats.last_exposure_readback_report, stats.last_exposure_readback_report
+        )),
     );
 }
 
@@ -510,6 +520,17 @@ fn assert_buffer_backing_exists(stats: &RenderStats, resource_name: &str) {
     let _ = buffer_backing_for(stats, resource_name);
 }
 
+fn assert_transient_texture_pool_aliases_logical_resources(stats: &RenderStats) {
+    let report = &stats.last_graph_execution_alias_report;
+    let logical_count = report.texture_logical_count();
+    let physical_count = report.texture_backing_count();
+    assert!(
+        physical_count < logical_count,
+        "full-chain transient pool must use fewer physical texture backings than logical textures; logical={logical_count}, physical={physical_count}, aliases={:?}",
+        report.texture_aliases
+    );
+}
+
 fn texture_backing_for<'a>(stats: &'a RenderStats, resource_name: &str) -> &'a str {
     stats
         .last_graph_execution_alias_report
@@ -561,4 +582,81 @@ fn frame_rgb_sum(frame: &CapturedFrame) -> u64 {
         .chunks_exact(4)
         .map(|pixel| pixel[0] as u64 + pixel[1] as u64 + pixel[2] as u64)
         .sum()
+}
+
+pub(super) fn assert_terminal_signal_covers_frame(frame: &CapturedFrame) {
+    let mut max_x = None;
+    let mut max_y = None;
+    for (index, pixel) in frame.rgba.chunks_exact(4).enumerate() {
+        if pixel[0] <= 8 && pixel[1] <= 8 && pixel[2] <= 8 {
+            continue;
+        }
+        let x = (index as u32) % frame.width;
+        let y = (index as u32) / frame.width;
+        max_x = Some(max_x.map_or(x, |current: u32| current.max(x)));
+        max_y = Some(max_y.map_or(y, |current: u32| current.max(y)));
+    }
+
+    let min_covered_width = frame.width.saturating_mul(3).div_ceil(4);
+    let min_covered_height = frame.height.saturating_mul(3).div_ceil(4);
+    assert!(
+        max_x.is_some_and(|x| x.saturating_add(1) >= min_covered_width)
+            && max_y.is_some_and(|y| y.saturating_add(1) >= min_covered_height),
+        "terminal output must cover the physical target after dynamic-resolution upscale; size={}x{}, max_signal={:?}x{:?}",
+        frame.width,
+        frame.height,
+        max_x,
+        max_y,
+    );
+}
+
+pub(super) fn assert_terminal_signal_has_chromatic_content(
+    frame: &CapturedFrame,
+    baseline: Option<&CapturedFrame>,
+    exposure_diagnostics: Option<String>,
+) {
+    let chromatic_pixels = frame
+        .rgba
+        .chunks_exact(4)
+        .filter(|pixel| {
+            let red = i16::from(pixel[0]);
+            let green = i16::from(pixel[1]);
+            let blue = i16::from(pixel[2]);
+            (red - green).abs() >= 12 || (red - blue).abs() >= 12 || (green - blue).abs() >= 12
+        })
+        .count();
+    let minimum_chromatic_pixels = frame.rgba.len() / 4 / 100;
+    assert!(
+        chromatic_pixels >= minimum_chromatic_pixels,
+        "full-chain product frame must retain chromatic scene content; chromatic_pixels={chromatic_pixels}, minimum={minimum_chromatic_pixels}; full={}; baseline={}; exposure={}",
+        frame_rgb_color_summary(frame),
+        baseline.map(frame_rgb_color_summary).unwrap_or_else(|| "not-captured".to_string()),
+        exposure_diagnostics.as_deref().unwrap_or("not-captured"),
+    );
+}
+
+fn frame_rgb_color_summary(frame: &CapturedFrame) -> String {
+    let mut min_rgb = [u8::MAX; 3];
+    let mut max_rgb = [0; 3];
+    let mut saturated_white_pixels = 0usize;
+    let mut chromatic_pixels = 0usize;
+    for pixel in frame.rgba.chunks_exact(4) {
+        for channel in 0..3 {
+            min_rgb[channel] = min_rgb[channel].min(pixel[channel]);
+            max_rgb[channel] = max_rgb[channel].max(pixel[channel]);
+        }
+        let red = i16::from(pixel[0]);
+        let green = i16::from(pixel[1]);
+        let blue = i16::from(pixel[2]);
+        if pixel[0] == u8::MAX && pixel[1] == u8::MAX && pixel[2] == u8::MAX {
+            saturated_white_pixels += 1;
+        }
+        if (red - green).abs() >= 12 || (red - blue).abs() >= 12 || (green - blue).abs() >= 12 {
+            chromatic_pixels += 1;
+        }
+    }
+    format!(
+        "size={}x{}, rgb_min={min_rgb:?}, rgb_max={max_rgb:?}, white={saturated_white_pixels}, chromatic={chromatic_pixels}",
+        frame.width, frame.height,
+    )
 }

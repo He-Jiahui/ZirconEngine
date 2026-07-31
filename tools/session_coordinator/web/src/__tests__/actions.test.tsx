@@ -106,6 +106,22 @@ test("executing lifecycle activity exposes an explicit drain cancellation contro
   assert.match(html, /取消排空并恢复服务/);
 });
 
+test("deferred rollover explains that Cargo finishes without a global drain", () => {
+  const html = renderToStaticMarkup(<ActionActivityList
+    actions={[actionRecord({
+      kind: "service.rollover",
+      status: "executing",
+      result: { waitingForCargo: true, liveCargo: [] },
+    })]}
+    trackingErrors={{}}
+    onCancelExecuting={() => undefined}
+  />);
+
+  assert.match(html, /正在等待受管 Cargo 自然结束/);
+  assert.match(html, /不会排空或停止其他 Session/);
+  assert.match(html, /取消延后重启/);
+});
+
 test("persistent action activity loads safe audit fields", async () => {
   const originalFetch = globalThis.fetch;
   let requested = "";

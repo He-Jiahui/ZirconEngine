@@ -8,11 +8,11 @@ use crate::graphics::scene::scene_renderer::advanced_lighting::transmission::tra
 use crate::graphics::scene::scene_renderer::environment::lightmap_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
-    LightGridParams, LIGHT_GRID_EMPTY_ZBIN_HEADER,
+    LIGHT_GRID_EMPTY_ZBIN_HEADER, LightGridParams,
 };
 use crate::graphics::scene::scene_renderer::shadow::atlas::{
-    shadow_atlas_bind_group_layout_entries, ShadowAtlasResources, SHADOW_ATLAS_BINDING,
-    SHADOW_ATLAS_SAMPLER_BINDING, SHADOW_ATLAS_SLOT_BUFFER_BINDING, SHADOW_GLOBALS_BINDING,
+    SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING, SHADOW_ATLAS_SLOT_BUFFER_BINDING,
+    SHADOW_GLOBALS_BINDING, ShadowAtlasResources, shadow_atlas_bind_group_layout_entries,
 };
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
@@ -34,16 +34,13 @@ impl MeshPipelineCache {
         light_zbins_buffer: Option<&wgpu::Buffer>,
         light_tile_masks_buffer: Option<&wgpu::Buffer>,
     ) -> wgpu::BindGroup {
-        let params_buffer = self
-            .forward_volumetric_apply
-            .create_disabled_params_buffer(device, "zircon-forward-volumetric-disabled-params");
         self.create_forward_receiver_bind_group_with_volumetric(
             device,
             shadow_atlas_resources,
             light_grid_params_buffer,
             light_zbins_buffer,
             light_tile_masks_buffer,
-            &params_buffer,
+            &self.forward_volumetric_disabled_params_buffer,
             None,
             None,
         )

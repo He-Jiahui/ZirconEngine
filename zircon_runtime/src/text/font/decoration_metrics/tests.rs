@@ -2,19 +2,24 @@ use std::fs;
 use std::path::Path;
 
 use super::{
-    text_decoration_frame, TextDecorationKind, TextDecorationMetrics,
+    text_decoration_frame, TextDecorationKind, TextDecorationMetrics, TextDecorationMetricsCache,
     MIN_VISIBLE_TEXT_DECORATION_PX,
 };
 use crate::asset::{FontAssetFaceMetrics, FontAssetLineMetrics};
 use crate::core::framework::text::TextWritingMode;
+use crate::text::font::FontDatabase;
 use crate::text::TextFrame;
 
 #[test]
 fn render_text_decoration_metrics_from_face_tables() {
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
-    let bytes = fs::read(source).unwrap();
+    let bytes = fs::read(&source).unwrap();
     let face = ttf_parser::Face::parse(&bytes, 0).unwrap();
-    let metrics = TextDecorationMetrics::from_face_bytes(&bytes, 0, 40.0).unwrap();
+    let mut database = FontDatabase::default();
+    let font_face = database
+        .register_font_file(&source, Some("Decoration Metrics"), 0)
+        .unwrap();
+    let metrics = TextDecorationMetricsCache::default().resolve(&database, font_face, 40.0);
     let unit_scale = 40.0 / f32::from(face.units_per_em());
     let underline = face.underline_metrics().unwrap();
     let strikeout = face.strikeout_metrics().unwrap();

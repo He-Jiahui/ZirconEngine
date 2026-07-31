@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
 
-use zircon_runtime::core::{sort_module_activation_order, ModuleDescriptor};
+use zircon_runtime::core::{ModuleDescriptor, sort_module_activation_order};
 use zircon_runtime::engine_module::EngineModule;
 
 pub trait PluginGroup: Sized {
@@ -48,6 +48,7 @@ impl Error for PluginGroupError {}
 struct PluginEntry {
     module: Arc<dyn EngineModule>,
     enabled: bool,
+    descriptor: Option<ModuleDescriptor>,
 }
 
 #[derive(Clone, Debug)]
@@ -88,6 +89,7 @@ impl PluginGroupBuilder {
             PluginEntry {
                 module,
                 enabled: true,
+                descriptor: None,
             },
         );
         Ok(self)
@@ -95,8 +97,8 @@ impl PluginGroupBuilder {
 
     pub fn add_group(self, group: impl PluginGroup) -> Result<Self, PluginGroupError> {
         let mut builder = self;
-        for module in group.build()?.try_finish()?.into_modules() {
-            builder = builder.add_module(module)?;
+        for (module, descriptor) in group.build()?.try_finish()?.into_entries() {
+            builder = builder.add_resolved_module(module, descriptor)?;
         }
         Ok(builder)
     }
@@ -119,6 +121,7 @@ impl PluginGroupBuilder {
             return Err(self.missing_key(key));
         };
         entry.module = module;
+        entry.descriptor = None;
         Ok(self)
     }
 
@@ -154,6 +157,7 @@ impl PluginGroupBuilder {
             PluginEntry {
                 module,
                 enabled: true,
+                descriptor: None,
             },
         );
         Ok(self)
@@ -175,6 +179,7 @@ impl PluginGroupBuilder {
             PluginEntry {
                 module,
                 enabled: true,
+                descriptor: None,
             },
         );
         Ok(self)
@@ -182,18 +187,24 @@ impl PluginGroupBuilder {
 
     pub fn try_finish(mut self) -> Result<ResolvedPluginGroup, PluginGroupError> {
         let group_name = self.group_name.clone();
-        let modules = self
+        let (modules, descriptors) = self
             .order
             .into_iter()
             .filter_map(|key| {
                 let entry = self.entries.remove(&key)?;
-                entry.enabled.then_some(entry.module)
+                entry.enabled.then(|| {
+                    let descriptor = entry
+                        .descriptor
+                        .unwrap_or_else(|| entry.module.descriptor());
+                    (entry.module, descriptor)
+                })
             })
-            .collect();
-        let modules = sort_group_modules(&group_name, modules)?;
+            .unzip();
+        let (modules, descriptors) = sort_group_modules(&group_name, modules, descriptors)?;
         Ok(ResolvedPluginGroup {
             name: self.group_name,
             modules,
+            descriptors,
         })
     }
 
@@ -210,6 +221,27 @@ impl PluginGroupBuilder {
             return Err(self.disabled_anchor(key.to_string()));
         }
         Ok(index)
+    }
+
+    fn add_resolved_module(
+        mut self,
+        module: Arc<dyn EngineModule>,
+        descriptor: ModuleDescriptor,
+    ) -> Result<Self, PluginGroupError> {
+        let key = module.module_name().to_string();
+        if self.entries.contains_key(&key) {
+            return Err(self.duplicate_key(key));
+        }
+        self.order.push(key.clone());
+        self.entries.insert(
+            key,
+            PluginEntry {
+                module,
+                enabled: true,
+                descriptor: Some(descriptor),
+            },
+        );
+        Ok(self)
     }
 
     fn duplicate_key(&self, key: String) -> PluginGroupError {
@@ -251,34 +283,35 @@ impl PluginGroupBuilder {
 fn sort_group_modules(
     group_name: &str,
     modules: Vec<Arc<dyn EngineModule>>,
-) -> Result<Vec<Arc<dyn EngineModule>>, PluginGroupError> {
-    let descriptors = modules
-        .iter()
-        .map(|module| module.descriptor())
-        .collect::<Vec<_>>();
+    descriptors: Vec<ModuleDescriptor>,
+) -> Result<(Vec<Arc<dyn EngineModule>>, Vec<ModuleDescriptor>), PluginGroupError> {
     let order = sort_module_activation_order(&descriptors)
         .map_err(|error| PluginGroupBuilder::module_order_error(group_name, error.to_string()))?;
-    let mut modules_by_name = modules
+    let mut entries_by_name = modules
         .into_iter()
-        .map(|module| (module.module_name().to_owned(), module))
+        .zip(descriptors)
+        .map(|(module, descriptor)| (module.module_name().to_owned(), (module, descriptor)))
         .collect::<HashMap<_, _>>();
-    order
+    let entries = order
         .into_iter()
         .map(|module_name| {
-            modules_by_name.remove(&module_name).ok_or_else(|| {
+            entries_by_name.remove(&module_name).ok_or_else(|| {
                 PluginGroupBuilder::module_order_error(
                     group_name,
                     format!("descriptor references missing module {module_name}"),
                 )
             })
         })
-        .collect()
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(entries.into_iter().unzip())
 }
 
 #[derive(Clone, Debug)]
 pub struct ResolvedPluginGroup {
     name: String,
     modules: Vec<Arc<dyn EngineModule>>,
+    // Invariant: descriptors and modules have identical activation-order indices.
+    descriptors: Vec<ModuleDescriptor>,
 }
 
 impl ResolvedPluginGroup {
@@ -290,21 +323,22 @@ impl ResolvedPluginGroup {
         &self.modules
     }
 
-    pub fn module_keys(&self) -> Vec<&'static str> {
+    pub fn module_keys(&self) -> Vec<&str> {
         self.modules
             .iter()
             .map(|module| module.module_name())
             .collect()
     }
 
-    pub fn module_descriptors(&self) -> Vec<ModuleDescriptor> {
-        self.modules
-            .iter()
-            .map(|module| module.descriptor())
-            .collect()
+    pub fn module_descriptors(&self) -> &[ModuleDescriptor] {
+        &self.descriptors
     }
 
     pub fn into_modules(self) -> Vec<Arc<dyn EngineModule>> {
         self.modules
+    }
+
+    fn into_entries(self) -> Vec<(Arc<dyn EngineModule>, ModuleDescriptor)> {
+        self.modules.into_iter().zip(self.descriptors).collect()
     }
 }

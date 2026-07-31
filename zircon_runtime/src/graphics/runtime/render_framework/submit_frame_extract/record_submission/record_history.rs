@@ -26,7 +26,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
                 context.compiled_pipeline().history_bindings.clone(),
                 context.visibility_context().history_snapshot.clone(),
                 context.visibility_context().static_index().clone(),
-                context.history_validation_key().clone(),
+                context.history_validation_key_shared(),
             );
             history.handle()
         }
@@ -42,7 +42,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
                     context.compiled_pipeline().history_bindings.clone(),
                     context.visibility_context().history_snapshot.clone(),
                     context.visibility_context().static_index().clone(),
-                    context.history_validation_key().clone(),
+                    context.history_validation_key_shared(),
                 ),
             );
             handle

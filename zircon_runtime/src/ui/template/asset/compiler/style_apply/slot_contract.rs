@@ -29,7 +29,7 @@ pub(in super::super) fn apply_mui_child_slot_props(node: &mut UiTemplateNode) {
         .filter(|component| !component.is_empty())
         .map(|component| format!("Mui{component}"));
     let owner_component = node.component.clone().unwrap_or_default();
-    let owner_attributes = node.attributes.clone();
+    let owner_attributes = &node.attributes;
     if slot_props.is_empty()
         && slot_components.is_empty()
         && slot_classes.is_empty()
@@ -49,7 +49,7 @@ pub(in super::super) fn apply_mui_child_slot_props(node: &mut UiTemplateNode) {
             child,
             &slot_name,
             &owner_component,
-            &owner_attributes,
+            owner_attributes,
             owner_prefix.as_deref(),
             &slot_props,
             &slot_components,
@@ -70,7 +70,7 @@ pub(in super::super) fn apply_mui_child_slot_props(node: &mut UiTemplateNode) {
                 child,
                 slot_name,
                 &owner_component,
-                &owner_attributes,
+                owner_attributes,
                 owner_prefix.as_deref(),
                 &slot_props,
                 &slot_components,

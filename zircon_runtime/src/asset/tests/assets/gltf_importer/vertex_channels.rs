@@ -1,47 +1,52 @@
-﻿use super::*;
+use super::*;
 
 #[test]
-fn importer_preserves_gltf_skinning_channels_on_model_vertices() {
+fn importer_preserves_gltf_skinning_channels_on_mesh_subasset() {
     let root = unique_temp_project_root("skinned_model_import");
     fs::create_dir_all(&root).unwrap();
     let gltf_path = write_skinned_triangle_gltf(&root);
     let importer = importer_with_first_wave_plugin_fixtures();
     let root_uri = AssetUri::parse("res://models/skinned_triangle.gltf").unwrap();
 
-    let gltf = importer.import_from_source(&gltf_path, &root_uri).unwrap();
+    let outcome = importer
+        .import_with_settings(&gltf_path, &root_uri, Default::default())
+        .unwrap();
 
-    match gltf {
+    match &outcome.root_entry().expect("root gltf entry").asset {
         ImportedAsset::Model(model) => {
             assert_eq!(model.primitives.len(), 1);
-            assert_eq!(model.primitives[0].vertices.len(), 3);
-            assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
-            assert!(
-                model.primitives[0].virtual_geometry.is_none(),
-                "skinned glTF primitives should not consume joint slots as automatic VG ordinals"
-            );
+            assert!(model.primitives[0].vertices.is_empty());
+            assert!(model.primitives[0].indices.is_empty());
             assert_eq!(
                 model.primitives[0].mesh.as_ref().unwrap().locator,
                 label_uri(&root_uri, "Mesh0/Primitive0")
             );
-            assert_eq!(model.primitives[0].vertices[0].joint_indices, [0, 1, 0, 0]);
-            assert_eq!(model.primitives[0].vertices[1].joint_indices, [1, 0, 0, 0]);
-            assert_eq!(
-                model.primitives[0].vertices[0].joint_weights,
-                [0.75, 0.25, 0.0, 0.0]
-            );
-            assert_eq!(
-                model.primitives[0].vertices[1].joint_weights,
-                [1.0, 0.0, 0.0, 0.0]
-            );
+            assert!(model.primitives[0].virtual_geometry.is_none());
         }
         other => panic!("unexpected imported asset: {other:?}"),
+    }
+    match &entry_for_label(&outcome, &root_uri, "Mesh0/Primitive0").asset {
+        ImportedAsset::Mesh(mesh) => {
+            let primitive = mesh.to_model_primitive().unwrap();
+            assert_eq!(primitive.vertices.len(), 3);
+            assert_eq!(primitive.indices, vec![0, 1, 2]);
+            assert!(
+                primitive.virtual_geometry.is_none(),
+                "skinned glTF primitives should not consume joint slots as automatic VG ordinals"
+            );
+            assert_eq!(primitive.vertices[0].joint_indices, [0, 1, 0, 0]);
+            assert_eq!(primitive.vertices[1].joint_indices, [1, 0, 0, 0]);
+            assert_eq!(primitive.vertices[0].joint_weights, [0.75, 0.25, 0.0, 0.0]);
+            assert_eq!(primitive.vertices[1].joint_weights, [1.0, 0.0, 0.0, 0.0]);
+        }
+        other => panic!("unexpected Mesh0/Primitive0 asset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);
 }
 
 #[test]
-fn importer_preserves_gltf_tangent_and_color_channels_on_model_vertices() {
+fn importer_preserves_gltf_tangent_and_color_channels_on_mesh_subasset() {
     let root = unique_temp_project_root("tangent_color_model_import");
     fs::create_dir_all(&root).unwrap();
     let gltf_path = write_tangent_color_triangle_gltf(&root);
@@ -66,12 +71,9 @@ fn importer_preserves_gltf_tangent_and_color_channels_on_model_vertices() {
     match &outcome.root_entry().expect("root gltf entry").asset {
         ImportedAsset::Model(model) => {
             assert_eq!(model.primitives.len(), 1);
-            let vertices = &model.primitives[0].vertices;
-            assert_eq!(vertices.len(), 3);
-            for (index, vertex) in vertices.iter().enumerate() {
-                assert_eq!(vertex.tangent, expected_tangents[index]);
-                assert_eq!(vertex.color, expected_colors[index]);
-            }
+            assert!(model.primitives[0].vertices.is_empty());
+            assert!(model.primitives[0].indices.is_empty());
+            assert!(model.primitives[0].mesh.is_some());
         }
         other => panic!("unexpected root gltf asset: {other:?}"),
     }
@@ -94,7 +96,7 @@ fn importer_preserves_gltf_tangent_and_color_channels_on_model_vertices() {
 }
 
 #[test]
-fn importer_preserves_gltf_texcoord_1_on_model_vertices_and_mesh_subasset() {
+fn importer_preserves_gltf_texcoord_1_on_mesh_subasset() {
     let root = unique_temp_project_root("uv_channel_model_import");
     fs::create_dir_all(&root).unwrap();
     let gltf_path = write_uv_channel_triangle_gltf(&root);
@@ -111,12 +113,9 @@ fn importer_preserves_gltf_texcoord_1_on_model_vertices_and_mesh_subasset() {
     match &outcome.root_entry().expect("root gltf entry").asset {
         ImportedAsset::Model(model) => {
             assert_eq!(model.primitives.len(), 1);
-            let vertices = &model.primitives[0].vertices;
-            assert_eq!(vertices.len(), 3);
-            for (index, vertex) in vertices.iter().enumerate() {
-                assert_eq!(vertex.uv, expected_uv0[index]);
-                assert_eq!(vertex.uv1, expected_uv1[index]);
-            }
+            assert!(model.primitives[0].vertices.is_empty());
+            assert!(model.primitives[0].indices.is_empty());
+            assert!(model.primitives[0].mesh.is_some());
         }
         other => panic!("unexpected root gltf asset: {other:?}"),
     }

@@ -28,6 +28,53 @@ mod owner_validation;
 mod popup_tooltip;
 mod route_trace;
 
+#[test]
+fn input_hot_paths_avoid_eager_capture_trace_and_effect_index_allocations() {
+    let pointer = include_str!("../surface/input/pointer.rs");
+    let policy = include_str!("../surface/input/route_policy.rs");
+    let reply = include_str!("../surface/input/pointer_reply.rs");
+    let keyboard_navigation = include_str!("../surface/input/keyboard_navigation.rs");
+    let keyboard_action = include_str!("../surface/input/keyboard_action.rs");
+    let text_constraints = include_str!("../surface/input/text_constraints.rs");
+    let ime_context = include_str!("../surface/input/editable_text/ime_context.rs");
+    let pointer_capture = include_str!("../surface/input/state/pointer_capture.rs");
+
+    assert!(
+        pointer.contains("let previous_pointer_captures = matches!("),
+        "pointer capture maps should only be copied for terminal pointer events"
+    );
+    assert!(
+        !policy.contains("annotate_route_policy(surface, event, result);"),
+        "specialized route traces should not first build a generic trace that is overwritten"
+    );
+    assert!(
+        !reply.contains("effect_index_map") && !reply.contains("remap_text_effect_index"),
+        "contiguous appended effects should rebase indexes with a constant offset"
+    );
+    assert!(
+        !keyboard_navigation.contains("normalized_key_name"),
+        "directional key matching should not allocate a normalized key String"
+    );
+    assert!(
+        !keyboard_action.contains("normalized_key_name"),
+        "semantic keyboard actions should not allocate a normalized key String"
+    );
+    assert!(
+        !text_constraints.contains("normalize_constraint_token")
+            && !text_constraints.contains("fn string_attribute"),
+        "text input constraints should borrow and compare static metadata without normalization allocations"
+    );
+    assert!(
+        !ime_context.contains("layout: layout.clone()")
+            && !ime_context.contains("style: command.style.clone()"),
+        "IME cursor lookup should borrow the current render layout and style"
+    );
+    assert!(
+        !pointer_capture.contains("collect::<Vec<_>>()"),
+        "clearing captures for an owner should retain in place without a temporary id list"
+    );
+}
+
 fn capture_pointer_for_test(surface: &mut UiSurface, pointer_id: UiPointerId, owner: UiNodeId) {
     surface.focus.captured = Some(owner);
     surface.input.set_pointer_capture_for_id(pointer_id, owner);

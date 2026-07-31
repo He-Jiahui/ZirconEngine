@@ -1,12 +1,18 @@
+use crate::scene::modes::SceneModeActivation;
+use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, ProjectionMode, TransformSpace, ViewOrientation,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ViewportCommand {
     PointerMoved { x: f32, y: f32 },
-    LeftPressed { x: f32, y: f32 },
+    LeftPressed {
+        x: f32,
+        y: f32,
+        selection_mutation: SelectionMutation,
+    },
     LeftReleased,
     RightPressed { x: f32, y: f32 },
     RightReleased,
@@ -14,7 +20,7 @@ pub enum ViewportCommand {
     MiddleReleased,
     Scrolled { delta: f32 },
     Resized { width: u32, height: u32 },
-    SetTool(SceneViewportTool),
+    ActivateSceneMode(SceneModeActivation),
     SetTransformSpace(TransformSpace),
     SetProjectionMode(ProjectionMode),
     AlignView(ViewOrientation),
@@ -26,5 +32,6 @@ pub enum ViewportCommand {
     SetPreviewLighting(bool),
     SetPreviewSkybox(bool),
     SetGizmosEnabled(bool),
+    ToggleOverlayProvider { provider_id: String },
     FrameSelection,
 }

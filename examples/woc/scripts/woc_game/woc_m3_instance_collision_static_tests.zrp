@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_instance_collision_static_tests",
+  "source": "src",
+  "binary": "bin-m3-instance-collision-static-tests",
+  "entry": "world/instance_collision_static_test_main"
+}

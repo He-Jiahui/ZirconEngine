@@ -1,12 +1,14 @@
+use crate::scene::modes::SceneModeActivation;
+use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, ProjectionMode, TransformSpace, ViewOrientation,
 };
 use zircon_runtime_interface::ui::{binding::UiBindingCall, binding::UiBindingValue};
 
 use super::ViewportCommand;
 use crate::ui::binding::core::{
-    required_bool_argument, required_f32_argument, required_string_argument, required_u32_argument,
-    EditorUiBindingError,
+    EditorUiBindingError, required_bool_argument, required_f32_argument, required_string_argument,
+    required_u32_argument,
 };
 
 impl ViewportCommand {
@@ -15,9 +17,16 @@ impl ViewportCommand {
             Self::PointerMoved { x, y } => UiBindingCall::new("ViewportCommand.PointerMoved")
                 .with_argument(UiBindingValue::Float(*x as f64))
                 .with_argument(UiBindingValue::Float(*y as f64)),
-            Self::LeftPressed { x, y } => UiBindingCall::new("ViewportCommand.LeftPressed")
+            Self::LeftPressed {
+                x,
+                y,
+                selection_mutation,
+            } => UiBindingCall::new("ViewportCommand.LeftPressed")
                 .with_argument(UiBindingValue::Float(*x as f64))
-                .with_argument(UiBindingValue::Float(*y as f64)),
+                .with_argument(UiBindingValue::Float(*y as f64))
+                .with_argument(UiBindingValue::string(selection_mutation_symbol(
+                    *selection_mutation,
+                ))),
             Self::LeftReleased => UiBindingCall::new("ViewportCommand.LeftReleased"),
             Self::RightPressed { x, y } => UiBindingCall::new("ViewportCommand.RightPressed")
                 .with_argument(UiBindingValue::Float(*x as f64))
@@ -32,8 +41,11 @@ impl ViewportCommand {
             Self::Resized { width, height } => UiBindingCall::new("ViewportCommand.Resized")
                 .with_argument(UiBindingValue::unsigned(*width))
                 .with_argument(UiBindingValue::unsigned(*height)),
-            Self::SetTool(tool) => UiBindingCall::new("ViewportCommand.SetTool")
-                .with_argument(UiBindingValue::string(super::tool::symbol(*tool))),
+            Self::ActivateSceneMode(mode) => {
+                UiBindingCall::new("ViewportCommand.ActivateSceneMode").with_argument(
+                    UiBindingValue::string(super::scene_mode_activation::symbol(mode)),
+                )
+            }
             Self::SetTransformSpace(space) => {
                 UiBindingCall::new("ViewportCommand.SetTransformSpace").with_argument(
                     UiBindingValue::string(super::transform_space::symbol(*space)),
@@ -72,6 +84,10 @@ impl ViewportCommand {
                 UiBindingCall::new("ViewportCommand.SetGizmosEnabled")
                     .with_argument(UiBindingValue::Bool(*enabled))
             }
+            Self::ToggleOverlayProvider { provider_id } => {
+                UiBindingCall::new("ViewportCommand.ToggleOverlayProvider")
+                    .with_argument(UiBindingValue::string(provider_id))
+            }
             Self::FrameSelection => UiBindingCall::new("ViewportCommand.FrameSelection"),
         }
     }
@@ -85,6 +101,11 @@ impl ViewportCommand {
             "ViewportCommand.LeftPressed" => Self::LeftPressed {
                 x: required_f32_argument(&call, 0, "ViewportCommand.LeftPressed")?,
                 y: required_f32_argument(&call, 1, "ViewportCommand.LeftPressed")?,
+                selection_mutation: parse_selection_mutation(&required_string_argument(
+                    &call,
+                    2,
+                    "ViewportCommand.LeftPressed",
+                )?)?,
             },
             "ViewportCommand.LeftReleased" => Self::LeftReleased,
             "ViewportCommand.RightPressed" => Self::RightPressed {
@@ -104,9 +125,13 @@ impl ViewportCommand {
                 width: required_u32_argument(&call, 0, "ViewportCommand.Resized")?,
                 height: required_u32_argument(&call, 1, "ViewportCommand.Resized")?,
             },
-            "ViewportCommand.SetTool" => Self::SetTool(parse_scene_viewport_tool(
-                &required_string_argument(&call, 0, "ViewportCommand.SetTool")?,
-            )?),
+            "ViewportCommand.ActivateSceneMode" => {
+                Self::ActivateSceneMode(parse_scene_mode_activation(&required_string_argument(
+                    &call,
+                    0,
+                    "ViewportCommand.ActivateSceneMode",
+                )?)?)
+            }
             "ViewportCommand.SetTransformSpace" => Self::SetTransformSpace(parse_transform_space(
                 &required_string_argument(&call, 0, "ViewportCommand.SetTransformSpace")?,
             )?),
@@ -148,6 +173,13 @@ impl ViewportCommand {
                 0,
                 "ViewportCommand.SetGizmosEnabled",
             )?),
+            "ViewportCommand.ToggleOverlayProvider" => Self::ToggleOverlayProvider {
+                provider_id: required_string_argument(
+                    &call,
+                    0,
+                    "ViewportCommand.ToggleOverlayProvider",
+                )?,
+            },
             "ViewportCommand.FrameSelection" => Self::FrameSelection,
             _ => return Ok(None),
         };
@@ -155,9 +187,29 @@ impl ViewportCommand {
     }
 }
 
-fn parse_scene_viewport_tool(symbol: &str) -> Result<SceneViewportTool, EditorUiBindingError> {
-    super::tool::parse_symbol(symbol)
-        .ok_or_else(|| invalid_enum_argument("ViewportCommand.SetTool", symbol))
+fn parse_scene_mode_activation(symbol: &str) -> Result<SceneModeActivation, EditorUiBindingError> {
+    super::scene_mode_activation::parse_symbol(symbol)
+        .ok_or_else(|| invalid_enum_argument("ViewportCommand.ActivateSceneMode", symbol))
+}
+
+fn selection_mutation_symbol(mutation: SelectionMutation) -> &'static str {
+    match mutation {
+        SelectionMutation::Replace => "Replace",
+        SelectionMutation::Extend => "Extend",
+        SelectionMutation::Toggle => "Toggle",
+    }
+}
+
+fn parse_selection_mutation(symbol: &str) -> Result<SelectionMutation, EditorUiBindingError> {
+    match symbol {
+        "Replace" => Ok(SelectionMutation::Replace),
+        "Extend" => Ok(SelectionMutation::Extend),
+        "Toggle" => Ok(SelectionMutation::Toggle),
+        _ => Err(invalid_enum_argument(
+            "ViewportCommand.LeftPressed",
+            symbol,
+        )),
+    }
 }
 
 fn parse_transform_space(symbol: &str) -> Result<TransformSpace, EditorUiBindingError> {
@@ -189,4 +241,29 @@ fn invalid_enum_argument(symbol: &str, value: &str) -> EditorUiBindingError {
     EditorUiBindingError::InvalidPayload(format!(
         "{symbol} received unsupported variant \"{value}\""
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn overlay_provider_toggle_round_trips_through_the_viewport_codec() {
+        let command = ViewportCommand::ToggleOverlayProvider {
+            provider_id: "weather.viewport.overlay.provider".to_string(),
+        };
+
+        assert_eq!(
+            ViewportCommand::from_call(command.to_call()).unwrap(),
+            Some(command)
+        );
+    }
+
+    #[test]
+    fn custom_activation_cannot_encode_a_reserved_builtin_mode_id() {
+        let call = UiBindingCall::new("ViewportCommand.ActivateSceneMode")
+            .with_argument(UiBindingValue::string("Custom:scene.select"));
+
+        assert!(ViewportCommand::from_call(call).is_err());
+    }
 }

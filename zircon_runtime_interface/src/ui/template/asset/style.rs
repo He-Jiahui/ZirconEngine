@@ -29,6 +29,35 @@ pub enum UiSelectorToken {
     Host,
 }
 
+/// CSS/USS cascade precedence ordered by ID, class-like selectors, and types.
+///
+/// This intentionally stays as a tuple rather than a weighted integer: any
+/// number of class-like selectors must not tie an ID selector.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct UiSelectorSpecificity {
+    id_count: usize,
+    class_like_count: usize,
+    type_count: usize,
+}
+
+impl UiSelectorSpecificity {
+    pub const fn new(id_count: usize, class_like_count: usize, type_count: usize) -> Self {
+        Self {
+            id_count,
+            class_like_count,
+            type_count,
+        }
+    }
+
+    /// Returns the historical inspector display score, never cascade order.
+    pub const fn legacy_display_score(self) -> usize {
+        const ID_WEIGHT: usize = 100;
+        const CLASS_LIKE_WEIGHT: usize = 10;
+
+        self.id_count * ID_WEIGHT + self.class_like_count * CLASS_LIKE_WEIGHT + self.type_count
+    }
+}
+
 impl UiSelector {
     pub fn parse(input: &str) -> Result<Self, UiAssetError> {
         let mut chars = input.chars().peekable();
@@ -86,19 +115,20 @@ impl UiSelector {
         Ok(Self { segments })
     }
 
-    pub fn specificity(&self) -> usize {
+    pub fn specificity(&self) -> UiSelectorSpecificity {
+        let mut specificity = UiSelectorSpecificity::default();
         self.segments
             .iter()
             .flat_map(|segment| segment.tokens.iter())
-            .map(|token| match token {
-                UiSelectorToken::Id(_) => 100,
+            .for_each(|token| match token {
+                UiSelectorToken::Id(_) => specificity.id_count += 1,
                 UiSelectorToken::Class(_)
                 | UiSelectorToken::State(_)
                 | UiSelectorToken::Part(_)
-                | UiSelectorToken::Host => 10,
-                UiSelectorToken::Type(_) => 1,
-            })
-            .sum()
+                | UiSelectorToken::Host => specificity.class_like_count += 1,
+                UiSelectorToken::Type(_) => specificity.type_count += 1,
+            });
+        specificity
     }
 }
 

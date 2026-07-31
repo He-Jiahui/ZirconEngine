@@ -7,6 +7,7 @@ from .tech_stack_anchor_inventory import (
     CARGO_GATE_ANCHORS,
     EDITOR_BACKLOG_ANCHORS,
     EXPECTED_TECH_STACK_GUARD_COUNT,
+    KIRA_TECH_STACK_DOC_ANCHORS,
     MIRROR_DOCS_GUARD,
     PHYSICS_DECISION_ANCHORS,
     TECH_STACK_BEHAVIOR_TEST_ANCHORS,
@@ -19,6 +20,8 @@ from .tech_stack_source_inventory import (
     EXPECTED_MANIFEST_COUNT,
     EXPECTED_NON_DEPENDENCY_COUNT,
     EXPECTED_ZIP_DEPENDENCY_COUNT,
+    KIRA_DEPENDENCY_VERSION,
+    KIRA_OWNER_MANIFEST,
     MANIFEST_FILES,
     NON_DEPENDENCIES,
     REQUIRED_VERSION_ANCHORS,
@@ -53,6 +56,27 @@ def _manifest_dependency_specs(
                 declarations.extend(table.items())
 
     collect(manifest)
+    collect(manifest.get("workspace"))
+    targets = manifest.get("target")
+    if isinstance(targets, dict):
+        for target in targets.values():
+            collect(target)
+    return declarations
+
+
+def _manifest_runtime_dependency_specs(
+    manifest: dict[str, object],
+) -> list[tuple[str, object]]:
+    declarations: list[tuple[str, object]] = []
+
+    def collect(owner: object) -> None:
+        if not isinstance(owner, dict):
+            return
+        table = owner.get("dependencies")
+        if isinstance(table, dict):
+            declarations.extend(table.items())
+
+    collect(manifest)
     targets = manifest.get("target")
     if isinstance(targets, dict):
         for target in targets.values():
@@ -64,6 +88,51 @@ def _dependency_package_name(name: str, spec: object) -> str:
     if isinstance(spec, dict) and isinstance(spec.get("package"), str):
         return spec["package"]
     return name
+
+
+def _dependency_version(spec: object) -> str | None:
+    if isinstance(spec, str):
+        return spec
+    if isinstance(spec, dict) and isinstance(spec.get("version"), str):
+        return spec["version"]
+    return None
+
+
+def _manifest_package_declarations(
+    source: str,
+    package_name: str,
+) -> list[tuple[str, object]]:
+    try:
+        manifest = tomllib.loads(source)
+    except tomllib.TOMLDecodeError:
+        return []
+    return [
+        (name, spec)
+        for name, spec in _manifest_dependency_specs(manifest)
+        if _dependency_package_name(name, spec) == package_name
+    ]
+
+
+def _manifest_has_exact_single_package_pin(
+    source: str,
+    package_name: str,
+    expected_version: str,
+) -> bool:
+    try:
+        manifest = tomllib.loads(source)
+    except tomllib.TOMLDecodeError:
+        return False
+    declarations = _manifest_package_declarations(source, package_name)
+    runtime_declarations = [
+        (name, spec)
+        for name, spec in _manifest_runtime_dependency_specs(manifest)
+        if _dependency_package_name(name, spec) == package_name
+    ]
+    return (
+        len(declarations) == 1
+        and len(runtime_declarations) == 1
+        and _dependency_version(runtime_declarations[0][1]) == expected_version
+    )
 
 
 def _is_zr_vm_binding_dependency(name: str, spec: object) -> bool:
@@ -101,16 +170,43 @@ def _file_entries(root: Path, files: tuple[str, ...]) -> tuple[list[dict[str, ob
     return entries, missing
 
 
-def _manifest_sources(root: Path) -> list[str]:
+def _manifest_scan_error(root: Path, path: Path, error: OSError) -> str:
+    try:
+        relative_path = path.relative_to(root).as_posix() or "."
+    except ValueError:
+        relative_path = path.as_posix()
+    return f"{relative_path}: {type(error).__name__}: {error}"
+
+
+def _manifest_source_entries(
+    root: Path,
+) -> tuple[list[tuple[str, str]], list[str]]:
     skip_dirs = {".git", "target", "dev", "node_modules"}
-    pending = [root]
-    sources: list[str] = []
+    sources: list[tuple[str, str]] = []
+    errors: list[str] = []
+    workspace_manifest = root / "Cargo.toml"
+    if workspace_manifest.is_file():
+        try:
+            sources.append(("Cargo.toml", _read_text(workspace_manifest)))
+        except OSError as error:
+            errors.append(_manifest_scan_error(root, workspace_manifest, error))
+
+    try:
+        pending = [
+            entry
+            for entry in root.iterdir()
+            if entry.is_dir() and entry.name.startswith("zircon_")
+        ]
+    except OSError as error:
+        errors.append(_manifest_scan_error(root, root, error))
+        pending = []
 
     while pending:
         current = pending.pop()
         try:
             entries = list(current.iterdir())
-        except OSError:
+        except OSError as error:
+            errors.append(_manifest_scan_error(root, current, error))
             continue
 
         for entry in entries:
@@ -119,9 +215,24 @@ def _manifest_sources(root: Path) -> list[str]:
                     continue
                 pending.append(entry)
             elif entry.name == "Cargo.toml":
-                sources.append(_read_text(entry))
+                try:
+                    sources.append((entry.relative_to(root).as_posix(), _read_text(entry)))
+                except OSError as error:
+                    errors.append(_manifest_scan_error(root, entry, error))
 
-    return sources
+    return (
+        sorted(sources, key=lambda item: item[0]),
+        sorted(errors),
+    )
+
+
+def _manifest_dependency_owners(root: Path, crate_name: str) -> list[str]:
+    entries, _ = _manifest_source_entries(root)
+    return [
+        path
+        for path, source in entries
+        if _manifest_declares_package(source, crate_name)
+    ]
 
 
 def _manifest_declares_dependency(source: str, crate_name: str) -> bool:
@@ -135,6 +246,17 @@ def _manifest_declares_dependency(source: str, crate_name: str) -> bool:
         ):
             return True
     return False
+
+
+def _manifest_declares_package(source: str, package_name: str) -> bool:
+    try:
+        manifest = tomllib.loads(source)
+    except tomllib.TOMLDecodeError:
+        return _manifest_declares_dependency(source, package_name)
+    return any(
+        _dependency_package_name(name, spec) == package_name
+        for name, spec in _manifest_dependency_specs(manifest)
+    )
 
 
 def _missing_snippets(sources: tuple[str, ...], snippets: tuple[str, ...]) -> list[str]:
@@ -152,13 +274,14 @@ def _declared_dependencies(
     return [
         dependency
         for dependency in dependencies
-        if any(_manifest_declares_dependency(source, dependency) for source in sources)
+        if any(_manifest_declares_package(source, dependency) for source in sources)
     ]
 
 
 def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     manifest_entries, missing_manifest_files = _file_entries(root, MANIFEST_FILES)
-    manifest_sources = _manifest_sources(root)
+    manifest_source_entries, manifest_scan_errors = _manifest_source_entries(root)
+    manifest_sources = [source for _, source in manifest_source_entries]
 
     workspace_manifest = root / "Cargo.toml"
     runtime_manifest = root / "zircon_runtime/Cargo.toml"
@@ -261,10 +384,35 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
         manifest_sources,
         NON_DEPENDENCIES,
     )
+    kira_dependency_owners = [
+        path
+        for path, source in manifest_source_entries
+        if _manifest_declares_package(source, "kira")
+    ]
+    kira_owner_source = next(
+        (
+            source
+            for path, source in manifest_source_entries
+            if path == KIRA_OWNER_MANIFEST
+        ),
+        "",
+    )
+    kira_owner_declarations = _manifest_package_declarations(kira_owner_source, "kira")
+    kira_owner_dependency_versions = [
+        _dependency_version(spec) for _, spec in kira_owner_declarations
+    ]
+    kira_owner_version_pinned = _manifest_has_exact_single_package_pin(
+        kira_owner_source,
+        "kira",
+        KIRA_DEPENDENCY_VERSION,
+    )
+    kira_owner_violations = [
+        path for path in kira_dependency_owners if path != KIRA_OWNER_MANIFEST
+    ]
     zip_dependency_count = sum(
         1
         for source in manifest_sources
-        if _manifest_declares_dependency(source, "zip")
+        if _manifest_declares_package(source, "zip")
     )
     runtime_jolt_feature_slot_count = runtime_source.count("backend-jolt = []")
     physics_jolt_dependency_feature_slot_count = physics_manifest_source.count(
@@ -289,6 +437,10 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     missing_tech_stack_doc_anchors = _missing_snippets(
         (tech_stack_source,),
         TECH_STACK_DOC_ANCHORS,
+    )
+    missing_kira_tech_stack_doc_anchors = _missing_snippets(
+        (tech_stack_source,),
+        KIRA_TECH_STACK_DOC_ANCHORS,
     )
     missing_text_doc_anchors = _missing_snippets(
         (text_doc_source,),
@@ -455,10 +607,18 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     risks: list[str] = []
     if missing_manifest_files:
         risks.append("Runtime 01 audited manifest file set is incomplete.")
+    if manifest_scan_errors:
+        risks.append("Runtime 01 product manifest scan was incomplete.")
     if len(manifest_entries) != EXPECTED_MANIFEST_COUNT:
         risks.append("Runtime 01 audited manifest count changed without audit sync.")
     if declared_removed_dependencies:
         risks.append("Removed or editor-only dependencies entered Cargo manifests.")
+    if KIRA_OWNER_MANIFEST not in kira_dependency_owners:
+        risks.append("Sound runtime Kira dependency owner is missing.")
+    if kira_owner_violations:
+        risks.append("Kira dependency escaped the Sound runtime owner.")
+    if not kira_owner_version_pinned:
+        risks.append("Sound runtime Kira dependency pin drifted.")
     if missing_version_anchors:
         risks.append("Runtime 01 required dependency version anchors are missing.")
     if dependency_boundary_violations:
@@ -467,6 +627,8 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
         risks.append("Runtime 01 ZIP archive dependency policy drifted.")
     if missing_tech_stack_doc_anchors:
         risks.append("Runtime tech-stack authority doc anchors are missing.")
+    if missing_kira_tech_stack_doc_anchors:
+        risks.append("Runtime 01 Kira Sound owner documentation drifted.")
     if "runtime-tech-stack.md" not in architecture_index_source:
         risks.append("Runtime tech-stack doc is not linked from architecture index.")
     if missing_text_doc_anchors:
@@ -492,14 +654,22 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
         "manifest_files": manifest_entries,
         "expected_manifest_count": EXPECTED_MANIFEST_COUNT,
         "missing_manifest_files": missing_manifest_files,
+        "manifest_scan_errors": manifest_scan_errors,
         "declared_removed_dependencies": declared_removed_dependencies,
         "expected_non_dependency_count": EXPECTED_NON_DEPENDENCY_COUNT,
+        "kira_dependency_owners": kira_dependency_owners,
+        "kira_owner_manifest": KIRA_OWNER_MANIFEST,
+        "kira_owner_version_pinned": kira_owner_version_pinned,
+        "kira_owner_dependency_declaration_count": len(kira_owner_declarations),
+        "kira_owner_dependency_versions": kira_owner_dependency_versions,
+        "kira_owner_violations": kira_owner_violations,
         "zip_dependency_count": zip_dependency_count,
         "expected_zip_dependency_count": EXPECTED_ZIP_DEPENDENCY_COUNT,
         "zip_dependency_violations": zip_dependency_violations,
         "missing_version_anchors": missing_version_anchors,
         "dependency_boundary_violations": dependency_boundary_violations,
         "missing_tech_stack_doc_anchors": missing_tech_stack_doc_anchors,
+        "missing_kira_tech_stack_doc_anchors": missing_kira_tech_stack_doc_anchors,
         "missing_text_doc_anchors": missing_text_doc_anchors,
         "missing_physics_decision_anchors": missing_physics_decision_anchors,
         "missing_editor_backlog_anchors": missing_editor_backlog_anchors,

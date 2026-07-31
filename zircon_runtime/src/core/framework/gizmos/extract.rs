@@ -5,7 +5,7 @@ use crate::core::{
         },
         scene::EntityId,
     },
-    math::{Real, Transform, Vec3, Vec4},
+    math::{Mat4, Real, Transform, Vec3, Vec4},
 };
 
 use super::{GizmoAxis, GizmoBuffer, GizmoColorPolicy, GizmoCommand, RetainedGizmo};
@@ -103,15 +103,40 @@ fn push_commands(
     transform: Transform,
     color_policy: GizmoColorPolicy,
 ) {
+    lines.reserve(commands.iter().map(estimated_line_count).sum());
+    let transform = transform.matrix();
     for command in commands {
         push_command(lines, command, transform, color_policy);
+    }
+}
+
+fn estimated_line_count(command: &GizmoCommand) -> usize {
+    match command {
+        GizmoCommand::Line { .. } | GizmoCommand::Ray { .. } | GizmoCommand::Axis { .. } => 1,
+        GizmoCommand::LineStrip { points, .. } => points.len().saturating_sub(1),
+        GizmoCommand::Rect { .. } => 4,
+        GizmoCommand::Circle { radius, .. } => {
+            if *radius <= 0.0 {
+                0
+            } else {
+                DEFAULT_CIRCLE_SEGMENTS
+            }
+        }
+        GizmoCommand::Sphere { radius, .. } => {
+            if *radius <= 0.0 {
+                0
+            } else {
+                DEFAULT_CIRCLE_SEGMENTS * 3
+            }
+        }
+        GizmoCommand::Cube { .. } | GizmoCommand::Aabb { .. } => 12,
     }
 }
 
 fn push_command(
     lines: &mut Vec<OverlayLineSegment>,
     command: &GizmoCommand,
-    transform: Transform,
+    transform: Mat4,
     color_policy: GizmoColorPolicy,
 ) {
     match command {
@@ -144,7 +169,7 @@ fn push_command(
             color,
         } => push_rect(
             lines,
-            combine(transform, *rect_transform),
+            transform * rect_transform.matrix(),
             *size,
             color_policy.apply(*color),
         ),
@@ -176,7 +201,7 @@ fn push_command(
             color,
         } => push_cube(
             lines,
-            combine(transform, *cube_transform),
+            transform * cube_transform.matrix(),
             *size,
             color_policy.apply(*color),
         ),
@@ -221,7 +246,7 @@ fn push_linestrip(
 
 fn push_rect(
     lines: &mut Vec<OverlayLineSegment>,
-    transform: Transform,
+    transform: Mat4,
     size: crate::core::math::Vec2,
     color: Vec4,
 ) {
@@ -293,12 +318,21 @@ fn push_circle_segments(
     }
     let segments = segments.max(MIN_CIRCLE_SEGMENTS);
     let (tangent, bitangent) = circle_basis(normal);
-    let mut points = Vec::with_capacity(segments);
+    let mut first = None;
+    let mut previous = None;
     for index in 0..segments {
         let angle = std::f32::consts::TAU * (index as Real / segments as Real);
-        points.push(center + radius * (angle.cos() * tangent + angle.sin() * bitangent));
+        let point = center + radius * (angle.cos() * tangent + angle.sin() * bitangent);
+        if let Some(previous) = previous {
+            push_line(lines, previous, point, color);
+        } else {
+            first = Some(point);
+        }
+        previous = Some(point);
     }
-    push_loop(lines, &points, color);
+    if let (Some(previous), Some(first)) = (previous, first) {
+        push_line(lines, previous, first, color);
+    }
 }
 
 fn circle_basis(normal: Vec3) -> (Vec3, Vec3) {
@@ -316,7 +350,7 @@ fn circle_basis(normal: Vec3) -> (Vec3, Vec3) {
     (tangent, bitangent)
 }
 
-fn push_cube(lines: &mut Vec<OverlayLineSegment>, transform: Transform, size: Vec3, color: Vec4) {
+fn push_cube(lines: &mut Vec<OverlayLineSegment>, transform: Mat4, size: Vec3, color: Vec4) {
     let half = size * 0.5;
     let corners = [
         Vec3::new(-half.x, -half.y, -half.z),
@@ -376,19 +410,10 @@ fn push_loop(lines: &mut Vec<OverlayLineSegment>, points: &[Vec3], color: Vec4) 
     );
 }
 
-fn transform_point(transform: Transform, point: Vec3) -> Vec3 {
-    transform.matrix().transform_point3(point)
+fn transform_point(transform: Mat4, point: Vec3) -> Vec3 {
+    transform.transform_point3(point)
 }
 
-fn transform_vector(transform: Transform, vector: Vec3) -> Vec3 {
-    transform.matrix().transform_vector3(vector)
-}
-
-fn combine(parent: Transform, child: Transform) -> Transform {
-    let matrix = parent.matrix() * child.matrix();
-    Transform {
-        translation: matrix.transform_point3(Vec3::ZERO),
-        rotation: parent.rotation * child.rotation,
-        scale: parent.scale * child.scale,
-    }
+fn transform_vector(transform: Mat4, vector: Vec3) -> Vec3 {
+    transform.transform_vector3(vector)
 }

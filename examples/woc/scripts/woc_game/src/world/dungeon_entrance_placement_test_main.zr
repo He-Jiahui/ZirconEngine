@@ -1,0 +1,42 @@
+// Current-source overworld dungeon entrance vectors after groundPos sampling.
+
+var placement = %import("world/dungeon_entrance_placement");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+var seed = <uint>20061;
+
+if (placement.dungeonCount(true) != 6 || placement.instanceSlotCount(true) != 24 ||
+    placement.totalPreallocatedInstanceSlots(true) != 144 ||
+    placement.dungeonId(0, true) != "hollow_crypt" ||
+    placement.dungeonId(5, true) != "nythraxis_boss_arena" ||
+    !placement.hasOverworldDoor(4, true) || placement.hasOverworldDoor(5, true) ||
+    placement.doorName(4, true) != "Abandoned Crypt") {
+    throw "woc dungeon entrance catalog vector failed";
+}
+
+if (placement.finalCoordinate(0, 1, true) != 80.0 ||
+    placement.finalCoordinate(0, 2, true) != 90.0 ||
+    !closeEnough(placement.finalGroundY(seed, 0, true), 2.257091157527749)) {
+    throw "woc Hollow Crypt entrance vector failed";
+}
+
+if (placement.finalCoordinate(3, 1, true) != -70.0 ||
+    placement.finalCoordinate(3, 2, true) != 792.0 ||
+    !closeEnough(placement.finalGroundY(seed, 3, true), 8.032875341739876)) {
+    throw "woc Drowned Temple entrance vector failed";
+}
+
+if (placement.finalCoordinate(4, 1, true) != -152.0 ||
+    placement.finalCoordinate(4, 2, true) != 610.0 ||
+    !closeEnough(placement.finalGroundY(seed, 4, true), 6.256625941826737)) {
+    throw "woc Abandoned Crypt entrance vector failed";
+}
+
+return 0;

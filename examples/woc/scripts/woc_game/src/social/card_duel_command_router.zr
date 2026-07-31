@@ -1,0 +1,84 @@
+// Host-neutral Card Duel command reducer. WorldState can hand this one typed
+// command row after its normal actor/sequence checks without duplicating the
+// current-head command-payload or service lifecycle rules.
+var container = %import("zr.container");
+var commandModule = %import("social/card_duel_command");
+var contract = %import("generated/card_duel_command_contract");
+var serviceModule = %import("social/card_duel_service");
+
+pub class CardDuelCommandResult {
+    pub var accepted: bool;
+    pub var status: int;
+    pub var matchFinished: bool;
+    pub var voided: bool;
+    pub var winner: uint;
+    pub var forfeiter: uint;
+
+    pub @constructor() {
+        this.accepted = false;
+        this.status = 0;
+        this.matchFinished = false;
+        this.voided = false;
+        this.winner = <uint>0;
+        this.forfeiter = <uint>0;
+    }
+}
+
+finishedResult(
+    state: serviceModule.CardDuelService,
+    beforeMatch: bool,
+    pid: uint,
+    result: CardDuelCommandResult
+): void {
+    if (!beforeMatch || serviceModule.inMatch(state, pid)) return;
+    result.matchFinished = true;
+    result.voided = serviceModule.lastMatchVoided(state);
+    result.winner = state.lastWinner;
+    result.forfeiter = state.lastForfeiter;
+}
+
+// `status` is 1 when a command changes authoritative state, zero for the
+// source's benign leave-when-not-queued no-op, and negative for rejection.
+pub apply(
+    state: serviceModule.CardDuelService,
+    pid: uint,
+    id: uint,
+    payload: container.Array<uint>,
+    nowSeconds: float
+): CardDuelCommandResult {
+    var result = new CardDuelCommandResult();
+    if (commandModule.validatePayload(id, payload) != 1) {
+        result.status = -1;
+        return result;
+    }
+    var beforeMatch = serviceModule.inMatch(state, pid);
+    if (id == contract.queueJoinCommandId(true)) {
+        result.status = serviceModule.joinQueue(state, pid);
+        result.accepted = result.status == 1;
+        return result;
+    }
+    if (id == contract.queueLeaveCommandId(true)) {
+        result.accepted = serviceModule.leaveQueue(state, pid);
+        result.status = result.accepted ? 1 : 0;
+        return result;
+    }
+    if (id == contract.playCardCommandId(true)) {
+        var value = commandModule.decodePlayCardValue(payload);
+        if (value <= 0) {
+            result.status = -4;
+            return result;
+        }
+        result.status = serviceModule.play(state, pid, <uint>value, nowSeconds);
+        result.accepted = result.status == 1;
+        finishedResult(state, beforeMatch, pid, result);
+        return result;
+    }
+    if (id == contract.forfeitCommandId(true)) {
+        result.status = serviceModule.forfeit(state, pid);
+        result.accepted = result.status == 1;
+        finishedResult(state, beforeMatch, pid, result);
+        return result;
+    }
+    result.status = -1;
+    return result;
+}

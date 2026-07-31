@@ -1,3 +1,4 @@
+use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::CoreError;
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::SystemStage;
@@ -170,9 +171,7 @@ fn level_tick_dispatches_installed_scene_hooks_in_schedule_order() {
     runtime
         .register_module(crate::scene::module_descriptor())
         .unwrap();
-    runtime
-        .activate_module(crate::scene::SCENE_MODULE_NAME)
-        .unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
 
     let mut registry = RuntimeExtensionRegistry::default();
     registry
@@ -213,9 +212,7 @@ fn installed_plugin_scene_hooks_repeat_fixed_stages_in_order_for_each_drained_st
     runtime
         .register_module(crate::scene::module_descriptor())
         .unwrap();
-    runtime
-        .activate_module(crate::scene::SCENE_MODULE_NAME)
-        .unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     runtime.set_fixed_timestep(Duration::from_millis(10));
 
     let mut registry = RuntimeExtensionRegistry::default();

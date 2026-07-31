@@ -4,6 +4,7 @@ use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator,
     ResourceMarker, ResourceScheme,
 };
+use std::sync::OnceLock;
 
 use super::{
     SceneProjectError, BUILTIN_CUBE, BUILTIN_DEFAULT_MATERIAL, BUILTIN_MISSING_MATERIAL,
@@ -79,16 +80,27 @@ pub(super) fn reference_for_handle(
     )))
 }
 
+fn builtin_locators() -> &'static [(ResourceId, ResourceLocator)] {
+    static BUILTIN_LOCATORS: OnceLock<Vec<(ResourceId, ResourceLocator)>> = OnceLock::new();
+    BUILTIN_LOCATORS.get_or_init(|| {
+        let mut locators = Vec::with_capacity(4);
+        for locator_text in [
+            BUILTIN_CUBE,
+            BUILTIN_DEFAULT_MATERIAL,
+            BUILTIN_MISSING_MODEL,
+            BUILTIN_MISSING_MATERIAL,
+        ] {
+            let locator = ResourceLocator::parse(locator_text).expect("builtin locator");
+            locators.push((ResourceId::from_locator(&locator), locator));
+        }
+        locators
+    })
+}
+
 fn builtin_locator_for_id(id: ResourceId) -> Option<ResourceLocator> {
-    for locator_text in [
-        BUILTIN_CUBE,
-        BUILTIN_DEFAULT_MATERIAL,
-        BUILTIN_MISSING_MODEL,
-        BUILTIN_MISSING_MATERIAL,
-    ] {
-        let locator = ResourceLocator::parse(locator_text).expect("builtin locator");
-        if ResourceId::from_locator(&locator) == id {
-            return Some(locator);
+    for (candidate_id, locator) in builtin_locators() {
+        if *candidate_id == id {
+            return Some(locator.clone());
         }
     }
     None

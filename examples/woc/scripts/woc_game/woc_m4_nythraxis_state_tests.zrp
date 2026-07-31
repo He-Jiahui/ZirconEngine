@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_nythraxis_state_tests",
+  "source": "src",
+  "binary": "bin-m4-nythraxis-state-tests",
+  "entry": "combat/nythraxis_state_test_main"
+}

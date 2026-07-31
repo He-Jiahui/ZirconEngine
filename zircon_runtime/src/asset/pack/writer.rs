@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use super::manifest::validate_zrpack_asset_path;
 use super::{
@@ -110,11 +110,8 @@ fn validate_asset_paths(assets: &[ZrPackInputAsset]) -> Result<(), ZrPackError> 
 }
 
 fn reject_duplicate_paths(assets: &[ZrPackInputAsset]) -> Result<(), ZrPackError> {
-    let mut paths = BTreeSet::new();
-    for asset in assets {
-        if !paths.insert(asset.path.clone()) {
-            return Err(ZrPackError::DuplicateAssetPath(asset.path.clone()));
-        }
+    if let Some(pair) = assets.windows(2).find(|pair| pair[0].path == pair[1].path) {
+        return Err(ZrPackError::DuplicateAssetPath(pair[1].path.clone()));
     }
     Ok(())
 }

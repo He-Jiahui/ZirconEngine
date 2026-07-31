@@ -1,6 +1,6 @@
 use crate::core::commands::DocumentKind;
 use crate::scene::viewport::GizmoAxis;
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use zircon_runtime_interface::math::UVec2;
 
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
@@ -20,7 +20,7 @@ pub struct EditorChromeSnapshot {
     pub status_task_progress: Option<StatusTaskProgressSnapshot>,
     pub hovered_axis: Option<GizmoAxis>,
     pub viewport_size: UVec2,
-    pub scene_viewport_settings: SceneViewportSettings,
+    pub scene_viewport_settings: SceneViewportChromeSettings,
     pub mesh_import_path: String,
     pub project_overview: ProjectOverviewSnapshot,
     pub asset_activity: AssetWorkspaceSnapshot,

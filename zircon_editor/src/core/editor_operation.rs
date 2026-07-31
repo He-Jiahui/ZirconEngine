@@ -10,15 +10,19 @@ pub struct EditorOperationPath(String);
 impl EditorOperationPath {
     pub fn parse(value: impl Into<String>) -> Result<Self, EditorOperationPathError> {
         let value = value.into();
+        if !Self::is_valid(&value) {
+            return Err(EditorOperationPathError::InvalidOperationPath(value));
+        }
+        Ok(Self(value))
+    }
+
+    pub(crate) fn is_valid(value: &str) -> bool {
         let mut segment_count = 0;
         let valid = value.split('.').all(|segment| {
             segment_count += 1;
             !segment.is_empty() && segment.chars().all(operation_path_char)
         });
-        if !valid || segment_count < MIN_OPERATION_PATH_SEGMENTS {
-            return Err(EditorOperationPathError::InvalidOperationPath(value));
-        }
-        Ok(Self(value))
+        valid && segment_count >= MIN_OPERATION_PATH_SEGMENTS
     }
 
     pub fn as_str(&self) -> &str {

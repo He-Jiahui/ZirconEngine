@@ -1,6 +1,6 @@
 use super::VirtualGeometryRuntimeProvider;
 use crate::graphics::runtime_provider::{
-    define_runtime_provider_registration, RuntimeProviderRegistration,
+    RuntimeProviderRegistration, define_runtime_provider_registration,
 };
 
 define_runtime_provider_registration! {

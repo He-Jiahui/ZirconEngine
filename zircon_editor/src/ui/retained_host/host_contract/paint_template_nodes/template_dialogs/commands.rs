@@ -1,5 +1,4 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::{actions, content, identity, layout, style, surface};
 
@@ -18,23 +17,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
     };
 
     let rect = layout::pixel_aligned_rect(rect);
-    if !layout::dialog_has_visible_area(&rect) {
+    if !layout::dialog_has_visible_area(&rect) || !layout::frame_is_within(clip, &rect) {
         return true;
     }
-    let confirm_clip = matches!(kind, identity::DialogKind::ConfirmDialog)
-        .then(|| intersect(&rect, clip))
-        .flatten();
-    if matches!(kind, identity::DialogKind::ConfirmDialog) && confirm_clip.is_none() {
-        return true;
-    }
-    let effective_clip = confirm_clip.as_ref().unwrap_or(clip);
 
     let unavailable = style::dialog_unavailable(node);
     surface::push_dialog_chrome(
         commands,
         node,
         &rect,
-        effective_clip,
+        clip,
         order,
         kind,
         unavailable,
@@ -47,7 +39,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
             commands,
             node,
             &rect,
-            effective_clip,
+            clip,
             order,
             kind,
             unavailable,
@@ -58,7 +50,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
         commands,
         node,
         &rect,
-        effective_clip,
+        clip,
         order,
         kind,
         unavailable,
@@ -70,7 +62,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
             commands,
             node,
             &rect,
-            effective_clip,
+            clip,
             order,
             kind,
             unavailable,

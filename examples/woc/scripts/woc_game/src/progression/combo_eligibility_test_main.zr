@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var combo = %import("progression/combo_eligibility");
+
+console.printLine("m5-combo-eligibility-test");
+var result = combo.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

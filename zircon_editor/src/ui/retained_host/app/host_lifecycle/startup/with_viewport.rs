@@ -3,6 +3,7 @@ use super::state::{construct_startup_host, StartupHostConstruction};
 use super::template_bridges::create_startup_template_bridges;
 use super::*;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
+use zircon_runtime::asset::project::ProjectManager;
 
 mod finalize;
 mod runtime_backend;
@@ -21,6 +22,7 @@ impl RetainedEditorHost {
         ui: UiHostWindow,
         viewport: RetainedViewportController,
         startup_request: Option<EditorGuiStartupRequest>,
+        prepared_project: Option<ProjectManager>,
     ) -> Result<Self, Box<dyn Error>> {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_with_viewport");
         #[cfg(not(feature = "profiling"))]
@@ -29,21 +31,20 @@ impl RetainedEditorHost {
         let startup_managers = resolve_startup_managers(&core)?;
         let viewport_size = UVec2::new(1280, 720);
         let startup_session_state = resolve_startup_session_state(
-            startup_managers.editor_manager.as_ref(),
+            startup_managers.editor_manager.clone(),
             startup_request,
+            prepared_project,
             viewport_size,
         );
         let startup_session_state = startup_session_state?;
+        let (startup_session, runtime) = startup_session_state.into_parts();
         let shell_size = resolve_startup_shell_size(&ui);
         let shell_scale_factor = resolve_startup_shell_scale_factor(&ui);
         let template_bridges = create_startup_template_bridges(shell_size)?;
-        let runtime_backend = create_startup_runtime_backend(
-            startup_session_state.state,
-            startup_managers.editor_manager.clone(),
-        );
+        let runtime_backend = create_startup_runtime_backend(runtime);
         runtime_backend
             .runtime
-            .set_runtime_gateway(runtime_gateway.clone());
+            .attach_play_gateway(runtime_gateway.clone())?;
 
         let mut host = construct_startup_host(StartupHostConstruction {
             ui,
@@ -53,7 +54,7 @@ impl RetainedEditorHost {
             runtime_gateway,
             native_plugin_live_host: runtime_backend.native_plugin_live_host,
             viewport,
-            startup_session: startup_session_state.startup_session,
+            startup_session,
             viewport_size,
             shell_size,
             shell_scale_factor,

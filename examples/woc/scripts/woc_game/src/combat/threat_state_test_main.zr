@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var threat = %import("combat/threat_state");
+
+console.printLine("m4-threat-state-test");
+var result = threat.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

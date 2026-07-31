@@ -20,7 +20,17 @@ impl World {
         property_path: &ComponentPropertyPath,
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
-        self.set_property_impl(entity, property_path, value)
+        let generation = self.world_generation();
+        let changed = self.set_property_impl(entity, property_path, value)?;
+        if changed {
+            self.inspection_artifact_cache.mark_fields_dirty(entity);
+            if self.world_generation() == generation {
+                // Some established fixed components are edited in place below. They still
+                // publish a fresh inspection generation, while their hierarchy rows remain valid.
+                self.advance_world_generation();
+            }
+        }
+        Ok(changed)
     }
 
     fn set_property_impl(

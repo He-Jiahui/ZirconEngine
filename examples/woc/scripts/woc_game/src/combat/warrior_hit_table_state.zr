@@ -1,0 +1,56 @@
+// Warrior melee defense, with an exact dot-product form of the source's front arc.
+var contract = %import("generated/warrior_hit_table_contract");
+var math = %import("zr.zircon.math");
+
+pub class WarriorMeleeDefense {
+    pub var parryChance: float;
+    pub var blockChance: float;
+    pub @constructor(parryChance: float, blockChance: float) {
+        this.parryChance = parryChance;
+        this.blockChance = blockChance;
+    }
+}
+
+pub warriorParryChance(strength: float): float {
+    var chance = contract.parryBase() + strength * contract.parryPerStrength();
+    return chance < 0.0 ? 0.0 : chance;
+}
+
+// dx/dz are attacker.position minus defender.position in the source XZ plane.
+pub warriorMeleeDefense(defenderIsPlayer: bool, defenderIsWarrior: bool, dx: float, dz: float, facing: float, strength: float, blockValue: float, blockChance: float): WarriorMeleeDefense {
+    if (!defenderIsPlayer || !defenderIsWarrior) return new WarriorMeleeDefense(0.0, 0.0);
+    if (!isInFront(dx, dz, facing)) return new WarriorMeleeDefense(0.0, 0.0);
+    return new WarriorMeleeDefense(
+        warriorParryChance(strength),
+        blockValue > 0.0 && blockChance > 0.0 ? blockChance : 0.0
+    );
+}
+
+// For nonzero vectors, dot(forward, delta) > 0 is exactly abs(norm(bearing-facing)) < pi/2.
+// JavaScript atan2(0, 0) is zero, so the coincident-position case is retained explicitly.
+pub isInFront(dx: float, dz: float, facing: float): bool {
+    if (dx == 0.0 && dz == 0.0) return absValue(normalizeAngle(-facing)) < contract.frontArc();
+    return math.sin(facing) * dx + math.cos(facing) * dz > 0.0;
+}
+
+pub normalizeAngle(angle: float): float {
+    while (angle > 3.141592653589793) angle = angle - 6.283185307179586;
+    while (angle < -3.141592653589793) angle = angle + 6.283185307179586;
+    return angle;
+}
+
+pub absValue(value: float): float { return value < 0.0 ? -value : value; }
+
+pub contractTest(): int {
+    if (warriorParryChance(-200.0) != 0.0 || warriorParryChance(100.0) != 0.1) return -1;
+    var front = warriorMeleeDefense(true, true, 0.0, 10.0, 0.0, 100.0, 5.0, 0.25);
+    if (front.parryChance != 0.1 || front.blockChance != 0.25) return -2;
+    var side = warriorMeleeDefense(true, true, 10.0, 0.0, 0.0, 100.0, 5.0, 0.25);
+    if (side.parryChance != 0.0 || side.blockChance != 0.0) return -3;
+    var noShield = warriorMeleeDefense(true, true, 0.0, 10.0, 0.0, 100.0, 0.0, 0.25);
+    if (noShield.parryChance != 0.1 || noShield.blockChance != 0.0) return -4;
+    var other = warriorMeleeDefense(true, false, 0.0, 10.0, 0.0, 100.0, 5.0, 0.25);
+    if (other.parryChance != 0.0 || other.blockChance != 0.0) return -5;
+    if (!isInFront(0.0, 0.0, 0.0) || isInFront(0.0, 0.0, 3.141592653589793)) return -6;
+    return 1;
+}

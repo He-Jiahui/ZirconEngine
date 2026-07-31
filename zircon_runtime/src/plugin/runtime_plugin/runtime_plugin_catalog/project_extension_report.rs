@@ -6,7 +6,9 @@ mod runtime_merge;
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::{core::framework::project::ProjectPluginManifest, plugin::RuntimeExtensionRegistry};
 
+use super::derived_projection::RuntimePluginCatalogProjection;
 use super::extension_report::RuntimeExtensionCatalogReport;
+use super::feature_registration_match::project_feature_provider_lookup;
 use super::feature_report::RuntimePluginFeatureDependencyReport;
 use super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 use enabled_packages::enabled_plugin_ids_for_target;
@@ -17,6 +19,7 @@ use runtime_merge::merge_enabled_runtime_extensions;
 pub(super) fn runtime_extension_report_for_project(
     registrations: &[RuntimePluginRegistrationReport],
     feature_registrations: &[RuntimePluginFeatureRegistrationReport],
+    projection: &RuntimePluginCatalogProjection,
     completed: &ProjectPluginManifest,
     target: RuntimeTargetMode,
     feature_report: &RuntimePluginFeatureDependencyReport,
@@ -43,9 +46,11 @@ pub(super) fn runtime_extension_report_for_project(
         };
     }
     append_feature_dependency_diagnostics(feature_report, &mut diagnostics, &mut fatal_diagnostics);
+    let selected_feature_providers = project_feature_provider_lookup(completed);
     merge_available_feature_extensions(
         feature_registrations,
-        completed,
+        projection,
+        &selected_feature_providers,
         feature_report,
         &mut registry,
         &mut diagnostics,

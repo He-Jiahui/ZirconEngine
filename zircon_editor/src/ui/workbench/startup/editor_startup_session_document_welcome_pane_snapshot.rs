@@ -5,7 +5,6 @@ use super::new_project_form_snapshot::NewProjectFormSnapshot;
 use super::now_unix_ms::now_unix_ms;
 use super::recent_project_item_snapshot::RecentProjectItemSnapshot;
 use super::welcome_pane_snapshot::WelcomePaneSnapshot;
-use crate::core::project::ProjectAuthority;
 
 impl EditorStartupSessionDocument {
     pub fn welcome_pane_snapshot(&self, browse_supported: bool) -> WelcomePaneSnapshot {
@@ -14,12 +13,6 @@ impl EditorStartupSessionDocument {
             .project_root()
             .map(|path| display_project_path(path.to_string_lossy()))
             .unwrap_or_default();
-        let creation_validation = self
-            .draft
-            .validate_for_creation()
-            .map(|_| String::new())
-            .unwrap_or_else(|error| error.to_string());
-        let can_open_existing = ProjectAuthority::default().probe_draft(&self.draft).is_ok();
         let now_unix_ms = now_unix_ms();
 
         WelcomePaneSnapshot {
@@ -48,9 +41,9 @@ impl EditorStartupSessionDocument {
                 location: self.draft.location.clone(),
                 project_path_preview,
                 template_label: "Renderable Empty".to_string(),
-                can_create: creation_validation.is_empty(),
-                can_open_existing,
-                validation_message: creation_validation,
+                can_create: self.creation_validation.is_empty(),
+                can_open_existing: self.can_open_existing,
+                validation_message: self.creation_validation.clone(),
             },
         }
     }

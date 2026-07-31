@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_flee_speed_state_tests",
+  "source": "src",
+  "binary": "bin-m4-flee-speed-state-tests",
+  "entry": "combat/flee_speed_state_test_main"
+}

@@ -1,5 +1,6 @@
 use super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
+use super::super::super::terminal_resource_cache::TerminalPostProcessResourceCache;
 use super::super::bind_group_layouts;
 use super::super::create_buffer_bundle::create_buffer_bundle;
 use super::super::create_fallback_texture_views::create_fallback_texture_views;
@@ -79,6 +80,7 @@ impl ScenePostProcessResources {
             upscale_bind_group_layout,
             output_transfer_bind_group_layout,
             smaa_bind_group_layout,
+            terminal_resource_cache: TerminalPostProcessResourceCache::new(),
             bloom_pipeline: pipeline_bundle.bloom_pipeline,
             ssao_pipeline: std::sync::OnceLock::new(),
             cluster_pipeline: pipeline_bundle.cluster_pipeline,

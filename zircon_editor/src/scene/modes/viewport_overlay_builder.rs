@@ -24,4 +24,12 @@ impl ViewportOverlayBuilder {
     pub fn finish(self) -> Vec<SceneGizmoOverlayExtract> {
         self.scene_gizmos
     }
+
+    pub(crate) fn checkpoint(&self) -> usize {
+        self.scene_gizmos.len()
+    }
+
+    pub(crate) fn restore(&mut self, checkpoint: usize) {
+        self.scene_gizmos.truncate(checkpoint);
+    }
 }

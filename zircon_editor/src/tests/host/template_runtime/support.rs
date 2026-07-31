@@ -1,3 +1,8 @@
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
+
+use crate::ui::binding::EditorUiBinding;
+
 pub(super) use crate::ui::control::EditorUiControlService;
 pub(super) use crate::ui::template_runtime::{
     EditorUiCompatibilityHarness, EditorUiHostRuntime, RetainedUiHostAdapter,
@@ -9,6 +14,26 @@ pub(super) use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
     tree::UiInputPolicy,
 };
+
+pub(super) const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "res://ui/editor/component_showcase.zui";
+
+static SHOWCASE_BINDINGS: OnceLock<BTreeMap<String, EditorUiBinding>> = OnceLock::new();
+
+pub(super) fn showcase_binding(runtime: &EditorUiHostRuntime, binding_id: &str) -> EditorUiBinding {
+    SHOWCASE_BINDINGS
+        .get_or_init(|| {
+            runtime
+                .project_document(COMPONENT_SHOWCASE_DOCUMENT_ID)
+                .expect("component showcase projection")
+                .bindings
+                .into_iter()
+                .map(|binding| (binding.binding_id, binding.binding))
+                .collect()
+        })
+        .get(binding_id)
+        .unwrap_or_else(|| panic!("missing showcase binding `{binding_id}`"))
+        .clone()
+}
 
 pub(super) const ASSET_HOST_WINDOW_DOCUMENT_TOML: &str = r##"
 [asset]

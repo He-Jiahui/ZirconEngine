@@ -51,6 +51,10 @@ tests:
 
 31-file viewport-toolbar pointer 审查还发现 click callback 曾把该 surface 已提交的全部 controls 替换成当前单个 control，再 full rebuild；连续 A→B 点击后 A 会暂时从 hit tree 消失。本轮已直接改为 action-key upsert、same-frame no-op，并保留其他 controls。该局部修复不替代本计划的 generation cache：`sync_surface_frame()` 仍扫描/复制完整 arranged controls，变化时仍重建所有 surface routes。
 
+2026-07-30 app viewport adapter current-source 8/8进一步确认上游click仍很宽：每次先对相同surface size重跑toolbar layout并忽略返回值，再同步pointer bridge；随后`get_host_presentation()`深clone完整presentation，只为扫描4个dock与floating windows取得一个`UiSurfaceFrame`。fallback owned-clone全部view instances后线性查找，layout frames在同一次click可读取两次。该成本未被same-frame pointer no-op消除，继续归本failure的projection/size/route generation cache。
+
+同日viewport-toolbar projection current-source 6/6把slow-path成本量化到具体owner：入口clone/replace整presentation；4 dock在pane-kind判断前分配surface-key String；floating逐row取得owned window并重建完整ModelRc。每个有效pane调用无cache的`recompute_layout`重建template surface/host projection，再新建UiSurface、逐control构造path/metadata/route Strings、full rebuild并snapshot。`pane.viewport.clone()`还会深clone旧toolbar frame后立即覆盖。相同size/generation跨pane必须共享immutable frame，不能让单mutable bridge顺序重复构建；见`../../../performance/01/2026-07-30-editor-retained-viewport-toolbar-projection-current-review.md`。
+
 ## 最低共享层根因
 
 toolbar 的 compiled projection、尺寸布局、pane hit mapping 与拥有所有权的 frame snapshot 没有显式
@@ -68,6 +72,8 @@ patch authority。
   pointer hit 与 paint projection 保持一致。
 - toolbar click、world-space sync 与 unchanged native window 不得 deep clone/apply 完整 presentation；按 window/surface generation patch，resize 同帧 chrome/model build=1。
 - 同 action/frame 的 1k click pointer rebuild=0；连续 A→B 后 A 仍命中；完整 surface frame 只在 toolbar projection/size/hit mapping generation 变化时重新扫描与提交。
+- 1k same-size/same-generation click的toolbar layout、full presentation clone、view-instance clone与重复layout-frame read全部为0；click只按stable surface/frame handle定位，不扫描4 dock/floating全图。
+- stable slow recompute的dock key/floating row/viewport old-frame clone、template layout/host projection、surface/path/metadata/route String/frame snapshot均为0；同key跨pane build=1并共享handle，per-window只patchchanged generation。
 
 ## 禁止临时方案
 

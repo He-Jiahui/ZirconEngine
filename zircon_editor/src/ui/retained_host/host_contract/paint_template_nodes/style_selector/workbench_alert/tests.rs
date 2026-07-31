@@ -51,3 +51,58 @@ fn pressed_warning_alert_still_uses_active_focus_ring_border() {
     assert_eq!(style.state, UiPainterResolvedState::Pressed);
     assert_eq!(style.border, PALETTE.focus_ring);
 }
+
+#[test]
+fn alert_dynamic_states_ignore_normal_declared_chrome() {
+    let normal = declared_warning_alert();
+    let normal_style = select_workbench_alert_style(&normal, WorkbenchAlertTone::Warning);
+
+    assert_eq!(normal_style.surface, [81, 88, 94, 255]);
+    assert_eq!(normal_style.border, [109, 116, 122, 255]);
+    assert_eq!(normal_style.text, [221, 226, 230, 255]);
+
+    let mut hovered = declared_warning_alert();
+    hovered.hovered = true;
+    assert_alert_chrome_matches_central_style(&hovered);
+
+    let mut focused = declared_warning_alert();
+    focused.focused = true;
+    assert_alert_chrome_matches_central_style(&focused);
+
+    let mut pressed = declared_warning_alert();
+    pressed.pressed = true;
+    assert_alert_chrome_matches_central_style(&pressed);
+
+    let mut selected = declared_warning_alert();
+    selected.selected = true;
+    assert_alert_chrome_matches_central_style(&selected);
+
+    let mut checked = declared_warning_alert();
+    checked.checked = true;
+    assert_alert_chrome_matches_central_style(&checked);
+}
+
+fn declared_warning_alert() -> TemplatePaneNodeData {
+    let mut node = TemplatePaneNodeData::default();
+    node.button_style.element.background_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(81, 88, 94, 255)));
+    node.button_style.element.border_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(109, 116, 122, 255)));
+    node.button_style.element.foreground_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(221, 226, 230, 255)));
+    node
+}
+
+fn assert_alert_chrome_matches_central_style(node: &TemplatePaneNodeData) {
+    let actual = select_workbench_alert_style(node, WorkbenchAlertTone::Warning);
+    let mut central_node = node.clone();
+    central_node.button_style.element.background_color = None;
+    central_node.button_style.element.border_color = None;
+    central_node.button_style.element.foreground_color = None;
+    let expected = select_workbench_alert_style(&central_node, WorkbenchAlertTone::Warning);
+
+    assert_eq!(actual.state, expected.state);
+    assert_eq!(actual.surface, expected.surface);
+    assert_eq!(actual.border, expected.border);
+    assert_eq!(actual.text, expected.text);
+}

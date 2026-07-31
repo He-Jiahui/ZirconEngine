@@ -1,9 +1,13 @@
 use std::collections::BTreeMap;
 
-use crate::core::editor_authoring_extension::ViewportToolModeDescriptor;
+use crate::core::editor_authoring_extension::SceneModeDescriptor;
 use crate::core::editor_message::SceneModeId;
+use crate::core::plugin::run_editor_plugin_boundary;
 
-use super::{EditorSceneMode, SceneModeRegistration, SceneModeRegistryError};
+use super::{
+    EditorSceneMode, SceneModeRegistration, SceneModeRegistryError,
+    isolated_scene_mode::IsolatedSceneMode,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct SceneModeRegistry {
@@ -33,17 +37,36 @@ impl SceneModeRegistry {
                 .ok_or_else(|| SceneModeRegistryError::UnknownMode {
                     mode_id: mode_id.clone(),
                 })?;
-        let mode = registration.create();
-        if mode.id() != mode_id {
+        let owner_id = registration.owner_id();
+        let mode =
+            run_editor_plugin_boundary(
+                owner_id,
+                "scene mode factory",
+                || Ok(registration.create()),
+            )
+            .map_err(|error| SceneModeRegistryError::CallbackFailure {
+                mode_id: mode_id.clone(),
+                operation: "factory",
+                message: error.to_string(),
+            })?;
+        let isolated = IsolatedSceneMode::new(owner_id.to_string(), mode_id.clone(), mode);
+        let produced_mode_id = isolated.validate_inner_id().map_err(|message| {
+            SceneModeRegistryError::CallbackFailure {
+                mode_id: mode_id.clone(),
+                operation: "id",
+                message,
+            }
+        })?;
+        if &produced_mode_id != mode_id {
             return Err(SceneModeRegistryError::FactoryModeIdMismatch {
                 registered_mode_id: mode_id.clone(),
-                produced_mode_id: mode.id().clone(),
+                produced_mode_id,
             });
         }
-        Ok(mode)
+        Ok(Box::new(isolated))
     }
 
-    pub fn descriptor(&self, mode_id: &SceneModeId) -> Option<&ViewportToolModeDescriptor> {
+    pub fn descriptor(&self, mode_id: &SceneModeId) -> Option<&SceneModeDescriptor> {
         self.registrations
             .get(mode_id)
             .map(SceneModeRegistration::descriptor)

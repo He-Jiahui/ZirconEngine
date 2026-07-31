@@ -31,7 +31,7 @@ fn runtime_entry_window_attributes_use_monitor_aware_creation_policy() {
         runtime_handler_source,
         &[
             "fn can_create_surfaces",
-            "self.create_primary_window_surface(event_loop);",
+            "if self.create_primary_window_surface(event_loop) {",
         ],
         "runtime entry ApplicationHandler should delegate primary window creation to the window-creation module",
     );

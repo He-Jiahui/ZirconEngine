@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::Path;
 
 use crate::asset::project::ProjectManager;
@@ -57,18 +56,6 @@ impl DefaultLevelManager {
         let level = self.level(handle).ok_or_else(|| {
             std::io::Error::new(std::io::ErrorKind::NotFound, "world handle not found")
         })?;
-        let scene = SceneAssetSerializer::serialize_world(project, &level.snapshot())?;
-        let path = project.existing_or_primary_project_source_path_for_uri(uri)?;
-        if let Some(parent) = path.parent() {
-            if !parent.as_os_str().is_empty() {
-                fs::create_dir_all(parent)?;
-            }
-        }
-        fs::write(
-            path,
-            scene
-                .to_project_toml_string(|reference| project.persist_runtime_reference(reference))?,
-        )?;
-        Ok(())
+        level.snapshot().save_scene_to_project(project, uri)
     }
 }

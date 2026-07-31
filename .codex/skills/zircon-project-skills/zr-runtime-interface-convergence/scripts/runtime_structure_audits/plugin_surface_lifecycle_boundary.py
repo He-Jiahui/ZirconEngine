@@ -8,16 +8,16 @@ from runtime_structure_audits.native_plugin_public_surface import (
 )
 
 
-EXPECTED_SOURCE_FILE_COUNT = 14
+EXPECTED_SOURCE_FILE_COUNT = 17
 EXPECTED_DOC_FILE_COUNT = 5
 EXPECTED_ROOT_REEXPORT_COUNT = 0
-EXPECTED_NATIVE_NAMESPACE_REEXPORT_COUNT = 64
+EXPECTED_NATIVE_NAMESPACE_REEXPORT_COUNT = 74
 EXPECTED_NATIVE_PUBLIC_SURFACE_DEBT_GROUPS = 0
-EXPECTED_NATIVE_NAMESPACE_SYMBOL_GROUPS = 5
+EXPECTED_NATIVE_NAMESPACE_SYMBOL_GROUPS = 6
 EXPECTED_UNCLASSIFIED_NATIVE_SYMBOLS = 0
 EXPECTED_ROOT_PUBLIC_NATIVE_REEXPORT_LOCATIONS = 0
 EXPECTED_PUBLIC_NATIVE_REEXPORT_LOCATIONS = 1
-EXPECTED_APP_NATIVE_PLUGIN_FILE_COUNT = 7
+EXPECTED_APP_NATIVE_PLUGIN_FILE_COUNT = 8
 EXPECTED_NATIVE_LOADER_V1_V2_FILE_COUNT = 0
 EXPECTED_PLUGIN_V1_V2_USAGE_FILES: tuple[str, ...] = ()
 EXPECTED_EXPORT_BUILD_PLAN_V1_V2_USAGE_COUNT = 0
@@ -26,7 +26,7 @@ EXPECTED_NATIVE_TEST_NAMESPACE_IMPORT_FILE_COUNT = 3
 EXPECTED_NATIVE_TEST_ROOT_IMPORT_LEAK_COUNT = 0
 EXPECTED_LIFECYCLE_FALLBACK_TEST_COUNT = 4
 EXPECTED_RUNTIME_06_STATUS = "in_progress"
-EXPECTED_RUNTIME_06_LAST_REFINED = "2026-07-14"
+EXPECTED_RUNTIME_06_LAST_REFINED = "2026-07-31"
 EXPECTED_M4_GATE_STATUS = "classified-and-clear"
 MIRROR_DOCS_GUARD = "runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts"
 NATIVE_TEST_NAMESPACE_GUARD = "runtime_06_native_loader_tests_use_isolated_plugin_native_namespace"
@@ -76,7 +76,7 @@ SOURCE_ANCHORS = (
     "ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3",
     "ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION",
     "abi_unknown_version",
-    "unsupported native plugin ABI version {actual}; expected {expected}",
+    '"descriptor.abi_version"',
     MIRROR_DOCS_GUARD,
     LIFECYCLE_FALLBACK_TEST_GUARD,
     NATIVE_TEST_NAMESPACE_GUARD,
@@ -87,16 +87,16 @@ DOC_ANCHORS = (
     "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
     "native_plugin_public_surface",
     "root_reexport_count = 0",
-    "native_namespace_reexport_count = 64",
+    "native_namespace_reexport_count = 74",
     "classified-and-clear",
     "script::vm/vampire_project_session/plugin/native_plugin/app/plugins",
     "runtime real-backend",
     "fallback lifecycle failure tests 4/4",
-    "app NativePlugin current call-site files: 7",
+    "app NativePlugin current call-site files: 8",
     "native loader V1/V2 implementation files 0/0",
     "`zircon_plugins` V1/V2 usage files 0/0",
     "unknown ABI rejection",
-    "expected_source_file_count = 14",
+    "expected_source_file_count = 17",
     "hot reload failure injection",
     "expected_doc_file_count = 5",
     "mirror_docs_guard_present = true",
@@ -338,6 +338,8 @@ def plugin_surface_lifecycle_boundary_audit(root: Path) -> dict[str, object]:
     mirror_docs_guard_present = any(MIRROR_DOCS_GUARD in source for source in source_texts)
 
     risks: list[str] = []
+    if len(source_files) != EXPECTED_SOURCE_FILE_COUNT:
+        risks.append("Runtime 06 source inventory count changed without audit sync.")
     if missing_source_files:
         risks.append("Runtime 06 source files are missing.")
     if missing_doc_files:

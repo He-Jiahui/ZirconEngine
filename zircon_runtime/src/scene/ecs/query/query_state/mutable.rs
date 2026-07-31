@@ -1,16 +1,16 @@
 use std::array;
 
+use crate::scene::EntityId;
+use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, QueryCombinationMutIter, QueryEntityError, QueryEntityItem, QueryFilter,
     QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData, QuerySingleError, UniqueEntityArray,
 };
-use crate::scene::EntityId;
-use crate::scene::World;
 
 use super::super::cached_query_iter::cached_query_component_locations;
 use super::super::unique_entities::first_duplicate_entity;
-use super::many_item_array::collect_many_query_items;
 use super::QueryState;
+use super::many_item_array::collect_many_query_items;
 
 impl<D, F> QueryState<D, F>
 where

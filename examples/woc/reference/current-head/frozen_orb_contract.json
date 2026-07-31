@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/frozen_orb_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/frozen_orb.ts": "dd098bb30fecc31122b44a9bb72613f38f77070394fe129cd28eda715d91a099",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "tick": {
+    "speed_yards_per_second": 4,
+    "dt": 0.05,
+    "pulse": "at_most_once_then_add_interval",
+    "expiration": "after_pulse"
+  },
+  "latch": {
+    "holds_position": true,
+    "lifetime_continues": true
+  }
+}

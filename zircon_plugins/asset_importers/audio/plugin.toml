@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "asset_importer.audio"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Audio Asset Importers"
 category = "asset_importer"
 description = "Runtime audio asset importer family package."

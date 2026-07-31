@@ -35,6 +35,9 @@ pub use error::{RuntimeDynamicSessionError, RuntimeProjectError};
 pub use linked_session::create_linked_runtime_session;
 
 use error::RuntimeDynamicSessionResult;
+pub(in crate::dynamic_api) use event_mirror::{
+    RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES, RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES,
+};
 pub(super) use ffi::{
     bind_viewport_surface, capture_accessibility_tree, capture_frame, create_session,
     destroy_session, drain_host_requests, drain_plugin_events, handle_event, present_viewport,

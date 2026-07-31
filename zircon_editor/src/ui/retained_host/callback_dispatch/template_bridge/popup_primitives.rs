@@ -52,7 +52,7 @@ pub(crate) fn template_popup_menu_item_state(raw: &str) -> Option<TemplatePopupM
     })
 }
 
-fn menu_item_action_id(label: &str) -> String {
+pub(crate) fn menu_item_action_id(label: &str) -> String {
     format!("menu.item.{}", label_to_action_segment(label))
 }
 

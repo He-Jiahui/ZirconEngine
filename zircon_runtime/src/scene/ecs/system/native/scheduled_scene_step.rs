@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
-use crate::scene::ecs::{SceneSystemDescriptor, SystemStage};
 use crate::scene::SceneRuntimeHookRegistration;
+use crate::scene::ecs::{SceneSystemDescriptor, SystemStage};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScheduledSceneStep {
@@ -9,6 +9,8 @@ pub(crate) enum ScheduledSceneStep {
         id: String,
         stage: SystemStage,
         order: i32,
+        worker_safe: bool,
+        conservative_world_writer: bool,
     },
     Runtime {
         id: String,
@@ -23,11 +25,19 @@ pub(crate) enum ScheduledSceneStep {
 }
 
 impl ScheduledSceneStep {
-    pub(crate) fn native(id: impl Into<String>, stage: SystemStage, order: i32) -> Self {
+    pub(crate) fn native(
+        id: impl Into<String>,
+        stage: SystemStage,
+        order: i32,
+        worker_safe: bool,
+        conservative_world_writer: bool,
+    ) -> Self {
         Self::Native {
             id: id.into(),
             stage,
             order,
+            worker_safe,
+            conservative_world_writer,
         }
     }
 
@@ -147,9 +157,21 @@ impl<'a> Iterator for SortedScheduledSceneSteps<'a> {
                 self.internal_index += 1;
                 Some(ScheduledSceneStepRef::Internal(system))
             }
-            Some(ScheduledSceneStepRef::Native { id, stage, order }) => {
+            Some(ScheduledSceneStepRef::Native {
+                id,
+                stage,
+                order,
+                worker_safe,
+                conservative_world_writer,
+            }) => {
                 self.native_index += 1;
-                Some(ScheduledSceneStepRef::Native { id, stage, order })
+                Some(ScheduledSceneStepRef::Native {
+                    id,
+                    stage,
+                    order,
+                    worker_safe,
+                    conservative_world_writer,
+                })
             }
             Some(ScheduledSceneStepRef::Runtime { id, stage, order }) => {
                 self.native_index += 1;
@@ -192,6 +214,8 @@ pub(crate) enum ScheduledSceneStepRef<'a> {
         id: &'a str,
         stage: SystemStage,
         order: i32,
+        worker_safe: bool,
+        conservative_world_writer: bool,
     },
     Runtime {
         id: &'a str,
@@ -209,10 +233,18 @@ pub(crate) enum ScheduledSceneStepRef<'a> {
 impl<'a> ScheduledSceneStepRef<'a> {
     fn from_native_step(step: &'a ScheduledSceneStep) -> Self {
         match step {
-            ScheduledSceneStep::Native { id, stage, order } => Self::Native {
+            ScheduledSceneStep::Native {
+                id,
+                stage,
+                order,
+                worker_safe,
+                conservative_world_writer,
+            } => Self::Native {
                 id: id.as_str(),
                 stage: *stage,
                 order: *order,
+                worker_safe: *worker_safe,
+                conservative_world_writer: *conservative_world_writer,
             },
             ScheduledSceneStep::Runtime { id, stage, order } => Self::Runtime {
                 id: id.as_str(),

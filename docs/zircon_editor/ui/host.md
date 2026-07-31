@@ -13,7 +13,8 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/sync.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/service.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/commit.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/palette.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs
@@ -44,7 +45,7 @@ tests:
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs::tests::keyboard_dispatch_reuses_the_controller_keymap
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs::tests::zui_suffix_check_does_not_lowercase_the_whole_asset_id
   - zircon_editor/src/ui/host/asset_editor_sessions/sync.rs::tests::syncing_instance_builds_one_reflection_model
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs::tests::changed_import_lookup_borrows_the_normalized_asset_id
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/tests.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/palette.rs::tests::unchanged_palette_drag_does_not_rebuild_instance_projection
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs::performance_tests::animation_mutation_skips_noops_and_does_not_reserialize_the_stable_route
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs::performance_tests::native_package_preparation_indexes_discovery_once
@@ -77,9 +78,9 @@ animation session 的稳定 asset route 在 restore/open 时已经进入 view in
 
 UI asset mutation 在成功改变文档后才同步 instance projection。一次同步只构建一次 reflection model；import change set 用 borrowed normalized id 查找；`.zui` 后缀使用 ASCII-insensitive byte comparison，避免复制整条资产路径。
 
-更大的工作仍未动态验收：细粒度 authoring mutation 应提交 typed domain delta，source typing 需要 debounce；document/import 解析结果按 physical asset、content generation 与 expected kind 缓存。diamond/cycle import 必须在 I/O 前命中 generation cache，同时保留 fragment alias、kind validation 与诊断路径。
+细粒度 authoring mutation 的 typed domain delta 与 source typing debounce 仍未动态验收。Document/import 侧已经硬切为 physical-path generation cache：一个 watcher batch 跨受影响文档共享 read/parse 结果，diamond/cycle 在重复 I/O 前终止，同时保留 fragment alias、expected-kind validation 与诊断路径。
 
-watcher ingress 必须有界并按 normalized path 合并；worker 执行 stat/read/hash/parse，主线程只在时间/数量预算内提交最新 generation。reverse dependency index 决定受影响 session，不能每轮扫描全部打开文档。save-suppression、rename/remove、shutdown drain 和错误可见性属于验收合同，不能通过静默丢弃事件换取低延迟。
+Watcher ingress 已按 normalized path 有界合并；`EditorJobSystem` worker 执行 read/hash/parse，主线程以 generation/baseline/fingerprint gate 提交，reverse dependency index 只选择受影响 session。Same-project save 保留 pending work，project-root cutover 才 cancel/reset；transient retry 与 exhausted/superseded 状态可观测。1k/10k storm p95、rename/remove、shutdown drain 和 source-bound Cargo 仍属于未完成验收合同，不能通过静默丢弃事件换取低延迟。
 
 Editor asset catalog 同样需要独立于 UI asset document watcher 的 generation owner：runtime import delta 只重建受影响 record/reference/folder，preview decode/encode 与 meta I/O 在 worker 上完成，短锁提交前校验 source hash 和 catalog generation。catalog snapshot 与 change subscriber 不得把完整 DTO clone、无界队列或锁内 fanout 放回 retained reflection 热路径。
 

@@ -508,7 +508,7 @@ impl MeshPassIndirectDrawExecutions {
 
 #[cfg(test)]
 mod tests {
-    use super::{MeshIndirectArgsSnapshot, INDEXED_INDIRECT_ARGS_STRIDE_BYTES};
+    use super::{INDEXED_INDIRECT_ARGS_STRIDE_BYTES, MeshIndirectArgsSnapshot};
     use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;

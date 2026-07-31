@@ -1,0 +1,95 @@
+// Weapon-proc WOS decision plans. WOS owns content lookup, RNG, target order,
+// float rounding, aura/damage writes, and emitted events; this module owns no state.
+var contract = %import("generated/equip_procs_contract");
+
+pub class WeaponProcDrawPlan {
+    pub var shouldDraw: bool;
+    pub @constructor(shouldDraw: bool) {
+        this.shouldDraw = shouldDraw;
+    }
+}
+
+pub class WeaponProcEffectPlan {
+    pub var applies: bool;
+    pub var route: int;
+    pub var emitsSpellFx: bool;
+    pub var dealsDamage: bool;
+    pub var appliesAura: bool;
+    pub var requiresHostileSweep: bool;
+    pub var usesPeriodicTimer: bool;
+    pub @constructor() {
+        this.applies = false;
+        this.route = 0;
+        this.emitsSpellFx = false;
+        this.dealsDamage = false;
+        this.appliesAura = false;
+        this.requiresHostileSweep = false;
+        this.usesPeriodicTimer = false;
+    }
+}
+
+// Call once per content proc in its authored order. A true result means WOS must
+// consume exactly one `proc.chance` RNG draw before it can inspect that proc's effects.
+pub weaponProcDrawPlan(targetDead: bool, hasMainhandItemId: bool, itemPresent: bool, itemIsWeapon: bool, itemHasWeaponProcs: bool, levelEligible: bool, procTrigger: string, trigger: string): WeaponProcDrawPlan {
+    if (targetDead || !hasMainhandItemId || !itemPresent || !itemIsWeapon || !itemHasWeaponProcs || !levelEligible) {
+        return new WeaponProcDrawPlan(false);
+    }
+    return new WeaponProcDrawPlan(procTrigger == trigger);
+}
+
+// Call only after weaponProcDrawPlan returned true and WOS observed a successful
+// authored chance draw. Effect payload fields stay in canonical content/WOS storage.
+pub weaponProcEffectPlan(effectKind: string): WeaponProcEffectPlan {
+    var out = new WeaponProcEffectPlan();
+    if (effectKind == contract.chainArcKind()) {
+        out.applies = true;
+        out.route = contract.chainArcRoute();
+        out.emitsSpellFx = true;
+        out.dealsDamage = true;
+        out.requiresHostileSweep = true;
+        return out;
+    }
+    if (effectKind == contract.attackSlowKind()) {
+        out.applies = true;
+        out.route = contract.attackSlowRoute();
+        out.appliesAura = true;
+        return out;
+    }
+    if (effectKind == contract.dotKind()) {
+        out.applies = true;
+        out.route = contract.dotRoute();
+        out.appliesAura = true;
+        out.usesPeriodicTimer = true;
+        return out;
+    }
+    if (effectKind == contract.hotKind()) {
+        out.applies = true;
+        out.route = contract.hotRoute();
+        out.appliesAura = true;
+        out.usesPeriodicTimer = true;
+        return out;
+    }
+    return out;
+}
+
+pub contractTest(): int {
+    if (weaponProcDrawPlan(true, true, true, true, true, true, "meleeHit", "meleeHit").shouldDraw) return -1;
+    if (weaponProcDrawPlan(false, false, true, true, true, true, "meleeHit", "meleeHit").shouldDraw) return -2;
+    if (weaponProcDrawPlan(false, true, false, true, true, true, "meleeHit", "meleeHit").shouldDraw) return -3;
+    if (weaponProcDrawPlan(false, true, true, false, true, true, "meleeHit", "meleeHit").shouldDraw) return -4;
+    if (weaponProcDrawPlan(false, true, true, true, false, true, "meleeHit", "meleeHit").shouldDraw) return -5;
+    if (weaponProcDrawPlan(false, true, true, true, true, false, "meleeHit", "meleeHit").shouldDraw) return -6;
+    if (weaponProcDrawPlan(false, true, true, true, true, true, "spellHit", "meleeHit").shouldDraw) return -7;
+    if (!weaponProcDrawPlan(false, true, true, true, true, true, "meleeHit", "meleeHit").shouldDraw) return -8;
+
+    var chain = weaponProcEffectPlan(contract.chainArcKind());
+    if (!chain.applies || chain.route != contract.chainArcRoute() || !chain.emitsSpellFx || !chain.dealsDamage || !chain.requiresHostileSweep || chain.appliesAura || chain.usesPeriodicTimer) return -9;
+    var slow = weaponProcEffectPlan(contract.attackSlowKind());
+    if (!slow.applies || slow.route != contract.attackSlowRoute() || !slow.appliesAura || slow.usesPeriodicTimer) return -10;
+    var dot = weaponProcEffectPlan(contract.dotKind());
+    var hot = weaponProcEffectPlan(contract.hotKind());
+    if (!dot.applies || !dot.appliesAura || !dot.usesPeriodicTimer || dot.route != contract.dotRoute()) return -11;
+    if (!hot.applies || !hot.appliesAura || !hot.usesPeriodicTimer || hot.route != contract.hotRoute()) return -12;
+    if (weaponProcEffectPlan("unknown").applies) return -13;
+    return 1;
+}

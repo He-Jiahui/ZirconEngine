@@ -1,0 +1,8 @@
+var actionXp = %import("progression/profession_action_xp");
+
+console.printLine("m5-profession-action-xp-test");
+var result = actionXp.contractTest();
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "profession action XP contract failed";
+}

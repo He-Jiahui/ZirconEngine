@@ -56,15 +56,21 @@ fn effect_stack_depth_of_field_feeds_uber_from_dedicated_intermediate() {
         .iter()
         .find(|effect| effect.kind == PostProcessEffectKind::DepthOfField)
         .expect("DoF should enable a dedicated depth-of-field node");
-    assert!(depth_of_field
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
-    assert!(depth_of_field
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
-    assert!(depth_of_field
-        .produced_outputs
-        .contains(&PostProcessGraphResourceNames::DEPTH_OF_FIELDED.to_string()));
+    assert!(
+        depth_of_field
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string())
+    );
+    assert!(
+        depth_of_field
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string())
+    );
+    assert!(
+        depth_of_field
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::DEPTH_OF_FIELDED.to_string())
+    );
 
     let effect_stack = stack
         .effects
@@ -72,12 +78,16 @@ fn effect_stack_depth_of_field_feeds_uber_from_dedicated_intermediate() {
         .find(|effect| effect.kind == PostProcessEffectKind::Uber)
         .expect("DoF should enable the effect stack node");
 
-    assert!(effect_stack
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::DEPTH_OF_FIELDED.to_string()));
-    assert!(!effect_stack
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
+    assert!(
+        effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::DEPTH_OF_FIELDED.to_string())
+    );
+    assert!(
+        !effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string())
+    );
     assert_eq!(
         effect_stack.produced_outputs,
         expected_uber_effect_stack_outputs()
@@ -116,24 +126,30 @@ fn effect_stack_blur_feeds_uber_from_dedicated_intermediate() {
         .iter()
         .find(|effect| effect.kind == PostProcessEffectKind::Blur)
         .expect("blur should enable a dedicated blur node");
-    assert!(blur
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
-    assert!(blur
-        .produced_outputs
-        .contains(&PostProcessGraphResourceNames::BLURRED.to_string()));
+    assert!(
+        blur.required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string())
+    );
+    assert!(
+        blur.produced_outputs
+            .contains(&PostProcessGraphResourceNames::BLURRED.to_string())
+    );
 
     let effect_stack = stack
         .effects
         .iter()
         .find(|effect| effect.kind == PostProcessEffectKind::Uber)
         .expect("blur should keep the effect stack node for remaining stack work");
-    assert!(effect_stack
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::BLURRED.to_string()));
-    assert!(!effect_stack
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
+    assert!(
+        effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::BLURRED.to_string())
+    );
+    assert!(
+        !effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string())
+    );
     assert_eq!(
         effect_stack.produced_outputs,
         expected_uber_effect_stack_outputs()
@@ -170,35 +186,51 @@ fn effect_stack_motion_blur_declares_depth_and_reconstructed_motion_vector_input
         &AntiAliasSettings::off(),
     );
 
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX.to_string()));
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE.to_string()));
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string())
+    );
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX.to_string())
+    );
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE.to_string())
+    );
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string())
+    );
     let motion_blur = stack
         .effects
         .iter()
         .find(|effect| effect.kind == PostProcessEffectKind::MotionBlur)
         .expect("motion blur should enable a dedicated motion blur node");
-    assert!(motion_blur
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
-    assert!(motion_blur
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
-    assert!(motion_blur
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
-    assert!(motion_blur
-        .produced_outputs
-        .contains(&PostProcessGraphResourceNames::MOTION_BLURRED.to_string()));
+    assert!(
+        motion_blur
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string())
+    );
+    assert!(
+        motion_blur
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string())
+    );
+    assert!(
+        motion_blur
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string())
+    );
+    assert!(
+        motion_blur
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::MOTION_BLURRED.to_string())
+    );
 
     let effect_stack = stack
         .effects
@@ -206,15 +238,21 @@ fn effect_stack_motion_blur_declares_depth_and_reconstructed_motion_vector_input
         .find(|effect| effect.kind == PostProcessEffectKind::Uber)
         .expect("motion blur should enable the effect stack node");
 
-    assert!(effect_stack
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::MOTION_BLURRED.to_string()));
-    assert!(!effect_stack
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
-    assert!(!effect_stack
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
+    assert!(
+        effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::MOTION_BLURRED.to_string())
+    );
+    assert!(
+        !effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string())
+    );
+    assert!(
+        !effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string())
+    );
     assert_eq!(
         effect_stack.produced_outputs,
         expected_uber_effect_stack_outputs()

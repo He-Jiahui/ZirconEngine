@@ -31,7 +31,7 @@ Only run this workflow in the milestone testing stage unless the user explicitly
    - A milestone stays open if any changed contract or high-risk boundary lacks direct evidence.
    - A milestone stays open if tests only prove a happy path while changed failure behavior remains untested.
    - A milestone stays open if the upper layer passes only because of a special-case path that bypasses broken shared behavior.
-   - A milestone stays open if the plan lacks a testing-stage record of compile/build commands, unit tests, failures fixed, and remaining accepted risk.
+   - A milestone stays open if the plan lacks one concise accepted outcome linked to its validation batch and remaining accepted risk. Keep detailed commands and results in the coordinator or test runner, not a new report.
 
 ## Instruction-Generation Rule
 
@@ -42,8 +42,4 @@ Only run this workflow in the milestone testing stage unless the user explicitly
 
 ## Reporting
 
-- State the milestone being evaluated.
-- State the full in-scope inventory that was checked.
-- State which lower-layer tests, parent-layer tests, and integration tests were run.
-- State any uncovered behavior that keeps the milestone open.
-- State explicitly whether the milestone advanced or was forced back down to a lower layer.
+Put only the milestone state, validation-batch reference, and accepted residual risk in its single plan row. Report uncovered behavior to the owning Failure or live coordinator state; do not create a standalone validation report.

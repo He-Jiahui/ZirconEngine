@@ -1,0 +1,298 @@
+// Pure source-locked Drowned Reliquary Rite decisions. The authoritative Delve
+// reducer owns state, events, party rewards and object spawning; this module
+// deliberately carries neither host collections nor mutable run state.
+var math = %import("zr.zircon.math");
+var rngModule = %import("kernel/rng");
+
+roundPositive(value: float): int {
+    return <int>math.floor(value + 0.5);
+}
+
+requireIntensity(index: int, required: bool): void {
+    if (!required || index < 0 || index > 2) {
+        throw "woc Drowned Reliquary rite intensity is invalid";
+    }
+}
+
+requireTier(tier: int, required: bool): void {
+    if (!required || tier < 0 || tier > 2) {
+        throw "woc Drowned Reliquary rite loot tier is invalid";
+    }
+}
+
+// Source order: low, medium, premium. It is deliberately separate from the
+// player-facing intensity order below so a consumer cannot invert the cap.
+pub lootTierIndex(tierId: string, required: bool): int {
+    if (!required) { throw "woc Drowned Reliquary rite loot tier is required"; }
+    if (tierId == "low") { return 0; }
+    if (tierId == "medium") { return 1; }
+    if (tierId == "premium") { return 2; }
+    return -1;
+}
+
+// Source order: easy, medium, hard.
+pub intensityIndex(intensity: string, required: bool): int {
+    if (!required) { throw "woc Drowned Reliquary rite intensity is required"; }
+    if (intensity == "easy") { return 0; }
+    if (intensity == "medium") { return 1; }
+    if (intensity == "hard") { return 2; }
+    return -1;
+}
+
+pub intensityLength(index: int, required: bool): int {
+    requireIntensity(index, required);
+    return index == 0 ? 4 : (index == 1 ? 5 : 6);
+}
+
+pub intensityTries(index: int, required: bool): int {
+    requireIntensity(index, required);
+    return index == 0 ? 3 : (index == 1 ? 2 : 1);
+}
+
+pub intensityPlaybacks(index: int, required: bool): int {
+    requireIntensity(index, required);
+    return index == 0 ? 3 : (index == 1 ? 2 : 1);
+}
+
+pub intensityCeilingTier(index: int, required: bool): int {
+    requireIntensity(index, required);
+    return index;
+}
+
+pub mistakesAllowedForIntensity(index: int, required: bool): int {
+    return intensityTries(index, required) - 1;
+}
+
+// Source RITE_SHRINE_KINDS order. The numeric seam keeps the rules ABI scalar
+// and lets the reducer store only the exact source string that it needs.
+pub shrineKind(index: int, required: bool): string {
+    if (!required || index < 0 || index > 3) {
+        throw "woc Drowned Reliquary shrine kind is invalid";
+    }
+    if (index == 0) { return "rite_shrine_bell"; }
+    if (index == 1) { return "rite_shrine_candle"; }
+    if (index == 2) { return "rite_shrine_reed"; }
+    return "rite_shrine_skull";
+}
+
+// Matches `new Rng((seed ^ 0xd20ed71a) >>> 0)` and the source's inclusive
+// `rng.int(0, RITE_SHRINE_KINDS.length - 1)`. This rules module creates a
+// local stream only; it never consumes the simulation's shared stream.
+pub sequenceShrineIndex(seed: uint, sequenceIndex: int, required: bool): int {
+    if (!required || sequenceIndex < 0) {
+        throw "woc Drowned Reliquary rite sequence index is invalid";
+    }
+    var rng = new rngModule.Mulberry32(seed ^ <uint>3524187930);
+    var index = 0;
+    var result = 0;
+    while (index <= sequenceIndex) {
+        result = <int>(rng.next() * 4.0);
+        index = index + 1;
+    }
+    return result;
+}
+
+pub sequenceShrineKind(seed: uint, sequenceIndex: int, required: bool): string {
+    return shrineKind(sequenceShrineIndex(seed, sequenceIndex, required), true);
+}
+
+pub playbackStepSeconds(required: bool): float {
+    if (!required) { throw "woc Drowned Reliquary rite playback step is required"; }
+    return 0.6;
+}
+
+pub playbackRepeatGapSeconds(required: bool): float {
+    if (!required) { throw "woc Drowned Reliquary rite playback gap is required"; }
+    return 1.2;
+}
+
+pub playbackTimerDue(timer: float, deltaSeconds: float, required: bool): bool {
+    if (!required || timer < 0.0 || deltaSeconds < 0.0) {
+        throw "woc Drowned Reliquary rite playback timer is invalid";
+    }
+    return timer - deltaSeconds <= 0.0;
+}
+
+pub nextPlaybackIndex(currentIndex: int, length: int, required: bool): int {
+    if (!required || currentIndex < 0 || length <= 0 || currentIndex >= length) {
+        throw "woc Drowned Reliquary rite playback index is invalid";
+    }
+    return currentIndex + 1 >= length ? 0 : currentIndex + 1;
+}
+
+pub nextPlaybackLoop(
+    currentIndex: int,
+    currentLoop: int,
+    length: int,
+    required: bool
+): int {
+    if (!required || currentLoop < 0) {
+        throw "woc Drowned Reliquary rite playback loop is invalid";
+    }
+    nextPlaybackIndex(currentIndex, length, true);
+    return currentIndex + 1 >= length ? currentLoop + 1 : currentLoop;
+}
+
+pub playbackContinues(completedLoops: int, playbacks: int, required: bool): bool {
+    if (!required || completedLoops < 0 || playbacks < 1) {
+        throw "woc Drowned Reliquary rite playback count is invalid";
+    }
+    return completedLoops < playbacks;
+}
+
+// `currentLoop` is the source state before this pulse. A terminal pulse resets
+// the timer to the step first, then substitutes the repeat gap only if another
+// full playback remains.
+pub nextPlaybackTimerAfterPulse(
+    currentIndex: int,
+    currentLoop: int,
+    length: int,
+    playbacks: int,
+    required: bool
+): float {
+    var completedLoops = nextPlaybackLoop(currentIndex, currentLoop, length, required);
+    if (currentIndex + 1 >= length && playbackContinues(completedLoops, playbacks, true)) {
+        return playbackRepeatGapSeconds(true);
+    }
+    return playbackStepSeconds(true);
+}
+
+pub retryPlaybackLoop(playbacks: int, required: bool): int {
+    if (!required || playbacks < 1) {
+        throw "woc Drowned Reliquary rite retry playback count is invalid";
+    }
+    return playbacks - 1;
+}
+
+pub retryPlaybackTimer(required: bool): float {
+    return playbackRepeatGapSeconds(required);
+}
+
+// 0 = low, 1 = medium, 2 = premium. This is the source's pre-cap tier.
+pub baseTierForMistakes(mistakes: int, mistakesAllowed: int, required: bool): int {
+    if (!required || mistakes < 0 || mistakesAllowed < 0) {
+        throw "woc Drowned Reliquary rite mistake state is invalid";
+    }
+    if (mistakes == 0) { return 2; }
+    return mistakes <= mistakesAllowed ? 1 : 0;
+}
+
+pub completionTier(
+    mistakes: int,
+    mistakesAllowed: int,
+    intensity: int,
+    required: bool
+): int {
+    requireIntensity(intensity, required);
+    var tier = baseTierForMistakes(mistakes, mistakesAllowed, true);
+    var ceiling = intensityCeilingTier(intensity, true);
+    return tier <= ceiling ? tier : ceiling;
+}
+
+pub mistakeExhaustsAttempts(mistakes: int, mistakesAllowed: int, required: bool): bool {
+    if (!required || mistakes < 0 || mistakesAllowed < 0) {
+        throw "woc Drowned Reliquary rite mistake state is invalid";
+    }
+    return mistakes > mistakesAllowed;
+}
+
+pub wrongTouchDamage(maximumHealth: int, required: bool): int {
+    if (!required || maximumHealth < 0) {
+        throw "woc Drowned Reliquary rite damage input is invalid";
+    }
+    var damage = roundPositive(<float>maximumHealth * 0.03);
+    return damage < 1 ? 1 : damage;
+}
+
+// The source rounds the tier range midpoint before applying its copper
+// multiplier. The caller selects the exact normal/heroic range from Delve data.
+pub baseCopper(copperMinimum: int, copperMaximum: int, required: bool): int {
+    if (!required || copperMinimum < 0 || copperMaximum < copperMinimum) {
+        throw "woc Drowned Reliquary rite copper range is invalid";
+    }
+    return roundPositive(<float>(copperMinimum + copperMaximum) / 2.0);
+}
+
+pub riteBonusCopper(base: int, tier: int, required: bool): int {
+    if (!required || base < 0) {
+        throw "woc Drowned Reliquary rite base copper is invalid";
+    }
+    requireTier(tier, true);
+    if (tier == 0) { return 0; }
+    return tier == 1 ? roundPositive(<float>base * 0.5) : base;
+}
+
+pub riteBonusMarks(tier: int, required: bool): int {
+    requireTier(tier, required);
+    return tier == 0 ? 0 : (tier == 1 ? 2 : 4);
+}
+
+// Site 0=reliquary, 1=bell, 2=candle, 3=reed, 4=skull; coordinate field
+// 1=X and 2=Z. These offsets are relative to the module's dais, exactly as
+// `riteSiteLocalOffsets` in the source controller.
+pub riteSiteCoordinate(
+    daisX: float,
+    daisZ: float,
+    site: int,
+    field: int,
+    required: bool
+): float {
+    if (!required || site < 0 || site > 4 || (field != 1 && field != 2)) {
+        throw "woc Drowned Reliquary rite site coordinate is invalid";
+    }
+    var reliquaryZ = daisZ - 12.0;
+    if (site == 0) { return field == 1 ? daisX : reliquaryZ; }
+    if (site == 1) { return field == 1 ? daisX : reliquaryZ - 8.0; }
+    if (site == 2) { return field == 1 ? daisX : reliquaryZ + 8.0; }
+    if (site == 3) { return field == 1 ? daisX - 8.0 : reliquaryZ; }
+    return field == 1 ? daisX + 8.0 : reliquaryZ;
+}
+
+pub contractTest(): int {
+    if (lootTierIndex("low", true) != 0 || lootTierIndex("medium", true) != 1 ||
+        lootTierIndex("premium", true) != 2 || intensityIndex("easy", true) != 0 ||
+        intensityIndex("medium", true) != 1 || intensityIndex("hard", true) != 2 ||
+        intensityLength(0, true) != 4 || intensityLength(1, true) != 5 ||
+        intensityLength(2, true) != 6 || intensityTries(0, true) != 3 ||
+        intensityTries(1, true) != 2 || intensityTries(2, true) != 1 ||
+        intensityPlaybacks(0, true) != 3 || intensityPlaybacks(1, true) != 2 ||
+        intensityPlaybacks(2, true) != 1 || mistakesAllowedForIntensity(0, true) != 2 ||
+        mistakesAllowedForIntensity(1, true) != 1 || mistakesAllowedForIntensity(2, true) != 0) {
+        return -1;
+    }
+    if (shrineKind(0, true) != "rite_shrine_bell" || shrineKind(3, true) != "rite_shrine_skull" ||
+        sequenceShrineKind(<uint>0, 0, true) != "rite_shrine_skull" ||
+        sequenceShrineKind(<uint>0, 3, true) != "rite_shrine_reed" ||
+        sequenceShrineKind(<uint>1, 2, true) != "rite_shrine_skull" ||
+        sequenceShrineKind(<uint>20061, 0, true) != "rite_shrine_candle" ||
+        sequenceShrineKind(<uint>20061, 4, true) != "rite_shrine_skull") {
+        return -2;
+    }
+    if (playbackStepSeconds(true) != 0.6 || playbackRepeatGapSeconds(true) != 1.2 ||
+        !playbackTimerDue(0.05, 0.05, true) || playbackTimerDue(0.10, 0.05, true) ||
+        nextPlaybackIndex(3, 4, true) != 0 || nextPlaybackLoop(3, 1, 4, true) != 2 ||
+        !playbackContinues(2, 3, true) || playbackContinues(3, 3, true) ||
+        nextPlaybackTimerAfterPulse(3, 1, 4, 3, true) != 1.2 ||
+        nextPlaybackTimerAfterPulse(3, 2, 4, 3, true) != 0.6 ||
+        retryPlaybackLoop(3, true) != 2 || retryPlaybackTimer(true) != 1.2) {
+        return -3;
+    }
+    if (baseTierForMistakes(0, 2, true) != 2 || baseTierForMistakes(1, 2, true) != 1 ||
+        baseTierForMistakes(3, 2, true) != 0 || completionTier(0, 2, 0, true) != 0 ||
+        completionTier(0, 1, 1, true) != 1 || completionTier(0, 0, 2, true) != 2 ||
+        completionTier(1, 1, 2, true) != 1 || !mistakeExhaustsAttempts(2, 1, true) ||
+        mistakeExhaustsAttempts(1, 1, true) || wrongTouchDamage(1000, true) != 30 ||
+        wrongTouchDamage(1, true) != 1 || baseCopper(18, 30, true) != 24 ||
+        riteBonusCopper(24, 1, true) != 12 || riteBonusCopper(24, 2, true) != 24 ||
+        riteBonusMarks(1, true) != 2 || riteBonusMarks(2, true) != 4) {
+        return -4;
+    }
+    if (riteSiteCoordinate(0.0, 52.0, 0, 2, true) != 40.0 ||
+        riteSiteCoordinate(0.0, 52.0, 1, 2, true) != 32.0 ||
+        riteSiteCoordinate(0.0, 52.0, 2, 2, true) != 48.0 ||
+        riteSiteCoordinate(0.0, 52.0, 3, 1, true) != -8.0 ||
+        riteSiteCoordinate(0.0, 52.0, 4, 1, true) != 8.0) {
+        return -5;
+    }
+    return 1;
+}

@@ -141,21 +141,15 @@ pub(super) fn build_adopt_imported_theme_rule_actions(
     imported_style_document: &UiAssetDocument,
 ) -> Vec<UiAssetThemeRuleHelperAction> {
     let mut actions = Vec::new();
+    let local_rules = local_rule_index(document);
 
     for stylesheet in &imported_style_document.stylesheets {
         let stylesheet_id = stylesheet_label(stylesheet);
         for rule in &stylesheet.rules {
-            let local_rule = document
-                .stylesheets
-                .iter()
-                .find(|candidate| candidate.id == stylesheet.id)
-                .and_then(|candidate| {
-                    candidate
-                        .rules
-                        .iter()
-                        .find(|local_rule| local_rule.selector == rule.selector)
-                });
-            if local_rule.is_some_and(|local_rule| local_rule.set == rule.set) {
+            if local_rules
+                .get(&(stylesheet.id.as_str(), rule.selector.as_str()))
+                .is_some_and(|local_block| *local_block == &rule.set)
+            {
                 continue;
             }
             actions.push(UiAssetThemeRuleHelperAction::AdoptImportedRule {
@@ -167,6 +161,20 @@ pub(super) fn build_adopt_imported_theme_rule_actions(
     }
 
     actions
+}
+
+fn local_rule_index<'a>(
+    document: &'a UiAssetDocument,
+) -> BTreeMap<(&'a str, &'a str), &'a UiStyleDeclarationBlock> {
+    let mut rules = BTreeMap::new();
+    for stylesheet in &document.stylesheets {
+        for rule in &stylesheet.rules {
+            rules
+                .entry((stylesheet.id.as_str(), rule.selector.as_str()))
+                .or_insert(&rule.set);
+        }
+    }
+    rules
 }
 
 pub(super) fn local_rule_blocks(
@@ -260,6 +268,7 @@ pub(super) fn active_cascade_rules(
     imported_styles: &BTreeMap<String, UiAssetDocument>,
 ) -> Vec<UiAssetActiveCascadeRuleEntry> {
     let mut entries = BTreeMap::<String, UiAssetActiveCascadeRuleEntry>::new();
+    let local_rules = local_rule_index(document);
     for reference in &document.imports.styles {
         let Some(imported_style_document) = imported_styles.get(reference) else {
             continue;
@@ -267,17 +276,10 @@ pub(super) fn active_cascade_rules(
         for stylesheet in &imported_style_document.stylesheets {
             let stylesheet_id = stylesheet_label(stylesheet);
             for rule in &stylesheet.rules {
-                let local_rule = document
-                    .stylesheets
-                    .iter()
-                    .find(|candidate| stylesheet_label(candidate) == stylesheet_id)
-                    .and_then(|candidate| {
-                        candidate
-                            .rules
-                            .iter()
-                            .find(|local_rule| local_rule.selector == rule.selector)
-                    });
-                if local_rule.is_some_and(|local_rule| local_rule.set == rule.set) {
+                if local_rules
+                    .get(&(stylesheet.id.as_str(), rule.selector.as_str()))
+                    .is_some_and(|local_block| *local_block == &rule.set)
+                {
                     continue;
                 }
                 entries.insert(

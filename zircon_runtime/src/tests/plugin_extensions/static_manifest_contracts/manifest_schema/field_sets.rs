@@ -61,10 +61,11 @@ pub(super) const KNOWN_DEPENDENCY_FIELDS: [&str; 4] =
 pub(super) const KNOWN_EVENT_CATALOG_FIELDS: [&str; 3] = ["events", "namespace", "version"];
 pub(super) const KNOWN_EVENT_FIELDS: [&str; 3] = ["display_name", "id", "payload_schema"];
 pub(super) const KNOWN_INTERFACE_FIELDS: [&str; 2] = ["id", "methods"];
-pub(super) const KNOWN_MODULE_FIELDS: [&str; 10] = [
+pub(super) const KNOWN_MODULE_FIELDS: [&str; 11] = [
     "capabilities",
     "crate_name",
     "description",
+    "event_consumers",
     "init_level",
     "kind",
     "module_dependencies",
@@ -72,6 +73,12 @@ pub(super) const KNOWN_MODULE_FIELDS: [&str; 10] = [
     "system_anchors",
     "system_sets",
     "target_modes",
+];
+pub(super) const KNOWN_MODULE_EVENT_CONSUMER_FIELDS: [&str; 4] = [
+    "consumer_id",
+    "event_id",
+    "payload_schema",
+    "required_capability",
 ];
 pub(super) const KNOWN_OPTION_FIELDS: [&str; 6] = [
     "default_value",

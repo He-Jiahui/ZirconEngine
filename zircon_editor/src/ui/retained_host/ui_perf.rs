@@ -35,11 +35,43 @@ pub(crate) enum UiPerfCounter {
     ChromeCommandPatchCount,
     SoftwareFallbackPresentCount,
     GpuUploadBytes,
+    GpuImageUploadWrites,
+    GpuImageCacheKeyAllocations,
+    GpuImageCachePruneVisits,
+    GpuImageCacheAdmissionRejects,
+    GpuImageInvalidPayloads,
+    GpuImageCacheResidentBytes,
     GpuDrawCalls,
+    GpuCompiledDrawCalls,
+    GpuRenderPasses,
     GpuVisibleCommands,
+    GpuVisibleCommandPayloadBytes,
     GpuVisibleDrawItems,
+    GpuCompiledDrawItems,
+    GpuCommandVisibilityScans,
+    GpuCommandStatsCacheHits,
+    GpuSolidVertices,
+    GpuCompiledSolidVertices,
+    GpuImageVertices,
+    GpuCompiledImageVertices,
     GpuBatchLayers,
+    GpuCompiledBatchLayers,
     GpuBatchDependencies,
+    GpuCompiledBatchDependencies,
+    GpuBatchMerges,
+    GpuCompiledBatchMerges,
+    GpuOverlapCandidates,
+    GpuBatchPlanBuilds,
+    GpuBatchPlanCacheHits,
+    GpuVertexBufferCreates,
+    GpuVertexUploadBytes,
+    GpuRetainedCacheCopyBytes,
+    GpuTextShapes,
+    GpuTextRendererBuilds,
+    GpuTextRendererCacheHits,
+    GpuTextPrepareFailures,
+    GpuImagePrepareCommandVisits,
+    GpuImagePrepareCacheHits,
 }
 
 #[cfg(feature = "profiling")]
@@ -173,11 +205,85 @@ macro_rules! counter_name_for_prefix {
                 concat!($prefix, ".software_fallback_present_count")
             }
             UiPerfCounter::GpuUploadBytes => concat!($prefix, ".gpu_upload_bytes"),
+            UiPerfCounter::GpuImageUploadWrites => concat!($prefix, ".gpu_image_upload_writes"),
+            UiPerfCounter::GpuImageCacheKeyAllocations => {
+                concat!($prefix, ".gpu_image_cache_key_allocations")
+            }
+            UiPerfCounter::GpuImageCachePruneVisits => {
+                concat!($prefix, ".gpu_image_cache_prune_visits")
+            }
+            UiPerfCounter::GpuImageCacheAdmissionRejects => {
+                concat!($prefix, ".gpu_image_cache_admission_rejects")
+            }
+            UiPerfCounter::GpuImageInvalidPayloads => {
+                concat!($prefix, ".gpu_image_invalid_payloads")
+            }
+            UiPerfCounter::GpuImageCacheResidentBytes => {
+                concat!($prefix, ".gpu_image_cache_resident_bytes")
+            }
             UiPerfCounter::GpuDrawCalls => concat!($prefix, ".gpu_draw_calls"),
+            UiPerfCounter::GpuCompiledDrawCalls => concat!($prefix, ".gpu_compiled_draw_calls"),
+            UiPerfCounter::GpuRenderPasses => concat!($prefix, ".gpu_render_passes"),
             UiPerfCounter::GpuVisibleCommands => concat!($prefix, ".gpu_visible_commands"),
+            UiPerfCounter::GpuVisibleCommandPayloadBytes => {
+                concat!($prefix, ".gpu_visible_command_payload_bytes")
+            }
             UiPerfCounter::GpuVisibleDrawItems => concat!($prefix, ".gpu_visible_draw_items"),
+            UiPerfCounter::GpuCompiledDrawItems => concat!($prefix, ".gpu_compiled_draw_items"),
+            UiPerfCounter::GpuCommandVisibilityScans => {
+                concat!($prefix, ".gpu_command_visibility_scans")
+            }
+            UiPerfCounter::GpuCommandStatsCacheHits => {
+                concat!($prefix, ".gpu_command_stats_cache_hits")
+            }
+            UiPerfCounter::GpuSolidVertices => concat!($prefix, ".gpu_solid_vertices"),
+            UiPerfCounter::GpuCompiledSolidVertices => {
+                concat!($prefix, ".gpu_compiled_solid_vertices")
+            }
+            UiPerfCounter::GpuImageVertices => concat!($prefix, ".gpu_image_vertices"),
+            UiPerfCounter::GpuCompiledImageVertices => {
+                concat!($prefix, ".gpu_compiled_image_vertices")
+            }
             UiPerfCounter::GpuBatchLayers => concat!($prefix, ".gpu_batch_layers"),
+            UiPerfCounter::GpuCompiledBatchLayers => {
+                concat!($prefix, ".gpu_compiled_batch_layers")
+            }
             UiPerfCounter::GpuBatchDependencies => concat!($prefix, ".gpu_batch_dependencies"),
+            UiPerfCounter::GpuCompiledBatchDependencies => {
+                concat!($prefix, ".gpu_compiled_batch_dependencies")
+            }
+            UiPerfCounter::GpuBatchMerges => concat!($prefix, ".gpu_batch_merges"),
+            UiPerfCounter::GpuCompiledBatchMerges => {
+                concat!($prefix, ".gpu_compiled_batch_merges")
+            }
+            UiPerfCounter::GpuOverlapCandidates => concat!($prefix, ".gpu_overlap_candidates"),
+            UiPerfCounter::GpuBatchPlanBuilds => concat!($prefix, ".gpu_batch_plan_builds"),
+            UiPerfCounter::GpuBatchPlanCacheHits => {
+                concat!($prefix, ".gpu_batch_plan_cache_hits")
+            }
+            UiPerfCounter::GpuVertexBufferCreates => {
+                concat!($prefix, ".gpu_vertex_buffer_creates")
+            }
+            UiPerfCounter::GpuVertexUploadBytes => concat!($prefix, ".gpu_vertex_upload_bytes"),
+            UiPerfCounter::GpuRetainedCacheCopyBytes => {
+                concat!($prefix, ".gpu_retained_cache_copy_bytes")
+            }
+            UiPerfCounter::GpuTextShapes => concat!($prefix, ".gpu_text_shapes"),
+            UiPerfCounter::GpuTextRendererBuilds => {
+                concat!($prefix, ".gpu_text_renderer_builds")
+            }
+            UiPerfCounter::GpuTextRendererCacheHits => {
+                concat!($prefix, ".gpu_text_renderer_cache_hits")
+            }
+            UiPerfCounter::GpuTextPrepareFailures => {
+                concat!($prefix, ".gpu_text_prepare_failures")
+            }
+            UiPerfCounter::GpuImagePrepareCommandVisits => {
+                concat!($prefix, ".gpu_image_prepare_command_visits")
+            }
+            UiPerfCounter::GpuImagePrepareCacheHits => {
+                concat!($prefix, ".gpu_image_prepare_cache_hits")
+            }
         }
     };
 }
@@ -192,5 +298,71 @@ fn counter_name(scenario: UiPerfScenario, counter: UiPerfCounter) -> &'static st
         UiPerfScenario::DrawerResize => counter_name_for_prefix!(counter, "ui.drawer_resize"),
         UiPerfScenario::AssetRefresh => counter_name_for_prefix!(counter, "ui.asset_refresh"),
         UiPerfScenario::ViewportImage => counter_name_for_prefix!(counter, "ui.viewport_image"),
+    }
+}
+
+#[cfg(all(test, feature = "profiling"))]
+mod tests {
+    use super::{counter_name, UiPerfCounter, UiPerfScenario};
+
+    #[test]
+    fn overlap_candidates_counter_uses_the_active_scenario_prefix() {
+        assert_eq!(
+            counter_name(UiPerfScenario::Startup, UiPerfCounter::GpuOverlapCandidates),
+            "ui.startup.gpu_overlap_candidates"
+        );
+        assert_eq!(
+            counter_name(
+                UiPerfScenario::ViewportImage,
+                UiPerfCounter::GpuOverlapCandidates,
+            ),
+            "ui.viewport_image.gpu_overlap_candidates"
+        );
+        assert_eq!(
+            counter_name(UiPerfScenario::Startup, UiPerfCounter::GpuSolidVertices),
+            "ui.startup.gpu_solid_vertices"
+        );
+        assert_eq!(
+            counter_name(UiPerfScenario::Startup, UiPerfCounter::GpuBatchMerges),
+            "ui.startup.gpu_batch_merges"
+        );
+        assert_eq!(
+            counter_name(UiPerfScenario::Startup, UiPerfCounter::GpuImageUploadWrites),
+            "ui.startup.gpu_image_upload_writes"
+        );
+    }
+
+    #[test]
+    fn compiled_ui_presenter_reuse_counters_use_the_active_scenario_prefix() {
+        let cases = [
+            (
+                UiPerfCounter::GpuRenderPasses,
+                "ui.startup.gpu_render_passes",
+            ),
+            (
+                UiPerfCounter::GpuCommandVisibilityScans,
+                "ui.startup.gpu_command_visibility_scans",
+            ),
+            (
+                UiPerfCounter::GpuCommandStatsCacheHits,
+                "ui.startup.gpu_command_stats_cache_hits",
+            ),
+            (
+                UiPerfCounter::GpuRetainedCacheCopyBytes,
+                "ui.startup.gpu_retained_cache_copy_bytes",
+            ),
+            (
+                UiPerfCounter::GpuImagePrepareCommandVisits,
+                "ui.startup.gpu_image_prepare_command_visits",
+            ),
+            (
+                UiPerfCounter::GpuImagePrepareCacheHits,
+                "ui.startup.gpu_image_prepare_cache_hits",
+            ),
+        ];
+
+        for (counter, expected) in cases {
+            assert_eq!(counter_name(UiPerfScenario::Startup, counter), expected);
+        }
     }
 }

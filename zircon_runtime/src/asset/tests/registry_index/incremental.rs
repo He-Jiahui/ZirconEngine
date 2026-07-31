@@ -1,7 +1,7 @@
-use crate::asset::project::meta_io::AtomicWriteFault;
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::{AssetKind, AssetUuid};
+use crate::foundation::persistence::atomic_file::AtomicWriteFault;
 
 use super::{registry_root, unique_root, uri, write_asset};
 
@@ -318,5 +318,122 @@ fn persistence_failure_keeps_live_index_unchanged() {
         index.entry_by_uuid(uuid).unwrap().source_digest(),
         "digest-data/state.data"
     );
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn targeted_source_replacement_refreshes_only_the_path_referencer_closure() {
+    let project = unique_root("targeted_source_replacement");
+    let assets = project.join("assets");
+    let old_texture = AssetUuid::new();
+    let material = AssetUuid::new();
+    let unrelated = AssetUuid::new();
+    let texture_source = write_asset(
+        &assets,
+        "textures/hero.png",
+        old_texture,
+        AssetKind::Texture,
+        vec![],
+    );
+    write_asset(
+        &assets,
+        "materials/hero.zmaterial",
+        material,
+        AssetKind::Material,
+        vec![uri("res://textures/hero.png")],
+    );
+    write_asset(
+        &assets,
+        "data/unrelated.data",
+        unrelated,
+        AssetKind::Data,
+        vec![],
+    );
+    let persisted_root = registry_root(&project);
+    let active =
+        AssetRegistryIndex::rebuild_from_project(std::slice::from_ref(&assets), &persisted_root)
+            .unwrap();
+
+    let mut replacement = crate::asset::project::AssetMetaDocument::load(
+        texture_source.with_file_name("hero.png.zmeta"),
+    )
+    .unwrap();
+    let replacement_texture = AssetUuid::new();
+    replacement.uuid = replacement_texture;
+    replacement.source_digest = "targeted-replacement".to_string();
+    let candidate = active.prepare_source_replacement(&mut replacement).unwrap();
+
+    assert_eq!(
+        active
+            .entry_by_path(&uri("res://textures/hero.png"))
+            .unwrap()
+            .uuid(),
+        old_texture
+    );
+    assert_eq!(
+        candidate
+            .entry_by_path(&uri("res://textures/hero.png"))
+            .unwrap()
+            .uuid(),
+        replacement_texture
+    );
+    assert_eq!(
+        candidate.get_dependencies_by_uuid(material),
+        vec![replacement_texture]
+    );
+    assert_eq!(
+        candidate.get_referencers_by_uuid(replacement_texture),
+        vec![material]
+    );
+    assert!(candidate.get_referencers_by_uuid(old_texture).is_empty());
+    assert_eq!(
+        candidate.entry_by_uuid(unrelated),
+        active.entry_by_uuid(unrelated)
+    );
+    std::fs::remove_dir_all(project).unwrap();
+}
+
+#[test]
+fn targeted_source_replacement_remints_duplicate_guid_before_candidate_mutation() {
+    let project = unique_root("targeted_source_duplicate_guid");
+    let assets = project.join("assets");
+    let target = AssetUuid::new();
+    let owner = AssetUuid::new();
+    let target_source = write_asset(&assets, "data/target.data", target, AssetKind::Data, vec![]);
+    write_asset(&assets, "data/owner.data", owner, AssetKind::Data, vec![]);
+    let persisted_root = registry_root(&project);
+    let active =
+        AssetRegistryIndex::rebuild_from_project(std::slice::from_ref(&assets), &persisted_root)
+            .unwrap();
+    let before = active.clone();
+    let mut replacement = crate::asset::project::AssetMetaDocument::load(
+        target_source.with_file_name("target.data.zmeta"),
+    )
+    .unwrap();
+    replacement.uuid = owner;
+
+    let candidate = active.prepare_source_replacement(&mut replacement).unwrap();
+
+    assert_ne!(replacement.uuid, owner);
+    assert_eq!(candidate.entry_by_uuid(owner), active.entry_by_uuid(owner));
+    assert_eq!(
+        candidate
+            .entry_by_path(&uri("res://data/target.data"))
+            .unwrap()
+            .uuid(),
+        replacement.uuid
+    );
+    assert!(candidate.diagnostics().iter().any(|diagnostic| matches!(
+        diagnostic,
+        crate::asset::registry::AssetRegistryDiagnostic::DuplicateGuidReminted {
+            original,
+            path,
+            replacement: reminted,
+            ..
+        } if *original == owner
+            && path == &uri("res://data/target.data")
+            && *reminted == replacement.uuid
+    )));
+    assert_eq!(active, before);
     std::fs::remove_dir_all(project).unwrap();
 }

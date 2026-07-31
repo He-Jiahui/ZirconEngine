@@ -1,0 +1,587 @@
+// Stateful M4 projection of common death teardown and kill-credit selection.
+// XP, quest, loot, deed and heroic reward calculations remain downstream M5+
+// owners; this module records their exact call points after selecting credit.
+var container = %import("zr.container");
+var sickness = %import("combat/resurrection_sickness_state");
+
+class DeathEntity {
+    pub var id: uint;
+    pub var kind: string;
+    pub var templateId: string;
+    pub var dead: bool;
+    pub var hp: int;
+    pub var level: int;
+    pub var ownerPresent: bool;
+    pub var ownerId: uint;
+    pub var hostile: bool;
+    pub var inCombat: bool;
+    pub var leaving: bool;
+    pub var auraIds: container.Array<string>;
+    pub var auraKinds: container.Array<string>;
+    pub var ccDrCount: int;
+    pub var hasCastingAbility: bool;
+    pub var hasCastTarget: bool;
+    pub var autoAttack: bool;
+    pub var queuedOnSwing: bool;
+    pub var queuedCast: bool;
+    pub var comboPoints: int;
+    pub var eating: bool;
+    pub var drinking: bool;
+    pub var sitting: bool;
+    pub var hasChargeTarget: bool;
+    pub var hasFollowTarget: bool;
+    pub var hasTarget: bool;
+    pub var targetId: uint;
+    pub var markerPresent: bool;
+    pub var aiState: string;
+    pub var hasAggroTarget: bool;
+    pub var aggroTargetId: uint;
+    pub var threatIds: container.Array<uint>;
+    pub var corpseTimer: float;
+    pub var corpseInfinite: bool;
+    pub var respawnTimer: float;
+    pub var respawnInfinite: bool;
+    pub var templateRespawnSecondsPresent: bool;
+    pub var templateRespawnSeconds: float;
+    pub var templateRespawnMult: float;
+    pub var templateRare: bool;
+    pub var templateWorldBoss: bool;
+    pub var templateFamilyDemon: bool;
+    pub var templateNythraxis: bool;
+    pub var tappedByPresent: bool;
+    pub var tappedById: uint;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.kind = "mob";
+        this.templateId = "";
+        this.dead = false;
+        this.hp = 100;
+        this.level = 1;
+        this.ownerPresent = false;
+        this.ownerId = <uint>0;
+        this.hostile = true;
+        this.inCombat = true;
+        this.leaving = false;
+        this.auraIds = new container.Array<string>();
+        this.auraKinds = new container.Array<string>();
+        this.ccDrCount = 0;
+        this.hasCastingAbility = false;
+        this.hasCastTarget = false;
+        this.autoAttack = false;
+        this.queuedOnSwing = false;
+        this.queuedCast = false;
+        this.comboPoints = 0;
+        this.eating = false;
+        this.drinking = false;
+        this.sitting = false;
+        this.hasChargeTarget = false;
+        this.hasFollowTarget = false;
+        this.hasTarget = false;
+        this.targetId = <uint>0;
+        this.markerPresent = false;
+        this.aiState = "idle";
+        this.hasAggroTarget = false;
+        this.aggroTargetId = <uint>0;
+        this.threatIds = new container.Array<uint>();
+        this.corpseTimer = 0.0;
+        this.corpseInfinite = false;
+        this.respawnTimer = 0.0;
+        this.respawnInfinite = false;
+        this.templateRespawnSecondsPresent = false;
+        this.templateRespawnSeconds = 0.0;
+        this.templateRespawnMult = 1.0;
+        this.templateRare = false;
+        this.templateWorldBoss = false;
+        this.templateFamilyDemon = false;
+        this.templateNythraxis = false;
+        this.tappedByPresent = false;
+        this.tappedById = <uint>0;
+    }
+}
+
+class DeathState {
+    pub var victim: DeathEntity;
+    pub var pet: DeathEntity;
+    pub var petPresent: bool;
+    pub var victimMetaPresent: bool;
+    pub var killerPresent: bool;
+    pub var killerKind: string;
+    pub var killerId: uint;
+    pub var killerOwnerPresent: bool;
+    pub var killerOwnerId: uint;
+    pub var tapperMetaPresent: bool;
+    pub var tapperMetaLeaving: bool;
+    pub var killerMetaPresent: bool;
+    pub var killerMetaLeaving: bool;
+    pub var creditEntityPresent: bool;
+    pub var creditEntityTargetsVictim: bool;
+    pub var creditEntityAutoAttack: bool;
+    pub var hasCredit: bool;
+    pub var creditId: uint;
+    pub var cfgRespawnSeconds: float;
+    pub var observerMobIds: container.Array<uint>;
+    pub var observerMobDead: container.Array<bool>;
+    pub var observerMobAiState: container.Array<string>;
+    pub var observerMobHasAggroTarget: container.Array<bool>;
+    pub var observerMobAggroTargetId: container.Array<uint>;
+    pub var observerMobHasThreatForVictim: container.Array<bool>;
+    pub var observerMobHasForcedTarget: container.Array<bool>;
+    pub var observerMobForcedTargetId: container.Array<uint>;
+    pub var observerMobForcedTargetTimer: container.Array<float>;
+    pub var eventOrder: container.Array<string>;
+    pub var clearNonPlayerStatAuraCalls: int;
+    pub var deathEvents: int;
+    pub var markerClearCalls: int;
+    pub var playerDeedDeathCalls: int;
+    pub var hateClearPasses: int;
+    pub var deathCounter: int;
+    pub var playerDeathEvents: int;
+    pub var retargetMobCalls: int;
+    pub var petDeathCalls: int;
+    pub var despawnSummonedAddsCalls: int;
+    pub var worldBossContributorSnapshots: int;
+    pub var rareContributorSnapshots: int;
+    pub var frenzyPackmateCalls: int;
+    pub var armDeathThroesCalls: int;
+    pub var ownerDeathLogEvents: int;
+    pub var killCounter: int;
+    pub var partyRewardProjectionCalls: int;
+    pub var grantXpOwnerCalls: int;
+    pub var questCreditCalls: int;
+    pub var rollLootCalls: int;
+    pub var deedKillCreditCalls: int;
+    pub var heroicMarkCalls: int;
+    pub var nythraxisLockoutCalls: int;
+    pub var worldBossLootCalls: int;
+    pub var worldBossDeedCalls: int;
+
+    pub @constructor() {
+        this.victim = new DeathEntity();
+        this.pet = new DeathEntity();
+        this.petPresent = false;
+        this.victimMetaPresent = true;
+        this.killerPresent = false;
+        this.killerKind = "mob";
+        this.killerId = <uint>0;
+        this.killerOwnerPresent = false;
+        this.killerOwnerId = <uint>0;
+        this.tapperMetaPresent = false;
+        this.tapperMetaLeaving = false;
+        this.killerMetaPresent = false;
+        this.killerMetaLeaving = false;
+        this.creditEntityPresent = false;
+        this.creditEntityTargetsVictim = false;
+        this.creditEntityAutoAttack = false;
+        this.hasCredit = false;
+        this.creditId = <uint>0;
+        this.cfgRespawnSeconds = 30.0;
+        this.observerMobIds = new container.Array<uint>();
+        this.observerMobDead = new container.Array<bool>();
+        this.observerMobAiState = new container.Array<string>();
+        this.observerMobHasAggroTarget = new container.Array<bool>();
+        this.observerMobAggroTargetId = new container.Array<uint>();
+        this.observerMobHasThreatForVictim = new container.Array<bool>();
+        this.observerMobHasForcedTarget = new container.Array<bool>();
+        this.observerMobForcedTargetId = new container.Array<uint>();
+        this.observerMobForcedTargetTimer = new container.Array<float>();
+        this.eventOrder = new container.Array<string>();
+        this.clearNonPlayerStatAuraCalls = 0;
+        this.deathEvents = 0;
+        this.markerClearCalls = 0;
+        this.playerDeedDeathCalls = 0;
+        this.hateClearPasses = 0;
+        this.deathCounter = 0;
+        this.playerDeathEvents = 0;
+        this.retargetMobCalls = 0;
+        this.petDeathCalls = 0;
+        this.despawnSummonedAddsCalls = 0;
+        this.worldBossContributorSnapshots = 0;
+        this.rareContributorSnapshots = 0;
+        this.frenzyPackmateCalls = 0;
+        this.armDeathThroesCalls = 0;
+        this.ownerDeathLogEvents = 0;
+        this.killCounter = 0;
+        this.partyRewardProjectionCalls = 0;
+        this.grantXpOwnerCalls = 0;
+        this.questCreditCalls = 0;
+        this.rollLootCalls = 0;
+        this.deedKillCreditCalls = 0;
+        this.heroicMarkCalls = 0;
+        this.nythraxisLockoutCalls = 0;
+        this.worldBossLootCalls = 0;
+        this.worldBossDeedCalls = 0;
+    }
+}
+
+appendObserverMob(
+    state: DeathState,
+    id: uint,
+    aiState: string,
+    hasAggro: bool,
+    aggroTargetId: uint
+): void {
+    state.observerMobIds.add(id);
+    state.observerMobDead.add(false);
+    state.observerMobAiState.add(aiState);
+    state.observerMobHasAggroTarget.add(hasAggro);
+    state.observerMobAggroTargetId.add(aggroTargetId);
+    state.observerMobHasThreatForVictim.add(true);
+    state.observerMobHasForcedTarget.add(true);
+    state.observerMobForcedTargetId.add(aggroTargetId);
+    state.observerMobForcedTargetTimer.add(2.0);
+}
+
+clearDeathAuras(entity: DeathEntity): void {
+    var index = entity.auraIds.length - 1;
+    while (index >= 0) {
+        var auraId = <string>entity.auraIds[index];
+        var auraKind = index < entity.auraKinds.length ?
+            <string>entity.auraKinds[index] : "";
+        if (!sickness.auraSurvivesDeath(auraId, auraKind)) {
+            entity.auraIds.removeAt(index);
+            if (index < entity.auraKinds.length) {
+                entity.auraKinds.removeAt(index);
+            }
+        }
+        index = index - 1;
+    }
+}
+
+clearOwnThreat(entity: DeathEntity): void {
+    while (entity.threatIds.length > 0) {
+        entity.threatIds.removeAt(entity.threatIds.length - 1);
+    }
+}
+
+deathPrelude(state: DeathState, entity: DeathEntity): void {
+    entity.dead = true;
+    entity.hp = 0;
+    state.clearNonPlayerStatAuraCalls = state.clearNonPlayerStatAuraCalls + 1;
+    state.eventOrder.add("clearNonPlayerStatAuras");
+    clearDeathAuras(entity);
+    entity.ccDrCount = 0;
+    entity.hasCastingAbility = false;
+    entity.hasCastTarget = false;
+    state.deathEvents = state.deathEvents + 1;
+    state.eventOrder.add("death");
+    if (entity.kind == "mob") {
+        entity.markerPresent = false;
+        state.markerClearCalls = state.markerClearCalls + 1;
+    }
+}
+
+clearGlobalHate(state: DeathState, victimId: uint): void {
+    var index = 0;
+    while (index < state.observerMobIds.length) {
+        if (<uint>state.observerMobIds[index] != victimId) {
+            state.observerMobHasThreatForVictim[index] = false;
+            if (<bool>state.observerMobHasForcedTarget[index] &&
+                <uint>state.observerMobForcedTargetId[index] == victimId) {
+                state.observerMobHasForcedTarget[index] = false;
+                state.observerMobForcedTargetTimer[index] = 0.0;
+            }
+        }
+        index = index + 1;
+    }
+    state.hateClearPasses = state.hateClearPasses + 1;
+    state.eventOrder.add("hateClear");
+}
+
+resolveCredit(state: DeathState, entity: DeathEntity): void {
+    state.hasCredit = false;
+    if (entity.tappedByPresent && state.tapperMetaPresent && !state.tapperMetaLeaving) {
+        state.hasCredit = true;
+        state.creditId = entity.tappedById;
+        return;
+    }
+    var killerPidPresent = false;
+    var killerPid = <uint>0;
+    if (state.killerPresent && state.killerKind == "player") {
+        killerPidPresent = true;
+        killerPid = state.killerId;
+    } else if (state.killerPresent && state.killerOwnerPresent) {
+        killerPidPresent = true;
+        killerPid = state.killerOwnerId;
+    }
+    if (killerPidPresent && state.killerMetaPresent && !state.killerMetaLeaving) {
+        state.hasCredit = true;
+        state.creditId = killerPid;
+    }
+}
+
+settleCreditCalls(state: DeathState, entity: DeathEntity): void {
+    if (state.hasCredit && state.creditEntityPresent) {
+        state.killCounter = state.killCounter + 1;
+        if (state.creditEntityTargetsVictim) { state.creditEntityAutoAttack = false; }
+        // M5 expands this one call into range, corpse-position and group-bonus math.
+        state.partyRewardProjectionCalls = state.partyRewardProjectionCalls + 1;
+        state.grantXpOwnerCalls = state.grantXpOwnerCalls + 1;
+        state.questCreditCalls = state.questCreditCalls + 1;
+        if (!entity.templateWorldBoss) { state.rollLootCalls = state.rollLootCalls + 1; }
+        state.deedKillCreditCalls = state.deedKillCreditCalls + 1;
+    }
+    state.heroicMarkCalls = state.heroicMarkCalls + 1;
+    if (entity.templateNythraxis) {
+        state.nythraxisLockoutCalls = state.nythraxisLockoutCalls + 1;
+    }
+    if (entity.templateWorldBoss) {
+        state.worldBossLootCalls = state.worldBossLootCalls + 1;
+        state.worldBossDeedCalls = state.worldBossDeedCalls + 1;
+    }
+}
+
+handleMobDeath(state: DeathState, entity: DeathEntity): void {
+    deathPrelude(state, entity);
+    clearGlobalHate(state, entity.id);
+    entity.aiState = "dead";
+    entity.corpseTimer = 60.0;
+    entity.corpseInfinite = false;
+    entity.respawnTimer = entity.templateRespawnSecondsPresent ?
+        entity.templateRespawnSeconds :
+        state.cfgRespawnSeconds * entity.templateRespawnMult *
+            (entity.templateRare ? 4.0 : 1.0);
+    entity.respawnInfinite = false;
+    if (entity.templateRespawnSecondsPresent &&
+        entity.corpseTimer > entity.templateRespawnSeconds) {
+        entity.corpseTimer = entity.templateRespawnSeconds;
+    }
+    if (entity.templateWorldBoss) {
+        state.worldBossContributorSnapshots = state.worldBossContributorSnapshots + 1;
+        entity.corpseTimer = 900.0;
+        entity.respawnInfinite = true;
+        state.despawnSummonedAddsCalls = state.despawnSummonedAddsCalls + 1;
+    } else if (entity.templateRare) {
+        state.rareContributorSnapshots = state.rareContributorSnapshots + 1;
+    }
+    entity.hasAggroTarget = false;
+    clearOwnThreat(entity);
+    if (entity.ownerPresent) {
+        entity.corpseInfinite = true;
+        entity.respawnInfinite = true;
+        entity.hostile = false;
+        entity.inCombat = false;
+        state.ownerDeathLogEvents = state.ownerDeathLogEvents + 1;
+        if (entity.templateFamilyDemon) {
+            entity.corpseInfinite = false;
+            entity.corpseTimer = 3.0;
+        }
+        return;
+    }
+    state.frenzyPackmateCalls = state.frenzyPackmateCalls + 1;
+    state.armDeathThroesCalls = state.armDeathThroesCalls + 1;
+    resolveCredit(state, entity);
+    settleCreditCalls(state, entity);
+}
+
+handlePlayerDeath(state: DeathState, entity: DeathEntity): void {
+    deathPrelude(state, entity);
+    state.playerDeedDeathCalls = state.playerDeedDeathCalls + 1;
+    state.eventOrder.add("playerDeeds");
+    clearGlobalHate(state, entity.id);
+    if (state.victimMetaPresent) { state.deathCounter = state.deathCounter + 1; }
+    entity.autoAttack = false;
+    entity.queuedOnSwing = false;
+    entity.queuedCast = false;
+    entity.comboPoints = 0;
+    entity.eating = false;
+    entity.drinking = false;
+    entity.sitting = false;
+    entity.hasChargeTarget = false;
+    entity.hasFollowTarget = false;
+    state.playerDeathEvents = state.playerDeathEvents + 1;
+    state.eventOrder.add("playerDeath");
+    var index = 0;
+    while (index < state.observerMobIds.length) {
+        if (<bool>state.observerMobDead[index] == false &&
+            <bool>state.observerMobHasAggroTarget[index] &&
+            <uint>state.observerMobAggroTargetId[index] == entity.id &&
+            <string>state.observerMobAiState[index] != "dead") {
+            state.retargetMobCalls = state.retargetMobCalls + 1;
+        }
+        index = index + 1;
+    }
+    if (state.petPresent && !state.pet.dead) {
+        state.petDeathCalls = state.petDeathCalls + 1;
+        handleMobDeath(state, state.pet);
+    }
+}
+
+pub handleDeath(state: DeathState): void {
+    if (state.victim.kind == "player") {
+        handlePlayerDeath(state, state.victim);
+    } else if (state.victim.kind == "mob") {
+        handleMobDeath(state, state.victim);
+    }
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var player = new DeathState();
+    player.victim.id = <uint>1;
+    player.victim.kind = "player";
+    player.victim.hp = 50;
+    player.victim.auraIds.add("buff_armor");
+    player.victim.auraKinds.add("buff_allstats_pct");
+    player.victim.auraIds.add("resurrection_sickness");
+    player.victim.auraKinds.add("debuff_stat");
+    player.victim.auraIds.add("cauterize_lockout");
+    player.victim.auraKinds.add("cauterize_fatigue");
+    player.victim.auraIds.add("dot");
+    player.victim.auraKinds.add("dot");
+    player.victim.ccDrCount = 3;
+    player.victim.hasCastingAbility = true;
+    player.victim.hasCastTarget = true;
+    player.victim.autoAttack = true;
+    player.victim.queuedOnSwing = true;
+    player.victim.queuedCast = true;
+    player.victim.comboPoints = 5;
+    player.victim.eating = true;
+    player.victim.drinking = true;
+    player.victim.sitting = true;
+    player.victim.hasChargeTarget = true;
+    player.victim.hasFollowTarget = true;
+    appendObserverMob(player, <uint>10, "attack", true, <uint>1);
+    appendObserverMob(player, <uint>11, "chase", true, <uint>99);
+    player.petPresent = true;
+    player.pet.id = <uint>2;
+    player.pet.kind = "mob";
+    player.pet.ownerPresent = true;
+    player.pet.ownerId = <uint>1;
+    player.pet.templateFamilyDemon = true;
+    player.pet.markerPresent = true;
+    player.pet.threatIds.add(<uint>90);
+    handleDeath(player);
+    if (!player.victim.dead || player.victim.hp != 0 ||
+        player.victim.auraIds.length != 2 ||
+        <string>player.victim.auraIds[0] != "resurrection_sickness" ||
+        <string>player.victim.auraIds[1] != "cauterize_lockout" ||
+        player.victim.auraKinds.length != 2 ||
+        <string>player.victim.auraKinds[1] != "cauterize_fatigue" ||
+        player.victim.ccDrCount != 0 || player.victim.hasCastingAbility ||
+        player.victim.autoAttack || player.victim.queuedOnSwing ||
+        player.victim.queuedCast || player.victim.comboPoints != 0 ||
+        player.victim.eating || player.victim.drinking || player.victim.sitting ||
+        player.victim.hasChargeTarget || player.victim.hasFollowTarget) {
+        return -1;
+    }
+    if (player.deathCounter != 1 || player.playerDeathEvents != 1 ||
+        player.playerDeedDeathCalls != 1 || player.retargetMobCalls != 1 ||
+        <bool>player.observerMobHasThreatForVictim[0] ||
+        <bool>player.observerMobHasForcedTarget[0] ||
+        !closeEnough(<float>player.observerMobForcedTargetTimer[0], 0.0)) {
+        return -2;
+    }
+    if (player.petDeathCalls != 1 || !player.pet.dead ||
+        player.pet.aiState != "dead" || player.pet.hostile || player.pet.inCombat ||
+        player.pet.corpseInfinite || !player.pet.respawnInfinite ||
+        !closeEnough(player.pet.corpseTimer, 3.0) ||
+        player.ownerDeathLogEvents != 1 || player.deathEvents != 2) {
+        return -3;
+    }
+    if (player.eventOrder.length < 5 ||
+        <string>player.eventOrder[0] != "clearNonPlayerStatAuras" ||
+        <string>player.eventOrder[1] != "death" ||
+        <string>player.eventOrder[2] != "playerDeeds" ||
+        <string>player.eventOrder[3] != "hateClear" ||
+        <string>player.eventOrder[4] != "playerDeath") {
+        return -4;
+    }
+
+    var mob = new DeathState();
+    mob.victim.id = <uint>30;
+    mob.victim.kind = "mob";
+    mob.victim.hp = 0;
+    mob.victim.markerPresent = true;
+    mob.victim.hasAggroTarget = true;
+    mob.victim.threatIds.add(<uint>10);
+    mob.victim.threatIds.add(<uint>11);
+    mob.victim.tappedByPresent = true;
+    mob.victim.tappedById = <uint>10;
+    mob.tapperMetaPresent = true;
+    mob.killerPresent = true;
+    mob.killerKind = "player";
+    mob.killerId = <uint>11;
+    mob.killerMetaPresent = true;
+    mob.creditEntityPresent = true;
+    mob.creditEntityTargetsVictim = true;
+    mob.creditEntityAutoAttack = true;
+    handleDeath(mob);
+    if (!mob.victim.dead || mob.victim.aiState != "dead" ||
+        !closeEnough(mob.victim.corpseTimer, 60.0) ||
+        !closeEnough(mob.victim.respawnTimer, 30.0) ||
+        mob.victim.threatIds.length != 0 || mob.victim.markerPresent ||
+        !mob.hasCredit || mob.creditId != <uint>10 || mob.killCounter != 1 ||
+        mob.creditEntityAutoAttack || mob.partyRewardProjectionCalls != 1 ||
+        mob.grantXpOwnerCalls != 1 || mob.questCreditCalls != 1 ||
+        mob.rollLootCalls != 1 || mob.deedKillCreditCalls != 1 ||
+        mob.heroicMarkCalls != 1 || mob.frenzyPackmateCalls != 1 ||
+        mob.armDeathThroesCalls != 1) {
+        return -5;
+    }
+
+    var fallback = new DeathState();
+    fallback.victim.id = <uint>31;
+    fallback.victim.tappedByPresent = true;
+    fallback.victim.tappedById = <uint>12;
+    fallback.tapperMetaPresent = true;
+    fallback.tapperMetaLeaving = true;
+    fallback.killerPresent = true;
+    fallback.killerKind = "mob";
+    fallback.killerOwnerPresent = true;
+    fallback.killerOwnerId = <uint>20;
+    fallback.killerMetaPresent = true;
+    fallback.creditEntityPresent = true;
+    handleDeath(fallback);
+    if (!fallback.hasCredit || fallback.creditId != <uint>20 ||
+        fallback.killCounter != 1) {
+        return -6;
+    }
+
+    var noCredit = new DeathState();
+    noCredit.victim.id = <uint>32;
+    noCredit.killerPresent = true;
+    noCredit.killerKind = "player";
+    noCredit.killerId = <uint>21;
+    noCredit.killerMetaPresent = true;
+    noCredit.killerMetaLeaving = true;
+    handleDeath(noCredit);
+    if (noCredit.hasCredit || noCredit.killCounter != 0 ||
+        noCredit.heroicMarkCalls != 1) {
+        return -7;
+    }
+
+    var worldBoss = new DeathState();
+    worldBoss.victim.id = <uint>40;
+    worldBoss.victim.templateWorldBoss = true;
+    worldBoss.victim.templateNythraxis = true;
+    worldBoss.victim.tappedByPresent = true;
+    worldBoss.victim.tappedById = <uint>22;
+    worldBoss.tapperMetaPresent = true;
+    worldBoss.creditEntityPresent = true;
+    handleDeath(worldBoss);
+    if (!closeEnough(worldBoss.victim.corpseTimer, 900.0) ||
+        !worldBoss.victim.respawnInfinite ||
+        worldBoss.worldBossContributorSnapshots != 1 ||
+        worldBoss.despawnSummonedAddsCalls != 1 ||
+        worldBoss.rollLootCalls != 0 || worldBoss.worldBossLootCalls != 1 ||
+        worldBoss.worldBossDeedCalls != 1 ||
+        worldBoss.nythraxisLockoutCalls != 1) {
+        return -8;
+    }
+
+    var fixedRespawn = new DeathState();
+    fixedRespawn.victim.templateRespawnSecondsPresent = true;
+    fixedRespawn.victim.templateRespawnSeconds = 10.0;
+    handleDeath(fixedRespawn);
+    if (!closeEnough(fixedRespawn.victim.corpseTimer, 10.0) ||
+        !closeEnough(fixedRespawn.victim.respawnTimer, 10.0)) {
+        return -9;
+    }
+    return 1;
+}

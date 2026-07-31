@@ -10,9 +10,15 @@ pub enum UiDispatchPhase {
     Preprocess,
     PreviewTunnel,
     Direct,
+    /// Delivers the event to the deepest node selected by the hit path.
     Target,
+    /// Traverses the authoritative hit path from target back to root after target handling.
     Bubble,
     DefaultAction,
+    /// Traverses the authoritative hit path from root to target before target handling.
+    ///
+    /// This is declared last to preserve the serialized and ordered representation of existing phases.
+    Capture,
 }
 
 impl UiDispatchPhase {
@@ -20,11 +26,21 @@ impl UiDispatchPhase {
         match self {
             Self::Preprocess => "preprocess",
             Self::PreviewTunnel => "preview_tunnel",
+            Self::Capture => "capture",
             Self::Direct => "direct",
             Self::Target => "target",
             Self::Bubble => "bubble",
             Self::DefaultAction => "default_action",
         }
+    }
+
+    pub const fn is_hit_path_phase(self) -> bool {
+        matches!(self, Self::Capture | Self::Target | Self::Bubble)
+    }
+
+    /// Returns the authoritative hit-path delivery sequence.
+    pub const fn hit_path_sequence() -> [Self; 3] {
+        [Self::Capture, Self::Target, Self::Bubble]
     }
 }
 

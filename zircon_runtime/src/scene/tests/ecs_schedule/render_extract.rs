@@ -142,7 +142,8 @@ fn canonical_render_frame_extract_populates_scene_sections_directly() {
         snapshot.node_id == mesh
             && snapshot.transform.translation == Vec3::new(4.0, 5.0, 6.0)
             && snapshot.mobility == Mobility::Static
-            && snapshot.render_layer_mask.to_scene_schema_v1_mask_lossy() == 0b1010
+            && snapshot.common.is_static
+            && snapshot.common.layer_mask.to_scene_schema_v1_mask_lossy() == 0b1010
     }));
     assert_eq!(extract.geometry.virtual_geometry_debug, Some(debug));
     assert!(extract.geometry.virtual_geometry.is_some());
@@ -253,7 +254,8 @@ fn render_extract_filters_meshes_by_active_camera_layers() {
         .iter()
         .all(|mesh| mesh.node_id != hidden_mesh));
     assert!(extract.geometry.meshes.iter().all(|mesh| mesh
-        .render_layer_mask
+        .common
+        .layer_mask
         .to_scene_schema_v1_mask_lossy()
         & 0b0010
         != 0));

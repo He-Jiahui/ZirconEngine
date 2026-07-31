@@ -43,10 +43,12 @@ fn advanced_runtime_plan_keeps_provider_backed_features_enabled() {
 
     assert!(context.hybrid_gi_enabled());
     assert!(context.virtual_geometry_enabled());
-    assert!(context
-        .advanced_provider_reports()
-        .iter()
-        .all(|report| report.degradations.is_empty()));
+    assert!(
+        context
+            .advanced_provider_reports()
+            .iter()
+            .all(|report| report.degradations.is_empty())
+    );
 }
 
 #[test]
@@ -57,15 +59,19 @@ fn frame_submission_context_exposes_view_visibility_by_key() {
         &AdvancedProviderAvailability::new(),
     ));
 
-    assert!(context
-        .view_visibility(&VisibilityViewKey::MainCamera)
-        .is_some());
-    assert!(context
-        .view_visibility(&VisibilityViewKey::ShadowCascade {
-            light: 99,
-            cascade: 0,
-        })
-        .is_none());
+    assert!(
+        context
+            .view_visibility(&VisibilityViewKey::MainCamera)
+            .is_some()
+    );
+    assert!(
+        context
+            .view_visibility(&VisibilityViewKey::ShadowCascade {
+                light: 99,
+                cascade: 0,
+            })
+            .is_none()
+    );
 }
 
 #[test]

@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "shader_wgsl_importer"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "WGSL Shader Importer"
 category = "asset_importer"
 description = "Runtime WGSL shader importer package."

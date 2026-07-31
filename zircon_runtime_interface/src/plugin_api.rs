@@ -7,16 +7,28 @@ use crate::status::ZrStatus;
 
 pub const ZR_PLUGIN_ENTRY_SYMBOL_V1: &[u8] = b"zircon_plugin_entry_v1\0";
 pub const ZR_PLUGIN_ENTRY_SYMBOL_V3: &[u8] = b"zircon_plugin_entry_v3\0";
+pub const ZR_PLUGIN_ENTRY_SYMBOL_V4: &[u8] = b"zircon_plugin_entry_v4\0";
+
+pub const ZR_NATIVE_SYSTEM_ACCESS_MODE_READ_V1: u32 = 1;
+pub const ZR_NATIVE_SYSTEM_ACCESS_MODE_WRITE_V1: u32 = 2;
+pub const ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_COMPONENT_V1: u32 = 1;
+pub const ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_RESOURCE_V1: u32 = 2;
+pub const ZR_NATIVE_SYSTEM_THREAD_AFFINITY_MAIN_THREAD_ONLY_V1: u32 = 0;
+pub const ZR_NATIVE_SYSTEM_THREAD_AFFINITY_WORKER_SAFE_V1: u32 = 1;
 
 pub type ZrPluginEntryFnV1 =
     unsafe extern "C" fn(*const ZrHostApiV1) -> *const ZrPluginEntryReportV1;
 pub type ZrPluginEntryFnV3 =
     unsafe extern "C" fn(*const ZrHostApiV3) -> *const ZrPluginEntryReportV1;
+pub type ZrPluginEntryFnV4 =
+    unsafe extern "C" fn(*const ZrHostApiV4) -> *const ZrPluginEntryReportV1;
 pub type ZrPluginUnloadFnV1 = unsafe extern "C" fn(ZrRuntimePluginHandle) -> ZrStatus;
 pub type ZrNativeSystemInvokeFnV1 =
     unsafe extern "C" fn(ZrRuntimePluginHandle, u64, ZrByteSlice) -> ZrStatus;
 pub type ZrHostRegisterSystemFnV1 =
     unsafe extern "C" fn(ZrRuntimePluginHandle, *const ZrSystemRegistrationV1) -> ZrStatus;
+pub type ZrHostRegisterSystemFnV2 =
+    unsafe extern "C" fn(ZrRuntimePluginHandle, *const ZrSystemRegistrationV2) -> ZrStatus;
 pub type ZrHostRegisterComponentFnV1 =
     unsafe extern "C" fn(ZrRuntimePluginHandle, *const ZrComponentDescV1) -> ZrStatus;
 pub type ZrHostSpawnCommandFnV1 =
@@ -70,6 +82,36 @@ impl ZrHostApiV3 {
     }
 }
 
+/// Versioned host table for exact native-system scheduling declarations.
+///
+/// `ZrHostApiV3` remains frozen so a V3 plugin always retains its conservative registration
+/// semantics. V4 is the only table that may expose the structured access contract.
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct ZrHostApiV4 {
+    pub abi_version: u32,
+    pub size_bytes: usize,
+    pub ecs: ZrHostEcsApiV2,
+    pub asset: ZrHostAssetApiV1,
+    pub event: ZrHostEventApiV1,
+    pub bridge: ZrHostBridgeApiV1,
+    pub diagnostics: ZrHostDiagnosticsApiV1,
+}
+
+impl ZrHostApiV4 {
+    pub const fn empty() -> Self {
+        Self {
+            abi_version: 4,
+            size_bytes: core::mem::size_of::<Self>(),
+            ecs: ZrHostEcsApiV2::empty(),
+            asset: ZrHostAssetApiV1::empty(),
+            event: ZrHostEventApiV1::empty(),
+            bridge: ZrHostBridgeApiV1::empty(),
+            diagnostics: ZrHostDiagnosticsApiV1::empty(),
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct ZrHostEcsApiV1 {
@@ -79,6 +121,24 @@ pub struct ZrHostEcsApiV1 {
 }
 
 impl ZrHostEcsApiV1 {
+    pub const fn empty() -> Self {
+        Self {
+            register_system: None,
+            register_component: None,
+            spawn_command: None,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct ZrHostEcsApiV2 {
+    pub register_system: Option<ZrHostRegisterSystemFnV2>,
+    pub register_component: Option<ZrHostRegisterComponentFnV1>,
+    pub spawn_command: Option<ZrHostSpawnCommandFnV1>,
+}
+
+impl ZrHostEcsApiV2 {
     pub const fn empty() -> Self {
         Self {
             register_system: None,
@@ -194,6 +254,80 @@ impl ZrSystemRegistrationV1 {
             before_count: 0,
             after: core::ptr::null(),
             after_count: 0,
+            invoke: None,
+            user_data: 0,
+        }
+    }
+}
+
+/// One exact component or external-resource access declaration for a V4 native system.
+///
+/// Raw numeric values keep the C ABI stable. The host validates all enum values, stable IDs,
+/// capability grants, and duplicate/conflicting declarations before registering the system.
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct ZrNativeSystemAccessV1 {
+    pub abi_version: u32,
+    pub size_bytes: usize,
+    pub mode: u32,
+    pub domain: u32,
+    pub stable_id: ZrByteSlice,
+}
+
+impl ZrNativeSystemAccessV1 {
+    pub const fn empty() -> Self {
+        Self {
+            abi_version: 1,
+            size_bytes: core::mem::size_of::<Self>(),
+            mode: ZR_NATIVE_SYSTEM_ACCESS_MODE_READ_V1,
+            domain: ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_COMPONENT_V1,
+            stable_id: ZrByteSlice::empty(),
+        }
+    }
+}
+
+/// V4 registration descriptor with an explicit ECS conflict contract.
+///
+/// This record is intentionally separate from `ZrSystemRegistrationV1`: changing V1's layout
+/// would silently corrupt existing native plugins instead of giving them a versioned opt-in.
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct ZrSystemRegistrationV2 {
+    pub abi_version: u32,
+    pub size_bytes: usize,
+    pub system_id: ZrByteSlice,
+    pub stage: u32,
+    pub order: i32,
+    pub set_names: *const ZrByteSlice,
+    pub set_count: usize,
+    pub before: *const ZrByteSlice,
+    pub before_count: usize,
+    pub after: *const ZrByteSlice,
+    pub after_count: usize,
+    pub accesses: *const ZrNativeSystemAccessV1,
+    pub access_count: usize,
+    pub thread_affinity: u32,
+    pub invoke: Option<ZrNativeSystemInvokeFnV1>,
+    pub user_data: u64,
+}
+
+impl ZrSystemRegistrationV2 {
+    pub const fn empty(abi_version: u32) -> Self {
+        Self {
+            abi_version,
+            size_bytes: core::mem::size_of::<Self>(),
+            system_id: ZrByteSlice::empty(),
+            stage: 0,
+            order: 0,
+            set_names: core::ptr::null(),
+            set_count: 0,
+            before: core::ptr::null(),
+            before_count: 0,
+            after: core::ptr::null(),
+            after_count: 0,
+            accesses: core::ptr::null(),
+            access_count: 0,
+            thread_affinity: ZR_NATIVE_SYSTEM_THREAD_AFFINITY_MAIN_THREAD_ONLY_V1,
             invoke: None,
             user_data: 0,
         }

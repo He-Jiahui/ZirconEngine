@@ -100,5 +100,8 @@ and appears only on the first line. `<subject>` is the real unprefixed
 Conventional Commit stored in Git.
 
 The database stores only message hashes, timing, result codes, and sanitized
-errors. It never stores the webhook URL or key. A failed or unknown call is not
-retried automatically and cannot roll back the successful commit.
+errors; it never stores the webhook URL or key. An intentional Enterprise
+WeChat webhook URL or `WECOM_WEBHOOK_KEY` configuration may travel in a
+service-managed Git commit, while coordinator errors still redact its value. A
+failed or unknown call is not retried automatically and cannot roll back the
+successful commit.

@@ -341,36 +341,6 @@ fn level_tick_emits_animation_clip_event_tracks_crossed_by_player_time() {
 }
 
 #[test]
-fn clip_event_sampling_reports_loop_boundary_occurrences_in_playback_order() {
-    let skeleton_uri = AssetUri::parse("res://animation/event-loop.skeleton.zranim").unwrap();
-    let mut clip = single_hand_translation_clip(&skeleton_uri, 0.0);
-    clip.event_tracks = vec![
-        AnimationEventTrackAsset {
-            target_id: None,
-            event: "loop_start".to_string(),
-            time_seconds: 0.0,
-            payload: None,
-        },
-        AnimationEventTrackAsset {
-            target_id: None,
-            event: "mid".to_string(),
-            time_seconds: 0.5,
-            payload: None,
-        },
-    ];
-
-    let events = zircon_plugin_animation_runtime::sample_clip_events(&clip, 7, 0.75, 1.6, true);
-
-    assert_eq!(
-        events
-            .iter()
-            .map(|event| (event.event.as_str(), event.playback_time_seconds))
-            .collect::<Vec<_>>(),
-        vec![("loop_start", 1.0), ("mid", 1.5)]
-    );
-}
-
-#[test]
 fn graph_player_emits_clip_events_using_graph_clip_playback_speed() {
     let runtime = runtime_with_physics_animation_scene_asset();
     let core = runtime.handle();

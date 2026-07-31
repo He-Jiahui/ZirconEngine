@@ -6,12 +6,12 @@ use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
+use crate::text::ShapedGlyphRotation;
 use crate::text::atlas::{
-    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
-    GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasFormat, GlyphAtlasPageKey,
+    GlyphAtlasPageSpec, GlyphAtlasSet, GlyphAtlasStorageFormat,
 };
 use crate::text::sdf::{SdfBakeParams, SdfMode};
-use crate::text::ShapedGlyphRotation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 use zircon_runtime_interface::ui::surface::{

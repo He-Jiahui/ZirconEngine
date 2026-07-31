@@ -1,0 +1,156 @@
+// Pure current-head projection of retroFallbackGrants at
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. WOS owns persisted character
+// state and deed events; this module determines the idempotent join-time
+// grants that proof or a permanently closed earn path requires.
+var container = %import("zr.container");
+
+var MAX_LEVEL: int = 20;
+var MAX_CREDITABLE_MOB_LEVEL: int = 22;
+
+pub class DeedJoinRepairState {
+    pub var playerLevel: int;
+    pub var restedXp: int;
+    pub var craftIds: container.Array<string>;
+    pub var craftLevels: container.Array<int>;
+    pub var completedQuestIds: container.Array<string>;
+    pub var earnedDeedIds: container.Array<string>;
+
+    pub @constructor() {
+        this.playerLevel = 1;
+        this.restedXp = 0;
+        this.craftIds = new container.Array<string>();
+        this.craftLevels = new container.Array<int>();
+        this.completedQuestIds = new container.Array<string>();
+        this.earnedDeedIds = new container.Array<string>();
+    }
+}
+
+pub setCraftSkill(state: DeedJoinRepairState, craftId: string, level: int): void {
+    var index = 0;
+    while (index < state.craftIds.length) {
+        if (<string>state.craftIds[index] == craftId) {
+            state.craftLevels[index] = level;
+            return;
+        }
+        index = index + 1;
+    }
+    state.craftIds.add(craftId);
+    state.craftLevels.add(level);
+}
+
+pub markQuestDone(state: DeedJoinRepairState, questId: string): void {
+    var index = 0;
+    while (index < state.completedQuestIds.length) {
+        if (<string>state.completedQuestIds[index] == questId) { return; }
+        index = index + 1;
+    }
+    state.completedQuestIds.add(questId);
+}
+
+pub hasEarnedDeed(state: DeedJoinRepairState, deedId: string): bool {
+    var index = 0;
+    while (index < state.earnedDeedIds.length) {
+        if (<string>state.earnedDeedIds[index] == deedId) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+grantIfMissing(state: DeedJoinRepairState, deedId: string): bool {
+    if (hasEarnedDeed(state, deedId)) { return false; }
+    state.earnedDeedIds.add(deedId);
+    return true;
+}
+
+hasCraftProof(state: DeedJoinRepairState): bool {
+    var index = 0;
+    while (index < state.craftIds.length) {
+        if (<string>state.craftIds[index] != "enchanting" && <int>state.craftLevels[index] > 0) {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+groundPickupProvingQuest(questId: string): bool {
+    return questId == "q_supplies" ||
+        questId == "q_whispers" ||
+        questId == "q_names_of_the_dead" ||
+        questId == "q_gravecallers_trail" ||
+        questId == "q_fenbridge_muster" ||
+        questId == "q_fen_supplies" ||
+        questId == "q_drowned_censers" ||
+        questId == "q_bastion_door" ||
+        questId == "q_aldrics_fallen_star" ||
+        questId == "q_highwatch_summons" ||
+        questId == "q_ogre_totems" ||
+        questId == "q_wyrm_sigils" ||
+        questId == "q_sanctum_gate" ||
+        questId == "q_glimmermere_light";
+}
+
+hasGroundPickupProof(state: DeedJoinRepairState): bool {
+    var index = 0;
+    while (index < state.completedQuestIds.length) {
+        if (groundPickupProvingQuest(<string>state.completedQuestIds[index])) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+// Runs on every join. Each grant is set-like, so reconnecting or reloading a
+// saved character never produces a duplicate achievement event.
+pub repairDeedsOnJoin(state: DeedJoinRepairState): int {
+    var granted = 0;
+    if (hasCraftProof(state) && grantIfMissing(state, "prog_first_craft")) {
+        granted = granted + 1;
+    }
+    if (hasGroundPickupProof(state) && grantIfMissing(state, "exp_something_shiny")) {
+        granted = granted + 1;
+    }
+    if (state.playerLevel + 5 > MAX_CREDITABLE_MOB_LEVEL &&
+        grantIfMissing(state, "cmb_giantslayer")) {
+        granted = granted + 1;
+    }
+    if (state.playerLevel >= MAX_LEVEL && state.restedXp <= 0 &&
+        grantIfMissing(state, "prog_well_rested")) {
+        granted = granted + 1;
+    }
+    return granted;
+}
+
+pub contractTest(): int {
+    var proof = new DeedJoinRepairState();
+    proof.playerLevel = 17;
+    setCraftSkill(proof, "enchanting", 99);
+    markQuestDone(proof, "q_royal_graves");
+    if (repairDeedsOnJoin(proof) != 0 || proof.earnedDeedIds.length != 0) { return -1; }
+    setCraftSkill(proof, "blacksmithing", 1);
+    markQuestDone(proof, "q_supplies");
+    if (repairDeedsOnJoin(proof) != 2 || !hasEarnedDeed(proof, "prog_first_craft") ||
+        !hasEarnedDeed(proof, "exp_something_shiny") || repairDeedsOnJoin(proof) != 0) {
+        return -2;
+    }
+
+    var giantslayer = new DeedJoinRepairState();
+    giantslayer.playerLevel = 18;
+    if (repairDeedsOnJoin(giantslayer) != 1 || !hasEarnedDeed(giantslayer, "cmb_giantslayer") ||
+        hasEarnedDeed(giantslayer, "prog_well_rested")) {
+        return -3;
+    }
+
+    var capped = new DeedJoinRepairState();
+    capped.playerLevel = MAX_LEVEL;
+    capped.restedXp = 1;
+    if (repairDeedsOnJoin(capped) != 1 || !hasEarnedDeed(capped, "cmb_giantslayer") ||
+        hasEarnedDeed(capped, "prog_well_rested")) {
+        return -4;
+    }
+    capped.restedXp = 0;
+    if (repairDeedsOnJoin(capped) != 1 || !hasEarnedDeed(capped, "prog_well_rested") ||
+        repairDeedsOnJoin(capped) != 0) {
+        return -5;
+    }
+    return 1;
+}

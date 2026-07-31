@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var targets = %import("world/dead_target_selection");
+
+console.printLine("m3-dead-target-selection-test");
+var result = targets.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

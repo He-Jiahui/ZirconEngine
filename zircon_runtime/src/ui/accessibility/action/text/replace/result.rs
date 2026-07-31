@@ -115,6 +115,7 @@ fn finish_accepted_replace_selected_text(
         },
         delivered: true,
         drag: None,
+        template_action: None,
     });
     result
 }

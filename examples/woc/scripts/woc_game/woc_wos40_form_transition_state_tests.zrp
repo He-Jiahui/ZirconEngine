@@ -1,0 +1,6 @@
+{
+  "name": "woc_wos40_form_transition_state_tests",
+  "source": "src",
+  "binary": "bin-wos40-form-transition-state-tests",
+  "entry": "combat/form_transition_state_test_main"
+}

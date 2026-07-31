@@ -6,7 +6,7 @@ mod load;
 mod migration;
 mod pack;
 mod pipeline;
-mod project;
+pub(crate) mod project;
 mod registry;
 mod registry_index;
 pub(crate) mod support;

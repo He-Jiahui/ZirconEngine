@@ -1,0 +1,264 @@
+// Stateful M4 projection of the runEffects envelope. Effect bodies remain in
+// their numeric, aura and world owners; this module owns prelude, array order,
+// target invalidation after each body and the single post-loop combo reset.
+var container = %import("zr.container");
+var abilities = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+
+class EffectSequenceState {
+    pub var sourceAuraIds: container.Array<string>;
+    pub var sourceAuraKinds: container.Array<string>;
+    pub var sourceStealthed: bool;
+    pub var sourceComboPoints: int;
+    pub var targetPresent: bool;
+    pub var abilityIndex: int;
+    pub var rank: int;
+    pub var spentCombo: int;
+    pub var nextEffectIndex: int;
+    pub var active: bool;
+    pub var routedOwnerCodes: container.Array<int>;
+    pub var routedEffectTypes: container.Array<string>;
+    pub var eventOrder: container.Array<string>;
+    pub var auraLostEvents: int;
+    pub var statsRecalcEvents: int;
+    pub var comboResetEvents: int;
+
+    pub @constructor() {
+        this.sourceAuraIds = new container.Array<string>();
+        this.sourceAuraKinds = new container.Array<string>();
+        this.sourceStealthed = false;
+        this.sourceComboPoints = 0;
+        this.targetPresent = true;
+        this.abilityIndex = -1;
+        this.rank = 0;
+        this.spentCombo = 0;
+        this.nextEffectIndex = 0;
+        this.active = false;
+        this.routedOwnerCodes = new container.Array<int>();
+        this.routedEffectTypes = new container.Array<string>();
+        this.eventOrder = new container.Array<string>();
+        this.auraLostEvents = 0;
+        this.statsRecalcEvents = 0;
+        this.comboResetEvents = 0;
+    }
+}
+
+removeAuraAt(state: EffectSequenceState, index: int): void {
+    state.sourceAuraIds.removeAt(index);
+    state.sourceAuraKinds.removeAt(index);
+}
+
+findAuraKind(state: EffectSequenceState, kind: string): int {
+    var index = 0;
+    while (index < state.sourceAuraKinds.length) {
+        if (<string>state.sourceAuraKinds[index] == kind) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+hasEffectType(abilityIndex: int, rank: int, expected: string): bool {
+    var index = 0;
+    while (index < effects.count(abilityIndex, rank)) {
+        if (effects.typeAt(abilityIndex, rank, index) == expected) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+isStealthToggle(abilityIndex: int, rank: int): bool {
+    var index = 0;
+    while (index < effects.count(abilityIndex, rank)) {
+        if (effects.typeAt(abilityIndex, rank, index) == "selfBuff" &&
+            effects.text(abilityIndex, rank, index, "kind") == "stealth") {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+preservesStealth(abilityIndex: int, rank: int): bool {
+    var id = abilities.text(abilityIndex, "id");
+    return isStealthToggle(abilityIndex, rank) || id == "sprint" || id == "sap";
+}
+
+pub ownerCode(effectType: string): int {
+    if (effectType == "weaponStrike" || effectType == "directDamage" ||
+        effectType == "finisherDamage" || effectType == "heal" ||
+        effectType == "dot" || effectType == "hot" ||
+        effectType == "judgement" || effectType == "weaponDamage" ||
+        effectType == "drainTick") {
+        return 1;
+    }
+    if (effectType == "slow" || effectType == "incapacitate" ||
+        effectType == "finisherStun" || effectType == "imbue" ||
+        effectType == "selfBuff" || effectType == "sunder") {
+        return 2;
+    }
+    if (effectType == "aoeDamage" || effectType == "groundAoE" ||
+        effectType == "taunt" || effectType == "summonDemon") {
+        return 3;
+    }
+    return 0;
+}
+
+pub beginAbility(
+    state: EffectSequenceState,
+    abilityIndex: int,
+    rank: int,
+    spentCombo: int
+): void {
+    state.abilityIndex = abilityIndex;
+    state.rank = rank;
+    state.spentCombo = spentCombo;
+    state.nextEffectIndex = 0;
+    state.active = true;
+    if (!preservesStealth(abilityIndex, rank)) {
+        var stealth = findAuraKind(state, "stealth");
+        if (stealth >= 0) {
+            removeAuraAt(state, stealth);
+            state.sourceStealthed = false;
+            state.auraLostEvents = state.auraLostEvents + 1;
+            state.eventOrder.add("stealthLost");
+        }
+    }
+    if (hasEffectType(abilityIndex, rank, "heal") ||
+        hasEffectType(abilityIndex, rank, "hot") ||
+        hasEffectType(abilityIndex, rank, "aoeHeal")) {
+        var shadowForm = findAuraKind(state, "form_shadow");
+        if (shadowForm >= 0) {
+            removeAuraAt(state, shadowForm);
+            state.auraLostEvents = state.auraLostEvents + 1;
+            state.statsRecalcEvents = state.statsRecalcEvents + 1;
+            state.eventOrder.add("shadowFormLost");
+        }
+    }
+}
+
+pub routeNextEffect(state: EffectSequenceState): int {
+    if (!state.active ||
+        state.nextEffectIndex >= effects.count(state.abilityIndex, state.rank)) {
+        return 0;
+    }
+    var effectType = effects.typeAt(
+        state.abilityIndex,
+        state.rank,
+        state.nextEffectIndex
+    );
+    var owner = ownerCode(effectType);
+    if (owner == 0) { throw "WOC M4 effect has no dispatch owner"; }
+    state.routedEffectTypes.add(effectType);
+    state.routedOwnerCodes.add(owner);
+    state.nextEffectIndex = state.nextEffectIndex + 1;
+    state.eventOrder.add("effect");
+    return owner;
+}
+
+pub completeCurrentEffect(state: EffectSequenceState, targetDied: bool): void {
+    if (targetDied) { state.targetPresent = false; }
+}
+
+pub finishAbility(state: EffectSequenceState): void {
+    if (!state.active) { return; }
+    if (state.nextEffectIndex != effects.count(state.abilityIndex, state.rank)) {
+        throw "WOC M4 effect sequence finished before all effects routed";
+    }
+    if (abilities.flag(state.abilityIndex, "spendsCombo") && state.spentCombo > 0) {
+        state.sourceComboPoints = 0;
+        state.comboResetEvents = state.comboResetEvents + 1;
+        state.eventOrder.add("comboReset");
+    }
+    state.active = false;
+}
+
+routeAll(state: EffectSequenceState): void {
+    var owner = routeNextEffect(state);
+    while (owner != 0) { owner = routeNextEffect(state); }
+}
+
+pub contractTest(): int {
+    var mixed = new EffectSequenceState();
+    beginAbility(mixed, 2, 1, 0);
+    routeAll(mixed);
+    finishAbility(mixed);
+    if (mixed.routedOwnerCodes.length != 2 ||
+        <int>mixed.routedOwnerCodes[0] != 1 ||
+        <int>mixed.routedOwnerCodes[1] != 2 ||
+        <string>mixed.routedEffectTypes[0] != "directDamage" ||
+        <string>mixed.routedEffectTypes[1] != "slow") {
+        return -1;
+    }
+
+    var finisher = new EffectSequenceState();
+    finisher.sourceAuraIds.add("prowl");
+    finisher.sourceAuraKinds.add("stealth");
+    finisher.sourceStealthed = true;
+    finisher.sourceComboPoints = 3;
+    beginAbility(finisher, 12, 1, 3);
+    if (routeNextEffect(finisher) != 1) { return -2; }
+    completeCurrentEffect(finisher, true);
+    finishAbility(finisher);
+    if (finisher.sourceStealthed || finisher.targetPresent ||
+        finisher.sourceComboPoints != 0 || finisher.auraLostEvents != 1 ||
+        finisher.comboResetEvents != 1 || finisher.eventOrder.length != 3 ||
+        <string>finisher.eventOrder[0] != "stealthLost" ||
+        <string>finisher.eventOrder[1] != "effect" ||
+        <string>finisher.eventOrder[2] != "comboReset") {
+        return -3;
+    }
+
+    var healer = new EffectSequenceState();
+    healer.sourceAuraIds.add("prowl");
+    healer.sourceAuraKinds.add("stealth");
+    healer.sourceAuraIds.add("shadow_form");
+    healer.sourceAuraKinds.add("form_shadow");
+    healer.sourceAuraIds.add("fortitude");
+    healer.sourceAuraKinds.add("buff_stamina");
+    healer.sourceStealthed = true;
+    beginAbility(healer, 6, 1, 0);
+    routeAll(healer);
+    finishAbility(healer);
+    if (healer.sourceAuraIds.length != 1 ||
+        <string>healer.sourceAuraIds[0] != "fortitude" ||
+        healer.auraLostEvents != 2 || healer.statsRecalcEvents != 1 ||
+        healer.eventOrder.length != 3 ||
+        <string>healer.eventOrder[0] != "stealthLost" ||
+        <string>healer.eventOrder[1] != "shadowFormLost" ||
+        <string>healer.eventOrder[2] != "effect") {
+        return -4;
+    }
+
+    var kidney = new EffectSequenceState();
+    kidney.sourceComboPoints = 2;
+    beginAbility(kidney, 13, 1, 2);
+    if (routeNextEffect(kidney) != 2) { return -5; }
+    finishAbility(kidney);
+    if (kidney.sourceComboPoints != 0 || kidney.comboResetEvents != 1) {
+        return -6;
+    }
+
+    var counts = new container.Array<int>();
+    counts.add(0);
+    counts.add(0);
+    counts.add(0);
+    counts.add(0);
+    var abilityIndex = 0;
+    var total = 0;
+    while (abilityIndex < abilities.count()) {
+        var effectIndex = 0;
+        while (effectIndex < effects.count(abilityIndex, 1)) {
+            var code = ownerCode(effects.typeAt(abilityIndex, 1, effectIndex));
+            if (code <= 0 || code > 3) { return -7; }
+            counts[code] = <int>counts[code] + 1;
+            total = total + 1;
+            effectIndex = effectIndex + 1;
+        }
+        abilityIndex = abilityIndex + 1;
+    }
+    if (total != 24 || <int>counts[1] != 13 ||
+        <int>counts[2] != 7 || <int>counts[3] != 4) {
+        return -8;
+    }
+    return 1;
+}

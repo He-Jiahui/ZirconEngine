@@ -127,7 +127,7 @@ last_refined: 2026-07-14
 1. 活动会话对齐：`scene/ecs/**` 可能被 10fps 会话（`20260611-0416`）触及——`git status --porcelain -- zircon_runtime/src/scene/ecs/`，脏文件避让，禁止回退。
 2. 与 03/07 的切片排期对齐：03-M2（FixedStepPlan 接通）会改 `schedule_runner.rs`；07-M1（计数点）会改 `query_state/`/`change_detection/`——同文件切片错峰执行。
 3. 事实重核：
-   - `ls zircon_runtime/src/scene/ecs/`（核当前 32 个顶层条目清单）
+   - `ls zircon_runtime/src/scene/ecs/`（核当前 30 个顶层条目清单）
    - `grep -n "pub enum\|pub struct" zircon_runtime/src/scene/ecs/storage_type.rs`（已核：`StorageType::{Table,SparseSet}`）
    - `grep -n "generation\|Generation" zircon_runtime/src/scene/ecs/entity/slot.rs`（核 ID 重用语义现状）
 4. 基线记录：`cargo test -p zircon_runtime --lib ecs --locked` 通过数记入状态节。
@@ -145,7 +145,7 @@ last_refined: 2026-07-14
   |---|---|---|---|
   | 存储形态 | `storage/{table,sparse_set}.rs` 双形态 | `storage_type.rs` 双形态枚举 + `storage/component_storage/{store,table,sparse,location}.rs` table/sparse 双 backing store | 当前能力保留；是否进一步优化必须等 07 计数证据，不把统一 public facade 误判为功能债 |
   | 实体分配/重用 | `entity/mod.rs` generation 复用 | `entity/{mod,despawned,error,internal,location,registry,slot,stable_location}.rs` | generation 等价物是否存在；despawn 后旧句柄访问行为 |
-  | 观察者 | `observer/` + component hooks | `observer/{store,entry,callbacks,id,utils}.rs` 三类观察（lifecycle/event/entity_event） | 触发时机（立即 vs apply_deferred 后）；观察者内再触发的递归语义 |
+  | 观察者 | `observer/` + component hooks | `observer/{store,entry,callbacks,id,callback_registry}.rs` 三类观察（lifecycle/event/entity_event） | 触发时机（立即 vs apply_deferred 后）；观察者内再触发的递归语义 |
   | 事件 | `event/` double-buffer + 显式清理 | `events/` + `messages/` 双通道 | 双通道分工判词；滞留事件清理策略（prune 在 event_bus 是 core 层，ECS 层呢） |
   | 命令队列 | `Commands` + 队列冲刷点 | `commands/command_queue.rs` + `commands/commands/{facade,entity_commands,param}.rs` + runner 的 apply_deferred | 冲刷点已显式（03 盘点）；Commands facade / EntityCommands / CommandsParam owner 已拆分 |
 
@@ -239,3 +239,25 @@ last_refined: 2026-07-14
 
 - fixed 已修复：[ecs-resource-marker-owner-missing](../../zircon_editor/editor/02/fixed-2026-07-14-ecs-resource-marker-owner-missing.md)
 - fixed 已修复：[system-stage-owner-guard-drift](08/fixed-2026-07-14-system-stage-owner-guard-drift.md)
+- open / 待修复：[scene-binding-generations-visibility](08/failure-2026-07-29-scene-binding-generations-visibility.md) 已完成最小可见性与同 ID root reuse 修复，仍需原始 managed `zircon_runtime --lib` compile gate 证明后再回传。
+- 2026-07-18 scene path性能交接：framework scene 24/24确认Entity/ComponentProperty path各自重复拥有raw与segment正文，clone到animation/property/editor action及stable generation字符串resolve缺少统一identity。Runtime08需联动scene/animation consumers建立interned PathId或Arc range storage与scene-generation dense resolution cache；见PERF-MVP-329及`docs/plans/performance/01/2026-07-18-runtime-core-framework-scene-static-review.md`。
+- 2026-07-22 despawn archetype定位性能同步：World原先在每个entity删除后调用`rebuild_archetype_index`全场重建；现按EntityRegistry已有archetype/row直接swap-remove并只修正swapped entity row，行为/源码守卫已落盘，归PERF-MVP-458。Runtime08后续Cargo需覆盖generation handle、lifecycle/removal event、archetype query与recursive delete，不得恢复全量refresh；hierarchy增量owner另见Runtime07 PERF-MVP-459。
+- 2026-07-22 scene property path编译分派交接：候选segment临时String已止损；animation fallback仍全entity×ancestor×同名扫描，single read枚举并构造命中前entries，write每track/frame分配normalized String/Vec。PERF-MVP-329提升P0，Runtime08发布唯一PathId与world/schema-generation compiled accessor，Plugins04/Runtime animation和Editor05共同硬切；见`08/failure-2026-07-22-scene-property-path-compiled-dispatch.md`。
+- 2026-07-22 World固定组件/query index交接：27类固定组件在专用HashMap与ComponentStorage双写并clone，restore逐组件产生中间archetype迁移；matched-archetype query cache miss仍为稳定顺序全扫World entities。Runtime08硬切单一storage/row authority和增量stable query-order index，分别归PERF-MVP-464/466；见`08/failure-2026-07-22-world-fixed-component-storage-and-stable-query-index.md`。
+- 2026-07-22 World batch transaction交接：`insert_node_records`为原子性深clone完整World后逐record clone/插入，undo/import小批次也按全世界复制。Runtime08提供预验证batch plan、affected-row undo delta/COW storage和单次generation commit，Editor03共同验收；见PERF-MVP-467与`08/failure-2026-07-22-world-batch-mutation-clone-transaction.md`。
+- 2026-07-22 dynamic scene compiled spawn交接：background Prepared只做schema自检，preview/apply在主线程重复remap/field物化；actual spawn逐field clone adapter/metadata并可能O(F²)，且失败留下partial World。Runtime08发布target/schema-generation compiled transaction，preview共享plan、apply一次原子commit；见PERF-MVP-472和`08/failure-2026-07-22-dynamic-scene-compiled-spawn-transaction.md`。
+- 2026-07-22 dynamic scene session索引事务交接：slot/manifest线性查找、每项push/upsert/rename全量sort，selection构造完整owned manifest后再查找，preview/commit重复全档案验证；merge/retention逐项contains/sort并可深clone archive。Runtime08发布canonical slot index、generation validation ticket、borrowed selection handle和单次batch mutation plan，复用affected-row原子事务。见PERF-MVP-476和`08/failure-2026-07-22-dynamic-scene-session-indexed-transaction.md`。
+- 2026-07-22 ECS Bundle事务交接：当前1..8元tuple Bundle逐组件调用`World::insert`，spawn从empty开始产生多个中间archetype/storage/event状态且失败可留下partial bundle。Runtime08以component-id/signature staging、最终row reservation和一次affected-row commit硬切，复用464单storage与467 transaction；见PERF-MVP-479和`08/failure-2026-07-22-ecs-bundle-single-archetype-transaction.md`。
+- 2026-07-22 ECS columnar storage交接：archetype same-signature/move已复用known row并删除线性entity scan（PERF-MVP-480）；但当前Table仍是per-component HashMap+Vec<Box<Any>>，ArchetypeIndex另存membership，component mutation/despawn扫描全部storages且query每row hash/downcast。Runtime08硬切archetype-owned row-aligned columns与generation compiled query slots，见PERF-MVP-481和`08/failure-2026-07-22-ecs-archetype-columnar-storage.md`。
+- 2026-07-22 ECS lazy change detection交接：ResourceStore replacement单次entry probe止损已完成（PERF-MVP-482）；但`Mut<T>`/`ResMut<T>`在fetch mutable access时已写changed tick，未实际修改也会触发Changed并放大下游系统。Runtime08把tick mutable authority纳入wrapper，在首次DerefMut/into_inner才mark，同时保留raw &mut和显式bypass语义；见PERF-MVP-483和`08/failure-2026-07-22-ecs-lazy-change-detection.md`。
+- 2026-07-22 ECS observer indexed dispatch交接：三类observer每trigger先count再filter双扫Vec，逐命中clone Arc；entity event无(type,entity)索引，lifecycle还clone type-name/event。Runtime08发布generation-owned callback buckets和id→slot removal index；见PERF-MVP-484和`08/failure-2026-07-22-ecs-observer-indexed-dispatch.md`。
+- 2026-07-22 ECS event/message lifecycle交接：Messages依赖显式clear且产品无清理调用，retained Vec可无界；Events每帧update所有注册通道。Runtime08定稿双通道语义，以cursor-aware硬预算和dirty channel scheduling收敛长会话RSS与idle CPU；见PERF-MVP-485和`08/failure-2026-07-22-ecs-event-message-bounded-lifecycle.md`。
+- 2026-07-22 ECS deferred command buffer交接：CommandQueue原地drain保留outer Vec容量的止损已完成（PERF-MVP-486）；但每command仍Box/vtable/heap churn，flush串行写World且没有worker-local merge。Runtime08建立dense/typed structural buffer并联动Runtime11确定性合并，复用478/479/481 transaction边界；见PERF-MVP-487和`08/failure-2026-07-22-ecs-deferred-command-dense-buffer.md`。
+- 2026-07-23 versioned serialization消费补充：统一壳 current text/binary仍经JSON Value与多次全树遍历，DynamicScene 5k/100k实体save/load会放大CPU/RSS。Runtime08按PERF-MVP-570/571迁移到Editor11提供的header-first current direct typed/flat-node路径，只有旧schema才物化migration Value；scene generation artifact只持一个typed或sealed wire owner，不为ECS建立第二serializer/cache。现有migration、future/error、canonical bytes和binary v1 golden不变。
+- open / 待修复（2026-07-27 dynamic component property generation）：reflection/direct dynamic property write 当前绕过唯一 generation/inspection 发布，需由 Runtime08 收敛 mutation boundary，并回传 Navigation typed projection gate；见 [failure](08/failure-2026-07-27-dynamic-component-property-world-generation.md)。
+
+## Code Review 建议 (2026-07-30)
+
+### 验证缺口
+
+- 顶部 sync（2026-07-10）列 `pending_cargo_gate_anchors = 6/6`，父计划状态为 `in_progress`，且底部堆积了 15+ 条性能交接（PERF-MVP-329/458/464/466/467/472/476/479/481/483/484/485/487/570 等）与多份 open failure。M1/M2 测试阶段命令（`--lib entity`、`--lib observer`、`--lib ecs`）未覆盖这些 pending Cargo gate 与 open failure 的收口断言。建议在测试阶段补一行显式指向 `entity/observer/command/messages/change_tick/ecs` 六个 pending gate 的过滤词命令，使「pending」与「未验收的性能交接」有可执行验证锚点，而非仅停留在状态记录堆叠。

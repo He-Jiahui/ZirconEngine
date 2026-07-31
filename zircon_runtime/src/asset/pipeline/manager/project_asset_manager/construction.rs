@@ -1,11 +1,12 @@
 use std::sync::{Arc, Mutex, RwLock};
 
-use crate::core::resource::{ResourceManager, RuntimeResourceState};
 use crate::core::CoreError;
+use crate::core::resource::{ResourceManager, RuntimeResourceState};
 
 use super::super::builtins::resource_manager_with_builtins;
 use super::super::errors::asset_error_message;
 use super::ProjectAssetManager;
+use super::project_asset_manager::{ProjectSourcePathIndex, ProjectWatcherActivation};
 use crate::asset::artifact::IblBakeArtifactCacheStore;
 use crate::asset::project::ProjectManager;
 use crate::asset::worker_pool::{
@@ -17,6 +18,8 @@ use crate::asset::{
     AssetImporterRegistry, AssetUri, ShaderAsset,
 };
 use crate::core::runtime::tasks::{TaskPool, TaskPoolKind, TaskPools};
+
+const DEFAULT_ASSET_WORKER_QUEUE_DEPTH_PER_THREAD: usize = 2;
 
 impl Default for ProjectAssetManager {
     fn default() -> Self {
@@ -33,25 +36,29 @@ impl ProjectAssetManager {
         );
         Self {
             worker_task_pool,
+            project_generation_gate: Arc::new(RwLock::new(())),
             project: Arc::new(RwLock::new(None)),
+            project_source_paths: Arc::new(RwLock::new(ProjectSourcePathIndex::new())),
             asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
             resource_manager: resource_manager_with_builtins(),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
             watch_error_subscribers: Arc::new(Mutex::new(Vec::new())),
+            watcher_activation: Arc::new(Mutex::new(Option::<Arc<ProjectWatcherActivation>>::None)),
             watchers: Arc::new(Mutex::new(Vec::new())),
         }
-    }
-
-    pub fn spawn_worker_pool(&self) -> AssetWorkerPool {
-        let (pool, _) = self.spawn_worker_pool_with_frame_sampler();
-        pool
     }
 
     pub fn spawn_worker_pool_with_frame_sampler(
         &self,
     ) -> (AssetWorkerPool, AssetWorkerPoolFrameSampler) {
-        let pool =
-            AssetWorkerPool::new(self.worker_task_pool.clone(), AssetWorkerPoolOptions::new());
+        let queue_depth = self
+            .worker_task_pool
+            .parallelism()
+            .saturating_mul(DEFAULT_ASSET_WORKER_QUEUE_DEPTH_PER_THREAD);
+        let pool = AssetWorkerPool::new(
+            self.worker_task_pool.clone(),
+            AssetWorkerPoolOptions::new().with_queue_depth(queue_depth),
+        );
         let sampler = AssetWorkerPoolFrameSampler::from_pool(&pool);
         (pool, sampler)
     }

@@ -2,7 +2,9 @@ use std::collections::HashSet;
 
 use crate::core::math::Vec3;
 
-pub(super) fn build_wire_segments(positions: &[Vec3], indices: &[u32]) -> Vec<[Vec3; 2]> {
+use super::gpu_mesh_vertex::GpuMeshVertex;
+
+pub(super) fn build_wire_segments(vertices: &[GpuMeshVertex], indices: &[u32]) -> Vec<[Vec3; 2]> {
     let mut unique_edges = HashSet::new();
     let mut segments = Vec::new();
 
@@ -16,8 +18,14 @@ pub(super) fn build_wire_segments(positions: &[Vec3], indices: &[u32]) -> Vec<[V
             if !unique_edges.insert((lo, hi)) {
                 continue;
             }
-            let start = positions.get(lo as usize).copied().unwrap_or(Vec3::ZERO);
-            let end = positions.get(hi as usize).copied().unwrap_or(Vec3::ZERO);
+            let start = vertices
+                .get(lo as usize)
+                .map(|vertex| Vec3::from_array(vertex.position))
+                .unwrap_or(Vec3::ZERO);
+            let end = vertices
+                .get(hi as usize)
+                .map(|vertex| Vec3::from_array(vertex.position))
+                .unwrap_or(Vec3::ZERO);
             segments.push([start, end]);
         }
     }

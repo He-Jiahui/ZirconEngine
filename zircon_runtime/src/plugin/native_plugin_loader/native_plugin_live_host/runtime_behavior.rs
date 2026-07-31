@@ -1,7 +1,6 @@
-use std::collections::BTreeMap;
-
 use crate::plugin::PluginModuleKind;
 
+use super::super::loaded_native_plugin::NativePluginCallbackLeaseError;
 use super::super::{
     LoadedNativePlugin, NativePluginBehaviorCallReport, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK,
@@ -24,7 +23,13 @@ pub(super) type NativePluginRuntimeBehaviorResult<T> =
 #[derive(Debug)]
 pub(super) enum NativePluginRuntimeBehaviorError {
     LiveHostLock(NativePluginLiveHostLoadingError),
-    RuntimePluginNotLoaded { plugin_id: String },
+    RuntimePluginNotLoaded {
+        plugin_id: String,
+    },
+    CallbackSnapshot {
+        plugin_id: String,
+        source: NativePluginCallbackLeaseError,
+    },
 }
 
 impl std::fmt::Display for NativePluginRuntimeBehaviorError {
@@ -35,6 +40,10 @@ impl std::fmt::Display for NativePluginRuntimeBehaviorError {
                 formatter,
                 "plugin {plugin_id} is not loaded in the runtime live host; run Hot Reload after building its native dynamic package"
             ),
+            Self::CallbackSnapshot { plugin_id, source } => write!(
+                formatter,
+                "runtime plugin {plugin_id} callback snapshot rejected: {source}"
+            ),
         }
     }
 }
@@ -43,6 +52,7 @@ impl std::error::Error for NativePluginRuntimeBehaviorError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::LiveHostLock(error) => Some(error),
+            Self::CallbackSnapshot { source, .. } => Some(source),
             Self::RuntimePluginNotLoaded { .. } => None,
         }
     }
@@ -108,16 +118,24 @@ impl NativePluginLiveHost {
         payload: impl AsRef<[u8]>,
     ) -> NativePluginRuntimeBehaviorResult<NativePluginBehaviorCallReport> {
         let plugin_id = plugin_id.as_ref();
-        let loaded = lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
-        let plugin = loaded
-            .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(
-                || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+        let snapshot = {
+            let loaded = lock_loaded_native_plugins(&self.loaded)
+                .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
+            let plugin = loaded
+                .get(&live_key(PluginModuleKind::Runtime, plugin_id))
+                .ok_or_else(
+                    || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+                        plugin_id: plugin_id.to_string(),
+                    },
+                )?;
+            plugin.runtime_behavior_snapshot().map_err(|source| {
+                NativePluginRuntimeBehaviorError::CallbackSnapshot {
                     plugin_id: plugin_id.to_string(),
-                },
-            )?;
-        Ok(plugin.invoke_runtime_command(command_name.as_ref(), payload.as_ref()))
+                    source,
+                }
+            })?
+        };
+        Ok(snapshot.invoke_command(command_name.as_ref(), payload.as_ref()))
     }
 
     pub fn dispatch_runtime_plugin_command(
@@ -136,12 +154,25 @@ impl NativePluginLiveHost {
     ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimeCommandDispatchReport> {
         let command_name = command_name.as_ref();
         let payload = payload.as_ref();
-        let loaded = lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
+        let snapshots = {
+            let loaded = lock_loaded_native_plugins(&self.loaded)
+                .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
+            runtime_plugins(&loaded)
+                .map(|(plugin_id, plugin)| {
+                    let snapshot = plugin.runtime_behavior_snapshot().map_err(|source| {
+                        NativePluginRuntimeBehaviorError::CallbackSnapshot {
+                            plugin_id: plugin_id.clone(),
+                            source,
+                        }
+                    })?;
+                    Ok((plugin_id, snapshot))
+                })
+                .collect::<NativePluginRuntimeBehaviorResult<Vec<_>>>()?
+        };
         let mut calls = Vec::new();
         let mut diagnostics = Vec::new();
-        for (plugin_id, plugin) in runtime_plugins(&loaded) {
-            let report = plugin.invoke_runtime_command(command_name, payload);
+        for (plugin_id, snapshot) in snapshots {
+            let report = snapshot.invoke_command(command_name, payload);
             diagnostics.extend(report_diagnostics(&plugin_id, command_name, &report));
             calls.push(NativePluginRuntimeBehaviorCall { plugin_id, report });
         }
@@ -165,16 +196,24 @@ impl NativePluginLiveHost {
         plugin_id: impl AsRef<str>,
     ) -> NativePluginRuntimeBehaviorResult<NativePluginBehaviorCallReport> {
         let plugin_id = plugin_id.as_ref();
-        let loaded = lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
-        let plugin = loaded
-            .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(
-                || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+        let snapshot = {
+            let loaded = lock_loaded_native_plugins(&self.loaded)
+                .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
+            let plugin = loaded
+                .get(&live_key(PluginModuleKind::Runtime, plugin_id))
+                .ok_or_else(
+                    || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+                        plugin_id: plugin_id.to_string(),
+                    },
+                )?;
+            plugin.runtime_behavior_snapshot().map_err(|source| {
+                NativePluginRuntimeBehaviorError::CallbackSnapshot {
                     plugin_id: plugin_id.to_string(),
-                },
-            )?;
-        Ok(plugin.save_runtime_state())
+                    source,
+                }
+            })?
+        };
+        Ok(snapshot.save_state())
     }
 
     pub fn save_runtime_plugin_states(&self) -> Result<NativePluginRuntimeStateSnapshot, String> {
@@ -185,12 +224,26 @@ impl NativePluginLiveHost {
     pub(super) fn save_runtime_plugin_states_result(
         &self,
     ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimeStateSnapshot> {
-        let loaded = lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
+        let snapshots = {
+            let loaded = lock_loaded_native_plugins(&self.loaded)
+                .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
+            runtime_plugins(&loaded)
+                .map(|(plugin_id, plugin)| {
+                    let state_schema_version = plugin.runtime_state_schema_version();
+                    let snapshot = plugin.runtime_behavior_snapshot().map_err(|source| {
+                        NativePluginRuntimeBehaviorError::CallbackSnapshot {
+                            plugin_id: plugin_id.clone(),
+                            source,
+                        }
+                    })?;
+                    Ok((plugin_id, state_schema_version, snapshot))
+                })
+                .collect::<NativePluginRuntimeBehaviorResult<Vec<_>>>()?
+        };
         let mut plugin_states = Vec::new();
         let mut diagnostics = Vec::new();
-        for (plugin_id, plugin) in runtime_plugins(&loaded) {
-            let report = plugin.save_runtime_state();
+        for (plugin_id, state_schema_version, snapshot) in snapshots {
+            let report = snapshot.save_state();
             diagnostics.extend(report_diagnostics(&plugin_id, "save-state", &report));
             if report.status_code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
                 continue;
@@ -198,7 +251,7 @@ impl NativePluginLiveHost {
             match report.payload {
                 Some(state) => plugin_states.push(NativePluginRuntimePluginState {
                     plugin_id,
-                    state_schema_version: plugin.runtime_state_schema_version(),
+                    state_schema_version,
                     state,
                 }),
                 None => diagnostics.push(format!(
@@ -227,16 +280,24 @@ impl NativePluginLiveHost {
         state: impl AsRef<[u8]>,
     ) -> NativePluginRuntimeBehaviorResult<NativePluginBehaviorCallReport> {
         let plugin_id = plugin_id.as_ref();
-        let loaded = lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
-        let plugin = loaded
-            .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(
-                || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+        let snapshot = {
+            let loaded = lock_loaded_native_plugins(&self.loaded)
+                .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
+            let plugin = loaded
+                .get(&live_key(PluginModuleKind::Runtime, plugin_id))
+                .ok_or_else(
+                    || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+                        plugin_id: plugin_id.to_string(),
+                    },
+                )?;
+            plugin.runtime_behavior_snapshot().map_err(|source| {
+                NativePluginRuntimeBehaviorError::CallbackSnapshot {
                     plugin_id: plugin_id.to_string(),
-                },
-            )?;
-        Ok(plugin.restore_runtime_state(state.as_ref()))
+                    source,
+                }
+            })?
+        };
+        Ok(snapshot.restore_state(state.as_ref()))
     }
 
     pub fn restore_runtime_plugin_states(
@@ -251,44 +312,54 @@ impl NativePluginLiveHost {
         &self,
         snapshot: &NativePluginRuntimeStateSnapshot,
     ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimeStateRestoreReport> {
-        let loaded = lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
         let mut calls = Vec::new();
         let mut skipped_plugin_ids = Vec::new();
         let mut diagnostics = Vec::new();
-        for plugin_state in &snapshot.plugin_states {
-            let Some(plugin) = loaded.get(&live_key(
-                PluginModuleKind::Runtime,
-                &plugin_state.plugin_id,
-            )) else {
-                skipped_plugin_ids.push(plugin_state.plugin_id.clone());
-                diagnostics.push(
-                    NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+        let pending = {
+            let loaded = lock_loaded_native_plugins(&self.loaded)
+                .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
+            let mut pending = Vec::new();
+            for plugin_state in &snapshot.plugin_states {
+                let Some(plugin) = loaded.get(&live_key(
+                    PluginModuleKind::Runtime,
+                    &plugin_state.plugin_id,
+                )) else {
+                    skipped_plugin_ids.push(plugin_state.plugin_id.clone());
+                    diagnostics.push(
+                        NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+                            plugin_id: plugin_state.plugin_id.clone(),
+                        }
+                        .to_string(),
+                    );
+                    continue;
+                };
+                let loaded_schema = plugin.runtime_state_schema_version();
+                if plugin_state.state_schema_version != loaded_schema {
+                    skipped_plugin_ids.push(plugin_state.plugin_id.clone());
+                    diagnostics.push(format!(
+                        "runtime plugin {} restore-state skipped because snapshot state schema {:?} does not match loaded state schema {:?}",
+                        plugin_state.plugin_id, plugin_state.state_schema_version, loaded_schema
+                    ));
+                    continue;
+                }
+                let callback = plugin.runtime_behavior_snapshot().map_err(|source| {
+                    NativePluginRuntimeBehaviorError::CallbackSnapshot {
                         plugin_id: plugin_state.plugin_id.clone(),
+                        source,
                     }
-                    .to_string(),
-                );
-                continue;
-            };
-            let loaded_schema = plugin.runtime_state_schema_version();
-            if plugin_state.state_schema_version != loaded_schema {
-                skipped_plugin_ids.push(plugin_state.plugin_id.clone());
-                diagnostics.push(format!(
-                    "runtime plugin {} restore-state skipped because snapshot state schema {:?} does not match loaded state schema {:?}",
-                    plugin_state.plugin_id, plugin_state.state_schema_version, loaded_schema
+                })?;
+                pending.push((
+                    plugin_state.plugin_id.clone(),
+                    plugin_state.state.as_slice(),
+                    callback,
                 ));
-                continue;
             }
-            let report = plugin.restore_runtime_state(&plugin_state.state);
-            diagnostics.extend(report_diagnostics(
-                &plugin_state.plugin_id,
-                "restore-state",
-                &report,
-            ));
-            calls.push(NativePluginRuntimeBehaviorCall {
-                plugin_id: plugin_state.plugin_id.clone(),
-                report,
-            });
+            pending
+        };
+        for (plugin_id, state, callback) in pending {
+            let report = callback.restore_state(state);
+            diagnostics.extend(report_diagnostics(&plugin_id, "restore-state", &report));
+            calls.push(NativePluginRuntimeBehaviorCall { plugin_id, report });
         }
         Ok(NativePluginRuntimeStateRestoreReport {
             calls,
@@ -337,12 +408,11 @@ impl NativePluginLiveHost {
 }
 
 pub(super) fn runtime_plugins<'a>(
-    loaded: &'a BTreeMap<String, LoadedNativePlugin>,
+    loaded: &'a super::keys::NativePluginLiveRegistry<LoadedNativePlugin>,
 ) -> impl Iterator<Item = (String, &'a LoadedNativePlugin)> + 'a {
-    let prefix = super::keys::live_key_prefix(PluginModuleKind::Runtime);
-    loaded.iter().filter_map(move |(key, plugin)| {
-        key.strip_prefix(prefix).map(|id| (id.to_string(), plugin))
-    })
+    loaded
+        .entries(PluginModuleKind::Runtime)
+        .map(|(plugin_id, plugin)| (plugin_id.to_string(), plugin))
 }
 
 pub(super) fn runtime_behavior_descriptor(
@@ -370,8 +440,9 @@ pub(super) fn unload_behavior(
     module_kind: PluginModuleKind,
 ) -> NativePluginBehaviorCallReport {
     let report = match module_kind {
-        PluginModuleKind::Runtime => plugin.unload_runtime_behavior(),
-        PluginModuleKind::Editor => plugin.unload_editor_behavior(),
+        PluginModuleKind::Runtime | PluginModuleKind::Editor => {
+            plugin.unload_behavior_during_transition(module_kind)
+        }
         PluginModuleKind::Native | PluginModuleKind::Vm => NativePluginBehaviorCallReport {
             status_code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
             diagnostics: vec![format!(

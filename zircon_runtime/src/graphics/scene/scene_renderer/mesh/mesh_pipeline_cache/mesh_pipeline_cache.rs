@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::core::framework::render::{
-    GeometrySourceDescriptor, GeometrySourceId, ShaderQualityTier, ShaderVariantKey,
-    ShaderVariantMissReport, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId, ShaderQualityTier,
+    ShaderVariantKey, ShaderVariantMissReport,
 };
 use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::environment::{
@@ -40,6 +40,8 @@ pub(crate) struct MeshPipelineCache {
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::mesh) forward_volumetric_apply:
         crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources,
+    pub(in crate::graphics::scene::scene_renderer::mesh) forward_volumetric_disabled_params_buffer:
+        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::mesh) transmission_scene_color:
         crate::graphics::scene::scene_renderer::advanced_lighting::transmission::TransmissionSceneColorFallbackResources,
     pub(in crate::graphics::scene::scene_renderer) light_cookies:
@@ -194,5 +196,75 @@ impl MeshPipelineVariantResolver for MeshPipelineCache {
             geometry_source,
             shader_quality,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    fn assert_cache_hit_precedes_variant_projection(
+        source: &str,
+        function_name: &str,
+        cache_lookup: &str,
+    ) {
+        let function = source
+            .split_once(function_name)
+            .map(|(_, function)| function)
+            .expect("ensure function must exist");
+        let cache_lookup = function
+            .find(cache_lookup)
+            .expect("ensure function must check its pipeline cache");
+        let variant_projection = function
+            .find("pipeline_and_shader_key_for_variant")
+            .expect("ensure function must project its variant on a cache miss");
+
+        assert!(
+            cache_lookup < variant_projection,
+            "pipeline cache hit must return before variant cloning and shader source assembly"
+        );
+    }
+
+    #[test]
+    fn mesh_pipeline_cache_hits_precede_variant_and_shader_projection() {
+        let cases = [
+            (
+                include_str!("ensure_pipeline.rs"),
+                "ensure_pipeline_for_variant",
+                "mesh_variant_pipelines",
+            ),
+            (
+                include_str!("ensure_oit_pipeline.rs"),
+                "ensure_oit_pipeline_for_base_variant",
+                "oit_mesh_variant_pipelines",
+            ),
+            (
+                include_str!("ensure_gbuffer_pipeline.rs"),
+                "ensure_gbuffer_pipeline_for_variant",
+                "gbuffer_mesh_pipelines",
+            ),
+            (
+                include_str!("ensure_depth_prepass_pipeline.rs"),
+                "ensure_depth_prepass_pipeline_for_variant",
+                "depth_prepass_mesh_pipelines",
+            ),
+            (
+                include_str!("ensure_shadow_pipeline.rs"),
+                "ensure_shadow_pipeline_for_variant",
+                "shadow_mesh_pipelines",
+            ),
+            (
+                include_str!("ensure_velocity_pipeline.rs"),
+                "ensure_velocity_pipeline_for_variant",
+                "velocity_mesh_pipelines",
+            ),
+            (
+                include_str!("ensure_taa_reactive_mask_pipeline.rs"),
+                "ensure_taa_reactive_mask_pipeline_for_variant",
+                "cached_taa_reactive_pipeline",
+            ),
+        ];
+
+        for (source, function_name, cache_lookup) in cases {
+            assert_cache_hit_precedes_variant_projection(source, function_name, cache_lookup);
+        }
     }
 }

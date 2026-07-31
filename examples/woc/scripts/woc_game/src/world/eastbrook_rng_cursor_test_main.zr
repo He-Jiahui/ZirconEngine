@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var cursor = %import("world/eastbrook_rng_cursor");
+
+var result = cursor.contractTest();
+
+console.printLine("m8-eastbrook-rng-cursor-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

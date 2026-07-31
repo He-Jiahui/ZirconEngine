@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use toml::Value;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
@@ -234,11 +234,18 @@ fn build_reference_params(
     node: &UiNodeDefinition,
     component: &UiComponentDefinition,
 ) -> Option<BTreeMap<String, Value>> {
-    let allowed = component.params.keys().cloned().collect::<BTreeSet<_>>();
-    if node.params.keys().any(|key| !allowed.contains(key)) {
+    if node
+        .params
+        .keys()
+        .any(|key| !component.params.contains_key(key))
+    {
         return None;
     }
-    if node.props.keys().any(|key| !allowed.contains(key)) {
+    if node
+        .props
+        .keys()
+        .any(|key| !component.params.contains_key(key))
+    {
         return None;
     }
 
@@ -260,11 +267,11 @@ fn validate_child_mounts_for_component(
     children: &[UiChildMount],
     component: &UiComponentDefinition,
 ) -> Option<()> {
-    let mut counts = BTreeMap::<String, usize>::new();
+    let mut counts = BTreeMap::<&str, usize>::new();
     for child in children {
-        let slot_name = child.mount.clone().unwrap_or_default();
-        let slot = component.slots.get(&slot_name)?;
-        let count = counts.entry(slot_name.clone()).or_insert(0);
+        let slot_name = child.mount.as_deref().unwrap_or_default();
+        let slot = component.slots.get(slot_name)?;
+        let count = counts.entry(slot_name).or_insert(0);
         *count += 1;
         if !slot.multiple && *count > 1 {
             return None;
@@ -274,7 +281,7 @@ fn validate_child_mounts_for_component(
     component
         .slots
         .iter()
-        .all(|(slot_name, slot)| !slot.required || counts.contains_key(slot_name))
+        .all(|(slot_name, slot)| !slot.required || counts.contains_key(slot_name.as_str()))
         .then_some(())
 }
 

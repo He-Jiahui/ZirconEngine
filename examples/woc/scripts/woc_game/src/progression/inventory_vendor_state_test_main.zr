@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var inventory = %import("progression/inventory_vendor_state");
+
+console.printLine("m5-inventory-vendor-state-test");
+var result = inventory.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

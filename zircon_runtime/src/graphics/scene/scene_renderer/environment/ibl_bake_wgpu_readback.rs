@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections,
 };
 use crate::graphics::backend::{
-    read_ibl_bake_artifact_wgpu_sections, IblBakeArtifactWgpuReadbackResources,
+    IblBakeArtifactWgpuReadbackResources, read_ibl_bake_artifact_wgpu_sections,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
 use crate::graphics::types::GraphicsError;
@@ -89,6 +89,7 @@ mod tests {
         IblBakeArtifactRequest, ProceduralSkyParams, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
     };
     use crate::graphics::backend::RenderBackend;
+    use crate::graphics::scene::scene_renderer::graph_execution::TransientResourcePool;
     use crate::render_graph::RenderGraphBuilder;
 
     #[test]
@@ -116,9 +117,11 @@ mod tests {
         );
         assert!(resources.owned_texture(IBL_BAKE_PMREM_RESOURCE).is_some());
         assert!(resources.buffer(IBL_BAKE_IRRADIANCE_SH9_RESOURCE).is_some());
-        assert!(resources
-            .owned_texture(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
-            .is_some());
+        assert!(
+            resources
+                .owned_texture(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
+                .is_some()
+        );
         resources.release_transient_backings_into_pool(&mut Default::default());
     }
 
@@ -198,8 +201,10 @@ mod tests {
         .expect("IBL bake graph plan should append");
         let graph = builder.compile().expect("IBL bake graph should compile");
         let mut resources = RenderGraphExecutionResources::new();
+        let mut transient_pool = TransientResourcePool::default();
+        transient_pool.begin_frame();
         resources
-            .materialize_transient_resources(&backend.device, &graph)
+            .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
             .expect("IBL bake transient outputs should materialize");
         resources
     }

@@ -1,0 +1,6 @@
+{
+  "name": "woc_locomotion_trace_dump",
+  "source": "src",
+  "binary": "bin-locomotion-trace-dump",
+  "entry": "parity/m3_locomotion_trace_dump_main"
+}

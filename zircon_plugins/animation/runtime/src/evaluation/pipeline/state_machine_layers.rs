@@ -10,7 +10,7 @@ use super::nested_machine_sample::{
     normalized_machine_state_time, sample_machine_state_events, sample_machine_state_pose,
     sample_machine_transition_pose,
 };
-use super::requests::PendingStateMachinePoseSample;
+use super::requests::{PendingClipEventSample, PendingStateMachinePoseSample};
 use super::state_machine_cache::resolve_sub_machine_id;
 use super::state_machine_transition::{
     advance_state_machine_transition, begin_state_machine_transition, select_interruption_candidate,
@@ -22,7 +22,7 @@ use crate::{
 };
 
 pub(super) struct StateMachineLayerApplyResult {
-    pub(super) events: Vec<crate::AnimationClipEvent>,
+    pub(super) events: Vec<PendingClipEventSample>,
     pub(super) diagnostics: Vec<AnimationStateMachineLayerDiagnostic>,
 }
 
@@ -79,7 +79,7 @@ fn evaluate_layer_pose(
     asset_manager: &ProjectAssetManager,
     pending: &PendingStateMachinePoseSample,
     layer: &CompiledStateMachineLayer,
-) -> Option<(AnimationPoseOutput, Vec<crate::AnimationClipEvent>)> {
+) -> Option<(AnimationPoseOutput, Vec<PendingClipEventSample>)> {
     let layer_machine_id = resolve_sub_machine_id(asset_manager, layer.machine())?;
     let base_instance = MachineInstanceKey::root(pending.entity, pending.state_machine_id);
     let layer_instance = base_instance.nested(layer.name(), layer_machine_id)?;

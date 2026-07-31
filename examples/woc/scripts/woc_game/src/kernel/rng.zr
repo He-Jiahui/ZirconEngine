@@ -1,0 +1,263 @@
+var math = %import("zr.zircon.math");
+
+mixState(stateValue: uint, marker: int): uint {
+    if (marker != 1) {
+        throw "rng mix marker is invalid";
+    }
+    var value = stateValue;
+    value = ((value ^ (value >> 15)) * (value | <uint>1)) & <uint>4294967295;
+    var mixed = ((value ^ (value >> 7)) * (value | <uint>61)) & <uint>4294967295;
+    value = (value ^ ((value + mixed) & <uint>4294967295)) & <uint>4294967295;
+    return (value ^ (value >> 14)) & <uint>4294967295;
+}
+
+pub mix(stateValue: uint, marker: int): uint {
+    return mixState(stateValue, marker);
+}
+
+foldDrawDigest(hashValue: uint, value: uint, marker: int): uint {
+    if (marker != 1) {
+        throw "rng digest marker is invalid";
+    }
+    var remaining = value;
+    var digest = hashValue;
+    var octet = remaining & <uint>255;
+    digest = ((digest ^ octet) * <uint>16777619) & <uint>4294967295;
+    remaining = remaining >> 8;
+    octet = remaining & <uint>255;
+    digest = ((digest ^ octet) * <uint>16777619) & <uint>4294967295;
+    remaining = remaining >> 8;
+    octet = remaining & <uint>255;
+    digest = ((digest ^ octet) * <uint>16777619) & <uint>4294967295;
+    remaining = remaining >> 8;
+    octet = remaining & <uint>255;
+    return ((digest ^ octet) * <uint>16777619) & <uint>4294967295;
+}
+
+pub fold(hashValue: uint, value: uint, marker: int): uint {
+    return foldDrawDigest(hashValue, value, marker);
+}
+
+var sharedInitialized = false;
+var sharedState: uint = <uint>0;
+var sharedDrawCount: uint = <uint>0;
+var sharedDrawDigest: uint = <uint>2166136261;
+
+pub class Mulberry32 {
+    pri var stateValue: uint = <uint>0;
+    pri var drawCountValue: uint = <uint>0;
+    pri var drawDigestValue: uint = <uint>2166136261;
+
+    pub @constructor(seed: uint) {
+        this.stateValue = seed & <uint>4294967295;
+        if (this.stateValue == <uint>0) {
+            this.stateValue = <uint>2654435769;
+        }
+        this.drawCountValue = <uint>0;
+        this.drawDigestValue = <uint>2166136261;
+    }
+
+    pub get state: uint {
+        return this.stateValue;
+    }
+
+    pub get draws: uint {
+        return this.drawCountValue;
+    }
+
+    pub get drawDigest: uint {
+        return this.drawDigestValue;
+    }
+
+    pub nextU32(): uint {
+        this.stateValue = (this.stateValue + <uint>1831565813) & <uint>4294967295;
+        var value = this.stateValue;
+        value = ((value ^ (value >> 15)) * (value | <uint>1)) & <uint>4294967295;
+        var mixed = ((value ^ (value >> 7)) * (value | <uint>61)) & <uint>4294967295;
+        value = (value ^ ((value + mixed) & <uint>4294967295)) & <uint>4294967295;
+        value = (value ^ (value >> 14)) & <uint>4294967295;
+        this.drawCountValue = this.drawCountValue + <uint>1;
+        var remaining = value;
+        var digest = this.drawDigestValue;
+        var octet = remaining & <uint>255;
+        digest = ((digest ^ octet) * <uint>16777619) & <uint>4294967295;
+        remaining = remaining >> 8;
+        octet = remaining & <uint>255;
+        digest = ((digest ^ octet) * <uint>16777619) & <uint>4294967295;
+        remaining = remaining >> 8;
+        octet = remaining & <uint>255;
+        digest = ((digest ^ octet) * <uint>16777619) & <uint>4294967295;
+        remaining = remaining >> 8;
+        octet = remaining & <uint>255;
+        digest = ((digest ^ octet) * <uint>16777619) & <uint>4294967295;
+        this.drawDigestValue = digest;
+        return value;
+    }
+
+    pub next(): float {
+        return <float>this.nextU32() / 4294967296.0;
+    }
+
+    pub range(minimum: float, maximum: float): float {
+        return minimum + this.next() * (maximum - minimum);
+    }
+
+    // Source Rng.int is inclusive at both ends and consumes exactly one draw.
+    pub int(minimum: int, maximum: int): int {
+        return <int>math.floor(this.range(<float>minimum, <float>maximum + 1.0));
+    }
+
+    pub chance(probability: float): bool {
+        return this.next() < probability;
+    }
+
+    pub copy(): Mulberry32 {
+        var result = new Mulberry32(this.stateValue);
+        result.drawCountValue = this.drawCountValue;
+        result.drawDigestValue = this.drawDigestValue;
+        return result;
+    }
+
+    // Persistent game services restore the complete stream cursor rather than
+    // reseeding: normalizing a zero cursor here would fork Mulberry32 after a
+    // legitimate u32 wraparound.
+    pub restore(state: uint, draws: uint, digest: uint): void {
+        this.stateValue = state & <uint>4294967295;
+        this.drawCountValue = draws;
+        this.drawDigestValue = digest;
+    }
+
+}
+
+pub resetShared(seed: uint, marker: int, observe: bool): void {
+    if (marker != 1 || !observe) {
+        throw "shared rng reset contract is invalid";
+    }
+    sharedState = seed & <uint>4294967295;
+    if (sharedState == <uint>0) {
+        sharedState = <uint>2654435769;
+    }
+    sharedDrawCount = <uint>0;
+    sharedDrawDigest = <uint>2166136261;
+    sharedInitialized = true;
+}
+
+// World construction consumes the same stream before the parity observer is installed.
+// Preserve that advanced state while starting the observed draw count and digest at zero.
+pub prepareSharedAfterConstruction(
+    seed: uint,
+    nonDummyCampMobs: int,
+    drawsPerMob: int,
+    marker: int,
+    observerInstalled: bool
+): void {
+    if (marker != 1 || !observerInstalled || nonDummyCampMobs < 0 || drawsPerMob != 5) {
+        throw "shared rng construction contract is invalid";
+    }
+    sharedState = seed & <uint>4294967295;
+    if (sharedState == <uint>0) {
+        sharedState = <uint>2654435769;
+    }
+    var remaining = nonDummyCampMobs * drawsPerMob;
+    while (remaining > 0) {
+        sharedState = (sharedState + <uint>1831565813) & <uint>4294967295;
+        // Construction observes the value for gameplay placement, but the parity
+        // recorder does not yet exist. Evaluate the exact draw and discard it.
+        mixState(sharedState, 1);
+        remaining = remaining - 1;
+    }
+    sharedDrawCount = <uint>0;
+    sharedDrawDigest = <uint>2166136261;
+    sharedInitialized = true;
+}
+
+pub sharedNextU32(observe: bool): uint {
+    if (!sharedInitialized || !observe) {
+        throw "shared rng is not initialized for observed draws";
+    }
+    sharedState = (sharedState + <uint>1831565813) & <uint>4294967295;
+    var value = mixState(sharedState, 1);
+    sharedDrawCount = sharedDrawCount + <uint>1;
+    sharedDrawDigest = foldDrawDigest(sharedDrawDigest, value, 1);
+    return value;
+}
+
+// kind 0 = state, 1 = draw count, 2 = rolling draw digest.
+pub sharedMetric(kind: int, required: bool): uint {
+    if (!sharedInitialized || !required) {
+        throw "shared rng metric contract is invalid";
+    }
+    if (kind == 0) {
+        return sharedState;
+    }
+    if (kind == 1) {
+        return sharedDrawCount;
+    }
+    if (kind == 2) {
+        return sharedDrawDigest;
+    }
+    throw "shared rng metric kind is invalid";
+}
+
+pub knownVectorTest(): int {
+    var rng = new Mulberry32(<uint>1);
+    if (rng.nextU32() != <uint>2693262067) {
+        return -1;
+    }
+    if (rng.nextU32() != <uint>11749833) {
+        return -2;
+    }
+    if (rng.nextU32() != <uint>2265367787) {
+        return -3;
+    }
+    if (rng.nextU32() != <uint>4213581821) {
+        return -4;
+    }
+    var bounded = new Mulberry32(<uint>1);
+    if (bounded.int(2, 4) != 3) {
+        return -5;
+    }
+    return 1;
+}
+
+pub sharedStreamTest(): int {
+    resetShared(<uint>1, 1, true);
+    if (sharedNextU32(true) != <uint>2693262067) {
+        return -1;
+    }
+    if (sharedNextU32(true) != <uint>11749833) {
+        return -2;
+    }
+    if (sharedNextU32(true) != <uint>2265367787) {
+        return -3;
+    }
+    if (sharedNextU32(true) != <uint>4213581821) {
+        return -4;
+    }
+    if (sharedMetric(1, true) != <uint>4 ||
+        sharedMetric(2, true) != <uint>83843729) {
+        return -5;
+    }
+    return 1;
+}
+
+pub constructionStreamTest(): int {
+    prepareSharedAfterConstruction(<uint>1012, 306, 5, 1, true);
+    if (sharedMetric(0, true) != <uint>1977017910 ||
+        sharedMetric(1, true) != <uint>0 ||
+        sharedMetric(2, true) != <uint>2166136261) {
+        return -1;
+    }
+    if (sharedNextU32(true) != <uint>2842746671 ||
+        sharedNextU32(true) != <uint>1644895990 ||
+        sharedNextU32(true) != <uint>488422375 ||
+        sharedNextU32(true) != <uint>255919337) {
+        return -2;
+    }
+    if (sharedMetric(0, true) != <uint>713346570 ||
+        sharedMetric(1, true) != <uint>4 ||
+        sharedMetric(2, true) != <uint>2074694461) {
+        return -3;
+    }
+    return 1;
+}

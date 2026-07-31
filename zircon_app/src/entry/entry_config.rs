@@ -71,7 +71,7 @@ impl EntryConfig {
         let mut selections = plugins
             .as_ref()
             .iter()
-            .copied()
+            .cloned()
             .map(|id| ProjectPluginSelection::runtime_plugin(id, true, true))
             .collect::<Vec<_>>();
         selections.extend(self.optional_runtime_plugins());
@@ -89,7 +89,7 @@ impl EntryConfig {
             plugins
                 .as_ref()
                 .iter()
-                .copied()
+                .cloned()
                 .map(|id| ProjectPluginSelection::runtime_plugin(id, true, false)),
         );
         self.project_plugins = Some(ProjectPluginManifest { selections });
@@ -105,14 +105,14 @@ impl EntryConfig {
         let mut selections = required
             .as_ref()
             .iter()
-            .copied()
+            .cloned()
             .map(|id| ProjectPluginSelection::runtime_plugin(id, true, true))
             .collect::<Vec<_>>();
         selections.extend(
             optional
                 .as_ref()
                 .iter()
-                .copied()
+                .cloned()
                 .map(|id| ProjectPluginSelection::runtime_plugin(id, true, false)),
         );
         self.project_plugins = Some(ProjectPluginManifest { selections });

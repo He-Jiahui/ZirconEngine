@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_set_procs_state_tests",
+  "source": "src",
+  "binary": "bin-m4-set-procs-state-tests",
+  "entry": "combat/set_procs_state_test_main"
+}

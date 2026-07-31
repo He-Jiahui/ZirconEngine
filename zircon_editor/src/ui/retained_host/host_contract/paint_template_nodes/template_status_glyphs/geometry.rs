@@ -2,15 +2,28 @@ use super::super::super::data::FrameRect;
 
 const STATUS_ICON_CANVAS_SIZE: f32 = 16.0;
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_paintable_status_glyph_extent(
+    rect: &FrameRect,
+) -> bool {
+    rect.x.is_finite()
+        && rect.y.is_finite()
+        && rect.width.is_finite()
+        && rect.height.is_finite()
+        && rect.width > 0.0
+        && rect.height > 0.0
+}
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn centered_rect(
     rect: &FrameRect,
     size: f32,
 ) -> FrameRect {
+    let width = size.min(rect.width.max(0.0)).max(0.0);
+    let height = size.min(rect.height.max(0.0)).max(0.0);
     FrameRect {
-        x: rect.x + (rect.width - size).max(0.0) * 0.5,
-        y: rect.y + (rect.height - size).max(0.0) * 0.5,
-        width: size.min(rect.width.max(1.0)).max(1.0),
-        height: size.min(rect.height.max(1.0)).max(1.0),
+        x: rect.x + (rect.width - width).max(0.0) * 0.5,
+        y: rect.y + (rect.height - height).max(0.0) * 0.5,
+        width,
+        height,
     }
 }
 
@@ -21,8 +34,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn local_r
     width: f32,
     height: f32,
 ) -> FrameRect {
-    let scale_x = origin.width.max(1.0) / STATUS_ICON_CANVAS_SIZE;
-    let scale_y = origin.height.max(1.0) / STATUS_ICON_CANVAS_SIZE;
+    let scale_x = origin.width.max(0.0) / STATUS_ICON_CANVAS_SIZE;
+    let scale_y = origin.height.max(0.0) / STATUS_ICON_CANVAS_SIZE;
     FrameRect {
         x: origin.x + x * scale_x,
         y: origin.y + y * scale_y,
@@ -35,7 +48,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn centere
     rect: &FrameRect,
     size: f32,
 ) -> FrameRect {
-    let scale = rect.width.min(rect.height).max(1.0) / STATUS_ICON_CANVAS_SIZE;
+    let scale = rect.width.min(rect.height).max(0.0) / STATUS_ICON_CANVAS_SIZE;
     centered_rect(rect, size * scale)
 }
 

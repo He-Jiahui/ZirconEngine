@@ -14,7 +14,7 @@ mod skinning;
 mod virtual_geometry_indirect;
 mod virtual_geometry_resident_upload;
 
-pub(crate) use build::{build_mesh_draws, BuiltMeshDraws};
+pub(crate) use build::{BuiltMeshDraws, build_mesh_draws};
 pub(crate) use pending_command_cache_extract::{
     PendingMeshCommandCacheExtractionContext, PendingMeshCommandCacheExtractionStats,
 };

@@ -1,4 +1,6 @@
-use crate::core::framework::asset::ResourceManager as ResourceManagerContract;
+use crate::core::framework::asset::{
+    ResourceCacheIdentity, ResourceManager as ResourceManagerContract,
+};
 use crate::core::framework::channel::ChannelReceiver;
 use crate::core::resource::{ResourceEvent, ResourceRecord};
 
@@ -39,6 +41,20 @@ impl ResourceManagerContract for ProjectAssetManager {
             .registry()
             .get_by_locator(&locator)
             .map(|record| record.revision)
+    }
+
+    fn resource_cache_identity(&self, locator: &str) -> Option<ResourceCacheIdentity> {
+        let locator = AssetUri::parse(locator).ok()?;
+        let resources = self.resource_manager();
+        let identity =
+            resources
+                .registry()
+                .get_by_locator(&locator)
+                .map(|record| ResourceCacheIdentity {
+                    revision: record.revision,
+                    state: record.state,
+                });
+        identity
     }
 
     fn subscribe_resource_changes(&self) -> ChannelReceiver<ResourceEvent> {

@@ -75,8 +75,10 @@ pub struct RuntimeDevtoolsDiagnosticsSummary {
     pub tagged_subsystems: Vec<String>,
 }
 
-pub fn collect_runtime_devtools_snapshot(core: &CoreHandle) -> RuntimeDevtoolsSnapshot {
-    let diagnostics = super::collect_runtime_diagnostics(core);
+pub(crate) fn project_runtime_devtools_snapshot(
+    core: &CoreHandle,
+    diagnostics: &super::RuntimeDiagnosticsSnapshot,
+) -> RuntimeDevtoolsSnapshot {
     RuntimeDevtoolsSnapshot {
         modules: collect_module_snapshots(core),
         services: collect_service_snapshots(core),
@@ -116,6 +118,7 @@ fn collect_module_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsModuleSnaps
             }
         })
         .collect::<Vec<_>>();
+    drop(modules);
     snapshots.sort_by(|left, right| left.name.cmp(&right.name));
     snapshots
 }
@@ -138,6 +141,7 @@ fn collect_service_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsServiceSna
             active: entry.instance.is_some(),
         })
         .collect::<Vec<_>>();
+    drop(services);
     snapshots.sort_by(|left, right| left.name.cmp(&right.name));
     snapshots
 }
@@ -163,11 +167,11 @@ fn tagged_subsystems(store: &super::DiagnosticStoreSnapshot) -> Vec<String> {
     let mut tags = store
         .series
         .iter()
-        .flat_map(|series| series.subsystem_tags.iter().cloned())
+        .flat_map(|series| series.subsystem_tags.iter().map(String::as_str))
         .collect::<Vec<_>>();
-    tags.sort();
+    tags.sort_unstable();
     tags.dedup();
-    tags
+    tags.into_iter().map(str::to_owned).collect()
 }
 
 fn lock_poison_recovered<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -184,7 +188,7 @@ mod tests {
         CoreRuntime, DriverDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
     };
 
-    use super::{collect_runtime_devtools_snapshot, RuntimeDevtoolsPluginCatalogEntry};
+    use super::{project_runtime_devtools_snapshot, RuntimeDevtoolsPluginCatalogEntry};
 
     #[test]
     fn devtools_snapshot_lists_modules_services_and_builtin_catalog() {
@@ -209,7 +213,10 @@ mod tests {
             target_modes: vec!["ClientRuntime".to_string()],
         }]);
 
-        let snapshot = collect_runtime_devtools_snapshot(&runtime.handle());
+        let snapshot = project_runtime_devtools_snapshot(
+            &runtime.handle(),
+            &super::super::RuntimeDiagnosticsSnapshot::default(),
+        );
 
         let module = snapshot
             .modules
@@ -255,10 +262,27 @@ mod tests {
             panic!("poison devtools plugin catalog entries");
         }));
 
-        let snapshot = collect_runtime_devtools_snapshot(&handle);
+        let snapshot = project_runtime_devtools_snapshot(
+            &handle,
+            &super::super::RuntimeDiagnosticsSnapshot::default(),
+        );
         assert!(snapshot.modules.is_empty());
         assert!(snapshot.services.is_empty());
         assert!(snapshot.scene_hooks.is_empty());
         assert!(snapshot.plugin_catalog.is_empty());
+    }
+
+    #[test]
+    fn devtools_projection_releases_registry_locks_before_sorting() {
+        let source = include_str!("devtools.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("devtools implementation");
+
+        assert!(implementation.contains("drop(modules);"));
+        assert!(implementation.contains("drop(services);"));
+        assert!(implementation.contains(".map(String::as_str)"));
+        assert!(!implementation.contains("subsystem_tags.iter().cloned()"));
     }
 }

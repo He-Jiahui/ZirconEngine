@@ -32,7 +32,7 @@ fn table_row_loading_state_uses_unavailable_visuals() {
 }
 
 #[test]
-fn selected_focused_table_row_uses_muted_selected_fill_and_neutral_outline() {
+fn selected_focused_table_row_uses_tokenized_selection_fill_and_neutral_outline() {
     let mut node = TemplatePaneNodeData::default();
     node.control_id = "WorkbenchTableSelected".into();
     node.selected = true;
@@ -41,12 +41,54 @@ fn selected_focused_table_row_uses_muted_selected_fill_and_neutral_outline() {
     let style = select_workbench_table_row_style(&node);
 
     assert_eq!(style.state, UiPainterResolvedState::Focused);
-    assert_eq!(style.background, PALETTE.surface_pressed);
-    assert_ne!(style.background, PALETTE.surface_selected);
+    assert_eq!(style.background, PALETTE.surface_selected);
+    assert_ne!(style.background, PALETTE.surface_pressed);
     assert_eq!(style.border, Some(PALETTE.border));
     assert_ne!(style.border, Some(PALETTE.accent));
     assert_ne!(style.border, Some(PALETTE.focus_ring));
     assert_eq!(style.border_width, 1.0);
+}
+
+#[test]
+fn selected_hovered_table_row_uses_separate_accent_soft_fill() {
+    let mut node = TemplatePaneNodeData::default();
+    node.control_id = "WorkbenchTableSelectedHover".into();
+    node.selected = true;
+    node.hovered = true;
+
+    let style = select_workbench_table_row_style(&node);
+
+    assert_eq!(style.background, PALETTE.accent_soft);
+    assert_ne!(style.background, PALETTE.surface_selected);
+    assert_ne!(style.background, PALETTE.surface_pressed);
+}
+
+#[test]
+fn pressed_unmarked_table_row_keeps_pressed_surface_distinct_from_selection() {
+    let mut node = TemplatePaneNodeData::default();
+    node.control_id = "WorkbenchTableRowPressed".into();
+    node.pressed = true;
+
+    let style = select_workbench_table_row_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Pressed);
+    assert_eq!(style.background, PALETTE.surface_pressed);
+    assert_ne!(style.background, PALETTE.surface_selected);
+}
+
+#[test]
+fn pressed_selected_table_row_prioritizes_pressed_surface() {
+    let mut node = TemplatePaneNodeData::default();
+    node.control_id = "WorkbenchTableSelectedPressed".into();
+    node.selected = true;
+    node.pressed = true;
+
+    let style = select_workbench_table_row_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Pressed);
+    assert_eq!(style.background, PALETTE.surface_pressed);
+    assert_ne!(style.background, PALETTE.surface_selected);
+    assert_ne!(style.background, PALETTE.accent_soft);
 }
 
 #[test]
@@ -100,6 +142,9 @@ fn table_row_palette_projects_surface_text_and_focus_roles_from_host_palette() {
     let mut tokens = EditorDesignTokens::workbench_dark();
     tokens.palette.surface_recessed = UiRgbaColor::from_u8(9, 12, 15, 255);
     tokens.palette.surface[3] = UiRgbaColor::from_u8(30, 35, 39, 255);
+    tokens.palette.surface_selected = UiRgbaColor::from_u8(51, 86, 96, 255);
+    tokens.palette.accent_soft = UiRgbaColor::from_u8(47, 78, 87, 255);
+    tokens.palette.surface_hover = UiRgbaColor::from_u8(40, 52, 58, 255);
     tokens.palette.surface_disabled = UiRgbaColor::from_u8(20, 24, 28, 255);
     tokens.palette.separator_soft = UiRgbaColor::from_u8(41, 46, 50, 255);
     tokens.palette.text_secondary = UiRgbaColor::from_u8(170, 180, 186, 255);
@@ -112,8 +157,9 @@ fn table_row_palette_projects_surface_text_and_focus_roles_from_host_palette() {
     assert_eq!(palette.row_bg, [9, 12, 15, 255]);
     assert_eq!(palette.header_bg, [9, 12, 15, 255]);
     assert_eq!(palette.tail_bg, [9, 12, 15, 255]);
-    assert_eq!(palette.selected_bg, [30, 35, 39, 255]);
-    assert_eq!(palette.hover_bg, [30, 35, 39, 255]);
+    assert_eq!(palette.selected_bg, [51, 86, 96, 255]);
+    assert_eq!(palette.selected_hover_bg, [47, 78, 87, 255]);
+    assert_eq!(palette.hover_bg, [40, 52, 58, 255]);
     assert_eq!(palette.separator, [41, 46, 50, 255]);
     assert_eq!(palette.action_muted, [112, 121, 126, 255]);
     assert_eq!(palette.header_text, [170, 180, 186, 255]);

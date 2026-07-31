@@ -368,9 +368,56 @@ impl ProfileControlResponse {
     }
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RuntimeInputDiagnosticsSnapshot {
+    /// Pointer movement events successfully submitted to the active InputManager.
+    pub pointer_move_count: u64,
+    /// Mouse button press events successfully submitted to the active InputManager.
+    pub mouse_button_press_count: u64,
+    /// Mouse button release events successfully submitted to the active InputManager.
+    pub mouse_button_release_count: u64,
+    /// Keyboard press events successfully submitted to the active InputManager.
+    pub keyboard_press_count: u64,
+    /// Keyboard release events successfully submitted to the active InputManager.
+    pub keyboard_release_count: u64,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct RuntimeRenderDeviceDiagnosticsSnapshot {
+    pub adapter_name: String,
+    pub adapter_device_type: String,
+    pub max_bind_groups: u32,
+    pub max_texture_dimension_2d: u32,
+    pub max_texture_array_layers: u32,
+    pub max_sampled_textures_per_shader_stage: u32,
+    pub max_storage_buffers_per_shader_stage: u32,
+    pub max_storage_buffer_binding_size: u64,
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct RuntimeDiagnosticsSnapshot {
     pub frame_index: u64,
+    /// Project identity observed when the Runtime opened the current project.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_identity: Option<String>,
+    /// Default scene URI observed when the Runtime opened the current project.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scene_uri: Option<String>,
+    /// Model resource referenced by the loaded scene's canonical Cube mesh.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_model_resource_id: Option<String>,
+    /// Material resource referenced by the loaded scene's canonical Cube mesh.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_material_resource_id: Option<String>,
+    /// Backend selected by the Runtime for the captured render diagnostics.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub render_backend_name: Option<String>,
+    /// Actual adapter identity and negotiated device limits for the active render backend.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub render_device: Option<RuntimeRenderDeviceDiagnosticsSnapshot>,
+    /// Product input evidence accepted by the Runtime session's active InputManager.
+    #[serde(default)]
+    pub input: RuntimeInputDiagnosticsSnapshot,
     pub diagnostic_series: Vec<RuntimeDiagnosticSeriesSnapshot>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scene_asset_reload: Option<RuntimeSceneAssetReloadDiagnostics>,
@@ -424,4 +471,151 @@ pub struct RuntimeSceneAssetReloadDiagnostics {
     pub stale: usize,
     pub pending: usize,
     pub receiver_disconnected: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        RuntimeDiagnosticsSnapshot, RuntimeInputDiagnosticsSnapshot,
+        RuntimeRenderDeviceDiagnosticsSnapshot,
+    };
+
+    #[test]
+    fn runtime_diagnostics_snapshot_roundtrips_optional_product_identifiers() {
+        let snapshot = RuntimeDiagnosticsSnapshot {
+            project_identity: Some("ZirconProject".to_string()),
+            scene_uri: Some("res://scenes/main.scene.toml".to_string()),
+            render_backend_name: Some("wgpu(dx12)".to_string()),
+            ..RuntimeDiagnosticsSnapshot::default()
+        };
+
+        let json = serde_json::to_value(&snapshot).expect("serialize runtime diagnostics");
+        let decoded: RuntimeDiagnosticsSnapshot =
+            serde_json::from_value(json).expect("deserialize runtime diagnostics");
+
+        assert_eq!(decoded.project_identity.as_deref(), Some("ZirconProject"));
+        assert_eq!(
+            decoded.scene_uri.as_deref(),
+            Some("res://scenes/main.scene.toml")
+        );
+        assert_eq!(decoded.render_backend_name.as_deref(), Some("wgpu(dx12)"));
+    }
+
+    #[test]
+    fn runtime_diagnostics_snapshot_omits_missing_render_backend_name() {
+        let json = serde_json::to_value(RuntimeDiagnosticsSnapshot::default())
+            .expect("serialize runtime diagnostics");
+
+        assert!(json.get("render_backend_name").is_none());
+        assert!(json.get("project_identity").is_none());
+        assert!(json.get("scene_uri").is_none());
+        assert_eq!(json["input"]["pointer_move_count"].as_u64(), Some(0));
+    }
+
+    #[test]
+    fn runtime_diagnostics_snapshot_roundtrips_actual_render_device_evidence() {
+        let snapshot = RuntimeDiagnosticsSnapshot {
+            render_device: Some(RuntimeRenderDeviceDiagnosticsSnapshot {
+                adapter_name: "Zircon Test Adapter".to_owned(),
+                adapter_device_type: "discrete_gpu".to_owned(),
+                max_bind_groups: 5,
+                max_texture_dimension_2d: 16_384,
+                max_texture_array_layers: 256,
+                max_sampled_textures_per_shader_stage: 16,
+                max_storage_buffers_per_shader_stage: 8,
+                max_storage_buffer_binding_size: 134_217_728,
+            }),
+            ..RuntimeDiagnosticsSnapshot::default()
+        };
+
+        let json = serde_json::to_value(&snapshot).expect("serialize runtime diagnostics");
+        let decoded: RuntimeDiagnosticsSnapshot =
+            serde_json::from_value(json).expect("deserialize runtime diagnostics");
+        let render_device = decoded.render_device.expect("render device evidence");
+
+        assert_eq!(render_device.adapter_name, "Zircon Test Adapter");
+        assert_eq!(render_device.adapter_device_type, "discrete_gpu");
+        assert_eq!(render_device.max_bind_groups, 5);
+        assert_eq!(render_device.max_texture_dimension_2d, 16_384);
+        assert_eq!(render_device.max_texture_array_layers, 256);
+        assert_eq!(render_device.max_sampled_textures_per_shader_stage, 16);
+        assert_eq!(render_device.max_storage_buffers_per_shader_stage, 8);
+        assert_eq!(render_device.max_storage_buffer_binding_size, 134_217_728);
+    }
+
+    #[test]
+    fn runtime_diagnostics_snapshot_deserializes_legacy_payload_without_render_device() {
+        let snapshot = RuntimeDiagnosticsSnapshot {
+            render_device: Some(RuntimeRenderDeviceDiagnosticsSnapshot {
+                adapter_name: "Zircon Test Adapter".to_owned(),
+                adapter_device_type: "discrete_gpu".to_owned(),
+                max_bind_groups: 5,
+                max_texture_dimension_2d: 16_384,
+                max_texture_array_layers: 256,
+                max_sampled_textures_per_shader_stage: 16,
+                max_storage_buffers_per_shader_stage: 8,
+                max_storage_buffer_binding_size: 134_217_728,
+            }),
+            ..RuntimeDiagnosticsSnapshot::default()
+        };
+        let mut json = serde_json::to_value(snapshot).expect("serialize runtime diagnostics");
+        json.as_object_mut()
+            .expect("runtime diagnostics object")
+            .remove("render_device");
+
+        let decoded: RuntimeDiagnosticsSnapshot =
+            serde_json::from_value(json).expect("deserialize legacy runtime diagnostics");
+
+        assert!(decoded.render_device.is_none());
+    }
+
+    #[test]
+    fn runtime_diagnostics_snapshot_deserializes_literal_pre_input_device_payload() {
+        let legacy = r#"{
+            "frame_index": 7,
+            "diagnostic_series": [],
+            "profile": {
+                "session_id": "legacy",
+                "output_root": "target/legacy",
+                "active": false,
+                "feature_enabled": false,
+                "frame_budget_ms": 16.67,
+                "frames": [],
+                "spans": [],
+                "counters": []
+            }
+        }"#;
+
+        let decoded: RuntimeDiagnosticsSnapshot =
+            serde_json::from_str(legacy).expect("deserialize literal legacy diagnostics");
+
+        assert_eq!(decoded.frame_index, 7);
+        assert!(decoded.project_identity.is_none());
+        assert!(decoded.scene_uri.is_none());
+        assert!(decoded.selected_model_resource_id.is_none());
+        assert!(decoded.selected_material_resource_id.is_none());
+        assert!(decoded.render_backend_name.is_none());
+        assert_eq!(decoded.input, RuntimeInputDiagnosticsSnapshot::default());
+        assert!(decoded.render_device.is_none());
+    }
+
+    #[test]
+    fn runtime_diagnostics_snapshot_roundtrips_product_input_evidence() {
+        let snapshot = RuntimeDiagnosticsSnapshot {
+            input: RuntimeInputDiagnosticsSnapshot {
+                pointer_move_count: 1,
+                mouse_button_press_count: 2,
+                mouse_button_release_count: 3,
+                keyboard_press_count: 4,
+                keyboard_release_count: 5,
+            },
+            ..RuntimeDiagnosticsSnapshot::default()
+        };
+
+        let json = serde_json::to_value(&snapshot).expect("serialize runtime diagnostics");
+        let decoded: RuntimeDiagnosticsSnapshot =
+            serde_json::from_value(json).expect("deserialize runtime diagnostics");
+
+        assert_eq!(decoded.input, snapshot.input);
+    }
 }

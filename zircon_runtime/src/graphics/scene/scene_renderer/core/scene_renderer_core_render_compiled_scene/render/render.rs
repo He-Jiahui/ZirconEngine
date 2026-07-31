@@ -1,30 +1,30 @@
 use crate::core::framework::render::{
-    select_irradiance_volume_for_view, AntiAliasMode, PostProcessGraphResourceNames,
-    RenderCapabilitySummary, RenderPluginRendererOutputs, SkyboxMode,
+    AntiAliasMode, PostProcessGraphResourceNames, RenderCapabilitySummary,
+    RenderPluginRendererOutputs, SkyboxMode, select_irradiance_volume_for_view,
 };
-use crate::graphics::backend::OffscreenTarget;
-use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_FRAME_EXTRACT};
+use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::backend::{GpuPassTimer, OffscreenTarget};
+use crate::graphics::debug_markers::{RENDERDOC_MARKER_FRAME_EXTRACT, insert_marker};
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderPassExecutorRegistry,
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::mesh::{
-    build_mesh_pass_command_buffers_cached, MeshDrawReplayStatsAccumulator,
-    MeshPassIndirectDrawExecutions,
+    MeshDrawReplayStatsAccumulator, MeshPassIndirectDrawExecutions,
+    build_mesh_pass_command_buffers_cached,
 };
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
-use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::scene_renderer_core::{
-    merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
+    SceneRendererAdvancedPluginReadbacks, SceneRendererCore, merge_plugin_renderer_outputs,
 };
 use super::super::SceneRendererCompiledSceneOutputs;
 use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect_args;
 use super::bind_compiled_scene_graph_resources::{
-    bind_compiled_scene_graph_resources, CompiledSceneGraphResourceBindingFlags,
+    CompiledSceneGraphResourceBindingFlags, bind_compiled_scene_graph_resources,
 };
 use super::build_compiled_scene_draws::build_compiled_scene_draws;
 use super::execute_compiled_scene_graph_stages::CompiledSceneGraphStageContext;
@@ -49,6 +49,8 @@ impl SceneRendererCore {
         runtime_features: SceneRuntimeFeatureFlags,
         history_textures: Option<&mut SceneFrameHistoryTextures>,
         history_available: bool,
+        frame_generation: u64,
+        mut gpu_pass_timer: Option<&mut GpuPassTimer>,
     ) -> Result<SceneRendererCompiledSceneOutputs, GraphicsError> {
         render_pass_executors
             .validate_compiled_pipeline(pipeline)
@@ -59,7 +61,7 @@ impl SceneRendererCore {
         )
         .then_some(frame.environment().skybox.procedural)
         .filter(|sky| sky.intensity > 0.0)
-        .map(|sky| self.realtime_ibl.prepare_frame(sky));
+        .map(|sky| self.realtime_ibl.prepare_frame(device, sky));
         self.write_scene_uniform(
             device,
             queue,
@@ -77,7 +79,7 @@ impl SceneRendererCore {
                 .geometry
                 .meshes
                 .iter()
-                .filter(|mesh| mesh.render_layer_mask.intersects(camera_layers))
+                .filter(|mesh| mesh.common.layer_mask.intersects(camera_layers))
                 .map(|mesh| mesh.transform.translation),
         );
         let selected_irradiance_volume = irradiance_sample_positions
@@ -337,10 +339,14 @@ impl SceneRendererCore {
         graph_execution_record.set_resource_report(graph_resources.resource_report());
         graph_execution_record.set_resource_alias_report(graph_resources.resource_alias_report());
         let mut graph_plugin_outputs = RenderPluginRendererOutputs::default();
+        if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+            timer.begin_frame(device, frame_generation);
+        }
         let mut graph_execution = RenderGraphStageExecution::new(
             &mut graph_resources,
             &mut graph_execution_record,
             &mut graph_plugin_outputs,
+            gpu_pass_timer.as_deref_mut(),
         );
         self.execute_compiled_scene_graph_stages(CompiledSceneGraphStageContext {
             device,
@@ -367,6 +373,10 @@ impl SceneRendererCore {
         })?;
         drop(graph_execution);
 
+        if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+            timer.resolve_and_copy(&mut encoder);
+        }
+
         self.submit_compiled_scene_frame(CompiledSceneFrameSubmissionContext {
             device,
             queue,
@@ -378,6 +388,7 @@ impl SceneRendererCore {
             mesh_pass_indirect_draws: &mesh_pass_indirect_draws,
             environment_ibl_bake_request: pipeline.environment_ibl_bake_request,
             realtime_ibl_submission,
+            gpu_pass_timer: gpu_pass_timer.as_deref_mut(),
         })?;
 
         let mut renderer_outputs = advanced_plugin_readbacks.into_outputs();

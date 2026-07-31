@@ -4,12 +4,12 @@ use crate::render_graph::RenderGraphComputeDispatchExtent;
 
 use super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
 use super::ibl_bake_wgpu_binding::{
-    create_ibl_bake_wgpu_bind_group, create_ibl_bake_wgpu_params_buffer,
-    create_ibl_bake_wgpu_source_sampler, IblBakeWgpuOutputBindingResource,
+    IblBakeWgpuOutputBindingResource, create_ibl_bake_wgpu_bind_group,
+    create_ibl_bake_wgpu_params_buffer,
 };
 use super::ibl_bake_wgpu_command_plan::{
-    ibl_bake_wgpu_command_plan_for_request, ibl_bake_wgpu_prefilter_command_for_slice,
-    IblBakeWgpuCommandPlan,
+    IblBakeWgpuCommandPlan, ibl_bake_wgpu_command_plan_for_request,
+    ibl_bake_wgpu_prefilter_command_for_slice,
 };
 use super::ibl_bake_wgpu_dispatch::encode_ibl_bake_wgpu_compute_dispatch;
 use super::ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
@@ -154,17 +154,16 @@ fn record_ibl_command(
     pipeline_cache: &mut IblBakeWgpuPipelineCache,
 ) -> Result<(), String> {
     let params = create_ibl_bake_wgpu_params_buffer(device, command);
-    let sampler = create_ibl_bake_wgpu_source_sampler(device);
+    let pipeline = pipeline_cache.ensure_compute_pipeline(device, command);
     let bind_group = create_ibl_bake_wgpu_bind_group(
         device,
         pipeline_cache.bind_group_layouts(),
         command,
         &params,
         source,
-        &sampler,
+        pipeline_cache.source_sampler(),
         output,
     )?;
-    let pipeline = pipeline_cache.ensure_compute_pipeline(device, command);
     encode_ibl_bake_wgpu_compute_dispatch(encoder, command, &pipeline, &bind_group)?;
     Ok(())
 }
@@ -188,11 +187,7 @@ fn fixed_dispatch_groups(extent: &RenderGraphComputeDispatchExtent) -> Result<[u
 
 const fn mip_dimension(base_size: u32, mip_level: u32) -> u32 {
     let shifted = base_size >> mip_level;
-    if shifted == 0 {
-        1
-    } else {
-        shifted
-    }
+    if shifted == 0 { 1 } else { shifted }
 }
 
 #[cfg(test)]

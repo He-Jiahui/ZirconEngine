@@ -652,11 +652,7 @@ impl FreeRectPacker {
             .iter()
             .find(|free_rect| free_rect.width >= size && free_rect.height >= size)
             .map(|free_rect| ShadowAtlasRect::new(free_rect.x, free_rect.y, size, size))?;
-        if self.reserve(rect) {
-            Some(rect)
-        } else {
-            None
-        }
+        if self.reserve(rect) { Some(rect) } else { None }
     }
 }
 

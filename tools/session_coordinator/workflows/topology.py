@@ -26,6 +26,11 @@ _PLAIN_NUMBERED_MILESTONE = re.compile(
     r"^#{2,6}\s+(?P<id>M\d+)\s+(?P<title>.+?)\s*$",
     re.MULTILINE,
 )
+_TESTING_STAGE_HEADING = re.compile(
+    r"^(?:testing\s+stage\b|测试阶段(?:\s|[（(]|$))",
+    re.IGNORECASE,
+)
+_MARKDOWN_HEADING = re.compile(r"^(?P<markers>#{1,6})\s+", re.MULTILINE)
 _SLICE = re.compile(
     r"^-\s*\[[ xX]\]\s*\*\*(?P<id>M\d+\.\d+)\s+(?P<title>.+?)\.\*\*",
     re.MULTILINE,
@@ -38,6 +43,31 @@ _MAX_SLICES = 5_000
 _MAX_EDGES = 10_000
 _MAX_TITLE_CHARS = 500
 _MAX_GOAL_CHARS = 2_000
+
+
+def _heading_level(match: re.Match[str]) -> int:
+    heading = match.group(0)
+    return len(heading) - len(heading.lstrip("#"))
+
+
+def _is_nested_testing_stage(
+    headings: tuple[re.Match[str], ...],
+    candidates_by_start: dict[int, re.Match[str]],
+    match: re.Match[str],
+) -> bool:
+    if not _TESTING_STAGE_HEADING.match(match.group("title").strip()):
+        return False
+    child_level = _heading_level(match)
+    for heading in reversed(headings):
+        if heading.start() >= match.start():
+            continue
+        if len(heading.group("markers")) < child_level:
+            parent = candidates_by_start.get(heading.start())
+            return (
+                parent is not None
+                and parent.group("id").upper() == match.group("id").upper()
+            )
+    return False
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,13 +259,25 @@ class TopologyParser:
         # ``### M2 Title``. Treat their plan-local presentation as syntax only;
         # workflow nodes remain canonical M<n> IDs and the plan file stays
         # immutable.
-        matches = sorted(
-            (
-                *_MILESTONE.finditer(text),
-                *_LEGACY_NUMBERED_MILESTONE.finditer(text),
-                *_PLAIN_NUMBERED_MILESTONE.finditer(text),
-            ),
-            key=lambda match: match.start(),
+        candidates = tuple(
+            sorted(
+                (
+                    *_MILESTONE.finditer(text),
+                    *_LEGACY_NUMBERED_MILESTONE.finditer(text),
+                    *_PLAIN_NUMBERED_MILESTONE.finditer(text),
+                ),
+                key=lambda match: match.start(),
+            )
+        )
+        headings = tuple(_MARKDOWN_HEADING.finditer(text))
+        candidates_by_start = {match.start(): match for match in candidates}
+        # A nested test-stage heading repeats an enclosing milestone ID but
+        # does not describe another workflow node. A real milestone whose
+        # title begins with the same words must remain in the topology.
+        matches = tuple(
+            match
+            for match in candidates
+            if not _is_nested_testing_stage(headings, candidates_by_start, match)
         )
         if not matches:
             raise CoordinatorError(

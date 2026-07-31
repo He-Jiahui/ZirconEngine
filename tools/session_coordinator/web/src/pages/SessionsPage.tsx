@@ -5,7 +5,7 @@ import { StatusText } from "../components/StatusText";
 import { HubPanel } from "../theme";
 
 export function SessionsPage({ sessions, codexSessions }: { sessions: SessionProjection[]; codexSessions: CodexSessionsProjection }) { return <Stack spacing={2}><HubPanel title="业务 Session（计划与写入权威）"><BoundedTable rows={sessions} rowKey={(row) => row.sessionId} columns={[
-  { key: "name", label: "会话", render: (row) => row.displayName ?? row.sessionId }, { key: "status", label: "枚举状态", render: (row) => <StatusText value={row.status} /> }, { key: "reason", label: "状态摘要", render: (row) => row.statusReason ?? "—" }, { key: "plan", label: "计划", render: (row) => row.planPath ?? "—" }, { key: "heartbeat", label: "最后心跳", render: (row) => row.lastHeartbeatAt }, { key: "actions", label: "操作", render: (row) => <Button component="a" href={`/ui/actions?session=${encodeURIComponent(row.sessionId)}`} size="small">受控操作</Button> },
+  { key: "name", label: "会话", render: (row) => row.displayName ?? row.sessionId }, { key: "status", label: "枚举状态", render: (row) => <StatusText value={row.status} /> }, { key: "effectiveWait", label: "当前等待", render: effectiveWaitLabel }, { key: "reason", label: "状态摘要", render: (row) => row.statusReason ?? "—" }, { key: "plan", label: "计划", render: (row) => row.planPath ?? "—" }, { key: "heartbeat", label: "最后心跳", render: (row) => row.lastHeartbeatAt }, { key: "actions", label: "操作", render: (row) => <Button component="a" href={`/ui/actions?session=${encodeURIComponent(row.sessionId)}`} size="small">受控操作</Button> },
 ]} /></HubPanel><HubPanel title="Codex 来源 Session（只读存在性）"><Stack spacing={1}><Typography variant="body2">总数 {codexSessions.total} · 队列 {codexSessions.queueDepth} · 活动 {codexSessions.stateCounts.active} · 空闲 {codexSessions.stateCounts.idle} · 归档 {codexSessions.stateCounts.archived} · 不可用 {codexSessions.stateCounts.unavailable}{codexSessions.truncated ? " · 仅显示前 1000 行" : ""}</Typography><Typography variant="caption">最近成功 {codexSessions.lastSuccessfulAt ?? "—"} · 最近终态 {codexSessions.lastTerminalCode ?? "—"}</Typography><BoundedTable rows={codexSessions.rows} rowKey={(row) => row.threadId} columns={[
   { key: "thread", label: "Codex Thread", render: (row) => <span title={row.threadId}>{shortId(row.threadId)}</span> },
   { key: "state", label: "来源状态", render: (row) => <StatusText value={row.state} /> },
@@ -19,3 +19,10 @@ export function SessionsPage({ sessions, codexSessions }: { sessions: SessionPro
 ]} /></Stack></HubPanel></Stack>; }
 
 function shortId(value: string): string { return value.length > 18 ? `${value.slice(0, 15)}…` : value; }
+
+function effectiveWaitLabel(row: SessionProjection): string {
+  if (row.waitKind === "validation") return "验证已排队（仅占用验证资源）";
+  if (row.waitKind === "external") return "外部条件等待（不占用验证队列）";
+  if (row.waitKind === "lease") return "文件作用域等待";
+  return "—";
+}

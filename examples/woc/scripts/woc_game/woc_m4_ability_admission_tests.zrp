@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_ability_admission_tests",
+  "source": "src",
+  "binary": "bin-m4-ability-admission-tests",
+  "entry": "combat/ability_admission_test_main"
+}

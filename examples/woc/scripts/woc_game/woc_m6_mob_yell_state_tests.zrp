@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_mob_yell_state_tests",
+  "source": "src",
+  "binary": "bin-m6-mob-yell-state-tests",
+  "entry": "social/mob_yell_state_test_main"
+}

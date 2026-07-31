@@ -3,8 +3,8 @@ use super::support::*;
 const OPEN_PROJECT_ICON: &str = "editor_pages/workbench/menu/open-project.svg";
 
 #[test]
-fn editor_ui_host_runtime_resolves_theme_tokens_for_v2_shared_surface() {
-    let document_path = write_theme_probe_zui_document();
+fn editor_ui_host_runtime_resolves_canonical_design_tokens_for_v2_shared_surface() {
+    let document_path = write_design_token_probe_zui_document();
     let mut runtime = EditorUiHostRuntime::default();
     runtime
         .register_document_file("editor.theme_probe", &document_path)
@@ -39,12 +39,67 @@ fn editor_ui_host_runtime_resolves_theme_tokens_for_v2_shared_surface() {
         Some("#e8ecee")
     );
     assert_eq!(
+        metadata
+            .attributes
+            .get("status_color")
+            .and_then(Value::as_str),
+        Some("#a4aeb4")
+    );
+    assert!(
+        (metadata
+            .attributes
+            .get("font_size")
+            .and_then(Value::as_float)
+            .expect("the typography token resolves to a float")
+            - 13.333333)
+            .abs()
+            < 0.000_001
+    );
+    assert_eq!(
+        metadata
+            .attributes
+            .get("font_weight")
+            .and_then(Value::as_integer),
+        Some(600)
+    );
+    assert!(
+        (metadata
+            .attributes
+            .get("overlay_font_size")
+            .and_then(Value::as_float)
+            .expect("the overlay typography token resolves to a float")
+            - 12.0)
+            .abs()
+            < 0.000_001
+    );
+    assert_eq!(
+        metadata
+            .attributes
+            .get("medium_font_weight")
+            .and_then(Value::as_integer),
+        Some(500)
+    );
+    assert_eq!(probe.constraints.height.min, 28.0);
+    assert_eq!(probe.constraints.height.preferred, 28.0);
+    assert_eq!(probe.constraints.height.max, 28.0);
+    assert_eq!(
+        metadata
+            .attributes
+            .get("layout")
+            .and_then(Value::as_table)
+            .and_then(|layout| layout.get("container"))
+            .and_then(Value::as_table)
+            .and_then(|container| container.get("gap"))
+            .and_then(Value::as_float),
+        Some(8.0)
+    );
+    assert_eq!(
         metadata.style_tokens.get("background").map(String::as_str),
-        Some("theme.palette.accent")
+        Some("token.editor.accent")
     );
     assert_eq!(
         metadata.style_tokens.get("foreground").map(String::as_str),
-        Some("theme.palette.text.primary")
+        Some("token.--editor-text-primary -> token.editor.text.primary")
     );
 
     let _ = std::fs::remove_dir_all(document_path.parent().unwrap());
@@ -217,7 +272,7 @@ fn editor_ui_compatibility_harness_captures_shared_layout_frames_from_surface_an
         .contains(&"v2/StatusBarRoot=0,696,1280,24".to_string()));
 }
 
-fn write_theme_probe_zui_document() -> std::path::PathBuf {
+fn write_design_token_probe_zui_document() -> std::path::PathBuf {
     let unique = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("system clock should be after unix epoch")
@@ -240,13 +295,15 @@ node = "root"
 component = "Button"
 control_id = "ThemeProbe"
 classes = ["primary"]
+props = { status_color = "$editor.text.secondary", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.strong.weight", overlay_font_size = "$editor.typography.overlay.size", medium_font_weight = "$editor.typography.medium.weight" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
 [[stylesheets]]
 id = "theme_probe"
 
 [[stylesheets.rules]]
 selector = "Button.primary"
-set = { self = { background = "$theme.palette.accent", foreground = "var(theme.palette.text.primary)" } }
+set = { self = { background = "$editor.accent", foreground = "var(--editor-text-primary)" } }
 "##,
     )
     .unwrap();

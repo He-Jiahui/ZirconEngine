@@ -2,7 +2,7 @@ mod completion;
 mod job;
 mod poll;
 
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{sync_channel, Receiver};
 
 use crate::core::jobs::{
     CancellationToken, EditorJobSpec, EditorJobSystem, JobCategory, JobSubmitError, JobTicket,
@@ -15,6 +15,8 @@ use super::{
     ExportWizardCommandRunner, ExportWizardJobEvent, ExportWizardJobSnapshot,
     ExportWizardPipelinePlan,
 };
+
+const EXPORT_WIZARD_EVENT_CHANNEL_CAPACITY: usize = 192;
 
 /// Owns the export domain event stream and the typed ticket submitted to the editor job service.
 pub struct ExportWizardJobController {
@@ -34,7 +36,7 @@ impl ExportWizardJobController {
     ) -> Result<Self, JobSubmitError> {
         let job_id = job_id.into();
         let cancel = CancellationToken::default();
-        let (event_sender, events) = channel();
+        let (event_sender, events) = sync_channel(EXPORT_WIZARD_EVENT_CHANNEL_CAPACITY);
         let spec =
             EditorJobSpec::new(job_id.clone(), JobCategory::Export).with_cancel(cancel.clone());
         let ticket = jobs.submit(

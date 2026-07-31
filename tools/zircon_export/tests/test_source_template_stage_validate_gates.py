@@ -39,12 +39,9 @@ class SourceTemplateStageValidateGateTests(unittest.TestCase):
             self.assertEqual(exit_code, 2)
             self.assertTrue(report["fatal"], report["diagnostics"])
             self.assertEqual(report["command"], [])
-            self.assertTrue(
-                any(
-                    "SourceTemplate build plan command must be a non-empty string array"
-                    in diagnostic
-                    for diagnostic in report["diagnostics"]
-                ),
+            self.assertIn(
+                "SourceTemplate Validate source_template_build command "
+                "must be a non-empty string array",
                 report["diagnostics"],
             )
 
@@ -246,7 +243,8 @@ class SourceTemplateStageValidateGateTests(unittest.TestCase):
                 {
                     "path": "../escape.txt",
                     "purpose": "invalid generated file outside project",
-                    "contents": "escape",
+                    "byte_length": len("escape".encode("utf-8")),
+                    "content_digest": "0" * 64,
                 }
             )
             validate_report = root / "validate.json"

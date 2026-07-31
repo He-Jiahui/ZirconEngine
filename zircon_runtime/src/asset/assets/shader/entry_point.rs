@@ -18,10 +18,23 @@ impl ShaderEntryPointAsset {
 }
 
 fn parse_stage(stage: &str) -> Option<RenderShaderStage> {
-    match stage.trim().to_ascii_lowercase().as_str() {
-        "vertex" | "vert" | "vs" => Some(RenderShaderStage::Vertex),
-        "fragment" | "frag" | "fs" => Some(RenderShaderStage::Fragment),
-        "compute" | "comp" | "cs" => Some(RenderShaderStage::Compute),
-        _ => None,
+    let stage = stage.trim();
+    if stage.eq_ignore_ascii_case("vertex")
+        || stage.eq_ignore_ascii_case("vert")
+        || stage.eq_ignore_ascii_case("vs")
+    {
+        Some(RenderShaderStage::Vertex)
+    } else if stage.eq_ignore_ascii_case("fragment")
+        || stage.eq_ignore_ascii_case("frag")
+        || stage.eq_ignore_ascii_case("fs")
+    {
+        Some(RenderShaderStage::Fragment)
+    } else if stage.eq_ignore_ascii_case("compute")
+        || stage.eq_ignore_ascii_case("comp")
+        || stage.eq_ignore_ascii_case("cs")
+    {
+        Some(RenderShaderStage::Compute)
+    } else {
+        None
     }
 }

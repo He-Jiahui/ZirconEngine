@@ -1,0 +1,224 @@
+// Current-head source port of the pure match transitions in
+// src/sim/social/card_duel.ts at 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a.
+// World liveness, NPC range, logs and deed persistence stay outside this
+// module; M6 must wire this result into one authoritative WOS transaction.
+var handModule = %import("social/card_duel_hand");
+var queueModule = %import("social/card_duel_queue");
+var rngModule = %import("kernel/rng");
+var contract = %import("generated/card_duel_contract");
+
+pub class CardDuelMatch {
+    pub var a: uint;
+    pub var b: uint;
+    pub var handA: handModule.CardHandState;
+    pub var handB: handModule.CardHandState;
+    // Zero is the absent sentinel because card values are always 1..10.
+    pub var playedA: int;
+    pub var playedB: int;
+    pub var roundsA: int;
+    pub var roundsB: int;
+    pub var roundDeadline: float;
+    pub var finished: bool;
+
+    pub @constructor() {
+        this.a = <uint>0;
+        this.b = <uint>0;
+        this.handA = new handModule.CardHandState();
+        this.handB = new handModule.CardHandState();
+        this.playedA = 0;
+        this.playedB = 0;
+        this.roundsA = 0;
+        this.roundsB = 0;
+        this.roundDeadline = 0.0;
+        this.finished = false;
+    }
+}
+
+pub class CardDuelTransition {
+    pub var accepted: bool;
+    pub var error: int;
+    pub var roundResolved: bool;
+    pub var finished: bool;
+    pub var voided: bool;
+    pub var winner: uint;
+    pub var forfeiter: uint;
+
+    pub @constructor() {
+        this.accepted = false;
+        this.error = 0;
+        this.roundResolved = false;
+        this.finished = false;
+        this.voided = false;
+        this.winner = <uint>0;
+        this.forfeiter = <uint>0;
+    }
+}
+
+pub createCardDuelMatch(
+    a: uint,
+    b: uint,
+    stream: rngModule.Mulberry32,
+    nowSeconds: float
+): CardDuelMatch {
+    if (a == <uint>0 || b == <uint>0 || a == b || nowSeconds < 0.0) {
+        throw "card duel match constructor is invalid";
+    }
+    var match = new CardDuelMatch();
+    match.a = a;
+    match.b = b;
+    match.handA = handModule.createCardHand(stream);
+    match.handB = handModule.createCardHand(stream);
+    match.roundDeadline = nowSeconds + contract.roundDeadlineSeconds(true);
+    return match;
+}
+
+sideFor(match: CardDuelMatch, pid: uint): int {
+    if (pid == match.a) return 1;
+    if (pid == match.b) return 2;
+    return 0;
+}
+
+finish(
+    match: CardDuelMatch,
+    transition: CardDuelTransition,
+    winner: uint,
+    forfeiter: uint,
+    voided: bool
+): void {
+    match.finished = true;
+    transition.finished = true;
+    transition.voided = voided;
+    transition.winner = winner;
+    transition.forfeiter = forfeiter;
+}
+
+resolveRound(
+    match: CardDuelMatch,
+    stream: rngModule.Mulberry32,
+    nowSeconds: float,
+    transition: CardDuelTransition
+): void {
+    var a = <uint>match.playedA;
+    var b = <uint>match.playedB;
+    if (a > b) match.roundsA = match.roundsA + 1;
+    else if (b > a) match.roundsB = match.roundsB + 1;
+    // Equal cards are a push and score neither side.
+    match.playedA = 0;
+    match.playedB = 0;
+    handModule.drawOne(stream, match.handA);
+    handModule.drawOne(stream, match.handB);
+    match.roundDeadline = nowSeconds + contract.roundDeadlineSeconds(true);
+    transition.roundResolved = true;
+    if (match.roundsA >= contract.roundsToWin(true)) finish(match, transition, match.a, match.b, false);
+    else if (match.roundsB >= contract.roundsToWin(true)) finish(match, transition, match.b, match.a, false);
+}
+
+pub playCard(
+    match: CardDuelMatch,
+    pid: uint,
+    cardValue: uint,
+    stream: rngModule.Mulberry32,
+    nowSeconds: float
+): CardDuelTransition {
+    var transition = new CardDuelTransition();
+    if (match.finished) {
+        transition.error = -1;
+        return transition;
+    }
+    var side = sideFor(match, pid);
+    if (side == 0) {
+        transition.error = -2;
+        return transition;
+    }
+    if ((side == 1 && match.playedA != 0) || (side == 2 && match.playedB != 0)) {
+        transition.error = -3;
+        return transition;
+    }
+    var played = side == 1
+        ? handModule.playCard(match.handA, cardValue)
+        : handModule.playCard(match.handB, cardValue);
+    if (played == 0) {
+        transition.error = -4;
+        return transition;
+    }
+    if (side == 1) match.playedA = played;
+    else match.playedB = played;
+    transition.accepted = true;
+    if (match.playedA != 0 && match.playedB != 0) {
+        resolveRound(match, stream, nowSeconds, transition);
+    }
+    return transition;
+}
+
+// Mirrors the source's pre-score forfeit rule: a match without a completed
+// round is void and awards neither side; otherwise the other side wins.
+pub forfeit(match: CardDuelMatch, forfeiter: uint): CardDuelTransition {
+    var transition = new CardDuelTransition();
+    if (match.finished) {
+        transition.error = -1;
+        return transition;
+    }
+    if (sideFor(match, forfeiter) == 0) {
+        transition.error = -2;
+        return transition;
+    }
+    transition.accepted = true;
+    if (match.roundsA + match.roundsB == 0) {
+        finish(match, transition, <uint>0, forfeiter, true);
+        return transition;
+    }
+    var winner = forfeiter == match.a ? match.b : match.a;
+    finish(match, transition, winner, forfeiter, false);
+    return transition;
+}
+
+// Resolves only once the source's inclusive generated deadline is reached.
+// Both idle sides void the match; otherwise the side without a card forfeits.
+pub expireDeadline(match: CardDuelMatch, nowSeconds: float): CardDuelTransition {
+    var transition = new CardDuelTransition();
+    if (match.finished) {
+        transition.error = -1;
+        return transition;
+    }
+    if (nowSeconds < match.roundDeadline) return transition;
+    transition.accepted = true;
+    var aPlayed = match.playedA != 0;
+    var bPlayed = match.playedB != 0;
+    if (!aPlayed && !bPlayed) {
+        finish(match, transition, <uint>0, <uint>0, true);
+        return transition;
+    }
+    var forfeiter = aPlayed ? match.b : match.a;
+    return forfeit(match, forfeiter);
+}
+
+// Mirrors the current-head parity scenario's pure ownership: FIFO pairing,
+// two initial hands and one resolved round that draws once for each side. It
+// deliberately excludes Sim events, player liveness and trace serialization.
+pub scenarioTest(): int {
+    var stream = new rngModule.Mulberry32(<uint>1010);
+    var queue = new queueModule.CardDuelQueue();
+    if (queue.join(<uint>1, false) != 1 || queue.join(<uint>2, false) != 1) {
+        return -1;
+    }
+    var pair = queue.pairFirst();
+    if (!pair.ready || pair.a != <uint>1 || pair.b != <uint>2 || queue.size() != 0) {
+        return -2;
+    }
+    var match = createCardDuelMatch(pair.a, pair.b, stream, 0.0);
+    if (match.handA.hand.length != 4 || match.handB.hand.length != 4 ||
+        match.handA.deck.length != 16 || match.handB.deck.length != 16) {
+        return -3;
+    }
+    var aCard = <uint>match.handA.hand[0];
+    var bCard = <uint>match.handB.hand[0];
+    var first = playCard(match, pair.a, aCard, stream, 0.0);
+    var second = playCard(match, pair.b, bCard, stream, 0.0);
+    if (!first.accepted || first.roundResolved || !second.accepted ||
+        !second.roundResolved || match.handA.hand.length != 4 ||
+        match.handB.hand.length != 4 || match.handA.deck.length != 15 ||
+        match.handB.deck.length != 15 || match.finished) {
+        return -4;
+    }
+    return 1;
+}

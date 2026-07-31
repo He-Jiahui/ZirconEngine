@@ -53,27 +53,32 @@ fn bridge_performance_baseline_strong_layout_matches_direct_arc() {
 }
 
 #[test]
-fn bridge_performance_baseline_weak_hot_path_keeps_cached_generation_before_provider_lookup() {
+fn bridge_performance_baseline_weak_hot_path_uses_generation_matched_snapshot_before_slow_lookup() {
     let weak_source = include_str!("../../plugin/bridge/weak.rs");
-    let provider_fn = weak_source
-        .find("fn provider_with_slot")
-        .expect("weak bridge provider path should exist");
-    let cache_read = weak_source[provider_fn..]
-        .find("if let Some((cached_generation, cached))")
-        .expect("weak bridge should read the generation cache");
-    let cache_generation_check = weak_source[provider_fn..]
-        .find("*cached_generation == generation && generation % 2 == 0")
-        .expect("weak bridge should match cached even generation before provider lookup");
-    let cache_return = weak_source[provider_fn..]
-        .find("return Ok((slot, cached.clone()));")
-        .expect("weak bridge cache hit should return the cached provider");
-    let provider_lookup = weak_source[provider_fn..]
-        .find(".provider::<T>(slot)")
-        .expect("weak bridge should fall back to table provider lookup only on cache miss");
+    let call = source_between(weak_source, "    pub fn call<R>", "    pub fn pin(");
 
-    assert!(cache_read < provider_lookup);
-    assert!(cache_generation_check < provider_lookup);
-    assert!(cache_return < provider_lookup);
+    assert_source_order(
+        call,
+        "self.current_generation(slot)",
+        "let cached = self.cached.load();",
+    );
+    assert_source_order(
+        call,
+        "snapshot.generation == generation",
+        "snapshot.provider.upgrade()",
+    );
+    assert_source_order(
+        call,
+        "snapshot.provider.upgrade()",
+        "return Ok(f(provider.as_ref()));",
+    );
+    assert_source_order(
+        call,
+        "return Ok(f(provider.as_ref()));",
+        "self.refresh_provider(slot)",
+    );
+    assert!(!call.contains("Mutex"));
+    assert!(!call.contains("RwLock"));
 }
 
 #[test]
@@ -112,12 +117,12 @@ fn bridge_performance_baseline_native_bridge_calls_use_pre_resolved_slots() {
         descriptor_resolution.contains("Ok((slot, descriptor.method_slot(), descriptor.method()))")
     );
     assert!(runtime_call.contains("InterfaceSlot::from_raw(interface_slot)"));
-    assert!(runtime_call.contains("context.table.interface_snapshot(slot)"));
+    assert!(runtime_call.contains("context.table.entry(slot)"));
     assert!(runtime_call.contains("context.methods.get(&(interface_slot, method_slot)).copied()"));
     assert!(runtime_call.contains("method.call(NativeBridgeCall"));
     assert_source_order(
         runtime_call,
-        "context.table.interface_snapshot(slot)",
+        "context.table.entry(slot)",
         "context.methods.get(&(interface_slot, method_slot)).copied()",
     );
     assert_source_order(
@@ -139,10 +144,10 @@ fn bridge_performance_baseline_vm_bridge_callbacks_capture_resolved_slot() {
     );
     let function_callback = source_between(
         bridge_host_source,
-        "fn function_callback(",
-        "fn ensure_bridge_enabled(",
+        "fn function_callback<Table>(",
+        "fn ensure_bridge_enabled<Table>(",
     );
-    let enabled_check = source_after(bridge_host_source, "fn ensure_bridge_enabled(");
+    let enabled_check = source_after(bridge_host_source, "fn ensure_bridge_enabled<Table>(");
 
     assert!(module_registration.contains(".resolve_interface_slot(method.interface_id())"));
     assert!(module_registration
@@ -154,6 +159,69 @@ fn bridge_performance_baseline_vm_bridge_callbacks_capture_resolved_slot() {
     assert!(!function_callback.contains(".resolve_slot("));
     assert!(enabled_check.contains("bridge_table.interface_status_at(slot)"));
     assert!(!enabled_check.contains("interface_snapshot_by_id"));
+}
+
+#[test]
+fn bridge_status_and_summary_do_not_materialize_owned_interface_snapshots() {
+    let table_source = include_str!("../../plugin/bridge/table.rs");
+    let summarize = source_between(
+        table_source,
+        "    fn summarize_entries<'a>(",
+        "    fn owner_transition_report(",
+    );
+    assert!(summarize.contains("entry.snapshot_state()"));
+    assert!(!summarize.contains("snapshot_for_entry"));
+
+    let status = source_after(table_source, "    fn interface_status_at(");
+    assert!(status.contains("self.entry(slot)"));
+    assert!(!status.contains("self.interface_snapshot(slot)"));
+}
+
+#[test]
+fn extension_owner_queries_use_membership_index_and_revocation_notifies_without_cloning_listeners()
+{
+    let access = include_str!("../../plugin/extension_registry/access.rs");
+    assert!(access.contains("collect::<HashSet<_>>()"));
+    assert!(access.contains("module_names.contains(module_name)"));
+    assert!(!access.contains("module_names.iter().any"));
+
+    let registry = include_str!("../../plugin/extension_registry/runtime_extension_registry.rs");
+    assert!(registry.contains("for listener in &self.owner_revocation_listeners"));
+    assert!(!registry.contains("self.owner_revocation_listeners.clone()"));
+}
+
+#[test]
+fn bridge_owner_reload_borrows_registry_exports_without_cloning_the_replacement_batch() {
+    let access = include_str!("../../plugin/extension_registry/access.rs");
+    let owned_exports = source_between(
+        access,
+        "    pub(crate) fn interface_exports_owned_by(",
+        "    pub fn interface_owners_for_runtime_modules",
+    );
+    assert!(owned_exports.contains("impl Iterator<Item = (&str, &InterfaceExport)>"));
+    assert!(!owned_exports.contains("Vec<(String, InterfaceExport)>"));
+    assert!(!owned_exports.contains("interface_id.clone()"));
+    assert!(!owned_exports.contains("export.clone()"));
+
+    let lifecycle =
+        include_str!("../../plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs");
+    let reload = source_between(
+        lifecycle,
+        "    pub fn reload_bridge_provider_at_frame_boundary(",
+        "    fn reject_strong_dependents(",
+    );
+    assert!(reload.contains("replacement_exports.iter().copied()"));
+    assert!(!reload.contains("replacement_exports.clone()"));
+}
+
+#[test]
+fn bridge_table_build_consumes_extension_owner_rows_without_key_reresolution() {
+    let source = include_str!("../../plugin/extension_registry/register/bridge_registration.rs");
+    let build = source_after(source, "    fn build_bridge_table(&self)");
+    assert!(build.contains(".iter()"));
+    assert!(!build.contains(".values().iter()"));
+    assert!(!build.contains("self.plugin_interfaces.resolve("));
+    assert!(!build.contains("self.plugin_interfaces.owner_for_slot("));
 }
 
 #[test]

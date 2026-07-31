@@ -45,9 +45,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             graph,
             resources,
             PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION,
-            history_textures
-                .screen_space_reflection
-                .create_view(&wgpu::TextureViewDescriptor::default()),
+            history_textures.screen_space_reflection_view.clone(),
         );
     }
 
@@ -175,8 +173,10 @@ mod tests {
         assert!(resources.has_texture_view(
             PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
         ));
-        assert!(resources
-            .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST));
+        assert!(
+            resources
+                .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST)
+        );
         assert!(
             resources.has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
         );
@@ -197,6 +197,14 @@ mod tests {
         assert_eq!(report.bound_report_only_external_count, 9);
         assert_eq!(report.bound_external_count(), 9);
         assert_eq!(report.missing_external_count(), 0);
+    }
+
+    #[test]
+    fn history_binder_reuses_the_persistent_screen_space_reflection_view() {
+        let source = include_str!("bind_history_graph_resources.rs");
+        let persistent_view = ["screen_space_reflection_", "view.clone()"].concat();
+
+        assert!(source.contains(&persistent_view));
     }
 
     #[test]
@@ -228,8 +236,10 @@ mod tests {
         );
 
         assert!(!resources.has_texture_view(PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS));
-        assert!(!resources
-            .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST));
+        assert!(
+            !resources
+                .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST)
+        );
         assert!(
             !resources.has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
         );

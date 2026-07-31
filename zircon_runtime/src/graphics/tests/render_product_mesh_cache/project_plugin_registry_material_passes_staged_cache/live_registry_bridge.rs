@@ -12,17 +12,17 @@ use super::assertions::{
     assert_registry_material_pass_velocity_frame_shader_cache_hit,
     assert_runtime_shader_cache_root_empty,
 };
-use super::case::{registry_shader_cases, RegistryShaderCase};
+use super::case::{RegistryShaderCase, registry_shader_cases};
 use super::fixture::submit_registry_material_passes_with_staged_cache;
 use super::manifest::{
-    registry_material_pass_live_source_label_prewarm_manifest,
-    registry_material_pass_runtime_surface_source, REGISTRY_MATERIAL_PASS_TYPES,
+    REGISTRY_MATERIAL_PASS_TYPES, registry_material_pass_live_source_label_prewarm_manifest,
+    registry_material_pass_runtime_surface_source,
 };
 use super::shader_cache_test_roots;
 
 #[test]
-fn render_product_project_plugin_registry_material_passes_live_registry_source_labels_hit_staged_cache(
-) {
+fn render_product_project_plugin_registry_material_passes_live_registry_source_labels_hit_staged_cache()
+ {
     let cache_roots = shader_cache_test_roots(
         "zircon_product_project_plugin_registry_material_passes_live_registry_labels",
     );

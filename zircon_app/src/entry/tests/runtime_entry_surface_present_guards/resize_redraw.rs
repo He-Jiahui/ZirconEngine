@@ -1,17 +1,29 @@
 use super::super::source_assertions::assert_source_order;
 use super::sources::{
-    runtime_application_handler_source, runtime_frame_loop_source, runtime_surface_present_source,
+    runtime_app_source, runtime_application_handler_source, runtime_frame_loop_source,
+    runtime_product_diagnostics_source, runtime_surface_present_source,
     runtime_window_creation_source, runtime_window_events_source,
 };
 
 #[test]
 fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_visible() {
+    let runtime_app_source = runtime_app_source();
     let runtime_handler_source = runtime_application_handler_source();
     let runtime_frame_loop_source = runtime_frame_loop_source();
+    let runtime_product_diagnostics_source = runtime_product_diagnostics_source();
     let runtime_surface_present_source = runtime_surface_present_source();
     let runtime_window_events_source = runtime_window_events_source();
     let runtime_window_creation_source = runtime_window_creation_source();
 
+    assert!(
+        runtime_app_source.contains("mod frame_capture;"),
+        "runtime entry app should declare the shared first-frame capture writer at its root"
+    );
+    assert!(
+        runtime_surface_present_source
+            .contains("super::super::frame_capture::write_runtime_frame_png("),
+        "surface-present redraw should reach the root frame-capture writer through the runtime entry app"
+    );
     assert!(
         runtime_surface_present_source
             .contains("self.surface_present_enabled && !self.surface_present_failed"),
@@ -69,7 +81,6 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         runtime_surface_present_source.as_str(),
         &[
             "fn present_redraw_frame",
-            "let exit_after_first_presented_frame = self.exit_after_first_presented_frame;",
             "self.surface_present_enabled && !self.surface_present_failed",
             ".present_viewport(self.viewport, self.viewport_size)",
             "self.fail_surface_present();",
@@ -79,14 +90,54 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         "runtime redraw should fall back to capture_frame plus softbuffer after native present failure in the same branch",
     );
     for required_path in [
-        "exit_after_presented_frame(exit_after_first_presented_frame, event_loop);",
-        "fn exit_after_presented_frame(enabled: bool, event_loop: &dyn ActiveEventLoop)",
+        "self.complete_first_presented_frame(event_loop);",
+        "fn complete_first_presented_frame(&mut self, event_loop: &dyn ActiveEventLoop)",
+        "fn emit_first_frame_product_diagnostics_once(&mut self)",
     ] {
         assert!(
             runtime_surface_present_source.contains(required_path),
             "runtime first-frame startup smoke should keep `{required_path}` in the surface-present redraw owner"
         );
     }
+    assert_source_order(
+        runtime_surface_present_source.as_str(),
+        &[
+            "fn complete_first_presented_frame",
+            "self.capture_first_presented_frame_if_requested()",
+            "if self.require_persisted_scene_diagnostics {",
+            "self.emit_first_frame_product_diagnostics_once()",
+            "first_presented_frame_diagnostic(self.exit_after_first_presented_frame)",
+        ],
+        "runtime first-frame startup smoke should complete diagnostics before applying its exit policy",
+    );
+    assert_source_order(
+        runtime_surface_present_source.as_str(),
+        &[
+            "fn emit_first_frame_product_diagnostics_once",
+            "if should_emit_first_frame_product_diagnostics(",
+            "self.emit_first_frame_product_diagnostics()?;",
+            "self.first_frame_product_diagnostics_emitted = true;",
+        ],
+        "runtime product diagnostics should be emitted once for the first successful present",
+    );
+    for required_path in [
+        "ProfileControlCommand::RuntimeDiagnosticsSnapshot",
+        "project_identity",
+        "scene_uri",
+        "render_backend_name",
+        "render.graph.executed_pass_count",
+        "render.mesh.queue.draw_count",
+        "render.light.directional.count",
+    ] {
+        assert!(
+            runtime_product_diagnostics_source.contains(required_path),
+            "runtime product diagnostics should preserve `{required_path}`"
+        );
+    }
+    assert!(
+        runtime_surface_present_source.contains("runtime_product_teardown surface_unbind="),
+        "runtime surface-present lifecycle should record its product teardown result"
+    );
     assert_source_order(
         runtime_surface_present_source.as_str(),
         &[

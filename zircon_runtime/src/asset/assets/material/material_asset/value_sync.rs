@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::asset::AssetReference;
 
-use super::super::{material_control, MaterialTextureSlotValue};
+use super::super::{MaterialTextureSlotValue, material_control};
 
 pub(super) fn texture_slot_reference(
     slots: &BTreeMap<String, MaterialTextureSlotValue>,

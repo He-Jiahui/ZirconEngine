@@ -57,6 +57,7 @@ _TYPE_DECLARATION_BYTES = re.compile(
     rb'''(?:[&*]\s*)?(?:mut\s+)?[A-Za-z_][A-Za-z0-9_.:]*'''
     rb'''(?:\s*(?:\[[^\]\r\n]{0,384}\]|<[^>\r\n]{0,384}>))?'''
     rb'''(?:\s*\|\s*[A-Za-z_][A-Za-z0-9_.:]*)*\s*[?!]?'''
+    rb'''\s*[,;]?'''
 )
 _TYPE_DECLARATION_SOURCE_SUFFIXES = {
     ".c",
@@ -72,12 +73,17 @@ _TYPE_DECLARATION_SOURCE_SUFFIXES = {
     ".kt",
     ".py",
     ".pyi",
+    ".ps1",
+    ".psm1",
     ".rs",
     ".swift",
     ".ts",
     ".tsx",
 }
 _TYPE_DECLARATION_MAX_BYTES = 512
+_SOURCE_IDENTIFIER_EXPRESSION_BYTES = re.compile(
+    rb'''[A-Za-z_][A-Za-z0-9_.:]*[?!]?(?:\s*[,;])?'''
+)
 _UTF16_LE_ASCII_RUN = re.compile(rb'''(?:[\t\r\n\x20-\x7e]\x00){4}''')
 _UTF16_BE_ASCII_RUN = re.compile(rb'''(?:\x00[\t\r\n\x20-\x7e]){4}''')
 _UTF16_PROBE_OVERLAP_BYTES = 256
@@ -108,6 +114,8 @@ class _StagedSecretStreamScanner:
         self._quote_allowed = False
         self._allow_type_declaration = allow_type_declaration
         self._colon_value = bytearray()
+        self._source_value = bytearray()
+        self._marker_quoted = False
 
     def feed(self, block: bytes) -> bool:
         if not block:
@@ -128,6 +136,8 @@ class _StagedSecretStreamScanner:
                 return False
             if match.group("endpoint") is not None:
                 return True
+            marker = match.group("name") or b""
+            self._marker_quoted = marker[:1] in {b'"', b"'"}
             self._state = "after_name"
             self._quote_allowed = True
             cursor = match.end()
@@ -138,6 +148,11 @@ class _StagedSecretStreamScanner:
             detected = self._colon_is_secret()
             self._state = None
             self._colon_value.clear()
+            return detected
+        if self._state == "after_source_operator":
+            detected = not self._source_assignment_is_safe()
+            self._state = None
+            self._source_value.clear()
             return detected
         return False
 
@@ -159,14 +174,22 @@ class _StagedSecretStreamScanner:
                     cursor += 1
                     continue
                 if value == ord("="):
-                    self._state = "after_operator"
+                    if self._allow_type_declaration and not self._marker_quoted:
+                        self._state = "after_source_operator"
+                        self._source_value.clear()
+                    else:
+                        self._state = "after_operator"
                     cursor += 1
                     continue
                 self._state = None
                 return False, cursor
             if self._state == "after_colon":
                 if value == ord("="):
-                    self._state = "after_operator"
+                    if self._allow_type_declaration and not self._marker_quoted:
+                        self._state = "after_source_operator"
+                        self._source_value.clear()
+                    else:
+                        self._state = "after_operator"
                     self._colon_value.clear()
                     cursor += 1
                     continue
@@ -177,6 +200,17 @@ class _StagedSecretStreamScanner:
                     return detected, cursor + 1
                 self._colon_value.append(value)
                 if len(self._colon_value) > _TYPE_DECLARATION_MAX_BYTES:
+                    return True, cursor
+                cursor += 1
+                continue
+            if self._state == "after_source_operator":
+                if value in {ord("\r"), ord("\n")}:
+                    detected = not self._source_assignment_is_safe()
+                    self._state = None
+                    self._source_value.clear()
+                    return detected, cursor + 1
+                self._source_value.append(value)
+                if len(self._source_value) > _TYPE_DECLARATION_MAX_BYTES:
                     return True, cursor
                 cursor += 1
                 continue
@@ -195,7 +229,32 @@ class _StagedSecretStreamScanner:
             return False
         return not (
             self._allow_type_declaration
-            and _TYPE_DECLARATION_BYTES.fullmatch(value) is not None
+            and not self._marker_quoted
+            and (
+                _TYPE_DECLARATION_BYTES.fullmatch(value) is not None
+                or self._source_value_is_safe(value)
+            )
+        )
+
+    def _source_assignment_is_safe(self) -> bool:
+        return self._source_value_is_safe(bytes(self._source_value))
+
+    @staticmethod
+    def _source_value_is_safe(raw_value: bytes) -> bool:
+        value = raw_value.strip()
+        if not value:
+            return True
+        if value[:1] in {b'"', b"'"}:
+            return False
+        if value[:1] in {b"$", b"[", b">"}:
+            return True
+        if value[:1] in {b"&", b"*"}:
+            return value[1:].lstrip()[:1] not in {b'"', b"'"}
+        return (
+            _SOURCE_IDENTIFIER_EXPRESSION_BYTES.fullmatch(value) is not None
+            or b"::" in value
+            or b"." in value
+            or b"(" in value
         )
 
 
@@ -296,10 +355,12 @@ class GitFinalizeService:
                 "finalize_baseline_head_changed",
                 "HEAD changed after the current workspace baseline was captured",
             )
-        self._require_no_foreign_leases(session_id, normalized)
+        if not maintenance:
+            self._require_no_foreign_leases(session_id, normalized)
         self._require_no_pending_patches(session_id)
         categories = self._categorize(normalized)
-        untracked = tuple(path for path in normalized if not self._is_tracked(path))
+        tracked_paths = self._head_tracked_paths(normalized)
+        untracked = tuple(path for path in normalized if path not in tracked_paths)
         request_id = uuid.uuid4().hex
         with self.database.transaction() as connection:
             connection.execute(
@@ -401,7 +462,11 @@ class GitFinalizeService:
                     self._require_post_stage_attribution(
                         session_id, preview.paths, maintenance=maintenance
                     )
-                    self._require_index_matches_worktree(preview.paths)
+                    # Maintenance finalizes publish the index snapshot captured by
+                    # this transaction. Active Sessions may keep editing leased
+                    # paths; those later bytes remain dirty for the next snapshot.
+                    if not maintenance:
+                        self._require_index_matches_worktree(preview.paths)
                     self._require_post_stage_attribution(
                         session_id, preview.paths, maintenance=maintenance
                     )
@@ -1167,7 +1232,8 @@ class GitFinalizeService:
             )
         self._require_plan_outputs(session, preview.paths, maintenance=preview.maintenance)
         self._require_failure_acceptance(session, maintenance=preview.maintenance)
-        self._require_no_foreign_leases(session.session_id, preview.paths)
+        if not preview.maintenance:
+            self._require_no_foreign_leases(session.session_id, preview.paths)
         self._require_no_pending_patches(session.session_id)
 
     def _require_attribution(
@@ -1928,32 +1994,53 @@ class GitFinalizeService:
         return path.replace("\\", "/").casefold().startswith(".codex/sessions/")
 
     def _git_add_paths(self, paths: tuple[str, ...], *, force: bool = False) -> None:
-        for chunk in self._pathspec_chunks(paths):
+        if not paths:
+            return
+        pathspec_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(prefix="zircon-finalize-pathspec-", delete=False) as stream:
+                pathspec_path = Path(stream.name)
+                stream.write(b"\0".join(os.fsencode(path) for path in paths) + b"\0")
             arguments = ["add", "-A"]
             if force:
                 arguments.append("-f")
-            self._git(*arguments, "--", *chunk)
+            arguments.extend(
+                (
+                    f"--pathspec-from-file={pathspec_path.as_posix()}",
+                    "--pathspec-file-nul",
+                )
+            )
+            try:
+                self._git(*arguments)
+            except CoordinatorError as error:
+                if error.code != "finalize_git_command_failed":
+                    raise
+                raise CoordinatorError(
+                    error.code,
+                    str(error),
+                    details={**error.details, "path_chunk": list(paths)},
+                ) from error
+        except OSError as error:
+            raise CoordinatorError(
+                "finalize_pathspec_file_failed",
+                "Cannot materialize the scoped Git pathspec",
+                details={"error": self._safe_git_stderr(str(error))},
+            ) from error
+        finally:
+            if pathspec_path is not None:
+                pathspec_path.unlink(missing_ok=True)
 
     def _reset_index_paths(self, commit_sha: str, paths: tuple[str, ...]) -> None:
         for chunk in self._pathspec_chunks(paths):
             self._git("reset", "--quiet", commit_sha, "--", *chunk)
 
     def _head_tracked_paths(self, paths: tuple[str, ...]) -> set[str]:
-        tracked_keys: set[str] = set()
-        for chunk in self._pathspec_chunks(paths):
-            tracked_keys.update(
-                path.casefold()
-                for path in self._git_path_output(
-                    "--literal-pathspecs",
-                    "ls-tree",
-                    "-r",
-                    "-z",
-                    "--name-only",
-                    "HEAD",
-                    "--",
-                    *chunk,
-                )
+        tracked_keys = {
+            path.casefold()
+            for path in self._git_path_output(
+                "ls-tree", "-r", "-z", "--name-only", "HEAD"
             )
+        }
         return {path for path in paths if path.casefold() in tracked_keys}
 
     def _worktree_paths_differing_from_head(

@@ -40,7 +40,9 @@ fn ssr_parent_pyramid_mip_passes_clear_later_mips_after_graph_alias_mip() {
         passes[0].attachment_ops,
         RenderGraphAttachmentOps::load_store()
     );
-    assert!(passes[1..]
-        .iter()
-        .all(|pass| pass.attachment_ops == RenderGraphAttachmentOps::clear_store()));
+    assert!(
+        passes[1..]
+            .iter()
+            .all(|pass| pass.attachment_ops == RenderGraphAttachmentOps::clear_store())
+    );
 }

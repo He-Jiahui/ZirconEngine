@@ -200,7 +200,6 @@ impl UiSurface {
         let focus_before_dispatch = self.focus.focused;
         let capture_before_dispatch = self.focus.captured;
         let pressed_before_dispatch = self.focus.pressed;
-        let _hover_before_dispatch = self.focus.hovered.clone();
         let route = self.route_pointer_event_with_details(
             event.kind,
             query,

@@ -145,17 +145,6 @@ pub(super) fn leading_grapheme_continuation_len(previous_text: &str, next_text: 
     0
 }
 
-pub(super) fn grapheme_prefix(text: &str, max_graphemes: usize) -> &str {
-    if max_graphemes == 0 {
-        return "";
-    }
-    let end = grapheme_indices(text)
-        .map(|(index, grapheme)| index + grapheme.len())
-        .nth(max_graphemes - 1)
-        .unwrap_or(text.len());
-    &text[..end]
-}
-
 fn clamp_utf8_boundary(text: &str, offset: usize) -> usize {
     let mut offset = offset.min(text.len());
     while offset > 0 && !text.is_char_boundary(offset) {

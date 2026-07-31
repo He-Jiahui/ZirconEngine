@@ -12,9 +12,9 @@ use crate::graphics::{
 
 use super::super::plugin_render_feature_fixtures::particle_render_feature_descriptor;
 use super::{
-    anti_alias_product_profile, assert_executor_order, assert_taa_resolve_product_stats,
-    empty_temporal_taa_product_extract, frame_rgba_abs_delta,
-    submit_and_capture_anti_alias_product, TAA_RESOLVE_EXECUTOR_ID,
+    TAA_RESOLVE_EXECUTOR_ID, anti_alias_product_profile, assert_executor_order,
+    assert_taa_resolve_product_stats, empty_temporal_taa_product_extract, frame_rgba_abs_delta,
+    submit_and_capture_anti_alias_product,
 };
 
 const PARTICLE_TRANSPARENT_EXECUTOR_ID: &str = "particle.transparent";

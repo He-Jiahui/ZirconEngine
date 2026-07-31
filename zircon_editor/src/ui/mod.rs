@@ -11,11 +11,12 @@ pub mod control;
 pub mod host;
 pub(crate) mod layouts;
 pub mod material_editor;
-pub(crate) mod preferences;
 mod reflection;
 pub mod retained_host;
+pub(crate) mod sample_grid;
 pub(crate) mod template;
 pub mod template_runtime;
+pub(crate) mod v2_design_tokens;
 pub(crate) mod widgets;
 pub mod workbench;
 

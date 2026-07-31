@@ -1,0 +1,37 @@
+// Current-source post-roster reserved NPC construction vectors.
+
+var placement = %import("world/reserved_npc_placement");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+var seed = <uint>20061;
+
+if (placement.reservedNpcCount(true) != 2 ||
+    placement.npcId(0, true) != "groundskeeper_bram" ||
+    placement.entityId(0, true) != 1000000000 ||
+    placement.npcId(1, true) != "fury" ||
+    placement.entityId(1, true) != 1000000001) {
+    throw "woc reserved NPC identity vector failed";
+}
+
+if (placement.finalCoordinate(seed, 0, 1, true) != -6.0 ||
+    placement.finalCoordinate(seed, 0, 2, true) != -82.0 ||
+    !closeEnough(placement.finalGroundY(seed, 0, true), -2.258229712481497) ||
+    !closeEnough(placement.facing(0, true), 3.141592653589793)) {
+    throw "woc Groundskeeper Bram construction vector failed";
+}
+
+if (placement.finalCoordinate(seed, 1, 1, true) != -11.0 ||
+    placement.finalCoordinate(seed, 1, 2, true) != 1.0 ||
+    placement.finalGroundY(seed, 1, true) != 1.5 ||
+    !closeEnough(placement.facing(1, true), 1.5707963267948966)) {
+    throw "woc FURY construction vector failed";
+}
+
+return 0;

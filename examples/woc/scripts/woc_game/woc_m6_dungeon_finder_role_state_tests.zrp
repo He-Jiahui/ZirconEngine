@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_dungeon_finder_role_state_tests",
+  "source": "src",
+  "binary": "bin-m6-dungeon-finder-role-state-tests",
+  "entry": "social/dungeon_finder_role_state_test_main"
+}

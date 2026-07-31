@@ -3,7 +3,8 @@ use std::path::Path;
 use super::inventory::{
     ASSET_PIPELINE_MIRROR_DOC_ANCHORS, EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS,
     EXPECTED_RUNTIME_04_GUARD_ANCHORS, EXPECTED_RUNTIME_04_GUARD_FILES,
-    EXPECTED_RUNTIME_04_SOURCE_FILES,
+    EXPECTED_RUNTIME_04_SOURCE_FILES, RUNTIME_11_SHARED_COMPLETION_TEST_ANCHORS,
+    RUNTIME_11_WORKER_TIMER_TEST_ANCHORS,
 };
 use super::support::{assert_contains_all, assert_files_exist};
 
@@ -75,6 +76,32 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         "Runtime 04 behavior sources",
         &behavior_sources,
         EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS,
+    );
+    assert_contains_all(
+        "Runtime 11 worker timer regression",
+        include_str!("../../../asset/tests/pipeline/worker_pool.rs"),
+        RUNTIME_11_WORKER_TIMER_TEST_ANCHORS,
+    );
+    assert_contains_all(
+        "Runtime 11 shared completion payload matrix",
+        include_str!("../../../asset/pipeline/worker_pool/tests.rs"),
+        RUNTIME_11_SHARED_COMPLETION_TEST_ANCHORS,
+    );
+    let worker_pool_internal_tests = include_str!("../../../asset/pipeline/worker_pool/tests.rs");
+    assert!(
+        worker_pool_internal_tests.contains(
+            "#[ignore = \"the Runtime11 256 MiB RSS matrix is an explicit pressure validation\"]\nfn payload_256_mib_matrix_rejects_oversize_retention"
+        ),
+        "Runtime 11 must keep the 256 MiB pressure matrix out of ordinary focused tests"
+    );
+    assert_contains_all(
+        "Runtime 11 256 MiB pressure-matrix documentation",
+        include_str!("../../../../../docs/zircon_runtime/asset/worker_pool.md"),
+        &[
+            "payload_256_mib_matrix_rejects_oversize_retention",
+            "`--ignored`",
+            "not counted as ordinary focused-test evidence",
+        ],
     );
 
     let mirror_docs = [

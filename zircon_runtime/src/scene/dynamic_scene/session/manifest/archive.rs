@@ -39,11 +39,14 @@ impl RuntimeSessionArchiveManifest {
             .min_by(|left, right| compare_slot_summary_update_order(*left, *right))
     }
 
-    pub fn slots_with_tag(&self, tag: &str) -> impl Iterator<Item = &RuntimeSessionSlotSummary> {
-        let tag = tag.trim().to_string();
+    pub fn slots_with_tag<'a>(
+        &'a self,
+        tag: &'a str,
+    ) -> impl Iterator<Item = &'a RuntimeSessionSlotSummary> + 'a {
+        let tag = tag.trim();
         self.slots
             .iter()
-            .filter(move |slot| slot.metadata.tags.iter().any(|candidate| candidate == &tag))
+            .filter(move |slot| slot.metadata.tags.iter().any(|candidate| candidate == tag))
     }
 
     pub fn latest_updated_slot_with_tag(&self, tag: &str) -> Option<&RuntimeSessionSlotSummary> {
@@ -70,16 +73,16 @@ impl RuntimeSessionArchiveManifest {
 
     pub fn slots_matching_display_name<'a>(
         &'a self,
-        query: &str,
-    ) -> impl Iterator<Item = &'a RuntimeSessionSlotSummary> {
-        let query = query.trim().to_string();
+        query: &'a str,
+    ) -> impl Iterator<Item = &'a RuntimeSessionSlotSummary> + 'a {
+        let query = query.trim();
         self.slots.iter().filter(move |slot| {
             !query.is_empty()
                 && slot
                     .metadata
                     .display_name
                     .as_deref()
-                    .is_some_and(|display_name| display_name.contains(query.as_str()))
+                    .is_some_and(|display_name| display_name.contains(query))
         })
     }
 }

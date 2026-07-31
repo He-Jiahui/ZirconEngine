@@ -138,6 +138,7 @@ impl EditorUiHost {
             (route, source_path, source)
         };
         let preview_size = preview_size_for_preset(route.preview_preset);
+        let route_asset_id = route.asset_id.clone();
         let session =
             build_ui_asset_editor_session_from_source(route, source.clone(), preview_size)
                 .map_err(|error| EditorError::UiAsset(error.to_string()))?;
@@ -145,6 +146,8 @@ impl EditorUiHost {
             instance.instance_id.clone(),
             UiAssetWorkspaceEntry::new(source_path, source, session),
         );
+        self.lock_ui_asset_dependency_generation()
+            .register_route(instance.instance_id.clone(), &route_asset_id);
         self.hydrate_ui_asset_editor_imports(&instance.instance_id)?;
         self.sync_ui_asset_editor_instance(&instance.instance_id)
     }

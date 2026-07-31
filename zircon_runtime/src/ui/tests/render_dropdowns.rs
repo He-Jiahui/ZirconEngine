@@ -1,11 +1,30 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn dropdown_rendering_resolves_the_owned_label_once() {
+    let source = include_str!("../surface/render/dropdowns.rs");
+
+    assert_eq!(
+        source.matches("dropdown_label(metadata)").count(),
+        1,
+        "dropdown label ownership should be resolved once per render"
+    );
+    assert!(source.contains("EditorDesignTokens"));
+    assert!(source.contains("EditorTypographyTokens"));
+    assert!(source.contains("style_overrides"));
+    assert!(source.contains("parse_css_color"));
+    assert!(source.contains("value_as_f32"));
+    assert!(!source.contains("const SURFACE_IDLE"));
+    assert!(!source.contains("const LABEL_FONT_SIZE"));
+}
 
 #[test]
 fn render_extract_expands_dropdown_trigger_primitives() {
@@ -49,8 +68,8 @@ corner_radius = 4.0
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 16.0, 160.0, 30.0)
-            && command.style.background_color.as_deref() == Some("#16282d")
-            && command.style.border_color.as_deref() == Some("#35c7d0")
+            && command.style.background_color.as_deref() == Some("#17434d")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_family == UiPainterFamily::Dropdown
             && command.style.painter_state == UiPainterResolvedState::Open
     }));
@@ -58,13 +77,28 @@ corner_radius = 4.0
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Blend")
-            && command.frame == UiFrame::new(20.0, 20.0, 124.0, 12.0)
+            && command.frame
+                == UiFrame::new(
+                    20.0,
+                    17.0,
+                    124.0,
+                    EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+                        * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+                )
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Post Process")
-            && command.frame == UiFrame::new(20.0, 31.0, 124.0, 13.200001)
+            && command.frame
+                == UiFrame::new(
+                    20.0,
+                    31.0,
+                    124.0,
+                    EditorTypographyTokens::WORKBENCH_OVERLAY_SIZE
+                        * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+                )
+            && command.style.font_size == EditorTypographyTokens::WORKBENCH_OVERLAY_SIZE
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -75,8 +109,8 @@ corner_radius = 4.0
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(168.0, 21.0, 2.0, 20.0)
-            && command.style.background_color.as_deref() == Some("#35c7d0")
+            && command.frame == UiFrame::new(169.0, 21.0, 2.0, 20.0)
+            && command.style.background_color.as_deref() == Some("#3cc7d6")
     }));
     assert_eq!(
         commands
@@ -152,7 +186,7 @@ active_drag_target = true
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 56.0, 160.0, 30.0)
-            && command.style.border_color.as_deref() == Some("#35c7d0")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_family == UiPainterFamily::Dropdown
             && command.style.painter_state == UiPainterResolvedState::DropHovered
     }));
@@ -290,34 +324,94 @@ icon_color = "#ef7066"
             && command.frame == UiFrame::new(12.0, 16.0, 160.0, 30.0)
             && command.style.painter_family == UiPainterFamily::Dropdown
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#252c31")
-            && command.style.border_color.as_deref() == Some("#343f47")
+            && command.style.background_color.as_deref() == Some("#22272b")
+            && command.style.border_color.as_deref() == Some("#2c3237")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Mode")
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Compiling")
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Image
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("chevron-down".to_string()))
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(!commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(168.0, 21.0, 2.0, 20.0)
+    }));
+}
+
+#[test]
+fn render_extract_dropdown_honors_valid_visual_and_metric_overrides() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.dropdowns.overrides"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 240.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Dropdown",
+        UiFrame::new(12.0, 16.0, 160.0, 32.0),
+        r##"
+value_text = "Override"
+background_color = "#121820"
+border_color = "#21303a"
+foreground_color = "#e1e5e8"
+border_width = 2.0
+corner_radius = 6.0
+horizontal_inset = 12.0
+caret_size = 10.0
+caret_right_inset = 9.0
+caret_gap = 3.0
+font_size = 10.0
+line_height = 12.0
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(12.0, 16.0, 160.0, 32.0)
+            && command.style.background_color.as_deref() == Some("#121820")
+            && command.style.border_color.as_deref() == Some("#21303a")
+            && command.style.border_width == 2.0
+            && command.style.corner_radius == 6.0
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Override")
+            && command.frame == UiFrame::new(24.0, 26.0, 126.0, 12.0)
+            && command.style.foreground_color.as_deref() == Some("#e1e5e8")
+            && command.style.font_size == 10.0
+            && command.style.line_height == 12.0
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Image
+            && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("chevron-down".to_string()))
+            && command.frame == UiFrame::new(153.0, 27.0, 10.0, 10.0)
+            && command.style.foreground_color.as_deref() == Some("#e1e5e8")
     }));
 }
 

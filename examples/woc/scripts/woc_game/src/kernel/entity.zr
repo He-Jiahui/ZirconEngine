@@ -1,0 +1,355 @@
+var {Array} = %import("zr.container");
+
+pub class EntityRef {
+    pub var id: uint = <uint>0;
+    pub var generation: uint = <uint>0;
+
+    pub @constructor(id: uint, generation: uint) {
+        this.id = id;
+        this.generation = generation;
+    }
+}
+
+pub class Vec3 {
+    pub var x: float = 0.0;
+    pub var y: float = 0.0;
+    pub var z: float = 0.0;
+
+    pub @constructor(x: float, y: float, z: float) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    pub copy(): Vec3 {
+        return new Vec3(this.x, this.y, this.z);
+    }
+}
+
+pub class Entity {
+    pub var id: uint = <uint>0;
+    pub var generation: uint = <uint>0;
+    pub var kind: string = "mob";
+    pub var templateId: string = "";
+    pub var level: int = 1;
+    pub var pos: Vec3 = new Vec3(0.0, 0.0, 0.0);
+    pub var prevPos: Vec3 = new Vec3(0.0, 0.0, 0.0);
+    pub var spawnPos: Vec3 = new Vec3(0.0, 0.0, 0.0);
+    pub var facing: float = 0.0;
+    pub var previousFacing: float = 0.0;
+    pub var moveSpeed: float = 7.0;
+    pub var hp: int = 1;
+    pub var maxHp: int = 1;
+    pub var hostile: bool = false;
+    pub var dead: bool = false;
+    pub var aiState: string = "idle";
+    pub var targetId: uint = <uint>0;
+    pub var respawnTimer: float = 0.0;
+    pub var corpseTimer: float = 0.0;
+
+    pub @constructor(reference: EntityRef, kind: string, templateId: string, pos: Vec3) {
+        this.id = reference.id;
+        this.generation = reference.generation;
+        this.kind = kind;
+        this.templateId = templateId;
+        this.level = 1;
+        this.pos = pos.copy();
+        this.prevPos = pos.copy();
+        this.spawnPos = pos.copy();
+        this.facing = 0.0;
+        this.previousFacing = 0.0;
+        this.moveSpeed = 7.0;
+        this.hp = 1;
+        this.maxHp = 1;
+        this.hostile = false;
+        this.dead = false;
+        this.aiState = "idle";
+        this.targetId = <uint>0;
+        this.respawnTimer = 0.0;
+        this.corpseTimer = 0.0;
+    }
+
+    pub reference(): EntityRef {
+        return new EntityRef(this.id, this.generation);
+    }
+
+    pub copy(): Entity {
+        var reference = new EntityRef(this.id, this.generation);
+        var result = new Entity(reference, this.kind, this.templateId, this.pos);
+        result.level = this.level;
+        result.prevPos = this.prevPos.copy();
+        result.spawnPos = this.spawnPos.copy();
+        result.facing = this.facing;
+        result.previousFacing = this.previousFacing;
+        result.moveSpeed = this.moveSpeed;
+        result.hp = this.hp;
+        result.maxHp = this.maxHp;
+        result.hostile = this.hostile;
+        result.dead = this.dead;
+        result.aiState = this.aiState;
+        result.targetId = this.targetId;
+        result.respawnTimer = this.respawnTimer;
+        result.corpseTimer = this.corpseTimer;
+        return result;
+    }
+
+    pub moveToward(targetX: float, targetZ: float, delta: float): bool {
+        if (this.dead || delta <= 0.0) {
+            return false;
+        }
+        var locomotion = %import("kernel/locomotion");
+        var dx = targetX - this.pos.x;
+        var dz = targetZ - this.pos.z;
+        var distance = locomotion.distance2d(dx, dz);
+        this.prevPos = this.pos.copy();
+        this.previousFacing = this.facing;
+        if (distance <= 0.000001) {
+            return false;
+        }
+        var step = this.moveSpeed * delta;
+        if (step > distance) {
+            step = distance;
+        }
+        var position = this.pos;
+        position.x = locomotion.integrateAxis(position.x, dx, distance, step);
+        position.z = locomotion.integrateAxis(position.z, dz, distance, step);
+        this.facing = locomotion.facing(dx, dz);
+        return true;
+    }
+}
+
+class EntityStore {
+    pri var initialized: bool = false;
+    pri var nextId: uint = <uint>1;
+    pri var entities: Array<object> = new Array<object>();
+    pri var generations: Array<uint> = new Array<uint>();
+    pri var activeIds: Array<uint> = new Array<uint>();
+    pri var freeIds: Array<uint> = new Array<uint>();
+
+    pub @constructor(startId: uint) {
+        var container = %import("zr.container");
+        this.nextId = startId;
+        this.entities = new container.Array<object>();
+        this.generations = new container.Array<uint>();
+        this.activeIds = new container.Array<uint>();
+        this.freeIds = new container.Array<uint>();
+        var missingGeneration = <uint>1;
+        while (missingGeneration < startId) {
+            this.generations.add(<uint>0);
+            missingGeneration = missingGeneration + <uint>1;
+        }
+        this.initialized = true;
+    }
+
+    pub spawn(kind: string, templateId: string, pos: Vec3): Entity {
+        if (!this.initialized) {
+            throw "entity store constructor was not executed";
+        }
+        var freeIds = this.freeIds;
+        var generations = this.generations;
+        var activeIds = this.activeIds;
+        var entities = this.entities;
+        var id: uint;
+        if (freeIds.length > 0) {
+            id = <uint>freeIds[0];
+            freeIds.removeAt(0);
+        } else {
+            id = this.nextId;
+            this.nextId = this.nextId + <uint>1;
+        }
+        var generationIndex = <int>id - 1;
+        if (generationIndex == generations.length) {
+            generations.add(<uint>1);
+        }
+        var generation = <uint>generations[generationIndex];
+        if (generation == <uint>0) {
+            generation = <uint>1;
+            generations[generationIndex] = generation;
+        }
+        var reference = new EntityRef(id, generation);
+        var entity = new Entity(reference, kind, templateId, pos);
+        activeIds.add(reference.id);
+        entities.add(entity);
+        var activeIndex = activeIds.length - 1;
+        while (activeIndex > 0 && <uint>activeIds[activeIndex - 1] > reference.id) {
+            activeIds[activeIndex] = <uint>activeIds[activeIndex - 1];
+            activeIndex = activeIndex - 1;
+        }
+        activeIds[activeIndex] = reference.id;
+        return entity;
+    }
+
+    pub resolve(reference: EntityRef) {
+        if (reference.id == <uint>0 || <int>reference.id > this.generations.length ||
+            <uint>this.generations[<int>reference.id - 1] != reference.generation) {
+            return null;
+        }
+        var index = 0;
+        while (index < this.entities.length) {
+            var candidate = this.entities[index];
+            if (<uint>candidate.id == reference.id) {
+                return candidate;
+            }
+            index = index + 1;
+        }
+        return null;
+    }
+
+    pub getById(id: uint) {
+        var index = 0;
+        while (index < this.entities.length) {
+            var candidate = this.entities[index];
+            if (<uint>candidate.id == id) {
+                return candidate;
+            }
+            index = index + 1;
+        }
+        return null;
+    }
+
+    pub despawn(reference: EntityRef): bool {
+        if (reference.id == <uint>0 || <int>reference.id > this.generations.length ||
+            <uint>this.generations[<int>reference.id - 1] != reference.generation) {
+            return false;
+        }
+        var entities = this.entities;
+        var activeIds = this.activeIds;
+        var generations = this.generations;
+        var freeIds = this.freeIds;
+        var entityIndex = 0;
+        while (entityIndex < entities.length && <uint>entities[entityIndex].id != reference.id) {
+            entityIndex = entityIndex + 1;
+        }
+        if (entityIndex >= entities.length) {
+            return false;
+        }
+        entities.removeAt(entityIndex);
+        var activeIndex = 0;
+        while (activeIndex < activeIds.length && <uint>activeIds[activeIndex] < reference.id) {
+            activeIndex = activeIndex + 1;
+        }
+        activeIds.removeAt(activeIndex);
+        generations[<int>reference.id - 1] = reference.generation + <uint>1;
+        freeIds.add(reference.id);
+        var freeIndex = freeIds.length - 1;
+        while (freeIndex > 0 && <uint>freeIds[freeIndex - 1] > reference.id) {
+            freeIds[freeIndex] = <uint>freeIds[freeIndex - 1];
+            freeIndex = freeIndex - 1;
+        }
+        freeIds[freeIndex] = reference.id;
+        return true;
+    }
+
+    pub orderedCount(): int {
+        return this.activeIds.length;
+    }
+
+    pub orderedIdAt(index: int): uint {
+        if (index < 0 || index >= this.activeIds.length) {
+            throw "ordered entity index out of range";
+        }
+        return <uint>this.activeIds[index];
+    }
+
+    pub snapshot(): EntityStore {
+        var result = new EntityStore(<uint>1);
+        result.nextId = this.nextId;
+        for (var generation in this.generations) {
+            result.generations.add(<uint>generation);
+        }
+        for (var id in this.activeIds) {
+            result.activeIds.add(<uint>id);
+        }
+        var index = 0;
+        while (index < this.entities.length) {
+            var entity: Entity = <Entity>this.entities[index];
+            result.entities.add(entity.copy());
+            index = index + 1;
+        }
+        for (var freeId in this.freeIds) {
+            result.freeIds.add(<uint>freeId);
+        }
+        return result;
+    }
+
+}
+
+pub generationReuseTest(): int {
+    var store = new EntityStore(<uint>1);
+    var first = store.spawn("mob", "wolf", new Vec3(0.0, 0.0, 0.0));
+    var stale = first.reference();
+    if (!store.despawn(stale)) {
+        return -1;
+    }
+    var second = store.spawn("mob", "wolf", new Vec3(0.0, 0.0, 0.0));
+    if (second.id != stale.id || second.generation != stale.generation + <uint>1) {
+        return -2;
+    }
+    if (store.resolve(stale) != null) {
+        return -3;
+    }
+    return 1;
+}
+
+pub sortedIterationTest(): int {
+    var store = new EntityStore(<uint>1);
+    var first = store.spawn("mob", "a", new Vec3(0.0, 0.0, 0.0));
+    var second = store.spawn("mob", "b", new Vec3(0.0, 0.0, 0.0));
+    var third = store.spawn("mob", "c", new Vec3(0.0, 0.0, 0.0));
+    store.despawn(second.reference());
+    store.despawn(first.reference());
+    store.spawn("mob", "d", new Vec3(0.0, 0.0, 0.0));
+    store.spawn("mob", "e", new Vec3(0.0, 0.0, 0.0));
+    if (store.orderedCount() != 3 || store.orderedIdAt(0) != <uint>1 ||
+        store.orderedIdAt(1) != <uint>2 || store.orderedIdAt(2) != third.id) {
+        return -1;
+    }
+    return 1;
+}
+
+pub snapshotIsolationTest(): int {
+    var store = new EntityStore(<uint>1);
+    var entity = store.spawn("mob", "wolf", new Vec3(1.0, 2.0, 3.0));
+    var entityId = entity.id;
+    var snapshot = store.snapshot();
+    var position = entity.pos;
+    position.x = 99.0;
+    var copied = snapshot.getById(entityId);
+    if (copied == null || copied.pos.x != 1.0) {
+        return -1;
+    }
+    return 1;
+}
+
+pub movementIntegrationTest(): int {
+    var store = new EntityStore(<uint>1);
+    var entity = store.spawn("mob", "wolf", new Vec3(0.0, 0.0, 0.0));
+    if (!entity.moveToward(1.0, 0.0, 0.05)) {
+        return -1;
+    }
+    if (entity.pos.x < 0.349999 || entity.pos.x > 0.350001 || entity.pos.z != 0.0) {
+        return -2;
+    }
+    return 1;
+}
+
+pub movementBoundaryTest(): int {
+    var store = new EntityStore(<uint>1);
+    var entity = store.spawn("mob", "wolf", new Vec3(0.0, 0.0, 0.0));
+    if (!entity.moveToward(0.1, 0.0, 0.05)) {
+        return -1;
+    }
+    if (entity.pos.x < 0.099999 || entity.pos.x > 0.100001 || entity.pos.z != 0.0) {
+        return -2;
+    }
+    if (entity.moveToward(0.1, 0.0, 0.05) ||
+        entity.pos.x < 0.099999 || entity.pos.x > 0.100001) {
+        return -3;
+    }
+    entity.dead = true;
+    if (entity.moveToward(1.0, 0.0, 0.05) ||
+        entity.pos.x < 0.099999 || entity.pos.x > 0.100001) {
+        return -4;
+    }
+    return 1;
+}

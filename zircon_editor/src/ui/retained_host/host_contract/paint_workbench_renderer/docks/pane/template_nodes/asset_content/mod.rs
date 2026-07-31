@@ -1,4 +1,3 @@
-mod identity;
 mod projector;
 
 pub(super) use projector::{ActivityAssetContentProjector, BrowserAssetContentProjector};

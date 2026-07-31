@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_delve_baptistry_state_tests",
+  "source": "src",
+  "binary": "bin-m7-delve-baptistry-state-tests",
+  "entry": "instances/delve_baptistry_state_test_main"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_combat_command_contract_tests",
+  "source": "src",
+  "binary": "bin-m4-combat-command-contract-tests",
+  "entry": "combat/combat_command_contract_test_main"
+}

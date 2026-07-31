@@ -1,5 +1,5 @@
 use crate::core::framework::render::{ProjectionMode, ViewportCameraSnapshot};
-use crate::core::math::{is_finite_vec3, Mat4, Real, Vec3};
+use crate::core::math::{Mat4, Real, Vec3, is_finite_vec3};
 
 pub(crate) const MAX_SHADOW_CASCADES: usize = 4;
 pub(crate) const DEFAULT_CASCADE_COUNT: u32 = 4;

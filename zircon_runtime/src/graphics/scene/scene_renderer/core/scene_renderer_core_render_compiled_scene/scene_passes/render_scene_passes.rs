@@ -1,6 +1,7 @@
+use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{
-    pop_group, push_group, RENDERDOC_MARKER_DEFERRED_LIGHTING, RENDERDOC_MARKER_MAIN_SCENE,
+    RENDERDOC_MARKER_DEFERRED_LIGHTING, RENDERDOC_MARKER_MAIN_SCENE, pop_group, push_group,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -10,7 +11,6 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
-use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::environment::IblBakeWgpuPipelineCache;
@@ -20,7 +20,7 @@ use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
 use super::super::super::super::shadow::atlas::ShadowAtlasResources;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::scene_renderer_core::SceneRendererCore;
-use super::super::render::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
+use super::super::render::execute_graph_stage::{RenderGraphStageExecution, execute_graph_stage};
 
 impl SceneRendererCore {
     #[allow(clippy::too_many_arguments)]

@@ -14,6 +14,10 @@ pub use event_mirror::{
     RuntimeEventMirrorDescriptor, RuntimeEventMirrorError, RuntimeEventMirrorRegistration,
     RuntimeEventMirrorSubscription,
 };
+pub(crate) use event_mirror::{
+    RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS, RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
+    RUNTIME_EVENT_MIRROR_QUEUE_MAX_EVENTS,
+};
 pub use level_system::{
     AnimationStateTransitionRuntime, LevelLifecycleState, LevelMetadata, LevelSystem,
 };
@@ -22,7 +26,7 @@ pub use module::{
     create_default_level, create_level, install_scene_runtime_hooks,
     install_world_runtime_extension_plan, load_level_asset, module_descriptor,
     scene_runtime_hooks_for_stage, DefaultLevelManager, SceneModule, WorldDriver,
-    DEFAULT_LEVEL_MANAGER_NAME, SCENE_MODULE_NAME, WORLD_DRIVER_NAME,
+    DEFAULT_LEVEL_MANAGER_NAME, WORLD_DRIVER_NAME,
 };
 pub use navigation::{
     SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
@@ -73,7 +77,12 @@ pub use dynamic_scene::{
     ScenePatchPreviewComponentType, ScenePatchPreviewEntityRemap, ScenePatchPreviewReport,
     ScenePatchPreviewResource, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
-pub use inspection::{WorldInspection, WorldInspectionField, WorldInspectionHierarchyRow};
+pub use inspection::{
+    WorldInspection, WorldInspectionArtifact, WorldInspectionArtifactDiagnostics,
+    WorldInspectionDelta, WorldInspectionField, WorldInspectionFieldDelta,
+    WorldInspectionFieldPath, WorldInspectionFieldsArtifact, WorldInspectionHierarchyRow,
+    WorldInspectionSummary,
+};
 pub use reflect::{
     derived_component_registration, derived_component_registration_with_adapter,
     json_from_reflected, reflected_from_json, reflected_from_scene_value,

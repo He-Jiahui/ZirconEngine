@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 
+use crate::scene::viewport::ViewportInteractionExtract;
 use crate::scene::viewport::pointer::{
     precision::SharedResolutionState, viewport_pointer_layout::ViewportPointerLayout,
 };
@@ -11,4 +12,5 @@ pub(crate) struct ViewportOverlayPointerRouter {
     pub(in crate::scene::viewport::pointer) surface: UiSurface,
     pub(in crate::scene::viewport::pointer) dispatcher: UiPointerDispatcher,
     pub(in crate::scene::viewport::pointer) shared: Arc<Mutex<SharedResolutionState>>,
+    pub(super) interaction_extract: Option<Arc<ViewportInteractionExtract>>,
 }

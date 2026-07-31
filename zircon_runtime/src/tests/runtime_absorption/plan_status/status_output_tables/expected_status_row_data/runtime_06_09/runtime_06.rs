@@ -34,7 +34,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "runtime_06_native_hot_update_replay_public_surface_audit_sync_static_passed_cargo_deferred",
             "NativePluginRuntimeDeltaHotUpdateReport",
             "NativePluginRuntimeRegistrationReplayReport",
-            "native_namespace_reexport_count = 64",
+            "native_namespace_reexport_count = 68",
             "native loader test files 4/4",
             "native test namespace import files 3/3",
             "standalone plugin_surface_lifecycle 3/3",
@@ -90,7 +90,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         &[
             "plugin::native",
             "root_reexport_count = 0",
-            "native_namespace_reexport_count = 64",
+            "native_namespace_reexport_count = 68",
             "M4 gate `classified-and-clear`",
         ],
     ),

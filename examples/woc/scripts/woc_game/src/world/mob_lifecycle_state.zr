@@ -1,0 +1,73 @@
+// Primitive-only projection of the common wild-mob death and respawn branch.
+// WorldState owns rows, loot and target cleanup; this module pins the source
+// state labels, 20 Hz timer cadence and respawn eligibility without an ABI
+// crossing through a mutable entity object.
+
+pub idleAiState(): uint { return <uint>1; }
+pub chaseAiState(): uint { return <uint>2; }
+pub attackAiState(): uint { return <uint>3; }
+pub fleeAiState(): uint { return <uint>4; }
+pub evadeAiState(): uint { return <uint>5; }
+pub deadAiState(): uint { return <uint>6; }
+
+pub fixedTickMicros(): uint { return <uint>50000; }
+pub defaultCorpseMicros(): uint { return <uint>60000000; }
+pub defaultRespawnMicros(): uint { return <uint>30000000; }
+
+pub timerAfterFixedTick(remaining: uint): uint {
+    var tick = fixedTickMicros();
+    return remaining > tick ? remaining - tick : <uint>0;
+}
+
+pub shouldStartDeath(dead: bool, hp: int): bool {
+    return !dead && hp <= 0;
+}
+
+// Source updateMob defers an in-place wild respawn while a lootable corpse is
+// still inside its corpse-decay window.
+pub shouldRespawnWildMob(
+    dead: bool,
+    respawnMicros: uint,
+    corpseMicros: uint,
+    lootable: bool
+): bool {
+    return dead && respawnMicros == <uint>0 &&
+        (corpseMicros == <uint>0 || !lootable);
+}
+
+// Mirrors rng.range(2, 8) used by respawnMob after the source reset body.
+pub respawnWanderTimer(randomUnit: float): float {
+    return 2.0 + randomUnit * 6.0;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    if (idleAiState() != <uint>1 || chaseAiState() != <uint>2 ||
+        attackAiState() != <uint>3 || fleeAiState() != <uint>4 ||
+        evadeAiState() != <uint>5 || deadAiState() != <uint>6) {
+        return -1;
+    }
+    if (fixedTickMicros() != <uint>50000 ||
+        defaultCorpseMicros() != <uint>60000000 ||
+        defaultRespawnMicros() != <uint>30000000 ||
+        timerAfterFixedTick(<uint>50001) != <uint>1 ||
+        timerAfterFixedTick(<uint>50000) != <uint>0) {
+        return -2;
+    }
+    if (!shouldStartDeath(false, 0) || shouldStartDeath(true, 0) ||
+        shouldStartDeath(false, 1) ||
+        shouldRespawnWildMob(true, <uint>1, <uint>0, false) ||
+        shouldRespawnWildMob(true, <uint>0, <uint>1, true) ||
+        !shouldRespawnWildMob(true, <uint>0, <uint>1, false) ||
+        !shouldRespawnWildMob(true, <uint>0, <uint>0, true)) {
+        return -3;
+    }
+    return closeEnough(respawnWanderTimer(0.0), 2.0) &&
+        closeEnough(respawnWanderTimer(0.5), 5.0) &&
+        closeEnough(respawnWanderTimer(0.999), 7.994) ? 1 : -4;
+}

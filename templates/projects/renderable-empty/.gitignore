@@ -3,6 +3,7 @@
 !/.zircon/cache/
 !/.zircon/play/
 !/.zircon/registry/
+!/.zircon/settings.toml
 !/.zircon/thumbnails/
 !/.zircon/autosave/.gitignore
 !/.zircon/cache/.gitignore

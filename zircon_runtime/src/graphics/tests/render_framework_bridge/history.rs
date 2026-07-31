@@ -28,9 +28,11 @@ fn render_framework_records_temporal_history_after_compatible_history_exists() {
         Some(FrameHistoryInvalidationReason::NoPreviousFrame)
     );
     assert!(!first_stats.last_frame_history_status.previous_available);
-    assert!(!first_stats
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
+    assert!(
+        !first_stats
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
+    );
 
     server
         .submit_frame_extract(viewport, test_extract())
@@ -41,9 +43,11 @@ fn render_framework_records_temporal_history_after_compatible_history_exists() {
         second_stats.last_frame_history_status.invalidation_reason,
         None
     );
-    assert!(!second_stats
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
+    assert!(
+        !second_stats
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
+    );
 }
 
 #[test]
@@ -66,9 +70,11 @@ fn render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts() {
     assert_eq!(stats.last_ui_command_count, 1);
     assert_eq!(stats.last_ui_quad_count, 1);
     assert_eq!(stats.last_ui_text_payload_count, 1);
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"ui.screen-space".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"ui.screen-space".to_string())
+    );
     assert_eq!(stats.last_ui_graph_executed_pass_count, 1);
     assert_eq!(stats.last_ui_target_size, Some(UVec2::new(320, 240)));
     assert_eq!(
@@ -135,9 +141,11 @@ fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
         Some(FrameHistoryHandle::new(1))
     );
     assert!(compatible.last_frame_history_status.previous_available);
-    assert!(!compatible
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
+    assert!(
+        !compatible
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
+    );
 
     let mut moved_camera = test_extract();
     moved_camera.view.camera.transform = Transform::from_translation(Vec3::new(0.25, 0.0, 0.0));
@@ -161,9 +169,11 @@ fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
         invalidated.last_frame_history_status.invalidation_reason,
         Some(FrameHistoryInvalidationReason::FrameInputsChanged)
     );
-    assert!(!invalidated
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
+    assert!(
+        !invalidated
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
+    );
 }
 
 #[test]
@@ -228,7 +238,9 @@ fn render_framework_invalidates_history_when_dynamic_render_size_changes() {
         invalidated.last_frame_history_status.invalidation_reason,
         Some(FrameHistoryInvalidationReason::RenderSizeChanged)
     );
-    assert!(!invalidated
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
+    assert!(
+        !invalidated
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
+    );
 }

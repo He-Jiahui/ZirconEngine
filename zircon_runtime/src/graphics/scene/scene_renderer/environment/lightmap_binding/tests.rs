@@ -45,9 +45,11 @@ fn render_env_lightmap_bindings_do_not_overlap_volumetric_apply() {
             .map(|entry| entry.binding);
 
     assert_eq!(LIGHTMAP_SAMPLER_BINDING, 28);
-    assert!(lightmap_bindings
-        .iter()
-        .all(|binding| !volumetric_bindings.contains(binding)));
+    assert!(
+        lightmap_bindings
+            .iter()
+            .all(|binding| !volumetric_bindings.contains(binding))
+    );
 }
 
 #[test]

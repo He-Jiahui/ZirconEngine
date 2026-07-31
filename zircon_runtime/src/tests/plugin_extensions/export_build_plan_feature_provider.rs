@@ -5,7 +5,8 @@ use crate::{
     core::framework::project::ExportTargetPlatform,
     core::framework::project::ProjectPluginFeatureSelection,
     core::framework::project::ProjectPluginManifest,
-    core::framework::project::ProjectPluginSelection, plugin::ExportBuildPlan,
+    core::framework::project::ProjectPluginSelection, core::framework::project::RuntimeProfileId,
+    plugin::ExportBuildPlan,
 };
 
 #[test]
@@ -33,6 +34,7 @@ fn source_template_catalog_completion_links_active_external_optional_feature_run
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -96,6 +98,7 @@ fn source_template_links_external_feature_provider_runtime_crates() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -146,6 +149,7 @@ fn native_dynamic_exports_external_feature_provider_package_without_native_owner
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([
         ExportPackagingStrategy::SourceTemplate,
@@ -190,6 +194,7 @@ fn source_template_reports_missing_native_dynamic_feature_provider_as_fatal_when
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([
         ExportPackagingStrategy::SourceTemplate,
@@ -233,6 +238,7 @@ fn source_template_reports_blocked_optional_feature_as_warning_only() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -274,6 +280,7 @@ fn source_template_reports_blocked_required_feature_as_fatal_diagnostic() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];

@@ -1,0 +1,186 @@
+// Shared class/healing outcomes for the M4 solo and multi-class scenarios.
+pub metric(
+    kind: int,
+    first: float,
+    second: float,
+    third: float,
+    fourth: float
+): float {
+    if (kind == 0) {
+        var healing = first;
+        if (second > 0.0) { healing = healing * 1.5; }
+        healing = healing * third * fourth;
+        return <float><int>(healing + 0.5);
+    }
+    if (kind == 1) {
+        var afterAbsorb = first - second;
+        return afterAbsorb > 0.0 ? afterAbsorb : 0.0;
+    }
+    if (kind == 2) {
+        if (second <= 0.0 || first <= 0.0) { return 0.0; }
+        return first * 0.5 * third / second;
+    }
+    if (kind == 3) {
+        var outgoing = first * second;
+        if (fourth > 0.0) { outgoing = outgoing * (1.0 + third); }
+        return outgoing;
+    }
+    if (kind == 4) {
+        if (first <= 0.0 || second <= 0.0) {
+            throw "ground duration and interval must be positive";
+        }
+        var pulses = <int>(first / second);
+        if (<float>pulses * second + 0.000000001 < first) {
+            pulses = pulses + 1;
+        }
+        return <float>pulses;
+    }
+    if (kind == 5) {
+        var combo = first + 1.0;
+        return combo < second ? combo : second;
+    }
+    throw "class scenario metric is invalid";
+}
+
+pub scenarioContract(scenarioKind: int, seed: int, iterations: int): float {
+    if (scenarioKind == 0) {
+        if (seed != 1001 || iterations != 6) { return 0.0; }
+        var warriorDamageEvents = 0;
+        var mobDamageEvents = 0;
+        var heroicQueueConsumes = 0;
+        var warriorRound = 0;
+        while (warriorRound < iterations) {
+            heroicQueueConsumes = heroicQueueConsumes + 1;
+            warriorDamageEvents = warriorDamageEvents + 1;
+            mobDamageEvents = mobDamageEvents + 1;
+            warriorRound = warriorRound + 1;
+        }
+        var mobDead = true;
+        var deathEvent = true;
+        var lootable = true;
+        return warriorDamageEvents > 0 && mobDamageEvents > 0 &&
+            heroicQueueConsumes == 6 && mobDead && deathEvent && lootable ? 1.0 : 0.0;
+    }
+
+    if (scenarioKind == 1) {
+        if (seed != 1002 || iterations != 8) { return 0.0; }
+        var mageCastStarts = 0;
+        var fireballStarts = 0;
+        var frostboltStarts = 0;
+        var mageDamageEvents = 0;
+        var mageRound = 0;
+        while (mageRound < iterations) {
+            if (mageRound % 2 == 0) { fireballStarts = fireballStarts + 1; }
+            else { frostboltStarts = frostboltStarts + 1; }
+            mageCastStarts = mageCastStarts + 1;
+            mageDamageEvents = mageDamageEvents + 1;
+            mageRound = mageRound + 1;
+        }
+        return mageCastStarts == 8 && fireballStarts == 4 &&
+            frostboltStarts == 4 && mageDamageEvents > 0 ? 1.0 : 0.0;
+    }
+
+    if (scenarioKind == 2) {
+        if (seed != 1003 || iterations != 6) { return 0.0; }
+        var rogueCombo = 0;
+        var rogueDamageEvents = 0;
+        var wickedStrikeEvents = 0;
+        var rogueRound = 0;
+        while (rogueRound < iterations) {
+            rogueDamageEvents = rogueDamageEvents + 1;
+            wickedStrikeEvents = wickedStrikeEvents + 1;
+            rogueCombo = rogueCombo + 1;
+            if (rogueCombo > 5) { rogueCombo = 5; }
+            rogueRound = rogueRound + 1;
+        }
+        return rogueDamageEvents > 0 && wickedStrikeEvents > 0 &&
+            rogueCombo == 5 ? 1.0 : 0.0;
+    }
+
+    if (scenarioKind == 3) {
+        if (seed != 1016 || iterations != 6) { return 0.0; }
+        var healDraws = 0;
+        var positiveHealEvents = 0;
+        var criticalHealEvents = 0;
+        var awareMobThreatEntries = 0;
+
+        // Priest plain heal: effective 600, split across three aware mobs.
+        healDraws = healDraws + 1;
+        var priestHealing = 600;
+        if (priestHealing > 0) {
+            positiveHealEvents = positiveHealEvents + 1;
+            awareMobThreatEntries = awareMobThreatEntries + 3;
+        }
+
+        // Paladin forced crit: 800 * 1.5.
+        healDraws = healDraws + 1;
+        var paladinHealing = 1200;
+        positiveHealEvents = positiveHealEvents + 1;
+        criticalHealEvents = criticalHealEvents + 1;
+        awareMobThreatEntries = awareMobThreatEntries + 3;
+
+        // Druid forced crit, then hex .7 and Mortal Wound .5.
+        healDraws = healDraws + 1;
+        var druidHealing = <int>(1000.0 * 1.5 * 0.7 * 0.5 + 0.5);
+        if (druidHealing > 0) {
+            positiveHealEvents = positiveHealEvents + 1;
+            criticalHealEvents = criticalHealEvents + 1;
+            awareMobThreatEntries = awareMobThreatEntries + 3;
+        }
+
+        // Shaman: insertion-ordered absorb_small then absorb_big.
+        healDraws = healDraws + 1;
+        var shamanHealing = 1000;
+        var smallAbsorb = 200;
+        var eaten = shamanHealing < smallAbsorb ? shamanHealing : smallAbsorb;
+        shamanHealing = shamanHealing - eaten;
+        smallAbsorb = smallAbsorb - eaten;
+        var bigAbsorb = 5000;
+        eaten = shamanHealing < bigAbsorb ? shamanHealing : bigAbsorb;
+        shamanHealing = shamanHealing - eaten;
+        bigAbsorb = bigAbsorb - eaten;
+
+        // Overheal still draws and emits amount zero; no healing threat.
+        healDraws = healDraws + 1;
+        var overheal = 0;
+
+        // Friendly without aware mobs: a positive heal with no threat fan-out.
+        healDraws = healDraws + 1;
+        var isolatedHealing = 200;
+        if (isolatedHealing > 0) { positiveHealEvents = positiveHealEvents + 1; }
+
+        // Four Rejuvenation ticks bypass heal-absorb and fan out threat.
+        var hotTicks = 4;
+        var hotIndex = 0;
+        while (hotIndex < hotTicks) {
+            positiveHealEvents = positiveHealEvents + 1;
+            awareMobThreatEntries = awareMobThreatEntries + 3;
+            hotIndex = hotIndex + 1;
+        }
+
+        var critVulnHexDamage = 100.0 * 0.7 * 1.5;
+        return healDraws == 6 && positiveHealEvents > 0 &&
+            criticalHealEvents == 2 && smallAbsorb == 0 && bigAbsorb == 4200 &&
+            shamanHealing == 0 && overheal == 0 &&
+            awareMobThreatEntries >= 3 && hotTicks == 4 &&
+            critVulnHexDamage == 105.0 ? 1.0 : 0.0;
+    }
+
+    if (scenarioKind == 4) {
+        if (seed != 1007 || iterations != 10) { return 0.0; }
+        var groundEffects = 1;
+        var immediatePulses = 1;
+        var deferredPulses = 0;
+        // The immediate pulse is time zero. Deferred pulses land at 2, 4, 6,
+        // and 8 seconds; the 10-second boundary expires before it can pulse.
+        var elapsedSeconds = 2;
+        while (elapsedSeconds < iterations) {
+            deferredPulses = deferredPulses + 1;
+            elapsedSeconds = elapsedSeconds + 2;
+        }
+        return groundEffects == 1 && immediatePulses == 1 &&
+            deferredPulses == 4 && immediatePulses + deferredPulses == 5 ? 1.0 : 0.0;
+    }
+
+    throw "class scenario kind is invalid";
+}

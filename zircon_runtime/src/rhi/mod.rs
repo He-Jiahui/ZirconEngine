@@ -6,8 +6,8 @@ mod device;
 mod ui_surface;
 
 pub use capabilities::{
-    AccelerationStructureCaps, RenderBackendCaps, RenderDebugInstrumentationStatus,
-    RenderQueueClass,
+    AccelerationStructureCaps, RenderAdapterInfo, RenderBackendCaps,
+    RenderDebugInstrumentationStatus, RenderDeviceLimits, RenderQueueClass,
 };
 pub use descriptors::{
     AddressMode, BindGroupLayoutDesc, BindGroupLayoutEntryDesc, BindingResourceType,

@@ -12,8 +12,8 @@ use zircon_runtime::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
     RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    ShaderQualityTier, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
-    VolumetricFogSettings, DEFAULT_RENDER_LAYER_MASK,
+    RendererCommon, ShaderQualityTier, ShadowPcfQuality, ShadowResolutionTier,
+    ViewportCameraSnapshot, VolumetricFogSettings, DEFAULT_RENDER_LAYER_MASK,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
@@ -569,7 +569,11 @@ fn scene_mesh(node_id: u64, transform: Transform, material: ResourceId) -> Rende
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: default_render_layer_set(),
+        common: RendererCommon {
+            layer_mask: default_render_layer_set(),
+            is_static: false,
+            ..RendererCommon::default()
+        },
     }
 }
 

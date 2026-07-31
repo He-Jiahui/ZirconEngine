@@ -1,0 +1,60 @@
+// Pure Heroic Leap flight state. The WOS/world owner supplies the swept landing
+// and handles landing damage, visibility, events, terrain and collision.
+var math = %import("zr.zircon.math");
+var contract = %import("generated/heroic_leap_contract");
+
+pub class Point3 {
+    pub var x: float; pub var y: float; pub var z: float;
+    pub @constructor(x: float, y: float, z: float) { this.x = x; this.y = y; this.z = z; }
+}
+
+pub class HeroicLeapState {
+    pub var from: Point3; pub var to: Point3; pub var position: Point3;
+    pub var elapsed: float; pub var active: bool; pub var onGround: bool; pub var jumping: bool;
+    pub @constructor(from: Point3, to: Point3) {
+        this.from = from; this.to = to; this.position = new Point3(from.x, from.y, from.z);
+        this.elapsed = 0.0; this.active = true; this.onGround = true; this.jumping = true;
+    }
+}
+
+pub pointOnFlight(state: HeroicLeapState, elapsed: float): Point3 {
+    var progress = elapsed / contract.duration(true);
+    if (progress > 1.0) progress = 1.0;
+    var groundY = state.from.y + (state.to.y - state.from.y) * progress;
+    return new Point3(state.from.x + (state.to.x - state.from.x) * progress,
+        groundY + contract.apex(true) * 4.0 * progress * (1.0 - progress),
+        state.from.z + (state.to.z - state.from.z) * progress);
+}
+
+pub wasExternallyRelocated(state: HeroicLeapState): bool {
+    var expected = pointOnFlight(state, state.elapsed);
+    var dx = state.position.x - expected.x; var dy = state.position.y - expected.y; var dz = state.position.z - expected.z;
+    return math.sqrt(dx * dx + dy * dy + dz * dz) > contract.relocationEpsilon(true);
+}
+
+// Returns true only while the source would report an active/finished leap.
+pub advanceHeroicLeap(state: HeroicLeapState, dead: bool): bool {
+    if (!state.active) return false;
+    if (dead || wasExternallyRelocated(state)) { state.active = false; return false; }
+    state.elapsed = state.elapsed + contract.dt(true);
+    state.position = pointOnFlight(state, state.elapsed);
+    state.onGround = false;
+    if (state.elapsed < contract.duration(true)) return true;
+    state.position = new Point3(state.to.x, state.to.y, state.to.z);
+    state.onGround = true; state.jumping = false; state.active = false;
+    return true;
+}
+
+pub contractTest(): int {
+    var leap = new HeroicLeapState(new Point3(0.0, 0.0, 0.0), new Point3(6.0, 0.0, 0.0));
+    var apex = pointOnFlight(leap, 0.3);
+    if (apex.x != 3.0 || apex.y != 3.2 || !advanceHeroicLeap(leap, false) || leap.onGround) return -1;
+    leap.position.x = leap.position.x + 1.0;
+    if (advanceHeroicLeap(leap, false) || leap.active) return -2;
+    var landing = new HeroicLeapState(new Point3(0.0, 1.0, 0.0), new Point3(6.0, 4.0, 0.0));
+    while (landing.active) { advanceHeroicLeap(landing, false); }
+    if (landing.position.x != 6.0 || landing.position.y != 4.0 || !landing.onGround || landing.jumping) return -3;
+    var dead = new HeroicLeapState(new Point3(0.0, 0.0, 0.0), new Point3(1.0, 0.0, 0.0));
+    if (advanceHeroicLeap(dead, true) || dead.active) return -4;
+    return 1;
+}

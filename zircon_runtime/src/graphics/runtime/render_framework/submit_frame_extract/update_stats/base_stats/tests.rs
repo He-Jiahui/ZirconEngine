@@ -1,5 +1,5 @@
 use super::{
-    effect_stack_resource_status, graph_execution_coverage_report_from_names,
+    effect_stack_resource_status, executor_pass_counts, graph_execution_coverage_report_from_names,
     particle_velocity_anonymous_stream_ambiguity_count, particle_velocity_missing_sprite_count,
     update_hzb_occlusion_stats, update_visibility_static_index_stats, update_visibility_stats,
 };
@@ -43,6 +43,40 @@ fn graph_execution_coverage_report_counts_missing_unexpected_and_duplicate_passe
     assert_eq!(report.missing_planned_pass_count, 1);
     assert_eq!(report.unexpected_executed_pass_count, 1);
     assert_eq!(report.duplicate_executed_pass_count, 1);
+}
+
+#[test]
+fn graph_execution_coverage_borrows_pass_names() {
+    let source = include_str!("../base_stats.rs");
+
+    assert!(source.contains("HashSet<&str>"));
+    assert!(!source.contains(".map(str::to_owned)"));
+    assert!(!source.contains("executed_unique_passes.insert(pass_name.clone())"));
+}
+
+#[test]
+fn executor_pass_counts_classifies_all_diagnostic_families_in_one_report() {
+    let executed = vec![
+        super::FXAA_EXECUTOR_ID.to_string(),
+        super::SMAA_EXECUTOR_ID.to_string(),
+        "temporal.taa-resolve".to_string(),
+        "visibility.hzb-build".to_string(),
+        "virtual-geometry.cull".to_string(),
+        "hybrid-gi.update".to_string(),
+        "particle.transparent".to_string(),
+        "shadow.directional".to_string(),
+        "sprite.transparent".to_string(),
+    ];
+
+    let counts = executor_pass_counts(&executed);
+
+    assert_eq!(counts.anti_alias, 3);
+    assert_eq!(counts.hzb, 1);
+    assert_eq!(counts.virtual_geometry, 1);
+    assert_eq!(counts.hybrid_gi, 1);
+    assert_eq!(counts.particle, 1);
+    assert_eq!(counts.shadow, 1);
+    assert_eq!(counts.sprite, 1);
 }
 
 #[test]
@@ -212,7 +246,7 @@ fn update_hzb_occlusion_stats_resets_when_no_report() {
 #[test]
 fn effect_stack_resource_status_detects_graph_bound_ssr_normal() {
     let graph = effect_stack_graph(vec![
-        PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string()
+        PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string(),
     ]);
 
     assert!(

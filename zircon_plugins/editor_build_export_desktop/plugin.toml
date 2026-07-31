@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "editor_build_export_desktop"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Desktop Build Export"
 description = "Editor-only desktop export panel, compatibility diagnostics, and packaging report surface."
 category = "platform"

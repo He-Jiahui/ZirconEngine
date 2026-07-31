@@ -2,6 +2,7 @@ use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;
 use super::super::super::template_slider_geometry::workbench_slider_metrics;
+use zircon_runtime_interface::ui::surface::ui_slider_tick_count_for_track;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_ticks(
     commands: &mut Vec<HostPaintCommand>,
@@ -12,6 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
     style: &WorkbenchSliderStyle,
     opacity: f32,
 ) {
+    let tick_count = ui_slider_tick_count_for_track(tick_count, track_rect.width);
     if tick_count < 2 {
         return;
     }

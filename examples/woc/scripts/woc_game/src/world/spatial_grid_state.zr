@@ -1,0 +1,214 @@
+// Source-compatible spatial.ts state projection. Entity objects remain owned
+// by the authoritative world; this grid only maintains their live cell roster
+// and returns ordered radius-query plans instead of invoking a host callback.
+var container = %import("zr.system.container");
+var math = %import("zr.zircon.math");
+
+pub class SpatialEntity {
+    pub var id: uint;
+    pub var x: float;
+    pub var z: float;
+
+    pub @constructor(id: uint, x: float, z: float) {
+        this.id = id;
+        this.x = x;
+        this.z = z;
+    }
+}
+
+pub class SpatialCell {
+    pub var x: int;
+    pub var z: int;
+    pub var entities: container.Array<SpatialEntity>;
+
+    pub @constructor(x: int, z: int) {
+        this.x = x;
+        this.z = z;
+        this.entities = new container.Array<SpatialEntity>();
+    }
+}
+
+pub class SpatialGridState {
+    pub var cellSize: float;
+    pub var cells: container.Array<SpatialCell>;
+    // The source `where` map points each id to its latest occupied cell. The
+    // separately stored id/array-index pairs provide equivalent lookup without
+    // depending on an undocumented map ABI in the ZrVM plugin.
+    pub var whereIds: container.Array<uint>;
+    pub var whereCellIndices: container.Array<int>;
+
+    pub @constructor(cellSize: float) {
+        this.cellSize = cellSize;
+        this.cells = new container.Array<SpatialCell>();
+        this.whereIds = new container.Array<uint>();
+        this.whereCellIndices = new container.Array<int>();
+    }
+}
+
+pub class SpatialQueryResult {
+    pub var ids: container.Array<uint>;
+    pub var distanceSquares: container.Array<float>;
+
+    pub @constructor() {
+        this.ids = new container.Array<uint>();
+        this.distanceSquares = new container.Array<float>();
+    }
+}
+
+cellCoordinate(value: float, cellSize: float): int {
+    return <int>math.floor(value / cellSize);
+}
+
+cellIndexAt(grid: SpatialGridState, cellX: int, cellZ: int): int {
+    var index = 0;
+    while (index < grid.cells.length) {
+        var cell = <SpatialCell>grid.cells[index];
+        if (cell.x == cellX && cell.z == cellZ) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+ensureCell(grid: SpatialGridState, cellX: int, cellZ: int): int {
+    var index = cellIndexAt(grid, cellX, cellZ);
+    if (index >= 0) { return index; }
+    grid.cells.add(new SpatialCell(cellX, cellZ));
+    return grid.cells.length - 1;
+}
+
+whereIndex(grid: SpatialGridState, id: uint): int {
+    var index = 0;
+    while (index < grid.whereIds.length) {
+        if (<uint>grid.whereIds[index] == id) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+setWhere(grid: SpatialGridState, id: uint, cellIndex: int): void {
+    var index = whereIndex(grid, id);
+    if (index >= 0) {
+        grid.whereCellIndices[index] = cellIndex;
+        return;
+    }
+    grid.whereIds.add(id);
+    grid.whereCellIndices.add(cellIndex);
+}
+
+clearWhere(grid: SpatialGridState, id: uint): int {
+    var index = whereIndex(grid, id);
+    if (index < 0) { return -1; }
+    var cellIndex = <int>grid.whereCellIndices[index];
+    grid.whereIds.removeAt(index);
+    grid.whereCellIndices.removeAt(index);
+    return cellIndex;
+}
+
+entityIndex(cell: SpatialCell, id: uint): int {
+    var index = 0;
+    while (index < cell.entities.length) {
+        if ((<SpatialEntity>cell.entities[index]).id == id) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+// Mirrors SpatialGrid.insert. Re-inserting an already indexed entity retains
+// the source Map's latest-cell behavior while leaving prior list entries intact.
+pub insert(grid: SpatialGridState, entity: SpatialEntity): void {
+    var cellX = cellCoordinate(entity.x, grid.cellSize);
+    var cellZ = cellCoordinate(entity.z, grid.cellSize);
+    var index = ensureCell(grid, cellX, cellZ);
+    var cell = <SpatialCell>grid.cells[index];
+    cell.entities.add(entity);
+    setWhere(grid, entity.id, index);
+}
+
+// Mirrors SpatialGrid.remove: lookup the last occupied cell and remove the
+// entity by swapping the cell's last entry into its place before popping.
+pub remove(grid: SpatialGridState, entity: SpatialEntity): void {
+    var cellIndex = clearWhere(grid, entity.id);
+    if (cellIndex < 0 || cellIndex >= grid.cells.length) { return; }
+    var cell = <SpatialCell>grid.cells[cellIndex];
+    var index = entityIndex(cell, entity.id);
+    if (index < 0) { return; }
+    var lastIndex = cell.entities.length - 1;
+    if (index != lastIndex) {
+        cell.entities[index] = <SpatialEntity>cell.entities[lastIndex];
+    }
+    cell.entities.removeAt(lastIndex);
+}
+
+// Re-bucket only when the entity crossed a source 32-unit-equivalent cell.
+pub update(grid: SpatialGridState, entity: SpatialEntity): void {
+    var nextX = cellCoordinate(entity.x, grid.cellSize);
+    var nextZ = cellCoordinate(entity.z, grid.cellSize);
+    var index = whereIndex(grid, entity.id);
+    if (index >= 0) {
+        var currentIndex = <int>grid.whereCellIndices[index];
+        if (currentIndex >= 0 && currentIndex < grid.cells.length) {
+            var current = <SpatialCell>grid.cells[currentIndex];
+            if (current.x == nextX && current.z == nextZ) { return; }
+        }
+    }
+    remove(grid, entity);
+    insert(grid, entity);
+}
+
+// Mirrors refresh(Iterable<Entity>) in the iteration order supplied by the
+// caller's canonical entity roster.
+pub refresh(grid: SpatialGridState, entities: container.Array<SpatialEntity>): void {
+    var index = 0;
+    while (index < entities.length) {
+        update(grid, <SpatialEntity>entities[index]);
+        index = index + 1;
+    }
+}
+
+clearQuery(output: SpatialQueryResult): void {
+    while (output.ids.length > 0) { output.ids.removeAt(output.ids.length - 1); }
+    while (output.distanceSquares.length > 0) {
+        output.distanceSquares.removeAt(output.distanceSquares.length - 1);
+    }
+}
+
+// Source forEachInRadius projection. The output order is its callback order:
+// increasing cell X/Z then retained cell-array order, with exact live XZ d2.
+pub queryInRadius(
+    grid: SpatialGridState,
+    x: float,
+    z: float,
+    radius: float,
+    output: SpatialQueryResult
+): void {
+    clearQuery(output);
+    var minX = cellCoordinate(x - radius - 1.0, grid.cellSize);
+    var maxX = cellCoordinate(x + radius + 1.0, grid.cellSize);
+    var minZ = cellCoordinate(z - radius - 1.0, grid.cellSize);
+    var maxZ = cellCoordinate(z + radius + 1.0, grid.cellSize);
+    var radiusSquared = radius * radius;
+    var cellX = minX;
+    while (cellX <= maxX) {
+        var cellZ = minZ;
+        while (cellZ <= maxZ) {
+            var cellIndex = cellIndexAt(grid, cellX, cellZ);
+            if (cellIndex >= 0) {
+                var cell = <SpatialCell>grid.cells[cellIndex];
+                var entityIndexValue = 0;
+                while (entityIndexValue < cell.entities.length) {
+                    var entity = <SpatialEntity>cell.entities[entityIndexValue];
+                    var deltaX = entity.x - x;
+                    var deltaZ = entity.z - z;
+                    var distanceSquared = deltaX * deltaX + deltaZ * deltaZ;
+                    if (distanceSquared <= radiusSquared) {
+                        output.ids.add(entity.id);
+                        output.distanceSquares.add(distanceSquared);
+                    }
+                    entityIndexValue = entityIndexValue + 1;
+                }
+            }
+            cellZ = cellZ + 1;
+        }
+        cellX = cellX + 1;
+    }
+}

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/ranged_shot_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/ranged_shot.ts": "8a7d7b509a674eaa9e504a1dc885e07362f20adebe558a096ddeac198c1f6388"
+  },
+  "selection": "wand_uses_class_profile; otherwise_uses_carried_weapon_profile"
+}

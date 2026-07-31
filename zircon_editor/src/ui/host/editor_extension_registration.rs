@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
 use crate::core::asset::{AssetContextCommandAccess, AssetTypeRegistry};
 use crate::core::commands::{
     AssetWriteTargetDescriptor, EditorCommandDescriptor, EditorCommandMenuProjection,
@@ -6,11 +9,13 @@ use crate::core::commands::{
 use crate::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use crate::core::editor_extension::{
     EditorExtensionRegistration, EditorExtensionRegistry, EditorExtensionRegistryError,
-    ViewDescriptor,
+    EditorUiTemplateDescriptor, EditorUiTemplatePaneDataSource, ViewDescriptor,
 };
 use crate::core::editor_operation::EditorOperationPath;
-use crate::core::editor_plugin::EditorPluginRegistrationReport;
+use crate::core::plugin::EditorPluginRegistrationReport;
+use crate::core::plugin::run_editor_plugin_boundary;
 use crate::ui::host::EditorHostEventController;
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
 impl EditorHostEventController {
     pub fn register_editor_extension(
@@ -28,13 +33,60 @@ impl EditorHostEventController {
         &self,
         registration: EditorPluginRegistrationReport,
     ) -> Result<(), EditorExtensionRegistryError> {
-        self.register_runtime_event_consumers(registration.runtime_event_consumers)
+        let _registration_guard = self
+            .plugin_registration_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let prepared_consumers = self
+            .runtime_event_consumers
+            .prepare_registration(registration.runtime_event_consumers)
             .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
         self.register_editor_extension_owned(
             registration.package_manifest.id,
             registration.extensions,
             registration.capabilities,
-        )
+        )?;
+        self.runtime_event_consumers
+            .install_prepared_registration(prepared_consumers);
+        Ok(())
+    }
+
+    /// Atomically replaces one registered plugin's template and pane-data contributions.
+    pub fn replace_editor_plugin_ui_template_contributions(
+        &self,
+        owner_id: &str,
+        templates: impl IntoIterator<Item = EditorUiTemplateDescriptor>,
+        pane_data_sources: BTreeMap<String, Arc<dyn EditorUiTemplatePaneDataSource>>,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        let mut shell = self.shell().lock();
+        let matching_owners = shell
+            .editor_extensions
+            .iter()
+            .filter(|registration| registration.owner_id() == owner_id)
+            .count();
+        if matching_owners == 0 {
+            return Err(EditorExtensionRegistryError::UnknownExtensionOwner {
+                owner_id: owner_id.to_string(),
+            });
+        }
+        if matching_owners != 1 {
+            return Err(EditorExtensionRegistryError::DuplicateContribution {
+                kind: "editor extension owner",
+                id: owner_id.to_string(),
+            });
+        }
+        let registration = shell
+            .editor_extensions
+            .iter_mut()
+            .find(|registration| registration.owner_id() == owner_id)
+            .expect("single matching editor extension owner should be present");
+        registration.replace_ui_template_contributions(templates, pane_data_sources)?;
+        shell.template_contributions_changed();
+        drop(shell);
+        self.refresh_workbench(
+            crate::core::editor_message::EditorViewInvalidationMask::PRESENTATION_DATA,
+        );
+        Ok(())
     }
 
     pub fn register_editor_extension_with_required_capabilities(
@@ -56,6 +108,7 @@ impl EditorHostEventController {
         required_capabilities: Vec<String>,
     ) -> Result<(), EditorExtensionRegistryError> {
         let owner_id = owner_id.into();
+        extension.bind_matching_ui_templates_to_views();
         let mut shell = self.shell().lock();
         let views = extension.views().into_iter().cloned().collect::<Vec<_>>();
         shell
@@ -64,6 +117,28 @@ impl EditorHostEventController {
             .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
         validate_asset_type_contributions(&shell.editor_extensions, &extension, &owner_id)?;
         validate_extension_contribution_conflicts(&shell.editor_extensions, &extension)?;
+        validate_viewport_overlay_provider_bindings(&extension)?;
+        let scene_modes = extension
+            .take_scene_modes()
+            .into_iter()
+            .map(|registration| registration.with_owner_id(owner_id.clone()))
+            .collect::<Vec<_>>();
+        let prepared_scene_modes = shell
+            .state
+            .viewport_controller
+            .prepare_scene_modes(scene_modes)
+            .map_err(EditorExtensionRegistryError::SceneMode)?;
+        let viewport_overlay_providers = extension.take_viewport_overlay_providers();
+        let prepared_viewport_overlay_providers =
+            run_editor_plugin_boundary(&owner_id, "viewport overlay provider preparation", || {
+                shell
+                    .state
+                    .viewport_controller
+                    .prepare_viewport_overlay_providers(&owner_id, viewport_overlay_providers)
+            })
+            .map_err(|error| {
+                EditorExtensionRegistryError::ViewportOverlayProvider(error.to_string())
+            })?;
         let mut command_registry = self.commands().lock().clone();
         let menu_capabilities = extension
             .menu_items()
@@ -188,15 +263,51 @@ impl EditorHostEventController {
             .manager
             .register_extension_views_with_required_capabilities(&views, &required_capabilities)
             .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        shell
+            .state
+            .viewport_controller
+            .install_prepared_viewport_overlay_providers(prepared_viewport_overlay_providers);
+        shell
+            .state
+            .viewport_controller
+            .install_prepared_scene_modes(prepared_scene_modes);
+        let enabled_capabilities = shell
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .to_vec();
+        shell
+            .state
+            .viewport_controller
+            .set_viewport_overlay_capabilities(&enabled_capabilities);
         shell.editor_extensions.push(
             EditorExtensionRegistration::new(extension)
                 .with_owner_id(owner_id)
                 .with_required_capabilities(required_capabilities),
         );
+        shell.extension_registered();
         *self.commands().lock() = command_registry;
         drop(shell);
         Ok(())
     }
+}
+
+fn validate_viewport_overlay_provider_bindings(
+    extension: &EditorExtensionRegistry,
+) -> Result<(), EditorExtensionRegistryError> {
+    for descriptor in extension.scene_mode_descriptors() {
+        let Some(provider_id) = descriptor.overlay_provider_id() else {
+            continue;
+        };
+        if !extension.has_viewport_overlay_provider(provider_id) {
+            return Err(
+                EditorExtensionRegistryError::MissingViewportOverlayProvider {
+                    provider_id: provider_id.to_string(),
+                },
+            );
+        }
+    }
+    Ok(())
 }
 
 fn asset_write_targets(
@@ -466,4 +577,25 @@ pub(crate) fn materialize_enabled_asset_types(
         }
     }
     Ok(asset_types)
+}
+
+pub(crate) fn enabled_asset_types_for_shell(
+    shell: &mut WorkbenchShellStateData,
+) -> Result<Arc<AssetTypeRegistry>, EditorExtensionRegistryError> {
+    let enabled_capabilities = shell
+        .manager
+        .capability_snapshot()
+        .enabled_capabilities()
+        .to_vec();
+    if let Some(registry) = shell.asset_type_registry_cache.get(&enabled_capabilities) {
+        return Ok(registry);
+    }
+    let registry = Arc::new(materialize_enabled_asset_types(
+        &shell.editor_extensions,
+        &enabled_capabilities,
+    )?);
+    shell
+        .asset_type_registry_cache
+        .store(enabled_capabilities, Arc::clone(&registry));
+    Ok(registry)
 }

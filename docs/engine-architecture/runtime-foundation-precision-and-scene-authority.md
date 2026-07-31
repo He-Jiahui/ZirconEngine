@@ -6,7 +6,11 @@ related_code:
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
   - zircon_runtime/src/scene/components/mod.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
+  - zircon_runtime/src/scene/components/scene/node.rs
   - zircon_runtime/src/scene/ecs/mod.rs
   - zircon_runtime/src/scene/ecs/query/mod.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
@@ -51,7 +55,11 @@ implementation_files:
   - zircon_runtime/src/core/math/mod.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/components/mod.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
+  - zircon_runtime/src/scene/components/scene/node.rs
   - zircon_runtime/src/scene/ecs/mod.rs
   - zircon_runtime/src/scene/ecs/query/mod.rs
   - zircon_runtime/src/scene/ecs/schedule.rs

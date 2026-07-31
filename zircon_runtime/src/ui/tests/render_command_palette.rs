@@ -1,11 +1,26 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn command_palette_filtering_compares_borrowed_ascii_text_and_moves_labels() {
+    let source = include_str!("../surface/render/command_palette.rs");
+
+    assert!(!source.contains("to_ascii_lowercase"));
+    assert!(!source.contains("command.label.clone()"));
+    assert!(source.contains("EditorDesignTokens"));
+    assert!(source.contains("EditorTypographyTokens"));
+    assert!(!source.contains("const PANEL_SURFACE"));
+    assert!(!source.contains("const TEXT_FONT_SIZE"));
+    assert!(source.contains("style_overrides"));
+    assert!(source.contains("value_as_f32"));
+}
 
 #[test]
 fn render_extract_command_palette_draws_search_panel_and_filtered_command_rows() {
@@ -34,40 +49,42 @@ focused_index = 0
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(40.0, 32.0, 320.0, 160.0)
-            && command.style.background_color.as_deref() == Some("#151b1f")
-            && command.style.border_color.as_deref() == Some("#303840")
-            && command.style.corner_radius == 6.0
+            && command.style.background_color.as_deref() == Some("#141618")
+            && command.style.border_color.as_deref() == Some("#323a41")
+            && command.style.corner_radius == 8.0
             && command.style.painter_family == UiPainterFamily::Dropdown
             && command.style.painter_state == UiPainterResolvedState::Open
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(52.0, 42.0, 296.0, 30.0)
-            && command.style.background_color.as_deref() == Some("#10161a")
-            && command.style.border_color.as_deref() == Some("#35c7d0")
+            && command.frame == UiFrame::new(52.0, 40.0, 296.0, 30.0)
+            && command.style.background_color.as_deref() == Some("#0f1316")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_family == UiPainterFamily::TextField
             && command.style.painter_state == UiPainterResolvedState::Focused
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("build")
-            && command.frame == UiFrame::new(62.0, 49.0, 276.0, 14.4)
+            && command.frame == UiFrame::new(60.0, 47.0, 280.0, 16.0)
             && command.style.foreground_color.as_deref() == Some("#e8ecee")
+            && command.style.font_size == EditorTypographyTokens::WORKBENCH_BODY_SIZE
+            && command.style.line_height == 16.0
             && command.style.painter_family == UiPainterFamily::TextField
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Build Project")
-            && command.frame == UiFrame::new(57.0, 85.0, 286.0, 16.0)
-            && command.style.foreground_color.as_deref() == Some("#35c7d0")
+            && command.frame == UiFrame::new(56.0, 84.0, 288.0, 16.0)
+            && command.style.foreground_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.style.painter_state == UiPainterResolvedState::Focused
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Build Assets")
-            && command.frame == UiFrame::new(57.0, 111.0, 286.0, 16.0)
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.frame == UiFrame::new(56.0, 112.0, 288.0, 16.0)
+            && command.style.foreground_color.as_deref() == Some("#656f76")
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.style.painter_state == UiPainterResolvedState::Disabled
     }));
@@ -109,7 +126,7 @@ focused_index = 0
         .iter()
         .find(|command| {
             command.kind == UiRenderCommandKind::Quad
-                && command.frame == UiFrame::new(48.0, 80.0, 304.0, 26.0)
+                && command.frame == UiFrame::new(48.0, 78.0, 304.0, 28.0)
                 && command.style.painter_family == UiPainterFamily::PopupRow
         })
         .expect("focused-only command palette row should keep a neutral popup row surface");
@@ -119,26 +136,86 @@ focused_index = 0
     );
     assert_eq!(
         focused_surface.style.background_color.as_deref(),
-        Some("#151b1f")
+        Some("#141618")
     );
     assert_eq!(
         focused_surface.style.border_color.as_deref(),
-        Some("#303840")
+        Some("#323a41")
     );
     assert_eq!(focused_surface.style.border_width, 1.0);
     assert!(!commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(48.0, 80.0, 304.0, 26.0)
+            && command.frame == UiFrame::new(48.0, 78.0, 304.0, 28.0)
             && command.style.painter_family == UiPainterFamily::PopupRow
-            && command.style.background_color.as_deref() == Some("#1a2429")
+            && command.style.background_color.as_deref() == Some("#2a3036")
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Build Project")
-            && command.frame == UiFrame::new(57.0, 85.0, 286.0, 16.0)
-            && command.style.foreground_color.as_deref() == Some("#c5d0d5")
+            && command.frame == UiFrame::new(56.0, 84.0, 288.0, 16.0)
+            && command.style.foreground_color.as_deref() == Some("#e8ecee")
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.style.painter_state == UiPainterResolvedState::Focused
+    }));
+}
+
+#[test]
+fn render_extract_command_palette_honors_valid_visual_and_metric_overrides() {
+    let commands = commands_for_command_palette(
+        UiFrame::new(40.0, 32.0, 320.0, 160.0),
+        r##"
+open = true
+popup_open = true
+query = "build"
+commands = ["build_project|label=Build Project"]
+background_color = "#111820"
+border_color = "#26343d"
+search_background_color = "#101820"
+search_border_color = "#5ad4df"
+foreground_color = "#e1e5e8"
+border_width = 2.0
+corner_radius = 6.0
+search_radius = 3.0
+panel_padding_x = 16.0
+search_top = 12.0
+search_height = 24.0
+search_text_inset_x = 6.0
+list_gap = 4.0
+row_inset_x = 4.0
+row_height = 24.0
+font_size = 11.0
+line_height = 13.0
+"##,
+    );
+
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(40.0, 32.0, 320.0, 160.0)
+            && command.style.background_color.as_deref() == Some("#111820")
+            && command.style.border_color.as_deref() == Some("#26343d")
+            && command.style.border_width == 2.0
+            && command.style.corner_radius == 6.0
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(56.0, 44.0, 288.0, 24.0)
+            && command.style.background_color.as_deref() == Some("#101820")
+            && command.style.border_color.as_deref() == Some("#5ad4df")
+            && command.style.border_width == 2.0
+            && command.style.corner_radius == 3.0
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("build")
+            && command.frame == UiFrame::new(62.0, 49.5, 276.0, 13.0)
+            && command.style.foreground_color.as_deref() == Some("#e1e5e8")
+            && command.style.font_size == 11.0
+            && command.style.line_height == 13.0
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Build Project")
+            && command.frame == UiFrame::new(52.0, 76.0, 296.0, 16.0)
     }));
 }
 

@@ -12,15 +12,22 @@ pub(super) fn model_outcome_with_mesh_subassets(
         primitive.mesh = Some(AssetReference::from_locator(mesh_uri.clone()));
     }
 
-    mesh_uris.into_iter().zip(model.primitives.iter()).fold(
-        AssetImportOutcome::new(root_uri.clone(), ImportedAsset::Model(model.clone())),
-        |outcome, (mesh_uri, primitive)| {
+    let mesh_entries = mesh_uris
+        .into_iter()
+        .zip(model.primitives.iter())
+        .map(|(mesh_uri, primitive)| {
+            ImportedAssetEntry::new(
+                mesh_uri.clone(),
+                ImportedAsset::Mesh(MeshAsset::from_model_primitive(mesh_uri, primitive)),
+            )
+        })
+        .collect::<Vec<_>>();
+    mesh_entries.into_iter().fold(
+        AssetImportOutcome::new(root_uri, ImportedAsset::Model(model)),
+        |outcome, entry| {
             outcome
-                .with_dependency(mesh_uri.clone())
-                .with_entry(ImportedAssetEntry::new(
-                    mesh_uri.clone(),
-                    ImportedAsset::Mesh(MeshAsset::from_model_primitive(mesh_uri, primitive)),
-                ))
+                .with_dependency(entry.locator.clone())
+                .with_entry(entry)
         },
     )
 }

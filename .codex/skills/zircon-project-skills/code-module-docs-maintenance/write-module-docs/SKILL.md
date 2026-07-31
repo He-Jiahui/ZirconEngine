@@ -10,44 +10,35 @@
 
 ## Writing Rules
 
-1. Start from the machine-readable header.
-   - Fill `related_code`, `implementation_files`, `plan_sources`, and `tests` before writing the body.
-   - Treat missing metadata as an incomplete document.
+1. Write only durable facts.
+   - Create this document only for a public/cross-module interface, operator workflow, or non-obvious durable decision that source comments and the numbered plan cannot carry.
+   - Use a compact machine-readable header naming the owner modules and one relevant validation suite; do not list every implementation or test file.
 
 2. Explain intent before mechanics.
    - State what problem the module solves.
    - State why this design exists in the repository.
    - State which layers depend on it.
 
-3. Describe behavior in concrete terms.
-   - Explain input forms, outputs, side effects, failure modes, invariants, and important control-flow or data-flow decisions.
-   - When relevant, describe how source syntax maps into parser structures, instructions, runtime state, or external behavior.
-   - Mention the key code comments or invariants that future unit-test/debug work should inspect first.
+3. Describe only what readers cannot safely infer from source.
+   - Record the public contract, cross-module ownership, operator action, or invariant that motivated the document.
+   - Point to the owning source and tests instead of duplicating inputs, outputs, control flow, or per-slice implementation detail.
 
-4. Explain design choices and tradeoffs.
-   - Record why the current structure was chosen.
-   - Record constraints, rejected alternatives, compatibility assumptions, and performance or correctness priorities when they matter.
+4. Explain design choices only when they constrain future changes.
+   - Record a tradeoff, rejected alternative, compatibility limit, or performance/correctness boundary only if removing it would invite a wrong implementation.
 
-5. Tie the document back to plan and tests.
-   - State which milestone, plan, or request this implementation came from.
-   - State which tests verify the behavior and whether they are planned for the milestone testing stage, already run, or deferred.
-   - State which behaviors are intentionally out of scope.
+5. Tie it back minimally.
+   - Link one owning plan/milestone and the relevant test suite when needed for navigation.
+   - Do not duplicate command logs, granular progress, or a second status record.
 
 ## Recommended Body Structure
 
 - `# <Module or Feature Name>`
-- `## Purpose`
-- `## Related Files`
-- `## Behavior Model`
-- `## Design and Rationale`
-- `## Control Flow or Data Flow`
-- `## Edge Cases and Constraints`
-- `## Test Coverage`
-- `## Plan Sources`
-- `## Open Issues or Follow-up`
+- `## Contract or Decision`
+- `## Ownership and Constraints`
+- `## Relevant Source and Validation`
 
 ## Quality Bar
 
-- Write enough detail that another engineer can understand the design without reverse-engineering the whole module from source.
-- Prefer explicit descriptions over generic statements such as "handles parsing" or "manages runtime state".
-- Keep overview files short and navigational; keep leaf documents detailed and implementation-aware.
+- Prefer a short, current fact over a broad explanation that will drift.
+- Keep overview files navigational and leaf documents limited to the durable decision they own.
+- Delete or tighten a document when it duplicates source rather than making a future change safer.

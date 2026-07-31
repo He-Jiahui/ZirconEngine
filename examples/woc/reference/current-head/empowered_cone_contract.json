@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/empowered_cone_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/classes.ts": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889",
+    "src/sim/combat/effect_dispatch.ts": "11cb14a98dab9ba414567a194104e35473fb6feb72bd1586e39ad54e0f31550e"
+  },
+  "semantics": {
+    "stage": "clamp level to the declared stage count before selecting range and effect values",
+    "hit_order": "eligible target consumes crit then damage RNG; damage resolves before post-hit control auras and combat entry",
+    "hot_streak": "Dragon's Breath records one aggregate hit/crit result after the target loop"
+  },
+  "abilities": [
+    {
+      "id": "glacial_front",
+      "code": 129,
+      "school": "frost",
+      "cast_time": 2.4,
+      "cooldown": 12,
+      "stage_count": 4,
+      "angle": 70,
+      "slow_mult": 0.5,
+      "slow_duration": 4,
+      "fx": "frostCone",
+      "guaranteed_crit_level": null,
+      "hot_streak_once": false,
+      "stages": [
+        {
+          "range": 7,
+          "angle": null,
+          "min": 35,
+          "max": 42,
+          "root_duration": null,
+          "incapacitate_duration": null
+        },
+        {
+          "range": 10,
+          "angle": null,
+          "min": 50,
+          "max": 60,
+          "root_duration": null,
+          "incapacitate_duration": null
+        },
+        {
+          "range": 13,
+          "angle": null,
+          "min": 68,
+          "max": 80,
+          "root_duration": null,
+          "incapacitate_duration": null
+        },
+        {
+          "range": 16,
+          "angle": null,
+          "min": 88,
+          "max": 104,
+          "root_duration": 1,
+          "incapacitate_duration": null
+        }
+      ]
+    },
+    {
+      "id": "dragons_breath",
+      "code": 86,
+      "school": "fire",
+      "cast_time": 2.4,
+      "cooldown": 20,
+      "stage_count": 4,
+      "angle": 90,
+      "slow_mult": null,
+      "slow_duration": null,
+      "fx": "fireCone",
+      "guaranteed_crit_level": 4,
+      "hot_streak_once": true,
+      "stages": [
+        {
+          "range": 6,
+          "angle": 55,
+          "min": 32,
+          "max": 40,
+          "root_duration": null,
+          "incapacitate_duration": 1
+        },
+        {
+          "range": 8,
+          "angle": 65,
+          "min": 48,
+          "max": 60,
+          "root_duration": null,
+          "incapacitate_duration": 1.5
+        },
+        {
+          "range": 10,
+          "angle": 78,
+          "min": 68,
+          "max": 82,
+          "root_duration": null,
+          "incapacitate_duration": 2
+        },
+        {
+          "range": 12,
+          "angle": 90,
+          "min": 90,
+          "max": 110,
+          "root_duration": null,
+          "incapacitate_duration": 3
+        }
+      ]
+    }
+  ]
+}

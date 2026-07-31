@@ -6,7 +6,7 @@ display_name = "Workbench Section Title"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchSectionTitle]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-section-title", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchSectionTitleRoot"
 classes = ["workbench-section-title"]
-props = { text = "Section", component_variant = "section-title", font_size = 13.333333, font_weight = 600, text_tone = "primary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+props = { text = "Section", component_variant = "section-title", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.strong.weight", text_tone = "primary" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.compact", stretch = "Fixed" } }

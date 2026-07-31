@@ -5,8 +5,8 @@ mod state;
 mod variants;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use colors::{
-    cancel_action_color, confirm_action_color, dialog_action_color, dialog_body_color,
-    dialog_border_color, dialog_surface_color, dialog_title_color,
+    cancel_action_paint, confirm_action_paint, dialog_action_paint, dialog_body_color,
+    dialog_border_color, dialog_surface_color, dialog_title_color, DialogActionPaint,
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palette::dialog_palette_from_host;

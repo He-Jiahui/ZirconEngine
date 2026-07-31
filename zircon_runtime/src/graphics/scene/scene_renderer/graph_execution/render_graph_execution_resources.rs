@@ -86,22 +86,13 @@ impl RenderGraphExecutionResources {
         self.buffer_backings.insert(logical_name, backing_name)
     }
 
-    #[cfg(test)]
-    pub(in crate::graphics::scene::scene_renderer) fn materialize_transient_resources(
-        &mut self,
-        device: &wgpu::Device,
-        graph: &CompiledRenderGraph,
-    ) -> Result<(), String> {
-        super::materialization::materialize_transient_resources(self, device, graph, None)
-    }
-
     pub(in crate::graphics::scene::scene_renderer) fn materialize_transient_resources_with_pool(
         &mut self,
         device: &wgpu::Device,
         graph: &CompiledRenderGraph,
         pool: &mut TransientResourcePool,
     ) -> Result<(), String> {
-        super::materialization::materialize_transient_resources(self, device, graph, Some(pool))
+        super::materialization::materialize_transient_resources(self, device, graph, pool)
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn release_transient_backings_into_pool(

@@ -1,0 +1,6 @@
+{
+  "name": "woc_game",
+  "source": "src",
+  "binary": "bin",
+  "entry": "main"
+}

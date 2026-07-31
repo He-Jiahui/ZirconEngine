@@ -4,12 +4,12 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AssetReference, ShaderAsset, ShaderSourceLanguage};
 use crate::core::framework::render::{
-    AntiAliasSettings, CameraRenderDescriptor, CapturedFrame, DisplayMode, GeometryExtract,
-    LightShadowSettings, ProjectionMode, RenderCameraClear, RenderDirectionalLightSnapshot,
-    RenderFrameExtract, RenderFramework, RenderLayerSet, RenderMaterialLightingModel,
-    RenderMeshSnapshot, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
-    RenderWorldSnapshotHandle, ShaderAssetKind, ShadingModelDescriptor, ShadowPcfQuality,
-    ShadowResolutionTier, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    AntiAliasSettings, CameraRenderDescriptor, CapturedFrame, DEFAULT_RENDER_LAYER_MASK,
+    DisplayMode, GeometryExtract, LightShadowSettings, ProjectionMode, RenderCameraClear,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMaterialLightingModel, RenderMeshSnapshot, RenderQualityProfile, RenderStats,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, ShaderAssetKind, ShadingModelDescriptor,
+    ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -17,8 +17,8 @@ use crate::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
     ResourceState,
 };
-use crate::graphics::shader::ShaderVariantCacheDisk;
 use crate::graphics::WgpuRenderFramework;
+use crate::graphics::shader::ShaderVariantCacheDisk;
 
 use super::super::super::render_product_submit::{
     material_with_import_note, snapshot_with_projection_for_mesh_cache_tests,
@@ -364,7 +364,10 @@ fn registry_material_pass_mesh(material_id: ResourceId, x_offset: f32) -> Render
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+            ..Default::default()
+        },
     }
 }
 

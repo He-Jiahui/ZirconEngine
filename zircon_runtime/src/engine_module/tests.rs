@@ -7,8 +7,8 @@ use crate::core::{
 };
 
 use super::{
-    dependency_on, driver_contract, factory, module_context, plugin_context, plugin_factory,
-    qualified_name, EngineModule, EngineService,
+    EngineModule, EngineService, dependency_on, driver_contract, factory, module_context,
+    plugin_context, plugin_factory, qualified_name,
 };
 
 fn stub_driver_descriptor(
@@ -176,6 +176,40 @@ fn engine_module_contract_exposes_identity_and_descriptor() {
     assert_eq!(module.module_description(), "UI test module");
     assert_eq!(descriptor.name, module.module_name());
     assert_eq!(descriptor.description, module.module_description());
+}
+
+#[test]
+fn engine_module_contract_borrows_runtime_owned_identity() {
+    #[derive(Debug)]
+    struct DynamicModule {
+        name: String,
+        description: String,
+    }
+
+    impl EngineModule for DynamicModule {
+        fn module_name(&self) -> &str {
+            &self.name
+        }
+
+        fn module_description(&self) -> &str {
+            &self.description
+        }
+
+        fn descriptor(&self) -> ModuleDescriptor {
+            ModuleDescriptor::new(self.name.clone(), self.description.clone())
+        }
+    }
+
+    let module = DynamicModule {
+        name: "RuntimeOwnedModule".to_string(),
+        description: "A module with runtime-owned identity text".to_string(),
+    };
+
+    assert_eq!(module.module_name(), "RuntimeOwnedModule");
+    assert_eq!(
+        module.module_description(),
+        "A module with runtime-owned identity text"
+    );
 }
 
 #[test]

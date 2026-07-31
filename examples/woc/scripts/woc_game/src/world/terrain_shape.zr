@@ -1,0 +1,303 @@
+// Builtin-only source projection of the shapeAt/baseHeight portion of
+// src/sim/world.ts. It intentionally excludes later terrainHeight layers:
+// camp flattening, ridges/rims, terrain edits, Sowfield and dock surfaces.
+
+var math = %import("zr.zircon.math");
+var terrainContent = %import("world/terrain_content");
+var terrainNoise = %import("world/terrain_noise");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub smoothstep(edge0: float, edge1: float, value: float, required: bool): float {
+    if (!required || edge1 == edge0) {
+        throw "woc terrain smoothstep range is invalid";
+    }
+    var t = (value - edge0) / (edge1 - edge0);
+    if (t < 0.0) {
+        t = 0.0;
+    }
+    if (t > 1.0) {
+        t = 1.0;
+    }
+    return t * t * (3.0 - 2.0 * t);
+}
+
+pub lerp(first: float, second: float, amount: float, required: bool): float {
+    if (!required) {
+        throw "woc terrain lerp is required";
+    }
+    return first + (second - first) * amount;
+}
+
+pub terraceStep(
+    value: float,
+    step: float,
+    tread: float,
+    apron: float,
+    required: bool
+): float {
+    if (!required || step <= 0.0 || tread < 0.0 || tread >= 1.0 ||
+        apron < 0.0 || apron > 1.0) {
+        throw "woc terrain terrace arguments are invalid";
+    }
+    if (value <= 0.0) {
+        return 0.0;
+    }
+    var band = <int>(value / step);
+    var fraction = value / step - <float>band;
+    var riser = fraction < tread ? 0.0 : smoothstep(tread, 1.0, fraction, true);
+    var terraced = (<float>band + riser) * step;
+    var apronFloor = (value < step ? value : step) * apron;
+    return terraced > apronFloor ? terraced : apronFloor;
+}
+
+pub mirefenImpactCraterOffset(x: float, z: float, required: bool): float {
+    if (!required) {
+        throw "woc terrain crater query is required";
+    }
+    var dx = x - 149.5;
+    var dz = z - 295.0;
+    var distance = math.sqrt(dx * dx + dz * dz);
+    if (distance >= 30.0) {
+        return 0.0;
+    }
+    var bowlT = distance / 20.0;
+    var bowl = distance < 20.0 ? -2.6 * (1.0 - smoothstep(0.0, 1.0, bowlT, true)) : 0.0;
+    var rimStart = 20.0 * 0.82;
+    if (distance <= rimStart) {
+        return bowl;
+    }
+    var rimT = (distance - rimStart) / (30.0 - rimStart);
+    var rim = 0.95 * smoothstep(0.0, 0.35, rimT, true) *
+        (1.0 - smoothstep(0.72, 1.0, rimT, true));
+    return bowl + rim;
+}
+
+biomeHill(code: int): float {
+    if (code == 1) {
+        return 26.0;
+    }
+    if (code == 2) {
+        return 11.0;
+    }
+    if (code == 3) {
+        return 34.0;
+    }
+    if (code == 4) {
+        return 5.0;
+    }
+    if (code == 5) {
+        return 15.0;
+    }
+    if (code == 6) {
+        return 42.0;
+    }
+    if (code == 7) {
+        return 9.0;
+    }
+    throw "woc terrain biome hill code is invalid";
+}
+
+biomeBase(code: int): float {
+    if (code == 1) {
+        return 0.0;
+    }
+    if (code == 2) {
+        return -1.0;
+    }
+    if (code == 3) {
+        return 7.0;
+    }
+    if (code == 4) {
+        return -2.4;
+    }
+    if (code == 5) {
+        return 2.5;
+    }
+    if (code == 6) {
+        return 9.0;
+    }
+    if (code == 7) {
+        return 1.0;
+    }
+    throw "woc terrain biome base code is invalid";
+}
+
+biomeHubHeight(code: int): float {
+    if (code == 1) {
+        return 1.5;
+    }
+    if (code == 2) {
+        return 1.2;
+    }
+    if (code == 3) {
+        return 9.0;
+    }
+    if (code == 4) {
+        return 0.8;
+    }
+    if (code == 5) {
+        return 2.0;
+    }
+    if (code == 6) {
+        return 6.0;
+    }
+    if (code == 7) {
+        return 1.0;
+    }
+    throw "woc terrain biome hub code is invalid";
+}
+
+builtinShapeHillAt(z: float): float {
+    var firstCode = terrainContent.zoneBiomeCode(0, true);
+    var hill = biomeHill(firstCode);
+    var index = 0;
+    while (index + 1 < terrainContent.zoneCount(true)) {
+        var boundary = terrainContent.zoneZMax(index, true);
+        var amount = smoothstep(boundary - 30.0, boundary + 35.0, z, true);
+        hill = lerp(
+            hill,
+            biomeHill(terrainContent.zoneBiomeCode(index + 1, true)),
+            amount,
+            true
+        );
+        index = index + 1;
+    }
+    return hill;
+}
+
+builtinShapeBaseAt(z: float): float {
+    var firstCode = terrainContent.zoneBiomeCode(0, true);
+    var base = biomeBase(firstCode);
+    var index = 0;
+    while (index + 1 < terrainContent.zoneCount(true)) {
+        var boundary = terrainContent.zoneZMax(index, true);
+        var amount = smoothstep(boundary - 30.0, boundary + 35.0, z, true);
+        base = lerp(
+            base,
+            biomeBase(terrainContent.zoneBiomeCode(index + 1, true)),
+            amount,
+            true
+        );
+        index = index + 1;
+    }
+    return base;
+}
+
+// Exact builtin baseHeight before the later terrainHeight layers named above.
+pub builtinBaseHeight(x: float, z: float, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc terrain base height is required";
+    }
+    var hill = builtinShapeHillAt(z);
+    var base = builtinShapeBaseAt(z);
+    var height = (terrainNoise.fbm2(x * 0.013 + 100.0, z * 0.013 + 100.0, seed, 4, true) -
+        0.5) * hill + base;
+    height = height + (terrainNoise.fbm2(x * 0.05, z * 0.05, seed + <uint>7, 2, true) -
+        0.5) * 2.2;
+    var zoneIndex = 0;
+    while (zoneIndex < terrainContent.zoneCount(true)) {
+        var dx = x - terrainContent.zoneHubX(zoneIndex, true);
+        var dz = z - terrainContent.zoneHubZ(zoneIndex, true);
+        var distance = math.sqrt(dx * dx + dz * dz);
+        var radius = terrainContent.zoneHubRadius(zoneIndex, true);
+        if (distance < radius * 1.6) {
+            var blend = smoothstep(radius * 0.7, radius * 1.6, distance, true);
+            height = height * blend + biomeHubHeight(
+                terrainContent.zoneBiomeCode(zoneIndex, true)
+            ) * (1.0 - blend);
+        }
+        zoneIndex = zoneIndex + 1;
+    }
+    var minimumLand = terrainContent.waterLevel(true) + 1.4;
+    if (height < minimumLand) {
+        height = minimumLand - (minimumLand - height) * 0.12;
+    }
+    var lakeIndex = 0;
+    while (lakeIndex < terrainContent.lakeCount(true)) {
+        var lakeDx = x - terrainContent.lakeX(lakeIndex, true);
+        var lakeDz = z - terrainContent.lakeZ(lakeIndex, true);
+        var lakeDistance = math.sqrt(lakeDx * lakeDx + lakeDz * lakeDz);
+        var lakeRadius = terrainContent.lakeRadius(lakeIndex, true);
+        if (lakeDistance < lakeRadius * terrainContent.lakeBlendRadiusMultiplier(true)) {
+            var lakeBlend = smoothstep(
+                lakeRadius * 0.55,
+                lakeRadius * terrainContent.lakeBlendRadiusMultiplier(true),
+                lakeDistance,
+                true
+            );
+            height = height * lakeBlend + (terrainContent.waterLevel(true) - 4.0) *
+                (1.0 - lakeBlend);
+        }
+        lakeIndex = lakeIndex + 1;
+    }
+    return height;
+}
+
+// The first terrainHeight layer: settle each generated camp in source array
+// order, using the unmodified base height at that camp's centre.
+pub builtinCampFlattenedHeight(x: float, z: float, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc terrain camp height is required";
+    }
+    var height = builtinBaseHeight(x, z, seed, true);
+    var campIndex = 0;
+    while (campIndex < terrainContent.campCount(true)) {
+        var dx = x - terrainContent.campX(campIndex, true);
+        var dz = z - terrainContent.campZ(campIndex, true);
+        var distance = math.sqrt(dx * dx + dz * dz);
+        var radius = terrainContent.campRadius(campIndex, true);
+        if (distance < radius * 1.8) {
+            var campHeight = builtinBaseHeight(
+                terrainContent.campX(campIndex, true),
+                terrainContent.campZ(campIndex, true),
+                seed,
+                true
+            );
+            var blend = smoothstep(radius * 0.8, radius * 1.8, distance, true);
+            height = height * blend + campHeight * (1.0 - blend);
+        }
+        campIndex = campIndex + 1;
+    }
+    return height;
+}
+
+pub contractTest(): int {
+    if (smoothstep(0.0, 1.0, -1.0, true) != 0.0 ||
+        smoothstep(0.0, 1.0, 2.0, true) != 1.0 ||
+        !closeEnough(smoothstep(0.0, 1.0, 0.5, true), 0.5) ||
+        smoothstep(1.0, 0.0, 2.0, true) != 0.0 ||
+        smoothstep(1.0, 0.0, -1.0, true) != 1.0 ||
+        !closeEnough(smoothstep(1.0, 0.0, 0.5, true), 0.5) ||
+        lerp(2.0, 10.0, 0.25, true) != 4.0 ||
+        terraceStep(0.0, 6.0, 0.6, 0.5, true) != 0.0 ||
+        terraceStep(2.0, 6.0, 0.6, 0.5, true) != 1.0 ||
+        terraceStep(6.0, 6.0, 0.6, 0.5, true) != 6.0) {
+        return -1;
+    }
+    if (!closeEnough(mirefenImpactCraterOffset(149.5, 295.0, true), -2.6) ||
+        mirefenImpactCraterOffset(179.5, 295.0, true) != 0.0) {
+        return -2;
+    }
+    if (!closeEnough(builtinBaseHeight(120.0, 20.0, <uint>20061, true), -2.4488582679939066) ||
+        !closeEnough(builtinBaseHeight(-130.0, 130.0, <uint>20061, true), 2.3495007977440743) ||
+        !closeEnough(builtinBaseHeight(120.0, 500.0, <uint>20061, true), 0.659168515629625) ||
+        !closeEnough(builtinBaseHeight(-130.0, 600.0, <uint>20061, true), 7.926875733053805) ||
+        !closeEnough(builtinBaseHeight(100.0, 850.0, <uint>20061, true), 1.5847481339888754) ||
+        builtinBaseHeight(0.0, 0.0, <uint>20061, true) != 1.5 ||
+        builtinBaseHeight(-92.0, 88.0, <uint>20061, true) != -8.5) {
+        return -3;
+    }
+    if (!closeEnough(builtinCampFlattenedHeight(-5.0, 55.0, <uint>20061, true), -0.8001623096001327) ||
+        !closeEnough(builtinCampFlattenedHeight(-15.0, 65.0, <uint>20061, true), -0.46784328028422384) ||
+        !closeEnough(builtinCampFlattenedHeight(25.0, 70.0, <uint>20061, true), -1.7031702042913497)) {
+        return -4;
+    }
+    return 1;
+}

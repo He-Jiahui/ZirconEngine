@@ -1,20 +1,20 @@
 use std::collections::BTreeSet;
 use std::f32::consts::{FRAC_PI_2, PI};
 
+use crate::core::TaskPool;
 use crate::core::framework::render::{
     CameraRenderDescriptor, LightShadowSettings, LightingExtract, ProjectionMode,
     RenderCameraTarget, RenderDirectionalLightSnapshot, RenderPointLightSnapshot,
     RenderSpotLightSnapshot, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::EntityId;
-use crate::core::math::{is_finite_vec3, Real, Transform, Vec3};
-use crate::core::TaskPool;
+use crate::core::math::{Real, Transform, Vec3, is_finite_vec3};
 use crate::graphics::scene::{
-    cascade_shadow_bounds_from_camera_slice, compute_cascade_ranges, CascadeRange,
-    CascadeSplitConfig,
+    CascadeRange, CascadeSplitConfig, cascade_shadow_bounds_from_camera_slice,
+    compute_cascade_ranges,
 };
 
-use super::super::culling::parallel_frustum::{mesh_frustum_visibility, MeshFrustumCandidate};
+use super::super::culling::parallel_frustum::{MeshFrustumCandidate, mesh_frustum_visibility};
 use super::super::declarations::{VisibilityBvhInstance, VisibilityRelevanceEntry};
 use super::{FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityViewKey};
 
@@ -41,9 +41,17 @@ impl FrameVisibility {
     ) -> Self {
         let mut frame_visibility =
             Self::from_main_view(camera, bvh_instances, primitive_relevance, visible_entities);
-        let mut extra_views = Vec::new();
+        let extra_view_capacity =
+            extra_view_capacity(scene_camera_entity, camera_descriptors, lighting);
+        if extra_view_capacity == 0 {
+            return frame_visibility;
+        }
+
+        let candidates = build_frustum_candidates(&frame_visibility);
+        let mut extra_views = Vec::with_capacity(extra_view_capacity);
         extra_views.extend(custom_target_views(
             &frame_visibility,
+            &candidates,
             scene_camera_entity,
             camera_descriptors,
             task_pool,
@@ -53,6 +61,7 @@ impl FrameVisibility {
             extra_views.extend(ranges.into_iter().enumerate().map(|(cascade, range)| {
                 shadow_cascade_view(
                     &frame_visibility,
+                    &candidates,
                     camera,
                     light,
                     cascade as u8,
@@ -66,17 +75,16 @@ impl FrameVisibility {
             .iter()
             .filter(|light| shadow_enabled(light.shadow))
         {
-            extra_views.extend(
-                (0..POINT_LIGHT_SHADOW_FACE_COUNT)
-                    .map(|face| point_shadow_face_view(&frame_visibility, light, face, task_pool)),
-            );
+            extra_views.extend((0..POINT_LIGHT_SHADOW_FACE_COUNT).map(|face| {
+                point_shadow_face_view(&frame_visibility, &candidates, light, face, task_pool)
+            }));
         }
         extra_views.extend(
             lighting
                 .spot_lights
                 .iter()
                 .filter(|light| shadow_enabled(light.shadow))
-                .map(|light| spot_shadow_view(&frame_visibility, light, task_pool)),
+                .map(|light| spot_shadow_view(&frame_visibility, &candidates, light, task_pool)),
         );
         frame_visibility.views.extend(extra_views);
         frame_visibility
@@ -85,6 +93,7 @@ impl FrameVisibility {
 
 fn custom_target_views(
     frame_visibility: &FrameVisibility,
+    candidates: &[MeshFrustumCandidate],
     scene_camera_entity: Option<EntityId>,
     camera_descriptors: &[CameraRenderDescriptor],
     task_pool: Option<&TaskPool>,
@@ -95,7 +104,13 @@ fn custom_target_views(
         .filter(|camera| !matches!(camera.target, RenderCameraTarget::PrimarySurface))
         .filter_map(|camera| {
             camera.entity.map(|entity| {
-                custom_target_view_from_camera(frame_visibility, entity, camera, task_pool)
+                custom_target_view_from_camera(
+                    frame_visibility,
+                    candidates,
+                    entity,
+                    camera,
+                    task_pool,
+                )
             })
         })
         .collect()
@@ -103,22 +118,13 @@ fn custom_target_views(
 
 fn custom_target_view_from_camera(
     frame_visibility: &FrameVisibility,
+    candidates: &[MeshFrustumCandidate],
     camera_entity: EntityId,
     descriptor: &CameraRenderDescriptor,
     task_pool: Option<&TaskPool>,
 ) -> ViewVisibilityContext {
     let camera = descriptor.as_effective_camera();
-
-    let candidates = frame_visibility
-        .entities
-        .iter()
-        .zip(frame_visibility.bounds.iter())
-        .map(|(entity, bounds)| MeshFrustumCandidate {
-            entity: *entity,
-            bounds: *bounds,
-        })
-        .collect::<Vec<_>>();
-    let frustum_visibility = mesh_frustum_visibility(&candidates, &camera, task_pool);
+    let frustum_visibility = mesh_frustum_visibility(candidates, &camera, task_pool);
 
     let mut visible = Vec::new();
     let mut layer_filtered_count = 0usize;
@@ -150,7 +156,7 @@ fn custom_target_view_from_camera(
         view: VisibilityViewKey::CustomTarget {
             camera: camera_entity,
         },
-        camera: camera.clone(),
+        camera,
         visible,
         stats: ViewCullingStats {
             input_count: frame_visibility.entities.len(),
@@ -164,6 +170,7 @@ fn custom_target_view_from_camera(
 
 fn shadow_cascade_view(
     frame_visibility: &FrameVisibility,
+    candidates: &[MeshFrustumCandidate],
     main_camera: &ViewportCameraSnapshot,
     light: &RenderDirectionalLightSnapshot,
     cascade: u8,
@@ -173,6 +180,7 @@ fn shadow_cascade_view(
     let camera = shadow_camera_for_light(main_camera, light, range);
     shadow_view_from_camera(
         frame_visibility,
+        candidates,
         VisibilityViewKey::ShadowCascade {
             light: light.node_id,
             cascade,
@@ -184,12 +192,14 @@ fn shadow_cascade_view(
 
 fn point_shadow_face_view(
     frame_visibility: &FrameVisibility,
+    candidates: &[MeshFrustumCandidate],
     light: &RenderPointLightSnapshot,
     face: u8,
     task_pool: Option<&TaskPool>,
 ) -> ViewVisibilityContext {
     shadow_view_from_camera(
         frame_visibility,
+        candidates,
         VisibilityViewKey::ShadowPointFace {
             light: light.node_id,
             face,
@@ -201,11 +211,13 @@ fn point_shadow_face_view(
 
 fn spot_shadow_view(
     frame_visibility: &FrameVisibility,
+    candidates: &[MeshFrustumCandidate],
     light: &RenderSpotLightSnapshot,
     task_pool: Option<&TaskPool>,
 ) -> ViewVisibilityContext {
     shadow_view_from_camera(
         frame_visibility,
+        candidates,
         VisibilityViewKey::ShadowSpot {
             light: light.node_id,
         },
@@ -216,20 +228,12 @@ fn spot_shadow_view(
 
 fn shadow_view_from_camera(
     frame_visibility: &FrameVisibility,
+    candidates: &[MeshFrustumCandidate],
     view: VisibilityViewKey,
     camera: ViewportCameraSnapshot,
     task_pool: Option<&TaskPool>,
 ) -> ViewVisibilityContext {
-    let candidates = frame_visibility
-        .entities
-        .iter()
-        .zip(frame_visibility.bounds.iter())
-        .map(|(entity, bounds)| MeshFrustumCandidate {
-            entity: *entity,
-            bounds: *bounds,
-        })
-        .collect::<Vec<_>>();
-    let frustum_visibility = mesh_frustum_visibility(&candidates, &camera, task_pool);
+    let frustum_visibility = mesh_frustum_visibility(candidates, &camera, task_pool);
 
     let mut visible = Vec::new();
     let mut relevance_filtered_count = 0usize;
@@ -264,6 +268,48 @@ fn shadow_view_from_camera(
             visible_count,
         },
     }
+}
+
+fn build_frustum_candidates(frame_visibility: &FrameVisibility) -> Vec<MeshFrustumCandidate> {
+    frame_visibility
+        .entities
+        .iter()
+        .zip(frame_visibility.bounds.iter())
+        .map(|(entity, bounds)| MeshFrustumCandidate {
+            entity: *entity,
+            bounds: *bounds,
+        })
+        .collect()
+}
+
+fn extra_view_capacity(
+    scene_camera_entity: Option<EntityId>,
+    camera_descriptors: &[CameraRenderDescriptor],
+    lighting: &LightingExtract,
+) -> usize {
+    let custom_targets = camera_descriptors
+        .iter()
+        .filter(|camera| camera.entity != scene_camera_entity)
+        .filter(|camera| !matches!(camera.target, RenderCameraTarget::PrimarySurface))
+        .filter(|camera| camera.entity.is_some())
+        .count();
+    let directional = lighting.directional_lights.len();
+    let point = lighting
+        .point_lights
+        .iter()
+        .filter(|light| shadow_enabled(light.shadow))
+        .count()
+        .saturating_mul(usize::from(POINT_LIGHT_SHADOW_FACE_COUNT));
+    let spot = lighting
+        .spot_lights
+        .iter()
+        .filter(|light| shadow_enabled(light.shadow))
+        .count();
+
+    custom_targets
+        .saturating_add(directional)
+        .saturating_add(point)
+        .saturating_add(spot)
 }
 
 fn shadow_camera_for_light(
@@ -392,4 +438,15 @@ fn directional_shadow_ranges(shadow: Option<LightShadowSettings>) -> Vec<Cascade
 
 fn default_shadow_light_direction() -> Vec3 {
     Vec3::from_array(DEFAULT_SHADOW_LIGHT_DIRECTION_COMPONENTS).normalize_or_zero()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn extra_views_share_one_frustum_candidate_projection() {
+        let source = include_str!("build_views.rs");
+        let builder = concat!("build_frustum_candidates(", "&frame_visibility)");
+
+        assert_eq!(source.matches(builder).count(), 1);
+    }
 }

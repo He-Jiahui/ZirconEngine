@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var pets = %import("instances/pet_state");
+
+console.printLine("m7-pet-state-test");
+var result = pets.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

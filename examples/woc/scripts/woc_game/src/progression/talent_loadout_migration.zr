@@ -1,0 +1,259 @@
+// Talents V2 persistence core. The native WOS bridge supplies save JSON; this
+// Zr projection owns deterministic row/loadout repair once decoded.
+var container = %import("zr.container");
+var rows = %import("generated/talent_row_contract");
+var contract = %import("generated/talent_loadout_migration_contract");
+var abilityCatalog = %import("generated/current_known_ability_catalog");
+var abilityState = %import("combat/known_ability_state");
+var selectionCatalog = %import("generated/current_talent_selection_catalog");
+
+pub class TalentLoadout {
+    pub var valid: bool;
+    pub var name: string;
+    pub var spec: string;
+    pub var selections: container.Array<string>;
+    // Empty string projects a null action-bar slot.
+    pub var bar: container.Array<string>;
+    pub @constructor() {
+        this.valid = true;
+        this.name = "Build";
+        this.spec = "";
+        this.selections = new container.Array<string>();
+        this.bar = new container.Array<string>();
+    }
+}
+
+pub class TalentLoadoutMigrationState {
+    pub var classId: string;
+    pub var level: int;
+    pub var contentRevision: int;
+    pub var spec: string;
+    pub var selections: container.Array<string>;
+    pub var loadouts: container.Array<TalentLoadout>;
+    pub var activeLoadout: int;
+    // The target's exact 24-char truncation is pending an engine string slice.
+    pub var nameTruncationPending: bool;
+    pub @constructor() {
+        this.classId = "warrior";
+        this.level = 1;
+        this.contentRevision = 0;
+        this.spec = "";
+        this.selections = new container.Array<string>();
+        this.loadouts = new container.Array<TalentLoadout>();
+        this.activeLoadout = -1;
+        this.nameTruncationPending = false;
+    }
+}
+
+rowLevel(index: int): int {
+    if (index == 0) return 5;
+    if (index == 1) return 8;
+    if (index == 2) return 11;
+    if (index == 3) return 14;
+    if (index == 4) return 17;
+    if (index == 5) return 20;
+    return 0;
+}
+
+repairSelections(classId: string, level: int, source: container.Array<string>): container.Array<string> {
+    var repaired = new container.Array<string>();
+    var index = 0;
+    while (index < 6) {
+        var option = index < source.length ? <string>source[index] : "";
+        var row = rowLevel(index);
+        if (!rows.knownClass(classId) || level < row || !rows.hasOption(classId, row, option)) {
+            repaired.add("");
+        } else {
+            repaired.add(option);
+        }
+        index = index + 1;
+    }
+    return repaired;
+}
+
+repairSpec(classId: string, level: int, spec: string): string {
+    return level >= contract.specUnlockLevel(true) && contract.knownSpec(classId, spec) ? spec : "";
+}
+
+selectedRowOptionCodes(
+    classId: string,
+    selections: container.Array<string>
+): container.Array<uint> {
+    var codes = new container.Array<uint>();
+    var index = 0;
+    while (index < 6) {
+        var option = index < selections.length ? <string>selections[index] : "";
+        codes.add(selectionCatalog.optionCode(classId, rowLevel(index), option));
+        index = index + 1;
+    }
+    return codes;
+}
+
+knownAbilityCodes(
+    classId: string,
+    level: int,
+    spec: string,
+    selections: container.Array<string>
+): container.Array<uint> {
+    var empty = new container.Array<uint>();
+    var classIndex = abilityCatalog.classIndex(classId);
+    if (classIndex < 0) return empty;
+    var specCode = spec == "" ? <uint>0 : selectionCatalog.specCode(classId, spec);
+    return abilityState.sourceKnownAbilityCodes(
+        classIndex,
+        level,
+        specCode,
+        selectedRowOptionCodes(classId, selections)
+    );
+}
+
+containsCode(values: container.Array<uint>, code: uint): bool {
+    for (var value in values) {
+        if (<uint>value == code) return true;
+    }
+    return false;
+}
+
+isMainBarAbility(classId: string, code: uint): bool {
+    return abilityCatalog.abilityClassId(<int>code) == classId &&
+        !abilityCatalog.isPassive(<int>code) &&
+        abilityCatalog.exclusiveGroup(<int>code) != "warrior_stance";
+}
+
+canSeedOnMainBar(classId: string, code: uint): bool {
+    return isMainBarAbility(classId, code) &&
+        abilityCatalog.requiresForm(<int>code) == "" &&
+        !abilityCatalog.requiresStealth(<int>code);
+}
+
+firstEmptyBarSlot(bar: container.Array<string>): int {
+    var index = 0;
+    while (index < bar.length) {
+        if (<string>bar[index] == "") return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+repairBar(
+    classId: string,
+    level: int,
+    spec: string,
+    selections: container.Array<string>,
+    source: container.Array<string>
+): container.Array<string> {
+    var repaired = new container.Array<string>();
+    var seen = new container.Array<uint>();
+    var known = knownAbilityCodes(classId, level, spec, selections);
+    var index = 0;
+    while (index < contract.barSlots(true)) {
+        var abilityId = index < source.length ? <string>source[index] : "";
+        var code = <uint>abilityCatalog.abilityCode(abilityId);
+        if (code == <uint>0 || !containsCode(known, code) ||
+            !isMainBarAbility(classId, code) || containsCode(seen, code)) {
+            repaired.add("");
+        } else {
+            repaired.add(abilityId);
+            seen.add(code);
+        }
+        index = index + 1;
+    }
+    var noRows = new container.Array<string>();
+    var rowIndex = 0;
+    while (rowIndex < 6) { noRows.add(""); rowIndex = rowIndex + 1; }
+    var seeds = knownAbilityCodes(classId, level, spec, noRows);
+    for (var seed in seeds) {
+        var seedCode = <uint>seed;
+        if (canSeedOnMainBar(classId, seedCode) && !containsCode(seen, seedCode)) {
+            var empty = firstEmptyBarSlot(repaired);
+            if (empty < 0) break;
+            repaired[empty] = abilityCatalog.abilityId(<int>seedCode);
+            seen.add(seedCode);
+        }
+    }
+    return repaired;
+}
+
+pub migrate(state: TalentLoadoutMigrationState): bool {
+    if (state.contentRevision >= contract.contentRevision(true)) return false;
+    state.spec = repairSpec(state.classId, state.level, state.spec);
+    state.selections = repairSelections(state.classId, state.level, state.selections);
+    var repaired = new container.Array<TalentLoadout>();
+    var active = -1;
+    var index = 0;
+    while (index < state.loadouts.length && repaired.length < contract.maxLoadouts(true)) {
+        var raw = <TalentLoadout>state.loadouts[index];
+        if (raw.valid) {
+            var next = new TalentLoadout();
+            next.name = raw.name == "" ? "Build" : raw.name;
+            next.spec = repairSpec(state.classId, state.level, raw.spec);
+            next.selections = repairSelections(state.classId, state.level, raw.selections);
+            next.bar = repairBar(state.classId, state.level, next.spec, next.selections, raw.bar);
+            // Exact source truncation remains pending the engine's bounded
+            // string-slice primitive; this core never fabricates a replacement.
+            if (index == state.activeLoadout) active = repaired.length;
+            repaired.add(next);
+        }
+        index = index + 1;
+    }
+    state.loadouts = repaired;
+    state.activeLoadout = active;
+    state.contentRevision = contract.contentRevision(true);
+    return true;
+}
+
+pub contractTest(): int {
+    var state = new TalentLoadoutMigrationState();
+    state.level = 20;
+    state.spec = "arms";
+    state.selections.add("war_row_double_charge");
+    state.selections.add("bogus");
+    var dropped = new TalentLoadout();
+    dropped.valid = false;
+    var kept = new TalentLoadout();
+    kept.name = "Arms";
+    kept.spec = "arms";
+    kept.selections.add("war_row_double_charge");
+    kept.selections.add("bogus");
+    var barIndex = 0;
+    while (barIndex < 30) {
+        kept.bar.add(
+            barIndex == 0 ? "charge" :
+            barIndex == 1 ? "charge" :
+            barIndex == 2 ? "enrage_passive" :
+            barIndex == 3 ? "battle_stance" : ""
+        );
+        barIndex = barIndex + 1;
+    }
+    state.loadouts.add(dropped);
+    state.loadouts.add(kept);
+    state.activeLoadout = 1;
+    if (contract.maxLoadouts(true) != 10 || contract.barSlots(true) != 22 ||
+        contract.nameLimit(true) != 24 || contract.contentRevision(true) != 1 ||
+        contract.specUnlockLevel(true) != 5 || !contract.knownSpec("warrior", "arms") ||
+        contract.knownSpec("warrior", "bogus") ||
+        !migrate(state) || state.contentRevision != 1 || state.activeLoadout != 0 ||
+        state.selections.length != 6 || <string>state.selections[0] != "war_row_double_charge" ||
+        <string>state.selections[1] != "" || state.loadouts.length != 1 ||
+        (<TalentLoadout>state.loadouts[0]).bar.length != 22 ||
+        <string>(<TalentLoadout>state.loadouts[0]).bar[0] != "charge" ||
+        <string>(<TalentLoadout>state.loadouts[0]).bar[1] == "charge" ||
+        <string>(<TalentLoadout>state.loadouts[0]).bar[2] == "enrage_passive" ||
+        <string>(<TalentLoadout>state.loadouts[0]).bar[3] == "battle_stance" ||
+        <string>(<TalentLoadout>state.loadouts[0]).bar[1] == "" ||
+        <string>(<TalentLoadout>state.loadouts[0]).selections[1] != "") return -1;
+    if (migrate(state)) return -2;
+    var beforeUnlock = new TalentLoadoutMigrationState();
+    beforeUnlock.level = 4;
+    beforeUnlock.spec = "arms";
+    beforeUnlock.selections.add("war_row_double_charge");
+    if (!migrate(beforeUnlock) || beforeUnlock.spec != "" ||
+        <string>beforeUnlock.selections[0] != "") return -3;
+    var atUnlock = new TalentLoadoutMigrationState();
+    atUnlock.level = 5;
+    atUnlock.spec = "arms";
+    atUnlock.selections.add("war_row_double_charge");
+    if (!migrate(atUnlock) || atUnlock.spec != "arms" ||
+        <string>atUnlock.selections[0] != "war_row_double_charge") return -4;
+    return 1;
+}

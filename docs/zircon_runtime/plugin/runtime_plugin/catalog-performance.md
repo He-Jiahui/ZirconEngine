@@ -3,19 +3,19 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/update.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/update/candidate_rows.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_extensions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_support.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
 tests:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs::tests::catalog_constructors_do_not_rebuild_after_each_registration
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_extensions.rs::tests::project_extension_report_does_not_complete_an_already_completed_manifest
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_support.rs::tests::owner_dependency_validation_requires_one_matching_primary
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_support.rs::tests::target_support_streams_runtime_modules
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs::tests::registration_order_uses_constant_time_seen_membership
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/update/tests.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features/feature_dependency_reports.rs
 doc_type: module-detail
 ---
 
@@ -27,18 +27,18 @@ doc_type: module-detail
 
 ## Batch construction
 
-`from_plugins` and `from_descriptors` first preserve module activation order, then build all `RuntimePluginRegistrationReport` values and call `from_registration_reports` once. The catalog therefore rebuilds diagnostics and bridge dependency closure once for a batch rather than once after every inserted plugin. Public `register` and `register_feature` retain incremental mutation behavior and still rebuild after their single mutation.
+`from_plugins` and `from_descriptors` first preserve module activation order, then build all `RuntimePluginRegistrationReport` values and call `from_registration_reports` once. Structural mutation uses `RuntimePluginCatalogUpdate`: each changed registration domain lazily clones and identity-indexes the published rows once, applies replace/remove through stable slots and tombstones, then materializes one candidate. A successful transaction builds diagnostics and the ordered projection once and publishes one generation; rejection retains the previous rows, projection, plans and generation. An empty transaction does not clone or index registration rows.
 
 ## Project extension assembly
 
-`runtime_extensions_for_project` completes the incoming project manifest once and passes that completed manifest directly to the internal feature dependency report builder. The public `feature_dependency_report` continues to accept sparse manifests and complete them for standalone callers. This removes one redundant completion without weakening either API contract.
+`complete_project_manifest(manifest, target)`, `feature_dependency_report(manifest, target)` and `runtime_extensions_for_project(manifest, target)` resolve through one target-specific `CompiledProjectPluginPlan`. The plan stores its catalog generation, structural manifest fingerprint, source manifest equality guard, and shared completed manifest, feature report and extension report. Public completion/report methods return `Arc` snapshots, so a stable cache hit performs only the structural fingerprint/equality check and cheap `Arc` copies; it does not serialize the manifest or deep-clone a report/registry. One plan is retained per target, and publishing a new catalog generation invalidates all cached plans while existing in-flight `Arc` snapshots remain valid.
 
-Feature owner validation streams primary dependencies and rejects zero, multiple or mismatched primaries. Target support streams runtime modules and treats a feature with no runtime module as target-independent. Registration ordering records emitted package indices in a fixed bool vector, avoiding repeated linear membership scans while preserving activation order followed by metadata-only order.
+Feature owner validation streams primary dependencies and rejects zero, multiple or mismatched primaries. Target support streams runtime modules and treats a feature with no runtime module as target-independent. Feature resolution performs one declaration-order first pass and then wakes only rows subscribed to newly available capabilities. An earlier available provider may affect a later row; an immediate blocker is frozen when first visited, is excluded from the unresolved-provider set and is emitted before final capability waiters. This preserves diagnostic order without repeated pending-Vec scans or removals.
 
-## Remaining generation projection
+## Generation authority
 
-Feature definition maps, package/selection indexes, provider/module indexes and the feature dependency graph are still rebuilt across completion, report, extension and lookup consumers. Fixed-point resolution still rescans and removes from a pending Vec. PERF-MVP-061 requires one immutable ordered projection per catalog generation, exact invalidation on registration/hot reload and O(V+E) feature resolution; local per-helper caches are prohibited.
+The catalog generation owns one immutable ordered derived projection for package, module/provider, feature/provider and capability dependency lookup. Project plans are consumers of that projection rather than independent catalog caches. Registration order and project declaration order remain observable authority; hash maps are lookup-only and never determine report or extension order.
 
 ## Verification status
 
-Source guards and focused owner/target behavior tests completed static RED-to-GREEN verification. The four changed Rust files and the full current session Rust scope pass `rustfmt --edition 2021 --check` plus `git diff --check`. Current-source warm Cargo, constructor build-count benchmarks and project-scale allocation/complexity measurements remain pending, so the catalog stays out of `docs/plans/performance/review.md`.
+Source guards cover stale owned APIs, per-mutation full-Vec scans and manifest serialization/report deep clones. Focused tests cover first-pass dependency ordering, false-cycle exclusion, atomic last-good publication, 1/100/10,000 row indexing counters and shared snapshot identity. Current-source managed Cargo and product-scale allocation/latency traces remain acceptance requirements; static evidence alone does not move this subsystem into `docs/plans/performance/review.md`.

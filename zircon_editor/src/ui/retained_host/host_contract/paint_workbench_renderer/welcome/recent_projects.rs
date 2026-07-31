@@ -1,5 +1,6 @@
 use super::super::super::data::{FrameRect, PaneData};
 use super::super::super::paint_frame::HostRgbaFrame;
+use crate::ui::retained_host::welcome_recent_geometry::welcome_recent_visible_row_count;
 
 mod empty;
 mod header;
@@ -30,5 +31,11 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_recent_projects(
         return;
     }
 
-    draw_recent_project_rows(frame, pane, &list, clip, row_count.min(7));
+    draw_recent_project_rows(
+        frame,
+        pane,
+        &list,
+        clip,
+        welcome_recent_visible_row_count(list.height, row_count),
+    );
 }

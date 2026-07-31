@@ -34,7 +34,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.encoder,
             tonemapped_view,
             final_color_view,
-            final_color_resource_name,
             attachment_ops,
             self.frame.render_region(),
         );

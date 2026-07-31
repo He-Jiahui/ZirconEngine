@@ -1,0 +1,5 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub id(required: bool): string { return required ? "temporal_hourglass" : ""; }
+pub stasisKind(required: bool): string { return required ? "stasis" : ""; }
+pub defaultCooldownDelta(required: bool): float { return required ? 0.05 : 0.0; }
+pub consumesScheduleBeforeHpClamp(required: bool): bool { return required; }

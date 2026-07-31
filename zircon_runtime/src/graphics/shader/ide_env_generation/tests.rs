@@ -7,12 +7,37 @@ use serde_json::Value;
 use crate::asset::project::{AssetMetaDocument, AssetSourceUnit, ProjectManifest, ProjectPaths};
 use crate::asset::{AssetKind, AssetUri, AssetUuid};
 use crate::core::framework::render::{
-    shader_ide_preview_relative_path, shader_ide_preview_segments_relative_path,
-    ShaderIdeModuleMap, ShaderIdePreviewMap, ShaderIdePreviewVariant, ShaderPassType,
-    SHADER_IDE_PREVIEW_DEFAULT_VARIANT,
+    SHADER_IDE_PREVIEW_DEFAULT_VARIANT, ShaderIdeModuleMap, ShaderIdePreviewMap,
+    ShaderIdePreviewVariant, ShaderPassType, shader_ide_preview_relative_path,
+    shader_ide_preview_segments_relative_path,
 };
 
 use super::*;
+
+#[test]
+fn shader_ide_preview_matrix_builds_the_shader_index_once() {
+    let source = include_str!("../ide_env_generation.rs");
+    let start = source
+        .find("fn shader_preview_files(")
+        .expect("preview batch builder");
+    let end = start
+        + source[start..]
+            .find("fn shader_preview_file(")
+            .expect("single preview projection");
+    let batch = &source[start..end];
+
+    assert_eq!(
+        batch
+            .matches("shader_include_index(shaders.iter())")
+            .count(),
+        1
+    );
+    assert!(batch.contains("assemble_shader_ide_surface_preview_with_index"));
+    assert!(!batch.contains(concat!(
+        "assemble_shader_ide_surface_preview(shader, ",
+        "shaders.iter(), variant)"
+    )));
+}
 
 #[test]
 fn shader_ide_stub_validation_rejects_circular_dependencies() {
@@ -138,9 +163,11 @@ fn shader_ide_env_writes_module_map_stubs_and_generated_material() {
         Some("res://shaders/hero".to_string())
     );
     assert!(out_dir.join(&generated.stub_path).exists());
-    assert!(fs::read_to_string(out_dir.join(&generated.stub_path))
-        .unwrap()
-        .contains("zr_mat_base_color"));
+    assert!(
+        fs::read_to_string(out_dir.join(&generated.stub_path))
+            .unwrap()
+            .contains("zr_mat_base_color")
+    );
     assert!(
         fs::read_to_string(out_dir.join("modules/shader_ide_sandbox/hero.wgsl"))
             .unwrap()
@@ -205,14 +232,18 @@ fn shader_ide_env_writes_default_preview_and_segments_when_variants_enabled() {
         serde_json::from_str(&fs::read_to_string(out_dir.join(segment_path)).unwrap()).unwrap();
     assert_eq!(segment_map.shader_uri, shader_uri);
     assert_eq!(segment_map.variant, SHADER_IDE_PREVIEW_DEFAULT_VARIANT);
-    assert!(segment_map
-        .segments
-        .iter()
-        .any(|segment| segment.module_id == GENERATED_MATERIAL_MODULE_IMPORT_PATH));
-    assert!(segment_map
-        .segments
-        .iter()
-        .any(|segment| segment.module_id == "shader_ide_sandbox::hero"));
+    assert!(
+        segment_map
+            .segments
+            .iter()
+            .any(|segment| segment.module_id == GENERATED_MATERIAL_MODULE_IMPORT_PATH)
+    );
+    assert!(
+        segment_map
+            .segments
+            .iter()
+            .any(|segment| segment.module_id == "shader_ide_sandbox::hero")
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -344,18 +375,22 @@ fn shader_ide_env_batches_preview_matrix_for_all_surface_shaders() {
         reduced_report.removed_stale_file_count,
         (variants.len() - reduced_variants.len()) * 2 * 2
     );
-    assert!(!out_dir
-        .join(shader_ide_preview_relative_path(
-            &AssetUri::parse("res://shaders/hero").unwrap(),
-            &variants[1].name
-        ))
-        .exists());
-    assert!(out_dir
-        .join(shader_ide_preview_relative_path(
-            &AssetUri::parse("res://shaders/rival").unwrap(),
-            SHADER_IDE_PREVIEW_DEFAULT_VARIANT
-        ))
-        .exists());
+    assert!(
+        !out_dir
+            .join(shader_ide_preview_relative_path(
+                &AssetUri::parse("res://shaders/hero").unwrap(),
+                &variants[1].name
+            ))
+            .exists()
+    );
+    assert!(
+        out_dir
+            .join(shader_ide_preview_relative_path(
+                &AssetUri::parse("res://shaders/rival").unwrap(),
+                SHADER_IDE_PREVIEW_DEFAULT_VARIANT
+            ))
+            .exists()
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -546,6 +581,16 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
         },
     });
 
+    let generated = stubs
+        .iter()
+        .find(|stub| stub.entry.generated)
+        .expect("generated material stub should exist");
+    let generated_source = shader_ide_stub_validation_source(generated, &stubs)
+        .expect("generated material should not depend on itself");
+    assert!(
+        !generated_source.contains("// Zircon shader IDE validation dependency: self::material"),
+        "generated material stub must not append itself as a validation dependency"
+    );
     assert_eq!(parse_shader_ide_stubs(&stubs).unwrap(), stubs.len());
 }
 

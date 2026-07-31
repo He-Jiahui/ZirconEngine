@@ -8,6 +8,8 @@ mod payload;
 mod protocol;
 mod request;
 mod response;
+mod scene_inspection;
+mod tool;
 mod transaction;
 
 pub use delivery::EditorMessageDelivery;
@@ -20,4 +22,8 @@ pub use payload::EditorMessagePayload;
 pub use protocol::EditorMessageProtocol;
 pub use request::EditorMessageRequest;
 pub use response::EditorMessageResponse;
+pub use scene_inspection::{
+    SceneInspectionFieldsDelta, SceneInspectionMessage, SceneInspectionPropertyPath,
+};
+pub use tool::ToolMessage;
 pub use transaction::TransactionMessage;

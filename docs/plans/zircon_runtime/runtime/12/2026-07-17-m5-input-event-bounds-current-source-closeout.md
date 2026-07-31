@@ -27,7 +27,7 @@ plan_sources:
   - docs/plans/performance/01/fixed-2026-07-17-input-event-growth-and-frequency.md
 tests:
   - python -m unittest tools.tests.test_runtime_input_stack_audit
-  - input_stack_boundary_audit (runtime/framework/test 18/25/7, behavior anchors 21, risks empty)
+  - input_stack_boundary_audit (runtime/framework/test 18/26/7, behavior anchors 21, risks empty)
   - managed Windows job d064840b0a8f40dcb405bab74b493ba1 / run 78454dffc1744c858bad697721992c7e
   - managed Windows job 586f1f84cf814180a1bc71c48a713a90 / run a101c9a710634fa386a5f50fb7f3b475
   - managed Windows job 591948392cbb428487ff2f3908754c36 / run 6d9bc0aa6bb243d992c23988d6e35f97
@@ -54,9 +54,9 @@ Date: 2026-07-17
 | frame-transient retention | `fixed` | pointer latest-value/raw-delta 只在相邻连续事件间合并，button/touch/其他 edge 保序并阻断合并；`begin_frame` 清理未 drain 的瞬态事件。 |
 | optional bounded recording | `fixed` | recording 默认关闭，启用时使用有界容量并报告 discard/completeness；disabled capture 不再误报完整。 |
 | action evaluation complexity | `fixed` | action-to-binding index 按配置建立；每帧 axis state/transition 各索引一次，10/100/1000 button 与 axis 回归均验证实际 visit 数。 |
-| framework/prelude owner | `fixed` | `InputManager` 契约、event-retention DTO 与 input prelude 均为 folder-backed owner；crate prelude wiring 由结构审计显式验证。 |
-| structure/doc mirror | `fixed` | runtime/framework/test 为 18/25/7，21 个行为锚，新增 prelude/manager/axis-index wiring 缺失项均为空，`risks = []`。 |
-| independent review | `accepted` | 最终只读复审 Critical 0 / Important 0。 |
+| framework/prelude owner | `fixed` | `InputManager` 契约、event-retention DTO、`module_identity.rs` 与 input prelude 均为 folder-backed owner；`INPUT_MODULE_NAME` root/prelude wiring 由 31/31 public-surface 审计显式验证。 |
+| structure/doc mirror | `fixed` | runtime/framework/test 为 18/26/7，21 个行为锚，module-identity/prelude/manager/axis-index/单次 axis 求值 wiring 缺失项均为空，`risks = []`。 |
+| independent review | `historical_accepted_current_sync_pending` | `94da2b39` 历史 accepted 快照的只读复审为 Critical 0 / Important 0；18/26/7、31/31 与单次 axis 求值同步由后续 M4 guard-fix 记录重新复审，不复用该历史判词。 |
 
 ## Fresh testing evidence
 
@@ -72,11 +72,11 @@ cargo test -p zircon_runtime --lib input::tests:: --locked --jobs 1 -- --nocaptu
 
 主提交后的 source-manifest-bound Windows canonical check 由 job `591948392cbb428487ff2f3908754c36`（run `6d9bc0aa6bb243d992c23988d6e35f97`）执行 `cargo check -p zircon_runtime --lib --locked --jobs 1`。作业自然完成并由协调器释放，exit `0`、`live_process_pids = []`，总构建 11m07s；511 条 warning 均为现有未使用项，不是本次 Runtime12 守卫修正错误。
 
-Python regression `tools.tests.test_runtime_input_stack_audit` 为 1/1；direct audit 报告 runtime/framework/test `18/25/7`、behavior anchors `21`、unexpected/missing/wiring/risk lists 全空。`git diff --check` 无 whitespace error（仅仓库既有 LF/CRLF 提示）。
+Python regression `tools.tests.test_runtime_input_stack_audit` 为 1/1；direct audit 报告 runtime/framework/test `18/26/7`、behavior anchors `21`、unexpected/missing/wiring/risk lists 全空。`git diff --check` 无 whitespace error（仅仓库既有 LF/CRLF 提示）。2026-07-18 current-source sync 将 Frameworks05 新增的 folder-backed input `module_identity.rs` 纳入 framework inventory，并将旧双 axis 遍历锚更新为 Performance01 的单次 `evaluate_binding_axes` owner；未回退下层实现或放宽风险列表。
 
 ## Review
 
-独立最终复审为 Critical 0 / Important 0；复审覆盖 d064 source-manifest hashes、两个 canonical fixed return、M4 current-source addendum 状态镜像、最小 event-buffer 可见性，以及 action/event-retention 语义。文件名中的 `m5` 是本次执行批次的历史标识，不代表受保护主计划新增了 M5 里程碑。
+`94da2b39` 历史 accepted 快照的独立复审为 Critical 0 / Important 0；它覆盖 d064 source-manifest hashes、两个 canonical fixed return、当时的 M4 current-source addendum 状态镜像、最小 event-buffer 可见性，以及 action/event-retention 语义。2026-07-18 的 18/26/7、31/31 与单次 axis 求值同步必须以 `2026-07-17-m4-mirror-doc-guard-post-commit-fix.md` 的新复审为准，不能复用该历史判词。文件名中的 `m5` 是本次执行批次的历史标识，不代表受保护主计划新增了 M5 里程碑。
 
 ## 边界与剩余范围
 

@@ -6,7 +6,7 @@ display_name = "Workbench Chip"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchChip]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-chip", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchChipRoot"
 classes = ["workbench-chip"]
-props = { text = "Chip", component_variant = "chip", font_size = 13.333333, text_tone = "primary", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 4.0, layout_padding_bottom = 4.0 }
-layout = { width = { min = 40.0, preferred = 80.0, max = 160.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+props = { text = "Chip", component_variant = "chip", font_size = "$editor.typography.body.size", text_tone = "primary", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small" }
+layout = { width = { min = 40.0, preferred = 80.0, max = 160.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.compact", max = "$editor.control.height.default", stretch = "Fixed" } }

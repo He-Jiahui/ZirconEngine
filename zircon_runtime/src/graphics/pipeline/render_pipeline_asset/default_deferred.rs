@@ -1,4 +1,4 @@
-use crate::core::framework::render::{CorePipelineKind, RenderPhase, RenderPipelineHandle};
+use crate::core::framework::render::{CorePipelineKind, RenderPhase};
 
 use crate::graphics::feature::BuiltinRenderFeature;
 use crate::graphics::pipeline::declarations::{
@@ -8,7 +8,7 @@ use crate::graphics::pipeline::declarations::{
 impl RenderPipelineAsset {
     pub fn default_deferred() -> Self {
         Self {
-            handle: RenderPipelineHandle::new(2),
+            handle: Self::DEFAULT_DEFERRED_HANDLE,
             revision: 1,
             name: "deferred".to_string(),
             core_pipeline: CorePipelineKind::Core3d,

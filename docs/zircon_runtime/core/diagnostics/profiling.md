@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/render.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/runtime/diagnostics/snapshot.rs
@@ -47,7 +47,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/frame.rs

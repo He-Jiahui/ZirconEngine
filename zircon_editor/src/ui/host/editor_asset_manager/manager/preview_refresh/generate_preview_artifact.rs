@@ -13,7 +13,7 @@ pub(super) fn generate_preview_artifact(
     record: &AssetCatalogRecord,
     cache: &PreviewCache,
 ) -> Result<PathBuf, AssetImportError> {
-    let key = PreviewArtifactKey::thumbnail(record.asset_uuid);
+    let key = PreviewArtifactKey::thumbnail(record.asset_uuid, &record.source_hash);
     let definition = builtin_asset_type_definition(record.kind).ok_or_else(|| {
         AssetImportError::Parse(format!(
             "asset type definition is missing for {:?}",

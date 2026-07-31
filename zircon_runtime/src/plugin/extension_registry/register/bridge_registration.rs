@@ -132,16 +132,10 @@ impl RuntimeExtensionRegistry {
     }
 
     fn build_bridge_table(&self) -> FrozenBridgeTable {
-        FrozenBridgeTable::from_exports(self.plugin_interfaces.values().iter().map(|export| {
-            let slot = self
-                .plugin_interfaces
-                .resolve(&export.interface_id)
-                .expect("plugin interface export has slot");
-            let owner = self
-                .plugin_interfaces
-                .owner_for_slot(slot)
-                .expect("plugin interface export has owner");
-            (owner, export.interface_id.clone(), export.clone())
-        }))
+        FrozenBridgeTable::from_exports(
+            self.plugin_interfaces
+                .iter()
+                .map(|(owner, interface_id, export)| (owner, interface_id.clone(), export.clone())),
+        )
     }
 }

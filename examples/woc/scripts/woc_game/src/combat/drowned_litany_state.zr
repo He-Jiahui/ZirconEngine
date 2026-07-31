@@ -1,0 +1,539 @@
+// Stateful M4 projection of the Drowned Litany parity encounter: bell ropes,
+// Sister Nhalia's combat gates and the initial Reliquary Rite playback.
+var container = %import("zr.container");
+var riteRules = %import("instances/drowned_litany_rite_rules");
+
+class DrownedLitanyState {
+    pub var bossHp: int;
+    pub var bossMaxHp: int;
+    pub var bossInCombat: bool;
+    pub var bossAiState: string;
+    pub var partyPlayerCount: int;
+    pub var partyPlayerMaxHp: int;
+    pub var partyPlayersSurvivingFinalBell: int;
+    pub var liveRoomCantors: int;
+    pub var combatOpenInModule: bool;
+    pub var livelyChoir: bool;
+    pub var heroicTier: bool;
+    pub var highWater: bool;
+    pub var markTimer: float;
+    pub var marks: int;
+    pub var firedCantorPhases: int;
+    pub var livingCantorShieldAdds: int;
+    pub var cantorShieldActive: bool;
+    pub var cantorShieldValue: int;
+    pub var finalBellFired: bool;
+    pub var bellVolleyTimer: float;
+    pub var bellsLive: int;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var eventOrder: container.Array<string>;
+    pub var ropePulls: int;
+    pub var bellShockDamageEvents: int;
+    pub var bellShockDamageTotal: int;
+    pub var bellShockLogEvents: int;
+    pub var cantorSpawnEvents: int;
+    pub var cantorSpawned: int;
+    pub var cantorPhaseLogs: int;
+    pub var shieldGainedEvents: int;
+    pub var shieldLostEvents: int;
+    pub var markCastEvents: int;
+    pub var bellVolleyEvents: int;
+    pub var finalBellEvents: int;
+    pub var finalBellThralls: int;
+    pub var finalBellDamageEvents: int;
+    pub var finalBellDamageTotal: int;
+    pub var finalBellStunEvents: int;
+    pub var riteSpawned: bool;
+    pub var riteAwaitingChoice: bool;
+    pub var riteChoosePrompts: int;
+    pub var riteIntensity: string;
+    pub var riteLength: int;
+    pub var riteTries: int;
+    pub var ritePlaybacks: int;
+    pub var ritePlaybackLoop: int;
+    pub var riteSequencePlaying: bool;
+    pub var ritePlaybackIndex: int;
+    pub var ritePlaybackTimer: float;
+    pub var ritePulseEvents: int;
+    pub var riteSeed: uint;
+    pub var riteCurrentIndex: int;
+    pub var riteMistakes: int;
+    pub var riteMistakesAllowed: int;
+    pub var ritePuzzleActive: bool;
+    pub var riteOpened: bool;
+    pub var riteLastPulseKind: int;
+    pub var riteOpenedTier: int;
+    pub var riteWrongDamageTotal: int;
+    // Source grantRiteBonus awards these values once per eligible member.
+    pub var riteBonusCopperPerMember: int;
+    pub var riteBonusMarksPerMember: int;
+    pub var ritePlayerAlive: bool;
+
+    pub @constructor() {
+        this.bossHp = 1000;
+        this.bossMaxHp = 1000;
+        this.bossInCombat = false;
+        this.bossAiState = "idle";
+        this.partyPlayerCount = 1;
+        this.partyPlayerMaxHp = 1000;
+        this.partyPlayersSurvivingFinalBell = 1;
+        this.liveRoomCantors = 0;
+        this.combatOpenInModule = false;
+        this.livelyChoir = false;
+        this.heroicTier = true;
+        this.highWater = false;
+        this.markTimer = 14.0;
+        this.marks = 0;
+        this.firedCantorPhases = 0;
+        this.livingCantorShieldAdds = 0;
+        this.cantorShieldActive = false;
+        this.cantorShieldValue = 0;
+        this.finalBellFired = false;
+        this.bellVolleyTimer = 12.0;
+        this.bellsLive = 0;
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.eventOrder = new container.Array<string>();
+        this.ropePulls = 0;
+        this.bellShockDamageEvents = 0;
+        this.bellShockDamageTotal = 0;
+        this.bellShockLogEvents = 0;
+        this.cantorSpawnEvents = 0;
+        this.cantorSpawned = 0;
+        this.cantorPhaseLogs = 0;
+        this.shieldGainedEvents = 0;
+        this.shieldLostEvents = 0;
+        this.markCastEvents = 0;
+        this.bellVolleyEvents = 0;
+        this.finalBellEvents = 0;
+        this.finalBellThralls = 0;
+        this.finalBellDamageEvents = 0;
+        this.finalBellDamageTotal = 0;
+        this.finalBellStunEvents = 0;
+        this.riteSpawned = false;
+        this.riteAwaitingChoice = false;
+        this.riteChoosePrompts = 0;
+        this.riteIntensity = "";
+        this.riteLength = 0;
+        this.riteTries = 0;
+        this.ritePlaybacks = 0;
+        this.ritePlaybackLoop = 0;
+        this.riteSequencePlaying = false;
+        this.ritePlaybackIndex = 0;
+        this.ritePlaybackTimer = 0.6;
+        this.ritePulseEvents = 0;
+        this.riteSeed = <uint>0;
+        this.riteCurrentIndex = 0;
+        this.riteMistakes = 0;
+        this.riteMistakesAllowed = 0;
+        this.ritePuzzleActive = false;
+        this.riteOpened = false;
+        this.riteLastPulseKind = -1;
+        this.riteOpenedTier = -1;
+        this.riteWrongDamageTotal = 0;
+        this.riteBonusCopperPerMember = 0;
+        this.riteBonusMarksPerMember = 0;
+        this.ritePlayerAlive = true;
+    }
+}
+
+takeRandomUnit(state: DrownedLitanyState, label: string): float {
+    if (state.randomIndex < 0 || state.randomIndex >= state.randomUnits.length) {
+        throw "Drowned Litany random stream is exhausted";
+    }
+    state.eventOrder.add(label);
+    var result = <float>state.randomUnits[state.randomIndex];
+    state.randomIndex = state.randomIndex + 1;
+    return result;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub pullBellRope(state: DrownedLitanyState): void {
+    state.ropePulls = state.ropePulls + 1;
+    if (!state.combatOpenInModule || state.liveRoomCantors <= 0) { return; }
+    state.bellShockDamageEvents = state.bellShockDamageEvents + state.liveRoomCantors;
+    state.bellShockDamageTotal = state.bellShockDamageTotal +
+        state.liveRoomCantors * 18;
+    state.bellShockLogEvents = state.bellShockLogEvents + state.partyPlayerCount;
+    state.eventOrder.add("bellShock");
+}
+
+tickCantorPhases(state: DrownedLitanyState): void {
+    var hpFraction = <float>state.bossHp / <float>(state.bossMaxHp > 0 ? state.bossMaxHp : 1);
+    while (state.firedCantorPhases < 2 &&
+        hpFraction <= (state.firedCantorPhases == 0 ? 0.70 : 0.35)) {
+        state.firedCantorPhases = state.firedCantorPhases + 1;
+        var spawned = 2 + (state.livelyChoir ? 2 : 0);
+        state.livingCantorShieldAdds = state.livingCantorShieldAdds + spawned;
+        state.cantorSpawned = state.cantorSpawned + spawned;
+        state.cantorSpawnEvents = state.cantorSpawnEvents + 1;
+        state.cantorShieldActive = true;
+        state.cantorShieldValue = 120;
+        state.shieldGainedEvents = state.shieldGainedEvents + 1;
+        state.cantorPhaseLogs = state.cantorPhaseLogs + 1;
+        state.eventOrder.add("cantorPhase");
+    }
+}
+
+tickCantorShield(state: DrownedLitanyState): void {
+    if (!state.cantorShieldActive || state.livingCantorShieldAdds > 0) { return; }
+    state.cantorShieldActive = false;
+    state.cantorShieldValue = 0;
+    state.shieldLostEvents = state.shieldLostEvents + 1;
+    state.eventOrder.add("shieldLost");
+}
+
+tickMarkCast(state: DrownedLitanyState): void {
+    state.markTimer = state.markTimer - 0.05;
+    if (state.markTimer > 0.000000001) { return; }
+    state.markTimer = 14.0;
+    if (state.partyPlayerCount <= 0) { return; }
+    takeRandomUnit(state, "markTargetDraw");
+    state.marks = state.marks + 1;
+    state.markCastEvents = state.markCastEvents + 1;
+    state.eventOrder.add("markCast");
+}
+
+tickFinalBell(state: DrownedLitanyState): void {
+    if (state.finalBellFired) { return; }
+    var hpFraction = <float>state.bossHp / <float>(state.bossMaxHp > 0 ? state.bossMaxHp : 1);
+    if (hpFraction > 0.10) { return; }
+    state.finalBellFired = true;
+    state.finalBellEvents = state.finalBellEvents + 1;
+    state.finalBellThralls = state.finalBellThralls + 4 + (state.livelyChoir ? 2 : 0);
+    var damage = roundPositive(<float>state.partyPlayerMaxHp * 0.22);
+    if (damage < 1) { damage = 1; }
+    state.finalBellDamageEvents = state.finalBellDamageEvents + state.partyPlayerCount;
+    state.finalBellDamageTotal = state.finalBellDamageTotal +
+        damage * state.partyPlayerCount;
+    state.finalBellStunEvents = state.finalBellStunEvents +
+        state.partyPlayersSurvivingFinalBell;
+    state.eventOrder.add("finalBell");
+}
+
+tickTollingBells(state: DrownedLitanyState): void {
+    state.bellVolleyTimer = state.bellVolleyTimer - 0.05;
+    if (state.bellVolleyTimer > 0.000000001) { return; }
+    var intervalSample = takeRandomUnit(state, "bellIntervalDraw");
+    state.bellVolleyTimer = 10.0 + intervalSample * 2.0;
+    takeRandomUnit(state, "bellOffsetDraw");
+    state.bellsLive = state.bellsLive + 4;
+    state.bellVolleyEvents = state.bellVolleyEvents + 1;
+    state.eventOrder.add("bellVolley");
+}
+
+pub tickBoss(state: DrownedLitanyState): void {
+    if (!state.bossInCombat &&
+        state.bossAiState != "attack" && state.bossAiState != "chase") {
+        return;
+    }
+    tickCantorPhases(state);
+    tickCantorShield(state);
+    tickMarkCast(state);
+    tickFinalBell(state);
+    tickTollingBells(state);
+}
+
+pub spawnRite(state: DrownedLitanyState): void {
+    state.riteSpawned = true;
+    state.riteAwaitingChoice = true;
+    state.riteIntensity = "";
+    state.riteLength = 0;
+    state.riteTries = 0;
+    state.ritePlaybacks = 0;
+    state.ritePlaybackLoop = 0;
+    state.riteSequencePlaying = false;
+    state.ritePlaybackIndex = 0;
+    state.ritePlaybackTimer = riteRules.playbackStepSeconds(true);
+    state.ritePulseEvents = 0;
+    state.riteCurrentIndex = 0;
+    state.riteMistakes = 0;
+    state.riteMistakesAllowed = 0;
+    state.ritePuzzleActive = false;
+    state.riteOpened = false;
+    state.riteLastPulseKind = -1;
+    state.riteOpenedTier = -1;
+    state.riteWrongDamageTotal = 0;
+    state.riteBonusCopperPerMember = 0;
+    state.riteBonusMarksPerMember = 0;
+}
+
+// `run.seed` is immutable in the target. The test projection keeps it as an
+// explicit scalar because M4 does not own a DelveRun object.
+pub setRiteSeed(state: DrownedLitanyState, seed: uint): bool {
+    if (state.riteSpawned) { return false; }
+    state.riteSeed = seed;
+    return true;
+}
+
+pub interactReliquary(state: DrownedLitanyState): void {
+    if (state.riteSpawned && state.riteAwaitingChoice) {
+        state.riteChoosePrompts = state.riteChoosePrompts + 1;
+    }
+}
+
+pub chooseRite(state: DrownedLitanyState, intensity: string): bool {
+    if (!state.riteAwaitingChoice) { return false; }
+    var intensityIndex = riteRules.intensityIndex(intensity, true);
+    if (intensityIndex < 0) { return false; }
+    state.riteAwaitingChoice = false;
+    state.riteIntensity = intensity;
+    state.riteLength = riteRules.intensityLength(intensityIndex, true);
+    state.riteTries = riteRules.intensityTries(intensityIndex, true);
+    state.riteMistakesAllowed = riteRules.mistakesAllowedForIntensity(intensityIndex, true);
+    state.ritePlaybacks = riteRules.intensityPlaybacks(intensityIndex, true);
+    state.ritePlaybackLoop = 0;
+    state.riteCurrentIndex = 0;
+    state.riteMistakes = 0;
+    state.ritePuzzleActive = true;
+    state.riteSequencePlaying = true;
+    state.ritePlaybackIndex = 0;
+    state.ritePlaybackTimer = riteRules.playbackStepSeconds(true);
+    return true;
+}
+
+pub tickRite(state: DrownedLitanyState): void {
+    if (!state.ritePuzzleActive || !state.riteSequencePlaying) { return; }
+    state.ritePlaybackTimer = state.ritePlaybackTimer - 0.05;
+    if (state.ritePlaybackTimer > 0.0) { return; }
+    state.riteLastPulseKind = riteRules.sequenceShrineIndex(
+        state.riteSeed,
+        state.ritePlaybackIndex,
+        true
+    );
+    state.ritePulseEvents = state.ritePulseEvents + 1;
+    state.ritePlaybackTimer = riteRules.nextPlaybackTimerAfterPulse(
+        state.ritePlaybackIndex,
+        state.ritePlaybackLoop,
+        state.riteLength,
+        state.ritePlaybacks,
+        true
+    );
+    state.ritePlaybackLoop = riteRules.nextPlaybackLoop(
+        state.ritePlaybackIndex,
+        state.ritePlaybackLoop,
+        state.riteLength,
+        true
+    );
+    state.ritePlaybackIndex = riteRules.nextPlaybackIndex(
+        state.ritePlaybackIndex,
+        state.riteLength,
+        true
+    );
+    if (!riteRules.playbackContinues(state.ritePlaybackLoop, state.ritePlaybacks, true)) {
+        state.riteSequencePlaying = false;
+    }
+}
+
+openRite(state: DrownedLitanyState, tier: int): void {
+    if (state.riteOpened) { return; }
+    state.riteOpened = true;
+    state.riteOpenedTier = tier;
+    state.ritePuzzleActive = false;
+    state.riteSequencePlaying = false;
+    var copperMinimum = state.heroicTier ? 32 : 18;
+    var copperMaximum = state.heroicTier ? 48 : 30;
+    var baseCopper = riteRules.baseCopper(copperMinimum, copperMaximum, true);
+    state.riteBonusCopperPerMember = riteRules.riteBonusCopper(baseCopper, tier, true);
+    state.riteBonusMarksPerMember = riteRules.riteBonusMarks(tier, true);
+}
+
+// The state model receives a source-valid shrine kind index. Entity/object
+// lookup and feedback events remain with the future DelveRun reducer.
+pub touchRiteShrine(state: DrownedLitanyState, shrineKind: int): bool {
+    riteRules.shrineKind(shrineKind, true);
+    if (state.riteAwaitingChoice || !state.ritePuzzleActive || state.riteOpened ||
+        state.riteSequencePlaying) {
+        return false;
+    }
+    var expected = riteRules.sequenceShrineIndex(state.riteSeed, state.riteCurrentIndex, true);
+    if (shrineKind == expected) {
+        state.riteCurrentIndex = state.riteCurrentIndex + 1;
+        if (state.riteCurrentIndex >= state.riteLength) {
+            var intensity = riteRules.intensityIndex(state.riteIntensity, true);
+            openRite(state, riteRules.completionTier(
+                state.riteMistakes,
+                state.riteMistakesAllowed,
+                intensity,
+                true
+            ));
+        }
+        return true;
+    }
+    state.riteMistakes = state.riteMistakes + 1;
+    if (state.ritePlayerAlive) {
+        state.riteWrongDamageTotal = state.riteWrongDamageTotal +
+            riteRules.wrongTouchDamage(state.partyPlayerMaxHp, true);
+    }
+    if (riteRules.mistakeExhaustsAttempts(state.riteMistakes, state.riteMistakesAllowed, true)) {
+        openRite(state, 0);
+        return true;
+    }
+    state.riteCurrentIndex = 0;
+    state.riteSequencePlaying = true;
+    state.ritePlaybackIndex = 0;
+    state.ritePlaybackLoop = riteRules.retryPlaybackLoop(state.ritePlaybacks, true);
+    state.ritePlaybackTimer = riteRules.retryPlaybackTimer(true);
+    return true;
+}
+
+pub riteContractTest(): int {
+    var playback = new DrownedLitanyState();
+    setRiteSeed(playback, <uint>0);
+    spawnRite(playback);
+    if (setRiteSeed(playback, <uint>1) || chooseRite(playback, "unknown") ||
+        !chooseRite(playback, "medium") ||
+        playback.riteLength != 5 || playback.riteTries != 2 ||
+        playback.riteMistakesAllowed != 1 || playback.ritePlaybacks != 2) {
+        return -1;
+    }
+    var ticks = 0;
+    while (ticks < 13) { tickRite(playback); ticks = ticks + 1; }
+    if (playback.ritePulseEvents != 1 || playback.riteLastPulseKind != 3 ||
+        playback.ritePlaybackIndex != 1 || playback.ritePlaybackLoop != 0) {
+        return -2;
+    }
+    playback.ritePlaybackIndex = 4;
+    playback.ritePlaybackLoop = 1;
+    playback.ritePlaybackTimer = 0.05;
+    tickRite(playback);
+    if (playback.riteLastPulseKind != 3 || playback.ritePlaybackIndex != 0 ||
+        playback.ritePlaybackLoop != 2 || playback.riteSequencePlaying ||
+        !closeEnough(playback.ritePlaybackTimer, 0.6)) {
+        return -3;
+    }
+
+    var easy = new DrownedLitanyState();
+    easy.partyPlayerMaxHp = 1000;
+    setRiteSeed(easy, <uint>1);
+    spawnRite(easy);
+    if (!chooseRite(easy, "easy") || touchRiteShrine(easy, 0)) { return -4; }
+    easy.riteSequencePlaying = false;
+    if (!touchRiteShrine(easy, 0) || easy.riteCurrentIndex != 1 ||
+        !touchRiteShrine(easy, 1) || easy.riteMistakes != 1 ||
+        easy.riteCurrentIndex != 0 || !easy.riteSequencePlaying ||
+        easy.ritePlaybackIndex != 0 || easy.ritePlaybackLoop != 2 ||
+        !closeEnough(easy.ritePlaybackTimer, 1.2) || easy.riteWrongDamageTotal != 30) {
+        return -5;
+    }
+    easy.riteSequencePlaying = false;
+    if (!touchRiteShrine(easy, 0) || !touchRiteShrine(easy, 0) ||
+        !touchRiteShrine(easy, 3) || !touchRiteShrine(easy, 1) || !easy.riteOpened ||
+        easy.riteOpenedTier != 0 || easy.riteBonusCopperPerMember != 0 ||
+        easy.riteBonusMarksPerMember != 0 || easy.ritePuzzleActive) {
+        return -6;
+    }
+
+    var hard = new DrownedLitanyState();
+    hard.partyPlayerMaxHp = 1000;
+    setRiteSeed(hard, <uint>20061);
+    spawnRite(hard);
+    if (!chooseRite(hard, "hard")) { return -7; }
+    hard.riteSequencePlaying = false;
+    if (!touchRiteShrine(hard, 1) || !touchRiteShrine(hard, 0) ||
+        !touchRiteShrine(hard, 2) || !touchRiteShrine(hard, 2) ||
+        !touchRiteShrine(hard, 3) || !touchRiteShrine(hard, 3) || !hard.riteOpened ||
+        hard.riteOpenedTier != 2 || hard.riteBonusCopperPerMember != 40 ||
+        hard.riteBonusMarksPerMember != 4 || hard.riteWrongDamageTotal != 0) {
+        return -8;
+    }
+
+    var exhausted = new DrownedLitanyState();
+    exhausted.partyPlayerMaxHp = 1000;
+    setRiteSeed(exhausted, <uint>1);
+    spawnRite(exhausted);
+    if (!chooseRite(exhausted, "hard")) { return -9; }
+    exhausted.riteSequencePlaying = false;
+    if (!touchRiteShrine(exhausted, 1) || !exhausted.riteOpened ||
+        exhausted.riteOpenedTier != 0 || exhausted.riteWrongDamageTotal != 30 ||
+        exhausted.riteBonusCopperPerMember != 0 || exhausted.riteBonusMarksPerMember != 0) {
+        return -10;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var rope = new DrownedLitanyState();
+    rope.combatOpenInModule = true;
+    rope.liveRoomCantors = 1;
+    pullBellRope(rope);
+    pullBellRope(rope);
+    if (rope.ropePulls != 2 || rope.bellShockDamageEvents != 2 ||
+        rope.bellShockDamageTotal != 36 || rope.bellShockLogEvents != 2) {
+        return -1;
+    }
+
+    var encounter = new DrownedLitanyState();
+    encounter.bossInCombat = true;
+    encounter.bossHp = 650;
+    encounter.markTimer = 0.05;
+    encounter.bellVolleyTimer = 0.05;
+    encounter.randomUnits.add(0.5);
+    encounter.randomUnits.add(0.25);
+    encounter.randomUnits.add(0.75);
+    tickBoss(encounter);
+    if (encounter.firedCantorPhases != 1 || encounter.cantorSpawned != 2 ||
+        !encounter.cantorShieldActive || encounter.cantorShieldValue != 120 ||
+        encounter.marks != 1 || encounter.bellsLive != 4 ||
+        encounter.randomIndex != 3 ||
+        !closeEnough(encounter.bellVolleyTimer, 10.5)) {
+        return -2;
+    }
+    if (encounter.eventOrder.length < 6 ||
+        <string>encounter.eventOrder[0] != "cantorPhase" ||
+        <string>encounter.eventOrder[1] != "markTargetDraw" ||
+        <string>encounter.eventOrder[2] != "markCast" ||
+        <string>encounter.eventOrder[3] != "bellIntervalDraw" ||
+        <string>encounter.eventOrder[4] != "bellOffsetDraw" ||
+        <string>encounter.eventOrder[5] != "bellVolley") {
+        return -3;
+    }
+
+    encounter.bossHp = 300;
+    tickBoss(encounter);
+    if (encounter.firedCantorPhases != 2 || encounter.cantorSpawned != 4) {
+        return -4;
+    }
+    encounter.livingCantorShieldAdds = 0;
+    tickBoss(encounter);
+    if (encounter.cantorShieldActive || encounter.shieldLostEvents != 1) {
+        return -5;
+    }
+    encounter.bossHp = 80;
+    tickBoss(encounter);
+    if (!encounter.finalBellFired || encounter.finalBellEvents != 1 ||
+        encounter.finalBellThralls != 4 || encounter.finalBellDamageEvents != 1 ||
+        encounter.finalBellDamageTotal != 220 || encounter.finalBellStunEvents != 1) {
+        return -6;
+    }
+
+    var burst = new DrownedLitanyState();
+    burst.bossInCombat = true;
+    burst.bossHp = 300;
+    tickBoss(burst);
+    if (burst.firedCantorPhases != 2 || burst.cantorSpawned != 4) { return -7; }
+
+    spawnRite(encounter);
+    interactReliquary(encounter);
+    if (!chooseRite(encounter, "easy") || encounter.riteChoosePrompts != 1 ||
+        encounter.riteLength != 4 || encounter.riteTries != 3 ||
+        encounter.ritePlaybacks != 3) {
+        return -8;
+    }
+    var ticks = 0;
+    while (ticks < 13) { tickRite(encounter); ticks = ticks + 1; }
+    if (encounter.ritePulseEvents != 1 || encounter.ritePlaybackIndex != 1) {
+        return -9;
+    }
+    return 1;
+}

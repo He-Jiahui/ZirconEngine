@@ -38,18 +38,26 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
             "if runtime_session_args.help_requested",
             "return Ok(());",
             "LoadedRuntime::load_default()",
+            "EventLoop::new()?",
+            "event_loop.create_proxy()",
             "RuntimeSession::create_with_profile_and_project",
             "runtime_session_args.profile.as_bytes()",
             "runtime_session_args.project_root.as_deref()",
         ],
-        "runtime runner should parse logging first, allow help before dynamic loading, then pass the selected session profile and project root to the dynamic runtime",
+        "runtime runner should parse logging first, allow help before dynamic loading, create the event loop wake proxy, then pass the selected session profile and project root to the dynamic runtime",
     );
     assert!(
         runtime_session_source.contains("profile: ZrByteSlice::from_static(profile)"),
-        "runtime session creation should pass the selected profile bytes through ZrRuntimeSessionConfigV1"
+        "runtime session creation should pass the selected profile bytes through ZrRuntimeSessionConfigV2"
     );
     assert!(
         runtime_session_source.contains("project_manifest"),
-        "runtime session creation should pass the project-root bytes through ZrRuntimeSessionConfigV1"
+        "runtime session creation should pass the project-root bytes through ZrRuntimeSessionConfigV2"
+    );
+    assert!(
+        runtime_session_source.contains("wake_sink:")
+            && runtime_runner_source.contains("RuntimeWakeRegistration::register")
+            && runtime_runner_source.contains("event_loop.create_proxy()"),
+        "standalone runtime creation should bind the V3 session to a real host wake proxy"
     );
 }

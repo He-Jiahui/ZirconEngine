@@ -1,0 +1,75 @@
+// Adapts one explicitly selected active Delve module from world coordinates to
+// the generated local resolver. It intentionally owns no run state or module
+// sequence: those values must come from the future persistent ZrVM state ABI.
+
+var content = %import("world/delve_collision_content");
+var collision = %import("world/delve_collision_static");
+
+// This helper mirrors source defaultDelveModules only for static reference
+// vectors and tooling. Authoritative runtime code must supply active origins.
+pub defaultModuleOriginCoordinate(
+    delveIndex: int,
+    slot: int,
+    moduleOffset: int,
+    axis: int,
+    required: bool
+): float {
+    if (!required || slot < 0 || slot >= content.delveSlotCount(true) ||
+        moduleOffset < 0 || moduleOffset >= content.defaultChainCount(delveIndex, true) ||
+        (axis != 1 && axis != 2)) {
+        throw "woc Delve default module origin is invalid";
+    }
+    var originZ = content.delveOriginZ0(true) + <float>slot * content.delveSlotSpacing(true);
+    var cursorZ = content.delveModuleZStart(true);
+    var previous = 0;
+    while (previous < moduleOffset) {
+        var previousModule = content.defaultChainModuleIndex(delveIndex, previous, true);
+        cursorZ = cursorZ + content.moduleSpan(previousModule, true) + content.delveModuleGap(true);
+        previous = previous + 1;
+    }
+    return axis == 1 ?
+        content.delveOriginBaseX(true) + <float>delveIndex * content.delveOriginIndexSpacing(true) :
+        originZ + cursorZ;
+}
+
+pub resolveActiveModuleWorldCoordinate(
+    worldX: float,
+    worldZ: float,
+    moduleOriginX: float,
+    moduleOriginZ: float,
+    moduleIndex: int,
+    bodyRadius: float,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc active Delve collision arguments are invalid";
+    }
+    var localX = worldX - moduleOriginX;
+    var localZ = worldZ - moduleOriginZ;
+    return axis == 1 ?
+        moduleOriginX + collision.resolveCoordinate(moduleIndex, localX, localZ, bodyRadius, 1, true) :
+        moduleOriginZ + collision.resolveCoordinate(moduleIndex, localX, localZ, bodyRadius, 2, true);
+}
+
+pub contractTest(): int {
+    if (defaultModuleOriginCoordinate(0, 0, 0, 1, true) != 4800.0 ||
+        defaultModuleOriginCoordinate(0, 0, 0, 2, true) != -1242.0 ||
+        defaultModuleOriginCoordinate(0, 0, 1, 2, true) != -1116.0 ||
+        defaultModuleOriginCoordinate(1, 0, 3, 1, true) != 5400.0 ||
+        defaultModuleOriginCoordinate(1, 0, 3, 2, true) != -914.0) {
+        return -1;
+    }
+    if (resolveActiveModuleWorldCoordinate(
+        4774.0, -1206.0, 4800.0, -1242.0, 0, 0.5, 1, true
+    ) != 4773.5 || resolveActiveModuleWorldCoordinate(
+        4774.0, -1206.0, 4800.0, -1242.0, 0, 0.5, 2, true
+    ) != -1206.0 || resolveActiveModuleWorldCoordinate(
+        5395.333333333333, -1256.0, 5400.0, -1242.0, 4, 0.5, 1, true
+    ) != 5395.333333333333 || resolveActiveModuleWorldCoordinate(
+        5395.333333333333, -1256.0, 5400.0, -1242.0, 4, 0.5, 2, true
+    ) != -1254.5) {
+        return -2;
+    }
+    return 1;
+}

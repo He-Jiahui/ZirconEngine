@@ -1,15 +1,24 @@
 use std::fs::{File, OpenOptions};
-use std::io::Write;
 use std::path::PathBuf;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
+use std::time::Duration;
 
-use super::level::{DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel};
+mod metrics;
+mod worker;
+
+pub use metrics::DiagnosticLogSinkSnapshot;
+use worker::{DurableOutput, SinkRuntime, SINK_THREAD_NAME};
+
+use super::level::{
+    CompiledDiagnosticLogFilter, DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel,
+};
 pub use super::platform::DiagnosticLogLocation;
 use super::platform::{log_directory_candidates, LogDirectoryCandidate};
-use super::settings::DiagnosticLogSettings;
+use super::settings::{DiagnosticLogSettings, DiagnosticLogSinkSettings};
 use super::timestamp::current_log_timestamp;
 
 static LOG_STATE: OnceLock<DiagnosticLogState> = OnceLock::new();
+static PANIC_FLUSH_HOOK: OnceLock<()> = OnceLock::new();
 
 pub fn initialize_process_log(channel: impl Into<String>) -> Option<PathBuf> {
     initialize_process_log_with_location(channel, DiagnosticLogLocation::LocalFirst)
@@ -83,6 +92,7 @@ pub fn initialize_process_log_with_settings(settings: DiagnosticLogSettings) -> 
     let requested_filter = settings.filter.clone();
     let requested_console_enabled = settings.console_enabled;
     let requested_file_enabled = settings.file_enabled;
+    let requested_sink_settings = settings.sink.clone();
     let state = LOG_STATE.get_or_init(|| {
         DiagnosticLogState::new(
             requested_channel.clone(),
@@ -90,12 +100,12 @@ pub fn initialize_process_log_with_settings(settings: DiagnosticLogSettings) -> 
             settings.filter,
             settings.console_enabled,
             settings.file_enabled,
+            settings.sink,
         )
     });
-    write_log(
-        "diagnostic_log",
+    write_log_lazy("diagnostic_log", || {
         format!(
-            "active channel={} requested_channel={} active_filter={} requested_filter={} active_console_enabled={} requested_console_enabled={} active_file_enabled={} requested_file_enabled={} file={}",
+            "active channel={} requested_channel={} active_filter={} requested_filter={} active_console_enabled={} requested_console_enabled={} active_file_enabled={} requested_file_enabled={} queue_capacity={} requested_queue_capacity={} file={}",
             state.channel,
             requested_channel,
             state.filter,
@@ -104,13 +114,15 @@ pub fn initialize_process_log_with_settings(settings: DiagnosticLogSettings) -> 
             requested_console_enabled,
             state.file_enabled,
             requested_file_enabled,
+            state.sink_settings.queue_capacity,
+            requested_sink_settings.queue_capacity,
             state
                 .file_path
                 .as_ref()
                 .map(|path| path.display().to_string())
                 .unwrap_or_else(|| "<file-unavailable>".to_string())
-        ),
-    );
+        )
+    });
     state.file_path.clone()
 }
 
@@ -125,7 +137,7 @@ pub fn diagnostic_log_allows(level: DiagnosticLogLevel) -> bool {
 pub fn diagnostic_log_allows_for_scope(level: DiagnosticLogLevel, scope: &str) -> bool {
     LOG_STATE
         .get()
-        .is_some_and(|state| state.filter.allows(level, scope))
+        .is_some_and(|state| state.allows(level, scope))
 }
 
 pub fn write_debug_log(scope: &str, message: impl AsRef<str>) {
@@ -151,13 +163,105 @@ pub fn write_diagnostic_log_at(level: DiagnosticLogLevel, scope: &str, message: 
     state.write(level, scope, message.as_ref());
 }
 
+pub fn write_diagnostic_log_lazy<F, M>(scope: &str, message: F)
+where
+    F: FnOnce() -> M,
+    M: AsRef<str>,
+{
+    write_diagnostic_log_lazy_at(DiagnosticLogLevel::Verbose, scope, message);
+}
+
+pub fn write_debug_log_lazy<F, M>(scope: &str, message: F)
+where
+    F: FnOnce() -> M,
+    M: AsRef<str>,
+{
+    write_diagnostic_log_lazy_at(DiagnosticLogLevel::Debug, scope, message);
+}
+
+pub fn write_log_lazy<F, M>(scope: &str, message: F)
+where
+    F: FnOnce() -> M,
+    M: AsRef<str>,
+{
+    write_diagnostic_log_lazy_at(DiagnosticLogLevel::Log, scope, message);
+}
+
+pub fn write_warn_lazy<F, M>(scope: &str, message: F)
+where
+    F: FnOnce() -> M,
+    M: AsRef<str>,
+{
+    write_diagnostic_log_lazy_at(DiagnosticLogLevel::Warn, scope, message);
+}
+
+pub fn write_error_lazy<F, M>(scope: &str, message: F)
+where
+    F: FnOnce() -> M,
+    M: AsRef<str>,
+{
+    write_diagnostic_log_lazy_at(DiagnosticLogLevel::Error, scope, message);
+}
+
+pub fn write_diagnostic_log_lazy_at<F, M>(level: DiagnosticLogLevel, scope: &str, message: F)
+where
+    F: FnOnce() -> M,
+    M: AsRef<str>,
+{
+    let Some(state) = LOG_STATE.get() else {
+        return;
+    };
+    state.write_lazy(level, scope, message);
+}
+
+pub fn diagnostic_log_sink_snapshot() -> Option<DiagnosticLogSinkSnapshot> {
+    LOG_STATE.get().and_then(DiagnosticLogState::snapshot)
+}
+
+/// Installs one process-wide panic hook that attempts the bounded crash flush before delegating.
+pub fn install_process_log_panic_flush(timeout: Duration) {
+    PANIC_FLUSH_HOOK.get_or_init(|| {
+        let previous_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |panic_info| {
+            if std::thread::current().name() != Some(SINK_THREAD_NAME) {
+                let _ = flush_process_log(timeout);
+            }
+            previous_hook(panic_info);
+        }));
+    });
+}
+
+/// Flushes records queued before this call and `sync_data`s file output.
+///
+/// Hosts use this bounded handoff at panic/crash boundaries. It returns `false` when the timeout
+/// expires or any configured output has failed.
+pub fn flush_process_log(timeout: Duration) -> bool {
+    LOG_STATE
+        .get()
+        .and_then(|state| state.sink.as_ref())
+        .is_some_and(|sink| sink.flush(timeout))
+}
+
+/// Stops the process sink after flushing console output and `sync_data`-ing file output.
+///
+/// The return value is `false` on timeout or output failure; callers must not report durability
+/// from process exit alone.
+pub fn shutdown_process_log(timeout: Duration) -> bool {
+    LOG_STATE
+        .get()
+        .and_then(|state| state.sink.as_ref())
+        .is_some_and(|sink| sink.shutdown(timeout))
+}
+
 struct DiagnosticLogState {
     channel: String,
     filter: DiagnosticLogFilterConfig,
+    compiled_filter: CompiledDiagnosticLogFilter,
     console_enabled: bool,
     file_enabled: bool,
     file_path: Option<PathBuf>,
-    file: Mutex<Option<File>>,
+    sink_settings: DiagnosticLogSinkSettings,
+    sink: Option<SinkRuntime>,
 }
 
 impl DiagnosticLogState {
@@ -167,47 +271,86 @@ impl DiagnosticLogState {
         filter: DiagnosticLogFilterConfig,
         console_enabled: bool,
         file_enabled: bool,
+        sink_settings: DiagnosticLogSinkSettings,
     ) -> Self {
         let timestamp = current_log_timestamp();
         let candidates = log_directory_candidates(&timestamp, location);
         let mut notes = Vec::new();
-        let (file_path, mut file) =
+        let (file_path, file) =
             open_first_available_log_file(&channel, candidates, file_enabled, &mut notes);
-
-        for note in &notes {
-            write_initial_note(
-                &mut file,
-                &filter,
+        let compiled_filter = CompiledDiagnosticLogFilter::new(&filter);
+        let normalized_sink_settings = sink_settings.normalized();
+        let sink = if file.is_none() && !console_enabled {
+            None
+        } else {
+            SinkRuntime::start(
+                file.map(|file| Box::new(file) as Box<dyn DurableOutput>),
                 console_enabled,
-                note.level,
-                &note.message,
-            );
-        }
-
-        Self {
+                normalized_sink_settings.clone(),
+            )
+            .map_err(|error| {
+                eprintln!("failed to start diagnostic log sink owner: {error}");
+            })
+            .ok()
+        };
+        let state = Self {
             channel,
             filter,
+            compiled_filter,
             console_enabled,
             file_enabled,
-            file_path,
-            file: Mutex::new(file),
+            file_path: sink.as_ref().and(file_path),
+            sink_settings: normalized_sink_settings,
+            sink,
+        };
+        for note in notes {
+            state.write(note.level, "diagnostic_log", &note.message);
         }
+        state
     }
 
     fn write(&self, level: DiagnosticLogLevel, scope: &str, message: &str) {
-        if !self.filter.allows(level, scope) {
+        if !self.allows(level, scope) {
             return;
         }
-        let line = diagnostic_log_line(&current_log_timestamp(), level, scope, message);
-        if self.console_enabled {
-            eprint!("{line}");
+        if let Some(sink) = &self.sink {
+            sink.enqueue(level, scope, message);
         }
+    }
 
-        if let Ok(mut file) = self.file.lock() {
-            if let Some(file) = file.as_mut() {
-                let _ = file.write_all(line.as_bytes());
-                let _ = file.flush();
-            }
+    fn write_lazy<F, M>(&self, level: DiagnosticLogLevel, scope: &str, message: F)
+    where
+        F: FnOnce() -> M,
+        M: AsRef<str>,
+    {
+        if !self.allows(level, scope) {
+            return;
+        }
+        if let Some(sink) = &self.sink {
+            sink.enqueue_lazy(level, scope, message);
+        }
+    }
+
+    fn allows(&self, level: DiagnosticLogLevel, scope: &str) -> bool {
+        self.sink.as_ref().is_some_and(SinkRuntime::is_open)
+            && self.compiled_filter.allows(level, scope)
+    }
+
+    fn snapshot(&self) -> Option<DiagnosticLogSinkSnapshot> {
+        self.sink.as_ref().map(SinkRuntime::snapshot)
+    }
+
+    #[cfg(test)]
+    fn for_test(filter: DiagnosticLogFilterConfig) -> Self {
+        Self {
+            channel: "test".to_string(),
+            compiled_filter: CompiledDiagnosticLogFilter::new(&filter),
+            filter,
+            console_enabled: false,
+            file_enabled: false,
+            file_path: None,
+            sink_settings: DiagnosticLogSinkSettings::default(),
+            sink: None,
         }
     }
 }
@@ -224,27 +367,6 @@ impl DiagnosticLogNote {
             level,
             message: message.into(),
         }
-    }
-}
-
-fn write_initial_note(
-    file: &mut Option<File>,
-    filter: &DiagnosticLogFilterConfig,
-    console_enabled: bool,
-    level: DiagnosticLogLevel,
-    message: &str,
-) {
-    if !filter.allows(level, "diagnostic_log") {
-        return;
-    }
-
-    let line = diagnostic_log_line(&current_log_timestamp(), level, "diagnostic_log", message);
-    if console_enabled {
-        eprint!("{line}");
-    }
-    if let Some(file) = file.as_mut() {
-        let _ = file.write_all(line.as_bytes());
-        let _ = file.flush();
     }
 }
 
@@ -341,56 +463,4 @@ fn sanitize_channel_name(channel: String) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use super::{
-        diagnostic_log_line, open_first_available_log_file, sanitize_channel_name,
-        LogDirectoryCandidate,
-    };
-    use crate::diagnostic_log::DiagnosticLogLevel;
-
-    #[test]
-    fn channel_names_are_safe_file_stems() {
-        assert_eq!(sanitize_channel_name("editor".to_string()), "editor");
-        assert_eq!(
-            sanitize_channel_name("runtime/player".to_string()),
-            "runtime_player"
-        );
-        assert_eq!(sanitize_channel_name(String::new()), "runtime");
-    }
-
-    #[test]
-    fn diagnostic_log_lines_include_level_scope_and_escape_newlines() {
-        let line = diagnostic_log_line(
-            "2026-05-04-16-30-00",
-            DiagnosticLogLevel::Warn,
-            "runtime_asset_path",
-            "first\nsecond",
-        );
-
-        assert_eq!(
-            line,
-            "[2026-05-04-16-30-00] [warn] [runtime_asset_path] first\\nsecond\n"
-        );
-    }
-
-    #[test]
-    fn disabled_file_sink_skips_directory_candidates() {
-        let mut notes = Vec::new();
-        let (path, file) = open_first_available_log_file(
-            "runtime",
-            vec![LogDirectoryCandidate {
-                source: "test",
-                path: PathBuf::from("should-not-be-created"),
-            }],
-            false,
-            &mut notes,
-        );
-
-        assert!(path.is_none());
-        assert!(file.is_none());
-        assert_eq!(notes.len(), 1);
-        assert!(notes[0].message.contains("file-backed log sink disabled"));
-    }
-}
+mod tests;

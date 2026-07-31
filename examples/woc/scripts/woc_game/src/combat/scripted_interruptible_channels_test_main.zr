@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var channels = %import("combat/scripted_interruptible_channels");
+
+var result = channels.contractTest();
+
+console.printLine("m4-scripted-interruptible-channels-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -7,10 +7,11 @@ pub(in crate::ui::retained_host::host_contract) use replay::{
     paint_chrome_command_stream_to_frame, repaint_chrome_command_stream_region,
 };
 pub(in crate::ui::retained_host::host_contract) use runtime_draw_list::{
-    ui_surface_draw_list_from_owned_stream, ui_surface_draw_list_from_stream,
+    ui_surface_draw_list_from_owned_stream, ui_surface_draw_list_from_owned_stream_with_generation,
+    ui_surface_draw_list_from_stream,
 };
-use stream::clamp_surface_size;
 pub(in crate::ui::retained_host::host_contract) use stream::ChromeCommandStream;
+use stream::clamp_surface_size;
 
 #[cfg(test)]
 use extraction::chrome_command_from_recorded_for_test;

@@ -14,6 +14,7 @@ from .pipeline_report_source_template_validate_schema import (
 )
 from .pipeline_report_schema_primitives import (
     validate_bool_schema_diagnostics,
+    validate_integer_schema_diagnostics,
     validate_object_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
@@ -42,20 +43,30 @@ VALIDATE_REPORT_FIELDS = (
     "diagnostics",
     "fatal",
     "fatal_diagnostics",
+    "generated_contents_artifact_byte_length",
+    "generated_contents_artifact_digest",
+    "generated_contents_artifact_path",
     "plan_summary",
     "profile",
     "profile_found",
     "profile_summary",
     "project_manifest",
+    "schema_version",
     "stage",
     "stage_output",
 )
 VALIDATE_REPORT_STRING_FIELDS = (
+    "generated_contents_artifact_digest",
+    "generated_contents_artifact_path",
     "project_manifest",
     "stage_output",
 )
 VALIDATE_REPORT_STRING_ARRAY_FIELDS = ("fatal_diagnostics",)
 VALIDATE_REPORT_BOOL_FIELDS = ("profile_found",)
+VALIDATE_REPORT_INTEGER_FIELDS = (
+    "generated_contents_artifact_byte_length",
+    "schema_version",
+)
 VALIDATE_REPORT_OBJECT_FIELDS = (
     "plan_summary",
     "profile_summary",
@@ -120,6 +131,30 @@ def validate_report_schema_diagnostics(report: dict[str, Any]) -> list[str]:
                     report.get(field),
                 )
             )
+    for field in VALIDATE_REPORT_INTEGER_FIELDS:
+        if field in report:
+            diagnostics.extend(
+                validate_integer_schema_diagnostics(
+                    f"validate report {field}",
+                    report.get(field),
+                )
+            )
+    if "schema_version" in report and report.get("schema_version") != 2:
+        diagnostics.append("validate report schema_version must be 2")
+    artifact_digest = report.get("generated_contents_artifact_digest")
+    if isinstance(artifact_digest, str) and (
+        len(artifact_digest) != 64
+        or any(character not in "0123456789abcdef" for character in artifact_digest)
+    ):
+        diagnostics.append(
+            "validate report generated_contents_artifact_digest must be "
+            "a 64-character lowercase SHA-256 digest"
+        )
+    artifact_byte_length = report.get("generated_contents_artifact_byte_length")
+    if type(artifact_byte_length) is int and artifact_byte_length < 0:
+        diagnostics.append(
+            "validate report generated_contents_artifact_byte_length must be non-negative"
+        )
     for field in VALIDATE_REPORT_OBJECT_FIELDS:
         if field in report:
             diagnostics.extend(
@@ -129,6 +164,8 @@ def validate_report_schema_diagnostics(report: dict[str, Any]) -> list[str]:
                 )
             )
     if report.get("fatal") is False:
+        if report.get("schema_version") != 2:
+            diagnostics.append("non-fatal validate report schema_version must be 2")
         for field in VALIDATE_REPORT_REQUIRED_NON_FATAL_STRING_FIELDS:
             if field not in report or report.get(field) is None:
                 diagnostics.extend(
@@ -168,12 +205,44 @@ def validate_report_schema_diagnostics(report: dict[str, Any]) -> list[str]:
         )
     plan_summary = report.get("plan_summary")
     if isinstance(plan_summary, dict):
+        if report.get("fatal") is False and "source_template_build" in plan_summary:
+            diagnostics.extend(
+                validate_source_template_artifact_metadata_diagnostics(report)
+            )
         diagnostics.extend(
             validate_plan_summary_schema_diagnostics(
                 plan_summary,
                 profile_summary=profile_summary,
                 require_release_evidence=report.get("fatal") is False,
             )
+        )
+    return diagnostics
+
+
+def validate_source_template_artifact_metadata_diagnostics(
+    report: dict[str, Any],
+) -> list[str]:
+    diagnostics: list[str] = []
+    path = report.get("generated_contents_artifact_path")
+    if not isinstance(path, str) or not path.strip() or path != path.strip():
+        diagnostics.append(
+            "non-fatal SourceTemplate validate report "
+            "generated_contents_artifact_path must be a non-empty trimmed string"
+        )
+    byte_length = report.get("generated_contents_artifact_byte_length")
+    if type(byte_length) is not int or byte_length < 0:
+        diagnostics.append(
+            "non-fatal SourceTemplate validate report "
+            "generated_contents_artifact_byte_length must be a non-negative integer"
+        )
+    digest = report.get("generated_contents_artifact_digest")
+    if not isinstance(digest, str) or len(digest) != 64 or any(
+        character not in "0123456789abcdef" for character in digest
+    ):
+        diagnostics.append(
+            "non-fatal SourceTemplate validate report "
+            "generated_contents_artifact_digest must be a 64-character lowercase "
+            "SHA-256 digest"
         )
     return diagnostics
 

@@ -5,7 +5,7 @@ use crate::core::framework::bridge::{
     InterfaceSlot, PluginInterface,
 };
 use crate::plugin::{
-    BridgeDiagnosticsMatrix, BridgeInterfaceSnapshot, BridgeOwnerTransitionReport,
+    BridgeDiagnosticsMatrix, BridgeImport, BridgeInterfaceSnapshot, BridgeOwnerTransitionReport,
     BridgeTableDiagnosticsSummary, PluginModuleId, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, WeakBridge,
 };
@@ -63,6 +63,8 @@ mod basics;
 mod diagnostics;
 #[path = "extension_registry_bridge/lifecycle.rs"]
 mod lifecycle;
+#[path = "extension_registry_bridge/stable_snapshot.rs"]
+mod stable_snapshot;
 
 fn assert_bridge_snapshot(
     snapshot: &BridgeInterfaceSnapshot,

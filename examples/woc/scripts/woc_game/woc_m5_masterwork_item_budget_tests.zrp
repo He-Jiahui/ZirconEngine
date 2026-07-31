@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_masterwork_item_budget_tests",
+  "source": "src",
+  "binary": "bin-m5-masterwork-item-budget-tests",
+  "entry": "progression/masterwork_item_budget_test_main"
+}

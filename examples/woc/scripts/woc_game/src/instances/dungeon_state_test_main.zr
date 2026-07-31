@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var dungeon = %import("instances/dungeon_state");
+
+console.printLine("m7-dungeon-state-test");
+var result = dungeon.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,0 +1,108 @@
+var console = %import("zr.system.console");
+var travel = %import("world/projectile_travel_state");
+
+closeEnough(value: float, expected: float): bool {
+    var difference = value - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+var result = 1;
+var step = travel.projectileStepDistance();
+var oneStep = new travel.ProjectileStepResult();
+travel.stepProjectile(0.0, 0.0, 0.0, 10.0, step, oneStep);
+if (!closeEnough(step, 1.3) || oneStep.hit || !closeEnough(oneStep.x, 0.0) ||
+    !closeEnough(oneStep.z, step)) {
+    result = -1;
+}
+travel.stepProjectile(0.0, 0.0, 3.0, 4.0, step, oneStep);
+if (result == 1 && (oneStep.hit || !closeEnough(oneStep.x, 3.0 / 5.0 * step) ||
+    !closeEnough(oneStep.z, 4.0 / 5.0 * step))) {
+    result = -2;
+}
+travel.stepProjectile(0.0, 0.0, 0.0, travel.projectileReach() / 2.0, step, oneStep);
+if (result == 1 && (!oneStep.hit || !closeEnough(oneStep.x, 0.0) ||
+    !closeEnough(oneStep.z, travel.projectileReach() / 2.0))) {
+    result = -3;
+}
+travel.stepProjectile(0.0, 0.0, 0.0, step, step, oneStep);
+if (result == 1 && (!oneStep.hit || !closeEnough(oneStep.z, step))) {
+    result = -4;
+}
+
+var flight = new travel.ProjectileTravelState(<uint>1, <uint>2, 0.0, 0.0);
+var outcome = new travel.ProjectileAdvanceResult();
+travel.advanceProjectile(flight, true, true, 0.0, 26.0, outcome);
+if (result == 1 && (outcome.disposition != travel.continueDisposition() ||
+    !closeEnough(flight.z, step) || !closeEnough(flight.ttl, 2.95))) {
+    result = -5;
+}
+
+var deadTarget = new travel.ProjectileTravelState(<uint>3, <uint>4, 0.0, 0.0);
+travel.advanceProjectile(deadTarget, true, false, 0.0, 26.0, outcome);
+if (result == 1 && (outcome.disposition != travel.fizzleDisposition() ||
+    deadTarget.x != 0.0 || deadTarget.z != 0.0 || deadTarget.ttl != travel.projectileMaxFlight())) {
+    result = -6;
+}
+var deadSource = new travel.ProjectileTravelState(<uint>5, <uint>6, 0.0, 0.0);
+travel.advanceProjectile(deadSource, false, true, 0.0, 26.0, outcome);
+if (result == 1 && outcome.disposition != travel.fizzleDisposition()) {
+    result = -7;
+}
+
+var fixedTarget = new travel.ProjectileTravelState(<uint>7, <uint>8, 0.0, 0.0);
+var fixedTicks = 0;
+while (fixedTicks < 80 && outcome.disposition != travel.impactDisposition()) {
+    travel.advanceProjectile(fixedTarget, true, true, 0.0, 26.0, outcome);
+    fixedTicks = fixedTicks + 1;
+}
+if (result == 1 && (outcome.disposition != travel.impactDisposition() ||
+    fixedTicks <= 15 || fixedTicks >= 30)) {
+    result = -8;
+}
+
+var fleeing = new travel.ProjectileTravelState(<uint>9, <uint>10, 0.0, 0.0);
+var fleeingTargetZ = 18.0;
+var fleeingTicks = 0;
+outcome.disposition = travel.continueDisposition();
+while (fleeingTicks < 80 && outcome.disposition != travel.impactDisposition()) {
+    fleeingTargetZ = fleeingTargetZ + 7.0 * 0.05;
+    travel.advanceProjectile(fleeing, true, true, 0.0, fleeingTargetZ, outcome);
+    fleeingTicks = fleeingTicks + 1;
+}
+if (result == 1 && (outcome.disposition != travel.impactDisposition() ||
+    fleeingTicks <= 14 || fleeingTicks >= 40)) {
+    result = -9;
+}
+
+var closing = new travel.ProjectileTravelState(<uint>11, <uint>12, 0.0, 0.0);
+var closingTargetZ = 26.0;
+var closingTicks = 0;
+outcome.disposition = travel.continueDisposition();
+while (closingTicks < 80 && outcome.disposition != travel.impactDisposition()) {
+    closingTargetZ = closingTargetZ - 7.0 * 0.05;
+    travel.advanceProjectile(closing, true, true, 0.0, closingTargetZ, outcome);
+    closingTicks = closingTicks + 1;
+}
+if (result == 1 && (outcome.disposition != travel.impactDisposition() ||
+    closingTicks >= 19)) {
+    result = -10;
+}
+
+var runaway = new travel.ProjectileTravelState(<uint>13, <uint>14, 0.0, 0.0);
+var runawayTargetZ = 10.0;
+var runawayTicks = 0;
+outcome.disposition = travel.continueDisposition();
+while (runawayTicks < 80 && outcome.disposition != travel.impactDisposition()) {
+    runawayTargetZ = runawayTargetZ + (travel.projectileSpeed() + 5.0) * 0.05;
+    travel.advanceProjectile(runaway, true, true, 0.0, runawayTargetZ, outcome);
+    runawayTicks = runawayTicks + 1;
+}
+if (result == 1 && (outcome.disposition != travel.impactDisposition() ||
+    runawayTicks <= 45 || runawayTicks >= 70)) {
+    result = -11;
+}
+
+console.printLine("m4-projectile-travel-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

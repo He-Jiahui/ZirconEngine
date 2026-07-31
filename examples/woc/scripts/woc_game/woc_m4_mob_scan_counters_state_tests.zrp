@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_mob_scan_counters_state_tests",
+  "source": "src",
+  "binary": "bin-m4-mob-scan-counters-state-tests",
+  "entry": "world/mob_scan_counters_state_test_main"
+}

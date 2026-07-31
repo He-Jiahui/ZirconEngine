@@ -1,0 +1,34 @@
+// Current-source construction vectors after scatter, door clearance,
+// safe-position correction and final ground-height sampling.
+
+var placement = %import("world/camp_spawn_placement");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+var seed = <uint>20061;
+
+if (!closeEnough(placement.finalSpawnCoordinate(seed, 10, 4, 1, true), 86.27845763346977) ||
+    !closeEnough(placement.finalSpawnCoordinate(seed, 10, 4, 2, true), -89.32902667223296) ||
+    !closeEnough(placement.finalSpawnGroundY(seed, 10, 4, true), -2.1419971486531444)) {
+    throw "woc camp safe-position construction vector failed";
+}
+
+if (!closeEnough(placement.finalSpawnCoordinate(seed, 12, 1, 1, true), 92.82814355005756) ||
+    !closeEnough(placement.finalSpawnCoordinate(seed, 12, 1, 2, true), 105.34401293857368) ||
+    !closeEnough(placement.finalSpawnGroundY(seed, 12, 1, true), 2.12324996807026)) {
+    throw "woc camp dungeon-door construction vector failed";
+}
+
+if (placement.finalSpawnCoordinate(seed, 36, 0, 1, true) != -40.0 ||
+    placement.finalSpawnCoordinate(seed, 36, 0, 2, true) != 648.0 ||
+    !closeEnough(placement.finalSpawnGroundY(seed, 36, 0, true), 17.596418813637257)) {
+    throw "woc camp dummy construction vector failed";
+}
+
+return 0;

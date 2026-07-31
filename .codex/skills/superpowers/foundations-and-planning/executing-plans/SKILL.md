@@ -38,20 +38,13 @@ For each task:
 ### Step 3: Complete Development
 
 After all tasks complete and verified:
-- If the repository has a local main-branch-only policy, stay on `main`, summarize the verification evidence, and report completion without branch or worktree closeout steps.
-- If the repository does not have that policy, announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- Then use **REQUIRED SUB-SKILL:** superpowers:finishing-a-development-branch
-- Then follow that skill to verify tests, present options, and execute the chosen integration path.
+- Follow the repository's configured integration workflow. In ZirconEngine, stay on `main` and use the coordinator-managed closeout skill when an accepted closeout is due.
 
 ## When to Stop and Ask for Help
 
-**STOP executing immediately when:**
-- Hit a blocker (missing dependency, test fails, instruction unclear)
-- Plan has critical gaps preventing starting
-- You don't understand an instruction
-- Verification fails repeatedly
-
-**Ask for clarification rather than guessing.**
+**Reprioritize before asking for help:**
+- For a ZirconEngine blocker, apply `continuous-milestone-execution`: resolve an applicable Failure first, then continue independent Goal work.
+- Ask only when no independent in-scope work remains and a real product decision or missing requirement prevents progress.
 
 ## When to Revisit Earlier Steps
 
@@ -59,7 +52,7 @@ After all tasks complete and verified:
 - Partner updates the plan based on your feedback
 - Fundamental approach needs rethinking
 
-**Don't force through blockers** - stop and ask.
+Do not force through a product ambiguity; otherwise continue independent work while the dependent slice is unavailable.
 
 ## Remember
 - Review plan critically first
@@ -72,7 +65,5 @@ After all tasks complete and verified:
 
 ## Integration
 
-**Required workflow skills:**
-- **superpowers:using-git-worktrees** - Use only when the repository policy allows isolated worktrees
-- **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:finishing-a-development-branch** - Use only when the repository is actually following a branch-based integration flow
+**Related workflow skills:**
+- **superpowers:subagent-driven-development** - Use for independently delegable implementation-plan tasks.

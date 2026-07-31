@@ -1,0 +1,233 @@
+// Adapts the pinned M5 starting-equipment baseline into the source's pre-form
+// recalcPlayerStats boundary. WOS already retains talent selection identities;
+// equipment instances and live aura identities remain separate future inputs.
+var baseline = %import("generated/m5_class_baseline_stats");
+var forms = %import("combat/forms_state");
+var formDerived = %import("combat/form_derived_stats");
+var m5Equipment = %import("progression/m5_equipment_state");
+var talentModifiers = %import("progression/talent_modifier_state");
+
+pub baselineClassCount(): int { return baseline.classCount(); }
+pub baselineLevelCap(): int { return baseline.levelCap(); }
+
+pub baselineProfileCodeIsValid(profileCode: uint): bool {
+    return profileCode <= <uint>baseline.classCount();
+}
+
+pub baselineInput(
+    classIndex: int, level: int, activeFormAbilityCode: uint
+): formDerived.FormDerivedInput {
+    if (classIndex < 0 || classIndex >= baseline.classCount() ||
+        level < 1 || level > baseline.levelCap() ||
+        (activeFormAbilityCode != <uint>0 &&
+            !forms.isFormAbilityCode(activeFormAbilityCode))) {
+        throw "WOC baseline form input is invalid";
+    }
+    var input = new formDerived.FormDerivedInput();
+    input.activeFormAbilityCode = activeFormAbilityCode;
+    input.classId = baseline.classId(classIndex);
+    input.level = level;
+    input.strength = baseline.classInteger(classIndex, level, "statStr");
+    input.agility = baseline.classInteger(classIndex, level, "statAgi");
+    input.stamina = baseline.classInteger(classIndex, level, "statSta");
+    input.intellect = baseline.classInteger(classIndex, level, "statInt");
+    input.armorBeforeAgility =
+        baseline.classInteger(classIndex, level, "inputArmorBeforeAgility");
+    input.bonusAttackPower =
+        baseline.classInteger(classIndex, level, "inputBonusAttackPower");
+    input.bonusSpellPower =
+        baseline.classInteger(classIndex, level, "inputBonusSpellPower");
+    input.baseHp = baseline.classInteger(classIndex, level, "inputBaseHp");
+    input.hpPerLevel = baseline.classInteger(classIndex, level, "inputHpPerLevel");
+    input.baseManaMaximum = baseline.classInteger(classIndex, level, "maxResource");
+    return input;
+}
+
+pub deriveBaseline(
+    classIndex: int, level: int, activeFormAbilityCode: uint
+): formDerived.FormDerivedOutput {
+    return formDerived.derive(baselineInput(classIndex, level, activeFormAbilityCode));
+}
+
+pub baselineInputWithEquipment(
+    classIndex: int, level: int, activeFormAbilityCode: uint,
+    equipment: m5Equipment.M5EquipmentState
+): formDerived.FormDerivedInput {
+    var input = baselineInput(classIndex, level, activeFormAbilityCode);
+    m5Equipment.applyToBaselineInput(input, classIndex, equipment);
+    return input;
+}
+
+pub deriveBaselineWithEquipment(
+    classIndex: int, level: int, activeFormAbilityCode: uint,
+    equipment: m5Equipment.M5EquipmentState
+): formDerived.FormDerivedOutput {
+    return formDerived.derive(
+        baselineInputWithEquipment(classIndex, level, activeFormAbilityCode, equipment)
+    );
+}
+
+integerTalentValue(value: float, name: string): int {
+    var integer = <int>value;
+    if (<float>integer != value) {
+        throw "WOC source talent field is not integral: " + name;
+    }
+    return integer;
+}
+
+// This mirrors the portion of recalcPlayerStats fed by computeTalentModifiers.
+// The generated current-head catalog has no non-integral primary flat fields;
+// reject drift rather than silently losing future source precision.
+pub applyTalentContribution(
+    input: formDerived.FormDerivedInput,
+    specCode: uint,
+    row5Code: uint,
+    row8Code: uint,
+    row11Code: uint,
+    row14Code: uint,
+    row17Code: uint,
+    row20Code: uint
+): void {
+    var modifiers = new talentModifiers.TalentModifierState();
+    modifiers.playerLevel = input.level;
+    talentModifiers.recompute(
+        modifiers, specCode, row5Code, row8Code, row11Code,
+        row14Code, row17Code, row20Code
+    );
+    input.talentStrength = input.talentStrength +
+        integerTalentValue(talentModifiers.statField(modifiers, "str"), "str");
+    input.talentAgility = input.talentAgility +
+        integerTalentValue(talentModifiers.statField(modifiers, "agi"), "agi");
+    input.talentStamina = input.talentStamina +
+        integerTalentValue(talentModifiers.statField(modifiers, "sta"), "sta");
+    input.talentIntellect = input.talentIntellect +
+        integerTalentValue(talentModifiers.statField(modifiers, "int"), "int");
+    input.talentArmor = input.talentArmor +
+        integerTalentValue(talentModifiers.statField(modifiers, "armor"), "armor");
+    input.bonusAttackPower = input.bonusAttackPower +
+        integerTalentValue(talentModifiers.statField(modifiers, "ap"), "ap");
+    input.bonusCritChance = input.bonusCritChance +
+        talentModifiers.statField(modifiers, "crit");
+    input.bonusDodgeChance = input.bonusDodgeChance +
+        talentModifiers.statField(modifiers, "dodge");
+    input.attackPowerPercent = input.attackPowerPercent +
+        talentModifiers.statField(modifiers, "apPct");
+    input.talentStaminaPercent = input.talentStaminaPercent +
+        talentModifiers.statField(modifiers, "staPct");
+    input.talentArmorPercent = input.talentArmorPercent +
+        talentModifiers.statField(modifiers, "armorPct");
+    input.armorFromStrengthPercent = input.armorFromStrengthPercent +
+        talentModifiers.statField(modifiers, "armorFromStrPct");
+    input.talentMaxHpPercent = input.talentMaxHpPercent +
+        talentModifiers.statField(modifiers, "maxHpPct");
+    input.talentStrengthPercent = input.talentStrengthPercent +
+        talentModifiers.statField(modifiers, "strPct");
+    input.talentAgilityPercent = input.talentAgilityPercent +
+        talentModifiers.statField(modifiers, "agiPct");
+    input.talentIntellectPercent = input.talentIntellectPercent +
+        talentModifiers.statField(modifiers, "intPct");
+    input.manaPercent = input.manaPercent +
+        talentModifiers.globalField(modifiers, "manaPct");
+    input.bonusMeleeHaste = input.bonusMeleeHaste +
+        talentModifiers.globalField(modifiers, "meleeHastePct");
+    input.bonusSpellHaste = input.bonusSpellHaste +
+        talentModifiers.globalField(modifiers, "spellHastePct");
+    input.physicalCritDamageBonus = input.physicalCritDamageBonus +
+        talentModifiers.globalField(modifiers, "critDmgPhysPct");
+}
+
+pub deriveBaselineWithTalents(
+    classIndex: int,
+    level: int,
+    activeFormAbilityCode: uint,
+    specCode: uint,
+    row5Code: uint,
+    row8Code: uint,
+    row11Code: uint,
+    row14Code: uint,
+    row17Code: uint,
+    row20Code: uint
+): formDerived.FormDerivedOutput {
+    var input = baselineInput(classIndex, level, activeFormAbilityCode);
+    applyTalentContribution(
+        input, specCode, row5Code, row8Code, row11Code, row14Code, row17Code, row20Code
+    );
+    return formDerived.derive(input);
+}
+
+pub deriveBaselineWithTalentsAndEquipment(
+    classIndex: int,
+    level: int,
+    activeFormAbilityCode: uint,
+    equipment: m5Equipment.M5EquipmentState,
+    specCode: uint,
+    row5Code: uint,
+    row8Code: uint,
+    row11Code: uint,
+    row14Code: uint,
+    row17Code: uint,
+    row20Code: uint
+): formDerived.FormDerivedOutput {
+    var input = baselineInputWithEquipment(classIndex, level, activeFormAbilityCode, equipment);
+    applyTalentContribution(
+        input, specCode, row5Code, row8Code, row11Code, row14Code, row17Code, row20Code
+    );
+    return formDerived.derive(input);
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var classIndex = 0;
+    while (classIndex < baseline.classCount()) {
+        var level = 1;
+        while (level <= baseline.levelCap()) {
+            var output = deriveBaseline(classIndex, level, <uint>0);
+            if (output.armor != baseline.classInteger(classIndex, level, "statArmor") ||
+                output.attackPower != baseline.classInteger(classIndex, level, "attackPower") ||
+                output.spellPower != baseline.classInteger(classIndex, level, "spellPower") ||
+                output.maxHp != baseline.classInteger(classIndex, level, "maxHp") ||
+                output.maxMana != baseline.classInteger(classIndex, level, "maxResource") ||
+                !closeEnough(output.critChance,
+                    baseline.classDecimal(classIndex, level, "critChance")) ||
+                !closeEnough(output.dodgeChance,
+                    baseline.classDecimal(classIndex, level, "dodgeChance"))) {
+                return -1;
+            }
+            level = level + 1;
+        }
+        classIndex = classIndex + 1;
+    }
+    var druidIndex = baseline.classIndex("druid");
+    var bear = forms.formAbilityCode("form_bear");
+    if (druidIndex != 8 || bear == <uint>0) {
+        return -2;
+    }
+    var bearOutput = deriveBaseline(druidIndex, 1, bear);
+    var normalOutput = deriveBaseline(druidIndex, 1, <uint>0);
+    if (bearOutput.maxHp <= normalOutput.maxHp) { return -3; }
+    var mageIndex = baseline.classIndex("mage");
+    var mageStartEquipment = new m5Equipment.M5EquipmentState();
+    var mageStaffEquipment = new m5Equipment.M5EquipmentState();
+    mageStaffEquipment.mainhandItemIndex = m5Equipment.itemIndexForId("gnarled_staff");
+    var mageStart = deriveBaselineWithEquipment(mageIndex, 1, <uint>0, mageStartEquipment);
+    var mageStaff = deriveBaselineWithEquipment(mageIndex, 1, <uint>0, mageStaffEquipment);
+    if (mageStart.spellPower != mageStaff.spellPower || mageStart.maxHp != mageStaff.maxHp ||
+        mageStart.armor != mageStaff.armor) { return -5; }
+    var fire = deriveBaselineWithTalents(
+        mageIndex, 10, <uint>0, <uint>20, <uint>0, <uint>0, <uint>0,
+        <uint>0, <uint>0, <uint>0
+    );
+    var mageBaseline = deriveBaseline(mageIndex, 10, <uint>0);
+    if (!closeEnough(fire.critChance, mageBaseline.critChance + 0.01)) { return -4; }
+    var arcane = deriveBaselineWithTalents(
+        mageIndex, baseline.levelCap(), <uint>0, <uint>19, <uint>0, <uint>0,
+        <uint>0, <uint>0, <uint>0, <uint>0
+    );
+    if (arcane.maxMana != 1581) { return -6; }
+    return 1;
+}

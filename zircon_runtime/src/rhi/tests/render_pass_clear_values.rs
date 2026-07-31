@@ -4,10 +4,10 @@ use crate::rhi::{
     RenderPassStoreOp, RenderQueueClass, RhiError, TextureDesc, TextureFormat, TextureHandle,
     TextureUsage,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
 fn create_render_attachment(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     format: TextureFormat,
 ) -> TextureHandle {
@@ -24,7 +24,7 @@ fn create_render_attachment(
 
 #[test]
 fn command_list_records_clear_values_for_color_depth_and_stencil() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(&device, "clear-color", TextureFormat::Rgba8UnormSrgb);
     let depth_stencil =
         create_render_attachment(&device, "clear-depth", TextureFormat::Depth24PlusStencil8);
@@ -71,7 +71,7 @@ fn command_list_records_clear_values_for_color_depth_and_stencil() {
 
 #[test]
 fn command_list_render_pass_submit_validates_color_clear_values_are_finite() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(&device, "nan-clear-color", TextureFormat::Rgba8UnormSrgb);
     let color_attachment = RenderPassColorAttachmentDesc::new(
         color,
@@ -94,7 +94,7 @@ fn command_list_render_pass_submit_validates_color_clear_values_are_finite() {
 
 #[test]
 fn command_list_render_pass_submit_validates_depth_clear_range() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let depth = create_render_attachment(&device, "bad-depth-clear", TextureFormat::Depth24Plus);
     let depth_attachment = RenderPassDepthStencilAttachmentDesc::depth(
         depth,

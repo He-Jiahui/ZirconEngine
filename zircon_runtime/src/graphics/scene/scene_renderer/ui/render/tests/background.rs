@@ -1,6 +1,16 @@
 use super::*;
 
 #[test]
+fn screen_space_ui_background_lookup_scans_blockers_once() {
+    let source = include_str!("../background.rs");
+    let indexed_blocker = ["latest_blocker", "_order"].concat();
+    let nested_blocker_scan = ["!self.blockers.iter()", ".any"].concat();
+
+    assert!(source.contains(&indexed_blocker));
+    assert!(!source.contains(&nested_blocker_scan));
+}
+
+#[test]
 fn screen_space_ui_plan_keeps_transparent_text_background_unknown() {
     let plan = plan_screen_space_ui_batches(
         &UiRenderExtract {

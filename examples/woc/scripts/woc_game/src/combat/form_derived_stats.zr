@@ -1,0 +1,462 @@
+// Source-ordered player-stat contributions. The base fields are the class plus
+// active equipment values; every following field matches a later
+// recalcPlayerStats contribution stage from the pinned source.
+var forms = %import("combat/forms_state");
+var statCore = %import("progression/stat_core_rules");
+
+pub class FormDerivedInput {
+    pub var activeFormAbilityCode: uint;
+    pub var classId: string;
+    pub var level: int;
+    pub var strength: int;
+    pub var agility: int;
+    pub var stamina: int;
+    pub var intellect: int;
+    // This is the source `s.armor` before agility-derived armor and form multipliers.
+    pub var armorBeforeAgility: int;
+    pub var bonusAttackPower: int;
+    pub var bonusSpellPower: int;
+    pub var baseHp: int;
+    pub var hpPerLevel: int;
+    // The no-form source mana ceiling before a talent manaPct multiplier.
+    // Rage and energy classes keep their fixed 100-resource rule instead.
+    pub var baseManaMaximum: int;
+    // Set, aura and talent flat attributes. They are deliberately not folded
+    // into the base fields because later percentage stages have source-defined
+    // ordering.
+    pub var flatStrength: int;
+    pub var flatAgility: int;
+    pub var flatStamina: int;
+    pub var flatIntellect: int;
+    pub var flatArmor: int;
+    // Resurrection Sickness-style all-stat adjustment runs after aura flats
+    // and before talent flats. The source currently has one such aura.
+    pub var auraAllStatsPercent: float;
+    pub var talentStrength: int;
+    pub var talentAgility: int;
+    pub var talentStamina: int;
+    pub var talentIntellect: int;
+    pub var talentArmor: int;
+    pub var talentStrengthPercent: float;
+    pub var talentAgilityPercent: float;
+    pub var talentStaminaPercent: float;
+    pub var talentIntellectPercent: float;
+    pub var allStatsPercent: float;
+    pub var auraIntellectPercent: float;
+    pub var auraStaminaPercent: float;
+    pub var armorFromStrengthPercent: float;
+    pub var talentArmorPercent: float;
+    pub var auraArmorPercent: float;
+    pub var attackPowerPercent: float;
+    pub var bonusCritChance: float;
+    pub var bonusDodgeChance: float;
+    pub var critRating: int;
+    pub var hasteRating: int;
+    pub var hitRating: int;
+    pub var bonusHaste: float;
+    pub var bonusMeleeHaste: float;
+    pub var bonusRangedHaste: float;
+    pub var bonusSpellHaste: float;
+    pub var physicalCritDamageBonus: float;
+    pub var manaPercent: float;
+    pub var talentMaxHpPercent: float;
+    pub var auraMaxHpPercent: float;
+    // Compatibility for callers that predate the separate source layers.
+    pub var maxHpPercent: float;
+    pub var scaleMultiplier: float;
+
+    pub @constructor() {
+        this.activeFormAbilityCode = <uint>0;
+        this.classId = "";
+        this.level = 1;
+        this.strength = 0;
+        this.agility = 0;
+        this.stamina = 0;
+        this.intellect = 0;
+        this.armorBeforeAgility = 0;
+        this.bonusAttackPower = 0;
+        this.bonusSpellPower = 0;
+        this.baseHp = 0;
+        this.hpPerLevel = 0;
+        this.baseManaMaximum = 0;
+        this.flatStrength = 0;
+        this.flatAgility = 0;
+        this.flatStamina = 0;
+        this.flatIntellect = 0;
+        this.flatArmor = 0;
+        this.auraAllStatsPercent = 0.0;
+        this.talentStrength = 0;
+        this.talentAgility = 0;
+        this.talentStamina = 0;
+        this.talentIntellect = 0;
+        this.talentArmor = 0;
+        this.talentStrengthPercent = 0.0;
+        this.talentAgilityPercent = 0.0;
+        this.talentStaminaPercent = 0.0;
+        this.talentIntellectPercent = 0.0;
+        this.allStatsPercent = 0.0;
+        this.auraIntellectPercent = 0.0;
+        this.auraStaminaPercent = 0.0;
+        this.armorFromStrengthPercent = 0.0;
+        this.talentArmorPercent = 0.0;
+        this.auraArmorPercent = 0.0;
+        this.attackPowerPercent = 0.0;
+        this.bonusCritChance = 0.0;
+        this.bonusDodgeChance = 0.0;
+        this.critRating = 0;
+        this.hasteRating = 0;
+        this.hitRating = 0;
+        this.bonusHaste = 0.0;
+        this.bonusMeleeHaste = 0.0;
+        this.bonusRangedHaste = 0.0;
+        this.bonusSpellHaste = 0.0;
+        this.physicalCritDamageBonus = 0.0;
+        this.manaPercent = 0.0;
+        this.talentMaxHpPercent = 0.0;
+        this.auraMaxHpPercent = 0.0;
+        this.maxHpPercent = 0.0;
+        this.scaleMultiplier = 1.0;
+    }
+}
+
+pub class FormDerivedOutput {
+    pub var strength: int;
+    pub var agility: int;
+    pub var stamina: int;
+    pub var intellect: int;
+    pub var armor: int;
+    pub var attackPower: int;
+    pub var rangedPower: int;
+    pub var spellPower: int;
+    pub var maxHp: int;
+    pub var maxMana: int;
+    pub var critChance: float;
+    pub var dodgeChance: float;
+    pub var hitBonus: float;
+    pub var meleeHaste: float;
+    pub var rangedHaste: float;
+    pub var spellHaste: float;
+    pub var physicalCritDamageBonus: float;
+    pub var movementSpeedMultiplier: float;
+    pub var threatMultiplier: float;
+    pub var spellDamageBonus: float;
+    pub var shadowDamageMultiplier: float;
+    pub var catUsesRogueSwing: bool;
+    pub var wandAllowed: bool;
+
+    pub @constructor() {
+        this.strength = 0;
+        this.agility = 0;
+        this.stamina = 0;
+        this.intellect = 0;
+        this.armor = 0;
+        this.attackPower = 0;
+        this.rangedPower = 0;
+        this.spellPower = 0;
+        this.maxHp = 0;
+        this.maxMana = 0;
+        this.critChance = 0.0;
+        this.dodgeChance = 0.0;
+        this.hitBonus = 0.0;
+        this.meleeHaste = 0.0;
+        this.rangedHaste = 0.0;
+        this.spellHaste = 0.0;
+        this.physicalCritDamageBonus = 0.0;
+        this.movementSpeedMultiplier = 1.0;
+        this.threatMultiplier = 1.0;
+        this.spellDamageBonus = 0.0;
+        this.shadowDamageMultiplier = 1.0;
+        this.catUsesRogueSwing = false;
+        this.wandAllowed = true;
+    }
+}
+
+pub inputIsValid(input: FormDerivedInput): bool {
+    return input.level >= 1 && input.baseHp >= 0 && input.hpPerLevel >= 0 &&
+        input.baseManaMaximum >= 0 && input.manaPercent >= -1.0 &&
+        input.scaleMultiplier > 0.0 && input.auraAllStatsPercent >= -1.0 &&
+        input.talentMaxHpPercent >= -1.0 && input.maxHpPercent >= -1.0 &&
+        input.auraMaxHpPercent >= -1.0 &&
+        (input.activeFormAbilityCode == <uint>0 ||
+            forms.isFormAbilityCode(input.activeFormAbilityCode));
+}
+
+pub activeFormIs(code: uint, kind: string): bool {
+    return code != <uint>0 && forms.formKindForAbilityCode(code) == kind;
+}
+
+catAgilityBonus(level: int): int {
+    var value = level / forms.catAgilityLevelDivisor();
+    return value < forms.catAgilityMinimum() ? forms.catAgilityMinimum() : value;
+}
+
+formArmor(code: uint, armorAfterAgility: int): int {
+    if (activeFormIs(code, "form_bear")) {
+        return statCore.roundJs(<float>armorAfterAgility * forms.bearArmorMultiplier());
+    }
+    if (activeFormIs(code, "form_moonkin")) {
+        return statCore.roundJs(<float>armorAfterAgility * forms.moonkinArmorMultiplier());
+    }
+    return armorAfterAgility;
+}
+
+formBonusAttackPower(code: uint, level: int, agilityBeforeCat: int): int {
+    if (activeFormIs(code, "form_bear")) {
+        return forms.bearBonusAttackPowerFlat() +
+            statCore.roundJs(<float>agilityBeforeCat * forms.bearBonusAttackPowerPerAgility());
+    }
+    if (activeFormIs(code, "form_cat")) {
+        return forms.catBonusAttackPowerFlat() +
+            level * forms.catBonusAttackPowerPerLevel();
+    }
+    return 0;
+}
+
+pub formMovementSpeedMultiplier(code: uint): float {
+    return forms.isTravelFormAbilityCode(code) ? forms.formAuraValue(code) : 1.0;
+}
+
+pub combineMovementSpeedMultiplier(existing: float, code: uint): float {
+    var formMultiplier = formMovementSpeedMultiplier(code);
+    return existing > formMultiplier ? existing : formMultiplier;
+}
+
+pub formThreatMultiplier(code: uint): float {
+    if (activeFormIs(code, "form_bear")) { return forms.bearThreatMultiplier(); }
+    if (activeFormIs(code, "form_cat")) { return forms.catThreatMultiplier(); }
+    return 1.0;
+}
+
+pub formSpellDamageBonus(code: uint): float {
+    return activeFormIs(code, "form_moonkin") ? forms.moonkinSpellDamageBonus() : 0.0;
+}
+
+pub combineSpellDamageMultiplier(existingBonus: float, code: uint): float {
+    return 1.0 + existingBonus + formSpellDamageBonus(code);
+}
+
+pub formShadowDamageMultiplier(code: uint): float {
+    return activeFormIs(code, "form_shadow") ?
+        1.0 + forms.formAuraValue(code) / 100.0 : 1.0;
+}
+
+pub applyShadowFormDamage(amount: int, school: string, code: uint, alreadyFinal: bool): int {
+    if (alreadyFinal || amount <= 0 || school != "shadow") { return amount; }
+    return statCore.roundJs(<float>amount * formShadowDamageMultiplier(code));
+}
+
+applyPercent(value: int, percent: float): int {
+    return percent == 0.0 ? value : statCore.roundJs(<float>value * (1.0 + percent));
+}
+
+maxHpFromSourceStages(input: FormDerivedInput, stamina: int, code: uint): int {
+    var result = input.baseHp + input.hpPerLevel * (input.level - 1) +
+        statCore.hpFromStamina(stamina);
+    if (activeFormIs(code, "form_bear")) {
+        result = statCore.roundJs(<float>result * forms.bearMaxHpMultiplier());
+    }
+    if (input.talentMaxHpPercent != 0.0) {
+        result = applyPercent(result, input.talentMaxHpPercent);
+    }
+    if (input.maxHpPercent != 0.0) {
+        result = applyPercent(result, input.maxHpPercent);
+    }
+    if (input.auraMaxHpPercent != 0.0) {
+        result = applyPercent(result, input.auraMaxHpPercent);
+    }
+    if (input.scaleMultiplier > 1.0) {
+        result = statCore.roundJs(<float>result * input.scaleMultiplier);
+    }
+    return result;
+}
+
+pub derive(input: FormDerivedInput): FormDerivedOutput {
+    if (!inputIsValid(input)) {
+        throw "WOC form-derived input is invalid";
+    }
+    var output = new FormDerivedOutput();
+    var code = input.activeFormAbilityCode;
+    var strength = input.strength + input.flatStrength;
+    var agility = input.agility + input.flatAgility;
+    var stamina = input.stamina + input.flatStamina;
+    var intellect = input.intellect + input.flatIntellect;
+    if (input.auraAllStatsPercent != 0.0) {
+        strength = applyPercent(strength, input.auraAllStatsPercent);
+        agility = applyPercent(agility, input.auraAllStatsPercent);
+        stamina = applyPercent(stamina, input.auraAllStatsPercent);
+        intellect = applyPercent(intellect, input.auraAllStatsPercent);
+    }
+    strength = strength + input.talentStrength;
+    agility = agility + input.talentAgility;
+    stamina = stamina + input.talentStamina;
+    intellect = intellect + input.talentIntellect;
+    stamina = applyPercent(stamina, input.talentStaminaPercent);
+    strength = applyPercent(strength, input.talentStrengthPercent);
+    agility = applyPercent(agility, input.talentAgilityPercent);
+    intellect = applyPercent(intellect, input.talentIntellectPercent);
+    if (input.allStatsPercent != 0.0 || input.auraIntellectPercent != 0.0 ||
+        input.auraStaminaPercent != 0.0) {
+        strength = applyPercent(strength, input.allStatsPercent);
+        agility = applyPercent(agility, input.allStatsPercent);
+        stamina = applyPercent(stamina, input.allStatsPercent + input.auraStaminaPercent);
+        intellect = applyPercent(intellect, input.allStatsPercent + input.auraIntellectPercent);
+    }
+    var agilityBeforeCat = agility < 0 ? 0 : agility;
+    // The source derives agility armor before Cat Form adds its bonus agility.
+    var armorAfterAgility = input.armorBeforeAgility + input.flatArmor + input.talentArmor +
+        agilityBeforeCat * 2;
+    output.armor = formArmor(code, armorAfterAgility);
+    output.agility = agilityBeforeCat;
+    if (activeFormIs(code, "form_cat")) {
+        output.agility = output.agility + catAgilityBonus(input.level);
+    }
+    if (input.armorFromStrengthPercent != 0.0) {
+        output.armor = output.armor +
+            statCore.roundJs(<float>strength * input.armorFromStrengthPercent);
+    }
+    output.armor = applyPercent(output.armor, input.talentArmorPercent);
+    output.armor = applyPercent(output.armor, input.auraArmorPercent);
+    output.strength = strength;
+    output.stamina = stamina;
+    output.intellect = intellect;
+    output.attackPower = statCore.attackPower(
+        input.classId,
+        strength,
+        output.agility,
+        input.bonusAttackPower + formBonusAttackPower(code, input.level, agilityBeforeCat),
+        input.attackPowerPercent
+    );
+    output.rangedPower = statCore.rangedPower(
+        input.classId == "hunter",
+        output.agility,
+        input.bonusAttackPower,
+        input.attackPowerPercent
+    );
+    output.spellPower = statCore.spellPower(intellect, input.bonusSpellPower);
+    output.maxHp = maxHpFromSourceStages(input, stamina, code);
+    output.maxMana = applyPercent(input.baseManaMaximum, input.manaPercent);
+    output.critChance = statCore.critChance(
+        output.agility,
+        input.bonusCritChance + <float>input.critRating / 1000.0
+    );
+    output.dodgeChance = statCore.dodgeChance(output.agility, input.bonusDodgeChance);
+    output.hitBonus = <float>input.hitRating / 1000.0;
+    var haste = input.bonusHaste + <float>input.hasteRating / 1000.0;
+    output.meleeHaste = haste + input.bonusMeleeHaste;
+    output.rangedHaste = haste + input.bonusRangedHaste;
+    output.spellHaste = haste + input.bonusSpellHaste;
+    output.physicalCritDamageBonus = input.physicalCritDamageBonus;
+    output.movementSpeedMultiplier = formMovementSpeedMultiplier(code);
+    output.threatMultiplier = formThreatMultiplier(code);
+    output.spellDamageBonus = formSpellDamageBonus(code);
+    output.shadowDamageMultiplier = formShadowDamageMultiplier(code);
+    output.catUsesRogueSwing = activeFormIs(code, "form_cat");
+    output.wandAllowed = !activeFormIs(code, "form_bear") &&
+        !activeFormIs(code, "form_cat") && !activeFormIs(code, "form_travel");
+    return output;
+}
+
+pub contractTest(): int {
+    var input = new FormDerivedInput();
+    input.classId = "druid";
+    input.level = 10;
+    input.strength = 30;
+    input.agility = 20;
+    input.stamina = 30;
+    input.intellect = 10;
+    input.armorBeforeAgility = 50;
+    input.baseHp = 50;
+    input.hpPerLevel = 10;
+    input.baseManaMaximum = 100;
+    var bear = forms.formAbilityCode("form_bear");
+    var cat = forms.formAbilityCode("form_cat");
+    var travel = forms.formAbilityCode("form_travel");
+    var moonkin = forms.formAbilityCode("form_moonkin");
+    var shadow = forms.formAbilityCode("form_shadow");
+    var fireball = forms.formAbilityCode("form_fireball");
+    if (bear == <uint>0 || cat == <uint>0 || travel == <uint>0 ||
+        moonkin == <uint>0 || shadow == <uint>0 || fireball == <uint>0) {
+        return -1;
+    }
+    input.activeFormAbilityCode = bear;
+    var bearStats = derive(input);
+    if (bearStats.armor != 171 || bearStats.attackPower != 105 ||
+        bearStats.maxHp != 299 || bearStats.threatMultiplier != 1.3 ||
+        bearStats.movementSpeedMultiplier != 1.0 || bearStats.wandAllowed) {
+        return -2;
+    }
+    input.activeFormAbilityCode = cat;
+    var catStats = derive(input);
+    if (catStats.agility != 25 || catStats.armor != 90 || catStats.attackPower != 88 ||
+        catStats.critChance != 0.0625 || catStats.dodgeChance != 0.0625 ||
+        catStats.threatMultiplier != 0.71 || !catStats.catUsesRogueSwing || catStats.wandAllowed) {
+        return -3;
+    }
+    input.activeFormAbilityCode = travel;
+    var travelStats = derive(input);
+    if (travelStats.movementSpeedMultiplier != 1.4 || travelStats.wandAllowed ||
+        combineMovementSpeedMultiplier(1.5, travel) != 1.5) {
+        return -4;
+    }
+    input.activeFormAbilityCode = moonkin;
+    var moonkinStats = derive(input);
+    if (moonkinStats.armor != 135 || moonkinStats.spellDamageBonus != 0.2 ||
+        combineSpellDamageMultiplier(0.1, moonkin) != 1.3 || !moonkinStats.wandAllowed) {
+        return -5;
+    }
+    if (applyShadowFormDamage(100, "shadow", shadow, false) != 115 ||
+        applyShadowFormDamage(100, "shadow", shadow, true) != 100 ||
+        applyShadowFormDamage(100, "arcane", shadow, false) != 100 ||
+        formMovementSpeedMultiplier(fireball) != 1.4) {
+        return -6;
+    }
+    input.activeFormAbilityCode = bear;
+    input.flatStrength = 5;
+    input.flatAgility = 10;
+    input.flatStamina = 10;
+    input.flatIntellect = 10;
+    input.flatArmor = 10;
+    input.auraAllStatsPercent = -0.5;
+    input.talentStrength = 2;
+    input.talentAgility = 3;
+    input.talentStamina = 4;
+    input.talentIntellect = 2;
+    input.talentArmor = 7;
+    input.talentStrengthPercent = 0.2;
+    input.talentAgilityPercent = 0.1;
+    input.talentStaminaPercent = 0.1;
+    input.talentIntellectPercent = 0.25;
+    input.allStatsPercent = 0.1;
+    input.auraIntellectPercent = 0.2;
+    input.auraStaminaPercent = 0.1;
+    input.armorFromStrengthPercent = 0.5;
+    input.talentArmorPercent = 0.1;
+    input.auraArmorPercent = 0.1;
+    input.bonusAttackPower = 10;
+    input.attackPowerPercent = 0.2;
+    input.bonusSpellPower = 6;
+    input.bonusCritChance = 0.02;
+    input.bonusDodgeChance = 0.02;
+    input.critRating = 100;
+    input.hasteRating = 100;
+    input.hitRating = 100;
+    input.bonusHaste = 0.05;
+    input.bonusRangedHaste = 0.02;
+    input.bonusSpellHaste = 0.03;
+    input.manaPercent = 0.05;
+    input.talentMaxHpPercent = 0.1;
+    input.auraMaxHpPercent = 0.1;
+    input.scaleMultiplier = 1.35;
+    var contributed = derive(input);
+    if (contributed.strength != 26 || contributed.agility != 22 ||
+        contributed.stamina != 31 || contributed.intellect != 20 ||
+        contributed.armor != 271 || contributed.attackPower != 132 ||
+        contributed.rangedPower != 0 || contributed.spellPower != 16 ||
+        contributed.maxHp != 508 || contributed.maxMana != 105 || contributed.critChance != 0.181 ||
+        contributed.dodgeChance != 0.081 || contributed.hitBonus != 0.1 ||
+        contributed.meleeHaste != 0.15 || contributed.rangedHaste != 0.17 ||
+        contributed.spellHaste != 0.18) {
+        return -7;
+    }
+    return inputIsValid(input) ? 1 : -8;
+}

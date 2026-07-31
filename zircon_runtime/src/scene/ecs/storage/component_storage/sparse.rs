@@ -104,4 +104,10 @@ impl SparseComponentStorage {
     pub(super) fn len(&self) -> usize {
         self.entries.len()
     }
+
+    pub(super) fn for_each_entity(&self, mut visit: impl FnMut(InternalEntity)) {
+        for entity in self.entries.keys().copied() {
+            visit(entity);
+        }
+    }
 }

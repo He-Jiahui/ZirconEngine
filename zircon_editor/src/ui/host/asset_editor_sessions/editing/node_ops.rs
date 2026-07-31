@@ -42,7 +42,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let project_root = self.current_project_root()?.ok_or_else(|| {
+        let project = self.current_project_snapshot()?.ok_or_else(|| {
             EditorError::UiAsset(
                 "cannot promote component to an external widget without an open project"
                     .to_string(),
@@ -57,7 +57,7 @@ impl EditorUiHost {
                 return Ok(false);
             };
             let target = resolve_external_widget_target(
-                &project_root,
+                &project,
                 &draft.asset_id,
                 &draft.component_name,
                 &draft.document_id,
@@ -96,7 +96,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let project_root = self.current_project_root()?.ok_or_else(|| {
+        let project = self.current_project_snapshot()?.ok_or_else(|| {
             EditorError::UiAsset(
                 "cannot promote local theme to an external style asset without an open project"
                     .to_string(),
@@ -111,7 +111,7 @@ impl EditorUiHost {
                 return Ok(false);
             };
             let target = resolve_external_style_target(
-                &project_root,
+                &project,
                 &draft.asset_id,
                 &draft.document_id,
                 &draft.display_name,

@@ -1,0 +1,101 @@
+// Frost frozen-cast resolution. WOS supplies targetIsRooted from combat/cc_state
+// and commits the returned first-aura consumption plan to its authoritative aura list.
+var container = %import("zr.container");
+var contract = %import("generated/frost_frozen_cast_contract");
+
+pub class FrostFrozenAura {
+    pub var kind: string;
+    pub var hasStacks: bool;
+    pub var stacks: int;
+    pub var hasCharges: bool;
+    pub var charges: int;
+    pub @constructor(kind: string, hasStacks: bool, stacks: int, hasCharges: bool, charges: int) {
+        this.kind = kind;
+        this.hasStacks = hasStacks;
+        this.stacks = stacks;
+        this.hasCharges = hasCharges;
+        this.charges = charges;
+    }
+}
+
+pub class FrostSpendPlan {
+    pub var hasSpend: bool;
+    pub var spendCaster: bool;
+    pub var auraIndex: int;
+    pub var removeAura: bool;
+    pub var remaining: int;
+    pub @constructor(hasSpend: bool, spendCaster: bool, auraIndex: int, removeAura: bool, remaining: int) {
+        this.hasSpend = hasSpend;
+        this.spendCaster = spendCaster;
+        this.auraIndex = auraIndex;
+        this.removeAura = removeAura;
+        this.remaining = remaining;
+    }
+}
+
+pub class FrozenCastPlan {
+    pub var treatAsFrozen: bool;
+    pub var damageMult: float;
+    pub var spend: FrostSpendPlan;
+    pub @constructor(treatAsFrozen: bool, damageMult: float, spend: FrostSpendPlan) {
+        this.treatAsFrozen = treatAsFrozen;
+        this.damageMult = damageMult;
+        this.spend = spend;
+    }
+}
+
+pub resolveFrozenCast(targetPresent: bool, targetIsRooted: bool, committedFrost: bool, abilitySchool: string, abilityId: string, casterAuras: container.Array<FrostFrozenAura>, targetAuras: container.Array<FrostFrozenAura>): FrozenCastPlan {
+    var inert = new FrozenCastPlan(false, 1.0, new FrostSpendPlan(false, false, -1, false, 0));
+    if (!targetPresent || abilitySchool == contract.physicalSchool()) return inert;
+    if (!committedFrost) return inert;
+    var lanceMult = abilityId == contract.iceLanceId() ? contract.iceLanceFrozenMult() : 1.0;
+    if (targetIsRooted) return new FrozenCastPlan(true, lanceMult, inert.spend);
+    if (abilityId == contract.iceLanceId()) {
+        var fingers = firstKind(casterAuras, contract.fingersKind());
+        if (fingers >= 0) return withSpend(lanceMult, true, fingers, <FrostFrozenAura>casterAuras[fingers], true);
+    }
+    if (contract.isWintersChillSpender(abilityId)) {
+        var winter = firstKind(targetAuras, contract.wintersChillKind());
+        if (winter >= 0) return withSpend(lanceMult, false, winter, <FrostFrozenAura>targetAuras[winter], false);
+    }
+    return inert;
+}
+
+pub firstKind(auras: container.Array<FrostFrozenAura>, kind: string): int {
+    var i = 0;
+    while (i < auras.length) {
+        if ((<FrostFrozenAura>auras[i]).kind == kind) return i;
+        i = i + 1;
+    }
+    return -1;
+}
+
+pub withSpend(damageMult: float, spendCaster: bool, auraIndex: int, aura: FrostFrozenAura, stacks: bool): FrozenCastPlan {
+    var count = stacks ? (aura.hasStacks ? aura.stacks : 1) : (aura.hasCharges ? aura.charges : 1);
+    var remaining = count - 1;
+    return new FrozenCastPlan(true, damageMult, new FrostSpendPlan(true, spendCaster, auraIndex, remaining <= 0, remaining));
+}
+
+pub contractTest(): int {
+    var caster = new container.Array<FrostFrozenAura>();
+    var target = new container.Array<FrostFrozenAura>();
+    caster.add(new FrostFrozenAura(contract.fingersKind(), true, 2, false, 0));
+    target.add(new FrostFrozenAura(contract.wintersChillKind(), false, 0, true, 2));
+    var rooted = resolveFrozenCast(true, true, true, "frost", contract.iceLanceId(), caster, target);
+    if (!rooted.treatAsFrozen || rooted.damageMult != contract.iceLanceFrozenMult() || rooted.spend.hasSpend) return -1;
+    var fingers = resolveFrozenCast(true, false, true, "frost", contract.iceLanceId(), caster, target);
+    if (!fingers.treatAsFrozen || !fingers.spend.hasSpend || !fingers.spend.spendCaster || fingers.spend.auraIndex != 0 || fingers.spend.removeAura || fingers.spend.remaining != 1) return -2;
+    caster = new container.Array<FrostFrozenAura>();
+    caster.add(new FrostFrozenAura(contract.fingersKind(), false, 0, false, 0));
+    var finalFinger = resolveFrozenCast(true, false, true, "frost", contract.iceLanceId(), caster, target);
+    if (!finalFinger.spend.hasSpend || !finalFinger.spend.removeAura || finalFinger.spend.remaining != 0) return -3;
+    caster = new container.Array<FrostFrozenAura>();
+    target = new container.Array<FrostFrozenAura>();
+    target.add(new FrostFrozenAura(contract.wintersChillKind(), false, 0, false, 0));
+    var winter = resolveFrozenCast(true, false, true, "frost", contract.iceLanceId(), caster, target);
+    if (!winter.treatAsFrozen || winter.spend.spendCaster || !winter.spend.removeAura || winter.spend.remaining != 0) return -4;
+    if (resolveFrozenCast(true, false, true, "physical", contract.iceLanceId(), caster, target).treatAsFrozen) return -5;
+    if (resolveFrozenCast(true, false, false, "frost", contract.iceLanceId(), caster, target).treatAsFrozen) return -6;
+    if (resolveFrozenCast(true, false, true, "frost", "flurry", caster, target).treatAsFrozen) return -7;
+    return 1;
+}

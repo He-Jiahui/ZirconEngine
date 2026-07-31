@@ -6,6 +6,7 @@ mod http;
 mod module;
 mod package;
 mod plugin;
+mod poison_recovery;
 mod runtime_state;
 mod runtime_system;
 mod service_types;

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_dungeon_reset_state_tests",
+  "source": "src",
+  "binary": "bin-m7-dungeon-reset-state-tests",
+  "entry": "instances/dungeon_reset_state_test_main"
+}

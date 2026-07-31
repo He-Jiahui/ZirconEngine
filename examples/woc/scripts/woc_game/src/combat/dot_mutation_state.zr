@@ -1,0 +1,57 @@
+// Pure per-application DoT extension. The WOS aura store supplies the live array.
+var contract = %import("generated/dot_mutation_contract");
+var container = %import("zr.container");
+
+pub class DotApplicationState {
+    pub var kind: string;
+    pub var id: string;
+    pub var sourceId: int;
+    pub var hasExtendedBy: bool;
+    pub var extendedBy: float;
+    pub var remaining: float;
+    pub var duration: float;
+    pub @constructor(kind: string, id: string, sourceId: int, hasExtendedBy: bool, extendedBy: float, remaining: float, duration: float) {
+        this.kind = kind;
+        this.id = id;
+        this.sourceId = sourceId;
+        this.hasExtendedBy = hasExtendedBy;
+        this.extendedBy = extendedBy;
+        this.remaining = remaining;
+        this.duration = duration;
+    }
+}
+
+// Returns the positive extension applied to the first matching application.
+pub extendOwnedDot(auras: container.Array<DotApplicationState>, sourceId: int, dotId: string, seconds: float, maxBonus: float): float {
+    var i = 0;
+    while (i < auras.length) {
+        var dot = <DotApplicationState>auras[i];
+        if (dot.kind == contract.dotKind() && dot.id == dotId && dot.sourceId == sourceId) {
+            var alreadyExtended = dot.hasExtendedBy ? dot.extendedBy : 0.0;
+            var available = maxBonus - alreadyExtended;
+            var extension = seconds < available ? seconds : available;
+            if (extension <= 0.0) return 0.0;
+            dot.hasExtendedBy = true;
+            dot.extendedBy = alreadyExtended + extension;
+            dot.remaining = dot.remaining + extension;
+            dot.duration = dot.duration + extension;
+            return extension;
+        }
+        i = i + 1;
+    }
+    return 0.0;
+}
+
+pub contractTest(): int {
+    var auras = new container.Array<DotApplicationState>();
+    auras.add(new DotApplicationState(contract.dotKind(), "bleed", 2, false, 0.0, 4.0, 6.0));
+    auras.add(new DotApplicationState(contract.dotKind(), "bleed", 2, false, 0.0, 8.0, 8.0));
+    if (extendOwnedDot(auras, 9, "bleed", 2.0, 5.0) != 0.0) return -1;
+    if (extendOwnedDot(auras, 2, "bleed", 2.0, 5.0) != 2.0) return -2;
+    var first = <DotApplicationState>auras[0];
+    if (!first.hasExtendedBy || first.extendedBy != 2.0 || first.remaining != 6.0 || first.duration != 8.0) return -3;
+    if ((<DotApplicationState>auras[1]).remaining != 8.0) return -4;
+    if (extendOwnedDot(auras, 2, "bleed", 9.0, 5.0) != 3.0) return -5;
+    if (extendOwnedDot(auras, 2, "bleed", 1.0, 5.0) != 0.0) return -6;
+    return 1;
+}

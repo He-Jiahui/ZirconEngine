@@ -1,0 +1,25 @@
+var system = %import("zr.system");
+var entity = %import("kernel/entity");
+system.console.printLine("entity-test-start");
+
+var generation = entity.generationReuseTest();
+system.console.printLine(generation);
+if (generation != 1) {
+    return generation;
+}
+var ordering = entity.sortedIterationTest();
+system.console.printLine(ordering);
+if (ordering != 1) {
+    return ordering - 10;
+}
+var snapshot = entity.snapshotIsolationTest();
+system.console.printLine(snapshot);
+if (snapshot != 1) {
+    return snapshot - 20;
+}
+var movement = entity.movementIntegrationTest();
+system.console.printLine(movement);
+if (movement != 1) {
+    return movement - 30;
+}
+return 0;

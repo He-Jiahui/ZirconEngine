@@ -16,10 +16,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus, ZrStatusCode};
 
-use super::super::behavior_calls::NativePluginBehavior;
+use super::super::behavior_calls::{NativePluginBehavior, NativePluginCommandTable};
 
 #[path = "tests/bridge_bindings.rs"]
 mod bridge_bindings;
+#[path = "tests/callback_lease.rs"]
+mod callback_lease;
 #[path = "tests/hot_reload_failures.rs"]
 mod hot_reload_failures;
 #[path = "tests/hot_reload_state.rs"]
@@ -128,7 +130,7 @@ fn native_live_host_runtime_behavior_calls_report_unloaded_plugin() {
 }
 
 #[test]
-fn native_live_host_runtime_command_interior_nul_returns_error_report() {
+fn native_live_host_runtime_command_interior_nul_is_resolved_without_a_c_string() {
     INTERIOR_NUL_INVOKE_COUNT.store(0, Ordering::SeqCst);
     let host = NativePluginLiveHost::default();
     {
@@ -141,12 +143,35 @@ fn native_live_host_runtime_command_interior_nul_returns_error_report() {
                 NativePluginBehavior {
                     is_stateless: true,
                     state_schema_version: 0,
-                    command_manifest_schema: None,
+                    command_manifest_schema: Some("zircon.native.command-manifest/4".to_string()),
                     event_manifest_schema: None,
                     registration_manifest_schema: None,
-                    command_manifest: Some("command=valid;payload=bytes".to_string()),
+                    command_manifest: Some(
+                        r#"
+schema = "zircon.native.command-manifest/4"
+[[commands]]
+name = "bad\u0000name"
+slot = 0
+payload_schema = "bytes"
+max_output_bytes = 0
+"#
+                        .to_string(),
+                    ),
                     event_manifest: None,
                     registration_manifest: None,
+                    command_table: Some(Arc::new(
+                        NativePluginCommandTable::from_manifest_v4(
+                            r#"
+schema = "zircon.native.command-manifest/4"
+[[commands]]
+name = "bad\u0000name"
+slot = 0
+payload_schema = "bytes"
+max_output_bytes = 0
+"#,
+                        )
+                        .unwrap(),
+                    )),
                     invoke_command: Some(interior_nul_probe_invoke_command),
                     save_state: None,
                     restore_state: None,
@@ -160,13 +185,103 @@ fn native_live_host_runtime_command_interior_nul_returns_error_report() {
         .invoke_runtime_plugin_command("physics", "bad\0name", b"")
         .expect("loaded plugin should return behavior reports for bad command names");
 
-    assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
-    assert_eq!(
-        report.diagnostics,
-        vec!["native plugin command name contained an interior NUL".to_string()]
-    );
+    assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert!(report.diagnostics.is_empty());
     assert!(report.payload.is_none());
-    assert_eq!(INTERIOR_NUL_INVOKE_COUNT.load(Ordering::SeqCst), 0);
+    assert_eq!(INTERIOR_NUL_INVOKE_COUNT.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn native_bridge_scope_pins_library_owner_until_scope_drop() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest("physics"),
+        );
+    }
+    let lifecycle = native_live_host_bridge_lifecycle_state(false);
+    let scope = host
+        .runtime_bridge_call_scope_from_loaded_manifest(
+            "physics",
+            &lifecycle,
+            [NativeBridgeMethodBinding::new(
+                <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+                "sample_count",
+                NativeBridgeMethodFn::from_rust(native_live_host_bridge_method),
+            )],
+        )
+        .expect("declared bridge method should build a pinned scope");
+    let pinned_diagnostics = host
+        .plugin_callback_diagnostics("physics", PluginModuleKind::Runtime)
+        .expect("pinned scope diagnostics should remain queryable");
+    assert_eq!(pinned_diagnostics.active_callbacks, 1);
+    assert_eq!(pinned_diagnostics.completed_callbacks, 0);
+
+    let busy = host
+        .unload_runtime_plugin("physics")
+        .expect_err("bridge scope must reject unload while its function pointers are live");
+    assert!(busy.contains("active native callback"));
+
+    drop(scope);
+    assert_eq!(
+        host.plugin_callback_diagnostics("physics", PluginModuleKind::Runtime)
+            .expect("owner-pin diagnostics should remain available")
+            .completed_callbacks,
+        0,
+        "a library owner pin is not a completed foreign callback"
+    );
+    host.unload_runtime_plugin("physics")
+        .expect("unload should succeed after the bridge scope releases its owner");
+}
+
+#[test]
+fn native_installed_bridge_scope_pins_library_owner_until_scope_drop() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest("physics"),
+        );
+    }
+    host.install_runtime_bridge_method_bindings(
+        "physics",
+        [NativeBridgeMethodBinding::new(
+            <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+            "sample_count",
+            NativeBridgeMethodFn::from_rust(native_live_host_bridge_method),
+        )],
+    )
+    .expect("declared bridge method should install");
+    let lifecycle = native_live_host_bridge_lifecycle_state(false);
+    let scope = host
+        .runtime_bridge_call_scope_from_installed_bindings("physics", &lifecycle)
+        .expect("installed bridge method should build a pinned scope");
+    let pinned_diagnostics = host
+        .plugin_callback_diagnostics("physics", PluginModuleKind::Runtime)
+        .expect("installed owner-pin diagnostics should remain queryable");
+    assert_eq!(pinned_diagnostics.active_callbacks, 1);
+    assert_eq!(pinned_diagnostics.completed_callbacks, 0);
+
+    let busy = host
+        .unload_runtime_plugin("physics")
+        .expect_err("installed bridge scope must reject unload while pointers are live");
+    assert!(busy.contains("active native callback"));
+
+    drop(scope);
+    assert_eq!(
+        host.plugin_callback_diagnostics("physics", PluginModuleKind::Runtime)
+            .expect("installed owner-pin diagnostics should remain available")
+            .completed_callbacks,
+        0,
+        "binding validation and scope pins must not inflate callback duration counters"
+    );
+    host.unload_runtime_plugin("physics")
+        .expect("unload should succeed after the installed bridge scope releases its owner");
 }
 
 #[test]
@@ -258,18 +373,18 @@ fn native_live_host_loads_runtime_export_diagnostics_without_handles() {
 
 #[test]
 fn native_live_host_loading_lock_reports_typed_error() {
-    let loaded = Mutex::new(BTreeMap::<String, LoadedNativePlugin>::new());
-    let loaded_for_thread = Arc::new(loaded);
-    let poison_target = Arc::clone(&loaded_for_thread);
+    let loaded = Arc::new(ObservedLoadedNativePlugins::default());
+    let poison_target = Arc::clone(&loaded);
     let _ = std::thread::spawn(move || {
         let _guard = poison_target
+            .entries
             .lock()
             .expect("test should lock live host map");
         panic!("poison native live host loading lock");
     })
     .join();
 
-    let error = lock_loaded_native_plugins(&loaded_for_thread)
+    let error = lock_loaded_native_plugins(&loaded)
         .expect_err("poisoned live-host lock should report a typed loading error");
     assert!(matches!(
         error,
@@ -532,7 +647,10 @@ fn native_live_host_test_plugin(
             package_manifest: None,
             diagnostics: Vec::new(),
             negotiated_capabilities: Vec::new(),
+            missing_required_capabilities: Vec::new(),
+            denied_capabilities: Vec::new(),
             bridge_method_bindings: Vec::new(),
+            editor_contribution_batch: None,
             behavior: None,
             behavior_validation: NativePluginBehaviorValidationReport::from_behavior(
                 plugin_id,
@@ -542,7 +660,7 @@ fn native_live_host_test_plugin(
             ),
         }),
         editor_entry_report: None,
-        library: this_process_library(),
+        library: LoadedNativePlugin::stable_library(this_process_library()),
     }
 }
 
@@ -609,12 +727,15 @@ pub(super) fn native_live_host_test_plugin_with_behavior(
             package_manifest: None,
             diagnostics: Vec::new(),
             negotiated_capabilities: Vec::new(),
+            missing_required_capabilities: Vec::new(),
+            denied_capabilities: Vec::new(),
             bridge_method_bindings: Vec::new(),
+            editor_contribution_batch: None,
             behavior: Some(behavior),
             behavior_validation,
         }),
         editor_entry_report: None,
-        library: this_process_library(),
+        library: LoadedNativePlugin::stable_library(this_process_library()),
     }
 }
 
@@ -698,9 +819,9 @@ pub(super) unsafe extern "C" fn hot_reload_restore_state_failure(
 }
 
 unsafe extern "C" fn interior_nul_probe_invoke_command(
-    _command_name: *const std::ffi::c_char,
+    _command_slot: u32,
     _payload: super::super::abi_declarations::NativePluginByteSliceV2,
-    _output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV2,
+    _output: super::super::abi_declarations::NativePluginOutputSinkV4,
 ) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
     INTERIOR_NUL_INVOKE_COUNT.fetch_add(1, Ordering::SeqCst);
     super::super::abi_declarations::NativePluginCallbackStatusV2 {

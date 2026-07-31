@@ -21,7 +21,7 @@ pub(crate) fn available_native_slot_names(node: &UiNodeDefinition) -> Vec<String
     let Some(widget_type) = node.widget_type.as_deref() else {
         return Vec::new();
     };
-    let registry = UiComponentDescriptorRegistry::editor_showcase();
+    let registry = UiComponentDescriptorRegistry::editor_showcase_shared();
     let Some(descriptor) = registry.descriptor(widget_type) else {
         return Vec::new();
     };
@@ -29,9 +29,9 @@ pub(crate) fn available_native_slot_names(node: &UiNodeDefinition) -> Vec<String
 }
 
 fn available_slots(slots: &[UiSlotSchema], children: &[UiChildMount]) -> Vec<String> {
-    let mut counts = BTreeMap::<String, usize>::new();
+    let mut counts = BTreeMap::<&str, usize>::new();
     for child in children {
-        let slot_name = child.mount.clone().unwrap_or_default();
+        let slot_name = child.mount.as_deref().unwrap_or_default();
         let entry = counts.entry(slot_name).or_insert(0);
         *entry += 1;
     }
@@ -39,7 +39,7 @@ fn available_slots(slots: &[UiSlotSchema], children: &[UiChildMount]) -> Vec<Str
     slots
         .iter()
         .filter_map(|slot| {
-            let occupied = counts.get(&slot.name).copied().unwrap_or_default();
+            let occupied = counts.get(slot.name.as_str()).copied().unwrap_or_default();
             (slot.multiple || occupied == 0).then(|| slot.name.clone())
         })
         .collect()

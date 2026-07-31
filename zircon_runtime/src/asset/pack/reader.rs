@@ -34,8 +34,9 @@ impl ZrPackReader {
             .manifest
             .pack
             .chunks
-            .iter()
-            .find(|chunk| chunk.hash == asset.chunk_hash)
+            .binary_search_by_key(&asset.chunk_hash, |chunk| chunk.hash)
+            .ok()
+            .map(|index| &self.manifest.pack.chunks[index])
             .ok_or_else(|| ZrPackError::MissingChunk(path.to_string()))?;
         read_chunk_bytes(&self.bytes, path, asset, chunk)
     }
@@ -49,8 +50,9 @@ impl ZrPackReader {
             .manifest
             .pack
             .chunks
-            .iter()
-            .find(|chunk| chunk.hash == hash)
+            .binary_search_by_key(&hash, |chunk| chunk.hash)
+            .ok()
+            .map(|index| &self.manifest.pack.chunks[index])
             .ok_or_else(|| ZrPackError::MissingChunk(path_hint.to_string()))?;
         read_chunk_range_bytes(&self.bytes, path_hint, chunk)
     }
@@ -124,14 +126,21 @@ fn validate_manifest_chunks(
     bytes: &[u8],
     manifest: &ZrPackDocumentManifest,
 ) -> Result<(), ZrPackError> {
-    for asset in &manifest.assets {
-        let chunk = manifest
-            .pack
-            .chunks
-            .iter()
-            .find(|chunk| chunk.hash == asset.chunk_hash)
-            .ok_or_else(|| ZrPackError::MissingChunk(asset.path.clone()))?;
-        let _ = read_chunk_bytes(bytes, &asset.path, asset, chunk)?;
+    for chunk in &manifest.pack.chunks {
+        let path = || {
+            manifest
+                .assets
+                .iter()
+                .find(|asset| asset.chunk_hash == chunk.hash)
+                .map(|asset| asset.path.as_str())
+                .unwrap_or("<chunk>")
+                .to_string()
+        };
+        let chunk_bytes =
+            chunk_range_bytes(bytes, chunk).ok_or_else(|| ZrPackError::ChunkOutOfBounds(path()))?;
+        if zrpack_content_hash(chunk_bytes) != chunk.hash {
+            return Err(ZrPackError::ChunkHashMismatch(path()));
+        }
     }
     Ok(())
 }
@@ -153,21 +162,19 @@ fn read_chunk_range_bytes(
     path: &str,
     chunk: &ZrChunkEntry,
 ) -> Result<Vec<u8>, ZrPackError> {
-    let start = usize::try_from(chunk.offset)
-        .map_err(|_| ZrPackError::ChunkOutOfBounds(path.to_string()))?;
-    let size =
-        usize::try_from(chunk.size).map_err(|_| ZrPackError::ChunkOutOfBounds(path.to_string()))?;
-    let end = start
-        .checked_add(size)
-        .ok_or_else(|| ZrPackError::ChunkOutOfBounds(path.to_string()))?;
-    if start < header_size() || end > bytes.len() {
-        return Err(ZrPackError::ChunkOutOfBounds(path.to_string()));
-    }
-    let chunk_bytes = bytes[start..end].to_vec();
-    if zrpack_content_hash(&chunk_bytes) != chunk.hash {
+    let chunk_bytes = chunk_range_bytes(bytes, chunk)
+        .ok_or_else(|| ZrPackError::ChunkOutOfBounds(path.into()))?;
+    if zrpack_content_hash(chunk_bytes) != chunk.hash {
         return Err(ZrPackError::ChunkHashMismatch(path.to_string()));
     }
-    Ok(chunk_bytes)
+    Ok(chunk_bytes.to_vec())
+}
+
+fn chunk_range_bytes<'a>(bytes: &'a [u8], chunk: &ZrChunkEntry) -> Option<&'a [u8]> {
+    let start = usize::try_from(chunk.offset).ok()?;
+    let size = usize::try_from(chunk.size).ok()?;
+    let end = start.checked_add(size)?;
+    (start >= header_size() && end <= bytes.len()).then(|| &bytes[start..end])
 }
 
 pub(crate) fn read_header_u32(bytes: &[u8], offset: usize) -> Result<u32, ZrPackError> {

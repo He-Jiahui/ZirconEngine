@@ -134,7 +134,7 @@ jobs:
             libasound2-dev
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.94.1
         with:
           components: rustfmt, clippy
 
@@ -142,7 +142,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Test convention runner
-        run: python -m unittest tools.tests.test_check_conventions -v
+        run: python -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
 
       - name: Run convention gates
         run: python tools/check_conventions.py --json

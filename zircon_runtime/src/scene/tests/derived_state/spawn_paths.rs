@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn spawn_node_kind_ordinals_compare_kinds_without_candidate_clones() {
+fn spawn_node_kind_ordinals_use_cached_kind_counts() {
     let source = read_source(
         &manifest_dir()
             .join("src")
@@ -16,14 +16,10 @@ fn spawn_node_kind_ordinals_compare_kinds_without_candidate_clones() {
         .expect("read ordinal_for body");
 
     assert!(
-        ordinal_for.contains("let mut ordinal = 1;")
-            && ordinal_for.contains("for entity in self.entities.iter().copied()")
-            && ordinal_for.contains("self.kinds.get(&entity) == Some(&kind)")
-            && ordinal_for.contains("ordinal += 1;")
-            && ordinal_for.contains("ordinal")
-            && !ordinal_for.contains("kind.clone()")
-            && !ordinal_for.contains("self.node_kind(**entity)"),
-        "spawn-node kind ordinal lookup must compare stored kinds by reference without cloning the requested NodeKind per candidate entity"
+        ordinal_for.contains("self.node_kind_ordinals[node_kind_ordinal_index(kind)]")
+            && !ordinal_for.contains("self.entities.iter()")
+            && !ordinal_for.contains("kind.clone()"),
+        "spawn-node kind ordinal lookup must use the cached count instead of scanning every entity"
     );
 }
 
@@ -71,8 +67,9 @@ fn spawn_node_reuses_copy_node_kind_without_spawn_path_clones() {
     assert!(
         spawn_node.contains("self.ordinal_for(kind)")
             && spawn_node.contains("self.kinds.insert(id, kind);")
+            && spawn_node.contains("self.record_node_kind_added(kind);")
             && !spawn_node.contains("kind.clone()"),
-        "spawn_node must reuse Copy NodeKind values for ordinal lookup, storage insertion, and component-kind branching"
+        "spawn_node must reuse Copy NodeKind values for ordinal lookup, cached count maintenance, storage insertion, and component-kind branching"
     );
     assert!(
         node_kind.contains("self.kinds.get(&entity).copied()") && !node_kind.contains(".cloned()"),

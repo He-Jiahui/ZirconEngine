@@ -1,6 +1,7 @@
 //! Resource foundation layer: locators, ids, typed handles, registry, and runtime state.
 
 mod data;
+mod error;
 mod io;
 mod lease;
 mod manager;
@@ -9,6 +10,7 @@ mod runtime;
 mod snapshot;
 
 pub use data::ResourceData;
+pub use error::{ResourceRegistryError, ResourceResult};
 pub use io::{ResourceIo, ResourceIoError};
 pub use lease::ResourceLease;
 pub use manager::ResourceManager;

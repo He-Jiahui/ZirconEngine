@@ -1,13 +1,13 @@
 use std::path::Path;
 
 use glyphon::fontdb;
-use ttf_parser::{name_id, Face, Style as TtfStyle};
 
 use crate::text::{
     FontFaceDescriptor, FontFamilyName, FontStretch, FontStyle, FontWeight, VariationCoords,
 };
 
 use super::database::FontSourceKey;
+use super::face_metadata::FontFaceMetadata;
 
 fn family_from_source_path(source_path: &Path) -> String {
     source_path
@@ -17,59 +17,25 @@ fn family_from_source_path(source_path: &Path) -> String {
         .unwrap_or_else(|| "Zircon Sans".to_string())
 }
 
-pub(super) fn descriptor_from_font_bytes(
-    bytes: &[u8],
+pub(super) fn descriptor_from_font_metadata(
+    metadata: &FontFaceMetadata,
     family: Option<&str>,
     source_path: &Path,
     face_index: u32,
 ) -> FontFaceDescriptor {
-    let parsed = Face::parse(bytes, face_index).ok();
     let family = family
         .map(str::trim)
         .filter(|family| !family.is_empty())
         .map(FontFamilyName::from)
-        .or_else(|| {
-            parsed
-                .as_ref()
-                .and_then(face_family_name)
-                .map(FontFamilyName::from)
-        })
+        .or_else(|| metadata.discovered_family().cloned())
         .unwrap_or_else(|| FontFamilyName::from(family_from_source_path(source_path)));
-
-    let Some(face) = parsed else {
-        let mut descriptor = FontFaceDescriptor::regular(family);
-        descriptor.face_index = face_index;
-        return descriptor;
-    };
-
     FontFaceDescriptor {
         family,
-        weight: FontWeight::clamped(face.weight().to_number()),
-        style: style_from_ttf(face.style()),
-        stretch: stretch_from_ttf_width_class(face.width().to_number()),
+        weight: metadata.weight(),
+        style: metadata.style(),
+        stretch: metadata.stretch(),
         face_index,
         variations: VariationCoords::default(),
-    }
-}
-
-fn face_family_name(face: &Face<'_>) -> Option<String> {
-    ttf_name_by_id(face, name_id::TYPOGRAPHIC_FAMILY)
-        .or_else(|| ttf_name_by_id(face, name_id::FAMILY))
-}
-
-fn ttf_name_by_id(face: &Face<'_>, id: u16) -> Option<String> {
-    face.names()
-        .into_iter()
-        .filter(|name| name.name_id == id)
-        .filter_map(|name| name.to_string())
-        .find(|value| !value.trim().is_empty())
-}
-
-fn style_from_ttf(style: TtfStyle) -> FontStyle {
-    match style {
-        TtfStyle::Normal => FontStyle::Normal,
-        TtfStyle::Italic => FontStyle::Italic,
-        TtfStyle::Oblique => FontStyle::Oblique(0.0),
     }
 }
 

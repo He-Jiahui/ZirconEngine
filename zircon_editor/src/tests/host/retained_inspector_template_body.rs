@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use zircon_runtime_interface::math::UVec2;
 
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
     build_pane_body_presentation, InspectorPaneViewData, PaneContentSize, PanePayloadBuildContext,
@@ -40,7 +40,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
-        scene_viewport_settings: SceneViewportSettings::default(),
+        scene_viewport_settings: SceneViewportChromeSettings::default(),
         mesh_import_path: String::new(),
         project_overview: ProjectOverviewSnapshot::default(),
         asset_activity: AssetWorkspaceSnapshot::default(),

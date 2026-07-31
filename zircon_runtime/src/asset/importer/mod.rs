@@ -15,6 +15,7 @@ pub use contract::{
 };
 pub use environment_ibl::{
     stage_environment_ibl_source, stage_environment_ibl_source_with_parallel_executor,
+    stage_environment_ibl_source_with_parallel_executor_and_decoded_image,
     stage_external_source_cubemap_texture, EnvironmentIblSourceStagingError,
     EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingStatus,
     ENVIRONMENT_IBL_FACE_SIZE_IMPORT_SETTING, ENVIRONMENT_IBL_IMPORT_SETTING,

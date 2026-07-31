@@ -26,6 +26,46 @@ fn package_declares_gltf_importer() {
 }
 
 #[test]
+fn declaration_owns_gltf_package_metadata() {
+    let descriptor = runtime_plugin_descriptor();
+
+    assert_eq!(GLTF_IMPORTER_DECLARATION.id(), PLUGIN_ID);
+    assert_eq!(GLTF_IMPORTER_DECLARATION.module_name(), MODULE_NAME);
+    assert_eq!(
+        GLTF_IMPORTER_DECLARATION.capabilities(),
+        runtime_capabilities()
+    );
+    assert_eq!(descriptor.package_id(), GLTF_IMPORTER_DECLARATION.id());
+    assert_eq!(descriptor.category(), GLTF_IMPORTER_DECLARATION.category());
+    assert_eq!(descriptor.maturity(), GLTF_IMPORTER_DECLARATION.maturity());
+    assert_eq!(
+        descriptor.target_modes(),
+        GLTF_IMPORTER_DECLARATION.target_modes()
+    );
+    assert_eq!(
+        descriptor.capabilities(),
+        runtime_capabilities()
+            .iter()
+            .map(|value| value.to_string())
+            .collect::<Vec<_>>()
+    );
+
+    let manifest = package_manifest();
+    assert_eq!(
+        manifest.supported_targets.as_slice(),
+        GLTF_IMPORTER_DECLARATION.target_modes()
+    );
+    assert_eq!(
+        manifest.supported_platforms.as_slice(),
+        GLTF_IMPORTER_DECLARATION.supported_platforms()
+    );
+    assert_eq!(
+        manifest.default_packaging.as_slice(),
+        GLTF_IMPORTER_DECLARATION.default_packaging()
+    );
+}
+
+#[test]
 fn package_manifest_declares_gltf_importer_dist_contract() {
     let manifest = package_manifest();
 

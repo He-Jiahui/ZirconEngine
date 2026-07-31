@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::resource::{AssetReference, ResourceLocator, ResourceLocatorError};
 
 use super::compute_dispatch::{
-    validate_named_resource_bindings, validate_shader_entry_point, ShaderAbiBinding,
-    ShaderDispatchBuildDiagnostic, ShaderNamedResourceBinding, ShaderParameterValue,
-    ShaderResourceBindingRequest,
+    ShaderAbiBinding, ShaderDispatchBuildDiagnostic, ShaderNamedResourceBinding,
+    ShaderParameterValue, ShaderResourceBindingRequest, validate_named_resource_bindings,
+    validate_shader_entry_point,
 };
 use super::{
     RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind, ShaderResourceAccess,

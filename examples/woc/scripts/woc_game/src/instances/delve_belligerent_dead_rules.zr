@@ -1,0 +1,36 @@
+// Pure projection of the Belligerent Dead mob-creation branch in spawnDelveModule.
+var math = %import("zr.zircon.math");
+
+pub applies(active: bool, mobId: string): bool {
+    return active && mobId == "grave_silt_bulwark";
+}
+
+pub adjustedMaxHp(baseMaxHp: int, active: bool, mobId: string): int {
+    if (baseMaxHp < 0) {
+        throw "woc Belligerent Dead base max HP is invalid";
+    }
+    if (!applies(active, mobId)) {
+        return baseMaxHp;
+    }
+    // JavaScript Math.round for non-negative health values is floor(value + 0.5).
+    return <int>math.floor(<float>baseMaxHp * 1.1 + 0.5);
+}
+
+pub resetsCurrentHp(active: bool, mobId: string): bool {
+    return applies(active, mobId);
+}
+
+pub contractTest(): int {
+    if (applies(false, "grave_silt_bulwark") || applies(true, "other") ||
+        !applies(true, "grave_silt_bulwark")) {
+        return -1;
+    }
+    if (adjustedMaxHp(100, true, "grave_silt_bulwark") != 110 ||
+        adjustedMaxHp(5, true, "grave_silt_bulwark") != 6 ||
+        adjustedMaxHp(101, true, "grave_silt_bulwark") != 111 ||
+        adjustedMaxHp(100, false, "grave_silt_bulwark") != 100 ||
+        !resetsCurrentHp(true, "grave_silt_bulwark")) {
+        return -2;
+    }
+    return 1;
+}

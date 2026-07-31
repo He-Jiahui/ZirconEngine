@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/group_targeting_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/group_targeting.ts": "e49253b66eb863c7838140c1fe389befa04f0347ee5b722b75939d408c21a7c0"
+  },
+  "semantics": {
+    "solo_fallback": "caster_only",
+    "filters": [
+      "existing_entity",
+      "player_meta",
+      "living",
+      "planar_radius"
+    ],
+    "radius_axes": [
+      "x",
+      "z"
+    ],
+    "order": "ascending_entity_id"
+  }
+}

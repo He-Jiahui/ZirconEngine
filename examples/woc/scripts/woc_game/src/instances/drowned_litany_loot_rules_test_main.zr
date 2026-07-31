@@ -1,0 +1,50 @@
+var rules = %import("instances/drowned_litany_loot_rules");
+
+if (rules.classArchetypeIndex("warrior", true) != 0 ||
+    rules.classArchetypeIndex("hunter", true) != 1 ||
+    rules.classArchetypeIndex("mage", true) != 2 ||
+    rules.classArchetypeIndex("unknown", true) != 0 ||
+    rules.lootTierIndex("low", true) != 0 || rules.lootTierIndex("medium", true) != 1 ||
+    rules.lootTierIndex("premium", true) != 2 || rules.fixedDrawCount(true) != 2 ||
+    !rules.firstDrawSelectsUncommonA(0.499999, true) ||
+    rules.firstDrawSelectsUncommonA(0.5, true)) {
+    return -1;
+}
+
+if (rules.uncommonItem("warrior", 0.0, true) != "siltguard_helm" ||
+    rules.uncommonItem("paladin", 0.5, true) != "bulwark_rusted_pauldrons" ||
+    rules.uncommonItem("hunter", 0.0, true) != "reedstalker_jerkin" ||
+    rules.uncommonItem("rogue", 0.5, true) != "mirejaw_fang_knife" ||
+    rules.uncommonItem("mage", 0.0, true) != "cantors_drowned_sash" ||
+    rules.uncommonItem("priest", 0.5, true) != "corpse_candle_focus" ||
+    rules.rareItem("warlock", true) != "nhalias_litany_rod" ||
+    rules.epicItem("hunter", true) != "siltstep_leggings") {
+    return -2;
+}
+
+if (rules.bonusChance(0, false, true) != 0.5 ||
+    rules.bonusChance(1, false, true) != 0.0 ||
+    rules.bonusChance(2, false, true) != 0.2 ||
+    rules.bonusChance(0, true, true) != 0.03 ||
+    rules.lootItemCount(0, false, 0.5, true) != 0 ||
+    rules.lootItemCount(0, false, 0.499999, true) != 1 ||
+    rules.lootItemCount(1, false, 0.0, true) != 1 ||
+    rules.lootItemCount(2, false, 0.2, true) != 1 ||
+    rules.lootItemCount(2, false, 0.199999, true) != 2 ||
+    rules.lootItemCount(0, true, 0.03, true) != 2 ||
+    rules.lootItemCount(2, true, 0.029999, true) != 3) {
+    return -3;
+}
+
+if (rules.lootItemId("warrior", 0, false, 0.0, 0.499999, 0, true) != "siltguard_helm" ||
+    rules.lootItemId("rogue", 2, false, 0.5, 0.199999, 0, true) != "mirejaw_fang_knife" ||
+    rules.lootItemId("rogue", 2, false, 0.5, 0.199999, 1, true) != "widow_silk_hood" ||
+    rules.lootItemId("mage", 1, false, 0.0, 0.0, 0, true) != "cantors_drowned_sash" ||
+    rules.lootItemId("warrior", 0, true, 0.5, 0.029999, 0, true) != "bulwark_rusted_pauldrons" ||
+    rules.lootItemId("warrior", 0, true, 0.5, 0.029999, 1, true) != "nhalias_bell_maul" ||
+    rules.lootItemId("warrior", 0, true, 0.5, 0.029999, 2, true) != "blackwater_vanguard_chest" ||
+    rules.contractTest() != 1) {
+    return -4;
+}
+
+return 0;

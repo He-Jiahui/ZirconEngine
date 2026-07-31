@@ -10,13 +10,13 @@ use crate::core::framework::render::{
     RenderCameraTargetKind, RenderCaptureSource, RenderFrameExtract, RenderFramework,
     RenderFrameworkError, RenderImageColorSpace, RenderImageFallbackKind, RenderImageUsage,
     RenderNativeSurfaceTarget, RenderPipelineHandle, RenderQualityProfile, RenderSamplerDescriptor,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
-    RenderViewportHandle, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderSubmissionConfig,
+    RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
+    RenderVirtualGeometryDebugSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
-use crate::graphics::WgpuRenderFramework;
+use crate::graphics::{ViewportRenderFrame, WgpuRenderFramework};
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 const CAMERA_TEXTURE_TARGET_ASSET_CAPABILITY: &str = "camera texture render target asset";
@@ -27,6 +27,24 @@ const HEADLESS_CAMERA_SURFACE_PRESENT_CAPABILITY: &str = "headless camera surfac
 const SURFACE_PRESENT_CAPABILITY: &str = "viewport surface present";
 
 mod texture_target;
+
+#[test]
+fn graphics_scene_projects_viewport_surface_contract_through_the_public_facade() {
+    let surface_contract = std::any::TypeId::of::<crate::graphics::SceneViewportSurface>();
+
+    assert_ne!(surface_contract, std::any::TypeId::of::<()>());
+}
+
+#[test]
+fn graphics_viewport_binding_consumes_the_scene_surface_without_parallel_record_state() {
+    let bind_source =
+        include_str!("../runtime/render_framework/viewport_surface/viewport_surface.rs");
+    let record_source = include_str!("../runtime/render_framework/viewport_record/surface.rs");
+
+    assert!(bind_source.contains("record.bind_surface(surface.into_backend_surface());"));
+    assert!(record_source.contains("surface: ViewportSurface"));
+    assert!(!record_source.contains("SceneViewportSurface"));
+}
 
 #[test]
 fn graphics_surface_default_contract_reports_unsupported_present_and_noop_unbind() {
@@ -162,6 +180,86 @@ fn graphics_surface_offscreen_submit_and_capture_survive_unbind_noop() {
     assert_eq!(target_resolution.resolved_target_size, viewport_size);
     assert_eq!(target_resolution.effective_view_size, viewport_size);
     assert_eq!(target_resolution.effective_render_size, viewport_size);
+}
+
+#[test]
+fn graphics_surface_offscreen_pipelined_submission_matches_synchronous_pixels() {
+    let size = UVec2::new(64, 48);
+    let synchronous =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
+    let synchronous_viewport = synchronous
+        .create_viewport(RenderViewportDescriptor::new(size))
+        .unwrap();
+    synchronous
+        .submit_frame_extract(synchronous_viewport, empty_extract())
+        .unwrap();
+    let synchronous_frame = synchronous
+        .capture_frame(synchronous_viewport)
+        .unwrap()
+        .expect("synchronous offscreen submission should capture a frame");
+
+    let pipelined =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
+    pipelined
+        .set_submission_config(RenderSubmissionConfig::pipelined())
+        .unwrap();
+    let pipelined_viewport = pipelined
+        .create_viewport(RenderViewportDescriptor::new(size))
+        .unwrap();
+    pipelined
+        .submit_frame_extract(pipelined_viewport, empty_extract())
+        .unwrap();
+    let pipelined_frame = pipelined
+        .capture_frame(pipelined_viewport)
+        .unwrap()
+        .expect("pipelined offscreen submission should capture a completed frame");
+
+    assert_eq!(pipelined_frame.width, synchronous_frame.width);
+    assert_eq!(pipelined_frame.height, synchronous_frame.height);
+    assert_eq!(pipelined_frame.rgba, synchronous_frame.rgba);
+}
+
+#[test]
+fn graphics_surface_pipelined_direct_runtime_frame_matches_synchronous_pixels() {
+    let size = UVec2::new(64, 48);
+    let synchronous =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
+    let synchronous_viewport = synchronous
+        .create_viewport(RenderViewportDescriptor::new(size))
+        .unwrap();
+    synchronous
+        .submit_runtime_frame(
+            synchronous_viewport,
+            ViewportRenderFrame::from_extract(empty_extract(), size),
+        )
+        .unwrap();
+    let synchronous_frame = synchronous
+        .capture_frame(synchronous_viewport)
+        .unwrap()
+        .expect("synchronous offscreen submission should capture a frame");
+
+    let pipelined =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
+    pipelined
+        .set_submission_config(RenderSubmissionConfig::pipelined())
+        .unwrap();
+    let pipelined_viewport = pipelined
+        .create_viewport(RenderViewportDescriptor::new(size))
+        .unwrap();
+    pipelined
+        .submit_runtime_frame(
+            pipelined_viewport,
+            ViewportRenderFrame::from_extract(empty_extract(), size),
+        )
+        .unwrap();
+    let pipelined_frame = pipelined
+        .capture_frame(pipelined_viewport)
+        .unwrap()
+        .expect("pipelined direct runtime frame should capture a completed frame");
+
+    assert_eq!(pipelined_frame.width, synchronous_frame.width);
+    assert_eq!(pipelined_frame.height, synchronous_frame.height);
+    assert_eq!(pipelined_frame.rgba, synchronous_frame.rgba);
 }
 
 #[test]

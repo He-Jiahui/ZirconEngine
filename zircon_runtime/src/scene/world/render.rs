@@ -9,8 +9,8 @@ use crate::core::framework::render::{
     RenderExposureSettings, RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet,
     RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteSnapshot, RenderViewExtract,
-    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
-    SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
+    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, RendererCommon,
+    SceneViewportExtractRequest, SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec3, Vec4};
@@ -158,12 +158,12 @@ impl World {
             world,
             view,
             geometry: {
-                let mut geometry = GeometryExtract::from_meshes_and_phase_inputs(
+                let mut geometry = GeometryExtract::from_meshes_phase_inputs_and_overrides(
                     core_pipeline,
                     meshes,
                     phase_inputs,
-                )
-                .with_material_property_overrides(material_property_overrides);
+                    material_property_overrides,
+                );
                 geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
                     debug: request.virtual_geometry_debug.unwrap_or_default(),
                     ..RenderVirtualGeometryExtract::default()
@@ -286,6 +286,7 @@ impl World {
         let static_state =
             RenderMeshStaticState::from_transform_static(mobility == Mobility::Static);
         let source = mesh_render_source_for_camera(mesh, transform, camera_position);
+        let transform_revision = render_mesh_transform_revision(&transform);
         if !source.primitives.is_empty() {
             for (primitive_ordinal, primitive) in source.primitives.iter().enumerate() {
                 visit(RenderMeshSnapshot {
@@ -294,7 +295,7 @@ impl World {
                         entity,
                         primitive_ordinal as u32,
                     ),
-                    transform_revision: render_mesh_transform_revision(&transform),
+                    transform_revision,
                     transform,
                     model: source.model,
                     mesh: Some(primitive.mesh),
@@ -304,7 +305,11 @@ impl World {
                     tint: mesh.tint,
                     mobility,
                     static_state,
-                    render_layer_mask: render_layer_mask.clone(),
+                    common: RendererCommon {
+                        layer_mask: render_layer_mask.clone(),
+                        is_static: mobility == Mobility::Static,
+                        ..RendererCommon::default()
+                    },
                 });
             }
             return;
@@ -313,7 +318,7 @@ impl World {
         visit(RenderMeshSnapshot {
             node_id: entity,
             stable_instance_key: render_mesh_stable_instance_key(entity, 0),
-            transform_revision: render_mesh_transform_revision(&transform),
+            transform_revision,
             transform,
             model: source.model,
             mesh: source.mesh,
@@ -323,7 +328,11 @@ impl World {
             tint: mesh.tint,
             mobility,
             static_state,
-            render_layer_mask,
+            common: RendererCommon {
+                layer_mask: render_layer_mask,
+                is_static: mobility == Mobility::Static,
+                ..RendererCommon::default()
+            },
         });
     }
 
@@ -355,6 +364,7 @@ impl World {
         if !camera_layers.intersects(&render_layer_mask) {
             return None;
         }
+        let mobility = self.mobility(entity).unwrap_or_default();
 
         Some(RenderSpriteSnapshot {
             entity,
@@ -370,7 +380,11 @@ impl World {
             image_mode: sprite.image_mode,
             color: sprite.color,
             z_order: sprite.z_order,
-            render_layer_mask,
+            common: RendererCommon {
+                layer_mask: render_layer_mask,
+                is_static: mobility == Mobility::Static,
+                ..RendererCommon::default()
+            },
             material_alpha_mode: sprite.material_alpha_mode,
         })
     }

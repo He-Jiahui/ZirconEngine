@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_spirit_healer_placement_tests",
+  "source": "src",
+  "binary": "bin-m3-spirit-healer-placement-tests",
+  "entry": "world/spirit_healer_placement_test_main"
+}

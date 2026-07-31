@@ -69,7 +69,7 @@ pub(crate) fn build_slot_semantic_group(
     let Some(parent) = selected_parent_node(document, selection) else {
         return UiAssetInspectorSemanticGroup::default();
     };
-    match semantic_parent_kind(parent).as_deref() {
+    match semantic_parent_kind(parent) {
         Some("HorizontalBox") | Some("VerticalBox") => {
             semantic_group("Linear Slot", &child_mount.slot, LINEAR_SLOT_PATHS)
         }
@@ -90,7 +90,7 @@ pub(crate) fn build_layout_semantic_group(
     let Some(layout) = node.layout.as_ref() else {
         return UiAssetInspectorSemanticGroup::default();
     };
-    match semantic_node_kind(node).as_deref() {
+    match semantic_node_kind(node) {
         Some("HorizontalBox") | Some("VerticalBox") => {
             semantic_group("Linear Layout", layout, LINEAR_LAYOUT_PATHS)
         }
@@ -112,7 +112,7 @@ pub(crate) fn build_structured_slot_semantic_fields(
         return UiAssetStructuredSlotSemanticFields::default();
     };
 
-    match semantic_parent_kind(parent).as_deref() {
+    match semantic_parent_kind(parent) {
         Some("HorizontalBox") => UiAssetStructuredSlotSemanticFields {
             kind: "HorizontalBox".to_string(),
             linear_main_weight: value_map_display_literal(&child_mount.slot, "layout.width.weight")
@@ -209,7 +209,7 @@ pub(crate) fn build_structured_layout_semantic_fields(
         return UiAssetStructuredLayoutSemanticFields::default();
     };
 
-    match semantic_node_kind(node).as_deref() {
+    match semantic_node_kind(node) {
         Some("HorizontalBox") => UiAssetStructuredLayoutSemanticFields {
             kind: "HorizontalBox".to_string(),
             box_gap: value_map_display_literal(layout, "container.gap").unwrap_or_default(),
@@ -397,17 +397,16 @@ fn display_literal(value: &Value) -> String {
     }
 }
 
-fn semantic_parent_kind(node: &UiNodeDefinition) -> Option<String> {
+fn semantic_parent_kind(node: &UiNodeDefinition) -> Option<&str> {
     semantic_node_kind(node)
 }
 
-fn semantic_node_kind(node: &UiNodeDefinition) -> Option<String> {
+fn semantic_node_kind(node: &UiNodeDefinition) -> Option<&str> {
     node.layout
         .as_ref()
         .and_then(|layout| value_map_value(layout, "container.kind"))
         .and_then(Value::as_str)
-        .map(str::to_string)
-        .or_else(|| node.widget_type.clone())
+        .or(node.widget_type.as_deref())
 }
 
 fn set_value_in_map(values: &mut BTreeMap<String, Value>, path: &str, literal: &str) -> bool {
@@ -455,28 +454,18 @@ fn value_map_string_literal(values: &BTreeMap<String, Value>, path: &str) -> Opt
 }
 
 fn value_map_value<'a>(values: &'a BTreeMap<String, Value>, path: &str) -> Option<&'a Value> {
-    let segments = split_path(path);
-    let (first, rest) = segments.split_first()?;
-    let value = values.get(first)?;
-    if rest.is_empty() {
-        return Some(value);
+    let mut segments = path
+        .split('.')
+        .map(str::trim)
+        .filter(|segment| !segment.is_empty());
+    let mut value = values.get(segments.next()?)?;
+    for segment in segments {
+        let Value::Table(table) = value else {
+            return None;
+        };
+        value = table.get(segment)?;
     }
-    let Value::Table(table) = value else {
-        return None;
-    };
-    table_value_at_path(table, rest)
-}
-
-fn table_value_at_path<'a>(table: &'a Map<String, Value>, path: &[String]) -> Option<&'a Value> {
-    let (first, rest) = path.split_first()?;
-    let value = table.get(first)?;
-    if rest.is_empty() {
-        return Some(value);
-    }
-    let Value::Table(child) = value else {
-        return None;
-    };
-    table_value_at_path(child, rest)
+    Some(value)
 }
 
 fn set_path_value(values: &mut BTreeMap<String, Value>, path: &[String], value: Value) {

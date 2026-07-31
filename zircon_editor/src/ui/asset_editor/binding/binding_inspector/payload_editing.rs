@@ -84,35 +84,6 @@ pub(super) fn binding_root_payload_suggestions(binding: &UiBindingRef) -> Vec<(S
     }
 }
 
-pub(super) fn binding_schema_items(binding: &UiBindingRef) -> Vec<String> {
-    let mut items = vec![format!("event [UiEvent] = {}", binding.event.native_name())];
-    match binding_action_kind(binding) {
-        UiBindingActionKind::Route => {
-            items.push(format!(
-                "route.target [Route] = {}",
-                binding_route_target(binding)
-            ));
-        }
-        UiBindingActionKind::Action => {
-            items.push(format!(
-                "action.target [EditorAction] = {}",
-                binding_action_specific_target(binding)
-            ));
-        }
-        UiBindingActionKind::None => {
-            items.push("action.kind [None]".to_string());
-        }
-    }
-    for (key, value) in binding_schema_payload_entries(binding) {
-        items.push(format!(
-            "payload.{key} [{}] default = {}",
-            binding_value_kind_label(&value),
-            binding_schema_value_literal(&value)
-        ));
-    }
-    items
-}
-
 pub(super) fn binding_schema_payload_entries(binding: &UiBindingRef) -> Vec<(String, Value)> {
     if binding_action_kind(binding) == UiBindingActionKind::Action {
         let action_target = binding_action_specific_target(binding);
@@ -238,13 +209,6 @@ pub(super) fn binding_value_kind_label(value: &Value) -> &'static str {
         Value::Array(_) => "Collection",
         Value::Table(_) => "Object",
         _ => "Text",
-    }
-}
-
-pub(super) fn binding_schema_value_literal(value: &Value) -> String {
-    match value {
-        Value::String(text) => Value::String(text.clone()).to_string(),
-        _ => value.to_string(),
     }
 }
 
@@ -431,6 +395,13 @@ pub(super) fn selected_payload_key_for_binding(
     current: Option<&str>,
 ) -> Option<String> {
     let payload = binding_payload_item_entries(binding);
+    selected_payload_key_from_entries(&payload, current)
+}
+
+pub(super) fn selected_payload_key_from_entries(
+    payload: &[(String, Value)],
+    current: Option<&str>,
+) -> Option<String> {
     if payload.is_empty() {
         return None;
     }
@@ -578,12 +549,9 @@ pub(super) fn collect_binding_payload_item_entries(
             }
         }
         Value::Table(table) => {
-            let mut keys = table.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            for key in keys {
-                let Some(item) = table.get(&key) else {
-                    continue;
-                };
+            let mut sorted_entries = table.iter().collect::<Vec<_>>();
+            sorted_entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+            for (key, item) in sorted_entries {
                 let path = match prefix {
                     Some(prefix) => format!("{prefix}.{key}"),
                     None => key.clone(),

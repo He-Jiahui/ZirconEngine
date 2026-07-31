@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_bootstrap_roster_tests",
+  "source": "src",
+  "binary": "bin-m3-bootstrap-roster-tests",
+  "entry": "world/bootstrap_roster_test_main"
+}

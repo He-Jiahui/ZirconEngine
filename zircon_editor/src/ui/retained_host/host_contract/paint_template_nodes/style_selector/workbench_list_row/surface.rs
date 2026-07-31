@@ -5,25 +5,31 @@ use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_row_background(
-    _node: &TemplatePaneNodeData,
+    node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
     marked: bool,
 ) -> Option<[u8; 4]> {
-    list_row_background_from_palette(state, marked, workbench_list_row_palette())
+    list_row_background_from_palette(node, state, marked, workbench_list_row_palette())
 }
 
 fn list_row_background_from_palette(
+    node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
     marked: bool,
     palette: WorkbenchListRowPalette,
 ) -> Option<[u8; 4]> {
     if is_unavailable_list_row_state(state) {
         None
+    } else if state == UiPainterResolvedState::Pressed {
+        Some(palette.pressed_surface)
     } else if marked {
-        Some(palette.marked_surface)
+        if node.hovered {
+            Some(palette.marked_hot_surface)
+        } else {
+            Some(palette.marked_surface)
+        }
     } else {
         match state {
-            UiPainterResolvedState::Pressed => Some(palette.marked_surface),
             UiPainterResolvedState::Open
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
@@ -31,6 +37,7 @@ fn list_row_background_from_palette(
             UiPainterResolvedState::Focused
             | UiPainterResolvedState::Disabled
             | UiPainterResolvedState::Loading
+            | UiPainterResolvedState::Pressed
             | UiPainterResolvedState::Checked
             | UiPainterResolvedState::Selected
             | UiPainterResolvedState::Normal => None,

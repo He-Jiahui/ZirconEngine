@@ -1,0 +1,101 @@
+// Current-head item-level equip gate from sim/item_level_req.ts. Content-index
+// construction is supplied by the generated current-head item-level catalog;
+// source Number.isFinite normalization still belongs to the caller.
+var contract = %import("generated/item_level_requirement_contract");
+var itemLevelCatalog = %import("generated/item_level_catalog");
+
+pub clampLevel(raw: int): int {
+    if (raw < 1) return 1;
+    if (raw > contract.maxLevel()) return contract.maxLevel();
+    return raw;
+}
+
+isGatedQuality(quality: string): bool {
+    return quality == "rare" || quality == "epic" || quality == "legendary";
+}
+
+qualityFallbackLevel(quality: string): int {
+    if (quality == "rare") return contract.rareFallbackLevel();
+    if (quality == "epic") return contract.epicFallbackLevel();
+    if (quality == "legendary") return contract.legendaryFallbackLevel();
+    if (quality == "uncommon") return contract.uncommonFallbackLevel();
+    if (quality == "poor") return contract.poorFallbackLevel();
+    return contract.commonFallbackLevel();
+}
+
+// explicitPresent must be true only when source ItemDef.requiredLevel was finite.
+// sourceLevelPresent is itemSourceLevel(item.id) !== undefined. Empty quality
+// denotes the source's missing quality and therefore follows common's ungated path.
+pub requiredLevel(
+    quality: string,
+    explicitPresent: bool,
+    explicitLevel: int,
+    sourceLevelPresent: bool,
+    sourceLevel: int
+): int {
+    if (explicitPresent) return clampLevel(explicitLevel);
+    if (!isGatedQuality(quality)) return 1;
+    if (sourceLevelPresent) return clampLevel(sourceLevel);
+    return clampLevel(qualityFallbackLevel(quality));
+}
+
+// Source composition equivalent to requiredLevelFor: resolve itemSourceLevel by
+// id first, then apply the explicit/gated/fallback policy above.
+pub requiredLevelForCatalogItem(
+    itemId: string,
+    quality: string,
+    explicitPresent: bool,
+    explicitLevel: int
+): int {
+    var sourceLevel = itemLevelCatalog.itemSourceLevel(itemId);
+    return requiredLevel(
+        quality,
+        explicitPresent,
+        explicitLevel,
+        sourceLevel > 0,
+        sourceLevel
+    );
+}
+
+pub meetsLevelRequirement(
+    characterLevel: int,
+    quality: string,
+    explicitPresent: bool,
+    explicitLevel: int,
+    sourceLevelPresent: bool,
+    sourceLevel: int
+): bool {
+    return characterLevel >= requiredLevel(
+        quality,
+        explicitPresent,
+        explicitLevel,
+        sourceLevelPresent,
+        sourceLevel
+    );
+}
+
+pub contractTest(): int {
+    if (contract.maxLevel() != 20 ||
+        contract.rareFallbackLevel() != 12 ||
+        contract.epicFallbackLevel() != 18 ||
+        contract.legendaryFallbackLevel() != contract.maxLevel()) return -1;
+
+    if (requiredLevel("rare", false, 0, true, 6) != 6 ||
+        requiredLevel("rare", false, 0, false, 0) != 12 ||
+        requiredLevel("epic", false, 0, false, 0) != 18 ||
+        requiredLevel("legendary", false, 0, false, 0) != 20) return -2;
+
+    if (requiredLevel("uncommon", false, 0, true, 20) != 1 ||
+        requiredLevel("", false, 0, true, 20) != 1 ||
+        requiredLevel("rare", true, 0, true, 20) != 1 ||
+        requiredLevel("rare", true, 25, false, 0) != 20 ||
+        requiredLevel("rare", false, 0, true, 0) != 1) return -3;
+
+    if (!meetsLevelRequirement(12, "rare", false, 0, false, 0) ||
+        meetsLevelRequirement(11, "rare", false, 0, false, 0) ||
+        !meetsLevelRequirement(20, "legendary", false, 0, false, 0)) return -4;
+    var rareSource = itemLevelCatalog.fixtureRareSourceItemId();
+    if (requiredLevelForCatalogItem(rareSource, "rare", false, 0) !=
+        itemLevelCatalog.fixtureRareSourceLevel()) return -5;
+    return 1;
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/form_swing_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/form_swing.ts": "8d8121dd5ff74a9ef050662331454dd0c04245992def59905e97f6727e6d2186"
+  },
+  "wandless": [
+    "form_bear",
+    "form_cat",
+    "form_travel"
+  ]
+}

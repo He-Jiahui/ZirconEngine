@@ -53,5 +53,12 @@ Editor job model 只有 active-category 并发配额，没有主线程 delivery 
 
 ## 修复结果与回传
 
-Open state: `待 Editor14 建立 pump SLA、progress 合并与可扩展 admission`。
+Open state: `Editor14 源码已建立 pump SLA、progress 合并、索引化 admission 与 enum 自有扫描库存；current-source Cargo、性能/WPR 和独立复审尚未完成`。
 
+2026-07-18 静态复核发现并修复一项后续扩展饥饿风险：priority/category enum 与各自 `ALL` 由同一 `define_job_enum!` 输入原子生成，扫描库存不再由 `pending.rs` 私有复制，最大 probe 数由库存长度派生；测试拒绝恢复本地常量、固定长度 `ALL` 或非宏声明源。`rustfmt --check`、atomic inventory guard 7/7 与 scoped diff check 已通过。
+
+当前 managed Cargo 被 Coordinator01 的 `pending-cpu-reservation-absolute-expiry-not-enforced` failure 阻塞：两个 executable-owner reservation 在持久化绝对过期后仍保持 pending/jobless 并占用 FIFO head。本 failure 保持 `open`；Editor14 不释放 foreign reservation，也不在缺失 current-source Cargo、1k/10k 原始输出、WPR 与独立复审时生成 fixed return。
+
+2026-07-22 current-source补充：indexed admission与64 events/1ms pump仍成立，本轮把`TOPIC_JOB` parse从每tick收为构造期一次。新的最低open条件是submit/lifecycle queue entry+bytes+age背压，以及event sink三锁/稳定label clone收敛；只证明progress coalesce或pending scan已修不能关闭PERF-MVP-020。
+
+2026-07-22全量tests复核补充：`background_storm_contract`仍用“must accept every storm job”锁定1,000个请求全部无条件入队，并把wall-clock明确降为非pass/fail baseline；`admission_scaling_contract`只证明1k/10k probe线性，不记录payload/label bytes、oldest age或100k/1M重复请求。因此验收必须先把submit结果建模为accepted/merged/backpressured，并冻结entry+bytes+age/RSS与pump p95硬门；不得以线性promotion或60秒watchdog替代有界性。

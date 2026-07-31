@@ -1,6 +1,7 @@
 use crate::core::commands::{CommandEvalCtx, EditorCommandRegistry};
 use crate::core::editor_extension::EditorExtensionRegistry;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
+use crate::ui::workbench::startup::EditorSessionMode;
 
 use super::super::document_tabs::document_tabs_for_page;
 use super::super::drawer_ring_model::DrawerRingModel;
@@ -15,7 +16,11 @@ use super::tool_windows::build_tool_windows;
 impl WorkbenchViewModel {
     #[cfg(test)]
     pub fn build(command_registry: &EditorCommandRegistry, chrome: &EditorChromeSnapshot) -> Self {
-        let context = super::super::host_command_eval_ctx_for_test(chrome, &[]);
+        let context = super::super::host_command_eval_ctx_for_test(
+            chrome,
+            crate::core::play::PlayModeKind::Edit,
+            &[],
+        );
         Self::build_with_context(command_registry, chrome, &context)
     }
 
@@ -33,7 +38,11 @@ impl WorkbenchViewModel {
         chrome: &EditorChromeSnapshot,
         extensions: &[EditorExtensionRegistry],
     ) -> Self {
-        let context = super::super::host_command_eval_ctx_for_test(chrome, &[]);
+        let context = super::super::host_command_eval_ctx_for_test(
+            chrome,
+            crate::core::play::PlayModeKind::Edit,
+            &[],
+        );
         Self::build_with_extensions_and_context(command_registry, chrome, extensions, &context)
     }
 
@@ -44,7 +53,11 @@ impl WorkbenchViewModel {
         extensions: &[EditorExtensionRegistry],
         enabled_capabilities: &[String],
     ) -> Self {
-        let context = super::super::host_command_eval_ctx_for_test(chrome, enabled_capabilities);
+        let context = super::super::host_command_eval_ctx_for_test(
+            chrome,
+            crate::core::play::PlayModeKind::Edit,
+            enabled_capabilities,
+        );
         Self::build_with_extensions_and_context(command_registry, chrome, extensions, &context)
     }
 
@@ -60,6 +73,8 @@ impl WorkbenchViewModel {
         let document_tabs = document_tabs_for_page(&active_page, chrome);
 
         Self {
+            is_playing: chrome.session_mode == EditorSessionMode::Playing,
+            asset_creation_templates: chrome.asset_browser.creation_templates.clone(),
             menu_bar: default_menu_bar_with_extensions(command_registry, extensions, context),
             host_strip,
             drawer_ring: DrawerRingModel {

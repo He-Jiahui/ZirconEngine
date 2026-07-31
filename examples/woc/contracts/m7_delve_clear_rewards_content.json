@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_clear_rewards_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff",
+    "src/sim/content/delves/collapsed_reliquary.ts": "f12a3538da887f8e7dd2fcf804287df7609f0c706284be51a377e70ea5e1b00d",
+    "src/sim/content/delves/drowned_litany.ts": "8f747166e6a63d36b8c20bae0d4feb43ba592376d2df0eb6139f4489aab1acb3"
+  },
+  "content": {
+    "delves": [
+      {
+        "id": "collapsed_reliquary",
+        "tiers": [
+          {
+            "id": "normal",
+            "first_clear_xp": 700,
+            "repeat_clear_xp": 420,
+            "copper_min": 8,
+            "copper_max": 14
+          },
+          {
+            "id": "heroic",
+            "first_clear_xp": 1050,
+            "repeat_clear_xp": 650,
+            "copper_min": 16,
+            "copper_max": 24
+          }
+        ]
+      },
+      {
+        "id": "drowned_litany",
+        "tiers": [
+          {
+            "id": "normal",
+            "first_clear_xp": 1250,
+            "repeat_clear_xp": 760,
+            "copper_min": 18,
+            "copper_max": 30
+          },
+          {
+            "id": "heroic",
+            "first_clear_xp": 1850,
+            "repeat_clear_xp": 1140,
+            "copper_min": 32,
+            "copper_max": 48
+          }
+        ]
+      }
+    ],
+    "drowned_litany_mark_multiplier": 2
+  },
+  "catalog_sha256": "9d5a939810d7c8328e57b48eab17879a8295e1083aaf7c8e0d90bca9e0e6eead"
+}

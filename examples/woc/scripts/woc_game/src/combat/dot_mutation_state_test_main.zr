@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var dot = %import("combat/dot_mutation_state");
+
+console.printLine("m4-dot-mutation-state-test");
+var result = dot.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

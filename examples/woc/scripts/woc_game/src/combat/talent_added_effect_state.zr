@@ -1,0 +1,144 @@
+// Resolves the Talents V2 AbilityEffect tail appended by applyTalentMods.
+// This is a declarative ZrVM bridge: the WOS combat reducer remains the
+// authoritative owner for effect admission, target selection and mutations.
+var container = %import("zr.container");
+var modifiers = %import("progression/talent_modifier_state");
+
+// Matches the stable numeric type mapping emitted by talent_modifier_catalog:
+// root, slow, aoeRoot, absorb, dot, extendDot, interrupt, consumeDot.
+numberAmount(): int { return 0; }
+numberDuration(): int { return 1; }
+numberMult(): int { return 2; }
+numberMin(): int { return 4; }
+numberMax(): int { return 5; }
+numberTotal(): int { return 6; }
+numberDirectPct(): int { return 7; }
+effectAoeRoot(): int { return 3; }
+effectAbsorb(): int { return 4; }
+effectDot(): int { return 5; }
+
+pub class TalentAddedEffectList {
+    pub var types: container.Array<int>;
+    pub var numbers: container.Array<float>;
+    pub var strings: container.Array<string>;
+
+    pub @constructor() {
+        this.types = new container.Array<int>();
+        this.numbers = new container.Array<float>();
+        this.strings = new container.Array<string>();
+    }
+}
+
+pub clear(list: TalentAddedEffectList): void {
+    list.types.clear();
+    list.numbers.clear();
+    list.strings.clear();
+}
+
+pub effectCount(list: TalentAddedEffectList): int {
+    return list.types.length;
+}
+
+pub effectType(list: TalentAddedEffectList, effectIndex: int): int {
+    return effectIndex < 0 || effectIndex >= list.types.length ? 0 : <int>list.types[effectIndex];
+}
+
+pub effectNumber(list: TalentAddedEffectList, effectIndex: int, field: int): float {
+    if (effectIndex < 0 || field < 0 || field >= 13) return 0.0;
+    var offset = effectIndex * 13 + field;
+    return offset < list.numbers.length ? <float>list.numbers[offset] : 0.0;
+}
+
+pub effectString(list: TalentAddedEffectList, effectIndex: int, field: int): string {
+    if (effectIndex < 0 || field < 0 || field >= 2) return "";
+    var offset = effectIndex * 2 + field;
+    return offset < list.strings.length ? <string>list.strings[offset] : "";
+}
+
+roundPositive(value: float): float {
+    return <float><int>(value + 0.5);
+}
+
+// Exact current source composition: appended effects receive the same scalar
+// pass as native effects. The caller supplies the native ability school because
+// it is a property of KnownAbility, not of an added AbilityEffect DTO.
+pub resolveForAbility(
+    state: modifiers.TalentModifierState,
+    abilityId: string,
+    physical: bool,
+    list: TalentAddedEffectList
+): void {
+    clear(list);
+    var globalDmg = modifiers.globalField(state, physical ? "meleeDmgPct" : "spellDmgPct");
+    var dmgMult = 1.0 + globalDmg + modifiers.abilityField(state, abilityId, "dmgPct");
+    var healMult = 1.0 + modifiers.globalField(state, "healPct") +
+        modifiers.abilityField(state, abilityId, "dmgPct");
+    var dotMult = 1.0 + modifiers.globalField(state, "dotDmgPct");
+    var absorbMult = 1.0 + modifiers.globalField(state, "absorbPct");
+    var flat = modifiers.abilityField(state, abilityId, "flatDmg");
+    var nested = 0;
+    while (nested < state.nestedEffectTypes.length) {
+        if (<string>state.nestedEffectAbilityIds[nested] == abilityId) {
+            var type = <int>state.nestedEffectTypes[nested];
+            list.types.add(type);
+            var field = 0;
+            while (field < 13) {
+                var value = modifiers.nestedEffectNumber(state, nested, field);
+                if (type == effectAoeRoot() && (field == numberMin() || field == numberMax())) {
+                    value = roundPositive(value * dmgMult);
+                }
+                if (type == effectAbsorb() && field == numberAmount()) {
+                    value = roundPositive(value * healMult * absorbMult + flat);
+                }
+                // Dot effects with directPct are resolved from their direct hit
+                // downstream, exactly as the source leaves their total untouched.
+                if (type == effectDot() && field == numberTotal() &&
+                    modifiers.nestedEffectNumber(state, nested, numberDirectPct()) == 0.0) {
+                    value = roundPositive(value * dmgMult * dotMult + flat);
+                }
+                list.numbers.add(value);
+                field = field + 1;
+            }
+            field = 0;
+            while (field < 2) {
+                list.strings.add(modifiers.nestedEffectString(state, nested, field));
+                field = field + 1;
+            }
+        }
+        nested = nested + 1;
+    }
+}
+
+pub contractTest(): int {
+    var warrior = new modifiers.TalentModifierState();
+    modifiers.recompute(warrior, <uint>0, <uint>3, <uint>0, <uint>0, <uint>0, <uint>0, <uint>0);
+    var effects = new TalentAddedEffectList();
+    resolveForAbility(warrior, "charge", true, effects);
+    if (effectCount(effects) != 2 || effectType(effects, 0) != 1 || effectType(effects, 1) != 2 ||
+        effectNumber(effects, 0, numberDuration()) != 4.0 ||
+        effectNumber(effects, 1, numberDuration()) != 15.0 ||
+        effectNumber(effects, 1, numberMult()) != 0.5) return -1;
+
+    var ward = new modifiers.TalentModifierState();
+    modifiers.recompute(ward, <uint>0, <uint>0, <uint>0, <uint>0, <uint>0, <uint>32, <uint>0);
+    // healPct and absorbPct demonstrate the source's single scaling pass.
+    ward.globals[2] = 0.2;
+    ward.globals[7] = 0.1;
+    resolveForAbility(ward, "lay_on_hands", false, effects);
+    if (effectCount(effects) != 1 || effectType(effects, 0) != effectAbsorb() ||
+        effectNumber(effects, 0, numberAmount()) != 475.0 ||
+        effectNumber(effects, 0, numberDuration()) != 10.0) return -2;
+
+    var venom = new modifiers.TalentModifierState();
+    modifiers.recompute(venom, <uint>0, <uint>0, <uint>0, <uint>0, <uint>48, <uint>0, <uint>0);
+    venom.globals[1] = 0.5;
+    venom.globals[5] = 0.5;
+    resolveForAbility(venom, "arcane_shot", false, effects);
+    if (effectCount(effects) != 1 || effectType(effects, 0) != effectDot() ||
+        effectNumber(effects, 0, numberTotal()) != 0.0 ||
+        effectNumber(effects, 0, numberDirectPct()) != 0.5 ||
+        effectString(effects, 0, 0) != "nature") return -3;
+
+    resolveForAbility(venom, "aimed_shot", false, effects);
+    return effectCount(effects) == 0 ? 1 : -4;
+}

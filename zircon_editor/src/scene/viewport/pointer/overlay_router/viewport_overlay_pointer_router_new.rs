@@ -7,7 +7,7 @@ use crate::scene::viewport::pointer::{
     precision::SharedResolutionState, viewport_pointer_layout::ViewportPointerLayout,
 };
 
-use super::{build_dispatcher::build_dispatcher, ViewportOverlayPointerRouter};
+use super::{ViewportOverlayPointerRouter, build_dispatcher::build_dispatcher};
 
 impl ViewportOverlayPointerRouter {
     pub(crate) fn new() -> Self {
@@ -18,6 +18,7 @@ impl ViewportOverlayPointerRouter {
             surface: UiSurface::new(UiTreeId::new("zircon.editor.viewport.pointer")),
             dispatcher,
             shared,
+            interaction_extract: None,
         };
         router.rebuild_surface();
         router

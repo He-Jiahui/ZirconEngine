@@ -712,12 +712,9 @@ fn register_loaded_font_manifest(
 }
 
 fn shaped_face_for_key(key: &SdfAtlasGlyphKey, font_database: &FontDatabase) -> Option<FontFaceId> {
-    let face = key
-        .font_id
-        .and_then(crate::text::font::resolve_font_face_handle);
-    let instance_face = key
-        .font_instance_id
-        .and_then(crate::text::font::resolve_font_instance_handle)
+    let (face, instance_id) =
+        crate::text::font::resolve_font_handles(key.font_id, key.font_instance_id);
+    let instance_face = instance_id
         .and_then(|instance| font_database.font_instance(instance))
         .map(|instance| instance.face);
     match (face, instance_face) {

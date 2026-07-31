@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::core::framework::project::{
     ExportPackagingStrategy, ProjectPluginFeatureSelection, ProjectPluginManifest,
     ProjectPluginSelection,
@@ -27,13 +29,16 @@ fn runtime_plugin_catalog_completes_owner_feature_selections_as_disabled_by_defa
     .with_capability("runtime.plugin.sound")
     .with_optional_feature(sound_timeline_feature_manifest())
     .build()]);
-    let completed = catalog.complete_project_manifest(&ProjectPluginManifest {
-        selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Sound,
-            true,
-            false,
-        )],
-    });
+    let completed = catalog.complete_project_manifest(
+        &ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::Sound,
+                true,
+                false,
+            )],
+        },
+        RuntimeTargetMode::ClientRuntime,
+    );
 
     let sound = completed
         .selections
@@ -72,13 +77,16 @@ fn runtime_plugin_catalog_completes_owner_feature_selections_in_declaration_orde
     .with_optional_feature(first)
     .with_optional_feature(second)
     .build()]);
-    let completed = catalog.complete_project_manifest(&ProjectPluginManifest {
-        selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Sound,
-            true,
-            false,
-        )],
-    });
+    let completed = catalog.complete_project_manifest(
+        &ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::Sound,
+                true,
+                false,
+            )],
+        },
+        RuntimeTargetMode::ClientRuntime,
+    );
 
     let sound = completed
         .selections
@@ -110,13 +118,16 @@ fn runtime_plugin_catalog_projects_external_feature_packages_under_owner() {
             ),
         ],
     );
-    let completed = catalog.complete_project_manifest(&ProjectPluginManifest {
-        selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Sound,
-            true,
-            false,
-        )],
-    });
+    let completed = catalog.complete_project_manifest(
+        &ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::Sound,
+                true,
+                false,
+            )],
+        },
+        RuntimeTargetMode::ClientRuntime,
+    );
     let sound = completed
         .selections
         .iter()
@@ -191,6 +202,189 @@ fn runtime_plugin_catalog_merges_runtime_extensions_from_external_feature_provid
         .modules()
         .iter()
         .any(|module| module.name == "sound.timeline_animation_track.runtime"));
+}
+
+#[test]
+fn runtime_plugin_catalog_reuses_one_frozen_project_plan_per_generation() {
+    let mut catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    );
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )],
+    };
+
+    let completed = catalog.complete_project_manifest(&manifest, RuntimeTargetMode::ClientRuntime);
+    let report = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::ClientRuntime);
+    let extensions =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert_eq!(completed.selections.len(), 1);
+    assert!(report.blocked_features.is_empty());
+    assert!(extensions.is_success());
+    assert_eq!(catalog.project_plan_metrics().project_plan_builds, 1);
+
+    assert!(catalog
+        .register_reports_batch(
+            [animation_timeline_registration()],
+            std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+        )
+        .is_published());
+    let _ = catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert_eq!(catalog.project_plan_metrics().project_plan_builds, 2);
+}
+
+#[test]
+fn runtime_plugin_catalog_reuses_the_same_frozen_extension_snapshot() {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    );
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )],
+    };
+
+    let first = catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+    let second =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(Arc::ptr_eq(&first, &second));
+    assert_eq!(catalog.project_plan_metrics().project_plan_builds, 1);
+}
+
+#[test]
+fn runtime_plugin_catalog_reuses_completed_report_and_extension_snapshots() {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    );
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )],
+    };
+
+    let first_completed =
+        catalog.complete_project_manifest(&manifest, RuntimeTargetMode::EditorHost);
+    let second_completed =
+        catalog.complete_project_manifest(&manifest, RuntimeTargetMode::EditorHost);
+    let first_report = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::EditorHost);
+    let second_report = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::EditorHost);
+    let first_extensions =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::EditorHost);
+    let second_extensions =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::EditorHost);
+
+    assert_eq!(first_completed.selections.len(), 1);
+    assert!(Arc::ptr_eq(&first_completed, &second_completed));
+    assert!(Arc::ptr_eq(&first_report, &second_report));
+    assert!(Arc::ptr_eq(&first_extensions, &second_extensions));
+    assert!(first_extensions.is_success());
+    assert_eq!(catalog.project_plan_metrics().project_plan_builds, 1);
+    assert_eq!(catalog.cached_project_plan_count(), 1);
+    let project_source =
+        include_str!("../../plugin/runtime_plugin/runtime_plugin_catalog/project.rs");
+    let dependency_source =
+        include_str!("../../plugin/runtime_plugin/runtime_plugin_catalog/feature_dependencies.rs");
+    assert!(!project_source.contains("serde_json::to_string(manifest)"));
+    assert!(!dependency_source.contains(".feature_report().clone()"));
+}
+
+#[test]
+fn runtime_plugin_catalog_bounds_frozen_plans_to_one_manifest_per_target() {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    );
+    let base_manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )],
+    };
+    let _ = catalog.runtime_extensions_for_project(&base_manifest, RuntimeTargetMode::EditorHost);
+    let client_manifests = (0..8)
+        .map(|index| ProjectPluginManifest {
+            selections: vec![
+                ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false),
+                feature_provider_selection(&format!("external_{index}"), false),
+            ],
+        })
+        .collect::<Vec<_>>();
+    let mut latest = None;
+
+    for manifest in &client_manifests {
+        latest = Some(
+            catalog.runtime_extensions_for_project(manifest, RuntimeTargetMode::ClientRuntime),
+        );
+        assert!(catalog.cached_project_plan_count() <= 2);
+    }
+
+    let builds_before_hit = catalog.project_plan_metrics().project_plan_builds;
+    let repeated = catalog.runtime_extensions_for_project(
+        client_manifests.last().expect("latest client manifest"),
+        RuntimeTargetMode::ClientRuntime,
+    );
+
+    assert!(Arc::ptr_eq(
+        latest.as_ref().expect("latest client snapshot"),
+        &repeated
+    ));
+    assert_eq!(catalog.cached_project_plan_count(), 2);
+    assert_eq!(
+        catalog.project_plan_metrics().project_plan_builds,
+        builds_before_hit
+    );
+}
+
+#[test]
+fn runtime_plugin_catalog_keeps_in_flight_extension_snapshots_alive_across_generation_publish() {
+    let mut catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    );
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )],
+    };
+    let previous =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(catalog
+        .register_reports_batch(
+            [animation_timeline_registration()],
+            std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+        )
+        .is_published());
+    let current =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(previous.is_success());
+    assert!(current.is_success());
+    assert!(!Arc::ptr_eq(&previous, &current));
+    assert_eq!(catalog.project_plan_metrics().project_plan_builds, 2);
+}
+
+#[test]
+fn runtime_plugin_catalog_frozen_plan_cache_is_send_and_sync() {
+    fn assert_send_and_sync<T: Send + Sync>() {}
+
+    assert_send_and_sync::<RuntimePluginCatalog>();
 }
 
 fn sound_registration() -> RuntimePluginRegistrationReport {

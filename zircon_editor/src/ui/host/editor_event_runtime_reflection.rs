@@ -7,8 +7,8 @@ use crate::core::editor_message::{
 };
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
 use crate::ui::control::EditorUiControlService;
-use crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome;
 use crate::ui::host::EditorHostEventController;
+use crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::reflection::{
     activity_descriptors_from_views, apply_transient_projection, build_workbench_reflection_model,
@@ -25,13 +25,19 @@ impl EditorHostEventController {
     pub(crate) fn refresh_reflection(&self) {
         let mut shell = self.shell().lock();
         let commands = self.commands().lock();
-        Self::refresh_reflection_for_shell(&mut shell, &commands, self.context().command_eval());
+        Self::refresh_reflection_for_shell(
+            &mut shell,
+            &commands,
+            self.context().command_eval(),
+            self.play_sessions().mode(),
+        );
     }
 
     pub(crate) fn refresh_reflection_for_shell(
         shell: &mut WorkbenchShellStateData,
         commands: &crate::core::commands::EditorCommandRegistry,
         command_eval: &crate::core::commands::CommandEvalSnapshotHandle,
+        play_mode: crate::core::play::PlayModeKind,
     ) {
         let descriptors = shell.manager.descriptors();
         let (views, windows) = activity_descriptors_from_views(&descriptors);
@@ -44,7 +50,17 @@ impl EditorHostEventController {
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();
-        let eval_context = command_eval_ctx_from_chrome(&chrome, enabled_capabilities.clone());
+        shell
+            .state
+            .viewport_controller
+            .set_viewport_overlay_capabilities(&enabled_capabilities);
+        let eval_context = shell
+            .state
+            .project_command_eval_ctx(command_eval_ctx_from_chrome(
+                &chrome,
+                play_mode,
+                enabled_capabilities.clone(),
+            ));
         command_eval.replace(eval_context.clone());
         let view_model = WorkbenchViewModel::build_with_extensions_and_context(
             commands,
@@ -97,7 +113,7 @@ impl EditorHostEventController {
     }
 
     pub(crate) fn build_chrome_for_shell(
-        shell: &WorkbenchShellStateData,
+        shell: &mut WorkbenchShellStateData,
         descriptors: Vec<ViewDescriptor>,
     ) -> EditorChromeSnapshot {
         let component_drawers = Self::active_component_drawers_for_shell(shell);
@@ -149,6 +165,7 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
             EditorEventEffect::PresentWelcomeRequested
             | EditorEventEffect::ProjectOpenRequested
             | EditorEventEffect::ProjectSaveRequested
+            | EditorEventEffect::ProjectCloseRequested
             | EditorEventEffect::AssetDetailsRefreshRequested
             | EditorEventEffect::AssetPreviewRefreshRequested
             | EditorEventEffect::ImportModelRequested

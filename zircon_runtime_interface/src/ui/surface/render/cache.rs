@@ -37,10 +37,10 @@ impl UiRenderCachePlan {
             .enumerate()
             .map(|(batch_index, batch)| {
                 let status = batch
-                    .range
-                    .first_element
-                    .checked_add(batch.range.element_count.saturating_sub(1))
-                    .and_then(|last_index| elements.get(batch.range.first_element..=last_index))
+                    .source_indices
+                    .iter()
+                    .map(|&source_index| elements.get(source_index))
+                    .collect::<Option<Vec<_>>>()
                     .filter(|batch_elements| {
                         reason == UiRenderCacheInvalidationReason::Unchanged
                             && batch_elements

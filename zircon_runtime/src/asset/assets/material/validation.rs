@@ -4,7 +4,7 @@ use crate::core::framework::render::{
     RenderMaterialValidationError, RenderQueueValue,
 };
 
-use super::{is_standard_texture_slot_alias, AlphaMode, MaterialAsset, ZMaterialQueueOverride};
+use super::{AlphaMode, MaterialAsset, ZMaterialQueueOverride, is_standard_texture_slot_alias};
 
 const MATERIAL_QUEUE_OFFSET_MIN: i16 = -100;
 const MATERIAL_QUEUE_OFFSET_MAX: i16 = 100;

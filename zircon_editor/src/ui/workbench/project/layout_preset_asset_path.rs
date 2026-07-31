@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::asset::{AssetImportError, AssetUri};
@@ -7,10 +7,9 @@ use zircon_runtime::scene::world::SceneProjectError;
 use super::constants::{EDITOR_LAYOUT_PRESET_DIR, EDITOR_LAYOUT_PRESET_SUFFIX};
 
 pub(in crate::ui::workbench::project) fn layout_preset_asset_path(
-    root: &Path,
+    project: &ProjectManager,
     name: &str,
 ) -> Result<PathBuf, SceneProjectError> {
-    let project = ProjectManager::open(root)?;
     let relative = format!(
         "{}/{}{}",
         EDITOR_LAYOUT_PRESET_DIR,

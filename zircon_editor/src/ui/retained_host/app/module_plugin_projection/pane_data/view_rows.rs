@@ -7,16 +7,16 @@ use super::super::rows::{
 };
 
 pub(super) fn module_plugin_status_rows(
-    report: EditorPluginStatusReport,
+    report: &EditorPluginStatusReport,
 ) -> Vec<ModulePluginStatusViewData> {
     report
         .plugins
-        .into_iter()
+        .iter()
         .map(module_plugin_status_row)
         .collect()
 }
 
-fn module_plugin_status_row(plugin: EditorPluginStatus) -> ModulePluginStatusViewData {
+fn module_plugin_status_row(plugin: &EditorPluginStatus) -> ModulePluginStatusViewData {
     let primary_action =
         module_plugin_primary_action(&plugin.plugin_id, plugin.enabled, plugin.required);
     let packaging_action_label = format!("Cycle {}", packaging_label(plugin.packaging));
@@ -30,10 +30,10 @@ fn module_plugin_status_row(plugin: EditorPluginStatus) -> ModulePluginStatusVie
     let feature_action = module_plugin_feature_action(&plugin.optional_features);
 
     ModulePluginStatusViewData {
-        plugin_id: plugin.plugin_id.into(),
-        display_name: plugin.display_name.into(),
-        package_source: plugin.package_source.into(),
-        load_state: plugin.load_state.into(),
+        plugin_id: plugin.plugin_id.clone().into(),
+        display_name: plugin.display_name.clone().into(),
+        package_source: plugin.package_source.clone().into(),
+        load_state: plugin.load_state.clone().into(),
         enabled: plugin.enabled,
         required: plugin.required,
         target_modes: plugin
@@ -44,8 +44,8 @@ fn module_plugin_status_row(plugin: EditorPluginStatus) -> ModulePluginStatusVie
             .join(", ")
             .into(),
         packaging: packaging_label(plugin.packaging).into(),
-        runtime_crate: plugin.runtime_crate.unwrap_or_default().into(),
-        editor_crate: plugin.editor_crate.unwrap_or_default().into(),
+        runtime_crate: plugin.runtime_crate.clone().unwrap_or_default().into(),
+        editor_crate: plugin.editor_crate.clone().unwrap_or_default().into(),
         runtime_capabilities: plugin.runtime_capabilities.join(", ").into(),
         editor_capabilities: plugin.editor_capabilities.join(", ").into(),
         optional_features: module_plugin_optional_feature_summary(&plugin.optional_features).into(),

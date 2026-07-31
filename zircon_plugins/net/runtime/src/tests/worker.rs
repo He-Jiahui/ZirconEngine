@@ -37,3 +37,16 @@ fn tcp_udp_service_paths_do_not_block_on_tokio_runtime() {
         );
     }
 }
+
+#[test]
+fn worker_root_only_mounts_named_behavior_owners() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/worker/mod.rs");
+    let source = std::fs::read_to_string(&path).expect("read net worker root");
+
+    for behavior in ["struct NetWorker", "struct WorkerCore", "fn run_worker"] {
+        assert!(
+            !source.contains(behavior),
+            "worker root must mount named owners instead of implementing {behavior}"
+        );
+    }
+}

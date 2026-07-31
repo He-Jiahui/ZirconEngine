@@ -9,6 +9,7 @@ use zircon_runtime::core::framework::net::{
 };
 
 use crate::http::{ManagedHttpListener, ManagedHttpRoute};
+use crate::poison_recovery::lock_recover;
 use crate::websocket::{
     ManagedWebSocketConnection, WebSocketRuntimeBackend, WebSocketRuntimeListener,
 };
@@ -44,7 +45,7 @@ pub(crate) struct NetRuntimeState {
     pub(crate) tcp_listeners: Mutex<HashMap<NetListenerId, ManagedTcpListener>>,
     pub(crate) http_listeners: Mutex<HashMap<NetListenerId, ManagedHttpListener>>,
     pub(crate) websocket_listeners:
-        Mutex<HashMap<NetListenerId, Box<dyn WebSocketRuntimeListener>>>,
+        Mutex<HashMap<NetListenerId, Arc<dyn WebSocketRuntimeListener>>>,
     pub(crate) tcp_connections: Mutex<HashMap<NetConnectionId, ManagedTcpConnection>>,
     pub(crate) http_routes: Arc<Mutex<HashMap<NetRouteId, ManagedHttpRoute>>>,
     pub(crate) websocket_connections: Mutex<HashMap<NetConnectionId, ManagedWebSocketConnection>>,
@@ -96,10 +97,7 @@ impl NetRuntimeState {
     }
 
     pub(crate) fn push_event(&self, event: NetEvent) {
-        self.events
-            .lock()
-            .expect("net events mutex poisoned")
-            .push_back(event);
+        lock_recover(&self.events).push_back(event);
     }
 
     pub(crate) fn record_outbound_bytes(&self, bytes: usize) {
@@ -137,9 +135,18 @@ impl NetRuntimeState {
             return 0;
         }
 
-        let mut queue = self.events.lock().expect("net events mutex poisoned");
+        let mut queue = lock_recover(&self.events);
         queue.extend(events);
         count
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_events_for_test(&self) {
+        let events = Arc::clone(&self.events);
+        let _ = std::panic::catch_unwind(move || {
+            let _guard = lock_recover(&events);
+            panic!("poison net events for recovery coverage");
+        });
     }
 
     #[cfg(test)]
@@ -147,5 +154,22 @@ impl NetRuntimeState {
         self.worker
             .shutdown()
             .expect("net worker shutdown should succeed")
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shutdown_worker_result_for_tests(
+        &self,
+    ) -> Result<NetWorkerShutdownReport, zircon_runtime::core::framework::net::NetError> {
+        self.worker.shutdown()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_worker_thread_for_test(&self) {
+        self.worker.poison_thread_for_test();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fail_next_worker_shutdown_after_submit_for_test(&self) {
+        self.worker.fail_next_shutdown_after_submit_for_test();
     }
 }

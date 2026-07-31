@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_mob_combat_state_tests",
+  "source": "src",
+  "binary": "bin-m4-mob-combat-state-tests",
+  "entry": "combat/mob_combat_state_test_main"
+}

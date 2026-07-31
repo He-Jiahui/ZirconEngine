@@ -1,4 +1,4 @@
-use ttf_parser::{Face, GlyphId, Tag};
+use std::sync::Arc;
 
 use crate::text::font::FontDatabase;
 use crate::text::sdf::{generate_distance_field_glyph_with_variations, SdfGlyphGenerationError};
@@ -15,14 +15,11 @@ pub(super) fn bake_distance_field_glyph(
         .standalone_face_bytes(face_id)
         .map_err(|_| SdfGlyphGenerationError::InvalidFaceIndex(0))?;
     let variations = variations_for_key(key, face_id, font_database);
-    let mut face =
-        Face::parse(bytes.as_ref(), 0).map_err(|_| SdfGlyphGenerationError::InvalidFaceIndex(0))?;
-    apply_variations(&mut face, &variations);
-    let glyph_id = glyph_id_for_key(&face, key, face_id, font_database)?;
+    let glyph_id = glyph_id_for_key(key, face_id, font_database)?;
     let glyph = generate_distance_field_glyph_with_variations(
         bytes.as_ref(),
         0,
-        glyph_id.0,
+        glyph_id,
         key.bake_params,
         &variations,
     )?;
@@ -50,9 +47,9 @@ fn variations_for_key(
     key: &SdfAtlasGlyphKey,
     face_id: FontFaceId,
     font_database: &FontDatabase,
-) -> VariationCoords {
+) -> Arc<VariationCoords> {
     font_database
-        .effective_instance_variations(
+        .effective_instance_variations_shared(
             face_id,
             key.font_instance_id
                 .and_then(crate::text::font::resolve_font_instance_handle),
@@ -61,21 +58,16 @@ fn variations_for_key(
         .unwrap_or_default()
 }
 
-fn apply_variations(face: &mut Face<'_>, variations: &VariationCoords) {
-    for (tag, value) in &variations.0 {
-        let _ = face.set_variation(Tag::from_bytes(&tag.to_be_bytes()), *value);
-    }
-}
-
 pub(super) fn glyph_id_for_key(
-    face: &Face<'_>,
     key: &SdfAtlasGlyphKey,
     face_id: FontFaceId,
     font_database: &FontDatabase,
-) -> Result<GlyphId, SdfGlyphGenerationError> {
+) -> Result<u16, SdfGlyphGenerationError> {
     if let Some(glyph_id) = super::shaped_glyph_id_for_face(key, face_id, font_database) {
-        return Ok(GlyphId(glyph_id));
+        return Ok(glyph_id);
     }
-    face.glyph_index(key.glyph)
+    font_database
+        .face_glyph_id(face_id, key.glyph)
+        .map_err(|_| SdfGlyphGenerationError::InvalidFaceIndex(0))?
         .ok_or(SdfGlyphGenerationError::MissingGlyphOutline(0))
 }

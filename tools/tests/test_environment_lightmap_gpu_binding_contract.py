@@ -43,12 +43,12 @@ class EnvironmentLightmapGpuBindingContractTests(unittest.TestCase):
         self.assertIn("BufferBindingType::Storage { read_only: true }", source)
 
     def test_forward_and_deferred_install_the_same_lightmap_resource_abi(self) -> None:
-        forward = FORWARD_BINDINGS.read_text(encoding="utf-8")
-        deferred_layout = DEFERRED_LAYOUT.read_text(encoding="utf-8")
-        deferred_execute = DEFERRED_EXECUTE.read_text(encoding="utf-8")
+        forward = "".join(FORWARD_BINDINGS.read_text(encoding="utf-8").split())
+        deferred_layout = "".join(DEFERRED_LAYOUT.read_text(encoding="utf-8").split())
+        deferred_execute = "".join(DEFERRED_EXECUTE.read_text(encoding="utf-8").split())
 
         self.assertIn("lightmap_bind_group_layout_entries()", forward)
-        self.assertIn("let lightmap_bindings = self.lightmaps.bindings()", forward)
+        self.assertIn("letlightmap_bindings=self.lightmaps.bindings()", forward)
         self.assertIn("lightmap_bindings.bind_group_entries()", forward)
         self.assertIn("lightmap_bind_group_layout_entries()", deferred_layout)
         self.assertIn("self.lightmap_bindings.bind_group_entries()", deferred_execute)

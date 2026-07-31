@@ -1,33 +1,31 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::asset::project::mint_meta_for_migration;
-use crate::asset::project::AssetMetaDocument;
-use crate::asset::registry::{AssetRegistryEntry, AssetRegistryIndex};
-use crate::asset::safe_project_path::{is_link_or_reparse, is_safe_regular_file};
 use crate::asset::AssetUri;
+use crate::asset::project::mint_meta_for_migration;
+use crate::asset::project::{AssetMetaDocument, AssetSourceUnit};
+use crate::asset::registry::{AssetRegistryEntry, AssetRegistryIndex};
+use crate::asset::safe_project_path::is_safe_regular_file;
 
 use super::document::PendingDocument;
-use super::scan::RecognizedSource;
+use super::resolver_index::MigrationCompoundBinding;
+use super::scan::{MigrationInventory, RecognizedSource};
 use super::{AssetMigrationIssue, AssetMigrationIssueKind};
 
 pub(super) struct SidecarPreflight {
     pub(super) index: AssetRegistryIndex,
     pub(super) pending: Vec<PendingDocument>,
+    pub(super) compound_bindings: Vec<MigrationCompoundBinding>,
 }
 
 pub(super) fn preflight_sidecars(
     roots: &[PathBuf],
-    recognized: &[RecognizedSource],
+    inventory: &MigrationInventory,
 ) -> Result<SidecarPreflight, AssetMigrationIssue> {
-    let mut paths = Vec::new();
-    for root in roots {
-        collect(root, root, &mut paths).map_err(|error| invalid(root, error.to_string()))?;
-    }
-    paths.sort();
     let mut documents = Vec::new();
     let mut pending = Vec::new();
-    for path in paths {
+    let mut compound_bindings = Vec::new();
+    for path in inventory.sidecar_candidates().iter().cloned() {
         let source =
             fs::read_to_string(&path).map_err(|error| invalid(&path, error.to_string()))?;
         let is_retired_name = path
@@ -73,13 +71,13 @@ pub(super) fn preflight_sidecars(
                 return Err(invalid(
                     &path,
                     format!("future sidecar format_version {found} is unsupported"),
-                ))
+                ));
             }
             found => {
                 return Err(invalid(
                     &path,
                     format!("sidecar format_version {found} is not in the v6 migration whitelist"),
-                ))
+                ));
             }
         };
         let mut register_document = true;
@@ -94,6 +92,21 @@ pub(super) fn preflight_sidecars(
             toml::to_string_pretty(&value).map_err(|error| invalid(&path, error.to_string()))?;
         let document = AssetMetaDocument::from_toml_str(&canonical)
             .map_err(|error| invalid(&path, error.to_string()))?;
+        if !paired_sidecar_source_is_safe(roots, &path, document.unit)? {
+            continue;
+        }
+        if document.unit == AssetSourceUnit::Compound {
+            let physical_path = inventory.physical_path_for(&path).ok_or_else(|| {
+                invalid(
+                    &path,
+                    "sidecar is missing from the published migration inventory",
+                )
+            })?;
+            compound_bindings.push(MigrationCompoundBinding::new(
+                document.url.clone(),
+                physical_path.to_path_buf(),
+            ));
+        }
         if retired {
             let target = if is_retired_name {
                 current_sidecar_path(&path)?
@@ -128,7 +141,7 @@ pub(super) fn preflight_sidecars(
             documents.push(document);
         }
     }
-    mint_missing_sidecars(roots, recognized, &mut documents, &mut pending)?;
+    mint_missing_sidecars(inventory.recognized_sources(), &mut documents, &mut pending)?;
     let mut entries = Vec::new();
     for document in documents {
         entries.push(
@@ -157,11 +170,14 @@ pub(super) fn preflight_sidecars(
             error.to_string(),
         )
     })?;
-    Ok(SidecarPreflight { index, pending })
+    Ok(SidecarPreflight {
+        index,
+        pending,
+        compound_bindings,
+    })
 }
 
 fn mint_missing_sidecars(
-    roots: &[PathBuf],
     recognized: &[RecognizedSource],
     documents: &mut Vec<AssetMetaDocument>,
     pending: &mut Vec<PendingDocument>,
@@ -182,17 +198,14 @@ fn mint_missing_sidecars(
         if target.exists() || retired.exists() {
             continue;
         }
-        let candidates = roots
-            .iter()
-            .filter_map(|root| source.path.strip_prefix(root).ok())
-            .collect::<Vec<_>>();
+        let candidates = &source.root_relative_identities;
         let relative = match candidates.as_slice() {
-            [relative] => *relative,
+            [identity] => identity.relative.as_path(),
             [] => {
                 return Err(invalid(
                     &source.path,
                     "source is outside project asset roots",
-                ))
+                ));
             }
             _ => {
                 return Err(AssetMigrationIssue::new(
@@ -240,40 +253,51 @@ fn require_digest(
     }
 }
 
-fn collect(root: &Path, path: &Path, paths: &mut Vec<PathBuf>) -> std::io::Result<()> {
-    let metadata = fs::symlink_metadata(path)?;
-    if is_link_or_reparse(&metadata) {
-        return Ok(());
-    }
-    if metadata.is_file() {
-        let name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or_default();
-        if name.ends_with(".zmeta") || name.ends_with(".meta.toml") {
-            if let Some(source) = sidecar_source_path(path) {
-                let source_metadata = match fs::symlink_metadata(&source) {
-                    Ok(metadata) => metadata,
-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-                    Err(error) => return Err(error),
-                };
-                if source_metadata.is_file() && is_safe_regular_file(root, &source)? {
-                    paths.push(path.to_path_buf());
-                }
+fn paired_sidecar_source_is_safe(
+    roots: &[PathBuf],
+    sidecar: &Path,
+    unit: AssetSourceUnit,
+) -> Result<bool, AssetMigrationIssue> {
+    let Some(source) = sidecar_source_path(sidecar) else {
+        return Ok(false);
+    };
+    for root in roots {
+        if sidecar.strip_prefix(root).is_err() {
+            continue;
+        }
+        let metadata = match fs::symlink_metadata(&source) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+            Err(error) => return Err(invalid(root, error.to_string())),
+        };
+        match unit {
+            AssetSourceUnit::Single
+                if metadata.is_file()
+                    && is_safe_regular_file(root, &source)
+                        .map_err(|error| invalid(root, error.to_string()))? =>
+            {
+                return Ok(true);
             }
-        }
-        return Ok(());
-    }
-    if !metadata.is_dir() {
-        return Ok(());
-    }
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        if entry.file_name() != ".zircon" {
-            collect(root, &entry.path(), paths)?;
+            AssetSourceUnit::Compound
+                if metadata.is_dir() && safe_compound_directory(root, &source)? =>
+            {
+                return Ok(true);
+            }
+            _ => {}
         }
     }
-    Ok(())
+    Ok(false)
+}
+
+fn safe_compound_directory(root: &Path, path: &Path) -> Result<bool, AssetMigrationIssue> {
+    let metadata = fs::symlink_metadata(path).map_err(|error| invalid(path, error.to_string()))?;
+    if !metadata.is_dir() || crate::asset::safe_project_path::is_link_or_reparse(&metadata) {
+        return Ok(false);
+    }
+    let canonical = fs::canonicalize(path).map_err(|error| invalid(path, error.to_string()))?;
+    let canonical_root =
+        fs::canonicalize(root).map_err(|error| invalid(root, error.to_string()))?;
+    Ok(canonical.starts_with(canonical_root))
 }
 
 fn sidecar_source_path(path: &Path) -> Option<PathBuf> {

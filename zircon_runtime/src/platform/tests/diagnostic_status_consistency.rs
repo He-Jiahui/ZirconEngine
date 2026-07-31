@@ -62,6 +62,11 @@ fn assert_capability_diagnostic_status_prefixes(report: &PlatformCapabilityRepor
     assert_status_prefix(report, "platform.gamepad_events", report.gamepad_events);
     assert_status_prefix(report, "platform.gamepad_rumble", report.gamepad_rumble);
     assert_status_prefix(report, "platform.file_drag_drop", report.file_drag_drop);
+    assert_status_prefix(
+        report,
+        "platform.persistent_preferences",
+        report.persistent_preferences,
+    );
     assert_status_prefix(report, "platform.linux_x11", report.linux_x11);
     assert_status_prefix(report, "platform.linux_wayland", report.linux_wayland);
 }
@@ -86,6 +91,10 @@ fn default_desktop_diagnostics_match_report_statuses() {
     assert_eq!(
         diagnostic_value(&report, "platform.gamepad_rumble"),
         "supported:gilrs_force_feedback"
+    );
+    assert_eq!(
+        diagnostic_value(&report, "platform.persistent_preferences"),
+        "unavailable:host persistent preference backend is not installed"
     );
     assert_eq!(
         diagnostic_value(&report, "platform.linux_x11"),
@@ -116,6 +125,10 @@ fn headless_fixture_diagnostics_match_disabled_and_unavailable_statuses() {
     assert_eq!(
         diagnostic_value(&report, "platform.gamepad_input"),
         "feature_disabled:input-gamepad"
+    );
+    assert_eq!(
+        diagnostic_value(&report, "platform.persistent_preferences"),
+        "unavailable:server or headless runtime requires an explicitly injected persistent preference backend"
     );
     assert_eq!(
         diagnostic_value(&report, "platform.linux_x11"),

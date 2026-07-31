@@ -5,7 +5,7 @@ mod markers;
 mod palette;
 mod text;
 
-use super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::data::{FrameRect, TemplatePaneNodeData, TemplatePaneWeightHeatmapSourceData};
 use super::render_commands::HostPaintCommand;
 use field::push_heatmap_field;
 use geometry::WeightHeatmapGeometry;
@@ -26,10 +26,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_we
     }
 
     let geometry = WeightHeatmapGeometry::from_frame(rect);
-    push_heatmap_field(commands, node, &geometry, clip, order, opacity);
-    push_heat_source_markers(commands, node, &geometry, clip, order, opacity);
+    let sources = heatmap_sources(node);
+    push_heatmap_field(commands, node, &sources, &geometry, clip, order, opacity);
+    push_heat_source_markers(commands, &sources, &geometry, clip, order, opacity);
     push_heatmap_legend_text(commands, node, &geometry, clip, order, opacity);
     true
+}
+
+fn heatmap_sources(node: &TemplatePaneNodeData) -> Vec<TemplatePaneWeightHeatmapSourceData> {
+    (0..node.weight_heatmap.sources.row_count())
+        .filter_map(|row| node.weight_heatmap.sources.row_data(row))
+        .collect()
 }
 
 #[cfg(test)]

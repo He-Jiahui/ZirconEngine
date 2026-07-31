@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var warrior = %import("combat/warrior_hit_table_state");
+
+console.printLine("m4-warrior-hit-table-state-test");
+var result = warrior.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/warrior_hit_table_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/warrior_hit_table.ts": "3e9483342d8ea5447140e3a97dcd3b45dd2d13d19c21b8dbe76a9703f36735d3"
+  },
+  "parry_base": 0.05,
+  "parry_per_strength": 0.0005,
+  "front_arc_radians": 1.5707963267948966,
+  "front_arc": "strictly_less_than_half_pi_after_angle_normalization"
+}

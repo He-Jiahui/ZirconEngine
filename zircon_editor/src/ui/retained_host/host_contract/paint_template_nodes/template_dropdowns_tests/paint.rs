@@ -95,3 +95,43 @@ fn workbench_dropdown_applies_declared_visual_brightness() {
     assert_eq!(pixel_at(&bytes, 140, 88, 24), expected_surface);
     assert_eq!(pixel_at(&bytes, 140, 54, 8), expected_border);
 }
+
+#[test]
+fn workbench_dropdown_keeps_first_option_label_fallback() {
+    let mut node = dropdown_node(false);
+    node.value_text = "".into();
+    node.options = model_rc(vec!["Fallback".into()]);
+    let rect = FrameRect {
+        x: 12.0,
+        y: 8.0,
+        width: 104.0,
+        height: 32.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_dropdown_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &rect,
+        0,
+        1.0,
+    ));
+    assert!(commands
+        .iter()
+        .any(|command| command.text.as_deref() == Some("Fallback")));
+}
+
+#[test]
+fn dropdown_root_resolves_label_and_metrics_once() {
+    let root = include_str!("../template_dropdowns/commands.rs");
+    let surface = include_str!("../template_dropdowns/surface.rs");
+    let text = include_str!("../template_dropdowns/text.rs");
+    let chevron = include_str!("../template_dropdown_glyphs/chevron.rs");
+
+    assert_eq!(root.matches("dropdown_label(node)").count(), 1);
+    assert_eq!(root.matches("workbench_dropdown_metrics()").count(), 1);
+    assert!(!surface.contains("workbench_dropdown_metrics()"));
+    assert!(!text.contains("workbench_dropdown_metrics()"));
+    assert!(!chevron.contains("workbench_dropdown_metrics()"));
+}

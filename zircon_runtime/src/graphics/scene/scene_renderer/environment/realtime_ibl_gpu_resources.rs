@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::core::framework::render::{IblBakeArtifactRequest, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES};
+use crate::core::framework::render::{IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactRequest};
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
 use crate::render_graph::CompiledRenderGraph;
 

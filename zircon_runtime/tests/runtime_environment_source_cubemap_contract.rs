@@ -11,8 +11,10 @@ use zircon_runtime::core::framework::render::{
 fn runtime_environment_source_cubemap_pmrem_roughness_mapping_matches_shader_contract() {
     let mip_count = 8;
 
-    assert_close(source_cubemap_pmrem_mip_from_roughness(1.0, mip_count), 5.0);
-    assert_close(source_cubemap_roughness_from_pmrem_mip(5, mip_count), 1.0);
+    assert_close(source_cubemap_pmrem_mip_from_roughness(1.0, mip_count), 6.0);
+    assert!(source_cubemap_roughness_from_pmrem_mip(5, mip_count) < 1.0);
+    assert_close(source_cubemap_roughness_from_pmrem_mip(6, mip_count), 1.0);
+    assert_close(source_cubemap_roughness_from_pmrem_mip(7, mip_count), 1.0);
 
     let mut previous = 0.0;
     for mip in 1..mip_count {

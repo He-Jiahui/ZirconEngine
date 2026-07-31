@@ -6,10 +6,8 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchFieldMetrics {
     pub border_width: f32,
     pub radius: f32,
-    pub min_paint_rect_extent: f32,
     pub font_size: f32,
     pub line_height: f32,
-    pub min_text_rect_width: f32,
     pub input_pad_left: f32,
     pub input_pad_right: f32,
     pub search_icon_size: f32,
@@ -34,7 +32,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
     metrics: HostControlMetrics,
 ) -> WorkbenchFieldMetrics {
     let border_width = metrics.border_width;
-    let min_rect_extent = border_width.max(1.0);
     let search_icon_size = (metrics.row_height - metrics.gap_l)
         .max(metrics.font_body)
         .round();
@@ -45,10 +42,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
     WorkbenchFieldMetrics {
         border_width,
         radius: metrics.radius_control,
-        min_paint_rect_extent: min_rect_extent,
         font_size: metrics.font_body,
         line_height: metrics.line_height(metrics.font_body),
-        min_text_rect_width: min_rect_extent,
         input_pad_left: metrics.input_pad[0],
         input_pad_right: metrics.input_pad[1],
         search_icon_size,
@@ -84,10 +79,8 @@ mod tests {
 
         let metrics = workbench_field_metrics_from_host(host_metrics);
 
-        assert_eq!(metrics.min_paint_rect_extent, 2.0);
         assert_eq!(metrics.font_size, 12.0);
         assert!((metrics.line_height - 14.4).abs() < 0.001);
-        assert_eq!(metrics.min_text_rect_width, 2.0);
         assert_eq!(metrics.search_icon_size, 18.0);
         assert_eq!(metrics.search_text_left, 32.0);
         assert_eq!(metrics.search_max_height, 38.0);

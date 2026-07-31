@@ -5,8 +5,9 @@ pub(super) use super::super::{
     apply_presentation_impl::to_host_contract_host_scene_data, pane_data_conversion,
 };
 pub(super) use crate::core::project::RecentProjectValidation;
+pub(super) use crate::scene::modes::SceneModeActivation;
 pub(super) use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, ProjectionMode, TransformHandleKind, TransformSpace, ViewOrientation,
 };
 pub(super) use crate::ui::animation_editor::AnimationEditorPanePresentation;
 pub(super) use crate::ui::asset_editor::UiAssetEditorPanePresentation;
@@ -18,7 +19,7 @@ pub(super) use crate::ui::layouts::windows::workbench_host_window::{
 };
 pub(super) use crate::ui::retained_host::callback_dispatch::BuiltinHostWindowTemplateBridge;
 pub(super) use crate::ui::retained_host::floating_window_projection::{
-    build_floating_window_projection_bundle, FloatingWindowProjectionBundle,
+    FloatingWindowProjectionBundle, build_floating_window_projection_bundle,
 };
 pub(super) use crate::ui::retained_host::shell_pointer::HostShellPointerRoute;
 pub(super) use crate::ui::retained_host::tab_drag::host_shell_pointer_route_group_key;
@@ -26,7 +27,7 @@ pub(super) use crate::ui::template_runtime::{
     EditorUiCompatibilityHarness, EditorUiHostRuntime, UiComponentShowcaseDemoEventInput,
 };
 pub(super) use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
-pub(super) use crate::ui::workbench::fixture::{default_preview_fixture, PreviewFixture};
+pub(super) use crate::ui::workbench::fixture::{PreviewFixture, default_preview_fixture};
 pub(super) use crate::ui::workbench::layout::{DockEdge, MainHostPageLayout, WorkbenchLayout};
 pub(super) use crate::ui::workbench::layout::{
     DocumentNode, FloatingWindowLayout, MainPageId, TabStackLayout,
@@ -70,13 +71,15 @@ pub(super) fn welcome_shell_fixture() -> (
     BTreeMap<String, UiAssetEditorPanePresentation>,
     BTreeMap<String, AnimationEditorPanePresentation>,
 ) {
-    let descriptors = vec![ViewDescriptor::new(
-        ViewDescriptorId::new("editor.welcome"),
-        ViewKind::ActivityWindow,
-        "Welcome",
-    )
-    .with_preferred_host(PreferredHost::ExclusiveMainPage)
-    .with_icon_key("welcome")];
+    let descriptors = vec![
+        ViewDescriptor::new(
+            ViewDescriptorId::new("editor.welcome"),
+            ViewKind::ActivityWindow,
+            "Welcome",
+        )
+        .with_preferred_host(PreferredHost::ExclusiveMainPage)
+        .with_icon_key("welcome"),
+    ];
     let welcome_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.welcome#1"),
         descriptor_id: ViewDescriptorId::new("editor.welcome"),
@@ -93,7 +96,7 @@ pub(super) fn welcome_shell_fixture() -> (
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),
-            scene_viewport_settings: crate::scene::viewport::SceneViewportSettings::default(),
+            scene_viewport_settings: crate::scene::viewport::SceneViewportChromeSettings::default(),
             mesh_import_path: String::new(),
             project_overview: ProjectOverviewSnapshot::default(),
             asset_activity: AssetWorkspaceSnapshot::default(),

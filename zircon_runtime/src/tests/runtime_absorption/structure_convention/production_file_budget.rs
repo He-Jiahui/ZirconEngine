@@ -1,4 +1,4 @@
-use super::{assert_contains_all, repo_path, runtime_src_path};
+use super::{assert_contains_all, assert_contains_all_exact, repo_path, runtime_src_path};
 
 #[path = "production_file_budget/asset_cache_payload.rs"]
 mod asset_cache_payload;

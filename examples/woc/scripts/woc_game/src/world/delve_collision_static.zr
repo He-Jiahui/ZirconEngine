@@ -1,0 +1,81 @@
+// Source-order three-pass resolver over one generated Delve module layout.
+// The caller owns selecting the active module; default-chain metadata is not a
+// substitute for that runtime state.
+
+var collisionGeometry = %import("world/collision_geometry");
+var collisionContent = %import("world/delve_collision_content");
+
+pub resolveCoordinate(
+    moduleIndex: int,
+    x: float,
+    z: float,
+    bodyRadius: float,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc Delve collision arguments are invalid";
+    }
+    var positionX = x;
+    var positionZ = z;
+    var iteration = 0;
+    while (iteration < 3) {
+        var moved = false;
+        var colliderIndex = 0;
+        while (colliderIndex < collisionContent.moduleColliderCount(moduleIndex, true)) {
+            var kind = collisionContent.colliderKind(moduleIndex, colliderIndex, true);
+            var centerX = collisionContent.colliderFloat(moduleIndex, colliderIndex, 1, true);
+            var centerZ = collisionContent.colliderFloat(moduleIndex, colliderIndex, 2, true);
+            var resolvedX = positionX;
+            var resolvedZ = positionZ;
+            if (kind == 1) {
+                var radius = collisionContent.colliderFloat(moduleIndex, colliderIndex, 3, true);
+                resolvedX = collisionGeometry.circleResolvedX(
+                    positionX, positionZ, bodyRadius, centerX, centerZ, radius, true
+                );
+                resolvedZ = collisionGeometry.circleResolvedZ(
+                    positionX, positionZ, bodyRadius, centerX, centerZ, radius, true
+                );
+            } else {
+                resolvedX = collisionGeometry.obbResolvedX(
+                    positionX, positionZ, bodyRadius, centerX, centerZ,
+                    collisionContent.colliderFloat(moduleIndex, colliderIndex, 4, true),
+                    collisionContent.colliderFloat(moduleIndex, colliderIndex, 5, true),
+                    collisionContent.colliderFloat(moduleIndex, colliderIndex, 6, true),
+                    true
+                );
+                resolvedZ = collisionGeometry.obbResolvedZ(
+                    positionX, positionZ, bodyRadius, centerX, centerZ,
+                    collisionContent.colliderFloat(moduleIndex, colliderIndex, 4, true),
+                    collisionContent.colliderFloat(moduleIndex, colliderIndex, 5, true),
+                    collisionContent.colliderFloat(moduleIndex, colliderIndex, 6, true),
+                    true
+                );
+            }
+            if (resolvedX != positionX || resolvedZ != positionZ) {
+                positionX = resolvedX;
+                positionZ = resolvedZ;
+                moved = true;
+            }
+            colliderIndex = colliderIndex + 1;
+        }
+        if (!moved) {
+            iteration = 3;
+        } else {
+            iteration = iteration + 1;
+        }
+    }
+    return axis == 1 ? positionX : positionZ;
+}
+
+pub contractTest(): int {
+    if (resolveCoordinate(0, -26.0, 36.0, 0.5, 1, true) != -26.5 ||
+        resolveCoordinate(0, -26.0, 36.0, 0.5, 2, true) != 36.0 ||
+        resolveCoordinate(4, -4.666666666666667, -14.0, 0.5, 1, true) != -4.666666666666667 ||
+        resolveCoordinate(4, -4.666666666666667, -14.0, 0.5, 2, true) != -12.5 ||
+        resolveCoordinate(10, 0.0, 0.0, 0.5, 1, true) != 0.0 ||
+        resolveCoordinate(10, 0.0, 0.0, 0.5, 2, true) != 0.0) {
+        return -1;
+    }
+    return 1;
+}

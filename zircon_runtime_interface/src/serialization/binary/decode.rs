@@ -1,6 +1,7 @@
 use std::io::Cursor;
 
 use bincode::Options;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::serialization::{LoadError, PayloadHeader};
@@ -31,4 +32,17 @@ pub(in crate::serialization) fn decode_binary_payload(body: &[u8]) -> Result<Val
             reason: source.to_string(),
         }
     })
+}
+
+pub(in crate::serialization) fn decode_binary_current<T>(
+    body: &[u8],
+) -> Result<T, super::value::DirectBinaryDecodeError>
+where
+    T: DeserializeOwned,
+{
+    let payload: super::value::BinaryValue = options()
+        .with_limit(body.len() as u64)
+        .deserialize(body)
+        .map_err(super::value::DirectBinaryDecodeError::Malformed)?;
+    super::value::decode_binary_value_direct(payload)
 }

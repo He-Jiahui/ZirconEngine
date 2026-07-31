@@ -13,6 +13,7 @@ pub(crate) use control::dispatch_componentized_workbench_menu_item_selected;
 pub(crate) use control::dispatch_componentized_workbench_option_selected;
 pub(crate) use control::dispatch_componentized_workbench_popup_cancelled;
 pub(crate) use control::dispatch_componentized_workbench_surface_control_edited;
+pub(crate) use control::dispatch_componentized_workbench_transform_axis_commit;
 #[cfg(test)]
 pub(crate) use control::{dispatch_builtin_host_control, dispatch_builtin_host_menu_action};
 #[cfg(test)]

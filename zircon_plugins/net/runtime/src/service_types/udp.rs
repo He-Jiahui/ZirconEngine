@@ -1,5 +1,6 @@
 use zircon_runtime::core::framework::net::{NetEndpoint, NetError, NetPacket, NetSocketId};
 
+use crate::poison_recovery::{lock_or_error, NetSharedState};
 use crate::runtime_state::ManagedUdpSocket;
 
 use super::DefaultNetManager;
@@ -9,18 +10,15 @@ impl DefaultNetManager {
         &self,
         bind: &NetEndpoint,
     ) -> Result<NetSocketId, NetError> {
+        let mut sockets = lock_or_error(&self.state.udp_sockets, NetSharedState::UdpSockets)?;
         let socket_id = self.next_socket_id();
         let local_endpoint = self.state.worker.bind_udp(socket_id, bind.clone())?;
-        self.state
-            .udp_sockets
-            .lock()
-            .expect("net UDP sockets mutex poisoned")
-            .insert(
-                socket_id,
-                ManagedUdpSocket {
-                    local_endpoint: local_endpoint.clone(),
-                },
-            );
+        sockets.insert(
+            socket_id,
+            ManagedUdpSocket {
+                local_endpoint: local_endpoint.clone(),
+            },
+        );
         Ok(socket_id)
     }
 
@@ -28,10 +26,7 @@ impl DefaultNetManager {
         &self,
         socket: NetSocketId,
     ) -> Result<NetEndpoint, NetError> {
-        self.state
-            .udp_sockets
-            .lock()
-            .expect("net UDP sockets mutex poisoned")
+        lock_or_error(&self.state.udp_sockets, NetSharedState::UdpSockets)?
             .get(&socket)
             .map(|entry| entry.local_endpoint.clone())
             .ok_or(NetError::UnknownSocket { socket })
@@ -43,6 +38,10 @@ impl DefaultNetManager {
         destination: &NetEndpoint,
         payload: &[u8],
     ) -> Result<usize, NetError> {
+        let sockets = lock_or_error(&self.state.udp_sockets, NetSharedState::UdpSockets)?;
+        if !sockets.contains_key(&socket) {
+            return Err(NetError::UnknownSocket { socket });
+        }
         let bytes = self
             .state
             .worker
@@ -60,6 +59,10 @@ impl DefaultNetManager {
             return Ok(Vec::new());
         }
 
+        let sockets = lock_or_error(&self.state.udp_sockets, NetSharedState::UdpSockets)?;
+        if !sockets.contains_key(&socket) {
+            return Err(NetError::UnknownSocket { socket });
+        }
         let packets = self.state.worker.poll_udp(socket, max_packets)?;
         self.state
             .record_inbound_bytes(packets.iter().map(|packet| packet.payload.len()).sum());
@@ -70,22 +73,13 @@ impl DefaultNetManager {
         &self,
         socket: NetSocketId,
     ) -> Result<(), NetError> {
-        if !self
-            .state
-            .udp_sockets
-            .lock()
-            .expect("net UDP sockets mutex poisoned")
-            .contains_key(&socket)
-        {
+        let mut sockets = lock_or_error(&self.state.udp_sockets, NetSharedState::UdpSockets)?;
+        if !sockets.contains_key(&socket) {
             return Err(NetError::UnknownSocket { socket });
         }
 
         self.state.worker.close_udp(socket)?;
-        self.state
-            .udp_sockets
-            .lock()
-            .expect("net UDP sockets mutex poisoned")
-            .remove(&socket);
+        sockets.remove(&socket);
         Ok(())
     }
 }

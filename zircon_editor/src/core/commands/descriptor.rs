@@ -21,6 +21,10 @@ pub struct EditorCommandDescriptor {
     keywords: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     payload_schema_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    headless_commandlet_route: Option<EditorOperationPath>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    headless_commandlet_name: Option<String>,
     #[serde(default = "default_callable_from_remote")]
     callable_from_remote: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -53,6 +57,8 @@ impl EditorCommandDescriptor {
             when: WhenClause::Always,
             keywords: Vec::new(),
             payload_schema_id: None,
+            headless_commandlet_route: None,
+            headless_commandlet_name: None,
             callable_from_remote: true,
             asset_write_target: None,
             required_capabilities: Vec::new(),
@@ -111,6 +117,18 @@ impl EditorCommandDescriptor {
 
     pub fn with_payload_schema_id(mut self, schema_id: impl Into<String>) -> Self {
         self.payload_schema_id = Some(schema_id.into());
+        self
+    }
+
+    /// Identifies the canonical headless commandlet route for this command.
+    pub fn with_headless_commandlet_route(mut self, route: EditorOperationPath) -> Self {
+        self.headless_commandlet_route = Some(route);
+        self
+    }
+
+    /// Identifies the exact CLI name resolved through the canonical command registry.
+    pub fn with_headless_commandlet_name(mut self, name: impl Into<String>) -> Self {
+        self.headless_commandlet_name = Some(name.into());
         self
     }
 
@@ -179,7 +197,9 @@ impl EditorCommandDescriptor {
     pub fn event(&self) -> Option<&EditorEvent> {
         match &self.action {
             EditorCommandAction::Emit(event) => Some(event),
-            EditorCommandAction::Operation => None,
+            EditorCommandAction::Operation
+            | EditorCommandAction::HeadlessAssetMigration
+            | EditorCommandAction::HeadlessPluginList => None,
         }
     }
 
@@ -231,6 +251,14 @@ impl EditorCommandDescriptor {
 
     pub fn payload_schema_id(&self) -> Option<&str> {
         self.payload_schema_id.as_deref()
+    }
+
+    pub fn headless_commandlet_route(&self) -> Option<&EditorOperationPath> {
+        self.headless_commandlet_route.as_ref()
+    }
+
+    pub fn headless_commandlet_name(&self) -> Option<&str> {
+        self.headless_commandlet_name.as_deref()
     }
 
     pub fn callable_from_remote(&self) -> bool {
@@ -315,10 +343,29 @@ impl EditorCommandCategory {
 pub enum EditorCommandAction {
     Emit(EditorEvent),
     Operation,
+    HeadlessAssetMigration,
+    HeadlessPluginList,
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::core::commands::EditorCommandRegistry;
+
+    #[test]
+    fn headless_commandlet_route_is_canonical_descriptor_metadata() {
+        let registry = EditorCommandRegistry::default_workbench();
+        let descriptor = registry
+            .command("asset.migration.migrate_assets")
+            .expect("the built-in migration command is registered");
+
+        assert_eq!(
+            descriptor
+                .headless_commandlet_route()
+                .map(crate::core::editor_operation::EditorOperationPath::as_str),
+            Some("commandlet.route.migrate_assets")
+        );
+    }
+
     #[test]
     fn command_enablement_does_not_materialize_an_effective_when_clause() {
         let source = include_str!("descriptor.rs");

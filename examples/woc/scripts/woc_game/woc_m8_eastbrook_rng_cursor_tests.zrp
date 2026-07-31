@@ -1,0 +1,6 @@
+{
+  "name": "woc_m8_eastbrook_rng_cursor_tests",
+  "source": "src",
+  "binary": "bin-m8-eastbrook-rng-cursor-tests",
+  "entry": "world/eastbrook_rng_cursor_test_main"
+}

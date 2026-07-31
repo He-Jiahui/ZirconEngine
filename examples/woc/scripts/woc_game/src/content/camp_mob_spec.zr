@@ -1,0 +1,115 @@
+// Current-source projection of createMob's template-to-initial-stat boundary.
+// Position selection and entity materialization remain world-owned work.
+
+var core = %import("generated/m3_camp_mob_core");
+
+templateIndexFor(id: string, required: bool): int {
+    if (!required) {
+        throw "woc camp mob specification is required";
+    }
+    var index = core.indexOf(id, true);
+    if (index < 0) {
+        throw "woc camp mob template is absent";
+    }
+    return index;
+}
+
+levelIsValid(index: int, level: int): bool {
+    return level >= <int>core.metric(index, "min_level", true) &&
+        level <= <int>core.metric(index, "max_level", true);
+}
+
+roundNonNegative(value: float): int {
+    if (value < 0.0) {
+        throw "woc camp mob derived stat is negative";
+    }
+    return <int>(value + 0.5);
+}
+
+pub templateIndex(id: string, required: bool): int {
+    return templateIndexFor(id, required);
+}
+
+pub spawnLevelIsValid(id: string, level: int, required: bool): bool {
+    return levelIsValid(templateIndexFor(id, required), level);
+}
+
+// Kind: 1 maxHp, 2 weapon minimum, 3 weapon maximum, 4 armor, 5 move speed.
+pub spawnMetric(id: string, level: int, kind: int, required: bool): float {
+    var index = templateIndexFor(id, required);
+    if (!levelIsValid(index, level)) {
+        throw "woc camp mob spawn level is invalid";
+    }
+    if (kind == 5) {
+        return core.metric(index, "move_speed", true);
+    }
+    var levelOffset = <float>(level - 1);
+    var elite = core.flag(index, "elite", true);
+    if (kind == 1) {
+        var hpMultiplier = elite ? 2.3 : 1.0;
+        return <float>roundNonNegative(
+            (core.metric(index, "hp_base", true) +
+                core.metric(index, "hp_per_level", true) * levelOffset) * hpMultiplier
+        );
+    }
+    if (kind == 2 || kind == 3) {
+        var damageMultiplier = elite ? 1.5 : 1.0;
+        var weaponMultiplier = kind == 2 ? 0.8 : 1.25;
+        return <float>roundNonNegative(
+            (core.metric(index, "dmg_base", true) +
+                core.metric(index, "dmg_per_level", true) * levelOffset) *
+                damageMultiplier * weaponMultiplier
+        );
+    }
+    if (kind == 4) {
+        return <float>roundNonNegative(
+            core.metric(index, "armor_per_level", true) * levelOffset
+        );
+    }
+    throw "woc camp mob spawn metric kind is invalid";
+}
+
+pub isDummy(id: string, required: bool): bool {
+    return core.flag(templateIndexFor(id, required), "dummy", true);
+}
+
+// Mirrors Sim.mobCanSpawnInWater: explicit template capability or the legacy
+// mudfin family both receive the shallower construction-height threshold.
+pub canSpawnInWater(id: string, required: bool): bool {
+    var index = templateIndexFor(id, required);
+    return core.flag(index, "can_swim", true) || core.text(index, "family", true) == "mudfin";
+}
+
+pub contractTest(): int {
+    if (core.mobCount(true) != 47 || templateIndex("forest_wolf", true) != 0 ||
+        !spawnLevelIsValid("forest_wolf", 1, true) ||
+        spawnLevelIsValid("forest_wolf", 3, true) ||
+        spawnMetric("forest_wolf", 1, 1, true) != 40.0 ||
+        spawnMetric("forest_wolf", 1, 2, true) != 2.0 ||
+        spawnMetric("forest_wolf", 1, 3, true) != 4.0 ||
+        spawnMetric("forest_wolf", 1, 4, true) != 0.0 ||
+        spawnMetric("forest_wolf", 1, 5, true) != 8.0) {
+        return -1;
+    }
+    if (templateIndex("mogger", true) != 3 ||
+        spawnMetric("mogger", 6, 1, true) != 1357.0 ||
+        spawnMetric("mogger", 6, 2, true) != 35.0 ||
+        spawnMetric("mogger", 6, 3, true) != 55.0 ||
+        spawnMetric("mogger", 6, 4, true) != 170.0 ||
+        spawnMetric("mogger", 6, 5, true) != 7.4) {
+        return -2;
+    }
+    if (!isDummy("training_dummy", true) ||
+        spawnMetric("training_dummy", 20, 1, true) != 999999.0 ||
+        spawnMetric("training_dummy", 20, 2, true) != 0.0 ||
+        spawnMetric("training_dummy", 20, 3, true) != 0.0 ||
+        spawnMetric("training_dummy", 20, 4, true) != 0.0 ||
+        spawnMetric("training_dummy", 20, 5, true) != 0.0) {
+        return -3;
+    }
+    if (!canSpawnInWater("mudfin_murloc", true) ||
+        canSpawnInWater("forest_wolf", true)) {
+        return -4;
+    }
+    return 1;
+}

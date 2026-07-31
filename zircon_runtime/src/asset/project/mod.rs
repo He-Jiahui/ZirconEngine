@@ -1,7 +1,6 @@
 mod manager;
 mod manifest;
 mod meta;
-pub(crate) mod meta_io;
 mod package_asset_registry;
 mod paths;
 mod script_manifest;

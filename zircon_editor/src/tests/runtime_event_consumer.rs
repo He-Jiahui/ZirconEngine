@@ -9,7 +9,8 @@ use zircon_runtime_interface::{
 };
 
 use crate::core::gateway::{
-    EditorRuntimeFrame, EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError,
+    EditorRuntimeFrame, EditorRuntimeGateway, EditorRuntimeGatewayHandle,
+    EditorRuntimePluginEventPage, GatewayError,
 };
 use crate::core::runtime_event_consumer::{
     EditorRuntimeEventConsumerError, EditorRuntimeEventConsumerHost,
@@ -145,13 +146,14 @@ impl EditorRuntimeGateway for FakeRuntimeGateway {
     fn drain_plugin_events(
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
-    ) -> Result<Vec<ZrRuntimePluginEventDeliveryV1>, GatewayError> {
-        Ok(self
-            .deliveries
-            .lock()
-            .unwrap()
-            .remove(&subscription.raw())
-            .unwrap_or_default())
+    ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
+        Ok(EditorRuntimePluginEventPage::synthetic(
+            self.deliveries
+                .lock()
+                .unwrap()
+                .remove(&subscription.raw())
+                .unwrap_or_default(),
+        ))
     }
 
     fn submit_operation(
@@ -369,10 +371,10 @@ fn menu_action_keeps_runtime_alive_until_event_consumer_cleanup_succeeds() {
     let pending = enter
         .find("runtime_event_consumer_session_active()")
         .expect("enter failure should inspect retained consumer ownership");
-    let backend_exit = enter
-        .find(".backend().exit_play_mode()")
-        .expect("enter failure should exit backend after successful cleanup");
-    assert!(pending < backend_exit);
+    let session_stop = enter
+        .find("play_sessions().request_stop()")
+        .expect("enter failure should stop the play session after successful cleanup");
+    assert!(pending < session_stop);
     assert!(enter.contains("runtime remains active so Exit Play can retry cleanup"));
 
     let exit = source
@@ -385,10 +387,11 @@ fn menu_action_keeps_runtime_alive_until_event_consumer_cleanup_succeeds() {
     let shell_exit = exit
         .find("shell.state.exit_play_mode()")
         .expect("exit should update shell state");
-    let backend_exit = exit
-        .find(".backend().exit_play_mode()")
-        .expect("exit should stop runtime backend");
+    let session_stop = exit
+        .find("play_sessions()")
+        .expect("exit should stop the play session");
     assert!(consumer_end < shell_exit);
-    assert!(consumer_end < backend_exit);
+    assert!(consumer_end < session_stop);
+    assert!(session_stop < shell_exit);
     assert!(exit.contains("runtime remains active for retry"));
 }

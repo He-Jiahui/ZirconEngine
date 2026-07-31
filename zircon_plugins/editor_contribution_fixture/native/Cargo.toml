@@ -1,0 +1,16 @@
+[package]
+name = "zircon_plugin_editor_contribution_fixture_native"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native ABI fixture for Zircon Editor serialized contributions."
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = ["dist"]
+dist = []
+
+[dependencies]
+zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }

@@ -1,7 +1,7 @@
 use super::assertions::{dominant_blue_pixels, dominant_green_pixels, dominant_red_pixels};
 use super::camera::{
-    camera_target_product_profile, primary_surface_camera_descriptor, texture_camera_descriptor,
-    CameraDescriptorTestExt,
+    CameraDescriptorTestExt, camera_target_product_profile, primary_surface_camera_descriptor,
+    texture_camera_descriptor,
 };
 use super::fixture::RenderFixture;
 use super::mesh::colored_mesh_on_layer;

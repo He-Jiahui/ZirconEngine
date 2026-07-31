@@ -1,24 +1,14 @@
-use std::collections::HashMap;
-
-#[cfg(test)]
-use glyphon::FontSystem;
 use glyphon::{Cache, Color, Resolution, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport};
 
 #[cfg(test)]
 use super::atlas_renderer::GlyphAtlasBitmapRendererPrepareReport;
 use super::atlas_renderer::{GlyphAtlasBitmapRenderer, GlyphAtlasBitmapRendererStorageSubmission};
 use super::render::ScreenSpaceUiTextBatch;
-use crate::asset::{ProjectAssetManager, ProjectAssetManagerAccess};
-use crate::core::math::UVec2;
+use crate::asset::ProjectAssetManagerAccess;
 use crate::core::CoreError;
-use crate::text::atlas::render_gpu_plan::GlyphAtlasGpuDrawPlan;
-use crate::text::atlas::GlyphAtlasStorageFormat;
-#[cfg(test)]
-use crate::text::font::FontDatabase;
+use crate::text::atlas::GlyphAtlasBitmapPageShadowCommit;
 #[cfg(test)]
 use crate::text::font::MissingGlyphDiagnosticsReport;
-#[cfg(test)]
-use crate::text::font::{shared_font_database_snapshot, SystemFontPolicy};
 use crate::text::{NativeTextAlign, NativeTextBufferRequest, NativeTextWrap, TextRenderState};
 use zircon_runtime_interface::ui::layout::UiFrame;
 #[cfg(test)]
@@ -31,16 +21,16 @@ mod prepare_report;
 mod resolved_batches;
 mod sdf_fallback;
 
-use self::font_assets::{ensure_font_asset_record, load_font_asset_record, LoadedUiFontAsset};
-use self::font_id_report::{accumulate_text_font_id_report, ScreenSpaceUiTextFontIdReport};
-use self::prepare_report::text_prepare_report;
+use self::font_assets::{UiFontAssetCache, ensure_font_asset_record};
+use self::font_id_report::{ScreenSpaceUiTextFontIdReport, accumulate_text_font_id_report};
 pub(crate) use self::prepare_report::ScreenSpaceUiTextPrepareReport;
 #[cfg(test)]
 use self::prepare_report::ScreenSpaceUiTextRasterUploadReport;
+use self::prepare_report::text_prepare_report;
 use self::resolved_batches::resolve_text_batches;
-use self::sdf_fallback::apply_sdf_atlas_fallbacks;
 #[cfg(test)]
 use self::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
+use self::sdf_fallback::apply_sdf_atlas_fallbacks;
 use super::sdf_atlas::ScreenSpaceUiSdfAtlas;
 #[cfg(test)]
 use super::sdf_atlas::SdfAtlasCacheReport;
@@ -53,28 +43,18 @@ use super::text_pixel_snap::text_origin_device_px;
 #[cfg(test)]
 use crate::text::native_bitmap_atlas;
 use crate::text::native_bitmap_atlas::{
-    bitmap_atlas_page_size, native_bitmap_atlas_handoff_for_report, NativeBitmapAtlasFrame,
-    NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport, NativeBitmapAtlasTextArea,
+    NativeBitmapAtlasFrame, NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
+    NativeBitmapAtlasStorageSubmission, NativeBitmapAtlasTextArea, bitmap_atlas_page_size,
+    native_bitmap_atlas_handoff_for_report,
 };
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
-const NATIVE_BITMAP_ATLAS_RASTER_WORKER_COUNT: usize = 1;
-
-#[cfg(test)]
-fn initialize_screen_space_ui_font_system(
-    font_system: &mut FontSystem,
-    font_database: &mut FontDatabase,
-) -> usize {
-    let discovered = font_database.apply_system_font_policy(SystemFontPolicy::Discover);
-    font_database.sync_font_system(font_system);
-    discovered
-}
 
 pub(super) struct ScreenSpaceUiTextSystem {
     // Keep only versioned identity across frames; each asset operation resolves a bounded Arc.
     asset_manager: ProjectAssetManagerAccess,
     text_state: TextRenderState,
-    font_assets: HashMap<String, LoadedUiFontAsset>,
+    font_assets: UiFontAssetCache,
     native: ScreenSpaceUiTextBackend,
     bitmap_atlas_renderer: GlyphAtlasBitmapRenderer,
     sdf_atlas: ScreenSpaceUiSdfAtlas,
@@ -94,7 +74,6 @@ struct ScreenSpaceUiTextBackend {
 struct ScreenSpaceUiNativePrepareReport {
     font_ids: ScreenSpaceUiTextFontIdReport,
     bitmap_atlas: NativeBitmapAtlasPrepareReport,
-    font_faces_changed: bool,
 }
 
 impl ScreenSpaceUiTextSystem {
@@ -105,25 +84,14 @@ impl ScreenSpaceUiTextSystem {
         target_format: wgpu::TextureFormat,
     ) -> Result<Self, CoreError> {
         let resolved_asset_manager = asset_manager.resolve()?;
-        let mut text_state = TextRenderState::new(NATIVE_BITMAP_ATLAS_RASTER_WORKER_COUNT);
-        let mut font_assets = HashMap::new();
-        let default_font = load_font_asset_record(
+        let mut text_state = TextRenderState::new_with_process_raster_worker_budget();
+        let mut font_assets = UiFontAssetCache::new();
+        let _ = ensure_font_asset_record(
             &mut text_state,
-            DEFAULT_FONT_ASSET,
+            &mut font_assets,
             resolved_asset_manager.as_ref(),
+            DEFAULT_FONT_ASSET,
         );
-        text_state.set_project_composite_font(
-            default_font
-                .as_ref()
-                .and_then(|record| record.composite_font.clone()),
-        );
-        if let Some(record) = default_font.as_ref() {
-            if let Some(family) = record.family.as_deref() {
-                text_state.set_default_ui_family(family);
-            }
-            font_assets.insert(DEFAULT_FONT_ASSET.to_string(), record.clone());
-        }
-        text_state.publish_font_database();
 
         Ok(Self {
             asset_manager,
@@ -212,11 +180,7 @@ impl ScreenSpaceUiTextSystem {
             &mut self.bitmap_atlas_renderer,
             &mut self.text_state,
             &mut self.font_assets,
-            asset_manager.as_ref(),
         );
-        if native_font_id_report.font_faces_changed {
-            self.sdf_atlas.invalidate_font_faces();
-        }
         let bitmap_atlas_renderer_report = self.bitmap_atlas_renderer.prepare_report();
         let missing_glyphs = self.text_state.take_missing_glyph_diagnostics();
         self.last_prepare_report = text_prepare_report(
@@ -278,8 +242,7 @@ impl ScreenSpaceUiTextBackend {
         texts: &[ScreenSpaceUiTextBatch],
         bitmap_atlas_renderer: &mut GlyphAtlasBitmapRenderer,
         text_state: &mut TextRenderState,
-        font_assets: &mut HashMap<String, LoadedUiFontAsset>,
-        asset_manager: &ProjectAssetManager,
+        font_assets: &UiFontAssetCache,
     ) -> ScreenSpaceUiNativePrepareReport {
         self.viewport.update(
             queue,
@@ -289,19 +252,11 @@ impl ScreenSpaceUiTextBackend {
             },
         );
 
-        let font_asset_count_at_entry = font_assets.len();
-
         if texts.is_empty() {
             self.atlas.trim();
             self.render_glyphon = false;
             let bitmap_atlas = text_state.prepare_idle_bitmap_atlas();
-            bitmap_atlas_renderer.prepare_plan(
-                device,
-                &GlyphAtlasGpuDrawPlan::default(),
-                UVec2::new(1, 1),
-                1,
-                GlyphAtlasStorageFormat::R8Unorm,
-            );
+            bitmap_atlas_renderer.prepare_idle();
             return ScreenSpaceUiNativePrepareReport {
                 bitmap_atlas,
                 ..ScreenSpaceUiNativePrepareReport::default()
@@ -312,9 +267,7 @@ impl ScreenSpaceUiTextBackend {
         let mut font_id_report = ScreenSpaceUiTextFontIdReport::default();
         for text in texts {
             let family_name = resolve_family_name(
-                text_state,
                 font_assets,
-                asset_manager,
                 text.font.as_deref(),
                 text.font_family.as_deref(),
                 text.style.code,
@@ -336,18 +289,14 @@ impl ScreenSpaceUiTextBackend {
                 emphasis: text.style.emphasis,
                 code: text.style.code,
             });
+            // Resolve through TextRenderState; text_state.font_database() remains its canonical source.
             accumulate_text_font_id_report(
                 &mut font_id_report,
                 &native_buffer.buffer,
                 native_buffer.primary_face,
-                text_state.font_database(),
+                |backend| text_state.font_face_id(backend),
             );
             buffers.push(native_buffer.buffer);
-        }
-        let font_faces_changed = font_assets.len() != font_asset_count_at_entry;
-        if font_faces_changed {
-            text_state.invalidate_font_faces();
-            bitmap_atlas_renderer.discard_all_for_face_invalidation();
         }
 
         let text_areas = texts
@@ -376,27 +325,41 @@ impl ScreenSpaceUiTextBackend {
 
         let bitmap_frame =
             text_state.prepare_bitmap_atlas(viewport_size, bitmap_text_areas.as_slice());
-        let bitmap_atlas_report = bitmap_frame.prepare_report();
+        let (bitmap_atlas_report, storage_submissions) =
+            bitmap_frame.prepare_report_with_storage_submissions();
         drop(bitmap_text_areas);
-        match native_bitmap_atlas_handoff_for_report(&bitmap_atlas_report) {
+        let shadow_commit = match native_bitmap_atlas_handoff_for_report(&bitmap_atlas_report) {
             NativeBitmapAtlasHandoff::SingleStorageReplacement => {
-                bitmap_atlas_renderer.prepare_submission_with_face_validity(
-                    device,
-                    queue,
-                    &bitmap_frame.submission,
-                    bitmap_frame.source_bytes(),
-                    bitmap_atlas_page_size(),
-                    bitmap_frame.atlas_layer_count(),
-                    bitmap_frame
-                        .atlas_storage_format()
-                        .unwrap_or(GlyphAtlasStorageFormat::R8Unorm),
-                    bitmap_frame.face_validity(),
-                );
-                self.render_glyphon = false;
-                self.atlas.trim();
+                if let Some(atlas_format) = bitmap_frame.atlas_format() {
+                    let shadow_commit = bitmap_atlas_renderer
+                        .prepare_submission_with_face_validity(
+                            device,
+                            queue,
+                            &bitmap_frame.submission,
+                            bitmap_frame.source_bytes(),
+                            bitmap_atlas_page_size(),
+                            bitmap_frame.atlas_layer_count(),
+                            atlas_format,
+                            bitmap_frame.face_validity(),
+                        );
+                    self.render_glyphon = false;
+                    self.atlas.trim();
+                    shadow_commit
+                } else {
+                    bitmap_atlas_renderer.prepare_idle();
+                    self.render_glyphon = true;
+                    text_state.prepare_glyphon_fallback(
+                        device,
+                        queue,
+                        &mut self.renderer,
+                        &mut self.atlas,
+                        &self.viewport,
+                        text_areas,
+                    );
+                    GlyphAtlasBitmapPageShadowCommit::default()
+                }
             }
             NativeBitmapAtlasHandoff::MixedStorageReplacement => {
-                let storage_submissions = bitmap_frame.storage_submissions();
                 let renderer_submissions = storage_submissions
                     .iter()
                     .map(|submission| {
@@ -404,12 +367,12 @@ impl ScreenSpaceUiTextBackend {
                             &submission.submission,
                             submission.source_bytes(),
                             submission.atlas_layer_count(),
-                            submission.storage_format,
+                            submission.atlas_format,
                             submission.face_validity(),
                         )
                     })
                     .collect::<Vec<_>>();
-                bitmap_atlas_renderer.prepare_storage_submissions(
+                let shadow_commit = bitmap_atlas_renderer.prepare_storage_submissions(
                     device,
                     queue,
                     renderer_submissions.as_slice(),
@@ -417,25 +380,22 @@ impl ScreenSpaceUiTextBackend {
                 );
                 self.render_glyphon = false;
                 self.atlas.trim();
+                shadow_commit
             }
             NativeBitmapAtlasHandoff::TransparentPlaceholder => {
-                prepare_native_bitmap_atlas_transparent_placeholder(
+                let shadow_commit = prepare_native_bitmap_atlas_transparent_placeholder(
                     device,
                     queue,
                     bitmap_atlas_renderer,
                     &bitmap_frame,
+                    storage_submissions.as_slice(),
                 );
                 self.render_glyphon = false;
                 self.atlas.trim();
+                shadow_commit
             }
             NativeBitmapAtlasHandoff::GlyphonFallback => {
-                bitmap_atlas_renderer.prepare_plan(
-                    device,
-                    &GlyphAtlasGpuDrawPlan::default(),
-                    UVec2::new(1, 1),
-                    1,
-                    GlyphAtlasStorageFormat::R8Unorm,
-                );
+                bitmap_atlas_renderer.prepare_idle();
                 self.render_glyphon = true;
                 text_state.prepare_glyphon_fallback(
                     device,
@@ -445,13 +405,19 @@ impl ScreenSpaceUiTextBackend {
                     &self.viewport,
                     text_areas,
                 );
+                GlyphAtlasBitmapPageShadowCommit::default()
             }
-        }
+        };
+        let accept_frame_atlas = bitmap_frame.submission.run.upload_copies.is_empty()
+            || bitmap_atlas_renderer
+                .prepare_report()
+                .upload_ready_to_write_texture;
+        drop(storage_submissions);
+        text_state.finish_bitmap_atlas_frame(bitmap_frame, shadow_commit, accept_frame_atlas);
 
         ScreenSpaceUiNativePrepareReport {
             font_ids: font_id_report,
             bitmap_atlas: bitmap_atlas_report,
-            font_faces_changed,
         }
     }
 
@@ -467,31 +433,24 @@ fn prepare_native_bitmap_atlas_transparent_placeholder(
     queue: &wgpu::Queue,
     bitmap_atlas_renderer: &mut GlyphAtlasBitmapRenderer,
     bitmap_frame: &NativeBitmapAtlasFrame,
-) {
-    if let Some(atlas_storage_format) = bitmap_frame.atlas_storage_format() {
-        bitmap_atlas_renderer.prepare_submission_with_face_validity(
+    storage_submissions: &[NativeBitmapAtlasStorageSubmission],
+) -> GlyphAtlasBitmapPageShadowCommit {
+    if let Some(atlas_format) = bitmap_frame.atlas_format() {
+        return bitmap_atlas_renderer.prepare_submission_with_face_validity(
             device,
             queue,
             &bitmap_frame.submission,
             bitmap_frame.source_bytes(),
             bitmap_atlas_page_size(),
             bitmap_frame.atlas_layer_count(),
-            atlas_storage_format,
+            atlas_format,
             bitmap_frame.face_validity(),
         );
-        return;
     }
 
-    let storage_submissions = bitmap_frame.storage_submissions();
     if storage_submissions.is_empty() {
-        bitmap_atlas_renderer.prepare_plan(
-            device,
-            &GlyphAtlasGpuDrawPlan::default(),
-            UVec2::new(1, 1),
-            1,
-            GlyphAtlasStorageFormat::R8Unorm,
-        );
-        return;
+        bitmap_atlas_renderer.prepare_idle();
+        return GlyphAtlasBitmapPageShadowCommit::default();
     }
 
     let renderer_submissions = storage_submissions
@@ -501,7 +460,7 @@ fn prepare_native_bitmap_atlas_transparent_placeholder(
                 &submission.submission,
                 submission.source_bytes(),
                 submission.atlas_layer_count(),
-                submission.storage_format,
+                submission.atlas_format,
                 submission.face_validity(),
             )
         })
@@ -511,39 +470,31 @@ fn prepare_native_bitmap_atlas_transparent_placeholder(
         queue,
         renderer_submissions.as_slice(),
         bitmap_atlas_page_size(),
-    );
+    )
 }
 
 fn resolve_family_name(
-    text_state: &mut TextRenderState,
-    font_assets: &mut HashMap<String, LoadedUiFontAsset>,
-    asset_manager: &ProjectAssetManager,
+    font_assets: &UiFontAssetCache,
     font_asset: Option<&str>,
     preferred_family: Option<&str>,
     code: bool,
 ) -> Option<String> {
     if code {
-        return ensure_font_asset_record(
-            text_state,
-            font_assets,
-            asset_manager,
-            DEFAULT_FONT_ASSET,
-        )
-        .record
-        .and_then(|record| record.family.clone());
+        return font_assets
+            .get(DEFAULT_FONT_ASSET)
+            .and_then(|entry| entry.loaded_asset())
+            .and_then(|record| record.family.clone());
     }
     if let Some(family) = preferred_family.filter(|family| !family.trim().is_empty()) {
-        if let Some(asset) = font_asset.filter(|asset| !asset.trim().is_empty()) {
-            let _ = ensure_font_asset_record(text_state, font_assets, asset_manager, asset);
-        }
         return Some(family.to_string());
     }
 
     let asset = font_asset
         .filter(|asset| !asset.trim().is_empty())
         .unwrap_or(DEFAULT_FONT_ASSET);
-    ensure_font_asset_record(text_state, font_assets, asset_manager, asset)
-        .record
+    font_assets
+        .get(asset)
+        .and_then(|entry| entry.loaded_asset())
         .and_then(|record| record.family.clone())
 }
 

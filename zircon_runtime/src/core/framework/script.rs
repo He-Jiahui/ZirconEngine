@@ -1,11 +1,13 @@
 //! Script-facing framework contracts shared by VM backends and host exports.
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 mod behavior_bridge;
 
 pub use behavior_bridge::{
-    ScriptBehaviorBridge, ScriptBehaviorCallbackRef, SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID,
+    SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID, ScriptBehaviorBridge, ScriptBehaviorCallbackRef,
 };
 
 #[doc(hidden)]
@@ -45,7 +47,8 @@ impl ScriptHostValueKind {
             Self::Int => "int",
             Self::Float => "float",
             Self::String => "string",
-            Self::Bytes => "string",
+            // ZrVM strings are text; retain arbitrary bytes through its typed array boundary.
+            Self::Bytes => "container.Array<uint>",
             Self::HostHandle => "int",
         }
     }
@@ -293,6 +296,36 @@ impl ScriptHostIntoValue for String {
     }
 }
 
+impl ScriptHostFromValue for Vec<u8> {
+    fn script_host_type_ref() -> ScriptHostTypeRef {
+        ScriptHostTypeRef::from_value_kind(ScriptHostValueKind::Bytes)
+    }
+
+    fn from_script_host_value(
+        value: &ScriptHostValue,
+        argument_index: usize,
+    ) -> Result<Self, ScriptHostError> {
+        match value {
+            ScriptHostValue::Bytes(value) => Ok(value.clone()),
+            value => Err(argument_type_error(
+                argument_index,
+                ScriptHostValueKind::Bytes,
+                value,
+            )),
+        }
+    }
+}
+
+impl ScriptHostIntoValue for Vec<u8> {
+    fn script_host_type_ref() -> ScriptHostTypeRef {
+        ScriptHostTypeRef::from_value_kind(ScriptHostValueKind::Bytes)
+    }
+
+    fn into_script_host_value(self) -> ScriptHostValue {
+        ScriptHostValue::Bytes(self)
+    }
+}
+
 impl ScriptHostIntoValue for () {
     fn script_host_type_ref() -> ScriptHostTypeRef {
         ScriptHostTypeRef::from_value_kind(ScriptHostValueKind::Null)
@@ -518,15 +551,6 @@ impl ScriptHostTypeProjection {
         self.fields.push(field);
         self
     }
-
-    fn field_value_kind(&self, name: &str) -> Option<ScriptHostValueKind> {
-        for field in &self.fields {
-            if field.name == name {
-                return Some(field.value_kind);
-            }
-        }
-        None
-    }
 }
 
 impl ScriptHostTypeDescriptor {
@@ -580,19 +604,16 @@ impl ScriptHostTypeDescriptor {
             });
         }
 
+        let mut projection_fields = HashMap::with_capacity(projection.fields.len());
         for projected_field in &projection.fields {
-            let mut found = false;
-            for field in &registration.type_info.fields {
-                if field.name == projected_field.name {
-                    found = true;
-                    break;
-                }
-            }
-            if !found {
+            if projection_fields
+                .insert(projected_field.name.as_str(), projected_field.value_kind)
+                .is_some()
+            {
                 return Err(ReflectError::InvalidRegistration {
                     type_path: registration.type_path.type_path.clone(),
                     reason: format!(
-                        "script field projection `{}` has no reflected field",
+                        "script field projection `{}` is duplicated",
                         projected_field.name
                     ),
                 });
@@ -606,22 +627,44 @@ impl ScriptHostTypeDescriptor {
             ))
             .with_prototype_kind(projection.prototype_kind)
             .allow_value_construction(projection.allow_value_construction);
+        descriptor
+            .fields
+            .reserve(registration.type_info.fields.len());
+        let mut first_missing_reflected_field = None;
         for field in &registration.type_info.fields {
-            let value_kind = projection.field_value_kind(&field.name).ok_or_else(|| {
-                ReflectError::InvalidRegistration {
-                    type_path: registration.type_path.type_path.clone(),
-                    reason: format!(
-                        "reflected field `{}` has no script ABI value-kind projection",
-                        field.name
-                    ),
-                }
-            })?;
+            let Some(value_kind) = projection_fields.remove(field.name.as_str()) else {
+                first_missing_reflected_field.get_or_insert(field.name.as_str());
+                continue;
+            };
             let mut field_descriptor = ScriptHostFieldDescriptor::new(&field.name, value_kind)
                 .with_type_ref(ScriptHostTypeRef::new(value_kind, &field.value_type_path));
             if let Some(documentation) = &field.documentation {
                 field_descriptor = field_descriptor.with_documentation(documentation);
             }
             descriptor.fields.push(field_descriptor);
+        }
+
+        // Keep unknown projected fields ahead of missing ABI kinds in the error contract.
+        if let Some(projected_field) = projection
+            .fields
+            .iter()
+            .find(|field| projection_fields.contains_key(field.name.as_str()))
+        {
+            return Err(ReflectError::InvalidRegistration {
+                type_path: registration.type_path.type_path.clone(),
+                reason: format!(
+                    "script field projection `{}` has no reflected field",
+                    projected_field.name
+                ),
+            });
+        }
+        if let Some(field_name) = first_missing_reflected_field {
+            return Err(ReflectError::InvalidRegistration {
+                type_path: registration.type_path.type_path.clone(),
+                reason: format!(
+                    "reflected field `{field_name}` has no script ABI value-kind projection"
+                ),
+            });
         }
         if let Some(documentation) = &registration.documentation {
             descriptor.documentation = Some(documentation.clone());
@@ -681,4 +724,41 @@ pub struct ScriptHostCallContext {
     pub function_name: String,
     pub arguments: Vec<ScriptHostValue>,
     pub granted_capabilities: Vec<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        ScriptHostFromValue, ScriptHostIntoValue, ScriptHostTypeRef, ScriptHostValue,
+        ScriptHostValueKind,
+    };
+
+    #[test]
+    fn bytes_default_to_the_zr_vm_byte_array_type() {
+        assert_eq!(
+            ScriptHostValueKind::Bytes.default_zr_type_name(),
+            "container.Array<uint>"
+        );
+        assert_eq!(
+            ScriptHostTypeRef::from_value_kind(ScriptHostValueKind::Bytes).type_name,
+            "container.Array<uint>"
+        );
+    }
+
+    #[test]
+    fn byte_vectors_round_trip_through_the_host_value_contract() {
+        let bytes = vec![0, 104, 128, 255];
+        let host_value = bytes.clone().into_script_host_value();
+
+        assert_eq!(host_value, ScriptHostValue::Bytes(bytes.clone()));
+        assert_eq!(
+            Vec::<u8>::from_script_host_value(&host_value, 2).unwrap(),
+            bytes
+        );
+        let error =
+            Vec::<u8>::from_script_host_value(&ScriptHostValue::String("not-bytes".to_string()), 3)
+                .unwrap_err();
+        assert!(error.message.contains("argument 3"));
+        assert!(error.message.contains("expected Bytes"));
+    }
 }

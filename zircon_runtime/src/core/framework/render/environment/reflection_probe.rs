@@ -235,9 +235,13 @@ pub enum ReflectionProbeValidationError {
     InvalidBoxHalfExtents { half_extents: [Real; 3] },
     #[error("reflection probe sphere radius must be finite and positive, got {radius}")]
     InvalidSphereRadius { radius: Real },
-    #[error("reflection probe blend distance must be finite and within [0, {maximum}], got {blend_distance}")]
+    #[error(
+        "reflection probe blend distance must be finite and within [0, {maximum}], got {blend_distance}"
+    )]
     InvalidBlendDistance { blend_distance: Real, maximum: Real },
-    #[error("reflection probe projection half extents must be finite and positive, got {half_extents:?}")]
+    #[error(
+        "reflection probe projection half extents must be finite and positive, got {half_extents:?}"
+    )]
     InvalidProjectionHalfExtents { half_extents: [Real; 3] },
     #[error("reflection probe intensity must be finite and nonnegative, got {intensity}")]
     InvalidIntensity { intensity: Real },
@@ -308,28 +312,31 @@ pub fn select_reflection_probe_blend(
     world_position: Vec3,
     render_layers: &RenderLayerSet,
 ) -> ReflectionProbeBlend {
-    let mut candidates = probes
-        .iter()
-        .enumerate()
-        .filter(|(_, probe)| {
-            probe.baked_cubemap.is_some()
-                && probe.intensity > 0.0
-                && probe.layer_mask.intersects(render_layers)
-        })
-        .filter_map(|(probe_index, probe)| {
-            let weight = reflection_probe_influence_weight(probe, world_position);
-            (weight > 0.0).then_some((probe_index, weight, probe.priority, probe.probe_id))
-        })
-        .collect::<Vec<_>>();
-    candidates.sort_by(|left, right| {
-        right
-            .1
-            .total_cmp(&left.1)
-            .then_with(|| right.2.cmp(&left.2))
-            .then_with(|| left.3.cmp(&right.3))
-    });
+    let mut primary = None;
+    let mut secondary = None;
+    for (probe_index, probe) in probes.iter().enumerate() {
+        if probe.baked_cubemap.is_none()
+            || probe.intensity <= 0.0
+            || !probe.layer_mask.intersects(render_layers)
+        {
+            continue;
+        }
+        let weight = reflection_probe_influence_weight(probe, world_position);
+        if weight <= 0.0 {
+            continue;
+        }
+        let candidate = (probe_index, weight, probe.priority, probe.probe_id);
+        if primary.is_none_or(|current| reflection_probe_candidate_precedes(candidate, current)) {
+            secondary = primary;
+            primary = Some(candidate);
+        } else if secondary
+            .is_none_or(|current| reflection_probe_candidate_precedes(candidate, current))
+        {
+            secondary = Some(candidate);
+        }
+    }
 
-    let Some((primary_index, primary_weight, _, _)) = candidates.first().copied() else {
+    let Some((primary_index, primary_weight, _, _)) = primary else {
         return ReflectionProbeBlend::skybox_only();
     };
     let primary_weight = primary_weight.clamp(0.0, 1.0);
@@ -337,18 +344,28 @@ pub fn select_reflection_probe_blend(
         probe_index: primary_index,
         weight: primary_weight,
     });
-    let secondary = candidates
-        .get(1)
-        .map(|candidate| ReflectionProbeBlendEntry {
-            probe_index: candidate.0,
-            weight: candidate.1.clamp(0.0, 1.0 - primary_weight),
-        });
+    let secondary = secondary.map(|candidate| ReflectionProbeBlendEntry {
+        probe_index: candidate.0,
+        weight: candidate.1.clamp(0.0, 1.0 - primary_weight),
+    });
     let secondary_weight = secondary.map_or(0.0, |entry| entry.weight);
     ReflectionProbeBlend {
         primary,
         secondary,
         skybox_weight: (1.0 - primary_weight - secondary_weight).max(0.0),
     }
+}
+
+fn reflection_probe_candidate_precedes(
+    left: (usize, Real, i32, u64),
+    right: (usize, Real, i32, u64),
+) -> bool {
+    right
+        .1
+        .total_cmp(&left.1)
+        .then_with(|| right.2.cmp(&left.2))
+        .then_with(|| left.3.cmp(&right.3))
+        .is_lt()
 }
 
 fn validate_blend_distance(
@@ -379,4 +396,45 @@ fn normalize_or_zero(value: Vec3) -> Vec3 {
         return Vec3::ZERO;
     }
     value.normalize()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reflection_probe_blend_selects_top_two_without_candidate_vec_or_sort() {
+        let source = include_str!("reflection_probe.rs");
+        let selection = source
+            .split("pub fn select_reflection_probe_blend")
+            .nth(1)
+            .and_then(|text| text.split("fn validate_blend_distance").next())
+            .expect("read reflection probe selection helper");
+
+        assert!(
+            !selection.contains("collect::<Vec") && !selection.contains("sort_by"),
+            "per-position reflection probe selection must retain only the best two candidates instead of allocating and sorting every eligible probe"
+        );
+
+        let probes = [probe(20, 0), probe(10, 0), probe(30, 2)];
+        let blend = select_reflection_probe_blend(&probes, Vec3::ZERO, &RenderLayerSet::default());
+
+        assert_eq!(blend.primary.map(|entry| entry.probe_index), Some(2));
+        assert_eq!(blend.secondary.map(|entry| entry.probe_index), Some(1));
+    }
+
+    fn probe(probe_id: u64, priority: i32) -> ReflectionProbeData {
+        ReflectionProbeData::try_new(
+            probe_id,
+            Vec3::ZERO,
+            Quat::IDENTITY,
+            ProbeInfluenceShape::sphere(4.0, 1.0).expect("valid sphere"),
+            Vec3::splat(4.0),
+        )
+        .expect("valid probe")
+        .with_baked_cubemap(Some(ResourceId::from_stable_label(&format!(
+            "res://probe/{probe_id}.zcube"
+        ))))
+        .with_priority(priority)
+    }
 }

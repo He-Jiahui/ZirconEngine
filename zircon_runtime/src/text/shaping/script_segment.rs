@@ -77,12 +77,12 @@ pub(crate) fn script_segments(text: &str) -> Vec<ScriptSegment> {
 pub(crate) fn script_for_range(segments: &[ScriptSegment], range: TextRange) -> ShapedGlyphScript {
     let midpoint = range.start + range.end.saturating_sub(range.start) / 2;
     segments
-        .iter()
-        .find(|segment| midpoint >= segment.range.start && midpoint < segment.range.end)
+        .get(segments.partition_point(|segment| segment.range.end <= midpoint))
+        .filter(|segment| midpoint >= segment.range.start && midpoint < segment.range.end)
         .or_else(|| {
             segments
-                .iter()
-                .find(|segment| range.start < segment.range.end)
+                .get(segments.partition_point(|segment| segment.range.end <= range.start))
+                .filter(|segment| range.start < segment.range.end)
         })
         .map(|segment| segment.script.clone())
         .unwrap_or_default()
@@ -172,5 +172,44 @@ pub(crate) fn font_script_for_cluster(cluster: &str) -> FontScript {
             .find(|codepoint| !codepoint.is_whitespace())
             .map(|codepoint| FontScript::Other(codepoint as u32))
             .unwrap_or(FontScript::Other(0)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{script_for_range, script_segments};
+    use crate::text::TextRange;
+
+    #[test]
+    fn script_range_lookup_preserves_segment_boundaries() {
+        let text = "abcمرحبا";
+        let segments = script_segments(text);
+
+        assert_eq!(
+            script_for_range(&segments, TextRange { start: 0, end: 1 }).iso15924,
+            "Latn"
+        );
+        assert_eq!(
+            script_for_range(
+                &segments,
+                TextRange {
+                    start: 3,
+                    end: text.len(),
+                },
+            )
+            .iso15924,
+            "Arab"
+        );
+    }
+
+    #[test]
+    fn script_range_lookup_does_not_restore_linear_find() {
+        let source = include_str!("script_segment.rs");
+        let compact = source
+            .chars()
+            .filter(|character| !character.is_whitespace())
+            .collect::<String>();
+
+        assert!(!compact.contains(concat!("segments.iter()", ".find")));
     }
 }

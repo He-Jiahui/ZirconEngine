@@ -15,28 +15,35 @@ impl EditorManager {
         plugin_id: &str,
         enabled: bool,
     ) -> Result<EditorPluginEnableReport, String> {
+        let project_root = project_root.as_ref();
+        let native_report = NativePluginLoader.discover(self.plugin_directory(project_root));
         if self
             .runtime_plugin_catalog()
             .project_selection_for_package(plugin_id)
             .is_some()
         {
-            return self.set_project_plugin_enabled(manifest, plugin_id, enabled);
+            let report =
+                self.set_project_plugin_enabled_unpublished(manifest, plugin_id, enabled)?;
+            let completed =
+                self.complete_project_plugin_manifest_with_native_report(manifest, &native_report);
+            self.publish_project_plugin_status_from_load_report(&completed, &native_report);
+            return Ok(report);
         }
 
-        let project_root = project_root.as_ref();
-        let native_packages = NativePluginLoader
-            .discover(self.plugin_directory(project_root))
-            .package_manifests();
-        let native_package = native_packages
+        let native_projection = native_report.projection();
+        let native_package = native_projection
+            .package_manifests()
             .iter()
             .find(|package| package.id == plugin_id)
             .cloned();
-        let completed = self.complete_native_aware_project_plugin_manifest(project_root, manifest);
+        let mut completed =
+            self.complete_project_plugin_manifest_with_native_report(manifest, &native_report);
         let mut selection = completed
             .plugins
             .selections
-            .into_iter()
+            .iter()
             .find(|selection| selection.id == plugin_id)
+            .cloned()
             .ok_or_else(|| {
                 format!("plugin {plugin_id} is not registered in builtin or native catalog")
             })?;
@@ -44,7 +51,7 @@ impl EditorManager {
             return Err(format!("required plugin {plugin_id} cannot be disabled"));
         }
         selection.enabled = enabled;
-        manifest.plugins.set_enabled(selection.clone());
+        completed.plugins.set_enabled(selection.clone());
         let editor_capabilities = native_package
             .as_ref()
             .map(editor_capabilities_for_package)
@@ -54,6 +61,7 @@ impl EditorManager {
         } else {
             self.set_editor_capabilities_enabled(&editor_capabilities, enabled)?
         };
+        manifest.plugins.set_enabled(selection.clone());
 
         let diagnostics = if editor_capabilities.is_empty() {
             vec![format!(
@@ -65,13 +73,15 @@ impl EditorManager {
             )]
         };
 
-        Ok(EditorPluginEnableReport {
+        let report = EditorPluginEnableReport {
             plugin_id: plugin_id.to_string(),
             enabled,
             project_selection: selection,
             editor_capabilities,
             capability_snapshot,
             diagnostics,
-        })
+        };
+        self.publish_project_plugin_status_from_load_report(&completed, &native_report);
+        Ok(report)
     }
 }

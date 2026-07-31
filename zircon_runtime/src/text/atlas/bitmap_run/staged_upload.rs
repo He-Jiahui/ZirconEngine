@@ -1,13 +1,12 @@
-use std::collections::BTreeMap;
-
 use crate::core::math::UVec2;
 
 use super::super::{
-    GlyphAtlasPageKey, GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
+    GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapPageShadowPatch, GlyphAtlasPageKey,
+    GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
 };
 use super::staging::{
-    glyph_atlas_bitmap_upload_staging_plan, GlyphAtlasBitmapPageUploadStaging,
-    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasBitmapUploadStagingPlan,
+    GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapUploadSourceBytes,
+    GlyphAtlasBitmapUploadStagingPlan, glyph_atlas_bitmap_upload_staging_plan,
 };
 use super::types::GlyphAtlasBitmapRunPlan;
 
@@ -127,6 +126,43 @@ where
     }
 }
 
+pub(crate) fn glyph_atlas_bitmap_page_shadow_commit(
+    run: &GlyphAtlasBitmapRunPlan,
+    prepared_upload: GlyphAtlasBitmapPreparedUploadPlan,
+    upload_was_submitted: bool,
+) -> GlyphAtlasBitmapPageShadowCommit {
+    let zero_initialized_pages = prepared_upload
+        .staging
+        .pages
+        .iter()
+        .filter(|page| run.zero_initialize_shadow_pages.contains(&page.page_key))
+        .map(|page| page.page_key)
+        .collect();
+    if !upload_was_submitted {
+        return GlyphAtlasBitmapPageShadowCommit {
+            failed_zero_initialized_pages: zero_initialized_pages,
+            ..GlyphAtlasBitmapPageShadowCommit::default()
+        };
+    }
+
+    GlyphAtlasBitmapPageShadowCommit {
+        patches: prepared_upload
+            .staging
+            .pages
+            .into_iter()
+            .map(|page| GlyphAtlasBitmapPageShadowPatch {
+                page_key: page.page_key,
+                page_generation: page.page_generation,
+                target_rect: page.target_rect,
+                bytes_per_row: page.bytes_per_row,
+                bytes: page.bytes,
+            })
+            .collect(),
+        zero_initialized_pages,
+        failed_zero_initialized_pages: Default::default(),
+    }
+}
+
 pub(crate) fn glyph_atlas_bitmap_texture_upload_request_plan(
     staged_uploads: &GlyphAtlasBitmapStagedUploadPlan,
 ) -> GlyphAtlasBitmapTextureUploadRequestPlan {
@@ -198,17 +234,18 @@ pub(crate) fn glyph_atlas_bitmap_staged_upload_plan(
     staging: &GlyphAtlasBitmapUploadStagingPlan,
     upload_commands: &[GlyphAtlasUploadCommand],
 ) -> GlyphAtlasBitmapStagedUploadPlan {
-    let pages_by_key = staging
-        .pages
-        .iter()
-        .enumerate()
-        .map(|(index, page)| (page.page_key, (index, page)))
-        .collect::<BTreeMap<_, _>>();
     let mut uploads = Vec::new();
     let mut failures = Vec::new();
+    let mut claimed_staging_pages = vec![false; staging.pages.len()];
 
     for (upload_command_index, command) in upload_commands.iter().copied().enumerate() {
-        let Some((staging_page_index, page)) = pages_by_key.get(&command.page_key).copied() else {
+        let Some((staging_page_index, page)) =
+            staging.pages.iter().enumerate().find(|(index, page)| {
+                !claimed_staging_pages[*index]
+                    && page.page_key == command.page_key
+                    && page.target_rect == command.rect
+            })
+        else {
             failures.push(staged_upload_failure(
                 upload_command_index,
                 command.page_key,
@@ -216,6 +253,8 @@ pub(crate) fn glyph_atlas_bitmap_staged_upload_plan(
             ));
             continue;
         };
+        claimed_staging_pages[staging_page_index] = true;
+        let command = compact_staged_upload_command(command, page);
 
         if !staged_upload_source_range_fits(command, page) {
             failures.push(staged_upload_failure(
@@ -325,7 +364,10 @@ fn staged_upload_source_range_fits(
     if matches!(command.mode, GlyphAtlasUploadMode::None) || command.rect.height == 0 {
         return false;
     }
-    if command.bytes_per_row != page.bytes_per_row || command.rows_per_image == 0 {
+    if command.rect != page.target_rect
+        || command.bytes_per_row != page.bytes_per_row
+        || command.rows_per_image != page.target_rect.height
+    {
         return false;
     }
 
@@ -335,7 +377,7 @@ fn staged_upload_source_range_fits(
         return false;
     }
     let page_byte_len = page.bytes_per_row as u64 * command.rows_per_image as u64;
-    if page_byte_len > page.bytes.len() as u64 {
+    if page_byte_len != page.bytes.len() as u64 {
         return false;
     }
 
@@ -348,6 +390,18 @@ fn staged_upload_source_range_fits(
         command.rect.height.saturating_sub(1) as u64 * command.bytes_per_row as u64,
     );
     last_row_offset.saturating_add(row_payload_len) <= page.bytes.len() as u64
+}
+
+fn compact_staged_upload_command(
+    command: GlyphAtlasUploadCommand,
+    page: &GlyphAtlasBitmapPageUploadStaging,
+) -> GlyphAtlasUploadCommand {
+    GlyphAtlasUploadCommand {
+        source_offset: 0,
+        bytes_per_row: page.bytes_per_row,
+        rows_per_image: page.target_rect.height,
+        ..command
+    }
 }
 
 fn staged_upload_failure(

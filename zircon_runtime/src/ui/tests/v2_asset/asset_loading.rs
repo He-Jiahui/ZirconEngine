@@ -1,4 +1,7 @@
 use super::*;
+use zircon_runtime_interface::ui::v2::{
+    UiV2ComponentDefinition, UiV2Repeat, UiV2RepeatValidationError,
+};
 
 #[test]
 fn ui_v2_parses_flat_view_asset() {
@@ -181,11 +184,151 @@ props = { text = "Row" }
 
     let error = UiV2DocumentCompiler::compile(&document).unwrap_err();
 
-    assert!(matches!(
+    assert_eq!(
         error,
-        UiV2AssetError::InvalidDocument { detail, .. }
-            if detail.contains("repeat.prototype") && detail.contains("must not be empty")
-    ));
+        UiV2AssetError::InvalidRepeat {
+            asset_id: "asset://ui/tests/repeat_invalid.v2.ui".to_string(),
+            source: UiV2RepeatValidationError::EmptyPrototype {
+                node_id: "root".to_string(),
+            },
+        }
+    );
+    assert_eq!(
+        error.to_string(),
+        "ui v2 asset asset://ui/tests/repeat_invalid.v2.ui is invalid: node root repeat.prototype must not be empty"
+    );
+}
+
+#[test]
+fn ui_v2_repeat_validation_errors_remain_typed_through_document_compiler() {
+    let cases = [
+        (
+            UiV2Repeat {
+                kind: "unsupported_rows".to_string(),
+                prototype: "RowPrototype".to_string(),
+                virtual_control_prefix: "VirtualRow".to_string(),
+                authored_count: 1,
+                node_path_namespace: "v2".to_string(),
+            },
+            UiV2RepeatValidationError::UnsupportedKind {
+                node_id: "root".to_string(),
+                kind: "unsupported_rows".to_string(),
+                expected: UI_V2_REPEAT_KIND_VIRTUAL_ROWS,
+            },
+            "node root repeat.kind unsupported_rows is unsupported; expected virtual_rows",
+        ),
+        (
+            UiV2Repeat {
+                kind: UI_V2_REPEAT_KIND_VIRTUAL_ROWS.to_string(),
+                prototype: String::new(),
+                virtual_control_prefix: "VirtualRow".to_string(),
+                authored_count: 1,
+                node_path_namespace: "v2".to_string(),
+            },
+            UiV2RepeatValidationError::EmptyPrototype {
+                node_id: "root".to_string(),
+            },
+            "node root repeat.prototype must not be empty",
+        ),
+        (
+            UiV2Repeat {
+                kind: UI_V2_REPEAT_KIND_VIRTUAL_ROWS.to_string(),
+                prototype: "RowPrototype".to_string(),
+                virtual_control_prefix: String::new(),
+                authored_count: 1,
+                node_path_namespace: "v2".to_string(),
+            },
+            UiV2RepeatValidationError::EmptyVirtualControlPrefix {
+                node_id: "root".to_string(),
+            },
+            "node root repeat.virtual_control_prefix must not be empty",
+        ),
+        (
+            UiV2Repeat {
+                kind: UI_V2_REPEAT_KIND_VIRTUAL_ROWS.to_string(),
+                prototype: "RowPrototype".to_string(),
+                virtual_control_prefix: "VirtualRow".to_string(),
+                authored_count: 0,
+                node_path_namespace: "v2".to_string(),
+            },
+            UiV2RepeatValidationError::ZeroAuthoredCount {
+                node_id: "root".to_string(),
+            },
+            "node root repeat.authored_count must be greater than 0",
+        ),
+    ];
+
+    for (repeat, expected, expected_source) in cases {
+        let asset_id = "asset://ui/tests/repeat_typed_error.v2.ui";
+        let mut document = v2_document(asset_id, "root");
+        document.nodes.insert(
+            "root".to_string(),
+            UiV2NodeDefinition {
+                component: "VerticalGroup".to_string(),
+                repeat: Some(repeat),
+                ..Default::default()
+            },
+        );
+
+        assert_eq!(expected.to_string(), expected_source);
+        let error = UiV2DocumentCompiler::compile(&document).unwrap_err();
+        assert_eq!(
+            error,
+            UiV2AssetError::InvalidRepeat {
+                asset_id: asset_id.to_string(),
+                source: expected,
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!("ui v2 asset {asset_id} is invalid: {expected_source}")
+        );
+    }
+}
+
+#[test]
+fn ui_v2_repeat_validation_preserves_component_context() {
+    let asset_id = "asset://ui/tests/repeat_component_error.v2.ui";
+    let mut document = v2_document(asset_id, "root");
+    document.root = None;
+    document.components.insert(
+        "Example".to_string(),
+        UiV2ComponentDefinition {
+            root: "root".to_string(),
+            ..Default::default()
+        },
+    );
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "VerticalGroup".to_string(),
+            repeat: Some(UiV2Repeat {
+                kind: UI_V2_REPEAT_KIND_VIRTUAL_ROWS.to_string(),
+                prototype: String::new(),
+                virtual_control_prefix: "VirtualRow".to_string(),
+                authored_count: 1,
+                node_path_namespace: "v2".to_string(),
+            }),
+            ..Default::default()
+        },
+    );
+
+    let error = UiV2DocumentCompiler::compile(&document).unwrap_err();
+
+    assert_eq!(
+        error,
+        UiV2AssetError::InvalidRepeatInComponent {
+            asset_id: asset_id.to_string(),
+            component: "Example".to_string(),
+            source: UiV2RepeatValidationError::EmptyPrototype {
+                node_id: "root".to_string(),
+            },
+        }
+    );
+    assert_eq!(
+        error.to_string(),
+        "ui v2 asset asset://ui/tests/repeat_component_error.v2.ui is invalid: component Example: node root repeat.prototype must not be empty"
+    );
 }
 
 #[test]

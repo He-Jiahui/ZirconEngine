@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var interaction = %import("world/interaction_selection");
+
+console.printLine("interaction-selection-test");
+var result = interaction.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,5 +1,5 @@
-use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::pipeline::RenderPassStage;
 
 const SPRITE_GRAPH_STAGES: &[RenderPassStage] = &[
     RenderPassStage::Opaque2d,
@@ -8,12 +8,11 @@ const SPRITE_GRAPH_STAGES: &[RenderPassStage] = &[
 ];
 pub(super) fn active_sprite_graph_stages(
     pipeline: &CompiledRenderPipeline,
-) -> Vec<RenderPassStage> {
+) -> impl Iterator<Item = RenderPassStage> + '_ {
     SPRITE_GRAPH_STAGES
         .iter()
         .copied()
         .filter(|stage| pipeline_has_active_sprite_stage(pipeline, *stage))
-        .collect()
 }
 
 fn pipeline_has_active_sprite_stage(
@@ -38,7 +37,7 @@ fn pipeline_has_active_sprite_stage(
 
 #[cfg(test)]
 mod tests {
-    use super::{active_sprite_graph_stages, SPRITE_GRAPH_STAGES};
+    use super::{SPRITE_GRAPH_STAGES, active_sprite_graph_stages};
     use crate::core::framework::render::RenderPipelineHandle;
     use crate::graphics::pipeline::RenderPassStage;
     use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
@@ -55,6 +54,14 @@ mod tests {
     }
 
     #[test]
+    fn active_sprite_stage_selection_returns_an_iterator_without_collecting() {
+        let source = include_str!("sprite_stage_selection.rs");
+        let iterator_return = ["-> impl ", "Iterator<Item = RenderPassStage>"].concat();
+
+        assert!(source.contains(&iterator_return));
+    }
+
+    #[test]
     fn active_sprite_graph_stages_follow_unculled_sprite_passes() {
         let pipeline = compiled_pipeline_with_passes([
             (RenderPassStage::Opaque2d, "sprite-opaque", "sprite.opaque"),
@@ -67,7 +74,7 @@ mod tests {
         ]);
 
         assert_eq!(
-            active_sprite_graph_stages(&pipeline),
+            active_sprite_graph_stages(&pipeline).collect::<Vec<_>>(),
             vec![RenderPassStage::Opaque2d, RenderPassStage::Transparent2d]
         );
     }

@@ -1,6 +1,7 @@
 mod bottom;
 mod document;
 mod floating_windows;
+mod palette;
 mod pane;
 mod panel_header;
 mod rail;

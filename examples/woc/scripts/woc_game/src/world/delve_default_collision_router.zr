@@ -1,0 +1,242 @@
+// Exact source fallback for resolvePosition/resolveMovement when no active
+// Delve run supplies a module chain. This is intentionally separate from the
+// active-run adapter: a live run must never be downgraded to this default.
+
+var math = %import("zr.zircon.math");
+var content = %import("world/delve_collision_content");
+var fence = %import("world/collision_sweep");
+var active = %import("world/delve_collision_routing");
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+javascriptRound(value: float): int {
+    return <int>math.floor(value + 0.5);
+}
+
+pub isNoActiveRunDefaultPosition(x: float, required: bool): bool {
+    if (!required) {
+        throw "woc default Delve position query is required";
+    }
+    return x >= content.delveBandXMin(true) && x < content.yumiBandXMin(true);
+}
+
+pub defaultOriginIndexAtX(x: float, required: bool): int {
+    if (!required || !isNoActiveRunDefaultPosition(x, true)) {
+        throw "woc default Delve origin index is invalid";
+    }
+    return javascriptRound(
+        (x - content.delveOriginBaseX(true)) / content.delveOriginIndexSpacing(true)
+    );
+}
+
+// data.ts uses the matching delve's default chain, then falls back to the
+// Reliquary chain for an x-band that has no known Delve definition.
+defaultChainDelveIndex(originIndex: int): int {
+    return originIndex == 1 ? 1 : 0;
+}
+
+defaultStackEndRelativeZ(chainDelveIndex: int): float {
+    var count = content.defaultChainCount(chainDelveIndex, true);
+    var cursor = content.delveModuleZStart(true);
+    var offset = 0;
+    while (offset + 1 < count) {
+        var moduleIndex = content.defaultChainModuleIndex(chainDelveIndex, offset, true);
+        cursor = cursor + content.moduleSpan(moduleIndex, true) + content.delveModuleGap(true);
+        offset = offset + 1;
+    }
+    var finalModule = content.defaultChainModuleIndex(chainDelveIndex, count - 1, true);
+    return cursor + content.moduleSpan(finalModule, true) + 40.0;
+}
+
+pub defaultSlotAt(originIndex: int, z: float, required: bool): int {
+    if (!required) {
+        throw "woc default Delve slot query is required";
+    }
+    var chainDelveIndex = defaultChainDelveIndex(originIndex);
+    var stackEnd = defaultStackEndRelativeZ(chainDelveIndex);
+    var lowerBound = content.delveModuleZStart(true) - 30.0;
+    var slot = 0;
+    while (slot < content.delveSlotCount(true)) {
+        var originZ = content.delveOriginZ0(true) + <float>slot * content.delveSlotSpacing(true);
+        var relativeZ = z - originZ;
+        if (relativeZ >= lowerBound && relativeZ <= stackEnd) {
+            return slot;
+        }
+        slot = slot + 1;
+    }
+    var bestSlot = 0;
+    var bestDistance = 0.0;
+    var hasBest = false;
+    slot = 0;
+    while (slot < content.delveSlotCount(true)) {
+        var candidateZ = content.delveOriginZ0(true) + <float>slot * content.delveSlotSpacing(true);
+        var distance = absolute(z - candidateZ);
+        if (!hasBest || distance < bestDistance) {
+            bestSlot = slot;
+            bestDistance = distance;
+            hasBest = true;
+        }
+        slot = slot + 1;
+    }
+    return bestSlot;
+}
+
+defaultModuleOffsetAt(originIndex: int, z: float): int {
+    var chainDelveIndex = defaultChainDelveIndex(originIndex);
+    var slot = defaultSlotAt(originIndex, z, true);
+    var slotZ = content.delveOriginZ0(true) + <float>slot * content.delveSlotSpacing(true);
+    var relativeZ = z - slotZ;
+    var count = content.defaultChainCount(chainDelveIndex, true);
+    var cursor = content.delveModuleZStart(true);
+    var offset = 0;
+    while (offset < count) {
+        var moduleIndex = content.defaultChainModuleIndex(chainDelveIndex, offset, true);
+        if (relativeZ < cursor + content.moduleSpan(moduleIndex, true) || offset + 1 == count) {
+            return offset;
+        }
+        cursor = cursor + content.moduleSpan(moduleIndex, true) + content.delveModuleGap(true);
+        offset = offset + 1;
+    }
+    throw "woc default Delve module offset is invalid";
+}
+
+pub defaultModuleIndexAt(x: float, z: float, required: bool): int {
+    if (!required) {
+        throw "woc default Delve module index is required";
+    }
+    var originIndex = defaultOriginIndexAtX(x, true);
+    var chainDelveIndex = defaultChainDelveIndex(originIndex);
+    return content.defaultChainModuleIndex(
+        chainDelveIndex,
+        defaultModuleOffsetAt(originIndex, z),
+        true
+    );
+}
+
+pub defaultModuleOriginCoordinate(x: float, z: float, axis: int, required: bool): float {
+    if (!required || (axis != 1 && axis != 2)) {
+        throw "woc default Delve module origin is invalid";
+    }
+    var originIndex = defaultOriginIndexAtX(x, true);
+    var chainDelveIndex = defaultChainDelveIndex(originIndex);
+    var slot = defaultSlotAt(originIndex, z, true);
+    var offset = defaultModuleOffsetAt(originIndex, z);
+    var cursor = content.delveModuleZStart(true);
+    var previous = 0;
+    while (previous < offset) {
+        var previousModule = content.defaultChainModuleIndex(chainDelveIndex, previous, true);
+        cursor = cursor + content.moduleSpan(previousModule, true) + content.delveModuleGap(true);
+        previous = previous + 1;
+    }
+    return axis == 1 ?
+        content.delveOriginBaseX(true) + <float>originIndex * content.delveOriginIndexSpacing(true) :
+        content.delveOriginZ0(true) + <float>slot * content.delveSlotSpacing(true) + cursor;
+}
+
+pub resolveNoActiveRunCoordinate(
+    x: float,
+    z: float,
+    bodyRadius: float,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc default Delve collision arguments are invalid";
+    }
+    var moduleIndex = defaultModuleIndexAt(x, z, true);
+    var originX = defaultModuleOriginCoordinate(x, z, 1, true);
+    var originZ = defaultModuleOriginCoordinate(x, z, 2, true);
+    return active.resolveActiveModuleWorldCoordinate(
+        x, z, originX, originZ, moduleIndex, bodyRadius, axis, true
+    );
+}
+
+pub resolveNoActiveRunMovementCoordinate(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    bodyRadius: float,
+    ignoreFences: bool,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2) ||
+        !isNoActiveRunDefaultPosition(fromX, true) ||
+        !isNoActiveRunDefaultPosition(toX, true)) {
+        throw "woc default Delve swept collision arguments are invalid";
+    }
+    var deltaX = toX - fromX;
+    var deltaZ = toZ - fromZ;
+    var distance = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    if (distance < 0.000001) {
+        return resolveNoActiveRunCoordinate(toX, toZ, bodyRadius, axis, true);
+    }
+    var steps = <int>math.ceil(distance / 0.2);
+    if (steps < 1) {
+        steps = 1;
+    }
+    var positionX = fromX;
+    var positionZ = fromZ;
+    var step = 1;
+    while (step <= steps) {
+        var fraction = <float>step / <float>steps;
+        var nextX = fromX + deltaX * fraction;
+        var nextZ = fromZ + deltaZ * fraction;
+        if (!ignoreFences && fence.crossesBuiltinFence(
+            positionX, positionZ, nextX, nextZ, bodyRadius, true
+        )) {
+            return axis == 1 ? positionX : positionZ;
+        }
+        positionX = resolveNoActiveRunCoordinate(nextX, nextZ, bodyRadius, 1, true);
+        positionZ = resolveNoActiveRunCoordinate(nextX, nextZ, bodyRadius, 2, true);
+        var correctionX = positionX - nextX;
+        var correctionZ = positionZ - nextZ;
+        var correctionLength = math.sqrt(correctionX * correctionX + correctionZ * correctionZ);
+        if (correctionLength > bodyRadius * 0.25) {
+            var remainingX = toX - nextX;
+            var remainingZ = toZ - nextZ;
+            if (remainingX * correctionX + remainingZ * correctionZ < 0.0) {
+                return axis == 1 ? positionX : positionZ;
+            }
+        }
+        step = step + 1;
+    }
+    return axis == 1 ? positionX : positionZ;
+}
+
+pub contractTest(): int {
+    if (!isNoActiveRunDefaultPosition(4773.0, true) ||
+        isNoActiveRunDefaultPosition(8000.0, true) ||
+        defaultOriginIndexAtX(4800.0, true) != 0 || defaultOriginIndexAtX(5400.0, true) != 1 ||
+        defaultOriginIndexAtX(6000.0, true) != 2 || defaultModuleIndexAt(4800.0, -1116.0, true) != 1 ||
+        defaultModuleIndexAt(5400.0, -914.0, true) != 10 || defaultModuleIndexAt(6000.0, -1206.0, true) != 0) {
+        return -1;
+    }
+    if (defaultModuleOriginCoordinate(4774.0, -1206.0, 1, true) != 4800.0 ||
+        defaultModuleOriginCoordinate(4774.0, -1206.0, 2, true) != -1242.0 ||
+        defaultModuleOriginCoordinate(5400.0, -914.0, 1, true) != 5400.0 ||
+        defaultModuleOriginCoordinate(5400.0, -914.0, 2, true) != -914.0) {
+        return -2;
+    }
+    if (resolveNoActiveRunCoordinate(4774.0, -1206.0, 0.5, 1, true) != 4773.5 ||
+        resolveNoActiveRunCoordinate(4774.0, -1206.0, 0.5, 2, true) != -1206.0 ||
+        resolveNoActiveRunCoordinate(5395.333333333333, -1256.0, 0.5, 1, true) != 5395.333333333333 ||
+        resolveNoActiveRunCoordinate(5395.333333333333, -1256.0, 0.5, 2, true) != -1254.5) {
+        return -3;
+    }
+    if (resolveNoActiveRunMovementCoordinate(
+        4770.0, -1206.0, 4780.0, -1206.0, 0.5, false, 1, true
+    ) != 4773.5 || resolveNoActiveRunMovementCoordinate(
+        4770.0, -1206.0, 4780.0, -1206.0, 0.5, false, 2, true
+    ) != -1206.0 || resolveNoActiveRunMovementCoordinate(
+        5395.333333333333, -1248.0, 5395.333333333333, -1262.0, 0.5, false, 1, true
+    ) != 5395.333333333333 || resolveNoActiveRunMovementCoordinate(
+        5395.333333333333, -1248.0, 5395.333333333333, -1262.0, 0.5, false, 2, true
+    ) != -1254.5) {
+        return -4;
+    }
+    return 1;
+}

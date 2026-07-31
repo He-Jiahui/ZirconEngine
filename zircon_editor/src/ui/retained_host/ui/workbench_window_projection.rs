@@ -14,20 +14,32 @@ use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiFrame};
 use super::component_contract_metadata::tokens_for_component_role;
 use super::pane_data_conversion::{
     projected_command_palette_options, projected_command_palette_structured_options,
-    projected_notification_center_options, projected_notification_center_structured_options,
+    projected_notification_center_metadata_from_host, projected_notification_center_option_rows,
     projected_notification_center_value_text, structured_menu_items, structured_options_for_node,
+    NotificationCenterMetadata,
 };
 use super::template_layout_context::apply_table_layout_context_variant;
 
 #[path = "workbench_window_projection/host_value_toml.rs"]
 mod host_value_toml;
+#[path = "workbench_window_projection/mount.rs"]
+mod mount;
 #[path = "workbench_window_projection/node_index.rs"]
 mod node_index;
+#[path = "workbench_window_projection/notification_cache.rs"]
+mod notification_cache;
+#[path = "workbench_window_projection/previous_node_index.rs"]
+mod previous_node_index;
 #[path = "workbench_window_projection/typed_canvas.rs"]
 mod typed_canvas;
 
-use host_value_toml::toml_values_from_host_properties;
+use host_value_toml::{
+    toml_values_from_host_properties, toml_values_from_host_properties_without_notifications,
+};
+use mount::project_node_into_mount;
 use node_index::ProjectionNodeIndex;
+use notification_cache::reusable_notification_rows;
+use previous_node_index::{model_with_projection_identity, PreviousWorkbenchNodeIndex};
 use typed_canvas::projected_typed_canvas_data;
 
 const WORKBENCH_STATUS_RIGHT_OFFSET_Y: f64 = -0.5;
@@ -44,20 +56,46 @@ const UI_HOST_WINDOW_ROOT_CONTROL_ID: &str = "UiHostWindowRoot";
 pub(crate) fn to_host_contract_workbench_window_nodes(
     projection: Option<&RetainedUiHostProjection>,
 ) -> ModelRc<host_contract::TemplatePaneNodeData> {
+    to_host_contract_workbench_window_nodes_with_previous(projection, None)
+}
+
+pub(crate) fn to_host_contract_workbench_window_nodes_with_previous(
+    projection: Option<&RetainedUiHostProjection>,
+    previous_nodes: Option<&ModelRc<host_contract::TemplatePaneNodeData>>,
+) -> ModelRc<host_contract::TemplatePaneNodeData> {
+    to_host_contract_workbench_window_nodes_with_previous_at_mount(projection, previous_nodes, None)
+}
+
+pub(crate) fn to_host_contract_workbench_window_nodes_with_previous_at_mount(
+    projection: Option<&RetainedUiHostProjection>,
+    previous_nodes: Option<&ModelRc<host_contract::TemplatePaneNodeData>>,
+    mount_frame: Option<UiFrame>,
+) -> ModelRc<host_contract::TemplatePaneNodeData> {
     let Some(projection) = projection else {
         return ModelRc::default();
     };
 
     let node_index = ProjectionNodeIndex::new(&projection.nodes);
+    let previous_node_index = previous_nodes.and_then(|nodes| {
+        PreviousWorkbenchNodeIndex::for_projection(nodes, projection.document_id.as_str())
+    });
     let layout_context_width = projection_layout_context_width(projection);
-    model_rc(
+    model_with_projection_identity(
         projection
             .nodes
             .iter()
             .filter(|node| node_index.render_visible(node))
-            .filter_map(|node| to_host_contract_workbench_window_node(node, &node_index))
+            .filter_map(|node| {
+                let previous = node
+                    .control_id
+                    .as_deref()
+                    .and_then(|control_id| previous_node_index.as_ref()?.get(control_id));
+                to_host_contract_workbench_window_node_with_previous(node, &node_index, previous)
+            })
             .map(|node| apply_table_layout_context_variant(node, layout_context_width))
+            .map(|node| project_node_into_mount(node, mount_frame))
             .collect(),
+        projection.document_id.clone(),
     )
 }
 
@@ -73,6 +111,14 @@ fn projection_layout_context_width(projection: &RetainedUiHostProjection) -> f32
 fn to_host_contract_workbench_window_node(
     node: &RetainedUiHostNodeModel,
     node_index: &ProjectionNodeIndex<'_>,
+) -> Option<host_contract::TemplatePaneNodeData> {
+    to_host_contract_workbench_window_node_with_previous(node, node_index, None)
+}
+
+fn to_host_contract_workbench_window_node_with_previous(
+    node: &RetainedUiHostNodeModel,
+    node_index: &ProjectionNodeIndex<'_>,
+    previous: Option<&host_contract::TemplatePaneNodeData>,
 ) -> Option<host_contract::TemplatePaneNodeData> {
     let control_id = node.control_id.clone()?;
     let mut component_role = node
@@ -94,7 +140,15 @@ fn to_host_contract_workbench_window_node(
     {
         component_role = "notification-center".to_string();
     }
-    let mut button_style_values = toml_values_from_host_properties(&node.properties);
+    let notification_metadata =
+        projected_notification_center_metadata_from_host(component_role.as_str(), &node.properties)
+            .unwrap_or_default();
+    let reused_notification_rows = reusable_notification_rows(previous, &notification_metadata);
+    let mut button_style_values = if reused_notification_rows.is_some() {
+        toml_values_from_host_properties_without_notifications(&node.properties)
+    } else {
+        toml_values_from_host_properties(&node.properties)
+    };
     if is_cleared_inspector_property_row(control_id.as_str(), &node.properties) {
         clear_button_surface_style_values(&mut button_style_values);
     }
@@ -115,12 +169,39 @@ fn to_host_contract_workbench_window_node(
     let icon_name = node.icon.clone().unwrap_or_default();
     let preview_image = load_preview_image(&media_source, &icon_name);
     let preview_size = preview_image.size();
-    let option_values =
-        projected_command_palette_options(component_role.as_str(), &button_style_values)
-            .or_else(|| {
-                projected_notification_center_options(component_role.as_str(), &button_style_values)
-            })
-            .unwrap_or_else(|| string_array_property(&node.properties, "options", &node.options));
+    let (options_text, options, structured_options) = if let Some(reused) = reused_notification_rows
+    {
+        (
+            reused.options_text,
+            reused.options,
+            reused.structured_options,
+        )
+    } else {
+        let (notification_option_values, notification_structured_options) =
+            projected_notification_center_option_rows(
+                component_role.as_str(),
+                &button_style_values,
+            )
+            .map(|(options, structured_options)| (Some(options), Some(structured_options)))
+            .unwrap_or_default();
+        let option_values =
+            projected_command_palette_options(component_role.as_str(), &button_style_values)
+                .or(notification_option_values)
+                .unwrap_or_else(|| {
+                    string_array_property(&node.properties, "options", &node.options)
+                });
+        let structured_options = projected_command_palette_structured_options(
+            component_role.as_str(),
+            &button_style_values,
+        )
+        .or(notification_structured_options)
+        .unwrap_or_else(|| structured_options_for_node(&option_values, &button_style_values));
+        (
+            option_values.join(", ").into(),
+            shared_string_list(option_values),
+            model_rc(structured_options),
+        )
+    };
     let menu_item_values = string_array_property(&node.properties, "menu_items", &node.menu_items);
     let collection_item_values =
         string_array_property(&node.properties, "collection_items", &node.collection_items);
@@ -133,15 +214,6 @@ fn to_host_contract_workbench_window_node(
         preferred_route_action_id(&node.routes, [UiEventKind::Change]).unwrap_or_default();
     let commit_action_id =
         preferred_route_action_id(&node.routes, [UiEventKind::Submit]).unwrap_or_default();
-    let structured_options =
-        projected_command_palette_structured_options(component_role.as_str(), &button_style_values)
-            .or_else(|| {
-                projected_notification_center_structured_options(
-                    component_role.as_str(),
-                    &button_style_values,
-                )
-            })
-            .unwrap_or_else(|| structured_options_for_node(&option_values, &button_style_values));
     let structured_menu_item_values = structured_menu_items(&menu_item_values);
     let surface_variant = first_string_property(&node.properties, &["surface_variant"])
         .or_else(|| default_workbench_surface_variant(&node.component, &component_role))
@@ -292,9 +364,18 @@ fn to_host_contract_workbench_window_node(
         tree_indent_px: numeric_property(&node.properties, "tree_indent_px").unwrap_or_else(|| {
             f64::from(integer_property(&node.properties, "tree_depth").unwrap_or(0)) * 12.0
         }) as f32,
-        options_text: option_values.join(", ").into(),
-        options: shared_string_list(option_values),
-        structured_options: model_rc(structured_options),
+        options_text,
+        options,
+        structured_options,
+        notification_generation: notification_metadata.generation,
+        notification_unread_count: notification_metadata.unread_count,
+        notification_overflow_count: notification_metadata.overflow_count,
+        notification_selected_id: notification_metadata.selected_id.into(),
+        notification_focused_index: notification_metadata
+            .focused_index
+            .and_then(|index| i32::try_from(index).ok())
+            .unwrap_or(-1),
+        notification_visible_limit: notification_metadata.visible_limit,
         collection_items: shared_string_list(collection_item_values),
         menu_items: shared_string_list(menu_item_values),
         structured_menu_items: model_rc(structured_menu_item_values),

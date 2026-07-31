@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_c
     let (content_offset_x, content_offset_y) = table_content_offset(node);
     let metrics = table_cell_metrics();
     let available_width =
-        (rect.width - metrics.inset_x * 2.0 - table_action_column_width()).max(1.0);
+        (rect.width - metrics.inset_x * 2.0 - table_action_column_width()).max(0.0);
     let columns = allocate_table_columns_for_node(node, available_width);
     let x = rect.x + metrics.inset_x + content_offset_x + columns.x_offset(index);
     let width = columns.width(index);
@@ -20,7 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_c
         x: x + table_cell_offset_x(node, index),
         y: rect.y + metrics.inset_y + content_offset_y,
         width: width.max(0.0),
-        height: (rect.height - metrics.inset_y * 2.0).max(1.0),
+        height: (rect.height - metrics.inset_y * 2.0).max(0.0),
     }
 }
 

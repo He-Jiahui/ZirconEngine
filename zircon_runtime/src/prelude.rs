@@ -34,9 +34,11 @@ pub use crate::core::runtime::modules::{
 pub use crate::core::runtime::tasks::{
     parallel_for, JobHandle, JobSchedulerReport, TaskPool, TaskPoolDescriptor, TaskPoolKind,
     TaskPoolOptions, TaskPoolReport, TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy,
-    TaskPoolThreadCounts, TaskPools, TASKS_COMPLETED_DIAGNOSTIC,
-    TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_MAIN_THREAD_WAIT_MS_DIAGNOSTIC,
-    TASKS_SCHEDULED_DIAGNOSTIC,
+    TaskPoolThreadCounts, TaskPools, TASKS_ACTIVE_DIAGNOSTIC, TASKS_CANCELLED_DIAGNOSTIC,
+    TASKS_COMPLETED_DIAGNOSTIC, TASKS_DEPENDENCY_WAITING_DIAGNOSTIC,
+    TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_EXPLICIT_WAIT_MS_DIAGNOSTIC,
+    TASKS_PANICKED_DIAGNOSTIC, TASKS_QUEUED_DIAGNOSTIC, TASKS_QUEUE_WAIT_MS_DIAGNOSTIC,
+    TASKS_QUEUE_WAIT_SAMPLES_DIAGNOSTIC, TASKS_SCHEDULED_DIAGNOSTIC,
 };
 pub use crate::core::{
     CoreError, CoreHandle, CoreResult, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor,

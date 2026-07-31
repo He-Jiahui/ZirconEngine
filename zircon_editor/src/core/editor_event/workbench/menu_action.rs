@@ -9,6 +9,7 @@ pub enum MenuAction {
     OpenScene,
     CreateScene,
     SaveProject,
+    CloseProject,
     SaveLayout,
     ResetLayout,
     EnterPlayMode,

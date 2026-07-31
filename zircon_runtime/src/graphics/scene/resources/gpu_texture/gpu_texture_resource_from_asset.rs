@@ -1,6 +1,7 @@
 use crate::asset::assets::{
-    TextureAsset, TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport, LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset,
+    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
+    TextureUploadSupport,
 };
 use crate::core::framework::render::{
     RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension, RenderImageUsage,
@@ -666,25 +667,32 @@ fn rgba8_mip_uploads(
     height: u32,
     mip_level_count: u32,
     layer_count: u32,
-) -> Vec<Rgba8MipUpload> {
+) -> impl Iterator<Item = Rgba8MipUpload> {
+    let mut level = 0_u32;
+    let mut layer = 0_u32;
     let mut offset = 0_u64;
-    let mut uploads = Vec::new();
-    for level in 0..mip_level_count {
+    std::iter::from_fn(move || {
+        if level >= mip_level_count || layer_count == 0 {
+            return None;
+        }
         let level_width = mip_extent(width, level);
         let level_height = mip_extent(height, level);
         let level_size = rgba8_level_size_bytes(level_width, level_height);
-        for layer in 0..layer_count {
-            uploads.push(Rgba8MipUpload {
-                level,
-                layer,
-                width: level_width,
-                height: level_height,
-                offset,
-            });
-            offset = offset.saturating_add(level_size);
+        let upload = Rgba8MipUpload {
+            level,
+            layer,
+            width: level_width,
+            height: level_height,
+            offset,
+        };
+        offset = offset.saturating_add(level_size);
+        layer += 1;
+        if layer == layer_count {
+            layer = 0;
+            level += 1;
         }
-    }
-    uploads
+        Some(upload)
+    })
 }
 
 fn texture_view_descriptor(
@@ -758,11 +766,7 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 {
-        1
-    } else {
-        shifted
-    }
+    if shifted == 0 { 1 } else { shifted }
 }
 
 #[cfg(test)]

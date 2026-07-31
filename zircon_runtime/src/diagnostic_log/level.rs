@@ -1,6 +1,10 @@
 use std::error::Error;
 use std::fmt;
 
+mod compiled;
+
+pub(crate) use compiled::CompiledDiagnosticLogFilter;
+
 pub const DIAGNOSTIC_LOG_LEVEL_ENV: &str = "ZIRCON_LOG_LEVEL";
 pub const DIAGNOSTIC_LOG_FILTER_ENV: &str = "ZIRCON_LOG_FILTER";
 pub const DIAGNOSTIC_LOG_ENV: &str = "ZIRCON_LOG";
@@ -307,6 +311,41 @@ mod tests {
         assert!(release_default.allows(DiagnosticLogLevel::Warn));
         assert!(release_default.allows(DiagnosticLogLevel::Error));
         assert!(!DiagnosticLogFilter::Off.allows(DiagnosticLogLevel::Error));
+    }
+
+    #[test]
+    fn compiled_filter_preserves_longest_scope_prefix_semantics() {
+        let config = DiagnosticLogFilterConfig::parse(
+            "warn,runtime=debug,runtime::asset=off,runtime::asset::loader=verbose",
+            DiagnosticLogFilter::Minimum(DiagnosticLogLevel::Log),
+        )
+        .unwrap();
+        let compiled = super::CompiledDiagnosticLogFilter::new(&config);
+
+        for scope in [
+            "",
+            "editor",
+            "runtime",
+            "runtime::scene",
+            "runtime::asset",
+            "runtime::asset::database",
+            "runtime::asset::loader",
+            "runtime::asset::loader::io",
+        ] {
+            for level in [
+                DiagnosticLogLevel::Verbose,
+                DiagnosticLogLevel::Debug,
+                DiagnosticLogLevel::Log,
+                DiagnosticLogLevel::Warn,
+                DiagnosticLogLevel::Error,
+            ] {
+                assert_eq!(
+                    compiled.allows(level, scope),
+                    config.allows(level, scope),
+                    "scope={scope} level={level}"
+                );
+            }
+        }
     }
 
     #[test]

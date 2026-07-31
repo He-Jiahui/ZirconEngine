@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::FeatureDefinition;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) struct FeatureDefinitionMap {
     pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) definitions:
         HashMap<String, FeatureDefinition>,

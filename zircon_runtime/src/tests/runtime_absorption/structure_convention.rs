@@ -48,4 +48,4 @@ mod support;
 mod test_file_budget;
 
 pub(super) use support::priority_plan_doc_current_owner_archive_source;
-use support::{assert_contains_all, repo_path, runtime_src_path};
+use support::{assert_contains_all, assert_contains_all_exact, repo_path, runtime_src_path};

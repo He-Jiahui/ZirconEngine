@@ -1,3 +1,4 @@
+mod adaptive;
 mod adornment;
 mod density;
 mod paint;

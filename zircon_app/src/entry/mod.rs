@@ -9,6 +9,7 @@ mod export_bootstrap;
 #[cfg(feature = "target-editor-host")]
 mod first_party_editor_plugins;
 mod first_party_runtime_plugins;
+mod platform_preferences;
 #[cfg(feature = "platform-winit")]
 mod runtime_entry_app;
 pub(crate) mod runtime_library;
@@ -21,11 +22,14 @@ pub use engine_entry::{
 };
 pub use entry_config::EntryConfig;
 pub use entry_profile::EntryProfile;
+#[cfg(feature = "target-editor-host")]
+pub use entry_runner::EditorApplicationComposition;
 pub use entry_runner::{EntryRunner, EntryRuntimeBootstrap, NativePluginRuntimeBootstrap};
 pub use export_bootstrap::{
-    bootstrap_export_runtime, bootstrap_export_runtime_with_native_plugins_from_export_root,
-    bootstrap_export_runtime_with_report, discover_export_root, ExportRuntimeBootstrapConfig,
-    ExportRuntimePluginFeatureRegistrationProvider, ExportRuntimePluginRegistrationProvider,
+    ExportRuntimeBootstrapConfig, ExportRuntimePluginFeatureRegistrationProvider,
+    ExportRuntimePluginRegistrationProvider, bootstrap_export_runtime,
+    bootstrap_export_runtime_with_native_plugins_from_export_root,
+    bootstrap_export_runtime_with_report, discover_export_root,
 };
 #[cfg(feature = "target-editor-host")]
 pub use first_party_editor_plugins::{

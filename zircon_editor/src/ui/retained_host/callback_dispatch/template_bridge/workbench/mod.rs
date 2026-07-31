@@ -1,3 +1,4 @@
+mod asset_creation_menu;
 mod blend_space_transport;
 mod bridge;
 mod command_palette;
@@ -15,6 +16,7 @@ mod generated_bottom_panel_lifecycle;
 mod generated_bottom_panel_navigation;
 mod host_projection;
 mod layout_frames;
+mod main_menu_items;
 mod module_command_feedback;
 mod module_field_edit;
 mod module_navigation;
@@ -29,6 +31,7 @@ mod root_shell_frames;
 mod scene_tree_rows;
 mod status_bar;
 mod toolbar_layout;
+mod toolbar_run_state;
 mod transform_edit;
 mod window_menu_state;
 

@@ -1,22 +1,29 @@
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn runtime_ui_graph_pass_order(
     executed_passes: &[String],
     ui_graph_executed_pass_count: usize,
-) -> Option<String> {
+) -> Option<&'static str> {
     if ui_graph_executed_pass_count == 0 {
         return None;
     }
-    let postprocess = executed_passes.iter().position(|pass| pass == "uber")?;
-    let runtime_ui = executed_passes
-        .iter()
-        .position(|pass| pass == "runtime-ui")?;
-    let overlay = executed_passes
-        .iter()
-        .position(|pass| pass == "overlay-gizmo")?;
+    let mut postprocess = None;
+    let mut runtime_ui = None;
+    let mut overlay = None;
+    for (index, pass) in executed_passes.iter().enumerate() {
+        match pass.as_str() {
+            "uber" if postprocess.is_none() => postprocess = Some(index),
+            "runtime-ui" if runtime_ui.is_none() => runtime_ui = Some(index),
+            "overlay-gizmo" if overlay.is_none() => overlay = Some(index),
+            _ => {}
+        }
+    }
+    let postprocess = postprocess?;
+    let runtime_ui = runtime_ui?;
+    let overlay = overlay?;
 
     if postprocess < overlay && overlay < runtime_ui {
-        Some("postprocess-overlay-ui".to_string())
+        Some("postprocess-overlay-ui")
     } else if postprocess < runtime_ui && runtime_ui < overlay {
-        Some("postprocess-ui-overlay".to_string())
+        Some("postprocess-ui-overlay")
     } else {
         None
     }

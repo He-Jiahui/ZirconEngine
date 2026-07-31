@@ -7,8 +7,8 @@ use crate::core::framework::render::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
     RenderMaterialLightingModel, RenderMaterialReadinessReport, RenderMaterialTextureTransform,
-    RenderMaterialValidationError, RenderQueueValue, ShaderQueueDescriptor, ShaderQueueSegment,
-    StandardMaterialDescriptor, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
+    RenderMaterialValidationError, RenderQueueValue, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
+    ShaderQueueDescriptor, ShaderQueueSegment, StandardMaterialDescriptor,
 };
 use crate::core::resource::ResourceId;
 
@@ -28,10 +28,9 @@ use self::value_sync::{
     sync_texture_slot, sync_vec3_override, sync_vec4_override, texture_slot_reference,
 };
 use super::{
-    dependency_set, is_standard_texture_slot_alias, material_control,
-    shader_property_values_for_shader, validate_alpha_mode, validate_render_queue_alpha_mode,
-    validate_shader_contract, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
-    ZMaterialQueueOverride,
+    AlphaMode, MaterialTextureSlotValue, ZMaterialDocument, ZMaterialQueueOverride, dependency_set,
+    is_standard_texture_slot_alias, material_control, shader_property_values_for_shader,
+    validate_alpha_mode, validate_render_queue_alpha_mode, validate_shader_contract,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

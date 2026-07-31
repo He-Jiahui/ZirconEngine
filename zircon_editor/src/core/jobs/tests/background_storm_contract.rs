@@ -22,7 +22,7 @@ const STORM_WATCHDOG: Duration = Duration::from_secs(60);
 fn thumbnail_storm_preserves_quota_and_records_main_thread_pump_baseline() {
     let bus = SharedEditorMessageBus::default();
     let job_topic = EditorTopic::parse(TOPIC_JOB).expect("job topic must remain valid");
-    let subscriber = bus.register_subscriber([job_topic]);
+    let subscriber = bus.register_subscriber([job_topic]).unwrap();
     let limits = EditorJobLimits::default().with_limit(JobCategory::Thumbnail, THUMBNAIL_JOB_LIMIT);
     assert_eq!(limits.limit(JobCategory::Thumbnail), THUMBNAIL_JOB_LIMIT);
     let jobs = test_job_system_with_bus(bus.clone(), limits);

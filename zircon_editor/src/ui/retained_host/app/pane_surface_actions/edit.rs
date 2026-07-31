@@ -1,5 +1,6 @@
 use super::super::*;
 use super::ui_asset_detail::UiAssetDetailSurfaceBinding;
+use crate::ui::retained_host::app::hierarchy_rename::HIERARCHY_INLINE_RENAME_CONTROL_ID;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn dispatch_pane_surface_control_edited(
@@ -9,6 +10,14 @@ impl RetainedEditorHost {
         value: &str,
     ) {
         self.focus_callback_source_window();
+        if control_id == "HierarchySearchQuery" {
+            self.set_hierarchy_filter_query(value);
+            return;
+        }
+        if control_id == HIERARCHY_INLINE_RENAME_CONTROL_ID {
+            self.dispatch_hierarchy_rename_edit(binding_id, value);
+            return;
+        }
         if let Some(result) = self
             .dispatch_componentized_workbench_surface_control_edited(control_id, binding_id, value)
         {

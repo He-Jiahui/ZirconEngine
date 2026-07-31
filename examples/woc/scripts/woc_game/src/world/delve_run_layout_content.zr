@@ -1,0 +1,179 @@
+// Generated active Delve run-layout catalog from pinned source.
+// Tier indices are the source tier-array order. An out-of-range index maps
+// to source pickDelveModules' unknown-tier fallback (tier zero).
+
+routeForDelveIndex(delveIndex: int): int {
+    if (delveIndex == 0) {
+        return 0;
+    }
+    return delveIndex == 1 ? 1 : -1;
+}
+
+pub delveIndexIsKnown(delveIndex: int): bool {
+    return routeForDelveIndex(delveIndex) >= 0;
+}
+
+pub nonFinalModuleCount(delveIndex: int, required: bool): int {
+    if (!required) {
+        throw "woc Delve non-finale module count is required";
+    }
+    var route = routeForDelveIndex(delveIndex);
+    if (route < 0) {
+        throw "woc Delve non-finale module count is invalid";
+    }
+    if (route == 0) {
+        return 3;
+    }
+    return 6;
+}
+
+pub nonFinalModuleIndex(delveIndex: int, moduleOffset: int, required: bool): int {
+    if (!required || moduleOffset < 0) {
+        throw "woc Delve non-finale module index is invalid";
+    }
+    var route = routeForDelveIndex(delveIndex);
+    if (route < 0) {
+        throw "woc Delve non-finale module index is invalid";
+    }
+    if (route == 0) {
+        if (moduleOffset >= 3) {
+            throw "woc Delve non-finale module index is invalid";
+        }
+        if (moduleOffset == 0) {
+            return 0;
+        }
+        if (moduleOffset == 1) {
+            return 1;
+        }
+        return 2;
+    }
+    if (route == 1) {
+        if (moduleOffset >= 6) {
+            throw "woc Delve non-finale module index is invalid";
+        }
+        if (moduleOffset == 0) {
+            return 4;
+        }
+        if (moduleOffset == 1) {
+            return 5;
+        }
+        if (moduleOffset == 2) {
+            return 6;
+        }
+        if (moduleOffset == 3) {
+            return 7;
+        }
+        if (moduleOffset == 4) {
+            return 8;
+        }
+        return 9;
+    }
+    throw "woc Delve non-finale module index is invalid";
+}
+
+pub finaleModuleIndex(delveIndex: int, required: bool): int {
+    if (!required) {
+        throw "woc Delve finale module index is required";
+    }
+    var route = routeForDelveIndex(delveIndex);
+    if (route < 0) {
+        throw "woc Delve finale module index is invalid";
+    }
+    if (route == 0) {
+        return 3;
+    }
+    return 10;
+}
+
+pub tierCount(delveIndex: int, required: bool): int {
+    if (!required) {
+        throw "woc Delve tier count is required";
+    }
+    var route = routeForDelveIndex(delveIndex);
+    if (route < 0) {
+        throw "woc Delve tier count is invalid";
+    }
+    if (route == 0) {
+        return 2;
+    }
+    return 2;
+}
+
+pub effectiveTierIndex(delveIndex: int, tierIndex: int, required: bool): int {
+    if (!required || routeForDelveIndex(delveIndex) < 0) {
+        throw "woc Delve tier is invalid";
+    }
+    return tierIndex >= 0 && tierIndex < tierCount(delveIndex, true) ? tierIndex : 0;
+}
+
+pub moduleCountForTier(delveIndex: int, tierIndex: int, required: bool): int {
+    if (!required) {
+        throw "woc Delve run module count is required";
+    }
+    var route = routeForDelveIndex(delveIndex);
+    if (route < 0) {
+        throw "woc Delve run module count is invalid";
+    }
+    var effective = effectiveTierIndex(delveIndex, tierIndex, true);
+    if (route == 0) {
+        if (effective == 0) {
+            return 3;
+        }
+        return 3;
+    }
+    if (route == 1) {
+        if (effective == 0) {
+            return 3;
+        }
+        return 3;
+    }
+    throw "woc Delve run module count is invalid";
+}
+
+pub contractTest(): int {
+    if (!delveIndexIsKnown(0) || !delveIndexIsKnown(1) || delveIndexIsKnown(99)) {
+        return -1;
+    }
+    if (nonFinalModuleCount(0, true) != 3 ||
+        finaleModuleIndex(0, true) != 3 ||
+        tierCount(0, true) != 2 ||
+        moduleCountForTier(0, -1, true) != 3 ||
+        moduleCountForTier(0, 1, true) != 3) {
+        return -2;
+    }
+    if (nonFinalModuleIndex(0, 0, true) != 0) {
+        return -20;
+    }
+    if (nonFinalModuleIndex(0, 1, true) != 1) {
+        return -21;
+    }
+    if (nonFinalModuleIndex(0, 2, true) != 2) {
+        return -22;
+    }
+    if (nonFinalModuleCount(1, true) != 6 ||
+        finaleModuleIndex(1, true) != 10 ||
+        tierCount(1, true) != 2 ||
+        moduleCountForTier(1, -1, true) != 3 ||
+        moduleCountForTier(1, 1, true) != 3) {
+        return -3;
+    }
+    if (nonFinalModuleIndex(1, 0, true) != 4) {
+        return -30;
+    }
+    if (nonFinalModuleIndex(1, 1, true) != 5) {
+        return -31;
+    }
+    if (nonFinalModuleIndex(1, 2, true) != 6) {
+        return -32;
+    }
+    if (nonFinalModuleIndex(1, 3, true) != 7) {
+        return -33;
+    }
+    if (nonFinalModuleIndex(1, 4, true) != 8) {
+        return -34;
+    }
+    if (nonFinalModuleIndex(1, 5, true) != 9) {
+        return -35;
+    }
+    return 1;
+}

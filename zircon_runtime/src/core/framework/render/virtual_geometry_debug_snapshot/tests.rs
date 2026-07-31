@@ -43,9 +43,9 @@ fn cull_input_snapshot_roundtrips_through_gpu_word_layout() {
         .expect("expected cull-input snapshot to decode from its stable GPU word layout");
 
     assert_eq!(
-            decoded, snapshot,
-            "expected the future NaniteGlobalStateBuffer-compatible word layout to round-trip every authored budget/debug/provenance field without host-side reinterpretation"
-        );
+        decoded, snapshot,
+        "expected the future NaniteGlobalStateBuffer-compatible word layout to round-trip every authored budget/debug/provenance field without host-side reinterpretation"
+    );
 }
 
 #[test]
@@ -98,9 +98,9 @@ fn node_and_cluster_cull_global_state_roundtrips_through_gpu_word_layout() {
             .expect("expected node-and-cluster-cull global state to decode");
 
     assert_eq!(
-            decoded, snapshot,
-            "expected the NodeAndClusterCull global-state word layout to round-trip cull input, viewport, camera origin, and view-projection data without host-side reinterpretation"
-        );
+        decoded, snapshot,
+        "expected the NodeAndClusterCull global-state word layout to round-trip cull input, viewport, camera origin, and view-projection data without host-side reinterpretation"
+    );
 }
 
 #[test]
@@ -119,9 +119,9 @@ fn node_and_cluster_cull_instance_seed_roundtrips_through_gpu_word_layout() {
         .expect("expected node-and-cluster-cull instance seed to decode");
 
     assert_eq!(
-            decoded, seed,
-            "expected the NodeAndClusterCull instance-seed word layout to round-trip the per-instance root worklist contract without host-side reinterpretation"
-        );
+        decoded, seed,
+        "expected the NodeAndClusterCull instance-seed word layout to round-trip the per-instance root worklist contract without host-side reinterpretation"
+    );
 }
 
 #[test]
@@ -144,9 +144,9 @@ fn node_and_cluster_cull_instance_work_item_roundtrips_through_gpu_word_layout()
             .expect("expected node-and-cluster-cull instance work item to decode");
 
     assert_eq!(
-            decoded, work_item,
-            "expected the NodeAndClusterCull instance-work-item word layout to round-trip the first compute-stub output contract so the renderer-owned GPU buffer and baseline pass can share one typed per-instance seam"
-        );
+        decoded, work_item,
+        "expected the NodeAndClusterCull instance-work-item word layout to round-trip the first compute-stub output contract so the renderer-owned GPU buffer and baseline pass can share one typed per-instance seam"
+    );
 }
 
 #[test]
@@ -166,9 +166,9 @@ fn node_and_cluster_cull_cluster_work_item_roundtrips_through_gpu_word_layout() 
         .expect("expected node-and-cluster-cull cluster work item to decode");
 
     assert_eq!(
-            decoded, work_item,
-            "expected the public NodeAndClusterCull cluster-work-item word layout to round-trip the per-cluster traversal input contract used by renderer-owned buffers and debug snapshots"
-        );
+        decoded, work_item,
+        "expected the public NodeAndClusterCull cluster-work-item word layout to round-trip the per-cluster traversal input contract used by renderer-owned buffers and debug snapshots"
+    );
 }
 
 #[test]
@@ -191,9 +191,9 @@ fn node_and_cluster_cull_child_work_item_roundtrips_through_gpu_word_layout() {
         .expect("expected node-and-cluster-cull child work item to decode");
 
     assert_eq!(
-            decoded, work_item,
-            "expected the public NodeAndClusterCull child-work-item word layout to round-trip authored child traversal input without private renderer-side reinterpretation"
-        );
+        decoded, work_item,
+        "expected the public NodeAndClusterCull child-work-item word layout to round-trip authored child traversal input without private renderer-side reinterpretation"
+    );
 }
 
 #[test]
@@ -221,9 +221,9 @@ fn node_and_cluster_cull_traversal_record_roundtrips_through_gpu_word_layout() {
         .expect("expected node-and-cluster-cull traversal record to decode");
 
     assert_eq!(
-            decoded, record,
-            "expected the public NodeAndClusterCull traversal-record word layout to round-trip VisitNode/StoreCluster/EnqueueChild decisions without private renderer-side reinterpretation"
-        );
+        decoded, record,
+        "expected the public NodeAndClusterCull traversal-record word layout to round-trip VisitNode/StoreCluster/EnqueueChild decisions without private renderer-side reinterpretation"
+    );
 }
 
 #[test]
@@ -303,7 +303,7 @@ fn node_and_cluster_cull_launch_worklist_roundtrips_through_gpu_word_layout() {
             .expect("expected node-and-cluster-cull launch worklist to decode");
 
     assert_eq!(
-            decoded, snapshot,
-            "expected the NodeAndClusterCull launch-worklist word layout to round-trip the combined global state, dispatch setup, and root seeds so the renderer-owned GPU buffer can stay the single baseline compute-stub contract"
-        );
+        decoded, snapshot,
+        "expected the NodeAndClusterCull launch-worklist word layout to round-trip the combined global state, dispatch setup, and root seeds so the renderer-owned GPU buffer can stay the single baseline compute-stub contract"
+    );
 }

@@ -11,6 +11,7 @@ pub enum SceneGizmoKind {
     VirtualGeometryBvh,
     VirtualGeometryVisBuffer,
     NavigationMesh,
+    AiPerception,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

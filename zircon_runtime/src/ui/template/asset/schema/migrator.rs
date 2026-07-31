@@ -1,4 +1,3 @@
-use serde::Deserialize;
 use toml::Value;
 
 use super::flat_nodes;
@@ -27,18 +26,21 @@ impl UiAssetSchemaMigrator {
         };
 
         if table.contains_key("asset") {
-            let header = parse_asset_header(input)?;
+            let header = parse_asset_header_value(&value)?;
             reject_unsupported_source_version(&header)?;
             if table.contains_key("nodes") {
-                return Self::migrate_flat_asset(input, header);
+                return Self::migrate_flat_asset(value, header);
             }
-            return Self::migrate_tree_asset(input);
+            return Self::migrate_tree_asset(value);
         }
 
-        Self::migrate_source_template_fixture_str(
+        let source_template: UiTemplateDocument = value
+            .try_into()
+            .map_err(|error: toml::de::Error| UiAssetError::ParseToml(error.to_string()))?;
+        Self::migrate_source_template_fixture_document(
             DEFAULT_SOURCE_TEMPLATE_FIXTURE_ASSET_ID,
             DEFAULT_SOURCE_TEMPLATE_FIXTURE_DISPLAY_NAME,
-            input,
+            &source_template,
         )
     }
 
@@ -92,9 +94,10 @@ impl UiAssetSchemaMigrator {
         })
     }
 
-    fn migrate_tree_asset(input: &str) -> Result<UiAssetMigrationOutcome, UiAssetError> {
-        let mut document: UiAssetDocument =
-            toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
+    fn migrate_tree_asset(value: Value) -> Result<UiAssetMigrationOutcome, UiAssetError> {
+        let mut document: UiAssetDocument = value
+            .try_into()
+            .map_err(|error: toml::de::Error| UiAssetError::ParseToml(error.to_string()))?;
         reject_unsupported_source_version(&document.asset)?;
 
         let source_version = document.asset.version;
@@ -114,10 +117,10 @@ impl UiAssetSchemaMigrator {
     }
 
     fn migrate_flat_asset(
-        input: &str,
+        value: Value,
         header: UiAssetHeader,
     ) -> Result<UiAssetMigrationOutcome, UiAssetError> {
-        let mut document = flat_nodes::migrate_flat_toml_str(input)
+        let mut document = flat_nodes::migrate_flat_value(value)
             .map_err(|error| schema_migration_failed(&header.id, error))?;
         let source_version = header.version;
         let mut report = UiAssetMigrationReport::new(
@@ -135,10 +138,14 @@ impl UiAssetSchemaMigrator {
     }
 }
 
-fn parse_asset_header(input: &str) -> Result<UiAssetHeader, UiAssetError> {
-    let probe: AssetHeaderProbe =
-        toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
-    Ok(probe.asset)
+fn parse_asset_header_value(value: &Value) -> Result<UiAssetHeader, UiAssetError> {
+    value
+        .as_table()
+        .and_then(|table| table.get("asset"))
+        .cloned()
+        .ok_or_else(|| UiAssetError::ParseToml("ui asset source is missing [asset]".to_string()))?
+        .try_into()
+        .map_err(|error: toml::de::Error| UiAssetError::ParseToml(error.to_string()))
 }
 
 fn reject_unsupported_source_version(header: &UiAssetHeader) -> Result<(), UiAssetError> {
@@ -166,9 +173,4 @@ fn schema_migration_failed(asset_id: &str, error: UiAssetError) -> UiAssetError 
         asset_id: asset_id.to_string(),
         detail: error.to_string(),
     }
-}
-
-#[derive(Deserialize)]
-struct AssetHeaderProbe {
-    pub asset: UiAssetHeader,
 }

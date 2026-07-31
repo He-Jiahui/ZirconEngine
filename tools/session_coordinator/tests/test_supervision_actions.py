@@ -132,20 +132,32 @@ class SupervisionActionTests(unittest.TestCase):
             source_manifest={"README.md": readme_hash},
         )
 
-    def test_proof_bound_drain_persists_hold_and_allows_only_maintenance_scope(self) -> None:
+    def test_drain_reports_blockers_without_closing_mutation_admission(self) -> None:
+        self._insert_cargo_job("live-cargo", status="running", live_pids=[101])
+
+        drained = self._confirm(ActionKind.SERVICE_DRAIN)
+
+        self.assertEqual("succeeded", drained.status.value)
+        self.assertTrue(drained.result["admissionOpen"])
+        self.assertTrue(any(blocker["kind"] == "cargo" for blocker in drained.result["blockers"]))
+        snapshot = self.supervision.snapshot()
+        self.assertEqual("healthy", snapshot.state.value)
+        self.assertFalse(snapshot.maintenance_hold)
+        self.supervision.require_mutation_allowed("cargo.reserve_cpu@reviewer-session")
+
+    def test_drain_with_a_maintenance_scope_keeps_all_sessions_admitted(self) -> None:
         drained = self._confirm(
             ActionKind.SERVICE_DRAIN,
             maintenanceSessionIds=["executor-session"],
         )
 
         self.assertEqual("succeeded", drained.status.value)
-        self.assertEqual("draining", self.supervision.snapshot().state.value)
-        self.assertTrue(self.supervision.snapshot().maintenance_hold)
-        with self.assertRaises(CoordinatorError) as generic:
-            self.supervision.require_mutation_allowed("cargo.acquire@reviewer-session")
-        self.assertEqual("maintenance_hold_active", generic.exception.code)
+        self.assertTrue(drained.result["admissionOpen"])
+        self.assertEqual("healthy", self.supervision.snapshot().state.value)
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
+        self.supervision.require_mutation_allowed("cargo.acquire@reviewer-session")
 
-    def test_proof_bound_drain_applies_its_scope_to_the_current_daemon(self) -> None:
+    def test_drain_does_not_limit_the_current_daemon_to_a_maintenance_scope(self) -> None:
         self._confirm(
             ActionKind.SERVICE_DRAIN,
             maintenanceSessionIds=["executor-session"],
@@ -155,11 +167,9 @@ class SupervisionActionTests(unittest.TestCase):
             "cargo.consume_cpu_reservation@executor-session"
         )
         self.supervision.require_mutation_allowed("cargo.run_reserved@executor-session")
-        with self.assertRaises(CoordinatorError) as foreign:
-            self.supervision.require_mutation_allowed(
-                "cargo.consume_cpu_reservation@reviewer-session"
-            )
-        self.assertEqual("maintenance_hold_active", foreign.exception.code)
+        self.supervision.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@reviewer-session"
+        )
 
     def test_bootstrap_rejects_a_burst_reservation(self) -> None:
         with self.database.transaction() as connection:
@@ -1680,6 +1690,58 @@ class SupervisionActionTests(unittest.TestCase):
             deadline_at="later",
         )
         self.assertTrue(fresh_intent)
+
+    def test_successor_recovers_orphan_under_hold_without_reopening_mutations(self) -> None:
+        orphan = self.actions.preview(
+            self.context, ActionKind.SERVICE_STOP.value, {"timeoutSeconds": 5}
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE action_requests SET status='executing' WHERE action_id=?",
+                (orphan.action_id,),
+            )
+        self.supervision.create_intent(
+            LifecycleKind.STOP,
+            action_id=orphan.action_id,
+            actor="test",
+            deadline_at="later",
+        )
+        self.supervision.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.orphan_under_hold",
+            actor="test",
+            action_id=orphan.action_id,
+            updates={"maintenance_hold": 1},
+        )
+
+        successor = SupervisionService(
+            self.database,
+            repository_key="repo",
+            daemon_instance_id="daemon-b",
+            process_creation_time="created-b",
+        )
+        successor.initialize(start_reason="recovery.maintenance_hold")
+        successor.mark_healthy()
+        recovered_lifecycle = LifecycleService(successor)
+        self.addCleanup(recovered_lifecycle.close)
+
+        self.assertEqual(1, recovered_lifecycle.recover_restart_intents())
+        with self.database.connect() as connection:
+            intent = connection.execute(
+                "SELECT status, error_code FROM service_lifecycle_intents WHERE action_id=?",
+                (orphan.action_id,),
+            ).fetchone()
+            action = connection.execute(
+                "SELECT status, error_code FROM action_requests WHERE action_id=?",
+                (orphan.action_id,),
+            ).fetchone()
+        self.assertEqual(("failed", "lifecycle_orphan_recovered"), tuple(intent))
+        self.assertEqual(("failed", "lifecycle_orphan_recovered"), tuple(action))
+        self.assertEqual("healthy", successor.snapshot().state.value)
+        self.assertTrue(successor.snapshot().maintenance_hold)
+        with self.assertRaises(CoordinatorError) as rejected:
+            successor.require_mutation_allowed("session.register@ordinary-session")
+        self.assertEqual("maintenance_hold_active", rejected.exception.code)
 
     def test_restart_is_completed_only_by_successor_daemon(self) -> None:
         restarting = self._confirm(ActionKind.SERVICE_RESTART)

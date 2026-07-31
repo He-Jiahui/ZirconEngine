@@ -7,7 +7,7 @@ use zircon_runtime::core::framework::render::{
     RenderHybridGiExtract, RenderHybridGiScenePrepareSample,
     RenderHybridGiVoxelCellDominantNodeRecord, RenderHybridGiVoxelCellRecord,
     RenderHybridGiVoxelCellSampleRecord, RenderHybridGiVoxelOccupancyMaskRecord, RenderLayerSet,
-    RenderMeshSnapshot, RenderMeshStaticState, HYBRID_GI_SOURCE_FULL_DYNAMIC,
+    RenderMeshSnapshot, RenderMeshStaticState, RendererCommon, HYBRID_GI_SOURCE_FULL_DYNAMIC,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec4};
@@ -353,6 +353,10 @@ fn scene_prepare_mesh(node_id: u64, translation: Vec3, tint: Vec4) -> RenderMesh
         tint,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: true,
+            ..RendererCommon::default()
+        },
     }
 }

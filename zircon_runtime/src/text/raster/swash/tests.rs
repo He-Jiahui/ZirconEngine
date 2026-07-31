@@ -1,16 +1,18 @@
+use std::sync::Arc;
+
 use super::bitmap::{ALPHA_MASK_CHANNELS, COLOR_BITMAP_CHANNELS};
 use super::rasterizer::glyph_bitmap_from_swash_image;
 use super::*;
 use crate::core::math::{UVec2, Vec2};
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
-    glyph_atlas_bitmap_run_plan_with_padding, glyph_atlas_bitmap_upload_staging_plan,
     GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
-    GlyphAtlasStorageFormat,
+    GlyphAtlasStorageFormat, glyph_atlas_bitmap_run_plan_with_padding,
+    glyph_atlas_bitmap_upload_staging_plan,
 };
-use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin};
-use swash::scale::image::{Content as SwashImageContent, Image as SwashImage};
+use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SubpixelBin, fontdb};
 use swash::FontRef;
+use swash::scale::image::{Content as SwashImageContent, Image as SwashImage};
 
 const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -113,6 +115,7 @@ fn text_raster_swash_glyph_bitmap_builds_alpha_atlas_source_from_actual_bytes() 
     assert_eq!(
         source,
         GlyphAtlasBitmapSource {
+            raster_key: None,
             format: GlyphAtlasFormat::AlphaMask,
             content_size: UVec2::new(2, 3),
             screen_rect,
@@ -315,7 +318,7 @@ fn text_raster_swash_glyphon_cache_key_preserves_offset_hint_sources_and_weight(
     assert_eq!(request.offset, Vec2::new(0.75, 0.5));
     assert_eq!(request.render_format, ::swash::zeno::Format::Alpha);
     assert_eq!(
-        request.variations,
+        *request.variations,
         crate::text::VariationCoords(vec![(u32::from_be_bytes(*b"wght"), 650.0,)])
     );
     assert!(!request.fake_italic);
@@ -331,15 +334,23 @@ fn text_raster_swash_glyphon_cache_key_preserves_offset_hint_sources_and_weight(
 
 #[test]
 fn text_raster_swash_request_preserves_arbitrary_variable_axes() {
-    let variations = crate::text::VariationCoords(vec![
+    let variations = Arc::new(crate::text::VariationCoords(vec![
         (u32::from_be_bytes(*b"wdth"), 85.0),
         (u32::from_be_bytes(*b"opsz"), 18.0),
-    ]);
+    ]));
 
-    let request =
-        SwashRasterRequest::alpha_outline(0, 1, 18.0, true).with_variations(variations.clone());
+    let request = SwashRasterRequest::alpha_outline(0, 1, 18.0, true)
+        .with_variations(Arc::clone(&variations));
 
     assert_eq!(request.variations, variations);
+    assert!(Arc::ptr_eq(&request.variations, &variations));
+}
+
+#[test]
+fn text_raster_swash_request_preserves_a_stable_font_identity() {
+    let request = SwashRasterRequest::alpha_outline(0, 1, 18.0, true).with_font_identity([7, 11]);
+
+    assert_eq!(request.font_identity, Some([7, 11]));
 }
 
 #[test]
@@ -395,6 +406,71 @@ fn text_raster_swash_rasterizer_renders_real_alpha_outline_glyph() {
         bitmap.data.iter().any(|coverage| *coverage > 0),
         "alpha glyph should contain non-empty coverage"
     );
+}
+
+#[test]
+fn text_raster_swash_rasterizer_batches_compatible_requests_into_one_scaler() {
+    let font = FontRef::from_index(TEST_FONT_BYTES, 0).expect("test font should parse as face 0");
+    let requests = ['P', 'r', 'i']
+        .into_iter()
+        .map(|character| {
+            let glyph_id = font.charmap().map(character);
+            assert_ne!(
+                glyph_id, 0,
+                "test glyph {character:?} should be present in FiraSans"
+            );
+            SwashRasterRequest::alpha_outline(0, glyph_id, 18.0, true).with_font_identity([7, 11])
+        })
+        .collect::<Vec<_>>();
+    let mut rasterizer = SwashRasterizer::new();
+    let mut results = Vec::new();
+
+    rasterizer.rasterize_batch(TEST_FONT_BYTES, &requests, |index, result| {
+        results.push((index, result));
+    });
+
+    assert_eq!(rasterizer.scaler_build_count_for_test(), 1);
+    assert_eq!(results.len(), requests.len());
+    for (index, result) in results {
+        assert!(index < requests.len());
+        let bitmap = result.expect("each compatible glyph should rasterize");
+        assert!(bitmap.size.x > 0);
+        assert!(bitmap.size.y > 0);
+        assert!(bitmap.has_expected_data_len());
+    }
+}
+
+#[test]
+fn text_raster_swash_rasterizer_separates_different_physical_sizes() {
+    let font = FontRef::from_index(TEST_FONT_BYTES, 0).expect("test font should parse as face 0");
+    let requests = [('P', 18.0), ('r', 19.0)]
+        .into_iter()
+        .map(|(character, px_size)| {
+            let glyph_id = font.charmap().map(character);
+            assert_ne!(
+                glyph_id, 0,
+                "test glyph {character:?} should be present in FiraSans"
+            );
+            SwashRasterRequest::alpha_outline(0, glyph_id, px_size, true)
+                .with_font_identity([7, 11])
+        })
+        .collect::<Vec<_>>();
+    let mut rasterizer = SwashRasterizer::new();
+    let mut results = Vec::new();
+
+    rasterizer.rasterize_batch(TEST_FONT_BYTES, &requests, |index, result| {
+        results.push((index, result));
+    });
+
+    assert_eq!(rasterizer.scaler_build_count_for_test(), 2);
+    assert_eq!(results.len(), requests.len());
+    for (index, result) in results {
+        assert!(index < requests.len());
+        assert!(
+            result.is_ok(),
+            "each differently sized glyph should rasterize"
+        );
+    }
 }
 
 #[test]

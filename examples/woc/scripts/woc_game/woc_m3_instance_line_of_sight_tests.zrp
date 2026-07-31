@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_instance_line_of_sight_tests",
+  "source": "src",
+  "binary": "bin-m3-instance-line-of-sight-tests",
+  "entry": "world/instance_line_of_sight_test_main"
+}

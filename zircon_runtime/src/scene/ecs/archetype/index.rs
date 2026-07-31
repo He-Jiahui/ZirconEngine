@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::scene::ecs::ComponentId;
 use crate::scene::EntityId;
+use crate::scene::ecs::ComponentId;
 
 use super::id::ArchetypeId;
 use super::move_result::ArchetypeMove;
@@ -61,26 +61,41 @@ impl ArchetypeIndex {
     pub fn move_entity(
         &mut self,
         entity: EntityId,
-        previous: Option<ArchetypeId>,
+        previous: Option<(ArchetypeId, usize)>,
         target: ArchetypeId,
     ) -> ArchetypeMove {
-        if previous == Some(target) {
-            return ArchetypeMove {
-                entity_row: self.add_entity_to(target, entity),
-                swapped_entity: None,
-            };
-        }
-
-        let swapped_entity = if let Some(id) = previous {
-            self.remove_entity_from(id, entity)
-        } else {
-            None
+        let swapped_entity = match previous {
+            Some((previous_id, previous_row)) => {
+                if previous_id == target {
+                    return ArchetypeMove {
+                        entity_row: previous_row,
+                        swapped_entity: None,
+                    };
+                }
+                self.remove_entity_at(previous_id, previous_row, entity)
+            }
+            None => None,
         };
         let entity_row = self.add_entity_to(target, entity);
         ArchetypeMove {
             entity_row,
             swapped_entity,
         }
+    }
+
+    pub(crate) fn remove_entity_at(
+        &mut self,
+        id: ArchetypeId,
+        row: usize,
+        entity: EntityId,
+    ) -> Option<(EntityId, usize)> {
+        let record = self.records.get_mut(id.index())?;
+        let located_entity = record.entities().get(row).copied()?;
+        debug_assert_eq!(located_entity, entity);
+        if located_entity != entity {
+            return None;
+        }
+        record.swap_remove_entity(row, entity)
     }
 
     pub fn matching_archetypes(
@@ -159,20 +174,7 @@ impl ArchetypeIndex {
         let Some(record) = self.records.get_mut(id.index()) else {
             return 0;
         };
-        if let Some(row) = entity_row(record.entities(), entity) {
-            return row;
-        }
         record.push_entity(entity)
-    }
-
-    fn remove_entity_from(
-        &mut self,
-        id: ArchetypeId,
-        entity: EntityId,
-    ) -> Option<(EntityId, usize)> {
-        let record = self.records.get_mut(id.index())?;
-        let row = entity_row(record.entities(), entity)?;
-        record.swap_remove_entity(row, entity)
     }
 
     fn index_signature_components(&mut self, id: ArchetypeId, signature: &ArchetypeSignature) {
@@ -192,17 +194,6 @@ fn insert_archetype_id(ids: &mut Vec<ArchetypeId>, id: ArchetypeId) {
     if let Err(index) = ids.binary_search(&id) {
         ids.insert(index, id);
     }
-}
-
-fn entity_row(entities: &[EntityId], entity: EntityId) -> Option<usize> {
-    let mut row = 0;
-    while row < entities.len() {
-        if entities[row] == entity {
-            return Some(row);
-        }
-        row += 1;
-    }
-    None
 }
 
 impl Default for ArchetypeIndex {

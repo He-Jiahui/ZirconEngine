@@ -1,11 +1,34 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorDesignTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn collection_row_rendering_defers_owned_text_until_command_construction() {
+    let shared = include_str!("../surface/render/collection_rows/shared.rs");
+    let table = include_str!("../surface/render/collection_rows/table.rs");
+    let tree = include_str!("../surface/render/collection_rows/tree.rs");
+
+    assert!(
+        !shared.contains(
+            "pub(super) fn row_label(metadata: &UiTemplateNodeMetadata) -> Option<String>"
+        ),
+        "row labels should borrow metadata until a text command needs ownership"
+    );
+    assert!(
+        !table.contains("cell.clone()"),
+        "table cells should move their already-owned text into render commands"
+    );
+    assert!(
+        !tree.contains("to_ascii_lowercase"),
+        "tree row icon classification should not allocate lowercase copies"
+    );
+}
 
 #[test]
 fn render_extract_expands_collection_row_primitives() {
@@ -77,6 +100,11 @@ icon = "folder"
         .mark_component_state_render_dirty(UiNodeId::new(5))
         .unwrap();
 
+    let expected_selected_surface = token_color(
+        EditorDesignTokens::workbench_dark()
+            .palette
+            .surface_selected,
+    );
     surface.rebuild();
 
     let commands = &surface.render_extract.list.commands;
@@ -85,7 +113,7 @@ icon = "folder"
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::ListRow
             && command.style.painter_state == UiPainterResolvedState::Selected
-            && command.style.background_color.as_deref() == Some("#0d4149")
+            && command.style.background_color.as_deref() == Some(expected_selected_surface.as_str())
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -238,6 +266,9 @@ background_color = "#0d4149"
 
 #[test]
 fn render_extract_collection_rows_keep_focused_background_neutral_until_hovered() {
+    let tokens = EditorDesignTokens::workbench_dark();
+    let expected_focus_border = token_color(tokens.palette.accent);
+    let expected_hover_surface = token_color(tokens.palette.surface_hover);
     let mut surface = UiSurface::new(UiTreeId::new(
         "runtime.ui.render.collection_rows.focus_hover",
     ));
@@ -318,16 +349,25 @@ background_color = "#101820"
         let surface = row_surface(commands, node_id, family);
         assert_eq!(surface.style.painter_state, UiPainterResolvedState::Focused);
         assert_eq!(surface.style.background_color.as_deref(), Some(background));
-        assert_eq!(surface.style.border_color.as_deref(), Some("#35c7d0"));
+        assert_eq!(
+            surface.style.border_color.as_deref(),
+            Some(expected_focus_border.as_str())
+        );
     }
 
     let hovered = row_surface(commands, UiNodeId::new(33), UiPainterFamily::ListRow);
     assert_eq!(hovered.style.painter_state, UiPainterResolvedState::Focused);
-    assert_eq!(hovered.style.background_color.as_deref(), Some("#1a2429"));
+    assert_eq!(
+        hovered.style.background_color.as_deref(),
+        Some(expected_hover_surface.as_str())
+    );
 }
 
 #[test]
 fn render_extract_loading_collection_rows_use_unavailable_visuals() {
+    let tokens = EditorDesignTokens::workbench_dark();
+    let expected_disabled_surface = token_color(tokens.palette.surface_disabled);
+    let expected_disabled_text = token_color(tokens.palette.text_disabled);
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.collection_rows.loading"));
     surface.tree.insert_root(
         UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
@@ -403,14 +443,14 @@ value_color = "#aab5ba"
             && command.text.as_deref() == Some("Loading List")
             && command.style.painter_family == UiPainterFamily::ListRow
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some(expected_disabled_text.as_str())
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(10)
             && command.kind == UiRenderCommandKind::Image
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("diamond".to_string()))
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some(expected_disabled_text.as_str())
     }));
     assert!(!commands.iter().any(|command| {
         command.node_id == UiNodeId::new(10)
@@ -426,14 +466,14 @@ value_color = "#aab5ba"
             && command.text.as_deref() == Some("Loading Tree")
             && command.style.painter_family == UiPainterFamily::TreeRow
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some(expected_disabled_text.as_str())
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(11)
             && command.kind == UiRenderCommandKind::Image
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("chevron-down".to_string()))
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some(expected_disabled_text.as_str())
     }));
 
     assert!(commands.iter().any(|command| {
@@ -441,7 +481,7 @@ value_color = "#aab5ba"
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::TableRow
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#252c31")
+            && command.style.background_color.as_deref() == Some(expected_disabled_surface.as_str())
             && command.style.border_color.is_none()
             && command.style.border_width == 0.0
     }));
@@ -457,7 +497,8 @@ value_color = "#aab5ba"
                 command.node_id == UiNodeId::new(12)
                     && command.kind == UiRenderCommandKind::Text
                     && command.style.painter_state == UiPainterResolvedState::Loading
-                    && command.style.foreground_color.as_deref() == Some("#59656c")
+                    && command.style.foreground_color.as_deref()
+                        == Some(expected_disabled_text.as_str())
             })
             .count(),
         4
@@ -468,8 +509,130 @@ value_color = "#aab5ba"
             && command.image.as_ref()
                 == Some(&UiVisualAssetRef::Icon("more-horizontal".to_string()))
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some(expected_disabled_text.as_str())
     }));
+}
+
+#[test]
+fn collection_rows_project_tokenized_selected_hover_and_runtime_text_metrics() {
+    let tokens = EditorDesignTokens::workbench_dark();
+    let selected_surface = token_color(tokens.palette.surface_selected);
+    let selected_hover_surface = token_color(tokens.palette.accent_soft);
+    let hover_surface = token_color(tokens.palette.surface_hover);
+    let primary_text = token_color(tokens.palette.text_primary);
+
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.collection_rows.tokenized_selected_hover",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 360.0, 132.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(40),
+        "ListRow",
+        UiFrame::new(12.0, 12.0, 220.0, 28.0),
+        r##"
+label = "Selected row"
+selected = true
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(41),
+        "ListRow",
+        UiFrame::new(12.0, 48.0, 220.0, 28.0),
+        r##"
+label = "Selected hover row"
+selected = true
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(42),
+        "ListRow",
+        UiFrame::new(12.0, 84.0, 220.0, 28.0),
+        r##"
+label = "Hover row"
+"##,
+        visible_state(),
+    );
+    assert!(surface
+        .component_states
+        .set_hovered(UiNodeId::new(41), true));
+    assert!(surface
+        .component_states
+        .set_hovered(UiNodeId::new(42), true));
+
+    surface.rebuild();
+
+    let selected = row_surface(
+        &surface.render_extract.list.commands,
+        UiNodeId::new(40),
+        UiPainterFamily::ListRow,
+    );
+    assert_eq!(
+        selected.style.background_color.as_deref(),
+        Some(selected_surface.as_str())
+    );
+
+    let selected_hover = row_surface(
+        &surface.render_extract.list.commands,
+        UiNodeId::new(41),
+        UiPainterFamily::ListRow,
+    );
+    assert_eq!(
+        selected_hover.style.background_color.as_deref(),
+        Some(selected_hover_surface.as_str())
+    );
+    assert_ne!(
+        selected_hover.style.background_color,
+        selected.style.background_color
+    );
+
+    let hover = row_surface(
+        &surface.render_extract.list.commands,
+        UiNodeId::new(42),
+        UiPainterFamily::ListRow,
+    );
+    assert_eq!(
+        hover.style.background_color.as_deref(),
+        Some(hover_surface.as_str())
+    );
+
+    let text = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(40)
+                && command.kind == UiRenderCommandKind::Text
+                && command.text.as_deref() == Some("Selected row")
+        })
+        .expect("selected collection row should emit Runtime Text");
+    assert_eq!(
+        text.style.foreground_color.as_deref(),
+        Some(primary_text.as_str())
+    );
+    assert_eq!(text.style.font_size, tokens.typography.body_size);
+    assert_eq!(
+        text.style.line_height,
+        tokens.typography.body_size * tokens.typography.line_height
+    );
+}
+
+fn token_color(color: UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    if alpha == u8::MAX {
+        format!("#{red:02x}{green:02x}{blue:02x}")
+    } else {
+        format!("#{red:02x}{green:02x}{blue:02x}{alpha:02x}")
+    }
 }
 
 fn row_surface(

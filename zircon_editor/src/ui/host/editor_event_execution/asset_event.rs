@@ -7,7 +7,7 @@ use crate::core::editor_event::{
     EditorEventEffect,
 };
 use crate::core::editor_operation::EditorOperationSource;
-use crate::ui::host::editor_extension_registration::materialize_enabled_asset_types;
+use crate::ui::host::editor_extension_registration::enabled_asset_types_for_shell;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 use crate::ui::workbench::snapshot::{
@@ -39,14 +39,8 @@ pub(super) fn execute_asset_event(
                     .set_status_line(format!("Asset type is not indexed for {asset_locator}"));
                 return Ok(asset_effects(false, false, false));
             };
-            let enabled_capabilities = shell
-                .manager
-                .capability_snapshot()
-                .enabled_capabilities()
-                .to_vec();
             let registry =
-                materialize_enabled_asset_types(&shell.editor_extensions, &enabled_capabilities)
-                    .map_err(|error| error.to_string())?;
+                enabled_asset_types_for_shell(shell).map_err(|error| error.to_string())?;
             let Some(definition) = registry.get(&asset_type) else {
                 return Err(format!("asset type `{asset_type}` is not registered"));
             };

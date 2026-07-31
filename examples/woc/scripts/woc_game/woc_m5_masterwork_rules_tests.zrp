@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_masterwork_rules_tests",
+  "source": "src",
+  "binary": "bin-m5-masterwork-rules-tests",
+  "entry": "progression/masterwork_rules_test_main"
+}

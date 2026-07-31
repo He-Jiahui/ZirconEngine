@@ -11,5 +11,9 @@ pub fn texture_asset_descriptor(texture: &TextureAsset) -> TextureAssetDescripto
 }
 
 pub fn render_image_descriptor(texture: &TextureAsset) -> RenderImageDescriptor {
-    texture_asset_descriptor(texture).to_render_image_descriptor(texture.width, texture.height)
+    texture
+        .descriptor
+        .clone()
+        .unwrap_or_else(|| TextureAssetDescriptor::from_payload(&texture.payload))
+        .into_render_image_descriptor(texture.width, texture.height)
 }

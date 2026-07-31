@@ -1,4 +1,4 @@
-use crate::asset::{TextureAsset, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
+use crate::asset::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset};
 use crate::core::framework::render::{
     RenderImageDescriptor, RenderImageDimension, RenderImageUsage, RenderSamplerAddressMode,
     RenderSamplerFilter,

@@ -1,7 +1,5 @@
 use crate::core::framework::bridge::{BridgeOwnerTransitionMode, InterfaceSlot};
-use crate::plugin::{
-    BridgeOwnerTransitionReport, FrozenBridgeTable, PluginModuleKind, RuntimeExtensionRegistry,
-};
+use crate::plugin::{BridgeOwnerTransitionReport, FrozenBridgeTable, RuntimeExtensionRegistry};
 
 use super::bridge_dependencies::RuntimePluginBridgeDisableBlocker;
 use super::RuntimePluginCatalog;
@@ -127,7 +125,9 @@ impl RuntimePluginCatalog {
         bridge_table: &FrozenBridgeTable,
         provider_package_id: &str,
     ) -> RuntimePluginBridgeLifecycleReport {
-        let runtime_modules = self.runtime_module_names_for_provider(provider_package_id);
+        let runtime_modules = self
+            .projection
+            .runtime_modules_for_provider(provider_package_id);
         let mut owner_reports = Vec::new();
 
         for runtime_module in runtime_modules {
@@ -144,8 +144,10 @@ impl RuntimePluginCatalog {
                     .interface_owners_for_runtime_modules([runtime_module.as_str()])
                     .into_iter()
                     .map(|owner| {
-                        bridge_table
-                            .reload_owner_exports_with_report(owner, replacement_exports.clone())
+                        bridge_table.reload_owner_exports_with_report(
+                            owner,
+                            replacement_exports.iter().copied(),
+                        )
                     }),
             );
         }
@@ -183,7 +185,9 @@ impl RuntimePluginCatalog {
         provider_package_id: &str,
         mode: BridgeOwnerTransitionMode,
     ) -> RuntimePluginBridgeLifecycleReport {
-        let runtime_modules = self.runtime_module_names_for_provider(provider_package_id);
+        let runtime_modules = self
+            .projection
+            .runtime_modules_for_provider(provider_package_id);
         let owner_reports = registry
             .interface_owners_for_runtime_modules(runtime_modules.iter().map(String::as_str))
             .into_iter()
@@ -213,43 +217,12 @@ impl RuntimePluginCatalog {
         }
     }
 
-    fn runtime_module_names_for_provider(&self, provider_package_id: &str) -> Vec<String> {
-        let mut runtime_modules = self
-            .registrations()
-            .iter()
-            .find(|registration| registration.package_manifest.id == provider_package_id)
-            .map(|registration| {
-                registration
-                    .package_manifest
-                    .modules
-                    .iter()
-                    .filter(|module| module.kind == PluginModuleKind::Runtime)
-                    .map(|module| module.name.clone())
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-
-        if runtime_modules.is_empty() {
-            runtime_modules.push(format!("{provider_package_id}.runtime"));
-        }
-        runtime_modules.sort();
-        runtime_modules.dedup();
-        runtime_modules
-    }
-
     pub fn provider_package_id_for_runtime_module(
         &self,
         runtime_module_name: &str,
     ) -> Option<String> {
-        self.registrations()
-            .iter()
-            .find(|registration| {
-                let runtime_modules =
-                    self.runtime_module_names_for_provider(&registration.package_manifest.id);
-                runtime_modules
-                    .iter()
-                    .any(|module_name| module_name == runtime_module_name)
-            })
-            .map(|registration| registration.package_manifest.id.clone())
+        self.projection
+            .provider_for_runtime_module(runtime_module_name)
+            .map(ToOwned::to_owned)
     }
 }

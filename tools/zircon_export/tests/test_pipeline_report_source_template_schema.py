@@ -610,8 +610,12 @@ class PipelineReportSourceTemplateSchemaTests(unittest.TestCase):
     ) -> None:
         missing_fields = (
             (
-                "contents",
-                "SourceTemplate Validate generated_files[0].contents must be a string",
+                "byte_length",
+                "SourceTemplate Validate generated_files[0].byte_length must be an integer",
+            ),
+            (
+                "content_digest",
+                "SourceTemplate Validate generated_files[0].content_digest must be a string",
             ),
             (
                 "path",

@@ -14,6 +14,7 @@ JOB_SYSTEM_MODULES = (
     "pools",
     "report",
     "thread_assignment",
+    "timer",
 )
 EXPECTED_JOB_SYSTEM_GUARD_FILE_COUNT = 2
 JOB_SYSTEM_GUARD_FILES = (

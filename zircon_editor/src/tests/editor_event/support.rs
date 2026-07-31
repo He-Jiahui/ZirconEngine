@@ -1,9 +1,11 @@
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::asset::AssetUri;
+use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
@@ -18,7 +20,7 @@ use crate::core::editor_extension::EditorExtensionRegistry;
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
 use crate::ui::host::editor_asset_manager::{
-    editor_asset_manager_handle, EditorAssetCatalogSnapshotRecord,
+    editor_asset_manager_handle, EditorAssetCatalogGeneration,
 };
 use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorHostEventController;
@@ -111,6 +113,8 @@ impl EventRuntimeHarness {
             .unwrap();
         core.register_module(zircon_runtime::asset::module_descriptor())
             .unwrap();
+        core.register_module(zircon_runtime::scene::module_descriptor())
+            .unwrap();
         core.register_module(module::module_descriptor()).unwrap();
         core.store_config_value(
             EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
@@ -119,6 +123,7 @@ impl EventRuntimeHarness {
         core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
         core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
             .unwrap();
+        core.activate_module(SCENE_MODULE_NAME).unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
 
         std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -147,7 +152,7 @@ impl EventRuntimeHarness {
         &mut self,
         prefix: &str,
         populate: F,
-    ) -> EditorAssetCatalogSnapshotRecord
+    ) -> Arc<EditorAssetCatalogGeneration>
     where
         F: FnOnce(&TestProjectAssets),
     {
@@ -183,7 +188,7 @@ impl EventRuntimeHarness {
         )
         .expect("event-runtime fixture should resolve EditorAssetManager")
         .catalog_snapshot();
-        self.runtime.sync_asset_catalog(catalog.clone());
+        self.runtime.sync_asset_catalog(Arc::clone(&catalog));
         catalog
     }
 

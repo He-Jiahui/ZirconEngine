@@ -1,0 +1,21 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub qualityCount(): int { return 6; }
+pub qualityAt(index: int): string {
+    if (index == 0) return "poor";
+    if (index == 1) return "common";
+    if (index == 2) return "uncommon";
+    if (index == 3) return "rare";
+    if (index == 4) return "epic";
+    if (index == 5) return "legendary";
+    return "";
+}
+pub materialForQuality(quality: string): string {
+    if (quality == "common") return "bone_fragments";
+    if (quality == "uncommon") return "linen_scrap";
+    if (quality == "rare") return "spider_leg";
+    if (quality == "epic") return "spider_leg";
+    if (quality == "legendary") return "spider_leg";
+    return "bone_fragments";
+}
+pub tierLevelsPerBonus(): int { return 10; }
+pub rollThreshold(): float { return 0.5; }

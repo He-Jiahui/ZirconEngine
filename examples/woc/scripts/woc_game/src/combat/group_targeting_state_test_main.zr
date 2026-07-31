@@ -1,0 +1,6 @@
+var console = %import("zr.system.console");
+var targeting = %import("combat/group_targeting_state");
+console.printLine("m4-group-targeting-state-test");
+var result = targeting.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

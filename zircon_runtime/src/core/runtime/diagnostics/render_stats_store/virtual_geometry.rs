@@ -5,7 +5,7 @@ use crate::core::framework::render::{
     RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Source,
 };
 
-use super::{record_bool, record_count, DiagnosticStore};
+use super::{DiagnosticStore, record_bool, record_count};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     record_input_and_visibility(store, stats);

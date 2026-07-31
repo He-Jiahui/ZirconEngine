@@ -239,6 +239,8 @@ The `native` feature exports ABI v3 structures and helpers for dist plugins. Plu
 - `NativePluginSchemaVersionsV3::registration_manifest_schema` advertises the schema id for registration declarations.
 - `NativePluginBehaviorV3::registration_manifest` carries the ABI-safe TOML text for module, system, resource, event, extension, and capability declarations.
 - `NativePluginRegistrationManifestV3` plus `registration_manifest_v3_to_toml(...)`, `registration_manifest_v3_from_toml(...)`, and `registration_manifest_v3_schema_is_current(...)` provide the SDK round-trip surface.
+- `NativePluginRegistrationSystemV3.thread_affinity` is an explicit `main-thread-only` / `worker-safe` contract. Missing values default to `main-thread-only`; worker dispatch also requires the host-granted `runtime.native.system.worker_safe` capability.
+- System access uses `read|write:component|resource:<stable-id>`. Empty access and the exclusive legacy declaration `write:world` remain conservative main-thread world writers; unknown IDs, duplicate/conflicting declarations, mixed `write:world`, and ungranted foreign access are rejected during registration replay.
 
 The current schema id is `zircon.native.registration-manifest/3`. `native_dynamic_fixture` publishes a runtime registration manifest through this path; Plugins 13 M2/T2 added system bridge replay on the runtime host side, Plugins 13 M2/T3 moved the fixture's one-file cdylib exports to `zircon_plugin_sdk::dist`, and the 2026-06-25 runtime_diagnostics rollout added the editor-only projection path.
 

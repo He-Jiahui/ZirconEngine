@@ -292,8 +292,18 @@ fn report_body_entries(
         entries.push(pipeline_report);
     }
 
-    entries.extend(report_export_plan_body_entries(rows));
-    entries.extend(report_native_plugins_payload_body_entries(rows));
+    let parsed_report = rows
+        .iter()
+        .find(|row| row.stage == ExportStage::Report)
+        .and_then(|report| parsed_report_from_stdout(&report.stdout_lines));
+    entries.extend(report_export_plan_body_entries(
+        rows,
+        parsed_report.as_ref(),
+    ));
+    entries.extend(report_native_plugins_payload_body_entries(
+        rows,
+        parsed_report.as_ref(),
+    ));
 
     entries
 }
@@ -314,11 +324,12 @@ fn pipeline_report_body_entry(
 
 fn report_export_plan_body_entries(
     rows: &[ExportWizardStageViewRow],
+    parsed_report: Option<&Value>,
 ) -> Vec<ExportWizardPanelSlotEntry> {
     let Some(report) = rows.iter().find(|row| row.stage == ExportStage::Report) else {
         return Vec::new();
     };
-    let Some(summary) = export_plan_summary_from_report_stdout(&report.stdout_lines) else {
+    let Some(summary) = parsed_report.and_then(export_plan_summary_from_report) else {
         return Vec::new();
     };
     let unsupported_strategies_severity =
@@ -354,12 +365,12 @@ fn report_export_plan_body_entries(
 
 fn report_native_plugins_payload_body_entries(
     rows: &[ExportWizardStageViewRow],
+    parsed_report: Option<&Value>,
 ) -> Vec<ExportWizardPanelSlotEntry> {
     let Some(report) = rows.iter().find(|row| row.stage == ExportStage::Report) else {
         return Vec::new();
     };
-    let Some(summary) = native_plugins_payload_summary_from_report_stdout(&report.stdout_lines)
-    else {
+    let Some(summary) = parsed_report.and_then(native_plugins_payload_summary_from_report) else {
         return Vec::new();
     };
     let severity = severity_for_progress(report.progress_kind);
@@ -452,11 +463,12 @@ fn value_list_detail(values: &[String]) -> String {
     }
 }
 
-fn export_plan_summary_from_report_stdout(
-    stdout_lines: &[String],
-) -> Option<ExportWizardReportPlanSummary> {
+fn parsed_report_from_stdout(stdout_lines: &[String]) -> Option<Value> {
     let report_json = report_json_from_stdout(stdout_lines)?;
-    let report: Value = serde_json::from_str(&report_json).ok()?;
+    serde_json::from_str(&report_json).ok()
+}
+
+fn export_plan_summary_from_report(report: &Value) -> Option<ExportWizardReportPlanSummary> {
     let export_plan = report.get("export_plan")?;
     Some(ExportWizardReportPlanSummary {
         strategies: json_string_array(export_plan.get("strategies")),
@@ -466,11 +478,9 @@ fn export_plan_summary_from_report_stdout(
     })
 }
 
-fn native_plugins_payload_summary_from_report_stdout(
-    stdout_lines: &[String],
+fn native_plugins_payload_summary_from_report(
+    report: &Value,
 ) -> Option<ExportWizardNativePluginsPayloadSummary> {
-    let report_json = report_json_from_stdout(stdout_lines)?;
-    let report: Value = serde_json::from_str(&report_json).ok()?;
     let payload = report.get("native_plugins_payload")?.as_object()?;
     Some(ExportWizardNativePluginsPayloadSummary {
         bundle_path: json_string(payload.get("bundle_path")),

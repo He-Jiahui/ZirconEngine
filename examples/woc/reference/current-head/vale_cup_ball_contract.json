@@ -1,0 +1,121 @@
+{
+  "schema_version": 2,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/vale_cup_ball_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/vale_cup_ball.ts": "80364125f9cc3c7ef00921bf6ac7244c6cfc05faf2aeb9531e14378183a58546",
+    "src/sim/vale_cup_layout.ts": "2753e400098f218c9fabcd21bd9ef88635102b9c68d62502587ea6b1605b55e9",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "simulation": {
+    "tick_rate": 20,
+    "dt": 0.05
+  },
+  "physics": {
+    "gravity": 16,
+    "radius": 0.49,
+    "max_speed": 28,
+    "ground_restitution": 0.45,
+    "wall_restitution": 0.75,
+    "roll_decel": 4,
+    "slow_decel": 8,
+    "slow_speed": 2,
+    "bounce_min_vy": 1.2,
+    "pocket_decel": 14,
+    "trap_min_speed": 13,
+    "trap_roll_speed": 2.5,
+    "trap_vy_damp": 0.25,
+    "dribble_speed_mult": 1.15,
+    "dribble_min_mover_speed": 0.5
+  },
+  "goals": {
+    "west_x": -48,
+    "east_x": 26,
+    "z_min": -118,
+    "z_max": -106,
+    "depth": 2.5,
+    "height": 2.5
+  },
+  "layout": {
+    "pitch": {
+      "min_x": -48,
+      "max_x": 26,
+      "min_z": -127,
+      "max_z": -97
+    },
+    "sowfield_flat": {
+      "xMin": -56,
+      "xMax": 34,
+      "zMin": -141,
+      "zMax": -83,
+      "height": -2.6,
+      "falloff": 8
+    },
+    "sowfield_exclude": {
+      "xMin": -66,
+      "xMax": 44,
+      "zMin": -151,
+      "zMax": -73
+    },
+    "practice": {
+      "slots": 8,
+      "base_x": 30000,
+      "slot_dz": 400
+    }
+  },
+  "walls": [
+    [
+      -48,
+      -97,
+      26,
+      -97,
+      0,
+      -1
+    ],
+    [
+      -48,
+      -127,
+      26,
+      -127,
+      0,
+      1
+    ],
+    [
+      -48,
+      -127,
+      -48,
+      -118,
+      1,
+      0
+    ],
+    [
+      -48,
+      -106,
+      -48,
+      -97,
+      1,
+      0
+    ],
+    [
+      26,
+      -127,
+      26,
+      -118,
+      -1,
+      0
+    ],
+    [
+      26,
+      -106,
+      26,
+      -97,
+      -1,
+      0
+    ]
+  ],
+  "epsilon": {
+    "ground": 0.001,
+    "direction": 0.000001,
+    "goal_crossing": 1e-9
+  }
+}

@@ -94,10 +94,13 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(!ids_source.contains("target_mode"));
     assert!(plugin_id_source.contains("pub struct RuntimePluginId"));
     assert!(!plugin_id_source.contains("pub enum RuntimePluginId"));
-    assert!(plugin_id_source.contains("pub const fn key"));
+    assert!(plugin_id_source.contains("pub fn key"));
     assert!(plugin_id_source.contains("pub fn label"));
     assert!(plugin_id_source.contains("pub fn parse_key"));
-    assert!(plugin_id_source.contains("intern_runtime_plugin_key"));
+    assert!(plugin_id_source.contains("Static(&'static str)"));
+    assert!(plugin_id_source.contains("Dynamic(Arc<str>)"));
+    assert!(!plugin_id_source.contains(concat!("Box", "::leak")));
+    assert!(!plugin_id_source.contains(concat!("static INTERNED", "_KEYS")));
     assert!(target_mode_source.contains("pub enum RuntimeTargetMode"));
     assert!(profile_modules_source.contains("pub(super) fn runtime_modules_for_runtime_profile"));
     assert!(profile_modules_source.contains("minimal_profile_runtime_modules"));
@@ -110,7 +113,8 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     );
     assert!(registration_inputs_source
         .contains("pub(super) fn registration_inputs_for_plugin_and_feature_reports"));
-    assert!(registration_inputs_source.contains("from_linked_plugin_ids_and_extension_inputs"));
+    assert!(registration_inputs_source.contains("from_extension_inputs"));
+    assert!(!registration_inputs_source.contains("package_manifest.id.as_str()"));
     assert!(registration_inputs_source.contains("extension_inputs_from_extension_registries"));
     assert!(registration_reports_source
         .contains("pub(super) fn runtime_modules_for_target_with_plugin_registration_reports"));

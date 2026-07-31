@@ -54,6 +54,17 @@ pub struct UiDirectionalNavigation {
     pub right: UiDirectionalNavigationTarget,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "target")]
+pub enum UiNavigationBoundary {
+    #[default]
+    Escape,
+    Wrap,
+    Stop,
+    Explicit(UiNodeId),
+    Trap,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind", content = "target")]
 pub enum UiDirectionalNavigationTarget {
@@ -70,4 +81,6 @@ pub struct UiNavigationContract {
     pub tab_index: Option<UiTabIndex>,
     pub group: Option<UiNavigationGroup>,
     pub directional: Option<UiDirectionalNavigation>,
+    #[serde(default)]
+    pub boundary: UiNavigationBoundary,
 }

@@ -1,0 +1,25 @@
+var console = %import("zr.system.console");
+var contract = %import("generated/combat_command_contract");
+
+contractTest(): int {
+    if (contract.releaseEmpoweredCommandId(true) != <uint>149 ||
+        contract.resurrectRespondCommandId(true) != <uint>164) {
+        return -1;
+    }
+    if (contract.payloadKind(<uint>149, true) != 1 ||
+        contract.payloadKind(<uint>164, true) != 2 ||
+        contract.payloadKind(<uint>999, true) != 0 ||
+        contract.payloadKind(<uint>149, false) != 0) {
+        return -2;
+    }
+    if (!contract.requiresLosslessCommandValue(true) ||
+        contract.requiresLosslessCommandValue(false)) {
+        return -3;
+    }
+    return 1;
+}
+
+console.printLine("m4-combat-command-contract-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

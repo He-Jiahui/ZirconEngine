@@ -63,6 +63,9 @@ impl CameraControllerOutput {
     }
 
     pub fn from_transform(before: Transform, after: Transform) -> Self {
+        if before == after {
+            return Self::unchanged(after);
+        }
         Self {
             transform: after,
             translation_delta: after.translation - before.translation,

@@ -1,4 +1,36 @@
+use std::io;
+
 use thiserror::Error;
+
+/// Typed failure while streaming canonical JSON to an arbitrary byte sink.
+#[derive(Debug, Error)]
+pub enum CanonicalTextWriteError {
+    #[error("canonical text contains non-finite float {value}")]
+    NonFinite { value: f64 },
+    #[error("canonical text payload validation failed: {reason}")]
+    PayloadValidation { reason: String },
+    #[error("canonical text payload encode failed: {reason}")]
+    PayloadEncode { reason: String },
+    #[error("canonical text exceeds the {max}-byte wire limit (found at least {found} bytes)")]
+    OutputTooLarge { max: usize, found: usize },
+    #[error("canonical text {operation} failed: {source}")]
+    Io {
+        operation: &'static str,
+        #[source]
+        source: io::Error,
+    },
+}
+
+impl serde::ser::Error for CanonicalTextWriteError {
+    fn custom<T>(message: T) -> Self
+    where
+        T: std::fmt::Display,
+    {
+        Self::PayloadValidation {
+            reason: message.to_string(),
+        }
+    }
+}
 
 /// Typed failure while encoding a current-version payload.
 #[derive(Debug, Error)]
@@ -21,6 +53,15 @@ pub enum WriteError {
         schema_version: u32,
         #[source]
         source: serde_json::Error,
+    },
+    #[error(
+        "schema {schema_id} version {schema_version} text document exceeds the {max}-byte wire limit (found at least {found} bytes)"
+    )]
+    TextDocumentTooLarge {
+        schema_id: String,
+        schema_version: u32,
+        max: usize,
+        found: usize,
     },
     #[error("schema {schema_id} version {schema_version} binary encode failed: {source}")]
     BinaryEncode {
@@ -49,5 +90,13 @@ pub enum WriteError {
         schema_version: u32,
         #[source]
         source: serde_json::Error,
+    },
+    #[error("schema {schema_id} version {schema_version} text sink {operation} failed: {source}")]
+    TextWrite {
+        schema_id: String,
+        schema_version: u32,
+        operation: &'static str,
+        #[source]
+        source: io::Error,
     },
 }

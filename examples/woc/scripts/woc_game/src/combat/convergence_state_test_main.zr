@@ -1,0 +1,1 @@
+var c=%import("combat/convergence_state");var r=c.contractTest();return r==1?0:r;

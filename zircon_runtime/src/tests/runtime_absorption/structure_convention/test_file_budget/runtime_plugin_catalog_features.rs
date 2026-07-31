@@ -41,6 +41,9 @@ fn runtime_15_runtime_plugin_catalog_features_dependency_report_tests_are_child_
         "fn runtime_plugin_catalog_gates_external_feature_packages_on_provider_selection",
         "fn runtime_plugin_catalog_rejects_secondary_primary_feature_dependency",
         "fn runtime_plugin_catalog_reports_target_mismatch_for_optional_feature",
+        "fn earlier_provider_capability_is_visible_to_later_immediate_blocker",
+        "fn later_provider_does_not_rewrite_an_immediate_blocker",
+        "fn immediate_blocker_is_not_an_unresolved_cycle_provider",
         "fn runtime_plugin_catalog_reports_feature_capability_cycles",
         "fn runtime_plugin_catalog_reports_disabled_feature_provider_as_missing_capability",
         "fn runtime_plugin_catalog_reports_self_feature_capability_cycle",
@@ -60,6 +63,9 @@ fn runtime_15_runtime_plugin_catalog_features_dependency_report_tests_are_child_
             "fn runtime_plugin_catalog_gates_external_feature_packages_on_provider_selection",
             "fn runtime_plugin_catalog_rejects_secondary_primary_feature_dependency",
             "fn runtime_plugin_catalog_reports_target_mismatch_for_optional_feature",
+            "fn earlier_provider_capability_is_visible_to_later_immediate_blocker",
+            "fn later_provider_does_not_rewrite_an_immediate_blocker",
+            "fn immediate_blocker_is_not_an_unresolved_cycle_provider",
             "fn runtime_plugin_catalog_reports_feature_capability_cycles",
             "fn runtime_plugin_catalog_reports_disabled_feature_provider_as_missing_capability",
             "fn runtime_plugin_catalog_reports_self_feature_capability_cycle",
@@ -70,8 +76,8 @@ fn runtime_15_runtime_plugin_catalog_features_dependency_report_tests_are_child_
 
     assert_eq!(
         parent.matches("#[test]").count() + feature_dependency_reports.matches("#[test]").count(),
-        11,
-        "runtime plugin catalog feature parent plus dependency-report child should preserve the current 11 tests"
+        20,
+        "runtime plugin catalog feature parent plus dependency-report child should preserve the current 20 tests"
     );
 
     for (path, source) in [

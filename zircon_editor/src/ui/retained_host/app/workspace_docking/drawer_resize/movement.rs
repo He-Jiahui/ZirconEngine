@@ -18,6 +18,14 @@ impl RetainedEditorHost {
         }
         .max(0.0);
 
+        let previous_preferred = self
+            .transient_region_preferred
+            .get(&active.region)
+            .copied()
+            .unwrap_or(active.base_preferred);
+        if previous_preferred == preferred {
+            return;
+        }
         self.transient_region_preferred
             .insert(active.region, preferred);
         self.mark_layout_dirty();

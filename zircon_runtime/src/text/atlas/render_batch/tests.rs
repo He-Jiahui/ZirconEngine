@@ -4,7 +4,7 @@ use super::*;
 use crate::core::math::UVec2;
 
 #[test]
-fn render_text_atlas_draw_batch_plan_groups_quads_by_page_and_contract() {
+fn render_text_atlas_draw_batch_plan_groups_instances_by_page_and_contract() {
     let subpixel_placement = GlyphRasterPlacement::from_raster_input(
         GlyphAtlasFormat::SubpixelMask,
         GlyphSmoothingMode::Subpixel,
@@ -34,14 +34,14 @@ fn render_text_atlas_draw_batch_plan_groups_quads_by_page_and_contract() {
 
     assert_eq!(plan.visible_glyph_count, 3);
     assert_eq!(plan.skipped_glyph_count, 0);
-    assert_eq!(plan.vertex_count, 18);
-    assert_eq!(plan.batches.len(), 2);
+    assert_eq!(plan.instance_count, 3);
+    assert_eq!(plan.batches.len(), 3);
     assert!(plan.requires_background_composite);
     assert_eq!(
         plan.batches[0].key.page_key.format,
         GlyphAtlasFormat::AlphaMask
     );
-    assert_eq!(plan.batches[0].quads.len(), 2);
+    assert_eq!(plan.batches[0].instances.len(), 1);
     assert_eq!(
         plan.batches[1].key.page_key.format,
         GlyphAtlasFormat::SubpixelMask
@@ -50,14 +50,12 @@ fn render_text_atlas_draw_batch_plan_groups_quads_by_page_and_contract() {
         plan.batches[1].key.render_contract.blend_mode,
         GlyphAtlasBlendMode::SubpixelBackgroundComposite
     );
-    assert_near(
-        plan.batches[1].quads[0].vertices[0].position_px[0],
-        24.0 + 1.0 / 3.0,
-    );
-    assert_eq!(plan.batches[0].quads[0].vertices[0].position_px, [4.0, 8.0]);
+    assert_near(plan.batches[1].instances[0].screen_rect.x, 24.0 + 1.0 / 3.0);
+    assert_eq!(plan.batches[0].instances[0].screen_rect.x, 4.0);
+    assert_eq!(plan.batches[0].instances[0].screen_rect.y, 8.0);
     assert_eq!(
-        plan.batches[0].quads[1].vertices[0].position_px,
-        [40.0, 8.0]
+        plan.batches[2].instances[0].screen_rect,
+        GlyphAtlasScreenRect::new(40.0, 8.0, 12.0, 10.0)
     );
 }
 
@@ -86,9 +84,9 @@ fn render_text_atlas_draw_batch_plan_records_clipped_glyphs_without_empty_batche
 
     assert_eq!(plan.visible_glyph_count, 1);
     assert_eq!(plan.skipped_glyph_count, 2);
-    assert_eq!(plan.vertex_count, 6);
+    assert_eq!(plan.instance_count, 1);
     assert_eq!(plan.batches.len(), 1);
-    assert_eq!(plan.batches[0].quads.len(), 1);
+    assert_eq!(plan.batches[0].instances.len(), 1);
 }
 
 #[test]
@@ -125,7 +123,7 @@ fn render_text_atlas_draw_batch_plan_keeps_rgba_storage_semantics_separate() {
 }
 
 #[test]
-fn render_text_atlas_draw_batch_plan_preserves_background_color_per_vertex() {
+fn render_text_atlas_draw_batch_plan_preserves_background_color_per_instance() {
     let plan = glyph_atlas_draw_batch_plan(
         [glyph_with_background(
             GlyphAtlasFormat::SubpixelMask,
@@ -138,10 +136,10 @@ fn render_text_atlas_draw_batch_plan_preserves_background_color_per_vertex() {
 
     assert_eq!(plan.batches.len(), 1);
     assert!(plan.requires_background_composite);
-    assert!(plan.batches[0].quads[0]
-        .vertices
-        .iter()
-        .all(|vertex| vertex.background_color == [0.21, 0.23, 0.25, 1.0]));
+    assert_eq!(
+        plan.batches[0].instances[0].background_color,
+        [0.21, 0.23, 0.25, 1.0]
+    );
 }
 
 fn glyph(

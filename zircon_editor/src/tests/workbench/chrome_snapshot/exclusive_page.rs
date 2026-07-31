@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use zircon_runtime_interface::math::UVec2;
 
 use crate::core::commands::DocumentKind;
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::workbench::layout::{MainHostPageLayout, MainPageId, WorkbenchLayout};
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::snapshot::{
@@ -57,7 +57,7 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),
-            scene_viewport_settings: SceneViewportSettings::default(),
+            scene_viewport_settings: SceneViewportChromeSettings::default(),
             mesh_import_path: String::new(),
             project_overview: ProjectOverviewSnapshot::default(),
             asset_activity: AssetWorkspaceSnapshot::default(),
@@ -176,6 +176,7 @@ fn chrome_builder_projects_document_kind_from_the_focused_typed_descriptor() {
     );
     let context = crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome(
         &chrome,
+        crate::core::play::PlayModeKind::Edit,
         std::iter::empty::<String>(),
     );
     assert_eq!(
@@ -192,7 +193,7 @@ fn empty_editor_data() -> EditorDataSnapshot {
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
-        scene_viewport_settings: SceneViewportSettings::default(),
+        scene_viewport_settings: SceneViewportChromeSettings::default(),
         mesh_import_path: String::new(),
         project_overview: ProjectOverviewSnapshot::default(),
         asset_activity: AssetWorkspaceSnapshot::default(),

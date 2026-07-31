@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "physics"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Physics"
 category = "runtime"
 description = "Optional runtime physics world, query, and editor physics authoring package."

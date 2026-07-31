@@ -1,0 +1,132 @@
+// Builtin groundHeight projection from src/sim/world.ts. This keeps raised
+// Sowfield stands and dock plank surfaces out of terrain_height, matching the
+// source distinction between render terrain baseline and walkable ground.
+
+var math = %import("zr.zircon.math");
+var terrainContent = %import("world/terrain_content");
+var terrainHeight = %import("world/terrain_height");
+var terrainSowfield = %import("world/terrain_sowfield");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+minimum(first: float, second: float): float {
+    return first < second ? first : second;
+}
+
+dockLocalX(dockIndex: int, x: float, z: float): float {
+    var dx = x - terrainContent.dockX(dockIndex, true);
+    var dz = z - terrainContent.dockZ(dockIndex, true);
+    var rotation = terrainContent.dockRotation(dockIndex, true);
+    return dx * math.cos(rotation) - dz * math.sin(rotation);
+}
+
+dockLocalZ(dockIndex: int, x: float, z: float): float {
+    var dx = x - terrainContent.dockX(dockIndex, true);
+    var dz = z - terrainContent.dockZ(dockIndex, true);
+    var rotation = terrainContent.dockRotation(dockIndex, true);
+    return dx * math.sin(rotation) + dz * math.cos(rotation);
+}
+
+dockSectionAtLocal(localX: float, localZ: float): int {
+    if (absolute(localX) > terrainContent.dockSectionHalfWidth(true)) {
+        return -1;
+    }
+    var closest = -1;
+    var closestDistance = 0.0;
+    var section = 0;
+    while (section < terrainContent.dockSectionCount(true)) {
+        var distance = absolute(localZ - terrainContent.dockSectionLocalZ(section, true));
+        if (distance <= terrainContent.dockSectionHalfDepth(true) &&
+            (closest < 0 || distance < closestDistance)) {
+            closest = section;
+            closestDistance = distance;
+        }
+        section = section + 1;
+    }
+    return closest;
+}
+
+dockSectionSurfaceY(dockIndex: int, sectionIndex: int, seed: uint): float {
+    var localZ = terrainContent.dockSectionLocalZ(sectionIndex, true);
+    var rotation = terrainContent.dockRotation(dockIndex, true);
+    var centerX = terrainContent.dockX(dockIndex, true) + localZ * math.sin(rotation);
+    var centerZ = terrainContent.dockZ(dockIndex, true) + localZ * math.cos(rotation);
+    var anchorY = terrainHeight.builtinTerrainHeight(
+        terrainContent.dockX(dockIndex, true),
+        terrainContent.dockZ(dockIndex, true),
+        seed,
+        true
+    );
+    var centerY = terrainHeight.builtinTerrainHeight(centerX, centerZ, seed, true);
+    var baseY = anchorY + minimum(
+        0.0,
+        centerY - anchorY + terrainContent.dockTerrainClearance(true)
+    );
+    return baseY + terrainContent.dockSectionSurfaceY(true);
+}
+
+dockSurfaceYAt(dockIndex: int, localZ: float, seed: uint): float {
+    var farIndex = terrainContent.dockSectionCount(true) - 1;
+    var nearLocalZ = terrainContent.dockSectionLocalZ(0, true);
+    var farLocalZ = terrainContent.dockSectionLocalZ(farIndex, true);
+    var nearY = dockSectionSurfaceY(dockIndex, 0, seed);
+    var farY = dockSectionSurfaceY(dockIndex, farIndex, seed);
+    var slope = (farY - nearY) / (farLocalZ - nearLocalZ);
+    return nearY + (localZ - nearLocalZ) * slope;
+}
+
+pub builtinGroundHeight(x: float, z: float, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc builtin ground height is required";
+    }
+    if (x > terrainContent.dungeonXThreshold(true)) {
+        return terrainContent.dungeonFloorY(true);
+    }
+    var ground = terrainHeight.builtinTerrainHeight(x, z, seed, true) +
+        terrainSowfield.standLift(x, z, true);
+    var dockIndex = 0;
+    while (dockIndex < terrainContent.dockCount(true)) {
+        var localX = dockLocalX(dockIndex, x, z);
+        var localZ = dockLocalZ(dockIndex, x, z);
+        if (dockSectionAtLocal(localX, localZ) >= 0) {
+            var surface = dockSurfaceYAt(dockIndex, localZ, seed);
+            if (surface > ground) {
+                ground = surface;
+            }
+        }
+        dockIndex = dockIndex + 1;
+    }
+    return ground;
+}
+
+pub contractTest(): int {
+    if (builtinGroundHeight(600.1, 0.0, <uint>20061, true) != 0.0 ||
+        !closeEnough(builtinGroundHeight(600.0, 0.0, <uint>20061, true), 54.65835115442921)) {
+        return -1;
+    }
+    if (!closeEnough(builtinGroundHeight(-11.0, -95.3, <uint>20061, true), -2.324999999999999) ||
+        !closeEnough(builtinGroundHeight(-11.0, -90.0, <uint>20061, true), -1.3200000000000005) ||
+        !closeEnough(builtinGroundHeight(-11.0, -130.0, <uint>20061, true), -2.2071428571428573) ||
+        !closeEnough(builtinGroundHeight(-11.0, -138.3, <uint>20061, true), -2.6)) {
+        return -2;
+    }
+    if (!closeEnough(builtinGroundHeight(-63.15107877598943, 60.617926173118114, <uint>20061, true), 0.8205173113557969) ||
+        !closeEnough(builtinGroundHeight(-61.4289814358537, 61.871433552872, <uint>20061, true), 0.8286262598124914) ||
+        !closeEnough(builtinGroundHeight(-59.706884095717975, 63.12494093262588, <uint>20061, true), 1.448182368856679) ||
+        !closeEnough(builtinGroundHeight(-67.04374536230797, 305.1144360898519, <uint>20061, true), -2.2717103251239705) ||
+        !closeEnough(builtinGroundHeight(-69.16105738298988, 305.3465778721228, <uint>20061, true), -2.868064080108452) ||
+        !closeEnough(builtinGroundHeight(-71.27836940367179, 305.5787196543937, <uint>20061, true), -3.464417835092933)) {
+        return -3;
+    }
+    return 1;
+}

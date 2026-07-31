@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var pursuit = %import("combat/mob_melee_pursuit_state");
+
+var result = pursuit.contractTest();
+
+console.printLine("m4-mob-melee-pursuit-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

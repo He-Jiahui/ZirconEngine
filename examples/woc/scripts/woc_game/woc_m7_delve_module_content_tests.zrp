@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_delve_module_content_tests",
+  "source": "src",
+  "binary": "bin-m7-delve-module-content-tests",
+  "entry": "instances/delve_module_content_test_main"
+}

@@ -1,4 +1,7 @@
 use crate::builtin::builtin_runtime_modules;
+use crate::core::framework::scene::SCENE_MODULE_NAME;
+#[cfg(feature = "ui")]
+use crate::core::framework::ui::UI_MODULE_NAME;
 
 #[test]
 fn builtin_runtime_modules_include_target_client_core_and_required_plugins() {
@@ -8,11 +11,11 @@ fn builtin_runtime_modules_include_target_client_core_and_required_plugins() {
         .collect::<Vec<_>>();
 
     for expected in [
-        crate::foundation::FOUNDATION_MODULE_NAME,
-        crate::platform::PLATFORM_MODULE_NAME,
-        crate::input::INPUT_MODULE_NAME,
+        crate::core::framework::foundation::FOUNDATION_MODULE_NAME,
+        crate::core::framework::platform::PLATFORM_MODULE_NAME,
+        crate::core::framework::input::INPUT_MODULE_NAME,
         crate::asset::ASSET_MODULE_NAME,
-        crate::scene::SCENE_MODULE_NAME,
+        SCENE_MODULE_NAME,
         crate::core::framework::render::GRAPHICS_MODULE_NAME,
         crate::script::SCRIPT_MODULE_NAME,
     ] {
@@ -24,11 +27,9 @@ fn builtin_runtime_modules_include_target_client_core_and_required_plugins() {
 
     #[cfg(feature = "ui")]
     assert!(
-        descriptors
-            .iter()
-            .any(|name| name == crate::ui::UI_MODULE_NAME),
+        descriptors.iter().any(|name| name == UI_MODULE_NAME),
         "missing runtime module {}",
-        crate::ui::UI_MODULE_NAME
+        UI_MODULE_NAME
     );
 }
 
@@ -49,7 +50,7 @@ fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
         .expect("graphics module should exist in runtime builtins");
     let scene_index = descriptors
         .iter()
-        .position(|name| *name == crate::scene::SCENE_MODULE_NAME)
+        .position(|name| *name == SCENE_MODULE_NAME)
         .expect("scene module should exist in runtime builtins");
 
     assert!(
@@ -66,7 +67,7 @@ fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
     {
         let ui_index = descriptors
             .iter()
-            .position(|name| *name == crate::ui::UI_MODULE_NAME)
+            .position(|name| *name == UI_MODULE_NAME)
             .expect("ui module should exist in runtime builtins");
 
         assert!(

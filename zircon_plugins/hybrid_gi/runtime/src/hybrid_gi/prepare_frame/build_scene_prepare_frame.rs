@@ -78,7 +78,7 @@ mod tests {
     use super::*;
     use zircon_runtime::core::framework::render::{
         render_mesh_stable_instance_key, render_mesh_transform_revision, RenderHybridGiExtract,
-        RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+        RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
     };
     use zircon_runtime::core::framework::scene::Mobility;
     use zircon_runtime::core::math::{Transform, Vec3, Vec4};
@@ -159,7 +159,11 @@ mod tests {
             tint: Vec4::ONE,
             mobility: Mobility::Static,
             static_state: RenderMeshStaticState::from_transform_static(true),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            common: RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+                is_static: true,
+                ..RendererCommon::default()
+            },
         }
     }
 }

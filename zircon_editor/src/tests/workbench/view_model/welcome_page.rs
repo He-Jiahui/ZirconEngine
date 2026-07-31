@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::core::project::RecentProjectValidation;
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::workbench::layout::{MainHostPageLayout, MainPageId, WorkbenchLayout};
 use crate::ui::workbench::model::{DocumentWorkspaceModel, WorkbenchViewModel};
 use crate::ui::workbench::snapshot::{
@@ -42,7 +42,7 @@ fn welcome_startup_projects_into_exclusive_page_model() {
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),
-            scene_viewport_settings: SceneViewportSettings::default(),
+            scene_viewport_settings: SceneViewportChromeSettings::default(),
             mesh_import_path: String::new(),
             project_overview: ProjectOverviewSnapshot::default(),
             asset_activity: AssetWorkspaceSnapshot::default(),

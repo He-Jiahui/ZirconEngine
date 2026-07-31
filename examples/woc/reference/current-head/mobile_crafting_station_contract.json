@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/mobile_crafting_station_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/mobile_station.ts": "7abe8183bc2af3f516f799d32a693503cc1d08e56f5cfc3bbe91cdc848b34047",
+    "src/sim/content/professions.ts": "d2d8567ab607693ab59a19d145187d0bad8b153c209c85b8f3cce5eed6277c3b"
+  },
+  "duration_ticks": 12000,
+  "semantics": {
+    "placement": "specialization is a caller-provided gate; rejected placement returns no station",
+    "lifetime": "expiresAtTick equals nowTick plus the content duration and is active only while nowTick is strictly less",
+    "scope": "station storage and any future crafting-location gate remain outside this pure policy projection"
+  }
+}

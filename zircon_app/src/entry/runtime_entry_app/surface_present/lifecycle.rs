@@ -11,7 +11,20 @@ impl RuntimeEntryApp {
 
     pub(super) fn disable_surface_present(&mut self) {
         if self.surface_present_enabled || self.surface_present_attempted {
-            let _ = self.session.unbind_viewport_surface(self.viewport);
+            match self.session.unbind_viewport_surface(self.viewport) {
+                Ok(true) => write_log(
+                    "runtime_surface_present",
+                    "runtime_product_teardown surface_unbind=ok",
+                ),
+                Ok(false) => write_log(
+                    "runtime_surface_present",
+                    "runtime_product_teardown surface_unbind=unavailable",
+                ),
+                Err(error) => write_warn(
+                    "runtime_surface_present",
+                    format!("runtime_product_teardown surface_unbind=failed error={error}"),
+                ),
+            }
         }
         self.surface_present_enabled = false;
         self.surface_present_attempted = false;
@@ -40,6 +53,18 @@ impl RuntimeEntryApp {
 
 impl Drop for RuntimeEntryApp {
     fn drop(&mut self) {
+        let cadence = self.frame_cadence.report();
+        write_log(
+            "runtime_frame_cadence",
+            format!(
+                "runtime_frame_cadence_summary policy={} requests={} pumps={} idle_suppressed={} redraw_requests={}",
+                self.frame_cadence.policy().as_str(),
+                cadence.frame_requests,
+                cadence.frame_pumps,
+                cadence.idle_pumps_suppressed,
+                cadence.redraw_requests,
+            ),
+        );
         #[cfg(feature = "gamepad-gilrs")]
         super::super::gamepad::clear_gamepad_rumble_effects(&mut self.gamepad_rumble_effects);
         self.disable_surface_present();

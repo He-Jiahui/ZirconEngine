@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var yumiMatch = %import("social/yumi_match_state");
+
+var result = yumiMatch.contractTest();
+
+console.printLine("m6-yumi-match-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

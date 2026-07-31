@@ -6,7 +6,7 @@ related_code:
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/src/core/editing/command.rs
-  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/workbench/layout/mod.rs
@@ -31,7 +31,7 @@ implementation_files:
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/src/core/editing/command.rs
-  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/host/mod.rs
@@ -119,7 +119,7 @@ doc_type: category-index
 ## Related Files
 
 - `zircon_editor/src/core/editing/command.rs`
-- `zircon_editor/src/core/editing/history.rs`
+- `zircon_editor/src/core/editing/engine/history.rs`
 - `zircon_editor/src/core/editor_operation.rs`
 - `zircon_editor/src/ui/host/editor_operation_dispatch.rs`
 - `zircon_editor/src/scene/viewport/controller/mod.rs`

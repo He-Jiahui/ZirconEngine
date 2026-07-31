@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "full_trace_files": 51,
+  "symbol_count": 13,
+  "entries": [
+    {
+      "text": "Berserker",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "Blessing",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "buff_speed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "Drowned Canticle",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "fear",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "lesser_heal",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "nhalia_cantor_shield",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "nythraxis_ward_channel",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "powerup_pow_berserker_buff_ap",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "powerup_pow_berserker_buff_speed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "short_buff",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "summon_imp",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "text": "summon_voidwalker",
+      "kinds": [
+        "value"
+      ]
+    }
+  ]
+}

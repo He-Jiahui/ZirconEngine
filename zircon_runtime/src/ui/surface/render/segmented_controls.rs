@@ -1,38 +1,189 @@
+use std::sync::OnceLock;
+
 use toml::Value;
 use zircon_runtime_interface::ui::{
     component::UiComponentState,
+    design_tokens::{EditorDesignTokens, EditorTypographyTokens},
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
     tree::UiTemplateNodeMetadata,
 };
 
 use super::painter_state::UiRenderPainterStateSource;
 
-const SEGMENTED_BACKGROUND: &str = "#1d2327";
-const SEGMENTED_BORDER: &str = "#323a41";
-const SEGMENTED_SELECTED_SURFACE: &str = "#173942";
-const SEGMENTED_SELECTED_BORDER: &str = "#2aa6b8";
-const SEGMENTED_HOVER: &str = "#2a3036";
-const SEGMENTED_PRESSED: &str = "#20262b";
-const SEGMENTED_DISABLED: &str = "#191d22";
-const TEXT: &str = "#e6f1f4";
-const TEXT_MUTED: &str = "#8fa3ac";
-const TEXT_DISABLED: &str = "#58656c";
-const GROUP_LABEL: &str = "#a1acb2";
-const FONT_SIZE: f32 = 11.0;
-const LINE_HEIGHT: f32 = FONT_SIZE * 1.2;
-const SEGMENT_TEXT_INSET_X: f32 = 8.0;
-const SEGMENT_TEXT_INSET_Y: f32 = 5.0;
-const SEGMENT_RADIUS: f32 = 5.0;
-const SELECTED_INSET: f32 = 2.0;
-const GROUP_LABEL_HEIGHT: f32 = 14.0;
-const GROUP_LABEL_GAP: f32 = 4.0;
-const TAB_FONT_SIZE: f32 = 12.0;
-const TAB_LINE_HEIGHT: f32 = TAB_FONT_SIZE * 1.2;
-const TAB_TEXT_INSET_X: f32 = 12.0;
-const TAB_UNDERLINE_HEIGHT: f32 = 2.0;
+#[derive(Clone, Copy, Debug)]
+struct SegmentedVisual {
+    background: UiRgbaColor,
+    border: UiRgbaColor,
+    selected_surface: UiRgbaColor,
+    focus_border: UiRgbaColor,
+    selected_border: UiRgbaColor,
+    selected_underline: UiRgbaColor,
+    hover: UiRgbaColor,
+    pressed: UiRgbaColor,
+    disabled_surface: UiRgbaColor,
+    disabled_border: UiRgbaColor,
+    text: UiRgbaColor,
+    text_muted: UiRgbaColor,
+    text_disabled: UiRgbaColor,
+    group_label: UiRgbaColor,
+    font_size: f32,
+    line_height: f32,
+    group_label_font_size: f32,
+    group_label_line_height: f32,
+    group_label_height: f32,
+    group_label_gap: f32,
+    segment_text_inset_x: f32,
+    segment_text_inset_y: f32,
+    selected_inset: f32,
+    corner_radius: f32,
+    tab_font_size: f32,
+    tab_line_height: f32,
+    tab_text_inset_x: f32,
+    tab_underline_height: f32,
+    border_width: f32,
+    selected_border_width: f32,
+    min_frame_extent: f32,
+}
+
+impl SegmentedVisual {
+    fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
+        let mut visual = *default_segmented_visual();
+        visual.background =
+            first_rgba_attribute(metadata, &["background_color"]).unwrap_or(visual.background);
+        visual.border = first_rgba_attribute(metadata, &["border_color"]).unwrap_or(visual.border);
+        visual.selected_surface = first_rgba_attribute(metadata, &["selected_background_color"])
+            .unwrap_or(visual.selected_surface);
+        visual.focus_border =
+            first_rgba_attribute(metadata, &["focus_border_color"]).unwrap_or(visual.focus_border);
+        visual.selected_border = first_rgba_attribute(metadata, &["selected_border_color"])
+            .unwrap_or(visual.selected_border);
+        visual.selected_underline =
+            first_rgba_attribute(metadata, &["selected_underline_color", "accent_color"])
+                .unwrap_or(visual.selected_underline);
+        visual.hover =
+            first_rgba_attribute(metadata, &["hover_background_color"]).unwrap_or(visual.hover);
+        visual.pressed =
+            first_rgba_attribute(metadata, &["pressed_background_color"]).unwrap_or(visual.pressed);
+        visual.disabled_surface = first_rgba_attribute(metadata, &["disabled_background_color"])
+            .unwrap_or(visual.disabled_surface);
+        visual.disabled_border = first_rgba_attribute(metadata, &["disabled_border_color"])
+            .unwrap_or(visual.disabled_border);
+        visual.text = first_rgba_attribute(
+            metadata,
+            &["selected_foreground_color", "selected_text_color"],
+        )
+        .unwrap_or(visual.text);
+        visual.text_muted =
+            first_rgba_attribute(metadata, &["foreground_color", "idle_text_color"])
+                .unwrap_or(visual.text_muted);
+        visual.text_disabled = first_rgba_attribute(metadata, &["disabled_foreground_color"])
+            .unwrap_or(visual.text_disabled);
+        visual.group_label =
+            first_rgba_attribute(metadata, &["label_color"]).unwrap_or(visual.group_label);
+        visual.border_width = metric_attribute(metadata, "border_width")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.border_width);
+        visual.selected_border_width = metric_attribute(metadata, "selected_border_width")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.selected_border_width);
+        visual.corner_radius = metric_attribute(metadata, "corner_radius")
+            .or_else(|| metric_attribute(metadata, "radius"))
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.corner_radius);
+        visual.font_size = metric_attribute(metadata, "font_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.font_size);
+        visual.line_height = line_height(
+            metadata,
+            "line_height",
+            "line_height_ratio",
+            visual.font_size,
+            visual.line_height,
+        );
+        visual.tab_font_size = metric_attribute(metadata, "tab_font_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.tab_font_size);
+        visual.tab_line_height = line_height(
+            metadata,
+            "tab_line_height",
+            "tab_line_height_ratio",
+            visual.tab_font_size,
+            visual.tab_line_height,
+        );
+        visual.group_label_height = metric_attribute(metadata, "group_label_height")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.group_label_height);
+        visual.group_label_gap = metric_attribute(metadata, "group_label_gap")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.group_label_gap);
+        visual.segment_text_inset_x = metric_attribute(metadata, "segment_text_inset_x")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.segment_text_inset_x);
+        visual.segment_text_inset_y = metric_attribute(metadata, "segment_text_inset_y")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.segment_text_inset_y);
+        visual.selected_inset = metric_attribute(metadata, "selected_inset")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.selected_inset);
+        visual.tab_text_inset_x = metric_attribute(metadata, "tab_text_inset_x")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.tab_text_inset_x);
+        visual.tab_underline_height = metric_attribute(metadata, "selected_underline_height")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.tab_underline_height);
+        visual.min_frame_extent = visual.border_width.max(f32::EPSILON);
+        visual
+    }
+}
+
+fn default_segmented_visual() -> &'static SegmentedVisual {
+    static VISUAL: OnceLock<SegmentedVisual> = OnceLock::new();
+    VISUAL.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let colors = &tokens.palette;
+        let controls = &tokens.controls;
+        let density = &tokens.density;
+        let typography = &tokens.typography;
+        SegmentedVisual {
+            background: colors.surface[2],
+            border: colors.border,
+            selected_surface: colors.surface_selected,
+            focus_border: colors.accent,
+            selected_border: colors.accent,
+            selected_underline: colors.accent,
+            hover: colors.surface_hover,
+            pressed: colors.surface[3],
+            disabled_surface: colors.surface_disabled,
+            disabled_border: colors.border_disabled,
+            text: colors.text_primary,
+            text_muted: colors.text_secondary,
+            text_disabled: colors.text_disabled,
+            group_label: colors.text_secondary,
+            font_size: typography.body_size,
+            line_height: typography.body_size * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+            group_label_font_size: typography.caption_size,
+            group_label_line_height: typography.caption_size
+                * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+            group_label_height: typography.overlay_size + controls.border_width * 2.0,
+            group_label_gap: density.gap_small,
+            segment_text_inset_x: density.gap_medium,
+            segment_text_inset_y: density.gap_small + controls.border_width,
+            selected_inset: controls.border_width * 2.0,
+            corner_radius: controls.control_radius,
+            tab_font_size: typography.overlay_size,
+            tab_line_height: typography.overlay_size
+                * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+            tab_text_inset_x: density.gap_large,
+            tab_underline_height: controls.border_width * 2.0,
+            border_width: controls.border_width,
+            selected_border_width: 0.0,
+            min_frame_extent: controls.border_width.max(f32::EPSILON),
+        }
+    })
+}
 
 pub(super) fn segmented_control_suppresses_owner_text(
     metadata: Option<&UiTemplateNodeMetadata>,
@@ -53,19 +204,21 @@ pub(super) fn segmented_control_render_commands(
     let Some(metadata) = metadata else {
         return Vec::new();
     };
-    if frame.width <= 1.0 || frame.height <= 1.0 {
+    let Some(kind) = control_kind(metadata) else {
+        return Vec::new();
+    };
+    let visual = SegmentedVisual::resolve(metadata);
+    if frame.width <= visual.min_frame_extent || frame.height <= visual.min_frame_extent {
         return Vec::new();
     }
-
     let state = SegmentedRenderState::resolve(metadata, state_flags, component_state);
-    match control_kind(metadata) {
-        Some(SegmentedControlKind::SegmentedControl) => segmented_commands(
-            node_id, metadata, &state, frame, clip_frame, z_index, opacity,
+    match kind {
+        SegmentedControlKind::SegmentedControl => segmented_commands(
+            node_id, metadata, &state, &visual, frame, clip_frame, z_index, opacity,
         ),
-        Some(SegmentedControlKind::Tab) => tab_commands(
-            node_id, metadata, &state, frame, clip_frame, z_index, opacity,
+        SegmentedControlKind::Tab => tab_commands(
+            node_id, metadata, &state, &visual, frame, clip_frame, z_index, opacity,
         ),
-        None => Vec::new(),
     }
 }
 
@@ -74,7 +227,6 @@ enum SegmentedControlKind {
     SegmentedControl,
     Tab,
 }
-
 #[derive(Clone, Copy)]
 struct SegmentedRenderState {
     family: UiPainterFamily,
@@ -82,7 +234,6 @@ struct SegmentedRenderState {
     active: bool,
     surface_hot: bool,
 }
-
 impl SegmentedRenderState {
     fn resolve(
         metadata: &UiTemplateNodeMetadata,
@@ -102,82 +253,78 @@ impl SegmentedRenderState {
         painter_state.checked = checked;
         painter_state.selected = selected;
         let family = UiPainterFamily::Tab;
-        let surface_hot = painter_state.hovered
-            || painter_state.open
-            || painter_state.dragging
-            || painter_state.drop_hovered;
         Self {
             family,
             visual_state: painter_state.resolved_state_for_family(family),
             active: selected,
-            surface_hot,
+            surface_hot: painter_state.hovered
+                || painter_state.open
+                || painter_state.dragging
+                || painter_state.drop_hovered,
         }
     }
-
     fn unavailable(self) -> bool {
         matches!(
             self.visual_state,
             UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
         )
     }
-
     fn pressed(self) -> bool {
         matches!(self.visual_state, UiPainterResolvedState::Pressed)
     }
-
     fn focused(self) -> bool {
         matches!(self.visual_state, UiPainterResolvedState::Focused)
     }
-
     fn surface_hot(self) -> bool {
         self.surface_hot
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn segmented_commands(
     node_id: UiNodeId,
     metadata: &UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
+    visual: &SegmentedVisual,
     frame: UiFrame,
-    clip_frame: Option<UiFrame>,
-    z_index: i32,
+    clip: Option<UiFrame>,
+    z: i32,
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let options = segmented_options(metadata);
     if options.is_empty() {
         return Vec::new();
     }
-
     let mut commands = Vec::new();
-    if let Some(label) = group_label(metadata) {
+    let label = group_label(metadata);
+    let has_label = label.is_some();
+    if let Some(label) = label {
         commands.push(text_command(
             node_id,
-            UiFrame::new(frame.x, frame.y, frame.width, GROUP_LABEL_HEIGHT),
-            clip_frame,
-            z_index.saturating_add(3),
+            UiFrame::new(frame.x, frame.y, frame.width, visual.group_label_height),
+            clip,
+            z.saturating_add(3),
             label,
-            group_label_color(metadata, state),
-            FONT_SIZE,
-            LINE_HEIGHT,
+            group_label_color(state, visual),
+            visual.group_label_font_size,
+            visual.group_label_line_height,
             state,
             opacity,
         ));
     }
-
-    let body = segmented_body_frame(metadata, frame);
+    let body = segmented_body_frame(metadata, frame, has_label, visual);
     commands.push(quad_command(
         node_id,
         body,
-        clip_frame,
-        z_index.saturating_add(1),
-        segmented_background(metadata, state),
-        Some(segmented_border(metadata, state)),
-        border_width(metadata),
-        corner_radius(metadata),
+        clip,
+        z.saturating_add(1),
+        segmented_background(state, visual),
+        Some(segmented_border(state, visual)),
+        visual.border_width,
+        visual.corner_radius,
         state,
         opacity,
     ));
-
     let selected = selected_segment_value(metadata);
     for (index, option) in options.iter().enumerate() {
         let segment = segment_frame(body, index, options.len());
@@ -186,13 +333,14 @@ fn segmented_commands(
                 node_id,
                 UiFrame::new(
                     segment.x,
-                    segment.y + 4.0,
-                    1.0,
-                    (segment.height - 8.0).max(1.0),
+                    segment.y + visual.segment_text_inset_y - visual.border_width,
+                    visual.border_width,
+                    (segment.height - (visual.segment_text_inset_y - visual.border_width) * 2.0)
+                        .max(visual.min_frame_extent),
                 ),
-                clip_frame,
-                z_index.saturating_add(2),
-                divider_color(metadata, state),
+                clip,
+                z.saturating_add(2),
+                divider_color(state, visual),
                 None,
                 0.0,
                 0.0,
@@ -200,33 +348,33 @@ fn segmented_commands(
                 opacity,
             ));
         }
-        let option_selected = option_is_selected(option, selected.as_deref());
+        let option_selected = option_is_selected(option, selected);
         if option_selected {
             push_selected_segment(
                 &mut commands,
                 node_id,
-                metadata,
                 state,
+                visual,
                 segment,
-                clip_frame,
-                z_index.saturating_add(3),
+                clip,
+                z.saturating_add(3),
                 opacity,
             );
         }
         commands.push(text_command(
             node_id,
             UiFrame::new(
-                segment.x + SEGMENT_TEXT_INSET_X,
-                segment.y + SEGMENT_TEXT_INSET_Y,
-                (segment.width - SEGMENT_TEXT_INSET_X * 2.0).max(1.0),
-                (segment.height - SEGMENT_TEXT_INSET_Y * 2.0).max(LINE_HEIGHT),
+                segment.x + visual.segment_text_inset_x,
+                segment.y + visual.segment_text_inset_y,
+                (segment.width - visual.segment_text_inset_x * 2.0).max(visual.min_frame_extent),
+                (segment.height - visual.segment_text_inset_y * 2.0).max(visual.line_height),
             ),
-            clip_frame,
-            z_index.saturating_add(5),
+            clip,
+            z.saturating_add(5),
             option_label(option),
-            option_text_color(metadata, state, option_selected),
-            FONT_SIZE,
-            LINE_HEIGHT,
+            option_text_color(state, visual, option_selected),
+            visual.font_size,
+            visual.line_height,
             state,
             opacity,
         ));
@@ -234,22 +382,24 @@ fn segmented_commands(
     commands
 }
 
+#[allow(clippy::too_many_arguments)]
 fn tab_commands(
     node_id: UiNodeId,
     metadata: &UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
+    visual: &SegmentedVisual,
     frame: UiFrame,
-    clip_frame: Option<UiFrame>,
-    z_index: i32,
+    clip: Option<UiFrame>,
+    z: i32,
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let mut commands = Vec::new();
-    if let Some(background) = tab_background(metadata, state) {
+    if let Some(background) = tab_background(metadata, state, visual) {
         commands.push(quad_command(
             node_id,
             frame,
-            clip_frame,
-            z_index.saturating_add(1),
+            clip,
+            z.saturating_add(1),
             background,
             None,
             0.0,
@@ -263,13 +413,13 @@ fn tab_commands(
             node_id,
             UiFrame::new(
                 frame.x,
-                frame.y + (frame.height - TAB_UNDERLINE_HEIGHT).max(0.0),
+                frame.y + (frame.height - visual.tab_underline_height).max(0.0),
                 frame.width,
-                TAB_UNDERLINE_HEIGHT,
+                visual.tab_underline_height,
             ),
-            clip_frame,
-            z_index.saturating_add(3),
-            selected_underline(metadata, state),
+            clip,
+            z.saturating_add(3),
+            selected_underline(state, visual),
             None,
             0.0,
             0.0,
@@ -281,17 +431,17 @@ fn tab_commands(
         commands.push(text_command(
             node_id,
             UiFrame::new(
-                frame.x + TAB_TEXT_INSET_X,
-                frame.y + (frame.height - TAB_LINE_HEIGHT).max(0.0) * 0.5,
-                (frame.width - TAB_TEXT_INSET_X * 2.0).max(1.0),
-                TAB_LINE_HEIGHT,
+                frame.x + visual.tab_text_inset_x,
+                frame.y + (frame.height - visual.tab_line_height).max(0.0) * 0.5,
+                (frame.width - visual.tab_text_inset_x * 2.0).max(visual.min_frame_extent),
+                visual.tab_line_height,
             ),
-            clip_frame,
-            z_index.saturating_add(4),
+            clip,
+            z.saturating_add(4),
             label,
-            tab_text_color(metadata, state),
-            TAB_FONT_SIZE,
-            TAB_LINE_HEIGHT,
+            tab_text_color(state, visual),
+            visual.tab_font_size,
+            visual.tab_line_height,
             state,
             opacity,
         ));
@@ -302,41 +452,41 @@ fn tab_commands(
 fn push_selected_segment(
     commands: &mut Vec<UiRenderCommand>,
     node_id: UiNodeId,
-    metadata: &UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
+    visual: &SegmentedVisual,
     segment: UiFrame,
-    clip_frame: Option<UiFrame>,
-    z_index: i32,
+    clip: Option<UiFrame>,
+    z: i32,
     opacity: f32,
 ) {
-    let selected = inset_frame(segment, SELECTED_INSET);
+    let selected = inset_frame(segment, visual.selected_inset, visual.min_frame_extent);
     commands.push(quad_command(
         node_id,
         selected,
-        clip_frame,
-        z_index,
-        selected_surface(metadata, state),
-        selected_border_width(metadata)
-            .gt(&0.0)
-            .then(|| selected_border(metadata, state)),
-        selected_border_width(metadata),
-        (corner_radius(metadata) - 1.0).max(0.0),
+        clip,
+        z,
+        selected_surface(state, visual),
+        (visual.selected_border_width > 0.0).then_some(visual.selected_border),
+        visual.selected_border_width,
+        (visual.corner_radius - visual.border_width).max(0.0),
         state,
         opacity,
     ));
-    let underline_height = selected_underline_height(metadata);
-    if underline_height > 0.0 {
+    if visual.tab_underline_height > 0.0 {
         commands.push(quad_command(
             node_id,
             UiFrame::new(
                 selected.x,
-                selected.y + (selected.height - underline_height).max(0.0),
+                selected.y + (selected.height - visual.tab_underline_height).max(0.0),
                 selected.width,
-                underline_height.min(selected.height).max(1.0),
+                visual
+                    .tab_underline_height
+                    .min(selected.height)
+                    .max(visual.min_frame_extent),
             ),
-            clip_frame,
-            z_index.saturating_add(1),
-            selected_underline(metadata, state),
+            clip,
+            z.saturating_add(1),
+            selected_underline(state, visual),
             None,
             0.0,
             0.0,
@@ -353,23 +503,27 @@ fn control_kind(metadata: &UiTemplateNodeMetadata) -> Option<SegmentedControlKin
         _ => None,
     }
 }
-
 fn is_segmented_or_tab(metadata: &UiTemplateNodeMetadata) -> bool {
     control_kind(metadata).is_some()
 }
-
-fn segmented_body_frame(metadata: &UiTemplateNodeMetadata, frame: UiFrame) -> UiFrame {
-    let label_block = group_label(metadata)
-        .map(|_| GROUP_LABEL_HEIGHT + GROUP_LABEL_GAP)
-        .unwrap_or(0.0);
+fn segmented_body_frame(
+    metadata: &UiTemplateNodeMetadata,
+    frame: UiFrame,
+    has_label: bool,
+    visual: &SegmentedVisual,
+) -> UiFrame {
+    let label_block = if has_label {
+        visual.group_label_height + visual.group_label_gap
+    } else {
+        0.0
+    };
     UiFrame::new(
-        frame.x + number_attribute(metadata, "layout_offset_x").unwrap_or(0.0),
-        frame.y + label_block + number_attribute(metadata, "layout_offset_y").unwrap_or(0.0),
+        frame.x + metric_attribute(metadata, "layout_offset_x").unwrap_or(0.0),
+        frame.y + label_block + metric_attribute(metadata, "layout_offset_y").unwrap_or(0.0),
         frame.width,
-        (frame.height - label_block).max(1.0),
+        (frame.height - label_block).max(visual.min_frame_extent),
     )
 }
-
 fn segment_frame(frame: UiFrame, index: usize, count: usize) -> UiFrame {
     let count = count.max(1);
     let width = frame.width / count as f32;
@@ -382,20 +536,18 @@ fn segment_frame(frame: UiFrame, index: usize, count: usize) -> UiFrame {
         } else {
             width
         }
-        .max(1.0),
+        .max(f32::EPSILON),
         frame.height,
     )
 }
-
-fn inset_frame(frame: UiFrame, inset: f32) -> UiFrame {
+fn inset_frame(frame: UiFrame, inset: f32, min: f32) -> UiFrame {
     UiFrame::new(
         frame.x + inset,
         frame.y + inset,
-        (frame.width - inset * 2.0).max(1.0),
-        (frame.height - inset * 2.0).max(1.0),
+        (frame.width - inset * 2.0).max(min),
+        (frame.height - inset * 2.0).max(min),
     )
 }
-
 fn segmented_options(metadata: &UiTemplateNodeMetadata) -> Vec<String> {
     metadata
         .attributes
@@ -410,7 +562,6 @@ fn segmented_options(metadata: &UiTemplateNodeMetadata) -> Vec<String> {
         })
         .unwrap_or_default()
 }
-
 fn option_string(value: &Value) -> Option<String> {
     match value {
         Value::String(value) => Some(value.to_string()),
@@ -422,20 +573,16 @@ fn option_string(value: &Value) -> Option<String> {
         _ => None,
     }
 }
-
-fn selected_segment_value(metadata: &UiTemplateNodeMetadata) -> Option<String> {
+fn selected_segment_value(metadata: &UiTemplateNodeMetadata) -> Option<&str> {
     ["value", "value_text", "selected", "text"]
         .iter()
         .find_map(|key| string_attribute(metadata, key))
         .map(str::trim)
         .filter(|value| !value.is_empty())
-        .map(|value| value.to_ascii_lowercase())
 }
-
 fn option_is_selected(option: &str, selected: Option<&str>) -> bool {
     selected.is_some_and(|selected| option.trim().eq_ignore_ascii_case(selected))
 }
-
 fn option_label(option: &str) -> String {
     let trimmed = option.trim();
     let mut chars = trimmed.chars();
@@ -448,7 +595,6 @@ fn option_label(option: &str) -> String {
         None => String::new(),
     }
 }
-
 fn group_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
     ["label", "label_text", "group_label"]
         .iter()
@@ -457,7 +603,6 @@ fn group_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
         .filter(|label| !label.is_empty())
         .map(str::to_string)
 }
-
 fn tab_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
     ["text", "label", "value_text"]
         .iter()
@@ -466,198 +611,174 @@ fn tab_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
         .filter(|label| !label.is_empty())
         .map(str::to_string)
 }
-
-fn segmented_background<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &SegmentedRenderState,
-) -> &'a str {
+fn segmented_background(state: &SegmentedRenderState, visual: &SegmentedVisual) -> UiRgbaColor {
     if state.unavailable() {
-        SEGMENTED_DISABLED
+        visual.disabled_surface
     } else if state.pressed() {
-        color_attribute(metadata, "pressed_background_color").unwrap_or(SEGMENTED_PRESSED)
+        visual.pressed
     } else if state.surface_hot() {
-        color_attribute(metadata, "hover_background_color").unwrap_or(SEGMENTED_HOVER)
+        visual.hover
     } else {
-        color_attribute(metadata, "background_color").unwrap_or(SEGMENTED_BACKGROUND)
+        visual.background
     }
 }
-
-fn segmented_border<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &SegmentedRenderState,
-) -> &'a str {
+fn segmented_border(state: &SegmentedRenderState, visual: &SegmentedVisual) -> UiRgbaColor {
     if state.unavailable() {
-        "#334852"
+        visual.disabled_border
     } else if state.pressed() || state.focused() || state.surface_hot() {
-        color_attribute(metadata, "focus_border_color").unwrap_or(SEGMENTED_SELECTED_BORDER)
+        visual.focus_border
     } else {
-        color_attribute(metadata, "border_color").unwrap_or(SEGMENTED_BORDER)
+        visual.border
     }
 }
-
-fn divider_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &SegmentedRenderState,
-) -> &'a str {
-    segmented_border(metadata, state)
+fn divider_color(state: &SegmentedRenderState, visual: &SegmentedVisual) -> UiRgbaColor {
+    segmented_border(state, visual)
 }
-
-fn selected_surface<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &SegmentedRenderState,
-) -> &'a str {
+fn selected_surface(state: &SegmentedRenderState, visual: &SegmentedVisual) -> UiRgbaColor {
     if state.unavailable() {
-        SEGMENTED_DISABLED
+        visual.disabled_surface
     } else {
-        color_attribute(metadata, "selected_background_color").unwrap_or(SEGMENTED_SELECTED_SURFACE)
+        visual.selected_surface
     }
 }
-
-fn selected_border<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &SegmentedRenderState,
-) -> &'a str {
+fn selected_underline(state: &SegmentedRenderState, visual: &SegmentedVisual) -> UiRgbaColor {
     if state.unavailable() {
-        "#334852"
+        visual.text_disabled
     } else {
-        color_attribute(metadata, "selected_border_color").unwrap_or(SEGMENTED_SELECTED_BORDER)
+        visual.selected_underline
     }
 }
-
-fn selected_underline<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
+fn option_text_color(
     state: &SegmentedRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        TEXT_DISABLED
-    } else {
-        color_attribute(metadata, "selected_underline_color")
-            .or_else(|| color_attribute(metadata, "accent_color"))
-            .unwrap_or(SEGMENTED_SELECTED_BORDER)
-    }
-}
-
-fn option_text_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &SegmentedRenderState,
+    visual: &SegmentedVisual,
     selected: bool,
-) -> &'a str {
+) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else if selected {
-        color_attribute(metadata, "selected_foreground_color")
-            .or_else(|| color_attribute(metadata, "selected_text_color"))
-            .unwrap_or(TEXT)
+        visual.text
     } else {
-        color_attribute(metadata, "foreground_color")
-            .or_else(|| color_attribute(metadata, "idle_text_color"))
-            .unwrap_or(TEXT_MUTED)
+        visual.text_muted
     }
 }
-
-fn group_label_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &SegmentedRenderState,
-) -> &'a str {
+fn group_label_color(state: &SegmentedRenderState, visual: &SegmentedVisual) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else {
-        color_attribute(metadata, "label_color").unwrap_or(GROUP_LABEL)
+        visual.group_label
     }
 }
-
-fn tab_background<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
+fn tab_background(
+    metadata: &UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
-) -> Option<&'a str> {
+    visual: &SegmentedVisual,
+) -> Option<UiRgbaColor> {
     if state.unavailable() {
-        Some(SEGMENTED_DISABLED)
+        Some(visual.disabled_surface)
     } else if state.pressed() {
-        Some(color_attribute(metadata, "pressed_background_color").unwrap_or(SEGMENTED_PRESSED))
+        Some(visual.pressed)
     } else if state.surface_hot() {
-        Some(color_attribute(metadata, "hover_background_color").unwrap_or(SEGMENTED_HOVER))
+        Some(visual.hover)
     } else {
-        color_attribute(metadata, "background_color")
+        first_rgba_attribute(metadata, &["background_color"])
     }
 }
-
-fn tab_text_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &SegmentedRenderState,
-) -> &'a str {
+fn tab_text_color(state: &SegmentedRenderState, visual: &SegmentedVisual) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else if state.active {
-        color_attribute(metadata, "selected_foreground_color")
-            .or_else(|| color_attribute(metadata, "selected_text_color"))
-            .unwrap_or(TEXT)
+        visual.text
     } else {
-        color_attribute(metadata, "foreground_color")
-            .or_else(|| color_attribute(metadata, "idle_text_color"))
-            .unwrap_or(TEXT_MUTED)
+        visual.text_muted
     }
 }
-
-fn border_width(metadata: &UiTemplateNodeMetadata) -> f32 {
-    number_attribute(metadata, "border_width")
-        .unwrap_or(1.0)
-        .max(0.0)
-}
-
-fn selected_border_width(metadata: &UiTemplateNodeMetadata) -> f32 {
-    number_attribute(metadata, "selected_border_width")
-        .unwrap_or(0.0)
-        .max(0.0)
-}
-
-fn selected_underline_height(metadata: &UiTemplateNodeMetadata) -> f32 {
-    number_attribute(metadata, "selected_underline_height")
-        .unwrap_or(TAB_UNDERLINE_HEIGHT)
-        .max(0.0)
-}
-
-fn corner_radius(metadata: &UiTemplateNodeMetadata) -> f32 {
-    number_attribute(metadata, "corner_radius")
-        .or_else(|| number_attribute(metadata, "radius"))
-        .unwrap_or(SEGMENT_RADIUS)
-        .max(0.0)
-}
-
 fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
     metadata.attributes.get(key).and_then(Value::as_bool)
 }
-
-fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
-    metadata.attributes.get(key).and_then(value_as_f32)
-}
-
-fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
-    metadata.attributes.get(key).and_then(Value::as_str)
-}
-
-fn color_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
+fn metric_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
     metadata
         .style_overrides
         .get(key)
         .or_else(|| metadata.attributes.get(key))
-        .and_then(Value::as_str)
-        .filter(|color| !color.trim().is_empty())
+        .and_then(value_as_f32)
 }
-
+fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
+    metadata.attributes.get(key).and_then(Value::as_str)
+}
+fn first_rgba_attribute(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> Option<UiRgbaColor> {
+    keys.iter().find_map(|key| {
+        metadata
+            .style_overrides
+            .get(*key)
+            .or_else(|| metadata.attributes.get(*key))
+            .and_then(Value::as_str)
+            .and_then(parse_css_color)
+    })
+}
 fn value_as_f32(value: &Value) -> Option<f32> {
-    value
-        .as_float()
-        .or_else(|| value.as_integer().map(|value| value as f64))
-        .map(|value| value as f32)
+    let value = match value {
+        Value::Integer(value) => *value as f64,
+        Value::Float(value) if value.is_finite() => *value,
+        _ => return None,
+    } as f32;
+    value.is_finite().then_some(value)
 }
-
+fn line_height(
+    metadata: &UiTemplateNodeMetadata,
+    absolute_key: &str,
+    ratio_key: &str,
+    font_size: f32,
+    default: f32,
+) -> f32 {
+    metric_attribute(metadata, absolute_key)
+        .filter(|value| *value > 0.0)
+        .or_else(|| {
+            metric_attribute(metadata, ratio_key)
+                .filter(|value| *value > 0.0)
+                .map(|ratio| font_size * ratio)
+        })
+        .unwrap_or(default)
+}
+fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
+    let encoded = value.trim().strip_prefix('#')?;
+    if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
+        return None;
+    }
+    let (r, g, b, a) = match encoded.len() {
+        6 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::MAX,
+        ),
+        8 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::from_str_radix(&encoded[6..8], 16).ok()?,
+        ),
+        _ => return None,
+    };
+    Some(UiRgbaColor::from_u8(r, g, b, a))
+}
+fn css_color(color: UiRgbaColor) -> String {
+    let [r, g, b, a] = color.to_u8();
+    let mut value = if a == u8::MAX {
+        format!("{r:02x}{g:02x}{b:02x}")
+    } else {
+        format!("{r:02x}{g:02x}{b:02x}{a:02x}")
+    };
+    value.insert(0, '#');
+    value
+}
+#[allow(clippy::too_many_arguments)]
 fn quad_command(
     node_id: UiNodeId,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
-    background: &str,
-    border: Option<&str>,
+    background: UiRgbaColor,
+    border: Option<UiRgbaColor>,
     border_width: f32,
     corner_radius: f32,
     state: &SegmentedRenderState,
@@ -670,8 +791,8 @@ fn quad_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            background_color: Some(background.to_string()),
-            border_color: border.map(str::to_string),
+            background_color: Some(css_color(background)),
+            border_color: border.map(css_color),
             border_width,
             corner_radius,
             ..UiResolvedStyle::default()
@@ -683,14 +804,14 @@ fn quad_command(
         opacity,
     }
 }
-
+#[allow(clippy::too_many_arguments)]
 fn text_command(
     node_id: UiNodeId,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
     text: String,
-    foreground: &str,
+    foreground: UiRgbaColor,
     font_size: f32,
     line_height: f32,
     state: &SegmentedRenderState,
@@ -703,7 +824,7 @@ fn text_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
+            foreground_color: Some(css_color(foreground)),
             font_size,
             line_height,
             ..UiResolvedStyle::default()

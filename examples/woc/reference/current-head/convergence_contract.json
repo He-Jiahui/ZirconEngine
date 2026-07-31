@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/convergence_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/convergence.ts": "a478c0e63023c763621038b90a8a46034a5c33c539939f833ba3c6e7f807b2c7"
+  },
+  "damagePct": 0.15,
+  "duration": 8,
+  "icd": 30,
+  "window": 10
+}

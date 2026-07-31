@@ -1,0 +1,200 @@
+// Builtin open-world resolvePosition projection.  It reproduces colliders.ts's
+// 16-yard grid insertion, including the fixed MAX_BODY_RADIUS expansion and
+// source insertion order: fixed records first, procedural decorations second.
+
+var math = %import("zr.zircon.math");
+var collisionContent = %import("world/collision_content");
+var collisionGeometry = %import("world/collision_geometry");
+var decoration = %import("world/decoration_candidate");
+var terrainContent = %import("world/terrain_content");
+
+gridCell(value: float): int {
+    return <int>math.floor(value / 16.0);
+}
+
+staticColliderExtent(index: int): float {
+    if (collisionContent.colliderKind(index, true) == 1) {
+        return collisionContent.colliderFloat(index, 3, true);
+    }
+    var halfWidth = collisionContent.colliderFloat(index, 4, true);
+    var halfDepth = collisionContent.colliderFloat(index, 5, true);
+    return math.sqrt(halfWidth * halfWidth + halfDepth * halfDepth);
+}
+
+touchesGridCell(
+    centerX: float,
+    centerZ: float,
+    extent: float,
+    cellX: int,
+    cellZ: int
+): bool {
+    var minX = gridCell(centerX - extent - 0.8);
+    var maxX = gridCell(centerX + extent + 0.8);
+    var minZ = gridCell(centerZ - extent - 0.8);
+    var maxZ = gridCell(centerZ + extent + 0.8);
+    return cellX >= minX && cellX <= maxX && cellZ >= minZ && cellZ <= maxZ;
+}
+
+// Decoration centres offset by at most five yards from a 10-yard lattice
+// point.  Their greatest possible collision radius is below 1.12 yards
+// (a 1.6-scale rock), and the source grid pads every collider by 0.8.
+// The 6.92 bound is deliberately conservative so this local replay contains
+// every candidate the cached source grid can place in the queried cell.
+candidateGridStart(cell: int, gridStart: int): int {
+    var first = gridStart + <int>math.ceil(
+        (<float>cell * 16.0 - 6.92 - <float>gridStart) / 10.0
+    ) * 10;
+    return first < gridStart ? gridStart : first;
+}
+
+candidateGridEndInclusive(cell: int, gridStart: int): int {
+    return gridStart + <int>math.floor(
+        (<float>(cell + 1) * 16.0 + 6.92 - <float>gridStart) / 10.0
+    ) * 10;
+}
+
+pub isBuiltinOpenWorldPosition(x: float, required: bool): bool {
+    if (!required) {
+        throw "woc builtin collision position query is required";
+    }
+    return x <= terrainContent.dungeonXThreshold(true);
+}
+
+// `axis` exposes the pair-valued resolver without a mutable output object.
+// Its cell is selected once from the input point, exactly as resolvePosition
+// selects `grid.cells.get(key)` before entering resolveAgainst.
+pub resolveBuiltinWorldCoordinate(
+    seed: uint,
+    x: float,
+    z: float,
+    bodyRadius: float,
+    ignoreFences: bool,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2) ||
+        !isBuiltinOpenWorldPosition(x, true)) {
+        throw "woc builtin grid collision arguments are invalid";
+    }
+    var cellX = gridCell(x);
+    var cellZ = gridCell(z);
+    var positionX = x;
+    var positionZ = z;
+    var iteration = 0;
+    while (iteration < 3) {
+        var moved = false;
+        var index = 0;
+        while (index < collisionContent.colliderCount(true)) {
+            var centerX = collisionContent.colliderFloat(index, 1, true);
+            var centerZ = collisionContent.colliderFloat(index, 2, true);
+            if (touchesGridCell(centerX, centerZ, staticColliderExtent(index), cellX, cellZ) &&
+                !(ignoreFences && collisionContent.colliderIsFence(index, true))) {
+                var kind = collisionContent.colliderKind(index, true);
+                var resolvedX = positionX;
+                var resolvedZ = positionZ;
+                if (kind == 1) {
+                    var radius = collisionContent.colliderFloat(index, 3, true);
+                    resolvedX = collisionGeometry.circleResolvedX(
+                        positionX, positionZ, bodyRadius, centerX, centerZ, radius, true
+                    );
+                    resolvedZ = collisionGeometry.circleResolvedZ(
+                        positionX, positionZ, bodyRadius, centerX, centerZ, radius, true
+                    );
+                } else {
+                    var halfWidth = collisionContent.colliderFloat(index, 4, true);
+                    var halfDepth = collisionContent.colliderFloat(index, 5, true);
+                    var rotation = collisionContent.colliderFloat(index, 6, true);
+                    resolvedX = collisionGeometry.obbResolvedX(
+                        positionX, positionZ, bodyRadius, centerX, centerZ,
+                        halfWidth, halfDepth, rotation, true
+                    );
+                    resolvedZ = collisionGeometry.obbResolvedZ(
+                        positionX, positionZ, bodyRadius, centerX, centerZ,
+                        halfWidth, halfDepth, rotation, true
+                    );
+                }
+                if (resolvedX != positionX || resolvedZ != positionZ) {
+                    moved = true;
+                    positionX = resolvedX;
+                    positionZ = resolvedZ;
+                }
+            }
+            index = index + 1;
+        }
+
+        // staticWorldColliders appends retained decorations after every fixed
+        // record.  Candidate iteration keeps its gx-major, gz-minor order.
+        var gridX = candidateGridStart(cellX, decoration.gridStartX(true));
+        var gridXEnd = candidateGridEndInclusive(cellX, decoration.gridStartX(true));
+        var gridZStart = candidateGridStart(cellZ, decoration.gridStartZ(true));
+        var gridZEnd = candidateGridEndInclusive(cellZ, decoration.gridStartZ(true));
+        while (gridX < decoration.gridEndXExclusive(true) && gridX <= gridXEnd) {
+            var gridZ = gridZStart;
+            while (gridZ < decoration.gridEndZExclusive(true) && gridZ <= gridZEnd) {
+                var radius = decoration.candidateCollisionRadius(gridX, gridZ, seed, true);
+                if (radius > 0.0) {
+                    var centerX = decoration.candidateX(gridX, gridZ, seed, true);
+                    var centerZ = decoration.candidateZ(gridX, gridZ, seed, true);
+                    if (touchesGridCell(centerX, centerZ, radius, cellX, cellZ)) {
+                        var resolvedX = collisionGeometry.circleResolvedX(
+                            positionX, positionZ, bodyRadius, centerX, centerZ, radius, true
+                        );
+                        var resolvedZ = collisionGeometry.circleResolvedZ(
+                            positionX, positionZ, bodyRadius, centerX, centerZ, radius, true
+                        );
+                        if (resolvedX != positionX || resolvedZ != positionZ) {
+                            moved = true;
+                            positionX = resolvedX;
+                            positionZ = resolvedZ;
+                        }
+                    }
+                }
+                gridZ = gridZ + 10;
+            }
+            gridX = gridX + 10;
+        }
+        if (!moved) {
+            iteration = 3;
+        } else {
+            iteration = iteration + 1;
+        }
+    }
+    return axis == 1 ? positionX : positionZ;
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub contractTest(): int {
+    var seed = <uint>20061;
+    if (!isBuiltinOpenWorldPosition(600.0, true) ||
+        isBuiltinOpenWorldPosition(600.1, true)) {
+        return -1;
+    }
+    if (candidateGridStart(-11, -166) != -166 ||
+        candidateGridEndInclusive(-11, -166) != -156 ||
+        candidateGridStart(0, -166) != -6 ||
+        candidateGridEndInclusive(0, -166) != 14) {
+        return -2;
+    }
+    if (!closeEnough(resolveBuiltinWorldCoordinate(
+        seed, 10.0, 12.0, 0.5, false, 1, true
+    ), 8.637035801919723) || !closeEnough(resolveBuiltinWorldCoordinate(
+        seed, 10.0, 12.0, 0.5, false, 2, true
+    ), 15.223713479010097)) {
+        return -3;
+    }
+    if (!closeEnough(resolveBuiltinWorldCoordinate(
+        seed, -169.3387614414096, -160.52844868181273, 0.6, false, 1, true
+    ), -167.89604411224602) || !closeEnough(resolveBuiltinWorldCoordinate(
+        seed, -169.3387614414096, -160.52844868181273, 0.6, false, 2, true
+    ), -160.52844868181273)) {
+        return -4;
+    }
+    return 1;
+}

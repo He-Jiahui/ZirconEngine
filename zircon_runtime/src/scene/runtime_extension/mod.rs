@@ -80,19 +80,20 @@ impl WorldRuntimeExtensionPlan {
         &mut self,
         registrations: impl IntoIterator<Item = WorldRuntimeExtensionRegistration>,
     ) -> Result<(), WorldRuntimeExtensionError> {
+        let incoming = registrations.into_iter().collect::<Vec<_>>();
         let mut keys = self
             .registrations
             .iter()
-            .map(|registration| registration.key.clone())
+            .map(|registration| registration.key.as_str())
             .collect::<BTreeSet<_>>();
-        let incoming = registrations.into_iter().collect::<Vec<_>>();
         for registration in &incoming {
-            if !keys.insert(registration.key.clone()) {
+            if !keys.insert(registration.key.as_str()) {
                 return Err(WorldRuntimeExtensionError::duplicate_registration(
                     &registration.key,
                 ));
             }
         }
+        drop(keys);
         self.registrations.extend(incoming);
         Ok(())
     }
@@ -147,6 +148,15 @@ mod tests {
 
         assert!(base.try_merge(contribution).is_err());
         assert_eq!(base.registration_count(), 1);
+    }
+
+    #[test]
+    fn uniqueness_validation_borrows_registration_keys() {
+        let source = include_str!("mod.rs");
+
+        assert!(source.contains("registration.key.as_str()"));
+        assert!(source.contains("drop(keys);"));
+        assert!(!source.contains(concat!("registration.key.", "clone()")));
     }
 
     fn registration(key: &str) -> WorldRuntimeExtensionRegistration {

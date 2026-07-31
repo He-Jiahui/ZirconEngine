@@ -2,9 +2,16 @@ use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{event_bridge::UiHostEventEffects, HostInvalidationMask};
 use crate::ui::template_runtime::builtin::builtin_template_bindings;
-use zircon_runtime_interface::ui::binding::UiBindingValue;
+use zircon_runtime_interface::ui::{binding::UiBindingValue, dispatch::UiTemplateActionInvocation};
 
-use super::common::dispatch_editor_binding;
+use super::common::{dispatch_editor_binding, dispatch_template_action_invocation};
+
+pub(crate) fn dispatch_template_action(
+    runtime: &EditorHostEventController,
+    action: &UiTemplateActionInvocation,
+) -> Result<UiHostEventEffects, String> {
+    dispatch_template_action_invocation(runtime, action)
+}
 
 pub(crate) fn dispatch_builtin_template_binding(
     runtime: &EditorHostEventController,

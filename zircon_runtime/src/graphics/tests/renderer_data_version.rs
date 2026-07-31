@@ -1,5 +1,5 @@
 use crate::graphics::{
-    RendererDataDocument, RendererDataDocumentError, RENDERER_DATA_DOCUMENT_VERSION,
+    RENDERER_DATA_DOCUMENT_VERSION, RendererDataDocument, RendererDataDocumentError,
 };
 
 #[test]

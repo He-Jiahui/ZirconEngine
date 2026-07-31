@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::core::framework::render::{
     RenderPipelineHandle, RenderStats, RenderViewportHandle, RenderVirtualGeometryDebugSnapshot,
@@ -10,6 +11,7 @@ use crate::graphics::{
     SolariRuntimeProviderRegistration, VirtualGeometryRuntimeProviderRegistration,
 };
 
+use super::super::frame_profiler::FrameProfiler;
 use super::super::graphics_debugger_capture::GraphicsDebuggerState;
 use super::super::viewport_record::ViewportRecord;
 
@@ -27,9 +29,10 @@ pub(in crate::graphics::runtime::render_framework) struct RenderFrameworkState {
     pub(in crate::graphics::runtime::render_framework) virtual_geometry_runtime_provider:
         Option<VirtualGeometryRuntimeProviderRegistration>,
     pub(in crate::graphics::runtime::render_framework) last_virtual_geometry_debug_snapshot:
-        Option<RenderVirtualGeometryDebugSnapshot>,
+        Option<Arc<RenderVirtualGeometryDebugSnapshot>>,
     pub(in crate::graphics::runtime::render_framework) viewports:
         HashMap<RenderViewportHandle, ViewportRecord>,
     pub(in crate::graphics::runtime::render_framework) stats: RenderStats,
+    pub(in crate::graphics::runtime::render_framework) frame_profiler: FrameProfiler,
     pub(in crate::graphics::runtime::render_framework) graphics_debugger: GraphicsDebuggerState,
 }

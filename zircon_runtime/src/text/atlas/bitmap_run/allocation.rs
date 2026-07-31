@@ -108,22 +108,7 @@ fn reserve_bitmap_page(
         reservation.decision,
         GlyphAtlasPageResidencyDecision::Evict(_)
     ) {
-        plan.rebuilt_pages.push(page_key);
-        plan.slot_invalidations
-            .push(GlyphAtlasBitmapSlotInvalidation {
-                page_key,
-                page_generation: page.generation,
-            });
-        mark_bitmap_dirty(
-            &mut plan.dirty_pages,
-            page_key,
-            GlyphAtlasRect {
-                x: 0,
-                y: 0,
-                width: page_size.x,
-                height: page_size.y,
-            },
-        );
+        record_bitmap_page_rebuild(plan, page_key, page.generation, page_size);
     }
     allocators.insert(
         page_key,
@@ -131,6 +116,47 @@ fn reserve_bitmap_page(
     );
     active_pages.insert(format, page_key);
     Ok(page_key)
+}
+
+pub(super) fn record_bitmap_page_rebuild(
+    plan: &mut GlyphAtlasBitmapRunPlan,
+    page_key: GlyphAtlasPageKey,
+    page_generation: u64,
+    page_size: UVec2,
+) {
+    plan.rebuilt_pages.push(page_key);
+    plan.slot_invalidations
+        .push(GlyphAtlasBitmapSlotInvalidation {
+            page_key,
+            page_generation,
+        });
+    mark_full_bitmap_page_dirty(
+        &mut plan.dirty_pages,
+        page_key,
+        GlyphAtlasRect {
+            x: 0,
+            y: 0,
+            width: page_size.x,
+            height: page_size.y,
+        },
+    );
+}
+
+fn mark_full_bitmap_page_dirty(
+    dirty_pages: &mut Vec<GlyphAtlasDirtyPage>,
+    page_key: GlyphAtlasPageKey,
+    page_rect: GlyphAtlasRect,
+) {
+    if let Some(page) = dirty_pages
+        .iter_mut()
+        .find(|page| page.page_key() == page_key)
+    {
+        page.mark_full_page_dirty(page_key, page_rect);
+    } else {
+        let mut page = GlyphAtlasDirtyPage::new(page_key);
+        page.mark_full_page_dirty(page_key, page_rect);
+        dirty_pages.push(page);
+    }
 }
 
 fn allocate_without_mutating_on_failure(
@@ -149,6 +175,8 @@ pub(super) fn mark_bitmap_dirty(
     dirty_pages: &mut Vec<GlyphAtlasDirtyPage>,
     page_key: GlyphAtlasPageKey,
     rect: GlyphAtlasRect,
+    retained_regions: Option<&[GlyphAtlasRect]>,
+    has_replayable_shadow: bool,
 ) {
     if let Some(page) = dirty_pages
         .iter_mut()
@@ -156,7 +184,15 @@ pub(super) fn mark_bitmap_dirty(
     {
         page.mark_dirty(page_key, rect);
     } else {
-        let mut page = GlyphAtlasDirtyPage::new(page_key);
+        let mut page = match (retained_regions, has_replayable_shadow) {
+            (Some(retained_regions), true) => {
+                GlyphAtlasDirtyPage::new_with_replayable_shadow(page_key, retained_regions.to_vec())
+            }
+            (Some(retained_regions), false) => {
+                GlyphAtlasDirtyPage::new_with_retained_regions(page_key, retained_regions.to_vec())
+            }
+            (None, _) => GlyphAtlasDirtyPage::new(page_key),
+        };
         page.mark_dirty(page_key, rect);
         dirty_pages.push(page);
     }

@@ -1,0 +1,9 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub chainArcKind(): string { return "chainArc"; }
+pub attackSlowKind(): string { return "attackSlow"; }
+pub dotKind(): string { return "dot"; }
+pub hotKind(): string { return "hot"; }
+pub chainArcRoute(): int { return 1; }
+pub attackSlowRoute(): int { return 2; }
+pub dotRoute(): int { return 3; }
+pub hotRoute(): int { return 4; }

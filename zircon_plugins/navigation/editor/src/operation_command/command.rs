@@ -5,11 +5,11 @@ use zircon_editor::core::editing::engine::{
 };
 use zircon_editor::core::gateway::EditorRuntimeGateway;
 use zircon_runtime::core::framework::navigation::{
-    NavigationGeneratedBakeChange, NavigationGeneratedBakeSnapshot,
     NAVIGATION_BAKE_SCENE_OPERATION, NAVIGATION_BAKE_SURFACE_OPERATION,
     NAVIGATION_CLEAR_SURFACE_OPERATION, NAVIGATION_RESTORE_BAKE_OPERATION,
+    NavigationGeneratedBakeChange, NavigationGeneratedBakeSnapshot,
 };
-use zircon_runtime_interface::{ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1};
+use zircon_runtime_interface::{ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationSubmitRequestV1};
 
 use super::error::NavigationOperationCommandError;
 

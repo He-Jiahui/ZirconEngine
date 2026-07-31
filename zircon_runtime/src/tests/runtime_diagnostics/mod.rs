@@ -8,6 +8,7 @@ mod post_process_material_mesh;
 mod support;
 
 use crate::core::CoreRuntime;
+use crate::runtime_diagnostics::{collect_runtime_devtools_snapshot, collect_runtime_diagnostics};
 
 use support::{fake_render_module, DIAGNOSTICS_TEST_MODULE};
 
@@ -15,7 +16,7 @@ use support::{fake_render_module, DIAGNOSTICS_TEST_MODULE};
 fn runtime_diagnostics_reports_missing_runtime_contracts_without_panicking() {
     let runtime = CoreRuntime::new();
 
-    let snapshot = crate::core::diagnostics::collect_runtime_diagnostics(&runtime.handle());
+    let snapshot = collect_runtime_diagnostics(&runtime.handle());
 
     assert!(!snapshot.render.available);
     assert!(snapshot.render.stats.is_none());
@@ -35,7 +36,7 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     runtime.register_module(fake_render_module()).unwrap();
     runtime.activate_module(DIAGNOSTICS_TEST_MODULE).unwrap();
 
-    let snapshot = crate::core::diagnostics::collect_runtime_diagnostics(&runtime.handle());
+    let snapshot = collect_runtime_diagnostics(&runtime.handle());
 
     assert!(snapshot.render.available);
     let render_stats = snapshot.render.stats.as_ref().expect("render stats");
@@ -69,7 +70,7 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     post_process_material_mesh::assert_post_process_material_mesh(&snapshot);
     gpu_sprite_ui_advanced::assert_gpu_sprite_ui_advanced(&snapshot);
 
-    let devtools = crate::core::diagnostics::collect_runtime_devtools_snapshot(&runtime.handle());
+    let devtools = collect_runtime_devtools_snapshot(&runtime.handle());
     assert!(devtools
         .modules
         .iter()

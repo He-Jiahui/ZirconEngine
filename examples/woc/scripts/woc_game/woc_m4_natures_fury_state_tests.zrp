@@ -1,0 +1,1 @@
+{ "name":"woc_m4_natures_fury_state_tests", "source":"src", "binary":"bin-m4-natures-fury-state-tests", "entry":"combat/natures_fury_state_test_main" }

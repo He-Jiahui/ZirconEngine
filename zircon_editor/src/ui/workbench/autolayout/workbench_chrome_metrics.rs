@@ -1,3 +1,7 @@
+/// Design-token chrome extents in logical layout units.
+///
+/// The shell solves with these values before converting the completed geometry
+/// once at the DPI boundary, so callers must not pre-scale individual fields.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct WorkbenchChromeMetrics {
     pub top_bar_height: f32,

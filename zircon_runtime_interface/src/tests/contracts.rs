@@ -1,3 +1,5 @@
+mod selector;
+
 use crate::{
     math::{is_finite_vec3, perspective, transform_to_mat4, Transform, UVec2, Vec3},
     ui::{
@@ -63,24 +65,24 @@ use crate::{
             UiCompiledAssetDependencyManifest, UiCompiledAssetHeader,
             UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
             UiCompiledAssetPackageValidationReport, UiLocalizationReport, UiLocalizedTextRef,
-            UiNodeDefinition, UiResourceKind, UiResourceRef, UiSelector, UiSelectorCombinator,
-            UiSelectorSegment, UiSelectorToken, UiTemplateDocument, UiTemplateNode,
+            UiNodeDefinition, UiResourceKind, UiResourceRef, UiTemplateDocument, UiTemplateNode,
             UiTextDirection, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
             UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
         },
         tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
     },
     ZrByteSlice, ZrOwnedByteBuffer, ZrPluginApiV1, ZrPluginEventCallbackRequestV1,
-    ZrPluginEventCallbackResultV1, ZrRuntimeApiV2, ZrRuntimeCursorGrabModeV1,
+    ZrPluginEventCallbackResultV1, ZrRuntimeApiV3, ZrRuntimeCursorGrabModeV1,
     ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
-    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
+    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
     ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
     ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
     ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1,
-    ZrRuntimeImeSurroundingTextV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionHandle,
-    ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportMetricsV1,
-    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_API_VERSION_V2, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZrRuntimeImeSurroundingTextV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionConfigV2,
+    ZrRuntimeSessionHandle, ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrRuntimeWakeSinkV1, ZrStatus,
+    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
+    ZIRCON_RUNTIME_API_VERSION_V3, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
     ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1,
     ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
     ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
@@ -90,18 +92,19 @@ use crate::{
     ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
     ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1,
     ZR_RUNTIME_FILE_DRAG_CANCELLED_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
-    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
-    ZR_RUNTIME_IME_CURSOR_HIDDEN_V1, ZR_RUNTIME_IME_STATE_COMMIT_V1,
-    ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
-    ZR_RUNTIME_IME_STATE_ENABLED_V1, ZR_RUNTIME_IME_STATE_PREEDIT_V1,
-    ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1, ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1,
-    ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1,
-    ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
-    ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1,
-    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_WINDOW_BOOL_TRUE_V1,
-    ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
+    ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, ZR_RUNTIME_IME_CURSOR_HIDDEN_V1,
+    ZR_RUNTIME_IME_STATE_COMMIT_V1, ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1,
+    ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1, ZR_RUNTIME_IME_STATE_ENABLED_V1,
+    ZR_RUNTIME_IME_STATE_PREEDIT_V1, ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1,
+    ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1, ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1,
+    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1,
+    ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+    ZR_RUNTIME_WINDOW_BOOL_TRUE_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
@@ -567,8 +570,87 @@ fn ui_visibility_contract_separates_layout_render_and_hit_policy() {
 }
 
 #[test]
-fn runtime_abi_version_starts_at_v1() {
+fn runtime_abi_versions_preserve_v1_and_add_v2_for_new_session_dtos() {
     assert_eq!(ZIRCON_RUNTIME_ABI_VERSION_V1, 1);
+    assert_eq!(ZIRCON_RUNTIME_ABI_VERSION_V2, 2);
+}
+
+unsafe extern "C" fn wake_sink_stub(_token: u64) {}
+
+#[test]
+fn runtime_v2_session_config_and_wake_sink_layout_and_validity_are_stable() {
+    let disabled = ZrRuntimeWakeSinkV1::disabled();
+    let registered = ZrRuntimeWakeSinkV1::new(7, wake_sink_stub);
+    let config = ZrRuntimeSessionConfigV2::empty();
+    let mut wrong_config_version = config;
+    wrong_config_version.abi_version = ZIRCON_RUNTIME_ABI_VERSION_V1;
+
+    assert!(disabled.is_valid());
+    assert!(registered.is_valid());
+    assert!(config.is_valid());
+    assert!(!wrong_config_version.is_valid());
+    assert_eq!(config.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V2);
+    assert_eq!(config.wake_sink.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(core::mem::size_of::<ZrRuntimeWakeSinkV1>(), 24);
+    assert_eq!(core::mem::offset_of!(ZrRuntimeWakeSinkV1, token), 8);
+    assert_eq!(core::mem::offset_of!(ZrRuntimeWakeSinkV1, wake), 16);
+    assert_eq!(core::mem::size_of::<ZrRuntimeSessionConfigV2>(), 64);
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeSessionConfigV2, wake_sink),
+        40
+    );
+
+    let missing_callback = ZrRuntimeWakeSinkV1 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+        token: 7,
+        wake: None,
+    };
+    let missing_token = ZrRuntimeWakeSinkV1 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+        token: 0,
+        wake: Some(wake_sink_stub),
+    };
+    let wrong_version = ZrRuntimeWakeSinkV1 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
+        token: 0,
+        wake: None,
+    };
+
+    assert!(!missing_callback.is_valid());
+    assert!(!missing_token.is_valid());
+    assert!(!wrong_version.is_valid());
+}
+
+#[test]
+fn runtime_frame_demand_keeps_raw_checked_kind_and_stable_layout() {
+    let idle = ZrRuntimeFrameDemandV1::idle();
+    let immediate = ZrRuntimeFrameDemandV1::immediate();
+    let after = ZrRuntimeFrameDemandV1::after(4_000_000);
+
+    assert_eq!(idle.kind, ZR_RUNTIME_FRAME_DEMAND_IDLE_V1);
+    assert_eq!(immediate.kind, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1);
+    assert_eq!(after.kind, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1);
+    assert_eq!(idle.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert!(idle.is_valid());
+    assert!(immediate.is_valid());
+    assert!(after.is_valid());
+    assert_eq!(after.delay_nanoseconds, 4_000_000);
+    assert_eq!(core::mem::size_of::<ZrRuntimeFrameDemandV1>(), 16);
+    assert_eq!(core::mem::offset_of!(ZrRuntimeFrameDemandV1, kind), 4);
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeFrameDemandV1, delay_nanoseconds),
+        8
+    );
+
+    let unknown = ZrRuntimeFrameDemandV1 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+        kind: u32::MAX,
+        delay_nanoseconds: 0,
+    };
+    let raw_kind: u32 = unknown.kind;
+    assert_eq!(raw_kind, u32::MAX);
+    assert!(!unknown.has_known_kind());
+    assert!(!unknown.is_valid());
 }
 
 #[test]
@@ -610,11 +692,11 @@ fn status_preserves_raw_codes_and_diagnostics() {
 
 #[test]
 fn runtime_api_table_records_size_and_version() {
-    let api = ZrRuntimeApiV2::empty();
+    let api = ZrRuntimeApiV3::empty();
 
-    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V2);
-    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV2>());
-    assert_eq!(core::mem::size_of::<ZrRuntimeApiV2>(), 152);
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V3);
+    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV3>());
+    assert_eq!(core::mem::size_of::<ZrRuntimeApiV3>(), 152);
     assert!(api.create_session.is_none());
     assert!(api.capture_frame.is_none());
     assert!(api.bind_viewport_surface.is_none());
@@ -630,38 +712,38 @@ fn runtime_api_table_records_size_and_version() {
     assert!(api.poll_operation.is_none());
     assert!(api.harvest_operation.is_none());
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV2, bind_viewport_surface),
-        core::mem::offset_of!(ZrRuntimeApiV2, capture_accessibility_tree)
+        core::mem::offset_of!(ZrRuntimeApiV3, bind_viewport_surface),
+        core::mem::offset_of!(ZrRuntimeApiV3, capture_accessibility_tree)
             + core::mem::size_of::<Option<crate::ZrRuntimeCaptureAccessibilityTreeFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV2, profile_control),
-        core::mem::offset_of!(ZrRuntimeApiV2, present_viewport)
+        core::mem::offset_of!(ZrRuntimeApiV3, profile_control),
+        core::mem::offset_of!(ZrRuntimeApiV3, present_viewport)
             + core::mem::size_of::<Option<crate::ZrRuntimePresentViewportFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV2, tick_frame),
-        core::mem::offset_of!(ZrRuntimeApiV2, profile_control)
+        core::mem::offset_of!(ZrRuntimeApiV3, tick_frame),
+        core::mem::offset_of!(ZrRuntimeApiV3, profile_control)
             + core::mem::size_of::<Option<crate::ZrRuntimeProfileControlFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV2, drain_host_requests),
-        core::mem::offset_of!(ZrRuntimeApiV2, tick_frame)
-            + core::mem::size_of::<Option<crate::ZrRuntimeTickFrameFnV1>>()
+        core::mem::offset_of!(ZrRuntimeApiV3, drain_host_requests),
+        core::mem::offset_of!(ZrRuntimeApiV3, tick_frame)
+            + core::mem::size_of::<Option<crate::ZrRuntimeTickFrameFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV2, subscribe_plugin_event),
-        core::mem::offset_of!(ZrRuntimeApiV2, drain_host_requests)
+        core::mem::offset_of!(ZrRuntimeApiV3, subscribe_plugin_event),
+        core::mem::offset_of!(ZrRuntimeApiV3, drain_host_requests)
             + core::mem::size_of::<Option<crate::ZrRuntimeDrainHostRequestsFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV2, unsubscribe_plugin_event),
-        core::mem::offset_of!(ZrRuntimeApiV2, subscribe_plugin_event)
+        core::mem::offset_of!(ZrRuntimeApiV3, unsubscribe_plugin_event),
+        core::mem::offset_of!(ZrRuntimeApiV3, subscribe_plugin_event)
             + core::mem::size_of::<Option<crate::ZrRuntimeSubscribePluginEventFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV2, drain_plugin_events),
-        core::mem::offset_of!(ZrRuntimeApiV2, unsubscribe_plugin_event)
+        core::mem::offset_of!(ZrRuntimeApiV3, drain_plugin_events),
+        core::mem::offset_of!(ZrRuntimeApiV3, unsubscribe_plugin_event)
             + core::mem::size_of::<Option<crate::ZrRuntimeUnsubscribePluginEventFnV1>>()
     );
 }
@@ -685,18 +767,33 @@ fn plugin_event_mirror_contract_preserves_session_schema_sequence_and_payload() 
     let batch = crate::ZrRuntimePluginEventDeliveryBatchV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         vec![delivery],
-    );
+    )
+    .with_runtime_backlog(9, 17);
     let encoded = serde_json::to_vec(&batch).unwrap();
+    let encoded_value: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
     let decoded: crate::ZrRuntimePluginEventDeliveryBatchV1 =
         serde_json::from_slice(&encoded).unwrap();
 
     assert_eq!(decoded.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(encoded_value["remainingDeliveries"], 9);
+    assert_eq!(encoded_value["oldestPendingAgeMillis"], 17);
+    assert_eq!(decoded.remaining_deliveries, 9);
+    assert_eq!(decoded.oldest_pending_age_millis, 17);
     assert_eq!(decoded.deliveries[0].play_session_id, 41);
     assert_eq!(decoded.deliveries[0].subscription, subscription);
     assert_eq!(decoded.deliveries[0].sequence, 3);
     assert_eq!(decoded.deliveries[0].event_id, request.event_id);
     assert_eq!(decoded.deliveries[0].payload_schema, request.payload_schema);
     assert_eq!(decoded.deliveries[0].payload["updated_agents"], 2);
+
+    let legacy_wire = br#"{
+        "abiVersion": 1,
+        "deliveries": []
+    }"#;
+    let legacy: crate::ZrRuntimePluginEventDeliveryBatchV1 =
+        serde_json::from_slice(legacy_wire).unwrap();
+    assert_eq!(legacy.remaining_deliveries, 0);
+    assert_eq!(legacy.oldest_pending_age_millis, 0);
 }
 
 #[test]
@@ -773,6 +870,13 @@ fn profiling_dtos_serialize_optional_abi_control_contract() {
     let response = crate::ProfileControlResponse {
         runtime_diagnostics: Some(crate::RuntimeDiagnosticsSnapshot {
             frame_index: 7,
+            project_identity: Some("ZirconProject".to_string()),
+            scene_uri: Some("res://scenes/main.scene.toml".to_string()),
+            selected_model_resource_id: Some("cube-model".to_string()),
+            selected_material_resource_id: Some("cube-material".to_string()),
+            render_backend_name: Some("wgpu(dx12)".to_string()),
+            render_device: None,
+            input: crate::RuntimeInputDiagnosticsSnapshot::default(),
             diagnostic_series: vec![crate::RuntimeDiagnosticSeriesSnapshot {
                 path: "scene.asset_reload.pending".to_string(),
                 unit: Some("count".to_string()),
@@ -821,6 +925,14 @@ fn profiling_dtos_serialize_optional_abi_control_contract() {
     );
     assert!(scene_reload.enabled);
     assert_eq!(scene_reload.scheduled, 1);
+    assert_eq!(
+        runtime_diagnostics.project_identity.as_deref(),
+        Some("ZirconProject")
+    );
+    assert_eq!(
+        runtime_diagnostics.scene_uri.as_deref(),
+        Some("res://scenes/main.scene.toml")
+    );
     assert_eq!(config.session_id, crate::PROFILE_DEFAULT_SESSION_ID);
     assert_eq!(
         config.frame_budget_ms,
@@ -1813,6 +1925,7 @@ fn ui_input_dispatch_result_drag_metrics_are_optional_and_round_trip() {
         },
         delivered: true,
         drag: Some(drag),
+        template_action: None,
     });
 
     let round_trip: UiInputDispatchResult = ui_input_round_trip(&result);
@@ -2205,6 +2318,7 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
             event: component_event,
             delivered: true,
             drag: Some(UiDragMetrics::begin(UiPoint::new(6.0, 7.0))),
+            template_action: None,
         }],
         binding_reports: Vec::new(),
         drag: Some(UiDragMetrics::begin(UiPoint::new(6.0, 7.0))),
@@ -2589,37 +2703,6 @@ fn ui_component_template_policy_localization_and_package_contracts_construct() {
     assert!(text_ref.validate("root.label").is_none());
     assert_eq!(UiTextDirection::Auto, UiTextDirection::Auto);
     assert_eq!(package_report.retained_sections.len(), 1);
-}
-
-#[test]
-fn ui_selector_contracts_parse_reject_trailing_child_and_serialize() {
-    let selector = UiSelector::parse("Button.primary > Label:part(text)").unwrap();
-    let serialized = serde_json::to_string(&selector).unwrap();
-    let round_trip: UiSelector = serde_json::from_str(&serialized).unwrap();
-
-    assert_eq!(round_trip, selector);
-    assert_eq!(selector.segments.len(), 2);
-    assert_eq!(
-        selector.segments[0],
-        UiSelectorSegment {
-            combinator: None,
-            tokens: vec![
-                UiSelectorToken::Type("Button".to_string()),
-                UiSelectorToken::Class("primary".to_string())
-            ],
-        }
-    );
-    assert_eq!(
-        selector.segments[1].combinator,
-        Some(UiSelectorCombinator::Child)
-    );
-    assert!(selector.segments[0]
-        .tokens
-        .contains(&UiSelectorToken::Class("primary".to_string())));
-    assert!(matches!(
-        UiSelector::parse("Button >"),
-        Err(crate::ui::template::UiAssetError::InvalidSelector(_))
-    ));
 }
 
 #[test]

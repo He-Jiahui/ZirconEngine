@@ -1,12 +1,10 @@
-use std::ffi::{c_char, CStr};
-
 use serde::Deserialize;
 use serde_json::json;
 use zircon_plugin_sdk::native::{
-    self, bytes_from_slice, callback_status as status, owned_bytes, NativePluginBridgeMethodCallV3,
-    NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginHostFunctionTableV3,
-    NativePluginOwnedByteBufferV2, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    self, NativePluginBridgeMethodCallV3, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
+    NativePluginHostFunctionTableV3, NativePluginOutputSinkV4, NativePluginOwnedByteBufferV2,
+    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK, bytes_from_slice, callback_status as status, owned_bytes,
 };
 
 #[cfg(feature = "abi_unknown_version")]
@@ -16,15 +14,80 @@ const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 =
     zircon_plugin_sdk::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
 const IMPORT_REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
 const IMPORT_RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
-const FIXTURE_DATA_IMPORTER_ID: &str = "native_dynamic_fixture.data_json";
 
-const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
+zircon_plugin_sdk::native_plugin_manifest_v3! {
+    NATIVE_DYNAMIC_FIXTURE_MANIFEST {
+        id: PLUGIN_ID = "native_dynamic_fixture",
+        requested_capabilities: NATIVE_DYNAMIC_FIXTURE_REQUESTED_CAPABILITIES,
+        version: "0.1.0",
+        sdk_api_version: "0.2.0",
+        display_name: "Native Dynamic Fixture",
+        category: "sdk",
+        description: "Real dynamic library fixture for ABI v3 native plugin loading with ABI v2 fallback coverage.",
+        maturity: "experimental",
+        targets: ["client_runtime", "server_runtime", "editor_host"],
+        platforms: ["windows", "linux", "macos"],
+        capabilities: [
+            "runtime.plugin.native_dynamic_fixture",
+            "runtime.asset.importer.native_dynamic_fixture.data_json",
+            "editor.extension.native_dynamic_fixture",
+        ],
+        packaging: ["native_dynamic"],
+        distribution: {
+            forms: ["dist"],
+            default_packaging: ["native_dynamic"],
+            abi_version: 3,
+            engine_compat: ">=0.1, <0.2",
+            dist_crate: "zircon_plugin_native_dynamic_fixture_native",
+            descriptor_symbol: "zircon_native_plugin_descriptor_v3",
+            runtime_entry: "zircon_native_dynamic_fixture_runtime_entry_v3",
+            editor_entry: "zircon_native_dynamic_fixture_editor_entry_v3",
+            assets: ["assets/**"],
+        },
+        asset_importer: {
+            id: FIXTURE_DATA_IMPORTER_ID = "native_dynamic_fixture.data_json",
+            priority: 100,
+            source_extensions: ["json"],
+            output_kind: "Data",
+            importer_version: 1,
+            required_capabilities: ["runtime.asset.importer.native_dynamic_fixture.data_json"],
+        },
+        modules: [
+            {
+                name: "native_dynamic_fixture.runtime",
+                kind: "runtime",
+                crate_name: "zircon_plugin_native_dynamic_fixture_native",
+                target_modes: ["client_runtime", "server_runtime", "editor_host"],
+                capabilities: [
+                    "runtime.plugin.native_dynamic_fixture",
+                    "runtime.asset.importer.native_dynamic_fixture.data_json",
+                ],
+            },
+            {
+                name: "native_dynamic_fixture.editor",
+                kind: "editor",
+                crate_name: "zircon_plugin_native_dynamic_fixture_native",
+                target_modes: ["editor_host"],
+                capabilities: ["editor.extension.native_dynamic_fixture"],
+            },
+        ],
+        interface: {
+            id: "native_dynamic_fixture.runtime",
+            methods: [{ name: "tick", method_slot: 0 }],
+        },
+    }
+}
 
-const PLUGIN_ID: &[u8] = b"native_dynamic_fixture\0";
+const PLUGIN_MANIFEST: &str = NATIVE_DYNAMIC_FIXTURE_MANIFEST;
+#[cfg(feature = "runtime_entry_export_missing")]
+const RUNTIME_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_missing_v3\0";
+#[cfg(not(feature = "runtime_entry_export_missing"))]
 const RUNTIME_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_v3\0";
 const EDITOR_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_editor_entry_v3\0";
-const REQUESTED_CAPABILITIES: &[u8] =
-    b"runtime.plugin.native_dynamic_fixture\nruntime.asset.importer.native_dynamic_fixture.data_json\neditor.extension.native_dynamic_fixture\0";
+#[cfg(not(feature = "required_capability_missing"))]
+const REQUESTED_CAPABILITIES: &[u8] = NATIVE_DYNAMIC_FIXTURE_REQUESTED_CAPABILITIES;
+#[cfg(feature = "required_capability_missing")]
+const REQUESTED_CAPABILITIES: &[u8] = b"runtime.asset.importer.native_dynamic_fixture.data_json\neditor.extension.native_dynamic_fixture\0";
 const RUNTIME_NEGOTIATED_CAPABILITIES: &[u8] =
     b"runtime.plugin.native_dynamic_fixture\nruntime.asset.importer.native_dynamic_fixture.data_json\0";
 const EDITOR_NEGOTIATED_CAPABILITIES: &[u8] = b"editor.extension.native_dynamic_fixture\0";
@@ -32,7 +95,36 @@ const EDITOR_DIAGNOSTICS_V3: &[u8] =
     b"editor entry reached with v3 host ABI table\nnegotiated editor.extension.native_dynamic_fixture\0";
 const MISSING_HOST_DIAGNOSTICS_V3: &[u8] = b"native v3 entry missing negotiated host ABI table\0";
 const RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3: &[u8] = b"runtime v3 entry reached with host ABI table\nnegotiated runtime.plugin.native_dynamic_fixture\ndenied capability runtime.plugin.denied_fixture\0";
-const RUNTIME_COMMAND_MANIFEST: &[u8] = b"command=echo;payload=bytes\ncommand=mismatched_buffer;payload=bytes\ncommand=panic;payload=bytes\ncommand=asset.import/native_dynamic_fixture.data_json;payload=ZRIMP001\0";
+const COMMAND_ECHO_SLOT: u32 = 0;
+const COMMAND_BOUNDED_OVERFLOW_SLOT: u32 = 1;
+const COMMAND_PANIC_SLOT: u32 = 2;
+const COMMAND_ASSET_IMPORT_SLOT: u32 = 3;
+const RUNTIME_COMMAND_MANIFEST_TEXT: &str = concat!(
+    r#"schema = "zircon.native.command-manifest/4"
+[[commands]]
+name = "echo"
+slot = 0
+payload_schema = "bytes"
+max_output_bytes = 1048576
+[[commands]]
+name = "bounded_overflow"
+slot = 1
+payload_schema = "bytes"
+max_output_bytes = 4
+[[commands]]
+name = "panic"
+slot = 2
+payload_schema = "bytes"
+max_output_bytes = 0
+[[commands]]
+name = "asset.import/native_dynamic_fixture.data_json"
+slot = 3
+payload_schema = "ZRIMP001"
+max_output_bytes = 1048576
+"#,
+    "\0"
+);
+const RUNTIME_COMMAND_MANIFEST: &[u8] = RUNTIME_COMMAND_MANIFEST_TEXT.as_bytes();
 const RUNTIME_EVENT_MANIFEST: &[u8] = b"event=native_dynamic_fixture.echoed;payload=bytes\0";
 const RUNTIME_REGISTRATION_MANIFEST_TEXT: &str = concat!(
     r#"schema = "zircon.native.registration-manifest/3"
@@ -46,7 +138,8 @@ module = "runtime"
 stage = "Update"
 order = 0
 sets = ["native_dynamic_fixture"]
-access = ["read:scene.time"]
+access = ["write:world"]
+thread_affinity = "main-thread-only"
 bridge_interface = "native_dynamic_fixture.runtime"
 bridge_method = "tick"
 [[events]]
@@ -73,7 +166,13 @@ const EDITOR_HOST_DIAGNOSTIC_PATH: &[u8] = b"plugin.native_dynamic_fixture.edito
 const HOST_DIAGNOSTIC_UNIT: &[u8] = b"count\0";
 const RUNTIME_HOST_DIAGNOSTIC_TAGS: &[u8] = b"plugin,native,runtime\0";
 const EDITOR_HOST_DIAGNOSTIC_TAGS: &[u8] = b"plugin,native,editor\0";
-const EDITOR_COMMAND_MANIFEST: &[u8] = b"\0";
+const EDITOR_COMMAND_MANIFEST_TEXT: &str = concat!(
+    r#"schema = "zircon.native.command-manifest/4"
+commands = []
+"#,
+    "\0"
+);
+const EDITOR_COMMAND_MANIFEST: &[u8] = EDITOR_COMMAND_MANIFEST_TEXT.as_bytes();
 const EDITOR_EVENT_MANIFEST: &[u8] = b"\0";
 const STATUS_ECHO_DIAGNOSTICS: &[u8] = b"serialized command echo completed\0";
 const STATUS_ASSET_IMPORT_DIAGNOSTICS: &[u8] = b"native fixture asset import completed\0";
@@ -81,7 +180,7 @@ const STATUS_ASSET_IMPORT_INVALID_DIAGNOSTICS: &[u8] =
     b"native fixture asset import request was malformed\0";
 const STATUS_DENIED_COMMAND_DIAGNOSTICS: &[u8] = b"denied native command unknown\0";
 const STATUS_PANIC_DIAGNOSTICS: &[u8] = b"native fixture caught panic during command invocation\0";
-const STATUS_BAD_COMMAND_DIAGNOSTICS: &[u8] = b"native command name was null or invalid\0";
+const STATUS_BAD_COMMAND_DIAGNOSTICS: &[u8] = b"native command slot was not declared\0";
 const STATUS_BAD_OUTPUT_DIAGNOSTICS: &[u8] = b"native command output pointer was null\0";
 const STATUS_STATE_SAVE_DIAGNOSTICS: &[u8] = b"state save completed\0";
 const STATUS_STATE_RESTORE_DIAGNOSTICS: &[u8] = b"state restore accepted\0";
@@ -99,6 +198,7 @@ struct NativeAssetImportRequestMetadata {
     source_path: String,
 }
 
+#[cfg(not(feature = "descriptor_export_missing"))]
 zircon_plugin_sdk::native_dist_plugin_v3! {
     plugin_id: PLUGIN_ID,
     package_manifest: PLUGIN_MANIFEST,
@@ -116,7 +216,7 @@ zircon_plugin_sdk::native_dist_plugin_v3! {
         diagnostics: RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3,
         is_stateless: false,
         state_schema_version: 3,
-        command_manifest_schema: Some(native::NATIVE_COMMAND_MANIFEST_SCHEMA_V3),
+        command_manifest_schema: Some(native::NATIVE_COMMAND_MANIFEST_SCHEMA_V4),
         event_manifest_schema: Some(native::NATIVE_EVENT_MANIFEST_SCHEMA_V3),
         registration_manifest_schema: Some(native::NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3),
         command_manifest: Some(RUNTIME_COMMAND_MANIFEST),
@@ -143,7 +243,7 @@ zircon_plugin_sdk::native_dist_plugin_v3! {
         diagnostics: EDITOR_DIAGNOSTICS_V3,
         is_stateless: true,
         state_schema_version: 0,
-        command_manifest_schema: None,
+        command_manifest_schema: Some(native::NATIVE_COMMAND_MANIFEST_SCHEMA_V4),
         event_manifest_schema: None,
         registration_manifest_schema: None,
         command_manifest: Some(EDITOR_COMMAND_MANIFEST),
@@ -165,68 +265,51 @@ unsafe extern "C" fn fixture_runtime_tick_bridge(
 }
 
 unsafe extern "C" fn fixture_invoke_command(
-    command_name: *const c_char,
+    command_slot: u32,
     payload: NativePluginByteSliceV2,
-    output: *mut NativePluginOwnedByteBufferV2,
+    output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV2 {
     native::catch_native_callback_panic(STATUS_PANIC_DIAGNOSTICS, || unsafe {
-        fixture_invoke_command_inner(command_name, payload, output)
+        fixture_invoke_command_inner(command_slot, payload, output)
     })
 }
 
 unsafe fn fixture_invoke_command_inner(
-    command_name: *const c_char,
+    command_slot: u32,
     payload: NativePluginByteSliceV2,
-    output: *mut NativePluginOwnedByteBufferV2,
+    output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV2 {
-    if command_name.is_null() {
-        return status(
-            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-            STATUS_BAD_COMMAND_DIAGNOSTICS,
-        );
-    }
-    if output.is_null() {
-        return status(
-            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-            STATUS_BAD_OUTPUT_DIAGNOSTICS,
-        );
-    }
-    let Ok(command_name) = CStr::from_ptr(command_name).to_str() else {
-        return status(
-            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-            STATUS_BAD_COMMAND_DIAGNOSTICS,
-        );
-    };
-    match command_name {
-        "echo" => {
-            let bytes = bytes_from_slice(payload);
-            let mut response = b"echo:".to_vec();
-            response.extend_from_slice(bytes);
-            *output = owned_bytes(response);
+    match command_slot {
+        COMMAND_ECHO_SLOT => {
+            let prefix_status = unsafe { output.write(b"echo:") };
+            if prefix_status.code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
+                return prefix_status;
+            }
+            let payload_status = unsafe { output.write(bytes_from_slice(payload)) };
+            if payload_status.code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
+                return payload_status;
+            }
             status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATUS_ECHO_DIAGNOSTICS)
         }
-        "mismatched_buffer" => {
-            let mut response = b"mismatch:".to_vec();
-            response.extend_from_slice(bytes_from_slice(payload));
-            let mut buffer = owned_bytes(response);
-            buffer.owner_token ^= 1;
-            *output = buffer;
+        COMMAND_BOUNDED_OVERFLOW_SLOT => {
+            let sink_status = unsafe { output.write(b"12345") };
+            if sink_status.code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
+                return sink_status;
+            }
             status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATUS_ECHO_DIAGNOSTICS)
         }
-        "asset.import/native_dynamic_fixture.data_json" => {
-            fixture_import_data_json(payload, output)
-        }
-        "panic" => panic!("fixture command panic"),
+        COMMAND_ASSET_IMPORT_SLOT => fixture_import_data_json(payload, output),
+        COMMAND_PANIC_SLOT => panic!("fixture command panic"),
         _ => status(
             ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
-            STATUS_DENIED_COMMAND_DIAGNOSTICS,
+            STATUS_BAD_COMMAND_DIAGNOSTICS,
         ),
     }
 }
 
 unsafe fn fixture_import_data_json(
     payload: NativePluginByteSliceV2,
-    output: *mut NativePluginOwnedByteBufferV2,
+    output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV2 {
     let Ok((metadata, source_bytes)) = decode_import_request(bytes_from_slice(payload)) else {
         return status(
@@ -246,7 +329,10 @@ unsafe fn fixture_import_data_json(
             STATUS_ASSET_IMPORT_INVALID_DIAGNOSTICS,
         );
     };
-    *output = owned_bytes(response);
+    let sink_status = unsafe { output.write(&response) };
+    if sink_status.code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
+        return sink_status;
+    }
     status(
         ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         STATUS_ASSET_IMPORT_DIAGNOSTICS,
@@ -363,9 +449,9 @@ unsafe extern "C" fn fixture_stateless_unload() -> NativePluginCallbackStatusV2 
 }
 
 unsafe extern "C" fn fixture_stateless_invoke_command(
-    _command_name: *const c_char,
+    _command_slot: u32,
     _payload: NativePluginByteSliceV2,
-    _output: *mut NativePluginOwnedByteBufferV2,
+    _output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV2 {
     status(
         ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
@@ -426,5 +512,19 @@ fn emit_host_v3_editor_signals(host_functions: *const NativePluginHostFunctionTa
                 EDITOR_HOST_DIAGNOSTIC_TAGS.as_ptr().cast(),
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PLUGIN_MANIFEST;
+
+    #[test]
+    fn generated_native_manifest_matches_checked_in_plugin_toml() {
+        let rendered_manifest = PLUGIN_MANIFEST
+            .strip_suffix('\0')
+            .expect("native manifest must retain its ABI C-string terminator");
+
+        assert_eq!(rendered_manifest, include_str!("../../plugin.toml"));
     }
 }

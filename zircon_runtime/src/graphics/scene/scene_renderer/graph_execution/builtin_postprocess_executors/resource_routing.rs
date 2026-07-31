@@ -53,6 +53,7 @@ pub(super) fn bloom_input_resource(context: &RenderPassExecutionContext<'_>) -> 
     }
 }
 
+#[cfg(test)]
 pub(super) fn uber_input_resource(context: &RenderPassExecutionContext<'_>) -> &'static str {
     if context.declares_resource_name_access(
         PostProcessGraphResourceNames::BLURRED,

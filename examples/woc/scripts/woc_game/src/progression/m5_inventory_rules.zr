@@ -1,0 +1,69 @@
+// Source-pinned scalar inventory rules for the bounded M5 catalog. This module
+// intentionally accepts and returns only primitive values: WorldState retains
+// mutable parallel-array ownership until the ZrVM cross-module Array ABI is
+// reliable enough to make that boundary safe.
+var catalog = %import("generated/m5_content_catalog");
+
+var BACKPACK_SLOTS: int = 16;
+var BAG_SOCKETS: int = 4;
+var DEFAULT_STACK_SIZE: int = 20;
+
+pub backpackSlots(): int {
+    return BACKPACK_SLOTS;
+}
+
+pub bagSockets(): int {
+    return BAG_SOCKETS;
+}
+
+pub itemIndexFromCode(itemCode: uint): int {
+    var itemIndex = <int>itemCode - 1;
+    return itemCode == <uint>0 || itemIndex < 0 || itemIndex >= catalog.count("item") ?
+        -1 : itemIndex;
+}
+
+pub itemCodeIsValid(itemCode: uint): bool {
+    return itemIndexFromCode(itemCode) >= 0;
+}
+
+pub itemCodeForId(itemId: string): uint {
+    var itemIndex = catalog.indexOf("item", itemId);
+    if (itemIndex < 0) { throw "woc M5 inventory item identity is invalid"; }
+    return <uint>(itemIndex + 1);
+}
+
+pub stackLimitForItemIndex(itemIndex: int): int {
+    if (itemIndex < 0 || itemIndex >= catalog.count("item")) { return 0; }
+    var kind = catalog.text("item", itemIndex, "kind");
+    if (kind == "weapon" || kind == "armor" || kind == "held_offhand" ||
+        kind == "bag" || kind == "tool") {
+        return 1;
+    }
+    return DEFAULT_STACK_SIZE;
+}
+
+pub bagCodeIsValid(itemCode: uint): bool {
+    var itemIndex = itemIndexFromCode(itemCode);
+    return itemIndex >= 0 && catalog.text("item", itemIndex, "kind") == "bag";
+}
+
+pub bagSlotsForCode(itemCode: uint): int {
+    var itemIndex = itemIndexFromCode(itemCode);
+    if (itemIndex < 0 || !bagCodeIsValid(itemCode)) { return 0; }
+    return <int>catalog.metric("item", itemIndex, "bagSlots");
+}
+
+pub contractTest(): int {
+    var breadCode = itemCodeForId("baked_bread");
+    var swordCode = itemCodeForId("worn_sword");
+    var satchelCode = itemCodeForId("wolfhide_satchel");
+    if (backpackSlots() != 16 || bagSockets() != 4 || breadCode != <uint>1 ||
+        !itemCodeIsValid(breadCode) || itemCodeIsValid(<uint>0) ||
+        stackLimitForItemIndex(itemIndexFromCode(breadCode)) != 20 ||
+        stackLimitForItemIndex(itemIndexFromCode(swordCode)) != 1 ||
+        !bagCodeIsValid(satchelCode) || bagSlotsForCode(satchelCode) != 10 ||
+        bagCodeIsValid(breadCode) || bagSlotsForCode(breadCode) != 0) {
+        return -1;
+    }
+    return 1;
+}

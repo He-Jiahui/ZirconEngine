@@ -171,6 +171,92 @@ fn primary_button_hover_uses_the_brighter_primary_surface_role() {
 }
 
 #[test]
+fn secondary_button_dynamic_states_ignore_normal_declared_chrome() {
+    let surface = UiStyleColor::Rgba(UiRgbaColor::from_u8(81, 88, 94, 255));
+    let border = UiStyleColor::Rgba(UiRgbaColor::from_u8(109, 116, 122, 255));
+    let button_palette = expected_button_palette();
+
+    let mut normal = TemplatePaneNodeData {
+        control_id: "WorkbenchSecondaryButton".into(),
+        ..TemplatePaneNodeData::default()
+    };
+    normal.button_style.element.background_color = Some(surface.clone());
+    normal.button_style.element.border_color = Some(border.clone());
+    let normal_style =
+        select_workbench_button_style(&normal, WorkbenchButtonKind::Secondary, false);
+
+    let mut hovered = TemplatePaneNodeData {
+        control_id: "WorkbenchSecondaryButton".into(),
+        ..TemplatePaneNodeData::default()
+    };
+    hovered.hovered = true;
+    hovered.button_style.element.background_color = Some(surface.clone());
+    hovered.button_style.element.border_color = Some(border.clone());
+    let hovered_style =
+        select_workbench_button_style(&hovered, WorkbenchButtonKind::Secondary, false);
+
+    let mut pressed = TemplatePaneNodeData {
+        control_id: "WorkbenchSecondaryButton".into(),
+        ..TemplatePaneNodeData::default()
+    };
+    pressed.pressed = true;
+    pressed.button_style.element.background_color = Some(surface.clone());
+    pressed.button_style.element.border_color = Some(border.clone());
+    let pressed_style =
+        select_workbench_button_style(&pressed, WorkbenchButtonKind::Secondary, false);
+
+    let mut focused = TemplatePaneNodeData {
+        control_id: "WorkbenchSecondaryButton".into(),
+        ..TemplatePaneNodeData::default()
+    };
+    focused.focused = true;
+    focused.button_style.element.background_color = Some(surface);
+    focused.button_style.element.border_color = Some(border);
+    let focused_style =
+        select_workbench_button_style(&focused, WorkbenchButtonKind::Secondary, false);
+
+    let mut selected = TemplatePaneNodeData {
+        control_id: "WorkbenchSecondaryButton".into(),
+        selected: true,
+        ..TemplatePaneNodeData::default()
+    };
+    selected.button_style.element.background_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(81, 88, 94, 255)));
+    selected.button_style.element.border_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(109, 116, 122, 255)));
+    let selected_style =
+        select_workbench_button_style(&selected, WorkbenchButtonKind::Secondary, false);
+
+    let mut checked = TemplatePaneNodeData {
+        control_id: "WorkbenchSecondaryButton".into(),
+        checked: true,
+        ..TemplatePaneNodeData::default()
+    };
+    checked.button_style.element.background_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(81, 88, 94, 255)));
+    checked.button_style.element.border_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(109, 116, 122, 255)));
+    let checked_style =
+        select_workbench_button_style(&checked, WorkbenchButtonKind::Secondary, false);
+
+    assert_eq!(normal_style.surface, [81, 88, 94, 255]);
+    assert_eq!(normal_style.border, [109, 116, 122, 255]);
+    assert_eq!(hovered_style.surface, button_palette.surface_hover);
+    assert_eq!(hovered_style.border, button_palette.border);
+    assert_eq!(
+        pressed_style.surface,
+        button_palette.surface_secondary_pressed
+    );
+    assert_eq!(pressed_style.border, button_palette.border);
+    assert_eq!(focused_style.surface, button_palette.surface_hover);
+    assert_eq!(focused_style.border, button_palette.focus_border);
+    assert_eq!(selected_style.surface, button_palette.surface_hover);
+    assert_eq!(selected_style.border, button_palette.focus_border);
+    assert_eq!(checked_style.surface, button_palette.surface_hover);
+    assert_eq!(checked_style.border, button_palette.focus_border);
+}
+
+#[test]
 fn muted_prominent_command_focus_does_not_promote_hover_surface() {
     let node = TemplatePaneNodeData {
         control_id: "WorkbenchModuleCompile".into(),

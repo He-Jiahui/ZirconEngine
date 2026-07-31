@@ -1,0 +1,1 @@
+var s=%import("combat/warrior_stances_state");var r=s.contractTest();return r==1?0:r;

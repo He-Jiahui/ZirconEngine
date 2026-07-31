@@ -23,10 +23,10 @@ fn build_sprite_vertices_routes_transparent3d_to_transparent3d_phase() {
 fn build_sprite_vertices_filters_sprites_by_selected_camera_layers() {
     let mut hidden = test_sprite(RenderSpriteImageMode::Stretch);
     hidden.entity = 1;
-    hidden.render_layer_mask = RenderLayerSet::layer(1);
+    hidden.common.layer_mask = RenderLayerSet::layer(1);
     let mut visible = test_sprite(RenderSpriteImageMode::Stretch);
     visible.entity = 2;
-    visible.render_layer_mask = RenderLayerSet::layer(40);
+    visible.common.layer_mask = RenderLayerSet::layer(40);
 
     let mut camera = ViewportCameraSnapshot::default();
     camera.projection_mode = ProjectionMode::Orthographic;
@@ -51,6 +51,16 @@ fn sprite_image_vertices_keep_stretch_as_single_quad() {
     let vertices = sprite_image_vertices(&sprite, Vec2::new(4.0, 3.0));
 
     assert_eq!(vertices.len(), 6);
+}
+
+#[test]
+fn sprite_vertex_projection_reuses_one_matrix_and_appends_fixed_vertices() {
+    let source = include_str!("../build_sprite_vertices.rs");
+
+    assert!(source.contains("fn append_sprite_quad_vertices("));
+    assert!(source.contains("Vec::with_capacity(slices.len().saturating_mul(6))"));
+    assert_eq!(source.matches("sprite.transform.matrix()").count(), 1);
+    assert!(!source.contains("fn sprite_quad_vertices("));
 }
 
 #[test]
@@ -191,7 +201,10 @@ fn test_sprite(
         image_mode,
         color: Vec4::ONE,
         z_order: 0,
-        render_layer_mask: RenderLayerSet::from_layers(0..u32::BITS),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_layers(0..u32::BITS),
+            ..crate::core::framework::render::RendererCommon::default()
+        },
         material_alpha_mode: RenderMaterialAlphaMode::Blend,
     }
 }

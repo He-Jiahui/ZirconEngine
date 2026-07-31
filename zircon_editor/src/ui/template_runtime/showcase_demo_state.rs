@@ -96,7 +96,7 @@ impl UiComponentShowcaseDemoState {
             .ok_or_else(|| UiComponentShowcaseDemoError::UnknownControl {
                 control_id: control_id.to_string(),
             })?;
-        let registry = UiComponentDescriptorRegistry::editor_showcase();
+        let registry = UiComponentDescriptorRegistry::editor_showcase_shared();
         let descriptor = registry.descriptor(component_id).ok_or_else(|| {
             UiComponentShowcaseDemoError::MissingDescriptor {
                 component_id: component_id.to_string(),

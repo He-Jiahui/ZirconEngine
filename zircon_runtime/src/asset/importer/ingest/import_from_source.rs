@@ -23,8 +23,10 @@ impl AssetImporter {
         self.import_with_settings(source_path, uri, toml::Table::new())
             .and_then(|outcome| {
                 outcome
-                    .root_entry()
-                    .map(|entry| entry.asset.clone())
+                    .entries
+                    .into_iter()
+                    .find(|entry| entry.locator.label().is_none())
+                    .map(|entry| entry.asset)
                     .ok_or_else(|| AssetImportError::Parse(format!("missing root asset for {uri}")))
             })
     }

@@ -55,11 +55,11 @@ pub use readiness_report::{
     RenderMaterialReadinessStatus, RenderMaterialReadinessSummary,
 };
 pub use shading_model::{
-    GBufferChannelMask, ShadingModelDescriptor, ShadingModelId, ShadingModelRegistrationError,
-    SHADING_MODEL_GBUFFER_ALPHA_SCALE, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
-    SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START,
+    GBufferChannelMask, SHADING_MODEL_GBUFFER_ALPHA_SCALE, SHADING_MODEL_ID_BLINN_PHONG,
+    SHADING_MODEL_ID_STANDARD_PBR, SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START,
+    ShadingModelDescriptor, ShadingModelId, ShadingModelRegistrationError,
 };
-pub use standard_material::{StandardMaterialDescriptor, STANDARD_MATERIAL_MIN_ROUGHNESS};
+pub use standard_material::{STANDARD_MATERIAL_MIN_ROUGHNESS, StandardMaterialDescriptor};
 pub use texture_slot_summary::{
     RenderMaterialTextureDimension, RenderMaterialTextureSlotFallback,
     RenderMaterialTextureSlotFallbackReason, RenderMaterialTextureSlotState,

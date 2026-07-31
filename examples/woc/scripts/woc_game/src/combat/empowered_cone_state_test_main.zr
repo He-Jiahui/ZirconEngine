@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var state = %import("combat/empowered_cone_state");
+
+console.printLine("m4-empowered-cone-state-test");
+var result = state.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

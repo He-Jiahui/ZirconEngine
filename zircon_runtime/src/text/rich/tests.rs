@@ -2,8 +2,8 @@ use crate::text::TextAlign;
 use crate::text::{FontFamilyName, InlineBaseline, InlineObjectRef, RichTextFormat, StyleOverride};
 
 use super::{
-    parse_rich_text, RichTextDecoration, RichTextDecorator, RichTextDecoratorRegistrationError,
-    RichTextParser,
+    parse_rich_text, shared_builtin_parser, RichTextDecoration, RichTextDecorator,
+    RichTextDecoratorRegistrationError, RichTextParser,
 };
 
 struct AccentDecorator;
@@ -482,4 +482,42 @@ fn text_rich_custom_emoji_shortcode_rejects_builtin_shadowing() {
     let mut parser = RichTextParser::default();
 
     assert!(parser.register_emoji_shortcode("rocket", "🛸").is_err());
+}
+
+#[test]
+fn text_rich_convenience_parser_reuses_builtin_registries() {
+    assert!(std::ptr::eq(
+        shared_builtin_parser(),
+        shared_builtin_parser()
+    ));
+}
+
+#[test]
+fn text_rich_grapheme_alignment_uses_a_monotonic_run_cursor() {
+    let source = include_str!("parser.rs");
+    let start = source
+        .find("fn align_runs_to_graphemes")
+        .expect("alignment function");
+    let end = source[start..]
+        .find("\nfn range_contains")
+        .map(|offset| start + offset)
+        .expect("alignment function end");
+    let body = &source[start..end];
+
+    assert!(body.contains("let mut run_index"));
+    assert!(body.contains("while run_index"));
+    assert!(!body.contains(".iter()\n            .find"));
+}
+
+#[test]
+fn text_rich_plain_segments_borrow_when_no_replacement_is_needed() {
+    assert!(matches!(
+        super::html_subset::decode_entities("plain text"),
+        std::borrow::Cow::Borrowed("plain text")
+    ));
+    let emoji = super::emoji_shortcode::EmojiShortcodeRegistry::with_builtins();
+    assert!(matches!(
+        emoji.expand("plain text"),
+        std::borrow::Cow::Borrowed("plain text")
+    ));
 }

@@ -9,10 +9,10 @@ use crate::core::framework::render::{
 };
 
 use super::{
-    dependency, generate_material_artifact, language::default_shader_language,
     ShaderDependencyAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset,
     ShaderMaterialPropertyAsset, ShaderOptionAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
-    ShaderTextureSlotAsset,
+    ShaderTextureSlotAsset, dependency, generate_material_artifact,
+    language::default_shader_language,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

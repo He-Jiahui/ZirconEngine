@@ -5,7 +5,7 @@ use zircon_runtime_interface::{
     ZrRuntimeSessionHandle, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
-use crate::operation::{RuntimeOperationContext, RuntimeOperationServiceError};
+use crate::operation::RuntimeOperationServiceError;
 
 use super::registry::with_session;
 use super::status::{error_status, invalid_argument, not_found, unsupported_version};
@@ -17,22 +17,25 @@ pub(crate) unsafe fn submit_operation(
     request_json: ZrByteSlice,
     out_handle: *mut ZrRuntimeOperationHandle,
 ) -> ZrStatus {
-    if out_handle.is_null() {
-        return invalid_argument(b"missing runtime operation handle output");
-    }
-    if request_json.is_empty() {
-        return invalid_argument(b"missing runtime operation request");
-    }
-    let request = match serde_json::from_slice::<ZrRuntimeOperationSubmitRequestV1>(unsafe {
-        request_json.as_slice()
-    }) {
-        Ok(request) => request,
-        Err(_) => return invalid_argument(b"invalid runtime operation request"),
-    };
-    if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
-        return unsupported_version();
-    }
     with_session(session, |runtime| {
+        if out_handle.is_null() {
+            return invalid_argument(b"missing runtime operation handle output");
+        }
+        if request_json.is_empty() {
+            return invalid_argument(b"missing runtime operation request");
+        }
+        if request_json.len > runtime.operations.max_retained_bytes() {
+            return invalid_argument(b"runtime operation request exceeds retained byte capacity");
+        }
+        let request = match serde_json::from_slice::<ZrRuntimeOperationSubmitRequestV1>(unsafe {
+            request_json.as_slice()
+        }) {
+            Ok(request) => request,
+            Err(_) => return invalid_argument(b"invalid runtime operation request"),
+        };
+        if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+            return unsupported_version();
+        }
         match runtime.operations.submit(request) {
             Ok(handle) => {
                 unsafe { ptr::write(out_handle, handle) };
@@ -48,20 +51,14 @@ pub(crate) unsafe fn poll_operation(
     handle: ZrRuntimeOperationHandle,
     out_progress: *mut ZrOwnedByteBuffer,
 ) -> ZrStatus {
-    if out_progress.is_null() {
-        return invalid_argument(b"missing runtime operation progress output");
-    }
-    if !handle.is_valid() {
-        return invalid_argument(b"invalid runtime operation handle");
-    }
     with_session(session, |runtime| {
-        let core = runtime.runtime.handle();
-        let progress = runtime.level.with_world_mut(|world| {
-            runtime
-                .operations
-                .poll(RuntimeOperationContext::new(&core, world), handle)
-        });
-        write_json_result(out_progress, progress)
+        if out_progress.is_null() {
+            return invalid_argument(b"missing runtime operation progress output");
+        }
+        if !handle.is_valid() {
+            return invalid_argument(b"invalid runtime operation handle");
+        }
+        write_json_result(out_progress, runtime.operations.poll(handle))
     })
 }
 
@@ -70,13 +67,13 @@ pub(crate) unsafe fn harvest_operation(
     handle: ZrRuntimeOperationHandle,
     out_result: *mut ZrOwnedByteBuffer,
 ) -> ZrStatus {
-    if out_result.is_null() {
-        return invalid_argument(b"missing runtime operation result output");
-    }
-    if !handle.is_valid() {
-        return invalid_argument(b"invalid runtime operation handle");
-    }
     with_session(session, |runtime| {
+        if out_result.is_null() {
+            return invalid_argument(b"missing runtime operation result output");
+        }
+        if !handle.is_valid() {
+            return invalid_argument(b"invalid runtime operation handle");
+        }
         write_json_result(out_result, runtime.operations.harvest(handle))
     })
 }

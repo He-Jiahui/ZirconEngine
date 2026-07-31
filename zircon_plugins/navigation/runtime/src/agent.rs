@@ -1,4 +1,3 @@
-mod repath;
 mod writeback;
 
 use std::collections::{HashMap, HashSet};
@@ -13,13 +12,12 @@ use zircon_runtime::core::framework::navigation::{
     NAV_MESH_AGENT_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Real, Vec3};
+use zircon_runtime::navigation::NavRepathBudget;
 use zircon_runtime::scene::World;
 
 use crate::component_json::parse_component;
 use crate::manager::DefaultNavigationManager;
 use crate::runtime_obstacles::{collect_runtime_obstacles, has_obstacle_worlds};
-
-pub use repath::NavRepathBudget;
 
 const NAV_CROWD_MAX_AGENTS: u32 = 256;
 const NAV_CROWD_MAX_AGENT_RADIUS: Real = 8.0;

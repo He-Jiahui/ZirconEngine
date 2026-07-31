@@ -4,6 +4,7 @@ use std::rc::Rc;
 use super::globals::HostContractState;
 
 mod constants;
+mod capture;
 mod diagnostics;
 mod event_loop;
 mod handle;

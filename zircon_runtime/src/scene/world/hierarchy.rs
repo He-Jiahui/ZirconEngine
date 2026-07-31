@@ -1,9 +1,9 @@
 use crate::core::math::Transform;
 
 use super::{SceneError, SceneResult, World};
+use crate::scene::EntityId;
 use crate::scene::components::{Hierarchy, LocalTransform, Mobility, NodeRecord};
 use crate::scene::ecs::LifecycleEventKind;
-use crate::scene::EntityId;
 
 impl World {
     pub fn remove_entity(&mut self, entity: EntityId) -> bool {
@@ -17,6 +17,8 @@ impl World {
         if index == self.entities.len() {
             return false;
         }
+        let removed_kind = self.kinds.get(&entity).copied();
+        let removed_parent = self.parent_of(entity);
         if let Some(internal) = self.internal_entity(entity) {
             let component_ids = self.component_storage.component_ids_for_entity(internal);
             for component_id in component_ids {
@@ -33,10 +35,14 @@ impl World {
                 }
             }
         }
+        self.remove_entity_from_archetype(entity);
         self.unregister_stable_entity(entity);
         self.entities.remove(index);
         self.names.remove(&entity);
         self.kinds.remove(&entity);
+        if let Some(kind) = removed_kind {
+            self.record_node_kind_removed(kind);
+        }
         self.hierarchy.remove(&entity);
         self.local_transforms.remove(&entity);
         self.world_matrices.remove(&entity);
@@ -62,12 +68,17 @@ impl World {
         self.render_layer_masks.remove(&entity);
         self.mobility.remove(&entity);
         self.dynamic_components.remove(&entity);
-        for child in self.hierarchy.values_mut() {
-            if child.parent == Some(entity) {
-                child.parent = None;
+        let orphaned_children = self
+            .hierarchy
+            .iter()
+            .filter_map(|(child, hierarchy)| (hierarchy.parent == Some(entity)).then_some(*child))
+            .collect::<Vec<_>>();
+        for child in orphaned_children {
+            if let Some(hierarchy) = self.hierarchy.get_mut(&child) {
+                hierarchy.parent = None;
             }
+            self.mark_inspection_subtree_fields_dirty(child);
         }
-        self.refresh_stable_entity_locations();
         if self.active_camera == entity {
             self.active_camera = 0;
             for camera in self.cameras.keys().copied() {
@@ -79,7 +90,9 @@ impl World {
         }
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
+        self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
+        self.advance_scene_binding_generations_for_removal(entity, removed_parent);
         true
     }
 

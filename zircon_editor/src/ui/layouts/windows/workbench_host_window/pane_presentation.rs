@@ -1,3 +1,4 @@
+use crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::layouts::views::SceneViewportChromeData;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
@@ -19,6 +20,7 @@ pub(crate) struct PanePayloadBuildContext<'a> {
     pub active_ui_debug_snapshot: Option<&'a UiSurfaceDebugSnapshot>,
     pub module_plugins: Option<&'a ModulePluginsPaneViewData>,
     pub build_export: Option<&'a BuildExportPaneViewData>,
+    pub template_v2_snapshot: Option<&'a EditorUiTemplatePaneDataSnapshot>,
 }
 
 impl<'a> PanePayloadBuildContext<'a> {
@@ -30,6 +32,7 @@ impl<'a> PanePayloadBuildContext<'a> {
             active_ui_debug_snapshot: None,
             module_plugins: None,
             build_export: None,
+            template_v2_snapshot: None,
         }
     }
 
@@ -62,6 +65,14 @@ impl<'a> PanePayloadBuildContext<'a> {
 
     pub fn with_build_export(mut self, build_export: &'a BuildExportPaneViewData) -> Self {
         self.build_export = Some(build_export);
+        self
+    }
+
+    pub fn with_template_v2_snapshot(
+        mut self,
+        snapshot: &'a EditorUiTemplatePaneDataSnapshot,
+    ) -> Self {
+        self.template_v2_snapshot = Some(snapshot);
         self
     }
 }

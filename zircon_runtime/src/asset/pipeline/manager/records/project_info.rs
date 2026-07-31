@@ -6,4 +6,8 @@ pub struct ProjectInfo {
     pub name: String,
     pub default_scene_uri: String,
     pub library_version: u32,
+    pub asset_count: usize,
+    pub ready_asset_count: usize,
+    pub failed_asset_count: usize,
+    pub registry_diagnostic_count: usize,
 }

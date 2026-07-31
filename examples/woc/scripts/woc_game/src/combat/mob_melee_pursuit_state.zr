@@ -1,0 +1,292 @@
+// Source-pinned melee pursuit arm from updateMobCombatProfile. It emits a
+// swing request but deliberately does not resolve damage, threat retargeting,
+// flee, leash, casts, or boss mechanics outside their future shared transaction.
+
+var math = %import("zr.zircon.math");
+var profiles = %import("combat/mob_combat_state");
+var mobMotion = %import("world/mob_motion_world");
+
+pub class MobMeleePursuitState {
+    pub var initialized: bool;
+    pub var templateId: string;
+    pub var scale: float;
+    pub var x: float;
+    pub var y: float;
+    pub var z: float;
+    pub var previousX: float;
+    pub var previousZ: float;
+    pub var facing: float;
+    pub var moveSpeed: float;
+    pub var moveSpeedMultiplier: float;
+    pub var weaponSpeed: float;
+    pub var swingIntervalMultiplier: float;
+    pub var rooted: bool;
+    pub var templateKnown: bool;
+    pub var phasesThroughObstacles: bool;
+    pub var aiState: string;
+    pub var swingTimer: float;
+    pub var swingRequests: int;
+
+    pub @constructor() {
+        this.initialized = false;
+        this.templateId = "";
+        this.scale = 1.0;
+        this.x = 0.0;
+        this.y = 0.0;
+        this.z = 0.0;
+        this.previousX = 0.0;
+        this.previousZ = 0.0;
+        this.facing = 0.0;
+        this.moveSpeed = 0.0;
+        this.moveSpeedMultiplier = 1.0;
+        this.weaponSpeed = 1.0;
+        this.swingIntervalMultiplier = 1.0;
+        this.rooted = false;
+        this.templateKnown = false;
+        this.phasesThroughObstacles = false;
+        this.aiState = "chase";
+        this.swingTimer = 0.0;
+        this.swingRequests = 0;
+    }
+}
+
+pub class MobMeleePursuitTarget {
+    pub var present: bool;
+    pub var dead: bool;
+    pub var x: float;
+    pub var z: float;
+
+    pub @constructor() {
+        this.present = false;
+        this.dead = false;
+        this.x = 0.0;
+        this.z = 0.0;
+    }
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+maximum(first: float, second: float): float {
+    return first > second ? first : second;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    return absolute(actual - expected) < 0.000001;
+}
+
+distance(x0: float, z0: float, x1: float, z1: float): float {
+    var deltaX = x0 - x1;
+    var deltaZ = z0 - z1;
+    return math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+}
+
+requireState(state: MobMeleePursuitState, required: bool): void {
+    if (!required || !state.initialized || state.moveSpeed < 0.0 ||
+        state.moveSpeedMultiplier < 0.0 || state.weaponSpeed < 0.0 ||
+        state.swingIntervalMultiplier < 0.0 || state.swingTimer < 0.0) {
+        throw "woc mob melee pursuit state is invalid";
+    }
+}
+
+requireTarget(target: MobMeleePursuitTarget): void {
+    if (!target.present || target.dead) {
+        throw "woc mob melee pursuit target is unavailable";
+    }
+}
+
+pub initializeMobMeleePursuit(
+    state: MobMeleePursuitState,
+    templateId: string,
+    scale: float,
+    x: float,
+    y: float,
+    z: float,
+    facing: float,
+    moveSpeed: float,
+    weaponSpeed: float,
+    required: bool
+): void {
+    if (!required || moveSpeed < 0.0 || weaponSpeed < 0.0) {
+        throw "woc mob melee pursuit initialization is invalid";
+    }
+    state.initialized = true;
+    state.templateId = templateId;
+    state.scale = scale;
+    state.x = x;
+    state.y = y;
+    state.z = z;
+    state.previousX = x;
+    state.previousZ = z;
+    state.facing = facing;
+    state.moveSpeed = moveSpeed;
+    state.moveSpeedMultiplier = 1.0;
+    state.weaponSpeed = weaponSpeed;
+    state.swingIntervalMultiplier = 1.0;
+    state.rooted = false;
+    state.templateKnown = true;
+    state.phasesThroughObstacles = false;
+    state.aiState = "chase";
+    state.swingTimer = 0.0;
+    state.swingRequests = 0;
+}
+
+pub setMobMeleePursuitPreviousPosition(
+    state: MobMeleePursuitState, x: float, z: float, required: bool
+): void {
+    requireState(state, required);
+    state.previousX = x;
+    state.previousZ = z;
+}
+
+pub setMobMeleePursuitTarget(
+    target: MobMeleePursuitTarget, x: float, z: float, required: bool
+): void {
+    if (!required) {
+        throw "woc mob melee pursuit target assignment is required";
+    }
+    target.present = true;
+    target.dead = false;
+    target.x = x;
+    target.z = z;
+}
+
+steadyFacing(
+    state: MobMeleePursuitState, target: MobMeleePursuitTarget
+): void {
+    if (distance(state.x, state.z, target.x, target.z) >= 0.1) {
+        state.facing = math.atan2(target.x - state.x, target.z - state.z);
+    }
+}
+
+mobMovedThisTick(state: MobMeleePursuitState): bool {
+    return distance(state.x, state.z, state.previousX, state.previousZ) > 0.05;
+}
+
+pub requestMobMeleeSwingIfInRange(
+    state: MobMeleePursuitState,
+    target: MobMeleePursuitTarget,
+    profile: profiles.MobCombatProfile,
+    required: bool
+): bool {
+    requireState(state, required);
+    requireTarget(target);
+    var effectiveRange = profiles.effectiveMobMeleeRange(profile, mobMovedThisTick(state));
+    if (distance(state.x, state.z, target.x, target.z) > effectiveRange) {
+        return false;
+    }
+    state.aiState = "attack";
+    steadyFacing(state, target);
+    if (state.swingTimer <= 0.0) {
+        state.swingRequests = state.swingRequests + 1;
+        state.swingTimer = state.weaponSpeed * state.swingIntervalMultiplier;
+    }
+    return true;
+}
+
+moveTowardTarget(
+    state: MobMeleePursuitState,
+    target: MobMeleePursuitTarget,
+    profile: profiles.MobCombatProfile,
+    seed: uint
+): void {
+    if (state.rooted) {
+        steadyFacing(state, target);
+        return;
+    }
+    var motion = new mobMotion.MobMotionState();
+    mobMotion.initializeMobMotion(
+        motion,
+        state.x,
+        state.y,
+        state.z,
+        state.facing,
+        state.templateKnown,
+        state.phasesThroughObstacles,
+        true
+    );
+    mobMotion.stepMobToward(
+        motion,
+        target.x,
+        target.z,
+        state.moveSpeed * profile.chaseSpeedMult * state.moveSpeedMultiplier,
+        false,
+        seed,
+        true
+    );
+    state.x = motion.x;
+    state.y = motion.y;
+    state.z = motion.z;
+    state.facing = motion.facing;
+}
+
+// Mirrors updatePursuitProfileCombat only. A caller owns target selection and
+// invokes damage when a recorded swing request enters the combat transaction.
+pub stepMobMeleePursuit(
+    state: MobMeleePursuitState,
+    target: MobMeleePursuitTarget,
+    seed: uint,
+    required: bool
+): bool {
+    requireState(state, required);
+    requireTarget(target);
+    var profile = new profiles.MobCombatProfile();
+    profiles.combatProfileForMob(state.templateId, state.scale, profile);
+    state.swingRequests = 0;
+    state.swingTimer = maximum(0.0, state.swingTimer - 0.05);
+    if (profile.swingWhilePursuing || state.aiState == "attack") {
+        requestMobMeleeSwingIfInRange(state, target, profile, true);
+    }
+    if (distance(state.x, state.z, target.x, target.z) > profile.desiredRange) {
+        moveTowardTarget(state, target, profile, seed);
+    } else {
+        steadyFacing(state, target);
+    }
+    if (profile.immediateSwingOnEnterRange || profile.swingWhilePursuing ||
+        state.aiState == "attack") {
+        requestMobMeleeSwingIfInRange(state, target, profile, true);
+    }
+    state.aiState = distance(state.x, state.z, target.x, target.z) <= profile.meleeRange ?
+        "attack" : "chase";
+    return state.aiState == "attack";
+}
+
+pub contractTest(): int {
+    var state = new MobMeleePursuitState();
+    var target = new MobMeleePursuitTarget();
+    initializeMobMeleePursuit(state, "forest_wolf", 1.0, 0.0, 0.0, 0.0, 0.0, 7.0, 2.0, true);
+    setMobMeleePursuitTarget(target, 0.0, 10.0, true);
+    if (stepMobMeleePursuit(state, target, <uint>20061, true) ||
+        state.aiState != "chase" || state.swingRequests != 0 ||
+        !closeEnough(state.z, 0.35) || !closeEnough(state.facing, 0.0)) {
+        return -1;
+    }
+
+    initializeMobMeleePursuit(state, "forest_wolf", 1.0, 0.0, 0.0, 0.0, 0.2, 7.0, 2.0, true);
+    setMobMeleePursuitTarget(target, 0.0, 4.0, true);
+    if (!stepMobMeleePursuit(state, target, <uint>20061, true) ||
+        state.aiState != "attack" || state.swingRequests != 1 ||
+        !closeEnough(state.swingTimer, 2.0) || !closeEnough(state.z, 0.0)) {
+        return -2;
+    }
+
+    initializeMobMeleePursuit(state, "forest_wolf", 1.0, 0.0, 0.0, 0.0, 0.0, 7.0, 2.0, true);
+    setMobMeleePursuitPreviousPosition(state, 0.0, -0.1, true);
+    setMobMeleePursuitTarget(target, 0.0, 5.5, true);
+    if (stepMobMeleePursuit(state, target, <uint>20061, true) ||
+        state.aiState != "chase" || state.swingRequests != 1 ||
+        !closeEnough(state.swingTimer, 2.0)) {
+        return -3;
+    }
+
+    initializeMobMeleePursuit(state, "forest_wolf", 1.0, 0.0, 0.0, 0.0, 0.7, 7.0, 2.0, true);
+    state.rooted = true;
+    setMobMeleePursuitTarget(target, 2.0, 9.0, true);
+    stepMobMeleePursuit(state, target, <uint>20061, true);
+    if (!closeEnough(state.x, 0.0) || !closeEnough(state.z, 0.0) ||
+        !closeEnough(state.facing, math.atan2(2.0, 9.0))) {
+        return -4;
+    }
+    return 1;
+}

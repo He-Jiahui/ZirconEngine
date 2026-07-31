@@ -53,4 +53,4 @@ The seed still includes the existing view descriptors for scene/game, hierarchy,
 
 ## Legacy Sources
 
-The previous hand-built startup sources `layout_drawers.rs` and `workbench_page.rs` remain in the repository as legacy references, but `builtin_layout::mod` no longer compiles them into the startup module graph. New workbench behavior should be routed through `zircon_editor::ui::workbench::preset` first, then adapted in this builtin bridge only when startup needs a capability-specific filter.
+The previous hand-built startup sources `layout_drawers.rs` and `workbench_page.rs` were removed after `builtin_layout::mod` stopped compiling them into the startup module graph. New workbench behavior should be routed through `zircon_editor::ui::workbench::preset` first, then adapted in this builtin bridge only when startup needs a capability-specific filter.

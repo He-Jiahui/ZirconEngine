@@ -9,7 +9,9 @@ use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::World;
 
-use crate::{navigation_component_descriptors, DefaultNavigationManager, NavRepathBudget};
+use zircon_runtime::navigation::NavRepathBudget;
+
+use crate::{navigation_component_descriptors, DefaultNavigationManager};
 
 #[test]
 fn repath_budget_caps_queries_per_frame() {

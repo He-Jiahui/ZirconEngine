@@ -2,12 +2,15 @@ mod asset;
 mod document;
 
 pub use asset::{
-    UiActionHostPolicy, UiActionPolicyDiagnostic, UiActionPolicyDiagnosticSeverity,
-    UiActionPolicyReport, UiActionRef, UiActionSideEffectClass, UiAssetChange, UiAssetDocument,
-    UiAssetError, UiAssetFingerprint, UiAssetHeader, UiAssetImports, UiAssetKind,
-    UiAssetMigrationOutcome, UiAssetMigrationReport, UiAssetMigrationStep, UiAssetSchemaDiagnostic,
-    UiAssetSchemaDiagnosticSeverity, UiAssetSchemaSourceKind, UiAssetSchemaVersionPolicy,
-    UiBindingDiagnostic, UiBindingDiagnosticCode, UiBindingDiagnosticSeverity, UiBindingExpression,
+    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION, UiActionHostPolicy, UiActionPolicyDiagnostic,
+    UiActionPolicyDiagnosticSeverity, UiActionPolicyReport, UiActionRef, UiActionSideEffectClass,
+    UiAssetChange, UiAssetDocument, UiAssetError, UiAssetFingerprint, UiAssetHeader,
+    UiAssetImports, UiAssetKind, UiAssetMigrationOutcome, UiAssetMigrationReport,
+    UiAssetMigrationStep, UiAssetSchemaDiagnostic, UiAssetSchemaDiagnosticSeverity,
+    UiAssetSchemaSourceKind, UiAssetSchemaVersionPolicy, UiBindingDiagnostic,
+    UiBindingDiagnosticCode, UiBindingDiagnosticSeverity, UiBindingExpression,
     UiBindingExpressionParseError, UiBindingReport, UiBindingTarget, UiBindingTargetAssignment,
     UiBindingTargetKind, UiBindingTargetSchema, UiChildMount, UiCompileCacheKey,
     UiCompiledAssetArtifact, UiCompiledAssetCacheRecord, UiCompiledAssetDependency,
@@ -26,11 +29,8 @@ pub use asset::{
     UiResourceDependency, UiResourceDependencySource, UiResourceDiagnostic,
     UiResourceDiagnosticSeverity, UiResourceFallbackMode, UiResourceFallbackPolicy, UiResourceKind,
     UiResourceRef, UiRootClassPolicy, UiSelector, UiSelectorCombinator, UiSelectorSegment,
-    UiSelectorToken, UiStyleDeclarationBlock, UiStylePrototype, UiStyleRule, UiStyleScope,
-    UiStyleSheet, UiTextDirection, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
-    UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+    UiSelectorSpecificity, UiSelectorToken, UiStyleDeclarationBlock, UiStylePrototype, UiStyleRule,
+    UiStyleScope, UiStyleSheet, UiTextDirection,
 };
 pub use document::{
     UiBindingRef, UiComponentTemplate, UiSlotTemplate, UiTemplateDocument, UiTemplateError,

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_chat_social_tests",
+  "source": "src",
+  "binary": "bin-m6-chat-social-tests",
+  "entry": "social/chat_state_test_main"
+}

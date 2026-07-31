@@ -4,8 +4,6 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 
 use super::style::IconButtonContext;
 
-const MIN_GLYPH_SIZE: f32 = 1.0;
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct WorkbenchIconButtonMetrics {
     toolbar_glyph_size: f32,
@@ -24,7 +22,7 @@ impl WorkbenchIconButtonMetrics {
     }
 
     pub(super) fn max_glyph_size(&self, max_side: f32) -> f32 {
-        (max_side - self.min_glyph_inset).max(MIN_GLYPH_SIZE)
+        (max_side - self.min_glyph_inset).max(0.0)
     }
 }
 
@@ -44,5 +42,5 @@ fn icon_button_glyph_metrics_from_host(metrics: HostControlMetrics) -> Workbench
 }
 
 fn glyph_size(size: f32) -> f32 {
-    size.max(MIN_GLYPH_SIZE)
+    size.max(0.0)
 }

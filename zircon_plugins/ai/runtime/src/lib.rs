@@ -21,8 +21,10 @@ pub use module::{
 };
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
-    runtime_plugin_descriptor, runtime_selection, AiRuntimePlugin, AI_BEHAVIOR_TICK_SYSTEM,
-    AI_DIST_CRATE_NAME, AI_DIST_RUNTIME_ENTRY, AI_EVENT_NAMESPACE, AI_PERCEPTION_TICK_SYSTEM,
+    runtime_plugin_descriptor, runtime_selection, AiRuntimePlugin,
+    AI_BEHAVIOR_DEBUG_SNAPSHOT_EVENT_ID, AI_BEHAVIOR_DEBUG_SNAPSHOT_PAYLOAD_SCHEMA,
+    AI_BEHAVIOR_TICK_SYSTEM, AI_DIST_CRATE_NAME, AI_DIST_RUNTIME_ENTRY, AI_EVENT_NAMESPACE,
+    AI_PERCEPTION_TICK_SYSTEM, BT_NODE_RESULT_EVENT_ID, BT_NODE_RESULT_PAYLOAD_SCHEMA,
 };
 pub use tick_lod::AiBehaviorTickLod;
 

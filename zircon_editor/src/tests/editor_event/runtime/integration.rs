@@ -2,12 +2,22 @@ use super::*;
 use crate::core::asset::{
     AssetToolkitDescriptor, AssetToolkitOpenRoute, AssetTypeContribution, AssetTypeId,
 };
+use crate::core::editing::engine::HistoryContextId;
+use crate::core::editor_event::SelectionHostEvent;
 use crate::core::editor_extension::{EditorExtensionRegistry, ViewDescriptor};
+use crate::core::editor_message::{EditorMessagePayload, EditorTopic, TOPIC_SCENE_INSPECTION};
 use crate::core::editor_operation::EditorOperationPath;
+use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetFolderRecord,
+    EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
+    EditorAssetFolderRecord,
 };
+use crate::ui::workbench::project::EditorProjectDocument;
+use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_runtime::asset::project::PreviewState;
+use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::scene::components::NodeKind;
 
 #[test]
 fn retained_adapter_binding_and_call_action_share_the_same_normalized_menu_event() {
@@ -252,6 +262,162 @@ fn open_project_menu_event_requests_welcome_surface_without_project_open_side_ef
         runtime.runtime.editor_snapshot().status_line,
         "Open an existing project or create a renderable empty project."
     );
+}
+
+#[test]
+fn replacing_the_editor_world_publishes_an_inspection_resync() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_world_replacement_inspection");
+    let topic = EditorTopic::parse(TOPIC_SCENE_INSPECTION).expect("valid scene inspection topic");
+    let subscriber = runtime
+        .runtime
+        .context()
+        .bus()
+        .register_subscriber([topic])
+        .expect("register scene inspection subscriber");
+    let replacement = zircon_runtime::scene::create_default_level(&runtime.core.handle())
+        .expect("replacement level should build");
+    let replacement_generation = replacement.snapshot().world_generation();
+
+    runtime
+        .runtime
+        .replace_world(replacement, "replacement-project")
+        .expect("runtime should adopt the replacement level");
+
+    let deliveries = runtime.runtime.context().bus().drain_deliveries(subscriber);
+    assert_eq!(deliveries.len(), 1);
+    let EditorMessagePayload::SceneInspection(message) = deliveries[0].message().payload() else {
+        panic!("world replacement must publish a typed scene inspection message");
+    };
+    assert_eq!(message.previous_generation(), None);
+    assert!(message.requires_resync());
+    assert_eq!(message.generation(), replacement_generation);
+}
+
+#[test]
+fn save_project_marks_the_transaction_history_only_after_persisting_the_world() {
+    let _guard = env_lock().lock().unwrap();
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock should be after the Unix epoch")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!("zircon_editor_save_history_{unique}"));
+    let location = root
+        .parent()
+        .expect("temporary project root should have a parent");
+    ProjectAuthority::default()
+        .create_project(&NewProjectDraft {
+            project_name: root
+                .file_name()
+                .expect("temporary project root should have a name")
+                .to_string_lossy()
+                .into_owned(),
+            location: location.to_string_lossy().into_owned(),
+            template: NewProjectTemplate::RenderableEmpty,
+        })
+        .expect("renderable template project should be created");
+
+    {
+        let runtime = EventRuntimeHarness::new("zircon_editor_event_save_history");
+        let manager = runtime
+            .core
+            .resolve_manager::<crate::ui::host::EditorManager>(
+                crate::ui::host::module::EDITOR_MANAGER_NAME,
+            )
+            .expect("editor manager should resolve");
+        let document = manager.open_project(&root).expect("project should open");
+        let level = manager
+            .create_runtime_level(document.world)
+            .expect("opened project scene should create a runtime level");
+        runtime
+            .runtime
+            .replace_world(level, root.to_string_lossy())
+            .expect("runtime should adopt the opened project level");
+
+        let cube = {
+            let shell = runtime.runtime.shell().lock();
+            shell
+                .state
+                .world
+                .try_with_world(|scene| {
+                    scene
+                        .nodes()
+                        .iter()
+                        .find(|node| node.kind == NodeKind::Cube)
+                        .map(|node| node.id)
+                })
+                .flatten()
+                .expect("renderable template should contain a cube")
+        };
+        runtime
+            .runtime
+            .dispatch_event(
+                EditorEventSource::RetainedHost,
+                EditorEvent::Selection(SelectionHostEvent::SelectSceneNode { node_id: cube }),
+            )
+            .expect("hierarchy selection should dispatch");
+        runtime
+            .runtime
+            .dispatch_event(
+                EditorEventSource::RetainedHost,
+                EditorEvent::Inspector(EditorInspectorEvent {
+                    subject_path: "entity://selected".to_string(),
+                    changes: vec![InspectorFieldChange::new(
+                        "transform.translation.x",
+                        UiBindingValue::string("4.25"),
+                    )],
+                }),
+            )
+            .expect("inspector transaction should dispatch");
+        assert!(runtime
+            .runtime
+            .context()
+            .transactions()
+            .is_dirty(HistoryContextId::Global)
+            .expect("transaction dirty state should be queryable"));
+
+        let save_binding = menu_action_binding(&MenuAction::SaveProject);
+        let save_binding_path = save_binding.path().native_prefix();
+        let save_record = runtime
+            .runtime
+            .dispatch_binding(save_binding, EditorEventSource::RetainedHost)
+            .expect("save project menu binding should dispatch");
+        assert_eq!(
+            save_record.binding_path.as_deref(),
+            Some(save_binding_path.as_str())
+        );
+        assert_eq!(
+            save_record.operation_id.as_deref(),
+            Some("file.project.save")
+        );
+        assert_eq!(save_record.transaction_id, None);
+        assert!(save_record.save_generation.is_some());
+        assert!(!runtime
+            .runtime
+            .context()
+            .transactions()
+            .is_dirty(HistoryContextId::Global)
+            .expect("successful save should mark the current history clean"));
+    }
+
+    let mut reopened = ProjectManager::open(&root).expect("saved project should reopen");
+    reopened
+        .scan_and_import()
+        .expect("reopened project assets should scan");
+    let document = EditorProjectDocument::load_from_project(&reopened)
+        .expect("reopened project document should load");
+    let cube_x = document
+        .world
+        .nodes()
+        .iter()
+        .find(|node| node.kind == NodeKind::Cube)
+        .expect("reopened template should retain the cube")
+        .transform
+        .translation
+        .x;
+    assert_eq!(cube_x, 4.25);
+
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -529,42 +695,46 @@ fn asset_open_event_opens_the_indexed_registry_toolkit() {
         .runtime
         .register_editor_extension(extension)
         .unwrap();
-    runtime
-        .runtime
-        .sync_asset_catalog(EditorAssetCatalogSnapshotRecord {
-            project_name: "Indexed Asset Open".to_string(),
-            project_root: "E:/IndexedAssetOpen".to_string(),
-            assets_root: "E:/IndexedAssetOpen/assets".to_string(),
-            cache_root: "E:/IndexedAssetOpen/.zircon/cache".to_string(),
-            default_scene_uri: String::new(),
-            catalog_revision: 1,
-            folders: vec![EditorAssetFolderRecord {
-                folder_id: "res://".to_string(),
-                parent_folder_id: None,
-                locator_prefix: "res://".to_string(),
-                display_name: "Assets".to_string(),
-                child_folder_ids: Vec::new(),
-                direct_asset_uuids: vec!["11111111-1111-1111-1111-111111111111".to_string()],
-                recursive_asset_count: 1,
-            }],
-            assets: vec![EditorAssetCatalogRecord {
-                uuid: "11111111-1111-1111-1111-111111111111".to_string(),
-                id: "22222222-2222-2222-2222-222222222222".to_string(),
-                locator: asset_locator.to_string(),
-                kind: ResourceKind::UiLayout,
-                display_name: "runtime_ui_asset.zui".to_string(),
-                file_name: "runtime_ui_asset.zui".to_string(),
-                extension: "zui".to_string(),
-                preview_state: PreviewState::Dirty,
-                meta_path: "E:/IndexedAssetOpen/assets/ui/runtime_ui_asset.zui.zmeta".to_string(),
-                preview_artifact_path: String::new(),
-                source_mtime_unix_ms: 0,
-                source_hash: String::new(),
-                dirty: false,
-                diagnostics: Vec::new(),
-                direct_reference_uuids: Vec::new(),
-            }],
-        });
+    runtime.runtime.sync_asset_catalog(Arc::new(
+        EditorAssetCatalogGeneration::from_snapshot_record(
+            EditorAssetCatalogSnapshotRecord {
+                project_name: "Indexed Asset Open".to_string(),
+                project_root: "E:/IndexedAssetOpen".to_string(),
+                assets_root: "E:/IndexedAssetOpen/assets".to_string(),
+                cache_root: "E:/IndexedAssetOpen/.zircon/cache".to_string(),
+                default_scene_uri: String::new(),
+                catalog_revision: 1,
+                folders: vec![EditorAssetFolderRecord {
+                    folder_id: "res://".to_string(),
+                    parent_folder_id: None,
+                    locator_prefix: "res://".to_string(),
+                    display_name: "Assets".to_string(),
+                    child_folder_ids: Vec::new(),
+                    direct_asset_uuids: vec!["11111111-1111-1111-1111-111111111111".to_string()],
+                    recursive_asset_count: 1,
+                }],
+                assets: vec![EditorAssetCatalogRecord {
+                    uuid: "11111111-1111-1111-1111-111111111111".to_string(),
+                    id: "22222222-2222-2222-2222-222222222222".to_string(),
+                    locator: asset_locator.to_string(),
+                    kind: ResourceKind::UiLayout,
+                    display_name: "runtime_ui_asset.zui".to_string(),
+                    file_name: "runtime_ui_asset.zui".to_string(),
+                    extension: "zui".to_string(),
+                    preview_state: PreviewState::Dirty,
+                    meta_path: "E:/IndexedAssetOpen/assets/ui/runtime_ui_asset.zui.zmeta"
+                        .to_string(),
+                    preview_artifact_path: String::new(),
+                    source_mtime_unix_ms: 0,
+                    source_hash: String::new(),
+                    dirty: false,
+                    diagnostics: Vec::new(),
+                    direct_reference_uuids: Vec::new(),
+                }],
+            },
+            1,
+        ),
+    ));
 
     let record = runtime
         .runtime

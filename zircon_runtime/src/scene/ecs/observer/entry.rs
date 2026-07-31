@@ -1,7 +1,7 @@
 use std::any::TypeId;
 
-use crate::scene::ecs::{ComponentId, LifecycleEventKind};
 use crate::scene::EntityId;
+use crate::scene::ecs::{ComponentId, LifecycleEventKind};
 
 use super::ObserverId;
 use super::{EntityEventCallback, EventCallback, LifecycleCallback};

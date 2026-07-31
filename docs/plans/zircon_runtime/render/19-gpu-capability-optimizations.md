@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime/src/rhi_wgpu/capabilities.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - dev/bevy/crates/bevy_pbr/src/material_bind_groups.rs
+  - dev/bevy/crates/bevy_render/src/material_bind_groups.rs
   - dev/bevy/crates/bevy_render/src/render_resource/bindless.rs
   - dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs
   - dev/bevy/crates/bevy_render/src/render_phase/draw_state.rs
@@ -86,7 +86,7 @@ plan_sources:
 
 | 文件 | 对应本计划机制 | 应重点阅读 |
 |------|---------------|-----------|
-| `dev/bevy/crates/bevy_pbr/src/material_bind_groups.rs` | A. bindless 材质槽位分配 | `MaterialBindGroupAllocator` 的 bindless/非 bindless 双形态;slab 式槽位分配与回收、纹理去重;fallback image 填充空槽(`PARTIALLY_BOUND_BINDING_ARRAY` 不可用时的兜底手法) |
+| `dev/bevy/crates/bevy_render/src/material_bind_groups.rs` | A. bindless 材质槽位分配 | 当前 Bevy 把通用 `MaterialBindGroupAllocator` owner 下沉到 `bevy_render`；该文件继续承接 bindless/非 bindless 双形态、slab 式槽位分配与回收、纹理去重，以及 fallback image/buffer 填充。`bevy_pbr/src/material.rs` 只作为 PBR consumer 导入该通用 owner，不再拥有旧 `material_bind_groups.rs`。 |
 | `dev/bevy/crates/bevy_render/src/render_resource/bindless.rs` + `bindless.wgsl` | A. bindless 能力判定与 WGSL 索引 ABI | bindless 启用判据(features + limits 联合检查、平台黑名单思路)、`BindlessIndex` 槽位表;WGSL 侧 binding_array 声明与 non-uniform 索引包装 |
 | `dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs` | B. indirect count 三档降级 | `GpuPreprocessingMode`(Off/PreprocessingOnly/Culling)按能力分档;`IndirectParametersBuffers` 的 cpu/gpu metadata 与 count buffer(batch_sets)组织 |
 | `dev/bevy/crates/bevy_render/src/render_phase/draw_state.rs` | B. count 提交调用形态 | `multi_draw_indexed_indirect_count` 的调用点:args buffer + count buffer + max_count 三参组合与回落分支 |

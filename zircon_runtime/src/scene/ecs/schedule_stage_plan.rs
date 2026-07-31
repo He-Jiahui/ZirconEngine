@@ -3,8 +3,8 @@ use std::collections::HashMap;
 
 use super::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, SceneSystemDescriptor, SceneSystemRegistry,
-    ScheduleError, ScheduledSceneStep, SystemOrderingConstraint, SystemRef, SystemSetId,
-    SystemStage,
+    SceneSystemThreadAffinity, ScheduleConflictGraph, ScheduleError, ScheduledSceneStep,
+    SystemOrderingConstraint, SystemRef, SystemSetId, SystemStage,
 };
 
 /// One tick's schedule snapshot, grouped by stage to avoid repeated stage scans.
@@ -13,6 +13,7 @@ pub(crate) struct SceneScheduleStagePlan {
     stages: Vec<SystemStage>,
     internal_systems_by_stage: [Vec<SceneSystemDescriptor>; SystemStage::COUNT],
     native_steps_by_stage: [Vec<ScheduledSceneStep>; SystemStage::COUNT],
+    native_conflict_graphs_by_stage: [ScheduleConflictGraph; SystemStage::COUNT],
 }
 
 impl SceneScheduleStagePlan {
@@ -33,6 +34,8 @@ impl SceneScheduleStagePlan {
             internal_system_groups_with_capacity(&internal_system_counts);
         let native_step_counts = native_step_counts_by_stage(native_systems, runtime_systems);
         let mut native_steps_by_stage = native_step_groups_with_capacity(&native_step_counts);
+        let native_conflict_graphs_by_stage =
+            SystemStage::ORDER.map(|stage| registry.native_system_conflict_graph_for_stage(stage));
         let all_nodes = PlanNodes::new(systems, native_systems, runtime_systems);
         for stage in stages.iter().copied() {
             let stage_nodes = all_nodes.stage_nodes(stage);
@@ -46,10 +49,16 @@ impl SceneScheduleStagePlan {
                         internal_systems_by_stage[stage.rank()].push(system);
                     }
                     PlanNodeRef::Native(system) => {
+                        let worker_safe = system.thread_affinity()
+                            == SceneSystemThreadAffinity::WorkerSafe
+                            && system.supports_worldless_execution()
+                            && system.constraints().is_empty();
                         native_steps_by_stage[stage.rank()].push(ScheduledSceneStep::native(
                             system.id(),
                             system.stage(),
                             plan_order,
+                            worker_safe,
+                            system.access().has_conservative_world_access(),
                         ));
                         if system.has_deferred_commands() {
                             native_steps_by_stage[stage.rank()].push(
@@ -76,6 +85,7 @@ impl SceneScheduleStagePlan {
             stages: stage_order,
             internal_systems_by_stage,
             native_steps_by_stage,
+            native_conflict_graphs_by_stage,
         })
     }
 
@@ -92,6 +102,13 @@ impl SceneScheduleStagePlan {
 
     pub(crate) fn native_steps_for_stage(&self, stage: SystemStage) -> &[ScheduledSceneStep] {
         &self.native_steps_by_stage[stage.rank()]
+    }
+
+    pub(crate) fn native_conflict_graph_for_stage(
+        &self,
+        stage: SystemStage,
+    ) -> &ScheduleConflictGraph {
+        &self.native_conflict_graphs_by_stage[stage.rank()]
     }
 }
 

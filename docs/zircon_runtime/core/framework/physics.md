@@ -17,6 +17,7 @@ related_code:
   - zircon_runtime/src/core/framework/physics/ray_cast_query.rs
   - zircon_runtime/src/core/framework/physics/scene_step_result.rs
   - zircon_runtime/src/core/framework/physics/settings.rs
+  - zircon_runtime/src/core/framework/physics/settings_store_error.rs
   - zircon_runtime/src/core/framework/physics/shape_cast_hit.rs
   - zircon_runtime/src/core/framework/physics/shape_cast_query.rs
   - zircon_runtime/src/core/framework/physics/shape_overlap_hit.rs
@@ -90,6 +91,8 @@ plan_sources:
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
 tests:
   - zircon_runtime/src/core/framework/physics/tests.rs
+  - physics_settings_store_errors_are_domain_owned_and_stable
+  - tools/tests/test_frameworks_01_physics_settings_error_boundary.py
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs::pose_targets_visible_to_physics_step
   - zircon_runtime/tests/runtime_plugin_world_extensions_contract.rs
   - backend_status_step_plan_and_physics_query_roundtrip_as_framework_dtos
@@ -127,7 +130,7 @@ The current architecture keeps concrete behavior in `zircon_plugins/physics/runt
 
 The framework is folder-backed. `mod.rs` is only the public re-export surface.
 
-- `settings.rs`, `backend_state.rs`, `backend_status.rs`, `simulation_mode.rs`, and `world_step_plan.rs` describe backend availability and fixed-step planning.
+- `settings.rs`, `settings_store_error.rs`, `backend_state.rs`, `backend_status.rs`, `simulation_mode.rs`, and `world_step_plan.rs` describe backend availability, settings persistence failures, and fixed-step planning.
 - `body_sync_state.rs`, `collider_sync_state.rs`, `joint_sync_state.rs`, `material_sync_state.rs`, and their enum/support files describe the scene-to-physics snapshot while referencing persisted data from `core::framework::scene::physics`.
 - `core::framework::scene::physics` owns backend-neutral authored joint limits, drives, break/projection tolerances, material metadata, and optional animation-skeleton/bone bindings.
 - `query_filter.rs`, `ray_cast_query.rs`, `shape_overlap_query.rs`, and `shape_cast_query.rs` define backend-neutral query inputs.
@@ -166,6 +169,11 @@ The fallback trigger implementation is plugin-owned and folder-backed. Framework
 ## Control Flow
 
 `zircon_plugins/physics/runtime` registers the concrete module and manager. Scene hooks resolve `PhysicsManager`, call `tick_scene_world(...)`, and receive a `PhysicsSceneStepResult` containing the step plan plus drained contacts and triggers. Query callers resolve the same manager and pass neutral DTOs. The framework never stores query state or performs collision tests itself.
+
+`PhysicsManager::store_settings(...)` returns the contract-owned `PhysicsSettingsStoreError` rather
+than kernel `CoreError`. Read-only backends return `ReadOnlyBackend`; concrete persistence owners
+project their storage failure into `Persistence` at the plugin boundary. No `From<CoreError>` shim or
+framework-to-kernel error dependency remains on this method.
 
 The default `tick_scene_world(...)` implementation in the trait only plans, drains contacts/triggers, and returns the result. The plugin overrides it to run builtin fixed-step integration, rebuild the sync snapshot, and drain contact/trigger data from plugin-owned state.
 

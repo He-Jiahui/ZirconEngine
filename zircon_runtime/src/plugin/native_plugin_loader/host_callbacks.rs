@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::ffi::CStr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
@@ -37,19 +37,29 @@ unsafe fn native_host_has_capability_v3_inner(
     let Some(capability) = unsafe { CStr::from_ptr(capability) }.to_str().ok() else {
         return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
     };
-    let Some(granted_capabilities) =
-        (unsafe { read_optional_c_string((*host_functions).granted_capabilities) })
+    let granted_capabilities = unsafe { (*host_functions).granted_capabilities };
+    if granted_capabilities.is_null() {
+        return ZIRCON_NATIVE_PLUGIN_STATUS_DENIED;
+    }
+    let Some(granted_capabilities) = (unsafe { CStr::from_ptr(granted_capabilities) })
+        .to_str()
+        .ok()
     else {
         return ZIRCON_NATIVE_PLUGIN_STATUS_DENIED;
     };
-    if parse_native_string_list(&granted_capabilities)
-        .iter()
-        .any(|granted_capability| granted_capability == capability)
-    {
+    if native_capability_list_contains(granted_capabilities, capability) {
         ZIRCON_NATIVE_PLUGIN_STATUS_OK
     } else {
         ZIRCON_NATIVE_PLUGIN_STATUS_DENIED
     }
+}
+
+fn native_capability_list_contains(granted_capabilities: &str, capability: &str) -> bool {
+    granted_capabilities
+        .split(|character| matches!(character, '\n' | ',' | ';'))
+        .map(str::trim)
+        .filter(|granted_capability| !granted_capability.is_empty())
+        .any(|granted_capability| granted_capability == capability)
 }
 
 pub(super) unsafe extern "C" fn native_host_log_v3(
@@ -236,7 +246,12 @@ pub(super) fn granted_capabilities_for_entry(
     descriptor: &NativePluginDescriptor,
     module_kind: PluginModuleKind,
 ) -> Vec<String> {
-    let requested = &descriptor.requested_capabilities;
+    let requested = descriptor
+        .requested_capabilities
+        .iter()
+        .map(String::as_str)
+        .collect::<HashSet<_>>();
+    let mut granted_capabilities = HashSet::new();
     let mut granted = Vec::new();
     for capability in descriptor
         .package_manifest
@@ -246,9 +261,7 @@ pub(super) fn granted_capabilities_for_entry(
         .filter(|module| module.kind == module_kind)
         .flat_map(module_capabilities)
     {
-        if requested.iter().any(|requested| requested == capability)
-            && !granted.iter().any(|existing| existing == capability)
-        {
+        if requested.contains(capability) && granted_capabilities.insert(capability) {
             granted.push(capability.to_string());
         }
     }
@@ -257,4 +270,47 @@ pub(super) fn granted_capabilities_for_entry(
 
 fn module_capabilities(module: &PluginModuleManifest) -> impl Iterator<Item = &str> {
     module.capabilities.iter().map(String::as_str)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::native_capability_list_contains;
+
+    #[test]
+    fn native_host_capability_probe_streams_delimited_tokens_without_owned_list_projection() {
+        assert!(native_capability_list_contains(
+            "runtime.physics, runtime.render;runtime.audio\nruntime.net",
+            "runtime.audio"
+        ));
+        assert!(!native_capability_list_contains(
+            "runtime.physics,runtime.rendering",
+            "runtime.render"
+        ));
+        assert!(!native_capability_list_contains(" , ;\n", ""));
+
+        let source = include_str!("host_callbacks.rs")
+            .split_once("unsafe fn native_host_has_capability_v3_inner")
+            .expect("native host capability callback should exist")
+            .1
+            .split_once("pub(super) unsafe extern \"C\" fn native_host_log_v3")
+            .expect("native host log callback should follow capability callback")
+            .0;
+        assert!(source.contains("CStr::from_ptr(granted_capabilities)"));
+        assert!(source.contains("native_capability_list_contains"));
+        assert!(!source.contains("read_optional_c_string"));
+        assert!(!source.contains("parse_native_string_list"));
+
+        let grants = include_str!("host_callbacks.rs")
+            .split_once("pub(super) fn granted_capabilities_for_entry")
+            .expect("entry capability grant projection should exist")
+            .1
+            .split_once("fn module_capabilities")
+            .expect("module capability iterator should follow grant projection")
+            .0;
+        assert!(grants.contains("collect::<HashSet<_>>()"));
+        assert!(grants.contains("requested.contains(capability)"));
+        assert!(grants.contains("granted_capabilities.insert(capability)"));
+        assert!(!grants.contains("requested.iter().any"));
+        assert!(!grants.contains("granted.iter().any"));
+    }
 }

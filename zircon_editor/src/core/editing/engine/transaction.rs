@@ -1,22 +1,32 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 use std::rc::Rc;
-use std::sync::{Condvar, Mutex, MutexGuard};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
 use crate::core::editor_message::DocumentId;
 
 use super::{
-    CommandBox, CommandEffect, EditCommand, EditCommandError, EditContext, HistoryContextId,
-    HistorySnapshot, HistoryStore, MergeOutcome, SelectionSnapshot, TransactionEvent,
-    TransactionEventKind, TransactionId, TransactionRecord,
+    CommandBox, CommandEffect, DetachedTransactionEventSink, EditCommand, EditCommandError,
+    EditContext, HistoryContextId, HistoryDetailPage, HistoryPageCursor, HistoryStatus,
+    HistoryStore, MergeOutcome, SelectionSnapshot, TransactionEvent, TransactionEventDelivery,
+    TransactionEventKind, TransactionEventSink, TransactionId, TransactionJournal,
+    TransactionJournalError, TransactionRecord,
 };
 
+mod dirty_batch;
+mod exclusive_transition;
 mod operation_group;
+mod save_token;
 
-use operation_group::ActiveOperationGroup;
+pub use dirty_batch::{
+    HistoryDirtyBatch, HistoryDirtyBatchKind, HistoryDirtyCursor, HistoryDirtyState,
+};
+pub(crate) use exclusive_transition::ExclusiveTransition;
 pub use operation_group::OperationTransactionResult;
+use operation_group::{ActiveOperationGroup, OperationGroupReservation};
 
 const DEFAULT_HISTORY_CAPACITY: usize = 128;
+pub const MAX_HISTORY_DETAIL_PAGE_SIZE: usize = 128;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MergeMode {
@@ -42,9 +52,10 @@ struct EngineState {
     // The context is taken out while client code runs so no engine lock crosses a callback.
     context: Option<Box<dyn EditContext>>,
     histories: BTreeMap<HistoryContextId, HistoryStore>,
+    history_generations: BTreeMap<HistoryContextId, u64>,
+    history_dirty: dirty_batch::HistoryDirtyJournal,
     active: Vec<ActiveTransaction>,
     operation_group: Option<ActiveOperationGroup>,
-    events: Vec<TransactionEvent>,
     next_transaction: u64,
     current_frame: u64,
     history_capacity: usize,
@@ -57,11 +68,13 @@ struct EngineState {
 pub struct EditorTransactionEngine {
     state: Mutex<EngineState>,
     operation_changed: Condvar,
+    save_token_lineage: Arc<()>,
+    event_sink: Arc<dyn TransactionEventSink>,
 }
 
 impl EditorTransactionEngine {
     pub fn new(context: impl EditContext + 'static) -> Self {
-        Self::build(context, DEFAULT_HISTORY_CAPACITY)
+        Self::with_event_sink(context, Arc::new(DetachedTransactionEventSink))
     }
 
     pub fn with_capacity(
@@ -71,17 +84,33 @@ impl EditorTransactionEngine {
         if history_capacity == 0 {
             return Err(EditCommandError::InvalidHistoryCapacity);
         }
-        Ok(Self::build(context, history_capacity))
+        Ok(Self::build(
+            context,
+            history_capacity,
+            Arc::new(DetachedTransactionEventSink),
+        ))
     }
 
-    fn build(context: impl EditContext + 'static, history_capacity: usize) -> Self {
+    pub fn with_event_sink(
+        context: impl EditContext + 'static,
+        event_sink: Arc<dyn TransactionEventSink>,
+    ) -> Self {
+        Self::build(context, DEFAULT_HISTORY_CAPACITY, event_sink)
+    }
+
+    fn build(
+        context: impl EditContext + 'static,
+        history_capacity: usize,
+        event_sink: Arc<dyn TransactionEventSink>,
+    ) -> Self {
         Self {
             state: Mutex::new(EngineState {
                 context: Some(Box::new(context)),
                 histories: BTreeMap::new(),
+                history_generations: BTreeMap::new(),
+                history_dirty: dirty_batch::HistoryDirtyJournal::default(),
                 active: Vec::new(),
                 operation_group: None,
-                events: Vec::new(),
                 next_transaction: 1,
                 current_frame: 0,
                 history_capacity,
@@ -90,6 +119,8 @@ impl EditorTransactionEngine {
                 drop_error: None,
             }),
             operation_changed: Condvar::new(),
+            save_token_lineage: Arc::new(()),
+            event_sink,
         }
     }
 
@@ -107,7 +138,7 @@ impl EditorTransactionEngine {
         history: HistoryContextId,
     ) -> Result<TransactionScope<'_>, EditCommandError> {
         self.flush_operation_group()?;
-        let id = self.begin_transaction(label, history)?;
+        let id = self.begin_transaction(label, history, None)?;
         Ok(TransactionScope {
             engine: self,
             id,
@@ -120,11 +151,30 @@ impl EditorTransactionEngine {
         &self,
         label: impl Into<String>,
         history: HistoryContextId,
+        operation_group_reservation: Option<&OperationGroupReservation>,
     ) -> Result<TransactionId, EditCommandError> {
         self.start_operation("begin transaction")?;
         let mut context = self.take_context()?;
         let selection_before = context.selection_snapshot();
         let mut state = self.lock_state();
+        let operation_group_allows_begin = match state.operation_group.as_ref() {
+            Some(active) => active.allows_begin(history, operation_group_reservation),
+            None => operation_group_reservation.is_none(),
+        };
+        if !operation_group_allows_begin {
+            let error = match state.operation_group.as_ref() {
+                Some(active) => EditCommandError::EngineBusy {
+                    active: active.operation(),
+                    requested: "begin transaction",
+                },
+                None => EditCommandError::InvariantViolation {
+                    invariant: "operation group begin requires its live reservation",
+                },
+            };
+            state.context = Some(context);
+            self.clear_operation_locked(&mut state);
+            return Err(error);
+        }
         if let Some(active_history) = state.active.last().map(|active| active.history) {
             if active_history != history {
                 state.context = Some(context);
@@ -161,17 +211,19 @@ impl EditorTransactionEngine {
             merge_mode: MergeMode::Disable,
             root,
         });
-        if root {
-            state.events.push(TransactionEvent {
-                transaction: id,
-                history,
-                label,
-                timestamp_frame,
-                kind: TransactionEventKind::Started,
-            });
-        }
+        let event = root.then(|| TransactionEvent {
+            transaction: id,
+            history,
+            label,
+            timestamp_frame,
+            kind: TransactionEventKind::Started,
+        });
         state.context = Some(context);
         self.clear_operation_locked(&mut state);
+        drop(state);
+        if let Some(event) = event {
+            self.publish_event(event);
+        }
         Ok(id)
     }
 
@@ -183,23 +235,6 @@ impl EditorTransactionEngine {
     pub fn redo(&self, history: HistoryContextId) -> Result<bool, EditCommandError> {
         self.flush_operation_group()?;
         self.replay(history, false)
-    }
-
-    pub fn mark_saved(&self, history: HistoryContextId) -> Result<(), EditCommandError> {
-        self.flush_operation_group()?;
-        self.start_operation("mark saved")?;
-        let mut state = self.lock_state();
-        let capacity = state.history_capacity;
-        if !state.histories.contains_key(&history) {
-            state
-                .histories
-                .insert(history, HistoryStore::from_validated_capacity(capacity));
-        }
-        if let Some(store) = state.histories.get_mut(&history) {
-            store.mark_saved();
-        }
-        self.clear_operation_locked(&mut state);
-        Ok(())
     }
 
     pub fn is_dirty(&self, history: HistoryContextId) -> Result<bool, EditCommandError> {
@@ -214,27 +249,135 @@ impl EditorTransactionEngine {
         Ok(dirty)
     }
 
-    pub fn history_snapshot(
+    pub fn history_status(
         &self,
         history: HistoryContextId,
-    ) -> Result<HistorySnapshot, EditCommandError> {
+    ) -> Result<HistoryStatus, EditCommandError> {
         self.flush_operation_group()?;
-        self.start_operation("snapshot history")?;
+        self.start_operation("query history status")?;
         let mut state = self.lock_state();
-        let snapshot = match state.histories.get(&history) {
-            Some(store) => store.snapshot(),
-            None => HistorySnapshot::empty(),
+        let generation = Self::history_generation(&state, history);
+        let status = match state.histories.get(&history) {
+            Some(store) => store.status(generation),
+            None => HistoryStatus::empty(generation),
         };
         self.clear_operation_locked(&mut state);
-        Ok(snapshot)
+        Ok(status)
     }
 
-    pub fn drain_events(&self) -> Result<Vec<TransactionEvent>, EditCommandError> {
-        self.start_operation("drain transaction events")?;
+    pub fn history_details(
+        &self,
+        history: HistoryContextId,
+        cursor: Option<&HistoryPageCursor>,
+        page_size: usize,
+    ) -> Result<HistoryDetailPage, EditCommandError> {
+        if page_size == 0 || page_size > MAX_HISTORY_DETAIL_PAGE_SIZE {
+            return Err(EditCommandError::HistoryPageSizeOutOfRange {
+                requested: page_size,
+                maximum: MAX_HISTORY_DETAIL_PAGE_SIZE,
+            });
+        }
+        if cursor.is_some_and(|cursor| !cursor.belongs_to(&self.save_token_lineage)) {
+            return Err(EditCommandError::HistoryPageCursorEngineMismatch);
+        }
+        if let Some(cursor) = cursor.filter(|cursor| cursor.history() != history) {
+            return Err(EditCommandError::HistoryPageCursorHistoryMismatch {
+                cursor_history: cursor.history(),
+                requested_history: history,
+            });
+        }
+
+        self.flush_operation_group()?;
+        self.start_operation("query history details")?;
         let mut state = self.lock_state();
-        let events = std::mem::take(&mut state.events);
+        let generation = Self::history_generation(&state, history);
+        if let Some(cursor) = cursor.filter(|cursor| cursor.generation() != generation) {
+            self.clear_operation_locked(&mut state);
+            return Err(EditCommandError::HistoryPageCursorStale {
+                history,
+                cursor_generation: cursor.generation(),
+                current_generation: generation,
+            });
+        }
+        let offset = cursor.map_or(0, HistoryPageCursor::offset);
+        let (status, records, has_more) = match state.histories.get(&history) {
+            Some(store) => {
+                let status = store.status(generation);
+                let (records, has_more) = store.detail_window(offset, page_size);
+                (status, records, has_more)
+            }
+            None => (HistoryStatus::empty(generation), Vec::new(), false),
+        };
+        let next_cursor = has_more.then(|| {
+            HistoryPageCursor::new(
+                Arc::clone(&self.save_token_lineage),
+                history,
+                generation,
+                offset.saturating_add(records.len()),
+            )
+        });
         self.clear_operation_locked(&mut state);
-        Ok(events)
+        Ok(HistoryDetailPage::new(status, records, next_cursor))
+    }
+
+    pub fn journal_transaction(
+        &self,
+        history: HistoryContextId,
+        transaction: TransactionId,
+    ) -> Result<TransactionJournal, TransactionJournalError> {
+        self.flush_operation_group()
+            .map_err(TransactionJournalError::from)?;
+        self.start_operation("serialize transaction journal")
+            .map_err(TransactionJournalError::from)?;
+        let mut state = self.lock_state();
+        let journal = match state.histories.get(&history) {
+            Some(store) => store.journal(history, transaction),
+            None => Err(TransactionJournalError::TransactionNotFound {
+                history,
+                transaction,
+            }),
+        };
+        self.clear_operation_locked(&mut state);
+        journal
+    }
+
+    /// Returns the monotonic generation used to guard a save for one history context.
+    pub fn history_generation_snapshot(
+        &self,
+        history: HistoryContextId,
+    ) -> Result<u64, EditCommandError> {
+        self.flush_operation_group()?;
+        self.start_operation("snapshot history generation")?;
+        let mut state = self.lock_state();
+        let generation = Self::history_generation(&state, history);
+        self.clear_operation_locked(&mut state);
+        Ok(generation)
+    }
+
+    pub(crate) fn ensure_mutation_available(&self) -> Result<(), EditCommandError> {
+        self.start_operation("preflight mutation")?;
+        self.clear_operation();
+        Ok(())
+    }
+
+    pub(crate) fn begin_exclusive_transition(
+        &self,
+        operation: &'static str,
+    ) -> Result<ExclusiveTransition<'_>, EditCommandError> {
+        self.flush_operation_group()?;
+        self.start_operation(operation)?;
+        let mut state = self.lock_state();
+        if !state.active.is_empty() {
+            self.clear_operation_locked(&mut state);
+            return Err(EditCommandError::InvariantViolation {
+                invariant: "exclusive editor transitions require no active transaction scope",
+            });
+        }
+        drop(state);
+        Ok(ExclusiveTransition {
+            engine: self,
+            not_send: PhantomData,
+        })
     }
 
     pub fn take_drop_error(&self) -> Option<EditCommandError> {
@@ -261,10 +404,30 @@ impl EditorTransactionEngine {
         Ok(result)
     }
 
+    pub fn with_context_mut<T: 'static, R>(
+        &self,
+        inspect: impl FnOnce(&mut T) -> R,
+    ) -> Result<Option<R>, EditCommandError> {
+        self.start_operation("mutate edit context")?;
+        {
+            let mut state = self.lock_state();
+            if !state.active.is_empty() {
+                self.clear_operation_locked(&mut state);
+                return Err(EditCommandError::InvariantViolation {
+                    invariant: "public context mutation requires no active transaction scope",
+                });
+            }
+        }
+        let mut context = self.take_context()?;
+        let result = context.as_any_mut().downcast_mut::<T>().map(inspect);
+        self.finish_operation(context, false);
+        Ok(result)
+    }
+
     fn replay(&self, history: HistoryContextId, undo: bool) -> Result<bool, EditCommandError> {
         let operation = if undo { "undo" } else { "redo" };
         self.start_operation(operation)?;
-        let (mut context, mut store, timestamp_frame) = {
+        let (mut context, mut store, timestamp_frame, mutation) = {
             let mut state = self.lock_state();
             if !state.active.is_empty() {
                 self.clear_operation_locked(&mut state);
@@ -272,13 +435,31 @@ impl EditorTransactionEngine {
                     invariant: "undo and redo require no active transaction scope",
                 });
             }
+            let can_replay = state.histories.get(&history).is_some_and(|store| {
+                if undo {
+                    store.can_undo()
+                } else {
+                    store.can_redo()
+                }
+            });
+            if !can_replay {
+                self.clear_operation_locked(&mut state);
+                return Ok(false);
+            }
+            let mutation = match Self::reserve_history_mutation(&state, history) {
+                Ok(reservation) => reservation,
+                Err(error) => {
+                    self.clear_operation_locked(&mut state);
+                    return Err(error);
+                }
+            };
             let context = Self::take_context_from(&mut state)?;
             let Some(store) = state.histories.remove(&history) else {
                 state.context = Some(context);
                 self.clear_operation_locked(&mut state);
                 return Ok(false);
             };
-            (context, store, state.current_frame)
+            (context, store, state.current_frame, mutation)
         };
         let result = if undo {
             store.undo(context.as_mut())
@@ -286,27 +467,33 @@ impl EditorTransactionEngine {
             store.redo(context.as_mut())
         };
         let faulted = matches!(&result, Err(EditCommandError::RollbackFailed { .. }));
-        let event = result.as_ref().ok().and_then(|record| {
-            record.as_ref().map(|record| TransactionEvent {
-                transaction: record.id,
-                history,
-                label: record.label.clone(),
-                timestamp_frame,
-                kind: if undo {
-                    TransactionEventKind::UndoApplied
-                } else {
-                    TransactionEventKind::RedoApplied
-                },
-            })
+        let event = result.as_ref().ok().and_then(|event_metadata| {
+            event_metadata
+                .as_ref()
+                .map(|(transaction, label)| TransactionEvent {
+                    transaction: *transaction,
+                    history,
+                    label: label.clone(),
+                    timestamp_frame,
+                    kind: if undo {
+                        TransactionEventKind::UndoApplied
+                    } else {
+                        TransactionEventKind::RedoApplied
+                    },
+                })
         });
         let mut state = self.lock_state();
         state.histories.insert(history, store);
-        if let Some(event) = event {
-            state.events.push(event);
+        if result.as_ref().ok().is_some_and(Option::is_some) {
+            Self::record_history_mutation(&mut state, history, mutation);
         }
         state.context = Some(context);
         state.faulted |= faulted;
         self.clear_operation_locked(&mut state);
+        drop(state);
+        if let Some(event) = event {
+            self.publish_event(event);
+        }
         result.map(|record| record.is_some())
     }
 
@@ -337,7 +524,10 @@ impl EditorTransactionEngine {
                 Ok(()) => {
                     let root = active.root;
                     let event = Self::canceled_event(&active);
-                    self.finish_canceled(context, root.then_some(event));
+                    self.finish_canceled(context);
+                    if root {
+                        self.publish_event(event);
+                    }
                     Err(apply_error)
                 }
                 Err(cancel_error) => {
@@ -362,6 +552,28 @@ impl EditorTransactionEngine {
 
     fn commit(&self, scope: TransactionId) -> Result<TransactionId, EditCommandError> {
         self.start_operation("commit transaction")?;
+        let history_mutation = {
+            let mut state = self.lock_state();
+            let Some(active) = state.active.last() else {
+                self.clear_operation_locked(&mut state);
+                return Err(EditCommandError::ScopeClosed);
+            };
+            if active.id != scope {
+                self.clear_operation_locked(&mut state);
+                return Err(EditCommandError::ScopeClosed);
+            }
+            if active.root && !active.commands.is_empty() {
+                match Self::reserve_history_mutation(&state, active.history) {
+                    Ok(reservation) => Some(reservation),
+                    Err(error) => {
+                        self.clear_operation_locked(&mut state);
+                        return Err(error);
+                    }
+                }
+            } else {
+                None
+            }
+        };
         let (mut context, active) = match self.take_top_scope(scope) {
             Ok(parts) => parts,
             Err(error) => {
@@ -399,6 +611,13 @@ impl EditorTransactionEngine {
             selection_before: active.selection_before,
             selection_after,
         };
+        let event = TransactionEvent {
+            transaction: active.id,
+            history: active.history,
+            label: active.label.clone(),
+            timestamp_frame: active.timestamp_frame,
+            kind: TransactionEventKind::Committed,
+        };
         let mut removed = Vec::new();
         {
             let mut state = self.lock_state();
@@ -409,20 +628,17 @@ impl EditorTransactionEngine {
                     .entry(active.history)
                     .or_insert_with(|| HistoryStore::from_validated_capacity(capacity))
                     .push(record);
+                if let Some(reservation) = history_mutation {
+                    Self::record_history_mutation(&mut state, active.history, reservation);
+                }
             }
-            state.events.push(TransactionEvent {
-                transaction: active.id,
-                history: active.history,
-                label: active.label,
-                timestamp_frame: active.timestamp_frame,
-                kind: TransactionEventKind::Committed,
-            });
         }
         for record in &mut removed {
             record.finalize(context.as_mut());
         }
         let id = active.id;
         self.finish_operation(context, false);
+        self.publish_event(event);
         Ok(id)
     }
 
@@ -439,11 +655,12 @@ impl EditorTransactionEngine {
             (context, frames)
         };
 
+        let mut event = None;
         while let Some(mut frame) = frames.pop() {
             match Self::cancel_frame(&mut frame, context.as_mut()) {
                 Ok(()) => {
                     if frame.root {
-                        self.lock_state().events.push(Self::canceled_event(&frame));
+                        event = Some(Self::canceled_event(&frame));
                     }
                 }
                 Err(error) => {
@@ -460,6 +677,9 @@ impl EditorTransactionEngine {
             }
         }
         self.finish_operation(context, false);
+        if let Some(event) = event {
+            self.publish_event(event);
+        }
         Ok(())
     }
 
@@ -572,11 +792,8 @@ impl EditorTransactionEngine {
         self.clear_operation_locked(&mut state);
     }
 
-    fn finish_canceled(&self, context: Box<dyn EditContext>, event: Option<TransactionEvent>) {
+    fn finish_canceled(&self, context: Box<dyn EditContext>) {
         let mut state = self.lock_state();
-        if let Some(event) = event {
-            state.events.push(event);
-        }
         state.context = Some(context);
         self.clear_operation_locked(&mut state);
     }
@@ -588,6 +805,18 @@ impl EditorTransactionEngine {
             label: active.label.clone(),
             timestamp_frame: active.timestamp_frame,
             kind: TransactionEventKind::Canceled,
+        }
+    }
+
+    fn publish_event(&self, event: TransactionEvent) {
+        match self.event_sink.publish(event) {
+            TransactionEventDelivery::Delivered => {}
+            TransactionEventDelivery::Backpressured => {
+                tracing::warn!("transaction lifecycle delivery is backpressured")
+            }
+            TransactionEventDelivery::Rejected => {
+                tracing::warn!("transaction lifecycle delivery was rejected")
+            }
         }
     }
 

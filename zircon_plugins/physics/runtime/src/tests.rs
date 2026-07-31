@@ -128,6 +128,30 @@ fn physics_registration_contributes_runtime_module() {
 }
 
 #[test]
+fn physics_step_anchor_registered_in_fixed_update() {
+    let report = plugin_registration();
+    let physics_stages = report
+        .extensions
+        .plugin_runtime_systems()
+        .filter_map(|(owner, system)| {
+            (report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME))
+                .then_some((system.id.as_str(), system.stage))
+        })
+        .collect::<Vec<_>>();
+
+    assert!(physics_stages.contains(&(
+        PHYSICS_STEP_SYSTEM,
+        zircon_runtime::scene::SystemStage::FixedUpdate
+    )));
+    assert!(physics_stages.contains(&(
+        PHYSICS_SYNC_TO_SCENE_SYSTEM,
+        zircon_runtime::scene::SystemStage::FixedPostUpdate,
+    )));
+    assert!(zircon_runtime::scene::SystemStage::FixedUpdate.is_fixed_loop());
+    assert!(zircon_runtime::scene::SystemStage::FixedPostUpdate.is_fixed_loop());
+}
+
+#[test]
 fn physics_package_manifest_declares_dist_contract() {
     let manifest = package_manifest();
 

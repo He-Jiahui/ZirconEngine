@@ -6,7 +6,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_a
     FrameRect {
         x: rect.x.round(),
         y: rect.y.round(),
-        width: rect.width.round().max(1.0),
-        height: rect.height.round().max(1.0),
+        width: rect.width.round().max(0.0),
+        height: rect.height.round().max(0.0),
     }
 }

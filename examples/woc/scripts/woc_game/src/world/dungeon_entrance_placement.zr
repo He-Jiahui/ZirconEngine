@@ -1,0 +1,81 @@
+// Built-in dungeon entrance projection from the Sim constructor. Instance-slot
+// allocation and door entity IDs remain owned by the transactional world state.
+
+var catalog = %import("generated/m3_dungeon_entrance");
+var terrainGround = %import("world/terrain_ground");
+
+pub dungeonCount(required: bool): int {
+    return catalog.dungeonCount(required);
+}
+
+pub instanceSlotCount(required: bool): int {
+    return catalog.instanceSlotCount(required);
+}
+
+pub totalPreallocatedInstanceSlots(required: bool): int {
+    if (!required) {
+        throw "woc total preallocated instance slots are required";
+    }
+    return dungeonCount(true) * instanceSlotCount(true);
+}
+
+pub hasOverworldDoor(index: int, required: bool): bool {
+    return catalog.hasOverworldDoor(index, required);
+}
+
+pub dungeonId(index: int, required: bool): string {
+    return catalog.dungeonId(index, required);
+}
+
+pub doorName(index: int, required: bool): string {
+    if (!required || !hasOverworldDoor(index, true)) {
+        throw "woc dungeon has no overworld door";
+    }
+    return catalog.dungeonName(index, true);
+}
+
+pub finalCoordinate(index: int, axis: int, required: bool): float {
+    if (!required || !hasOverworldDoor(index, true)) {
+        throw "woc dungeon entrance coordinate is invalid";
+    }
+    return catalog.doorCoordinate(index, axis, true);
+}
+
+pub finalGroundY(seed: uint, index: int, required: bool): float {
+    if (!required || !hasOverworldDoor(index, true)) {
+        throw "woc dungeon entrance ground height is invalid";
+    }
+    return terrainGround.builtinGroundHeight(
+        finalCoordinate(index, 1, true), finalCoordinate(index, 2, true), seed, true
+    );
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub contractTest(): int {
+    var seed = <uint>20061;
+    if (catalog.contractTest() != 1 || dungeonCount(true) != 6 || instanceSlotCount(true) != 24 ||
+        totalPreallocatedInstanceSlots(true) != 144 || !hasOverworldDoor(4, true) ||
+        hasOverworldDoor(5, true) || doorName(4, true) != "Abandoned Crypt") {
+        return -1;
+    }
+    if (finalCoordinate(0, 1, true) != 80.0 || finalCoordinate(0, 2, true) != 90.0 ||
+        !closeEnough(finalGroundY(seed, 0, true), 2.257091157527749)) {
+        return -2;
+    }
+    if (finalCoordinate(3, 1, true) != -70.0 || finalCoordinate(3, 2, true) != 792.0 ||
+        !closeEnough(finalGroundY(seed, 3, true), 8.032875341739876)) {
+        return -3;
+    }
+    if (finalCoordinate(4, 1, true) != -152.0 || finalCoordinate(4, 2, true) != 610.0 ||
+        !closeEnough(finalGroundY(seed, 4, true), 6.256625941826737)) {
+        return -4;
+    }
+    return 1;
+}

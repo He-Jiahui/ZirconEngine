@@ -1,14 +1,14 @@
 use std::collections::BTreeMap;
 
 use super::{
-    prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
-    skin_mesh_asset_primitive, skin_model_primitive, SkinnedMeshJointPalette,
+    SkinnedMeshJointPalette, prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
+    skin_mesh_asset_primitive, skin_model_primitive,
 };
 use crate::asset::{
-    AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshVertex,
-    ModelPrimitiveAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX,
-    MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-    MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
+    AssetUri, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
+    MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshVertex,
+    ModelPrimitiveAsset,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,

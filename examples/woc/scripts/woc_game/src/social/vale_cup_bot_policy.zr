@@ -1,0 +1,127 @@
+// Deterministic numeric leaves from vale_cup_bots.ts. The match owner supplies
+// roster, entity and ability state; this module never owns bots or performs a
+// cast. Role codes are allrounder=0, keeper=1, sweeper=2 and striker=3.
+var contract = %import("generated/vale_cup_bot_policy_contract");
+var layout = %import("generated/vale_cup_ball_contract");
+
+minimum(left: float, right: float): float {
+    return left < right ? left : right;
+}
+
+maximum(left: float, right: float): float {
+    return left > right ? left : right;
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+closeEnough(left: float, right: float): bool {
+    return absolute(left - right) <= 0.000001;
+}
+
+pub botRoleForSeat(seat: int, bracket: int): int {
+    if (bracket <= 2) return contract.roleAllrounder(true);
+    if (seat == 0) return contract.roleKeeper(true);
+    if (seat == bracket - 1) return contract.roleSweeper(true);
+    return contract.roleStriker(true);
+}
+
+// Source tick and entity ids are nonnegative, so the modulo phase is the same
+// deterministic triangle wave used by the target bot driver.
+pub botAimError(tick: int, pid: int): float {
+    var period = <int>contract.aim_error_period(true);
+    var half = contract.aim_error_period(true) / contract.aim_half_period_divisor(true);
+    var phase = (tick + pid * <int>contract.aim_phase_pid_multiplier(true)) % period;
+    return (absolute(<float>phase - half) / half) * 2.0 *
+        contract.aim_error_max(true) - contract.aim_error_max(true);
+}
+
+pub botCastPeriod(role: int): int {
+    return role == contract.roleKeeper(true)
+        ? <int>contract.keeper_cast_period(true)
+        : <int>contract.field_cast_period(true);
+}
+
+// team is 1 for the source A side and 2 for the source B side.
+pub keeperGuardX(ownGoalX: float, team: int): float {
+    return ownGoalX + (team == 1
+        ? contract.keeper_guard_depth(true)
+        : -contract.keeper_guard_depth(true));
+}
+
+pub keeperGuardZ(centerZ: float, trackedZ: float): float {
+    return maximum(
+        centerZ - contract.keeper_shade(true),
+        minimum(centerZ + contract.keeper_shade(true), trackedZ)
+    );
+}
+
+pub shotAimZ(centerZ: float, aimError: float): float {
+    var halfWidth = (layout.goalZMax(true) - layout.goalZMin(true)) / 2.0;
+    return maximum(
+        centerZ - halfWidth + contract.shot_goal_post_margin(true),
+        minimum(centerZ + halfWidth - contract.shot_goal_post_margin(true), centerZ + aimError)
+    );
+}
+
+pub shotAimRange(distanceToMouth: float): float {
+    var fraction = maximum(
+        contract.shot_fraction_min(true),
+        minimum(
+            contract.shot_fraction_max(true),
+            contract.shot_fraction_base(true) +
+                distanceToMouth / contract.shot_fraction_distance_divisor(true)
+        )
+    );
+    return fraction * contract.shoot_range_encoding(true);
+}
+
+pub interceptX(originX: float, ballX: float, ballVx: float): float {
+    return maximum(
+        layout.pitchMinX(true) + 1.0 + originX,
+        minimum(
+            layout.pitchMaxX(true) - 1.0 + originX,
+            ballX + ballVx * contract.intercept_lead(true)
+        )
+    );
+}
+
+pub interceptZ(originZ: float, ballZ: float, ballVz: float): float {
+    return maximum(
+        layout.pitchMinZ(true) + 1.0 + originZ,
+        minimum(
+            layout.pitchMaxZ(true) - 1.0 + originZ,
+            ballZ + ballVz * contract.intercept_lead(true)
+        )
+    );
+}
+
+pub contractTest(): int {
+    if (botRoleForSeat(0, 1) != contract.roleAllrounder(true) ||
+        botRoleForSeat(1, 2) != contract.roleAllrounder(true) ||
+        botRoleForSeat(0, 3) != contract.roleKeeper(true) ||
+        botRoleForSeat(1, 3) != contract.roleStriker(true) ||
+        botRoleForSeat(2, 3) != contract.roleSweeper(true) ||
+        botRoleForSeat(4, 5) != contract.roleSweeper(true)) return -1;
+    if (!closeEnough(botAimError(45, 0), -3.6) ||
+        !closeEnough(botAimError(0, 0), 3.6) ||
+        !closeEnough(botAimError(22, 0), 0.08)) return -2;
+    if (botCastPeriod(contract.roleKeeper(true)) != 8 ||
+        botCastPeriod(contract.roleStriker(true)) != 44) return -3;
+    if (!closeEnough(keeperGuardX(-48.0, 1), -47.0) ||
+        !closeEnough(keeperGuardX(26.0, 2), 25.0) ||
+        !closeEnough(keeperGuardZ(-112.0, -90.0), -106.8) ||
+        !closeEnough(keeperGuardZ(-112.0, -130.0), -117.2)) return -4;
+    if (!closeEnough(shotAimZ(-112.0, 10.0), -107.0) ||
+        !closeEnough(shotAimZ(-112.0, -10.0), -117.0) ||
+        !closeEnough(shotAimZ(-112.0, 0.0), -112.0)) return -5;
+    if (!closeEnough(shotAimRange(0.0), 14.28) ||
+        !closeEnough(shotAimRange(11.0), 20.4) ||
+        !closeEnough(shotAimRange(100.0), 20.4)) return -6;
+    if (!closeEnough(interceptX(0.0, 25.0, 10.0), 25.0) ||
+        !closeEnough(interceptZ(0.0, -98.0, 10.0), -98.0) ||
+        !closeEnough(interceptX(30000.0, 29900.0, 0.0), 29953.0) ||
+        !closeEnough(interceptZ(2800.0, 2600.0, 0.0), 2674.0)) return -7;
+    return 1;
+}

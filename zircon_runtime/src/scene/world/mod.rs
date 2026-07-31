@@ -3,6 +3,7 @@
 mod bootstrap;
 mod change_detection;
 mod commands;
+mod compiled_binding;
 mod component_access;
 mod component_type_registry;
 mod derived_state;
@@ -29,6 +30,10 @@ mod schedule;
 mod typed_api;
 mod world;
 
+pub use compiled_binding::{
+    CompiledDescendantNameEntry, CompiledDescendantNameIndex, CompiledScenePropertyTarget,
+    CompiledTransformPropertyTarget, ComponentFieldId, PathId,
+};
 pub use component_type_registry::ComponentTypeRegistry;
 pub use dynamic_components::DynamicComponentInstance;
 pub use error::{SceneError, SceneResult};

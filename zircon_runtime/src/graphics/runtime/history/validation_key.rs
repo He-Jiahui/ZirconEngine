@@ -95,7 +95,7 @@ impl FrameHistoryValidationKey {
                     material: mesh.material.id(),
                     tint: mesh.tint,
                     mobility: mesh.mobility,
-                    render_layer_mask: mesh.render_layer_mask.clone(),
+                    render_layer_mask: mesh.common.layer_mask.clone(),
                 })
                 .collect(),
             lighting,

@@ -82,6 +82,7 @@ impl ViewportOverlayPointerRouter {
         if let Ok(mut shared) = self.shared.lock() {
             shared.candidates = candidates;
             shared.last_route = None;
+            shared.last_debug_feed = None;
         }
     }
 }

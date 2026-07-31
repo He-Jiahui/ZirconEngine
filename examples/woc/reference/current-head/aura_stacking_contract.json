@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/aura_stacking_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/aura_stacking.ts": "d723684226b7c732763ed3219f1ac9bc65bfa20dc0d7dfecb586e00f79ef380a"
+  },
+  "sourceIndependent": [
+    "arcane_intellect",
+    "battle_shout",
+    "blessing_of_might",
+    "devotion_aura",
+    "mark_of_the_wild",
+    "power_word_fortitude",
+    "rallying_cry_dr",
+    "rallying_cry_hp",
+    "rune_of_power",
+    "sanguine_aura",
+    "trueshot_aura_ap",
+    "temporal_hourglass"
+  ]
+}

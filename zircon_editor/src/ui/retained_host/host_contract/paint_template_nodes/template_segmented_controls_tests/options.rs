@@ -1,17 +1,20 @@
 use super::super::options::{segmented_options, selected_segment_value};
 use super::support::segmented_node;
+use crate::ui::retained_host::primitives::SharedString;
 
 #[test]
 fn segmented_options_prefer_declared_option_cells() {
     let node = segmented_node();
+    let options: Vec<SharedString> = segmented_options(&node);
 
     assert_eq!(
-        segmented_options(&node),
+        options,
         vec![
-            "left".to_string(),
-            "center".to_string(),
-            "right".to_string()
+            SharedString::from("left"),
+            SharedString::from("center"),
+            SharedString::from("right")
         ]
     );
-    assert_eq!(selected_segment_value(&node).as_deref(), Some("center"));
+    let selected: Option<&str> = selected_segment_value(&node);
+    assert_eq!(selected, Some("center"));
 }

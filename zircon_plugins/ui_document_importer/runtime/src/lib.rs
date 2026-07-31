@@ -10,6 +10,7 @@ mod plugin;
 
 pub use capability::{
     IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+    UI_DOCUMENT_IMPORTER_DECLARATION,
 };
 pub use plugin::{
     asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
@@ -71,6 +72,40 @@ mod tests {
                 && !importer.full_suffixes.contains(&".v2.ui.toml".to_string())
                 && !importer.source_extensions.contains(&"uidoc".to_string())
         }));
+    }
+
+    #[test]
+    fn declaration_projects_ui_document_package_metadata() {
+        let descriptor = runtime_plugin_descriptor();
+        let manifest = package_manifest();
+
+        assert_eq!(
+            descriptor.package_id(),
+            UI_DOCUMENT_IMPORTER_DECLARATION.id()
+        );
+        assert_eq!(
+            descriptor.category(),
+            UI_DOCUMENT_IMPORTER_DECLARATION.category()
+        );
+        assert_eq!(
+            descriptor.target_modes(),
+            UI_DOCUMENT_IMPORTER_DECLARATION.target_modes()
+        );
+        assert_eq!(
+            descriptor.capabilities(),
+            runtime_capabilities()
+                .iter()
+                .map(|capability| capability.to_string())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            manifest.supported_platforms.as_slice(),
+            UI_DOCUMENT_IMPORTER_DECLARATION.supported_platforms()
+        );
+        assert_eq!(
+            manifest.default_packaging.as_slice(),
+            UI_DOCUMENT_IMPORTER_DECLARATION.default_packaging()
+        );
     }
 
     #[test]

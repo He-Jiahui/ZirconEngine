@@ -361,7 +361,7 @@ fn shared_menu_pointer_click_executes_registered_operation_factory_transaction()
             .runtime
             .context()
             .transactions()
-            .history_snapshot(HistoryContextId::Global)
+            .history_status(HistoryContextId::Global)
             .unwrap()
             .can_undo
     );

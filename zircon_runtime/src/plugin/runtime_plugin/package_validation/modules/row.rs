@@ -3,6 +3,7 @@ mod identity;
 mod systems;
 mod target_modes;
 
+use super::super::projection::RuntimePluginPackageValidationProjection;
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginModuleManifest;
 
@@ -16,17 +17,29 @@ pub(super) fn validate_runtime_plugin_package_module_row<'a>(
     package_id: &str,
     package_supported_targets: &'a [RuntimeTargetMode],
     module: &'a PluginModuleManifest,
-    seen_names: &mut Vec<&'a str>,
+    module_index: usize,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     diagnostics: &mut Vec<String>,
 ) {
     identity::validate_runtime_plugin_package_module_identity(
         package_id,
         module,
-        seen_names,
+        projection.package_module_name_is_duplicate(module_index),
         diagnostics,
     );
-    validate_runtime_plugin_package_module_capabilities(module, diagnostics);
-    validate_runtime_plugin_package_module_system_contracts(package_id, module, diagnostics);
+    validate_runtime_plugin_package_module_capabilities(
+        module,
+        module_index,
+        projection,
+        diagnostics,
+    );
+    validate_runtime_plugin_package_module_system_contracts(
+        package_id,
+        module,
+        module_index,
+        projection,
+        diagnostics,
+    );
     validate_runtime_plugin_package_module_target_modes(
         package_supported_targets,
         module,

@@ -27,6 +27,21 @@ class CpuBurstTests(unittest.TestCase):
             selection.target_dir,
         )
 
+    def test_targeted_library_test_uses_its_own_ephemeral_target(self) -> None:
+        selection = select_cpu_burst(
+            CpuBurstRequest(
+                reservation_id="reservation-library-test",
+                lane_scope="cpu",
+                burst_eligible=True,
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib", "project_asset_manager"),
+                target_dir=None,
+            ),
+            BurstDecision(True, "allowed"),
+        )
+
+        self.assertEqual("burst", selection.mode)
+        self.assertEqual("allowed", selection.reason)
+
     def test_test_and_explicit_target_stay_in_the_warm_lane(self) -> None:
         test_selection = select_cpu_burst(
             CpuBurstRequest(

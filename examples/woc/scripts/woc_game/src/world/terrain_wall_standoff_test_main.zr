@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var wallStandoff = %import("world/terrain_wall_standoff");
+
+console.printLine("m3-terrain-wall-standoff-test");
+var result = wallStandoff.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

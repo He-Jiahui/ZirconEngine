@@ -1218,6 +1218,22 @@ tests:
 doc_type: structure-plan
 status: in_progress
 ---
+
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-plugins-standalone-build",
+  "goal": "完成插件双形态构建、独立分发、ABI 编组与全量发行矩阵",
+  "milestones": [
+    {"id": "M1", "title": "双形态骨架与依赖边界", "depends_on": []},
+    {"id": "M2", "title": "注册跨 ABI 编组", "depends_on": ["M1"]},
+    {"id": "M3", "title": "每插件独立构建命令", "depends_on": ["M1", "M2"]},
+    {"id": "M4", "title": "产物包与兼容性协商", "depends_on": ["M2", "M3"]},
+    {"id": "M5", "title": "全量 rollout 与 CI 矩阵", "depends_on": ["M1", "M2", "M3", "M4"]}
+  ]
+}
+```
+
 # 13 · 插件独立构建与分发计划（每插件可独立编译产出动态包）
 
 > 状态：in_progress · 优先级：P1（横切，与 [09 跨平台发行](09-export-publishing.md)、[12 插件 DX 与结构框架](12-plugin-dx-and-structure-framework.md)、[11 调用桥](11-plugin-call-bridge.md) 并列横切层）

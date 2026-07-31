@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var fire = %import("combat/fire_mage_state");
+
+console.printLine("m4-fire-mage-state-test");
+var result = fire.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

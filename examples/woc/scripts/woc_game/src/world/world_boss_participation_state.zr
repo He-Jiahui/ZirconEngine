@@ -1,0 +1,306 @@
+// Source-compatible world-boss participation core from sim/world_boss.ts.
+// Spawning, combat spells, corpse interaction and personal item rolls retain
+// their own world/content owners; this module owns deterministic roster, HP
+// scaling and per-player lockout facts only.
+var container = %import("zr.container");
+
+pub class WorldBossParticipant {
+    pub var id: uint;
+    pub var leaving: bool;
+    // Host raid-reset instants are millisecond i64 values in the ZrVM bridge.
+    pub var lockoutUntilMs: int;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.leaving = false;
+        this.lockoutUntilMs = 0;
+    }
+}
+
+pub class WorldBossParticipationState {
+    pub var participants: container.Array<WorldBossParticipant>;
+    // Source threat is a Map keyed by attacker id. An owner id of zero means
+    // the attacker itself is credited; a nonzero value credits a controlled pet.
+    pub var threatAttackerIds: container.Array<uint>;
+    pub var threatOwnerIds: container.Array<uint>;
+    // Source bossDamagers is the owner-resolved permanent player set for a pull.
+    pub var bossDamagerIds: container.Array<uint>;
+
+    pub @constructor() {
+        this.participants = new container.Array<WorldBossParticipant>();
+        this.threatAttackerIds = new container.Array<uint>();
+        this.threatOwnerIds = new container.Array<uint>();
+        this.bossDamagerIds = new container.Array<uint>();
+    }
+
+    pub addParticipant(id: uint, leaving: bool): void {
+        if (id == <uint>0 || participantIndex(this, id) >= 0) {
+            throw "world boss participant is invalid";
+        }
+        var participant = new WorldBossParticipant();
+        participant.id = id;
+        participant.leaving = leaving;
+        this.participants.add(participant);
+    }
+
+    pub setParticipantLeaving(id: uint, leaving: bool): void {
+        var index = participantIndex(this, id);
+        if (index >= 0) { this.participants[index].leaving = leaving; }
+    }
+
+    // Replaces an existing threat row just as Map.set replaces the same key.
+    pub addThreat(attackerId: uint, ownerId: uint): void {
+        if (attackerId == <uint>0) { throw "world boss threat attacker is invalid"; }
+        var index = threatIndex(this, attackerId);
+        if (index >= 0) {
+            this.threatOwnerIds[index] = ownerId;
+            return;
+        }
+        this.threatAttackerIds.add(attackerId);
+        this.threatOwnerIds.add(ownerId);
+    }
+
+    // The caller must pass the player id after applying the source pet-owner
+    // credit rule, exactly like the source bossDamagers set.
+    pub addDamager(playerId: uint): void {
+        if (playerId == <uint>0 || containsId(this.bossDamagerIds, playerId)) { return; }
+        this.bossDamagerIds.add(playerId);
+    }
+
+    pub clearThreat(): void {
+        clearIds(this.threatAttackerIds);
+        clearIds(this.threatOwnerIds);
+    }
+}
+
+pub class WorldBossContributorIds {
+    pub var ids: container.Array<uint>;
+
+    pub @constructor() {
+        this.ids = new container.Array<uint>();
+    }
+}
+
+pub class WorldBossHp {
+    pub var hp: int;
+    pub var maxHp: int;
+
+    pub @constructor() {
+        this.hp = worldBossBaseHp();
+        this.maxHp = worldBossBaseHp();
+    }
+}
+
+// A scalar scheduling projection of Sim.updateWorldBosses. The eventual world
+// reducer owns actual entity allocation/drop and copies those facts in/out of
+// this state; counters make those two host actions explicit rather than hidden.
+pub class WorldBossScheduleState {
+    pub var nextAt: float;
+    pub var bossPresent: bool;
+    pub var bossDead: bool;
+    pub var corpseTimer: float;
+    pub var spawnEvents: int;
+    pub var spawnAttempts: int;
+    pub var corpseRemovalRequests: int;
+
+    pub @constructor() {
+        this.nextAt = <float>worldBossIntervalSeconds();
+        this.bossPresent = false;
+        this.bossDead = false;
+        this.corpseTimer = 0.0;
+        this.spawnEvents = 0;
+        this.spawnAttempts = 0;
+        this.corpseRemovalRequests = 0;
+    }
+}
+
+pub worldBossIntervalSeconds(): int { return 3600; }
+pub worldBossCorpseSeconds(): int { return 900; }
+pub worldBossTemplateId(): string { return "thunzharr_waking_peak"; }
+pub worldBossSpawnX(): float { return 110.0; }
+pub worldBossSpawnZ(): float { return 760.0; }
+pub worldBossBaseHp(): int { return 40000; }
+pub worldBossPerParticipantHp(): int { return 5000; }
+pub worldBossMaximumHp(): int { return 1000000; }
+pub worldBossLockoutPrefix(): string { return "worldboss:"; }
+
+pub worldBossLockoutId(bossId: string): string {
+    return worldBossLockoutPrefix() + bossId;
+}
+
+// Source construction maps worldBossAtBoot to nextAt=0, then continues through
+// the ordinary scheduler on its first tick.
+pub initializeWorldBossSchedule(state: WorldBossScheduleState, atBoot: bool): void {
+    state.nextAt = atBoot ? 0.0 : <float>worldBossIntervalSeconds();
+}
+
+// `now` is the already-advanced shared sim time. As in updateWorldBosses, a
+// long time jump moves nextAt one interval only; this scheduler never catches
+// up by spawning a burst of missed bosses.
+pub updateWorldBossSchedule(
+    state: WorldBossScheduleState,
+    now: float,
+    templateAvailable: bool
+): void {
+    if (state.bossPresent && state.bossDead && state.corpseTimer <= 0.0) {
+        state.bossPresent = false;
+        state.bossDead = false;
+        state.corpseRemovalRequests = state.corpseRemovalRequests + 1;
+    }
+    if (now < state.nextAt) { return; }
+    state.nextAt = state.nextAt + <float>worldBossIntervalSeconds();
+    if (state.bossPresent) { return; }
+    state.spawnAttempts = state.spawnAttempts + 1;
+    if (!templateAvailable) { return; }
+    state.bossPresent = true;
+    state.bossDead = false;
+    state.corpseTimer = 0.0;
+    state.spawnEvents = state.spawnEvents + 1;
+}
+
+participantIndex(state: WorldBossParticipationState, id: uint): int {
+    var index = 0;
+    while (index < state.participants.length) {
+        if (<uint>state.participants[index].id == id) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+threatIndex(state: WorldBossParticipationState, attackerId: uint): int {
+    var index = 0;
+    while (index < state.threatAttackerIds.length) {
+        if (<uint>state.threatAttackerIds[index] == attackerId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+containsId(ids: container.Array<uint>, id: uint): bool {
+    var index = 0;
+    while (index < ids.length) {
+        if (<uint>ids[index] == id) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+clearIds(ids: container.Array<uint>): void {
+    while (ids.length > 0) { ids.removeAt(0); }
+}
+
+resolvedPlayerId(attackerId: uint, ownerId: uint): uint {
+    return ownerId != <uint>0 ? ownerId : attackerId;
+}
+
+// Add a resolved player only once, in ascending entity-id order. The source
+// sorts after its Set/Map traversal so RNG consumers see a stable order.
+appendActiveSorted(
+    state: WorldBossParticipationState,
+    output: WorldBossContributorIds,
+    playerId: uint
+): void {
+    if (playerId == <uint>0 || containsId(output.ids, playerId)) { return; }
+    var participant = participantIndex(state, playerId);
+    if (participant < 0 || state.participants[participant].leaving) { return; }
+    output.ids.add(playerId);
+    var index = output.ids.length - 1;
+    while (index > 0 && <uint>output.ids[index - 1] > playerId) {
+        output.ids[index] = <uint>output.ids[index - 1];
+        index = index - 1;
+    }
+    output.ids[index] = playerId;
+}
+
+pub worldBossContributors(
+    state: WorldBossParticipationState,
+    output: WorldBossContributorIds
+): void {
+    clearIds(output.ids);
+    var index = 0;
+    while (index < state.threatAttackerIds.length) {
+        appendActiveSorted(
+            state,
+            output,
+            resolvedPlayerId(
+                <uint>state.threatAttackerIds[index],
+                <uint>state.threatOwnerIds[index]
+            )
+        );
+        index = index + 1;
+    }
+}
+
+pub worldBossLootContributors(
+    state: WorldBossParticipationState,
+    output: WorldBossContributorIds
+): void {
+    clearIds(output.ids);
+    var index = 0;
+    while (index < state.bossDamagerIds.length) {
+        appendActiveSorted(state, output, <uint>state.bossDamagerIds[index]);
+        index = index + 1;
+    }
+    index = 0;
+    while (index < state.threatAttackerIds.length) {
+        appendActiveSorted(
+            state,
+            output,
+            resolvedPlayerId(
+                <uint>state.threatAttackerIds[index],
+                <uint>state.threatOwnerIds[index]
+            )
+        );
+        index = index + 1;
+    }
+}
+
+pub scaledWorldBossMaximumForParticipants(participants: int): int {
+    var additional = participants - 1;
+    if (additional < 0) { additional = 0; }
+    var target = worldBossBaseHp() + worldBossPerParticipantHp() * additional;
+    return target < worldBossMaximumHp() ? target : worldBossMaximumHp();
+}
+
+// Applies only positive deltas and adds them to current HP too, preserving the
+// source's deliberate real-health behavior rather than a percentage rescale.
+pub scaleWorldBossHp(state: WorldBossParticipationState, boss: WorldBossHp): void {
+    if (boss.maxHp >= worldBossMaximumHp()) { return; }
+    var contributors = new WorldBossContributorIds();
+    worldBossContributors(state, contributors);
+    var target = scaledWorldBossMaximumForParticipants(contributors.ids.length);
+    if (target <= boss.maxHp) { return; }
+    var delta = target - boss.maxHp;
+    boss.maxHp = target;
+    boss.hp = boss.hp + delta;
+    if (boss.hp > boss.maxHp) { boss.hp = boss.maxHp; }
+}
+
+// A full evade-home reset ends the pull and therefore drops both live threat
+// and permanent damager loot rights, matching resetEvadingMob's source effect.
+pub resetWorldBossPull(state: WorldBossParticipationState): void {
+    state.clearThreat();
+    clearIds(state.bossDamagerIds);
+}
+
+pub isWorldBossLootEligible(
+    state: WorldBossParticipationState,
+    playerId: uint,
+    nowMs: int
+): bool {
+    var index = participantIndex(state, playerId);
+    return index >= 0 && state.participants[index].lockoutUntilMs <= nowMs;
+}
+
+// The source writes only positive next-reset instants. Returning false makes
+// an ignored nonpositive write observable to the focused contract.
+pub markWorldBossLooted(
+    state: WorldBossParticipationState,
+    playerId: uint,
+    untilMs: int
+): bool {
+    var index = participantIndex(state, playerId);
+    if (index < 0 || untilMs <= 0) { return false; }
+    state.participants[index].lockoutUntilMs = untilMs;
+    return true;
+}

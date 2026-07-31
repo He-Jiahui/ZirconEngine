@@ -5,22 +5,23 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::asset::AssetUri;
 use crate::asset::assets::{ImportedAsset, ShaderAsset};
 use crate::asset::project::ProjectManager;
-use crate::asset::AssetUri;
 use crate::core::framework::render::{
+    GENERATED_MATERIAL_MODULE_IMPORT_PATH, RenderShaderDefinitionValue, SHADER_IDE_ENV_CACHE_DIR,
+    SHADER_IDE_MODULE_MAP_FILE, ShaderAssetKind, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
+    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewVariant,
     shader_ide_generated_material_stub_relative_path, shader_ide_module_stub_relative_path,
     shader_ide_preview_relative_path, shader_ide_preview_segments_relative_path,
     shader_ide_relative_path_string, strip_wgsl_include_directives, wgsl_include_paths,
-    RenderShaderDefinitionValue, ShaderAssetKind, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
-    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewVariant,
-    GENERATED_MATERIAL_MODULE_IMPORT_PATH, SHADER_IDE_ENV_CACHE_DIR, SHADER_IDE_MODULE_MAP_FILE,
 };
 use crate::core::resource::{ResourceKind, ResourceRecord, ResourceState};
 
+use super::ide_preview::{assemble_shader_ide_surface_preview_with_index, shader_include_index};
 use super::{
-    assemble_shader_ide_surface_preview, builtin_shader_ide_module_sources,
-    parse_shader_ide_wgsl_module, validate_shader_ide_wgsl_module, ShaderIdeSurfacePreview,
+    ShaderIdeSurfacePreview, builtin_shader_ide_module_sources, parse_shader_ide_wgsl_module,
+    validate_shader_ide_wgsl_module,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -311,13 +312,15 @@ fn shader_preview_files(
     preview_variants: &[ShaderIdePreviewVariant],
 ) -> Result<Vec<ShaderIdePreviewFile>, String> {
     let mut previews = Vec::new();
+    let shader_index = shader_include_index(shaders.iter());
     for shader in shaders
         .iter()
         .filter(|shader| shader.kind.participates_in_material_variants())
     {
         for variant in preview_variants {
-            let preview = assemble_shader_ide_surface_preview(shader, shaders.iter(), variant)
-                .map_err(|error| error.to_string())?;
+            let preview =
+                assemble_shader_ide_surface_preview_with_index(shader, &shader_index, variant)
+                    .map_err(|error| error.to_string())?;
             previews.push(shader_preview_file(shader, variant, preview));
         }
     }
@@ -434,7 +437,9 @@ fn shader_ide_stub_validation_dependencies<'a>(
     }
     if let Some(source_uri) = stub.entry.source_uri.as_ref() {
         for candidate in stubs.iter().filter(|candidate| {
-            candidate.entry.generated && candidate.entry.scope_uri.as_ref() == Some(source_uri)
+            candidate.entry.stub_path != stub.entry.stub_path
+                && candidate.entry.generated
+                && candidate.entry.scope_uri.as_ref() == Some(source_uri)
         }) {
             append_shader_ide_stub_validation_dependency(
                 stub,

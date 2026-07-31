@@ -117,7 +117,7 @@ impl NativePluginHotReloadState {
         if existing.runtime_behavior_is_stateless() != Some(false) {
             return Ok(None);
         }
-        let report = existing.save_runtime_state();
+        let report = existing.save_runtime_state_during_transition();
         self.diagnostics.extend(prefixed_behavior_diagnostics(
             "runtime save-state before hot reload",
             &report,
@@ -142,8 +142,8 @@ impl NativePluginHotReloadState {
         Ok(self.runtime_snapshot.as_ref())
     }
 
-    pub(super) fn runtime_snapshot(&self) -> Option<&PluginStateSnapshot> {
-        self.runtime_snapshot.as_ref()
+    pub(super) fn take_runtime_snapshot(&mut self) -> Option<PluginStateSnapshot> {
+        self.runtime_snapshot.take()
     }
 
     pub(super) fn take_existing_for_unload(&mut self) -> Option<LoadedNativePlugin> {
@@ -215,7 +215,7 @@ pub(super) fn restore_runtime_snapshot(
             loaded_schema,
         });
     }
-    let report = plugin.restore_runtime_state(&snapshot.blob);
+    let report = plugin.restore_runtime_state_during_transition(&snapshot.blob);
     let diagnostics =
         prefixed_behavior_diagnostics("runtime restore-state after hot reload", &report);
     if report.status_code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {

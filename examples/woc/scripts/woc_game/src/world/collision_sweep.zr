@@ -1,0 +1,153 @@
+// Source-order swept movement for the generated non-procedural builtin collider
+// subset. Mirrors colliders.ts resolveMovement/crossesFence at 0.2-yard steps.
+
+var math = %import("zr.zircon.math");
+var collisionContent = %import("world/collision_content");
+var collisionStatic = %import("world/collision_static");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+pub crossesBuiltinFence(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    bodyRadius: float,
+    required: bool
+): bool {
+    if (!required || bodyRadius < 0.0) {
+        throw "woc fence crossing arguments are invalid";
+    }
+    var fenceIndex = 0;
+    while (fenceIndex < collisionContent.fenceSegmentCount(true)) {
+        var x1 = collisionContent.fenceSegmentFloat(fenceIndex, 1, true);
+        var z1 = collisionContent.fenceSegmentFloat(fenceIndex, 2, true);
+        var x2 = collisionContent.fenceSegmentFloat(fenceIndex, 3, true);
+        var z2 = collisionContent.fenceSegmentFloat(fenceIndex, 4, true);
+        var deltaX = x2 - x1;
+        var deltaZ = z2 - z1;
+        var length = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+        if (length >= 0.000001) {
+            var unitX = deltaX / length;
+            var unitZ = deltaZ / length;
+            var normalX = -unitZ;
+            var normalZ = unitX;
+            var fromSide = (fromX - x1) * normalX + (fromZ - z1) * normalZ;
+            var toSide = (toX - x1) * normalX + (toZ - z1) * normalZ;
+            if (!(fromSide == 0.0 && toSide == 0.0) && fromSide * toSide <= 0.0) {
+                var denominator = fromSide - toSide;
+                var fraction = absolute(denominator) < 0.000001 ? 0.0 : fromSide / denominator;
+                if (fraction >= 0.0 && fraction <= 1.0) {
+                    var hitX = fromX + (toX - fromX) * fraction;
+                    var hitZ = fromZ + (toZ - fromZ) * fraction;
+                    var along = (hitX - x1) * unitX + (hitZ - z1) * unitZ;
+                    if (along >= -0.35 - bodyRadius && along <= length + 0.35 + bodyRadius) {
+                        return true;
+                    }
+                }
+            }
+        }
+        fenceIndex = fenceIndex + 1;
+    }
+    return false;
+}
+
+pub resolveBuiltinStaticMovementCoordinate(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    bodyRadius: float,
+    ignoreFences: bool,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc swept collision arguments are invalid";
+    }
+    var deltaX = toX - fromX;
+    var deltaZ = toZ - fromZ;
+    var distance = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    if (distance < 0.000001) {
+        return collisionStatic.resolveBuiltinStaticCoordinate(
+            toX,
+            toZ,
+            bodyRadius,
+            ignoreFences,
+            axis,
+            true
+        );
+    }
+    var steps = <int>math.ceil(distance / 0.2);
+    if (steps < 1) {
+        steps = 1;
+    }
+    var positionX = fromX;
+    var positionZ = fromZ;
+    var step = 1;
+    while (step <= steps) {
+        var fraction = <float>step / <float>steps;
+        var nextX = fromX + deltaX * fraction;
+        var nextZ = fromZ + deltaZ * fraction;
+        if (!ignoreFences && crossesBuiltinFence(positionX, positionZ, nextX, nextZ, bodyRadius, true)) {
+            return axis == 1 ? positionX : positionZ;
+        }
+        positionX = collisionStatic.resolveBuiltinStaticCoordinate(
+            nextX,
+            nextZ,
+            bodyRadius,
+            ignoreFences,
+            1,
+            true
+        );
+        positionZ = collisionStatic.resolveBuiltinStaticCoordinate(
+            nextX,
+            nextZ,
+            bodyRadius,
+            ignoreFences,
+            2,
+            true
+        );
+        var correctionX = positionX - nextX;
+        var correctionZ = positionZ - nextZ;
+        var correctionLength = math.sqrt(correctionX * correctionX + correctionZ * correctionZ);
+        if (correctionLength > bodyRadius * 0.25) {
+            var remainingX = toX - nextX;
+            var remainingZ = toZ - nextZ;
+            if (remainingX * correctionX + remainingZ * correctionZ < 0.0) {
+                return axis == 1 ? positionX : positionZ;
+            }
+        }
+        step = step + 1;
+    }
+    return axis == 1 ? positionX : positionZ;
+}
+
+pub contractTest(): int {
+    if (!crossesBuiltinFence(13.0, 10.0, 25.0, 10.0, 0.5, true) ||
+        crossesBuiltinFence(13.0, 10.0, 15.0, 10.0, 0.5, true) ||
+        crossesBuiltinFence(123.0, 456.0, 124.0, 456.0, 0.5, true)) {
+        return -1;
+    }
+    if (!closeEnough(resolveBuiltinStaticMovementCoordinate(13.0, 10.0, 25.0, 10.0, 0.5, false, 1, true), 18.07973688765007) ||
+        !closeEnough(resolveBuiltinStaticMovementCoordinate(13.0, 10.0, 25.0, 10.0, 0.5, false, 2, true), 9.939868443825036) ||
+        !closeEnough(resolveBuiltinStaticMovementCoordinate(13.0, 10.0, 25.0, 10.0, 0.5, true, 1, true), 25.0) ||
+        resolveBuiltinStaticMovementCoordinate(13.0, 10.0, 25.0, 10.0, 0.5, true, 2, true) != 10.0) {
+        return -2;
+    }
+    if (resolveBuiltinStaticMovementCoordinate(123.0, 456.0, 124.0, 456.0, 0.5, false, 1, true) != 124.0 ||
+        resolveBuiltinStaticMovementCoordinate(123.0, 456.0, 124.0, 456.0, 0.5, false, 2, true) != 456.0) {
+        return -3;
+    }
+    return 1;
+}

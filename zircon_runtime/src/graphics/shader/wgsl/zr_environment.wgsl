@@ -4,7 +4,6 @@ const ZR_ENVIRONMENT_SOURCE_CUBEMAP_KIND: f32 = 3.0;
 const ZR_ENVIRONMENT_REALTIME_IBL_KIND: f32 = 4.0;
 const ZR_ENVIRONMENT_PROBE_FACE_SIZE: f32 = 128.0;
 const ZR_ENVIRONMENT_INVALID_PROBE: u32 = 0xffffffffu;
-override ZR_ENV_DIFFUSE_IEM: bool = false;
 
 struct ZrGpuReflectionProbe {
     position_blend: vec4<f32>,
@@ -74,8 +73,15 @@ fn zr_environment_is_realtime_ibl() -> bool {
     return scene.environment_sample_params.x >= ZR_ENVIRONMENT_REALTIME_IBL_KIND - 0.5;
 }
 
+fn zr_environment_has_irradiance_cube() -> bool {
+    return scene.environment_params.x > 0.5;
+}
+
 fn zr_environment_rotated_direction(direction: vec3<f32>) -> vec3<f32> {
     let rotation = scene.environment_params.z;
+    if (rotation == 0.0) {
+        return direction;
+    }
     let s = sin(rotation);
     let c = cos(rotation);
     return vec3<f32>(
@@ -124,11 +130,11 @@ fn zr_environment_source_cube_color_at_lod(direction: vec3<f32>, lod: f32) -> ve
     ).rgb * max(scene.environment_params.y, 0.0);
 }
 
-fn zr_environment_specular_pmrem_color_at_lod(direction: vec3<f32>, lod: f32) -> vec3<f32> {
-    let mip_count = max(scene.environment_sample_params.w, 1.0);
-    let max_mip = mip_count - 1.0;
-    let clamped_lod = clamp(lod, 0.0, max_mip);
-    let rotated = zr_environment_rotated_direction(zr_environment_normalize_or_zero(direction));
+fn zr_environment_specular_pmrem_color_at_clamped_lod_normalized(
+    direction: vec3<f32>,
+    clamped_lod: f32,
+) -> vec3<f32> {
+    let rotated = zr_environment_rotated_direction(direction);
     return textureSampleLevel(
         zr_environment_specular_pmrem_cube,
         zr_environment_sampler,
@@ -137,12 +143,22 @@ fn zr_environment_specular_pmrem_color_at_lod(direction: vec3<f32>, lod: f32) ->
     ).rgb * max(scene.environment_params.y, 0.0);
 }
 
+fn zr_environment_specular_pmrem_color_at_lod(direction: vec3<f32>, lod: f32) -> vec3<f32> {
+    let mip_count = max(scene.environment_sample_params.w, 1.0);
+    let max_mip = mip_count - 1.0;
+    let clamped_lod = clamp(lod, 0.0, max_mip);
+    return zr_environment_specular_pmrem_color_at_clamped_lod_normalized(
+        zr_environment_normalize_or_zero(direction),
+        clamped_lod,
+    );
+}
+
 fn zr_environment_mip_from_roughness(roughness: f32, max_mip: f32) -> f32 {
     let clamped_roughness = clamp(roughness, 0.0, 1.0);
     if (clamped_roughness <= 0.000001 || max_mip <= 0.0) {
         return 0.0;
     }
-    return clamp(max_mip - 2.0 + 1.2 * log2(clamped_roughness), 0.0, max_mip);
+    return clamp(max_mip - 1.0 + 1.2 * log2(clamped_roughness), 0.0, max_mip);
 }
 
 fn zr_environment_env_brdf_approx(f0: vec3<f32>, roughness: f32, no_v: f32) -> vec3<f32> {
@@ -166,8 +182,7 @@ fn zr_environment_env_brdf_lut(f0: vec3<f32>, roughness: f32, no_v: f32) -> vec3
     return clamp(f0 * ab.x + vec3<f32>(f90) * ab.y, vec3<f32>(0.0), vec3<f32>(1.0));
 }
 
-fn zr_environment_sh9_eval(normal_ws: vec3<f32>) -> vec3<f32> {
-    let n = zr_environment_normalize_or_zero(normal_ws);
+fn zr_environment_sh9_eval_normalized(n: vec3<f32>) -> vec3<f32> {
     let x = n.x;
     let y = n.y;
     let z = n.z;
@@ -183,8 +198,18 @@ fn zr_environment_sh9_eval(normal_ws: vec3<f32>) -> vec3<f32> {
     return max(irradiance, vec3<f32>(0.0, 0.0, 0.0));
 }
 
-fn zr_environment_irradiance_cube_color(normal_ws: vec3<f32>) -> vec3<f32> {
-    let rotated = zr_environment_rotated_direction(zr_environment_normalize_or_zero(normal_ws));
+fn zr_environment_sh9_eval(normal_ws: vec3<f32>) -> vec3<f32> {
+    return zr_environment_sh9_eval_normalized(zr_environment_normalize_or_zero(normal_ws));
+}
+
+fn zr_environment_sh9_color_normalized(normal: vec3<f32>) -> vec3<f32> {
+    let rotated = zr_environment_rotated_direction(normal);
+    return zr_environment_sh9_eval_normalized(rotated)
+        * max(scene.environment_params.y, 0.0);
+}
+
+fn zr_environment_irradiance_cube_color_normalized(normal: vec3<f32>) -> vec3<f32> {
+    let rotated = zr_environment_rotated_direction(normal);
     return textureSample(
         zr_environment_irradiance_cube,
         zr_environment_sampler,
@@ -193,30 +218,38 @@ fn zr_environment_irradiance_cube_color(normal_ws: vec3<f32>) -> vec3<f32> {
         * max(scene.environment_params.y, 0.0);
 }
 
-fn zr_environment_procedural_sky_color(direction: vec3<f32>) -> vec3<f32> {
-    let normalized_direction = zr_environment_normalize_or_zero(direction);
+fn zr_environment_irradiance_cube_color(normal_ws: vec3<f32>) -> vec3<f32> {
+    return zr_environment_irradiance_cube_color_normalized(
+        zr_environment_normalize_or_zero(normal_ws),
+    );
+}
+
+fn zr_environment_procedural_sky_color_normalized(
+    normalized_direction: vec3<f32>,
+) -> vec3<f32> {
     let sky_t = clamp(normalized_direction.y * 0.5 + 0.5, 0.0, 1.0);
     let ground_t = clamp(normalized_direction.y + 1.0, 0.0, 1.0);
     let sky = mix(scene.sky_horizon_color.rgb, scene.sky_zenith_color.rgb, sky_t);
     let ground = mix(scene.sky_ground_color.rgb, scene.sky_horizon_color.rgb, ground_t);
-    var color = select(ground, sky, normalized_direction.y >= 0.0)
-        * max(scene.environment_params.y, 0.0);
-    let sun_direction_length = length(scene.sky_sun_direction.xyz);
+    var color = select(ground, sky, normalized_direction.y >= 0.0);
     if (
         scene.sky_sun_direction.w >= 0.5
         && scene.sky_sun_params.x > 0.0
-        && sun_direction_length > 0.000001
     ) {
-        let sun_direction = scene.sky_sun_direction.xyz / sun_direction_length;
-        let angular_radius = clamp(scene.sky_sun_color_radius.w, 0.0001, 1.5707963);
         let sun_mask = smoothstep(
-            cos(angular_radius),
-            cos(angular_radius * 0.72),
-            dot(normalized_direction, sun_direction),
+            scene.sky_sun_params.y,
+            scene.sky_sun_params.z,
+            dot(normalized_direction, scene.sky_sun_direction.xyz),
         );
         color += scene.sky_sun_color_radius.rgb * scene.sky_sun_params.x * sun_mask;
     }
-    return color;
+    return color * max(scene.environment_params.y, 0.0);
+}
+
+fn zr_environment_procedural_sky_color(direction: vec3<f32>) -> vec3<f32> {
+    return zr_environment_procedural_sky_color_normalized(
+        zr_environment_normalize_or_zero(direction),
+    );
 }
 
 fn zr_environment_sky_color(direction: vec3<f32>) -> vec3<f32> {
@@ -411,18 +444,17 @@ fn zr_environment_probe_color(
 }
 
 fn zr_environment_sky_reflection_color(
-    normal: vec3<f32>,
     reflected: vec3<f32>,
     roughness: f32,
 ) -> vec3<f32> {
     if (zr_environment_is_source_cubemap() || zr_environment_is_realtime_ibl()) {
         let max_mip = max(scene.environment_sample_params.w - 1.0, 0.0);
         let lod = zr_environment_mip_from_roughness(roughness, max_mip);
-        return zr_environment_specular_pmrem_color_at_lod(reflected, lod);
+        return zr_environment_specular_pmrem_color_at_clamped_lod_normalized(reflected, lod);
     }
-    let sharp_reflection = zr_environment_sky_color(reflected);
-    let rough_reflection = zr_environment_sky_color(normal);
-    return mix(sharp_reflection, rough_reflection, roughness);
+    // A sky without a PMREM has no roughness convolution. Keep the reflected
+    // direction instead of fabricating a rough lobe from the surface normal.
+    return zr_environment_procedural_sky_color_normalized(reflected);
 }
 
 fn zr_environment_planar_reflection(
@@ -465,43 +497,93 @@ fn zr_environment_reflection_color(
     view_dir_ws: vec3<f32>,
     roughness: f32,
 ) -> vec3<f32> {
-    let normal = zr_environment_normalize_or_zero(normal_ws);
-    let view_dir = zr_environment_normalize_or_zero(view_dir_ws);
-    let reflected = reflect(-view_dir, normal);
     let clamped_roughness = clamp(roughness, 0.0, 1.0);
-    let sky = zr_environment_sky_reflection_color(normal, reflected, clamped_roughness);
     let planar = zr_environment_planar_reflection(world_position, clamped_roughness);
     if (planar.a > 0.0) {
         return planar.rgb;
     }
+    return zr_environment_reflection_color_after_planar(
+        world_position,
+        zr_environment_normalize_or_zero(normal_ws),
+        zr_environment_normalize_or_zero(view_dir_ws),
+        clamped_roughness,
+    );
+}
+
+fn zr_environment_reflection_color_normalized(
+    world_position: vec3<f32>,
+    normal: vec3<f32>,
+    view_dir: vec3<f32>,
+    clamped_roughness: f32,
+) -> vec3<f32> {
+    let planar = zr_environment_planar_reflection(world_position, clamped_roughness);
+    if (planar.a > 0.0) {
+        return planar.rgb;
+    }
+    return zr_environment_reflection_color_after_planar(
+        world_position,
+        normal,
+        view_dir,
+        clamped_roughness,
+    );
+}
+
+fn zr_environment_reflection_color_after_planar(
+    world_position: vec3<f32>,
+    normal: vec3<f32>,
+    view_dir: vec3<f32>,
+    clamped_roughness: f32,
+) -> vec3<f32> {
+    let reflected = reflect(-view_dir, normal);
+    if (zr_env_probe_header.probe_count == 0u) {
+        return zr_environment_sky_reflection_color(reflected, clamped_roughness);
+    }
     let selection = zr_environment_select_probes(world_position);
     let sky_weight = max(1.0 - selection.primary_weight - selection.secondary_weight, 0.0);
-    return zr_environment_probe_color(
-        selection.primary_index,
-        world_position,
-        reflected,
-        clamped_roughness,
-    ) * selection.primary_weight
-        + zr_environment_probe_color(
+    var sky = vec3<f32>(0.0);
+    if (sky_weight > 0.0) {
+        sky = zr_environment_sky_reflection_color(reflected, clamped_roughness);
+    }
+    var primary = vec3<f32>(0.0);
+    if (selection.primary_weight > 0.0) {
+        primary = zr_environment_probe_color(
+            selection.primary_index,
+            world_position,
+            reflected,
+            clamped_roughness,
+        );
+    }
+    var secondary = vec3<f32>(0.0);
+    if (selection.secondary_weight > 0.0) {
+        secondary = zr_environment_probe_color(
             selection.secondary_index,
             world_position,
             reflected,
             clamped_roughness,
-        ) * selection.secondary_weight
+        );
+    }
+    return primary * selection.primary_weight
+        + secondary * selection.secondary_weight
         + sky * sky_weight;
 }
 
-fn zr_environment_diffuse_color(normal_ws: vec3<f32>) -> vec3<f32> {
+fn zr_environment_diffuse_color_normalized(normal: vec3<f32>) -> vec3<f32> {
     if (zr_environment_is_source_cubemap()) {
-        if (ZR_ENV_DIFFUSE_IEM) {
-            return zr_environment_irradiance_cube_color(normal_ws);
+        if (zr_environment_has_irradiance_cube()) {
+            return zr_environment_irradiance_cube_color_normalized(normal);
         }
-        return zr_environment_sh9_eval(normal_ws) * max(scene.environment_params.y, 0.0);
+        return zr_environment_sh9_color_normalized(normal);
     }
     if (zr_environment_is_realtime_ibl()) {
-        return zr_environment_sh9_eval(normal_ws) * max(scene.environment_params.y, 0.0);
+        return zr_environment_sh9_color_normalized(normal);
     }
-    return zr_environment_sky_color(normal_ws);
+    return zr_environment_procedural_sky_color_normalized(normal);
+}
+
+fn zr_environment_diffuse_color(normal_ws: vec3<f32>) -> vec3<f32> {
+    return zr_environment_diffuse_color_normalized(
+        zr_environment_normalize_or_zero(normal_ws),
+    );
 }
 
 struct ZrEnvironmentPbrComponents {
@@ -524,20 +606,28 @@ fn zr_environment_pbr_components(
         return ZrEnvironmentPbrComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }
 
-    let normal = zr_environment_normalize_or_zero(normal_ws);
-    let view_dir = zr_environment_normalize_or_zero(view_dir_ws);
     let clamped_metallic = clamp(metallic, 0.0, 1.0);
     let clamped_roughness = clamp(roughness, 0.0, 1.0);
     let clamped_occlusion = clamp(occlusion, 0.0, 1.0);
+    if (clamped_occlusion <= 0.0) {
+        return ZrEnvironmentPbrComponents(vec3<f32>(0.0), vec3<f32>(0.0));
+    }
+    let normal = zr_environment_normalize_or_zero(normal_ws);
+    let view_dir = zr_environment_normalize_or_zero(view_dir_ws);
     let f0 = mix(
         vec3<f32>(0.04, 0.04, 0.04),
         max(base_color, vec3<f32>(0.0, 0.0, 0.0)),
         clamped_metallic,
     );
     let no_v = clamp(dot(normal, view_dir), 0.0, 1.0);
-    let diffuse_environment =
-        zr_environment_diffuse_color(normal) * diffuse_color * (1.0 - clamped_metallic);
-    let reflection = zr_environment_reflection_color(
+    let diffuse_energy_scale = 1.0 - clamped_metallic;
+    var diffuse_environment = vec3<f32>(0.0);
+    if (diffuse_energy_scale > 0.0) {
+        diffuse_environment = zr_environment_diffuse_color_normalized(normal)
+            * diffuse_color
+            * diffuse_energy_scale;
+    }
+    let reflection = zr_environment_reflection_color_normalized(
         world_position,
         normal,
         view_dir,

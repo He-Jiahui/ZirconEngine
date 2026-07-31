@@ -1,5 +1,6 @@
 mod bootstrap_and_startup;
 mod minimal_host_contract;
+mod project_generation_projection;
 mod runtime_lifecycle;
 mod structure_split;
 mod support;

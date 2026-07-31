@@ -1,0 +1,6 @@
+{
+  "name": "woc_targeting_trace_dump",
+  "source": "src",
+  "binary": "bin-targeting-trace-dump",
+  "entry": "parity/m3_targeting_trace_dump_main"
+}

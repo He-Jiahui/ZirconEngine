@@ -1,0 +1,556 @@
+var container = %import("zr.container");
+var catalog = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+var forms = %import("combat/forms_state");
+
+// Admission status: 1 instant, 2 timed, 3 channel, 4 next-swing, 5 tail-queued,
+// 6 next-swing toggled off. Negative values are stable rejection classes.
+class AbilityActor {
+    pub var playerClass: string;
+    pub var level: int;
+    pub var resource: int;
+    pub var resourceMaximum: int;
+    pub var savedMana: int;
+    pub var gcdDuration: float;
+    pub var gcdRemaining: float;
+    pub var spellHaste: float;
+    pub var tonguesMultiplier: float;
+    pub var costTaxPercent: float;
+    pub var dead: bool;
+    pub var stunned: bool;
+    pub var silenced: bool;
+    pub var schoolLockedOut: bool;
+    pub var comboPoints: int;
+    pub var activeForm: string;
+    pub var activeSealIndex: int;
+    pub var autoAttack: bool;
+    pub var cooldowns: container.Array<float>;
+
+    pub var castingIndex: int;
+    pub var castingRank: int;
+    pub var castRemaining: float;
+    pub var castTotal: float;
+    pub var channeling: bool;
+    pub var channelTickEvery: float;
+    pub var queuedCastIndex: int;
+    pub var queuedOnSwingIndex: int;
+    pub var queuedOnSwingFree: bool;
+    pub var lastError: int;
+    pub var instantResolutions: int;
+    pub var completedTimedCasts: int;
+
+    pub @constructor(abilityCount: int) {
+        this.playerClass = "warrior";
+        this.level = 1;
+        this.resource = 0;
+        this.resourceMaximum = 100;
+        this.savedMana = 0;
+        this.gcdDuration = 1.5;
+        this.gcdRemaining = 0.0;
+        this.spellHaste = 1.0;
+        this.tonguesMultiplier = 1.0;
+        this.costTaxPercent = 0.0;
+        this.dead = false;
+        this.stunned = false;
+        this.silenced = false;
+        this.schoolLockedOut = false;
+        this.comboPoints = 0;
+        this.activeForm = "";
+        this.activeSealIndex = -1;
+        this.autoAttack = false;
+        this.cooldowns = new container.Array<float>();
+        var cooldownIndex = 0;
+        while (cooldownIndex < abilityCount) {
+            this.cooldowns.add(0.0);
+            cooldownIndex = cooldownIndex + 1;
+        }
+        this.castingIndex = -1;
+        this.castingRank = 0;
+        this.castRemaining = 0.0;
+        this.castTotal = 0.0;
+        this.channeling = false;
+        this.channelTickEvery = 0.0;
+        this.queuedCastIndex = -1;
+        this.queuedOnSwingIndex = -1;
+        this.queuedOnSwingFree = false;
+        this.lastError = 0;
+        this.instantResolutions = 0;
+        this.completedTimedCasts = 0;
+    }
+}
+
+class TargetProjection {
+    pub var exists: bool;
+    pub var dead: bool;
+    pub var hostile: bool;
+    pub var friendly: bool;
+    pub var mob: bool;
+    pub var distance: float;
+    pub var lineOfSightBlocked: bool;
+    pub var facingDifference: float;
+
+    pub @constructor() {
+        this.exists = false;
+        this.dead = false;
+        this.hostile = false;
+        this.friendly = false;
+        this.mob = false;
+        this.distance = 0.0;
+        this.lineOfSightBlocked = false;
+        this.facingDifference = 0.0;
+    }
+}
+
+resolvedCost(actor: AbilityActor, abilityIndex: int): int {
+    var baseCost = catalog.metric(abilityIndex, actor.level, "cost");
+    var taxed = baseCost * (1.0 + actor.costTaxPercent);
+    var result = <int>taxed;
+    if (<float>result < taxed) { result = result + 1; }
+    return result;
+}
+
+formToggleKind(abilityIndex: int, rank: int): string {
+    var effectCount = effects.count(abilityIndex, rank);
+    var effectIndex = 0;
+    while (effectIndex < effectCount) {
+        if (effects.typeAt(abilityIndex, rank, effectIndex) == "selfBuff") {
+            var kind = effects.text(abilityIndex, rank, effectIndex, "kind");
+            if (forms.isFormAuraKind(kind)) { return kind; }
+        }
+        effectIndex = effectIndex + 1;
+    }
+    return "";
+}
+
+hasEffect(abilityIndex: int, rank: int, effectType: string): bool {
+    var effectCount = effects.count(abilityIndex, rank);
+    var effectIndex = 0;
+    while (effectIndex < effectCount) {
+        if (effects.typeAt(abilityIndex, rank, effectIndex) == effectType) { return true; }
+        effectIndex = effectIndex + 1;
+    }
+    return false;
+}
+
+targetRejection(
+    actor: AbilityActor,
+    target: TargetProjection,
+    abilityIndex: int,
+    rank: int
+): int {
+    if (!catalog.flag(abilityIndex, "requiresTarget")) { return 0; }
+    var targetType = catalog.text(abilityIndex, "targetType");
+    if (targetType == "friendly") {
+        // An invalid/non-friendly selection falls back to the caster.
+        if (!target.exists || target.dead || !target.friendly) { return 0; }
+    } else if (targetType == "any") {
+        if (!target.exists || target.dead || (!target.hostile && !target.friendly)) { return -10; }
+    } else if (!target.exists || target.dead || !target.hostile) {
+        return -10;
+    }
+
+    var maximumRange = catalog.metric(abilityIndex, actor.level, "range");
+    if (maximumRange <= 0.0) { maximumRange = 5.0; }
+    if (target.distance > maximumRange) { return -11; }
+    if (target.lineOfSightBlocked) { return -12; }
+    if (targetType != "friendly" && target.facingDifference > 2.2) { return -13; }
+    if (hasEffect(abilityIndex, rank, "judgement") && actor.activeSealIndex < 0) { return -14; }
+    if (hasEffect(abilityIndex, rank, "taunt") && !target.mob) { return -15; }
+    return 0;
+}
+
+applyInstantSelfState(actor: AbilityActor, abilityIndex: int, rank: int): void {
+    var effectCount = effects.count(abilityIndex, rank);
+    var effectIndex = 0;
+    while (effectIndex < effectCount) {
+        var effectType = effects.typeAt(abilityIndex, rank, effectIndex);
+        if (effectType == "selfBuff") {
+            var kind = effects.text(abilityIndex, rank, effectIndex, "kind");
+            if (forms.isFormAuraKind(kind)) {
+                actor.activeForm = actor.activeForm == kind ? "" : kind;
+            }
+        } else if (effectType == "imbue") {
+            actor.activeSealIndex = abilityIndex;
+        } else if (effectType == "judgement") {
+            actor.activeSealIndex = -1;
+        }
+        effectIndex = effectIndex + 1;
+    }
+}
+
+spendResolvedCost(actor: AbilityActor, abilityIndex: int, formKind: string): void {
+    var cost = resolvedCost(actor, abilityIndex);
+    if (formKind != "" && actor.activeForm != "" && actor.activeForm != formKind) {
+        // Bear, cat, and travel park mana in savedMana. Caster forms leave
+        // live mana in resource, so a cross-shift out of them spends resource.
+        if (forms.isResourceShiftFormAuraKind(actor.activeForm)) {
+            actor.savedMana = actor.savedMana > cost ? actor.savedMana - cost : 0;
+        } else {
+            actor.resource = actor.resource > cost ? actor.resource - cost : 0;
+        }
+        return;
+    }
+    if (formKind != "" && actor.activeForm == formKind) { return; }
+    actor.resource = actor.resource > cost ? actor.resource - cost : 0;
+}
+
+pub pressAbility(actor: AbilityActor, target: TargetProjection, abilityId: string): int {
+    actor.lastError = 0;
+    var abilityIndex = catalog.indexOf(abilityId);
+    if (abilityIndex < 0) { actor.lastError = -1; return -1; }
+    var rank = catalog.rankAtLevel(abilityIndex, actor.level);
+    if (rank == 0) { actor.lastError = -16; return -16; }
+    if (catalog.text(abilityIndex, "class") != actor.playerClass) {
+        actor.lastError = -17;
+        return -17;
+    }
+    if (actor.dead) { actor.lastError = -2; return -2; }
+    if (actor.stunned) { actor.lastError = -3; return -3; }
+    var physical = catalog.text(abilityIndex, "school") == "physical";
+    if (!physical && (actor.silenced || actor.schoolLockedOut)) {
+        actor.lastError = -4;
+        return -4;
+    }
+    if (actor.castingIndex >= 0) {
+        if (actor.castRemaining <= 0.4) {
+            actor.queuedCastIndex = abilityIndex;
+            return 5;
+        }
+        actor.lastError = -5;
+        return -5;
+    }
+    if (!catalog.flag(abilityIndex, "offGcd") && actor.gcdRemaining > 0.0) {
+        actor.lastError = -6;
+        return -6;
+    }
+
+    var formKind = formToggleKind(abilityIndex, rank);
+    var togglingFormOff = formKind != "" && actor.activeForm == formKind;
+    var togglingOff = togglingFormOff;
+    var cooldowns = actor.cooldowns;
+    if (<float>cooldowns[abilityIndex] > 0.0 && !togglingOff) {
+        actor.lastError = -7;
+        return -7;
+    }
+    var cost = resolvedCost(actor, abilityIndex);
+    var formShift = formKind != "" && actor.activeForm != "";
+    if (actor.resource < cost && !togglingOff && !formShift) {
+        actor.lastError = -8;
+        return -8;
+    }
+    if (catalog.flag(abilityIndex, "spendsCombo") && actor.comboPoints <= 0) {
+        actor.lastError = -9;
+        return -9;
+    }
+    if (actor.activeForm != "" && formKind == "") {
+        actor.lastError = -18;
+        return -18;
+    }
+    var targetError = targetRejection(actor, target, abilityIndex, rank);
+    if (targetError != 0) { actor.lastError = targetError; return targetError; }
+    var abilityGcd = actor.playerClass == "rogue" ? 1.0 : actor.gcdDuration;
+
+    if (catalog.flag(abilityIndex, "onNextSwing")) {
+        if (actor.queuedOnSwingIndex == abilityIndex) {
+            actor.queuedOnSwingIndex = -1;
+            actor.queuedOnSwingFree = false;
+            return 6;
+        }
+        actor.queuedOnSwingIndex = abilityIndex;
+        actor.queuedOnSwingFree = false;
+        actor.autoAttack = true;
+        return 4;
+    }
+
+    var cooldown = catalog.metric(abilityIndex, actor.level, "cooldown");
+    var channelDuration = catalog.metric(abilityIndex, actor.level, "channelDuration");
+    if (channelDuration > 0.0) {
+        spendResolvedCost(actor, abilityIndex, formKind);
+        cooldowns[abilityIndex] = cooldown;
+        var haste = actor.spellHaste > 0.0 ? actor.spellHaste : 1.0;
+        channelDuration = channelDuration / haste;
+        actor.castingIndex = abilityIndex;
+        actor.castingRank = rank;
+        actor.castRemaining = channelDuration;
+        actor.castTotal = channelDuration;
+        actor.channeling = true;
+        actor.channelTickEvery = channelDuration /
+            catalog.metric(abilityIndex, actor.level, "channelTicks");
+        if (abilityGcd > actor.gcdRemaining) { actor.gcdRemaining = abilityGcd; }
+        return 3;
+    }
+
+    var castTime = catalog.metric(abilityIndex, actor.level, "castTime");
+    if (castTime > 0.0 && !togglingOff) {
+        var castHaste = actor.spellHaste > 0.0 ? actor.spellHaste : 1.0;
+        castTime = castTime * actor.tonguesMultiplier / castHaste;
+        actor.castingIndex = abilityIndex;
+        actor.castingRank = rank;
+        actor.castRemaining = castTime;
+        actor.castTotal = castTime;
+        actor.channeling = false;
+        actor.channelTickEvery = 0.0;
+        if (abilityGcd > actor.gcdRemaining) { actor.gcdRemaining = abilityGcd; }
+        return 2;
+    }
+
+    if (!catalog.flag(abilityIndex, "offGcd") && abilityGcd > actor.gcdRemaining) {
+        actor.gcdRemaining = abilityGcd;
+    }
+    spendResolvedCost(actor, abilityIndex, formKind);
+    if (!togglingOff) { cooldowns[abilityIndex] = cooldown; }
+    applyInstantSelfState(actor, abilityIndex, rank);
+    actor.instantResolutions = actor.instantResolutions + 1;
+    return 1;
+}
+
+pub completeTimedCast(actor: AbilityActor): int {
+    if (actor.castingIndex < 0 || actor.channeling) { return 0; }
+    var abilityIndex = actor.castingIndex;
+    var rank = catalog.rankAtLevel(abilityIndex, actor.level);
+    var formKind = formToggleKind(abilityIndex, rank);
+    spendResolvedCost(actor, abilityIndex, formKind);
+    var cooldowns = actor.cooldowns;
+    cooldowns[abilityIndex] = catalog.metric(abilityIndex, actor.level, "cooldown");
+    actor.castingIndex = -1;
+    actor.castingRank = 0;
+    actor.castRemaining = 0.0;
+    actor.castTotal = 0.0;
+    actor.completedTimedCasts = actor.completedTimedCasts + 1;
+    return abilityIndex;
+}
+
+pub advanceTimers(actor: AbilityActor, delta: float): void {
+    if (delta <= 0.0) { throw "ability timer delta must be positive"; }
+    actor.gcdRemaining = actor.gcdRemaining - delta;
+    if (actor.gcdRemaining < 0.0) { actor.gcdRemaining = 0.0; }
+    var cooldowns = actor.cooldowns;
+    var abilityIndex = 0;
+    while (abilityIndex < cooldowns.length) {
+        var remaining = <float>cooldowns[abilityIndex] - delta;
+        cooldowns[abilityIndex] = remaining > 0.0 ? remaining : 0.0;
+        abilityIndex = abilityIndex + 1;
+    }
+}
+
+pub fireQueuedAbility(actor: AbilityActor, target: TargetProjection): int {
+    if (actor.queuedCastIndex < 0 || actor.castingIndex >= 0 || actor.gcdRemaining > 0.0) {
+        return 0;
+    }
+    var abilityId = catalog.text(actor.queuedCastIndex, "id");
+    actor.queuedCastIndex = -1;
+    return pressAbility(actor, target, abilityId);
+}
+
+pub consumeQueuedOnSwing(actor: AbilityActor): float {
+    if (actor.queuedOnSwingIndex < 0) { return 0.0; }
+    var abilityIndex = actor.queuedOnSwingIndex;
+    actor.queuedOnSwingIndex = -1;
+    var rank = catalog.rankAtLevel(abilityIndex, actor.level);
+    var cost = actor.queuedOnSwingFree ? 0 : resolvedCost(actor, abilityIndex);
+    actor.queuedOnSwingFree = false;
+    if (rank == 0 || actor.resource < cost) { return 0.0; }
+    var bonus = 0.0;
+    var effectIndex = 0;
+    while (effectIndex < effects.count(abilityIndex, rank)) {
+        if (effects.typeAt(abilityIndex, rank, effectIndex) == "weaponDamage") {
+            bonus = effects.metric(abilityIndex, rank, effectIndex, "bonus");
+        }
+        effectIndex = effectIndex + 1;
+    }
+    if (bonus <= 0.0) { return 0.0; }
+    actor.resource = actor.resource - cost;
+    var cooldowns = actor.cooldowns;
+    cooldowns[abilityIndex] = catalog.metric(abilityIndex, actor.level, "cooldown");
+    return bonus;
+}
+
+pub contractTest(): int {
+    var hostile = new TargetProjection();
+    hostile.exists = true;
+    hostile.hostile = true;
+    hostile.mob = true;
+    hostile.distance = 20.0;
+    hostile.facingDifference = 0.0;
+
+    var mage = new AbilityActor(catalog.count());
+    mage.playerClass = "mage";
+    mage.level = 20;
+    mage.resource = 200;
+    if (pressAbility(mage, hostile, "fireball") != 2 || mage.castingRank != 4 ||
+        mage.castRemaining != 3.0 || mage.resource != 200 || mage.gcdRemaining != 1.5) {
+        return -1;
+    }
+    mage.castRemaining = 0.3;
+    if (pressAbility(mage, hostile, "frostbolt") != 5 ||
+        mage.queuedCastIndex != catalog.indexOf("frostbolt")) {
+        return -2;
+    }
+    if (pressAbility(mage, hostile, "fireball") != 5 ||
+        mage.queuedCastIndex != catalog.indexOf("fireball")) {
+        return -19;
+    }
+    if (completeTimedCast(mage) != catalog.indexOf("fireball") || mage.resource != 105 ||
+        mage.completedTimedCasts != 1) {
+        return -3;
+    }
+    if (fireQueuedAbility(mage, hostile) != 0 ||
+        mage.queuedCastIndex != catalog.indexOf("fireball")) {
+        return -24;
+    }
+    advanceTimers(mage, 1.5);
+    if (fireQueuedAbility(mage, hostile) != 2 || mage.queuedCastIndex != -1 ||
+        mage.castingIndex != catalog.indexOf("fireball")) {
+        return -25;
+    }
+
+    var taxedMage = new AbilityActor(catalog.count());
+    taxedMage.playerClass = "mage";
+    taxedMage.level = 20;
+    taxedMage.resource = 200;
+    taxedMage.costTaxPercent = 0.10;
+    if (pressAbility(taxedMage, hostile, "fireball") != 2 ||
+        completeTimedCast(taxedMage) != catalog.indexOf("fireball") ||
+        taxedMage.resource != 95) {
+        return -20;
+    }
+
+    var silenced = new AbilityActor(catalog.count());
+    silenced.playerClass = "mage";
+    silenced.level = 20;
+    silenced.resource = 200;
+    silenced.silenced = true;
+    if (pressAbility(silenced, hostile, "fireball") != -4 ||
+        pressAbility(silenced, hostile, "frostbolt") != -4) {
+        return -4;
+    }
+
+    var priest = new AbilityActor(catalog.count());
+    priest.playerClass = "priest";
+    priest.level = 12;
+    priest.resource = 100;
+    var invalidTarget = new TargetProjection();
+    if (pressAbility(priest, invalidTarget, "lesser_heal") != 2 ||
+        priest.castingRank != 3 || priest.castRemaining != 2.0) {
+        return -5;
+    }
+
+    var warlock = new AbilityActor(catalog.count());
+    warlock.playerClass = "warlock";
+    warlock.level = 20;
+    warlock.resource = 100;
+    warlock.spellHaste = 2.0;
+    if (pressAbility(warlock, hostile, "drain_life") != 3 ||
+        warlock.resource != 30 || warlock.castRemaining != 2.5 ||
+        warlock.channelTickEvery != 0.5 || !warlock.channeling) {
+        return -6;
+    }
+
+    var warrior = new AbilityActor(catalog.count());
+    warrior.playerClass = "warrior";
+    warrior.level = 20;
+    warrior.resource = 50;
+    hostile.distance = 4.0;
+    if (pressAbility(warrior, hostile, "heroic_strike") != 4 ||
+        !warrior.autoAttack || warrior.resource != 50) {
+        return -7;
+    }
+    if (consumeQueuedOnSwing(warrior) != 44.0 || warrior.resource != 35) { return -8; }
+    var playerTarget = new TargetProjection();
+    playerTarget.exists = true;
+    playerTarget.hostile = true;
+    playerTarget.distance = 4.0;
+    if (pressAbility(warrior, playerTarget, "taunt") != -15) { return -21; }
+
+    var rogue = new AbilityActor(catalog.count());
+    rogue.playerClass = "rogue";
+    rogue.level = 20;
+    rogue.resource = 100;
+    if (pressAbility(rogue, hostile, "eviscerate") != -9) { return -22; }
+    rogue.comboPoints = 3;
+    if (pressAbility(rogue, hostile, "eviscerate") != 1 || rogue.gcdRemaining != 1.0) {
+        return -23;
+    }
+
+    var hunter = new AbilityActor(catalog.count());
+    hunter.playerClass = "hunter";
+    hunter.level = 20;
+    hunter.resource = 100;
+    if (pressAbility(hunter, hostile, "raptor_strike") != 4 ||
+        consumeQueuedOnSwing(hunter) != 27.0 || hunter.resource != 55 ||
+        hunter.cooldowns[catalog.indexOf("raptor_strike")] != 6.0) {
+        return -9;
+    }
+
+    var paladin = new AbilityActor(catalog.count());
+    paladin.playerClass = "paladin";
+    paladin.level = 20;
+    paladin.resource = 200;
+    hostile.distance = 8.0;
+    if (pressAbility(paladin, hostile, "judgement") != -14) { return -10; }
+    if (pressAbility(paladin, invalidTarget, "seal_of_righteousness") != 1 ||
+        paladin.activeSealIndex != catalog.indexOf("seal_of_righteousness") ||
+        paladin.resource != 150) {
+        return -11;
+    }
+    paladin.gcdRemaining = 0.0;
+    if (pressAbility(paladin, invalidTarget, "seal_of_righteousness") != 1 ||
+        paladin.activeSealIndex != catalog.indexOf("seal_of_righteousness") ||
+        paladin.resource != 100) {
+        return -26;
+    }
+    paladin.gcdRemaining = 0.0;
+    if (pressAbility(paladin, hostile, "judgement") != 1 || paladin.activeSealIndex != -1) {
+        return -12;
+    }
+
+    var druid = new AbilityActor(catalog.count());
+    druid.playerClass = "druid";
+    druid.level = 20;
+    druid.resource = 100;
+    druid.savedMana = 100;
+    if (pressAbility(druid, invalidTarget, "bear_form") != 1 ||
+        druid.activeForm != "form_bear" || druid.resource != 70) {
+        return -13;
+    }
+    druid.gcdRemaining = 0.0;
+    if (pressAbility(druid, invalidTarget, "cat_form") != 1 ||
+        druid.activeForm != "form_cat" || druid.savedMana != 70) {
+        return -14;
+    }
+    druid.gcdRemaining = 0.0;
+    druid.resource = 100;
+    if (pressAbility(druid, invalidTarget, "rejuvenation") != -18) { return -15; }
+
+    var moonkin = new AbilityActor(catalog.count());
+    moonkin.playerClass = "druid";
+    moonkin.level = 20;
+    moonkin.resource = 100;
+    moonkin.savedMana = 37;
+    moonkin.activeForm = "form_moonkin";
+    spendResolvedCost(moonkin, catalog.indexOf("cat_form"), "form_cat");
+    if (moonkin.resource != 70 || moonkin.savedMana != 37) { return -27; }
+
+    var cat = new AbilityActor(catalog.count());
+    cat.playerClass = "druid";
+    cat.level = 20;
+    cat.resource = 100;
+    cat.savedMana = 100;
+    cat.activeForm = "form_cat";
+    spendResolvedCost(cat, catalog.indexOf("bear_form"), "form_bear");
+    if (cat.resource != 100 || cat.savedMana != 70) { return -28; }
+
+    var badRange = new AbilityActor(catalog.count());
+    badRange.playerClass = "mage";
+    badRange.level = 20;
+    badRange.resource = 200;
+    hostile.distance = 31.0;
+    if (pressAbility(badRange, hostile, "fireball") != -11) { return -16; }
+    hostile.distance = 20.0;
+    hostile.lineOfSightBlocked = true;
+    if (pressAbility(badRange, hostile, "fireball") != -12) { return -17; }
+    hostile.lineOfSightBlocked = false;
+    hostile.facingDifference = 2.3;
+    if (pressAbility(badRange, hostile, "fireball") != -13) { return -18; }
+    return 1;
+}

@@ -1,0 +1,247 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub professionCount(): int { return 3; }
+pub professionAt(index: int): string {
+    if (index == 0) return "mining";
+    if (index == 1) return "logging";
+    if (index == 2) return "herbalism";
+    return "";
+}
+pub professionMaxSkill(id: string): float {
+    if (id == "mining") return 300.0;
+    if (id == "logging") return 300.0;
+    if (id == "herbalism") return 300.0;
+    return 0.0;
+}
+pub nodeCount(): int { return 24; }
+pub nodeAt(index: int): string {
+    if (index == 0) return "ore_eastbrook_1";
+    if (index == 1) return "ore_eastbrook_2";
+    if (index == 2) return "ore_eastbrook_3";
+    if (index == 3) return "wood_eastbrook_1";
+    if (index == 4) return "wood_eastbrook_2";
+    if (index == 5) return "wood_eastbrook_3";
+    if (index == 6) return "herb_eastbrook_1";
+    if (index == 7) return "herb_eastbrook_2";
+    if (index == 8) return "herb_eastbrook_3";
+    if (index == 9) return "ore_mirefen_1";
+    if (index == 10) return "ore_mirefen_2";
+    if (index == 11) return "ore_mirefen_3";
+    if (index == 12) return "wood_mirefen_1";
+    if (index == 13) return "wood_mirefen_2";
+    if (index == 14) return "wood_mirefen_3";
+    if (index == 15) return "herb_mirefen_1";
+    if (index == 16) return "herb_mirefen_2";
+    if (index == 17) return "herb_mirefen_3";
+    if (index == 18) return "ore_thornpeak_1";
+    if (index == 19) return "ore_thornpeak_2";
+    if (index == 20) return "wood_thornpeak_1";
+    if (index == 21) return "wood_thornpeak_2";
+    if (index == 22) return "herb_thornpeak_1";
+    if (index == 23) return "herb_thornpeak_2";
+    return "";
+}
+pub nodeZoneAt(index: int): string {
+    if (index == 0) return "eastbrook_vale";
+    if (index == 1) return "eastbrook_vale";
+    if (index == 2) return "eastbrook_vale";
+    if (index == 3) return "eastbrook_vale";
+    if (index == 4) return "eastbrook_vale";
+    if (index == 5) return "eastbrook_vale";
+    if (index == 6) return "eastbrook_vale";
+    if (index == 7) return "eastbrook_vale";
+    if (index == 8) return "eastbrook_vale";
+    if (index == 9) return "mirefen_marsh";
+    if (index == 10) return "mirefen_marsh";
+    if (index == 11) return "mirefen_marsh";
+    if (index == 12) return "mirefen_marsh";
+    if (index == 13) return "mirefen_marsh";
+    if (index == 14) return "mirefen_marsh";
+    if (index == 15) return "mirefen_marsh";
+    if (index == 16) return "mirefen_marsh";
+    if (index == 17) return "mirefen_marsh";
+    if (index == 18) return "thornpeak_heights";
+    if (index == 19) return "thornpeak_heights";
+    if (index == 20) return "thornpeak_heights";
+    if (index == 21) return "thornpeak_heights";
+    if (index == 22) return "thornpeak_heights";
+    if (index == 23) return "thornpeak_heights";
+    return "";
+}
+pub nodeTypeAt(index: int): string {
+    if (index == 0) return "ore";
+    if (index == 1) return "ore";
+    if (index == 2) return "ore";
+    if (index == 3) return "wood";
+    if (index == 4) return "wood";
+    if (index == 5) return "wood";
+    if (index == 6) return "herb";
+    if (index == 7) return "herb";
+    if (index == 8) return "herb";
+    if (index == 9) return "ore";
+    if (index == 10) return "ore";
+    if (index == 11) return "ore";
+    if (index == 12) return "wood";
+    if (index == 13) return "wood";
+    if (index == 14) return "wood";
+    if (index == 15) return "herb";
+    if (index == 16) return "herb";
+    if (index == 17) return "herb";
+    if (index == 18) return "ore";
+    if (index == 19) return "ore";
+    if (index == 20) return "wood";
+    if (index == 21) return "wood";
+    if (index == 22) return "herb";
+    if (index == 23) return "herb";
+    return "";
+}
+pub nodeXAt(index: int): float {
+    if (index == 0) return -70.0;
+    if (index == 1) return -73.0;
+    if (index == 2) return -67.0;
+    if (index == 3) return -62.0;
+    if (index == 4) return -57.0;
+    if (index == 5) return -68.0;
+    if (index == 6) return -86.0;
+    if (index == 7) return -92.0;
+    if (index == 8) return -80.0;
+    if (index == 9) return 40.0;
+    if (index == 10) return -30.0;
+    if (index == 11) return 35.0;
+    if (index == 12) return 10.0;
+    if (index == 13) return -15.0;
+    if (index == 14) return -20.0;
+    if (index == 15) return 60.0;
+    if (index == 16) return -45.0;
+    if (index == 17) return 30.0;
+    if (index == 18) return 90.0;
+    if (index == 19) return 78.0;
+    if (index == 20) return -55.0;
+    if (index == 21) return -82.0;
+    if (index == 22) return 18.0;
+    if (index == 23) return -18.0;
+    return 0.0;
+}
+pub nodeZAt(index: int): float {
+    if (index == 0) return -53.0;
+    if (index == 1) return -49.0;
+    if (index == 2) return -57.0;
+    if (index == 3) return 8.0;
+    if (index == 4) return -6.0;
+    if (index == 5) return 18.0;
+    if (index == 6) return 90.0;
+    if (index == 7) return 80.0;
+    if (index == 8) return 95.0;
+    if (index == 9) return 340.0;
+    if (index == 10) return 360.0;
+    if (index == 11) return 345.0;
+    if (index == 12) return 330.0;
+    if (index == 13) return 355.0;
+    if (index == 14) return 315.0;
+    if (index == 15) return 385.0;
+    if (index == 16) return 452.0;
+    if (index == 17) return 355.0;
+    if (index == 18) return 608.0;
+    if (index == 19) return 630.0;
+    if (index == 20) return 765.0;
+    if (index == 21) return 782.0;
+    if (index == 22) return 648.0;
+    if (index == 23) return 678.0;
+    return 0.0;
+}
+pub nodeLevelAt(index: int): float {
+    if (index == 0) return 4.0;
+    if (index == 1) return 4.0;
+    if (index == 2) return 4.0;
+    if (index == 3) return 4.0;
+    if (index == 4) return 4.0;
+    if (index == 5) return 4.0;
+    if (index == 6) return 4.0;
+    if (index == 7) return 4.0;
+    if (index == 8) return 4.0;
+    if (index == 9) return 10.0;
+    if (index == 10) return 10.0;
+    if (index == 11) return 10.0;
+    if (index == 12) return 10.0;
+    if (index == 13) return 10.0;
+    if (index == 14) return 10.0;
+    if (index == 15) return 10.0;
+    if (index == 16) return 10.0;
+    if (index == 17) return 10.0;
+    if (index == 18) return 17.0;
+    if (index == 19) return 17.0;
+    if (index == 20) return 17.0;
+    if (index == 21) return 17.0;
+    if (index == 22) return 17.0;
+    if (index == 23) return 17.0;
+    return 0.0;
+}
+pub nodeHarvestProfessionFor(nodeType: string): string {
+    if (nodeType == "ore") return "mining";
+    if (nodeType == "wood") return "logging";
+    if (nodeType == "herb") return "herbalism";
+    return "";
+}
+pub nodeHarvestItemFor(nodeType: string): string {
+    if (nodeType == "ore") return "bone_fragments";
+    if (nodeType == "wood") return "linen_scrap";
+    if (nodeType == "herb") return "spider_leg";
+    return "";
+}
+pub nodeRespawnSecondsFor(nodeType: string): float {
+    if (nodeType == "ore") return 120.0;
+    if (nodeType == "wood") return 120.0;
+    if (nodeType == "herb") return 120.0;
+    return 0.0;
+}
+pub materialRarityCount(): int { return 5; }
+pub materialRarityAt(index: int): string {
+    if (index == 0) return "common";
+    if (index == 1) return "uncommon";
+    if (index == 2) return "rare";
+    if (index == 3) return "epic";
+    if (index == 4) return "legendary";
+    return "";
+}
+pub materialRarityMaxProficiency(): float { return 100.0; }
+pub materialRarityShare(tier: string): float {
+    if (tier == "uncommon") return 0.6;
+    if (tier == "rare") return 0.3;
+    if (tier == "epic") return 0.08;
+    if (tier == "legendary") return 0.02;
+    return 0.0;
+}
+pub harvestComponentCount(): int { return 4; }
+pub harvestComponentTagAt(index: int): string {
+    if (index == 0) return "hide";
+    if (index == 1) return "fang";
+    if (index == 2) return "silk";
+    if (index == 3) return "venomSac";
+    return "";
+}
+pub harvestComponentItemAt(index: int): string {
+    if (index == 0) return "boar_hide";
+    if (index == 1) return "wolf_fang";
+    if (index == 2) return "webwood_silk";
+    if (index == 3) return "widow_venom_sac";
+    return "";
+}
+pub harvestTierCount(): int { return 6; }
+pub harvestTierAt(index: int): string {
+    if (index == 0) return "poor";
+    if (index == 1) return "common";
+    if (index == 2) return "uncommon";
+    if (index == 3) return "rare";
+    if (index == 4) return "epic";
+    if (index == 5) return "legendary";
+    return "";
+}
+pub focusTierWeightAt(index: int): float {
+    if (index == 0) return 40.0;
+    if (index == 1) return 30.0;
+    if (index == 2) return 15.0;
+    if (index == 3) return 10.0;
+    if (index == 4) return 4.0;
+    if (index == 5) return 1.0;
+    return 0.0;
+}
+pub corpseHarvestRarityBaseline(): float { return 40.0; }

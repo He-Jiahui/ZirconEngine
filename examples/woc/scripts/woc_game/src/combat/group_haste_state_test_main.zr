@@ -1,0 +1,6 @@
+var console = %import("zr.system.console");
+var haste = %import("combat/group_haste_state");
+console.printLine("m4-group-haste-state-test");
+var result = haste.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

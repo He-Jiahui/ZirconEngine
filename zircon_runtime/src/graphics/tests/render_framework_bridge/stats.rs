@@ -222,10 +222,12 @@ fn render_framework_stats_report_executed_render_graph_passes() {
         stats.last_graph_executed_passes.get(1).map(String::as_str),
         Some("depth-prepass")
     );
-    assert!(stats
-        .last_graph_executed_passes
-        .iter()
-        .any(|pass| pass == "overlay-gizmo"));
+    assert!(
+        stats
+            .last_graph_executed_passes
+            .iter()
+            .any(|pass| pass == "overlay-gizmo")
+    );
 }
 
 #[test]
@@ -276,10 +278,12 @@ fn render_framework_stats_report_executed_product_postprocess_nodes() {
             "fxaa".to_string(),
         ]
     );
-    assert!(stats
-        .last_graph_executed_passes
-        .iter()
-        .any(|pass| pass == "overlay-gizmo"));
+    assert!(
+        stats
+            .last_graph_executed_passes
+            .iter()
+            .any(|pass| pass == "overlay-gizmo")
+    );
 }
 
 #[test]
@@ -306,10 +310,12 @@ fn render_framework_stats_report_neutral_color_lut_readback_identity() {
         .unwrap();
     let stats = server.query_stats().unwrap();
 
-    assert!(stats
-        .last_post_process_graph_executed_nodes
-        .iter()
-        .any(|node| node == "color-lut-bake"));
+    assert!(
+        stats
+            .last_post_process_graph_executed_nodes
+            .iter()
+            .any(|node| node == "color-lut-bake")
+    );
     let report = stats.last_color_lut_readback_report;
     assert!(report.available, "color LUT readback was not available");
     assert_eq!(
@@ -479,8 +485,10 @@ fn render_framework_stats_report_volume_effect_stack_product_node_when_authored(
         stats.last_post_process_effect_stack_report.active_families,
         vec!["vignette".to_string()]
     );
-    assert!(stats
-        .last_post_process_effect_stack_report
-        .missing_resources
-        .is_empty());
+    assert!(
+        stats
+            .last_post_process_effect_stack_report
+            .missing_resources
+            .is_empty()
+    );
 }

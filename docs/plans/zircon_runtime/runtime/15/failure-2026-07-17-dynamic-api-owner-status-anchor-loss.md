@@ -7,14 +7,16 @@ origin_plan: docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-conv
 fixing_plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 origin_child_dir: docs/plans/zircon_runtime/runtime/10
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
+plan_link_mode: child_record_only
 related_code:
-  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
-  - docs/plans/zircon_runtime/runtime/index.md
+  - docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/dynamic_scene.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_profile.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_registry.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_shader_prewarm_tests.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic_dynamic_api_vampire.rs
+  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs
+  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4/core_rhi_dynamic.rs
 tests:
   - cargo test -p zircon_runtime --lib runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry --locked --jobs 1 -- --test-threads=1
   - cargo test -p zircon_runtime --lib runtime_15_dynamic_api_session_profile_is_child_owner --locked --jobs 1 -- --test-threads=1
@@ -64,8 +66,8 @@ Runtime15 父计划和 runtime index 被压缩为路由/概览时，没有把既
 
 ## 架构修复验收
 
-- 五个聚焦结构测试全部通过，并继续锁定真实 child owner、文件预算、status，以及 Runtime15 parent 与 current runtime index 的路由。
-- 五组 required anchors 在 parent 与 current index 的预期 source 上逐项通过；不得以“首个 panic 已消失”替代同一测试后续断言的验证。
+- 五个聚焦结构测试全部通过，并继续锁定真实 child owner、文件预算、status，以及单一 current-evidence child record。
+- 五组 required anchors 在 `docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md` 中逐项通过；守卫必须删除对压缩 parent/index wording 的直接依赖，不得以“首个 panic 已消失”替代同一测试后续断言的验证。
 - 每组 anchor 只有一个 canonical current owner；若守卫迁向 numbered child record，必须删除对 retired aggregate wording 的依赖，不得双写父计划与 archive。
 - Runtime15 父计划继续保持概览职责，不重新堆叠完整历史正文；必要的 current status 可通过明确 child-record link/loader 读取。
 - Runtime10 上行 `dynamic_api` 重跑时，这五项不再失败；其他功能 owner 的失败仍独立交接。
@@ -79,5 +81,8 @@ Runtime15 父计划和 runtime index 被压缩为路由/概览时，没有把既
 ## 修复结果与回传
 
 - 来源交接独立复审：Critical / Important / Minor = 0 / 0 / 0；逐锚矩阵与测试短路顺序已按 current source 核实。该结论只确认 failure handoff 的准确性，不声明 Runtime15 修复完成。
+- 2026-07-19 Runtime15 hard-cut candidate：新增单一 `current_evidence_owner` child record，五个守卫改为读取该记录并继续校验真实模块 owner/status/files；对 Runtime15 parent、runtime index、priority review 与 structure plans 的直接锚定已删除。静态 exact-anchor 矩阵 5/5、focused handoff schema 与 scoped diff-check 已通过。
+- 首个 exact-seven validation copy 漏带新 child record，第二个副本在记录纠正前物化；对应预约 `e195382272174f4898f11632a15d2b87` 已在执行前释放。必须以纠正后的 fresh exact-seven copy/reservation 和原始五项 raw test 结果作为 Cargo 证据。
+- 2026-07-22 current-source rebase candidate：dynamic session registry 的零行为 facade 是 `dynamic_api/session/registry/mod.rs`，全局存储与 handle/lifecycle owner 是 `registry/session_store.rs`，单 session 锁与 close barrier owner 是 `registry/session_slot.rs`；旧 `registry.rs` 与仅测试消费的 `lock_session` forwarding shim 已删除。测试不再扩大 registry/session 锁的生产可见性：registry poison 由 `#[cfg(test)]` owner helper 制造，session poison 通过 `with_session` 的真实 action-admission 路径制造。两项 registry 守卫验证 facade 零行为、`Arc<SessionSlot>`、poison recovery、wake 参数在 insert owner 内被实际消费、activity dispatch 与 destroy lifecycle；current child tuple、M4 route mirror 和 `m4/core_rhi_dynamic.rs` row owner 使用有界 tuple 切片并同步拒绝任意格式的旧 flat 路径。生产 hard-cut 尚未形成独立 SHA，fresh managed Cargo 与最终复审仍 pending，不得把本候选写成 pass/fixed。
 
 Open state: `待修复`; no pass is claimed.

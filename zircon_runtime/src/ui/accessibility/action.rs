@@ -39,42 +39,42 @@ pub(crate) fn dispatch_accessibility_action(
     );
     let target = request.target;
     let snapshot = surface.accessibility_snapshot();
-    let Some(snapshot_node) = snapshot.node(target).cloned() else {
+    let Some(snapshot_node) = snapshot.node(target) else {
         return reject_missing_target(surface, &snapshot, target, result);
     };
 
     let result =
-        match validate_included_target(&snapshot, target, request.action, &snapshot_node, result) {
+        match validate_included_target(&snapshot, target, request.action, snapshot_node, result) {
             Ok(result) => result,
             Err(result) => return result,
         };
 
     match request.action {
-        UiAccessibilityAction::Focus => dispatch_focus(surface, target, &snapshot_node, result),
+        UiAccessibilityAction::Focus => dispatch_focus(surface, target, snapshot_node, result),
         UiAccessibilityAction::Activate => {
-            dispatch_activate(surface, target, &snapshot_node, result)
+            dispatch_activate(surface, target, snapshot_node, result)
         }
         UiAccessibilityAction::SetValue => {
-            dispatch_set_value(surface, &request, &snapshot_node, result)
+            dispatch_set_value(surface, &request, snapshot_node, result)
         }
         UiAccessibilityAction::ReplaceSelectedText => {
-            dispatch_replace_selected_text(surface, &request, &snapshot_node, result)
+            dispatch_replace_selected_text(surface, &request, snapshot_node, result)
         }
         UiAccessibilityAction::SetTextSelection => {
-            dispatch_set_text_selection(surface, &request, &snapshot_node, result)
+            dispatch_set_text_selection(surface, &request, snapshot_node, result)
         }
         UiAccessibilityAction::Increment | UiAccessibilityAction::Decrement => {
-            dispatch_adjust_value(surface, &request, &snapshot_node, result)
+            dispatch_adjust_value(surface, &request, snapshot_node, result)
         }
         UiAccessibilityAction::Expand => {
-            dispatch_expanded_state(surface, &request, &snapshot_node, result, true)
+            dispatch_expanded_state(surface, &request, snapshot_node, result, true)
         }
         UiAccessibilityAction::Collapse => {
-            dispatch_expanded_state(surface, &request, &snapshot_node, result, false)
+            dispatch_expanded_state(surface, &request, snapshot_node, result, false)
         }
         UiAccessibilityAction::ScrollTo => {
-            dispatch_scroll_to(surface, &request, &snapshot_node, result)
+            dispatch_scroll_to(surface, &request, snapshot_node, result)
         }
-        UiAccessibilityAction::Dismiss => dispatch_dismiss(surface, target, &snapshot_node, result),
+        UiAccessibilityAction::Dismiss => dispatch_dismiss(surface, target, snapshot_node, result),
     }
 }

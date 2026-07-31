@@ -1,0 +1,6 @@
+{
+  "name": "woc_profession_action_xp_tests",
+  "source": "src",
+  "binary": "bin-profession-action-xp-tests",
+  "entry": "progression/profession_action_xp_test_main"
+}

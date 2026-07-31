@@ -2,11 +2,21 @@
 
 mod controls;
 mod metrics;
+mod paint_metadata;
 mod profile;
 mod text;
 mod thumbnail_grid;
 
 pub(crate) use metrics::AssetContentLayoutMetrics;
+pub(crate) use paint_metadata::{
+    asset_content_paint_metadata, ActivityContentNodeIdentity, AssetContentNodeIdentity,
+    AssetContentPaintMetadata, AssetContentPaintNodeInput, AssetContentRect, AssetContentSurface,
+    BrowserContentNodeIdentity,
+};
+#[cfg(test)]
+pub(crate) use paint_metadata::{
+    parse_activity_content_identity, parse_browser_content_identity, ActivityContentNodeRole,
+};
 pub(crate) use profile::AssetContentSurfaceProfile;
 pub(crate) use text::{compact_file_like_display_name, RuntimeFileNameCompaction};
 pub(crate) use thumbnail_grid::AssetThumbnailGridMetrics;

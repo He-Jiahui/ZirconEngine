@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var groundAoE = %import("combat/ground_aoe_state");
+
+console.printLine("m4-ground-aoe-state-test");
+var result = groundAoE.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

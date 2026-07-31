@@ -6,6 +6,8 @@ use crate::core::{CoreError, LifecycleState, ModuleContext, ModuleLifecycle};
 use super::super::super::descriptors::RegistryName;
 use super::super::CoreHandle;
 
+const MODULE_READY_POLL_INTERVAL: Duration = Duration::from_millis(1);
+
 impl CoreHandle {
     pub(super) fn build_module(&self, module_name: &str) -> Result<(), CoreError> {
         let (lifecycle, context) = self.module_lifecycle_context(module_name)?;
@@ -29,7 +31,9 @@ impl CoreHandle {
             return Err(module_ready_timeout(module_name, ready_timeout));
         };
         loop {
-            std::thread::yield_now();
+            std::thread::sleep(
+                MODULE_READY_POLL_INTERVAL.min(deadline.saturating_duration_since(Instant::now())),
+            );
             if lifecycle.ready(&context)? {
                 return Ok(());
             }
@@ -96,5 +100,21 @@ fn module_ready_timeout(module_name: &str, ready_timeout: Duration) -> CoreError
     CoreError::ModuleReadyTimeout {
         module: module_name.to_owned(),
         budget: ready_timeout,
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn module_ready_polling_uses_a_bounded_sleep() {
+        let source = include_str!("module_lifecycle.rs");
+        let end = source
+            .find("mod performance_tests {")
+            .expect("performance test module");
+        let implementation = &source[..end];
+
+        assert!(implementation.contains("MODULE_READY_POLL_INTERVAL"));
+        assert!(implementation.contains("std::thread::sleep"));
+        assert!(!implementation.contains("std::thread::yield_now()"));
     }
 }

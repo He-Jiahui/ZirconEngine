@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::core::framework::render::{
     CameraRenderDescriptor, CameraRenderType, RenderCameraTargetOrderKey, RenderLayer,
     RenderLayerSet, RenderViewportRect,
@@ -33,7 +35,7 @@ impl ViewportCameraHistoryKey {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct ViewportCameraHistoryLayerKey {
-    layers: Vec<RenderLayer>,
+    layers: Arc<[RenderLayer]>,
 }
 
 impl From<&RenderLayerSet> for ViewportCameraHistoryLayerKey {
@@ -69,6 +71,8 @@ impl From<RenderViewportRect> for ViewportCameraHistoryRectKey {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::core::framework::render::{
         CameraRenderDescriptor, CameraRenderType, RenderCameraTarget, RenderLayerSet,
         RenderViewportRect, ViewportCameraSnapshot,
@@ -131,6 +135,25 @@ mod tests {
             ViewportCameraHistoryKey::from_camera(&wide_layer),
             ViewportCameraHistoryKey::from_camera(&no_layers)
         );
+    }
+
+    #[test]
+    fn camera_history_key_clones_share_layer_storage() {
+        let mut camera = descriptor(19);
+        camera.culling_mask = RenderLayerSet::from_layers([0, 40, 80]);
+        camera.volume_mask = RenderLayerSet::from_layers([1, 41, 81]);
+        let key = ViewportCameraHistoryKey::from_camera(&camera);
+
+        let cloned = key.clone();
+
+        assert!(Arc::ptr_eq(
+            &key.culling_layers.layers,
+            &cloned.culling_layers.layers
+        ));
+        assert!(Arc::ptr_eq(
+            &key.volume_layers.layers,
+            &cloned.volume_layers.layers
+        ));
     }
 
     fn descriptor(entity: EntityId) -> CameraRenderDescriptor {

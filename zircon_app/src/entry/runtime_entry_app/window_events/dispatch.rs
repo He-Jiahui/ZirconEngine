@@ -9,6 +9,9 @@ impl RuntimeEntryApp {
         event_loop: &dyn ActiveEventLoop,
         event: WindowEvent,
     ) {
+        if window_event_requests_runtime_frame(&event) {
+            self.request_runtime_frame();
+        }
         match event {
             WindowEvent::CloseRequested => {
                 self.handle_window_close_requested(event_loop);
@@ -76,5 +79,25 @@ impl RuntimeEntryApp {
             }
             _ => {}
         }
+    }
+}
+
+fn window_event_requests_runtime_frame(event: &WindowEvent) -> bool {
+    !matches!(
+        event,
+        WindowEvent::CloseRequested | WindowEvent::Destroyed | WindowEvent::RedrawRequested
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::window_event_requests_runtime_frame;
+    use winit::event::WindowEvent;
+
+    #[test]
+    fn redraw_delivery_does_not_schedule_another_reactive_frame() {
+        assert!(!window_event_requests_runtime_frame(
+            &WindowEvent::RedrawRequested
+        ));
     }
 }

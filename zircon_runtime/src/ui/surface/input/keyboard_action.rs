@@ -10,26 +10,48 @@ pub(super) fn keyboard_component_action(
         return None;
     }
 
-    let normalized = normalized_key_name(keyboard.logical_key.as_str());
-    if is_activation_key(keyboard, normalized.as_str()) {
+    if is_activation_key(keyboard) {
         return Some(UiComponentKeyboardAction::Activate);
     }
-    if is_cancel_key(keyboard, normalized.as_str()) {
+    if is_cancel_key(keyboard) {
         return Some(UiComponentKeyboardAction::Cancel);
     }
 
-    match normalized.as_str() {
-        "arrowright" | "right" | "arrowdown" | "down" | "gamepaddpadright" | "gamepaddpaddown" => {
-            Some(UiComponentKeyboardAction::Next)
-        }
-        "arrowleft" | "left" | "arrowup" | "up" | "gamepaddpadleft" | "gamepaddpadup" => {
-            Some(UiComponentKeyboardAction::Previous)
-        }
-        "home" => Some(UiComponentKeyboardAction::First),
-        "end" => Some(UiComponentKeyboardAction::Last),
-        "pageup" => Some(UiComponentKeyboardAction::LargeIncrement),
-        "pagedown" => Some(UiComponentKeyboardAction::LargeDecrement),
-        _ => match keyboard.key_code {
+    let logical_key = keyboard.logical_key.as_str();
+    if normalized_key_matches(
+        logical_key,
+        &[
+            "arrowright",
+            "right",
+            "arrowdown",
+            "down",
+            "gamepaddpadright",
+            "gamepaddpaddown",
+        ],
+    ) {
+        Some(UiComponentKeyboardAction::Next)
+    } else if normalized_key_matches(
+        logical_key,
+        &[
+            "arrowleft",
+            "left",
+            "arrowup",
+            "up",
+            "gamepaddpadleft",
+            "gamepaddpadup",
+        ],
+    ) {
+        Some(UiComponentKeyboardAction::Previous)
+    } else if normalized_key_matches(logical_key, &["home"]) {
+        Some(UiComponentKeyboardAction::First)
+    } else if normalized_key_matches(logical_key, &["end"]) {
+        Some(UiComponentKeyboardAction::Last)
+    } else if normalized_key_matches(logical_key, &["pageup"]) {
+        Some(UiComponentKeyboardAction::LargeIncrement)
+    } else if normalized_key_matches(logical_key, &["pagedown"]) {
+        Some(UiComponentKeyboardAction::LargeDecrement)
+    } else {
+        match keyboard.key_code {
             39 | 40 => Some(UiComponentKeyboardAction::Next),
             37 | 38 => Some(UiComponentKeyboardAction::Previous),
             36 => Some(UiComponentKeyboardAction::First),
@@ -37,7 +59,7 @@ pub(super) fn keyboard_component_action(
             33 => Some(UiComponentKeyboardAction::LargeIncrement),
             34 => Some(UiComponentKeyboardAction::LargeDecrement),
             _ => None,
-        },
+        }
     }
 }
 
@@ -48,23 +70,27 @@ pub(super) fn tree_view_keyboard_component_action(
         return None;
     }
 
-    let normalized = normalized_key_name(keyboard.logical_key.as_str());
-    if is_begin_edit_key(keyboard, normalized.as_str()) {
+    if is_begin_edit_key(keyboard) {
         return Some(UiComponentKeyboardAction::BeginEdit);
     }
 
-    match normalized.as_str() {
-        "arrowright" | "right" | "gamepaddpadright" => Some(UiComponentKeyboardAction::Increment),
-        "arrowleft" | "left" | "gamepaddpadleft" => Some(UiComponentKeyboardAction::Decrement),
-        "arrowdown" | "down" | "gamepaddpaddown" => Some(UiComponentKeyboardAction::Next),
-        "arrowup" | "up" | "gamepaddpadup" => Some(UiComponentKeyboardAction::Previous),
-        _ => match keyboard.key_code {
+    let logical_key = keyboard.logical_key.as_str();
+    if normalized_key_matches(logical_key, &["arrowright", "right", "gamepaddpadright"]) {
+        Some(UiComponentKeyboardAction::Increment)
+    } else if normalized_key_matches(logical_key, &["arrowleft", "left", "gamepaddpadleft"]) {
+        Some(UiComponentKeyboardAction::Decrement)
+    } else if normalized_key_matches(logical_key, &["arrowdown", "down", "gamepaddpaddown"]) {
+        Some(UiComponentKeyboardAction::Next)
+    } else if normalized_key_matches(logical_key, &["arrowup", "up", "gamepaddpadup"]) {
+        Some(UiComponentKeyboardAction::Previous)
+    } else {
+        match keyboard.key_code {
             39 => Some(UiComponentKeyboardAction::Increment),
             37 => Some(UiComponentKeyboardAction::Decrement),
             40 => Some(UiComponentKeyboardAction::Next),
             38 => Some(UiComponentKeyboardAction::Previous),
             _ => keyboard_component_action(keyboard),
-        },
+        }
     }
 }
 
@@ -97,8 +123,7 @@ pub(super) fn keyboard_requests_default_activation(keyboard: &UiKeyboardInputEve
         return false;
     }
 
-    let normalized = normalized_key_name(keyboard.logical_key.as_str());
-    is_activation_key(keyboard, normalized.as_str())
+    is_activation_key(keyboard)
 }
 
 pub(super) fn keyboard_requests_popup_dismissal(keyboard: &UiKeyboardInputEvent) -> bool {
@@ -106,27 +131,33 @@ pub(super) fn keyboard_requests_popup_dismissal(keyboard: &UiKeyboardInputEvent)
         return false;
     }
 
-    let normalized = normalized_key_name(keyboard.logical_key.as_str());
-    is_cancel_key(keyboard, normalized.as_str())
+    is_cancel_key(keyboard)
 }
 
-fn is_activation_key(keyboard: &UiKeyboardInputEvent, normalized: &str) -> bool {
-    matches!(normalized, "enter" | "space" | "spacebar" | "virtualaccept")
-        || keyboard.logical_key == " "
+fn is_activation_key(keyboard: &UiKeyboardInputEvent) -> bool {
+    normalized_key_matches(
+        keyboard.logical_key.as_str(),
+        &["enter", "space", "spacebar", "virtualaccept"],
+    ) || keyboard.logical_key == " "
         || matches!(keyboard.key_code, 13 | 32)
 }
 
-fn is_cancel_key(keyboard: &UiKeyboardInputEvent, normalized: &str) -> bool {
-    matches!(normalized, "escape" | "esc" | "virtualback") || keyboard.key_code == 27
+fn is_cancel_key(keyboard: &UiKeyboardInputEvent) -> bool {
+    normalized_key_matches(
+        keyboard.logical_key.as_str(),
+        &["escape", "esc", "virtualback"],
+    ) || keyboard.key_code == 27
 }
 
-fn is_begin_edit_key(keyboard: &UiKeyboardInputEvent, normalized: &str) -> bool {
-    normalized == "f2" || keyboard.key_code == 113
+fn is_begin_edit_key(keyboard: &UiKeyboardInputEvent) -> bool {
+    normalized_key_matches(keyboard.logical_key.as_str(), &["f2"]) || keyboard.key_code == 113
 }
 
-fn normalized_key_name(key: &str) -> String {
-    key.chars()
-        .filter(|ch| ch.is_ascii_alphanumeric())
-        .flat_map(char::to_lowercase)
-        .collect()
+fn normalized_key_matches(key: &str, expected: &[&str]) -> bool {
+    expected.iter().any(|expected| {
+        key.bytes()
+            .filter(u8::is_ascii_alphanumeric)
+            .map(|byte| byte.to_ascii_lowercase())
+            .eq(expected.bytes())
+    })
 }

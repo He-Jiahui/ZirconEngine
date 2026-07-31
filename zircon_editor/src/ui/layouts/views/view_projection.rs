@@ -4,6 +4,7 @@ use std::sync::{Mutex, OnceLock};
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::SharedString;
+use crate::ui::v2_design_tokens::prepare_editor_v2_document;
 use thiserror::Error;
 use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
@@ -92,9 +93,10 @@ fn build_view_template_nodes_from_v2_asset(
         .lock()
         .map_err(|_| ViewTemplateProjectionError::V2StoreCachePoisoned)?
         .load_store(v2_source_paths(layout_asset_path, style_imports))?;
+    let document = prepare_editor_v2_document(outcome.root_document.as_ref());
     let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
         UiTreeId::new(document_tree_id.to_string()),
-        outcome.root_document.as_ref(),
+        &document,
         outcome.compiled.as_ref(),
     )?;
     surface.compute_layout(size)?;

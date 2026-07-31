@@ -64,9 +64,13 @@ impl PluginInterfaceMethodManifest {
     }
 
     pub fn with_required_capability(mut self, capability: impl Into<String>) -> Self {
-        self.required_capabilities.push(capability.into());
-        self.required_capabilities.sort();
-        self.required_capabilities.dedup();
+        let capability = capability.into();
+        if let Err(index) = self
+            .required_capabilities
+            .binary_search_by(|candidate| candidate.as_str().cmp(capability.as_str()))
+        {
+            self.required_capabilities.insert(index, capability);
+        }
         self
     }
 

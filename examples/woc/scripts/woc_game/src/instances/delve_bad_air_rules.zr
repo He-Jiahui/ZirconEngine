@@ -1,0 +1,103 @@
+// Scalar projection of tickDelveBadAir from the pinned WOC simulation.
+// A DelveRun owner supplies affix/party/entity state and applies the returned
+// source-pinned aura specification to concrete target entities.
+var content = %import("instances/delve_bad_air_content");
+
+class BadAirState {
+    pub var timer: float;
+    pub var auraApplications: int;
+
+    pub @constructor() {
+        this.timer = 0.0;
+        this.auraApplications = 0;
+    }
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) {
+        difference = -difference;
+    }
+    return difference <= 0.000001;
+}
+
+pub tick(
+    state: BadAirState,
+    deltaSeconds: float,
+    badAirActive: bool,
+    partyAvailable: bool,
+    targetAlive: bool
+): bool {
+    if (deltaSeconds < 0.0) {
+        throw "woc Bad Air delta is invalid";
+    }
+    // Source returns before touching badAirTimer when the affix is absent.
+    if (!badAirActive) {
+        return false;
+    }
+    state.timer = state.timer + deltaSeconds;
+    if (state.timer < content.intervalSeconds(true)) {
+        return false;
+    }
+    // Source resets before it knows whether the run has a party or an alive player.
+    state.timer = 0.0;
+    if (!partyAvailable || !targetAlive) {
+        return false;
+    }
+    state.auraApplications = state.auraApplications + 1;
+    return true;
+}
+
+pub auraText(field: int, required: bool): string {
+    return content.auraText(field, required);
+}
+
+pub auraNumber(field: int, required: bool): float {
+    return content.auraNumber(field, required);
+}
+
+pub auraSourceIsTarget(required: bool): bool {
+    if (!required) {
+        throw "woc Bad Air aura source query is required";
+    }
+    // Source emits sourceId: p.id for each target p.
+    return true;
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || auraText(1, true) != "bad_air" ||
+        auraText(2, true) != "Bad Air" || auraText(3, true) != "dot" ||
+        auraText(4, true) != "nature" || auraNumber(1, true) != 4.0 ||
+        auraNumber(2, true) != 4.0 || auraNumber(3, true) != 3.0 ||
+        auraNumber(4, true) != 2.0 || auraNumber(5, true) != 2.0 ||
+        !auraSourceIsTarget(true)) {
+        return -1;
+    }
+    var active = new BadAirState();
+    var tickCount = 0;
+    while (tickCount < 160) {
+        if (tick(active, 0.05, true, true, true)) {
+            return -2;
+        }
+        tickCount = tickCount + 1;
+    }
+    if (!tick(active, 0.05, true, true, true) || active.auraApplications != 1 ||
+        !closeEnough(active.timer, 0.0)) {
+        return -3;
+    }
+    var noParty = new BadAirState();
+    if (tick(noParty, 8.0, true, false, true) || !closeEnough(noParty.timer, 0.0) ||
+        noParty.auraApplications != 0) {
+        return -4;
+    }
+    var dead = new BadAirState();
+    if (tick(dead, 8.0, true, true, false) || !closeEnough(dead.timer, 0.0)) {
+        return -5;
+    }
+    var disabled = new BadAirState();
+    disabled.timer = 7.5;
+    if (tick(disabled, 0.5, false, true, true) || !closeEnough(disabled.timer, 7.5)) {
+        return -6;
+    }
+    return 1;
+}

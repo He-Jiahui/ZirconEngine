@@ -6,8 +6,7 @@ use crate::core::framework::render::{
 use crate::core::framework::scene::Mobility;
 
 use super::super::super::culling::{
-    mesh_bounds::mesh_bounds, parallel_frustum::MeshFrustumCandidate,
-    visibility_entries::visibility_entries,
+    mesh_bounds::mesh_bounds, visibility_entries::visibility_entries,
 };
 use super::super::super::declarations::{
     VisibilityBatch, VisibilityBatchKey, VisibilityBvhInstance, VisibilityHistoryEntry,
@@ -29,23 +28,9 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
         .map(|input| (input.entity, input))
         .collect::<HashMap<_, _>>();
     let mut entries_by_entity = BTreeMap::new();
-    for entry in visibility_entries(value) {
-        entries_by_entity.insert(entry.entity, entry);
+    for (entity, mobility) in visibility_entries(value) {
+        entries_by_entity.insert(entity, mobility);
     }
-    let frustum_candidates = entries_by_entity
-        .keys()
-        .filter_map(|entity| {
-            let mesh = mesh_lookup.get(entity)?;
-            Some(MeshFrustumCandidate {
-                entity: *entity,
-                bounds: mesh_bounds(mesh),
-            })
-        })
-        .collect::<Vec<_>>();
-    let bounds_by_entity = frustum_candidates
-        .iter()
-        .map(|candidate| (candidate.entity, candidate.bounds))
-        .collect::<HashMap<_, _>>();
     let mut renderable_entities = BTreeSet::new();
     let mut static_entities = BTreeSet::new();
     let mut dynamic_entities = BTreeSet::new();
@@ -54,12 +39,12 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
     let mut bvh_instances = Vec::new();
     let mut history_entries = Vec::new();
 
-    for (entity, entry) in entries_by_entity {
+    for (entity, mobility) in entries_by_entity {
         let Some(mesh) = mesh_lookup.get(&entity) else {
             continue;
         };
         renderable_entities.insert(entity);
-        match entry.mobility {
+        match mobility {
             Mobility::Static => {
                 static_entities.insert(entity);
             }
@@ -74,22 +59,19 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
         let relevance = PrimitiveRelevance::for_mesh_view(
             value.view.selected_camera_layers(),
             value.view.core_pipeline,
-            &mesh.render_layer_mask,
-            entry.mobility,
+            &mesh.common.layer_mask,
+            mobility,
             material_alpha_mode,
         );
         primitive_relevance.push(VisibilityRelevanceEntry { entity, relevance });
 
         let key = VisibilityBatchKey {
-            render_layer_mask: mesh.render_layer_mask.clone(),
+            render_layer_mask: mesh.common.layer_mask.clone(),
             material_id: mesh.material.id(),
             model_id: mesh.model.id(),
-            mobility: entry.mobility,
+            mobility,
         };
-        let bounds = bounds_by_entity
-            .get(&entity)
-            .copied()
-            .unwrap_or_else(|| mesh_bounds(mesh));
+        let bounds = mesh_bounds(mesh);
         bvh_instances.push(VisibilityBvhInstance {
             entity,
             key: key.clone(),
@@ -114,5 +96,16 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
             .collect(),
         bvh_instances,
         history_entries,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn batching_computes_bounds_once_without_intermediate_lookup() {
+        let source = include_str!("collect_batching_result.rs");
+
+        assert!(!source.contains(concat!("frustum_", "candidates")));
+        assert!(!source.contains(concat!("bounds_by_", "entity")));
     }
 }

@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::animation::sample_clip_events;
 use zircon_runtime::asset::{AssetId, ProjectAssetManager};
 use zircon_runtime::core::framework::animation::{
     AnimationGraphBlendMode, AnimationPoseOutput, AnimationPoseSource,
@@ -13,7 +12,7 @@ use super::pose_blend::{
     apply_graph_additive_poses, blend_graph_base_poses, convert_pose_to_reference_delta,
     GraphWeightedPose,
 };
-use super::requests::{PendingGraphPoseSample, PendingPoseSample};
+use super::requests::{PendingClipEventSample, PendingGraphPoseSample, PendingPoseSample};
 use crate::{AnimationClipEvaluator, CompiledAnimationGraphEvaluation, CompiledGraphClipInstance};
 
 use super::AnimationEvaluationPipeline;
@@ -24,7 +23,7 @@ pub(super) fn resolve_graph_pose_requests(
     pending_samples: Vec<PendingGraphPoseSample>,
 ) -> (
     BTreeMap<EntityId, AnimationPoseOutput>,
-    Vec<crate::AnimationClipEvent>,
+    Vec<PendingClipEventSample>,
 ) {
     let mut poses = BTreeMap::new();
     let mut events = Vec::new();
@@ -37,7 +36,7 @@ pub(super) fn resolve_graph_pose_requests(
         ) else {
             continue;
         };
-        events.extend(sample_compiled_graph_clip_events(
+        events.extend(sample_compiled_graph_clip_event_samples(
             asset_manager,
             pending.entity,
             pending.from_time_seconds,
@@ -60,28 +59,32 @@ pub(super) fn resolve_graph_pose_requests(
     (poses, events)
 }
 
-pub(super) fn sample_compiled_graph_clip_events(
+pub(super) fn sample_compiled_graph_clip_event_samples(
     asset_manager: &ProjectAssetManager,
     entity: EntityId,
     from_time_seconds: Real,
     to_time_seconds: Real,
     evaluation: &CompiledAnimationGraphEvaluation,
-) -> Vec<crate::AnimationClipEvent> {
+) -> Vec<PendingClipEventSample> {
     evaluation
         .clips()
         .iter()
         .filter_map(|clip| {
             let clip_id = asset_manager.resolve_asset_id(&clip.clip().locator)?;
-            let clip_asset = asset_manager.load_animation_clip_asset(clip_id).ok()?;
-            Some(sample_clip_events(
-                &clip_asset,
+            Some(PendingClipEventSample {
                 entity,
-                resolve_graph_clip_time_seconds(from_time_seconds, clip.playback_speed()),
-                resolve_graph_clip_time_seconds(to_time_seconds, clip.playback_speed()),
-                clip.looping(),
-            ))
+                clip_id,
+                from_time_seconds: resolve_graph_clip_time_seconds(
+                    from_time_seconds,
+                    clip.playback_speed(),
+                ),
+                to_time_seconds: resolve_graph_clip_time_seconds(
+                    to_time_seconds,
+                    clip.playback_speed(),
+                ),
+                looping: clip.looping(),
+            })
         })
-        .flatten()
         .collect()
 }
 

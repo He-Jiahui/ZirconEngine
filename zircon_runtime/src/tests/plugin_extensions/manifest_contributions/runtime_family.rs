@@ -297,14 +297,13 @@ fn texture_plugin_manifest_matches_catalog_stable_complete_metadata() {
 #[test]
 fn runtime_experimental_plugin_toml_matches_catalog_partial_metadata() {
     let plugins_root = plugins_workspace_root();
-    for (id, capabilities) in [
+    for (id, partial_capabilities) in [
         (
             "ai",
             vec![
                 "runtime.plugin.ai",
                 "runtime.feature.ai.behavior_tree",
                 "runtime.feature.ai.blackboard",
-                "runtime.feature.ai.perception",
             ],
         ),
         (
@@ -338,7 +337,10 @@ fn runtime_experimental_plugin_toml_matches_catalog_partial_metadata() {
             manifest.maturity,
             crate::plugin::PluginMaturity::Experimental
         );
-        assert_runtime_partial_capability_statuses(&manifest.capability_statuses, &capabilities);
+        assert_runtime_partial_capability_statuses(
+            &manifest.capability_statuses,
+            &partial_capabilities,
+        );
 
         let descriptor = RuntimePluginDescriptor::builtin_catalog()
             .into_iter()
@@ -349,6 +351,19 @@ fn runtime_experimental_plugin_toml_matches_catalog_partial_metadata() {
             descriptor.maturity(),
             crate::plugin::PluginMaturity::Experimental
         );
-        assert_runtime_partial_capability_statuses(descriptor.capability_statuses(), &capabilities);
+        assert_runtime_partial_capability_statuses(
+            descriptor.capability_statuses(),
+            &partial_capabilities,
+        );
+        if id == "ai" {
+            assert!(manifest.capability_statuses.iter().any(|status| {
+                status.capability == "runtime.feature.ai.perception"
+                    && status.status == CapabilityStatus::Complete
+            }));
+            assert!(descriptor.capability_statuses().iter().any(|status| {
+                status.capability == "runtime.feature.ai.perception"
+                    && status.status == CapabilityStatus::Complete
+            }));
+        }
     }
 }

@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderParticlePreviousSpriteSnapshot;
 
-use super::{viewport_record::ViewportRecord, ViewportCameraHistoryKey};
+use super::{ViewportCameraHistoryKey, viewport_record::ViewportRecord};
 
 impl ViewportRecord {
     pub(in crate::graphics::runtime::render_framework) fn particle_previous_sprites(
@@ -19,6 +19,13 @@ impl ViewportRecord {
         sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
     ) {
         self.particle_previous_sprites.insert(key, sprites);
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn particle_previous_sprites_for_update(
+        &mut self,
+        key: ViewportCameraHistoryKey,
+    ) -> &mut Vec<RenderParticlePreviousSpriteSnapshot> {
+        self.particle_previous_sprites.entry(key).or_default()
     }
 }
 
@@ -44,9 +51,28 @@ mod tests {
 
         assert_eq!(record.particle_previous_sprites(&left_key)[0].entity, 10);
         assert_eq!(record.particle_previous_sprites(&right_key)[0].entity, 20);
-        assert!(record
-            .particle_previous_sprites(&camera_key(2, UVec2::ZERO))
-            .is_empty());
+        assert!(
+            record
+                .particle_previous_sprites(&camera_key(2, UVec2::ZERO))
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn viewport_record_reuses_particle_previous_sprite_capacity_for_same_camera() {
+        let mut record = ViewportRecord::new(RenderViewportDescriptor::new(UVec2::new(64, 64)));
+        let key = camera_key(1, UVec2::ZERO);
+        let mut sprites = Vec::with_capacity(8);
+        sprites.push(previous_sprite(10));
+        record.replace_particle_previous_sprites(key.clone(), sprites);
+
+        let storage = record.particle_previous_sprites_for_update(key);
+        let capacity = storage.capacity();
+        storage.clear();
+        storage.push(previous_sprite(20));
+
+        assert!(capacity >= 8);
+        assert_eq!(storage.capacity(), capacity);
     }
 
     fn previous_sprite(entity: u64) -> RenderParticlePreviousSpriteSnapshot {

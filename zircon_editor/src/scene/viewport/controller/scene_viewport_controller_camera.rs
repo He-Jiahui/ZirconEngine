@@ -1,10 +1,12 @@
-use crate::scene::viewport::{ProjectionMode, ViewOrientation, ViewportCameraSnapshot};
+use crate::scene::viewport::{
+    ProjectionMode, ViewOrientation, ViewportCameraSnapshot, ViewportTransformPreview,
+};
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::{Transform, UVec2, Vec3};
 
 use crate::scene::viewport::ViewportState;
 
-use super::{constants::MIN_CAMERA_DISTANCE, SceneViewportController};
+use super::{SceneViewportController, constants::MIN_CAMERA_DISTANCE};
 
 const DEFAULT_CAMERA_DISTANCE: f32 = 8.0;
 const DEFAULT_ORTHO_SIZE: f32 = 5.0;
@@ -96,6 +98,18 @@ impl SceneViewportController {
             })
             .unwrap_or(DEFAULT_CAMERA_DISTANCE)
             .max(MIN_CAMERA_DISTANCE)
+    }
+
+    pub(crate) fn accept_transform_preview(
+        &mut self,
+        scene: &Scene,
+        preview: ViewportTransformPreview,
+    ) {
+        if preview.node_id == scene.active_camera()
+            && let Some(camera) = self.state.camera.as_mut()
+        {
+            camera.transform = preview.transform;
+        }
     }
 }
 

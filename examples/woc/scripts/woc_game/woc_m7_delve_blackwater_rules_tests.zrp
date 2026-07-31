@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_delve_blackwater_rules_tests",
+  "source": "src",
+  "binary": "bin-m7-delve-blackwater-rules-tests",
+  "entry": "instances/delve_blackwater_rules_test_main"
+}

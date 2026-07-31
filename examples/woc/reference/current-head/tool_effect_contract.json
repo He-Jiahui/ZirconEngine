@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/tool_effect_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/tools.ts": "e7ab336281485ad0d0011027ae10f1b38b3c3dd730874110653f24912f3daf33",
+    "src/sim/professions/wheel.ts": "d734aabf742f56fd0826db459bbe97cb6583deb77ffc29a308ff52e50b6d8356",
+    "src/sim/content/professions.ts": "d2d8567ab607693ab59a19d145187d0bad8b153c209c85b8f3cce5eed6277c3b"
+  },
+  "effects": [
+    {
+      "id": "gatherers_cache",
+      "kind": "quantity",
+      "bonus": 1,
+      "starting_durability": 20,
+      "craft_id": "enchanting"
+    },
+    {
+      "id": "artisans_eye",
+      "kind": "quality",
+      "bonus": 1,
+      "starting_durability": 20,
+      "craft_id": "enchanting"
+    },
+    {
+      "id": "quickening_charm",
+      "kind": "respawnSpeed",
+      "bonus": 1,
+      "starting_durability": 20,
+      "craft_id": "enchanting"
+    }
+  ],
+  "rarity_order": [
+    "common",
+    "uncommon",
+    "rare",
+    "epic",
+    "legendary"
+  ],
+  "consumption_chance_floor": 0.1,
+  "consumption_chance_step": 0.4,
+  "recharge_base_materials": 4,
+  "recharge_base_ticks": 600,
+  "original_crafter_discount": 0.5,
+  "specialized_skill_threshold": 75,
+  "recharge_discount_pct": 0.25,
+  "semantics": {
+    "gate": "a tool covers its own tier and every lower node or monster-material tier",
+    "use": "prompt effects need confirmation; an accepted use applies the effect then always consumes one RNG draw, including at zero durability",
+    "consumption": "equal or lower tool rarity gap consumes at 100 percent; higher rarity gaps decrease by the fixed step but never below the floor",
+    "recharge": "the original crafter pays the base half-rate, then a specialized original crafter multiplies that rate by one minus the recharge discount"
+  }
+}

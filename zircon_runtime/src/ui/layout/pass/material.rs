@@ -1,19 +1,6 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{layout::UiSize, tree::UiTemplateNodeMetadata};
 
-const LAYOUT_METRIC_KEYS: &[&str] = &[
-    "layout_padding_left",
-    "layout_padding_right",
-    "layout_padding_top",
-    "layout_padding_bottom",
-    "layout_spacing",
-    "layout_min_width",
-    "layout_min_height",
-    "layout_icon_size",
-    "layout_leading_slot_width",
-    "layout_trailing_slot_width",
-];
-
 pub(super) struct MaterialLayoutMetrics {
     pub padding_left: f32,
     pub padding_right: f32,
@@ -28,45 +15,49 @@ pub(super) struct MaterialLayoutMetrics {
 }
 
 impl MaterialLayoutMetrics {
-    fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
-        Self {
-            padding_left: number_attr(metadata, "layout_padding_left")
+    fn resolve(metadata: &UiTemplateNodeMetadata) -> Option<Self> {
+        let mut authored_metric = false;
+        let metrics = Self {
+            padding_left: number_attr(metadata, "layout_padding_left", &mut authored_metric)
                 .unwrap_or(0.0)
                 .max(0.0),
-            padding_right: number_attr(metadata, "layout_padding_right")
+            padding_right: number_attr(metadata, "layout_padding_right", &mut authored_metric)
                 .unwrap_or(0.0)
                 .max(0.0),
-            padding_top: number_attr(metadata, "layout_padding_top")
+            padding_top: number_attr(metadata, "layout_padding_top", &mut authored_metric)
                 .unwrap_or(0.0)
                 .max(0.0),
-            padding_bottom: number_attr(metadata, "layout_padding_bottom")
+            padding_bottom: number_attr(metadata, "layout_padding_bottom", &mut authored_metric)
                 .unwrap_or(0.0)
                 .max(0.0),
-            spacing: number_attr(metadata, "layout_spacing")
+            spacing: number_attr(metadata, "layout_spacing", &mut authored_metric)
                 .unwrap_or(0.0)
                 .max(0.0),
-            min_width: number_attr(metadata, "layout_min_width")
+            min_width: number_attr(metadata, "layout_min_width", &mut authored_metric)
                 .unwrap_or(0.0)
                 .max(0.0),
-            min_height: number_attr(metadata, "layout_min_height")
+            min_height: number_attr(metadata, "layout_min_height", &mut authored_metric)
                 .unwrap_or(0.0)
                 .max(0.0),
-            icon_size: number_attr(metadata, "layout_icon_size")
+            icon_size: number_attr(metadata, "layout_icon_size", &mut authored_metric)
                 .unwrap_or(0.0)
                 .max(0.0),
-            leading_slot_width: number_attr(metadata, "layout_leading_slot_width")
-                .unwrap_or(0.0)
-                .max(0.0),
-            trailing_slot_width: number_attr(metadata, "layout_trailing_slot_width")
-                .unwrap_or(0.0)
-                .max(0.0),
-        }
-    }
-
-    fn has_layout_attribute(metadata: &UiTemplateNodeMetadata) -> bool {
-        LAYOUT_METRIC_KEYS
-            .iter()
-            .any(|key| metadata.attributes.contains_key(*key))
+            leading_slot_width: number_attr(
+                metadata,
+                "layout_leading_slot_width",
+                &mut authored_metric,
+            )
+            .unwrap_or(0.0)
+            .max(0.0),
+            trailing_slot_width: number_attr(
+                metadata,
+                "layout_trailing_slot_width",
+                &mut authored_metric,
+            )
+            .unwrap_or(0.0)
+            .max(0.0),
+        };
+        authored_metric.then_some(metrics)
     }
 
     fn apply_to_content(&self, content: UiSize, has_icon: bool) -> UiSize {
@@ -93,13 +84,13 @@ pub(super) fn measure_material_content(
     content: UiSize,
 ) -> Option<UiSize> {
     let metadata = metadata?;
-    if !MaterialLayoutMetrics::has_layout_attribute(metadata)
-        || !supports_material_layout(metadata.component.as_str())
-    {
+    if !supports_material_layout(metadata.component.as_str()) {
         return None;
     }
 
-    let metrics = MaterialLayoutMetrics::resolve(metadata);
+    let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else {
+        return None;
+    };
     let has_icon = has_icon_attribute(metadata)
         || (metadata.component == "IconButton" && metrics.icon_size > 0.0);
     Some(metrics.apply_to_content(content, has_icon))
@@ -159,8 +150,14 @@ fn has_icon_attribute(metadata: &UiTemplateNodeMetadata) -> bool {
     })
 }
 
-fn number_attr(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
-    metadata.attributes.get(key).and_then(value_as_f32)
+fn number_attr(
+    metadata: &UiTemplateNodeMetadata,
+    key: &str,
+    authored_metric: &mut bool,
+) -> Option<f32> {
+    let value = metadata.attributes.get(key)?;
+    *authored_metric = true;
+    value_as_f32(value)
 }
 
 fn value_as_f32(value: &Value) -> Option<f32> {

@@ -1,0 +1,6 @@
+{
+  "name": "woc_battlefield_xp_tests",
+  "source": "src",
+  "binary": "bin-battlefield-xp-tests",
+  "entry": "progression/battlefield_xp_test_main"
+}

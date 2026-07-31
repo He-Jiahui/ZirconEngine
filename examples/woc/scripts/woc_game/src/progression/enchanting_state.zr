@@ -1,0 +1,435 @@
+// Current-head professions/enchanting.ts projection. Content/WOS resolves
+// item definitions, enchants and required levels into this state; the reducer
+// owns only the source transaction order over the shared inventory ledger.
+var container = %import("zr.system.container");
+var crafting = %import("progression/crafting_transaction");
+var inventory = %import("progression/inventory_instance_ledger");
+var rng = %import("kernel/rng");
+var contract = %import("generated/enchanting_contract");
+
+pub class EnchantingItemDefinition {
+    pub var itemId: string;
+    pub var kind: string;
+    pub var quality: string;
+    pub var slot: string;
+    // Caller-resolved requiredLevelFor result.
+    pub var requiredLevel: int;
+
+    pub @constructor() {
+        this.itemId = "";
+        this.kind = "";
+        this.quality = "";
+        this.slot = "";
+        this.requiredLevel = 0;
+    }
+}
+
+pub class EnchantingDefinition {
+    pub var enchantId: string;
+    pub var itemSlot: string;
+    pub var reagentIds: container.Array<string>;
+    pub var reagentCounts: container.Array<int>;
+    pub var str: int;
+    pub var agi: int;
+    pub var sta: int;
+    pub var intel: int;
+    pub var spi: int;
+    pub var armor: int;
+
+    pub @constructor() {
+        this.enchantId = "";
+        this.itemSlot = "";
+        this.reagentIds = new container.Array<string>();
+        this.reagentCounts = new container.Array<int>();
+        this.str = 0;
+        this.agi = 0;
+        this.sta = 0;
+        this.intel = 0;
+        this.spi = 0;
+        this.armor = 0;
+    }
+}
+
+pub class EnchantingState {
+    pub var inventory: inventory.InventoryInstanceLedger;
+    pub var items: container.Array<EnchantingItemDefinition>;
+    pub var enchants: container.Array<EnchantingDefinition>;
+    // Projects ctx.markDeedsDirty after either successful skill gain; the WOS
+    // owner consumes this marker when it dispatches the wider deed system.
+    pub var deedsDirty: bool;
+
+    pub @constructor() {
+        this.inventory = new inventory.InventoryInstanceLedger();
+        this.items = new container.Array<EnchantingItemDefinition>();
+        this.enchants = new container.Array<EnchantingDefinition>();
+        this.deedsDirty = false;
+    }
+}
+
+pub class EnchantingResult {
+    // 0 success; 1 unknown item; 2 ineligible item; 3 missing eligible copy;
+    // 4 unknown enchant; 5 wrong slot; 6 insufficient materials.
+    pub var ok: bool;
+    pub var reason: int;
+    pub var itemId: string;
+    pub var enchantId: string;
+    pub var materialItemId: string;
+    pub var count: int;
+
+    pub @constructor() {
+        this.ok = false;
+        this.reason = 0;
+        this.itemId = "";
+        this.enchantId = "";
+        this.materialItemId = "";
+        this.count = 0;
+    }
+}
+
+pub class EnchantableRemoval {
+    pub var removed: bool;
+    pub var hadInstance: bool;
+    pub var instance: inventory.ItemInstanceData;
+
+    pub @constructor() {
+        this.removed = false;
+        this.hadInstance = false;
+        this.instance = new inventory.ItemInstanceData();
+    }
+}
+
+itemIndex(state: EnchantingState, itemId: string): int {
+    var index = 0;
+    while (index < state.items.length) {
+        if ((<EnchantingItemDefinition>state.items[index]).itemId == itemId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+enchantIndex(state: EnchantingState, enchantId: string): int {
+    var index = 0;
+    while (index < state.enchants.length) {
+        if ((<EnchantingDefinition>state.enchants[index]).enchantId == enchantId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub addItemDefinition(state: EnchantingState, definition: EnchantingItemDefinition): void {
+    var index = itemIndex(state, definition.itemId);
+    if (index < 0) {
+        state.items.add(definition);
+        return;
+    }
+    state.items[index] = definition;
+}
+
+pub addEnchantDefinition(state: EnchantingState, definition: EnchantingDefinition): void {
+    var index = enchantIndex(state, definition.enchantId);
+    if (index < 0) {
+        state.enchants.add(definition);
+        return;
+    }
+    state.enchants[index] = definition;
+}
+
+// Materializes the exact current-head ENCHANTS content contract. Item
+// definitions deliberately remain in the broader M5 catalog/WOS owner.
+pub loadCurrentEnchantCatalog(state: EnchantingState): void {
+    var index = 0;
+    while (index < contract.enchantCount()) {
+        var definition = new EnchantingDefinition();
+        definition.enchantId = contract.enchantIdAt(index);
+        definition.itemSlot = contract.enchantItemSlotAt(index);
+        definition.str = contract.enchantStatBonusAt(index, "str");
+        definition.agi = contract.enchantStatBonusAt(index, "agi");
+        definition.sta = contract.enchantStatBonusAt(index, "sta");
+        definition.intel = contract.enchantStatBonusAt(index, "int");
+        definition.spi = contract.enchantStatBonusAt(index, "spi");
+        definition.armor = contract.enchantStatBonusAt(index, "armor");
+        var reagentIndex = 0;
+        while (reagentIndex < contract.enchantReagentCount(index)) {
+            definition.reagentIds.add(contract.enchantReagentIdAt(index, reagentIndex));
+            definition.reagentCounts.add(contract.enchantReagentAmountAt(index, reagentIndex));
+            reagentIndex = reagentIndex + 1;
+        }
+        addEnchantDefinition(state, definition);
+        index = index + 1;
+    }
+}
+
+// Matches isEnchantedInstance: the explicit marker wins; legacy rolled stats
+// are enchanted only when they are not the baked payload of a masterwork.
+pub isEnchantedInstance(instance: inventory.ItemInstanceData): bool {
+    return instance.enchant != "" || (instance.hasRolledStats && !instance.rolledMasterwork);
+}
+
+pub isDisenchantable(definition: EnchantingItemDefinition): bool {
+    return (definition.kind == "weapon" || definition.kind == "armor") &&
+        definition.quality != "" && definition.quality != "poor";
+}
+
+qualityIndex(quality: string): int {
+    var index = 0;
+    while (index < contract.qualityCount()) {
+        if (contract.qualityAt(index) == quality) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub disenchantYieldForRoll(definition: EnchantingItemDefinition, randomUnit: float): int {
+    var quality = qualityIndex(definition.quality);
+    if (quality < 0) quality = 1;
+    var level = definition.requiredLevel;
+    if (level < 0) level = 0;
+    var tierBonus = level / contract.tierLevelsPerBonus();
+    var bonus = randomUnit < contract.rollThreshold() ? 0 : 1;
+    return quality + tierBonus + 1 + bonus;
+}
+
+pub disenchantYield(definition: EnchantingItemDefinition, stream: rng.Mulberry32): int {
+    return disenchantYieldForRoll(definition, stream.next());
+}
+
+pub countEnchantableItem(state: EnchantingState, itemId: string): int {
+    var total = 0;
+    var index = 0;
+    while (index < state.inventory.slots.length) {
+        var slot = <inventory.InventoryInstanceSlot>state.inventory.slots[index];
+        if (slot.itemId == itemId && (!slot.hasInstance || !isEnchantedInstance(slot.instance))) {
+            total = total + slot.count;
+        }
+        index = index + 1;
+    }
+    return total;
+}
+
+// Source order: newest plain stack first, then newest unenchanted instance.
+removeOneEnchantable(state: EnchantingState, itemId: string): EnchantableRemoval {
+    var result = new EnchantableRemoval();
+    var index = state.inventory.slots.length - 1;
+    while (index >= 0) {
+        var slot = <inventory.InventoryInstanceSlot>state.inventory.slots[index];
+        if (slot.itemId == itemId && !slot.hasInstance) {
+            slot.count = slot.count - 1;
+            if (slot.count <= 0) state.inventory.slots.removeAt(index);
+            result.removed = true;
+            return result;
+        }
+        index = index - 1;
+    }
+    index = state.inventory.slots.length - 1;
+    while (index >= 0) {
+        var slot = <inventory.InventoryInstanceSlot>state.inventory.slots[index];
+        if (slot.itemId == itemId && slot.hasInstance && !isEnchantedInstance(slot.instance)) {
+            result.instance = inventory.cloneInstance(slot.instance);
+            result.hadInstance = true;
+            slot.count = slot.count - 1;
+            if (slot.count <= 0) state.inventory.slots.removeAt(index);
+            result.removed = true;
+            return result;
+        }
+        index = index - 1;
+    }
+    return result;
+}
+
+gainEnchantingSkill(progress: crafting.CraftingTransactionState): void {
+    crafting.setCraftSkill(
+        progress,
+        "enchanting",
+        crafting.craftSkillFor(progress, "enchanting") + contract.skillGain()
+    );
+}
+
+pub resolveDisenchant(
+    state: EnchantingState,
+    progress: crafting.CraftingTransactionState,
+    itemId: string,
+    stream: rng.Mulberry32
+): EnchantingResult {
+    var result = new EnchantingResult();
+    result.itemId = itemId;
+    var itemAt = itemIndex(state, itemId);
+    if (itemAt < 0) {
+        result.reason = 1;
+        return result;
+    }
+    var definition = <EnchantingItemDefinition>state.items[itemAt];
+    if (!isDisenchantable(definition)) {
+        result.reason = 2;
+        return result;
+    }
+    if (countEnchantableItem(state, itemId) < 1) {
+        result.reason = 3;
+        return result;
+    }
+    var removed = removeOneEnchantable(state, itemId);
+    if (!removed.removed) {
+        result.reason = 3;
+        return result;
+    }
+    result.ok = true;
+    result.materialItemId = contract.materialForQuality(definition.quality);
+    result.count = disenchantYield(definition, stream);
+    inventory.addStacked(state.inventory, result.materialItemId, result.count);
+    gainEnchantingSkill(progress);
+    state.deedsDirty = true;
+    return result;
+}
+
+pub resolveApplyEnchant(
+    state: EnchantingState,
+    progress: crafting.CraftingTransactionState,
+    itemId: string,
+    enchantId: string
+): EnchantingResult {
+    var result = new EnchantingResult();
+    result.itemId = itemId;
+    result.enchantId = enchantId;
+    var itemAt = itemIndex(state, itemId);
+    if (itemAt < 0) {
+        result.reason = 1;
+        return result;
+    }
+    var enchantAt = enchantIndex(state, enchantId);
+    if (enchantAt < 0) {
+        result.reason = 4;
+        return result;
+    }
+    var item = <EnchantingItemDefinition>state.items[itemAt];
+    var enchant = <EnchantingDefinition>state.enchants[enchantAt];
+    if (item.slot != enchant.itemSlot) {
+        result.reason = 5;
+        return result;
+    }
+    if (countEnchantableItem(state, itemId) < 1) {
+        result.reason = 3;
+        return result;
+    }
+    var reagentIndex = 0;
+    while (reagentIndex < enchant.reagentIds.length) {
+        var reagentId = <string>enchant.reagentIds[reagentIndex];
+        var reagentCount = <int>enchant.reagentCounts[reagentIndex];
+        if (inventory.countItem(state.inventory, reagentId) < reagentCount) {
+            result.reason = 6;
+            return result;
+        }
+        reagentIndex = reagentIndex + 1;
+    }
+    var removed = removeOneEnchantable(state, itemId);
+    if (!removed.removed) {
+        result.reason = 3;
+        return result;
+    }
+    reagentIndex = 0;
+    while (reagentIndex < enchant.reagentIds.length) {
+        inventory.removeStacked(
+            state.inventory,
+            <string>enchant.reagentIds[reagentIndex],
+            <int>enchant.reagentCounts[reagentIndex]
+        );
+        reagentIndex = reagentIndex + 1;
+    }
+    var output = new inventory.ItemInstanceData();
+    if (removed.hadInstance) output = inventory.cloneInstance(removed.instance);
+    output.str = output.str + enchant.str;
+    output.agi = output.agi + enchant.agi;
+    output.sta = output.sta + enchant.sta;
+    output.intel = output.intel + enchant.intel;
+    output.spi = output.spi + enchant.spi;
+    output.armor = output.armor + enchant.armor;
+    output.hasRolledStats = true;
+    output.enchant = enchant.enchantId;
+    inventory.addItemInstance(state.inventory, itemId, output);
+    gainEnchantingSkill(progress);
+    state.deedsDirty = true;
+    result.ok = true;
+    return result;
+}
+
+makeItem(
+    itemId: string, kind: string, quality: string, slot: string, requiredLevel: int
+): EnchantingItemDefinition {
+    var definition = new EnchantingItemDefinition();
+    definition.itemId = itemId;
+    definition.kind = kind;
+    definition.quality = quality;
+    definition.slot = slot;
+    definition.requiredLevel = requiredLevel;
+    return definition;
+}
+
+makeEnchant(
+    enchantId: string, itemSlot: string, reagentId: string, reagentCount: int, str: int
+): EnchantingDefinition {
+    var definition = new EnchantingDefinition();
+    definition.enchantId = enchantId;
+    definition.itemSlot = itemSlot;
+    definition.reagentIds.add(reagentId);
+    definition.reagentCounts.add(reagentCount);
+    definition.str = str;
+    return definition;
+}
+
+near(left: float, right: float): bool {
+    var difference = left - right;
+    if (difference < 0.0) difference = 0.0 - difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var state = new EnchantingState();
+    var progress = new crafting.CraftingTransactionState();
+    addItemDefinition(state, makeItem("sword", "weapon", "common", "mainhand", 10));
+    addItemDefinition(state, makeItem("robe", "armor", "rare", "chest", 25));
+    addItemDefinition(state, makeItem("potion", "consumable", "rare", "", 25));
+    loadCurrentEnchantCatalog(state);
+    if (state.enchants.length != contract.enchantCount()) return -90;
+    var stream = new rng.Mulberry32(<uint>7);
+    if (resolveDisenchant(state, progress, "missing", stream).reason != 1 ||
+        resolveDisenchant(state, progress, "potion", stream).reason != 2 ||
+        resolveDisenchant(state, progress, "sword", stream).reason != 3 ||
+        stream.draws != <uint>0 || !near(crafting.craftSkillFor(progress, "enchanting"), 0.0)) return -1;
+
+    inventory.addStacked(state.inventory, "sword", 1);
+    var first = resolveDisenchant(state, progress, "sword", stream);
+    if (!first.ok || first.materialItemId != "arcane_dust" || first.count < 3 || first.count > 4 ||
+        inventory.countItem(state.inventory, "sword") != 0 ||
+        inventory.countItem(state.inventory, "arcane_dust") != first.count || stream.draws != <uint>1 ||
+        !near(crafting.craftSkillFor(progress, "enchanting"), 1.0) || !state.deedsDirty) return -2;
+
+    var legacy = new inventory.ItemInstanceData();
+    legacy.hasRolledStats = true;
+    if (!isEnchantedInstance(legacy)) return -3;
+    legacy.rolledMasterwork = true;
+    if (isEnchantedInstance(legacy)) return -4;
+    legacy.enchant = "old";
+    if (!isEnchantedInstance(legacy)) return -5;
+
+    var crafted = new inventory.ItemInstanceData();
+    crafted.signer = "Ada";
+    crafted.hasRolledStats = true;
+    crafted.rolledMasterwork = true;
+    crafted.intel = 2;
+    inventory.addItemInstance(state.inventory, "sword", crafted);
+    inventory.addItemInstance(state.inventory, "sword", legacy);
+    if (countEnchantableItem(state, "sword") != 1 ||
+        resolveApplyEnchant(state, progress, "sword", "enchant_chest_stamina").reason != 5 ||
+        resolveApplyEnchant(state, progress, "sword", "missing").reason != 4 ||
+        resolveApplyEnchant(state, progress, "sword", "enchant_weapon_might").reason != 6 ||
+        countEnchantableItem(state, "sword") != 1) return -6;
+
+    var missingDust = 5 - inventory.countItem(state.inventory, "arcane_dust");
+    if (missingDust > 0) inventory.addStacked(state.inventory, "arcane_dust", missingDust);
+    var applied = resolveApplyEnchant(state, progress, "sword", "enchant_weapon_might");
+    if (!applied.ok || countEnchantableItem(state, "sword") != 0 ||
+        !near(crafting.craftSkillFor(progress, "enchanting"), 2.0)) return -7;
+    var newest = inventory.slotInstance(state.inventory, state.inventory.slots.length - 1);
+    if (newest.enchant != "enchant_weapon_might" || newest.signer != "Ada" || !newest.rolledMasterwork ||
+        !newest.hasRolledStats || newest.intel != 2 || newest.str != 5 ||
+        resolveApplyEnchant(state, progress, "sword", "enchant_weapon_might").reason != 3) return -8;
+    return 1;
+}

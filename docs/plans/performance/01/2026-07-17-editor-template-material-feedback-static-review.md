@@ -33,10 +33,16 @@ Linear progress emits a bounded number of quads, but it resolves corner radius, 
 
 The Zircon target is therefore typed ring/arc geometry owned by Render13/host rendering. A bounded raster cache is only a transitional fallback and must use complete identity plus theme generation.
 
+## Current-source direct mitigation
+
+The raster fallback now normalizes the actual resolved progress once and uses that same value for pixels and resource identity. The key contains exact progress bits and all track/fill RGBA channels. A four-entry thread-local size LRU retains only ring topology `(pixel offset, normalized turn)`: squared-distance membership plus `atan2`/`rem_euclid` run when a size first enters the cache, while stable sizes allocate the required owned output buffer and recolor only ring pixels. Tests lock complete key identity, resolved-percent use, same-size topology reuse, and invalid-progress normalization. This is intentionally transitional: owned RGBA allocation/copy, key formatting, and indeterminate full-image changes remain until typed arc geometry lands.
+
+Local module-wrapper validation with Rust 1.94.1 passed all four focused tests. This proves the standard-library topology/key modules compile and behave as intended in isolation; it does not replace the pending `zircon_editor` crate build, paint tests, or product pixels.
+
 ## Dynamic acceptance still required
 
 - Re-run current-source `zircon_editor --lib performance_tests` after the two source-guard corrections.
-- Add deterministic tests for complete key identity and stable-frame zero raster rebuild; preserve 0/NaN/disabled/workbench/style override pixels.
+- Run current-source tests for complete key identity, resolved-percent use, topology reuse, and invalid-progress normalization; add counters for topology build/transcendental operations and preserve 0/NaN/disabled/workbench/style override pixels.
 - Record 1/10/100 circular controls over 300 stable frames: raster calls, transcendental pixel operations, allocation bytes, key formats, commands, uploads, CPU p50/p95/p99.
 - Record indeterminate animation separately: only dynamic angle/dash parameters may change; the path must not upload a full new RGBA image every frame.
 - Run Softbuffer pixel parity and the current-source RenderDoc/editor capture before moving this folder to `review.md`.

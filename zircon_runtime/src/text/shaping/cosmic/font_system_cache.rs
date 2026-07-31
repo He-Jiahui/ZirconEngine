@@ -5,10 +5,9 @@ use glyphon::cosmic_text::{fontdb, FontSystem};
 use crate::text::font::{
     shared_font_database_generation, shared_font_database_snapshot, FontDatabase,
 };
-use crate::text::normalize_text_language_tag;
+use crate::text::{default_text_locale, normalize_text_language_tag};
 
 const MAX_LOCALE_FONT_SYSTEMS: usize = 4;
-const DEFAULT_FALLBACK_LOCALE: &str = "en-us";
 
 thread_local! {
     static FONT_SYSTEMS: RefCell<LocaleFontSystemCache> =
@@ -34,8 +33,7 @@ impl LocaleFontSystemCache {
     fn new() -> Self {
         let (font_database_generation, font_database) = shared_font_database_snapshot();
         let seed_database = font_database.backend_database_snapshot();
-        let fallback_locale = normalize_text_language_tag(Some(DEFAULT_FALLBACK_LOCALE))
-            .unwrap_or_else(|| DEFAULT_FALLBACK_LOCALE.to_string());
+        let fallback_locale = default_text_locale();
         // Keep cosmic on the process-level FontDatabase from first use.  Constructing a
         // standalone FontSystem here asks fontdb to rediscover the operating-system fonts,
         // which both violates the text-plan ownership boundary and stalls the first UI layout.

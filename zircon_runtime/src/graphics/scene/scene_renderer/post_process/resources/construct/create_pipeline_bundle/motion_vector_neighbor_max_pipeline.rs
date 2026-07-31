@@ -65,13 +65,17 @@ mod tests {
             "motion_vector_neighbor_max.wgsl",
             MOTION_VECTOR_NEIGHBOR_MAX_SHADER,
         );
-        assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER
-            .contains("@group(0) @binding(0) var motion_vector_tile_max_coarse_tex"));
+        assert!(
+            MOTION_VECTOR_NEIGHBOR_MAX_SHADER
+                .contains("@group(0) @binding(0) var motion_vector_tile_max_coarse_tex")
+        );
         assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("textureDimensions"));
         assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("fn choose_motion_vector_neighbor_max"));
         assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("fn motion_vector_neighbor_max"));
-        assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER
-            .contains("textureLoad(motion_vector_tile_max_coarse_tex"));
+        assert!(
+            MOTION_VECTOR_NEIGHBOR_MAX_SHADER
+                .contains("textureLoad(motion_vector_tile_max_coarse_tex")
+        );
         assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("full_res_coord / vec2<u32>(4u, 4u)"));
         assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("coord_i32 + vec2<i32>(1, 1)"));
     }

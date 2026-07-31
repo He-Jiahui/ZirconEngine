@@ -121,11 +121,13 @@ doc_type: module-detail
 - `EditorJobSystem::join` 原样透传 Runtime `JobScheduler::join`，允许一个已准入 job 在同一 runtime pool 内组织有借用的结构化并发。它不创建 Editor worker、不分配新的 `JobId`，也不占第二份类别许可。
 - `EditorJobSystem::cancel(JobId)` 对 pending job 在 state lock 内原子摘除并取消共享 token，锁外同步产生 typed `Cancelled` ticket 与通用事件，再收敛 terminal record 并继续 admission promotion；该路径不提交 Runtime worker、不占类别许可、不等待 dependency 或 mutex tail。已经 scheduled/running 的任务通过唯一进度生命周期表取得并取消同一 token，返回 `true` 表示协作取消请求已送达；未知或已进入 terminal 可见状态的 ID 返回 `false`。
 
+准入扫描的枚举库存只由 `JobPriority::ALL` 与 `JobCategory::ALL` 定义；enum 声明与对应 `ALL` 由同一个 `define_job_enum!` 输入原子生成，`PendingJobQueue` 不维护第二份手写数组。每轮最大 bucket probe 由两个 `ALL` 长度的乘积计算，因此新增 priority/category 变体会同时进入唯一库存，不能出现“枚举可构造但永远不被扫描”的静默饥饿。
+
 内部锁均在 poison 后恢复 inner state。任务 panic 被捕获并转换为 `JobError::Panicked`；完成 guard 即使在任务包装层异常退出也会释放类别许可，避免队列永久停滞。
 
 ## 主线程回流
 
-worker 把 `Started/Progress/Completed/Failed/Cancelled` 写入 MPSC，不直接调用消息 bus。主循环调用 `EditorJobSystem::pump_events()`，再把事件作为 `EditorMessagePayload::Job` 发布到 `TOPIC_JOB`。这使主线程回流是显式动作，并避免 worker 执行订阅者逻辑。
+worker 把 `Started/Completed/Failed/Cancelled` 生命周期边缘写入共享有序队列，不直接调用消息 bus；这些边缘不可丢。`Progress` 按 `JobId` 在尚未消费的 marker 上 latest-value 合并，避免高频进度把主线程队列无限放大。主循环调用 `EditorJobSystem::pump_events()`，按默认 `64 events / 1 ms` 的 count/time 双预算把事件作为 `EditorMessagePayload::Job` 发布到 `TOPIC_JOB`；诊断与聚焦测试可通过 `pump_events_with_budget` 注入显式预算。预算耗尽只延后剩余边缘，不改变每个 job 的 `Started -> latest Progress -> terminal` 顺序，也不允许 worker 执行订阅者逻辑。
 
 `JobTicket` 提供两种读取方式：`wait()` 阻塞取结果，`try_take()` 非阻塞拉取。结果只有一个所有者，成功或通道关闭后再次 `try_take()` 返回 `None`。
 
@@ -149,9 +151,9 @@ terminal 事件先把条目标记为 UI 不可见，因此状态栏和任务面�
 
 ## M3.3 后台风暴基线
 
-`thumbnail_storm_preserves_quota_and_records_main_thread_pump_baseline` 构造 1000 个 `Background/Thumbnail` job，在 gate 释放前固定验证 `scheduled=2`、`pending=998`，且不创建 Editor 线程、async runtime 或私有线程池。释放后逐 JobId 验证严格 `Started -> Progress(1/1, "thumbnail ready") -> Completed`、ticket 单次成功消费和最终 pending/running/scheduled/mutex-tail 全归零，同时记录 submit、主线程 pump+delivery tick 与非空 batch 的 P50/P95/max。
+`thumbnail_storm_preserves_quota_and_records_main_thread_pump_baseline` 构造 1000 个 `Background/Thumbnail` job，在 gate 释放前固定验证 `scheduled=2`、`pending=998`，且不创建 Editor 线程、async runtime 或私有线程池。释放后逐 JobId 验证严格 `Started -> latest Progress(1/1, "thumbnail ready") -> Completed`、ticket 单次成功消费和最终 pending/running/scheduled/mutex-tail 全归零，同时记录 submit、主线程 pump+delivery tick 与非空 batch 的 P50/P95/max。输出同时固定 `pump_count_budget=64` 与 `pump_time_budget_us=1000`，不再报告 `numeric_budget=undefined`。
 
-当前 runtime/03 没有 Editor job pump 的数值帧时预算，因此测试只输出机器可读 `EDITOR_JOB_STORM_BASELINE ... numeric_budget=undefined` 观察值，不把墙钟样本伪装成 SLA。runtime/07 的同命令两次样本均值相对偏差 `<20%` 仅用于 Windows 测试阶段的基线可重复性检查；它不是 scheduler 性能通过阈值。测试中的 1ms 诊断节拍位于计时区间外，并把 60 秒 watchdog 下的样本向量限制在约 60000 项。
+`pump_count_budget` 是每次 retained tick 最多发布的事件数，`pump_time_budget_us` 是软墙钟截止；单次 bus publish 已开始后允许越过截止，但下一事件不会继续出队。runtime/07 的同命令两次样本均值相对偏差 `<20%` 仍只用于 Windows 测试阶段的基线可重复性检查，不替代这个主线程回流 SLA。测试中的 1ms 诊断节拍位于计时区间外，并把 60 秒 watchdog 下的样本向量限制在约 60000 项。
 
 ## 首个业务客户：Export Wizard
 
@@ -184,3 +186,7 @@ Viewport 的 lazy `RenderFramework` resolve 同样由 Context jobs 所有。star
 2026-07-12 的 M3 受管 Windows 门禁在修正 `PendingJob.cancel_task` trait-object 字段调用语法后复跑为 36 passed / 0 failed / 3035 filtered out；统一进度源、UI 只读入口、关停并发合同、零裸线程守卫和 1000-job 风暴均在同一过滤器内通过。风暴精确命令随后连续两次各 1/1 通过，`release_elapsed_ns` 为 278322000 / 260519800，均值相对偏差 6.607579%；`submit_total_ns` 为 104629400 / 126985600，均值相对偏差 19.304622%。两者仅作为可重复性基线；`numeric_budget=undefined` 仍表明没有伪造 runtime/03 数值 SLA。日志位于 coordinator 管理的 `D:/cargo-targets/zircon-engine/pool/525d696af7ff7754af95fa549668e728f5cc05bc36657acf1040f23e37a9cd34/`。既有 Editor UI/Layout 与 Export typed error 边界失败继续由对应功能计划处理，本模块不增加兼容层代修。
 
 2026-07-14，当前 `render_framework_boundary/mod.rs` 由独立 `rustc --test` harness 直接编译执行，3 项 RenderFramework boundary 测试通过；与 Editor03 守卫合并结果为 6 passed / 0 failed、9.72 秒，日志为 `.codex/tmp/editor03-render01-guard-standalone-20260714.log`。该证据只验收本次 source guard hard cut；共享完整 Cargo lib gate 仍由其他功能失败阻塞，未在此宣称通过。
+
+2026-07-17，Performance01 的 `job-pump-budget-and-pending-scan` failure 已由 Editor14 接管。当前源码已落地 count/time 双预算、progress latest-value 合并以及按 `priority/category` 的 21 固定 bucket probe；dependency reverse index 在前置任务变为 Scheduled/Terminal 时把等待项增量移入 ready bucket，pending insert/remove 与终态 dependency pin 使用有序索引。新增 1k/10k probe、预算延后不丢边缘、100 次 progress 合并及 storm 显式预算合同。文件级 rustfmt 与 scoped diff check 已通过；Cargo、WPR、独立复审与 failure fixed 回传仍 pending，本段不声明验收完成。
+
+2026-07-18，复审进一步把 priority/category enum 与扫描库存收敛到同一宏声明输入，probe 上限同步派生，并新增拒绝 pending owner 复制库存、固定长度 `ALL` 或非原子声明源的静态合同。源码格式、atomic inventory guard 7/7 与 scoped diff check 通过；managed Cargo 仍被 Coordinator01 的过期 pending reservation 未推进 FIFO 问题阻塞，因此 failure 保持 open，不把静态证据冒充 current-source 验收。

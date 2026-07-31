@@ -9,6 +9,8 @@ use super::support::{changed_pixel_count, panel_node, rect};
 
 struct TestTransform;
 
+struct ExactRowsTransform;
+
 impl TemplateNodePaintTransform for TestTransform {
     fn transform(
         &self,
@@ -23,6 +25,52 @@ impl TemplateNodePaintTransform for TestTransform {
         }
         Some((node, clip))
     }
+}
+
+impl TemplateNodePaintTransform for ExactRowsTransform {
+    fn row_visit_indices(&self, _row_count: usize, _clip: &FrameRect) -> Option<Vec<usize>> {
+        Some(vec![1])
+    }
+
+    fn transform(
+        &self,
+        node: TemplatePaneNodeData,
+        clip: FrameRect,
+    ) -> Option<(TemplatePaneNodeData, FrameRect)> {
+        Some((node, clip))
+    }
+}
+
+#[test]
+fn transform_defaults_to_visiting_the_complete_model() {
+    let transform = TestTransform;
+
+    assert_eq!(
+        transform.row_visit_indices(4, &rect(0.0, 0.0, 10.0, 10.0)),
+        None
+    );
+}
+
+#[test]
+fn transform_exact_row_plan_skips_unselected_model_rows() {
+    let nodes = model_rc(vec![
+        panel_node("skipped", 0.0, 0.0, 8.0, 8.0),
+        panel_node("visited", 12.0, 0.0, 8.0, 8.0),
+    ]);
+    let bounds = rect(0.0, 0.0, 24.0, 12.0);
+    let mut frame = HostRgbaFrame::filled(24, 12, [0, 0, 0, 255]);
+
+    assert!(draw_template_nodes_with_transform(
+        &mut frame,
+        &nodes,
+        &bounds,
+        &bounds,
+        None,
+        Some(&ExactRowsTransform),
+    ));
+
+    assert_eq!(changed_pixel_count(frame.as_bytes(), 24, 0, 0, 8, 8), 0);
+    assert!(changed_pixel_count(frame.as_bytes(), 24, 12, 0, 8, 8) > 0);
 }
 
 #[test]
@@ -77,4 +125,11 @@ fn template_node_paint_transform_none_matches_existing_draw_path() {
     ));
 
     assert_eq!(existing.as_bytes(), transformed.as_bytes());
+}
+
+#[test]
+fn template_node_transform_consumes_the_owned_model_row_without_a_second_clone() {
+    let production = include_str!("../template_node_pipeline/draw.rs");
+
+    assert!(!production.contains("source_node.clone()"));
 }

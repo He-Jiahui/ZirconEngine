@@ -4,6 +4,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::{
     is_asset_browser_toolbar_chip_button, is_tab_like_workbench_button, WorkbenchButtonKind,
 };
+use super::geometry::frame_is_within;
 use super::layers::{content_order, surface_overlay_order};
 use super::surface_indicator::{button_surface_indicator_palette, button_surface_indicator_rect};
 
@@ -42,16 +43,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     );
     if should_paint_tab_like_indicator(node) {
         let palette = button_surface_indicator_palette();
-        commands.push(HostPaintCommand::quad(
-            button_surface_indicator_rect(node, rect),
-            Some(clip.clone()),
-            content_order(order),
-            Some(palette.underline),
-            None,
-            0.0,
-            0.0,
-            opacity,
-        ));
+        let indicator = button_surface_indicator_rect(node, rect);
+        if frame_is_within(&indicator, rect) {
+            commands.push(HostPaintCommand::quad(
+                indicator,
+                Some(clip.clone()),
+                content_order(order),
+                Some(palette.underline),
+                None,
+                0.0,
+                0.0,
+                opacity,
+            ));
+        }
     }
 }
 

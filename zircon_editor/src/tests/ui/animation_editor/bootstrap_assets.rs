@@ -79,7 +79,11 @@ fn animation_editor_projection_maps_bootstrap_asset_into_mount_nodes() {
         .iter()
         .find(|node| node.control_id == "AnimationEditorHeaderPanel")
         .expect("header panel node");
-    assert_eq!(header.role.to_string(), "Mount");
+    assert_eq!(header.role.to_string(), "Panel");
+    assert_eq!(header.surface_variant.to_string(), "panel");
+    assert_eq!(header.corner_radius, 4.0);
+    assert_eq!(header.border_width, 1.0);
+    assert_eq!(header.frame.height, 84.0);
 
     let header_mode = nodes
         .iter()
@@ -145,6 +149,9 @@ fn animation_editor_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(header_mode.frame.y >= header.frame.y);
     assert!(header_path.frame.y >= header_mode.frame.y + header_mode.frame.height);
     assert!(header_status.frame.y >= header_path.frame.y + header_path.frame.height);
+    assert_eq!(header_mode.frame.height, 20.0);
+    assert_eq!(header_path.frame.height, 20.0);
+    assert_eq!(header_status.frame.height, 20.0);
     assert!(body.frame.y >= header.frame.y + header.frame.height);
     assert_eq!(sequence.frame.x, graph.frame.x);
     assert_eq!(sequence.frame.x, state_machine.frame.x);

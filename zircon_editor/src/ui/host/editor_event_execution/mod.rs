@@ -4,6 +4,7 @@ mod common;
 mod dispatch;
 mod draft_event;
 mod execution_outcome;
+mod hierarchy_event;
 mod inspector_event;
 mod layout_command;
 mod menu_action;

@@ -5,7 +5,7 @@
 - Open: [Cargo PID reuse identity guard](01/failure-2026-07-14-cargo-pid-reuse-identity-guard.md) is the current failure-priority repair for Editor Layout 15 managed screenshot validation. It must preserve live Cargo descendant protection while rejecting a reused root PID with a different creation identity.
 - fixed 已修复：[failure-return-plan-table-row-corruption](../../zircon_editor/editor/07/fixed-2026-07-15-failure-return-plan-table-row-corruption.md)
 - fixed 已修复：[plan-output-audit-counts-lifecycle-links](../../zircon_editor/editor/12/fixed-2026-07-15-plan-output-audit-counts-lifecycle-links.md)
-- Open: [Goal closeout counts terminal failed commit intents](01/failure-2026-07-15-goal-closeout-counts-terminal-failed-intents.md) must keep terminal failed attempts as immutable history without blocking an otherwise accepted Goal closeout.
+- fixed 已修复：[goal-closeout-counts-terminal-failed-intents](../../zircon_runtime/text/01/fixed-2026-07-18-goal-closeout-counts-terminal-failed-intents.md)
 - fixed 已修复：[stale-session-pending-cpu-reservation-starvation](../../zircon_editor/editor/07/fixed-2026-07-16-stale-session-pending-cpu-reservation-starvation.md)
 - fixed 已修复：[milestone-finalize-session-relative-owned-scope](../../zircon_runtime/text/01/fixed-2026-07-15-milestone-finalize-session-relative-owned-scope.md)
 - fixed 已修复：[milestone-finalize-per-path-blob-verification-stall](../../zircon_runtime/frameworks/05/fixed-2026-07-15-milestone-finalize-per-path-blob-verification-stall.md)
@@ -509,3 +509,20 @@ At each accepted milestone:
 ## 7. Completion Audit
 
 The Goal is not complete merely because M1-M5 code exists. Before closeout, map every acceptance criterion in the approved design to current authoritative evidence and classify it as proven, contradicted, incomplete, weak, or missing. Completion requires all criteria proven, all required commands freshly passing, no open applicable Failure, no Critical/Important review item, a clean owned scope, daemon/browser/Hub/tray survival evidence, and the full 24-hour soak.
+
+## Code Review Suggestions (2026-07-30)
+
+Verified against the current implementation under `tools/session_coordinator/` and `tools/session_tray/`.
+
+### Diverges from current code, needs revision
+
+- §3 file map (line 87) states `tools/install-session-coordinator-task.ps1` installs/queries/removes "coordinator and tray user-startup entries". The tray startup lifecycle has actually been split into a separate script: `tools/install-session-tray-startup.ps1` exists, and `tools/install-session-coordinator-task.ps1` contains no `tray` reference at all. The "single script installs both" wording no longer matches the code; update §3 to reference both scripts and their split responsibilities.
+- §3 file map (line 65) constrains work to "monotonic schema versions 14-17 only". The chain has since advanced far past that window: `tools/session_coordinator/migrations.py:16` sets `LATEST_SCHEMA_VERSION = 51` (with M6.8 alone landing schema 41, per the §6 status row). A reader could mistake 17 for the current ceiling. Add a note that 14-17 was this plan's original allocation and later domains carried the chain to 51.
+
+### Implementation risk / tech debt
+
+- §3 (line 67) mandates that `server.py` only "delegate control requests instead of adding route logic to this already-large file", yet `tools/session_coordinator/server.py` is now 2485 lines. `CoordinatorApplication` (server.py:258) directly constructs the Codex discovery/spool/store/evidence/worker dependencies (server.py:480-500) and inlines snapshot assembly (server.py:668-684). The composition file is accreting the exact responsibility the plan warned against; consider adding a tech-debt item to extract worker composition and snapshot assembly into a dedicated module.
+
+### Verification gap
+
+- The §6 status table carries only one row (M6.8), and every `- [ ]` slice across M1-M6 remains unchecked, yet the implementation is clearly landed: `control_plane/`, `workflows/`, `web/`, and `tools/session_tray/` all exist, and `tools/session_coordinator/tests/` holds 30+ matching suites (`test_control_*`, `test_workflow_*`, `test_action_*`, `test_supervision_*`). The plan body's checkbox state is badly out of sync with the code. Either backfill the status table or annotate that slice completion is tracked solely in the `01/` records and the body checkboxes are no longer maintained, so readers do not misread progress from the unchecked boxes.

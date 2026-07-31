@@ -1,0 +1,162 @@
+// Pure source-order RNG replay for Sim's built-in camp construction loop.
+// The returned coordinates are deliberately pre-geometry: callers must still
+// apply the source's dungeon-door projection, safe-position search and ground
+// height before materializing an entity.
+
+var math = %import("zr.zircon.math");
+var rng = %import("kernel/rng");
+var terrain = %import("world/terrain_content");
+
+twoPi(): float {
+    return 6.283185307179586;
+}
+
+spawnIsValid(campIndex: int, spawnIndex: int, required: bool): int {
+    if (!required || campIndex < 0 || campIndex >= terrain.campCount(true) ||
+        spawnIndex < 0 || spawnIndex >= terrain.campMobCount(campIndex, true)) {
+        throw "woc camp spawn index is invalid";
+    }
+    return 1;
+}
+
+pub campConstructionDrawCount(required: bool): int {
+    if (!required) {
+        throw "woc camp construction draw count is required";
+    }
+    return terrain.campNonDummyMobCount(true) * 5;
+}
+
+pub drawsBeforeCampSpawn(campIndex: int, spawnIndex: int, required: bool): int {
+    spawnIsValid(campIndex, spawnIndex, required);
+    var draws = 0;
+    var index = 0;
+    while (index < campIndex) {
+        if (!terrain.campMobIsDummy(index, true)) {
+            draws = draws + terrain.campMobCount(index, true) * 5;
+        }
+        index = index + 1;
+    }
+    if (!terrain.campMobIsDummy(campIndex, true)) {
+        draws = draws + spawnIndex * 5;
+    }
+    return draws;
+}
+
+pub campSpawnIsFixedDummy(campIndex: int, spawnIndex: int, required: bool): bool {
+    spawnIsValid(campIndex, spawnIndex, required);
+    return terrain.campMobIsDummy(campIndex, true);
+}
+
+// Replays one construction-stream unit without installing the post-construction
+// observer. This is intentionally O(drawIndex), so a future world materializer
+// must own a single forward stream rather than query this presentation helper.
+pub constructionRandomUnit(seed: uint, drawIndex: int, required: bool): float {
+    if (!required || drawIndex < 0 || drawIndex >= campConstructionDrawCount(true)) {
+        throw "woc camp construction draw index is invalid";
+    }
+    var stream = new rng.Mulberry32(seed);
+    var value = 0.0;
+    var index = 0;
+    while (index <= drawIndex) {
+        value = stream.next();
+        index = index + 1;
+    }
+    return value;
+}
+
+pub rawCampSpawnX(seed: uint, campIndex: int, spawnIndex: int, required: bool): float {
+    spawnIsValid(campIndex, spawnIndex, required);
+    if (terrain.campMobIsDummy(campIndex, true)) {
+        return terrain.campX(campIndex, true);
+    }
+    var draw = drawsBeforeCampSpawn(campIndex, spawnIndex, true);
+    var angle = constructionRandomUnit(seed, draw, true) * twoPi();
+    var radius = math.sqrt(constructionRandomUnit(seed, draw + 1, true)) *
+        terrain.campRadius(campIndex, true);
+    return terrain.campX(campIndex, true) + math.sin(angle) * radius;
+}
+
+pub rawCampSpawnZ(seed: uint, campIndex: int, spawnIndex: int, required: bool): float {
+    spawnIsValid(campIndex, spawnIndex, required);
+    if (terrain.campMobIsDummy(campIndex, true)) {
+        return terrain.campZ(campIndex, true);
+    }
+    var draw = drawsBeforeCampSpawn(campIndex, spawnIndex, true);
+    var angle = constructionRandomUnit(seed, draw, true) * twoPi();
+    var radius = math.sqrt(constructionRandomUnit(seed, draw + 1, true)) *
+        terrain.campRadius(campIndex, true);
+    return terrain.campZ(campIndex, true) + math.cos(angle) * radius;
+}
+
+pub campSpawnLevel(seed: uint, campIndex: int, spawnIndex: int, required: bool): int {
+    spawnIsValid(campIndex, spawnIndex, required);
+    var maximum = terrain.campMobMaxLevel(campIndex, true);
+    if (terrain.campMobIsDummy(campIndex, true)) {
+        return maximum;
+    }
+    var minimum = terrain.campMobMinLevel(campIndex, true);
+    var draw = drawsBeforeCampSpawn(campIndex, spawnIndex, true);
+    return <int>math.floor(
+        <float>minimum + constructionRandomUnit(seed, draw + 2, true) *
+            <float>(maximum - minimum + 1)
+    );
+}
+
+pub campSpawnFacing(seed: uint, campIndex: int, spawnIndex: int, required: bool): float {
+    spawnIsValid(campIndex, spawnIndex, required);
+    if (terrain.campMobIsDummy(campIndex, true)) {
+        return 0.0;
+    }
+    var draw = drawsBeforeCampSpawn(campIndex, spawnIndex, true);
+    return -3.141592653589793 + constructionRandomUnit(seed, draw + 3, true) * twoPi();
+}
+
+pub campSpawnWanderSeconds(seed: uint, campIndex: int, spawnIndex: int, required: bool): float {
+    spawnIsValid(campIndex, spawnIndex, required);
+    if (terrain.campMobIsDummy(campIndex, true)) {
+        return 0.0;
+    }
+    var draw = drawsBeforeCampSpawn(campIndex, spawnIndex, true);
+    return 2.0 + constructionRandomUnit(seed, draw + 4, true) * 8.0;
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00001;
+}
+
+pub contractTest(): int {
+    var seed = <uint>20061;
+    if (campConstructionDrawCount(true) != 1530 ||
+        drawsBeforeCampSpawn(0, 0, true) != 0 ||
+        drawsBeforeCampSpawn(36, 0, true) != 865 ||
+        drawsBeforeCampSpawn(37, 0, true) != 865) {
+        return -1;
+    }
+    if (!campSpawnIsFixedDummy(36, 0, true) ||
+        rawCampSpawnX(seed, 36, 0, true) != -40.0 ||
+        rawCampSpawnZ(seed, 36, 0, true) != 648.0 ||
+        campSpawnLevel(seed, 36, 0, true) != 20 ||
+        campSpawnFacing(seed, 36, 0, true) != 0.0 ||
+        campSpawnWanderSeconds(seed, 36, 0, true) != 0.0) {
+        return -2;
+    }
+    if (!closeEnough(rawCampSpawnX(seed, 0, 0, true), -11.218006452547318) ||
+        !closeEnough(rawCampSpawnZ(seed, 0, 0, true), 64.69484230798517) ||
+        campSpawnLevel(seed, 0, 0, true) != 1 ||
+        !closeEnough(campSpawnFacing(seed, 0, 0, true), -2.241543395702632) ||
+        !closeEnough(campSpawnWanderSeconds(seed, 0, 0, true), 7.203460566699505)) {
+        return -3;
+    }
+    if (!closeEnough(rawCampSpawnX(seed, 37, 0, true), -55.96840876236333) ||
+        !closeEnough(rawCampSpawnZ(seed, 37, 0, true), 605.0406469040696) ||
+        campSpawnLevel(seed, 37, 0, true) != 14 ||
+        !closeEnough(campSpawnFacing(seed, 37, 0, true), -0.7700565590551904) ||
+        !closeEnough(campSpawnWanderSeconds(seed, 37, 0, true), 3.096874499693513)) {
+        return -4;
+    }
+    return 1;
+}

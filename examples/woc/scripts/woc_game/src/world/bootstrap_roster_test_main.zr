@@ -1,0 +1,28 @@
+// Current-source constructor entity-ID schedule for a no-player built-in Sim.
+
+var roster = %import("world/bootstrap_roster");
+
+if (roster.sequentialEntityCount(true) != 408 || roster.nextSequentialEntityId(true) != 409 ||
+    roster.initialWorldEntityCount(true) != 410 ||
+    roster.sequentialEntityId(roster.CATEGORY_STATIC_NPC, 0, true) != 1 ||
+    roster.sequentialEntityId(roster.CATEGORY_STATIC_NPC, 30, true) != 31 ||
+    roster.sequentialEntityId(roster.CATEGORY_CAMP_MOB, 0, true) != 32 ||
+    roster.sequentialEntityId(roster.CATEGORY_CAMP_MOB, 306, true) != 338 ||
+    roster.sequentialEntityId(roster.CATEGORY_GROUND_OBJECT, 0, true) != 339 ||
+    roster.sequentialEntityId(roster.CATEGORY_GROUND_OBJECT, 54, true) != 393 ||
+    roster.sequentialEntityId(roster.CATEGORY_MAILBOX, 0, true) != 394 ||
+    roster.sequentialEntityId(roster.CATEGORY_DUNGEON_DOOR, 4, true) != 401 ||
+    roster.sequentialEntityId(roster.CATEGORY_SPIRIT_HEALER, 6, true) != 408) {
+    throw "woc bootstrap sequential entity schedule vector failed";
+}
+
+if (roster.categoryForSequentialEntityId(339, true) != roster.CATEGORY_GROUND_OBJECT ||
+    roster.sourceIndexForSequentialEntityId(339, true) != 0 ||
+    roster.categoryForSequentialEntityId(408, true) != roster.CATEGORY_SPIRIT_HEALER ||
+    roster.sourceIndexForSequentialEntityId(408, true) != 6 ||
+    roster.reservedNpcEntityId(0, true) != 1000000000 ||
+    roster.reservedNpcEntityId(1, true) != 1000000001) {
+    throw "woc bootstrap entity category vector failed";
+}
+
+return 0;

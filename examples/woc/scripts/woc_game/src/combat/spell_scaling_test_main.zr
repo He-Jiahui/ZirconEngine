@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var scaling = %import("combat/spell_scaling");
+
+console.printLine("m4-spell-scaling-test");
+var result = scaling.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

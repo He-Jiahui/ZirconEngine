@@ -1,0 +1,127 @@
+// Source-pinned $WOC Protect Yumi! scalar match rules from social/yumi.ts.
+// Time is carried as the source's fixed 20Hz tick count, keeping the source
+// 600s/15s boundaries exact without an unproven script floor/ceil/round API.
+// Queue packing, maze/collision data, entities, events, persistence and WOS
+// dispatch remain with their respective host authorities.
+
+pub yumiTickRate(): int { return 20; }
+pub yumiHp(): int { return 5000; }
+pub yumiCountdownSeconds(): int { return 5; }
+pub yumiTeleportEverySeconds(): int { return 60; }
+pub yumiRespawnSeconds(): int { return 10; }
+pub yumiSuddenAtSeconds(): int { return 600; }
+pub yumiSuddenStepSeconds(): int { return 15; }
+pub yumiSuddenBleedEverySeconds(): int { return 2; }
+pub yumiTeleportMinimumSeparation(): int { return 5; }
+
+// The source YumiFormat union maps yumi3 to 3 and yumi5 to 5.
+pub yumiTeamSize(format: string): int {
+    return format == "yumi3" ? 3 : 5;
+}
+
+pub yumiSuddenAtTicks(): int {
+    return yumiSuddenAtSeconds() * yumiTickRate();
+}
+
+pub yumiSuddenStepTicks(): int {
+    return yumiSuddenStepSeconds() * yumiTickRate();
+}
+
+// Equivalent to suddenStep(timer) when timer is the authoritative 20Hz clock.
+pub yumiSuddenStepForElapsedTicks(elapsedTicks: int): int {
+    if (elapsedTicks < yumiSuddenAtTicks()) { return 0; }
+    return 1 + <int>(<float>(elapsedTicks - yumiSuddenAtTicks()) / <float>yumiSuddenStepTicks());
+}
+
+// Equivalent to yumiTakenMult(timer): +25% for every sudden-death step.
+pub yumiTakenMultiplierForElapsedTicks(elapsedTicks: int): float {
+    return 1.0 + 0.25 * <float>yumiSuddenStepForElapsedTicks(elapsedTicks);
+}
+
+// ceil(YUMI_HP * 0.01 * step) is exactly 50 * step for the source constants.
+pub yumiSuddenBleedDamageForElapsedTicks(elapsedTicks: int): int {
+    return 50 * yumiSuddenStepForElapsedTicks(elapsedTicks);
+}
+
+pub yumiSuddenBleedEveryTicks(): int {
+    return yumiSuddenBleedEverySeconds() * yumiTickRate();
+}
+
+pub yumiSuddenBleedPulseDue(elapsedTicks: int): bool {
+    return elapsedTicks >= yumiSuddenAtTicks() &&
+        elapsedTicks % yumiSuddenBleedEveryTicks() == 0;
+}
+
+// Equivalent to Math.max(0, Math.ceil(remainingSeconds)) for a remaining
+// non-fractional fixed-tick duration.
+pub yumiCeilRemainingSecondsFromTicks(remainingTicks: int): int {
+    if (remainingTicks <= 0) { return 0; }
+    return <int>(<float>(remainingTicks + yumiTickRate() - 1) / <float>yumiTickRate());
+}
+
+// Math.round(amount * (1 + 0.25 * suddenStep)) on the non-negative combat
+// amount boundary, followed by the source `Math.min(dmg, cat.hp)` clamp.
+pub yumiScaledDamage(amount: int, elapsedTicks: int): int {
+    if (amount <= 0) { return 0; }
+    var quarters = 4 + yumiSuddenStepForElapsedTicks(elapsedTicks);
+    return <int>(<float>(amount * quarters + 2) / 4.0);
+}
+
+pub yumiAppliedDamage(amount: int, hp: int, elapsedTicks: int): int {
+    if (hp <= 0) { return 0; }
+    var damage = yumiScaledDamage(amount, elapsedTicks);
+    return damage < hp ? damage : hp;
+}
+
+// Resolve source resolveYumiTiebreak() after the per-match RNG owner supplies
+// its `rng.next() < 0.5` result as `coinFavorsA`. dmgToYumiB is Team A's
+// damage to the enemy cat, and therefore wins the second comparison.
+pub yumiTiebreakWinner(
+    hpA: int,
+    hpB: int,
+    dmgToYumiA: int,
+    dmgToYumiB: int,
+    coinFavorsA: bool
+): string {
+    if (hpA != hpB) return hpA > hpB ? "A" : "B";
+    if (dmgToYumiA != dmgToYumiB) return dmgToYumiB > dmgToYumiA ? "A" : "B";
+    return coinFavorsA ? "A" : "B";
+}
+
+pub contractTest(): int {
+    if (yumiTickRate() != 20 || yumiHp() != 5000 ||
+        yumiCountdownSeconds() != 5 || yumiTeleportEverySeconds() != 60 ||
+        yumiRespawnSeconds() != 10 || yumiSuddenAtSeconds() != 600 ||
+        yumiSuddenStepSeconds() != 15 || yumiSuddenBleedEverySeconds() != 2 ||
+        yumiTeleportMinimumSeparation() != 5 || yumiTeamSize("yumi3") != 3 ||
+        yumiTeamSize("yumi5") != 5) { return -1; }
+    if (yumiSuddenStepForElapsedTicks(11999) != 0 ||
+        yumiSuddenStepForElapsedTicks(12000) != 1 ||
+        yumiSuddenStepForElapsedTicks(12299) != 1 ||
+        yumiSuddenStepForElapsedTicks(12300) != 2 ||
+        yumiSuddenBleedDamageForElapsedTicks(12000) != 50 ||
+        yumiSuddenBleedDamageForElapsedTicks(12300) != 100 ||
+        !yumiSuddenBleedPulseDue(12000) || yumiSuddenBleedPulseDue(12001)) { return -2; }
+    if (yumiTakenMultiplierForElapsedTicks(11999) != 1.0 ||
+        yumiTakenMultiplierForElapsedTicks(12000) != 1.25 ||
+        yumiTakenMultiplierForElapsedTicks(12300) != 1.5 ||
+        yumiCeilRemainingSecondsFromTicks(-1) != 0 ||
+        yumiCeilRemainingSecondsFromTicks(0) != 0 ||
+        yumiCeilRemainingSecondsFromTicks(1) != 1 ||
+        yumiCeilRemainingSecondsFromTicks(20) != 1 ||
+        yumiCeilRemainingSecondsFromTicks(21) != 2) { return -3; }
+    if (yumiScaledDamage(100, 11999) != 100 ||
+        yumiScaledDamage(100, 12000) != 125 ||
+        yumiScaledDamage(1, 12000) != 1 ||
+        yumiScaledDamage(2, 12000) != 3 ||
+        yumiScaledDamage(1, 12300) != 2 ||
+        yumiAppliedDamage(10000, 200, 12000) != 200 ||
+        yumiAppliedDamage(1, 0, 12000) != 0) { return -4; }
+    if (yumiTiebreakWinner(100, 50, 0, 0, false) != "A" ||
+        yumiTiebreakWinner(50, 100, 0, 0, true) != "B" ||
+        yumiTiebreakWinner(50, 50, 100, 300, false) != "A" ||
+        yumiTiebreakWinner(50, 50, 300, 100, true) != "B" ||
+        yumiTiebreakWinner(50, 50, 100, 100, true) != "A" ||
+        yumiTiebreakWinner(50, 50, 100, 100, false) != "B") { return -5; }
+    return 1;
+}

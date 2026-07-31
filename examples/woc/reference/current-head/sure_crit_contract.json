@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/sure_crit_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/sure_crit.ts": "04ba4d9cd579f6b7694523fca1546c38f07b8ecfd35203984ea16a419180a70e"
+  },
+  "default_charges": 1
+}

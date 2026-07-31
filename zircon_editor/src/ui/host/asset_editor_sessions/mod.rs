@@ -1,3 +1,4 @@
+mod dependency_index;
 mod editing;
 mod hydration;
 mod imports;
@@ -19,10 +20,13 @@ use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError};
 use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind, v2::UiV2AssetKind};
 
+pub(crate) use dependency_index::{UiAssetDependencyGeneration, UiAssetDependencyImpact};
 pub(crate) use editing::{
     preview_size_for_preset, ui_asset_editor_view_descriptor, UI_ASSET_EDITOR_DESCRIPTOR_ID,
 };
+pub(crate) use refresh::UiAssetWorkspaceRefreshPipeline;
 pub(crate) use watcher::UiAssetWorkspaceWatcher;
+pub use watcher::{UiAssetWorkspaceWatchDiagnostics, UiAssetWorkspaceWatchPollReport};
 pub(crate) use workspace_state::UiAssetDiffSnapshot;
 pub(crate) use workspace_state::{
     ui_asset_source_hash, UiAssetExternalConflict, UiAssetStaleImportDiagnostic,

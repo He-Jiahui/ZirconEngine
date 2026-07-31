@@ -2,8 +2,9 @@ use std::time::{Duration, Instant};
 
 use crate::core::framework::render::{
     MotionVectorCameraStatus, PostProcessGraphResourceNames, PostProcessPassGraph,
-    RenderPluginRendererOutputs,
+    RenderGraphPassProfileMetrics, RenderPluginRendererOutputs,
 };
+use crate::graphics::backend::{GpuPassTimer, GpuPassTimestampScope};
 use crate::graphics::debug_markers::{
     insert_marker, marker_for_render_graph_pass, marker_for_render_pass_stage,
 };
@@ -21,6 +22,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 };
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawReplayStats;
 use crate::graphics::scene::scene_renderer::overlay::{
     PreparedOverlayBuffers, ViewportOverlayRenderer,
 };
@@ -42,6 +44,7 @@ struct RenderGraphStageExecution
         &'a mut RenderGraphExecutionRecord,
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) plugin_outputs:
         &'a mut RenderPluginRendererOutputs,
+    gpu_pass_timer: Option<&'a mut GpuPassTimer>,
 }
 
 impl<'a> RenderGraphStageExecution<'a> {
@@ -49,11 +52,29 @@ impl<'a> RenderGraphStageExecution<'a> {
         resources: &'a mut RenderGraphExecutionResources,
         record: &'a mut RenderGraphExecutionRecord,
         plugin_outputs: &'a mut RenderPluginRendererOutputs,
+        gpu_pass_timer: Option<&'a mut GpuPassTimer>,
     ) -> Self {
         Self {
             resources,
             record,
             plugin_outputs,
+            gpu_pass_timer,
+        }
+    }
+
+    fn begin_gpu_pass(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        pass_name: &str,
+    ) -> Option<GpuPassTimestampScope> {
+        self.gpu_pass_timer
+            .as_deref_mut()
+            .and_then(|timer| timer.begin_pass(encoder, pass_name))
+    }
+
+    fn end_gpu_pass(&mut self, encoder: &mut wgpu::CommandEncoder, scope: GpuPassTimestampScope) {
+        if let Some(timer) = self.gpu_pass_timer.as_deref_mut() {
+            timer.end_pass(encoder, scope);
         }
     }
 
@@ -140,13 +161,42 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
 mod tests {
     use crate::core::framework::render::{
         PostProcessEffectKind, PostProcessPassGraph, PostProcessPassNode,
-        RenderPluginRendererOutputs,
+        RenderGraphPassProfileMetrics, RenderPluginRendererOutputs,
     };
     use crate::graphics::scene::scene_renderer::graph_execution::{
         RenderGraphExecutionRecord, RenderGraphExecutionResources,
     };
+    use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawReplayStats;
 
-    use super::RenderGraphStageExecution;
+    use super::{RenderGraphStageExecution, render_profile_metrics_from_mesh_replay_stats};
+
+    #[test]
+    fn mesh_replay_counter_delta_maps_to_pass_profile_metrics() {
+        let before = MeshDrawReplayStats {
+            draw_call_count: 3,
+            state_change_count: 5,
+            bind_skip_count: 2,
+        };
+        let after = MeshDrawReplayStats {
+            draw_call_count: 7,
+            state_change_count: 11,
+            bind_skip_count: 4,
+        };
+
+        assert_eq!(
+            render_profile_metrics_from_mesh_replay_stats(Some(before), Some(after)),
+            RenderGraphPassProfileMetrics::new(4, 0, 6)
+        );
+        assert_eq!(
+            render_profile_metrics_from_mesh_replay_stats(Some(after), Some(before)),
+            RenderGraphPassProfileMetrics::default(),
+            "replay counter resets must not underflow the per-pass profile"
+        );
+        assert_eq!(
+            render_profile_metrics_from_mesh_replay_stats(None, Some(after)),
+            RenderGraphPassProfileMetrics::default()
+        );
+    }
 
     #[test]
     fn stage_execution_records_post_process_graph_through_record_owner() {
@@ -162,7 +212,7 @@ mod tests {
         let mut record = RenderGraphExecutionRecord::default();
         let mut plugin_outputs = RenderPluginRendererOutputs::default();
         let mut execution =
-            RenderGraphStageExecution::new(&mut resources, &mut record, &mut plugin_outputs);
+            RenderGraphStageExecution::new(&mut resources, &mut record, &mut plugin_outputs, None);
 
         execution.record_post_process_graph(&graph);
 
@@ -256,6 +306,7 @@ fn execute_graph_pass(
         GraphicsError::Asset(format!("render pass `{}` has no executor id", pass.name))
     })?;
     let executor_id = RenderPassExecutorId::new(executor_id.clone());
+    let gpu_timestamp_scope = execution.begin_gpu_pass(encoder, &pass.name);
     let mut gpu = RenderPassGpuExecutionContext::new(
         device,
         queue,
@@ -328,15 +379,14 @@ fn execute_graph_pass(
         .with_resource_resolver(pipeline.graph(), pass.id)
         .with_gpu(gpu);
 
+    let mesh_replay_stats_before = mesh_draw_lists.map(|lists| lists.replay_stats.stats());
     let profile_started = Instant::now();
     let execute_result = registry.execute(&mut context);
     let cpu_elapsed_micros = duration_to_micros(profile_started.elapsed());
-    execution.record.push_pass_profile(
-        pass.name.clone(),
-        executor_id.as_str().to_string(),
-        cpu_elapsed_micros,
+    let render_metrics = render_profile_metrics_from_mesh_replay_stats(
+        mesh_replay_stats_before,
+        mesh_draw_lists.map(|lists| lists.replay_stats.stats()),
     );
-    execute_result.map_err(GraphicsError::Asset)?;
     let (
         compute_dispatches,
         motion_vector_camera_status,
@@ -353,6 +403,21 @@ fn execute_graph_pass(
             )
         })
         .unwrap_or_default();
+    drop(context);
+    if let Some(scope) = gpu_timestamp_scope {
+        execution.end_gpu_pass(encoder, scope);
+    }
+    execution
+        .record
+        .push_pass_profile_with_budget_key_and_compute_dispatches(
+            pass.name.clone(),
+            executor_id.as_str().to_string(),
+            stage_entry.stage.frame_profile_budget_key(),
+            cpu_elapsed_micros,
+            render_metrics,
+            &compute_dispatches,
+        );
+    execute_result.map_err(GraphicsError::Asset)?;
     let cluster_grid_size = cluster_dimensions_for_size(frame.viewport_size);
     let hzb_plan = HzbBuilder::new(frame.extract.view.effective_render_size()).build_plan();
     let hzb_occlusion_indirect_arg_count = mesh_draw_lists
@@ -413,4 +478,20 @@ fn execute_graph_pass(
 
 fn duration_to_micros(duration: Duration) -> u64 {
     duration.as_micros().min(u128::from(u64::MAX)) as u64
+}
+
+fn render_profile_metrics_from_mesh_replay_stats(
+    before: Option<MeshDrawReplayStats>,
+    after: Option<MeshDrawReplayStats>,
+) -> RenderGraphPassProfileMetrics {
+    let Some((before, after)) = before.zip(after) else {
+        return RenderGraphPassProfileMetrics::default();
+    };
+    RenderGraphPassProfileMetrics::new(
+        after.draw_call_count.saturating_sub(before.draw_call_count),
+        0,
+        after
+            .state_change_count
+            .saturating_sub(before.state_change_count),
+    )
 }

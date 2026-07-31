@@ -1,0 +1,6 @@
+{
+  "name": "woc_world_state_tests",
+  "source": "src",
+  "binary": "bin-world-state-tests",
+  "entry": "world/state_test_main"
+}

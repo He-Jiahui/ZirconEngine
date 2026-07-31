@@ -17,6 +17,10 @@ related_code:
   - tools/session_coordinator/control_plane/actions/fingerprint.py
   - tools/session_coordinator/control_plane/actions/executor.py
   - tools/session_coordinator/control_plane/actions/service.py
+  - tools/session_coordinator/cli.py
+  - tools/session_coordinator/sessions.py
+  - tools/session_coordinator/workflows/plan_import.py
+  - tools/session_coordinator/workflows/milestones.py
   - tools/session_coordinator/migrations.py
   - tools/session_coordinator/supervision/lifecycle.py
   - tools/session_coordinator/patches.py
@@ -44,6 +48,10 @@ implementation_files:
   - tools/session_coordinator/control_plane/actions/fingerprint.py
   - tools/session_coordinator/control_plane/actions/executor.py
   - tools/session_coordinator/control_plane/actions/service.py
+  - tools/session_coordinator/cli.py
+  - tools/session_coordinator/sessions.py
+  - tools/session_coordinator/workflows/plan_import.py
+  - tools/session_coordinator/workflows/milestones.py
   - tools/session_coordinator/migrations.py
   - tools/session_coordinator/supervision/lifecycle.py
   - tools/session_coordinator/patches.py
@@ -72,6 +80,7 @@ tests:
   - tools/session_coordinator/tests/test_action_concurrency.py
   - tools/session_coordinator/tests/test_server.py
   - tools/session_coordinator/tests/test_supervision_actions.py
+  - tools/session_coordinator/tests/test_sessions.py
   - tools/session_coordinator/web/src/__tests__/contracts.test.ts
   - tools/session_coordinator/web/src/__tests__/actions.test.tsx
   - tools/session_coordinator/web/src/__tests__/components.test.tsx
@@ -116,7 +125,7 @@ doc_type: module-detail
 9. Artifact paths are database-selected and canonically confined. The browser receives only safe validation-lane state; commands, absolute targets, compatibility/reuse payloads, PID state, exit codes, and cleanup errors remain coordinator-internal.
 10. A maintenance-hold bootstrap may create one previously unknown Session only through `session.activate@maintenanceSessionId`, with Maintainer authority and complete display name, plan path, and write scope. Its action fingerprint and pre-creation audit events bind to the existing maintenance Session; ordinary Session activation remains target-session-bound.
 11. `service.rollover` keeps supervision `healthy` and admission open. It never creates a global drain or maintenance hold; it rejects a real managed Cargo PID tree and leaves leased-but-unstarted jobs, reservations, compatibility payloads and FIFO state durable for the successor.
-12. A successful direct or controlled `session.heartbeat` renews only the caller Session's live file leases and returns the renewed count. An active Session cannot silently outlive its write lease while another Session is allowed to claim the same path.
+12. A successful direct or controlled `session.heartbeat` renews only the caller Session's live file leases and returns the renewed count. If the caller was marked `stale`, that same heartbeat atomically resumes it as `active` with an auditable status event; it never revives an archived/cancelled Session, an expired CPU reservation, or a prior validation wait. An active Session cannot silently outlive its write lease while another Session is allowed to claim the same path.
 13. A lease scope is hierarchy-exclusive: a live directory lease conflicts with every foreign descendant file or directory lease, and a live child-file lease conflicts with a later foreign ancestor claim. A directory owner may validate its own descendants without manufacturing duplicate child leases. This makes shared-main writes exclusive at the module boundary rather than only at byte-identical paths.
 14. Automatic Session stale marking skips only a Session with a managed Cargo job in `running` state. It does not renew file leases or reservations, shield an unstarted `leased` job, or change FIFO admission; once the job is terminal, the ordinary liveness window applies again.
 15. A healthy rollover successor coalesces a second `service.rollover` requested during its 60-second stabilization window. The duplicate action succeeds with an auditable `coalesced` result and does not schedule another shutdown, close Session admission, or alter leases and FIFO reservations.
@@ -126,6 +135,14 @@ doc_type: module-detail
 The authenticated CLI asks the legacy coordinator route to issue a bootstrap ticket. A browser consumes that ticket through the loopback facade and receives an Observer cookie. A local runtime caller may separately issue a one-use elevation grant bound to the same actor, daemon instance and optional Session. Consuming it rotates the CSRF token and grants a short-lived Operator, Committer or Maintainer role; Maintainer issuance additionally requires the local maintenance capability. A daemon restart changes `instance_id`, invalidating all previous browser credentials and grants.
 
 For a controlled action, the browser submits only a catalog kind and its exact typed parameters. The service checks permission and Session scope, captures an impact summary, the exact Patch/Validation/Failure resource set, and a state fingerprint, then returns a two-minute preview with an explicit confirmation phrase. Confirm records an immutable approval reason and executes only if the identity, daemon instance, scope, phrase and current fingerprint still match. Fingerprint revalidation and the typed side effect share the same daemon mutation gate, closing the preview/execute race against CLI commands, maintenance and other actions. Any intervening state change yields `action_state_changed`; the UI obtains a new preview and displays its impact diff without automatically retrying the mutation.
+
+`milestone prepare --milestone M<n>` now forwards that exact normalized node key
+to the typed `topology.refresh` prepare variant. It refreshes only semantic
+topology identity: ordinary plan prose, Failure links, and status text reuse the
+active immutable topology version rather than replacing it. The returned
+preparation names the requested node plus its current-version manifest ID and
+hash, so later validation/review/commit actions cannot silently aggregate an
+older same-numbered slice.
 
 The maintainer-only rollover action writes an `awaiting_restart` lifecycle intent before asking the current loopback listener to exit. It does not rewrite Cargo ledger rows or state admission as draining. The successor persists the new descriptor on the fixed loopback endpoint, recognizes that exact intent and marks the same controlled action succeeded. A normal interrupted action is still failed on successor startup; only the explicit rollover handoff is preserved.
 
@@ -137,7 +154,7 @@ live-Cargo safety check.
 
 `session.heartbeat` is a lightweight non-blocking mutation. The legacy command route and the typed control action both renew the Session record and its own active leases in the same request flow; the response includes `leases.renewed`. This preserves source ownership during long validation waits without extending any foreign lease or changing Cargo lane admission.
 
-The default business-Session liveness window is 3600 seconds. It is deliberately
+The default business-Session liveness window is 86400 seconds (24 hours). It is deliberately
 longer than the 300-second lease plus 120-second grace and the independent Cargo
 reservation TTL: a missed coordinator heartbeat no longer turns ordinary focused
 work into a false global-looking interruption, while abandoned file ownership and

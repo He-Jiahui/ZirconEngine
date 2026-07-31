@@ -2,7 +2,7 @@ use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::{
     divider_centered_label_y, divider_font_size, divider_label_line_height,
     divider_min_text_frame_extent, divider_vertical_text_horizontal_padding,
-    DIVIDER_WRAPPER_HORIZONTAL_PADDING, DIVIDER_WRAPPER_VERTICAL_PADDING,
+    divider_wrapper_horizontal_padding, divider_wrapper_vertical_padding,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn horizontal_label_text_frame(
@@ -17,8 +17,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn horizon
     }
     let font_size = divider_font_size(node, rect.height);
     let line_height = divider_label_line_height(font_size);
-    let text_left = label_left + DIVIDER_WRAPPER_HORIZONTAL_PADDING;
-    let text_right = (label_right - DIVIDER_WRAPPER_HORIZONTAL_PADDING).max(text_left);
+    let horizontal_padding = divider_wrapper_horizontal_padding();
+    let text_left = label_left + horizontal_padding;
+    let text_right = (label_right - horizontal_padding).max(text_left);
     Some((
         FrameRect {
             x: text_left,
@@ -44,7 +45,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn vertica
     let font_size = divider_font_size(node, rect.height);
     let line_height = divider_label_line_height(font_size);
     let horizontal_padding = divider_vertical_text_horizontal_padding(rect.width);
-    let text_top = label_top + DIVIDER_WRAPPER_VERTICAL_PADDING;
+    let text_top = label_top + divider_wrapper_vertical_padding();
     Some((
         FrameRect {
             x: rect.x + horizontal_padding,

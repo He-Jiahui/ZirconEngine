@@ -2,6 +2,7 @@ use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
+use super::super::super::template_selection_control_geometry::frame_is_within;
 
 const CHECKBOX_TICK_ICON: &str = "checkmark";
 
@@ -12,6 +13,9 @@ pub(super) fn push_checkbox_tick(
     order: i32,
     opacity: f32,
 ) {
+    if mark.width < 12.0 || mark.height < 12.0 {
+        return;
+    }
     let color = PALETTE.accent;
     if push_icon_asset_pixels(
         commands,
@@ -25,16 +29,18 @@ pub(super) fn push_checkbox_tick(
         return;
     }
     for tick in checkbox_tick_segments(mark) {
-        commands.push(HostPaintCommand::quad(
-            tick,
-            Some(clip.clone()),
-            order,
-            Some(color),
-            None,
-            0.0,
-            1.0,
-            opacity,
-        ));
+        if frame_is_within(&tick, mark) {
+            commands.push(HostPaintCommand::quad(
+                tick,
+                Some(clip.clone()),
+                order,
+                Some(color),
+                None,
+                0.0,
+                1.0,
+                opacity,
+            ));
+        }
     }
 }
 

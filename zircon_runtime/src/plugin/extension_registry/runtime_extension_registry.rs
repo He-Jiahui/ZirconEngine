@@ -228,7 +228,7 @@ impl RuntimeExtensionRegistry {
             table.deactivate_owner(owner);
         }
         self.invalidate_bridge_table();
-        for listener in self.owner_revocation_listeners.clone() {
+        for listener in &self.owner_revocation_listeners {
             listener.notify(owner);
         }
         self.owner_revocation_listeners

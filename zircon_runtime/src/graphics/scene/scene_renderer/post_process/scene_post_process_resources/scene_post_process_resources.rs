@@ -1,4 +1,5 @@
 use super::super::resources::depth_sampling_mode::PostProcessDepthSamplingMode;
+use super::super::resources::terminal_resource_cache::TerminalPostProcessResourceCache;
 
 pub(crate) struct ScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer) depth_sampling_mode:
@@ -37,6 +38,8 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) smaa_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) terminal_resource_cache:
+        TerminalPostProcessResourceCache,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) ssao_pipeline:

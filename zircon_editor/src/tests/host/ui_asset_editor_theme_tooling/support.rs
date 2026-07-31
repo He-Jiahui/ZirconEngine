@@ -2,12 +2,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::scene::DefaultLevelManager;
 
+use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
 use crate::ui::host::module::{self, module_descriptor};
 use crate::ui::workbench::project::EditorProjectDocument;
 
@@ -166,10 +168,27 @@ pub(crate) fn setup_theme_project(
     let config_path = unique_temp_path(config_prefix);
     let project_root = unique_temp_dir(project_prefix);
     let runtime = editor_runtime_with_config_path(&config_path);
+    let project_name = project_root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .expect("theme project root must have a UTF-8 final component");
+    let location = project_root.parent().expect("theme project root parent");
+    ProjectAuthority::default()
+        .create_project(&NewProjectDraft {
+            project_name: project_name.to_string(),
+            location: location.to_string_lossy().into_owned(),
+            template: NewProjectTemplate::RenderableEmpty,
+        })
+        .expect("theme fixture project should be created");
+    let mut project =
+        ProjectManager::open(&project_root).expect("theme fixture project should open");
+    project
+        .scan_and_import()
+        .expect("theme fixture project should scan");
     let world = DefaultLevelManager::default()
         .create_default_level()
         .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    EditorProjectDocument::save_to_project(&project, &world, None).unwrap();
 
     let layout_path = project_root
         .join("assets")

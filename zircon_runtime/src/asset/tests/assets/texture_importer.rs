@@ -13,6 +13,22 @@ use crate::core::framework::render::{
 };
 
 #[test]
+fn texture_descriptor_projection_and_cube_lut_defaults_do_not_rebuild_owned_descriptors() {
+    let metadata = include_str!("../../assets/texture/metadata.rs");
+    assert!(metadata.contains("into_render_image_descriptor"));
+    assert!(!metadata.contains(".to_render_image_descriptor"));
+
+    let cube_lut = include_str!("../../assets/texture/cube_lut.rs");
+    assert!(cube_lut.contains("let defaults = TextureAssetDescriptor::rgba8_srgb();"));
+    assert_eq!(
+        cube_lut
+            .matches("TextureAssetDescriptor::rgba8_srgb()")
+            .count(),
+        1
+    );
+}
+
+#[test]
 fn importer_decodes_png_and_jpeg_textures() {
     let root = unique_temp_project_root("texture_import");
     fs::create_dir_all(&root).unwrap();

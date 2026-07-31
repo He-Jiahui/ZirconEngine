@@ -1,0 +1,47 @@
+// Source Rng retains only a Mulberry32 u32 cursor. World construction consumes
+// five draws per non-dummy camp mob before the first simulation tick, but WOC
+// starts observing draws only after the retained Eastbrook snapshot is loaded.
+
+var rng = %import("kernel/rng");
+
+pub currentCampSpawnDrawsPerMob(required: bool): int {
+    if (!required) {
+        throw "woc Eastbrook construction draw count is required";
+    }
+    return 5;
+}
+
+pub constructorCursorAfterCampSpawns(
+    seed: uint,
+    nonDummyCampMobs: int,
+    required: bool
+): uint {
+    if (!required || nonDummyCampMobs < 0) {
+        throw "woc Eastbrook construction RNG arguments are invalid";
+    }
+    var cursor = seed & <uint>4294967295;
+    if (cursor == <uint>0) {
+        cursor = <uint>2654435769;
+    }
+    var remaining = nonDummyCampMobs * currentCampSpawnDrawsPerMob(true);
+    while (remaining > 0) {
+        cursor = (cursor + <uint>1831565813) & <uint>4294967295;
+        // The source evaluates Mulberry32 at construction time; its returned
+        // value affects spawn data already captured by m8_eastbrook_encounter.
+        // Evaluating the mix here documents the identical schedule while the
+        // authoritative post-construction state needs only the cursor.
+        rng.mix(cursor, 1);
+        remaining = remaining - 1;
+    }
+    return cursor;
+}
+
+pub contractTest(): int {
+    if (currentCampSpawnDrawsPerMob(true) != 5 ||
+        constructorCursorAfterCampSpawns(<uint>1012, 306, true) != <uint>1977017910 ||
+        constructorCursorAfterCampSpawns(<uint>20061, 306, true) != <uint>1977036959 ||
+        constructorCursorAfterCampSpawns(<uint>0, 0, true) != <uint>2654435769) {
+        return -1;
+    }
+    return 1;
+}

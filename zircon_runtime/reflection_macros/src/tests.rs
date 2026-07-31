@@ -1,6 +1,18 @@
 use syn::{DeriveInput, ItemFn};
 
 #[test]
+fn macro_expansion_sources_use_single_field_and_module_item_passes() {
+    let derive_source = include_str!("derive_type.rs");
+    assert!(derive_source.contains("fn field_tokens("));
+    assert!(!derive_source.contains("fn field_registration_tokens("));
+    assert!(!derive_source.contains("fn field_projection_tokens("));
+
+    let module_source = include_str!("module.rs");
+    assert!(module_source.contains("for item in items"));
+    assert!(!module_source.contains("items\n        .iter()\n        .filter_map"));
+}
+
+#[test]
 fn host_function_rejects_async_functions() {
     let function: ItemFn = syn::parse_quote! {
         async fn load_value() -> f64 {

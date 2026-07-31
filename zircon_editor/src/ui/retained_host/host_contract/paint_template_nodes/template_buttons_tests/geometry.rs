@@ -17,8 +17,8 @@ fn workbench_button_honors_declared_layout_offset() {
 
     let rect = button_paint_rect(&node, &node.frame_rect());
 
-    assert_eq!(rect.x, 15.0);
-    assert_eq!(rect.y, 7.0);
+    assert_eq!(rect.x, 16.0);
+    assert_eq!(rect.y, 8.0);
     assert_eq!(rect.width, 80.0);
     assert_eq!(rect.height, 32.0);
 }

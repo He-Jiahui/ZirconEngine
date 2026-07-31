@@ -34,7 +34,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
     rect: &FrameRect,
 ) -> FrameRect {
     let metrics = button_surface_indicator_metrics();
-    let height = metrics.underline_height.min(rect.height).max(1.0);
+    let height = metrics.underline_height.min(rect.height).max(0.0);
     let inset = if is_asset_browser_tab_like_button(node) {
         metrics
             .asset_browser_tab_inset_x
@@ -46,7 +46,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
     FrameRect {
         x: rect.x + inset,
         y: rect.y + (rect.height - height).max(0.0),
-        width: (rect.width - inset * 2.0).max(1.0),
+        width: (rect.width - inset * 2.0).max(0.0),
         height,
     }
 }

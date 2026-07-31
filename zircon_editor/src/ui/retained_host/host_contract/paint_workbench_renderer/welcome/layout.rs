@@ -3,8 +3,6 @@ use super::super::super::paint_geometry::{frame_from_template, is_visible_frame,
 
 pub(in crate::ui::retained_host::host_contract) const WELCOME_COLUMN_INSET: f32 = 18.0;
 pub(in crate::ui::retained_host::host_contract) const WELCOME_CONTENT_MAX_WIDTH: f32 = 680.0;
-pub(in crate::ui::retained_host::host_contract) const WELCOME_ROW_HEIGHT: f32 = 54.0;
-pub(in crate::ui::retained_host::host_contract) const WELCOME_ROW_GAP: f32 = 8.0;
 
 pub(in crate::ui::retained_host::host_contract) fn welcome_node_frame(
     pane: &PaneData,

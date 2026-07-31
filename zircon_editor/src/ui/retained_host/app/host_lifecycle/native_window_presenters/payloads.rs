@@ -4,7 +4,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::{EditorChromeSnapshot, ViewContentKind};
 
-use super::super::super::{pane_payload_visibility, RetainedEditorHost};
+use super::super::super::{RetainedEditorHost, pane_payload_visibility};
 
 pub(super) struct NativeWindowPanePayloads {
     pub(super) module_plugins: ModulePluginsPaneViewData,

@@ -1,32 +1,27 @@
 use super::*;
 
-#[derive(Default)]
-struct CountingParallelSliceExecutor(std::sync::atomic::AtomicUsize);
-
-impl CountingParallelSliceExecutor {
-    fn call_count(&self) -> usize {
-        self.0.load(std::sync::atomic::Ordering::Relaxed)
-    }
-}
-
-impl crate::core::framework::tasks::ParallelSliceExecutor for CountingParallelSliceExecutor {
-    fn parallel_for<T, F>(&self, items: &mut [T], chunk_size: usize, task: F)
-    where
-        T: Send,
-        F: Fn(&mut [T]) + Send + Sync,
-    {
-        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        for chunk in items.chunks_mut(chunk_size.max(1)) {
-            task(chunk);
-        }
-    }
-}
+mod projection;
 
 #[test]
-fn source_cubemap_face_size_clamps_equirect_height_to_power_of_two() {
-    assert_eq!(source_cubemap_face_size_from_equirect_height(512), 256);
-    assert_eq!(source_cubemap_face_size_from_equirect_height(32), 64);
-    assert_eq!(source_cubemap_face_size_from_equirect_height(4096), 1024);
+fn cloned_mip_chain_shares_immutable_texel_storage() {
+    let cubemap = SourceCubemapMipChain::new(
+        1,
+        1,
+        vec![[0.25, 0.5, 0.75, 1.0]; SOURCE_CUBEMAP_FACE_COUNT],
+        1,
+        1,
+        vec![[0.5, 0.25, 0.75, 1.0]; SOURCE_CUBEMAP_FACE_COUNT],
+    );
+    let cloned = cubemap.clone();
+
+    assert!(std::sync::Arc::ptr_eq(
+        &cubemap.source_texels,
+        &cloned.source_texels
+    ));
+    assert!(std::sync::Arc::ptr_eq(
+        &cubemap.pmrem_texels,
+        &cloned.pmrem_texels
+    ));
 }
 
 #[test]
@@ -40,29 +35,6 @@ fn source_cubemap_mip_layout_is_face_major() {
     assert_eq!(
         source_cubemap_face_mip_offset(4, 3, CubemapFace::NegativeX, 0),
         21
-    );
-}
-
-#[test]
-fn source_and_pmrem_mip_layouts_are_independent() {
-    let source_face_size = 512;
-    let cubemap =
-        build_source_cubemap_from_equirect(source_face_size, |_, _| [0.25, 0.5, 0.75, 1.0]);
-
-    assert_eq!(cubemap.source_face_size(), source_face_size);
-    assert_eq!(
-        cubemap.source_mip_count(),
-        source_cubemap_mip_count(source_face_size)
-    );
-    assert_eq!(cubemap.pmrem_face_size(), SOURCE_CUBEMAP_PMREM_FACE_SIZE);
-    assert_eq!(cubemap.pmrem_mip_count(), SOURCE_CUBEMAP_PMREM_MIP_COUNT);
-    assert_eq!(
-        cubemap.source_texels().len(),
-        source_cubemap_sample_count(cubemap.source_face_size(), cubemap.source_mip_count())
-    );
-    assert_eq!(
-        cubemap.pmrem_texels().len(),
-        source_cubemap_sample_count(cubemap.pmrem_face_size(), cubemap.pmrem_mip_count())
     );
 }
 
@@ -169,21 +141,48 @@ fn source_cubemap_pmrem_texel_clamps_mip_before_resolving_truncated_mip_size() {
 fn source_cubemap_roughness_mip_mapping_matches_shader_contract() {
     let mip_count = SOURCE_CUBEMAP_PMREM_MIP_COUNT;
     assert_close(source_cubemap_pmrem_mip_from_roughness(0.0, mip_count), 0.0);
-    assert_close(source_cubemap_pmrem_mip_from_roughness(1.0, mip_count), 5.0);
+    assert_close(
+        source_cubemap_pmrem_mip_from_roughness(1.0, mip_count),
+        (mip_count - 2) as Real,
+    );
     assert_close(source_cubemap_roughness_from_pmrem_mip(0, mip_count), 0.0);
-    assert_close(source_cubemap_roughness_from_pmrem_mip(5, mip_count), 1.0);
-    assert_close(source_cubemap_roughness_from_pmrem_mip(6, mip_count), 1.0);
-    assert_close(source_cubemap_roughness_from_pmrem_mip(7, mip_count), 1.0);
+    assert!(source_cubemap_roughness_from_pmrem_mip(mip_count - 3, mip_count) < 1.0);
+    assert_close(
+        source_cubemap_roughness_from_pmrem_mip(mip_count - 2, mip_count),
+        1.0,
+    );
+    assert_close(
+        source_cubemap_roughness_from_pmrem_mip(mip_count - 1, mip_count),
+        1.0,
+    );
 
     let mut previous = 0.0;
-    for mip in 1..mip_count {
+    for mip in 1..(mip_count - 1) {
         let roughness = source_cubemap_roughness_from_pmrem_mip(mip, mip_count);
         assert!(
             roughness >= previous,
             "roughness should increase with mip level, mip={mip} roughness={roughness} previous={previous}"
         );
+        assert_close(
+            source_cubemap_pmrem_mip_from_roughness(roughness, mip_count),
+            mip as Real,
+        );
         previous = roughness;
     }
+}
+
+#[test]
+fn source_cubemap_pmrem_wgsl_lookup_matches_public_roughness_contract() {
+    const ENVIRONMENT_WGSL: &str =
+        include_str!("../../../../../graphics/shader/wgsl/zr_environment.wgsl");
+    let expected = format!(
+        "return clamp(max_mip - {SOURCE_CUBEMAP_ROUGHEST_MIP:.1} + {SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE:.1} * log2(clamped_roughness), 0.0, max_mip);"
+    );
+
+    assert!(
+        ENVIRONMENT_WGSL.contains(&expected),
+        "environment WGSL must use the source-cubemap PMREM roughness constants"
+    );
 }
 
 #[test]
@@ -197,87 +196,6 @@ fn source_cubemap_irradiance_mip_prefers_thirty_two_face_source() {
     assert_eq!(source_cubemap_irradiance_mip_level(16, 5), 0);
     assert_eq!(source_cubemap_irradiance_mip_level(64, 7), 1);
     assert_eq!(source_cubemap_irradiance_mip_level(256, 9), 3);
-}
-
-#[test]
-fn source_cubemap_constant_equirect_preserves_all_mips() {
-    let cubemap = build_source_cubemap_from_equirect(4, |_, _| [0.25, 0.5, 0.75, 1.0]);
-
-    assert_eq!(cubemap.source_face_size(), 4);
-    assert_eq!(cubemap.source_mip_count(), 3);
-    assert_eq!(cubemap.pmrem_face_size(), SOURCE_CUBEMAP_PMREM_FACE_SIZE);
-    assert_eq!(cubemap.pmrem_mip_count(), SOURCE_CUBEMAP_PMREM_MIP_COUNT);
-    for texel in cubemap.source_texels() {
-        assert_vec4_close(*texel, [0.25, 0.5, 0.75, 1.0]);
-    }
-    for texel in cubemap.pmrem_texels() {
-        assert_vec4_close(*texel, [0.25, 0.5, 0.75, 1.0]);
-    }
-}
-
-#[test]
-fn source_cubemap_explicit_executor_entry_preserves_output_contract() {
-    use crate::core::framework::tasks::TaskPoolDescriptor;
-    use crate::core::runtime::tasks::TaskPool;
-
-    let serial = build_source_cubemap_from_equirect(4, |u, v| [u, v, u + v, 1.0]);
-    let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
-    let pooled = SourceCubemapMipChain::from_equirect_with_parallel_executor(4, &pool, |u, v| {
-        [u, v, u + v, 1.0]
-    });
-
-    assert_eq!(pooled, serial);
-}
-
-#[test]
-fn source_cubemap_parallel_executor_preserves_explicit_pmrem_layout() {
-    use crate::core::framework::tasks::TaskPoolDescriptor;
-    use crate::core::runtime::tasks::TaskPool;
-
-    let serial = SourceCubemapMipChain::from_equirect_with_pmrem_layout(
-        64,
-        32,
-        source_cubemap_mip_count(32),
-        SourceCubemapPrefilterQuality::Normal,
-        |u, v| [u, v, u * v, 1.0],
-    );
-    let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
-    let parallel = SourceCubemapMipChain::from_equirect_with_pmrem_layout_and_parallel_executor(
-        64,
-        32,
-        source_cubemap_mip_count(32),
-        SourceCubemapPrefilterQuality::Normal,
-        &pool,
-        |u, v| [u, v, u * v, 1.0],
-    );
-
-    assert_eq!(parallel, serial);
-}
-
-#[test]
-fn source_cubemap_parallel_executor_dispatches_pmrem_face_work() {
-    let serial = SourceCubemapMipChain::from_equirect_with_pmrem_layout(
-        64,
-        64,
-        source_cubemap_mip_count(64),
-        SourceCubemapPrefilterQuality::Fast,
-        |u, v| [u, v, u * v, 1.0],
-    );
-    let executor = CountingParallelSliceExecutor::default();
-    let parallel = SourceCubemapMipChain::from_equirect_with_pmrem_layout_and_parallel_executor(
-        64,
-        64,
-        source_cubemap_mip_count(64),
-        SourceCubemapPrefilterQuality::Fast,
-        &executor,
-        |u, v| [u, v, u * v, 1.0],
-    );
-
-    assert_eq!(parallel, serial);
-    assert!(
-        executor.call_count() >= source_cubemap_mip_count(64) as usize,
-        "each PMREM mip must dispatch its independent cube-face work through the caller executor"
-    );
 }
 
 #[test]
@@ -506,20 +424,6 @@ fn source_cubemap_ggx_pmrem_reduces_mip_luma_variance() {
 }
 
 #[test]
-fn source_cubemap_samples_equirect_uv_from_cube_face_direction() {
-    let cubemap = build_source_cubemap_from_equirect(3, |u, v| [u, v, 0.0, 1.0]);
-
-    assert_vec4_close(
-        source_texel_at(&cubemap, CubemapFace::PositiveZ, 0, 1, 1),
-        [0.5, 0.5, 0.0, 1.0],
-    );
-    assert_vec4_close(
-        source_texel_at(&cubemap, CubemapFace::PositiveX, 0, 1, 1),
-        [0.75, 0.5, 0.0, 1.0],
-    );
-}
-
-#[test]
 fn source_cubemap_angular_mip_matches_unreal_cone_filter_reference() {
     let face_size = 8;
     let mip_count = source_cubemap_mip_count(face_size);
@@ -730,25 +634,6 @@ fn plan06_angular_filter_reference_texel(
 
 fn dot3_test(first: [Real; 3], second: [Real; 3]) -> Real {
     first[0] * second[0] + first[1] * second[1] + first[2] * second[2]
-}
-
-fn source_texel_at(
-    cubemap: &SourceCubemapMipChain,
-    face: CubemapFace,
-    mip_level: u32,
-    x: u32,
-    y: u32,
-) -> [Real; 4] {
-    let mip_level = mip_level.min(cubemap.source_mip_count().saturating_sub(1));
-    let mip_size = source_cubemap_mip_size(cubemap.source_face_size(), mip_level);
-    assert!(x < mip_size && y < mip_size, "test texel must be in bounds");
-    let offset = source_cubemap_face_mip_offset(
-        cubemap.source_face_size(),
-        cubemap.source_mip_count(),
-        face,
-        mip_level,
-    );
-    cubemap.source_texels()[offset + y as usize * mip_size as usize + x as usize]
 }
 
 #[test]

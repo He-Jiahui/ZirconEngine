@@ -3,7 +3,6 @@ use zircon_editor::core::asset::{
     AssetTypePresentation, ThumbnailProviderDescriptor,
 };
 use zircon_editor::core::commands::EditorCommandDescriptor;
-use zircon_editor::core::editor_authoring_extension::ViewportToolModeDescriptor;
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use zircon_editor::core::editor_extension::{
     EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
@@ -11,17 +10,16 @@ use zircon_editor::core::editor_extension::{
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
-    register_authoring_extensions, register_authoring_surface, EditorAuthoringExtensions,
-    EditorAuthoringSurface,
+    EditorAuthoringExtensions, EditorAuthoringSurface, register_authoring_extensions,
+    register_authoring_surface,
 };
-use zircon_plugin_sdk::{authoring_plugin, EditorPluginDeclaration};
+use zircon_plugin_sdk::{EditorPluginDeclaration, authoring_plugin};
 
 use crate::capability::{EDITOR_CAPABILITIES, PLUGIN_ID};
 use crate::extension_ids::{
-    PHYSICS_AUTHORING_VIEW_ID, PHYSICS_CREATE_RAGDOLL_PROFILE_OPERATION,
-    PHYSICS_DEBUG_OVERLAY_MODE_ID, PHYSICS_DEBUG_VIEW_ID, PHYSICS_DIAGNOSTICS_VIEW_ID,
-    PHYSICS_DRAWER_ID, PHYSICS_RAGDOLL_PROFILE_VIEW_ID, PHYSICS_TEMPLATE_ID,
-    PHYSICS_TOGGLE_OVERLAY_OPERATION, RAGDOLL_PROFILE_ASSET_KIND,
+    PHYSICS_AUTHORING_VIEW_ID, PHYSICS_CREATE_RAGDOLL_PROFILE_OPERATION, PHYSICS_DEBUG_VIEW_ID,
+    PHYSICS_DIAGNOSTICS_VIEW_ID, PHYSICS_DRAWER_ID, PHYSICS_RAGDOLL_PROFILE_VIEW_ID,
+    PHYSICS_TEMPLATE_ID, PHYSICS_TOGGLE_OVERLAY_OPERATION, RAGDOLL_PROFILE_ASSET_KIND,
 };
 
 authoring_plugin! {
@@ -103,15 +101,7 @@ fn register_physics_debug_overlay(
         EditorMenuItemDescriptor::new("View/Debug Overlays/Physics", operation.clone())
             .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
     )?;
-    registry.register_viewport_tool_mode(
-        ViewportToolModeDescriptor::new(
-            PHYSICS_DEBUG_OVERLAY_MODE_ID,
-            "Physics Collision Overlay",
-            PHYSICS_DEBUG_VIEW_ID,
-            operation,
-        )
-        .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
-    )
+    Ok(())
 }
 
 fn register_ragdoll_profile_editor(

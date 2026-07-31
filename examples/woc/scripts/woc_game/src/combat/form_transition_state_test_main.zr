@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var transitions = %import("combat/form_transition_state");
+
+console.printLine("wos40-form-transition-state-test");
+var result = transitions.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

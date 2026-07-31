@@ -26,6 +26,9 @@ impl DesktopExportWizardSessions {
                 updates.push((profile_name.clone(), result));
             }
         }
+        if !updates.is_empty() {
+            self.invalidate_projection_overlay();
+        }
         updates
     }
 }

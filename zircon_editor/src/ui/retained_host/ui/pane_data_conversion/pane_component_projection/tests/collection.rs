@@ -1,5 +1,12 @@
 use super::*;
 
+fn table_row(surface_entity: i64, label: &str) -> Value {
+    let mut row = toml::map::Map::new();
+    row.insert("surface_entity".to_string(), Value::Integer(surface_entity));
+    row.insert("label".to_string(), Value::String(label.to_string()));
+    Value::Table(row)
+}
+
 #[test]
 fn runtime_component_projection_preserves_virtualization_and_pagination_metadata() {
     let virtual_list = host_template_node(projected_node(
@@ -125,4 +132,40 @@ fn runtime_component_projection_clamps_virtualized_collection_window_edges() {
     .expect("VirtualList should project oversized overscan deterministically");
 
     assert_eq!(oversized_overscan.collection_items.row_count(), 4);
+}
+
+#[test]
+fn runtime_table_projection_preserves_typed_identity_and_source_index() {
+    let table = host_template_node(projected_node(
+        "Table",
+        [
+            (
+                "row_identity_field",
+                Value::String("surface_entity".to_string()),
+            ),
+            (
+                "rows",
+                Value::Array(vec![table_row(41, "Ground"), table_row(73, "Roof")]),
+            ),
+        ],
+    ))
+    .expect("Table should project typed row identity data");
+
+    assert_eq!(table.collection_rows.row_count(), 2);
+    let first = table
+        .collection_rows
+        .row_data(0)
+        .expect("first table row should be projected");
+    assert_eq!(first.source_index, 0);
+    assert_eq!(first.row_identity_field.as_str(), "surface_entity");
+    assert_eq!(first.identity_kind.as_str(), "integer");
+    assert_eq!(first.identity_text.as_str(), "41");
+    assert_eq!(first.label.as_str(), "Ground");
+
+    let second = table
+        .collection_rows
+        .row_data(1)
+        .expect("second table row should be projected");
+    assert_eq!(second.source_index, 1);
+    assert_eq!(second.identity_text.as_str(), "73");
 }

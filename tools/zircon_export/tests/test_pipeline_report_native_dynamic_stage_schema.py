@@ -745,7 +745,7 @@ class PipelineReportNativeDynamicStageSchemaTests(
             with self.subTest(field=field):
                 abi = {
                     "abi_version": 3,
-                    "behavior_contract": "NativePluginBehaviorV3",
+                    "behavior_contract": "NativePluginBehaviorV4",
                     "bridge_method_table": "NativePluginBridgeMethodTableV3",
                     "descriptor_contract": "NativePluginAbiV3",
                     "descriptor_symbol": "zircon_native_plugin_descriptor_v3",
@@ -754,7 +754,7 @@ class PipelineReportNativeDynamicStageSchemaTests(
                     "host_function_table": "NativePluginHostFunctionTableV3",
                     "runtime_entry_source": "NativePluginAbiV3.runtime_entry_name",
                     "state_snapshot_contract": (
-                        "NativePluginBehaviorV3.save_state/restore_state"
+                        "NativePluginBehaviorV4.save_state/restore_state"
                     ),
                 }
                 abi.pop(field)

@@ -27,6 +27,7 @@ static COUNTED_IMPORT_CALLS: AtomicUsize = AtomicUsize::new(0);
 mod artifact_cache_imports;
 mod restore_failure_migration;
 mod subassets_errors;
+mod targeted_import;
 
 fn counted_data_importer() -> FunctionAssetImporter {
     FunctionAssetImporter::new(

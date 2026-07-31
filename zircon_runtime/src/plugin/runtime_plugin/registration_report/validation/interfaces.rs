@@ -1,22 +1,38 @@
-use crate::plugin::{PluginModuleKind, PluginPackageManifest, RuntimeExtensionRegistry};
+use std::collections::HashSet;
+
+use super::super::super::package_validation::RuntimePluginPackageValidationProjection;
+use crate::plugin::{PluginPackageManifest, RuntimeExtensionRegistry};
 
 pub(in crate::plugin::runtime_plugin::registration_report) fn validate_runtime_plugin_registration_interfaces(
     package_manifest: &PluginPackageManifest,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     extensions: &RuntimeExtensionRegistry,
     diagnostics: &mut Vec<String>,
 ) {
-    let runtime_modules = package_manifest
-        .modules
-        .iter()
-        .filter(|module| module.kind == PluginModuleKind::Runtime)
-        .map(|module| module.name.as_str())
-        .collect::<Vec<_>>();
+    let exported_interfaces = extensions
+        .plugin_interfaces()
+        .filter_map(|(owner, export)| {
+            let module_name = extensions.plugin_module_name(owner)?;
+            projection
+                .is_runtime_module(module_name)
+                .then_some(export.interface_id())
+        })
+        .collect::<HashSet<_>>();
+    let imported_interfaces = extensions
+        .plugin_interface_imports()
+        .filter_map(|(owner, import)| {
+            let module_name = extensions.plugin_module_name(owner)?;
+            projection
+                .is_runtime_module(module_name)
+                .then_some(import.interface_id())
+        })
+        .collect::<HashSet<_>>();
 
-    for declared in &package_manifest.provides_interfaces {
-        if !package_exported_interface(extensions, &runtime_modules, &declared.id) {
+    for interface_id in projection.provided_interface_ids() {
+        if !exported_interfaces.contains(interface_id) {
             diagnostics.push(format!(
                 "runtime plugin package `{}` declares interface `{}` but no runtime module exported it",
-                package_manifest.id, declared.id
+                package_manifest.id, interface_id
             ));
         }
     }
@@ -25,11 +41,7 @@ pub(in crate::plugin::runtime_plugin::registration_report) fn validate_runtime_p
         let Some(module_name) = extensions.plugin_module_name(owner) else {
             continue;
         };
-        if !package_manifest
-            .provides_interfaces
-            .iter()
-            .any(|declared| declared.id == export.interface_id())
-        {
+        if !projection.declares_provided_interface(export.interface_id()) {
             diagnostics.push(format!(
                 "runtime plugin module `{module_name}` exported interface `{}` but package manifest did not declare it",
                 export.interface_id()
@@ -37,14 +49,12 @@ pub(in crate::plugin::runtime_plugin::registration_report) fn validate_runtime_p
         }
     }
 
-    for dependency in &package_manifest.dependencies {
-        for interface_id in &dependency.interfaces {
-            if !package_imported_interface(extensions, &runtime_modules, interface_id) {
-                diagnostics.push(format!(
-                    "runtime plugin package `{}` declares dependency interface `{interface_id}` but no runtime module imported it",
-                    package_manifest.id
-                ));
-            }
+    for interface_id in projection.dependency_interface_ids() {
+        if !imported_interfaces.contains(interface_id) {
+            diagnostics.push(format!(
+                "runtime plugin package `{}` declares dependency interface `{interface_id}` but no runtime module imported it",
+                package_manifest.id
+            ));
         }
     }
 
@@ -52,46 +62,13 @@ pub(in crate::plugin::runtime_plugin::registration_report) fn validate_runtime_p
         let Some(module_name) = extensions.plugin_module_name(owner) else {
             continue;
         };
-        if !package_manifest.dependencies.iter().any(|dependency| {
-            dependency
-                .interfaces
-                .iter()
-                .any(|interface_id| interface_id == import.interface_id())
-        }) {
+        if !projection.declares_dependency_interface(import.interface_id()) {
             diagnostics.push(format!(
                 "runtime plugin module `{module_name}` imported interface `{}` but package dependencies did not declare it",
                 import.interface_id()
             ));
         }
     }
-}
-
-fn package_exported_interface(
-    extensions: &RuntimeExtensionRegistry,
-    runtime_modules: &[&str],
-    interface_id: &str,
-) -> bool {
-    extensions.plugin_interfaces().any(|(owner, export)| {
-        export.interface_id() == interface_id
-            && extensions
-                .plugin_module_name(owner)
-                .is_some_and(|module_name| runtime_modules.contains(&module_name))
-    })
-}
-
-fn package_imported_interface(
-    extensions: &RuntimeExtensionRegistry,
-    runtime_modules: &[&str],
-    interface_id: &str,
-) -> bool {
-    extensions
-        .plugin_interface_imports()
-        .any(|(owner, import)| {
-            import.interface_id() == interface_id
-                && extensions
-                    .plugin_module_name(owner)
-                    .is_some_and(|module_name| runtime_modules.contains(&module_name))
-        })
 }
 
 #[cfg(test)]
@@ -103,6 +80,7 @@ mod tests {
     };
 
     use super::validate_runtime_plugin_registration_interfaces;
+    use super::RuntimePluginPackageValidationProjection;
 
     trait ImportedContract: Send + Sync {}
 
@@ -119,8 +97,11 @@ mod tests {
             .unwrap();
         let mut diagnostics = Vec::new();
 
+        let manifest = package_manifest(false);
+        let projection = RuntimePluginPackageValidationProjection::build(&manifest);
         validate_runtime_plugin_registration_interfaces(
-            &package_manifest(false),
+            &manifest,
+            &projection,
             &registry,
             &mut diagnostics,
         );
@@ -134,8 +115,11 @@ mod tests {
     fn declared_interface_import_must_be_registered() {
         let registry = RuntimeExtensionRegistry::default();
         let mut diagnostics = Vec::new();
+        let manifest = package_manifest(true);
+        let projection = RuntimePluginPackageValidationProjection::build(&manifest);
         validate_runtime_plugin_registration_interfaces(
-            &package_manifest(true),
+            &manifest,
+            &projection,
             &registry,
             &mut diagnostics,
         );
@@ -150,7 +134,8 @@ mod tests {
             .unwrap();
         diagnostics.clear();
         validate_runtime_plugin_registration_interfaces(
-            &package_manifest(true),
+            &manifest,
+            &projection,
             &registry,
             &mut diagnostics,
         );

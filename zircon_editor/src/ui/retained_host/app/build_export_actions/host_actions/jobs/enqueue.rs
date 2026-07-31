@@ -2,8 +2,8 @@ use crate::ui::retained_host::app::RetainedEditorHost;
 use crate::ui::workbench::project::project_root_path;
 use zircon_runtime::asset::project::ProjectManifest;
 
-use super::super::super::desktop_export_profile;
 use super::super::super::DesktopExportActionError;
+use super::super::super::desktop_export_profile;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::build_export_actions::host_actions) fn enqueue_desktop_export(
@@ -40,6 +40,8 @@ impl RetainedEditorHost {
                     manifest,
                     output_root,
                 );
+                self.desktop_export_wizard_sessions
+                    .invalidate_projection_overlay();
                 self.mark_layout_dirty();
                 self.set_status_line(format!(
                     "Desktop export {} queued -> {}",

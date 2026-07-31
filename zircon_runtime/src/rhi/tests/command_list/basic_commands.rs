@@ -2,14 +2,14 @@ use super::*;
 
 #[test]
 fn command_list_keeps_queue_class_and_label() {
-    let command_list = WgpuCommandList::new(RenderQueueClass::Graphics, "main");
+    let command_list = DeterministicRhiContractCommandList::new(RenderQueueClass::Graphics, "main");
     assert_eq!(command_list.queue_class(), RenderQueueClass::Graphics);
     assert_eq!(command_list.label(), Some("main"));
 }
 
 #[test]
 fn command_list_records_buffer_copy_commands_and_submit_validates_resources() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let source = device
         .create_buffer(&BufferDesc::new("copy-source", 32, BufferUsage::COPY_SRC))
         .unwrap();
@@ -60,7 +60,7 @@ fn command_list_records_buffer_copy_commands_and_submit_validates_resources() {
 
 #[test]
 fn command_list_records_compute_dispatch_and_submit_validates_pipeline() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let shader = device
         .create_shader_module(&ShaderModuleDesc::new(
             "compute-fill",

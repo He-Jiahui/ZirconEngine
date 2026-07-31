@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var itemBudget = %import("progression/masterwork_item_budget");
+
+console.printLine("m5-masterwork-item-budget-test");
+var result = itemBudget.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

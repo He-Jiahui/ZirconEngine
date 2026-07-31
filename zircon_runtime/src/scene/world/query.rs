@@ -137,6 +137,13 @@ impl World {
         self.project_node_for_read(entity)
     }
 
+    /// Reads only the entity's local transform without projecting an owned scene node.
+    pub fn local_transform(&self, entity: EntityId) -> Option<Transform> {
+        self.local_transforms
+            .get(&entity)
+            .map(|local| local.transform)
+    }
+
     pub fn world_matrix(&self, entity: EntityId) -> Option<Mat4> {
         self.project_world_matrix_for_read(entity)
     }

@@ -48,8 +48,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     segments: &[AlertGlyphSegmentSpec],
 ) {
     for segment in segments {
+        let rect = segment_rect(origin, *segment);
+        if rect.width <= 0.0 || rect.height <= 0.0 {
+            continue;
+        }
         commands.push(HostPaintCommand::quad(
-            segment_rect(origin, *segment),
+            rect,
             Some(clip.clone()),
             order,
             Some(color),
@@ -67,8 +71,8 @@ fn segment_rect(origin: &FrameRect, segment: AlertGlyphSegmentSpec) -> FrameRect
     FrameRect {
         x: origin.x + f32::from(segment.x_units) * scale_x,
         y: origin.y + f32::from(segment.y_units) * scale_y,
-        width: (f32::from(segment.width_units) * scale_x).max(1.0),
-        height: (f32::from(segment.height_units) * scale_y).max(1.0),
+        width: (f32::from(segment.width_units) * scale_x).max(0.0),
+        height: (f32::from(segment.height_units) * scale_y).max(0.0),
     }
 }
 
@@ -91,5 +95,21 @@ mod tests {
         assert_eq!(segment.y, 34.0);
         assert_eq!(segment.width, 4.0);
         assert_eq!(segment.height, 2.0);
+    }
+
+    #[test]
+    fn segment_rect_stays_inside_a_subpixel_alert_slot() {
+        let origin = FrameRect {
+            x: 3.0,
+            y: 6.0,
+            width: 0.5,
+            height: 0.5,
+        };
+        let segment = segment_rect(&origin, AlertGlyphSegmentSpec::new(8, 8, 2, 6));
+
+        assert!(segment.x >= origin.x);
+        assert!(segment.y >= origin.y);
+        assert!(segment.x + segment.width <= origin.x + origin.width);
+        assert!(segment.y + segment.height <= origin.y + origin.height);
     }
 }

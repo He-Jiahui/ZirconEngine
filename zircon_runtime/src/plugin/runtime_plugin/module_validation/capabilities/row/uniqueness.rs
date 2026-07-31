@@ -1,18 +1,16 @@
 use crate::plugin::PluginModuleManifest;
 
-pub(super) fn validate_runtime_plugin_module_capability_uniqueness<'a>(
+pub(super) fn validate_runtime_plugin_module_capability_uniqueness(
     manifest_label: &str,
     module: &PluginModuleManifest,
-    capability: &'a str,
-    seen: &mut Vec<&'a str>,
+    capability: &str,
+    is_duplicate: bool,
     diagnostics: &mut Vec<String>,
 ) {
-    if seen.contains(&capability) {
+    if is_duplicate {
         diagnostics.push(format!(
             "{manifest_label} module `{}` capability `{capability}` must be unique",
             module.name
         ));
-    } else {
-        seen.push(capability);
     }
 }

@@ -1,0 +1,108 @@
+// Current-head projection of professions/combo_eligibility.ts. The caller
+// supplies the two relevant craft skills; once the active pair matches the
+// requirement, both are majors and their craft ceiling equals tier capability.
+var contract = %import("generated/combo_eligibility_contract");
+
+pub class ComboEligibilityResult {
+    pub var ok: bool;
+    // 0 none, 1 not_attuned, 2 wrong_pair, 3 tier_unmet.
+    pub var reason: int;
+    pub var craftA: string;
+    pub var craftB: string;
+    pub var minTier: int;
+    // Stable requirement-order projection of source unmetCrafts.
+    pub var unmetA: bool;
+    pub var unmetB: bool;
+
+    pub @constructor() {
+        this.ok = false;
+        this.reason = 0;
+        this.craftA = "";
+        this.craftB = "";
+        this.minTier = 0;
+        this.unmetA = false;
+        this.unmetB = false;
+    }
+}
+
+sameUnorderedPair(a: string, b: string, x: string, y: string): bool {
+    return (a == x && b == y) || (a == y && b == x);
+}
+
+pub tierForSkill(skill: int): int {
+    if (skill <= 0) return 0;
+    return <int>(<float>skill / <float>contract.tierSkillStep(true));
+}
+
+// `hasRequirement` represents an absent comboRequirement. For a present
+// requirement, craftA/craftB/minTier are source recipe fields and skillA/B
+// refer to those crafts in the same order.
+pub comboEligibility(
+    hasRequirement: bool,
+    craftA: string,
+    craftB: string,
+    minTier: int,
+    activeArchetype: string,
+    pairedMajor: string,
+    skillA: int,
+    skillB: int
+): ComboEligibilityResult {
+    var result = new ComboEligibilityResult();
+    if (!hasRequirement) {
+        result.ok = true;
+        return result;
+    }
+    result.craftA = craftA;
+    result.craftB = craftB;
+    result.minTier = minTier;
+    if (activeArchetype == "" || pairedMajor == "") {
+        result.reason = 1;
+        return result;
+    }
+    if (!sameUnorderedPair(activeArchetype, pairedMajor, craftA, craftB)) {
+        result.reason = 2;
+        return result;
+    }
+    result.unmetA = tierForSkill(skillA) < minTier;
+    result.unmetB = tierForSkill(skillB) < minTier;
+    if (result.unmetA || result.unmetB) {
+        result.reason = 3;
+        return result;
+    }
+    result.ok = true;
+    return result;
+}
+
+pub contractTest(): int {
+    var passed = comboEligibility(
+        true, "armorcrafting", "weaponcrafting", 1,
+        "armorcrafting", "weaponcrafting", 25, 25
+    );
+    if (!passed.ok || passed.reason != 0 || passed.unmetA || passed.unmetB) return -1;
+    var reversed = comboEligibility(
+        true, "armorcrafting", "weaponcrafting", 1,
+        "weaponcrafting", "armorcrafting", 25, 25
+    );
+    if (!reversed.ok) return -2;
+    var absent = comboEligibility(true, "armorcrafting", "weaponcrafting", 1, "", "", 25, 25);
+    if (absent.ok || absent.reason != 1) return -3;
+    var wrong = comboEligibility(
+        true, "armorcrafting", "weaponcrafting", 1,
+        "weaponcrafting", "jewelcrafting", 500, 500
+    );
+    if (wrong.ok || wrong.reason != 2) return -4;
+    var onlyB = comboEligibility(
+        true, "armorcrafting", "weaponcrafting", 1,
+        "armorcrafting", "weaponcrafting", 25, 24
+    );
+    if (onlyB.ok || onlyB.reason != 3 || onlyB.unmetA || !onlyB.unmetB) return -5;
+    var both = comboEligibility(
+        true, "armorcrafting", "weaponcrafting", 1,
+        "armorcrafting", "weaponcrafting", 0, 24
+    );
+    if (both.ok || !both.unmetA || !both.unmetB || tierForSkill(49) != 1 ||
+        tierForSkill(50) != 2) return -6;
+    var noRequirement = comboEligibility(false, "", "", 0, "", "", 0, 0);
+    if (!noRequirement.ok || noRequirement.reason != 0 || noRequirement.craftA != "") return -7;
+    return 1;
+}

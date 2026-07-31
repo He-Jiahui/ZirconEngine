@@ -1,8 +1,12 @@
+use std::fs;
+
 use zircon_runtime_interface::project::ProjectManifestSummary;
 
 use super::super::{
-    ProjectAuthority, RecentProjectEntry, RecentProjectValidation, StoredStartupSession,
+    NewProjectDraft, NewProjectTemplate, ProjectAuthority, RecentProjectEntry,
+    RecentProjectValidation, StoredStartupSession,
 };
+use super::temp_root;
 
 #[test]
 fn stored_recent_project_roundtrip_keeps_manifest_summary_as_identity() {
@@ -54,6 +58,35 @@ fn recent_projection_uses_dynamic_validation_without_persisting_it() {
 
     assert_eq!(recent[0].summary.name, "Game");
     assert_eq!(recent[0].validation, RecentProjectValidation::Missing);
+}
+
+#[test]
+fn startup_session_migrates_legacy_recent_entry_from_its_project_manifest() {
+    let location = temp_root("legacy-recent-session");
+    let authority = ProjectAuthority::default();
+    let created = authority
+        .create_project(&NewProjectDraft {
+            project_name: "Legacy Session Project".to_string(),
+            location: location.to_string_lossy().into_owned(),
+            template: NewProjectTemplate::RenderableEmpty,
+        })
+        .unwrap();
+    let path = created.root.to_string_lossy().into_owned();
+    let legacy = serde_json::json!({
+        "last_project_path": path,
+        "recent_projects": [{
+            "path": path,
+            "last_opened_unix_ms": 42
+        }]
+    });
+
+    let session = authority.decode_startup_session(legacy).unwrap();
+
+    assert_eq!(session.last_project_path.as_deref(), Some(path.as_str()));
+    assert_eq!(session.recent_projects.len(), 1);
+    assert_eq!(session.recent_projects[0].summary, created.summary);
+    assert_eq!(session.recent_projects[0].last_opened_unix_ms, 42);
+    fs::remove_dir_all(location).unwrap();
 }
 
 fn summary(name: &str) -> ProjectManifestSummary {

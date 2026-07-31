@@ -31,11 +31,13 @@ fn zr_fs_main_impl(input: ZrVertexOutput) -> ZrDeferredGBufferOutput {
     zr_deferred_apply_alpha_clip(surface);
     var output = encode_gbuffer(surface, zr_build_shading_context(input));
     if (surface.unlit < 0.5 && surface.shading_model_id != 0u) {
-        var diffuse_color = surface.base_color.rgb * (1.0 - surface.metallic * 0.45);
-        if (surface.shading_model_id == 1u) {
-            diffuse_color = surface.base_color.rgb;
-        }
-        let baked_indirect = diffuse_color * clamp(surface.occlusion, 0.0, 1.0)
+        let diffuse_energy_scale = select(
+            1.0,
+            zr_surface_metallic_diffuse_energy_scale(surface.metallic),
+            surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,
+        );
+        let baked_indirect = surface.base_color.rgb * diffuse_energy_scale
+            * clamp(surface.occlusion, 0.0, 1.0)
             * zr_lightmap_baked_irradiance(
                 input.instance_index,
                 input.uv1,

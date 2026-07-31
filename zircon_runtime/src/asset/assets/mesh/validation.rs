@@ -94,9 +94,7 @@ impl fmt::Display for MeshValidationError {
                 formatter,
                 "mesh topology {topology:?} has {actual_elements} elements but requires a multiple of {required_multiple}"
             ),
-            Self::NormalGenerationRequiresTriangleList {
-                topology,
-            } => write!(
+            Self::NormalGenerationRequiresTriangleList { topology } => write!(
                 formatter,
                 "normal generation requires TriangleList topology but found {topology:?}"
             ),
@@ -107,17 +105,16 @@ impl fmt::Display for MeshValidationError {
                 )
             }
             Self::SmoothNormalGenerationRequiresIndexedMesh => {
-                write!(formatter, "smooth normal generation requires an indexed mesh")
+                write!(
+                    formatter,
+                    "smooth normal generation requires an indexed mesh"
+                )
             }
-            Self::TangentGenerationRequiresTriangleList {
-                topology,
-            } => write!(
+            Self::TangentGenerationRequiresTriangleList { topology } => write!(
                 formatter,
                 "tangent generation requires TriangleList topology but found {topology:?}"
             ),
-            Self::TangentGenerationMissingAttribute {
-                attribute,
-            } => write!(
+            Self::TangentGenerationMissingAttribute { attribute } => write!(
                 formatter,
                 "tangent generation requires mesh attribute `{attribute}`"
             ),

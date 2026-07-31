@@ -15,7 +15,7 @@ node = "asset_browser_root"
 [nodes.toolbar_title_text]
 component = "Label"
 control_id = "AssetBrowserTitleText"
-props = { text = "Asset Browser", font_size = 12.0, font_weight = 700, overflow = "elide" }
+props = { text = "Asset Browser", font_weight = 700, overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_locate_button]
@@ -34,7 +34,7 @@ children = [{ node = "toolbar_title_text" }, { node = "toolbar_locate_button" }]
 [nodes.toolbar_subtitle_text]
 component = "Label"
 control_id = "AssetBrowserSubtitleText"
-props = { text = "Project/assets", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "Project/assets", text_tone = "muted", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_subtitle_row]
@@ -185,7 +185,7 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 [nodes.import_label]
 component = "Label"
 control_id = "AssetBrowserImportLabel"
-props = { text = "Quick Import", text_tone = "muted", font_size = 9.0 }
+props = { text = "Quick Import", text_tone = "muted" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.import_path_field]
@@ -215,13 +215,13 @@ children = [{ node = "import_left_space" }, { node = "import_label" }, { node = 
 [nodes.sources_title_text]
 component = "Label"
 control_id = "AssetBrowserSourcesTitleText"
-props = { text = "Sources", font_size = 11.0, font_weight = 700 }
+props = { text = "Sources", font_weight = 700 }
 layout = { position = { x = 12.0, y = 10.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.sources_subtitle_text]
 component = "Label"
 control_id = "AssetBrowserSourcesSubtitleText"
-props = { text = "Project/assets", font_size = 9.0, overflow = "elide" }
+props = { text = "Project/assets", text_tone = "muted", overflow = "elide" }
 layout = { position = { x = 12.0, y = 25.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.sources_header_panel]
@@ -245,13 +245,13 @@ layout = { position = { x = 8.0, y = 7.0 }, width = { min = 14.0, preferred = 14
 [nodes.sources_row_name_text]
 component = "Label"
 control_id = "AssetBrowserSourcesRowNameText"
-props = { text = "Assets", font_size = 11.0, overflow = "elide" }
+props = { text = "Assets", overflow = "elide" }
 layout = { position = { x = 30.0, y = 6.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.sources_row_count_text]
 component = "Label"
 control_id = "AssetBrowserSourcesRowCountText"
-props = { text = "0", font_size = 10.0, text_align = "right" }
+props = { text = "0", text_tone = "muted", text_align = "right" }
 layout = { position = { x = 104.0, y = 5.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.sources_row_panel]
@@ -278,13 +278,13 @@ children = [{ node = "sources_header_panel" }, { node = "sources_divider" }, { n
 [nodes.content_header_title_text]
 component = "Label"
 control_id = "AssetBrowserContentHeaderTitleText"
-props = { text = "Content Browser", font_size = 11.0, font_weight = 700, overflow = "elide" }
+props = { text = "Content Browser", font_weight = 700, overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.content_header_path_text]
 component = "Label"
 control_id = "AssetBrowserContentHeaderPathText"
-props = { text = "All assets", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+props = { text = "All assets", text_tone = "muted", text_align = "right", overflow = "elide" }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.content_header_row]
@@ -339,13 +339,13 @@ layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "S
 [nodes.content_preview_card_name]
 component = "Label"
 control_id = "AssetBrowserContentPreviewName"
-props = { text = "workbench_page_chrome.zui", font_size = 10.0, font_weight = 600, overflow = "elide" }
+props = { text = "workbench_page_chrome.zui", font_weight = 600, overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.content_preview_card_meta]
 component = "Label"
 control_id = "AssetBrowserContentPreviewMeta"
-props = { text = "UiLayout • Ready", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "UiLayout • Ready", text_tone = "muted", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.content_preview_card]
@@ -365,13 +365,13 @@ children = [{ node = "content_header_row" }, { node = "content_asset_table" }, {
 [nodes.details_header_title_text]
 component = "Label"
 control_id = "AssetBrowserDetailsHeaderTitleText"
-props = { text = "Details", font_size = 11.0, font_weight = 700 }
+props = { text = "Details", font_weight = 700 }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 10.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.details_header_selection_text]
 component = "Label"
 control_id = "AssetBrowserDetailsHeaderSelectionText"
-props = { text = "No Asset Selected", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "No Asset Selected", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 25.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.details_header_panel]
@@ -399,43 +399,43 @@ layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y 
 [nodes.details_preview_name_text]
 component = "Label"
 control_id = "AssetBrowserDetailsPreviewNameText"
-props = { text = "No Asset Selected", font_size = 12.0, font_weight = 700, overflow = "elide" }
+props = { text = "No Asset Selected", font_weight = 700, overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 74.0, y = 12.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.details_preview_locator_text]
 component = "Label"
 control_id = "AssetBrowserDetailsPreviewLocatorText"
-props = { text = "", text_tone = "subtle", font_size = 10.0, overflow = "elide" }
+props = { text = "", text_tone = "subtle", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 74.0, y = 32.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.details_preview_kind_text]
 component = "Label"
 control_id = "AssetBrowserDetailsPreviewKindText"
-props = { text = "", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 74.0, y = 50.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.details_preview_identity_text]
 component = "Label"
 control_id = "AssetBrowserDetailsPreviewIdentityText"
-props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 74.0, y = 66.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.details_preview_adapter_text]
 component = "Label"
 control_id = "AssetBrowserDetailsPreviewToolkitText"
-props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 74.0, y = 82.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.details_preview_meta_path_text]
 component = "Label"
 control_id = "AssetBrowserDetailsPreviewMetaPathText"
-props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 74.0, y = 98.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.details_preview_diagnostics_text]
 component = "Label"
 control_id = "AssetBrowserDetailsPreviewDiagnosticsText"
-props = { text = "", font_size = 9.0 }
+props = { text = "" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 74.0, y = 116.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 
 [nodes.details_preview_panel]
@@ -448,13 +448,13 @@ children = [{ node = "details_preview_visual_panel" }, { node = "details_preview
 [nodes.details_locator_label]
 component = "Label"
 control_id = "AssetBrowserDetailsLocatorLabel"
-props = { text = "Locator", text_tone = "muted", font_size = 9.0 }
+props = { text = "Locator", text_tone = "muted" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.details_locator_value]
 component = "Label"
 control_id = "AssetBrowserDetailsLocatorValue"
-props = { text = "No project locator", font_size = 10.0, overflow = "elide" }
+props = { text = "No project locator", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 23.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.details_locator_panel]
@@ -467,13 +467,13 @@ children = [{ node = "details_locator_label" }, { node = "details_locator_value"
 [nodes.details_type_label]
 component = "Label"
 control_id = "AssetBrowserDetailsTypeLabel"
-props = { text = "Type", text_tone = "muted", font_size = 9.0 }
+props = { text = "Type", text_tone = "muted" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.details_type_value]
 component = "Label"
 control_id = "AssetBrowserDetailsTypeValue"
-props = { text = "Unknown Type", font_size = 10.0, overflow = "elide" }
+props = { text = "Unknown Type", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 22.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.details_type_panel]
@@ -486,19 +486,19 @@ children = [{ node = "details_type_label" }, { node = "details_type_value" }]
 [nodes.details_identity_label]
 component = "Label"
 control_id = "AssetBrowserDetailsIdentityLabel"
-props = { text = "Identity", text_tone = "muted", font_size = 9.0 }
+props = { text = "Identity", text_tone = "muted" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.details_identity_uuid_value]
 component = "Label"
 control_id = "AssetBrowserDetailsIdentityUuidValue"
-props = { text = "No UUID", font_size = 10.0, overflow = "elide" }
+props = { text = "No UUID", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 22.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.details_identity_revision_value]
 component = "Label"
 control_id = "AssetBrowserDetailsIdentityRevisionValue"
-props = { text = "Revision pending", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "Revision pending", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 37.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.details_identity_panel]
@@ -511,19 +511,19 @@ children = [{ node = "details_identity_label" }, { node = "details_identity_uuid
 [nodes.details_metadata_label]
 component = "Label"
 control_id = "AssetBrowserDetailsMetadataLabel"
-props = { text = "Metadata", text_tone = "muted", font_size = 9.0 }
+props = { text = "Metadata", text_tone = "muted" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.details_metadata_meta_path_value]
 component = "Label"
 control_id = "AssetBrowserDetailsMetadataMetaPathValue"
-props = { text = "No meta path", font_size = 10.0, overflow = "elide" }
+props = { text = "No meta path", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 22.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.details_metadata_adapter_value]
 component = "Label"
 control_id = "AssetBrowserDetailsMetadataToolkitValue"
-props = { text = "No toolkit", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "No toolkit", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 38.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.details_metadata_panel]
@@ -536,13 +536,13 @@ children = [{ node = "details_metadata_label" }, { node = "details_metadata_meta
 [nodes.details_diagnostics_label]
 component = "Label"
 control_id = "AssetBrowserDetailsDiagnosticsLabel"
-props = { text = "Diagnostics", text_tone = "muted", font_size = 9.0 }
+props = { text = "Diagnostics", text_tone = "muted" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.details_diagnostics_text]
 component = "Label"
 control_id = "AssetBrowserDetailsDiagnosticsText"
-props = { text = "", font_size = 9.0 }
+props = { text = "" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 24.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.details_diagnostics_panel]
@@ -619,7 +619,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.utility_selection_locator_text]
 component = "Label"
 control_id = "AssetBrowserSelectionLocatorText"
-props = { text = "Select an asset to inspect", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+props = { text = "Select an asset to inspect", text_tone = "muted", text_align = "right", overflow = "elide" }
 layout = { width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.utility_tabs_row]
@@ -643,43 +643,43 @@ layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y 
 [nodes.preview_name_text]
 component = "Label"
 control_id = "AssetBrowserPreviewNameText"
-props = { text = "No Asset Selected", font_size = 11.0, font_weight = 700, overflow = "elide" }
+props = { text = "No Asset Selected", font_weight = 700, overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 94.0, y = 10.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.preview_locator_text]
 component = "Label"
 control_id = "AssetBrowserPreviewLocatorText"
-props = { text = "", text_tone = "subtle", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "subtle", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 94.0, y = 28.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.preview_kind_text]
 component = "Label"
 control_id = "AssetBrowserPreviewKindText"
-props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 94.0, y = 43.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.preview_identity_text]
 component = "Label"
 control_id = "AssetBrowserPreviewIdentityText"
-props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 94.0, y = 58.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.preview_adapter_text]
 component = "Label"
 control_id = "AssetBrowserPreviewToolkitText"
-props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 94.0, y = 72.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.preview_meta_path_text]
 component = "Label"
 control_id = "AssetBrowserPreviewMetaPathText"
-props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 94.0, y = 86.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.preview_diagnostics_text]
 component = "Label"
 control_id = "AssetBrowserPreviewDiagnosticsText"
-props = { text = "", font_size = 9.0 }
+props = { text = "" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 94.0, y = 100.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.preview_panel]
@@ -692,31 +692,31 @@ children = [{ node = "preview_visual_panel" }, { node = "preview_name_text" }, {
 [nodes.reference_left_title_text]
 component = "Label"
 control_id = "AssetBrowserReferenceLeftTitleText"
-props = { text = "References", font_size = 11.0, font_weight = 600, overflow = "elide" }
+props = { text = "References", font_weight = 600, overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.reference_left_empty_text]
 component = "Label"
 control_id = "AssetBrowserReferenceLeftEmptyText"
-props = { text = "No direct references", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+props = { text = "No direct references", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.reference_left_row_name_text]
 component = "Label"
 control_id = "AssetBrowserReferenceLeftRowNameText"
-props = { text = "", font_size = 10.0, overflow = "elide" }
+props = { text = "", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 4.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.reference_left_row_locator_text]
 component = "Label"
 control_id = "AssetBrowserReferenceLeftRowLocatorText"
-props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 15.0 }, width = { stretch = "Stretch" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
 
 [nodes.reference_left_row_kind_text]
 component = "Label"
 control_id = "AssetBrowserReferenceLeftRowKindText"
-props = { text = "", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+props = { text = "", text_tone = "muted", text_align = "right", overflow = "elide" }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -8.0, y = 8.0 }, width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
 
 [nodes.reference_left_row_panel]
@@ -743,31 +743,31 @@ children = [{ node = "reference_left_title_text" }, { node = "reference_left_scr
 [nodes.reference_right_title_text]
 component = "Label"
 control_id = "AssetBrowserReferenceRightTitleText"
-props = { text = "Used By", font_size = 11.0, font_weight = 600, overflow = "elide" }
+props = { text = "Used By", font_weight = 600, overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.reference_right_empty_text]
 component = "Label"
 control_id = "AssetBrowserReferenceRightEmptyText"
-props = { text = "No direct references", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+props = { text = "No direct references", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.reference_right_row_name_text]
 component = "Label"
 control_id = "AssetBrowserReferenceRightRowNameText"
-props = { text = "", font_size = 10.0, overflow = "elide" }
+props = { text = "", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 4.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.reference_right_row_locator_text]
 component = "Label"
 control_id = "AssetBrowserReferenceRightRowLocatorText"
-props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 15.0 }, width = { stretch = "Stretch" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
 
 [nodes.reference_right_row_kind_text]
 component = "Label"
 control_id = "AssetBrowserReferenceRightRowKindText"
-props = { text = "", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+props = { text = "", text_tone = "muted", text_align = "right", overflow = "elide" }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -8.0, y = 8.0 }, width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
 
 [nodes.reference_right_row_panel]
@@ -799,13 +799,13 @@ children = [{ node = "reference_left_panel" }, { node = "reference_right_panel" 
 [nodes.metadata_meta_path_label]
 component = "Label"
 control_id = "AssetBrowserMetaPathLabel"
-props = { text = "Meta Path", text_tone = "muted", font_size = 9.0 }
+props = { text = "Meta Path", text_tone = "muted" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 7.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.metadata_meta_path_value]
 component = "Label"
 control_id = "AssetBrowserMetaPathValue"
-props = { text = "", font_size = 10.0, overflow = "elide" }
+props = { text = "", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 20.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.metadata_meta_path_panel]
@@ -818,13 +818,13 @@ children = [{ node = "metadata_meta_path_label" }, { node = "metadata_meta_path_
 [nodes.metadata_adapter_label]
 component = "Label"
 control_id = "AssetBrowserToolkitLabel"
-props = { text = "Adapter", text_tone = "muted", font_size = 9.0 }
+props = { text = "Adapter", text_tone = "muted" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 7.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.metadata_adapter_value]
 component = "Label"
 control_id = "AssetBrowserToolkitValue"
-props = { text = "", font_size = 10.0, overflow = "elide" }
+props = { text = "", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 20.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.metadata_adapter_panel]
@@ -837,13 +837,13 @@ children = [{ node = "metadata_adapter_label" }, { node = "metadata_adapter_valu
 [nodes.metadata_diagnostics_label]
 component = "Label"
 control_id = "AssetBrowserDiagnosticsLabel"
-props = { text = "Diagnostics", text_tone = "muted", font_size = 9.0 }
+props = { text = "Diagnostics", text_tone = "muted" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 7.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.metadata_diagnostics_text]
 component = "Label"
 control_id = "AssetBrowserDiagnosticsText"
-props = { text = "No active diagnostics", font_size = 10.0 }
+props = { text = "No active diagnostics" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 21.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.metadata_diagnostics_panel]
@@ -861,7 +861,7 @@ children = [{ node = "metadata_meta_path_panel" }, { node = "metadata_adapter_pa
 [nodes.plugins_text]
 component = "Label"
 control_id = "AssetBrowserPluginsText"
-props = { text = "Plugin utility tabs can mount here.", text_tone = "muted", font_size = 10.0, text_align = "center" }
+props = { text = "Plugin utility tabs can mount here.", text_tone = "muted", text_align = "center" }
 layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.plugins_panel]

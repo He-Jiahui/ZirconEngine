@@ -1,0 +1,6 @@
+var console = %import("zr.system.console");
+var front = %import("combat/glacial_front_state");
+console.printLine("m4-glacial-front-state-test");
+var result = front.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -16,6 +16,16 @@ mod flow_grid_masonry;
 mod linear_free;
 mod overlay_scroll;
 
+#[test]
+fn layout_measure_reuses_profile_flag_and_sorts_desired_payload_once() {
+    let source = include_str!("../layout/pass/measure.rs");
+
+    assert!(source.contains("measure_node_with_profile("));
+    assert!(!source.contains("node.template_metadata.clone()"));
+    assert!(!source.contains(".find(|(child_id, _)| child_id == ordered_child_id)"));
+    assert!(source.contains("(order, index, child_id, desired)"));
+}
+
 fn fixed_constraint(size: f32) -> AxisConstraint {
     AxisConstraint {
         min: size,

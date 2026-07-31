@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::contexts::ModuleContext;
-use crate::core::framework::error::CoreResult;
+use super::error::CoreResult;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StartupMode {

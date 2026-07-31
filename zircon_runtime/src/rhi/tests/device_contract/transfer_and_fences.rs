@@ -1,8 +1,8 @@
 use super::*;
 
 #[test]
-fn wgpu_rhi_fence_queries_reject_unissued_fence_values() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_fence_queries_reject_unissued_fence_values() {
+    let device = DeterministicRhiContractDevice::new_headless();
 
     assert_eq!(
         device.is_fence_complete(FenceValue(0)).unwrap_err(),
@@ -27,8 +27,8 @@ fn wgpu_rhi_fence_queries_reject_unissued_fence_values() {
 }
 
 #[test]
-fn wgpu_rhi_write_copy_and_read_buffer_preserves_bytes() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_write_copy_and_read_buffer_preserves_bytes() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let upload = device
         .create_buffer(&BufferDesc::new(
             "upload",
@@ -62,8 +62,37 @@ fn wgpu_rhi_write_copy_and_read_buffer_preserves_bytes() {
 }
 
 #[test]
-fn wgpu_rhi_write_buffer_validates_usage_and_range() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_overlapping_self_copy_preserves_memmove_semantics() {
+    let device = DeterministicRhiContractDevice::new_headless();
+    let buffer = device
+        .create_buffer(&BufferDesc::new(
+            "self-copy",
+            8,
+            BufferUsage::STAGING_WRITE
+                | BufferUsage::STAGING_READ
+                | BufferUsage::COPY_SRC
+                | BufferUsage::COPY_DST,
+        ))
+        .unwrap();
+    device
+        .write_buffer(buffer, 0, &[1, 2, 3, 4, 5, 6, 7, 8])
+        .unwrap();
+
+    let mut command_list = device
+        .create_command_list(RenderQueueClass::Copy, "overlapping-self-copy")
+        .unwrap();
+    command_list.copy_buffer_to_buffer(buffer, buffer, 0, 2, 6);
+    device.submit(command_list).unwrap();
+
+    assert_eq!(
+        device.read_buffer(buffer, 0, 8).unwrap(),
+        vec![1, 2, 1, 2, 3, 4, 5, 6]
+    );
+}
+
+#[test]
+fn deterministic_rhi_contract_write_buffer_validates_usage_and_range() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let read_only = device
         .create_buffer(&BufferDesc::new("read-only", 8, BufferUsage::STAGING_READ))
         .unwrap();
@@ -91,8 +120,8 @@ fn wgpu_rhi_write_buffer_validates_usage_and_range() {
 }
 
 #[test]
-fn wgpu_rhi_read_texture_validates_usage() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_read_texture_validates_usage() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let write_only = device
         .create_texture(&TextureDesc::new(
             "write-only-texture",
@@ -114,8 +143,8 @@ fn wgpu_rhi_read_texture_validates_usage() {
 }
 
 #[test]
-fn wgpu_rhi_read_buffer_validates_usage_and_range() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_read_buffer_validates_usage_and_range() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let non_readback = device
         .create_buffer(&BufferDesc::new("non-readback", 8, BufferUsage::COPY_DST))
         .unwrap();

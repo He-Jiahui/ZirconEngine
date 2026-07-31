@@ -5,7 +5,7 @@ fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutove
         .join("scene")
         .join("components");
 
-    for relative in ["mod.rs", "scene.rs"] {
+    for relative in ["mod.rs", "scene/mod.rs"] {
         assert!(
             root.join(relative).exists(),
             "expected scene component module {relative} under {:?}",
@@ -105,6 +105,94 @@ fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutove
             root
         );
     }
+}
+
+#[test]
+fn scene_component_owner_tree_stays_domain_split_without_active_alias() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("scene")
+        .join("components");
+    let route = std::fs::read_to_string(root.join("scene/mod.rs")).unwrap();
+    assert!(
+        !root.join("scene.rs").exists(),
+        "the retired scene.rs forwarding shell must not return"
+    );
+    for declaration_keyword in ["struct", "enum", "type", "fn", "impl"] {
+        assert!(
+            !contains_rust_identifier(&route, declaration_keyword),
+            "scene/mod.rs must stay a declaration-free structural route; found {declaration_keyword}"
+        );
+    }
+
+    let owner_declarations: &[(&str, &[&str])] = &[
+        (
+            "activation.rs",
+            &[
+                "pub struct ActiveSelf",
+                "pub struct ActiveInHierarchy",
+                "pub struct RenderLayerMask",
+                "pub const fn default_render_layer_mask",
+            ],
+        ),
+        (
+            "animation.rs",
+            &[
+                "pub struct AnimationSkeletonComponent",
+                "pub struct AnimationPlayerComponent",
+                "pub struct AnimationSequencePlayerComponent",
+                "pub struct AnimationGraphPlayerComponent",
+                "pub struct AnimationStateMachinePlayerComponent",
+            ],
+        ),
+        ("camera.rs", &["pub struct CameraComponent"]),
+        ("hierarchy.rs", &["pub struct Hierarchy"]),
+        ("identity.rs", &["pub enum NodeKind", "pub struct Name"]),
+        (
+            "mesh_renderer.rs",
+            &[
+                "pub struct MeshRendererPrimitiveBinding",
+                "pub struct MeshRendererLodLevel",
+                "pub struct MeshRenderer",
+            ],
+        ),
+        (
+            "node.rs",
+            &["pub struct SceneNode", "pub struct NodeRecord"],
+        ),
+        (
+            "physics.rs",
+            &[
+                "pub enum RigidBodyType",
+                "pub struct RigidBodyComponent",
+                "pub enum ColliderShape",
+                "pub struct ColliderComponent",
+                "pub enum JointKind",
+                "pub struct JointComponent",
+            ],
+        ),
+        (
+            "transform.rs",
+            &[
+                "pub struct LocalTransform",
+                "pub struct WorldMatrix",
+                "pub struct WorldTransform",
+            ],
+        ),
+    ];
+    for &(owner, declarations) in owner_declarations {
+        let owner_path = root.join("scene").join(owner);
+        let source = std::fs::read_to_string(&owner_path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", owner_path.display()));
+        for declaration in declarations {
+            assert!(
+                source.contains(declaration),
+                "scene component domain owner {owner} must retain {declaration}"
+            );
+        }
+    }
+
+    assert_no_rust_identifier_in_tree(&root, "Active");
 }
 
 #[test]
@@ -215,4 +303,31 @@ fn assert_no_legacy_late_update_name(root: &std::path::Path) {
             path
         );
     }
+}
+
+fn assert_no_rust_identifier_in_tree(root: &std::path::Path, identifier: &str) {
+    for entry in std::fs::read_dir(root).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_dir() {
+            assert_no_rust_identifier_in_tree(&path, identifier);
+            continue;
+        }
+        if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+            continue;
+        }
+
+        let source = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            !contains_rust_identifier(&source, identifier),
+            "retired Rust identifier {identifier} must not return in {:?}",
+            path
+        );
+    }
+}
+
+fn contains_rust_identifier(source: &str, identifier: &str) -> bool {
+    source
+        .split(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
+        .any(|token| token == identifier)
 }

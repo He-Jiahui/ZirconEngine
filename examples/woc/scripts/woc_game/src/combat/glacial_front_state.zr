@@ -1,0 +1,69 @@
+// Pure current-head Glacial Front stage, presentation and cone geometry.
+var math = %import("zr.zircon.math");
+var contract = %import("generated/glacial_front_contract");
+
+pub class PointXZ {
+    pub var x: float;
+    pub var z: float;
+    pub @constructor(x: float, z: float) {
+        this.x = x;
+        this.z = z;
+    }
+}
+
+minimum(value: float, upper: float): float { return value < upper ? value : upper; }
+maximum(value: float, lower: float): float { return value > lower ? value : lower; }
+absolute(value: float): float { return value < 0.0 ? -value : value; }
+
+pub empoweredStageForProgress(progress: float, stageCount: int): int {
+    if (stageCount <= 1) return 1;
+    var clamped = maximum(0.0, minimum(1.0, progress));
+    var stage = <int>math.floor(clamped * <float>stageCount) + 1;
+    return stage < stageCount ? stage : stageCount;
+}
+
+pub empoweredCastProgress(total: float, remaining: float): float {
+    if (total <= 0.0) return 1.0;
+    return maximum(0.0, minimum(1.0, (total - remaining) / total));
+}
+
+pub glacialFrontPresentationRange(progress: float): float {
+    return contract.presentationRange(empoweredStageForProgress(progress, 4));
+}
+
+normalizeRadians(value: float): float {
+    var pi = 3.141592653589793;
+    var full = pi * 2.0;
+    while (value > pi) { value = value - full; }
+    while (value < -pi) { value = value + full; }
+    return value;
+}
+
+// Equivalent to the target's atan2(sin(raw), cos(raw)) cone check. At a zero
+// vector Math.atan2(0, 0) is zero, so normalize -facing explicitly.
+pub glacialFrontContains(origin: PointXZ, facing: float, point: PointXZ, range: float, angleDegrees: float): bool {
+    var dx = point.x - origin.x;
+    var dz = point.z - origin.z;
+    var distance = math.sqrt(dx * dx + dz * dz);
+    if (distance > range) return false;
+    var halfAngle = angleDegrees * 3.141592653589793 / 360.0;
+    if (distance <= 0.0) return absolute(normalizeRadians(-facing)) <= halfAngle;
+    var cosine = (math.sin(facing) * dx + math.cos(facing) * dz) / distance;
+    return cosine >= math.cos(halfAngle);
+}
+
+pub contractTest(): int {
+    if (contract.minRange(true) != 7.0 || contract.maxRange(true) != 16.0 ||
+        empoweredStageForProgress(-1.0, 4) != 1 || empoweredStageForProgress(0.25, 4) != 2 ||
+        empoweredStageForProgress(1.0, 4) != 4 || empoweredStageForProgress(0.7, 1) != 1) return -1;
+    if (empoweredCastProgress(4.0, 5.0) != 0.0 || empoweredCastProgress(4.0, 1.0) != 0.75 ||
+        empoweredCastProgress(0.0, 1.0) != 1.0 || glacialFrontPresentationRange(0.0) != 7.0 ||
+        glacialFrontPresentationRange(0.25) != 10.0 || glacialFrontPresentationRange(1.0) != 16.0) return -2;
+    var origin = new PointXZ(0.0, 0.0);
+    if (!glacialFrontContains(origin, 0.0, new PointXZ(0.0, 5.0), 7.0, contract.angleDegrees(true)) ||
+        !glacialFrontContains(origin, 0.0, new PointXZ(3.5, 5.0), 7.0, contract.angleDegrees(true)) ||
+        glacialFrontContains(origin, 0.0, new PointXZ(3.6, 5.0), 7.0, contract.angleDegrees(true)) ||
+        glacialFrontContains(origin, 0.0, new PointXZ(0.0, 8.0), 7.0, contract.angleDegrees(true)) ||
+        glacialFrontContains(origin, 1.0, new PointXZ(0.0, 0.0), 7.0, contract.angleDegrees(true))) return -3;
+    return 1;
+}

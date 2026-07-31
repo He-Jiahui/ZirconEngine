@@ -1,0 +1,7 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub tickDelta(): float { return 0.05; }
+pub castCompleteEpsilon(): float { return 0.000000001; }
+pub castPushbackSeconds(): float { return 0.5; }
+pub channelPushbackFraction(): float { return 0.25; }
+pub massResCombatReason(): int { return 1; }
+pub massResNoDeadMemberReason(): int { return 2; }

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use zircon_runtime::core::framework::window::{WindowDescriptor, WindowLifecyclePolicy};
 use zircon_runtime::platform::EventLoopPolicy;
 
@@ -7,6 +9,8 @@ pub(in crate::entry) struct RuntimeEntryAppConfig {
     pub(in crate::entry::runtime_entry_app) event_loop_policy: EventLoopPolicy,
     pub(in crate::entry::runtime_entry_app) window_lifecycle_policy: WindowLifecyclePolicy,
     pub(in crate::entry::runtime_entry_app) exit_after_first_presented_frame: bool,
+    pub(in crate::entry::runtime_entry_app) first_frame_capture_path: Option<PathBuf>,
+    pub(in crate::entry::runtime_entry_app) require_persisted_scene_diagnostics: bool,
 }
 
 impl RuntimeEntryAppConfig {
@@ -50,6 +54,16 @@ impl RuntimeEntryAppConfig {
         self
     }
 
+    pub(in crate::entry) fn with_first_frame_capture_path(mut self, path: Option<PathBuf>) -> Self {
+        self.first_frame_capture_path = path;
+        self
+    }
+
+    pub(in crate::entry) fn with_persisted_scene_diagnostics(mut self, require: bool) -> Self {
+        self.require_persisted_scene_diagnostics = require;
+        self
+    }
+
     #[cfg(test)]
     pub(in crate::entry) fn window_descriptor(&self) -> &WindowDescriptor {
         &self.window_descriptor
@@ -69,6 +83,16 @@ impl RuntimeEntryAppConfig {
     pub(in crate::entry) fn exit_after_first_presented_frame(&self) -> bool {
         self.exit_after_first_presented_frame
     }
+
+    #[cfg(test)]
+    pub(in crate::entry) fn first_frame_capture_path(&self) -> Option<&std::path::Path> {
+        self.first_frame_capture_path.as_deref()
+    }
+
+    #[cfg(test)]
+    pub(in crate::entry) fn require_persisted_scene_diagnostics(&self) -> bool {
+        self.require_persisted_scene_diagnostics
+    }
 }
 
 impl Default for RuntimeEntryAppConfig {
@@ -78,6 +102,8 @@ impl Default for RuntimeEntryAppConfig {
             event_loop_policy: EventLoopPolicy::Game,
             window_lifecycle_policy: WindowLifecyclePolicy::default(),
             exit_after_first_presented_frame: false,
+            first_frame_capture_path: None,
+            require_persisted_scene_diagnostics: false,
         }
     }
 }
@@ -94,9 +120,11 @@ mod tests {
         assert!(config.window_descriptor.visible);
         assert_eq!(config.event_loop_policy, EventLoopPolicy::Game);
         assert!(config.window_lifecycle_policy.should_close_on_request());
-        assert!(config
-            .window_lifecycle_policy
-            .should_exit_after_primary_close());
+        assert!(
+            config
+                .window_lifecycle_policy
+                .should_exit_after_primary_close()
+        );
         assert!(!config.exit_after_first_presented_frame());
     }
 
@@ -116,9 +144,11 @@ mod tests {
         let config = RuntimeEntryAppConfig::default().with_close_when_requested(false);
 
         assert!(!config.window_lifecycle_policy.close_when_requested);
-        assert!(!config
-            .window_lifecycle_policy()
-            .should_exit_after_primary_close());
+        assert!(
+            !config
+                .window_lifecycle_policy()
+                .should_exit_after_primary_close()
+        );
     }
 
     #[test]
@@ -134,5 +164,28 @@ mod tests {
         let config = RuntimeEntryAppConfig::default().with_exit_after_first_presented_frame(true);
 
         assert!(config.exit_after_first_presented_frame());
+    }
+
+    #[test]
+    fn runtime_entry_app_config_can_request_a_first_frame_capture() {
+        let path = std::path::PathBuf::from("E:/evidence/runtime-first-frame.png");
+        let config = RuntimeEntryAppConfig::default().with_first_frame_capture_path(Some(path));
+
+        assert_eq!(
+            config.first_frame_capture_path(),
+            Some(std::path::Path::new("E:/evidence/runtime-first-frame.png"))
+        );
+    }
+
+    #[test]
+    fn runtime_entry_app_config_requires_persisted_scene_diagnostics_only_when_enabled() {
+        assert!(
+            !RuntimeEntryAppConfig::default().require_persisted_scene_diagnostics(),
+            "the F0 no-project startup path must not require F2 scene diagnostics"
+        );
+
+        let config = RuntimeEntryAppConfig::default().with_persisted_scene_diagnostics(true);
+
+        assert!(config.require_persisted_scene_diagnostics());
     }
 }

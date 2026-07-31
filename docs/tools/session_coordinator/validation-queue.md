@@ -1,5 +1,9 @@
 ---
 related_code:
+  - tools/session_coordinator/cargo_jobs.py
+  - tools/session_coordinator/cargo_runner.py
+  - tools/session_coordinator/validation_copies.py
+  - tools/session_coordinator/workspace_copy.py
   - tools/session_coordinator/control_plane/snapshot.py
   - tools/session_coordinator/work_continuations.py
   - tools/session_coordinator/web/src/api/contracts.ts
@@ -8,6 +12,10 @@ related_code:
   - tools/session_coordinator/web/src/pages/OverviewPage.tsx
   - tools/session_coordinator/web/src/pages/ValidationPage.tsx
 implementation_files:
+  - tools/session_coordinator/cargo_jobs.py
+  - tools/session_coordinator/cargo_runner.py
+  - tools/session_coordinator/validation_copies.py
+  - tools/session_coordinator/workspace_copy.py
   - tools/session_coordinator/control_plane/snapshot.py
   - tools/session_coordinator/work_continuations.py
   - tools/session_coordinator/web/src/api/contracts.ts
@@ -20,6 +28,10 @@ plan_sources:
   - docs/superpowers/plans/2026-07-17-coordinator-adaptive-cpu-burst-lanes.md
   - user: 2026-07-17 optimize coordinator visibility and Session validation efficiency without global admission blocking
 tests:
+  - tools/session_coordinator/tests/test_cargo_reservations.py
+  - tools/session_coordinator/tests/test_cargo_runner.py
+  - tools/session_coordinator/tests/test_validation_copies.py
+  - tools/session_coordinator/tests/test_workspace_copy.py
   - tools/session_coordinator/tests/test_control_snapshot.py
   - tools/session_coordinator/web/src/__tests__/contracts.test.ts
   - tools/session_coordinator/web/src/__tests__/components.test.tsx
@@ -34,6 +46,30 @@ The coordinator separates Session admission from exclusive validation resources.
 An occupied CPU or GPU Cargo lane may delay a managed validation command, but it
 must never imply that Session registration, file work, Failure handling, or the
 work board has been drained.
+
+## Immutable validation inputs
+
+A full compile or test may bind a materialized validation copy instead of reading
+the changing shared checkout. The coordinator derives the local input closure from
+server-owned Cargo metadata, includes tracked files under every reachable local
+package plus the root Cargo/lock/toolchain files, and records one
+`input_manifest_hash`. A package outside the repository is accepted only through an
+explicit external Git descriptor whose mount path stays below the copy root and whose
+commit already exists. Materialization archives that exact commit; uncommitted bytes in
+the external checkout are never copied.
+
+Before asynchronous materialization starts, every untracked overlay must already be
+attributed to the owning Session. A failure persists its typed code, stage and path so
+restart or UI projection does not collapse it into a generic copy error. Successful
+materialization persists the external descriptors and the input-manifest hash.
+
+A Cargo reservation that consumes the copy stores both its validation-copy job ID and
+manifest hash, rechecks the copy before reservation and again before spawn, and runs
+Cargo with the immutable source root as its working directory. These fields are an
+all-or-nothing identity pair. Cleanup rejects a copy while either a durable Cargo job
+or reservation references it; normal validation `run`/`start` remain allowed and keep
+their stdout/stderr and nonzero exit evidence. The copy therefore cannot disappear
+under a queued launch or be mistaken for shared-worktree validation.
 
 ## Projection boundary
 

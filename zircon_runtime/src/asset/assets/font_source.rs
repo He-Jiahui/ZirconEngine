@@ -202,15 +202,15 @@ pub(crate) fn standalone_sfnt_face(
 
         pad_to_four(&mut output);
         let target_offset = output.len();
-        let mut table_data = source_data.to_vec();
-        if tag == *b"head" && table_data.len() >= 12 {
-            table_data[8..12].fill(0);
+        output.extend_from_slice(source_data);
+        if tag == *b"head" && source_data.len() >= 12 {
+            output[target_offset + 8..target_offset + 12].fill(0);
             head_offset = Some(target_offset);
         }
-        output.extend_from_slice(&table_data);
+        let target_end = target_offset + source_len;
+        let table_checksum = sfnt_checksum(&output[target_offset..target_end]);
         output[target_record..target_record + 4].copy_from_slice(&tag);
-        output[target_record + 4..target_record + 8]
-            .copy_from_slice(&sfnt_checksum(&table_data).to_be_bytes());
+        output[target_record + 4..target_record + 8].copy_from_slice(&table_checksum.to_be_bytes());
         output[target_record + 8..target_record + 12]
             .copy_from_slice(&(target_offset as u32).to_be_bytes());
         output[target_record + 12..target_record + 16]

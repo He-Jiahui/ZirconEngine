@@ -265,9 +265,11 @@ fn ui_accessibility_snapshot_represents_roles_states_actions_and_diagnostics() {
     assert_eq!(round_tripped.node(button), Some(&node));
     assert_eq!(round_tripped.focused, Some(button));
     assert_eq!(round_tripped.diagnostics[0], missing_name);
-    assert!(serde_json::to_string(&round_tripped)
-        .unwrap()
-        .contains("missing_name"));
+    assert!(
+        serde_json::to_string(&round_tripped)
+            .unwrap()
+            .contains("missing_name")
+    );
 
     let empty_node: UiAccessibilityNode = serde_json::from_str("{\"node_id\":13}").unwrap();
     assert_eq!(empty_node.role, UiA11yRole::Generic);
@@ -330,9 +332,11 @@ fn ui_accessibility_snapshot_represents_roles_states_actions_and_diagnostics() {
     };
     let set_selection_round_trip = round_trip(&set_selection);
     assert_eq!(set_selection_round_trip, set_selection);
-    assert!(serde_json::to_string(&set_selection)
-        .unwrap()
-        .contains("text_selection"));
+    assert!(
+        serde_json::to_string(&set_selection)
+            .unwrap()
+            .contains("text_selection")
+    );
     let scroll_offset_request = crate::ui::accessibility::UiAccessibilityActionRequest {
         target: UiNodeId::new(19),
         action: UiAccessibilityAction::ScrollTo,
@@ -341,9 +345,11 @@ fn ui_accessibility_snapshot_represents_roles_states_actions_and_diagnostics() {
     };
     let scroll_offset_round_trip = round_trip(&scroll_offset_request);
     assert_eq!(scroll_offset_round_trip, scroll_offset_request);
-    assert!(serde_json::to_string(&scroll_offset_request)
-        .unwrap()
-        .contains("scroll_offset"));
+    assert!(
+        serde_json::to_string(&scroll_offset_request)
+            .unwrap()
+            .contains("scroll_offset")
+    );
 }
 
 #[test]
@@ -480,9 +486,11 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
         UiWidgetBehavior::ScrollbarThumb
     );
     assert_eq!(UiTextCursorStyle::default().width, 1.0);
-    assert!(serde_json::to_string(&round_tripped_events)
-        .unwrap()
-        .contains("selection_changed"));
+    assert!(
+        serde_json::to_string(&round_tripped_events)
+            .unwrap()
+            .contains("selection_changed")
+    );
 }
 
 #[test]
@@ -531,9 +539,11 @@ fn ui_binding_update_contract_represents_attribute_state_and_ecs_domains() {
     assert_eq!(report.rejected_count, 1);
     assert!(report.dirty.contains(&UiBindingDirtyDomain::Render));
     assert!(report.dirty.contains(&UiBindingDirtyDomain::Schedule));
-    assert!(serde_json::to_string(&report)
-        .unwrap()
-        .contains("component_state_value"));
+    assert!(
+        serde_json::to_string(&report)
+            .unwrap()
+            .contains("component_state_value")
+    );
     assert_eq!(
         UiBindingUpdateStatus::default(),
         UiBindingUpdateStatus::Applied
@@ -736,9 +746,11 @@ tooltip = "Search assets"
     authored.widget.checked = Some(true);
     authored.picking = UiPickPolicy::receive();
 
-    assert!(serde_json::to_string(&authored)
-        .unwrap()
-        .contains("focusable"));
+    assert!(
+        serde_json::to_string(&authored)
+            .unwrap()
+            .contains("focusable")
+    );
 
     let legacy_asset: UiAssetDocument = toml::from_str(
         r#"

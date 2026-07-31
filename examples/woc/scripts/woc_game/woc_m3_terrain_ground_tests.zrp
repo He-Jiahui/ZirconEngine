@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_terrain_ground_tests",
+  "source": "src",
+  "binary": "bin-m3-terrain-ground-tests",
+  "entry": "world/terrain_ground_test_main"
+}

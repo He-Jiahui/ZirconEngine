@@ -1,0 +1,366 @@
+// Source-pinned Protect Yumi! match core. This state has no world entity or
+// transport ownership: a later WOS transaction supplies player/cat ids and
+// emits events around these deterministic state transitions.
+var container = %import("zr.container");
+var rng = %import("kernel/rng");
+var rules = %import("social/yumi_match_rules");
+var maze = %import("social/yumi_maze_layout");
+
+pub class YumiMatchState {
+    // 0=countdown, 1=active (including sudden death), 2=over.
+    pub var phase: int;
+    pub var teamSize: int;
+    pub var countdownTicks: int;
+    pub var elapsedTicks: int;
+    pub var worldTick: uint;
+    pub var nextTeleportTick: int;
+    pub var suddenDeath: bool;
+    pub var yumiAHp: int;
+    pub var yumiBHp: int;
+    // -1 means that the cat is still at its source start plaza.
+    pub var yumiACellIndex: int;
+    pub var yumiBCellIndex: int;
+    // 0=no winner, 1=team A, 2=team B.
+    pub var winner: int;
+    // Damage to Yumi A was dealt by team B, and conversely. This preserves the
+    // source resolveYumiTiebreak argument meaning.
+    pub var damageToYumiA: int;
+    pub var damageToYumiB: int;
+    pub var lastStatusSecond: int;
+    pub var randomState: uint;
+    pub var randomDraws: uint;
+    pub var randomDigest: uint;
+    pub var teamA: container.Array<int>;
+    pub var teamB: container.Array<int>;
+    pub var respawnPids: container.Array<int>;
+    pub var respawnTicks: container.Array<int>;
+    pub var scorePids: container.Array<int>;
+    pub var kills: container.Array<int>;
+    pub var deaths: container.Array<int>;
+
+    pub @constructor() {
+        this.phase = 0;
+        this.teamSize = 3;
+        this.countdownTicks = 100;
+        this.elapsedTicks = 0;
+        this.worldTick = <uint>0;
+        this.nextTeleportTick = 1200;
+        this.suddenDeath = false;
+        this.yumiAHp = 5000;
+        this.yumiBHp = 5000;
+        this.yumiACellIndex = -1;
+        this.yumiBCellIndex = -1;
+        this.winner = 0;
+        this.damageToYumiA = 0;
+        this.damageToYumiB = 0;
+        this.lastStatusSecond = -1;
+        this.randomState = <uint>1;
+        this.randomDraws = <uint>0;
+        this.randomDigest = <uint>2166136261;
+        this.teamA = new container.Array<int>();
+        this.teamB = new container.Array<int>();
+        this.respawnPids = new container.Array<int>();
+        this.respawnTicks = new container.Array<int>();
+        this.scorePids = new container.Array<int>();
+        this.kills = new container.Array<int>();
+        this.deaths = new container.Array<int>();
+    }
+}
+
+pub yumiMatchSeed(tick: uint, matchId: uint): uint {
+    return (tick * <uint>2654435761 + matchId * <uint>40503) & <uint>4294967295;
+}
+
+initializeYumiRandom(state: YumiMatchState, seed: uint): void {
+    state.randomState = seed & <uint>4294967295;
+    if (state.randomState == <uint>0) { state.randomState = <uint>2654435769; }
+    state.randomDraws = <uint>0;
+    state.randomDigest = <uint>2166136261;
+}
+
+nextYumiUnit(state: YumiMatchState): float {
+    state.randomState = (state.randomState + <uint>1831565813) & <uint>4294967295;
+    var value = rng.mix(state.randomState, 1);
+    state.randomDraws = state.randomDraws + <uint>1;
+    state.randomDigest = rng.fold(state.randomDigest, value, 1);
+    return <float>value / 4294967296.0;
+}
+
+pub initializeYumiMatch(
+    state: YumiMatchState,
+    teamSize: int,
+    worldTick: uint,
+    matchId: uint
+): bool {
+    if (teamSize != 3 && teamSize != 5) { return false; }
+    state.phase = 0;
+    state.teamSize = teamSize;
+    state.countdownTicks = 100;
+    state.elapsedTicks = 0;
+    state.worldTick = worldTick;
+    state.nextTeleportTick = 1200;
+    state.suddenDeath = false;
+    state.yumiAHp = 5000;
+    state.yumiBHp = 5000;
+    state.yumiACellIndex = -1;
+    state.yumiBCellIndex = -1;
+    state.winner = 0;
+    state.damageToYumiA = 0;
+    state.damageToYumiB = 0;
+    state.lastStatusSecond = -1;
+    state.teamA.clear();
+    state.teamB.clear();
+    state.respawnPids.clear();
+    state.respawnTicks.clear();
+    state.scorePids.clear();
+    state.kills.clear();
+    state.deaths.clear();
+    initializeYumiRandom(state, yumiMatchSeed(worldTick, matchId));
+    return true;
+}
+
+containsPid(pids: container.Array<int>, pid: int): bool {
+    var index = 0;
+    while (index < pids.length) {
+        if (<int>pids[index] == pid) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+pub addYumiTeamPlayer(state: YumiMatchState, team: int, pid: int): bool {
+    if (state.phase != 0 || pid <= 0 || (team != 1 && team != 2) ||
+        containsPid(state.teamA, pid) || containsPid(state.teamB, pid)) { return false; }
+    var target = team == 1 ? state.teamA : state.teamB;
+    if (target.length >= state.teamSize) { return false; }
+    target.add(pid);
+    state.scorePids.add(pid);
+    state.kills.add(0);
+    state.deaths.add(0);
+    return true;
+}
+
+pub setYumiWorldTick(state: YumiMatchState, worldTick: uint): void {
+    state.worldTick = worldTick;
+}
+
+distanceSquared(
+    layout: maze.YumiMazeLayout,
+    firstIndex: int,
+    secondIndex: int
+): float {
+    var first = <maze.YumiMazeCell>layout.teleportCells[firstIndex];
+    var second = <maze.YumiMazeCell>layout.teleportCells[secondIndex];
+    var dx = maze.mazeCellCenterX(layout, first.cx) - maze.mazeCellCenterX(layout, second.cx);
+    var dz = maze.mazeCellCenterZ(layout, first.cz) - maze.mazeCellCenterZ(layout, second.cz);
+    return dx * dx + dz * dz;
+}
+
+// This is source pickYumiCells: exactly two private draws, regardless of the
+// geometry outcome. Candidate iteration follows the source teleportCells order.
+pub pickYumiCells(state: YumiMatchState, layout: maze.YumiMazeLayout): bool {
+    var count = layout.teleportCells.length;
+    if (count < 2) { return false; }
+    var a = <int>(nextYumiUnit(state) * <float>count);
+    if (a >= count) { a = count - 1; }
+    var roll = nextYumiUnit(state);
+    var valid = new container.Array<int>();
+    var index = 0;
+    while (index < count) {
+        if (index != a && distanceSquared(layout, index, a) >= 25.0) { valid.add(index); }
+        index = index + 1;
+    }
+    var b: int;
+    if (valid.length > 0) {
+        b = <int>(roll * <float>valid.length);
+        if (b >= valid.length) { b = valid.length - 1; }
+        b = <int>valid[b];
+    } else {
+        var half = <int>(<float>count / 2.0);
+        if (half < 1) { half = 1; }
+        b = (a + half) % count;
+    }
+    state.yumiACellIndex = a;
+    state.yumiBCellIndex = b;
+    return true;
+}
+
+scoreIndex(state: YumiMatchState, pid: int): int {
+    var index = 0;
+    while (index < state.scorePids.length) {
+        if (<int>state.scorePids[index] == pid) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+respawnIndex(state: YumiMatchState, pid: int): int {
+    var index = 0;
+    while (index < state.respawnPids.length) {
+        if (<int>state.respawnPids[index] == pid) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub benchYumiPlayer(state: YumiMatchState, pid: int, killerPid: int): bool {
+    if (state.phase != 1 || !containsPid(state.teamA, pid) && !containsPid(state.teamB, pid) ||
+        respawnIndex(state, pid) >= 0) { return false; }
+    state.respawnPids.add(pid);
+    state.respawnTicks.add(200);
+    var victimScore = scoreIndex(state, pid);
+    if (victimScore >= 0) { state.deaths[victimScore] = <int>state.deaths[victimScore] + 1; }
+    var killerScore = scoreIndex(state, killerPid);
+    if (killerScore >= 0) { state.kills[killerScore] = <int>state.kills[killerScore] + 1; }
+    return true;
+}
+
+tickRespawns(state: YumiMatchState): int {
+    var revived = 0;
+    var index = state.respawnPids.length - 1;
+    while (index >= 0) {
+        var remaining = <int>state.respawnTicks[index] - 1;
+        if (remaining <= 0) {
+            state.respawnPids.removeAt(index);
+            state.respawnTicks.removeAt(index);
+            revived = revived + 1;
+        } else {
+            state.respawnTicks[index] = remaining;
+        }
+        index = index - 1;
+    }
+    return revived;
+}
+
+endYumiMatch(state: YumiMatchState, winner: int): void {
+    if (winner != 1 && winner != 2) { throw "woc yumi winner is invalid"; }
+    state.winner = winner;
+    state.phase = 2;
+}
+
+// Higher hp survives; then the team that damaged the enemy cat wins; the
+// third comparison consumes one private draw exactly as source does.
+resolveYumiTiebreak(state: YumiMatchState): int {
+    if (state.yumiAHp != state.yumiBHp) { return state.yumiAHp > state.yumiBHp ? 1 : 2; }
+    if (state.damageToYumiA != state.damageToYumiB) {
+        return state.damageToYumiB > state.damageToYumiA ? 1 : 2;
+    }
+    return nextYumiUnit(state) < 0.5 ? 1 : 2;
+}
+
+pulseSuddenDeathBleed(state: YumiMatchState): void {
+    var damage = rules.yumiSuddenBleedDamageForElapsedTicks(state.elapsedTicks);
+    var hpA = state.yumiAHp;
+    var hpB = state.yumiBHp;
+    var dieA = hpA > 0 && hpA <= damage;
+    var dieB = hpB > 0 && hpB <= damage;
+    if (dieA && dieB) {
+        var winner = resolveYumiTiebreak(state);
+        if (winner == 1) {
+            state.yumiBHp = 0;
+        } else {
+            state.yumiAHp = 0;
+        }
+        endYumiMatch(state, winner);
+        return;
+    }
+    if (hpA > 0) {
+        state.yumiAHp = hpA > damage ? hpA - damage : 0;
+        if (state.yumiAHp == 0) { endYumiMatch(state, 2); return; }
+    }
+    if (hpB > 0) {
+        state.yumiBHp = hpB > damage ? hpB - damage : 0;
+        if (state.yumiBHp == 0) { endYumiMatch(state, 1); }
+    }
+}
+
+// Returns a bitfield: 1=countdown opened, 2=teleport, 4=sudden death,
+// 8=one or more revives, 16=status-second changed, 32=match ended.
+pub advanceYumiMatch(state: YumiMatchState): int {
+    if (state.phase == 2) { return 0; }
+    var effects = 0;
+    if (state.phase == 0) {
+        state.countdownTicks = state.countdownTicks - 1;
+        if (state.countdownTicks <= 0) {
+            state.countdownTicks = 0;
+            state.phase = 1;
+            effects = effects | 1;
+        }
+        return effects;
+    }
+    state.elapsedTicks = state.elapsedTicks + 1;
+    if (!state.suddenDeath && state.elapsedTicks >= 12000) {
+        state.suddenDeath = true;
+        effects = effects | 4;
+    }
+    if (!state.suddenDeath && state.elapsedTicks >= state.nextTeleportTick) {
+        state.nextTeleportTick = state.nextTeleportTick + 1200;
+        var layout = maze.yumiMazeLayout();
+        if (!pickYumiCells(state, layout)) { throw "woc yumi teleport layout is invalid"; }
+        effects = effects | 2;
+    }
+    if (state.suddenDeath && state.worldTick % <uint>40 == <uint>0) {
+        pulseSuddenDeathBleed(state);
+        if (state.phase == 2) { return effects | 32; }
+    }
+    if (tickRespawns(state) > 0) { effects = effects | 8; }
+    var wholeSecond = <int>(<float>state.elapsedTicks / 20.0);
+    if (wholeSecond != state.lastStatusSecond) {
+        state.lastStatusSecond = wholeSecond;
+        effects = effects | 16;
+    }
+    return effects;
+}
+
+// targetTeam is the cat's team: damage to A is bookkept as team B's output.
+pub damageYumiCat(state: YumiMatchState, targetTeam: int, amount: int): int {
+    if (state.phase != 1 || amount <= 0 || (targetTeam != 1 && targetTeam != 2)) { return 0; }
+    var hp = targetTeam == 1 ? state.yumiAHp : state.yumiBHp;
+    var applied = rules.yumiAppliedDamage(amount, hp, state.elapsedTicks);
+    if (targetTeam == 1) {
+        state.yumiAHp = state.yumiAHp - applied;
+        state.damageToYumiA = state.damageToYumiA + applied;
+        if (state.yumiAHp <= 0) { state.yumiAHp = 0; endYumiMatch(state, 2); }
+    } else {
+        state.yumiBHp = state.yumiBHp - applied;
+        state.damageToYumiB = state.damageToYumiB + applied;
+        if (state.yumiBHp <= 0) { state.yumiBHp = 0; endYumiMatch(state, 1); }
+    }
+    return applied;
+}
+
+pub respawnRemainingTicks(state: YumiMatchState, pid: int): int {
+    var index = respawnIndex(state, pid);
+    return index < 0 ? 0 : <int>state.respawnTicks[index];
+}
+
+pub contractTest(): int {
+    var state = new YumiMatchState();
+    if (!initializeYumiMatch(state, 3, <uint>7, <uint>4) || state.countdownTicks != 100 ||
+        state.yumiAHp != 5000 || state.yumiBHp != 5000 || state.nextTeleportTick != 1200 ||
+        state.randomDraws != <uint>0 || !addYumiTeamPlayer(state, 1, 1) ||
+        !addYumiTeamPlayer(state, 2, 2) || addYumiTeamPlayer(state, 1, 1)) { return -1; }
+    var countdown = 0;
+    while (countdown < 100) { advanceYumiMatch(state); countdown = countdown + 1; }
+    if (state.phase != 1 || !benchYumiPlayer(state, 1, 2) ||
+        !benchYumiPlayer(state, 2, 1) || benchYumiPlayer(state, 1, 2) ||
+        respawnRemainingTicks(state, 1) != 200) { return -2; }
+    state.elapsedTicks = 1199;
+    state.worldTick = <uint>1199;
+    var beforeTeleportDraws = state.randomDraws;
+    var teleported = advanceYumiMatch(state);
+    if ((teleported & 2) == 0 || state.yumiACellIndex < 0 || state.yumiBCellIndex < 0 ||
+        state.yumiACellIndex == state.yumiBCellIndex || state.randomDraws != beforeTeleportDraws + <uint>2) {
+        return -3;
+    }
+    state.elapsedTicks = 11999;
+    state.yumiAHp = 50;
+    state.yumiBHp = 50;
+    state.damageToYumiA = 300;
+    state.damageToYumiB = 400;
+    state.worldTick = <uint>12000;
+    var sudden = advanceYumiMatch(state);
+    if ((sudden & 4) == 0 || (sudden & 32) == 0 || state.phase != 2 || state.winner != 1 ||
+        state.yumiAHp != 50 || state.yumiBHp != 0) { return -4; }
+    return 1;
+}

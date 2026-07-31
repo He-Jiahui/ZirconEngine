@@ -1,5 +1,5 @@
 use winit::event_loop::ActiveEventLoop;
-use zircon_runtime::diagnostic_log::{write_error, write_log};
+use zircon_runtime::diagnostic_log::write_log;
 
 use super::super::RuntimeEntryApp;
 use crate::runtime_presenter::SoftbufferRuntimePresenter;
@@ -28,12 +28,14 @@ impl RuntimeEntryApp {
                 true
             }
             Err(error) => {
-                write_error(
+                self.report_fatal_failure(
                     "runtime_surface_present",
                     format!(
-                        "runtime_fallback_presenter_create_failed size={}x{} error={error}",
+                        "fallback_presenter size={}x{}",
                         self.viewport_size.width, self.viewport_size.height
                     ),
+                    format!("fallback presenter creation failed: {error}"),
+                    "verify the graphics adapter and window surface, then restart zircon_runtime",
                 );
                 event_loop.exit();
                 false

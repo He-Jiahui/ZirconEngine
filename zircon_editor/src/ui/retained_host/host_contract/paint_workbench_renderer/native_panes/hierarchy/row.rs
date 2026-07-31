@@ -20,6 +20,7 @@ pub(super) fn draw_hierarchy_row(
     scroll_px: f32,
     node: &SceneNodeData,
     interaction: &HostPaneInteractionStateData,
+    inline_rename_value: Option<&str>,
 ) {
     let row = hierarchy_row_frame(viewport, index, scroll_px);
     if intersect(&row, row_clip).is_none() {
@@ -34,5 +35,5 @@ pub(super) fn draw_hierarchy_row(
     if node.selected {
         draw_border_clipped(frame, row.clone(), Some(row_clip), ACCENT);
     }
-    draw_hierarchy_row_text(frame, &row, node, row_clip);
+    draw_hierarchy_row_text(frame, &row, node, row_clip, inline_rename_value);
 }

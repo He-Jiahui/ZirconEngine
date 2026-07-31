@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/talent_loadout_migration_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/talents.ts": "3fa9483cc9c60ef5578d6aa41f3a2e8f7110232b4add4f6a6bafbb23a7346b03",
+    "src/sim/content/talent_rows.ts": "7bd779ab5c21dd2a949e016f834843c5adbb95a2de02adf3f458447555ee8392",
+    "src/sim/content/talents_warrior.ts": "f889aca8ede925ae36847679692bcee30575b986de915e5481c3a5e6df2d2c07",
+    "src/sim/content/talents_classic.ts": "e748885abd8f2d0cc0e559ada8695abcd0029eb41aaa0b2390023d4d55d6156f",
+    "src/sim/talent_loadouts.ts": "966d9ea7eebef55f5865e18c74d935557fc32c919abfd2009fbaa750f6603d4c",
+    "src/sim/talent_save_migration.ts": "fdab4d96d579aed21bfa1cbc63d51d003508ef9b36b4e389e7ff99810ffada3c"
+  },
+  "max_loadouts": 10,
+  "bar_slots": 22,
+  "name_limit": 24,
+  "content_revision": 1,
+  "spec_unlock_level": 5,
+  "specs": [
+    {
+      "id": "arms",
+      "classId": "warrior"
+    },
+    {
+      "id": "fury",
+      "classId": "warrior"
+    },
+    {
+      "id": "prot",
+      "classId": "warrior"
+    },
+    {
+      "id": "holy",
+      "classId": "paladin"
+    },
+    {
+      "id": "protection",
+      "classId": "paladin"
+    },
+    {
+      "id": "retribution",
+      "classId": "paladin"
+    },
+    {
+      "id": "beast_mastery",
+      "classId": "hunter"
+    },
+    {
+      "id": "marksmanship",
+      "classId": "hunter"
+    },
+    {
+      "id": "survival",
+      "classId": "hunter"
+    },
+    {
+      "id": "arcane",
+      "classId": "mage"
+    },
+    {
+      "id": "fire",
+      "classId": "mage"
+    },
+    {
+      "id": "frost",
+      "classId": "mage"
+    },
+    {
+      "id": "assassination",
+      "classId": "rogue"
+    },
+    {
+      "id": "combat",
+      "classId": "rogue"
+    },
+    {
+      "id": "subtlety",
+      "classId": "rogue"
+    },
+    {
+      "id": "discipline",
+      "classId": "priest"
+    },
+    {
+      "id": "holy",
+      "classId": "priest"
+    },
+    {
+      "id": "shadow",
+      "classId": "priest"
+    },
+    {
+      "id": "elemental",
+      "classId": "shaman"
+    },
+    {
+      "id": "enhancement",
+      "classId": "shaman"
+    },
+    {
+      "id": "restoration",
+      "classId": "shaman"
+    },
+    {
+      "id": "affliction",
+      "classId": "warlock"
+    },
+    {
+      "id": "demonology",
+      "classId": "warlock"
+    },
+    {
+      "id": "destruction",
+      "classId": "warlock"
+    },
+    {
+      "id": "balance",
+      "classId": "druid"
+    },
+    {
+      "id": "feral",
+      "classId": "druid"
+    },
+    {
+      "id": "restoration",
+      "classId": "druid"
+    }
+  ]
+}

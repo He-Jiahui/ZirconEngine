@@ -46,7 +46,7 @@ layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed"
 component = "Container"
 control_id = "LeftDrawerShellRoot"
 classes = ["workbench-left-drawer-shell"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { preferred = "$--left-drawer-width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { preferred = "$editor.density.left_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "scene_tree_panel" }]
 
 [nodes.scene_tree_panel]
@@ -63,7 +63,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "Container"
 control_id = "RightDrawerShellRoot"
 classes = ["workbench-right-drawer-shell"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { preferred = "$--right-drawer-width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { preferred = "$editor.density.right_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "inspector_panel" }]
 
 [nodes.inspector_panel]

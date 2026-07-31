@@ -53,4 +53,14 @@ detached `spawn` 原先在任务正常返回后才计 completed，panic 会永�
 
 ## 修复结果与回传
 
-Open state: `detached 完成 guard 已实现待验证；wait/queue 指标待 Runtime11/07 修复`。
+Runtime11 当前实现已保留 Performance01 的 detached unwind-safe completion guard，并完成最低 scheduler owner 的诊断硬切：
+
+- 删除不能证明 caller identity 的 `tasks.main_thread_wait_ms`，统一为 `tasks.explicit_wait_ms`，不保留 alias 或双计数。
+- dependency waiting / ready queue / worker start / terminal 转换分别导出 `tasks.dependency_waiting`、`tasks.queued`、`tasks.active`、`tasks.queue_wait_ms` / `tasks.queue_wait_samples`，并保持 `scheduled = completed + dependency_waiting + queued + active`。
+- task panic 与 dependency-cancelled-before-launch 分别维护 `tasks.panicked`、`tasks.cancelled`；cancelled task 不进入 queued/active。
+- combined handle 在记录首个 child panic 后仍等待全部 children 进入 terminal，再传播该 panic；`wait_all` 不会提前返回或低估显式同步耗时。
+- 重叠 diagnostics writer 通过 acquire/release retirement chain 发布完整 payload；dependency continuation 逐项 containment，先释放全部后续 barrier callback 与 observer，再重抛首个 continuation panic。
+- 新增 queue saturation、1/2/4-worker pressure matrix、并发 lifecycle 守恒、worker wait、panic/cancel 与 detached panic 行为测试；hotpath 只使用原子计数，不增加诊断锁。
+- 非 Cargo JobSystem audit 已通过 1/1；受管 focused Cargo 与独立复审仍待完成。
+
+Open state: `Runtime11 code complete / managed focused validation and Performance01 fixed return pending`。

@@ -55,7 +55,7 @@ impl ExportWizardCommandRunner for StreamingRunner {
 }
 
 #[test]
-fn export_wizard_job_runner_streams_stage_output_before_stage_finished() {
+fn stage_output_event_carries_delta_without_accumulated_snapshot() {
     let plan = export_wizard_pipeline_plan(ready_export_options());
     let mut runner = StreamingRunner::default();
     let mut events = Vec::new();
@@ -90,22 +90,31 @@ fn export_wizard_job_runner_streams_stage_output_before_stage_finished() {
         "StageOutput must arrive before StageFinished for retained UI polling"
     );
 
-    let validate_output = &events[validate_output_index].snapshot;
+    let validate_event = &events[validate_output_index];
+    let validate_output = &validate_event.snapshot;
+    assert!(validate_output.stages.is_empty());
+    assert!(validate_output.live_stage_outputs.is_empty());
+    assert!(validate_output.diagnostics.is_empty());
+    let validate_delta = validate_event
+        .output_delta
+        .as_ref()
+        .expect("StageOutput should carry one output delta");
+    assert_eq!(validate_delta.stage, ExportStage::Validate);
     assert_eq!(
-        validate_output
+        validate_delta.output,
+        ExportWizardCommandOutputLine {
+            stream: ExportWizardCommandOutputStream::Stdout,
+            line: "zircon_export stage=Validate profile=windows-release".to_string(),
+        }
+    );
+    assert_eq!(
+        validate_delta
             .progress
             .snapshot(ExportStage::Validate)
             .expect("Validate progress should exist")
             .kind,
         ExportStageProgressKind::Running
     );
-    assert!(validate_output.live_stage_outputs.iter().any(|output| {
-        output.stage == ExportStage::Validate
-            && output
-                .stdout_lines
-                .iter()
-                .any(|line| line == "zircon_export stage=Validate profile=windows-release")
-    }));
 
     let mut view_model = ExportWizardPanelViewModel::from_plan("export-streaming-output", &plan);
     for event in events.iter().take(validate_output_index + 1).cloned() {
@@ -142,6 +151,33 @@ fn export_wizard_job_runner_streams_stage_output_before_stage_finished() {
     assert_eq!(
         pack_row.stderr_lines,
         vec!["pack streaming stderr".to_string()]
+    );
+}
+
+#[test]
+fn view_model_drain_is_budgeted() {
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let event_snapshot = ExportWizardJobState::new("event-drain-budget", &plan)
+        .into_snapshot()
+        .event_header();
+    let (sender, receiver) = std::sync::mpsc::channel();
+    for _ in 0..256 {
+        sender
+            .send(ExportWizardJobEvent {
+                kind: ExportWizardJobEventKind::Started,
+                snapshot: event_snapshot.clone(),
+                output_delta: None,
+                coalesced_output_events: 0,
+            })
+            .expect("view model test receiver should remain connected");
+    }
+
+    let mut view_model = ExportWizardPanelViewModel::from_plan("event-drain-budget", &plan);
+    let drained = view_model.drain_events(&receiver);
+    assert!((1..=64).contains(&drained));
+    assert!(
+        receiver.try_recv().is_ok(),
+        "one drain must retain queued work"
     );
 }
 

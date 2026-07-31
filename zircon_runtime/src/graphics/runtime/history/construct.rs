@@ -1,5 +1,6 @@
 use crate::core::framework::render::{FrameHistoryHandle, RenderPipelineHandle};
 use crate::core::math::UVec2;
+use std::sync::Arc;
 
 use crate::graphics::visibility::VisibilityStaticIndex;
 use crate::graphics::{FrameHistoryBinding, VisibilityHistorySnapshot};
@@ -16,7 +17,7 @@ impl ViewportFrameHistory {
         bindings: Vec<FrameHistoryBinding>,
         visibility: VisibilityHistorySnapshot,
         static_index: VisibilityStaticIndex,
-        validation_key: FrameHistoryValidationKey,
+        validation_key: Arc<FrameHistoryValidationKey>,
     ) -> Self {
         Self {
             handle,

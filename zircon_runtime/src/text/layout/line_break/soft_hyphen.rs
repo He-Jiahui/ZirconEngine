@@ -10,6 +10,17 @@ pub(crate) struct LineBreakSuffix {
     pub source_range: TextRange,
 }
 
+pub(crate) fn break_suffix_at(text: &str, break_end: usize) -> Option<LineBreakSuffix> {
+    let source_end = break_end.saturating_add(SOFT_HYPHEN.len_utf8());
+    (text.get(break_end..source_end) == Some("\u{00ad}")).then_some(LineBreakSuffix {
+        text: SOFT_HYPHEN_BREAK_SUFFIX,
+        source_range: TextRange {
+            start: break_end,
+            end: source_end,
+        },
+    })
+}
+
 pub(super) fn push_chunks<'a>(
     text: &'a str,
     chunk_start: usize,
@@ -89,7 +100,7 @@ pub(super) fn push_chunks<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::{push_chunks, SOFT_HYPHEN};
+    use super::{break_suffix_at, push_chunks, SOFT_HYPHEN};
     use crate::text::layout::line_break::LineBreakChunk;
     use crate::text::TextRange;
 
@@ -147,5 +158,16 @@ mod tests {
         assert_eq!(chunks[0].break_suffix.expect("first suffix").text, "-");
         assert_eq!(chunks[1].break_suffix.expect("second suffix").text, "-");
         assert!(chunks[2].break_suffix.is_none());
+    }
+
+    #[test]
+    fn suffix_lookup_recovers_visual_hyphen_and_hidden_source_range() {
+        let text = "pre\u{00ad}fix";
+
+        let suffix = break_suffix_at(text, 3).expect("soft-hyphen suffix");
+
+        assert_eq!(suffix.text, "-");
+        assert_eq!(suffix.source_range, TextRange { start: 3, end: 5 });
+        assert!(break_suffix_at(text, 0).is_none());
     }
 }

@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
-use std::fs;
 
 use toml::Value;
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 use super::metadata::string_metadata_offender;
 use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
@@ -95,10 +93,7 @@ fn production_zui_prop_keys_are_authoring_safe() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 if node.props.is_empty() {
@@ -141,10 +136,7 @@ fn production_zui_prop_values_are_inspector_serializable() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 if node.props.is_empty() {

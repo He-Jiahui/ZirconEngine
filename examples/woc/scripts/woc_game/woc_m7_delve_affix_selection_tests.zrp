@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_delve_affix_selection_tests",
+  "source": "src",
+  "binary": "bin-m7-delve-affix-selection-tests",
+  "entry": "instances/delve_affix_selection_test_main"
+}

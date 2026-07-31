@@ -1,31 +1,26 @@
-use zircon_runtime::animation::sample_clip_events;
 use zircon_runtime::asset::ProjectAssetManager;
 use zircon_runtime::core::framework::animation::AnimationEventRecord;
 use zircon_runtime::scene::LevelSystem;
 
 use super::requests::PendingClipEventSample;
 
-pub(super) fn publish_clip_events(
-    asset_manager: &ProjectAssetManager,
+pub(super) fn enqueue_clip_event_samples(
     level: &LevelSystem,
     pending_samples: Vec<PendingClipEventSample>,
 ) {
-    let events = pending_samples
-        .into_iter()
-        .filter_map(|pending| {
-            let clip = asset_manager
-                .load_animation_clip_asset(pending.clip_id)
-                .ok()?;
-            Some(sample_clip_events(
-                &clip,
-                pending.entity,
-                pending.from_time_seconds,
-                pending.to_time_seconds,
-                pending.looping,
-            ))
-        })
-        .flatten()
-        .collect::<Vec<_>>();
+    for pending in pending_samples {
+        level.enqueue_animation_clip_event_range(
+            pending.entity,
+            pending.clip_id,
+            pending.from_time_seconds,
+            pending.to_time_seconds,
+            pending.looping,
+        );
+    }
+}
+
+pub(super) fn publish_clip_events(asset_manager: &ProjectAssetManager, level: &LevelSystem) {
+    let events = level.drain_animation_clip_events(asset_manager);
     publish_events(
         level,
         events

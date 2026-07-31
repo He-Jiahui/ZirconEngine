@@ -1,23 +1,12 @@
 use zircon_runtime_interface::ui::{
-    event_ui::UiNodeId, layout::UiFrame, surface::UiRenderCommand, tree::UiTemplateNodeMetadata,
+    event_ui::UiNodeId, layout::UiFrame, style::UiRgbaColor, surface::UiRenderCommand,
+    tree::UiTemplateNodeMetadata,
 };
 
 use super::shared::{
-    color_attribute, icon_command, line_height, number_attribute, quad_command, row_label,
-    string_attribute, text_command, RowRenderState, ACCENT, FONT_SIZE, SURFACE_HOVER,
-    SURFACE_PRESSED, SURFACE_SELECTED, TEXT_DISABLED, TEXT_MUTED, TEXT_SELECTED,
+    icon_command, number_attribute, quad_command, row_label, string_attribute, text_command,
+    CollectionRowVisual, RowRenderState,
 };
-
-const BASE_INSET_X: f32 = 12.0;
-const DISCLOSURE_SIZE: f32 = 12.0;
-const ICON_SIZE: f32 = 14.0;
-const TEXT_GAP: f32 = 7.0;
-const ACTION_SIZE: f32 = 14.0;
-const ACTION_GAP: f32 = 16.0;
-const RIGHT_INSET: f32 = 12.0;
-const GUIDE_STEP: f32 = 18.0;
-const RADIUS: f32 = 5.0;
-const GUIDE: &str = "#2a3740";
 
 pub(super) fn tree_row_commands(
     node_id: UiNodeId,
@@ -28,17 +17,18 @@ pub(super) fn tree_row_commands(
     z_index: i32,
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
+    let visual = CollectionRowVisual::resolve(metadata);
     let mut commands = Vec::new();
-    if let Some(background) = background(metadata, state) {
+    if let Some(background) = background(&visual, state) {
         commands.push(quad_command(
             node_id,
             frame,
             clip_frame,
             z_index.saturating_add(1),
             background,
-            border(state),
-            border_width(state),
-            RADIUS,
+            border(&visual, state),
+            border_width(&visual, state),
+            visual.corner_radius,
             state,
             opacity,
         ));
@@ -47,14 +37,17 @@ pub(super) fn tree_row_commands(
         commands.push(quad_command(
             node_id,
             UiFrame::new(
-                frame.x + BASE_INSET_X + 5.0 + level as f32 * GUIDE_STEP,
-                frame.y - 1.0,
-                1.0,
-                frame.height + 2.0,
+                frame.x
+                    + visual.inline_inset
+                    + visual.border_width
+                    + level as f32 * visual.tree_indent,
+                frame.y,
+                visual.border_width.max(f32::EPSILON),
+                frame.height,
             ),
             clip_frame,
             z_index.saturating_add(2),
-            GUIDE,
+            visual.separator,
             None,
             0.0,
             0.0,
@@ -62,7 +55,7 @@ pub(super) fn tree_row_commands(
             opacity * 0.78,
         ));
     }
-    let disclosure = disclosure_rect(metadata, frame);
+    let disclosure = disclosure_rect(metadata, frame, &visual);
     commands.push(icon_command(
         node_id,
         disclosure,
@@ -73,15 +66,15 @@ pub(super) fn tree_row_commands(
         } else {
             "chevron-right"
         },
-        secondary(state),
+        secondary(&visual, state),
         state,
         opacity,
     ));
     let object = UiFrame::new(
-        disclosure.x + disclosure.width + 4.0,
-        disclosure.y + (disclosure.height - ICON_SIZE).max(0.0) * 0.5,
-        ICON_SIZE,
-        ICON_SIZE,
+        disclosure.x + disclosure.width + visual.compact_inset,
+        disclosure.y + (disclosure.height - visual.action_size).max(0.0) * 0.5,
+        visual.action_size,
+        visual.action_size,
     );
     commands.push(icon_command(
         node_id,
@@ -89,43 +82,45 @@ pub(super) fn tree_row_commands(
         clip_frame,
         z_index.saturating_add(4),
         icon_name(metadata),
-        icon_color(metadata, state),
+        icon_color(&visual, state),
         state,
         opacity,
     ));
     if let Some(label) = row_label(metadata) {
-        let text_x = object.x + object.width + TEXT_GAP;
-        let right_reserve = RIGHT_INSET + ACTION_SIZE * 2.0 + ACTION_GAP;
+        let text_x = object.x + object.width + visual.compact_inset;
+        let right_reserve = visual.inline_inset + visual.action_size * 2.0 + visual.action_gap;
+        let text_line_height = visual.line_height(visual.body_font_size);
         commands.push(text_command(
             node_id,
             UiFrame::new(
                 text_x,
-                frame.y + (frame.height - line_height(FONT_SIZE)).max(0.0) * 0.5,
+                frame.y + (frame.height - text_line_height).max(0.0) * 0.5,
                 (frame.x + frame.width - text_x - right_reserve).max(1.0),
-                line_height(FONT_SIZE),
+                text_line_height.min(frame.height).max(1.0),
             ),
             clip_frame,
             z_index.saturating_add(5),
-            label,
-            text(state),
-            FONT_SIZE,
+            label.to_string(),
+            text(&visual, state),
+            visual.body_font_size,
+            text_line_height,
             state,
             opacity,
         ));
     }
     commands.push(icon_command(
         node_id,
-        action_rect(frame, 1),
+        action_rect(frame, 1, &visual),
         clip_frame,
         z_index.saturating_add(6),
         "eye",
-        action(state),
+        action(&visual, state),
         state,
         opacity,
     ));
     commands.push(icon_command(
         node_id,
-        action_rect(frame, 0),
+        action_rect(frame, 0, &visual),
         clip_frame,
         z_index.saturating_add(7),
         if state.marked() {
@@ -133,78 +128,75 @@ pub(super) fn tree_row_commands(
         } else {
             "lock"
         },
-        action(state),
+        action(&visual, state),
         state,
         opacity,
     ));
     commands
 }
 
-fn background<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> Option<&'a str> {
+fn background(visual: &CollectionRowVisual, state: &RowRenderState) -> Option<UiRgbaColor> {
     if state.unavailable() {
         None
+    } else if state.marked() && state.hot() {
+        Some(visual.selected_hover_surface)
     } else if state.marked() {
-        Some(color_attribute(metadata, "background_color").unwrap_or(SURFACE_SELECTED))
+        Some(visual.selected_surface)
     } else if state.pressed() {
-        Some(SURFACE_PRESSED)
+        Some(visual.pressed_surface)
     } else if state.hot() {
-        Some(SURFACE_HOVER)
+        Some(visual.hover_surface)
     } else if state.focus_or_press() {
-        color_attribute(metadata, "background_color")
+        Some(visual.focus_surface)
     } else {
         None
     }
 }
 
-fn border(state: &RowRenderState) -> Option<&'static str> {
-    (!state.unavailable() && (state.focus_or_press() || state.marked())).then_some(ACCENT)
+fn border(visual: &CollectionRowVisual, state: &RowRenderState) -> Option<UiRgbaColor> {
+    (!state.unavailable() && (state.focus_or_press() || state.marked()))
+        .then_some(visual.focus_border)
 }
 
-fn border_width(state: &RowRenderState) -> f32 {
-    if border(state).is_some() {
-        1.0
+fn border_width(visual: &CollectionRowVisual, state: &RowRenderState) -> f32 {
+    if border(visual, state).is_some() {
+        visual.border_width
     } else {
         0.0
     }
 }
 
-fn text(state: &RowRenderState) -> &'static str {
+fn text(visual: &CollectionRowVisual, state: &RowRenderState) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else if state.marked() {
-        TEXT_SELECTED
+        visual.text_selected
     } else {
-        "#a8b2b7"
+        visual.text_primary
     }
 }
 
-fn secondary(state: &RowRenderState) -> &'static str {
+fn secondary(visual: &CollectionRowVisual, state: &RowRenderState) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else if state.marked() {
-        TEXT_SELECTED
+        visual.icon_selected
     } else {
-        TEXT_MUTED
+        visual.icon_secondary
     }
 }
 
-fn action(state: &RowRenderState) -> &'static str {
-    if state.unavailable() {
-        TEXT_DISABLED
-    } else if state.marked() {
-        TEXT_SELECTED
-    } else {
-        "#9cadb6"
-    }
+fn action(visual: &CollectionRowVisual, state: &RowRenderState) -> UiRgbaColor {
+    secondary(visual, state)
 }
 
-fn icon_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> &'a str {
+fn icon_color(visual: &CollectionRowVisual, state: &RowRenderState) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else if state.marked() {
-        TEXT_SELECTED
+        visual.icon_selected
     } else {
-        color_attribute(metadata, "icon_color").unwrap_or(TEXT_MUTED)
+        visual.icon_secondary
     }
 }
 
@@ -215,40 +207,50 @@ fn depth(metadata: &UiTemplateNodeMetadata) -> usize {
         .max(0.0) as usize
 }
 
-fn disclosure_rect(metadata: &UiTemplateNodeMetadata, frame: UiFrame) -> UiFrame {
+fn disclosure_rect(
+    metadata: &UiTemplateNodeMetadata,
+    frame: UiFrame,
+    visual: &CollectionRowVisual,
+) -> UiFrame {
     let indent = number_attribute(metadata, "tree_indent_px")
         .filter(|indent| indent.is_finite() && *indent > 0.0)
-        .unwrap_or_else(|| depth(metadata) as f32 * GUIDE_STEP);
+        .unwrap_or_else(|| depth(metadata) as f32 * visual.tree_indent);
     UiFrame::new(
-        frame.x + BASE_INSET_X + indent,
-        frame.y + (frame.height - DISCLOSURE_SIZE).max(0.0) * 0.5,
-        DISCLOSURE_SIZE,
-        DISCLOSURE_SIZE,
+        frame.x + visual.inline_inset + indent,
+        frame.y + (frame.height - visual.action_size).max(0.0) * 0.5,
+        visual.action_size,
+        visual.action_size,
     )
 }
 
-fn action_rect(frame: UiFrame, index_from_right: usize) -> UiFrame {
-    let stride = ACTION_SIZE + ACTION_GAP;
+fn action_rect(frame: UiFrame, index_from_right: usize, visual: &CollectionRowVisual) -> UiFrame {
+    let stride = visual.action_size + visual.action_gap;
     UiFrame::new(
-        frame.x + frame.width - RIGHT_INSET - ACTION_SIZE - index_from_right as f32 * stride,
-        frame.y + (frame.height - ACTION_SIZE).max(0.0) * 0.5,
-        ACTION_SIZE,
-        ACTION_SIZE,
+        frame.x + frame.width
+            - visual.inline_inset
+            - visual.action_size
+            - index_from_right as f32 * stride,
+        frame.y + (frame.height - visual.action_size).max(0.0) * 0.5,
+        visual.action_size,
+        visual.action_size,
     )
 }
 
 fn icon_name(metadata: &UiTemplateNodeMetadata) -> &str {
-    let label = row_label(metadata).unwrap_or_default().to_ascii_lowercase();
-    let control = metadata
-        .control_id
-        .as_deref()
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-    if label.contains("audio") || control.contains("audio") {
+    let label = row_label(metadata).unwrap_or_default();
+    let control = metadata.control_id.as_deref().unwrap_or_default();
+    if contains_ascii_case(label, "audio") || contains_ascii_case(control, "audio") {
         "volume-2"
-    } else if label.contains("player") || control.contains("player") {
+    } else if contains_ascii_case(label, "player") || contains_ascii_case(control, "player") {
         "play"
     } else {
         string_attribute(metadata, "icon").unwrap_or("box")
     }
+}
+
+fn contains_ascii_case(value: &str, needle: &str) -> bool {
+    value
+        .as_bytes()
+        .windows(needle.len())
+        .any(|window| window.eq_ignore_ascii_case(needle.as_bytes()))
 }

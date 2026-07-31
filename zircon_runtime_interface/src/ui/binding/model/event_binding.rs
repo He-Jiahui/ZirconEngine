@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{parser::BindingParser, UiBindingCall, UiBindingParseError, UiEventPath};
+use super::{UiBindingCall, UiBindingParseError, UiEventPath, parser::BindingParser};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiEventBinding {

@@ -135,9 +135,11 @@ impl EditorRuntimeEventConsumerRegistry {
         &mut self,
         registry: EditorRuntimeEventConsumerRegistry,
     ) -> Result<(), EditorRuntimeEventConsumerError> {
+        let mut candidate = self.clone();
         for registration in registry.registrations.into_values() {
-            self.register(registration)?;
+            candidate.register(registration)?;
         }
+        *self = candidate;
         Ok(())
     }
 

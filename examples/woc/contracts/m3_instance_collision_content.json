@@ -1,0 +1,1713 @@
+{
+  "schema_version": 3,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_instance_collision_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/dungeon_layout.ts": "8e71531ff65dcbe8afe125fb9943a79a9fd546870190d6b5f73afd7c969650dc",
+    "src/sim/colliders.ts": "2a34c3c2d97b19ba96b676b29820829291364c7a6025328072f909b3a2ccb11d",
+    "src/sim/data.ts": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431",
+    "src/sim/yumi_maze_layout.ts": "f34ffe080b5d535505f17808702a69794961bad0dafdcadfc9253112831ae390"
+  },
+  "layouts": [
+    {
+      "id": "crypt",
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -23,
+          "z": 47,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 66,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 23,
+          "z": 47,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 66,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 112,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -19,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 25,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 25,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 55,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 55,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 70,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 70,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 85,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 85,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 100,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 100,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 16,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 16,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 35,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 35,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 54,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 54,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 73,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 73,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 92,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 92,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "sanctum",
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -23,
+          "z": 69.5,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 89,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 23,
+          "z": 69.5,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 89,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 158,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -19,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -14,
+          "z": 67,
+          "radius": 0,
+          "half_width": 9,
+          "half_depth": 5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -14,
+          "z": 115,
+          "radius": 0,
+          "half_width": 9,
+          "half_depth": 3,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 14,
+          "z": 67,
+          "radius": 0,
+          "half_width": 9,
+          "half_depth": 5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 14,
+          "z": 115,
+          "radius": 0,
+          "half_width": 9,
+          "half_depth": 3,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 25,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 25,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 55,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 55,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 85,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 85,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 100,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 100,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 125,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 125,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 140,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 140,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "temple",
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -23,
+          "z": 56.5,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 75.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 23,
+          "z": 56.5,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 75.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 132,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -19,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -14,
+          "z": 66,
+          "radius": 0,
+          "half_width": 9,
+          "half_depth": 4,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 14,
+          "z": 66,
+          "radius": 0,
+          "half_width": 9,
+          "half_depth": 4,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 25,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 25,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 55,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 55,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 80,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 80,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 95,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 95,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 110,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 110,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 18,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 18,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 40,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 40,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "nythraxis",
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -230,
+          "z": 53.5,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 73,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 230,
+          "z": 53.5,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 73,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 126,
+          "radius": 0,
+          "half_width": 231,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -19,
+          "radius": 0,
+          "half_width": 231,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -90,
+          "z": 18,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -45,
+          "z": 18,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 45,
+          "z": 18,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 90,
+          "z": 18,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -90,
+          "z": 38,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -45,
+          "z": 38,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 45,
+          "z": 38,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 90,
+          "z": 38,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -90,
+          "z": 60,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -45,
+          "z": 60,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 45,
+          "z": 60,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 90,
+          "z": 60,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -90,
+          "z": 82,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -45,
+          "z": 82,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 45,
+          "z": 82,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 90,
+          "z": 82,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -90,
+          "z": 106,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -45,
+          "z": 106,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 45,
+          "z": 106,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 90,
+          "z": 106,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -210,
+          "z": 20,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 210,
+          "z": 20,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -210,
+          "z": 42,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 210,
+          "z": 42,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -210,
+          "z": 64,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 210,
+          "z": 64,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "arena",
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -23,
+          "z": 2,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 23,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 23,
+          "z": 2,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 23,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 24,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -20,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -11,
+          "z": 2,
+          "radius": 0,
+          "half_width": 0.6,
+          "half_depth": 4,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 11,
+          "z": 2,
+          "radius": 0,
+          "half_width": 0.6,
+          "half_depth": 4,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": -10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": -10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 14,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 14,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 0,
+          "z": -4,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 0,
+          "z": 8,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -9,
+          "z": -10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9,
+          "z": -10,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -9,
+          "z": 14,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9,
+          "z": 14,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "yumi",
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -44.375,
+          "radius": 0,
+          "half_width": 44.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 44.375,
+          "radius": 0,
+          "half_width": 44.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -44.375,
+          "z": 0,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 44.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 44.375,
+          "z": 0,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 44.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -37.125,
+          "z": -27,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -37.125,
+          "z": 20.25,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -30.375,
+          "z": -33.75,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -30.375,
+          "z": -13.5,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -23.625,
+          "z": -27,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -23.625,
+          "z": 33.75,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -16.875,
+          "z": -33.75,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -10.125,
+          "z": -27,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -10.125,
+          "z": -6.75,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 10.125,
+          "z": 6.75,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 10.125,
+          "z": 27,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 16.875,
+          "z": 33.75,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 23.625,
+          "z": -33.75,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 23.625,
+          "z": 27,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 30.375,
+          "z": 13.5,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 30.375,
+          "z": 33.75,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 37.125,
+          "z": -20.25,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 37.125,
+          "z": 27,
+          "radius": 0,
+          "half_width": 0.5,
+          "half_depth": 3.875,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 13.5,
+          "z": -37.125,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 6.75,
+          "z": -30.375,
+          "radius": 0,
+          "half_width": 10.625,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 33.75,
+          "z": -30.375,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -33.75,
+          "z": -23.625,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 6.75,
+          "z": -23.625,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 20.25,
+          "z": -23.625,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -3.375,
+          "z": -16.875,
+          "radius": 0,
+          "half_width": 7.25,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 27,
+          "z": -16.875,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -20.25,
+          "z": -10.125,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 6.75,
+          "z": -10.125,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 20.25,
+          "z": -10.125,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -33.75,
+          "z": -3.375,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 30.375,
+          "z": -3.375,
+          "radius": 0,
+          "half_width": 7.25,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -30.375,
+          "z": 3.375,
+          "radius": 0,
+          "half_width": 7.25,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 33.75,
+          "z": 3.375,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -20.25,
+          "z": 10.125,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -6.75,
+          "z": 10.125,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 20.25,
+          "z": 10.125,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -27,
+          "z": 16.875,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 3.375,
+          "z": 16.875,
+          "radius": 0,
+          "half_width": 7.25,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -20.25,
+          "z": 23.625,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -6.75,
+          "z": 23.625,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 33.75,
+          "z": 23.625,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -33.75,
+          "z": 30.375,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -6.75,
+          "z": 30.375,
+          "radius": 0,
+          "half_width": 10.625,
+          "half_depth": 0.5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -13.5,
+          "z": 37.125,
+          "radius": 0,
+          "half_width": 3.875,
+          "half_depth": 0.5,
+          "rotation": 0
+        }
+      ]
+    }
+  ],
+  "routing": {
+    "dungeon_x_threshold": 600,
+    "dungeon_slot_count": 24,
+    "dungeon_origin_base_x": 900,
+    "dungeon_origin_index_spacing": 600,
+    "dungeon_origin_z0": -1250,
+    "dungeon_slot_spacing": 500,
+    "arena_x": 4200,
+    "arena_x_min": 4200,
+    "arena_slot_count": 4,
+    "arena_origin_z0": -1250,
+    "arena_slot_spacing": 120,
+    "delve_band_x_min": 4773,
+    "yumi_band_x_min": 8000,
+    "yumi_band_x_max": 12000,
+    "yumi_maze_x": 8400,
+    "yumi_maze_slot_count": 4,
+    "yumi_maze_origin_z0": -1250,
+    "yumi_maze_slot_spacing": 200,
+    "yumi_maze_seed": 212332557
+  },
+  "dungeons": [
+    {
+      "id": "hollow_crypt",
+      "index": 0,
+      "interior": "crypt"
+    },
+    {
+      "id": "sunken_bastion",
+      "index": 1,
+      "interior": "crypt"
+    },
+    {
+      "id": "gravewyrm_sanctum",
+      "index": 2,
+      "interior": "sanctum"
+    },
+    {
+      "id": "drowned_temple",
+      "index": 3,
+      "interior": "temple"
+    },
+    {
+      "id": "nythraxis_crypt",
+      "index": 4,
+      "interior": "crypt"
+    },
+    {
+      "id": "nythraxis_boss_arena",
+      "index": 5,
+      "interior": "nythraxis"
+    }
+  ],
+  "sight_vectors": [
+    {
+      "id": "crypt_wall",
+      "from": {
+        "x": 870,
+        "z": -1203
+      },
+      "to": {
+        "x": 880,
+        "z": -1203
+      },
+      "radius": 0.05,
+      "clear": false,
+      "expected": false
+    },
+    {
+      "id": "crypt_clear",
+      "from": {
+        "x": 900,
+        "z": -1240
+      },
+      "to": {
+        "x": 905,
+        "z": -1240
+      },
+      "radius": 0.05,
+      "clear": true,
+      "expected": true
+    },
+    {
+      "id": "arena_wall",
+      "from": {
+        "x": 4170,
+        "z": -1250
+      },
+      "to": {
+        "x": 4230,
+        "z": -1250
+      },
+      "radius": 0.05,
+      "clear": false,
+      "expected": false
+    },
+    {
+      "id": "arena_clear",
+      "from": {
+        "x": 4200,
+        "z": -1240
+      },
+      "to": {
+        "x": 4200,
+        "z": -1230
+      },
+      "radius": 0.05,
+      "clear": true,
+      "expected": true
+    },
+    {
+      "id": "yumi_shell",
+      "from": {
+        "x": 8400,
+        "z": -1250
+      },
+      "to": {
+        "x": 8400,
+        "z": -1305
+      },
+      "radius": 0.05,
+      "clear": false,
+      "expected": false
+    },
+    {
+      "id": "yumi_clear",
+      "from": {
+        "x": 8400,
+        "z": -1250
+      },
+      "to": {
+        "x": 8400,
+        "z": -1240
+      },
+      "radius": 0.05,
+      "clear": true,
+      "expected": true
+    }
+  ],
+  "catalog_sha256": "61324458ccd1db4b48420a66a3db53e72fe0b9747a8210b96b1e6e916841b6e2"
+}

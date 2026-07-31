@@ -25,7 +25,7 @@
 ## 2. 现状基线（实查）
 
 - `EditorPlugin` trait（`editor_plugin.rs:226`）：`descriptor()` / `package_manifest()` / `editor_capabilities()` / `register_editor_extensions(&mut EditorExtensionRegistry)` / `on_lifecycle_event(&EditorPluginLifecycleEvent)`——对接 01 §3.4 后与 RuntimePlugin 四阶段对称（lifecycle event 即对称化挂点，01-M4 范围）。
-- `EditorExtensionRegistry`（`editor_extension.rs`）**15 个扩展点已存在**：`register_view` / `register_drawer` / `register_menu_item` / `register_component_drawer` / `register_ui_template` / `register_asset_importer` / `register_asset_editor` / `register_asset_creation_template` / `register_viewport_tool_mode` / `register_graph_editor` / `register_graph_node_palette` / `register_timeline_editor` / `register_timeline_track_type` / `register_operation`（进 `EditorOperationRegistry`）。
+- `EditorExtensionRegistry`（`editor_extension.rs`）的扩展点包含 `register_view` / `register_drawer` / `register_menu_item` / `register_component_drawer` / `register_ui_template` / `register_asset_importer` / `register_asset_editor` / `register_asset_creation_template` / `register_scene_mode(SceneModeRegistration)` / `register_viewport_overlay_provider` / `register_graph_editor` / `register_graph_node_palette` / `register_timeline_editor` / `register_timeline_track_type` / `register_operation`；scene mode 必须携带可执行 factory，不接受仅元数据注册。
 - capability gate 原语已在：`EditorExtensionRegistration::with_required_capabilities` / `is_enabled_by`（`editor_extension.rs:271-316`）；缺统一验证管线（01-M4 交付）。
 - undo/redo 现状：`core/editing/history.rs`（EditorHistory）+ `ui/host/editor_event_execution/undo_policy.rs` + workbench `editor_state.rs` 各持局部历史——E2 的收口对象；`core/editor_operation.rs` 已有 operation stack 雏形。
 - 诊断：`zircon_plugins/runtime_diagnostics` 插件存在（rolling store 宿主）。
@@ -41,7 +41,7 @@
 | `register_asset_editor` / `register_asset_creation_template` | 插件资产（.btree.toml、.ragdoll.toml、.avatar_mask.toml、.znavmesh…）打开/新建 | 按资产扩展名路由 |
 | `register_graph_editor` / `register_graph_node_palette` | 节点图类编辑（动画状态机、行为树、未来 shader graph） | 共享图编辑基座，插件只提供 node palette + 语义校验 |
 | `register_timeline_editor` / `register_timeline_track_type(TimelineTrackDescriptor)` | 时间轴类（animation sequence、sound automation） | track type 全名 `<plugin>.track.<name>` |
-| `register_viewport_tool_mode(ViewportToolModeDescriptor)` | 视口工具（navmesh 烘焙范围、碰撞体编辑手柄） | overlay 绘制走 gizmos 通道 |
+| `register_scene_mode(SceneModeRegistration)` | 可执行视口场景模式（navmesh 烘焙范围、碰撞体编辑手柄） | descriptor 与 factory 原子注册；overlay 绘制走共享 gizmos 通道 |
 | `register_operation` → `EditorOperationRegistry` | 一切可撤销编辑动作 | `XXX.YYY.ZZZ` 命名（既定规则），进统一 EditorOperationStack（E2） |
 | `register_menu_item(EditorMenuItemDescriptor::new(path, operation))` | 菜单入口 | Unity 风格路径 `Tools/<Plugin>/<Action>`；debug overlay 一律 `View/Debug Overlays/<Plugin>` |
 

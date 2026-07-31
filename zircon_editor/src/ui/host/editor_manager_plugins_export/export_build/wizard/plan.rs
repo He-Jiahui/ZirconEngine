@@ -15,6 +15,9 @@ use super::{
 
 const ZIRCON_EXPORT_MODULE: &str = "tools.zircon_export";
 const STAGES_DIR: &str = "stages";
+const STDOUT_LOG_FILE_NAME: &str = "stdout.log";
+const STDERR_LOG_FILE_NAME: &str = "stderr.log";
+const OUTPUT_LOG_MANIFEST_FILE_NAME: &str = "output-log.json";
 const COMPILE_HOST_STAGE_DIR: &str = "compile_host";
 const COMPILE_HOST_TARGET_DIR: &str = "target";
 const COMPILE_HOST_STAGED_DIR: &str = "staged";
@@ -128,8 +131,23 @@ fn stage_command(
 ) -> ExportWizardPipelineStageCommand {
     let mut args = base_args(options, stage);
     let mut consumed_artifacts = Vec::new();
-    let mut produced_artifacts = vec![artifact("report", stage_report_path(&options.out, stage))];
-    let mut expected_stdout_keys = vec!["report"];
+    let mut produced_artifacts = vec![
+        artifact("report", stage_report_path(&options.out, stage)),
+        artifact(
+            "stdout_log",
+            stage_output_artifact_path(&options.out, stage, STDOUT_LOG_FILE_NAME),
+        ),
+        artifact(
+            "stderr_log",
+            stage_output_artifact_path(&options.out, stage, STDERR_LOG_FILE_NAME),
+        ),
+        artifact(
+            "output_log_manifest",
+            stage_output_artifact_path(&options.out, stage, OUTPUT_LOG_MANIFEST_FILE_NAME),
+        ),
+    ];
+    let mut expected_stdout_keys =
+        vec!["report", "stdout_log", "stderr_log", "output_log_manifest"];
     let mut missing_inputs = Vec::new();
     let mut program = options.python.clone();
     let mut working_dir = options.repo_root.clone();
@@ -352,6 +370,10 @@ fn stage_command(
         native_args,
         native_working_dir,
     }
+}
+
+fn stage_output_artifact_path(out: &str, stage: ExportStage, file_name: &str) -> String {
+    join_path(out, &[STAGES_DIR, stage.cli_id(), file_name])
 }
 
 fn planned_pipeline(options: &ExportWizardPipelineOptions) -> ExportPipelinePlan {

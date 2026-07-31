@@ -1,5 +1,6 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_tooltips::layout::frame_is_within;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tooltip_info_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -11,6 +12,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     color: [u8; 4],
     opacity: f32,
 ) {
+    if !icon_size.is_finite() || icon_size <= 0.0 {
+        return;
+    }
     let y = if node.layout_content_offset_y > 0.0 {
         rect.y + node.layout_content_offset_y
     } else {
@@ -22,6 +26,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         width: icon_size,
         height: icon_size,
     };
+    if !frame_is_within(rect, &icon) {
+        return;
+    }
     commands.push(HostPaintCommand::quad(
         icon.clone(),
         Some(clip.clone()),
@@ -33,7 +40,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         opacity,
     ));
 
-    let stem_width = (icon_size * 0.12).max(2.0);
+    let stem_width = icon_size * 0.12;
     commands.push(HostPaintCommand::quad(
         FrameRect {
             x: icon.x + (icon.width - stem_width) * 0.5,

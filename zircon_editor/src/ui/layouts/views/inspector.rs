@@ -11,6 +11,8 @@ use super::ViewTemplateNodeData;
 const INSPECTOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/inspector.zui";
 const INSPECTOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
 const INSPECTOR_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
+const INSPECTOR_EMPTY_STATE_CONTROL_ID: &str = "InspectorEmptyState";
+const INSPECTOR_EMPTY_STATE_MESSAGE_CONTROL_ID: &str = "InspectorEmptyStateMessage";
 
 pub(crate) fn inspector_pane_nodes(
     inspector: Option<&InspectorSnapshot>,
@@ -47,10 +49,16 @@ pub(crate) fn inspector_pane_nodes(
             .unwrap_or_else(|| "Position • -, -, -".to_string()),
     );
     text_overrides.insert(
-        "InspectorSeparatorRow".to_string(),
+        "InspectorActionsRow".to_string(),
         inspector
-            .map(|inspector| format!("{} plugin components", inspector.plugin_components.len()))
-            .unwrap_or_else(|| "0 plugin components".to_string()),
+            .map(|inspector| format!("{} components", inspector.plugin_components.len()))
+            .unwrap_or_else(|| "No components".to_string()),
+    );
+    text_overrides.insert(
+        INSPECTOR_EMPTY_STATE_MESSAGE_CONTROL_ID.to_string(),
+        inspector
+            .map(|_| String::new())
+            .unwrap_or_else(|| "No object selected".to_string()),
     );
 
     let mut nodes = build_view_template_nodes(
@@ -72,12 +80,13 @@ fn apply_inspector_visual_state(nodes: &mut [ViewTemplateNodeData], has_selectio
     mark_row(nodes, "InspectorParentRow", has_selection);
     mark_row(nodes, "InspectorPositionRow", has_selection);
     mark_row(nodes, "InspectorSeparatorRow", has_selection);
+    mark_empty_state(nodes, has_selection);
 }
 
 fn mark_panel(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool) {
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         node.selected = active;
-        node.focused = active;
+        node.focused = false;
         node.surface_variant = if active {
             "panel".into()
         } else {
@@ -91,6 +100,21 @@ fn mark_panel(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool
     }
 }
 
+fn mark_empty_state(nodes: &mut [ViewTemplateNodeData], has_selection: bool) {
+    if let Some(node) = nodes
+        .iter_mut()
+        .find(|node| node.control_id == INSPECTOR_EMPTY_STATE_CONTROL_ID)
+    {
+        node.selected = false;
+        node.focused = false;
+        node.surface_variant = if has_selection {
+            "frame_only".into()
+        } else {
+            "inset".into()
+        };
+    }
+}
+
 fn mark_row(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool) {
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         node.selected = active;
@@ -99,5 +123,91 @@ fn mark_row(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool) 
         } else {
             "muted".into()
         };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_runtime_interface::ui::design_tokens::EditorDensityTokens;
+
+    fn projected_nodes(inspector: Option<&InspectorSnapshot>) -> Vec<ViewTemplateNodeData> {
+        let pane = inspector_pane_nodes(inspector, UiSize::new(360.0, 520.0));
+        (0..pane.row_count())
+            .filter_map(|row| pane.row_data(row))
+            .collect()
+    }
+
+    fn node_by_control_id<'a>(
+        nodes: &'a [ViewTemplateNodeData],
+        control_id: &str,
+    ) -> Option<&'a ViewTemplateNodeData> {
+        nodes.iter().find(|node| node.control_id == control_id)
+    }
+
+    #[test]
+    fn no_selection_projects_a_muted_centered_empty_state() {
+        let nodes = projected_nodes(None);
+
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "InspectorEmptyState"));
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "InspectorEmptyStateMessage"));
+
+        let Some(header) = node_by_control_id(&nodes, "InspectorHeaderPanel") else {
+            return;
+        };
+        let Some(empty_state) = node_by_control_id(&nodes, "InspectorEmptyState") else {
+            return;
+        };
+        let Some(name) = node_by_control_id(&nodes, "InspectorNameRow") else {
+            return;
+        };
+        let Some(message) = node_by_control_id(&nodes, "InspectorEmptyStateMessage") else {
+            return;
+        };
+
+        assert_eq!(header.text.to_string(), "Inspector • No selection");
+        assert_eq!(header.text_tone.to_string(), "muted");
+        assert!(!header.selected);
+        assert!(!header.focused);
+        assert_eq!(
+            header.frame.height,
+            EditorDensityTokens::WORKBENCH_ROW_HEIGHT
+        );
+        assert_eq!(name.frame.height, EditorDensityTokens::WORKBENCH_ROW_HEIGHT);
+        assert_eq!(empty_state.surface_variant.to_string(), "inset");
+        assert_eq!(message.text.to_string(), "No object selected");
+        assert_eq!(message.text_align.to_string(), "center");
+        assert!(empty_state.frame.height > 120.0);
+    }
+
+    #[test]
+    fn selection_hides_empty_state_without_synthesizing_keyboard_focus() {
+        let inspector = InspectorSnapshot {
+            id: zircon_runtime::scene::NodeId::default(),
+            name: "Camera".to_string(),
+            parent: "Root".to_string(),
+            translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
+            plugin_components: Vec::new(),
+        };
+        let nodes = projected_nodes(Some(&inspector));
+
+        let Some(header) = node_by_control_id(&nodes, "InspectorHeaderPanel") else {
+            return;
+        };
+        let Some(empty_state) = node_by_control_id(&nodes, "InspectorEmptyState") else {
+            return;
+        };
+        let Some(message) = node_by_control_id(&nodes, "InspectorEmptyStateMessage") else {
+            return;
+        };
+
+        assert!(header.selected);
+        assert!(!header.focused);
+        assert_eq!(empty_state.surface_variant.to_string(), "frame_only");
+        assert!(message.text.is_empty());
     }
 }

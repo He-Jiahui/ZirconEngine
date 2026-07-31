@@ -1,34 +1,78 @@
-use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
+use std::{borrow::Cow, sync::OnceLock};
+
+use zircon_runtime_interface::ui::{
+    design_tokens::EditorDesignTokens, style::UiRgbaColor, tree::UiTemplateNodeMetadata,
+};
 
 use super::{color_attribute, state::FeedbackRenderState};
 
-const TOOLTIP_SURFACE: &str = "#171c20";
-const TOOLTIP_BORDER: &str = "#252d32";
-const TOOLTIP_TITLE: &str = "#d0d9dd";
-const TOOLTIP_BODY: &str = "#a8b3b8";
-const TOOLTIP_ICON: &str = "#259ca7";
-const ALERT_INFO_SURFACE: &str = "#122e48";
-const ALERT_INFO_BORDER: &str = "#296596";
-const ALERT_INFO_MARK: &str = "#35c7d0";
-const ALERT_SUCCESS_SURFACE: &str = "#163927";
-const ALERT_SUCCESS_BORDER: &str = "#357348";
-const ALERT_SUCCESS_MARK: &str = "#42b883";
-const ALERT_WARNING_SURFACE: &str = "#453214";
-const ALERT_WARNING_BORDER: &str = "#845e23";
-const ALERT_WARNING_MARK: &str = "#e0a33a";
-const ALERT_ERROR_SURFACE: &str = "#482024";
-const ALERT_ERROR_BORDER: &str = "#853d3a";
-const ALERT_ERROR_MARK: &str = "#ef7066";
-const TOAST_SURFACE: &str = "#153035";
-const TOAST_SURFACE_HOVER: &str = "#183a3f";
-const TOAST_SURFACE_PRESSED: &str = "#103c4a";
-const TOAST_BORDER: &str = "#35c7d014";
-const TOAST_TEXT: &str = "#cee0e2";
-const TOAST_ACTION: &str = "#35c7d0";
-const DISABLED_SURFACE: &str = "#252c31";
-const DISABLED_BORDER: &str = "#343f47";
-const DISABLED_TEXT: &str = "#59656c";
-const FOCUS_BORDER: &str = "#35c7d0";
+#[derive(Clone, Debug)]
+struct FeedbackPalette {
+    tooltip_surface: String,
+    tooltip_border: String,
+    tooltip_title: String,
+    tooltip_body: String,
+    tooltip_icon: String,
+    alert_info_surface: String,
+    alert_info_border: String,
+    alert_info_mark: String,
+    alert_success_surface: String,
+    alert_success_border: String,
+    alert_success_mark: String,
+    alert_warning_surface: String,
+    alert_warning_border: String,
+    alert_warning_mark: String,
+    alert_error_surface: String,
+    alert_error_border: String,
+    alert_error_mark: String,
+    toast_surface: String,
+    toast_surface_hover: String,
+    toast_surface_pressed: String,
+    toast_border: String,
+    toast_text: String,
+    toast_action: String,
+    disabled_surface: String,
+    disabled_border: String,
+    disabled_text: String,
+    focus_border: String,
+}
+
+fn feedback_palette() -> &'static FeedbackPalette {
+    static PALETTE: OnceLock<FeedbackPalette> = OnceLock::new();
+    PALETTE.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let palette = &tokens.palette;
+        FeedbackPalette {
+            tooltip_surface: css_color(palette.popup),
+            tooltip_border: css_color(palette.separator_soft),
+            tooltip_title: css_color(palette.text_primary),
+            tooltip_body: css_color(palette.text_secondary),
+            tooltip_icon: css_color(palette.accent),
+            alert_info_surface: css_color(palette.info_container),
+            alert_info_border: css_color(palette.info),
+            alert_info_mark: css_color(palette.info),
+            alert_success_surface: css_color(palette.success_container),
+            alert_success_border: css_color(palette.success),
+            alert_success_mark: css_color(palette.success),
+            alert_warning_surface: css_color(palette.warning_container),
+            alert_warning_border: css_color(palette.warning),
+            alert_warning_mark: css_color(palette.warning),
+            alert_error_surface: css_color(palette.error_container),
+            alert_error_border: css_color(palette.error),
+            alert_error_mark: css_color(palette.error),
+            toast_surface: css_color(palette.accent_soft),
+            toast_surface_hover: css_color(palette.surface_hover),
+            toast_surface_pressed: css_color(palette.surface[3]),
+            toast_border: css_color(palette.separator_soft),
+            toast_text: css_color(palette.text_primary),
+            toast_action: css_color(palette.accent),
+            disabled_surface: css_color(palette.surface_disabled),
+            disabled_border: css_color(palette.border_disabled),
+            disabled_text: css_color(palette.text_disabled),
+            focus_border: css_color(palette.accent),
+        }
+    })
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum AlertTone {
@@ -42,18 +86,22 @@ pub(super) fn alert_surface_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
     tone: AlertTone,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_SURFACE
+        Cow::Borrowed(&feedback_palette().disabled_surface)
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color")
+            .map(Cow::Borrowed)
             .unwrap_or_else(|| alert_tone_surface(tone))
     } else if state.pointer_hot() {
-        color_attribute(metadata, "hover_background_color").unwrap_or_else(|| {
-            color_attribute(metadata, "background_color").unwrap_or(alert_tone_surface(tone))
-        })
+        color_attribute(metadata, "hover_background_color")
+            .or_else(|| color_attribute(metadata, "background_color"))
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| alert_tone_surface(tone))
     } else {
-        color_attribute(metadata, "background_color").unwrap_or_else(|| alert_tone_surface(tone))
+        color_attribute(metadata, "background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| alert_tone_surface(tone))
     }
 }
 
@@ -61,13 +109,17 @@ pub(super) fn alert_border_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
     tone: AlertTone,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_BORDER
+        Cow::Borrowed(&feedback_palette().disabled_border)
     } else if state.pressed() {
-        color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
+        color_attribute(metadata, "focus_border_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().focus_border))
     } else {
-        color_attribute(metadata, "border_color").unwrap_or_else(|| alert_tone_border(tone))
+        color_attribute(metadata, "border_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| alert_tone_border(tone))
     }
 }
 
@@ -75,12 +127,13 @@ pub(super) fn alert_text_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
     tone: AlertTone,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_TEXT
+        Cow::Borrowed(&feedback_palette().disabled_text)
     } else {
         color_attribute(metadata, "foreground_color")
             .or_else(|| color_attribute(metadata, "text_color"))
+            .map(Cow::Borrowed)
             .unwrap_or_else(|| alert_tone_mark(tone))
     }
 }
@@ -89,13 +142,15 @@ pub(super) fn alert_mark_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
     tone: AlertTone,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_TEXT
+        Cow::Borrowed(&feedback_palette().disabled_text)
     } else {
         color_attribute(metadata, "icon_color")
             .or_else(|| color_attribute(metadata, "label_color"))
             .or_else(|| color_attribute(metadata, "mark_color"))
+            .or_else(|| color_attribute(metadata, "status_mark_color"))
+            .map(Cow::Borrowed)
             .unwrap_or_else(|| alert_tone_mark(tone))
     }
 }
@@ -104,165 +159,210 @@ pub(super) fn alert_action_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
     tone: AlertTone,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_TEXT
+        Cow::Borrowed(&feedback_palette().disabled_text)
     } else {
         color_attribute(metadata, "action_color")
             .or_else(|| color_attribute(metadata, "value_color"))
+            .map(Cow::Borrowed)
             .unwrap_or_else(|| alert_text_color(metadata, state, tone))
     }
 }
 
-fn alert_tone_surface(tone: AlertTone) -> &'static str {
-    match tone {
-        AlertTone::Info => ALERT_INFO_SURFACE,
-        AlertTone::Success => ALERT_SUCCESS_SURFACE,
-        AlertTone::Warning => ALERT_WARNING_SURFACE,
-        AlertTone::Error => ALERT_ERROR_SURFACE,
-    }
+fn alert_tone_surface<'a>(tone: AlertTone) -> Cow<'a, str> {
+    let palette = feedback_palette();
+    Cow::Borrowed(match tone {
+        AlertTone::Info => &palette.alert_info_surface,
+        AlertTone::Success => &palette.alert_success_surface,
+        AlertTone::Warning => &palette.alert_warning_surface,
+        AlertTone::Error => &palette.alert_error_surface,
+    })
 }
 
-fn alert_tone_border(tone: AlertTone) -> &'static str {
-    match tone {
-        AlertTone::Info => ALERT_INFO_BORDER,
-        AlertTone::Success => ALERT_SUCCESS_BORDER,
-        AlertTone::Warning => ALERT_WARNING_BORDER,
-        AlertTone::Error => ALERT_ERROR_BORDER,
-    }
+fn alert_tone_border<'a>(tone: AlertTone) -> Cow<'a, str> {
+    let palette = feedback_palette();
+    Cow::Borrowed(match tone {
+        AlertTone::Info => &palette.alert_info_border,
+        AlertTone::Success => &palette.alert_success_border,
+        AlertTone::Warning => &palette.alert_warning_border,
+        AlertTone::Error => &palette.alert_error_border,
+    })
 }
 
-fn alert_tone_mark(tone: AlertTone) -> &'static str {
-    match tone {
-        AlertTone::Info => ALERT_INFO_MARK,
-        AlertTone::Success => ALERT_SUCCESS_MARK,
-        AlertTone::Warning => ALERT_WARNING_MARK,
-        AlertTone::Error => ALERT_ERROR_MARK,
-    }
+fn alert_tone_mark<'a>(tone: AlertTone) -> Cow<'a, str> {
+    let palette = feedback_palette();
+    Cow::Borrowed(match tone {
+        AlertTone::Info => &palette.alert_info_mark,
+        AlertTone::Success => &palette.alert_success_mark,
+        AlertTone::Warning => &palette.alert_warning_mark,
+        AlertTone::Error => &palette.alert_error_mark,
+    })
 }
 
 pub(super) fn tooltip_surface_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_SURFACE
+        Cow::Borrowed(&feedback_palette().disabled_surface)
     } else {
-        color_attribute(metadata, "background_color").unwrap_or(TOOLTIP_SURFACE)
+        color_attribute(metadata, "background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().tooltip_surface))
     }
 }
 
 pub(super) fn tooltip_border_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_BORDER
+        Cow::Borrowed(&feedback_palette().disabled_border)
     } else if state.focused() || state.pressed() {
-        color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
+        color_attribute(metadata, "focus_border_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().focus_border))
     } else {
-        color_attribute(metadata, "border_color").unwrap_or(TOOLTIP_BORDER)
+        color_attribute(metadata, "border_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().tooltip_border))
     }
 }
 
 pub(super) fn tooltip_title_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_TEXT
+        Cow::Borrowed(&feedback_palette().disabled_text)
     } else {
-        color_attribute(metadata, "foreground_color").unwrap_or(TOOLTIP_TITLE)
+        color_attribute(metadata, "foreground_color")
+            .or_else(|| color_attribute(metadata, "text_color"))
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().tooltip_title))
     }
 }
 
 pub(super) fn tooltip_body_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_TEXT
+        Cow::Borrowed(&feedback_palette().disabled_text)
     } else {
         color_attribute(metadata, "label_color")
             .or_else(|| color_attribute(metadata, "body_color"))
-            .unwrap_or(TOOLTIP_BODY)
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().tooltip_body))
     }
 }
 
 pub(super) fn tooltip_icon_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_TEXT
+        Cow::Borrowed(&feedback_palette().disabled_text)
     } else if state.focused() || state.pressed() {
-        color_attribute(metadata, "icon_color").unwrap_or(FOCUS_BORDER)
+        color_attribute(metadata, "icon_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().focus_border))
     } else {
-        color_attribute(metadata, "icon_color").unwrap_or(TOOLTIP_ICON)
+        color_attribute(metadata, "icon_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().tooltip_icon))
     }
 }
 
 pub(super) fn toast_surface_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_SURFACE
+        Cow::Borrowed(&feedback_palette().disabled_surface)
     } else if state.pressed() {
-        color_attribute(metadata, "pressed_background_color").unwrap_or(TOAST_SURFACE_PRESSED)
+        color_attribute(metadata, "pressed_background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().toast_surface_pressed))
     } else if state.pointer_hot() {
-        color_attribute(metadata, "hover_background_color").unwrap_or(TOAST_SURFACE_HOVER)
+        color_attribute(metadata, "hover_background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().toast_surface_hover))
     } else {
-        color_attribute(metadata, "background_color").unwrap_or(TOAST_SURFACE)
+        color_attribute(metadata, "background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().toast_surface))
     }
 }
 
 pub(super) fn toast_border_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_BORDER
+        Cow::Borrowed(&feedback_palette().disabled_border)
     } else if state.focused() || state.pressed() {
-        color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
+        color_attribute(metadata, "focus_border_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().focus_border))
     } else {
-        color_attribute(metadata, "border_color").unwrap_or(TOAST_BORDER)
+        color_attribute(metadata, "border_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().toast_border))
     }
 }
 
 pub(super) fn toast_text_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_TEXT
+        Cow::Borrowed(&feedback_palette().disabled_text)
     } else {
-        color_attribute(metadata, "foreground_color").unwrap_or(TOAST_TEXT)
+        color_attribute(metadata, "foreground_color")
+            .or_else(|| color_attribute(metadata, "text_color"))
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().toast_text))
     }
 }
 
 pub(super) fn toast_mark_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_TEXT
+        Cow::Borrowed(&feedback_palette().disabled_text)
     } else {
         color_attribute(metadata, "label_color")
             .or_else(|| color_attribute(metadata, "mark_color"))
-            .unwrap_or(TOAST_ACTION)
+            .or_else(|| color_attribute(metadata, "status_mark_color"))
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().toast_action))
     }
 }
 
 pub(super) fn toast_action_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.unavailable() {
-        DISABLED_TEXT
+        Cow::Borrowed(&feedback_palette().disabled_text)
     } else {
         color_attribute(metadata, "action_color")
             .or_else(|| color_attribute(metadata, "value_color"))
-            .unwrap_or(TOAST_ACTION)
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&feedback_palette().toast_action))
     }
+}
+
+fn css_color(color: UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    let mut value = if alpha == u8::MAX {
+        format!("{red:02x}{green:02x}{blue:02x}")
+    } else {
+        format!("{red:02x}{green:02x}{blue:02x}{alpha:02x}")
+    };
+    value.insert(0, '#');
+    value
 }

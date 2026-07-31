@@ -7,6 +7,8 @@ use crate::graphics::resource_limits::{
 };
 use crate::graphics::types::GraphicsError;
 
+use super::GPU_TIMESTAMP_REQUIRED_FEATURES;
+
 const REQUIRED_RENDER_BIND_GROUP_LIMIT: u32 = 5;
 
 pub(super) fn request_device(
@@ -34,10 +36,8 @@ fn required_render_features(adapter_features: wgpu::Features) -> wgpu::Features 
             requested_features |= feature;
         }
     }
-    let timestamp_features =
-        wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
-    if adapter_features.contains(timestamp_features) {
-        requested_features |= timestamp_features;
+    if adapter_features.contains(GPU_TIMESTAMP_REQUIRED_FEATURES) {
+        requested_features |= GPU_TIMESTAMP_REQUIRED_FEATURES;
     }
     requested_features
 }
@@ -77,7 +77,8 @@ mod tests {
     };
 
     use super::{
-        required_render_features, required_render_limits, REQUIRED_RENDER_BIND_GROUP_LIMIT,
+        GPU_TIMESTAMP_REQUIRED_FEATURES, REQUIRED_RENDER_BIND_GROUP_LIMIT,
+        required_render_features, required_render_limits,
     };
 
     #[test]
@@ -93,12 +94,10 @@ mod tests {
 
     #[test]
     fn offscreen_device_features_request_gpu_timestamps_only_when_fully_supported() {
-        let timestamp_features =
-            wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
-        let supported = required_render_features(timestamp_features);
+        let supported = required_render_features(GPU_TIMESTAMP_REQUIRED_FEATURES);
         let partial = required_render_features(wgpu::Features::TIMESTAMP_QUERY);
 
-        assert!(supported.contains(timestamp_features));
+        assert!(supported.contains(GPU_TIMESTAMP_REQUIRED_FEATURES));
         assert!(!partial.contains(wgpu::Features::TIMESTAMP_QUERY));
         assert!(!partial.contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS));
     }

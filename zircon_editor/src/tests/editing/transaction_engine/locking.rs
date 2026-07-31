@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc, Weak};
+use std::sync::{Arc, Weak, mpsc};
 use std::time::Duration;
 
 use crate::core::editing::engine::{
@@ -30,7 +30,7 @@ impl EditCommand for ReentrantCommand {
             .map_err(CommandExecutionError::unchanged)?;
         self.observed_busy.store(
             matches!(
-                engine.history_snapshot(HistoryContextId::Global),
+                engine.history_status(HistoryContextId::Global),
                 Err(EditCommandError::EngineBusy { .. })
             ),
             Ordering::SeqCst,
@@ -79,12 +79,12 @@ fn public_context_callback_and_concurrent_query_have_deterministic_lock_order() 
 
     entered_rx.recv_timeout(Duration::from_secs(1)).unwrap();
     assert!(matches!(
-        engine.history_snapshot(HistoryContextId::Global),
+        engine.history_status(HistoryContextId::Global),
         Err(EditCommandError::EngineBusy { .. })
     ));
     release_tx.send(()).unwrap();
     worker.join().unwrap();
-    assert!(engine.history_snapshot(HistoryContextId::Global).is_ok());
+    assert!(engine.history_status(HistoryContextId::Global).is_ok());
 }
 
 #[test]
@@ -148,4 +148,44 @@ fn active_scope_rejects_context_callback_that_would_drop_it() {
         .unwrap()
         .cancel()
         .unwrap();
+}
+
+#[test]
+fn exclusive_transition_blocks_interleaved_engine_operations() {
+    let engine = Arc::new(EditorTransactionEngine::new(FixtureContext::default()));
+    let mut transition = engine
+        .begin_exclusive_transition("test editor world transition")
+        .unwrap();
+    let worker_engine = engine.clone();
+    let worker = std::thread::spawn(move || {
+        assert!(matches!(
+            worker_engine.begin("interleaved", HistoryContextId::Global),
+            Err(EditCommandError::EngineBusy { .. })
+        ));
+        assert!(matches!(
+            worker_engine.history_status(HistoryContextId::Global),
+            Err(EditCommandError::EngineBusy { .. })
+        ));
+    });
+
+    transition
+        .clear_history_and_context::<FixtureContext>(
+            HistoryContextId::Global,
+            "FixtureContext",
+            |context| {
+                context.value = 41;
+                Ok(())
+            },
+        )
+        .unwrap();
+    worker.join().unwrap();
+    drop(transition);
+
+    assert_eq!(
+        engine
+            .with_context::<FixtureContext, _>(|context| context.value)
+            .unwrap(),
+        Some(41)
+    );
+    assert!(engine.history_status(HistoryContextId::Global).is_ok());
 }

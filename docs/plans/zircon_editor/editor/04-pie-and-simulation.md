@@ -1,6 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/core/play/bridge.rs
+  - zircon_editor/src/core/play/controller.rs
+  - zircon_editor/src/core/play/process_backend
+  - zircon_editor/src/core/play/snapshot
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/runtime_backend.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/profile.rs
@@ -21,12 +23,14 @@ plan_sources:
   - docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
   - docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md
   - docs/plans/zircon_editor/editor/16-cli-args-and-hub-integration.md
-status: planned
+status: in_progress
 ---
 
 # 04 PIE 模拟运行
 
 - 来自 Editor08 的失败交接（`open / Building/Play 权威状态投影`）：[`04/failure-2026-07-12-command-eval-play-state-projection.md`](04/failure-2026-07-12-command-eval-play-state-projection.md)
+- 来自 Editor12 的失败交接（`open / PlaySessionController typed mode message producer`）：[`04/failure-2026-07-29-play-mode-message-producer-missing.md`](04/failure-2026-07-29-play-mode-message-producer-missing.md)
+- 向 Editor16 的联合参数交接（`open / runtime_preview consumer`）：[`../editor/16/failure-2026-07-18-runtime-preview-play-scene-report-args.md`](16/failure-2026-07-18-runtime-preview-play-scene-report-args.md)
 
 本计划落地 00 §6 的「Edit/Play 状态」权威 `PlaySessionController`，并定义 **Unity 式运行时编辑**：Playing 期间 hierarchy/inspector 与运行世界实时同步，可直接编辑运行世界（改动随 PIE 副本在退出时整体丢弃），运行时 spawn 的实体实时进 hierarchy。执行前置提醒（index「取证口径」）：UE PIE 内部流程证据为头文件级，动工前宜再读 `Editor/UnrealEd/Private/PlayLevel.cpp` 深核。
 
@@ -302,6 +306,32 @@ PIE 视口拖 gizmo → 05 工具（play 域）→ TransactionScope(PlaySession)
 
 ## 产出记录与时间
 
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
 | 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
-| 2026-07-12 | Editor08 M1.2 失败移交：`CommandEvalCtx` Building/Play 权威投影 | 待修复（open） | Editor08 已落地类型化 `PlayMode` when 谓词，但当前 Chrome 投影只能从 `EditorSessionMode::{Welcome,Project,Playing}` 生成 `Edit/Playing`，无法表达 `Building`，也尚未以本计划 `PlaySessionController` 为权威源；修复要求与静态复现证据见 [failure 交接](04/failure-2026-07-12-command-eval-play-state-projection.md)。本行仅登记待修复，不声明本计划完成。 |
+| 2026-07-18 | M1.2 `ProcessPlayBackend`、版本化快照与监控 | 内核源码完成 / runtime consumer open | `PlayBackend` typed start/stop/poll、activation→backend 与逆序 cleanup、start rollback、terminal crash cause、不可 attach 能力位、有界 1,024 行 stdout/stderr 泵、kill+wait、`.zircon/play/<instance>` 原子快照与 RAII 清理已落地；menu 从当前 World 生成 Plan11 DynamicScene，retained tick 即使无消费者也 poll backend。Python TDD RED 4 error→GREEN 4/4，原 controller 契约 4/4；Rust 行为矩阵已落盘并 rustfmt。`runtime_preview` 尚拒绝联合 flags，已回传 [Editor16 failure](16/failure-2026-07-18-runtime-preview-play-scene-report-args.md)，故 Process backend 未装配为默认且不声明 Cargo/产品门。详见[子记录](04/2026-07-18-process-play-backend-m1.md)。 |
+| 2026-07-18 | M1.1 `PlaySessionController` 三态权威与 plugin activation 语义硬切 | 源码完成 / 待受管编译复审 | `Edit/Building/Playing` 迁移表、`play_after_build`、build success/failure、stop/no-op/invalid transition 已落地；现 `PluginBridgeActivation` 只声明 native plugin 活性语义，旧 `EditorRuntimePlayModeBackend`/`EditorPlayBridge`/`bridge.rs` 无兼容别名硬删除。菜单走 controller transition API，CommandEval 直接投影 controller `Building/Playing`。Python TDD 为 RED（3 fail+1 error）→GREEN 4/4，Rust迁移/activation测试已落盘并rustfmt；Cargo/独立review尚受 Coordinator01 full-input snapshot failure 阻断，P1/P2/live-link仍未完成。详见[本子计划](04/2026-07-18-play-session-controller-m1.md)。 |
+| 2026-07-12 | Editor08 M1.2 失败移交：`CommandEvalCtx` Building/Play 权威投影 | 源码已修 / open待验证 | 原始失败是 Chrome 仅能投影 `Edit/Playing` 且没有 Building 权威；2026-07-18 M1.1 已改为直接读取 `PlaySessionController::mode()` 并覆盖 Building。受管Cargo/独立review/lifecycle return尚未完成，故 [failure 交接](04/failure-2026-07-12-command-eval-play-state-projection.md) 仍保持open，不声明fixed。 |
+| 2026-07-22 | Play snapshot/transition性能交接 | 局部止损 / open | inactive poll双mode读、native deactivate full snapshot clone、terminal finish锁内join/cleanup已止损；World→pretty JSON→sync write/spawn仍在主线程且controller gate跨foreign work。按PERF-MVP-550/553与[open failure](04/failure-2026-07-22-play-snapshot-transition-main-thread-stall.md)改generation artifact+bounded ticket+锁外transition。 |
+| 2026-07-22 | Pending edit queue性能交接 | open | 当前`VecDeque<EditorOperationInvocation>`无entry/bytes/age上限，snapshot深clone且exit apply无count/time预算。按PERF-MVP-551与[open failure](04/failure-2026-07-22-play-pending-edit-unbounded-queue.md)冻结typed retention与budgeted apply。 |
+| 2026-07-30 | Pending decision稳定帧投影性能交接 | open | `DecisionNotificationCenter`已有128 pending/256 receipts/16 options等硬界和typed ticket/cursor；剩余PERF-MVP-596要求发布monotonic pending generation与immutable shared snapshot/`NotModified`，play adapter以ticket/notification/selection direct index按changed generation构建一次typed projection，禁止retained tick clone全pending或做256×128嵌套匹配。publish/resolve/cancel每次accepted变更只增代一次，empty generation必须可清理旧modal row；证据见`../../performance/01/2026-07-30-editor-core-notifications-current-review.md`。 |
+| 2026-07-30 | `core/play/**` current-source性能复核 | source review complete / static gate + dynamic pending | 37/37、3,958行、34 tests已按稳定SHA复读。旧PendingEditQueue无界/full snapshot结论已由4,096 entries/4MiB/30min、typed retention、Arc payload、compact page及128 entries/2ms apply修正；本计划按PERF-MVP-550..553继续处理shell锁内全scene序列化、transition gate跨foreign work、pending临时JSON计量/线性cohort-age索引及process line bytes/private threads/reap。Process backend当前未产品装配，不将静态风险写成默认路径实测；scoped diff check通过，但最终rustfmt在其他会话并发扩展的`tests.rs`有3处布局RED，managed Cargo、规模counter与F4产品trace仍待。证据见`../../performance/01/2026-07-30-editor-core-play-current-review.md`。 |
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- §关键类型的 `PlayMode` 定形与实现分歧较大。计划里 `Playing { instances: Vec<PlayInstance>, attached: Option<PlayInstanceId> }` 把实例集与 attach 焦点内嵌进状态枚举；实际 `zircon_editor/src/core/play/mode.rs:18-29` 是 `Playing { kind: PlayKind }`，而 attach/实例由 `PlaySessionController.play_domain: PlayDomainLink`（`controller.rs:27`）单独持有，`attach_play_gateway/detach_play_gateway/play_gateway`（`controller.rs:81-110`）是独立方法族。这是比计划更清晰的关注点分离（模式状态与 attach 生命周期解耦），建议把 §关键类型更新为「`PlayMode` 只持 kind，attach 归 `PlayDomainLink`」，并说明该拆分优于原内嵌设计。
+- §控制器 API 的方法签名与实现不符：计划写 `request_play(&self, kind: PlayKind)`，实际是 `request_play(&self, request: PlayStartRequest)`（`controller.rs:112-115`）；计划写 `attach(&self, id) / detach(&self) / play_gateway(&self) -> Option<...>`，实际是 `attach_play_gateway(gateway) -> Result<PlayInstanceId,_>` / `detach_play_gateway(instance)` / `play_gateway(instance) -> Option<...>`（`controller.rs:81-106`）。建议同步方法表，否则 08（命令）/16（CLI）接线时会按错误签名调用。
+- §模块布局把 P1/P2 backend 记为单文件 `process_backend.rs`/`session_backend.rs`；实际 `core/play/` 已是文件夹形态：`backend/`（contract/noop/report）、`process_backend/`（child/command/output/tests）、`snapshot/`（source/store）、`live_link.rs`、`edit_policy/`、`pending_edits/`、`plugin_activation/`。`session_backend.rs`（P2 EmbeddedSessionPlayBackend）尚未出现，与 M2 未完成一致。建议把布局图更新为当前文件夹结构，并标注 P2 backend 为 M2 待落地。
+
+### 设计优化建议
+
+- `request_stop` 与 `poll_backend` 的退出路径（`controller.rs:236-260` 与 `:277-296`）都执行「backend.stop/deactivate → end_play → replace_mode(Edit) → publish」。两段编排高度重复且顺序不变量（先 backend 停、再 activation deactivate、再落 edit 保护闸）是 §编排序的核心合同。建议在计划 §编排序补一条「stop 与 crash 退出共用同一 teardown 序列」的显式约束，实现上也宜抽一个私有 `finish_playing(cause)` 收口，避免两路径将来漂移出不同顺序。
+
+### 验证缺口
+
+- §M1 零污染断言依赖「进 Play 前后 + 退出后编辑 `LevelSystem::snapshot()` hash 三点一致」。当前 `activate_and_enter_playing` 的 rollback 路径（`controller.rs:346-381`）在 backend.start 失败时做 `end_play + deactivate`，但计划未要求对「activation 成功、edit_protection.begin_play 成功、backend.start 失败」这一中间态验证 edit 域世界未被污染。建议 M1 测试阶段显式补一格：start 失败回滚后 edit 域 snapshot hash 与请求前一致，锁定部分激活失败不留脏世界。
+
+- 2026-07-31 pending decision app-adapter补证：`workbench_notifications.rs`在`options.is_empty()`时先于bridge返回，导致PERF-MVP-596要求的empty generation无法清旧modal/history；同时每次sync仍先经过PERF-MVP-105 full-chrome active-template gate。Editor04必须让每个accepted pending generation（包括empty）发布一次typed projection/clear token，EditorUI08只按generation消费；证据见`../../performance/01/2026-07-31-editor-retained-tick-projection-adapters-current-review.md`。

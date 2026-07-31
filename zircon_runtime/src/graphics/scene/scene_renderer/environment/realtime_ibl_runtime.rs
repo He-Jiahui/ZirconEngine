@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    IblBakeArtifactRequest, ProceduralSkyParams, SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+    IblBakeArtifactRequest, IblBakeKey, ProceduralSkyParams, SOURCE_CUBEMAP_PMREM_FACE_SIZE,
     SOURCE_CUBEMAP_PMREM_MIP_COUNT,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
@@ -58,16 +58,14 @@ pub(in crate::graphics) struct RealtimeIblPendingSubmission {
 
 pub(in crate::graphics) struct RealtimeIblRuntime {
     scheduler: RealtimeIblTimeSliceScheduler,
-    resources: RealtimeIblGpuResources,
-    recorder: RealtimeIblWgpuRecorder,
-    timestamp_collector: RealtimeIblGpuTimestampCollector,
+    resources: Option<RealtimeIblGpuResources>,
+    recorder: Option<RealtimeIblWgpuRecorder>,
+    timestamp_collector: Option<RealtimeIblGpuTimestampCollector>,
     frame_number: u64,
 }
 
 impl RealtimeIblRuntime {
-    pub(in crate::graphics) fn new(device: &wgpu::Device) -> Self {
-        let initial_sky = ProceduralSkyParams::default_gradient();
-        let request = request_for_sky(&initial_sky);
+    pub(in crate::graphics) fn new() -> Self {
         Self {
             scheduler: RealtimeIblTimeSliceScheduler::new(
                 RealtimeIblTimeSliceConfig::try_new(
@@ -76,21 +74,24 @@ impl RealtimeIblRuntime {
                 )
                 .expect("realtime IBL constants must form a valid scheduler config"),
             ),
-            resources: RealtimeIblGpuResources::new(device, &request),
-            recorder: RealtimeIblWgpuRecorder::new(device),
-            timestamp_collector: RealtimeIblGpuTimestampCollector::new(device),
+            resources: None,
+            recorder: None,
+            timestamp_collector: None,
             frame_number: 0,
         }
     }
 
     pub(in crate::graphics) fn prepare_frame(
         &mut self,
+        device: &wgpu::Device,
         sky: ProceduralSkyParams,
     ) -> RealtimeIblPreparedFrame {
-        self.scheduler.request_rebake(runtime_bake_key(&sky));
+        self.ensure_gpu_resources(device);
+        let bake_key = runtime_bake_key(&sky);
+        self.scheduler.request_rebake(bake_key);
         self.frame_number = self.frame_number.wrapping_add(1);
         let batch = self.scheduler.begin_frame(self.frame_number);
-        let request = request_for_sky(&sky);
+        let request = request_for_key(bake_key);
         let sampling_slot = batch
             .as_ref()
             .map(sampling_slot_for_batch)
@@ -101,6 +102,17 @@ impl RealtimeIblRuntime {
             sky,
             sampling_slot,
         }
+    }
+
+    fn ensure_gpu_resources(&mut self, device: &wgpu::Device) {
+        if self.resources.is_some() {
+            return;
+        }
+
+        let request = request_for_key(runtime_bake_key(&ProceduralSkyParams::default_gradient()));
+        self.resources = Some(RealtimeIblGpuResources::new(device, &request));
+        self.recorder = Some(RealtimeIblWgpuRecorder::new(device));
+        self.timestamp_collector = Some(RealtimeIblGpuTimestampCollector::new(device));
     }
 
     pub(in crate::graphics) fn record_prepared_frame(
@@ -136,16 +148,23 @@ impl RealtimeIblRuntime {
             .map_err(|error| error.to_string())?;
         let graph = builder.compile().map_err(|error| error.to_string())?;
         let mut graph_resources = RenderGraphExecutionResources::new();
-        self.resources
-            .bind_graph_plan(&plan, &graph, &mut graph_resources)?;
+        let resources = self
+            .resources
+            .as_ref()
+            .expect("realtime IBL resources must be initialized by prepare_frame");
+        let recorder = self
+            .recorder
+            .as_ref()
+            .expect("realtime IBL recorder must be initialized by prepare_frame");
+        resources.bind_graph_plan(&plan, &graph, &mut graph_resources)?;
         graph_resources.validate_materialized_graph_resources(&graph)?;
-        let result = self.recorder.record_graph_plan(
+        let result = recorder.record_graph_plan(
             device,
             encoder,
             &prepared.request,
             &prepared.sky,
             &plan,
-            &self.resources,
+            resources,
             pipeline_cache,
         )?;
         let timestamp_metadata = RealtimeIblGpuTimingMetadata {
@@ -172,8 +191,11 @@ impl RealtimeIblRuntime {
         gpu_succeeded: bool,
     ) {
         if gpu_succeeded {
-            if let Some(readback) = submission.timestamp_readback {
-                self.timestamp_collector.begin_readback(
+            if let (Some(readback), Some(timestamp_collector)) = (
+                submission.timestamp_readback,
+                self.timestamp_collector.as_mut(),
+            ) {
+                timestamp_collector.begin_readback(
                     readback,
                     submission.timestamp_metadata,
                     queue.get_timestamp_period(),
@@ -182,53 +204,76 @@ impl RealtimeIblRuntime {
         }
         self.scheduler
             .complete_frame(submission.token, gpu_succeeded);
-        self.timestamp_collector.poll(device, false);
+        if let Some(timestamp_collector) = self.timestamp_collector.as_mut() {
+            timestamp_collector.poll(device, false);
+        }
     }
 
     pub(in crate::graphics) fn poll_gpu_timestamps(&mut self, device: &wgpu::Device) {
-        self.timestamp_collector.poll(device, false);
+        if let Some(timestamp_collector) = self.timestamp_collector.as_mut() {
+            timestamp_collector.poll(device, false);
+        }
     }
 
     pub(in crate::graphics) fn gpu_timestamps_supported(&self) -> bool {
-        self.timestamp_collector.is_supported()
+        self.timestamp_collector
+            .as_ref()
+            .is_some_and(RealtimeIblGpuTimestampCollector::is_supported)
     }
 
     pub(in crate::graphics) fn take_gpu_timing_reports(
         &mut self,
         device: &wgpu::Device,
     ) -> Vec<RealtimeIblGpuTimingReport> {
-        self.timestamp_collector.poll(device, true);
-        self.timestamp_collector.take_completed()
+        let Some(timestamp_collector) = self.timestamp_collector.as_mut() else {
+            return Vec::new();
+        };
+        timestamp_collector.poll(device, true);
+        timestamp_collector.take_completed()
     }
 
     pub(in crate::graphics) fn source_view(
         &self,
         slot: IblRealtimeBufferSlot,
     ) -> &wgpu::TextureView {
-        self.resources.source_sampled(slot)
+        self.resources
+            .as_ref()
+            .expect("realtime IBL resources must be initialized before sampling")
+            .source_sampled(slot)
     }
 
     pub(in crate::graphics) fn pmrem_view(
         &self,
         slot: IblRealtimeBufferSlot,
     ) -> &wgpu::TextureView {
-        self.resources.pmrem_sampled(slot)
+        self.resources
+            .as_ref()
+            .expect("realtime IBL resources must be initialized before sampling")
+            .pmrem_sampled(slot)
     }
 
     pub(in crate::graphics) fn sh9_buffer(&self, slot: IblRealtimeBufferSlot) -> &wgpu::Buffer {
-        self.resources.sh9(slot)
+        self.resources
+            .as_ref()
+            .expect("realtime IBL resources must be initialized before sampling")
+            .sh9(slot)
+    }
+
+    #[cfg(test)]
+    fn is_gpu_initialized(&self) -> bool {
+        self.resources.is_some()
     }
 }
 
-fn request_for_sky(sky: &ProceduralSkyParams) -> IblBakeArtifactRequest {
+fn request_for_key(bake_key: IblBakeKey) -> IblBakeArtifactRequest {
     IblBakeArtifactRequest::new(
-        runtime_bake_key(sky),
+        bake_key,
         REALTIME_IBL_SOURCE_FACE_SIZE,
         REALTIME_IBL_SOURCE_MIP_COUNT,
     )
 }
 
-fn runtime_bake_key(sky: &ProceduralSkyParams) -> crate::core::framework::render::IblBakeKey {
+fn runtime_bake_key(sky: &ProceduralSkyParams) -> IblBakeKey {
     sky.ibl_bake_key()
 }
 
@@ -241,17 +286,20 @@ fn sampling_slot_for_batch(batch: &RealtimeIblFrameBatch) -> IblRealtimeBufferSl
 }
 
 fn operation_label(operations: &[RealtimeIblOperation]) -> String {
-    operations
-        .iter()
-        .map(|operation| match operation {
+    let mut label = String::with_capacity(operations.len() * 16);
+    for operation in operations {
+        if !label.is_empty() {
+            label.push('+');
+        }
+        label.push_str(match operation {
             RealtimeIblOperation::CaptureSky(_) => "capture_sky",
             RealtimeIblOperation::CaptureCloud(_) => "capture_cloud",
             RealtimeIblOperation::GenerateSourceMips => "source_mips",
             RealtimeIblOperation::Prefilter { .. } => "ggx_pmrem",
             RealtimeIblOperation::ProjectDiffuseSh9 => "diffuse_sh9",
-        })
-        .collect::<Vec<_>>()
-        .join("+")
+        });
+    }
+    label
 }
 
 #[cfg(test)]

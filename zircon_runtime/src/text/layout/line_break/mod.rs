@@ -1,10 +1,12 @@
-use self::glue::allows_glyph_fallback;
-#[cfg(test)]
-pub(crate) use self::greedy::{line_text_fits, should_wrap_before_chunk};
-pub(crate) use self::greedy::{
-    line_text_fits_with_provider, should_wrap_before_chunk_with_provider,
+pub(crate) use self::boundary_correction::{
+    corrected_glyph_ranges_with_provider, corrected_index_advance_with_provider,
+    corrected_metric_ranges, BOUNDARY_SHAPING_CONTEXT_GRAPHEMES,
 };
-pub(crate) use self::soft_hyphen::LineBreakSuffix;
+use self::glue::allows_glyph_fallback;
+pub(crate) use self::greedy::{line_text_fits_with_provider, should_wrap_before_accumulated};
+pub(crate) use self::soft_hyphen::{
+    break_suffix_at as soft_hyphen_break_suffix_at, LineBreakSuffix,
+};
 pub(crate) use self::wrap_space::{trailing_wrap_space_byte_len, trim_leading_wrap_spaces};
 use super::kinsoku::apply_kinsoku_start_rules;
 use crate::core::framework::text::TextDirection;
@@ -13,6 +15,7 @@ use crate::text::shaping::DirectTextShapeRunProvider;
 use crate::text::shaping::TextShapeRunProvider;
 use crate::text::{TextRange, TextStyle};
 
+mod boundary_correction;
 mod glue;
 mod glyph_fallback;
 mod greedy;
@@ -103,6 +106,20 @@ where
 }
 
 impl<'a> LineBreakChunk<'a> {
+    pub(crate) fn should_fallback_to_glyph_wrap_with_advance(
+        &self,
+        candidate_text: &str,
+        candidate_advance: f32,
+        max_width: f32,
+    ) -> bool {
+        glyph_fallback::should_fallback_to_glyph_wrap_with_advance(
+            self.allow_glyph_fallback,
+            candidate_text,
+            candidate_advance,
+            max_width,
+        )
+    }
+
     #[cfg(test)]
     pub(crate) fn should_fallback_to_glyph_wrap(
         &self,
@@ -115,25 +132,6 @@ impl<'a> LineBreakChunk<'a> {
             candidate_text,
             max_width,
             style,
-        )
-    }
-
-    pub(crate) fn should_fallback_to_glyph_wrap_with_provider<P>(
-        &self,
-        candidate_text: &str,
-        max_width: f32,
-        style: &TextStyle,
-        provider: &mut P,
-    ) -> bool
-    where
-        P: TextShapeRunProvider + ?Sized,
-    {
-        glyph_fallback::should_fallback_to_glyph_wrap_with_provider(
-            self.allow_glyph_fallback,
-            candidate_text,
-            max_width,
-            style,
-            provider,
         )
     }
 

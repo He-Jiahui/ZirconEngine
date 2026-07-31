@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Instant;
 
 use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
+use crate::graphics::backend::{DEFAULT_GPU_TIMER_MAX_PASSES, GpuPassTimer};
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
 };
@@ -13,13 +15,41 @@ use super::super::super::super::resources::ResourceStreamer;
 use super::super::super::graph_execution::{
     RenderGraphExecutionRecord, RenderPassExecutorRegistry,
 };
-use super::super::super::overlay::ViewportIconSource;
+use super::super::super::overlay::{EmptyViewportIconSource, ViewportIconSource};
 use super::super::constants::FINAL_COLOR_FORMAT;
-use super::super::scene_renderer::SceneRenderer;
 use super::super::scene_renderer::SceneRendererAdvancedPluginOutputs;
+use super::super::scene_renderer::{
+    SceneRenderer, SceneRendererFrameTimingReport, SceneRendererStartupOptions,
+    SceneRendererStartupReport,
+};
 use super::super::scene_renderer_core::SceneRendererCore;
 
 impl SceneRenderer {
+    pub fn new_with_startup_report(
+        asset_manager: ProjectAssetManagerAccess,
+    ) -> Result<(Self, SceneRendererStartupReport), GraphicsError> {
+        Self::new_with_startup_options_and_report(
+            asset_manager,
+            SceneRendererStartupOptions::default(),
+        )
+    }
+
+    pub fn new_with_startup_options_and_report(
+        asset_manager: ProjectAssetManagerAccess,
+        startup_options: SceneRendererStartupOptions,
+    ) -> Result<(Self, SceneRendererStartupReport), GraphicsError> {
+        Self::new_with_icon_source_and_plugin_render_features_and_shading_models_with_startup_report(
+            asset_manager,
+            Arc::new(EmptyViewportIconSource),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            startup_options,
+        )
+    }
+
     pub(crate) fn new_with_icon_source(
         asset_manager: ProjectAssetManagerAccess,
         icon_source: Arc<dyn ViewportIconSource>,
@@ -60,13 +90,39 @@ impl SceneRenderer {
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
     ) -> Result<Self, GraphicsError> {
+        Self::new_with_icon_source_and_plugin_render_features_and_shading_models_with_startup_report(
+            asset_manager,
+            icon_source,
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            plugin_geometry_sources,
+            plugin_shading_models,
+            SceneRendererStartupOptions::default(),
+        )
+        .map(|(renderer, _)| renderer)
+    }
+
+    fn new_with_icon_source_and_plugin_render_features_and_shading_models_with_startup_report(
+        asset_manager: ProjectAssetManagerAccess,
+        icon_source: Arc<dyn ViewportIconSource>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        startup_options: SceneRendererStartupOptions,
+    ) -> Result<(Self, SceneRendererStartupReport), GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
         let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
         let runtime_prepare_collectors = runtime_prepare_collectors.into_iter().collect::<Vec<_>>();
         let plugin_geometry_sources = plugin_geometry_sources.into_iter().collect::<Vec<_>>();
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
+        let backend_started = Instant::now();
         let backend = crate::graphics::backend::RenderBackend::new_offscreen()?;
-        let core = SceneRendererCore::new_with_icon_source(
+        let backend_initialization = backend_started.elapsed();
+        let core_started = Instant::now();
+        let (mut core, core_startup) = SceneRendererCore::new_with_icon_source(
             asset_manager.clone(),
             &backend.device,
             &backend.queue,
@@ -77,32 +133,65 @@ impl SceneRenderer {
             plugin_geometry_sources,
             plugin_shading_models.iter().cloned(),
             runtime_prepare_collectors,
+            startup_options.deferred_lighting_profile(),
         )?;
-        let streamer = ResourceStreamer::new_with_plugin_shading_models(
+        let core_initialization = core_started.elapsed();
+        let resource_streamer_started = Instant::now();
+        let mut streamer = ResourceStreamer::new_with_plugin_shading_models(
             asset_manager,
             &backend.device,
             &backend.queue,
             &core.texture_bind_group_layout,
             plugin_shading_models,
         )?;
-
-        Ok(Self {
-            backend,
-            core,
-            streamer,
-            target: None,
-            history_targets: HashMap::new(),
-            generation: 0,
-            render_pass_executors:
-                RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features_and_executor_registrations(
-                    render_features,
-                    render_pass_executors,
+        let resource_streamer_initialization = resource_streamer_started.elapsed();
+        let environment_only_pbr_base_prewarm = if startup_options
+            .requires_environment_only_pbr_base_prewarm()
+        {
+            Some(
+                core.mesh_pipelines
+                    .prewarm_environment_only_pbr_base_pipeline(&backend.device, &mut streamer)?
+                    .into(),
             )
-            .with_environment_ibl_bake_compute_executors(),
-            last_render_graph_execution: RenderGraphExecutionRecord::default(),
-            last_prepared_mesh_queue_stats: Default::default(),
-            last_prepared_sprite_queue_stats: Default::default(),
-            advanced_plugin_outputs: SceneRendererAdvancedPluginOutputs::default(),
-        })
+        } else {
+            None
+        };
+        let gpu_pass_timer = GpuPassTimer::try_new(
+            &backend.device,
+            &backend.queue,
+            DEFAULT_GPU_TIMER_MAX_PASSES,
+        );
+
+        Ok((
+            Self {
+                backend,
+                core,
+                streamer,
+                target: None,
+                history_targets: HashMap::new(),
+                generation: 0,
+                gpu_pass_timer,
+                last_gpu_timer_frame_result: None,
+                render_pass_executors:
+                    RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features_and_executor_registrations(
+                        render_features,
+                        render_pass_executors,
+                )
+                .with_environment_ibl_bake_compute_executors(),
+                last_render_graph_execution: RenderGraphExecutionRecord::default(),
+                last_prepared_mesh_queue_stats: Default::default(),
+                last_prepared_sprite_queue_stats: Default::default(),
+                frame_timing_report_requested: false,
+                last_frame_timing_report: SceneRendererFrameTimingReport::default(),
+                advanced_plugin_outputs: SceneRendererAdvancedPluginOutputs::default(),
+            },
+            SceneRendererStartupReport {
+                backend_initialization,
+                core_initialization,
+                core_startup,
+                resource_streamer_initialization,
+                environment_only_pbr_base_prewarm,
+            },
+        ))
     }
 }

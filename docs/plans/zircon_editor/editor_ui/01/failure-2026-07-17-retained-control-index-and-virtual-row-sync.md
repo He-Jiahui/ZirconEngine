@@ -64,6 +64,8 @@ Native keyboard/popup 16文件审查补充PERF-MVP-170：每个Arrow/Home/End/Ac
 
 Native pointer move/scroll 34文件审查补充PERF-MVP-171：普通Workbench hover同一event会先做popup hit并丢弃非popup结果，pane miss后再次做相同base hit；move/scroll入口还深clone完整presentation。EditorUI01的generation-owned hit/control index必须让event只查一次hit，并把同一结果用于popup优先、pane遮挡与base fallback。Passive/unhandled scroll不得仅因route存在就制造damage；handler/state未变应返回ignored/idle。
 
+2026-07-31 detail-scroll current app 4/4与bridge 27/27补证：runtime两节点surface已原地提交clamped offset且不再rebuild，但host包装把dispatch的state change擦成`Result<()>`，三条app路径对zero/clamped scroll仍setter。PERF-MVP-110/171要求shared result携typed `changed/damage`，owner unchanged直接Ignored；不得让app通过第二份last-offset cache补救。完整证据见`../../../performance/01/2026-07-31-editor-retained-detail-scroll-pointer-current-review.md`。
+
 Native pointer routing 48文件审查补充PERF-MVP-173：floating windows、rail buttons、document/drawer/page tabs和asset panel都用`row_data`逐candidate深clone，且按每event线性扫描；asset panel为1-2个control id重复扫全部wide nodes。局部改borrow后，本计划的generation index仍须覆盖chrome/pane spatial与typed route identity，保留floating reverse-z和既有route priority，不得让每个dispatcher各自缓存。
 
 Native menu geometry 27文件审查补充PERF-MVP-175：稳定popup move/scroll/press重复构造root/nested stack、containment和damage，press还分别反射before/after；各层`row_data` clone selected branch。Menu state/layout generation应原子提交popup frames、row ranges、blocking frame和damage bounds，stable event build=0，path delta只更新changed suffix，并与shared menu pointer bridge保持同一truth。
@@ -87,7 +89,7 @@ Bevy `UiSurface` 以 `EntityHashMap<LayoutNode>` 维护 entity 到 Taffy node �
 - 1k pointer/action/data-sync storm记录 allocation、lookup、layout、hit-grid rebuild和p95；route/action/focus/popup/selection bytes与当前语义等价。
 - hit surface与open-popup z stack随surface/presentation generation原子提交；1k moves的bounds/surface build/rebuild=0、无popup全node visited=0，10k uniform popup rows每hit visited≤1，并保持clip、disabled/separator阻断underlay与z-order。
 - active-popup navigation rows/current index与同一generation原子提交；1k keyboard/typeahead/outside events的full presentation/node clone与row rebuild=0，dismiss只读top popup，popup/template/row变化后stale identity不可命中。
-- 1k stable move的Workbench hit-test≤1/event；passive/unhandled或clamped scroll的callback/redraw=0，handled scroll至多一次局部damage，popup/pane/base优先与viewport等待新image保持等价。
+- 1k stable move的Workbench hit-test≤1/event；1M passive/zero/clamped scroll的callback/property setter/redraw=0，handled scroll至多一次property publish与局部damage，popup/pane/base优先与viewport等待新image保持等价。
 - 1/100/10k floating/tab/rail/asset route的candidate DTO clone=0，最终visited与无关tree size解耦；static route kind/surface id不分配String，z/order/duplicate identity保持确定。
 - stable 1k menu events的popup stack/geometry build=0；submenu path delta只重算changed suffix，native/shared menu containment、blocking和damage读取同一generation projection。
 - 1k native button events的共享route/hit build≤1/event；ignored/unchanged callback redraw=0，handled damage合并≤1；popup/chrome/Workbench/pane优先级、pressed/released视觉与callback order等价。

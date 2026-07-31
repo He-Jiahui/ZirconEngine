@@ -205,3 +205,21 @@ fn pointer_event_state_cancel_filters_current_hover_and_clears_state() {
     );
     assert!(release_after_cancel.is_empty());
 }
+
+#[test]
+fn pointer_event_state_avoids_frame_wide_hit_and_button_state_clones() {
+    let source = include_str!("../../core/framework/picking/pointer_event_state.rs");
+    for forbidden in [
+        "let previous_hover = self.previous_hover.clone();",
+        "let exiting_hits = previous_hover",
+        "let current_hits = current_hover",
+        "let previous_hits = previous_hover.get(pointer).to_vec();",
+        ".map(|(target, drag)| (*target, drag.clone()))",
+        ".map(|(target, hit)| (*target, hit.clone()))",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "pointer-event hot path still contains redundant projection: {forbidden}"
+        );
+    }
+}

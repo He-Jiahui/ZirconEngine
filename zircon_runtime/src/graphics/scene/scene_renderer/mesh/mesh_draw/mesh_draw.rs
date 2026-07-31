@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    PrimitiveRelevance, RenderMeshLodSelection, RenderMeshStaticState,
+    CastShadowsMode, PrimitiveRelevance, RenderMeshLodSelection, RenderMeshStaticState,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::graphics::scene::resources::{
     GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses, PipelineKey,
 };
 
+use super::MeshCommandSortInput;
 use super::geometry_source::MeshDrawGeometrySource;
 use super::material_texture_set::MaterialTextureSet;
 use super::virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
-use super::MeshCommandSortInput;
 
 pub(crate) struct MeshDraw {
     pub(super) mesh: Arc<GpuMeshResource>,
@@ -32,7 +32,7 @@ pub(crate) struct MeshDraw {
     pub(super) material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) pipeline_key: PipelineKey,
-    pub(super) cast_shadows: bool,
+    pub(super) cast_shadows: CastShadowsMode,
     pub(super) disabled_passes: MaterialDisabledPasses,
     pub(super) taa_reactive_mask_strength: f32,
     pub(super) gpu_scene_bind_group: Option<wgpu::BindGroup>,
@@ -74,7 +74,7 @@ impl MeshDraw {
         material_uniform: Arc<GpuMaterialUniformResource>,
         standard_material_uniform: Arc<GpuMaterialUniformResource>,
         pipeline_key: PipelineKey,
-        cast_shadows: bool,
+        cast_shadows: CastShadowsMode,
         disabled_passes: MaterialDisabledPasses,
         taa_reactive_mask_strength: f32,
         gpu_scene_bind_group: Option<wgpu::BindGroup>,

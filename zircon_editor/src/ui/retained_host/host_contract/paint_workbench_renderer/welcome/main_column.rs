@@ -1,16 +1,11 @@
 use super::super::super::data::{FrameRect, PaneData};
 use super::super::super::paint_frame::HostRgbaFrame;
 
-mod actions;
 mod form;
 mod frames;
 mod hero;
 
-use actions::draw_welcome_actions;
-use form::{
-    draw_welcome_field, draw_welcome_new_project_header, draw_welcome_preview,
-    draw_welcome_validation,
-};
+use form::{draw_welcome_new_project_header, draw_welcome_preview, draw_welcome_validation};
 use frames::welcome_main_column_frames;
 use hero::{draw_welcome_hero, draw_welcome_status};
 
@@ -28,25 +23,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_main_column(
 
     draw_welcome_new_project_header(frame, pane, &frames.header, clip);
 
-    draw_welcome_field(
-        frame,
-        &frames.name,
-        "Project name",
-        pane.welcome.form.project_name.as_str(),
-        clip,
-    );
-
-    draw_welcome_field(
-        frame,
-        &frames.location,
-        "Location",
-        pane.welcome.form.location.as_str(),
-        clip,
-    );
-
     draw_welcome_preview(frame, pane, &frames.preview, clip);
 
     draw_welcome_validation(frame, pane, &frames.validation, clip);
-
-    draw_welcome_actions(frame, pane, &frames.actions, clip);
 }

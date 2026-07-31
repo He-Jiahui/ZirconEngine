@@ -1,10 +1,9 @@
 use crate::core::math::UVec2;
-use crate::text::atlas::render_gpu_plan::{
-    glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuBindGroupLayout,
-    GlyphAtlasGpuSamplerBindingType, GlyphAtlasGpuTextureSampleType,
-    GlyphAtlasGpuTextureViewDimension,
-};
 use crate::text::atlas::GlyphAtlasStorageFormat;
+use crate::text::atlas::render_gpu_plan::{
+    GlyphAtlasGpuBindGroupLayout, GlyphAtlasGpuSamplerBindingType, GlyphAtlasGpuTextureSampleType,
+    GlyphAtlasGpuTextureViewDimension, glyph_atlas_gpu_bind_group_layout,
+};
 
 use super::super::atlas_texture_upload::{
     create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,
@@ -31,14 +30,26 @@ impl GlyphAtlasBitmapAtlasResources {
         &self.bind_group
     }
 
-    pub(super) fn matches(
+    pub(super) fn size(&self) -> UVec2 {
+        self.size
+    }
+
+    pub(super) fn layer_count(&self) -> u32 {
+        self.layer_count
+    }
+
+    pub(super) fn storage_format(&self) -> GlyphAtlasStorageFormat {
+        self.storage_format
+    }
+
+    pub(super) fn supports(
         &self,
         size: UVec2,
-        layer_count: u32,
+        required_layer_count: u32,
         storage_format: GlyphAtlasStorageFormat,
     ) -> bool {
         self.size == size
-            && self.layer_count == layer_count.max(1)
+            && self.layer_count >= required_layer_count.max(1)
             && self.storage_format == storage_format
     }
 }
@@ -74,6 +85,7 @@ pub(super) fn create_glyph_atlas_bitmap_atlas_resources(
     device: &wgpu::Device,
     bind_group_layout: &wgpu::BindGroupLayout,
     sampler: &wgpu::Sampler,
+    viewport_uniform_buffer: &wgpu::Buffer,
     size: UVec2,
     layer_count: u32,
     storage_format: GlyphAtlasStorageFormat,
@@ -100,6 +112,10 @@ pub(super) fn create_glyph_atlas_bitmap_atlas_resources(
                 binding: layout.atlas_sampler.binding,
                 resource: wgpu::BindingResource::Sampler(sampler),
             },
+            wgpu::BindGroupEntry {
+                binding: layout.viewport_uniform.binding,
+                resource: viewport_uniform_buffer.as_entire_binding(),
+            },
         ],
     });
 
@@ -115,7 +131,7 @@ pub(super) fn create_glyph_atlas_bitmap_atlas_resources(
 
 pub(super) fn glyph_atlas_wgpu_bind_group_layout_entries(
     layout: GlyphAtlasGpuBindGroupLayout,
-) -> [wgpu::BindGroupLayoutEntry; 2] {
+) -> [wgpu::BindGroupLayoutEntry; 3] {
     [
         wgpu::BindGroupLayoutEntry {
             binding: layout.atlas_texture.binding,
@@ -135,6 +151,16 @@ pub(super) fn glyph_atlas_wgpu_bind_group_layout_entries(
             ty: wgpu::BindingType::Sampler(glyph_atlas_wgpu_sampler_binding_type(
                 layout.atlas_sampler.binding_type,
             )),
+            count: None,
+        },
+        wgpu::BindGroupLayoutEntry {
+            binding: layout.viewport_uniform.binding,
+            visibility: wgpu::ShaderStages::VERTEX,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: wgpu::BufferSize::new(16),
+            },
             count: None,
         },
     ]

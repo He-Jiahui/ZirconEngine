@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
 
 #[cfg(test)]
 use super::ScheduledSceneStep;

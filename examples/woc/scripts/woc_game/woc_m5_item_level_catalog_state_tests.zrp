@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_item_level_catalog_state_tests",
+  "source": "src",
+  "binary": "bin-m5-item-level-catalog-state-tests",
+  "entry": "progression/item_level_catalog_state_test_main"
+}

@@ -12,7 +12,7 @@ pub use super::layout::{
     UiLayoutPassStage, UI_LAYOUT_PASS_ORDER,
 };
 pub use super::module::{
-    module_descriptor, UiConfig, UiModule, UiRuntimeDriver, UI_EVENT_MANAGER_NAME, UI_MODULE_NAME,
+    module_descriptor, UiConfig, UiModule, UiRuntimeDriver, UI_EVENT_MANAGER_NAME,
     UI_RUNTIME_DRIVER_NAME,
 };
 pub use super::style::{
@@ -34,4 +34,5 @@ pub use super::v2::{
     UiV2AssetLoader, UiV2CompiledDocument, UiV2DocumentCompiler, UiV2PrototypeStore,
     UiV2PrototypeStoreBuilder, UiV2StyleResolver, UiV2SurfaceBuilder, UiZuiAssetLoader,
 };
+pub use super::UI_MODULE_NAME;
 pub use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};

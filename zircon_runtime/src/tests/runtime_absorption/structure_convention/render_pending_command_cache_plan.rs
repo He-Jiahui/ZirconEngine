@@ -19,6 +19,9 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
     let extract_rebuild_batch_owner = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs",
     );
+    let extract_remainder_owner = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/remainder.rs",
+    );
     let extract_residual_owner = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs",
     );
@@ -49,6 +52,7 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
     let prepared_queue_stats_bridge =
         read_runtime_src("graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs");
     let render_stats = read_runtime_src("core/framework/render/backend_types.rs");
+    let render_product_mesh_cache = read_runtime_src("graphics/tests/render_product_mesh_cache.rs");
     let mesh_queue_diagnostics =
         read_runtime_src("core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs");
     let product_diagnostics =
@@ -108,11 +112,43 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             "mod lazy_rebuild_tests;",
             "mod non_material_rebuild;",
             "mod rebuild_batch;",
+            "mod remainder;",
             "mod residual_fallback;",
             "mod second_frame_tests;",
             "mod visibility_tests;",
             "visibility_pruned_mesh_draw_count",
             "residual_material_phase_draw_count",
+        ],
+    );
+    assert!(
+        !extract_owner.contains("Vec<Option<PendingMeshDraw>>"),
+        "pending command cache extraction must move-partition residual draws instead of allocating an Option wrapper row per draw"
+    );
+    assert_contains_all(
+        "pending command cache extraction lazily preallocates and move-partitions residual draws",
+        &extract_owner,
+        &[
+            "let residual_capacity = pending_draws.len();",
+            "let mut residual_pending_draws = None;",
+            "for (source_draw_index, draw) in pending_draws.into_iter().enumerate()",
+            "get_or_insert_with(|| Vec::with_capacity(residual_capacity))",
+            ".push((source_draw_index, draw));",
+            "PendingMeshDrawRemainder::Residual(residual_pending_draws.unwrap_or_default())",
+        ],
+    );
+    assert!(
+        !extract_owner.contains("let mut residual_pending_draws = Vec::new();"),
+        "residual extraction must avoid allocating a residual container on full-hit frames while preallocating once on the first residual draw"
+    );
+    assert_contains_all(
+        "pending command cache remainder owner avoids indexed repack allocation",
+        &extract_remainder_owner,
+        &[
+            "enum PendingMeshDrawRemainder",
+            "All(Vec<PendingMeshDraw>)",
+            "Residual(Vec<(usize, PendingMeshDraw)>)",
+            "draws.into_iter().enumerate()",
+            "PendingMeshDrawRemainderIntoIter::Residual(draws.into_iter())",
         ],
     );
     assert_contains_all(
@@ -178,6 +214,17 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
         ],
     );
     assert_contains_all(
+        "MD-M2 product coverage compares a static-heavy cold frame with a zero-rebuild warm frame",
+        &render_product_mesh_cache,
+        &[
+            "const STATIC_CACHE_HEAVY_INSTANCE_COUNT: usize = 64;",
+            "fn render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse()",
+            "first.last_mesh_command_rebuild_count >= STATIC_CACHE_HEAVY_INSTANCE_COUNT",
+            "second.last_mesh_pre_mesh_draw_static_command_cache_skipped_draw_count",
+            "second.last_mesh_command_rebuild_count, 0",
+        ],
+    );
+    assert_contains_all(
         "pending command cache visibility tests keep zero-command skip diagnostics separate",
         &extract_visibility_tests_owner,
         &[
@@ -220,6 +267,75 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             "pub(crate) fn pending_command_cache_plan_stats(&self)",
         ],
     );
+    assert!(
+        !build_owner.contains("pending_draws.into_iter().map(Some)"),
+        "build_mesh_draws must pass pending draws directly into cache extraction without allocating an Option wrapper vector"
+    );
+    assert!(
+        !build_owner.contains("pending_draws.into_iter().enumerate().filter_map"),
+        "build_mesh_draws must not perform a second Option-filtering residual repack"
+    );
+    assert!(
+        !build_owner.contains("pending_draws.into_iter().enumerate().collect"),
+        "build_mesh_draws must not allocate an indexed tuple vector when command-cache extraction is disabled"
+    );
+    assert!(
+        !build_owner.contains("let ordered_pending_draws"),
+        "build_mesh_draws must construct final MeshDraw values directly instead of allocating an intermediate ordered tuple vector"
+    );
+    assert_contains_all(
+        "build_mesh_draws consumes indexed residual draws directly",
+        &build_owner,
+        &[
+            "PendingMeshDrawRemainder::all(pending_draws)",
+            "let indexed_pending_draws = pending_draws",
+            "draws: indexed_pending_draws",
+            "let indirect_args_offset = indirect_args_offsets",
+            "let submission_detail = pending_draw_submission_details",
+        ],
+    );
+    assert!(
+        build_owner.matches(".get(original_index)").count() >= 5,
+        "residual draw offsets, buffers, submission details, tokens, and draw-ref indices must all use the preserved original pending index"
+    );
+    assert!(
+        !build_owner.contains("self.prebuilt_mesh_pass_command_buffers.clone()"),
+        "BuiltMeshDraws must move prebuilt command buffers into the compiled-scene owner instead of deep-cloning command vectors"
+    );
+    assert!(
+        !compiled_scene_draws.contains("self.prebuilt_mesh_pass_command_buffers.clone()"),
+        "CompiledSceneDraws must move prebuilt command buffers into frame execution instead of deep-cloning command vectors"
+    );
+    assert_contains_all(
+        "prebuilt mesh command buffers transfer ownership across frame boundaries",
+        &(build_owner.clone() + &compiled_scene_draws),
+        &[
+            "fn from_built_mesh_draws(mut built_mesh_draws: BuiltMeshDraws)",
+            "pub(crate) fn prebuilt_mesh_pass_command_buffers(&mut self)",
+            "pub(super) fn prebuilt_mesh_pass_command_buffers(&mut self)",
+            "std::mem::take(&mut self.prebuilt_mesh_pass_command_buffers)",
+        ],
+    );
+    for field in [
+        "indirect_args_buffer",
+        "indirect_submission_buffer",
+        "indirect_authority_buffer",
+        "indirect_draw_ref_buffer",
+        "indirect_segment_buffer",
+    ] {
+        assert!(
+            !build_owner.contains(&format!("self.{field}.clone()")),
+            "BuiltMeshDraws must move `{field}` into the compiled-scene owner instead of incrementing the Arc count"
+        );
+        assert!(
+            build_owner.contains(&format!("self.{field}.take()")),
+            "BuiltMeshDraws must transfer `{field}` with Option::take"
+        );
+        assert!(
+            compiled_scene_draws.contains(&format!("self.{field}.is_some()")),
+            "CompiledSceneDraws virtual-geometry stats must inspect `{field}` without cloning its Arc"
+        );
+    }
     assert_contains_all(
         "compiled scene and prepared queue carry pending plan stats",
         &(compiled_scene_draws + &render_owner + &prepared_queue + &prepared_queue_stats_bridge),
@@ -275,6 +391,11 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs",
             extract_rebuild_batch_owner.as_str(),
             120,
+        ),
+        (
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/remainder.rs",
+            extract_remainder_owner.as_str(),
+            100,
         ),
         (
             "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs",

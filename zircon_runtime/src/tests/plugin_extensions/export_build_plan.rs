@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_runtime_interface::export::ExportStage;
 
@@ -8,8 +9,8 @@ use crate::{
     core::framework::project::ExportPackagingStrategy, core::framework::project::ExportProfile,
     core::framework::project::ExportTargetPlatform,
     core::framework::project::ProjectPluginManifest,
-    core::framework::project::ProjectPluginSelection, plugin::ExportBuildPlan,
-    plugin::ExportValidateReport, plugin::LibraryEmbedCompileHostTarget,
+    core::framework::project::ProjectPluginSelection, core::framework::project::RuntimeProfileId,
+    plugin::ExportBuildPlan, plugin::ExportValidateReport, plugin::LibraryEmbedCompileHostTarget,
     plugin::RuntimePluginCatalog,
 };
 
@@ -38,6 +39,7 @@ fn source_template_generates_linked_external_runtime_plugin_registration_calls()
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -87,6 +89,7 @@ fn export_plan_treats_missing_required_profile_providers_as_fatal() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::SourceTemplate])];
 
@@ -158,6 +161,7 @@ fn source_template_links_physics_as_external_runtime_plugin() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -196,6 +200,7 @@ fn source_template_profile_carries_build_validation_plan() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::SourceTemplate])];
 
@@ -254,6 +259,7 @@ fn export_plan_treats_animation_as_external_native_dynamic_package() {
         "native-only",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 
@@ -296,6 +302,7 @@ fn source_template_keeps_editor_only_plugins_out_of_runtime_registrations() {
         "editor",
         RuntimeTargetMode::EditorHost,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Editor,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -318,47 +325,55 @@ fn source_template_links_runtime_backed_authoring_and_excludes_editor_only_autho
         1,
     );
     manifest.plugins =
-        RuntimePluginCatalog::builtin().complete_project_manifest(&ProjectPluginManifest {
-            selections: vec![
-                ProjectPluginSelection::runtime_plugin(RuntimePluginId::Terrain, true, false),
-                ProjectPluginSelection::runtime_plugin(RuntimePluginId::Tilemap2d, true, false),
-                ProjectPluginSelection::runtime_plugin(RuntimePluginId::PrefabTools, true, false),
-                ProjectPluginSelection {
-                    id: "material_editor".to_string(),
-                    enabled: true,
-                    required: false,
-                    target_modes: vec![RuntimeTargetMode::EditorHost],
-                    packaging: ExportPackagingStrategy::LibraryEmbed,
-                    runtime_crate: None,
-                    editor_crate: Some("zircon_plugin_material_editor_editor".to_string()),
-                    features: Vec::new(),
-                },
-                ProjectPluginSelection {
-                    id: "timeline_sequence".to_string(),
-                    enabled: true,
-                    required: false,
-                    target_modes: vec![RuntimeTargetMode::EditorHost],
-                    packaging: ExportPackagingStrategy::LibraryEmbed,
-                    runtime_crate: None,
-                    editor_crate: Some("zircon_plugin_timeline_sequence_editor".to_string()),
-                    features: Vec::new(),
-                },
-                ProjectPluginSelection {
-                    id: "animation_graph".to_string(),
-                    enabled: true,
-                    required: false,
-                    target_modes: vec![RuntimeTargetMode::EditorHost],
-                    packaging: ExportPackagingStrategy::LibraryEmbed,
-                    runtime_crate: None,
-                    editor_crate: Some("zircon_plugin_animation_graph_editor".to_string()),
-                    features: Vec::new(),
-                },
-            ],
-        });
+        Arc::unwrap_or_clone(RuntimePluginCatalog::builtin().complete_project_manifest(
+            &ProjectPluginManifest {
+                selections: vec![
+                    ProjectPluginSelection::runtime_plugin(RuntimePluginId::Terrain, true, false),
+                    ProjectPluginSelection::runtime_plugin(RuntimePluginId::Tilemap2d, true, false),
+                    ProjectPluginSelection::runtime_plugin(
+                        RuntimePluginId::PrefabTools,
+                        true,
+                        false,
+                    ),
+                    ProjectPluginSelection {
+                        id: "material_editor".to_string(),
+                        enabled: true,
+                        required: false,
+                        target_modes: vec![RuntimeTargetMode::EditorHost],
+                        packaging: ExportPackagingStrategy::LibraryEmbed,
+                        runtime_crate: None,
+                        editor_crate: Some("zircon_plugin_material_editor_editor".to_string()),
+                        features: Vec::new(),
+                    },
+                    ProjectPluginSelection {
+                        id: "timeline_sequence".to_string(),
+                        enabled: true,
+                        required: false,
+                        target_modes: vec![RuntimeTargetMode::EditorHost],
+                        packaging: ExportPackagingStrategy::LibraryEmbed,
+                        runtime_crate: None,
+                        editor_crate: Some("zircon_plugin_timeline_sequence_editor".to_string()),
+                        features: Vec::new(),
+                    },
+                    ProjectPluginSelection {
+                        id: "animation_graph".to_string(),
+                        enabled: true,
+                        required: false,
+                        target_modes: vec![RuntimeTargetMode::EditorHost],
+                        packaging: ExportPackagingStrategy::LibraryEmbed,
+                        runtime_crate: None,
+                        editor_crate: Some("zircon_plugin_animation_graph_editor".to_string()),
+                        features: Vec::new(),
+                    },
+                ],
+            },
+            RuntimeTargetMode::EditorHost,
+        ));
     manifest.export_profiles = vec![ExportProfile::new(
         "editor",
         RuntimeTargetMode::EditorHost,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Editor,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];

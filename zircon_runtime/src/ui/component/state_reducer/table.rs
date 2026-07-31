@@ -155,10 +155,27 @@ fn compare_row_value(left: &UiValue, right: &UiValue, column: &str) -> Ordering 
         right.and_then(UiValue::as_f64),
     ) {
         (Some(left), Some(right)) => left.partial_cmp(&right).unwrap_or(Ordering::Equal),
-        _ => left
-            .map(UiValue::display_text)
-            .unwrap_or_default()
-            .cmp(&right.map(UiValue::display_text).unwrap_or_default()),
+        _ => match (
+            left.and_then(borrowed_sort_text),
+            right.and_then(borrowed_sort_text),
+        ) {
+            (Some(left), Some(right)) => left.cmp(right),
+            _ => left
+                .map(UiValue::display_text)
+                .unwrap_or_default()
+                .cmp(&right.map(UiValue::display_text).unwrap_or_default()),
+        },
+    }
+}
+
+fn borrowed_sort_text(value: &UiValue) -> Option<&str> {
+    match value {
+        UiValue::String(value)
+        | UiValue::Color(value)
+        | UiValue::AssetRef(value)
+        | UiValue::InstanceRef(value)
+        | UiValue::Enum(value) => Some(value),
+        _ => None,
     }
 }
 
@@ -170,12 +187,16 @@ fn row_field<'a>(row: &'a UiValue, column: &str) -> Option<&'a UiValue> {
 }
 
 fn apply_column_width(state: &mut UiComponentState, field: &str, width: f64) {
-    let mut widths = match state.values.get("column_widths") {
-        Some(UiValue::Map(widths)) => widths.clone(),
-        _ => BTreeMap::new(),
+    state.reference_sources.remove("column_widths");
+    if !matches!(state.values.get("column_widths"), Some(UiValue::Map(_))) {
+        state
+            .values
+            .insert("column_widths".to_string(), UiValue::Map(BTreeMap::new()));
+    }
+    let Some(UiValue::Map(widths)) = state.values.get_mut("column_widths") else {
+        unreachable!("column width map was inserted before mutable access");
     };
     widths.insert(field.to_string(), UiValue::Float(width));
-    super::set_value(state, "column_widths".to_string(), UiValue::Map(widths));
 
     let Some(UiValue::Array(columns)) = state.values.get_mut("columns") else {
         return;

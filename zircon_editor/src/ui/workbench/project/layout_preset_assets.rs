@@ -2,21 +2,21 @@ use std::fs;
 use std::path::PathBuf;
 
 use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::AssetUri;
 use zircon_runtime::scene::world::SceneProjectError;
+use zircon_runtime_interface::resource::ResourceScheme;
 
 use super::constants::{EDITOR_LAYOUT_PRESET_FORMAT_VERSION, EDITOR_LAYOUT_PRESET_SUFFIX};
 use super::layout_preset_asset_document::LayoutPresetAssetDocument;
 use super::layout_preset_asset_path::layout_preset_asset_path;
-use super::project_root_path::project_root_path;
 use crate::ui::workbench::layout::WorkbenchLayout;
 
 pub(crate) fn save_layout_preset_asset(
-    root: impl AsRef<std::path::Path>,
+    project: &ProjectManager,
     name: &str,
     layout: &WorkbenchLayout,
 ) -> Result<PathBuf, SceneProjectError> {
-    let root = project_root_path(root)?;
-    let path = layout_preset_asset_path(&root, name)?;
+    let path = layout_preset_asset_path(project, name)?;
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent)?;
@@ -32,11 +32,10 @@ pub(crate) fn save_layout_preset_asset(
 }
 
 pub(crate) fn load_layout_preset_asset(
-    root: impl AsRef<std::path::Path>,
+    project: &ProjectManager,
     name: &str,
 ) -> Result<Option<WorkbenchLayout>, SceneProjectError> {
-    let root = project_root_path(root)?;
-    let path = layout_preset_asset_path(&root, name)?;
+    let path = layout_preset_asset_path(project, name)?;
     if !path.exists() {
         return Ok(None);
     }
@@ -45,56 +44,29 @@ pub(crate) fn load_layout_preset_asset(
 }
 
 pub(crate) fn list_layout_preset_assets(
-    root: impl AsRef<std::path::Path>,
-) -> Result<Vec<String>, SceneProjectError> {
-    let root = project_root_path(root)?;
-    let mut preset_names = Vec::new();
-    let project = ProjectManager::open(&root)?;
-    for asset_root in project.project_asset_roots() {
-        let preset_dir = asset_root.join(super::constants::EDITOR_LAYOUT_PRESET_DIR);
-        if !preset_dir.exists() {
-            continue;
-        }
-        collect_layout_preset_names(&preset_dir, &mut preset_names)?;
-    }
+    locators: impl IntoIterator<Item = AssetUri>,
+) -> Vec<String> {
+    let mut preset_names = locators
+        .into_iter()
+        .filter_map(|locator| layout_preset_name(&locator))
+        .collect::<Vec<_>>();
     preset_names.sort();
     preset_names.dedup();
-    Ok(preset_names)
+    preset_names
 }
 
-fn collect_layout_preset_names(
-    preset_dir: &std::path::Path,
-    preset_names: &mut Vec<String>,
-) -> Result<(), SceneProjectError> {
-    for entry in fs::read_dir(preset_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if !path.is_file() {
-            continue;
-        }
-        if !path
-            .file_name()
-            .and_then(|value| value.to_str())
-            .is_some_and(|name| name.ends_with(EDITOR_LAYOUT_PRESET_SUFFIX))
-        {
-            continue;
-        }
-        let name = fs::read_to_string(&path)
-            .ok()
-            .and_then(|contents| serde_json::from_str::<LayoutPresetAssetDocument>(&contents).ok())
-            .map(|document| document.preset_name)
-            .or_else(|| {
-                path.file_name()
-                    .and_then(|value| value.to_str())
-                    .map(|value| {
-                        value
-                            .trim_end_matches(EDITOR_LAYOUT_PRESET_SUFFIX)
-                            .to_string()
-                    })
-            });
-        if let Some(name) = name {
-            preset_names.push(name);
-        }
+fn layout_preset_name(locator: &AssetUri) -> Option<String> {
+    if locator.scheme() != ResourceScheme::Res || locator.label().is_some() {
+        return None;
     }
-    Ok(())
+    let relative = locator
+        .path()
+        .strip_prefix(&format!("{}/", super::constants::EDITOR_LAYOUT_PRESET_DIR))?;
+    if relative.contains('/') {
+        return None;
+    }
+    relative
+        .strip_suffix(EDITOR_LAYOUT_PRESET_SUFFIX)
+        .filter(|name| !name.is_empty())
+        .map(str::to_string)
 }

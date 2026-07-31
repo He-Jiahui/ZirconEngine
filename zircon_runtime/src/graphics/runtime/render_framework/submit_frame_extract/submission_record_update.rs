@@ -33,7 +33,6 @@ pub(super) struct VirtualGeometryStatSnapshot {
     page_dependency_count: usize,
     completed_page_count: usize,
     replaced_page_count: usize,
-    indirect_segment_count: usize,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -192,7 +191,6 @@ impl VirtualGeometryStatSnapshot {
         page_dependency_count: usize,
         completed_page_count: usize,
         replaced_page_count: usize,
-        indirect_segment_count: usize,
     ) -> Self {
         Self {
             page_table_entry_count,
@@ -201,7 +199,6 @@ impl VirtualGeometryStatSnapshot {
             page_dependency_count,
             completed_page_count,
             replaced_page_count,
-            indirect_segment_count,
         }
     }
 
@@ -227,10 +224,6 @@ impl VirtualGeometryStatSnapshot {
 
     pub(super) fn replaced_page_count(&self) -> usize {
         self.replaced_page_count
-    }
-
-    pub(super) fn indirect_segment_count(&self) -> usize {
-        self.indirect_segment_count
     }
 }
 

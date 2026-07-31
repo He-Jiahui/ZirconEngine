@@ -135,3 +135,26 @@ zircon_editor/src/core/i18n/
 - autosave 与大场景序列化耗时：快照走 14 后台 job + 写临时文件后原子改名——若单文档序列化 >1s（基线实测），改为仅序列化脏子树的增量 autosave（依赖 02 世代号），证据裁决。
 - `tr!` 宏引入的编译期词条校验（缺 key 编译警告）需 build script 扫描——先运行期回退 + `audit-i18n` commandlet 离线校验（16 注册），不做编译期魔法。
 - Play 子进程 stdout 编码（Windows 控制台代码页）——统一要求子进程 UTF-8 输出（runtime_preview 侧 env 注入），乱码兜底按字节透传标注 source。
+
+## 2026-07-22 decision notification性能补充
+
+`DecisionNotificationCenter`已有pending=128、receipt=256硬容量且通知主体使用`Arc`，不属于MVP高频主线程瓶颈。本轮把publish的全entries pending扫描改为维护O(1)计数，并用“resolve后立即释放pending容量”回归锁语义；后续只在产品trace证明snapshot/receipt轮询频率过高时再做cursor/index优化，不建立第二套缓存。
+
+## 2026-07-30 settings current-source性能交接
+
+- PERF-MVP-590：当前viewport单个snap-step命令会clone完整`SettingsRegistry`，随后同步clone整层、编码整份document并在UI caller执行write/fsync/rename。Editor17建立唯一内存authority和typed key/value+generation提交，按scope/key latest coalesce后交Runtime11共享bounded atomic-persistence ticket；UI立即read-your-write但filesystem wall=0，flush/shutdown显式等待durability。不得建立viewport/settings私有worker，也不得在排队前clone完整registry/document。
+- PERF-MVP-591：EditorManager、retained-host design-token启动和viewport当前各自构造/加载registry；`changes: Vec`无生产drain且MRU变化可长期追加，stable `chrome_settings()`还为三个静态key重复分配/查三层BTree。Editor17发布唯一immutable settings generation，注册期把built-in keys编译为typed slots，change delta按entry+bytes+cursor/age有界，no-op set不递增revision/event；Editor05只消费resolved slots。startup每generation每文件read/decode≤1，generic strict-envelope双解析继续归Editor11 PERF-MVP-570。
+- 验收使用definitions/keys `1/1K/100K`、value `0/1KiB/1MiB`、same-key/MRU changes `1/1K/1M`、stable snapshot `60/120Hz`、filesystem `0/10ms/2s`、consumers/writers `1/16`；记录authority、reads/decode passes、full clone bytes、key/String alloc、BTree probes、journal/queue entries+bytes+age、writes/fsync、RSS与UI p95。要求authority=1、stable key parse/lookup=0、journal/queue硬有界、UI filesystem wall=0、单key full-registry clone=0，并保持precedence/restart/keymap/tokens/MRU/snap/crash/flush语义。证据见`../../performance/01/2026-07-30-editor-core-settings-static-review.md`；managed Cargo与F0/F4仍open，不进入`review.md`。
+
+## Code Review 建议 (2026-07-31)
+
+### 与代码现状不符，需修订
+
+- front-matter `status: planned` 已落后于实现。`zircon_editor/src/core/settings/` 已是完整目录（`registry.rs`、`scope.rs`、`definition.rs`、`defaults.rs`、`keymap_overrides.rs`、`page.rs`、`io.rs`、`mod.rs`、`tests.rs`），其中 `scope.rs:3-7` 的 `SettingsScope::{User, Project, Session}` 与目标 1 完全一致，`registry.rs:64` 的 `SettingsRegistry` 已实现 `register/definition/resolve/set/clear/drain_changes`（:72-174），resolve 覆盖链与变更队列均在案。M1「设置框架」实际已大部分落地，status 与 M1 里程碑叙述宜提升为 `in_progress` 并按已落地内容修订。
+- 「现状与证据 §设置只有一个孤岛」称设置只有 `EditorAppearancePreferences` 一处、无变更通知、无设置页数据源。当前 `settings/page.rs:6 SettingsPageDescriptor`（`new/id/display_name/category_path`）已提供设置页描述符，`registry.rs:8 SettingChange` + `drain_changes` 已提供变更事件源——目标 1 的「设置页 = 06 贡献一类」与「变更事件 SettingChanged 入 bus」已有对应实现。该节应据实收窄为「设置框架已落地，待接线项为 preferences 迁入删除与 06 贡献注册」。
+- 自动保存与通知中心亦已起步：`core/recovery/` 含 `autosave.rs`（`AutosavePolicy`/`AutosaveScheduler`/`AutosaveJobPolicy`，`autosave.rs:77-197`，已按目标 2 用 `MutexGroup` 与 `EditorJobSpec` 接 14 job）、`mod.rs`、`tests.rs`；`core/notifications/` 含 `service.rs` 与 `decision/`（`center.rs`/`model.rs`/`receipt.rs`/`id.rs`）。目标 4「通知中心三类契约」中的 `Decision`（决策回执）已由 `notifications/decision/` 实装。现状节的「恢复素材缺编排者」「通知收口者缺位」应更新为「autosave 调度器与 decision 通知中心已落地，session_guard/restore_flow 与 Toast/Progress 两类待补」。
+
+### 实现风险 / 技术债
+
+- 目标 3 `EditorLog`（`core/logging/`）与目标 5 i18n（`core/i18n/`）两个模块目录当前均**不存在**——`core/logging` 与 `core/i18n` 实读缺失。这是 17 计划中真正未动的部分，M3 切片 3.1（日志六来源汇聚）与 3.3（i18n catalog/tr!/回退链）应显式标注为「模块尚未创建」，与已落地的 settings/recovery/notifications 区分开，防止 status 提升后被误判为整篇完成。
+- `notifications/` 已有 `service.rs` + `decision/` 但无 `center.rs`/`kinds.rs`（模块布局图所列文件名），实际拆分与计划命名不一致；「现物迁移映射」中「`ui/activity/` → `notifications/` 呈现层（数据源迁 center.rs）」的落点文件名需按实际结构（`service.rs`）校正，否则 M3 切片 3.2 迁移时会找不到 `center.rs`。

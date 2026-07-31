@@ -9,9 +9,9 @@ pub(in super::super::super) fn hero_fallback(
 ) -> FrameRect {
     fallback(
         metrics.content_x,
-        main_panel.y + 28.0,
+        main_panel.y + metrics.top_inset,
         metrics.content_width,
-        84.0,
+        metrics.hero_height,
     )
 }
 
@@ -21,9 +21,9 @@ pub(in super::super::super) fn status_fallback(
 ) -> FrameRect {
     fallback(
         metrics.content_x,
-        hero.y + hero.height + 12.0,
+        hero.y + hero.height + metrics.section_gap,
         metrics.content_width,
-        30.0,
+        metrics.status_height,
     )
 }
 
@@ -33,8 +33,8 @@ pub(in super::super::super) fn header_fallback(
 ) -> FrameRect {
     fallback(
         metrics.content_x,
-        status.y + status.height + 22.0,
+        status.y + status.height + metrics.form_section_gap,
         metrics.content_width,
-        46.0,
+        metrics.header_height,
     )
 }

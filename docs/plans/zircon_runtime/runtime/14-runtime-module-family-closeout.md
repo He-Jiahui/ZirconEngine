@@ -21,10 +21,14 @@ plan_sources:
   - docs/zircon_runtime/diagnostic_log/mod.md
   - docs/zircon_runtime/engine_module/relationship.md
 status: in_progress
-last_refined: 2026-07-13
+last_refined: 2026-07-19
 ---
 
 # 14 运行时模块族完备性收尾（animation / navigation / diagnostic_log / engine_module）
+
+2026-07-19 current-source owner sync：`module_family_boundary` 报告 `expected_family_count = 4`、`animation = 28`、`navigation = 12`、`diagnostic_log = 7`、`engine_module = 8`，全部 missing/file-count/risk 列表为空。navigation 新增的 `operation/{mod,handler,registration}.rs` 是 folder-backed shared-operation integration owner，不改变 fallback runtime manager、crate-root seat 或 editor/plugin 边界。下方 9-file 记录保留为 operation integration 落地前的历史证据；当前镜像只由本计划、Runtime14 当前编号记录和 `docs/zircon_runtime/navigation/runtime.md` 维护，不再要求 Runtime15 历史归档复制最新计数。
+
+Current audit anchors: `root_seat_guard_present = true`, `animation_status_json_guard_present = true`, `animation_status_json_anchor_count = 8`, `missing_animation_status_json_anchors = []`, `module_family_guard_anchor_count = 7`, `missing_module_family_guard_anchors = []`, `cargo_gate_anchor_count = 5`, `missing_cargo_gate_anchors = []`, `risks = []`, and `runtime_14_module_family_mirror_docs_match_structure_audit_counts`.
 
 扫尾型计划：lib.rs 根模块中尚无任何子计划认领的四个"小族"逐一裁决——架构对照、厚度核查、归属定位。每族工作量小，但放任不管会成为下一轮审计的"游离散件"（02 处理 core/ 根散件的同构问题在 crate 根重演）。
 
@@ -91,3 +95,14 @@ last_refined: 2026-07-13
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`14/2026-07-09-runtime-module-family-closeout-output-records.md`](14/2026-07-09-runtime-module-family-closeout-output-records.md)
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- §「现状与证据」（2026-06-13 快照）navigation 一段「**navigation/**（9 个 `.rs` 文件）……`runtime/{baked_mesh,world_scan,avoidance,state,math,tests}.rs`」与当前代码不符，且与顶部 2026-07-19 sync 的 `navigation = 12` 自相矛盾。实测 `zircon_runtime/src/navigation/` 现有 `mod.rs`、`module.rs`、`runtime.rs`、`repath_budget.rs`、`operation/` 目录，`navigation/runtime/` 下有 `avoidance.rs`、`baked_mesh.rs`+`baked_mesh/`、`math.rs`、`state.rs`、`tests.rs`、`world_scan.rs`。建议把该段的「9 个文件」与文件清单更新为当前形态，并把新增的 `operation/`（folder-backed shared-operation integration owner）与 `repath_budget.rs` 纳入 M0.2 厚度判词，避免它们成为下一轮审计的「游离散件」——这正是本计划要防的问题。
+- §「现状与证据」的四族文件计数需要与顶部 sync（animation = 28、navigation = 12、diagnostic_log = 7、engine_module = 8）对齐核对：`diagnostic_log/` 实测含 `diagnostics.rs`+`diagnostics/`、`level.rs`+`level/`、`sink.rs`+`sink/`、`mod.rs`、`platform.rs`、`settings.rs`、`timestamp.rs`；`engine_module/` 实测含 `mod.rs`、`engine_module.rs`、`engine_service.rs`、`service_factory.rs`、`contexts.rs`、`tests.rs`、`descriptors/`。body 里「engine_module（8 个 `.rs` 文件，含 `descriptors/names.rs`）」需核对 `descriptors/` 子目录当前是否仍为 `names.rs`（related_code 只列了 `engine_module/engine_module.rs`、`engine_module/service_factory.rs`，未列 `engine_service.rs`/`contexts.rs`）。
+
+### 设计优化建议
+
+- M0.2 navigation 判词提出「加一行结构守卫断言 navigation/ 不长出行为文件（文件数白名单）」。当前 `operation/` 的加入说明该白名单若已落地则需同步放宽，若未落地则 `navigation = 12` 相对初稿 9 已增长 3 个文件，正是白名单应捕获的情形。建议在状态节明确该文件数白名单守卫的当前基线值（对齐 `module_family_boundary` 的 `navigation = 12`），使「不长出行为文件」有可机判的锚点。

@@ -10,7 +10,7 @@ use super::{
 pub(crate) trait HandleTool {
     fn build_overlay(&self, ctx: &HandleBuildContext<'_>) -> Option<HandleOverlayExtract>;
     fn begin_drag(&self, ctx: &HandlePickContext<'_>, axis: GizmoAxis)
-        -> Option<HandleDragSession>;
+    -> Option<HandleDragSession>;
     fn update_drag(
         &self,
         session: &mut HandleDragSession,

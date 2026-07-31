@@ -4,6 +4,7 @@ mod component_type_descriptor;
 mod entity_path;
 mod level_summary;
 mod mobility;
+mod module_identity;
 pub mod physics;
 mod property_value;
 mod resource;
@@ -17,6 +18,7 @@ pub use component_type_descriptor::{ComponentPropertyDescriptor, ComponentTypeDe
 pub use entity_path::{ComponentPropertyPath, EntityPath, PathParseError};
 pub use level_summary::LevelSummary;
 pub use mobility::Mobility;
+pub use module_identity::SCENE_MODULE_NAME;
 pub(crate) use property_value::ScenePropertyEntry;
 pub use property_value::ScenePropertyValue;
 pub use resource::SceneResource;

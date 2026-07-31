@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var dispatchState = %import("combat/effect_aura_dispatch_state");
+
+console.printLine("m4-effect-aura-dispatch-state-test");
+var result = dispatchState.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

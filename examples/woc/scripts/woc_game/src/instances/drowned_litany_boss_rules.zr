@@ -1,0 +1,358 @@
+// Scalar rules from the Sister Nhalia Drowned Litany boss driver. Entity/run
+// state, party iteration, RNG draws, add spawning, aura/event writes and
+// knockback remain with the future authoritative encounter reducer.
+
+var math = %import("zr.zircon.math");
+
+roundPositive(value: float): int {
+    return <int>math.floor(value + 0.5);
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+pub cantorPhaseCount(required: bool): int {
+    if (!required) { throw "woc Nhalia cantor phase count is required"; }
+    return 2;
+}
+
+pub cantorThreshold(index: int, required: bool): float {
+    if (!required || index < 0 || index >= cantorPhaseCount(true)) {
+        throw "woc Nhalia cantor threshold is invalid";
+    }
+    return index == 0 ? 0.7 : 0.35;
+}
+
+// A single damage update may cross both source thresholds. The owner calls this
+// repeatedly, incrementing firedPhases after each spawn, just as source does.
+pub cantorPhaseDue(
+    firedPhases: int,
+    bossHealth: int,
+    bossMaximumHealth: int,
+    required: bool
+): bool {
+    if (!required || firedPhases < 0 || bossHealth < 0 || bossMaximumHealth <= 0) {
+        throw "woc Nhalia cantor phase input is invalid";
+    }
+    return firedPhases < cantorPhaseCount(true) &&
+        <float>bossHealth / <float>bossMaximumHealth <= cantorThreshold(firedPhases, true);
+}
+
+pub cantorDrownedCount(required: bool): int {
+    if (!required) { throw "woc Nhalia Cantor count is required"; }
+    return 2;
+}
+
+pub livelyChoirExtraThrallCount(livelyChoir: bool, required: bool): int {
+    if (!required) { throw "woc Nhalia Lively Choir count is required"; }
+    return livelyChoir ? 2 : 0;
+}
+
+pub cantorAddCount(livelyChoir: bool, required: bool): int {
+    if (!required) { throw "woc Nhalia cantor add count is required"; }
+    return cantorDrownedCount(true) + livelyChoirExtraThrallCount(livelyChoir, true);
+}
+
+pub cantorShieldAbsorb(required: bool): int {
+    if (!required) { throw "woc Nhalia cantor shield is required"; }
+    return 120;
+}
+
+pub shouldRemoveCantorShield(
+    trackedShieldAdds: int,
+    livingShieldAdds: int,
+    required: bool
+): bool {
+    if (!required || trackedShieldAdds < 0 || livingShieldAdds < 0 ||
+        livingShieldAdds > trackedShieldAdds) {
+        throw "woc Nhalia cantor shield state is invalid";
+    }
+    return trackedShieldAdds > 0 && livingShieldAdds == 0;
+}
+
+pub blackwaterMarkCastInterval(required: bool): float {
+    if (!required) { throw "woc Nhalia mark interval is required"; }
+    return 14.0;
+}
+
+pub blackwaterMarkRadius(required: bool): float {
+    if (!required) { throw "woc Nhalia mark radius is required"; }
+    return 4.0;
+}
+
+pub blackwaterMarkDuration(required: bool): float {
+    if (!required) { throw "woc Nhalia mark duration is required"; }
+    return 8.0;
+}
+
+pub blackwaterMarkTickInterval(required: bool): float {
+    if (!required) { throw "woc Nhalia mark tick interval is required"; }
+    return 1.0;
+}
+
+pub blackwaterMarkCastDue(timer: float, deltaSeconds: float, required: bool): bool {
+    if (!required || timer < 0.0 || deltaSeconds < 0.0) {
+        throw "woc Nhalia mark cast timer is invalid";
+    }
+    return timer - deltaSeconds <= 0.0;
+}
+
+pub nextBlackwaterMarkCastTimer(timer: float, deltaSeconds: float, required: bool): float {
+    if (!required || timer < 0.0 || deltaSeconds < 0.0) {
+        throw "woc Nhalia mark cast timer is invalid";
+    }
+    var next = timer - deltaSeconds;
+    return next > 0.0 ? next : blackwaterMarkCastInterval(true);
+}
+
+pub blackwaterMarkSurvives(remaining: float, deltaSeconds: float, required: bool): bool {
+    if (!required || remaining < 0.0 || deltaSeconds < 0.0) {
+        throw "woc Nhalia mark lifetime is invalid";
+    }
+    return remaining - deltaSeconds > 0.0;
+}
+
+pub nextBlackwaterMarkTickTimer(timer: float, deltaSeconds: float, required: bool): float {
+    if (!required || timer < 0.0 || deltaSeconds < 0.0) {
+        throw "woc Nhalia mark tick timer is invalid";
+    }
+    var next = timer - deltaSeconds;
+    return next <= 0.0 ? blackwaterMarkTickInterval(true) : next;
+}
+
+pub blackwaterMarkDamage(
+    maximumHealth: int,
+    heroicTier: bool,
+    highWater: bool,
+    required: bool
+): int {
+    if (!required || maximumHealth < 0) {
+        throw "woc Nhalia mark damage input is invalid";
+    }
+    var percent = heroicTier ? 0.08 : 0.05;
+    if (highWater) { percent = percent * 1.35; }
+    var damage = roundPositive(<float>maximumHealth * percent);
+    return damage < 1 ? 1 : damage;
+}
+
+pub finalBellDue(
+    finalBellFired: bool,
+    bossHealth: int,
+    bossMaximumHealth: int,
+    required: bool
+): bool {
+    if (!required || bossHealth < 0 || bossMaximumHealth <= 0) {
+        throw "woc Nhalia Final Bell input is invalid";
+    }
+    return !finalBellFired && <float>bossHealth / <float>bossMaximumHealth <= 0.1;
+}
+
+pub finalBellThrallCount(livelyChoir: bool, required: bool): int {
+    if (!required) { throw "woc Nhalia Final Bell add count is required"; }
+    return livelyChoir ? 6 : 4;
+}
+
+pub finalBellDamage(maximumHealth: int, required: bool): int {
+    if (!required || maximumHealth < 0) {
+        throw "woc Nhalia Final Bell damage input is invalid";
+    }
+    var damage = roundPositive(<float>maximumHealth * 0.22);
+    return damage < 1 ? 1 : damage;
+}
+
+pub finalBellStunDuration(required: bool): float {
+    if (!required) { throw "woc Nhalia Final Bell stun duration is required"; }
+    return 1.5;
+}
+
+pub initialBellVolleyTimer(required: bool): float {
+    if (!required) { throw "woc Nhalia bell initial timer is required"; }
+    return 12.0;
+}
+
+pub bellCount(required: bool): int {
+    if (!required) { throw "woc Nhalia bell count is required"; }
+    return 4;
+}
+
+// FireBellVolley consumes one externally observed RNG unit for this rotation,
+// then emits `count` evenly spaced directions. Angle zero travels north (−Z).
+pub bellVolleyRotationSpan(count: int, required: bool): float {
+    if (!required || count < 1) {
+        throw "woc Nhalia bell volley count is invalid";
+    }
+    return 6.283185307179586 / <float>count;
+}
+
+pub bellVolleyRotationOffset(randomUnit: float, count: int, required: bool): float {
+    if (!required || randomUnit < 0.0 || randomUnit >= 1.0) {
+        throw "woc Nhalia bell rotation input is invalid";
+    }
+    return randomUnit * bellVolleyRotationSpan(count, true);
+}
+
+// Field 1 is vx and field 2 is vz. This matches vx=sin(angle),
+// vz=-cos(angle) in fireBellVolley without performing the source RNG draw.
+pub bellVelocityCoordinate(
+    randomUnit: float,
+    count: int,
+    bellIndex: int,
+    field: int,
+    required: bool
+): float {
+    if (!required || bellIndex < 0 || bellIndex >= count || (field != 1 && field != 2)) {
+        throw "woc Nhalia bell velocity input is invalid";
+    }
+    var angle = bellVolleyRotationOffset(randomUnit, count, true) +
+        <float>bellIndex * bellVolleyRotationSpan(count, true);
+    return field == 1 ? math.sin(angle) : -math.cos(angle);
+}
+
+pub tollingBellLifetime(required: bool): float {
+    if (!required) { throw "woc Nhalia bell lifetime is required"; }
+    return 12.0;
+}
+
+// Source decrements remaining before movement and drops a bell on <= 0.
+pub bellSurvives(remaining: float, deltaSeconds: float, required: bool): bool {
+    if (!required || remaining < 0.0 || deltaSeconds < 0.0) {
+        throw "woc Nhalia bell lifetime input is invalid";
+    }
+    return remaining - deltaSeconds > 0.0;
+}
+
+pub tollingBellSpeed(required: bool): float {
+    if (!required) { throw "woc Nhalia bell speed is required"; }
+    return 8.0;
+}
+
+pub tollingBellHitRadius(required: bool): float {
+    if (!required) { throw "woc Nhalia bell hit radius is required"; }
+    return 2.0;
+}
+
+// Apse-local altar spawn point. Field 1 is X and field 2 is Z.
+pub bellSpawnCoordinate(field: int, required: bool): float {
+    if (!required || (field != 1 && field != 2)) {
+        throw "woc Nhalia bell spawn coordinate is invalid";
+    }
+    return field == 1 ? 0.0 : 72.0;
+}
+
+pub bellVolleyDue(timer: float, deltaSeconds: float, required: bool): bool {
+    if (!required || timer < 0.0 || deltaSeconds < 0.0) {
+        throw "woc Nhalia bell timer is invalid";
+    }
+    return timer - deltaSeconds <= 0.0;
+}
+
+// `randomUnit` is the already-observed source RNG next() value, never a draw
+// performed by this rules module.
+pub nextBellVolleyTimer(randomUnit: float, required: bool): float {
+    if (!required || randomUnit < 0.0 || randomUnit >= 1.0) {
+        throw "woc Nhalia bell random unit is invalid";
+    }
+    return 10.0 + randomUnit * 2.0;
+}
+
+pub bellMoveDistance(deltaSeconds: float, required: bool): float {
+    if (!required || deltaSeconds < 0.0) {
+        throw "woc Nhalia bell movement delta is invalid";
+    }
+    return tollingBellSpeed(true) * deltaSeconds;
+}
+
+pub advanceBellCoordinate(
+    coordinate: float,
+    velocity: float,
+    deltaSeconds: float,
+    required: bool
+): float {
+    if (!required || deltaSeconds < 0.0) {
+        throw "woc Nhalia bell coordinate input is invalid";
+    }
+    return coordinate + velocity * bellMoveDistance(deltaSeconds, true);
+}
+
+// Bounds are local to the apse and include the three-yard fly-through margin.
+pub bellOutsideApse(localX: float, localZ: float, required: bool): bool {
+    if (!required) { throw "woc Nhalia bell bounds query is required"; }
+    return absolute(localX) > 28.0 || localZ < -19.0 || localZ > 95.0;
+}
+
+pub bellHitsTarget(offsetX: float, offsetZ: float, required: bool): bool {
+    if (!required) { throw "woc Nhalia bell contact query is required"; }
+    var radius = tollingBellHitRadius(true);
+    return offsetX * offsetX + offsetZ * offsetZ <= radius * radius;
+}
+
+pub tollingBellDamage(maximumHealth: int, required: bool): int {
+    if (!required || maximumHealth < 0) {
+        throw "woc Nhalia bell damage input is invalid";
+    }
+    var damage = roundPositive(<float>maximumHealth * 0.12);
+    return damage < 1 ? 1 : damage;
+}
+
+pub tollingBellKnockbackDistance(required: bool): float {
+    if (!required) { throw "woc Nhalia bell knockback is required"; }
+    return 5.0;
+}
+
+pub contractTest(): int {
+    if (cantorPhaseCount(true) != 2 || cantorThreshold(0, true) != 0.7 ||
+        cantorThreshold(1, true) != 0.35 || !cantorPhaseDue(0, 700, 1000, true) ||
+        cantorPhaseDue(0, 701, 1000, true) || !cantorPhaseDue(0, 350, 1000, true) ||
+        !cantorPhaseDue(1, 350, 1000, true) || cantorPhaseDue(2, 1, 1000, true) ||
+        cantorDrownedCount(true) != 2 || livelyChoirExtraThrallCount(false, true) != 0 ||
+        livelyChoirExtraThrallCount(true, true) != 2 || cantorAddCount(false, true) != 2 ||
+        cantorAddCount(true, true) != 4 || cantorShieldAbsorb(true) != 120 ||
+        shouldRemoveCantorShield(0, 0, true) || shouldRemoveCantorShield(4, 1, true) ||
+        !shouldRemoveCantorShield(4, 0, true)) {
+        return -1;
+    }
+    if (blackwaterMarkCastInterval(true) != 14.0 || blackwaterMarkRadius(true) != 4.0 ||
+        blackwaterMarkDuration(true) != 8.0 || blackwaterMarkTickInterval(true) != 1.0 ||
+        !blackwaterMarkCastDue(0.05, 0.05, true) || blackwaterMarkCastDue(0.10, 0.05, true) ||
+        nextBlackwaterMarkCastTimer(0.10, 0.05, true) != 0.05 ||
+        nextBlackwaterMarkCastTimer(0.05, 0.05, true) != 14.0 ||
+        !blackwaterMarkSurvives(0.10, 0.05, true) || blackwaterMarkSurvives(0.05, 0.05, true) ||
+        nextBlackwaterMarkTickTimer(0.10, 0.05, true) != 0.05 ||
+        nextBlackwaterMarkTickTimer(0.05, 0.05, true) != 1.0 ||
+        blackwaterMarkDamage(1000, false, false, true) != 50 ||
+        blackwaterMarkDamage(1000, true, false, true) != 80 ||
+        blackwaterMarkDamage(1000, true, true, true) != 108) {
+        return -2;
+    }
+    if (!finalBellDue(false, 100, 1000, true) || finalBellDue(false, 101, 1000, true) ||
+        finalBellDue(true, 1, 1000, true) || finalBellThrallCount(false, true) != 4 ||
+        finalBellThrallCount(true, true) != 6 || finalBellDamage(1000, true) != 220 ||
+        finalBellDamage(1, true) != 1 || finalBellStunDuration(true) != 1.5) {
+        return -3;
+    }
+    if (initialBellVolleyTimer(true) != 12.0 || bellCount(true) != 4 ||
+        absolute(bellVolleyRotationSpan(4, true) - 1.5707963267948966) > 0.000001 ||
+        bellVolleyRotationOffset(0.0, 4, true) != 0.0 ||
+        absolute(bellVolleyRotationOffset(0.5, 4, true) - 0.7853981633974483) > 0.000001 ||
+        absolute(bellVelocityCoordinate(0.0, 4, 0, 1, true)) > 0.000001 ||
+        bellVelocityCoordinate(0.0, 4, 0, 2, true) != -1.0 ||
+        absolute(bellVelocityCoordinate(0.0, 4, 1, 1, true) - 1.0) > 0.000001 ||
+        absolute(bellVelocityCoordinate(0.0, 4, 1, 2, true)) > 0.000001 ||
+        !bellSurvives(0.10, 0.05, true) || bellSurvives(0.05, 0.05, true) ||
+        tollingBellLifetime(true) != 12.0 || tollingBellSpeed(true) != 8.0 ||
+        tollingBellHitRadius(true) != 2.0 || bellSpawnCoordinate(1, true) != 0.0 ||
+        bellSpawnCoordinate(2, true) != 72.0 ||
+        !bellVolleyDue(0.05, 0.05, true) || bellVolleyDue(0.10, 0.05, true) ||
+        nextBellVolleyTimer(0.0, true) != 10.0 || nextBellVolleyTimer(0.5, true) != 11.0 ||
+        bellMoveDistance(0.05, true) != 0.4 ||
+        advanceBellCoordinate(1.0, -1.0, 0.05, true) != 0.6 ||
+        bellOutsideApse(28.0, -19.0, true) || bellOutsideApse(28.001, 0.0, true) ||
+        bellOutsideApse(0.0, 95.001, true) || !bellOutsideApse(0.0, -19.001, true) ||
+        !bellHitsTarget(2.0, 0.0, true) || bellHitsTarget(2.001, 0.0, true) ||
+        tollingBellDamage(1000, true) != 120 || tollingBellDamage(1, true) != 1 ||
+        tollingBellKnockbackDistance(true) != 5.0) {
+        return -4;
+    }
+    return 1;
+}

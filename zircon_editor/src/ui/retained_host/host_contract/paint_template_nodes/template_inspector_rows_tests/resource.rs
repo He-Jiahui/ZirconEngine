@@ -6,7 +6,7 @@ use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::push_inspector_row_commands;
 use super::super::style::{
     resource_chevron_size, resource_count_color, resource_field_background, resource_field_border,
-    resource_glyph_color, resource_label_color, resource_value_color, RESOURCE_FIELD_BACKGROUND,
+    resource_glyph_color, resource_label_color, resource_value_color,
 };
 use super::support::{
     changed_pixel_count, inspector_node, pixel_at, resolved_background_and_border,
@@ -15,13 +15,13 @@ use crate::ui::layouts::common::model_rc;
 
 #[test]
 fn mesh_resource_row_paints_field_icon_and_chevron() {
-    let bytes = paint_template_nodes_for_test(
-        320,
-        48,
-        model_rc(vec![inspector_node("WorkbenchMeshRow", "Mesh", "Box_01")]),
-    );
+    let node = inspector_node("WorkbenchMeshRow", "Mesh", "Box_01");
+    let bytes = paint_template_nodes_for_test(320, 48, model_rc(vec![node.clone()]));
 
-    assert_eq!(pixel_at(&bytes, 320, 136, 20), RESOURCE_FIELD_BACKGROUND);
+    assert_eq!(
+        pixel_at(&bytes, 320, 136, 20),
+        resource_field_background(&node)
+    );
     assert!(changed_pixel_count(&bytes, 320, 114, 15, 14, 12) > 0);
     assert!(changed_pixel_count(&bytes, 320, 300, 16, 12, 10) > 0);
 }
@@ -116,4 +116,27 @@ fn resource_rows_paint_shell_asset_pixels_for_leading_icon_and_chevron() {
             node.control_id
         );
     }
+}
+
+#[test]
+fn material_resource_row_does_not_emit_an_oversized_swatch_for_a_tiny_field() {
+    let node = inspector_node("WorkbenchMaterialRow", "Materials", "M_Metal");
+    let rect = FrameRect {
+        x: 8.0,
+        y: 8.0,
+        width: 129.0,
+        height: 7.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_inspector_row_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &rect,
+        0,
+        1.0,
+    ));
+
+    assert!(commands.iter().all(|command| command.z_index != 3));
 }

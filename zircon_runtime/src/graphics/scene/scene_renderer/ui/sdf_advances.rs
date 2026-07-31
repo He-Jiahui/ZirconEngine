@@ -13,24 +13,19 @@ pub(super) fn resolved_layout_advances_for_sdf_glyphs(
         return sanitized_nonzero_advances(layout_advances.iter().copied());
     }
 
-    let sdf_char_count = text.chars().count();
-    if sdf_char_count != sdf_glyph_count {
-        return None;
-    }
-
-    let graphemes = text.graphemes(true).collect::<Vec<_>>();
-    if graphemes.len() != layout_advances.len() {
-        return None;
-    }
-
     let mut sdf_advances = Vec::with_capacity(sdf_glyph_count);
-    for (grapheme, layout_advance) in graphemes.into_iter().zip(layout_advances) {
-        let char_count = grapheme.chars().count();
-        if char_count == 0 {
-            continue;
+    let mut graphemes = text.graphemes(true);
+    let mut layout_advances = layout_advances.iter().copied();
+    loop {
+        match (graphemes.next(), layout_advances.next()) {
+            (Some(grapheme), Some(layout_advance)) => {
+                let char_count = grapheme.chars().count();
+                sdf_advances.extend(std::iter::repeat(0.0).take(char_count.saturating_sub(1)));
+                sdf_advances.push(sanitized_advance(layout_advance));
+            }
+            (None, None) => break,
+            _ => return None,
         }
-        sdf_advances.extend(std::iter::repeat(0.0).take(char_count.saturating_sub(1)));
-        sdf_advances.push(sanitized_advance(*layout_advance));
     }
 
     if sdf_advances.len() != sdf_glyph_count {
@@ -41,14 +36,15 @@ pub(super) fn resolved_layout_advances_for_sdf_glyphs(
 }
 
 fn sanitized_nonzero_advances(advances: impl IntoIterator<Item = f32>) -> Option<Vec<f32>> {
-    let advances = advances
-        .into_iter()
-        .map(sanitized_advance)
-        .collect::<Vec<_>>();
-    advances
-        .iter()
-        .any(|advance| *advance > 0.0)
-        .then_some(advances)
+    let advances = advances.into_iter();
+    let mut sanitized = Vec::with_capacity(advances.size_hint().0);
+    let mut any_nonzero = false;
+    for advance in advances {
+        let advance = sanitized_advance(advance);
+        any_nonzero |= advance > 0.0;
+        sanitized.push(advance);
+    }
+    any_nonzero.then_some(sanitized)
 }
 
 fn sanitized_advance(advance: f32) -> f32 {
@@ -83,5 +79,20 @@ mod tests {
     fn rejects_empty_or_all_zero_advances() {
         assert!(resolved_layout_advances_for_sdf_glyphs("ABC", &[], 3).is_none());
         assert!(resolved_layout_advances_for_sdf_glyphs("ABC", &[0.0, 0.0, 0.0], 3).is_none());
+    }
+
+    #[test]
+    fn advance_mapping_streams_graphemes_and_nonzero_detection() {
+        let source = include_str!("sdf_advances.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("SDF advance implementation");
+
+        assert!(!implementation.contains("text.chars().count()"));
+        assert!(!implementation.contains("text.graphemes(true).collect::<Vec<_>>()"));
+        assert!(!implementation.contains(".any(|advance|"));
+        assert!(implementation.contains("match (graphemes.next(), layout_advances.next())"));
+        assert!(implementation.contains("any_nonzero |= advance > 0.0"));
     }
 }

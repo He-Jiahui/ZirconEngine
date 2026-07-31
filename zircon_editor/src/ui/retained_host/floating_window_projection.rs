@@ -618,6 +618,8 @@ mod tests {
         requested_frame: ShellFrame,
     ) -> WorkbenchViewModel {
         WorkbenchViewModel {
+            is_playing: false,
+            asset_creation_templates: Vec::new(),
             menu_bar: MenuBarModel { menus: Vec::new() },
             host_strip: MainHostStripViewModel {
                 mode: MainHostStripModel::Workbench,

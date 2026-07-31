@@ -25,8 +25,7 @@ use super::product_png::{
 };
 use super::shader_cache_test_roots;
 
-const CUSTOM_DEFERRED_PRODUCT_PNG_STATUS: &str =
-    "render_plan08_custom_shading_model_deferred_lighting_product_readback_png_passed_renderdoc_deferred";
+const CUSTOM_DEFERRED_PRODUCT_PNG_STATUS: &str = "render_plan08_custom_shading_model_deferred_lighting_product_readback_png_passed_renderdoc_deferred";
 
 #[test]
 #[ignore = "manual product PNG export for Plan 08 custom shading-model deferred-lighting readback"]

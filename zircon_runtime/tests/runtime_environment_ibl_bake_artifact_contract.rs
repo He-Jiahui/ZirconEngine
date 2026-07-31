@@ -945,6 +945,7 @@ fn runtime_environment_ibl_bake_artifact_payload_apply_updates_upload_key_withou
         source_upload_key.source_revision
     );
     assert_eq!(first_applied.source_hash, source_upload_key.source_hash);
+    assert_ne!(first_applied.pmrem_hash, second_applied.pmrem_hash);
     assert_ne!(first_applied.texture_upload_key(), source_upload_key);
     assert_eq!(
         first_applied.texture_upload_key(),
@@ -953,6 +954,68 @@ fn runtime_environment_ibl_bake_artifact_payload_apply_updates_upload_key_withou
     assert_ne!(
         first_applied.texture_upload_key(),
         second_applied.texture_upload_key()
+    );
+}
+
+#[test]
+fn runtime_environment_iem_only_artifact_change_preserves_pmrem_upload_identity() {
+    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+    let descriptor =
+        IblBakeArtifactDescriptor::current(key, 4, 3, IblBakeArtifactContents::PMREM_SH9_IEM);
+    let sample_count = source_cubemap_sample_count(descriptor.face_size(), descriptor.mip_count());
+    let source = shared_layout_mip_chain(
+        descriptor.face_size(),
+        descriptor.mip_count(),
+        vec![[0.0, 0.25, 0.5, 1.0]; sample_count],
+    );
+    let baked = shared_layout_mip_chain(
+        descriptor.face_size(),
+        descriptor.mip_count(),
+        vec![[0.75, 0.5, 0.25, 1.0]; sample_count],
+    );
+    let iem_sample_count = SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE as usize
+        * SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE as usize
+        * SOURCE_CUBEMAP_FACE_COUNT;
+    let first_iem = SourceCubemapIrradianceCube::new(
+        SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+        vec![[0.125, 0.25, 0.5]; iem_sample_count],
+    );
+    let mut second_iem_texels = vec![[0.125, 0.25, 0.5]; iem_sample_count];
+    second_iem_texels[0] = [0.25, 0.5, 1.0];
+    let second_iem = SourceCubemapIrradianceCube::new(
+        SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+        second_iem_texels,
+    );
+    let first_payload =
+        IblBakeArtifactPayload::from_source_cubemap(descriptor, &baked, Some(&first_iem))
+            .expect("first artifact should encode");
+    let second_payload =
+        IblBakeArtifactPayload::from_source_cubemap(descriptor, &baked, Some(&second_iem))
+            .expect("second artifact should encode");
+
+    let first_environment = source_cubemap_environment_with_bake_artifact(
+        SourceCubemapEnvironment::new(source.clone(), 11, [9, 8, 7, 6]),
+        &first_payload,
+    )
+    .expect("first artifact should apply");
+    let second_environment = source_cubemap_environment_with_bake_artifact(
+        SourceCubemapEnvironment::new(source, 11, [9, 8, 7, 6]),
+        &second_payload,
+    )
+    .expect("second artifact should apply");
+
+    assert_ne!(
+        first_environment.bake_artifact_hash,
+        second_environment.bake_artifact_hash
+    );
+    assert_eq!(first_environment.pmrem_hash, second_environment.pmrem_hash);
+    assert_eq!(
+        first_environment.texture_upload_key().pmrem_hash,
+        second_environment.texture_upload_key().pmrem_hash
+    );
+    assert_ne!(
+        first_environment.texture_upload_key().irradiance_cube_hash,
+        second_environment.texture_upload_key().irradiance_cube_hash
     );
 }
 

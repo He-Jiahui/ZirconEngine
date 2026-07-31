@@ -120,6 +120,7 @@ fn finish_accepted_set_value(
         },
         delivered: true,
         drag: None,
+        template_action: None,
     });
     result
 }

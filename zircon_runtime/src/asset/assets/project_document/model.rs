@@ -3,7 +3,7 @@ use zircon_runtime_interface::project::PersistedAssetReference;
 
 use crate::asset::{AssetReference, ModelAsset, ReferenceResolutionError};
 
-use super::codec::{decode_document, encode_document};
+use super::codec::{ProjectDocumentArtifact, decode_document, encode_document};
 use crate::asset::assets::ProjectDocumentError;
 
 #[derive(Deserialize, Serialize)]
@@ -23,21 +23,20 @@ struct ModelPrimitiveDocument<R> {
     _rest: toml::Table,
 }
 
-pub(in crate::asset::assets) fn validate_model(document: &str) -> Result<(), toml::de::Error> {
-    let document = toml::from_str::<ModelAuthoringDocument<PersistedAssetReference>>(document)?;
-    for primitive in &document.primitives {
-        let _ = primitive.mesh.as_ref();
-    }
-    Ok(())
-}
-
 pub(in crate::asset::assets) fn deserialize_model(
     document: &str,
+    resolver: impl FnMut(&PersistedAssetReference) -> Result<AssetReference, ReferenceResolutionError>,
+) -> Result<ModelAsset, ProjectDocumentError> {
+    deserialize_model_artifact(ProjectDocumentArtifact::parse(document)?, resolver)
+}
+
+pub(in crate::asset) fn deserialize_model_artifact(
+    document: ProjectDocumentArtifact,
     mut resolver: impl FnMut(
         &PersistedAssetReference,
     ) -> Result<AssetReference, ReferenceResolutionError>,
 ) -> Result<ModelAsset, ProjectDocumentError> {
-    let document = toml::from_str::<ModelAuthoringDocument<PersistedAssetReference>>(document)?;
+    let document = document.into_document::<ModelAuthoringDocument<PersistedAssetReference>>()?;
     let document = map_references(document, |reference| resolver(&reference))?;
     decode_document(document)
 }

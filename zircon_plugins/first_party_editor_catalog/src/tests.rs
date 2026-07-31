@@ -4,6 +4,28 @@ use zircon_runtime::core::framework::project::{ProjectPluginManifest, ProjectPlu
 
 use super::first_party_editor_plugin_registrations_for_manifest;
 
+#[test]
+fn editor_catalog_preallocates_manifest_projection_storage() {
+    let source = include_str!("catalog.rs");
+    let projection = source
+        .split("pub fn first_party_editor_plugin_registrations_for_manifest")
+        .nth(1)
+        .and_then(|text| {
+            text.split("pub fn first_party_registration_for_editor_plugin")
+                .next()
+        })
+        .expect("read editor catalog manifest projection");
+
+    assert!(
+        projection.contains("HashSet::with_capacity(manifest.selections.len())")
+            && projection.contains("Vec::with_capacity(manifest.selections.len())")
+            && projection.contains("for selection in manifest.enabled_for_target(target_mode)")
+            && projection.contains("registrations.push(registration);")
+            && !projection.contains(".collect()"),
+        "editor catalog projection must preallocate dedup and result storage from the manifest selection count"
+    );
+}
+
 #[cfg(feature = "navigation-editor-plugin")]
 #[test]
 fn selected_navigation_provider_projects_typed_runtime_consumer() {

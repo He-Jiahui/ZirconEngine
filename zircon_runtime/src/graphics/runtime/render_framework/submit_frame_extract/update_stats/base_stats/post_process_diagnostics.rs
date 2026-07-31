@@ -8,62 +8,48 @@ pub(super) fn effect_stack_resource_status(
     executed_executor_ids: &[String],
     motion_vector_camera_status: MotionVectorCameraStatus,
 ) -> RenderPostProcessEffectStackResourceStatus {
-    let ssr_normal_available = effect_stack_uses_resource(
-        post_process_graph,
-        PostProcessGraphResourceNames::GBUFFER_NORMAL,
-    );
-    let ssr_temporal_history_available = effect_stack_uses_resource(
-        post_process_graph,
-        PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION,
-    );
-    let motion_vector_available = effect_stack_uses_resource(
-        post_process_graph,
-        PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
-    );
-    let motion_vector_camera_available = executed_executor_ids
-        .iter()
-        .any(|executor_id| executor_id == "temporal.velocity-camera");
-    let motion_vector_object_available = executed_executor_ids
-        .iter()
-        .any(|executor_id| executor_id == "temporal.velocity-object");
-    let motion_vector_tile_max_available = executed_executor_ids
-        .iter()
-        .any(|executor_id| executor_id == "post.motion-vector-tile-max");
-    let motion_vector_tile_max_coarse_available = executed_executor_ids
-        .iter()
-        .any(|executor_id| executor_id == "post.motion-vector-tile-max-coarse");
-    let motion_vector_neighbor_max_available = executed_executor_ids
-        .iter()
-        .any(|executor_id| executor_id == "post.motion-vector-neighbor-max");
-    RenderPostProcessEffectStackResourceStatus {
-        ssr_normal_available,
-        ssr_temporal_history_available,
-        motion_vector_available,
-        motion_vector_camera_available,
-        motion_vector_object_available,
-        motion_vector_tile_max_available,
-        motion_vector_tile_max_coarse_available,
-        motion_vector_neighbor_max_available,
+    let mut status = RenderPostProcessEffectStackResourceStatus {
         motion_vector_camera_status,
-        motion_vector_prepass_available: motion_vector_camera_status
-            == MotionVectorCameraStatus::Ready
-            && motion_vector_camera_available
-            && motion_vector_object_available
-            && motion_vector_tile_max_available
-            && motion_vector_tile_max_coarse_available
-            && motion_vector_neighbor_max_available,
+        ..Default::default()
+    };
+    for node in &post_process_graph.nodes {
+        for resource in &node.required_inputs {
+            match resource.as_str() {
+                PostProcessGraphResourceNames::GBUFFER_NORMAL => {
+                    status.ssr_normal_available = true;
+                }
+                PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION => {
+                    status.ssr_temporal_history_available = true;
+                }
+                PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX => {
+                    status.motion_vector_available = true;
+                }
+                _ => {}
+            }
+        }
     }
-}
-
-fn effect_stack_uses_resource(
-    post_process_graph: &PostProcessPassGraph,
-    resource_name: &str,
-) -> bool {
-    post_process_graph.nodes.iter().any(|node| {
-        node.required_inputs
-            .iter()
-            .any(|resource| resource == resource_name)
-    })
+    for executor_id in executed_executor_ids {
+        match executor_id.as_str() {
+            "temporal.velocity-camera" => status.motion_vector_camera_available = true,
+            "temporal.velocity-object" => status.motion_vector_object_available = true,
+            "post.motion-vector-tile-max" => status.motion_vector_tile_max_available = true,
+            "post.motion-vector-tile-max-coarse" => {
+                status.motion_vector_tile_max_coarse_available = true;
+            }
+            "post.motion-vector-neighbor-max" => {
+                status.motion_vector_neighbor_max_available = true;
+            }
+            _ => {}
+        }
+    }
+    status.motion_vector_prepass_available = motion_vector_camera_status
+        == MotionVectorCameraStatus::Ready
+        && status.motion_vector_camera_available
+        && status.motion_vector_object_available
+        && status.motion_vector_tile_max_available
+        && status.motion_vector_tile_max_coarse_available
+        && status.motion_vector_neighbor_max_available;
+    status
 }
 
 pub(super) fn particle_velocity_missing_sprite_count(

@@ -44,6 +44,19 @@ pub(super) fn export_profile_runtime_profile_target_fatal_diagnostics(
     }
 }
 
+pub(super) fn export_profile_runtime_profile_id_fatal_diagnostics(
+    profile: &ExportProfile,
+) -> Vec<String> {
+    if profile.runtime_profile_id.is_none() {
+        vec![format!(
+            "export profile {:?} must declare runtime_profile_id explicitly",
+            profile.name
+        )]
+    } else {
+        Vec::new()
+    }
+}
+
 pub(super) fn export_profile_name_fatal_diagnostics(profile: &ExportProfile) -> Vec<String> {
     if profile.name.trim().is_empty() || profile.name.trim() != profile.name {
         vec![format!(

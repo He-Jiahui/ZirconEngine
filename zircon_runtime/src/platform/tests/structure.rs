@@ -47,6 +47,7 @@ fn platform_tests_stay_folder_backed() {
         "tests/headless_synthetic_input.rs",
         "tests/linux.rs",
         "tests/matrix_cross_product.rs",
+        "tests/preferences.rs",
         "tests/status_semantics.rs",
         "tests/structure.rs",
         "tests/target_topology.rs",
@@ -61,5 +62,24 @@ fn platform_tests_stay_folder_backed() {
     assert!(
         !root.join("tests.rs").exists(),
         "platform tests should stay folder-backed instead of returning to an umbrella tests.rs file"
+    );
+
+    for relative in [
+        "service_types/mod.rs",
+        "service_types/driver.rs",
+        "service_types/manager.rs",
+        "preferences/mod.rs",
+        "preferences/atomic_file.rs",
+        "preferences/unavailable.rs",
+    ] {
+        assert!(
+            root.join(relative).exists(),
+            "expected preference storage owner {relative} under {:?}",
+            root
+        );
+    }
+    assert!(
+        !root.join("service_types.rs").exists(),
+        "platform services should be folder-backed after preference storage adds lifecycle behavior"
     );
 }

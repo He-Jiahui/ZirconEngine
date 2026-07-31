@@ -6,7 +6,7 @@ display_name = "Workbench Label"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchLabel]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-label", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchLabelRoot"
 classes = ["workbench-label"]
-props = { text = "Label", font_size = 13.333333, font_weight = 500, text_tone = "primary", foreground_color = "#c6d2d7", layout_padding_left = 0.0, layout_padding_right = 0.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+props = { text = "Label", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.medium.weight", text_tone = "primary", foreground_color = "$editor.text.primary", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
 layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = 28.0, stretch = "Fixed" } }

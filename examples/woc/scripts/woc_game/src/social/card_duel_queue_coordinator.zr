@@ -1,0 +1,126 @@
+// Current-head Card Duel queue orchestration from card_duel.ts. The world
+// reducer owns entity liveness, NPC range and match storage; this module
+// receives those predicates explicitly and preserves source FIFO behavior.
+var container = %import("zr.container");
+var queueModule = %import("social/card_duel_queue");
+
+pub class CardDuelQueueCandidate {
+    pub var pid: uint;
+    // A human, live player that can be matched. Fiesta/Vale Cup bots and dead
+    // players must be represented as false before they reach this coordinator.
+    pub var queueable: bool;
+
+    pub @constructor() {
+        this.pid = <uint>0;
+        this.queueable = false;
+    }
+}
+
+pub class CardDuelQueueCoordinator {
+    pri var candidates: container.Array<CardDuelQueueCandidate>;
+    pri var queue: queueModule.CardDuelQueue;
+
+    pub @constructor() {
+        this.candidates = new container.Array<CardDuelQueueCandidate>();
+        this.queue = new queueModule.CardDuelQueue();
+    }
+
+    pub upsert(pid: uint, queueable: bool): void {
+        if (pid == <uint>0) throw "card duel candidate id is invalid";
+        var index = 0;
+        while (index < this.candidates.length) {
+            if (<uint>this.candidates[index].pid == pid) {
+                this.candidates[index].queueable = queueable;
+                return;
+            }
+            index = index + 1;
+        }
+        var candidate = new CardDuelQueueCandidate();
+        candidate.pid = pid;
+        candidate.queueable = queueable;
+        this.candidates.add(candidate);
+    }
+
+    pub isQueueable(pid: uint): bool {
+        var index = 0;
+        while (index < this.candidates.length) {
+            var candidate = this.candidates[index];
+            if (<uint>candidate.pid == pid) return candidate.queueable;
+            index = index + 1;
+        }
+        return false;
+    }
+
+    // Matches the source's availability gate: another queueable human must
+    // exist, but nobody needs to have joined the queue yet.
+    pub availableFor(pid: uint): bool {
+        var index = 0;
+        while (index < this.candidates.length) {
+            var candidate = this.candidates[index];
+            if (<uint>candidate.pid != pid && candidate.queueable) return true;
+            index = index + 1;
+        }
+        return false;
+    }
+
+    // Returns CardDuelQueue's 1/0/-1 outcomes after the source preconditions;
+    // -2 is out of Card Master range, -3 has no possible opponent and -4 is
+    // an unknown/non-queueable player.
+    pub join(pid: uint, cardMasterInRange: bool, alreadyInDuel: bool): int {
+        if (!this.isQueueable(pid)) return -4;
+        if (!cardMasterInRange) return -2;
+        if (!this.availableFor(pid)) return -3;
+        return this.queue.join(pid, alreadyInDuel);
+    }
+
+    pub leave(pid: uint): bool {
+        return this.queue.leave(pid);
+    }
+
+    pub queued(pid: uint): bool {
+        return this.queue.contains(pid);
+    }
+
+    pub size(): int {
+        return this.queue.size();
+    }
+
+    // A queue snapshot is FIFO ordered. It carries only player ids; candidate
+    // liveness is restored by CardDuelService before this list is accepted.
+    pub snapshotEntries(): container.Array<uint> {
+        var result = new container.Array<uint>();
+        var index = 0;
+        while (index < this.queue.size()) {
+            result.add(this.queue.at(index));
+            index = index + 1;
+        }
+        return result;
+    }
+
+    pub restoreEntries(entries: container.Array<uint>): void {
+        this.queue = new queueModule.CardDuelQueue();
+        for (var pid in entries) {
+            if (pid == <uint>0 || !this.isQueueable(<uint>pid) ||
+                this.queue.contains(<uint>pid)) {
+                throw "card duel queue snapshot is invalid";
+            }
+            if (this.queue.join(<uint>pid, false) != 1) {
+                throw "card duel queue snapshot could not restore";
+            }
+        }
+    }
+
+    // Sim sweeps disconnected/dead players before pairFirst(). Removing every
+    // false candidate first prevents a stale first row from consuming a live
+    // second row and preserves FIFO among survivors.
+    pub purgeUnqueueable(): void {
+        for (var candidate in this.candidates) {
+            if (!candidate.queueable) this.queue.leave(<uint>candidate.pid);
+        }
+    }
+
+    pub pairNext(): queueModule.CardDuelPair {
+        this.purgeUnqueueable();
+        return this.queue.pairFirst();
+    }
+}

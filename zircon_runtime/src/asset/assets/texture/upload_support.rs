@@ -15,12 +15,11 @@ use crate::core::framework::render::RenderImageDimension;
 use self::astc::astc_upload_plan;
 use self::compressed::compressed_plan_readiness;
 use self::dds::dds_upload_plan;
-use self::ktx::{ktx2_supercompression, ktx2_upload_plan, ktx_upload_plan};
+use self::ktx::{ktx_upload_plan, ktx2_supercompression, ktx2_upload_plan};
 use super::{
-    external_source_cubemap_container_info, TextureAsset, TexturePayload,
     EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON, LIGHTMAP_RGBA16F_FORMAT,
-    LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
-    ZCUBE_SOURCE_CUBEMAP_FORMAT,
+    LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset,
+    TexturePayload, ZCUBE_SOURCE_CUBEMAP_FORMAT, external_source_cubemap_container_info,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -307,11 +306,7 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 {
-        1
-    } else {
-        shifted
-    }
+    if shifted == 0 { 1 } else { shifted }
 }
 
 fn ready(plan: TextureUploadPlan) -> TextureUploadReadiness {

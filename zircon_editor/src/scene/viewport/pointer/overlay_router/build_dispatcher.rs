@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::scene::viewport::pointer::{
     constants::VIEWPORT_NODE_ID, precision::SharedResolutionState,
-    runtime_picking_adapter::resolve_runtime_route,
+    runtime_picking_adapter::resolve_runtime_route_and_debug_feed,
 };
 
 pub(in crate::scene::viewport::pointer) fn build_dispatcher(
@@ -25,11 +25,13 @@ pub(in crate::scene::viewport::pointer) fn build_dispatcher(
             let Ok(mut shared) = shared_state.lock() else {
                 return UiPointerDispatchEffect::Unhandled;
             };
-            shared.last_route = resolve_runtime_route(
+            let (route, debug_feed) = resolve_runtime_route_and_debug_feed(
                 &shared.candidates,
                 &context.route.stacked,
                 context.route.point,
             );
+            shared.last_route = route;
+            shared.last_debug_feed = Some(debug_feed);
             if shared.last_route.is_some() {
                 UiPointerDispatchEffect::handled()
             } else {

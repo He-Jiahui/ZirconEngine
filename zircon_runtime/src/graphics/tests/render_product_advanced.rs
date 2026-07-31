@@ -21,6 +21,8 @@ use super::plugin_render_feature_fixtures::{
     pluginized_wgpu_render_framework, pluginized_wgpu_render_framework_with_advanced_providers,
 };
 
+mod gpu_driven_product;
+
 const HZB_WALL_HIDDEN_INSTANCE_COUNT: usize = 64;
 
 #[test]
@@ -38,12 +40,16 @@ fn render_product_advanced_submits_vg_hgi_only_with_runtime_providers() {
         .unwrap();
     let stats = server.query_stats().unwrap();
 
-    assert!(stats
-        .last_effective_features
-        .contains(&"virtual_geometry".to_string()));
-    assert!(stats
-        .last_effective_features
-        .contains(&"hybrid_gi".to_string()));
+    assert!(
+        stats
+            .last_effective_features
+            .contains(&"virtual_geometry".to_string())
+    );
+    assert!(
+        stats
+            .last_effective_features
+            .contains(&"hybrid_gi".to_string())
+    );
     assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 5);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 4);
     assert_eq!(
@@ -79,12 +85,16 @@ fn render_product_advanced_degrades_without_runtime_providers() {
         .unwrap();
     let stats = server.query_stats().unwrap();
 
-    assert!(!stats
-        .last_effective_features
-        .contains(&"virtual_geometry".to_string()));
-    assert!(!stats
-        .last_effective_features
-        .contains(&"hybrid_gi".to_string()));
+    assert!(
+        !stats
+            .last_effective_features
+            .contains(&"virtual_geometry".to_string())
+    );
+    assert!(
+        !stats
+            .last_effective_features
+            .contains(&"hybrid_gi".to_string())
+    );
     assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 0);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 0);
     assert_eq!(
@@ -104,11 +114,13 @@ fn render_product_advanced_degrades_without_runtime_providers() {
         assert!(report.requested);
         assert_eq!(report.provider_id, None);
         assert_eq!(report.status, AdvancedProviderStatus::Degraded);
-        assert!(report
-            .degradations
-            .iter()
-            .any(|degradation| degradation.reason
-                == AdvancedRenderDegradationReason::ProviderMissing));
+        assert!(
+            report
+                .degradations
+                .iter()
+                .any(|degradation| degradation.reason
+                    == AdvancedRenderDegradationReason::ProviderMissing)
+        );
     }
 }
 
@@ -144,7 +156,8 @@ fn render_product_hzb_occlusion_wall_scene() {
     );
     assert!(stats.last_hzb_occlusion_compacted_draw_count > 0);
     assert!(
-        stats.last_hzb_occlusion_compacted_draw_count <= stats.last_hzb_occlusion_readback_arg_count,
+        stats.last_hzb_occlusion_compacted_draw_count
+            <= stats.last_hzb_occlusion_readback_arg_count,
         "compact replay should submit no more draws than the readback arg capacity; compacted={}, readback={}",
         stats.last_hzb_occlusion_compacted_draw_count,
         stats.last_hzb_occlusion_readback_arg_count
@@ -500,6 +513,10 @@ fn hzb_occlusion_mesh(
         tint,
         mobility: Mobility::Static,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: true,
+            ..Default::default()
+        },
     }
 }

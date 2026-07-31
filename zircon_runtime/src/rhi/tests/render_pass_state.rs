@@ -6,10 +6,10 @@ use crate::rhi::{
     ShaderModuleDesc, ShaderModuleHandle, ShaderStage, TextureDesc, TextureFormat, TextureHandle,
     TextureUsage,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
 fn create_shader(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     stage: ShaderStage,
     entry_point: &str,
@@ -20,7 +20,7 @@ fn create_shader(
         .unwrap()
 }
 
-fn create_raster_pipeline(device: &WgpuRenderDevice) -> PipelineHandle {
+fn create_raster_pipeline(device: &DeterministicRhiContractDevice) -> PipelineHandle {
     let layout = device
         .create_pipeline_layout(&PipelineLayoutDesc::new("viewport-layout", Vec::new()))
         .unwrap();
@@ -59,7 +59,7 @@ fn create_raster_pipeline(device: &WgpuRenderDevice) -> PipelineHandle {
 }
 
 fn create_render_attachment(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     width: u32,
     height: u32,
@@ -106,7 +106,7 @@ fn scissor(width: u32, height: u32) -> RenderScissorRect {
 
 #[test]
 fn command_list_records_viewport_and_scissor_inside_render_pass() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(
         &device,
         "viewport-color",
@@ -168,7 +168,7 @@ fn command_list_records_viewport_and_scissor_inside_render_pass() {
 
 #[test]
 fn command_list_viewport_and_scissor_require_active_render_pass() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
 
     let mut viewport_without_pass = device
         .create_command_list(RenderQueueClass::Graphics, "viewport-without-pass")
@@ -195,7 +195,7 @@ fn command_list_viewport_and_scissor_require_active_render_pass() {
 
 #[test]
 fn command_list_viewport_submit_validates_shape_and_depth_range() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(
         &device,
         "viewport-color",
@@ -245,7 +245,7 @@ fn command_list_viewport_submit_validates_shape_and_depth_range() {
 
 #[test]
 fn command_list_scissor_submit_validates_extent() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(
         &device,
         "scissor-color",
@@ -282,7 +282,7 @@ fn command_list_scissor_submit_validates_extent() {
 
 #[test]
 fn command_list_render_pass_submit_validates_attachment_extent_and_sample_count() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(
         &device,
         "extent-color",

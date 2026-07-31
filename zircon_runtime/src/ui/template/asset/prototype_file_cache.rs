@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
@@ -179,17 +179,14 @@ fn collect_flat_prototype_sources(
     paths: &[PathBuf],
     probe_mode: FlatProbeMode,
 ) -> Result<Option<Vec<UiPrototypeFileSource>>, UiAssetError> {
-    let mut queue = Vec::new();
+    let mut queue = VecDeque::new();
     let mut seen = BTreeSet::new();
     for path in paths {
         push_source_path(&mut queue, &mut seen, path.clone());
     }
 
     let mut sources = Vec::new();
-    let mut index = 0;
-    while index < queue.len() {
-        let path = queue[index].clone();
-        index += 1;
+    while let Some(path) = queue.pop_front() {
         let input =
             std::fs::read_to_string(&path).map_err(|error| UiAssetError::Io(error.to_string()))?;
         if sources.is_empty()
@@ -201,7 +198,7 @@ fn collect_flat_prototype_sources(
 
         let prototype = UiAssetLoader::load_flat_prototype_toml_str(&input)?;
         for reference in prototype_import_references(&prototype) {
-            if let Some(import_path) = resolve_resource_reference_path(&path, &reference) {
+            if let Some(import_path) = resolve_resource_reference_path(&path, reference) {
                 push_source_path(&mut queue, &mut seen, import_path);
             }
         }
@@ -211,24 +208,24 @@ fn collect_flat_prototype_sources(
     Ok(Some(sources))
 }
 
-fn push_source_path(queue: &mut Vec<PathBuf>, seen: &mut BTreeSet<PathBuf>, path: PathBuf) {
+fn push_source_path(queue: &mut VecDeque<PathBuf>, seen: &mut BTreeSet<PathBuf>, path: PathBuf) {
     let key = path.canonicalize().unwrap_or(path);
     if seen.insert(key.clone()) {
-        queue.push(key);
+        queue.push_back(key);
     }
 }
 
-fn prototype_import_references(prototype: &UiRawAssetPrototype) -> Vec<String> {
-    let mut references =
-        Vec::with_capacity(prototype.imports.widgets.len() + prototype.imports.styles.len());
-    references.extend(prototype.imports.widgets.iter().map(|reference| {
-        reference
-            .split_once('#')
-            .map_or(reference.as_str(), |(asset_id, _)| asset_id)
-            .to_string()
-    }));
-    references.extend(prototype.imports.styles.iter().cloned());
-    references
+fn prototype_import_references(prototype: &UiRawAssetPrototype) -> impl Iterator<Item = &str> + '_ {
+    prototype
+        .imports
+        .widgets
+        .iter()
+        .map(|reference| {
+            reference
+                .split_once('#')
+                .map_or(reference.as_str(), |(asset_id, _)| asset_id)
+        })
+        .chain(prototype.imports.styles.iter().map(String::as_str))
 }
 
 fn build_file_store_cache_entry(

@@ -1,8 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
 use std::path::PathBuf;
 
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::{UiV2AssetKind, UI_V2_ASSET_SCHEMA_VERSION};
 
 mod support;
@@ -240,10 +238,7 @@ fn production_zui_component_names_match_file_stems() {
             checked_assets += 1;
             let expected_name = pascal_case_file_stem(&path);
             let expected_prototype_name = format!("{expected_name}Prototype");
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
             let component_name = document
                 .components
                 .keys()
@@ -319,14 +314,7 @@ fn production_ui_root_zui_widget_imports_resolve_to_named_components() {
                     continue;
                 };
 
-                let component_source =
-                    fs::read_to_string(&component_path).unwrap_or_else(|error| {
-                        panic!("read component `{}`: {error}", component_path.display())
-                    });
-                let component_document = UiZuiAssetLoader::load_zui_str(&component_source)
-                    .unwrap_or_else(|error| {
-                        panic!("parse component `{}`: {error}", component_path.display())
-                    });
+                let component_document = load_zui_document(&component_path);
                 if !component_document.components.contains_key(component_name) {
                     offenders.push(format!(
                         "{} imports `{}` but `{}` declares {:?}",
@@ -418,10 +406,7 @@ fn production_ui_import_entries_are_non_empty_and_trimmed() {
 
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for (import_section, imports) in [
                 ("imports.widgets", document.imports.widgets.as_slice()),
@@ -481,10 +466,7 @@ fn production_ui_import_lists_do_not_repeat_dependencies() {
 
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
             checked_imports += document.imports.widgets.len() + document.imports.styles.len();
 
             let duplicate_widgets = duplicate_entries(&document.imports.widgets);
@@ -698,10 +680,7 @@ fn production_zui_internal_imports_follow_component_and_style_boundaries() {
     for asset_root in &asset_roots {
         for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for import in &document.imports.widgets {
                 checked_imports += 1;
@@ -732,14 +711,7 @@ fn production_zui_internal_imports_follow_component_and_style_boundaries() {
                     continue;
                 };
                 let component_name = fragment.expect("component fragment validated above").trim();
-                let component_source =
-                    fs::read_to_string(&component_path).unwrap_or_else(|error| {
-                        panic!("read component `{}`: {error}", component_path.display())
-                    });
-                let component_document = UiZuiAssetLoader::load_zui_str(&component_source)
-                    .unwrap_or_else(|error| {
-                        panic!("parse component `{}`: {error}", component_path.display())
-                    });
+                let component_document = load_zui_document(&component_path);
                 if !component_document.components.contains_key(component_name) {
                     offenders.push(format!(
                         "{} imports `{}` but `{}` declares {:?}",
@@ -814,10 +786,7 @@ fn production_zui_widget_imports_do_not_self_reference() {
         for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
             let current_locator = resource_locator_for_path(asset_root, &path);
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for import in &document.imports.widgets {
                 checked_imports += 1;
@@ -854,10 +823,7 @@ fn production_zui_asset_ids_match_res_locator_exactly() {
         for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_asset_ids += 1;
             let expected_locator = resource_locator_for_path(asset_root, &path);
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
             let actual_asset_id = document.asset.id.as_str();
 
             if actual_asset_id != expected_locator {
@@ -890,10 +856,7 @@ fn production_ui_asset_ids_are_unique_across_zui_documents() {
     for asset_root in &asset_roots {
         for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             asset_ids
                 .entry(document.asset.id.clone())
@@ -933,10 +896,7 @@ fn production_ui_asset_headers_are_authorable_and_current() {
     for asset_root in &asset_roots {
         for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             if document.asset.version != UI_V2_ASSET_SCHEMA_VERSION {
                 offenders.push(format!(

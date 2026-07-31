@@ -1,0 +1,170 @@
+// Temporal Echo mark lifecycle and conversion plans. WOS owns actual healing,
+// absorb consumption, healing modifiers, threat and emitted aura/spellfx events.
+var container = %import("zr.container");
+var contract = %import("generated/temporal_echo_contract");
+
+pub class TemporalEchoAura {
+    pub var kind: string;
+    pub var sourceId: int;
+    pub var echoGroup: bool;
+    pub var hasConvertRate: bool;
+    pub var convertRate: float;
+    pub var remaining: float;
+    pub @constructor(kind: string, sourceId: int, echoGroup: bool, hasConvertRate: bool, convertRate: float, remaining: float) {
+        this.kind = kind;
+        this.sourceId = sourceId;
+        this.echoGroup = echoGroup;
+        this.hasConvertRate = hasConvertRate;
+        this.convertRate = convertRate;
+        this.remaining = remaining;
+    }
+}
+
+pub class TemporalEchoTarget {
+    pub var id: int;
+    pub var dead: bool;
+    pub var auras: container.Array<TemporalEchoAura>;
+    pub @constructor(id: int, dead: bool) {
+        this.id = id;
+        this.dead = dead;
+        this.auras = new container.Array<TemporalEchoAura>();
+    }
+}
+
+pub class TemporalEchoConversion {
+    pub var targetId: int;
+    pub var rate: float;
+    pub @constructor(targetId: int, rate: float) {
+        this.targetId = targetId;
+        this.rate = rate;
+    }
+}
+
+pub echoRateFor(aura: TemporalEchoAura, aoe: bool): float {
+    if (aoe) return aura.echoGroup ? contract.groupAreaRate() : contract.areaRate();
+    if (aura.hasConvertRate) return aura.convertRate;
+    return aura.echoGroup ? contract.groupSingleRate() : contract.singleRate();
+}
+
+pub echoVisibleTo(aura: TemporalEchoAura, viewerId: int): bool {
+    if (aura.kind != contract.echoKind()) return true;
+    return aura.sourceId == viewerId;
+}
+
+pub stripTemporalEchoes(targets: container.Array<TemporalEchoTarget>, mageId: int): int {
+    return stripEchoes(targets, mageId, false);
+}
+
+pub stripIndividualEcho(targets: container.Array<TemporalEchoTarget>, mageId: int): int {
+    return stripEchoes(targets, mageId, true);
+}
+
+// Mirrors individual recast: remove only this mage's non-group marks first,
+// then applyAura-style replace the mark on the selected target.
+pub placeTemporalEcho(targets: container.Array<TemporalEchoTarget>, casterId: int, target: TemporalEchoTarget, duration: float): int {
+    var removed = stripIndividualEcho(targets, casterId);
+    replaceEcho(target, casterId, false, duration, contract.singleRate());
+    return removed;
+}
+
+// Returns true if an existing individual mark was retained/extended, false when
+// a group mark was applied or refreshed through applyAura-style replacement.
+pub placeGroupEcho(ally: TemporalEchoTarget, casterId: int, duration: float): bool {
+    var index = findOwnEcho(ally, casterId);
+    if (index >= 0) {
+        var existing = <TemporalEchoAura>ally.auras[index];
+        if (!existing.echoGroup) {
+            if (existing.remaining < duration) existing.remaining = duration;
+            return true;
+        }
+    }
+    replaceEcho(ally, casterId, true, duration, contract.groupSingleRate());
+    return false;
+}
+
+// Source entity iteration order is preserved by the caller-provided target order.
+pub collectConversions(sourceIsPlayer: bool, sourceId: int, dealt: int, school: string, aoe: bool, targets: container.Array<TemporalEchoTarget>): container.Array<TemporalEchoConversion> {
+    var out = new container.Array<TemporalEchoConversion>();
+    if (!sourceIsPlayer || school != "arcane" || dealt <= 0) return out;
+    var i = 0;
+    while (i < targets.length) {
+        var target = <TemporalEchoTarget>targets[i];
+        if (!target.dead) {
+            var auraIndex = 0;
+            while (auraIndex < target.auras.length) {
+                var aura = <TemporalEchoAura>target.auras[auraIndex];
+                if (aura.kind == contract.echoKind() && aura.sourceId == sourceId) {
+                    out.add(new TemporalEchoConversion(target.id, echoRateFor(aura, aoe)));
+                    break;
+                }
+                auraIndex = auraIndex + 1;
+            }
+        }
+        i = i + 1;
+    }
+    return out;
+}
+
+pub contractTest(): int {
+    var targets = new container.Array<TemporalEchoTarget>();
+    var individual = new TemporalEchoTarget(1, false);
+    individual.auras.add(new TemporalEchoAura(contract.echoKind(), 9, false, false, 0.0, 2.0));
+    var group = new TemporalEchoTarget(2, false);
+    group.auras.add(new TemporalEchoAura(contract.echoKind(), 9, true, true, contract.groupSingleRate(), 3.0));
+    var dead = new TemporalEchoTarget(3, true);
+    dead.auras.add(new TemporalEchoAura(contract.echoKind(), 9, false, true, contract.singleRate(), 9.0));
+    targets.add(individual);
+    targets.add(group);
+    targets.add(dead);
+    if (!echoVisibleTo(<TemporalEchoAura>individual.auras[0], 9) || echoVisibleTo(<TemporalEchoAura>individual.auras[0], 8)) return -1;
+    var single = collectConversions(true, 9, 100, "arcane", false, targets);
+    if (single.length != 2 || (<TemporalEchoConversion>single[0]).rate != contract.singleRate() || (<TemporalEchoConversion>single[1]).rate != contract.groupSingleRate()) return -2;
+    var area = collectConversions(true, 9, 100, "arcane", true, targets);
+    if (area.length != 2 || (<TemporalEchoConversion>area[0]).rate != contract.areaRate() || (<TemporalEchoConversion>area[1]).rate != contract.groupAreaRate()) return -3;
+    if (collectConversions(true, 9, 0, "arcane", false, targets).length != 0 || collectConversions(true, 9, 10, "fire", false, targets).length != 0) return -4;
+    if (placeGroupEcho(individual, 9, 5.0) != true || (<TemporalEchoAura>individual.auras[0]).remaining != 5.0) return -5;
+    if (placeGroupEcho(group, 9, 6.0) != false || group.auras.length != 1 || (<TemporalEchoAura>group.auras[0]).remaining != 6.0) return -6;
+    if (stripIndividualEcho(targets, 9) != 1 || individual.auras.length != 0 || group.auras.length != 1) return -7;
+    placeTemporalEcho(targets, 9, individual, 15.0);
+    if (individual.auras.length != 1 || (<TemporalEchoAura>individual.auras[0]).echoGroup || (<TemporalEchoAura>individual.auras[0]).convertRate != contract.singleRate()) return -8;
+    if (stripTemporalEchoes(targets, 9) != 3 || individual.auras.length != 0 || group.auras.length != 0 || dead.auras.length != 0) return -9;
+    return 1;
+}
+
+pub stripEchoes(targets: container.Array<TemporalEchoTarget>, mageId: int, individualOnly: bool): int {
+    var removed = 0, targetIndex = 0;
+    while (targetIndex < targets.length) {
+        var target = <TemporalEchoTarget>targets[targetIndex];
+        var auraIndex = target.auras.length - 1;
+        while (auraIndex >= 0) {
+            var aura = <TemporalEchoAura>target.auras[auraIndex];
+            if (aura.kind == contract.echoKind() && aura.sourceId == mageId && (!individualOnly || !aura.echoGroup)) {
+                target.auras.removeAt(auraIndex);
+                removed = removed + 1;
+            }
+            auraIndex = auraIndex - 1;
+        }
+        targetIndex = targetIndex + 1;
+    }
+    return removed;
+}
+
+pub findOwnEcho(ally: TemporalEchoTarget, casterId: int): int {
+    var i = 0;
+    while (i < ally.auras.length) {
+        var aura = <TemporalEchoAura>ally.auras[i];
+        if (aura.kind == contract.echoKind() && aura.sourceId == casterId) return i;
+        i = i + 1;
+    }
+    return -1;
+}
+
+pub replaceEcho(target: TemporalEchoTarget, casterId: int, echoGroup: bool, duration: float, rate: float): void {
+    var i = target.auras.length - 1;
+    while (i >= 0) {
+        var aura = <TemporalEchoAura>target.auras[i];
+        if (aura.kind == contract.echoKind() && aura.sourceId == casterId) target.auras.removeAt(i);
+        i = i - 1;
+    }
+    target.auras.add(new TemporalEchoAura(contract.echoKind(), casterId, echoGroup, true, rate, duration));
+}

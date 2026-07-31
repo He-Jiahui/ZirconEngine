@@ -9,6 +9,7 @@ mod report;
 use std::path::{Path, PathBuf};
 
 use super::{ExportBuildPlan, ExportMaterializeReport};
+use package_lookup::NativePackageInventory;
 
 impl ExportBuildPlan {
     pub fn write_generated_files(
@@ -54,7 +55,16 @@ impl ExportBuildPlan {
             return Ok(report);
         }
 
-        native::materialize_native_dynamic_packages(self, plugin_root, output_root, &mut report)?;
+        if !self.native_dynamic_packages.is_empty() {
+            let inventory =
+                NativePackageInventory::build(plugin_root, &self.native_dynamic_packages)?;
+            native::materialize_native_dynamic_packages(
+                self,
+                &inventory,
+                output_root,
+                &mut report,
+            )?;
+        }
 
         Ok(report)
     }
@@ -82,7 +92,11 @@ impl ExportBuildPlan {
         let output_root = output_root.as_ref();
         let mut report = self.preview_materialize(output_root)?;
 
-        native::preview_native_dynamic_packages(self, plugin_root, output_root, &mut report)?;
+        if !self.native_dynamic_packages.is_empty() {
+            let inventory =
+                NativePackageInventory::build(plugin_root, &self.native_dynamic_packages)?;
+            native::preview_native_dynamic_packages(self, &inventory, output_root, &mut report)?;
+        }
 
         Ok(report)
     }

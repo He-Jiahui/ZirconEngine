@@ -1,10 +1,10 @@
 use std::any::TypeId;
 
-use crate::scene::ecs::{ComponentId, LifecycleEventKind};
 use crate::scene::EntityId;
+use crate::scene::ecs::{ComponentId, LifecycleEventKind};
 
-use super::entry::{EntityEventObserver, EventObserver, LifecycleObserver};
 use super::ObserverId;
+use super::entry::{EntityEventObserver, EventObserver, LifecycleObserver};
 
 pub(super) fn lifecycle_callback_count(
     observers: &[LifecycleObserver],

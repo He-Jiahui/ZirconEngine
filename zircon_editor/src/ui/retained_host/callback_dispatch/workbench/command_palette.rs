@@ -1,3 +1,4 @@
+use crate::core::editor_operation::EditorOperationPath;
 use crate::ui::binding::EditorUiEventKind;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
@@ -33,7 +34,14 @@ pub(crate) fn dispatch_componentized_workbench_command_palette_committed(
         Ok(binding) => binding,
         Err(error) => return Some(Err(error.to_string())),
     };
-    Some(dispatch_editor_binding(runtime, binding))
+    let command = match EditorOperationPath::parse(command_id) {
+        Ok(command) => command,
+        Err(error) => return Some(Err(error.to_string())),
+    };
+    Some(dispatch_editor_binding(runtime, binding).map(|effects| {
+        runtime.record_command_palette_usage(command);
+        effects
+    }))
 }
 
 fn is_command_palette_commit_route(

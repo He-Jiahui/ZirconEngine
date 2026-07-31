@@ -17,7 +17,12 @@ related_code:
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/post_process.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
@@ -53,7 +58,12 @@ implementation_files:
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/post_process.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
@@ -152,7 +162,7 @@ The production scene module currently has a structural test guard that rejects `
 | Frame DTO contract | `zircon_runtime/src/core/framework/render/frame_extract.rs`, `scene_extract.rs` | `RenderFrameExtract` carries view, geometry, lighting, postprocess, debug, sprites, particles, visibility. | M03-M06 should add real material/postprocess data through this DTO rather than snapshot defaults. |
 | Scene producer | `zircon_runtime/src/scene/world/render.rs`, `scene/render_extract/mod.rs`, `scene/level_system_render_extract.rs` | Scene producer builds frame sections directly and runs `RenderExtract` built-ins before reads. | M03 should keep direct construction canonical and keep snapshot conversion preview/test-only. |
 | Materials | `zircon_runtime/src/core/framework/render/material/**`, `zircon_runtime/src/graphics/scene/resources/**` | Mesh rows carry model/mesh/material handles, tint, alpha mode side inputs, and morph weights; renderer resource streamer owns prepared GPU material state and fallback policy. | M04-M05 must define/consume neutral material snapshots instead of raw asset/editor state. |
-| Postprocess | `PostProcessExtract` in `frame_extract.rs`, runtime `PostProcessSettingsComponent` and `PostProcessVolumeComponent` under `scene/components/scene.rs`, renderer postprocess stack under `zircon_runtime/src/graphics/scene/scene_renderer/**/post_process/**` | Scene extract seeds base bloom/color-grading/effect-stack settings from the selected scene camera component, keeps explicit request cameras on defaults, and forwards active, camera-layer-matching runtime volume components through `PostProcessExtract.volumes`; submit resolves the effective settings/graph with `resolved_settings_for_camera(...)`. | Asset/editor serialization, trigger lifecycle, capsule/convex volume projection, and richer authoring UI remain follow-up work. |
+| Postprocess | `PostProcessExtract` in `frame_extract.rs`, runtime `PostProcessSettingsComponent` and `PostProcessVolumeComponent` in `scene/components/scene/post_process.rs` through the `scene/components/scene/mod.rs` facade, renderer postprocess stack under `zircon_runtime/src/graphics/scene/scene_renderer/**/post_process/**` | Scene extract seeds base bloom/color-grading/effect-stack settings from the selected scene camera component, keeps explicit request cameras on defaults, and forwards active, camera-layer-matching runtime volume components through `PostProcessExtract.volumes`; submit resolves the effective settings/graph with `resolved_settings_for_camera(...)`. | Asset/editor serialization, trigger lifecycle, capsule/convex volume projection, and richer authoring UI remain follow-up work. |
 | WGPU submit | `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/**` | Submit consumes `RenderFrameExtract`, prepares advanced sidebands, resolves history, builds runtime frame, renders with compiled pipeline, records stats. | M08 should become the only render submission path after materials/postprocess/SRP requirements are ready. |
 | Visibility | `zircon_runtime/src/graphics/visibility/**` plus `VisibilityInput` in `frame_extract.rs` | Visibility inputs are derived from the same extracted mesh/sprite rows. | M03/M10/M11 must keep visibility, VG, and GI update plans aligned with canonical frame rows. |
 | Virtual Geometry | `RenderVirtualGeometryExtract`, `zircon_runtime/src/graphics/virtual_geometry_runtime_provider/**`, `zircon_plugins/virtual_geometry/runtime/**` | Scene can emit an empty VG sideband/debug override; runtime activation is capability/provider/pipeline gated. | M10 deepens opt-in inputs without making default rendering depend on VG. |

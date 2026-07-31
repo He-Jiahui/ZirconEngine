@@ -1,4 +1,4 @@
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use serde::{Deserialize, Serialize};
 
 use super::{PreviewGizmoAxis, PreviewInspector, PreviewSceneEntry};
@@ -11,7 +11,7 @@ pub struct PreviewEditorData {
     pub hovered_axis: Option<PreviewGizmoAxis>,
     pub viewport_size: [u32; 2],
     #[serde(default)]
-    pub scene_viewport_settings: SceneViewportSettings,
+    pub scene_viewport_settings: SceneViewportChromeSettings,
     pub mesh_import_path: String,
     pub project_path: String,
     pub project_open: bool,

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_dead_target_selection_tests",
+  "source": "src",
+  "binary": "bin-m3-dead-target-selection-tests",
+  "entry": "world/dead_target_selection_test_main"
+}

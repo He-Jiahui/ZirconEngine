@@ -1,6 +1,10 @@
+mod dirty_batch;
 mod events;
+mod exclusive_transition;
 mod fixture;
 mod history;
+mod journal;
+mod journal_scene_commands;
 mod locking;
 mod operation_group;
 mod recovery;

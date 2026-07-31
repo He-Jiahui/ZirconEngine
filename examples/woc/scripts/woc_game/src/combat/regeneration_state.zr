@@ -1,0 +1,327 @@
+var container = %import("zr.container");
+
+class RegenerationState {
+    pub var tickCount: int;
+    pub var resourceType: string;
+    pub var resource: int;
+    pub var maxResource: int;
+    pub var fiveSecondRule: float;
+    pub var spirit: float;
+    pub var stamina: float;
+    pub var level: int;
+    pub var inCombat: bool;
+    pub var stunned: bool;
+    pub var resourceSapValues: container.Array<float>;
+    pub var manaRegenPct: float;
+    pub var secondWindPctPerSec: float;
+    pub var hp: int;
+    pub var maxHp: int;
+    pub var energyRegenBuffs: container.Array<float>;
+    pub var eating: bool;
+    pub var eatingHpPer2s: int;
+    pub var eatingManaPer2s: int;
+    pub var eatingRemaining: int;
+    pub var drinking: bool;
+    pub var drinkingHpPer2s: int;
+    pub var drinkingManaPer2s: int;
+    pub var drinkingRemaining: int;
+    pub var healingTakenMultiplier: float;
+    pub var gcdRemaining: float;
+    pub var potionCooldownRemaining: float;
+    pub var combatTimer: float;
+    pub var cooldownIds: container.Array<int>;
+    pub var cooldownValues: container.Array<float>;
+    pub var comboPoints: int;
+    pub var comboUntil: float;
+    pub var time: float;
+    pub var healEvents: int;
+    pub var comboResetEvents: int;
+
+    pub @constructor() {
+        this.tickCount = 0;
+        this.resourceType = "mana";
+        this.resource = 0;
+        this.maxResource = 100;
+        this.fiveSecondRule = 0.0;
+        this.spirit = 0.0;
+        this.stamina = 0.0;
+        this.level = 1;
+        this.inCombat = false;
+        this.stunned = false;
+        this.resourceSapValues = new container.Array<float>();
+        this.manaRegenPct = 0.0;
+        this.secondWindPctPerSec = 0.0;
+        this.hp = 100;
+        this.maxHp = 100;
+        this.energyRegenBuffs = new container.Array<float>();
+        this.eating = false;
+        this.eatingHpPer2s = 0;
+        this.eatingManaPer2s = 0;
+        this.eatingRemaining = 0;
+        this.drinking = false;
+        this.drinkingHpPer2s = 0;
+        this.drinkingManaPer2s = 0;
+        this.drinkingRemaining = 0;
+        this.healingTakenMultiplier = 1.0;
+        this.gcdRemaining = 0.0;
+        this.potionCooldownRemaining = 0.0;
+        this.combatTimer = 0.0;
+        this.cooldownIds = new container.Array<int>();
+        this.cooldownValues = new container.Array<float>();
+        this.comboPoints = 0;
+        this.comboUntil = 0.0;
+        this.time = 0.0;
+        this.healEvents = 0;
+        this.comboResetEvents = 0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+applyConsumption(
+    state: RegenerationState,
+    hpPer2s: int,
+    manaPer2s: int,
+    slot: int
+): void {
+    if (hpPer2s > 0 && state.hp < state.maxHp) {
+        var healing = roundPositive(<float>hpPer2s * state.healingTakenMultiplier);
+        var missing = state.maxHp - state.hp;
+        if (healing > missing) { healing = missing; }
+        state.hp = state.hp + healing;
+        state.healEvents = state.healEvents + 1;
+    }
+    if (manaPer2s > 0 && state.resourceType == "mana") {
+        state.resource = state.resource + manaPer2s;
+        if (state.resource > state.maxResource) { state.resource = state.maxResource; }
+    }
+    if (slot == 1) {
+        state.eatingRemaining = state.eatingRemaining - 2;
+        if (state.eatingRemaining <= 0) { state.eating = false; }
+    } else {
+        state.drinkingRemaining = state.drinkingRemaining - 2;
+        if (state.drinkingRemaining <= 0) { state.drinking = false; }
+    }
+}
+
+pub updateRegen(state: RegenerationState): void {
+    if (state.tickCount % 40 != 0) { return; }
+    // Lifesap applies to whichever resource bar is currently live and pauses
+    // under stun; source order clamps after every individual aura value.
+    if (!state.stunned) {
+        var sapIndex = 0;
+        while (sapIndex < state.resourceSapValues.length) {
+            state.resource = state.resource + roundPositive(
+                <float>state.resourceSapValues[sapIndex]
+            );
+            if (state.resource > state.maxResource) { state.resource = state.maxResource; }
+            sapIndex = sapIndex + 1;
+        }
+    }
+    if (state.resourceType == "mana") {
+        if (state.fiveSecondRule >= 5.0) {
+            var levelFloor = <int>(<float>state.level / 5.0);
+            var regen = (state.spirit / 3.0 + 4.0 + <float>levelFloor) *
+                (1.0 + state.manaRegenPct);
+            state.resource = state.resource + roundPositive(regen);
+            if (state.resource > state.maxResource) { state.resource = state.maxResource; }
+        }
+    } else if (state.resourceType == "energy") {
+        var energyRegen = 20.0;
+        var buffIndex = 0;
+        while (buffIndex < state.energyRegenBuffs.length) {
+            energyRegen = energyRegen * (1.0 + <float>state.energyRegenBuffs[buffIndex]);
+            buffIndex = buffIndex + 1;
+        }
+        state.resource = state.resource + roundPositive(energyRegen);
+        if (state.resource > state.maxResource) { state.resource = state.maxResource; }
+    } else if (state.resourceType == "rage" && !state.inCombat) {
+        state.resource = state.resource - 2;
+        if (state.resource < 0) { state.resource = 0; }
+    }
+    if (!state.inCombat && state.hp < state.maxHp && !state.eating) {
+        var hpRegen = roundPositive(state.stamina * 0.3 + 2.0);
+        state.hp = state.hp + hpRegen;
+        if (state.hp > state.maxHp) { state.hp = state.maxHp; }
+    }
+    if (state.secondWindPctPerSec > 0.0 && state.hp > 0 &&
+        <float>state.hp < <float>state.maxHp * 0.35) {
+        var secondWindHeal = roundPositive(
+            <float>state.maxHp * state.secondWindPctPerSec * 2.0
+        );
+        var secondWindMissing = state.maxHp - state.hp;
+        if (secondWindHeal > secondWindMissing) { secondWindHeal = secondWindMissing; }
+        if (secondWindHeal > 0) {
+            state.hp = state.hp + secondWindHeal;
+            state.healEvents = state.healEvents + 1;
+        }
+    }
+    if (state.eating) {
+        applyConsumption(state, state.eatingHpPer2s, state.eatingManaPer2s, 1);
+    }
+    if (state.drinking) {
+        applyConsumption(state, state.drinkingHpPer2s, state.drinkingManaPer2s, 2);
+    }
+}
+
+pub updateTimers(state: RegenerationState): void {
+    state.gcdRemaining = state.gcdRemaining - 0.05;
+    if (state.gcdRemaining < 0.0) { state.gcdRemaining = 0.0; }
+    state.potionCooldownRemaining = state.potionCooldownRemaining - 0.05;
+    if (state.potionCooldownRemaining < 0.0) { state.potionCooldownRemaining = 0.0; }
+    state.fiveSecondRule = state.fiveSecondRule + 0.05;
+    state.combatTimer = state.combatTimer + 0.05;
+    var index = state.cooldownIds.length - 1;
+    while (index >= 0) {
+        var remaining = <float>state.cooldownValues[index] - 0.05;
+        if (remaining <= 0.0) {
+            state.cooldownIds.removeAt(index);
+            state.cooldownValues.removeAt(index);
+        } else {
+            state.cooldownValues[index] = remaining;
+        }
+        index = index - 1;
+    }
+}
+
+pub updateComboExpiry(state: RegenerationState): void {
+    if (state.comboPoints > 0 && state.time >= state.comboUntil) {
+        state.comboPoints = 0;
+        state.comboResetEvents = state.comboResetEvents + 1;
+    }
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var timers = new RegenerationState();
+    timers.gcdRemaining = 0.04;
+    timers.potionCooldownRemaining = 0.06;
+    timers.fiveSecondRule = 1.0;
+    timers.combatTimer = 2.0;
+    timers.cooldownIds.add(1);
+    timers.cooldownValues.add(0.04);
+    timers.cooldownIds.add(2);
+    timers.cooldownValues.add(1.0);
+    updateTimers(timers);
+    if (timers.gcdRemaining != 0.0 ||
+        !closeEnough(timers.potionCooldownRemaining, 0.01) ||
+        !closeEnough(timers.fiveSecondRule, 1.05) ||
+        !closeEnough(timers.combatTimer, 2.05) ||
+        timers.cooldownIds.length != 1 || timers.cooldownIds[0] != 2 ||
+        !closeEnough(timers.cooldownValues[0], 0.95)) {
+        return -1;
+    }
+
+    var mana = new RegenerationState();
+    mana.tickCount = 40;
+    mana.resource = 50;
+    mana.maxResource = 100;
+    mana.fiveSecondRule = 5.0;
+    mana.spirit = 30.0;
+    mana.level = 10;
+    updateRegen(mana);
+    if (mana.resource != 66) { return -2; }
+
+    var energy = new RegenerationState();
+    energy.tickCount = 40;
+    energy.resourceType = "energy";
+    energy.resource = 10;
+    energy.maxResource = 100;
+    energy.energyRegenBuffs.add(0.5);
+    energy.energyRegenBuffs.add(0.2);
+    updateRegen(energy);
+    if (energy.resource != 46) { return -3; }
+
+    var rage = new RegenerationState();
+    rage.tickCount = 40;
+    rage.resourceType = "rage";
+    rage.resource = 10;
+    updateRegen(rage);
+    if (rage.resource != 8) { return -4; }
+
+    var consuming = new RegenerationState();
+    consuming.tickCount = 40;
+    consuming.hp = 50;
+    consuming.maxHp = 100;
+    consuming.resource = 10;
+    consuming.maxResource = 100;
+    consuming.eating = true;
+    consuming.eatingHpPer2s = 20;
+    consuming.eatingManaPer2s = 0;
+    consuming.eatingRemaining = 2;
+    consuming.drinking = true;
+    consuming.drinkingHpPer2s = 10;
+    consuming.drinkingManaPer2s = 30;
+    consuming.drinkingRemaining = 4;
+    consuming.healingTakenMultiplier = 1.5;
+    updateRegen(consuming);
+    if (consuming.hp != 95 || consuming.resource != 40 ||
+        consuming.eating || !consuming.drinking ||
+        consuming.eatingRemaining != 0 || consuming.drinkingRemaining != 2 ||
+        consuming.healEvents != 2) {
+        return -5;
+    }
+
+    var passive = new RegenerationState();
+    passive.tickCount = 40;
+    passive.resourceType = "rage";
+    passive.hp = 50;
+    passive.maxHp = 100;
+    passive.stamina = 20.0;
+    updateRegen(passive);
+    if (passive.hp != 58) { return -6; }
+    passive.tickCount = 41;
+    passive.hp = 50;
+    updateRegen(passive);
+    if (passive.hp != 50) { return -7; }
+
+    var combo = new RegenerationState();
+    combo.comboPoints = 5;
+    combo.comboUntil = 10.0;
+    combo.time = 9.9;
+    updateComboExpiry(combo);
+    if (combo.comboPoints != 5 || combo.comboResetEvents != 0) { return -8; }
+    combo.time = 10.0;
+    updateComboExpiry(combo);
+    if (combo.comboPoints != 0 || combo.comboResetEvents != 1) { return -9; }
+
+    var enhancedMana = new RegenerationState();
+    enhancedMana.tickCount = 40;
+    enhancedMana.resource = 10;
+    enhancedMana.maxResource = 100;
+    enhancedMana.fiveSecondRule = 5.0;
+    enhancedMana.spirit = 30.0;
+    enhancedMana.level = 10;
+    enhancedMana.manaRegenPct = 0.2;
+    enhancedMana.resourceSapValues.add(20.0);
+    updateRegen(enhancedMana);
+    if (enhancedMana.resource != 49) { return -10; }
+
+    var stunnedSap = new RegenerationState();
+    stunnedSap.tickCount = 40;
+    stunnedSap.resourceType = "rage";
+    stunnedSap.resource = 10;
+    stunnedSap.inCombat = true;
+    stunnedSap.stunned = true;
+    stunnedSap.resourceSapValues.add(20.0);
+    updateRegen(stunnedSap);
+    if (stunnedSap.resource != 10) { return -11; }
+
+    var secondWind = new RegenerationState();
+    secondWind.tickCount = 40;
+    secondWind.resourceType = "rage";
+    secondWind.inCombat = true;
+    secondWind.hp = 30;
+    secondWind.maxHp = 100;
+    secondWind.secondWindPctPerSec = 0.015;
+    updateRegen(secondWind);
+    if (secondWind.hp != 33 || secondWind.healEvents != 1) { return -12; }
+    return 1;
+}

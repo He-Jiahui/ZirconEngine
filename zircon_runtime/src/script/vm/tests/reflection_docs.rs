@@ -1,5 +1,168 @@
 use super::*;
 
+use crate::core::framework::script::{ScriptHostFieldProjection, ScriptHostTypeProjection};
+use zircon_runtime_interface::reflect::{
+    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectScriptVisibility,
+    ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration,
+};
+
+fn indexed_projection_registration(field_names: &[String]) -> ReflectTypeRegistration {
+    let fields = field_names
+        .iter()
+        .enumerate()
+        .map(|(index, name)| {
+            ReflectFieldInfo::new(
+                name,
+                indexed_projection_type_name(index),
+                ReflectEditorHint::None,
+            )
+        })
+        .collect();
+
+    ReflectTypeRegistration::new(
+        ReflectTypePath::new("test.IndexedProjection", "IndexedProjection")
+            .expect("test reflection path should be valid"),
+        "IndexedProjection",
+        ReflectTypeInfo::struct_with_fields(fields),
+        ReflectSerializationStrategy::Value,
+    )
+    .with_script_visibility(ReflectScriptVisibility::Public)
+}
+
+fn indexed_projection_type_name(field_index: usize) -> String {
+    format!("test.ProjectedField{field_index:05}")
+}
+
+fn indexed_projection_kind(field_index: usize) -> ScriptHostValueKind {
+    if field_index % 2 == 0 {
+        ScriptHostValueKind::Float
+    } else {
+        ScriptHostValueKind::Int
+    }
+}
+
+#[test]
+fn reflect_registration_builds_script_field_projection_in_one_indexed_pass() {
+    for field_count in [1_usize, 100, 10_000] {
+        let field_names = (0..field_count)
+            .map(|index| format!("field_{index:05}"))
+            .collect::<Vec<_>>();
+        let registration = indexed_projection_registration(&field_names);
+        let projection = field_names.iter().enumerate().rev().fold(
+            ScriptHostTypeProjection::new(ScriptHostValueKind::Float),
+            |projection, (index, name)| {
+                projection.with_field(ScriptHostFieldProjection::new(
+                    name,
+                    indexed_projection_kind(index),
+                ))
+            },
+        );
+
+        let descriptor =
+            ScriptHostTypeDescriptor::from_reflect_registration(&registration, &projection)
+                .expect("complete shuffled projection should compile");
+
+        assert_eq!(descriptor.fields.len(), field_count);
+        for (index, field) in descriptor.fields.iter().enumerate() {
+            assert_eq!(field.name, field_names[index]);
+            assert_eq!(field.value_kind, indexed_projection_kind(index));
+            assert_eq!(
+                field.type_ref.type_name,
+                indexed_projection_type_name(index)
+            );
+        }
+    }
+
+    let source = include_str!("../../../core/framework/script.rs");
+    assert!(source.contains("use std::collections::HashMap;"));
+    assert!(source.contains("HashMap::with_capacity(projection.fields.len())"));
+    assert!(source.contains("projection_fields.remove(field.name.as_str())"));
+    assert!(!source.contains("fn field_value_kind("));
+}
+
+#[test]
+fn reflect_registration_rejects_duplicate_and_unknown_projection_fields() {
+    let alpha_names = vec!["alpha".to_string()];
+    let alpha_registration = indexed_projection_registration(&alpha_names);
+    let duplicate_projection = ScriptHostTypeProjection::new(ScriptHostValueKind::Float)
+        .with_field(ScriptHostFieldProjection::new(
+            "alpha",
+            ScriptHostValueKind::Float,
+        ))
+        .with_field(ScriptHostFieldProjection::new(
+            "alpha",
+            ScriptHostValueKind::Int,
+        ));
+
+    assert_eq!(
+        ScriptHostTypeDescriptor::from_reflect_registration(
+            &alpha_registration,
+            &duplicate_projection,
+        ),
+        Err(ReflectError::InvalidRegistration {
+            type_path: "test.IndexedProjection".to_string(),
+            reason: "script field projection `alpha` is duplicated".to_string(),
+        })
+    );
+
+    let reflected_only_names = vec!["reflected_only".to_string()];
+    let reflected_only_registration = indexed_projection_registration(&reflected_only_names);
+    let projected_only = ScriptHostTypeProjection::new(ScriptHostValueKind::Float).with_field(
+        ScriptHostFieldProjection::new("projected_only", ScriptHostValueKind::Float),
+    );
+    assert_eq!(
+        ScriptHostTypeDescriptor::from_reflect_registration(
+            &reflected_only_registration,
+            &projected_only,
+        ),
+        Err(ReflectError::InvalidRegistration {
+            type_path: "test.IndexedProjection".to_string(),
+            reason: "script field projection `projected_only` has no reflected field".to_string(),
+        })
+    );
+
+    let missing_names = vec![
+        "first_missing".to_string(),
+        "projected".to_string(),
+        "second_missing".to_string(),
+    ];
+    let missing_registration = indexed_projection_registration(&missing_names);
+    let missing_projection = ScriptHostTypeProjection::new(ScriptHostValueKind::Float).with_field(
+        ScriptHostFieldProjection::new("projected", ScriptHostValueKind::Float),
+    );
+    assert_eq!(
+        ScriptHostTypeDescriptor::from_reflect_registration(
+            &missing_registration,
+            &missing_projection,
+        ),
+        Err(ReflectError::InvalidRegistration {
+            type_path: "test.IndexedProjection".to_string(),
+            reason: "reflected field `first_missing` has no script ABI value-kind projection"
+                .to_string(),
+        })
+    );
+
+    let unknown_before_missing = ScriptHostTypeProjection::new(ScriptHostValueKind::Float)
+        .with_field(ScriptHostFieldProjection::new(
+            "projected",
+            ScriptHostValueKind::Float,
+        ))
+        .with_field(ScriptHostFieldProjection::new(
+            "unknown",
+            ScriptHostValueKind::Int,
+        ));
+    assert_eq!(
+        ScriptHostTypeDescriptor::from_reflect_registration(
+            &missing_registration,
+            &unknown_before_missing,
+        ),
+        Err(ReflectError::InvalidRegistration {
+            type_path: "test.IndexedProjection".to_string(),
+            reason: "script field projection `unknown` has no reflected field".to_string(),
+        })
+    );
+}
+
 #[test]
 fn host_reflection_docs_render_synthetic_descriptor_deterministically() {
     let alpha = ScriptHostModuleDescriptor::new("example.alpha", "0.1.0")

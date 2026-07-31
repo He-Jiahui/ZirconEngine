@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var bank = %import("progression/bank_state");
+
+console.printLine("m5-bank-round-trip-state-test");
+var result = bank.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

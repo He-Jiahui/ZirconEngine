@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_node_labels::template_node_label;
-use super::geometry::section_label_rect;
+use super::geometry::{frame_is_within, section_label_rect};
 use super::style::{section_text_color, section_title_metrics, WorkbenchSectionTitleMetrics};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -23,6 +23,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     push_text(
         commands,
         text_rect.clone(),
+        rect,
         clip,
         order,
         &label,
@@ -31,12 +32,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
         opacity,
     );
     if node.font_weight >= 600 {
+        let strong_width = (text_rect.width - metrics.strong_offset_x).max(0.0);
         push_text(
             commands,
             FrameRect {
                 x: text_rect.x + metrics.strong_offset_x,
+                width: strong_width,
                 ..text_rect
             },
+            rect,
             clip,
             order + 1,
             &label,
@@ -50,6 +54,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
 fn push_text(
     commands: &mut Vec<HostPaintCommand>,
     rect: FrameRect,
+    section_rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
     label: &str,
@@ -57,6 +62,9 @@ fn push_text(
     metrics: &WorkbenchSectionTitleMetrics,
     opacity: f32,
 ) {
+    if !frame_is_within(section_rect, &rect) {
+        return;
+    }
     commands.push(HostPaintCommand::text(
         rect,
         Some(clip.clone()),

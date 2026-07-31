@@ -1,14 +1,13 @@
 use std::error::Error;
 use std::fmt;
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use zircon_runtime_interface::export::{
     ExportArtifactRef, ExportDigest, ExportPreset, ExportStage, ExportStageRecord, ExportTargetMode,
 };
 use zircon_runtime_interface::serialization::write_versioned_text;
 
+use super::super::ExportGenerationInventory;
 use super::super::{
     ExportPipelinePlan, ExportStageExecutor, ExportStageNode, ExportStageOutput,
     ExportStagePreparation,
@@ -21,19 +20,37 @@ pub struct ZirconBuildStageExecutor<R> {
     preset: ExportPreset,
     compile_host: CompileHostStage,
     runner: R,
+    inventory: ExportGenerationInventory,
+    parameter_digest: Option<ExportDigest>,
 }
 
 impl<R> ZirconBuildStageExecutor<R> {
     pub fn new(preset: ExportPreset, compile_host: CompileHostStage, runner: R) -> Self {
+        let persistent_cache = compile_host
+            .output_root()
+            .join(".zircon/cache/export/file-inventory-v1.json");
         Self {
             preset,
             compile_host,
             runner,
+            inventory: ExportGenerationInventory::with_persistent_cache(persistent_cache),
+            parameter_digest: None,
         }
     }
 
     pub fn into_runner(self) -> R {
         self.runner
+    }
+
+    fn parameter_digest(
+        &mut self,
+    ) -> Result<ExportDigest, zircon_runtime_interface::serialization::WriteError> {
+        if let Some(digest) = self.parameter_digest {
+            return Ok(digest);
+        }
+        let digest = stage_parameter_digest(&self.preset, &self.compile_host)?;
+        self.parameter_digest = Some(digest);
+        Ok(digest)
     }
 }
 
@@ -48,12 +65,17 @@ where
         stage: ExportStage,
         completed: &[ExportStageRecord],
     ) -> Result<ExportStagePreparation, Self::Error> {
-        let parameter_digest = stage_parameter_digest(&self.preset, &self.compile_host)
+        let parameter_digest = self
+            .parameter_digest()
             .map_err(ZirconBuildStageExecutorError::EncodePreset)?;
         match stage {
             ExportStage::CompileHost => Ok(ExportStagePreparation {
-                inputs: compile_host_inputs(&self.compile_host, self.preset.target_mode)
-                    .map_err(ZirconBuildStageExecutorError::Fingerprint)?,
+                inputs: compile_host_inputs(
+                    &self.compile_host,
+                    self.preset.target_mode,
+                    &mut self.inventory,
+                )
+                .map_err(ZirconBuildStageExecutorError::Fingerprint)?,
                 expected_outputs: vec![ExportArtifactRef::new(
                     "staged_engine_root",
                     self.compile_host.staged_engine_root().display().to_string(),
@@ -87,9 +109,12 @@ where
     ) -> Result<ExportStageOutput, Self::Error> {
         match stage {
             ExportStage::CompileHost => {
+                self.inventory
+                    .invalidate_subtree(&self.compile_host.staged_engine_root());
+                let command = self.compile_host.command(&self.preset);
                 let execution = self
-                    .compile_host
-                    .execute(&self.preset, &mut self.runner)
+                    .runner
+                    .run(&command)
                     .map_err(ZirconBuildStageExecutorError::Build)?;
                 let output = ExportArtifactRef::new(
                     "staged_engine_root",
@@ -99,12 +124,18 @@ where
                     output
                 } else {
                     output.with_digest(
-                        digest_path(&self.compile_host.staged_engine_root())
+                        self.inventory
+                            .digest_path(&self.compile_host.staged_engine_root())
                             .map_err(ZirconBuildStageExecutorError::Fingerprint)?,
                     )
                 };
+                let mut outputs = vec![output];
+                outputs.extend(
+                    compile_host_output_artifacts(&command, &mut self.inventory)
+                        .map_err(ZirconBuildStageExecutorError::Fingerprint)?,
+                );
                 Ok(ExportStageOutput {
-                    outputs: vec![output],
+                    outputs,
                     diagnostics: command_diagnostics(execution.stdout, execution.stderr),
                 })
             }
@@ -114,16 +145,19 @@ where
                     self.preset.target_mode,
                 )
                 .map_err(ZirconBuildStageExecutorError::BundleLayout)?;
-                let outputs = [
+                let mut outputs = Vec::with_capacity(4);
+                for (key, path) in [
                     ("bundle", layout.engine_root.as_path()),
                     ("launcher", layout.launcher.as_path()),
                     ("runtime_library", layout.runtime_library.as_path()),
                     ("assets", layout.assets_root.as_path()),
-                ]
-                .into_iter()
-                .map(|(key, path)| artifact_with_current_digest(key, path))
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(ZirconBuildStageExecutorError::Fingerprint)?;
+                ] {
+                    outputs.push(
+                        self.inventory
+                            .artifact_with_current_digest(key, path)
+                            .map_err(ZirconBuildStageExecutorError::Fingerprint)?,
+                    );
+                }
                 Ok(ExportStageOutput {
                     outputs,
                     diagnostics: Vec::new(),
@@ -161,8 +195,29 @@ where
         {
             return false;
         }
-        previous.io.outputs.iter().all(artifact_matches_disk)
+        previous
+            .io
+            .outputs
+            .iter()
+            .all(|artifact| self.inventory.artifact_matches_disk(artifact))
     }
+}
+
+fn compile_host_output_artifacts(
+    command: &super::ZirconBuildCommand,
+    inventory: &mut ExportGenerationInventory,
+) -> std::io::Result<Vec<ExportArtifactRef>> {
+    let mut artifacts = Vec::with_capacity(3);
+    for (key, path) in [
+        ("stdout_log", command.stdout_log.as_path()),
+        ("stderr_log", command.stderr_log.as_path()),
+        ("output_log_manifest", command.output_manifest.as_path()),
+    ] {
+        if path.is_file() {
+            artifacts.push(inventory.artifact_with_current_digest(key, path)?);
+        }
+    }
+    Ok(artifacts)
 }
 
 #[derive(Debug)]
@@ -256,17 +311,15 @@ fn command_diagnostics(stdout: Vec<u8>, stderr: Vec<u8>) -> Vec<String> {
 fn compile_host_inputs(
     stage: &CompileHostStage,
     target_mode: ExportTargetMode,
+    inventory: &mut ExportGenerationInventory,
 ) -> std::io::Result<Vec<ExportArtifactRef>> {
     let root = stage.repo_root();
     let mut inputs = compile_host_source_paths_for_target(target_mode)
         .into_iter()
-        .map(|relative| artifact_with_current_digest(relative, &root.join(relative)))
+        .map(|relative| inventory.artifact_with_current_digest(relative, &root.join(relative)))
         .collect::<Result<Vec<_>, _>>()?;
     for relative in [".cargo", "rust-toolchain.toml", "rust-toolchain"] {
-        inputs.push(artifact_with_optional_digest(
-            relative,
-            &root.join(relative),
-        )?);
+        inputs.push(inventory.artifact_with_optional_digest(relative, &root.join(relative))?);
     }
     let mut helpers = fs::read_dir(root.join("tools"))?
         .filter_map(|entry| entry.ok().map(|entry| entry.path()))
@@ -283,25 +336,17 @@ fn compile_host_inputs(
             .unwrap_or(&helper)
             .display()
             .to_string();
-        inputs.push(artifact_with_current_digest(key, &helper)?);
+        inputs.push(inventory.artifact_with_current_digest(key, &helper)?);
     }
-    inputs.push(tool_identity(
-        "python",
-        stage.python_program(),
-        &["--version"],
-    )?);
-    inputs.push(tool_identity(
-        "cargo",
-        stage.cargo_program(),
-        &["--version"],
-    )?);
-    inputs.push(tool_identity(
+    inputs.push(inventory.tool_identity("python", stage.python_program(), &["--version"])?);
+    inputs.push(inventory.tool_identity("cargo", stage.cargo_program(), &["--version"])?);
+    inputs.push(inventory.tool_identity(
         "rustc",
         std::ffi::OsStr::new("rustc"),
         &["--version", "--verbose"],
     )?);
     if target_requires_node_toolchain(target_mode) {
-        inputs.push(tool_identity(
+        inputs.push(inventory.tool_identity(
             "node",
             std::ffi::OsStr::new("node"),
             &["--version"],
@@ -359,87 +404,6 @@ pub(in crate::core::export) const fn target_requires_node_toolchain(
     target_mode: ExportTargetMode,
 ) -> bool {
     matches!(target_mode, ExportTargetMode::ClientRuntime)
-}
-
-fn tool_identity(
-    key: &str,
-    program: &std::ffi::OsStr,
-    version_args: &[&str],
-) -> std::io::Result<ExportArtifactRef> {
-    let output = Command::new(program).args(version_args).output()?;
-    if !output.status.success() {
-        return Err(std::io::Error::other(format!(
-            "tool {:?} {:?} exited with {:?}",
-            program,
-            version_args,
-            output.status.code()
-        )));
-    }
-    let mut bytes = output.stdout;
-    bytes.extend(output.stderr);
-    Ok(
-        ExportArtifactRef::new(format!("{key}_toolchain"), program.to_string_lossy())
-            .with_digest(ExportDigest::from_bytes(*blake3::hash(&bytes).as_bytes())),
-    )
-}
-
-fn artifact_with_current_digest(
-    key: impl Into<String>,
-    path: &Path,
-) -> std::io::Result<ExportArtifactRef> {
-    Ok(ExportArtifactRef::new(key, path.display().to_string()).with_digest(digest_path(path)?))
-}
-
-fn artifact_with_optional_digest(
-    key: impl Into<String>,
-    path: &Path,
-) -> std::io::Result<ExportArtifactRef> {
-    let digest = if path.exists() {
-        digest_path(path)?
-    } else {
-        ExportDigest::from_bytes(*blake3::hash(b"<missing>").as_bytes())
-    };
-    Ok(ExportArtifactRef::new(key, path.display().to_string()).with_digest(digest))
-}
-
-fn artifact_matches_disk(artifact: &ExportArtifactRef) -> bool {
-    artifact
-        .digest
-        .and_then(|expected| {
-            digest_path(Path::new(&artifact.locator))
-                .ok()
-                .map(|actual| (expected, actual))
-        })
-        .is_some_and(|(expected, actual)| expected == actual)
-}
-
-fn digest_path(path: &Path) -> std::io::Result<ExportDigest> {
-    let mut hasher = blake3::Hasher::new();
-    digest_path_into(path, path, &mut hasher)?;
-    Ok(ExportDigest::from_bytes(*hasher.finalize().as_bytes()))
-}
-
-fn digest_path_into(root: &Path, path: &Path, hasher: &mut blake3::Hasher) -> std::io::Result<()> {
-    let metadata = fs::metadata(path)?;
-    let relative = path.strip_prefix(root).unwrap_or(path).to_string_lossy();
-    hasher.update(&(relative.len() as u64).to_le_bytes());
-    hasher.update(relative.as_bytes());
-    if metadata.is_file() {
-        hasher.update(&[1]);
-        let bytes = fs::read(path)?;
-        hasher.update(&(bytes.len() as u64).to_le_bytes());
-        hasher.update(&bytes);
-        return Ok(());
-    }
-    hasher.update(&[2]);
-    let mut children = fs::read_dir(path)?
-        .map(|entry| entry.map(|entry| entry.path()))
-        .collect::<Result<Vec<PathBuf>, _>>()?;
-    children.sort();
-    for child in children {
-        digest_path_into(root, &child, hasher)?;
-    }
-    Ok(())
 }
 
 pub fn zircon_build_stage_plan() -> ExportPipelinePlan {

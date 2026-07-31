@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var dungeonDifficulty = %import("world/dungeon_difficulty_state");
+
+console.printLine("m4-dungeon-difficulty-state-test");
+var result = dungeonDifficulty.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

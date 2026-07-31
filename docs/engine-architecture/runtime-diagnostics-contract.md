@@ -1,7 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/core/runtime/diagnostics/mod.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/mod.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/snapshot.rs
   - zircon_runtime/src/core/runtime/diagnostics/render.rs
   - zircon_runtime/src/core/runtime/diagnostics/physics.rs
@@ -18,7 +19,8 @@ related_code:
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
 implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/mod.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/mod.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/snapshot.rs
   - zircon_runtime/src/core/runtime/diagnostics/render.rs
   - zircon_runtime/src/core/runtime/diagnostics/physics.rs
@@ -50,7 +52,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_runtime::core::runtime::diagnostics` is the read-only inspection contract for editor and tooling code. It collects runtime health from the existing manager contracts instead of giving editor panes direct ownership of renderer, physics, or animation internals.
+`zircon_runtime::core::runtime::diagnostics` owns the read-only DTO/store/projector contract for editor and tooling code. The top-level `zircon_runtime::runtime_diagnostics` facade collects runtime health from existing manager contracts instead of making the core diagnostics contract or editor panes own renderer, physics, or animation internals.
 
 The first cut covers three runtime systems:
 
@@ -60,15 +62,20 @@ The first cut covers three runtime systems:
 
 ## Runtime Boundary
 
-`collect_runtime_diagnostics(&CoreHandle)` resolves the existing manager services through `core::manager`:
+`runtime_diagnostics::collect_runtime_diagnostics(&CoreHandle)` resolves the existing manager services through the facade-owned `core::manager` access layer:
 
-- `resolve_render_framework`
-- `resolve_physics_manager`
-- `resolve_animation_manager`
+- `render_framework_handle` plus `resolve_manager_service`
+- `physics_manager_handle` plus `resolve_manager_service` when `physics-contracts` is enabled
+- `animation_manager_handle` plus `resolve_manager_service`
 
 Every subsystem section reports `available: false` plus a string error when the service is missing or unavailable. This keeps editor panes safe in partial runtimes, tests, and startup phases where optional modules have not been registered yet.
 
 The diagnostics snapshot intentionally stores copied data only. It does not expose manager handles, mutable state, backend objects, render resources, physics worlds, or animation assets to the editor layer.
+
+The core diagnostics module does not import `core::manager` or re-export either collector. Devtools
+registry projection accepts an already-collected diagnostics snapshot; the top-level facade owns the
+only orchestration entry points. The former core collector files and public paths are deleted rather
+than retained as aliases.
 
 ## Editor Pane Boundary
 

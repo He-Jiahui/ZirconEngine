@@ -1,0 +1,413 @@
+// Source-compatible numeric queue and team planner from vale_cup.ts. A future
+// world adapter supplies player liveness, party, duel, trade and deserter
+// predicates before it calls appendUnit; this module deliberately owns neither
+// those string-keyed rules nor a live match/entity lifecycle.
+var container = %import("zr.container");
+var contract = %import("generated/vale_cup_queue_contract");
+
+// Role codes follow the generated source contract: allrounder=0, keeper=1,
+// sweeper=2, striker=3. Nation codes preserve VC_NATIONS source order.
+pub class ValeCupQueueUnit {
+    pub var id: uint;
+    pub var bracket: int;
+    pub var nation: int;
+    pub var joinedAtTick: int;
+    pub var pids: container.Array<uint>;
+    pub var roles: container.Array<int>;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.bracket = 0;
+        this.nation = 0;
+        this.joinedAtTick = 0;
+        this.pids = new container.Array<uint>();
+        this.roles = new container.Array<int>();
+    }
+}
+
+pub class ValeCupMatchPlan {
+    pub var ready: bool;
+    pub var bracket: int;
+    pub var earliestTick: int;
+    pub var nationA: int;
+    pub var nationB: int;
+    pub var awayPalette: bool;
+    pub var teamA: container.Array<uint>;
+    pub var teamB: container.Array<uint>;
+    pub var rolesA: container.Array<int>;
+    pub var rolesB: container.Array<int>;
+    pub var selectedUnitIds: container.Array<uint>;
+
+    pub @constructor() {
+        this.ready = false;
+        this.bracket = 0;
+        this.earliestTick = 0;
+        this.nationA = 0;
+        this.nationB = 0;
+        this.awayPalette = false;
+        this.teamA = new container.Array<uint>();
+        this.teamB = new container.Array<uint>();
+        this.rolesA = new container.Array<int>();
+        this.rolesB = new container.Array<int>();
+        this.selectedUnitIds = new container.Array<uint>();
+    }
+}
+
+pub class ValeCupQueueState {
+    pub var nextUnitId: uint;
+    pub var units: container.Array<ValeCupQueueUnit>;
+
+    pub @constructor() {
+        this.nextUnitId = <uint>1;
+        this.units = new container.Array<ValeCupQueueUnit>();
+    }
+}
+
+validBracket(bracket: int): bool {
+    return bracket >= contract.bracketMin(true) && bracket <= contract.bracketMax(true);
+}
+
+validNation(nation: int): bool {
+    return nation >= 0 && nation < contract.nationCount(true);
+}
+
+validRole(role: int): bool {
+    return role == contract.roleAllrounder(true) ||
+        role == contract.roleKeeper(true) ||
+        role == contract.roleSweeper(true) ||
+        role == contract.roleStriker(true);
+}
+
+normalizeRole(role: int, bracket: int): int {
+    if (bracket <= 2) return contract.roleAllrounder(true);
+    return validRole(role) ? role : contract.roleAllrounder(true);
+}
+
+containsPid(state: ValeCupQueueState, pid: uint): bool {
+    for (var unit in state.units) {
+        for (var member in unit.pids) {
+            if (<uint>member == pid) return true;
+        }
+    }
+    return false;
+}
+
+hasDuplicatePid(pids: container.Array<uint>): bool {
+    var left = 0;
+    while (left < pids.length) {
+        if (<uint>pids[left] == <uint>0) return true;
+        var right = left + 1;
+        while (right < pids.length) {
+            if (<uint>pids[left] == <uint>pids[right]) return true;
+            right = right + 1;
+        }
+        left = left + 1;
+    }
+    return false;
+}
+
+appendSide(plan: ValeCupMatchPlan, unit: ValeCupQueueUnit, sideA: bool): void {
+    var team = sideA ? plan.teamA : plan.teamB;
+    var roles = sideA ? plan.rolesA : plan.rolesB;
+    for (var pid in unit.pids) team.add(pid);
+    for (var role in unit.roles) roles.add(normalizeRole(role, plan.bracket));
+}
+
+ensureSideKeeper(roles: container.Array<int>, bracket: int): void {
+    if (bracket < 3 || roles.length == 0) return;
+    for (var role in roles) {
+        if (role == contract.roleKeeper(true)) return;
+    }
+    roles[roles.length - 1] = contract.roleKeeper(true);
+}
+
+packBracket(state: ValeCupQueueState, bracket: int): ValeCupMatchPlan {
+    var plan = new ValeCupMatchPlan();
+    plan.bracket = bracket;
+    var countA = 0;
+    var countB = 0;
+    var firstA = true;
+    var firstB = true;
+    var earliestSet = false;
+
+    // This is the source's greedy A-first, then B-first unit packing. An
+    // oversized unit cannot enter through appendUnit, so it is never silently
+    // discarded by this projection.
+    for (var unit in state.units) {
+        if (unit.bracket == bracket) {
+            var members = unit.pids.length;
+            var sideA = false;
+            var admitted = false;
+            if (countA + members <= bracket) {
+                countA = countA + members;
+                sideA = true;
+                admitted = true;
+            } else if (countB + members <= bracket) {
+                countB = countB + members;
+                admitted = true;
+            }
+
+            if (admitted) {
+                plan.selectedUnitIds.add(unit.id);
+                appendSide(plan, unit, sideA);
+                if (sideA && firstA) {
+                    plan.nationA = unit.nation;
+                    firstA = false;
+                }
+                if (!sideA && firstB) {
+                    plan.nationB = unit.nation;
+                    firstB = false;
+                }
+                if (!earliestSet || unit.joinedAtTick < plan.earliestTick) {
+                    plan.earliestTick = unit.joinedAtTick;
+                    earliestSet = true;
+                }
+                if (countA == bracket && countB == bracket) break;
+            }
+        }
+    }
+
+    plan.ready = countA == bracket && countB == bracket;
+    if (!plan.ready) return plan;
+    ensureSideKeeper(plan.rolesA, bracket);
+    ensureSideKeeper(plan.rolesB, bracket);
+    plan.awayPalette = plan.nationA == plan.nationB;
+    return plan;
+}
+
+removePlanUnits(state: ValeCupQueueState, plan: ValeCupMatchPlan): void {
+    var index = state.units.length - 1;
+    while (index >= 0) {
+        var unit = state.units[index];
+        for (var id in plan.selectedUnitIds) {
+            if (unit.id == id) {
+                state.units.removeAt(index);
+                break;
+            }
+        }
+        index = index - 1;
+    }
+}
+
+// Appends one already-admitted source queue unit. The caller must make the
+// source world eligibility decision atomically before this call. On success,
+// roles are stored aligned with the immutable pid ordering snapshot.
+pub appendUnit(
+    state: ValeCupQueueState,
+    bracket: int,
+    nation: int,
+    joinedAtTick: int,
+    pids: container.Array<uint>,
+    requestedRoles: container.Array<int>
+): bool {
+    if (!validBracket(bracket) || !validNation(nation) || joinedAtTick < 0 ||
+        pids.length == 0 || pids.length > bracket || pids.length != requestedRoles.length ||
+        hasDuplicatePid(pids)) return false;
+    for (var pid in pids) {
+        if (containsPid(state, pid)) return false;
+    }
+
+    var unit = new ValeCupQueueUnit();
+    unit.id = state.nextUnitId;
+    state.nextUnitId = state.nextUnitId + <uint>1;
+    unit.bracket = bracket;
+    unit.nation = nation;
+    unit.joinedAtTick = joinedAtTick;
+    var index = 0;
+    while (index < pids.length) {
+        unit.pids.add(<uint>pids[index]);
+        unit.roles.add(normalizeRole(<int>requestedRoles[index], bracket));
+        index = index + 1;
+    }
+    state.units.add(unit);
+    return true;
+}
+
+// Mirrors vcupQueuePosition: it returns the member-position in the specified
+// bracket, or zero when the player is not in that bracket's queue.
+pub queuePosition(state: ValeCupQueueState, pid: uint, bracket: int): int {
+    if (!validBracket(bracket) || pid == <uint>0) return 0;
+    var position = 0;
+    for (var unit in state.units) {
+        if (unit.bracket == bracket) {
+            for (var member in unit.pids) {
+                if (member == pid) return position + 1;
+            }
+            position = position + unit.pids.length;
+        }
+    }
+    return 0;
+}
+
+// Source vcupQueueLeave/vcupDequeue remove the leaver's complete premade unit.
+pub leaveUnitForPid(state: ValeCupQueueState, pid: uint): bool {
+    var index = 0;
+    while (index < state.units.length) {
+        var unit = state.units[index];
+        for (var member in unit.pids) {
+            if (member == pid) {
+                state.units.removeAt(index);
+                return true;
+            }
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+pub queuedUnitCount(state: ValeCupQueueState): int {
+    return state.units.length;
+}
+
+pub queuedMemberCount(state: ValeCupQueueState, bracket: int): int {
+    if (!validBracket(bracket)) return 0;
+    var count = 0;
+    for (var unit in state.units) {
+        if (unit.bracket == bracket) count = count + unit.pids.length;
+    }
+    return count;
+}
+
+// Mirrors matchmakeValeCup's selection only. It does not start a live match:
+// a future lifecycle owner must consume the plan, then perform the source
+// sport-kit, entity, event and score transitions.
+pub takeOldestReady(state: ValeCupQueueState): ValeCupMatchPlan {
+    var selected = new ValeCupMatchPlan();
+    var found = false;
+    var bracket = contract.bracketMin(true);
+    while (bracket <= contract.bracketMax(true)) {
+        var candidate = packBracket(state, bracket);
+        if (candidate.ready && (!found || candidate.earliestTick < selected.earliestTick)) {
+            selected = candidate;
+            found = true;
+        }
+        bracket = bracket + 1;
+    }
+    if (found) removePlanUnits(state, selected);
+    return selected;
+}
+
+addOne(values: container.Array<uint>, value: uint): container.Array<uint> {
+    values.add(value);
+    return values;
+}
+
+addRole(values: container.Array<int>, value: int): container.Array<int> {
+    values.add(value);
+    return values;
+}
+
+addThree(
+    values: container.Array<uint>,
+    first: uint,
+    second: uint,
+    third: uint
+): container.Array<uint> {
+    values.add(first);
+    values.add(second);
+    values.add(third);
+    return values;
+}
+
+addThreeRoles(
+    values: container.Array<int>,
+    first: int,
+    second: int,
+    third: int
+): container.Array<int> {
+    values.add(first);
+    values.add(second);
+    values.add(third);
+    return values;
+}
+
+pub contractTest(): int {
+    var packed = new ValeCupQueueState();
+    var allrounder = contract.roleAllrounder(true);
+    if (!appendUnit(packed, 3, 0, 10,
+        addOne(new container.Array<uint>(), <uint>1),
+        addRole(new container.Array<int>(), contract.roleKeeper(true))) ||
+        !appendUnit(packed, 3, 1, 11,
+            addTwoPids(<uint>2, <uint>3),
+            addTwoRoles(allrounder, allrounder)) ||
+        !appendUnit(packed, 3, 2, 12,
+            addThree(new container.Array<uint>(), <uint>4, <uint>5, <uint>6),
+            addThreeRoles(new container.Array<int>(), allrounder, allrounder, allrounder))) {
+        return -1;
+    }
+    if (queuePosition(packed, <uint>3, 3) != 3 || queuePosition(packed, <uint>6, 3) != 6) {
+        return -2;
+    }
+    var matched = takeOldestReady(packed);
+    if (!matched.ready || matched.bracket != 3 || matched.earliestTick != 10 ||
+        matched.nationA != 0 || matched.nationB != 2 || matched.teamA.length != 3 ||
+        matched.teamB.length != 3 || <uint>matched.teamA[2] != <uint>3 ||
+        <int>matched.rolesB[2] != contract.roleKeeper(true) || queuedUnitCount(packed) != 0) {
+        return -3;
+    }
+
+    var tie = new ValeCupQueueState();
+    if (!appendUnit(tie, 1, 0, 20,
+        addOne(new container.Array<uint>(), <uint>11),
+        addRole(new container.Array<int>(), contract.roleStriker(true))) ||
+        !appendUnit(tie, 1, 1, 20,
+            addOne(new container.Array<uint>(), <uint>12),
+            addRole(new container.Array<int>(), contract.roleKeeper(true))) ||
+        !appendUnit(tie, 3, 0, 20,
+            addThree(new container.Array<uint>(), <uint>21, <uint>22, <uint>23),
+            addThreeRoles(new container.Array<int>(), allrounder, allrounder, allrounder)) ||
+        !appendUnit(tie, 3, 1, 20,
+            addThree(new container.Array<uint>(), <uint>24, <uint>25, <uint>26),
+            addThreeRoles(new container.Array<int>(), allrounder, allrounder, allrounder))) {
+        return -4;
+    }
+    var tiePlan = takeOldestReady(tie);
+    if (!tiePlan.ready || tiePlan.bracket != 1 || queuedUnitCount(tie) != 2) return -5;
+
+    var oldest = new ValeCupQueueState();
+    if (!appendUnit(oldest, 1, 0, 21,
+        addOne(new container.Array<uint>(), <uint>31),
+        addRole(new container.Array<int>(), allrounder)) ||
+        !appendUnit(oldest, 1, 1, 21,
+            addOne(new container.Array<uint>(), <uint>32),
+            addRole(new container.Array<int>(), allrounder)) ||
+        !appendUnit(oldest, 3, 0, 7,
+            addThree(new container.Array<uint>(), <uint>41, <uint>42, <uint>43),
+            addThreeRoles(new container.Array<int>(), allrounder, allrounder, allrounder)) ||
+        !appendUnit(oldest, 3, 1, 8,
+            addThree(new container.Array<uint>(), <uint>44, <uint>45, <uint>46),
+            addThreeRoles(new container.Array<int>(), allrounder, allrounder, allrounder))) {
+        return -6;
+    }
+    var oldestPlan = takeOldestReady(oldest);
+    if (!oldestPlan.ready || oldestPlan.bracket != 3 || oldestPlan.earliestTick != 7) return -7;
+
+    var admission = new ValeCupQueueState();
+    if (!appendUnit(admission, 2, 0, 0,
+        addTwoPids(<uint>51, <uint>52),
+        addTwoRoles(contract.roleKeeper(true), contract.roleStriker(true))) ||
+        queuedMemberCount(admission, 2) != 2 ||
+        appendUnit(admission, 2, 0, 1,
+            addOne(new container.Array<uint>(), <uint>51),
+            addRole(new container.Array<int>(), allrounder)) ||
+        <int>admission.units[0].roles[0] != allrounder ||
+        <int>admission.units[0].roles[1] != allrounder ||
+        !leaveUnitForPid(admission, <uint>52) || queuedUnitCount(admission) != 0) {
+        return -8;
+    }
+    return 1;
+}
+
+addTwoPids(first: uint, second: uint): container.Array<uint> {
+    var values = new container.Array<uint>();
+    values.add(first);
+    values.add(second);
+    return values;
+}
+
+addTwoRoles(first: int, second: int): container.Array<int> {
+    var values = new container.Array<int>();
+    values.add(first);
+    values.add(second);
+    return values;
+}

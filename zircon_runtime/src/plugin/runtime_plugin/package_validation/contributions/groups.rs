@@ -1,3 +1,4 @@
+use super::super::projection::RuntimePluginPackageValidationProjection;
 use crate::plugin::PluginPackageManifest;
 
 use super::super::contribution_duplicates::{
@@ -10,12 +11,13 @@ use super::super::contribution_owners::{
 
 pub(super) fn validate_runtime_plugin_package_contribution_groups(
     package_manifest: &PluginPackageManifest,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     diagnostics: &mut Vec<String>,
 ) {
-    validate_duplicate_plugin_options(package_manifest, diagnostics);
-    validate_duplicate_event_catalogs(package_manifest, diagnostics);
-    validate_duplicate_components(package_manifest, diagnostics);
-    validate_duplicate_ui_components(package_manifest, diagnostics);
+    validate_duplicate_plugin_options(package_manifest, projection, diagnostics);
+    validate_duplicate_event_catalogs(package_manifest, projection, diagnostics);
+    validate_duplicate_components(package_manifest, projection, diagnostics);
+    validate_duplicate_ui_components(package_manifest, projection, diagnostics);
     validate_event_catalog_owners(package_manifest, diagnostics);
     validate_component_owners(package_manifest, diagnostics);
     validate_ui_component_owners(package_manifest, diagnostics);

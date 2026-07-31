@@ -1,7 +1,7 @@
 use super::super::super::super::data::{FrameRect, PaneData};
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_primitives::draw_rect;
-use super::super::super::{PANE_EMPTY, VIEWPORT_PANEL};
+use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::super::viewport_toolbar;
 
 pub(super) fn draw_pane_shell_and_body(
@@ -9,9 +9,14 @@ pub(super) fn draw_pane_shell_and_body(
     pane: &PaneData,
     content: &FrameRect,
 ) -> FrameRect {
+    let palette = current_host_palette();
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_background");
-        draw_rect(frame, content.clone(), pane_background_color(pane));
+        draw_rect(
+            frame,
+            content.clone(),
+            pane_background_color(pane.kind.as_str(), palette),
+        );
     }
     if viewport_toolbar_is_visible(pane) {
         let toolbar = viewport_toolbar_frame(content);
@@ -29,10 +34,30 @@ pub(super) fn draw_pane_shell_and_body(
     }
 }
 
-fn pane_background_color(pane: &PaneData) -> [u8; 4] {
-    match pane.kind.as_str() {
-        "Scene" | "Game" => VIEWPORT_PANEL,
-        _ => PANE_EMPTY,
+fn pane_background_color(kind: &str, palette: HostMaterialPalette) -> [u8; 4] {
+    match kind {
+        "Scene" | "Game" => palette.shell_background,
+        _ => palette.surface_inset,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+
+    #[test]
+    fn pane_backgrounds_project_viewport_and_empty_roles_from_the_current_theme() {
+        let mut palette = PALETTE;
+        palette.shell_background = [3, 5, 7, 255];
+        palette.surface_inset = [11, 13, 17, 255];
+
+        assert_eq!(pane_background_color("Scene", palette), [3, 5, 7, 255]);
+        assert_eq!(pane_background_color("Game", palette), [3, 5, 7, 255]);
+        assert_eq!(
+            pane_background_color("Hierarchy", palette),
+            [11, 13, 17, 255]
+        );
     }
 }
 

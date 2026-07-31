@@ -3,9 +3,10 @@ use std::path::Path;
 
 use super::inventory::{
     BEHAVIOR_TEST_ANCHORS, DIAGNOSTIC_ANCHORS, EXPECTED_DIRECT_RAYON_PATHS,
-    EXPECTED_JOB_SYSTEM_MODULES, FORBIDDEN_SCHEDULE_EXECUTOR_RAYON_ANCHORS, JOB_HANDLE_ANCHORS,
-    JOB_SCHEDULER_ANCHORS, JOB_SYSTEM_MODULE_MAX_LINES, MIRROR_DOC_ANCHORS, PARALLEL_FOR_ANCHORS,
-    REPORT_ANCHORS, SCHEDULE_EXECUTOR_ANCHORS, TASKS_MOD_DECLARATIONS, TASKS_MOD_PUBLIC_ANCHORS,
+    EXPECTED_JOB_SYSTEM_MODULES, FORBIDDEN_LEGACY_DIAGNOSTIC_ANCHORS,
+    FORBIDDEN_SCHEDULE_EXECUTOR_RAYON_ANCHORS, JOB_HANDLE_ANCHORS, JOB_SCHEDULER_ANCHORS,
+    JOB_SYSTEM_MODULE_MAX_LINES, MIRROR_DOC_ANCHORS, PARALLEL_FOR_ANCHORS, REPORT_ANCHORS,
+    SCHEDULE_EXECUTOR_ANCHORS, TASKS_MOD_DECLARATIONS, TASKS_MOD_PUBLIC_ANCHORS, TIMER_ANCHORS,
 };
 use super::source_helpers::{collect_direct_rayon_paths, line_count};
 
@@ -58,10 +59,28 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
     let report = include_str!("../../../core/runtime/tasks/report.rs");
     assert_contains_all("JobSystem report", report, REPORT_ANCHORS);
 
+    let timer = include_str!("../../../core/runtime/tasks/timer.rs");
+    assert_contains_all("TaskTimer", timer, TIMER_ANCHORS);
+
+    for legacy_anchor in FORBIDDEN_LEGACY_DIAGNOSTIC_ANCHORS {
+        for (owner_name, owner_source) in [
+            ("tasks mod", tasks_mod),
+            ("JobScheduler", job_scheduler),
+            ("JobHandle", job_handle),
+            ("JobSystem diagnostics", diagnostics),
+            ("JobSystem report", report),
+        ] {
+            assert!(
+                !owner_source.contains(legacy_anchor),
+                "{owner_name} must not retain retired task diagnostic anchor `{legacy_anchor}`"
+            );
+        }
+    }
+
     let tasks_tests = include_str!("../../tasks.rs");
-    assert_contains_all(
-        "zircon_runtime/src/tests/tasks.rs",
-        tasks_tests,
+    assert_sources_contain_all(
+        "Runtime 11 task behavior tests",
+        &[tasks_tests, job_handle],
         BEHAVIOR_TEST_ANCHORS,
     );
 
@@ -127,6 +146,15 @@ fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
     for anchor in required {
         assert!(
             source.contains(anchor),
+            "{label} should contain Runtime 11 JobSystem audit anchor `{anchor}`"
+        );
+    }
+}
+
+fn assert_sources_contain_all(label: &str, sources: &[&str], required: &[&str]) {
+    for anchor in required {
+        assert!(
+            sources.iter().any(|source| source.contains(anchor)),
             "{label} should contain Runtime 11 JobSystem audit anchor `{anchor}`"
         );
     }

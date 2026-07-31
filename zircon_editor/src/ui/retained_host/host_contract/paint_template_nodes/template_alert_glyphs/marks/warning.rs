@@ -1,7 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::segments::{alert_segment as seg, push_segments};
-use super::palette::ALERT_GLYPH_DARK;
 
 const WARNING_TRIANGLE_CANONICAL_PIXELS: f32 = 18.0;
 const WARNING_TRIANGLE_SUBUNITS_PER_PIXEL: f32 = 20.0;
@@ -42,10 +41,15 @@ pub(super) fn push_warning_mark(
     order: i32,
     color: [u8; 4],
     opacity: f32,
+    glyph_dark: [u8; 4],
 ) {
     for row in WARNING_TRIANGLE_ROWS {
+        let row_rect = warning_triangle_row_rect(rect, row);
+        if row_rect.width <= 0.0 || row_rect.height <= 0.0 {
+            continue;
+        }
         commands.push(HostPaintCommand::quad(
-            warning_triangle_row_rect(rect, row),
+            row_rect,
             Some(clip.clone()),
             order,
             Some(color),
@@ -60,7 +64,7 @@ pub(super) fn push_warning_mark(
         rect,
         clip,
         order + 1,
-        ALERT_GLYPH_DARK,
+        glyph_dark,
         opacity,
         &[seg(8, 8, 2, 4), seg(8, 14, 2, 2)],
     );
@@ -74,8 +78,8 @@ fn warning_triangle_row_rect(rect: &FrameRect, row: WarningTriangleRowSpec) -> F
         x: rect.x + rect.width * WARNING_TRIANGLE_CENTER_RATIO
             - width * WARNING_TRIANGLE_CENTER_RATIO,
         y: rect.y + f32::from(row.y_units) * unit_height,
-        width: width.max(1.0),
-        height: (f32::from(row.height_units) * unit_height).max(1.0),
+        width: width.max(0.0),
+        height: (f32::from(row.height_units) * unit_height).max(0.0),
     }
 }
 
@@ -127,5 +131,23 @@ mod tests {
         assert_close(first.y, 23.0);
         assert_close(first.width, 6.0);
         assert_close(first.height, 2.0);
+    }
+
+    #[test]
+    fn warning_triangle_rows_stay_inside_a_subpixel_alert_slot() {
+        let rect = FrameRect {
+            x: 3.0,
+            y: 6.0,
+            width: 0.5,
+            height: 0.5,
+        };
+
+        for row in WARNING_TRIANGLE_ROWS {
+            let part = warning_triangle_row_rect(&rect, row);
+            assert!(part.x >= rect.x);
+            assert!(part.y >= rect.y);
+            assert!(part.x + part.width <= rect.x + rect.width);
+            assert!(part.y + part.height <= rect.y + rect.height);
+        }
     }
 }

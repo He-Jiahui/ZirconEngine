@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin, Weight};
 use glyphon::SwashContent;
 use glyphon::{Attrs, Buffer, Metrics, Shaping};
@@ -31,6 +33,9 @@ mod source_tests;
 #[path = "tests/frame.rs"]
 mod frame_tests;
 
+#[path = "tests/storage.rs"]
+mod storage_tests;
+
 fn test_viewport_size() -> UVec2 {
     UVec2::new(128, 64)
 }
@@ -59,7 +64,7 @@ fn test_source_image(
 ) -> NativeBitmapAtlasSourceImage {
     NativeBitmapAtlasSourceImage {
         source,
-        bytes,
+        bytes: Arc::from(bytes),
         face_epoch: 0,
     }
 }
@@ -83,7 +88,7 @@ fn test_cached_image(byte: u8) -> super::source_cache::NativeBitmapAtlasCachedGl
         left: 0,
         width: 2,
         height: 2,
-        bytes: vec![byte; 4],
+        bytes: Arc::from(vec![byte; 4]),
     }
 }
 

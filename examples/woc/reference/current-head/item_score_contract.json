@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/item_score_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/item_level.ts": "30d67df65aff6e35c48c07f9647fa92b3aacf7d055ff80e3e1f1c39abd29804c"
+  },
+  "armor_per_point": 12,
+  "weapon_dps_weight": 0.5,
+  "semantics": {
+    "primary_stats": [
+      "str",
+      "agi",
+      "sta",
+      "int",
+      "spi"
+    ],
+    "score": "primary stats + armor / armorPerPoint + average weapon DPS * weaponDpsWeight",
+    "rounding": "Math.round(score * 10) / 10",
+    "input_boundary": "current catalog item scores are nonnegative and any present weapon has positive speed; this permits exact scalar tenths rounding without a generic JavaScript Number adapter"
+  }
+}

@@ -3,7 +3,7 @@ use zircon_runtime_interface::project::PersistedAssetReference;
 
 use crate::asset::{AssetReference, ReferenceResolutionError};
 
-use super::codec::{decode_document, encode_document};
+use super::codec::{ProjectDocumentArtifact, decode_document, encode_document};
 use crate::asset::assets::{ProjectDocumentError, SceneAsset};
 
 #[derive(Deserialize, Serialize)]
@@ -161,35 +161,20 @@ struct SceneLodDocument<R> {
     _rest: toml::Table,
 }
 
-pub(in crate::asset::assets) fn validate_scene(document: &str) -> Result<(), toml::de::Error> {
-    let document = toml::from_str::<SceneAuthoringDocument<PersistedAssetReference>>(document)?;
-    touch_scene_document(&document);
-    Ok(())
-}
-
-fn touch_scene_document(document: &SceneAuthoringDocument<PersistedAssetReference>) {
-    for entity in &document.entities {
-        let Some(mesh) = &entity.mesh else { continue };
-        let _ = (&mesh.model, mesh.mesh.as_ref(), &mesh.material);
-        for primitive in &mesh.primitives {
-            let _ = (&primitive.mesh, &primitive.material);
-        }
-        for lod in &mesh.lods {
-            let _ = (&lod.model, lod.mesh.as_ref(), &lod.material);
-            for primitive in &lod.primitives {
-                let _ = (&primitive.mesh, &primitive.material);
-            }
-        }
-    }
-}
-
 pub(in crate::asset::assets) fn deserialize_scene(
     document: &str,
+    resolver: impl FnMut(&PersistedAssetReference) -> Result<AssetReference, ReferenceResolutionError>,
+) -> Result<SceneAsset, ProjectDocumentError> {
+    deserialize_scene_artifact(ProjectDocumentArtifact::parse(document)?, resolver)
+}
+
+pub(in crate::asset) fn deserialize_scene_artifact(
+    document: ProjectDocumentArtifact,
     mut resolver: impl FnMut(
         &PersistedAssetReference,
     ) -> Result<AssetReference, ReferenceResolutionError>,
 ) -> Result<SceneAsset, ProjectDocumentError> {
-    let document = toml::from_str::<SceneAuthoringDocument<PersistedAssetReference>>(document)?;
+    let document = document.into_document::<SceneAuthoringDocument<PersistedAssetReference>>()?;
     let document = map_scene_references(document, |reference| resolver(&reference))?;
     decode_document(document)
 }

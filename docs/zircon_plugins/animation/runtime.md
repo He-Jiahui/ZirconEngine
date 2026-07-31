@@ -28,14 +28,9 @@ related_code:
   - zircon_plugins/animation/runtime/src/manager/pose.rs
   - zircon_plugins/animation/runtime/src/manager/sampling.rs
   - zircon_plugins/animation/runtime/src/manager/state_machine.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
-  - zircon_plugins/animation/runtime/src/sequence/apply.rs
-  - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
-  - zircon_plugins/animation/runtime/src/sequence/conversion.rs
-  - zircon_plugins/animation/runtime/src/sequence/interpolation.rs
-  - zircon_plugins/animation/runtime/src/sequence/target.rs
-  - zircon_plugins/animation/runtime/src/sequence/tests.rs
-  - zircon_plugins/animation/runtime/src/sequence/time.rs
+  - zircon_plugins/animation/runtime/src/channel_sampling/mod.rs
+  - zircon_plugins/animation/runtime/src/channel_sampling/channel_sample.rs
+  - zircon_plugins/animation/runtime/src/channel_sampling/interpolation.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/state_machine_step.rs
@@ -43,6 +38,7 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/graph_evaluate.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_blend.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_target_binding.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/simulated_pose_blend.rs
   - zircon_plugins/animation/runtime/src/evaluation/state_machine_layer_diagnostic.rs
   - zircon_runtime/src/core/framework/physics/skeletal_pose.rs
@@ -79,6 +75,7 @@ related_code:
   - zircon_runtime/src/scene/runtime_hook/mod.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/world/compiled_binding/mod.rs
 implementation_files:
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/evaluation/compiled_graph/mod.rs
@@ -113,20 +110,16 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/manager/pose.rs
   - zircon_plugins/animation/runtime/src/manager/sampling.rs
   - zircon_plugins/animation/runtime/src/manager/state_machine.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
-  - zircon_plugins/animation/runtime/src/sequence/apply.rs
-  - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
-  - zircon_plugins/animation/runtime/src/sequence/conversion.rs
-  - zircon_plugins/animation/runtime/src/sequence/interpolation.rs
-  - zircon_plugins/animation/runtime/src/sequence/target.rs
-  - zircon_plugins/animation/runtime/src/sequence/tests.rs
-  - zircon_plugins/animation/runtime/src/sequence/time.rs
+  - zircon_plugins/animation/runtime/src/channel_sampling/mod.rs
+  - zircon_plugins/animation/runtime/src/channel_sampling/channel_sample.rs
+  - zircon_plugins/animation/runtime/src/channel_sampling/interpolation.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/state_machine_step.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/graph_evaluate.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_blend.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_target_binding.rs
   - zircon_plugins/animation/editor/Cargo.toml
   - zircon_plugins/animation/editor/src/plugin.rs
   - zircon_plugins/animation/editor/src/tests.rs
@@ -218,6 +211,7 @@ The plugin `DefaultAnimationManager` may be installed as a Runtime registry serv
 - `CompiledAnimationStateMachine` compiles entry/from/to states and transition condition parameters to dense slots. `pipeline/state_machine_cache.rs` keeps a bounded revision-aware cache, so the production state-machine phase no longer scans state names or condition parameter names each frame.
 - `PoseBlend` consumes compiled mask rows by bone index. The legacy string-mask path was deleted from production graph/state evaluation.
 - The remaining M1-T3 allocation boundary is `LevelSystem::record_animation_poses(BTreeMap<EntityId, AnimationPoseOutput>)`: ownership moves the final vectors into Runtime and exposes only cloning reads. A reusable final pose owner requires a coordinated Runtime API handback; no plugin-local compatibility wrapper is introduced.
+- PoseApply consumes Runtime08's `World::compile_descendant_name_index(...)` projection. Runtime owns each root's hierarchy/name generation; structured name and reparent writes invalidate only affected ancestor roots, while raw hierarchy-component mutation conservatively invalidates cached roots. `pose_target_binding.rs` derives plugin-local exact/short bone-name maps to dense `EntityId` values only when that Runtime binding changes. Transform writes and unrelated subtree edits retain the existing binding, while stable frames do not scan scene node records or reconstruct alias collections.
 - M2-T1 adds `mask/{asset,compile,error}.rs`: `.avatar_mask.toml` rules compile subtree inheritance, ordered overrides, and boundary gradients into dense `MaskWeights` aligned with `SkeletonTargetTable`. `AnimationAvatarMask` remains the neutral editor/diagnostic view.
 - M2-T2 adds `PoseLayer` and `PoseLayerBlendMode`; `PoseBuffer::blend_layers` applies ordered override/additive layers and multiplies each dense source row by the aligned `MaskWeights` row. Shape and layer weights are validated before mutation.
 - M2-T3's Animation half reads Physics-owned `SimulatedPoseFeed` after the final graph/state-machine/layer blend and before IK. Physics supplies a per-bone `normalized_weight` that already combines ragdoll mode, avatar-mask, and interpolation-alpha weights. The plugin resolves exact unique bone names through the compiled skeleton target table and blends local TRS without allocating a per-frame name map; invalid rows do not mutate the pose. The resulting pose is then published as the next `SkeletalPoseTargets` snapshot.
@@ -254,9 +248,9 @@ The plugin `DefaultAnimationManager` may be installed as a Runtime registry serv
 - `AnimationRuntimeSystem` resolves `AnimationManagerHandle`, advances scene player clocks, loads animation assets through `ProjectAssetManager`, blends graph/state-machine pose output, and records pose/playback runtime state on `LevelSystem`.
 - `AnimationRuntimeSystem` publishes `AnimationClipEvent` values when direct clip players, graph players, state-machine active graphs, or state-machine transition graphs advance across `AnimationClipAsset.event_tracks`, matching Bevy's clip-event precedent for timeline-authored gameplay hooks.
 - `runtime_system.rs` is the scheduling entry. `evaluation/pipeline/` is the folder-backed tick implementation; no path attributes or `scene_hook` compatibility modules remain.
-- Runtime's absorbed `DefaultAnimationManager` owns playback settings persistence, graph evaluation, state-machine evaluation, clip pose sampling, sequence-to-world application, and the bounded per-World neutral IK command queue. Concrete target compilation and solving remain plugin-owned.
-- `manager.rs` is now the structural `DefaultAnimationManager` facade. `manager/parameters.rs` owns parameter default/value mutation and numeric scalar helpers, `graph.rs` owns graph clip collection plus additive/masked graph evaluation, `state_machine.rs` owns transition condition evaluation and active-state resolution, `pose.rs` owns skeleton bind validation plus clip bone-track sampling, and `sampling.rs` owns finite-value, sample-time, and channel-sample conversion helpers.
-- `sequence.rs` is now a structural sequence facade. `sequence/apply.rs` owns sequence binding iteration and scene property writeback, `target.rs` resolves stable target ids and legacy entity paths, `time.rs` owns loop/clamp sample-time normalization, `channel_sample.rs` owns channel key selection, `interpolation.rs` owns Hermite and quaternion interpolation, `conversion.rs` owns channel-to-scene-property validation/conversion, and `tests.rs` keeps private sequence coverage out of the facade.
+- The linked plugin's `DefaultAnimationManager` and `animation.runtime` descriptor own playback settings persistence, graph evaluation, state-machine evaluation, clip pose sampling, and the bounded per-World neutral IK command queue. Concrete target compilation and solving remain plugin-owned; Runtime fallback manager/module types are not re-exported as plugin production types.
+- `manager.rs` is the plugin-owned structural `DefaultAnimationManager` facade. `manager/parameters.rs` owns parameter default/value mutation and numeric scalar helpers, `graph.rs` owns graph clip collection plus additive/masked graph evaluation, `state_machine.rs` owns transition condition evaluation and active-state resolution, `pose.rs` owns skeleton bind validation plus clip bone-track sampling, and `sampling.rs` owns finite-value, sample-time, and channel-sample conversion helpers.
+- The private `channel_sampling/` module currently supplies channel sampling and interpolation to the manager facade. `apply_sequence_to_world(...)` remains a Runtime interop re-export until Runtime08 publishes the generation-validated generic compiled property accessor; it must not become a second plugin production evaluator.
 - `DefaultAnimationManager::evaluate_graph(...)` remains a neutral compatibility-facing contract, while the production pipeline consumes `CompiledAnimationGraph` and dense target masks directly.
 - `DefaultAnimationManager::sample_clip_pose(...)` resolves `AnimationClipBoneTrackAsset.target_id` before the legacy `bone_name` fallback. Target ids can match a bone name or the slash-joined skeleton path, for example `Root/Hand`.
 - `apply_sequence_to_world(...)` resolves `AnimationSequenceBindingAsset.target_id` before the legacy `entity_path` fallback. Current runtime target ids accept a stable numeric `EntityId` string or the same canonical `EntityPath` text used by old bindings.
@@ -266,7 +260,7 @@ The plugin `DefaultAnimationManager` may be installed as a Runtime registry serv
 
 Runtime framework contracts are intentionally concrete-free:
 
-- `sequence::apply_sequence_to_world(...)` owns concrete scene writeback and is called directly by the plugin evaluation pipeline; the neutral `AnimationManager` no longer accepts `scene::World`.
+- `apply_sequence_to_world(...)` remains the current Runtime-owned scene-writeback boundary and is reached through the plugin root only while Runtime08 completes compiled property access for every track kind; the neutral `AnimationManager` does not accept `scene::World`.
 - `AnimationClipEvent` is the plugin-owned typed scene event for clip event tracks. It records the source entity, optional target id, event name, payload, clip time, and absolute playback time so looping clips can report boundary occurrences deterministically.
 - `AnimationGraphBlendMode`, `AnimationGraphClipInstance::target_ids`, and `AnimationGraphEvaluation::mask_target_ids` describe additive/masked graph output without moving concrete graph runtime back into `zircon_runtime`.
 - `AnimationClipBoneTrackAsset.target_id`, `AnimationSequenceBindingAsset.target_id`, and `AnimationClipAsset.event_tracks` add stable target/event metadata to the asset contract while keeping old `bone_name` and `entity_path` fallbacks available.
@@ -275,7 +269,7 @@ Runtime framework contracts are intentionally concrete-free:
 - `AnimationPlayerRuntimeStatus`, `AnimationRigRuntimeStatus`, and `AnimationRuntimeStatus` expose player state, rig pose coverage, missing targets, GPU-skinning readiness, last tick work, and diagnostics as copied data.
 - `ANIMATION_MANAGER_NAME` remains the stable service name consumed by runtime/editor callers.
 
-The plugin can evolve graph blending, state-machine semantics, and importer-driven animation assets without reintroducing `zircon_runtime::animation`.
+The linked plugin owns the canonical manager/module identity. Remaining Runtime sequence interop is explicit and transitional; it must converge on Runtime08 compiled property access without reintroducing a Runtime production evaluator.
 
 ## Graph Pose Semantics
 
@@ -317,7 +311,6 @@ The plugin can evolve graph blending, state-machine semantics, and importer-driv
 - The 2026-06-04 scene hook boundary split reduced `zircon_runtime/src/animation/scene_hook.rs` from a mixed 867-line file to a structural 32-line entry plus `scene_hook/{tick,scan,pending,events,sequences,pose,graph,state_machine}.rs`. `rustfmt --edition 2021 --check --config skip_children=true` passed over the split files. A focused `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-animation-scene-hook-split-0604 --message-format short --color never` attempt timed out after two minutes while other workspace/Hub/editor Cargo lanes were active and did not return Rust diagnostics; compile acceptance for this structural split remains pending.
 - The runtime plugin registers its world contributions in `RuntimeExtensionRegistry`; the composition/test host projects them with `world_runtime_extension_plan()` and installs the result through `scene::install_world_runtime_extension_plan(...)`. The obsolete CoreRuntime installation API and Core-owned extension set are absent.
 - The 2026-06-04 manager boundary split reduced `zircon_plugins/animation/runtime/src/manager.rs` from a 599-line mixed evaluator/sampler into a 128-line facade plus `manager/{parameters,graph,state_machine,pose,sampling}.rs`. The split preserves `DefaultAnimationManager` and `AnimationManager` behavior while aligning graph, state-machine, clip-pose, parameter, and finite-sampling responsibilities with engine-scale animation runtime boundaries.
-- The 2026-06-04 sequence boundary split reduced `zircon_plugins/animation/runtime/src/sequence.rs` from a 379-line mixed sequence implementation into an 11-line facade plus `sequence/{apply,channel_sample,conversion,interpolation,target,tests,time}.rs`. The split follows Theatre's sequence/keyframe separation and Unreal's sequence/track/section runtime separation while preserving current property-track writeback, target-id fallback, sample-time handling, channel sampling, Hermite/quaternion interpolation, and private coverage. `rustfmt --edition 2021 --check` passed over the sequence facade and all child files. `git diff --check -- zircon_plugins/animation/runtime/src/sequence.rs zircon_plugins/animation/runtime/src/sequence docs/zircon_plugins/animation/runtime.md docs/zircon_runtime/core/framework/animation.md .codex/sessions/20260603-2304-plugin-ecosystem-continuation.md` passed with only expected LF-to-CRLF warnings on tracked files; trailing-whitespace and conflict-marker scans over the same files returned empty. Focused Cargo validation remains pending while active workspace Cargo/rustc lanes are running.
 - The 2026-05-31 linked metadata parity slice first proved the gap with `cargo test --manifest-path zircon_plugins\animation\runtime\Cargo.toml animation_registration_contributes_runtime_module --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-animation-runtime-metadata --color never --quiet`: the linked package manifest still reported `Experimental` while the static TOML and built-in catalog reported `Beta`.
 - After updating `runtime_plugin_descriptor()`, the same focused command passed with 1 Animation runtime test and 0 failures, validating category, maturity, and both partial capability-status rows for the linked runtime package manifest. Existing output was limited to unrelated `zircon_runtime` warnings.
 - `cargo test --manifest-path Cargo.toml -p zircon_runtime --lib animation_plugin_toml_matches_catalog_beta_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-animation-runtime-metadata --color never --quiet` passed with 1 runtime static-manifest/catalog test and 0 failures, validating `zircon_plugins/animation/plugin.toml` and the built-in catalog still agree on beta/partial Animation metadata.

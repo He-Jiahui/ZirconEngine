@@ -24,7 +24,11 @@ mod registration;
 pub(crate) use registration::{collect_perception_hearing_events, PerceptionEventSubscriptions};
 
 use registration::{ai_event_catalog, register_runtime_extensions};
-pub use registration::{AI_BEHAVIOR_TICK_SYSTEM, AI_EVENT_NAMESPACE, AI_PERCEPTION_TICK_SYSTEM};
+pub use registration::{
+    AI_BEHAVIOR_DEBUG_SNAPSHOT_EVENT_ID, AI_BEHAVIOR_DEBUG_SNAPSHOT_PAYLOAD_SCHEMA,
+    AI_BEHAVIOR_TICK_SYSTEM, AI_EVENT_NAMESPACE, AI_PERCEPTION_TICK_SYSTEM,
+    BT_NODE_RESULT_EVENT_ID, BT_NODE_RESULT_PAYLOAD_SCHEMA,
+};
 
 pub const AI_DIST_CRATE_NAME: &str = "zircon_plugin_ai_dist";
 pub const AI_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_ai_runtime_entry_v3";

@@ -200,24 +200,21 @@ fn system_query_iter_combinations_mut_fetch_next_mutates_unique_groups() {
 }
 
 #[test]
-fn read_only_combination_candidate_count_uses_direct_scan() {
+fn read_only_combination_candidates_use_single_scan() {
     let source = include_str!("../ecs/query/query_combinations_iter.rs");
-    let count_body = source
-        .split("fn read_only_combination_candidate_count")
+    let constructor = source
+        .split("pub(crate) fn new(")
         .nth(1)
-        .and_then(|text| {
-            text.split("fn read_only_combination_candidate_matches")
-                .next()
-        })
-        .expect("read read-only combination candidate counter");
+        .and_then(|text| text.split("fn empty").next())
+        .expect("read read-only combination constructor");
 
-    assert!(count_body.contains("let mut count = 0_usize;"));
-    assert!(count_body.contains("for entity in entities.iter().copied()"));
-    assert!(count_body
+    assert!(constructor.contains("let mut matched_entities = Vec::new();"));
+    assert!(constructor.contains("for entity in entities.iter().copied()"));
+    assert!(constructor
         .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)"));
-    assert!(count_body.contains("count += 1;"));
-    assert!(!count_body.contains(".filter("));
-    assert!(!count_body.contains(".count()"));
+    assert!(constructor.contains("matched_entities.push(entity);"));
+    assert!(constructor.contains("if matched_entities.len() < K"));
+    assert!(!source.contains("fn read_only_combination_candidate_count"));
 }
 
 #[test]

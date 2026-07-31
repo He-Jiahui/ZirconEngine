@@ -16,8 +16,25 @@ use zircon_runtime_interface::project::PersistedAssetReference;
 
 use crate::camera::{CAMERA_FOV_Y_RADIANS, DEFAULT_CAMERA_RADIUS, SPHERE_CENTER, SPHERE_SCALE};
 
-const SPHERE_RINGS: usize = 96;
-const SPHERE_SEGMENTS: usize = 192;
+// The viewer verifies shading, not subpixel geometric detail. This keeps the generated
+// temporary asset compact while retaining a smooth silhouette at the default viewport size.
+const SPHERE_RINGS: usize = 64;
+const SPHERE_SEGMENTS: usize = 128;
+const VIEWER_PROJECT_READY_MARKER: &str = ".zircon_shader_pbr_viewer_assets_v2.ready";
+const VIEWER_PROJECT_ASSET_PATHS: [&str; 3] = [
+    "models/single_pbr_sphere.model.toml",
+    "materials/single_metal_sphere.zmaterial",
+    "scenes/single_pbr_sphere.scene.toml",
+];
+
+pub(crate) fn viewer_project_assets_are_ready(asset_root: &std::path::Path) -> bool {
+    asset_root.parent().is_some_and(|project_root| {
+        project_root.join(VIEWER_PROJECT_READY_MARKER).is_file()
+            && VIEWER_PROJECT_ASSET_PATHS
+                .iter()
+                .all(|relative_path| asset_root.join(relative_path).is_file())
+    })
+}
 
 pub(crate) fn write_viewer_project_assets(
     asset_root: &std::path::Path,
@@ -46,6 +63,7 @@ pub(crate) fn write_viewer_project_assets(
             .join("single_pbr_sphere.scene.toml"),
         &project,
     )?;
+    fs::write(project_root.join(VIEWER_PROJECT_READY_MARKER), "ready\n")?;
     Ok(())
 }
 
@@ -353,4 +371,132 @@ fn project_asset_reference(
 
 fn invalid_data(error: String) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::InvalidData, error)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        viewer_project_assets_are_ready, write_perfect_mirror_material, AssetReference,
+        MaterialAsset, ReferenceResolutionError, SPHERE_RINGS, SPHERE_SEGMENTS,
+        VIEWER_PROJECT_ASSET_PATHS, VIEWER_PROJECT_READY_MARKER,
+    };
+    use zircon_runtime::asset::assets::ZMaterialDocument;
+
+    #[test]
+    fn viewer_mirror_mesh_stays_within_its_startup_triangle_budget() {
+        assert_eq!(SPHERE_RINGS * SPHERE_SEGMENTS * 2, 16_384);
+    }
+
+    #[test]
+    fn viewer_project_ready_marker_requires_a_completed_asset_write() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_shader_pbr_viewer_asset_ready_test_{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let asset_root = root.join("assets");
+        std::fs::create_dir_all(&asset_root).expect("test cache root should be created");
+
+        assert!(!viewer_project_assets_are_ready(&asset_root));
+        std::fs::write(root.join(VIEWER_PROJECT_READY_MARKER), "ready\n")
+            .expect("test ready marker should be written");
+        assert!(
+            !viewer_project_assets_are_ready(&asset_root),
+            "a ready marker without its generated assets must not be reused"
+        );
+        for relative_path in VIEWER_PROJECT_ASSET_PATHS {
+            let path = asset_root.join(relative_path);
+            std::fs::create_dir_all(path.parent().expect("asset path should have a parent"))
+                .expect("test asset parent should be created");
+            std::fs::write(path, "fixture\n").expect("test asset should be written");
+        }
+        assert!(viewer_project_assets_are_ready(&asset_root));
+
+        std::fs::remove_file(asset_root.join(VIEWER_PROJECT_ASSET_PATHS[1]))
+            .expect("test asset should be removable");
+        assert!(
+            !viewer_project_assets_are_ready(&asset_root),
+            "a partial cache must regenerate the viewer project assets"
+        );
+
+        std::fs::remove_dir_all(&root).expect("test cache root should be removed");
+    }
+
+    #[test]
+    fn viewer_mirror_material_matches_environment_only_prewarm_variant() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_shader_pbr_viewer_mirror_material_test_{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let material_path = root.join("single_metal_sphere.zmaterial");
+
+        write_perfect_mirror_material(material_path.clone())
+            .expect("viewer mirror material should be generated");
+        let source = std::fs::read_to_string(&material_path)
+            .expect("viewer mirror material should be readable");
+        let document: toml::Value =
+            toml::from_str(&source).expect("viewer mirror material should remain valid TOML");
+        let overrides = document
+            .get("overrides")
+            .and_then(toml::Value::as_table)
+            .expect("viewer mirror material should keep its PBR overrides");
+
+        assert!(
+            source.contains("builtin://shader/pbr.wgsl"),
+            "viewer mirror material must use the builtin PBR shader warmed by the renderer"
+        );
+        assert_eq!(
+            overrides
+                .get("lighting_model")
+                .and_then(toml::Value::as_str),
+            Some("pbr")
+        );
+        assert_eq!(
+            overrides
+                .get("receive_shadows")
+                .and_then(toml::Value::as_bool),
+            Some(false),
+            "the viewer must reuse the prewarmed no-shadow-receiver Base variant"
+        );
+        assert_eq!(
+            overrides.get("metallic").and_then(toml::Value::as_float),
+            Some(1.0)
+        );
+        assert_eq!(
+            overrides.get("roughness").and_then(toml::Value::as_float),
+            Some(0.0)
+        );
+        assert!(
+            document.get("textures").is_none(),
+            "the environment-only viewer prewarms the static no-texture material variant"
+        );
+
+        let material = ZMaterialDocument::from_project_toml_str(&source, |reference| {
+            reference
+                .builtin_locator()
+                .cloned()
+                .map(AssetReference::from_locator)
+                .ok_or_else(|| ReferenceResolutionError::Registry {
+                    message: "viewer material test expects a builtin shader reference".to_string(),
+                })
+        })
+        .map(MaterialAsset::from_zmaterial_document)
+        .expect("viewer mirror material should deserialize into its runtime asset");
+        let descriptor = material.standard_material_descriptor();
+        assert!(
+            !descriptor.receive_shadows,
+            "the runtime material descriptor must keep the no-shadow-receiver prewarm key"
+        );
+        assert!(
+            descriptor.base_color_texture.is_none()
+                && descriptor.normal_texture.is_none()
+                && descriptor.metallic_roughness_texture.is_none()
+                && descriptor.occlusion_texture.is_none()
+                && descriptor.emissive_texture.is_none(),
+            "the runtime material descriptor must retain the prewarm's static no-texture key"
+        );
+
+        std::fs::remove_dir_all(&root).expect("test cache root should be removed");
+    }
 }

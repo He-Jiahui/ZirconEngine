@@ -1,4 +1,5 @@
 use thiserror::Error;
+use zircon_runtime_interface::serialization::CanonicalTextWriteError;
 
 use super::super::DynamicSceneError;
 
@@ -8,6 +9,8 @@ pub enum RuntimeSessionArchiveError {
     Io(#[from] std::io::Error),
     #[error("runtime session archive parse failed: {0}")]
     Parse(#[from] serde_json::Error),
+    #[error(transparent)]
+    CanonicalText(#[from] CanonicalTextWriteError),
     #[error(transparent)]
     DynamicScene(#[from] DynamicSceneError),
     #[error("unsupported runtime session archive format version {actual}; expected {expected}")]

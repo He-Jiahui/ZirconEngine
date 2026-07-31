@@ -38,10 +38,12 @@ pub use workbench_view_model::WorkbenchViewModel;
 #[cfg(test)]
 fn host_command_eval_ctx_for_test(
     chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+    play_mode: crate::core::play::PlayModeKind,
     capabilities: &[String],
 ) -> crate::core::commands::CommandEvalCtx {
     crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome(
         chrome,
+        play_mode,
         capabilities.iter().cloned(),
     )
 }

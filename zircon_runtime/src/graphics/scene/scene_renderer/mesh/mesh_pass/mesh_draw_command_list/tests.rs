@@ -23,6 +23,26 @@ mod advanced_materials;
 mod cache;
 
 #[test]
+fn mesh_pass_builder_does_not_sort_before_phase_partition_sorts() {
+    let source = include_str!("builder.rs");
+
+    assert!(!source.contains("commands.sort();\n    MeshPassCommandBuffers::from_command_list"));
+}
+
+#[test]
+fn mesh_pass_builder_writes_dynamic_commands_into_the_frame_arena() {
+    let source = include_str!("builder.rs");
+
+    assert!(!source.contains("let mut batch_commands = MeshDrawCommandList::new();"));
+    let postprocess = source
+        .split("fn add_uncached_postprocess_phase")
+        .nth(1)
+        .and_then(|source| source.split("fn append_dynamic_commands").next())
+        .expect("uncached postprocess helper source");
+    assert!(!postprocess.contains("let mut rebuilt = MeshDrawCommandList::new();"));
+}
+
+#[test]
 fn mesh_draw_command_list_sorts_by_phase_then_sort_key() {
     let commands = MeshDrawCommandList::from_commands(vec![
         command(RenderPhase::Transparent3d, 10, 3),

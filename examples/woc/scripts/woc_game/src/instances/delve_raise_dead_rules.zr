@@ -1,0 +1,55 @@
+// Scalar projection of the source five-second Delve Raise Dead channel.
+// Callers must use canStartOn before start because object ownership stays with DelveRun.
+var content = %import("instances/delve_raise_dead_content");
+class RaiseDeadState {
+    pub var active: bool;
+    pub var remaining: float;
+    pub var completed: int;
+    pub @constructor() { this.active = false; this.remaining = 0.0; this.completed = 0; }
+}
+
+pub start(state: RaiseDeadState): bool {
+    if (state.active) { return false; }
+    state.active = true;
+    state.remaining = content.channelSeconds(true);
+    return true;
+}
+
+pub interrupt(state: RaiseDeadState): bool {
+    if (!state.active) { return false; }
+    state.active = false;
+    state.remaining = 0.0;
+    return true;
+}
+
+pub tick(state: RaiseDeadState, delta: float): bool {
+    if (delta < 0.0) { throw "woc Raise Dead delta is invalid"; }
+    if (!state.active) { return false; }
+    state.remaining = state.remaining - delta;
+    if (state.remaining > 0.0) { return false; }
+    state.active = false;
+    state.remaining = 0.0;
+    state.completed = state.completed + 1;
+    return true;
+}
+
+pub completionSpawnsBossAdds(bossAlive: bool, required: bool): bool {
+    if (!required) { throw "woc Raise Dead completion query is required"; }
+    return content.completionRequiresLivingBoss(true) &&
+        content.completionSpawnsBossAdds(true) && bossAlive;
+}
+
+pub canStartOn(interruptObjectKind: string, required: bool): bool {
+    if (!required) { throw "woc Raise Dead start query is required"; }
+    return content.startRequiresCrackedGrave(true) &&
+        interruptObjectKind == content.interruptObjectKind(true);
+}
+
+pub contractTest(): int {
+    var state = new RaiseDeadState();
+    if (content.contractTest() != 1 || !start(state) || start(state) || tick(state, 4.95) || !tick(state, 0.05) || state.completed != 1 || state.active) { return -1; }
+    if (!completionSpawnsBossAdds(true, true) || completionSpawnsBossAdds(false, true)) { return -2; }
+    if (!start(state) || !interrupt(state) || tick(state, 9.0) || state.completed != 1) { return -3; }
+    if (!canStartOn("cracked_grave", true) || canStartOn("other", true)) { return -4; }
+    return 1;
+}

@@ -16,7 +16,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     opacity: f32,
 ) {
     let metrics = tooltip_metrics();
-    let text_width = (bubble.width - metrics.text_left * 2.0).max(1.0);
+    let text_width = (bubble.width - metrics.text_left * 2.0).max(0.0);
     push_tooltip_title(
         commands,
         node,

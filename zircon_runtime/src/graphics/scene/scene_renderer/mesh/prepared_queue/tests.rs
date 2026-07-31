@@ -4,6 +4,16 @@ use crate::core::framework::scene::Mobility;
 mod gpu_sources;
 
 #[test]
+fn prepared_queue_candidate_stats_share_one_keyed_group_table() {
+    let source = include_str!("../prepared_queue.rs");
+
+    assert!(source.contains("HashMap::<K, CandidateGroupCounts>::new()"));
+    assert!(!source.contains("static_batch_groups = HashMap"));
+    assert!(!source.contains("dynamic_batch_groups = HashMap"));
+    assert!(!source.contains("gpu_instancing_groups = HashMap"));
+}
+
+#[test]
 fn prepared_queue_stats_allow_early_z_only_for_opaque_and_alpha_mask() {
     let stats = summarize_prepared_mesh_queue_items([
         item(

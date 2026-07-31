@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_cooldown_persist_state_tests",
+  "source": "src",
+  "binary": "bin-m5-cooldown-persist-state-tests",
+  "entry": "progression/cooldown_persist_state_test_main"
+}

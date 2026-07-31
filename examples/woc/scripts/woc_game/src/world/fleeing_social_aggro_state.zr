@@ -1,0 +1,262 @@
+// Current-head social aggro projection. The caller provides the local
+// spatial-query result. Flee rally ends the fleeing state after a nonzero
+// result; normal pull runs after the caller has entered the primary mob.
+var container = %import("zr.container");
+var contract = %import("generated/social_aggro_contract");
+
+pub class FleeSocialAggroMob {
+    pub var id: int;
+    // Normal pull requires exact source template identity; flee rally uses
+    // family identity instead.
+    pub var templateId: string;
+    // Empty has the same role as a missing source MOBS[templateId].family.
+    pub var family: string;
+    pub var x: float;
+    pub var y: float;
+    pub var z: float;
+    pub var dead: bool;
+    pub var hostile: bool;
+    pub var aiState: string;
+    pub var hasOwner: bool;
+    pub var aggroTargetId: int;
+    pub var inCombat: bool;
+    pub var leashX: float;
+    pub var leashY: float;
+    pub var leashZ: float;
+    pub var threatTargetIds: container.Array<int>;
+    pub var threatAmounts: container.Array<float>;
+
+    pub @constructor() {
+        this.id = 0;
+        this.templateId = "";
+        this.family = "";
+        this.x = 0.0;
+        this.y = 0.0;
+        this.z = 0.0;
+        this.dead = false;
+        this.hostile = true;
+        this.aiState = "idle";
+        this.hasOwner = false;
+        this.aggroTargetId = 0;
+        this.inCombat = false;
+        this.leashX = 0.0;
+        this.leashY = 0.0;
+        this.leashZ = 0.0;
+        this.threatTargetIds = new container.Array<int>();
+        this.threatAmounts = new container.Array<float>();
+    }
+}
+
+threatIndex(mob: FleeSocialAggroMob, targetId: int): int {
+    var index = 0;
+    while (index < mob.threatTargetIds.length) {
+        if (<int>mob.threatTargetIds[index] == targetId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+addThreat(mob: FleeSocialAggroMob, targetId: int, amount: float): void {
+    var index = threatIndex(mob, targetId);
+    if (index < 0) {
+        mob.threatTargetIds.add(targetId);
+        mob.threatAmounts.add(amount);
+        return;
+    }
+    mob.threatAmounts[index] = <float>mob.threatAmounts[index] + amount;
+}
+
+threatFor(mob: FleeSocialAggroMob, targetId: int): float {
+    var index = threatIndex(mob, targetId);
+    return index < 0 ? 0.0 : <float>mob.threatAmounts[index];
+}
+
+// The source grid callback is represented by a caller-owned local candidate
+// list. The predicate deliberately uses strict distance, matching the source.
+pub rallyFleeingAllies(
+    candidates: container.Array<FleeSocialAggroMob>, fleeingMobId: int, targetId: int
+): int {
+    var fleeing = new FleeSocialAggroMob();
+    var foundFleeing = false;
+    var index = 0;
+    while (index < candidates.length) {
+        var candidate = <FleeSocialAggroMob>candidates[index];
+        if (candidate.id == fleeingMobId) {
+            fleeing = candidate;
+            foundFleeing = true;
+            break;
+        }
+        index = index + 1;
+    }
+    if (!foundFleeing || fleeing.family == "") return 0;
+    var radius = contract.fleeHelpRadius();
+    var radiusSquared = radius * radius;
+    var pulled = 0;
+    index = 0;
+    while (index < candidates.length) {
+        var candidate = <FleeSocialAggroMob>candidates[index];
+        var dx = candidate.x - fleeing.x;
+        var dz = candidate.z - fleeing.z;
+        var distanceSquared = dx * dx + dz * dz;
+        if (candidate.id != fleeing.id && !candidate.dead && candidate.hostile &&
+            candidate.aiState == "idle" && !candidate.hasOwner &&
+            candidate.family == fleeing.family && distanceSquared < radiusSquared) {
+            candidate.aiState = "chase";
+            candidate.aggroTargetId = targetId;
+            candidate.inCombat = true;
+            candidate.leashX = fleeing.x;
+            candidate.leashY = fleeing.y;
+            candidate.leashZ = fleeing.z;
+            addThreat(candidate, targetId, 1.0);
+            pulled = pulled + 1;
+        }
+        index = index + 1;
+    }
+    return pulled;
+}
+
+// Source Sim's normal aggro uses five yards except for mudfin, which use an
+// eight-yard pack radius. Only the primary mob's family chooses that radius.
+pub normalSocialPullRadius(family: string, required: bool): float {
+    if (!required) {
+        throw "normal social pull radius is required";
+    }
+    return family == "mudfin" ? 8.0 : 5.0;
+}
+
+// This is the social tail of aggroMob. The caller transitions the primary mob
+// first; each eligible ally copies its own source position into the leash
+// anchor, exactly as the source grid callback does for `m`.
+pub normalSocialPull(
+    candidates: container.Array<FleeSocialAggroMob>, pullingMobId: int, targetId: int
+): int {
+    var pulling = new FleeSocialAggroMob();
+    var foundPulling = false;
+    var index = 0;
+    while (index < candidates.length) {
+        var candidate = <FleeSocialAggroMob>candidates[index];
+        if (candidate.id == pullingMobId) {
+            pulling = candidate;
+            foundPulling = true;
+            break;
+        }
+        index = index + 1;
+    }
+    if (!foundPulling || pulling.templateId == "") {
+        return 0;
+    }
+    var radius = normalSocialPullRadius(pulling.family, true);
+    var radiusSquared = radius * radius;
+    var pulled = 0;
+    index = 0;
+    while (index < candidates.length) {
+        var candidate = <FleeSocialAggroMob>candidates[index];
+        var dx = candidate.x - pulling.x;
+        var dz = candidate.z - pulling.z;
+        var distanceSquared = dx * dx + dz * dz;
+        if (candidate.id != pulling.id && !candidate.dead && candidate.hostile &&
+            candidate.aiState == "idle" && !candidate.hasOwner &&
+            candidate.templateId == pulling.templateId && distanceSquared < radiusSquared) {
+            candidate.aiState = "chase";
+            candidate.aggroTargetId = targetId;
+            candidate.inCombat = true;
+            candidate.leashX = candidate.x;
+            candidate.leashY = candidate.y;
+            candidate.leashZ = candidate.z;
+            addThreat(candidate, targetId, 1.0);
+            pulled = pulled + 1;
+        }
+        index = index + 1;
+    }
+    return pulled;
+}
+
+makeMob(id: int, family: string, x: float, z: float): FleeSocialAggroMob {
+    var mob = new FleeSocialAggroMob();
+    mob.id = id;
+    mob.family = family;
+    mob.x = x;
+    mob.z = z;
+    return mob;
+}
+
+pub contractTest(): int {
+    var mobs = new container.Array<FleeSocialAggroMob>();
+    var fleeing = makeMob(1, "wolf", 0.0, 0.0);
+    fleeing.y = 3.0;
+    var ally = makeMob(2, "wolf", 3.0, 4.0);
+    var edge = makeMob(3, "wolf", 5.0, 0.0);
+    var foreign = makeMob(4, "boar", 1.0, 0.0);
+    var busy = makeMob(5, "wolf", 1.0, 0.0);
+    busy.aiState = "chase";
+    var owned = makeMob(6, "wolf", 1.0, 0.0);
+    owned.hasOwner = true;
+    addThreat(ally, 99, 4.0);
+    mobs.add(fleeing);
+    mobs.add(ally);
+    mobs.add(edge);
+    mobs.add(foreign);
+    mobs.add(busy);
+    mobs.add(owned);
+    if (rallyFleeingAllies(mobs, 1, 99) != 1 || ally.aiState != "chase" ||
+        ally.aggroTargetId != 99 || !ally.inCombat || ally.leashX != 0.0 ||
+        ally.leashY != 3.0 || ally.leashZ != 0.0 || threatFor(ally, 99) != 5) return -1;
+    if (edge.aiState != "idle" || foreign.aiState != "idle" ||
+        busy.aggroTargetId != 0 || owned.aggroTargetId != 0) return -2;
+    var noFamily = makeMob(7, "", 0.0, 0.0);
+    mobs.add(noFamily);
+    if (rallyFleeingAllies(mobs, 7, 99) != 0) return -3;
+    return contract.fleeHelpRadius() == 5.0 ? 1 : -4;
+}
+
+pub normalSocialPullContractTest(): int {
+    if (normalSocialPullRadius("beast", true) != 5.0 ||
+        normalSocialPullRadius("mudfin", true) != 8.0) {
+        return -1;
+    }
+    var mobs = new container.Array<FleeSocialAggroMob>();
+    var primary = makeMob(10, "beast", 0.0, 0.0);
+    primary.templateId = "forest_wolf";
+    var ally = makeMob(11, "beast", 3.0, 3.0);
+    ally.templateId = "forest_wolf";
+    ally.y = 2.0;
+    addThreat(ally, 77, 0.25);
+    var edge = makeMob(12, "beast", 3.0, 4.0);
+    edge.templateId = "forest_wolf";
+    var differentTemplate = makeMob(13, "beast", 1.0, 0.0);
+    differentTemplate.templateId = "wild_boar";
+    var busy = makeMob(14, "beast", 1.0, 0.0);
+    busy.templateId = "forest_wolf";
+    busy.aiState = "chase";
+    var owned = makeMob(15, "beast", 1.0, 0.0);
+    owned.templateId = "forest_wolf";
+    owned.hasOwner = true;
+    mobs.add(primary);
+    mobs.add(ally);
+    mobs.add(edge);
+    mobs.add(differentTemplate);
+    mobs.add(busy);
+    mobs.add(owned);
+    if (normalSocialPull(mobs, 10, 77) != 1 || ally.aiState != "chase" ||
+        ally.aggroTargetId != 77 || !ally.inCombat || ally.leashX != 3.0 ||
+        ally.leashY != 2.0 || ally.leashZ != 3.0 || threatFor(ally, 77) != 1.25) {
+        return -2;
+    }
+    if (edge.aiState != "idle" || differentTemplate.aiState != "idle" ||
+        busy.aggroTargetId != 0 || owned.aggroTargetId != 0) {
+        return -3;
+    }
+
+    var mudfin = new container.Array<FleeSocialAggroMob>();
+    var murloc = makeMob(20, "mudfin", 0.0, 0.0);
+    murloc.templateId = "mudfin_murloc";
+    var distantAlly = makeMob(21, "mudfin", 7.0, 0.0);
+    distantAlly.templateId = "mudfin_murloc";
+    mudfin.add(murloc);
+    mudfin.add(distantAlly);
+    if (normalSocialPull(mudfin, 20, 88) != 1 || distantAlly.aiState != "chase" ||
+        distantAlly.leashX != 7.0 || distantAlly.leashZ != 0.0) {
+        return -4;
+    }
+    return 1;
+}

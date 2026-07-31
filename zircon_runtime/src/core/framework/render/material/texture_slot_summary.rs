@@ -118,8 +118,12 @@ impl RenderMaterialTextureSlotSummary {
     }
 
     pub fn from_non_standard_slots(slots: &BTreeMap<String, Option<ResourceId>>) -> Self {
-        let texture_ids = slots.values().cloned().collect::<Vec<_>>();
-        Self::from_texture_ids(&texture_ids)
+        let resolved_count = slots.values().filter(|id| id.is_some()).count();
+        Self {
+            total_count: slots.len(),
+            resolved_count,
+            fallback_count: slots.len().saturating_sub(resolved_count),
+        }
     }
 }
 

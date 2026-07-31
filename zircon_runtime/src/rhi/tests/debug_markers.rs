@@ -4,10 +4,10 @@ use crate::rhi::{
     RenderPassStoreOp, RenderQueueClass, RhiError, TextureDesc, TextureFormat, TextureHandle,
     TextureUsage,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
 fn create_render_attachment(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     format: TextureFormat,
 ) -> TextureHandle {
@@ -52,7 +52,7 @@ fn begin_default_render_pass(
 
 #[test]
 fn command_list_records_debug_markers_and_groups() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
 
     let mut command_list = device
         .create_command_list(RenderQueueClass::Graphics, "debug-groups")
@@ -84,7 +84,7 @@ fn command_list_records_debug_markers_and_groups() {
 
 #[test]
 fn command_list_submit_validates_debug_marker_labels_and_group_lifetime() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
 
     let mut empty_marker = device
         .create_command_list(RenderQueueClass::Graphics, "empty-debug-marker")
@@ -133,7 +133,7 @@ fn command_list_submit_validates_debug_marker_labels_and_group_lifetime() {
 
 #[test]
 fn command_list_submit_validates_render_pass_debug_group_scope() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color =
         create_render_attachment(&device, "debug-scope-color", TextureFormat::Rgba8UnormSrgb);
     let depth = create_render_attachment(&device, "debug-scope-depth", TextureFormat::Depth24Plus);

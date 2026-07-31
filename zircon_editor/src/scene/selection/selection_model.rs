@@ -1,7 +1,7 @@
 use indexmap::IndexSet;
 use zircon_runtime::core::framework::scene::EntityId;
 
-use super::{domain_selection::DomainSelection, WorldDomain};
+use super::{SelectionMutation, WorldDomain, domain_selection::DomainSelection};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SelectionModel {
@@ -78,8 +78,36 @@ impl SelectionModel {
         self.mutate(domain, |selection| selection.extend(items))
     }
 
+    pub fn extend_active<I>(&mut self, items: I) -> bool
+    where
+        I: IntoIterator<Item = EntityId>,
+    {
+        self.extend(self.active_domain, items)
+    }
+
     pub fn toggle(&mut self, domain: WorldDomain, entity: EntityId) -> bool {
         self.mutate(domain, |selection| selection.toggle(entity))
+    }
+
+    pub fn toggle_active(&mut self, entity: EntityId) -> bool {
+        self.toggle(self.active_domain, entity)
+    }
+
+    pub fn apply_active<I>(&mut self, items: I, mutation: SelectionMutation) -> bool
+    where
+        I: IntoIterator<Item = EntityId>,
+    {
+        let items = items.into_iter().collect::<Vec<_>>();
+        match mutation {
+            SelectionMutation::Replace => {
+                let primary = items.last().copied();
+                self.replace_active(items, primary)
+            }
+            SelectionMutation::Extend => self.extend_active(items),
+            SelectionMutation::Toggle => items.into_iter().fold(false, |changed, entity| {
+                self.toggle_active(entity) || changed
+            }),
+        }
     }
 
     pub fn clear(&mut self, domain: WorldDomain) -> bool {

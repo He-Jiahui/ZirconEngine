@@ -1,5 +1,6 @@
 //! Parallel text work queues and worker-owned CPU tasks.
 
+mod completion_queue;
 pub(crate) mod raster_pool;
 pub(crate) mod shape_pool;
 

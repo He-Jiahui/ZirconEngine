@@ -1,0 +1,77 @@
+// Source-owned movement side-effect decisions from stepPlayerMotion. This
+// module reports only whether the future authoritative reducer must call its
+// own stand-up/cast-cancel paths; it never owns sitting, casting, auras, logs
+// or damage state.
+
+var playerMotion = %import("world/player_motion");
+
+// `wantsMove` includes jump, so the source stands a sitting actor before it
+// checks planar control, steepness or cast mobility.
+pub standUpRequested(
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    jump: bool,
+    sitting: bool,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player motion stand-up decision is required";
+    }
+    return sitting && (jump ||
+        playerMotion.hasPlanarInput(forward, back, strafeLeft, strafeRight, true));
+}
+
+// An ordinary movable cast breaks only when planar movement is actually
+// enabled. `steepGround` gates movement from the rounded source slope cache;
+// `slideActive` separately represents terrainDownhill at the exact pose.
+// Sliding is independent and always cancels an active cast, including a cast
+// otherwise marked mobile.
+pub cancelCastRequested(
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    rooted: bool,
+    steepGround: bool,
+    slideActive: bool,
+    hasCastingAbility: bool,
+    mobileCast: bool,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player motion cast-cancel decision is required";
+    }
+    if (!hasCastingAbility) {
+        return false;
+    }
+    var hasPlanarInput = playerMotion.hasPlanarInput(
+        forward,
+        back,
+        strafeLeft,
+        strafeRight,
+        true
+    );
+    var moving = hasPlanarInput && !rooted && !steepGround;
+    return slideActive || (moving && !mobileCast);
+}
+
+pub contractTest(): int {
+    if (!standUpRequested(false, false, false, false, true, true, true) ||
+        !standUpRequested(true, false, false, false, false, true, true) ||
+        standUpRequested(false, false, false, false, false, true, true) ||
+        standUpRequested(true, false, false, false, false, false, true)) {
+        return -1;
+    }
+    if (!cancelCastRequested(true, false, false, false, false, false, false, true, false, true) ||
+        cancelCastRequested(true, false, false, false, false, false, false, true, true, true) ||
+        cancelCastRequested(true, false, false, false, true, false, false, true, false, true) ||
+        cancelCastRequested(false, false, false, false, true, true, false, true, true, true) ||
+        !cancelCastRequested(false, false, false, false, true, true, true, true, true, true) ||
+        cancelCastRequested(false, false, false, false, false, false, false, true, false, true) ||
+        cancelCastRequested(false, false, false, false, false, false, false, false, false, true)) {
+        return -2;
+    }
+    return 1;
+}

@@ -1,6 +1,15 @@
 use crate::ui::retained_host::primitives::SharedString;
 
 #[derive(Clone, Default)]
+pub(crate) struct TemplatePaneCollectionRowData {
+    pub source_index: i32,
+    pub row_identity_field: SharedString,
+    pub identity_kind: SharedString,
+    pub identity_text: SharedString,
+    pub label: SharedString,
+}
+
+#[derive(Clone, Default)]
 pub(crate) struct TemplatePaneCollectionFieldData {
     pub row_id: SharedString,
     pub index_text: SharedString,

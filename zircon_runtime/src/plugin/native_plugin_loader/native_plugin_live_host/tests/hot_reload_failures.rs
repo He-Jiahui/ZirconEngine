@@ -20,13 +20,8 @@ fn hot_reload_missing_symbol_after_reload_rolls_back_to_previous_instance() {
             ),
         );
     }
-    let report = NativePluginLoadReport {
-        discovered: Vec::new(),
-        loaded: Vec::new(),
-        diagnostics: vec![
-            "native plugin physics skipped because runtime entry symbol is missing".to_string(),
-        ],
-    };
+    let mut report = NativePluginLoadReport::default();
+    report.push_diagnostic("native plugin physics skipped because runtime entry symbol is missing");
 
     let error = host
         .hot_reload_reported_plugin(
@@ -72,11 +67,7 @@ fn hot_reload_state_restore_failure_rolls_back_and_reports() {
         "physics",
         hot_reload_stateful_behavior(None, Some(hot_reload_restore_state_failure)),
     );
-    let report = NativePluginLoadReport {
-        discovered: Vec::new(),
-        loaded: vec![replacement],
-        diagnostics: Vec::new(),
-    };
+    let report = NativePluginLoadReport::from_loaded(vec![replacement]);
 
     let error = host
         .hot_reload_reported_plugin(
@@ -122,6 +113,7 @@ fn hot_reload_stateful_behavior(
         command_manifest: None,
         event_manifest: None,
         registration_manifest: None,
+        command_table: None,
         invoke_command: None,
         save_state,
         restore_state,

@@ -4,7 +4,7 @@ use super::{
     asset::{activity_asset_content_viewport_and_extent, asset_tree_viewport_frame},
     draw_activity_asset_content_scrollbar, hierarchy_content_extent,
 };
-use crate::ui::layouts::common::model_rc;
+use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::hierarchy_pointer::constants::{ROW_GAP, ROW_HEIGHT, ROW_Y};
 use crate::ui::retained_host::host_contract::data::{
     AssetsActivityPaneData, FrameRect, HostPaneInteractionStateData, PaneData,
@@ -12,6 +12,9 @@ use crate::ui::retained_host::host_contract::data::{
 };
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_theme::METRICS;
+use crate::ui::workbench::asset_content_layout::{
+    asset_content_paint_metadata, AssetContentPaintNodeInput, AssetContentSurface,
+};
 
 #[test]
 fn scrollbar_metrics_match_unreal_starship_baseline() {
@@ -146,21 +149,46 @@ fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
 }
 
 fn activity_content_pane(content_extent: f32) -> PaneData {
+    let view_nodes = vec![ViewTemplateNodeData {
+        control_id: "AssetsActivityContentPanel".into(),
+        value_number: content_extent,
+        frame: ViewTemplateFrameData {
+            x: 10.0,
+            y: 20.0,
+            width: 100.0,
+            height: 80.0,
+        },
+        ..ViewTemplateNodeData::default()
+    }];
+    let metadata = asset_content_paint_metadata(
+        view_nodes.iter().map(|node| {
+            AssetContentPaintNodeInput::new(
+                node.control_id.as_str(),
+                node.frame.x,
+                node.frame.y,
+                node.frame.width,
+                node.frame.height,
+                node.value_number,
+            )
+        }),
+        AssetContentSurface::Activity,
+    );
+    let nodes = crate::ui::retained_host::primitives::ModelRc::with_metadata(view_nodes, metadata)
+        .map_preserving_metadata(|node| TemplatePaneNodeData {
+            control_id: node.control_id.clone(),
+            value_number: node.value_number,
+            frame: TemplateNodeFrameData {
+                x: node.frame.x,
+                y: node.frame.y,
+                width: node.frame.width,
+                height: node.frame.height,
+            },
+            ..TemplatePaneNodeData::default()
+        });
+
     PaneData {
         kind: "Assets".into(),
-        assets_activity: AssetsActivityPaneData {
-            nodes: model_rc(vec![TemplatePaneNodeData {
-                control_id: "AssetsActivityContentPanel".into(),
-                value_number: content_extent,
-                frame: TemplateNodeFrameData {
-                    x: 10.0,
-                    y: 20.0,
-                    width: 100.0,
-                    height: 80.0,
-                },
-                ..TemplatePaneNodeData::default()
-            }]),
-        },
+        assets_activity: AssetsActivityPaneData { nodes },
         ..PaneData::default()
     }
 }

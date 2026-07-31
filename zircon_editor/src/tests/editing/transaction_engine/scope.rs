@@ -71,9 +71,12 @@ fn same_context_nesting_folds_and_cross_context_nesting_is_typed_error() {
     ));
     outer.commit().unwrap();
 
-    let snapshot = engine.history_snapshot(context).unwrap();
-    assert_eq!(snapshot.len, 1);
-    assert_eq!(snapshot.records[0].command_count, 2);
+    let status = engine.history_status(context).unwrap();
+    assert_eq!(status.len, 1);
+    assert_eq!(
+        engine.history_details(context, None, 1).unwrap().records()[0].command_count,
+        2
+    );
     engine.undo(context).unwrap();
     assert_eq!(
         engine
@@ -155,9 +158,9 @@ fn nested_commit_uses_parent_merge_mode_and_finalizes_absorbed_commands() {
     ends.commit().unwrap();
     assert_eq!(
         engine
-            .history_snapshot(HistoryContextId::Global)
+            .history_details(HistoryContextId::Global, None, 1)
             .unwrap()
-            .records[0]
+            .records()[0]
             .command_count,
         1
     );
@@ -176,7 +179,7 @@ fn nested_commit_uses_parent_merge_mode_and_finalizes_absorbed_commands() {
     nested.commit().unwrap();
     all.commit().unwrap();
     assert_eq!(
-        engine.history_snapshot(document).unwrap().records[0].command_count,
+        engine.history_details(document, None, 1).unwrap().records()[0].command_count,
         2
     );
     assert_eq!(finalized.load(Ordering::SeqCst), 2);
@@ -197,9 +200,9 @@ fn merge_modes_disable_ends_and_all_have_distinct_search_scope() {
     disabled.commit().unwrap();
     assert_eq!(
         engine
-            .history_snapshot(HistoryContextId::Global)
+            .history_details(HistoryContextId::Global, None, 1)
             .unwrap()
-            .records[0]
+            .records()[0]
             .command_count,
         2
     );
@@ -213,7 +216,7 @@ fn merge_modes_disable_ends_and_all_have_distinct_search_scope() {
     }
     ends.commit().unwrap();
     assert_eq!(
-        engine.history_snapshot(document).unwrap().records[0].command_count,
+        engine.history_details(document, None, 1).unwrap().records()[0].command_count,
         1
     );
 
@@ -226,7 +229,11 @@ fn merge_modes_disable_ends_and_all_have_distinct_search_scope() {
     }
     all.commit().unwrap();
     assert_eq!(
-        engine.history_snapshot(all_context).unwrap().records[0].command_count,
+        engine
+            .history_details(all_context, None, 1)
+            .unwrap()
+            .records()[0]
+            .command_count,
         2
     );
     assert_eq!(finalized.load(Ordering::SeqCst), 2);
@@ -251,10 +258,7 @@ fn failed_push_cancels_prior_applied_commands() {
         Some(0)
     );
     assert_eq!(
-        engine
-            .history_snapshot(HistoryContextId::Global)
-            .unwrap()
-            .len,
+        engine.history_status(HistoryContextId::Global).unwrap().len,
         0
     );
 }
@@ -280,11 +284,11 @@ fn record_keeps_participants_selection_significance_and_frame() {
         .unwrap();
     scope.commit().unwrap();
 
-    let snapshot = engine.history_snapshot(context).unwrap();
-    let record = &snapshot.records[0];
+    let page = engine.history_details(context, None, 1).unwrap();
+    let record = &page.records()[0];
     assert_eq!(record.timestamp_frame, 41);
     assert_eq!(record.participants.len(), 2);
-    assert_eq!(record.selection_before.as_json(), &serde_json::json!(5));
-    assert_eq!(record.selection_after.as_json(), &serde_json::json!(9));
+    assert_eq!(record.selection_before.fixture_value_ref().unwrap(), 5);
+    assert_eq!(record.selection_after.fixture_value_ref().unwrap(), 9);
     assert!(!record.significant);
 }

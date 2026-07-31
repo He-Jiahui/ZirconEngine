@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var router = %import("world/world_collision_router");
+
+console.printLine("m3-world-collision-router-test");
+var result = router.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

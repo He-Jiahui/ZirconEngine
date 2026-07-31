@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::asset::{AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_SRGB_FORMAT};
+use crate::asset::{AssetUri, RGBA8_UNORM_SRGB_FORMAT, TextureAsset, TextureAssetDescriptor};
 use crate::core::framework::render::{
     CapturedFrame, OverlayLineSegment, ProjectionMode, RenderCameraTarget,
     RenderCameraTargetGraphImportStatus, RenderCameraTargetKind, RenderCameraTargetWritebackStatus,
@@ -107,12 +107,16 @@ fn render_product_ui_submit_records_graph_pass_order_and_payload_stats() {
         stats.last_graph_executed_passes.last().map(String::as_str),
         Some("runtime-ui")
     );
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"ui.screen-space".to_string()));
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"overlay.gizmo".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"ui.screen-space".to_string())
+    );
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"overlay.gizmo".to_string())
+    );
 }
 
 #[test]
@@ -309,12 +313,16 @@ fn render_product_ui_submit_keeps_ui_pixels_over_scene_overlay_product() {
         stats.last_ui_graph_pass_order.as_deref(),
         Some("postprocess-overlay-ui")
     );
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"overlay.gizmo".to_string()));
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"ui.screen-space".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"overlay.gizmo".to_string())
+    );
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"ui.screen-space".to_string())
+    );
 
     let inner_ui_origin = UVec2::new(104, 80);
     let inner_ui_size = UVec2::new(112, 80);

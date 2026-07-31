@@ -16,6 +16,7 @@ impl RetainedEditorHost {
         if !self.runtime.editor_snapshot().project_open {
             self.runtime.set_session_mode(EditorSessionMode::Welcome);
         }
+        self.schedule_welcome_project_probe();
         self.refresh_welcome_snapshot();
         Ok(())
     }

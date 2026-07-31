@@ -1,0 +1,131 @@
+// Exact line-of-sight sampler for generated standard-dungeon, arena and Yumi
+// layouts. It intentionally excludes open-world and Delve routes because those
+// require the decoration/camera-top cache or active-run module state.
+
+var math = %import("zr.zircon.math");
+var geometry = %import("world/collision_geometry");
+var content = %import("world/instance_collision_content");
+var routing = %import("world/instance_collision_routing");
+
+localCoordinate(layoutIndex: int, x: float, z: float, axis: int): float {
+    if (layoutIndex == 5) {
+        return routing.yumiLocalCoordinate(x, z, axis, true);
+    }
+    if (layoutIndex == 4) {
+        return routing.arenaLocalCoordinate(x, z, axis, true);
+    }
+    return routing.dungeonLocalCoordinate(x, z, axis, true);
+}
+
+layoutOverlaps(layoutIndex: int, localX: float, localZ: float, radius: float): bool {
+    var colliderIndex = 0;
+    while (colliderIndex < content.layoutColliderCount(layoutIndex, true)) {
+        var kind = content.colliderKind(layoutIndex, colliderIndex, true);
+        var centerX = content.colliderFloat(layoutIndex, colliderIndex, 1, true);
+        var centerZ = content.colliderFloat(layoutIndex, colliderIndex, 2, true);
+        var resolvedX = localX;
+        var resolvedZ = localZ;
+        if (kind == 1) {
+            resolvedX = geometry.circleResolvedX(
+                localX, localZ, radius, centerX, centerZ,
+                content.colliderFloat(layoutIndex, colliderIndex, 3, true), true
+            );
+            resolvedZ = geometry.circleResolvedZ(
+                localX, localZ, radius, centerX, centerZ,
+                content.colliderFloat(layoutIndex, colliderIndex, 3, true), true
+            );
+        } else {
+            resolvedX = geometry.obbResolvedX(
+                localX, localZ, radius, centerX, centerZ,
+                content.colliderFloat(layoutIndex, colliderIndex, 4, true),
+                content.colliderFloat(layoutIndex, colliderIndex, 5, true),
+                content.colliderFloat(layoutIndex, colliderIndex, 6, true), true
+            );
+            resolvedZ = geometry.obbResolvedZ(
+                localX, localZ, radius, centerX, centerZ,
+                content.colliderFloat(layoutIndex, colliderIndex, 4, true),
+                content.colliderFloat(layoutIndex, colliderIndex, 5, true),
+                content.colliderFloat(layoutIndex, colliderIndex, 6, true), true
+            );
+        }
+        if (resolvedX != localX || resolvedZ != localZ) {
+            return true;
+        }
+        colliderIndex = colliderIndex + 1;
+    }
+    return false;
+}
+
+pub isSupportedPosition(x: float, required: bool): bool {
+    if (!required) {
+        throw "woc instance line-of-sight support query is required";
+    }
+    return routing.layoutIndexAtWorldX(x, true) >= 0;
+}
+
+pub isBlockedAt(x: float, z: float, radius: float, required: bool): bool {
+    if (!required || radius < 0.0) {
+        throw "woc instance line-of-sight point arguments are invalid";
+    }
+    var layoutIndex = routing.layoutIndexAtWorldX(x, true);
+    if (layoutIndex < 0) {
+        throw "woc instance line-of-sight point is unsupported";
+    }
+    return layoutOverlaps(
+        layoutIndex,
+        localCoordinate(layoutIndex, x, z, 1),
+        localCoordinate(layoutIndex, x, z, 2),
+        radius
+    );
+}
+
+pub isClear(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    radius: float,
+    required: bool
+): bool {
+    if (!required || radius < 0.0 || !isSupportedPosition(fromX, true) ||
+        !isSupportedPosition(toX, true)) {
+        throw "woc instance line-of-sight arguments are invalid";
+    }
+    var deltaX = toX - fromX;
+    var deltaZ = toZ - fromZ;
+    var distance = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    if (distance < 0.000001) {
+        return true;
+    }
+    var steps = <int>math.ceil(distance / 0.5);
+    if (steps < 2) {
+        steps = 2;
+    }
+    var sample = 1;
+    while (sample < steps) {
+        var fraction = <float>sample / <float>steps;
+        if (isBlockedAt(fromX + deltaX * fraction, fromZ + deltaZ * fraction, radius, true)) {
+            return false;
+        }
+        sample = sample + 1;
+    }
+    return true;
+}
+
+pub contractTest(): int {
+    if (!isSupportedPosition(900.0, true) || !isSupportedPosition(4200.0, true) ||
+        !isSupportedPosition(8400.0, true) || isSupportedPosition(4773.0, true) ||
+        !isBlockedAt(877.0, -1203.0, 0.05, true) ||
+        isBlockedAt(900.0, -1240.0, 0.05, true)) {
+        return -1;
+    }
+    if (isClear(870.0, -1203.0, 880.0, -1203.0, 0.05, true) ||
+        !isClear(900.0, -1240.0, 905.0, -1240.0, 0.05, true) ||
+        isClear(4170.0, -1250.0, 4230.0, -1250.0, 0.05, true) ||
+        !isClear(4200.0, -1240.0, 4200.0, -1230.0, 0.05, true) ||
+        isClear(8400.0, -1250.0, 8400.0, -1305.0, 0.05, true) ||
+        !isClear(8400.0, -1250.0, 8400.0, -1240.0, 0.05, true)) {
+        return -2;
+    }
+    return 1;
+}

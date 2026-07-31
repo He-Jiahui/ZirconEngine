@@ -175,6 +175,7 @@ impl UiAssetEditorSession {
             selected_layout_semantic_path: None,
             selected_locale_preview: DEFAULT_LOCALE_PREVIEW.to_string(),
             selected_palette_index: None,
+            selected_palette_entry: None,
             palette_target_chooser: None,
             selected_promote_source_component_name: promote_draft
                 .as_ref()
@@ -291,6 +292,7 @@ impl UiAssetEditorSession {
             selected_layout_semantic_path: None,
             selected_locale_preview: DEFAULT_LOCALE_PREVIEW.to_string(),
             selected_palette_index: None,
+            selected_palette_entry: None,
             palette_target_chooser: None,
             selected_promote_source_component_name: promote_draft
                 .as_ref()
@@ -711,10 +713,13 @@ impl UiAssetEditorSession {
             &build_layout_semantic_group(&self.last_valid_document, &self.selection).entries,
             self.selected_layout_semantic_path.as_deref(),
         );
-        self.selected_palette_index = reconcile_selected_palette_index(
-            &build_palette_entries(&self.last_valid_document, &self.compiler_imports.widgets),
-            self.selected_palette_index,
-        );
+        let palette_entries =
+            build_palette_entries(&self.last_valid_document, &self.compiler_imports.widgets);
+        self.selected_palette_index =
+            reconcile_selected_palette_index(&palette_entries, self.selected_palette_index);
+        self.selected_palette_entry = self
+            .selected_palette_index
+            .and_then(|index| palette_entries.get(index).cloned());
         self.clear_palette_drag_state();
         self.reconcile_source_cursor_state();
         reconcile_preview_mock_state(

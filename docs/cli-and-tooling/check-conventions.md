@@ -22,7 +22,7 @@ doc_type: module-detail
 
 ## Owners and boundaries
 
-- `check_conventions.py` 唯一拥有命令计划、文档 front matter 解析、仓库相对路径验证与机器报告组装。
+- `check_conventions.py` 唯一拥有命令计划、文档 front matter 解析、仓库相对路径验证、规范总纲 MUST 守卫勾稽与机器报告组装。
 - `check-conventions.ps1` 只把 PowerShell 参数翻译给 Python，不复制规则或重新解释结果。
 - `.github/workflows/ci.yml` 只调用聚合入口，不复制或改写 fmt、clippy、docs 命令计划。
 - 工具不会自动删除过期引用、创建缺失文件或维护历史 allowlist；路径债务必须回到对应文档 owner 做真实硬迁移。
@@ -32,23 +32,28 @@ doc_type: module-detail
 | Gate | Contract |
 |---|---|
 | `docs` | 扫描 `docs/**/*.md` YAML front matter 中的 `related_code` 与 `implementation_files`；拒绝绝对路径、仓库逃逸和不存在路径。重复声明路径复用一次文件系统判定，但每个文档声明仍单独进入违规清单。 |
-| `fmt` | 固定执行 `cargo fmt --all --check`。 |
-| `clippy` | 固定执行 `cargo clippy -p zircon_runtime_interface -p zircon_app --all-targets --no-deps --locked -- -D warnings`，只把 Frameworks 06 M1 声明的首批零警告包提升为错误；依赖仍会正常编译，但尚未进入零警告名单的 `zircon_runtime` 警告不在本门中升级。 |
+| `guards` | 扫描 `development-conventions.md` 的规则表；每个表块必须遵循唯一 header、唯一 separator、连续 data row 顺序，逐行拒绝重复表标记、malformed row、空规则正文、表外规则行、重复 rule ID、MUST 空守卫和任意级别的未知非空 guard，输出有序 rule/MUST ID、数量与按受控 guard 词表汇总的计数。SHOULD 可不指定 guard；一旦指定也必须来自受控词表。新增规则或 guard 类别必须同批更新 runner 契约，单行损坏不得静默缩小审计面。 |
+| `layering` | 运行 Frameworks 05 production-only 域引用与 module-identity 契约测试，作为 G1 的常驻 Python 层向门；runner 只调用现有审计 owner，不复制引用扫描规则。 |
+| `structure` | 固定执行 `cargo +1.94.1 test -p zircon_runtime --lib structure_convention --locked --jobs 1`，作为 G2 Rust 结构门的唯一聚合接线。 |
+| `fmt` | 固定执行 `cargo +1.94.1 fmt --all --check`。 |
+| `clippy` | 固定执行 `cargo +1.94.1 clippy -p zircon_runtime_interface -p zircon_app --all-targets --no-deps --locked --jobs 1 -- -D warnings`，只把 Frameworks 06 M1 声明的首批零警告包提升为错误；依赖仍会正常编译，但尚未进入零警告名单的 `zircon_runtime` 警告不在本门中升级。 |
 
-默认执行全部三门；`-Only docs` 可选择单门，`-DryRun` 只阻止 Cargo 命令执行，文档审计仍会真实运行。`-Json` 输出完整报告，顶层 `passed` 为全部已选门的合取结果；任一门失败时进程返回非零。docs 报告同时给出 `affected_document_count`、`reason_counts` 与按违规数量降序排列的 `path_root_counts`，用于把完整明细路由到实际 owner，不改变逐条违规和退出码语义。
+默认执行全部六门。Python 入口的 `--only <gate>` 可重复指定；PowerShell wrapper 的 `-Only` 接受一个 PowerShell 数组，不能重复写参数名。`pwsh -File` 调用适合单 gate，多 gate 必须在 PowerShell 表达式中用单个数组参数调用，例如 `pwsh -NoProfile -Command "& './tools/check-conventions.ps1' -Only structure,fmt -DryRun -Json"`。Rust 子门在唯一命令计划内固定 toolchain，编译型 structure/clippy 同时固定单 job，调用方不得通过外部默认 toolchain 或并行度改变验收口径。`-DryRun` 仍真实执行进程内的 `docs`/`guards` 审计，但只规划 `layering`/`structure`/`fmt`/`clippy` 子进程，不启动 Python 或 Cargo 子门。`-Json` 保证 stdout 只有一个完整 JSON 对象；子进程输出被捕获到对应 `commands[].stdout/stderr`，不会污染机器读取面。顶层 `passed` 为全部已选门的合取结果，命令的真实 `exit_code` 同步进入报告；若命令无法启动，则保留 `exit_code: null` 并在 `launch_error.kind/message` 记录确定性失败。任一门失败时 Python 与 PowerShell 入口都返回非零。docs 报告同时给出 `affected_document_count`、`reason_counts` 与按违规数量降序排列的 `path_root_counts`，用于把完整明细路由到实际 owner，不改变逐条违规和退出码语义。
 
 ## Current acceptance state
 
-2026-07-13 全库 docs 审计已收敛为 GREEN；期间捕获的活动 AI hard-cutover source/doc owner 漂移已由对应 owner 同步到真实新路径。精确快照只记录在 Frameworks 06 编号产出归档中，避免模块说明复制会持续变化的当前计数。`.github/workflows/ci.yml` 的既有 `rust` job 在 workspace build/test 前先执行 runner 契约测试，再只调用 `python tools/check_conventions.py --json` 这一聚合入口。workflow 复用同一 Linux 依赖、Rust toolchain 与 Cargo cache，不复制 fmt/clippy 参数；命令计划仍由 `check_conventions.py` 唯一持有。
+2026-07-13 全库 docs 审计曾收敛为 GREEN；后续并行 hard-cut 又产生新的 current-owner 路径债务，因此默认全门运行当前仍会被 `docs` 门正确阻断，不能把历史 GREEN 当作 current acceptance。精确、会持续变化的违规计数只记录在 Frameworks 06 编号产出归档中；本模块说明只固定“债务未归零即 RED”的契约。`.github/workflows/ci.yml` 的既有 `rust` job 在 workspace build/test 前先执行 runner 契约测试，再只调用 `python tools/check_conventions.py --json` 这一聚合入口。workflow 复用同一 Linux 依赖、Rust toolchain 与 Cargo cache，不复制 fmt/clippy 参数；命令计划仍由 `check_conventions.py` 唯一持有。
 
-该状态不等同于 Frameworks 06 M1 已完成：本地 fmt 与 scoped clippy 已有 testing-stage 通过证据，但真实分支 CI 仍需实际执行。详细切片与测试结果继续由 `docs/plans/zircon_runtime/frameworks/06/` 编号产出归档唯一持有。
+当前源码已把 G1 production 层向、G2 Rust structure filter 与 MUST 守卫勾稽纳入同一个 runner 命令计划；CI 继续只调用 runner，因此没有第二份参数或扫描规则。该实现状态不等同于 Frameworks 06 M1/M2 已完成：本地 fmt、scoped clippy 与历史结构门证据不能替代本切片的 fresh managed testing stage，真实分支 CI 也仍需实际执行。详细切片与测试结果只在里程碑通过后由 `docs/plans/zircon_runtime/frameworks/06/` 编号产出记录持有。
 
 ## Validation
 
 ```powershell
 python -m unittest tools.tests.test_check_conventions -v
 pwsh -NoProfile -File tools/check-conventions.ps1 -Only docs -Json
+pwsh -NoProfile -File tools/check-conventions.ps1 -Only guards -Json
+pwsh -NoProfile -Command "& './tools/check-conventions.ps1' -Only structure,fmt -DryRun -Json"
 pwsh -NoProfile -File tools/check-conventions.ps1 -DryRun -Json
 ```
 
-测试覆盖缺失路径、有效文件与目录、绝对/逃逸路径、稳定的 fmt/clippy 命令计划，以及 CI 必须在 `rust` job 的 workspace build 前通过唯一聚合入口接线、该步骤不得带条件禁用或 `continue-on-error`、workflow 不得复制命令计划的契约。docs 门当前预期返回零；任何新悬空路径都必须令本地入口与 CI 同时返回非零，不得增加 allowlist、兼容路径或将 RED 转换为成功退出码。
+测试覆盖缺失路径、有效文件与目录、绝对/逃逸路径、精确 63 条 rule/49 条 MUST ID 清单、MUST 空守卫、SHOULD 未知非空 guard、缺失或重复 separator、重复 header、空规则正文、malformed/表外规则行、重复 rule ID、子门 stdout/stderr 捕获、启动失败与非零退出传播、PowerShell `$LASTEXITCODE` 转发、PowerShell 多 gate 单数组参数文档契约、稳定的六门命令计划，以及 CI 必须在 `rust` job 的 workspace build 前通过唯一聚合入口接线、该步骤不得带条件禁用或 `continue-on-error`、workflow 不得复制命令计划的契约。`guards` 进程内门当前预期返回零；`docs` 门在所有 owner 完成真实路径硬切前保持 RED。任何新悬空路径、损坏规则行或未勾稽 MUST 都必须令本地入口与 CI 同时返回非零，不得增加 allowlist、兼容路径或将 RED 转换为成功退出码。`layering` 与 `structure` 的执行结果必须来自里程碑测试阶段的 managed validation，不得用 `-DryRun` 计划冒充通过。

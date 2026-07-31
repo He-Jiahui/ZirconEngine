@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Arc;
+use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::plugin::native::NativePluginLoader;
@@ -27,27 +29,112 @@ manifest = "plugins/weather/plugin.toml"
 
     let report = NativePluginLoader.discover_from_load_manifest(&root);
 
-    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
-    assert_eq!(report.discovered.len(), 1);
-    assert_eq!(report.discovered[0].plugin_id, "weather");
+    assert!(
+        report.diagnostics().is_empty(),
+        "{:?}",
+        report.diagnostics()
+    );
+    assert_eq!(report.discovered().len(), 1);
+    assert_eq!(report.discovered()[0].plugin_id, "weather");
     assert_eq!(
-        report.discovered[0].manifest_path,
+        report.discovered()[0].manifest_path,
         plugin_root.join("plugin.toml")
     );
-    assert!(report.discovered[0]
+    assert!(report.discovered()[0]
         .library_path
         .file_name()
         .unwrap()
         .to_string_lossy()
         .contains("zircon_plugin_weather_runtime"));
     assert_eq!(
-        report.discovered[0].library_path,
+        report.discovered()[0].library_path,
         plugin_root
             .join("native")
             .join(platform_library_file_name("zircon_plugin_weather_runtime"))
     );
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn native_loader_refreshes_current_load_manifest_candidates_through_the_authority() {
+    let root = temp_export_root("native-load-manifest-refresh");
+    let plugin_root = root.join("plugins").join("weather");
+    fs::create_dir_all(&plugin_root).unwrap();
+    fs::write(plugin_root.join("plugin.toml"), runtime_plugin_manifest()).unwrap();
+    fs::write(
+        root.join("plugins").join("native_plugins.toml"),
+        r#"
+[[plugins]]
+id = "weather"
+path = "plugins/weather"
+manifest = "plugins/weather/plugin.toml"
+"#,
+    )
+    .unwrap();
+
+    let first = NativePluginLoader.discover_from_load_manifest(&root);
+    assert_eq!(first.discovered()[0].plugin_id, "weather");
+
+    let root_scan = NativePluginLoader.discover(root.join("plugins").join("native_plugins.toml"));
+    assert!(root_scan.discovered().is_empty());
+    assert!(root_scan
+        .diagnostics()
+        .iter()
+        .any(|message| { message.contains("native plugin root does not exist") }));
+
+    fs::write(
+        plugin_root.join("plugin.toml"),
+        runtime_plugin_manifest().replace("weather", "climate"),
+    )
+    .unwrap();
+    let refreshed = NativePluginLoader.discover_from_load_manifest(&root);
+
+    assert_eq!(refreshed.discovered().len(), 1);
+    assert_eq!(refreshed.discovered()[0].plugin_id, "climate");
+    assert!(refreshed.diagnostics().iter().any(|message| {
+        message.contains("native plugin climate load manifest id mismatch: entry id weather")
+    }));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn native_loader_keeps_same_root_scan_and_load_manifest_generations_independent() {
+    let root = temp_export_root("native-load-manifest-input-isolation");
+    let plugin_root = root.join("plugins").join("weather");
+    fs::create_dir_all(&plugin_root).unwrap();
+    fs::write(plugin_root.join("plugin.toml"), runtime_plugin_manifest()).unwrap();
+    let load_manifest_path = root.join("plugins").join("native_plugins.toml");
+    fs::write(
+        &load_manifest_path,
+        r#"
+[[plugins]]
+id = "weather"
+path = "plugins/weather"
+manifest = "plugins/weather/plugin.toml"
+"#,
+    )
+    .unwrap();
+
+    let root = Arc::new(root);
+    let selection_root = Arc::clone(&root);
+    let selection = thread::spawn(move || {
+        NativePluginLoader.discover_from_load_manifest(selection_root.as_ref())
+    });
+    let root_scan = thread::spawn(move || NativePluginLoader.discover(load_manifest_path));
+
+    let selection = selection.join().expect("selection discovery worker");
+    let root_scan = root_scan.join().expect("root scan discovery worker");
+    assert_eq!(selection.discovered().len(), 1);
+    assert_eq!(selection.discovered()[0].plugin_id, "weather");
+    assert!(root_scan.discovered().is_empty());
+    assert!(root_scan
+        .diagnostics()
+        .iter()
+        .any(|message| { message.contains("native plugin root does not exist") }));
+
+    let _ = fs::remove_dir_all(root.as_ref());
 }
 
 #[test]
@@ -71,11 +158,11 @@ manifest = "plugins/actual_weather/plugin.toml"
 
     let report = NativePluginLoader.discover_from_load_manifest(&root);
 
-    assert_eq!(report.discovered.len(), 1);
-    assert!(report.diagnostics.iter().any(|message| message
+    assert_eq!(report.discovered().len(), 1);
+    assert!(report.diagnostics().iter().any(|message| message
         .contains("native plugin weather load manifest id mismatch: entry id declared_weather")));
     assert!(report
-        .diagnostics
+        .diagnostics()
         .iter()
         .any(|message| message.contains("native plugin weather load manifest path mismatch")));
 
@@ -106,13 +193,30 @@ manifest = "plugins/weather/plugin.toml"
 
     let report = NativePluginLoader.discover_from_load_manifest(&root);
 
-    assert_eq!(report.discovered.len(), 1);
-    assert_eq!(report.discovered[0].plugin_id, "weather");
-    assert!(report.diagnostics.iter().any(|message| {
+    assert_eq!(report.discovered().len(), 1);
+    assert_eq!(report.discovered()[0].plugin_id, "weather");
+    assert!(report.diagnostics().iter().any(|message| {
         message.contains("native plugin weather load manifest duplicate package id ignored")
     }));
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn native_loader_routes_load_manifest_selection_through_the_metered_authority() {
+    let source = include_str!("../../plugin/native_plugin_loader/discover_load_manifest.rs");
+
+    assert!(source.contains("discovery_authority().discover_load_manifest"));
+    assert!(source.contains("collect_load_manifest"));
+    assert!(source.contains("metered_candidate_from_manifest_path"));
+    assert!(source.contains("BoundedLoadManifestEntries"));
+    assert!(!source.contains("fs::read_to_string"));
+    assert!(!source.contains("push_candidate_from_manifest_path"));
+
+    let candidate = include_str!("../../plugin/native_plugin_loader/candidate_from_manifest.rs");
+    assert!(candidate.contains("#[cfg(test)]"));
+    assert!(candidate.contains("fn test_candidate_from_manifest_path"));
+    assert!(!candidate.contains("pub(super) fn candidate_from_manifest_path"));
 }
 
 #[test]
@@ -128,10 +232,14 @@ fn native_loader_discovers_editor_only_native_package() {
 
     let report = NativePluginLoader.discover(&root);
 
-    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
-    assert_eq!(report.discovered.len(), 1);
-    assert_eq!(report.discovered[0].plugin_id, "native_window_hosting");
-    assert!(report.discovered[0]
+    assert!(
+        report.diagnostics().is_empty(),
+        "{:?}",
+        report.diagnostics()
+    );
+    assert_eq!(report.discovered().len(), 1);
+    assert_eq!(report.discovered()[0].plugin_id, "native_window_hosting");
+    assert!(report.discovered()[0]
         .library_path
         .file_name()
         .unwrap()
@@ -143,11 +251,11 @@ fn native_loader_discovers_editor_only_native_package() {
     );
     let runtime_report = NativePluginLoader.load_discovered_runtime(&root);
     assert!(
-        runtime_report.diagnostics.is_empty(),
+        runtime_report.diagnostics().is_empty(),
         "runtime-only loading should skip editor-only packages without probing editor libraries: {:?}",
-        runtime_report.diagnostics
+        runtime_report.diagnostics()
     );
-    assert!(runtime_report.loaded.is_empty());
+    assert!(runtime_report.loaded().is_empty());
     assert!(runtime_report
         .runtime_plugin_registration_reports()
         .is_empty());
@@ -168,13 +276,17 @@ fn native_loader_discovers_feature_extension_package_from_feature_runtime_module
 
     let report = NativePluginLoader.discover(&root);
 
-    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
-    assert_eq!(report.discovered.len(), 1);
+    assert!(
+        report.diagnostics().is_empty(),
+        "{:?}",
+        report.diagnostics()
+    );
+    assert_eq!(report.discovered().len(), 1);
     assert_eq!(
-        report.discovered[0].plugin_id,
+        report.discovered()[0].plugin_id,
         "sound_timeline_animation_track"
     );
-    assert!(report.discovered[0]
+    assert!(report.discovered()[0]
         .library_path
         .file_name()
         .unwrap()
@@ -205,36 +317,36 @@ fn native_loader_uses_target_module_crate_for_split_native_package_loading() {
     .unwrap();
 
     let runtime_report = NativePluginLoader.load_discovered_runtime(&root);
-    assert!(runtime_report.diagnostics.iter().any(|message| {
+    assert!(runtime_report.diagnostics().iter().any(|message| {
         message.contains(&platform_library_file_name(
             "zircon_plugin_split_tool_runtime",
         ))
     }));
-    assert!(!runtime_report.diagnostics.iter().any(|message| {
+    assert!(!runtime_report.diagnostics().iter().any(|message| {
         message.contains(&platform_library_file_name(
             "zircon_plugin_split_tool_editor",
         ))
     }));
 
     let editor_report = NativePluginLoader.load_discovered_editor(&root);
-    assert!(editor_report.diagnostics.iter().any(|message| {
+    assert!(editor_report.diagnostics().iter().any(|message| {
         message.contains(&platform_library_file_name(
             "zircon_plugin_split_tool_editor",
         ))
     }));
-    assert!(!editor_report.diagnostics.iter().any(|message| {
+    assert!(!editor_report.diagnostics().iter().any(|message| {
         message.contains(&platform_library_file_name(
             "zircon_plugin_split_tool_runtime",
         ))
     }));
 
     let full_report = NativePluginLoader.load_discovered_all(&root);
-    assert!(full_report.diagnostics.iter().any(|message| {
+    assert!(full_report.diagnostics().iter().any(|message| {
         message.contains(&platform_library_file_name(
             "zircon_plugin_split_tool_runtime",
         ))
     }));
-    assert!(full_report.diagnostics.iter().any(|message| {
+    assert!(full_report.diagnostics().iter().any(|message| {
         message.contains(&platform_library_file_name(
             "zircon_plugin_split_tool_editor",
         ))
@@ -265,10 +377,10 @@ manifest = "plugins/weather/plugin.toml"
 
     assert_eq!(registrations.len(), 1);
     assert_eq!(registrations[0].package_manifest.id, "weather");
-    assert!(registrations[0]
-        .diagnostics
-        .iter()
-        .any(|message| message.contains("library is missing")));
+    assert!(registrations[0].diagnostics.iter().any(|message| {
+        message.contains("native plugin weather library-open failed")
+            && message.contains("expected native dist library, actual artifact missing")
+    }));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -360,8 +472,8 @@ runtime_entry_source = "NativePluginAbiV3.runtime_entry_name"
 editor_entry_source = "NativePluginAbiV3.editor_entry_name"
 host_function_table = "NativePluginHostFunctionTableV3"
 entry_report_contract = "NativePluginEntryReportV3"
-behavior_contract = "NativePluginBehaviorV3"
-state_snapshot_contract = "NativePluginBehaviorV3.save_state/restore_state"
+behavior_contract = "NativePluginBehaviorV4"
+state_snapshot_contract = "NativePluginBehaviorV4.save_state/restore_state"
 bridge_method_table = "NativePluginBridgeMethodTableV3"
 "#
 }

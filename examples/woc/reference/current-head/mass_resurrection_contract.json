@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/mass_resurrection_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/mass_resurrection.ts": "0944cbd8f7e5be1528399f4bfa7969a27ed79af14510807ada10f86f0526ba66"
+  },
+  "selection": {
+    "solo": "no_targets",
+    "eligible": [
+      "player",
+      "dead_or_ghost"
+    ],
+    "order": "party_roster"
+  }
+}

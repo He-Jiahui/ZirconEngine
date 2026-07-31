@@ -4,6 +4,7 @@ mod config_store;
 mod contexts;
 mod descriptors;
 pub mod diagnostics;
+pub(super) mod error;
 mod events;
 mod frame_clock;
 mod handle;
@@ -37,11 +38,18 @@ pub use modules::{
 };
 pub use runtime::CoreRuntime;
 pub use tasks::{
-    parallel_for, JobHandle, JobScheduler, JobSchedulerReport, TaskPool, TaskPoolDescriptor,
-    TaskPoolKind, TaskPoolOptions, TaskPoolReport, TaskPoolReportEntry,
-    TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts, TaskPools, TASKS_COMPLETED_DIAGNOSTIC,
-    TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_MAIN_THREAD_WAIT_MS_DIAGNOSTIC,
-    TASKS_SCHEDULED_DIAGNOSTIC,
+    parallel_for, BoundedKeyedIoAdmission, BoundedKeyedIoAdmissionError,
+    BoundedKeyedIoCancelAuthority, BoundedKeyedIoCancelError, BoundedKeyedIoDiagnostics,
+    BoundedKeyedIoFailure, BoundedKeyedIoFence, BoundedKeyedIoLane, BoundedKeyedIoLimits,
+    BoundedKeyedIoShutdownGuard, BoundedKeyedIoTerminal, BoundedKeyedIoTicket,
+    BoundedKeyedIoWaitResult, BoundedKeyedIoWork, BoundedKeyedIoWorkDeadline,
+    GlobalAdmissionEpoch, JobHandle, JobScheduler, JobSchedulerReport,
+    TaskPool, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions, TaskPoolReport, TaskPoolReportEntry,
+    TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts, TaskPools, TASKS_ACTIVE_DIAGNOSTIC,
+    TASKS_CANCELLED_DIAGNOSTIC, TASKS_COMPLETED_DIAGNOSTIC, TASKS_DEPENDENCY_WAITING_DIAGNOSTIC,
+    TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_EXPLICIT_WAIT_MS_DIAGNOSTIC,
+    TASKS_PANICKED_DIAGNOSTIC, TASKS_QUEUED_DIAGNOSTIC, TASKS_QUEUE_WAIT_MS_DIAGNOSTIC,
+    TASKS_QUEUE_WAIT_SAMPLES_DIAGNOSTIC, TASKS_SCHEDULED_DIAGNOSTIC,
 };
 pub use time::{
     RuntimeTimeAdvance, RuntimeTimeClocks, TIME_FIXED_STEPS_DIAGNOSTIC, TIME_FPS_DIAGNOSTIC,

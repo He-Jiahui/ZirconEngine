@@ -1,0 +1,15 @@
+var console = %import("zr.system.console");
+var encounters = %import("combat/encounters");
+
+console.printLine("m4-encounters-test");
+var result: int = 1;
+if (encounters.metric(0, 69.0, 100.0, 0.0, 0.0) != 2.0) { result = -1; }
+if (result == 1 && encounters.metric(1, 4.0, 100.0, 0.0, 0.0) != 1.0) { result = -2; }
+if (result == 1 && encounters.metric(2, 900.0, 3.0, 0.0, 0.0) != 300.0) { result = -3; }
+if (result == 1 && encounters.metric(3, 3.0, 3.0, 0.0, 0.0) != 1.0) { result = -4; }
+if (result == 1 && encounters.metric(4, 0.30, 0.0, 0.0, 0.0) != 2.0) { result = -5; }
+if (result == 1 && encounters.metric(5, 10.0, 2.0, 0.0, 0.0) != 6.0) { result = -6; }
+if (result == 1 && <int>encounters.scenarioContract(0, 3131, 507) != 1) { result = -7; }
+if (result == 1 && <int>encounters.scenarioContract(1, 1031, 688) != 1) { result = -8; }
+console.printLine(result);
+return result == 1 ? 0 : result;

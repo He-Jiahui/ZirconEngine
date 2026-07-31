@@ -1,4 +1,4 @@
-use crate::ui::retained_host::{callback_dispatch, PaneData};
+use crate::ui::retained_host::{PaneData, callback_dispatch};
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::super::hit_controls::viewport_toolbar_hit_control_id;

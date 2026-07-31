@@ -1,0 +1,83 @@
+// Source-pinned $WOC developer-tier rules from sim/dev_tier.ts. This remains
+// cosmetic: GitHub OAuth/pull lookup, storage, UI, and WOS delivery stay with
+// their host owners. `hasMergedPrs` is the source null-account case; merged PR
+// counts arrive here as verified integral API data.
+
+pub devTierCount(): int { return 5; }
+pub devTierSignificantIndex(): int { return 4; }
+
+// The source's DevTierCore object is projected through stable scalar fields.
+pub devTierKey(index: int): string {
+    if (index == 1) return "tinkerer";
+    if (index == 2) return "artificer";
+    if (index == 3) return "runesmith";
+    if (index == 4) return "architect";
+    if (index == 5) return "worldwright";
+    return "";
+}
+
+pub devTierThreshold(index: int): int {
+    if (index == 1) return 1;
+    if (index == 2) return 5;
+    if (index == 3) return 15;
+    if (index == 4) return 30;
+    if (index == 5) return 70;
+    return 0;
+}
+
+// Equivalent to source devTierByIndex() existence for an integral Zr index.
+pub hasDevTierIndex(index: int): bool {
+    return index >= 1 && index <= devTierCount();
+}
+
+// Equivalent to devTierIndexForMergedPrs() on the verified integer input
+// domain. The explicit availability bit preserves the source null case.
+pub devTierIndexForMergedPrs(hasMergedPrs: bool, mergedPrs: int): int {
+    if (!hasMergedPrs || mergedPrs < devTierThreshold(1)) { return 0; }
+    var tier = 0;
+    var index = 1;
+    while (index <= devTierCount()) {
+        if (mergedPrs >= devTierThreshold(index)) {
+            tier = index;
+        } else {
+            return tier;
+        }
+        index = index + 1;
+    }
+    return tier;
+}
+
+// Equivalent to source isSignificantDevTier() on the integral index boundary.
+pub isSignificantDevTier(index: int): bool {
+    return index >= devTierSignificantIndex() && index <= devTierCount();
+}
+
+pub contractTest(): int {
+    if (devTierCount() != 5 || devTierSignificantIndex() != 4) { return -1; }
+    if (devTierIndexForMergedPrs(false, 70) != 0 ||
+        devTierIndexForMergedPrs(true, 0) != 0 ||
+        devTierIndexForMergedPrs(true, 1) != 1 ||
+        devTierIndexForMergedPrs(true, 4) != 1 ||
+        devTierIndexForMergedPrs(true, 5) != 2 ||
+        devTierIndexForMergedPrs(true, 14) != 2 ||
+        devTierIndexForMergedPrs(true, 15) != 3 ||
+        devTierIndexForMergedPrs(true, 29) != 3 ||
+        devTierIndexForMergedPrs(true, 30) != 4 ||
+        devTierIndexForMergedPrs(true, 69) != 4 ||
+        devTierIndexForMergedPrs(true, 70) != 5 ||
+        devTierIndexForMergedPrs(true, 500) != 5) { return -2; }
+    if (devTierKey(1) != "tinkerer" ||
+        devTierKey(4) != "architect" ||
+        devTierKey(5) != "worldwright" ||
+        devTierKey(0) != "" ||
+        devTierThreshold(1) != 1 ||
+        devTierThreshold(3) != 15 ||
+        devTierThreshold(5) != 70 ||
+        devTierThreshold(6) != 0) { return -3; }
+    if (hasDevTierIndex(0) || !hasDevTierIndex(1) || !hasDevTierIndex(5) || hasDevTierIndex(6)) {
+        return -4;
+    }
+    if (isSignificantDevTier(3) || !isSignificantDevTier(4) ||
+        !isSignificantDevTier(5) || isSignificantDevTier(6)) { return -5; }
+    return 1;
+}

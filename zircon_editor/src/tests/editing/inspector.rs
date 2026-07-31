@@ -1,4 +1,4 @@
-use zircon_runtime_interface::math::Vec3;
+use zircon_runtime_interface::math::{Transform, Vec3};
 
 use crate::core::editing::intent::EditorIntent;
 
@@ -63,4 +63,34 @@ fn inspector_batch_commit_is_atomic_on_invalid_parent() {
         assert_eq!(node.parent, original.parent);
         assert_eq!(node.transform, original.transform);
     });
+}
+
+#[test]
+fn selected_inspector_snapshot_projects_runtime_artifact_fields() {
+    let mut state = test_state();
+    let (cube, camera) = cube_and_camera(&state);
+    state.world.with_world_mut(|scene| {
+        scene.rename_node(cube, "Artifact Cube").unwrap();
+        scene.set_parent_checked(cube, Some(camera)).unwrap();
+        scene
+            .update_transform(
+                cube,
+                Transform::from_translation(Vec3::new(12.5, -3.0, 7.25)),
+            )
+            .unwrap();
+    });
+
+    state
+        .apply_intent(EditorIntent::SelectNode(camera))
+        .unwrap();
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
+    let inspector = state
+        .snapshot()
+        .inspector
+        .expect("selected entity should project an inspector");
+
+    assert_eq!(inspector.id, cube);
+    assert_eq!(inspector.name, "Artifact Cube");
+    assert_eq!(inspector.parent, camera.to_string());
+    assert_eq!(inspector.translation, ["12.50", "-3.00", "7.25"]);
 }

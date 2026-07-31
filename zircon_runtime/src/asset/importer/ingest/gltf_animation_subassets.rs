@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 
 use gltf::animation::util::ReadOutputs;
 
@@ -19,13 +19,12 @@ pub(crate) fn add_gltf_animation_and_skin_subassets(
     document: &gltf::Document,
     buffers: &[gltf::buffer::Data],
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    let skeleton_labels_by_skin = skeleton_labels_by_skin(document);
+    let hierarchy = GltfHierarchyIndex::new(document)?;
 
     for animation in document.animations() {
         let label = format!("Animation{}", animation.index());
         let uri = gltf_label_uri(root_uri, &label);
-        let skin_skeleton_label =
-            skin_skeleton_label_for_animation(document, &animation, &skeleton_labels_by_skin);
+        let skin_skeleton_label = skin_skeleton_label_for_animation(&animation, &hierarchy);
         let skeleton_label = skin_skeleton_label
             .clone()
             .unwrap_or_else(|| format!("{label}/Skeleton"));
@@ -42,7 +41,7 @@ pub(crate) fn add_gltf_animation_and_skin_subassets(
 
         if skin_skeleton_label.is_none() {
             let skeleton_uri = gltf_label_uri(root_uri, &skeleton_label);
-            let skeleton = skeleton_asset_from_gltf_animation(document, &label, &animation);
+            let skeleton = skeleton_asset_from_gltf_animation(&hierarchy, &label, &animation);
             outcome = with_root_dependency_and_entry(
                 outcome,
                 ImportedAssetEntry::new(skeleton_uri, ImportedAsset::AnimationSkeleton(skeleton)),
@@ -58,7 +57,7 @@ pub(crate) fn add_gltf_animation_and_skin_subassets(
         let matrices_uri = inverse_bind_matrices
             .as_ref()
             .map(|_| gltf_label_uri(root_uri, &format!("{label}/InverseBindMatrices")));
-        let skeleton = skeleton_asset_from_gltf_skin(document, &label, &skin);
+        let skeleton = skeleton_asset_from_gltf_skin(&hierarchy, &label, &skin);
 
         let mut skin_entry = ImportedAssetEntry::new(
             uri.clone(),
@@ -74,21 +73,24 @@ pub(crate) fn add_gltf_animation_and_skin_subassets(
                     .map_or(0, |matrices| matrices.len()),
             )),
         );
+        let mut dependency_index = HashSet::new();
         for joint in skin.joints() {
             push_dependency_once(
                 &mut skin_entry,
+                &mut dependency_index,
                 gltf_label_uri(root_uri, &format!("Node{}", joint.index())),
             );
         }
         if let Some(skeleton) = skin.skeleton() {
             push_dependency_once(
                 &mut skin_entry,
+                &mut dependency_index,
                 gltf_label_uri(root_uri, &format!("Node{}", skeleton.index())),
             );
         }
-        push_dependency_once(&mut skin_entry, skeleton_uri.clone());
+        push_dependency_once(&mut skin_entry, &mut dependency_index, skeleton_uri.clone());
         if let Some(matrices_uri) = &matrices_uri {
-            push_dependency_once(&mut skin_entry, matrices_uri.clone());
+            push_dependency_once(&mut skin_entry, &mut dependency_index, matrices_uri.clone());
         }
         outcome = with_root_dependency_and_entry(outcome, skin_entry);
 
@@ -119,53 +121,43 @@ pub(crate) fn add_gltf_animation_and_skin_subassets(
     Ok(outcome)
 }
 
-fn skeleton_labels_by_skin(document: &gltf::Document) -> BTreeMap<usize, String> {
-    document
-        .skins()
-        .map(|skin| (skin.index(), format!("Skin{}/Skeleton", skin.index())))
-        .collect()
-}
-
 fn skin_skeleton_label_for_animation(
-    document: &gltf::Document,
     animation: &gltf::Animation<'_>,
-    skeleton_labels_by_skin: &BTreeMap<usize, String>,
+    hierarchy: &GltfHierarchyIndex<'_>,
 ) -> Option<String> {
-    let target_nodes = animation
+    let skin_index = animation
         .channels()
-        .map(|channel| channel.target().node().index())
-        .collect::<BTreeSet<_>>();
-
-    document
-        .skins()
-        .find(|skin| {
-            skin.joints()
-                .any(|joint| target_nodes.contains(&joint.index()))
+        .filter_map(|channel| {
+            hierarchy
+                .skin_by_joint
+                .get(channel.target().node().index())
+                .copied()
+                .flatten()
         })
-        .and_then(|skin| skeleton_labels_by_skin.get(&skin.index()))
-        .cloned()
+        .min()?;
+    hierarchy.skeleton_labels_by_skin.get(skin_index).cloned()
 }
 
 fn skeleton_asset_from_gltf_skin(
-    document: &gltf::Document,
+    hierarchy: &GltfHierarchyIndex<'_>,
     label: &str,
     skin: &gltf::Skin<'_>,
 ) -> AnimationSkeletonAsset {
-    let parent_node_indices = parent_node_indices(document);
-    let joint_indices = skin
-        .joints()
-        .enumerate()
-        .map(|(bone_index, joint)| (joint.index(), bone_index as u32))
-        .collect::<BTreeMap<_, _>>();
+    let mut joint_indices = vec![None; hierarchy.nodes.len()];
+    for (bone_index, joint) in skin.joints().enumerate() {
+        joint_indices[joint.index()] = Some(bone_index as u32);
+    }
     let bones = skin
         .joints()
         .map(|joint| {
             let (local_translation, local_rotation, local_scale) = joint.transform().decomposed();
             let node_index = joint.index();
-            let parent_index = parent_node_indices
-                .get(&node_index)
+            let parent_index = hierarchy
+                .parent_by_node
+                .get(node_index)
                 .copied()
-                .and_then(|parent_node_index| joint_indices.get(&parent_node_index).copied());
+                .flatten()
+                .and_then(|parent_node_index| joint_indices[parent_node_index]);
             AnimationSkeletonBoneAsset {
                 name: node_bone_name(&joint),
                 parent_index,
@@ -186,42 +178,42 @@ fn skeleton_asset_from_gltf_skin(
 }
 
 fn skeleton_asset_from_gltf_animation(
-    document: &gltf::Document,
+    hierarchy: &GltfHierarchyIndex<'_>,
     label: &str,
     animation: &gltf::Animation<'_>,
 ) -> AnimationSkeletonAsset {
-    let parent_node_indices = parent_node_indices(document);
-    let mut required_nodes = animation
-        .channels()
-        .map(|channel| channel.target().node().index())
-        .collect::<BTreeSet<_>>();
-    for mut node_index in required_nodes.clone() {
-        while let Some(parent_index) = parent_node_indices.get(&node_index).copied() {
-            if !required_nodes.insert(parent_index) {
+    let mut required_nodes = vec![false; hierarchy.nodes.len()];
+    for channel in animation.channels() {
+        let mut node_index = channel.target().node().index();
+        loop {
+            if required_nodes[node_index] {
                 break;
             }
+            required_nodes[node_index] = true;
+            let Some(parent_index) = hierarchy.parent_by_node[node_index] else {
+                break;
+            };
             node_index = parent_index;
         }
     }
-    let mut nodes = document
-        .nodes()
-        .filter(|node| required_nodes.contains(&node.index()))
-        .collect::<Vec<_>>();
-    nodes.sort_by_key(|node| (node_depth(node.index(), &parent_node_indices), node.index()));
-    let bone_indices = nodes
+    let mut nodes = hierarchy
+        .nodes
         .iter()
-        .enumerate()
-        .map(|(bone_index, node)| (node.index(), bone_index as u32))
-        .collect::<BTreeMap<_, _>>();
+        .filter(|node| required_nodes[node.index()])
+        .cloned()
+        .collect::<Vec<_>>();
+    nodes.sort_by_key(|node| (hierarchy.depth_by_node[node.index()], node.index()));
+    let mut bone_indices = vec![None; hierarchy.nodes.len()];
+    for (bone_index, node) in nodes.iter().enumerate() {
+        bone_indices[node.index()] = Some(bone_index as u32);
+    }
     let bones = nodes
         .into_iter()
         .map(|node| {
             let (local_translation, local_rotation, local_scale) = node.transform().decomposed();
             let node_index = node.index();
-            let parent_index = parent_node_indices
-                .get(&node_index)
-                .copied()
-                .and_then(|parent_node_index| bone_indices.get(&parent_node_index).copied());
+            let parent_index = hierarchy.parent_by_node[node_index]
+                .and_then(|parent_node_index| bone_indices[parent_node_index]);
             AnimationSkeletonBoneAsset {
                 name: node_bone_name(&node),
                 parent_index,
@@ -241,24 +233,92 @@ fn skeleton_asset_from_gltf_animation(
     }
 }
 
-fn parent_node_indices(document: &gltf::Document) -> BTreeMap<usize, usize> {
-    let mut parents = BTreeMap::new();
-    for node in document.nodes() {
-        for child in node.children() {
-            parents.insert(child.index(), node.index());
-        }
-    }
-    parents
+struct GltfHierarchyIndex<'a> {
+    nodes: Vec<gltf::Node<'a>>,
+    parent_by_node: Vec<Option<usize>>,
+    depth_by_node: Vec<usize>,
+    skin_by_joint: Vec<Option<usize>>,
+    skeleton_labels_by_skin: Vec<String>,
 }
 
-fn node_depth(node_index: usize, parent_node_indices: &BTreeMap<usize, usize>) -> usize {
-    let mut depth = 0;
-    let mut current = node_index;
-    while let Some(parent) = parent_node_indices.get(&current) {
-        depth += 1;
-        current = *parent;
+impl<'a> GltfHierarchyIndex<'a> {
+    fn new(document: &'a gltf::Document) -> Result<Self, AssetImportError> {
+        let nodes = document.nodes().collect::<Vec<_>>();
+        let mut parent_by_node = vec![None; nodes.len()];
+        for node in &nodes {
+            for child in node.children() {
+                let parent = &mut parent_by_node[child.index()];
+                if parent.is_some_and(|existing| existing != node.index()) {
+                    return Err(AssetImportError::Parse(format!(
+                        "gltf Node{} has more than one parent",
+                        child.index()
+                    )));
+                }
+                *parent = Some(node.index());
+            }
+        }
+        let depth_by_node = hierarchy_depths(&parent_by_node)?;
+        let skins = document.skins().collect::<Vec<_>>();
+        let mut skin_by_joint = vec![None; nodes.len()];
+        for skin in &skins {
+            for joint in skin.joints() {
+                let owner = &mut skin_by_joint[joint.index()];
+                *owner = Some(owner.map_or(skin.index(), |current| current.min(skin.index())));
+            }
+        }
+        let skeleton_labels_by_skin = skins
+            .iter()
+            .map(|skin| format!("Skin{}/Skeleton", skin.index()))
+            .collect();
+        Ok(Self {
+            nodes,
+            parent_by_node,
+            depth_by_node,
+            skin_by_joint,
+            skeleton_labels_by_skin,
+        })
     }
-    depth
+}
+
+fn hierarchy_depths(parent_by_node: &[Option<usize>]) -> Result<Vec<usize>, AssetImportError> {
+    const UNVISITED: u8 = 0;
+    const VISITING: u8 = 1;
+    const INDEXED: u8 = 2;
+
+    let mut states = vec![UNVISITED; parent_by_node.len()];
+    let mut depths = vec![0; parent_by_node.len()];
+    for start in 0..parent_by_node.len() {
+        if states[start] == INDEXED {
+            continue;
+        }
+        let mut path = Vec::new();
+        let mut current = start;
+        let mut depth = loop {
+            match states[current] {
+                UNVISITED => {
+                    states[current] = VISITING;
+                    path.push(current);
+                    let Some(parent) = parent_by_node[current] else {
+                        break 0;
+                    };
+                    current = parent;
+                }
+                VISITING => {
+                    return Err(AssetImportError::Parse(format!(
+                        "gltf node hierarchy contains a cycle at Node{current}"
+                    )));
+                }
+                INDEXED => break depths[current],
+                _ => unreachable!("hierarchy state is internal"),
+            }
+        };
+        for node_index in path.into_iter().rev() {
+            depth += usize::from(parent_by_node[node_index].is_some());
+            depths[node_index] = depth;
+            states[node_index] = INDEXED;
+        }
+    }
+    Ok(depths)
 }
 
 fn animation_clip_from_gltf_animation(
@@ -614,8 +674,12 @@ fn with_root_dependency_and_entry(
         .with_entry(entry)
 }
 
-fn push_dependency_once(entry: &mut ImportedAssetEntry, locator: AssetUri) {
-    if !entry.dependencies.contains(&locator) {
+fn push_dependency_once(
+    entry: &mut ImportedAssetEntry,
+    dependency_index: &mut HashSet<AssetUri>,
+    locator: AssetUri,
+) {
+    if dependency_index.insert(locator.clone()) {
         entry.dependencies.push(locator);
     }
 }

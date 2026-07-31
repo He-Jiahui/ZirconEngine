@@ -3,7 +3,7 @@
 mod host;
 
 use crate::core::framework::render::{
-    GeometrySourceDescriptor, ShadingModelDescriptor, GRAPHICS_MODULE_NAME,
+    GRAPHICS_MODULE_NAME, GeometrySourceDescriptor, ShadingModelDescriptor,
 };
 use crate::engine_module::{EngineModule, ModuleDescriptor};
 use crate::graphics::{
@@ -13,8 +13,8 @@ use crate::graphics::{
 };
 
 pub use host::{
-    module_descriptor, module_descriptor_with_render_features, RENDERING_MANAGER_NAME,
-    RENDER_FRAMEWORK_NAME,
+    RENDER_FRAMEWORK_NAME, RENDERING_MANAGER_NAME, module_descriptor,
+    module_descriptor_with_render_features,
 };
 
 #[derive(Clone, Debug, Default)]

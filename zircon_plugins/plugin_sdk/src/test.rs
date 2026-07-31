@@ -6,6 +6,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 
+use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
 use zircon_runtime::plugin::{
     RuntimeExtensionCatalogReport, RuntimeExtensionRegistryError, RuntimePlugin,
@@ -84,7 +85,7 @@ impl TestRuntimeBaseModule {
         match self {
             Self::Foundation => foundation::FOUNDATION_MODULE_NAME,
             Self::Asset => asset::ASSET_MODULE_NAME,
-            Self::Scene => scene::SCENE_MODULE_NAME,
+            Self::Scene => SCENE_MODULE_NAME,
         }
     }
 
@@ -143,7 +144,7 @@ impl TestRuntime {
     pub fn create_default_level(&self) -> Result<scene::LevelSystem> {
         scene::create_default_level(&self.handle()).map_err(|source| TestRuntimeError::Core {
             action: "create default level",
-            target: scene::SCENE_MODULE_NAME.to_string(),
+            target: SCENE_MODULE_NAME.to_string(),
             source,
         })
     }
@@ -169,7 +170,7 @@ impl TestRuntime {
             .tick(&self.handle(), advance)
             .map_err(|source| TestRuntimeError::Core {
                 action: "tick level",
-                target: scene::SCENE_MODULE_NAME.to_string(),
+                target: SCENE_MODULE_NAME.to_string(),
                 source,
             })
     }
@@ -481,7 +482,7 @@ mod tests {
             .contains(&asset::ASSET_MODULE_NAME.to_string()));
         assert!(runtime
             .activated_modules()
-            .contains(&scene::SCENE_MODULE_NAME.to_string()));
+            .contains(&SCENE_MODULE_NAME.to_string()));
         assert!(runtime
             .activated_modules()
             .contains(&TEST_RUNTIME_MODULE_NAME.to_string()));

@@ -60,13 +60,21 @@ pub(super) fn annotate_route_policy(
     event: &UiInputEvent,
     result: &mut UiInputDispatchResult,
 ) {
+    let released_capture_target = annotate_route_policy_fields(surface, event, result);
+    populate_generic_route_trace(surface, event, result, released_capture_target);
+}
+
+fn annotate_route_policy_fields(
+    surface: &UiSurface,
+    event: &UiInputEvent,
+    result: &mut UiInputDispatchResult,
+) -> Option<UiNodeId> {
     let released_capture_target = pointer_capture_release_target(event, result);
     result.diagnostics.route_policy = if released_capture_target.is_some() {
         UiInputRoutePolicy::PointerCapture
     } else {
         route_policy_for_input_event(&surface.input, event)
     };
-    populate_generic_route_trace(surface, event, result, released_capture_target);
     if let UiInputEvent::Pointer(pointer) = event {
         result.diagnostics.notes.push(format!(
             "pointer_source={:?}",
@@ -79,6 +87,7 @@ pub(super) fn annotate_route_policy(
                 .push("touch_like_pointer".to_string());
         }
     }
+    released_capture_target
 }
 
 pub(super) fn annotate_pointer_route_trace(
@@ -87,7 +96,7 @@ pub(super) fn annotate_pointer_route_trace(
     event: &UiInputEvent,
     result: &mut UiInputDispatchResult,
 ) {
-    annotate_route_policy(surface, event, result);
+    let _ = annotate_route_policy_fields(surface, event, result);
     if is_capture_terminal_pointer_route(route) {
         result.diagnostics.route_policy = UiInputRoutePolicy::PointerCapture;
     }
@@ -113,7 +122,7 @@ pub(super) fn annotate_navigation_route_trace(
     event: &UiInputEvent,
     result: &mut UiInputDispatchResult,
 ) {
-    annotate_route_policy(surface, event, result);
+    let _ = annotate_route_policy_fields(surface, event, result);
     result.diagnostics.route_trace = UiInputRouteTrace {
         preview_tunnel: preview_tunnel_for_bubble(&route.bubbled),
         direct_target: None,

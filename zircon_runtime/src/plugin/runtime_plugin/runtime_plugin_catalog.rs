@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{atomic::AtomicU64, Arc, Mutex};
 
 use crate::core::CoreError;
 
@@ -9,6 +10,7 @@ mod bridge_dependencies;
 mod bridge_lifecycle;
 mod bridge_lifecycle_state;
 mod contributions;
+mod derived_projection;
 mod descriptor_contributions;
 mod diagnostics;
 mod extension_merge;
@@ -47,13 +49,41 @@ pub use bridge_lifecycle_state::{
     RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
     RuntimePluginBridgeLifecycleState,
 };
+pub use derived_projection::RuntimePluginCatalogProjectionMetrics;
 pub use extension_report::RuntimeExtensionCatalogReport;
 pub use feature_report::{RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport};
+pub use project::RuntimePluginCatalogProjectPlanMetrics;
+pub use registration::{
+    RuntimePluginCatalogUpdate, RuntimePluginCatalogUpdateMetrics,
+    RuntimePluginCatalogUpdateOutcome,
+};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct RuntimePluginCatalog {
     registrations: Vec<RuntimePluginRegistrationReport>,
     feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
+    projection: Arc<derived_projection::RuntimePluginCatalogProjection>,
+    catalog_generation: u64,
+    projection_builds: u64,
+    // Serializes cache misses so one catalog generation builds each frozen plan once.
+    project_plans: Mutex<HashMap<u8, Arc<project::CompiledProjectPluginPlan>>>,
+    project_plan_builds: AtomicU64,
     module_order_error: Option<Arc<CoreError>>,
     diagnostics: Vec<String>,
+}
+
+impl Clone for RuntimePluginCatalog {
+    fn clone(&self) -> Self {
+        Self {
+            registrations: self.registrations.clone(),
+            feature_registrations: self.feature_registrations.clone(),
+            projection: Arc::clone(&self.projection),
+            catalog_generation: self.catalog_generation,
+            projection_builds: self.projection_builds,
+            project_plans: Mutex::new(HashMap::new()),
+            project_plan_builds: AtomicU64::new(0),
+            module_order_error: self.module_order_error.clone(),
+            diagnostics: self.diagnostics.clone(),
+        }
+    }
 }

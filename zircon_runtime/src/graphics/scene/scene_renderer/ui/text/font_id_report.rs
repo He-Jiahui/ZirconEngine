@@ -1,6 +1,5 @@
 use glyphon::Buffer;
 
-use crate::text::font::FontDatabase;
 use crate::text::FontFaceId;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -15,23 +14,23 @@ pub(super) fn accumulate_text_font_id_report(
     report: &mut ScreenSpaceUiTextFontIdReport,
     buffer: &Buffer,
     primary: Option<FontFaceId>,
-    font_database: &FontDatabase,
+    resolve_face: impl FnMut(glyphon::fontdb::ID) -> Option<FontFaceId>,
 ) {
-    accumulate_backend_glyphs(report, buffer, primary, font_database);
+    accumulate_backend_glyphs(report, buffer, primary, resolve_face);
 }
 
 fn accumulate_backend_glyphs(
     report: &mut ScreenSpaceUiTextFontIdReport,
     buffer: &Buffer,
     primary: Option<FontFaceId>,
-    font_database: &FontDatabase,
+    mut resolve_face: impl FnMut(glyphon::fontdb::ID) -> Option<FontFaceId>,
 ) {
     let mut glyph_count = 0;
     let mut fallback_glyph_count = 0;
     let mut unmapped_glyph_count = 0;
     for glyph in buffer.layout_runs().flat_map(|run| run.glyphs.iter()) {
         glyph_count += 1;
-        match (font_database.font_face_id(glyph.font_id), primary) {
+        match (resolve_face(glyph.font_id), primary) {
             (Some(face), Some(primary)) if face == primary => {}
             (Some(_), _) => fallback_glyph_count += 1,
             (None, _) => unmapped_glyph_count += 1,
@@ -52,9 +51,9 @@ mod tests {
 
     use glyphon::{Attrs, Buffer, FontSystem, Metrics, Shaping};
 
-    use super::{accumulate_text_font_id_report, ScreenSpaceUiTextFontIdReport};
-    use crate::text::font::FontDatabase;
+    use super::{ScreenSpaceUiTextFontIdReport, accumulate_text_font_id_report};
     use crate::text::FontFaceId;
+    use crate::text::font::FontDatabase;
 
     #[test]
     fn native_font_id_report_uses_actual_layout_glyph_face() {
@@ -78,7 +77,9 @@ mod tests {
         buffer.shape_until_scroll(&mut font_system, false);
 
         let mut report = ScreenSpaceUiTextFontIdReport::default();
-        accumulate_text_font_id_report(&mut report, &buffer, Some(primary), &database);
+        accumulate_text_font_id_report(&mut report, &buffer, Some(primary), |backend| {
+            database.font_face_id(backend)
+        });
 
         assert!(report.glyph_count > 0);
         assert_eq!(report.fallback_glyph_count, 0);
@@ -89,7 +90,7 @@ mod tests {
             &mut different_primary,
             &buffer,
             Some(FontFaceId(primary.0 + 1)),
-            &database,
+            |backend| database.font_face_id(backend),
         );
         assert_eq!(different_primary.glyph_count, report.glyph_count);
         assert_eq!(
@@ -99,7 +100,9 @@ mod tests {
         assert_eq!(different_primary.unmapped_glyph_count, 0);
 
         let mut unresolved_primary = ScreenSpaceUiTextFontIdReport::default();
-        accumulate_text_font_id_report(&mut unresolved_primary, &buffer, None, &database);
+        accumulate_text_font_id_report(&mut unresolved_primary, &buffer, None, |backend| {
+            database.font_face_id(backend)
+        });
         assert_eq!(unresolved_primary.glyph_count, report.glyph_count);
         assert_eq!(
             unresolved_primary.fallback_glyph_count,

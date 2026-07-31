@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var layout = %import("world/camp_spawn_layout");
+
+console.printLine("m3-camp-spawn-layout-test");
+var result = layout.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

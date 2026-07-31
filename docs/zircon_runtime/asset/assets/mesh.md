@@ -25,7 +25,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
@@ -71,7 +71,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_plugins/animation/runtime/src/sequence.rs

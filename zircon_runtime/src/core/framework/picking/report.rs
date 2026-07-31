@@ -1,8 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::{
-    hovered_hits_for_pointer, sorted_hits_for_pointer, HitTarget, PointerHits, PointerId, RayMap,
-};
+use super::pointer_hits::sorted_hits_by_pointer;
+use super::{HitRecord, HitTarget, PointerHits, PointerId, RayMap};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PickingPipelineReport {
@@ -22,13 +21,24 @@ impl PickingPipelineReport {
 
     pub fn from_ray_map_and_outputs(ray_map: &RayMap, outputs: &[PointerHits]) -> Self {
         let ray_count_by_pointer = ray_count_by_pointer(ray_map);
+        let sorted_hits_by_pointer = sorted_hits_by_pointer(outputs);
+        let output_counts_by_pointer = output_counts_by_pointer(outputs);
         let pointers = report_pointer_ids(ray_map, outputs)
             .into_iter()
             .map(|pointer| {
+                let (backend_output_count, raw_hit_count) = output_counts_by_pointer
+                    .get(&pointer)
+                    .copied()
+                    .unwrap_or_default();
                 PickingPointerPipelineReport::from_pointer(
                     pointer,
                     *ray_count_by_pointer.get(&pointer).unwrap_or(&0),
-                    outputs,
+                    sorted_hits_by_pointer
+                        .get(&pointer)
+                        .map(Vec::as_slice)
+                        .unwrap_or(&[]),
+                    backend_output_count,
+                    raw_hit_count,
                 )
             })
             .collect::<Vec<_>>();
@@ -74,18 +84,19 @@ pub struct PickingPointerPipelineReport {
 }
 
 impl PickingPointerPipelineReport {
-    fn from_pointer(pointer: PointerId, ray_count: usize, outputs: &[PointerHits]) -> Self {
-        let sorted_hits = sorted_hits_for_pointer(outputs, pointer);
-        let hovered_hits = hovered_hits_for_pointer(outputs, pointer);
-        let backend_output_count = outputs
+    fn from_pointer(
+        pointer: PointerId,
+        ray_count: usize,
+        sorted_hits: &[HitRecord],
+        backend_output_count: usize,
+        raw_hit_count: usize,
+    ) -> Self {
+        let blocking_index = sorted_hits
             .iter()
-            .filter(|output| output.pointer == pointer)
-            .count();
-        let raw_hit_count = outputs
-            .iter()
-            .filter(|output| output.pointer == pointer)
-            .map(|output| output.hits.len())
-            .sum();
+            .position(|hit| hit.pickable.should_block_lower);
+        let resolved_hits = blocking_index
+            .map(|index| &sorted_hits[..=index])
+            .unwrap_or(sorted_hits);
 
         Self {
             pointer,
@@ -93,18 +104,28 @@ impl PickingPointerPipelineReport {
             backend_output_count,
             raw_hit_count,
             sorted_hit_count: sorted_hits.len(),
-            hovered_hit_count: hovered_hits.len(),
+            hovered_hit_count: resolved_hits
+                .iter()
+                .filter(|hit| hit.pickable.is_hoverable)
+                .count(),
             non_hoverable_hit_count: sorted_hits
                 .iter()
                 .filter(|hit| !hit.pickable.is_hoverable)
                 .count(),
             top_target: sorted_hits.first().map(|hit| hit.target),
-            blocking_target: sorted_hits
-                .iter()
-                .find(|hit| hit.pickable.should_block_lower)
-                .map(|hit| hit.target),
+            blocking_target: blocking_index.map(|index| sorted_hits[index].target),
         }
     }
+}
+
+fn output_counts_by_pointer(outputs: &[PointerHits]) -> BTreeMap<PointerId, (usize, usize)> {
+    let mut counts = BTreeMap::new();
+    for output in outputs {
+        let (backend_output_count, raw_hit_count) = counts.entry(output.pointer).or_default();
+        *backend_output_count += 1;
+        *raw_hit_count += output.hits.len();
+    }
+    counts
 }
 
 fn report_pointer_ids(ray_map: &RayMap, outputs: &[PointerHits]) -> BTreeSet<PointerId> {

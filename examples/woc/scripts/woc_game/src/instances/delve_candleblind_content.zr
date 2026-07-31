@@ -1,0 +1,12 @@
+// Generated Candleblind source contract.
+// Source 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub detectionMultiplier(active: bool): float { return active ? 0.65 : 1.0; }
+pub requiresActiveAffix(required: bool): bool {
+    if (!required) { throw "woc Candleblind active-affix requirement is required"; }
+    return true;
+}
+pub contractTest(): int {
+    return detectionMultiplier(false) == 1.0 &&
+        detectionMultiplier(true) == 0.65 &&
+        requiresActiveAffix(true) == true ? 1 : -1;
+}

@@ -280,3 +280,26 @@ Expected: every gate passes, independent review reports `0 Critical / 0 Importan
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
+
+## Code Review Suggestions (2026-07-30)
+
+Verified against the landed implementation under `tools/session_coordinator/codex_sync/`, `.codex/hooks/`, and the coordinator server.
+
+### Diverges from current code, needs revision
+
+- The "Existing files to modify" list (line 55) names `tools/session_coordinator/app.py` as the place that constructs discovery/spool/store/worker dependencies. That file does not exist. The wiring actually lives in `tools/session_coordinator/server.py:478-500`, where `CoordinatorApplication` builds `CodexSessionDiscovery`, `CodexTriggerSpool`, `CodexSessionStore`, `CodexEvidenceProjector`, and `CodexSyncWorker`. Update the file map to point at `server.py` (or note the `app.py` split never happened).
+- The file map's `codex_sync/` module list (lines 32-38) is missing two modules that shipped: `tools/session_coordinator/codex_sync/evidence.py` (531 lines, `CodexEvidenceProjector`, wired at server.py:485) and `tools/session_coordinator/codex_sync/history.py` (820 lines). These are the two largest files in the package and are not mentioned anywhere in the plan; add them so the module inventory matches reality.
+- H2.3 (line 129) specifies a "250 ms authenticated localhost timeout" for the hook wake signal. The active hook entrypoint `.codex/hooks/zircon_session_sync.py` delegates to `codex_sync/hook.py:run_hook`; confirm the 250 ms bound is still enforced there and update the number if the shipped timeout differs, since the plan value is being read as a contract.
+
+### Design optimization
+
+- H1.5 (line 90) requires "two complete membership scans before `unavailable`". The store implements this with a `missing_scan_count` counter gated at `>= 2` (`codex_sync/store.py:123-126`) and only advances the counter when `discovery.membership_complete` is true (store.py:114). This is correct and worth stating explicitly in the plan: the two-scan rule is coupled to `membership_complete`, so a partial scan must never increment the missing counter. Documenting that invariant guards against a future refactor that drops the completeness check and starts marking sessions unavailable on truncated scans.
+
+### Implementation risk / tech debt
+
+- H3.3 (line 170) says the worker is constructed "only after schema/identity validation" and joined "before closing database/HTTP resources". In `server.py`, worker start happens at server.py:2258 and wake wiring at server.py:556 and server.py:2018. Given `server.py` is already 2485 lines and now owns Codex worker lifecycle plus control-plane composition, add a tech-debt note to extract Codex worker composition/lifecycle out of the monolithic server module.
+- H4.2 (line 210) caps the projection at "at most 1,000 Codex rows". The snapshot enforces this with a hardcoded `limit = 1000` literal at `control_plane/snapshot.py:72`. Consider recommending the cap be sourced from a named config/constant shared with the H5 load-fixture assertions, so the load test and the runtime bound cannot silently drift apart.
+
+### Verification gap
+
+- The 状态与产出记录 table (line 283) is empty and every `- [ ]` slice H1-H5 is unchecked, but the code has clearly landed: the full `codex_sync/` package, `.codex/hooks.json` (with SessionStart/UserPromptSubmit/Stop/SubagentStart/SubagentStop groups matching H2.4), schema-27 tables `codex_sessions`/`codex_sync_runs` (`migrations.py:1245,1285`), and matching test suites (`test_codex_discovery/store/spool/worker/hook`, plus `test_codex_evidence_projection.py`). The empty status table understates completion; backfill it from the `02/` records or annotate that slice status is tracked in the numbered directory rather than the checkboxes.

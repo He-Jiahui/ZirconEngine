@@ -4,8 +4,11 @@ pub(super) fn viewport_toolbar_hit_control_id(
     viewport: &SceneViewportChromeData,
     projection_control_id: &str,
 ) -> String {
+    if projection_control_id == "ActivateSceneMode" {
+        return scene_mode_action_id(viewport.mode.as_str())
+            .unwrap_or_else(|| projection_control_id.to_string());
+    }
     let control_id = match projection_control_id {
-        "SetTool" => viewport_tool_action_id(viewport.tool.as_str()),
         "SetTransformSpace" => transform_space_action_id(viewport.transform_space.as_str()),
         "SetProjectionMode" => Some(projection_mode_action_id(viewport.projection_mode.as_str())),
         "AlignView" => Some(align_view_action_id(viewport.view_orientation.as_str())),
@@ -27,14 +30,19 @@ pub(super) fn viewport_toolbar_hit_control_id(
         .unwrap_or_else(|| projection_control_id.to_string())
 }
 
-fn viewport_tool_action_id(tool: &str) -> Option<&'static str> {
-    match tool {
-        "Drag" => Some("tool.drag"),
-        "Move" => Some("tool.move"),
-        "Rotate" => Some("tool.rotate"),
-        "Scale" => Some("tool.scale"),
+fn scene_mode_action_id(mode: &str) -> Option<String> {
+    let builtin = match mode {
+        "Select" => Some("mode.select"),
+        "Transform.Move" => Some("mode.move"),
+        "Transform.Rotate" => Some("mode.rotate"),
+        "Transform.Scale" => Some("mode.scale"),
         _ => None,
-    }
+    };
+    builtin.map(str::to_string).or_else(|| {
+        mode.strip_prefix("Custom:")
+            .filter(|mode_id| !mode_id.is_empty())
+            .map(|mode_id| format!("mode.custom:{mode_id}"))
+    })
 }
 
 fn transform_space_action_id(space: &str) -> Option<&'static str> {

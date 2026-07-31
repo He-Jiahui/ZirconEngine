@@ -19,8 +19,10 @@ pub use migration::{MigrateError, MigrationChain, MigrationStep};
 pub use payload_header::PayloadHeader;
 pub use schema_id::SchemaId;
 pub use versioned_schema::VersionedSchema;
-pub use write::{write_versioned, write_versioned_text};
-pub use write_error::WriteError;
+pub use write::{
+    write_canonical_text_to, write_versioned, write_versioned_text, write_versioned_text_to,
+};
+pub use write_error::{CanonicalTextWriteError, WriteError};
 
 #[cfg(test)]
 mod tests;

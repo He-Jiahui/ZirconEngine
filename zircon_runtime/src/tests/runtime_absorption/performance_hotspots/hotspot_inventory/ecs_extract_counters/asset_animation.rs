@@ -26,46 +26,37 @@ pub(super) fn assert_asset_and_animation_evidence(sources: &HotspotInventorySour
         );
     }
 
-    for required_animation_scene_anchor in [
-        "ANIMATION_SCENE_SCANNED_ENTITIES_DIAGNOSTIC",
-        "animation.scene.scanned_entities",
-        "animation.scene.sequence_samples",
-        "animation.scene.output_poses",
-        "animation.scene.applied_transforms",
-        "animation.scene.published_events",
-        "animation.scene.state_transitions",
-        "pub(super) struct AnimationSceneFrameDiagnostics",
-        "pub(super) fn from_scan(scan: &AnimationSceneScan) -> Self",
-        "pub(super) fn record(self, core: &CoreHandle)",
-        "scanned_entities: entity_ids.len()",
-        "let event_count = events.len();",
-        "let update_count = updates.len();",
-        "AnimationSceneFrameDiagnostics::from_scan(&scan)",
-        "frame_diagnostics.published_events += publish_events(level, graph_events);",
-        "frame_diagnostics.applied_transforms =",
-        "frame_diagnostics.state_transitions = transition_updates.len();",
-        "AnimationSceneFrameDiagnostics::default().record(core);",
+    for required_animation_evaluation_anchor in [
+        "pub const ANIMATION_EVALUATE_SYSTEM: &str = \"animation.evaluate\";",
+        "runtime_scene_system(",
+        "pub(crate) fn tick_animation_world(",
+        "enqueue_clip_event_samples(level, scan.clip_event_samples);",
+        "enqueue_clip_event_samples(level, graph_event_samples);",
+        "publish_clip_events(asset_manager, level);",
+        "level.drain_animation_clip_events(asset_manager)",
+        "pub(crate) fn sample_clip_events_budgeted(",
+        "AnimationClipEventSamplingCursor",
+        "const ANIMATION_CLIP_EVENT_MAX_DRAIN_SAMPLES: usize = 32;",
+        "pub fn enqueue_animation_clip_event_range(",
+        "pub fn drain_animation_clip_events(",
     ] {
         assert!(
             sources
-                .animation_scene_diagnostics
-                .contains(required_animation_scene_anchor)
+                .animation_plugin_runtime_system
+                .contains(required_animation_evaluation_anchor)
                 || sources
-                    .animation_scene_events
-                    .contains(required_animation_scene_anchor)
+                    .animation_plugin_tick
+                    .contains(required_animation_evaluation_anchor)
                 || sources
-                    .animation_scene_node_pose
-                    .contains(required_animation_scene_anchor)
+                    .animation_plugin_events
+                    .contains(required_animation_evaluation_anchor)
                 || sources
-                    .animation_scene_pending
-                    .contains(required_animation_scene_anchor)
+                    .animation_clip_events
+                    .contains(required_animation_evaluation_anchor)
                 || sources
-                    .animation_scene_scan
-                    .contains(required_animation_scene_anchor)
-                || sources
-                    .animation_scene_tick
-                    .contains(required_animation_scene_anchor),
-            "animation scene diagnostics should retain `{required_animation_scene_anchor}`"
+                    .animation_level_system
+                    .contains(required_animation_evaluation_anchor),
+            "animation evaluation should retain `{required_animation_evaluation_anchor}`"
         );
     }
 }

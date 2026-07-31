@@ -3,8 +3,6 @@ use std::{
     fs,
 };
 
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
-
 use crate::ui::binding::{EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::template_runtime::builtin::builtin_template_bindings;
 
@@ -306,9 +304,9 @@ const EXPECTED_INTERACTION_FEEDBACK: &[(&str, &str, &str, &str)] = &[
 #[test]
 fn material_component_lab_mui_x_prototypes_define_feedback_routes() {
     for key in MUI_X_PROTOTYPES {
-        let path = material_prototype_path(key);
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
+        let fixture = material_prototype_fixture(key);
+        let path = &fixture.path;
+        let source = &fixture.source;
         assert!(
             source.contains("MaterialLab/") && source.contains("route = \"material_lab."),
             "{} should define a Material Lab feedback route for MUI X interaction evidence",
@@ -319,11 +317,12 @@ fn material_component_lab_mui_x_prototypes_define_feedback_routes() {
 
 #[test]
 fn material_component_lab_non_route_prototypes_are_not_dispatchable_controls() {
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let key = prototype_key(&path);
-        if source.contains("MaterialLab/") || STRUCTURAL_CHILD_ROUTE_PROTOTYPES.contains(&key) {
+    for (key, fixture) in material_prototype_fixtures() {
+        let path = &fixture.path;
+        let source = &fixture.source;
+        if source.contains("MaterialLab/")
+            || STRUCTURAL_CHILD_ROUTE_PROTOTYPES.contains(&key.as_str())
+        {
             continue;
         }
         for input_flag in [
@@ -343,11 +342,12 @@ fn material_component_lab_non_route_prototypes_are_not_dispatchable_controls() {
 
 #[test]
 fn material_component_lab_route_prototypes_are_dispatchable_controls() {
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let key = prototype_key(&path);
-        if !source.contains("MaterialLab/") && !STRUCTURAL_CHILD_ROUTE_PROTOTYPES.contains(&key) {
+    for (key, fixture) in material_prototype_fixtures() {
+        let path = &fixture.path;
+        let source = &fixture.source;
+        if !source.contains("MaterialLab/")
+            && !STRUCTURAL_CHILD_ROUTE_PROTOTYPES.contains(&key.as_str())
+        {
             continue;
         }
         assert!(
@@ -367,11 +367,10 @@ fn material_component_lab_route_prototypes_are_dispatchable_controls() {
 
 #[test]
 fn material_component_lab_feedback_routes_live_on_dispatchable_sample_nodes() {
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+    for fixture in material_prototype_fixtures().values() {
+        let path = &fixture.path;
+        let source = &fixture.source;
+        let document = &fixture.document;
         let feedback_nodes = document
             .nodes
             .iter()
@@ -447,11 +446,9 @@ fn material_component_lab_feedback_route_inventory_matches_expected_interactions
         .collect::<BTreeMap<_, _>>();
     let mut actual = BTreeMap::new();
 
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+    for (key, fixture) in material_prototype_fixtures() {
+        let path = &fixture.path;
+        let document = &fixture.document;
         let feedback_events = document
             .nodes
             .values()
@@ -467,16 +464,9 @@ fn material_component_lab_feedback_route_inventory_matches_expected_interactions
             "{} should define exactly one representative Material Lab event",
             path.display()
         );
-        let key = path
-            .file_stem()
-            .and_then(|name| name.to_str())
-            .expect("prototype file stem is UTF-8")
-            .strip_prefix("material_")
-            .expect("prototype files use material_ prefix")
-            .to_string();
         let event = feedback_events[0];
         actual.insert(
-            key,
+            key.clone(),
             (
                 event.id.clone(),
                 format!("{:?}", event.event),
@@ -493,12 +483,9 @@ fn material_component_lab_feedback_route_inventory_matches_expected_interactions
 
 #[test]
 fn material_button_group_uses_child_segment_routes_without_sample_feedback_route() {
-    let path =
-        editor_asset("assets/ui/editor/material_components/inputs/material_button_group.zui");
-    let source = fs::read_to_string(&path)
-        .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-    let document = UiZuiAssetLoader::load_zui_str(&source)
-        .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+    let fixture = material_prototype_fixture("button_group");
+    let path = &fixture.path;
+    let document = &fixture.document;
     let sample = document
         .nodes
         .get("sample")
@@ -610,13 +597,9 @@ fn material_button_group_child_routes_are_registered_as_structural_builtin_bindi
 
 #[test]
 fn material_floating_action_button_sample_covers_circular_small_and_extended_shapes() {
-    let path = editor_asset(
-        "assets/ui/editor/material_components/inputs/material_floating_action_button.zui",
-    );
-    let source = fs::read_to_string(&path)
-        .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-    let document = UiZuiAssetLoader::load_zui_str(&source)
-        .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+    let fixture = material_prototype_fixture("floating_action_button");
+    let path = &fixture.path;
+    let document = &fixture.document;
     let sample = document
         .nodes
         .get("sample")
@@ -739,11 +722,9 @@ fn material_floating_action_button_sample_covers_circular_small_and_extended_sha
 
 #[test]
 fn material_component_lab_feedback_events_use_consistent_ids_routes_and_kinds() {
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+    for fixture in material_prototype_fixtures().values() {
+        let path = &fixture.path;
+        let document = &fixture.document;
 
         for node in document.nodes.values() {
             for event in &node.events {
@@ -810,27 +791,13 @@ fn material_component_lab_interactive_inventory_matches_route_bearing_prototypes
         .iter()
         .map(|key| (*key).to_string())
         .collect::<BTreeSet<_>>();
-    let actual = material_prototype_files()
+    let actual = material_prototype_fixtures()
         .iter()
-        .filter_map(|path| {
-            let source = fs::read_to_string(path)
-                .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-            source
-                .contains("MaterialLab/")
-                .then(|| prototype_key(path).to_string())
-        })
+        .filter_map(|(key, fixture)| fixture.source.contains("MaterialLab/").then(|| key.clone()))
         .collect::<BTreeSet<_>>();
 
     assert_eq!(
         actual, expected,
         "interactive prototype inventory should match route-bearing Material Lab prototypes"
     );
-}
-
-fn prototype_key(path: &std::path::Path) -> &str {
-    path.file_stem()
-        .and_then(|name| name.to_str())
-        .expect("prototype file stem is UTF-8")
-        .strip_prefix("material_")
-        .expect("prototype files use material_ prefix")
 }

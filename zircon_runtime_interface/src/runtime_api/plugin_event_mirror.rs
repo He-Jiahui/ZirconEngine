@@ -2,6 +2,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeSessionHandle, ZrStatus};
 
+/// Maximum event deliveries returned by one V1 plugin-event drain page.
+pub const ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1: usize = 64;
+
+/// Maximum JSON-encoded bytes returned by one V1 plugin-event drain page.
+pub const ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1: usize = 256 * 1024;
+
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -83,6 +89,12 @@ impl ZrRuntimePluginEventDeliveryV1 {
 pub struct ZrRuntimePluginEventDeliveryBatchV1 {
     pub abi_version: u32,
     pub deliveries: Vec<ZrRuntimePluginEventDeliveryV1>,
+    /// Events still retained by the Runtime subscription after this page commits.
+    #[serde(default)]
+    pub remaining_deliveries: u32,
+    /// Monotonic elapsed age of the oldest event still retained by the Runtime subscription.
+    #[serde(default)]
+    pub oldest_pending_age_millis: u64,
 }
 
 impl ZrRuntimePluginEventDeliveryBatchV1 {
@@ -90,13 +102,27 @@ impl ZrRuntimePluginEventDeliveryBatchV1 {
         Self {
             abi_version,
             deliveries,
+            remaining_deliveries: 0,
+            oldest_pending_age_millis: 0,
         }
+    }
+
+    pub const fn with_runtime_backlog(
+        mut self,
+        remaining_deliveries: u32,
+        oldest_pending_age_millis: u64,
+    ) -> Self {
+        self.remaining_deliveries = remaining_deliveries;
+        self.oldest_pending_age_millis = oldest_pending_age_millis;
+        self
     }
 
     pub const fn empty(abi_version: u32) -> Self {
         Self {
             abi_version,
             deliveries: Vec::new(),
+            remaining_deliveries: 0,
+            oldest_pending_age_millis: 0,
         }
     }
 }

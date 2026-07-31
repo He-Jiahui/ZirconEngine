@@ -195,8 +195,10 @@ fn record_dispatch(
     pass.dispatch_workgroups(groups[0], groups[1], groups[2]);
 }
 
-fn capture_params_bytes(params: &ProceduralSkyParams, face_size: u32, first_face: u8) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(112);
+fn capture_params_bytes(params: &ProceduralSkyParams, face_size: u32, first_face: u8) -> [u8; 112] {
+    let mut bytes = [0_u8; 112];
+    let mut offset = 0;
+    let sun = params.resolved_sun();
     for value in [
         params.horizon_color.x,
         params.horizon_color.y,
@@ -210,26 +212,27 @@ fn capture_params_bytes(params: &ProceduralSkyParams, face_size: u32, first_face
         params.ground_color.y,
         params.ground_color.z,
         params.ground_color.w,
-        params.sun_direction.x,
-        params.sun_direction.y,
-        params.sun_direction.z,
-        params.sun_direction.w,
+        sun.direction.x,
+        sun.direction.y,
+        sun.direction.z,
+        sun.direction.w,
         params.sun_color.x,
         params.sun_color.y,
         params.sun_color.z,
         params.sun_color.w,
-        params.sun_intensity,
-        params.sun_angular_radius_radians,
-        0.0,
-        0.0,
+        sun.intensity_and_cosines.x,
+        sun.intensity_and_cosines.y,
+        sun.intensity_and_cosines.z,
+        sun.intensity_and_cosines.w,
     ] {
-        bytes.extend_from_slice(&value.to_le_bytes());
+        bytes[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+        offset += 4;
     }
-    bytes.extend_from_slice(&face_size.to_le_bytes());
-    bytes.extend_from_slice(&u32::from(first_face).to_le_bytes());
-    bytes.extend_from_slice(&0_u32.to_le_bytes());
-    bytes.extend_from_slice(&0_u32.to_le_bytes());
-    debug_assert_eq!(bytes.len(), 112);
+    for value in [face_size, u32::from(first_face), 0, 0] {
+        bytes[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+        offset += 4;
+    }
+    debug_assert_eq!(offset, bytes.len());
     bytes
 }
 

@@ -3,8 +3,6 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/mod.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs::repeated_finalize_reuses_the_bridge_table_when_registrations_are_unchanged
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs::namespace_validation_does_not_collect_split_segments
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
   - zircon_runtime/src/plugin/extension_registry/ownership.rs
   - zircon_runtime/src/plugin/extension_registry/owner.rs

@@ -32,7 +32,7 @@ impl RenderPassExecutor for IrradianceVolumeBindExecutor {
             .geometry
             .meshes
             .iter()
-            .filter(|mesh| mesh.render_layer_mask.intersects(render_layers))
+            .filter(|mesh| mesh.common.layer_mask.intersects(render_layers))
             .map(|mesh| mesh.transform.translation)
             .collect::<Vec<_>>();
         let selected = select_irradiance_volume_for_view(

@@ -1,21 +1,20 @@
 use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
-use crate::core::CoreError;
 
 use super::{
     PhysicsBackendStatus, PhysicsContactEvent, PhysicsRayCastHit, PhysicsRayCastQuery,
-    PhysicsSettings, PhysicsShapeCastHit, PhysicsShapeCastQuery, PhysicsShapeOverlapHit,
-    PhysicsShapeOverlapQuery, PhysicsTriggerEvent, PhysicsWorldStepPlan, PhysicsWorldSyncState,
+    PhysicsSettings, PhysicsSettingsStoreError, PhysicsShapeCastHit, PhysicsShapeCastQuery,
+    PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery, PhysicsTriggerEvent, PhysicsWorldStepPlan,
+    PhysicsWorldSyncState,
 };
 
 pub trait PhysicsManager: Send + Sync {
     fn backend_name(&self) -> String;
     fn settings(&self) -> PhysicsSettings;
-    fn store_settings(&self, _settings: PhysicsSettings) -> Result<(), CoreError> {
-        Err(CoreError::Initialization(
-            "PhysicsManager".to_string(),
-            "settings are read-only for this backend".to_string(),
+    fn store_settings(&self, _settings: PhysicsSettings) -> Result<(), PhysicsSettingsStoreError> {
+        Err(PhysicsSettingsStoreError::read_only_backend(
+            self.backend_name(),
         ))
     }
     fn default_material(&self) -> PhysicsMaterialMetadata;

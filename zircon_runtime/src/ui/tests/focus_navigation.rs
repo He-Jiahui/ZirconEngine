@@ -12,8 +12,8 @@ use zircon_runtime_interface::ui::{
     focus::{UiFocusChangeReason, UiFocusVisibleReason, UiFocusedInputKind},
     layout::UiFrame,
     navigation::{
-        UiDirectionalNavigation, UiDirectionalNavigationTarget, UiNavigationContract,
-        UiNavigationGroup, UiNavigationGroupId, UiTabIndex,
+        UiDirectionalNavigation, UiDirectionalNavigationTarget, UiNavigationBoundary,
+        UiNavigationContract, UiNavigationGroup, UiNavigationGroupId, UiTabIndex,
     },
     surface::UiNavigationEventKind,
     tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
@@ -321,6 +321,7 @@ fn navigation_contract(order: i32, group_order: i32) -> UiNavigationContract {
             ..Default::default()
         }),
         directional: None,
+        boundary: UiNavigationBoundary::Escape,
     }
 }
 

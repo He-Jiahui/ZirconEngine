@@ -1,50 +1,52 @@
 use std::collections::BTreeMap;
 
+use crate::asset::AssetUri;
+
 use super::{
     asset_change::AssetChange, asset_change_kind::AssetChangeKind,
     asset_watch_event::AssetWatchEvent, asset_watcher::AssetWatcher,
 };
 
+pub(super) type FoldedAssetChangeMap = BTreeMap<AssetUri, (AssetChangeKind, Option<AssetUri>)>;
+
 impl AssetWatcher {
     pub fn fold_events(events: &[AssetWatchEvent]) -> Vec<AssetChange> {
-        let mut folded = BTreeMap::<String, AssetChange>::new();
-
-        for event in events {
-            match event {
-                AssetWatchEvent::Added(uri) => {
-                    folded.insert(
-                        uri.to_string(),
-                        AssetChange::new(AssetChangeKind::Added, uri.clone(), None),
-                    );
-                }
-                AssetWatchEvent::Modified(uri) => {
-                    folded
-                        .entry(uri.to_string())
-                        .and_modify(|change| {
-                            if !matches!(change.kind, AssetChangeKind::Added) {
-                                change.kind = AssetChangeKind::Modified;
-                            }
-                        })
-                        .or_insert_with(|| {
-                            AssetChange::new(AssetChangeKind::Modified, uri.clone(), None)
-                        });
-                }
-                AssetWatchEvent::Removed(uri) => {
-                    folded.insert(
-                        uri.to_string(),
-                        AssetChange::new(AssetChangeKind::Removed, uri.clone(), None),
-                    );
-                }
-                AssetWatchEvent::Renamed { from, to } => {
-                    folded.remove(&from.to_string());
-                    folded.insert(
-                        to.to_string(),
-                        AssetChange::new(AssetChangeKind::Renamed, to.clone(), Some(from.clone())),
-                    );
-                }
-            }
+        let mut folded = FoldedAssetChangeMap::new();
+        for event in events.iter().cloned() {
+            fold_event(&mut folded, event);
         }
-
-        folded.into_values().collect()
+        finish_folded_events(folded)
     }
+}
+
+pub(super) fn fold_event(folded: &mut FoldedAssetChangeMap, event: AssetWatchEvent) {
+    match event {
+        AssetWatchEvent::Added(uri) => {
+            folded.insert(uri, (AssetChangeKind::Added, None));
+        }
+        AssetWatchEvent::Modified(uri) => {
+            folded
+                .entry(uri)
+                .and_modify(|change| {
+                    if change.0 != AssetChangeKind::Added {
+                        change.0 = AssetChangeKind::Modified;
+                    }
+                })
+                .or_insert((AssetChangeKind::Modified, None));
+        }
+        AssetWatchEvent::Removed(uri) => {
+            folded.insert(uri, (AssetChangeKind::Removed, None));
+        }
+        AssetWatchEvent::Renamed { from, to } => {
+            folded.remove(&from);
+            folded.insert(to, (AssetChangeKind::Renamed, Some(from)));
+        }
+    }
+}
+
+pub(super) fn finish_folded_events(folded: FoldedAssetChangeMap) -> Vec<AssetChange> {
+    folded
+        .into_iter()
+        .map(|(uri, (kind, previous_uri))| AssetChange::new(kind, uri, previous_uri))
+        .collect()
 }

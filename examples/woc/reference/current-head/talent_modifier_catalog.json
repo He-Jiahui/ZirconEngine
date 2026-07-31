@@ -1,0 +1,3498 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/talent_modifier_catalog_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/talents.ts": "3fa9483cc9c60ef5578d6aa41f3a2e8f7110232b4add4f6a6bafbb23a7346b03",
+    "src/sim/content/talent_rows.ts": "7bd779ab5c21dd2a949e016f834843c5adbb95a2de02adf3f458447555ee8392",
+    "src/sim/content/talents_warrior.ts": "f889aca8ede925ae36847679692bcee30575b986de915e5481c3a5e6df2d2c07",
+    "src/sim/content/talents_classic.ts": "e748885abd8f2d0cc0e559ada8695abcd0029eb41aaa0b2390023d4d55d6156f",
+    "src/sim/content/warrior_rows.ts": "eb12fed341279999acc08463fc59c09bffd8ef5552ca345765e7ad36262baf6c",
+    "src/sim/content/choice_rows_classic.ts": "2aa7f0d7372d51e326446c910b0a2980f18b49de77e233c0bf5a28ec421d060e"
+  },
+  "talent_selection_catalog_sha256": "412fcadf2705a9eb973237fdeaa44e7188a47f1f491558ea01124cb024f47c9a",
+  "catalog_sha256": "4950e5771aec4dbe78f1db4b6695b6d3579ce6af9aabad409774dcb9cf4ef130",
+  "stat_fields": [
+    "str",
+    "agi",
+    "sta",
+    "int",
+    "spi",
+    "armor",
+    "ap",
+    "crit",
+    "dodge",
+    "apPct",
+    "staPct",
+    "armorPct",
+    "armorFromStrPct",
+    "maxHpPct",
+    "strPct",
+    "agiPct",
+    "intPct",
+    "spiPct"
+  ],
+  "global_fields": [
+    "meleeDmgPct",
+    "spellDmgPct",
+    "healPct",
+    "manaPct",
+    "manaRegenPct",
+    "dotDmgPct",
+    "hotHealPct",
+    "absorbPct",
+    "meleeHastePct",
+    "petDmgPct",
+    "petDmgSharePct",
+    "threatPct",
+    "critDmgSpellPct",
+    "critDmgPhysPct",
+    "critDmgHealPct",
+    "spellHastePct",
+    "critVsRooted",
+    "extraAttackPct",
+    "moonwingPartyCritPct",
+    "autoRagePct",
+    "abilityRagePct",
+    "onKillSpeedPct",
+    "onKillSpeedDuration",
+    "secondWindPctPerSec",
+    "battleRhythm",
+    "bloodbathPct",
+    "bloodbathDuration",
+    "bloodbathMaxPct",
+    "cdrPerRage",
+    "stanceMastery",
+    "fearBreakPct",
+    "masteryTwoHandDmgPct",
+    "cheatDeathIcd",
+    "barrierDrPct",
+    "temporalRift",
+    "manaDefCdrPer10",
+    "blinkCast",
+    "convergence",
+    "ignitionPct"
+  ],
+  "ability_number_fields": [
+    "dmgPct",
+    "dmgPctVsDotted",
+    "flatDmg",
+    "costPct",
+    "cooldownPct",
+    "cooldownFlat",
+    "castPct",
+    "buffPct",
+    "critPct",
+    "bonusCharges"
+  ],
+  "entries": [
+    {
+      "index": 0,
+      "origin": "spec",
+      "class_id": "warrior",
+      "level": 0,
+      "origin_id": "arms",
+      "origin_code": 1,
+      "stats": {},
+      "global": {
+        "masteryTwoHandDmgPct": 0.1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 1,
+      "origin": "spec",
+      "class_id": "warrior",
+      "level": 0,
+      "origin_id": "fury",
+      "origin_code": 2,
+      "stats": {
+        "crit": 0.05,
+        "ap": 10
+      },
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 2,
+      "origin": "spec",
+      "class_id": "warrior",
+      "level": 0,
+      "origin_id": "prot",
+      "origin_code": 3,
+      "stats": {
+        "armorPct": 0.1,
+        "staPct": 0.4,
+        "armorFromStrPct": 0.7
+      },
+      "global": {
+        "threatPct": 0.3
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 3,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 5,
+      "origin_id": "war_row_double_charge",
+      "origin_code": 1,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "charge",
+          "numbers": {
+            "bonusCharges": 1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 4,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 5,
+      "origin_id": "war_row_pursuit",
+      "origin_code": 2,
+      "stats": {},
+      "global": {
+        "onKillSpeedPct": 0.3
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 5,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 5,
+      "origin_id": "war_row_crushing_charge",
+      "origin_code": 3,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "charge",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "root",
+              "numbers": {
+                "duration": 4
+              },
+              "strings": {
+                "school": "",
+                "dot": ""
+              }
+            },
+            {
+              "type": "slow",
+              "numbers": {
+                "duration": 15,
+                "mult": 0.5
+              },
+              "strings": {
+                "school": "",
+                "dot": ""
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 6,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 8,
+      "origin_id": "war_row_second_wind",
+      "origin_code": 4,
+      "stats": {},
+      "global": {
+        "secondWindPctPerSec": 0.015
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 7,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 8,
+      "origin_id": "war_row_die_by_the_sword",
+      "origin_code": 5,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "die_by_sword",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 8,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 8,
+      "origin_id": "war_row_victory_rush",
+      "origin_code": 6,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "victory_rush",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 9,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 11,
+      "origin_id": "war_row_piercing_howl",
+      "origin_code": 7,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "piercing_howl",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 10,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 11,
+      "origin_id": "war_row_storm_bolt",
+      "origin_code": 8,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "storm_bolt",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 11,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 11,
+      "origin_id": "war_row_lingering_dread",
+      "origin_code": 9,
+      "stats": {},
+      "global": {
+        "fearBreakPct": 0.2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 12,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 14,
+      "origin_id": "war_row_anger_management",
+      "origin_code": 10,
+      "stats": {},
+      "global": {
+        "autoRagePct": 0.25,
+        "abilityRagePct": 0.15
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 13,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 14,
+      "origin_id": "war_row_blood_offering",
+      "origin_code": 11,
+      "stats": {},
+      "global": {
+        "stanceMastery": 1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 14,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 14,
+      "origin_id": "war_row_battle_rhythm",
+      "origin_code": 12,
+      "stats": {},
+      "global": {
+        "battleRhythm": 1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 15,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 17,
+      "origin_id": "war_row_recklessness",
+      "origin_code": 13,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "recklessness",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 16,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 17,
+      "origin_id": "war_row_avatar",
+      "origin_code": 14,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "avatar",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 17,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 17,
+      "origin_id": "war_row_bloodbath",
+      "origin_code": 15,
+      "stats": {},
+      "global": {
+        "bloodbathPct": 0.05
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 18,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 20,
+      "origin_id": "war_row_colossal_might",
+      "origin_code": 16,
+      "stats": {},
+      "global": {
+        "cdrPerRage": 0.1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 19,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 20,
+      "origin_id": "war_row_bladestorm",
+      "origin_code": 17,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "bladestorm",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 20,
+      "origin": "option",
+      "class_id": "warrior",
+      "level": 20,
+      "origin_id": "war_row_sanguine_aura",
+      "origin_code": 18,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "sanguine_aura",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 21,
+      "origin": "spec",
+      "class_id": "paladin",
+      "level": 0,
+      "origin_id": "holy",
+      "origin_code": 4,
+      "stats": {},
+      "global": {
+        "critDmgHealPct": 0.5
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 22,
+      "origin": "spec",
+      "class_id": "paladin",
+      "level": 0,
+      "origin_id": "protection",
+      "origin_code": 5,
+      "stats": {
+        "armorPct": 0.2
+      },
+      "global": {
+        "threatPct": 0.5
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 23,
+      "origin": "spec",
+      "class_id": "paladin",
+      "level": 0,
+      "origin_id": "retribution",
+      "origin_code": 6,
+      "stats": {},
+      "global": {
+        "meleeDmgPct": 0.2,
+        "spellDmgPct": 0.2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 24,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 5,
+      "origin_id": "pal_r5_crusaders_zeal",
+      "origin_code": 19,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pal_oath_returned"
+    },
+    {
+      "index": 25,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 5,
+      "origin_id": "pal_r5_blessed_momentum",
+      "origin_code": 20,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "holy_light",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": true,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 26,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 5,
+      "origin_id": "pal_r5_vengeful_exorcism",
+      "origin_code": 21,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "exorcism",
+          "numbers": {
+            "dmgPct": 0.25,
+            "costPct": -0.25
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": "pal_vengeful_exorcism"
+    },
+    {
+      "index": 27,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 8,
+      "origin_id": "pal_r8_cleansing_verdict",
+      "origin_code": 22,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "cleansing_verdict",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 28,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 8,
+      "origin_id": "pal_r8_fist_of_justice",
+      "origin_code": 23,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "hammer_of_justice",
+          "numbers": {
+            "bonusCharges": 1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 29,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 8,
+      "origin_id": "pal_r8_consecrated_ground",
+      "origin_code": 24,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "consecration",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "aoeRoot",
+              "numbers": {
+                "duration": 2,
+                "radius": 8,
+                "min": 0,
+                "max": 0
+              },
+              "strings": {
+                "school": "",
+                "dot": ""
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 30,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 11,
+      "origin_id": "pal_r11_divine_wisdom",
+      "origin_code": 25,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pal_divine_wisdom"
+    },
+    {
+      "index": 31,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 11,
+      "origin_id": "pal_r11_guardians_favor",
+      "origin_code": 26,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pal_guardians_favor"
+    },
+    {
+      "index": 32,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 11,
+      "origin_id": "pal_r11_greater_blessing",
+      "origin_code": 27,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pal_greater_blessing"
+    },
+    {
+      "index": 33,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 14,
+      "origin_id": "pal_r14_swift_verdicts",
+      "origin_code": 28,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "judgement",
+          "numbers": {
+            "cooldownPct": -0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 34,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 14,
+      "origin_id": "pal_r14_holy_wrath",
+      "origin_code": 29,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "holy_wrath",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 35,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 14,
+      "origin_id": "pal_r14_righteous_cause",
+      "origin_code": 30,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pal_righteous_cause"
+    },
+    {
+      "index": 36,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 17,
+      "origin_id": "pal_r17_divine_shield",
+      "origin_code": 31,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "divine_shield",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 37,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 17,
+      "origin_id": "pal_r17_sacred_ward",
+      "origin_code": 32,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "lay_on_hands",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "absorb",
+              "numbers": {
+                "amount": 360,
+                "duration": 10
+              },
+              "strings": {
+                "school": "",
+                "dot": ""
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 38,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 17,
+      "origin_id": "pal_r17_ardent_defender",
+      "origin_code": 33,
+      "stats": {},
+      "global": {
+        "cheatDeathIcd": 180
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 39,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 20,
+      "origin_id": "pal_r20_avenging_wrath",
+      "origin_code": 34,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "avenging_wrath",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 40,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 20,
+      "origin_id": "pal_r20_hammer_of_wrath",
+      "origin_code": 35,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "hammer_of_wrath",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 41,
+      "origin": "option",
+      "class_id": "paladin",
+      "level": 20,
+      "origin_id": "pal_r20_aura_mastery",
+      "origin_code": 36,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "aura_surge",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 42,
+      "origin": "spec",
+      "class_id": "hunter",
+      "level": 0,
+      "origin_id": "beast_mastery",
+      "origin_code": 7,
+      "stats": {
+        "maxHpPct": 0.08
+      },
+      "global": {
+        "petDmgPct": 0.35
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 43,
+      "origin": "spec",
+      "class_id": "hunter",
+      "level": 0,
+      "origin_id": "marksmanship",
+      "origin_code": 8,
+      "stats": {
+        "crit": 0.03
+      },
+      "global": {
+        "meleeDmgPct": 0.2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 44,
+      "origin": "spec",
+      "class_id": "hunter",
+      "level": 0,
+      "origin_id": "survival",
+      "origin_code": 9,
+      "stats": {
+        "agiPct": 0.15,
+        "dodge": 0.04
+      },
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 45,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 5,
+      "origin_id": "hun_r5_improved_serpent_sting",
+      "origin_code": 37,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "serpent_sting",
+          "numbers": {
+            "dmgPct": 0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 46,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 5,
+      "origin_id": "hun_r5_quick_shots",
+      "origin_code": 38,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "arcane_shot",
+          "numbers": {
+            "bonusCharges": 1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 47,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 5,
+      "origin_id": "hun_r5_aspect_mastery",
+      "origin_code": 39,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "aspect_of_the_hawk",
+          "numbers": {
+            "buffPct": 0.25
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        },
+        {
+          "ability_id": "aspect_of_the_monkey",
+          "numbers": {
+            "buffPct": 0.25
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 48,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 8,
+      "origin_id": "hun_r8_startle_shot",
+      "origin_code": 40,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "startle_shot",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 49,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 8,
+      "origin_id": "hun_r8_frost_trap",
+      "origin_code": 41,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "frost_trap",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 50,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 8,
+      "origin_id": "hun_r8_improved_concussive",
+      "origin_code": 42,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "concussive_shot",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "slow",
+              "numbers": {
+                "duration": 4,
+                "mult": 0.3
+              },
+              "strings": {
+                "school": "",
+                "dot": ""
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 51,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 11,
+      "origin_id": "hun_r11_mend_pet",
+      "origin_code": 43,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "revive_pet",
+          "numbers": {
+            "dmgPct": 0.5
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 52,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 11,
+      "origin_id": "hun_r11_efficiency",
+      "origin_code": 44,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "hun_lean_quiver"
+    },
+    {
+      "index": 53,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 11,
+      "origin_id": "hun_r11_survival_instincts",
+      "origin_code": 45,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "hun_deathless_will"
+    },
+    {
+      "index": 54,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 14,
+      "origin_id": "hun_r14_multi_shot",
+      "origin_code": 46,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "multi_shot",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 55,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 14,
+      "origin_id": "hun_r14_sniper_training",
+      "origin_code": 47,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "aimed_shot",
+          "numbers": {
+            "castPct": -0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 56,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 14,
+      "origin_id": "hun_r14_serpents_venom",
+      "origin_code": 48,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "arcane_shot",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "dot",
+              "numbers": {
+                "duration": 3,
+                "total": 0,
+                "directPct": 0.5,
+                "interval": 1
+              },
+              "strings": {
+                "school": "nature",
+                "dot": ""
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 57,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 17,
+      "origin_id": "hun_r17_deterrence",
+      "origin_code": 49,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "deterrence",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 58,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 17,
+      "origin_id": "hun_r17_master_tamer",
+      "origin_code": 50,
+      "stats": {},
+      "global": {
+        "petDmgSharePct": 0.2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 59,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 17,
+      "origin_id": "hun_r17_thick_hide",
+      "origin_code": 51,
+      "stats": {
+        "maxHpPct": 0.1
+      },
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 60,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 20,
+      "origin_id": "hun_r20_improved_volley",
+      "origin_code": 52,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "volley",
+          "numbers": {
+            "dmgPct": 0.5
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": true,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 61,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 20,
+      "origin_id": "hun_r20_rapid_killing",
+      "origin_code": 53,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "hun_redline_draw"
+    },
+    {
+      "index": 62,
+      "origin": "option",
+      "class_id": "hunter",
+      "level": 20,
+      "origin_id": "hun_r20_aspect_of_the_wild",
+      "origin_code": 54,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "aspect_of_the_wild",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 63,
+      "origin": "spec",
+      "class_id": "rogue",
+      "level": 0,
+      "origin_id": "assassination",
+      "origin_code": 10,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "backstab",
+          "numbers": {
+            "critPct": 0.3
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        },
+        {
+          "ability_id": "instant_poison",
+          "numbers": {
+            "buffPct": 0.1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        },
+        {
+          "ability_id": "deadly_poison",
+          "numbers": {
+            "buffPct": 0.1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        },
+        {
+          "ability_id": "crippling_poison",
+          "numbers": {
+            "dmgPct": 0.1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 64,
+      "origin": "spec",
+      "class_id": "rogue",
+      "level": 0,
+      "origin_id": "combat",
+      "origin_code": 11,
+      "stats": {},
+      "global": {
+        "meleeHastePct": 0.1,
+        "extraAttackPct": 0.05
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 65,
+      "origin": "spec",
+      "class_id": "rogue",
+      "level": 0,
+      "origin_id": "subtlety",
+      "origin_code": 12,
+      "stats": {},
+      "global": {
+        "critDmgPhysPct": 0.25
+      },
+      "abilities": [
+        {
+          "ability_id": "stealth",
+          "numbers": {
+            "buffPct": 0.5
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        },
+        {
+          "ability_id": "vanish",
+          "numbers": {
+            "buffPct": 0.5
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 66,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 5,
+      "origin_id": "rog_r5_relentless_strikes",
+      "origin_code": 55,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_ceaseless_cuts"
+    },
+    {
+      "index": 67,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 5,
+      "origin_id": "rog_r5_improved_backstab",
+      "origin_code": 56,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_improved_backstab"
+    },
+    {
+      "index": 68,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 5,
+      "origin_id": "rog_r5_opportunist",
+      "origin_code": 57,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_dusk_dividend"
+    },
+    {
+      "index": 69,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 8,
+      "origin_id": "rog_r8_smoke_screen",
+      "origin_code": 58,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "smoke_screen",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 70,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 8,
+      "origin_id": "rog_r8_improved_gouge",
+      "origin_code": 59,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_blindside_opening"
+    },
+    {
+      "index": 71,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 8,
+      "origin_id": "rog_r8_improved_kidney_shot",
+      "origin_code": 60,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_improved_low_blow"
+    },
+    {
+      "index": 72,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 11,
+      "origin_id": "rog_r11_preparation",
+      "origin_code": 61,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "preparation",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 73,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 11,
+      "origin_id": "rog_r11_endurance",
+      "origin_code": 62,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "sprint",
+          "numbers": {
+            "bonusCharges": 1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        },
+        {
+          "ability_id": "evasion",
+          "numbers": {
+            "bonusCharges": 1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 74,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 11,
+      "origin_id": "rog_r11_improved_slice_and_dice",
+      "origin_code": 63,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_improved_cutthroat_tempo"
+    },
+    {
+      "index": 75,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 14,
+      "origin_id": "rog_r14_seal_fate",
+      "origin_code": 64,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_final_notice"
+    },
+    {
+      "index": 76,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 14,
+      "origin_id": "rog_r14_ghostly_strike",
+      "origin_code": 65,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "ghostly_strike",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 77,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 14,
+      "origin_id": "rog_r14_deadly_brew",
+      "origin_code": 66,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_deadly_brew"
+    },
+    {
+      "index": 78,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 17,
+      "origin_id": "rog_r17_cloak_of_shadows",
+      "origin_code": 67,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "cloak_of_shadows",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 79,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 17,
+      "origin_id": "rog_r17_improved_evasion",
+      "origin_code": 68,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_improved_evasion"
+    },
+    {
+      "index": 80,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 17,
+      "origin_id": "rog_r17_cheat_death",
+      "origin_code": 69,
+      "stats": {},
+      "global": {
+        "cheatDeathIcd": 120
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 81,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 20,
+      "origin_id": "rog_r20_shadowstep",
+      "origin_code": 70,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "shadowstep",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 82,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 20,
+      "origin_id": "rog_r20_adrenaline_junkie",
+      "origin_code": 71,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_adrenaline_junkie"
+    },
+    {
+      "index": 83,
+      "origin": "option",
+      "class_id": "rogue",
+      "level": 20,
+      "origin_id": "rog_r20_master_assassin",
+      "origin_code": 72,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "rog_master_assassin"
+    },
+    {
+      "index": 84,
+      "origin": "spec",
+      "class_id": "priest",
+      "level": 0,
+      "origin_id": "discipline",
+      "origin_code": 13,
+      "stats": {
+        "maxHpPct": 0.08
+      },
+      "global": {
+        "absorbPct": 0.3
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 85,
+      "origin": "spec",
+      "class_id": "priest",
+      "level": 0,
+      "origin_id": "holy",
+      "origin_code": 14,
+      "stats": {},
+      "global": {
+        "healPct": 0.2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 86,
+      "origin": "spec",
+      "class_id": "priest",
+      "level": 0,
+      "origin_id": "shadow",
+      "origin_code": 15,
+      "stats": {},
+      "global": {
+        "dotDmgPct": 0.15,
+        "spellDmgPct": 0.1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 87,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 5,
+      "origin_id": "pri_r5_improved_renew",
+      "origin_code": 73,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pri_lingering_ward"
+    },
+    {
+      "index": 88,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 5,
+      "origin_id": "pri_r5_searing_light",
+      "origin_code": 74,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pri_searing_light"
+    },
+    {
+      "index": 89,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 5,
+      "origin_id": "pri_r5_twisted_faith",
+      "origin_code": 75,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "mind_blast",
+          "numbers": {
+            "dmgPctVsDotted": 0.25
+          },
+          "dotted_ability_id": "shadow_word_pain",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 90,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 8,
+      "origin_id": "pri_r8_improved_shield",
+      "origin_code": 76,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pri_shield_burst"
+    },
+    {
+      "index": 91,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 8,
+      "origin_id": "pri_r8_silence",
+      "origin_code": 77,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "silence",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 92,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 8,
+      "origin_id": "pri_r8_psychic_scream",
+      "origin_code": 78,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "psychic_scream",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 93,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 11,
+      "origin_id": "pri_r11_inner_focus",
+      "origin_code": 79,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "inner_focus",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 94,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 11,
+      "origin_id": "pri_r11_meditation",
+      "origin_code": 80,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pri_nocturns"
+    },
+    {
+      "index": 95,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 11,
+      "origin_id": "pri_r11_vampiric_embrace",
+      "origin_code": 81,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "mind_blast",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "dot",
+              "numbers": {
+                "duration": 3,
+                "total": 30,
+                "interval": 1,
+                "leechPct": 1
+              },
+              "strings": {
+                "school": "",
+                "dot": ""
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 96,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 14,
+      "origin_id": "pri_r14_mind_melt",
+      "origin_code": 82,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "mind_blast",
+          "numbers": {
+            "bonusCharges": 1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 97,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 14,
+      "origin_id": "pri_r14_greater_heal",
+      "origin_code": 83,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pri_heal_echo"
+    },
+    {
+      "index": 98,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 14,
+      "origin_id": "pri_r14_pain_and_suffering",
+      "origin_code": 84,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "mind_flay",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "extendDot",
+              "numbers": {
+                "seconds": 1,
+                "maxBonus": 6
+              },
+              "strings": {
+                "school": "",
+                "dot": "shadow_word_pain"
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 99,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 17,
+      "origin_id": "pri_r17_desperate_prayer",
+      "origin_code": 85,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "desperate_prayer",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 100,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 17,
+      "origin_id": "pri_r17_improved_fortitude",
+      "origin_code": 86,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "power_word_fortitude",
+          "numbers": {
+            "buffPct": 0.5
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 101,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 17,
+      "origin_id": "pri_r17_inner_fire",
+      "origin_code": 87,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pri_inner_fire"
+    },
+    {
+      "index": 102,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 20,
+      "origin_id": "pri_r20_prayer_of_healing",
+      "origin_code": 88,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "prayer_of_healing",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 103,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 20,
+      "origin_id": "pri_r20_mind_sear",
+      "origin_code": 89,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "mind_sear",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 104,
+      "origin": "option",
+      "class_id": "priest",
+      "level": 20,
+      "origin_id": "pri_r20_blessed_recovery",
+      "origin_code": 90,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "pri_blessed_recovery"
+    },
+    {
+      "index": 105,
+      "origin": "spec",
+      "class_id": "shaman",
+      "level": 0,
+      "origin_id": "elemental",
+      "origin_code": 16,
+      "stats": {},
+      "global": {
+        "spellDmgPct": 0.15,
+        "spellHastePct": 0.1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 106,
+      "origin": "spec",
+      "class_id": "shaman",
+      "level": 0,
+      "origin_id": "enhancement",
+      "origin_code": 17,
+      "stats": {},
+      "global": {
+        "meleeHastePct": 0.1,
+        "meleeDmgPct": 0.1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 107,
+      "origin": "spec",
+      "class_id": "shaman",
+      "level": 0,
+      "origin_id": "restoration",
+      "origin_code": 18,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "chain_heal",
+          "numbers": {
+            "costPct": -0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        },
+        {
+          "ability_id": "healing_wave",
+          "numbers": {
+            "costPct": -0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 108,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 5,
+      "origin_id": "sha_r5_concussion",
+      "origin_code": 91,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_fault_line"
+    },
+    {
+      "index": 109,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 5,
+      "origin_id": "sha_r5_improved_lightning_shield",
+      "origin_code": 92,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_ward_surge"
+    },
+    {
+      "index": 110,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 5,
+      "origin_id": "sha_r5_imbue_mastery",
+      "origin_code": 93,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_imbued_lifeblood"
+    },
+    {
+      "index": 111,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 8,
+      "origin_id": "sha_r8_improved_earth_shock",
+      "origin_code": 94,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "earth_shock",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "interrupt",
+              "numbers": {
+                "lockout": 2
+              },
+              "strings": {
+                "school": "",
+                "dot": ""
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 112,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 8,
+      "origin_id": "sha_r8_frost_bind",
+      "origin_code": 95,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "frost_shock",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "root",
+              "numbers": {
+                "duration": 2
+              },
+              "strings": {
+                "school": "",
+                "dot": ""
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 113,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 8,
+      "origin_id": "sha_r8_shock_efficiency",
+      "origin_code": 96,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_returning_current"
+    },
+    {
+      "index": 114,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 11,
+      "origin_id": "sha_r11_ancestral_guidance",
+      "origin_code": 97,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_guiding_spirits"
+    },
+    {
+      "index": 115,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 11,
+      "origin_id": "sha_r11_elemental_attunement",
+      "origin_code": 98,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_elemental_attunement"
+    },
+    {
+      "index": 116,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 11,
+      "origin_id": "sha_r11_healing_stream",
+      "origin_code": 99,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "healing_stream",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 117,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 14,
+      "origin_id": "sha_r14_chain_lightning",
+      "origin_code": 100,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "chain_lightning",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 118,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 14,
+      "origin_id": "sha_r14_improved_flame_shock",
+      "origin_code": 101,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "earth_shock",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "consumeDot",
+              "numbers": {},
+              "strings": {
+                "school": "",
+                "dot": "flame_shock"
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 119,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 14,
+      "origin_id": "sha_r14_weapon_fury",
+      "origin_code": 102,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_weapon_fury"
+    },
+    {
+      "index": 120,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 17,
+      "origin_id": "sha_r17_earthbind",
+      "origin_code": 103,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "earthbind",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 121,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 17,
+      "origin_id": "sha_r17_improved_ghost_wolf",
+      "origin_code": 104,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "ghost_wolf",
+          "numbers": {
+            "castPct": -1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 122,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 17,
+      "origin_id": "sha_r17_elemental_warding",
+      "origin_code": 105,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_elemental_warding"
+    },
+    {
+      "index": 123,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 20,
+      "origin_id": "sha_r20_bloodlust",
+      "origin_code": 106,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "bloodlust",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 124,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 20,
+      "origin_id": "sha_r20_elemental_fury",
+      "origin_code": 107,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_storm_recall"
+    },
+    {
+      "index": 125,
+      "origin": "option",
+      "class_id": "shaman",
+      "level": 20,
+      "origin_id": "sha_r20_tidal_waves",
+      "origin_code": 108,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "sha_undertow_promise"
+    },
+    {
+      "index": 126,
+      "origin": "spec",
+      "class_id": "mage",
+      "level": 0,
+      "origin_id": "arcane",
+      "origin_code": 19,
+      "stats": {},
+      "global": {
+        "healPct": 0.15,
+        "manaPct": 0.05,
+        "manaRegenPct": 0.2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 127,
+      "origin": "spec",
+      "class_id": "mage",
+      "level": 0,
+      "origin_id": "fire",
+      "origin_code": 20,
+      "stats": {
+        "crit": 0.02
+      },
+      "global": {
+        "ignitionPct": 0.4
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 128,
+      "origin": "spec",
+      "class_id": "mage",
+      "level": 0,
+      "origin_id": "frost",
+      "origin_code": 21,
+      "stats": {
+        "armorPct": 0.1
+      },
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "frostbolt",
+          "numbers": {
+            "dmgPct": 0.25
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        },
+        {
+          "ability_id": "frost_nova",
+          "numbers": {
+            "dmgPct": 0.25
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 129,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 5,
+      "origin_id": "mag_r5_ice_floes",
+      "origin_code": 109,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "ice_floes",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 130,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 5,
+      "origin_id": "mag_r5_double_blink",
+      "origin_code": 110,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "blink",
+          "numbers": {
+            "cooldownPct": 0.3,
+            "bonusCharges": 1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 131,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 5,
+      "origin_id": "mag_r5_blink_cast",
+      "origin_code": 111,
+      "stats": {},
+      "global": {
+        "blinkCast": 1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 132,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 8,
+      "origin_id": "mag_r8_warded",
+      "origin_code": 112,
+      "stats": {},
+      "global": {
+        "barrierDrPct": 0.15
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": "mag_warded"
+    },
+    {
+      "index": 133,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 8,
+      "origin_id": "mag_r8_temporal_rift",
+      "origin_code": 113,
+      "stats": {},
+      "global": {
+        "temporalRift": 1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 134,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 8,
+      "origin_id": "mag_r8_greater_invis",
+      "origin_code": 114,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "greater_invisibility",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 135,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 11,
+      "origin_id": "mag_r11_rings_of_frost",
+      "origin_code": 115,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "rings_of_frost",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 136,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 11,
+      "origin_id": "mag_r11_snap_polymorph",
+      "origin_code": 116,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "polymorph",
+          "numbers": {
+            "cooldownFlat": 20,
+            "castPct": -1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 137,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 11,
+      "origin_id": "mag_r11_twin_nova",
+      "origin_code": 117,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "frost_nova",
+          "numbers": {
+            "bonusCharges": 1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 138,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 14,
+      "origin_id": "mag_r14_power_echo",
+      "origin_code": 118,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "power_echo",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 139,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 14,
+      "origin_id": "mag_r14_overload",
+      "origin_code": 119,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "overload",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 140,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 14,
+      "origin_id": "mag_r14_presence_of_mind",
+      "origin_code": 120,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "presence_of_mind",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 141,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 17,
+      "origin_id": "mag_r17_convergence",
+      "origin_code": 121,
+      "stats": {},
+      "global": {
+        "convergence": 1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 142,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 17,
+      "origin_id": "mag_r17_cold_snap",
+      "origin_code": 122,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "cold_snap",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 143,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 17,
+      "origin_id": "mag_r17_mass_barrier",
+      "origin_code": 123,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "mass_barrier",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 144,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 20,
+      "origin_id": "mag_r20_rune_of_power",
+      "origin_code": 124,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "rune_of_power",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 145,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 20,
+      "origin_id": "mag_r20_overflowing_power",
+      "origin_code": 125,
+      "stats": {},
+      "global": {
+        "manaDefCdrPer10": 2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 146,
+      "origin": "option",
+      "class_id": "mage",
+      "level": 20,
+      "origin_id": "mag_r20_evocation",
+      "origin_code": 126,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "evocation",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 147,
+      "origin": "spec",
+      "class_id": "warlock",
+      "level": 0,
+      "origin_id": "affliction",
+      "origin_code": 22,
+      "stats": {},
+      "global": {
+        "dotDmgPct": 0.2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 148,
+      "origin": "spec",
+      "class_id": "warlock",
+      "level": 0,
+      "origin_id": "demonology",
+      "origin_code": 23,
+      "stats": {
+        "staPct": 0.1
+      },
+      "global": {
+        "petDmgSharePct": 0.2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 149,
+      "origin": "spec",
+      "class_id": "warlock",
+      "level": 0,
+      "origin_id": "destruction",
+      "origin_code": 24,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "chaos_bolt",
+          "numbers": {
+            "dmgPct": 0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        },
+        {
+          "ability_id": "shadow_bolt",
+          "numbers": {
+            "dmgPct": 0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 150,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 5,
+      "origin_id": "wlk_r5_bane",
+      "origin_code": 127,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "wlk_grave_rhythm"
+    },
+    {
+      "index": 151,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 5,
+      "origin_id": "wlk_r5_improved_corruption",
+      "origin_code": 128,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "corruption",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": [
+            {
+              "type": "slow",
+              "numbers": {
+                "duration": 6,
+                "mult": 0.7
+              },
+              "strings": {
+                "school": "",
+                "dot": ""
+              }
+            }
+          ]
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 152,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 5,
+      "origin_id": "wlk_r5_improved_immolate",
+      "origin_code": 129,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "immolate",
+          "numbers": {
+            "dmgPct": 0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 153,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 8,
+      "origin_id": "wlk_r8_voidfeast",
+      "origin_code": 130,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "voidfeast",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 154,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 8,
+      "origin_id": "wlk_r8_howl_of_terror",
+      "origin_code": 131,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "howl_of_terror",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 155,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 8,
+      "origin_id": "wlk_r8_curse_of_exhaustion",
+      "origin_code": 132,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "curse_of_exhaustion",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 156,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 11,
+      "origin_id": "wlk_r11_improved_life_tap",
+      "origin_code": 133,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "life_tap",
+          "numbers": {
+            "buffPct": 0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 157,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 11,
+      "origin_id": "wlk_r11_fel_concentration",
+      "origin_code": 134,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "drain_life",
+          "numbers": {},
+          "dotted_ability_id": "",
+          "cast_while_moving": true,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 158,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 11,
+      "origin_id": "wlk_r11_demon_armor",
+      "origin_code": 135,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "wlk_demon_armor"
+    },
+    {
+      "index": 159,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 14,
+      "origin_id": "wlk_r14_amplify_curse",
+      "origin_code": 136,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "shadow_bolt",
+          "numbers": {
+            "dmgPctVsDotted": 0.2
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 160,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 14,
+      "origin_id": "wlk_r14_ruin",
+      "origin_code": 137,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "searing_pain",
+          "numbers": {
+            "dmgPct": 0.25,
+            "costPct": -0.25
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 161,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 14,
+      "origin_id": "wlk_r14_shadow_mastery",
+      "origin_code": 138,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "wlk_umbral_mastery"
+    },
+    {
+      "index": 162,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 17,
+      "origin_id": "wlk_r17_death_coil",
+      "origin_code": 139,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "death_coil",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 163,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 17,
+      "origin_id": "wlk_r17_improved_fear",
+      "origin_code": 140,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "fear",
+          "numbers": {
+            "cooldownFlat": 16,
+            "castPct": -1
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 164,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 17,
+      "origin_id": "wlk_r17_demonic_resilience",
+      "origin_code": 141,
+      "stats": {},
+      "global": {},
+      "abilities": [
+        {
+          "ability_id": "drain_life",
+          "numbers": {
+            "dmgPct": 0.5
+          },
+          "dotted_ability_id": "",
+          "cast_while_moving": false,
+          "damage_pushback_immune": false,
+          "add_effects": []
+        }
+      ],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 165,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 20,
+      "origin_id": "wlk_r20_chaos_bolt",
+      "origin_code": 142,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "chaos_bolt",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 166,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 20,
+      "origin_id": "wlk_r20_grimoire_of_haste",
+      "origin_code": 143,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "wlk_grimoire_of_carnage"
+    },
+    {
+      "index": 167,
+      "origin": "option",
+      "class_id": "warlock",
+      "level": 20,
+      "origin_id": "wlk_r20_curse_mastery",
+      "origin_code": 144,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "wlk_curse_mastery"
+    },
+    {
+      "index": 168,
+      "origin": "spec",
+      "class_id": "druid",
+      "level": 0,
+      "origin_id": "balance",
+      "origin_code": 25,
+      "stats": {},
+      "global": {
+        "spellDmgPct": 0.15,
+        "spellHastePct": 0.1
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 169,
+      "origin": "spec",
+      "class_id": "druid",
+      "level": 0,
+      "origin_id": "feral",
+      "origin_code": 26,
+      "stats": {
+        "armorPct": 0.15
+      },
+      "global": {
+        "meleeDmgPct": 0.15,
+        "dotDmgPct": 0.15,
+        "threatPct": 0.2
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 170,
+      "origin": "spec",
+      "class_id": "druid",
+      "level": 0,
+      "origin_id": "restoration",
+      "origin_code": 27,
+      "stats": {},
+      "global": {
+        "hotHealPct": 0.25
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 171,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 5,
+      "origin_id": "dru_r5_improved_wrath",
+      "origin_code": 145,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_improved_wildbolt"
+    },
+    {
+      "index": 172,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 5,
+      "origin_id": "dru_r5_ferocity",
+      "origin_code": 146,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_redmaw"
+    },
+    {
+      "index": 173,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 5,
+      "origin_id": "dru_r5_natures_bounty",
+      "origin_code": 147,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_natures_bounty"
+    },
+    {
+      "index": 174,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 8,
+      "origin_id": "dru_r8_typhoon",
+      "origin_code": 148,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "typhoon",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 175,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 8,
+      "origin_id": "dru_r8_improved_roots",
+      "origin_code": 149,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_briar_ambush"
+    },
+    {
+      "index": 176,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 8,
+      "origin_id": "dru_r8_brutal_bash",
+      "origin_code": 150,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_brutal_bash"
+    },
+    {
+      "index": 177,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 11,
+      "origin_id": "dru_r11_innervate",
+      "origin_code": 151,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "innervate",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 178,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 11,
+      "origin_id": "dru_r11_furor",
+      "origin_code": 152,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_wildsurge"
+    },
+    {
+      "index": 179,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 11,
+      "origin_id": "dru_r11_improved_mark",
+      "origin_code": 153,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_grove_covenant"
+    },
+    {
+      "index": 180,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 14,
+      "origin_id": "dru_r14_savage_fury",
+      "origin_code": 154,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_savage_fury"
+    },
+    {
+      "index": 181,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 14,
+      "origin_id": "dru_r14_moonfury",
+      "origin_code": 155,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_moonspite"
+    },
+    {
+      "index": 182,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 14,
+      "origin_id": "dru_r14_empowered_touch",
+      "origin_code": 156,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_empowered_touch"
+    },
+    {
+      "index": 183,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 17,
+      "origin_id": "dru_r17_improved_barkskin",
+      "origin_code": 157,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_improved_barkskin"
+    },
+    {
+      "index": 184,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 17,
+      "origin_id": "dru_r17_frenzied_regeneration",
+      "origin_code": 158,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "frenzied_regeneration",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 185,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 17,
+      "origin_id": "dru_r17_survival_of_the_fittest",
+      "origin_code": 159,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": null,
+      "proc_id": "dru_survival_of_the_fittest"
+    },
+    {
+      "index": 186,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 20,
+      "origin_id": "dru_r20_improved_hurricane",
+      "origin_code": 160,
+      "stats": {},
+      "global": {
+        "moonwingPartyCritPct": 0.03
+      },
+      "abilities": [],
+      "grant": null,
+      "proc_id": ""
+    },
+    {
+      "index": 187,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 20,
+      "origin_id": "dru_r20_berserk",
+      "origin_code": 161,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "berserk",
+        "rank": 1
+      },
+      "proc_id": ""
+    },
+    {
+      "index": 188,
+      "origin": "option",
+      "class_id": "druid",
+      "level": 20,
+      "origin_id": "dru_r20_tranquility",
+      "origin_code": 162,
+      "stats": {},
+      "global": {},
+      "abilities": [],
+      "grant": {
+        "ability_id": "tranquility",
+        "rank": 1
+      },
+      "proc_id": ""
+    }
+  ]
+}

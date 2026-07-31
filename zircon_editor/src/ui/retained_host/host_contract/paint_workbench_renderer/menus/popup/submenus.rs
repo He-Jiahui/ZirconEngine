@@ -5,12 +5,15 @@ use super::super::super::super::data::{
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_geometry::is_visible_frame;
-use super::super::super::super::paint_primitives::{draw_border, draw_rect};
-use super::super::super::{SEPARATOR, TOP_BAR};
+use super::super::super::super::paint_primitives::{
+    draw_rounded_border_clipped, draw_rounded_rect_clipped,
+};
+use super::super::super::super::paint_theme::{current_host_metrics, current_host_palette};
 use super::super::geometry::{
     constrained_submenu_popup_frame, menu_popup_height, menu_popup_row_frame,
 };
 use super::super::rows::draw_menu_popup_rows;
+use super::menu_popup_palette;
 
 pub(super) fn draw_open_submenu_popups(
     frame: &mut HostRgbaFrame,
@@ -18,6 +21,8 @@ pub(super) fn draw_open_submenu_popups(
     mut items: ModelRc<HostMenuChromeItemData>,
     mut parent_popup: FrameRect,
 ) {
+    let metrics = current_host_metrics();
+    let palette = menu_popup_palette(current_host_palette());
     for (level, selected_index) in presentation
         .menu_state
         .open_submenu_path
@@ -47,8 +52,21 @@ pub(super) fn draw_open_submenu_popups(
         if !is_visible_frame(&popup) {
             break;
         }
-        draw_rect(frame, popup.clone(), TOP_BAR);
-        draw_border(frame, popup.clone(), SEPARATOR);
+        draw_rounded_rect_clipped(
+            frame,
+            popup.clone(),
+            Some(&popup),
+            palette.surface,
+            metrics.radius_control,
+        );
+        draw_rounded_border_clipped(
+            frame,
+            popup.clone(),
+            Some(&popup),
+            palette.border,
+            metrics.border_width,
+            metrics.radius_control,
+        );
         draw_menu_popup_rows(
             frame,
             &branch.children,

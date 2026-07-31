@@ -90,12 +90,21 @@ compiled-pipeline gate has 68 entries because the
 partial-directory manifest is an accepted substitute.
 
 The coordinator verifies the normalized manifest twice: before it persists the
-pending reservation, and again in `cargo run-reserved` immediately before it
-starts the child process. If any file is missing or its bytes no longer match,
-start is rejected with `cargo_<lane>_reservation_source_manifest_stale`,
-including the expected and observed digest. The job is left unstarted for an
-audited owner release/replacement; it cannot produce accidental green evidence
-for a later overwrite.
+pending reservation, and again after `cargo run-reserved` has durably admitted
+the exact reservation/job/command pair as `start_pending`, before it starts the
+child process. The acknowledgement carries a dedicated launch deadline, and a
+valid pending launch is excluded from the generic 300-second leased-job
+watchdog. If a file is missing or its bytes no longer match, the request becomes
+`launch_failed` with `cargo_<lane>_reservation_source_manifest_stale`, including
+the expected and observed digest. Other pre-spawn and spawn failures follow the
+same terminal path: the job is released, the reservation expires, no Cargo run
+or exit result is fabricated, and the owner must create a fresh exact
+reservation. Repeating the same request ID returns the durable acknowledgement
+without launching a second process. The safety exception is an error after PID
+registration whose cleanup cannot prove that the spawned process stopped: the
+start request is `launch_failed`, but the job and reservation remain
+`running`/owned and the run remains visible until process-tree reconciliation
+proves death. That state is never reusable or reported as a Cargo exit.
 
 ## Target and Process Safety
 

@@ -20,6 +20,7 @@ pub(super) fn dispatch_body_route_step(
         state,
         input.button,
         input.button_id,
+        input.modifiers,
         x,
         y,
         cleared_text_input_frame,

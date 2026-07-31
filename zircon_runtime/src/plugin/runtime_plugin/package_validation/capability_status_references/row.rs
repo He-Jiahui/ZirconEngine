@@ -8,10 +8,10 @@ use self::{
     uniqueness::validate_runtime_plugin_package_capability_status_bevy_reference_row_uniqueness,
 };
 
-pub(super) fn validate_runtime_plugin_package_capability_status_bevy_reference_row<'a>(
+pub(super) fn validate_runtime_plugin_package_capability_status_bevy_reference_row(
     capability: &str,
-    reference: &'a str,
-    seen: &mut Vec<&'a str>,
+    reference: &str,
+    is_duplicate: bool,
     diagnostics: &mut Vec<String>,
 ) {
     validate_runtime_plugin_package_capability_status_bevy_reference_row_field(
@@ -26,7 +26,7 @@ pub(super) fn validate_runtime_plugin_package_capability_status_bevy_reference_r
     validate_runtime_plugin_package_capability_status_bevy_reference_row_uniqueness(
         capability,
         reference,
-        seen,
+        is_duplicate,
         diagnostics,
     );
 }

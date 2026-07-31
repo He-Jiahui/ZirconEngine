@@ -1,0 +1,324 @@
+// Pure source-pinned Tumbler's Path session state. This owns only the local
+// lock board, page/retry seeds and per-step clock from lockpick_controller.ts.
+// DelveRun lookup, chest mutation, loot/rewards, party logs and emitted events
+// stay outside this object until the authoritative collection ABI is available.
+var rules = %import("instances/delve_lockpick_rules");
+var content = %import("instances/delve_lockpick_content");
+
+// State: 0 idle, 1 in_progress, 2 success, 3 failed, 4 abandoned.
+// Result: 0 ignored, 1 engaged, 2 advanced, 3 retry, 4 page_cleared,
+// 5 success, 6 fail, 7 aborted.
+pub class LockpickSession {
+    pub var initialized: bool;
+    pub var active: bool;
+    pub var state: int;
+    pub var id: string;
+    pub var chest: uint;
+    pub var owner: uint;
+    pub var sourceTick: int;
+    pub var tier: int;
+    pub var ante: int;
+    pub var base: uint;
+    pub var attempt: uint;
+    pub var activePageSeed: uint;
+    pub var pages: int;
+    pub var page: int;
+    pub var tries: int;
+    pub var triesTotal: int;
+    pub var column: int;
+    pub var row: int;
+    pub var deadline: int;
+    pub var board: rules.LockpickBoard;
+
+    pub @constructor() {
+        this.initialized = false;
+        this.active = false;
+        this.state = 0;
+        this.id = "";
+        this.chest = <uint>0;
+        this.owner = <uint>0;
+        this.sourceTick = 0;
+        this.tier = 0;
+        this.ante = 0;
+        this.base = <uint>0;
+        this.attempt = <uint>0;
+        this.activePageSeed = <uint>0;
+        this.pages = 0;
+        this.page = 0;
+        this.tries = 0;
+        this.triesTotal = 0;
+        this.column = 0;
+        this.row = 0;
+        this.deadline = 0;
+        this.board = new rules.LockpickBoard();
+    }
+}
+
+requireSession(session: LockpickSession, required: bool): void {
+    if (!required || !session.initialized) { throw "woc lockpick session is not initialized"; }
+}
+
+validAnte(ante: int): bool { return ante >= 1 && ante <= 3; }
+
+validTier(tier: int): bool { return tier >= 0 && tier <= 1; }
+
+arm(session: LockpickSession, tick: int): void {
+    session.deadline = tick + rules.timeoutTicksForAnte(session.ante, true);
+}
+
+initializeActivePage(session: LockpickSession): void {
+    session.activePageSeed = rules.pageSeed(session.attempt, session.page, true);
+    rules.initialize(session.board, session.activePageSeed, session.tier, true);
+    session.column = 0;
+    session.row = rules.startRow(session.board, true);
+}
+
+// The target creates `lp_${objectId}_${tickCount}` once per successful engage.
+pub sourceSessionId(chestId: uint, tick: int, required: bool): string {
+    if (!required || tick < 0) { throw "woc lockpick session identity is invalid"; }
+    return "lp_" + <string>chestId + "_" + <string>tick;
+}
+
+pub engage(
+    session: LockpickSession,
+    runSeed: uint,
+    chestId: uint,
+    ownerId: uint,
+    ante: int,
+    tier: int,
+    tick: int,
+    required: bool
+): int {
+    if (!required || tick < 0) { throw "woc lockpick engage input is invalid"; }
+    if (session.active || !validAnte(ante) || !validTier(tier)) { return 0; }
+    session.initialized = true;
+    session.active = true;
+    session.state = 1;
+    session.id = sourceSessionId(chestId, tick, true);
+    session.chest = chestId;
+    session.owner = ownerId;
+    session.sourceTick = tick;
+    session.tier = tier;
+    session.ante = ante;
+    session.base = rules.baseSeed(runSeed, chestId, true);
+    session.attempt = session.base;
+    session.pages = rules.pagesForAnte(ante, true);
+    session.page = 0;
+    session.triesTotal = rules.triesForAnte(ante, true);
+    session.tries = session.triesTotal;
+    initializeActivePage(session);
+    arm(session, tick);
+    return 1;
+}
+
+// Source lockpickEngage promotes only the Bountiful reward chest to the
+// Heroic board, and it accepts only the Premium ante for that chest. Keep the
+// reward-chest identity here so a different locked chest in the same run is
+// never accidentally promoted by the run-level Bountiful flag.
+pub engageForDelveRun(
+    session: LockpickSession,
+    runSeed: uint,
+    chestId: uint,
+    rewardChestId: uint,
+    hasRewardChest: bool,
+    ownerId: uint,
+    ante: int,
+    runTier: int,
+    bountiful: bool,
+    tick: int,
+    required: bool
+): int {
+    if (!required || tick < 0) { throw "woc lockpick engage input is invalid"; }
+    var isCoffer = bountiful && hasRewardChest && chestId == rewardChestId;
+    if (isCoffer && ante != 1) { return 0; }
+    // lockpickPresetFor falls back to Normal for an unrecognised source tier.
+    var tier = (isCoffer || runTier == 1) ? 1 : 0;
+    return engage(session, runSeed, chestId, ownerId, ante, tier, tick, true);
+}
+
+// Mirrors lockpickBurnTry: reset every page from the retry-derived base seed
+// after a slip, bind, trap or deadline. Terminal failure retains local outcome
+// for inspection; the future DelveRun owner clears its live session reference.
+burnTry(session: LockpickSession, tick: int): int {
+    session.tries = session.tries - 1;
+    if (session.tries <= 0) {
+        session.active = false;
+        session.state = 3;
+        return 6;
+    }
+    session.attempt = rules.retrySeed(session.base, session.triesTotal, session.tries, true);
+    session.page = 0;
+    initializeActivePage(session);
+    arm(session, tick);
+    return 3;
+}
+
+pub applyAction(
+    session: LockpickSession,
+    action: int,
+    tick: int,
+    ownerId: uint,
+    providedSessionId: string,
+    hasProvidedSessionId: bool,
+    required: bool
+): int {
+    requireSession(session, required);
+    if (tick < 0 || !session.active || ownerId != session.owner ||
+        (hasProvidedSessionId && providedSessionId != session.id)) {
+        return 0;
+    }
+    // The source server permits action='abort' through lockpick_action, while
+    // the retained HUD exposes the same operation as lockpick_abort.
+    if (action == 5) {
+        session.active = false;
+        session.state = 4;
+        return 7;
+    }
+    if (action < 0 || action >= 5 || !content.tierActionAllowed(session.tier, action, true)) {
+        return 0;
+    }
+    var step = rules.stepResult(session.board, session.column, session.row, action, true);
+    if (step == 1 || step == 2 || step == 3) { return burnTry(session, tick); }
+
+    session.column = session.column + 1;
+    session.row = rules.nextRow(session.row, action, session.tier, true);
+    if (step == 4) {
+        if (session.page < session.pages - 1) {
+            session.page = session.page + 1;
+            initializeActivePage(session);
+            arm(session, tick);
+            return 4;
+        }
+        // The target re-arms before success teardown. Preserve that field even
+        // though the session is no longer active after the terminal transition.
+        arm(session, tick);
+        session.active = false;
+        session.state = 2;
+        return 5;
+    }
+    arm(session, tick);
+    return 2;
+}
+
+pub tick(session: LockpickSession, currentTick: int, required: bool): int {
+    requireSession(session, required);
+    if (currentTick < 0 || !session.active || currentTick < session.deadline) { return 0; }
+    return burnTry(session, currentTick);
+}
+
+pub abandon(
+    session: LockpickSession,
+    ownerId: uint,
+    providedSessionId: string,
+    hasProvidedSessionId: bool,
+    required: bool
+): int {
+    requireSession(session, required);
+    if (!session.active || ownerId != session.owner ||
+        (hasProvidedSessionId && providedSessionId != session.id)) {
+        return 0;
+    }
+    session.active = false;
+    session.state = 4;
+    return 7;
+}
+
+pub isActive(session: LockpickSession, required: bool): bool {
+    requireSession(session, required);
+    return session.active;
+}
+
+pub status(session: LockpickSession, required: bool): int {
+    requireSession(session, required);
+    return session.state;
+}
+
+pub sessionId(session: LockpickSession, required: bool): string {
+    requireSession(session, required);
+    return session.id;
+}
+
+pub baseSeed(session: LockpickSession, required: bool): uint {
+    requireSession(session, required);
+    return session.base;
+}
+
+pub attemptSeed(session: LockpickSession, required: bool): uint {
+    requireSession(session, required);
+    return session.attempt;
+}
+
+pub currentPageSeed(session: LockpickSession, required: bool): uint {
+    requireSession(session, required);
+    return session.activePageSeed;
+}
+
+pub pageCount(session: LockpickSession, required: bool): int {
+    requireSession(session, required);
+    return session.pages;
+}
+
+pub pageIndex(session: LockpickSession, required: bool): int {
+    requireSession(session, required);
+    return session.page;
+}
+
+pub triesLeft(session: LockpickSession, required: bool): int {
+    requireSession(session, required);
+    return session.tries;
+}
+
+pub column(session: LockpickSession, required: bool): int {
+    requireSession(session, required);
+    return session.column;
+}
+
+pub row(session: LockpickSession, required: bool): int {
+    requireSession(session, required);
+    return session.row;
+}
+
+pub deadlineTick(session: LockpickSession, required: bool): int {
+    requireSession(session, required);
+    return session.deadline;
+}
+
+pub boardColumns(session: LockpickSession, required: bool): int {
+    requireSession(session, required);
+    return rules.tierColumns(session.tier, true);
+}
+
+pub contractTest(): int {
+    var session = new LockpickSession();
+    if (engage(session, <uint>20061, <uint>423, <uint>77, 2, 0, 100, true) != 1 ||
+        sessionId(session, true) != "lp_423_100" || baseSeed(session, true) != <uint>1839881514 ||
+        currentPageSeed(session, true) != <uint>4087162011 || deadlineTick(session, true) != 220 ||
+        applyAction(session, 3, 101, <uint>77, "lp_423_99", true, true) != 0 ||
+        tick(session, 220, true) != 3 || triesLeft(session, true) != 1 ||
+        attemptSeed(session, true) != <uint>3896612673 ||
+        currentPageSeed(session, true) != <uint>1987505904 || deadlineTick(session, true) != 340) {
+        return -1;
+    }
+    var aborting = new LockpickSession();
+    if (engage(aborting, <uint>20061, <uint>423, <uint>77, 1, 1, 100, true) != 1 ||
+        pageCount(aborting, true) != 3 || boardColumns(aborting, true) != 16 ||
+        abandon(aborting, <uint>77, "lp_423_100", true, true) != 7 ||
+        isActive(aborting, true) || status(aborting, true) != 4) {
+        return -2;
+    }
+    var rejectedCoffer = new LockpickSession();
+    if (engageForDelveRun(
+        rejectedCoffer, <uint>20061, <uint>423, <uint>423, true, <uint>77,
+        2, 0, true, 100, true
+    ) != 0 || rejectedCoffer.initialized) {
+        return -3;
+    }
+    var promotedCoffer = new LockpickSession();
+    if (engageForDelveRun(
+        promotedCoffer, <uint>20061, <uint>423, <uint>423, true, <uint>77,
+        1, 0, true, 100, true
+    ) != 1 || promotedCoffer.tier != 1 || boardColumns(promotedCoffer, true) != 16) {
+        return -4;
+    }
+    return 1;
+}

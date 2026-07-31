@@ -48,4 +48,4 @@ RenderDoc 1.44 已成功 replay 现有 D3D12 capture：4,357 actions、58 draws�
 
 ## 修复结果与回传
 
-Open state: `待 Cargo lane 构建当前源码 MVP 后完成 RenderDoc cold/warm capture`。
+Open state: `同进程同viewport的有界连续capture sequence已实现，ZR_RENDERDOC_CAPTURE_FRAME_COUNT=2可依次触发cold与第二稳定帧并在失败/viewport销毁时取消余量；待managed Windows current-source构建、实际PNG/RDC产出及draw/dispatch/copy/upload/GPU timing复盘后回传`。

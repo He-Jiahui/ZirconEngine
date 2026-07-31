@@ -14,5 +14,6 @@ pub enum NetError {
     InvalidBudget { budget: usize },
     SecurityPolicyViolation { reason: String },
     ProtocolUnavailable { capability: String },
+    SharedStatePoisoned { resource: String },
     Io(String),
 }

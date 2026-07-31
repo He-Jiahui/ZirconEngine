@@ -18,7 +18,9 @@ pub use retained_adapter::{
     RetainedUiHostProjection, RetainedUiHostRouteProjection, RetainedUiHostValue,
 };
 pub(crate) use runtime::collect_builtin_template_imports;
-pub use runtime::{EditorUiHostRuntime, EditorUiHostRuntimeError};
+pub use runtime::{
+    EditorPluginV2DocumentSourceError, EditorUiHostRuntime, EditorUiHostRuntimeError,
+};
 pub(crate) use showcase_demo_state::{
     UiComponentShowcaseDemoError, UiComponentShowcaseDemoEventInput, UiComponentShowcaseDemoState,
     SHOWCASE_DOCUMENT_ID,

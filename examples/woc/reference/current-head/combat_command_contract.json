@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/combat_command_contract_codegen.mjs",
+  "source_blobs": {
+    "src/net/online.ts": "9399fac7e5dc49883cf04e772475b73893a0f06c9c65ae4ee5a22944cd3d4ff0",
+    "server/game.ts": "d5f0d0f715037ef4b79594925c64b1d0e676ed5ccebe24605f6ed16bcfc41556",
+    "src/sim/combat/casting_lifecycle.ts": "3cbc1421bbf3970a9e43f14400f6dfd0420e82dbd9faf01a1218e8fa4eaf214e",
+    "src/sim/combat/resurrection_offer.ts": "1ca25eace1219d3ca74f77afc928c4423d47a8ae30961c0cffc59144edab7279"
+  },
+  "commands": [
+    {
+      "id": 149,
+      "name": "releaseEmpowered",
+      "source_shape": {
+        "method": "releaseEmpoweredAbility",
+        "fields": [
+          {
+            "name": "ability",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "id": 164,
+      "name": "resurrect_respond",
+      "source_shape": {
+        "method": "respondToResurrection",
+        "fields": [
+          {
+            "name": "accept",
+            "type": "boolean"
+          }
+        ]
+      }
+    }
+  ],
+  "source_semantics": {
+    "releaseEmpowered": "ability is a string identity; authoritative stage is derived only from the active Sim cast clock",
+    "resurrect_respond": "accept is a boolean; target-owned offers expire inclusively at 30 seconds and resolve at a live caster or fallback position"
+  },
+  "zrvm_backend_status": {
+    "state": "blocked",
+    "reason": "Plugin08 must expose lossless transactional CommandValue transport before string and boolean envelopes may cross the ZrVM boundary"
+  }
+}

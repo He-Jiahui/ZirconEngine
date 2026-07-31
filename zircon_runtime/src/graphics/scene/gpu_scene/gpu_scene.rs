@@ -5,14 +5,14 @@ use crate::core::framework::render::GpuLightData;
 use wgpu::util::DeviceExt;
 
 use super::binding::{
-    create_gpu_scene_bind_group, create_gpu_scene_bind_group_layout,
-    GpuSceneVisibleInstanceRemapParams,
+    GpuSceneVisibleInstanceRemapParams, create_gpu_scene_bind_group,
+    create_gpu_scene_bind_group_layout,
 };
 use super::id_allocator::GpuSceneIdAllocator;
 use super::layout::{
-    GpuInstanceData, GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData,
-    GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage, GPU_INSTANCE_DATA_STRIDE,
-    GPU_PRIMITIVE_DATA_STRIDE,
+    GPU_INSTANCE_DATA_STRIDE, GPU_PRIMITIVE_DATA_STRIDE, GpuInstanceData, GpuMorphDelta,
+    GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData, GpuVirtualGeometryClusterWord,
+    GpuVirtualGeometryPage,
 };
 use super::prev_skinned_palette::{
     GpuSceneSkinnedJointPaletteBuffers, GpuSceneSkinnedJointPaletteState,
@@ -432,9 +432,7 @@ impl GpuScene {
                 report.primitive_upload_range_count = 1;
                 report.uploaded_bytes += uploaded;
             }
-            let _ = self
-                .updates
-                .drain_primitive_upload_ranges(GPU_PRIMITIVE_DATA_STRIDE as u64);
+            self.updates.discard_primitive_updates();
         } else {
             let ranges = self
                 .updates
@@ -460,9 +458,7 @@ impl GpuScene {
                 report.instance_upload_range_count = 1;
                 report.uploaded_bytes += uploaded;
             }
-            let _ = self
-                .updates
-                .drain_instance_upload_ranges(GPU_INSTANCE_DATA_STRIDE as u64);
+            self.updates.discard_instance_updates();
         } else {
             let ranges = self
                 .updates

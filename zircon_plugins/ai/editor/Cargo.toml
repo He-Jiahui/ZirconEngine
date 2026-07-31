@@ -1,0 +1,14 @@
+[package]
+name = "zircon_plugin_ai_editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AI behavior-tree authoring and debug editor plugin for Zircon."
+
+[dependencies]
+thiserror = "2.0.18"
+zircon_editor = { workspace = true }
+zircon_plugin_ai_runtime = { path = "../runtime" }
+zircon_plugin_editor_support = { path = "../../editor_support" }
+zircon_plugin_sdk = { workspace = true, features = ["editor"] }
+zircon_runtime = { workspace = true }

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var scenarios = %import("social/m6_scenario_matrix");
+
+console.printLine("m6-ten-scenario-source-matrix-test");
+var result = scenarios.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

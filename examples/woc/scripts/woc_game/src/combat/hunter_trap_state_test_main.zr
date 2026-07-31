@@ -1,0 +1,1 @@
+var console=%import("zr.system.console"); var trap=%import("combat/hunter_trap_state"); var result=trap.contractTest(); console.printLine(result); return result==1?0:result;

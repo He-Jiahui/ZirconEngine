@@ -1,6 +1,7 @@
 mod actions;
 mod cells;
 mod commands;
+mod geometry;
 mod identity;
 mod layers;
 mod metrics;

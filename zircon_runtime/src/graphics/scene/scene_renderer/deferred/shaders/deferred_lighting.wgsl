@@ -19,6 +19,7 @@ struct SceneUniform {
 };
 
 const ZR_STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
+const DEFERRED_PBR_PI: f32 = 3.141592653589793;
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
 @group(1) @binding(0) var gbuffer_albedo_tex: texture_2d<f32>;
@@ -26,10 +27,6 @@ const ZR_STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
 @group(1) @binding(3) var gbuffer_material_tex: texture_2d<f32>;
 @group(1) @binding(4) var scene_depth_tex: texture_depth_2d;
 @group(1) @binding(5) var gbuffer_emissive_tex: texture_2d<f32>;
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-};
 
 const EPSILON: f32 = 0.000001;
 const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;
@@ -61,18 +58,6 @@ fn decode_receive_shadows(encoded: f32) -> bool {
     return (deferred_material_flags(encoded) & ZR_DEFERRED_MATERIAL_RECEIVE_SHADOWS_FLAG) != 0u;
 }
 
-@vertex
-fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
-    var positions = array<vec2<f32>, 3>(
-        vec2<f32>(-1.0, -3.0),
-        vec2<f32>(-1.0, 1.0),
-        vec2<f32>(3.0, 1.0),
-    );
-    var output: VertexOutput;
-    output.clip_position = vec4<f32>(positions[vertex_index], 0.0, 1.0);
-    return output;
-}
-
 fn screen_uv_to_clip(uv: vec2<f32>, depth: f32) -> vec4<f32> {
     return vec4<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);
 }
@@ -95,6 +80,42 @@ fn normalize_or_zero(value: vec3<f32>) -> vec3<f32> {
     return value / value_length;
 }
 
+// Deferred Standard PBR has no surface extras, so keep only the binding-free GGX core here.
+fn deferred_pbr_fresnel_schlick(cos_theta: f32, f0: vec3<f32>) -> vec3<f32> {
+    let grazing = pow(1.0 - clamp(cos_theta, 0.0, 1.0), 5.0);
+    return f0 + (vec3<f32>(1.0) - f0) * grazing;
+}
+
+fn deferred_pbr_smith_visibility(no_v: f32, no_l: f32, alpha: f32) -> f32 {
+    let alpha_squared = alpha * alpha;
+    let gv = no_l * sqrt(max(no_v * no_v * (1.0 - alpha_squared) + alpha_squared, 0.0));
+    let gl = no_v * sqrt(max(no_l * no_l * (1.0 - alpha_squared) + alpha_squared, 0.0));
+    return 0.5 / max(gv + gl, EPSILON);
+}
+
+fn deferred_standard_pbr_isotropic_ggx(
+    normal: vec3<f32>,
+    view_dir: vec3<f32>,
+    light_dir: vec3<f32>,
+    perceptual_roughness: f32,
+    f0: vec3<f32>,
+) -> vec3<f32> {
+    let half_dir = normalize_or_zero(view_dir + light_dir);
+    let no_v = max(dot(normal, view_dir), EPSILON);
+    let no_l = max(dot(normal, light_dir), EPSILON);
+    let no_h = max(dot(normal, half_dir), 0.0);
+    let vo_h = max(dot(view_dir, half_dir), 0.0);
+    let alpha = max(perceptual_roughness * perceptual_roughness, 0.001);
+    let alpha_squared = alpha * alpha;
+    let denominator = no_h * no_h * (alpha_squared - 1.0) + 1.0;
+    let distribution = alpha_squared / max(
+        DEFERRED_PBR_PI * denominator * denominator,
+        EPSILON,
+    );
+    let visibility = deferred_pbr_smith_visibility(no_v, no_l, alpha);
+    return deferred_pbr_fresnel_schlick(vo_h, f0) * distribution * visibility;
+}
+
 fn scene_view_dir_ws(world_position: vec3<f32>) -> vec3<f32> {
     let perspective_view_dir = normalize_or_zero(scene.camera_world_position.xyz - world_position);
     return normalize_or_zero(mix(
@@ -108,36 +129,40 @@ fn light_radiance(light: ZrGpuLightData) -> vec3<f32> {
     return max(light.color_intensity.rgb, vec3<f32>(0.0, 0.0, 0.0)) * max(light.color_intensity.w, 0.0);
 }
 
-fn shade_standard_pbr_light_vector_components(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>) -> ZrDeferredLightingComponents {
-    let lambert = max(dot(normal, light_vector), 0.0);
-    let half_dir = normalize_or_zero(light_vector + view_dir);
-    let specular_power = mix(96.0, 8.0, roughness);
-    let specular_strength = (1.0 - roughness) * mix(0.04, 1.0, metallic);
-    let specular = pow(max(dot(normal, half_dir), 0.0), specular_power) * specular_strength;
+fn shade_standard_pbr_light_vector_components_normalized(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, roughness: f32, direct_f0: vec3<f32>, direct_diffuse_brdf: vec3<f32>, world_view: vec3<f32>) -> ZrDeferredLightingComponents {
+    let world_light = light_vector;
+    let lambert = max(dot(world_normal, world_light), 0.0);
+    let specular = deferred_standard_pbr_isotropic_ggx(
+        world_normal,
+        world_view,
+        world_light,
+        roughness,
+        direct_f0,
+    );
     return ZrDeferredLightingComponents(
-        diffuse_color * radiance * lambert,
-        radiance * specular,
+        direct_diffuse_brdf * radiance * lambert,
+        radiance * specular * lambert,
     );
 }
 
-fn shade_standard_pbr_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>) -> vec3<f32> {
-    let components = shade_standard_pbr_light_vector_components(light_vector, radiance, normal, roughness, metallic, diffuse_color, view_dir);
+fn shade_standard_pbr_light_vector_normalized(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, roughness: f32, direct_f0: vec3<f32>, direct_diffuse_brdf: vec3<f32>, world_view: vec3<f32>) -> vec3<f32> {
+    let components = shade_standard_pbr_light_vector_components_normalized(light_vector, radiance, world_normal, roughness, direct_f0, direct_diffuse_brdf, world_view);
     return components.diffuse + components.retained;
 }
 
-fn shade_blinn_phong_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>) -> vec3<f32> {
-    let lambert = max(dot(normal, light_vector), 0.0);
-    let half_dir = normalize_or_zero(light_vector + view_dir);
+fn shade_blinn_phong_light_vector_normalized(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, roughness: f32, diffuse_color: vec3<f32>, world_view: vec3<f32>) -> vec3<f32> {
+    let lambert = max(dot(world_normal, light_vector), 0.0);
+    let half_dir = normalize_or_zero(light_vector + world_view);
     let specular_power = mix(96.0, 12.0, roughness);
-    let specular = pow(max(dot(normal, half_dir), 0.0), specular_power) * (1.0 - roughness) * 0.5;
+    let specular = pow(max(dot(world_normal, half_dir), 0.0), specular_power) * (1.0 - roughness) * 0.5;
     return diffuse_color * radiance * lambert + radiance * specular;
 }
 
-fn shade_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, shading_model_id: u32) -> vec3<f32> {
+fn shade_light_vector_normalized(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, roughness: f32, diffuse_color: vec3<f32>, direct_f0: vec3<f32>, direct_diffuse_brdf: vec3<f32>, world_view: vec3<f32>, shading_model_id: u32) -> vec3<f32> {
     if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
-        return shade_blinn_phong_light_vector(light_vector, radiance, normal, roughness, diffuse_color, view_dir);
+        return shade_blinn_phong_light_vector_normalized(light_vector, radiance, world_normal, roughness, diffuse_color, world_view);
     }
-    return shade_standard_pbr_light_vector(light_vector, radiance, normal, roughness, metallic, diffuse_color, view_dir);
+    return shade_standard_pbr_light_vector_normalized(light_vector, radiance, world_normal, roughness, direct_f0, direct_diffuse_brdf, world_view);
 }
 
 fn punctual_light_visibility(light: ZrGpuLightData, light_type: u32, world_position: vec3<f32>, distance_to_light: f32) -> f32 {
@@ -160,7 +185,7 @@ fn punctual_light_visibility(light: ZrGpuLightData, light_type: u32, world_posit
     return visibility;
 }
 
-fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, occlusion: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, view_z: f32, shading_model_id: u32, receive_shadows: bool) -> vec3<f32> {
+fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, world_normal: vec3<f32>, roughness: f32, diffuse_color: vec3<f32>, direct_f0: vec3<f32>, direct_diffuse_brdf: vec3<f32>, world_view: vec3<f32>, view_z: f32, shading_model_id: u32, receive_shadows: bool) -> vec3<f32> {
     if (light_index >= zr_gpu_scene_light_count()) {
         return vec3<f32>(0.0, 0.0, 0.0);
     }
@@ -178,14 +203,15 @@ fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, normal: ve
         if (receive_shadows) {
             direct_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
         }
-        return shade_light_vector(
+        return shade_light_vector_normalized(
             light_vector,
-            base_radiance * direct_visibility * occlusion,
-            normal,
+            base_radiance * direct_visibility,
+            world_normal,
             roughness,
-            metallic,
             diffuse_color,
-            view_dir,
+            direct_f0,
+            direct_diffuse_brdf,
+            world_view,
             shading_model_id,
         );
     }
@@ -201,19 +227,20 @@ fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, normal: ve
     if (receive_shadows) {
         shadow_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
     }
-    return shade_light_vector(
+    return shade_light_vector_normalized(
         to_light / max(distance_to_light, EPSILON),
-        base_radiance * visibility * shadow_visibility * occlusion,
-        normal,
+        base_radiance * visibility * shadow_visibility,
+        world_normal,
         roughness,
-        metallic,
         diffuse_color,
-        view_dir,
+        direct_f0,
+        direct_diffuse_brdf,
+        world_view,
         shading_model_id,
     );
 }
 
-fn shade_gpu_light_index_components(light_index: u32, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, occlusion: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, view_z: f32, receive_shadows: bool) -> ZrDeferredLightingComponents {
+fn shade_gpu_light_index_components(light_index: u32, world_position: vec3<f32>, world_normal: vec3<f32>, roughness: f32, diffuse_color: vec3<f32>, direct_f0: vec3<f32>, direct_diffuse_brdf: vec3<f32>, world_view: vec3<f32>, view_z: f32, receive_shadows: bool) -> ZrDeferredLightingComponents {
     if (light_index >= zr_gpu_scene_light_count()) {
         return ZrDeferredLightingComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }
@@ -231,14 +258,14 @@ fn shade_gpu_light_index_components(light_index: u32, world_position: vec3<f32>,
         if (receive_shadows) {
             direct_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
         }
-        return shade_standard_pbr_light_vector_components(
+        return shade_standard_pbr_light_vector_components_normalized(
             light_vector,
-            base_radiance * direct_visibility * occlusion,
-            normal,
+            base_radiance * direct_visibility,
+            world_normal,
             roughness,
-            metallic,
-            diffuse_color,
-            view_dir,
+            direct_f0,
+            direct_diffuse_brdf,
+            world_view,
         );
     }
 
@@ -252,18 +279,18 @@ fn shade_gpu_light_index_components(light_index: u32, world_position: vec3<f32>,
     if (receive_shadows) {
         shadow_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
     }
-    return shade_standard_pbr_light_vector_components(
+    return shade_standard_pbr_light_vector_components_normalized(
         to_light / max(distance_to_light, EPSILON),
-        base_radiance * visibility * shadow_visibility * occlusion,
-        normal,
+        base_radiance * visibility * shadow_visibility,
+        world_normal,
         roughness,
-        metallic,
-        diffuse_color,
-        view_dir,
+        direct_f0,
+        direct_diffuse_brdf,
+        world_view,
     );
 }
 
-fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, occlusion: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, shading_model_id: u32, receive_shadows: bool) -> vec3<f32> {
+fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, shading_model_id: u32, receive_shadows: bool) -> vec3<f32> {
     if (zr_light_grid_params.light_count == 0u || zr_light_grid_params.bin_count == 0u) {
         return vec3<f32>(0.0, 0.0, 0.0);
     }
@@ -275,6 +302,16 @@ fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: 
         return vec3<f32>(0.0, 0.0, 0.0);
     }
 
+    let world_normal = normalize_or_zero(normal);
+    let world_view = normalize_or_zero(view_dir);
+    var direct_f0 = vec3<f32>(0.0);
+    var direct_diffuse_brdf = vec3<f32>(0.0);
+    if (shading_model_id != ZR_SHADING_MODEL_BLINN_PHONG_ID) {
+        let direct_metallic = clamp(metallic, 0.0, 1.0);
+        direct_f0 = mix(vec3<f32>(0.04), max(diffuse_color, vec3<f32>(0.0)), direct_metallic);
+        direct_diffuse_brdf =
+            diffuse_color * (1.0 - direct_metallic) / DEFERRED_PBR_PI;
+    }
     let tile_base = zr_light_tile_base(frag_coord, zr_light_grid_params);
     var accumulated = vec3<f32>(0.0, 0.0, 0.0);
     for (var word = header.x / 32u; word <= header.y / 32u; word = word + 1u) {
@@ -285,12 +322,12 @@ fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: 
             accumulated = accumulated + shade_gpu_light_index(
                 light_index,
                 world_position,
-                normal,
+                world_normal,
                 roughness,
-                metallic,
-                occlusion,
                 diffuse_color,
-                view_dir,
+                direct_f0,
+                direct_diffuse_brdf,
+                world_view,
                 view_z,
                 shading_model_id,
                 receive_shadows,
@@ -302,7 +339,7 @@ fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: 
     return accumulated;
 }
 
-fn gpu_light_lighting_components(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, occlusion: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, receive_shadows: bool) -> ZrDeferredLightingComponents {
+fn gpu_light_lighting_components(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, receive_shadows: bool) -> ZrDeferredLightingComponents {
     if (zr_light_grid_params.light_count == 0u || zr_light_grid_params.bin_count == 0u) {
         return ZrDeferredLightingComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }
@@ -314,6 +351,16 @@ fn gpu_light_lighting_components(frag_coord: vec2<f32>, world_position: vec3<f32
         return ZrDeferredLightingComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }
 
+    let world_normal = normalize_or_zero(normal);
+    let world_view = normalize_or_zero(view_dir);
+    let direct_metallic = clamp(metallic, 0.0, 1.0);
+    let direct_f0 = mix(
+        vec3<f32>(0.04),
+        max(diffuse_color, vec3<f32>(0.0)),
+        direct_metallic,
+    );
+    let direct_diffuse_brdf =
+        diffuse_color * (1.0 - direct_metallic) / DEFERRED_PBR_PI;
     let tile_base = zr_light_tile_base(frag_coord, zr_light_grid_params);
     var diffuse = vec3<f32>(0.0);
     var retained = vec3<f32>(0.0);
@@ -325,12 +372,12 @@ fn gpu_light_lighting_components(frag_coord: vec2<f32>, world_position: vec3<f32
             let components = shade_gpu_light_index_components(
                 light_index,
                 world_position,
-                normal,
+                world_normal,
                 roughness,
-                metallic,
-                occlusion,
                 diffuse_color,
-                view_dir,
+                direct_f0,
+                direct_diffuse_brdf,
+                world_view,
                 view_z,
                 receive_shadows,
             );
@@ -342,11 +389,8 @@ fn gpu_light_lighting_components(frag_coord: vec2<f32>, world_position: vec3<f32
     return ZrDeferredLightingComponents(diffuse, retained);
 }
 
-fn deferred_diffuse_color(albedo: vec4<f32>, metallic: f32, shading_model_id: u32) -> vec3<f32> {
-    if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
-        return albedo.rgb;
-    }
-    return albedo.rgb * mix(1.0, 0.55, metallic);
+fn deferred_diffuse_color(albedo: vec4<f32>) -> vec3<f32> {
+    return albedo.rgb;
 }
 
 fn add_deferred_emissive(shaded: vec4<f32>, emissive: vec3<f32>) -> vec4<f32> {
@@ -373,8 +417,8 @@ fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, 
     let world_position = reconstruct_world_position(coord, depth);
     let view_dir = scene_view_dir_ws(world_position);
     let ambient = scene.ambient_color.rgb * occlusion;
-    let diffuse_color = deferred_diffuse_color(albedo, metallic, shading_model_id);
-    let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, shading_model_id, receive_shadows);
+    let diffuse_color = deferred_diffuse_color(albedo);
+    let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, diffuse_color, view_dir, shading_model_id, receive_shadows);
     let environment_lights = zr_environment_pbr_indirect(
         world_position,
         normal,
@@ -386,7 +430,12 @@ fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, 
         occlusion,
         shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,
     );
-    let color = diffuse_color * ambient + direct_lights + environment_lights;
+    let diffuse_energy_scale = select(
+        1.0,
+        1.0 - metallic,
+        shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,
+    );
+    let color = diffuse_color * diffuse_energy_scale * ambient + direct_lights + environment_lights;
     return vec4<f32>(color, albedo.a);
 }
 
@@ -398,8 +447,8 @@ fn shade_deferred_subsurface_components(position: vec4<f32>, coord: vec2<i32>, a
     let depth = clamp(textureLoad(scene_depth_tex, coord, 0), 0.0, 1.0);
     let world_position = reconstruct_world_position(coord, depth);
     let view_dir = scene_view_dir_ws(world_position);
-    let diffuse_color = deferred_diffuse_color(albedo, metallic, 16u);
-    let direct = gpu_light_lighting_components(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, receive_shadows);
+    let diffuse_color = deferred_diffuse_color(albedo);
+    let direct = gpu_light_lighting_components(position.xy, world_position, normal, roughness, metallic, diffuse_color, view_dir, receive_shadows);
     let environment = zr_environment_pbr_components(
         world_position,
         normal,
@@ -412,7 +461,9 @@ fn shade_deferred_subsurface_components(position: vec4<f32>, coord: vec2<i32>, a
         true,
     );
     return ZrDeferredLightingComponents(
-        diffuse_color * scene.ambient_color.rgb * occlusion + direct.diffuse + environment.diffuse,
+        diffuse_color * (1.0 - metallic) * scene.ambient_color.rgb * occlusion
+            + direct.diffuse
+            + environment.diffuse,
         direct.retained + environment.specular,
     );
 }

@@ -75,6 +75,9 @@ implementation_files:
   - zircon_runtime/src/core/runtime/modules/mod.rs
   - zircon_runtime/src/core/runtime/modules/log.rs
 plan_sources:
+  - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
+  - docs/plans/zircon_runtime/runtime/02/failure-2026-07-17-module-descriptor-regeneration.md
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - user: 2026-05-08 implement ZirconEngine Bevy completion roadmap M1 app composition layer
@@ -161,7 +164,9 @@ Disabled group entries are not hidden ordering anchors. `add_before(...)` and `a
 
 The 2026-07-13 Frameworks 02 diagnostic hard cut makes `RuntimeModuleLoadReport` typed and single-source. App entry code iterates `warning_messages()` only where it writes host logs and uses `fatal_messages()` to reject startup. It does not read or reconstruct warning/error vectors, merge required-provider failures, or preserve the deleted report fields as an app-side compatibility surface.
 
-`BuiltinEngineEntry::bootstrap` calls `module_descriptors()` on the resolved group, stores app-owned bootstrap config, then registers and activates every descriptor through `CoreRuntime`. It stores the app-owned config again after activation so modules that install default runtime config cannot overwrite the selected entry render/platform profile. Service initialization order, duplicate service detection, dependency resolution, and shutdown rules remain runtime-owned.
+`PluginGroupBuilder::try_finish` generates each enabled module descriptor exactly once for that resolved generation and stores it beside the module in activation order. Entries disabled before a generation is resolved generate no descriptor in that generation. Dependency sorting, `BuiltinEngineEntry::module_selection_report`, and `BuiltinEngineEntry::bootstrap` all read that frozen `ResolvedPluginGroup` snapshot; they do not call `EngineModule::descriptor()` again. `add_group(...)` must still resolve and validate its nested generation immediately so invalid dependencies remain a typed builder error; it transfers those resolved module/descriptor pairs into the outer builder. If the outer builder later disables an inherited entry, the nested validation keeps its one generation call and the outer generation performs no additional descriptor call. `set(...)` deliberately clears the replaced entry's snapshot so the replacement module becomes the descriptor authority. This is generation-scoped ownership, not a process-global cache or compatibility facade.
+
+`BuiltinEngineEntry::bootstrap` stores app-owned bootstrap config, then registers owned clones of the frozen descriptors and activates them through `CoreRuntime`. It stores the app-owned config again after activation so modules that install default runtime config cannot overwrite the selected entry render/platform profile. Service initialization order, duplicate service detection, dependency resolution, and shutdown rules remain runtime-owned. Because diagnostics and registration consume the same ordered snapshot, report dependency/capability data cannot diverge from the descriptor set handed to Core during the same entry generation.
 
 When `BuiltinEngineEntry` is built from linked runtime plugin registration reports, `builtin_modules_for_config_with_runtime_plugin_registrations(...)` and the feature-aware variant also build a plugin-owned `RuntimePluginBridgeLifecycleState` from the same effective project/runtime-profile manifest. `BuiltinEngineEntry::bootstrap` erases that state behind `Arc<dyn RuntimeModuleLifecycleObserver>` and installs the neutral observer into Core before module activation. Explicit provider enable/disable/reload remains on the plugin-owned state exposed by `BuiltinEngineEntry::runtime_plugin_bridge_lifecycle_state()`; Core no longer exposes plugin lifecycle state or event facades.
 

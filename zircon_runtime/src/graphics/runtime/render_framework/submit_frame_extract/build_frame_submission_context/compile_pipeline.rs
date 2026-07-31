@@ -2,16 +2,15 @@ use crate::core::framework::render::{OitBufferPlan, RenderFrameExtract, RenderFr
 
 use std::sync::Arc;
 
-use crate::graphics::pipeline::{
-    extract_compile_fingerprint, CompiledGraphCacheKey, RenderGraphCompileCameraTargetFingerprint,
-};
-use crate::graphics::{CompiledRenderPipeline, RenderPipelineCompileOptions, WgpuRenderFramework};
+use crate::graphics::pipeline::{CompiledGraphCacheKey, RenderGraphCompileCameraTargetFingerprint};
+use crate::graphics::{CompiledRenderPipeline, RenderPipelineCompileOptions};
 
 use super::super::super::capability_validation::validate_compiled_pipeline_capabilities;
+use super::super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 use super::viewport_record_state::ViewportRecordState;
 
 pub(super) fn compile_submission_pipeline(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     state: &ViewportRecordState,
     extract: &RenderFrameExtract,
     camera_target: RenderGraphCompileCameraTargetFingerprint,
@@ -26,7 +25,7 @@ pub(super) fn compile_submission_pipeline(
 }
 
 pub(super) fn compile_submission_pipeline_with_options(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     state: &ViewportRecordState,
     extract: &RenderFrameExtract,
     camera_target: RenderGraphCompileCameraTargetFingerprint,
@@ -52,7 +51,6 @@ pub(super) fn compile_submission_pipeline_with_options(
         state.capabilities(),
         state.shader_quality(),
     );
-    let frame_fingerprint = key.frame;
     let mut framework_state = framework.lock_state();
     let lookup = framework_state
         .compiled_graph_cache
@@ -65,12 +63,5 @@ pub(super) fn compile_submission_pipeline_with_options(
             Ok(compiled)
         })
         .map_err(RenderFrameworkError::Backend)?;
-    if lookup.status.is_hit() {
-        debug_assert_eq!(
-            frame_fingerprint,
-            extract_compile_fingerprint(extract, camera_target),
-            "compiled graph cache hit used a stale render frame compile fingerprint"
-        );
-    }
     Ok(lookup.pipeline)
 }

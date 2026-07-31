@@ -10,7 +10,7 @@ use super::nested_machine_sample::{
     normalized_machine_state_time, sample_machine_state_events, sample_machine_state_pose,
     sample_machine_transition_pose,
 };
-use super::requests::PendingStateMachinePoseSample;
+use super::requests::{PendingClipEventSample, PendingStateMachinePoseSample};
 use super::state_machine_transition::{
     advance_state_machine_transition, begin_state_machine_transition, select_interruption_candidate,
 };
@@ -23,7 +23,7 @@ pub(super) fn resolve_state_machine_pose_requests(
     pending_samples: Vec<PendingStateMachinePoseSample>,
 ) -> (
     BTreeMap<EntityId, AnimationPoseOutput>,
-    Vec<crate::AnimationClipEvent>,
+    Vec<PendingClipEventSample>,
     Vec<(EntityId, Option<String>)>,
     BTreeMap<EntityId, AnimationStateTransitionRuntime>,
 ) {
@@ -285,7 +285,7 @@ fn sample_state_transition_clip_events(
     pending: &PendingStateMachinePoseSample,
     instance: &MachineInstanceKey,
     transition: &AnimationStateTransitionRuntime,
-) -> Vec<crate::AnimationClipEvent> {
+) -> Vec<PendingClipEventSample> {
     let mut events = Vec::new();
     let (from_start_seconds, to_start_seconds) = pending
         .transition

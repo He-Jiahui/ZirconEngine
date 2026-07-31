@@ -1,7 +1,10 @@
+mod column_budget;
+
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::workbench::snapshot::AssetViewMode;
 use zircon_runtime_interface::ui::layout::UiSize;
 
+use self::column_budget::resolve_compact_column_budget;
 use super::compact_table_layout::{
     apply_compact_table_layout, asset_table_row_count, collapse_compact_table_nodes,
     compact_table_stack_height,
@@ -29,7 +32,6 @@ const COMPACT_UTILITY_TAB_WIDTHS: [(&str, f32); 4] = [
 ];
 const COMPACT_UTILITY_LOCATOR_GAP: f32 = 12.0;
 const COMPACT_UTILITY_LOCATOR_WIDTH: f32 = 156.0;
-const COMPACT_COLLAPSED_SOURCES_WIDTH_THRESHOLD: f32 = 900.0;
 const COMPACT_COLLAPSED_DETAILS_MAIN_HEIGHT_THRESHOLD: f32 = 300.0;
 const COMPACT_PREVIEW_CARD_HEIGHT: f32 = 50.0;
 const COMPACT_DETAILS_HEADER_HEIGHT: f32 = 42.0;
@@ -98,15 +100,27 @@ pub(super) fn apply_asset_browser_compact_layout(
         compact_utility_height,
     );
 
-    let collapse_sources = viewport_width < COMPACT_COLLAPSED_SOURCES_WIDTH_THRESHOLD;
-    let collapse_details = main_height < COMPACT_COLLAPSED_DETAILS_MAIN_HEIGHT_THRESHOLD
-        || viewport_height < COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD;
+    let sources_width = node_frame(nodes, "AssetBrowserSourcesPanel")
+        .map(|frame| frame.width)
+        .unwrap_or(0.0);
+    let details_width = node_frame(nodes, "AssetBrowserDetailsPanel")
+        .map(|frame| frame.width)
+        .unwrap_or(0.0);
+    let details_allowed_by_height = main_height >= COMPACT_COLLAPSED_DETAILS_MAIN_HEIGHT_THRESHOLD
+        && viewport_height >= COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD;
+    let column_budget = resolve_compact_column_budget(
+        viewport_width,
+        sources_width,
+        details_width,
+        COMPACT_PANEL_GAP,
+        details_allowed_by_height,
+    );
     apply_compact_main_panel_layout(
         nodes,
         main_y,
         main_height,
-        collapse_sources,
-        collapse_details,
+        column_budget.collapse_sources,
+        column_budget.collapse_details,
         view_mode,
     );
     apply_compact_utility_panel_layout(

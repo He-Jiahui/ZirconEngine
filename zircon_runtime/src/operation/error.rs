@@ -27,6 +27,12 @@ pub enum RuntimeOperationServiceError {
     UnknownOperation { operation_id: String },
     #[error("runtime operation handle space is exhausted")]
     HandleExhausted,
+    #[error("runtime operation queue reached its task capacity of {maximum}")]
+    TaskCapacityReached { maximum: usize },
+    #[error("runtime operation retained data exceeds its byte capacity of {maximum}")]
+    RetainedBytesCapacityReached { maximum: usize },
+    #[error("runtime operation payload encoding failed: {message}")]
+    PayloadEncoding { message: String },
     #[error("runtime operation handle {} does not exist", handle.raw())]
     UnknownHandle { handle: ZrRuntimeOperationHandle },
     #[error("runtime operation handle {} has not reached a terminal state", handle.raw())]

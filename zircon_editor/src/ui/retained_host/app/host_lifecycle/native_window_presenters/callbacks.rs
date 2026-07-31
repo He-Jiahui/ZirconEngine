@@ -1,10 +1,10 @@
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use crate::ui::retained_host::app::native_windows::NativeFloatingWindowTarget;
-use crate::ui::retained_host::app::RetainedEditorHost;
-use crate::ui::retained_host::primitives::CloseRequestResponse;
 use crate::ui::retained_host::UiHostWindow;
+use crate::ui::retained_host::app::RetainedEditorHost;
+use crate::ui::retained_host::app::native_windows::NativeFloatingWindowTarget;
+use crate::ui::retained_host::primitives::CloseRequestResponse;
 
 use super::super::super::callback_wiring::wire_callbacks;
 

@@ -10,7 +10,8 @@ pub(crate) fn undo_policy_for_event(event: &EditorEvent) -> EditorEventUndoPolic
         )
         | EditorEvent::Inspector(_)
         | EditorEvent::Animation(_)
-        | EditorEvent::Viewport(_) => EditorEventUndoPolicy::DelegatedToEditorHistory,
+        | EditorEvent::Hierarchy(_)
+        | EditorEvent::Viewport(_) => EditorEventUndoPolicy::DelegatedToTransactionEngine,
         EditorEvent::Layout(_)
         | EditorEvent::Asset(_)
         | EditorEvent::WorkbenchMenu(
@@ -18,6 +19,7 @@ pub(crate) fn undo_policy_for_event(event: &EditorEvent) -> EditorEventUndoPolic
             | MenuAction::OpenScene
             | MenuAction::CreateScene
             | MenuAction::SaveProject
+            | MenuAction::CloseProject
             | MenuAction::SaveLayout
             | MenuAction::ResetLayout
             | MenuAction::EnterPlayMode

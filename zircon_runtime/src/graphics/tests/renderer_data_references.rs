@@ -285,9 +285,11 @@ fn renderer_asset_projection_accepts_contract_references_with_shader_reference()
     let renderer = RendererAsset {
         name: "valid-runtime-references".to_string(),
         stages: vec![RenderPassStage::Opaque3d],
-        features: vec![RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
-            .with_shader_reference(shader_reference())
-            .with_expected_texture_slot("normal")],
+        features: vec![
+            RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
+                .with_shader_reference(shader_reference())
+                .with_expected_texture_slot("normal"),
+        ],
     };
 
     let document = RendererDataDocument::from_renderer_asset(&renderer).unwrap();

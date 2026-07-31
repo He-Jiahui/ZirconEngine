@@ -1,0 +1,173 @@
+// Source-compatible form-resource transitions. World-state owns persistence and
+// command sequencing; this module owns only the mutable numeric form projection.
+var forms = %import("combat/forms_state");
+
+pub class FormTransitionState {
+    pub var activeFormAbilityCode: uint;
+    // WOS29 resource codes: mana=1, rage=2, energy=3.
+    pub var resourceKind: uint;
+    pub var resource: int;
+    pub var resourceMaximum: int;
+    pub var savedMana: int;
+    pub var savedManaMaximum: int;
+
+    pub @constructor() {
+        this.activeFormAbilityCode = <uint>0;
+        this.resourceKind = <uint>1;
+        this.resource = 0;
+        this.resourceMaximum = 0;
+        this.savedMana = 0;
+        this.savedManaMaximum = 0;
+    }
+}
+
+pub manaResourceKind(): uint { return <uint>1; }
+pub rageResourceKind(): uint { return <uint>2; }
+pub energyResourceKind(): uint { return <uint>3; }
+pub formResourceMaximum(): int { return 100; }
+
+pub stateIsValid(state: FormTransitionState): bool {
+    if (state.resourceKind < manaResourceKind() || state.resourceKind > energyResourceKind() ||
+        state.resource < 0 || state.resourceMaximum < 0 || state.savedMana < 0 ||
+        state.savedManaMaximum < 0 ||
+        (state.activeFormAbilityCode != <uint>0 &&
+            !forms.isFormAbilityCode(state.activeFormAbilityCode))) {
+        return false;
+    }
+    if (forms.isResourceBarShiftFormAbilityCode(state.activeFormAbilityCode)) {
+        return state.resourceKind == forms.resourceKindForFormAbilityCode(
+                state.activeFormAbilityCode) &&
+            state.resourceMaximum == formResourceMaximum();
+    }
+    return state.resourceKind == manaResourceKind();
+}
+
+// The current source bypasses the live-bar affordability gate for any active
+// form transition. `spendCrossFormCost` later selects parked or live mana.
+pub canBeginFormCast(state: FormTransitionState, abilityCode: uint): bool {
+    if (!stateIsValid(state) || !forms.isFormAbilityCode(abilityCode)) { return false; }
+    if (state.activeFormAbilityCode != <uint>0) { return true; }
+    return state.resource >= forms.formCost(abilityCode);
+}
+
+spendLiveResource(state: FormTransitionState, cost: int): void {
+    state.resource = state.resource > cost ? state.resource - cost : 0;
+}
+
+spendCrossFormCost(state: FormTransitionState, cost: int): void {
+    // `isResourceShiftFormAbilityCode` intentionally includes Travel Form:
+    // casting_lifecycle uses that source predicate for cross-shift billing even
+    // though entity.ts swaps the visible resource bar only for Bear and Cat.
+    if (forms.isResourceShiftFormAbilityCode(state.activeFormAbilityCode)) {
+        state.savedMana = state.savedMana > cost ? state.savedMana - cost : 0;
+    } else {
+        spendLiveResource(state, cost);
+    }
+}
+
+restoreManaResource(state: FormTransitionState): void {
+    state.resourceKind = manaResourceKind();
+    state.resourceMaximum = state.savedManaMaximum;
+    state.resource = state.savedMana < state.resourceMaximum ?
+        state.savedMana : state.resourceMaximum;
+}
+
+applyActiveFormResource(state: FormTransitionState): void {
+    var active = state.activeFormAbilityCode;
+    if (forms.isResourceBarShiftFormAbilityCode(active)) {
+        if (state.resourceKind == manaResourceKind()) {
+            state.savedMana = state.resource;
+            state.savedManaMaximum = state.resourceMaximum;
+        }
+        state.resourceKind = forms.resourceKindForFormAbilityCode(active);
+        state.resourceMaximum = formResourceMaximum();
+        state.resource = state.resourceKind == energyResourceKind() ?
+            formResourceMaximum() : 0;
+    } else if (state.resourceKind != manaResourceKind()) {
+        restoreManaResource(state);
+    }
+}
+
+// Return 1 for entering from caster form, 2 for a free same-form exit and 3
+// for a cross-form transition. Callers must use canBeginFormCast first.
+pub applyFormCast(state: FormTransitionState, abilityCode: uint): int {
+    if (!canBeginFormCast(state, abilityCode)) { return -1; }
+    if (state.activeFormAbilityCode == abilityCode) {
+        state.activeFormAbilityCode = <uint>0;
+        applyActiveFormResource(state);
+        return 2;
+    }
+    if (state.activeFormAbilityCode == <uint>0) {
+        spendLiveResource(state, forms.formCost(abilityCode));
+    } else {
+        spendCrossFormCost(state, forms.formCost(abilityCode));
+    }
+    var crossed = state.activeFormAbilityCode != <uint>0;
+    state.activeFormAbilityCode = abilityCode;
+    applyActiveFormResource(state);
+    return crossed ? 3 : 1;
+}
+
+// Talent/level refresh can remove the source ability that granted the active
+// form. Removing that orphan must use the same resource-bar restoration path
+// as a player toggling out of Bear or Cat Form.
+pub clearActiveForm(state: FormTransitionState): void {
+    state.activeFormAbilityCode = <uint>0;
+    applyActiveFormResource(state);
+}
+
+pub contractTest(): int {
+    var bear = forms.formAbilityCode("form_bear");
+    var cat = forms.formAbilityCode("form_cat");
+    var travel = forms.formAbilityCode("form_travel");
+    var moonkin = forms.formAbilityCode("form_moonkin");
+    if (bear == <uint>0 || cat == <uint>0 || travel == <uint>0 || moonkin == <uint>0) {
+        return -1;
+    }
+
+    var druid = new FormTransitionState();
+    druid.resource = 100;
+    druid.resourceMaximum = 200;
+    if (!canBeginFormCast(druid, bear) || applyFormCast(druid, bear) != 1 ||
+        druid.activeFormAbilityCode != bear || druid.resourceKind != rageResourceKind() ||
+        druid.resource != 0 || druid.resourceMaximum != formResourceMaximum() ||
+        druid.savedMana != 70 || druid.savedManaMaximum != 200 || !stateIsValid(druid)) {
+        return -2;
+    }
+    if (applyFormCast(druid, cat) != 3 || druid.activeFormAbilityCode != cat ||
+        druid.resourceKind != energyResourceKind() || druid.resource != 100 ||
+        druid.savedMana != 40 || druid.resourceMaximum != formResourceMaximum()) {
+        return -3;
+    }
+    if (applyFormCast(druid, cat) != 2 || druid.activeFormAbilityCode != <uint>0 ||
+        druid.resourceKind != manaResourceKind() || druid.resource != 40 ||
+        druid.resourceMaximum != 200 || !stateIsValid(druid)) {
+        return -4;
+    }
+
+    var travelDruid = new FormTransitionState();
+    travelDruid.resource = 100;
+    travelDruid.resourceMaximum = 200;
+    if (applyFormCast(travelDruid, travel) != 1 || travelDruid.resourceKind != manaResourceKind() ||
+        travelDruid.resource != 70 || travelDruid.savedMana != 0 ||
+        applyFormCast(travelDruid, bear) != 3 || travelDruid.savedMana != 70 ||
+        travelDruid.resourceKind != rageResourceKind() || travelDruid.resource != 0 ||
+        travelDruid.savedManaMaximum != 200) {
+        return -5;
+    }
+
+    var casterForm = new FormTransitionState();
+    casterForm.resource = 100;
+    casterForm.resourceMaximum = 200;
+    if (applyFormCast(casterForm, moonkin) != 1 || casterForm.resource != 45 ||
+        applyFormCast(casterForm, cat) != 3 || casterForm.resourceKind != energyResourceKind() ||
+        casterForm.resource != 100 || casterForm.savedMana != 15 ||
+        casterForm.savedManaMaximum != 200 || !stateIsValid(casterForm)) {
+        return -6;
+    }
+
+    var unaffordable = new FormTransitionState();
+    unaffordable.resource = 29;
+    unaffordable.resourceMaximum = 200;
+    return canBeginFormCast(unaffordable, bear) ? -7 : 1;
+}

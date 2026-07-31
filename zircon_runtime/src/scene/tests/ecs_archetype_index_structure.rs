@@ -17,6 +17,11 @@ fn archetype_index_hot_paths_use_direct_branches_without_adapter_chains() {
         .nth(1)
         .and_then(|text| text.split("pub fn matching_archetypes").next())
         .expect("read ArchetypeIndex::move_entity body");
+    let remove_entity_at = source
+        .split("pub(crate) fn remove_entity_at(")
+        .nth(1)
+        .and_then(|text| text.split("pub fn matching_archetypes").next())
+        .expect("read ArchetypeIndex::remove_entity_at body");
     let matching_archetypes = source
         .split("pub fn matching_archetypes(")
         .nth(1)
@@ -37,21 +42,11 @@ fn archetype_index_hot_paths_use_direct_branches_without_adapter_chains() {
         .nth(1)
         .and_then(|text| text.split("fn remove_entity_from").next())
         .expect("read ArchetypeIndex::add_entity_to body");
-    let remove_entity = source
-        .split("fn remove_entity_from(")
-        .nth(1)
-        .and_then(|text| text.split("fn index_signature_components").next())
-        .expect("read ArchetypeIndex::remove_entity_from body");
     let swap_remove_entity = record_source
         .split("pub(super) fn swap_remove_entity(")
         .nth(1)
         .and_then(|text| text.split("\n    }\n}").next())
         .expect("read ArchetypeRecord::swap_remove_entity body");
-    let entity_row = source
-        .split("fn entity_row(entities: &[EntityId], entity: EntityId) -> Option<usize>")
-        .nth(1)
-        .and_then(|text| text.split("impl Default for ArchetypeIndex").next())
-        .expect("read entity_row helper");
 
     assert!(signature_lookup.contains("let record = self.records.get(id.index())?;"));
     assert!(signature_lookup.contains("Some(record.signature())"));
@@ -60,9 +55,12 @@ fn archetype_index_hot_paths_use_direct_branches_without_adapter_chains() {
     assert!(entities_lookup.contains("Some(record.entities())"));
     assert!(!entities_lookup.contains(".map(ArchetypeRecord::entities)"));
 
-    assert!(move_entity.contains("let swapped_entity = if let Some(id) = previous"));
-    assert!(move_entity.contains("self.remove_entity_from(id, entity)"));
-    assert!(!move_entity.contains("previous.and_then"));
+    assert!(move_entity.contains("if previous_id == target"));
+    assert!(move_entity.contains("entity_row: previous_row"));
+    assert!(move_entity.contains("self.remove_entity_at(previous_id, previous_row, entity)"));
+    assert!(!move_entity.contains("self.remove_entity_from"));
+    assert!(remove_entity_at.contains("record.entities().get(row).copied()?"));
+    assert!(remove_entity_at.contains("record.swap_remove_entity(row, entity)"));
 
     assert!(matching_archetypes.contains("self.shortest_required_archetype_ids(required)"));
     assert!(matching_archetypes.contains("if ids.is_empty()"));
@@ -104,16 +102,12 @@ fn archetype_index_hot_paths_use_direct_branches_without_adapter_chains() {
     assert!(match_helper.contains("for component_id in without"));
     assert!(!match_helper.contains(".all(|component_id|"));
 
-    assert!(add_entity.contains("entity_row(record.entities(), entity)"));
-    assert!(remove_entity.contains("entity_row(record.entities(), entity)?"));
-    assert!(remove_entity.contains("record.swap_remove_entity(row, entity)"));
-    assert!(!remove_entity.contains(".position("));
-    assert!(!remove_entity.contains(".then(||"));
+    assert!(add_entity.contains("record.push_entity(entity)"));
+    assert!(!add_entity.contains("entity_row("));
+    assert!(!source.contains("fn remove_entity_from("));
+    assert!(!source.contains("fn entity_row("));
     assert!(swap_remove_entity.contains("let last_row = self.entities.len() - 1;"));
     assert!(swap_remove_entity.contains("debug_assert_eq!(removed, entity);"));
     assert!(swap_remove_entity.contains("if row != last_row"));
     assert!(swap_remove_entity.contains("Some((self.entities[row], row))"));
-    assert!(entity_row.contains("while row < entities.len()"));
-    assert!(entity_row.contains("if entities[row] == entity"));
-    assert!(!entity_row.contains(".iter().position("));
 }

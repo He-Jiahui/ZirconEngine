@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use crate::core::framework::render::{
     PostProcessGraphResourceNames, RenderGraphExecutionCoverageReport, RenderLightReadinessReport,
@@ -17,6 +17,7 @@ use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::submission_record_update::SubmissionRecordUpdate;
 use super::light_grid_stats::update_light_grid_stats;
+use super::quality_profile::update_optional_stat_string;
 use super::shared_product_reports::SharedViewportProductReports;
 use super::ui_stats::runtime_ui_graph_pass_order;
 
@@ -94,6 +95,7 @@ pub(super) fn update_base_stats(
         .renderer
         .last_render_graph_executed_executor_ids()
         .to_vec();
+    let executor_pass_counts = executor_pass_counts(&state.stats.last_graph_executed_executor_ids);
     state.stats.last_graph_executed_debug_markers = state
         .renderer
         .last_render_graph_executed_debug_markers()
@@ -161,8 +163,10 @@ pub(super) fn update_base_stats(
     state.stats.last_post_process_graph_node_count = post_process_graph.node_count();
     state.stats.last_post_process_graph_skipped_node_count =
         post_process_graph.skipped_node_count();
-    state.stats.last_post_process_output_transfer_node =
-        post_process_graph.output_transfer_node.clone();
+    update_optional_stat_string(
+        &mut state.stats.last_post_process_output_transfer_node,
+        post_process_graph.output_transfer_node.as_deref(),
+    );
     state.stats.last_post_process_graph_executed_nodes = state
         .renderer
         .last_render_graph_executed_post_process_nodes()
@@ -198,22 +202,10 @@ pub(super) fn update_base_stats(
         context.anti_alias_fallback().effective_graph_sample_count();
     state.stats.last_advanced_provider_reports = context.advanced_provider_reports().to_vec();
     state.stats.last_solari_runtime_report = context.solari_runtime_report().clone();
-    state.stats.last_anti_alias_graph_executed_pass_count = count_executor_prefix(
-        &state.stats.last_graph_executed_executor_ids,
-        FXAA_EXECUTOR_ID,
-    ) + count_executor_prefix(
-        &state.stats.last_graph_executed_executor_ids,
-        SMAA_EXECUTOR_ID,
-    ) + count_executor_prefix(
-        &state.stats.last_graph_executed_executor_ids,
-        "temporal.taa-resolve",
-    );
+    state.stats.last_anti_alias_graph_executed_pass_count = executor_pass_counts.anti_alias;
     let hzb_plan = HzbBuilder::new(context.render_size()).build_plan();
     state.stats.last_hzb_mip_count = hzb_plan.mip_count as usize;
-    state.stats.last_hzb_graph_executed_pass_count = count_executor_prefix(
-        &state.stats.last_graph_executed_executor_ids,
-        "visibility.hzb-",
-    );
+    state.stats.last_hzb_graph_executed_pass_count = executor_pass_counts.hzb;
     update_hzb_occlusion_stats(
         &mut state.stats,
         state.renderer.last_hzb_occlusion_cull_report(),
@@ -222,14 +214,10 @@ pub(super) fn update_base_stats(
     state.stats.last_graph_queue_fallback_pass_count = state
         .renderer
         .last_render_graph_executed_queue_fallback_count();
-    state.stats.last_virtual_geometry_graph_executed_pass_count = count_executor_prefix(
-        &state.stats.last_graph_executed_executor_ids,
-        "virtual-geometry.",
-    );
-    state.stats.last_hybrid_gi_graph_executed_pass_count =
-        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "hybrid-gi.");
-    state.stats.last_particle_graph_executed_pass_count =
-        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "particle.");
+    state.stats.last_virtual_geometry_graph_executed_pass_count =
+        executor_pass_counts.virtual_geometry;
+    state.stats.last_hybrid_gi_graph_executed_pass_count = executor_pass_counts.hybrid_gi;
+    state.stats.last_particle_graph_executed_pass_count = executor_pass_counts.particle;
     state.stats.last_particle_velocity_missing_sprite_count =
         particle_velocity_missing_sprite_count(
             context.post_process_effect_stack(),
@@ -246,8 +234,7 @@ pub(super) fn update_base_stats(
             context.particle_sprite_count(),
             context.particle_anonymous_stream_ambiguity_sprite_count(),
         );
-    state.stats.last_shadow_graph_executed_pass_count =
-        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "shadow.");
+    state.stats.last_shadow_graph_executed_pass_count = executor_pass_counts.shadow;
     let shadow_atlas_write_count = state
         .renderer
         .last_render_graph_executed_resource_access_count_for(
@@ -296,9 +283,12 @@ pub(super) fn update_base_stats(
         .last_render_graph_executed_stage_count(RenderPassStage::Ui);
     state.stats.last_ui_target_size =
         (state.stats.last_ui_graph_executed_pass_count > 0).then(|| context.size());
-    state.stats.last_ui_graph_pass_order = runtime_ui_graph_pass_order(
-        &state.stats.last_graph_executed_passes,
-        state.stats.last_ui_graph_executed_pass_count,
+    update_optional_stat_string(
+        &mut state.stats.last_ui_graph_pass_order,
+        runtime_ui_graph_pass_order(
+            &state.stats.last_graph_executed_passes,
+            state.stats.last_ui_graph_executed_pass_count,
+        ),
     );
     state.stats.last_material_count = state.renderer.last_material_count();
     state.stats.last_material_ready_count = state.renderer.last_material_ready_count();
@@ -458,8 +448,7 @@ pub(super) fn update_base_stats(
     state.stats.last_sprite_ready_count = state.renderer.last_sprite_ready_count();
     state.stats.last_sprite_texture_fallback_count =
         state.renderer.last_sprite_texture_fallback_count();
-    state.stats.last_sprite_graph_executed_pass_count =
-        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "sprite.");
+    state.stats.last_sprite_graph_executed_pass_count = executor_pass_counts.sprite;
     let prepared_sprite_queue_stats = state.renderer.last_prepared_sprite_queue_stats();
     state.stats.last_sprite_draw_batch_count = prepared_sprite_queue_stats.draw_batch_count;
     state.stats.last_sprite_batched_sprite_count = prepared_sprite_queue_stats.sprite_count;
@@ -525,40 +514,49 @@ fn shadow_casting_atlas_light_count(context: &FrameSubmissionContext) -> usize {
             .count()
 }
 
-fn count_executor_prefix(executor_ids: &[String], prefix: &str) -> usize {
-    executor_ids
-        .iter()
-        .filter(|executor_id| executor_id.starts_with(prefix))
-        .count()
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct ExecutorPassCounts {
+    anti_alias: usize,
+    hzb: usize,
+    virtual_geometry: usize,
+    hybrid_gi: usize,
+    particle: usize,
+    shadow: usize,
+    sprite: usize,
+}
+
+fn executor_pass_counts(executor_ids: &[String]) -> ExecutorPassCounts {
+    let mut counts = ExecutorPassCounts::default();
+    for executor_id in executor_ids {
+        counts.anti_alias += usize::from(
+            executor_id.starts_with(FXAA_EXECUTOR_ID)
+                || executor_id.starts_with(SMAA_EXECUTOR_ID)
+                || executor_id.starts_with("temporal.taa-resolve"),
+        );
+        counts.hzb += usize::from(executor_id.starts_with("visibility.hzb-"));
+        counts.virtual_geometry += usize::from(executor_id.starts_with("virtual-geometry."));
+        counts.hybrid_gi += usize::from(executor_id.starts_with("hybrid-gi."));
+        counts.particle += usize::from(executor_id.starts_with("particle."));
+        counts.shadow += usize::from(executor_id.starts_with("shadow."));
+        counts.sprite += usize::from(executor_id.starts_with("sprite."));
+    }
+    counts
 }
 
 fn update_visibility_stats(stats: &mut RenderStats, frame_visibility: &FrameVisibility) {
     stats.last_visibility_view_count = frame_visibility.views.len();
-    stats.last_visibility_input_count = frame_visibility
-        .views
-        .iter()
-        .map(|view| view.stats.input_count)
-        .sum();
-    stats.last_visibility_layer_filtered_count = frame_visibility
-        .views
-        .iter()
-        .map(|view| view.stats.layer_filtered_count)
-        .sum();
-    stats.last_visibility_frustum_culled_count = frame_visibility
-        .views
-        .iter()
-        .map(|view| view.stats.frustum_culled_count)
-        .sum();
-    stats.last_visibility_occlusion_culled_count = frame_visibility
-        .views
-        .iter()
-        .map(|view| view.stats.occlusion_culled_count)
-        .sum();
-    stats.last_visibility_visible_count = frame_visibility
-        .views
-        .iter()
-        .map(|view| view.stats.visible_count)
-        .sum();
+    stats.last_visibility_input_count = 0;
+    stats.last_visibility_layer_filtered_count = 0;
+    stats.last_visibility_frustum_culled_count = 0;
+    stats.last_visibility_occlusion_culled_count = 0;
+    stats.last_visibility_visible_count = 0;
+    for view in &frame_visibility.views {
+        stats.last_visibility_input_count += view.stats.input_count;
+        stats.last_visibility_layer_filtered_count += view.stats.layer_filtered_count;
+        stats.last_visibility_frustum_culled_count += view.stats.frustum_culled_count;
+        stats.last_visibility_occlusion_culled_count += view.stats.occlusion_culled_count;
+        stats.last_visibility_visible_count += view.stats.visible_count;
+    }
 }
 
 fn update_visibility_static_index_stats(
@@ -661,14 +659,11 @@ fn graph_execution_coverage_report_from_names<'a>(
     planned_live_passes: impl IntoIterator<Item = &'a str>,
     executed_passes: &[String],
 ) -> RenderGraphExecutionCoverageReport {
-    let planned_live_passes = planned_live_passes
-        .into_iter()
-        .map(str::to_owned)
-        .collect::<BTreeSet<_>>();
-    let mut executed_unique_passes = BTreeSet::new();
+    let planned_live_passes = planned_live_passes.into_iter().collect::<HashSet<&str>>();
+    let mut executed_unique_passes = HashSet::with_capacity(executed_passes.len());
     let mut duplicate_executed_pass_count = 0;
     for pass_name in executed_passes {
-        if !executed_unique_passes.insert(pass_name.clone()) {
+        if !executed_unique_passes.insert(pass_name.as_str()) {
             duplicate_executed_pass_count += 1;
         }
     }

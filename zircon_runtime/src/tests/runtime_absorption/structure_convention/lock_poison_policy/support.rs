@@ -7,6 +7,10 @@ pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) 
     super::super::assert_contains_all(label, source, required);
 }
 
+pub(super) fn assert_contains_all_exact(label: &str, source: &str, required: &[&str]) {
+    super::super::assert_contains_all_exact(label, source, required);
+}
+
 pub(super) fn assert_no_direct_lock_unwrap_in_production(label: &str, source: &str) {
     let production = production_section(source);
     assert!(

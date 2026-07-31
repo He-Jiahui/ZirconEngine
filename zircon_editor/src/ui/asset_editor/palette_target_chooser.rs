@@ -69,26 +69,28 @@ impl UiAssetPaletteTargetChooser {
 }
 
 pub(super) fn reconcile_palette_target_chooser(
-    previous: Option<&UiAssetPaletteTargetChooser>,
+    previous: Option<UiAssetPaletteTargetChooser>,
     mut next_resolution: Option<UiAssetPaletteDragResolution>,
-) -> Option<UiAssetPaletteTargetChooser> {
-    if let Some(previous) = previous {
-        if previous.sticky() {
+) -> (Option<UiAssetPaletteTargetChooser>, bool) {
+    if let Some(previous_ref) = previous.as_ref() {
+        if previous_ref.sticky() {
             let Some(next_resolution_ref) = next_resolution.as_mut() else {
-                return Some(previous.clone());
+                return (previous, false);
             };
-            if !same_candidate_set(previous.resolution(), next_resolution_ref) {
-                return Some(previous.clone());
+            if !same_candidate_set(previous_ref.resolution(), next_resolution_ref) {
+                return (previous, false);
             }
         }
     }
 
     let mut next_manual_selection = false;
-    if let (Some(previous), Some(next_resolution_ref)) = (previous, next_resolution.as_mut()) {
-        if same_candidate_set(previous.resolution(), next_resolution_ref)
-            && previous.manual_selection()
+    if let (Some(previous_ref), Some(next_resolution_ref)) =
+        (previous.as_ref(), next_resolution.as_mut())
+    {
+        if same_candidate_set(previous_ref.resolution(), next_resolution_ref)
+            && previous_ref.manual_selection()
         {
-            if let Some(previous_target) = previous.selected_target() {
+            if let Some(previous_target) = previous_ref.selected_target() {
                 if let Some(index) = next_resolution_ref.candidates.iter().position(|candidate| {
                     candidate.key == previous_target.key
                         && candidate.detail == previous_target.detail
@@ -100,15 +102,18 @@ pub(super) fn reconcile_palette_target_chooser(
         }
     }
 
-    next_resolution.map(|resolution| {
+    let next = next_resolution.map(|resolution| {
         UiAssetPaletteTargetChooser::new(
             resolution,
             next_manual_selection,
             previous
+                .as_ref()
                 .map(UiAssetPaletteTargetChooser::sticky)
                 .unwrap_or(false),
         )
-    })
+    });
+    let changed = previous.as_ref() != next.as_ref();
+    (next, changed)
 }
 
 fn same_candidate_set(

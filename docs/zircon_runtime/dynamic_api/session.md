@@ -29,7 +29,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/menu.rs
   - zircon_runtime/src/dynamic_api/session/preview.rs
   - zircon_runtime/src/dynamic_api/session/profile.rs
-  - zircon_runtime/src/dynamic_api/session/registry.rs
+  - zircon_runtime/src/dynamic_api/session/registry/mod.rs
+  - zircon_runtime/src/dynamic_api/session/registry/session_store.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
@@ -126,7 +127,8 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/menu.rs
   - zircon_runtime/src/dynamic_api/session/preview.rs
   - zircon_runtime/src/dynamic_api/session/profile.rs
-  - zircon_runtime/src/dynamic_api/session/registry.rs
+  - zircon_runtime/src/dynamic_api/session/registry/mod.rs
+  - zircon_runtime/src/dynamic_api/session/registry/session_store.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
@@ -335,7 +337,7 @@ The available default-feature `dynamic_api` filter executed 85 behavior tests su
 
 ## Owner Split
 
-- `session.rs` keeps the Rust-ABI session owner functions, session registry, and `RuntimeDynamicSession` lifecycle/orchestration. The exported C ABI entry points live in `exports.rs` wrappers.
+- `session.rs` keeps the Rust-ABI session owner functions and `RuntimeDynamicSession` lifecycle/orchestration. The folder-backed `session/registry/mod.rs` is a zero-behavior facade; `session/registry/session_store.rs` owns the session registry and registry lock, while `session_slot.rs` owns the per-session lock and close barrier. The exported C ABI entry points live in `exports.rs` wrappers.
 - `session/events.rs` owns dynamic session event dispatch and input adaptation: pointer, mouse, touch, keyboard, IME, file-drag, window, gamepad, and accessibility events are translated into `core::framework::input` DTOs or camera/menu preview actions there. `session.rs` keeps only the private Rust-ABI `handle_event(...)` owner entry and delegates through `with_session(...)`.
 
 Runtime 15 M2 input mouse-wheel line-delta naming hard cutover records `runtime_15_input_mouse_wheel_line_delta_naming_hard_cutover_static_passed_cargo_deferred`: dynamic preview scroll now uses `zircon_runtime/src/core/framework/input/mouse_wheel.rs` through `MouseWheelEvent::vertical_line_delta()` when it needs the scalar camera orbit delta. `naming_boundary/runtime_15_m2/input.rs::runtime_15_input_mouse_wheel_line_delta_uses_current_names` keeps `session/events.rs`, the input framework owner, and this document aligned without retaining old helper aliases.
@@ -350,7 +352,7 @@ Runtime 15 M2 input mouse-wheel line-delta naming hard cutover records `runtime_
 - `session/input_events.rs` maps ABI numeric input/window/gamepad/IME constants into `core::framework::input` DTOs, including the ASCII-style WASD and digit-key codes emitted by the standalone app's physical-key converter for gameplay scripts and choice prompts.
 - `session/preview.rs` owns fallback frame and accessibility preview payloads used when the dynamic preview cannot extract a full UI surface.
 - `session/profile.rs` owns `RuntimeDynamicSessionProfile`, ABI profile byte parsing, fixed-step policy, diagnostic-log schedule selection, and render-bridge enablement policy. `session.rs` imports only the profile type and keeps session creation, ticking, rendering, and lifecycle orchestration.
-- `session/registry.rs` owns the global runtime session registry, session handle allocation, poison-safe registry/session lock helpers, and `with_session` lookup/dispatch. `session.rs` imports only the registry entry points it needs for ABI create/destroy/dispatch, while `session/tests/lock_poison.rs` keeps validating poison recovery through the parent module.
+- `session/registry/mod.rs` is a zero-behavior child mount and re-export facade. `session/registry/session_store.rs` owns the global registry, handle allocation, poison-safe lookup/destroy, and `with_session` dispatch; `session_slot.rs` owns action admission, the private session lock, and close/wake quiescence. `session.rs` imports only the facade entry points it needs for ABI create/destroy/dispatch.
 - `session/hud.rs` extracts runtime HUD UI from gameplay dynamic components such as `gameplay.hud_text` and passes it through the normal frame presentation path. Generic text still has a fallback path, while the vampire sample HUD parser converts structured HP/XP/time/weapon/buff text into a graphical screen-space panel with bars, icon slots, and prompt rows. Combat health bars for the sample must remain in this HUD layer instead of reappearing as scene mesh/cube entities.
 - `session/menu.rs` extracts the runtime gameplay menu overlay from `gameplay.menu_state` and handles pointer hit-testing for its single command button. It writes the selected command back through `gameplay.control_state`, keeping Start/Retry interaction in the same dynamic-component channel the project script can consume on the next tick.
 - `session/tests/` owns focused tests for the private session orchestrator. `vampire_runtime_support.rs` keeps shared project-session fixtures, `vampire_gameplay.rs` owns movement/combat/AI assertions, `vampire_menu.rs` owns Start/Game Over flows, `vampire_hud.rs` owns world-HUD capture checks, `frame_diagnostics.rs` owns extract/FPS diagnostics, and `runtime_errors.rs` owns narrow error-format coverage.
@@ -359,9 +361,9 @@ Runtime 15 M2 input mouse-wheel line-delta naming hard cutover records `runtime_
 
 Runtime 15 M4 dynamic API session profile owner split is recorded as `runtime_15_dynamic_api_session_profile_owner_split_static_passed_cargo_deferred`. `dynamic_api/session.rs` remains the runtime ABI session lifecycle owner, while `dynamic_api/session/profile.rs` owns `RuntimeDynamicSessionProfile`, profile byte parsing, fixed-step policy, diagnostic-log schedule selection, and render-bridge enablement. The structure guard `runtime_15_dynamic_api_session_profile_is_child_owner` keeps the profile enum/constants/methods from returning to the parent and keeps both owners below the production-file budget.
 
-Runtime 15 M4 dynamic API session registry owner split is recorded as `runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred`. `dynamic_api/session.rs` remains the runtime ABI session lifecycle owner, while `dynamic_api/session/registry.rs` owns `SESSION_REGISTRY`, `SessionRegistry`, handle allocation, poison-safe `lock_registry`/`lock_session`, and `with_session` lookup/dispatch. The structure guard `runtime_15_dynamic_api_session_registry_is_child_owner` keeps registry static/struct/helper code from returning to the parent and keeps both owners below the production-file budget.
+Runtime 15 M4 dynamic API session registry owner split is recorded as `runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred`. `dynamic_api/session.rs` remains the runtime ABI session lifecycle owner, `dynamic_api/session/registry/mod.rs` remains a zero-behavior facade, `registry/session_store.rs` owns `SESSION_REGISTRY`, `SessionRegistry`, handle allocation and dispatch, and `registry/session_slot.rs` owns action/close admission plus the private session lock. The structure guard `runtime_15_dynamic_api_session_registry_is_child_owner` keeps behavior out of the facade and parent and keeps each production owner within budget.
 
-This keeps the FFI boundary file below the large-file warning line while preserving the exported `ZrRuntimeApiV2` shape.
+This keeps the FFI boundary below the large-file warning line. The wider V3 ABI hard cut remains one atomic Runtime10/Runtime03 candidate and is not accepted by this structure-only split.
 
 ## FFI Panic Boundary
 
@@ -461,9 +463,9 @@ Fresh 2026-06-25 Runtime 15 M2 dynamic API vampire runtime support module naming
 
 状态：`runtime_15_dynamic_api_session_lock_poison_recovery_static_passed_cargo_deferred`。
 
-Runtime 15 E9/F2 now treats the dynamic session registry and per-session execution mutex as recoverable private runtime state. `session.rs` owns `lock_registry()` for `SESSION_REGISTRY` and `lock_session()` for each stored `RuntimeDynamicSession`; `destroy_session`, `insert_session`, and `with_session` all use those helpers instead of direct `registry().lock().unwrap()` or `session.lock().unwrap()`.
+Runtime 15 E9/F2 now treats the dynamic session registry and per-session execution mutex as recoverable private runtime state. `session/registry/session_store.rs` privately owns `lock_registry()` for `SESSION_REGISTRY`, and `session_slot.rs` privately owns `lock_session()` for each stored `RuntimeDynamicSession`; the zero-behavior `registry/mod.rs` only projects the operations used by session callers.
 
-`session/tests/lock_poison.rs::dynamic_api_session_registry_accessors_recover_poisoned_locks` deliberately poisons both locks, then verifies that `with_session` still dispatches an action and `destroy_session` still removes the handle. `structure_convention/lock_poison_policy.rs::runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry` mirrors the same contract into Runtime 15 status output and plan docs. This does not change the ABI table, session handle shape, profile parsing, or panic-wrapper boundary; it only prevents a poisoned private mutex from becoming a process-level dynamic API failure path.
+`session/tests/lock_poison.rs::dynamic_api_session_registry_accessors_recover_poisoned_locks` poisons the registry through a `#[cfg(test)]` store-owner helper and poisons the session through the real `with_session` action-admission path. It then verifies that dispatch recovers and destroy removes the handle without exposing the registry map or session lock outside their owner modules. The Runtime 15 lock-poison guard mirrors the same contract into current status output and plan docs.
 
 ## Boundary Rules
 

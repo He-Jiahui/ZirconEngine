@@ -1,0 +1,8 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub rankedOneVOneHonor(): int { return 25; }
+pub rankedTwoVTwoHonor(): int { return 50; }
+pub fiestaKillHonor(): int { return 20; }
+pub fiestaCompletionHonor(): int { return 20; }
+pub fiestaWinBonusHonor(): int { return 40; }
+pub arenaDailyTaperStart(): int { return 10; }
+pub arenaDailyTaperFloorStart(): int { return 15; }

@@ -1,5 +1,5 @@
-use crate::ui::retained_host::callback_dispatch;
 use crate::ui::retained_host::UiHostWindow;
+use crate::ui::retained_host::callback_dispatch;
 
 mod docked;
 mod floating;

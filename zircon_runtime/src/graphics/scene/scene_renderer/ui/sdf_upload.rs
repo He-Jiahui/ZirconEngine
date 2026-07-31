@@ -1,11 +1,11 @@
 use crate::text::atlas::{
-    glyph_atlas_upload_command, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec,
-    GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasUploadCommand,
+    GlyphAtlasUploadMode, glyph_atlas_upload_command,
 };
 use crate::text::sdf::SdfAtlasRect;
 
 use super::sdf_atlas::{
-    distance_field_atlas_page_keys, SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan,
+    SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan, distance_field_atlas_page_keys,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -93,7 +93,7 @@ pub(super) fn sdf_atlas_upload_report(
 
 pub(super) fn sdf_atlas_upload_commands(
     atlas_plan: &SdfAtlasPlan,
-    upload: SdfAtlasUploadReport,
+    upload: &SdfAtlasUploadReport,
     source_byte_len: usize,
 ) -> Vec<SdfAtlasUploadCommand> {
     let mode = match upload.mode {
@@ -101,22 +101,50 @@ pub(super) fn sdf_atlas_upload_commands(
         SdfAtlasUploadMode::FullTexture => GlyphAtlasUploadMode::FullPage,
         SdfAtlasUploadMode::DirtySlots => GlyphAtlasUploadMode::PartialRect,
     };
+    let Some(source_pages) = sdf_atlas_source_pages(atlas_plan, source_byte_len) else {
+        return Vec::new();
+    };
     upload
         .dirty_pages
-        .into_iter()
+        .iter()
         .filter_map(|dirty_page| {
-            let page = sdf_atlas_page_spec_for_key(atlas_plan, dirty_page.page_key);
-            let page_source_byte_len = sdf_page_source_byte_len(&page)?;
+            let source_page_index = source_pages
+                .binary_search_by_key(&dirty_page.page_key, |(page, _, _)| page.key)
+                .ok()?;
+            let (page, source_offset, page_source_byte_len) =
+                source_pages.get(source_page_index)?;
             let mut command = glyph_atlas_upload_command(
-                &page,
+                page,
                 mode,
                 Some(dirty_page.dirty_rect.into()),
-                page_source_byte_len,
+                *page_source_byte_len,
             )?;
-            offset_upload_command_for_source_page(&mut command, atlas_plan, source_byte_len)?;
+            command.source_offset = command
+                .source_offset
+                .checked_add(u64::try_from(*source_offset).ok()?)?;
             Some(command)
         })
         .collect()
+}
+
+fn sdf_atlas_source_pages(
+    atlas_plan: &SdfAtlasPlan,
+    source_byte_len: usize,
+) -> Option<Vec<(GlyphAtlasPageSpec, usize, usize)>> {
+    let page_keys = distance_field_atlas_page_keys(atlas_plan);
+    let mut pages = Vec::with_capacity(page_keys.len());
+    let mut source_offset = 0usize;
+    for page_key in page_keys {
+        let page = sdf_atlas_page_spec_for_key(atlas_plan, page_key);
+        let page_byte_len = sdf_page_source_byte_len(&page)?;
+        let page_end = source_offset.checked_add(page_byte_len)?;
+        if page_end > source_byte_len {
+            return None;
+        }
+        pages.push((page, source_offset, page_byte_len));
+        source_offset = page_end;
+    }
+    Some(pages)
 }
 
 fn sdf_atlas_page_spec_for_key(
@@ -138,30 +166,6 @@ fn sdf_page_source_byte_len(page: &GlyphAtlasPageSpec) -> Option<usize> {
         .saturating_mul(page.size.y.max(1))
         .saturating_mul(page.storage_format.bytes_per_pixel());
     usize::try_from(byte_len).ok()
-}
-
-fn offset_upload_command_for_source_page(
-    command: &mut SdfAtlasUploadCommand,
-    atlas_plan: &SdfAtlasPlan,
-    source_byte_len: usize,
-) -> Option<()> {
-    let mut source_offset = 0usize;
-    let mut target_page_byte_len = None;
-    for page_key in distance_field_atlas_page_keys(atlas_plan) {
-        let page = sdf_atlas_page_spec_for_key(atlas_plan, page_key);
-        let page_byte_len = sdf_page_source_byte_len(&page)?;
-        if page_key == command.page_key {
-            target_page_byte_len = Some(page_byte_len);
-            break;
-        }
-        source_offset = source_offset.checked_add(page_byte_len)?;
-    }
-    let page_end = source_offset.checked_add(target_page_byte_len?)?;
-    if page_end > source_byte_len {
-        return None;
-    }
-    command.source_offset = command.source_offset.checked_add(source_offset as u64)?;
-    Some(())
 }
 
 fn sdf_upload_dirty_pages(

@@ -17,6 +17,7 @@ pub(super) fn push_sample_grid_surface(
     order: i32,
     opacity: f32,
 ) {
+    let grid = &node.sample_grid.generation;
     commands.push(HostPaintCommand::quad(
         geometry.outer.clone(),
         Some(clip.clone()),
@@ -38,21 +39,17 @@ pub(super) fn push_sample_grid_surface(
         opacity,
     ));
 
-    for row in 0..node.sample_grid.x_ticks.row_count() {
-        if let Some(value) = node.sample_grid.x_ticks.row_data(row) {
-            let x = geometry.x_for_value(value, node.sample_grid.x_min, node.sample_grid.x_max);
-            push_dashed_vertical(commands, x, &geometry.plot, clip, order + 2, opacity);
-        }
+    for tick in grid.x_ticks() {
+        let x = geometry.x_for_value(tick.value(), grid.x_min(), grid.x_max());
+        push_dashed_vertical(commands, x, &geometry.plot, clip, order + 2, opacity);
     }
-    for row in 0..node.sample_grid.y_ticks.row_count() {
-        if let Some(value) = node.sample_grid.y_ticks.row_data(row) {
-            let y = geometry.y_for_value(value, node.sample_grid.y_min, node.sample_grid.y_max);
-            push_dashed_horizontal(commands, y, &geometry.plot, clip, order + 2, opacity);
-        }
+    for tick in grid.y_ticks() {
+        let y = geometry.y_for_value(tick.value(), grid.y_min(), grid.y_max());
+        push_dashed_horizontal(commands, y, &geometry.plot, clip, order + 2, opacity);
     }
 
-    if node.sample_grid.x_min <= 0.0 && node.sample_grid.x_max >= 0.0 {
-        let x = geometry.x_for_value(0.0, node.sample_grid.x_min, node.sample_grid.x_max);
+    if grid.x_min() <= 0.0 && grid.x_max() >= 0.0 {
+        let x = geometry.x_for_value(0.0, grid.x_min(), grid.x_max());
         push_line(
             commands,
             FrameRect {
@@ -67,8 +64,8 @@ pub(super) fn push_sample_grid_surface(
             opacity,
         );
     }
-    if node.sample_grid.y_min <= 0.0 && node.sample_grid.y_max >= 0.0 {
-        let y = geometry.y_for_value(0.0, node.sample_grid.y_min, node.sample_grid.y_max);
+    if grid.y_min() <= 0.0 && grid.y_max() >= 0.0 {
+        let y = geometry.y_for_value(0.0, grid.y_min(), grid.y_max());
         push_line(
             commands,
             FrameRect {

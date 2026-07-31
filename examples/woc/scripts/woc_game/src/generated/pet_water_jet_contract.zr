@@ -1,0 +1,10 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub manualCommandId(required: bool): uint { return required ? <uint>57 : <uint>0; }
+pub autoCommandId(required: bool): uint { return required ? <uint>60 : <uint>0; }
+pub range(required: bool): float { return required ? 25.0 : 0.0; }
+pub totalDamage(required: bool): int { return required ? 30 : 0; }
+pub durationSeconds(required: bool): float { return required ? 3.0 : 0.0; }
+pub intervalSeconds(required: bool): float { return required ? 1.0 : 0.0; }
+pub slowMultiplier(required: bool): float { return required ? 0.6 : 0.0; }
+pub cooldownSeconds(required: bool): float { return required ? 8.0 : 0.0; }
+pub perTickDamage(required: bool): int { return required ? 10 : 0; }

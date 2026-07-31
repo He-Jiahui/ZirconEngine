@@ -2,9 +2,10 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 use zircon_runtime_interface::ui::component::UiComponentState;
+use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use zircon_runtime_interface::ui::template::{
-    UiSelector, UiSelectorCombinator, UiSelectorSegment, UiSelectorToken,
+    UiSelector, UiSelectorCombinator, UiSelectorSegment, UiSelectorSpecificity, UiSelectorToken,
 };
 use zircon_runtime_interface::ui::tree::{UiTree, UiTreeError, UiTreeNode};
 use zircon_runtime_interface::ui::v2::{
@@ -24,10 +25,37 @@ use tokens::{
 mod runtime_state;
 mod tokens;
 
+/// Resolves inline node values through the document's canonical token registry.
+///
+/// Style declarations already use this path during cascade resolution. Exposing
+/// it here keeps `props`, `state`, and `layout` values on the same token
+/// grammar instead of giving editor documents a second, divergent resolver.
+pub(crate) fn resolve_document_value_map(
+    values: &mut BTreeMap<String, Value>,
+    document: &UiV2AssetDocument,
+    theme: Option<&crate::ui::theme::UiThemeRegistry>,
+) {
+    resolve_value_map(values, &document.tokens, theme, 0);
+}
+
 #[derive(Default)]
 pub struct UiV2StyleResolver;
 
 impl UiV2StyleResolver {
+    /// Registers the editor's canonical token registry before resolving stylesheet variables.
+    ///
+    /// Existing `editor.*` and `--editor-*` entries are replaced and stale entries
+    /// removed so every `var()` consumer observes the active `EditorDesignTokens` set.
+    pub fn register_editor_design_tokens(
+        document: &mut UiV2AssetDocument,
+        tokens: &EditorDesignTokens,
+    ) {
+        document
+            .tokens
+            .retain(|name, _| !name.starts_with("editor.") && !name.starts_with("--editor-"));
+        document.tokens.extend(tokens.cascade_token_values());
+    }
+
     pub fn resolve(
         document: &UiV2AssetDocument,
         arena: &UiV2NodeArena,
@@ -232,14 +260,14 @@ impl UiV2RuntimeStyleIndex {
             next_child: 0,
         }];
         while let Some(frame) = stack.last_mut() {
-            let children = tree
+            let child_id = tree
                 .nodes
                 .get(&frame.node_id)
                 .ok_or(UiTreeError::MissingNode(frame.node_id))?
                 .children
-                .clone();
-            if frame.next_child < children.len() {
-                let child_id = children[frame.next_child];
+                .get(frame.next_child)
+                .copied();
+            if let Some(child_id) = child_id {
                 frame.next_child += 1;
                 let child = tree
                     .nodes
@@ -383,7 +411,7 @@ fn merge_runtime_rule(style: &mut UiV2ResolvedStyle, rule: &ResolvedRule) {
 #[derive(Clone, Debug, PartialEq)]
 struct ResolvedRule {
     selector: UiSelector,
-    specificity: usize,
+    specificity: UiSelectorSpecificity,
     order: usize,
     set: UiV2StyleDeclarationBlock,
     style_tokens: BTreeMap<String, String>,

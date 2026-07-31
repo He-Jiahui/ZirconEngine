@@ -80,7 +80,9 @@ class SupervisionServiceTests(unittest.TestCase):
         self.service.require_mutation_allowed("finalize.commit@session-a")
         self.service.require_mutation_allowed("cargo.consume_cpu_reservation@session-a")
         self.service.require_mutation_allowed("codex.sessions.reconcile")
-        self.service.require_mutation_allowed("cargo.reserve_cpu@session-b")
+        with self.assertRaises(CoordinatorError) as reservation_rejected:
+            self.service.require_mutation_allowed("cargo.reserve_cpu@session-b")
+        self.assertEqual("maintenance_hold_active", reservation_rejected.exception.code)
         with self.assertRaises(CoordinatorError) as resume_rejected:
             self.service.require_mutation_allowed("service.resume")
         self.assertEqual("maintenance_scope_resume_blocked", resume_rejected.exception.code)

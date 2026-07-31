@@ -1,7 +1,8 @@
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent};
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetFolderRecord,
+    EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
+    EditorAssetFolderRecord,
 };
 use crate::ui::retained_host::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
@@ -66,7 +67,7 @@ fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {
     let harness = EventRuntimeHarness::new("zircon_retained_asset_tree_pointer");
     let bridge = BuiltinAssetSurfaceTemplateBridge::new()
         .expect("builtin asset surface bridge should build");
-    harness.runtime.sync_asset_catalog(sample_catalog());
+    harness.runtime.sync_asset_catalog(shared_catalog());
     let snapshot = harness.runtime.editor_snapshot();
     let base_folder_ids = snapshot
         .asset_browser
@@ -136,7 +137,7 @@ fn shared_asset_content_pointer_bridge_scrolls_and_dispatches_item_selection() {
     let harness = EventRuntimeHarness::new("zircon_retained_asset_content_pointer");
     let bridge = BuiltinAssetSurfaceTemplateBridge::new()
         .expect("builtin asset surface bridge should build");
-    harness.runtime.sync_asset_catalog(sample_catalog());
+    harness.runtime.sync_asset_catalog(shared_catalog());
     dispatch_builtin_asset_surface_control(
         &harness.runtime,
         &bridge,
@@ -263,7 +264,7 @@ fn shared_asset_reference_pointer_bridge_scrolls_and_dispatches_reference_activa
     let harness = EventRuntimeHarness::new("zircon_retained_asset_reference_pointer");
     let bridge = BuiltinAssetSurfaceTemplateBridge::new()
         .expect("builtin asset surface bridge should build");
-    harness.runtime.sync_asset_catalog(sample_catalog());
+    harness.runtime.sync_asset_catalog(shared_catalog());
 
     let asset_ids = vec![
         "11111111-1111-1111-1111-111111111111".to_string(),
@@ -497,3 +498,11 @@ fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
         ],
     }
 }
+
+fn shared_catalog() -> Arc<EditorAssetCatalogGeneration> {
+    Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
+        sample_catalog(),
+        1,
+    ))
+}
+use std::sync::Arc;

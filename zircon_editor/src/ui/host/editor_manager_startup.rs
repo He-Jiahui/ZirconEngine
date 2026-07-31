@@ -8,21 +8,27 @@ use super::editor_manager::EditorManager;
 
 impl EditorManager {
     pub fn resolve_startup_session(&self) -> Result<EditorStartupSessionDocument, EditorError> {
-        self.host.resolve_startup_session()
+        let session = self.host.resolve_startup_session()?;
+        self.publish_document_startup_session(&session)?;
+        Ok(session)
     }
 
     pub fn open_project_and_remember(
         &self,
         path: impl AsRef<Path>,
     ) -> Result<EditorStartupSessionDocument, EditorError> {
-        self.host.open_project_and_remember(path)
+        let session = self.host.open_project_and_remember(path)?;
+        self.publish_document_startup_session(&session)?;
+        Ok(session)
     }
 
     pub fn create_project_and_open(
         &self,
         draft: NewProjectDraft,
     ) -> Result<EditorStartupSessionDocument, EditorError> {
-        self.host.create_project_and_open(draft)
+        let session = self.host.create_project_and_open(draft)?;
+        self.publish_document_startup_session(&session)?;
+        Ok(session)
     }
 
     pub fn recent_projects_snapshot(&self) -> Result<Vec<RecentProjectEntry>, EditorError> {

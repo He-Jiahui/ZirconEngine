@@ -8,17 +8,21 @@ fn source_template_preserves_builtin_catalog_target_modes_after_manifest_complet
         1,
     );
     manifest.plugins =
-        RuntimePluginCatalog::builtin().complete_project_manifest(&ProjectPluginManifest {
-            selections: vec![ProjectPluginSelection::runtime_plugin(
-                RuntimePluginId::VirtualGeometry,
-                true,
-                false,
-            )],
-        });
+        Arc::unwrap_or_clone(RuntimePluginCatalog::builtin().complete_project_manifest(
+            &ProjectPluginManifest {
+                selections: vec![ProjectPluginSelection::runtime_plugin(
+                    RuntimePluginId::VirtualGeometry,
+                    true,
+                    false,
+                )],
+            },
+            RuntimeTargetMode::ClientRuntime,
+        ));
     manifest.export_profiles = vec![ExportProfile::new(
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -65,6 +69,7 @@ fn source_template_completes_builtin_catalog_selection_before_projection() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -105,6 +110,7 @@ fn source_template_links_rendering_default_owner_features() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -176,6 +182,7 @@ fn library_embed_links_advanced_runtime_render_plugins() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -217,6 +224,7 @@ fn source_template_with_native_dynamic_merges_native_loader_reports() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([
         ExportPackagingStrategy::SourceTemplate,

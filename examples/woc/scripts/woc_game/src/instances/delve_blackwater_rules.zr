@@ -1,0 +1,143 @@
+// Pure projection of tickDelveBlackwater from the pinned WOC simulation.
+// Callers own party/death state and persist the returned timer; this module
+// deliberately owns neither entity identity nor DelveState lifecycle.
+var moduleContent = %import("instances/delve_module_content");
+var dryGround = %import("instances/delve_litany_dry_ground");
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) {
+        difference = -difference;
+    }
+    return difference <= 0.000001;
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub advanceBlackwaterTimer(timer: float, deltaSeconds: float, required: bool): float {
+    if (!required || timer < 0.0 || deltaSeconds < 0.0) {
+        throw "woc blackwater timer input is invalid";
+    }
+    var next = timer + deltaSeconds;
+    // The source resets rather than retaining overrun after the one-second tick.
+    return next < 1.0 ? next : 0.0;
+}
+
+pub blackwaterTickDue(timer: float, deltaSeconds: float, required: bool): bool {
+    if (!required || timer < 0.0 || deltaSeconds < 0.0) {
+        throw "woc blackwater tick input is invalid";
+    }
+    return timer + deltaSeconds >= 1.0;
+}
+
+pub worstHazardTier(
+    moduleIndex: int,
+    localX: float,
+    localZ: float,
+    required: bool
+): int {
+    if (!required) {
+        throw "woc blackwater hazard query is required";
+    }
+    var hazardCount = moduleContent.hazardCount(moduleIndex, true);
+    var worst = 0;
+    var hazardIndex = 0;
+    while (hazardIndex < hazardCount) {
+        var centerX = moduleContent.hazardFloat(moduleIndex, hazardIndex, 1, true);
+        var centerZ = moduleContent.hazardFloat(moduleIndex, hazardIndex, 2, true);
+        var radiusX = moduleContent.hazardFloat(moduleIndex, hazardIndex, 4, true);
+        var radiusZ = moduleContent.hazardFloat(moduleIndex, hazardIndex, 5, true);
+        var dx = localX - centerX;
+        var dz = localZ - centerZ;
+        var normalized = (dx * dx) / (radiusX * radiusX) +
+            (dz * dz) / (radiusZ * radiusZ);
+        if (normalized <= 1.0) {
+            var tier = moduleContent.hazardTierCode(moduleIndex, hazardIndex, true);
+            if (tier == 2) {
+                return 2;
+            }
+            if (worst == 0) {
+                worst = 1;
+            }
+        }
+        hazardIndex = hazardIndex + 1;
+    }
+    return worst;
+}
+
+pub damageForHazardTier(
+    maxHp: int,
+    heroicTier: bool,
+    highWater: bool,
+    hazardTier: int,
+    required: bool
+): int {
+    if (!required || maxHp < 0 || hazardTier < 0 || hazardTier > 2) {
+        throw "woc blackwater damage input is invalid";
+    }
+    if (hazardTier == 0) {
+        return 0;
+    }
+    var basePercent = heroicTier ? 0.08 : 0.04;
+    if (highWater) {
+        basePercent = basePercent * 1.35;
+    }
+    var tierMultiplier = hazardTier == 2 ? 2.0 : 0.35;
+    var damage = roundPositive(<float>maxHp * basePercent * tierMultiplier);
+    return damage < 1 ? 1 : damage;
+}
+
+pub blackwaterDamageAt(
+    moduleIndex: int,
+    localX: float,
+    localZ: float,
+    maxHp: int,
+    heroicTier: bool,
+    highWater: bool,
+    airborne: bool,
+    required: bool
+): int {
+    if (!required || maxHp < 0) {
+        throw "woc blackwater position input is invalid";
+    }
+    if (airborne || dryGround.isDryGround(moduleIndex, localX, localZ, true)) {
+        return 0;
+    }
+    var hazardTier = worstHazardTier(moduleIndex, localX, localZ, true);
+    return damageForHazardTier(maxHp, heroicTier, highWater, hazardTier, true);
+}
+
+pub contractTest(): int {
+    if (moduleContent.contractTest() != 1 || dryGround.contractTest() != 1) {
+        return -1;
+    }
+    if (!blackwaterTickDue(0.95, 0.05, true) || blackwaterTickDue(0.90, 0.05, true) ||
+        !closeEnough(advanceBlackwaterTimer(0.90, 0.05, true), 0.95) ||
+        !closeEnough(advanceBlackwaterTimer(0.95, 0.05, true), 0.0)) {
+        return -2;
+    }
+    if (worstHazardTier(4, -8.0, 18.0, true) != 2 ||
+        worstHazardTier(4, 0.0, 18.0, true) != 1 ||
+        worstHazardTier(4, 20.0, 18.0, true) != 0) {
+        return -3;
+    }
+    if (damageForHazardTier(1000, false, false, 2, true) != 80 ||
+        damageForHazardTier(1000, false, false, 1, true) != 14 ||
+        damageForHazardTier(1000, true, true, 2, true) != 216 ||
+        damageForHazardTier(1, false, false, 1, true) != 1) {
+        return -4;
+    }
+    if (blackwaterDamageAt(4, -8.0, 18.0, 1000, false, false, false, true) != 80 ||
+        blackwaterDamageAt(4, 0.0, 18.0, 1000, false, false, false, true) != 14 ||
+        blackwaterDamageAt(4, -8.0, 18.0, 1000, false, false, true, true) != 0) {
+        return -5;
+    }
+    // The Ring's central dry island lies inside its central deep-water ellipse.
+    if (worstHazardTier(6, 0.0, 40.0, true) != 2 ||
+        blackwaterDamageAt(6, 0.0, 40.0, 1000, true, true, false, true) != 0) {
+        return -6;
+    }
+    return 1;
+}

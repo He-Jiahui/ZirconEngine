@@ -57,7 +57,7 @@ class MaintenanceCpuReservationConsumeTests(unittest.TestCase):
             ),
         )
 
-    def test_scoped_hold_allows_only_the_bound_reservation_consume(self) -> None:
+    def test_scoped_hold_allows_only_bound_cpu_consume_and_run(self) -> None:
         supervision = SupervisionService(
             self.database,
             repository_key="repo-key",
@@ -86,7 +86,9 @@ class MaintenanceCpuReservationConsumeTests(unittest.TestCase):
             supervision.require_mutation_allowed("cargo.acquire@session-a")
         self.assertEqual("maintenance_hold_active", generic.exception.code)
         supervision.require_mutation_allowed("cargo.run_reserved@session-a")
-        supervision.require_mutation_allowed("cargo.recover_expired_reservation@session-a")
+        with self.assertRaises(CoordinatorError) as recovery:
+            supervision.require_mutation_allowed("cargo.recover_expired_reservation@session-a")
+        self.assertEqual("maintenance_hold_active", recovery.exception.code)
         with self.assertRaises(CoordinatorError) as generic_run:
             supervision.require_mutation_allowed("cargo.run@session-a")
         self.assertEqual("maintenance_hold_active", generic_run.exception.code)
@@ -120,8 +122,8 @@ class MaintenanceCpuReservationConsumeTests(unittest.TestCase):
         self.assertEqual("leased", row["status"])
         self.assertEqual(job.job_id, row["job_id"])
 
-    def test_held_scope_exposes_a_typed_gpu_reservation_consume_api(self) -> None:
-        """A held owner needs one exact GPU lease without generic acquisition."""
+    def test_held_scope_rejects_gpu_and_expired_recovery_admission(self) -> None:
+        """A proof-bound CPU hold cannot create, recover, or consume a GPU reservation."""
         self.assertTrue(hasattr(self.jobs, "reserve_gpu"))
         self.assertTrue(hasattr(self.jobs, "consume_gpu_reservation"))
 
@@ -138,15 +140,20 @@ class MaintenanceCpuReservationConsumeTests(unittest.TestCase):
             SupervisionState.DRAINING,
             reason_code="test.maintenance_hold",
             actor="test",
-            updates={"explicit_stop": 1, "maintenance_hold": 1},
+            updates={"maintenance_hold": 1},
         )
-        supervision.require_mutation_allowed("cargo.reserve_gpu@session-a")
-        supervision.require_mutation_allowed("cargo.consume_gpu_reservation@session-a")
         supervision.require_mutation_allowed("cargo.run_reserved@session-a")
-        with self.assertRaises(CoordinatorError) as generic:
-            supervision.require_mutation_allowed("cargo.acquire@session-a")
-        self.assertEqual("service_explicit_stop_active", generic.exception.code)
+        for operation in (
+            "cargo.reserve_gpu@session-a",
+            "cargo.consume_gpu_reservation@session-a",
+            "cargo.recover_expired_reservation@session-a",
+            "cargo.promote_failure_reservation@session-a",
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                supervision.require_mutation_allowed(operation)
+            self.assertEqual("maintenance_hold_active", rejected.exception.code)
 
+    def test_held_scope_rejects_gpu_reserved_run_bound_before_the_hold(self) -> None:
         command = (
             "cargo",
             "test",
@@ -156,29 +163,40 @@ class MaintenanceCpuReservationConsumeTests(unittest.TestCase):
             "zircon_plugin_rendering_volumetric_fog_runtime",
             "--locked",
         )
-        target = self.target_root / "zircon-engine" / "render18-af-m3-plugin"
         reservation = self.jobs.reserve_gpu(
             "session-a",
             compatibility=self.compatibility(),
-            target_dir=target,
+            target_dir=self.target_root / "zircon-engine" / "pre-held-gpu",
             command=command,
         )
         job = self.jobs.consume_gpu_reservation(
             reservation["reservationId"], session_id="session-a"
         )
-        self.assertEqual("gpu", reservation["laneScope"])
-        self.assertEqual(str(target), reservation["targetDir"])
-        self.assertEqual(CargoLaneKind.GPU, job.lane_kind)
-        self.assertEqual(str(target), str(job.target_dir))
-        self.assertEqual(
-            {"RUSTFLAGS": "-C debuginfo=0", "CARGO_INCREMENTAL": "0"},
+        supervision = SupervisionService(
+            self.database,
+            repository_key="repo-key",
+            daemon_instance_id="daemon-a",
+            process_creation_time="creation-a",
+            maintenance_session_ids=("session-a",),
+        )
+        supervision.initialize()
+        supervision.mark_healthy()
+        supervision.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.maintenance_hold",
+            actor="test",
+            updates={"maintenance_hold": 1},
+        )
+        supervision.require_mutation_allowed("cargo.run_reserved@session-a")
+
+        with self.assertRaises(CoordinatorError) as rejected:
             self.jobs.reserved_run_environment(
                 reservation["reservationId"],
                 session_id="session-a",
                 job_id=job.job_id,
                 command=command,
-            ),
-        )
+            )
+        self.assertEqual("maintenance_hold_cpu_reservation_required", rejected.exception.code)
 
     def test_gpu_reserved_run_accepts_existing_semicolon_compatibility(self) -> None:
         command = ("pwsh", "-NoProfile", "-Command", "render18 gpu sequence")
@@ -390,7 +408,7 @@ class MaintenanceCpuReservationConsumeTests(unittest.TestCase):
 
         self.assertEqual("cargo_reservation_recovery_arguments_invalid", rejected.exception.code)
 
-    def test_startup_scope_uses_latest_succeeded_drain_when_event_is_coalesced(self) -> None:
+    def test_startup_scope_ignores_legacy_drain_without_a_durable_proof(self) -> None:
         application = CoordinatorApplication(self.config)
         application.supervision.mark_healthy()
         application.supervision.transition(
@@ -426,10 +444,9 @@ class MaintenanceCpuReservationConsumeTests(unittest.TestCase):
                     ),
                 )
 
-        self.assertEqual(
-            ("session-a", "session-b"),
-            application._maintenance_session_ids_for_startup(),
-        )
+        # A restart must not replay an old generic/coalesced drain as an
+        # admission scope. Only the exact bootstrap proof may restore it.
+        self.assertEqual((), application._maintenance_session_ids_for_startup())
 
 
 if __name__ == "__main__":

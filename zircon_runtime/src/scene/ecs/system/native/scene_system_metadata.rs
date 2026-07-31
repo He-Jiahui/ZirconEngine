@@ -1,5 +1,12 @@
 use crate::scene::ecs::{SystemOrderingConstraint, SystemSetId, SystemStage};
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SceneSystemThreadAffinity {
+    #[default]
+    MainThreadOnly,
+    WorkerSafe,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SceneSystemMetadata {
     id: String,
@@ -7,6 +14,7 @@ pub struct SceneSystemMetadata {
     order: i32,
     sets: Vec<SystemSetId>,
     constraints: Vec<SystemOrderingConstraint>,
+    thread_affinity: SceneSystemThreadAffinity,
 }
 
 impl SceneSystemMetadata {
@@ -17,6 +25,7 @@ impl SceneSystemMetadata {
             order,
             sets: Vec::new(),
             constraints: Vec::new(),
+            thread_affinity: SceneSystemThreadAffinity::MainThreadOnly,
         }
     }
 
@@ -40,6 +49,10 @@ impl SceneSystemMetadata {
         &self.constraints
     }
 
+    pub const fn thread_affinity(&self) -> SceneSystemThreadAffinity {
+        self.thread_affinity
+    }
+
     pub fn with_set(mut self, set: SystemSetId) -> Self {
         self.sets.push(set);
         self
@@ -60,6 +73,11 @@ impl SceneSystemMetadata {
         constraints: impl IntoIterator<Item = SystemOrderingConstraint>,
     ) -> Self {
         self.constraints.extend(constraints);
+        self
+    }
+
+    pub const fn with_thread_affinity(mut self, affinity: SceneSystemThreadAffinity) -> Self {
+        self.thread_affinity = affinity;
         self
     }
 }

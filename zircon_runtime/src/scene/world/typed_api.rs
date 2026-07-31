@@ -28,10 +28,13 @@ impl World {
             .expect("reserved scene entity must have a unique stable id");
         self.entities.push(entity);
         self.kinds.insert(entity, NodeKind::Empty);
-        self.refresh_stable_entity_locations();
+        self.record_node_kind_added(NodeKind::Empty);
+        self.refresh_entity_archetype(entity);
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
+        self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
+        self.advance_scene_binding_generations_for_new_descendant(entity);
         true
     }
 
@@ -132,6 +135,7 @@ impl World {
         let tick = self.mutation_change_tick();
         let component_id = self.component_id::<T>();
         let was_present = self.contains_component_id(entity, component_id);
+        let current_hierarchy_parent = Self::hierarchy_parent_from_component(&component);
         self.insert_fixed_component(entity, &component)?;
         let internal = self
             .internal_entity(entity)
@@ -147,7 +151,12 @@ impl World {
             Err(error) => return Err(error.into()),
         };
 
-        self.mark_component_mutation::<T>();
+        self.mark_component_mutation::<T>(entity);
+        self.mark_scene_binding_component_replacement::<T>(
+            entity,
+            old.as_ref(),
+            current_hierarchy_parent,
+        );
         if !was_present {
             self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
@@ -183,7 +192,8 @@ impl World {
                 return None;
             }
             self.mark_component_changed_at_tick::<T>(entity, tick);
-            self.mark_component_mutation::<T>();
+            self.mark_component_mutation::<T>(entity);
+            self.mark_scene_binding_component_get_mut::<T>(entity);
             return self.fixed_component_mut::<T>(entity);
         }
         let component_id = self.registered_component_id::<T>()?;
@@ -191,7 +201,8 @@ impl World {
         if !self.component_storage.contains(component_id, internal) {
             return None;
         }
-        self.mark_component_mutation::<T>();
+        self.mark_component_mutation::<T>(entity);
+        self.mark_scene_binding_component_get_mut::<T>(entity);
         self.component_storage
             .get_mut_at_tick(component_id, internal, tick)
     }
@@ -228,7 +239,8 @@ impl World {
             }
             if removed.is_some() {
                 self.record_removed_component::<T>(entity);
-                self.mark_component_mutation::<T>();
+                self.mark_component_mutation::<T>(entity);
+                self.mark_scene_binding_component_removal::<T>(entity, removed.as_ref().unwrap());
             }
             if removed.is_some() || removed_from_storage {
                 self.refresh_entity_archetype(entity);
@@ -249,7 +261,8 @@ impl World {
         };
         if removed.is_some() {
             self.record_removed_component::<T>(entity);
-            self.mark_component_mutation::<T>();
+            self.mark_component_mutation::<T>(entity);
+            self.mark_scene_binding_component_removal::<T>(entity, removed.as_ref().unwrap());
             self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
         }
@@ -268,6 +281,15 @@ impl World {
         T: Resource,
     {
         self.resource_registry.registered_resource_id::<T>()
+    }
+
+    pub(crate) fn external_resource_id(&mut self, stable_id: &str) -> ResourceId {
+        self.resource_registry.external_resource_id(stable_id)
+    }
+
+    pub fn registered_external_resource_id(&self, stable_id: &str) -> Option<ResourceId> {
+        self.resource_registry
+            .registered_external_resource_id(stable_id)
     }
 
     pub fn contains_resource<T>(&self) -> bool
@@ -503,12 +525,108 @@ impl World {
         }
     }
 
-    fn mark_component_mutation<T>(&mut self)
+    fn mark_component_mutation<T>(&mut self, entity: EntityId)
     where
         T: Component,
     {
+        let type_id = std::any::TypeId::of::<T>();
         self.advance_world_generation();
+        if self.is_hierarchy_component_type(type_id) || self.is_active_component_type(type_id) {
+            self.mark_inspection_subtree_fields_dirty(entity);
+        } else {
+            self.inspection_artifact_cache.mark_fields_dirty(entity);
+        }
+        if self.is_inspection_hierarchy_component_type(type_id) {
+            self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
+        }
         self.mark_component_derived_state_dirty::<T>();
+    }
+
+    pub(super) fn mark_inspection_subtree_fields_dirty(&self, root: EntityId) {
+        for entity in self.subtree_entity_ids(root) {
+            self.inspection_artifact_cache.mark_fields_dirty(entity);
+        }
+    }
+
+    fn is_inspection_hierarchy_component_type(&self, type_id: std::any::TypeId) -> bool {
+        type_id == std::any::TypeId::of::<crate::scene::components::Name>()
+            || type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>()
+            || type_id == std::any::TypeId::of::<crate::scene::components::ActiveSelf>()
+            || type_id == std::any::TypeId::of::<crate::scene::components::CameraComponent>()
+            || type_id == std::any::TypeId::of::<crate::scene::components::MeshRenderer>()
+            || type_id == std::any::TypeId::of::<crate::scene::components::AmbientLight>()
+            || type_id == std::any::TypeId::of::<crate::scene::components::DirectionalLight>()
+            || type_id == std::any::TypeId::of::<crate::scene::components::PointLight>()
+            || type_id == std::any::TypeId::of::<crate::scene::components::RectLight>()
+            || type_id == std::any::TypeId::of::<crate::scene::components::SpotLight>()
+    }
+
+    fn mark_scene_binding_component_replacement<T>(
+        &mut self,
+        entity: EntityId,
+        previous: Option<&T>,
+        current_hierarchy_parent: Option<Option<EntityId>>,
+    ) where
+        T: Component,
+    {
+        let type_id = std::any::TypeId::of::<T>();
+        if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
+            self.advance_scene_binding_generation_for_name(entity);
+        } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
+            let previous_parent = previous
+                .and_then(Self::hierarchy_parent_from_component)
+                .unwrap_or(None);
+            self.advance_scene_binding_generations_for_reparent(
+                entity,
+                previous_parent,
+                current_hierarchy_parent.unwrap_or(None),
+            );
+        }
+    }
+
+    fn mark_scene_binding_component_removal<T>(&mut self, entity: EntityId, previous: &T)
+    where
+        T: Component,
+    {
+        let type_id = std::any::TypeId::of::<T>();
+        if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
+            self.advance_scene_binding_generation_for_name(entity);
+        } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
+            self.advance_scene_binding_generations_for_reparent(
+                entity,
+                Self::hierarchy_parent_from_component(previous).unwrap_or(None),
+                None,
+            );
+        }
+    }
+
+    fn mark_scene_binding_component_get_mut<T>(&mut self, entity: EntityId)
+    where
+        T: Component,
+    {
+        let type_id = std::any::TypeId::of::<T>();
+        if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
+            self.advance_scene_binding_generation_for_name(entity);
+        } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
+            // The raw mutable reference does not reveal its eventual parent. Structured
+            // reparenting stays incremental; this escape hatch must remain correct.
+            self.invalidate_all_scene_binding_generations();
+        }
+    }
+
+    fn hierarchy_parent_from_component<T>(component: &T) -> Option<Option<EntityId>>
+    where
+        T: Component,
+    {
+        if std::any::TypeId::of::<T>()
+            != std::any::TypeId::of::<crate::scene::components::Hierarchy>()
+        {
+            return None;
+        }
+        let hierarchy = (component as &dyn std::any::Any)
+            .downcast_ref::<crate::scene::components::Hierarchy>()
+            .expect("Hierarchy type identity must match its concrete component");
+        Some(hierarchy.parent)
     }
 
     fn mark_component_derived_state_dirty<T>(&mut self)

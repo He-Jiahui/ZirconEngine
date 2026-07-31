@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 class Frameworks02CoreErrorSingleSourceTests(unittest.TestCase):
     def test_runtime_core_exposes_only_core_error(self) -> None:
         error_source = (
-            REPO_ROOT / "zircon_runtime/src/core/framework/error.rs"
+            REPO_ROOT / "zircon_runtime/src/core/runtime/error.rs"
         ).read_text(encoding="utf-8")
         core_root_source = (REPO_ROOT / "zircon_runtime/src/core/mod.rs").read_text(
             encoding="utf-8"
@@ -28,7 +28,7 @@ class Frameworks02CoreErrorSingleSourceTests(unittest.TestCase):
         self.assertIn("ChannelSend(String)", error_source)
         self.assertIn("ThreadSpawn(String)", error_source)
         self.assertIn(
-            "pub use framework::error::{CoreError, CoreResult};", core_root_source
+            "pub use runtime::error::{CoreError, CoreResult};", core_root_source
         )
         self.assertNotIn("ZirconError", core_root_source)
 
@@ -38,7 +38,7 @@ class Frameworks02CoreErrorSingleSourceTests(unittest.TestCase):
 
         self.assertIn("use crate::core::{CoreError, CoreResult};", asset_worker_source)
         self.assertIn(
-            "pub fn request(&self, request: AssetRequest) -> CoreResult<()>",
+            "pub fn request(&self, request: AssetRequest) -> CoreResult<AssetWorkerCompletionTicket>",
             asset_worker_source,
         )
         self.assertIn("Err(CoreError::ChannelSend", asset_worker_source)

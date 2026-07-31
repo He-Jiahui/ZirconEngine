@@ -56,6 +56,16 @@ fn button_input_state_tracks_bevy_style_frame_transitions() {
 }
 
 #[test]
+fn button_release_moves_the_stored_owned_key_into_transition_state() {
+    let source = include_str!("../../../core/framework/input/button_input_state.rs");
+    assert!(source.contains("self.pressed.take(input)"));
+    assert!(
+        !source.contains("self.pressed.remove(input)"),
+        "release must not discard the stored key and clone the lookup key"
+    );
+}
+
+#[test]
 fn input_snapshot_just_pressed_is_true_for_exactly_one_frame() {
     let input = DefaultInputManager::default();
     let key = InputButton::Key("Jump".to_string());

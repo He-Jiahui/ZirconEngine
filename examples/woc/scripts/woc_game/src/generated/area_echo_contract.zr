@@ -1,0 +1,9 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub echoRadius(): float { return 8.0; }
+pub echoMultiplier(): float { return 0.4; }
+pub echoMaxTargets(): int { return 4; }
+pub sweepMultiplier(): float { return 1.0; }
+pub isSingleTargetEffect(kind: string): bool { return kind == "weaponStrike" || kind == "directDamage"; }
+pub isAreaEffect(kind: string): bool { return kind == "aoeDamage" || kind == "aoeRoot" || kind == "groundAoE"; }
+pub isEchoAura(kind: string): bool { return kind == "aoe_echo"; }
+pub isSweepAura(kind: string): bool { return kind == "sweeping_strikes"; }

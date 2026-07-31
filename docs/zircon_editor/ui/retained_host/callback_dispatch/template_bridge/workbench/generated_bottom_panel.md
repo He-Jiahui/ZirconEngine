@@ -11,7 +11,6 @@ related_code:
   - zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/activity_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
-  - zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/generated_bottom.rs
@@ -42,7 +41,6 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
-  - zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/generated_bottom.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs

@@ -19,13 +19,11 @@ pub(super) fn push_sample_points(
     order: i32,
     opacity: f32,
 ) {
-    for row in 0..node.sample_grid.points.row_count() {
-        let Some(point) = node.sample_grid.points.row_data(row) else {
-            continue;
-        };
-        let x = geometry.point_x_for_value(point.x, node.sample_grid.x_min, node.sample_grid.x_max);
-        let y = geometry.point_y_for_value(point.y, node.sample_grid.y_min, node.sample_grid.y_max);
-        if point.selected {
+    let grid = &node.sample_grid.generation;
+    for point in grid.points() {
+        let x = geometry.point_x_for_value(point.x(), grid.x_min(), grid.x_max());
+        let y = geometry.point_y_for_value(point.y(), grid.y_min(), grid.y_max());
+        if point.selected() {
             push_diamond(
                 commands,
                 x,
@@ -42,7 +40,7 @@ pub(super) fn push_sample_points(
             x,
             y,
             POINT_RADIUS,
-            if point.selected {
+            if point.selected() {
                 SELECTED_POINT
             } else {
                 POINT
@@ -53,11 +51,11 @@ pub(super) fn push_sample_points(
         );
         push_diamond(commands, x, y, 1, POINT_CENTER, clip, order + 8, opacity);
 
-        if point.selected && !point.label.trim().is_empty() {
-            let label_width = ((point.label.chars().count() as f32 * SAMPLE_LABEL_CHARACTER_WIDTH)
-                + 12.0)
-                .max(SAMPLE_LABEL_MIN_WIDTH)
-                .min(geometry.plot.width * 0.6);
+        if point.selected() && !point.label().trim().is_empty() {
+            let label_width =
+                ((point.label().chars().count() as f32 * SAMPLE_LABEL_CHARACTER_WIDTH) + 12.0)
+                    .max(SAMPLE_LABEL_MIN_WIDTH)
+                    .min(geometry.plot.width * 0.6);
             let label_x = (x + SAMPLE_LABEL_OFFSET_X)
                 .min(geometry.plot.x + geometry.plot.width - label_width - 2.0)
                 .max(geometry.plot.x + 2.0);
@@ -90,7 +88,7 @@ pub(super) fn push_sample_points(
                 },
                 clip,
                 order + 10,
-                point.label.to_string(),
+                point.label().to_string(),
                 SELECTED_LABEL_TEXT,
                 TICK_FONT_SIZE,
                 TICK_LINE_HEIGHT,

@@ -58,14 +58,6 @@ pub enum EditorExportBuildError {
         #[source]
         source: io::Error,
     },
-    #[error(
-        "failed to materialize editor export: {source}; native staging cleanup also failed: {cleanup}"
-    )]
-    MaterializeWithCleanup {
-        #[source]
-        source: io::Error,
-        cleanup: NativeDynamicPreparationError,
-    },
     #[error(transparent)]
     Process(#[from] ExportProcessError),
     #[error("Cargo export build failed: {source}")]
@@ -77,12 +69,6 @@ pub enum EditorExportBuildError {
     NativePreparation(#[from] NativeDynamicPreparationError),
     #[error("desktop export cancelled during {stage}")]
     Cancelled { stage: String },
-    #[error("desktop export cancelled during {stage}; cleanup failed: {source}")]
-    CancelledWithCleanup {
-        stage: String,
-        #[source]
-        source: NativeDynamicPreparationError,
-    },
     #[error("export wizard stage {stage:?} failed with exit code {exit_code:?}")]
     WizardStageFailed {
         stage: ExportStage,
@@ -98,16 +84,6 @@ pub enum EditorExportBuildError {
 impl EditorExportBuildError {
     pub(super) fn materialize(source: io::Error) -> Self {
         Self::Materialize { source }
-    }
-
-    pub(super) fn materialize_with_cleanup(
-        source: io::Error,
-        cleanup: Option<NativeDynamicPreparationError>,
-    ) -> Self {
-        match cleanup {
-            Some(cleanup) => Self::MaterializeWithCleanup { source, cleanup },
-            None => Self::Materialize { source },
-        }
     }
 
     pub(in crate::ui) fn unknown_profile(profile_name: impl Into<String>) -> Self {
@@ -127,14 +103,9 @@ impl EditorExportBuildError {
         Self::Cargo { source }
     }
 
-    pub(super) fn cancelled(
-        stage: impl Into<String>,
-        cleanup_error: Option<NativeDynamicPreparationError>,
-    ) -> Self {
-        let stage = stage.into();
-        match cleanup_error {
-            Some(source) => Self::CancelledWithCleanup { stage, source },
-            None => Self::Cancelled { stage },
+    pub(super) fn cancelled(stage: impl Into<String>) -> Self {
+        Self::Cancelled {
+            stage: stage.into(),
         }
     }
 }
@@ -146,13 +117,6 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
-
-    fn native_cleanup_error(source: io::Error) -> NativeDynamicPreparationError {
-        NativeDynamicPreparationError::Cleanup {
-            path: PathBuf::from(".native-dynamic-staging"),
-            source,
-        }
-    }
 
     #[test]
     fn cargo_error_preserves_process_and_io_sources() {
@@ -176,27 +140,6 @@ mod tests {
     }
 
     #[test]
-    fn cancellation_cleanup_error_preserves_native_io_source() {
-        let error = EditorExportBuildError::cancelled(
-            "test cancellation",
-            Some(native_cleanup_error(io::Error::new(
-                io::ErrorKind::DirectoryNotEmpty,
-                "cleanup source",
-            ))),
-        );
-
-        let native = error
-            .source()
-            .and_then(|source| source.downcast_ref::<NativeDynamicPreparationError>())
-            .expect("cancellation must retain its cleanup error");
-        let source = native
-            .source()
-            .and_then(|source| source.downcast_ref::<io::Error>())
-            .expect("native cleanup must retain its IO error");
-        assert_eq!(source.kind(), io::ErrorKind::DirectoryNotEmpty);
-    }
-
-    #[test]
     fn materialization_error_preserves_io_source() {
         let error = EditorExportBuildError::materialize(io::Error::new(
             io::ErrorKind::WriteZero,
@@ -208,28 +151,5 @@ mod tests {
             .and_then(|source| source.downcast_ref::<io::Error>())
             .expect("materialization error must retain its IO error");
         assert_eq!(source.kind(), io::ErrorKind::WriteZero);
-    }
-
-    #[test]
-    fn materialization_error_retains_typed_cleanup_failure() {
-        let error = EditorExportBuildError::materialize_with_cleanup(
-            io::Error::new(io::ErrorKind::WriteZero, "materialize source"),
-            Some(native_cleanup_error(io::Error::new(
-                io::ErrorKind::DirectoryNotEmpty,
-                "cleanup source",
-            ))),
-        );
-
-        assert!(matches!(
-            error,
-            EditorExportBuildError::MaterializeWithCleanup {
-                source,
-                cleanup: NativeDynamicPreparationError::Cleanup {
-                    source: cleanup_source,
-                    ..
-                },
-            } if source.kind() == io::ErrorKind::WriteZero
-                && cleanup_source.kind() == io::ErrorKind::DirectoryNotEmpty
-        ));
     }
 }

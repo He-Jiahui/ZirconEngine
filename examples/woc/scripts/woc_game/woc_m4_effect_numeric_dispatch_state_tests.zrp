@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_effect_numeric_dispatch_state_tests",
+  "source": "src",
+  "binary": "bin-m4-effect-numeric-dispatch-state-tests",
+  "entry": "combat/effect_numeric_dispatch_state_test_main"
+}

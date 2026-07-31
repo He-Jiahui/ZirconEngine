@@ -1,0 +1,2695 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/talent_proc_catalog_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/talents.ts": "3fa9483cc9c60ef5578d6aa41f3a2e8f7110232b4add4f6a6bafbb23a7346b03",
+    "src/sim/content/talent_rows.ts": "7bd779ab5c21dd2a949e016f834843c5adbb95a2de02adf3f458447555ee8392",
+    "src/sim/content/talents_warrior.ts": "f889aca8ede925ae36847679692bcee30575b986de915e5481c3a5e6df2d2c07",
+    "src/sim/content/talents_classic.ts": "e748885abd8f2d0cc0e559ada8695abcd0029eb41aaa0b2390023d4d55d6156f",
+    "src/sim/content/warrior_rows.ts": "eb12fed341279999acc08463fc59c09bffd8ef5552ca345765e7ad36262baf6c",
+    "src/sim/content/choice_rows_classic.ts": "2aa7f0d7372d51e326446c910b0a2980f18b49de77e233c0bf5a28ec421d060e"
+  },
+  "talent_selection_catalog_sha256": "412fcadf2705a9eb973237fdeaa44e7188a47f1f491558ea01124cb024f47c9a",
+  "catalog_sha256": "80e2ac49dc2c8678337986ea8d3fc0dba6f9a155c9b6e9e263919a82c834bead",
+  "trigger_codes": {
+    "castNth": 1,
+    "spellCrit": 2,
+    "shieldConsumed": 3,
+    "hotExpired": 4,
+    "bigHitTaken": 5,
+    "meleeSwingWhile": 6,
+    "thornsReflect": 7
+  },
+  "response_codes": {
+    "empowerNext": 1,
+    "cooldownRefund": 2,
+    "resource": 3,
+    "heal": 4,
+    "absorb": 5,
+    "aura": 6,
+    "echo": 7
+  },
+  "entries": [
+    {
+      "index": 0,
+      "origin": "option",
+      "class_id": "paladin",
+      "origin_id": "pal_r5_crusaders_zeal",
+      "origin_code": 19,
+      "id": "pal_oath_returned",
+      "name": "Oath Returned",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "judgement"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "mana",
+          "amount": 25,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "origin": "option",
+      "class_id": "paladin",
+      "origin_id": "pal_r5_vengeful_exorcism",
+      "origin_code": 21,
+      "id": "pal_vengeful_exorcism",
+      "name": "Vengeful Exorcism",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "judgement"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "exorcism",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": true,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "origin": "option",
+      "class_id": "paladin",
+      "origin_id": "pal_r11_divine_wisdom",
+      "origin_code": 25,
+      "id": "pal_divine_wisdom",
+      "name": "Third Benediction",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "holy_light",
+          "flash_of_light"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "holy_light"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 10,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "origin": "option",
+      "class_id": "paladin",
+      "origin_id": "pal_r11_guardians_favor",
+      "origin_code": 26,
+      "id": "pal_guardians_favor",
+      "name": "Mercy from Ruin",
+      "school": "",
+      "trigger": {
+        "kind": "shieldConsumed",
+        "ability_ids": [],
+        "ability_id": "divine_protection",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "lay_on_hands",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "origin": "option",
+      "class_id": "paladin",
+      "origin_id": "pal_r11_greater_blessing",
+      "origin_code": 27,
+      "id": "pal_greater_blessing",
+      "name": "Greater Blessing",
+      "school": "",
+      "trigger": {
+        "kind": "spellCrit",
+        "ability_ids": [
+          "holy_light",
+          "flash_of_light",
+          "lay_on_hands"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "absorb",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 60,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 10,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "Greater Blessing",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "origin": "option",
+      "class_id": "paladin",
+      "origin_id": "pal_r14_righteous_cause",
+      "origin_code": 30,
+      "id": "pal_righteous_cause",
+      "name": "Righteous Cause",
+      "school": "",
+      "trigger": {
+        "kind": "meleeSwingWhile",
+        "ability_ids": [],
+        "ability_id": "",
+        "aura_kind": "imbue",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "judgement",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "origin": "option",
+      "class_id": "hunter",
+      "origin_id": "hun_r11_efficiency",
+      "origin_code": 44,
+      "id": "hun_lean_quiver",
+      "name": "Lean Quiver",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "auto_shot",
+          "serpent_sting",
+          "arcane_shot",
+          "concussive_shot",
+          "aimed_shot",
+          "wyvern_sting",
+          "counter_shot",
+          "multi_shot",
+          "volley"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 20,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "origin": "option",
+      "class_id": "hunter",
+      "origin_id": "hun_r11_survival_instincts",
+      "origin_code": 45,
+      "id": "hun_deathless_will",
+      "name": "Deathless Will",
+      "school": "nature",
+      "trigger": {
+        "kind": "bigHitTaken",
+        "ability_ids": [],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": true,
+        "icd": 30,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0.3
+      },
+      "responses": [
+        {
+          "kind": "aura",
+          "aura_kind": "buff_speed",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 4,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "Deathless Will",
+          "value": 1.4
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "origin": "option",
+      "class_id": "hunter",
+      "origin_id": "hun_r20_rapid_killing",
+      "origin_code": 53,
+      "id": "hun_redline_draw",
+      "name": "Redline Draw",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "auto_shot",
+          "serpent_sting",
+          "arcane_shot",
+          "concussive_shot",
+          "aimed_shot",
+          "wyvern_sting",
+          "counter_shot",
+          "multi_shot",
+          "volley"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": true,
+        "icd": 8,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "rapid_fire",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r5_relentless_strikes",
+      "origin_code": 55,
+      "id": "rog_ceaseless_cuts",
+      "name": "Ceaseless Cuts",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "sinister_strike"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "energy",
+          "amount": 30,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r5_improved_backstab",
+      "origin_code": 56,
+      "id": "rog_improved_backstab",
+      "name": "Knife's Dividend",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "backstab"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_cheap",
+          "ability_id": "",
+          "ability_ids": [
+            "eviscerate"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 6,
+          "has_cost_pct": true,
+          "cost_pct": 0.5,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r5_opportunist",
+      "origin_code": 57,
+      "id": "rog_dusk_dividend",
+      "name": "Dusk Dividend",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "ambush",
+          "garrote"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "energy",
+          "amount": 20,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r8_improved_gouge",
+      "origin_code": 59,
+      "id": "rog_blindside_opening",
+      "name": "Blindside Opening",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "gouge"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_free",
+          "ability_id": "",
+          "ability_ids": [
+            "backstab"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 6,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r8_improved_kidney_shot",
+      "origin_code": 60,
+      "id": "rog_improved_low_blow",
+      "name": "Paid in Pain",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "kidney_shot"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 15,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r11_improved_slice_and_dice",
+      "origin_code": 63,
+      "id": "rog_improved_cutthroat_tempo",
+      "name": "Borrowed Tempo",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "sinister_strike",
+          "backstab",
+          "gouge",
+          "ambush",
+          "garrote",
+          "cheap_shot",
+          "hemorrhage",
+          "ghostly_strike"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_free",
+          "ability_id": "",
+          "ability_ids": [
+            "slice_and_dice"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r14_seal_fate",
+      "origin_code": 64,
+      "id": "rog_final_notice",
+      "name": "Final Notice",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "eviscerate",
+          "rupture"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_cheap",
+          "ability_id": "",
+          "ability_ids": [
+            "sinister_strike",
+            "backstab",
+            "gouge",
+            "ambush",
+            "garrote",
+            "cheap_shot",
+            "hemorrhage",
+            "ghostly_strike"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": true,
+          "cost_pct": 0.5,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r14_deadly_brew",
+      "origin_code": 66,
+      "id": "rog_deadly_brew",
+      "name": "Venom Dividend",
+      "school": "",
+      "trigger": {
+        "kind": "meleeSwingWhile",
+        "ability_ids": [],
+        "ability_id": "",
+        "aura_kind": "imbue",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": true,
+        "chance": 0.2,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 10,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r17_improved_evasion",
+      "origin_code": 68,
+      "id": "rog_improved_evasion",
+      "name": "Ghostfoot Gambit",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "evasion"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 30,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        },
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_cheap",
+          "ability_id": "",
+          "ability_ids": [
+            "sinister_strike",
+            "backstab",
+            "gouge",
+            "ambush",
+            "garrote",
+            "cheap_shot",
+            "hemorrhage",
+            "ghostly_strike"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": true,
+          "cost_pct": 0.5,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r20_adrenaline_junkie",
+      "origin_code": 71,
+      "id": "rog_adrenaline_junkie",
+      "name": "Redline Habit",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "eviscerate",
+          "rupture",
+          "kidney_shot",
+          "slice_and_dice",
+          "expose_armor"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "adrenaline_rush",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "origin": "option",
+      "class_id": "rogue",
+      "origin_id": "rog_r20_master_assassin",
+      "origin_code": 72,
+      "id": "rog_master_assassin",
+      "name": "First Cut, Last Word",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "ambush",
+          "garrote",
+          "cheap_shot"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_cheap",
+          "ability_id": "",
+          "ability_ids": [
+            "eviscerate",
+            "rupture",
+            "kidney_shot",
+            "slice_and_dice",
+            "expose_armor"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 6,
+          "has_cost_pct": true,
+          "cost_pct": 0.5,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "origin": "option",
+      "class_id": "priest",
+      "origin_id": "pri_r5_improved_renew",
+      "origin_code": 73,
+      "id": "pri_lingering_ward",
+      "name": "Warding Refrain",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "lesser_heal"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "absorb",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 40,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 10,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "Warding Refrain",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "origin": "option",
+      "class_id": "priest",
+      "origin_id": "pri_r5_searing_light",
+      "origin_code": 74,
+      "id": "pri_searing_light",
+      "name": "Third Verse",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "smite"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_free",
+          "ability_id": "",
+          "ability_ids": [
+            "lesser_heal",
+            "renew",
+            "heal",
+            "flash_heal",
+            "holy_nova",
+            "prayer_of_healing"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "origin": "option",
+      "class_id": "priest",
+      "origin_id": "pri_r8_improved_shield",
+      "origin_code": 76,
+      "id": "pri_shield_burst",
+      "name": "Shattered Psalm",
+      "school": "",
+      "trigger": {
+        "kind": "shieldConsumed",
+        "ability_ids": [],
+        "ability_id": "power_word_shield",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "heal",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 45,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "origin": "option",
+      "class_id": "priest",
+      "origin_id": "pri_r11_meditation",
+      "origin_code": 80,
+      "id": "pri_nocturns",
+      "name": "Measured Mercy",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "lesser_heal",
+          "renew",
+          "heal",
+          "flash_heal",
+          "holy_nova",
+          "prayer_of_healing"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_cheap",
+          "ability_id": "",
+          "ability_ids": [
+            "lesser_heal",
+            "renew",
+            "heal",
+            "flash_heal",
+            "holy_nova",
+            "prayer_of_healing"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 10,
+          "has_cost_pct": true,
+          "cost_pct": 0.5,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "origin": "option",
+      "class_id": "priest",
+      "origin_id": "pri_r14_greater_heal",
+      "origin_code": 83,
+      "id": "pri_heal_echo",
+      "name": "Mercy Deferred",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "heal"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "echo",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0.35,
+          "window": 10,
+          "name": "Mercy Deferred",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "origin": "option",
+      "class_id": "priest",
+      "origin_id": "pri_r17_inner_fire",
+      "origin_code": 87,
+      "id": "pri_inner_fire",
+      "name": "Wounded Halo",
+      "school": "",
+      "trigger": {
+        "kind": "bigHitTaken",
+        "ability_ids": [],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": true,
+        "icd": 20,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0.15
+      },
+      "responses": [
+        {
+          "kind": "absorb",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": true,
+          "amount_pct_max_hp": 0.15,
+          "duration": 10,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "Wounded Halo",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "origin": "option",
+      "class_id": "priest",
+      "origin_id": "pri_r20_blessed_recovery",
+      "origin_code": 90,
+      "id": "pri_blessed_recovery",
+      "name": "Halo Aftershock",
+      "school": "",
+      "trigger": {
+        "kind": "spellCrit",
+        "ability_ids": [
+          "lesser_heal",
+          "heal",
+          "flash_heal",
+          "holy_nova",
+          "prayer_of_healing"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "absorb",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 50,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 10,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "Halo Aftershock",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 27,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r5_concussion",
+      "origin_code": 91,
+      "id": "sha_fault_line",
+      "name": "Fault Line",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "lightning_bolt"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_free",
+          "ability_id": "",
+          "ability_ids": [
+            "earth_shock",
+            "flame_shock",
+            "frost_shock"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 28,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r5_improved_lightning_shield",
+      "origin_code": 92,
+      "id": "sha_ward_surge",
+      "name": "Rebounding Current",
+      "school": "",
+      "trigger": {
+        "kind": "thornsReflect",
+        "ability_ids": [],
+        "ability_id": "lightning_shield",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "lightning_bolt"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 29,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r5_imbue_mastery",
+      "origin_code": 93,
+      "id": "sha_imbued_lifeblood",
+      "name": "Imbued Lifeblood",
+      "school": "",
+      "trigger": {
+        "kind": "meleeSwingWhile",
+        "ability_ids": [],
+        "ability_id": "",
+        "aura_kind": "imbue",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "heal",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 8,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 30,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r8_shock_efficiency",
+      "origin_code": 96,
+      "id": "sha_returning_current",
+      "name": "Returning Current",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "earth_shock",
+          "flame_shock",
+          "frost_shock"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "mana",
+          "amount": 30,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 31,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r11_ancestral_guidance",
+      "origin_code": 97,
+      "id": "sha_guiding_spirits",
+      "name": "Guiding Spirits",
+      "school": "",
+      "trigger": {
+        "kind": "spellCrit",
+        "ability_ids": [
+          "healing_wave"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "healing_wave"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 10,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 32,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r11_elemental_attunement",
+      "origin_code": 98,
+      "id": "sha_elemental_attunement",
+      "name": "Sky Echo",
+      "school": "nature",
+      "trigger": {
+        "kind": "spellCrit",
+        "ability_ids": [
+          "lightning_bolt"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "lightning_bolt"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 33,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r14_weapon_fury",
+      "origin_code": 102,
+      "id": "sha_weapon_fury",
+      "name": "Imbued Tempo",
+      "school": "",
+      "trigger": {
+        "kind": "meleeSwingWhile",
+        "ability_ids": [],
+        "ability_id": "",
+        "aura_kind": "imbue",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "earth_shock",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        },
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "flame_shock",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        },
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "frost_shock",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 34,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r17_elemental_warding",
+      "origin_code": 105,
+      "id": "sha_elemental_warding",
+      "name": "Ancestral Mending",
+      "school": "",
+      "trigger": {
+        "kind": "bigHitTaken",
+        "ability_ids": [],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": true,
+        "icd": 20,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0.15
+      },
+      "responses": [
+        {
+          "kind": "heal",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": true,
+          "amount_pct_max_hp": 0.12,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 35,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r20_elemental_fury",
+      "origin_code": 107,
+      "id": "sha_storm_recall",
+      "name": "Storm Recall",
+      "school": "nature",
+      "trigger": {
+        "kind": "spellCrit",
+        "ability_ids": [
+          "lightning_bolt"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "earth_shock",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": true,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        },
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_free",
+          "ability_id": "",
+          "ability_ids": [
+            "earth_shock"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 36,
+      "origin": "option",
+      "class_id": "shaman",
+      "origin_id": "sha_r20_tidal_waves",
+      "origin_code": 108,
+      "id": "sha_undertow_promise",
+      "name": "Undertow Promise",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "healing_wave"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "echo",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0.35,
+          "window": 10,
+          "name": "Undertow Promise",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 37,
+      "origin": "option",
+      "class_id": "mage",
+      "origin_id": "mag_r8_warded",
+      "origin_code": 112,
+      "id": "mag_warded",
+      "name": "Warded",
+      "school": "",
+      "trigger": {
+        "kind": "shieldConsumed",
+        "ability_ids": [],
+        "ability_id": "personal_barrier",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "heal",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 39,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 38,
+      "origin": "option",
+      "class_id": "warlock",
+      "origin_id": "wlk_r5_bane",
+      "origin_code": 127,
+      "id": "wlk_grave_rhythm",
+      "name": "Grave Rhythm",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "shadow_bolt"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "corruption"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 39,
+      "origin": "option",
+      "class_id": "warlock",
+      "origin_id": "wlk_r11_demon_armor",
+      "origin_code": 135,
+      "id": "wlk_demon_armor",
+      "name": "Fiendward",
+      "school": "",
+      "trigger": {
+        "kind": "bigHitTaken",
+        "ability_ids": [],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": true,
+        "icd": 20,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0.15
+      },
+      "responses": [
+        {
+          "kind": "echo",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0.35,
+          "window": 10,
+          "name": "Fiendward",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 40,
+      "origin": "option",
+      "class_id": "warlock",
+      "origin_id": "wlk_r14_shadow_mastery",
+      "origin_code": 138,
+      "id": "wlk_umbral_mastery",
+      "name": "Shadow Credit",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "immolate",
+          "searing_pain",
+          "rain_of_fire",
+          "chaos_bolt",
+          "conflagrate"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_cheap",
+          "ability_id": "",
+          "ability_ids": [
+            "shadow_bolt",
+            "corruption",
+            "curse_of_agony",
+            "drain_life",
+            "shadowburn",
+            "siphon_life",
+            "death_coil"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": true,
+          "cost_pct": 0.5,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 41,
+      "origin": "option",
+      "class_id": "warlock",
+      "origin_id": "wlk_r20_grimoire_of_haste",
+      "origin_code": 143,
+      "id": "wlk_grimoire_of_carnage",
+      "name": "Hellglass Ward",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "immolate",
+          "searing_pain",
+          "rain_of_fire",
+          "chaos_bolt",
+          "conflagrate",
+          "shadow_bolt",
+          "corruption",
+          "curse_of_agony",
+          "drain_life",
+          "shadowburn",
+          "siphon_life",
+          "death_coil"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "absorb",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 90,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 10,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "Hellglass Ward",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 42,
+      "origin": "option",
+      "class_id": "warlock",
+      "origin_id": "wlk_r20_curse_mastery",
+      "origin_code": 144,
+      "id": "wlk_curse_mastery",
+      "name": "Hexstorm",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "corruption",
+          "curse_of_agony"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": true,
+        "icd": 10,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "shadow_bolt"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 43,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r5_improved_wrath",
+      "origin_code": 145,
+      "id": "dru_improved_wildbolt",
+      "name": "Moonkindle",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "wrath"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_free",
+          "ability_id": "",
+          "ability_ids": [
+            "moonfire"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 44,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r5_ferocity",
+      "origin_code": 146,
+      "id": "dru_redmaw",
+      "name": "Redmaw",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "cat_form"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_cheap",
+          "ability_id": "",
+          "ability_ids": [
+            "claw",
+            "rake"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": true,
+          "cost_pct": 0.5,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 45,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r5_natures_bounty",
+      "origin_code": 147,
+      "id": "dru_natures_bounty",
+      "name": "Bloom's End",
+      "school": "",
+      "trigger": {
+        "kind": "hotExpired",
+        "ability_ids": [],
+        "ability_id": "rejuvenation",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "healing_touch"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 46,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r8_improved_roots",
+      "origin_code": 149,
+      "id": "dru_briar_ambush",
+      "name": "Briar Ambush",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "entangling_roots"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": true,
+        "icd": 15,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "wrath"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 47,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r8_brutal_bash",
+      "origin_code": 150,
+      "id": "dru_brutal_bash",
+      "name": "Bruin Rebound",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "bash"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "rage",
+          "amount": 15,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        },
+        {
+          "kind": "cooldownRefund",
+          "aura_kind": "",
+          "ability_id": "bash",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 48,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r11_furor",
+      "origin_code": 152,
+      "id": "dru_wildsurge",
+      "name": "Formrush",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "bear_form",
+          "cat_form",
+          "travel_form"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_cheap",
+          "ability_id": "",
+          "ability_ids": [
+            "maul",
+            "swipe",
+            "claw",
+            "rake",
+            "ferocious_bite",
+            "rip"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": true,
+          "cost_pct": 0.5,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 49,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r11_improved_mark",
+      "origin_code": 153,
+      "id": "dru_grove_covenant",
+      "name": "Grove Covenant",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "healing_touch"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "absorb",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 90,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 10,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "Grove Covenant",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 50,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r14_savage_fury",
+      "origin_code": 154,
+      "id": "dru_savage_fury",
+      "name": "Redtooth Rhythm",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "ferocious_bite",
+          "rip"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_cheap",
+          "ability_id": "",
+          "ability_ids": [
+            "claw",
+            "rake"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": true,
+          "cost_pct": 0.5,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 51,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r14_moonfury",
+      "origin_code": 155,
+      "id": "dru_moonspite",
+      "name": "Moonspite",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "moonfire"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 3,
+        "has_icd": true,
+        "icd": 15,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "starfire"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 52,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r14_empowered_touch",
+      "origin_code": 156,
+      "id": "dru_empowered_touch",
+      "name": "Mercy Seed",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "healing_touch"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "echo",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0.35,
+          "window": 8,
+          "name": "Mercy Seed",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 53,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r17_improved_barkskin",
+      "origin_code": 157,
+      "id": "dru_improved_barkskin",
+      "name": "Oaken Reflex",
+      "school": "",
+      "trigger": {
+        "kind": "castNth",
+        "ability_ids": [
+          "barkskin"
+        ],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": false,
+        "icd": 0,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0
+      },
+      "responses": [
+        {
+          "kind": "empowerNext",
+          "aura_kind": "next_cast_instant",
+          "ability_id": "",
+          "ability_ids": [
+            "wrath",
+            "starfire",
+            "healing_touch",
+            "regrowth"
+          ],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 8,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "index": 54,
+      "origin": "option",
+      "class_id": "druid",
+      "origin_id": "dru_r17_survival_of_the_fittest",
+      "origin_code": 159,
+      "id": "dru_survival_of_the_fittest",
+      "name": "Ironhide Reflex",
+      "school": "",
+      "trigger": {
+        "kind": "bigHitTaken",
+        "ability_ids": [],
+        "ability_id": "",
+        "aura_kind": "",
+        "nth": 1,
+        "has_icd": true,
+        "icd": 20,
+        "has_chance": false,
+        "chance": 0,
+        "hp_fraction": 0.2
+      },
+      "responses": [
+        {
+          "kind": "resource",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "rage",
+          "amount": 20,
+          "has_amount_pct_max_hp": false,
+          "amount_pct_max_hp": 0,
+          "duration": 0,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "",
+          "value": 0
+        },
+        {
+          "kind": "absorb",
+          "aura_kind": "",
+          "ability_id": "",
+          "ability_ids": [],
+          "resource_type": "",
+          "amount": 0,
+          "has_amount_pct_max_hp": true,
+          "amount_pct_max_hp": 0.15,
+          "duration": 6,
+          "has_cost_pct": false,
+          "cost_pct": 0,
+          "reset_cooldown": false,
+          "below_fraction": 0,
+          "window": 0,
+          "name": "Ironhide Reflex",
+          "value": 0
+        }
+      ]
+    }
+  ]
+}

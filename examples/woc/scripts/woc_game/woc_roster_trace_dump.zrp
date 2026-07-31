@@ -1,0 +1,6 @@
+{
+  "name": "woc_roster_trace_dump",
+  "source": "src",
+  "binary": "bin-roster-trace-dump",
+  "entry": "parity/m3_roster_trace_dump_main"
+}

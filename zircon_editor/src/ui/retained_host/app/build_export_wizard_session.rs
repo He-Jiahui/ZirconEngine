@@ -4,8 +4,8 @@ mod session_state;
 mod surface_actions;
 #[cfg(test)]
 use crate::ui::host::{
-    ExportWizardPanelAction, ExportWizardPipelineOptions, DESKTOP_EXPORT_CANCEL_BUTTON,
-    DESKTOP_EXPORT_GENERATE_PLAN_BUTTON,
+    DESKTOP_EXPORT_CANCEL_BUTTON, DESKTOP_EXPORT_GENERATE_PLAN_BUTTON, ExportWizardPanelAction,
+    ExportWizardPipelineOptions,
 };
 #[cfg(test)]
 use options::{export_wizard_default_host_executable, export_wizard_engine_repo_root};

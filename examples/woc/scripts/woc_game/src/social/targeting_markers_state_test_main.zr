@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var targeting = %import("social/targeting_markers_state");
+
+console.printLine("m6-targeting-markers-state-test");
+var result = targeting.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -148,6 +148,20 @@ fn native_runtime_hot_update_report_applies_bridge_lifecycle_to_loaded_outcomes(
 }
 
 #[test]
+fn native_load_report_bridge_lifecycle_borrows_loaded_plugin_ids() {
+    let source = include_str!("../bridge_lifecycle.rs")
+        .split_once("impl NativePluginLiveHostLoadReport")
+        .expect("native load report bridge lifecycle implementation should exist")
+        .1
+        .split_once("impl NativePluginRuntimeHotUpdateReport")
+        .expect("hot update bridge lifecycle implementation should follow")
+        .0;
+
+    assert!(source.contains("for plugin_id in &self.loaded_plugin_ids"));
+    assert!(!source.contains("self.loaded_plugin_ids.clone()"));
+}
+
+#[test]
 fn native_runtime_delta_hot_update_installs_pack_then_runs_manifest_hot_reload() {
     let export_root = unique_hot_update_temp_dir("delta-pack-runtime");
     write_runtime_package(&export_root, "physics", "physics_runtime");

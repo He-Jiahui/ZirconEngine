@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var motionWallStandoff = %import("world/player_motion_wall_standoff");
+
+console.printLine("m3-player-motion-wall-standoff-test");
+var result = motionWallStandoff.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,0 +1,155 @@
+var container = %import("kernel/container");
+
+// Mob-yell events are separate from the fixed three-player chat-command
+// fixture. This preserves the simulation event shape for any registered player
+// entity without claiming ownership of host event delivery.
+pub class MobYellState {
+    pub var playerIds: container.Array<int>;
+    pub var playerX: container.Array<float>;
+    pub var playerZ: container.Array<float>;
+    pub var playerPresent: container.Array<bool>;
+
+    pub var eventFromPids: container.Array<int>;
+    pub var eventFromNames: container.Array<string>;
+    pub var eventTexts: container.Array<string>;
+    pub var eventChannels: container.Array<string>;
+    pub var eventEntityIds: container.Array<int>;
+    pub var eventRecipientIds: container.Array<int>;
+
+    pub @constructor() {
+        this.playerIds = new container.Array<int>();
+        this.playerX = new container.Array<float>();
+        this.playerZ = new container.Array<float>();
+        this.playerPresent = new container.Array<bool>();
+        this.eventFromPids = new container.Array<int>();
+        this.eventFromNames = new container.Array<string>();
+        this.eventTexts = new container.Array<string>();
+        this.eventChannels = new container.Array<string>();
+        this.eventEntityIds = new container.Array<int>();
+        this.eventRecipientIds = new container.Array<int>();
+    }
+}
+
+playerIndex(state: MobYellState, playerId: int): int {
+    var index = 0;
+    while (index < state.playerIds.length) {
+        if (<int>state.playerIds[index] == playerId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+// The source iterates `ctx.players` insertion order and skips a player whose
+// entity lookup fails. Upsert keeps that order while exposing the same absence.
+pub upsertPlayer(
+    state: MobYellState,
+    playerId: int,
+    x: float,
+    z: float,
+    present: bool
+): void {
+    var index = playerIndex(state, playerId);
+    if (index >= 0) {
+        state.playerX[index] = x;
+        state.playerZ[index] = z;
+        state.playerPresent[index] = present;
+        return;
+    }
+    state.playerIds.add(playerId);
+    state.playerX.add(x);
+    state.playerZ.add(z);
+    state.playerPresent.add(present);
+}
+
+pub defaultYellRange(): float {
+    return 100.0;
+}
+
+// `dist2d(...) > range` in the source. Squared comparison is identical for
+// non-negative ranges and avoids adding a new sqrt dependency to ZrVM.
+pub playerReceivesMobYell(
+    playerX: float,
+    playerZ: float,
+    mobX: float,
+    mobZ: float,
+    range: float
+): bool {
+    if (range < 0.0) { return false; }
+    var dx = playerX - mobX;
+    var dz = playerZ - mobZ;
+    return dx * dx + dz * dz <= range * range;
+}
+
+recordYellEvent(
+    state: MobYellState,
+    mobId: int,
+    mobName: string,
+    text: string,
+    recipientId: int
+): void {
+    state.eventFromPids.add(mobId);
+    state.eventFromNames.add(mobName);
+    state.eventTexts.add(text);
+    state.eventChannels.add("yell");
+    state.eventEntityIds.add(mobId);
+    state.eventRecipientIds.add(recipientId);
+}
+
+pub emitMobYell(
+    state: MobYellState,
+    mobId: int,
+    mobName: string,
+    text: string,
+    mobX: float,
+    mobZ: float,
+    range: float
+): void {
+    var index = 0;
+    while (index < state.playerIds.length) {
+        if (<bool>state.playerPresent[index] && playerReceivesMobYell(
+            <float>state.playerX[index], <float>state.playerZ[index], mobX, mobZ, range
+        )) {
+            recordYellEvent(state, mobId, mobName, text, <int>state.playerIds[index]);
+        }
+        index = index + 1;
+    }
+}
+
+pub emitDefaultMobYell(
+    state: MobYellState,
+    mobId: int,
+    mobName: string,
+    text: string,
+    mobX: float,
+    mobZ: float
+): void {
+    emitMobYell(state, mobId, mobName, text, mobX, mobZ, defaultYellRange());
+}
+
+pub contractTest(): int {
+    var state = new MobYellState();
+    upsertPlayer(state, 11, 0.0, 0.0, true);
+    upsertPlayer(state, 12, 100.0, 0.0, true);
+    upsertPlayer(state, 13, 101.0, 0.0, true);
+    upsertPlayer(state, 14, 2.0, 0.0, false);
+
+    emitDefaultMobYell(state, 42, "Chieftain", "Rally!", 0.0, 0.0);
+    if (defaultYellRange() != 100.0 || state.eventRecipientIds.length != 2 ||
+        <int>state.eventRecipientIds[0] != 11 || <int>state.eventRecipientIds[1] != 12 ||
+        <int>state.eventFromPids[0] != 42 || <int>state.eventEntityIds[0] != 42 ||
+        <string>state.eventFromNames[0] != "Chieftain" ||
+        <string>state.eventTexts[1] != "Rally!" ||
+        <string>state.eventChannels[0] != "yell") {
+        return -1;
+    }
+
+    // The source supports loud battle yells past the default 100-yard range.
+    emitMobYell(state, 42, "Chieftain", "Awaken!", 0.0, 0.0, 350.0);
+    if (state.eventRecipientIds.length != 5 || <int>state.eventRecipientIds[2] != 11 ||
+        <int>state.eventRecipientIds[3] != 12 || <int>state.eventRecipientIds[4] != 13 ||
+        <string>state.eventTexts[4] != "Awaken!" ||
+        playerReceivesMobYell(0.0, 0.0, 0.0, 0.0, -1.0)) {
+        return -2;
+    }
+    return 1;
+}

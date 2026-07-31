@@ -9,7 +9,7 @@ use zircon_runtime::core::framework::render::{
     RenderFramework, RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality,
     RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
     RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -796,7 +796,11 @@ fn mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: true,
+            ..RendererCommon::default()
+        },
     }
 }
 

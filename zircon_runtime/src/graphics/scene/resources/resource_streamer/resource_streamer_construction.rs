@@ -7,11 +7,11 @@ use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, ShadingModelDescriptor,
 };
-use crate::graphics::material::{
-    builtin_shading_model_registry, shading_model_registry_with_plugin_descriptors,
-    ShadingModelRegistry,
-};
 use crate::graphics::GraphicsError;
+use crate::graphics::material::{
+    ShadingModelRegistry, builtin_shading_model_registry,
+    shading_model_registry_with_plugin_descriptors,
+};
 
 use super::super::fallback::{create_fallback_normal_texture, create_fallback_texture};
 use super::super::{GpuMaterialUniformResource, OutputTargetWritebackConverter};

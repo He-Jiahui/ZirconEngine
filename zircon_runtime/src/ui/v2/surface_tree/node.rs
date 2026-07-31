@@ -4,19 +4,23 @@ use toml::Value;
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
 use zircon_runtime_interface::ui::tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode};
 use zircon_runtime_interface::ui::v2::{
-    UiV2ArenaNode, UiV2AssetError, UiV2NodeArena, UiV2NodeHandle, UiV2ResolvedStyleSheet,
-    UI_V2_REPEAT_ATTRIBUTE,
+    UiV2ArenaNode, UiV2AssetDocument, UiV2AssetError, UiV2NodeArena, UiV2NodeHandle,
+    UiV2ResolvedStyleSheet, UI_V2_REPEAT_ATTRIBUTE,
 };
 
 use super::interaction::infer_interaction;
 use super::layout::{infer_container, infer_layout_contract};
 use super::slot::infer_slot_contract;
+use crate::ui::theme::UiThemeRegistry;
+use crate::ui::v2::style::resolve_document_value_map;
 
 pub(in crate::ui::v2) fn build_tree_from_arena(
     asset_id: &str,
     tree_id: UiTreeId,
+    document: &UiV2AssetDocument,
     arena: &UiV2NodeArena,
     resolved_styles: &UiV2ResolvedStyleSheet,
+    theme: Option<&UiThemeRegistry>,
 ) -> Result<UiTree, UiV2AssetError> {
     let mut tree = UiTree::new(tree_id);
     let Some(root) = arena.root else {
@@ -42,8 +46,10 @@ pub(in crate::ui::v2) fn build_tree_from_arena(
             &mut tree,
             frame.parent_id,
             arena_node,
+            document,
             resolved_styles,
-            frame.slot.clone(),
+            theme,
+            frame.slot,
             &frame.path,
             &mut next_node_id,
         )?;
@@ -75,7 +81,9 @@ fn insert_arena_node(
     tree: &mut UiTree,
     parent_id: Option<UiNodeId>,
     node: &UiV2ArenaNode,
+    document: &UiV2AssetDocument,
     resolved_styles: &UiV2ResolvedStyleSheet,
+    theme: Option<&UiThemeRegistry>,
     slot_attributes: BTreeMap<String, Value>,
     path: &str,
     next_node_id: &mut u64,
@@ -86,7 +94,7 @@ fn insert_arena_node(
     let parent_container = parent_id
         .and_then(|parent_id| tree.node(parent_id))
         .map(|parent| parent.container);
-    let attributes = arena_node_attributes(node, resolved_styles);
+    let attributes = arena_node_attributes(node, document, resolved_styles, theme);
     let style_overrides = arena_node_style_overrides(node, resolved_styles);
     let style_tokens = arena_node_style_tokens(node, resolved_styles);
     let layout = infer_layout_contract(
@@ -138,7 +146,7 @@ fn insert_arena_node(
             control_id: node.control_id.clone(),
             classes: node.classes.clone(),
             attributes,
-            slot_attributes: slot_attributes.clone(),
+            slot_attributes,
             style_overrides,
             style_tokens,
             bindings: node.events.clone(),
@@ -167,7 +175,9 @@ fn insert_arena_node(
 
 fn arena_node_attributes(
     node: &UiV2ArenaNode,
+    document: &UiV2AssetDocument,
     resolved_styles: &UiV2ResolvedStyleSheet,
+    theme: Option<&UiThemeRegistry>,
 ) -> BTreeMap<String, Value> {
     let mut attributes = node.props.clone();
     attributes.extend(node.state.clone());
@@ -183,6 +193,7 @@ fn arena_node_attributes(
     if let Some(repeat) = &node.repeat {
         attributes.insert(UI_V2_REPEAT_ATTRIBUTE.to_string(), repeat.metadata_value());
     }
+    resolve_document_value_map(&mut attributes, document, theme);
     attributes
 }
 

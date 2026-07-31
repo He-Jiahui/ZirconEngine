@@ -374,16 +374,16 @@ fn render_region_covers_target(render_region: ViewportRenderRegion, target_size:
 #[cfg(test)]
 mod tests {
     use super::{
-        preserve_physical_output_attachment_ops_for_partitioned_viewport,
         RenderPassExecutionContext,
+        preserve_physical_output_attachment_ops_for_partitioned_viewport,
     };
     use crate::core::framework::render::{
         CameraRenderDescriptor, PostProcessGraphResourceNames, RenderViewportRect,
         ViewportCameraSnapshot,
     };
     use crate::core::math::UVec2;
-    use crate::graphics::types::ViewportRenderRegion;
     use crate::graphics::RenderPassExecutorId;
+    use crate::graphics::types::ViewportRenderRegion;
     use crate::render_graph::{
         QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
         RenderGraphAttachmentStoreOp, RenderGraphBuilder, RenderGraphPassResourceAccess,
@@ -626,18 +626,24 @@ mod tests {
                 .resource,
             depth_resource
         );
-        assert!(context
-            .resource_resolver()
-            .and_then(|resolver| resolver.pass_resource_declaration_by_name(
-                "scene-depth",
-                RenderGraphResourceAccessKind::Write
-            ))
-            .is_none());
+        assert!(
+            context
+                .resource_resolver()
+                .and_then(|resolver| resolver.pass_resource_declaration_by_name(
+                    "scene-depth",
+                    RenderGraphResourceAccessKind::Write
+                ))
+                .is_none()
+        );
         assert!(
             context.declares_resource_access(color_resource, RenderGraphResourceAccessKind::Write)
         );
-        assert!(!context
-            .declares_resource_access(backbuffer_resource, RenderGraphResourceAccessKind::Write));
+        assert!(
+            !context.declares_resource_access(
+                backbuffer_resource,
+                RenderGraphResourceAccessKind::Write
+            )
+        );
         assert!(
             !context.reads_texture("backbuffer"),
             "resolver-backed name queries must follow the compiled pass contract instead of stale context resource rows"
@@ -685,9 +691,15 @@ mod tests {
             )
             .with_resource_resolver(&graph, pass.id);
 
-        assert!(!context
-            .declares_resource_name_access("viewport-output", RenderGraphResourceAccessKind::Read));
-        assert!(context
-            .declares_resource_name_access("scene-color", RenderGraphResourceAccessKind::Write));
+        assert!(
+            !context.declares_resource_name_access(
+                "viewport-output",
+                RenderGraphResourceAccessKind::Read
+            )
+        );
+        assert!(
+            context
+                .declares_resource_name_access("scene-color", RenderGraphResourceAccessKind::Write)
+        );
     }
 }

@@ -19,7 +19,7 @@ fn editor_manager_becomes_thin_contract_over_editor_ui_host() {
 
     let host_source = std::fs::read_to_string(&host_owner).expect("editor ui host");
     for required in [
-        "pub(super) core: CoreHandle",
+        "core: CoreWeak",
         "pub(super) view_registry: Mutex<ViewRegistry>",
         "pub(super) layout_manager: LayoutManager",
         "pub(super) window_host_manager: Mutex<WindowHostManager>",
@@ -65,7 +65,7 @@ fn editor_ui_host_owns_bootstrap_orchestration() {
         std::fs::read_to_string(host_root.join("editor_manager.rs")).expect("editor manager");
 
     for required in [
-        "pub(super) fn bootstrap(core: CoreHandle) -> Result<Self, EditorError>",
+        "pub(super) fn bootstrap(core: &CoreHandle, jobs: EditorJobSystem) -> Result<Self, EditorError>",
         "host.register_builtin_views()?",
         "host.bootstrap_default_layout()?",
     ] {
@@ -85,7 +85,7 @@ fn editor_ui_host_owns_bootstrap_orchestration() {
         );
     }
     assert!(
-        manager_source.contains("EditorUiHost::bootstrap(core)"),
+        manager_source.contains("EditorUiHost::bootstrap(core, context.jobs().clone())"),
         "expected EditorManager to delegate bootstrap to EditorUiHost"
     );
 }

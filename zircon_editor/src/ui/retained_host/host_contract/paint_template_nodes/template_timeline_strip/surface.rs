@@ -4,10 +4,13 @@ use super::geometry::TimelineStripGeometry;
 use super::metrics::TimelineStripMetrics;
 use super::palette::TimelineStripPalette;
 
+pub(super) const MAX_TIMELINE_TICKS: usize = 4_096;
+
 pub(super) fn push_timeline_surface(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     geometry: &TimelineStripGeometry,
+    ticks: &[f32],
     clip: &FrameRect,
     order: i32,
     opacity: f32,
@@ -45,10 +48,7 @@ pub(super) fn push_timeline_surface(
         opacity,
     ));
 
-    for tick in timeline_ticks(
-        node.timeline_strip.duration,
-        node.timeline_strip.tick_interval,
-    ) {
+    for &tick in ticks {
         let x = geometry.x_for_time(tick, node.timeline_strip.duration);
         commands.push(HostPaintCommand::quad(
             FrameRect {
@@ -102,16 +102,57 @@ pub(super) fn push_timeline_surface(
     }
 }
 
-pub(super) fn timeline_ticks(duration: f32, interval: f32) -> Vec<f32> {
+pub(super) fn timeline_ticks(duration: f32, interval: f32, max_ticks: usize) -> Vec<f32> {
     if !duration.is_finite() || !interval.is_finite() || duration <= 0.0 || interval <= 0.0 {
         return vec![0.0, 1.0];
     }
-    let mut ticks = Vec::new();
-    let mut time = 0.0;
-    while time < duration {
-        ticks.push(time);
-        time += interval;
+
+    let max_ticks = max_ticks.clamp(2, MAX_TIMELINE_TICKS);
+    let requested_segments = (duration / interval).ceil();
+    let segment_budget = max_ticks - 1;
+    let segment_count =
+        if !requested_segments.is_finite() || requested_segments >= segment_budget as f32 {
+            segment_budget
+        } else {
+            (requested_segments as usize).max(1)
+        };
+    let step = if requested_segments > segment_count as f32 {
+        duration / segment_count as f32
+    } else {
+        interval
+    };
+    let mut ticks = Vec::with_capacity(segment_count + 1);
+    for index in 0..segment_count {
+        ticks.push(index as f32 * step);
     }
     ticks.push(duration);
     ticks
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn timeline_ticks_are_bounded_and_keep_the_duration_endpoint() {
+        let ticks = timeline_ticks(10.0, f32::MIN_POSITIVE, 128);
+
+        assert_eq!(ticks.len(), 128);
+        assert_eq!(ticks.first().copied(), Some(0.0));
+        assert_eq!(ticks.last().copied(), Some(10.0));
+    }
+
+    #[test]
+    fn timeline_ticks_respect_smaller_visual_budget() {
+        let ticks = timeline_ticks(3.0, 0.5, 4);
+
+        assert_eq!(ticks, vec![0.0, 1.0, 2.0, 3.0]);
+    }
+
+    #[test]
+    fn timeline_ticks_keep_requested_interval_within_budget() {
+        let ticks = timeline_ticks(3.0, 0.5, 32);
+
+        assert_eq!(ticks, vec![0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]);
+    }
 }

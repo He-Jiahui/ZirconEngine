@@ -6,10 +6,15 @@ import { ArtifactLifecycleSummary } from "../components/validation/ArtifactLifec
 import { HubPanel } from "../theme";
 const value = (row: JsonObject, key: string) => String(row[key] ?? "—");
 
-export function reservationAge(createdAt: string, now = new Date()): string {
+export function reservationAge(
+  createdAt: string,
+  now = new Date(),
+  status: "pending" | "leased" | "running" = "pending",
+): string {
   const created = Date.parse(createdAt);
   if (!Number.isFinite(created)) return "等待时间未知";
-  return `已等待 ${Math.max(0, Math.floor((now.getTime() - created) / 60_000))} 分钟`;
+  const minutes = Math.max(0, Math.floor((now.getTime() - created) / 60_000));
+  return status === "running" ? `排队等待 ${minutes} 分钟后已运行` : `已等待 ${minutes} 分钟`;
 }
 
 function laneQueueSummary(validation: ValidationProjection): string[] {
@@ -29,7 +34,8 @@ function laneQueueSummary(validation: ValidationProjection): string[] {
 
 function reservationHealthDetail(status: "pending" | "leased" | "running", expiresAt: string): string {
   if (status === "running") return "作业健康检测中；预约到期不影响运行";
-  return `到期 ${expiresAt}`;
+  if (status === "leased") return `预启动租约：到期 ${expiresAt} 将自动释放给下一项`;
+  return "活跃 Session 保持队位；失联才释放";
 }
 
 function reservationModeDetail(executionMode: "warm" | "burst", burstEligible: boolean, status: "pending" | "leased" | "running"): string {
@@ -39,6 +45,10 @@ function reservationModeDetail(executionMode: "warm" | "burst", burstEligible: b
 
 export function ValidationPage({ validation }: { validation: ValidationProjection }) {
   const laneSummaries = laneQueueSummary(validation);
+  const runHealth = validation.runHealth ?? [];
+  const silentRuns = runHealth.filter((run) => run.outputState === "awaiting_output");
+  const observedRuns = runHealth.filter((run) => run.outputState === "output_observed");
+  const unavailableRuns = runHealth.filter((run) => run.outputState === "log_unavailable");
   return <Stack spacing={2}>
     <HubPanel title="验证通道队列">
       <Stack spacing={0.5}>
@@ -47,9 +57,27 @@ export function ValidationPage({ validation }: { validation: ValidationProjectio
         {validation.cargoReservations.length === 0 ? <Typography>没有活动预约；验证可立即申请。</Typography> : validation.cargoReservations.map((reservation) => {
           const lane = reservation.laneScope === "cpu" ? "CPU" : "GPU";
           const state = reservation.status === "running" ? "运行中" : reservation.status === "leased" ? "已预约" : "等待中";
-          return <Typography key={reservation.reservationId}>{lane} #{reservation.queuePosition} · {reservationModeDetail(reservation.executionMode, reservation.burstEligible, reservation.status)} · {state} · {reservation.sessionId} · {reservationAge(reservation.createdAt)} · {reservationHealthDetail(reservation.status, reservation.expiresAt)}</Typography>;
+          return <Typography key={reservation.reservationId}>{lane} #{reservation.queuePosition} · {reservationModeDetail(reservation.executionMode, reservation.burstEligible, reservation.status)} · {state} · {reservation.sessionId} · {reservationAge(reservation.createdAt, new Date(), reservation.status)} · {reservationHealthDetail(reservation.status, reservation.expiresAt)}</Typography>;
         })}
       </Stack>
+    </HubPanel>
+    <HubPanel title="验证运行健康">
+      {runHealth.length === 0
+        ? <Typography>受管验证尚未启动。</Typography>
+        : <Stack spacing={0.5}>
+          {observedRuns.length > 0 && <>
+            <Typography>{observedRuns.length} 个受管验证作业已有输出。</Typography>
+            {observedRuns.map((run) => <Typography key={run.runId} variant="caption" color="text.secondary">{run.sessionId} · {run.jobId} · {run.lastOutputAt ? `最后输出 ${run.lastOutputAt}` : "已观察到输出"}</Typography>)}
+          </>}
+          {silentRuns.length > 0 && <>
+            <Typography>{silentRuns.length} 个受管验证作业尚未写出输出；这不会关闭 Session 准入。</Typography>
+            {silentRuns.map((run) => <Typography key={run.runId} variant="caption" color="text.secondary">{run.sessionId} · {run.jobId} · 自 {run.startedAt} 等待输出</Typography>)}
+          </>}
+          {unavailableRuns.length > 0 && <>
+            <Typography>{unavailableRuns.length} 个受管验证作业的日志状态暂不可读；这不会关闭 Session 准入。</Typography>
+            {unavailableRuns.map((run) => <Typography key={run.runId} variant="caption" color="text.secondary">{run.sessionId} · {run.jobId}</Typography>)}
+          </>}
+        </Stack>}
     </HubPanel>
     <HubPanel title="Cargo 实时通道">
       <ArtifactLifecycleSummary lifecycle={validation.artifactLifecycle} />

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('docs', 'fmt', 'clippy')]
+    [ValidateSet('docs', 'guards', 'layering', 'structure', 'fmt', 'clippy')]
     [string[]]$Only,
     [switch]$DryRun,
     [switch]$Json

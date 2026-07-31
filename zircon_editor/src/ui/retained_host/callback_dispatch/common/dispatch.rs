@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::core::editor_operation::{
     EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
 };
@@ -10,7 +12,9 @@ use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_ac
 use crate::ui::workbench::event::operation_path_for_menu_action;
 use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 use serde_json::{Number, Value};
-use zircon_runtime_interface::ui::binding::UiBindingValue;
+use zircon_runtime_interface::ui::{
+    binding::UiBindingValue, component::UiValue, dispatch::UiTemplateActionInvocation,
+};
 
 pub(crate) fn dispatch_envelope(
     runtime: &EditorHostEventController,
@@ -41,6 +45,20 @@ pub(crate) fn dispatch_editor_binding(
     }
 
     let record = runtime.dispatch_binding(binding, EditorEventSource::RetainedHost)?;
+    let mut effects = UiHostEventEffects::default();
+    apply_record_effects(&mut effects, &record);
+    Ok(effects)
+}
+
+pub(crate) fn dispatch_template_action_invocation(
+    runtime: &EditorHostEventController,
+    action: &UiTemplateActionInvocation,
+) -> Result<UiHostEventEffects, String> {
+    let operation =
+        EditorOperationPath::parse(action.route.clone()).map_err(|error| error.to_string())?;
+    let invocation = EditorOperationInvocation::new(operation)
+        .with_arguments(ui_template_action_payload_to_json(&action.payload));
+    let record = runtime.invoke_operation(EditorOperationSource::UiBinding, invocation)?;
     let mut effects = UiHostEventEffects::default();
     apply_record_effects(&mut effects, &record);
     Ok(effects)
@@ -93,9 +111,101 @@ fn ui_binding_value_to_json(value: &UiBindingValue) -> Value {
     }
 }
 
+fn ui_template_action_payload_to_json(payload: &BTreeMap<String, UiValue>) -> Value {
+    Value::Object(
+        payload
+            .iter()
+            .map(|(key, value)| (key.clone(), ui_value_to_json(value)))
+            .collect(),
+    )
+}
+
+fn ui_value_to_json(value: &UiValue) -> Value {
+    match value {
+        UiValue::Bool(value) => Value::Bool(*value),
+        UiValue::Int(value) => Value::Number(Number::from(*value)),
+        UiValue::Float(value) => Number::from_f64(*value)
+            .map(Value::Number)
+            .unwrap_or(Value::Null),
+        UiValue::String(value)
+        | UiValue::Color(value)
+        | UiValue::AssetRef(value)
+        | UiValue::InstanceRef(value)
+        | UiValue::Enum(value) => Value::String(value.clone()),
+        UiValue::Vec2(value) => Value::Array(
+            value
+                .iter()
+                .map(|value| {
+                    Number::from_f64(*value)
+                        .map(Value::Number)
+                        .unwrap_or(Value::Null)
+                })
+                .collect(),
+        ),
+        UiValue::Vec3(value) => Value::Array(
+            value
+                .iter()
+                .map(|value| {
+                    Number::from_f64(*value)
+                        .map(Value::Number)
+                        .unwrap_or(Value::Null)
+                })
+                .collect(),
+        ),
+        UiValue::Vec4(value) => Value::Array(
+            value
+                .iter()
+                .map(|value| {
+                    Number::from_f64(*value)
+                        .map(Value::Number)
+                        .unwrap_or(Value::Null)
+                })
+                .collect(),
+        ),
+        UiValue::Array(values) => Value::Array(values.iter().map(ui_value_to_json).collect()),
+        UiValue::Map(values) => Value::Object(
+            values
+                .iter()
+                .map(|(key, value)| (key.clone(), ui_value_to_json(value)))
+                .collect(),
+        ),
+        UiValue::Flags(values) => Value::Array(values.iter().cloned().map(Value::String).collect()),
+        UiValue::Null => Value::Null,
+    }
+}
+
 fn is_reference_preview_action(binding: &EditorUiBinding) -> bool {
     match binding.payload() {
         EditorUiBindingPayload::MenuAction { action_id } => is_workbench_preview_action(action_id),
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn template_action_payload_preserves_typed_object_arguments() {
+        let payload = BTreeMap::from([
+            ("surface_entity".to_string(), UiValue::Int(73)),
+            ("force_full_rebuild".to_string(), UiValue::Bool(true)),
+            (
+                "nested".to_string(),
+                UiValue::Map(BTreeMap::from([(
+                    "kind".to_string(),
+                    UiValue::String("tile".to_string()),
+                )])),
+            ),
+        ]);
+
+        assert_eq!(
+            ui_template_action_payload_to_json(&payload),
+            serde_json::json!({
+                "surface_entity": 73,
+                "force_full_rebuild": true,
+                "nested": { "kind": "tile" },
+            })
+        );
     }
 }

@@ -4,8 +4,9 @@ use crate::core::editor_event::ViewInstanceId;
 
 use super::{
     EditorMessage, EditorMessageBus, EditorMessageBusError, EditorMessageDelivery,
-    EditorMessageDispatchReport, EditorMessageResponse, EditorRequestHandler, EditorSubscriberId,
-    EditorTopic, EditorViewInvalidationMask, ViewDirtySet,
+    EditorMessageDispatchReport, EditorMessageInboxLimits, EditorMessageInboxStats,
+    EditorMessageResponse, EditorRequestHandler, EditorSubscriberId, EditorTopic,
+    EditorViewInvalidationMask, ViewDirtySet,
 };
 
 /// Thread-safe boundary for editor messaging; handlers run outside the bus lock.
@@ -15,10 +16,16 @@ pub struct SharedEditorMessageBus {
 }
 
 impl SharedEditorMessageBus {
+    pub fn with_inbox_limits(limits: EditorMessageInboxLimits) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(EditorMessageBus::with_inbox_limits(limits))),
+        }
+    }
+
     pub fn register_subscriber(
         &self,
         topics: impl IntoIterator<Item = EditorTopic>,
-    ) -> EditorSubscriberId {
+    ) -> Result<EditorSubscriberId, EditorMessageBusError> {
         self.lock().register_subscriber(topics)
     }
 
@@ -55,12 +62,17 @@ impl SharedEditorMessageBus {
         Ok(response)
     }
 
+    #[cfg(test)]
     pub fn deliveries_for(&self, subscriber: EditorSubscriberId) -> Vec<EditorMessageDelivery> {
-        self.lock().deliveries_for(subscriber).to_vec()
+        self.lock().deliveries_for(subscriber)
     }
 
     pub fn drain_deliveries(&self, subscriber: EditorSubscriberId) -> Vec<EditorMessageDelivery> {
         self.lock().drain_deliveries(subscriber)
+    }
+
+    pub fn inbox_stats(&self, subscriber: EditorSubscriberId) -> Option<EditorMessageInboxStats> {
+        self.lock().inbox_stats(subscriber)
     }
 
     pub fn mark_message_dirty(&self, message: &EditorMessage) {

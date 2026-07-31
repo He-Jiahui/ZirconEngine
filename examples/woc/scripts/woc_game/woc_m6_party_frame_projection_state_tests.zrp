@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_party_frame_projection_state_tests",
+  "source": "src",
+  "binary": "bin-m6-party-frame-projection-state-tests",
+  "entry": "social/party_frame_projection_state_test_main"
+}

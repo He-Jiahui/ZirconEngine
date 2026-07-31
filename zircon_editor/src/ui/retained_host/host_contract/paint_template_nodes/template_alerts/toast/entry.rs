@@ -1,10 +1,10 @@
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::select_workbench_toast_style;
 use super::super::layout::{
-    toast_close_rect, toast_has_action, toast_icon_rect, TOAST_FONT_SIZE, TOAST_LINE_HEIGHT,
+    frame_is_within, toast_close_rect, toast_has_action, toast_icon_rect, toast_metrics,
 };
 use super::action::push_toast_action;
-use super::icon::{push_toast_status_mark, toast_status_mark_size};
+use super::icon::{push_toast_status_mark, toast_status_mark_size_for_metrics};
 use super::surface::push_toast_surface;
 use super::text::push_toast_text;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
@@ -18,6 +18,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     opacity: f32,
 ) {
     let style = select_workbench_toast_style(node);
+    let metrics = toast_metrics();
     push_toast_surface(
         commands,
         rect,
@@ -25,14 +26,29 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         order,
         style.surface,
         style.border,
+        metrics.border_width,
+        metrics.radius,
         opacity,
     );
 
-    let icon = toast_icon_rect(rect, toast_status_mark_size(node));
-    push_toast_status_mark(commands, &icon, clip, order + 1, style.mark, opacity);
+    let icon = toast_icon_rect(
+        rect,
+        toast_status_mark_size_for_metrics(node, metrics),
+        metrics,
+    );
+    let status_mark_size = toast_status_mark_size_for_metrics(node, metrics);
+    if frame_is_within(&icon, rect)
+        && icon.width >= status_mark_size
+        && icon.height >= status_mark_size
+    {
+        push_toast_status_mark(commands, &icon, clip, order + 1, style.mark, opacity);
+    }
 
-    let has_action = toast_has_action(rect);
-    let close = toast_close_rect(rect);
+    let close = toast_close_rect(rect, metrics);
+    let has_action = toast_has_action(rect, metrics)
+        && frame_is_within(&close, rect)
+        && close.width >= metrics.close_size
+        && close.height >= metrics.close_size;
     push_toast_text(
         commands,
         node,
@@ -43,6 +59,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         order + 2,
         style.text,
         has_action,
+        metrics,
         opacity,
     );
 
@@ -55,8 +72,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
             order + 2,
             style.action,
             style.close,
-            TOAST_FONT_SIZE,
-            TOAST_LINE_HEIGHT,
+            metrics,
             opacity,
         );
     }

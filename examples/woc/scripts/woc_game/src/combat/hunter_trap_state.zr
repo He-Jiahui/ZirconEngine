@@ -1,0 +1,11 @@
+// Pure Hunter Trap timing. Contact eligibility and the stun transaction are WOS-owned.
+var contract = %import("generated/hunter_trap_contract");
+pub class HunterTrapState { pub var armRemaining: float; pub var triggered: bool; pub @constructor(arm: float) { this.armRemaining = arm; this.triggered = false; } }
+pub class HunterTrapTick { pub var armed: bool; pub var shimmer: bool; pub var triggeredNow: bool; pub @constructor() { this.armed=false; this.shimmer=false; this.triggeredNow=false; } }
+pub tickHunterTrap(state: HunterTrapState, tick: int, eligibleContact: bool, dt: float): HunterTrapTick {
+    var result = new HunterTrapTick(); if (state.triggered) return result;
+    if (state.armRemaining > 0.0) { state.armRemaining = state.armRemaining - dt; return result; }
+    result.armed = true; result.shimmer = tick % contract.shimmerEveryTicks(true) == 0;
+    if (eligibleContact) { state.triggered = true; result.triggeredNow = true; } return result;
+}
+pub contractTest(): int { var trap=new HunterTrapState(0.1); var a=tickHunterTrap(trap,40,true,0.05); if(a.armed||a.triggeredNow)return -1; var b=tickHunterTrap(trap,40,true,0.05); if(b.armed||b.triggeredNow)return -2; var c=tickHunterTrap(trap,40,true,0.05); if(!c.armed||!c.shimmer||!c.triggeredNow||!trap.triggered||contract.sweepPadding(true)!=30.0||contract.shimmerRadius(true)!=1.2)return -3; if(tickHunterTrap(trap,80,true,0.05).triggeredNow)return -4; return 1; }

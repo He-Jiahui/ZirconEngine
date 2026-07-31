@@ -1,0 +1,356 @@
+// Current-head item inventory core. Plain slots are fungible stacks; an
+// ItemInstanceData payload makes exactly one non-fungible slot, matching the
+// target's signer/charges/rolled/enchant/boundTo model.
+var container = %import("zr.system.container");
+var contract = %import("generated/inventory_instance_contract");
+
+pub class ItemInstanceData {
+    pub var signer: string;
+    pub var rolledQuality: string;
+    // Distinguishes a legacy bare rolled.stats object from absent stats.
+    pub var hasRolledStats: bool;
+    pub var rolledMasterwork: bool;
+    pub var enchant: string;
+    pub var boundTo: int;
+    pub var str: int;
+    pub var agi: int;
+    pub var sta: int;
+    // `intel` is the Zr projection of the target payload's `rolled.stats.int`.
+    pub var intel: int;
+    pub var spi: int;
+    pub var armor: int;
+    pub var chargeIds: container.Array<string>;
+    pub var chargeCounts: container.Array<int>;
+
+    pub @constructor() {
+        this.signer = "";
+        this.rolledQuality = "";
+        this.hasRolledStats = false;
+        this.rolledMasterwork = false;
+        this.enchant = "";
+        this.boundTo = -1;
+        this.str = 0;
+        this.agi = 0;
+        this.sta = 0;
+        this.intel = 0;
+        this.spi = 0;
+        this.armor = 0;
+        this.chargeIds = new container.Array<string>();
+        this.chargeCounts = new container.Array<int>();
+    }
+}
+
+pub class InventoryInstanceSlot {
+    pub var itemId: string;
+    pub var count: int;
+    pub var hasInstance: bool;
+    // Advisory manual cell. -1 corresponds to the target's absent `slot`.
+    pub var manualSlot: int;
+    pub var instance: ItemInstanceData;
+
+    pub @constructor() {
+        this.itemId = "";
+        this.count = 0;
+        this.hasInstance = false;
+        this.manualSlot = -1;
+        this.instance = new ItemInstanceData();
+    }
+}
+
+pub class InventoryInstanceLedger {
+    pub var slots: container.Array<InventoryInstanceSlot>;
+    pub var stackItemIds: container.Array<string>;
+    pub var stackLimits: container.Array<int>;
+    // `removeStacked` / `removeFungible` reset and report this per operation.
+    // It mirrors Sim.removeItem's ability to identify removed instances without
+    // making a caller guess which same-id slot was consumed.
+    pub var lastRemovedInstances: int;
+
+    pub @constructor() {
+        this.slots = new container.Array<InventoryInstanceSlot>();
+        this.stackItemIds = new container.Array<string>();
+        this.stackLimits = new container.Array<int>();
+        this.lastRemovedInstances = 0;
+    }
+}
+
+findString(values: container.Array<string>, value: string): int {
+    var index = 0;
+    while (index < values.length) {
+        if (<string>values[index] == value) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+slotAt(state: InventoryInstanceLedger, index: int): InventoryInstanceSlot {
+    return <InventoryInstanceSlot>state.slots[index];
+}
+
+pub setStackLimit(state: InventoryInstanceLedger, itemId: string, limit: int): void {
+    var index = findString(state.stackItemIds, itemId);
+    var normalized = limit < 1 ? 1 : limit;
+    if (index < 0) {
+        state.stackItemIds.add(itemId);
+        state.stackLimits.add(normalized);
+        return;
+    }
+    state.stackLimits[index] = normalized;
+}
+
+pub stackLimit(state: InventoryInstanceLedger, itemId: string): int {
+    var index = findString(state.stackItemIds, itemId);
+    return index < 0 ? contract.defaultStackSize(true) : <int>state.stackLimits[index];
+}
+
+pub cloneInstance(source: ItemInstanceData): ItemInstanceData {
+    var copied = new ItemInstanceData();
+    copied.signer = source.signer;
+    copied.rolledQuality = source.rolledQuality;
+    copied.hasRolledStats = source.hasRolledStats;
+    copied.rolledMasterwork = source.rolledMasterwork;
+    copied.enchant = source.enchant;
+    copied.boundTo = source.boundTo;
+    copied.str = source.str;
+    copied.agi = source.agi;
+    copied.sta = source.sta;
+    copied.intel = source.intel;
+    copied.spi = source.spi;
+    copied.armor = source.armor;
+    var index = 0;
+    while (index < source.chargeIds.length) {
+        copied.chargeIds.add(<string>source.chargeIds[index]);
+        copied.chargeCounts.add(<int>source.chargeCounts[index]);
+        index = index + 1;
+    }
+    return copied;
+}
+
+pub setCharge(instance: ItemInstanceData, chargeId: string, count: int): void {
+    var index = findString(instance.chargeIds, chargeId);
+    if (index < 0) {
+        instance.chargeIds.add(chargeId);
+        instance.chargeCounts.add(count);
+        return;
+    }
+    instance.chargeCounts[index] = count;
+}
+
+pub chargeCount(instance: ItemInstanceData, chargeId: string): int {
+    var index = findString(instance.chargeIds, chargeId);
+    return index < 0 ? 0 : <int>instance.chargeCounts[index];
+}
+
+pub usedSlots(state: InventoryInstanceLedger): int {
+    return state.slots.length;
+}
+
+pub slotCount(state: InventoryInstanceLedger, index: int): int {
+    if (index < 0 || index >= state.slots.length) return 0;
+    return slotAt(state, index).count;
+}
+
+pub slotItemId(state: InventoryInstanceLedger, index: int): string {
+    if (index < 0 || index >= state.slots.length) return "";
+    return slotAt(state, index).itemId;
+}
+
+pub slotHasInstance(state: InventoryInstanceLedger, index: int): bool {
+    return index >= 0 && index < state.slots.length && slotAt(state, index).hasInstance;
+}
+
+pub slotInstance(state: InventoryInstanceLedger, index: int): ItemInstanceData {
+    if (index < 0 || index >= state.slots.length || !slotAt(state, index).hasInstance) {
+        return new ItemInstanceData();
+    }
+    return cloneInstance(slotAt(state, index).instance);
+}
+
+pub setManualSlot(state: InventoryInstanceLedger, index: int, manualSlot: int): bool {
+    if (index < 0 || index >= state.slots.length) return false;
+    slotAt(state, index).manualSlot = manualSlot;
+    return true;
+}
+
+pub countItem(state: InventoryInstanceLedger, itemId: string): int {
+    var total = 0;
+    var index = 0;
+    while (index < state.slots.length) {
+        var slot = slotAt(state, index);
+        if (slot.itemId == itemId) total = total + slot.count;
+        index = index + 1;
+    }
+    return total;
+}
+
+pub countFungibleItem(state: InventoryInstanceLedger, itemId: string): int {
+    var total = 0;
+    var index = 0;
+    while (index < state.slots.length) {
+        var slot = slotAt(state, index);
+        if (slot.itemId == itemId && !slot.hasInstance) total = total + slot.count;
+        index = index + 1;
+    }
+    return total;
+}
+
+pub countFit(state: InventoryInstanceLedger, capacity: int, itemId: string, count: int): int {
+    if (count <= 0) return 0;
+    var limit = stackLimit(state, itemId);
+    var room = 0;
+    var index = 0;
+    while (index < state.slots.length) {
+        var slot = slotAt(state, index);
+        if (slot.itemId == itemId && !slot.hasInstance && slot.count < limit) {
+            room = room + limit - slot.count;
+        }
+        index = index + 1;
+    }
+    var freeSlots = capacity - state.slots.length;
+    if (freeSlots > 0) room = room + freeSlots * limit;
+    return count < room ? count : room;
+}
+
+pub canAddItem(state: InventoryInstanceLedger, capacity: int, itemId: string, count: int): bool {
+    return countFit(state, capacity, itemId, count) >= count;
+}
+
+plainSlot(itemId: string, count: int): InventoryInstanceSlot {
+    var slot = new InventoryInstanceSlot();
+    slot.itemId = itemId;
+    slot.count = count;
+    return slot;
+}
+
+// This force-grant primitive deliberately has no capacity parameter. Target
+// command boundaries call countFit/canAddItem before use; async awards land
+// even over capacity and are never silently destroyed.
+pub addStacked(state: InventoryInstanceLedger, itemId: string, count: int): void {
+    if (count <= 0) return;
+    var limit = stackLimit(state, itemId);
+    var remaining = count;
+    var index = 0;
+    while (index < state.slots.length && remaining > 0) {
+        var slot = slotAt(state, index);
+        if (slot.itemId == itemId && !slot.hasInstance && slot.count < limit) {
+            var room = limit - slot.count;
+            var take = remaining < room ? remaining : room;
+            slot.count = slot.count + take;
+            remaining = remaining - take;
+        }
+        index = index + 1;
+    }
+    while (remaining > 0) {
+        var fresh = remaining < limit ? remaining : limit;
+        state.slots.add(plainSlot(itemId, fresh));
+        remaining = remaining - fresh;
+    }
+}
+
+// Instanced grants are always count-one fresh slots. The deep copy prevents a
+// later charge or rolled-stat mutation from aliasing a saved/traded source.
+pub addItemInstance(state: InventoryInstanceLedger, itemId: string, instance: ItemInstanceData): void {
+    var slot = new InventoryInstanceSlot();
+    slot.itemId = itemId;
+    slot.count = 1;
+    slot.hasInstance = true;
+    slot.instance = cloneInstance(instance);
+    state.slots.add(slot);
+}
+
+pub lastRemovedInstanceCount(state: InventoryInstanceLedger): int {
+    return state.lastRemovedInstances;
+}
+
+// Exact source removal order: highest index first, including instanced slots.
+// It reports how many instance payloads were actually consumed so callers can
+// attribute a subsequent effect to the same copy rather than another same-id
+// item. Instanced slots are created count-one, matching the target invariant.
+pub removeStacked(state: InventoryInstanceLedger, itemId: string, count: int): int {
+    state.lastRemovedInstances = 0;
+    if (count <= 0) return 0;
+    var remaining = count;
+    var index = state.slots.length - 1;
+    while (index >= 0 && remaining > 0) {
+        var slot = slotAt(state, index);
+        if (slot.itemId == itemId) {
+            var take = remaining < slot.count ? remaining : slot.count;
+            if (slot.hasInstance && take > 0) state.lastRemovedInstances = state.lastRemovedInstances + 1;
+            slot.count = slot.count - take;
+            remaining = remaining - take;
+            if (slot.count <= 0) state.slots.removeAt(index);
+        }
+        index = index - 1;
+    }
+    return count - remaining;
+}
+
+// Market/escrow-style operations must not consume signed, rolled, enchanted,
+// or character-bound copies merely because a same-id plain stack exists.
+pub removeFungible(state: InventoryInstanceLedger, itemId: string, count: int): int {
+    state.lastRemovedInstances = 0;
+    if (count <= 0) return 0;
+    var remaining = count;
+    var index = state.slots.length - 1;
+    while (index >= 0 && remaining > 0) {
+        var slot = slotAt(state, index);
+        if (slot.itemId == itemId && !slot.hasInstance) {
+            var take = remaining < slot.count ? remaining : slot.count;
+            slot.count = slot.count - take;
+            remaining = remaining - take;
+            if (slot.count <= 0) state.slots.removeAt(index);
+        }
+        index = index - 1;
+    }
+    return count - remaining;
+}
+
+pub contractTest(): int {
+    if (contract.defaultStackSize(true) != 20 || contract.defaultStackSize(false) != 0 ||
+        !contract.instancedSlotsNeverMerge(true) || !contract.forceGrantsIgnoreCapacity(true) ||
+        !contract.removalIsNewestFirst(true)) return -1;
+
+    var stacks = new InventoryInstanceLedger();
+    setStackLimit(stacks, "baked_bread", 20);
+    addStacked(stacks, "baked_bread", 18);
+    addStacked(stacks, "baked_bread", 25);
+    if (usedSlots(stacks) != 3 || slotCount(stacks, 0) != 20 ||
+        slotCount(stacks, 1) != 20 || slotCount(stacks, 2) != 3) return -2;
+
+    var instance = new ItemInstanceData();
+    instance.signer = "Adventurer";
+    instance.boundTo = 409;
+    instance.hasRolledStats = true;
+    instance.rolledMasterwork = true;
+    instance.intel = 1;
+    instance.spi = 1;
+    instance.armor = 2;
+    setCharge(instance, "test", 3);
+    var copied = cloneInstance(instance);
+    setCharge(copied, "test", 1);
+    if (chargeCount(instance, "test") != 3 || chargeCount(copied, "test") != 1 ||
+        !copied.hasRolledStats || copied.armor != 2) return -3;
+
+    var noMerge = new InventoryInstanceLedger();
+    setStackLimit(noMerge, "baked_bread", 20);
+    addItemInstance(noMerge, "baked_bread", instance);
+    if (countFit(noMerge, 1, "baked_bread", 1) != 0) return -4;
+    addStacked(noMerge, "baked_bread", 3);
+    if (usedSlots(noMerge) != 2 || slotCount(noMerge, 0) != 1 || !slotHasInstance(noMerge, 0) ||
+        slotCount(noMerge, 1) != 3 || !slotHasInstance(noMerge, 0) ||
+        slotInstance(noMerge, 0).signer != "Adventurer") return -40;
+
+    var removed = new InventoryInstanceLedger();
+    addStacked(removed, "baked_bread", 2);
+    addItemInstance(removed, "baked_bread", instance);
+    if (removeStacked(removed, "baked_bread", 1) != 1 || usedSlots(removed) != 1 ||
+        lastRemovedInstanceCount(removed) != 1 || slotHasInstance(removed, 0)) return -5;
+    addItemInstance(removed, "baked_bread", instance);
+    if (removeFungible(removed, "baked_bread", 1) != 1 || usedSlots(removed) != 1 ||
+        !slotHasInstance(removed, 0) || lastRemovedInstanceCount(removed) != 0) return -6;
+
+    var overflow = new InventoryInstanceLedger();
+    addItemInstance(overflow, "eastbrook_ritual_vestments", instance);
+    if (usedSlots(overflow) != 1 || canAddItem(overflow, 0, "baked_bread", 1)) return -7;
+    return 1;
+}

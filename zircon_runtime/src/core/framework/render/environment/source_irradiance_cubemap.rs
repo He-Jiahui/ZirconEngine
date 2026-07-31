@@ -1,17 +1,18 @@
 use super::{
-    cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
-    cubemap_texel_direction, cubemap_texel_solid_angle, source_cubemap_face_mip_offset,
-    source_cubemap_irradiance_mip_level, source_cubemap_mip_size, CubemapFace,
-    SourceCubemapMipChain,
+    CubemapFace, SourceCubemapMipChain, cubemap_direction_from_scaled_uv,
+    cubemap_face_scaled_uv_from_direction, cubemap_texel_direction, cubemap_texel_solid_angle,
+    source_cubemap_face_mip_offset, source_cubemap_irradiance_mip_level, source_cubemap_mip_size,
 };
 use crate::core::math::Real;
+use std::sync::Arc;
 
 pub const SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE: u32 = 32;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SourceCubemapIrradianceCube {
     face_size: u32,
-    texels: Vec<[Real; 3]>,
+    texels: Arc<[[Real; 3]]>,
+    content_hash: [u32; 4],
 }
 
 impl SourceCubemapIrradianceCube {
@@ -22,7 +23,12 @@ impl SourceCubemapIrradianceCube {
             source_cubemap_irradiance_cube_sample_count(face_size),
             "source irradiance cubemap texel count must match face size"
         );
-        Self { face_size, texels }
+        let content_hash = source_cubemap_irradiance_cube_content_hash(face_size, &texels);
+        Self {
+            face_size,
+            texels: texels.into(),
+            content_hash,
+        }
     }
 
     pub const fn face_size(&self) -> u32 {
@@ -33,12 +39,35 @@ impl SourceCubemapIrradianceCube {
         &self.texels
     }
 
+    /// Stable content signature used to invalidate GPU irradiance uploads without per-frame hashing.
+    pub const fn content_hash(&self) -> [u32; 4] {
+        self.content_hash
+    }
+
     pub fn texel(&self, face: CubemapFace, x: u32, y: u32) -> [Real; 3] {
         let index = source_cubemap_irradiance_cube_face_offset(self.face_size, face)
             + y.min(self.face_size.saturating_sub(1)) as usize * self.face_size as usize
             + x.min(self.face_size.saturating_sub(1)) as usize;
         self.texels[index]
     }
+}
+
+fn source_cubemap_irradiance_cube_content_hash(face_size: u32, texels: &[[Real; 3]]) -> [u32; 4] {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(&face_size.to_le_bytes());
+    for texel in texels {
+        for channel in texel {
+            hasher.update(&channel.to_bits().to_le_bytes());
+        }
+    }
+    let bytes = hasher.finalize();
+    let bytes = bytes.as_bytes();
+    [
+        u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+        u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
+        u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
+        u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
+    ]
 }
 
 pub fn build_source_cubemap_irradiance_cube(
@@ -196,6 +225,19 @@ fn lerp3(a: [Real; 3], b: [Real; 3], t: Real) -> [Real; 3] {
 
 fn dot3(a: [Real; 3], b: [Real; 3]) -> Real {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cloned_irradiance_cube_shares_immutable_texel_storage() {
+        let cube = SourceCubemapIrradianceCube::new(1, vec![[0.25, 0.5, 0.75]; 6]);
+        let cloned = cube.clone();
+
+        assert!(std::sync::Arc::ptr_eq(&cube.texels, &cloned.texels));
+    }
 }
 
 fn normalize_or_positive_z(direction: [Real; 3]) -> [Real; 3] {

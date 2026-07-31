@@ -7,6 +7,7 @@ use crate::core::framework::render::{
     RenderViewportRect, RenderVirtualGeometryDebugState, RenderWorldSnapshotHandle,
     SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
 };
+use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::core::CoreRuntime;
 use crate::plugin::RuntimeExtensionRegistry;
@@ -18,7 +19,7 @@ use crate::scene::ecs::{
     SystemOrderingConstraint, SystemRef, SystemSetRegistry, SystemStage, SystemState,
     EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES,
 };
-use crate::scene::{create_default_level, module_descriptor, NodeKind, World, SCENE_MODULE_NAME};
+use crate::scene::{create_default_level, module_descriptor, NodeKind, World};
 use crate::scene::{
     SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
     SceneRuntimeHookRegistration,

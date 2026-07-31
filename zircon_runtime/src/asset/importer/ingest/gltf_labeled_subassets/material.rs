@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use crate::asset::{
     AlphaMode, AssetImportOutcome, AssetReference, AssetUri, ImportedAsset, ImportedAssetEntry,
@@ -15,27 +15,30 @@ pub(crate) fn add_gltf_material_subassets(
 ) -> AssetImportOutcome {
     let default_uri = gltf_label_uri(root_uri, "DefaultMaterial");
     let default_asset = default_material_asset(default_uri.clone());
+    let default_shader = default_asset.shader.locator.clone();
     outcome = with_root_dependency_and_entry(
         outcome,
-        ImportedAssetEntry::new(default_uri, ImportedAsset::Material(default_asset.clone()))
-            .with_dependency(default_asset.shader.locator.clone()),
+        ImportedAssetEntry::new(default_uri, ImportedAsset::Material(default_asset))
+            .with_dependency(default_shader),
     );
 
     for material in document.materials() {
         if let Some(material_index) = material.index() {
             let uri = gltf_label_uri(root_uri, &format!("Material{material_index}"));
             let asset = material_asset_from_gltf_material(root_uri, uri.clone(), &material);
-            let mut entry = ImportedAssetEntry::new(uri, ImportedAsset::Material(asset.clone()))
-                .with_dependency(asset.shader.locator.clone());
+            let mut dependencies = vec![asset.shader.locator.clone()];
+            let mut dependency_index = HashSet::from([asset.shader.locator.clone()]);
             for reference in asset
                 .all_texture_slots()
                 .into_iter()
                 .map(|(_, reference)| reference)
             {
-                if !entry.dependencies.contains(&reference.locator) {
-                    entry = entry.with_dependency(reference.locator.clone());
+                if dependency_index.insert(reference.locator.clone()) {
+                    dependencies.push(reference.locator.clone());
                 }
             }
+            let mut entry = ImportedAssetEntry::new(uri, ImportedAsset::Material(asset));
+            entry.dependencies = dependencies;
             outcome = with_root_dependency_and_entry(outcome, entry);
         }
     }
@@ -74,6 +77,20 @@ fn material_asset_from_gltf_material(
         texture_info_metadata(metallic_roughness_texture_info.as_ref());
     let occlusion_metadata = occlusion_texture_metadata(occlusion_texture_info.as_ref());
     let emissive_metadata = texture_info_metadata(emissive_texture_info.as_ref());
+    let mut emissive = material.emissive_factor();
+    let mut property_values = BTreeMap::new();
+    let mut validation_diagnostics = vec![format!(
+        "{} imported from glTF Material{}",
+        uri,
+        material.index().unwrap_or_default()
+    )];
+    project_gltf_material_extensions(
+        material,
+        &uri,
+        &mut emissive,
+        &mut property_values,
+        &mut validation_diagnostics,
+    );
 
     let mut texture_slots = BTreeMap::new();
     insert_texture_slot(
@@ -120,18 +137,186 @@ fn material_asset_from_gltf_material(
         roughness: pbr.roughness_factor(),
         metallic_roughness_texture,
         occlusion_texture,
-        emissive: material.emissive_factor(),
+        emissive,
         emissive_texture,
         alpha_mode: gltf_alpha_mode(material),
         double_sided: material.double_sided(),
-        property_values: BTreeMap::new(),
+        property_values,
         texture_slots,
-        validation_diagnostics: vec![format!(
-            "{} imported from glTF Material{}",
-            uri,
-            material.index().unwrap_or_default()
-        )],
+        validation_diagnostics,
     }
+}
+
+fn project_gltf_material_extensions(
+    material: &gltf::Material<'_>,
+    uri: &AssetUri,
+    emissive: &mut [f32; 3],
+    properties: &mut BTreeMap<String, toml::Value>,
+    diagnostics: &mut Vec<String>,
+) {
+    if material.extension_value("KHR_materials_unlit").is_some() {
+        properties.insert(
+            "lighting_model".to_string(),
+            toml::Value::String("unlit".to_string()),
+        );
+    }
+
+    if let Some(extension) = material.extension_value("KHR_materials_ior") {
+        project_f32_extension_property(
+            extension,
+            "KHR_materials_ior",
+            "ior",
+            "ior",
+            |value| value >= 1.0,
+            properties,
+            diagnostics,
+        );
+    }
+    if let Some(extension) = material.extension_value("KHR_materials_transmission") {
+        project_f32_extension_property(
+            extension,
+            "KHR_materials_transmission",
+            "transmissionFactor",
+            "specular_transmission",
+            |value| (0.0..=1.0).contains(&value),
+            properties,
+            diagnostics,
+        );
+        diagnose_unsupported_extension_field(
+            extension,
+            uri,
+            "KHR_materials_transmission",
+            "transmissionTexture",
+            diagnostics,
+        );
+    }
+    if let Some(extension) = material.extension_value("KHR_materials_volume") {
+        project_f32_extension_property(
+            extension,
+            "KHR_materials_volume",
+            "thicknessFactor",
+            "thickness",
+            |value| value >= 0.0,
+            properties,
+            diagnostics,
+        );
+        project_f32_extension_property(
+            extension,
+            "KHR_materials_volume",
+            "attenuationDistance",
+            "attenuation_distance",
+            |value| value > 0.0,
+            properties,
+            diagnostics,
+        );
+        if let Some(value) = extension.get("attenuationColor") {
+            match json_vec3(value).filter(|channels| {
+                channels
+                    .iter()
+                    .all(|channel| channel.is_finite() && (0.0..=1.0).contains(channel))
+            }) {
+                Some(channels) => {
+                    properties.insert(
+                        "attenuation_color".to_string(),
+                        toml::Value::Array(
+                            channels
+                                .into_iter()
+                                .map(|channel| toml::Value::Float(f64::from(channel)))
+                                .collect(),
+                        ),
+                    );
+                }
+                None => diagnostics.push(
+                    "KHR_materials_volume.attenuationColor must contain three finite 0..=1 values"
+                        .to_string(),
+                ),
+            }
+        }
+        diagnose_unsupported_extension_field(
+            extension,
+            uri,
+            "KHR_materials_volume",
+            "thicknessTexture",
+            diagnostics,
+        );
+    }
+    if let Some(extension) = material.extension_value("KHR_materials_emissive_strength") {
+        if let Some(value) = extension.get("emissiveStrength") {
+            match json_f32(value).filter(|value| *value >= 0.0) {
+                Some(strength) => {
+                    for channel in emissive {
+                        *channel *= strength;
+                    }
+                }
+                None => diagnostics.push(
+                    "KHR_materials_emissive_strength.emissiveStrength must be non-negative and finite"
+                        .to_string(),
+                ),
+            }
+        }
+    }
+    if material.extension_value("KHR_materials_specular").is_some() {
+        diagnostics.push(format!(
+            "{uri} uses KHR_materials_specular, but the current StandardMaterialDescriptor has no specular factor/color fields; core PBR fallback values were retained"
+        ));
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn project_f32_extension_property(
+    extension: &serde_json::Value,
+    extension_name: &str,
+    field_name: &str,
+    property_name: &str,
+    validate: impl FnOnce(f32) -> bool,
+    properties: &mut BTreeMap<String, toml::Value>,
+    diagnostics: &mut Vec<String>,
+) {
+    let Some(value) = extension.get(field_name) else {
+        return;
+    };
+    match json_f32(value).filter(|value| validate(*value)) {
+        Some(value) => {
+            properties.insert(
+                property_name.to_string(),
+                toml::Value::Float(f64::from(value)),
+            );
+        }
+        None => diagnostics.push(format!(
+            "{extension_name}.{field_name} contains an invalid numeric value"
+        )),
+    }
+}
+
+fn diagnose_unsupported_extension_field(
+    extension: &serde_json::Value,
+    uri: &AssetUri,
+    extension_name: &str,
+    field_name: &str,
+    diagnostics: &mut Vec<String>,
+) {
+    if extension.get(field_name).is_some() {
+        diagnostics.push(format!(
+            "{uri} uses unsupported {extension_name}.{field_name}; the texture contribution was not projected"
+        ));
+    }
+}
+
+fn json_f32(value: &serde_json::Value) -> Option<f32> {
+    let value = value.as_f64()? as f32;
+    value.is_finite().then_some(value)
+}
+
+fn json_vec3(value: &serde_json::Value) -> Option<[f32; 3]> {
+    let items = value.as_array()?;
+    if items.len() != 3 {
+        return None;
+    }
+    Some([
+        json_f32(items.first()?)?,
+        json_f32(items.get(1)?)?,
+        json_f32(items.get(2)?)?,
+    ])
 }
 
 #[derive(Clone, Copy, Default)]

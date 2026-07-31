@@ -176,39 +176,49 @@ mod tests {
     #[test]
     fn stylistic_effect_settings_use_explicit_enable_predicates() {
         assert!(!RenderVignetteSettings::default().is_enabled());
-        assert!(RenderVignetteSettings {
-            intensity: 0.2,
-            ..Default::default()
-        }
-        .is_enabled());
+        assert!(
+            RenderVignetteSettings {
+                intensity: 0.2,
+                ..Default::default()
+            }
+            .is_enabled()
+        );
 
         assert!(!RenderFilmGrainSettings::default().is_enabled());
-        assert!(RenderFilmGrainSettings {
-            intensity: 0.1,
-            ..Default::default()
-        }
-        .is_enabled());
+        assert!(
+            RenderFilmGrainSettings {
+                intensity: 0.1,
+                ..Default::default()
+            }
+            .is_enabled()
+        );
 
         assert!(!RenderDitherSettings::default().is_enabled());
-        assert!(RenderDitherSettings {
-            intensity: 0.05,
-            ..Default::default()
-        }
-        .is_enabled());
+        assert!(
+            RenderDitherSettings {
+                intensity: 0.05,
+                ..Default::default()
+            }
+            .is_enabled()
+        );
 
         assert!(!RenderChromaticAberrationSettings::default().is_enabled());
-        assert!(RenderChromaticAberrationSettings {
-            intensity: 0.08,
-            ..Default::default()
-        }
-        .is_enabled());
+        assert!(
+            RenderChromaticAberrationSettings {
+                intensity: 0.08,
+                ..Default::default()
+            }
+            .is_enabled()
+        );
 
         assert!(!RenderFogSettings::default().is_enabled());
-        assert!(RenderFogSettings {
-            density: 0.03,
-            ..Default::default()
-        }
-        .is_enabled());
+        assert!(
+            RenderFogSettings {
+                density: 0.03,
+                ..Default::default()
+            }
+            .is_enabled()
+        );
     }
 
     #[test]

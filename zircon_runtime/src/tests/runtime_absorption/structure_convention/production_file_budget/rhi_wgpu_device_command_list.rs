@@ -23,23 +23,24 @@ fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
     );
 
     assert_contains_all(
-        "RHI WGPU device parent delegates command-list recording and keeps device state",
+        "deterministic RHI contract device delegates command-list recording and keeps test state",
         &parent,
         &[
             "mod command_list;",
-            "pub use self::command_list::WgpuCommandList;",
-            "pub struct WgpuRenderDevice",
-            "pub(super) struct WgpuRenderDeviceState",
-            "impl RenderDevice for WgpuRenderDevice",
+            "pub(crate) use self::command_list::DeterministicRhiContractCommandList;",
+            "pub(crate) struct DeterministicRhiContractDevice",
+            "pub(super) struct DeterministicRhiContractDeviceState",
+            "impl RenderDevice for DeterministicRhiContractDevice",
             "fn create_command_list(",
-            "WgpuCommandList::new(queue_class, label)",
+            "DeterministicRhiContractCommandList::new(",
             "fn submit(&self, command_list: Box<dyn CommandList>)",
-            "fn lock_state(&self) -> MutexGuard<'_, WgpuRenderDeviceState>",
+            "fn lock_state(&self) -> MutexGuard<'_, DeterministicRhiContractDeviceState>",
+            "RenderBackendCaps::new(\"deterministic-rhi-contract-test\")",
         ],
     );
     for moved_owner in [
-        "pub struct WgpuCommandList",
-        "impl CommandList for WgpuCommandList",
+        "pub(crate) struct DeterministicRhiContractCommandList",
+        "impl CommandList for DeterministicRhiContractCommandList",
         "fn push_debug_marker(&mut self, label: &str)",
         "fn copy_buffer_to_texture(",
         "fn begin_render_pass(",
@@ -53,12 +54,12 @@ fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
         );
     }
     assert_contains_all(
-        "RHI WGPU device command-list child owns command recording",
+        "deterministic RHI contract command-list child owns command recording",
         &command_list,
         &[
-            "pub struct WgpuCommandList",
-            "impl WgpuCommandList",
-            "impl CommandList for WgpuCommandList",
+            "pub(crate) struct DeterministicRhiContractCommandList",
+            "impl DeterministicRhiContractCommandList",
+            "impl CommandList for DeterministicRhiContractCommandList",
             "CommandListCommand::DebugMarker",
             "CommandListCommand::CopyBufferToTexture",
             "CommandListCommand::BeginRenderPass",
@@ -68,9 +69,25 @@ fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
         ],
     );
     assert_contains_all(
-        "RHI WGPU root still exports command-list and render-device names",
+        "RHI WGPU root keeps the deterministic contract device test-only",
         &rhi_wgpu_root,
-        &["pub use device::{WgpuCommandList, WgpuRenderDevice};"],
+        &["pub(crate) use device::{DeterministicRhiContractCommandList, DeterministicRhiContractDevice};"],
+    );
+    assert!(
+        !rhi_wgpu_root.contains("as WgpuCommandList")
+            && !rhi_wgpu_root.contains("as WgpuRenderDevice"),
+        "the deterministic contract test types must not retain production-shaped WGPU aliases"
+    );
+    assert!(
+        !parent.contains("WgpuRenderDeviceState"),
+        "the deterministic contract device must not retain the production-shaped state alias"
+    );
+    assert!(
+        rhi_wgpu_root
+            .split_whitespace()
+            .collect::<String>()
+            .contains("#[cfg(test)]moddevice;"),
+        "the deterministic RHI contract device module must remain cfg(test)-only"
     );
 
     for (path, source) in [

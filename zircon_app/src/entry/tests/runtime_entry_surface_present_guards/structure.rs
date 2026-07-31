@@ -51,7 +51,8 @@ fn runtime_surface_present_sources_stay_folder_backed() {
         "runtime winit event handling should not own native surface binding helper implementations"
     );
     assert!(
-        !root.join("tests/runtime_entry_surface_present_guards.rs")
+        !root
+            .join("tests/runtime_entry_surface_present_guards.rs")
             .exists(),
         "runtime surface-present guards should stay folder-backed instead of returning to an umbrella runtime_entry_surface_present_guards.rs file"
     );

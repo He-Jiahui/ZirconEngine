@@ -1,0 +1,26 @@
+var console = %import("zr.system.console");
+var auras = %import("combat/auras");
+
+console.printLine("m4-auras-test");
+var result: int = 1;
+if (auras.metric(0, 100.0, 200.0, 30.0, 20.0) != 118.0) { result = -1; }
+if (result == 1 && auras.metric(1, 10.0, 100.0, 0.5, 0.0) != 40.0) { result = -2; }
+if (result == 1 && auras.metric(2, 1.0, 0.0, 0.0, 0.0) != 0.0) { result = -3; }
+if (result == 1 && auras.metric(3, 400.0, 500.0, 20.0, 0.0) != 408.0) { result = -4; }
+if (result == 1 && auras.metric(4, 450.0, 500.0, 90.0, 1.2) != 50.0) { result = -5; }
+if (result == 1 && auras.metric(5, 170.0, 200.0, 50.0, 0.0) != 200.0) { result = -6; }
+if (result == 1 && auras.metric(6, 0.05, 0.0, 0.0, 0.0) != 0.0) { result = -7; }
+if (result == 1 && auras.metric(7, 2.0, 0.0, 0.0, 0.0) != 2.05) { result = -8; }
+if (result == 1 && auras.metric(8, 100.0, 25.0, 1.0, 0.0) != 125.0) { result = -9; }
+if (result == 1 && auras.metric(9, 480.0, 500.0, 50.0, 1.0) != 20.0) { result = -10; }
+if (result == 1 && auras.metric(10, 450.0, 500.0, 0.0, 0.0) != 500.0) { result = -11; }
+if (result == 1 && auras.metric(11, 0.03, 0.0, 0.0, 0.0) > 0.0) { result = -12; }
+if (result == 1 && auras.metric(12, 0.05, 0.05, 0.0, 0.0) != 0.05) { result = -13; }
+if (result == 1 && <int>auras.scenarioContract(1, 2) != 1) { result = -14; }
+if (result == 1 && auras.rejectedFriendlyNpcAuraContractTest() != 1) { result = -15; }
+if (result == 1 && auras.metric(13, 40.0, 100.0, 5.6, 0.0) != 46.0) { result = -16; }
+if (result == 1 && auras.metric(13, 40.0, 100.0, 5.6, 1.0) != 40.0) { result = -17; }
+if (result == 1 && auras.metric(14, 30.0, 100.0, 0.05, 0.0) != 10.0) { result = -18; }
+if (result == 1 && auras.metric(14, 35.0, 100.0, 0.05, 0.0) != 0.0) { result = -19; }
+console.printLine(result);
+return result == 1 ? 0 : result;

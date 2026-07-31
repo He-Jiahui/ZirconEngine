@@ -7,8 +7,10 @@ use super::super::super::params::hzb_params::HzbParams;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use crate::core::framework::render::COMPUTE_SHADER_PARAMS_BINDING;
 use crate::graphics::shader::{
-    hzb_build_dispatch_plan, HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
+    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE, hzb_build_dispatch_plan,
 };
+
+const HZB_MAX_MIP_COUNT: usize = u32::BITS as usize;
 
 pub(super) struct HzbBuildMipResources<'a> {
     pub bind_group_layout: &'a wgpu::BindGroupLayout,
@@ -21,19 +23,27 @@ pub(super) fn create_hzb_params_upload_buffer(
     device: &wgpu::Device,
     plan: HzbBuildPlan,
 ) -> wgpu::Buffer {
-    let params = (0..plan.mip_count)
-        .map(|target_mip_level| {
-            let target_size = plan.mip_size(target_mip_level);
-            HzbParams {
-                target_size: [target_size.x.max(1), target_size.y.max(1)],
-                target_mip_level,
-                _pad0: 0,
-            }
-        })
-        .collect::<Vec<_>>();
+    let mip_count = plan.mip_count as usize;
+    assert!(
+        mip_count <= HZB_MAX_MIP_COUNT,
+        "HZB mip count exceeds the u32 texture extent domain"
+    );
+    let mut params = [HzbParams {
+        target_size: [1, 1],
+        target_mip_level: 0,
+        _pad0: 0,
+    }; HZB_MAX_MIP_COUNT];
+    for target_mip_level in 0..plan.mip_count {
+        let target_size = plan.mip_size(target_mip_level);
+        params[target_mip_level as usize] = HzbParams {
+            target_size: [target_size.x.max(1), target_size.y.max(1)],
+            target_mip_level,
+            _pad0: 0,
+        };
+    }
     device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("zircon-hzb-build-params-upload"),
-        contents: bytemuck::cast_slice(&params),
+        contents: bytemuck::cast_slice(&params[..mip_count]),
         usage: wgpu::BufferUsages::COPY_SRC,
     })
 }

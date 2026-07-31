@@ -26,9 +26,10 @@ impl EditorManager {
         diagnostics.extend(runtime_catalog.diagnostics().iter().cloned());
         diagnostics.extend(editor_catalog.diagnostics().iter().cloned());
         let status_target = RuntimeTargetMode::EditorHost;
-        let completed_plugins = runtime_catalog.complete_project_manifest(&manifest.plugins);
+        let completed_plugins =
+            runtime_catalog.complete_project_manifest(&manifest.plugins, status_target);
         let feature_report =
-            runtime_catalog.feature_dependency_report(&completed_plugins, status_target);
+            runtime_catalog.feature_dependency_report(&manifest.plugins, status_target);
         diagnostics.extend(feature_report.diagnostics.iter().cloned());
         let available_feature_ids = feature_report
             .available_features
@@ -73,7 +74,9 @@ impl EditorManager {
                     .and_then(|selection| selection.editor_crate.clone())
                     .or_else(|| module_crate(package, PluginModuleKind::Editor));
                 let runtime_capabilities = runtime_capabilities_for_package(package);
-                let editor_capabilities = editor_catalog.capabilities_for_package(&package.id);
+                let editor_capabilities = editor_catalog
+                    .capabilities_for_package(&package.id)
+                    .to_vec();
                 let mut plugin_diagnostics = Vec::new();
                 if package
                     .modules

@@ -20,6 +20,7 @@ pub(super) fn assign_options_collection_fields(
     node.structured_options = model_rc(selection_options.structured_options);
 
     node.collection_items = to_host_contract_shared_string_list(collection.items);
+    node.collection_rows = model_rc(collection.rows);
     node.collection_fields = model_rc(collection.fields);
     node.virtualization_enabled = collection.virtualization_enabled;
     node.virtualization_item_extent = collection.virtualization_item_extent;

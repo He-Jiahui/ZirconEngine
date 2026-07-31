@@ -1,4 +1,9 @@
 use super::*;
+use crate::text::atlas::{
+    GlyphHintingMode, GlyphRasterKey, GlyphRasterRequest, GlyphSmoothingMode, SyntheticGlyphStyle,
+};
+use crate::text::InstancedFaceId;
+use std::sync::Arc;
 
 #[test]
 fn native_bitmap_atlas_source_uses_glyphon_bitmap_pixel_rect() {
@@ -26,8 +31,15 @@ fn native_bitmap_atlas_source_uses_glyphon_bitmap_pixel_rect() {
         image.height,
         image.scale_factor,
     );
-    let clipped_source = native_bitmap_atlas_source_from_image(image, clipped, vec![7; 117])
-        .expect("alpha glyph image should produce an atlas source");
+    let raster_key = test_raster_key(GlyphAtlasFormat::AlphaMask);
+    let source_bytes = Arc::<[u8]>::from(vec![7; 117]);
+    let clipped_source = native_bitmap_atlas_source_from_image(
+        image,
+        clipped,
+        Arc::clone(&source_bytes),
+        Some(raster_key),
+    )
+    .expect("alpha glyph image should produce an atlas source");
     let source = clipped_source.source;
 
     assert_eq!(source.format, GlyphAtlasFormat::AlphaMask);
@@ -37,8 +49,10 @@ fn native_bitmap_atlas_source_uses_glyphon_bitmap_pixel_rect() {
         GlyphAtlasScreenRect::new(18.0, 10.0, 9.0, 13.0)
     );
     assert_eq!(source.source_byte_len, 117);
+    assert_eq!(source.raster_key, Some(raster_key));
     assert_eq!(source.foreground_color, [0.9, 0.8, 0.7, 1.0]);
     assert_eq!(clipped_source.bytes.len(), 117);
+    assert!(Arc::ptr_eq(&source_bytes, &clipped_source.bytes));
     assert!(!clipped_source.was_clipped);
 }
 
@@ -68,8 +82,9 @@ fn native_bitmap_atlas_source_preserves_known_subpixel_background_color() {
         image.height,
         image.scale_factor,
     );
-    let clipped_source = native_bitmap_atlas_source_from_image(image, clipped, vec![7; 256])
-        .expect("subpixel glyph image should preserve known background input");
+    let clipped_source =
+        native_bitmap_atlas_source_from_image(image, clipped, Arc::from(vec![7; 256]), None)
+            .expect("subpixel glyph image should preserve known background input");
 
     assert_eq!(clipped_source.source.format, GlyphAtlasFormat::SubpixelMask);
     assert_eq!(clipped_source.source.background_color, [0.1, 0.2, 0.3, 1.0]);
@@ -92,7 +107,7 @@ fn native_bitmap_atlas_source_crops_alpha_rows_to_text_bounds() {
         foreground_color: [0.9, 0.8, 0.7, 1.0],
         background_color: [0.0, 0.0, 0.0, 1.0],
     };
-    let source_bytes = (0..36).collect::<Vec<u8>>();
+    let source_bytes = Arc::<[u8]>::from((0..36).collect::<Vec<u8>>());
     let bounds = TextBounds {
         left: 20,
         top: 11,
@@ -112,8 +127,13 @@ fn native_bitmap_atlas_source_crops_alpha_rows_to_text_bounds() {
     let clipped = text_bounds_clipped_screen_rect(bounds, screen_rect)
         .expect("text bounds should keep the visible glyph slice");
 
-    let clipped_source = native_bitmap_atlas_source_from_image(image, clipped, source_bytes)
-        .expect("text-bounds clipped alpha glyph should still produce an atlas source");
+    let clipped_source = native_bitmap_atlas_source_from_image(
+        image,
+        clipped,
+        source_bytes,
+        Some(test_raster_key(GlyphAtlasFormat::AlphaMask)),
+    )
+    .expect("text-bounds clipped alpha glyph should still produce an atlas source");
 
     assert_eq!(clipped_source.source.content_size, UVec2::new(5, 2));
     assert_eq!(
@@ -121,9 +141,10 @@ fn native_bitmap_atlas_source_crops_alpha_rows_to_text_bounds() {
         GlyphAtlasScreenRect::new(20.0, 11.0, 5.0, 2.0)
     );
     assert_eq!(clipped_source.source.source_byte_len, 10);
+    assert_eq!(clipped_source.source.raster_key, None);
     assert_eq!(
-        clipped_source.bytes,
-        vec![11, 12, 13, 14, 15, 20, 21, 22, 23, 24]
+        clipped_source.bytes.as_ref(),
+        &[11, 12, 13, 14, 15, 20, 21, 22, 23, 24]
     );
     assert!(clipped_source.was_clipped);
 }
@@ -147,7 +168,7 @@ fn native_bitmap_atlas_source_preserves_color_rgba_rows_and_untints_foreground()
         ),
         background_color: [0.0, 0.0, 0.0, 1.0],
     };
-    let source_bytes = (0..24).collect::<Vec<u8>>();
+    let source_bytes = Arc::<[u8]>::from((0..24).collect::<Vec<u8>>());
     let screen_rect = native_bitmap_atlas_screen_rect(
         image.x,
         image.y,
@@ -160,7 +181,7 @@ fn native_bitmap_atlas_source_preserves_color_rgba_rows_and_untints_foreground()
     );
     let clipped = GlyphAtlasScreenRect::new(screen_rect.x + 1.0, screen_rect.y, 2.0, 2.0);
 
-    let clipped_source = native_bitmap_atlas_source_from_image(image, clipped, source_bytes)
+    let clipped_source = native_bitmap_atlas_source_from_image(image, clipped, source_bytes, None)
         .expect("color glyph should produce RGBA atlas source bytes");
 
     assert_eq!(clipped_source.source.format, GlyphAtlasFormat::Color);
@@ -168,10 +189,25 @@ fn native_bitmap_atlas_source_preserves_color_rgba_rows_and_untints_foreground()
     assert_eq!(clipped_source.source.source_byte_len, 16);
     assert_eq!(clipped_source.source.foreground_color, [1.0, 1.0, 1.0, 1.0]);
     assert_eq!(
-        clipped_source.bytes,
-        vec![4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22, 23]
+        clipped_source.bytes.as_ref(),
+        &[4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22, 23]
     );
     assert!(clipped_source.was_clipped);
+}
+
+fn test_raster_key(format: GlyphAtlasFormat) -> GlyphRasterKey {
+    GlyphRasterKey::from_request(GlyphRasterRequest {
+        face: InstancedFaceId(7),
+        glyph_id: 42,
+        logical_px: 16.0,
+        scale_factor: 1.0,
+        screen_x: 0.0,
+        snap_to_pixel: false,
+        format,
+        hinting: GlyphHintingMode::Full,
+        smoothing: GlyphSmoothingMode::Grayscale,
+        synthetic: SyntheticGlyphStyle::default(),
+    })
 }
 
 #[test]
@@ -210,6 +246,7 @@ fn native_bitmap_atlas_frame_replaces_glyphon_when_text_bounds_clip_alpha_source
     );
 
     let clipped_source = GlyphAtlasBitmapSource {
+        raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
         content_size: UVec2::new(30, 12),
         screen_rect: GlyphAtlasScreenRect::new(10.0, 8.0, 30.0, 12.0),

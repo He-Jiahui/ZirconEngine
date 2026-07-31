@@ -91,3 +91,11 @@ fn obj_decode_reports_typed_scalar_parse_error_source() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn obj_face_parser_does_not_collect_a_second_token_buffer() {
+    let source = include_str!("../../formats/obj/decode_obj_file.rs");
+
+    assert!(!source.contains("let tokens: Vec<_> = parts.collect()"));
+    assert!(source.contains(".into_iter().chain(parts)"));
+}

@@ -2,11 +2,11 @@ use crate::rhi::{
     BufferDesc, BufferUsage, CommandList, RenderDevice, RenderQueueClass, TextureCopyRegion,
     TextureDesc, TextureDimension, TextureFormat, TextureUsage,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
 #[test]
-fn wgpu_rhi_copy_buffer_to_texture_preserves_bytes() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_copy_buffer_to_texture_preserves_bytes() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let upload = device
         .create_buffer(&BufferDesc::new(
             "texture-upload",
@@ -38,8 +38,8 @@ fn wgpu_rhi_copy_buffer_to_texture_preserves_bytes() {
 }
 
 #[test]
-fn wgpu_rhi_copy_texture_to_buffer_preserves_bytes() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_copy_texture_to_buffer_preserves_bytes() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let upload = device
         .create_buffer(&BufferDesc::new(
             "texture-upload",
@@ -82,8 +82,8 @@ fn wgpu_rhi_copy_texture_to_buffer_preserves_bytes() {
 }
 
 #[test]
-fn wgpu_rhi_texture_copy_region_targets_mip_and_array_layer() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_texture_copy_region_targets_mip_and_array_layer() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let upload = device
         .create_buffer(&BufferDesc::new(
             "array-mip-upload",
@@ -133,8 +133,8 @@ fn wgpu_rhi_texture_copy_region_targets_mip_and_array_layer() {
 }
 
 #[test]
-fn wgpu_rhi_texture_copy_region_targets_cube_face() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_texture_copy_region_targets_cube_face() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let upload = device
         .create_buffer(&BufferDesc::new(
             "cube-face-upload",
@@ -181,8 +181,8 @@ fn wgpu_rhi_texture_copy_region_targets_cube_face() {
 }
 
 #[test]
-fn wgpu_rhi_copy_buffer_to_texture_validates_usage_and_range() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_copy_buffer_to_texture_validates_usage_and_range() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let invalid_source = device
         .create_buffer(&BufferDesc::new(
             "not-copy-source",
@@ -309,8 +309,8 @@ fn wgpu_rhi_copy_buffer_to_texture_validates_usage_and_range() {
 }
 
 #[test]
-fn wgpu_rhi_copy_texture_to_buffer_validates_usage_and_range() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_copy_texture_to_buffer_validates_usage_and_range() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let invalid_source = device
         .create_texture(&TextureDesc::new(
             "not-copy-source",

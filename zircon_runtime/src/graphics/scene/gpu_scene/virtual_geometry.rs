@@ -1,7 +1,7 @@
-use super::gpu_scene::{create_storage_buffer, GpuScene};
+use super::gpu_scene::{GpuScene, create_storage_buffer};
 use super::layout::{
-    GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage,
     GPU_VIRTUAL_GEOMETRY_CLUSTER_WORD_STRIDE, GPU_VIRTUAL_GEOMETRY_PAGE_STRIDE,
+    GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage,
 };
 use super::upload::write_full_pod_buffer;
 
@@ -21,6 +21,8 @@ impl GpuScene {
         pages: &[GpuVirtualGeometryPage],
         cluster_words: &[GpuVirtualGeometryClusterWord],
     ) -> GpuSceneVirtualGeometryUploadReport {
+        let pages_changed = self.virtual_geometry_pages_shadow != pages;
+        let clusters_changed = self.virtual_geometry_clusters_shadow != cluster_words;
         let page_capacity_changed = self.virtual_geometry_pages_shadow.len() != pages.len();
         let cluster_capacity_changed =
             self.virtual_geometry_clusters_shadow.len() != cluster_words.len();
@@ -43,23 +45,35 @@ impl GpuScene {
             );
         }
 
-        self.virtual_geometry_pages_shadow.clear();
-        self.virtual_geometry_pages_shadow.extend_from_slice(pages);
-        self.virtual_geometry_clusters_shadow.clear();
-        self.virtual_geometry_clusters_shadow
-            .extend_from_slice(cluster_words);
+        if pages_changed {
+            self.virtual_geometry_pages_shadow.clear();
+            self.virtual_geometry_pages_shadow.extend_from_slice(pages);
+        }
+        if clusters_changed {
+            self.virtual_geometry_clusters_shadow.clear();
+            self.virtual_geometry_clusters_shadow
+                .extend_from_slice(cluster_words);
+        }
 
-        let uploaded_bytes = write_full_pod_buffer(
-            queue,
-            &self.virtual_geometry_pages_buffer,
-            &self.virtual_geometry_pages_shadow,
-            pages.len(),
-        ) + write_full_pod_buffer(
-            queue,
-            &self.virtual_geometry_clusters_buffer,
-            &self.virtual_geometry_clusters_shadow,
-            cluster_words.len(),
-        );
+        let uploaded_bytes = if pages_changed {
+            write_full_pod_buffer(
+                queue,
+                &self.virtual_geometry_pages_buffer,
+                &self.virtual_geometry_pages_shadow,
+                pages.len(),
+            )
+        } else {
+            0
+        } + if clusters_changed {
+            write_full_pod_buffer(
+                queue,
+                &self.virtual_geometry_clusters_buffer,
+                &self.virtual_geometry_clusters_shadow,
+                cluster_words.len(),
+            )
+        } else {
+            0
+        };
         let rebuilt_bind_group = page_capacity_changed || cluster_capacity_changed;
         if rebuilt_bind_group {
             self.rebuild_scene_bind_group(device);
@@ -97,8 +111,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::graphics::scene::gpu_scene::{
-        GpuScene, GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage,
-        GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
+        GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT, GpuScene, GpuVirtualGeometryClusterWord,
+        GpuVirtualGeometryPage,
     };
 
     const TEST_SKINNED_JOINT_MATRIX_COUNT: u64 = 256;
@@ -150,7 +164,7 @@ mod tests {
 
         assert_eq!(second_report.page_count, 2);
         assert_eq!(second_report.cluster_word_count, 2);
-        assert!(second_report.uploaded_bytes > 0);
+        assert_eq!(second_report.uploaded_bytes, 0);
         assert!(!second_report.rebuilt_bind_group);
     }
 

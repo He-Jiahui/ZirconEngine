@@ -36,9 +36,12 @@ static MATERIAL_EDITOR_FOUNDATION_REGISTRY: OnceLock<UiComponentDescriptorRegist
 impl UiComponentDescriptorRegistry {
     /// Builds the component catalog for the Material Dark editor foundation.
     pub fn material_editor_foundation() -> Self {
-        MATERIAL_EDITOR_FOUNDATION_REGISTRY
-            .get_or_init(build_material_editor_foundation_registry)
-            .clone()
+        Self::material_editor_foundation_shared().clone()
+    }
+
+    /// Returns the process-wide read-only Material editor foundation catalog.
+    pub fn material_editor_foundation_shared() -> &'static Self {
+        MATERIAL_EDITOR_FOUNDATION_REGISTRY.get_or_init(build_material_editor_foundation_registry)
     }
 }
 

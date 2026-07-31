@@ -15,11 +15,94 @@ fn native_live_host_treats_missing_unload_hook_as_noop_unload() {
 }
 
 #[test]
+fn native_hot_reload_owned_identity_reinserts_into_its_module_kind_partition() {
+    let transition =
+        NativePluginHotReloadState::new(PluginModuleKind::Editor, "physics".to_string(), None);
+    let mut registry = super::super::keys::NativePluginLiveRegistry::default();
+    registry.insert(live_key(PluginModuleKind::Runtime, "physics"), 1_u8);
+    registry.insert(live_key(transition.module_kind, &transition.key), 2_u8);
+
+    assert_eq!(
+        registry.get(&live_key(PluginModuleKind::Runtime, "physics")),
+        Some(&1)
+    );
+    assert_eq!(
+        registry.get(&live_key(PluginModuleKind::Editor, "physics")),
+        Some(&2)
+    );
+
+    let lifecycle = include_str!("../lifecycle.rs");
+    assert!(lifecycle
+        .contains("NativePluginHotReloadState::new(module_kind, plugin_id.to_owned(), existing)"));
+    assert!(lifecycle.contains("live_key(reload_state.module_kind, &reload_state.key)"));
+
+    let keys = include_str!("../keys.rs");
+    assert!(!keys.contains("live_key_prefix"));
+    assert!(!keys.contains("format!(\"{}{plugin_id}\""));
+}
+
+#[test]
+fn native_live_host_editor_hot_reload_keeps_same_id_runtime_plugin() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Runtime),
+        );
+        loaded.insert(
+            live_key(PluginModuleKind::Editor, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Editor),
+        );
+    }
+
+    let mut replacement = native_live_host_test_plugin("physics", PluginModuleKind::Editor);
+    replacement.library_path = std::path::PathBuf::from("physics.editor.reloaded.test.dll");
+    let report = NativePluginLoadReport::from_loaded(vec![replacement]);
+
+    host.hot_reload_reported_plugin(
+        report,
+        std::path::Path::new("reload-root"),
+        "physics",
+        PluginModuleKind::Editor,
+    )
+    .expect("editor hot reload should replace only the editor partition");
+
+    let loaded =
+        lock_loaded_native_plugins(&host.loaded).expect("test should lock the native live host");
+    assert_eq!(
+        loaded
+            .get(&live_key(PluginModuleKind::Runtime, "physics"))
+            .expect("runtime partition should retain its physics plugin")
+            .library_path,
+        std::path::PathBuf::from("physics.test.dll")
+    );
+    assert_eq!(
+        loaded
+            .get(&live_key(PluginModuleKind::Editor, "physics"))
+            .expect("editor partition should contain the reloaded physics plugin")
+            .library_path,
+        std::path::PathBuf::from("physics.editor.reloaded.test.dll")
+    );
+}
+
+#[test]
+fn native_hot_reload_moves_the_saved_state_blob_into_restore_and_rollback() {
+    let state = include_str!("../hot_reload.rs");
+    assert!(state.contains("take_runtime_snapshot"));
+
+    let lifecycle = include_str!("../lifecycle.rs");
+    assert!(lifecycle.contains("reload_state.take_runtime_snapshot()"));
+    assert!(!lifecycle.contains("reload_state.runtime_snapshot().cloned()"));
+}
+
+#[test]
 fn native_live_host_rollback_plan_restores_existing_plugin_when_reload_fails_before_unload() {
     let existing = native_live_host_test_plugin("physics", PluginModuleKind::Runtime);
     let mut reload_state = NativePluginHotReloadState::new(
         PluginModuleKind::Runtime,
-        "runtime:physics".to_string(),
+        "physics".to_string(),
         Some(existing),
     );
 
@@ -70,7 +153,7 @@ fn native_live_host_rollback_plan_reports_when_previous_plugin_was_already_unloa
     let existing = native_live_host_test_plugin("physics", PluginModuleKind::Runtime);
     let mut reload_state = NativePluginHotReloadState::new(
         PluginModuleKind::Runtime,
-        "runtime:physics".to_string(),
+        "physics".to_string(),
         Some(existing),
     );
 
@@ -99,7 +182,7 @@ fn native_live_host_rollback_plan_reports_when_previous_plugin_was_restored() {
     let existing = native_live_host_test_plugin("physics", PluginModuleKind::Runtime);
     let mut reload_state = NativePluginHotReloadState::new(
         PluginModuleKind::Runtime,
-        "runtime:physics".to_string(),
+        "physics".to_string(),
         Some(existing),
     );
 
@@ -132,6 +215,7 @@ fn native_hot_reload_state_saves_and_restores_runtime_snapshot() {
             command_manifest: None,
             event_manifest: None,
             registration_manifest: None,
+            command_table: None,
             invoke_command: None,
             save_state: Some(hot_reload_save_state),
             restore_state: Some(hot_reload_restore_state),
@@ -140,7 +224,7 @@ fn native_hot_reload_state_saves_and_restores_runtime_snapshot() {
     );
     let mut reload_state = NativePluginHotReloadState::new(
         PluginModuleKind::Runtime,
-        "runtime:physics".to_string(),
+        "physics".to_string(),
         Some(existing),
     );
 
@@ -160,6 +244,7 @@ fn native_hot_reload_state_saves_and_restores_runtime_snapshot() {
             command_manifest: None,
             event_manifest: None,
             registration_manifest: None,
+            command_table: None,
             invoke_command: None,
             save_state: None,
             restore_state: Some(hot_reload_restore_state),
@@ -194,6 +279,7 @@ fn native_hot_reload_snapshot_save_reports_typed_status_error() {
             command_manifest: None,
             event_manifest: None,
             registration_manifest: None,
+            command_table: None,
             invoke_command: None,
             save_state: Some(hot_reload_save_state_failure),
             restore_state: Some(hot_reload_restore_state),
@@ -202,7 +288,7 @@ fn native_hot_reload_snapshot_save_reports_typed_status_error() {
     );
     let mut reload_state = NativePluginHotReloadState::new(
         PluginModuleKind::Runtime,
-        "runtime:physics".to_string(),
+        "physics".to_string(),
         Some(existing),
     );
 
@@ -235,6 +321,7 @@ fn native_hot_reload_snapshot_restore_rejects_schema_mismatch() {
             command_manifest: None,
             event_manifest: None,
             registration_manifest: None,
+            command_table: None,
             invoke_command: None,
             save_state: Some(hot_reload_save_state),
             restore_state: Some(hot_reload_restore_state),
@@ -243,7 +330,7 @@ fn native_hot_reload_snapshot_restore_rejects_schema_mismatch() {
     );
     let mut reload_state = NativePluginHotReloadState::new(
         PluginModuleKind::Runtime,
-        "runtime:physics".to_string(),
+        "physics".to_string(),
         Some(existing),
     );
     let snapshot = reload_state
@@ -262,6 +349,7 @@ fn native_hot_reload_snapshot_restore_rejects_schema_mismatch() {
             command_manifest: None,
             event_manifest: None,
             registration_manifest: None,
+            command_table: None,
             invoke_command: None,
             save_state: None,
             restore_state: Some(hot_reload_restore_state),
@@ -302,6 +390,7 @@ fn hot_reload_failure_rolls_back_to_snapshot() {
             command_manifest: None,
             event_manifest: None,
             registration_manifest: None,
+            command_table: None,
             invoke_command: None,
             save_state: Some(hot_reload_save_state),
             restore_state: Some(hot_reload_restore_state),
@@ -310,7 +399,7 @@ fn hot_reload_failure_rolls_back_to_snapshot() {
     );
     let mut reload_state = NativePluginHotReloadState::new(
         PluginModuleKind::Runtime,
-        "runtime:physics".to_string(),
+        "physics".to_string(),
         Some(existing),
     );
     let snapshot = reload_state
@@ -332,6 +421,7 @@ fn hot_reload_failure_rolls_back_to_snapshot() {
             command_manifest: None,
             event_manifest: None,
             registration_manifest: None,
+            command_table: None,
             invoke_command: None,
             save_state: None,
             restore_state: Some(hot_reload_restore_state),

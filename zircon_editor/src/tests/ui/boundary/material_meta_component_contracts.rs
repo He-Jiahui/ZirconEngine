@@ -1,6 +1,8 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::OnceLock};
 
 use toml::Value;
+
+static MATERIAL_META_DOCUMENT: OnceLock<Value> = OnceLock::new();
 
 const REQUIRED_M2_ROLE_TOKENS: &[&str] = &[
     "material_surface",
@@ -462,7 +464,7 @@ const REQUIRED_VISUAL_DENSITY_TOKEN_ALIASES: &[(&str, &str)] = &[
 fn material_theme_declares_m2_role_tokens_and_styles_material_classes() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let material_theme = load_document(&zui_fixture(&repo, "theme/editor_material.zui"));
-    let material_meta = load_document(&zui_fixture(&repo, "editor/material_meta_components.zui"));
+    let material_meta = material_meta_document();
     let tokens = material_theme
         .get("tokens")
         .and_then(Value::as_table)
@@ -480,7 +482,7 @@ fn material_theme_declares_m2_role_tokens_and_styles_material_classes() {
 
     let selectors = stylesheet_selectors(&material_theme);
     let mut missing_rules = Vec::new();
-    for class in material_classes(&material_meta) {
+    for class in material_classes(material_meta) {
         if !selectors
             .iter()
             .any(|selector| selector_has_class(selector, &class))
@@ -501,7 +503,7 @@ fn material_meta_components_emit_stable_state_metadata() {
     let mut failures = Vec::new();
 
     for (component, stable_class, required_props) in REQUIRED_STATEFUL_COMPONENTS {
-        let Some(root) = component_root_node(&document, component) else {
+        let Some(root) = component_root_node(document, component) else {
             failures.push(format!("missing component `{component}`"));
             continue;
         };
@@ -528,7 +530,7 @@ fn material_meta_components_project_input_and_popup_contracts() {
     let mut failures = Vec::new();
 
     for component in REQUIRED_INPUT_CAPABILITY_COMPONENTS {
-        let Some(root) = component_root_node(&document, component) else {
+        let Some(root) = component_root_node(document, component) else {
             failures.push(format!("missing component `{component}`"));
             continue;
         };
@@ -542,7 +544,7 @@ fn material_meta_components_project_input_and_popup_contracts() {
     }
 
     for component in REQUIRED_POPUP_ANCHOR_COMPONENTS {
-        let Some(root) = component_root_node(&document, component) else {
+        let Some(root) = component_root_node(document, component) else {
             failures.push(format!("missing component `{component}`"));
             continue;
         };
@@ -561,7 +563,7 @@ fn material_meta_components_project_input_and_popup_contracts() {
 #[test]
 fn material_meta_component_roots_forward_interaction_accessibility_and_capability_params() {
     let document = material_meta_document();
-    let components = material_components(&document);
+    let components = material_components(document);
     let mut failures = Vec::new();
 
     for (component_name, forwarded_props) in REQUIRED_ROOT_FORWARDING_COMPONENTS {
@@ -574,7 +576,7 @@ fn material_meta_component_roots_forward_interaction_accessibility_and_capabilit
             continue;
         };
         let Some(root_props) =
-            component_root_node_from_document(&document, component).and_then(node_props)
+            component_root_node_from_document(document, component).and_then(node_props)
         else {
             failures.push(format!("{component_name} root must declare props"));
             continue;
@@ -604,7 +606,7 @@ fn material_meta_components_carry_shared_style_defaults_on_root_nodes() {
     let mut failures = Vec::new();
 
     for (component_name, required_props) in REQUIRED_SHARED_STYLE_ROOTS {
-        let Some(root_props) = component_root_node(&document, component_name).and_then(node_props)
+        let Some(root_props) = component_root_node(document, component_name).and_then(node_props)
         else {
             failures.push(format!("{component_name} root must declare props"));
             continue;
@@ -624,7 +626,7 @@ fn material_meta_components_carry_shared_style_defaults_on_root_nodes() {
 #[test]
 fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let material_meta = load_document(&zui_fixture(&repo, "editor/material_meta_components.zui"));
+    let material_meta = material_meta_document();
     let activity_rail = load_document(&repo.join("assets/ui/editor/workbench_activity_rail.zui"));
     let workbench_shell = load_document(&repo.join("assets/ui/editor/host/workbench_shell.zui"));
     let inspector_controls =
@@ -700,9 +702,11 @@ fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-fn material_meta_document() -> Value {
-    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    load_document(&zui_fixture(&repo, "editor/material_meta_components.zui"))
+fn material_meta_document() -> &'static Value {
+    MATERIAL_META_DOCUMENT.get_or_init(|| {
+        let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        load_document(&zui_fixture(&repo, "editor/material_meta_components.zui"))
+    })
 }
 
 fn material_components(document: &Value) -> &toml::map::Map<String, Value> {

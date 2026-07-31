@@ -4,230 +4,216 @@ id = "res://ui/editor/project_overview.zui"
 version = 2
 display_name = "Project Overview"
 
+[imports]
+styles = ["res://ui/theme/editor_base.zui"]
+
 [root]
 node = "project_overview_root"
 
-[imports]
-styles = ["res://ui/theme/editor_material.zui"]
-
-[tokens]
-surface = "#1f1f1f"
-surface_panel = "#252525"
-surface_inset = "#191919"
-outline = "#3d3d3d"
-text_primary = "#f1f1f1"
-text_muted = "#a8a8a8"
-primary = "#6750a4"
-primary_text = "#ffffff"
-
-[[stylesheets]]
-id = "editor_material"
-
-[[stylesheets.rules]]
-selector = ".editor-shell"
-[stylesheets.rules.set.self]
-background_color = "$surface"
-
-[[stylesheets.rules]]
-selector = ".panel"
-[stylesheets.rules.set.self]
-background_color = "$surface_panel"
-border_color = "$outline"
-foreground_color = "$text_primary"
-radius = 8.0
-border_width = 1.0
-
-[[stylesheets.rules]]
-selector = ".inset"
-[stylesheets.rules.set.self]
-background_color = "$surface_inset"
-border_color = "$outline"
-foreground_color = "$text_primary"
-radius = 6.0
-border_width = 1.0
-
-[[stylesheets.rules]]
-selector = ".muted"
-[stylesheets.rules.set.self]
-foreground_color = "$text_muted"
-
-[[stylesheets.rules]]
-selector = "Button.primary"
-[stylesheets.rules.set.self]
-background_color = "$primary"
-foreground_color = "$primary_text"
-button_variant = "primary"
-radius = 5.0
-
-[[stylesheets.rules]]
-selector = "Button.secondary"
-[stylesheets.rules.set.self]
-button_variant = "secondary"
-radius = 5.0
-
-[nodes.project_overview_root]
-component = "VerticalGroup"
-control_id = "ProjectOverviewRoot"
-classes = ["editor-shell"]
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "top_space" }, { node = "content_row" }, { node = "bottom_space" }]
-
 [nodes.top_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.bottom_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.left_space]
 component = "Space"
-layout = { width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.right_space]
 component = "Space"
-layout = { width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.project_overview_root]
+component = "VerticalBox"
+control_id = "ProjectOverviewRoot"
+classes = ["editor-shell", "editor-pane"]
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "top_space" }, { node = "content_row" }, { node = "bottom_space" }]
 
 [nodes.content_row]
-component = "HorizontalGroup"
+component = "HorizontalBox"
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "left_space" }, { node = "outer_panel" }, { node = "right_space" }]
 
 [nodes.outer_panel]
-component = "VerticalGroup"
+component = "VerticalBox"
 control_id = "ProjectOverviewOuterPanel"
 classes = ["panel"]
+props = { surface_variant = "panel", radius = 4.0, border_width = 1.0 }
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "outer_panel_top_space" }, { node = "header_title_row" }, { node = "title_path_gap" }, { node = "header_path_row" }, { node = "path_details_gap" }, { node = "details_panel" }, { node = "details_catalog_gap" }, { node = "catalog_panel" }, { node = "bottom_fill" }]
+children = [{ node = "outer_top_space" }, { node = "content_inset_row" }, { node = "outer_bottom_space" }]
 
-[nodes.outer_panel_top_space]
+[nodes.outer_top_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.outer_bottom_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.content_inset_left]
+component = "Space"
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.content_inset_right]
+component = "Space"
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.content_inset_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "content_inset_left" }, { node = "content_stack" }, { node = "content_inset_right" }]
 
 [nodes.header_title_row]
-component = "HorizontalGroup"
+component = "HorizontalBox"
 control_id = "ProjectOverviewHeaderTitleRow"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
-children = [{ node = "header_title_left_space" }, { node = "header_title_text" }, { node = "header_title_right_space" }]
-
-[nodes.header_title_left_space]
-component = "Space"
-layout = { width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "header_title_text" }]
 
 [nodes.header_title_text]
 component = "Label"
 control_id = "ProjectOverviewTitleText"
-props = { text = "Directory Project", text_tone = "default", font_size = 16.0, font_weight = 700 }
+props = { text = "Project", font_weight = 600, overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.header_title_right_space]
-component = "Space"
-layout = { width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.title_path_gap]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 2.0, preferred = 2.0, max = 2.0, stretch = "Fixed" } }
-
 [nodes.header_path_row]
-component = "HorizontalGroup"
+component = "HorizontalBox"
 control_id = "ProjectOverviewHeaderPathRow"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
-children = [{ node = "header_path_left_space" }, { node = "header_path_text" }, { node = "header_path_right_space" }]
-
-[nodes.header_path_left_space]
-component = "Space"
-layout = { width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+children = [{ node = "header_path_text" }]
 
 [nodes.header_path_text]
 component = "Label"
 control_id = "ProjectOverviewPathText"
-classes = ["muted"]
-props = { text = "res://", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+props = { text = "", text_tone = "muted", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.header_path_right_space]
+[nodes.header_details_gap]
 component = "Space"
-layout = { width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.path_details_gap]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 6.0, preferred = 6.0, max = 6.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.details_panel]
-component = "Overlay"
+component = "VerticalBox"
 control_id = "ProjectOverviewDetailsPanel"
 classes = ["inset"]
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" } }
-children = [{ node = "details_default_scene_label" }, { node = "details_default_scene_value" }, { node = "details_assets_root_label" }, { node = "details_assets_root_value" }, { node = "details_library_value" }]
+props = { surface_variant = "inset", radius = 4.0, border_width = 1.0 }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fixed" } }
+children = [{ node = "details_top_space" }, { node = "details_title" }, { node = "details_default_scene_row" }, { node = "details_assets_root_row" }, { node = "details_library_row" }, { node = "details_bottom_space" }]
+
+[nodes.details_top_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+
+[nodes.details_bottom_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+
+[nodes.details_title]
+component = "Label"
+props = { text = "Project Settings", text_tone = "muted", font_weight = 600, overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
 
 [nodes.details_default_scene_label]
 component = "Label"
-classes = ["muted"]
-props = { text = "Default Scene", text_tone = "muted", font_size = 10.0 }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 5.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+props = { text = "Default Scene", text_tone = "muted", overflow = "elide" }
+layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.details_default_scene_value]
-component = "Label"
+component = "Overlay"
 control_id = "ProjectOverviewDefaultSceneValue"
-props = { text = "res://levels/default.scene", text_tone = "default", font_size = 11.0, overflow = "elide" }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 17.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.details_default_scene_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "details_default_scene_label" }, { node = "details_default_scene_value" }]
 
 [nodes.details_assets_root_label]
 component = "Label"
-classes = ["muted"]
-props = { text = "Assets Root", text_tone = "muted", font_size = 10.0 }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 52.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+props = { text = "Assets Root", text_tone = "muted", overflow = "elide" }
+layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.details_assets_root_value]
-component = "Label"
+component = "Overlay"
 control_id = "ProjectOverviewAssetsRootValue"
-props = { text = "res://assets", text_tone = "default", font_size = 11.0, overflow = "elide" }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 64.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.details_assets_root_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "details_assets_root_label" }, { node = "details_assets_root_value" }]
+
+[nodes.details_library_label]
+component = "Label"
+props = { text = "Library", text_tone = "muted", overflow = "elide" }
+layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.details_library_value]
-component = "Label"
+component = "Overlay"
 control_id = "ProjectOverviewLibraryValue"
-classes = ["muted"]
-props = { text = "Library .zircon/library rev 0", text_tone = "muted", font_size = 10.0, overflow = "elide" }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 78.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.details_library_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "details_library_label" }, { node = "details_library_value" }]
 
 [nodes.details_catalog_gap]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 6.0, preferred = 6.0, max = 6.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
 
 [nodes.catalog_panel]
-component = "Overlay"
+component = "VerticalBox"
 control_id = "ProjectOverviewCatalogPanel"
 classes = ["inset"]
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" } }
-children = [{ node = "catalog_label" }, { node = "catalog_summary_value" }, { node = "catalog_open_assets_button" }, { node = "catalog_open_browser_button" }]
+props = { surface_variant = "inset", radius = 4.0, border_width = 1.0 }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 126.0, preferred = 126.0, max = 126.0, stretch = "Fixed" } }
+children = [{ node = "catalog_top_space" }, { node = "catalog_label" }, { node = "catalog_summary_value" }, { node = "catalog_open_assets_button" }, { node = "catalog_open_browser_button" }, { node = "catalog_bottom_space" }]
+
+[nodes.catalog_top_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+
+[nodes.catalog_bottom_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
 
 [nodes.catalog_label]
 component = "Label"
-classes = ["muted"]
-props = { text = "Catalog", text_tone = "muted", font_size = 10.0 }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 56.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+props = { text = "Content", text_tone = "muted", font_weight = 600, overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
 
 [nodes.catalog_summary_value]
 component = "Label"
 control_id = "ProjectOverviewCatalogSummaryValue"
-props = { text = "0 folders / 0 assets", text_tone = "default", font_size = 12.0, font_weight = 600 }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 68.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+props = { text = "", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
 
 [nodes.catalog_open_assets_button]
 component = "Button"
 control_id = "OpenAssetsView"
 classes = ["primary"]
 props = { label = "Open Assets", dispatch_kind = "surface", action_id = "workbench.view.open.editor.assets", button_variant = "primary" }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 6.0 }, width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.catalog_open_browser_button]
 component = "Button"
 control_id = "OpenAssetBrowser"
 classes = ["secondary"]
 props = { label = "Asset Browser", dispatch_kind = "asset", button_variant = "secondary" }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 30.0 }, width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.bottom_fill]
 component = "Space"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.content_stack]
+component = "VerticalBox"
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header_title_row" }, { node = "header_path_row" }, { node = "header_details_gap" }, { node = "details_panel" }, { node = "details_catalog_gap" }, { node = "catalog_panel" }, { node = "bottom_fill" }]

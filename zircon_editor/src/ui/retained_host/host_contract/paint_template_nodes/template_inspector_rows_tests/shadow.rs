@@ -91,3 +91,30 @@ fn checked_shadow_row_paints_shell_check_asset_pixels() {
         "checked inspector checkbox should not use missing-icon pixels"
     );
 }
+
+#[test]
+fn shadow_rows_use_the_declared_nested_label_color() {
+    let mut row = inspector_node(COMPONENT_PROPERTY_SLOT_03, "Receive Shadows", "true");
+    row.label_color = crate::ui::retained_host::primitives::Color::from_rgb_u8(142, 153, 161);
+    let rect = FrameRect {
+        x: row.frame.x,
+        y: row.frame.y,
+        width: row.frame.width,
+        height: row.frame.height,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_inspector_row_commands(
+        &mut commands,
+        &row,
+        &rect,
+        &rect,
+        0,
+        1.0,
+    ));
+
+    assert!(commands.iter().any(|command| {
+        command.text.as_deref() == Some("Receive Shadows")
+            && command.foreground_color == Some([142, 153, 161, 255])
+    }));
+}

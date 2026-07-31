@@ -31,6 +31,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
+  - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests.rs
@@ -232,6 +233,8 @@ This keeps the graph-execution-local `require_texture_view(...)`, `require_buffe
 
 `RgResourceResolver` owns the pass-scoped declaration/access check that sits between compiled graph metadata and physical WGPU lookup. `RenderPassExecutionContext::require_texture_view_by_name(...)` first asks the resolver to prove that the current compiled pass declared the requested resource name and access kind, then resolves the physical view through `RenderGraphExecutionResources` by graph declaration instead of trusting a copied context row. The resolver also carries physical texture/buffer lookup helpers for the remaining executor migrations.
 
+`CompiledRenderGraph` builds typed-resource and name declaration indices, a pass-ID index, and a `(pass, resource, access)` index once during compilation. Resolver checks therefore select the current pass, declaration, and declared access in expected O(1) time instead of repeatedly scanning the pass table and each pass resource list. Name-based lifetime lookup also resolves through the declaration and typed lifetime indices. The vectors remain the canonical ordered storage used by dumps and public iteration; the private maps only index those vectors and preserve the first declared access when a malformed input repeats the same key. `rg_resource_resolver_materialization_indices_follow_topologically_reordered_passes` covers the important case where stable pass IDs do not match topologically compiled vector positions.
+
 The 2026-07-07 Hybrid GI graph scene-depth handoff made the public GPU context buffer lookup explicit.
 `RenderPassGpuExecutionContext::require_buffer(...)` now mirrors texture-view lookup by checking the
 compiled pass declaration through `RgResourceResolver` before returning a WGPU buffer. The first
@@ -286,7 +289,7 @@ First-party plugin external buffers now have a separate graph-lifetime-aware bin
 
 ## Transient Slot Materialization
 
-`materialize_transient_resources(...)` now delegates transient slot lowering to `graph_execution/transient_materialization.rs` and consumes `CompiledRenderGraph::transient_allocation_plan()` instead of allocating every dense logical resource independently. Texture and buffer allocations are grouped by descriptor bucket plus bucket-local graph slot:
+`materialize_transient_resources_with_pool(...)` delegates transient slot lowering to `graph_execution/transient_materialization.rs` and consumes `CompiledRenderGraph::transient_allocation_plan()` instead of allocating every dense logical resource independently. The pool argument is mandatory: the former test-only unpooled entry point has been removed, and the internal materialization chain no longer accepts `Option<&mut TransientResourcePool>`. Texture and buffer allocations are grouped by descriptor bucket plus bucket-local graph slot:
 
 - Dense texture slots create one WGPU texture backing after the graph planner has bucketed them by dimensions, mip levels, array depth, sample count, format, dimension, residency, and usage. Execution still checks those fields defensively before sharing a backing.
 - Dense buffer slots create one WGPU buffer backing after the graph planner has bucketed them by size and usage.
@@ -299,6 +302,8 @@ The RenderGraph allocation plan is therefore the neutral descriptor-bucketed ali
 ## Cross-Frame Pool
 
 `SceneRendererCore` owns a `TransientResourcePool` for WGPU physical resources. A render starts the pool frame before graph materialization, materializes logical graph resources through the pool, submits the command encoder, then releases all owned graph backings into the pool and ends the pool frame. Pool keys include the WGPU-relevant descriptor shape and usage bits, so a texture or buffer is reused only when the next frame requests a compatible backing. Stale entries are evicted after `TRANSIENT_RESOURCE_POOL_KEEP_FRAMES` pool frames.
+
+This is also the only materialization contract used by WGPU-facing tests. Each fixture creates and begins an explicit pool before calling `materialize_transient_resources_with_pool(...)`; a pool miss may create a new WGPU object, but no materialization caller can bypass pool accounting or descriptor-key policy. Runtime15 guard `runtime_15_render_graph_materialization_requires_transient_pool` rejects restoration of either the unpooled execution-resource method or optional pool plumbing.
 
 The pool is now byte-budgeted in addition to frame-age bounded. Returned textures store `TextureDesc::checked_storage_size_bytes()` as their estimated retained size, returned buffers store `BufferDesc.size_bytes`, and frame end first removes stale entries, then evicts the least-recently-used retained entries until the texture and buffer pools fit their independent budgets. The default internal budgets are `TRANSIENT_RESOURCE_POOL_TEXTURE_BUDGET_BYTES` and `TRANSIENT_RESOURCE_POOL_BUFFER_BUDGET_BYTES`; tests can inject smaller budgets to exercise the eviction path without allocating large GPU resources.
 

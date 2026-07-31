@@ -4,18 +4,19 @@ use crate::core::editor_event::{
     EditorAssetViewMode, InspectorFieldChange, LayoutCommand, MainPageId, SelectionHostEvent,
     ViewHost, ViewInstanceId,
 };
+use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, ProjectionMode, TransformHandleKind, TransformSpace, ViewOrientation,
 };
 use crate::ui::binding::{
     AnimationCommand, AssetCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload,
     EditorUiEventKind, SelectionCommand, ViewportCommand, WelcomeCommand,
 };
 use crate::ui::binding_dispatch::{
-    apply_inspector_binding, apply_selection_binding, apply_viewport_binding,
-    dispatch_animation_binding, dispatch_asset_binding, dispatch_docking_binding,
-    dispatch_selection_binding, dispatch_welcome_binding, AnimationHostEvent, AssetHostEvent,
-    WelcomeHostEvent,
+    AnimationHostEvent, AssetHostEvent, WelcomeHostEvent, apply_inspector_binding,
+    apply_selection_binding, apply_viewport_binding, dispatch_animation_binding,
+    dispatch_asset_binding, dispatch_docking_binding, dispatch_selection_binding,
+    dispatch_welcome_binding,
 };
 use serde_json::json;
 use zircon_runtime::core::framework::animation::AnimationTrackPath;
@@ -142,9 +143,11 @@ fn inspector_binding_rejects_dynamic_plugin_component_field_when_schema_is_unloa
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(error
-        .to_string()
-        .contains("unsupported inspector field weather.Component.CloudLayer.coverage"));
+    assert!(
+        error
+            .to_string()
+            .contains("unsupported inspector field weather.Component.CloudLayer.coverage")
+    );
 }
 
 #[test]
@@ -268,7 +271,9 @@ fn viewport_binding_applies_toolbar_commands_to_scene_viewport_state() {
     let mut state = support::test_state();
 
     let commands = [
-        ViewportCommand::SetTool(SceneViewportTool::Rotate),
+        ViewportCommand::ActivateSceneMode(SceneModeActivation::Transform(
+            TransformHandleKind::Rotate,
+        )),
         ViewportCommand::SetTransformSpace(TransformSpace::Global),
         ViewportCommand::SetProjectionMode(ProjectionMode::Orthographic),
         ViewportCommand::AlignView(ViewOrientation::NegZ),
@@ -293,7 +298,10 @@ fn viewport_binding_applies_toolbar_commands_to_scene_viewport_state() {
     }
 
     let settings = state.scene_viewport_settings();
-    assert_eq!(settings.tool, SceneViewportTool::Rotate);
+    assert_eq!(
+        settings.mode,
+        SceneModeActivation::Transform(TransformHandleKind::Rotate)
+    );
     assert_eq!(settings.transform_space, TransformSpace::Global);
     assert_eq!(settings.projection_mode, ProjectionMode::Orthographic);
     assert_eq!(settings.view_orientation, ViewOrientation::NegZ);
@@ -357,7 +365,9 @@ fn gizmos_toggle_keeps_transform_handles_for_selected_camera() {
         .unwrap();
 
     for command in [
-        ViewportCommand::SetTool(SceneViewportTool::Move),
+        ViewportCommand::ActivateSceneMode(SceneModeActivation::Transform(
+            TransformHandleKind::Move,
+        )),
         ViewportCommand::SetGizmosEnabled(false),
     ] {
         let binding = EditorUiBinding::new(
@@ -386,7 +396,9 @@ fn drag_tool_keeps_renderable_highlight_without_handles() {
         "SceneView",
         "ViewportToolbar",
         EditorUiEventKind::Click,
-        EditorUiBindingPayload::viewport_command(ViewportCommand::SetTool(SceneViewportTool::Drag)),
+        EditorUiBindingPayload::viewport_command(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Select,
+        )),
     );
     let _ = apply_viewport_binding(&mut state, &binding).unwrap();
 
@@ -742,9 +754,9 @@ fn welcome_startup_chooser_bindings_dispatch_into_typed_host_events() {
 
 mod support {
     use crate::ui::workbench::state::EditorState;
-    use zircon_runtime::scene::components::NodeKind;
     use zircon_runtime::scene::DefaultLevelManager;
     use zircon_runtime::scene::NodeId;
+    use zircon_runtime::scene::components::NodeKind;
     use zircon_runtime_interface::math::UVec2;
 
     pub fn test_state() -> EditorState {

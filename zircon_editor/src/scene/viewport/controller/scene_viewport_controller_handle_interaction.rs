@@ -4,7 +4,7 @@ use zircon_runtime_interface::math::Vec2;
 
 use crate::scene::viewport::GizmoAxis;
 
-use super::{viewport_drag_session::ViewportDragSession, SceneViewportController};
+use super::{SceneViewportController, viewport_drag_session::ViewportDragSession};
 
 impl SceneViewportController {
     pub(in crate::scene::viewport::controller) fn projected_selected_node(
@@ -23,8 +23,9 @@ impl SceneViewportController {
         camera: &ViewportCameraSnapshot,
     ) -> Vec<HandleOverlayExtract> {
         let selected = self.projected_selected_node(scene);
+        let handle_kind = self.active_transform_handle();
         self.handles
-            .build_overlays(scene, selected, &self.state.settings, camera)
+            .build_overlays(scene, selected, &self.state.settings, handle_kind, camera)
     }
 
     pub(in crate::scene::viewport::controller) fn begin_handle_drag(
@@ -35,10 +36,18 @@ impl SceneViewportController {
     ) -> bool {
         let camera = self.current_camera(scene);
         let selected = self.projected_selected_node(scene);
-        let Some(session) =
-            self.handles
-                .begin_drag(scene, selected, &self.state.settings, &camera, cursor, axis)
-        else {
+        let snap_steps = self.snap_steps();
+        let handle_kind = self.active_transform_handle();
+        let Some(session) = self.handles.begin_drag(
+            scene,
+            selected,
+            &self.state.settings,
+            handle_kind,
+            snap_steps,
+            &camera,
+            cursor,
+            axis,
+        ) else {
             return false;
         };
 

@@ -81,6 +81,13 @@ pub(crate) fn build_host_scene_data(
             metrics.top_bar_height_px + 1.0 + metrics.host_bar_height_px,
         )
     };
+    let overflow_hidden_tab_indices =
+        page_overflow_hidden_tab_indices(&page_template_nodes, &host_surface_data.host_tabs);
+    let overflow_widest_title_width_px = overflow_hidden_tab_indices
+        .iter()
+        .filter_map(|page_index| host_surface_data.host_tabs.row_data(*page_index))
+        .map(|tab| menu_popup_text_width(tab.title.as_str()))
+        .fold(0.0_f32, f32::max);
     let page_chrome = HostPageChromeData {
         top_bar_height_px: metrics.top_bar_height_px,
         host_bar_height_px: metrics.host_bar_height_px,
@@ -90,10 +97,8 @@ pub(crate) fn build_host_scene_data(
         tabs: host_surface_data.host_tabs.clone(),
         project_path: host_shell.project_path.clone(),
         overflow_frame: page_overflow_frame(&page_template_nodes),
-        overflow_hidden_tab_indices: page_overflow_hidden_tab_indices(
-            &page_template_nodes,
-            &host_surface_data.host_tabs,
-        ),
+        overflow_hidden_tab_indices,
+        overflow_widest_title_width_px,
         template_nodes: page_template_nodes,
     };
     let status_bar = HostStatusBarData {

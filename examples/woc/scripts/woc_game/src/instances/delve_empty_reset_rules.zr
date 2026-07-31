@@ -1,0 +1,39 @@
+// Pure projection of updateDelveRuns' per-second empty-instance decision.
+var content = %import("instances/delve_empty_reset_content");
+
+pub shouldCheck(tickCount: int): bool {
+    return tickCount % content.checkTickInterval(true) == 0;
+}
+
+pub isOccupied(
+    entityX: float,
+    entityZ: float,
+    originX: float,
+    originZ: float,
+    occupancyRadius: float
+): bool {
+    var math = %import("zr.zircon.math");
+    return math.abs(entityX - originX) < content.occupancyXRadius(true) &&
+        math.abs(entityZ - originZ) < occupancyRadius;
+}
+
+pub nextEmptyFor(emptyFor: int, occupied: bool): int {
+    if (emptyFor < 0) { throw "woc Delve empty timer is invalid"; }
+    return occupied ? 0 : emptyFor + 1;
+}
+
+pub shouldRelease(emptyFor: int): bool {
+    return emptyFor >= content.emptyTimeoutSeconds(true);
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || shouldCheck(19) || !shouldCheck(20) ||
+        !isOccupied(119.999, 50.0, 0.0, 0.0, 50.001) ||
+        isOccupied(120.0, 0.0, 0.0, 0.0, 50.0) ||
+        isOccupied(0.0, 50.0, 0.0, 0.0, 50.0) ||
+        nextEmptyFor(12, true) != 0 || nextEmptyFor(299, false) != 300 ||
+        shouldRelease(299) || !shouldRelease(300)) {
+        return -1;
+    }
+    return 1;
+}

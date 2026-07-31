@@ -1,0 +1,19 @@
+version = 1
+active_profile = "legacy.workbench"
+
+[design_tokens]
+id = "legacy.workbench"
+
+[design_tokens.typography]
+ui_family = "system-ui"
+ui_strong_family = "system-ui"
+code_family = "monospace"
+utility_tab_text_role = "code"
+body_size = 10.0
+caption_size = 8.5
+title_size = 14.0
+body_weight = 400
+strong_weight = 600
+code_weight = 400
+line_height = 1.2
+font_smoothing = "grayscale"

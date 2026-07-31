@@ -1,0 +1,2034 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "entries": [
+    {
+      "facet": "IWorldEntityRoster",
+      "name": "cfg",
+      "kind": "data",
+      "signature": "cfg: { seed: number; playerClass: PlayerClass; world?: WorldContent };",
+      "source_owner": "src/world_api/entity_roster.ts:6",
+      "woc_owner": "scripts/woc_game/src/world_api/entity_roster.zr"
+    },
+    {
+      "facet": "IWorldEntityRoster",
+      "name": "entities",
+      "kind": "data",
+      "signature": "entities: Map<number, Entity>;",
+      "source_owner": "src/world_api/entity_roster.ts:7",
+      "woc_owner": "scripts/woc_game/src/world_api/entity_roster.zr"
+    },
+    {
+      "facet": "IWorldEntityRoster",
+      "name": "playerId",
+      "kind": "data",
+      "signature": "playerId: number;",
+      "source_owner": "src/world_api/entity_roster.ts:8",
+      "woc_owner": "scripts/woc_game/src/world_api/entity_roster.zr"
+    },
+    {
+      "facet": "IWorldEntityRoster",
+      "name": "player",
+      "kind": "data",
+      "signature": "player: Entity;",
+      "source_owner": "src/world_api/entity_roster.ts:9",
+      "woc_owner": "scripts/woc_game/src/world_api/entity_roster.zr"
+    },
+    {
+      "facet": "IWorldEntityRoster",
+      "name": "moveInput",
+      "kind": "data",
+      "signature": "moveInput: MoveInput;",
+      "source_owner": "src/world_api/entity_roster.ts:10",
+      "woc_owner": "scripts/woc_game/src/world_api/entity_roster.zr"
+    },
+    {
+      "facet": "IWorldEntityRoster",
+      "name": "realm",
+      "kind": "data",
+      "signature": "realm: string;",
+      "source_owner": "src/world_api/entity_roster.ts:12",
+      "woc_owner": "scripts/woc_game/src/world_api/entity_roster.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "known",
+      "kind": "data",
+      "signature": "known: ResolvedAbility[];",
+      "source_owner": "src/world_api/combat.ts:4",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "castAbility",
+      "kind": "method",
+      "signature": "castAbility(abilityId: string): void;",
+      "source_owner": "src/world_api/combat.ts:5",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "castAbilityBySlot",
+      "kind": "method",
+      "signature": "castAbilityBySlot(slot: number): void;",
+      "source_owner": "src/world_api/combat.ts:6",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "castAbilityAt",
+      "kind": "method",
+      "signature": "castAbilityAt(abilityId: string, aim: { x: number; z: number }): void;",
+      "source_owner": "src/world_api/combat.ts:11",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "cancelAura",
+      "kind": "method",
+      "signature": "cancelAura(auraId: string): void;",
+      "source_owner": "src/world_api/combat.ts:14",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "startAutoAttack",
+      "kind": "method",
+      "signature": "startAutoAttack(): void;",
+      "source_owner": "src/world_api/combat.ts:15",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "stopAutoAttack",
+      "kind": "method",
+      "signature": "stopAutoAttack(): void;",
+      "source_owner": "src/world_api/combat.ts:16",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "releaseSpirit",
+      "kind": "method",
+      "signature": "releaseSpirit(): void;",
+      "source_owner": "src/world_api/combat.ts:20",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "resurrectAtCorpse",
+      "kind": "method",
+      "signature": "resurrectAtCorpse(): void;",
+      "source_owner": "src/world_api/combat.ts:21",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldCombat",
+      "name": "resurrectAtSpiritHealer",
+      "kind": "method",
+      "signature": "resurrectAtSpiritHealer(): void;",
+      "source_owner": "src/world_api/combat.ts:22",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr"
+    },
+    {
+      "facet": "IWorldTargeting",
+      "name": "targetEntity",
+      "kind": "method",
+      "signature": "targetEntity(id: number | null): void;",
+      "source_owner": "src/world_api/targeting.ts:2",
+      "woc_owner": "scripts/woc_game/src/world_api/targeting.zr"
+    },
+    {
+      "facet": "IWorldTargeting",
+      "name": "tabTarget",
+      "kind": "method",
+      "signature": "tabTarget(): void;",
+      "source_owner": "src/world_api/targeting.ts:3",
+      "woc_owner": "scripts/woc_game/src/world_api/targeting.zr"
+    },
+    {
+      "facet": "IWorldTargeting",
+      "name": "targetNearestFriendly",
+      "kind": "method",
+      "signature": "targetNearestFriendly(): void;",
+      "source_owner": "src/world_api/targeting.ts:4",
+      "woc_owner": "scripts/woc_game/src/world_api/targeting.zr"
+    },
+    {
+      "facet": "IWorldTargeting",
+      "name": "friendlyTabTarget",
+      "kind": "method",
+      "signature": "friendlyTabTarget(): void;",
+      "source_owner": "src/world_api/targeting.ts:5",
+      "woc_owner": "scripts/woc_game/src/world_api/targeting.zr"
+    },
+    {
+      "facet": "IWorldInteraction",
+      "name": "interact",
+      "kind": "method",
+      "signature": "interact(): void;",
+      "source_owner": "src/world_api/interaction.ts:2",
+      "woc_owner": "scripts/woc_game/src/world_api/interaction.zr"
+    },
+    {
+      "facet": "IWorldInteraction",
+      "name": "lootCorpse",
+      "kind": "method",
+      "signature": "lootCorpse(id: number): void;",
+      "source_owner": "src/world_api/interaction.ts:3",
+      "woc_owner": "scripts/woc_game/src/world_api/interaction.zr"
+    },
+    {
+      "facet": "IWorldInteraction",
+      "name": "autoLoot",
+      "kind": "method",
+      "signature": "autoLoot(id: number): void;",
+      "source_owner": "src/world_api/interaction.ts:4",
+      "woc_owner": "scripts/woc_game/src/world_api/interaction.zr"
+    },
+    {
+      "facet": "IWorldInteraction",
+      "name": "harvestCorpse",
+      "kind": "method",
+      "signature": "harvestCorpse(id: number, components?: string[]): void;",
+      "source_owner": "src/world_api/interaction.ts:8",
+      "woc_owner": "scripts/woc_game/src/world_api/interaction.zr"
+    },
+    {
+      "facet": "IWorldInteraction",
+      "name": "pickUpObject",
+      "kind": "method",
+      "signature": "pickUpObject(id: number): void;",
+      "source_owner": "src/world_api/interaction.ts:9",
+      "woc_owner": "scripts/woc_game/src/world_api/interaction.zr"
+    },
+    {
+      "facet": "IWorldInteraction",
+      "name": "townFocus",
+      "kind": "data",
+      "signature": "townFocus: Record<string, number>;",
+      "source_owner": "src/world_api/interaction.ts:12",
+      "woc_owner": "scripts/woc_game/src/world_api/interaction.zr"
+    },
+    {
+      "facet": "IWorldInteraction",
+      "name": "setTownFocus",
+      "kind": "method",
+      "signature": "setTownFocus(allocation: Record<string, number>): void;",
+      "source_owner": "src/world_api/interaction.ts:16",
+      "woc_owner": "scripts/woc_game/src/world_api/interaction.zr"
+    },
+    {
+      "facet": "IWorldLoot",
+      "name": "submitLootRoll",
+      "kind": "method",
+      "signature": "submitLootRoll(rollId: number, choice: LootRollChoice): void;",
+      "source_owner": "src/world_api/loot.ts:4",
+      "woc_owner": "scripts/woc_game/src/world_api/loot.zr"
+    },
+    {
+      "facet": "IWorldLoot",
+      "name": "activeLootRolls",
+      "kind": "method",
+      "signature": "activeLootRolls(): LootRollPrompt[];",
+      "source_owner": "src/world_api/loot.ts:7",
+      "woc_owner": "scripts/woc_game/src/world_api/loot.zr"
+    },
+    {
+      "facet": "IWorldLoot",
+      "name": "lootRollGroupStatus",
+      "kind": "method",
+      "signature": "lootRollGroupStatus(): LootRollGroupStatus[];",
+      "source_owner": "src/world_api/loot.ts:12",
+      "woc_owner": "scripts/woc_game/src/world_api/loot.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "inventory",
+      "kind": "data",
+      "signature": "inventory: InvSlot[];",
+      "source_owner": "src/world_api/inventory.ts:4",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "bags",
+      "kind": "data",
+      "signature": "bags: (string | null)[];",
+      "source_owner": "src/world_api/inventory.ts:6",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "bagCapacity",
+      "kind": "data",
+      "signature": "bagCapacity: number;",
+      "source_owner": "src/world_api/inventory.ts:9",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "vendorBuyback",
+      "kind": "data",
+      "signature": "vendorBuyback: InvSlot[];",
+      "source_owner": "src/world_api/inventory.ts:10",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "equipment",
+      "kind": "data",
+      "signature": "equipment: Partial<Record<EquipSlot, string>>;",
+      "source_owner": "src/world_api/inventory.ts:11",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "copper",
+      "kind": "data",
+      "signature": "copper: number;",
+      "source_owner": "src/world_api/inventory.ts:12",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "equipItem",
+      "kind": "method",
+      "signature": "equipItem(itemId: string): void;",
+      "source_owner": "src/world_api/inventory.ts:13",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "moveInventoryItem",
+      "kind": "method",
+      "signature": "moveInventoryItem(from: number, to: number): void;",
+      "source_owner": "src/world_api/inventory.ts:17",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "equipItemToSlot",
+      "kind": "method",
+      "signature": "equipItemToSlot(itemId: string, slot: EquipSlot): void;",
+      "source_owner": "src/world_api/inventory.ts:22",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "unequipItem",
+      "kind": "method",
+      "signature": "unequipItem(slot: EquipSlot): void;",
+      "source_owner": "src/world_api/inventory.ts:23",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "equipBag",
+      "kind": "method",
+      "signature": "equipBag(itemId: string, socket?: number): void;",
+      "source_owner": "src/world_api/inventory.ts:25",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "unequipBag",
+      "kind": "method",
+      "signature": "unequipBag(socket: number): void;",
+      "source_owner": "src/world_api/inventory.ts:27",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "useItem",
+      "kind": "method",
+      "signature": "useItem(itemId: string): void;",
+      "source_owner": "src/world_api/inventory.ts:28",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "discardItem",
+      "kind": "method",
+      "signature": "discardItem(itemId: string, count?: number): void;",
+      "source_owner": "src/world_api/inventory.ts:29",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "buyItem",
+      "kind": "method",
+      "signature": "buyItem(npcId: number, itemId: string): void;",
+      "source_owner": "src/world_api/inventory.ts:30",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "sellItem",
+      "kind": "method",
+      "signature": "sellItem(itemId: string, count?: number): void;",
+      "source_owner": "src/world_api/inventory.ts:31",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "sellAllJunk",
+      "kind": "method",
+      "signature": "sellAllJunk(): void;",
+      "source_owner": "src/world_api/inventory.ts:34",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldInventory",
+      "name": "buyBackItem",
+      "kind": "method",
+      "signature": "buyBackItem(itemId: string): void;",
+      "source_owner": "src/world_api/inventory.ts:35",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr"
+    },
+    {
+      "facet": "IWorldCosmetics",
+      "name": "accountCosmetics",
+      "kind": "data",
+      "signature": "accountCosmetics: AccountCosmetics;",
+      "source_owner": "src/world_api/cosmetics.ts:14",
+      "woc_owner": "scripts/woc_game/src/world_api/cosmetics.zr"
+    },
+    {
+      "facet": "IWorldCosmetics",
+      "name": "changeSkin",
+      "kind": "method",
+      "signature": "changeSkin(skin: number, catalog?: 'class' | 'mech'): void;",
+      "source_owner": "src/world_api/cosmetics.ts:15",
+      "woc_owner": "scripts/woc_game/src/world_api/cosmetics.zr"
+    },
+    {
+      "facet": "IWorldCosmetics",
+      "name": "claimEventSkin",
+      "kind": "method",
+      "signature": "claimEventSkin(skin: number): void;",
+      "source_owner": "src/world_api/cosmetics.ts:19",
+      "woc_owner": "scripts/woc_game/src/world_api/cosmetics.zr"
+    },
+    {
+      "facet": "IWorldCosmetics",
+      "name": "unequipMechChroma",
+      "kind": "method",
+      "signature": "unequipMechChroma(chromaId: string): void;",
+      "source_owner": "src/world_api/cosmetics.ts:20",
+      "woc_owner": "scripts/woc_game/src/world_api/cosmetics.zr"
+    },
+    {
+      "facet": "IWorldCosmetics",
+      "name": "changeWeaponSkin",
+      "kind": "method",
+      "signature": "changeWeaponSkin(skinId: string | null, weaponType?: WeaponSkinType): void;",
+      "source_owner": "src/world_api/cosmetics.ts:24",
+      "woc_owner": "scripts/woc_game/src/world_api/cosmetics.zr"
+    },
+    {
+      "facet": "IWorldCosmetics",
+      "name": "toggleWeaponStow",
+      "kind": "method",
+      "signature": "toggleWeaponStow(): void;",
+      "source_owner": "src/world_api/cosmetics.ts:27",
+      "woc_owner": "scripts/woc_game/src/world_api/cosmetics.zr"
+    },
+    {
+      "facet": "IWorldQuests",
+      "name": "questLog",
+      "kind": "data",
+      "signature": "questLog: Map<string, QuestProgress>;",
+      "source_owner": "src/world_api/quests.ts:4",
+      "woc_owner": "scripts/woc_game/src/world_api/quests.zr"
+    },
+    {
+      "facet": "IWorldQuests",
+      "name": "questsDone",
+      "kind": "data",
+      "signature": "questsDone: Set<string>;",
+      "source_owner": "src/world_api/quests.ts:5",
+      "woc_owner": "scripts/woc_game/src/world_api/quests.zr"
+    },
+    {
+      "facet": "IWorldQuests",
+      "name": "questState",
+      "kind": "method",
+      "signature": "questState(questId: string): QuestState;",
+      "source_owner": "src/world_api/quests.ts:6",
+      "woc_owner": "scripts/woc_game/src/world_api/quests.zr"
+    },
+    {
+      "facet": "IWorldQuests",
+      "name": "acceptQuest",
+      "kind": "method",
+      "signature": "acceptQuest(questId: string): void;",
+      "source_owner": "src/world_api/quests.ts:7",
+      "woc_owner": "scripts/woc_game/src/world_api/quests.zr"
+    },
+    {
+      "facet": "IWorldQuests",
+      "name": "turnInQuest",
+      "kind": "method",
+      "signature": "turnInQuest(questId: string): void;",
+      "source_owner": "src/world_api/quests.ts:8",
+      "woc_owner": "scripts/woc_game/src/world_api/quests.zr"
+    },
+    {
+      "facet": "IWorldQuests",
+      "name": "abandonQuest",
+      "kind": "method",
+      "signature": "abandonQuest(questId: string): void;",
+      "source_owner": "src/world_api/quests.ts:9",
+      "woc_owner": "scripts/woc_game/src/world_api/quests.zr"
+    },
+    {
+      "facet": "IWorldQuests",
+      "name": "acceptLinkedQuest",
+      "kind": "method",
+      "signature": "acceptLinkedQuest(questId: string, fromPid: number): void;",
+      "source_owner": "src/world_api/quests.ts:10",
+      "woc_owner": "scripts/woc_game/src/world_api/quests.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "xp",
+      "kind": "data",
+      "signature": "xp: number;",
+      "source_owner": "src/world_api/progression_xp.ts:52",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "lifetimeXp",
+      "kind": "data",
+      "signature": "lifetimeXp: number;",
+      "source_owner": "src/world_api/progression_xp.ts:55",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "prestigeRank",
+      "kind": "data",
+      "signature": "prestigeRank: number;",
+      "source_owner": "src/world_api/progression_xp.ts:56",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "unlockedMilestones",
+      "kind": "data",
+      "signature": "unlockedMilestones: string[];",
+      "source_owner": "src/world_api/progression_xp.ts:57",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "restedXp",
+      "kind": "data",
+      "signature": "restedXp: number;",
+      "source_owner": "src/world_api/progression_xp.ts:59",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "craftSkills",
+      "kind": "data",
+      "signature": "craftSkills: Record<string, number>;",
+      "source_owner": "src/world_api/progression_xp.ts:64",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "gatheringProficiency",
+      "kind": "data",
+      "signature": "gatheringProficiency: Record<string, number>;",
+      "source_owner": "src/world_api/progression_xp.ts:69",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "leaderboard",
+      "kind": "method",
+      "signature": "leaderboard(page?: number, pageSize?: number): Promise<LeaderboardPage>;",
+      "source_owner": "src/world_api/progression_xp.ts:73",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "guildLeaderboard",
+      "kind": "method",
+      "signature": "guildLeaderboard(page?: number, pageSize?: number): Promise<GuildLeaderboardPage>;",
+      "source_owner": "src/world_api/progression_xp.ts:77",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "devLeaderboard",
+      "kind": "method",
+      "signature": "devLeaderboard(page?: number, pageSize?: number): Promise<DevLeaderboardPage>;",
+      "source_owner": "src/world_api/progression_xp.ts:81",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldProgressionXp",
+      "name": "prestige",
+      "kind": "method",
+      "signature": "prestige(): void;",
+      "source_owner": "src/world_api/progression_xp.ts:82",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "talents",
+      "kind": "data",
+      "signature": "talents: TalentAllocation;",
+      "source_owner": "src/world_api/talents.ts:6",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "talentSpec",
+      "kind": "data",
+      "signature": "talentSpec: string | null;",
+      "source_owner": "src/world_api/talents.ts:7",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "talentRole",
+      "kind": "data",
+      "signature": "talentRole: Role | null;",
+      "source_owner": "src/world_api/talents.ts:8",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "loadouts",
+      "kind": "data",
+      "signature": "loadouts: SavedLoadout[];",
+      "source_owner": "src/world_api/talents.ts:9",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "activeLoadout",
+      "kind": "data",
+      "signature": "activeLoadout: number;",
+      "source_owner": "src/world_api/talents.ts:10",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "talentPoints",
+      "kind": "method",
+      "signature": "talentPoints(): { total: number; spent: number };",
+      "source_owner": "src/world_api/talents.ts:11",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "applyTalents",
+      "kind": "method",
+      "signature": "applyTalents(alloc: TalentAllocation): void;",
+      "source_owner": "src/world_api/talents.ts:12",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "respec",
+      "kind": "method",
+      "signature": "respec(): void;",
+      "source_owner": "src/world_api/talents.ts:13",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "setSpec",
+      "kind": "method",
+      "signature": "setSpec(specId: string | null): void;",
+      "source_owner": "src/world_api/talents.ts:14",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "saveLoadout",
+      "kind": "method",
+      "signature": "saveLoadout(name: string, bar: (string | null)[], alloc?: TalentAllocation): void;",
+      "source_owner": "src/world_api/talents.ts:15",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "switchLoadout",
+      "kind": "method",
+      "signature": "switchLoadout(index: number): void;",
+      "source_owner": "src/world_api/talents.ts:16",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldTalents",
+      "name": "deleteLoadout",
+      "kind": "method",
+      "signature": "deleteLoadout(index: number): void;",
+      "source_owner": "src/world_api/talents.ts:17",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr"
+    },
+    {
+      "facet": "IWorldPet",
+      "name": "abandonPet",
+      "kind": "method",
+      "signature": "abandonPet(): void;",
+      "source_owner": "src/world_api/pet.ts:4",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr"
+    },
+    {
+      "facet": "IWorldPet",
+      "name": "renamePet",
+      "kind": "method",
+      "signature": "renamePet(name: string): void;",
+      "source_owner": "src/world_api/pet.ts:5",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr"
+    },
+    {
+      "facet": "IWorldPet",
+      "name": "revivePet",
+      "kind": "method",
+      "signature": "revivePet(): void;",
+      "source_owner": "src/world_api/pet.ts:6",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr"
+    },
+    {
+      "facet": "IWorldPet",
+      "name": "petAttack",
+      "kind": "method",
+      "signature": "petAttack(): void;",
+      "source_owner": "src/world_api/pet.ts:7",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr"
+    },
+    {
+      "facet": "IWorldPet",
+      "name": "petTaunt",
+      "kind": "method",
+      "signature": "petTaunt(): void;",
+      "source_owner": "src/world_api/pet.ts:8",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr"
+    },
+    {
+      "facet": "IWorldPet",
+      "name": "setPetAutoTaunt",
+      "kind": "method",
+      "signature": "setPetAutoTaunt(enabled: boolean): void;",
+      "source_owner": "src/world_api/pet.ts:9",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr"
+    },
+    {
+      "facet": "IWorldPet",
+      "name": "feedPet",
+      "kind": "method",
+      "signature": "feedPet(itemId: string): void;",
+      "source_owner": "src/world_api/pet.ts:10",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr"
+    },
+    {
+      "facet": "IWorldPet",
+      "name": "healPet",
+      "kind": "method",
+      "signature": "healPet(): void;",
+      "source_owner": "src/world_api/pet.ts:11",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr"
+    },
+    {
+      "facet": "IWorldPet",
+      "name": "setPetMode",
+      "kind": "method",
+      "signature": "setPetMode(mode: PetMode): void;",
+      "source_owner": "src/world_api/pet.ts:12",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "partyInfo",
+      "kind": "data",
+      "signature": "partyInfo: PartyInfo | null;",
+      "source_owner": "src/world_api/party.ts:49",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "partyInvite",
+      "kind": "method",
+      "signature": "partyInvite(targetPid: number): void;",
+      "source_owner": "src/world_api/party.ts:50",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "partyAccept",
+      "kind": "method",
+      "signature": "partyAccept(): void;",
+      "source_owner": "src/world_api/party.ts:51",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "readyCheckRespond",
+      "kind": "method",
+      "signature": "readyCheckRespond(ready: boolean): void;",
+      "source_owner": "src/world_api/party.ts:53",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "partyDecline",
+      "kind": "method",
+      "signature": "partyDecline(): void;",
+      "source_owner": "src/world_api/party.ts:54",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "partyLeave",
+      "kind": "method",
+      "signature": "partyLeave(): void;",
+      "source_owner": "src/world_api/party.ts:55",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "partyKick",
+      "kind": "method",
+      "signature": "partyKick(targetPid: number): void;",
+      "source_owner": "src/world_api/party.ts:56",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "partyPromote",
+      "kind": "method",
+      "signature": "partyPromote(targetPid: number): void;",
+      "source_owner": "src/world_api/party.ts:58",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "convertPartyToRaid",
+      "kind": "method",
+      "signature": "convertPartyToRaid(): void;",
+      "source_owner": "src/world_api/party.ts:59",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "convertRaidToParty",
+      "kind": "method",
+      "signature": "convertRaidToParty(): void;",
+      "source_owner": "src/world_api/party.ts:60",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "moveRaidMember",
+      "kind": "method",
+      "signature": "moveRaidMember(targetPid: number, group: 1 | 2): void;",
+      "source_owner": "src/world_api/party.ts:61",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "setPartyLootMaster",
+      "kind": "method",
+      "signature": "setPartyLootMaster(enabled: boolean, looter: number, threshold: MasterLootThreshold): void;",
+      "source_owner": "src/world_api/party.ts:63",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "assignMasterLoot",
+      "kind": "method",
+      "signature": "assignMasterLoot(rollId: number, targetPids: number[]): void;",
+      "source_owner": "src/world_api/party.ts:65",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "markerFor",
+      "kind": "method",
+      "signature": "markerFor(entityId: number): number | null;",
+      "source_owner": "src/world_api/party.ts:67",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "setMarker",
+      "kind": "method",
+      "signature": "setMarker(entityId: number, markerId: number): void;",
+      "source_owner": "src/world_api/party.ts:68",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldParty",
+      "name": "clearMarker",
+      "kind": "method",
+      "signature": "clearMarker(entityId: number): void;",
+      "source_owner": "src/world_api/party.ts:69",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr"
+    },
+    {
+      "facet": "IWorldTrade",
+      "name": "tradeInfo",
+      "kind": "data",
+      "signature": "tradeInfo: TradeInfo | null;",
+      "source_owner": "src/world_api/trade.ts:18",
+      "woc_owner": "scripts/woc_game/src/world_api/trade.zr"
+    },
+    {
+      "facet": "IWorldTrade",
+      "name": "tradeRequest",
+      "kind": "method",
+      "signature": "tradeRequest(targetPid: number): void;",
+      "source_owner": "src/world_api/trade.ts:19",
+      "woc_owner": "scripts/woc_game/src/world_api/trade.zr"
+    },
+    {
+      "facet": "IWorldTrade",
+      "name": "tradeAccept",
+      "kind": "method",
+      "signature": "tradeAccept(): void;",
+      "source_owner": "src/world_api/trade.ts:20",
+      "woc_owner": "scripts/woc_game/src/world_api/trade.zr"
+    },
+    {
+      "facet": "IWorldTrade",
+      "name": "tradeSetOffer",
+      "kind": "method",
+      "signature": "tradeSetOffer(items: InvSlot[], copper: number): void;",
+      "source_owner": "src/world_api/trade.ts:21",
+      "woc_owner": "scripts/woc_game/src/world_api/trade.zr"
+    },
+    {
+      "facet": "IWorldTrade",
+      "name": "tradeConfirm",
+      "kind": "method",
+      "signature": "tradeConfirm(): void;",
+      "source_owner": "src/world_api/trade.ts:22",
+      "woc_owner": "scripts/woc_game/src/world_api/trade.zr"
+    },
+    {
+      "facet": "IWorldTrade",
+      "name": "tradeCancel",
+      "kind": "method",
+      "signature": "tradeCancel(): void;",
+      "source_owner": "src/world_api/trade.ts:23",
+      "woc_owner": "scripts/woc_game/src/world_api/trade.zr"
+    },
+    {
+      "facet": "IWorldChat",
+      "name": "chat",
+      "kind": "method",
+      "signature": "chat(text: string): void;",
+      "source_owner": "src/world_api/chat.ts:29",
+      "woc_owner": "scripts/woc_game/src/world_api/chat.zr"
+    },
+    {
+      "facet": "IWorldChat",
+      "name": "playEmote",
+      "kind": "method",
+      "signature": "playEmote(emoteId: OverheadEmoteId): void;",
+      "source_owner": "src/world_api/chat.ts:30",
+      "woc_owner": "scripts/woc_game/src/world_api/chat.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "duelInfo",
+      "kind": "data",
+      "signature": "duelInfo: DuelInfo | null;",
+      "source_owner": "src/world_api/duel_arena.ts:142",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "duelRequest",
+      "kind": "method",
+      "signature": "duelRequest(targetPid: number): void;",
+      "source_owner": "src/world_api/duel_arena.ts:143",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "duelAccept",
+      "kind": "method",
+      "signature": "duelAccept(): void;",
+      "source_owner": "src/world_api/duel_arena.ts:144",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "duelDecline",
+      "kind": "method",
+      "signature": "duelDecline(): void;",
+      "source_owner": "src/world_api/duel_arena.ts:145",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "arenaInfo",
+      "kind": "data",
+      "signature": "arenaInfo: ArenaInfo | null;",
+      "source_owner": "src/world_api/duel_arena.ts:146",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "honor",
+      "kind": "data",
+      "signature": "honor: number;",
+      "source_owner": "src/world_api/duel_arena.ts:148",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "lifetimeHonor",
+      "kind": "data",
+      "signature": "lifetimeHonor: number;",
+      "source_owner": "src/world_api/duel_arena.ts:150",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "arenaQueueJoin",
+      "kind": "method",
+      "signature": "arenaQueueJoin(format?: ArenaFormat): void;",
+      "source_owner": "src/world_api/duel_arena.ts:151",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "arenaQueueLeave",
+      "kind": "method",
+      "signature": "arenaQueueLeave(): void;",
+      "source_owner": "src/world_api/duel_arena.ts:152",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldDuelArena",
+      "name": "arenaAugmentPick",
+      "kind": "method",
+      "signature": "arenaAugmentPick(augmentId: string): void;",
+      "source_owner": "src/world_api/duel_arena.ts:154",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "socialInfo",
+      "kind": "data",
+      "signature": "socialInfo: SocialInfo | null;",
+      "source_owner": "src/world_api/social_graph.ts:87",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "friendAdd",
+      "kind": "method",
+      "signature": "friendAdd(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:88",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "friendRemove",
+      "kind": "method",
+      "signature": "friendRemove(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:89",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "blockAdd",
+      "kind": "method",
+      "signature": "blockAdd(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:90",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "blockRemove",
+      "kind": "method",
+      "signature": "blockRemove(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:91",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "ignoreAdd",
+      "kind": "method",
+      "signature": "ignoreAdd(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:93",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "ignoreRemove",
+      "kind": "method",
+      "signature": "ignoreRemove(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:94",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildCreate",
+      "kind": "method",
+      "signature": "guildCreate(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:95",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildInvite",
+      "kind": "method",
+      "signature": "guildInvite(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:96",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildAccept",
+      "kind": "method",
+      "signature": "guildAccept(): void;",
+      "source_owner": "src/world_api/social_graph.ts:97",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildDecline",
+      "kind": "method",
+      "signature": "guildDecline(): void;",
+      "source_owner": "src/world_api/social_graph.ts:98",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildLeave",
+      "kind": "method",
+      "signature": "guildLeave(): void;",
+      "source_owner": "src/world_api/social_graph.ts:99",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildKick",
+      "kind": "method",
+      "signature": "guildKick(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:100",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildPromote",
+      "kind": "method",
+      "signature": "guildPromote(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:101",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildDemote",
+      "kind": "method",
+      "signature": "guildDemote(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:102",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildTransfer",
+      "kind": "method",
+      "signature": "guildTransfer(name: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:103",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildDisband",
+      "kind": "method",
+      "signature": "guildDisband(): void;",
+      "source_owner": "src/world_api/social_graph.ts:104",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildEventCreate",
+      "kind": "method",
+      "signature": "guildEventCreate(day: string, hour: number | null, title: string, note: string): void;",
+      "source_owner": "src/world_api/social_graph.ts:107",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "guildEventRemove",
+      "kind": "method",
+      "signature": "guildEventRemove(eventId: number): void;",
+      "source_owner": "src/world_api/social_graph.ts:108",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "searchCharacters",
+      "kind": "method",
+      "signature": "searchCharacters(query: string): Promise<CharacterSearchResult[]>;",
+      "source_owner": "src/world_api/social_graph.ts:110",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "characterProfile",
+      "kind": "method",
+      "signature": "characterProfile(name: string): Promise<CharacterProfile | null>;",
+      "source_owner": "src/world_api/social_graph.ts:115",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldSocialGraph",
+      "name": "accountFlair",
+      "kind": "method",
+      "signature": "accountFlair(name: string): PlayerFlair | null;",
+      "source_owner": "src/world_api/social_graph.ts:122",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr"
+    },
+    {
+      "facet": "IWorldMarket",
+      "name": "marketInfo",
+      "kind": "data",
+      "signature": "marketInfo: MarketInfo | null;",
+      "source_owner": "src/world_api/market.ts:37",
+      "woc_owner": "scripts/woc_game/src/world_api/market.zr"
+    },
+    {
+      "facet": "IWorldMarket",
+      "name": "marketSearch",
+      "kind": "method",
+      "signature": "marketSearch(query: MarketQuery): void;",
+      "source_owner": "src/world_api/market.ts:40",
+      "woc_owner": "scripts/woc_game/src/world_api/market.zr"
+    },
+    {
+      "facet": "IWorldMarket",
+      "name": "marketList",
+      "kind": "method",
+      "signature": "marketList(itemId: string, count: number, price: number): void;",
+      "source_owner": "src/world_api/market.ts:41",
+      "woc_owner": "scripts/woc_game/src/world_api/market.zr"
+    },
+    {
+      "facet": "IWorldMarket",
+      "name": "marketBuy",
+      "kind": "method",
+      "signature": "marketBuy(listingId: number): void;",
+      "source_owner": "src/world_api/market.ts:42",
+      "woc_owner": "scripts/woc_game/src/world_api/market.zr"
+    },
+    {
+      "facet": "IWorldMarket",
+      "name": "marketCancel",
+      "kind": "method",
+      "signature": "marketCancel(listingId: number): void;",
+      "source_owner": "src/world_api/market.ts:43",
+      "woc_owner": "scripts/woc_game/src/world_api/market.zr"
+    },
+    {
+      "facet": "IWorldMarket",
+      "name": "marketCollect",
+      "kind": "method",
+      "signature": "marketCollect(): void;",
+      "source_owner": "src/world_api/market.ts:44",
+      "woc_owner": "scripts/woc_game/src/world_api/market.zr"
+    },
+    {
+      "facet": "IWorldMail",
+      "name": "mailInfo",
+      "kind": "data",
+      "signature": "mailInfo: MailInfo | null;",
+      "source_owner": "src/world_api/mail.ts:37",
+      "woc_owner": "scripts/woc_game/src/world_api/mail.zr"
+    },
+    {
+      "facet": "IWorldMail",
+      "name": "mailUnread",
+      "kind": "data",
+      "signature": "mailUnread: number;",
+      "source_owner": "src/world_api/mail.ts:39",
+      "woc_owner": "scripts/woc_game/src/world_api/mail.zr"
+    },
+    {
+      "facet": "IWorldMail",
+      "name": "mailSend",
+      "kind": "method",
+      "signature": "mailSend(to: string, subject: string, body: string, copper: number, items: InvSlot[]): void;",
+      "source_owner": "src/world_api/mail.ts:40",
+      "woc_owner": "scripts/woc_game/src/world_api/mail.zr"
+    },
+    {
+      "facet": "IWorldMail",
+      "name": "mailTake",
+      "kind": "method",
+      "signature": "mailTake(mailId: number): void;",
+      "source_owner": "src/world_api/mail.ts:41",
+      "woc_owner": "scripts/woc_game/src/world_api/mail.zr"
+    },
+    {
+      "facet": "IWorldMail",
+      "name": "mailDelete",
+      "kind": "method",
+      "signature": "mailDelete(mailId: number): void;",
+      "source_owner": "src/world_api/mail.ts:42",
+      "woc_owner": "scripts/woc_game/src/world_api/mail.zr"
+    },
+    {
+      "facet": "IWorldMail",
+      "name": "mailMarkRead",
+      "kind": "method",
+      "signature": "mailMarkRead(mailId: number): void;",
+      "source_owner": "src/world_api/mail.ts:43",
+      "woc_owner": "scripts/woc_game/src/world_api/mail.zr"
+    },
+    {
+      "facet": "IWorldDungeons",
+      "name": "enterDungeon",
+      "kind": "method",
+      "signature": "enterDungeon(dungeonId: string): void;",
+      "source_owner": "src/world_api/dungeons.ts:11",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeons.zr"
+    },
+    {
+      "facet": "IWorldDungeons",
+      "name": "leaveDungeon",
+      "kind": "method",
+      "signature": "leaveDungeon(): void;",
+      "source_owner": "src/world_api/dungeons.ts:12",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeons.zr"
+    },
+    {
+      "facet": "IWorldDungeons",
+      "name": "raidLockouts",
+      "kind": "method",
+      "signature": "raidLockouts(): RaidLockout[];",
+      "source_owner": "src/world_api/dungeons.ts:15",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeons.zr"
+    },
+    {
+      "facet": "IWorldDungeons",
+      "name": "dungeonDifficulty",
+      "kind": "method",
+      "signature": "dungeonDifficulty(): DungeonDifficulty;",
+      "source_owner": "src/world_api/dungeons.ts:16",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeons.zr"
+    },
+    {
+      "facet": "IWorldDungeons",
+      "name": "setDungeonDifficulty",
+      "kind": "method",
+      "signature": "setDungeonDifficulty(difficulty: DungeonDifficulty): void;",
+      "source_owner": "src/world_api/dungeons.ts:17",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeons.zr"
+    },
+    {
+      "facet": "IWorldDungeons",
+      "name": "buyHeroicVendorItem",
+      "kind": "method",
+      "signature": "buyHeroicVendorItem(itemId: string): void;",
+      "source_owner": "src/world_api/dungeons.ts:20",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeons.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "enterDelve",
+      "kind": "method",
+      "signature": "enterDelve(delveId: string, tierId: string): void;",
+      "source_owner": "src/world_api/delves.ts:83",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "leaveDelve",
+      "kind": "method",
+      "signature": "leaveDelve(): void;",
+      "source_owner": "src/world_api/delves.ts:84",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "delveInteract",
+      "kind": "method",
+      "signature": "delveInteract(objectId: number): void;",
+      "source_owner": "src/world_api/delves.ts:85",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "companionUpgrade",
+      "kind": "method",
+      "signature": "companionUpgrade(companionId: string): void;",
+      "source_owner": "src/world_api/delves.ts:86",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "delveBuyShopItem",
+      "kind": "method",
+      "signature": "delveBuyShopItem(delveId: string, itemId: string): void;",
+      "source_owner": "src/world_api/delves.ts:87",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "delveShopOffers",
+      "kind": "method",
+      "signature": "delveShopOffers(delveId: string): DelveShopOfferView[];",
+      "source_owner": "src/world_api/delves.ts:90",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "lockpickState",
+      "kind": "data",
+      "signature": "lockpickState: LockpickView | null;",
+      "source_owner": "src/world_api/delves.ts:91",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "lockpickEngage",
+      "kind": "method",
+      "signature": "lockpickEngage(objectId: number, ante: Ante): void;",
+      "source_owner": "src/world_api/delves.ts:92",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "lockpickAction",
+      "kind": "method",
+      "signature": "lockpickAction(action: PickAction): void;",
+      "source_owner": "src/world_api/delves.ts:93",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "lockpickAbort",
+      "kind": "method",
+      "signature": "lockpickAbort(): void;",
+      "source_owner": "src/world_api/delves.ts:94",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "collectDelveChestLoot",
+      "kind": "method",
+      "signature": "collectDelveChestLoot(chestId: number): void;",
+      "source_owner": "src/world_api/delves.ts:95",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "delveRiteChoose",
+      "kind": "method",
+      "signature": "delveRiteChoose(intensity: RiteIntensity): void;",
+      "source_owner": "src/world_api/delves.ts:98",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "delveRun",
+      "kind": "data",
+      "signature": "delveRun: DelveRunInfo | null;",
+      "source_owner": "src/world_api/delves.ts:99",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "companionState",
+      "kind": "data",
+      "signature": "companionState: DelveCompanionInfo | null;",
+      "source_owner": "src/world_api/delves.ts:100",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "delveMarks",
+      "kind": "data",
+      "signature": "delveMarks: number;",
+      "source_owner": "src/world_api/delves.ts:101",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "companionUpgrades",
+      "kind": "data",
+      "signature": "companionUpgrades: Record<string, number>;",
+      "source_owner": "src/world_api/delves.ts:102",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDelves",
+      "name": "delveDaily",
+      "kind": "data",
+      "signature": "delveDaily: DelveDailyInfo;",
+      "source_owner": "src/world_api/delves.ts:103",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr"
+    },
+    {
+      "facet": "IWorldDailyRewards",
+      "name": "dailyRewards",
+      "kind": "method",
+      "signature": "dailyRewards(): Promise<DailyRewardStatus>;",
+      "source_owner": "src/world_api/daily_rewards.ts:81",
+      "woc_owner": "scripts/woc_game/src/world_api/daily_rewards.zr"
+    },
+    {
+      "facet": "IWorldDailyRewards",
+      "name": "dailyRewardLeaderboard",
+      "kind": "method",
+      "signature": "dailyRewardLeaderboard(page?: number, pageSize?: number): Promise<DailyRewardLeaderboardPage>;",
+      "source_owner": "src/world_api/daily_rewards.ts:82",
+      "woc_owner": "scripts/woc_game/src/world_api/daily_rewards.zr"
+    },
+    {
+      "facet": "IWorldDailyRewards",
+      "name": "spinDailyReward",
+      "kind": "method",
+      "signature": "spinDailyReward(): Promise<DailyRewardSpinResult>;",
+      "source_owner": "src/world_api/daily_rewards.ts:83",
+      "woc_owner": "scripts/woc_game/src/world_api/daily_rewards.zr"
+    },
+    {
+      "facet": "IWorldDailyRewards",
+      "name": "dailyRewardHistory",
+      "kind": "method",
+      "signature": "dailyRewardHistory(): Promise<DailyRewardHistory>;",
+      "source_owner": "src/world_api/daily_rewards.ts:84",
+      "woc_owner": "scripts/woc_game/src/world_api/daily_rewards.zr"
+    },
+    {
+      "facet": "IWorldTelemetry",
+      "name": "reportTelemetry",
+      "kind": "method",
+      "signature": "reportTelemetry(kind: string, data: Record<string, number>): void;",
+      "source_owner": "src/world_api/telemetry.ts:2",
+      "woc_owner": "scripts/woc_game/src/world_api/telemetry.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "professionsState",
+      "kind": "data",
+      "signature": "professionsState: PlayerProfessionsView;",
+      "source_owner": "src/world_api/professions.ts:66",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "nodeHarvestableByMe",
+      "kind": "method",
+      "signature": "nodeHarvestableByMe(nodeId: string): boolean;",
+      "source_owner": "src/world_api/professions.ts:67",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "harvestNode",
+      "kind": "method",
+      "signature": "harvestNode(nodeId: string): void;",
+      "source_owner": "src/world_api/professions.ts:68",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "recipeList",
+      "kind": "data",
+      "signature": "recipeList: readonly RecipeDef[];",
+      "source_owner": "src/world_api/professions.ts:69",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "lastCraftResult",
+      "kind": "data",
+      "signature": "lastCraftResult: CraftResultView | null;",
+      "source_owner": "src/world_api/professions.ts:70",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "craftItem",
+      "kind": "method",
+      "signature": "craftItem(recipeId: string): void;",
+      "source_owner": "src/world_api/professions.ts:71",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "activeArchetype",
+      "kind": "data",
+      "signature": "activeArchetype: string | null;",
+      "source_owner": "src/world_api/professions.ts:73",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "archetypeSwitchCount",
+      "kind": "data",
+      "signature": "archetypeSwitchCount: number;",
+      "source_owner": "src/world_api/professions.ts:75",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "archetypeAmendsProgress",
+      "kind": "data",
+      "signature": "archetypeAmendsProgress: number;",
+      "source_owner": "src/world_api/professions.ts:78",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "archetypeAmendsRequired",
+      "kind": "data",
+      "signature": "archetypeAmendsRequired: number;",
+      "source_owner": "src/world_api/professions.ts:79",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "archetypeTitle",
+      "kind": "data",
+      "signature": "archetypeTitle: string | null;",
+      "source_owner": "src/world_api/professions.ts:87",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "hobbyCraft",
+      "kind": "data",
+      "signature": "hobbyCraft: string | null;",
+      "source_owner": "src/world_api/professions.ts:96",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "acceptArchetypeQuest",
+      "kind": "method",
+      "signature": "acceptArchetypeQuest(craftId: string): void;",
+      "source_owner": "src/world_api/professions.ts:99",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "advanceAmendsProgress",
+      "kind": "method",
+      "signature": "advanceAmendsProgress(): void;",
+      "source_owner": "src/world_api/professions.ts:101",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldProfessions",
+      "name": "switchArchetype",
+      "kind": "method",
+      "signature": "switchArchetype(craftId: string): void;",
+      "source_owner": "src/world_api/professions.ts:104",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr"
+    },
+    {
+      "facet": "IWorldBank",
+      "name": "bankInfo",
+      "kind": "data",
+      "signature": "bankInfo: BankInfo | null;",
+      "source_owner": "src/world_api/bank.ts:39",
+      "woc_owner": "scripts/woc_game/src/world_api/bank.zr"
+    },
+    {
+      "facet": "IWorldBank",
+      "name": "bankDeposit",
+      "kind": "method",
+      "signature": "bankDeposit(slotIndex: number, count?: number): void;",
+      "source_owner": "src/world_api/bank.ts:40",
+      "woc_owner": "scripts/woc_game/src/world_api/bank.zr"
+    },
+    {
+      "facet": "IWorldBank",
+      "name": "bankWithdraw",
+      "kind": "method",
+      "signature": "bankWithdraw(slotIndex: number, count?: number): void;",
+      "source_owner": "src/world_api/bank.ts:41",
+      "woc_owner": "scripts/woc_game/src/world_api/bank.zr"
+    },
+    {
+      "facet": "IWorldBank",
+      "name": "bankBuySlots",
+      "kind": "method",
+      "signature": "bankBuySlots(): void;",
+      "source_owner": "src/world_api/bank.ts:42",
+      "woc_owner": "scripts/woc_game/src/world_api/bank.zr"
+    },
+    {
+      "facet": "IWorldValeCup",
+      "name": "cupInfo",
+      "kind": "data",
+      "signature": "cupInfo: CupInfo | null;",
+      "source_owner": "src/world_api/vale_cup.ts:128",
+      "woc_owner": "scripts/woc_game/src/world_api/vale_cup.zr"
+    },
+    {
+      "facet": "IWorldValeCup",
+      "name": "vcupQueueJoin",
+      "kind": "method",
+      "signature": "vcupQueueJoin( bracket: VcBracket, nation: VcNationId, role: SportRole, enterAsGuild: boolean, ): void;",
+      "source_owner": "src/world_api/vale_cup.ts:132",
+      "woc_owner": "scripts/woc_game/src/world_api/vale_cup.zr"
+    },
+    {
+      "facet": "IWorldValeCup",
+      "name": "vcupQueueLeave",
+      "kind": "method",
+      "signature": "vcupQueueLeave(): void;",
+      "source_owner": "src/world_api/vale_cup.ts:138",
+      "woc_owner": "scripts/woc_game/src/world_api/vale_cup.zr"
+    },
+    {
+      "facet": "IWorldValeCup",
+      "name": "vcupSetRole",
+      "kind": "method",
+      "signature": "vcupSetRole(role: SportRole): void;",
+      "source_owner": "src/world_api/vale_cup.ts:140",
+      "woc_owner": "scripts/woc_game/src/world_api/vale_cup.zr"
+    },
+    {
+      "facet": "IWorldValeCup",
+      "name": "vcupReady",
+      "kind": "method",
+      "signature": "vcupReady(): void;",
+      "source_owner": "src/world_api/vale_cup.ts:142",
+      "woc_owner": "scripts/woc_game/src/world_api/vale_cup.zr"
+    },
+    {
+      "facet": "IWorldValeCup",
+      "name": "vcupBet",
+      "kind": "method",
+      "signature": "vcupBet(side: 'A' | 'B', amount: number): void;",
+      "source_owner": "src/world_api/vale_cup.ts:145",
+      "woc_owner": "scripts/woc_game/src/world_api/vale_cup.zr"
+    },
+    {
+      "facet": "IWorldValeCup",
+      "name": "vcupPracticeStart",
+      "kind": "method",
+      "signature": "vcupPracticeStart(bracket: VcBracket): void;",
+      "source_owner": "src/world_api/vale_cup.ts:148",
+      "woc_owner": "scripts/woc_game/src/world_api/vale_cup.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderInfo",
+      "kind": "data",
+      "signature": "dungeonFinderInfo: DungeonFinderInfo | null;",
+      "source_owner": "src/world_api/dungeon_finder.ts:79",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderBoard",
+      "kind": "data",
+      "signature": "dungeonFinderBoard: DungeonFinderBoard | null;",
+      "source_owner": "src/world_api/dungeon_finder.ts:80",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderSetRoles",
+      "kind": "method",
+      "signature": "dungeonFinderSetRoles(roles: Role[]): void;",
+      "source_owner": "src/world_api/dungeon_finder.ts:82",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderQueueJoin",
+      "kind": "method",
+      "signature": "dungeonFinderQueueJoin(activityIds: string[]): void;",
+      "source_owner": "src/world_api/dungeon_finder.ts:85",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderQueueLeave",
+      "kind": "method",
+      "signature": "dungeonFinderQueueLeave(): void;",
+      "source_owner": "src/world_api/dungeon_finder.ts:86",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderRespond",
+      "kind": "method",
+      "signature": "dungeonFinderRespond(accept: boolean): void;",
+      "source_owner": "src/world_api/dungeon_finder.ts:88",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderListingCreate",
+      "kind": "method",
+      "signature": "dungeonFinderListingCreate(activityId: string, tags: FinderListingTag[]): void;",
+      "source_owner": "src/world_api/dungeon_finder.ts:90",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderListingClose",
+      "kind": "method",
+      "signature": "dungeonFinderListingClose(): void;",
+      "source_owner": "src/world_api/dungeon_finder.ts:91",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderApply",
+      "kind": "method",
+      "signature": "dungeonFinderApply(listingId: number): void;",
+      "source_owner": "src/world_api/dungeon_finder.ts:93",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderApplyCancel",
+      "kind": "method",
+      "signature": "dungeonFinderApplyCancel(): void;",
+      "source_owner": "src/world_api/dungeon_finder.ts:94",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDungeonFinder",
+      "name": "dungeonFinderApplicationRespond",
+      "kind": "method",
+      "signature": "dungeonFinderApplicationRespond(applicantPid: number, accept: boolean): void;",
+      "source_owner": "src/world_api/dungeon_finder.ts:97",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr"
+    },
+    {
+      "facet": "IWorldDeeds",
+      "name": "deedsEarned",
+      "kind": "data",
+      "signature": "deedsEarned: ReadonlyMap<string, string>;",
+      "source_owner": "src/world_api/deeds.ts:60",
+      "woc_owner": "scripts/woc_game/src/world_api/deeds.zr"
+    },
+    {
+      "facet": "IWorldDeeds",
+      "name": "deedStats",
+      "kind": "data",
+      "signature": "deedStats: Readonly<DeedStats>;",
+      "source_owner": "src/world_api/deeds.ts:63",
+      "woc_owner": "scripts/woc_game/src/world_api/deeds.zr"
+    },
+    {
+      "facet": "IWorldDeeds",
+      "name": "renown",
+      "kind": "data",
+      "signature": "renown: number;",
+      "source_owner": "src/world_api/deeds.ts:66",
+      "woc_owner": "scripts/woc_game/src/world_api/deeds.zr"
+    },
+    {
+      "facet": "IWorldDeeds",
+      "name": "activeTitle",
+      "kind": "data",
+      "signature": "activeTitle: string | null;",
+      "source_owner": "src/world_api/deeds.ts:69",
+      "woc_owner": "scripts/woc_game/src/world_api/deeds.zr"
+    },
+    {
+      "facet": "IWorldDeeds",
+      "name": "setActiveTitle",
+      "kind": "method",
+      "signature": "setActiveTitle(deedId: string | null): void;",
+      "source_owner": "src/world_api/deeds.ts:72",
+      "woc_owner": "scripts/woc_game/src/world_api/deeds.zr"
+    },
+    {
+      "facet": "IWorldDeeds",
+      "name": "deedsRarity",
+      "kind": "method",
+      "signature": "deedsRarity(): Promise<DeedsRarity | null>;",
+      "source_owner": "src/world_api/deeds.ts:78",
+      "woc_owner": "scripts/woc_game/src/world_api/deeds.zr"
+    },
+    {
+      "facet": "IWorldDeeds",
+      "name": "deedsLeaderboard",
+      "kind": "method",
+      "signature": "deedsLeaderboard(page?: number, pageSize?: number): Promise<DeedsLeaderboardPage>;",
+      "source_owner": "src/world_api/deeds.ts:85",
+      "woc_owner": "scripts/woc_game/src/world_api/deeds.zr"
+    }
+  ],
+  "facets": [
+    {
+      "name": "IWorldEntityRoster",
+      "source_owner": "src/world_api/entity_roster.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/entity_roster.zr",
+      "member_count": 6
+    },
+    {
+      "name": "IWorldCombat",
+      "source_owner": "src/world_api/combat.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/combat.zr",
+      "member_count": 10
+    },
+    {
+      "name": "IWorldTargeting",
+      "source_owner": "src/world_api/targeting.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/targeting.zr",
+      "member_count": 4
+    },
+    {
+      "name": "IWorldInteraction",
+      "source_owner": "src/world_api/interaction.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/interaction.zr",
+      "member_count": 7
+    },
+    {
+      "name": "IWorldLoot",
+      "source_owner": "src/world_api/loot.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/loot.zr",
+      "member_count": 3
+    },
+    {
+      "name": "IWorldInventory",
+      "source_owner": "src/world_api/inventory.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/inventory.zr",
+      "member_count": 18
+    },
+    {
+      "name": "IWorldCosmetics",
+      "source_owner": "src/world_api/cosmetics.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/cosmetics.zr",
+      "member_count": 6
+    },
+    {
+      "name": "IWorldQuests",
+      "source_owner": "src/world_api/quests.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/quests.zr",
+      "member_count": 7
+    },
+    {
+      "name": "IWorldProgressionXp",
+      "source_owner": "src/world_api/progression_xp.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/progression_xp.zr",
+      "member_count": 11
+    },
+    {
+      "name": "IWorldTalents",
+      "source_owner": "src/world_api/talents.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/talents.zr",
+      "member_count": 12
+    },
+    {
+      "name": "IWorldPet",
+      "source_owner": "src/world_api/pet.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/pet.zr",
+      "member_count": 9
+    },
+    {
+      "name": "IWorldParty",
+      "source_owner": "src/world_api/party.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/party.zr",
+      "member_count": 16
+    },
+    {
+      "name": "IWorldTrade",
+      "source_owner": "src/world_api/trade.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/trade.zr",
+      "member_count": 6
+    },
+    {
+      "name": "IWorldChat",
+      "source_owner": "src/world_api/chat.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/chat.zr",
+      "member_count": 2
+    },
+    {
+      "name": "IWorldDuelArena",
+      "source_owner": "src/world_api/duel_arena.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/duel_arena.zr",
+      "member_count": 10
+    },
+    {
+      "name": "IWorldSocialGraph",
+      "source_owner": "src/world_api/social_graph.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/social_graph.zr",
+      "member_count": 22
+    },
+    {
+      "name": "IWorldMarket",
+      "source_owner": "src/world_api/market.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/market.zr",
+      "member_count": 6
+    },
+    {
+      "name": "IWorldMail",
+      "source_owner": "src/world_api/mail.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/mail.zr",
+      "member_count": 6
+    },
+    {
+      "name": "IWorldDungeons",
+      "source_owner": "src/world_api/dungeons.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeons.zr",
+      "member_count": 6
+    },
+    {
+      "name": "IWorldDelves",
+      "source_owner": "src/world_api/delves.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/delves.zr",
+      "member_count": 17
+    },
+    {
+      "name": "IWorldDailyRewards",
+      "source_owner": "src/world_api/daily_rewards.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/daily_rewards.zr",
+      "member_count": 4
+    },
+    {
+      "name": "IWorldTelemetry",
+      "source_owner": "src/world_api/telemetry.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/telemetry.zr",
+      "member_count": 1
+    },
+    {
+      "name": "IWorldProfessions",
+      "source_owner": "src/world_api/professions.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/professions.zr",
+      "member_count": 15
+    },
+    {
+      "name": "IWorldBank",
+      "source_owner": "src/world_api/bank.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/bank.zr",
+      "member_count": 4
+    },
+    {
+      "name": "IWorldValeCup",
+      "source_owner": "src/world_api/vale_cup.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/vale_cup.zr",
+      "member_count": 7
+    },
+    {
+      "name": "IWorldDungeonFinder",
+      "source_owner": "src/world_api/dungeon_finder.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/dungeon_finder.zr",
+      "member_count": 11
+    },
+    {
+      "name": "IWorldDeeds",
+      "source_owner": "src/world_api/deeds.ts",
+      "woc_owner": "scripts/woc_game/src/world_api/deeds.zr",
+      "member_count": 7
+    }
+  ]
+}

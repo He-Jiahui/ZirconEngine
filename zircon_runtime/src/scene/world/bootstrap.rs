@@ -3,20 +3,24 @@ use std::collections::HashMap;
 use crate::core::math::{Quat, Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
-use super::{generation::WorldGeneration, world::QueryCacheRevision, World};
+use super::{
+    World, compiled_binding::SceneBindingGenerations, generation::WorldGeneration,
+    world::QueryCacheRevision,
+};
+use crate::scene::EntityId;
 use crate::scene::components::{
-    default_render_layer_mask, ActiveInHierarchy, ActiveSelf, AmbientLight, CameraComponent,
-    DirectionalLight, Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind,
-    PointLight, RectLight, RenderLayerMask, SpotLight,
+    ActiveInHierarchy, ActiveSelf, AmbientLight, CameraComponent, DirectionalLight, Hierarchy,
+    LocalTransform, MeshRenderer, Mobility, Name, NodeKind, PointLight, RectLight, RenderLayerMask,
+    SpotLight, default_render_layer_mask,
 };
 use crate::scene::ecs::Schedule;
-use crate::scene::EntityId;
 
 impl World {
     pub fn empty() -> Self {
         let mut world = Self {
             entities: Vec::new(),
             kinds: HashMap::new(),
+            node_kind_ordinals: Default::default(),
             names: HashMap::new(),
             hierarchy: HashMap::new(),
             local_transforms: HashMap::new(),
@@ -68,10 +72,12 @@ impl World {
             ecs_frame_performance_diagnostics: Default::default(),
             query_cache_revision: QueryCacheRevision::default(),
             world_generation: WorldGeneration::default(),
+            scene_binding_generations: SceneBindingGenerations::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,
             last_change_tick: crate::scene::ecs::ChangeTick::ZERO,
             active_change_tick: None,
             node_cache: Vec::new(),
+            inspection_artifact_cache: Default::default(),
             derived_state_dirty: Default::default(),
         };
         crate::scene::reflect::register_builtin_reflection(&mut world);
@@ -97,6 +103,7 @@ impl World {
             .expect("spawned scene entity must have a unique stable id");
         self.entities.push(id);
         self.kinds.insert(id, kind);
+        self.record_node_kind_added(kind);
         self.names.insert(id, Name(default_name));
         self.hierarchy.insert(id, Hierarchy::default());
         self.active_self.insert(id, ActiveSelf::default());
@@ -174,7 +181,9 @@ impl World {
         self.rebuild_fixed_component_presence_for_entity(id);
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
+        self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
+        self.advance_scene_binding_generations_for_new_descendant(id);
         id
     }
 

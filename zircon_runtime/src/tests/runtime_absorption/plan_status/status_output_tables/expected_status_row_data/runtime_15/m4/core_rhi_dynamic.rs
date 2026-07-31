@@ -78,7 +78,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         &[
             "runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred",
             "dynamic_api/session.rs",
-            "dynamic_api/session/registry.rs",
+            "dynamic_api/session/registry/session_store.rs",
             "runtime_15_dynamic_api_session_registry_is_child_owner",
         ],
     ),

@@ -11,8 +11,10 @@ related_code:
   - zircon_runtime/src/text/model/font/mod.rs
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/database/equivalence.rs
+  - zircon_runtime/src/text/font/database/tests/system_policy.rs
   - zircon_runtime/src/text/font/shared.rs
   - zircon_runtime/src/text/render_state.rs
+  - zircon_runtime/src/text/language.rs
   - zircon_runtime/Cargo.toml
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Fonts/CompositeFont.h
@@ -40,7 +42,9 @@ status: in_progress
 
 - fixed 已修复：[milestone-finalize-session-relative-owned-scope](01/fixed-2026-07-15-milestone-finalize-session-relative-owned-scope.md)
 - fixed 已修复：[milestone-session-relative-line-ending-drift](01/fixed-2026-07-15-milestone-session-relative-line-ending-drift.md)
-- open 待修复：[goal-closeout-counts-terminal-failed-intents](../../zircon_tooling/session_coordinator/01/failure-2026-07-15-goal-closeout-counts-terminal-failed-intents.md)
+- fixed 已修复：[goal-closeout-counts-terminal-failed-intents](01/fixed-2026-07-18-goal-closeout-counts-terminal-failed-intents.md)
+- current MVP product gate 已完成：2026-07-28 当前源码的 managed Windows WGPU framebuffer 运行 `785e1f2f52fd44778f489e01c4bcd2b8` 已通过（`1 passed / 0 failed`），并将真实 1080x2000 文本/布局截图写入 `docs/tests/runtime/text/`；详情见 [M2 manifest](01/2026-07-26-text-mvp-foundation-f1-milestone-manifest.md)。Deferred 与 Editor 的外部返回仍按各自 owner 跟踪，本计划状态保持 `in_progress`。
+- current-source FontDatabase gate 已完成：2026-07-28 managed `text::font` job `4bf5b5da066b48e3b3fe4e56664351a3` / run `ed80cc6a895c40c48d57a2b8b91d618c` 在 Runtime11 child-module routing 修复后通过（`83 passed / 0 failed / 2 ignored`）。这证明 Runtime11 E0583 不再遮蔽 Text01；Editor 上行回传仍由其 owner 独立跟踪，本计划继续 `in_progress`。
 
 ## 1. 目标
 
@@ -64,10 +68,10 @@ status: in_progress
 ## 2. 现状与差距
 
 - `FontAsset` 已扩展 face index、family members、变量实例、fallback family、render strategy、parsed metadata 与中立 `CompositeFontDescriptor`；FR-M2 补齐 face 级 typographic/Windows/装饰线 metrics，FR-M3 补齐按 Unicode range/script/culture 的复合字体资产 schema。
-- 字体导入已硬切到 `import_font_asset/{mod.rs,parse_sfnt.rs,parse_sfnt/tests/}`；`asset/assets/font_source.rs` 统一处理 WOFF2→SFNT 解码与 TTC 选定 face 的 standalone SFNT 提取。真实 transformed-glyf WOFF2、合成 `fvar` 命名实例、TTC face 1 SDF raster focused tests 已落代码；library check 已绿，focused lib-test 当前被活动 plugin-extension 会话的非文本 E0282 编译错误阻断，断言尚未执行。
+- 字体导入已硬切到 `import_font_asset/{mod.rs,parse_sfnt.rs,parse_sfnt/tests/}`；`asset/assets/font_source.rs` 统一处理 WOFF2→SFNT 解码与 TTC 选定 face 的 standalone SFNT 提取。真实 transformed-glyf WOFF2、合成 `fvar` 命名实例、TTC face 1 SDF raster focused tests 已落代码；library check 已绿。Text01 的 fresh `text_font_asset` focused lib-test 已运行两次：test-owner child relocation 的三个本地诊断已修复，第二次在 Runtime11-owned `AssetWorkerCompletionTicket: Debug` 共享支持层错误前停止。Runtime11 回传后必须重跑作为故障回传前的当前源码证据；不再归因为 Editor11 共享 serialization。
 - UI 不再自持默认 family 字面量；默认链由 `text/font/default_families.rs` 统一提供，项目默认字体 manifest 声明 Fira Mono default 与 Noto CJK/system family culture routes。`SystemFontPolicy` 默认 `Disabled`，只有 screen-space renderer 显式选择 `Discover`。
 - native glyphon 与 SDF 均通过 `FontDatabase` 的中立 `FontFaceId`/共享 `Arc<[u8]>` 消费项目字体；SDF 对 TTC 非零 face 通过 standalone face bytes 构造 `fontsdf::Font`，不再静默使用 face 0。
-- `FontDatabase` 已具项目/系统 face 索引、best-match、coverage/fallback 候选、variation instance id、共享 bytes 与 active project composite 投影；剩余工作归 02/06 的真实 locale/per-script fallback 贯穿和 09 的完整 cache invalidation 闭环。
+- `FontDatabase` 已具项目/系统 face 索引、best-match、coverage/fallback 候选、variation instance id、共享 bytes 与 active project composite 投影。2026-07-28 当前源码的 managed Windows WGPU 产品门已通过；`text_font_asset` focused 回归已证明 Text01 child-owner 编译诊断消失，但在 Runtime11 共享 asset-worker regression 前停止，待其下层修复回传后重跑。剩余工作归 02/06 的真实 locale/per-script fallback 贯穿和 09 的完整 cache invalidation 闭环。
 
 ## 3. 参考代码
 
@@ -237,9 +241,9 @@ face 失效(`unregister_asset`/`invalidate_face`,来源:资产热重载、字体
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前概述（2026-07-14）：系统 `fontdb` face、项目字体、native shaping 与 SDF 继续共享一个 face-ID/字节 lineage；FR-M2 变量轴已贯通可反查实例、horizontal/vertical RustyBuzz、native Swash、dynamic SDF/MSDF/MTSDF 与 atlas/offline identity。Screen-space preparation 在 atlas 前按每帧唯一资产 URI 加载正式项目字体，失败保持可重试，成功加载与真实 face-count delta 分离；raw VerticalRl 批次清除内部旧 advances 后重塑形，resolved layout-line 保留其权威 advances。fallback span 同时携带 logical family、`FontFaceId` 与 `InstancedFaceId`，cosmic 投影使用有序 span 的 `partition_point`，避免同一物理 family 的逻辑变量实例合并且不引入 O(glyph×spans) 扫描。整个产品 exporter 仅在 Windows 编译，正式临时项目只导入一个 Bahnschrift face，并用真实 `wdth` min/max 形成两个逻辑实例。最终 post-review managed GPU job `d80d6dabac754907b50aa3ae2c1c1056` 为 1/1，PNG 目视与像素验收得到 narrow 256px/3187px、wide 346px/3747px、差异 4984px；focused jobs `61aaa263af684ab7b028956c772e0a20`、`deb789dcbdbe43c3b17fea6a234c9079` 同时取得 `text_font` 41/41、`text_horizontal_` 6/6、dynamic SDF/atlas/Swash 各 1/1。独立复审为 `Accept`，无 Critical/Important 遗留，FR-M2 已完成。FR-M3 CompositeFont 与跨平台 CJK fixture 继续 open，因此整个 Text01 计划保持 `in_progress`。
+当前概述（2026-07-14）：系统 `fontdb` face、项目字体、native shaping 与 SDF 继续共享一个 face-ID/字节 lineage；FR-M2 变量轴已贯通可反查实例、horizontal/vertical RustyBuzz、native Swash、dynamic SDF/MSDF/MTSDF 与 atlas/offline identity。Screen-space preparation 在 atlas 前按每帧唯一资产 URI 加载正式项目字体，失败保持可重试，成功加载与真实 face-count delta 分离；raw VerticalRl 批次清除内部旧 advances 后重塑形，resolved layout-line 保留其权威 advances。fallback span 同时携带 logical family、`FontFaceId` 与 `InstancedFaceId`，cosmic 投影使用有序 span 的 `partition_point`，避免同一物理 family 的逻辑变量实例合并且不引入 O(glyph×spans) 扫描。整个产品 exporter 仅在 Windows 编译，正式临时项目只导入一个 Bahnschrift face，并用真实 `wdth` min/max 形成两个逻辑实例。最终 post-review managed GPU job `d80d6dabac754907b50aa3ae2c1c1056` 为 1/1，PNG 目视与像素验收得到 narrow 256px/3187px、wide 346px/3747px、差异 4984px；focused jobs `61aaa263af684ab7b028956c772e0a20`、`deb789dcbdbe43c3b17fea6a234c9079` 同时取得 `text_font` 41/41、`text_horizontal_` 6/6、dynamic SDF/atlas/Swash 各 1/1。独立复审为 `Accept`，无 Critical/Important 遗留，FR-M2 已完成。FR-M3 CompositeFont 默认包与跨平台 CJK WGPU fixture 已由 [FR-M3 child acceptance](01/2026-07-14-fr-m3-composite-font-default-package-acceptance.md) 接受；Text01 仍因后续共享 FontDatabase failure recovery 与当前源 managed gates 保持 `in_progress`，该历史验收不替代新的回归验证。
 
-2026-07-17 Text MVP 基础设施切片已实现共享字体库的 render-input 语义等价判定：fallback、CompositeFont、默认 UI family 与有序 face/source 任一真实变化才推进 generation；等价的 screen-space renderer 重建不再让 shaping/SDF cache 全量失效。数据库替换与 generation 递增在同一写锁临界区，snapshot 不会取得“新库 + 旧代际”；常规重复发布优先走共享字节 `Arc::ptr_eq`，不把全字体字节扫描放进热路径。当前 shared-publication 旧 focused batch 为 2/2，新默认 family guard 与并行 SDF 回归仍待协调器测试阶段执行，因此本切片状态为 `implemented / validation_pending`，Text01 仍保持 `in_progress`。
+2026-07-17 Text MVP 基础设施切片已实现共享字体库的 render-input 语义等价判定：fallback、CompositeFont、默认 UI family 与有序 face/source 任一真实变化才推进 generation；等价的 screen-space renderer 重建不再让 shaping/SDF cache 全量失效。数据库替换与 generation 递增在同一写锁临界区，snapshot 不会取得“新库 + 旧代际”；常规重复发布优先走共享字节 `Arc::ptr_eq`，不把全字体字节扫描放进热路径。`apply_system_font_policy(Discover)` 也在 FontDatabase owner 内变为幂等；renderer clone 继承已发现状态，不再重复扫描系统字体目录或让 `fontdb` backend catalog 追加重复 face。`TextRenderState::new` 现按 text-owned system locale 直接从共享 backend DB 构造 cosmic `FontSystem`，删除先 `FontSystem::new()` 扫描再覆盖的第二次 OS 字体 I/O；`sys-locale` 仅随 `text` feature 启用。当前 shared-publication 旧 focused batch 为 2/2，新 locale/idempotent-discovery/default-family guard 与并行 SDF 回归仍待协调器测试阶段执行，因此本切片状态为 `implemented / validation_pending`，Text01 仍保持 `in_progress`。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
@@ -251,4 +255,7 @@ face 失效(`unregister_asset`/`invalidate_face`,来源:资产热重载、字体
 - fixed 已修复：[ui-text-module-split-import-drift](../../zircon_editor/editor/02/fixed-2026-07-14-ui-text-module-split-import-drift.md)
 - fixed 已修复：[dynamic-scene-format-version-root-export-drift](01/fixed-2026-07-14-dynamic-scene-format-version-root-export-drift.md)
 - fixed 已修复：[font-database-render-input-equivalence-visibility](../../zircon_editor/editor/01/fixed-2026-07-17-font-database-render-input-equivalence-visibility.md)
-- open 待修复（Runtime15）：[screen-space-ui-text-font-id-report-mount-drift](../runtime/15/failure-2026-07-17-screen-space-ui-text-font-id-report-mount-drift.md)；Text01 46 项行为通过，但 `text_font` 门命中缺少真实生产调用的 Runtime15 child-owner 守卫，Text01 failure 暂不回传。
+- fixed 已修复（Runtime15）：[screen-space-ui-text-font-id-report-mount-drift](01/fixed-2026-07-17-screen-space-ui-text-font-id-report-mount-drift.md)；Runtime15 已补齐真实生产调用的 child-owner 守卫并完成 failure return，Text01 不再保留过期的 open 状态或失效链接。
+- 2026-07-19 PERF-MVP-250 UI font manifest cache 已完成实现：`font_assets` 由仅缓存成功值切为 `(resource revision, resource state)` owned `Ready / Missing / Error` 三态记录；同 identity 的 missing/error ensure 直接命中负缓存，revision 或 Error/Reloading/Ready state 变化后重新加载并覆盖旧状态。Framework `ResourceManager` 提供只含 revision/state 的 `ResourceCacheIdentity`，ProjectAssetManager 在一次 registry 读锁内投影两个 Copy 字段，不克隆完整 ResourceRecord；每帧 refresh 对显式 font asset 与 code-style 派生 default asset 按唯一资产执行一次，native 每文本 family resolve 只读已准备 cache。默认字体初始化、Auto render-mode 路由和 native family resolve 统一消费该 cache；默认资产每次 refresh 同步更新或清除 default family/composite projection，native atlas 失效改按真实 face-count delta 判定，负记录插入不再误报 face change。行为测试已覆盖 Missing/Error 重复命中、同 revision Error -> Ready、Missing -> Ready project revision、code-style 派生 default 预取守卫，以及默认 family/composite A -> B -> None；Rust 1.94.1 rustfmt、scoped diff-check 已通过，fresh managed compile/focused tests 仍按 CPU FIFO 等待，因此当前状态为 `implemented / managed_validation_pending`，不得标记 fixed。
+- 2026-07-22 Text MVP 字体所有权闭环已收敛到单一共享 `FontDatabase`：生产侧 replace/remove/default/composite 只在 Text-owned 写锁内更新权威库，不再 clone 后发布第二份真值；generation 只在 face/source/fallback/composite/default family 等渲染输入真实变化时推进。字体资产以稳定 asset reference 作为 owner，同一物理 face 可由多个资产共同持有；owner 的 `Missing -> Ready`、`Ready -> Missing` 映射变化通过独立 `asset_mapping_changed` 驱动 UI reshape/bitmap/SDF 失效，即使另一 owner 仍保留该 face、数据库 generation 不变也不会漏刷。renderer 已删除构造期重复 publish、face-count 推断失效和 graphics 对完整字体库的读取，只通过 Text-owned `font_face_id` 窄查询解析 backend id。最低层与 UI 多 owner 生命周期测试、19 项静态边界守卫以及两轮独立 review 均为 `0 Critical / 0 Important / 0 Minor`；当前源码 WGPU 产品门与 Runtime15 窄边界结构守卫已通过，测试根文件已按资产缓存、渲染、报表和共享 fixture 硬切到 folder-backed child owner。fresh managed `text_font_asset` focused test 已越过本次 child-owner 编译修复，但在 Runtime11 的共享 asset-worker regression 前停止；其修复回传和 Editor 上行回归仍待闭合，因此状态保持 `implemented / review_green / managed_validation_pending`，Text01 仍为 `in_progress`。
+- 2026-07-22 TTC extraction性能补充：PERF-MVP-524已把standalone face每table的临时Vec+二次copy改为直接写最终SFNT并原位清`head.checkSumAdjustment`；Text01验收新增table count/bytes/scratch与checksum counter，要求scratch=0、face bytes owner=1。更高层face/source generation继续服从既有唯一共享FontDatabase，不建立第二份提取cache。

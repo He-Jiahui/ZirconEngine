@@ -22,13 +22,15 @@ fn runtime_plugin_feature_registration_report_rejects_invalid_feature_ids() {
     }));
 
     let mut catalog = RuntimePluginCatalog::default();
-    catalog.register_feature(&feature);
+    let outcome = catalog.register_feature(&feature);
 
-    assert!(!catalog.is_success());
-    assert!(catalog.diagnostics().iter().any(|diagnostic| {
+    assert!(outcome.is_rejected());
+    assert!(outcome.diagnostics().iter().any(|diagnostic| {
         diagnostic.contains("feature id `soundfeature`")
             && diagnostic.contains("dot-separated namespace")
     }));
+    assert!(catalog.is_success());
+    assert!(catalog.diagnostics().is_empty());
 }
 
 #[test]

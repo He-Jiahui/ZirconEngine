@@ -59,6 +59,7 @@ fn mobile_and_web_targets_reject_native_dynamic_packaging() {
             profile_name.clone(),
             RuntimeTargetMode::ClientRuntime,
             platform,
+            RuntimeProfileId::Client2d,
         )
         .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 
@@ -192,8 +193,8 @@ fn source_template_emits_headless_host_scaffold_without_platform_shell() {
         "server",
         RuntimeTargetMode::ServerRuntime,
         ExportTargetPlatform::Headless,
+        RuntimeProfileId::Server,
     )
-    .with_runtime_profile_id(RuntimeProfileId::Server)
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
 
@@ -267,6 +268,7 @@ fn source_template_emits_mobile_and_browser_host_scaffolds() {
             profile_name.clone(),
             RuntimeTargetMode::ClientRuntime,
             platform,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate)
         .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -372,6 +374,7 @@ fn source_template_emits_package_manifests_for_mobile_and_browser_hosts() {
             profile_name.clone(),
             RuntimeTargetMode::ClientRuntime,
             platform,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate)
         .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -444,6 +447,7 @@ fn generated_mobile_and_browser_hosts_translate_platform_callbacks_to_runtime_ab
             profile_name.clone(),
             RuntimeTargetMode::ClientRuntime,
             platform,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate)
         .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -526,6 +530,7 @@ fn generated_platform_hosts_include_repo_owned_binding_and_resource_glue() {
             profile_name.clone(),
             RuntimeTargetMode::ClientRuntime,
             platform,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate)
         .with_strategy(ExportPackagingStrategy::LibraryEmbed)];

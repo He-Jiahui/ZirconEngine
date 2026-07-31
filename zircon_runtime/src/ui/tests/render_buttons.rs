@@ -1,11 +1,34 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn button_rendering_resolves_variant_once_without_joining_lowercase_text() {
+    let source = include_str!("../surface/render/buttons.rs");
+
+    assert_eq!(
+        source.matches("button_kind(metadata)").count(),
+        1,
+        "button kind should be resolved once into render state"
+    );
+    assert!(
+        !source.contains(".join(\" \")") && !source.contains("to_ascii_lowercase"),
+        "button kind classification should not allocate joined lowercase strings"
+    );
+    assert!(source.contains("EditorDesignTokens"));
+    assert!(source.contains("EditorTypographyTokens"));
+    assert!(source.contains("style_overrides"));
+    assert!(source.contains("parse_css_color"));
+    assert!(source.contains("value_as_f32"));
+    assert!(!source.contains("const PRIMARY_SURFACE"));
+    assert!(!source.contains("const DEFAULT_FONT_SIZE"));
+}
 
 #[test]
 fn render_extract_expands_button_primitives() {
@@ -39,8 +62,8 @@ layout_icon_size = 16.0
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 16.0, 132.0, 30.0)
-            && command.style.background_color.as_deref() == Some("#1f3035")
-            && command.style.border_color.as_deref() == Some("#2aa6b8")
+            && command.style.background_color.as_deref() == Some("#17434d")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_family == UiPainterFamily::Button
             && command.style.painter_state == UiPainterResolvedState::Normal
     }));
@@ -49,14 +72,22 @@ layout_icon_size = 16.0
             && command.kind == UiRenderCommandKind::Image
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("play".to_string()))
             && command.frame == UiFrame::new(24.0, 23.0, 16.0, 16.0)
-            && command.style.foreground_color.as_deref() == Some("#e6f1f4")
+            && command.style.foreground_color.as_deref() == Some("#e8ecee")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Compile")
-            && command.frame == UiFrame::new(47.0, 24.4, 85.0, 13.200001)
-            && command.style.foreground_color.as_deref() == Some("#e6f1f4")
+            && command.frame
+                == UiFrame::new(
+                    47.0,
+                    23.0,
+                    85.0,
+                    EditorTypographyTokens::WORKBENCH_BODY_SIZE
+                        * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+                )
+            && command.style.foreground_color.as_deref() == Some("#e8ecee")
+            && command.style.font_size == EditorTypographyTokens::WORKBENCH_BODY_SIZE
     }));
     assert_eq!(
         commands
@@ -115,7 +146,7 @@ corner_radius = 6.0
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(16.0, 20.0, 40.0, 40.0)
             && command.style.background_color.as_deref() == Some("#173942")
-            && command.style.border_color.as_deref() == Some("#2aa6b8")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
             && command.style.corner_radius == 6.0
             && command.style.painter_family == UiPainterFamily::IconButton
             && command.style.painter_state == UiPainterResolvedState::Selected
@@ -125,7 +156,7 @@ corner_radius = 6.0
             && command.kind == UiRenderCommandKind::Image
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("transform".to_string()))
             && command.frame == UiFrame::new(27.0, 31.0, 18.0, 18.0)
-            && command.style.foreground_color.as_deref() == Some("#2aa6b8")
+            && command.style.foreground_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_state == UiPainterResolvedState::Selected
     }));
     assert!(
@@ -251,7 +282,7 @@ focus_border_color = "#35c7d0"
     );
     assert_eq!(
         focused_hovered_button.style.background_color.as_deref(),
-        Some("#263d43")
+        Some("#173942")
     );
     assert_eq!(
         focused_hovered_button.style.border_color.as_deref(),
@@ -284,7 +315,7 @@ focus_border_color = "#35c7d0"
     );
     assert_eq!(
         focused_hovered_icon.style.background_color.as_deref(),
-        Some("#20282d")
+        Some("#2a3036")
     );
     assert_eq!(
         control_icon(commands, UiNodeId::new(5))
@@ -301,7 +332,7 @@ focus_border_color = "#35c7d0"
     );
     assert_eq!(
         selected_toggle.style.background_color.as_deref(),
-        Some("#20282d")
+        Some("#2a3036")
     );
     assert_eq!(
         selected_toggle.style.border_color.as_deref(),
@@ -370,38 +401,139 @@ layout_icon_size = 18.0
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::Button
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#252c31")
-            && command.style.border_color.as_deref() == Some("#343f47")
+            && command.style.background_color.as_deref() == Some("#22272b")
+            && command.style.border_color.as_deref() == Some("#2c3237")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Image
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("play".to_string()))
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Compile")
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::IconButton
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#252c31")
-            && command.style.border_color.as_deref() == Some("#343f47")
+            && command.style.background_color.as_deref() == Some("#22272b")
+            && command.style.border_color.as_deref() == Some("#2c3237")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Image
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("trash".to_string()))
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
+}
+
+#[test]
+fn render_extract_buttons_prioritize_valid_style_overrides_and_reject_invalid_values() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.buttons.overrides"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 120.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control_with_style_overrides(
+        &mut surface,
+        UiNodeId::new(2),
+        "Button",
+        UiFrame::new(12.0, 12.0, 128.0, 32.0),
+        r##"
+text = "Apply"
+button_color = "primary"
+background_color = "#10161a"
+border_color = "#243238"
+foreground_color = "#d6e2e5"
+"##,
+        r##"
+background_color = "#254c5a"
+border_color = "#4c9dab"
+foreground_color = "#eef8fa"
+layout_padding_left = 20.0
+font_size = 10.0
+line_height_ratio = 1.5
+"##,
+        visible_state(),
+    );
+    insert_control_with_style_overrides(
+        &mut surface,
+        UiNodeId::new(3),
+        "Button",
+        UiFrame::new(156.0, 12.0, 128.0, 32.0),
+        r##"
+text = "Fallback"
+button_color = "primary"
+"##,
+        r##"
+background_color = "not-a-color"
+border_width = -1.0
+layout_padding_left = -4.0
+font_size = 0.0
+line_height_ratio = 0.0
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let overridden_surface = control_surface(commands, UiNodeId::new(2), UiPainterFamily::Button);
+    assert_eq!(
+        overridden_surface.style.background_color.as_deref(),
+        Some("#254c5a")
+    );
+    assert_eq!(
+        overridden_surface.style.border_color.as_deref(),
+        Some("#4c9dab")
+    );
+    assert_eq!(
+        commands
+            .iter()
+            .find(|command| command.node_id == UiNodeId::new(2) && command.text.is_some())
+            .expect("overridden button text should be rendered")
+            .style
+            .foreground_color
+            .as_deref(),
+        Some("#eef8fa")
+    );
+    let overridden_text = commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2) && command.text.is_some())
+        .expect("overridden button text should be rendered");
+    assert_eq!(overridden_text.frame.x, 32.0);
+    assert_eq!(overridden_text.style.font_size, 10.0);
+    assert_eq!(overridden_text.style.line_height, 15.0);
+
+    let fallback_surface = control_surface(commands, UiNodeId::new(3), UiPainterFamily::Button);
+    assert_eq!(
+        fallback_surface.style.background_color.as_deref(),
+        Some("#17434d")
+    );
+    assert_eq!(fallback_surface.style.border_width, 1.0);
+    let fallback_text = commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(3) && command.text.is_some())
+        .expect("fallback button text should be rendered");
+    assert_eq!(fallback_text.frame.x, 168.0);
+    assert_eq!(
+        fallback_text.style.font_size,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    );
+    assert_eq!(
+        fallback_text.style.line_height,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+            * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO
+    );
 }
 
 fn insert_control(
@@ -410,6 +542,26 @@ fn insert_control(
     component: &str,
     frame: UiFrame,
     attributes: &str,
+    state_flags: UiStateFlags,
+) {
+    insert_control_with_style_overrides(
+        surface,
+        node_id,
+        component,
+        frame,
+        attributes,
+        "",
+        state_flags,
+    );
+}
+
+fn insert_control_with_style_overrides(
+    surface: &mut UiSurface,
+    node_id: UiNodeId,
+    component: &str,
+    frame: UiFrame,
+    attributes: &str,
+    style_overrides: &str,
     state_flags: UiStateFlags,
 ) {
     surface
@@ -422,6 +574,7 @@ fn insert_control(
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: component.to_string(),
                     attributes: toml::from_str(attributes).unwrap(),
+                    style_overrides: toml::from_str(style_overrides).unwrap(),
                     ..UiTemplateNodeMetadata::default()
                 }),
         )

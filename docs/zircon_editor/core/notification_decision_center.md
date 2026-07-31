@@ -1,0 +1,38 @@
+---
+related_code:
+  - zircon_editor/src/core/notifications/decision
+tests:
+  - zircon_editor/src/core/notifications/decision/tests.rs
+  - tools/tests/test_editor17_decision_notification_center_contract.py
+doc_type: module-detail
+---
+
+# Decision Notification Center
+
+## Ownership
+
+`DecisionNotificationCenter` is the core authority for notifications that require an explicit user choice. Producers publish validated `DecisionNotification` values; retained UI, headless drivers, and replay consumers read the same snapshots and submit typed tickets. Presentation code does not own pending state or execute callbacks inside the center.
+
+`NotificationId` identifies the producer-defined logical prompt. `DecisionTicket` additionally identifies the owning center instance and one published incarnation, so an old UI surface cannot resolve a prompt in a replacement center or a later prompt that reuses the same logical ID. Tickets, cursors, and receipts can only be created by the center. Center instance IDs are process-local authority epochs; this in-memory service does not define persisted tickets across process restarts.
+
+## Model
+
+A decision carries a builtin or plugin source, localization keys, at least two uniquely identified options, and optional default/cancel options that must refer to declared options. Constructors validate all identifiers and required strings; model fields remain private so callers cannot bypass those invariants. Notification IDs are limited to 192 bytes, option IDs to 64 bytes, source IDs to 128 bytes, localization keys to 256 bytes, and one notification to 16 options.
+
+`DecisionNotification` stores its validated immutable payload behind `Arc`; snapshots clone that shared payload instead of duplicating producer strings and option vectors. `publish` returns a ticket. `pending_snapshot` returns only unresolved entries, while `snapshot` also exposes retained resolved entries until their receipts leave bounded history. Both snapshots include the ticket required by `resolve` or `cancel`.
+
+## Resolution
+
+Resolution is serialized by the center and produces one monotonic receipt. Repeating the same ticket and option returns that receipt with `newly_resolved = false`; requesting a different option returns `AlreadyResolved`. Window-close behavior must call `cancel`, which only succeeds when the producer declared a cancel option.
+
+No callback is stored or invoked. A consumer starts from `center.initial_cursor()`, observes `receipts_since(cursor)`, and routes newly observed receipts to the owning feature. This keeps UI teardown, headless operation, and event replay on one auditable data path. Consumers must persist their cursor only after their own command dispatch succeeds.
+
+## Bounds And Failure Semantics
+
+Pending and receipt capacities are explicit and non-zero. Combined with per-field and option-count limits, they bound the retained payload. The center uses deterministic keyed storage for entries and bounded FIFO receipt history. Capacity and sequence exhaustion reject before partial insertion. A foreign-center ticket or cursor returns a typed authority error. When a cursor predates retained history, `CursorExpired` includes both the oldest sequence and a directly reusable `resume_cursor`; retrying from it includes the oldest retained receipt instead of silently skipping decisions.
+
+Evicting a receipt also retires its resolved entry. A later publication may reuse the logical notification ID, but receives a new incarnation. Any stale ticket is rejected with `StaleTicket` and cannot mutate the new entry.
+
+## Integration Boundary
+
+This module is the Editor17 M3.2 core Decision authority. It intentionally does not mount a retained UI adapter, bind job progress, or consume Editor04 Play callbacks. The Editor04 pending-edit failure remains open until a retained notification adapter publishes the prompt, routes apply/discard receipts through `PlaySessionController`, and passes the cross-plan integration gate.

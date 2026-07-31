@@ -5,7 +5,8 @@ use crate::{
     core::framework::project::ExportTargetPlatform,
     core::framework::project::ProjectPluginFeatureSelection,
     core::framework::project::ProjectPluginManifest,
-    core::framework::project::ProjectPluginSelection, plugin::ExportBuildPlan,
+    core::framework::project::ProjectPluginSelection, core::framework::project::RuntimeProfileId,
+    plugin::ExportBuildPlan,
 };
 
 #[test]
@@ -32,6 +33,7 @@ fn export_plan_reports_malformed_feature_provider_package_id_as_fatal_when_requi
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -82,6 +84,7 @@ fn export_plan_reports_malformed_project_feature_ids_as_fatal_when_required() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -131,6 +134,7 @@ fn export_plan_reports_project_feature_ids_outside_owner_namespace_as_fatal_when
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -166,6 +170,7 @@ fn export_plan_reports_duplicate_project_plugin_ids_as_fatal_when_required() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -212,6 +217,7 @@ fn export_plan_reports_duplicate_project_feature_ids_as_fatal_when_required() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -266,6 +272,7 @@ fn export_plan_reports_duplicate_project_target_modes_as_fatal_when_required() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -316,6 +323,7 @@ fn export_plan_reports_malformed_project_plugin_ids_as_fatal_when_required() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -368,6 +376,7 @@ fn export_plan_reports_malformed_project_plugin_runtime_crate_as_fatal_when_requ
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -415,6 +424,7 @@ fn export_plan_reports_malformed_project_feature_runtime_crate_as_fatal_when_req
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -465,6 +475,7 @@ fn export_plan_reports_malformed_project_plugin_editor_crate_as_fatal_when_requi
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -507,6 +518,7 @@ fn export_plan_reports_malformed_project_feature_editor_crate_as_fatal_when_requ
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];

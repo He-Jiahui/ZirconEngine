@@ -9,12 +9,19 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/09
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/imports.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/watcher/host.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/dependency_index/generation.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/generation.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/traversal.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/queue.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/service.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/job.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/commit.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/watcher/diagnostics.rs
 reference_sources:
   - dev/godot/editor/file_system/editor_file_system.cpp
 tests:
+  - tools/tests/test_editor09_ui_asset_watcher_generation_contract.py
   - 1000/10000 filesystem event bounded-coalescing stress
   - rename/delete/write burst debounce and generation ordering
   - direct/transitive import invalidation parity matrix
@@ -53,6 +60,33 @@ watcher channel是原始 path transport，没有 bounded latest-set/debounce/gen
 - 不得在单 tick继续排空全部积压。
 - 不得让 UI asset editor私有 watcher成为第二个 runtime asset inventory authority。
 
-## 修复结果与回传
+## 产出记录与时间
 
-Open state: `待 Editor09 建立 bounded coalescing watcher、reverse dependency generation 与预算化异步 refresh`。
+Open state: `bounded ingress/reconcile、reverse dependency generation、shared physical parse generation、EditorJobSystem worker、generation-checked commit 与 per-asset bounded retry 已完成源码硬切；受管 Cargo、1k/10k 产品 storm/p95、最终独立复审、fixed return 与 managed commit 仍待完成。`
+
+2026-07-22局部止损：性能审查TDD删除了`asset_id_for_path`每事件收集matching roots的临时`Vec`，并让poll直接把changed batch借给refresh归一化，避免返回同一批结果前深clone全部`String`；源码合同2/2与rustfmt通过。该止损不改变本failure的open状态：unbounded ingress、drain-all、主线程同步I/O/parse/hydrate、全session scan及reverse dependency generation仍未解决，且current-source Cargo与1k/10k storm未验收。
+
+2026-07-23基础设施硬切：旧 `crossbeam_channel::unbounded`、`while try_recv` drain-all 与
+`Result<Vec<String>, _>` poll surface 已删除。notify callback 只写容量 4,096 的 physical-path latest-set；
+retained poll 的 ingress/reconcile 枚举按 256 item/2ms 双预算跨 tick 处理，并发布 pending/cursor-active/
+coalesced/overflow/oldest-age 诊断。容量溢出会丢弃不完整 path generation，转为
+`{session id, next import index}` cursor borrowed 枚举当前打开 route 与 direct import roots，不预先
+clone/物化完整 reconcile set；
+现有 traversal 重新展开 transitive imports，不建立第二 asset inventory。静态合同与旧性能守卫合计
+5/5 GREEN，exact rustfmt/结构预算通过；独立 review 从 0/3/0 收敛到 0/0/0。该阶段只关闭无界 ingress与
+单 tick drain 放大；reverse dependency generation、worker parse/commit、产品 storm、受管 Cargo、
+fixed return 与 commit 仍未完成，
+所以本 Failure 保持 open。
+
+2026-07-23 reverse-generation/worker 源码阶段：打开文档现在进入唯一
+`UiAssetDependencyGeneration`，direct route 与 normalized import edge 均为 generation-owned reverse index；
+import edge 在 resolve/read/parse 前登记，initial hydration 即使遇到 missing/invalid import 也保留 last-good
+session、stale diagnostic 与恢复边。旧扁平 `imports.rs`/`refresh.rs` 已删除，physical-path parse cache 在一个
+worker generation 的全部受影响文档间共享。Watcher 只 enqueue `EditorJobSystem` `Index`/`Background` job；
+UI 线程以 project root、dependency generation、route identity、disk baseline 与 source fingerprint 做 commit gate，
+resolved imports 与 reverse edges 按 `dependency_generation -> ui_asset_sessions` 同一锁 epoch 提交。
+Transient I/O/job/commit/sync failure 使用 per-asset/per-generation retry cohort（50ms base、2s cap、最多6次），
+immediate requeue 会先排除 delayed retry，exhausted/superseded/pending/active 状态进入 typed diagnostics；same-project
+save/restart 不清空 work，真实 project-root cutover 才 cancel/reset。静态合同 11/11 与精确 rustfmt 通过；独立复审
+先后暴露 0/6/2 与 0/5/2，第三轮独立复审已收敛为 0/0/0。Coordinator01 validation-copy failure 与外部
+Text01 Cargo 仍阻断 source-bound Rust gate，因此本 Failure 保持 `open/validation_blocked`，不写 accepted/fixed。

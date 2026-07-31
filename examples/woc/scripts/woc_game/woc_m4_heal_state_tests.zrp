@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_heal_state_tests",
+  "source": "src",
+  "binary": "bin-m4-heal-state-tests",
+  "entry": "combat/heal_state_test_main"
+}

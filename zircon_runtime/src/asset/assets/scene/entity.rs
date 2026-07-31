@@ -1,6 +1,7 @@
 use crate::asset::PrefabInstanceAsset;
 use serde::{Deserialize, Serialize};
 
+use super::SceneMobilityAsset;
 use super::animation::{
     SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset,
     SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset,
@@ -16,7 +17,6 @@ use super::mesh::SceneMeshInstanceAsset;
 use super::physics::{SceneColliderAsset, SceneJointAsset, SceneRigidBodyAsset};
 use super::post_process::ScenePostProcessVolumeAsset;
 use super::transform::TransformAsset;
-use super::SceneMobilityAsset;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SceneEntityAsset {

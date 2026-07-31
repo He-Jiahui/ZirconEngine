@@ -14,6 +14,15 @@ const ASSET_BROWSER_LAYOUT_TOML: &str = include_str!(concat!(
 const FRAME_EPSILON: f32 = 0.001;
 
 #[test]
+fn asset_browser_text_defers_to_runtime_typography_tokens() {
+    assert_eq!(
+        ASSET_BROWSER_LAYOUT_TOML.matches("font_size =").count(),
+        0,
+        "Asset Browser labels should use generic Runtime Text body/caption metrics instead of authored pixel fonts"
+    );
+}
+
+#[test]
 fn asset_browser_bootstrap_layout_self_hosts_shell_sections() {
     let layout = UiV2AssetLoader::load_toml_str(ASSET_BROWSER_LAYOUT_TOML).expect("asset layout");
 

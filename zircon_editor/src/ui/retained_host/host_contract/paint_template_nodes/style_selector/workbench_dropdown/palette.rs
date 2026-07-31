@@ -31,8 +31,8 @@ pub(super) fn workbench_dropdown_palette_from_host(
 ) -> WorkbenchDropdownPalette {
     WorkbenchDropdownPalette {
         surface: palette.surface_inset,
-        hover_surface: palette.popup,
-        open_surface: palette.surface_pressed,
+        hover_surface: palette.surface_hover,
+        open_surface: palette.accent_soft,
         disabled_surface: palette.surface_disabled,
         border: palette.border,
         focus_border: palette.focus_ring,

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::scene::viewport::{
     HandleOverlayExtract, SceneGizmoOverlayExtract, ViewportCameraSnapshot,
 };
@@ -9,9 +11,9 @@ use super::viewport_renderable_pick_candidate::ViewportRenderablePickCandidate;
 pub(crate) struct ViewportPointerLayout {
     pub viewport: UVec2,
     pub camera: ViewportCameraSnapshot,
-    pub handles: Vec<HandleOverlayExtract>,
-    pub scene_gizmos: Vec<SceneGizmoOverlayExtract>,
-    pub renderables: Vec<ViewportRenderablePickCandidate>,
+    pub handles: Arc<[HandleOverlayExtract]>,
+    pub scene_gizmos: Arc<[SceneGizmoOverlayExtract]>,
+    pub renderables: Arc<[ViewportRenderablePickCandidate]>,
 }
 
 impl Default for ViewportPointerLayout {
@@ -19,9 +21,9 @@ impl Default for ViewportPointerLayout {
         Self {
             viewport: UVec2::new(1, 1),
             camera: ViewportCameraSnapshot::default(),
-            handles: Vec::new(),
-            scene_gizmos: Vec::new(),
-            renderables: Vec::new(),
+            handles: Vec::new().into(),
+            scene_gizmos: Vec::new().into(),
+            renderables: Vec::new().into(),
         }
     }
 }

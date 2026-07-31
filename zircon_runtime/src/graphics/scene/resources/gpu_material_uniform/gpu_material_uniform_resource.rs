@@ -1,8 +1,8 @@
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, RenderMaterialTextureTransform,
-    StandardPbrMaterialFeatures, SHADING_MODEL_GBUFFER_ALPHA_SCALE,
-    STANDARD_MATERIAL_MIN_ROUGHNESS, STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
-    STANDARD_PBR_DEFAULT_IOR, STANDARD_PBR_NO_ATTENUATION_DISTANCE,
+    SHADING_MODEL_GBUFFER_ALPHA_SCALE, STANDARD_MATERIAL_MIN_ROUGHNESS,
+    STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS, STANDARD_PBR_DEFAULT_IOR,
+    STANDARD_PBR_NO_ATTENUATION_DISTANCE, StandardPbrMaterialFeatures,
 };
 use crate::graphics::scene::resources::MaterialRuntime;
 use wgpu::util::DeviceExt;
@@ -102,7 +102,9 @@ fn padded_uniform_contents(payload: &RenderMaterialPropertyUniformPayload) -> Ve
     contents
 }
 
-fn standard_material_uniform_contents(material: &MaterialRuntime) -> Vec<u8> {
+fn standard_material_uniform_contents(
+    material: &MaterialRuntime,
+) -> [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE] {
     standard_material_uniform_contents_from_values(
         material.metallic,
         material.roughness,
@@ -118,7 +120,7 @@ fn standard_material_uniform_contents(material: &MaterialRuntime) -> Vec<u8> {
     )
 }
 
-fn fallback_standard_material_uniform_contents() -> Vec<u8> {
+fn fallback_standard_material_uniform_contents() -> [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE] {
     standard_material_uniform_contents_from_values(
         0.0,
         1.0,
@@ -146,7 +148,7 @@ fn standard_material_uniform_contents_from_values(
     texture_transforms: [RenderMaterialTextureTransform; STANDARD_TEXTURE_TRANSFORM_COUNT],
     texture_uv_channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
     advanced_features: &StandardPbrMaterialFeatures,
-) -> Vec<u8> {
+) -> [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE] {
     let mut values = [0.0_f32; 48];
     values[0] = finite_or(metallic, 0.0).clamp(0.0, 1.0);
     values[1] = finite_or(roughness, 1.0).clamp(STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
@@ -188,7 +190,9 @@ fn standard_material_uniform_contents_from_values(
         STANDARD_PBR_NO_ATTENUATION_DISTANCE,
     );
 
-    bytemuck::cast_slice(&values).to_vec()
+    let mut bytes = [0_u8; GPU_MATERIAL_UNIFORM_MIN_SIZE];
+    bytes.copy_from_slice(bytemuck::cast_slice(&values));
+    bytes
 }
 
 const STANDARD_TEXTURE_TRANSFORM_COUNT: usize = 5;
@@ -228,11 +232,7 @@ fn material_alpha_cutoff_scalar(alpha_cutoff: Option<f32>) -> f32 {
 }
 
 fn finite_or(value: f32, fallback: f32) -> f32 {
-    if value.is_finite() {
-        value
-    } else {
-        fallback
-    }
+    if value.is_finite() { value } else { fallback }
 }
 
 fn finite_positive_or(value: f32, fallback: f32) -> f32 {
@@ -246,30 +246,31 @@ fn finite_positive_or(value: f32, fallback: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderMaterialTextureTransform, StandardPbrMaterialFeatures,
-        STANDARD_MATERIAL_MIN_ROUGHNESS,
+        RenderMaterialTextureTransform, STANDARD_MATERIAL_MIN_ROUGHNESS,
+        StandardPbrMaterialFeatures,
     };
 
     use super::{
-        standard_material_uniform_contents_from_values, GPU_MATERIAL_UNIFORM_MIN_SIZE,
-        STANDARD_TEXTURE_TRANSFORM_COUNT,
+        GPU_MATERIAL_UNIFORM_MIN_SIZE, STANDARD_TEXTURE_TRANSFORM_COUNT,
+        standard_material_uniform_contents_from_values,
     };
 
     #[test]
     fn standard_material_uniform_packs_pbr_scalars_without_property_schema_offsets() {
-        let bytes = standard_material_uniform_contents_from_values(
-            1.4,
-            0.0,
-            [0.25, -1.0, 2.0],
-            true,
-            0,
-            1.4,
-            0,
-            Some(1.4),
-            [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
-            [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
-            &StandardPbrMaterialFeatures::default(),
-        );
+        let bytes: [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE] =
+            standard_material_uniform_contents_from_values(
+                1.4,
+                0.0,
+                [0.25, -1.0, 2.0],
+                true,
+                0,
+                1.4,
+                0,
+                Some(1.4),
+                [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+                [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+                &StandardPbrMaterialFeatures::default(),
+            );
 
         assert_eq!(bytes.len(), GPU_MATERIAL_UNIFORM_MIN_SIZE);
         assert_eq!(f32_at(&bytes, 0), 1.0);

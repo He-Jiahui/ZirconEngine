@@ -4,6 +4,7 @@ use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchChromeMetrics};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct BuiltinWorkbenchWindowLayoutFrames {
+    pub mount_frame: Option<UiFrame>,
     pub center_band_frame: Option<UiFrame>,
     pub activity_rail_frame: Option<UiFrame>,
     pub left_region_frame: Option<UiFrame>,

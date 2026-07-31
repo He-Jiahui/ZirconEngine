@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 use std::sync::Arc;
@@ -6,7 +7,7 @@ use thiserror::Error;
 
 use super::{
     normalize_extension, normalize_full_suffix, AssetImporterCapabilityReport,
-    AssetImporterDescriptor, AssetImporterHandler,
+    AssetImporterCapabilityStatus, AssetImporterDescriptor, AssetImporterHandler,
 };
 use crate::asset::AssetImportError;
 
@@ -24,7 +25,9 @@ pub enum AssetImporterRegistryError {
 
 #[derive(Clone, Default)]
 pub struct AssetImporterRegistry {
-    importers: Vec<Arc<dyn AssetImporterHandler>>,
+    // Clones are immutable published views; mutations publish a COW successor so
+    // project/plugin readers never observe a partially-updated matcher index.
+    generation: Arc<AssetImporterRegistryGeneration>,
 }
 
 impl AssetImporterRegistry {
@@ -39,28 +42,37 @@ impl AssetImporterRegistry {
         &mut self,
         importer: Arc<dyn AssetImporterHandler>,
     ) -> Result<(), AssetImporterRegistryError> {
-        validate_descriptor(importer.descriptor())?;
-        if self
-            .importers
-            .iter()
-            .any(|existing| existing.descriptor().id == importer.descriptor().id)
-        {
-            return Err(AssetImporterRegistryError::DuplicateImporterId(
-                importer.descriptor().id.clone(),
-            ));
+        let prepared = PreparedImporter::new(importer)?;
+        let generation = self.generation.as_ref();
+        if generation.id_to_slot.contains_key(&prepared.id) {
+            return Err(AssetImporterRegistryError::DuplicateImporterId(prepared.id));
         }
-        for matcher in matcher_keys(importer.descriptor()) {
-            if self.importers.iter().any(|existing| {
-                existing.descriptor().priority == importer.descriptor().priority
-                    && matcher_keys(existing.descriptor()).any(|existing| existing == matcher)
-            }) {
+        for extension in &prepared.extensions {
+            if generation.has_matcher_at_priority(
+                &generation.extension_to_slots,
+                extension,
+                prepared.priority,
+            ) {
                 return Err(AssetImporterRegistryError::DuplicateMatcher {
-                    matcher,
-                    priority: importer.descriptor().priority,
+                    matcher: format!("ext:{extension}"),
+                    priority: prepared.priority,
                 });
             }
         }
-        self.importers.push(importer);
+        for suffix in &prepared.full_suffixes {
+            if generation.has_matcher_at_priority(
+                &generation.full_suffix_to_slots,
+                suffix,
+                prepared.priority,
+            ) {
+                return Err(AssetImporterRegistryError::DuplicateMatcher {
+                    matcher: format!("suffix:{suffix}"),
+                    priority: prepared.priority,
+                });
+            }
+        }
+
+        Arc::make_mut(&mut self.generation).insert(prepared);
         Ok(())
     }
 
@@ -68,12 +80,17 @@ impl AssetImporterRegistry {
         &self,
         source_path: &Path,
     ) -> Result<Arc<dyn AssetImporterHandler>, AssetImportError> {
+        self.select_slot(source_path)
+            .map(|slot| slot.importer.clone())
+    }
+
+    fn select_slot(&self, source_path: &Path) -> Result<&AssetImporterSlot, AssetImportError> {
         if let Some(importer) = self.best_full_suffix_match(source_path) {
             return Ok(importer);
         }
         if let Some(suffix) = unknown_typed_toml_suffix(source_path) {
             return Err(AssetImportError::UnsupportedFormat(format!(
-                "typed toml asset suffix `{suffix}` has no registered importer"
+                "typed toml asset suffix `{suffix}.toml` has no registered importer"
             )));
         }
         if let Some(importer) = self.best_extension_match(source_path) {
@@ -97,120 +114,359 @@ impl AssetImporterRegistry {
         &self,
         source_path: &Path,
     ) -> Result<AssetImporterCapabilityReport, AssetImportError> {
-        self.select(source_path)
-            .map(|importer| AssetImporterCapabilityReport {
-                descriptor: importer.descriptor().clone(),
-                status: importer.capability_status(),
+        self.select_slot(source_path)
+            .map(|slot| AssetImporterCapabilityReport {
+                descriptor: slot.importer.descriptor().clone(),
+                status: slot.availability.status.clone(),
             })
     }
 
     pub fn capability_reports(&self) -> Vec<AssetImporterCapabilityReport> {
-        self.importers
-            .iter()
-            .map(|importer| AssetImporterCapabilityReport {
-                descriptor: importer.descriptor().clone(),
-                status: importer.capability_status(),
+        self.generation
+            .slots()
+            .map(|slot| AssetImporterCapabilityReport {
+                descriptor: slot.importer.descriptor().clone(),
+                status: slot.availability.status.clone(),
             })
             .collect()
     }
 
     pub fn descriptors(&self) -> Vec<AssetImporterDescriptor> {
-        self.importers
-            .iter()
-            .map(|importer| importer.descriptor().clone())
+        self.generation
+            .slots()
+            .map(|slot| slot.importer.descriptor().clone())
             .collect()
     }
 
     pub fn descriptors_for_plugin(&self, plugin_id: &str) -> Vec<AssetImporterDescriptor> {
-        self.importers
-            .iter()
-            .filter(|importer| importer.descriptor().plugin_id == plugin_id)
-            .map(|importer| importer.descriptor().clone())
+        self.generation
+            .plugin_to_slots
+            .get(plugin_id)
+            .into_iter()
+            .flatten()
+            .filter_map(|slot| self.generation.slot(*slot))
+            .map(|slot| slot.importer.descriptor().clone())
             .collect()
     }
 
     pub fn importers(&self) -> Vec<Arc<dyn AssetImporterHandler>> {
-        self.importers.clone()
+        self.generation
+            .slots()
+            .map(|slot| slot.importer.clone())
+            .collect()
     }
 
     pub fn remove_by_plugin_id(&mut self, plugin_id: &str) -> Vec<AssetImporterDescriptor> {
-        let mut removed = Vec::new();
-        let importers = std::mem::take(&mut self.importers);
-
-        for importer in importers {
-            if importer.descriptor().plugin_id == plugin_id {
-                removed.push(importer.descriptor().clone());
-            } else {
-                self.importers.push(importer);
-            }
-        }
-
-        removed
+        Arc::make_mut(&mut self.generation).remove_by_plugin_id(plugin_id)
     }
 
     pub fn is_empty(&self) -> bool {
-        self.importers.is_empty()
+        self.generation.active_slots == 0
     }
 
-    fn best_full_suffix_match(&self, source_path: &Path) -> Option<Arc<dyn AssetImporterHandler>> {
-        let name = lower_file_name(source_path);
-        self.importers
-            .iter()
-            .filter_map(|importer| {
-                let suffix_len = importer
-                    .descriptor()
-                    .full_suffixes
-                    .iter()
-                    .map(|suffix| normalize_full_suffix(suffix))
-                    .filter(|suffix| name.ends_with(suffix))
-                    .map(|suffix| suffix.len())
-                    .max()?;
-                Some((
-                    importer.clone(),
-                    capability_rank(importer.as_ref()),
-                    importer.descriptor().priority,
-                    suffix_len,
-                ))
-            })
-            .max_by(|left, right| {
-                left.1
-                    .cmp(&right.1)
-                    .then_with(|| left.2.cmp(&right.2))
-                    .then_with(|| left.3.cmp(&right.3))
-            })
-            .map(|(importer, _, _, _)| importer)
+    fn best_full_suffix_match(&self, source_path: &Path) -> Option<&AssetImporterSlot> {
+        let name = source_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default();
+        let mut best = None;
+        for (offset, _) in name.match_indices('.') {
+            let suffix = &name[offset..];
+            self.generation.consider_candidates(
+                &self.generation.full_suffix_to_slots,
+                suffix,
+                suffix.len(),
+                &mut best,
+            );
+        }
+        best.and_then(|candidate| self.generation.slot(candidate.slot))
     }
 
-    fn best_extension_match(&self, source_path: &Path) -> Option<Arc<dyn AssetImporterHandler>> {
+    fn best_extension_match(&self, source_path: &Path) -> Option<&AssetImporterSlot> {
         let extension = source_path
             .extension()
-            .and_then(|extension| extension.to_str())
-            .map(normalize_extension)?;
-        self.importers
-            .iter()
-            .filter(|importer| {
-                importer
-                    .descriptor()
-                    .source_extensions
-                    .iter()
-                    .map(|extension| normalize_extension(extension))
-                    .any(|candidate| candidate == extension)
-            })
-            .max_by(|left, right| {
-                capability_rank(left.as_ref())
-                    .cmp(&capability_rank(right.as_ref()))
-                    .then_with(|| left.descriptor().priority.cmp(&right.descriptor().priority))
-            })
-            .cloned()
+            .and_then(|extension| extension.to_str())?;
+        let mut best = None;
+        self.generation.consider_candidates(
+            &self.generation.extension_to_slots,
+            extension,
+            0,
+            &mut best,
+        );
+        best.and_then(|candidate| self.generation.slot(candidate.slot))
     }
 }
 
-fn capability_rank(importer: &dyn AssetImporterHandler) -> u8 {
-    if importer.capability_status().is_available() {
-        1
-    } else {
-        0
+#[derive(Clone, Default)]
+struct AssetImporterRegistryGeneration {
+    slots: Vec<Option<AssetImporterSlot>>,
+    extension_to_slots: MatcherIndex,
+    full_suffix_to_slots: MatcherIndex,
+    id_to_slot: HashMap<String, usize>,
+    plugin_to_slots: HashMap<String, Vec<usize>>,
+    active_slots: usize,
+}
+
+impl AssetImporterRegistryGeneration {
+    fn slots(&self) -> impl Iterator<Item = &AssetImporterSlot> {
+        self.slots.iter().filter_map(Option::as_ref)
     }
+
+    fn slot(&self, slot: usize) -> Option<&AssetImporterSlot> {
+        self.slots.get(slot).and_then(Option::as_ref)
+    }
+
+    fn has_matcher_at_priority(&self, index: &MatcherIndex, matcher: &str, priority: i32) -> bool {
+        index.slots(matcher).is_some_and(|slots| {
+            slots.iter().any(|slot| {
+                self.slot(*slot)
+                    .is_some_and(|existing| existing.importer.descriptor().priority == priority)
+            })
+        })
+    }
+
+    fn insert(&mut self, prepared: PreparedImporter) {
+        let slot = self.slots.len();
+        self.id_to_slot.insert(prepared.id.clone(), slot);
+        self.plugin_to_slots
+            .entry(prepared.plugin_id.clone())
+            .or_default()
+            .push(slot);
+        for extension in &prepared.extensions {
+            self.extension_to_slots.insert(extension, slot);
+        }
+        for suffix in &prepared.full_suffixes {
+            self.full_suffix_to_slots.insert(suffix, slot);
+        }
+        self.slots.push(Some(AssetImporterSlot {
+            importer: prepared.importer,
+            availability: prepared.availability,
+            extensions: prepared.extensions,
+            full_suffixes: prepared.full_suffixes,
+        }));
+        self.active_slots += 1;
+    }
+
+    fn remove_by_plugin_id(&mut self, plugin_id: &str) -> Vec<AssetImporterDescriptor> {
+        let Some(slots) = self.plugin_to_slots.remove(plugin_id) else {
+            return Vec::new();
+        };
+        let mut removed = Vec::with_capacity(slots.len());
+        for slot in slots {
+            let Some(existing) = self.slots.get_mut(slot).and_then(Option::take) else {
+                continue;
+            };
+            let descriptor = existing.importer.descriptor().clone();
+            for extension in &existing.extensions {
+                self.extension_to_slots.remove_slot(extension, slot);
+            }
+            for suffix in &existing.full_suffixes {
+                self.full_suffix_to_slots.remove_slot(suffix, slot);
+            }
+            self.id_to_slot.remove(&descriptor.id);
+            self.active_slots -= 1;
+            removed.push(descriptor);
+        }
+        removed
+    }
+
+    fn consider_candidates(
+        &self,
+        index: &MatcherIndex,
+        matcher: &str,
+        suffix_len: usize,
+        best: &mut Option<AssetImporterSelection>,
+    ) {
+        let Some(candidates) = index.slots(matcher) else {
+            return;
+        };
+        for slot in candidates {
+            let Some(candidate) = self.slot(*slot) else {
+                continue;
+            };
+            let selection = AssetImporterSelection {
+                slot: *slot,
+                availability_rank: candidate.availability.rank,
+                priority: candidate.importer.descriptor().priority,
+                suffix_len,
+            };
+            if best.is_none_or(|current| selection.is_at_least_as_good_as(current)) {
+                *best = Some(selection);
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+struct AssetImporterSlot {
+    importer: Arc<dyn AssetImporterHandler>,
+    availability: Arc<AssetImporterAvailability>,
+    extensions: Vec<Box<str>>,
+    full_suffixes: Vec<Box<str>>,
+}
+
+#[derive(Clone)]
+struct AssetImporterAvailability {
+    status: AssetImporterCapabilityStatus,
+    rank: u8,
+}
+
+impl AssetImporterAvailability {
+    fn new(status: AssetImporterCapabilityStatus) -> Self {
+        let rank = u8::from(status.is_available());
+        Self { status, rank }
+    }
+}
+
+struct PreparedImporter {
+    importer: Arc<dyn AssetImporterHandler>,
+    id: String,
+    plugin_id: String,
+    priority: i32,
+    availability: Arc<AssetImporterAvailability>,
+    extensions: Vec<Box<str>>,
+    full_suffixes: Vec<Box<str>>,
+}
+
+impl PreparedImporter {
+    fn new(importer: Arc<dyn AssetImporterHandler>) -> Result<Self, AssetImporterRegistryError> {
+        let descriptor = importer.descriptor();
+        let extensions = normalized_matchers(&descriptor.source_extensions, normalize_extension);
+        let full_suffixes = normalized_matchers(&descriptor.full_suffixes, normalize_full_suffix);
+        if extensions.is_empty() && full_suffixes.is_empty() {
+            return Err(AssetImporterRegistryError::MissingMatcher(
+                descriptor.id.clone(),
+            ));
+        }
+        if let Some(suffix) = full_suffixes
+            .iter()
+            .map(|suffix| suffix.as_ref())
+            .find(|suffix| matches!(*suffix, ".ui.toml" | ".v2.ui.toml"))
+        {
+            return Err(
+                AssetImporterRegistryError::DeprecatedUiDocumentSuffixImporter {
+                    importer_id: descriptor.id.clone(),
+                    suffix: suffix.to_owned(),
+                },
+            );
+        }
+        Ok(Self {
+            importer: importer.clone(),
+            id: descriptor.id.clone(),
+            plugin_id: descriptor.plugin_id.clone(),
+            priority: descriptor.priority,
+            availability: Arc::new(AssetImporterAvailability::new(importer.capability_status())),
+            extensions,
+            full_suffixes,
+        })
+    }
+}
+
+fn normalized_matchers(matchers: &[String], normalize: impl Fn(&str) -> String) -> Vec<Box<str>> {
+    let mut normalized = Vec::with_capacity(matchers.len());
+    for matcher in matchers {
+        let matcher = normalize(matcher);
+        if !normalized
+            .iter()
+            .any(|existing: &Box<str>| existing.as_ref() == matcher)
+        {
+            normalized.push(matcher.into_boxed_str());
+        }
+    }
+    normalized
+}
+
+#[derive(Clone, Default)]
+struct MatcherIndex {
+    // The folded hash avoids query-time matcher allocation. Hash collisions stay
+    // correct because every bucket still checks ASCII-insensitive equality.
+    buckets: HashMap<u64, Vec<MatcherIndexEntry>>,
+}
+
+impl MatcherIndex {
+    fn insert(&mut self, matcher: &str, slot: usize) {
+        let entries = self
+            .buckets
+            .entry(ascii_case_fold_hash(matcher))
+            .or_default();
+        if let Some(entry) = entries
+            .iter_mut()
+            .find(|entry| entry.matcher.eq_ignore_ascii_case(matcher))
+        {
+            entry.slots.push(slot);
+        } else {
+            entries.push(MatcherIndexEntry {
+                matcher: matcher.into(),
+                slots: vec![slot],
+            });
+        }
+    }
+
+    fn slots(&self, matcher: &str) -> Option<&[usize]> {
+        self.buckets
+            .get(&ascii_case_fold_hash(matcher))?
+            .iter()
+            .find(|entry| entry.matcher.eq_ignore_ascii_case(matcher))
+            .map(|entry| entry.slots.as_slice())
+    }
+
+    fn remove_slot(&mut self, matcher: &str, slot: usize) {
+        let hash = ascii_case_fold_hash(matcher);
+        let mut remove_bucket = false;
+        if let Some(entries) = self.buckets.get_mut(&hash) {
+            if let Some(position) = entries
+                .iter()
+                .position(|entry| entry.matcher.eq_ignore_ascii_case(matcher))
+            {
+                entries[position]
+                    .slots
+                    .retain(|candidate| *candidate != slot);
+                if entries[position].slots.is_empty() {
+                    entries.swap_remove(position);
+                }
+            }
+            remove_bucket = entries.is_empty();
+        }
+        if remove_bucket {
+            self.buckets.remove(&hash);
+        }
+    }
+}
+
+#[derive(Clone)]
+struct MatcherIndexEntry {
+    matcher: Box<str>,
+    slots: Vec<usize>,
+}
+
+#[derive(Clone, Copy)]
+struct AssetImporterSelection {
+    slot: usize,
+    availability_rank: u8,
+    priority: i32,
+    suffix_len: usize,
+}
+
+impl AssetImporterSelection {
+    fn is_at_least_as_good_as(self, other: Self) -> bool {
+        (
+            self.availability_rank,
+            self.priority,
+            self.suffix_len,
+            self.slot,
+        ) >= (
+            other.availability_rank,
+            other.priority,
+            other.suffix_len,
+            other.slot,
+        )
+    }
+}
+
+fn ascii_case_fold_hash(value: &str) -> u64 {
+    value.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+        (hash ^ u64::from(byte.to_ascii_lowercase())).wrapping_mul(0x0000_0100_0000_01b3)
+    })
 }
 
 impl fmt::Debug for AssetImporterRegistry {
@@ -222,61 +478,20 @@ impl fmt::Debug for AssetImporterRegistry {
     }
 }
 
-fn validate_descriptor(
-    descriptor: &AssetImporterDescriptor,
-) -> Result<(), AssetImporterRegistryError> {
-    if descriptor.source_extensions.is_empty() && descriptor.full_suffixes.is_empty() {
-        return Err(AssetImporterRegistryError::MissingMatcher(
-            descriptor.id.clone(),
-        ));
-    }
-    if let Some(suffix) = descriptor
-        .full_suffixes
-        .iter()
-        .map(|suffix| normalize_full_suffix(suffix))
-        .find(|suffix| matches!(suffix.as_str(), ".ui.toml" | ".v2.ui.toml"))
-    {
-        return Err(
-            AssetImporterRegistryError::DeprecatedUiDocumentSuffixImporter {
-                importer_id: descriptor.id.clone(),
-                suffix,
-            },
-        );
-    }
-    Ok(())
-}
-
-fn matcher_keys(descriptor: &AssetImporterDescriptor) -> impl Iterator<Item = String> + '_ {
-    descriptor
-        .full_suffixes
-        .iter()
-        .map(|suffix| format!("suffix:{}", normalize_full_suffix(suffix)))
-        .chain(
-            descriptor
-                .source_extensions
-                .iter()
-                .map(|extension| format!("ext:{}", normalize_extension(extension))),
-        )
-}
-
-fn lower_file_name(source_path: &Path) -> String {
-    source_path
+fn unknown_typed_toml_suffix(source_path: &Path) -> Option<&str> {
+    let name = source_path
         .file_name()
         .and_then(|name| name.to_str())
-        .unwrap_or_default()
-        .to_ascii_lowercase()
-}
-
-fn unknown_typed_toml_suffix(source_path: &Path) -> Option<String> {
-    let name = lower_file_name(source_path);
-    if !name.ends_with(".toml") {
+        .unwrap_or_default();
+    let toml_start = name.len().checked_sub(".toml".len())?;
+    if !name[toml_start..].eq_ignore_ascii_case(".toml") {
         return None;
     }
-    let stem = name.strip_suffix(".toml")?;
+    let stem = &name[..toml_start];
     let typed_suffix_start = stem.rfind('.')?;
-    let suffix = &stem[typed_suffix_start..];
+    let suffix = &name[typed_suffix_start..toml_start];
     if suffix.is_empty() {
         return None;
     }
-    Some(format!("{suffix}.toml"))
+    Some(suffix)
 }

@@ -1,0 +1,15 @@
+// Generated deterministic Delve affix selection catalog.
+
+pub seedXor(required: bool): int { if (!required) { throw "woc affix seed xor is required"; } return 1511112926; }
+
+pub poolCount(delveIndex: int, required: bool): int { if (!required || delveIndex < 0 || delveIndex >= 2) { throw "woc Delve affix pool is invalid"; } return 3; }
+
+pub poolId(delveIndex: int, poolIndex: int, required: bool): string { if (!required || delveIndex < 0 || delveIndex >= 2 || poolIndex < 0 || poolIndex >= 3) { throw "woc Delve affix pool id is invalid"; }
+    if (delveIndex == 0) { if (poolIndex == 0) { return "restless_graves"; } if (poolIndex == 1) { return "bad_air"; } return "candleblind"; }
+    if (delveIndex == 1) { if (poolIndex == 0) { return "high_water"; } if (poolIndex == 1) { return "lively_choir"; } return "belligerent_dead"; }
+    throw "woc Delve affix pool id is invalid";
+}
+
+pub tierAffixCount(delveIndex: int, tierIndex: int, required: bool): int { if (!required || delveIndex < 0 || delveIndex >= 2) { throw "woc Delve affix tier is invalid"; } return tierIndex == 1 ? 1 : 0; }
+
+pub contractTest(): int { if (seedXor(true) != 1511112926 || poolId(0,0,true) != "restless_graves" || poolId(1,2,true) != "belligerent_dead" || tierAffixCount(0,0,true) != 0 || tierAffixCount(1,1,true) != 1) { return -1; } return 1; }

@@ -24,6 +24,7 @@ mod material_transforms;
 mod multi_primitive;
 mod multi_scene;
 mod vertex_channels;
+mod woc_required_extensions;
 
 fn entry_for_label<'a>(
     outcome: &'a AssetImportOutcome,

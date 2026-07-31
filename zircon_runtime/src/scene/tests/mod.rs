@@ -36,6 +36,7 @@ mod ecs_system_query_cache;
 mod ecs_systems;
 mod ecs_typed_api;
 mod inspection;
+mod level_system_frame_state;
 mod physics_animation_components;
 mod property_paths;
 mod render_extract;
@@ -72,6 +73,30 @@ fn level_manager_produces_level_systems() {
     let manager = DefaultLevelManager::default();
     let level = manager.create_default_level();
     assert!(manager.level(level.handle()).is_some());
+}
+
+#[test]
+fn level_manager_registry_locks_do_not_cross_world_work() {
+    let contract_source = include_str!("../module/level_manager_contract.rs");
+    assert!(contract_source.contains("self.lock_levels().contains_key(&handle)"));
+
+    let lifecycle_source = include_str!("../module/level_manager_lifecycle.rs");
+    let normalized: String = lifecycle_source
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect();
+    let apply_index = normalized
+        .find("driver.apply_world_runtime_extensions(&mutworld)?;")
+        .expect("level creation applies runtime extensions");
+    let insert_index = normalized
+        .find("self.lock_levels().insert(handle,level.clone());")
+        .expect("level creation publishes the completed level");
+
+    assert!(apply_index < insert_index);
+    assert!(normalized.contains(
+        "letlevels=self.lock_levels().values().cloned().collect::<Vec<_>>();forlevelinlevels{"
+    ));
+    assert!(normalized.contains("fetch_add(1,Ordering::Relaxed)"));
 }
 
 #[test]

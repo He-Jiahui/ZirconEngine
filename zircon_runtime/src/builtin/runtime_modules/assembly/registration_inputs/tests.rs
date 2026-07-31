@@ -7,7 +7,7 @@ use crate::core::framework::render::{
 use crate::plugin::{PluginPackageManifest, RuntimeExtensionRegistry};
 
 #[test]
-fn plugin_registration_inputs_collect_shading_model_descriptors() {
+fn plugin_registration_inputs_leave_provider_membership_to_availability_projection() {
     let plugin_id = RuntimePluginId::new("toon_shading");
     let plugin_key = plugin_id.key().to_string();
     let descriptor = ShadingModelDescriptor::new(
@@ -31,9 +31,19 @@ fn plugin_registration_inputs_collect_shading_model_descriptors() {
 
     let inputs = registration_inputs_for_plugin_reports(&[&registration]);
 
-    assert_eq!(
-        inputs.linked_plugin_ids(),
-        std::slice::from_ref(&plugin_key)
-    );
+    assert!(inputs.linked_plugin_ids().is_empty());
     assert_eq!(inputs.shading_models(), &[descriptor]);
+}
+
+#[test]
+fn linked_plugin_inputs_build_final_membership_once() {
+    let inputs = RuntimeModuleRegistrationInputs::from_linked_plugin_ids([
+        "zircon.plugin.one",
+        "zircon.plugin.one",
+        "zircon.plugin.two",
+    ]);
+
+    assert_eq!(inputs.linked_plugin_ids().len(), 2);
+    assert!(inputs.linked_plugin_ids().contains("zircon.plugin.one"));
+    assert!(inputs.linked_plugin_ids().contains("zircon.plugin.two"));
 }

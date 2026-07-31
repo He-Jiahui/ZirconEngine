@@ -14,7 +14,7 @@ related_code:
   - zircon_runtime/src/asset/project/manager/mod.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/meta.rs
-  - zircon_runtime/src/asset/project/meta_io.rs
+  - zircon_runtime/src/foundation/persistence/atomic_file.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/scene/world/project_io/references.rs
 implementation_files:
@@ -83,7 +83,7 @@ Opening a project loads the versioned JSON document when it is valid. Missing or
 
 The persistence schema uses `deny_unknown_fields` and an exact format version. Old registry paths and old persistence schemas are not searched. Corrupt content is not partially trusted or merged; it is replaced by a clean rebuild and a typed recovery diagnostic. Decode failures retain the `serde_json` source, and version failures report both the found and supported versions.
 
-Registry persistence reuses the v7 sidecar atomic-write transaction: a unique sibling staging file is written, flushed, and synchronized before the formal file is replaced with the platform transaction (`ReplaceFileW` on Windows and rename-overwrite on Unix). Write, sync, and replace fault-injection tests prove that the prior formal file remains readable and unchanged. The registry does not maintain a second ad-hoc atomic-write implementation.
+Registry persistence and v7 sidecars both use the foundation-owned atomic-file transaction in `foundation/persistence/atomic_file.rs`: a unique sibling staging file is written, flushed, and synchronized before the formal file is replaced with the platform transaction (`ReplaceFileW` on Windows and rename-overwrite on Unix). Write, sync, and replace fault-injection tests prove that the prior formal file remains readable and unchanged. Asset code does not own a forwarding module or a second ad-hoc atomic-write implementation.
 
 Metadata discovery rejects symlinks and Windows reparse points (including junctions), verifies every canonical path remains under its configured asset root, and tracks visited canonical directories to reject traversal cycles. Registry rebuild therefore never follows an asset-root escape.
 

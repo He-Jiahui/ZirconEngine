@@ -54,4 +54,8 @@ pub use scene_renderer::{
     RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
     RenderPassGpuExecutionContext,
 };
-pub use scene_renderer::{RealtimeIblGpuTimingReport, SceneRenderer};
+pub use scene_renderer::{
+    RealtimeIblGpuTimingReport, SceneRenderer, SceneRendererCoreStartupReport,
+    SceneRendererDeferredLightingProfile, SceneRendererFrameTimingReport,
+    SceneRendererStartupOptions, SceneRendererStartupReport, SceneViewportSurface,
+};

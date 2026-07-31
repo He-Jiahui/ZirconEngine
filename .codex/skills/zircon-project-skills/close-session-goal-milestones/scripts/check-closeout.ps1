@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string]$RepoRoot,
@@ -148,8 +148,8 @@ try {
         Add-CloseoutError "failure_graph_invalid" "Canonical Failure Markdown has validation diagnostics."
     }
     $milestoneId = [string](Get-PropertyValue $manifest "milestone_id")
-    if ($milestoneId -notmatch '^M[0-9]+$') {
-        Add-CloseoutError "milestone_id_invalid" "Manifest requires a milestone_id such as M2."
+    if ($milestoneId -notmatch '^M[1-9][0-9]*(?:\.[1-9][0-9]*)?$') {
+        Add-CloseoutError "milestone_id_invalid" "Manifest requires a milestone or native slice ID such as M2 or M2.1."
     }
     $planRelative = ConvertTo-RepoPath ([string](Get-PropertyValue $coordinator "plan_path"))
     if ($null -eq $planRelative) {
@@ -206,15 +206,15 @@ try {
             $childPrefix = if ([string]::IsNullOrEmpty($planParent)) { $Matches[1] } else { "$planParent/$($Matches[1])" }
         }
     }
-    $stagedPlanEvidence = @(
+    $manifestPlanEvidence = @(
         if ($null -ne $childPrefix) {
             $manifestSet | Where-Object { $_.StartsWith("$childPrefix/", [StringComparison]::OrdinalIgnoreCase) }
         }
     )
-    if ($stagedPlanEvidence.Count -eq 0) {
-        Add-CloseoutError "plan_evidence_not_staged" "Closeout requires attributed staged evidence in the registered plan's numbered child directory."
+    if ($manifestPlanEvidence.Count -eq 0) {
+        Add-CloseoutError "plan_evidence_missing" "Closeout requires attributed manifest evidence in the registered plan's numbered child directory."
     }
-    $planEvidencePaths += $stagedPlanEvidence
+    $planEvidencePaths += $manifestPlanEvidence
     $planTextParts = [Collections.Generic.List[string]]::new()
     foreach ($evidencePath in @($planEvidencePaths | Sort-Object -Unique)) {
         if ($preStage) {
@@ -340,18 +340,16 @@ try {
 
     $diffLines = Invoke-GitText -Arguments @("diff", "--cached", "--unified=0", "--no-color")
     $addedText = @($diffLines | Where-Object { $_.StartsWith("+") -and -not $_.StartsWith("+++") }) -join "`n"
-    $webhookHost = @("qyapi", "weixin", "qq", "com") -join '\.'
-    $webhookPattern = $webhookHost + '/cgi-bin/webhook/send\?key='
     $capabilityName = @("ZIRCON", "COORDINATOR", "MAINTENANCE", "TOKEN") -join "_"
     $secretValue = '(?:"[^"\r\n]+"|''[^''\r\n]+''|[^\s,;}]+)'
     $capabilityPattern = '(?i)["'']?' + [Regex]::Escape($capabilityName) + '["'']?\s*[:=]\s*' + $secretValue
     $credentialPattern = '(?i)["'']?(?:api[_-]?key|access[_-]?token|client[_-]?secret|password)["'']?\s*[:=]\s*' + $secretValue
-    $wecomKeyPattern = '(?i)["'']?(?:wecom|wechat)[_-]?(?:webhook[_-]?)?key["'']?\s*[:=]\s*' + $secretValue
-    if ($addedText -match $webhookPattern -or
-        $addedText -match $capabilityPattern -or
-        $addedText -match $credentialPattern -or
-        $addedText -match $wecomKeyPattern) {
-        Add-CloseoutError "sensitive_staged_content" "Staged added lines contain webhook, maintenance capability, or credential material."
+    # The operator explicitly permits enterprise-WeChat webhook configuration
+    # to travel with an auditable Git commit. Maintenance capabilities and
+    # generic credentials remain prohibited in staged content.
+    if ($addedText -match $capabilityPattern -or
+        $addedText -match $credentialPattern) {
+        Add-CloseoutError "sensitive_staged_content" "Staged added lines contain a maintenance capability or credential."
     }
 
     $result = [ordered]@{

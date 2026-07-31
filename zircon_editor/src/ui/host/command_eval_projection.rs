@@ -2,14 +2,15 @@ use crate::core::asset::AssetWriteAccess;
 use crate::core::commands::CommandEvalCtx;
 use crate::core::editor_message::PlayStateKind;
 use crate::core::editor_operation::EditorOperationSource;
+use crate::core::play::PlayModeKind;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
-use crate::ui::workbench::startup::EditorSessionMode;
 
 use super::EditorHostEventController;
 
 /// Projects UI-owned state into the neutral core DTO stored by `EditorContext`.
 pub(crate) fn command_eval_ctx_from_chrome<I, S>(
     chrome: &EditorChromeSnapshot,
+    play_mode: PlayModeKind,
     capabilities: I,
 ) -> CommandEvalCtx
 where
@@ -21,7 +22,6 @@ where
         .with_project_open(chrome.project_open)
         .with_undo_available(chrome.can_undo)
         .with_redo_available(chrome.can_redo)
-        .with_selection_count(if chrome.inspector.is_some() { 1 } else { 0 })
         .with_asset_write_access(
             chrome
                 .asset_browser
@@ -30,11 +30,16 @@ where
                 .map(|authority| authority.write_access())
                 .unwrap_or(AssetWriteAccess::ReadOnly),
         )
-        .with_play_state(match chrome.session_mode {
-            EditorSessionMode::Playing => PlayStateKind::Playing,
-            EditorSessionMode::Welcome | EditorSessionMode::Project => PlayStateKind::Edit,
-        })
+        .with_play_state(play_state_from_mode(play_mode))
         .with_capabilities(capabilities)
+}
+
+const fn play_state_from_mode(play_mode: PlayModeKind) -> PlayStateKind {
+    match play_mode {
+        PlayModeKind::Edit => PlayStateKind::Edit,
+        PlayModeKind::Building => PlayStateKind::Building,
+        PlayModeKind::Playing => PlayStateKind::Playing,
+    }
 }
 
 impl EditorHostEventController {
@@ -42,14 +47,19 @@ impl EditorHostEventController {
         &self,
         chrome: &EditorChromeSnapshot,
     ) -> CommandEvalCtx {
-        let capabilities = self
-            .shell()
-            .lock()
+        let shell = self.shell().lock();
+        let capabilities = shell
             .manager
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();
-        let context = command_eval_ctx_from_chrome(chrome, capabilities);
+        let context = shell
+            .state
+            .project_command_eval_ctx(command_eval_ctx_from_chrome(
+                chrome,
+                self.play_sessions().mode(),
+                capabilities,
+            ));
         self.context().command_eval().replace(context.clone());
         context
     }
@@ -68,6 +78,7 @@ impl EditorHostEventController {
                     .enabled_capabilities()
                     .to_vec();
                 CommandEvalCtx::headless(capabilities)
+                    .with_play_state(play_state_from_mode(self.play_sessions().mode()))
             }
             EditorOperationSource::Menu | EditorOperationSource::UiBinding => {
                 self.context().command_eval().snapshot()

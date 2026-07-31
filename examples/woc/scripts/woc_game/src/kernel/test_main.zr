@@ -1,0 +1,105 @@
+var system = %import("zr.system");
+system.console.printLine("kernel-test-start");
+var tests = %import("kernel/tests");
+
+var rng = tests.rngKnownVector();
+system.console.printLine(rng);
+if (rng != 1) {
+    return rng - 30;
+}
+var sharedRng = tests.sharedRngStream();
+system.console.printLine(sharedRng);
+if (sharedRng != 1) {
+    return sharedRng - 110;
+}
+var clock = tests.fixedClock();
+system.console.printLine(clock);
+if (clock != 1) {
+    return clock - 90;
+}
+var world = tests.worldContract();
+system.console.printLine(world);
+if (world != 1) {
+    return world - 100;
+}
+var authoritativeWorld = tests.authoritativeWorldState();
+system.console.printLine(authoritativeWorld);
+if (authoritativeWorld != 1) {
+    return authoritativeWorld - 160;
+}
+var binaryProtocol = tests.binaryProtocol();
+system.console.printLine(binaryProtocol);
+if (binaryProtocol != 1) {
+    return binaryProtocol - 170;
+}
+var commandCatalog = tests.commandCatalog();
+system.console.printLine(commandCatalog);
+if (commandCatalog != 1) {
+    return commandCatalog - 190;
+}
+var packageLifecycle = tests.packageLifecycle();
+system.console.printLine(packageLifecycle);
+if (packageLifecycle != 1) {
+    return packageLifecycle - 180;
+}
+var generation = tests.generationReuse();
+system.console.printLine(generation);
+if (generation != 1) {
+    return generation;
+}
+var ordering = tests.sortedIteration();
+system.console.printLine(ordering);
+if (ordering != 1) {
+    return ordering - 10;
+}
+var snapshot = tests.snapshotIsolation();
+system.console.printLine(snapshot);
+if (snapshot != 1) {
+    return snapshot - 20;
+}
+var movement = tests.movementIntegration();
+system.console.printLine(movement);
+if (movement != 1) {
+    return movement - 40;
+}
+var movementBoundary = tests.movementBoundary();
+system.console.printLine(movementBoundary);
+if (movementBoundary != 1) {
+    return movementBoundary - 140;
+}
+var targeting = tests.targetingThresholds();
+system.console.printLine(targeting);
+if (targeting != 1) {
+    return targeting - 50;
+}
+var targetingTie = tests.targetingTies();
+system.console.printLine(targetingTie);
+if (targetingTie != 1) {
+    return targetingTie - 130;
+}
+var lifecycle = tests.lifecycleRules();
+system.console.printLine(lifecycle);
+if (lifecycle != 1) {
+    return lifecycle - 60;
+}
+var lifecycleRng = tests.lifecycleSharedRng();
+system.console.printLine(lifecycleRng);
+if (lifecycleRng != 1) {
+    return lifecycleRng - 150;
+}
+var locomotion = tests.mobLocomotionRules();
+system.console.printLine(locomotion);
+if (locomotion != 1) {
+    return locomotion - 70;
+}
+var locomotionRng = tests.locomotionSharedRng();
+system.console.printLine(locomotionRng);
+if (locomotionRng != 1) {
+    return locomotionRng - 120;
+}
+var roster = tests.rosterRules();
+system.console.printLine(roster);
+if (roster != 1) {
+    return roster - 80;
+}
+return 0;

@@ -154,7 +154,8 @@ fn retained_host_module_exports_rust_owned_contracts_without_generated_modules()
         "retained_host must expose Rust-owned contracts instead of generated Retained modules"
     );
     assert!(
-        host_module.contains("mod host_contract") && host_module.contains("pub(crate) use host_contract::*"),
+        host_module.contains("mod host_contract")
+            && host_module.contains("pub(crate) use host_contract::*"),
         "retained_host should route the former generated DTO seam through a Rust-owned host_contract module"
     );
 }
@@ -294,7 +295,11 @@ fn editor_ui_toml_assets_are_the_host_chrome_authority() {
         ),
         (
             "assets/ui/editor/host/scene_viewport_toolbar.zui",
-            &["SceneViewportToolbarRoot", "SetTool", "FrameSelection"][..],
+            &[
+                "SceneViewportToolbarRoot",
+                "ActivateSceneMode",
+                "FrameSelection",
+            ][..],
         ),
     ] {
         let path = manifest_dir.join(relative);

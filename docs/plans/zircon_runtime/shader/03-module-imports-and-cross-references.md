@@ -108,3 +108,12 @@ pub struct ResolvedModuleSet {
 - 自实现解析器 vs naga_oil:维持自实现(仓库既定方向,避免 naga 版本锁耦合),但语义以 Composer 为对照基准;若后续需要 `#import 符号级导入`,以扩展词法层实现,不切换依赖。
 - 词法级 `#include` 扫描误报(注释/字符串中的伪指令):解析器按行首指令处理并忽略行注释,测试覆盖;不为此引入完整 WGSL 预处理器。
 - 模块级 properties(带属性的可复用模块)是已知的后续需求(UE Material Function 带参数的形态):当前禁止,避免布局归属复杂化;需求成熟后作为独立计划扩展,不在本计划夹带。
+
+## Code Review 建议 (2026-07-30)
+
+基于对 shader graphics 目录与 module import 契约的实际阅读。
+
+### 与代码现状不符，需修订
+
+- 「目标架构」写「注册表与解析器在 `graphics/shader/module_registry/`(由现 `include_registry` 原位演进,硬切换改名)」,但实际落点是单文件 `zircon_runtime/src/graphics/shader/template/module_registry.rs`(仍在 `template/` 下,不是独立的 `graphics/shader/module_registry/` 目录)。SH03-M1 状态行已写「`include_registry.rs` 已硬切换为 `module_registry.rs`」但沿用了 template 子路径。建议把目标架构的归属路径更正为 `graphics/shader/template/module_registry.rs`,与实际模块 mount 一致(front-matter 无此字段,勿动)。
+- 「模块 id/依赖契约在 `core/framework/render/shader/`」的落点已实现为 `zircon_runtime/src/core/framework/render/shader/module_import.rs`(提供 `#include` 扫描/剥离与 `self::`/`zr_*` 分类,SH03-M1 状态行已确认)。目标架构段建议点名该具体文件,便于后续 owner 定位,而不是只写目录。

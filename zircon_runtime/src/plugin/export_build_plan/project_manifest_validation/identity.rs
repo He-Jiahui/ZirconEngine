@@ -1,22 +1,24 @@
-use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;
 
 use super::tokens::{
     is_lowercase_project_feature_namespace, is_lowercase_project_feature_segment,
-    is_lowercase_project_plugin_package_token, target_consumes_feature, target_consumes_selection,
+    is_lowercase_project_plugin_package_token,
 };
+use super::ProjectPluginManifestValidationProjection;
 
 pub(in crate::plugin::export_build_plan) fn project_plugin_package_id_diagnostics(
     manifest: &ProjectPluginManifest,
-    target: RuntimeTargetMode,
+    projection: &ProjectPluginManifestValidationProjection,
 ) -> (Vec<String>, Vec<String>) {
     let mut diagnostics = Vec::new();
     let mut fatal_diagnostics = Vec::new();
-    for selection in manifest
-        .selections
-        .iter()
-        .filter(|selection| selection.enabled && selection.supports_target(target))
-    {
+    for (selection_index, selection) in manifest.selections.iter().enumerate() {
+        if !projection.selection_is_consumed_by_target(selection_index) {
+            continue;
+        }
+        if projection.selection_package_id_is_valid(selection_index) {
+            continue;
+        }
         let first_diagnostic = diagnostics.len();
         validate_project_plugin_package_id(
             "project plugin selection id",
@@ -32,20 +34,21 @@ pub(in crate::plugin::export_build_plan) fn project_plugin_package_id_diagnostic
 
 pub(in crate::plugin::export_build_plan) fn project_feature_id_diagnostics(
     manifest: &ProjectPluginManifest,
-    target: RuntimeTargetMode,
+    projection: &ProjectPluginManifestValidationProjection,
 ) -> (Vec<String>, Vec<String>) {
     let mut diagnostics = Vec::new();
     let mut fatal_diagnostics = Vec::new();
-    for owner in manifest
-        .selections
-        .iter()
-        .filter(|selection| selection.enabled && selection.supports_target(target))
-    {
-        for feature in owner
-            .features
-            .iter()
-            .filter(|feature| feature.enabled && feature.supports_target(target))
-        {
+    for (selection_index, owner) in manifest.selections.iter().enumerate() {
+        if !projection.selection_is_consumed_by_target(selection_index) {
+            continue;
+        }
+        for (feature_index, feature) in owner.features.iter().enumerate() {
+            if !projection.feature_is_consumed_by_target(selection_index, feature_index) {
+                continue;
+            }
+            if projection.feature_id_is_valid(selection_index, feature_index) {
+                continue;
+            }
             let first_diagnostic = diagnostics.len();
             validate_project_plugin_feature_id(&owner.id, &feature.id, &mut diagnostics);
             if feature.required {
@@ -58,42 +61,34 @@ pub(in crate::plugin::export_build_plan) fn project_feature_id_diagnostics(
 
 pub(in crate::plugin::export_build_plan) fn sanitize_project_identity_rows(
     manifest: &mut ProjectPluginManifest,
-    target: RuntimeTargetMode,
+    projection: &ProjectPluginManifestValidationProjection,
 ) {
-    let mut seen_selection_ids = Vec::new();
-    manifest.selections.retain(|selection| {
-        if !target_consumes_selection(selection, target) {
-            return true;
-        }
-        if !project_plugin_package_id_is_valid(&selection.id) {
-            return false;
-        }
-        if seen_selection_ids.iter().any(|seen| seen == &selection.id) {
-            return false;
-        }
-        seen_selection_ids.push(selection.id.clone());
-        true
-    });
-    for selection in &mut manifest.selections {
-        if !target_consumes_selection(selection, target) {
-            continue;
-        }
-        let owner_id = selection.id.clone();
-        let mut seen_feature_ids = Vec::new();
-        selection.features.retain(|feature| {
-            if !target_consumes_feature(feature, target) {
-                return true;
+    let selections = std::mem::take(&mut manifest.selections);
+    manifest.selections = selections
+        .into_iter()
+        .enumerate()
+        .filter_map(|(selection_index, mut selection)| {
+            if !projection.selection_retained_after_identity_sanitize(selection_index) {
+                return None;
             }
-            if !project_plugin_feature_id_is_valid(&owner_id, &feature.id) {
-                return false;
+            if projection.selection_is_consumed_by_target(selection_index) {
+                let features = std::mem::take(&mut selection.features);
+                selection.features = features
+                    .into_iter()
+                    .enumerate()
+                    .filter_map(|(feature_index, feature)| {
+                        projection
+                            .feature_retained_after_identity_sanitize(
+                                selection_index,
+                                feature_index,
+                            )
+                            .then_some(feature)
+                    })
+                    .collect();
             }
-            if seen_feature_ids.iter().any(|seen| seen == &feature.id) {
-                return false;
-            }
-            seen_feature_ids.push(feature.id.clone());
-            true
-        });
-    }
+            Some(selection)
+        })
+        .collect();
 }
 
 pub(super) fn validate_project_plugin_package_id(

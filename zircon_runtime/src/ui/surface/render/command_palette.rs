@@ -1,11 +1,12 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, sync::OnceLock};
 
 use toml::Value;
 use zircon_runtime_interface::ui::{
     component::UiComponentState,
+    design_tokens::{EditorDesignTokens, EditorTypographyTokens},
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
     tree::UiTemplateNodeMetadata,
 };
@@ -23,25 +24,131 @@ const PLACEHOLDER: &str = "placeholder";
 const RECENT_COMMANDS: &str = "recent_commands";
 const COMMAND_SOURCE: &str = "command_source";
 
-const PANEL_SURFACE: &str = "#151b1f";
-const PANEL_BORDER: &str = "#303840";
-const FIELD_SURFACE: &str = "#10161a";
-const FIELD_BORDER: &str = "#35c7d0";
-const TEXT: &str = "#e8ecee";
-const MUTED_TEXT: &str = "#59656c";
+#[derive(Clone, Copy, Debug)]
+struct CommandPaletteVisual {
+    panel_surface: UiRgbaColor,
+    panel_border: UiRgbaColor,
+    field_surface: UiRgbaColor,
+    field_border: UiRgbaColor,
+    text: UiRgbaColor,
+    muted_text: UiRgbaColor,
+    border_width: f32,
+    panel_radius: f32,
+    search_radius: f32,
+    panel_padding_x: f32,
+    search_top: f32,
+    search_height: f32,
+    search_text_inset_x: f32,
+    list_gap: f32,
+    row_inset_x: f32,
+    row_height: f32,
+    font_size: f32,
+    line_height: f32,
+}
 
-const PANEL_RADIUS: f32 = 6.0;
-const PANEL_PADDING_X: f32 = 12.0;
-const SEARCH_TOP: f32 = 10.0;
-const SEARCH_HEIGHT: f32 = 30.0;
-const SEARCH_TEXT_X: f32 = 10.0;
-const SEARCH_TEXT_Y: f32 = 7.0;
-const LIST_TOP: f32 = 48.0;
-const ROW_INSET_X: f32 = 8.0;
-const ROW_HEIGHT: f32 = 26.0;
-const EMPTY_TEXT_Y: f32 = 58.0;
-const TEXT_FONT_SIZE: f32 = 12.0;
-const TEXT_LINE_HEIGHT: f32 = 14.4;
+impl CommandPaletteVisual {
+    fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
+        let mut visual = *default_command_palette_visual();
+        visual.panel_surface =
+            first_rgba_attribute(metadata, &["background_color"]).unwrap_or(visual.panel_surface);
+        visual.panel_border =
+            first_rgba_attribute(metadata, &["border_color"]).unwrap_or(visual.panel_border);
+        visual.field_surface = first_rgba_attribute(
+            metadata,
+            &["search_background_color", "field_background_color"],
+        )
+        .unwrap_or(visual.field_surface);
+        visual.field_border =
+            first_rgba_attribute(metadata, &["search_border_color", "focus_border_color"])
+                .unwrap_or(visual.field_border);
+        visual.text = first_rgba_attribute(metadata, &["foreground_color", "text_color"])
+            .unwrap_or(visual.text);
+        visual.muted_text =
+            first_rgba_attribute(metadata, &["placeholder_color"]).unwrap_or(visual.muted_text);
+        visual.border_width = metric_attribute(metadata, "border_width")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.border_width);
+        visual.panel_radius = metric_attribute(metadata, "corner_radius")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.panel_radius);
+        visual.search_radius = metric_attribute(metadata, "search_radius")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.search_radius);
+        visual.panel_padding_x = metric_attribute(metadata, "panel_padding_x")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.panel_padding_x);
+        visual.search_top = metric_attribute(metadata, "search_top")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.search_top);
+        visual.search_height = metric_attribute(metadata, "search_height")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.search_height);
+        visual.search_text_inset_x = metric_attribute(metadata, "search_text_inset_x")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.search_text_inset_x);
+        visual.list_gap = metric_attribute(metadata, "list_gap")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.list_gap);
+        visual.row_inset_x = metric_attribute(metadata, "row_inset_x")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.row_inset_x);
+        visual.row_height = metric_attribute(metadata, "row_height")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.row_height);
+        visual.font_size = metric_attribute(metadata, "font_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.font_size);
+        if let Some(line_height) =
+            metric_attribute(metadata, "line_height").filter(|value| *value > 0.0)
+        {
+            visual.line_height = line_height;
+        } else if let Some(line_height_ratio) =
+            metric_attribute(metadata, "line_height_ratio").filter(|value| *value > 0.0)
+        {
+            visual.line_height = visual.font_size * line_height_ratio;
+        }
+        visual
+    }
+
+    fn list_top(self) -> f32 {
+        self.search_top + self.search_height + self.list_gap
+    }
+
+    fn empty_text_top(self) -> f32 {
+        self.list_top() + self.list_gap
+    }
+}
+
+fn default_command_palette_visual() -> &'static CommandPaletteVisual {
+    static VISUAL: OnceLock<CommandPaletteVisual> = OnceLock::new();
+    VISUAL.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let colors = &tokens.palette;
+        let controls = &tokens.controls;
+        let density = &tokens.density;
+        let typography = &tokens.typography;
+        CommandPaletteVisual {
+            panel_surface: colors.popup,
+            panel_border: colors.border,
+            field_surface: colors.surface_recessed,
+            field_border: colors.accent,
+            text: colors.text_primary,
+            muted_text: colors.text_secondary,
+            border_width: controls.border_width,
+            panel_radius: controls.panel_radius,
+            search_radius: controls.small_radius,
+            panel_padding_x: density.gap_large,
+            search_top: density.gap_medium,
+            search_height: controls.compact_height,
+            search_text_inset_x: density.gap_medium,
+            list_gap: density.gap_medium,
+            row_inset_x: density.gap_medium,
+            row_height: density.row_height,
+            font_size: typography.body_size,
+            line_height: typography.body_size * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+        }
+    })
+}
 
 pub(super) fn command_palette_suppresses_owner_text(
     metadata: Option<&UiTemplateNodeMetadata>,
@@ -77,7 +184,9 @@ pub(super) fn command_palette_render_commands(
     if !is_command_palette(metadata) || !command_palette_open(metadata) {
         return Vec::new();
     }
-    if frame.width <= 1.0 || frame.height <= 1.0 {
+    let visual = CommandPaletteVisual::resolve(metadata);
+    let min_frame_extent = visual.border_width.max(f32::EPSILON);
+    if frame.width <= min_frame_extent || frame.height <= min_frame_extent {
         return Vec::new();
     }
 
@@ -87,30 +196,30 @@ pub(super) fn command_palette_render_commands(
         frame,
         clip_frame,
         z_index.saturating_add(1),
-        PANEL_SURFACE,
-        Some(PANEL_BORDER),
-        1.0,
-        PANEL_RADIUS,
+        visual.panel_surface,
+        Some(visual.panel_border),
+        visual.border_width,
+        visual.panel_radius,
         UiPainterFamily::Dropdown,
         state.visual_state,
         opacity,
     )];
 
     let search_frame = UiFrame::new(
-        frame.x + PANEL_PADDING_X,
-        frame.y + SEARCH_TOP,
-        (frame.width - PANEL_PADDING_X * 2.0).max(1.0),
-        SEARCH_HEIGHT,
+        frame.x + visual.panel_padding_x,
+        frame.y + visual.search_top,
+        (frame.width - visual.panel_padding_x * 2.0).max(min_frame_extent),
+        visual.search_height,
     );
     commands.push(quad_command(
         node_id,
         search_frame,
         clip_frame,
         z_index.saturating_add(2),
-        FIELD_SURFACE,
-        Some(FIELD_BORDER),
-        1.0,
-        4.0,
+        visual.field_surface,
+        Some(visual.field_border),
+        visual.border_width,
+        visual.search_radius,
         UiPainterFamily::TextField,
         UiPainterResolvedState::Focused,
         opacity,
@@ -119,22 +228,24 @@ pub(super) fn command_palette_render_commands(
     let query = string_attribute(metadata, QUERY).unwrap_or_default();
     let placeholder = string_attribute(metadata, PLACEHOLDER).unwrap_or("Search commands");
     let (search_text, search_color) = if query.trim().is_empty() {
-        (placeholder.to_string(), MUTED_TEXT)
+        (placeholder.to_string(), visual.muted_text)
     } else {
-        (query.to_string(), TEXT)
+        (query.to_string(), visual.text)
     };
     commands.push(text_command(
         node_id,
         UiFrame::new(
-            search_frame.x + SEARCH_TEXT_X,
-            search_frame.y + SEARCH_TEXT_Y,
-            (search_frame.width - SEARCH_TEXT_X * 2.0).max(1.0),
-            TEXT_LINE_HEIGHT,
+            search_frame.x + visual.search_text_inset_x,
+            search_frame.y + (search_frame.height - visual.line_height).max(0.0) * 0.5,
+            (search_frame.width - visual.search_text_inset_x * 2.0).max(min_frame_extent),
+            visual.line_height.min(search_frame.height),
         ),
         clip_frame,
         z_index.saturating_add(3),
         search_text,
         search_color,
+        visual.font_size,
+        visual.line_height,
         UiPainterFamily::TextField,
         UiPainterResolvedState::Focused,
         opacity,
@@ -145,17 +256,19 @@ pub(super) fn command_palette_render_commands(
         commands.push(text_command(
             node_id,
             UiFrame::new(
-                frame.x + PANEL_PADDING_X,
-                frame.y + EMPTY_TEXT_Y,
-                (frame.width - PANEL_PADDING_X * 2.0).max(1.0),
-                TEXT_LINE_HEIGHT,
+                frame.x + visual.panel_padding_x,
+                frame.y + visual.empty_text_top(),
+                (frame.width - visual.panel_padding_x * 2.0).max(min_frame_extent),
+                visual.line_height,
             ),
             clip_frame,
             z_index.saturating_add(4),
             string_attribute(metadata, "empty_text")
                 .unwrap_or("No commands found")
                 .to_string(),
-            MUTED_TEXT,
+            visual.muted_text,
+            visual.font_size,
+            visual.line_height,
             UiPainterFamily::PopupRow,
             UiPainterResolvedState::Normal,
             opacity,
@@ -163,12 +276,12 @@ pub(super) fn command_palette_render_commands(
         return commands;
     }
 
-    for (row, command) in rows.iter().enumerate() {
+    for (row, command) in rows.into_iter().enumerate() {
         let row_frame = UiFrame::new(
-            frame.x + ROW_INSET_X,
-            frame.y + LIST_TOP + row as f32 * ROW_HEIGHT,
-            (frame.width - ROW_INSET_X * 2.0).max(1.0),
-            ROW_HEIGHT,
+            frame.x + visual.row_inset_x,
+            frame.y + visual.list_top() + row as f32 * visual.row_height,
+            (frame.width - visual.row_inset_x * 2.0).max(min_frame_extent),
+            visual.row_height,
         );
         let row_z = z_index.saturating_add(4 + row as i32 * 3);
         let row_state = command.paint_state();
@@ -187,7 +300,7 @@ pub(super) fn command_palette_render_commands(
             row_frame,
             clip_frame,
             row_z.saturating_add(2),
-            command.label.clone(),
+            command.label,
             row_state.text_color(false),
             row_state,
             opacity,
@@ -263,15 +376,15 @@ impl CommandPaletteRow {
         };
         let query = query.trim();
         query.is_empty()
-            || self.id.to_ascii_lowercase().contains(query)
-            || self.label.to_ascii_lowercase().contains(query)
-            || self.source.to_ascii_lowercase().contains(query)
-            || self.shortcut.to_ascii_lowercase().contains(query)
-            || self.category.to_ascii_lowercase().contains(query)
+            || contains_ascii_case(&self.id, query)
+            || contains_ascii_case(&self.label, query)
+            || contains_ascii_case(&self.source, query)
+            || contains_ascii_case(&self.shortcut, query)
+            || contains_ascii_case(&self.category, query)
             || self
                 .keywords
                 .iter()
-                .any(|keyword| keyword.to_ascii_lowercase().contains(query))
+                .any(|keyword| contains_ascii_case(keyword, query))
     }
 
     fn matches_source(&self, source: Option<&str>) -> bool {
@@ -322,26 +435,34 @@ fn command_rows(metadata: &UiTemplateNodeMetadata) -> Vec<CommandPaletteRow> {
                 .collect()
         } else {
             let source = string_attribute(metadata, COMMAND_SOURCE)
-                .map(|source| source.trim().to_ascii_lowercase())
+                .map(str::trim)
                 .filter(|source| !source.is_empty());
             let query = string_attribute(metadata, QUERY)
-                .map(|query| query.trim().to_ascii_lowercase())
+                .map(str::trim)
                 .filter(|query| !query.is_empty());
             commands
                 .into_iter()
-                .filter(|entry| entry.matches_source(source.as_deref()))
-                .filter(|entry| entry.matches_query(query.as_deref()))
+                .filter(|entry| entry.matches_source(source))
+                .filter(|entry| entry.matches_query(query))
                 .collect()
         };
 
     for (index, row) in rows.iter_mut().enumerate() {
         row.selected = !selected_id.is_empty() && row.matches_id(selected_id);
-        row.disabled = row.disabled || disabled_ids.iter().any(|id| row.matches_id(id));
-        row.special = special_ids.iter().any(|id| row.matches_id(id));
+        row.disabled =
+            row.disabled || disabled_ids.contains(&row.id) || disabled_ids.contains(&row.label);
+        row.special = special_ids.contains(&row.id) || special_ids.contains(&row.label);
         row.focused = focused_index == Some(index);
     }
 
     rows
+}
+
+fn contains_ascii_case(value: &str, needle: &str) -> bool {
+    value
+        .as_bytes()
+        .windows(needle.len())
+        .any(|window| window.eq_ignore_ascii_case(needle.as_bytes()))
 }
 
 fn command_entry_list(value: &Value) -> Vec<CommandPaletteRow> {
@@ -483,13 +604,64 @@ fn usize_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<usize
     }
 }
 
+fn first_rgba_attribute(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> Option<UiRgbaColor> {
+    keys.iter().find_map(|key| {
+        metadata
+            .style_overrides
+            .get(*key)
+            .or_else(|| metadata.attributes.get(*key))
+            .and_then(Value::as_str)
+            .and_then(parse_css_color)
+    })
+}
+
+fn metric_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
+    metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))
+        .and_then(value_as_f32)
+}
+
+fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
+    let encoded = value.trim().strip_prefix('#')?;
+    if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
+        return None;
+    }
+    let (red, green, blue, alpha) = match encoded.len() {
+        6 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::MAX,
+        ),
+        8 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::from_str_radix(&encoded[6..8], 16).ok()?,
+        ),
+        _ => return None,
+    };
+    Some(UiRgbaColor::from_u8(red, green, blue, alpha))
+}
+
+fn value_as_f32(value: &Value) -> Option<f32> {
+    let value = match value {
+        Value::Integer(value) => *value as f64,
+        Value::Float(value) if value.is_finite() => *value,
+        _ => return None,
+    } as f32;
+    value.is_finite().then_some(value)
+}
+
 fn quad_command(
     node_id: UiNodeId,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
-    background: &str,
-    border: Option<&str>,
+    background: UiRgbaColor,
+    border: Option<UiRgbaColor>,
     border_width: f32,
     corner_radius: f32,
     painter_family: UiPainterFamily,
@@ -503,8 +675,8 @@ fn quad_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            background_color: Some(background.to_string()),
-            border_color: border.map(str::to_string),
+            background_color: Some(css_color(background)),
+            border_color: border.map(css_color),
             border_width,
             corner_radius,
             ..UiResolvedStyle::default()
@@ -523,7 +695,9 @@ fn text_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     text: String,
-    foreground: &str,
+    foreground: UiRgbaColor,
+    font_size: f32,
+    line_height: f32,
     painter_family: UiPainterFamily,
     painter_state: UiPainterResolvedState,
     opacity: f32,
@@ -535,9 +709,9 @@ fn text_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
-            font_size: TEXT_FONT_SIZE,
-            line_height: TEXT_LINE_HEIGHT,
+            foreground_color: Some(css_color(foreground)),
+            font_size,
+            line_height,
             ..UiResolvedStyle::default()
         }
         .with_painter_state(painter_family, painter_state),
@@ -546,4 +720,15 @@ fn text_command(
         image: None,
         opacity,
     }
+}
+
+fn css_color(color: UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    let mut value = if alpha == u8::MAX {
+        format!("{red:02x}{green:02x}{blue:02x}")
+    } else {
+        format!("{red:02x}{green:02x}{blue:02x}{alpha:02x}")
+    };
+    value.insert(0, '#');
+    value
 }

@@ -41,6 +41,42 @@ pub(super) const RENDERING_FEATURE_ROWS: &[RenderingFeatureRow] = &[
         extra_dependencies: &[],
     },
     RenderingFeatureRow {
+        id_suffix: "volumetric_fog",
+        display_name: "Volumetric Fog",
+        enabled_by_default: false,
+        extra_dependencies: &[],
+    },
+    RenderingFeatureRow {
+        id_suffix: "oit",
+        display_name: "Order Independent Transparency",
+        enabled_by_default: false,
+        extra_dependencies: &[],
+    },
+    RenderingFeatureRow {
+        id_suffix: "light_cookies",
+        display_name: "Light Cookies",
+        enabled_by_default: false,
+        extra_dependencies: &[],
+    },
+    RenderingFeatureRow {
+        id_suffix: "irradiance_volumes",
+        display_name: "Irradiance Volumes",
+        enabled_by_default: false,
+        extra_dependencies: &[],
+    },
+    RenderingFeatureRow {
+        id_suffix: "planar_reflections",
+        display_name: "Planar Reflections",
+        enabled_by_default: false,
+        extra_dependencies: &[],
+    },
+    RenderingFeatureRow {
+        id_suffix: "subsurface_scattering",
+        display_name: "Subsurface Scattering",
+        enabled_by_default: false,
+        extra_dependencies: &[],
+    },
+    RenderingFeatureRow {
         id_suffix: "decals",
         display_name: "Decals",
         enabled_by_default: false,

@@ -4,6 +4,7 @@ use super::super::{ShellFrame, ShellRegionId};
 
 pub(super) struct ResolvedRegionFrames {
     pub(super) center_band_frame: ShellFrame,
+    pub(super) status_bar_frame: ShellFrame,
     pub(super) region_frames: BTreeMap<ShellRegionId, ShellFrame>,
     pub(super) left_frame: ShellFrame,
     pub(super) document_frame: ShellFrame,

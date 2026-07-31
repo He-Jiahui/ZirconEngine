@@ -393,7 +393,7 @@ impl UiSurface {
             binding.event == event_kind
                 && binding_targets_component_event(binding, component_event_kind)
         }) {
-            events.push(UiPointerComponentEvent::new(
+            let mut component_event = UiPointerComponentEvent::new(
                 &self.tree.tree_id,
                 node_id,
                 control_id,
@@ -401,7 +401,11 @@ impl UiSurface {
                 event_kind,
                 event.clone(),
                 reason,
-            ));
+            );
+            if let Some(template_action) = self.template_action_for_binding(node_id, binding) {
+                component_event = component_event.with_template_action(template_action);
+            }
+            events.push(component_event);
         }
         Ok(())
     }
@@ -434,6 +438,7 @@ impl UiSurface {
                 event: event.clone(),
                 delivered: true,
                 drag: None,
+                template_action: None,
             })
             .collect())
     }

@@ -1,0 +1,326 @@
+from __future__ import annotations
+
+import subprocess
+import tempfile
+import threading
+import unittest
+from pathlib import Path
+from unittest import mock
+
+from tools.session_coordinator.baselines import BaselineService
+from tools.session_coordinator.config import CoordinatorConfig
+from tools.session_coordinator.database import Database
+from tools.session_coordinator.migrations import migrate
+from tools.session_coordinator.models import CoordinatorError
+from tools.session_coordinator.sessions import SessionService
+from tools.session_coordinator.tests.helpers import init_repo
+from tools.session_coordinator.validation_copies import (
+    CargoInputClosurePlanner,
+    ExternalGitSource,
+)
+from tools.session_coordinator.workspace_copy import WorkspaceCopyService
+
+
+class ValidationCopySourceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        root = Path(self.temporary.name)
+        self.repo = init_repo(root / "repo")
+        self.external = init_repo(root / "zr_vm")
+        external_manifest = self.external / "binding/Cargo.toml"
+        external_manifest.parent.mkdir(parents=True)
+        external_manifest.write_text("[package]\nname='binding'\nversion='0.1.0'\n")
+        subprocess.run(["git", "add", "binding/Cargo.toml"], cwd=self.external, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add external binding"],
+            cwd=self.external,
+            check=True,
+        )
+        self.external_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.external,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        config = CoordinatorConfig.for_repo(self.repo, state_root=root / "state")
+        self.database = Database(config.database_path)
+        migrate(self.database)
+        SessionService(self.database, self.repo).register(session_id="session-a")
+        BaselineService(self.database, self.repo).initialize()
+        self.target_root = root / "targets/zircon-engine"
+        self.target_root.mkdir(parents=True)
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy._is_managed_validation_root",
+            return_value=True,
+        ):
+            self.service = WorkspaceCopyService(
+                self.database, self.repo, (self.target_root,)
+            )
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def _external_descriptor(self) -> dict[str, object]:
+        return {
+            "repoRoot": str(self.external),
+            "commit": self.external_commit,
+            "mountPath": "zr_vm",
+            "includeRoots": ["binding"],
+        }
+
+    def test_external_git_source_uses_pinned_commit_and_survives_restart(self) -> None:
+        (self.external / "binding/Cargo.toml").write_text("foreign dirty\n")
+
+        record = self.service.materialize(
+            "session-a",
+            include_paths=("README.md",),
+            external_sources=(self._external_descriptor(),),
+        )
+
+        mounted = record.job_root / "zr_vm/binding/Cargo.toml"
+        self.assertIn("name='binding'", mounted.read_text(encoding="utf-8"))
+        self.assertNotIn("foreign dirty", mounted.read_text(encoding="utf-8"))
+        self.assertEqual(self.external_commit, record.external_sources[0]["commit"])
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy._is_managed_validation_root",
+            return_value=True,
+        ):
+            restarted = WorkspaceCopyService(
+                self.database, self.repo, (self.target_root,)
+            ).status("session-a", record.job_id)
+        self.assertEqual(record.external_sources, restarted.external_sources)
+        self.assertEqual(record.input_manifest_hash, restarted.input_manifest_hash)
+
+    def test_external_mount_escape_and_missing_commit_fail_closed(self) -> None:
+        escaped = self._external_descriptor()
+        escaped["mountPath"] = "../foreign"
+        with self.assertRaises(CoordinatorError) as escape:
+            self.service.plan(
+                "session-a",
+                include_paths=("README.md",),
+                external_sources=(escaped,),
+            )
+        self.assertEqual("validation_copy_external_mount_escape", escape.exception.code)
+
+        missing = self._external_descriptor()
+        missing["commit"] = "0" * 40
+        with self.assertRaises(CoordinatorError) as absent:
+            self.service.plan(
+                "session-a",
+                include_paths=("README.md",),
+                external_sources=(missing,),
+            )
+        self.assertEqual("validation_copy_external_commit_missing", absent.exception.code)
+
+    def test_async_materialization_persists_typed_failure_and_preflights_unowned_overlay(
+        self,
+    ) -> None:
+        unowned = self.repo / "src/unowned.rs"
+        unowned.parent.mkdir()
+        unowned.write_text("unowned\n")
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.materialize_async(
+                "session-a", include_paths=("src/unowned.rs",)
+            )
+        self.assertEqual("validation_copy_unowned_path", rejected.exception.code)
+
+        failed = threading.Event()
+
+        def archive_failure(*_args, **_kwargs):
+            failed.set()
+            raise CoordinatorError(
+                "validation_copy_dependency_archive_failed",
+                "simulated archive failure",
+                details={"path": "README.md"},
+            )
+
+        with mock.patch.object(
+            self.service, "_extract_baseline_manifest", side_effect=archive_failure
+        ):
+            record = self.service.materialize_async(
+                "session-a", include_paths=("README.md",)
+            )
+            self.assertTrue(failed.wait(timeout=2))
+        for _ in range(100):
+            status = self.service.status("session-a", record.job_id)
+            if status.status == "failed":
+                break
+            threading.Event().wait(0.01)
+        self.assertEqual("validation_copy_dependency_archive_failed", status.error_code)
+        self.assertEqual("baseline_archive", status.error_stage)
+        self.assertEqual("README.md", status.error_path)
+
+    def test_cargo_metadata_closure_includes_local_packages_and_requires_external_descriptor(
+        self,
+    ) -> None:
+        files = {
+            "Cargo.toml": "[workspace]\nmembers=['app','local_dep','workspace_tool']\n",
+            "Cargo.lock": "# lock\n",
+            "rust-toolchain.toml": "[toolchain]\nchannel='1.94.1'\n",
+            "app/Cargo.toml": (
+                "[package]\nname='app'\nversion='0.1.0'\n"
+                "[dependencies]\nbinding={path='../../zr_vm/binding', optional=true}\n"
+            ),
+            "app/src/lib.rs": "include_str!('schema.txt');\n",
+            "app/src/schema.txt": "schema-v1\n",
+            "local_dep/Cargo.toml": "[package]\nname='local_dep'\nversion='0.1.0'\n",
+            "local_dep/src/lib.rs": "pub fn local() {}\n",
+            "workspace_tool/Cargo.toml": "[package]\nname='workspace_tool'\nversion='0.1.0'\n",
+            "workspace_tool/src/lib.rs": "pub fn tool() {}\n",
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content)
+        subprocess.run(["git", "add", "--", *files], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add cargo closure"],
+            cwd=self.repo,
+            check=True,
+        )
+        metadata = {
+            "packages": [
+                {
+                    "id": "app-id",
+                    "name": "app",
+                    "manifest_path": str(self.repo / "app/Cargo.toml"),
+                },
+                {
+                    "id": "local-id",
+                    "name": "local_dep",
+                    "manifest_path": str(self.repo / "local_dep/Cargo.toml"),
+                },
+                {
+                    "id": "external-id",
+                    "name": "binding",
+                    "manifest_path": str(self.external / "binding/Cargo.toml"),
+                },
+                {
+                    "id": "tool-id",
+                    "name": "workspace_tool",
+                    "manifest_path": str(self.repo / "workspace_tool/Cargo.toml"),
+                },
+            ],
+            "workspace_members": ["app-id", "local-id", "tool-id"],
+            "resolve": {
+                "nodes": [
+                    {"id": "app-id", "deps": [{"pkg": "local-id"}]},
+                    {"id": "local-id", "deps": []},
+                    {"id": "external-id", "deps": []},
+                    {"id": "tool-id", "deps": []},
+                ]
+            },
+        }
+        planner = CargoInputClosurePlanner(
+            self.repo, metadata_runner=lambda _command: metadata
+        )
+        descriptor = ExternalGitSource.from_payload(self._external_descriptor())
+
+        closure = planner.plan(
+            ("cargo", "test", "-p", "app", "--lib"),
+            external_sources=(descriptor,),
+        )
+
+        self.assertTrue(
+            {
+                "Cargo.toml",
+                "Cargo.lock",
+                "rust-toolchain.toml",
+                "app/src/schema.txt",
+                "local_dep/src/lib.rs",
+                "workspace_tool/src/lib.rs",
+            }
+            <= set(closure.repository_paths)
+        )
+        self.assertEqual((descriptor,), closure.external_sources)
+        with self.assertRaises(CoordinatorError) as missing:
+            planner.plan(("cargo", "test", "-p", "app", "--lib"))
+        self.assertEqual("validation_copy_external_source_missing", missing.exception.code)
+
+        discovered = planner.plan(
+            ("cargo", "test", "-p", "app", "--lib"),
+            discover_external_sources=True,
+        )
+        self.assertEqual(1, len(discovered.external_sources))
+        self.assertEqual(self.external.resolve(), discovered.external_sources[0].repo_root)
+        self.assertEqual(self.external_commit, discovered.external_sources[0].commit)
+        self.assertEqual("zr_vm", discovered.external_sources[0].mount_path)
+        self.assertIn("binding", discovered.external_sources[0].include_roots)
+
+        materialized = self.service.materialize_cargo(
+            "session-a",
+            command=("cargo", "test", "-p", "app", "--lib"),
+            metadata_runner=lambda _command: metadata,
+            discover_external_sources=True,
+        )
+        self.assertTrue((materialized.job_root / "zr_vm/binding/Cargo.toml").is_file())
+
+    def test_cargo_metadata_is_decoded_as_utf8_independent_of_windows_locale(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=("cargo", "metadata"),
+            returncode=0,
+            stdout='{"packages": [], "resolve": {"nodes": []}}',
+            stderr="",
+        )
+        planner = CargoInputClosurePlanner(self.repo)
+
+        with mock.patch(
+            "tools.session_coordinator.validation_copies.subprocess.run",
+            return_value=completed,
+        ) as run:
+            metadata = planner._cargo_metadata(("cargo", "test"))
+
+        self.assertEqual([], metadata["packages"])
+        self.assertEqual("utf-8", run.call_args.kwargs.get("encoding"))
+
+    def test_cargo_closure_ignores_registry_packages_outside_repository(self) -> None:
+        app = self.repo / "app"
+        app.mkdir()
+        (app / "Cargo.toml").write_text(
+            "[package]\nname='app'\nversion='0.1.0'\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "app/Cargo.toml"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add registry closure fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        metadata = {
+            "packages": [
+                {
+                    "id": "app-id",
+                    "name": "app",
+                    "manifest_path": str(app / "Cargo.toml"),
+                    "source": None,
+                },
+                {
+                    "id": "registry-id",
+                    "name": "registry_dep",
+                    "manifest_path": str(
+                        Path.home() / ".cargo/registry/src/example/registry_dep/Cargo.toml"
+                    ),
+                    "source": "registry+https://github.com/rust-lang/crates.io-index",
+                },
+            ],
+            "workspace_members": ["app-id"],
+            "resolve": {
+                "nodes": [
+                    {"id": "app-id", "deps": [{"pkg": "registry-id"}]},
+                    {"id": "registry-id", "deps": []},
+                ]
+            },
+        }
+
+        closure = CargoInputClosurePlanner(
+            self.repo,
+            metadata_runner=lambda _command: metadata,
+        ).plan(("cargo", "test", "-p", "app"), discover_external_sources=True)
+
+        self.assertIn("app/Cargo.toml", closure.repository_paths)
+        self.assertEqual((), closure.external_sources)
+
+
+if __name__ == "__main__":
+    unittest.main()

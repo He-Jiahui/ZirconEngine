@@ -24,8 +24,8 @@ use crate::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
 };
 use crate::graphics::{
+    SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID, WgpuRenderFramework,
     subsurface_render_feature_descriptor, subsurface_render_pass_executor_registrations,
-    WgpuRenderFramework, SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
 };
 
 const PRODUCT_SIZE: UVec2 = UVec2::new(640, 360);
@@ -63,16 +63,18 @@ fn render_product_sss_registered_but_without_profiles_is_exact_deferred_baseline
     let registered = render_skin_sphere(ProductSssMode::RegisteredWithoutProfile);
 
     assert_eq!(baseline.frame.rgba, registered.frame.rgba);
-    assert!(!registered
-        .stats
-        .last_graph_executed_passes
-        .iter()
-        .any(|pass| {
-            matches!(
-                pass.as_str(),
-                SSS_SETUP_EXECUTOR_ID | SSS_SCATTER_EXECUTOR_ID | SSS_RECOMBINE_EXECUTOR_ID
-            )
-        }));
+    assert!(
+        !registered
+            .stats
+            .last_graph_executed_passes
+            .iter()
+            .any(|pass| {
+                matches!(
+                    pass.as_str(),
+                    SSS_SETUP_EXECUTOR_ID | SSS_SCATTER_EXECUTOR_ID | SSS_RECOMBINE_EXECUTOR_ID
+                )
+            })
+    );
 }
 
 #[test]
@@ -105,8 +107,7 @@ fn render_product_sss_skin_sphere_executes_burley_indirect_pipeline() {
         "Burley scattering should be visibly distinct from deferred PBR: {difference:?}"
     );
     assert!(
-        difference.brightened_pixel_count > 500
-            && difference.darkened_pixel_count > 500,
+        difference.brightened_pixel_count > 500 && difference.darkened_pixel_count > 500,
         "SSS must redistribute diffuse light instead of applying a uniform brightness change: {difference:?}"
     );
     assert!(
@@ -240,7 +241,10 @@ fn skin_sphere_extract(
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: RenderMeshStaticState::default(),
-                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+                common: crate::core::framework::render::RendererCommon {
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+                    ..Default::default()
+                },
             }],
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 18_601,

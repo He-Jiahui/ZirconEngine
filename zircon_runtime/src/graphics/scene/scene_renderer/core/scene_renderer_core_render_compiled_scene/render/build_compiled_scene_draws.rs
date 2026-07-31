@@ -30,7 +30,7 @@ pub(super) struct CompiledSceneDraws {
 }
 
 impl CompiledSceneDraws {
-    fn from_built_mesh_draws(built_mesh_draws: BuiltMeshDraws) -> Self {
+    fn from_built_mesh_draws(mut built_mesh_draws: BuiltMeshDraws) -> Self {
         let indirect_segment_count = built_mesh_draws.indirect_segment_count();
         let indirect_args_count = built_mesh_draws.indirect_args_count();
         let indirect_args_buffer = built_mesh_draws.indirect_args_buffer();
@@ -74,8 +74,8 @@ impl CompiledSceneDraws {
         self.prepared_mesh_queue_stats
     }
 
-    pub(super) fn prebuilt_mesh_pass_command_buffers(&self) -> MeshPassCommandBuffers {
-        self.prebuilt_mesh_pass_command_buffers.clone()
+    pub(super) fn prebuilt_mesh_pass_command_buffers(&mut self) -> MeshPassCommandBuffers {
+        std::mem::take(&mut self.prebuilt_mesh_pass_command_buffers)
     }
 
     pub(super) fn gpu_scene_upload_report(&self) -> GpuSceneUploadReport {
@@ -90,40 +90,20 @@ impl CompiledSceneDraws {
         self.indirect_args_count
     }
 
-    pub(super) fn indirect_args_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_args_buffer.clone()
-    }
-
-    pub(super) fn indirect_submission_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_submission_buffer.clone()
-    }
-
-    pub(super) fn indirect_authority_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_authority_buffer.clone()
-    }
-
-    pub(super) fn indirect_draw_ref_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_draw_ref_buffer.clone()
-    }
-
-    pub(super) fn indirect_segment_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
-        self.indirect_segment_buffer.clone()
-    }
-
     pub(super) fn virtual_geometry_indirect_stats(
         &self,
     ) -> PreparedMeshVirtualGeometryIndirectStats {
         PreparedMeshVirtualGeometryIndirectStats {
             draw_count: self.indirect_args_count() as usize,
             buffer_count: [
-                self.indirect_args_buffer(),
-                self.indirect_submission_buffer(),
-                self.indirect_authority_buffer(),
-                self.indirect_draw_ref_buffer(),
-                self.indirect_segment_buffer(),
+                self.indirect_args_buffer.is_some(),
+                self.indirect_submission_buffer.is_some(),
+                self.indirect_authority_buffer.is_some(),
+                self.indirect_draw_ref_buffer.is_some(),
+                self.indirect_segment_buffer.is_some(),
             ]
             .into_iter()
-            .flatten()
+            .filter(|present| *present)
             .count(),
             args_count: self.indirect_args_count() as usize,
             segment_count: self.indirect_segment_count() as usize,

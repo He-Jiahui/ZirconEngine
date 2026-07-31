@@ -1,4 +1,4 @@
-use crate::asset::{TextureAsset, TexturePayload, RGBA8_UNORM_FORMAT};
+use crate::asset::{RGBA8_UNORM_FORMAT, TextureAsset, TexturePayload};
 use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension};
 use crate::core::resource::ResourceId;
 use crate::graphics::types::GraphicsError;

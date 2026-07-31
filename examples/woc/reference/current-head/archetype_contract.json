@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/archetype_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/archetype.ts": "89f01dcbbb7a2b6a011e9d9508cdb4aa2b0cd280664a073b53202bbca0bd770b",
+    "src/sim/content/professions.ts": "d2d8567ab607693ab59a19d145187d0bad8b153c209c85b8f3cce5eed6277c3b",
+    "src/sim/content/recipes.ts": "fcf3b721955c0a743c9c7eb6a337fd59123ce3b0aadc72067241145d4f8995d9",
+    "src/sim/professions/wheel.ts": "d734aabf742f56fd0826db459bbe97cb6583deb77ffc29a308ff52e50b6d8356"
+  },
+  "craft_ring": [
+    {
+      "id": "engineering"
+    },
+    {
+      "id": "alchemy"
+    },
+    {
+      "id": "cooking"
+    },
+    {
+      "id": "leatherworking"
+    },
+    {
+      "id": "tailoring"
+    },
+    {
+      "id": "inscription"
+    },
+    {
+      "id": "enchanting"
+    },
+    {
+      "id": "jewelcrafting"
+    },
+    {
+      "id": "weaponcrafting"
+    },
+    {
+      "id": "armorcrafting"
+    }
+  ],
+  "archetype_pairs": [
+    {
+      "id": "engineering+alchemy",
+      "active": "engineering",
+      "paired": "alchemy"
+    },
+    {
+      "id": "alchemy+cooking",
+      "active": "alchemy",
+      "paired": "cooking"
+    },
+    {
+      "id": "cooking+leatherworking",
+      "active": "cooking",
+      "paired": "leatherworking"
+    },
+    {
+      "id": "leatherworking+tailoring",
+      "active": "leatherworking",
+      "paired": "tailoring"
+    },
+    {
+      "id": "tailoring+inscription",
+      "active": "tailoring",
+      "paired": "inscription"
+    },
+    {
+      "id": "inscription+enchanting",
+      "active": "inscription",
+      "paired": "enchanting"
+    },
+    {
+      "id": "enchanting+jewelcrafting",
+      "active": "enchanting",
+      "paired": "jewelcrafting"
+    },
+    {
+      "id": "jewelcrafting+weaponcrafting",
+      "active": "jewelcrafting",
+      "paired": "weaponcrafting"
+    },
+    {
+      "id": "weaponcrafting+armorcrafting",
+      "active": "weaponcrafting",
+      "paired": "armorcrafting"
+    },
+    {
+      "id": "armorcrafting+engineering",
+      "active": "armorcrafting",
+      "paired": "engineering"
+    }
+  ],
+  "combo_pairs": [
+    {
+      "craft_a": "armorcrafting",
+      "craft_b": "weaponcrafting"
+    },
+    {
+      "craft_a": "alchemy",
+      "craft_b": "engineering"
+    }
+  ],
+  "common_ceiling_tier": 0,
+  "rare_ceiling_tier": 2,
+  "amends_base": 5,
+  "amends_step": 3,
+  "tier_skill_step": 25,
+  "semantics": {
+    "identity": "an active archetype is an ordered adjacent pair: two uncapped majors, an explicit opposite-craft hobby capped at rare, and every other craft capped at common",
+    "default_pair": "a craft with a combo partner selects that adjacent partner; every other craft selects its previous ring neighbor",
+    "history": "new attunements append a canonical pair without switch count; returning to a held non-current pair increments switch count and resets amends",
+    "direct_switch": "the legacy switch requires floor-clamped amends progress of base plus step per prior switch, then rederives pair and hobby without mutating skills",
+    "bridge": "the crafting projection receives active/paired ids plus the selected recipe craft ceiling; -1 encodes source Infinity for the existing transaction state"
+  }
+}

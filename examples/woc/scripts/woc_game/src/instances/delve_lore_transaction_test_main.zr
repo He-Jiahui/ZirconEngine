@@ -1,0 +1,14 @@
+var delve = %import("instances/delve_state");
+
+var state = new delve.DelveState();
+if (!delve.unlockNextDelveLore(state) || state.lastDelveLoreId != "eastbrook_ledger" ||
+    !delve.unlockNextDelveLore(state) || state.lastDelveLoreId != "first_collapse" ||
+    !delve.unlockNextDelveLore(state) || state.lastDelveLoreId != "gravecaller_mark" ||
+    !delve.unlockNextDelveLore(state) || state.lastDelveLoreId != "bell_below" ||
+    !delve.unlockNextDelveLore(state) || state.lastDelveLoreId != "tessa_note" ||
+    delve.unlockNextDelveLore(state) || delve.unlockedDelveLoreCount(state) != 5 ||
+    delve.unlockedDelveLoreId(state, 5) != "") {
+    return -1;
+}
+
+return 0;

@@ -7,7 +7,7 @@ use crate::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPayloadSource,
     RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Source,
 };
-use std::collections::BTreeSet;
+use std::collections::{HashMap, HashSet};
 
 pub(super) fn update_virtual_geometry_stats(
     state: &mut RenderFrameworkState,
@@ -81,15 +81,13 @@ pub(super) fn update_virtual_geometry_stats(
         .max(execution_stats.segment_count);
     state.stats.last_virtual_geometry_indirect_buffer_count = prepared_mesh_queue_stats
         .virtual_geometry_indirect_buffer_count
-        .max(usize::from(
-            virtual_geometry_stats.indirect_segment_count() > 0,
-        ));
+        .max(usize::from(execution_stats.segment_count > 0));
     state.stats.last_virtual_geometry_indirect_args_count = prepared_mesh_queue_stats
         .virtual_geometry_indirect_args_count
         .max(execution_stats.segment_count);
     state.stats.last_virtual_geometry_indirect_segment_count = prepared_mesh_queue_stats
         .virtual_geometry_indirect_segment_count
-        .max(virtual_geometry_stats.indirect_segment_count());
+        .max(execution_stats.segment_count);
     state.stats.last_virtual_geometry_execution_segment_count = prepared_mesh_queue_stats
         .virtual_geometry_execution_segment_count
         .max(execution_stats.segment_count);
@@ -170,20 +168,17 @@ pub(super) fn update_virtual_geometry_stats(
         virtual_geometry_extract
             .map(|extract| extract.hierarchy_child_ids.len())
             .unwrap_or(0);
+    let traversal_stats = virtual_geometry_extract.map(node_and_cluster_cull_traversal_stats);
     state
         .stats
-        .last_virtual_geometry_node_and_cluster_cull_child_work_item_count =
-        virtual_geometry_extract
-            .map(node_and_cluster_cull_traversal_stats)
-            .map(|stats| stats.child_work_item_count)
-            .unwrap_or(0);
+        .last_virtual_geometry_node_and_cluster_cull_child_work_item_count = traversal_stats
+        .map(|stats| stats.child_work_item_count)
+        .unwrap_or(0);
     state
         .stats
-        .last_virtual_geometry_node_and_cluster_cull_traversal_record_count =
-        virtual_geometry_extract
-            .map(node_and_cluster_cull_traversal_stats)
-            .map(|stats| stats.traversal_record_count)
-            .unwrap_or(0);
+        .last_virtual_geometry_node_and_cluster_cull_traversal_record_count = traversal_stats
+        .map(|stats| stats.traversal_record_count)
+        .unwrap_or(0);
     state
         .stats
         .last_virtual_geometry_node_and_cluster_cull_page_request_count = 0;
@@ -301,7 +296,7 @@ fn visible_entity_count_from_extract(
             .instances
             .iter()
             .map(|instance| instance.entity)
-            .collect::<BTreeSet<_>>()
+            .collect::<HashSet<_>>()
             .len();
     }
 
@@ -309,7 +304,7 @@ fn visible_entity_count_from_extract(
         .clusters
         .iter()
         .map(|cluster| cluster.entity)
-        .collect::<BTreeSet<_>>()
+        .collect::<HashSet<_>>()
         .len()
 }
 
@@ -334,21 +329,23 @@ fn virtual_geometry_execution_stats(
         .resident_pages
         .iter()
         .copied()
-        .collect::<BTreeSet<_>>();
+        .collect::<HashSet<_>>();
     let requested_pages = page_upload_plan
         .requested_pages
         .iter()
         .copied()
-        .collect::<BTreeSet<_>>();
-    let mut seen_pages = BTreeSet::new();
-    let mut all_pages = BTreeSet::new();
+        .collect::<HashSet<_>>();
+    let mut seen_pages = HashSet::new();
+    let mut all_pages = HashSet::new();
     let mut stats = VirtualGeometryExecutionStats::default();
 
     for segment in &context.visibility_context().virtual_geometry_draw_segments {
         if !seen_pages.insert(segment.page_id) {
             stats.repeated_draw_count += 1;
         }
-        match execution_state_for_page(segment.page_id, &resident_pages, &requested_pages) {
+        let execution_state =
+            execution_state_for_page(segment.page_id, &resident_pages, &requested_pages);
+        match execution_state {
             RenderVirtualGeometryExecutionState::Resident => {
                 stats.resident_segment_count += 1;
             }
@@ -357,9 +354,7 @@ fn virtual_geometry_execution_stats(
             }
             RenderVirtualGeometryExecutionState::Missing => stats.missing_segment_count += 1,
         }
-        if execution_state_for_page(segment.page_id, &resident_pages, &requested_pages)
-            == RenderVirtualGeometryExecutionState::Missing
-        {
+        if execution_state == RenderVirtualGeometryExecutionState::Missing {
             continue;
         }
 
@@ -406,8 +401,8 @@ fn visbuffer64_source_for_execution(
 
 fn execution_state_for_page(
     page_id: u32,
-    resident_pages: &BTreeSet<u32>,
-    requested_pages: &BTreeSet<u32>,
+    resident_pages: &HashSet<u32>,
+    requested_pages: &HashSet<u32>,
 ) -> RenderVirtualGeometryExecutionState {
     if resident_pages.contains(&page_id) {
         RenderVirtualGeometryExecutionState::Resident
@@ -434,6 +429,10 @@ fn node_and_cluster_cull_traversal_stats(
     extract: &crate::core::framework::render::RenderVirtualGeometryExtract,
 ) -> NodeAndClusterCullTraversalStats {
     let mut stats = NodeAndClusterCullTraversalStats::default();
+    let mut hierarchy_nodes_by_id = HashMap::with_capacity(extract.hierarchy_nodes.len());
+    for node in &extract.hierarchy_nodes {
+        hierarchy_nodes_by_id.entry(node.node_id).or_insert(node);
+    }
     let mut queue = extract
         .instances
         .iter()
@@ -460,7 +459,7 @@ fn node_and_cluster_cull_traversal_stats(
 
         let node = item
             .hierarchy_node_id
-            .and_then(|node_id| hierarchy_node(extract, node_id));
+            .and_then(|node_id| hierarchy_nodes_by_id.get(&node_id).copied());
         if let Some(node) = node.filter(|node| node.child_count > 0) {
             for child_table_index in
                 node.child_base..node.child_base.saturating_add(node.child_count)
@@ -485,12 +484,38 @@ fn node_and_cluster_cull_traversal_stats(
     stats
 }
 
-fn hierarchy_node(
-    extract: &crate::core::framework::render::RenderVirtualGeometryExtract,
-    node_id: u32,
-) -> Option<&crate::core::framework::render::RenderVirtualGeometryHierarchyNode> {
-    extract
-        .hierarchy_nodes
-        .iter()
-        .find(|node| node.node_id == node_id)
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use super::{RenderVirtualGeometryExecutionState, execution_state_for_page};
+
+    #[test]
+    fn execution_state_uses_constant_time_page_membership() {
+        let resident = HashSet::from([7]);
+        let requested = HashSet::from([9]);
+
+        assert_eq!(
+            execution_state_for_page(7, &resident, &requested),
+            RenderVirtualGeometryExecutionState::Resident
+        );
+        assert_eq!(
+            execution_state_for_page(9, &resident, &requested),
+            RenderVirtualGeometryExecutionState::PendingUpload
+        );
+        assert_eq!(
+            execution_state_for_page(11, &resident, &requested),
+            RenderVirtualGeometryExecutionState::Missing
+        );
+    }
+
+    #[test]
+    fn traversal_stats_index_hierarchy_nodes_once() {
+        let source = include_str!("virtual_geometry_stats.rs");
+        let linear_find = concat!(".find(", "|node| node.node_id == node_id)");
+
+        assert!(source.contains("hierarchy_nodes_by_id"));
+        assert!(source.contains("entry(node.node_id).or_insert(node)"));
+        assert!(!source.contains(linear_find));
+    }
 }

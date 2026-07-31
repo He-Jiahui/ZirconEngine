@@ -1,0 +1,975 @@
+// Authoritative M5 inventory/vendor state projected from source commit
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. Capacity, ownership and currency
+// gates run before mutation; grants themselves remain stack-aware and lossless.
+var container = %import("zr.container");
+var catalog = %import("generated/m5_content_catalog");
+var vendorStacks = %import("progression/vendor_stack_state");
+var itemLevelRequirement = %import("progression/item_level_requirement_state");
+
+class InventoryState {
+    pub var playerClass: string;
+    pub var level: int;
+    pub var dead: bool;
+    pub var inCombat: bool;
+    pub var swimming: bool;
+    pub var vendorNear: bool;
+    pub var copper: int;
+    pub var inventoryIds: container.Array<string>;
+    pub var inventoryCounts: container.Array<int>;
+    pub var buybackIds: container.Array<string>;
+    pub var buybackCounts: container.Array<int>;
+    pub var bag0: string;
+    pub var bag1: string;
+    pub var bag2: string;
+    pub var bag3: string;
+    pub var helmet: string;
+    pub var feet: string;
+    pub var mainhand: string;
+    pub var baseMaxHp: int;
+    pub var hp: int;
+    pub var maxHp: int;
+    pub var resourceKind: string;
+    pub var resource: int;
+    pub var maxResource: int;
+    pub var armorBonus: int;
+    pub var staminaBonus: int;
+    pub var strengthBonus: int;
+    pub var agilityBonus: int;
+    pub var intellectBonus: int;
+    pub var spiritBonus: int;
+    pub var mainhandMin: int;
+    pub var mainhandMax: int;
+    pub var mainhandSpeed: float;
+    pub var sitting: bool;
+    pub var eatingItem: string;
+    pub var eatingHpPer2s: int;
+    pub var eatingRemaining: float;
+    pub var drinkingItem: string;
+    pub var drinkingManaPer2s: int;
+    pub var drinkingRemaining: float;
+    pub var potionCooldownRemaining: float;
+    pub var elixirActive: bool;
+    pub var elixirStamina: int;
+    pub var elixirRemaining: float;
+    pub var inventoryEvents: int;
+    pub var vendorEvents: int;
+    pub var statRecomputes: int;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.playerClass = "warrior";
+        this.level = 1;
+        this.dead = false;
+        this.inCombat = false;
+        this.swimming = false;
+        this.vendorNear = false;
+        this.copper = 0;
+        this.inventoryIds = new container.Array<string>();
+        this.inventoryCounts = new container.Array<int>();
+        this.buybackIds = new container.Array<string>();
+        this.buybackCounts = new container.Array<int>();
+        this.bag0 = "";
+        this.bag1 = "";
+        this.bag2 = "";
+        this.bag3 = "";
+        this.helmet = "";
+        this.feet = "";
+        this.mainhand = "";
+        this.baseMaxHp = 90;
+        this.hp = 90;
+        this.maxHp = 90;
+        this.resourceKind = "rage";
+        this.resource = 0;
+        this.maxResource = 100;
+        this.armorBonus = 0;
+        this.staminaBonus = 0;
+        this.strengthBonus = 0;
+        this.agilityBonus = 0;
+        this.intellectBonus = 0;
+        this.spiritBonus = 0;
+        this.mainhandMin = 0;
+        this.mainhandMax = 0;
+        this.mainhandSpeed = 0.0;
+        this.sitting = false;
+        this.eatingItem = "";
+        this.eatingHpPer2s = 0;
+        this.eatingRemaining = 0.0;
+        this.drinkingItem = "";
+        this.drinkingManaPer2s = 0;
+        this.drinkingRemaining = 0.0;
+        this.potionCooldownRemaining = 0.0;
+        this.elixirActive = false;
+        this.elixirStamina = 0;
+        this.elixirRemaining = 0.0;
+        this.inventoryEvents = 0;
+        this.vendorEvents = 0;
+        this.statRecomputes = 0;
+        this.lastError = 0;
+    }
+}
+
+itemIndex(itemId: string): int {
+    return catalog.indexOf("item", itemId);
+}
+
+itemKind(itemId: string): string {
+    var index = itemIndex(itemId);
+    return index >= 0 ? catalog.text("item", index, "kind") : "";
+}
+
+stackSize(itemId: string): int {
+    var kind = itemKind(itemId);
+    if (kind == "weapon" || kind == "armor" || kind == "bag" || kind == "tool") {
+        return 1;
+    }
+    return 20;
+}
+
+pub countItem(state: InventoryState, itemId: string): int {
+    var ids = state.inventoryIds;
+    var counts = state.inventoryCounts;
+    var index = 0;
+    var total = 0;
+    while (index < ids.length) {
+        if (<string>ids[index] == itemId) { total = total + <int>counts[index]; }
+        index = index + 1;
+    }
+    return total;
+}
+
+pub usedBagSlots(state: InventoryState): int {
+    return state.inventoryIds.length;
+}
+
+bagSlots(itemId: string): int {
+    var index = itemIndex(itemId);
+    if (index < 0) { return 0; }
+    return <int>catalog.metric("item", index, "bagSlots");
+}
+
+pub bagCapacity(state: InventoryState): int {
+    return 16 + bagSlots(state.bag0) + bagSlots(state.bag1) +
+        bagSlots(state.bag2) + bagSlots(state.bag3);
+}
+
+capacityWith(state: InventoryState, socket: int, itemId: string): int {
+    var total = 16;
+    total = total + bagSlots(socket == 0 ? itemId : state.bag0);
+    total = total + bagSlots(socket == 1 ? itemId : state.bag1);
+    total = total + bagSlots(socket == 2 ? itemId : state.bag2);
+    total = total + bagSlots(socket == 3 ? itemId : state.bag3);
+    return total;
+}
+
+bagAt(state: InventoryState, socket: int): string {
+    if (socket == 0) { return state.bag0; }
+    if (socket == 1) { return state.bag1; }
+    if (socket == 2) { return state.bag2; }
+    if (socket == 3) { return state.bag3; }
+    return "";
+}
+
+setBag(state: InventoryState, socket: int, itemId: string): void {
+    if (socket == 0) { state.bag0 = itemId; }
+    if (socket == 1) { state.bag1 = itemId; }
+    if (socket == 2) { state.bag2 = itemId; }
+    if (socket == 3) { state.bag3 = itemId; }
+}
+
+pub countFit(state: InventoryState, itemId: string, requestedCount: int): int {
+    if (requestedCount <= 0 || itemIndex(itemId) < 0) { return 0; }
+    var ids = state.inventoryIds;
+    var counts = state.inventoryCounts;
+    var maximum = stackSize(itemId);
+    var room = 0;
+    var index = 0;
+    while (index < ids.length) {
+        if (<string>ids[index] == itemId && <int>counts[index] < maximum) {
+            room = room + maximum - <int>counts[index];
+        }
+        index = index + 1;
+    }
+    var freeSlots = bagCapacity(state) - ids.length;
+    if (freeSlots > 0) { room = room + freeSlots * maximum; }
+    return requestedCount < room ? requestedCount : room;
+}
+
+pub canAddItem(state: InventoryState, itemId: string, count: int): bool {
+    return count > 0 && countFit(state, itemId, count) >= count;
+}
+
+pub addItem(state: InventoryState, itemId: string, requestedCount: int): void {
+    if (requestedCount <= 0 || itemIndex(itemId) < 0) { return; }
+    var ids = state.inventoryIds;
+    var counts = state.inventoryCounts;
+    var maximum = stackSize(itemId);
+    var remaining = requestedCount;
+    var index = 0;
+    while (index < ids.length && remaining > 0) {
+        if (<string>ids[index] == itemId && <int>counts[index] < maximum) {
+            var room = maximum - <int>counts[index];
+            var take = remaining < room ? remaining : room;
+            counts[index] = <int>counts[index] + take;
+            remaining = remaining - take;
+        }
+        index = index + 1;
+    }
+    while (remaining > 0) {
+        var fresh = remaining < maximum ? remaining : maximum;
+        ids.add(itemId);
+        counts.add(fresh);
+        remaining = remaining - fresh;
+    }
+    state.inventoryEvents = state.inventoryEvents + 1;
+}
+
+removeItem(state: InventoryState, itemId: string, requestedCount: int): int {
+    var ids = state.inventoryIds;
+    var counts = state.inventoryCounts;
+    var remaining = requestedCount;
+    var index = ids.length - 1;
+    while (index >= 0 && remaining > 0) {
+        if (<string>ids[index] == itemId) {
+            var available = <int>counts[index];
+            var take = remaining < available ? remaining : available;
+            available = available - take;
+            remaining = remaining - take;
+            if (available <= 0) {
+                ids.removeAt(index);
+                counts.removeAt(index);
+            } else {
+                counts[index] = available;
+            }
+        }
+        index = index - 1;
+    }
+    var removed = requestedCount - remaining;
+    if (removed > 0) { state.inventoryEvents = state.inventoryEvents + 1; }
+    return removed;
+}
+
+recomputeStats(state: InventoryState): void {
+    var oldMaximum = state.maxHp;
+    var armor = 0;
+    var stamina = state.elixirActive ? state.elixirStamina : 0;
+    var strength = 0;
+    var agility = 0;
+    var intellect = 0;
+    var spirit = 0;
+    var helmetIndex = itemIndex(state.helmet);
+    var feetIndex = itemIndex(state.feet);
+    var mainhandIndex = itemIndex(state.mainhand);
+    if (helmetIndex >= 0) {
+        armor = armor + <int>catalog.metric("item", helmetIndex, "statArmor");
+        stamina = stamina + <int>catalog.metric("item", helmetIndex, "statSta");
+        strength = strength + <int>catalog.metric("item", helmetIndex, "statStr");
+        agility = agility + <int>catalog.metric("item", helmetIndex, "statAgi");
+        intellect = intellect + <int>catalog.metric("item", helmetIndex, "statInt");
+        spirit = spirit + <int>catalog.metric("item", helmetIndex, "statSpi");
+    }
+    if (feetIndex >= 0) {
+        armor = armor + <int>catalog.metric("item", feetIndex, "statArmor");
+        stamina = stamina + <int>catalog.metric("item", feetIndex, "statSta");
+        strength = strength + <int>catalog.metric("item", feetIndex, "statStr");
+        agility = agility + <int>catalog.metric("item", feetIndex, "statAgi");
+        intellect = intellect + <int>catalog.metric("item", feetIndex, "statInt");
+        spirit = spirit + <int>catalog.metric("item", feetIndex, "statSpi");
+    }
+    if (mainhandIndex >= 0) {
+        armor = armor + <int>catalog.metric("item", mainhandIndex, "statArmor");
+        stamina = stamina + <int>catalog.metric("item", mainhandIndex, "statSta");
+        strength = strength + <int>catalog.metric("item", mainhandIndex, "statStr");
+        agility = agility + <int>catalog.metric("item", mainhandIndex, "statAgi");
+        intellect = intellect + <int>catalog.metric("item", mainhandIndex, "statInt");
+        spirit = spirit + <int>catalog.metric("item", mainhandIndex, "statSpi");
+    }
+    state.armorBonus = armor;
+    state.staminaBonus = stamina;
+    state.strengthBonus = strength;
+    state.agilityBonus = agility;
+    state.intellectBonus = intellect;
+    state.spiritBonus = spirit;
+    state.mainhandMin = mainhandIndex >= 0 ?
+        <int>catalog.metric("item", mainhandIndex, "weaponMin") : 0;
+    state.mainhandMax = mainhandIndex >= 0 ?
+        <int>catalog.metric("item", mainhandIndex, "weaponMax") : 0;
+    state.mainhandSpeed = mainhandIndex >= 0 ?
+        catalog.metric("item", mainhandIndex, "weaponSpeed") : 0.0;
+    state.maxHp = state.baseMaxHp + stamina * 10;
+    if (state.hp >= oldMaximum) { state.hp = state.maxHp; }
+    if (state.hp > state.maxHp) { state.hp = state.maxHp; }
+    state.statRecomputes = state.statRecomputes + 1;
+}
+
+maxArmorRankForClass(playerClass: string): int {
+    if (playerClass == "warrior" || playerClass == "paladin" ||
+        playerClass == "shaman") {
+        return 2;
+    }
+    if (playerClass == "druid" || playerClass == "rogue" ||
+        playerClass == "hunter") {
+        return 1;
+    }
+    return 0;
+}
+
+armorRank(armorType: string): int {
+    if (armorType == "cloth") return 0;
+    if (armorType == "leather") return 1;
+    if (armorType == "mail") return 2;
+    // ItemDef keeps armor types closed. An unknown generated value is rejected
+    // rather than being treated as cloth and accidentally admitting equipment.
+    return 3;
+}
+
+// Current source equipment_rules.ts treats typed armor by weight before any
+// narrower requiredClass metadata. Shields and held offhands have no armorType
+// and therefore use the generated requiredClass membership directly.
+canEquipCatalogItem(state: InventoryState, itemId: string): bool {
+    var index = itemIndex(itemId);
+    if (index < 0) return false;
+    var kind = itemKind(itemId);
+    var armorType = catalog.text("item", index, "armorType");
+    if (kind == "armor" && armorType != "") {
+        return armorRank(armorType) <= maxArmorRankForClass(state.playerClass);
+    }
+    if (state.playerClass == "rogue" && kind == "weapon" &&
+        catalog.text("item", index, "weaponHand") == "twohand") {
+        return false;
+    }
+    return catalog.itemAllowsClass(index, state.playerClass);
+}
+
+// The M5 catalog normalizes a finite explicit requiredLevel with the source
+// Math.floor rule. The full generated item-level catalog supplies source level
+// by id before the requirement policy applies its rare-and-above fallback.
+meetsCatalogLevel(state: InventoryState, itemId: string): bool {
+    var index = itemIndex(itemId);
+    if (index < 0) return false;
+    var quality = catalog.text("item", index, "quality");
+    var explicitPresent = catalog.flag("item", index, "requiredLevelPresent");
+    var explicitLevel = <int>catalog.metric("item", index, "requiredLevel");
+    return state.level >= itemLevelRequirement.requiredLevelForCatalogItem(
+        itemId,
+        quality,
+        explicitPresent,
+        explicitLevel
+    );
+}
+
+equipmentSlot(itemId: string): string {
+    var index = itemIndex(itemId);
+    if (index < 0) { return ""; }
+    var slot = catalog.text("item", index, "slot");
+    if (slot == "helmet" || slot == "feet" || slot == "mainhand") { return slot; }
+    return "";
+}
+
+equipmentAt(state: InventoryState, slot: string): string {
+    if (slot == "helmet") { return state.helmet; }
+    if (slot == "feet") { return state.feet; }
+    if (slot == "mainhand") { return state.mainhand; }
+    return "";
+}
+
+setEquipment(state: InventoryState, slot: string, itemId: string): void {
+    if (slot == "helmet") { state.helmet = itemId; }
+    if (slot == "feet") { state.feet = itemId; }
+    if (slot == "mainhand") { state.mainhand = itemId; }
+}
+
+// The current M5 content projection owns these three single-item slots. The
+// source's additional ring/offhand/two-hand routing remains intentionally
+// outside this bounded catalog until its item definitions are projected.
+pub equipItem(state: InventoryState, itemId: string): bool {
+    state.lastError = 0;
+    var index = itemIndex(itemId);
+    var slot = equipmentSlot(itemId);
+    var kind = itemKind(itemId);
+    if (index < 0 || slot == "" || (kind != "armor" && kind != "weapon") ||
+        countItem(state, itemId) <= 0) {
+        state.lastError = -1;
+        return false;
+    }
+    if (!canEquipCatalogItem(state, itemId)) { state.lastError = -2; return false; }
+    if (!meetsCatalogLevel(state, itemId)) { state.lastError = -8; return false; }
+    var old = equipmentAt(state, slot);
+    removeItem(state, itemId, 1);
+    if (old != "") { addItem(state, old, 1); }
+    setEquipment(state, slot, itemId);
+    recomputeStats(state);
+    return true;
+}
+
+pub unequipItem(state: InventoryState, slot: string): bool {
+    state.lastError = 0;
+    var old = equipmentAt(state, slot);
+    if (old == "") { return false; }
+    if (!canAddItem(state, old, 1)) { state.lastError = -3; return false; }
+    setEquipment(state, slot, "");
+    addItem(state, old, 1);
+    recomputeStats(state);
+    return true;
+}
+
+pub equipHelmet(state: InventoryState, itemId: string): bool {
+    if (equipmentSlot(itemId) != "helmet") {
+        state.lastError = -1;
+        return false;
+    }
+    return equipItem(state, itemId);
+}
+
+pub unequipHelmet(state: InventoryState): bool {
+    return unequipItem(state, "helmet");
+}
+
+pub equipBag(state: InventoryState, itemId: string, requestedSocket: int): bool {
+    state.lastError = 0;
+    if (itemKind(itemId) != "bag" || countItem(state, itemId) <= 0) {
+        state.lastError = -1;
+        return false;
+    }
+    var socket = requestedSocket;
+    if (socket < 0) {
+        socket = 0;
+        while (socket < 4 && bagAt(state, socket) != "") { socket = socket + 1; }
+    }
+    if (socket < 0 || socket >= 4) { state.lastError = -4; return false; }
+    var old = bagAt(state, socket);
+    var afterSlots = usedBagSlots(state) - 1 + (old != "" ? 1 : 0);
+    if (afterSlots > capacityWith(state, socket, itemId)) {
+        state.lastError = -3;
+        return false;
+    }
+    removeItem(state, itemId, 1);
+    if (old != "") { addItem(state, old, 1); }
+    setBag(state, socket, itemId);
+    return true;
+}
+
+pub unequipBag(state: InventoryState, socket: int): bool {
+    state.lastError = 0;
+    if (socket < 0 || socket >= 4 || bagAt(state, socket) == "") { return false; }
+    if (usedBagSlots(state) + 1 > capacityWith(state, socket, "")) {
+        state.lastError = -3;
+        return false;
+    }
+    var old = bagAt(state, socket);
+    setBag(state, socket, "");
+    addItem(state, old, 1);
+    return true;
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+// The source runs this logic once at each shared two-second classic regen
+// tick. Keeping the tick explicit lets this fixture preserve source cadence
+// without claiming an independent clock or a WOS authority boundary.
+pub advanceRegenTick(state: InventoryState): void {
+    if (state.eatingItem != "") {
+        if (state.hp < state.maxHp) {
+            state.hp = state.hp + state.eatingHpPer2s;
+            if (state.hp > state.maxHp) { state.hp = state.maxHp; }
+        }
+        state.eatingRemaining = state.eatingRemaining - 2.0;
+        if (state.eatingRemaining <= 0.0) {
+            state.eatingItem = "";
+            state.eatingHpPer2s = 0;
+            state.eatingRemaining = 0.0;
+        }
+    }
+    if (state.drinkingItem != "") {
+        if (state.resourceKind == "mana" && state.resource < state.maxResource) {
+            state.resource = state.resource + state.drinkingManaPer2s;
+            if (state.resource > state.maxResource) { state.resource = state.maxResource; }
+        }
+        state.drinkingRemaining = state.drinkingRemaining - 2.0;
+        if (state.drinkingRemaining <= 0.0) {
+            state.drinkingItem = "";
+            state.drinkingManaPer2s = 0;
+            state.drinkingRemaining = 0.0;
+        }
+    }
+}
+
+// updateTimers decrements the source potion display cooldown continuously and
+// removes an expired elixir aura before its derived stats can remain applied.
+pub advanceTimers(state: InventoryState, elapsed: float): void {
+    if (elapsed <= 0.0) { return; }
+    state.potionCooldownRemaining = state.potionCooldownRemaining - elapsed;
+    if (state.potionCooldownRemaining < 0.0) { state.potionCooldownRemaining = 0.0; }
+    if (state.elixirActive) {
+        state.elixirRemaining = state.elixirRemaining - elapsed;
+        if (state.elixirRemaining <= 0.0) {
+            state.elixirActive = false;
+            state.elixirStamina = 0;
+            state.elixirRemaining = 0.0;
+            recomputeStats(state);
+        }
+    }
+}
+
+// Movement and interaction callers can use this exact source transition: it
+// clears the seated state and cancels both active consumables.
+pub standUp(state: InventoryState): void {
+    state.sitting = false;
+    if (state.eatingItem != "" || state.drinkingItem != "") {
+        state.eatingItem = "";
+        state.eatingHpPer2s = 0;
+        state.eatingRemaining = 0.0;
+        state.drinkingItem = "";
+        state.drinkingManaPer2s = 0;
+        state.drinkingRemaining = 0.0;
+    }
+}
+
+pub useItem(state: InventoryState, itemId: string): bool {
+    state.lastError = 0;
+    var index = itemIndex(itemId);
+    if (index < 0 || countItem(state, itemId) <= 0) { state.lastError = -1; return false; }
+    if (state.dead) { state.lastError = -5; return false; }
+    var kind = catalog.text("item", index, "kind");
+    if (kind == "food" || kind == "drink") {
+        if (state.inCombat || state.swimming) { state.lastError = -6; return false; }
+        removeItem(state, itemId, 1);
+        state.sitting = true;
+        if (kind == "food") {
+            state.eatingItem = itemId;
+            state.eatingHpPer2s = roundPositive(catalog.metric("item", index, "foodHp") / 9.0);
+            state.eatingRemaining = 18.0;
+        } else {
+            state.drinkingItem = itemId;
+            state.drinkingManaPer2s =
+                roundPositive(catalog.metric("item", index, "drinkMana") / 9.0);
+            state.drinkingRemaining = 18.0;
+        }
+        return true;
+    }
+    if (kind == "potion") {
+        var restoresHp = <int>catalog.metric("item", index, "potionHp") > 0 &&
+            state.hp < state.maxHp;
+        var restoresMana = <int>catalog.metric("item", index, "potionMana") > 0 &&
+            state.resourceKind == "mana" && state.resource < state.maxResource;
+        if (state.potionCooldownRemaining > 0.0 || (!restoresHp && !restoresMana)) {
+            state.lastError = -7;
+            return false;
+        }
+        removeItem(state, itemId, 1);
+        state.potionCooldownRemaining = 120.0;
+        if (restoresHp) {
+            var heal = <int>catalog.metric("item", index, "potionHp");
+            state.hp = state.hp + heal;
+            if (state.hp > state.maxHp) { state.hp = state.maxHp; }
+        }
+        if (restoresMana) {
+            state.resource = state.resource + <int>catalog.metric("item", index, "potionMana");
+            if (state.resource > state.maxResource) { state.resource = state.maxResource; }
+        }
+        return true;
+    }
+    if (kind == "elixir") {
+        removeItem(state, itemId, 1);
+        state.elixirActive = true;
+        state.elixirStamina = <int>catalog.metric("item", index, "elixirValue");
+        state.elixirRemaining = catalog.metric("item", index, "elixirDuration");
+        recomputeStats(state);
+        return true;
+    }
+    if ((kind == "armor" || kind == "weapon") && equipmentSlot(itemId) != "") {
+        return equipItem(state, itemId);
+    }
+    if (kind == "bag") { return equipBag(state, itemId, -1); }
+    return false;
+}
+
+pub buyItem(state: InventoryState, npcId: string, itemId: string): bool {
+    state.lastError = 0;
+    var npcIndex = catalog.indexOf("npc", npcId);
+    var item = itemIndex(itemId);
+    if (npcIndex < 0 || item < 0 || !catalog.npcSells(npcIndex, itemId)) {
+        state.lastError = -8;
+        return false;
+    }
+    if (!state.vendorNear || state.dead) { state.lastError = -9; return false; }
+    var kind = catalog.text("item", item, "kind");
+    var quantity = vendorStacks.vendorPurchaseQuantity(kind);
+    // Food and drink are delivered as five-unit stacks, but `buyValue` is a
+    // per-unit source price. Keep this independent model aligned with the
+    // authoritative WOS reducer and source `sim/items.ts`.
+    var cost = <int>catalog.metric("item", item, "buyValue") * quantity;
+    if (cost <= 0 || state.copper < cost) { state.lastError = -10; return false; }
+    if (!canAddItem(state, itemId, quantity)) { state.lastError = -3; return false; }
+    state.copper = state.copper - cost;
+    addItem(state, itemId, quantity);
+    state.vendorEvents = state.vendorEvents + 1;
+    return true;
+}
+
+pub discardItem(state: InventoryState, itemId: string, requestedCount: int): int {
+    state.lastError = 0;
+    var item = itemIndex(itemId);
+    var available = countItem(state, itemId);
+    if (item < 0 || available <= 0) { state.lastError = -1; return 0; }
+    if (catalog.flag("item", item, "noDiscard")) { state.lastError = -12; return 0; }
+    var count = requestedCount < available ? requestedCount : available;
+    if (count <= 0) { return 0; }
+    return removeItem(state, itemId, count);
+}
+
+findBuyback(state: InventoryState, itemId: string): int {
+    var ids = state.buybackIds;
+    var index = 0;
+    while (index < ids.length) {
+        if (<string>ids[index] == itemId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+recordBuyback(state: InventoryState, itemId: string, count: int): void {
+    var ids = state.buybackIds;
+    var counts = state.buybackCounts;
+    var existing = findBuyback(state, itemId);
+    var total = count;
+    if (existing >= 0) {
+        total = total + <int>counts[existing];
+        ids.removeAt(existing);
+        counts.removeAt(existing);
+    }
+    ids.add("");
+    counts.add(0);
+    var index = ids.length - 1;
+    while (index > 0) {
+        ids[index] = <string>ids[index - 1];
+        counts[index] = <int>counts[index - 1];
+        index = index - 1;
+    }
+    ids[0] = itemId;
+    counts[0] = total;
+    if (ids.length > 12) {
+        ids.removeAt(ids.length - 1);
+        counts.removeAt(counts.length - 1);
+    }
+}
+
+pub buybackCount(state: InventoryState, itemId: string): int {
+    var index = findBuyback(state, itemId);
+    if (index < 0) { return 0; }
+    var counts = state.buybackCounts;
+    return <int>counts[index];
+}
+
+pub buybackIdAt(state: InventoryState, index: int): string {
+    var ids = state.buybackIds;
+    if (index < 0 || index >= ids.length) { return ""; }
+    return <string>ids[index];
+}
+
+pub sellItem(state: InventoryState, itemId: string, requestedCount: int): int {
+    state.lastError = 0;
+    var item = itemIndex(itemId);
+    var available = countItem(state, itemId);
+    if (item < 0 || available <= 0) { state.lastError = -1; return 0; }
+    if (!state.vendorNear || state.dead) { state.lastError = -9; return 0; }
+    if (catalog.text("item", item, "kind") == "quest" ||
+        catalog.flag("item", item, "noVendorSell") ||
+        catalog.flag("item", item, "soulbound")) {
+        state.lastError = -11;
+        return 0;
+    }
+    var count = requestedCount < available ? requestedCount : available;
+    if (count <= 0) { return 0; }
+    removeItem(state, itemId, count);
+    recordBuyback(state, itemId, count);
+    var payout = <int>catalog.metric("item", item, "sellValue") * count;
+    state.copper = state.copper + payout;
+    state.vendorEvents = state.vendorEvents + 1;
+    return payout;
+}
+
+firstJunkIndex(state: InventoryState): int {
+    var ids = state.inventoryIds;
+    var index = 0;
+    while (index < ids.length) {
+        var itemId = <string>ids[index];
+        var item = itemIndex(itemId);
+        if (item >= 0 && catalog.text("item", item, "quality") == "poor" &&
+            catalog.text("item", item, "kind") != "quest" &&
+            !catalog.flag("item", item, "noVendorSell") &&
+            !catalog.flag("item", item, "soulbound")) {
+            return index;
+        }
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub sellAllJunk(state: InventoryState): int {
+    state.lastError = 0;
+    if (!state.vendorNear || state.dead) { state.lastError = -9; return 0; }
+    var total = 0;
+    var index = firstJunkIndex(state);
+    while (index >= 0) {
+        var ids = state.inventoryIds;
+        var counts = state.inventoryCounts;
+        var itemId = <string>ids[index];
+        var count = <int>counts[index];
+        var item = itemIndex(itemId);
+        removeItem(state, itemId, count);
+        recordBuyback(state, itemId, count);
+        total = total + <int>catalog.metric("item", item, "sellValue") * count;
+        index = firstJunkIndex(state);
+    }
+    if (total > 0) {
+        state.copper = state.copper + total;
+        state.vendorEvents = state.vendorEvents + 1;
+    }
+    return total;
+}
+
+pub buyBackItem(state: InventoryState, itemId: string): bool {
+    state.lastError = 0;
+    var item = itemIndex(itemId);
+    var slot = findBuyback(state, itemId);
+    if (item < 0 || slot < 0 || !state.vendorNear || state.dead) {
+        state.lastError = -9;
+        return false;
+    }
+    var price = <int>catalog.metric("item", item, "sellValue");
+    if (state.copper < price) { state.lastError = -10; return false; }
+    if (!canAddItem(state, itemId, 1)) { state.lastError = -3; return false; }
+    state.copper = state.copper - price;
+    var counts = state.buybackCounts;
+    counts[slot] = <int>counts[slot] - 1;
+    if (<int>counts[slot] <= 0) {
+        state.buybackIds.removeAt(slot);
+        counts.removeAt(slot);
+    }
+    addItem(state, itemId, 1);
+    state.vendorEvents = state.vendorEvents + 1;
+    return true;
+}
+
+pub contractTest(): int {
+    var scenario = new InventoryState();
+    scenario.vendorNear = true;
+    scenario.copper = 1000;
+    addItem(scenario, "baked_bread", 5);
+    if (!buyItem(scenario, "trader_wilkes", "baked_bread") ||
+        !buyItem(scenario, "trader_wilkes", "spring_water") ||
+        !buyItem(scenario, "trader_wilkes", "minor_healing_potion") ||
+        scenario.copper != 710 || countItem(scenario, "baked_bread") != 10 ||
+        countItem(scenario, "spring_water") != 5 ||
+        countItem(scenario, "minor_healing_potion") != 1) {
+        return -1;
+    }
+
+    addItem(scenario, "cryptbone_helm", 1);
+    addItem(scenario, "roadwardens_helm", 1);
+    if (!equipHelmet(scenario, "cryptbone_helm") || scenario.helmet != "cryptbone_helm" ||
+        scenario.maxHp != 120 || scenario.hp != 120 || scenario.armorBonus != 48 ||
+        countItem(scenario, "cryptbone_helm") != 0) {
+        return -2;
+    }
+    if (!equipHelmet(scenario, "roadwardens_helm") ||
+        scenario.helmet != "roadwardens_helm" || scenario.maxHp != 110 ||
+        countItem(scenario, "cryptbone_helm") != 1 ||
+        countItem(scenario, "roadwardens_helm") != 0) {
+        return -3;
+    }
+    if (!unequipHelmet(scenario) || scenario.helmet != "" || scenario.maxHp != 90 ||
+        countItem(scenario, "roadwardens_helm") != 1) {
+        return -4;
+    }
+
+    var equipment = new InventoryState();
+    addItem(equipment, "greyjaw_hide_boots", 1);
+    addItem(equipment, "milepost_boots", 1);
+    if (!equipItem(equipment, "greyjaw_hide_boots") || equipment.feet != "greyjaw_hide_boots" ||
+        equipment.armorBonus != 28 || equipment.staminaBonus != 1 ||
+        equipment.agilityBonus != 1 || equipment.maxHp != 100) {
+        return -15;
+    }
+    if (!equipItem(equipment, "milepost_boots") || equipment.feet != "milepost_boots" ||
+        equipment.armorBonus != 30 || equipment.staminaBonus != 1 ||
+        countItem(equipment, "greyjaw_hide_boots") != 1) {
+        return -16;
+    }
+    if (!unequipItem(equipment, "feet") || equipment.feet != "" || equipment.armorBonus != 0 ||
+        equipment.staminaBonus != 0 || countItem(equipment, "milepost_boots") != 1) {
+        return -17;
+    }
+
+    addItem(equipment, "worn_sword", 1);
+    addItem(equipment, "gnarled_staff", 1);
+    if (!equipItem(equipment, "worn_sword") || equipment.mainhand != "worn_sword" ||
+        equipment.mainhandMin != 2 || equipment.mainhandMax != 5 ||
+        equipment.mainhandSpeed != 2.0) {
+        return -18;
+    }
+    if (!equipItem(equipment, "gnarled_staff") || equipment.mainhand != "gnarled_staff" ||
+        equipment.mainhandMin != 3 || equipment.mainhandMax != 6 ||
+        equipment.mainhandSpeed != 2.9 || equipment.intellectBonus != 1 ||
+        countItem(equipment, "worn_sword") != 1) {
+        return -19;
+    }
+    if (!unequipItem(equipment, "mainhand") || equipment.mainhand != "" ||
+        equipment.mainhandMin != 0 || equipment.mainhandMax != 0 ||
+        equipment.mainhandSpeed != 0.0 || equipment.intellectBonus != 0 ||
+        countItem(equipment, "gnarled_staff") != 1) {
+        return -20;
+    }
+
+    // equipment_rules.ts admits mail only to mail classes, lets higher armor
+    // ranks wear leather, and does not let armor requiredClass metadata make a
+    // typed mail item narrower. These rows exercise the actual M5 catalog.
+    var armorRules = new InventoryState();
+    armorRules.playerClass = "rogue";
+    addItem(armorRules, "cryptbone_helm", 1);
+    if (equipItem(armorRules, "cryptbone_helm") || armorRules.lastError != -2) {
+        return -21;
+    }
+    armorRules.playerClass = "paladin";
+    if (!equipItem(armorRules, "cryptbone_helm") ||
+        armorRules.helmet != "cryptbone_helm") {
+        return -22;
+    }
+    var clothRules = new InventoryState();
+    clothRules.playerClass = "mage";
+    addItem(clothRules, "greyjaw_hide_boots", 1);
+    if (equipItem(clothRules, "greyjaw_hide_boots") || clothRules.lastError != -2) {
+        return -23;
+    }
+    var mailRules = new InventoryState();
+    mailRules.playerClass = "warrior";
+    addItem(mailRules, "greyjaw_hide_boots", 1);
+    if (!equipItem(mailRules, "greyjaw_hide_boots") ||
+        mailRules.feet != "greyjaw_hide_boots") {
+        return -24;
+    }
+
+    if (!useItem(scenario, "baked_bread") || !useItem(scenario, "spring_water") ||
+        !scenario.sitting || scenario.eatingHpPer2s != 7 ||
+        scenario.drinkingManaPer2s != 8 || countItem(scenario, "baked_bread") != 9 ||
+        countItem(scenario, "spring_water") != 4) {
+        return -5;
+    }
+    scenario.hp = scenario.maxHp - 50;
+    if (!useItem(scenario, "minor_healing_potion") || scenario.hp != 90 ||
+        scenario.potionCooldownRemaining != 120.0 ||
+        countItem(scenario, "minor_healing_potion") != 0) {
+        return -6;
+    }
+    addItem(scenario, "elixir_of_the_bear", 1);
+    if (!useItem(scenario, "elixir_of_the_bear") || !scenario.elixirActive ||
+        scenario.elixirStamina != 12 || scenario.elixirRemaining != 900.0 ||
+        scenario.maxHp != 210 || scenario.hp != 210) {
+        return -7;
+    }
+
+    addItem(scenario, "wolf_fang", 3);
+    if (discardItem(scenario, "wolf_fang", 1) != 1 ||
+        countItem(scenario, "wolf_fang") != 2 ||
+        sellItem(scenario, "wolf_fang", 1) != 4 || scenario.copper != 714 ||
+        countItem(scenario, "wolf_fang") != 1 || buybackCount(scenario, "wolf_fang") != 1) {
+        return -8;
+    }
+    addItem(scenario, "bandit_bandana", 1);
+    if (sellAllJunk(scenario) != 10 || scenario.copper != 724 ||
+        countItem(scenario, "wolf_fang") != 0 ||
+        countItem(scenario, "bandit_bandana") != 0 ||
+        buybackIdAt(scenario, 0) != "bandit_bandana" ||
+        buybackCount(scenario, "wolf_fang") != 2) {
+        return -9;
+    }
+    if (!buyBackItem(scenario, "wolf_fang") || scenario.copper != 720 ||
+        countItem(scenario, "wolf_fang") != 1 || buybackCount(scenario, "wolf_fang") != 1 ||
+        usedBagSlots(scenario) != 5) {
+        return -10;
+    }
+
+    var consumables = new InventoryState();
+    consumables.resourceKind = "mana";
+    consumables.resource = 0;
+    consumables.maxResource = 100;
+    consumables.hp = 27;
+    addItem(consumables, "baked_bread", 1);
+    addItem(consumables, "spring_water", 1);
+    if (!useItem(consumables, "baked_bread") || !useItem(consumables, "spring_water") ||
+        consumables.eatingRemaining != 18.0 || consumables.drinkingRemaining != 18.0) {
+        return -25;
+    }
+    var consumeTick = 0;
+    while (consumeTick < 9) {
+        advanceRegenTick(consumables);
+        consumeTick = consumeTick + 1;
+    }
+    if (consumables.hp != 90 || consumables.resource != 72 || !consumables.sitting ||
+        consumables.eatingItem != "" || consumables.drinkingItem != "" ||
+        consumables.eatingRemaining != 0.0 || consumables.drinkingRemaining != 0.0) {
+        return -26;
+    }
+    addItem(consumables, "minor_mana_potion", 1);
+    if (!useItem(consumables, "minor_mana_potion") || consumables.resource != 100 ||
+        consumables.potionCooldownRemaining != 120.0) {
+        return -27;
+    }
+    advanceTimers(consumables, 120.0);
+    if (consumables.potionCooldownRemaining != 0.0) { return -28; }
+    addItem(consumables, "elixir_of_the_bear", 1);
+    if (!useItem(consumables, "elixir_of_the_bear") || !consumables.elixirActive ||
+        consumables.maxHp != 210) {
+        return -29;
+    }
+    advanceTimers(consumables, 900.0);
+    if (consumables.elixirActive || consumables.elixirRemaining != 0.0 ||
+        consumables.elixirStamina != 0 || consumables.maxHp != 90) {
+        return -30;
+    }
+
+    var interrupted = new InventoryState();
+    interrupted.resourceKind = "mana";
+    addItem(interrupted, "baked_bread", 1);
+    addItem(interrupted, "spring_water", 1);
+    if (!useItem(interrupted, "baked_bread") || !useItem(interrupted, "spring_water")) {
+        return -31;
+    }
+    standUp(interrupted);
+    if (interrupted.sitting || interrupted.eatingItem != "" ||
+        interrupted.drinkingItem != "" || interrupted.eatingRemaining != 0.0 ||
+        interrupted.drinkingRemaining != 0.0 || countItem(interrupted, "baked_bread") != 0 ||
+        countItem(interrupted, "spring_water") != 0) {
+        return -32;
+    }
+
+    var capacity = new InventoryState();
+    addItem(capacity, "cryptbone_helm", 16);
+    if (usedBagSlots(capacity) != 16 || canAddItem(capacity, "wolf_fang", 1)) {
+        return -11;
+    }
+    var merge = new InventoryState();
+    addItem(merge, "wolf_fang", 19);
+    addItem(merge, "cryptbone_helm", 15);
+    if (!canAddItem(merge, "wolf_fang", 1) || canAddItem(merge, "wolf_fang", 2)) {
+        return -12;
+    }
+    addItem(merge, "wolfhide_satchel", 1);
+    if (!equipBag(merge, "wolfhide_satchel", 0) || bagCapacity(merge) != 26 ||
+        usedBagSlots(merge) != 16 || !canAddItem(merge, "wolf_fang", 2)) {
+        return -13;
+    }
+
+    var rejected = new InventoryState();
+    rejected.vendorNear = true;
+    // A five-unit food purchase costs five times its listed per-unit price.
+    rejected.copper = 124;
+    var beforeEvents = rejected.inventoryEvents;
+    if (buyItem(rejected, "trader_wilkes", "baked_bread") || rejected.copper != 124 ||
+        usedBagSlots(rejected) != 0 || rejected.inventoryEvents != beforeEvents) {
+        return -14;
+    }
+    return 1;
+}

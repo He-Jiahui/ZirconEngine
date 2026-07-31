@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_npc_placement_codegen.mjs",
+  "source_identity": {
+    "source_path": "src/sim/data.ts",
+    "git_blob": "b72cf99eaf8670decdb3f260a45eeffe5a646ebe",
+    "sha256": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431"
+  },
+  "static_npcs": [
+    {
+      "id": "the_merchant",
+      "dynamic": false,
+      "x": 0,
+      "z": 9.5,
+      "facing": 3.141592653589793
+    },
+    {
+      "id": "marshal_redbrook",
+      "dynamic": false,
+      "x": 4,
+      "z": 6,
+      "facing": 3.141592653589793
+    },
+    {
+      "id": "trader_wilkes",
+      "dynamic": false,
+      "x": -7,
+      "z": 3,
+      "facing": 1.5707963267948966
+    },
+    {
+      "id": "apothecary_lin",
+      "dynamic": false,
+      "x": 11,
+      "z": -3,
+      "facing": -1.5707963267948966
+    },
+    {
+      "id": "brother_aldric",
+      "dynamic": false,
+      "x": -14,
+      "z": -10,
+      "facing": 0.8
+    },
+    {
+      "id": "smith_haldren",
+      "dynamic": false,
+      "x": 7,
+      "z": 16.5,
+      "facing": -2.7
+    },
+    {
+      "id": "fisherman_brandt",
+      "dynamic": false,
+      "x": -16,
+      "z": 6,
+      "facing": -0.75
+    },
+    {
+      "id": "foreman_odell",
+      "dynamic": false,
+      "x": -4,
+      "z": -14,
+      "facing": -2.14
+    },
+    {
+      "id": "bursar_fernando",
+      "dynamic": false,
+      "x": 13,
+      "z": 8,
+      "facing": -1.5707963267948966
+    },
+    {
+      "id": "card_master",
+      "dynamic": false,
+      "x": 13,
+      "z": 2,
+      "facing": -1.5707963267948966
+    },
+    {
+      "id": "chronicler_saul",
+      "dynamic": false,
+      "x": 15,
+      "z": -16,
+      "facing": 2.4
+    },
+    {
+      "id": "warden_fenwick",
+      "dynamic": false,
+      "x": 3,
+      "z": 304,
+      "facing": 3.141592653589793
+    },
+    {
+      "id": "brother_aldric_fen",
+      "dynamic": false,
+      "x": -8,
+      "z": 296,
+      "facing": 0.8
+    },
+    {
+      "id": "provisioner_hale",
+      "dynamic": false,
+      "x": -4,
+      "z": 308,
+      "facing": 1.5707963267948966
+    },
+    {
+      "id": "herbalist_yara",
+      "dynamic": false,
+      "x": 10,
+      "z": 295,
+      "facing": -1.5707963267948966
+    },
+    {
+      "id": "scout_maren",
+      "dynamic": false,
+      "x": 6,
+      "z": 312,
+      "facing": -0.6
+    },
+    {
+      "id": "bursar_petra_vell",
+      "dynamic": false,
+      "x": 9,
+      "z": 303,
+      "facing": -1.5707963267948966
+    },
+    {
+      "id": "chronicler_osric_fenn",
+      "dynamic": false,
+      "x": -14,
+      "z": 303,
+      "facing": -1.4
+    },
+    {
+      "id": "captain_thessaly",
+      "dynamic": false,
+      "x": 4,
+      "z": 664,
+      "facing": -2
+    },
+    {
+      "id": "brother_aldric_highwatch",
+      "dynamic": false,
+      "x": -10,
+      "z": 656,
+      "facing": 0.8
+    },
+    {
+      "id": "scout_maren_highwatch",
+      "dynamic": false,
+      "x": 7,
+      "z": 670,
+      "facing": -2.4
+    },
+    {
+      "id": "quartermaster_bree",
+      "dynamic": false,
+      "x": -5,
+      "z": 668,
+      "facing": 1.6
+    },
+    {
+      "id": "armorer_hode",
+      "dynamic": false,
+      "x": -2,
+      "z": 672,
+      "facing": 2.8
+    },
+    {
+      "id": "heroic_quartermaster",
+      "dynamic": false,
+      "x": -8,
+      "z": 665,
+      "facing": 1.2
+    },
+    {
+      "id": "loremaster_caddis",
+      "dynamic": false,
+      "x": 12,
+      "z": 655,
+      "facing": -1.2
+    },
+    {
+      "id": "auctioneer_voss",
+      "dynamic": false,
+      "x": 16,
+      "z": 666,
+      "facing": -2.2
+    },
+    {
+      "id": "bursar_aldous_crane",
+      "dynamic": false,
+      "x": -12,
+      "z": 663,
+      "facing": 1.5707963267948966
+    },
+    {
+      "id": "chronicler_edda_hartwell",
+      "dynamic": false,
+      "x": 2,
+      "z": 643,
+      "facing": 3.1
+    },
+    {
+      "id": "tidewatcher_ondrel",
+      "dynamic": false,
+      "x": -66,
+      "z": 786,
+      "facing": -2.4
+    },
+    {
+      "id": "brother_halven",
+      "dynamic": false,
+      "x": -5,
+      "z": -52,
+      "facing": 0
+    },
+    {
+      "id": "brother_halven_marsh",
+      "dynamic": false,
+      "x": -95,
+      "z": 505,
+      "facing": 3.141592653589793
+    }
+  ],
+  "dynamic_npc_ids": [
+    "groundskeeper_bram",
+    "brother_aldric_raid",
+    "fury",
+    "spirit_healer"
+  ],
+  "catalog_sha256": "631c6f2e5f83625b8954ab8c66df39be3557b4860442ccadc43ef2295c826710"
+}

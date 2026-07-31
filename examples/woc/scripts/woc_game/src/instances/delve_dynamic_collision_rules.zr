@@ -1,0 +1,109 @@
+// Scalar dynamic-object portion of clampDelveDoors. The authoritative DelveRun
+// reducer owns object iteration/order, state lookup and the composition with
+// module colliders; this module resolves exactly one source object at a time.
+var geometry = %import("world/collision_geometry");
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+signedOrPositive(value: float): float {
+    // Source uses Math.sign(value || 1), so zero deliberately pushes positive.
+    return value < 0.0 ? -1.0 : 1.0;
+}
+
+pub lockedDoorHalfWidth(required: bool): float {
+    if (!required) { throw "woc Delve locked-door width is required"; }
+    return 24.0;
+}
+
+pub lockedDoorHalfDepth(required: bool): float {
+    if (!required) { throw "woc Delve locked-door depth is required"; }
+    return 1.2;
+}
+
+pub objectSolidRadius(kind: string, objectHealth: int, required: bool): float {
+    if (!required) { throw "woc Delve object collision kind is required"; }
+    if (kind == "reward_chest" || kind == "locked_chest" ||
+        kind == "drowned_reliquary") {
+        return 2.4;
+    }
+    if (kind == "cracked_grave") { return 1.0; }
+    if (kind == "destructible_wall" && objectHealth > 0) { return 3.2; }
+    return 0.0;
+}
+
+pub resolveObjectCoordinate(
+    kind: string,
+    objectOpen: bool,
+    objectHealth: int,
+    x: float,
+    z: float,
+    bodyRadius: float,
+    objectX: float,
+    objectZ: float,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc Delve dynamic collision arguments are invalid";
+    }
+    if (kind == "locked_door") {
+        if (objectOpen) { return axis == 1 ? x : z; }
+        var dx = x - objectX;
+        var dz = z - objectZ;
+        var overlapX = absolute(dx) - lockedDoorHalfWidth(true) - bodyRadius;
+        var overlapZ = absolute(dz) - lockedDoorHalfDepth(true) - bodyRadius;
+        if (overlapX < 0.0 && overlapZ < 0.0) {
+            if (overlapX > overlapZ) {
+                return axis == 1 ? objectX + signedOrPositive(dx) *
+                    (lockedDoorHalfWidth(true) + bodyRadius) : z;
+            }
+            return axis == 1 ? x : objectZ + signedOrPositive(dz) *
+                (lockedDoorHalfDepth(true) + bodyRadius);
+        }
+        return axis == 1 ? x : z;
+    }
+    var radius = objectSolidRadius(kind, objectHealth, true);
+    if (radius <= 0.0) { return axis == 1 ? x : z; }
+    return axis == 1 ? geometry.circleResolvedX(
+        x, z, bodyRadius, objectX, objectZ, radius, true
+    ) : geometry.circleResolvedZ(x, z, bodyRadius, objectX, objectZ, radius, true);
+}
+
+pub contractTest(): int {
+    if (objectSolidRadius("reward_chest", 0, true) != 2.4 ||
+        objectSolidRadius("locked_chest", 0, true) != 2.4 ||
+        objectSolidRadius("drowned_reliquary", 0, true) != 2.4 ||
+        objectSolidRadius("cracked_grave", 0, true) != 1.0 ||
+        objectSolidRadius("destructible_wall", 1, true) != 3.2 ||
+        objectSolidRadius("destructible_wall", 0, true) != 0.0 ||
+        lockedDoorHalfWidth(true) != 24.0 || lockedDoorHalfDepth(true) != 1.2) {
+        return -1;
+    }
+    if (resolveObjectCoordinate("locked_door", false, 1, 0.0, 0.0, 0.5,
+            0.0, 0.0, 1, true) != 0.0 ||
+        resolveObjectCoordinate("locked_door", false, 1, 0.0, 0.0, 0.5,
+            0.0, 0.0, 2, true) != 1.7 ||
+        resolveObjectCoordinate("locked_door", false, 1, 23.0, 0.0, 0.5,
+            0.0, 0.0, 1, true) != 24.5 ||
+        resolveObjectCoordinate("locked_door", false, 1, 24.5, 0.0, 0.5,
+            0.0, 0.0, 1, true) != 24.5 ||
+        resolveObjectCoordinate("locked_door", true, 1, 0.0, 0.0, 0.5,
+            0.0, 0.0, 2, true) != 0.0) {
+        return -2;
+    }
+    if (resolveObjectCoordinate("reward_chest", false, 0, 0.0, 0.0, 0.5,
+            0.0, 0.0, 1, true) != 2.9 ||
+        resolveObjectCoordinate("cracked_grave", false, 0, 0.0, 0.0, 0.5,
+            0.0, 0.0, 1, true) != 1.5 ||
+        resolveObjectCoordinate("destructible_wall", false, 1, 0.0, 0.0, 0.5,
+            0.0, 0.0, 1, true) != 3.7 ||
+        resolveObjectCoordinate("destructible_wall", false, 0, 0.0, 0.0, 0.5,
+            0.0, 0.0, 1, true) != 0.0 ||
+        resolveObjectCoordinate("pressure_plate", false, 1, 1.0, 2.0, 0.5,
+            0.0, 0.0, 1, true) != 1.0) {
+        return -3;
+    }
+    return 1;
+}

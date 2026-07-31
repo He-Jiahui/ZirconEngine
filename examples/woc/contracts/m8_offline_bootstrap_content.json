@@ -1,0 +1,863 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m8_offline_bootstrap_content_codegen.mjs",
+  "source_identities": {
+    "representation": "git_blob_lf",
+    "files": [
+      {
+        "path": "src/sim/sim.ts",
+        "bytes": 382437,
+        "sha256": "fa0965112495b10ac2d793e672927de569666f9b3c938282eedc08b303cd6b03"
+      },
+      {
+        "path": "src/sim/entity.ts",
+        "bytes": 29924,
+        "sha256": "e5906007bc4a34cd019bcfb980520e34dc646ed7bc71a3b7f6ec69e8cdc7da11"
+      },
+      {
+        "path": "src/sim/data.ts",
+        "bytes": 25410,
+        "sha256": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431"
+      },
+      {
+        "path": "src/sim/content/classes.ts",
+        "bytes": 200029,
+        "sha256": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889"
+      },
+      {
+        "path": "src/sim/content/items.ts",
+        "bytes": 47704,
+        "sha256": "d3c5791f88973956b651eeab71d4020d9e3697803cddc007ccae214f6738d37b"
+      },
+      {
+        "path": "src/sim/types.ts",
+        "bytes": 204442,
+        "sha256": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+      }
+    ]
+  },
+  "player_start": {
+    "x": 2,
+    "z": -2
+  },
+  "classes": [
+    {
+      "id": "warrior",
+      "name": "Warrior",
+      "base_stats": {
+        "str": 23,
+        "agi": 20,
+        "sta": 22,
+        "int": 10,
+        "spi": 11,
+        "armor": 50
+      },
+      "stats_per_level": {
+        "str": 2,
+        "agi": 1,
+        "sta": 2,
+        "int": 0,
+        "spi": 0,
+        "armor": 12
+      },
+      "base_hp": 50,
+      "hp_per_level": 18,
+      "base_mana": 100,
+      "mana_per_level": 0,
+      "resource_type": "rage",
+      "start_weapon": "worn_sword",
+      "start_chest": "recruit_tunic",
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        }
+      ],
+      "ranged": null,
+      "abilities": [
+        "heroic_strike",
+        "revenge",
+        "battle_shout",
+        "charge",
+        "thunder_clap",
+        "hamstring",
+        "bloodrage",
+        "overpower",
+        "raging_gale",
+        "raised_guard",
+        "pummel",
+        "execute",
+        "furious_mending",
+        "iron_resolve",
+        "slam",
+        "red_harvest",
+        "whirlwind",
+        "faultline",
+        "heroic_leap",
+        "cleave",
+        "rallying_cry",
+        "emboldening_roar",
+        "defiant_bellow",
+        "battle_stance",
+        "berserker_stance",
+        "defensive_stance",
+        "demoralizing_shout",
+        "intimidating_shout",
+        "sunder_armor",
+        "taunt",
+        "measured_fury",
+        "seasoned_soldier",
+        "sudden_death",
+        "diabolical_twinstrike",
+        "cleaving_blows",
+        "breachmaker",
+        "sweeping_strikes",
+        "deep_wounds",
+        "enrage_passive"
+      ],
+      "color": 13081710
+    },
+    {
+      "id": "mage",
+      "name": "Mage",
+      "base_stats": {
+        "str": 10,
+        "agi": 12,
+        "sta": 14,
+        "int": 24,
+        "spi": 22,
+        "armor": 25
+      },
+      "stats_per_level": {
+        "str": 0,
+        "agi": 0,
+        "sta": 1,
+        "int": 3,
+        "spi": 2,
+        "armor": 4
+      },
+      "base_hp": 40,
+      "hp_per_level": 12,
+      "base_mana": 100,
+      "mana_per_level": 24,
+      "resource_type": "mana",
+      "start_weapon": "gnarled_staff",
+      "start_chest": "apprentice_robe",
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "ranged": {
+        "min": 3,
+        "max": 6,
+        "speed": 1.8,
+        "max_range": 30,
+        "min_range": 0,
+        "wand": true,
+        "school": "arcane"
+      },
+      "abilities": [
+        "fireball",
+        "frost_armor",
+        "arcane_intellect",
+        "frostbolt",
+        "conjure_water",
+        "blink",
+        "ice_block",
+        "ignition",
+        "hot_streak",
+        "blazing_barrier",
+        "meteor",
+        "combustion",
+        "summon_water_elemental",
+        "ice_lance",
+        "fingers_of_frost",
+        "brain_freeze",
+        "shatter",
+        "conjure_food",
+        "counterspell",
+        "fire_blast",
+        "arcane_missiles",
+        "flurry",
+        "polymorph",
+        "frost_nova",
+        "frozen_orb",
+        "blizzard",
+        "icy_veins",
+        "glacial_spike",
+        "glacial_front",
+        "dragons_breath",
+        "arcane_explosion",
+        "scorch",
+        "ice_barrier",
+        "pyroblast",
+        "flamestrike",
+        "temporal_barrier",
+        "temporal_echo",
+        "arcane_surge",
+        "temporal_cascade",
+        "temporal_reversal",
+        "collective_reversal",
+        "temporal_rewind",
+        "temporal_hourglass",
+        "temporal_acceleration",
+        "perfect_moment",
+        "fireball_form"
+      ],
+      "color": 6933744
+    },
+    {
+      "id": "rogue",
+      "name": "Rogue",
+      "base_stats": {
+        "str": 17,
+        "agi": 25,
+        "sta": 17,
+        "int": 11,
+        "spi": 12,
+        "armor": 40
+      },
+      "stats_per_level": {
+        "str": 1,
+        "agi": 3,
+        "sta": 1,
+        "int": 0,
+        "spi": 0,
+        "armor": 8
+      },
+      "base_hp": 45,
+      "hp_per_level": 15,
+      "base_mana": 100,
+      "mana_per_level": 0,
+      "resource_type": "energy",
+      "start_weapon": "rusty_dagger",
+      "start_chest": "footpad_jerkin",
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        }
+      ],
+      "ranged": null,
+      "abilities": [
+        "sinister_strike",
+        "eviscerate",
+        "garrote",
+        "backstab",
+        "gouge",
+        "cheap_shot",
+        "evasion",
+        "sap",
+        "slice_and_dice",
+        "sprint",
+        "crippling_poison",
+        "kidney_shot",
+        "expose_armor",
+        "ambush",
+        "rupture",
+        "vanish",
+        "instant_poison",
+        "adrenaline_rush",
+        "deadly_poison",
+        "blind",
+        "stealth",
+        "kick"
+      ],
+      "color": 16774505
+    },
+    {
+      "id": "paladin",
+      "name": "Paladin",
+      "base_stats": {
+        "str": 22,
+        "agi": 17,
+        "sta": 22,
+        "int": 13,
+        "spi": 14,
+        "armor": 45
+      },
+      "stats_per_level": {
+        "str": 2,
+        "agi": 1,
+        "sta": 2,
+        "int": 1,
+        "spi": 1,
+        "armor": 12
+      },
+      "base_hp": 55,
+      "hp_per_level": 17,
+      "base_mana": 80,
+      "mana_per_level": 20,
+      "resource_type": "mana",
+      "start_weapon": "training_mace",
+      "start_chest": "recruit_tunic",
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "ranged": null,
+      "abilities": [
+        "seal_of_righteousness",
+        "holy_light",
+        "devotion_aura",
+        "judgement",
+        "blessing_of_might",
+        "divine_protection",
+        "hammer_of_justice",
+        "lay_on_hands",
+        "holy_taunt",
+        "flash_of_light",
+        "exorcism",
+        "consecration",
+        "righteous_fury",
+        "retribution_aura",
+        "rebuke",
+        "sacred_bulwark"
+      ],
+      "color": 16092346
+    },
+    {
+      "id": "hunter",
+      "name": "Hunter",
+      "base_stats": {
+        "str": 14,
+        "agi": 25,
+        "sta": 19,
+        "int": 13,
+        "spi": 14,
+        "armor": 45
+      },
+      "stats_per_level": {
+        "str": 1,
+        "agi": 3,
+        "sta": 2,
+        "int": 1,
+        "spi": 1,
+        "armor": 8
+      },
+      "base_hp": 50,
+      "hp_per_level": 15,
+      "base_mana": 80,
+      "mana_per_level": 18,
+      "resource_type": "mana",
+      "start_weapon": "rusty_hatchet",
+      "start_chest": "footpad_jerkin",
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "ranged": {
+        "min": 5,
+        "max": 9,
+        "speed": 2.3,
+        "max_range": 35,
+        "min_range": 8,
+        "wand": false,
+        "school": null
+      },
+      "abilities": [
+        "raptor_strike",
+        "aspect_of_the_hawk",
+        "serpent_sting",
+        "arcane_shot",
+        "concussive_shot",
+        "mongoose_bite",
+        "wing_clip",
+        "tame_beast",
+        "dismiss_pet",
+        "revive_pet",
+        "aspect_of_the_monkey",
+        "aspect_of_the_cheetah",
+        "aimed_shot",
+        "rapid_fire",
+        "volley",
+        "counter_shot"
+      ],
+      "color": 11261043
+    },
+    {
+      "id": "priest",
+      "name": "Priest",
+      "base_stats": {
+        "str": 10,
+        "agi": 11,
+        "sta": 13,
+        "int": 22,
+        "spi": 24,
+        "armor": 20
+      },
+      "stats_per_level": {
+        "str": 0,
+        "agi": 0,
+        "sta": 1,
+        "int": 2,
+        "spi": 3,
+        "armor": 4
+      },
+      "base_hp": 38,
+      "hp_per_level": 11,
+      "base_mana": 110,
+      "mana_per_level": 26,
+      "resource_type": "mana",
+      "start_weapon": "gnarled_staff",
+      "start_chest": "apprentice_robe",
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "ranged": {
+        "min": 3,
+        "max": 6,
+        "speed": 1.8,
+        "max_range": 30,
+        "min_range": 0,
+        "wand": true,
+        "school": "holy"
+      },
+      "abilities": [
+        "smite",
+        "lesser_heal",
+        "power_word_fortitude",
+        "shadow_word_pain",
+        "power_word_shield",
+        "renew",
+        "mind_blast",
+        "heal",
+        "mind_flay",
+        "flash_heal"
+      ],
+      "color": 16777200
+    },
+    {
+      "id": "shaman",
+      "name": "Shaman",
+      "base_stats": {
+        "str": 18,
+        "agi": 16,
+        "sta": 20,
+        "int": 18,
+        "spi": 18,
+        "armor": 40
+      },
+      "stats_per_level": {
+        "str": 1,
+        "agi": 1,
+        "sta": 2,
+        "int": 2,
+        "spi": 2,
+        "armor": 10
+      },
+      "base_hp": 48,
+      "hp_per_level": 15,
+      "base_mana": 90,
+      "mana_per_level": 22,
+      "resource_type": "mana",
+      "start_weapon": "training_mace",
+      "start_chest": "footpad_jerkin",
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "ranged": null,
+      "abilities": [
+        "lightning_bolt",
+        "rockbiter_weapon",
+        "healing_wave",
+        "earth_shock",
+        "lightning_shield",
+        "flame_shock",
+        "flametongue_weapon",
+        "frost_shock",
+        "frostbrand_weapon",
+        "ghost_wolf",
+        "earthquake"
+      ],
+      "color": 28894
+    },
+    {
+      "id": "warlock",
+      "name": "Warlock",
+      "base_stats": {
+        "str": 11,
+        "agi": 12,
+        "sta": 15,
+        "int": 21,
+        "spi": 21,
+        "armor": 22
+      },
+      "stats_per_level": {
+        "str": 0,
+        "agi": 0,
+        "sta": 1,
+        "int": 3,
+        "spi": 2,
+        "armor": 4
+      },
+      "base_hp": 42,
+      "hp_per_level": 12,
+      "base_mana": 105,
+      "mana_per_level": 25,
+      "resource_type": "mana",
+      "start_weapon": "gnarled_staff",
+      "start_chest": "apprentice_robe",
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "ranged": {
+        "min": 3,
+        "max": 6,
+        "speed": 1.8,
+        "max_range": 30,
+        "min_range": 0,
+        "wand": true,
+        "school": "shadow"
+      },
+      "abilities": [
+        "shadow_bolt",
+        "summon_imp",
+        "demon_skin",
+        "immolate",
+        "corruption",
+        "life_tap",
+        "summon_voidwalker",
+        "curse_of_agony",
+        "drain_life",
+        "fear",
+        "searing_pain",
+        "shadowburn",
+        "summon_succubus",
+        "summon_felhunter",
+        "summon_felguard",
+        "summon_infernal",
+        "summon_doomguard",
+        "rain_of_fire",
+        "spell_lock"
+      ],
+      "color": 9732809
+    },
+    {
+      "id": "druid",
+      "name": "Druid",
+      "base_stats": {
+        "str": 15,
+        "agi": 15,
+        "sta": 17,
+        "int": 19,
+        "spi": 20,
+        "armor": 30
+      },
+      "stats_per_level": {
+        "str": 1,
+        "agi": 1,
+        "sta": 2,
+        "int": 2,
+        "spi": 2,
+        "armor": 6
+      },
+      "base_hp": 45,
+      "hp_per_level": 13,
+      "base_mana": 95,
+      "mana_per_level": 22,
+      "resource_type": "mana",
+      "start_weapon": "gnarled_staff",
+      "start_chest": "footpad_jerkin",
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "ranged": {
+        "min": 3,
+        "max": 6,
+        "speed": 1.8,
+        "max_range": 30,
+        "min_range": 0,
+        "wand": true,
+        "school": "nature"
+      },
+      "abilities": [
+        "wrath",
+        "healing_touch",
+        "mark_of_the_wild",
+        "moonfire",
+        "rejuvenation",
+        "thorns",
+        "entangling_roots",
+        "bear_form",
+        "bear_charge",
+        "maul",
+        "growl",
+        "demoralizing_roar",
+        "cat_form",
+        "prowl",
+        "rake",
+        "claw",
+        "regrowth",
+        "ferocious_bite",
+        "barkskin",
+        "swipe",
+        "starfire",
+        "travel_form",
+        "enrage",
+        "bash",
+        "faerie_fire",
+        "hibernate",
+        "dash",
+        "pounce",
+        "insect_swarm",
+        "tigers_fury",
+        "rip",
+        "hurricane",
+        "skull_bash",
+        "primal_reflexes"
+      ],
+      "color": 16743690
+    }
+  ],
+  "starter_items": [
+    {
+      "id": "apprentice_robe",
+      "kind": "armor",
+      "slot": "chest",
+      "armor_type": "cloth",
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0,
+        "armor": 8
+      },
+      "weapon": null,
+      "food_hp": 0,
+      "drink_mana": 0
+    },
+    {
+      "id": "baked_bread",
+      "kind": "food",
+      "slot": null,
+      "armor_type": null,
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0,
+        "armor": 0
+      },
+      "weapon": null,
+      "food_hp": 61,
+      "drink_mana": 0
+    },
+    {
+      "id": "footpad_jerkin",
+      "kind": "armor",
+      "slot": "chest",
+      "armor_type": "leather",
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0,
+        "armor": 14
+      },
+      "weapon": null,
+      "food_hp": 0,
+      "drink_mana": 0
+    },
+    {
+      "id": "gnarled_staff",
+      "kind": "weapon",
+      "slot": "mainhand",
+      "armor_type": null,
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 1,
+        "spi": 0,
+        "armor": 0
+      },
+      "weapon": {
+        "min": 3,
+        "max": 6,
+        "speed": 2.9
+      },
+      "food_hp": 0,
+      "drink_mana": 0
+    },
+    {
+      "id": "recruit_tunic",
+      "kind": "armor",
+      "slot": "chest",
+      "armor_type": "leather",
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0,
+        "armor": 20
+      },
+      "weapon": null,
+      "food_hp": 0,
+      "drink_mana": 0
+    },
+    {
+      "id": "rusty_dagger",
+      "kind": "weapon",
+      "slot": "mainhand",
+      "armor_type": null,
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0,
+        "armor": 0
+      },
+      "weapon": {
+        "min": 2,
+        "max": 4,
+        "speed": 1.8
+      },
+      "food_hp": 0,
+      "drink_mana": 0
+    },
+    {
+      "id": "rusty_hatchet",
+      "kind": "weapon",
+      "slot": "mainhand",
+      "armor_type": null,
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0,
+        "armor": 0
+      },
+      "weapon": {
+        "min": 2,
+        "max": 5,
+        "speed": 2.2
+      },
+      "food_hp": 0,
+      "drink_mana": 0
+    },
+    {
+      "id": "spring_water",
+      "kind": "drink",
+      "slot": null,
+      "armor_type": null,
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0,
+        "armor": 0
+      },
+      "weapon": null,
+      "food_hp": 0,
+      "drink_mana": 76
+    },
+    {
+      "id": "training_mace",
+      "kind": "weapon",
+      "slot": "mainhand",
+      "armor_type": null,
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0,
+        "armor": 0
+      },
+      "weapon": {
+        "min": 2,
+        "max": 5,
+        "speed": 2.6
+      },
+      "food_hp": 0,
+      "drink_mana": 0
+    },
+    {
+      "id": "worn_sword",
+      "kind": "weapon",
+      "slot": "mainhand",
+      "armor_type": null,
+      "quality": "common",
+      "stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0,
+        "armor": 0
+      },
+      "weapon": {
+        "min": 2,
+        "max": 5,
+        "speed": 2
+      },
+      "food_hp": 0,
+      "drink_mana": 0
+    }
+  ],
+  "catalog_sha256": "77ce0c4d8ab36735313eb026a3151e25e9f732ba4f98d5c1cab410de74bc3697"
+}

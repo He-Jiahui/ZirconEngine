@@ -1,18 +1,15 @@
-pub(super) fn validate_runtime_plugin_package_feature_provider_uniqueness<'a>(
+pub(super) fn validate_runtime_plugin_package_feature_provider_uniqueness(
     field_name: &str,
-    feature_id: &'a str,
-    provider_package_id: &'a str,
-    seen_feature_providers: &mut Vec<(&'a str, &'a str)>,
+    feature_id: &str,
+    provider_package_id: &str,
+    is_duplicate: bool,
     diagnostics: &mut Vec<String>,
 ) {
-    let key = (feature_id, provider_package_id);
-    if seen_feature_providers.contains(&key) {
+    if is_duplicate {
         diagnostics.push(format!(
             "runtime plugin package manifest {field_name} `{feature_id}` provider `{provider_package_id}` must be unique",
         ));
-        return;
     }
-    seen_feature_providers.push(key);
 }
 
 #[cfg(test)]
@@ -28,23 +25,21 @@ mod tests {
 
     #[test]
     fn feature_provider_uniqueness_preserves_duplicate_diagnostics() {
-        let mut seen = Vec::new();
         let mut diagnostics = Vec::new();
         super::validate_runtime_plugin_package_feature_provider_uniqueness(
             "optional feature",
             "rendering.deferred",
             "rendering",
-            &mut seen,
+            false,
             &mut diagnostics,
         );
         super::validate_runtime_plugin_package_feature_provider_uniqueness(
             "optional feature",
             "rendering.deferred",
             "rendering",
-            &mut seen,
+            true,
             &mut diagnostics,
         );
-        assert_eq!(seen, vec![("rendering.deferred", "rendering")]);
         assert_eq!(diagnostics.len(), 1);
         assert!(diagnostics[0].contains("must be unique"));
     }

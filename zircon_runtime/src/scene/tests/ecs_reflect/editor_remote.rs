@@ -212,6 +212,25 @@ fn component_adapter_lookup_borrows_for_read_paths_and_clones_only_for_write() {
 }
 
 #[test]
+fn reflection_write_reuses_the_resolved_adapter_for_readback() {
+    let source = include_str!("../../reflect/world_reflection.rs");
+    let reflect_write = source
+        .split("pub fn reflect_write")
+        .nth(1)
+        .and_then(|text| text.split("impl World").next())
+        .expect("read WorldReflection reflect_write body");
+
+    assert!(
+        reflect_write.contains("let (changed, value) = match &request.address")
+            && reflect_write.contains("adapter.write_field(")
+            && reflect_write.contains("adapter.read_field(world, *entity, &request.field_name)?")
+            && reflect_write.contains("adapter.read_field(world, &request.field_name)?")
+            && !reflect_write.contains("read_reflected_field(world, &request.address"),
+        "reflection writes must reuse the already-resolved adapter for response readback instead of querying the type registry a second time"
+    );
+}
+
+#[test]
 fn remote_style_write_request_serializes_and_mutates_through_facade() {
     let mut world = world_with_cloud_layer_descriptor();
     let entity = world.spawn_node(NodeKind::Mesh);

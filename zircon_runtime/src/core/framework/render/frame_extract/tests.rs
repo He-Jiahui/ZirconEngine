@@ -1,13 +1,63 @@
 use super::*;
 use crate::core::framework::render::{
     AntiAliasMode, AntiAliasSettings, RenderCameraTarget, RenderLayerSet, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderViewportRect,
+    RenderMeshStaticState, RenderViewportRect, RendererCommon,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec4};
 use crate::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
 };
+
+#[test]
+fn frame_extract_snapshot_adapter_moves_owned_packet_payloads() {
+    let source = include_str!("../frame_extract.rs");
+
+    for redundant_clone in [
+        "snapshot.scene.camera.clone()",
+        "snapshot.scene.meshes.clone()",
+        "snapshot.scene.directional_lights.clone()",
+        "snapshot.scene.point_lights.clone()",
+        "snapshot.scene.spot_lights.clone()",
+        "snapshot.scene.ambient_lights.clone()",
+        "snapshot.scene.rect_lights.clone()",
+        "snapshot.environment.clone()",
+        "snapshot.preview.clone()",
+    ] {
+        assert!(
+            !source.contains(redundant_clone),
+            "owned snapshot payload should be moved instead of cloned: {redundant_clone}"
+        );
+    }
+}
+
+#[test]
+fn render_view_size_queries_do_not_clone_the_selected_camera() {
+    let source = include_str!("../frame_extract.rs");
+
+    assert_eq!(
+        source
+            .matches("let camera = self.selected_effective_camera();")
+            .count(),
+        0,
+        "effective size queries should inspect the selected descriptor by reference"
+    );
+}
+
+#[test]
+fn render_mesh_snapshot_hard_cuts_legacy_layer_field_into_renderer_common() {
+    let source = include_str!("../scene_extract.rs");
+    let mesh_snapshot = source
+        .split_once("pub struct RenderMeshSnapshot {")
+        .expect("render mesh snapshot declaration")
+        .1
+        .split_once("\n}")
+        .expect("render mesh snapshot body")
+        .0;
+
+    assert!(mesh_snapshot.contains("pub common: RendererCommon"));
+    assert!(!mesh_snapshot.contains("pub render_layer_mask: RenderLayerSet"));
+}
 
 #[test]
 fn render_view_apply_target_size_preserves_descriptor_target_and_layers() {
@@ -131,7 +181,11 @@ fn render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_widt
                     tint: Vec4::ONE,
                     mobility: Mobility::Static,
                     static_state: RenderMeshStaticState::default(),
-                    render_layer_mask: high_layer_mask,
+                    common: RendererCommon {
+                        layer_mask: high_layer_mask,
+                        is_static: true,
+                        ..RendererCommon::default()
+                    },
                 }],
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),

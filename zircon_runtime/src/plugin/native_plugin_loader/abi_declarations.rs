@@ -1,9 +1,13 @@
-use std::ffi::c_char;
+use std::ffi::{c_char, c_void};
 
 use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
 
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3: u32 = 3;
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3;
+/// The descriptor and entry-point ABI remain v3. Behavior callbacks are a separately
+/// versioned contract and deliberately hard-cut to v4.
+pub const ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4: u32 = 4;
+pub const ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH: u32 = 5;
 pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3: &[u8] =
     b"zircon_native_plugin_descriptor_v3\0";
 pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL: &[u8] = ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3;
@@ -36,11 +40,13 @@ pub struct NativePluginSchemaVersionsV3 {
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct NativePluginEntryReportV3 {
-    pub abi_version: u32,
+    pub layout_epoch: u32,
     pub package_manifest_toml: *const c_char,
     pub diagnostics: *const c_char,
     pub negotiated_capabilities: *const c_char,
-    pub behavior: *const NativePluginBehaviorV3,
+    pub required_capabilities: *const c_char,
+    pub denied_capabilities: *const c_char,
+    pub behavior: *const NativePluginBehaviorV4,
     pub bridge_methods: *const NativePluginBridgeMethodTableV3,
 }
 
@@ -94,14 +100,23 @@ pub struct NativePluginCallbackStatusV2 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub struct NativePluginBehaviorV3 {
+pub struct NativePluginOutputSinkV4 {
+    /// Opaque host-owned context. It is valid only for the active command callback.
+    pub context: *mut c_void,
+    pub max_output_bytes: usize,
+    pub write: Option<NativePluginOutputWriteFnV4>,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginBehaviorV4 {
     pub abi_version: u32,
     pub is_stateless: u32,
     pub schema_versions: NativePluginSchemaVersionsV3,
     pub command_manifest: *const c_char,
     pub event_manifest: *const c_char,
     pub registration_manifest: *const c_char,
-    pub invoke_command: Option<NativePluginInvokeCommandFnV3>,
+    pub invoke_command: Option<NativePluginInvokeCommandFnV4>,
     pub save_state: Option<NativePluginSaveStateFnV3>,
     pub restore_state: Option<NativePluginRestoreStateFnV3>,
     pub unload: Option<NativePluginUnloadFnV3>,
@@ -136,10 +151,12 @@ pub struct NativePluginBridgeMethodCallV3 {
 
 pub type NativePluginFreeBytesFnV2 =
     unsafe extern "C" fn(NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
-pub type NativePluginInvokeCommandFnV2 = unsafe extern "C" fn(
-    *const c_char,
+pub type NativePluginOutputWriteFnV4 =
+    unsafe extern "C" fn(*mut c_void, NativePluginByteSliceV2) -> NativePluginCallbackStatusV2;
+pub type NativePluginInvokeCommandFnV4 = unsafe extern "C" fn(
+    u32,
     NativePluginByteSliceV2,
-    *mut NativePluginOwnedByteBufferV2,
+    NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV2;
 pub type NativePluginSaveStateFnV2 =
     unsafe extern "C" fn(*mut NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
@@ -149,7 +166,6 @@ pub type NativePluginUnloadFnV2 = unsafe extern "C" fn() -> NativePluginCallback
 pub type NativePluginByteSliceV3 = NativePluginByteSliceV2;
 pub type NativePluginOwnedByteBufferV3 = NativePluginOwnedByteBufferV2;
 pub type NativePluginCallbackStatusV3 = NativePluginCallbackStatusV2;
-pub type NativePluginInvokeCommandFnV3 = NativePluginInvokeCommandFnV2;
 pub type NativePluginSaveStateFnV3 = NativePluginSaveStateFnV2;
 pub type NativePluginRestoreStateFnV3 = NativePluginRestoreStateFnV2;
 pub type NativePluginUnloadFnV3 = NativePluginUnloadFnV2;

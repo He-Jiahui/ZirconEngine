@@ -1,0 +1,148 @@
+// Built-in Sim constructor's sequential entity-id schedule. This is an input
+// to a future atomic WorldState materializer, never a substitute for one.
+
+var npcPlacement = %import("world/npc_placement");
+var terrainContent = %import("world/terrain_content");
+var groundObjects = %import("world/ground_object_placement");
+var mailboxes = %import("world/mailbox_placement");
+var dungeonEntrances = %import("world/dungeon_entrance_placement");
+var spiritHealers = %import("world/spirit_healer_placement");
+var reservedNpcs = %import("world/reserved_npc_placement");
+
+pub var CATEGORY_STATIC_NPC = 1;
+pub var CATEGORY_CAMP_MOB = 2;
+pub var CATEGORY_GROUND_OBJECT = 3;
+pub var CATEGORY_MAILBOX = 4;
+pub var CATEGORY_DUNGEON_DOOR = 5;
+pub var CATEGORY_SPIRIT_HEALER = 6;
+
+categoryIsValid(category: int): bool {
+    return category >= CATEGORY_STATIC_NPC && category <= CATEGORY_SPIRIT_HEALER;
+}
+
+pub sequentialCategoryCount(category: int, required: bool): int {
+    if (!required || !categoryIsValid(category)) {
+        throw "woc bootstrap roster category is invalid";
+    }
+    if (category == CATEGORY_STATIC_NPC) {
+        return npcPlacement.staticNpcCount(true);
+    }
+    if (category == CATEGORY_CAMP_MOB) {
+        return terrainContent.campMobTotal(true);
+    }
+    if (category == CATEGORY_GROUND_OBJECT) {
+        return groundObjects.placementCount(true);
+    }
+    if (category == CATEGORY_MAILBOX) {
+        return mailboxes.mailboxCount(true);
+    }
+    if (category == CATEGORY_DUNGEON_DOOR) {
+        return 5;
+    }
+    return spiritHealers.healerCount(true);
+}
+
+pub sequentialEntityCount(required: bool): int {
+    if (!required) {
+        throw "woc bootstrap roster count is required";
+    }
+    var total = 0;
+    var category = CATEGORY_STATIC_NPC;
+    while (category <= CATEGORY_SPIRIT_HEALER) {
+        total = total + sequentialCategoryCount(category, true);
+        category = category + 1;
+    }
+    return total;
+}
+
+pub firstSequentialEntityIdForCategory(category: int, required: bool): int {
+    if (!required || !categoryIsValid(category)) {
+        throw "woc bootstrap roster category is invalid";
+    }
+    var id = 1;
+    var previous = CATEGORY_STATIC_NPC;
+    while (previous < category) {
+        id = id + sequentialCategoryCount(previous, true);
+        previous = previous + 1;
+    }
+    return id;
+}
+
+pub sequentialEntityId(category: int, sourceIndex: int, required: bool): int {
+    if (!required || !categoryIsValid(category) || sourceIndex < 0 ||
+        sourceIndex >= sequentialCategoryCount(category, true)) {
+        throw "woc bootstrap roster source index is invalid";
+    }
+    return firstSequentialEntityIdForCategory(category, true) + sourceIndex;
+}
+
+pub categoryForSequentialEntityId(entityId: int, required: bool): int {
+    if (!required || entityId < 1 || entityId > sequentialEntityCount(true)) {
+        throw "woc bootstrap roster entity id is invalid";
+    }
+    var category = CATEGORY_STATIC_NPC;
+    while (category <= CATEGORY_SPIRIT_HEALER) {
+        var first = firstSequentialEntityIdForCategory(category, true);
+        if (entityId < first + sequentialCategoryCount(category, true)) {
+            return category;
+        }
+        category = category + 1;
+    }
+    throw "woc bootstrap roster entity id is invalid";
+}
+
+pub sourceIndexForSequentialEntityId(entityId: int, required: bool): int {
+    var category = categoryForSequentialEntityId(entityId, required);
+    return entityId - firstSequentialEntityIdForCategory(category, true);
+}
+
+pub nextSequentialEntityId(required: bool): int {
+    if (!required) {
+        throw "woc bootstrap roster next id is required";
+    }
+    return sequentialEntityCount(true) + 1;
+}
+
+pub reservedNpcEntityId(reservedIndex: int, required: bool): int {
+    return reservedNpcs.entityId(reservedIndex, required);
+}
+
+pub initialWorldEntityCount(required: bool): int {
+    if (!required) {
+        throw "woc bootstrap roster initial entity count is required";
+    }
+    return sequentialEntityCount(true) + reservedNpcs.reservedNpcCount(true);
+}
+
+pub contractTest(): int {
+    if (sequentialCategoryCount(CATEGORY_STATIC_NPC, true) != 31 ||
+        sequentialCategoryCount(CATEGORY_CAMP_MOB, true) != 307 ||
+        sequentialCategoryCount(CATEGORY_GROUND_OBJECT, true) != 55 ||
+        sequentialCategoryCount(CATEGORY_MAILBOX, true) != 3 ||
+        sequentialCategoryCount(CATEGORY_DUNGEON_DOOR, true) != 5 ||
+        sequentialCategoryCount(CATEGORY_SPIRIT_HEALER, true) != 7 ||
+        sequentialEntityCount(true) != 408 || nextSequentialEntityId(true) != 409 ||
+        initialWorldEntityCount(true) != 410) {
+        return -1;
+    }
+    if (sequentialEntityId(CATEGORY_STATIC_NPC, 0, true) != 1 ||
+        sequentialEntityId(CATEGORY_STATIC_NPC, 30, true) != 31 ||
+        sequentialEntityId(CATEGORY_CAMP_MOB, 0, true) != 32 ||
+        sequentialEntityId(CATEGORY_CAMP_MOB, 306, true) != 338 ||
+        sequentialEntityId(CATEGORY_GROUND_OBJECT, 0, true) != 339 ||
+        sequentialEntityId(CATEGORY_GROUND_OBJECT, 54, true) != 393 ||
+        sequentialEntityId(CATEGORY_MAILBOX, 0, true) != 394 ||
+        sequentialEntityId(CATEGORY_DUNGEON_DOOR, 4, true) != 401 ||
+        sequentialEntityId(CATEGORY_SPIRIT_HEALER, 6, true) != 408) {
+        return -2;
+    }
+    if (categoryForSequentialEntityId(339, true) != CATEGORY_GROUND_OBJECT ||
+        sourceIndexForSequentialEntityId(339, true) != 0 ||
+        categoryForSequentialEntityId(408, true) != CATEGORY_SPIRIT_HEALER ||
+        sourceIndexForSequentialEntityId(408, true) != 6 ||
+        reservedNpcEntityId(0, true) != 1000000000 ||
+        reservedNpcEntityId(1, true) != 1000000001) {
+        return -3;
+    }
+    return 1;
+}

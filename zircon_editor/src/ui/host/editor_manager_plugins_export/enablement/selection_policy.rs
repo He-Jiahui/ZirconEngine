@@ -2,6 +2,7 @@ use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::plugin::native::{NativePluginLoadReport, NativePluginLoader};
 use zircon_runtime::{
     core::framework::project::ExportPackagingStrategy,
     core::framework::project::ProjectPluginSelection,
@@ -34,10 +35,18 @@ impl EditorManager {
         plugin_id: &str,
         packaging: ExportPackagingStrategy,
     ) -> Result<EditorPluginSelectionUpdateReport, String> {
-        let mut selection =
-            self.completed_native_aware_project_selection(project_root, manifest, plugin_id)?;
+        let native_report =
+            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let mut selection = self.completed_native_aware_project_selection_from_load_report(
+            manifest,
+            plugin_id,
+            &native_report,
+        )?;
         selection.packaging = packaging;
         manifest.plugins.set_enabled(selection.clone());
+        let completed =
+            self.complete_project_plugin_manifest_with_native_report(manifest, &native_report);
+        self.publish_project_plugin_status_from_load_report(&completed, &native_report);
         Ok(selection_update_report(
             plugin_id,
             selection,
@@ -68,10 +77,18 @@ impl EditorManager {
         plugin_id: &str,
         target_modes: impl IntoIterator<Item = RuntimeTargetMode>,
     ) -> Result<EditorPluginSelectionUpdateReport, String> {
-        let mut selection =
-            self.completed_native_aware_project_selection(project_root, manifest, plugin_id)?;
+        let native_report =
+            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let mut selection = self.completed_native_aware_project_selection_from_load_report(
+            manifest,
+            plugin_id,
+            &native_report,
+        )?;
         selection.target_modes = deduplicated_target_modes(target_modes);
         manifest.plugins.set_enabled(selection.clone());
+        let completed =
+            self.complete_project_plugin_manifest_with_native_report(manifest, &native_report);
+        self.publish_project_plugin_status_from_load_report(&completed, &native_report);
         Ok(selection_update_report(
             plugin_id,
             selection,
@@ -94,13 +111,13 @@ impl EditorManager {
             })
     }
 
-    fn completed_native_aware_project_selection(
+    fn completed_native_aware_project_selection_from_load_report(
         &self,
-        project_root: impl AsRef<Path>,
         manifest: &ProjectManifest,
         plugin_id: &str,
+        native_report: &NativePluginLoadReport,
     ) -> Result<ProjectPluginSelection, String> {
-        self.complete_native_aware_project_plugin_manifest(project_root, manifest)
+        self.complete_project_plugin_manifest_with_native_report(manifest, native_report)
             .plugins
             .selections
             .into_iter()

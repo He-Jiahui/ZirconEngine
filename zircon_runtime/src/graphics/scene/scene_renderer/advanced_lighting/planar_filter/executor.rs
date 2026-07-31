@@ -7,8 +7,8 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
 use super::{
-    PlanarReflectionFilterPipeline, PLANAR_FILTER_EXECUTOR_ID, PLANAR_FILTER_PIPELINE_LABEL,
-    PLANAR_FILTER_WORKGROUP_SIZE, PLANAR_REFLECTION_TEXTURE_RESOURCE,
+    PLANAR_FILTER_EXECUTOR_ID, PLANAR_FILTER_PIPELINE_LABEL, PLANAR_FILTER_WORKGROUP_SIZE,
+    PLANAR_REFLECTION_TEXTURE_RESOURCE, PlanarReflectionFilterPipeline,
 };
 
 #[derive(Default)]

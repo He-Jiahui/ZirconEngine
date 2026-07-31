@@ -10,7 +10,10 @@ mod quality;
 #[cfg(test)]
 mod tests;
 
-pub use backend_status::{GraphicsDebuggerStatus, RenderingBackendInfo};
+pub use backend_status::{
+    GraphicsDebuggerStatus, RenderDeviceDiagnostics, RenderDeviceLimitDiagnostics,
+    RenderingBackendInfo,
+};
 pub use camera_target::{
     RenderCameraTargetGraphImportReport, RenderCameraTargetGraphImportStatus,
     RenderCameraTargetResolutionReport, RenderCameraTargetWritebackReport,
@@ -28,12 +31,14 @@ pub use graph_reports::{
     MotionVectorCameraStatus, RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
     RenderGraphExecutionCoverageReport, RenderGraphExecutionProfileReport,
     RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
-    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderGraphTransientPoolReport,
-    RenderSceneVelocityReadbackReport,
+    RenderGraphPassProfileMetrics, RenderGraphPassProfileRecord, RenderGraphStageExecutionReport,
+    RenderGraphTransientPoolReport, RenderSceneVelocityReadbackReport,
 };
 pub use handles::{FrameHistoryHandle, RenderPipelineHandle, RenderViewportHandle};
 pub use history::{FrameHistoryInvalidationReason, FrameHistoryStatus, RenderHistoryCopyReport};
 pub use quality::{RenderFeatureQualitySettings, RenderQualityProfile};
+
+use std::sync::Arc;
 
 use crate::core::math::UVec2;
 
@@ -77,6 +82,14 @@ pub struct RenderStats {
     pub last_camera_target_graph_import: RenderCameraTargetGraphImportReport,
     pub last_camera_target_writeback: RenderCameraTargetWritebackReport,
     pub last_capture_report: super::RenderCaptureReport,
+    /// Current-frame CPU/graph profile; it always shares a generation with the flat `last_*` data.
+    pub last_frame_profile: Arc<super::RenderFrameProfile>,
+    /// Most recently resolved asynchronous GPU timestamp profile, which can lag the current frame.
+    pub last_resolved_gpu_frame_profile: Option<Arc<super::RenderFrameProfile>>,
+    pub last_budget_warning_count: u32,
+    pub last_store_lint_count: u32,
+    pub last_pipeline_async_pending_count: u32,
+    pub last_variant_first_frame_miss_count: u32,
     pub last_camera_loop_submission_count: usize,
     pub last_scene_camera_scheduled_count: usize,
     pub last_scene_camera_order_ambiguity_count: usize,
@@ -388,6 +401,7 @@ pub struct RenderStats {
     pub last_hybrid_gi_voxel_invalidated_clipmap_count: usize,
     pub last_hybrid_gi_payload_source: RenderHybridGiPayloadSource,
     pub last_hybrid_gi_resolved_settings: Option<RenderHybridGiResolvedSettings>,
+    pub device_diagnostics: Option<RenderDeviceDiagnostics>,
     pub capabilities: RenderCapabilitySummary,
     pub advanced_provider_availability: AdvancedProviderAvailability,
     pub last_advanced_provider_reports: Vec<AdvancedProviderReport>,

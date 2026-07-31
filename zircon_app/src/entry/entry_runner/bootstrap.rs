@@ -358,14 +358,11 @@ impl EntryRunner {
         }
         let mut runtime_plugin_registration_reports = registrations.into_iter().collect::<Vec<_>>();
         runtime_plugin_registration_reports
-            .extend(native_report.runtime_plugin_registration_reports.clone());
+            .extend(native_report.runtime_plugin_registration_reports);
         let mut runtime_plugin_feature_registration_reports =
             feature_registrations.into_iter().collect::<Vec<_>>();
-        runtime_plugin_feature_registration_reports.extend(
-            native_report
-                .runtime_plugin_feature_registration_reports
-                .clone(),
-        );
+        runtime_plugin_feature_registration_reports
+            .extend(native_report.runtime_plugin_feature_registration_reports);
         let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
             &config,
             runtime_plugin_registration_reports,

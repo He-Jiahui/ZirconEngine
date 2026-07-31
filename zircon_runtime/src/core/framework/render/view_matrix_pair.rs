@@ -1,6 +1,6 @@
-use crate::core::math::{view_matrix, Mat4, Real, UVec2, Vec3};
+use crate::core::math::{Mat4, Real, UVec2, Vec2, Vec3, view_matrix};
 
-use super::{aspect_ratio_from_viewport_size, ProjectionMode, ViewportCameraSnapshot};
+use super::{ProjectionMode, ViewportCameraSnapshot, aspect_ratio_from_viewport_size};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ViewProjectionMatrixPair {
@@ -13,6 +13,12 @@ impl ViewProjectionMatrixPair {
         let projection = projection_from_camera(camera, viewport_size);
         let clip_from_world_unjittered = projection * view_matrix(camera.transform);
         let jitter = camera.temporal_jitter.offset_pixels;
+        if jitter == Vec2::ZERO {
+            return Self {
+                clip_from_world_jittered: clip_from_world_unjittered,
+                clip_from_world_unjittered,
+            };
+        }
         let viewport_width = viewport_size.x.max(1) as Real;
         let viewport_height = viewport_size.y.max(1) as Real;
         let jitter_translation = Mat4::from_translation(Vec3::new(
@@ -63,6 +69,9 @@ mod tests {
 
     #[test]
     fn render_taa_matrix_pair_is_identical_without_jitter() {
+        let source = include_str!("view_matrix_pair.rs");
+        assert!(source.contains(concat!("if jitter == Vec2::", "ZERO {")));
+
         let camera = ViewportCameraSnapshot::default();
 
         let pair = ViewProjectionMatrixPair::from_camera(&camera, UVec2::new(1280, 720));

@@ -1,0 +1,7 @@
+pub var packageName = () => {
+    return "woc_game";
+};
+
+pub var schemaVersion = () => {
+    return 1;
+};

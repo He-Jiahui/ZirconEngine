@@ -4,7 +4,7 @@ use crate::core::asset::AssetTypeId;
 use crate::core::editor_operation::EditorOperationPath;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ViewportToolModeDescriptor {
+pub struct SceneModeDescriptor {
     id: String,
     display_name: String,
     view_id: String,
@@ -15,7 +15,7 @@ pub struct ViewportToolModeDescriptor {
     required_capabilities: Vec<String>,
 }
 
-impl ViewportToolModeDescriptor {
+impl SceneModeDescriptor {
     pub fn new(
         id: impl Into<String>,
         display_name: impl Into<String>,

@@ -4,8 +4,8 @@ use crate::asset::AssetUri;
 use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension};
 
 use super::{
-    metadata, payload::default_texture_payload, TextureArrayLayout, TextureAssetDescriptor,
-    TextureDescriptorError, TextureDescriptorResult, TexturePayload,
+    TextureArrayLayout, TextureAssetDescriptor, TextureDescriptorError, TextureDescriptorResult,
+    TexturePayload, metadata, payload::default_texture_payload,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -1,0 +1,19 @@
+var console = %import("zr.system.console");
+var effects = %import("combat/effects");
+
+console.printLine("m4-effects-test");
+var result: int = 1;
+if (effects.metric(0, 100.0, 20.0, 1.0, 0.2) != 204.0) { result = -1; }
+if (result == 1 && effects.metric(1, 43.0, 15.0, 3.0, 140.0) != 98.0) { result = -2; }
+if (result == 1 && effects.metric(2, 50.0, 10.0, 1.0, 0.2) != 102.0) { result = -3; }
+if (result == 1 && effects.metric(3, 100.0, 20.0, 0.25, 1.0) != 90.0) { result = -4; }
+if (result == 1 && effects.metric(4, 2.0, 5.0, 0.0, 0.0) != 3.0) { result = -5; }
+if (result == 1 && effects.metric(4, 2.0, 5.0, 1.0, 0.0) != 5.0) { result = -6; }
+if (result == 1 && effects.metric(5, 120.0, 1.3, 0.0, 0.0) != 156.0) { result = -7; }
+if (result == 1 && effects.metric(6, 2.0, 0.0, 0.0, 0.0) != 2.0) { result = -8; }
+if (result == 1 && effects.metric(7, 1.0, 2.0, 0.0, 0.0) != 2.0) { result = -9; }
+if (result == 1 && effects.metric(8, 1.0, 3.0, 0.0, 0.0) != 0.0) { result = -10; }
+if (result == 1 && effects.metric(9, 1.0, 1.0, 0.0, 0.0) != 1.0) { result = -11; }
+if (result == 1 && <int>effects.scenarioContract(1018, 1) != 1) { result = -12; }
+console.printLine(result);
+return result == 1 ? 0 : result;

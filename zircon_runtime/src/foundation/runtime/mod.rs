@@ -1,5 +1,7 @@
 mod config_driver;
 mod config_manager;
+#[cfg(test)]
+mod config_manager_tests;
 mod config_path;
 mod event_driver;
 mod event_manager;

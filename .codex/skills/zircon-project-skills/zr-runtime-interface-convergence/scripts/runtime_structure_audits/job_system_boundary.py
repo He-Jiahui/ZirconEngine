@@ -46,6 +46,7 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
     )
     job_system_guard_paths = tuple(root / path for path in JOB_SYSTEM_GUARD_FILES)
     tasks_tests = root / "zircon_runtime" / "src" / "tests" / "tasks.rs"
+    job_handle_tests = tasks_dir / "job_handle.rs"
     schedule_executor_source = (
         _read_text(schedule_executor) if schedule_executor.exists() else ""
     )
@@ -58,6 +59,10 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
         _read_text(path) for path in job_system_guard_paths if path.exists()
     )
     tasks_tests_source = _read_text(tasks_tests) if tasks_tests.exists() else ""
+    job_handle_tests_source = (
+        _read_text(job_handle_tests) if job_handle_tests.exists() else ""
+    )
+    behavior_test_sources = (tasks_tests_source, job_handle_tests_source)
 
     owner_modules: list[dict[str, object]] = []
     missing_modules: list[str] = []
@@ -106,7 +111,7 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
     missing_behavior_test_anchors = [
         anchor
         for anchor in JOB_SYSTEM_BEHAVIOR_TEST_ANCHORS
-        if anchor not in tasks_tests_source
+        if not any(anchor in source for source in behavior_test_sources)
     ]
 
     direct_rayon_references = collect_direct_rayon_references(root)

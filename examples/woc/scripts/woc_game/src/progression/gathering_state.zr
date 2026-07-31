@@ -1,0 +1,371 @@
+// Current-head professions/gathering.ts projection. This state preserves the
+// source's player-local node timers, independent proficiency counters, RNG
+// ordering, corpse claims and focus selection. The world command layer owns
+// position, bag capacity, item grant, quest/Xp/event side effects and storage.
+var container = %import("zr.container");
+var rng = %import("kernel/rng");
+var contract = %import("generated/gathering_contract");
+
+pub class GatheringProficiency {
+    pub var mining: float;
+    pub var logging: float;
+    pub var herbalism: float;
+
+    pub @constructor() {
+        this.mining = 0.0;
+        this.logging = 0.0;
+        this.herbalism = 0.0;
+    }
+}
+
+pub class PendingGatherGrant {
+    pub var professionId: string;
+    pub var amount: float;
+
+    pub @constructor(professionId: string, amount: float) {
+        this.professionId = professionId;
+        this.amount = amount;
+    }
+}
+
+pub class GatheringState {
+    pub var proficiency: GatheringProficiency;
+    pub var pending: container.Array<PendingGatherGrant>;
+    // Ordered arrays represent the source Record<nodeId, readyAt>.
+    pub var readyNodeIds: container.Array<string>;
+    pub var readyAts: container.Array<float>;
+
+    pub @constructor() {
+        this.proficiency = new GatheringProficiency();
+        this.pending = new container.Array<PendingGatherGrant>();
+        this.readyNodeIds = new container.Array<string>();
+        this.readyAts = new container.Array<float>();
+    }
+}
+
+pub class HarvestResolution {
+    pub var granted: bool;
+    pub var itemId: string;
+    pub var professionId: string;
+    pub var rarity: string;
+
+    pub @constructor() {
+        this.granted = false;
+        this.itemId = "";
+        this.professionId = "";
+        this.rarity = "";
+    }
+}
+
+pub class GatheringSkillView {
+    pub var professionId: string;
+    pub var skill: float;
+    pub var maxSkill: float;
+
+    pub @constructor(professionId: string, skill: float, maxSkill: float) {
+        this.professionId = professionId;
+        this.skill = skill;
+        this.maxSkill = maxSkill;
+    }
+}
+
+pub class HarvestClaim {
+    pub var success: bool;
+    pub var claimedBy: int;
+
+    pub @constructor(success: bool, claimedBy: int) {
+        this.success = success;
+        this.claimedBy = claimedBy;
+    }
+}
+
+pub class FocusHarvestYield {
+    pub var component: string;
+    pub var tier: string;
+
+    pub @constructor(component: string, tier: string) {
+        this.component = component;
+        this.tier = tier;
+    }
+}
+
+nodeIndex(nodeId: string): int {
+    var index = 0;
+    while (index < contract.nodeCount()) {
+        if (contract.nodeAt(index) == nodeId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+readyIndex(state: GatheringState, nodeId: string): int {
+    var index = 0;
+    while (index < state.readyNodeIds.length) {
+        if (<string>state.readyNodeIds[index] == nodeId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub isGatheringProfessionId(professionId: string): bool {
+    var index = 0;
+    while (index < contract.professionCount()) {
+        if (contract.professionAt(index) == professionId) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+pub proficiencyFor(proficiency: GatheringProficiency, professionId: string): float {
+    if (professionId == "mining") return proficiency.mining;
+    if (professionId == "logging") return proficiency.logging;
+    if (professionId == "herbalism") return proficiency.herbalism;
+    return 0.0;
+}
+
+pub setProficiency(proficiency: GatheringProficiency, professionId: string, value: float): bool {
+    if (!isGatheringProfessionId(professionId)) return false;
+    // IEEE NaN is the only malformed scalar a typed Zr caller can supply here;
+    // source persistence additionally rejects non-finite host JSON values.
+    var normalized = value != value || value < 0.0 ? 0.0 : value;
+    if (professionId == "mining") proficiency.mining = normalized;
+    else if (professionId == "logging") proficiency.logging = normalized;
+    else proficiency.herbalism = normalized;
+    return true;
+}
+
+pub queueGatheringGrant(state: GatheringState, professionId: string, amount: float): bool {
+    if (!isGatheringProfessionId(professionId) || amount != amount || amount <= 0.0) return false;
+    state.pending.add(new PendingGatherGrant(professionId, amount));
+    return true;
+}
+
+pub drainGatheringGrants(state: GatheringState): void {
+    var index = 0;
+    while (index < state.pending.length) {
+        var grant = <PendingGatherGrant>state.pending[index];
+        setProficiency(
+            state.proficiency, grant.professionId,
+            proficiencyFor(state.proficiency, grant.professionId) + grant.amount
+        );
+        index = index + 1;
+    }
+    state.pending = new container.Array<PendingGatherGrant>();
+}
+
+pub gatheringSkillsView(proficiency: GatheringProficiency): container.Array<GatheringSkillView> {
+    var view = new container.Array<GatheringSkillView>();
+    var index = 0;
+    while (index < contract.professionCount()) {
+        var id = contract.professionAt(index);
+        view.add(new GatheringSkillView(id, proficiencyFor(proficiency, id), contract.professionMaxSkill(id)));
+        index = index + 1;
+    }
+    return view;
+}
+
+pub isNodeHarvestableBy(state: GatheringState, nodeId: string, now: float): bool {
+    var index = readyIndex(state, nodeId);
+    return index < 0 || now >= <float>state.readyAts[index];
+}
+
+setNodeReadyAt(state: GatheringState, nodeId: string, readyAt: float): void {
+    var index = readyIndex(state, nodeId);
+    if (index < 0) {
+        state.readyNodeIds.add(nodeId);
+        state.readyAts.add(readyAt);
+    } else {
+        state.readyAts[index] = readyAt;
+    }
+}
+
+pub rollMaterialRarity(proficiency: float, stream: rng.Mulberry32): string {
+    var max = contract.materialRarityMaxProficiency();
+    var limited = proficiency != proficiency ? 0.0 : proficiency;
+    if (limited < 0.0) limited = 0.0;
+    if (limited > max) limited = max;
+    var roll = stream.next() * max;
+    var commonWeight = max - limited;
+    if (roll < commonWeight) return "common";
+    roll = roll - commonWeight;
+    var uncommonWeight = limited * contract.materialRarityShare("uncommon");
+    if (roll < uncommonWeight) return "uncommon";
+    roll = roll - uncommonWeight;
+    var rareWeight = limited * contract.materialRarityShare("rare");
+    if (roll < rareWeight) return "rare";
+    roll = roll - rareWeight;
+    var epicWeight = limited * contract.materialRarityShare("epic");
+    if (roll < epicWeight) return "epic";
+    return "legendary";
+}
+
+// A rejected readiness check returns before the RNG draw, preserving the shared
+// deterministic stream. The owning command performs range/capacity checks first.
+pub resolveHarvest(
+    state: GatheringState, nodeId: string, now: float, stream: rng.Mulberry32
+): HarvestResolution {
+    var result = new HarvestResolution();
+    var index = nodeIndex(nodeId);
+    if (index < 0 || !isNodeHarvestableBy(state, nodeId, now)) return result;
+    var nodeType = contract.nodeTypeAt(index);
+    var professionId = contract.nodeHarvestProfessionFor(nodeType);
+    if (professionId == "") return result;
+    setNodeReadyAt(state, nodeId, now + contract.nodeRespawnSecondsFor(nodeType));
+    result.rarity = rollMaterialRarity(proficiencyFor(state.proficiency, professionId), stream);
+    queueGatheringGrant(state, professionId, 1.0);
+    result.granted = true;
+    result.itemId = contract.nodeHarvestItemFor(nodeType);
+    result.professionId = professionId;
+    return result;
+}
+
+pub harvestComponentItem(tag: string): string {
+    var index = 0;
+    while (index < contract.harvestComponentCount()) {
+        if (contract.harvestComponentTagAt(index) == tag) return contract.harvestComponentItemAt(index);
+        index = index + 1;
+    }
+    return "";
+}
+
+pub isHarvestableCorpse(componentTags: container.Array<string>): bool {
+    return componentTags.length > 0;
+}
+
+// `hasCurrentClaim` carries the source nullable claim boundary without using a
+// sentinel player id; a failed result returns the original claimant unchanged.
+pub resolveCorpseHarvest(hasCurrentClaim: bool, currentClaimedBy: int, pid: int): HarvestClaim {
+    if (hasCurrentClaim) return new HarvestClaim(false, currentClaimedBy);
+    return new HarvestClaim(true, pid);
+}
+
+containsString(values: container.Array<string>, value: string): bool {
+    var index = 0;
+    while (index < values.length) {
+        if (<string>values[index] == value) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+copyStrings(values: container.Array<string>): container.Array<string> {
+    var copied = new container.Array<string>();
+    var index = 0;
+    while (index < values.length) {
+        copied.add(<string>values[index]);
+        index = index + 1;
+    }
+    return copied;
+}
+
+pub effectiveFocusComponents(
+    taggedComponents: container.Array<string>, chosen: container.Array<string>
+): container.Array<string> {
+    if (chosen.length == 0 || chosen.length >= taggedComponents.length) return copyStrings(taggedComponents);
+    var selected = new container.Array<string>();
+    var index = 0;
+    while (index < chosen.length) {
+        var component = <string>chosen[index];
+        if (containsString(taggedComponents, component)) selected.add(component);
+        index = index + 1;
+    }
+    return selected;
+}
+
+pub harvestTierQuantity(tier: string): int {
+    var index = 0;
+    while (index < contract.harvestTierCount()) {
+        if (contract.harvestTierAt(index) == tier) return index + 1;
+        index = index + 1;
+    }
+    return 0;
+}
+
+rollFocusTier(stream: rng.Mulberry32, bonus: int): string {
+    var totalWeight = 0.0;
+    var index = 0;
+    while (index < contract.harvestTierCount()) {
+        totalWeight = totalWeight + contract.focusTierWeightAt(index);
+        index = index + 1;
+    }
+    var roll = stream.next() * totalWeight;
+    index = 0;
+    while (index < contract.harvestTierCount() - 1) {
+        roll = roll - contract.focusTierWeightAt(index);
+        if (roll < 0.0) break;
+        index = index + 1;
+    }
+    var shifted = index + bonus;
+    var finalIndex = contract.harvestTierCount() - 1;
+    if (shifted > finalIndex) shifted = finalIndex;
+    return contract.harvestTierAt(shifted);
+}
+
+pub resolveCorpseFocusHarvest(
+    taggedComponents: container.Array<string>, chosen: container.Array<string>, stream: rng.Mulberry32
+): container.Array<FocusHarvestYield> {
+    var effective = effectiveFocusComponents(taggedComponents, chosen);
+    var bonus = taggedComponents.length - effective.length;
+    if (bonus < 0) bonus = 0;
+    var maximum = contract.harvestTierCount() - 1;
+    if (bonus > maximum) bonus = maximum;
+    var yields = new container.Array<FocusHarvestYield>();
+    var index = 0;
+    while (index < effective.length) {
+        var component = <string>effective[index];
+        yields.add(new FocusHarvestYield(component, rollFocusTier(stream, bonus)));
+        index = index + 1;
+    }
+    return yields;
+}
+
+pub rollCorpseMaterialRarity(stream: rng.Mulberry32): string {
+    return rollMaterialRarity(contract.corpseHarvestRarityBaseline(), stream);
+}
+
+pub isSignableMaterialRarity(rarity: string): bool {
+    return rarity == "rare" || rarity == "epic" || rarity == "legendary";
+}
+
+pub contractTest(): int {
+    if (contract.nodeCount() != 24 || contract.nodeAt(0) != "ore_eastbrook_1" ||
+        contract.nodeXAt(0) != -70.0 || contract.nodeZAt(0) != -53.0 ||
+        contract.nodeLevelAt(23) != 17.0 || harvestComponentItem("hide") != "boar_hide" ||
+        harvestComponentItem("unknown") != "") return -1;
+    if (!isGatheringProfessionId("mining") || isGatheringProfessionId("enchanting") ||
+        contract.professionMaxSkill("herbalism") != 300.0) return -2;
+
+    var state = new GatheringState();
+    if (!queueGatheringGrant(state, "mining", 50.0) || queueGatheringGrant(state, "mining", 0.0)) return -3;
+    drainGatheringGrants(state);
+    if (state.proficiency.mining != 50.0 || gatheringSkillsView(state.proficiency).length != 3) return -4;
+    var stream = new rng.Mulberry32(<uint>1);
+    var granted = resolveHarvest(state, "ore_eastbrook_1", 100.0, stream);
+    if (!granted.granted || granted.itemId != "bone_fragments" || granted.professionId != "mining" ||
+        stream.draws != <uint>1 || !isNodeHarvestableBy(state, "ore_eastbrook_1", 220.0) ||
+        isNodeHarvestableBy(state, "ore_eastbrook_1", 219.0)) return -5;
+    var denied = resolveHarvest(state, "ore_eastbrook_1", 219.0, stream);
+    if (denied.granted || stream.draws != <uint>1) return -6;
+    drainGatheringGrants(state);
+    if (state.proficiency.mining != 51.0) return -7;
+
+    var rarityStream = new rng.Mulberry32(<uint>1);
+    if (rollMaterialRarity(0.0, rarityStream) != "common" ||
+        rollMaterialRarity(100.0, rarityStream) != "uncommon" || rarityStream.draws != <uint>2) return -8;
+    var tags = new container.Array<string>();
+    tags.add("hide");
+    tags.add("fang");
+    tags.add("silk");
+    var chosen = new container.Array<string>();
+    chosen.add("hide");
+    var focusStream = new rng.Mulberry32(<uint>1);
+    var yields = resolveCorpseFocusHarvest(tags, chosen, focusStream);
+    if (yields.length != 1 || (<FocusHarvestYield>yields[0]).component != "hide" ||
+        (<FocusHarvestYield>yields[0]).tier != "rare" || focusStream.draws != <uint>1 ||
+        harvestTierQuantity("legendary") != 6 || harvestTierQuantity("invalid") != 0) return -9;
+    var first = resolveCorpseHarvest(false, 0, 11);
+    var second = resolveCorpseHarvest(true, first.claimedBy, 12);
+    if (!first.success || second.success || second.claimedBy != 11 ||
+        !isSignableMaterialRarity("rare") || isSignableMaterialRarity("common")) return -10;
+    return 1;
+}

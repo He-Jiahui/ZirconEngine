@@ -1,4 +1,3 @@
-mod failure;
 mod fixture;
 mod prune;
 mod publish;

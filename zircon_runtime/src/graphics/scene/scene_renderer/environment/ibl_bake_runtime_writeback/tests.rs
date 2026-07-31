@@ -2,35 +2,35 @@ use std::fs;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::asset::artifact::{
-    resolve_ibl_bake_artifact_runtime_dispatch, IblBakeArtifactRuntimeDispatchReadbackStatus,
-};
 use crate::asset::ProjectAssetManager;
+use crate::asset::artifact::{
+    IblBakeArtifactRuntimeDispatchReadbackStatus, resolve_ibl_bake_artifact_runtime_dispatch,
+};
 use crate::core::framework::render::{
-    build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
-    source_cubemap_face_mip_offset, source_cubemap_mip_size,
-    source_cubemap_pmrem_mip_from_roughness, CubemapFace, IblBakeArtifactBlob,
-    IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections,
-    IblBakeArtifactRequest, ProceduralSkyParams, RenderFrameExtract, RenderPluginRendererOutputs,
-    RenderWorldSnapshotHandle, SourceCubemapIrradianceCube, SourceCubemapMipChain,
-    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    CubemapFace, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactBlob, IblBakeArtifactContents,
+    IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections, IblBakeArtifactRequest,
+    ProceduralSkyParams, RenderFrameExtract, RenderPluginRendererOutputs,
+    RenderWorldSnapshotHandle, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    SourceCubemapIrradianceCube, SourceCubemapMipChain, build_source_cubemap_from_equirect,
+    build_source_cubemap_irradiance_cube, source_cubemap_face_mip_offset, source_cubemap_mip_size,
+    source_cubemap_pmrem_mip_from_roughness,
 };
 use crate::core::math::UVec2;
+use crate::graphics::ViewportRenderFrame;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_wgpu_dispatch::record_ibl_bake_wgpu_pass_for_request;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutorId,
-    RenderPassGpuExecutionContext,
+    RenderPassGpuExecutionContext, TransientResourcePool,
 };
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
-use crate::graphics::ViewportRenderFrame;
 use crate::render_graph::RenderGraphBuilder;
 use crate::scene::world::World;
 
 use super::super::ibl_bake_graph_plan::{
-    append_ibl_bake_artifact_graph_plan, IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID,
-    IBL_BAKE_IRRADIANCE_SH9_PASS, IBL_BAKE_PMREM_EXECUTOR_ID, IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
+    IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_PASS, IBL_BAKE_PMREM_EXECUTOR_ID,
+    IBL_BAKE_SOURCE_CUBEMAP_RESOURCE, append_ibl_bake_artifact_graph_plan,
 };
 use super::*;
 
@@ -287,8 +287,10 @@ fn dispatch_sh9_graph_output(
         .find(|pass| pass.name == IBL_BAKE_IRRADIANCE_SH9_PASS)
         .expect("SH9 IBL bake pass should exist");
     let mut resources = RenderGraphExecutionResources::new();
+    let mut transient_pool = TransientResourcePool::default();
+    transient_pool.begin_frame();
     resources
-        .materialize_transient_resources(&backend.device, &graph)
+        .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
         .expect("IBL transient outputs should materialize");
     let source_texture = create_source_cubemap_texture(&backend.device);
     resources.import_texture_view(
@@ -374,8 +376,10 @@ fn dispatch_pmrem_graph_output(
         .expect("IBL bake graph plan should append");
     let graph = builder.compile().expect("IBL bake graph should compile");
     let mut resources = RenderGraphExecutionResources::new();
+    let mut transient_pool = TransientResourcePool::default();
+    transient_pool.begin_frame();
     resources
-        .materialize_transient_resources(&backend.device, &graph)
+        .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
         .expect("IBL PMREM transient outputs should materialize");
     let source_texture =
         create_source_cubemap_texture_from_chain(&backend.device, &backend.queue, source);
@@ -470,8 +474,10 @@ fn dispatch_irradiance_cube_graph_output(
         .expect("IBL bake graph plan should append");
     let graph = builder.compile().expect("IBL bake graph should compile");
     let mut resources = RenderGraphExecutionResources::new();
+    let mut transient_pool = TransientResourcePool::default();
+    transient_pool.begin_frame();
     resources
-        .materialize_transient_resources(&backend.device, &graph)
+        .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
         .expect("IBL IEM transient output should materialize");
     let source_texture =
         create_source_cubemap_texture_from_chain(&backend.device, &backend.queue, source);

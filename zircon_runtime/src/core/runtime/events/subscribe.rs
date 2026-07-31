@@ -1,64 +1,37 @@
-use std::collections::hash_map::Entry;
-use std::sync::Arc;
-
-use crossbeam_channel::unbounded;
-
-use crate::core::framework::channel::{ChannelReceiver, ChannelSender};
-use crate::core::framework::events::EngineEvent;
+use crate::core::framework::events::{EngineEventDeliveryPolicy, EngineEventSubscription};
 
 use super::EventBus;
 
 impl EventBus {
-    pub fn subscribe(&self, topic: impl Into<String>) -> ChannelReceiver<EngineEvent> {
-        let topic = topic.into();
-        let (tx, rx) = unbounded();
-        let mut subscribers = self.lock_subscribers();
-        match subscribers.entry(topic) {
-            Entry::Vacant(entry) => {
-                entry.insert(Arc::<[ChannelSender<EngineEvent>]>::from([tx]));
-            }
-            Entry::Occupied(mut entry) => {
-                let topic_subscribers = entry.get_mut();
-                let updated_subscribers = match topic_subscribers.as_ref() {
-                    [] => Arc::<[ChannelSender<EngineEvent>]>::from([tx]),
-                    [subscriber] => {
-                        Arc::<[ChannelSender<EngineEvent>]>::from([subscriber.clone(), tx])
-                    }
-                    [first_subscriber, second_subscriber] => {
-                        Arc::<[ChannelSender<EngineEvent>]>::from([
-                            first_subscriber.clone(),
-                            second_subscriber.clone(),
-                            tx,
-                        ])
-                    }
-                    [first_subscriber, second_subscriber, third_subscriber] => {
-                        Arc::<[ChannelSender<EngineEvent>]>::from([
-                            first_subscriber.clone(),
-                            second_subscriber.clone(),
-                            third_subscriber.clone(),
-                            tx,
-                        ])
-                    }
-                    [first_subscriber, second_subscriber, third_subscriber, fourth_subscriber] => {
-                        Arc::<[ChannelSender<EngineEvent>]>::from([
-                            first_subscriber.clone(),
-                            second_subscriber.clone(),
-                            third_subscriber.clone(),
-                            fourth_subscriber.clone(),
-                            tx,
-                        ])
-                    }
-                    current_subscribers => {
-                        let mut updated_subscribers =
-                            Vec::with_capacity(current_subscribers.len() + 1);
-                        updated_subscribers.extend(current_subscribers.iter().cloned());
-                        updated_subscribers.push(tx);
-                        updated_subscribers.into()
-                    }
-                };
-                *topic_subscribers = updated_subscribers;
-            }
-        }
-        rx
+    pub fn subscribe(
+        &self,
+        topic: impl Into<String>,
+        policy: EngineEventDeliveryPolicy,
+    ) -> Box<dyn EngineEventSubscription> {
+        Box::new(self.state.subscribe(topic.into(), policy))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn subscribe_after_reservation_for_test(
+        &self,
+        topic: impl Into<String>,
+        policy: EngineEventDeliveryPolicy,
+        after_reservation: impl FnOnce(),
+    ) -> Box<dyn EngineEventSubscription> {
+        Box::new(self.state.subscribe_after_reservation_for_test(
+            topic.into(),
+            policy,
+            after_reservation,
+        ))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn hold_topic_delivery_for_test(&self, topic: &str, while_locked: impl FnOnce()) {
+        let topic = self
+            .state
+            .topic(topic)
+            .expect("test topic must exist before its delivery lock is held");
+        let _delivery = topic.lock_delivery();
+        while_locked();
     }
 }

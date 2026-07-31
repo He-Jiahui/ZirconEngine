@@ -1,0 +1,269 @@
+// Standard dungeon, arena and fixed-seed Yumi world-to-local routing from
+// src/sim/data.ts and colliders.ts. The active-module Delve band remains
+// separate because its collision selection belongs to run state.
+
+var math = %import("zr.zircon.math");
+var content = %import("world/instance_collision_content");
+var collision = %import("world/instance_collision_static");
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+javascriptRound(value: float): int {
+    return <int>math.floor(value + 0.5);
+}
+
+dungeonRouteForIndex(dungeonIndex: int): int {
+    var route = 0;
+    while (route < content.dungeonRouteCount(true)) {
+        if (content.dungeonIndexAtRoute(route, true) == dungeonIndex) {
+            return route;
+        }
+        route = route + 1;
+    }
+    return -1;
+}
+
+pub dungeonIndexAtX(x: float, required: bool): int {
+    if (!required) {
+        throw "woc dungeon x query is required";
+    }
+    if (x <= content.dungeonXThreshold(true) || x >= content.arenaXMin(true)) {
+        return -1;
+    }
+    var dungeonIndex = javascriptRound(
+        (x - content.dungeonOriginBaseX(true)) / content.dungeonOriginIndexSpacing(true)
+    );
+    return dungeonRouteForIndex(dungeonIndex) >= 0 ? dungeonIndex : -1;
+}
+
+pub isArenaPosition(x: float, required: bool): bool {
+    if (!required) {
+        throw "woc arena x query is required";
+    }
+    return x >= content.arenaXMin(true) && x < content.delveBandXMin(true);
+}
+
+pub isYumiPosition(x: float, required: bool): bool {
+    if (!required) {
+        throw "woc yumi x query is required";
+    }
+    return x >= content.yumiBandXMin(true) && x < content.yumiBandXMax(true);
+}
+
+// Mirrors instanceLocal: an unmapped x within the standard instance band uses
+// the index-0 crypt origin/layout rather than falling back to overworld space.
+pub instanceDungeonIndexAtX(x: float, required: bool): int {
+    if (!required) {
+        throw "woc instance dungeon x query is required";
+    }
+    if (x <= content.dungeonXThreshold(true) || x >= content.arenaXMin(true)) {
+        return -1;
+    }
+    var known = dungeonIndexAtX(x, true);
+    return known >= 0 ? known : 0;
+}
+
+pub layoutIndexAtWorldX(x: float, required: bool): int {
+    if (!required) {
+        throw "woc instance layout query is required";
+    }
+    var dungeonIndex = instanceDungeonIndexAtX(x, true);
+    if (dungeonIndex >= 0) {
+        return content.dungeonLayoutIndexAtRoute(dungeonRouteForIndex(dungeonIndex), true);
+    }
+    if (isArenaPosition(x, true)) {
+        return 4;
+    }
+    return isYumiPosition(x, true) ? 5 : -1;
+}
+
+pub nearestDungeonSlot(z: float, required: bool): int {
+    if (!required) {
+        throw "woc dungeon slot query is required";
+    }
+    var bestSlot = 0;
+    var bestDistance = 0.0;
+    var hasBest = false;
+    var slot = 0;
+    while (slot < content.dungeonSlotCount(true)) {
+        var originZ = content.dungeonOriginZ0(true) + <float>slot * content.dungeonSlotSpacing(true);
+        var distance = absolute(z - originZ);
+        if (!hasBest || distance < bestDistance) {
+            bestSlot = slot;
+            bestDistance = distance;
+            hasBest = true;
+        }
+        slot = slot + 1;
+    }
+    return bestSlot;
+}
+
+pub dungeonOriginCoordinate(dungeonIndex: int, slot: int, axis: int, required: bool): float {
+    if (!required || dungeonRouteForIndex(dungeonIndex) < 0 || slot < 0 ||
+        slot >= content.dungeonSlotCount(true) || (axis != 1 && axis != 2)) {
+        throw "woc dungeon origin query is invalid";
+    }
+    return axis == 1 ?
+        content.dungeonOriginBaseX(true) + <float>dungeonIndex * content.dungeonOriginIndexSpacing(true) :
+        content.dungeonOriginZ0(true) + <float>slot * content.dungeonSlotSpacing(true);
+}
+
+pub dungeonLocalCoordinate(x: float, z: float, axis: int, required: bool): float {
+    if (!required || (axis != 1 && axis != 2)) {
+        throw "woc dungeon local query is invalid";
+    }
+    var dungeonIndex = instanceDungeonIndexAtX(x, true);
+    if (dungeonIndex < 0) {
+        throw "woc dungeon local position is invalid";
+    }
+    var slot = nearestDungeonSlot(z, true);
+    return axis == 1 ? x - dungeonOriginCoordinate(dungeonIndex, slot, 1, true) :
+        z - dungeonOriginCoordinate(dungeonIndex, slot, 2, true);
+}
+
+pub nearestArenaSlot(z: float, required: bool): int {
+    if (!required) {
+        throw "woc arena slot query is required";
+    }
+    var bestSlot = 0;
+    var bestDistance = 0.0;
+    var hasBest = false;
+    var slot = 0;
+    while (slot < content.arenaSlotCount(true)) {
+        var originZ = content.arenaOriginZ0(true) + <float>slot * content.arenaSlotSpacing(true);
+        var distance = absolute(z - originZ);
+        if (!hasBest || distance < bestDistance) {
+            bestSlot = slot;
+            bestDistance = distance;
+            hasBest = true;
+        }
+        slot = slot + 1;
+    }
+    return bestSlot;
+}
+
+pub arenaLocalCoordinate(x: float, z: float, axis: int, required: bool): float {
+    if (!required || !isArenaPosition(x, true) || (axis != 1 && axis != 2)) {
+        throw "woc arena local query is invalid";
+    }
+    var slot = nearestArenaSlot(z, true);
+    return axis == 1 ? x - content.arenaX(true) :
+        z - (content.arenaOriginZ0(true) + <float>slot * content.arenaSlotSpacing(true));
+}
+
+pub nearestYumiSlot(z: float, required: bool): int {
+    if (!required) {
+        throw "woc yumi slot query is required";
+    }
+    var bestSlot = 0;
+    var bestDistance = 0.0;
+    var hasBest = false;
+    var slot = 0;
+    while (slot < content.yumiMazeSlotCount(true)) {
+        var originZ = content.yumiMazeOriginZ0(true) + <float>slot * content.yumiMazeSlotSpacing(true);
+        var distance = absolute(z - originZ);
+        if (!hasBest || distance < bestDistance) {
+            bestSlot = slot;
+            bestDistance = distance;
+            hasBest = true;
+        }
+        slot = slot + 1;
+    }
+    return bestSlot;
+}
+
+pub yumiLocalCoordinate(x: float, z: float, axis: int, required: bool): float {
+    if (!required || !isYumiPosition(x, true) || (axis != 1 && axis != 2)) {
+        throw "woc yumi local query is invalid";
+    }
+    var slot = nearestYumiSlot(z, true);
+    return axis == 1 ? x - content.yumiMazeX(true) :
+        z - (content.yumiMazeOriginZ0(true) + <float>slot * content.yumiMazeSlotSpacing(true));
+}
+
+pub resolveWorldCoordinate(
+    x: float,
+    z: float,
+    bodyRadius: float,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc instance world collision arguments are invalid";
+    }
+    var layoutIndex = layoutIndexAtWorldX(x, true);
+    if (layoutIndex < 0) {
+        throw "woc instance world collision position is invalid";
+    }
+    var localX = 0.0;
+    var localZ = 0.0;
+    var originX = 0.0;
+    var originZ = 0.0;
+    if (layoutIndex == 5) {
+        var yumiSlot = nearestYumiSlot(z, true);
+        localX = yumiLocalCoordinate(x, z, 1, true);
+        localZ = yumiLocalCoordinate(x, z, 2, true);
+        originX = content.yumiMazeX(true);
+        originZ = content.yumiMazeOriginZ0(true) + <float>yumiSlot * content.yumiMazeSlotSpacing(true);
+    } else if (layoutIndex == 4) {
+        var arenaSlot = nearestArenaSlot(z, true);
+        localX = arenaLocalCoordinate(x, z, 1, true);
+        localZ = arenaLocalCoordinate(x, z, 2, true);
+        originX = content.arenaX(true);
+        originZ = content.arenaOriginZ0(true) + <float>arenaSlot * content.arenaSlotSpacing(true);
+    } else {
+        // Keep the same index-0 fallback used by instanceLocal.  The public
+        // lookup deliberately reports an unknown route as -1, but the source
+        // coordinate transform still places such a point in the crypt.
+        var dungeonIndex = instanceDungeonIndexAtX(x, true);
+        var dungeonSlot = nearestDungeonSlot(z, true);
+        localX = dungeonLocalCoordinate(x, z, 1, true);
+        localZ = dungeonLocalCoordinate(x, z, 2, true);
+        originX = dungeonOriginCoordinate(dungeonIndex, dungeonSlot, 1, true);
+        originZ = dungeonOriginCoordinate(dungeonIndex, dungeonSlot, 2, true);
+    }
+    return axis == 1 ?
+        originX + collision.resolveCoordinate(layoutIndex, localX, localZ, bodyRadius, 1, true) :
+        originZ + collision.resolveCoordinate(layoutIndex, localX, localZ, bodyRadius, 2, true);
+}
+
+pub contractTest(): int {
+    if (dungeonIndexAtX(600.0, true) != -1 || dungeonIndexAtX(900.0, true) != 0 ||
+        dungeonIndexAtX(1500.0, true) != 1 || dungeonIndexAtX(2100.0, true) != 2 ||
+        dungeonIndexAtX(4200.0, true) != -1 || instanceDungeonIndexAtX(700.0, true) != 0 ||
+        layoutIndexAtWorldX(700.0, true) != 0 || layoutIndexAtWorldX(2100.0, true) != 1 ||
+        layoutIndexAtWorldX(4200.0, true) != 4 || !isArenaPosition(4200.0, true) ||
+        isArenaPosition(4773.0, true) || !isYumiPosition(8000.0, true) ||
+        isYumiPosition(12000.0, true) || layoutIndexAtWorldX(8400.0, true) != 5) {
+        return -1;
+    }
+    if (nearestDungeonSlot(-1250.0, true) != 0 || nearestDungeonSlot(-1000.0, true) != 0 ||
+        nearestDungeonSlot(-750.0, true) != 1 || dungeonOriginCoordinate(2, 0, 1, true) != 2100.0 ||
+        dungeonOriginCoordinate(2, 23, 2, true) != 10250.0 ||
+        dungeonLocalCoordinate(2100.0, -1200.0, 1, true) != 0.0 ||
+        dungeonLocalCoordinate(2100.0, -1200.0, 2, true) != 50.0 ||
+        dungeonLocalCoordinate(700.0, -1250.0, 1, true) != -200.0) {
+        return -2;
+    }
+    if (nearestArenaSlot(-1250.0, true) != 0 || nearestArenaSlot(-1190.0, true) != 0 ||
+        nearestArenaSlot(-890.0, true) != 3 || arenaLocalCoordinate(4200.0, -890.0, 1, true) != 0.0 ||
+        arenaLocalCoordinate(4200.0, -890.0, 2, true) != 0.0) {
+        return -3;
+    }
+    if (nearestYumiSlot(-1250.0, true) != 0 || nearestYumiSlot(-1150.0, true) != 0 ||
+        nearestYumiSlot(-850.0, true) != 2 || yumiLocalCoordinate(8400.0, -1250.0, 1, true) != 0.0 ||
+        yumiLocalCoordinate(8400.0, -1250.0, 2, true) != 0.0) {
+        return -4;
+    }
+    if (resolveWorldCoordinate(877.0, -1203.0, 0.5, 1, true) != 878.5 ||
+        resolveWorldCoordinate(877.0, -1203.0, 0.5, 2, true) != -1203.0 ||
+        resolveWorldCoordinate(4200.0, -1254.0, 0.5, 1, true) != 4201.5 ||
+        resolveWorldCoordinate(4200.0, -1254.0, 0.5, 2, true) != -1254.0 ||
+        resolveWorldCoordinate(8400.0, -1294.0, 0.5, 1, true) != 8400.0 ||
+        resolveWorldCoordinate(8400.0, -1294.0, 0.5, 2, true) != -1293.375) {
+        return -5;
+    }
+    return 1;
+}

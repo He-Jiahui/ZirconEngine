@@ -1,7 +1,8 @@
 use crate::plugin::PluginModuleKind;
 
 use super::super::{
-    NativePluginBehaviorCallReport, NativePluginLoadReport, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    NativePluginBehaviorCallReport, NativePluginLoadProjection, NativePluginLoadReport,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 use super::keys::module_kind_label;
 
@@ -27,10 +28,13 @@ impl std::fmt::Display for NativePluginBehaviorDiagnosticError {
 
 impl std::error::Error for NativePluginBehaviorDiagnosticError {}
 
-pub(super) fn load_report_diagnostics(report: &NativePluginLoadReport) -> Vec<String> {
-    let mut diagnostics = report.diagnostics.clone();
-    diagnostics.extend(report.descriptor_diagnostics());
-    diagnostics.extend(report.entry_diagnostics());
+pub(super) fn load_projected_report_diagnostics(
+    report: &NativePluginLoadReport,
+    projection: &NativePluginLoadProjection,
+) -> Vec<String> {
+    let mut diagnostics = report.diagnostics().to_vec();
+    diagnostics.extend(projection.descriptor_diagnostics().iter().cloned());
+    diagnostics.extend(projection.entry_diagnostics().iter().cloned());
     diagnostics
 }
 
@@ -41,15 +45,17 @@ pub(super) fn unloaded_plugin_error(plugin_id: &str, module_kind: PluginModuleKi
     )
 }
 
-pub(super) fn diagnostics_for_plugin(
-    report: &NativePluginLoadReport,
+pub(super) fn projected_diagnostics_for_plugin(
+    projection: &NativePluginLoadProjection,
     plugin_id: &str,
     module_kind: PluginModuleKind,
 ) -> Vec<String> {
     match module_kind {
-        PluginModuleKind::Runtime => report.diagnostics_for_runtime_plugin(plugin_id),
-        PluginModuleKind::Editor => report.diagnostics_for_editor_plugin(plugin_id),
-        PluginModuleKind::Native | PluginModuleKind::Vm => report.diagnostics_for_plugin(plugin_id),
+        PluginModuleKind::Runtime => projection.runtime_diagnostics_for_plugin(plugin_id),
+        PluginModuleKind::Editor => projection.editor_diagnostics_for_plugin(plugin_id),
+        PluginModuleKind::Native | PluginModuleKind::Vm => {
+            projection.diagnostics_for_plugin(plugin_id)
+        }
     }
 }
 

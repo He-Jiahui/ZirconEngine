@@ -1,0 +1,407 @@
+var container = %import("zr.container");
+
+// Source-compatible cooldown_persist.ts projection. The source stores ability
+// ids as object keys; WOC's generated current-head ability catalog gives the
+// same ids stable numeric codes for deterministic ZrVM snapshots. This is a
+// pure persistence boundary until WOS owns potion and charge-pool columns.
+
+pub class CooldownEntry {
+    pub var code: uint;
+    pub var remaining: float;
+
+    pub @constructor(code: uint, remaining: float) {
+        this.code = code;
+        this.remaining = remaining;
+    }
+}
+
+pub class AbilityChargeState {
+    pub var code: uint;
+    pub var charges: int;
+    pub var maxCharges: int;
+    pub var recharge: float;
+    pub var rechargeLength: float;
+    pub var hasRecharges: bool;
+    pub var recharges: container.Array<float>;
+
+    pub @constructor(
+        code: uint,
+        charges: int,
+        maxCharges: int,
+        recharge: float,
+        rechargeLength: float
+    ) {
+        this.code = code;
+        this.charges = charges;
+        this.maxCharges = maxCharges;
+        this.recharge = recharge;
+        this.rechargeLength = rechargeLength;
+        this.hasRecharges = false;
+        this.recharges = new container.Array<float>();
+    }
+}
+
+pub class LegacyChargeState {
+    pub var code: uint;
+    pub var spent: int;
+    pub var cooldownMax: float;
+
+    pub @constructor(code: uint, spent: int, cooldownMax: float) {
+        this.code = code;
+        this.spent = spent;
+        this.cooldownMax = cooldownMax;
+    }
+}
+
+pub class ChargeCap {
+    pub var code: uint;
+    pub var maxCharges: int;
+    pub var cooldown: float;
+
+    pub @constructor(code: uint, maxCharges: int, cooldown: float) {
+        this.code = code;
+        this.maxCharges = maxCharges;
+        this.cooldown = cooldown;
+    }
+}
+
+pub class CooldownSnapshot {
+    pub var present: bool;
+    pub var hasAbilities: bool;
+    pub var abilities: container.Array<CooldownEntry>;
+    pub var hasPotion: bool;
+    pub var potion: float;
+    pub var hasAbilityCharges: bool;
+    pub var abilityCharges: container.Array<AbilityChargeState>;
+    pub var hasLegacyCharges: bool;
+    pub var legacyCharges: container.Array<LegacyChargeState>;
+
+    pub @constructor() {
+        this.present = false;
+        this.hasAbilities = false;
+        this.abilities = new container.Array<CooldownEntry>();
+        this.hasPotion = false;
+        this.potion = -1.0;
+        this.hasAbilityCharges = false;
+        this.abilityCharges = new container.Array<AbilityChargeState>();
+        this.hasLegacyCharges = false;
+        this.legacyCharges = new container.Array<LegacyChargeState>();
+    }
+}
+
+pub class CooldownStore {
+    pub var cooldowns: container.Array<CooldownEntry>;
+    pub var abilityCharges: container.Array<AbilityChargeState>;
+
+    pub @constructor() {
+        this.cooldowns = new container.Array<CooldownEntry>();
+        this.abilityCharges = new container.Array<AbilityChargeState>();
+    }
+
+    pub cooldownIndex(code: uint): int {
+        var index = 0;
+        while (index < this.cooldowns.length) {
+            if ((<CooldownEntry>this.cooldowns[index]).code == code) return index;
+            index = index + 1;
+        }
+        return -1;
+    }
+
+    pub chargeIndex(code: uint): int {
+        var index = 0;
+        while (index < this.abilityCharges.length) {
+            if ((<AbilityChargeState>this.abilityCharges[index]).code == code) return index;
+            index = index + 1;
+        }
+        return -1;
+    }
+
+    pub hasCooldown(code: uint): bool {
+        return this.cooldownIndex(code) >= 0;
+    }
+
+    pub cooldownRemaining(code: uint): float {
+        var index = this.cooldownIndex(code);
+        return index < 0 ? -1.0 : (<CooldownEntry>this.cooldowns[index]).remaining;
+    }
+
+    pub setCooldown(code: uint, remaining: float): void {
+        var index = this.cooldownIndex(code);
+        if (index < 0) {
+            this.cooldowns.add(new CooldownEntry(code, remaining));
+        } else {
+            (<CooldownEntry>this.cooldowns[index]).remaining = remaining;
+        }
+    }
+
+    pub clearCooldown(code: uint): void {
+        var index = this.cooldownIndex(code);
+        if (index >= 0) this.cooldowns.removeAt(index);
+    }
+
+    pub setCharge(state: AbilityChargeState): void {
+        var index = this.chargeIndex(state.code);
+        if (index < 0) {
+            this.abilityCharges.add(state);
+        } else {
+            this.abilityCharges[index] = state;
+        }
+    }
+}
+
+// `value - value` is zero only for finite IEEE floating-point values. It also
+// rejects NaN and both infinities without a project-local math host function.
+finite(value: float): bool {
+    return value == value && value - value == 0.0;
+}
+
+positive(value: float): bool {
+    return finite(value) && value > 0.0;
+}
+
+validChargeState(state: AbilityChargeState): bool {
+    return state.charges >= 0 && state.maxCharges > state.charges &&
+        positive(state.recharge) && positive(state.rechargeLength);
+}
+
+copyChargeState(source: AbilityChargeState): AbilityChargeState {
+    var copied = new AbilityChargeState(
+        source.code,
+        source.charges,
+        source.maxCharges,
+        source.recharge,
+        source.rechargeLength
+    );
+    // serializeCooldowns writes the optional field only for a non-empty live
+    // `recharges` array; an explicit empty array is therefore omitted on save.
+    if (source.hasRecharges && source.recharges.length > 0) {
+        copied.hasRecharges = true;
+        var index = 0;
+        while (index < source.recharges.length) {
+            copied.recharges.add(<float>source.recharges[index]);
+            index = index + 1;
+        }
+    }
+    return copied;
+}
+
+knownAbility(code: uint, enforceKnownAbilities: bool, knownAbilityCodes: container.Array<uint>): bool {
+    if (!enforceKnownAbilities) return true;
+    var index = 0;
+    while (index < knownAbilityCodes.length) {
+        if (<uint>knownAbilityCodes[index] == code) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+chargeCapFor(code: uint, caps: container.Array<ChargeCap>): int {
+    var index = 0;
+    while (index < caps.length) {
+        if ((<ChargeCap>caps[index]).code == code) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+sortRecharges(values: container.Array<float>): void {
+    var index = 1;
+    while (index < values.length) {
+        var value = <float>values[index];
+        var insert = index;
+        while (insert > 0 && value < <float>values[insert - 1]) {
+            values[insert] = <float>values[insert - 1];
+            insert = insert - 1;
+        }
+        values[insert] = value;
+        index = index + 1;
+    }
+}
+
+restoreChargeState(source: AbilityChargeState): AbilityChargeState {
+    var restored = new AbilityChargeState(
+        source.code,
+        source.charges,
+        source.maxCharges,
+        source.recharge < source.rechargeLength ? source.recharge : source.rechargeLength,
+        source.rechargeLength
+    );
+    restored.hasRecharges = source.hasRecharges;
+    var index = 0;
+    while (index < source.recharges.length) {
+        var remaining = <float>source.recharges[index];
+        if (positive(remaining)) {
+            restored.recharges.add(
+                remaining < source.rechargeLength ? remaining : source.rechargeLength
+            );
+        }
+        index = index + 1;
+    }
+    sortRecharges(restored.recharges);
+    return restored;
+}
+
+pub serializeCooldowns(store: CooldownStore, potionCooldownUntil: float, now: float): CooldownSnapshot {
+    var saved = new CooldownSnapshot();
+    var index = 0;
+    while (index < store.cooldowns.length) {
+        var cooldown = <CooldownEntry>store.cooldowns[index];
+        if (positive(cooldown.remaining)) {
+            saved.abilities.add(new CooldownEntry(cooldown.code, cooldown.remaining));
+        }
+        index = index + 1;
+    }
+    saved.hasAbilities = saved.abilities.length > 0;
+
+    var potion = potionCooldownUntil - now;
+    if (positive(potion)) {
+        saved.hasPotion = true;
+        saved.potion = potion;
+    }
+
+    index = 0;
+    while (index < store.abilityCharges.length) {
+        var charge = <AbilityChargeState>store.abilityCharges[index];
+        if (validChargeState(charge)) {
+            saved.abilityCharges.add(copyChargeState(charge));
+        }
+        index = index + 1;
+    }
+    saved.hasAbilityCharges = saved.abilityCharges.length > 0;
+    saved.present = saved.hasAbilities || saved.hasPotion || saved.hasAbilityCharges;
+    return saved;
+}
+
+applyCooldownEntries(
+    saved: CooldownSnapshot,
+    store: CooldownStore,
+    enforceKnownAbilities: bool,
+    knownAbilityCodes: container.Array<uint>
+): void {
+    if (!saved.hasAbilities) return;
+    var index = 0;
+    while (index < saved.abilities.length) {
+        var cooldown = <CooldownEntry>saved.abilities[index];
+        if (knownAbility(cooldown.code, enforceKnownAbilities, knownAbilityCodes) &&
+            positive(cooldown.remaining)) {
+            store.setCooldown(cooldown.code, cooldown.remaining);
+        }
+        index = index + 1;
+    }
+}
+
+applyChargeEntries(
+    saved: CooldownSnapshot,
+    store: CooldownStore,
+    enforceKnownAbilities: bool,
+    knownAbilityCodes: container.Array<uint>
+): void {
+    var index = 0;
+    while (index < saved.abilityCharges.length) {
+        var charge = <AbilityChargeState>saved.abilityCharges[index];
+        if (knownAbility(charge.code, enforceKnownAbilities, knownAbilityCodes) &&
+            validChargeState(charge)) {
+            var restored = restoreChargeState(charge);
+            store.setCharge(restored);
+            if (restored.charges <= 0) {
+                store.setCooldown(restored.code, restored.recharge);
+            } else {
+                store.clearCooldown(restored.code);
+            }
+        }
+        index = index + 1;
+    }
+}
+
+applyLegacyChargeEntries(
+    saved: CooldownSnapshot,
+    store: CooldownStore,
+    enforceKnownAbilities: bool,
+    knownAbilityCodes: container.Array<uint>,
+    caps: container.Array<ChargeCap>
+): void {
+    if (!saved.hasLegacyCharges) return;
+    var index = 0;
+    while (index < saved.legacyCharges.length) {
+        var legacy = <LegacyChargeState>saved.legacyCharges[index];
+        var capIndex = chargeCapFor(legacy.code, caps);
+        if (knownAbility(legacy.code, enforceKnownAbilities, knownAbilityCodes) && capIndex >= 0 &&
+            store.hasCooldown(legacy.code) && legacy.spent > 0 && positive(legacy.cooldownMax)) {
+            var cap = <ChargeCap>caps[capIndex];
+            if (cap.maxCharges > 1 && positive(cap.cooldown)) {
+                var spent = legacy.spent < cap.maxCharges ? legacy.spent : cap.maxCharges;
+                var remaining = store.cooldownRemaining(legacy.code);
+                var recharge = remaining < cap.cooldown ? remaining : cap.cooldown;
+                var restored = new AbilityChargeState(
+                    legacy.code,
+                    cap.maxCharges - spent,
+                    cap.maxCharges,
+                    recharge,
+                    cap.cooldown
+                );
+                store.setCharge(restored);
+                if (restored.charges > 0) store.clearCooldown(restored.code);
+            }
+        }
+        index = index + 1;
+    }
+}
+
+applyCooldownsInternal(
+    saved: CooldownSnapshot,
+    store: CooldownStore,
+    now: float,
+    enforceKnownAbilities: bool,
+    knownAbilityCodes: container.Array<uint>,
+    useLegacyCaps: bool,
+    caps: container.Array<ChargeCap>
+): float {
+    if (!saved.present) return -1.0;
+    applyCooldownEntries(saved, store, enforceKnownAbilities, knownAbilityCodes);
+    // An explicitly present (even empty) modern charge object wins over the
+    // retired legacy object, matching JavaScript's truthy object branch.
+    if (saved.hasAbilityCharges) {
+        applyChargeEntries(saved, store, enforceKnownAbilities, knownAbilityCodes);
+    } else if (useLegacyCaps) {
+        applyLegacyChargeEntries(saved, store, enforceKnownAbilities, knownAbilityCodes, caps);
+    }
+    return saved.hasPotion && positive(saved.potion) ? now + saved.potion : -1.0;
+}
+
+pub applyCooldowns(
+    saved: CooldownSnapshot,
+    store: CooldownStore,
+    now: float,
+    enforceKnownAbilities: bool,
+    knownAbilityCodes: container.Array<uint>
+): float {
+    var noCaps = new container.Array<ChargeCap>();
+    return applyCooldownsInternal(
+        saved,
+        store,
+        now,
+        enforceKnownAbilities,
+        knownAbilityCodes,
+        false,
+        noCaps
+    );
+}
+
+pub applyCooldownsWithLegacy(
+    saved: CooldownSnapshot,
+    store: CooldownStore,
+    now: float,
+    enforceKnownAbilities: bool,
+    knownAbilityCodes: container.Array<uint>,
+    caps: container.Array<ChargeCap>
+): float {
+    return applyCooldownsInternal(
+        saved,
+        store,
+        now,
+        enforceKnownAbilities,
+        knownAbilityCodes,
+        true,
+        caps
+    );
+}

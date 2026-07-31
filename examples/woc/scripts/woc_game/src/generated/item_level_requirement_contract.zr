@@ -1,0 +1,8 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub maxLevel(): int { return 20; }
+pub poorFallbackLevel(): int { return 1; }
+pub commonFallbackLevel(): int { return 1; }
+pub uncommonFallbackLevel(): int { return 1; }
+pub rareFallbackLevel(): int { return 12; }
+pub epicFallbackLevel(): int { return 18; }
+pub legendaryFallbackLevel(): int { return 20; }

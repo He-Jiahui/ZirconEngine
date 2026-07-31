@@ -19,13 +19,17 @@ fn manual_exposure_declares_resolve_without_histogram() {
             &AntiAliasSettings::off(),
         );
 
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::EXPOSURE_PREVIOUS.to_string()));
-    assert!(!stack
-        .effects
-        .iter()
-        .any(|effect| effect.kind == PostProcessEffectKind::ExposureHistogram));
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::EXPOSURE_PREVIOUS.to_string())
+    );
+    assert!(
+        !stack
+            .effects
+            .iter()
+            .any(|effect| effect.kind == PostProcessEffectKind::ExposureHistogram)
+    );
     let resolve = stack
         .effects
         .iter()
@@ -58,9 +62,11 @@ fn manual_exposure_declares_resolve_without_histogram() {
 fn default_stack_declares_light_list_for_uber_cluster_bind_group() {
     let stack = PostProcessStackDescriptor::default();
 
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::LIGHT_LIST.to_string()));
+    assert!(
+        stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::LIGHT_LIST.to_string())
+    );
 }
 
 #[test]
@@ -98,12 +104,16 @@ fn histogram_exposure_declares_histogram_before_resolve() {
         .iter()
         .find(|effect| effect.kind == PostProcessEffectKind::ExposureResolve)
         .expect("histogram mode should resolve exposure");
-    assert!(resolve
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM.to_string()));
-    assert!(resolve
-        .after
-        .contains(&PostProcessEffectKind::ExposureHistogram));
+    assert!(
+        resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM.to_string())
+    );
+    assert!(
+        resolve
+            .after
+            .contains(&PostProcessEffectKind::ExposureHistogram)
+    );
 
     let graph = stack.validated_graph();
     let histogram_index = graph

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var ball = %import("social/vale_cup_ball_state");
+
+console.printLine("m6-vale-cup-ball-state-test");
+var result = ball.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

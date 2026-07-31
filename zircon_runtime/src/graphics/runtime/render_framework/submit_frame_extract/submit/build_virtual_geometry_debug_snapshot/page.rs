@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::super::super::frame_submission_context::FrameSubmissionContext;
 use super::support::saturated_u32_len;
@@ -8,6 +8,16 @@ use crate::core::framework::render::{
     RenderVirtualGeometryResidentPageInspection,
 };
 use crate::graphics::VisibilityVirtualGeometryPageUploadPlan;
+
+pub(super) type PageSizeIndex = BTreeMap<u32, u64>;
+
+pub(super) fn build_page_size_index(extract: &RenderVirtualGeometryExtract) -> PageSizeIndex {
+    let mut page_sizes = BTreeMap::new();
+    for page in &extract.pages {
+        page_sizes.entry(page.page_id).or_insert(page.size_bytes);
+    }
+    page_sizes
+}
 
 pub(super) fn build_cull_input_snapshot(
     extract: &RenderVirtualGeometryExtract,
@@ -56,8 +66,8 @@ fn unique_extract_entity_count(extract: &RenderVirtualGeometryExtract) -> u32 {
 }
 
 pub(super) fn build_resident_page_inspections(
-    extract: &RenderVirtualGeometryExtract,
     page_upload_plan: &VisibilityVirtualGeometryPageUploadPlan,
+    page_size_index: &PageSizeIndex,
 ) -> Vec<RenderVirtualGeometryResidentPageInspection> {
     page_upload_plan
         .resident_pages
@@ -67,7 +77,7 @@ pub(super) fn build_resident_page_inspections(
             |(slot, page_id)| RenderVirtualGeometryResidentPageInspection {
                 page_id: *page_id,
                 slot: u32::try_from(slot).unwrap_or(u32::MAX),
-                size_bytes: page_size_bytes(extract, *page_id),
+                size_bytes: page_size_bytes(page_size_index, *page_id),
             },
         )
         .collect()
@@ -84,10 +94,10 @@ pub(super) fn build_available_page_slots(
 }
 
 pub(super) fn build_pending_page_request_inspections(
-    extract: &RenderVirtualGeometryExtract,
     context: &FrameSubmissionContext,
     page_upload_plan: &VisibilityVirtualGeometryPageUploadPlan,
     available_page_slots: &[u32],
+    page_size_index: &PageSizeIndex,
 ) -> Vec<RenderVirtualGeometryPageRequestInspection> {
     page_upload_plan
         .requested_pages
@@ -96,7 +106,7 @@ pub(super) fn build_pending_page_request_inspections(
         .map(
             |(frontier_rank, page_id)| RenderVirtualGeometryPageRequestInspection {
                 page_id: *page_id,
-                size_bytes: page_size_bytes(extract, *page_id),
+                size_bytes: page_size_bytes(page_size_index, *page_id),
                 generation: context.predicted_generation(),
                 frontier_rank: u32::try_from(frontier_rank).unwrap_or(u32::MAX),
                 assigned_slot: available_page_slots.get(frontier_rank).copied(),
@@ -107,32 +117,52 @@ pub(super) fn build_pending_page_request_inspections(
 }
 
 pub(super) fn build_evictable_page_inspections(
-    extract: &RenderVirtualGeometryExtract,
     page_upload_plan: &VisibilityVirtualGeometryPageUploadPlan,
     resident_page_inspections: &[RenderVirtualGeometryResidentPageInspection],
+    page_size_index: &PageSizeIndex,
 ) -> Vec<RenderVirtualGeometryResidentPageInspection> {
+    let mut resident_by_page_id = BTreeMap::new();
+    for inspection in resident_page_inspections {
+        resident_by_page_id
+            .entry(inspection.page_id)
+            .or_insert((inspection.slot, inspection.size_bytes));
+    }
+
     page_upload_plan
         .evictable_pages
         .iter()
         .map(|page_id| {
-            resident_page_inspections
-                .iter()
-                .find(|inspection| inspection.page_id == *page_id)
-                .cloned()
+            resident_by_page_id
+                .get(page_id)
+                .map(
+                    |(slot, size_bytes)| RenderVirtualGeometryResidentPageInspection {
+                        page_id: *page_id,
+                        slot: *slot,
+                        size_bytes: *size_bytes,
+                    },
+                )
                 .unwrap_or(RenderVirtualGeometryResidentPageInspection {
                     page_id: *page_id,
                     slot: u32::MAX,
-                    size_bytes: page_size_bytes(extract, *page_id),
+                    size_bytes: page_size_bytes(page_size_index, *page_id),
                 })
         })
         .collect()
 }
 
-fn page_size_bytes(extract: &RenderVirtualGeometryExtract, page_id: u32) -> u64 {
-    extract
-        .pages
-        .iter()
-        .find(|page| page.page_id == page_id)
-        .map(|page| page.size_bytes)
-        .unwrap_or(0)
+fn page_size_bytes(page_size_index: &PageSizeIndex, page_id: u32) -> u64 {
+    page_size_index.get(&page_id).copied().unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn page_inspections_use_prebuilt_page_and_resident_indices() {
+        let source = include_str!("page.rs");
+
+        assert!(source.contains("build_page_size_index"));
+        assert!(source.contains("resident_by_page_id"));
+        assert!(!source.contains(concat!("extract", ".pages", ".iter()", ".find")));
+        assert!(!source.contains(concat!("resident_page_inspections", ".iter()", ".find")));
+    }
 }

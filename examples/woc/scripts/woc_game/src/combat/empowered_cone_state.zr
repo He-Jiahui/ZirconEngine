@@ -1,0 +1,250 @@
+// Pure state planner for current-head empoweredCone. The caller owns hostile
+// iteration, shared-RNG draws, damage mutation, aura storage and event order;
+// this module keeps the source's per-target eligibility and post-damage split
+// explicit so WOS cannot accidentally apply control to a dead target.
+var cone = %import("generated/empowered_cone_contract");
+var glacial = %import("combat/glacial_front_state");
+
+// The source emits this spellfx before it begins iterating targets. WOS event
+// ownership stays outside this pure module, but the fixed event payload is
+// available without recomputing a stage in each target loop.
+pub class EmpoweredConeCast {
+    pub var valid: bool;
+    pub var level: int;
+    pub var range: float;
+    pub var angle: float;
+    pub var fx: string;
+
+    pub @constructor() {
+        this.valid = false;
+        this.level = 0;
+        this.range = 0.0;
+        this.angle = 0.0;
+        this.fx = "";
+    }
+}
+
+pub class EmpoweredConeHit {
+    pub var applies: bool;
+    pub var rngDrawCount: int;
+    pub var critical: bool;
+    pub var damage: int;
+    pub var countsHotStreak: bool;
+    pub var hotStreakCritical: bool;
+    pub var targetSurvivesDamage: bool;
+    pub var appliesSlow: bool;
+    pub var slowMultiplier: float;
+    pub var slowDuration: float;
+    pub var appliesRoot: bool;
+    pub var rootDuration: float;
+    pub var appliesIncapacitate: bool;
+    pub var incapacitateDuration: float;
+    pub var entersCombat: bool;
+
+    pub @constructor() {
+        this.applies = false;
+        this.rngDrawCount = 0;
+        this.critical = false;
+        this.damage = 0;
+        this.countsHotStreak = false;
+        this.hotStreakCritical = false;
+        this.targetSurvivesDamage = false;
+        this.appliesSlow = false;
+        this.slowMultiplier = 0.0;
+        this.slowDuration = 0.0;
+        this.appliesRoot = false;
+        this.rootDuration = 0.0;
+        this.appliesIncapacitate = false;
+        this.incapacitateDuration = 0.0;
+        this.entersCombat = false;
+    }
+}
+
+// Each source effect invocation aggregates Hot Streak after the complete
+// hostile loop. Keep one batch per resolved empowered cone, never per world
+// tick, so a later unrelated spell cannot inherit its hit/crit state.
+pub class EmpoweredConeBatch {
+    pub var eligibleHitCount: int;
+    pub var rngDrawCount: int;
+    pub var hotStreakHit: bool;
+    pub var hotStreakCritical: bool;
+
+    pub @constructor() {
+        this.eligibleHitCount = 0;
+        this.rngDrawCount = 0;
+        this.hotStreakHit = false;
+        this.hotStreakCritical = false;
+    }
+
+    pub record(hit: EmpoweredConeHit): void {
+        if (!hit.applies) return;
+        this.eligibleHitCount = this.eligibleHitCount + 1;
+        this.rngDrawCount = this.rngDrawCount + hit.rngDrawCount;
+        if (hit.countsHotStreak) {
+            this.hotStreakHit = true;
+            this.hotStreakCritical = this.hotStreakCritical || hit.hotStreakCritical;
+        }
+    }
+
+    pub shouldNoteHotStreak(ability: uint): bool {
+        return cone.hotStreakOnce(ability) && this.hotStreakHit;
+    }
+}
+
+clampStage(level: int, count: int): int {
+    if (count <= 0) return 0;
+    if (level < 1) return 1;
+    return level > count ? count : level;
+}
+
+roundNonnegative(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub beginCast(ability: uint, requestedLevel: int): EmpoweredConeCast {
+    var result = new EmpoweredConeCast();
+    var level = clampStage(requestedLevel, cone.stageCount(ability));
+    if (level == 0) return result;
+    result.valid = true;
+    result.level = level;
+    result.range = cone.stageRange(ability, level);
+    result.angle = cone.stageAngle(ability, level);
+    result.fx = cone.spellFx(ability);
+    return result;
+}
+
+// `critRoll` and `damageUnit` are the two consecutive shared-RNG observations
+// made only after the target passes alive/LOS/cone filtering in effect_dispatch.
+// `targetSurvivesDamage` is supplied after the owning damage reducer runs, so
+// slow/root/incapacitate preserve the source's `if (m.dead) continue` boundary.
+pub resolveHit(
+    ability: uint,
+    requestedLevel: int,
+    origin: glacial.PointXZ,
+    facing: float,
+    target: glacial.PointXZ,
+    targetAlive: bool,
+    lineOfSight: bool,
+    targetSurvivesDamage: bool,
+    critRoll: bool,
+    fireGuaranteedCrit: bool,
+    damageUnit: float,
+    spellPower: float,
+    spellDamageMultiplier: float,
+    critDamageSpellBonus: float
+): EmpoweredConeHit {
+    var result = new EmpoweredConeHit();
+    var cast = beginCast(ability, requestedLevel);
+    if (!cast.valid || !targetAlive || !lineOfSight) return result;
+    if (!glacial.glacialFrontContains(origin, facing, target, cast.range, cast.angle)) return result;
+    if (damageUnit < 0.0 || damageUnit >= 1.0 || spellPower < 0.0 ||
+        spellDamageMultiplier < 0.0 || critDamageSpellBonus < 0.0) {
+        throw "empowered cone hit input is invalid";
+    }
+
+    var critical = critRoll || fireGuaranteedCrit ||
+        (cone.guaranteedCritLevel(ability) > 0.0 &&
+            cast.level == <int>cone.guaranteedCritLevel(ability));
+    var rawDamage = cone.stageMinimumDamage(ability, cast.level) +
+        damageUnit * (cone.stageMaximumDamage(ability, cast.level) -
+            cone.stageMinimumDamage(ability, cast.level)) + spellPower;
+    rawDamage = rawDamage * spellDamageMultiplier;
+    if (critical) rawDamage = rawDamage * (1.5 + critDamageSpellBonus);
+
+    result.applies = true;
+    result.rngDrawCount = 2;
+    result.critical = critical;
+    result.damage = roundNonnegative(rawDamage);
+    result.countsHotStreak = cone.hotStreakOnce(ability);
+    result.hotStreakCritical = result.countsHotStreak && critical;
+    result.targetSurvivesDamage = targetSurvivesDamage;
+    if (!targetSurvivesDamage) return result;
+
+    result.slowMultiplier = cone.slowMultiplier(ability);
+    result.slowDuration = cone.slowDuration(ability);
+    result.appliesSlow = result.slowMultiplier > 0.0 && result.slowDuration > 0.0;
+    result.rootDuration = cone.stageRootDuration(ability, cast.level);
+    result.appliesRoot = result.rootDuration > 0.0;
+    result.incapacitateDuration = cone.stageIncapacitateDuration(ability, cast.level);
+    result.appliesIncapacitate = result.incapacitateDuration > 0.0;
+    result.entersCombat = true;
+    return result;
+}
+
+// Source hotStreakOnce defers its spell-hit note until all eligible targets
+// finish. Keep that aggregate decision separate from individual hit mutation.
+pub shouldNoteHotStreak(ability: uint, anyHit: bool): bool {
+    return cone.hotStreakOnce(ability) && anyHit;
+}
+
+pub contractTest(): int {
+    var origin = new glacial.PointXZ(0.0, 0.0);
+    var forward = new glacial.PointXZ(0.0, 10.0);
+    var glacialCast = beginCast(cone.glacialFrontAbilityCode(true), 8);
+    var dragonCast = beginCast(cone.dragonsBreathAbilityCode(true), 0);
+    if (!glacialCast.valid || glacialCast.level != 4 || glacialCast.range != 16.0 ||
+        glacialCast.angle != 70.0 || glacialCast.fx != "frostCone" ||
+        !dragonCast.valid || dragonCast.level != 1 || dragonCast.range != 6.0 ||
+        dragonCast.angle != 55.0 || dragonCast.fx != "fireCone") {
+        return -1;
+    }
+    var glacialHit = resolveHit(
+        cone.glacialFrontAbilityCode(true), 4, origin, 0.0, forward,
+        true, true, true, false, false, 0.5, 0.0, 1.0, 0.0
+    );
+    if (!glacialHit.applies || glacialHit.rngDrawCount != 2 || glacialHit.critical ||
+        glacialHit.damage != 96 || !glacialHit.appliesSlow ||
+        glacialHit.slowMultiplier != 0.5 || glacialHit.slowDuration != 4.0 ||
+        !glacialHit.appliesRoot || glacialHit.rootDuration != 1.0 ||
+        glacialHit.appliesIncapacitate || !glacialHit.entersCombat ||
+        glacialHit.countsHotStreak) {
+        return -2;
+    }
+
+    var dragonHit = resolveHit(
+        cone.dragonsBreathAbilityCode(true), 4, origin, 0.0, forward,
+        true, true, true, false, false, 0.5, 0.0, 1.0, 0.0
+    );
+    if (!dragonHit.applies || !dragonHit.critical || dragonHit.damage != 150 ||
+        dragonHit.appliesSlow || dragonHit.appliesRoot || !dragonHit.appliesIncapacitate ||
+        dragonHit.incapacitateDuration != 3.0 || !dragonHit.countsHotStreak ||
+        !dragonHit.hotStreakCritical || !shouldNoteHotStreak(
+            cone.dragonsBreathAbilityCode(true), dragonHit.applies)) {
+        return -3;
+    }
+
+    var deadAfterHit = resolveHit(
+        cone.dragonsBreathAbilityCode(true), 1, origin, 0.0,
+        new glacial.PointXZ(0.0, 5.0), true, true, false,
+        false, false, 0.0, 0.0, 1.0, 0.0
+    );
+    if (!deadAfterHit.applies || deadAfterHit.damage != 32 ||
+        deadAfterHit.appliesIncapacitate || deadAfterHit.entersCombat ||
+        !deadAfterHit.countsHotStreak || deadAfterHit.hotStreakCritical) {
+        return -4;
+    }
+
+    var dragonBatch = new EmpoweredConeBatch();
+    dragonBatch.record(dragonHit);
+    dragonBatch.record(deadAfterHit);
+    var glacialBatch = new EmpoweredConeBatch();
+    glacialBatch.record(glacialHit);
+    if (dragonBatch.eligibleHitCount != 2 || dragonBatch.rngDrawCount != 4 ||
+        !dragonBatch.hotStreakHit || !dragonBatch.hotStreakCritical ||
+        !dragonBatch.shouldNoteHotStreak(cone.dragonsBreathAbilityCode(true)) ||
+        glacialBatch.eligibleHitCount != 1 || glacialBatch.hotStreakHit ||
+        glacialBatch.shouldNoteHotStreak(cone.glacialFrontAbilityCode(true))) {
+        return -5;
+    }
+
+    var outOfCone = resolveHit(
+        cone.glacialFrontAbilityCode(true), 0, origin, 0.0,
+        new glacial.PointXZ(8.0, 0.0), true, true, true,
+        true, true, 0.0, 0.0, 1.0, 0.0
+    );
+    if (outOfCone.applies || outOfCone.rngDrawCount != 0 ||
+        shouldNoteHotStreak(cone.glacialFrontAbilityCode(true), true)) {
+        return -6;
+    }
+    return 1;
+}

@@ -18,7 +18,7 @@ use super::ellipsis::{
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
 use super::paragraph_layout;
-use super::rich_inline::resolved_runs_for_line;
+use super::rich_inline::{append_soft_hyphen_break_suffix, resolved_runs_for_line};
 use super::visual_order::apply_visual_order_with_advances;
 
 pub(super) fn layout_inline_vertical_text_with_provider(
@@ -66,7 +66,7 @@ pub(super) fn layout_inline_vertical_text_with_provider(
             start: usize::try_from(metrics.source_range.0).ok()?,
             end: usize::try_from(metrics.source_range.1).ok()?,
         };
-        columns.push(CandidateLine {
+        let mut column = CandidateLine {
             text: parsed
                 .text
                 .get(source_range.start..source_range.end)?
@@ -75,8 +75,18 @@ pub(super) fn layout_inline_vertical_text_with_provider(
             runs: resolved_runs_for_line(parsed, source_range, direction),
             pending_break_suffix: None,
             ellipsized: false,
-        });
-        column_advances.push(metrics.advances);
+        };
+        let mut advances = metrics.advances;
+        append_soft_hyphen_break_suffix(
+            &mut column,
+            &mut advances,
+            parsed,
+            style,
+            source_range.end,
+            &mut *vertical_provider,
+        );
+        columns.push(column);
+        column_advances.push(advances);
         column_cross_extents.push(metrics.cross_extent);
     }
 

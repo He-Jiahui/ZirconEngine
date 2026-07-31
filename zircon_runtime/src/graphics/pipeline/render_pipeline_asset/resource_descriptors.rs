@@ -1,8 +1,8 @@
 use crate::core::framework::render::{
-    FroxelGridQuality, OitBufferPlan, PostProcessGraphResourceNames, RenderFrameExtract,
-    RenderPostProcessTextureFormat, COLOR_LUT_FORMAT, COLOR_LUT_SIZE_DEFAULT,
-    EXPOSURE_BUFFER_WORD_COUNT, EXPOSURE_HISTOGRAM_BIN_COUNT, INTERMEDIATE_HDR_FORMAT_DEFAULT,
-    INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY, TONEMAPPED_SDR_FORMAT,
+    COLOR_LUT_FORMAT, COLOR_LUT_SIZE_DEFAULT, EXPOSURE_BUFFER_WORD_COUNT,
+    EXPOSURE_HISTOGRAM_BIN_COUNT, FroxelGridQuality, INTERMEDIATE_HDR_FORMAT_DEFAULT,
+    INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY, OitBufferPlan, PostProcessGraphResourceNames,
+    RenderFrameExtract, RenderPostProcessTextureFormat, TONEMAPPED_SDR_FORMAT,
 };
 use crate::core::math::UVec2;
 use crate::graphics::pipeline::RenderPipelineCompileOptions;
@@ -293,7 +293,7 @@ fn is_volumetric_froxel_resource(name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{post_process_intermediate_format, PostProcessGraphResourceNames, TextureFormat};
+    use super::{PostProcessGraphResourceNames, TextureFormat, post_process_intermediate_format};
 
     #[test]
     fn reflection_and_gi_products_preserve_hdr_before_output_transfer() {

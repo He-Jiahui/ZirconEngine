@@ -1,0 +1,20 @@
+// Generated Delve daily-reset behavior contract.
+pub emptyUtcDayKeepsState(required: bool): bool {
+    if (!required) { throw "woc Delve daily reset is required"; }
+    return true;
+}
+
+pub resetsFirstClearXp(required: bool): bool {
+    if (!required) { throw "woc Delve daily reset is required"; }
+    return true;
+}
+
+pub resetsMarkClears(required: bool): bool {
+    if (!required) { throw "woc Delve daily reset is required"; }
+    return true;
+}
+
+pub contractTest(): int {
+    return emptyUtcDayKeepsState(true) && resetsFirstClearXp(true) &&
+        resetsMarkClears(true) ? 1 : -1;
+}

@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/runtime/frame_clock.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/store.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
@@ -20,7 +20,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/runtime/time.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs

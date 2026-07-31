@@ -96,6 +96,7 @@ fn source_template_emits_signing_and_cdn_release_contracts() {
             profile_name.clone(),
             RuntimeTargetMode::ClientRuntime,
             platform,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate)
         .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
@@ -168,6 +169,7 @@ fn generated_release_adapters_gate_real_store_and_cdn_upload_inputs() {
             profile_name.clone(),
             RuntimeTargetMode::ClientRuntime,
             platform,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate)
         .with_strategy(ExportPackagingStrategy::LibraryEmbed)];

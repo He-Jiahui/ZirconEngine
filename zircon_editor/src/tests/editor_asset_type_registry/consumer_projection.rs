@@ -8,7 +8,8 @@ use crate::core::editor_extension::{EditorExtensionRegistry, ViewDescriptor};
 use crate::core::editor_operation::{EditorOperationPath, EditorOperationSource};
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetFolderRecord,
+    EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
+    EditorAssetFolderRecord,
 };
 use zircon_runtime::asset::project::PreviewState;
 use zircon_runtime_interface::resource::ResourceKind;
@@ -127,7 +128,8 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
         .unwrap();
     runtime
         .runtime
-        .sync_asset_catalog(EditorAssetCatalogSnapshotRecord {
+        .sync_asset_catalog(Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
+            EditorAssetCatalogSnapshotRecord {
             project_name: "Registry Projection".to_string(),
             project_root: "E:/RegistryProjection".to_string(),
             assets_root: "E:/RegistryProjection/assets".to_string(),
@@ -171,7 +173,9 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
                 diagnostics: Vec::new(),
                 direct_reference_uuids: Vec::new(),
             }],
-        });
+            },
+            1,
+        )));
     runtime
         .runtime
         .dispatch_event(
@@ -311,3 +315,4 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
         )
     );
 }
+use std::sync::Arc;

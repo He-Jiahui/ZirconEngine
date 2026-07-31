@@ -5,6 +5,7 @@ impl RetainedEditorHost {
         &mut self,
         mut session: EditorStartupSessionDocument,
     ) -> Result<(), String> {
+        self.clear_welcome_project_probe();
         let welcome_snapshot = session.welcome_pane_snapshot(false);
         let status_message = session.status_message.clone();
         let startup_view = session.open_builtin_view.clone();
@@ -39,7 +40,7 @@ impl RetainedEditorHost {
                     .create_runtime_level(document.world)
                     .map_err(|error| error.to_string())?;
                 self.runtime
-                    .replace_world(level, document.root_path.to_string_lossy().into_owned());
+                    .replace_world(level, document.root_path.to_string_lossy().into_owned())?;
                 self.runtime.set_session_mode(EditorSessionMode::Project);
                 self.runtime.set_welcome_snapshot(welcome_snapshot);
                 self.editor_manager
@@ -49,8 +50,7 @@ impl RetainedEditorHost {
                 self.mark_render_and_presentation_dirty();
             }
             (EditorSessionMode::Welcome | EditorSessionMode::Playing, _) => {
-                self.runtime.set_session_mode(EditorSessionMode::Welcome);
-                self.runtime.set_welcome_snapshot(welcome_snapshot);
+                self.runtime.clear_project(welcome_snapshot)?;
                 self.editor_manager
                     .show_welcome_page()
                     .map_err(|error| error.to_string())?;

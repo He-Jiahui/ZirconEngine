@@ -1,9 +1,6 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fs,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_runtime::ui::{component::UiComponentDescriptorRegistry, v2::UiZuiAssetLoader};
+use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 
 use super::support::*;
 
@@ -308,11 +305,9 @@ fn material_component_lab_mui_x_samples_use_runtime_descriptors_and_custom_props
     for &(prototype_key, expected_component, expected_classes, expected_props) in
         MUI_X_SAMPLE_CONTRACTS.iter()
     {
-        let path = material_prototype_path(prototype_key);
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+        let fixture = material_prototype_fixture(prototype_key);
+        let path = &fixture.path;
+        let document = &fixture.document;
         let sample = document
             .nodes
             .get("sample")

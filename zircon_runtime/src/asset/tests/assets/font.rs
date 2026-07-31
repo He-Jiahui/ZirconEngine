@@ -31,6 +31,13 @@ cultures = ["zh-Hans"]
 "#;
 
 #[test]
+fn standalone_collection_face_copies_each_table_directly_into_the_output() {
+    let source = include_str!("../../assets/font_source.rs");
+    assert!(!source.contains("let mut table_data = source_data.to_vec();"));
+    assert!(source.contains("output.extend_from_slice(source_data);"));
+}
+
+#[test]
 fn font_asset_wrapper_parses_runtime_font_manifest_fields() {
     let font = FontAsset::from_toml_str(FONT_TOML).unwrap();
 

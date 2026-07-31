@@ -26,6 +26,10 @@ pub(super) fn runtime_session_source() -> &'static str {
     include_str!("../../runtime_library/runtime_session.rs")
 }
 
+pub(super) fn runtime_product_diagnostics_source() -> &'static str {
+    include_str!("../../runtime_entry_app/runtime_product_diagnostics.rs")
+}
+
 pub(super) fn runtime_surface_present_source() -> String {
     [
         include_str!("../../runtime_entry_app/surface_present/mod.rs"),

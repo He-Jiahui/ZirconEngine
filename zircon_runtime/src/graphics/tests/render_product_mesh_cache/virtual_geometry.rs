@@ -4,8 +4,8 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    cook_virtual_geometry_from_mesh, AssetUri, MaterialAsset, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset, VirtualGeometryCookConfig,
+    AssetUri, MaterialAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    VirtualGeometryCookConfig, cook_virtual_geometry_from_mesh,
 };
 use crate::core::framework::render::{
     CameraRenderDescriptor, CapturedFrame, DisplayMode, GeometryExtract, ProjectionMode,
@@ -324,7 +324,10 @@ fn static_cache_virtual_geometry_visibility_mesh() -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            ..Default::default()
+        },
     }
 }
 
@@ -511,7 +514,10 @@ fn automatic_virtual_geometry_model_mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            ..Default::default()
+        },
     }
 }
 

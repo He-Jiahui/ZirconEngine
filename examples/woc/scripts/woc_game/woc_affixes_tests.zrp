@@ -1,0 +1,6 @@
+{
+  "name": "woc_affixes_tests",
+  "source": "src",
+  "binary": "bin-affixes-tests",
+  "entry": "combat/affixes_test_main"
+}

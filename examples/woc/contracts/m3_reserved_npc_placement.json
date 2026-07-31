@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_reserved_npc_placement_codegen.mjs",
+  "source_identity": {
+    "src/sim/data.ts": {
+      "git_blob": "b72cf99eaf8670decdb3f260a45eeffe5a646ebe",
+      "sha256": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431"
+    },
+    "src/sim/social/vale_cup.ts": {
+      "git_blob": "68dcc0365aa1af42836f9bcadb49726ac8d19cdd",
+      "sha256": "9758e5013348b440300aadd6a6f98ceb22c68d3a754c762d460d13b0b7aaf8d2"
+    },
+    "src/sim/content/pvp_honor.ts": {
+      "git_blob": "7c6491328865e91d00a58efdff96db664bfe7d6d",
+      "sha256": "b1fc775e7e53ac76ed52be93cfe11ed466ebd9e415ee554381708e839abe5d1c"
+    }
+  },
+  "reserved_npcs": [
+    {
+      "role": "groundskeeper_bram",
+      "npc_id": "groundskeeper_bram",
+      "entity_id": 1000000000,
+      "name": "Groundskeeper Bram",
+      "x": -6,
+      "z": -82,
+      "facing": 3.141592653589793
+    },
+    {
+      "role": "fury",
+      "npc_id": "fury",
+      "entity_id": 1000000001,
+      "name": "FURY",
+      "x": -11,
+      "z": 1,
+      "facing": 1.5707963267948966
+    }
+  ],
+  "catalog_sha256": "ddd38c9a1a140c1d07defce909088ff6b5ad821a33a6ebf7dc908af458c07e44"
+}

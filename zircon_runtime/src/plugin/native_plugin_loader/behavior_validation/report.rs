@@ -4,8 +4,8 @@ use super::super::behavior_calls::NativePluginBehavior;
 use super::callbacks::validate_callbacks;
 use super::diagnostics::{health_from_diagnostics, module_kind_label};
 use super::schema::{
-    has_manifest_text, validate_v3_schema, ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V3,
-    ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3, ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3,
+    expected_registration_manifest_schema, has_manifest_text, validate_v3_schema,
+    ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4, ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -56,7 +56,7 @@ impl NativePluginBehaviorValidationReport {
             "command_manifest_schema",
             behavior.command_manifest_schema.as_deref(),
             behavior.command_manifest.as_deref(),
-            ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V3,
+            ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4,
         );
         validate_v3_schema(
             &mut diagnostics,
@@ -76,7 +76,7 @@ impl NativePluginBehaviorValidationReport {
             "registration_manifest_schema",
             behavior.registration_manifest_schema.as_deref(),
             behavior.registration_manifest.as_deref(),
-            ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3,
+            expected_registration_manifest_schema(module_kind),
         );
         validate_callbacks(&mut diagnostics, plugin_id, module_kind, behavior);
 

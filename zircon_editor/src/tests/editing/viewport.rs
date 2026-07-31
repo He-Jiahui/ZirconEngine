@@ -1,3 +1,4 @@
+use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::pointer::{
     ViewportOverlayPointerRouter, ViewportPointerLayout, ViewportPointerRoute,
     ViewportRenderablePickCandidate,
@@ -5,13 +6,13 @@ use crate::scene::viewport::pointer::{
 use crate::scene::viewport::{
     GizmoAxis, GridMode, HandleElementExtract, HandleOverlayExtract, OverlayAxis, OverlayPickShape,
     ProjectionMode, SceneGizmoKind, SceneGizmoOverlayExtract, SceneInspectorFieldValue,
-    SceneViewportController, SceneViewportTool, TransformSpace, ViewportCameraSnapshot,
+    SceneViewportController, TransformHandleKind, TransformSpace, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::framework::picking::{HitTarget, PickingAxis};
-use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::Scene;
+use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime_interface::math::{
-    perspective, view_matrix, Transform, UVec2, Vec2, Vec3, Vec4,
+    Transform, UVec2, Vec2, Vec3, Vec4, perspective, view_matrix,
 };
 use zircon_runtime_interface::ui::layout::UiPoint;
 
@@ -37,13 +38,15 @@ fn viewport_overlay_pointer_router_prefers_handle_axis_over_renderable_candidate
                 color: Vec4::ONE,
                 pick_radius: 0.15,
             }],
-        }],
-        scene_gizmos: Vec::new(),
+        }]
+        .into(),
+        scene_gizmos: Vec::new().into(),
         renderables: vec![ViewportRenderablePickCandidate {
             owner: 99,
             position: Vec3::new(1.0, 0.0, 0.0),
             radius_world: 1.2,
-        }],
+        }]
+        .into(),
     });
 
     let dispatch = router
@@ -65,13 +68,14 @@ fn viewport_overlay_pointer_router_skips_rebuild_for_unchanged_layout() {
     let layout = ViewportPointerLayout {
         viewport,
         camera: camera.clone(),
-        handles: Vec::new(),
-        scene_gizmos: Vec::new(),
+        handles: Vec::new().into(),
+        scene_gizmos: Vec::new().into(),
         renderables: vec![ViewportRenderablePickCandidate {
             owner: 13,
             position: Vec3::new(-0.75, 0.1, 0.0),
             radius_world: 1.0,
-        }],
+        }]
+        .into(),
     };
 
     let mut router = ViewportOverlayPointerRouter::new();
@@ -91,7 +95,7 @@ fn viewport_overlay_pointer_router_prefers_scene_gizmo_over_renderable_candidate
     router.sync(ViewportPointerLayout {
         viewport,
         camera: camera.clone(),
-        handles: Vec::new(),
+        handles: Vec::new().into(),
         scene_gizmos: vec![SceneGizmoOverlayExtract {
             owner: 41,
             kind: SceneGizmoKind::DirectionalLight,
@@ -103,12 +107,14 @@ fn viewport_overlay_pointer_router_prefers_scene_gizmo_over_renderable_candidate
                 center: gizmo_center,
                 radius: 0.4,
             }],
-        }],
+        }]
+        .into(),
         renderables: vec![ViewportRenderablePickCandidate {
             owner: 88,
             position: gizmo_center,
             radius_world: 1.2,
-        }],
+        }]
+        .into(),
     });
 
     let dispatch = router
@@ -130,13 +136,14 @@ fn viewport_overlay_pointer_router_resolves_renderable_when_no_overlay_hits() {
     router.sync(ViewportPointerLayout {
         viewport,
         camera: camera.clone(),
-        handles: Vec::new(),
-        scene_gizmos: Vec::new(),
+        handles: Vec::new().into(),
+        scene_gizmos: Vec::new().into(),
         renderables: vec![ViewportRenderablePickCandidate {
             owner: 13,
             position: Vec3::new(-0.75, 0.1, 0.0),
             radius_world: 1.0,
-        }],
+        }]
+        .into(),
     });
 
     let dispatch = router
@@ -256,7 +263,9 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
 
     let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
     controller.selection_mut().select_only_active(cube);
-    controller.settings_mut().tool = SceneViewportTool::Scale;
+    controller
+        .activate_scene_mode(SceneModeActivation::Transform(TransformHandleKind::Scale))
+        .unwrap();
     controller.settings_mut().transform_space = TransformSpace::Global;
     controller.settings_mut().projection_mode = ProjectionMode::Orthographic;
     controller.settings_mut().grid_mode = GridMode::VisibleAndSnap;
@@ -286,7 +295,10 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
     assert!(!child_row.selected);
     assert!(!child_row.active_in_hierarchy);
 
-    assert_eq!(projection.toolbar.tool, SceneViewportTool::Scale);
+    assert_eq!(
+        projection.toolbar.mode,
+        SceneModeActivation::Transform(TransformHandleKind::Scale)
+    );
     assert_eq!(projection.toolbar.transform_space, TransformSpace::Global);
     assert_eq!(
         projection.toolbar.projection_mode,
@@ -350,11 +362,13 @@ fn viewport_render_snapshot_ignores_stale_editor_selection() {
     assert!(snapshot.overlays.selection.is_empty());
     assert!(snapshot.overlays.selection_anchors.is_empty());
     assert!(snapshot.overlays.handles.is_empty());
-    assert!(snapshot
-        .overlays
-        .scene_gizmos
-        .iter()
-        .all(|gizmo| !gizmo.selected));
+    assert!(
+        snapshot
+            .overlays
+            .scene_gizmos
+            .iter()
+            .all(|gizmo| !gizmo.selected)
+    );
 }
 
 fn test_camera() -> ViewportCameraSnapshot {

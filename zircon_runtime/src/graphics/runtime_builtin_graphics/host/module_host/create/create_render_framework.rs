@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use crate::core::CoreHandle;
 use crate::core::framework::render::{
     GeometrySourceDescriptor, RenderFramework, ShadingModelDescriptor,
 };
-use crate::core::CoreHandle;
 use crate::graphics::{GraphicsError, WgpuRenderFramework};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
@@ -11,7 +11,7 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 
-use crate::asset::{project_asset_manager_handle, ProjectAssetManagerAccess};
+use crate::asset::{ProjectAssetManagerAccess, project_asset_manager_handle};
 
 pub fn create_render_framework_with_render_features(
     core: &CoreHandle,

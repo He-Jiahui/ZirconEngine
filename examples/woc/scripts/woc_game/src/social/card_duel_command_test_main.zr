@@ -1,0 +1,56 @@
+var console = %import("zr.system.console");
+var container = %import("zr.container");
+var commands = %import("social/card_duel_command");
+var contract = %import("generated/card_duel_command_contract");
+
+bytes(a: uint, b: uint, c: uint, d: uint): container.Array<uint> {
+    var result = new container.Array<uint>();
+    result.add(a);
+    result.add(b);
+    result.add(c);
+    result.add(d);
+    return result;
+}
+
+empty(): container.Array<uint> {
+    return new container.Array<uint>();
+}
+
+contractTest(): int {
+    if (contract.queueJoinCommandId(true) != <uint>90 ||
+        contract.queueLeaveCommandId(true) != <uint>91 ||
+        contract.playCardCommandId(true) != <uint>92 ||
+        contract.forfeitCommandId(true) != <uint>93 ||
+        contract.playCardPayloadBytes(true) != 4) {
+        return -1;
+    }
+    if (!commands.isCardDuelCommand(contract.queueJoinCommandId(true)) ||
+        !commands.isCardDuelCommand(contract.queueLeaveCommandId(true)) ||
+        !commands.isCardDuelCommand(contract.playCardCommandId(true)) ||
+        !commands.isCardDuelCommand(contract.forfeitCommandId(true)) ||
+        commands.isCardDuelCommand(<uint>94)) {
+        return -2;
+    }
+    if (commands.validatePayload(contract.queueJoinCommandId(true), empty()) != 1 ||
+        commands.validatePayload(contract.queueLeaveCommandId(true), empty()) != 1 ||
+        commands.validatePayload(contract.forfeitCommandId(true), empty()) != 1 ||
+        commands.validatePayload(contract.queueJoinCommandId(true), bytes(<uint>0, <uint>0, <uint>0, <uint>0)) != -2) {
+        return -3;
+    }
+    var seven = bytes(<uint>7, <uint>0, <uint>0, <uint>0);
+    var negativeOne = bytes(<uint>255, <uint>255, <uint>255, <uint>255);
+    if (commands.validatePayload(contract.playCardCommandId(true), seven) != 1 ||
+        commands.validatePayload(contract.playCardCommandId(true), negativeOne) != 1 ||
+        commands.validatePayload(contract.playCardCommandId(true), empty()) != -2 ||
+        commands.decodePlayCardValue(seven) != 7 ||
+        commands.decodePlayCardValue(negativeOne) != -1) {
+        return -4;
+    }
+    if (commands.validatePayload(<uint>94, empty()) != -1) return -5;
+    return 1;
+}
+
+console.printLine("card-duel-command-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

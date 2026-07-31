@@ -62,12 +62,10 @@ pub(crate) fn summarize_prepared_mesh_queue_items<K>(
     >,
 ) -> PreparedMeshQueueStats
 where
-    K: Clone + Eq + Hash,
+    K: Eq + Hash,
 {
     let mut stats = PreparedMeshQueueStats::default();
-    let mut static_batch_groups = HashMap::<K, usize>::new();
-    let mut dynamic_batch_groups = HashMap::<K, usize>::new();
-    let mut gpu_instancing_groups = HashMap::<K, usize>::new();
+    let mut candidate_groups = HashMap::<K, CandidateGroupCounts>::new();
 
     for (
         profile,
@@ -159,28 +157,38 @@ where
                 stats.missing_velocity_transform_draw_count += 1;
             }
         }
-        if profile.static_batch_eligible() {
-            *static_batch_groups.entry(key.clone()).or_default() += 1;
-        }
-        if profile.dynamic_batch_eligible() {
-            *dynamic_batch_groups.entry(key.clone()).or_default() += 1;
-        }
-        if profile.gpu_instancing_eligible() {
-            *gpu_instancing_groups.entry(key).or_default() += 1;
+        let static_batch_eligible = profile.static_batch_eligible();
+        let dynamic_batch_eligible = profile.dynamic_batch_eligible();
+        let gpu_instancing_eligible = profile.gpu_instancing_eligible();
+        if static_batch_eligible || dynamic_batch_eligible || gpu_instancing_eligible {
+            let group = candidate_groups.entry(key).or_default();
+            group.static_batch += static_batch_eligible as usize;
+            group.dynamic_batch += dynamic_batch_eligible as usize;
+            group.gpu_instancing += gpu_instancing_eligible as usize;
         }
     }
 
-    let (groups, draws) = repeated_group_stats(static_batch_groups.values().copied());
+    let (groups, draws) =
+        repeated_group_stats(candidate_groups.values().map(|group| group.static_batch));
     stats.static_batch_candidate_group_count = groups;
     stats.static_batch_candidate_draw_count = draws;
-    let (groups, draws) = repeated_group_stats(dynamic_batch_groups.values().copied());
+    let (groups, draws) =
+        repeated_group_stats(candidate_groups.values().map(|group| group.dynamic_batch));
     stats.dynamic_batch_candidate_group_count = groups;
     stats.dynamic_batch_candidate_draw_count = draws;
-    let (groups, draws) = repeated_group_stats(gpu_instancing_groups.values().copied());
+    let (groups, draws) =
+        repeated_group_stats(candidate_groups.values().map(|group| group.gpu_instancing));
     stats.gpu_instancing_candidate_group_count = groups;
     stats.gpu_instancing_candidate_draw_count = draws;
 
     stats
+}
+
+#[derive(Default)]
+struct CandidateGroupCounts {
+    static_batch: usize,
+    dynamic_batch: usize,
+    gpu_instancing: usize,
 }
 
 fn repeated_group_stats(group_sizes: impl IntoIterator<Item = usize>) -> (usize, usize) {

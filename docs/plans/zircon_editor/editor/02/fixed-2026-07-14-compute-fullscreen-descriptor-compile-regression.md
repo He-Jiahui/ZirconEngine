@@ -10,7 +10,7 @@ fixing_child_dir: docs/plans/zircon_runtime/shader/04
 related_code:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/compute_workload.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/fullscreen_pass.rs
+  - zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs
 tests:
   - cargo test -p zircon_runtime --locked
 resolved_at: 2026-07-14
@@ -61,6 +61,6 @@ Editor02 新增的 `zircon_runtime_interface` world-sync 契约门禁已独立�
 ## 修复结果与回传
 
 - 根因：HZB descriptor imported build-dispatch constants from the compute-workload owner after that API had moved, while the fullscreen helper reused a builder after a consuming method call.
-- 架构修复：HZB build now consumes the typed hzb_build_dispatch_plan from the graphics shader owner; the obsolete fullscreen descriptor owner was deleted and builtin fullscreen plans use a single consuming builder chain in builtin_global_shader_contracts, with no shim or duplicate constants.
+- 架构修复：HZB build now consumes the typed `hzb_build_dispatch_plan` from the graphics shader owner; the obsolete fullscreen descriptor owner was deleted, and builtin fullscreen plans use a single consuming builder chain owned by `zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs`, with no shim or duplicate constants.
 - 验证：Windows managed runtime build job 6c5620111c344c14ba8e758963ae0834 exited 0. Managed broad runtime job f4aec4eca4c445aea8e7e19adcef1c0a compiled past both original Shader04 E0432/E0382 errors and stopped only at Editor02/Plugins08 diagnostics; later exact core-min jobs also contain neither original Shader04 error.
 - 回传：Shader04 compute/fullscreen descriptor compile regression is fixed and returned to Editor02; remaining Runtime15 and Frameworks05 failures are separately routed.

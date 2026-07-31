@@ -1,10 +1,12 @@
-use std::collections::BTreeMap;
+use std::{cell::Cell, collections::BTreeMap};
 
 use zircon_runtime::{
     core::framework::picking::{
         HitTarget, PickingAxis, PickingDebugMetricKind, PointerAction, PointerButton, PointerId,
         PointerScrollUnit,
     },
+    core::framework::render::{SceneGizmoKind, SceneGizmoOverlayExtract},
+    scene::Scene,
     ui::surface::UiSurface,
 };
 use zircon_runtime_interface::{
@@ -18,10 +20,14 @@ use zircon_runtime_interface::{
     },
 };
 
-use crate::scene::viewport::GizmoAxis;
+use crate::scene::viewport::{
+    GizmoAxis, SceneViewportSettings, ViewportCameraSnapshot, ViewportInteractionExtractCache,
+};
 
 use super::{
-    candidates::{candidate_z_index, interactive_state_flags, passive_state_flags},
+    candidates::{
+        candidate_z_index, interactive_state_flags, passive_state_flags, renderable_candidates,
+    },
     constants::{
         GIZMO_PRIORITY, HANDLE_PRIORITY, RENDERABLE_PRIORITY, ROOT_NODE_ID, VIEWPORT_NODE_ID,
     },
@@ -59,6 +65,16 @@ fn pointer_module_keeps_runtime_route_adapter_as_authoritative_resolver() {
     assert!(
         dispatcher.contains("resolve_runtime_route"),
         "viewport overlay dispatcher should resolve through runtime picking"
+    );
+    let event = include_str!("overlay_router/viewport_overlay_pointer_router_event.rs");
+    assert!(
+        !event.contains("self.debug_feed_at(point)"),
+        "pointer dispatch must reuse the route pass for its debug feed"
+    );
+    let hit_frames = include_str!("precision/precision_shape_hit_frame.rs");
+    assert!(
+        !hit_frames.contains("let points: Vec<_>"),
+        "ring hit frames must scan endpoints without allocating a temporary Vec"
     );
 }
 
@@ -175,6 +191,93 @@ fn runtime_pointer_adapter_maps_cancel_to_runtime_pointer_action() {
     assert_eq!(
         runtime_pointer_input_for_event(&cancel_event).action,
         PointerAction::Cancel
+    );
+}
+
+#[test]
+fn stable_scene_sync_skips_candidate_and_handle_rebuilds() {
+    let scene = Scene::new();
+    let settings = SceneViewportSettings::default();
+    let camera = ViewportCameraSnapshot::default();
+    let viewport = zircon_runtime_interface::math::UVec2::new(1280, 720);
+    let handle_builds = Cell::new(0);
+    let additional_gizmo_builds = Cell::new(0);
+    let cache = ViewportInteractionExtractCache::default();
+    let mut router = ViewportOverlayPointerRouter::new();
+
+    let first = cache.resolve_for_pointer(
+        &scene,
+        None,
+        &settings,
+        &camera,
+        viewport,
+        || {
+            handle_builds.set(handle_builds.get() + 1);
+            Vec::new()
+        },
+        || {
+            additional_gizmo_builds.set(additional_gizmo_builds.get() + 1);
+            vec![empty_scene_gizmo(808)]
+        },
+    );
+    assert!(first.scene_gizmos().iter().any(|gizmo| gizmo.owner == 808));
+    assert!(router.sync_scene(&camera, viewport, first));
+    let second = cache.resolve_for_pointer(
+        &scene,
+        None,
+        &settings,
+        &camera,
+        viewport,
+        || {
+            handle_builds.set(handle_builds.get() + 1);
+            Vec::new()
+        },
+        || {
+            additional_gizmo_builds.set(additional_gizmo_builds.get() + 1);
+            vec![empty_scene_gizmo(808)]
+        },
+    );
+    assert!(!router.sync_scene(&camera, viewport, second));
+
+    assert_eq!(handle_builds.get(), 1);
+    assert_eq!(additional_gizmo_builds.get(), 1);
+}
+
+fn empty_scene_gizmo(owner: u64) -> SceneGizmoOverlayExtract {
+    SceneGizmoOverlayExtract {
+        owner,
+        kind: SceneGizmoKind::NavigationMesh,
+        selected: false,
+        lines: Vec::new(),
+        wire_shapes: Vec::new(),
+        icons: Vec::new(),
+        pick_shapes: Vec::new(),
+    }
+}
+
+#[test]
+fn renderable_candidates_consume_runtime_meshes_and_collapse_primitives_by_owner() {
+    let scene = Scene::new();
+    let mut render_meshes = scene.to_render_extract().scene.meshes;
+    let first = render_meshes
+        .first()
+        .cloned()
+        .expect("default scene should expose one runtime render mesh");
+    render_meshes.insert(0, first.clone());
+
+    let candidates = renderable_candidates(&render_meshes);
+
+    assert_eq!(
+        candidates
+            .iter()
+            .filter(|candidate| candidate.owner == first.node_id)
+            .count(),
+        1
+    );
+    assert!(
+        candidates
+            .iter()
+            .any(|candidate| candidate.owner == first.node_id)
     );
 }
 
@@ -297,6 +400,7 @@ fn seed_debug_feed_router(router: &mut ViewportOverlayPointerRouter) {
         .expect("shared route state should be writable") = SharedResolutionState {
         candidates,
         last_route: None,
+        last_debug_feed: None,
     };
 }
 

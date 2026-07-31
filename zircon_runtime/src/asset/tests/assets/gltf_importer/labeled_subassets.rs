@@ -1,4 +1,4 @@
-﻿use super::*;
+use super::*;
 
 #[test]
 fn importer_emits_bevy_style_gltf_labeled_subassets() {
@@ -188,6 +188,16 @@ fn importer_emits_bevy_style_gltf_labeled_subassets() {
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn gltf_material_subassets_move_material_payloads_after_collecting_dependencies() {
+    let source = include_str!("../../../importer/ingest/gltf_labeled_subassets/material.rs");
+
+    assert!(source.contains("ImportedAsset::Material(default_asset)"));
+    assert!(source.contains("ImportedAsset::Material(asset)"));
+    assert!(!source.contains("ImportedAsset::Material(default_asset.clone())"));
+    assert!(!source.contains("ImportedAsset::Material(asset.clone())"));
 }
 
 #[test]

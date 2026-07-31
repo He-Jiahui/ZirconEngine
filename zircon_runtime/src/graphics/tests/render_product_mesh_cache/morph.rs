@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AssetUri, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
-    MeshSkinAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    AssetUri, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0, MaterialAsset, MeshAsset,
+    MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshSkinAsset,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
@@ -487,7 +487,10 @@ fn direct_morph_mesh_snapshot(material_id: ResourceId, mesh_id: ResourceId) -> R
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::from_transform_static(false),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            ..Default::default()
+        },
     }
 }
 
@@ -509,7 +512,10 @@ fn direct_morph_parity_mesh_snapshot(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::from_transform_static(false),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            ..Default::default()
+        },
     }
 }
 
@@ -531,7 +537,10 @@ fn skinned_morph_parity_mesh_snapshot(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::from_transform_static(false),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            ..Default::default()
+        },
     }
 }
 

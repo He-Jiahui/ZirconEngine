@@ -1,0 +1,621 @@
+var container = %import("zr.container");
+var targeting = %import("kernel/targeting");
+var symbols = %import("generated/trace_symbols");
+
+class Writer {
+    pri var bytes: container.Array<uint>;
+
+    pub @constructor() {
+        this.bytes = new container.Array<uint>();
+    }
+
+    pub byte(value: uint, width: int): void {
+        if (width != 1 || value > <uint>255) {
+            throw "targeting trace byte is invalid";
+        }
+        var target = this.bytes;
+        target.add(value);
+    }
+
+    pub u16(value: uint, lowBytes: int, highBytes: int): void {
+        if (lowBytes != 1 || highBytes != 1) {
+            throw "targeting trace u16 layout is invalid";
+        }
+        this.byte(value & <uint>255, 1);
+        this.byte((value >> 8) & <uint>255, 1);
+    }
+
+    pub u32(value: uint, a: int, b: int, c: int): void {
+        if (a != 1 || b != 1 || c != 2) {
+            throw "targeting trace u32 layout is invalid";
+        }
+        this.u16(value & <uint>65535, 1, 1);
+        this.u16((value >> 16) & <uint>65535, 1, 1);
+    }
+
+    pub u64(value: uint, a: int, b: int, c: int, d: int): void {
+        if (a != 1 || b != 1 || c != 2 || d != 4) {
+            throw "targeting trace u64 layout is invalid";
+        }
+        this.u32(value & <uint>4294967295, 1, 1, 2);
+        this.u32(value >> 32, 1, 1, 2);
+    }
+
+    pub finish(): container.Array<uint> {
+        var copy = new container.Array<uint>();
+        var source = this.bytes;
+        for (var value in source) {
+            copy.add(<uint>value);
+        }
+        return copy;
+    }
+}
+
+key(writer: Writer, symbol: int, required: bool): void {
+    if (!required || symbol <= 0 || symbol > 65535) {
+        throw "targeting trace key symbol is invalid";
+    }
+    writer.u16(<uint>symbol, 1, 1);
+}
+
+collection(writer: Writer, kind: int, length: uint, marker: int): void {
+    if (marker != 1 || (kind != 10 && kind != 11)) {
+        throw "targeting trace collection is invalid";
+    }
+    writer.byte(<uint>kind, 1);
+    writer.u32(length, 1, 1, 2);
+}
+
+// kind follows WTR1 tags. Only one scalar helper exists so same-signature free
+// function binding cannot select a different typed writer at runtime.
+scalar(
+    writer: Writer,
+    kind: int,
+    intValue: int,
+    floatValue: float,
+    symbol: int,
+    flag: bool,
+    marker: int
+): void {
+    if (marker != 1) {
+        throw "targeting trace scalar marker is invalid";
+    }
+    if (kind == 0) {
+        writer.byte(<uint>0, 1);
+        return;
+    }
+    if (kind == 1) {
+        writer.byte(flag ? <uint>2 : <uint>1, 1);
+        return;
+    }
+    if (kind == 3) {
+        if (intValue < 0) {
+            throw "targeting trace unsigned value is negative";
+        }
+        writer.byte(<uint>3, 1);
+        writer.u64(<uint>intValue, 1, 1, 2, 4);
+        return;
+    }
+    if (kind == 4) {
+        writer.byte(<uint>4, 1);
+        var negativeInt = intValue < 0;
+        writer.byte(negativeInt ? <uint>1 : <uint>0, 1);
+        writer.u64(negativeInt ? <uint>(-intValue) : <uint>intValue, 1, 1, 2, 4);
+        return;
+    }
+    if (kind == 5) {
+        writer.byte(<uint>5, 1);
+        var negativeFloat = floatValue < 0.0;
+        writer.byte(negativeFloat ? <uint>1 : <uint>0, 1);
+        var absolute = negativeFloat ? -floatValue : floatValue;
+        writer.u64(<uint>(absolute * 1000000.0 + 0.5), 1, 1, 2, 4);
+        return;
+    }
+    if (kind == 6) {
+        writer.byte(<uint>6, 1);
+        return;
+    }
+    if (kind == 9) {
+        if (symbol <= 0 || symbol > 65535) {
+            throw "targeting trace string symbol is invalid";
+        }
+        writer.byte(<uint>9, 1);
+        writer.u16(<uint>symbol, 1, 1);
+        return;
+    }
+    throw "targeting trace scalar kind is invalid";
+}
+
+// Nested constructor values. kind: 1 empty object, 2 bags, 3 discovered items,
+// 4 deed stats, 5 equipment, 6 inventory, 7 talents, 8 player position,
+// 9 player spawn, 10 player stats, 11 player weapon, 12-14 mob values.
+nested(writer: Writer, kind: int, classCode: int, required: bool, marker: int): void {
+    if (!required || marker != 1 || classCode < 1 || classCode > 3) {
+        throw "targeting trace nested constructor is invalid";
+    }
+    if (kind == 1) {
+        collection(writer, 11, <uint>0, 1);
+        return;
+    }
+    if (kind == 2) {
+        collection(writer, 10, <uint>4, 1);
+        scalar(writer, 0, 0, 0.0, 0, false, 1);
+        scalar(writer, 0, 0, 0.0, 0, false, 1);
+        scalar(writer, 0, 0, 0.0, 0, false, 1);
+        scalar(writer, 0, 0, 0.0, 0, false, 1);
+        return;
+    }
+    if (kind == 3) {
+        var count = classCode == 3 ? 4 : 3;
+        collection(writer, 10, <uint>count, 1);
+        if (classCode == 1) {
+            scalar(writer, 9, 0, 0.0, 74, false, 1);
+            scalar(writer, 9, 0, 0.0, 717, false, 1);
+            scalar(writer, 9, 0, 0.0, 960, false, 1);
+        } else if (classCode == 2) {
+            scalar(writer, 9, 0, 0.0, 74, false, 1);
+            scalar(writer, 9, 0, 0.0, 361, false, 1);
+            scalar(writer, 9, 0, 0.0, 763, false, 1);
+        } else {
+            scalar(writer, 9, 0, 0.0, 43, false, 1);
+            scalar(writer, 9, 0, 0.0, 74, false, 1);
+            scalar(writer, 9, 0, 0.0, 384, false, 1);
+            scalar(writer, 9, 0, 0.0, 827, false, 1);
+        }
+        return;
+    }
+    if (kind == 4) {
+        collection(writer, 11, <uint>3, 1);
+        key(writer, 182, true); collection(writer, 11, <uint>0, 1);
+        key(writer, 289, true); collection(writer, 11, <uint>0, 1);
+        key(writer, 452, true);
+        var discoveredCount = classCode == 3 ? 4 : 3;
+        collection(writer, 10, <uint>discoveredCount, 1);
+        if (classCode == 1) {
+            scalar(writer, 9, 0, 0.0, 74, false, 1);
+            scalar(writer, 9, 0, 0.0, 717, false, 1);
+            scalar(writer, 9, 0, 0.0, 960, false, 1);
+        } else if (classCode == 2) {
+            scalar(writer, 9, 0, 0.0, 74, false, 1);
+            scalar(writer, 9, 0, 0.0, 361, false, 1);
+            scalar(writer, 9, 0, 0.0, 763, false, 1);
+        } else {
+            scalar(writer, 9, 0, 0.0, 43, false, 1);
+            scalar(writer, 9, 0, 0.0, 74, false, 1);
+            scalar(writer, 9, 0, 0.0, 384, false, 1);
+            scalar(writer, 9, 0, 0.0, 827, false, 1);
+        }
+        return;
+    }
+    if (kind == 5) {
+        collection(writer, 11, <uint>2, 1);
+        key(writer, 134, true);
+        scalar(writer, 9, 0, 0.0, classCode == 1 ? 717 : (classCode == 2 ? 361 : 43), false, 1);
+        key(writer, 503, true);
+        scalar(writer, 9, 0, 0.0, classCode == 1 ? 960 : (classCode == 2 ? 763 : 384), false, 1);
+        return;
+    }
+    if (kind == 6) {
+        collection(writer, 10, classCode == 3 ? <uint>2 : <uint>1, 1);
+        collection(writer, 11, <uint>2, 1);
+        key(writer, 181, true); scalar(writer, 3, 5, 0.0, 0, false, 1);
+        key(writer, 450, true); scalar(writer, 9, 0, 0.0, 74, false, 1);
+        if (classCode == 3) {
+            collection(writer, 11, <uint>2, 1);
+            key(writer, 181, true); scalar(writer, 3, 5, 0.0, 0, false, 1);
+            key(writer, 450, true); scalar(writer, 9, 0, 0.0, 827, false, 1);
+        }
+        return;
+    }
+    if (kind == 7) {
+        collection(writer, 11, <uint>2, 1);
+        key(writer, 135, true); collection(writer, 11, <uint>0, 1);
+        key(writer, 712, true); collection(writer, 11, <uint>0, 1);
+        return;
+    }
+    if (kind == 8) {
+        collection(writer, 11, <uint>2, 1);
+        if (classCode == 1) {
+            key(writer, 961, true); scalar(writer, 5, 0, 2.0, 0, false, 1);
+            key(writer, 964, true); scalar(writer, 5, 0, 1.5, 0, false, 1);
+        } else if (classCode == 2) {
+            key(writer, 961, true); scalar(writer, 5, 0, -2.0, 0, false, 1);
+            key(writer, 964, true); scalar(writer, 5, 0, 1.5, 0, false, 1);
+        } else {
+            key(writer, 964, true); scalar(writer, 5, 0, 1.601203, 0, false, 1);
+            key(writer, 965, true); scalar(writer, 5, 0, 20.0, 0, false, 1);
+        }
+        return;
+    }
+    if (kind == 9) {
+        collection(writer, 11, <uint>3, 1);
+        key(writer, 961, true); scalar(writer, 5, 0, 2.0, 0, false, 1);
+        key(writer, 964, true); scalar(writer, 5, 0, 1.5, 0, false, 1);
+        key(writer, 965, true); scalar(writer, 5, 0, -2.0, 0, false, 1);
+        return;
+    }
+    if (kind == 10) {
+        collection(writer, 11, <uint>6, 1);
+        var agi = classCode == 1 ? 20 : (classCode == 2 ? 25 : 12);
+        var armor = classCode == 1 ? 110 : (classCode == 2 ? 104 : 57);
+        var intellect = classCode == 1 ? 10 : (classCode == 2 ? 11 : 25);
+        var spirit = classCode == 1 ? 11 : (classCode == 2 ? 12 : 22);
+        var stamina = classCode == 1 ? 22 : (classCode == 2 ? 17 : 14);
+        var strength = classCode == 1 ? 23 : (classCode == 2 ? 17 : 10);
+        key(writer, 29, true); scalar(writer, 3, agi, 0.0, 0, false, 1);
+        key(writer, 56, true); scalar(writer, 3, armor, 0.0, 0, false, 1);
+        key(writer, 445, true); scalar(writer, 3, intellect, 0.0, 0, false, 1);
+        key(writer, 824, true); scalar(writer, 3, spirit, 0.0, 0, false, 1);
+        key(writer, 828, true); scalar(writer, 3, stamina, 0.0, 0, false, 1);
+        key(writer, 837, true); scalar(writer, 3, strength, 0.0, 0, false, 1);
+        return;
+    }
+    if (kind == 11) {
+        collection(writer, 11, classCode == 2 ? <uint>4 : <uint>3, 1);
+        if (classCode == 2) {
+            key(writer, 197, true); scalar(writer, 1, 0, 0.0, 0, true, 1);
+        }
+        key(writer, 518, true); scalar(writer, 3, classCode == 3 ? 6 : (classCode == 2 ? 4 : 5), 0.0, 0, false, 1);
+        key(writer, 529, true); scalar(writer, 3, classCode == 3 ? 3 : 2, 0.0, 0, false, 1);
+        key(writer, 821, true); scalar(writer, 5, 0, classCode == 3 ? 2.9 : (classCode == 2 ? 1.8 : 2.0), 0, false, 1);
+        return;
+    }
+    if (kind == 12) {
+        collection(writer, 11, <uint>1, 1);
+        key(writer, 964, true); scalar(writer, 5, 0, 1.5, 0, false, 1);
+        return;
+    }
+    if (kind == 13) {
+        collection(writer, 11, <uint>1, 1);
+        key(writer, 56, true); scalar(writer, 3, 40, 0.0, 0, false, 1);
+        return;
+    }
+    if (kind == 14) {
+        collection(writer, 11, <uint>3, 1);
+        key(writer, 518, true); scalar(writer, 3, 12, 0.0, 0, false, 1);
+        key(writer, 529, true); scalar(writer, 3, 8, 0.0, 0, false, 1);
+        key(writer, 821, true); scalar(writer, 5, 0, 2.0, 0, false, 1);
+        return;
+    }
+    throw "targeting trace nested kind is invalid";
+}
+
+playerMeta(writer: Writer, id: int, classCode: int, a: int, b: int, c: int): void {
+    if (a != 1 || b != 2 || c != 3) {
+        throw "targeting player metadata marker is invalid";
+    }
+    collection(writer, 11, <uint>24, 1);
+    key(writer, 17, true); scalar(writer, 4, -1, 0.0, 0, false, 1);
+    key(writer, 45, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 51, true); scalar(writer, 3, 1500, 0.0, 0, false, 1);
+    key(writer, 54, true); scalar(writer, 3, 1500, 0.0, 0, false, 1);
+    key(writer, 73, true); nested(writer, 2, classCode, true, 1);
+    key(writer, 76, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 148, true); scalar(writer, 9, 0, 0.0, classCode == 1 ? 946 : (classCode == 2 ? 758 : 498), false, 1);
+    key(writer, 166, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 182, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 186, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 187, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 221, true); nested(writer, 4, classCode, true, 1);
+    key(writer, 234, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 235, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 311, true); scalar(writer, 3, id, 0.0, 0, false, 1);
+    key(writer, 315, true); nested(writer, 5, classCode, true, 1);
+    key(writer, 316, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 378, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 408, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 447, true); nested(writer, 6, classCode, true, 1);
+    key(writer, 502, true); scalar(writer, 1, 0, 0.0, 0, true, 1);
+    key(writer, 567, true); nested(writer, 1, classCode, true, 1);
+    key(writer, 854, true); nested(writer, 7, classCode, true, 1);
+    key(writer, 882, true); nested(writer, 1, classCode, true, 1);
+}
+
+playerEntity(writer: Writer, id: int, classCode: int, a: int, b: int, c: int, d: int): void {
+    if (a != 1 || b != 2 || c != 3 || d != 4) {
+        throw "targeting player entity marker is invalid";
+    }
+    collection(writer, 11, classCode == 1 ? <uint>28 : <uint>29, 1);
+    key(writer, 30, true); scalar(writer, 9, 0, 0.0, 437, false, 1);
+    key(writer, 66, true); scalar(writer, 3, classCode == 1 ? 46 : (classCode == 2 ? 42 : 10), 0.0, 0, false, 1);
+    key(writer, 160, true); scalar(writer, 3, 99, 0.0, 0, false, 1);
+    key(writer, 163, true); scalar(writer, 4, -1, 0.0, 0, false, 1);
+    key(writer, 189, true); scalar(writer, 5, 0, classCode == 1 ? 0.06 : (classCode == 2 ? 0.0625 : 0.056), 0, false, 1);
+    key(writer, 248, true); scalar(writer, 6, 0, 0.0, 0, false, 1);
+    key(writer, 264, true); scalar(writer, 5, 0, classCode == 1 ? 0.06 : (classCode == 2 ? 0.0625 : 0.056), 0, false, 1);
+    key(writer, 326, true); scalar(writer, 5, 0, classCode == 3 ? 1.601203 : 1.5, 0, false, 1);
+    key(writer, 355, true); scalar(writer, 3, 99, 0.0, 0, false, 1);
+    key(writer, 427, true); scalar(writer, 3, 50000, 0.0, 0, false, 1);
+    key(writer, 436, true); scalar(writer, 3, id, 0.0, 0, false, 1);
+    key(writer, 462, true); scalar(writer, 9, 0, 0.0, 639, false, 1);
+    key(writer, 470, true); scalar(writer, 3, 1, 0.0, 0, false, 1);
+    key(writer, 487, true); scalar(writer, 6, 0, 0.0, 0, false, 1);
+    key(writer, 520, true); scalar(writer, 3, 50000, 0.0, 0, false, 1);
+    key(writer, 521, true); scalar(writer, 3, classCode == 3 ? 195 : 100, 0.0, 0, false, 1);
+    key(writer, 548, true); scalar(writer, 3, 7, 0.0, 0, false, 1);
+    key(writer, 589, true); scalar(writer, 1, 0, 0.0, 0, true, 1);
+    key(writer, 595, true); scalar(writer, 4, -1, 0.0, 0, false, 1);
+    key(writer, 628, true); scalar(writer, 9, 0, 0.0, 222, false, 1);
+    key(writer, 647, true); nested(writer, 8, classCode, true, 1);
+    key(writer, 649, true); scalar(writer, 4, -1, 0.0, 0, false, 1);
+    if (classCode != 1) {
+        key(writer, 730, true); scalar(writer, 3, classCode == 3 ? 195 : 100, 0.0, 0, false, 1);
+    }
+    key(writer, 731, true); scalar(writer, 9, 0, 0.0, classCode == 1 ? 699 : (classCode == 2 ? 302 : 504), false, 1);
+    key(writer, 819, true); nested(writer, 9, classCode, true, 1);
+    key(writer, 823, true); scalar(writer, 3, classCode == 1 ? 5 : (classCode == 2 ? 6 : 13), 0.0, 0, false, 1);
+    key(writer, 831, true); nested(writer, 10, classCode, true, 1);
+    key(writer, 866, true); scalar(writer, 9, 0, 0.0, classCode == 1 ? 946 : (classCode == 2 ? 758 : 498), false, 1);
+    key(writer, 949, true); nested(writer, 11, classCode, true, 1);
+}
+
+threat(writer: Writer, stage: int, tank: int, bruiser: int, caster: int, a: int, b: int, c: int): void {
+    if (a != 1 || b != 2 || c != 3 || stage < 0 || stage > 7) {
+        throw "targeting threat stage is invalid";
+    }
+    var tankThreat = targeting.scenarioMetric(22, true);
+    var bruiserThreat = stage == 1 ? targeting.scenarioMetric(25, true) : targeting.scenarioMetric(23, true);
+    var casterThreat = targeting.scenarioMetric(24, true);
+    if (stage == 2) {
+        casterThreat = targeting.scenarioMetric(26, true);
+    } else if (stage >= 3) {
+        casterThreat = targeting.scenarioMetric(27, true);
+    }
+    collection(writer, 10, <uint>3, 1);
+    collection(writer, 10, <uint>2, 1);
+    scalar(writer, 3, tank, 0.0, 0, false, 1);
+    scalar(writer, 3, tankThreat, 0.0, 0, false, 1);
+    collection(writer, 10, <uint>2, 1);
+    scalar(writer, 3, bruiser, 0.0, 0, false, 1);
+    scalar(writer, 3, bruiserThreat, 0.0, 0, false, 1);
+    collection(writer, 10, <uint>2, 1);
+    scalar(writer, 3, caster, 0.0, 0, false, 1);
+    scalar(writer, 3, casterThreat, 0.0, 0, false, 1);
+}
+
+mobEntity(
+    writer: Writer,
+    stage: int,
+    tank: int,
+    bruiser: int,
+    caster: int,
+    mob: int,
+    a: int,
+    b: int,
+    c: int
+): void {
+    if (a != 1 || b != 2 || c != 3 || stage < 0 || stage > 9) {
+        throw "targeting mob entity stage is invalid";
+    }
+    var target = stage == 0 ? targeting.scenarioMetric(9, true) :
+        (stage == 1 ? targeting.scenarioMetric(10, true) :
+        (stage == 2 ? targeting.scenarioMetric(11, true) :
+        (stage == 3 ? targeting.scenarioMetric(12, true) :
+        (stage <= 5 ? targeting.scenarioMetric(13, true) :
+        (stage == 6 ? targeting.scenarioMetric(15, true) :
+        (stage == 7 ? targeting.scenarioMetric(16, true) : targeting.scenarioMetric(17, true)))))));
+    var fieldCount = 28;
+    if (stage == 4 || stage == 5) {
+        fieldCount = 30;
+    } else if (stage == 6 || stage == 7) {
+        fieldCount = 29;
+    } else if (stage >= 8) {
+        fieldCount = 27;
+    }
+    collection(writer, 11, <uint>fieldCount, 1);
+    if (target != 0) {
+        key(writer, 28, true); scalar(writer, 3, target, 0.0, 0, false, 1);
+    }
+    key(writer, 30, true);
+    scalar(writer, 9, 0, 0.0, stage == 7 ? 129 : (stage >= 8 ? 318 : 62), false, 1);
+    key(writer, 160, true); scalar(writer, 3, 99, 0.0, 0, false, 1);
+    key(writer, 163, true); scalar(writer, 4, -1, 0.0, 0, false, 1);
+    key(writer, 189, true); scalar(writer, 5, 0, 0.05, 0, false, 1);
+    key(writer, 248, true); scalar(writer, 6, 0, 0.0, 0, false, 1);
+    key(writer, 264, true); scalar(writer, 5, 0, 0.05, 0, false, 1);
+    key(writer, 326, true); scalar(writer, 5, 0, 1.5, 0, false, 1);
+    key(writer, 355, true); scalar(writer, 3, 99, 0.0, 0, false, 1);
+    if (stage == 4 || stage == 5) {
+        key(writer, 363, true); scalar(writer, 3, tank, 0.0, 0, false, 1);
+    }
+    if (stage >= 4) {
+        key(writer, 364, true);
+        scalar(writer, 5, 0, stage == 4 ? <float>targeting.scenarioMetric(21, true) / 1000000.0 :
+            <float>targeting.scenarioMetric(14, true) / 1000000.0, 0, false, 1);
+    }
+    key(writer, 423, true); scalar(writer, 1, 0, 0.0, 0, true, 1);
+    key(writer, 427, true); scalar(writer, 3, 50000, 0.0, 0, false, 1);
+    key(writer, 436, true); scalar(writer, 3, mob, 0.0, 0, false, 1);
+    key(writer, 443, true); scalar(writer, 1, 0, 0.0, 0, true, 1);
+    key(writer, 462, true); scalar(writer, 9, 0, 0.0, 531, false, 1);
+    key(writer, 470, true); scalar(writer, 3, 5, 0.0, 0, false, 1);
+    key(writer, 487, true); scalar(writer, 6, 0, 0.0, 0, false, 1);
+    key(writer, 520, true); scalar(writer, 3, 50000, 0.0, 0, false, 1);
+    key(writer, 548, true); scalar(writer, 3, 8, 0.0, 0, false, 1);
+    key(writer, 589, true); scalar(writer, 1, 0, 0.0, 0, true, 1);
+    key(writer, 595, true); scalar(writer, 4, -1, 0.0, 0, false, 1);
+    key(writer, 628, true); scalar(writer, 9, 0, 0.0, 222, false, 1);
+    key(writer, 647, true); nested(writer, 12, 1, true, 1);
+    key(writer, 649, true); scalar(writer, 4, -1, 0.0, 0, false, 1);
+    key(writer, 819, true); nested(writer, 12, 1, true, 1);
+    key(writer, 831, true); nested(writer, 13, 1, true, 1);
+    key(writer, 866, true); scalar(writer, 9, 0, 0.0, 365, false, 1);
+    if (stage < 8) {
+        key(writer, 869, true); threat(writer, stage, tank, bruiser, caster, 1, 2, 3);
+    }
+    key(writer, 949, true); nested(writer, 14, 1, true, 1);
+}
+
+frame(
+    writer: Writer,
+    stage: int,
+    label: int,
+    nextId: int,
+    tank: int,
+    bruiser: int,
+    caster: int,
+    mob: int,
+    a: int,
+    b: int,
+    c: int,
+    d: int
+): void {
+    if (a != 1 || b != 2 || c != 3 || d != 4) {
+        throw "targeting trace frame marker is invalid";
+    }
+    writer.u64(<uint>0, 1, 1, 2, 4);
+    scalar(writer, 3, 0, 0.0, 0, false, 1);
+    writer.u64(<uint>nextId, 1, 1, 2, 4);
+    writer.u16(<uint>label, 1, 1);
+    writer.byte(<uint>1, 1);
+    writer.u32(<uint>0, 1, 1, 2);
+    writer.u32(<uint>2166136261, 1, 1, 2);
+    if (stage < 0) {
+        collection(writer, 10, <uint>0, 1);
+        collection(writer, 10, <uint>0, 1);
+    } else {
+        collection(writer, 10, <uint>3, 1);
+        playerMeta(writer, tank, 1, 1, 2, 3);
+        playerMeta(writer, bruiser, 2, 1, 2, 3);
+        playerMeta(writer, caster, 3, 1, 2, 3);
+        collection(writer, 10, <uint>4, 1);
+        playerEntity(writer, tank, 1, 1, 2, 3, 4);
+        playerEntity(writer, bruiser, 2, 1, 2, 3, 4);
+        playerEntity(writer, caster, 3, 1, 2, 3, 4);
+        mobEntity(writer, stage, tank, bruiser, caster, mob, 1, 2, 3);
+    }
+    // The parity contract exposes the event-window digest, not event bodies.
+    writer.u32(<uint>1947613349, 1, 1, 2);
+}
+
+buildTrace(marker: int): container.Array<uint> {
+    if (marker != 1) {
+        throw "targeting trace build marker is invalid";
+    }
+    var writer = new Writer();
+    writer.byte(<uint>87, 1);
+    writer.byte(<uint>84, 1);
+    writer.byte(<uint>82, 1);
+    writer.byte(<uint>49, 1);
+    writer.u16(<uint>1, 1, 1);
+    writer.u64(symbols.fingerprint(), 1, 1, 2, 4);
+    writer.u16(<uint>535, 1, 1);
+    writer.u32(<uint>targeting.scenarioMetric(0, true), 1, 1, 2);
+    writer.u32(<uint>targeting.scenarioMetric(1, true), 1, 1, 2);
+    writer.u32(<uint>targeting.scenarioMetric(2, true), 1, 1, 2);
+    writer.u16(<uint>5, 1, 1);
+    writer.u16(<uint>911, 1, 1);
+    writer.u16(<uint>912, 1, 1);
+    writer.u16(<uint>362, 1, 1);
+    writer.u16(<uint>745, 1, 1);
+    writer.u16(<uint>582, 1, 1);
+    writer.u32(<uint>0, 1, 1, 2);
+    writer.u32(<uint>2166136261, 1, 1, 2);
+    writer.u16(<uint>11, 1, 1);
+
+    var tank = targeting.scenarioMetric(5, true);
+    var bruiser = targeting.scenarioMetric(6, true);
+    var caster = targeting.scenarioMetric(7, true);
+    var mob = targeting.scenarioMetric(8, true);
+    frame(writer, -1, 444, 408, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 0, 86, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 1, 522, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 2, 707, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 3, 708, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 4, 864, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 5, 862, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 6, 863, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 7, 744, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 8, 743, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    frame(writer, 9, 342, 412, tank, bruiser, caster, mob, 1, 2, 3, 4);
+    return writer.finish();
+}
+
+byteDigest(bytes: container.Array<uint>, marker: int, required: bool): uint {
+    if (marker != 1 || !required) {
+        throw "targeting trace digest contract is invalid";
+    }
+    var hash: uint = <uint>2166136261;
+    for (var byte in bytes) {
+        hash = ((hash ^ <uint>byte) * <uint>16777619) & <uint>4294967295;
+    }
+    return hash;
+}
+
+hexDigit(value: int, marker: int): string {
+    if (marker != 1 || value < 0 || value > 15) {
+        throw "targeting trace hex digit is invalid";
+    }
+    if (value == 0) { return "0"; }
+    if (value == 1) { return "1"; }
+    if (value == 2) { return "2"; }
+    if (value == 3) { return "3"; }
+    if (value == 4) { return "4"; }
+    if (value == 5) { return "5"; }
+    if (value == 6) { return "6"; }
+    if (value == 7) { return "7"; }
+    if (value == 8) { return "8"; }
+    if (value == 9) { return "9"; }
+    if (value == 10) { return "a"; }
+    if (value == 11) { return "b"; }
+    if (value == 12) { return "c"; }
+    if (value == 13) { return "d"; }
+    if (value == 14) { return "e"; }
+    return "f";
+}
+
+// Validation-only scalar bridge while exported Array<uint> signatures are broken.
+// Runtime trace transport remains the lossless byte contract owned by Plugins 08.
+pub traceHexForValidation(required: bool): string {
+    if (!required) {
+        throw "targeting trace validation hex must be observed";
+    }
+    var bytes = buildTrace(1);
+    var result = "";
+    for (var byte in bytes) {
+        var value = <uint>byte;
+        result = result + hexDigit(<int>(value >> 4), 1) +
+            hexDigit(<int>(value & <uint>15), 1);
+    }
+    return result;
+}
+
+pub byteMetric(kind: int, required: bool): uint {
+    if (!required || kind < 0 || kind > 1) {
+        throw "targeting trace byte metric is invalid";
+    }
+    var bytes = buildTrace(1);
+    if (kind == 0) {
+        return <uint>bytes.length;
+    }
+    return byteDigest(bytes, 1, true);
+}
+
+pub selfTest(): int {
+    if (targeting.scenarioContractTest() != 1) {
+        return -1;
+    }
+    var first = buildTrace(1);
+    var second = buildTrace(1);
+    if (first.length != 24900 || first.length != second.length) {
+        return -2;
+    }
+    if (byteDigest(first, 1, true) != <uint>986896405 ||
+        byteDigest(first, 1, true) != byteDigest(second, 1, true)) {
+        return -3;
+    }
+    var magicIndex = 0;
+    for (var byte in first) {
+        if ((magicIndex == 0 && <uint>byte != <uint>87) ||
+            (magicIndex == 1 && <uint>byte != <uint>84) ||
+            (magicIndex == 2 && <uint>byte != <uint>82) ||
+            (magicIndex == 3 && <uint>byte != <uint>49)) {
+            return -4;
+        }
+        magicIndex = magicIndex + 1;
+        if (magicIndex == 4) {
+            break;
+        }
+    }
+    return magicIndex == 4 ? 1 : -5;
+}

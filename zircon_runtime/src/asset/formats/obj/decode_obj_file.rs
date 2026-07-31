@@ -53,16 +53,17 @@ pub(crate) fn decode_obj_file(path: &str) -> ObjDecodeResult<CpuMeshPayload> {
                 normals.push(Vec3::new(x, y, z).normalize_or_zero());
             }
             "f" => {
-                let tokens: Vec<_> = parts.collect();
-                if tokens.len() < 3 {
+                let [Some(first), Some(second), Some(third)] =
+                    [parts.next(), parts.next(), parts.next()]
+                else {
                     return Err(ObjDecodeError::FaceVertexCount {
                         path: path.to_string(),
                         line: line_index + 1,
                     });
-                }
+                };
 
-                let mut face_indices = Vec::with_capacity(tokens.len());
-                for token in tokens {
+                let mut face_indices = Vec::with_capacity(3 + parts.size_hint().0);
+                for token in [first, second, third].into_iter().chain(parts) {
                     let key =
                         parse_obj_face_vertex(token, positions.len(), uvs.len(), normals.len())
                             .map_err(|source| ObjDecodeError::FaceVertex {

@@ -2,7 +2,7 @@ use super::super::render_contract::GlyphAtlasBlendMode;
 use super::*;
 
 #[test]
-fn render_text_atlas_draw_plan_builds_subpixel_quad_with_background_composite() {
+fn render_text_atlas_draw_plan_builds_subpixel_instance_with_background_composite() {
     let placement = GlyphRasterPlacement::from_raster_input(
         GlyphAtlasFormat::SubpixelMask,
         GlyphSmoothingMode::Subpixel,
@@ -15,22 +15,22 @@ fn render_text_atlas_draw_plan_builds_subpixel_quad_with_background_composite() 
         GlyphAtlasScreenRect::from_raster_placement(placement, 12.0, 20.0, 12.0),
     );
 
-    let quad = glyph_atlas_draw_quad(glyph, GlyphAtlasScreenRect::new(0.0, 0.0, 200.0, 80.0))
-        .expect("subpixel glyph should produce a draw quad");
+    let instance =
+        glyph_atlas_draw_instance(glyph, GlyphAtlasScreenRect::new(0.0, 0.0, 200.0, 80.0))
+            .expect("subpixel glyph should produce a draw instance");
 
-    assert_near(quad.vertices[0].position_px[0], 42.0 + 1.0 / 3.0);
-    assert_near(quad.vertices[1].position_px[0], 62.0 + 1.0 / 3.0);
-    assert_eq!(quad.page_key.page_index, 2);
+    assert_near(instance.screen_rect.x, 42.0 + 1.0 / 3.0);
+    assert_near(
+        instance.screen_rect.x + instance.screen_rect.width,
+        62.0 + 1.0 / 3.0,
+    );
+    assert_eq!(instance.page_key.page_index, 2);
     assert_eq!(
-        quad.render_contract.blend_mode,
+        instance.render_contract.blend_mode,
         GlyphAtlasBlendMode::SubpixelBackgroundComposite
     );
-    assert!(quad.render_contract.requires_background_composite());
-    assert!(quad
-        .vertices
-        .iter()
-        .all(|vertex| vertex.background_color == [0.1, 0.12, 0.14, 1.0]));
-    assert!(quad.vertices.iter().all(|vertex| vertex.page_index == 2));
+    assert!(instance.render_contract.requires_background_composite());
+    assert_eq!(instance.background_color, [0.1, 0.12, 0.14, 1.0]);
 }
 
 #[test]
@@ -50,20 +50,23 @@ fn render_text_atlas_draw_plan_clips_position_and_uv_without_padding_bleed() {
         background_color: [0.0, 0.0, 0.0, 1.0],
     };
 
-    let quad = glyph_atlas_draw_quad(glyph, GlyphAtlasScreenRect::new(15.0, 12.0, 10.0, 5.0))
-        .expect("clipped glyph should remain visible");
+    let instance =
+        glyph_atlas_draw_instance(glyph, GlyphAtlasScreenRect::new(15.0, 12.0, 10.0, 5.0))
+            .expect("clipped glyph should remain visible");
 
-    assert_eq!(quad.vertices[0].position_px, [15.0, 12.0]);
-    assert_eq!(quad.vertices[2].position_px, [25.0, 17.0]);
-    assert_near(quad.vertices[0].uv[0], 0.15);
-    assert_near(quad.vertices[0].uv[1], 0.14);
-    assert_near(quad.vertices[2].uv[0], 0.25);
-    assert_near(quad.vertices[2].uv[1], 0.24);
+    assert_eq!(
+        instance.screen_rect,
+        GlyphAtlasScreenRect::new(15.0, 12.0, 10.0, 5.0)
+    );
+    assert_near(instance.uv_rect.x0, 0.15);
+    assert_near(instance.uv_rect.y0, 0.14);
+    assert_near(instance.uv_rect.x1, 0.25);
+    assert_near(instance.uv_rect.y1, 0.24);
 }
 
 #[test]
 fn render_text_atlas_draw_plan_keeps_color_rgba_distinct_from_subpixel() {
-    let color_quad = glyph_atlas_draw_quad(
+    let color_instance = glyph_atlas_draw_instance(
         glyph(
             GlyphAtlasFormat::Color,
             0,
@@ -71,10 +74,10 @@ fn render_text_atlas_draw_plan_keeps_color_rgba_distinct_from_subpixel() {
         ),
         GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 64.0),
     )
-    .expect("color glyph should produce a draw quad");
+    .expect("color glyph should produce a draw instance");
 
     assert_eq!(
-        color_quad.render_contract.blend_mode,
+        color_instance.render_contract.blend_mode,
         GlyphAtlasBlendMode::SourceRgba
     );
     assert!(!color_quad.render_contract.requires_background_composite());
@@ -97,19 +100,17 @@ fn render_text_atlas_draw_plan_normalizes_subpixel_background_composite_input() 
         background_color: [f32::NAN, 1.25, -0.25, 0.2],
     };
 
-    let quad = glyph_atlas_draw_quad(glyph, GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 64.0))
-        .expect("subpixel glyph should produce a draw quad");
+    let instance =
+        glyph_atlas_draw_instance(glyph, GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 64.0))
+            .expect("subpixel glyph should produce a draw instance");
 
-    assert!(quad.render_contract.requires_background_composite());
-    assert!(quad
-        .vertices
-        .iter()
-        .all(|vertex| vertex.background_color == [0.0, 1.0, 0.0, 1.0]));
+    assert!(instance.render_contract.requires_background_composite());
+    assert_eq!(instance.background_color, [0.0, 1.0, 0.0, 1.0]);
 }
 
 #[test]
-fn render_text_atlas_draw_plan_rejects_empty_or_offscreen_quads() {
-    let empty = glyph_atlas_draw_quad(
+fn render_text_atlas_draw_plan_rejects_empty_or_offscreen_instances() {
+    let empty = glyph_atlas_draw_instance(
         glyph(
             GlyphAtlasFormat::AlphaMask,
             0,
@@ -117,7 +118,7 @@ fn render_text_atlas_draw_plan_rejects_empty_or_offscreen_quads() {
         ),
         GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 64.0),
     );
-    let offscreen = glyph_atlas_draw_quad(
+    let offscreen = glyph_atlas_draw_instance(
         glyph(
             GlyphAtlasFormat::AlphaMask,
             0,

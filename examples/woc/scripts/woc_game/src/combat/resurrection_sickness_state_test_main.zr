@@ -1,0 +1,29 @@
+var console = %import("zr.system.console");
+var sickness = %import("combat/resurrection_sickness_state");
+
+var result = 1;
+if (sickness.resurrectionSicknessId() != "resurrection_sickness" ||
+    sickness.resSicknessMinLevel() != 10 || sickness.resSicknessMinDuration() != 60 ||
+    sickness.resSicknessDurationMaximum() != 600 || sickness.maxLevel() != 20 ||
+    sickness.resSicknessStatMultiplier() != -0.75) {
+    result = -1;
+}
+if (result == 1 && (sickness.resSicknessDuration(1.0) != 0 ||
+    sickness.resSicknessDuration(9.0) != 0 || sickness.resSicknessDuration(10.0) != 60 ||
+    sickness.resSicknessDuration(20.0) != 600)) {
+    result = -2;
+}
+if (result == 1 && (sickness.resSicknessDuration(15.0) != 330 ||
+    sickness.resSicknessDuration(11.0) != 114 || sickness.resSicknessDuration(21.0) != 654)) {
+    result = -3;
+}
+if (result == 1 && (!sickness.auraSurvivesDeath("resurrection_sickness", "debuff_stat") ||
+    !sickness.auraSurvivesDeath("cauterize_lockout", "cauterize_fatigue") ||
+    sickness.auraSurvivesDeath("cauterize_fatigue", "dot") ||
+    sickness.auraSurvivesDeath("rejuvenation", "hot"))) {
+    result = -4;
+}
+
+console.printLine("m4-resurrection-sickness-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

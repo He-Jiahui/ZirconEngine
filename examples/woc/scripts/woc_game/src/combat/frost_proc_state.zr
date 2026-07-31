@@ -1,0 +1,133 @@
+// Frost proc transition plans. WOS owns real aura writes, procSurge events and RNG.
+var contract = %import("generated/frost_proc_contract");
+
+pub class FrostGrantPlan {
+    pub var applies: bool;
+    pub var creates: bool;
+    pub var refreshes: bool;
+    pub var nextStacks: int;
+    pub var emitsProcSurge: bool;
+    pub @constructor(applies: bool, creates: bool, refreshes: bool, nextStacks: int, emitsProcSurge: bool) {
+        this.applies = applies;
+        this.creates = creates;
+        this.refreshes = refreshes;
+        this.nextStacks = nextStacks;
+        this.emitsProcSurge = emitsProcSurge;
+    }
+}
+
+pub class FrostboltProcPlan {
+    pub var drawCount: int;
+    pub var applyFingers: bool;
+    pub var applyBrainFreeze: bool;
+    pub @constructor(drawCount: int, applyFingers: bool, applyBrainFreeze: bool) {
+        this.drawCount = drawCount;
+        this.applyFingers = applyFingers;
+        this.applyBrainFreeze = applyBrainFreeze;
+    }
+}
+
+pub class WintersChillPlan {
+    pub var applies: bool;
+    pub var updatesExisting: bool;
+    pub var charges: int;
+    pub @constructor(applies: bool, updatesExisting: bool, charges: int) {
+        this.applies = applies;
+        this.updatesExisting = updatesExisting;
+        this.charges = charges;
+    }
+}
+
+pub class FrostAfterCastPlan {
+    pub var rollFrostboltProcs: bool;
+    pub var gainIcicle: bool;
+    pub var applyWintersChill: bool;
+    pub @constructor(rollFrostboltProcs: bool, gainIcicle: bool, applyWintersChill: bool) {
+        this.rollFrostboltProcs = rollFrostboltProcs;
+        this.gainIcicle = gainIcicle;
+        this.applyWintersChill = applyWintersChill;
+    }
+}
+
+pub class BrainFreezeOverridePlan {
+    pub var applies: bool;
+    pub var consumeBrainFreeze: bool;
+    pub var castTime: float;
+    pub var cooldown: float;
+    pub var directDamageMult: float;
+    pub @constructor(applies: bool, consumeBrainFreeze: bool, castTime: float, cooldown: float, directDamageMult: float) {
+        this.applies = applies;
+        this.consumeBrainFreeze = consumeBrainFreeze;
+        this.castTime = castTime;
+        this.cooldown = cooldown;
+        this.directDamageMult = directDamageMult;
+    }
+}
+
+pub gainFingersOfFrost(hasExisting: bool, hasStacks: bool, stacks: int): FrostGrantPlan {
+    if (!hasExisting) return new FrostGrantPlan(true, true, true, 1, true);
+    var current = hasStacks ? stacks : 1;
+    if (current >= contract.fingersMaxStacks()) return new FrostGrantPlan(false, false, false, current, false);
+    return new FrostGrantPlan(true, false, true, current + 1, true);
+}
+
+pub gainBrainFreeze(hasExisting: bool): FrostGrantPlan {
+    if (hasExisting) return new FrostGrantPlan(false, false, false, 0, false);
+    return new FrostGrantPlan(true, true, true, 0, true);
+}
+
+pub gainIcicle(hasExisting: bool, hasStacks: bool, stacks: int): FrostGrantPlan {
+    if (!hasExisting) return new FrostGrantPlan(true, true, true, 1, false);
+    var current = hasStacks ? stacks : 1;
+    if (current >= contract.icicleMax()) return new FrostGrantPlan(false, false, true, current, false);
+    return new FrostGrantPlan(true, false, true, current + 1, false);
+}
+
+// WOS must consume `drawCount` in this exact order before applying either plan.
+pub frostboltProcPlan(committedFrost: bool, fingersDraw: bool, brainDraw: bool): FrostboltProcPlan {
+    if (!committedFrost) return new FrostboltProcPlan(0, false, false);
+    return new FrostboltProcPlan(2, fingersDraw, brainDraw);
+}
+
+pub applyWintersChill(hasExisting: bool): WintersChillPlan {
+    return new WintersChillPlan(true, hasExisting, contract.wintersChillCharges());
+}
+
+pub frostMageAfterCast(playerIsPlayer: bool, abilityClassMage: bool, committedFrost: bool, abilityId: string, targetPresent: bool, targetDead: bool): FrostAfterCastPlan {
+    if (!playerIsPlayer || !abilityClassMage) return new FrostAfterCastPlan(false, false, false);
+    if (abilityId == "frostbolt") return new FrostAfterCastPlan(committedFrost, committedFrost, false);
+    if (abilityId == "flurry" && committedFrost && targetPresent && !targetDead) return new FrostAfterCastPlan(false, false, true);
+    return new FrostAfterCastPlan(false, false, false);
+}
+
+// WOS consumes the first Brain Freeze aura only after every cast gate passed, then
+// uses this multiplier to round each directDamage effect exactly as the source does.
+pub brainFreezeOverride(abilityId: string, hasBrainFreeze: bool): BrainFreezeOverridePlan {
+    if (abilityId != "flurry" || !hasBrainFreeze) return new BrainFreezeOverridePlan(false, false, 0.0, 0.0, 1.0);
+    return new BrainFreezeOverridePlan(true, true, 0.0, 0.0, contract.brainFreezeFlurryMult());
+}
+
+pub contractTest(): int {
+    var fingers = gainFingersOfFrost(false, false, 0);
+    if (!fingers.applies || !fingers.creates || fingers.nextStacks != 1 || !fingers.emitsProcSurge) return -1;
+    fingers = gainFingersOfFrost(true, false, 0);
+    if (!fingers.applies || fingers.nextStacks != 2) return -2;
+    fingers = gainFingersOfFrost(true, true, contract.fingersMaxStacks());
+    if (fingers.applies || fingers.refreshes || fingers.emitsProcSurge) return -3;
+    var brain = gainBrainFreeze(true);
+    if (brain.applies || brain.emitsProcSurge || !gainBrainFreeze(false).creates) return -4;
+    var icicle = gainIcicle(true, true, contract.icicleMax());
+    if (icicle.applies || !icicle.refreshes || icicle.nextStacks != contract.icicleMax()) return -5;
+    var proc = frostboltProcPlan(true, true, false);
+    if (proc.drawCount != 2 || !proc.applyFingers || proc.applyBrainFreeze || frostboltProcPlan(false, true, true).drawCount != 0) return -6;
+    var chill = applyWintersChill(true);
+    if (!chill.applies || !chill.updatesExisting || chill.charges != contract.wintersChillCharges()) return -7;
+    var frostbolt = frostMageAfterCast(true, true, true, "frostbolt", false, false);
+    if (!frostbolt.rollFrostboltProcs || !frostbolt.gainIcicle || frostbolt.applyWintersChill) return -8;
+    var flurry = frostMageAfterCast(true, true, true, "flurry", true, false);
+    if (flurry.rollFrostboltProcs || !flurry.applyWintersChill || frostMageAfterCast(true, true, true, "flurry", true, true).applyWintersChill) return -9;
+    var override = brainFreezeOverride("flurry", true);
+    if (!override.applies || !override.consumeBrainFreeze || override.castTime != 0.0 || override.cooldown != 0.0 || override.directDamageMult != contract.brainFreezeFlurryMult()) return -10;
+    if (brainFreezeOverride("frostbolt", true).applies) return -11;
+    return 1;
+}

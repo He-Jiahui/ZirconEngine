@@ -8,20 +8,29 @@ fn importer_decodes_triangle_gltf_into_model_asset() {
     let importer = importer_with_first_wave_plugin_fixtures();
     let root_uri = AssetUri::parse("res://models/triangle.gltf").unwrap();
 
-    let gltf = importer.import_from_source(&gltf_path, &root_uri).unwrap();
+    let outcome = importer
+        .import_with_settings(&gltf_path, &root_uri, Default::default())
+        .unwrap();
 
-    match gltf {
+    match &outcome.root_entry().expect("root gltf entry").asset {
         ImportedAsset::Model(model) => {
             assert_eq!(model.primitives.len(), 1);
-            assert_eq!(model.primitives[0].vertices.len(), 3);
-            assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
+            assert!(model.primitives[0].vertices.is_empty());
+            assert!(model.primitives[0].indices.is_empty());
             assert_eq!(
                 model.primitives[0].mesh.as_ref().unwrap().locator,
                 label_uri(&root_uri, "Mesh0/Primitive0")
             );
-            assert_cooked_virtual_geometry(&model.primitives[0], "res://models/triangle.gltf");
+            assert!(model.primitives[0].virtual_geometry.is_none());
         }
         other => panic!("unexpected imported asset: {other:?}"),
+    }
+    match &entry_for_label(&outcome, &root_uri, "Mesh0/Primitive0").asset {
+        ImportedAsset::Mesh(mesh) => {
+            let primitive = mesh.to_model_primitive().unwrap();
+            assert_cooked_virtual_geometry(&primitive, "res://models/triangle.gltf");
+        }
+        other => panic!("unexpected gltf mesh asset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);
@@ -51,12 +60,19 @@ fn default_importer_decodes_gltf_without_first_wave_plugin_fixture() {
     match &outcome.root_entry().expect("root gltf entry").asset {
         ImportedAsset::Model(model) => {
             assert_eq!(model.primitives.len(), 1);
-            assert_cooked_virtual_geometry(
-                &model.primitives[0],
-                "res://models/default_triangle.gltf",
-            );
+            assert!(model.primitives[0].vertices.is_empty());
+            assert!(model.primitives[0].indices.is_empty());
+            assert!(model.primitives[0].mesh.is_some());
+            assert!(model.primitives[0].virtual_geometry.is_none());
         }
         other => panic!("unexpected root gltf asset: {other:?}"),
+    }
+    match &entry_for_label(&outcome, &root_uri, "Mesh0/Primitive0").asset {
+        ImportedAsset::Mesh(mesh) => {
+            let primitive = mesh.to_model_primitive().unwrap();
+            assert_cooked_virtual_geometry(&primitive, "res://models/default_triangle.gltf");
+        }
+        other => panic!("unexpected default gltf mesh asset: {other:?}"),
     }
     for label in [
         "Scene0",

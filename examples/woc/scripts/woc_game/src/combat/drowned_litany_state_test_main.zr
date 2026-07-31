@@ -1,0 +1,10 @@
+var console = %import("zr.system.console");
+var drowned = %import("combat/drowned_litany_state");
+
+console.printLine("m4-drowned-litany-state-test");
+var result = drowned.contractTest();
+var riteResult = drowned.riteContractTest();
+console.printLine(result);
+console.printLine(riteResult);
+if (result != 1) { return result; }
+return riteResult == 1 ? 0 : riteResult;

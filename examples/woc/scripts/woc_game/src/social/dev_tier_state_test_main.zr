@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var devTier = %import("social/dev_tier_state");
+
+var result = devTier.contractTest();
+
+console.printLine("m6-dev-tier-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

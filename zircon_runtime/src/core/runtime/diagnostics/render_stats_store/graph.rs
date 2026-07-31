@@ -2,7 +2,7 @@ mod execution_resources;
 
 use crate::core::framework::render::RenderStats;
 
-use super::{record_bool, record_bytes, record_count, record_microseconds, DiagnosticStore};
+use super::{DiagnosticStore, record_bool, record_bytes, record_count, record_microseconds};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     record_frame_graph(store, stats);

@@ -1,0 +1,52 @@
+// Current-head itemScore projection from sim/item_level.ts. The catalog decoder
+// supplies resolved nonnegative stat values and positive speed for present weapon
+// records; it owns absent/invalid JavaScript ItemDef normalization.
+var contract = %import("generated/item_score_contract");
+
+// Current catalog scores are nonnegative, so this is Math.round(value * 10) / 10
+// over the accepted ItemDef domain without requiring a generic JavaScript Number
+// implementation in the ZrVM host.
+roundNonnegativeTenth(value: float): float {
+    return <float>(<int>(value * 10.0 + 0.5)) / 10.0;
+}
+
+pub primaryStatSum(
+    strength: float,
+    agility: float,
+    stamina: float,
+    intelligence: float,
+    spirit: float
+): float {
+    return strength + agility + stamina + intelligence + spirit;
+}
+
+pub itemScore(
+    strength: float,
+    agility: float,
+    stamina: float,
+    intelligence: float,
+    spirit: float,
+    hasArmor: bool,
+    armor: float,
+    hasWeapon: bool,
+    weaponMin: float,
+    weaponMax: float,
+    weaponSpeed: float
+): float {
+    var score = primaryStatSum(strength, agility, stamina, intelligence, spirit);
+    if (hasArmor && armor != 0.0) score = score + armor / contract.armorPerPoint();
+    if (hasWeapon) {
+        var dps = (weaponMin + weaponMax) / 2.0 / weaponSpeed;
+        score = score + dps * contract.weaponDpsWeight();
+    }
+    return roundNonnegativeTenth(score);
+}
+
+pub contractTest(): int {
+    if (contract.armorPerPoint() != 12.0 || contract.weaponDpsWeight() != 0.5) return -1;
+    if (primaryStatSum(4.0, 0.0, 3.0, 0.0, 0.0) != 7.0 ||
+        itemScore(0.0, 0.0, 0.0, 0.0, 0.0, true, 24.0, false, 0.0, 0.0, 1.0) != 2.0) return -2;
+    if (itemScore(1.0, 0.0, 0.0, 0.0, 0.0, true, 1.0, false, 0.0, 0.0, 1.0) != 1.1 ||
+        itemScore(1.0, 0.0, 0.0, 0.0, 0.0, false, 0.0, true, 3.0, 4.0, 2.0) != 1.9) return -3;
+    return 1;
+}

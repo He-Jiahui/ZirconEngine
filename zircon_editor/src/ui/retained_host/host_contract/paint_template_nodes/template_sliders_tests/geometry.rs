@@ -3,8 +3,11 @@ use super::super::super::template_slider_geometry::{
     slider_fill_span, slider_label, slider_percent, slider_range_min_percent, slider_tick_count,
     slider_track_rect, slider_value_label, slider_value_rect,
 };
+use super::super::slider_style;
+use super::super::track::push_slider_ticks;
 use super::support::{positioned_slider_node, slider_label_color};
 use crate::ui::retained_host::primitives::Color;
+use zircon_runtime_interface::ui::surface::MAX_UI_SLIDER_TICK_COUNT;
 
 #[test]
 fn workbench_slider_uses_declared_label_value_and_track_proportion() {
@@ -56,4 +59,52 @@ fn workbench_steps_slider_uses_declared_tick_count() {
 
     assert_eq!(slider_tick_count(&node), Some(5));
     assert_eq!(slider_range_min_percent(&node), None);
+}
+
+#[test]
+fn workbench_slider_tick_count_clamps_nonfinite_and_extreme_declarations() {
+    let mut node = positioned_slider_node("WorkbenchInputSlider", 0.5, 8.0, 8.0, 184.0, 30.0);
+
+    node.layout_third_cell_offset_x = f32::NAN;
+    assert_eq!(slider_tick_count(&node), None);
+    node.layout_third_cell_offset_x = -100.0;
+    assert_eq!(slider_tick_count(&node), None);
+    node.layout_third_cell_offset_x = 1.0;
+    assert_eq!(slider_tick_count(&node), None);
+    node.layout_third_cell_offset_x = 2.0;
+    assert_eq!(slider_tick_count(&node), Some(2));
+    node.layout_third_cell_offset_x = f32::INFINITY;
+    assert_eq!(slider_tick_count(&node), Some(MAX_UI_SLIDER_TICK_COUNT));
+    node.layout_third_cell_offset_x = f32::MAX;
+    assert_eq!(slider_tick_count(&node), Some(MAX_UI_SLIDER_TICK_COUNT));
+}
+
+#[test]
+fn workbench_slider_tick_loop_reclamps_to_track_columns() {
+    let node = positioned_slider_node("WorkbenchInputSlider", 0.5, 8.0, 8.0, 184.0, 30.0);
+    let style = slider_style(&node);
+    let clip = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 640.0,
+        height: 64.0,
+    };
+    let mut commands = Vec::new();
+
+    let narrow_track = FrameRect {
+        x: 8.0,
+        y: 16.0,
+        width: 24.0,
+        height: 4.0,
+    };
+    push_slider_ticks(&mut commands, &narrow_track, &clip, 0, 10_000, &style, 1.0);
+    assert_eq!(commands.len(), 24);
+
+    commands.clear();
+    let wide_track = FrameRect {
+        width: 512.0,
+        ..narrow_track
+    };
+    push_slider_ticks(&mut commands, &wide_track, &clip, 0, 10_000, &style, 1.0);
+    assert_eq!(commands.len(), MAX_UI_SLIDER_TICK_COUNT);
 }

@@ -1,6 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
-use super::{hovered_hits_for_pointer, HitRecord, HitTarget, PointerHits, PointerId};
+use super::pointer_hits::{hovered_hits_from_sorted, sorted_hits_by_pointer};
+use super::{HitRecord, HitTarget, PointerHits, PointerId};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PickingHoverMap {
@@ -9,13 +10,9 @@ pub struct PickingHoverMap {
 
 impl PickingHoverMap {
     pub fn from_outputs(outputs: &[PointerHits]) -> Self {
-        let pointers = outputs
-            .iter()
-            .map(|output| output.pointer)
-            .collect::<BTreeSet<_>>();
         let mut map = Self::default();
-        for pointer in pointers {
-            let hits = hovered_hits_for_pointer(outputs, pointer);
+        for (pointer, sorted_hits) in sorted_hits_by_pointer(outputs) {
+            let hits = hovered_hits_from_sorted(sorted_hits);
             if !hits.is_empty() {
                 map.hits_by_pointer.insert(pointer, hits);
             }

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_terrain_height_tests",
+  "source": "src",
+  "binary": "bin-m3-terrain-height-tests",
+  "entry": "world/terrain_height_test_main"
+}

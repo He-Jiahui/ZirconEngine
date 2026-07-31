@@ -1,5 +1,7 @@
 //! Tokenizer and projection helpers for the deliberately bounded HTML V1 subset.
 
+use std::borrow::Cow;
+
 use zircon_runtime_interface::resource::{ResourceId, ResourceLocator, ResourceScheme};
 
 use crate::core::math::{Vec2, Vec4};
@@ -168,7 +170,10 @@ pub(super) fn apply_style_tag(
     true
 }
 
-pub(super) fn decode_entities(input: &str) -> String {
+pub(super) fn decode_entities(input: &str) -> Cow<'_, str> {
+    if !input.contains('&') {
+        return Cow::Borrowed(input);
+    }
     let mut decoded = String::with_capacity(input.len());
     let mut remaining = input;
     while let Some(offset) = remaining.find('&') {
@@ -192,7 +197,7 @@ pub(super) fn decode_entities(input: &str) -> String {
         }
     }
     decoded.push_str(remaining);
-    decoded
+    Cow::Owned(decoded)
 }
 
 const MAX_ENTITY_BODY_LEN: usize = 16;

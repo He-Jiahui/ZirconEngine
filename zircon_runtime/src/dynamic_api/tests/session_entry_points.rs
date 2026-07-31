@@ -47,7 +47,7 @@ fn missing_session_entry_points_reject_nonzero_handle() {
 }
 
 fn assert_handle_entry_points_reject_session(
-    api: &zircon_runtime_interface::ZrRuntimeApiV2,
+    api: &zircon_runtime_interface::ZrRuntimeApiV3,
     session: ZrRuntimeSessionHandle,
     expected_code: ZrStatusCode,
     expected_message: &str,
@@ -128,8 +128,9 @@ fn assert_handle_entry_points_reject_session(
     assert!(profile_output.is_empty());
 
     let tick_frame = api.tick_frame.expect("tick_frame");
+    let mut demand = ZrRuntimeFrameDemandV1::idle();
     assert_session_status(
-        unsafe { tick_frame(session) },
+        unsafe { tick_frame(session, &mut demand) },
         expected_code,
         expected_message,
     );

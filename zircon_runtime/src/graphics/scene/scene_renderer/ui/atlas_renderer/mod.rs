@@ -1,12 +1,16 @@
+mod instance;
+mod instance_buffer;
 mod pipeline;
 mod renderer;
 mod resources;
-mod vertex;
+mod state;
 
-pub(super) use renderer::{
-    GlyphAtlasBitmapRenderer, GlyphAtlasBitmapRendererPrepareReport,
-    GlyphAtlasBitmapRendererStorageSubmission,
+pub(super) use renderer::GlyphAtlasBitmapRenderer;
+pub(super) use state::{
+    GlyphAtlasBitmapRendererPrepareReport, GlyphAtlasBitmapRendererStorageSubmission,
 };
 
+#[cfg(test)]
+mod product_framebuffer;
 #[cfg(test)]
 mod tests;

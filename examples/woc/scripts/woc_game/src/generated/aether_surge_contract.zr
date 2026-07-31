@@ -1,0 +1,13 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub surgeId(): string { return "arcane_surge"; }
+pub freeId(): string { return "aether_surge_free"; }
+pub perfectMomentId(): string { return "perfect_moment"; }
+pub dartsId(): string { return "arcane_missiles"; }
+pub maxCharges(): int { return 4; }
+pub damagePerCharge(): float { return 0.3; }
+pub chargeWindow(): float { return 10.0; }
+pub dartsBonusPerCharge(): int { return 9; }
+pub fullChargeMissiles(): int { return 5; }
+pub castHastePerCharge(): float { return 0.05; }
+pub procCastMult(): float { return 0.5; }
+pub perfectMomentDuration(): float { return 10.0; }

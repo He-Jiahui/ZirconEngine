@@ -89,10 +89,12 @@ fn smaa_terminal_anti_alias_routes_output_transfer_through_terminal_input() {
         vec![PostProcessGraphResourceNames::FINAL_COLOR.to_string()]
     );
     assert_eq!(smaa.after, vec![PostProcessEffectKind::OutputTransfer]);
-    assert!(!stack
-        .effects
-        .iter()
-        .any(|effect| effect.kind == PostProcessEffectKind::Fxaa));
+    assert!(
+        !stack
+            .effects
+            .iter()
+            .any(|effect| effect.kind == PostProcessEffectKind::Fxaa)
+    );
 
     let graph = stack.validated_graph();
     let output_index = graph
@@ -144,9 +146,11 @@ fn dynamic_resolution_declares_upscale_before_output_transfer() {
         output_transfer.required_inputs,
         vec![PostProcessGraphResourceNames::UPSCALED.to_string()]
     );
-    assert!(output_transfer
-        .after
-        .contains(&PostProcessEffectKind::Upscale));
+    assert!(
+        output_transfer
+            .after
+            .contains(&PostProcessEffectKind::Upscale)
+    );
 
     let graph = stack.validated_graph();
     let uber_index = graph

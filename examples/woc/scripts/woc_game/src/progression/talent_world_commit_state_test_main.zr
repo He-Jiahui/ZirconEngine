@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var world = %import("progression/talent_world_commit_state");
+
+console.printLine("m5-talent-world-commit-state-test");
+var result = world.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,31 +1,15 @@
 use std::fs;
 use std::path::Path;
 
-pub(super) fn copy_native_artifacts(source: &Path, destination: &Path) -> std::io::Result<usize> {
-    let mut copied = 0;
-    if !source.exists() {
-        return Ok(copied);
-    }
-    fs::create_dir_all(destination)?;
-    for entry in fs::read_dir(source)? {
-        let entry = entry?;
-        let source_path = entry.path();
-        if source_path.is_dir() || !is_native_dynamic_artifact(&source_path) {
-            continue;
-        }
-        let Some(file_name) = source_path.file_name() else {
-            continue;
-        };
-        fs::copy(&source_path, destination.join(file_name))?;
-        copied += 1;
-    }
-    Ok(copied)
-}
+use crate::core::export::ExportGenerationInventory;
 
-pub(super) fn copy_built_native_artifact(
+use super::staging::{is_native_dynamic_artifact, NativeStagingStats};
+
+pub(super) fn sync_built_native_artifact(
     artifact: &Path,
     destination: &Path,
-) -> std::io::Result<()> {
+    inventory: &mut ExportGenerationInventory,
+) -> std::io::Result<NativeStagingStats> {
     let Some(file_name) = artifact.file_name() else {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
@@ -33,18 +17,42 @@ pub(super) fn copy_built_native_artifact(
         ));
     };
     fs::create_dir_all(destination)?;
-    fs::copy(artifact, destination.join(file_name))?;
-    Ok(())
-}
+    let mut stats = NativeStagingStats::default();
+    for entry in fs::read_dir(destination)? {
+        let entry = entry?;
+        let path = entry.path();
+        if entry.file_type()?.is_file()
+            && path.file_name() != Some(file_name)
+            && is_native_dynamic_artifact(&path)
+        {
+            fs::remove_file(&path)?;
+            inventory.invalidate_subtree(&path);
+            stats.removed_files = stats.removed_files.saturating_add(1);
+        }
+    }
 
-fn is_native_dynamic_artifact(path: &Path) -> bool {
-    let Some(extension) = path.extension().and_then(|extension| extension.to_str()) else {
-        return false;
-    };
-    matches!(
-        extension.to_ascii_lowercase().as_str(),
-        "dll" | "so" | "dylib" | "pdb" | "dbg" | "dsym"
-    )
+    let destination_path = destination.join(file_name);
+    let source_digest = inventory.digest_path(artifact)?;
+    let destination_matches = destination_path.is_file()
+        && inventory
+            .digest_path(&destination_path)
+            .is_ok_and(|digest| digest == source_digest);
+    if destination_matches {
+        return Ok(stats);
+    }
+    let byte_count = fs::metadata(artifact)?.len();
+    fs::copy(artifact, &destination_path)?;
+    inventory.invalidate_subtree(&destination_path);
+    if inventory.digest_path(&destination_path)? != source_digest {
+        return Err(std::io::Error::other(format!(
+            "built native artifact staging digest mismatch: {} -> {}",
+            artifact.display(),
+            destination_path.display()
+        )));
+    }
+    stats.copied_files = 1;
+    stats.copied_bytes = byte_count;
+    Ok(stats)
 }
 
 pub(super) fn dynamic_library_file_name(crate_name: &str) -> String {

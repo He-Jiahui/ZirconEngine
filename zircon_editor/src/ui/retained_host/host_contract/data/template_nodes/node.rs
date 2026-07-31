@@ -1,10 +1,12 @@
+use std::rc::Rc;
+
 use crate::ui::retained_host::primitives::{Color, Image, ModelRc, SharedString};
 use zircon_runtime_interface::ui::style::ResolvedButtonStyle;
 
 use super::{
     TemplateNodeFrameData, TemplatePaneActionData, TemplatePaneCollectionFieldData,
-    TemplatePaneMenuItemData, TemplatePaneOptionData, TemplatePaneSampleGridData,
-    TemplatePaneTimelineStripData, TemplatePaneWeightHeatmapData,
+    TemplatePaneCollectionRowData, TemplatePaneMenuItemData, TemplatePaneOptionData,
+    TemplatePaneSampleGridData, TemplatePaneTimelineStripData, TemplatePaneWeightHeatmapData,
 };
 
 #[derive(Clone, Default)]
@@ -59,10 +61,17 @@ pub(crate) struct TemplatePaneNodeData {
     pub selected: bool,
     pub tree_depth: i32,
     pub tree_indent_px: f32,
-    pub options_text: SharedString,
+    pub options_text: Rc<String>,
     pub options: ModelRc<SharedString>,
     pub structured_options: ModelRc<TemplatePaneOptionData>,
+    pub notification_generation: usize,
+    pub notification_unread_count: usize,
+    pub notification_overflow_count: usize,
+    pub notification_selected_id: SharedString,
+    pub notification_focused_index: i32,
+    pub notification_visible_limit: usize,
     pub collection_items: ModelRc<SharedString>,
+    pub collection_rows: ModelRc<TemplatePaneCollectionRowData>,
     pub collection_fields: ModelRc<TemplatePaneCollectionFieldData>,
     pub virtualization_enabled: bool,
     pub virtualization_item_extent: f32,

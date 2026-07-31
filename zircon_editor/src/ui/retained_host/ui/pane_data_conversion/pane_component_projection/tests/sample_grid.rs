@@ -49,19 +49,20 @@ fn sample_grid_projection_preserves_typed_axes_ticks_and_points() {
     ))
     .expect("sample grid should project");
 
-    assert_eq!(node.sample_grid.x_axis_label.as_str(), "Direction (deg)");
-    assert_eq!(node.sample_grid.y_axis_label.as_str(), "Speed (cm/s)");
-    assert_eq!(node.sample_grid.x_min, -180.0);
-    assert_eq!(node.sample_grid.x_max, 180.0);
-    assert_eq!(node.sample_grid.y_min, 0.0);
-    assert_eq!(node.sample_grid.y_max, 600.0);
-    assert_eq!(node.sample_grid.x_ticks.row_count(), 5);
-    assert_eq!(node.sample_grid.y_ticks.row_count(), 5);
-    assert_eq!(node.sample_grid.points.row_count(), 2);
-    let selected = node.sample_grid.points.row_data(0).expect("selected point");
-    assert_eq!(selected.label.as_str(), "Run_Fwd");
-    assert_eq!((selected.x, selected.y), (0.0, 600.0));
-    assert!(selected.selected);
+    let grid = &node.sample_grid.generation;
+    assert_eq!(grid.x_axis_label(), "Direction (deg)");
+    assert_eq!(grid.y_axis_label(), "Speed (cm/s)");
+    assert_eq!(grid.x_min(), -180.0);
+    assert_eq!(grid.x_max(), 180.0);
+    assert_eq!(grid.y_min(), 0.0);
+    assert_eq!(grid.y_max(), 600.0);
+    assert_eq!(grid.x_ticks().len(), 5);
+    assert_eq!(grid.y_ticks().len(), 5);
+    assert_eq!(grid.points().len(), 2);
+    let selected = &grid.points()[0];
+    assert_eq!(selected.label(), "Run_Fwd");
+    assert_eq!((selected.x(), selected.y()), (0.0, 600.0));
+    assert!(selected.selected());
 }
 
 #[test]
@@ -85,14 +86,7 @@ fn malformed_sample_grid_entries_are_ignored_without_losing_valid_points() {
     ))
     .expect("sample grid should project");
 
-    assert_eq!(node.sample_grid.points.row_count(), 1);
-    assert_eq!(
-        node.sample_grid
-            .points
-            .row_data(0)
-            .expect("valid point")
-            .label
-            .as_str(),
-        "Walk"
-    );
+    let points = node.sample_grid.generation.points();
+    assert_eq!(points.len(), 1);
+    assert_eq!(points[0].label(), "Walk");
 }

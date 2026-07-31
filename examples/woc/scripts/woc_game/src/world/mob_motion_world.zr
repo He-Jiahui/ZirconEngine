@@ -1,0 +1,285 @@
+// Source-aligned point-collision movement for mobs, pets and fear movers.
+// It deliberately owns a mobile transform only; WorldState remains the
+// authoritative entity store and must opt in to this transition atomically.
+
+var math = %import("zr.zircon.math");
+var playerMotion = %import("world/player_motion");
+var terrainContent = %import("world/terrain_content");
+var terrainGradient = %import("world/terrain_gradient");
+var terrainGround = %import("world/terrain_ground");
+var worldCollision = %import("world/world_collision_router");
+
+pub class MobMotionState {
+    pub var initialized: bool;
+    pub var x: float;
+    pub var y: float;
+    pub var z: float;
+    pub var facing: float;
+    // The pinned source's mobCanSwim is true when MOBS has the template.
+    pub var templateKnown: bool;
+    pub var phasesThroughObstacles: bool;
+
+    pub @constructor() {
+        this.initialized = false;
+        this.x = 0.0;
+        this.y = 0.0;
+        this.z = 0.0;
+        this.facing = 0.0;
+        this.templateKnown = false;
+        this.phasesThroughObstacles = false;
+    }
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+maximum(first: float, second: float): float {
+    return first > second ? first : second;
+}
+
+closeEnough(value: float, expected: float): bool {
+    return absolute(value - expected) < 0.00000001;
+}
+
+requireState(state: MobMotionState, required: bool): void {
+    if (!required || !state.initialized) {
+        throw "woc mob motion state is not initialized";
+    }
+}
+
+pub initializeMobMotion(
+    state: MobMotionState,
+    x: float,
+    y: float,
+    z: float,
+    facing: float,
+    templateKnown: bool,
+    phasesThroughObstacles: bool,
+    required: bool
+): void {
+    if (!required) {
+        throw "woc mob motion initialization is required";
+    }
+    state.initialized = true;
+    state.x = x;
+    state.y = y;
+    state.z = z;
+    state.facing = facing;
+    state.templateKnown = templateKnown;
+    state.phasesThroughObstacles = phasesThroughObstacles;
+}
+
+// Mirrors the current pinned Sim.mobCanSwim implementation. This is separate
+// from spawn-in-water eligibility, which remains a content construction rule.
+pub currentSourceMobCanSwim(templateKnown: bool, required: bool): bool {
+    if (!required) {
+        throw "woc mob swim capability is required";
+    }
+    return templateKnown;
+}
+
+pub nearSteepWalls(x: float, z: float, required: bool): bool {
+    if (!required) {
+        throw "woc mob steep-wall query is required";
+    }
+    if (x > terrainContent.dungeonXThreshold(true)) {
+        return false;
+    }
+    if (absolute(x) > terrainContent.worldMaxX(true) - 40.0 ||
+        z < terrainContent.worldMinZ(true) + 40.0 ||
+        z > terrainContent.worldMaxZ(true) - 40.0) {
+        return true;
+    }
+    var zone = 0;
+    while (zone + 1 < terrainContent.zoneCount(true)) {
+        if (absolute(z - terrainContent.zoneZMax(zone, true)) < 40.0) {
+            return true;
+        }
+        zone = zone + 1;
+    }
+    return false;
+}
+
+// The source preserves this exact order: a clear straight step wins before
+// trying either side, followed by wider alternation around a static obstacle.
+pub slideFanOffset(index: int, required: bool): float {
+    if (!required || index < 0 || index > 6) {
+        throw "woc mob slide-fan index is invalid";
+    }
+    if (index == 0) { return 0.0; }
+    if (index == 1) { return 0.5; }
+    if (index == 2) { return -0.5; }
+    if (index == 3) { return 1.0; }
+    if (index == 4) { return -1.0; }
+    if (index == 5) { return 1.6; }
+    return -1.6;
+}
+
+waterHeightAt(x: float, z: float): float {
+    return terrainContent.waterLevel(true);
+}
+
+hasWaterAt(x: float, z: float): bool {
+    return terrainContent.hasWaterAt(x, z, true);
+}
+
+rideHeight(x: float, z: float, ground: float, canSwim: bool): float {
+    if (canSwim && hasWaterAt(x, z) && ground < waterHeightAt(x, z)) {
+        return waterHeightAt(x, z);
+    }
+    return ground;
+}
+
+mobSurfaceY(x: float, z: float, ground: float, canSwim: bool): float {
+    if (canSwim && hasWaterAt(x, z) &&
+        ground < waterHeightAt(x, z) - playerMotion.swimDepth(true)) {
+        return playerMotion.swimSurfaceY(waterHeightAt(x, z), true);
+    }
+    return ground;
+}
+
+pub stepMobToward(
+    state: MobMotionState,
+    destinationX: float,
+    destinationZ: float,
+    speed: float,
+    ignoreObstacles: bool,
+    seed: uint,
+    required: bool
+): bool {
+    requireState(state, required);
+    if (speed < 0.0) {
+        throw "woc mob movement speed is invalid";
+    }
+    var deltaX = destinationX - state.x;
+    var deltaZ = destinationZ - state.z;
+    var distance = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    if (distance < 0.3) {
+        return true;
+    }
+    var desired = math.atan2(deltaX, deltaZ);
+    state.facing = desired;
+    var step = speed * playerMotion.simulationStepSeconds(true);
+    if (step > distance) {
+        step = distance;
+    }
+    var canSwim = currentSourceMobCanSwim(state.templateKnown, true);
+    var ignores = ignoreObstacles || state.phasesThroughObstacles;
+    if (ignores) {
+        state.x = state.x + math.sin(desired) * step;
+        state.z = state.z + math.cos(desired) * step;
+        var phaseGround = terrainGround.builtinGroundHeight(state.x, state.z, seed, true);
+        var phaseSurface = hasWaterAt(state.x, state.z) ?
+            playerMotion.swimSurfaceY(waterHeightAt(state.x, state.z), true) : phaseGround;
+        state.y = maximum(phaseGround, phaseSurface);
+        return distance - step < 0.3;
+    }
+
+    var bestX = state.x;
+    var bestZ = state.z;
+    var bestProgress = 0.001;
+    var initialHeightKnown = false;
+    var initialRideHeight = 0.0;
+    var offsetIndex = 0;
+    while (offsetIndex < 7) {
+        var offset = slideFanOffset(offsetIndex, true);
+        var angle = desired + offset;
+        var candidateX = state.x + math.sin(angle) * step;
+        var candidateZ = state.z + math.cos(angle) * step;
+        var candidateGround = terrainGround.builtinGroundHeight(candidateX, candidateZ, seed, true);
+        if (!canSwim && hasWaterAt(candidateX, candidateZ) &&
+            candidateGround < waterHeightAt(candidateX, candidateZ) - playerMotion.swimDepth(true)) {
+            offsetIndex = offsetIndex + 1;
+            continue;
+        }
+        if (nearSteepWalls(candidateX, candidateZ, true) &&
+            terrainGradient.builtinTerrainSteepnessAt(candidateX, candidateZ, seed, true) >
+                playerMotion.maxClimbSlope(true)) {
+            if (!initialHeightKnown) {
+                initialRideHeight = rideHeight(
+                    state.x,
+                    state.z,
+                    terrainGround.builtinGroundHeight(state.x, state.z, seed, true),
+                    canSwim
+                );
+                initialHeightKnown = true;
+            }
+            if (rideHeight(candidateX, candidateZ, candidateGround, canSwim) > initialRideHeight) {
+                offsetIndex = offsetIndex + 1;
+                continue;
+            }
+        }
+        var resolvedX = worldCollision.resolveSupportedWorldCoordinate(
+            candidateX,
+            candidateZ,
+            playerMotion.playerBodyRadius(true),
+            false,
+            1,
+            true
+        );
+        var resolvedZ = worldCollision.resolveSupportedWorldCoordinate(
+            candidateX,
+            candidateZ,
+            playerMotion.playerBodyRadius(true),
+            false,
+            2,
+            true
+        );
+        var resolvedDeltaX = resolvedX - destinationX;
+        var resolvedDeltaZ = resolvedZ - destinationZ;
+        var progress = distance - math.sqrt(
+            resolvedDeltaX * resolvedDeltaX + resolvedDeltaZ * resolvedDeltaZ
+        );
+        if (progress > bestProgress) {
+            bestProgress = progress;
+            bestX = resolvedX;
+            bestZ = resolvedZ;
+        }
+        if (offsetIndex == 0 && progress >= step - 0.001) {
+            break;
+        }
+        offsetIndex = offsetIndex + 1;
+    }
+    state.x = bestX;
+    state.z = bestZ;
+    state.y = mobSurfaceY(
+        bestX,
+        bestZ,
+        terrainGround.builtinGroundHeight(bestX, bestZ, seed, true),
+        canSwim
+    );
+    var remainingX = state.x - destinationX;
+    var remainingZ = state.z - destinationZ;
+    return math.sqrt(remainingX * remainingX + remainingZ * remainingZ) < 0.3;
+}
+
+pub contractTest(): int {
+    if (!currentSourceMobCanSwim(true, true) || currentSourceMobCanSwim(false, true) ||
+        !nearSteepWalls(0.0, 180.0, true) || nearSteepWalls(0.0, 0.0, true) ||
+        !closeEnough(slideFanOffset(0, true), 0.0) ||
+        !closeEnough(slideFanOffset(1, true), 0.5) ||
+        !closeEnough(slideFanOffset(2, true), -0.5) ||
+        !closeEnough(slideFanOffset(5, true), 1.6) ||
+        !closeEnough(slideFanOffset(6, true), -1.6)) {
+        return -1;
+    }
+    var motion = new MobMotionState();
+    initializeMobMotion(motion, 0.0, 0.0, 0.0, 0.0, true, false, true);
+    if (stepMobToward(motion, 0.0, 1.0, 7.0, false, <uint>20061, true) ||
+        !closeEnough(motion.x, 0.0) || !closeEnough(motion.z, 0.35) ||
+        !closeEnough(motion.facing, 0.0)) {
+        return -2;
+    }
+    var retainedFacing = motion.facing;
+    if (!stepMobToward(motion, motion.x, motion.z + 0.2, 7.0, false, <uint>20061, true) ||
+        motion.facing != retainedFacing) {
+        return -3;
+    }
+    initializeMobMotion(motion, 0.0, 0.0, 0.0, 0.0, true, true, true);
+    if (stepMobToward(motion, 0.0, 1.0, 7.0, false, <uint>20061, true) ||
+        !closeEnough(motion.x, 0.0) || !closeEnough(motion.z, 0.35)) {
+        return -4;
+    }
+    return 1;
+}

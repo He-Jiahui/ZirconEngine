@@ -1,0 +1,390 @@
+// M7 dungeon claim/lockout state projected from the historical source slice at
+// 7c10f280eec380e9877e66ce16333089e171fe42. Current-head participation
+// tracking from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a also runs at 20 Hz.
+var container = %import("zr.container");
+
+class DungeonState {
+    pub var tick: int;
+    pub var partyMembers: int;
+    pub var raid: bool;
+    pub var attuned: container.Array<bool>;
+    pub var inside: container.Array<bool>;
+    // Players who crossed this claim's door; a later reward transaction must
+    // use this session set instead of treating party membership as participation.
+    pub var enteredBy: container.Array<int>;
+    pub var instanceClaimed: bool;
+    pub var claimedPartyKey: int;
+    pub var difficulty: int;
+    pub var mobCount: int;
+    pub var objectCount: int;
+    pub var exitExists: bool;
+    pub var emptySeconds: int;
+    pub var raidLockoutUntil: int;
+    pub var lockoutNow: int;
+    pub var sharedRandomDraws: int;
+    pub var events: container.Array<int>;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.tick = 0;
+        this.partyMembers = 2;
+        this.raid = false;
+        this.attuned = new container.Array<bool>();
+        this.inside = new container.Array<bool>();
+        this.enteredBy = new container.Array<int>();
+        var index = 0;
+        while (index < 5) {
+            this.attuned.add(false);
+            this.inside.add(false);
+            index = index + 1;
+        }
+        this.instanceClaimed = false;
+        this.claimedPartyKey = 0;
+        this.difficulty = 0;
+        this.mobCount = 0;
+        this.objectCount = 0;
+        this.exitExists = false;
+        this.emptySeconds = 0;
+        this.raidLockoutUntil = 0;
+        this.lockoutNow = 100;
+        this.sharedRandomDraws = 0;
+        this.events = new container.Array<int>();
+        this.lastError = 0;
+    }
+}
+
+// Pure per-mob view of the ownership-aware cleanup performed when a player
+// leaves an instance. The live world owns the actual threat values and entity
+// lookup; this state retains only the ids needed to preserve removal ordering.
+class DungeonMobThreatState {
+    pub var threatSourceIds: container.Array<int>;
+    // Zero means that the source is a player or has no owning player.
+    pub var threatSourceOwnerIds: container.Array<int>;
+    pub var aggroTargetId: int;
+    pub var aggroTargetOwnerId: int;
+
+    pub @constructor() {
+        this.threatSourceIds = new container.Array<int>();
+        this.threatSourceOwnerIds = new container.Array<int>();
+        this.aggroTargetId = 0;
+        this.aggroTargetOwnerId = 0;
+    }
+}
+
+pub addDungeonThreatSource(
+    state: DungeonMobThreatState,
+    sourceId: int,
+    ownerId: int
+): void {
+    var index = 0;
+    while (index < state.threatSourceIds.length) {
+        if (<int>state.threatSourceIds[index] == sourceId) {
+            state.threatSourceOwnerIds[index] = ownerId;
+            return;
+        }
+        index = index + 1;
+    }
+    state.threatSourceIds.add(sourceId);
+    state.threatSourceOwnerIds.add(ownerId);
+}
+
+// Mirrors scrubInstanceThreat for one live mob. Both a departing player and
+// every owned source (pet, guardian, or similar) are removed before the next
+// target-selection tick; an active target in either set is cleared too.
+pub scrubLeavingPlayerThreat(state: DungeonMobThreatState, playerId: int): int {
+    var removed = 0;
+    var index = state.threatSourceIds.length - 1;
+    while (index >= 0) {
+        if (<int>state.threatSourceIds[index] == playerId ||
+            <int>state.threatSourceOwnerIds[index] == playerId) {
+            state.threatSourceIds.removeAt(index);
+            state.threatSourceOwnerIds.removeAt(index);
+            removed = removed + 1;
+        }
+        index = index - 1;
+    }
+    if (state.aggroTargetId == playerId || state.aggroTargetOwnerId == playerId) {
+        state.aggroTargetId = 0;
+        state.aggroTargetOwnerId = 0;
+    }
+    return removed;
+}
+
+recordEvent(state: DungeonState, code: int): void {
+    var events = state.events;
+    events.add(code);
+}
+
+eventCount(state: DungeonState, code: int): int {
+    var count = 0;
+    var index = 0;
+    while (index < state.events.length) {
+        if (<int>state.events[index] == code) { count = count + 1; }
+        index = index + 1;
+    }
+    return count;
+}
+
+validPlayer(state: DungeonState, player: int): bool {
+    return player >= 1 && player <= state.partyMembers;
+}
+
+pub enteredDungeon(state: DungeonState, player: int): bool {
+    var enteredBy = state.enteredBy;
+    var index = 0;
+    while (index < enteredBy.length) {
+        if (<int>enteredBy[index] == player) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+// Pure projection of awardHeroicMarks delivery routing. The engine transaction
+// still owns the lockout, inventory mutation, Ravenpost message, and daily deed
+// update; this returns the required delivery arm for one prospective recipient.
+// 0 means no reward, 1 places marks in bags, and 2 posts them by mail.
+pub heroicRewardDelivery(
+    creditedKill: bool,
+    alreadyLocked: bool,
+    presentAtKill: bool,
+    enteredThisRun: bool
+): int {
+    if (!creditedKill || alreadyLocked) { return 0; }
+    if (presentAtKill) { return 1; }
+    return enteredThisRun ? 2 : 0;
+}
+
+recordDungeonEntry(state: DungeonState, player: int): void {
+    if (!enteredDungeon(state, player)) { state.enteredBy.add(player); }
+}
+
+clearDungeonEntries(state: DungeonState): void {
+    var enteredBy = state.enteredBy;
+    while (enteredBy.length > 0) { enteredBy.removeAt(enteredBy.length - 1); }
+}
+
+claimHollowCrypt(state: DungeonState): void {
+    state.instanceClaimed = true;
+    state.claimedPartyKey = 1;
+    state.difficulty = 0;
+    state.mobCount = 13;
+    state.objectCount = 0;
+    state.exitExists = true;
+    state.emptySeconds = 0;
+    state.sharedRandomDraws = state.sharedRandomDraws + 13;
+    recordEvent(state, 1);
+}
+
+pub enterHollowCrypt(state: DungeonState, player: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(state, player)) { state.lastError = -1; return false; }
+    if (state.raid) { state.lastError = -2; return false; }
+    if (!state.instanceClaimed) { claimHollowCrypt(state); }
+    if (state.claimedPartyKey != 1) { state.lastError = -3; return false; }
+    var inside = state.inside;
+    inside[player - 1] = true;
+    recordDungeonEntry(state, player);
+    state.emptySeconds = 0;
+    recordEvent(state, 2);
+    return true;
+}
+
+pub leaveDungeon(state: DungeonState, player: int): bool {
+    if (!validPlayer(state, player) || !<bool>state.inside[player - 1]) { return false; }
+    var inside = state.inside;
+    inside[player - 1] = false;
+    recordEvent(state, 3);
+    return true;
+}
+
+occupied(state: DungeonState): bool {
+    var index = 0;
+    while (index < state.inside.length) {
+        if (<bool>state.inside[index]) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+freeInstance(state: DungeonState): void {
+    state.instanceClaimed = false;
+    state.claimedPartyKey = 0;
+    state.difficulty = 0;
+    state.mobCount = 0;
+    state.objectCount = 0;
+    state.exitExists = false;
+    state.emptySeconds = 0;
+    clearDungeonEntries(state);
+    recordEvent(state, 4);
+}
+
+pub tickOnce(state: DungeonState): void {
+    state.tick = state.tick + 1;
+    if (state.tick % 20 != 0 || !state.instanceClaimed) { return; }
+    if (occupied(state)) {
+        state.emptySeconds = 0;
+        return;
+    }
+    state.emptySeconds = state.emptySeconds + 1;
+    if (state.emptySeconds >= 300) { freeInstance(state); }
+}
+
+pub tickMany(state: DungeonState, count: int): void {
+    var index = 0;
+    while (index < count) { tickOnce(state); index = index + 1; }
+}
+
+activeRaidLockout(state: DungeonState): bool {
+    if (state.raidLockoutUntil <= state.lockoutNow) {
+        state.raidLockoutUntil = 0;
+        return false;
+    }
+    return true;
+}
+
+pub convertToRaid(state: DungeonState): bool {
+    if (state.raid || state.partyMembers != 5) { return false; }
+    state.raid = true;
+    recordEvent(state, 5);
+    return true;
+}
+
+pub setAttuned(state: DungeonState, player: int, value: bool): void {
+    if (!validPlayer(state, player)) { return; }
+    var attuned = state.attuned;
+    attuned[player - 1] = value;
+}
+
+pub enterNythraxis(state: DungeonState, player: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(state, player)) { state.lastError = -1; return false; }
+    if (!state.raid) { state.lastError = -4; return false; }
+    if (!<bool>state.attuned[player - 1]) { state.lastError = -5; return false; }
+    if (activeRaidLockout(state)) {
+        state.lastError = -6;
+        recordEvent(state, 6);
+        return false;
+    }
+    if (!state.instanceClaimed) {
+        state.instanceClaimed = true;
+        state.claimedPartyKey = 1;
+        state.mobCount = 1;
+        state.exitExists = true;
+        state.sharedRandomDraws = state.sharedRandomDraws + 1;
+        recordEvent(state, 7);
+    }
+    var inside = state.inside;
+    inside[player - 1] = true;
+    recordDungeonEntry(state, player);
+    return true;
+}
+
+pub dungeonInstancesScenarioTest(): int {
+    var state = new DungeonState();
+    if (!enterHollowCrypt(state, 1) || state.sharedRandomDraws != 13 ||
+        state.mobCount != 13 || !state.exitExists) {
+        return -1;
+    }
+    var drawsAfterClaim = state.sharedRandomDraws;
+    if (!enterHollowCrypt(state, 2) || state.sharedRandomDraws != drawsAfterClaim ||
+        !<bool>state.inside[0] || !<bool>state.inside[1]) {
+        return -2;
+    }
+    if (!leaveDungeon(state, 1) || !leaveDungeon(state, 2) || occupied(state)) {
+        return -3;
+    }
+    state.emptySeconds = 299;
+    tickMany(state, 20);
+    if (state.instanceClaimed || state.mobCount != 0 || state.exitExists ||
+        eventCount(state, 4) != 1) {
+        return -4;
+    }
+    return 1;
+}
+
+pub dungeonRaidLockoutScenarioTest(): int {
+    var state = new DungeonState();
+    state.partyMembers = 5;
+    if (!convertToRaid(state)) { return -1; }
+    setAttuned(state, 1, true);
+    state.raidLockoutUntil = 999999999;
+    var drawsBefore = state.sharedRandomDraws;
+    if (enterNythraxis(state, 1) || state.lastError != -6 ||
+        state.sharedRandomDraws != drawsBefore || state.instanceClaimed ||
+        eventCount(state, 6) != 1) {
+        return -2;
+    }
+    return 1;
+}
+
+dungeonInvariantTest(): int {
+    var raidRequired = new DungeonState();
+    raidRequired.partyMembers = 5;
+    setAttuned(raidRequired, 1, true);
+    if (enterNythraxis(raidRequired, 1) || raidRequired.lastError != -4) { return -1; }
+    convertToRaid(raidRequired);
+    setAttuned(raidRequired, 1, false);
+    if (enterNythraxis(raidRequired, 1) || raidRequired.lastError != -5) { return -2; }
+    setAttuned(raidRequired, 1, true);
+    raidRequired.raidLockoutUntil = raidRequired.lockoutNow;
+    if (!enterNythraxis(raidRequired, 1) || raidRequired.raidLockoutUntil != 0 ||
+        raidRequired.sharedRandomDraws != 1 || raidRequired.mobCount != 1) {
+        return -3;
+    }
+    var standard = new DungeonState();
+    standard.partyMembers = 5;
+    convertToRaid(standard);
+    if (enterHollowCrypt(standard, 1) || standard.lastError != -2 ||
+        standard.sharedRandomDraws != 0) {
+        return -4;
+    }
+    return 1;
+}
+
+dungeonCurrentHeadParticipationTest(): int {
+    var state = new DungeonState();
+    if (!enterHollowCrypt(state, 1) || !enterHollowCrypt(state, 1) ||
+        !enterHollowCrypt(state, 2) || !enteredDungeon(state, 1) ||
+        !enteredDungeon(state, 2) || state.enteredBy.length != 2) {
+        return -1;
+    }
+    if (!leaveDungeon(state, 1) || !leaveDungeon(state, 2)) { return -2; }
+    state.emptySeconds = 299;
+    tickMany(state, 20);
+    if (state.instanceClaimed || state.enteredBy.length != 0) { return -3; }
+
+    var threat = new DungeonMobThreatState();
+    addDungeonThreatSource(threat, 1, 0);
+    addDungeonThreatSource(threat, 101, 1);
+    addDungeonThreatSource(threat, 2, 0);
+    threat.aggroTargetId = 101;
+    threat.aggroTargetOwnerId = 1;
+    if (scrubLeavingPlayerThreat(threat, 1) != 2 || threat.threatSourceIds.length != 1 ||
+        <int>threat.threatSourceIds[0] != 2 || threat.aggroTargetId != 0 ||
+        threat.aggroTargetOwnerId != 0) {
+        return -4;
+    }
+    if (scrubLeavingPlayerThreat(threat, 3) != 0 || threat.threatSourceIds.length != 1) {
+        return -5;
+    }
+    if (heroicRewardDelivery(true, false, true, false) != 1 ||
+        heroicRewardDelivery(true, false, false, true) != 2 ||
+        heroicRewardDelivery(true, false, false, false) != 0 ||
+        heroicRewardDelivery(false, false, true, true) != 0 ||
+        heroicRewardDelivery(true, true, true, true) != 0) {
+        return -6;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = dungeonInstancesScenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = dungeonRaidLockoutScenarioTest();
+    if (result != 1) { return -200 + result; }
+    result = dungeonInvariantTest();
+    if (result != 1) { return -300 + result; }
+    result = dungeonCurrentHeadParticipationTest();
+    if (result != 1) { return -400 + result; }
+    return 1;
+}

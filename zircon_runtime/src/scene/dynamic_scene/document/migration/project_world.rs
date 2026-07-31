@@ -35,12 +35,11 @@ pub(super) fn migrate_project_world(value: Value) -> Result<Value, MigrateError>
 }
 
 fn dynamic_scene_from_world_value(world: Value) -> Result<Value, MigrateError> {
-    let world = into_object(world, "dynamic scene v0 project world")?;
-    let mut ids = world
-        .get("entities")
-        .and_then(Value::as_array)
-        .cloned()
-        .ok_or_else(|| MigrateError::invalid_payload("project world entities must be an array"))?;
+    let mut world = into_object(world, "dynamic scene v0 project world")?;
+    let entities = world
+        .remove("entities")
+        .ok_or_else(|| MigrateError::invalid_payload("project world is missing entities"))?;
+    let mut ids = into_array(entities, "project world entities")?;
     ids.sort_by_key(|value| value.as_u64().unwrap_or(u64::MAX));
     let entities = ids
         .into_iter()
@@ -108,10 +107,21 @@ fn dynamic_entity_from_world(world: &Map<String, Value>, id: Value) -> Result<Va
 }
 
 fn into_object(value: Value, label: &str) -> Result<Map<String, Value>, MigrateError> {
-    value
-        .as_object()
-        .cloned()
-        .ok_or_else(|| MigrateError::invalid_payload(format!("{label} must be an object")))
+    match value {
+        Value::Object(object) => Ok(object),
+        _ => Err(MigrateError::invalid_payload(format!(
+            "{label} must be an object"
+        ))),
+    }
+}
+
+fn into_array(value: Value, label: &str) -> Result<Vec<Value>, MigrateError> {
+    match value {
+        Value::Array(values) => Ok(values),
+        _ => Err(MigrateError::invalid_payload(format!(
+            "{label} must be an array"
+        ))),
+    }
 }
 
 fn required_map_value<'a>(
@@ -144,4 +154,45 @@ fn identity_transform() -> Value {
         "rotation": [0.0, 0.0, 0.0, 1.0],
         "scale": [1.0, 1.0, 1.0]
     })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn legacy_project_world_migration_consumes_owned_maps_and_entity_ids() {
+        let source = include_str!("project_world.rs");
+        let migration = source
+            .split("pub(super) fn migrate_project_world")
+            .nth(1)
+            .and_then(|source| source.split("#[cfg(test)]").next())
+            .expect("read project-world migration body");
+        let world_projection = migration
+            .split("fn dynamic_scene_from_world_value")
+            .nth(1)
+            .and_then(|source| source.split("fn dynamic_entity_from_world").next())
+            .expect("read owned world projection");
+        let object_conversion = migration
+            .split("fn into_object")
+            .nth(1)
+            .and_then(|source| source.split("fn into_array").next())
+            .expect("read owned object conversion");
+        let array_conversion = migration
+            .split("fn into_array")
+            .nth(1)
+            .and_then(|source| source.split("fn required_map_value").next())
+            .expect("read owned array conversion");
+
+        assert!(
+            world_projection.contains("let mut world = into_object(")
+                && world_projection.contains(".remove(\"entities\")")
+                && world_projection.contains("into_array(")
+                && !world_projection.contains(".as_array()")
+                && !world_projection.contains(".cloned()")
+                && object_conversion.contains("Value::Object(object) => Ok(object)")
+                && !object_conversion.contains(".as_object()")
+                && array_conversion.contains("Value::Array(values) => Ok(values)")
+                && !array_conversion.contains(".as_array()"),
+            "owned legacy project-world migration must not deep-clone the document, world, or entity-id array"
+        );
+    }
 }

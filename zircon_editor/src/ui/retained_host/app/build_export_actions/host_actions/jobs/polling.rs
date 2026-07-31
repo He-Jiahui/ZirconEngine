@@ -21,6 +21,8 @@ impl RetainedEditorHost {
             changed = true;
         }
         if changed {
+            self.desktop_export_wizard_sessions
+                .invalidate_projection_overlay();
             self.mark_layout_dirty();
         }
     }

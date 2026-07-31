@@ -1,11 +1,24 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn notification_rendering_moves_row_text_and_avoids_lowercase_allocations() {
+    let source = include_str!("../surface/render/notification_center.rs");
+
+    assert!(!source.contains("row.title.clone()"));
+    assert!(!source.contains("row.message.clone()"));
+    assert!(!source.contains("to_ascii_lowercase"));
+    assert!(source.contains("EditorDesignTokens"));
+    assert!(!source.contains("const PANEL_SURFACE"));
+    assert!(!source.contains("const HEADER_TEXT"));
+}
 
 #[test]
 fn render_extract_notification_center_draws_panel_header_and_notifications() {
@@ -30,9 +43,9 @@ notifications = [
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(32.0, 24.0, 300.0, 160.0)
-            && command.style.background_color.as_deref() == Some("#11181d")
-            && command.style.border_color.as_deref() == Some("#2d3a42")
-            && command.style.corner_radius == 6.0
+            && command.style.background_color.as_deref() == Some("#141618")
+            && command.style.border_color.as_deref() == Some("#323a41")
+            && command.style.corner_radius == 8.0
             && command.style.painter_family == UiPainterFamily::Toast
             && command.style.painter_state == UiPainterResolvedState::Open
     }));
@@ -40,42 +53,57 @@ notifications = [
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Notifications (2)")
             && command.frame == UiFrame::new(44.0, 34.0, 276.0, 16.0)
-            && command.style.foreground_color.as_deref() == Some("#e7eef0")
+            && command.style.foreground_color.as_deref() == Some("#e8ecee")
+            && command.style.font_size == EditorTypographyTokens::WORKBENCH_BODY_SIZE
             && command.style.painter_family == UiPainterFamily::Toast
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(40.0, 60.0, 284.0, 48.0)
-            && command.style.background_color.as_deref() == Some("#153035")
-            && command.style.border_color.as_deref() == Some("#35c7d0")
+            && command.style.background_color.as_deref() == Some("#173942")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_state == UiPainterResolvedState::Selected
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(50.0, 68.0, 3.0, 32.0)
-            && command.style.background_color.as_deref() == Some("#ef7066")
+            && command.style.background_color.as_deref() == Some("#eb605c")
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Build failed")
-            && command.frame == UiFrame::new(62.0, 67.0, 250.0, 14.0)
+            && command.frame
+                == UiFrame::new(
+                    62.0,
+                    67.0,
+                    250.0,
+                    EditorTypographyTokens::WORKBENCH_OVERLAY_SIZE
+                        * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+                )
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Shader compile error")
-            && command.frame == UiFrame::new(62.0, 85.0, 250.0, 13.0)
+            && command.frame
+                == UiFrame::new(
+                    62.0,
+                    85.0,
+                    250.0,
+                    EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+                        * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+                )
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(40.0, 114.0, 284.0, 48.0)
-            && command.style.background_color.as_deref() == Some("#151e23")
-            && command.style.border_color.as_deref() == Some("#35c7d0")
+            && command.style.background_color.as_deref() == Some("#171a1d")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_state == UiPainterResolvedState::Focused
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(50.0, 122.0, 3.0, 32.0)
-            && command.style.background_color.as_deref() == Some("#42b883")
+            && command.style.background_color.as_deref() == Some("#55be78")
     }));
     assert_eq!(
         commands
@@ -108,9 +136,9 @@ focused_index = 0
     );
     assert_eq!(
         focused_row.style.background_color.as_deref(),
-        Some("#151e23")
+        Some("#171a1d")
     );
-    assert_eq!(focused_row.style.border_color.as_deref(), Some("#35c7d0"));
+    assert_eq!(focused_row.style.border_color.as_deref(), Some("#3cc7d6"));
     assert!(!focused_only.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(28.0, 48.0, 244.0, 48.0)
@@ -139,7 +167,49 @@ notifications = [
         selected_row.style.background_color.as_deref(),
         Some("#153035")
     );
-    assert_eq!(selected_row.style.border_color.as_deref(), Some("#35c7d0"));
+    assert_eq!(selected_row.style.border_color.as_deref(), Some("#3cc7d6"));
+}
+
+#[test]
+fn render_extract_notification_center_consumes_resolved_template_visual_tokens() {
+    let commands = commands_for_notification_center(
+        UiFrame::new(20.0, 12.0, 260.0, 120.0),
+        r##"
+open = true
+panel_surface_color = "#010203"
+panel_border_color = "#040506"
+header_text_color = "#070809"
+accent_color = "#a0b1c2"
+panel_radius = 3.0
+header_font_size = 15.0
+typography_line_height_ratio = 1.2
+selected_notification_id = "compile"
+notifications = [
+  { id = "compile", title = "Compile queued", message = "Waiting", severity = "info" }
+]
+"##,
+    );
+
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(20.0, 12.0, 260.0, 120.0)
+            && command.style.background_color.as_deref() == Some("#010203")
+            && command.style.border_color.as_deref() == Some("#040506")
+            && command.style.corner_radius == 3.0
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Notifications")
+            && command.style.foreground_color.as_deref() == Some("#070809")
+            && command.style.font_size == 15.0
+            && command.style.line_height == 18.0
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(28.0, 48.0, 244.0, 48.0)
+            && command.style.border_color.as_deref() == Some("#a0b1c2")
+            && command.style.painter_state == UiPainterResolvedState::Selected
+    }));
 }
 
 #[test]

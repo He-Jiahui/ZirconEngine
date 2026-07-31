@@ -5,8 +5,7 @@ use super::super::super::data::{
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::{is_visible_frame, translated};
 use super::super::super::paint_primitives::{draw_border, draw_rect};
-use super::super::{SEPARATOR, SIDE_PANEL};
-use super::{pane, panel_header};
+use super::{palette::current_dock_chrome_palette, pane, panel_header};
 
 pub(in crate::ui::retained_host::host_contract) fn draw_bottom_dock(
     frame: &mut HostRgbaFrame,
@@ -18,10 +17,11 @@ pub(in crate::ui::retained_host::host_contract) fn draw_bottom_dock(
     if !is_visible_frame(&dock.region_frame) {
         return;
     }
+    let palette = current_dock_chrome_palette();
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_bottom_dock_shell");
-        draw_rect(frame, dock.region_frame.clone(), SIDE_PANEL);
-        draw_border(frame, dock.region_frame.clone(), SEPARATOR);
+        draw_rect(frame, dock.region_frame.clone(), palette.shell);
+        draw_border(frame, dock.region_frame.clone(), palette.separator);
     }
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_bottom_dock_header");

@@ -1,0 +1,86 @@
+[asset]
+kind = "view"
+id = "ai.behavior_tree"
+version = 2
+display_name = "Behavior Tree"
+
+[imports]
+styles = ["res://ui/theme/editor_base.zui"]
+
+[root]
+node = "behavior_tree_root"
+
+[nodes.behavior_tree_palette_title]
+component = "Label"
+control_id = "AiBehaviorTreePaletteTitle"
+props = { text = "NODES" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.behavior_tree_palette]
+component = "Table"
+control_id = "AiBehaviorTreePalette"
+props = { selected_index = -1, row_identity_field = "node_id" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.behavior_tree_palette_column]
+component = "VerticalGroup"
+control_id = "AiBehaviorTreePaletteColumn"
+classes = ["editor-panel"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 208.0, preferred = 232.0, max = 288.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_tree_palette_title" }, { node = "behavior_tree_palette" }]
+
+[nodes.behavior_tree_graph_title]
+component = "Label"
+control_id = "AiBehaviorTreeGraphTitle"
+props = { text = "BEHAVIOR TREE" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.behavior_tree_graph_canvas]
+component = "Space"
+control_id = "AiBehaviorTreeGraphCanvas"
+classes = ["editor-panel"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.behavior_tree_graph_column]
+component = "VerticalGroup"
+control_id = "AiBehaviorTreeGraphColumn"
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_tree_graph_title" }, { node = "behavior_tree_graph_canvas" }]
+
+[nodes.behavior_tree_inspector_title]
+component = "Label"
+control_id = "AiBehaviorTreeInspectorTitle"
+props = { text = "DETAILS" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.behavior_tree_inspector]
+component = "Space"
+control_id = "AiBehaviorTreeInspector"
+classes = ["editor-panel"]
+layout = { width = { stretch = "Stretch" }, height = { min = 120.0, preferred = 180.0, stretch = "Stretch" } }
+
+[nodes.behavior_tree_blackboard_title]
+component = "Label"
+control_id = "AiBehaviorTreeBlackboardTitle"
+props = { text = "BLACKBOARD" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.behavior_tree_blackboard]
+component = "Table"
+control_id = "AiBehaviorTreeBlackboard"
+props = { selected_index = -1, row_identity_field = "key" }
+classes = ["editor-panel"]
+layout = { width = { stretch = "Stretch" }, height = { min = 120.0, preferred = 180.0, stretch = "Stretch" } }
+
+[nodes.behavior_tree_inspector_column]
+component = "VerticalGroup"
+control_id = "AiBehaviorTreeInspectorColumn"
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 232.0, preferred = 280.0, max = 344.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_tree_inspector_title" }, { node = "behavior_tree_inspector" }, { node = "behavior_tree_blackboard_title" }, { node = "behavior_tree_blackboard" }]
+
+[nodes.behavior_tree_root]
+component = "HorizontalGroup"
+control_id = "AiBehaviorTreeRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_tree_palette_column" }, { node = "behavior_tree_graph_column" }, { node = "behavior_tree_inspector_column" }]

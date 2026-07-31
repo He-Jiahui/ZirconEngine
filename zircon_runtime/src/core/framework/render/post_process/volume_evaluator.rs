@@ -76,7 +76,14 @@ impl VolumeEvaluator {
                 (influence > 0.0).then_some((index, volume, influence))
             })
             .collect::<Vec<_>>();
-        applicable.sort_by(|left, right| compare_volume_priority(left, right));
+        // Scene extraction publishes priority order once. Keep the sort fallback for callers that
+        // construct extracts directly, but do not repeat it for every camera and froxel consumer.
+        if applicable
+            .windows(2)
+            .any(|pair| compare_volume_priority(&pair[0], &pair[1]).is_gt())
+        {
+            applicable.sort_by(compare_volume_priority);
+        }
 
         for (_, volume, influence) in applicable {
             self.apply_volume(&mut settings, volume, influence)?;

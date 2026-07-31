@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/mod.rs
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/core/framework/events.rs
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/events.rs
@@ -128,7 +128,7 @@ related_code:
   - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 implementation_files:
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/core/framework/events.rs
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/events.rs
@@ -342,7 +342,7 @@ doc_type: module-detail
 | `frame_clock.rs` (moved 2026-06-12) | `core::runtime::frame_clock` | curated facade still exposed through `core::runtime::FrameClock` and root `core::FrameClock` | Frame delta is driven by the runtime tick path. |
 | `channel_util.rs` | split: `core::framework::channel` and `core::runtime::tasks` | remove the three root helper exports | Channel wait helpers are neutral; named thread spawning belongs to runtime task execution. |
 | `types.rs` | split: `core::framework::channel` and `core::runtime::descriptors` | remove root `ServiceObject` export | Channel aliases are neutral contracts; service object storage is runtime registry internals. |
-| `error.rs` (moved 2026-06-12) | `core::framework::error` | expose only `CoreError` / `CoreResult` through the curated `core` root | Errors cross framework traits, manager handles, and runtime services; the retired parallel error enum has no compatibility export. |
+| `error.rs` (kernel owner hard-cut 2026-07-18) | `core::runtime::error` | expose only `CoreError` / `CoreResult` through the curated `core` root | The enum depends on kernel `ServiceKind` and describes registry/lifecycle behavior. The retired framework owner and parallel error enum have no compatibility export. |
 | `event_bus.rs` + `event_bus/` (moved 2026-06-12) | split: `EngineEvent` to `core::framework::events`, `EventBus` implementation to `core::runtime::events` | keep `EngineEvent` / `EventBus` through root `core` facades, but remove the old `core::event_bus` namespace | Event DTOs are neutral; subscriber storage and delivery locks are runtime behavior. |
 | `time.rs` | `core::runtime::time` | keep `RuntimeTime*` and diagnostics constants facade | Runtime time advances the neutral real/virtual/fixed clock contracts. |
 | `job_scheduler.rs` | `core::runtime::tasks::job_scheduler` | keep `JobScheduler` through `core::runtime` and root `core` facades until the task slice settles | It is a compute facade over runtime task pools. |

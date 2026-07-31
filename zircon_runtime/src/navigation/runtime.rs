@@ -1,4 +1,4 @@
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavMeshAsset, NavMeshBakeReport,
@@ -22,13 +22,17 @@ use avoidance::avoidance_adjusted_target;
 use baked_mesh::BakedNavMesh;
 use math::{distance_xz, rotation_from_direction};
 use state::BuiltinNavigationState;
-use world_scan::{
-    collect_agent, collect_agent_positions, collect_agents, collect_obstacles, RuntimeObstacle,
-};
+use world_scan::NavigationWorldProjection;
 
 #[derive(Debug)]
 pub struct BuiltinNavigationManager {
     state: Mutex<BuiltinNavigationState>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AgentTickOutcome {
+    Handled,
+    RepathBudgetExhausted,
 }
 
 impl BuiltinNavigationManager {
@@ -72,7 +76,9 @@ impl BuiltinNavigationManager {
         let mut state = self.lock_state();
         let handle = NavMeshHandle(state.next_handle);
         state.next_handle += 1;
-        state.loaded.insert(handle, BakedNavMesh::new(asset));
+        state
+            .loaded
+            .insert(handle, Arc::new(BakedNavMesh::new(asset)));
         state.stats.loaded_nav_meshes = state.loaded.len();
         Ok(handle)
     }
@@ -87,8 +93,7 @@ impl BuiltinNavigationManager {
     }
 
     fn find_path(&self, query: NavPathQuery) -> Result<NavPathResult, NavigationError> {
-        let state = self.lock_state();
-        let mesh = state.selected_mesh(query.nav_mesh)?;
+        let mesh = self.lock_state().selected_mesh_snapshot(query.nav_mesh)?;
         Ok(mesh.find_path(query))
     }
 
@@ -107,14 +112,12 @@ impl BuiltinNavigationManager {
         &self,
         query: NavSampleQuery,
     ) -> Result<Option<NavSampleHit>, NavigationError> {
-        let state = self.lock_state();
-        let mesh = state.selected_mesh(query.nav_mesh)?;
+        let mesh = self.lock_state().selected_mesh_snapshot(query.nav_mesh)?;
         Ok(mesh.sample_position(query))
     }
 
     fn raycast(&self, query: NavRaycastQuery) -> Result<NavRaycastResult, NavigationError> {
-        let state = self.lock_state();
-        let mesh = state.selected_mesh(query.nav_mesh)?;
+        let mesh = self.lock_state().selected_mesh_snapshot(query.nav_mesh)?;
         Ok(mesh.raycast(query))
     }
 
@@ -127,30 +130,57 @@ impl BuiltinNavigationManager {
             return Ok(NavAgentTickReport::default());
         }
 
-        let agents = collect_agents(world);
-        let agent_positions = collect_agent_positions(world, &agents);
-        let obstacles = collect_obstacles(world);
+        let mut projection = {
+            let mut state = self.lock_state();
+            let projection = state.take_navigation_projection(world);
+            state.stats.active_agents = projection.agents.len();
+            state.stats.active_obstacles = projection.obstacles.len();
+            projection
+        };
         let mut report = NavAgentTickReport {
-            scanned_agents: agents.len(),
+            scanned_agents: projection.agents.len(),
             ..NavAgentTickReport::default()
         };
-        {
-            let mut state = self.lock_state();
-            state.stats.active_agents = agents.len();
-            state.stats.active_obstacles = obstacles.len();
-        }
 
-        for (entity, agent) in agents {
-            self.tick_agent(
+        let agent_count = projection.agents.len();
+        let repath_start = self.lock_state().begin_repath_frame(agent_count);
+        let mut next_repath = repath_start;
+        projection.begin_avoidance_frame();
+        for offset in 0..agent_count {
+            let index = (repath_start + offset) % agent_count;
+            let (entity, agent) = {
+                let runtime_agent = &projection.agents[index];
+                (runtime_agent.entity, runtime_agent.descriptor.clone())
+            };
+            match self.tick_agent(
                 world,
                 entity,
-                agent,
-                &obstacles,
-                &agent_positions,
+                &agent,
+                &mut projection,
                 dt_seconds,
                 &mut report,
-            );
+            ) {
+                AgentTickOutcome::Handled => {
+                    next_repath = (index + 1) % agent_count;
+                }
+                AgentTickOutcome::RepathBudgetExhausted => {
+                    next_repath = index;
+                    break;
+                }
+            }
         }
+        self.lock_state()
+            .set_repath_cursor(next_repath, agent_count);
+        for index in 0..projection.agents.len() {
+            let entity = projection.agents[index].entity;
+            if let Some(transform) = world.world_transform(entity) {
+                projection.update_agent_position(entity, transform.translation);
+            }
+        }
+        // Navigation movement advances the world revision. Store the matching
+        // post-tick projection so the next stable frame can reuse typed rows.
+        projection.generation = world.world_generation();
+        self.lock_state().store_navigation_projection(projection);
         Ok(report)
     }
 
@@ -164,31 +194,44 @@ impl BuiltinNavigationManager {
             return Ok(NavAgentTickReport::default());
         }
 
-        let Some(agent) = collect_agent(world, entity) else {
+        let mut projection = {
+            let mut state = self.lock_state();
+            let projection = state.take_navigation_projection(world);
+            state.stats.active_agents = projection.agents.len();
+            state.stats.active_obstacles = projection.obstacles.len();
+            projection
+        };
+        let Some(agent) = projection
+            .agents
+            .iter()
+            .find(|candidate| candidate.entity == entity)
+            .map(|candidate| candidate.descriptor.clone())
+        else {
+            self.lock_state().store_navigation_projection(projection);
             return Ok(NavAgentTickReport::default());
         };
-        let agents = collect_agents(world);
-        let agent_positions = collect_agent_positions(world, &agents);
-        let obstacles = collect_obstacles(world);
         let mut report = NavAgentTickReport {
             scanned_agents: 1,
             ..NavAgentTickReport::default()
         };
-        {
-            let mut state = self.lock_state();
-            state.stats.active_agents = agents.len();
-            state.stats.active_obstacles = obstacles.len();
-        }
 
-        self.tick_agent(
+        self.lock_state().begin_repath_frame(1);
+        projection.begin_avoidance_frame();
+        let _ = self.tick_agent(
             world,
             entity,
-            agent,
-            &obstacles,
-            &agent_positions,
+            &agent,
+            &mut projection,
             dt_seconds,
             &mut report,
         );
+        self.lock_state().set_repath_cursor(0, 1);
+        if let Some(transform) = world.world_transform(entity) {
+            projection.update_agent_position(entity, transform.translation);
+        }
+        // Keep the retained rows valid after a targeted navigation writeback.
+        projection.generation = world.world_generation();
+        self.lock_state().store_navigation_projection(projection);
         Ok(report)
     }
 
@@ -284,88 +327,128 @@ impl BuiltinNavigationManager {
         &self,
         world: &mut World,
         entity: u64,
-        agent: NavMeshAgentDescriptor,
-        obstacles: &[RuntimeObstacle],
-        agent_positions: &[(u64, Vec3, Real)],
+        agent: &NavMeshAgentDescriptor,
+        projection: &mut NavigationWorldProjection,
         dt_seconds: Real,
         report: &mut NavAgentTickReport,
-    ) {
+    ) -> AgentTickOutcome {
         let Some(destination) = agent.destination else {
-            return;
+            self.lock_state().clear_repath_route(entity);
+            return AgentTickOutcome::Handled;
         };
         if !agent.update_position {
-            return;
+            self.lock_state().clear_repath_route(entity);
+            return AgentTickOutcome::Handled;
         }
         let Some(transform) = world.world_transform(entity) else {
             report.blocked_agents += 1;
             report
                 .diagnostics
                 .push(format!("agent {entity} has no world transform"));
-            return;
+            return AgentTickOutcome::Handled;
         };
         let current = transform.translation;
         let destination = Vec3::from_array(destination);
-        let path_target = {
-            let state = self.lock_state();
-            match state.selected_mesh(None) {
-                Ok(mesh) => match mesh.find_path(NavPathQuery {
-                    nav_mesh: None,
-                    start: current.to_array(),
-                    end: destination.to_array(),
-                    agent_type: agent.agent_type.clone(),
-                    area_mask: agent.area_mask,
-                }) {
-                    result if result.status != NavPathStatus::NoPath => result
-                        .points
-                        .get(1)
-                        .or_else(|| result.points.last())
-                        .map(|point| Vec3::from_array(point.position))
-                        .unwrap_or(destination),
-                    _ => {
-                        report.blocked_agents += 1;
-                        report
-                            .diagnostics
-                            .push(format!("agent {entity} has no path on loaded navmesh"));
-                        return;
+        let stopping_distance = agent.stopping_distance.max(0.0);
+        if distance_xz(current, destination) <= stopping_distance {
+            self.lock_state().clear_repath_route(entity);
+            return AgentTickOutcome::Handled;
+        }
+        let path_target = if let Some(target) = self.lock_state().cached_repath_target(
+            entity,
+            current,
+            destination,
+            &agent.agent_type,
+            agent.area_mask,
+            stopping_distance,
+        ) {
+            target
+        } else {
+            let mesh = self.lock_state().selected_mesh_snapshot(None);
+            match mesh {
+                Ok(mesh) => {
+                    if !self.lock_state().try_consume_repath_query() {
+                        return AgentTickOutcome::RepathBudgetExhausted;
                     }
-                },
+                    self.lock_state().record_repath_query();
+                    match mesh.find_path(NavPathQuery {
+                        nav_mesh: None,
+                        start: current.to_array(),
+                        end: destination.to_array(),
+                        agent_type: agent.agent_type.clone(),
+                        area_mask: agent.area_mask,
+                    }) {
+                        result if result.status != NavPathStatus::NoPath => {
+                            let mut waypoints = result
+                                .points
+                                .iter()
+                                .skip(1)
+                                .map(|point| Vec3::from_array(point.position))
+                                .collect::<Vec<_>>();
+                            if waypoints.is_empty() {
+                                waypoints.push(destination);
+                            }
+                            let target = waypoints[0];
+                            self.lock_state().store_repath_route(
+                                entity,
+                                destination,
+                                agent.agent_type.clone(),
+                                agent.area_mask,
+                                waypoints,
+                            );
+                            target
+                        }
+                        _ => {
+                            self.lock_state().clear_repath_route(entity);
+                            report.blocked_agents += 1;
+                            report
+                                .diagnostics
+                                .push(format!("agent {entity} has no path on loaded navmesh"));
+                            return AgentTickOutcome::Handled;
+                        }
+                    }
+                }
                 Err(_) => destination,
             }
         };
+        let (obstacles, agent_positions) =
+            projection.local_avoidance_rows(entity, current, agent.radius);
         let movement_target = avoidance_adjusted_target(
             entity,
             current,
             path_target,
-            &agent,
+            agent,
             obstacles,
             agent_positions,
         );
         let delta = movement_target - current;
         let distance = distance_xz(current, movement_target);
-        if distance <= agent.stopping_distance.max(0.0) {
-            return;
+        if distance <= stopping_distance {
+            return AgentTickOutcome::Handled;
         }
         let max_step = agent.speed.max(0.0) * dt_seconds;
         if max_step <= Real::EPSILON {
-            return;
+            return AgentTickOutcome::Handled;
         }
         let direction = Vec3::new(delta.x, 0.0, delta.z).normalize_or_zero();
         let mut next = current + direction * max_step.min(distance);
         if let Some(sampled) = {
-            let state = self.lock_state();
-            state.selected_mesh(None).ok().and_then(|mesh| {
-                mesh.sample_position(NavSampleQuery {
-                    nav_mesh: None,
-                    position: next.to_array(),
-                    extents: [
-                        agent.radius.max(0.25),
-                        agent.height.max(0.5),
-                        agent.radius.max(0.25),
-                    ],
-                    agent_type: agent.agent_type.clone(),
-                    area_mask: agent.area_mask,
+            self.lock_state()
+                .selected_mesh_snapshot(None)
+                .ok()
+                .and_then(|mesh| {
+                    mesh.sample_position(NavSampleQuery {
+                        nav_mesh: None,
+                        position: next.to_array(),
+                        extents: [
+                            agent.radius.max(0.25),
+                            agent.height.max(0.5),
+                            agent.radius.max(0.25),
+                        ],
+                        agent_type: agent.agent_type.clone(),
+                        area_mask: agent.area_mask,
+                    })
                 })
-            })
         } {
             next = Vec3::from_array(sampled.position);
         }
@@ -390,5 +473,6 @@ impl BuiltinNavigationManager {
                     .push(format!("agent {entity} could not move: {error}"));
             }
         }
+        AgentTickOutcome::Handled
     }
 }

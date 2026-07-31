@@ -261,9 +261,9 @@ fn terminal_directory_was_folded(path_segments: &[String]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
+        GENERATED_MATERIAL_MODULE_IMPORT_PATH, ShaderImportPathDerivationError,
         derive_shader_import_path, is_builtin_shader_module_token,
         shader_project_namespace_from_name, strip_wgsl_include_directives, wgsl_include_paths,
-        ShaderImportPathDerivationError, GENERATED_MATERIAL_MODULE_IMPORT_PATH,
     };
 
     #[test]

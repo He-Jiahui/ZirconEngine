@@ -89,6 +89,14 @@ fn rapid_successive_writes_within_debounce_window_emit_single_reload() {
 }
 
 #[test]
+fn watcher_loop_folds_pending_events_incrementally() {
+    let source = include_str!("../watch/watch_loop.rs");
+
+    assert!(source.contains("fold_event(&mut pending"));
+    assert!(!source.contains("pending.extend("));
+}
+
+#[test]
 fn watcher_failure_on_removed_directory_surfaces_observable_error() {
     let assets_root = PathBuf::from("sandbox/assets");
     let (stop_tx, stop_rx) = unbounded();

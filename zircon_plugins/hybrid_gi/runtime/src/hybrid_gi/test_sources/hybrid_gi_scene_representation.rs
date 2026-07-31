@@ -3,7 +3,7 @@ use zircon_runtime::core::framework::render::{
     LightmapAtlasFormat, LightmapConsumeContract, LightmapInstanceSlot,
     RenderDirectionalLightSnapshot, RenderHybridGiDebugView, RenderHybridGiExtract,
     RenderHybridGiMode, RenderHybridGiProfile, RenderHybridGiQuality, RenderLayerSet,
-    RenderMeshSnapshot, RenderMeshStaticState, HYBRID_GI_SOURCE_BAKED_BASELINE,
+    RenderMeshSnapshot, RenderMeshStaticState, RendererCommon, HYBRID_GI_SOURCE_BAKED_BASELINE,
     HYBRID_GI_SOURCE_DYNAMIC_DELTA, HYBRID_GI_SOURCE_FULL_DYNAMIC,
 };
 use zircon_runtime::core::framework::scene::Mobility;
@@ -435,6 +435,147 @@ fn hybrid_gi_scene_representation_seeds_radiance_cache_from_surface_cache_then_v
 }
 
 #[test]
+fn hybrid_gi_radiance_cache_marks_unique_probe_lattice_demands() {
+    let mut representation =
+        HybridGiSceneRepresentation::from_extract(&extract_with_trace_and_budgets(2, 2, 0));
+
+    representation.synchronize_scene(
+        &[mesh_at(11, Vec3::ZERO, 1.0), mesh_at(22, Vec3::ZERO, 1.0)],
+        &[],
+        &[],
+        &[],
+    );
+
+    assert_eq!(representation.screen_probe_count(), 2);
+    assert_eq!(
+        representation.radiance_cache_probe_demands(),
+        vec![
+            (0, [23, 23, 23]),
+            (0, [23, 23, 24]),
+            (0, [23, 24, 23]),
+            (0, [23, 24, 24]),
+            (0, [24, 23, 23]),
+            (0, [24, 23, 24]),
+            (0, [24, 24, 23]),
+            (0, [24, 24, 24]),
+        ]
+    );
+}
+
+#[test]
+fn hybrid_gi_radiance_cache_clipmap_topology_is_independent_from_voxel_budget() {
+    let meshes = [
+        mesh_at(11, Vec3::ZERO, 1.0),
+        mesh_at(22, Vec3::new(40.0, 0.0, 0.0), 1.0),
+        mesh_at(33, Vec3::new(80.0, 0.0, 0.0), 1.0),
+        mesh_at(44, Vec3::new(160.0, 0.0, 0.0), 1.0),
+    ];
+    let mut without_voxel =
+        HybridGiSceneRepresentation::from_extract(&extract_with_trace_and_budgets(4, 4, 0));
+    let mut with_voxel =
+        HybridGiSceneRepresentation::from_extract(&extract_with_trace_and_budgets(4, 4, 4));
+
+    without_voxel.synchronize_scene(&meshes, &[], &[], &[]);
+    with_voxel.synchronize_scene(&meshes, &[], &[], &[]);
+
+    assert_eq!(without_voxel.voxel_scene().resident_clipmap_count(), 0);
+    assert_eq!(with_voxel.voxel_scene().resident_clipmap_count(), 4);
+    assert_eq!(
+        without_voxel.radiance_cache_clipmap_topology(),
+        vec![(0, 48, 1.0), (1, 48, 2.0), (2, 48, 4.0), (3, 48, 8.0)]
+    );
+    assert_eq!(
+        without_voxel.radiance_cache_clipmap_topology(),
+        with_voxel.radiance_cache_clipmap_topology()
+    );
+    assert_eq!(
+        without_voxel.radiance_cache_probe_demands(),
+        with_voxel.radiance_cache_probe_demands()
+    );
+    let demands = without_voxel.radiance_cache_probe_demands();
+    assert_eq!(demands.len(), 32);
+    assert_eq!(demands.iter().filter(|(level, _)| *level == 0).count(), 8);
+    assert_eq!(demands.iter().filter(|(level, _)| *level == 1).count(), 8);
+    assert_eq!(demands.iter().filter(|(level, _)| *level == 2).count(), 8);
+    assert_eq!(demands.iter().filter(|(level, _)| *level == 3).count(), 8);
+    assert!(demands.contains(&(1, [43, 23, 23])));
+    assert!(demands.contains(&(1, [44, 24, 24])));
+    assert!(demands.contains(&(2, [43, 23, 23])));
+    assert!(demands.contains(&(2, [44, 24, 24])));
+    assert!(demands.contains(&(3, [43, 23, 23])));
+    assert!(demands.contains(&(3, [44, 24, 24])));
+}
+
+#[test]
+fn hybrid_gi_radiance_cache_selects_clipmaps_symmetrically_at_strict_edges() {
+    let mut representation =
+        HybridGiSceneRepresentation::from_extract(&extract_with_trace_and_budgets(3, 3, 0));
+
+    representation.synchronize_scene(
+        &[
+            mesh_at(11, Vec3::ZERO, 1.0),
+            mesh_at(22, Vec3::new(-23.5, 0.0, 0.0), 1.0),
+            mesh_at(33, Vec3::new(23.5, 0.0, 0.0), 1.0),
+        ],
+        &[],
+        &[],
+        &[],
+    );
+
+    let demands = representation.radiance_cache_probe_demands();
+    assert_eq!(demands.len(), 24);
+    assert_eq!(demands.iter().filter(|(level, _)| *level == 0).count(), 8);
+    assert_eq!(demands.iter().filter(|(level, _)| *level == 1).count(), 16);
+    assert!(demands.contains(&(1, [11, 23, 23])));
+    assert!(demands.contains(&(1, [12, 24, 24])));
+    assert!(demands.contains(&(1, [35, 23, 23])));
+    assert!(demands.contains(&(1, [36, 24, 24])));
+}
+
+#[test]
+fn hybrid_gi_radiance_cache_rejects_invalid_positions_and_clears_empty_scene() {
+    let mut representation =
+        HybridGiSceneRepresentation::from_extract(&extract_with_trace_and_budgets(3, 3, 0));
+
+    representation.synchronize_scene(
+        &[
+            mesh_at(11, Vec3::splat(f32::NAN), 1.0),
+            mesh_at(22, Vec3::new(8.0, -4.0, 2.0), 1.0),
+            mesh_at(33, Vec3::splat(f32::MAX), 1.0),
+        ],
+        &[],
+        &[],
+        &[],
+    );
+
+    assert_eq!(representation.screen_probe_count(), 3);
+    assert_eq!(
+        representation.radiance_cache_clipmap_topology(),
+        vec![(0, 48, 1.0), (1, 48, 2.0), (2, 48, 4.0), (3, 48, 8.0)]
+    );
+    assert_eq!(
+        representation.radiance_cache_probe_demands(),
+        vec![
+            (0, [23, 23, 23]),
+            (0, [23, 23, 24]),
+            (0, [23, 24, 23]),
+            (0, [23, 24, 24]),
+            (0, [24, 23, 23]),
+            (0, [24, 23, 24]),
+            (0, [24, 24, 23]),
+            (0, [24, 24, 24]),
+        ]
+    );
+    assert_eq!(representation.radiance_cache_entry_count(), 3);
+
+    representation.synchronize_scene(&[], &[], &[], &[]);
+
+    assert_eq!(representation.radiance_cache_entry_count(), 0);
+    assert!(representation.radiance_cache_clipmap_topology().is_empty());
+    assert!(representation.radiance_cache_probe_demands().is_empty());
+}
+
+#[test]
 fn hybrid_gi_scene_representation_allocates_page_ids_separately_from_owner_card_ids() {
     let mut representation = HybridGiSceneRepresentation::from_extract(&extract_with_budgets(2, 2));
 
@@ -686,7 +827,11 @@ fn mesh_at(node_id: u64, translation: Vec3, uniform_scale: f32) -> RenderMeshSna
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: true,
+            ..RendererCommon::default()
+        },
     }
 }
 
@@ -694,6 +839,7 @@ fn mesh_with_mobility(node_id: u64, mobility: Mobility) -> RenderMeshSnapshot {
     let mut mesh = mesh_at(node_id, Vec3::ZERO, 1.0);
     mesh.mobility = mobility;
     mesh.static_state = RenderMeshStaticState::from_transform_static(mobility == Mobility::Static);
+    mesh.common.is_static = mobility == Mobility::Static;
     mesh
 }
 

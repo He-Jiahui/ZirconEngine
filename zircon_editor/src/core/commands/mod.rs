@@ -25,9 +25,12 @@ pub use descriptor::{
 pub use document_kind::{DocumentKind, DocumentKindError};
 pub use eval_snapshot_handle::CommandEvalSnapshotHandle;
 pub use key_chord::{EditorKeyChord, EditorKeyChordParseError};
-pub use keymap::{EditorKeyBinding, EditorKeymap, EditorKeymapError};
+pub use keymap::{EditorKeyBinding, EditorKeymap, EditorKeymapConflict, EditorKeymapError};
 pub use menu_model::{MenuBarModel, MenuItemModel, MenuModel};
-pub use palette::EditorCommandPaletteEntry;
+pub use palette::{
+    EditorCommandPaletteCatalog, EditorCommandPaletteEntry, EditorCommandPaletteMru,
+    EditorCommandPaletteQueryMetrics, EditorCommandPaletteQueryWindow,
+};
 pub use play_mode_predicate::PlayModePredicate;
 pub use registry::{EditorCommandDispatchError, EditorCommandRegistry, EditorCommandRegistryError};
 pub use registry_handle::EditorCommandRegistryHandle;

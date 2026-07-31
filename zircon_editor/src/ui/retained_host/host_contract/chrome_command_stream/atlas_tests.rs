@@ -88,9 +88,11 @@ fn recorded_atlas_images_keep_shared_resource_key_and_distinct_uvs() {
     );
     assert!(images.iter().all(|payload| payload.width == 4));
     assert!(images.iter().all(|payload| payload.height == 4));
-    assert!(images
-        .iter()
-        .all(|payload| payload.rgba.as_ref().is_some_and(|rgba| rgba.len() == 64)));
+    assert!(
+        images
+            .iter()
+            .all(|payload| payload.rgba.as_ref().is_some_and(|rgba| rgba.len() == 64))
+    );
 }
 
 #[test]

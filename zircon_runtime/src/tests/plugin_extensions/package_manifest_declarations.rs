@@ -2,10 +2,10 @@ use crate::asset::AssetImporterDescriptor;
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
 use crate::core::framework::render::{
-    GBufferChannelMask, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
-    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
-    RenderShaderDefinitionValue, ShadingModelDescriptor, ShadingModelId,
-    GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
+    GBufferChannelMask, GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceBindingKind,
+    GeometrySourceBindingRequirement, GeometrySourceDescriptor, GeometrySourceId,
+    GeometrySourceVertexAttribute, RenderShaderDefinitionValue, SHADING_MODEL_PLUGIN_ID_START,
+    ShadingModelDescriptor, ShadingModelId,
 };
 use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
@@ -15,6 +15,20 @@ use crate::plugin::{
     PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleKind, PluginModuleManifest,
     PluginPackageKind, PluginPackageManifest, PluginShaderModuleManifest, UiComponentDescriptor,
 };
+
+#[test]
+fn bridge_method_required_capability_builder_uses_incremental_sorted_insertion() {
+    let source = include_str!("../../plugin/package_manifest/plugin_interface_manifest.rs");
+    assert!(source.contains("binary_search_by"));
+    assert!(!source.contains("self.required_capabilities.sort()"));
+    assert!(!source.contains("self.required_capabilities.dedup()"));
+
+    let method = PluginInterfaceMethodManifest::new("sample", 0)
+        .with_required_capability("zeta")
+        .with_required_capability("alpha")
+        .with_required_capability("zeta");
+    assert_eq!(method.required_capabilities, ["alpha", "zeta"]);
+}
 
 #[test]
 fn plugin_package_manifest_declares_runtime_and_editor_contributions() {
@@ -112,14 +126,18 @@ fn plugin_package_manifest_declares_public_package_metadata() {
         vec!["assets".to_string()]
     );
     assert_eq!(manifest.content_roots, vec!["content".to_string()]);
-    assert!(manifest
-        .modules
-        .iter()
-        .any(|module| module.kind == PluginModuleKind::Native));
-    assert!(manifest
-        .modules
-        .iter()
-        .any(|module| module.kind == PluginModuleKind::Vm));
+    assert!(
+        manifest
+            .modules
+            .iter()
+            .any(|module| module.kind == PluginModuleKind::Native)
+    );
+    assert!(
+        manifest
+            .modules
+            .iter()
+            .any(|module| module.kind == PluginModuleKind::Vm)
+    );
 
     let encoded = toml::to_string(&manifest).expect("manifest toml");
     assert!(encoded.contains("sdk_api_version = \"0.2.0\""));
@@ -418,14 +436,18 @@ fn plugin_package_manifest_declares_optional_feature_bundles() {
     assert_eq!(manifest.optional_features, vec![feature]);
     assert!(!manifest.optional_features[0].enabled_by_default);
     assert_eq!(manifest.optional_features[0].owner_plugin_id, "sound");
-    assert!(manifest.optional_features[0]
-        .dependencies
-        .iter()
-        .any(|dependency| dependency.plugin_id == "sound" && dependency.primary));
-    assert!(manifest.optional_features[0]
-        .modules
-        .iter()
-        .any(|module| module.crate_name == "zircon_plugin_sound_timeline_animation_runtime"));
+    assert!(
+        manifest.optional_features[0]
+            .dependencies
+            .iter()
+            .any(|dependency| dependency.plugin_id == "sound" && dependency.primary)
+    );
+    assert!(
+        manifest.optional_features[0]
+            .modules
+            .iter()
+            .any(|module| module.crate_name == "zircon_plugin_sound_timeline_animation_runtime")
+    );
 
     let encoded = toml::to_string(&manifest).expect("manifest toml");
     let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");

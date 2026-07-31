@@ -4,13 +4,14 @@ import re
 import unittest
 from pathlib import Path
 
+from tools.tests.frameworks_05_module_identity import Frameworks05ModuleIdentityChecks
 from tools.runtime_domain_dependency_audit import audit_runtime_domain_dependencies
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-class Frameworks05LayerDirectionTests(unittest.TestCase):
+class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         report = audit_runtime_domain_dependencies(REPO_ROOT)
@@ -75,8 +76,8 @@ class Frameworks05LayerDirectionTests(unittest.TestCase):
         manager_source = (
             REPO_ROOT / "zircon_runtime/src/core/framework/animation/manager.rs"
         ).read_text(encoding="utf-8")
-        runtime_sequence_source = (
-            REPO_ROOT / "zircon_runtime/src/animation/scene_hook/sequences.rs"
+        runtime_sequence_owner_source = (
+            REPO_ROOT / "zircon_runtime/src/animation/sequence/apply.rs"
         ).read_text(encoding="utf-8")
         plugin_sequence_source = (
             REPO_ROOT
@@ -85,8 +86,9 @@ class Frameworks05LayerDirectionTests(unittest.TestCase):
 
         self.assertNotIn("crate::scene", manager_source)
         self.assertNotIn("apply_sequence_to_world", manager_source)
-        self.assertIn("crate::animation::sequence::apply_sequence_to_world", runtime_sequence_source)
-        self.assertIn("crate::sequence::apply_sequence_to_world", plugin_sequence_source)
+        self.assertIn("pub fn apply_sequence_to_world", runtime_sequence_owner_source)
+        self.assertIn("crate::apply_sequence_to_world", plugin_sequence_source)
+        self.assertNotIn("crate::sequence::apply_sequence_to_world", plugin_sequence_source)
 
     def test_navigation_gizmo_contract_does_not_project_nav_mesh_assets(self) -> None:
         gizmo_source = (
@@ -132,6 +134,189 @@ class Frameworks05LayerDirectionTests(unittest.TestCase):
             source = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
             self.assertNotIn("crate::plugin::ComponentTypeDescriptor", source)
             self.assertNotIn("crate::plugin::{ComponentPropertyDescriptor", source)
+
+    def test_platform_module_identity_has_one_neutral_contract_owner(self) -> None:
+        neutral_owner = (
+            REPO_ROOT
+            / "zircon_runtime/src/core/framework/platform/module_identity.rs"
+        )
+        platform_contract = (
+            REPO_ROOT / "zircon_runtime/src/core/framework/platform/mod.rs"
+        ).read_text(encoding="utf-8")
+        platform_module = (
+            REPO_ROOT / "zircon_runtime/src/platform/module.rs"
+        ).read_text(encoding="utf-8")
+        platform_root = (
+            REPO_ROOT / "zircon_runtime/src/platform/mod.rs"
+        ).read_text(encoding="utf-8")
+        input_descriptor = (
+            REPO_ROOT / "zircon_runtime/src/input/module/descriptor.rs"
+        ).read_text(encoding="utf-8")
+        graphics_descriptor = (
+            REPO_ROOT
+            / "zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs"
+        ).read_text(encoding="utf-8")
+
+        self.assertTrue(neutral_owner.is_file())
+        owner_source = neutral_owner.read_text(encoding="utf-8")
+        self.assertIn(
+            'pub const PLATFORM_MODULE_NAME: &str = "PlatformModule";', owner_source
+        )
+        self.assertIn("mod module_identity;", platform_contract)
+        self.assertIn(
+            "pub use module_identity::PLATFORM_MODULE_NAME;", platform_contract
+        )
+        self.assertNotIn("pub const PLATFORM_MODULE_NAME", platform_module)
+        self.assertIn(
+            "pub use crate::core::framework::platform::PLATFORM_MODULE_NAME;",
+            platform_root,
+        )
+        for consumer in (input_descriptor, graphics_descriptor):
+            self.assertIn(
+                "core::framework::platform::PLATFORM_MODULE_NAME", consumer
+            )
+            self.assertNotIn("crate::platform::PLATFORM_MODULE_NAME", consumer)
+
+        platform_group_import = re.compile(
+            r"use\s+crate::platform::\{[^}]*\bPLATFORM_MODULE_NAME\b", re.DOTALL
+        )
+        outer_crate_group_import = re.compile(
+            r"use\s+crate::\{([^;]*)\}\s*;", re.DOTALL
+        )
+        platform_module_name_definition = re.compile(
+            r"^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+PLATFORM_MODULE_NAME\b",
+            re.MULTILINE,
+        )
+
+        def split_top_level_use_items(body: str) -> list[str]:
+            items = []
+            depth = 0
+            start = 0
+            for index, character in enumerate(body):
+                if character == "{":
+                    depth += 1
+                elif character == "}":
+                    depth -= 1
+                elif character == "," and depth == 0:
+                    items.append(body[start:index].strip())
+                    start = index + 1
+            items.append(body[start:].strip())
+            return [item for item in items if item]
+
+        def has_concrete_platform_constant_group_import(source: str) -> bool:
+            for match in outer_crate_group_import.finditer(source):
+                for item in split_top_level_use_items(match.group(1)):
+                    normalized = re.sub(r"\s+", "", item)
+                    if normalized.startswith("platform::") and re.search(
+                        r"\bPLATFORM_MODULE_NAME\b", item
+                    ):
+                        return True
+            return False
+
+        def concrete_platform_aliases(source: str) -> set[str]:
+            aliases = set()
+            for match in re.finditer(
+                r"use\s+crate::platform(?:\s+as\s+([A-Za-z_]\w*))?\s*;",
+                source,
+            ):
+                aliases.add(match.group(1) or "platform")
+            for match in re.finditer(
+                r"use\s+crate::platform::\{([^;]*)\}\s*;", source, re.DOTALL
+            ):
+                self_import = re.search(
+                    r"(?:^|,)\s*self(?:\s+as\s+([A-Za-z_]\w*))?(?=\s*(?:,|$))",
+                    match.group(1),
+                )
+                if self_import:
+                    aliases.add(self_import.group(1) or "platform")
+            for match in re.finditer(
+                outer_crate_group_import, source
+            ):
+                for item in split_top_level_use_items(match.group(1)):
+                    root_alias = re.fullmatch(
+                        r"platform\s+as\s+([A-Za-z_]\w*)", item
+                    )
+                    if root_alias:
+                        aliases.add(root_alias.group(1))
+                    elif item == "platform":
+                        aliases.add("platform")
+                    elif re.match(r"platform\s*::\s*\{", item):
+                        nested_self = re.search(
+                            r"\bself(?:\s+as\s+([A-Za-z_]\w*))?",
+                            item,
+                        )
+                        if nested_self:
+                            aliases.add(nested_self.group(1) or "platform")
+            return aliases
+
+        self.assertTrue(
+            has_concrete_platform_constant_group_import(
+                "use crate::{platform::{PLATFORM_MODULE_NAME as MODULE_NAME}};"
+            )
+        )
+        self.assertEqual(
+            concrete_platform_aliases(
+                "use crate::platform as platform_impl;\n"
+                "platform_impl::PLATFORM_MODULE_NAME;"
+            ),
+            {"platform_impl"},
+        )
+        for allowed_alias in (
+            "use crate::core::framework::platform as platform_contract;\n"
+            "platform_contract::PLATFORM_MODULE_NAME;",
+            "use zircon_runtime::platform as runtime_platform;\n"
+            "runtime_platform::PLATFORM_MODULE_NAME;",
+        ):
+            self.assertEqual(concrete_platform_aliases(allowed_alias), set())
+        for allowed_grouped_import in (
+            "use crate::{core::framework::platform::{PLATFORM_MODULE_NAME}};",
+            "use crate::{core::framework::platform::PLATFORM_MODULE_NAME, "
+            "input::INPUT_MODULE_NAME};",
+        ):
+            self.assertFalse(
+                has_concrete_platform_constant_group_import(allowed_grouped_import)
+            )
+
+        definition_owners = []
+        for root in (
+            REPO_ROOT / "zircon_runtime/src",
+            REPO_ROOT / "zircon_runtime/tests",
+            REPO_ROOT / "zircon_app/src",
+            REPO_ROOT / "zircon_app/tests",
+            REPO_ROOT / "zircon_editor/src",
+            REPO_ROOT / "zircon_editor/tests",
+            REPO_ROOT / "zircon_plugins",
+        ):
+            for path in root.rglob("*.rs"):
+                source = path.read_text(encoding="utf-8")
+                relative = path.relative_to(REPO_ROOT).as_posix()
+                if platform_module_name_definition.search(source):
+                    definition_owners.append(relative)
+                if relative.startswith("zircon_runtime/"):
+                    self.assertNotIn(
+                        "crate::platform::PLATFORM_MODULE_NAME",
+                        source,
+                        f"{relative} must use the neutral platform module identity owner",
+                    )
+                    if relative != "zircon_runtime/src/prelude.rs":
+                        self.assertIsNone(
+                            platform_group_import.search(source),
+                            f"{relative} must not import PLATFORM_MODULE_NAME from the platform root",
+                        )
+                    self.assertFalse(
+                        has_concrete_platform_constant_group_import(source),
+                        f"{relative} must not import PLATFORM_MODULE_NAME through crate::platform",
+                    )
+                    for alias in concrete_platform_aliases(source):
+                        self.assertNotRegex(
+                            source,
+                            rf"\b{re.escape(alias)}::PLATFORM_MODULE_NAME\b",
+                            f"{relative} must not access PLATFORM_MODULE_NAME through crate::platform alias {alias}",
+                        )
+        self.assertEqual(
+            definition_owners,
+            ["zircon_runtime/src/core/framework/platform/module_identity.rs"],
+        )
 
     def test_navigation_asset_schema_has_one_neutral_owner(self) -> None:
         neutral_owner = (
@@ -414,7 +599,7 @@ class Frameworks05LayerDirectionTests(unittest.TestCase):
             REPO_ROOT / "zircon_runtime/src/scene/module/mod.rs"
         ).read_text(encoding="utf-8")
         error_source = (
-            REPO_ROOT / "zircon_runtime/src/core/framework/error.rs"
+            REPO_ROOT / "zircon_runtime/src/core/runtime/error.rs"
         ).read_text(encoding="utf-8")
         content_download_state_source = (
             REPO_ROOT
@@ -650,7 +835,7 @@ class Frameworks05LayerDirectionTests(unittest.TestCase):
         self.assertIn(".resolve(self.resource_manager.clone())", retained_assets)
 
         editor_render_fixture = (
-            REPO_ROOT / "zircon_editor/src/tests/editing/state.rs"
+            REPO_ROOT / "zircon_editor/src/tests/editing/state/viewport.rs"
         ).read_text(encoding="utf-8")
         self.assertIn("ProjectAssetManagerAccess::new(core, handle)", editor_render_fixture)
         self.assertIn("manager_service_handle(&core, SERVICE_NAME)", editor_render_fixture)

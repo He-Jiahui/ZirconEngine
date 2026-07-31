@@ -8,14 +8,14 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     for required_anchor in [
         "input_stack_boundary",
         "expected_runtime_module_count = 18",
-        "expected_framework_module_count = 25",
+        "expected_framework_module_count = 26",
         "expected_test_module_count = 7",
         "expected_guard_file_count = 6",
         "missing_guard_files = []",
         "missing_input_prelude_anchors = []",
         "missing_crate_prelude_anchors = []",
         "missing_axis_frame_index_anchors = []",
-        "public_surface_anchors = 30/30",
+        "public_surface_anchors = 31/31",
         "runtime_12_guard_anchors = 5/5",
         "missing_gamepad_abi_anchors = []",
         "missing_cursor_host_request_anchors = []",
@@ -37,7 +37,7 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
 
     for current_anchor in [
         "expected_runtime_module_count = 18",
-        "expected_framework_module_count = 25",
+        "expected_framework_module_count = 26",
     ] {
         assert_eq!(
             input_doc.matches(current_anchor).count(),
@@ -49,7 +49,7 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     for summary_anchor in [
         "# Runtime12 M4 Input Event Bounds Current-Source Addendum",
         "Milestone: M4",
-        "runtime/framework/test `18/25/7`",
+        "runtime/framework/test `18/26/7`",
         "behavior anchors `21`",
         "unexpected/missing/wiring/risk lists 全空",
     ] {

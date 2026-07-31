@@ -9,23 +9,27 @@ use crate::graphics::visibility::FrameVisibility;
 use crate::graphics::{
     ViewportCameraStackOutputPolicy, ViewportRenderFrame, ViewportRenderOutputTarget,
 };
+use std::collections::HashSet;
 use std::sync::Arc;
+use std::time::Instant;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
-use super::super::super::wgpu_render_framework::WgpuRenderFramework;
+use super::super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 use super::super::build_frame_submission_context::FrameSubmissionSourcePayloads;
 
 pub(super) fn submit_camera_loop(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
     ui: Option<UiRenderExtract>,
+    submit_started: &Instant,
     submit_selected_camera: impl Fn(
-        &WgpuRenderFramework,
+        &dyn WgpuRenderFrameworkAccess,
         RenderViewportHandle,
         &mut Arc<RenderFrameExtract>,
         Option<FrameSubmissionSourcePayloads<'_>>,
         Option<UiRenderExtract>,
+        &Instant,
         CameraLoopOutputPolicy,
     ) -> Result<(), RenderFrameworkError>,
 ) -> Result<(), RenderFrameworkError> {
@@ -42,6 +46,7 @@ pub(super) fn submit_camera_loop(
                 extract,
                 source_payloads,
                 ui,
+                submit_started,
                 output_policy,
             )
         },
@@ -55,16 +60,25 @@ pub(super) fn submit_camera_loop(
 pub(super) fn viewport_terminal_camera_target(
     extract: &RenderFrameExtract,
 ) -> Result<RenderCameraTarget, RenderFrameworkError> {
-    camera_loop_submissions(extract)?
-        .into_iter()
-        .find(|submission| {
-            ViewportCameraStackOutputPolicy::from(submission.output_policy)
-                .owns_viewport_submission()
+    let sequence = resolve_camera_sequence_borrowed(&extract.view.cameras).sequence;
+    if sequence.is_empty() {
+        return Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "active camera sequence".to_string(),
+        });
+    }
+    let terminal = terminal_screen_space_ui_camera_position(&sequence)
+        .and_then(|position| {
+            let entry = sequence.get(position.base_index)?;
+            if position.camera_index == 0 {
+                Some(&entry.base)
+            } else {
+                entry.overlays.get(position.camera_index - 1)
+            }
         })
-        .map(|submission| submission.camera.target.clone())
         .ok_or_else(|| RenderFrameworkError::UnsupportedCapability {
             capability: "viewport-terminal camera".to_string(),
-        })
+        })?;
+    Ok(terminal.target.clone())
 }
 
 fn camera_loop_submissions(
@@ -90,15 +104,21 @@ fn camera_loop_submissions_from_cameras(
 }
 
 pub(super) fn submit_camera_loop_frame(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     frame: ViewportRenderFrame,
-    fail_preflight_error: impl Fn(&WgpuRenderFramework, RenderViewportHandle, &RenderFrameworkError),
+    submit_started: &Instant,
+    fail_preflight_error: impl Fn(
+        &dyn WgpuRenderFrameworkAccess,
+        RenderViewportHandle,
+        &RenderFrameworkError,
+    ),
     mut submit_selected_frame: impl FnMut(
-        &WgpuRenderFramework,
+        &dyn WgpuRenderFrameworkAccess,
         RenderViewportHandle,
         &mut ViewportRenderFrame,
         Option<FrameSubmissionSourcePayloads<'_>>,
+        &Instant,
         CameraLoopOutputPolicy,
     ) -> Result<(), RenderFrameworkError>,
 ) -> Result<(), RenderFrameworkError> {
@@ -115,7 +135,14 @@ pub(super) fn submit_camera_loop_frame(
         frame,
         plan.submissions,
         |frame, source_payloads, output_policy| {
-            submit_selected_frame(framework, viewport, frame, source_payloads, output_policy)
+            submit_selected_frame(
+                framework,
+                viewport,
+                frame,
+                source_payloads,
+                submit_started,
+                output_policy,
+            )
         },
     );
     if result.is_ok() {
@@ -130,7 +157,7 @@ struct CameraLoopSubmissionPlan {
 }
 
 fn camera_loop_submissions_for_submit(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     extract: &RenderFrameExtract,
 ) -> Result<CameraLoopSubmissionPlan, RenderFrameworkError> {
     let updates = framework.lock_planar_reflection_updates();
@@ -141,33 +168,45 @@ fn camera_loop_submissions_with_planar_updates(
     extract: &RenderFrameExtract,
     updates: &PlanarReflectionUpdateState,
 ) -> Result<CameraLoopSubmissionPlan, RenderFrameworkError> {
-    let mut cameras = extract.view.cameras.clone();
+    let mut augmented_cameras = None::<Vec<CameraRenderDescriptor>>;
     let mut planar_probe_ids = Vec::new();
+    let mut submitted_texture_targets = extract
+        .view
+        .cameras
+        .iter()
+        .filter_map(|camera| match &camera.target {
+            RenderCameraTarget::Texture(target) => Some(target.id()),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
     if let Some(main_camera) = extract.view.selected_camera_descriptor() {
         for probe in &extract.lighting.advanced_lighting.planar_probes {
             let Some(target) = probe.capture_target() else {
                 continue;
             };
-            let already_submitted = cameras.iter().any(|camera| {
-                matches!(&camera.target, RenderCameraTarget::Texture(existing) if *existing == target)
-            });
-            if !updates.should_capture(probe) || already_submitted {
+            if !updates.should_capture(probe) || submitted_texture_targets.contains(&target.id()) {
                 continue;
             }
             if let Some(camera) = derive_planar_reflection_camera(main_camera, probe, target) {
-                cameras.push(camera);
+                submitted_texture_targets.insert(target.id());
+                augmented_cameras
+                    .get_or_insert_with(|| extract.view.cameras.clone())
+                    .push(camera);
                 planar_probe_ids.push(probe.probe_id);
             }
         }
     }
+    let cameras = augmented_cameras
+        .as_deref()
+        .unwrap_or(&extract.view.cameras);
     Ok(CameraLoopSubmissionPlan {
-        submissions: camera_loop_submissions_from_cameras(&cameras)?,
+        submissions: camera_loop_submissions_from_cameras(cameras)?,
         planar_probe_ids,
     })
 }
 
 fn record_successful_camera_loop(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     submission_count: usize,
     planar_probe_ids: &[u64],
 ) {

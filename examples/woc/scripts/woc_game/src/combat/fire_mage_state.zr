@@ -1,0 +1,166 @@
+// Fire Mage WOS decision plans. The WOS reducer remains the sole aura, cooldown,
+// damage and event owner; this module preserves branch ordering without RNG draws.
+var contract = %import("generated/fire_mage_contract");
+
+pub class HotStreakPlan {
+    pub var removeHeating: bool;
+    pub var applyHeating: bool;
+    pub var applyHotStreakPair: bool;
+    pub var updateCombustionCooldown: bool;
+    pub var combustionCooldown: float;
+    pub @constructor(removeHeating: bool, applyHeating: bool, applyHotStreakPair: bool, updateCombustionCooldown: bool, combustionCooldown: float) {
+        this.removeHeating = removeHeating;
+        this.applyHeating = applyHeating;
+        this.applyHotStreakPair = applyHotStreakPair;
+        this.updateCombustionCooldown = updateCombustionCooldown;
+        this.combustionCooldown = combustionCooldown;
+    }
+}
+
+pub class CauterizePlan {
+    pub var applies: bool;
+    pub var restoredHp: int;
+    pub var burnPerTick: int;
+    pub @constructor(applies: bool, restoredHp: int, burnPerTick: int) {
+        this.applies = applies;
+        this.restoredHp = restoredHp;
+        this.burnPerTick = burnPerTick;
+    }
+}
+
+pub class IgnitePlan {
+    pub var applies: bool;
+    pub var updatesExisting: bool;
+    pub var perTick: int;
+    pub var resultingValue: int;
+    pub @constructor(applies: bool, updatesExisting: bool, perTick: int, resultingValue: int) {
+        this.applies = applies;
+        this.updatesExisting = updatesExisting;
+        this.perTick = perTick;
+        this.resultingValue = resultingValue;
+    }
+}
+
+pub class PersonalBarrierPlan {
+    pub var hasBarrier: bool;
+    pub var barrierId: string;
+    pub @constructor(hasBarrier: bool, barrierId: string) {
+        this.hasBarrier = hasBarrier;
+        this.barrierId = barrierId;
+    }
+}
+
+pub class IgniteCritPlan {
+    pub var applies: bool;
+    pub var amount: int;
+    pub var ignitionPct: float;
+    pub @constructor(applies: bool, amount: int, ignitionPct: float) {
+        this.applies = applies;
+        this.amount = amount;
+        this.ignitionPct = ignitionPct;
+    }
+}
+
+pub fireGuaranteedCrit(committedFire: bool, school: string, hasCombustion: bool, abilityId: string, targetPresent: bool, targetHp: int, targetMaxHp: int): bool {
+    if (school != contract.fireSchool() || !committedFire) return false;
+    if (hasCombustion || abilityId == "fire_blast") return true;
+    return abilityId == "scorch" && targetPresent && <float>targetHp <= <float>targetMaxHp * contract.scorchExecuteHp();
+}
+
+pub hotStreakOnSpellHit(committedFire: bool, abilityPresent: bool, abilityId: string, crit: bool, hasHeating: bool, hasCombustion: bool, hasCombustionCooldown: bool, combustionCooldown: float): HotStreakPlan {
+    var inert = new HotStreakPlan(false, false, false, false, combustionCooldown);
+    if (!abilityPresent || !contract.isHotStreakBuilder(abilityId) || !committedFire) return inert;
+    if (!crit) return new HotStreakPlan(hasHeating, false, false, false, combustionCooldown);
+    var nextCooldown = combustionCooldown;
+    var updateCooldown = false;
+    if (!hasCombustion && hasCombustionCooldown && combustionCooldown > 0.0) {
+        nextCooldown = combustionCooldown - contract.combustionCdrPerCrit();
+        if (nextCooldown < 0.0) nextCooldown = 0.0;
+        updateCooldown = true;
+    }
+    if (!hasHeating) return new HotStreakPlan(false, true, false, updateCooldown, nextCooldown);
+    return new HotStreakPlan(true, false, true, updateCooldown, nextCooldown);
+}
+
+pub cauterizeFireDamageMult(sourcePresent: bool, sourceIsTarget: bool, sourceHasCauterizing: bool, school: string): float {
+    if (!sourcePresent || sourceIsTarget || school != contract.fireSchool()) return 1.0;
+    return sourceHasCauterizing ? 1.0 + contract.cauterizeFireDamageBonus() : 1.0;
+}
+
+pub personalBarrierForSpec(specPresent: bool, spec: string): PersonalBarrierPlan {
+    if (!specPresent) return new PersonalBarrierPlan(false, "");
+    if (spec == "arcane") return new PersonalBarrierPlan(true, contract.temporalBarrierId());
+    if (spec == "fire") return new PersonalBarrierPlan(true, contract.blazingBarrierId());
+    if (spec == "frost") return new PersonalBarrierPlan(true, contract.iceBarrierId());
+    return new PersonalBarrierPlan(false, "");
+}
+
+// WOS validates specialization, then rounds `amount * ignitionPct` and passes
+// the resulting nonnegative burn into ignitePlan, exactly as igniteOnCrit does.
+pub igniteOnCritPlan(crit: bool, amount: int, abilityPresent: bool, school: string, sourcePresent: bool, sourceIsTarget: bool, committedFire: bool, ignitionPct: float): IgniteCritPlan {
+    if (!crit || amount <= 0 || !abilityPresent || school != contract.fireSchool()) return new IgniteCritPlan(false, amount, ignitionPct);
+    if (!sourcePresent || sourceIsTarget || !committedFire || ignitionPct <= 0.0) return new IgniteCritPlan(false, amount, ignitionPct);
+    return new IgniteCritPlan(true, amount, ignitionPct);
+}
+
+pub isFireSpender(abilityId: string, hasAbilityDefinition: bool): bool {
+    return contract.isHotStreakSpender(abilityId) && hasAbilityDefinition;
+}
+
+// Returns the exact state WOS must apply when the source fireMageCauterize
+// returns zero. Aura/event mutation remains exclusively in the WOS transaction.
+pub cauterizePlan(isPlayer: bool, targetDead: bool, committedFire: bool, hasFatigue: bool, incoming: int, currentHp: int, maxHp: int): CauterizePlan {
+    if (!isPlayer || targetDead || incoming < currentHp || !committedFire || hasFatigue) return new CauterizePlan(false, currentHp, 0);
+    var restored = roundPositiveRatio(maxHp, contract.cauterizeHealDivisor());
+    if (restored < 1) restored = 1;
+    var burn = roundPositiveRatio(maxHp, contract.cauterizeBurnDivisor());
+    if (burn < 1) burn = 1;
+    return new CauterizePlan(true, restored, burn);
+}
+
+// `hasOwnedIgnite` is the WOS lookup for id `ignite` and the damage source id.
+// Both source branches refresh the normal six-second/two-second schedule.
+pub ignitePlan(targetDead: bool, burn: int, hasOwnedIgnite: bool, existingValue: int): IgnitePlan {
+    if (targetDead || burn <= 0) return new IgnitePlan(false, false, 0, existingValue);
+    var perTick = roundPositiveRatio(burn, contract.igniteTickCount());
+    if (perTick < 1) perTick = 1;
+    return new IgnitePlan(true, hasOwnedIgnite, perTick, hasOwnedIgnite ? existingValue + perTick : perTick);
+}
+
+// JavaScript Math.round for a nonnegative integer ratio, with ties upward.
+pub roundPositiveRatio(numerator: int, denominator: int): int {
+    if (numerator <= 0 || denominator <= 0) return 0;
+    var quotient = 0, remainder = numerator;
+    while (remainder >= denominator) {
+        remainder = remainder - denominator;
+        quotient = quotient + 1;
+    }
+    return remainder * 2 >= denominator ? quotient + 1 : quotient;
+}
+
+pub contractTest(): int {
+    if (!fireGuaranteedCrit(true, "fire", false, "fire_blast", false, 0, 0)) return -1;
+    if (!fireGuaranteedCrit(true, "fire", false, "scorch", true, 30, 100)) return -2;
+    if (fireGuaranteedCrit(true, "fire", false, "scorch", true, 31, 100) || fireGuaranteedCrit(false, "fire", true, "fireball", true, 1, 1)) return -3;
+    var breakPlan = hotStreakOnSpellHit(true, true, "fireball", false, true, false, true, 6.0);
+    if (!breakPlan.removeHeating || breakPlan.updateCombustionCooldown) return -4;
+    var firstCrit = hotStreakOnSpellHit(true, true, "scorch", true, false, false, true, 1.0);
+    if (!firstCrit.applyHeating || firstCrit.applyHotStreakPair || !firstCrit.updateCombustionCooldown || firstCrit.combustionCooldown != 0.0) return -5;
+    var secondCrit = hotStreakOnSpellHit(true, true, "pyroblast", true, true, true, true, 4.0);
+    if (!secondCrit.removeHeating || !secondCrit.applyHotStreakPair || secondCrit.updateCombustionCooldown) return -6;
+    if (hotStreakOnSpellHit(true, true, "frostbolt", true, true, false, true, 4.0).removeHeating) return -7;
+    if (cauterizeFireDamageMult(true, false, true, "fire") != 1.12 || cauterizeFireDamageMult(true, true, true, "fire") != 1.0) return -8;
+    var saved = cauterizePlan(true, false, true, false, 100, 100, 101);
+    if (!saved.applies || saved.restoredHp != 25 || saved.burnPerTick != 5) return -9;
+    if (cauterizePlan(true, false, true, true, 100, 100, 101).applies || cauterizePlan(true, false, true, false, 99, 100, 101).applies) return -10;
+    var newIgnite = ignitePlan(false, 4, false, 0);
+    var stackedIgnite = ignitePlan(false, 4, true, 6);
+    if (!newIgnite.applies || newIgnite.perTick != 1 || newIgnite.resultingValue != 1 || !stackedIgnite.updatesExisting || stackedIgnite.resultingValue != 7) return -11;
+    if (ignitePlan(true, 4, false, 0).applies || roundPositiveRatio(5, 2) != 3 || roundPositiveRatio(4, 3) != 1) return -12;
+    var barrier = personalBarrierForSpec(true, "frost");
+    if (!barrier.hasBarrier || barrier.barrierId != contract.iceBarrierId() || personalBarrierForSpec(true, "shadow").hasBarrier) return -13;
+    var igniteCrit = igniteOnCritPlan(true, 100, true, "fire", true, false, true, 0.2);
+    if (!igniteCrit.applies || igniteOnCritPlan(true, 100, false, "fire", true, false, true, 0.2).applies || igniteOnCritPlan(true, 100, true, "fire", true, true, true, 0.2).applies) return -14;
+    if (!isFireSpender("pyroblast", true) || isFireSpender("pyroblast", false) || isFireSpender("fireball", true)) return -15;
+    return 1;
+}

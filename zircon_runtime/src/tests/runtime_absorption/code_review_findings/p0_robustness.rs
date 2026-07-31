@@ -1,3 +1,5 @@
+#[path = "p0_robustness/gpu_pass_timer.rs"]
+mod gpu_pass_timer;
 #[path = "p0_robustness/lock_poison.rs"]
 mod lock_poison;
 #[path = "p0_robustness/native_fixture.rs"]

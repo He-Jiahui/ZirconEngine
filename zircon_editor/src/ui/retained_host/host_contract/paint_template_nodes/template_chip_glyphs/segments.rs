@@ -37,8 +37,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     segments: &[ChipGlyphSegmentSpec],
 ) {
     for segment in segments {
+        let rect = segment_rect(origin, *segment);
+        if rect.width <= 0.0 || rect.height <= 0.0 {
+            continue;
+        }
         commands.push(HostPaintCommand::quad(
-            segment_rect(origin, *segment),
+            rect,
             Some(clip.clone()),
             order,
             Some(color),
@@ -56,8 +60,8 @@ fn segment_rect(origin: &FrameRect, segment: ChipGlyphSegmentSpec) -> FrameRect 
     FrameRect {
         x: origin.x + f32::from(segment.x_units) * unit_width,
         y: origin.y + f32::from(segment.y_units) * unit_height,
-        width: (f32::from(segment.width_units) * unit_width).max(1.0),
-        height: (f32::from(segment.height_units) * unit_height).max(1.0),
+        width: (f32::from(segment.width_units) * unit_width).max(0.0),
+        height: (f32::from(segment.height_units) * unit_height).max(0.0),
     }
 }
 

@@ -5,7 +5,16 @@ related_code:
   - dev/bevy/crates/bevy_light/src/ambient_light.rs
   - dev/bevy/crates/bevy_light/src/rect_light.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
+  - zircon_runtime/src/scene/components/scene/animation.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/tests/support.rs
   - zircon_runtime/src/scene/tests/support/project_fixture.rs
   - zircon_runtime/src/scene/world/project_io.rs

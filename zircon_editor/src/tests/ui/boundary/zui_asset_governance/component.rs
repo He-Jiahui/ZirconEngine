@@ -1,6 +1,3 @@
-use std::fs;
-
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::template::UiStyleScope;
 
 use super::metadata::string_token_metadata_offender;
@@ -16,10 +13,7 @@ fn production_zui_component_names_are_clean_authoring_tokens() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for component_name in document.components.keys() {
                 checked_components += 1;
@@ -56,10 +50,7 @@ fn production_zui_components_with_default_classes_expose_style_anchors() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (component_name, component) in &document.components {
                 if component.default_classes.is_empty() {
@@ -106,10 +97,7 @@ fn production_zui_component_style_scopes_are_closed() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (component_name, component) in &document.components {
                 checked_components += 1;

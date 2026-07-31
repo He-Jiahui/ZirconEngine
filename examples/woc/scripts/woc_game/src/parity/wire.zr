@@ -1,0 +1,178 @@
+var container = %import("zr.container");
+
+class TraceWriter {
+    pri var bytes: container.Array<uint>;
+
+    pub @constructor() {
+        this.bytes = new container.Array<uint>();
+    }
+
+    // Distinct arities avoid the current same-signature helper binding defect.
+    pub byte(value: uint, width: int): void {
+        if (width != 1 || value > <uint>255) {
+            throw "trace wire byte is invalid";
+        }
+        var target = this.bytes;
+        target.add(value);
+    }
+
+    pub u16(value: uint, lowBytes: int, highBytes: int): void {
+        if (lowBytes != 1 || highBytes != 1) {
+            throw "trace wire u16 layout is invalid";
+        }
+        this.byte(value & <uint>255, 1);
+        this.byte((value >> 8) & <uint>255, 1);
+    }
+
+    pub u32(value: uint, a: int, b: int, c: int): void {
+        if (a != 1 || b != 1 || c != 2) {
+            throw "trace wire u32 layout is invalid";
+        }
+        this.u16(value & <uint>65535, 1, 1);
+        this.u16((value >> 16) & <uint>65535, 1, 1);
+    }
+
+    pub u64(value: uint, a: int, b: int, c: int, d: int): void {
+        if (a != 1 || b != 1 || c != 2 || d != 4) {
+            throw "trace wire u64 layout is invalid";
+        }
+        this.u32(value & <uint>4294967295, 1, 1, 2);
+        this.u32(value >> 32, 1, 1, 2);
+    }
+
+    pub symbol(symbol: int, required: bool): void {
+        if (!required || symbol <= 0 || symbol > 65535) {
+            throw "trace wire symbol is outside u16 range";
+        }
+        this.u16(<uint>symbol, 1, 1);
+    }
+
+    pub finish(): container.Array<uint> {
+        var copy = new container.Array<uint>();
+        var source = this.bytes;
+        for (var value in source) {
+            copy.add(<uint>value);
+        }
+        return copy;
+    }
+}
+
+writeHeader(writer: TraceWriter, stage: int): bool {
+    var symbols = %import("generated/trace_symbols");
+    writer.byte(<uint>87, 1);
+    writer.byte(<uint>84, 1);
+    writer.byte(<uint>82, 1);
+    writer.byte(<uint>49, 1);
+    writer.u16(<uint>1, 1, 1);
+    writer.u64(symbols.fingerprint(), 1, 1, 2, 4);
+    writer.symbol(symbols.symbol(310), true); // entity_roster
+    writer.u32(<uint>1012, 1, 1, 2);
+    writer.u32(<uint>2, 1, 1, 2);
+    writer.u32(<uint>0, 1, 1, 2);
+    writer.u16(<uint>1, 1, 1);
+    return stage == 1;
+}
+
+writeTracePrefix(writer: TraceWriter, stage: int): bool {
+    var symbols = %import("generated/trace_symbols");
+    if (writeHeader(writer, stage)) {
+        return true;
+    }
+    writer.symbol(symbols.symbol(18), true); // addEntity roster + spatial grids
+    writer.u32(<uint>0, 1, 1, 2);
+    writer.u32(<uint>2166136261, 1, 1, 2);
+    writer.u16(<uint>1, 1, 1);
+    return stage == 2;
+}
+
+writeFramePrefix(writer: TraceWriter, stage: int): bool {
+    var symbols = %import("generated/trace_symbols");
+    if (writeTracePrefix(writer, stage)) {
+        return true;
+    }
+    writer.u64(<uint>0, 1, 1, 2, 4);
+    writer.byte(<uint>5, 1);
+    writer.byte(<uint>0, 1);
+    writer.u64(<uint>0, 1, 1, 2, 4);
+    writer.u64(<uint>408, 1, 1, 2, 4);
+    writer.symbol(symbols.symbol(444), true); // init
+    writer.byte(<uint>1, 1);
+    writer.u32(<uint>0, 1, 1, 2);
+    writer.u32(<uint>2166136261, 1, 1, 2);
+    return stage == 3;
+}
+
+fixtureBytes(stage: int): container.Array<uint> {
+    if (stage < 1 || stage > 5) {
+        throw "trace wire fixture stage is invalid";
+    }
+    var writer = new TraceWriter();
+    var symbols = %import("generated/trace_symbols");
+    if (writeFramePrefix(writer, stage)) {
+        return writer.finish();
+    }
+    writer.byte(<uint>10, 1);
+    writer.u32(<uint>0, 1, 1, 2);
+    if (stage == 4) {
+        return writer.finish();
+    }
+    writer.byte(<uint>10, 1);
+    writer.u32(<uint>1, 1, 1, 2);
+    writer.byte(<uint>11, 1);
+    writer.u32(<uint>3, 1, 1, 2);
+    writer.symbol(symbols.symbol(427), true); // hp
+    writer.byte(<uint>3, 1);
+    writer.u64(<uint>90, 1, 1, 2, 4);
+    writer.symbol(symbols.symbol(436), true); // id
+    writer.byte(<uint>3, 1);
+    writer.u64(<uint>408, 1, 1, 2, 4);
+    writer.symbol(symbols.symbol(462), true); // kind
+    writer.byte(<uint>9, 1);
+    writer.symbol(symbols.symbol(639), true); // player
+    writer.byte(<uint>10, 1);
+    writer.u32(<uint>0, 1, 1, 2);
+    return writer.finish();
+}
+
+byteDigest(bytes: container.Array<uint>, marker: int): uint {
+    if (marker != 1) {
+        throw "trace wire digest marker is invalid";
+    }
+    var hash: uint = <uint>2166136261;
+    for (var byte in bytes) {
+        hash = ((hash ^ <uint>byte) * <uint>16777619) & <uint>4294967295;
+    }
+    return hash;
+}
+
+pub fixture(): container.Array<uint> {
+    return fixtureBytes(5);
+}
+
+pub stageTest(stage: int): int {
+    var bytes = fixtureBytes(stage);
+    if (stage == 1) {
+        return bytes.length == 30 ? 1 : -1;
+    }
+    if (stage == 2) {
+        return bytes.length == 42 ? 1 : -2;
+    }
+    if (stage == 3) {
+        return bytes.length == 79 ? 1 : -3;
+    }
+    if (stage == 4) {
+        return bytes.length == 84 ? 1 : -4;
+    }
+    return bytes.length == 126 ? 1 : -5;
+}
+
+pub selfTest(): int {
+    var bytes = fixtureBytes(5);
+    if (bytes.length != 126) {
+        return -1;
+    }
+    if (byteDigest(bytes, 1) != <uint>227550038) {
+        return -2;
+    }
+    return 1;
+}

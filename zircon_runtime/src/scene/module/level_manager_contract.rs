@@ -14,7 +14,7 @@ impl LevelManagerContract for DefaultLevelManager {
     }
 
     fn level_exists(&self, handle: WorldHandle) -> bool {
-        self.level(handle).is_some()
+        self.lock_levels().contains_key(&handle)
     }
 
     fn level_summary(&self, handle: WorldHandle) -> Option<LevelSummary> {

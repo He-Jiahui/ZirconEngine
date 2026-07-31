@@ -1,9 +1,12 @@
 #[cfg(test)]
 use super::super::measure::measure_line_width;
+#[cfg(test)]
 use super::super::measure::measure_line_width_with_provider;
 #[cfg(test)]
 use crate::text::shaping::DirectTextShapeRunProvider;
+#[cfg(test)]
 use crate::text::shaping::TextShapeRunProvider;
+#[cfg(test)]
 use crate::text::TextStyle;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -24,6 +27,7 @@ pub(super) fn should_fallback_to_glyph_wrap(
     )
 }
 
+#[cfg(test)]
 pub(super) fn should_fallback_to_glyph_wrap_with_provider<P>(
     allow_glyph_fallback: bool,
     candidate_text: &str,
@@ -39,11 +43,24 @@ where
         && has_more_than_one_grapheme(candidate_text)
 }
 
+pub(super) fn should_fallback_to_glyph_wrap_with_advance(
+    allow_glyph_fallback: bool,
+    candidate_text: &str,
+    candidate_advance: f32,
+    max_width: f32,
+) -> bool {
+    allow_glyph_fallback
+        && candidate_advance.is_finite()
+        && candidate_advance > max_width.max(0.0) + 0.01
+        && has_more_than_one_grapheme(candidate_text)
+}
+
 #[cfg(test)]
 fn line_text_fits(text: &str, max_width: f32, style: &TextStyle) -> bool {
     measure_line_width(text, style) <= max_width + 0.01
 }
 
+#[cfg(test)]
 fn line_text_fits_with_provider<P>(
     text: &str,
     max_width: f32,

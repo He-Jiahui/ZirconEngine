@@ -280,3 +280,4 @@ cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked
 | 跨边界函数表/方法 bind 槽位直调 | `dev/godot/core/extension/gdextension_interface.cpp` | method bind 的预解析与缓存、版本协商失败的报错形态——§3.5 ZrHostBridgeApiV1 的判例 |
 | 扩展启停的注册回收 | `dev/godot/core/extension/gdextension_manager.cpp`、`gdextension_library_loader.cpp` | 库卸载时已注册 class 的撤销顺序、重载世代处理 |
 | 插件容器内服务相互访问 | `dev/Fyrox/fyrox-impl/src/plugin/` | 插件间经容器查找的边界与限制（反例参照：我们用编译期解析的桥替代运行期查找） |
+- 2026-07-22 bridge静态审查补充：PERF-MVP-530已把VM每callback的`interface_status_at`从owned snapshot降为dense slot状态读取，diagnostics summary不再为每interface复制ID，freeze直接消费owner/key/value rows。Plugins11验收新增1M VM/native/weak/pinned调用的snapshot/String/key-resolve counter=0；stable ArcSwap/Weak upgrade与debug diagnostics原子成本继续用现有比例门和1/16线程trace判断，不回退Mutex。

@@ -1,12 +1,13 @@
-use crate::core::diagnostics::{DiagnosticStore, FrameDiagnostics};
 use crate::core::CoreHandle;
+use crate::core::diagnostics::{DiagnosticStore, FrameDiagnostics};
 
-use super::{ChangeDetectionScanStats, QueryStateCacheStats};
+use super::{ChangeDetectionScanStats, NativeSystemScheduleDiagnostics, QueryStateCacheStats};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct EcsFramePerformanceDiagnostics {
     pub query: QueryStateCacheStats,
     pub change_detection: ChangeDetectionScanStats,
+    pub native_system_schedule: NativeSystemScheduleDiagnostics,
 }
 
 impl EcsFramePerformanceDiagnostics {
@@ -14,6 +15,7 @@ impl EcsFramePerformanceDiagnostics {
         Self {
             query,
             change_detection,
+            native_system_schedule: NativeSystemScheduleDiagnostics::default(),
         }
     }
 
@@ -47,9 +49,15 @@ impl EcsFramePerformanceDiagnostics {
         self.change_detection.merge(stats);
     }
 
+    pub(crate) fn native_system_schedule_mut(&mut self) -> &mut NativeSystemScheduleDiagnostics {
+        &mut self.native_system_schedule
+    }
+
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
         self.query.record_diagnostics(store, frame_index);
         self.change_detection.record_diagnostics(store, frame_index);
+        self.native_system_schedule
+            .record_diagnostics(store, frame_index);
     }
 
     pub fn publish(&self, core: &CoreHandle, frame_index: u64) {
@@ -65,6 +73,7 @@ impl EcsFramePerformanceDiagnostics {
                 ["ecs", "change_detection"],
             );
         }
+        self.native_system_schedule.publish(core, frame_index);
     }
 }
 

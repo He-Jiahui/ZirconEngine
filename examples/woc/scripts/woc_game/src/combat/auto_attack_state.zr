@@ -1,0 +1,959 @@
+var container = %import("zr.container");
+var catalog = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+var forms = %import("combat/forms_state");
+var rules = %import("combat/rules");
+
+pub class AutoActor {
+    pub var id: uint;
+    pub var classId: string;
+    pub var level: int;
+    pub var hp: int;
+    pub var dead: bool;
+    pub var inCombat: bool;
+    pub var combatTimer: float;
+    pub var autoAttack: bool;
+    pub var casting: bool;
+    pub var stunned: bool;
+    pub var disarmed: bool;
+    pub var sitting: bool;
+    pub var weaponStowed: bool;
+    pub var ghostWolf: bool;
+    pub var swingTimer: float;
+    pub var offhandSwingTimer: float;
+    pub var targetDistance: float;
+    pub var targetFacingDifference: float;
+    pub var lineOfSight: bool;
+    pub var arenaPosition: bool;
+    pub var resource: float;
+    pub var maxResource: float;
+    pub var hasQueuedAbility: bool;
+    pub var queuedAbility: string;
+    pub var queuedFree: bool;
+    pub var queuedCostMultiplier: float;
+    pub var resolvedQueuedAbility: string;
+    pub var cooldowns: container.Array<float>;
+    pub var weaponMinimum: float;
+    pub var weaponMaximum: float;
+    pub var weaponSpeed: float;
+    pub var offhandWeaponMinimum: float;
+    pub var offhandWeaponMaximum: float;
+    pub var offhandWeaponSpeed: float;
+    pub var hasOffhandWeapon: bool;
+    pub var dualWielding: bool;
+    pub var attackPower: float;
+    pub var rangedPower: float;
+    pub var critChance: float;
+    pub var critDamagePhysicalBonus: float;
+    pub var hitBonus: float;
+    pub var blindMissBonus: float;
+    pub var meleeHaste: float;
+    pub var rangedHaste: float;
+    pub var swingIntervalMultiplier: float;
+    pub var imbueBonus: float;
+    pub var catForm: bool;
+    pub var activeFormAbilityCode: uint;
+    pub var nextAttackCrit: bool;
+    pub var hasRangedProfile: bool;
+    pub var rangedWand: bool;
+    pub var rangedUsesWeapon: bool;
+    pub var rangedMinimumRange: float;
+    pub var rangedMaximumRange: float;
+    pub var rangedMinimum: float;
+    pub var rangedMaximum: float;
+    pub var rangedSpeed: float;
+    pub var rangedSchool: string;
+    pub var time: float;
+    pub var overpowerUntil: float;
+    pub var pendingWand: container.Array<bool>;
+    pub var pendingTargetIds: container.Array<uint>;
+    pub var pendingMinimum: container.Array<float>;
+    pub var pendingMaximum: container.Array<float>;
+    pub var pendingSpeed: container.Array<float>;
+    pub var pendingSchool: container.Array<string>;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.classId = "warrior";
+        this.level = 1;
+        this.hp = 1000;
+        this.dead = false;
+        this.inCombat = false;
+        this.combatTimer = 99.0;
+        this.autoAttack = false;
+        this.casting = false;
+        this.stunned = false;
+        this.disarmed = false;
+        this.sitting = false;
+        this.weaponStowed = false;
+        this.ghostWolf = false;
+        this.swingTimer = 0.0;
+        this.offhandSwingTimer = 0.0;
+        this.targetDistance = 0.0;
+        this.targetFacingDifference = 0.0;
+        this.lineOfSight = true;
+        this.arenaPosition = false;
+        this.resource = 0.0;
+        this.maxResource = 100.0;
+        this.hasQueuedAbility = false;
+        this.queuedAbility = "";
+        this.queuedFree = false;
+        this.queuedCostMultiplier = 1.0;
+        this.resolvedQueuedAbility = "";
+        this.cooldowns = new container.Array<float>();
+        var cooldown = 0;
+        while (cooldown < 21) {
+            this.cooldowns.add(0.0);
+            cooldown = cooldown + 1;
+        }
+        this.weaponMinimum = 1.0;
+        this.weaponMaximum = 1.0;
+        this.weaponSpeed = 2.0;
+        this.offhandWeaponMinimum = 1.0;
+        this.offhandWeaponMaximum = 1.0;
+        this.offhandWeaponSpeed = 2.0;
+        this.hasOffhandWeapon = false;
+        this.dualWielding = false;
+        this.attackPower = 0.0;
+        this.rangedPower = 0.0;
+        this.critChance = 0.05;
+        this.critDamagePhysicalBonus = 0.0;
+        this.hitBonus = 0.0;
+        this.blindMissBonus = 0.0;
+        this.meleeHaste = 0.0;
+        this.rangedHaste = 0.0;
+        this.swingIntervalMultiplier = 1.0;
+        this.imbueBonus = 0.0;
+        this.catForm = false;
+        this.activeFormAbilityCode = <uint>0;
+        this.nextAttackCrit = false;
+        this.hasRangedProfile = false;
+        this.rangedWand = false;
+        this.rangedUsesWeapon = false;
+        this.rangedMinimumRange = 0.0;
+        this.rangedMaximumRange = 0.0;
+        this.rangedMinimum = 0.0;
+        this.rangedMaximum = 0.0;
+        this.rangedSpeed = 0.0;
+        this.rangedSchool = "arcane";
+        this.time = 0.0;
+        this.overpowerUntil = 0.0;
+        this.pendingWand = new container.Array<bool>();
+        this.pendingTargetIds = new container.Array<uint>();
+        this.pendingMinimum = new container.Array<float>();
+        this.pendingMaximum = new container.Array<float>();
+        this.pendingSpeed = new container.Array<float>();
+        this.pendingSchool = new container.Array<string>();
+    }
+}
+
+pub class AutoTarget {
+    pub var id: uint;
+    pub var kind: string;
+    pub var level: int;
+    pub var dead: bool;
+    pub var hostileToActor: bool;
+    pub var hostileMob: bool;
+    pub var owned: bool;
+    pub var evading: bool;
+    pub var idle: bool;
+    pub var hasAggroTarget: bool;
+    pub var aggroTargetId: uint;
+    pub var inCombat: bool;
+    pub var hp: int;
+    pub var armor: float;
+    pub var dodgeChance: float;
+    pub var threat: float;
+    pub var thornsDamage: int;
+    pub var spikedHideDamage: int;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.kind = "mob";
+        this.level = 1;
+        this.dead = false;
+        this.hostileToActor = true;
+        this.hostileMob = true;
+        this.owned = false;
+        this.evading = false;
+        this.idle = true;
+        this.hasAggroTarget = false;
+        this.aggroTargetId = <uint>0;
+        this.inCombat = false;
+        this.hp = 1000;
+        this.armor = 0.0;
+        this.dodgeChance = 0.05;
+        this.threat = 0.0;
+        this.thornsDamage = 0;
+        this.spikedHideDamage = 0;
+    }
+}
+
+pub class AutoEvents {
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var authoritativeRngEnabled: bool;
+    pub var rngState: uint;
+    pub var rngDraws: uint;
+    pub var rngDigest: uint;
+    pub var errors: int;
+    pub var aggroEvents: int;
+    pub var projectileEvents: int;
+    pub var missEvents: int;
+    pub var dodgeEvents: int;
+    pub var hitEvents: int;
+    pub var critEvents: int;
+    pub var weaponProcCalls: int;
+    pub var setProcCalls: int;
+    pub var reflectEvents: int;
+    pub var lastDamage: int;
+    pub var lastThreatFlat: float;
+    pub var lastThreatMultiplier: float;
+    pub var lastAbility: string;
+
+    pub @constructor() {
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.authoritativeRngEnabled = false;
+        this.rngState = <uint>0;
+        this.rngDraws = <uint>0;
+        this.rngDigest = <uint>2166136261;
+        this.errors = 0;
+        this.aggroEvents = 0;
+        this.projectileEvents = 0;
+        this.missEvents = 0;
+        this.dodgeEvents = 0;
+        this.hitEvents = 0;
+        this.critEvents = 0;
+        this.weaponProcCalls = 0;
+        this.setProcCalls = 0;
+        this.reflectEvents = 0;
+        this.lastDamage = 0;
+        this.lastThreatFlat = 0.0;
+        this.lastThreatMultiplier = 1.0;
+        this.lastAbility = "";
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+ceilPositive(value: float): int {
+    var result = <int>value;
+    if (<float>result < value) { result = result + 1; }
+    return result;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+takeRandomUnit(events: AutoEvents): float {
+    if (events.randomIndex >= 0 && events.randomIndex < events.randomUnits.length) {
+        var result = <float>events.randomUnits[events.randomIndex];
+        events.randomIndex = events.randomIndex + 1;
+        return result;
+    }
+    if (!events.authoritativeRngEnabled) {
+        throw "auto-attack random stream is exhausted";
+    }
+    var rng = %import("kernel/rng");
+    events.rngState = (events.rngState + <uint>1831565813) & <uint>4294967295;
+    var value = rng.mix(events.rngState, 1);
+    events.rngDraws = events.rngDraws + <uint>1;
+    events.rngDigest = rng.fold(events.rngDigest, value, 1);
+    return <float>value / 4294967296.0;
+}
+
+pub initializeAuthoritativeRng(
+    events: AutoEvents,
+    state: uint,
+    draws: uint,
+    digest: uint,
+    required: bool
+): void {
+    if (!required) {
+        throw "auto-attack authoritative rng initialization is required";
+    }
+    events.authoritativeRngEnabled = true;
+    events.rngState = state;
+    events.rngDraws = draws;
+    events.rngDigest = digest;
+}
+
+pub authoritativeRngState(events: AutoEvents, required: bool): uint {
+    if (!required || !events.authoritativeRngEnabled) {
+        throw "auto-attack authoritative rng state is unavailable";
+    }
+    return events.rngState;
+}
+
+pub authoritativeRngDraws(events: AutoEvents, required: bool): uint {
+    if (!required || !events.authoritativeRngEnabled) {
+        throw "auto-attack authoritative rng draw count is unavailable";
+    }
+    return events.rngDraws;
+}
+
+pub authoritativeRngDigest(events: AutoEvents, required: bool): uint {
+    if (!required || !events.authoritativeRngEnabled) {
+        throw "auto-attack authoritative rng digest is unavailable";
+    }
+    return events.rngDigest;
+}
+
+hasActiveFormState(actor: AutoActor): bool {
+    return forms.isFormAbilityCode(actor.activeFormAbilityCode);
+}
+
+isCatForm(actor: AutoActor): bool {
+    if (hasActiveFormState(actor)) {
+        return forms.formKindForAbilityCode(actor.activeFormAbilityCode) == "form_cat";
+    }
+    return actor.catForm;
+}
+
+wandAllowedForActor(actor: AutoActor): bool {
+    if (!hasActiveFormState(actor)) { return true; }
+    return !forms.isResourceShiftFormAbilityCode(actor.activeFormAbilityCode);
+}
+
+baseSwingSpeed(actor: AutoActor): float {
+    return isCatForm(actor) ? 1.8 : actor.weaponSpeed;
+}
+
+swingMiss(actor: AutoActor, target: AutoTarget): float {
+    var miss = rules.metric(1, <float>actor.level, <float>target.level, 0.0, 0.0) -
+        actor.hitBonus + actor.blindMissBonus;
+    return miss > 0.0 ? miss : 0.0;
+}
+
+armorReduction(target: AutoTarget, attackerLevel: int): float {
+    return rules.metric(3, target.armor, <float>attackerLevel, 0.0, 0.0);
+}
+
+enterCombat(actor: AutoActor, target: AutoTarget): void {
+    actor.inCombat = true;
+    actor.combatTimer = 0.0;
+    target.inCombat = true;
+}
+
+applyResolvedDamage(
+    actor: AutoActor,
+    target: AutoTarget,
+    damage: int,
+    crit: bool,
+    ability: string,
+    threatFlat: float,
+    threatMultiplier: float,
+    events: AutoEvents
+): void {
+    target.hp = target.hp - damage;
+    if (target.hp < 0) { target.hp = 0; }
+    enterCombat(actor, target);
+    events.hitEvents = events.hitEvents + 1;
+    if (crit) { events.critEvents = events.critEvents + 1; }
+    events.lastDamage = damage;
+    events.lastThreatFlat = threatFlat;
+    events.lastThreatMultiplier = threatMultiplier;
+    events.lastAbility = ability;
+}
+
+pub startAutoAttack(actor: AutoActor, target: AutoTarget, events: AutoEvents): void {
+    if (actor.dead) { return; }
+    if (target.id == <uint>0 || target.dead || !target.hostileToActor) {
+        events.errors = events.errors + 1;
+        return;
+    }
+    actor.sitting = false;
+    actor.weaponStowed = false;
+    actor.autoAttack = true;
+    if (actor.targetDistance <= 5.0 && !actor.casting && target.kind == "mob" &&
+        target.hostileMob && !target.owned && !target.evading) {
+        if (target.idle) {
+            target.idle = false;
+            events.aggroEvents = events.aggroEvents + 1;
+        }
+        if (!target.hasAggroTarget) {
+            target.hasAggroTarget = true;
+            target.aggroTargetId = actor.id;
+        }
+        target.threat = target.threat + 1.0;
+        target.inCombat = true;
+        actor.inCombat = true;
+        actor.combatTimer = 0.0;
+    }
+}
+
+pub stopAutoAttack(actor: AutoActor): void {
+    actor.autoAttack = false;
+}
+
+consumeQueuedSwing(actor: AutoActor, events: AutoEvents): float {
+    if (!actor.hasQueuedAbility) { return 0.0; }
+    var abilityIndex = catalog.indexOf(actor.queuedAbility);
+    var bonus = 0.0;
+    if (abilityIndex >= 0) {
+        var rank = catalog.rankAtLevel(abilityIndex, actor.level);
+        if (rank > 0) {
+            var effectIndex = 0;
+            var effectCount = effects.count(abilityIndex, rank);
+            while (effectIndex < effectCount) {
+                if (effects.typeAt(abilityIndex, rank, effectIndex) == "weaponDamage") {
+                    var cost = actor.queuedFree ? 0.0 : <float>ceilPositive(
+                        catalog.metric(abilityIndex, actor.level, "cost") *
+                        actor.queuedCostMultiplier
+                    );
+                    if (actor.resource >= cost) {
+                        actor.resource = actor.resource - cost;
+                        actor.cooldowns[abilityIndex] =
+                            catalog.metric(abilityIndex, actor.level, "cooldown");
+                        actor.resolvedQueuedAbility = actor.queuedAbility;
+                        bonus = effects.metric(abilityIndex, rank, effectIndex, "bonus");
+                        events.lastAbility = catalog.text(abilityIndex, "name");
+                        events.lastThreatFlat =
+                            catalog.metric(abilityIndex, actor.level, "threatFlat");
+                        events.lastThreatMultiplier =
+                            catalog.metric(abilityIndex, actor.level, "threatMult");
+                    }
+                    break;
+                }
+                effectIndex = effectIndex + 1;
+            }
+        }
+    }
+    actor.hasQueuedAbility = false;
+    actor.queuedAbility = "";
+    actor.queuedFree = false;
+    actor.queuedCostMultiplier = 1.0;
+    return bonus;
+}
+
+meleeSwingWithWeapon(
+    actor: AutoActor,
+    target: AutoTarget,
+    bonus: float,
+    ability: string,
+    threatFlat: float,
+    threatMultiplier: float,
+    cannotBeDodged: bool,
+    weaponMultiplier: float,
+    weaponMinimum: float,
+    weaponMaximum: float,
+    attackPowerSwingSpeed: float,
+    whiteDualWieldPenalty: bool,
+    events: AutoEvents
+): bool {
+    var missChance = swingMiss(actor, target);
+    if (whiteDualWieldPenalty) { missChance = missChance + 0.1; }
+    var levelGap = target.level - actor.level;
+    if (levelGap < 0) { levelGap = 0; }
+    var dodgeChance = cannotBeDodged ? 0.0 :
+        (target.kind == "player" ? target.dodgeChance : 0.05 + <float>levelGap * 0.005);
+    var roll = takeRandomUnit(events);
+    if (roll < missChance) {
+        events.missEvents = events.missEvents + 1;
+        enterCombat(actor, target);
+        return false;
+    }
+    if (roll < missChance + dodgeChance) {
+        events.dodgeEvents = events.dodgeEvents + 1;
+        enterCombat(actor, target);
+        actor.overpowerUntil = actor.time + 5.0;
+        return false;
+    }
+    var weaponRoll = weaponMinimum +
+        takeRandomUnit(events) * (weaponMaximum - weaponMinimum);
+    var damage = (weaponRoll + actor.attackPower / 14.0 * attackPowerSwingSpeed) *
+        weaponMultiplier + bonus + actor.imbueBonus;
+    var critChance = actor.critChance - <float>levelGap * 0.002;
+    if (critChance < 0.005) { critChance = 0.005; }
+    var forcedCrit = actor.nextAttackCrit;
+    actor.nextAttackCrit = false;
+    var crit = takeRandomUnit(events) < (forcedCrit ? 1.0 : critChance);
+    if (crit) { damage = damage * (2.0 + actor.critDamagePhysicalBonus); }
+    damage = damage * (1.0 - armorReduction(target, actor.level));
+    var rounded = roundPositive(damage);
+    if (rounded < 1) { rounded = 1; }
+    applyResolvedDamage(
+        actor,
+        target,
+        rounded,
+        crit,
+        ability,
+        threatFlat,
+        threatMultiplier,
+        events
+    );
+    if (crit) { events.setProcCalls = events.setProcCalls + 1; }
+    if (!actor.dead && target.thornsDamage > 0) {
+        actor.dead = actor.hp <= target.thornsDamage;
+        actor.hp = actor.dead ? 0 : actor.hp - target.thornsDamage;
+        events.reflectEvents = events.reflectEvents + 1;
+    }
+    if (!actor.dead && target.spikedHideDamage > 0) {
+        actor.dead = actor.hp <= target.spikedHideDamage;
+        actor.hp = actor.dead ? 0 : actor.hp - target.spikedHideDamage;
+        events.reflectEvents = events.reflectEvents + 1;
+    }
+    events.weaponProcCalls = events.weaponProcCalls + 1;
+    return true;
+}
+
+pub meleeSwing(
+    actor: AutoActor,
+    target: AutoTarget,
+    bonus: float,
+    ability: string,
+    threatFlat: float,
+    threatMultiplier: float,
+    cannotBeDodged: bool,
+    weaponMultiplier: float,
+    events: AutoEvents
+): bool {
+    return meleeSwingWithWeapon(
+        actor,
+        target,
+        bonus,
+        ability,
+        threatFlat,
+        threatMultiplier,
+        cannotBeDodged,
+        weaponMultiplier,
+        actor.weaponMinimum,
+        actor.weaponMaximum,
+        baseSwingSpeed(actor),
+        false,
+        events
+    );
+}
+
+offhandMeleeSwing(actor: AutoActor, target: AutoTarget, events: AutoEvents): bool {
+    return meleeSwingWithWeapon(
+        actor,
+        target,
+        0.0,
+        "",
+        0.0,
+        1.0,
+        false,
+        0.5,
+        actor.offhandWeaponMinimum,
+        actor.offhandWeaponMaximum,
+        actor.offhandWeaponSpeed,
+        true,
+        events
+    );
+}
+
+fireRanged(actor: AutoActor, target: AutoTarget, events: AutoEvents): void {
+    var minimum = actor.rangedUsesWeapon ? actor.weaponMinimum : actor.rangedMinimum;
+    var maximum = actor.rangedUsesWeapon ? actor.weaponMaximum : actor.rangedMaximum;
+    var speed = actor.rangedUsesWeapon ? actor.weaponSpeed : actor.rangedSpeed;
+    actor.pendingWand.add(actor.rangedWand);
+    actor.pendingTargetIds.add(target.id);
+    actor.pendingMinimum.add(minimum);
+    actor.pendingMaximum.add(maximum);
+    actor.pendingSpeed.add(speed);
+    actor.pendingSchool.add(actor.rangedWand ? actor.rangedSchool : "physical");
+    events.projectileEvents = events.projectileEvents + 1;
+    actor.swingTimer = speed * actor.swingIntervalMultiplier / (1.0 + actor.rangedHaste);
+}
+
+removePendingAt(actor: AutoActor, index: int): void {
+    actor.pendingWand.removeAt(index);
+    actor.pendingTargetIds.removeAt(index);
+    actor.pendingMinimum.removeAt(index);
+    actor.pendingMaximum.removeAt(index);
+    actor.pendingSpeed.removeAt(index);
+    actor.pendingSchool.removeAt(index);
+}
+
+pub landNextProjectile(actor: AutoActor, target: AutoTarget, events: AutoEvents): bool {
+    if (actor.pendingWand.length == 0) { return false; }
+    if (<uint>actor.pendingTargetIds[0] != target.id) {
+        throw "auto-attack projectile target projection is invalid";
+    }
+    if (target.dead) {
+        removePendingAt(actor, 0);
+        return false;
+    }
+    var wand = <bool>actor.pendingWand[0];
+    var minimum = <float>actor.pendingMinimum[0];
+    var maximum = <float>actor.pendingMaximum[0];
+    var speed = <float>actor.pendingSpeed[0];
+    var school = <string>actor.pendingSchool[0];
+    removePendingAt(actor, 0);
+    var missChance = swingMiss(actor, target);
+    if (takeRandomUnit(events) < missChance) {
+        events.missEvents = events.missEvents + 1;
+        enterCombat(actor, target);
+        return false;
+    }
+    var weaponRoll = minimum + takeRandomUnit(events) * (maximum - minimum);
+    var damage = (wand ? weaponRoll : weaponRoll * 0.6) +
+        actor.rangedPower / 14.0 * speed;
+    var levelGap = target.level - actor.level;
+    if (levelGap < 0) { levelGap = 0; }
+    var critChance = actor.critChance - <float>levelGap * 0.002;
+    if (critChance < 0.005) { critChance = 0.005; }
+    var forcedCrit = actor.nextAttackCrit;
+    actor.nextAttackCrit = false;
+    var crit = takeRandomUnit(events) < (forcedCrit ? 1.0 : critChance);
+    if (crit) { damage = damage * (2.0 + actor.critDamagePhysicalBonus); }
+    if (!wand) { damage = damage * (1.0 - armorReduction(target, actor.level)); }
+    var rounded = roundPositive(damage);
+    if (rounded < 1) { rounded = 1; }
+    applyResolvedDamage(
+        actor,
+        target,
+        rounded,
+        crit,
+        wand ? "Wand" : "Auto Shot",
+        0.0,
+        1.0,
+        events
+    );
+    if (crit) { events.setProcCalls = events.setProcCalls + 1; }
+    if (!wand) { events.weaponProcCalls = events.weaponProcCalls + 1; }
+    return true;
+}
+
+pub fixedTick(actor: AutoActor, target: AutoTarget, events: AutoEvents): void {
+    actor.swingTimer = actor.swingTimer - 0.05;
+    if (actor.swingTimer < 0.0) { actor.swingTimer = 0.0; }
+    actor.offhandSwingTimer = actor.offhandSwingTimer - 0.05;
+    if (actor.offhandSwingTimer < 0.0) { actor.offhandSwingTimer = 0.0; }
+    if (forms.isTravelFormAbilityCode(actor.activeFormAbilityCode)) {
+        actor.autoAttack = false;
+        return;
+    }
+    if (!actor.autoAttack || actor.casting) { return; }
+    if (target.id == <uint>0 || target.dead || !target.hostileToActor) {
+        actor.autoAttack = false;
+        return;
+    }
+    if (actor.swingTimer > 0.0 && (!actor.dualWielding || !actor.hasOffhandWeapon ||
+        actor.offhandSwingTimer > 0.0)) {
+        return;
+    }
+    if (actor.stunned || actor.disarmed) { return; }
+    if (actor.targetFacingDifference > 1.5707963267948966) { return; }
+    if (actor.hasRangedProfile && (!actor.rangedWand || wandAllowedForActor(actor)) &&
+        actor.targetDistance <= actor.rangedMaximumRange &&
+        actor.targetDistance >= (actor.rangedWand ? 0.0 : actor.rangedMinimumRange)) {
+        if (!actor.lineOfSight) { return; }
+        actor.ghostWolf = false;
+        fireRanged(actor, target, events);
+        return;
+    }
+    if (actor.targetDistance > 5.0) { return; }
+    if (actor.arenaPosition && !actor.lineOfSight) { return; }
+    actor.ghostWolf = false;
+    if (actor.swingTimer <= 0.0) {
+        events.lastAbility = "";
+        events.lastThreatFlat = 0.0;
+        events.lastThreatMultiplier = 1.0;
+        var bonus = consumeQueuedSwing(actor, events);
+        meleeSwingWithWeapon(
+            actor,
+            target,
+            bonus,
+            events.lastAbility,
+            events.lastThreatFlat,
+            events.lastThreatMultiplier,
+            false,
+            1.0,
+            actor.weaponMinimum,
+            actor.weaponMaximum,
+            baseSwingSpeed(actor),
+            actor.dualWielding && events.lastAbility == "",
+            events
+        );
+        actor.swingTimer = baseSwingSpeed(actor) * actor.swingIntervalMultiplier /
+            (1.0 + actor.meleeHaste);
+    }
+    if (actor.dualWielding && actor.hasOffhandWeapon && actor.offhandSwingTimer <= 0.0) {
+        offhandMeleeSwing(actor, target, events);
+        actor.offhandSwingTimer = actor.offhandWeaponSpeed * actor.swingIntervalMultiplier /
+            (1.0 + actor.meleeHaste);
+    }
+}
+
+makeActor(id: uint, classId: string, level: int): AutoActor {
+    var actor = new AutoActor();
+    actor.id = id;
+    actor.classId = classId;
+    actor.level = level;
+    actor.resource = 100.0;
+    actor.maxResource = 100.0;
+    return actor;
+}
+
+makeTarget(id: uint, kind: string, level: int, hp: int): AutoTarget {
+    var target = new AutoTarget();
+    target.id = id;
+    target.kind = kind;
+    target.level = level;
+    target.hp = hp;
+    target.hostileMob = kind == "mob";
+    return target;
+}
+
+addHitDraws(events: AutoEvents): void {
+    events.randomUnits.add(0.9);
+    events.randomUnits.add(0.5);
+    events.randomUnits.add(0.9);
+}
+
+pub contractTest(): int {
+    var actor = makeActor(<uint>1, "warrior", 15);
+    var target = makeTarget(<uint>2, "mob", 5, 1000);
+    actor.targetDistance = 2.0;
+    actor.sitting = true;
+    actor.weaponStowed = true;
+    var events = new AutoEvents();
+    startAutoAttack(actor, target, events);
+    if (!actor.autoAttack || actor.sitting || actor.weaponStowed || target.idle ||
+        target.aggroTargetId != <uint>1 || target.threat != 1.0) {
+        return -1;
+    }
+
+    var rangedStart = makeActor(<uint>3, "mage", 15);
+    rangedStart.targetDistance = 20.0;
+    var rangedTarget = makeTarget(<uint>4, "mob", 5, 1000);
+    startAutoAttack(rangedStart, rangedTarget, new AutoEvents());
+    if (!rangedStart.autoAttack || !rangedTarget.idle || rangedTarget.threat != 0.0) {
+        return -2;
+    }
+    rangedStart.casting = true;
+    rangedStart.targetDistance = 2.0;
+    startAutoAttack(rangedStart, rangedTarget, new AutoEvents());
+    if (!rangedTarget.idle) { return -3; }
+
+    actor.weaponMinimum = 10.0;
+    actor.weaponMaximum = 10.0;
+    actor.weaponSpeed = 2.5;
+    actor.hasQueuedAbility = true;
+    actor.queuedAbility = "heroic_strike";
+    actor.queuedCostMultiplier = 0.5;
+    events = new AutoEvents();
+    addHitDraws(events);
+    fixedTick(actor, target, events);
+    if (actor.hasQueuedAbility || actor.resource != 92.0 ||
+        actor.queuedCostMultiplier != 1.0 || actor.resolvedQueuedAbility != "heroic_strike" ||
+        events.lastAbility != "Reaver Strike" || events.lastDamage <= 10 ||
+        actor.swingTimer != 2.5) {
+        return -4;
+    }
+
+    var hunterMelee = makeActor(<uint>5, "hunter", 15);
+    hunterMelee.autoAttack = true;
+    hunterMelee.targetDistance = 1.5;
+    hunterMelee.weaponMinimum = 10.0;
+    hunterMelee.weaponMaximum = 10.0;
+    hunterMelee.hasQueuedAbility = true;
+    hunterMelee.queuedAbility = "raptor_strike";
+    events = new AutoEvents();
+    addHitDraws(events);
+    fixedTick(hunterMelee, makeTarget(<uint>6, "mob", 5, 1000), events);
+    if (hunterMelee.hasQueuedAbility || hunterMelee.cooldowns[20] != 6.0 ||
+        events.lastAbility != "Gutting Strike") {
+        return -5;
+    }
+
+    var dodged = makeActor(<uint>7, "warrior", 30);
+    dodged.time = 12.0;
+    var dodger = makeTarget(<uint>8, "player", 1, 1000);
+    dodger.dodgeChance = 1.0;
+    events = new AutoEvents();
+    events.randomUnits.add(0.1);
+    if (meleeSwing(dodged, dodger, 0.0, "", 0.0, 1.0, false, 1.0, events) ||
+        events.dodgeEvents != 1 || dodged.overpowerUntil != 17.0) {
+        return -6;
+    }
+
+    var blinded = makeActor(<uint>70, "warrior", 15);
+    blinded.blindMissBonus = 1.0;
+    var blindTarget = makeTarget(<uint>71, "mob", 5, 1000);
+    events = new AutoEvents();
+    events.randomUnits.add(0.5);
+    if (meleeSwing(blinded, blindTarget, 0.0, "", 0.0, 1.0, true, 1.0, events) ||
+        events.missEvents != 1 || events.randomIndex != 1 || blindTarget.hp != 1000) {
+        return -7;
+    }
+
+    var reflected = makeActor(<uint>72, "warrior", 15);
+    reflected.weaponMinimum = 10.0;
+    reflected.weaponMaximum = 10.0;
+    reflected.hp = 100;
+    var spiked = makeTarget(<uint>73, "mob", 5, 1000);
+    spiked.thornsDamage = 5;
+    spiked.spikedHideDamage = 10;
+    events = new AutoEvents();
+    addHitDraws(events);
+    if (!meleeSwing(reflected, spiked, 0.0, "", 0.0, 1.0, false, 1.0, events) ||
+        reflected.hp != 85 || events.reflectEvents != 2 || events.weaponProcCalls != 1) {
+        return -8;
+    }
+
+    var hunter = makeActor(<uint>9, "hunter", 20);
+    hunter.autoAttack = true;
+    hunter.targetDistance = 20.0;
+    hunter.hasRangedProfile = true;
+    hunter.rangedUsesWeapon = true;
+    hunter.rangedMinimumRange = 8.0;
+    hunter.rangedMaximumRange = 35.0;
+    hunter.weaponMinimum = 100.0;
+    hunter.weaponMaximum = 100.0;
+    hunter.weaponSpeed = 2.0;
+    hunter.rangedPower = 140.0;
+    var shotTarget = makeTarget(<uint>10, "mob", 5, 1000);
+    events = new AutoEvents();
+    fixedTick(hunter, shotTarget, events);
+    if (hunter.pendingWand.length != 1 || events.randomIndex != 0 ||
+        hunter.swingTimer != 2.0) {
+        return -9;
+    }
+    addHitDraws(events);
+    if (!landNextProjectile(hunter, shotTarget, events) || events.lastDamage != 80 ||
+        events.weaponProcCalls != 1 || events.randomIndex != 3) {
+        return -10;
+    }
+
+    var mage = makeActor(<uint>11, "mage", 20);
+    mage.autoAttack = true;
+    mage.targetDistance = 15.0;
+    mage.hasRangedProfile = true;
+    mage.rangedWand = true;
+    mage.rangedMinimumRange = 8.0;
+    mage.rangedMaximumRange = 30.0;
+    mage.rangedMinimum = 100.0;
+    mage.rangedMaximum = 100.0;
+    mage.rangedSpeed = 2.0;
+    mage.rangedPower = 140.0;
+    var wandTarget = makeTarget(<uint>12, "mob", 5, 1000);
+    events = new AutoEvents();
+    fixedTick(mage, wandTarget, events);
+    addHitDraws(events);
+    if (!landNextProjectile(mage, wandTarget, events) || events.lastDamage != 120 ||
+        events.weaponProcCalls != 0) {
+        return -11;
+    }
+
+    var cat = makeActor(<uint>17, "druid", 20);
+    cat.autoAttack = true;
+    cat.targetDistance = 2.0;
+    cat.weaponMinimum = 10.0;
+    cat.weaponMaximum = 10.0;
+    cat.weaponSpeed = 2.4;
+    cat.activeFormAbilityCode = forms.formAbilityCode("form_cat");
+    events = new AutoEvents();
+    addHitDraws(events);
+    fixedTick(cat, makeTarget(<uint>18, "mob", 5, 1000), events);
+    if (cat.swingTimer != 1.8) { return -12; }
+
+    var dual = makeActor(<uint>23, "rogue", 15);
+    dual.autoAttack = true;
+    dual.targetDistance = 2.0;
+    dual.weaponMinimum = 10.0;
+    dual.weaponMaximum = 10.0;
+    dual.weaponSpeed = 2.0;
+    dual.offhandWeaponMinimum = 10.0;
+    dual.offhandWeaponMaximum = 10.0;
+    dual.offhandWeaponSpeed = 1.5;
+    dual.hasOffhandWeapon = true;
+    dual.dualWielding = true;
+    events = new AutoEvents();
+    addHitDraws(events);
+    addHitDraws(events);
+    var dualTarget = makeTarget(<uint>24, "mob", 5, 1000);
+    fixedTick(dual, dualTarget, events);
+    if (dualTarget.hp != 985 || dual.swingTimer != 2.0 ||
+        dual.offhandSwingTimer != 1.5 || events.weaponProcCalls != 2 ||
+        events.randomIndex != 6) {
+        return -19;
+    }
+
+    var bearWand = makeActor(<uint>19, "druid", 20);
+    bearWand.autoAttack = true;
+    bearWand.targetDistance = 15.0;
+    bearWand.hasRangedProfile = true;
+    bearWand.rangedWand = true;
+    bearWand.rangedMaximumRange = 30.0;
+    bearWand.rangedMinimum = 100.0;
+    bearWand.rangedMaximum = 100.0;
+    bearWand.rangedSpeed = 2.0;
+    bearWand.activeFormAbilityCode = forms.formAbilityCode("form_bear");
+    events = new AutoEvents();
+    fixedTick(bearWand, makeTarget(<uint>20, "mob", 5, 1000), events);
+    if (bearWand.pendingWand.length != 0 || events.projectileEvents != 0) { return -13; }
+
+    bearWand.activeFormAbilityCode = forms.formAbilityCode("form_moonkin");
+    fixedTick(bearWand, makeTarget(<uint>21, "mob", 5, 1000), events);
+    if (bearWand.pendingWand.length != 1 || events.projectileEvents != 1) { return -14; }
+
+    bearWand.activeFormAbilityCode = forms.formAbilityCode("form_travel");
+    bearWand.autoAttack = true;
+    bearWand.swingTimer = 1.0;
+    fixedTick(bearWand, makeTarget(<uint>22, "mob", 5, 1000), new AutoEvents());
+    if (bearWand.autoAttack || !closeEnough(bearWand.swingTimer, 0.95)) { return -18; }
+
+    var fizzled = makeActor(<uint>13, "hunter", 20);
+    fizzled.pendingWand.add(false);
+    fizzled.pendingTargetIds.add(<uint>14);
+    fizzled.pendingMinimum.add(1.0);
+    fizzled.pendingMaximum.add(1.0);
+    fizzled.pendingSpeed.add(2.0);
+    fizzled.pendingSchool.add("physical");
+    var deadTarget = makeTarget(<uint>14, "mob", 5, 0);
+    deadTarget.dead = true;
+    events = new AutoEvents();
+    if (landNextProjectile(fizzled, deadTarget, events) || events.randomIndex != 0 ||
+        fizzled.pendingWand.length != 0) {
+        return -15;
+    }
+
+    var idleTimer = makeActor(<uint>15, "warrior", 5);
+    idleTimer.swingTimer = 1.0;
+    fixedTick(idleTimer, makeTarget(<uint>16, "mob", 5, 100), new AutoEvents());
+    if (!closeEnough(idleTimer.swingTimer, 0.95)) { return -16; }
+    stopAutoAttack(actor);
+    if (actor.autoAttack) { return -17; }
+    return 1;
+}
+
+pub authoritativeRngContractTest(): int {
+    var actor = makeActor(<uint>81, "warrior", 15);
+    actor.weaponMinimum = 10.0;
+    actor.weaponMaximum = 10.0;
+    actor.weaponSpeed = 2.0;
+    var target = makeTarget(<uint>82, "mob", 5, 1000);
+    var events = new AutoEvents();
+    initializeAuthoritativeRng(
+        events, <uint>1, <uint>0, <uint>2166136261, true
+    );
+    if (!meleeSwing(actor, target, 0.0, "", 0.0, 1.0, false, 1.0, events) ||
+        events.randomIndex != 0 || events.rngDraws != <uint>3) {
+        return -1;
+    }
+    var rng = %import("kernel/rng");
+    var expected = new rng.Mulberry32(<uint>1);
+    expected.nextU32();
+    expected.nextU32();
+    expected.nextU32();
+    if (authoritativeRngState(events, true) != expected.state ||
+        authoritativeRngDraws(events, true) != expected.draws ||
+        authoritativeRngDigest(events, true) != expected.drawDigest) {
+        return -2;
+    }
+
+    events.randomUnits.add(0.5);
+    if (takeRandomUnit(events) != 0.5 || events.rngDraws != <uint>3) {
+        return -3;
+    }
+    return 1;
+}

@@ -174,6 +174,29 @@ fn gpu_presenter_damage_present_uses_patch_after_surface_cache_is_ready() {
 }
 
 #[test]
+fn gpu_presenter_versions_full_draw_lists_with_the_retained_rebuild_counter() {
+    let mut presenter = GpuChromePresenter::new(RecordingSurfacePresenter::default(), (64, 64));
+
+    presenter
+        .present(
+            &HostWindowPresentationData::default(),
+            None,
+            HostInvalidationDiagnostics {
+                slow_path_rebuild_count: 17,
+                ..HostInvalidationDiagnostics::default()
+            },
+        )
+        .expect("GPU presenter should submit the versioned full draw list");
+
+    let draw_list = presenter
+        .surface
+        .last_draw_list
+        .as_ref()
+        .expect("surface presenter should receive the submitted draw list");
+    assert_eq!(draw_list.generation(), Some(17));
+}
+
+#[test]
 fn gpu_presenter_resize_invalidates_damage_cache() {
     let mut presenter = GpuChromePresenter::new(RecordingSurfacePresenter::default(), (64, 64));
     let damage = FrameRect {

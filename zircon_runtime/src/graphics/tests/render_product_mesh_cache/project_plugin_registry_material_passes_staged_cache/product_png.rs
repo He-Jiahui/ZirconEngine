@@ -19,8 +19,7 @@ use super::manifest::{
 };
 use super::shader_cache_test_roots;
 
-const PRODUCT_READBACK_PNG_STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_product_readback_png_passed_renderdoc_deferred";
+const PRODUCT_READBACK_PNG_STATUS: &str = "render_plan08_project_plugin_registry_material_passes_product_readback_png_passed_renderdoc_deferred";
 
 #[test]
 #[ignore = "manual product PNG export for Plan 08 project/plugin registry material-pass staged prewarm"]

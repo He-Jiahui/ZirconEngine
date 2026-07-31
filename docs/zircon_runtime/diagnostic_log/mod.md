@@ -2,18 +2,27 @@
 related_code:
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
+  - zircon_runtime/src/diagnostic_log/diagnostics/tests
   - zircon_runtime/src/diagnostic_log/level.rs
+  - zircon_runtime/src/diagnostic_log/level/compiled.rs
   - zircon_runtime/src/diagnostic_log/settings.rs
   - zircon_runtime/src/diagnostic_log/platform.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
+  - zircon_runtime/src/diagnostic_log/sink/metrics.rs
+  - zircon_runtime/src/diagnostic_log/sink/worker.rs
   - zircon_runtime/src/diagnostic_log/timestamp.rs
   - zircon_runtime/src/core/runtime/modules/log.rs
   - zircon_runtime/src/core/runtime/diagnostics/store.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/construction.rs
+  - zircon_runtime/src/dynamic_api/session/project.rs
+  - zircon_runtime/src/dynamic_api/session/state.rs
+  - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_app/src/entry/entry_runner/diagnostic_log_args.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
+  - zircon_app/src/bin/editor.rs
   - zircon_app/src/bin/runtime_preview.rs
   - zircon_runtime/src/asset/runtime_asset_path.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
@@ -24,17 +33,25 @@ implementation_files:
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
   - zircon_runtime/src/diagnostic_log/level.rs
+  - zircon_runtime/src/diagnostic_log/level/compiled.rs
   - zircon_runtime/src/diagnostic_log/settings.rs
   - zircon_runtime/src/diagnostic_log/platform.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
+  - zircon_runtime/src/diagnostic_log/sink/metrics.rs
+  - zircon_runtime/src/diagnostic_log/sink/worker.rs
   - zircon_runtime/src/diagnostic_log/timestamp.rs
   - zircon_runtime/src/core/runtime/modules/log.rs
   - zircon_runtime/src/core/runtime/diagnostics/store.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/construction.rs
+  - zircon_runtime/src/dynamic_api/session/project.rs
+  - zircon_runtime/src/dynamic_api/session/state.rs
+  - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_app/src/entry/entry_runner/diagnostic_log_args.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
+  - zircon_app/src/bin/editor.rs
   - zircon_app/src/bin/runtime_preview.rs
 plan_sources:
   - user: 2026-05-04 add console and file-backed startup diagnostics for exported editor/runtime diagnosis
@@ -47,8 +64,11 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md
 tests:
   - zircon_app/src/plugins/tests.rs
-  - zircon_runtime/src/diagnostic_log/diagnostics.rs
-  - zircon_runtime/src/diagnostic_log/diagnostics.rs::diagnostic_log_snapshot_bridge_stays_single_owner
+  - zircon_runtime/src/diagnostic_log/diagnostics/tests
+  - zircon_runtime/src/diagnostic_log/diagnostics/tests/lazy_callsite_guards.rs::allocation_heavy_process_log_producers_use_lazy_entry_points
+  - zircon_runtime/src/diagnostic_log/diagnostics/tests/ownership.rs::diagnostic_log_snapshot_bridge_stays_single_owner
+  - zircon_runtime/src/diagnostic_log/sink/tests
+  - zircon_app/tests/diagnostic_log_process_lifecycle.rs
   - zircon_runtime/src/dynamic_api/tests.rs
   - zircon_runtime/src/tests/prelude.rs
   - cargo test -p zircon_runtime --lib diagnostic_log --locked --jobs 1 --target-dir E:\zircon-build\targets\diagnostic-log-level-runtime-test --message-format short --color never
@@ -62,7 +82,7 @@ doc_type: module-detail
 
 # Diagnostic Log
 
-`zircon_runtime::diagnostic_log` is the lightweight process-startup diagnostic sink used by exported editor/runtime binaries. It mirrors each accepted diagnostic line to stderr and, when a writable directory is available, appends the same line to a per-run file under `logs/<yyyy-MM-dd-hh-mm-ss>/<channel>.log`.
+`zircon_runtime::diagnostic_log` is the lightweight process-startup diagnostic sink used by exported editor/runtime binaries. It sends accepted records through one bounded process queue; the sink worker mirrors each record to the enabled outputs: stderr when the console sink is enabled, and a per-run file under `logs/<yyyy-MM-dd-hh-mm-ss>/<channel>.log` when the file sink has a writable directory.
 
 The sink is intentionally small and process-local. It is for startup, asset-resolution, and presentation-boundary evidence; it is not a replacement for structured telemetry or the editor runtime diagnostics pane.
 
@@ -70,7 +90,7 @@ The sink is intentionally small and process-local. It is for startup, asset-reso
 
 `format_diagnostic_store_snapshot(...)`, `write_diagnostic_store_snapshot(...)`, and `DiagnosticStoreLogSchedule` are the Bevy `LogDiagnosticsPlugin` counterpart for Zircon's runtime-owned `DiagnosticStore`. The formatter turns each series with a current value into a stable line containing current, smoothed, min, and max values. The writer sends those lines through the existing process log sink. The schedule mirrors Bevy's `LogDiagnosticsState` timer shape without introducing ECS resources: runtime owners tick it with their own frame delta and only collect/write the diagnostic store when the cadence elapses.
 
-`DiagnosticLogSettings` is the Bevy-style `LogSettings` surface for Zircon's process diagnostic sink. It groups the channel, minimum/scoped filter, directory policy, console sink toggle, and file sink toggle into one value before initialization. Existing helpers such as `initialize_process_log(...)` and `initialize_unity_process_log(...)` build the same settings with both sinks enabled, while `initialize_process_log_with_settings(...)` lets host code disable the console or file sink explicitly. `LogSettings` is a type alias for the same structure so Bevy-aligned code can name the concept without moving ownership out of `diagnostic_log`.
+`DiagnosticLogSettings` is the Bevy-style `LogSettings` surface for Zircon's process diagnostic sink. It groups the channel, minimum/scoped filter, directory policy, console sink toggle, file sink toggle, and `DiagnosticLogSinkSettings` queue/batch policy into one value before initialization. Existing helpers such as `initialize_process_log(...)` and `initialize_unity_process_log(...)` build the same settings with both sinks enabled, while `initialize_process_log_with_settings(...)` lets host code disable either output or tune queue capacity, batch count/bytes, and flush cadence explicitly. `LogSettings` is a type alias for the same structure so Bevy-aligned code can name the concept without moving ownership out of `diagnostic_log`.
 
 ## Log Directory Policy
 
@@ -91,7 +111,7 @@ The Unity-compatible roots are:
 
 ## File And Console Sink
 
-`initialize_process_log_with_location(...)` sanitizes the channel name, opens the first writable candidate as `<channel>.log`, selects the default or overridden level filter, and records which directory was selected. `write_diagnostic_log(scope, message)` is the verbose compatibility helper for detailed startup diagnostics. Explicit calls can use `write_debug_log`, `write_log`, `write_warn`, `write_error`, or `write_diagnostic_log_at` when the call site owns the severity.
+`initialize_process_log_with_location(...)` sanitizes the channel name, opens the first writable candidate as `<channel>.log`, compiles the default or overridden scoped filter, and records which directory was selected. `write_diagnostic_log(scope, message)` is the verbose compatibility helper for already-built startup diagnostics. Allocation-sensitive producers use `write_diagnostic_log_lazy`, `write_debug_log_lazy`, `write_log_lazy`, `write_warn_lazy`, `write_error_lazy`, or `write_diagnostic_log_lazy_at`; their closure is evaluated only after the compiled filter accepts the level and scope and an output owner is available.
 
 Accepted lines are written in this form:
 
@@ -99,7 +119,9 @@ Accepted lines are written in this form:
 [2026-05-04-15-35-25] [verbose] [editor_host_presenter] present frame=1 frame_size=1280x720 ...
 ```
 
-Each write replaces embedded newlines with `\n`, writes to stderr, writes to the file when available, and flushes immediately. The immediate flush is deliberate because these diagnostics are primarily used around startup failures, forced smoke-run termination, and crash-adjacent investigations.
+Caller threads do not create timestamps, render complete lines, lock the file, perform I/O, or flush. They enqueue an owned record into the bounded FIFO. When the queue is full, records below `warn` (`verbose`, `debug`, and `log`) are dropped with per-level metrics; `warn` and `error` apply observable backpressure so critical evidence is not silently discarded. The single worker replaces embedded newlines with `\n`, timestamps and formats records in FIFO order, and batches writes by record count, estimated bytes, or elapsed time.
+
+`diagnostic_log_sink_snapshot()` exposes queue depth/high-water, dequeue/write counts, bytes, batches, maximum queue age, low-level drops, critical backpressure, output errors, and closed state. `flush_process_log(timeout)` is the bounded crash/panic handoff; `shutdown_process_log(timeout)` drains records accepted before shutdown and joins the worker. Both flush configured outputs, and file durability includes `sync_data`. Exported editor/runtime binaries install `install_process_log_panic_flush(...)` before entering `EntryRunner` and call bounded shutdown after capturing its result, so ordinary commandlet exits cannot bypass the drain.
 
 ## Level Filter Policy
 
@@ -135,7 +157,7 @@ The 2026-05-04 exported editor smoke run from `E:\zircon-build\ZirconEngine` wro
 3. `editor_host_window` received populated presentation data before creating the native window.
 4. `editor_host_presenter` presented 1280x720 frames with `page_tabs=1`, `document_tabs=2`, and `document_pane_kind=Scene`.
 
-That evidence rules out staged asset-root failure, missing built-in imports, empty/default presentation data, and zero-sized presenter frames for this run. If the exported UI still looks skeletal, the remaining boundary is the current CPU painter in `zircon_editor/src/ui/slint_host/host_contract/painter.rs`, which intentionally draws only minimal chrome markers rather than the full authored workbench template scene.
+That evidence rules out staged asset-root failure, missing built-in imports, empty/default presentation data, and zero-sized presenter frames for that 2026-05-04 run. Its then-current CPU painter path has since been removed, so the historical screenshot diagnosis is not evidence about the current retained-host projection or presentation implementation.
 
 ## Exported Runtime Evidence
 

@@ -40,7 +40,7 @@ fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins
         .with_capability("runtime.feature.animation.timeline_event_track")
         .build(),
     ]);
-    catalog.register_feature(&feature);
+    assert!(catalog.register_feature(&feature).is_published());
     let manifest = ProjectPluginManifest {
         selections: vec![
             ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
@@ -66,7 +66,7 @@ fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins
 }
 
 #[test]
-fn runtime_plugin_catalog_reports_duplicate_feature_runtime_registrations() {
+fn runtime_plugin_catalog_rejects_duplicate_feature_registration_and_keeps_last_good() {
     let feature = SoundTimelineFeaturePlugin;
     let mut catalog = RuntimePluginCatalog::from_descriptors([
         RuntimePluginDescriptor::builder(
@@ -95,8 +95,8 @@ fn runtime_plugin_catalog_reports_duplicate_feature_runtime_registrations() {
         .with_capability("runtime.feature.animation.timeline_event_track")
         .build(),
     ]);
-    catalog.register_feature(&feature);
-    catalog.register_feature(&feature);
+    assert!(catalog.register_feature(&feature).is_published());
+    let duplicate = catalog.register_feature(&feature);
     let manifest = ProjectPluginManifest {
         selections: vec![
             ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
@@ -111,14 +111,15 @@ fn runtime_plugin_catalog_reports_duplicate_feature_runtime_registrations() {
     let report =
         catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
 
-    assert!(!report.is_success());
-    assert!(report.has_fatal_diagnostics());
-    assert!(report
-        .fatal_diagnostics
+    assert!(duplicate.is_rejected());
+    assert_eq!(duplicate.metrics().published_generations, 0);
+    assert!(duplicate
+        .diagnostics()
         .iter()
         .any(|diagnostic| diagnostic.contains(
             "duplicate optional feature id sound.timeline_animation_track registered at runtime"
         )));
+    assert!(report.is_success(), "{:?}", report.fatal_diagnostics);
 }
 
 #[test]
@@ -137,7 +138,7 @@ fn runtime_plugin_catalog_reports_conflicting_feature_defaults_between_package_a
     .with_capability("runtime.plugin.sound")
     .with_optional_feature(declared_feature)
     .build()]);
-    catalog.register_feature(&feature);
+    let conflict = catalog.register_feature(&feature);
 
     let report = catalog.feature_dependency_report(
         &ProjectPluginManifest {
@@ -146,7 +147,11 @@ fn runtime_plugin_catalog_reports_conflicting_feature_defaults_between_package_a
         RuntimeTargetMode::ClientRuntime,
     );
 
-    assert!(report.diagnostics.iter().any(|diagnostic| diagnostic.contains(
+    assert!(conflict.is_rejected());
+    assert!(conflict.diagnostics().iter().any(|diagnostic| diagnostic.contains(
+        "optional feature id sound.timeline_animation_track has conflicting package manifest and runtime registration"
+    )));
+    assert!(report.diagnostics.iter().all(|diagnostic| !diagnostic.contains(
         "optional feature id sound.timeline_animation_track has conflicting package manifest and runtime registration"
     )));
 }
@@ -166,7 +171,7 @@ fn runtime_extension_catalog_treats_blocked_optional_features_as_warnings() {
     .with_capability("runtime.plugin.sound")
     .build()]);
     let feature = SoundTimelineFeaturePlugin;
-    catalog.register_feature(&feature);
+    assert!(catalog.register_feature(&feature).is_published());
     let manifest = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Sound,
@@ -205,7 +210,7 @@ fn runtime_extension_catalog_treats_blocked_required_features_as_fatal() {
     .with_capability("runtime.plugin.sound")
     .build()]);
     let feature = SoundTimelineFeaturePlugin;
-    catalog.register_feature(&feature);
+    assert!(catalog.register_feature(&feature).is_published());
     let manifest = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Sound,

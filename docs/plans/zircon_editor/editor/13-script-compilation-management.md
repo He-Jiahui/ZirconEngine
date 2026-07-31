@@ -14,7 +14,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
   - docs/plans/zircon_editor/editor/04-pie-and-simulation.md
   - docs/plans/zircon_editor/editor/16-cli-args-and-hub-integration.md
-status: planned
+status: in_progress
 ---
 
 # 13 脚本编译管理
@@ -75,8 +75,9 @@ Build {
 ```
 zircon_editor/src/core/script_build/
   mod.rs
-  orchestrator.rs     # 状态机 + 触发源 + 队列
-  watch.rs            # 源目录监视（复用 runtime asset/watch 事件，经 gateway）
+  request.rs          # request/step/dispatch/completion 值对象
+  orchestrator.rs     # 状态机 + 三触发源 + request FIFO + step 队列
+  watch.rs            # 后续源目录监视适配（复用 runtime asset/watch 事件，经 gateway）
   diagnostics_sink.rs # 汇聚 + 面板数据源投影
 zircon_runtime_interface/src/script_diagnostics/   # DTO
 # VM 编译入口与实例状态快照协议在 zircon_runtime/src/script/vm/（runtime/13 owner 会签）
@@ -100,7 +101,7 @@ zircon_runtime_interface/src/script_diagnostics/   # DTO
 
 ### M1 编排器与诊断面（假编译器）
 
-- 切片 1.1：`orchestrator.rs` 状态机 + 三触发源（watch 去抖合批/命令/Play 委托接口）+ 队列语义（前步失败即止）；假编译器夹具。
+- 切片 1.1：`orchestrator.rs` 状态机 + 三触发源（watch 去抖合批/命令/Play 委托接口）+ 队列语义（前步失败即止）；假编译器夹具。2026-07-18 已完成纯领域生产核心与测试夹具；异步 completion 绑定原 dispatch 的 request+step 双身份，拒绝同 request 旧步骤迟到推进当前步骤。受管 Rust 测试阶段待 Coordinator01 完整 compile-input snapshot 解禁，见 [子计划记录](13/2026-07-18-script-build-orchestrator-m1.md)。
 - 切片 1.2：`script_diagnostics` DTO + `diagnostics_sink.rs`（分组/过滤/跳转动作发 bus 消息）+ 状态栏徽标数据源。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked`（状态机全迁移矩阵/去抖合批时序/队列中断/诊断汇聚分组）+ `cargo test -p zircon_runtime_interface --locked`（DTO 往返）。更新 `docs/zircon_editor/core/script_build.md`。
 
@@ -126,3 +127,16 @@ zircon_runtime_interface/src/script_diagnostics/   # DTO
 - 实例状态快照-重放的保真度依赖 runtime/13 反射迁移能力排期——会签若判定 M2 内无法交付，热接入降级为「重载即重建模块实例（状态清零）+ 显著提示」，诚实降级而非静默损坏（UE 教训）。
 - watch 去抖窗口与用户 IDE 批量保存（格式化器多文件写）的交互：合批窗口设置化（17），默认 300ms，超 20 文件强制合为单次全量编译。
 - 诊断跳转的外部 IDE 协议（vscode://、fleet://）仅尽力而为，失败回退内部查看器——不作为验收项。
+
+## 产出记录与时间
+
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+产出明细位于 [2026-07-18 ScriptBuildOrchestrator M1.1 子计划](13/2026-07-18-script-build-orchestrator-m1.md)。M1.2 诊断 DTO/sink、M2 真实 VM、M3 Play/job/commandlet 接线均未完成，本计划保持 `in_progress`。
+
+- 2026-07-22 性能复核：超过20条unique watch path已立即折叠为full-rebuild sentinel，snapshot最后
+  outcome改Arc共享；standalone Rust tests 10/10、静态合同5/5。滑动debounce仍缺first-event max
+  latency，Command/Play FIFO仍无entry/bytes/age预算与generation single-flight；见
+  [open failure](13/failure-2026-07-22-script-build-debounce-admission-backpressure.md)与PERF-MVP-557，
+  联动Editor14/Runtime11，不以扩大队列解决。
+- 2026-07-30 current-source性能复核：`core/script_build/**`4/4、912行、13 tests已按稳定SHA逐文件复读；20-path+sentinel、Arc outcome与linear dispatch ticket继续成立。除`core/mod.rs`导出外仍无watch/command/Play/job/VM/commandlet产品caller，不把接线前风险写成当前UI实测。PERF-MVP-557补充fixed three-step Vec、dispatch最多20个PathBuf clone、持续debounce starvation及Command/Play无界admission；M2/M3前必须用source generation、bounded/coalesced ticket和Editor14/Runtime11唯一job owner收口。rustfmt/whitespace GREEN，managed Cargo、规模counter与F4仍待；证据见`../../performance/01/2026-07-30-editor-core-script-build-current-review.md`。

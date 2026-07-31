@@ -6,10 +6,12 @@ mod supported_targets;
 use crate::plugin::PluginPackageManifest;
 
 use super::coordinates::validate_runtime_plugin_package_coordinates;
+use super::projection::RuntimePluginPackageValidationProjection;
 use super::roots::validate_runtime_plugin_package_roots;
 
 pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_package_layout(
     package_manifest: &PluginPackageManifest,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     diagnostics: &mut Vec<String>,
 ) {
     public_metadata::validate_runtime_plugin_package_public_metadata(package_manifest, diagnostics);
@@ -22,5 +24,5 @@ pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_package_layout(
         package_manifest,
         diagnostics,
     );
-    validate_runtime_plugin_package_roots(package_manifest, diagnostics);
+    validate_runtime_plugin_package_roots(package_manifest, projection, diagnostics);
 }

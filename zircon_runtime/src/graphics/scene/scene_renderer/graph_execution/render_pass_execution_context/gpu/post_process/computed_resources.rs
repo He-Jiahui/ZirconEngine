@@ -280,7 +280,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             target.size,
             target.cluster_dimensions,
             light_list_buffer,
-            target.cluster_buffer_bytes,
             &self.frame.extract.lighting.directional_lights,
             enabled,
         );

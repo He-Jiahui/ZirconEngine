@@ -2,13 +2,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::AssetImporterRegistry;
-use crate::core::framework::error::{CoreError, CoreResult};
 #[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::core::runtime::modules::{
     DiagnosticsCoreModule, FrameCountModule, LogModule, TasksModule, TimeModule,
 };
 use crate::core::sort_module_activation_order;
+use crate::core::{CoreError, CoreResult};
 use crate::engine_module::EngineModule;
 #[cfg(feature = "graphics")]
 use crate::graphics;

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var migration = %import("progression/talent_loadout_migration");
+
+console.printLine("m5-talent-loadout-migration-test");
+var result = migration.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

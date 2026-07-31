@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use std::time::Duration;
+
 use zircon_runtime::scene::World;
 use zircon_runtime_interface::{
     ProfileControlRequest, ProfileControlResponse, ZrRuntimeEventV1, ZrRuntimeOperationHandle,
@@ -8,23 +11,72 @@ use zircon_runtime_interface::{
 
 use super::{GatewayError, RuntimeCapabilities};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) trait EditorRuntimeFramePixels {
+    fn rgba(&self) -> Result<&[u8], GatewayError>;
+
+    fn release(self: Box<Self>) -> Result<(), GatewayError>;
+}
+
+#[derive(Debug)]
+struct EditorOwnedRuntimeFramePixels {
+    rgba: Vec<u8>,
+}
+
+impl EditorRuntimeFramePixels for EditorOwnedRuntimeFramePixels {
+    fn rgba(&self) -> Result<&[u8], GatewayError> {
+        Ok(&self.rgba)
+    }
+
+    fn release(self: Box<Self>) -> Result<(), GatewayError> {
+        Ok(())
+    }
+}
+
 pub struct EditorRuntimeFrame {
     abi_version: u32,
     width: u32,
     height: u32,
     generation: u64,
-    rgba: Vec<u8>,
+    pixels: Box<dyn EditorRuntimeFramePixels>,
+}
+
+impl std::fmt::Debug for EditorRuntimeFrame {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("EditorRuntimeFrame")
+            .field("abi_version", &self.abi_version)
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("generation", &self.generation)
+            .field("rgba_len", &self.rgba().map_or(0, <[u8]>::len))
+            .finish()
+    }
 }
 
 impl EditorRuntimeFrame {
     pub fn new(abi_version: u32, width: u32, height: u32, generation: u64, rgba: Vec<u8>) -> Self {
+        Self::from_pixels(
+            abi_version,
+            width,
+            height,
+            generation,
+            Box::new(EditorOwnedRuntimeFramePixels { rgba }),
+        )
+    }
+
+    pub(crate) fn from_pixels(
+        abi_version: u32,
+        width: u32,
+        height: u32,
+        generation: u64,
+        pixels: Box<dyn EditorRuntimeFramePixels>,
+    ) -> Self {
         Self {
             abi_version,
             width,
             height,
             generation,
-            rgba,
+            pixels,
         }
     }
 
@@ -48,14 +100,107 @@ impl EditorRuntimeFrame {
         self.generation
     }
 
-    pub fn rgba(&self) -> &[u8] {
-        &self.rgba
+    pub fn rgba(&self) -> Result<&[u8], GatewayError> {
+        self.pixels.rgba()
+    }
+
+    pub fn release(self) -> Result<(), GatewayError> {
+        self.pixels.release()
+    }
+}
+
+/// Editor-facing cadence requested by the runtime after a successful frame tick.
+///
+/// The serialized gateway converts the runtime ABI into this contract once, so host and UI
+/// scheduling never need to interpret raw ABI kinds or delay fields.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EditorRuntimeFrameDemand {
+    OnDemand,
+    SleepUntil(Duration),
+    Continuous,
+}
+
+/// One bounded plugin-event page returned by the editor runtime gateway.
+///
+/// `runtime_drain_elapsed` covers the runtime ABI call, including the runtime's page encoding;
+/// `decode_elapsed` covers editor-owned decoding and buffer release after the call succeeds.
+#[derive(Debug)]
+pub struct EditorRuntimePluginEventPage {
+    deliveries: Vec<ZrRuntimePluginEventDeliveryV1>,
+    encoded_bytes: usize,
+    runtime_drain_elapsed: Duration,
+    decode_elapsed: Duration,
+    runtime_remaining_deliveries: usize,
+    runtime_oldest_pending_age_millis: u64,
+}
+
+impl EditorRuntimePluginEventPage {
+    pub fn new(
+        deliveries: Vec<ZrRuntimePluginEventDeliveryV1>,
+        encoded_bytes: usize,
+        runtime_drain_elapsed: Duration,
+        decode_elapsed: Duration,
+    ) -> Self {
+        Self {
+            deliveries,
+            encoded_bytes,
+            runtime_drain_elapsed,
+            decode_elapsed,
+            runtime_remaining_deliveries: 0,
+            runtime_oldest_pending_age_millis: 0,
+        }
+    }
+
+    pub fn with_runtime_backlog(
+        mut self,
+        runtime_remaining_deliveries: usize,
+        runtime_oldest_pending_age_millis: u64,
+    ) -> Self {
+        self.runtime_remaining_deliveries = runtime_remaining_deliveries;
+        self.runtime_oldest_pending_age_millis = runtime_oldest_pending_age_millis;
+        self
+    }
+
+    pub(crate) fn synthetic(deliveries: Vec<ZrRuntimePluginEventDeliveryV1>) -> Self {
+        Self::new(deliveries, 0, Duration::ZERO, Duration::ZERO)
+    }
+
+    pub fn deliveries(&self) -> &[ZrRuntimePluginEventDeliveryV1] {
+        &self.deliveries
+    }
+
+    pub fn into_deliveries(self) -> Vec<ZrRuntimePluginEventDeliveryV1> {
+        self.deliveries
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.deliveries.is_empty()
+    }
+
+    pub fn encoded_bytes(&self) -> usize {
+        self.encoded_bytes
+    }
+
+    pub fn runtime_drain_elapsed(&self) -> Duration {
+        self.runtime_drain_elapsed
+    }
+
+    pub fn decode_elapsed(&self) -> Duration {
+        self.decode_elapsed
+    }
+
+    pub fn runtime_remaining_deliveries(&self) -> usize {
+        self.runtime_remaining_deliveries
+    }
+
+    pub fn runtime_oldest_pending_age_millis(&self) -> u64 {
+        self.runtime_oldest_pending_age_millis
     }
 }
 
 pub trait EditorRuntimeGateway: Send + Sync {
-    fn capabilities(&self) -> RuntimeCapabilities {
-        RuntimeCapabilities::unavailable().clone()
+    fn capabilities(&self) -> Arc<RuntimeCapabilities> {
+        RuntimeCapabilities::unavailable()
     }
 
     fn session_handle(&self) -> ZrRuntimeSessionHandle;
@@ -68,7 +213,7 @@ pub trait EditorRuntimeGateway: Send + Sync {
         Err(GatewayError::RequiresSerializedAccess)
     }
 
-    fn tick_frame(&self) -> Result<bool, GatewayError> {
+    fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.frame.tick",
         })
@@ -121,7 +266,7 @@ pub trait EditorRuntimeGateway: Send + Sync {
     fn drain_plugin_events(
         &self,
         _subscription: ZrRuntimePluginEventSubscriptionHandle,
-    ) -> Result<Vec<ZrRuntimePluginEventDeliveryV1>, GatewayError> {
+    ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.plugin_event.drain",
         })

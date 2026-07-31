@@ -1,0 +1,6 @@
+{
+  "name": "woc_crafting_hub_tests",
+  "source": "src",
+  "binary": "bin-crafting-hub-tests",
+  "entry": "progression/crafting_hub_test_main"
+}

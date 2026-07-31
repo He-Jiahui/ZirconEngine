@@ -287,7 +287,7 @@ fn runtime_backed_workspace_plugin_manifests_are_present_in_builtin_catalog() {
     let catalog_ids = RuntimePluginCatalog::builtin()
         .package_manifests()
         .into_iter()
-        .map(|manifest| manifest.id)
+        .map(|manifest| manifest.id.clone())
         .collect::<BTreeSet<_>>();
 
     for manifest_path in plugin_manifest_paths(&plugins_root) {
@@ -369,7 +369,7 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
         ];
         let expected_capabilities = vec![runtime_capability.to_string()];
 
-        assert_eq!(RuntimePluginId::parse_key(id), Some(runtime_id));
+        assert_eq!(RuntimePluginId::parse_key(id), Some(runtime_id.clone()));
         assert!(
             manifest_source.contains(r#"sdk_api_version = "0.1.0""#),
             "runtime-backed authoring plugin `{id}` should explicitly declare SDK API version"

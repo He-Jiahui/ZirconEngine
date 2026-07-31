@@ -71,14 +71,20 @@ impl ScreenSpaceUiBackgroundTracker {
         viewport: UiFrame,
     ) -> Option<[f32; 4]> {
         let frame = command_visible_frame(frame, clip_frame, viewport)?;
+        let latest_blocker_order = self
+            .blockers
+            .iter()
+            .filter(|blocker| frames_intersect(blocker.frame, frame))
+            .map(|blocker| blocker.order)
+            .max();
         self.candidates
             .iter()
             .rev()
             .find(|background| {
                 frame_covers(background.frame, frame)
-                    && !self.blockers.iter().any(|blocker| {
-                        blocker.order > background.order && frames_intersect(blocker.frame, frame)
-                    })
+                    && latest_blocker_order
+                        .map(|blocker_order| background.order > blocker_order)
+                        .unwrap_or(true)
             })
             .map(|background| background.color)
     }

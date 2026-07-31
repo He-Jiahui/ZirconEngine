@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_delve_active_collision_tests",
+  "source": "src",
+  "binary": "bin-m3-delve-active-collision-tests",
+  "entry": "instances/delve_active_collision_test_main"
+}

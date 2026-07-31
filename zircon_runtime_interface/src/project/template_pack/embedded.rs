@@ -35,6 +35,10 @@ pub(super) const RENDERABLE_EMPTY_ENTRIES: &[EmbeddedProjectTemplateEntry] = &[
         bytes: template_bytes!(".zircon/registry/.gitignore"),
     },
     EmbeddedProjectTemplateEntry {
+        path: ".zircon/settings.toml",
+        bytes: template_bytes!(".zircon/settings.toml"),
+    },
+    EmbeddedProjectTemplateEntry {
         path: ".zircon/thumbnails/.gitignore",
         bytes: template_bytes!(".zircon/thumbnails/.gitignore"),
     },
@@ -43,8 +47,16 @@ pub(super) const RENDERABLE_EMPTY_ENTRIES: &[EmbeddedProjectTemplateEntry] = &[
         bytes: template_bytes!("assets/materials/default.zmaterial"),
     },
     EmbeddedProjectTemplateEntry {
+        path: "assets/materials/default.zmaterial.zmeta",
+        bytes: template_bytes!("assets/materials/default.zmaterial.zmeta"),
+    },
+    EmbeddedProjectTemplateEntry {
         path: "assets/models/cube.obj",
         bytes: template_bytes!("assets/models/cube.obj"),
+    },
+    EmbeddedProjectTemplateEntry {
+        path: "assets/models/cube.obj.zmeta",
+        bytes: template_bytes!("assets/models/cube.obj.zmeta"),
     },
     EmbeddedProjectTemplateEntry {
         path: "assets/scenes/main.scene.toml",

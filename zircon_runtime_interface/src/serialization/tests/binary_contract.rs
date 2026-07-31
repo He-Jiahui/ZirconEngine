@@ -1,10 +1,15 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::super::{
-    binary::{encode_binary_payload, encode_binary_value, BinaryNode, BinaryValue},
-    load_versioned, write_versioned, write_versioned_text, Format, MigrationChain, PayloadHeader,
-    SchemaId, VersionedSchema,
+    Format, MigrationChain, PayloadHeader, SchemaId, VersionedSchema,
+    binary::{
+        BinaryNode, BinaryValue, decode_binary_current, decode_binary_header,
+        encode_binary_payload, encode_binary_value,
+    },
+    load_versioned, write_versioned, write_versioned_text,
 };
 use super::FixtureDocument;
 
@@ -21,6 +26,25 @@ fn binary_writer_round_trips_the_current_payload() {
 
     assert_eq!(loaded.value, document);
     assert_eq!(loaded.migrated_from, None);
+}
+
+#[test]
+fn binary_current_payload_decodes_through_the_direct_typed_boundary() {
+    let document = FixtureDocument {
+        label: "binary-direct".to_string(),
+        count: 73,
+    };
+    let bytes = write_versioned(&document, Format::Binary).expect("binary encoding should succeed");
+    let (_, payload_body) = decode_binary_header(&bytes).expect("fixture header should decode");
+
+    let decoded = decode_binary_current::<FixtureDocument>(payload_body)
+        .expect("current binary payload should decode without an intermediate JSON Value");
+
+    assert_eq!(decoded, document);
+    assert!(
+        !include_str!("../binary/value/direct_decode.rs").contains("serde_json::Value"),
+        "the current binary decoder must not materialize a serde_json Value"
+    );
 }
 
 #[test]
@@ -55,6 +79,86 @@ impl VersionedSchema for JsonDomainDocument {
         static MIGRATIONS: MigrationChain<JsonDomainDocument> = MigrationChain::new(&[]);
         &MIGRATIONS
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct NumericKeyBinaryDocument {
+    entries: BTreeMap<u32, String>,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct BinarySerdeContractDocument {
+    enabled: bool,
+    choice: BinarySerdeContractChoice,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+enum BinarySerdeContractChoice {
+    Unit,
+    Newtype(bool),
+    Struct { enabled: bool },
+}
+
+impl VersionedSchema for NumericKeyBinaryDocument {
+    const SCHEMA: SchemaId = SchemaId::new("zircon.tests.binary-numeric-key");
+    const VERSION: u32 = 0;
+
+    fn migrations() -> &'static MigrationChain<Self> {
+        static MIGRATIONS: MigrationChain<NumericKeyBinaryDocument> = MigrationChain::new(&[]);
+        &MIGRATIONS
+    }
+}
+
+impl VersionedSchema for BinarySerdeContractDocument {
+    const SCHEMA: SchemaId = SchemaId::new("zircon.tests.binary-serde-contract");
+    const VERSION: u32 = 0;
+
+    fn migrations() -> &'static MigrationChain<Self> {
+        static MIGRATIONS: MigrationChain<BinarySerdeContractDocument> = MigrationChain::new(&[]);
+        &MIGRATIONS
+    }
+}
+
+#[test]
+fn binary_current_direct_decode_covers_bool_and_enum_variants() {
+    let documents = [
+        BinarySerdeContractDocument {
+            enabled: true,
+            choice: BinarySerdeContractChoice::Unit,
+        },
+        BinarySerdeContractDocument {
+            enabled: false,
+            choice: BinarySerdeContractChoice::Newtype(true),
+        },
+        BinarySerdeContractDocument {
+            enabled: true,
+            choice: BinarySerdeContractChoice::Struct { enabled: false },
+        },
+    ];
+
+    for document in documents {
+        let bytes =
+            write_versioned(&document, Format::Binary).expect("binary encoding should succeed");
+        let loaded = load_versioned::<BinarySerdeContractDocument>(&bytes, Format::Binary)
+            .expect("current binary bool and enum payload should decode directly");
+
+        assert_eq!(loaded.value, document);
+        assert_eq!(loaded.migrated_from, None);
+    }
+}
+
+#[test]
+fn binary_current_direct_decode_preserves_numeric_object_key_semantics() {
+    let document = NumericKeyBinaryDocument {
+        entries: BTreeMap::from([(1, "one".to_string()), (42, "forty-two".to_string())]),
+    };
+
+    let bytes = write_versioned(&document, Format::Binary).expect("binary encoding should succeed");
+    let loaded = load_versioned::<NumericKeyBinaryDocument>(&bytes, Format::Binary)
+        .expect("current binary payload should decode numeric map keys");
+
+    assert_eq!(loaded.value, document);
+    assert_eq!(loaded.migrated_from, None);
 }
 
 #[test]

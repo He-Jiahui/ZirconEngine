@@ -11,6 +11,7 @@ mod inspection;
 pub(crate) mod persistence;
 mod query;
 mod rebuild;
+mod targeted;
 
 pub use asset_registry_diagnostic::AssetRegistryDiagnostic;
 pub use asset_registry_entry::AssetRegistryEntry;

@@ -1,28 +1,56 @@
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
+
+use arc_swap::{ArcSwap, Guard};
 
 use zircon_runtime::scene::World;
 use zircon_runtime_interface::{
     ProfileControlRequest, ProfileControlResponse, ZrRuntimeEventV1, ZrRuntimeOperationHandle,
     ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
-    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1,
 };
 
 use super::{
-    DetachedEditorRuntimeGateway, EditorRuntimeFrame, EditorRuntimeGateway, GatewayError,
-    RuntimeCapabilities, SharedEditorRuntimeGateway,
+    DetachedEditorRuntimeGateway, EditorRuntimeFrame, EditorRuntimeFrameDemand,
+    EditorRuntimeGateway, EditorRuntimePluginEventPage, GatewayError, RuntimeCapabilities,
+    SharedEditorRuntimeGateway,
 };
 
 /// Stable editor service identity whose transport can be attached after module startup.
 #[derive(Clone)]
 pub struct EditorRuntimeGatewayHandle {
-    inner: Arc<RwLock<SharedEditorRuntimeGateway>>,
+    inner: Arc<GatewayOwner>,
+}
+
+struct GatewayOwner {
+    current: ArcSwap<GatewayGeneration>,
+    replacement: Mutex<()>,
+}
+
+struct GatewayGeneration {
+    id: u64,
+    gateway: SharedEditorRuntimeGateway,
+    capabilities: Arc<RuntimeCapabilities>,
+}
+
+impl GatewayGeneration {
+    fn new(id: u64, gateway: SharedEditorRuntimeGateway) -> Self {
+        let capabilities = gateway.capabilities();
+        Self {
+            id,
+            gateway,
+            capabilities,
+        }
+    }
 }
 
 impl EditorRuntimeGatewayHandle {
     pub fn new(gateway: SharedEditorRuntimeGateway) -> Self {
         Self {
-            inner: Arc::new(RwLock::new(gateway)),
+            inner: Arc::new(GatewayOwner {
+                current: ArcSwap::from_pointee(GatewayGeneration::new(0, gateway)),
+                replacement: Mutex::new(()),
+            }),
         }
     }
 
@@ -30,50 +58,60 @@ impl EditorRuntimeGatewayHandle {
         Self::new(Arc::new(DetachedEditorRuntimeGateway))
     }
 
-    pub fn replace(&self, gateway: SharedEditorRuntimeGateway) {
-        *self.write() = gateway;
-    }
-
-    fn snapshot(&self) -> SharedEditorRuntimeGateway {
-        self.read().clone()
-    }
-
-    fn read(&self) -> RwLockReadGuard<'_, SharedEditorRuntimeGateway> {
+    pub fn replace(&self, gateway: SharedEditorRuntimeGateway) -> Result<(), GatewayError> {
+        let _replacement = self.replacement_lock();
+        let next_generation = next_generation(self.generation_snapshot().id)?;
         self.inner
-            .read()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .current
+            .store(Arc::new(GatewayGeneration::new(next_generation, gateway)));
+        Ok(())
     }
 
-    fn write(&self) -> RwLockWriteGuard<'_, SharedEditorRuntimeGateway> {
+    pub fn generation(&self) -> u64 {
+        self.generation_snapshot().id
+    }
+
+    fn generation_snapshot(&self) -> Guard<Arc<GatewayGeneration>> {
+        self.inner.current.load()
+    }
+
+    fn replacement_lock(&self) -> MutexGuard<'_, ()> {
         self.inner
-            .write()
+            .replacement
+            .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 
+fn next_generation(current: u64) -> Result<u64, GatewayError> {
+    current
+        .checked_add(1)
+        .ok_or(GatewayError::GenerationExhausted)
+}
+
 impl EditorRuntimeGatewayHandle {
-    pub fn capabilities(&self) -> RuntimeCapabilities {
-        self.snapshot().capabilities()
+    pub fn capabilities(&self) -> Arc<RuntimeCapabilities> {
+        self.generation_snapshot().capabilities.clone()
     }
 
     pub fn session_handle(&self) -> ZrRuntimeSessionHandle {
-        self.snapshot().session_handle()
+        self.generation_snapshot().gateway.session_handle()
     }
 
     pub fn with_world(&self, read: &mut dyn FnMut(&World)) -> Result<(), GatewayError> {
-        self.snapshot().with_world(read)
+        self.generation_snapshot().gateway.with_world(read)
     }
 
     pub fn with_world_mut(&self, write: &mut dyn FnMut(&mut World)) -> Result<(), GatewayError> {
-        self.snapshot().with_world_mut(write)
+        self.generation_snapshot().gateway.with_world_mut(write)
     }
 
-    pub fn tick_frame(&self) -> Result<bool, GatewayError> {
-        self.snapshot().tick_frame()
+    pub fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
+        self.generation_snapshot().gateway.tick_frame()
     }
 
     pub fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), GatewayError> {
-        self.snapshot().handle_event(event)
+        self.generation_snapshot().gateway.handle_event(event)
     }
 
     pub fn capture_frame(
@@ -81,14 +119,16 @@ impl EditorRuntimeGatewayHandle {
         viewport: ZrRuntimeViewportHandle,
         size: ZrRuntimeViewportSizeV1,
     ) -> Result<EditorRuntimeFrame, GatewayError> {
-        self.snapshot().capture_frame(viewport, size)
+        self.generation_snapshot()
+            .gateway
+            .capture_frame(viewport, size)
     }
 
     pub fn profile_control(
         &self,
         request: &ProfileControlRequest,
     ) -> Result<Option<ProfileControlResponse>, GatewayError> {
-        self.snapshot().profile_control(request)
+        self.generation_snapshot().gateway.profile_control(request)
     }
 
     pub fn subscribe_plugin_event(
@@ -96,7 +136,8 @@ impl EditorRuntimeGatewayHandle {
         event_id: &str,
         payload_schema: &str,
     ) -> Result<Option<ZrRuntimePluginEventSubscriptionHandle>, GatewayError> {
-        self.snapshot()
+        self.generation_snapshot()
+            .gateway
             .subscribe_plugin_event(event_id, payload_schema)
     }
 
@@ -104,40 +145,44 @@ impl EditorRuntimeGatewayHandle {
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
     ) -> Result<bool, GatewayError> {
-        self.snapshot().unsubscribe_plugin_event(subscription)
+        self.generation_snapshot()
+            .gateway
+            .unsubscribe_plugin_event(subscription)
     }
 
     pub fn drain_plugin_events(
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
-    ) -> Result<Vec<ZrRuntimePluginEventDeliveryV1>, GatewayError> {
-        self.snapshot().drain_plugin_events(subscription)
+    ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
+        self.generation_snapshot()
+            .gateway
+            .drain_plugin_events(subscription)
     }
 
     pub fn submit_operation(
         &self,
         request: ZrRuntimeOperationSubmitRequestV1,
     ) -> Result<ZrRuntimeOperationHandle, GatewayError> {
-        self.snapshot().submit_operation(request)
+        self.generation_snapshot().gateway.submit_operation(request)
     }
 
     pub fn poll_operation(
         &self,
         handle: ZrRuntimeOperationHandle,
     ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
-        self.snapshot().poll_operation(handle)
+        self.generation_snapshot().gateway.poll_operation(handle)
     }
 
     pub fn harvest_operation(
         &self,
         handle: ZrRuntimeOperationHandle,
     ) -> Result<ZrRuntimeOperationResultV1, GatewayError> {
-        self.snapshot().harvest_operation(handle)
+        self.generation_snapshot().gateway.harvest_operation(handle)
     }
 }
 
 impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
-    fn capabilities(&self) -> RuntimeCapabilities {
+    fn capabilities(&self) -> Arc<RuntimeCapabilities> {
         EditorRuntimeGatewayHandle::capabilities(self)
     }
 
@@ -153,7 +198,7 @@ impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
         EditorRuntimeGatewayHandle::with_world_mut(self, write)
     }
 
-    fn tick_frame(&self) -> Result<bool, GatewayError> {
+    fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
         EditorRuntimeGatewayHandle::tick_frame(self)
     }
 
@@ -194,7 +239,7 @@ impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
     fn drain_plugin_events(
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
-    ) -> Result<Vec<ZrRuntimePluginEventDeliveryV1>, GatewayError> {
+    ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
         EditorRuntimeGatewayHandle::drain_plugin_events(self, subscription)
     }
 
@@ -217,5 +262,44 @@ impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
         handle: ZrRuntimeOperationHandle,
     ) -> Result<ZrRuntimeOperationResultV1, GatewayError> {
         EditorRuntimeGatewayHandle::harvest_operation(self, handle)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use arc_swap::ArcSwap;
+
+    use super::{
+        DetachedEditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError, GatewayGeneration,
+        GatewayOwner, next_generation,
+    };
+
+    #[test]
+    fn next_gateway_generation_returns_typed_error_at_u64_max() {
+        assert_eq!(
+            next_generation(u64::MAX),
+            Err(GatewayError::GenerationExhausted)
+        );
+    }
+
+    #[test]
+    fn replacement_at_generation_limit_does_not_publish_a_new_gateway() {
+        let handle = EditorRuntimeGatewayHandle {
+            inner: Arc::new(GatewayOwner {
+                current: ArcSwap::from_pointee(GatewayGeneration::new(
+                    u64::MAX,
+                    Arc::new(DetachedEditorRuntimeGateway),
+                )),
+                replacement: Mutex::new(()),
+            }),
+        };
+
+        assert_eq!(
+            handle.replace(Arc::new(DetachedEditorRuntimeGateway)),
+            Err(GatewayError::GenerationExhausted)
+        );
+        assert_eq!(handle.generation(), u64::MAX);
     }
 }

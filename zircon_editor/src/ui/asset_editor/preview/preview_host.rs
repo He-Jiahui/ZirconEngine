@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiSize};
 
 use crate::ui::asset_editor::session::UiAssetEditorSessionError;
 use crate::ui::template::EditorTemplateRuntimeService;
+use crate::ui::v2_design_tokens::prepare_editor_v2_document;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiAssetPreviewHost {
@@ -36,9 +37,10 @@ impl UiAssetPreviewHost {
         document: &UiV2AssetDocument,
         compiled: &UiV2CompiledDocument,
     ) -> Result<Self, UiAssetEditorSessionError> {
+        let prepared_document = prepare_editor_v2_document(document);
         let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
             UiTreeId::new(format!("ui_asset.preview.v2.{}", document.asset.id)),
-            document,
+            &prepared_document,
             compiled,
         )?;
         surface.compute_layout(preview_size)?;
@@ -68,8 +70,9 @@ impl UiAssetPreviewHost {
         }
 
         self.preview_size = preview_size;
-        for root_id in self.surface.tree.roots.clone() {
-            if let Some(root) = self.surface.tree.nodes.get_mut(&root_id) {
+        let (roots, nodes) = (&self.surface.tree.roots, &mut self.surface.tree.nodes);
+        for root_id in roots {
+            if let Some(root) = nodes.get_mut(root_id) {
                 root.dirty.layout = true;
                 root.dirty.hit_test = true;
                 root.dirty.render = true;

@@ -8,7 +8,7 @@ use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, RenderCapabilitySummary,
     RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
     RenderVirtualGeometryCpuReferencePageDependencyEntry, RenderVirtualGeometryDebugState,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryPageDependency,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPageDependency, RendererCommon,
 };
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
@@ -1038,7 +1038,11 @@ fn mesh_snapshot(node_id: u64, model_id: ResourceId, material_uri: &str) -> Rend
         tint: Default::default(),
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::from_transform_static(false),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
+        common: RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
+            is_static: false,
+            ..RendererCommon::default()
+        },
     }
 }
 

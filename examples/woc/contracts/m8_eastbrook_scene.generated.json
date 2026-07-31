@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "scene_contract_sha256": "078e395ee41925086bebb5722f2699fa3f700ed57e0acf58c79a5dc3d77d7399",
+  "asset_selection_sha256": "8ca27346974d182821b35f50d9ad5a63df44442d450eeed5a26f7830c60f4755",
+  "scene_sha256": "84c351f7e6942a37c06c00b0f5e1de9c5244cc01842cb06a1728a04a702839ff",
+  "ground_sha256": "34fcbe140fab763008104af79e475503dde11b8ba18b932a81717375fd102e92",
+  "totals": {
+    "entities": 268,
+    "gltf_node_entities": 199,
+    "actors": 5,
+    "prop_instances": 18,
+    "referenced_glbs": 10,
+    "fence_modules": 11
+  },
+  "coordinate_contract": {
+    "horizontal_axes": "+z north, +x west",
+    "ground_y_mode": "flat_mvp_pending_runtime04_original_terrain_import",
+    "sources": [
+      "src/sim/data.ts:335",
+      "src/sim/content/zone1.ts:510-620",
+      "src/sim/content/zone1.ts:1104-1245",
+      "src/render/props.ts:787-987",
+      "src/render/characters/manifest.ts:357-1200"
+    ]
+  },
+  "referenced_assets": [
+    {
+      "asset_path": "assets/m8/models/chars/players/knight.glb",
+      "sha256": "ce0d0a5ec1d67594629ecac20a7576fde22a44456e7628e8eb100891bc6dda97",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "EXT_texture_webp",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "asset_path": "assets/m8/models/chars/players/rogue.glb",
+      "sha256": "11c7e99ea73b8f81eac0fa73bc1e6a03b6c2d85ad910c84fa96c79bbf3439e0e",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "EXT_texture_webp",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "asset_path": "assets/m8/models/creatures/wild_boar.glb",
+      "sha256": "d47c367f463004fdb6acb00a051c2bdc6d615c7e36c8b6165a726bd59b1843cf",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "asset_path": "assets/m8/models/creatures/wolf_basic.glb",
+      "sha256": "655da121afa8768c13a3b2aa172e6875c716d06e352110bf68eaa4f34c9fec6e",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "EXT_texture_webp",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "asset_path": "assets/m8/models/props/bonfire.glb",
+      "sha256": "3e5f78d3d6dbd24ee71ead9127ae10b59f286f87b89432d0285b921d99258747",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "asset_path": "assets/m8/models/props/fence.glb",
+      "sha256": "ff22bf2593398774f20e7e6f82f3a9184e326cc4c45cd780a0981590a54172c0",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "asset_path": "assets/m8/models/props/house_2.glb",
+      "sha256": "ede3299a2b09bdf66fc56cb56187ae1cdd673ee23eb44b75a40aa38cd8855e93",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "asset_path": "assets/m8/models/props/inn.glb",
+      "sha256": "a1386fe4db504f5110df670b91f4e5f6fdc3baf545cc023fb21ebcc457867a04",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "asset_path": "assets/m8/models/props/market_stand_1.glb",
+      "sha256": "d59645bb16549882280e091e41804cca09dac4a693772960bde0418e5d0229b5",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "asset_path": "assets/m8/models/props/well.glb",
+      "sha256": "9308ba09ea3bed048984eeb14307b0557c5ea11404556d33afa9ed904b6ee123",
+      "extensions_required": [
+        "EXT_meshopt_compression",
+        "KHR_mesh_quantization"
+      ]
+    }
+  ]
+}

@@ -26,6 +26,7 @@ pub(super) fn apply_assets_activity_responsive_layout(
         return;
     };
     if root.width > density.compact_left_drawer_max_width {
+        apply_wide_utility_tab_visibility(nodes, snapshot, &root);
         return;
     }
 
@@ -73,6 +74,21 @@ pub(super) fn apply_assets_activity_responsive_layout(
         density,
         controls,
     );
+}
+
+fn apply_wide_utility_tab_visibility(
+    nodes: &mut [ViewTemplateNodeData],
+    snapshot: &AssetWorkspaceSnapshot,
+    root: &ViewTemplateFrameData,
+) {
+    match snapshot.utility_tab {
+        AssetUtilityTab::Preview => hide_nodes(nodes, REFERENCE_CONTROLS, root.x, root.y),
+        AssetUtilityTab::References => hide_nodes(nodes, PREVIEW_CONTROLS, root.x, root.y),
+        AssetUtilityTab::Metadata | AssetUtilityTab::Plugins => {
+            hide_nodes(nodes, PREVIEW_CONTROLS, root.x, root.y);
+            hide_nodes(nodes, REFERENCE_CONTROLS, root.x, root.y);
+        }
+    }
 }
 
 fn layout_toolbar(

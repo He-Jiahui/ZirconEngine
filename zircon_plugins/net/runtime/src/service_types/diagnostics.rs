@@ -1,26 +1,16 @@
 use zircon_runtime::core::framework::net::{NetDiagnostics, NetEvent};
 
+use crate::poison_recovery::lock_recover;
+
 use super::DefaultNetManager;
 
 impl DefaultNetManager {
     pub(in crate::service_types) fn backend_name_impl(&self) -> String {
         let mut name = "tokio-net".to_string();
-        if self
-            .state
-            .http_backend
-            .lock()
-            .expect("net HTTP backend mutex poisoned")
-            .is_some()
-        {
+        if lock_recover(&self.state.http_backend).is_some() {
             name.push_str("+http");
         }
-        if self
-            .state
-            .websocket_backend
-            .lock()
-            .expect("net WebSocket backend mutex poisoned")
-            .is_some()
-        {
+        if lock_recover(&self.state.websocket_backend).is_some() {
             name.push_str("+websocket");
         }
         name
@@ -28,7 +18,7 @@ impl DefaultNetManager {
 
     pub(in crate::service_types) fn drain_events_impl(&self, max_events: usize) -> Vec<NetEvent> {
         self.state.poll_worker_ingress(max_events);
-        let mut events = self.state.events.lock().expect("net events mutex poisoned");
+        let mut events = lock_recover(&self.state.events);
         let mut drained = Vec::new();
         while drained.len() < max_events {
             match events.pop_front() {
@@ -49,54 +39,14 @@ impl DefaultNetManager {
             outbound_bytes,
             inbound_bytes,
             last_observed_latency_ms,
-            open_udp_sockets: self
-                .state
-                .udp_sockets
-                .lock()
-                .expect("net UDP sockets mutex poisoned")
-                .len(),
-            open_tcp_listeners: self
-                .state
-                .tcp_listeners
-                .lock()
-                .expect("net TCP listeners mutex poisoned")
-                .len(),
-            open_http_listeners: self
-                .state
-                .http_listeners
-                .lock()
-                .expect("net HTTP listeners mutex poisoned")
-                .len(),
-            open_websocket_listeners: self
-                .state
-                .websocket_listeners
-                .lock()
-                .expect("net WebSocket listeners mutex poisoned")
-                .len(),
-            open_tcp_connections: self
-                .state
-                .tcp_connections
-                .lock()
-                .expect("net TCP connections mutex poisoned")
-                .len(),
-            open_http_routes: self
-                .state
-                .http_routes
-                .lock()
-                .expect("net HTTP routes mutex poisoned")
-                .len(),
-            open_websocket_connections: self
-                .state
-                .websocket_connections
-                .lock()
-                .expect("net WebSocket connections mutex poisoned")
-                .len(),
-            queued_events: self
-                .state
-                .events
-                .lock()
-                .expect("net events mutex poisoned")
-                .len(),
+            open_udp_sockets: lock_recover(&self.state.udp_sockets).len(),
+            open_tcp_listeners: lock_recover(&self.state.tcp_listeners).len(),
+            open_http_listeners: lock_recover(&self.state.http_listeners).len(),
+            open_websocket_listeners: lock_recover(&self.state.websocket_listeners).len(),
+            open_tcp_connections: lock_recover(&self.state.tcp_connections).len(),
+            open_http_routes: lock_recover(&self.state.http_routes).len(),
+            open_websocket_connections: lock_recover(&self.state.websocket_connections).len(),
+            queued_events: lock_recover(&self.state.events).len(),
         }
     }
 }

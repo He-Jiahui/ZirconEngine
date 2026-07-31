@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/runtime/tasks/mod.rs
@@ -41,9 +41,16 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
   - docs/plans/zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md
+  - docs/plans/zircon_runtime/runtime/11/failure-2026-07-17-task-diagnostics-accuracy.md
+  - docs/plans/zircon_runtime/runtime/11/2026-07-17-task-diagnostics-accuracy-current-source.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs::tests::detached_spawn_counts_panicked_tasks_as_completed
+  - zircon_runtime/src/tests/tasks.rs::task_diagnostics_track_ready_queue_active_and_queue_wait
+  - zircon_runtime/src/tests/tasks.rs::task_diagnostics_queue_pressure_matrix_drains_without_gauge_leaks
+  - zircon_runtime/src/tests/tasks.rs::task_diagnostics_reports_conserved_lifecycle_snapshots_during_transitions
+  - zircon_runtime/src/tests/tasks.rs::worker_side_wait_is_reported_as_explicit_wait
+  - zircon_runtime/src/tests/tasks.rs::task_diagnostics_distinguish_panics_from_dependency_cancellation
   - tools/tests/test_frameworks_02_core_error_single_source.py
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - tools/tests/test_runtime_job_system_audit.py
@@ -81,9 +88,9 @@ Callers that need the helper should import `core::runtime::tasks::spawn_named_th
 
 `TaskPools::default()` is the process-wide execution owner. It initializes exactly one compute/async-compute/IO set through `OnceLock<TaskPools>` and returns cheap clones thereafter. `TaskPoolOptions::create_pools()` bypasses that default only when a caller explicitly requests an isolated owner. `TaskPool::shares_execution_owner_with(...)` makes this ownership contract testable without relying on OS thread counts. The crate-private current-worker query lets executor-owned resources avoid waiting on work queued behind their own single worker.
 
-Scheduler diagnostics are recorded under `tasks.scheduled`, `tasks.completed`, `tasks.dependency_wait_ms`, and `tasks.main_thread_wait_ms`. `JobHandle::wait()` and `JobScheduler::wait_all(...)` both contribute to the explicit main-thread wait counter. `JobScheduler::record_diagnostics(...)` publishes those counters into `DiagnosticStore` using `tasks` and `job_scheduler` tags.
+Scheduler diagnostics expose `tasks.scheduled` and `tasks.completed`, current `tasks.dependency_waiting` / `tasks.queued` / `tasks.active` gauges, cumulative `tasks.queue_wait_ms` with `tasks.queue_wait_samples`, `tasks.panicked`, `tasks.cancelled`, `tasks.dependency_wait_ms`, and `tasks.explicit_wait_ms`. The lifecycle gauges conserve `scheduled = completed + dependency_waiting + queued + active`. Lifecycle and duration writers remain atomic-only and bracket each update with an in-flight count plus monotonic epoch; overlapping writers retire through an acquire/release chain before the final zero-writer state is published. Readers make at most 16 attempts, accept only a writer-free unchanged-epoch snapshot, and otherwise return the last confirmed stable report-side snapshot; this preserves bounded reader progress and keeps queue-wait duration paired with its sample count without a per-task mutex. A dependent job cancelled before launch moves from dependency-waiting directly to completed/cancelled without entering queued or active state, while detached panic completion is recorded by an unwind-safe guard. `JobScheduler::record_diagnostics(...)` publishes the same snapshot into `DiagnosticStore` using `tasks` and `job_scheduler` tags.
 
-The performance audit found that `tasks.main_thread_wait_ms` currently cannot prove caller thread identity and that queue depth, queue delay, active-worker, panic, and cancellation metrics are missing. Until Runtime 07/11 completes that diagnostic contract, reports must interpret this field as explicit handle-wait time rather than verified main-thread stall time. The detached-panic regression is implemented but remains validation-pending until the coordinated Cargo lane runs it.
+The former `tasks.main_thread_wait_ms` surface was a false claim because `JobHandle::wait()` is legal on workers and no caller identity is carried by the handle. Runtime11 hard-cuts that field to `tasks.explicit_wait_ms`; no alias or compatibility counter survives. Main-thread stall attribution, when needed, must be joined with an external thread/frame trace instead of inferred from the scheduler counter.
 
 Current production consumers of `spawn_named_thread(...)` include asset event filtering. Asset decode no longer uses this helper: `AssetWorkerPool` submits decode jobs to its injected runtime IO pool and tracks only request lifecycle state.
 

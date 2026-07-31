@@ -1,0 +1,3 @@
+var rules = %import("instances/delve_lore_rules");
+
+return rules.contractTest() == 1 ? 0 : -1;

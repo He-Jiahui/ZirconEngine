@@ -1,0 +1,599 @@
+// M5 corpse-loot distribution projected from the historical source slice at
+// 7c10f280eec380e9877e66ce16333089e171fe42. The current-head
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a roll-group deduplication below
+// keeps candidate order deterministic; only callers consume random draws.
+var container = %import("zr.container");
+
+class LootState {
+    pub var deadA: bool;
+    pub var deadB: bool;
+    pub var deadC: bool;
+    pub var candidateCount: int;
+    pub var sharedRights: bool;
+    pub var capacityA: int;
+    pub var capacityB: int;
+    pub var capacityC: int;
+    pub var copperA: int;
+    pub var copperB: int;
+    pub var copperC: int;
+    pub var breadA: int;
+    pub var breadB: int;
+    pub var breadC: int;
+    pub var waterB: int;
+    pub var bootsA: int;
+    pub var bootsB: int;
+    pub var bootsC: int;
+    pub var swordA: int;
+    pub var swordB: int;
+    pub var swordC: int;
+    pub var staffA: int;
+    pub var staffB: int;
+    pub var staffC: int;
+    pub var corpseCopper: int;
+    pub var corpsePremiumCount: int;
+    pub var corpseCommonCount: int;
+    pub var corpsePersonalBCount: int;
+    pub var corpseOpenPremiumCount: int;
+    pub var roll1Open: bool;
+    pub var roll2Open: bool;
+    pub var roll1ChoiceA: int;
+    pub var roll1ChoiceB: int;
+    pub var roll1ChoiceC: int;
+    pub var roll2ChoiceA: int;
+    pub var roll2ChoiceB: int;
+    pub var roll2ChoiceC: int;
+    pub var roll1ValueA: int;
+    pub var roll1ValueB: int;
+    pub var roll1ValueC: int;
+    pub var roll2ValueA: int;
+    pub var roll2ValueB: int;
+    pub var roll2ValueC: int;
+    // Item codes awarded by prior exclusive roll groups in this one loot event.
+    pub var awardedRollGroupItemIds: container.Array<int>;
+    pub var randomValues: container.Array<int>;
+    pub var randomCursor: int;
+    pub var randomDraws: int;
+    pub var rollPrompts: int;
+    pub var resolvedRolls: int;
+    pub var returnedItems: int;
+    pub var inventoryEvents: int;
+    pub var copperEvents: int;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.deadA = false;
+        this.deadB = false;
+        this.deadC = false;
+        this.candidateCount = 3;
+        this.sharedRights = true;
+        this.capacityA = 16;
+        this.capacityB = 16;
+        this.capacityC = 16;
+        this.copperA = 0;
+        this.copperB = 0;
+        this.copperC = 0;
+        this.breadA = 5;
+        this.breadB = 5;
+        this.breadC = 5;
+        this.waterB = 5;
+        this.bootsA = 0;
+        this.bootsB = 0;
+        this.bootsC = 0;
+        this.swordA = 0;
+        this.swordB = 0;
+        this.swordC = 0;
+        this.staffA = 0;
+        this.staffB = 0;
+        this.staffC = 0;
+        this.corpseCopper = 0;
+        this.corpsePremiumCount = 0;
+        this.corpseCommonCount = 0;
+        this.corpsePersonalBCount = 0;
+        this.corpseOpenPremiumCount = 0;
+        this.roll1Open = false;
+        this.roll2Open = false;
+        this.roll1ChoiceA = 0;
+        this.roll1ChoiceB = 0;
+        this.roll1ChoiceC = 0;
+        this.roll2ChoiceA = 0;
+        this.roll2ChoiceB = 0;
+        this.roll2ChoiceC = 0;
+        this.roll1ValueA = 0;
+        this.roll1ValueB = 0;
+        this.roll1ValueC = 0;
+        this.roll2ValueA = 0;
+        this.roll2ValueB = 0;
+        this.roll2ValueC = 0;
+        this.awardedRollGroupItemIds = new container.Array<int>();
+        this.randomValues = new container.Array<int>();
+        this.randomCursor = 0;
+        this.randomDraws = 0;
+        this.rollPrompts = 0;
+        this.resolvedRolls = 0;
+        this.returnedItems = 0;
+        this.inventoryEvents = 0;
+        this.copperEvents = 0;
+        this.lastError = 0;
+    }
+}
+
+pub pushRandomValue(state: LootState, value: int): void {
+    var values = state.randomValues;
+    values.add(value);
+}
+
+drawInt(state: LootState, minimum: int, maximum: int): int {
+    var values = state.randomValues;
+    var value = minimum;
+    if (state.randomCursor < values.length) {
+        value = <int>values[state.randomCursor];
+    }
+    state.randomCursor = state.randomCursor + 1;
+    state.randomDraws = state.randomDraws + 1;
+    if (value < minimum) { return minimum; }
+    if (value > maximum) { return maximum; }
+    return value;
+}
+
+rollGroupItemAlreadyAwarded(state: LootState, itemId: int): bool {
+    var awarded = state.awardedRollGroupItemIds;
+    var index = 0;
+    while (index < awarded.length) {
+        if (<int>awarded[index] == itemId) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+// The caller supplies its sole group draw. If the partition winner was already
+// produced by an earlier group, walk only this group's source order to keep the
+// slot productive without changing global RNG consumption.
+pub pickDistinctRollGroupWinner(
+    state: LootState,
+    roll: int,
+    itemIds: container.Array<int>,
+    chances: container.Array<int>
+): int {
+    if (itemIds.length == 0 || itemIds.length != chances.length) { return 0; }
+    var cumulative = 0;
+    var winnerIndex = -1;
+    var index = 0;
+    while (index < chances.length) {
+        cumulative = cumulative + <int>chances[index];
+        if (roll < cumulative) {
+            winnerIndex = index;
+            index = chances.length;
+        } else {
+            index = index + 1;
+        }
+    }
+    if (winnerIndex < 0) { return 0; }
+    var offset = 0;
+    while (offset < itemIds.length) {
+        var candidateIndex = (winnerIndex + offset) % itemIds.length;
+        var itemId = <int>itemIds[candidateIndex];
+        if (itemId != 0 && !rollGroupItemAlreadyAwarded(state, itemId)) {
+            state.awardedRollGroupItemIds.add(itemId);
+            return itemId;
+        }
+        offset = offset + 1;
+    }
+    return 0;
+}
+
+playerDead(state: LootState, player: int): bool {
+    if (player == 1) { return state.deadA; }
+    if (player == 2) { return state.deadB; }
+    if (player == 3) { return state.deadC; }
+    return true;
+}
+
+pub countItem(state: LootState, player: int, itemId: string): int {
+    if (itemId == "baked_bread") {
+        if (player == 1) { return state.breadA; }
+        if (player == 2) { return state.breadB; }
+        if (player == 3) { return state.breadC; }
+    }
+    if (itemId == "spring_water") { return player == 2 ? state.waterB : 0; }
+    if (itemId == "greyjaw_hide_boots") {
+        if (player == 1) { return state.bootsA; }
+        if (player == 2) { return state.bootsB; }
+        if (player == 3) { return state.bootsC; }
+    }
+    if (itemId == "worn_sword") {
+        if (player == 1) { return state.swordA; }
+        if (player == 2) { return state.swordB; }
+        if (player == 3) { return state.swordC; }
+    }
+    if (itemId == "gnarled_staff") {
+        if (player == 1) { return state.staffA; }
+        if (player == 2) { return state.staffB; }
+        if (player == 3) { return state.staffC; }
+    }
+    return 0;
+}
+
+occupiedSlots(state: LootState, player: int): int {
+    var slots = 0;
+    if (countItem(state, player, "baked_bread") > 0) { slots = slots + 1; }
+    if (countItem(state, player, "spring_water") > 0) { slots = slots + 1; }
+    if (countItem(state, player, "greyjaw_hide_boots") > 0) { slots = slots + 1; }
+    if (countItem(state, player, "worn_sword") > 0) { slots = slots + 1; }
+    if (countItem(state, player, "gnarled_staff") > 0) { slots = slots + 1; }
+    return slots;
+}
+
+capacityFor(state: LootState, player: int): int {
+    if (player == 1) { return state.capacityA; }
+    if (player == 2) { return state.capacityB; }
+    if (player == 3) { return state.capacityC; }
+    return 0;
+}
+
+hasRoom(state: LootState, player: int, itemId: string): bool {
+    if (countItem(state, player, itemId) > 0) { return true; }
+    return occupiedSlots(state, player) < capacityFor(state, player);
+}
+
+addItem(state: LootState, player: int, itemId: string, force: bool): bool {
+    if (!force && !hasRoom(state, player, itemId)) { return false; }
+    if (itemId == "greyjaw_hide_boots") {
+        if (player == 1) { state.bootsA = state.bootsA + 1; }
+        if (player == 2) { state.bootsB = state.bootsB + 1; }
+        if (player == 3) { state.bootsC = state.bootsC + 1; }
+    } else if (itemId == "worn_sword") {
+        if (player == 1) { state.swordA = state.swordA + 1; }
+        if (player == 2) { state.swordB = state.swordB + 1; }
+        if (player == 3) { state.swordC = state.swordC + 1; }
+    } else if (itemId == "gnarled_staff") {
+        if (player == 1) { state.staffA = state.staffA + 1; }
+        if (player == 2) { state.staffB = state.staffB + 1; }
+        if (player == 3) { state.staffC = state.staffC + 1; }
+    } else {
+        return false;
+    }
+    state.inventoryEvents = state.inventoryEvents + 1;
+    return true;
+}
+
+grantCopper(state: LootState, player: int, amount: int): void {
+    if (player == 1) { state.copperA = state.copperA + amount; }
+    if (player == 2) { state.copperB = state.copperB + amount; }
+    if (player == 3) { state.copperC = state.copperC + amount; }
+    if (amount > 0) { state.copperEvents = state.copperEvents + 1; }
+}
+
+distributeCopper(state: LootState, looter: int): void {
+    var copper = state.corpseCopper;
+    if (copper <= 0) { return; }
+    var count = state.candidateCount;
+    if (!state.sharedRights || count <= 1) {
+        grantCopper(state, looter, copper);
+        state.corpseCopper = 0;
+        return;
+    }
+    if (count > 3) { count = 3; }
+    var base = copper / count;
+    var remainder = copper - base * count;
+    grantCopper(state, 1, base);
+    grantCopper(state, 2, base);
+    if (count >= 3) { grantCopper(state, 3, base); }
+
+    var order = new container.Array<int>();
+    order.add(1);
+    order.add(2);
+    if (count >= 3) { order.add(3); }
+    var index = 0;
+    while (index < remainder) {
+        var selected = drawInt(state, index, count - 1);
+        var left = <int>order[index];
+        var right = <int>order[selected];
+        order[index] = right;
+        order[selected] = left;
+        grantCopper(state, <int>order[index], 1);
+        index = index + 1;
+    }
+    state.corpseCopper = 0;
+}
+
+openNextRoll(state: LootState): bool {
+    if (!state.roll1Open && state.roll1ChoiceA == 0 && state.roll1ChoiceB == 0 &&
+        state.roll1ChoiceC == 0) {
+        state.roll1Open = true;
+        state.rollPrompts = state.rollPrompts + state.candidateCount;
+        return true;
+    }
+    if (!state.roll2Open && state.roll2ChoiceA == 0 && state.roll2ChoiceB == 0 &&
+        state.roll2ChoiceC == 0) {
+        state.roll2Open = true;
+        state.rollPrompts = state.rollPrompts + state.candidateCount;
+        return true;
+    }
+    return false;
+}
+
+rollOpen(state: LootState, roll: int): bool {
+    if (roll == 1) { return state.roll1Open; }
+    if (roll == 2) { return state.roll2Open; }
+    return false;
+}
+
+choiceFor(state: LootState, roll: int, player: int): int {
+    if (roll == 1 && player == 1) { return state.roll1ChoiceA; }
+    if (roll == 1 && player == 2) { return state.roll1ChoiceB; }
+    if (roll == 1 && player == 3) { return state.roll1ChoiceC; }
+    if (roll == 2 && player == 1) { return state.roll2ChoiceA; }
+    if (roll == 2 && player == 2) { return state.roll2ChoiceB; }
+    if (roll == 2 && player == 3) { return state.roll2ChoiceC; }
+    return 0;
+}
+
+valueFor(state: LootState, roll: int, player: int): int {
+    if (roll == 1 && player == 1) { return state.roll1ValueA; }
+    if (roll == 1 && player == 2) { return state.roll1ValueB; }
+    if (roll == 1 && player == 3) { return state.roll1ValueC; }
+    if (roll == 2 && player == 1) { return state.roll2ValueA; }
+    if (roll == 2 && player == 2) { return state.roll2ValueB; }
+    if (roll == 2 && player == 3) { return state.roll2ValueC; }
+    return 0;
+}
+
+setChoice(state: LootState, roll: int, player: int, choice: int, value: int): void {
+    if (roll == 1 && player == 1) { state.roll1ChoiceA = choice; state.roll1ValueA = value; }
+    if (roll == 1 && player == 2) { state.roll1ChoiceB = choice; state.roll1ValueB = value; }
+    if (roll == 1 && player == 3) { state.roll1ChoiceC = choice; state.roll1ValueC = value; }
+    if (roll == 2 && player == 1) { state.roll2ChoiceA = choice; state.roll2ValueA = value; }
+    if (roll == 2 && player == 2) { state.roll2ChoiceB = choice; state.roll2ValueB = value; }
+    if (roll == 2 && player == 3) { state.roll2ChoiceC = choice; state.roll2ValueC = value; }
+}
+
+allAnswered(state: LootState, roll: int): bool {
+    var player = 1;
+    while (player <= state.candidateCount) {
+        if (choiceFor(state, roll, player) == 0) { return false; }
+        player = player + 1;
+    }
+    return true;
+}
+
+closeRoll(state: LootState, roll: int): void {
+    if (roll == 1) { state.roll1Open = false; }
+    if (roll == 2) { state.roll2Open = false; }
+    state.resolvedRolls = state.resolvedRolls + 1;
+}
+
+resolveRoll(state: LootState, roll: int): void {
+    var preferredChoice = 1;
+    var contenders = 0;
+    var player = 1;
+    while (player <= state.candidateCount) {
+        if (choiceFor(state, roll, player) == 1) { contenders = contenders + 1; }
+        player = player + 1;
+    }
+    if (contenders == 0) {
+        preferredChoice = 2;
+        player = 1;
+        while (player <= state.candidateCount) {
+            if (choiceFor(state, roll, player) == 2) { contenders = contenders + 1; }
+            player = player + 1;
+        }
+    }
+    if (contenders == 0) {
+        closeRoll(state, roll);
+        state.corpseOpenPremiumCount = state.corpseOpenPremiumCount + 1;
+        state.returnedItems = state.returnedItems + 1;
+        return;
+    }
+
+    var highest = -1;
+    player = 1;
+    while (player <= state.candidateCount) {
+        if (choiceFor(state, roll, player) == preferredChoice &&
+            valueFor(state, roll, player) > highest) {
+            highest = valueFor(state, roll, player);
+        }
+        player = player + 1;
+    }
+    var tied = new container.Array<int>();
+    player = 1;
+    while (player <= state.candidateCount) {
+        if (choiceFor(state, roll, player) == preferredChoice &&
+            valueFor(state, roll, player) == highest) {
+            tied.add(player);
+        }
+        player = player + 1;
+    }
+    var winner = <int>tied[0];
+    if (tied.length > 1) {
+        var tieIndex = drawInt(state, 0, tied.length - 1);
+        winner = <int>tied[tieIndex];
+    }
+    closeRoll(state, roll);
+    addItem(state, winner, "greyjaw_hide_boots", true);
+}
+
+pub submitRoll(state: LootState, roll: int, player: int, choice: int): bool {
+    state.lastError = 0;
+    if (!rollOpen(state, roll) || player < 1 || player > state.candidateCount ||
+        choice < 1 || choice > 3 || choiceFor(state, roll, player) != 0) {
+        state.lastError = -4;
+        return false;
+    }
+    var value = 0;
+    if (choice == 1 || choice == 2) { value = drawInt(state, 1, 100); }
+    setChoice(state, roll, player, choice, value);
+    if (allAnswered(state, roll)) { resolveRoll(state, roll); }
+    return true;
+}
+
+pub lootCorpse(state: LootState, player: int): bool {
+    state.lastError = 0;
+    if (playerDead(state, player)) { state.lastError = -1; return false; }
+    var personal = player == 2 && state.corpsePersonalBCount > 0;
+    var open = state.corpseOpenPremiumCount > 0;
+    if (!state.sharedRights && !personal && !open) {
+        state.lastError = -2;
+        return false;
+    }
+    if (state.sharedRights) { distributeCopper(state, player); }
+
+    if (state.sharedRights) {
+        while (state.corpsePremiumCount > 0 && openNextRoll(state)) {
+            state.corpsePremiumCount = state.corpsePremiumCount - 1;
+        }
+        while (state.corpseCommonCount > 0) {
+            if (!addItem(state, player, "worn_sword", false)) {
+                state.lastError = -3;
+                break;
+            }
+            state.corpseCommonCount = state.corpseCommonCount - 1;
+        }
+    }
+    if (player == 2 && state.corpsePersonalBCount > 0) {
+        if (addItem(state, player, "gnarled_staff", false)) {
+            state.corpsePersonalBCount = state.corpsePersonalBCount - 1;
+        } else {
+            state.lastError = -3;
+        }
+    }
+    while (state.corpseOpenPremiumCount > 0) {
+        if (!addItem(state, player, "greyjaw_hide_boots", false)) {
+            state.lastError = -3;
+            break;
+        }
+        state.corpseOpenPremiumCount = state.corpseOpenPremiumCount - 1;
+    }
+    return true;
+}
+
+pub partyLootScenarioTest(): int {
+    var party = new LootState();
+    party.candidateCount = 2;
+    party.corpsePremiumCount = 1;
+    pushRandomValue(party, 90);
+    pushRandomValue(party, 10);
+    if (!lootCorpse(party, 1) || !party.roll1Open || party.rollPrompts != 2 ||
+        !submitRoll(party, 1, 1, 1) || !submitRoll(party, 1, 2, 1) ||
+        party.roll1Open || countItem(party, 1, "greyjaw_hide_boots") != 1 ||
+        countItem(party, 2, "greyjaw_hide_boots") != 0 || party.randomDraws != 2) {
+        return -1;
+    }
+    return 1;
+}
+
+pub l1LootDistributionScenarioTest(): int {
+    var l1 = new LootState();
+    l1.corpseCopper = 100;
+    l1.corpsePremiumCount = 2;
+    l1.corpseCommonCount = 1;
+    l1.corpsePersonalBCount = 1;
+    pushRandomValue(l1, 2);
+    pushRandomValue(l1, 81);
+    pushRandomValue(l1, 99);
+    if (!lootCorpse(l1, 1) || l1.copperA != 33 || l1.copperB != 33 ||
+        l1.copperC != 34 || countItem(l1, 1, "worn_sword") != 1 ||
+        countItem(l1, 1, "gnarled_staff") != 0 || l1.corpsePersonalBCount != 1 ||
+        !l1.roll1Open || !l1.roll2Open || l1.randomDraws != 1) {
+        return -2;
+    }
+    if (!submitRoll(l1, 1, 1, 1) || !submitRoll(l1, 1, 2, 2) ||
+        !submitRoll(l1, 1, 3, 3) || countItem(l1, 1, "greyjaw_hide_boots") != 1 ||
+        countItem(l1, 2, "greyjaw_hide_boots") != 0 || l1.randomDraws != 3) {
+        return -3;
+    }
+    if (!submitRoll(l1, 2, 1, 3) || !submitRoll(l1, 2, 2, 3) ||
+        !submitRoll(l1, 2, 3, 3) || l1.corpseOpenPremiumCount != 1 ||
+        l1.returnedItems != 1 || l1.randomDraws != 3) {
+        return -4;
+    }
+    if (!lootCorpse(l1, 2) || countItem(l1, 2, "gnarled_staff") != 1 ||
+        countItem(l1, 2, "greyjaw_hide_boots") != 1 ||
+        l1.corpsePersonalBCount != 0 || l1.corpseOpenPremiumCount != 0 ||
+        l1.copperA + l1.copperB + l1.copperC != 100 ||
+        l1.bootsA + l1.bootsB + l1.bootsC != 2 || l1.randomDraws != 3) {
+        return -5;
+    }
+    return 1;
+}
+
+lootInvariantTest(): int {
+    var duplicate = new LootState();
+    duplicate.candidateCount = 2;
+    duplicate.corpsePremiumCount = 1;
+    pushRandomValue(duplicate, 50);
+    pushRandomValue(duplicate, 40);
+    lootCorpse(duplicate, 1);
+    if (!submitRoll(duplicate, 1, 1, 1) || submitRoll(duplicate, 1, 1, 2) ||
+        duplicate.lastError != -4 || duplicate.randomDraws != 1 ||
+        choiceFor(duplicate, 1, 1) != 1 || !submitRoll(duplicate, 1, 2, 2) ||
+        countItem(duplicate, 1, "greyjaw_hide_boots") != 1) {
+        return -6;
+    }
+
+    var full = new LootState();
+    full.capacityA = 1;
+    full.corpseCommonCount = 1;
+    if (!lootCorpse(full, 1) || full.lastError != -3 || full.corpseCommonCount != 1 ||
+        countItem(full, 1, "worn_sword") != 0 || full.inventoryEvents != 0) {
+        return -7;
+    }
+
+    var tied = new LootState();
+    tied.candidateCount = 2;
+    tied.corpsePremiumCount = 1;
+    pushRandomValue(tied, 50);
+    pushRandomValue(tied, 50);
+    pushRandomValue(tied, 1);
+    lootCorpse(tied, 1);
+    submitRoll(tied, 1, 1, 1);
+    submitRoll(tied, 1, 2, 1);
+    if (tied.randomDraws != 3 || countItem(tied, 1, "greyjaw_hide_boots") != 0 ||
+        countItem(tied, 2, "greyjaw_hide_boots") != 1) {
+        return -8;
+    }
+    return 1;
+}
+
+currentHeadRollGroupDedupTest(): int {
+    var state = new LootState();
+    var firstItems = new container.Array<int>();
+    var firstChances = new container.Array<int>();
+    firstItems.add(101);
+    firstItems.add(102);
+    firstChances.add(500);
+    firstChances.add(500);
+    if (pickDistinctRollGroupWinner(state, 100, firstItems, firstChances) != 101) {
+        return -1;
+    }
+    var secondItems = new container.Array<int>();
+    var secondChances = new container.Array<int>();
+    secondItems.add(101);
+    secondItems.add(103);
+    secondChances.add(500);
+    secondChances.add(500);
+    if (pickDistinctRollGroupWinner(state, 100, secondItems, secondChances) != 103 ||
+        pickDistinctRollGroupWinner(state, 100, firstItems, firstChances) != 102 ||
+        state.randomDraws != 0) {
+        return -2;
+    }
+    var exhaustedItems = new container.Array<int>();
+    var exhaustedChances = new container.Array<int>();
+    exhaustedItems.add(101);
+    exhaustedChances.add(1000);
+    if (pickDistinctRollGroupWinner(state, 100, exhaustedItems, exhaustedChances) != 0) {
+        return -3;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = partyLootScenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = l1LootDistributionScenarioTest();
+    if (result != 1) { return -200 + result; }
+    result = lootInvariantTest();
+    if (result != 1) { return -300 + result; }
+    result = currentHeadRollGroupDedupTest();
+    if (result != 1) { return -400 + result; }
+    return 1;
+}

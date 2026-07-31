@@ -14,16 +14,6 @@ pub fn collect_invalidation_diagnostics(
     document: &UiAssetDocument,
 ) -> Vec<UiInvalidationDiagnostic> {
     let mut diagnostics = Vec::new();
-    let node_count = document.iter_nodes().count();
-    if node_count >= LARGE_DOCUMENT_NODE_WARNING_THRESHOLD {
-        diagnostics.push(warning(
-            "large_document",
-            format!(
-                "ui asset contains {node_count} nodes; incremental invalidation should be used"
-            ),
-        ));
-    }
-
     let broad_selector_count = document
         .stylesheets
         .iter()
@@ -39,18 +29,30 @@ pub fn collect_invalidation_diagnostics(
         ));
     }
 
-    for node in document
-        .iter_nodes()
-        .filter(|node| node_has_non_virtualized_scroll_child_pressure(node))
-    {
-        diagnostics.push(warning(
-            "non_virtualized_scroll_children",
-            format!(
-                "ui node `{}` has {} direct children in a ScrollableBox without virtualization",
-                node.node_id,
-                node.children.len()
+    let mut node_count = 0;
+    for node in document.iter_nodes() {
+        node_count += 1;
+        if node_has_non_virtualized_scroll_child_pressure(node) {
+            diagnostics.push(warning(
+                "non_virtualized_scroll_children",
+                format!(
+                    "ui node `{}` has {} direct children in a ScrollableBox without virtualization",
+                    node.node_id,
+                    node.children.len()
+                ),
+            ));
+        }
+    }
+    if node_count >= LARGE_DOCUMENT_NODE_WARNING_THRESHOLD {
+        diagnostics.insert(
+            0,
+            warning(
+                "large_document",
+                format!(
+                    "ui asset contains {node_count} nodes; incremental invalidation should be used"
+                ),
             ),
-        ));
+        );
     }
 
     diagnostics

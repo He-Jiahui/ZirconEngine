@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_instance_collision_routing_tests",
+  "source": "src",
+  "binary": "bin-m3-instance-collision-routing-tests",
+  "entry": "world/instance_collision_routing_test_main"
+}

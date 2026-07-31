@@ -1,0 +1,113 @@
+// Stateful M4 projection of the one-draw spell resist gate shared by player
+// casting and ranged pet spells. Hit rating changes only the threshold.
+var container = %import("zr.container");
+var rules = %import("combat/rules");
+
+pub class SpellResistState {
+    pub var casterLevel: int;
+    pub var targetLevel: int;
+    pub var hitRating: float;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var landedEvents: int;
+    pub var resistEvents: int;
+    pub var lastHitChance: float;
+    pub var lastSample: float;
+
+    pub @constructor() {
+        this.casterLevel = 1;
+        this.targetLevel = 1;
+        this.hitRating = 0.0;
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.landedEvents = 0;
+        this.resistEvents = 0;
+        this.lastHitChance = 0.0;
+        this.lastSample = 0.0;
+    }
+}
+
+takeRandomUnit(state: SpellResistState): float {
+    if (state.randomIndex < 0 || state.randomIndex >= state.randomUnits.length) {
+        throw "spell resist random stream is exhausted";
+    }
+    var sample = <float>state.randomUnits[state.randomIndex];
+    state.randomIndex = state.randomIndex + 1;
+    return sample;
+}
+
+pub hitFractionFromRating(rating: float): float {
+    return rating > 0.0 ? rating / 1000.0 : 0.0;
+}
+
+pub effectiveSpellHit(casterLevel: int, targetLevel: int, hitBonus: float): float {
+    var result = rules.metric(
+        0,
+        <float>casterLevel,
+        <float>targetLevel,
+        0.0,
+        0.0
+    ) + hitBonus;
+    return result < 1.0 ? result : 1.0;
+}
+
+pub resolve(state: SpellResistState): bool {
+    state.lastHitChance = effectiveSpellHit(
+        state.casterLevel,
+        state.targetLevel,
+        hitFractionFromRating(state.hitRating)
+    );
+    state.lastSample = takeRandomUnit(state);
+    var landed = state.lastSample < state.lastHitChance;
+    if (landed) {
+        state.landedEvents = state.landedEvents + 1;
+    } else {
+        state.resistEvents = state.resistEvents + 1;
+    }
+    return landed;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var ungeared = new SpellResistState();
+    ungeared.casterLevel = 20;
+    ungeared.targetLevel = 23;
+    ungeared.randomUnits.add(0.85);
+    var ungearedLands = resolve(ungeared);
+
+    var geared = new SpellResistState();
+    geared.casterLevel = 20;
+    geared.targetLevel = 23;
+    geared.hitRating = 170.0;
+    geared.randomUnits.add(0.85);
+    var gearedLands = resolve(geared);
+    if (ungearedLands || !gearedLands ||
+        !closeEnough(ungeared.lastHitChance, 0.75) ||
+        !closeEnough(geared.lastHitChance, 0.92) ||
+        ungeared.randomIndex != 1 || geared.randomIndex != 1 ||
+        !closeEnough(ungeared.lastSample, geared.lastSample) ||
+        ungeared.resistEvents != 1 || geared.landedEvents != 1) {
+        return -1;
+    }
+
+    if (!closeEnough(effectiveSpellHit(5, 5, 0.0), 0.96) ||
+        !closeEnough(effectiveSpellHit(4, 5, 0.0), 0.935) ||
+        !closeEnough(effectiveSpellHit(3, 5, 0.0), 0.82) ||
+        !closeEnough(effectiveSpellHit(3, 7, 0.0), 0.75) ||
+        !closeEnough(effectiveSpellHit(20, 23, 1.0), 1.0)) {
+        return -2;
+    }
+
+    var exact = new SpellResistState();
+    exact.casterLevel = 20;
+    exact.targetLevel = 23;
+    exact.hitRating = 100.0;
+    exact.randomUnits.add(0.85);
+    if (resolve(exact) || exact.resistEvents != 1) { return -3; }
+    return 1;
+}

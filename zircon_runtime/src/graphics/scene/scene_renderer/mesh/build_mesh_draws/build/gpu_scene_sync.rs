@@ -1,12 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::framework::render::{render_mesh_stable_instance_key, LightmapConsumeContract};
+use crate::core::framework::render::{
+    LightmapConsumeContract, RendererCommon, render_mesh_stable_instance_key,
+};
 use crate::core::framework::scene::Mobility;
 use crate::core::math::RenderVec4;
 use crate::graphics::scene::gpu_scene::{
-    GpuInstanceData, GpuPrimitiveData, GpuScene, GpuSceneEntry, GpuSceneUploadReport,
     GPU_PRIMITIVE_FLAG_CAST_SHADOWS, GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM,
-    GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT,
+    GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT, GpuInstanceData, GpuPrimitiveData,
+    GpuScene, GpuSceneEntry, GpuSceneUploadReport,
 };
 use crate::graphics::scene::resources::GpuMeshResource;
 
@@ -63,8 +65,10 @@ pub(super) fn sync_gpu_scene_pending_draws(
                 .as_ref()
                 .map(Vec::as_slice),
         );
-        let (previous_model_matrix, has_previous_velocity_transform) =
+        let (previous_model_matrix, has_previous_transform) =
             previous_model_matrix_for_gpu_scene_entry(gpu_scene, pending_draw, entry);
+        let has_previous_velocity_transform =
+            velocity_history_is_available(pending_draw.skinned, has_previous_transform);
         gpu_scene.write_primitive(
             entry,
             primitive_data_for_pending_draw(pending_draw, entry, has_previous_velocity_transform),
@@ -97,13 +101,10 @@ fn primitive_data_for_pending_draw(
     entry: GpuSceneEntry,
     has_previous_velocity_transform: bool,
 ) -> GpuPrimitiveData {
-    let mut flags = GPU_PRIMITIVE_FLAG_VISIBLE;
-    if pending_draw.cast_shadows {
-        flags |= GPU_PRIMITIVE_FLAG_CAST_SHADOWS;
-    }
-    if has_previous_velocity_transform {
-        flags |= GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM;
-    }
+    let flags = primitive_flags_for_renderer(
+        pending_draw.common.as_ref(),
+        has_previous_velocity_transform,
+    );
     let payload_slot = virtual_geometry_payload_slot_for_pending_draw(pending_draw);
 
     GpuPrimitiveData {
@@ -124,6 +125,20 @@ fn primitive_data_for_pending_draw(
         instance_count: entry.instance_count,
         payload_slot,
     }
+}
+
+fn primitive_flags_for_renderer(
+    common: &RendererCommon,
+    has_previous_velocity_transform: bool,
+) -> u32 {
+    let mut flags = GPU_PRIMITIVE_FLAG_VISIBLE;
+    if common.cast_shadows.casts_shadows() {
+        flags |= GPU_PRIMITIVE_FLAG_CAST_SHADOWS;
+    }
+    if has_previous_velocity_transform {
+        flags |= GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM;
+    }
+    flags
 }
 
 fn instance_data_for_pending_draw(
@@ -177,6 +192,13 @@ fn previous_model_matrix_for_gpu_scene_entry(
         .unwrap_or((pending_draw.model_matrix, false))
 }
 
+fn velocity_history_is_available(is_skinned: bool, has_previous_transform: bool) -> bool {
+    // A non-skinned first frame uses its current transform as the previous one,
+    // which is a valid zero-velocity sample. Keeping that eligibility stable
+    // avoids a primitive-data upload solely to flip the history-valid flag.
+    !is_skinned || has_previous_transform
+}
+
 fn shadow_params_from_pending_draw(pending_draw: &PendingMeshDraw) -> [f32; 4] {
     let alpha_cutoff = pending_draw
         .pipeline_key
@@ -193,7 +215,7 @@ fn shadow_params_from_pending_draw(pending_draw: &PendingMeshDraw) -> [f32; 4] {
             0.0
         },
         alpha_cutoff,
-        if pending_draw.receive_shadows {
+        if pending_draw.common.receive_shadows {
             1.0
         } else {
             0.0
@@ -262,6 +284,56 @@ fn resolve_skinned_gpu_source_mesh(
         PendingSkinnedGpuSource::Prepared(mesh) => mesh.clone(),
         PendingSkinnedGpuSource::CpuMorphed { primitive, .. } => {
             std::sync::Arc::new(GpuMeshResource::from_asset(device, primitive.clone()))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::{CastShadowsMode, RendererCommon};
+    use crate::graphics::scene::gpu_scene::{
+        GPU_PRIMITIVE_FLAG_CAST_SHADOWS, GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM,
+        GPU_PRIMITIVE_FLAG_VISIBLE,
+    };
+
+    use super::{primitive_flags_for_renderer, velocity_history_is_available};
+
+    #[test]
+    fn render_renderer_common_shadow_modes_project_to_gpu_primitive_flags() {
+        let off = renderer_common(CastShadowsMode::Off);
+        let two_sided = renderer_common(CastShadowsMode::TwoSided);
+        let shadows_only = renderer_common(CastShadowsMode::ShadowsOnly);
+
+        assert_eq!(
+            primitive_flags_for_renderer(&off, false),
+            GPU_PRIMITIVE_FLAG_VISIBLE
+        );
+        assert_ne!(
+            primitive_flags_for_renderer(&two_sided, false) & GPU_PRIMITIVE_FLAG_CAST_SHADOWS,
+            0
+        );
+        assert_ne!(
+            primitive_flags_for_renderer(&shadows_only, true) & GPU_PRIMITIVE_FLAG_CAST_SHADOWS,
+            0
+        );
+        assert_ne!(
+            primitive_flags_for_renderer(&shadows_only, true)
+                & GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM,
+            0
+        );
+    }
+
+    #[test]
+    fn render_non_skinned_first_frame_seeds_zero_velocity_history() {
+        assert!(velocity_history_is_available(false, false));
+        assert!(!velocity_history_is_available(true, false));
+        assert!(velocity_history_is_available(true, true));
+    }
+
+    fn renderer_common(cast_shadows: CastShadowsMode) -> RendererCommon {
+        RendererCommon {
+            cast_shadows,
+            ..RendererCommon::default()
         }
     }
 }

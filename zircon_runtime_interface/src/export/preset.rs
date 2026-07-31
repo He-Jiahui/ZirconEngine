@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::project::{AssetRef, RelPath};
 use crate::serialization::{
-    load_versioned, Format, LoadError, MigrationChain, SchemaId, VersionedSchema,
+    Format, LoadError, MigrationChain, SchemaId, VersionedSchema, load_versioned,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

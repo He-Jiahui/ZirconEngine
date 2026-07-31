@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "prefab_tools"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Prefab Tools"
 category = "authoring"
 description = "Optional runtime and editor package for prefab authoring and instancing."

@@ -1,0 +1,1117 @@
+{
+  "schema_version": 6,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_terrain_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/world.ts": "9f0a30f25f6f3289a566795032ae7a62ca958a8b95a93cc617ddca0563638a37",
+    "src/sim/data.ts": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431",
+    "src/sim/content/zone1.ts": "ba684edd445b581cf2d03e9b34c0f14d8b73da9a623df425e94262d3f6010d2a",
+    "src/sim/content/zone2.ts": "169c8bc8cd98a535ad60ac0f2159cd94e5e0685d231bf78e0328df7157a1dd6b",
+    "src/sim/content/zone3.ts": "8361952b8878ae4d0a17513ccb27ad09e48f4469eddcea93633455fc45743579",
+    "src/sim/dock_layout.ts": "49fe1ebd3ea54979f94c252d39b245c88c0773141acf4008d37d22e696307da5",
+    "src/sim/vale_cup_layout.ts": "2753e400098f218c9fabcd21bd9ef88635102b9c68d62502587ea6b1605b55e9"
+  },
+  "constants": {
+    "water_level": -4.5,
+    "lake_blend_radius_multiplier": 1.6,
+    "world_min_x": -180,
+    "world_max_x": 180,
+    "world_min_z": -180,
+    "world_max_z": 900,
+    "dungeon_x_threshold": 600,
+    "dungeon_floor_y": 0,
+    "camp_mob_total": 307,
+    "non_dummy_camp_mob_count": 306
+  },
+  "zones": [
+    {
+      "id": "eastbrook_vale",
+      "z_min": -180,
+      "z_max": 180,
+      "biome": "vale",
+      "hub": {
+        "x": 0,
+        "z": 0,
+        "radius": 26
+      },
+      "lakes": [
+        {
+          "x": -92,
+          "z": 88,
+          "radius": 30
+        }
+      ]
+    },
+    {
+      "id": "mirefen_marsh",
+      "z_min": 180,
+      "z_max": 540,
+      "biome": "marsh",
+      "hub": {
+        "x": 0,
+        "z": 300,
+        "radius": 20
+      },
+      "lakes": [
+        {
+          "x": -110,
+          "z": 310,
+          "radius": 35
+        },
+        {
+          "x": 60,
+          "z": 380,
+          "radius": 25
+        },
+        {
+          "x": -40,
+          "z": 450,
+          "radius": 20
+        }
+      ]
+    },
+    {
+      "id": "thornpeak_heights",
+      "z_min": 540,
+      "z_max": 900,
+      "biome": "peaks",
+      "hub": {
+        "x": 0,
+        "z": 660,
+        "radius": 20
+      },
+      "lakes": [
+        {
+          "x": -70,
+          "z": 760,
+          "radius": 18
+        }
+      ]
+    }
+  ],
+  "lakes": [
+    {
+      "x": -92,
+      "z": 88,
+      "radius": 30
+    },
+    {
+      "x": -110,
+      "z": 310,
+      "radius": 35
+    },
+    {
+      "x": 60,
+      "z": 380,
+      "radius": 25
+    },
+    {
+      "x": -40,
+      "z": 450,
+      "radius": 20
+    },
+    {
+      "x": -70,
+      "z": 760,
+      "radius": 18
+    }
+  ],
+  "camps": [
+    {
+      "mob_id": "forest_wolf",
+      "mob_is_dummy": false,
+      "mob_min_level": 1,
+      "mob_max_level": 2,
+      "x": -15,
+      "z": 55,
+      "radius": 22,
+      "count": 7
+    },
+    {
+      "mob_id": "forest_wolf",
+      "mob_is_dummy": false,
+      "mob_min_level": 1,
+      "mob_max_level": 2,
+      "x": 20,
+      "z": 70,
+      "radius": 20,
+      "count": 6
+    },
+    {
+      "mob_id": "old_greyjaw",
+      "mob_is_dummy": false,
+      "mob_min_level": 4,
+      "mob_max_level": 4,
+      "x": 0,
+      "z": 95,
+      "radius": 8,
+      "count": 1
+    },
+    {
+      "mob_id": "wild_boar",
+      "mob_is_dummy": false,
+      "mob_min_level": 2,
+      "mob_max_level": 3,
+      "x": 55,
+      "z": 12,
+      "radius": 22,
+      "count": 6
+    },
+    {
+      "mob_id": "wild_boar",
+      "mob_is_dummy": false,
+      "mob_min_level": 2,
+      "mob_max_level": 3,
+      "x": 80,
+      "z": -15,
+      "radius": 18,
+      "count": 5
+    },
+    {
+      "mob_id": "mogger",
+      "mob_is_dummy": false,
+      "mob_min_level": 6,
+      "mob_max_level": 6,
+      "x": 118,
+      "z": -26,
+      "radius": 5,
+      "count": 1
+    },
+    {
+      "mob_id": "webwood_spider",
+      "mob_is_dummy": false,
+      "mob_min_level": 2,
+      "mob_max_level": 4,
+      "x": -60,
+      "z": 5,
+      "radius": 22,
+      "count": 7
+    },
+    {
+      "mob_id": "mudfin_murloc",
+      "mob_is_dummy": false,
+      "mob_min_level": 3,
+      "mob_max_level": 5,
+      "x": -75,
+      "z": 57,
+      "radius": 14,
+      "count": 8
+    },
+    {
+      "mob_id": "tunnel_rat",
+      "mob_is_dummy": false,
+      "mob_min_level": 4,
+      "mob_max_level": 6,
+      "x": -82,
+      "z": -62,
+      "radius": 20,
+      "count": 9
+    },
+    {
+      "mob_id": "vale_bandit",
+      "mob_is_dummy": false,
+      "mob_min_level": 3,
+      "mob_max_level": 5,
+      "x": 65,
+      "z": -65,
+      "radius": 24,
+      "count": 7
+    },
+    {
+      "mob_id": "vale_bandit",
+      "mob_is_dummy": false,
+      "mob_min_level": 3,
+      "mob_max_level": 5,
+      "x": 90,
+      "z": -90,
+      "radius": 16,
+      "count": 5
+    },
+    {
+      "mob_id": "gorrak",
+      "mob_is_dummy": false,
+      "mob_min_level": 6,
+      "mob_max_level": 6,
+      "x": 92,
+      "z": -92,
+      "radius": 2,
+      "count": 1
+    },
+    {
+      "mob_id": "restless_bones",
+      "mob_is_dummy": false,
+      "mob_min_level": 5,
+      "mob_max_level": 7,
+      "x": 80,
+      "z": 78,
+      "radius": 18,
+      "count": 8
+    },
+    {
+      "mob_id": "captain_verlan",
+      "mob_is_dummy": false,
+      "mob_min_level": 7,
+      "mob_max_level": 7,
+      "x": 92,
+      "z": 90,
+      "radius": 4,
+      "count": 1
+    },
+    {
+      "mob_id": "mire_prowler",
+      "mob_is_dummy": false,
+      "mob_min_level": 7,
+      "mob_max_level": 8,
+      "x": -40,
+      "z": 230,
+      "radius": 22,
+      "count": 7
+    },
+    {
+      "mob_id": "mire_prowler",
+      "mob_is_dummy": false,
+      "mob_min_level": 7,
+      "mob_max_level": 8,
+      "x": 35,
+      "z": 225,
+      "radius": 20,
+      "count": 6
+    },
+    {
+      "mob_id": "deepfen_murloc",
+      "mob_is_dummy": false,
+      "mob_min_level": 8,
+      "mob_max_level": 9,
+      "x": -82,
+      "z": 273,
+      "radius": 15,
+      "count": 8
+    },
+    {
+      "mob_id": "deepfen_murloc",
+      "mob_is_dummy": false,
+      "mob_min_level": 8,
+      "mob_max_level": 9,
+      "x": -120,
+      "z": 350,
+      "radius": 13,
+      "count": 6
+    },
+    {
+      "mob_id": "mirejaw_the_ravenous",
+      "mob_is_dummy": false,
+      "mob_min_level": 10,
+      "mob_max_level": 10,
+      "x": -132,
+      "z": 333,
+      "radius": 5,
+      "count": 1
+    },
+    {
+      "mob_id": "mire_widow",
+      "mob_is_dummy": false,
+      "mob_min_level": 8,
+      "mob_max_level": 10,
+      "x": 70,
+      "z": 300,
+      "radius": 20,
+      "count": 7
+    },
+    {
+      "mob_id": "mire_widow",
+      "mob_is_dummy": false,
+      "mob_min_level": 8,
+      "mob_max_level": 10,
+      "x": 95,
+      "z": 340,
+      "radius": 16,
+      "count": 6
+    },
+    {
+      "mob_id": "mirefen_broodmother",
+      "mob_is_dummy": false,
+      "mob_min_level": 10,
+      "mob_max_level": 10,
+      "x": 98,
+      "z": 348,
+      "radius": 3,
+      "count": 1
+    },
+    {
+      "mob_id": "drowned_dead",
+      "mob_is_dummy": false,
+      "mob_min_level": 9,
+      "mob_max_level": 11,
+      "x": 90,
+      "z": 420,
+      "radius": 20,
+      "count": 8
+    },
+    {
+      "mob_id": "drowned_dead",
+      "mob_is_dummy": false,
+      "mob_min_level": 9,
+      "mob_max_level": 11,
+      "x": 115,
+      "z": 450,
+      "radius": 16,
+      "count": 6
+    },
+    {
+      "mob_id": "sloomtooth_the_drowned",
+      "mob_is_dummy": false,
+      "mob_min_level": 11,
+      "mob_max_level": 11,
+      "x": 118,
+      "z": 455,
+      "radius": 5,
+      "count": 1
+    },
+    {
+      "mob_id": "fen_troll",
+      "mob_is_dummy": false,
+      "mob_min_level": 10,
+      "mob_max_level": 12,
+      "x": -80,
+      "z": 420,
+      "radius": 22,
+      "count": 7
+    },
+    {
+      "mob_id": "fen_troll",
+      "mob_is_dummy": false,
+      "mob_min_level": 10,
+      "mob_max_level": 12,
+      "x": -105,
+      "z": 455,
+      "radius": 18,
+      "count": 6
+    },
+    {
+      "mob_id": "grubjaw",
+      "mob_is_dummy": false,
+      "mob_min_level": 12,
+      "mob_max_level": 12,
+      "x": -120,
+      "z": 480,
+      "radius": 8,
+      "count": 1
+    },
+    {
+      "mob_id": "gravecaller_cultist",
+      "mob_is_dummy": false,
+      "mob_min_level": 10,
+      "mob_max_level": 12,
+      "x": 15,
+      "z": 470,
+      "radius": 20,
+      "count": 7
+    },
+    {
+      "mob_id": "gravecaller_cultist",
+      "mob_is_dummy": false,
+      "mob_min_level": 10,
+      "mob_max_level": 12,
+      "x": -25,
+      "z": 490,
+      "radius": 16,
+      "count": 6
+    },
+    {
+      "mob_id": "gravecaller_summoner",
+      "mob_is_dummy": false,
+      "mob_min_level": 11,
+      "mob_max_level": 12,
+      "x": -5,
+      "z": 500,
+      "radius": 12,
+      "count": 4
+    },
+    {
+      "mob_id": "gravecaller_mender",
+      "mob_is_dummy": false,
+      "mob_min_level": 11,
+      "mob_max_level": 12,
+      "x": 18,
+      "z": 472,
+      "radius": 8,
+      "count": 2
+    },
+    {
+      "mob_id": "sister_nhalia",
+      "mob_is_dummy": false,
+      "mob_min_level": 12,
+      "mob_max_level": 12,
+      "x": 24,
+      "z": 492,
+      "radius": 5,
+      "count": 1
+    },
+    {
+      "mob_id": "deacon_voss",
+      "mob_is_dummy": false,
+      "mob_min_level": 12,
+      "mob_max_level": 12,
+      "x": 0,
+      "z": 510,
+      "radius": 2,
+      "count": 1
+    },
+    {
+      "mob_id": "bog_bloat",
+      "mob_is_dummy": false,
+      "mob_min_level": 9,
+      "mob_max_level": 11,
+      "x": 72,
+      "z": 428,
+      "radius": 11,
+      "count": 5
+    },
+    {
+      "mob_id": "bog_bloat",
+      "mob_is_dummy": false,
+      "mob_min_level": 9,
+      "mob_max_level": 11,
+      "x": 110,
+      "z": 440,
+      "radius": 11,
+      "count": 4
+    },
+    {
+      "mob_id": "training_dummy",
+      "mob_is_dummy": true,
+      "mob_min_level": 20,
+      "mob_max_level": 20,
+      "x": -40,
+      "z": 648,
+      "radius": 0,
+      "count": 1
+    },
+    {
+      "mob_id": "ridge_stalker",
+      "mob_is_dummy": false,
+      "mob_min_level": 13,
+      "mob_max_level": 14,
+      "x": -50,
+      "z": 590,
+      "radius": 22,
+      "count": 7
+    },
+    {
+      "mob_id": "ridge_stalker",
+      "mob_is_dummy": false,
+      "mob_min_level": 13,
+      "mob_max_level": 14,
+      "x": 45,
+      "z": 600,
+      "radius": 20,
+      "count": 6
+    },
+    {
+      "mob_id": "old_cragmaw",
+      "mob_is_dummy": false,
+      "mob_min_level": 14,
+      "mob_max_level": 14,
+      "x": -82,
+      "z": 575,
+      "radius": 5,
+      "count": 1
+    },
+    {
+      "mob_id": "deeprock_kobold",
+      "mob_is_dummy": false,
+      "mob_min_level": 14,
+      "mob_max_level": 15,
+      "x": 75,
+      "z": 625,
+      "radius": 18,
+      "count": 8
+    },
+    {
+      "mob_id": "deeprock_kobold",
+      "mob_is_dummy": false,
+      "mob_min_level": 14,
+      "mob_max_level": 15,
+      "x": 105,
+      "z": 600,
+      "radius": 14,
+      "count": 6
+    },
+    {
+      "mob_id": "ironvein_foreman",
+      "mob_is_dummy": false,
+      "mob_min_level": 16,
+      "mob_max_level": 16,
+      "x": 100,
+      "z": 617,
+      "radius": 5,
+      "count": 1
+    },
+    {
+      "mob_id": "thornpeak_ogre",
+      "mob_is_dummy": false,
+      "mob_min_level": 15,
+      "mob_max_level": 16,
+      "x": -90,
+      "z": 700,
+      "radius": 22,
+      "count": 7
+    },
+    {
+      "mob_id": "thornpeak_ogre",
+      "mob_is_dummy": false,
+      "mob_min_level": 15,
+      "mob_max_level": 16,
+      "x": -60,
+      "z": 730,
+      "radius": 18,
+      "count": 6
+    },
+    {
+      "mob_id": "ogre_crusher",
+      "mob_is_dummy": false,
+      "mob_min_level": 16,
+      "mob_max_level": 17,
+      "x": -125,
+      "z": 740,
+      "radius": 18,
+      "count": 8
+    },
+    {
+      "mob_id": "warlord_drogmar",
+      "mob_is_dummy": false,
+      "mob_min_level": 17,
+      "mob_max_level": 17,
+      "x": -132,
+      "z": 748,
+      "radius": 2,
+      "count": 1
+    },
+    {
+      "mob_id": "brutok_skullsmasher",
+      "mob_is_dummy": false,
+      "mob_min_level": 17,
+      "mob_max_level": 17,
+      "x": -45,
+      "z": 768,
+      "radius": 4,
+      "count": 1
+    },
+    {
+      "mob_id": "stormcrag_elemental",
+      "mob_is_dummy": false,
+      "mob_min_level": 17,
+      "mob_max_level": 18,
+      "x": 110,
+      "z": 760,
+      "radius": 20,
+      "count": 8
+    },
+    {
+      "mob_id": "stormcrag_elemental",
+      "mob_is_dummy": false,
+      "mob_min_level": 17,
+      "mob_max_level": 18,
+      "x": 135,
+      "z": 795,
+      "radius": 16,
+      "count": 6
+    },
+    {
+      "mob_id": "shardlord_kazzix",
+      "mob_is_dummy": false,
+      "mob_min_level": 18,
+      "mob_max_level": 18,
+      "x": 145,
+      "z": 815,
+      "radius": 8,
+      "count": 1
+    },
+    {
+      "mob_id": "wyrmcult_zealot",
+      "mob_is_dummy": false,
+      "mob_min_level": 17,
+      "mob_max_level": 19,
+      "x": 55,
+      "z": 820,
+      "radius": 20,
+      "count": 8
+    },
+    {
+      "mob_id": "wyrmcult_zealot",
+      "mob_is_dummy": false,
+      "mob_min_level": 17,
+      "mob_max_level": 19,
+      "x": 34,
+      "z": 845,
+      "radius": 16,
+      "count": 6
+    },
+    {
+      "mob_id": "wyrmcult_necromancer",
+      "mob_is_dummy": false,
+      "mob_min_level": 18,
+      "mob_max_level": 19,
+      "x": 40,
+      "z": 855,
+      "radius": 14,
+      "count": 5
+    },
+    {
+      "mob_id": "boneclad_revenant",
+      "mob_is_dummy": false,
+      "mob_min_level": 18,
+      "mob_max_level": 19,
+      "x": -40,
+      "z": 830,
+      "radius": 20,
+      "count": 8
+    },
+    {
+      "mob_id": "boneclad_revenant",
+      "mob_is_dummy": false,
+      "mob_min_level": 18,
+      "mob_max_level": 19,
+      "x": -40,
+      "z": 838,
+      "radius": 16,
+      "count": 6
+    },
+    {
+      "mob_id": "marrowlord_varkas",
+      "mob_is_dummy": false,
+      "mob_min_level": 19,
+      "mob_max_level": 19,
+      "x": -34,
+      "z": 842,
+      "radius": 5,
+      "count": 1
+    },
+    {
+      "mob_id": "voskar_emberwing",
+      "mob_is_dummy": false,
+      "mob_min_level": 19,
+      "mob_max_level": 19,
+      "x": 80,
+      "z": 845,
+      "radius": 4,
+      "count": 1
+    },
+    {
+      "mob_id": "wyrmcult_zealot",
+      "mob_is_dummy": false,
+      "mob_min_level": 17,
+      "mob_max_level": 19,
+      "x": 80,
+      "z": 845,
+      "radius": 7,
+      "count": 2
+    },
+    {
+      "mob_id": "glimmermere_wader",
+      "mob_is_dummy": false,
+      "mob_min_level": 15,
+      "mob_max_level": 16,
+      "x": -78,
+      "z": 778,
+      "radius": 16,
+      "count": 7
+    },
+    {
+      "mob_id": "glimmermere_wader",
+      "mob_is_dummy": false,
+      "mob_min_level": 15,
+      "mob_max_level": 16,
+      "x": -56,
+      "z": 800,
+      "radius": 14,
+      "count": 5
+    },
+    {
+      "mob_id": "drowned_votary",
+      "mob_is_dummy": false,
+      "mob_min_level": 15,
+      "mob_max_level": 16,
+      "x": -90,
+      "z": 802,
+      "radius": 16,
+      "count": 7
+    },
+    {
+      "mob_id": "drowned_votary",
+      "mob_is_dummy": false,
+      "mob_min_level": 15,
+      "mob_max_level": 16,
+      "x": -64,
+      "z": 814,
+      "radius": 12,
+      "count": 5
+    },
+    {
+      "mob_id": "sethrael_palecoil",
+      "mob_is_dummy": false,
+      "mob_min_level": 16,
+      "mob_max_level": 16,
+      "x": -96,
+      "z": 814,
+      "radius": 3,
+      "count": 1
+    },
+    {
+      "mob_id": "restless_bones",
+      "mob_is_dummy": false,
+      "mob_min_level": 5,
+      "mob_max_level": 7,
+      "x": 88,
+      "z": 90,
+      "radius": 6,
+      "count": 2
+    },
+    {
+      "mob_id": "wraithbinder_maldrec",
+      "mob_is_dummy": false,
+      "mob_min_level": 7,
+      "mob_max_level": 7,
+      "x": 88,
+      "z": 92,
+      "radius": 3,
+      "count": 1
+    },
+    {
+      "mob_id": "grix_the_tunnelking",
+      "mob_is_dummy": false,
+      "mob_min_level": 7,
+      "mob_max_level": 7,
+      "x": -95,
+      "z": -78,
+      "radius": 4,
+      "count": 1
+    }
+  ],
+  "terrain_edits": [
+    {
+      "x": -12000,
+      "z": -12000,
+      "radius": 48,
+      "delta": 0,
+      "falloff": "flat",
+      "mode": "level"
+    }
+  ],
+  "roads": [
+    [
+      {
+        "x": 0,
+        "z": 8
+      },
+      {
+        "x": -8,
+        "z": 30
+      },
+      {
+        "x": -15,
+        "z": 55
+      },
+      {
+        "x": -2,
+        "z": 78
+      }
+    ],
+    [
+      {
+        "x": 8,
+        "z": 2
+      },
+      {
+        "x": 30,
+        "z": 8
+      },
+      {
+        "x": 55,
+        "z": 12
+      }
+    ],
+    [
+      {
+        "x": 6,
+        "z": -6
+      },
+      {
+        "x": 30,
+        "z": -30
+      },
+      {
+        "x": 50,
+        "z": -50
+      },
+      {
+        "x": 65,
+        "z": -65
+      }
+    ],
+    [
+      {
+        "x": -8,
+        "z": 6
+      },
+      {
+        "x": -35,
+        "z": 25
+      },
+      {
+        "x": -58,
+        "z": 48
+      },
+      {
+        "x": -66,
+        "z": 58
+      }
+    ],
+    [
+      {
+        "x": -6,
+        "z": -6
+      },
+      {
+        "x": -30,
+        "z": -28
+      },
+      {
+        "x": -55,
+        "z": -45
+      },
+      {
+        "x": -70,
+        "z": -55
+      }
+    ],
+    [
+      {
+        "x": 6,
+        "z": 8
+      },
+      {
+        "x": 35,
+        "z": 35
+      },
+      {
+        "x": 60,
+        "z": 60
+      },
+      {
+        "x": 78,
+        "z": 74
+      }
+    ],
+    [
+      {
+        "x": 0,
+        "z": 80
+      },
+      {
+        "x": 0,
+        "z": 180
+      },
+      {
+        "x": -8,
+        "z": 240
+      },
+      {
+        "x": 0,
+        "z": 300
+      }
+    ],
+    [
+      {
+        "x": 4,
+        "z": 308
+      },
+      {
+        "x": 45,
+        "z": 336
+      },
+      {
+        "x": 92,
+        "z": 350
+      },
+      {
+        "x": 102,
+        "z": 392
+      },
+      {
+        "x": 90,
+        "z": 420
+      }
+    ],
+    [
+      {
+        "x": -6,
+        "z": 308
+      },
+      {
+        "x": -40,
+        "z": 370
+      },
+      {
+        "x": -80,
+        "z": 420
+      }
+    ],
+    [
+      {
+        "x": 2,
+        "z": 312
+      },
+      {
+        "x": 10,
+        "z": 400
+      },
+      {
+        "x": 20,
+        "z": 470
+      },
+      {
+        "x": 45,
+        "z": 515
+      }
+    ],
+    [
+      {
+        "x": 0,
+        "z": 320
+      },
+      {
+        "x": 10,
+        "z": 450
+      },
+      {
+        "x": 0,
+        "z": 540
+      },
+      {
+        "x": 0,
+        "z": 660
+      }
+    ],
+    [
+      {
+        "x": -6,
+        "z": 666
+      },
+      {
+        "x": -60,
+        "z": 700
+      },
+      {
+        "x": -110,
+        "z": 735
+      }
+    ],
+    [
+      {
+        "x": 6,
+        "z": 668
+      },
+      {
+        "x": 70,
+        "z": 720
+      },
+      {
+        "x": 110,
+        "z": 760
+      }
+    ],
+    [
+      {
+        "x": 0,
+        "z": 676
+      },
+      {
+        "x": 0,
+        "z": 780
+      },
+      {
+        "x": 0,
+        "z": 860
+      }
+    ]
+  ],
+  "docks": [
+    {
+      "x": -64,
+      "z": 60,
+      "rotation": -2.2,
+      "hut_local": {
+        "x": 2.8,
+        "z": 2.4,
+        "half_width": 1.7,
+        "half_depth": 1.5
+      }
+    },
+    {
+      "x": -66,
+      "z": 305,
+      "rotation": 1.68,
+      "hut_local": {
+        "x": 2.8,
+        "z": 2.4,
+        "half_width": 1.7,
+        "half_depth": 1.5
+      }
+    }
+  ],
+  "sowfield_flat": {
+    "x_min": -56,
+    "x_max": 34,
+    "z_min": -141,
+    "z_max": -83,
+    "height": -2.6,
+    "falloff": 8
+  },
+  "sowfield_exclude": {
+    "x_min": -66,
+    "x_max": 44,
+    "z_min": -151,
+    "z_max": -73
+  },
+  "sowfield_stands": [
+    {
+      "x_min": -42,
+      "x_max": 20,
+      "z_min": -96,
+      "z_max": -87
+    },
+    {
+      "x_min": -42,
+      "x_max": 20,
+      "z_min": -138,
+      "z_max": -129
+    }
+  ],
+  "sowfield_stand_tier_depth": 4.6,
+  "sowfield_stand_tier_heights": [
+    0.55,
+    1.28
+  ],
+  "sowfield_stand_ramp": 1.4,
+  "dock_layout": {
+    "section_local_z": [
+      -1.05,
+      -3.18,
+      -5.31
+    ],
+    "section_half_width": 0.98,
+    "section_half_depth": 1.07,
+    "terrain_clearance": 0.15,
+    "surface_y": 0.36
+  },
+  "decoration_exclusion_radius": 1.2,
+  "decoration_exclusions": [
+    {
+      "x": 2.456450840458274,
+      "z": 211.33819991815835
+    }
+  ],
+  "decoration_max_slope": 1.5,
+  "catalog_sha256": "65046a00ab0aa8d8ccfc470f94108762e96ca579bb88b010ee65922889411185"
+}

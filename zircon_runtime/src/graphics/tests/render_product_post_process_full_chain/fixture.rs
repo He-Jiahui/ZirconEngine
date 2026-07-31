@@ -229,7 +229,10 @@ fn full_chain_mesh(node_id: u64, transform: Transform, material: ResourceId) -> 
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+            ..Default::default()
+        },
     }
 }
 

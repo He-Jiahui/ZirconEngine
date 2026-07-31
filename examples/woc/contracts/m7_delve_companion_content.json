@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_companion_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/content/delves/companions.ts": "af55fba0fdd9e5fc5e4c0d820cb1d6ae8312c8058ca08c15bae0bd7cca4f727f",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90",
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff"
+  },
+  "content": {
+    "max_rank": 3,
+    "companions": [
+      {
+        "id": "companion_tessa",
+        "role": "healer",
+        "mob_template_id": "acolyte_tessa"
+      },
+      {
+        "id": "companion_edda",
+        "role": "healer",
+        "mob_template_id": "edda_reedhand"
+      }
+    ],
+    "upgrade_costs": [
+      {
+        "rank": 2,
+        "marks": 3,
+        "copper": 0
+      },
+      {
+        "rank": 3,
+        "marks": 5,
+        "copper": 0
+      }
+    ]
+  },
+  "catalog_sha256": "8f59e3ff64676eef83ae8550650c3613d01efc9a08fabaf2b2a28d08351e4f21"
+}

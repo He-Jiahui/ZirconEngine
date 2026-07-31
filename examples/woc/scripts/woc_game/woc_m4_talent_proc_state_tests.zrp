@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_talent_proc_state_tests",
+  "source": "src",
+  "binary": "bin-m4-talent-proc-state-tests",
+  "entry": "combat/talent_proc_state_test_main"
+}

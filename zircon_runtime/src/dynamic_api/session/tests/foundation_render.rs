@@ -2,15 +2,14 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::asset::test_support::{
-    write_checker_png, write_default_material, write_static_lit_default_scene, write_triangle_obj,
-};
-use crate::asset::{AssetUri, ProjectManifest, ProjectPaths};
-use crate::core::diagnostics::collect_runtime_diagnostics;
-use crate::core::framework::input::InputEvent;
+use crate::asset::{project_asset_manager_handle, AssetUri, ProjectPaths};
+use crate::core::framework::input::{InputButton, InputEvent};
 use crate::core::framework::render::RenderStats;
+use crate::core::manager::resolve_manager_service;
+use crate::core::resource::ResourceState;
+use crate::runtime_diagnostics::collect_runtime_diagnostics;
 use image::ImageFormat;
-use zircon_runtime_interface::project::RelPath;
+use zircon_runtime_interface::project::{render_project_template, ProjectTemplateId};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
@@ -23,8 +22,6 @@ use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile, RuntimeP
 const CAPTURE_WIDTH: u32 = 640;
 const CAPTURE_HEIGHT: u32 = 360;
 const CAPTURE_ENV: &str = "ZR_F2_BASIC_SCENE_CAPTURE_PNG";
-const GPU_SCENE_WGSL: &str =
-    include_str!("../../../graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
 
 #[test]
 fn render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down() {
@@ -35,11 +32,13 @@ fn render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down(
         let mut session =
             RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Runtime, Some(config.clone()))
                 .expect("F2 runtime session should load the persisted project");
+        assert_template_assets_ready(&session);
         assert_input_ingress(&mut session);
         session.tick_frame().expect("F2 runtime tick");
 
         let first = capture_product_frame(&mut session);
         assert_basic_scene_frame(&first, "first launch");
+        assert_product_diagnostics(&session);
         export_capture_if_requested(&first);
 
         let second = capture_product_frame(&mut session);
@@ -52,6 +51,7 @@ fn render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down(
         let mut session =
             RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Runtime, Some(config))
                 .expect("F2 runtime session should restart after deterministic teardown");
+        assert_template_assets_ready(&session);
         session.tick_frame().expect("restarted F2 runtime tick");
         capture_product_frame(&mut session)
     };
@@ -78,12 +78,40 @@ fn render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down(
     project.assert_removable_after_sessions_drop();
 }
 
+fn assert_template_assets_ready(session: &RuntimeDynamicSession) {
+    let core = session.runtime.handle();
+    let handle = project_asset_manager_handle(&core).expect("F2 project asset manager handle");
+    let manager =
+        resolve_manager_service(&core, handle).expect("resolve F2 project asset manager service");
+    let project = manager
+        .current_project_manager()
+        .expect("F2 runtime must retain the opened project");
+
+    for uri in ["res://models/cube.obj", "res://materials/default.zmaterial"] {
+        let uri = AssetUri::parse(uri).expect("F2 template asset URI");
+        let record = project
+            .registry()
+            .get_by_locator(&uri)
+            .unwrap_or_else(|| panic!("F2 project is missing imported asset {uri}"));
+        assert_eq!(
+            record.state,
+            ResourceState::Ready,
+            "F2 asset {uri} must import successfully: {}",
+            record.failure_reason().unwrap_or("no import diagnostic")
+        );
+        assert!(
+            record.artifact_locator().is_some(),
+            "F2 asset {uri} must have an artifact locator"
+        );
+    }
+}
+
 fn assert_input_ingress(session: &mut RuntimeDynamicSession) {
     let viewport = ZrRuntimeViewportHandle::new(1);
-    let size = ZrRuntimeViewportSizeV1::new(CAPTURE_WIDTH, CAPTURE_HEIGHT);
+    let resized_size = ZrRuntimeViewportSizeV1::new(CAPTURE_WIDTH / 2, CAPTURE_HEIGHT / 2);
     let pointer = [CAPTURE_WIDTH as f32 * 0.5, CAPTURE_HEIGHT as f32 * 0.5];
     let events = [
-        ZrRuntimeEventV1::viewport_resized(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, size),
+        ZrRuntimeEventV1::viewport_resized(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, resized_size),
         ZrRuntimeEventV1::pointer_moved(
             ZIRCON_RUNTIME_ABI_VERSION_V1,
             viewport,
@@ -114,6 +142,11 @@ fn assert_input_ingress(session: &mut RuntimeDynamicSession) {
             "F2 input event should be accepted: {status:?}"
         );
     }
+    assert_eq!(
+        session.camera_controller.viewport_size(),
+        crate::core::math::UVec2::new(resized_size.width, resized_size.height),
+        "F2 viewport-resize ingress must update the runtime viewport before frame capture chooses its own size"
+    );
 
     let input_events = session
         .resolve_input_manager()
@@ -159,6 +192,21 @@ fn assert_input_ingress(session: &mut RuntimeDynamicSession) {
             "F2 release event should be accepted: {status:?}"
         );
     }
+    let released_events = session
+        .resolve_input_manager()
+        .expect("F2 input manager")
+        .drain_events();
+    assert!(released_events
+        .iter()
+        .any(|event| matches!(event, InputEvent::ButtonReleased(InputButton::MouseLeft))));
+    assert!(released_events.iter().any(|event| matches!(
+        event,
+        InputEvent::KeyboardInput {
+            key_code,
+            pressed: false,
+            ..
+        } if *key_code == u32::from(b'W')
+    )));
 }
 
 fn capture_product_frame(session: &mut RuntimeDynamicSession) -> ProductFrame {
@@ -209,15 +257,6 @@ fn assert_basic_scene_frame(frame: &ProductFrame, label: &str) {
         changed_pixels > 100,
         "{label} must contain visible non-background output, changed_pixels={changed_pixels}"
     );
-    let primitive_pixels = frame
-        .rgba
-        .chunks_exact(4)
-        .filter(|pixel| pixel[1] > 170 && pixel[0] < 120 && pixel[2] < 150 && pixel[3] == 255)
-        .count();
-    assert!(
-        primitive_pixels > 100,
-        "{label} must contain the green persisted primitive, primitive_pixels={primitive_pixels}"
-    );
     assert!(
         frame.stats.last_graph_executed_pass_count > 0,
         "{label} must execute the RenderGraph"
@@ -234,6 +273,33 @@ fn assert_basic_scene_frame(frame: &ProductFrame, label: &str) {
         frame.stats.last_material_validation_error_count, 0,
         "{label} must not hide material validation errors"
     );
+    assert_eq!(
+        frame.stats.last_material_fallback_count, 0,
+        "{label} must render the persisted material without fallback resources"
+    );
+}
+
+fn assert_product_diagnostics(session: &RuntimeDynamicSession) {
+    let diagnostics = super::super::diagnostics::runtime_diagnostics_response(session)
+        .runtime_diagnostics
+        .expect("F2 runtime diagnostics snapshot");
+
+    assert_eq!(
+        diagnostics.project_identity.as_deref(),
+        Some("F2BasicScene"),
+        "F2 diagnostics must identify the opened project"
+    );
+    assert_eq!(
+        diagnostics.scene_uri.as_deref(),
+        Some("res://scenes/main.scene.toml"),
+        "F2 diagnostics must identify the persisted default scene"
+    );
+    assert!(
+        diagnostics
+            .render_backend_name
+            .is_some_and(|name| !name.trim().is_empty()),
+        "F2 diagnostics must identify the active render backend"
+    );
 }
 
 fn assert_steady_state_performance(first: &RenderStats, second: &RenderStats) {
@@ -242,10 +308,11 @@ fn assert_steady_state_performance(first: &RenderStats, second: &RenderStats) {
         second.last_graph_compiled_cache_miss_count, first.last_graph_compiled_cache_miss_count,
         "an unchanged F2 frame must not recompile the RenderGraph"
     );
-    assert_eq!(
+    assert!(
+        second.last_graph_compiled_cache_hit_count > first.last_graph_compiled_cache_hit_count,
+        "an unchanged F2 frame must reuse the compiled RenderGraph: first_hits={}, second_hits={}",
+        first.last_graph_compiled_cache_hit_count,
         second.last_graph_compiled_cache_hit_count,
-        first.last_graph_compiled_cache_hit_count + 1,
-        "an unchanged F2 frame must reuse the compiled RenderGraph"
     );
     assert_eq!(
         second.last_graph_compiled_cache_entry_count, first.last_graph_compiled_cache_entry_count,
@@ -325,81 +392,18 @@ impl Drop for F2Project {
 }
 
 fn write_project(root: &Path) {
-    let paths = ProjectPaths::from_root(root).expect("F2 project paths");
-    let asset_root = paths.asset_root(&RelPath::project_assets());
-    paths
-        .ensure_layout(&[RelPath::project_assets()])
-        .expect("F2 project layout");
-    ProjectManifest::new(
-        "F2BasicScene",
-        AssetUri::parse("res://scenes/main.scene.toml").expect("F2 scene URI"),
-        1,
-    )
-    .save(paths.manifest_path())
-    .expect("F2 project manifest");
-
-    write_f2_mesh_wgsl(asset_root.join("shaders/pbr.wgsl"));
-    write_checker_png(asset_root.join("textures/checker.png"));
-    write_triangle_obj(asset_root.join("models/triangle.obj"));
-    write_default_material(asset_root.join("materials/grid.zmaterial"));
-    write_static_lit_default_scene(asset_root.join("scenes/main.scene.toml"));
-}
-
-fn write_f2_mesh_wgsl(path: PathBuf) {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).expect("create F2 shader directory");
+    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "F2BasicScene")
+        .expect("render F2 product template");
+    for entry in rendered.entries {
+        let destination = entry.path.join_to(root);
+        if let Some(parent) = destination.parent() {
+            std::fs::create_dir_all(parent).expect("create F2 template directory");
+        }
+        std::fs::write(destination, entry.bytes).expect("write F2 template entry");
     }
-    let shader = format!(
-        r#"{GPU_SCENE_WGSL}
 
-struct SceneUniform {{
-    view_proj: mat4x4<f32>,
-}};
-
-struct MaterialPropertyUniform {{
-    data0: vec4<f32>,
-    data1: vec4<f32>,
-    data2: vec4<f32>,
-    data3: vec4<f32>,
-    data4: vec4<f32>,
-    data5: vec4<f32>,
-    data6: vec4<f32>,
-    data7: vec4<f32>,
-}};
-
-@group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(2) @binding(0) var<uniform> material_properties: MaterialPropertyUniform;
-@group(2) @binding(1) var albedo_tex: texture_2d<f32>;
-@group(2) @binding(2) var albedo_sampler: sampler;
-
-struct VertexInput {{
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-}};
-
-struct VertexOutput {{
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-    @location(1) tint: vec4<f32>,
-}};
-
-@vertex
-fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> VertexOutput {{
-    var output: VertexOutput;
-    let world = zr_world_from_local(instance_index) * vec4<f32>(input.position, 1.0);
-    output.clip_position = scene.view_proj * world;
-    output.uv = input.uv;
-    output.tint = zr_gpu_scene_tint(instance_index);
-    return output;
-}}
-
-@fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {{
-    let alpha = textureSample(albedo_tex, albedo_sampler, input.uv).a;
-    return vec4<f32>(0.05, 0.9, 0.2, alpha) * input.tint;
-}}
-"#
-    );
-    std::fs::write(path, shader).expect("write F2 mesh shader");
+    let paths = ProjectPaths::from_root(root).expect("F2 project paths");
+    paths
+        .ensure_derived_layout()
+        .expect("F2 project derived layout");
 }

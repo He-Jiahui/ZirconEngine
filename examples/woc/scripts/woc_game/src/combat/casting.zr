@@ -1,0 +1,171 @@
+// Casting lifecycle scalar rules. Keeping the transition body self-contained
+// avoids the helper dispatch defect tracked by Plugins 08.
+pub metric(
+    kind: int,
+    first: float,
+    second: float,
+    third: float,
+    fourth: float
+): float {
+    if (kind == 0) { return first - 0.05; }
+    if (kind == 1 || kind == 2) {
+        var timedFactor = 1.0 - second;
+        if (timedFactor <= 0.0 || <int>third == 1) { return first; }
+        return first + 0.5 * timedFactor;
+    }
+    if (kind == 3) {
+        var channelFactor = 1.0 - third;
+        if (channelFactor <= 0.0 || <int>fourth == 1) { return first; }
+        var channelAfter = first - second * 0.25 * channelFactor;
+        return channelAfter > 0.0 ? channelAfter : 0.0;
+    }
+    if (kind == 4) {
+        return second > 0.0 && first > 0.0 && first <= 0.4 && third == 0.0 ? 1.0 : 0.0;
+    }
+    if (kind == 5) { return first > second ? first : second; }
+    if (kind == 6) {
+        if (second <= 0.0) { throw "channel tick count must be positive"; }
+        return first / second;
+    }
+    if (kind == 7) {
+        var channelTimer = first - 0.05;
+        if (channelTimer <= 0.0) { channelTimer = channelTimer + second; }
+        return channelTimer;
+    }
+    if (kind == 8) {
+        var resourceAfter = first - second;
+        return resourceAfter > 0.0 ? resourceAfter : 0.0;
+    }
+    if (kind == 9) {
+        return first > 0.0 && second == 0.0 && third == 0.0 && fourth > 0.0 ? 1.0 : 0.0;
+    }
+    if (kind == 10) { return first - 0.05 <= 0.000000001 ? 1.0 : 0.0; }
+    if (kind == 11) {
+        return first > 0.0 && (second > 0.0 || third <= 0.0) ? 1.0 : 0.0;
+    }
+    if (kind == 12) {
+        var drainHealing = <float><int>(third * fourth + 0.5);
+        var drainMissing = second - first;
+        if (drainHealing <= 0.0 || drainMissing <= 0.0) { return 0.0; }
+        return drainHealing < drainMissing ? drainHealing : drainMissing;
+    }
+    if (kind == 13) {
+        if (third <= 0.0) { throw "spell haste multiplier must be positive"; }
+        return first * second / third;
+    }
+    throw "casting rule metric is invalid";
+}
+
+// End-to-end state ordering for c4a_casting_lifecycle. Event counts are kept
+// scalar because the lossless event-array ABI remains a Plugins 08 dependency.
+pub scenarioContract(seed: int, marker: int): float {
+    if (seed != 1017 || marker != 1) {
+        throw "casting scenario contract marker is invalid";
+    }
+
+    var castStarts = 0;
+    var successfulStops = 0;
+    var cancelledStops = 0;
+    var shadowDamageEvents = 0;
+
+    // Mage fireball: start, progress, take timed pushback, finish.
+    var mageCasting = true;
+    var mageRemaining = 3.0;
+    var mageTotal = 3.0;
+    castStarts = castStarts + 1;
+    mageRemaining = metric(0, mageRemaining, 0.0, 0.0, 0.0);
+    mageRemaining = metric(1, mageRemaining, 0.0, 0.0, 0.0);
+    mageTotal = metric(2, mageTotal, 0.0, 0.0, 0.0);
+    var mageTicks = 0;
+    while (mageCasting && mageTicks < 120) {
+        var mageCompletes = metric(10, mageRemaining, 0.0, 0.0, 0.0) == 1.0;
+        mageRemaining = metric(0, mageRemaining, 0.0, 0.0, 0.0);
+        if (mageCompletes) {
+            mageCasting = false;
+            successfulStops = successfulStops + 1;
+        }
+        mageTicks = mageTicks + 1;
+    }
+
+    // Mage queue: one tail-window slot, consumed only after completion.
+    mageCasting = true;
+    mageRemaining = 3.0;
+    var mageGcd = 1.5;
+    var queuedFireball = false;
+    castStarts = castStarts + 1;
+    while (mageRemaining > 0.4) {
+        mageRemaining = metric(0, mageRemaining, 0.0, 0.0, 0.0);
+        mageGcd = metric(0, mageGcd, 0.0, 0.0, 0.0);
+        if (mageGcd < 0.0) { mageGcd = 0.0; }
+    }
+    if (metric(4, mageRemaining, mageCasting ? 1.0 : 0.0,
+        queuedFireball ? 1.0 : 0.0, 0.0) == 1.0) {
+        queuedFireball = true;
+    }
+    while (mageCasting) {
+        var queuedCastCompletes = metric(10, mageRemaining, 0.0, 0.0, 0.0) == 1.0;
+        mageRemaining = metric(0, mageRemaining, 0.0, 0.0, 0.0);
+        mageGcd = metric(0, mageGcd, 0.0, 0.0, 0.0);
+        if (mageGcd < 0.0) { mageGcd = 0.0; }
+        if (queuedCastCompletes) {
+            mageCasting = false;
+            successfulStops = successfulStops + 1;
+        }
+    }
+    if (queuedFireball && mageGcd <= 0.0) {
+        queuedFireball = false;
+        mageCasting = true;
+        mageRemaining = 3.0;
+        castStarts = castStarts + 1;
+    }
+
+    // Priest heal: silence cancels and drops every queued/target field.
+    var priestCasting = true;
+    var priestTargetLocked = true;
+    var priestQueued = false;
+    castStarts = castStarts + 1;
+    var priestSilenced = true;
+    if (priestCasting && priestSilenced) {
+        priestCasting = false;
+        priestTargetLocked = false;
+        priestQueued = false;
+        cancelledStops = cancelledStops + 1;
+    }
+
+    // Warlock drain: one tick at one second, then a 25% channel pushback.
+    var warlockCasting = true;
+    var warlockChanneling = true;
+    var warlockRemaining = 5.0;
+    var warlockTotal = 5.0;
+    var warlockTickEvery = 1.0;
+    var warlockTickTimer = 1.0;
+    castStarts = castStarts + 1;
+    var warlockTicks = 0;
+    while (warlockTicks < 22) {
+        warlockRemaining = metric(0, warlockRemaining, 0.0, 0.0, 0.0);
+        var channelTickDue = metric(10, warlockTickTimer, 0.0, 0.0, 0.0) == 1.0;
+        warlockTickTimer = metric(7, warlockTickTimer, warlockTickEvery, 0.0, 0.0);
+        if (channelTickDue) {
+            shadowDamageEvents = shadowDamageEvents + 1;
+        }
+        warlockTicks = warlockTicks + 1;
+    }
+    warlockRemaining = metric(3, warlockRemaining, warlockTotal, 0.0, 0.0);
+
+    // A hit cancels fishing instead of applying normal spell pushback.
+    warlockCasting = true;
+    warlockChanneling = false;
+    var fishingCast = true;
+    var warlockTargetLocked = true;
+    if (fishingCast) {
+        warlockCasting = false;
+        warlockTargetLocked = false;
+        cancelledStops = cancelledStops + 1;
+    }
+
+    return castStarts == 5 && successfulStops == 2 && cancelledStops == 2 &&
+        shadowDamageEvents >= 1 && mageCasting && !queuedFireball &&
+        !priestCasting && !priestTargetLocked && !priestQueued &&
+        !warlockCasting && !warlockChanneling && !warlockTargetLocked &&
+        warlockRemaining > 0.0 ? 1.0 : 0.0;
+}

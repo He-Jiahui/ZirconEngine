@@ -6,7 +6,7 @@ display_name = "Workbench Drag Overlay"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchDragOverlay]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-drag-overlay", "workbench-primitive"]
 component = "DragOverlay"
 control_id = "WorkbenchDragOverlayRoot"
 classes = ["workbench-drag-overlay"]
-props = { open = true, dragging = true, drop_hovered = true, active_drag_target = true, payload_kind = "asset", payload_label = "StoneWall.mesh", payload_reference = "assets/stone_wall.mesh", source_control_id = "WorkbenchAssetBrowser", target_control_id = "WorkbenchSceneTree", cursor_x = 72.0, cursor_y = 48.0, offset_x = 16.0, offset_y = 18.0, preview_width = 184.0, preview_height = 36.0, drop_allowed = true, drop_target_x = 24.0, drop_target_y = 148.0, drop_target_width = 280.0, drop_target_height = 30.0, drop_indicator_edge = "bottom", drop_indicator_text = "Drop into scene", z_index = 1510, disable_portal = false, portal_layer = "drag-overlay", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { open = true, dragging = true, drop_hovered = true, active_drag_target = true, payload_kind = "asset", payload_label = "StoneWall.mesh", payload_reference = "assets/stone_wall.mesh", source_control_id = "WorkbenchAssetBrowser", target_control_id = "WorkbenchSceneTree", background_color = "$editor.accent.soft", blocked_background_color = "$editor.semantic.error.container", border_color = "$editor.accent", blocked_border_color = "$editor.semantic.error", foreground_color = "$editor.text.primary", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", icon_left_inset = "$editor.density.gap.large", text_right_inset = "$editor.density.gap.large", font_size = "$editor.typography.overlay.size", line_height_ratio = "$editor.typography.line_height", cursor_offset = "$editor.density.gap.large", cursor_x = 72.0, cursor_y = 48.0, offset_x = 16.0, offset_y = 18.0, preview_width = 184.0, preview_height = 36.0, drop_allowed = true, drop_target_x = 24.0, drop_target_y = 148.0, drop_target_width = 280.0, drop_target_height = 30.0, drop_indicator_edge = "bottom", drop_indicator_text = "Drop into scene", z_index = 1510, disable_portal = false, portal_layer = "drag-overlay", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { min = 240.0, preferred = 360.0, max = 480.0, stretch = "Fixed" }, height = { min = 120.0, preferred = 220.0, max = 320.0, stretch = "Fixed" } }

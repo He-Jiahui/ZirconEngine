@@ -1,0 +1,147 @@
+// Generated source-locked Delve lockpick content contract.
+
+pub actionDelta(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 5) { throw "woc lockpick action is invalid"; }
+    if (index == 0) { return -2; }
+    if (index == 1) { return -1; }
+    if (index == 2) { return 0; }
+    if (index == 3) { return 1; }
+    if (index == 4) { return 2; }
+    throw "woc lockpick action is invalid";
+}
+
+pub actionName(index: int, required: bool): string {
+    if (!required || index < 0 || index >= 5) { throw "woc lockpick action is invalid"; }
+    if (index == 0) { return "hardSet"; }
+    if (index == 1) { return "set"; }
+    if (index == 2) { return "steady"; }
+    if (index == 3) { return "ease"; }
+    if (index == 4) { return "drop"; }
+    throw "woc lockpick action is invalid";
+}
+
+pub antePages(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 4) { throw "woc lockpick ante is invalid"; }
+    if (index == 1) { return 3; }
+    if (index == 2) { return 2; }
+    if (index == 3) { return 1; }
+    throw "woc lockpick ante is invalid";
+}
+
+pub anteTries(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 4) { throw "woc lockpick ante is invalid"; }
+    if (index == 1) { return 1; }
+    if (index == 2) { return 2; }
+    if (index == 3) { return 3; }
+    throw "woc lockpick ante is invalid";
+}
+
+pub anteStepTimeoutMilliseconds(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 4) { throw "woc lockpick ante is invalid"; }
+    if (index == 1) { return 3000; }
+    if (index == 2) { return 6000; }
+    if (index == 3) { return 9000; }
+    throw "woc lockpick ante is invalid";
+}
+
+pub anteLootTier(index: int, required: bool): string {
+    if (!required || index < 1 || index > 3) { throw "woc lockpick ante is invalid"; }
+    if (index == 1) { return "premium"; }
+    if (index == 2) { return "medium"; }
+    if (index == 3) { return "low"; }
+    throw "woc lockpick ante is invalid";
+}
+
+pub tierIndex(tierId: string, required: bool): int {
+    if (!required) { throw "woc lockpick tier is required"; }
+    return tierId == "heroic" ? 1 : 0;
+}
+
+pub tierColumns(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 2) { throw "woc lockpick tier is invalid"; }
+    if (index == 0) { return 12; }
+    if (index == 1) { return 16; }
+    throw "woc lockpick tier is invalid";
+}
+
+pub tierRows(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 2) { throw "woc lockpick tier is invalid"; }
+    if (index == 0) { return 6; }
+    if (index == 1) { return 6; }
+    throw "woc lockpick tier is invalid";
+}
+
+pub tierWidth(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 2) { throw "woc lockpick tier is invalid"; }
+    if (index == 0) { return 1; }
+    if (index == 1) { return 1; }
+    throw "woc lockpick tier is invalid";
+}
+
+pub tierGateCount(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 2) { throw "woc lockpick tier is invalid"; }
+    if (index == 0) { return 2; }
+    if (index == 1) { return 3; }
+    throw "woc lockpick tier is invalid";
+}
+
+pub tierVisibilityWindow(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 2) { throw "woc lockpick tier is invalid"; }
+    if (index == 0) { return 4; }
+    if (index == 1) { return 3; }
+    throw "woc lockpick tier is invalid";
+}
+
+pub tierTrapCount(index: int, required: bool): int {
+    if (!required || index < 0 || index >= 2) { throw "woc lockpick tier is invalid"; }
+    if (index == 0) { return 3; }
+    if (index == 1) { return 5; }
+    throw "woc lockpick tier is invalid";
+}
+
+pub tierActionAllowed(tierIndexValue: int, actionIndex: int, required: bool): bool {
+    if (!required || tierIndexValue < 0 || tierIndexValue >= 2 || actionIndex < 0 || actionIndex >= 5) {
+        throw "woc lockpick action availability is invalid";
+    }
+    return true;
+}
+
+pub rewardBonusMarksForAnte(index: int, required: bool): int {
+    if (!required || index < 1 || index > 3) { throw "woc lockpick ante is invalid"; }
+    if (index == 1) { return 2; }
+    if (index == 2) { return 1; }
+    if (index == 3) { return 0; }
+    throw "woc lockpick ante is invalid";
+}
+
+pub rewardCopperNumeratorForAnte(index: int, required: bool): int {
+    if (!required || index < 1 || index > 3) { throw "woc lockpick ante is invalid"; }
+    if (index == 1) { return 2; }
+    if (index == 2) { return 3; }
+    if (index == 3) { return 1; }
+    throw "woc lockpick ante is invalid";
+}
+
+pub rewardCopperDenominatorForAnte(index: int, required: bool): int {
+    if (!required || index < 1 || index > 3) { throw "woc lockpick ante is invalid"; }
+    if (index == 1) { return 1; }
+    if (index == 2) { return 2; }
+    if (index == 3) { return 1; }
+    throw "woc lockpick ante is invalid";
+}
+
+pub tickMilliseconds(required: bool): int { if (!required) { throw "woc lockpick tick is required"; } return 50; }
+pub baseSeedMultiplier(required: bool): uint { if (!required) { throw "woc lockpick seed is required"; } return <uint>2654435761; }
+pub pageSeedMultiplier(required: bool): uint { if (!required) { throw "woc lockpick seed is required"; } return <uint>2654435761; }
+pub retrySeedMultiplier(required: bool): uint { if (!required) { throw "woc lockpick seed is required"; } return <uint>2246822507; }
+
+pub contractTest(): int {
+    if (actionDelta(0, true) != -2 || actionDelta(4, true) != 2 ||
+        antePages(1, true) != 3 || anteTries(3, true) != 3 ||
+        anteStepTimeoutMilliseconds(2, true) != 6000 || anteLootTier(1, true) != "premium" ||
+        tierColumns(0, true) != 12 || tierColumns(1, true) != 16 ||
+        tierVisibilityWindow(0, true) != 4 || tierTrapCount(1, true) != 5 ||
+        tickMilliseconds(true) != 50 || baseSeedMultiplier(true) != <uint>2654435761 ||
+        retrySeedMultiplier(true) != <uint>2246822507) { return -1; }
+    return 1;
+}

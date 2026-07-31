@@ -7,6 +7,15 @@ from pathlib import Path
 
 EDITOR_TOKEN_RE = re.compile(r"\b[A-Za-z0-9_]*editor[A-Za-z0-9_]*\b", re.I)
 LEGACY_TOKEN_RE = re.compile(r"\b[A-Za-z0-9_]*legacy[A-Za-z0-9_]*\b", re.I)
+RAW_STRING_LITERAL_START = re.compile(r'(?:b|c)?r(?P<hashes>#{0,255})"')
+SIMPLE_CHAR_ESCAPES = frozenset({"'", '"', "n", "r", "t", "\\", "0"})
+HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
+ITEM_LEADING_QUALIFIERS = re.compile(
+    r"^(?:(?:pub(?:\s*\([^)]*\))?|unsafe)\s+)*"
+)
+CONST_FN_ITEM = re.compile(
+    r'^const(?:\s+(?:unsafe|async))?(?:\s+extern(?:\s+"[^"]*"))?\s+fn\b'
+)
 
 NAMING_CLASSIFICATION_ORDER = (
     "test-fixture",
@@ -259,7 +268,7 @@ def _classify_editor_reference(
     ):
         return "scene-reflection-editor-visible-metadata"
     if (
-        relative_path == "zircon_runtime/src/scene/components/scene.rs"
+        relative_path.startswith("zircon_runtime/src/scene/components/scene/")
         and tokens
         and all(token.casefold() == "editor_hint" for token in tokens)
     ):
@@ -271,6 +280,11 @@ def _classify_editor_reference(
         and in_cfg_test_item
     ):
         return "runtime-text-editor-product-fixture"
+    if (
+        relative_path == "zircon_runtime/src/diagnostic_log/level.rs"
+        and in_cfg_test_item
+    ):
+        return "curated-runtime-facade-editor-reference"
     if relative_path in {
         "zircon_runtime/src/diagnostic_log/sink.rs",
         "zircon_runtime/src/prelude.rs",
@@ -279,8 +293,12 @@ def _classify_editor_reference(
     return "unclassified-runtime-naming-reference"
 
 
-def _classify_legacy_reference(relative_path: str) -> str:
-    if _is_test_path(relative_path):
+def _classify_legacy_reference(
+    relative_path: str,
+    *,
+    in_cfg_test_item: bool = False,
+) -> str:
+    if _is_test_path(relative_path) or in_cfg_test_item:
         return "test-fixture"
     if (
         relative_path.startswith("zircon_runtime/src/ui/surface/input/")
@@ -383,20 +401,302 @@ def _migration_debt(
     return debt
 
 
+def _rust_char_literal_end(source: str, start: int) -> int | None:
+    """Return the end of a valid Rust character literal, preserving lifetimes."""
+    cursor = start + 1
+    if cursor >= len(source) or source[cursor] in {"'", "\r", "\n"}:
+        return None
+
+    if source[cursor] != "\\":
+        cursor += 1
+    else:
+        cursor += 1
+        if cursor >= len(source):
+            return None
+        escape = source[cursor]
+        if escape in SIMPLE_CHAR_ESCAPES:
+            cursor += 1
+        elif escape == "x":
+            digits = source[cursor + 1 : cursor + 3]
+            if len(digits) != 2 or any(digit not in HEX_DIGITS for digit in digits):
+                return None
+            cursor += 3
+        elif escape == "u" and source[cursor + 1 : cursor + 2] == "{":
+            closing = source.find("}", cursor + 2)
+            if closing == -1:
+                return None
+            digits = source[cursor + 2 : closing].replace("_", "")
+            if not 1 <= len(digits) <= 6 or any(
+                digit not in HEX_DIGITS for digit in digits
+            ):
+                return None
+            cursor = closing + 1
+        else:
+            return None
+
+    return cursor + 1 if source[cursor : cursor + 1] == "'" else None
+
+
+def _rust_code_view(source: str) -> str:
+    """Blank Rust comments and literals while preserving offsets and newlines."""
+    rendered = list(source)
+    index = 0
+    block_comment_depth = 0
+    source_length = len(source)
+
+    def blank(start: int, end: int) -> None:
+        for offset in range(start, end):
+            if rendered[offset] not in {"\r", "\n"}:
+                rendered[offset] = " "
+
+    while index < source_length:
+        character = source[index]
+        if block_comment_depth:
+            if character == "/" and source.startswith("/*", index):
+                blank(index, index + 2)
+                block_comment_depth += 1
+                index += 2
+            elif character == "*" and source.startswith("*/", index):
+                blank(index, index + 2)
+                block_comment_depth -= 1
+                index += 2
+            else:
+                blank(index, index + 1)
+                index += 1
+            continue
+
+        if character == "/" and source.startswith("//", index):
+            line_end = source.find("\n", index)
+            if line_end == -1:
+                line_end = source_length
+            blank(index, line_end)
+            index = line_end
+            continue
+        if character == "/" and source.startswith("/*", index):
+            blank(index, index + 2)
+            block_comment_depth = 1
+            index += 2
+            continue
+
+        raw_string_match = (
+            RAW_STRING_LITERAL_START.match(source, index)
+            if character == "r"
+            or (
+                character in {"b", "c"}
+                and source[index + 1 : index + 2] == "r"
+            )
+            else None
+        )
+        if raw_string_match is not None:
+            delimiter = '"' + raw_string_match.group("hashes")
+            literal_end = source.find(delimiter, raw_string_match.end())
+            if literal_end == -1:
+                literal_end = source_length
+            else:
+                literal_end += len(delimiter)
+            blank(index, literal_end)
+            index = literal_end
+            continue
+
+        quote_index = index
+        if character in {"b", "c"} and source[index + 1 : index + 2] == '"':
+            quote_index += 1
+        if source[quote_index : quote_index + 1] == '"':
+            literal_end = quote_index + 1
+            escaped = False
+            while literal_end < source_length:
+                literal_character = source[literal_end]
+                literal_end += 1
+                if escaped:
+                    escaped = False
+                elif literal_character == "\\":
+                    escaped = True
+                elif literal_character == '"':
+                    break
+            blank(index, literal_end)
+            index = literal_end
+            continue
+
+        if character == "'":
+            literal_end = _rust_char_literal_end(source, index)
+            if literal_end is not None:
+                blank(index, literal_end)
+                index = literal_end
+            else:
+                index += 1
+            continue
+
+        index += 1
+
+    return "".join(rendered)
+
+
+def _item_signature_boundary(
+    code_line: str,
+    parenthesis_depth: int,
+    bracket_depth: int,
+    angle_depth: int,
+    const_brace_depth: int,
+    value_initializer_item: bool,
+    in_initializer: bool,
+) -> tuple[int, int, int, int, bool, int | None, bool]:
+    """Scan one item-signature line for a top-level body or terminator."""
+    for index, character in enumerate(code_line):
+        if const_brace_depth:
+            if character == "{":
+                const_brace_depth += 1
+            elif character == "}":
+                const_brace_depth -= 1
+            continue
+
+        if character == "(":
+            parenthesis_depth += 1
+        elif character == ")":
+            parenthesis_depth = max(0, parenthesis_depth - 1)
+        elif character == "[":
+            bracket_depth += 1
+        elif character == "]":
+            bracket_depth = max(0, bracket_depth - 1)
+        elif (
+            character == "="
+            and value_initializer_item
+            and parenthesis_depth == 0
+            and bracket_depth == 0
+            and angle_depth == 0
+        ):
+            in_initializer = True
+        elif (
+            character == "<"
+            and not in_initializer
+            and parenthesis_depth == 0
+            and bracket_depth == 0
+        ):
+            angle_depth += 1
+        elif (
+            character == ">"
+            and not in_initializer
+            and parenthesis_depth == 0
+            and bracket_depth == 0
+        ):
+            angle_depth = max(0, angle_depth - 1)
+        elif (
+            character == "{"
+            and parenthesis_depth == 0
+            and bracket_depth == 0
+            and angle_depth > 0
+        ):
+            const_brace_depth = 1
+        elif (
+            character == "{"
+            and in_initializer
+            and parenthesis_depth == 0
+            and bracket_depth == 0
+        ):
+            const_brace_depth = 1
+        elif (
+            character == "{"
+            and parenthesis_depth == 0
+            and bracket_depth == 0
+            and angle_depth == 0
+        ):
+            body = code_line[index:]
+            return (
+                parenthesis_depth,
+                bracket_depth,
+                angle_depth,
+                const_brace_depth,
+                in_initializer,
+                body.count("{") - body.count("}"),
+                False,
+            )
+        elif (
+            character == ";"
+            and parenthesis_depth == 0
+            and bracket_depth == 0
+            and angle_depth == 0
+        ):
+            return (
+                parenthesis_depth,
+                bracket_depth,
+                angle_depth,
+                const_brace_depth,
+                in_initializer,
+                None,
+                True,
+            )
+
+    return (
+        parenthesis_depth,
+        bracket_depth,
+        angle_depth,
+        const_brace_depth,
+        in_initializer,
+        None,
+        False,
+    )
+
+
+def _item_uses_value_initializer(signature_prefix: str) -> bool:
+    tail = ITEM_LEADING_QUALIFIERS.sub("", signature_prefix.strip())
+    if tail.startswith("static "):
+        return True
+    return tail.startswith("const ") and CONST_FN_ITEM.match(tail) is None
+
+
 def _cfg_test_item_line_numbers(source: str) -> set[int]:
     """Return lines owned by items directly guarded with ``#[cfg(test)]``."""
     test_lines: set[int] = set()
     pending_test_cfg = False
-    skipped_item_depth = 0
+    collecting_item_signature = False
+    test_item_depth = 0
+    signature_parenthesis_depth = 0
+    signature_bracket_depth = 0
+    signature_angle_depth = 0
+    signature_const_brace_depth = 0
+    signature_prefix = ""
+    signature_value_initializer_item = False
+    signature_in_initializer = False
+    code_lines = _rust_code_view(source).splitlines()
 
-    for line_no, line in enumerate(source.splitlines(), start=1):
-        stripped = line.strip()
+    for line_no, code_line in enumerate(code_lines, start=1):
+        stripped = code_line.strip()
+        brace_delta = code_line.count("{") - code_line.count("}")
 
-        if skipped_item_depth:
+        if test_item_depth:
             test_lines.add(line_no)
-            skipped_item_depth += line.count("{") - line.count("}")
-            if skipped_item_depth <= 0:
-                skipped_item_depth = 0
+            test_item_depth += brace_delta
+            if test_item_depth <= 0:
+                test_item_depth = 0
+            continue
+
+        if collecting_item_signature:
+            test_lines.add(line_no)
+            signature_prefix = f"{signature_prefix} {stripped}".strip()
+            signature_value_initializer_item = _item_uses_value_initializer(
+                signature_prefix
+            )
+            (
+                signature_parenthesis_depth,
+                signature_bracket_depth,
+                signature_angle_depth,
+                signature_const_brace_depth,
+                signature_in_initializer,
+                body_depth,
+                terminated,
+            ) = _item_signature_boundary(
+                code_line,
+                signature_parenthesis_depth,
+                signature_bracket_depth,
+                signature_angle_depth,
+                signature_const_brace_depth,
+                signature_value_initializer_item,
+                signature_in_initializer,
+            )
+            if body_depth is not None:
+                test_item_depth = max(0, body_depth)
+                collecting_item_signature = False
+            elif terminated:
+                collecting_item_signature = False
             continue
 
         if stripped == "#[cfg(test)]":
@@ -404,13 +704,36 @@ def _cfg_test_item_line_numbers(source: str) -> set[int]:
             continue
 
         if pending_test_cfg:
-            if stripped.startswith("#["):
+            if not stripped or stripped.startswith("#["):
                 continue
             test_lines.add(line_no)
-            item_depth = line.count("{") - line.count("}")
-            if item_depth > 0:
-                skipped_item_depth = item_depth
             pending_test_cfg = False
+            signature_prefix = stripped
+            signature_value_initializer_item = _item_uses_value_initializer(
+                signature_prefix
+            )
+            signature_in_initializer = False
+            (
+                signature_parenthesis_depth,
+                signature_bracket_depth,
+                signature_angle_depth,
+                signature_const_brace_depth,
+                signature_in_initializer,
+                body_depth,
+                terminated,
+            ) = _item_signature_boundary(
+                code_line,
+                0,
+                0,
+                0,
+                0,
+                signature_value_initializer_item,
+                signature_in_initializer,
+            )
+            if body_depth is not None:
+                test_item_depth = max(0, body_depth)
+            elif not terminated:
+                collecting_item_signature = True
 
     return test_lines
 
@@ -436,7 +759,10 @@ def _decisions_for_term(
                     in_cfg_test_item=line_no in cfg_test_item_lines,
                 )
                 if term == "editor"
-                else _classify_legacy_reference(relative_path)
+                else _classify_legacy_reference(
+                    relative_path,
+                    in_cfg_test_item=line_no in cfg_test_item_lines,
+                )
             )
             decision = NAMING_CLASSIFICATION_DECISIONS[classification]
             decisions.append(

@@ -116,7 +116,6 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_status_bar.zui
   - zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
-  - zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
@@ -233,7 +232,6 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/generated_bottom_body.zui
   - zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
-  - zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs

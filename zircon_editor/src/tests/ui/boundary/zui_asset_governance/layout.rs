@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
-use std::fs;
 
 use toml::Value;
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 use super::metadata::string_token_metadata_offender;
 use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
@@ -156,10 +154,7 @@ fn production_zui_layout_metadata_uses_known_keys() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 let Some(layout) = &node.layout else {
@@ -199,10 +194,7 @@ fn production_zui_layout_clip_metadata_is_boolean() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 let Some(layout) = &node.layout else {
@@ -244,10 +236,7 @@ fn production_zui_container_layout_metadata_is_known_and_non_negative() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 let Some(layout) = &node.layout else {

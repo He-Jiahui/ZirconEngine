@@ -431,3 +431,25 @@ fn dynamic_component_json_single_property_objects_are_pre_sized() {
         "dynamic component Entity/Resource JSON writes must pre-size one-property objects instead of routing through Map::from_iter"
     );
 }
+
+#[test]
+fn vm_payload_validation_indexes_retained_components_before_registration_checks() {
+    let source = dynamic_components_source();
+    let validation = section_between(
+        source,
+        "fn validate_retained_vm_payloads(",
+        "fn validate_dynamic_component_value_against_registration(",
+    );
+
+    assert!(
+        validation.contains("let mut payloads_by_type = HashMap::with_capacity(")
+            && validation.contains("for components in self.dynamic_components.values()")
+            && validation.contains("payloads_by_type.entry(type_path.as_str())")
+            && validation.contains("for registration in registrations")
+            && validation.contains("payloads_by_type.get(type_path)")
+            && !validation.contains(
+                "for registration in registrations {\n            let type_path = registration.type_path.type_path.as_str();\n            for components in self.dynamic_components.values()"
+            ),
+        "VM catalog validation must index retained payloads once instead of rescanning every entity map for every registration"
+    );
+}

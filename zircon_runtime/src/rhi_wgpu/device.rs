@@ -10,7 +10,6 @@ use crate::rhi::{
 };
 
 use super::bind_group_validation::{validate_bind_group_desc, BindGroupResourceLookup};
-use super::capabilities::wgpu_backend_caps;
 use super::command_validation::{execute_recorded_commands, validate_recorded_commands};
 use super::pipeline_validation::{
     validate_pipeline_desc, validate_pipeline_layout_desc, validate_shader_module_desc,
@@ -24,16 +23,16 @@ use super::resource_validation::{
 
 mod command_list;
 
-pub use self::command_list::WgpuCommandList;
+pub(crate) use self::command_list::DeterministicRhiContractCommandList;
 
 #[derive(Clone, Debug)]
-pub struct WgpuRenderDevice {
+pub(crate) struct DeterministicRhiContractDevice {
     caps: RenderBackendCaps,
-    state: Arc<Mutex<WgpuRenderDeviceState>>,
+    state: Arc<Mutex<DeterministicRhiContractDeviceState>>,
 }
 
 #[derive(Clone, Debug, Default)]
-pub(super) struct WgpuRenderDeviceState {
+pub(super) struct DeterministicRhiContractDeviceState {
     next_handle: u64,
     next_fence: u64,
     completed_fence: u64,
@@ -64,7 +63,7 @@ pub(super) struct WgpuBindGroupResource {
     pub(super) desc: BindGroupDesc,
 }
 
-impl WgpuRenderDeviceState {
+impl DeterministicRhiContractDeviceState {
     pub(super) fn bind_group_desc_ref(
         &self,
         handle: BindGroupHandle,
@@ -109,7 +108,7 @@ impl WgpuRenderDeviceState {
     }
 }
 
-impl BindGroupResourceLookup for WgpuRenderDeviceState {
+impl BindGroupResourceLookup for DeterministicRhiContractDeviceState {
     fn layout_desc(&self, handle: BindGroupLayoutHandle) -> Result<&BindGroupLayoutDesc, RhiError> {
         self.bind_group_layouts
             .get(&handle)
@@ -137,7 +136,7 @@ impl BindGroupResourceLookup for WgpuRenderDeviceState {
     }
 }
 
-impl PipelineResourceLookup for WgpuRenderDeviceState {
+impl PipelineResourceLookup for DeterministicRhiContractDeviceState {
     fn bind_group_layout_exists(&self, handle: BindGroupLayoutHandle) -> bool {
         self.bind_group_layouts.contains_key(&handle)
     }
@@ -161,55 +160,48 @@ impl PipelineResourceLookup for WgpuRenderDeviceState {
     }
 }
 
-impl WgpuRenderDevice {
-    pub fn new_headless() -> Self {
+impl DeterministicRhiContractDevice {
+    pub(crate) fn new_headless() -> Self {
         Self {
-            caps: wgpu_backend_caps(
-                "wgpu",
-                wgpu::Features::empty(),
-                wgpu::Limits::default(),
-                false,
-                true,
-            ),
-            state: Arc::new(Mutex::new(WgpuRenderDeviceState {
+            caps: deterministic_contract_caps(),
+            state: Arc::new(Mutex::new(DeterministicRhiContractDeviceState {
                 next_handle: 1,
                 next_fence: 1,
-                ..WgpuRenderDeviceState::default()
+                ..DeterministicRhiContractDeviceState::default()
             })),
         }
     }
 
-    pub fn new_with_surface_support() -> Self {
-        Self {
-            caps: wgpu_backend_caps(
-                "wgpu",
-                wgpu::Features::empty(),
-                wgpu::Limits::default(),
-                true,
-                true,
-            ),
-            state: Arc::new(Mutex::new(WgpuRenderDeviceState {
-                next_handle: 1,
-                next_fence: 1,
-                ..WgpuRenderDeviceState::default()
-            })),
-        }
-    }
-
-    fn allocate_handle(state: &mut WgpuRenderDeviceState) -> u64 {
+    fn allocate_handle(state: &mut DeterministicRhiContractDeviceState) -> u64 {
         let handle = state.next_handle;
         state.next_handle += 1;
         handle
     }
 
-    fn lock_state(&self) -> MutexGuard<'_, WgpuRenderDeviceState> {
+    fn lock_state(&self) -> MutexGuard<'_, DeterministicRhiContractDeviceState> {
         self.state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 
-impl RenderDevice for WgpuRenderDevice {
+fn deterministic_contract_caps() -> RenderBackendCaps {
+    let limits = wgpu::Limits::default();
+    RenderBackendCaps::new("deterministic-rhi-contract-test")
+        .with_queue(RenderQueueClass::Graphics)
+        .with_queue(RenderQueueClass::Compute)
+        .with_queue(RenderQueueClass::Copy)
+        .with_offscreen_support(true)
+        .with_storage_buffers(true)
+        .with_fragment_writable_storage(true)
+        .with_max_storage_buffers_per_shader_stage(limits.max_storage_buffers_per_shader_stage)
+        .with_max_storage_buffer_binding_size(u64::from(limits.max_storage_buffer_binding_size))
+        .with_buffer_readback(true)
+        .with_debug_markers(true)
+        .with_debug_groups(true)
+}
+
+impl RenderDevice for DeterministicRhiContractDevice {
     fn caps(&self) -> &RenderBackendCaps {
         &self.caps
     }
@@ -460,7 +452,10 @@ impl RenderDevice for WgpuRenderDevice {
             return Err(RhiError::UnsupportedQueue(queue_class));
         }
 
-        Ok(Box::new(WgpuCommandList::new(queue_class, label)))
+        Ok(Box::new(DeterministicRhiContractCommandList::new(
+            queue_class,
+            label,
+        )))
     }
 
     fn submit(&self, command_list: Box<dyn CommandList>) -> Result<FenceValue, RhiError> {
@@ -553,8 +548,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn wgpu_render_device_state_accessors_recover_poisoned_lock() {
-        let device = WgpuRenderDevice::new_headless();
+    fn deterministic_rhi_contract_device_state_accessors_recover_poisoned_lock() {
+        let device = DeterministicRhiContractDevice::new_headless();
         let poison = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let _state = device.state.lock().unwrap();
             panic!("poison wgpu render device state lock");

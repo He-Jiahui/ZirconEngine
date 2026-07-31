@@ -1,0 +1,302 @@
+// Current-head professions/focus.ts projection. This module owns only the
+// pure allocation, bonus and respec calculations. Position, payments, real
+// time and persistent player commits remain with their transaction owners.
+var container = %import("zr.container");
+var contract = %import("generated/town_focus_contract");
+
+pub class FocusAllocation {
+    // This ordered pair of arrays is the Zr representation of the source
+    // Record<string, number>. A duplicate key is malformed because a Record
+    // cannot contain the same property twice.
+    pub var componentTypes: container.Array<string>;
+    pub var points: container.Array<int>;
+
+    pub @constructor() {
+        this.componentTypes = new container.Array<string>();
+        this.points = new container.Array<int>();
+    }
+}
+
+pub class SetTownFocusResult {
+    // 0 success, 1 not in town, 2 invalid allocation, 3 over budget.
+    pub var ok: bool;
+    pub var reason: int;
+    pub var allocation: FocusAllocation;
+
+    pub @constructor() {
+        this.ok = false;
+        this.reason = 0;
+        this.allocation = new FocusAllocation();
+    }
+}
+
+pub class RespecCost {
+    pub var durationMs: int;
+    pub var coin: int;
+    pub var materials: int;
+
+    pub @constructor() {
+        this.durationMs = 0;
+        this.coin = 0;
+        this.materials = 0;
+    }
+}
+
+allocationShapeValid(allocation: FocusAllocation): bool {
+    if (allocation.componentTypes.length != allocation.points.length) return false;
+    var index = 0;
+    while (index < allocation.componentTypes.length) {
+        var component = <string>allocation.componentTypes[index];
+        var other = index + 1;
+        while (other < allocation.componentTypes.length) {
+            if (component == <string>allocation.componentTypes[other]) return false;
+            other = other + 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+requireAllocationShape(allocation: FocusAllocation): void {
+    if (!allocationShapeValid(allocation)) {
+        throw "town focus allocation representation is invalid";
+    }
+}
+
+pub addEntry(allocation: FocusAllocation, componentType: string, points: int): void {
+    allocation.componentTypes.add(componentType);
+    allocation.points.add(points);
+}
+
+containsComponent(allocation: FocusAllocation, componentType: string): bool {
+    var index = 0;
+    while (index < allocation.componentTypes.length) {
+        if (<string>allocation.componentTypes[index] == componentType) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+pub pointsFor(allocation: FocusAllocation, componentType: string): int {
+    requireAllocationShape(allocation);
+    var index = 0;
+    while (index < allocation.componentTypes.length) {
+        if (<string>allocation.componentTypes[index] == componentType) {
+            var value = <int>allocation.points[index];
+            return value > 0 ? value : 0;
+        }
+        index = index + 1;
+    }
+    return 0;
+}
+
+pub applyFocusBonus(
+    baseYield: float, componentType: string, allocation: FocusAllocation
+): float {
+    var points = pointsFor(allocation, componentType);
+    if (points <= 0) return baseYield;
+    return baseYield + baseYield * <float>points * contract.focusYieldBonusPerPoint();
+}
+
+harvestTierIndex(tier: string): int {
+    var index = 0;
+    while (index < contract.harvestTierCount()) {
+        if (contract.harvestTierAt(index) == tier) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub applyFocusTierBonus(
+    tier: string, componentType: string, allocation: FocusAllocation
+): string {
+    var points = pointsFor(allocation, componentType);
+    if (points <= 0) return tier;
+    var steps = 0;
+    var nextThreshold = contract.pointsPerTierBonus();
+    while (points >= nextThreshold && steps < contract.maxFocusTierBonus()) {
+        steps = steps + 1;
+        nextThreshold = nextThreshold + contract.pointsPerTierBonus();
+    }
+    if (steps <= 0) return tier;
+    var targetIndex = harvestTierIndex(tier) + steps;
+    var lastIndex = contract.harvestTierCount() - 1;
+    if (targetIndex > lastIndex) targetIndex = lastIndex;
+    return contract.harvestTierAt(targetIndex);
+}
+
+// This is the exact inclusive hub-circle predicate from isInTownZone. The
+// caller owns zone selection and passes the selected hub's position and radius.
+pub isInTownHub(
+    x: float, z: float, hubX: float, hubZ: float, hubRadius: float
+): bool {
+    var dx = x - hubX;
+    var dz = z - hubZ;
+    return dx * dx + dz * dz <= hubRadius * hubRadius;
+}
+
+requestedAllocationValid(requested: FocusAllocation): bool {
+    if (!allocationShapeValid(requested)) return false;
+    var index = 0;
+    while (index < requested.componentTypes.length) {
+        if ((<string>requested.componentTypes[index]) == "" ||
+            <int>requested.points[index] < 0) {
+            return false;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+successfulAllocation(requested: FocusAllocation): FocusAllocation {
+    var allocation = new FocusAllocation();
+    var index = 0;
+    while (index < requested.componentTypes.length) {
+        var points = <int>requested.points[index];
+        if (points > 0) {
+            addEntry(allocation, <string>requested.componentTypes[index], points);
+        }
+        index = index + 1;
+    }
+    return allocation;
+}
+
+pub setTownFocus(
+    previous: FocusAllocation, requested: FocusAllocation, isInTown: bool
+): SetTownFocusResult {
+    requireAllocationShape(previous);
+    var result = new SetTownFocusResult();
+    if (!isInTown) {
+        result.reason = 1;
+        result.allocation = previous;
+        return result;
+    }
+    if (!requestedAllocationValid(requested)) {
+        result.reason = 2;
+        result.allocation = previous;
+        return result;
+    }
+    var total = 0;
+    var index = 0;
+    while (index < requested.points.length) {
+        var points = <int>requested.points[index];
+        if (points > 0) total = total + points;
+        index = index + 1;
+    }
+    if (total > contract.focusPointBudget()) {
+        result.reason = 3;
+        result.allocation = previous;
+        return result;
+    }
+    result.ok = true;
+    result.allocation = successfulAllocation(requested);
+    return result;
+}
+
+absoluteDifference(left: int, right: int): int {
+    var difference = left - right;
+    return difference < 0 ? -difference : difference;
+}
+
+reallocationMagnitude(previous: FocusAllocation, requested: FocusAllocation): int {
+    requireAllocationShape(previous);
+    requireAllocationShape(requested);
+    var magnitude = 0;
+    var index = 0;
+    while (index < previous.componentTypes.length) {
+        var component = <string>previous.componentTypes[index];
+        magnitude = magnitude + absoluteDifference(
+            pointsFor(requested, component), pointsFor(previous, component)
+        );
+        index = index + 1;
+    }
+    index = 0;
+    while (index < requested.componentTypes.length) {
+        var component = <string>requested.componentTypes[index];
+        if (!containsComponent(previous, component)) {
+            magnitude = magnitude + absoluteDifference(pointsFor(requested, component), 0);
+        }
+        index = index + 1;
+    }
+    return magnitude;
+}
+
+validRespecTier(tierCode: int): bool {
+    return tierCode >= 0 && tierCode <= 2;
+}
+
+// Tier codes preserve the source type union order: 0 time, 1 timeAndPartial,
+// 2 instant. Invalid codes are rejected at the typed boundary rather than
+// silently inventing a fourth payment mode.
+pub computeRespecCost(
+    previous: FocusAllocation, requested: FocusAllocation, tierCode: int
+): RespecCost {
+    if (!validRespecTier(tierCode)) throw "town focus respec tier is invalid";
+    var magnitude = reallocationMagnitude(previous, requested);
+    var cost = new RespecCost();
+    cost.durationMs = magnitude * contract.respecDurationMsPerPoint(tierCode);
+    cost.coin = magnitude * contract.respecCoinPerPoint(tierCode);
+    cost.materials = magnitude * contract.respecMaterialsPerPoint(tierCode);
+    return cost;
+}
+
+pub contractTest(): int {
+    var previous = new FocusAllocation();
+    addEntry(previous, "hide", 5);
+    addEntry(previous, "ore", 3);
+    if (pointsFor(previous, "hide") != 5 || pointsFor(previous, "herb") != 0 ||
+        applyFocusBonus(10.0, "hide", previous) != 15.0 ||
+        applyFocusBonus(10.0, "ore", previous) != 13.0 ||
+        applyFocusBonus(10.0, "herb", previous) != 10.0) return -1;
+    if (applyFocusTierBonus("rare", "hide", previous) != "epic" ||
+        applyFocusTierBonus("rare", "ore", previous) != "rare") return -2;
+
+    var cap = new FocusAllocation();
+    addEntry(cap, "hide", 10);
+    if (applyFocusTierBonus("epic", "hide", cap) != "legendary" ||
+        applyFocusTierBonus("unknown", "hide", cap) != "common") return -3;
+    if (!isInTownHub(3.0, 4.0, 0.0, 0.0, 5.0) ||
+        isInTownHub(3.001, 4.0, 0.0, 0.0, 5.0)) return -4;
+
+    var requested = new FocusAllocation();
+    addEntry(requested, "hide", 6);
+    addEntry(requested, "ore", 4);
+    addEntry(requested, "herb", 0);
+    var set = setTownFocus(previous, requested, true);
+    if (!set.ok || set.reason != 0 || pointsFor(set.allocation, "hide") != 6 ||
+        pointsFor(set.allocation, "ore") != 4 || set.allocation.componentTypes.length != 2) return -5;
+    var outOfTown = setTownFocus(previous, requested, false);
+    if (outOfTown.ok || outOfTown.reason != 1 || pointsFor(outOfTown.allocation, "hide") != 5) {
+        return -6;
+    }
+
+    var negative = new FocusAllocation();
+    addEntry(negative, "hide", -1);
+    if (setTownFocus(previous, negative, true).reason != 2) return -7;
+    var duplicate = new FocusAllocation();
+    addEntry(duplicate, "hide", 2);
+    addEntry(duplicate, "hide", 2);
+    if (setTownFocus(previous, duplicate, true).reason != 2) return -8;
+    var empty = new FocusAllocation();
+    addEntry(empty, "", 1);
+    if (setTownFocus(previous, empty, true).reason != 2) return -9;
+    var overBudget = new FocusAllocation();
+    addEntry(overBudget, "hide", 11);
+    if (setTownFocus(previous, overBudget, true).reason != 3) return -10;
+
+    var costPrevious = new FocusAllocation();
+    addEntry(costPrevious, "hide", 4);
+    addEntry(costPrevious, "ore", 2);
+    var costRequested = new FocusAllocation();
+    addEntry(costRequested, "hide", 1);
+    addEntry(costRequested, "herb", 5);
+    var time = computeRespecCost(costPrevious, costRequested, 0);
+    var partial = computeRespecCost(costPrevious, costRequested, 1);
+    var instant = computeRespecCost(costPrevious, costRequested, 2);
+    if (time.durationMs != 600000 || time.coin != 0 || time.materials != 0 ||
+        partial.durationMs != 150000 || partial.coin != 50 || partial.materials != 10 ||
+        instant.durationMs != 0 || instant.coin != 250 || instant.materials != 50) return -11;
+    var noChange = computeRespecCost(costPrevious, costPrevious, 2);
+    if (noChange.durationMs != 0 || noChange.coin != 0 || noChange.materials != 0) return -12;
+    return 1;
+}

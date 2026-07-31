@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_camp_spawn_placement_tests",
+  "source": "src",
+  "binary": "bin-m3-camp-spawn-placement-tests",
+  "entry": "world/camp_spawn_placement_test_main"
+}

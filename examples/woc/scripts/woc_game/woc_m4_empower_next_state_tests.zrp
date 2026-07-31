@@ -1,0 +1,1 @@
+{ "name":"woc_m4_empower_next_state_tests", "source":"src", "binary":"bin-m4-empower-next-state-tests", "entry":"combat/empower_next_state_test_main" }

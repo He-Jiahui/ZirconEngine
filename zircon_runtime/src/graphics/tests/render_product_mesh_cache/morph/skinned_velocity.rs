@@ -164,7 +164,10 @@ fn skinned_morph_velocity_mesh_snapshot(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::from_transform_static(false),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            ..Default::default()
+        },
     }
 }
 

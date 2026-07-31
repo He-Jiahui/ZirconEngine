@@ -1,0 +1,11 @@
+var socialAggro = %import("world/fleeing_social_aggro_state");
+
+console.printLine("m3-fleeing-social-aggro-state-test");
+var result = socialAggro.contractTest();
+if (result == 1) {
+    result = socialAggro.normalSocialPullContractTest();
+}
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "fleeing social aggro contract failed";
+}

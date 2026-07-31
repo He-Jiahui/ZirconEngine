@@ -1,0 +1,10 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub angleDegrees(required: bool): float { return required ? 70.0 : 0.0; }
+pub minRange(required: bool): float { return required ? 7.0 : 0.0; }
+pub maxRange(required: bool): float { return required ? 16.0 : 0.0; }
+pub presentationRange(stage: int): float {
+    if (stage == 1) return 7.0;
+    if (stage == 2) return 10.0;
+    if (stage == 3) return 13.0;
+    return stage == 4 ? 16.0 : 0.0;
+}

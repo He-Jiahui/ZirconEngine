@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_world_collision_router_tests",
+  "source": "src",
+  "binary": "bin-m3-world-collision-router-tests",
+  "entry": "world/world_collision_router_test_main"
+}

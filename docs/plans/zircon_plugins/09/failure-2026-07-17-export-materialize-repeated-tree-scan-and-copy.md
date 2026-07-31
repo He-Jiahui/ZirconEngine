@@ -66,4 +66,6 @@ content fingerprint projection。materialize、preview 与 archive 因而各自�
 
 ## 修复结果与回传
 
+Current owner note（2026-07-22）：PERF-MVP-547已完成局部止损：`NativePackageInventory`对一轮materialize只建一次package index，跳过已解析direct package payload并在全部selection解析后停止余树；ZIP写入把preview diagnostics与ordered file entries合并为一次package walk；native/ZIP一次建borrowed export-row index且不clone ABI row；generated writer复用parent mkdir。该改动不等于关闭：preview/materialize/ZIP仍各自建inventory，unchanged file仍覆盖，copy仍串行且无Runtime11统一预算/失败commit。规模counter、Cargo与产品导出未验收，failure保持open。
+
 Open state: `待 Plugins09 建立单次 package/file projection、增量 materialize 与有界 I/O 基准`。

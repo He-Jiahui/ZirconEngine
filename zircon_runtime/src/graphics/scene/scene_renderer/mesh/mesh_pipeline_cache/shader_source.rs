@@ -1,14 +1,14 @@
 use crate::core::framework::render::{
-    builtin_geometry_source_descriptor, GeometrySourceDescriptor, GeometrySourceId, ShaderPassType,
-    GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId, ShaderPassType,
+    builtin_geometry_source_descriptor,
 };
 use crate::graphics::scene::resources::{PipelineKey, ResourceStreamer};
 use crate::graphics::shader::{
-    assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
-    assemble_taa_reactive_mask_shader_template, standard_material_surface_source_for_features,
     DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateAssembly,
     MaterialShaderTemplateRequest, ShaderTemplateAssemblyError,
-    TaaReactiveMaskShaderTemplateRequest,
+    TaaReactiveMaskShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
+    assemble_material_shader_template, assemble_taa_reactive_mask_shader_template,
+    standard_material_surface_source_for_features,
 };
 
 const MESH_SHADER_TEMPLATE_REVISION: &str = "mesh-template-v1";

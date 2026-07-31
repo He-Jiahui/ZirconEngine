@@ -18,6 +18,7 @@ mod fallback_tests;
 mod lazy_rebuild_tests;
 mod non_material_rebuild;
 mod rebuild_batch;
+mod remainder;
 mod residual_fallback;
 #[cfg(test)]
 mod second_frame_tests;
@@ -27,9 +28,10 @@ mod tests;
 mod visibility_tests;
 
 use extract_item::{
-    cacheable_phases_for_extract_item, can_skip_pending_mesh_draw_for_cached_commands,
-    pending_mesh_command_cache_extract_item, PendingMeshCommandCacheExtractItem,
+    PendingMeshCommandCacheExtractItem, cacheable_phases_for_extract_item,
+    can_skip_pending_mesh_draw_for_cached_commands, pending_mesh_command_cache_extract_item,
 };
+pub(super) use remainder::PendingMeshDrawRemainder;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct PendingMeshCommandCacheExtractionStats {
@@ -49,7 +51,7 @@ pub(crate) struct PendingMeshCommandCacheExtractionContext<'a> {
 }
 
 pub(super) struct PendingMeshCommandCacheExtraction {
-    pub(super) pending_draws: Vec<Option<PendingMeshDraw>>,
+    pub(super) pending_draws: PendingMeshDrawRemainder,
     pub(super) command_buffers: MeshPassCommandBuffers,
     pub(super) stats: PendingMeshCommandCacheExtractionStats,
 }
@@ -77,7 +79,7 @@ impl<'a> PendingMeshCommandCacheExtractionContext<'a> {
 }
 
 pub(super) fn extract_pending_static_mesh_command_cache_hits(
-    mut pending_draws: Vec<Option<PendingMeshDraw>>,
+    pending_draws: Vec<PendingMeshDraw>,
     visibility_for_entity: impl Fn(EntityId) -> Option<PendingMeshCommandCacheVisibility>,
     gpu_scene_instance_span_for_draw: impl Fn(EntityId, u32) -> Option<(u32, u32)>,
     context: PendingMeshCommandCacheExtractionContext<'_>,
@@ -89,19 +91,18 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
     let generation = context.generation;
     let mut build_context =
         MeshPassBuildContext::new(context.variant_resolver, context.shader_quality);
+    let residual_capacity = pending_draws.len();
+    let mut residual_pending_draws = None;
 
-    for (source_draw_index, pending_draw) in pending_draws.iter_mut().enumerate() {
-        let Some(draw) = pending_draw.as_ref() else {
-            continue;
-        };
-        let item = pending_mesh_command_cache_extract_item(draw, source_draw_index);
+    for (source_draw_index, draw) in pending_draws.into_iter().enumerate() {
+        let item = pending_mesh_command_cache_extract_item(&draw, source_draw_index);
         let visibility = visibility_for_entity(item.entity);
         let Some(extracted_commands) = commands_for_extract_item_with_stats_and_context(
             item,
             visibility,
             |phase| {
                 rebuild_batch::pending_mesh_command_cache_rebuild_batch_for_phase(
-                    draw,
+                    &draw,
                     item,
                     visibility,
                     phase,
@@ -113,6 +114,9 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
             &mut build_context,
             Some(&mut stats),
         ) else {
+            residual_pending_draws
+                .get_or_insert_with(|| Vec::with_capacity(residual_capacity))
+                .push((source_draw_index, draw));
             continue;
         };
         stats.skipped_mesh_draw_count += 1;
@@ -124,11 +128,12 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
         for command in extracted_commands.commands {
             commands.push(command);
         }
-        *pending_draw = None;
     }
 
     PendingMeshCommandCacheExtraction {
-        pending_draws,
+        pending_draws: PendingMeshDrawRemainder::Residual(
+            residual_pending_draws.unwrap_or_default(),
+        ),
         command_buffers: MeshPassCommandBuffers::from_cached_command_hits(commands, cache_stats),
         stats,
     }

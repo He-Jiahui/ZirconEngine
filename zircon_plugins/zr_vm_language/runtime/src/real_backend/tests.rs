@@ -7,7 +7,10 @@ use zircon_runtime::script::{CapabilitySet, HostExportFunction, HostExportRegist
 use super::errors::zr_error;
 use super::host_modules::{native_function_label, validate_native_function_arity};
 use super::lock::acquire_zr_vm_lock;
-use super::values::{from_zr_value_for_function, to_zr_value, to_zr_value_for_function};
+use super::values::{
+    from_zr_return_value_for_export, from_zr_value_for_function, to_zr_value,
+    to_zr_value_for_function,
+};
 
 #[test]
 fn zr_vm_real_backend_runtime_lock_recovers_after_poison() {
@@ -49,9 +52,11 @@ fn validate_native_function_arity_rejects_min_greater_than_max() {
     let error = validate_native_function_arity("example", &descriptor).unwrap_err();
 
     assert!(error.to_string().contains("example.bad"));
-    assert!(error
-        .to_string()
-        .contains("min arity 3 exceeds max arity 2"));
+    assert!(
+        error
+            .to_string()
+            .contains("min arity 3 exceeds max arity 2")
+    );
 }
 
 #[test]
@@ -68,9 +73,11 @@ fn validate_native_function_arity_rejects_parameter_count_above_max() {
     let error = validate_native_function_arity("example", &descriptor).unwrap_err();
 
     assert!(error.to_string().contains("example.bad"));
-    assert!(error
-        .to_string()
-        .contains("declares 2 parameters but max arity is 1"));
+    assert!(
+        error
+            .to_string()
+            .contains("declares 2 parameters but max arity is 1")
+    );
 }
 
 #[test]
@@ -79,10 +86,12 @@ fn to_zr_value_lowers_supported_host_values() {
         to_zr_value(ScriptHostValue::Null).unwrap().kind(),
         zr_vm_rust_binding::ValueKind::Null
     ));
-    assert!(to_zr_value(ScriptHostValue::Bool(true))
-        .unwrap()
-        .as_bool()
-        .unwrap());
+    assert!(
+        to_zr_value(ScriptHostValue::Bool(true))
+            .unwrap()
+            .as_bool()
+            .unwrap()
+    );
     assert_eq!(
         to_zr_value(ScriptHostValue::Int(7))
             .unwrap()
@@ -104,19 +113,36 @@ fn to_zr_value_lowers_supported_host_values() {
             .unwrap(),
         "ok"
     );
-    assert_eq!(
-        to_zr_value(ScriptHostValue::Bytes(vec![104, 105]))
-            .unwrap()
-            .as_string()
-            .unwrap(),
-        "hi"
-    );
+    let bytes = to_zr_value(ScriptHostValue::Bytes(vec![0, 104, 128, 255])).unwrap();
+    assert_eq!(bytes.kind(), zr_vm_rust_binding::ValueKind::Array);
+    assert_eq!(bytes.array_len().unwrap(), 4);
+    assert_eq!(bytes.array_get(0).unwrap().as_int().unwrap(), 0);
+    assert_eq!(bytes.array_get(1).unwrap().as_int().unwrap(), 104);
+    assert_eq!(bytes.array_get(2).unwrap().as_int().unwrap(), 128);
+    assert_eq!(bytes.array_get(3).unwrap().as_int().unwrap(), 255);
     assert_eq!(
         to_zr_value(ScriptHostValue::HostHandle(42))
             .unwrap()
             .as_int()
             .unwrap(),
         42
+    );
+}
+
+#[test]
+fn byte_arrays_round_trip_losslessly_across_the_zr_vm_boundary() {
+    let source = ScriptHostValue::Bytes(vec![0, 104, 128, 255]);
+    let value = to_zr_value(source.clone()).expect("lower bytes as a ZrVM array");
+
+    assert_eq!(
+        from_zr_value_for_function(&value, "example.bytes", 0)
+            .expect("raise byte array for a native callback"),
+        source
+    );
+    assert_eq!(
+        from_zr_return_value_for_export(&value, "example.bytes")
+            .expect("raise byte array from an export"),
+        source
     );
 }
 
@@ -136,13 +162,29 @@ fn host_handle_i64_transport_preserves_packed_generation_bits() {
 }
 
 #[test]
-fn from_zr_value_for_function_rejects_unsupported_argument_kind_with_context() {
-    let value = zr_vm_rust_binding::Value::new_array().unwrap();
+fn from_zr_value_for_function_rejects_non_byte_array_elements_with_context() {
+    let mut value = zr_vm_rust_binding::Value::new_array().unwrap();
+    value
+        .array_push(&zr_vm_rust_binding::Value::new_string("not-a-byte").unwrap())
+        .unwrap();
     let error = from_zr_value_for_function(&value, "example.unsupported", 2).unwrap_err();
 
     assert!(error.message.contains("example.unsupported"));
     assert!(error.message.contains("argument 2"));
-    assert!(error.message.contains("Array"));
+    assert!(error.message.contains("expected byte integer"));
+}
+
+#[test]
+fn from_zr_value_for_function_rejects_out_of_range_byte_array_elements() {
+    let mut value = zr_vm_rust_binding::Value::new_array().unwrap();
+    value
+        .array_push(&zr_vm_rust_binding::Value::new_int(256).unwrap())
+        .unwrap();
+    let error = from_zr_value_for_function(&value, "example.bytes", 1).unwrap_err();
+
+    assert!(error.message.contains("example.bytes"));
+    assert!(error.message.contains("argument 1"));
+    assert!(error.message.contains("outside 0..=255: 256"));
 }
 
 #[test]
@@ -155,9 +197,11 @@ fn to_zr_value_for_function_wraps_return_lowering_errors_with_context() {
         Err(error) => error,
     };
 
-    assert!(error
-        .message
-        .contains("failed to lower host return value for example.return_value"));
+    assert!(
+        error
+            .message
+            .contains("failed to lower host return value for example.return_value")
+    );
     assert!(error.message.contains("string contains interior NUL"));
 }
 

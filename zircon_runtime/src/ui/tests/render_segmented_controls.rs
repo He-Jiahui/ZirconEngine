@@ -1,11 +1,43 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn segmented_rendering_classifies_before_state_and_avoids_selected_lowercase_copy() {
+    let source = include_str!("../surface/render/segmented_controls.rs");
+    let kind = source
+        .find("let Some(kind) = control_kind(metadata)")
+        .expect("segmented rendering should classify the component");
+    let state = source
+        .find("let state = SegmentedRenderState::resolve")
+        .expect("segmented rendering should resolve painter state");
+
+    assert!(
+        kind < state,
+        "non-segmented nodes should exit before state resolution"
+    );
+    assert!(
+        !source.contains("to_ascii_lowercase"),
+        "selected segment matching should compare borrowed text without allocation"
+    );
+    for required_token_hook in [
+        "EditorDesignTokens",
+        "EditorTypographyTokens",
+        "style_overrides",
+        "default_segmented_visual",
+    ] {
+        assert!(
+            source.contains(required_token_hook),
+            "segmented renderer should resolve {required_token_hook} through the design-token contract"
+        );
+    }
+}
 
 #[test]
 fn render_extract_expands_tabs_and_segmented_control_primitives() {
@@ -49,7 +81,7 @@ selected = true
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Mode")
             && command.frame == UiFrame::new(12.0, 8.0, 150.0, 14.0)
-            && command.style.foreground_color.as_deref() == Some("#a1acb2")
+            && command.style.foreground_color.as_deref() == Some("#a4aeb4")
             && command.style.painter_family == UiPainterFamily::Tab
             && command.style.painter_state == UiPainterResolvedState::Normal
     }));
@@ -57,7 +89,7 @@ selected = true
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 26.0, 150.0, 30.0)
-            && command.style.background_color.as_deref() == Some("#1d2327")
+            && command.style.background_color.as_deref() == Some("#1b1f23")
             && command.style.border_color.as_deref() == Some("#323a41")
             && command.style.corner_radius == 5.0
     }));
@@ -73,14 +105,14 @@ selected = true
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(64.0, 53.0, 46.0, 1.0)
-            && command.style.background_color.as_deref() == Some("#2aa6b8")
+            && command.style.background_color.as_deref() == Some("#3cc7d6")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Center")
             && command.frame == UiFrame::new(70.0, 31.0, 34.0, 20.0)
-            && command.style.foreground_color.as_deref() == Some("#e6f1f4")
+            && command.style.foreground_color.as_deref() == Some("#e8ecee")
     }));
     assert_eq!(
         commands
@@ -105,7 +137,7 @@ selected = true
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 98.0, 132.0, 2.0)
-            && command.style.background_color.as_deref() == Some("#2aa6b8")
+            && command.style.background_color.as_deref() == Some("#3cc7d6")
             && command.style.painter_family == UiPainterFamily::Tab
             && command.style.painter_state == UiPainterResolvedState::Selected
     }));
@@ -114,7 +146,7 @@ selected = true
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("UI Components")
             && command.frame == UiFrame::new(24.0, 76.8, 108.0, 14.400001)
-            && command.style.foreground_color.as_deref() == Some("#e6f1f4")
+            && command.style.foreground_color.as_deref() == Some("#e8ecee")
             && command.style.painter_state == UiPainterResolvedState::Selected
     }));
     assert_eq!(
@@ -130,7 +162,7 @@ selected = true
 }
 
 #[test]
-fn render_extract_segmented_defaults_to_slate_underline_selected_indicator() {
+fn render_extract_segmented_defaults_to_accent_token_selected_indicator() {
     let mut surface = UiSurface::new(UiTreeId::new(
         "runtime.ui.render.segmented_controls.selected_defaults",
     ));
@@ -166,7 +198,7 @@ options = ["left", "center", "right"]
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(64.0, 34.0, 46.0, 2.0)
-            && command.style.background_color.as_deref() == Some("#2aa6b8")
+            && command.style.background_color.as_deref() == Some("#3cc7d6")
     }));
 }
 
@@ -371,22 +403,22 @@ selected_foreground_color = "#e6f1f4"
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Mode")
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#58656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 26.0, 150.0, 30.0)
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#191d22")
-            && command.style.border_color.as_deref() == Some("#334852")
+            && command.style.background_color.as_deref() == Some("#22272b")
+            && command.style.border_color.as_deref() == Some("#2c3237")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(64.0, 28.0, 46.0, 26.0)
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#191d22")
+            && command.style.background_color.as_deref() == Some("#22272b")
             && command.style.border_color.is_none()
             && command.style.border_width == 0.0
     }));
@@ -395,36 +427,168 @@ selected_foreground_color = "#e6f1f4"
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(64.0, 53.0, 46.0, 1.0)
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#58656c")
+            && command.style.background_color.as_deref() == Some("#656f76")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Center")
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#58656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 72.0, 132.0, 32.0)
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#191d22")
+            && command.style.background_color.as_deref() == Some("#22272b")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 102.0, 132.0, 2.0)
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#58656c")
+            && command.style.background_color.as_deref() == Some("#656f76")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("UI Components")
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#58656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
+}
+
+#[test]
+fn render_extract_segmented_controls_prioritize_valid_style_overrides_and_reject_invalid_values() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.segmented_controls.overrides",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 80.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control_with_style_overrides(
+        &mut surface,
+        UiNodeId::new(2),
+        "SegmentedControl",
+        UiFrame::new(12.0, 12.0, 128.0, 32.0),
+        r##"
+value = "right"
+options = ["left", "right"]
+background_color = "#10161a"
+border_color = "#243238"
+selected_background_color = "#173942"
+selected_foreground_color = "#d6e2e5"
+"##,
+        r##"
+background_color = "#254c5a"
+border_color = "#4c9dab"
+selected_background_color = "#173942"
+selected_border_color = "#315f6d"
+selected_border_width = 1.0
+selected_underline_color = "#4c9dab"
+selected_foreground_color = "#eef8fa"
+corner_radius = 7.0
+font_size = 12.0
+line_height_ratio = 1.5
+"##,
+        visible_state(),
+    );
+    insert_control_with_style_overrides(
+        &mut surface,
+        UiNodeId::new(3),
+        "SegmentedControl",
+        UiFrame::new(156.0, 12.0, 128.0, 32.0),
+        r##"
+value = "left"
+options = ["left", "right"]
+"##,
+        r##"
+background_color = "not-a-color"
+border_width = -1.0
+corner_radius = -4.0
+font_size = 0.0
+line_height_ratio = 0.0
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let overridden_surface = surface_quad(
+        commands,
+        UiNodeId::new(2),
+        UiFrame::new(12.0, 12.0, 128.0, 32.0),
+    );
+    assert_eq!(
+        overridden_surface.style.background_color.as_deref(),
+        Some("#254c5a")
+    );
+    assert_eq!(
+        overridden_surface.style.border_color.as_deref(),
+        Some("#4c9dab")
+    );
+    assert_eq!(overridden_surface.style.corner_radius, 7.0);
+    let overridden_selection = surface_quad(
+        commands,
+        UiNodeId::new(2),
+        UiFrame::new(78.0, 14.0, 60.0, 28.0),
+    );
+    assert_eq!(
+        overridden_selection.style.background_color.as_deref(),
+        Some("#173942")
+    );
+    assert_eq!(
+        overridden_selection.style.border_color.as_deref(),
+        Some("#315f6d")
+    );
+    assert_eq!(overridden_selection.style.border_width, 1.0);
+    let overridden_text = commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.text.as_deref() == Some("Right")
+        })
+        .expect("overridden segmented control should render its selected option");
+    assert_eq!(
+        overridden_text.style.foreground_color.as_deref(),
+        Some("#eef8fa")
+    );
+    assert_eq!(overridden_text.style.font_size, 12.0);
+    assert_eq!(overridden_text.style.line_height, 18.0);
+
+    let fallback_surface = surface_quad(
+        commands,
+        UiNodeId::new(3),
+        UiFrame::new(156.0, 12.0, 128.0, 32.0),
+    );
+    assert_eq!(
+        fallback_surface.style.background_color.as_deref(),
+        Some("#1b1f23")
+    );
+    assert_eq!(
+        fallback_surface.style.border_color.as_deref(),
+        Some("#323a41")
+    );
+    assert_eq!(fallback_surface.style.border_width, 1.0);
+    assert_eq!(fallback_surface.style.corner_radius, 5.0);
+    let fallback_text = commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(3) && command.text.as_deref() == Some("Left")
+        })
+        .expect("fallback segmented control should render its selected option");
+    assert_eq!(
+        fallback_text.style.font_size,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    );
+    assert_eq!(
+        fallback_text.style.line_height,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+            * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO
+    );
 }
 
 fn surface_quad(
@@ -450,6 +614,26 @@ fn insert_control(
     attributes: &str,
     state_flags: UiStateFlags,
 ) {
+    insert_control_with_style_overrides(
+        surface,
+        node_id,
+        component,
+        frame,
+        attributes,
+        "",
+        state_flags,
+    );
+}
+
+fn insert_control_with_style_overrides(
+    surface: &mut UiSurface,
+    node_id: UiNodeId,
+    component: &str,
+    frame: UiFrame,
+    attributes: &str,
+    style_overrides: &str,
+    state_flags: UiStateFlags,
+) {
     surface
         .tree
         .insert_child(
@@ -460,6 +644,7 @@ fn insert_control(
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: component.to_string(),
                     attributes: toml::from_str(attributes).unwrap(),
+                    style_overrides: toml::from_str(style_overrides).unwrap(),
                     ..UiTemplateNodeMetadata::default()
                 }),
         )

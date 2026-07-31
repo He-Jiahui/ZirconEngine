@@ -1,14 +1,18 @@
+use crate::scene::modes::SceneModeActivation;
+use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, ProjectionMode, TransformHandleKind, TransformSpace, ViewOrientation,
 };
 use crate::ui::binding::ViewportCommand;
 
 pub(super) fn default_viewport_command(action_id: &str) -> Option<ViewportCommand> {
     match action_id {
         "workbench.viewport.pointer.move" => Some(ViewportCommand::PointerMoved { x: 0.0, y: 0.0 }),
-        "workbench.viewport.pointer.left.press" => {
-            Some(ViewportCommand::LeftPressed { x: 0.0, y: 0.0 })
-        }
+        "workbench.viewport.pointer.left.press" => Some(ViewportCommand::LeftPressed {
+            x: 0.0,
+            y: 0.0,
+            selection_mutation: SelectionMutation::Replace,
+        }),
         "workbench.viewport.pointer.left.release" => Some(ViewportCommand::LeftReleased),
         "workbench.viewport.pointer.right.press" => {
             Some(ViewportCommand::RightPressed { x: 0.0, y: 0.0 })
@@ -23,12 +27,18 @@ pub(super) fn default_viewport_command(action_id: &str) -> Option<ViewportComman
             width: 1,
             height: 1,
         }),
-        "workbench.viewport.tool.drag" => Some(ViewportCommand::SetTool(SceneViewportTool::Drag)),
-        "workbench.viewport.tool.move" => Some(ViewportCommand::SetTool(SceneViewportTool::Move)),
-        "workbench.viewport.tool.rotate" => {
-            Some(ViewportCommand::SetTool(SceneViewportTool::Rotate))
-        }
-        "workbench.viewport.tool.scale" => Some(ViewportCommand::SetTool(SceneViewportTool::Scale)),
+        "workbench.viewport.mode.select" => Some(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Select,
+        )),
+        "workbench.viewport.mode.move" => Some(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Transform(TransformHandleKind::Move),
+        )),
+        "workbench.viewport.mode.rotate" => Some(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Transform(TransformHandleKind::Rotate),
+        )),
+        "workbench.viewport.mode.scale" => Some(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Transform(TransformHandleKind::Scale),
+        )),
         "workbench.viewport.transform_space.local" => {
             Some(ViewportCommand::SetTransformSpace(TransformSpace::Local))
         }

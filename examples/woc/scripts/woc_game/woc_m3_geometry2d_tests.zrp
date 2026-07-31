@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_geometry2d_tests",
+  "source": "src",
+  "binary": "bin-m3-geometry2d-tests",
+  "entry": "world/geometry2d_test_main"
+}

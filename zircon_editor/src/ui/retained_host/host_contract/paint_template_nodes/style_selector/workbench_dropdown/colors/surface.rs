@@ -32,7 +32,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdow
         | UiPainterResolvedState::Selected
         | UiPainterResolvedState::Normal => palette.surface,
     };
-    if is_unavailable_dropdown_state(state) {
+    let accepts_normal_surface_override = matches!(
+        state,
+        UiPainterResolvedState::Checked
+            | UiPainterResolvedState::Selected
+            | UiPainterResolvedState::Normal
+    ) || (state == UiPainterResolvedState::Focused
+        && !dropdown_node_is_open(node)
+        && !dropdown_node_is_hot(node));
+    if is_unavailable_dropdown_state(state) || !accepts_normal_surface_override {
         color
     } else {
         declared_style_color(node.button_style.element.background_color.as_ref()).unwrap_or(color)

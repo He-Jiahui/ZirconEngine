@@ -5,6 +5,7 @@ pub(super) fn to_host_contract_pane(
     pane_size: host_window::PaneContentSize,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
+    hierarchy_filter_query: &str,
 ) -> host_contract::PaneData {
     let pane_kind = data.kind.to_string();
     let pane_id = data.id.to_string();
@@ -27,6 +28,12 @@ pub(super) fn to_host_contract_pane(
                 host_window::PanePayload::UiComponentShowcaseV1(_)
             )
         });
+    let has_template_v2_payload = data.pane_presentation.as_ref().is_some_and(|presentation| {
+        matches!(
+            &presentation.body.payload,
+            host_window::PanePayload::TemplateV2(_)
+        )
+    });
     let has_runtime_diagnostics_payload = pane_kind == "RuntimeDiagnostics"
         || data.pane_presentation.as_ref().is_some_and(|presentation| {
             matches!(
@@ -80,7 +87,12 @@ pub(super) fn to_host_contract_pane(
     };
     let hierarchy = if has_hierarchy_payload {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_hierarchy");
-        to_host_contract_hierarchy_pane(&data, pane_size, component_showcase_runtime)
+        to_host_contract_hierarchy_pane(
+            &data,
+            pane_size,
+            component_showcase_runtime,
+            hierarchy_filter_query,
+        )
     } else {
         host_contract::HierarchyPaneData::default()
     };
@@ -139,6 +151,19 @@ pub(super) fn to_host_contract_pane(
         to_host_contract_generated_bottom_pane(&data, pane_size)
     } else {
         host_contract::GeneratedBottomPaneData::default()
+    };
+    let template_v2 = if has_template_v2_payload {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_template_v2");
+        pane_data_conversion::to_host_contract_template_v2_pane_from_host_pane_with_runtime(
+            &data,
+            pane_size,
+            component_showcase_runtime,
+        )
+    } else {
+        if let Some(runtime) = component_showcase_runtime {
+            runtime.remove_template_actions_for_pane(&pane_id);
+        }
+        host_contract::TemplateV2PaneData::default()
     };
     let project_overview = if has_component_showcase_payload {
         zircon_runtime::profile_scope!(
@@ -201,6 +226,7 @@ pub(super) fn to_host_contract_pane(
             pane_size,
         ),
         project_overview,
+        template_v2,
         runtime_diagnostics,
         performance_timeline,
         module_plugins,

@@ -1,0 +1,18 @@
+// Source-compatible serialize_resource.ts leaf. The Zr boundary represents
+// source null resource types as the existing optional-string sentinel "".
+// WOS must supply its natural resource type, live bar type and parked mana
+// before using this value in an authoritative character snapshot.
+
+pub persistedResource(
+    classResourceType: string,
+    liveResourceType: string,
+    liveResource: int,
+    savedMana: int
+): int {
+    // A mana class in Bear/Cat form has rage/energy in its live bar while
+    // savedMana holds the caster pool that reload restores.
+    if (classResourceType == "mana" && liveResourceType != "mana") {
+        return savedMana;
+    }
+    return liveResource;
+}

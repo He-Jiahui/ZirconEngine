@@ -1,5 +1,5 @@
-use crate::core::diagnostics::collect_runtime_diagnostics;
 use crate::core::math::Vec3;
+use crate::runtime_diagnostics::collect_runtime_diagnostics;
 use zircon_runtime_interface::{
     ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };

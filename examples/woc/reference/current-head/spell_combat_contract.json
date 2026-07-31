@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/spell_combat_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/spell_combat.ts": "44dda467c57dd6488d9deaad55e5bbf2e24335cefe344984578fb9465874f0f9"
+  },
+  "kinds": {
+    "spell_crit": "buff_spellcrit",
+    "spell_damage": "buff_spelldmg",
+    "moonkin": "form_moonkin",
+    "spell_haste": "buff_spellhaste",
+    "cast_shield": "cast_shield"
+  },
+  "moonkin_spell_damage_bonus": 0.2,
+  "spell_haste": "one_plus_max_zero_of_resolved_stat_plus_live_aura_bonuses"
+}

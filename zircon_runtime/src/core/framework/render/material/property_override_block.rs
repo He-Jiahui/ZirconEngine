@@ -75,8 +75,10 @@ mod tests {
         assert!(encoded.contains("gain"));
         assert!(!encoded.contains("values"));
         assert_eq!(decoded, block);
-        assert!(serde_json::from_str::<MaterialPropertyOverrideBlock>("{}")
-            .expect("empty override map should deserialize")
-            .is_empty());
+        assert!(
+            serde_json::from_str::<MaterialPropertyOverrideBlock>("{}")
+                .expect("empty override map should deserialize")
+                .is_empty()
+        );
     }
 }

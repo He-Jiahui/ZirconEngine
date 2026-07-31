@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::asset::{AssetImporterRegistry, AssetImporterRegistryError};
 #[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
@@ -14,7 +16,7 @@ use super::extension_inputs::{
 };
 
 pub(super) struct RuntimeModuleRegistrationInputs {
-    linked_plugin_ids: Vec<String>,
+    linked_plugin_ids: HashSet<String>,
     asset_importers: AssetImporterRegistry,
     asset_importer_errors: Vec<AssetImporterRegistryError>,
     #[cfg(feature = "graphics")]
@@ -69,7 +71,7 @@ impl RuntimeModuleRegistrationInputs {
         }
     }
 
-    pub(super) fn linked_plugin_ids(&self) -> &[String] {
+    pub(super) fn linked_plugin_ids(&self) -> &HashSet<String> {
         &self.linked_plugin_ids
     }
 
@@ -123,15 +125,9 @@ impl RuntimeModuleRegistrationInputs {
         &self.virtual_geometry_runtime_providers
     }
 
-    fn from_linked_plugin_ids_and_extension_inputs(
-        linked_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
-        extension_inputs: RuntimeModuleExtensionInputs,
-    ) -> Self {
+    fn from_extension_inputs(extension_inputs: RuntimeModuleExtensionInputs) -> Self {
         Self {
-            linked_plugin_ids: linked_plugin_ids
-                .into_iter()
-                .map(|id| id.as_ref().to_string())
-                .collect(),
+            linked_plugin_ids: HashSet::new(),
             asset_importers: extension_inputs.asset_importers,
             asset_importer_errors: extension_inputs.asset_importer_errors,
             #[cfg(feature = "graphics")]
@@ -162,12 +158,7 @@ pub(super) fn registration_inputs_for_plugin_reports(
             .iter()
             .map(|registration| &registration.extensions),
     );
-    RuntimeModuleRegistrationInputs::from_linked_plugin_ids_and_extension_inputs(
-        registrations
-            .iter()
-            .map(|registration| registration.package_manifest.id.as_str()),
-        extension_inputs,
-    )
+    RuntimeModuleRegistrationInputs::from_extension_inputs(extension_inputs)
 }
 
 pub(super) fn registration_inputs_for_plugin_and_feature_reports(
@@ -184,12 +175,7 @@ pub(super) fn registration_inputs_for_plugin_and_feature_reports(
                     .map(|registration| &registration.extensions),
             ),
     );
-    RuntimeModuleRegistrationInputs::from_linked_plugin_ids_and_extension_inputs(
-        registrations
-            .iter()
-            .map(|registration| registration.package_manifest.id.as_str()),
-        extension_inputs,
-    )
+    RuntimeModuleRegistrationInputs::from_extension_inputs(extension_inputs)
 }
 
 #[cfg(all(test, feature = "graphics"))]

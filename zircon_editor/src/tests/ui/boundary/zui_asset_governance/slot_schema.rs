@@ -1,8 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
 
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
 
@@ -61,10 +59,7 @@ fn production_zui_child_mount_slot_names_target_declared_component_slots() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
             let mut component_slots = known_component_slots.clone();
             for (component_name, component) in &document.components {
                 component_slots.insert(
@@ -147,10 +142,7 @@ fn production_zui_child_mount_slot_counts_follow_known_component_slot_schemas() 
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
             let mut component_slots = known_component_slots.clone();
             for (component_name, component) in &document.components {
                 component_slots.insert(
@@ -257,10 +249,7 @@ fn production_zui_slot_props_target_known_component_slots() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 let Some(slot_props_value) = node.props.get("slotProps") else {

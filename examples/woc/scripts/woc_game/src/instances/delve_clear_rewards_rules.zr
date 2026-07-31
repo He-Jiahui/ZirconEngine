@@ -1,0 +1,64 @@
+// Pure completion-reward projection. Copper selection remains one canonical ZrVM RNG draw in range.
+var content = %import("instances/delve_clear_rewards_content");
+var marks = %import("instances/delve_mark_payout_rules");
+
+pub delveIndex(delveId: string): int {
+    if (delveId == "collapsed_reliquary") { return 0; }
+    if (delveId == "drowned_litany") { return 1; }
+    return -1;
+}
+
+pub tierIndex(tierId: string): int {
+    if (tierId == "normal") { return 0; }
+    if (tierId == "heroic") { return 1; }
+    return -1;
+}
+
+pub xpForClear(delveId: string, tierId: string, firstClear: bool): int {
+    var delve = delveIndex(delveId);
+    var tier = tierIndex(tierId);
+    if (delve < 0 || tier < 0) { return 0; }
+    return firstClear ? content.firstClearXp(delve, tier, true) :
+        content.repeatClearXp(delve, tier, true);
+}
+
+pub copperMinimum(delveId: string, tierId: string): int {
+    var delve = delveIndex(delveId);
+    var tier = tierIndex(tierId);
+    return delve < 0 || tier < 0 ? 0 : content.copperMinimum(delve, tier, true);
+}
+
+pub copperMaximum(delveId: string, tierId: string): int {
+    var delve = delveIndex(delveId);
+    var tier = tierIndex(tierId);
+    return delve < 0 || tier < 0 ? 0 : content.copperMaximum(delve, tier, true);
+}
+
+pub marksForClear(
+    delveId: string,
+    tierId: string,
+    dailyMarkClears: int,
+    repeatNormalChance: bool
+): int {
+    var delve = delveIndex(delveId);
+    if (delve < 0) { return 0; }
+    var payout = marks.marksForClear(dailyMarkClears, tierId == "heroic", repeatNormalChance);
+    return payout * content.markMultiplier(delve, true);
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || marks.contractTest() != 1 ||
+        xpForClear("collapsed_reliquary", "normal", true) != 700 ||
+        xpForClear("collapsed_reliquary", "heroic", false) != 650 ||
+        xpForClear("drowned_litany", "normal", true) != 1250 ||
+        xpForClear("drowned_litany", "heroic", false) != 1140 ||
+        copperMinimum("collapsed_reliquary", "normal") != 8 ||
+        copperMaximum("drowned_litany", "heroic") != 48 ||
+        marksForClear("collapsed_reliquary", "normal", 0, false) != 1 ||
+        marksForClear("drowned_litany", "heroic", 0, false) != 4 ||
+        marksForClear("drowned_litany", "normal", 3, false) != 0 ||
+        marksForClear("missing", "normal", 0, false) != 0) {
+        return -1;
+    }
+    return 1;
+}

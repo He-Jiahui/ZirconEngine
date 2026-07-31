@@ -106,3 +106,14 @@ Hub 同样遵守引擎级 [`engine-code-structure-convention.md`](../engine-code
 - 仓库存在大规模未提交工作（git status 数十个 M 文件）：实施时视为当前基线，不回滚无关改动，只做聚焦编辑。
 - `.codex/plans/` 下另有《Zircon Hub 响应式组件化重构计划》《Zircon Hub Flex 组件化重构设计方案》：05/06 执行前复读，避免与其已完成切片双写。
 - Build/Package/Install 操作耗时长且写共享 `CARGO_TARGET_DIR`：测试阶段避免与其他重型 Cargo 构建并行。
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- 「子计划地图与执行顺序」表（第 58-66 行）7 个子计划全部标 `status: planned`，与实仓严重不符。逐一核对源码：01 的 `HubActionId`（`zircon_hub/src/tauri_app/action_id.rs:2-124`，31 变体）、02 的后台框架（`zircon_hub/src/tauri_app/runtime_state/action_tasks.rs:18-152` 的 `BackgroundTask`/`execute_background_task`/`dispatch_background_request`/`run_background_worker_loop`/`catch_unwind`）与原子持久化（`zircon_hub/src/settings/hub_config.rs:64-95` 的 `write_atomic`/`replace_file`、`zircon_hub/src/tauri_app/runtime_state.rs:513-528` 的 `persist`/`persist_unchecked`）、03 的 fixture 剥离（`is_visual_fixture` 全仓零命中）与 picker/recycle 注入缝（`runtime_state.rs:67-68`）、04 的 spec 表与深校验（`engines/validation.rs:9/53-79`）、05 的组件拆分（`ProjectsToolbar`/`CreateProjectDialog`/`ProjectMetricsGrid`/`ProjectDetailSidebar`/`SettingsSection` 均已建）与类型清理（`web/src/types/hub.ts:14/50-51/757-774` 已去双重可空）、06 的 token 一元化（裸 hex 已迁 `tokens.ts`）与 `ProjectCardRail`、07 的 `HubMessage` schema（`zircon_hub/src/state/hub_message/message.rs`）——均已落仓。建议把 01/02/03/05/07 状态改为 `completed`（或按仓库规范的 superseded），04/06 标为「大部完成，余项见各文档」，避免继续以 planned 口径调度已完成工作。
+- 第 47 行 P7「本地化 detail 依赖 23 处 `strip_prefix`」已被 07 的 `HubMessage`/`HubMessageId` 结构化消息体系整体取代：`zircon_hub/src/tauri_app/view_model/localized.rs` 已无任何 `strip_prefix`/`status_detail` 链（`grep` 零命中），改为 `state/hub_message/{message,id,shell,project,engine,build,delivery,process,settings,learn}.rs` 的双语模板表。P7 应标记为已解决。
+
+### 实现风险 / 技术债
+
+- 07 的失败交接记录 `07/failure-2026-07-11-hub-message-legacy-test-drift.md` 仍为 `status: open`，但其根因（`project_management_contract.rs:204` 调用已删除的 `HubMessage::legacy`）已消失——该行现为 `HubMessage::raw_text("opened")`（已核对）。建议关闭该失败记录并回传 Plan10 owner，否则会持续误导调度。

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var masterLoot = %import("progression/master_loot_state");
+
+console.printLine("m5-master-loot-state-test");
+var result = masterLoot.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -13,6 +13,8 @@ pub enum TextLayoutError {
     ShapingFailed,
     LayoutFailed,
     BackendUnavailable,
+    /// The active font database changed while shaping; retry on a later frame.
+    FontGenerationChanged,
 }
 
 impl Display for TextLayoutError {
@@ -29,8 +31,24 @@ impl Display for TextLayoutError {
             Self::ShapingFailed => formatter.write_str("text shaping failed"),
             Self::LayoutFailed => formatter.write_str("text layout failed"),
             Self::BackendUnavailable => formatter.write_str("text layout backend is unavailable"),
+            Self::FontGenerationChanged => {
+                formatter.write_str("text font database changed; retry layout next frame")
+            }
         }
     }
 }
 
 impl Error for TextLayoutError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn font_generation_changed_defers_layout_to_the_next_frame() {
+        assert_eq!(
+            TextLayoutError::FontGenerationChanged.to_string(),
+            "text font database changed; retry layout next frame"
+        );
+    }
+}

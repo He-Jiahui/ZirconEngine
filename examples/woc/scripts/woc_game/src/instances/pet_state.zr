@@ -1,0 +1,739 @@
+// Source-authored M7 pet AI/command state at 20 Hz. Current-head follow and
+// target scalar decisions come from their generated rule modules; shared combat
+// RNG consumption is explicit, and lifecycle commands never draw unless
+// despawn threat cleanup must retarget a mob.
+var container = %import("zr.container");
+var rngModule = %import("kernel/rng");
+var rngObserver = %import("instances/m7_rng_observer");
+var followRules = %import("instances/pet_follow_rules");
+var targetRules = %import("instances/pet_target_rules");
+
+class PetState {
+    pub var tick: int;
+    pub var ownerLevel: int;
+    pub var ownerX: float;
+    pub var ownerZ: float;
+    pub var ownerTarget: int;
+    pub var ownerAutoAttack: bool;
+    pub var ownerInCombat: bool;
+    pub var ownerCombatLingerTicks: int;
+    pub var lastOwnerActionTick: int;
+    pub var petExists: container.Array<bool>;
+    pub var petKind: container.Array<int>;
+    pub var petDemon: container.Array<bool>;
+    pub var petGeneration: container.Array<int>;
+    pub var petLevel: container.Array<int>;
+    pub var petHp: container.Array<int>;
+    pub var petMaxHp: container.Array<int>;
+    pub var petDead: container.Array<bool>;
+    pub var petMode: container.Array<int>;
+    pub var petAutoTaunt: container.Array<bool>;
+    pub var petManualTaunt: container.Array<bool>;
+    pub var petTarget: container.Array<int>;
+    pub var petInCombat: container.Array<bool>;
+    pub var petAutoAttack: container.Array<bool>;
+    pub var petTauntTicks: container.Array<int>;
+    pub var petSwingTicks: container.Array<int>;
+    pub var petX: container.Array<float>;
+    pub var petZ: container.Array<float>;
+    pub var petFeedTicks: container.Array<int>;
+    pub var petFeedTimer: container.Array<int>;
+    pub var petFeedAmount: container.Array<int>;
+    pub var enemyAlive: container.Array<bool>;
+    pub var enemyHp: container.Array<int>;
+    pub var enemyX: container.Array<float>;
+    pub var enemyZ: container.Array<float>;
+    pub var enemyTargetPet: container.Array<int>;
+    pub var hostileRangedExists: bool;
+    pub var hostileRangedTimer: int;
+    pub var stashed: bool;
+    pub var stashKind: int;
+    pub var stashDemon: bool;
+    pub var stashHp: int;
+    pub var stashDead: bool;
+    pub var stashMode: int;
+    pub var stashAutoTaunt: bool;
+    pub var playerTargetsPet: bool;
+    pub var sharedRandomDraws: int;
+    pub var sharedRandomDigest: uint;
+    pub var sharedRandomState: uint;
+    pub var events: container.Array<int>;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.tick = 0;
+        this.ownerLevel = 12;
+        this.ownerX = 0.0;
+        this.ownerZ = 0.0;
+        this.ownerTarget = 0;
+        this.ownerAutoAttack = false;
+        this.ownerInCombat = false;
+        this.ownerCombatLingerTicks = 0;
+        this.lastOwnerActionTick = 0;
+        this.petExists = new container.Array<bool>();
+        this.petKind = new container.Array<int>();
+        this.petDemon = new container.Array<bool>();
+        this.petGeneration = new container.Array<int>();
+        this.petLevel = new container.Array<int>();
+        this.petHp = new container.Array<int>();
+        this.petMaxHp = new container.Array<int>();
+        this.petDead = new container.Array<bool>();
+        this.petMode = new container.Array<int>();
+        this.petAutoTaunt = new container.Array<bool>();
+        this.petManualTaunt = new container.Array<bool>();
+        this.petTarget = new container.Array<int>();
+        this.petInCombat = new container.Array<bool>();
+        this.petAutoAttack = new container.Array<bool>();
+        this.petTauntTicks = new container.Array<int>();
+        this.petSwingTicks = new container.Array<int>();
+        this.petX = new container.Array<float>();
+        this.petZ = new container.Array<float>();
+        this.petFeedTicks = new container.Array<int>();
+        this.petFeedTimer = new container.Array<int>();
+        this.petFeedAmount = new container.Array<int>();
+        var slot = 0;
+        while (slot < 2) {
+            this.petExists.add(false);
+            this.petKind.add(0);
+            this.petDemon.add(false);
+            this.petGeneration.add(0);
+            this.petLevel.add(0);
+            this.petHp.add(0);
+            this.petMaxHp.add(1000);
+            this.petDead.add(false);
+            this.petMode.add(1);
+            this.petAutoTaunt.add(false);
+            this.petManualTaunt.add(false);
+            this.petTarget.add(0);
+            this.petInCombat.add(false);
+            this.petAutoAttack.add(false);
+            this.petTauntTicks.add(0);
+            this.petSwingTicks.add(0);
+            this.petX.add(slot == 0 ? 2.0 : -2.0);
+            this.petZ.add(0.0);
+            this.petFeedTicks.add(0);
+            this.petFeedTimer.add(0);
+            this.petFeedAmount.add(0);
+            slot = slot + 1;
+        }
+        this.enemyAlive = new container.Array<bool>();
+        this.enemyHp = new container.Array<int>();
+        this.enemyX = new container.Array<float>();
+        this.enemyZ = new container.Array<float>();
+        this.enemyTargetPet = new container.Array<int>();
+        slot = 0;
+        while (slot < 2) {
+            this.enemyAlive.add(true);
+            this.enemyHp.add(40000);
+            this.enemyX.add(slot == 0 ? 12.0 : -10.0);
+            this.enemyZ.add(0.0);
+            this.enemyTargetPet.add(0);
+            slot = slot + 1;
+        }
+        this.hostileRangedExists = false;
+        this.hostileRangedTimer = 0;
+        this.stashed = false;
+        this.stashKind = 0;
+        this.stashDemon = false;
+        this.stashHp = 0;
+        this.stashDead = false;
+        this.stashMode = 1;
+        this.stashAutoTaunt = false;
+        this.playerTargetsPet = false;
+        this.sharedRandomDraws = 0;
+        this.sharedRandomDigest = <uint>2166136261;
+        this.sharedRandomState = <uint>0;
+        this.events = new container.Array<int>();
+        this.lastError = 0;
+    }
+}
+
+recordEvent(state: PetState, code: int): void {
+    var events = state.events;
+    events.add(code);
+}
+
+eventCount(state: PetState, code: int): int {
+    var count = 0;
+    var index = 0;
+    while (index < state.events.length) {
+        if (<int>state.events[index] == code) { count = count + 1; }
+        index = index + 1;
+    }
+    return count;
+}
+
+absFloat(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+distance(ax: float, az: float, bx: float, bz: float): float {
+    var dx = absFloat(ax - bx);
+    var dz = absFloat(az - bz);
+    return dx > dz ? dx + dz * 0.41421356 : dz + dx * 0.41421356;
+}
+
+// The caller owns the stream.  This local mirror is diagnostic state only: it
+// lets M7 traces prove the pet system consumed the same ordered stream as the
+// world without giving PetState authority to seed or reset it.
+syncObservedRng(state: PetState, stream: rngModule.Mulberry32): void {
+    state.sharedRandomDraws = <int>rngObserver.drawCount(stream, true);
+    state.sharedRandomDigest = rngObserver.drawDigest(stream, true);
+    state.sharedRandomState = rngObserver.streamState(stream, true);
+}
+
+consumeSharedDraws(state: PetState, stream: rngModule.Mulberry32, count: int): void {
+    rngObserver.consume(stream, count, true);
+    syncObservedRng(state, stream);
+}
+
+spawnPet(state: PetState, slot: int, kind: int, demon: bool): void {
+    var exists = state.petExists;
+    var kinds = state.petKind;
+    var demons = state.petDemon;
+    var generations = state.petGeneration;
+    var levels = state.petLevel;
+    var hp = state.petHp;
+    var maxHp = state.petMaxHp;
+    var dead = state.petDead;
+    var modes = state.petMode;
+    var targets = state.petTarget;
+    var combat = state.petInCombat;
+    var attacks = state.petAutoAttack;
+    var autoTaunt = state.petAutoTaunt;
+    var manual = state.petManualTaunt;
+    var tauntTicks = state.petTauntTicks;
+    var swingTicks = state.petSwingTicks;
+    exists[slot] = true;
+    kinds[slot] = kind;
+    demons[slot] = demon;
+    generations[slot] = <int>generations[slot] + 1;
+    levels[slot] = state.ownerLevel;
+    maxHp[slot] = 1000;
+    hp[slot] = 1000;
+    dead[slot] = false;
+    modes[slot] = 1;
+    targets[slot] = 0;
+    combat[slot] = false;
+    attacks[slot] = false;
+    autoTaunt[slot] = false;
+    manual[slot] = false;
+    tauntTicks[slot] = 0;
+    swingTicks[slot] = 0;
+}
+
+scrubThreatAndDespawn(
+    state: PetState,
+    slot: int,
+    hard: bool,
+    stream: rngModule.Mulberry32
+): void {
+    if (!<bool>state.petExists[slot]) { return; }
+    var enemyTargets = state.enemyTargetPet;
+    var enemy = 0;
+    while (enemy < enemyTargets.length) {
+        if (<int>enemyTargets[enemy] == slot + 1) {
+            enemyTargets[enemy] = 0;
+            consumeSharedDraws(state, stream, 1);
+            recordEvent(state, 7);
+        }
+        enemy = enemy + 1;
+    }
+    if (hard && state.playerTargetsPet) { state.playerTargetsPet = false; }
+    var exists = state.petExists;
+    var targets = state.petTarget;
+    var combat = state.petInCombat;
+    exists[slot] = false;
+    targets[slot] = 0;
+    combat[slot] = false;
+    recordEvent(state, 6);
+}
+
+pub completeTame(state: PetState): bool {
+    state.lastError = 0;
+    if (<bool>state.petExists[0]) { state.lastError = -1; return false; }
+    spawnPet(state, 0, 1, false);
+    recordEvent(state, 1);
+    return true;
+}
+
+pub setPetMode(state: PetState, mode: int): bool {
+    if (!<bool>state.petExists[0] || mode < 0 || mode > 2) { return false; }
+    var modes = state.petMode;
+    modes[0] = mode;
+    state.lastOwnerActionTick = state.tick;
+    if (mode == 0) {
+        var targets = state.petTarget;
+        var combat = state.petInCombat;
+        var attacks = state.petAutoAttack;
+        targets[0] = 0;
+        combat[0] = false;
+        attacks[0] = false;
+        recordEvent(state, 20);
+    }
+    recordEvent(state, 2);
+    return true;
+}
+
+pub feedPet(state: PetState, foodHp: int): bool {
+    if (!<bool>state.petExists[0] || <bool>state.petDead[0] || foodHp <= 0 ||
+        <int>state.petHp[0] >= <int>state.petMaxHp[0]) {
+        return false;
+    }
+    var ticks = state.petFeedTicks;
+    var timer = state.petFeedTimer;
+    var amount = state.petFeedAmount;
+    ticks[0] = 100;
+    timer[0] = 20;
+    amount[0] = <int>(<float>foodHp / 5.0 + 0.999999);
+    recordEvent(state, 3);
+    return true;
+}
+
+pub revivePet(state: PetState): bool {
+    if (!<bool>state.petExists[0] || !<bool>state.petDead[0]) { return false; }
+    var dead = state.petDead;
+    var hp = state.petHp;
+    dead[0] = false;
+    hp[0] = <int>(<float>state.petMaxHp[0] * 0.35 + 0.5);
+    recordEvent(state, 8);
+    return true;
+}
+
+pub petTaunt(state: PetState, enemy: int): bool {
+    if (!<bool>state.petExists[0] || <bool>state.petDead[0] || enemy < 1 || enemy > 2 ||
+        !<bool>state.enemyAlive[enemy - 1] || <int>state.petTauntTicks[0] > 0) {
+        return false;
+    }
+    var targets = state.petTarget;
+    var combat = state.petInCombat;
+    targets[0] = enemy;
+    combat[0] = true;
+    state.lastOwnerActionTick = state.tick;
+    var d = distance(<float>state.petX[0], <float>state.petZ[0],
+        <float>state.enemyX[enemy - 1], <float>state.enemyZ[enemy - 1]);
+    if (d > 5.0) {
+        var pending = state.petManualTaunt;
+        pending[0] = true;
+        return true;
+    }
+    var enemyTargets = state.enemyTargetPet;
+    var timers = state.petTauntTicks;
+    enemyTargets[enemy - 1] = 1;
+    timers[0] = 200;
+    recordEvent(state, 5);
+    return true;
+}
+
+pub abandonPet(state: PetState, stream: rngModule.Mulberry32): bool {
+    syncObservedRng(state, stream);
+    if (!<bool>state.petExists[0] || <bool>state.petDemon[0]) { return false; }
+    scrubThreatAndDespawn(state, 0, false, stream);
+    return true;
+}
+
+pub stowPet(state: PetState, stream: rngModule.Mulberry32): bool {
+    syncObservedRng(state, stream);
+    if (!<bool>state.petExists[0]) { return false; }
+    state.stashed = true;
+    state.stashKind = <int>state.petKind[0];
+    state.stashDemon = <bool>state.petDemon[0];
+    state.stashHp = <int>state.petHp[0];
+    state.stashDead = <bool>state.petDead[0];
+    state.stashMode = <int>state.petMode[0];
+    state.stashAutoTaunt = <bool>state.petAutoTaunt[0];
+    scrubThreatAndDespawn(state, 0, state.stashDemon, stream);
+    recordEvent(state, 9);
+    return true;
+}
+
+pub restorePet(state: PetState): bool {
+    if (!state.stashed || <bool>state.petExists[0]) { return false; }
+    spawnPet(state, 0, state.stashKind, state.stashDemon);
+    var hp = state.petHp;
+    var dead = state.petDead;
+    var modes = state.petMode;
+    var autoTaunt = state.petAutoTaunt;
+    hp[0] = state.stashDead ? 0 : state.stashHp;
+    dead[0] = state.stashDead;
+    modes[0] = state.stashMode;
+    autoTaunt[0] = state.stashAutoTaunt;
+    state.stashed = false;
+    recordEvent(state, 10);
+    return true;
+}
+
+pub summonDemon(state: PetState, kind: int, stream: rngModule.Mulberry32): bool {
+    syncObservedRng(state, stream);
+    if (kind != 3 && kind != 4) { return false; }
+    if (<bool>state.petExists[0]) { scrubThreatAndDespawn(state, 0, false, stream); }
+    spawnPet(state, 0, kind, true);
+    recordEvent(state, 11);
+    return true;
+}
+
+pub demonHealTick(state: PetState): int {
+    if (!<bool>state.petExists[0] || !<bool>state.petDemon[0] || <bool>state.petDead[0]) {
+        return 0;
+    }
+    var hp = state.petHp;
+    var missing = <int>state.petMaxHp[0] - <int>hp[0];
+    if (missing <= 0) { return 0; }
+    var amount = <int>(<float>state.petMaxHp[0] * 0.08 + 0.999999);
+    if (amount > missing) { amount = missing; }
+    hp[0] = <int>hp[0] + amount;
+    recordEvent(state, 12);
+    return amount;
+}
+
+moveToward(value: float, target: float, step: float): float {
+    if (value < target) {
+        value = value + step;
+        return value > target ? target : value;
+    }
+    value = value - step;
+    return value < target ? target : value;
+}
+
+acquireTarget(state: PetState, slot: int): void {
+    var mode = <int>state.petMode[slot];
+    if (!targetRules.canSelectTarget(mode == 0)) { return; }
+    var ownerIdle = state.tick - state.lastOwnerActionTick > targetRules.ownerIdleTicks();
+    var best = 0;
+    var bestDistance = targetRules.initialBestDistance(mode == 2);
+    var enemy = 0;
+    while (enemy < 2) {
+        if (<bool>state.enemyAlive[enemy]) {
+            var d = distance(<float>state.petX[slot], <float>state.petZ[slot],
+                <float>state.enemyX[enemy], <float>state.enemyZ[enemy]);
+            var engaging = <int>state.enemyTargetPet[enemy] == slot + 1;
+            var ownerOffense = state.ownerTarget == enemy + 1 && state.ownerAutoAttack;
+            var aggressive = mode == 2 && !ownerIdle && d <= targetRules.aggressiveRange();
+            if ((engaging || ownerOffense || aggressive) &&
+                targetRules.shouldReplaceCandidate(d, bestDistance)) {
+                best = enemy + 1;
+                bestDistance = d;
+            }
+        }
+        enemy = enemy + 1;
+    }
+    if (best != 0) {
+        var targets = state.petTarget;
+        targets[slot] = best;
+        recordEvent(state, 15);
+    }
+}
+
+updateFeed(state: PetState, slot: int): void {
+    var ticks = state.petFeedTicks;
+    if (<int>ticks[slot] <= 0) { return; }
+    var timers = state.petFeedTimer;
+    ticks[slot] = <int>ticks[slot] - 1;
+    timers[slot] = <int>timers[slot] - 1;
+    if (<int>timers[slot] <= 0) {
+        timers[slot] = 20;
+        var hp = state.petHp;
+        var healed = <int>state.petFeedAmount[slot];
+        hp[slot] = <int>hp[slot] + healed;
+        if (<int>hp[slot] > <int>state.petMaxHp[slot]) { hp[slot] = <int>state.petMaxHp[slot]; }
+        recordEvent(state, 4);
+    }
+}
+
+updateHeel(state: PetState, slot: int): void {
+    var d = distance(<float>state.petX[slot], <float>state.petZ[slot],
+        state.ownerX, state.ownerZ);
+    if (followRules.shouldClearPath(d)) { return; }
+    var xs = state.petX;
+    var zs = state.petZ;
+    if (d > followRules.teleportDistance()) {
+        xs[slot] = state.ownerX;
+        zs[slot] = state.ownerZ;
+        recordEvent(state, 17);
+        return;
+    }
+    xs[slot] = moveToward(<float>xs[slot], state.ownerX, 0.4);
+    zs[slot] = moveToward(<float>zs[slot], state.ownerZ, 0.4);
+    recordEvent(state, 16);
+}
+
+updatePet(state: PetState, slot: int, stream: rngModule.Mulberry32): void {
+    if (!<bool>state.petExists[slot] || <bool>state.petDead[slot]) { return; }
+    updateFeed(state, slot);
+    var tauntTicks = state.petTauntTicks;
+    if (<int>tauntTicks[slot] > 0) { tauntTicks[slot] = <int>tauntTicks[slot] - 1; }
+    var target = <int>state.petTarget[slot];
+    if (target != 0 && (!<bool>state.enemyAlive[target - 1] ||
+        distance(state.ownerX, state.ownerZ, <float>state.petX[slot], <float>state.petZ[slot]) > 40.0)) {
+        var targets = state.petTarget;
+        targets[slot] = 0;
+        target = 0;
+    }
+    if (target == 0) {
+        acquireTarget(state, slot);
+        target = <int>state.petTarget[slot];
+    }
+    var combat = state.petInCombat;
+    combat[slot] = target != 0;
+    if (target == 0) {
+        var pending = state.petManualTaunt;
+        pending[slot] = false;
+        updateHeel(state, slot);
+        return;
+    }
+    state.ownerInCombat = true;
+    state.ownerCombatLingerTicks = 100;
+    var d = distance(<float>state.petX[slot], <float>state.petZ[slot],
+        <float>state.enemyX[target - 1], <float>state.enemyZ[target - 1]);
+    var kind = <int>state.petKind[slot];
+    var reach = kind == 2 || kind == 3 ? 30.0 : 2.0;
+    var timers = state.petSwingTicks;
+    if (d > reach) {
+        var xs = state.petX;
+        var zs = state.petZ;
+        xs[slot] = moveToward(<float>xs[slot], <float>state.enemyX[target - 1], 0.4);
+        zs[slot] = moveToward(<float>zs[slot], <float>state.enemyZ[target - 1], 0.4);
+        if (<int>timers[slot] > 0) { timers[slot] = <int>timers[slot] - 1; }
+        return;
+    }
+    if ((kind == 1 || kind == 4) && <int>tauntTicks[slot] <= 0 &&
+        (<bool>state.petAutoTaunt[slot] || <bool>state.petManualTaunt[slot])) {
+        var enemyTargets = state.enemyTargetPet;
+        var pending = state.petManualTaunt;
+        enemyTargets[target - 1] = slot + 1;
+        pending[slot] = false;
+        tauntTicks[slot] = 200;
+        recordEvent(state, 5);
+    }
+    timers[slot] = <int>timers[slot] - 1;
+    if (<int>timers[slot] <= 0) {
+        if (kind == 2) {
+            consumeSharedDraws(state, stream, 2);
+            recordEvent(state, 13);
+        } else if (kind == 3) {
+            consumeSharedDraws(state, stream, 2);
+            recordEvent(state, 13);
+        } else {
+            consumeSharedDraws(state, stream, 2);
+            recordEvent(state, 14);
+        }
+        timers[slot] = 40;
+    }
+}
+
+pub tickOnce(state: PetState, stream: rngModule.Mulberry32): void {
+    syncObservedRng(state, stream);
+    state.tick = state.tick + 1;
+    updatePet(state, 0, stream);
+    updatePet(state, 1, stream);
+    if (state.hostileRangedExists) {
+        state.hostileRangedTimer = state.hostileRangedTimer - 1;
+        if (state.hostileRangedTimer <= 0) {
+            state.hostileRangedTimer = 40;
+            consumeSharedDraws(state, stream, 2);
+            recordEvent(state, 19);
+        }
+    }
+    if (state.ownerCombatLingerTicks > 0 &&
+        !<bool>state.petInCombat[0] && !<bool>state.petInCombat[1]) {
+        state.ownerCombatLingerTicks = state.ownerCombatLingerTicks - 1;
+        if (state.ownerCombatLingerTicks <= 0) {
+            state.ownerInCombat = false;
+            recordEvent(state, 18);
+        }
+    }
+}
+
+pub tickMany(state: PetState, count: int, stream: rngModule.Mulberry32): void {
+    var index = 0;
+    while (index < count) { tickOnce(state, stream); index = index + 1; }
+}
+
+pub hunterPetScenarioTest(): int {
+    var state = new PetState();
+    var stream = new rngModule.Mulberry32(<uint>7);
+    spawnPet(state, 0, 2, false);
+    var targets = state.petTarget;
+    targets[0] = 1;
+    state.hostileRangedExists = true;
+    tickMany(state, 120, stream);
+    if (eventCount(state, 13) != 3 || eventCount(state, 19) != 3 ||
+        state.sharedRandomDraws != 12 || state.sharedRandomDigest != stream.drawDigest ||
+        state.sharedRandomState != stream.state || !state.ownerInCombat) {
+        return -1;
+    }
+    return 1;
+}
+
+pub warlockPetScenarioTest(): int {
+    var state = new PetState();
+    var stream = new rngModule.Mulberry32(<uint>7);
+    summonDemon(state, 4, stream);
+    var xs = state.petX;
+    var enemyXs = state.enemyX;
+    var targets = state.petTarget;
+    var autoTaunt = state.petAutoTaunt;
+    xs[0] = 4.0;
+    enemyXs[0] = 5.0;
+    targets[0] = 1;
+    autoTaunt[0] = true;
+    tickMany(state, 120, stream);
+    if (eventCount(state, 5) < 1 || eventCount(state, 14) != 3 ||
+        <int>state.enemyTargetPet[0] != 1) {
+        return -1;
+    }
+    var timers = state.petTauntTicks;
+    timers[0] = 0;
+    if (!petTaunt(state, 1) || <int>timers[0] != 200 || eventCount(state, 5) < 2) {
+        return -2;
+    }
+    return 1;
+}
+
+pub petAiScenarioTest(): int {
+    var state = new PetState();
+    var stream = new rngModule.Mulberry32(<uint>7);
+    spawnPet(state, 0, 3, true);
+    spawnPet(state, 1, 4, true);
+    var modes = state.petMode;
+    var targets = state.petTarget;
+    var autoTaunt = state.petAutoTaunt;
+    modes[0] = 2;
+    modes[1] = 2;
+    targets[0] = 1;
+    autoTaunt[1] = true;
+    state.ownerTarget = 2;
+    state.ownerAutoAttack = true;
+    tickMany(state, 120, stream);
+    if (eventCount(state, 13) != 3 || eventCount(state, 15) < 1 ||
+        eventCount(state, 5) < 1 || eventCount(state, 14) < 1 ||
+        !state.ownerInCombat) {
+        return -1;
+    }
+    modes[0] = 0;
+    modes[1] = 0;
+    targets[0] = 0;
+    targets[1] = 0;
+    state.ownerTarget = 0;
+    state.ownerAutoAttack = false;
+    state.ownerX = 25.0;
+    tickMany(state, 100, stream);
+    if (eventCount(state, 16) < 1 || state.ownerInCombat || eventCount(state, 18) != 1) {
+        return -2;
+    }
+    state.ownerX = 100.0;
+    tickOnce(state, stream);
+    if (eventCount(state, 17) < 1 || <float>state.petX[0] != 100.0 ||
+        <float>state.petX[1] != 100.0) {
+        return -3;
+    }
+    return 1;
+}
+
+pub petCommandsScenarioTest(): int {
+    var state = new PetState();
+    var stream = new rngModule.Mulberry32(<uint>7);
+    if (!completeTame(state) || <int>state.petLevel[0] != 12) { return -1; }
+    var targets = state.petTarget;
+    var combat = state.petInCombat;
+    var attacks = state.petAutoAttack;
+    targets[0] = 1;
+    combat[0] = true;
+    attacks[0] = true;
+    if (!setPetMode(state, 0) || <int>targets[0] != 0 || <bool>combat[0] ||
+        <bool>attacks[0]) {
+        return -2;
+    }
+    setPetMode(state, 1);
+    var hp = state.petHp;
+    hp[0] = 500;
+    if (!feedPet(state, 500)) { return -3; }
+    tickMany(state, 40, stream);
+    if (<int>hp[0] != 700 || eventCount(state, 4) != 2) { return -4; }
+    var xs = state.petX;
+    var enemyXs = state.enemyX;
+    var enemyTargets = state.enemyTargetPet;
+    xs[0] = 4.0;
+    enemyXs[0] = 5.0;
+    if (!petTaunt(state, 1) || <int>state.petTauntTicks[0] != 200) { return -5; }
+    enemyTargets[0] = 1;
+    if (!abandonPet(state, stream) || <bool>state.petExists[0] || state.sharedRandomDraws != 1) {
+        return -6;
+    }
+    if (!completeTame(state)) { return -7; }
+    var dead = state.petDead;
+    dead[0] = true;
+    hp[0] = 0;
+    if (!revivePet(state) || <int>hp[0] != 350 || <bool>dead[0]) { return -8; }
+    if (!stowPet(state, stream) || <bool>state.petExists[0] || !restorePet(state) ||
+        !<bool>state.petExists[0] || <int>hp[0] != 350) {
+        return -9;
+    }
+    if (!summonDemon(state, 3, stream)) { return -10; }
+    var firstGeneration = <int>state.petGeneration[0];
+    hp[0] = 400;
+    if (demonHealTick(state) != 80 || <int>hp[0] != 480) { return -11; }
+    if (!summonDemon(state, 4, stream) || <int>state.petGeneration[0] <= firstGeneration ||
+        <int>hp[0] != 1000) {
+        return -12;
+    }
+    var secondGeneration = <int>state.petGeneration[0];
+    if (!summonDemon(state, 4, stream) || <int>state.petGeneration[0] <= secondGeneration ||
+        <int>hp[0] != 1000) {
+        return -13;
+    }
+    state.playerTargetsPet = true;
+    enemyTargets[1] = 1;
+    var drawsBefore = state.sharedRandomDraws;
+    if (!stowPet(state, stream) || state.playerTargetsPet ||
+        state.sharedRandomDraws != drawsBefore + 1) {
+        return -14;
+    }
+    return 1;
+}
+
+petInvariantTest(): int {
+    var state = new PetState();
+    var stream = new rngModule.Mulberry32(<uint>7);
+    completeTame(state);
+    var xs = state.petX;
+    var enemyXs = state.enemyX;
+    xs[0] = 0.0;
+    enemyXs[0] = 8.0;
+    if (!petTaunt(state, 1) || !<bool>state.petManualTaunt[0] ||
+        <int>state.petTauntTicks[0] != 0) {
+        return -1;
+    }
+    tickMany(state, 20, stream);
+    if (<bool>state.petManualTaunt[0] || <int>state.petTauntTicks[0] <= 0) { return -2; }
+    if (petTaunt(state, 1)) { return -3; }
+    return 1;
+}
+
+petRngObserverSyncTest(): int {
+    var state = new PetState();
+    var stream = new rngModule.Mulberry32(<uint>17);
+    stream.nextU32();
+    tickOnce(state, stream);
+    if (state.sharedRandomDraws != <int>stream.draws ||
+        state.sharedRandomDigest != stream.drawDigest || state.sharedRandomState != stream.state) {
+        return -1;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = hunterPetScenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = warlockPetScenarioTest();
+    if (result != 1) { return -200 + result; }
+    result = petAiScenarioTest();
+    if (result != 1) { return -300 + result; }
+    result = petCommandsScenarioTest();
+    if (result != 1) { return -400 + result; }
+    result = petInvariantTest();
+    if (result != 1) { return -500 + result; }
+    result = petRngObserverSyncTest();
+    if (result != 1) { return -600 + result; }
+    return 1;
+}

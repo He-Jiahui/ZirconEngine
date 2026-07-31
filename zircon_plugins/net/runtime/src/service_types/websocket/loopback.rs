@@ -4,6 +4,7 @@ use zircon_runtime::core::framework::net::{
     NetConnectionId, NetConnectionState, NetError, NetEvent, NetTransportKind,
 };
 
+use crate::poison_recovery::{lock_or_error, NetSharedState};
 use crate::websocket::{LoopbackWebSocketConnection, ManagedWebSocketConnection};
 
 use super::super::DefaultNetManager;
@@ -14,11 +15,10 @@ impl DefaultNetManager {
     ) -> Result<(NetConnectionId, NetConnectionId), NetError> {
         let client = self.next_connection_id();
         let server = self.next_connection_id();
-        let mut websockets = self
-            .state
-            .websocket_connections
-            .lock()
-            .expect("net WebSocket connections mutex poisoned");
+        let mut websockets = lock_or_error(
+            &self.state.websocket_connections,
+            NetSharedState::WebSocketConnections,
+        )?;
         websockets.insert(
             client,
             ManagedWebSocketConnection::Loopback(LoopbackWebSocketConnection {

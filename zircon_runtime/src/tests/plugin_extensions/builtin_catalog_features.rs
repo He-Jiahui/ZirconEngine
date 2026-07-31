@@ -26,7 +26,7 @@ fn builtin_net_content_download_dependency_report_blocks_without_http_feature() 
         .missing_capabilities
         .contains(&"runtime.feature.net.http".to_string()));
 
-    let completed = catalog.complete_project_manifest(&manifest);
+    let completed = catalog.complete_project_manifest(&manifest, RuntimeTargetMode::ClientRuntime);
     let net = completed
         .selections
         .iter()
@@ -149,7 +149,7 @@ fn rendering_vfx_graph_dependency_report_blocks_without_implicit_feature_enablem
         .missing_capabilities
         .contains(&"runtime.feature.rendering.shader_graph".to_string()));
 
-    let completed = catalog.complete_project_manifest(&manifest);
+    let completed = catalog.complete_project_manifest(&manifest, RuntimeTargetMode::ClientRuntime);
     let rendering = completed
         .selections
         .iter()

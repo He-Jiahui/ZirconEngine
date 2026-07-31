@@ -363,6 +363,12 @@ class ActionService:
         deferred_start = result.pop("_start", None)
         with self.database.transaction() as connection:
             if deferred:
+                connection.execute(
+                    """UPDATE action_requests
+                       SET result_json=?
+                       WHERE action_id=? AND status='executing'""",
+                    (json.dumps(result, sort_keys=True), action_id),
+                )
                 self._event(
                     connection,
                     self._event_session_id(parameters),
@@ -492,8 +498,8 @@ class ActionService:
     def get(self, context: ActionContext, action_id: str) -> ActionRecord:
         with self.database.connect() as connection:
             row = self._request_row(connection, action_id)
-        context = self._context_for_request(context, row)
-        self._require_request_identity(context, row)
+            context = self._context_for_request(context, row)
+            self._require_request_read_identity(connection, context, row)
         return self._record(row)
 
     def list_activity(
@@ -588,6 +594,28 @@ class ActionService:
             raise CoordinatorError("action_identity_mismatch", "Action belongs to another actor")
         if row["bound_session_id"] != context.bound_session_id:
             raise CoordinatorError("action_session_scope_mismatch", "Action Session binding changed")
+
+    def _require_request_read_identity(self, connection, context: ActionContext, row) -> None:
+        """Permit one successor to report its completed rollover to the same actor."""
+        self._require_instance(context)
+        if row["daemon_instance_id"] == self.daemon_instance_id:
+            self._require_request_identity(context, row)
+            return
+        if (
+            row["action_kind"] == ActionKind.SERVICE_ROLLOVER.value
+            and row["status"] == ActionStatus.SUCCEEDED.value
+            and row["actor"] == context.actor
+            and row["bound_session_id"] == context.bound_session_id
+            and connection.execute(
+                """SELECT 1 FROM service_lifecycle_intents
+                   WHERE action_id=? AND kind='service.rollover' AND status='succeeded'
+                     AND successor_daemon_instance_id=?""",
+                (row["action_id"], self.daemon_instance_id),
+            ).fetchone()
+            is not None
+        ):
+            return
+        raise CoordinatorError("action_instance_mismatch", "Action belongs to another daemon")
 
     @staticmethod
     def _context_for_request(context: ActionContext, row) -> ActionContext:

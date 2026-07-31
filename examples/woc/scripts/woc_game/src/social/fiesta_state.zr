@@ -1,0 +1,706 @@
+// Focused M6 Fiesta source-contract fixture projected from the historical
+// 7c10f280eec380e9877e66ce16333089e171fe42 slice, plus current-head death
+// reset carryover from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a at 20 Hz.
+// It is not imported by main.zr or world/state.zr: production Fiesta needs the
+// Runtime10/Plugins08 byte bridge. Fiesta-private random draws are counted here
+// and never touch the shared combat/world stream.
+var container = %import("zr.container");
+
+class FiestaState {
+    pub var tick: int;
+    pub var matchTicks: int;
+    pub var phase: int;
+    pub var countdownTicks: int;
+    pub var queued: container.Array<bool>;
+    pub var team: container.Array<int>;
+    pub var originalLevel: container.Array<int>;
+    pub var level: container.Array<int>;
+    pub var hp: container.Array<int>;
+    pub var maxHp: container.Array<int>;
+    pub var dead: container.Array<bool>;
+    pub var deaths: container.Array<int>;
+    pub var respawnTicks: container.Array<int>;
+    pub var positionX: container.Array<float>;
+    pub var positionZ: container.Array<float>;
+    pub var castKind: container.Array<int>;
+    pub var castRemaining: container.Array<float>;
+    pub var castTotal: container.Array<float>;
+    pub var castPushbackReduction: container.Array<float>;
+    // false represents an absent optional combat field. The full combat owner
+    // reconstructs its normal value rather than inheriting a pre-death one.
+    pub var queuedSwingCostMultiplierPresent: container.Array<bool>;
+    pub var leapActive: container.Array<bool>;
+    pub var lifestealPct: container.Array<float>;
+    pub var augmentCount: container.Array<int>;
+    pub var offerReady: container.Array<bool>;
+    pub var offerA: container.Array<int>;
+    pub var offerB: container.Array<int>;
+    pub var offerC: container.Array<int>;
+    pub var powerupAura: container.Array<bool>;
+    pub var scoreA: int;
+    pub var scoreB: int;
+    pub var scoreLimit: int;
+    pub var wave: int;
+    pub var nextWaveTick: int;
+    pub var ringRadius: float;
+    pub var ringTarget: float;
+    pub var powerupTimerTicks: int;
+    pub var powerupState: int;
+    pub var powerupLifeTicks: int;
+    pub var powerupDefId: int;
+    pub var powerupX: float;
+    pub var powerupZ: float;
+    pub var privateRandom: container.Array<float>;
+    pub var privateRandomIndex: int;
+    pub var privateRandomDraws: int;
+    pub var sharedRandomDraws: int;
+    pub var events: container.Array<int>;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.tick = 0;
+        this.matchTicks = 0;
+        this.phase = 0;
+        this.countdownTicks = 0;
+        this.queued = new container.Array<bool>();
+        this.team = new container.Array<int>();
+        this.originalLevel = new container.Array<int>();
+        this.level = new container.Array<int>();
+        this.hp = new container.Array<int>();
+        this.maxHp = new container.Array<int>();
+        this.dead = new container.Array<bool>();
+        this.deaths = new container.Array<int>();
+        this.respawnTicks = new container.Array<int>();
+        this.positionX = new container.Array<float>();
+        this.positionZ = new container.Array<float>();
+        this.castKind = new container.Array<int>();
+        this.castRemaining = new container.Array<float>();
+        this.castTotal = new container.Array<float>();
+        this.castPushbackReduction = new container.Array<float>();
+        this.queuedSwingCostMultiplierPresent = new container.Array<bool>();
+        this.leapActive = new container.Array<bool>();
+        this.lifestealPct = new container.Array<float>();
+        this.augmentCount = new container.Array<int>();
+        this.offerReady = new container.Array<bool>();
+        this.offerA = new container.Array<int>();
+        this.offerB = new container.Array<int>();
+        this.offerC = new container.Array<int>();
+        this.powerupAura = new container.Array<bool>();
+        var index = 0;
+        while (index < 4) {
+            this.queued.add(false);
+            this.team.add(index < 2 ? 1 : 2);
+            this.originalLevel.add(8 + index);
+            this.level.add(8 + index);
+            this.hp.add(1000);
+            this.maxHp.add(1000);
+            this.dead.add(false);
+            this.deaths.add(0);
+            this.respawnTicks.add(0);
+            this.positionX.add(<float>(index * 4));
+            this.positionZ.add(-40.0);
+            this.castKind.add(0);
+            this.castRemaining.add(0.0);
+            this.castTotal.add(0.0);
+            this.castPushbackReduction.add(0.0);
+            this.queuedSwingCostMultiplierPresent.add(false);
+            this.leapActive.add(false);
+            this.lifestealPct.add(0.0);
+            this.augmentCount.add(0);
+            this.offerReady.add(false);
+            this.offerA.add(0);
+            this.offerB.add(0);
+            this.offerC.add(0);
+            this.powerupAura.add(false);
+            index = index + 1;
+        }
+        this.scoreA = 0;
+        this.scoreB = 0;
+        this.scoreLimit = 15;
+        this.wave = 0;
+        this.nextWaveTick = 160;
+        this.ringRadius = 22.0;
+        this.ringTarget = 22.0;
+        this.powerupTimerTicks = 240;
+        this.powerupState = 0;
+        this.powerupLifeTicks = 0;
+        this.powerupDefId = 0;
+        this.powerupX = 0.0;
+        this.powerupZ = 2.0;
+        this.privateRandom = new container.Array<float>();
+        this.privateRandomIndex = 0;
+        this.privateRandomDraws = 0;
+        this.sharedRandomDraws = 0;
+        this.events = new container.Array<int>();
+        this.lastError = 0;
+    }
+}
+
+validPlayer(player: int): bool {
+    return player >= 1 && player <= 4;
+}
+
+recordEvent(state: FiestaState, code: int): void {
+    var events = state.events;
+    events.add(code);
+}
+
+eventIndex(state: FiestaState, code: int): int {
+    var index = 0;
+    while (index < state.events.length) {
+        if (<int>state.events[index] == code) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+roundInt(value: float): int {
+    return value >= 0.0 ? <int>(value + 0.5) : <int>(value - 0.5);
+}
+
+absFloat(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+sinApprox(value: float): float {
+    var pi = 3.141592653589793;
+    var twoPi = pi * 2.0;
+    while (value > pi) { value = value - twoPi; }
+    while (value < -pi) { value = value + twoPi; }
+    var square = value * value;
+    return value * (1.0 - square / 6.0 + square * square / 120.0 -
+        square * square * square / 5040.0);
+}
+
+cosApprox(value: float): float {
+    return sinApprox(value + 1.5707963267948966);
+}
+
+pub queuePrivateRandom(state: FiestaState, value: float): void {
+    var values = state.privateRandom;
+    values.add(value < 0.0 ? 0.0 : value >= 1.0 ? 0.999999 : value);
+}
+
+nextPrivateRandom(state: FiestaState): float {
+    var value = <float>(((state.privateRandomIndex * 37 + 17) % 100)) / 100.0;
+    if (state.privateRandomIndex < state.privateRandom.length) {
+        value = <float>state.privateRandom[state.privateRandomIndex];
+    }
+    state.privateRandomIndex = state.privateRandomIndex + 1;
+    state.privateRandomDraws = state.privateRandomDraws + 1;
+    return value;
+}
+
+pub teamFor(state: FiestaState, player: int): int {
+    if (!validPlayer(player)) { return 0; }
+    return <int>state.team[player - 1];
+}
+
+pub queue(state: FiestaState, player: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(player) || state.phase != 0) { state.lastError = -1; return false; }
+    var queued = state.queued;
+    if (<bool>queued[player - 1]) { state.lastError = -2; return false; }
+    queued[player - 1] = true;
+    var count = 0;
+    var index = 0;
+    while (index < 4) {
+        if (<bool>queued[index]) { count = count + 1; }
+        index = index + 1;
+    }
+    if (count == 4) {
+        state.phase = 1;
+        state.countdownTicks = 100;
+        var levels = state.level;
+        index = 0;
+        while (index < 4) { levels[index] = 20; index = index + 1; }
+    }
+    return true;
+}
+
+pub startCast(state: FiestaState, player: int, kind: int, remaining: float): bool {
+    if (!validPlayer(player) || state.phase != 2 || kind < 1 || kind > 2 || remaining <= 0.0) {
+        return false;
+    }
+    var kinds = state.castKind;
+    var remains = state.castRemaining;
+    var totals = state.castTotal;
+    kinds[player - 1] = kind;
+    remains[player - 1] = remaining;
+    totals[player - 1] = remaining;
+    return true;
+}
+
+clearCast(state: FiestaState, player: int): void {
+    var kinds = state.castKind;
+    var remains = state.castRemaining;
+    var totals = state.castTotal;
+    kinds[player - 1] = 0;
+    remains[player - 1] = 0.0;
+    totals[player - 1] = 0.0;
+}
+
+clearDeathCarryover(state: FiestaState, player: int): void {
+    state.queuedSwingCostMultiplierPresent[player - 1] = false;
+    state.leapActive[player - 1] = false;
+}
+
+seedDeathCarryover(
+    state: FiestaState,
+    player: int,
+    hasQueuedSwingCostMultiplier: bool,
+    hasLeap: bool
+): void {
+    if (!validPlayer(player)) { return; }
+    state.queuedSwingCostMultiplierPresent[player - 1] = hasQueuedSwingCostMultiplier;
+    state.leapActive[player - 1] = hasLeap;
+}
+
+interruptCastFromDamage(state: FiestaState, player: int): void {
+    var kinds = state.castKind;
+    var kind = <int>kinds[player - 1];
+    if (kind == 0) { return; }
+    if (kind == 2) {
+        clearCast(state, player);
+        recordEvent(state, 3);
+        return;
+    }
+    var reduction = <float>state.castPushbackReduction[player - 1];
+    var factor = 1.0 - reduction;
+    if (factor <= 0.0) { return; }
+    var remains = state.castRemaining;
+    var totals = state.castTotal;
+    remains[player - 1] = <float>remains[player - 1] + 0.5 * factor;
+    totals[player - 1] = <float>totals[player - 1] + 0.5 * factor;
+    recordEvent(state, 2);
+}
+
+pub respawnTimeTicks(deathCount: int, elapsedTicks: int): int {
+    var minutes = <int>(<float>elapsedTicks / 1200.0);
+    var seconds = 3.0 + <float>(deathCount - 1) * 1.2 + <float>minutes * 1.5;
+    if (seconds > 14.0) { seconds = 14.0; }
+    return <int>(seconds * 20.0 + 0.999999);
+}
+
+down(state: FiestaState, player: int): void {
+    var dead = state.dead;
+    if (<bool>dead[player - 1]) { return; }
+    var hp = state.hp;
+    var deaths = state.deaths;
+    var respawn = state.respawnTicks;
+    dead[player - 1] = true;
+    hp[player - 1] = 0;
+    clearCast(state, player);
+    // Keep the current source's clean dead-state transition: a queued swing
+    // multiplier and an in-flight leap never survive a Fiesta respawn.
+    clearDeathCarryover(state, player);
+    deaths[player - 1] = <int>deaths[player - 1] + 1;
+    respawn[player - 1] = respawnTimeTicks(<int>deaths[player - 1], state.matchTicks);
+    recordEvent(state, 5);
+}
+
+scoreTakedown(state: FiestaState, killer: int, victim: int): void {
+    recordEvent(state, 4);
+    if (teamFor(state, killer) == 1) { state.scoreA = state.scoreA + 1; }
+    else { state.scoreB = state.scoreB + 1; }
+    down(state, victim);
+    recordEvent(state, 6);
+    if (state.scoreA >= state.scoreLimit || state.scoreB >= state.scoreLimit) {
+        state.phase = 3;
+    }
+}
+
+pub dealCrossTeamDamage(
+    state: FiestaState,
+    source: int,
+    target: int,
+    amount: int
+): bool {
+    state.lastError = 0;
+    if (state.phase != 2 || !validPlayer(source) || !validPlayer(target) || amount <= 0 ||
+        teamFor(state, source) == teamFor(state, target) ||
+        <bool>state.dead[source - 1] || <bool>state.dead[target - 1]) {
+        state.lastError = -3;
+        return false;
+    }
+    var hp = state.hp;
+    var maxHp = state.maxHp;
+    var sourceHp = <int>hp[source - 1];
+    var healPct = <float>state.lifestealPct[source - 1];
+    if (healPct > 0.0 && sourceHp < <int>maxHp[source - 1]) {
+        var heal = roundInt(<float>amount * healPct);
+        if (heal < 1) { heal = 1; }
+        sourceHp = sourceHp + heal;
+        if (sourceHp > <int>maxHp[source - 1]) { sourceHp = <int>maxHp[source - 1]; }
+        hp[source - 1] = sourceHp;
+        recordEvent(state, 14);
+    }
+    var targetHp = <int>hp[target - 1];
+    if (targetHp - amount <= 0) {
+        hp[target - 1] = 0;
+        recordEvent(state, 1);
+        scoreTakedown(state, source, target);
+        return true;
+    }
+    hp[target - 1] = targetHp - amount;
+    recordEvent(state, 1);
+    interruptCastFromDamage(state, target);
+    return true;
+}
+
+shuffleOffers(state: FiestaState, player: int): void {
+    var pool = new container.Array<int>();
+    pool.add(100 + state.wave * 10 + 1);
+    pool.add(100 + state.wave * 10 + 2);
+    pool.add(100 + state.wave * 10 + 3);
+    pool.add(100 + state.wave * 10 + 4);
+    var index = pool.length - 1;
+    while (index > 0) {
+        var pick = <int>(nextPrivateRandom(state) * <float>(index + 1));
+        var swap = <int>pool[index];
+        pool[index] = <int>pool[pick];
+        pool[pick] = swap;
+        index = index - 1;
+    }
+    var a = state.offerA;
+    var b = state.offerB;
+    var c = state.offerC;
+    a[player - 1] = <int>pool[0];
+    b[player - 1] = <int>pool[1];
+    c[player - 1] = <int>pool[2];
+}
+
+pub openWave(state: FiestaState): bool {
+    if (state.phase != 2 || state.wave >= 3) { return false; }
+    state.wave = state.wave + 1;
+    state.nextWaveTick = state.matchTicks + 1000;
+    var fraction = <float>state.wave / 3.0;
+    state.ringTarget = <float>roundInt(22.0 - 16.0 * fraction);
+    var ready = state.offerReady;
+    var player = 1;
+    while (player <= 4) {
+        shuffleOffers(state, player);
+        if (<bool>state.dead[player - 1]) {
+            ready[player - 1] = true;
+            recordEvent(state, 12);
+        }
+        player = player + 1;
+    }
+    recordEvent(state, 16);
+    return true;
+}
+
+pub chooseAugment(state: FiestaState, player: int, augmentId: int): bool {
+    if (!validPlayer(player) || !<bool>state.offerReady[player - 1]) { return false; }
+    var a = <int>state.offerA[player - 1];
+    var b = <int>state.offerB[player - 1];
+    var c = <int>state.offerC[player - 1];
+    if (augmentId != a && augmentId != b && augmentId != c) { return false; }
+    var ready = state.offerReady;
+    var count = state.augmentCount;
+    ready[player - 1] = false;
+    count[player - 1] = <int>count[player - 1] + 1;
+    recordEvent(state, 13);
+    return true;
+}
+
+spawnPowerup(state: FiestaState): void {
+    var pick = nextPrivateRandom(state);
+    var angleDraw = nextPrivateRandom(state);
+    var radiusDraw = nextPrivateRandom(state);
+    state.powerupDefId = <int>(pick * 3.0) + 1;
+    var angle = angleDraw * 6.283185307179586;
+    var radius = (0.25 + radiusDraw * 0.6) * (state.ringRadius - 2.0);
+    if (state.ringRadius - 2.0 < 3.0) {
+        radius = (0.25 + radiusDraw * 0.6) * 3.0;
+    }
+    state.powerupX = sinApprox(angle) * radius;
+    state.powerupZ = 2.0 + cosApprox(angle) * radius;
+    state.powerupState = 1;
+    state.powerupLifeTicks = 100;
+    recordEvent(state, 8);
+}
+
+distanceSquared(state: FiestaState, player: int, x: float, z: float): float {
+    var dx = <float>state.positionX[player - 1] - x;
+    var dz = <float>state.positionZ[player - 1] - z;
+    return dx * dx + dz * dz;
+}
+
+pub movePlayer(state: FiestaState, player: int, x: float, z: float): void {
+    if (!validPlayer(player)) { return; }
+    var xs = state.positionX;
+    var zs = state.positionZ;
+    xs[player - 1] = x;
+    zs[player - 1] = z;
+}
+
+grabPowerup(state: FiestaState): void {
+    if (state.powerupState != 2) { return; }
+    var player = 1;
+    while (player <= 4) {
+        if (!<bool>state.dead[player - 1] &&
+            distanceSquared(state, player, state.powerupX, state.powerupZ) <= 4.0) {
+            var aura = state.powerupAura;
+            aura[player - 1] = true;
+            state.powerupState = 0;
+            state.powerupLifeTicks = 0;
+            recordEvent(state, 10);
+            return;
+        }
+        player = player + 1;
+    }
+}
+
+ringDamage(state: FiestaState): void {
+    if (state.tick % 10 != 0) { return; }
+    var player = 1;
+    while (player <= 4) {
+        if (!<bool>state.dead[player - 1] &&
+            distanceSquared(state, player, 0.0, 2.0) > state.ringRadius * state.ringRadius) {
+            var hp = state.hp;
+            var maxHp = state.maxHp;
+            var damage = roundInt(<float>maxHp[player - 1] * 0.03);
+            if (damage < 1) { damage = 1; }
+            if (<int>hp[player - 1] - damage <= 0) {
+                hp[player - 1] = 0;
+                recordEvent(state, 11);
+                down(state, player);
+            } else {
+                hp[player - 1] = <int>hp[player - 1] - damage;
+                recordEvent(state, 11);
+            }
+        }
+        player = player + 1;
+    }
+}
+
+updateRespawns(state: FiestaState): void {
+    var respawn = state.respawnTicks;
+    var dead = state.dead;
+    var hp = state.hp;
+    var maxHp = state.maxHp;
+    var player = 1;
+    while (player <= 4) {
+        if (<int>respawn[player - 1] > 0) {
+            respawn[player - 1] = <int>respawn[player - 1] - 1;
+            if (<int>respawn[player - 1] <= 0) {
+                dead[player - 1] = false;
+                hp[player - 1] = <int>maxHp[player - 1];
+                movePlayer(state, player, player <= 2 ? -8.0 : 8.0, 2.0);
+                recordEvent(state, 7);
+            }
+        }
+        player = player + 1;
+    }
+}
+
+pub tickOnce(state: FiestaState): void {
+    state.tick = state.tick + 1;
+    if (state.phase == 1) {
+        state.countdownTicks = state.countdownTicks - 1;
+        if (state.countdownTicks <= 0) {
+            state.phase = 2;
+            state.countdownTicks = 0;
+            recordEvent(state, 15);
+        }
+        return;
+    }
+    if (state.phase != 2) { return; }
+    state.matchTicks = state.matchTicks + 1;
+    if (state.matchTicks >= 7200) { state.phase = 3; return; }
+    if (state.ringRadius > state.ringTarget) {
+        state.ringRadius = state.ringRadius - 0.03;
+        if (state.ringRadius < state.ringTarget) { state.ringRadius = state.ringTarget; }
+    }
+    ringDamage(state);
+    if (state.powerupState != 0) {
+        state.powerupLifeTicks = state.powerupLifeTicks - 1;
+        if (state.powerupLifeTicks <= 0) {
+            if (state.powerupState == 1) {
+                state.powerupState = 2;
+                state.powerupLifeTicks = 360;
+                recordEvent(state, 9);
+            } else {
+                state.powerupState = 0;
+                state.powerupLifeTicks = 0;
+            }
+        }
+    }
+    grabPowerup(state);
+    state.powerupTimerTicks = state.powerupTimerTicks - 1;
+    if (state.powerupTimerTicks <= 0) {
+        state.powerupTimerTicks = 320;
+        if (state.powerupState == 0) { spawnPowerup(state); }
+    }
+    if (state.wave < 3 && state.matchTicks >= state.nextWaveTick) { openWave(state); }
+    updateRespawns(state);
+}
+
+pub tickMany(state: FiestaState, count: int): void {
+    var index = 0;
+    while (index < count) { tickOnce(state); index = index + 1; }
+}
+
+startFourPlayerMatch(state: FiestaState): bool {
+    var player = 1;
+    while (player <= 4) {
+        if (!queue(state, player)) { return false; }
+        player = player + 1;
+    }
+    tickMany(state, 100);
+    return state.phase == 2;
+}
+
+pub fiestaScenarioTest(): int {
+    var state = new FiestaState();
+    var draw = 0;
+    while (draw < 12) {
+        queuePrivateRandom(state, <float>(draw + 1) / 20.0);
+        draw = draw + 1;
+    }
+    if (!startFourPlayerMatch(state) || teamFor(state, 1) != 1 || teamFor(state, 3) != 2 ||
+        <int>state.level[0] != 20 || <int>state.level[3] != 20) {
+        return -1;
+    }
+    if (!dealCrossTeamDamage(state, 1, 3, 1050) || state.scoreA != 1 ||
+        !<bool>state.dead[2] || <int>state.respawnTicks[2] != 60) {
+        return -2;
+    }
+    if (!(eventIndex(state, 1) < eventIndex(state, 4) &&
+        eventIndex(state, 4) < eventIndex(state, 5) &&
+        eventIndex(state, 5) < eventIndex(state, 6))) {
+        return -3;
+    }
+    if (!openWave(state) || state.wave != 1 || state.ringTarget != 17.0 ||
+        !<bool>state.offerReady[2] || state.privateRandomDraws != 12 ||
+        state.sharedRandomDraws != 0) {
+        return -4;
+    }
+    var choice = <int>state.offerA[2];
+    if (!chooseAugment(state, 3, choice) || <int>state.augmentCount[2] != 1 ||
+        <bool>state.offerReady[2]) {
+        return -5;
+    }
+    return 1;
+}
+
+pub fiestaPowerupsScenarioTest(): int {
+    var state = new FiestaState();
+    queuePrivateRandom(state, 0.2);
+    queuePrivateRandom(state, 0.25);
+    queuePrivateRandom(state, 0.5);
+    if (!startFourPlayerMatch(state)) { return -1; }
+    state.nextWaveTick = 10000;
+    tickMany(state, 240);
+    if (state.powerupState != 1 || state.powerupLifeTicks != 100 ||
+        state.privateRandomDraws != 3 || state.sharedRandomDraws != 0) {
+        return -2;
+    }
+    tickMany(state, 100);
+    if (state.powerupState != 2 || state.powerupLifeTicks != 360) { return -3; }
+    movePlayer(state, 1, state.powerupX, state.powerupZ);
+    tickOnce(state);
+    if (state.powerupState != 0 || !<bool>state.powerupAura[0] ||
+        eventIndex(state, 10) < 0) {
+        return -4;
+    }
+    state.ringRadius = 6.0;
+    state.ringTarget = 6.0;
+    movePlayer(state, 1, 30.0, 2.0);
+    var hpBefore = <int>state.hp[0];
+    tickMany(state, 20);
+    if (<int>state.hp[0] != hpBefore - 60) { return -5; }
+    if (!dealCrossTeamDamage(state, 1, 3, 2000)) { return -6; }
+    tickMany(state, 60);
+    if (<bool>state.dead[2] || <int>state.hp[2] != <int>state.maxHp[2] ||
+        eventIndex(state, 7) < 0) {
+        return -7;
+    }
+    return 1;
+}
+
+pub fiestaMidcastKillScenarioTest(): int {
+    var state = new FiestaState();
+    if (!startFourPlayerMatch(state)) { return -1; }
+    state.nextWaveTick = 10000;
+    state.powerupTimerTicks = 10000;
+    var hp = state.hp;
+    var maxHp = state.maxHp;
+    hp[2] = 5000;
+    maxHp[2] = 5000;
+    if (!startCast(state, 3, 1, 2.0) || !dealCrossTeamDamage(state, 1, 3, 50) ||
+        <float>state.castRemaining[2] != 2.5 || <float>state.castTotal[2] != 2.5 ||
+        eventIndex(state, 2) < 0) {
+        return -2;
+    }
+    if (!startCast(state, 3, 2, 5.0) || !dealCrossTeamDamage(state, 1, 3, 50) ||
+        <int>state.castKind[2] != 0 || <float>state.castRemaining[2] != 0.0 ||
+        eventIndex(state, 3) < 0) {
+        return -3;
+    }
+    var lethalDamageEvent = state.events.length;
+    if (!startCast(state, 3, 1, 2.0) || !dealCrossTeamDamage(state, 1, 3, 6000) ||
+        state.scoreA != 1 || !<bool>state.dead[2] || <int>state.castKind[2] != 0) {
+        return -4;
+    }
+    if (<int>state.events[lethalDamageEvent] != 1 ||
+        <int>state.events[lethalDamageEvent + 1] != 4 ||
+        <int>state.events[lethalDamageEvent + 2] != 5 ||
+        <int>state.events[lethalDamageEvent + 3] != 6) {
+        return -5;
+    }
+    return 1;
+}
+
+fiestaInvariantTest(): int {
+    if (respawnTimeTicks(1, 0) != 60 || respawnTimeTicks(2, 0) != 84 ||
+        respawnTimeTicks(2, 2400) != 144 || respawnTimeTicks(20, 20000) != 280) {
+        return -1;
+    }
+    var state = new FiestaState();
+    if (!startFourPlayerMatch(state)) { return -2; }
+    var hp = state.hp;
+    var maxHp = state.maxHp;
+    var lifesteal = state.lifestealPct;
+    hp[0] = 500;
+    maxHp[0] = 1000;
+    lifesteal[0] = 0.15;
+    if (!dealCrossTeamDamage(state, 1, 3, 50) || <int>hp[0] != 508 ||
+        eventIndex(state, 14) < 0) {
+        return -3;
+    }
+    var reductions = state.castPushbackReduction;
+    reductions[2] = 1.0;
+    if (!startCast(state, 3, 1, 2.0) || !dealCrossTeamDamage(state, 1, 3, 10) ||
+        <float>state.castRemaining[2] != 2.0) {
+        return -4;
+    }
+    if (dealCrossTeamDamage(state, 1, 2, 10) || state.lastError != -3) { return -5; }
+    return 1;
+}
+
+fiestaCurrentHeadDeathResetTest(): int {
+    var state = new FiestaState();
+    if (!startFourPlayerMatch(state)) { return -1; }
+    seedDeathCarryover(state, 3, true, true);
+    if (!dealCrossTeamDamage(state, 1, 3, 2000) ||
+        <bool>state.queuedSwingCostMultiplierPresent[2] || <bool>state.leapActive[2]) {
+        return -2;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = fiestaScenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = fiestaPowerupsScenarioTest();
+    if (result != 1) { return -200 + result; }
+    result = fiestaMidcastKillScenarioTest();
+    if (result != 1) { return -300 + result; }
+    result = fiestaInvariantTest();
+    if (result != 1) { return -400 + result; }
+    result = fiestaCurrentHeadDeathResetTest();
+    if (result != 1) { return -500 + result; }
+    return 1;
+}

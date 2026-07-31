@@ -2,23 +2,22 @@ use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;
 
 use super::identity::{project_plugin_package_id_is_valid, validate_project_plugin_package_id};
+use super::ProjectPluginManifestValidationProjection;
 
 pub(in crate::plugin::export_build_plan) fn project_feature_provider_package_id_diagnostics(
     manifest: &ProjectPluginManifest,
-    target: RuntimeTargetMode,
+    projection: &ProjectPluginManifestValidationProjection,
 ) -> (Vec<String>, Vec<String>) {
     let mut diagnostics = Vec::new();
     let mut fatal_diagnostics = Vec::new();
-    for owner in manifest
-        .selections
-        .iter()
-        .filter(|selection| selection.enabled && selection.supports_target(target))
-    {
-        for feature in owner
-            .features
-            .iter()
-            .filter(|feature| feature.enabled && feature.supports_target(target))
-        {
+    for (selection_index, owner) in manifest.selections.iter().enumerate() {
+        if !projection.selection_is_consumed_by_target(selection_index) {
+            continue;
+        }
+        for (feature_index, feature) in owner.features.iter().enumerate() {
+            if !projection.feature_is_consumed_by_target(selection_index, feature_index) {
+                continue;
+            }
             let Some(provider_package_id) = feature.provider_package_id.as_deref() else {
                 continue;
             };

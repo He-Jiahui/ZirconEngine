@@ -47,8 +47,8 @@ where
     }
 
     pub fn release(&mut self, input: &T) -> bool {
-        if self.pressed.remove(input) {
-            self.just_released.insert(input.clone());
+        if let Some(input) = self.pressed.take(input) {
+            self.just_released.insert(input);
             true
         } else {
             false

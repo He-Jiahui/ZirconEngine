@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{
-    render_mesh_stable_instance_key, DisplayMode, RenderMaterialPropertyUniformPayload,
-    RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState,
+    DisplayMode, RenderMaterialPropertyUniformPayload, RenderMeshLodSelection, RenderMeshSnapshot,
+    RenderMeshStaticState, RendererCommon, render_mesh_stable_instance_key,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{RenderMat4, Vec4};
@@ -16,7 +16,7 @@ use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPale
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::resources::{
-    default_pipeline_key, GpuMeshResource, ResourceStreamer,
+    GpuMeshResource, ResourceStreamer, default_pipeline_key,
 };
 use super::super::super::super::primitives::render_mat4_or;
 use super::super::super::mesh_draw::MeshCommandSortInput;
@@ -25,15 +25,15 @@ use super::mesh_draw_build_context::MeshDrawBuildContext;
 use super::morph_payload_upload::morph_payload_from_mesh_asset;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::skinning::{
-    prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
-    SkinnedMeshPreparedPrimitive,
+    SkinnedMeshPreparedPrimitive, prepare_skinned_mesh_asset_primitive,
+    prepare_skinned_model_primitive,
 };
 
 mod material_inputs;
 
 use self::material_inputs::{
-    material_cast_shadows, material_disabled_passes, material_receive_shadows,
-    material_taa_reactive_mask_strength, material_texture_set, material_tinted,
+    material_disabled_passes, material_taa_reactive_mask_strength, material_texture_set,
+    material_tinted, renderer_common_for_material,
 };
 
 struct DynamicMeshPrimitive {
@@ -72,6 +72,14 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     };
     let model_matrix =
         render_mat4_or(mesh_instance.transform.matrix(), RenderMat4::IDENTITY).to_cols_array_2d();
+    let material = streamer.material(&mesh_instance.material.id());
+    let common = Arc::new(renderer_common_for_material(
+        &mesh_instance.common,
+        material,
+    ));
+    if !common.enabled {
+        return;
+    }
     let material_revision = streamer.material_revision(&mesh_instance.material.id());
     let material_uniform_override_payload = frame
         .extract
@@ -109,6 +117,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     &mut draw_ordinal,
                     mesh_instance.transform_revision,
                     static_state,
+                    &common,
                     mesh_instance.material,
                     material_uniform_override_payload.clone(),
                     mesh_instance.mobility,
@@ -136,6 +145,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     &mut draw_ordinal,
                     mesh_instance.transform_revision,
                     static_state,
+                    &common,
                     mesh_instance.material,
                     material_uniform_override_payload.clone(),
                     mesh_instance.mobility,
@@ -198,6 +208,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 &mut draw_ordinal,
                 mesh_instance.transform_revision,
                 static_state,
+                &common,
                 mesh_instance.material,
                 material_uniform_override_payload.clone(),
                 mesh_instance.mobility,
@@ -227,12 +238,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             mesh.index_count,
             material_tinted(streamer, mesh_instance.material, instance_tint),
         );
-        if raster_draws.is_empty() {
-            continue;
-        }
 
         for (first_index, draw_index_count, draw_tint) in raster_draws {
-            let material = streamer.material(&mesh_instance.material.id());
             let source_draw_ordinal = next_draw_ordinal(&mut draw_ordinal);
             pending_draws.push(PendingMeshDraw {
                 mesh: PendingMeshGeometry::Prepared(mesh.clone()),
@@ -254,8 +261,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 source_morph_weights: None,
                 morph_payload_slot: None,
                 mesh_lod: mesh_instance.mesh_lod,
-                cast_shadows: material_cast_shadows(streamer, mesh_instance.material),
-                receive_shadows: material_receive_shadows(streamer, mesh_instance.material),
+                common: Arc::clone(&common),
                 disabled_passes: material_disabled_passes(material),
                 taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
                 model_matrix,
@@ -329,11 +335,7 @@ fn resource_revision_signature(resource_id: ResourceId, revision: u64) -> u64 {
 
 fn nonzero_hash(hasher: DefaultHasher) -> u64 {
     let signature = hasher.finish();
-    if signature == 0 {
-        1
-    } else {
-        signature
-    }
+    if signature == 0 { 1 } else { signature }
 }
 
 fn next_draw_ordinal(draw_ordinal: &mut u32) -> u32 {
@@ -540,6 +542,7 @@ fn push_dynamic_mesh_draws(
     draw_ordinal: &mut u32,
     transform_revision: u64,
     static_state: RenderMeshStaticState,
+    common: &Arc<RendererCommon>,
     material_id: ResourceHandle<MaterialMarker>,
     material_uniform_override_payload: Option<RenderMaterialPropertyUniformPayload>,
     mobility: Mobility,
@@ -594,12 +597,7 @@ fn push_dynamic_mesh_draws(
             source_morph_weights: source_morph_weights.clone(),
             morph_payload_slot: None,
             mesh_lod,
-            cast_shadows: material
-                .map(|material| material.cast_shadows)
-                .unwrap_or(true),
-            receive_shadows: material
-                .map(|material| material.receive_shadows)
-                .unwrap_or(true),
+            common: Arc::clone(common),
             disabled_passes: material_disabled_passes(material),
             taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
             model_matrix,
@@ -631,6 +629,7 @@ fn push_prepared_mesh_draws(
     draw_ordinal: &mut u32,
     transform_revision: u64,
     static_state: RenderMeshStaticState,
+    common: &Arc<RendererCommon>,
     material_id: ResourceHandle<MaterialMarker>,
     material_uniform_override_payload: Option<RenderMaterialPropertyUniformPayload>,
     mobility: Mobility,
@@ -669,12 +668,7 @@ fn push_prepared_mesh_draws(
             source_morph_weights: source_morph_weights.clone(),
             morph_payload_slot: None,
             mesh_lod,
-            cast_shadows: material
-                .map(|material| material.cast_shadows)
-                .unwrap_or(true),
-            receive_shadows: material
-                .map(|material| material.receive_shadows)
-                .unwrap_or(true),
+            common: Arc::clone(common),
             disabled_passes: material_disabled_passes(material),
             taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
             model_matrix,

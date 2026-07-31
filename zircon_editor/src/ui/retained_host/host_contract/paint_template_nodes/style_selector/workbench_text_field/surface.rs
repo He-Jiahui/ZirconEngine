@@ -9,6 +9,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_fi
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
     let palette = workbench_text_field_palette();
+    let has_validation_error = matches!(node.validation_level.as_str(), "error" | "danger");
     let color = if is_toolbar_text_field(node) {
         match state {
             UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
@@ -40,9 +41,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_fi
             | UiPainterResolvedState::Normal => palette.surface,
         }
     };
-    if is_unavailable_text_field_state(state) {
-        color
-    } else if is_toolbar_text_field(node) {
+    if is_unavailable_text_field_state(state)
+        || is_toolbar_text_field(node)
+        || has_validation_error
+        || !accepts_normal_text_field_override(state)
+    {
         color
     } else {
         declared_style_color(node.button_style.element.background_color.as_ref()).unwrap_or(color)
@@ -54,9 +57,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_fi
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
     let palette = workbench_text_field_palette();
+    let has_validation_error = matches!(node.validation_level.as_str(), "error" | "danger");
     let color = if is_unavailable_text_field_state(state) {
         palette.disabled_border
-    } else if matches!(node.validation_level.as_str(), "error" | "danger") {
+    } else if has_validation_error {
         palette.error
     } else {
         match state {
@@ -73,9 +77,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_fi
             | UiPainterResolvedState::Normal => palette.border,
         }
     };
-    if is_unavailable_text_field_state(state) {
-        color
-    } else if is_toolbar_text_field(node) {
+    if is_unavailable_text_field_state(state)
+        || is_toolbar_text_field(node)
+        || has_validation_error
+        || !accepts_normal_text_field_override(state)
+    {
         color
     } else {
         declared_style_color(node.button_style.element.border_color.as_ref()).unwrap_or(color)
@@ -88,4 +94,8 @@ fn is_toolbar_text_field(node: &TemplatePaneNodeData) -> bool {
         "SearchEdited" | "AssetBrowserImportPathField"
     ) || matches!(node.role.as_str(), "SearchField")
         || matches!(node.component_role.as_str(), "search-field")
+}
+
+fn accepts_normal_text_field_override(state: UiPainterResolvedState) -> bool {
+    state == UiPainterResolvedState::Normal
 }

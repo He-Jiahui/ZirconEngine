@@ -4,14 +4,12 @@ use super::support::*;
 fn drain_host_requests_requires_output_pointer() {
     let api = runtime_api();
     let drain_host_requests = api.drain_host_requests.expect("drain_host_requests");
+    let session = create_test_session(api);
 
-    let status = unsafe {
-        drain_host_requests(
-            ZrRuntimeSessionHandle::new(99_999),
-            core::ptr::null_mut::<ZrOwnedByteBuffer>(),
-        )
-    };
+    let status =
+        unsafe { drain_host_requests(session, core::ptr::null_mut::<ZrOwnedByteBuffer>()) };
 
+    destroy_test_session(api, session);
     assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
     assert_eq!(status_message(status), "missing host request output");
 }

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/talent_allocation_commit_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/talents.ts": "3fa9483cc9c60ef5578d6aa41f3a2e8f7110232b4add4f6a6bafbb23a7346b03",
+    "src/sim/content/talent_rows.ts": "7bd779ab5c21dd2a949e016f834843c5adbb95a2de02adf3f458447555ee8392",
+    "src/sim/progression/talents.ts": "cf5969ef559807c03604b3800ff1b3989ca9d53d198d4b347d1fac17fed6b8d5"
+  },
+  "row_levels": [
+    5,
+    8,
+    11,
+    14,
+    17,
+    20
+  ],
+  "spec_unlock_level": 5,
+  "option_id_max_length": 128,
+  "commit_order": [
+    "combat_or_arena_lock",
+    "validate_allocation",
+    "equal_short_circuit",
+    "assign_allocation",
+    "recompute",
+    "spec_offhand_revalidation",
+    "spec_pet_dismissal",
+    "temporal_echo_cleanup",
+    "success_log"
+  ],
+  "entrypoint_order": {
+    "apply": [
+      "lock",
+      "validate",
+      "equal",
+      "commit"
+    ],
+    "set_spec": [
+      "unknown_spec_precheck",
+      "apply"
+    ],
+    "select_row": [
+      "row_and_option_precheck",
+      "apply"
+    ],
+    "respec": [
+      "lock",
+      "validate_retained_spec_and_empty_rows",
+      "commit"
+    ]
+  }
+}

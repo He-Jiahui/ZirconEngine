@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/dot_mutation_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/dot_mutation.ts": "fbd45bd3929f9c8b6fc9c78fa2d69e9e8f4d08bc0ab1bbdc86b26b1ce37e5b66"
+  },
+  "aura_kind": "dot",
+  "selection": "first_target_aura_matching_kind_id_and_source",
+  "extension": "min(seconds,maxBonus-extendedBy_or_zero); only_positive; mutate_extendedBy_remaining_duration"
+}

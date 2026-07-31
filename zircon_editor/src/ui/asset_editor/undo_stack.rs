@@ -87,12 +87,17 @@ impl UiAssetEditorUndoTransition {
     }
 
     pub fn apply_to_document(&self, document: &mut UiAssetDocument) -> Result<bool, &'static str> {
+        if self.document_commands.is_empty() {
+            return match self.document.as_ref() {
+                Some(replay) => replay.apply_to_document(document),
+                None => Ok(false),
+            };
+        }
+
         let mut target_document = document.clone();
         let mut changed = false;
-        if !self.document_commands.is_empty() {
-            for command in &self.document_commands {
-                changed |= apply_document_replay_command(&mut target_document, command)?;
-            }
+        for command in &self.document_commands {
+            changed |= apply_document_replay_command(&mut target_document, command)?;
         }
         if let Some(replay) = self.document.as_ref() {
             let _ = replay.apply_to_document(&mut target_document)?;

@@ -4,15 +4,13 @@ use zircon_runtime_interface::project::RelPath;
 
 use crate::asset::project::{ProjectManifest, ProjectPaths};
 
-use super::document::{migrate_document, PendingDocument};
+use super::document::{PendingDocument, migrate_document};
 use super::resolver::MigrationResolver;
-use super::scan::{
-    prospective_sidecar_targets, recognized_sources, supported_authoring_files,
-    supported_transaction_targets,
-};
+use super::resolver_index::MigrationResolverIndex;
+use super::scan::MigrationInventory;
 use super::sidecar::preflight_sidecars;
 use super::transaction::{
-    apply_transaction, detect_pending_transactions, recover_pending_transactions, CommitFault,
+    CommitFault, apply_transaction, detect_pending_transactions, recover_pending_transactions,
 };
 use super::{
     AssetMigrationChange, AssetMigrationError, AssetMigrationIssue, AssetMigrationIssueKind,
@@ -47,19 +45,15 @@ fn migrate_project_assets_inner(
         .map(|(_, path)| path.clone())
         .collect::<Vec<_>>();
     let mut report = AssetMigrationReport::new(options.mode);
-    let recognized =
-        recognized_sources(&root_paths).map_err(|source| AssetMigrationError::Scan {
+    let inventory =
+        MigrationInventory::build(&roots).map_err(|source| AssetMigrationError::Scan {
             path: paths.root().to_path_buf(),
             source,
         })?;
-    let mut recovery_targets =
-        supported_transaction_targets(&root_paths).map_err(|source| AssetMigrationError::Scan {
-            path: paths.root().to_path_buf(),
-            source,
-        })?;
-    recovery_targets.extend(prospective_sidecar_targets(&recognized));
-    recovery_targets.sort();
-    recovery_targets.dedup();
+    report.metrics.entry_visits = inventory.entry_visits();
+    report.metrics.directory_reads = inventory.directory_reads();
+    report.metrics.directory_sorts = inventory.directory_sorts();
+    let recovery_targets = inventory.transaction_targets().to_vec();
     let pending_recovery =
         detect_pending_transactions(paths.root(), &root_paths, &recovery_targets)?;
     if options.mode == AssetMigrationMode::DryRun {
@@ -73,34 +67,50 @@ fn migrate_project_assets_inner(
     } else if !pending_recovery.is_empty() {
         recover_pending_transactions(paths.root(), &root_paths, &recovery_targets)?;
     }
-    let sidecars = match preflight_sidecars(&root_paths, &recognized) {
+    let sidecars = match preflight_sidecars(&root_paths, &inventory) {
         Ok(sidecars) => sidecars,
         Err(issue) => {
             report.push_issue(issue);
             return Ok(report);
         }
     };
-    let files =
-        supported_authoring_files(&root_paths).map_err(|source| AssetMigrationError::Scan {
-            path: paths.root().to_path_buf(),
-            source,
-        })?;
+    let files = inventory.authoring_files();
     report.set_scanned_files(files.len());
-    let resolver = MigrationResolver::new(&sidecars.index, &roots);
+    let resolver_index = match MigrationResolverIndex::build(
+        inventory.resolver_projections(),
+        sidecars.compound_bindings,
+    ) {
+        Ok(index) => index,
+        Err(error) => {
+            report.push_issue(AssetMigrationIssue::new(
+                AssetMigrationIssueKind::InvalidDocument,
+                None,
+                error.to_string(),
+            ));
+            return Ok(report);
+        }
+    };
+    let resolver = MigrationResolver::new(&sidecars.index, &resolver_index);
     let mut pending = sidecars.pending;
     for document in &pending {
+        report.metrics.output_bytes += document.bytes.len();
         report.push_change(AssetMigrationChange::new(document.path.clone(), 0));
     }
     for path in files {
-        match migrate_document(&path, &resolver) {
-            Ok(Some(document)) => {
-                report.push_change(AssetMigrationChange::new(
-                    document.path.clone(),
-                    document.reference_count,
-                ));
-                pending.push(document);
+        report.metrics.document_reads += 1;
+        report.metrics.document_parses += 1;
+        match migrate_document(path, &resolver) {
+            Ok(result) => {
+                report.metrics.reference_visits += result.reference_visits;
+                if let Some(document) = result.pending {
+                    report.metrics.output_bytes += document.bytes.len();
+                    report.push_change(AssetMigrationChange::new(
+                        document.path.clone(),
+                        document.reference_count,
+                    ));
+                    pending.push(document);
+                }
             }
-            Ok(None) => {}
             Err(issue) => report.push_issue(issue),
         }
     }

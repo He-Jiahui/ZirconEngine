@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn propert
     preferred
         .max(metrics.property_label_min_width)
         .min(rect.width * metrics.property_label_max_width_ratio)
-        .max(1.0)
+        .max(0.0)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn label_text_rect(
@@ -23,10 +23,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn label_t
     label_width: f32,
 ) -> FrameRect {
     let metrics = property_row_metrics();
+    let available_width = label_width.min(rect.width.max(0.0));
+    let inset_x = metrics.property_text_inset_x.min(available_width * 0.5);
+    let right_inset =
+        (metrics.property_text_inset_x * 0.5).min((available_width - inset_x).max(0.0));
+    let inset_y = metrics
+        .property_text_inset_y
+        .min(rect.height.max(0.0) * 0.5);
     FrameRect {
-        x: rect.x + metrics.property_text_inset_x,
-        y: rect.y + metrics.property_text_inset_y,
-        width: (label_width - metrics.property_text_inset_x * 1.5).max(1.0),
-        height: (rect.height - metrics.property_text_inset_y * 2.0).max(1.0),
+        x: rect.x + inset_x,
+        y: rect.y + inset_y,
+        width: (available_width - inset_x - right_inset).max(0.0),
+        height: (rect.height - inset_y * 2.0).max(0.0),
     }
 }

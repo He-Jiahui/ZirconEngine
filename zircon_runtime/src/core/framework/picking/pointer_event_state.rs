@@ -35,7 +35,7 @@ impl PickingEventState {
         pointer_locations: &[PointerLocation],
         inputs: &[PointerInput],
     ) -> Vec<PickingPointerEvent> {
-        let previous_hover = self.previous_hover.clone();
+        let previous_hover = std::mem::take(&mut self.previous_hover);
         let canceled_pointers = canceled_pointers(inputs);
         for pointer in &canceled_pointers {
             current_hover.remove_pointer(*pointer);
@@ -81,55 +81,51 @@ impl PickingEventState {
         location_by_pointer: &BTreeMap<PointerId, PointerLocation>,
         events: &mut Vec<PickingPointerEvent>,
     ) {
-        let exiting_hits = previous_hover
-            .iter()
-            .flat_map(|(pointer, hits)| {
-                hits.iter()
-                    .filter(move |hit| !current_hover.is_hovered(pointer, hit.target))
-                    .cloned()
-                    .map(move |hit| (pointer, hit))
-            })
-            .collect::<Vec<_>>();
-
-        for (pointer, hit) in exiting_hits {
+        for (pointer, hits) in previous_hover.iter() {
             let Some(location) = location_by_pointer.get(&pointer).copied() else {
                 continue;
             };
-            events.push(PickingPointerEvent::new(
-                pointer,
-                location,
-                hit.target,
-                PickingEventKind::Out {
-                    hit: hit.hit.clone(),
-                },
-            ));
-            events.push(PickingPointerEvent::new_without_propagate(
-                pointer,
-                location,
-                hit.target,
-                PickingEventKind::Leave {
-                    hit: hit.hit.clone(),
-                    was_direct: true,
-                },
-            ));
+            let active_buttons = self.active_buttons(pointer);
+            for hit in hits
+                .iter()
+                .filter(|hit| !current_hover.is_hovered(pointer, hit.target))
+            {
+                events.push(PickingPointerEvent::new(
+                    pointer,
+                    location,
+                    hit.target,
+                    PickingEventKind::Out {
+                        hit: hit.hit.clone(),
+                    },
+                ));
+                events.push(PickingPointerEvent::new_without_propagate(
+                    pointer,
+                    location,
+                    hit.target,
+                    PickingEventKind::Leave {
+                        hit: hit.hit.clone(),
+                        was_direct: true,
+                    },
+                ));
 
-            for button in self.active_buttons(pointer) {
-                let dragged_targets = {
-                    let state = self.button_state_mut(pointer, button);
-                    state.dragging_over.remove(&hit.target);
-                    state.dragging.keys().copied().collect::<Vec<_>>()
-                };
-                for dragged in dragged_targets {
-                    events.push(PickingPointerEvent::new(
-                        pointer,
-                        location,
-                        hit.target,
-                        PickingEventKind::DragLeave {
-                            button,
-                            dragged,
-                            hit: hit.hit.clone(),
-                        },
-                    ));
+                for button in active_buttons.iter().copied() {
+                    let dragged_targets = {
+                        let state = self.button_state_mut(pointer, button);
+                        state.dragging_over.remove(&hit.target);
+                        state.dragging.keys().copied().collect::<Vec<_>>()
+                    };
+                    for dragged in dragged_targets {
+                        events.push(PickingPointerEvent::new(
+                            pointer,
+                            location,
+                            hit.target,
+                            PickingEventKind::DragLeave {
+                                button,
+                                dragged,
+                                hit: hit.hit.clone(),
+                            },
+                        ));
+                    }
                 }
             }
         }
@@ -142,62 +138,59 @@ impl PickingEventState {
         location_by_pointer: &BTreeMap<PointerId, PointerLocation>,
         events: &mut Vec<PickingPointerEvent>,
     ) {
-        let current_hits = current_hover
-            .iter()
-            .flat_map(|(pointer, hits)| hits.iter().cloned().map(move |hit| (pointer, hit)))
-            .collect::<Vec<_>>();
-
-        for (pointer, hit) in current_hits {
+        for (pointer, hits) in current_hover.iter() {
             let Some(location) = location_by_pointer.get(&pointer).copied() else {
                 continue;
             };
-
-            for button in self.active_buttons(pointer) {
-                let dragged_targets = {
-                    let state = self.button_state_mut(pointer, button);
-                    if state.dragging.is_empty()
-                        || state
-                            .dragging_over
-                            .insert(hit.target, hit.hit.clone())
-                            .is_some()
-                    {
-                        Vec::new()
-                    } else {
-                        state.dragging.keys().copied().collect::<Vec<_>>()
+            let active_buttons = self.active_buttons(pointer);
+            for hit in hits {
+                for button in active_buttons.iter().copied() {
+                    let dragged_targets = {
+                        let state = self.button_state_mut(pointer, button);
+                        if state.dragging.is_empty()
+                            || state
+                                .dragging_over
+                                .insert(hit.target, hit.hit.clone())
+                                .is_some()
+                        {
+                            Vec::new()
+                        } else {
+                            state.dragging.keys().copied().collect::<Vec<_>>()
+                        }
+                    };
+                    for dragged in dragged_targets {
+                        events.push(PickingPointerEvent::new(
+                            pointer,
+                            location,
+                            hit.target,
+                            PickingEventKind::DragEnter {
+                                button,
+                                dragged,
+                                hit: hit.hit.clone(),
+                            },
+                        ));
                     }
-                };
-                for dragged in dragged_targets {
+                }
+
+                if !previous_hover.is_hovered(pointer, hit.target) {
+                    events.push(PickingPointerEvent::new_without_propagate(
+                        pointer,
+                        location,
+                        hit.target,
+                        PickingEventKind::Enter {
+                            hit: hit.hit.clone(),
+                            is_direct: true,
+                        },
+                    ));
                     events.push(PickingPointerEvent::new(
                         pointer,
                         location,
                         hit.target,
-                        PickingEventKind::DragEnter {
-                            button,
-                            dragged,
+                        PickingEventKind::Over {
                             hit: hit.hit.clone(),
                         },
                     ));
                 }
-            }
-
-            if !previous_hover.is_hovered(pointer, hit.target) {
-                events.push(PickingPointerEvent::new_without_propagate(
-                    pointer,
-                    location,
-                    hit.target,
-                    PickingEventKind::Enter {
-                        hit: hit.hit.clone(),
-                        is_direct: true,
-                    },
-                ));
-                events.push(PickingPointerEvent::new(
-                    pointer,
-                    location,
-                    hit.target,
-                    PickingEventKind::Over {
-                        hit: hit.hit.clone(),
-                    },
-                ));
             }
         }
     }
@@ -285,26 +278,17 @@ impl PickingEventState {
         events: &mut Vec<PickingPointerEvent>,
     ) {
         let pointer = location.pointer;
-        let previous_hits = previous_hover.get(pointer).to_vec();
         let (pressed_targets, dragging_targets, dragging_over) = {
             let state = self.button_state_mut(pointer, button);
-            let pressed_targets = state.pressing.keys().copied().collect::<BTreeSet<_>>();
-            let dragging_targets = state
-                .dragging
-                .iter()
-                .map(|(target, drag)| (*target, drag.clone()))
-                .collect::<Vec<_>>();
-            let dragging_over = state
-                .dragging_over
-                .iter()
-                .map(|(target, hit)| (*target, hit.clone()))
-                .collect::<Vec<_>>();
-            state.clear();
-            (pressed_targets, dragging_targets, dragging_over)
+            (
+                std::mem::take(&mut state.pressing),
+                std::mem::take(&mut state.dragging),
+                std::mem::take(&mut state.dragging_over),
+            )
         };
 
-        for hit in previous_hits {
-            if pressed_targets.contains(&hit.target) {
+        for hit in previous_hover.get(pointer) {
+            if pressed_targets.contains_key(&hit.target) {
                 events.push(PickingPointerEvent::new(
                     pointer,
                     location,
@@ -552,14 +536,6 @@ struct PointerButtonEventState {
     pressing: BTreeMap<HitTarget, PressState>,
     dragging: BTreeMap<HitTarget, DragState>,
     dragging_over: BTreeMap<HitTarget, HitData>,
-}
-
-impl PointerButtonEventState {
-    fn clear(&mut self) {
-        self.pressing.clear();
-        self.dragging.clear();
-        self.dragging_over.clear();
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

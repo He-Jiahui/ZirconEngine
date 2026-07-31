@@ -1,7 +1,9 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::fmt;
+use std::sync::Arc;
+
+use arc_swap::ArcSwap;
 
 use crate::core::framework::bridge::{
     BridgeDiagnostics, BridgeDiagnosticsSnapshot, BridgeError, BridgeInterfaceStatus,
@@ -45,15 +47,19 @@ impl InterfaceExport {
     }
 }
 
-#[derive(Debug)]
 pub struct BridgeEntry {
     interface_id: String,
-    provider: Mutex<Option<Arc<dyn Any + Send + Sync>>>,
-    /// Generation parity is the bridge enablement contract:
-    /// even generations are enabled, odd generations are disabled.
-    generation: AtomicU32,
+    state: ArcSwap<BridgeEntryState>,
     owner: PluginModuleId,
     diagnostics: BridgeDiagnostics,
+}
+
+#[derive(Clone)]
+struct BridgeEntryState {
+    /// Generation parity is the bridge enablement contract:
+    /// even generations are enabled, odd generations are disabled.
+    generation: u32,
+    provider: Option<Arc<dyn Any + Send + Sync>>,
 }
 
 impl BridgeEntry {
@@ -64,8 +70,10 @@ impl BridgeEntry {
     ) -> Self {
         Self {
             interface_id,
-            provider: Mutex::new(Some(provider)),
-            generation: AtomicU32::new(0),
+            state: ArcSwap::from_pointee(BridgeEntryState {
+                generation: 0,
+                provider: Some(provider),
+            }),
             owner,
             diagnostics: BridgeDiagnostics::default(),
         }
@@ -80,7 +88,7 @@ impl BridgeEntry {
     }
 
     pub fn generation(&self) -> u32 {
-        self.generation.load(Ordering::Acquire)
+        self.state.load().generation
     }
 
     pub fn is_enabled(&self) -> bool {
@@ -88,7 +96,7 @@ impl BridgeEntry {
     }
 
     pub fn provider_installed(&self) -> bool {
-        self.lock_provider().is_some()
+        self.state.load().provider.is_some()
     }
 
     pub fn diagnostics(&self) -> BridgeDiagnosticsSnapshot {
@@ -111,45 +119,47 @@ impl BridgeEntry {
     where
         T: PluginInterface + ?Sized,
     {
-        let generation = self.generation();
-        if generation % 2 != 0 {
+        let state = self.state.load();
+        if state.generation % 2 != 0 {
             return Err(BridgeError::NotEnabled);
         }
 
-        let provider = self
-            .lock_provider()
+        let provider = state
+            .provider
             .as_ref()
             .cloned()
             .ok_or(BridgeError::NotEnabled)?;
         let provider = provider
             .downcast::<Arc<T>>()
             .map_err(|_| BridgeError::NotEnabled)?;
-        Ok((generation, (*provider).clone()))
+        Ok((state.generation, (*provider).clone()))
     }
 
     fn set_enabled(&self, enabled: bool) {
-        let mut current = self.generation();
-        loop {
-            let currently_enabled = current % 2 == 0;
+        self.state.rcu(|current| {
+            let currently_enabled = current.generation % 2 == 0;
             if currently_enabled == enabled {
-                return;
+                return Arc::clone(current);
             }
-
-            match self.generation.compare_exchange(
-                current,
-                current.wrapping_add(1),
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            ) {
-                Ok(_) => return,
-                Err(next) => current = next,
-            }
-        }
+            Arc::new(BridgeEntryState {
+                generation: current.generation.wrapping_add(1),
+                provider: current.provider.clone(),
+            })
+        });
     }
 
     fn deactivate(&self) {
-        self.set_enabled(false);
-        *self.lock_provider() = None;
+        self.state.rcu(|current| {
+            let generation = if current.generation % 2 == 0 {
+                current.generation.wrapping_add(1)
+            } else {
+                current.generation
+            };
+            Arc::new(BridgeEntryState {
+                generation,
+                provider: None,
+            })
+        });
     }
 
     fn replace_provider<T>(&self, provider: Arc<T>)
@@ -160,32 +170,62 @@ impl BridgeEntry {
     }
 
     fn replace_erased_provider(&self, provider: Arc<dyn Any + Send + Sync>) {
-        *self.lock_provider() = Some(provider);
-        if self.generation() % 2 == 0 {
-            self.generation.fetch_add(2, Ordering::AcqRel);
-        }
+        self.state.rcu(|current| {
+            let generation = if current.generation % 2 == 0 {
+                current.generation.wrapping_add(2)
+            } else {
+                current.generation
+            };
+            Arc::new(BridgeEntryState {
+                generation,
+                provider: Some(Arc::clone(&provider)),
+            })
+        });
     }
 
     fn restore_provider(&self, provider: Arc<dyn Any + Send + Sync>) {
-        *self.lock_provider() = Some(provider);
-        self.set_enabled(true);
-    }
-
-    fn lock_provider(&self) -> MutexGuard<'_, Option<Arc<dyn Any + Send + Sync>>> {
-        self.provider
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.state.rcu(|current| {
+            let same_provider = current
+                .provider
+                .as_ref()
+                .is_some_and(|current_provider| Arc::ptr_eq(current_provider, &provider));
+            if current.generation % 2 == 0 && same_provider {
+                return Arc::clone(current);
+            }
+            let generation = if current.generation % 2 == 0 {
+                current.generation.wrapping_add(2)
+            } else {
+                current.generation.wrapping_add(1)
+            };
+            Arc::new(BridgeEntryState {
+                generation,
+                provider: Some(Arc::clone(&provider)),
+            })
+        });
     }
 
     fn snapshot_state(&self) -> BridgeEntrySnapshotState {
-        let generation = self.generation();
-        let provider_installed = self.provider_installed();
+        let state = self.state.load();
+        let generation = state.generation;
+        let provider_installed = state.provider.is_some();
         let status = BridgeInterfaceStatus::from_installed_entry(generation, provider_installed);
         BridgeEntrySnapshotState {
             generation,
             provider_installed,
             status,
         }
+    }
+}
+
+impl fmt::Debug for BridgeEntry {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("BridgeEntry")
+            .field("interface_id", &self.interface_id)
+            .field("state", &self.snapshot_state())
+            .field("owner", &self.owner)
+            .field("diagnostics", &self.diagnostics())
+            .finish()
     }
 }
 
@@ -225,6 +265,14 @@ impl FrozenBridgeTable {
                 slots_by_interface,
             }),
         }
+    }
+
+    /// Whether both handles retain the same immutable table allocation.
+    ///
+    /// Registration-replay generations capture bridge call scopes, so cache reuse is safe only
+    /// when the caller is replaying through this exact frozen table, not just an equivalent table.
+    pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner)
     }
 
     pub fn resolve_slot(&self, interface_id: &str) -> Option<InterfaceSlot> {
@@ -331,7 +379,7 @@ impl FrozenBridgeTable {
     where
         T: PluginInterface + ?Sized,
     {
-        WeakBridge::new(self.clone(), self.resolve_slot(T::INTERFACE_ID))
+        WeakBridge::<T>::new(self.clone(), self.resolve_slot(T::INTERFACE_ID))
     }
 
     pub fn set_enabled(
@@ -385,14 +433,14 @@ impl FrozenBridgeTable {
         self.set_owner_enabled_with_report(owner, true)
     }
 
-    pub(crate) fn restore_owner_exports_with_report(
+    pub(crate) fn restore_owner_exports_with_report<'a>(
         &self,
         owner: PluginModuleId,
-        exports: impl IntoIterator<Item = (String, InterfaceExport)>,
+        exports: impl IntoIterator<Item = (&'a str, &'a InterfaceExport)>,
     ) -> BridgeOwnerTransitionReport {
         let mut affected_slots = Vec::new();
         for (interface_id, export) in exports {
-            let Some(slot) = self.resolve_slot(&interface_id) else {
+            let Some(slot) = self.resolve_slot(interface_id) else {
                 continue;
             };
             let Some(entry) = self.entry(slot) else {
@@ -410,14 +458,14 @@ impl FrozenBridgeTable {
         self.owner_transition_report(owner, BridgeOwnerTransitionMode::Activate, affected_slots)
     }
 
-    pub(crate) fn reload_owner_exports_with_report(
+    pub(crate) fn reload_owner_exports_with_report<'a>(
         &self,
         owner: PluginModuleId,
-        exports: impl IntoIterator<Item = (String, InterfaceExport)>,
+        exports: impl IntoIterator<Item = (&'a str, &'a InterfaceExport)>,
     ) -> BridgeOwnerTransitionReport {
         let mut affected_slots = Vec::new();
         for (interface_id, export) in exports {
-            let Some(slot) = self.resolve_slot(&interface_id) else {
+            let Some(slot) = self.resolve_slot(interface_id) else {
                 continue;
             };
             let Some(entry) = self.entry(slot) else {
@@ -523,8 +571,9 @@ impl FrozenBridgeTable {
         entries: impl IntoIterator<Item = (usize, &'a BridgeEntry)>,
     ) -> BridgeTableDiagnosticsSummary {
         let mut summary = BridgeTableDiagnosticsSummary::default();
-        for (index, entry) in entries {
-            summary.record_snapshot(&self.snapshot_for_entry(index, entry));
+        for (_, entry) in entries {
+            let state = entry.snapshot_state();
+            summary.record_state(state.status, state.provider_installed, entry.diagnostics());
         }
         summary
     }
@@ -557,8 +606,8 @@ impl BridgeInvocationTable for FrozenBridgeTable {
     }
 
     fn interface_status_at(&self, slot: InterfaceSlot) -> BridgeInterfaceStatus {
-        self.interface_snapshot(slot)
-            .map_or(BridgeInterfaceStatus::Absent, |snapshot| snapshot.status)
+        self.entry(slot)
+            .map_or(BridgeInterfaceStatus::Absent, BridgeEntry::status)
     }
 
     fn record_enabled_call(&self, slot: InterfaceSlot) {
@@ -572,8 +621,6 @@ impl BridgeInvocationTable for FrozenBridgeTable {
 
 #[cfg(test)]
 mod tests {
-    use std::panic::{catch_unwind, AssertUnwindSafe};
-
     use super::*;
 
     trait PoisonBridge: Send + Sync {
@@ -595,23 +642,18 @@ mod tests {
     }
 
     #[test]
-    fn bridge_entry_provider_accessors_recover_poisoned_provider_lock() {
+    fn bridge_entry_publishes_generation_and_provider_as_one_state() {
         let entry = BridgeEntry::new(
             <dyn PoisonBridge as PluginInterface>::INTERFACE_ID.to_string(),
             erased_provider(7),
             PluginModuleId::from_raw(7),
         );
 
-        let _ = catch_unwind(AssertUnwindSafe(|| {
-            let _guard = entry.provider.lock().unwrap();
-            panic!("poison bridge entry provider lock");
-        }));
-
         assert!(entry.provider_installed());
         assert_eq!(entry.status(), BridgeInterfaceStatus::Enabled);
         let (_, provider) = entry
             .provider::<dyn PoisonBridge>()
-            .expect("provider should recover after poison");
+            .expect("initial provider");
         assert_eq!(provider.sample(), 7);
 
         entry.deactivate();
@@ -621,14 +663,14 @@ mod tests {
         entry.restore_provider(erased_provider(11));
         let (_, provider) = entry
             .provider::<dyn PoisonBridge>()
-            .expect("restored provider should recover after poison");
+            .expect("restored provider");
         assert_eq!(provider.sample(), 11);
 
         let replacement: Arc<dyn PoisonBridge> = Arc::new(PoisonBridgeProvider { value: 13 });
         entry.replace_provider(replacement);
         let (_, provider) = entry
             .provider::<dyn PoisonBridge>()
-            .expect("replaced provider should recover after poison");
+            .expect("replaced provider");
         assert_eq!(provider.sample(), 13);
     }
 

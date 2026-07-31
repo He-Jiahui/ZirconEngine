@@ -33,26 +33,41 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "template_nodes_collect_commands");
         zircon_runtime::profile_counter!("editor", "template_node_count", nodes.row_count());
-        for row in 0..nodes.row_count() {
+        let visit_rows = transform
+            .and_then(|transform| transform.row_visit_indices(nodes.row_count(), &effective_clip));
+        let collect_row = |row: usize, commands: &mut Vec<HostPaintCommand>| {
             let Some(source_node) = nodes.row_data(row) else {
-                continue;
+                return;
             };
-            let Some((node, node_clip)) = transform
-                .map(|transform| transform.transform(source_node.clone(), effective_clip.clone()))
-                .unwrap_or_else(|| Some((source_node, effective_clip.clone())))
-            else {
-                continue;
+            let transformed = match transform {
+                Some(transform) => transform.transform(source_node, effective_clip.clone()),
+                None => Some((source_node, effective_clip.clone())),
+            };
+            let Some((node, node_clip)) = transformed else {
+                return;
             };
             // Region repaint must avoid generating commands for off-damage nodes:
             // image commands can rasterize previews before the final primitive clip runs.
             push_template_node_commands(
-                &mut commands,
+                commands,
                 &node,
                 origin,
                 &node_clip,
                 text_input_focus,
                 row as i32,
             );
+        };
+        match visit_rows {
+            Some(rows) => {
+                for row in rows {
+                    collect_row(row, &mut commands);
+                }
+            }
+            None => {
+                for row in 0..nodes.row_count() {
+                    collect_row(row, &mut commands);
+                }
+            }
         }
     }
     {

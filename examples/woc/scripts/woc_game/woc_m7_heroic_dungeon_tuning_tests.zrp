@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_heroic_dungeon_tuning_tests",
+  "source": "src",
+  "binary": "bin-m7-heroic-dungeon-tuning-tests",
+  "entry": "instances/heroic_dungeon_tuning_test_main"
+}

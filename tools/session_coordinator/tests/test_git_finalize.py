@@ -163,6 +163,41 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(foreign_path, self._staged_names())
         self.assertEqual("foreign = True\n", (self.repo / foreign_path).read_text(encoding="utf-8"))
 
+    def test_maintenance_finalize_snapshots_foreign_leased_work_without_blocking_later_edits(self) -> None:
+        path = "src/leased_snapshot.py"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("snapshot = 1\n", encoding="utf-8")
+        self.sessions.register(session_id="session-b")
+        self.sessions.set_status("session-b", SessionStatus.ACTIVE)
+        self.assertTrue(self.leases.acquire("session-b", [path]).acquired)
+        original_stage = self.service._git_add_partition
+
+        def stage_then_continue(*args) -> None:
+            original_stage(*args)
+            target.write_text("snapshot = 2\n", encoding="utf-8")
+
+        with mock.patch.object(
+            self.service, "_git_add_partition", side_effect=stage_then_continue
+        ):
+            result = self.service.finalize(
+                "session-a",
+                paths=[path],
+                message="feat(runtime): snapshot active leased work",
+                maintenance=True,
+            )
+
+        committed = subprocess.run(
+            ["git", "show", f"{result.commit_sha}:{path}"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        self.assertEqual("snapshot = 1\n", committed)
+        self.assertEqual("snapshot = 2\n", target.read_text(encoding="utf-8"))
+        self.assertEqual([path], self.leases.owned_paths("session-b"))
+
     def test_maintenance_restore_failure_keeps_recoverable_index_snapshot(self) -> None:
         maintenance_path = "tools/coordinator_repair.py"
         foreign_path = "src/foreign_staged.py"
@@ -1030,13 +1065,43 @@ class GitFinalizeTests(unittest.TestCase):
             + "api"
             + "_key: str\n"
             + "pass"
-            + "word: Optional[str]\n",
+            + "word: Optional[str]\n"
+            + "pass"
+            + "word: String,\n",
             encoding="utf-8",
         )
         self.baselines.attribute("session-a", [paths[0]])
 
         result = self.service.finalize(
             "session-a", paths=paths, message="test(runtime): document credential fields"
+        )
+
+        self.assertEqual(result.commit_sha, self._head())
+        self.assertEqual("", self._staged_names())
+
+    def test_finalize_allows_sensitive_source_values_from_non_literal_expressions(self) -> None:
+        paths = ["src/credential_forwarding.rs", "tools/credential-forwarding.ps1"]
+        rust = self.repo / paths[0]
+        rust.parent.mkdir(parents=True, exist_ok=True)
+        rust.write_text(
+            "let pass" + "word = request.pass" + "word;\n"
+            "Route::ShowPass" + "word => {}\n"
+            "Credentials { pass" + "word: String::new() }\n",
+            encoding="utf-8",
+        )
+        powershell = self.repo / paths[1]
+        powershell.parent.mkdir(parents=True, exist_ok=True)
+        powershell.write_text(
+            "$env:ZIRCON_COORDINATOR_"
+            + "MAINTENANCE_TOKEN = $generatedToken\n",
+            encoding="utf-8",
+        )
+
+        result = self.service.finalize(
+            "session-a",
+            paths=paths,
+            message="test(tooling): allow credential value forwarding",
+            maintenance=True,
         )
 
         self.assertEqual(result.commit_sha, self._head())
@@ -1382,7 +1447,7 @@ class GitFinalizeTests(unittest.TestCase):
         original_git = self.service._git
 
         def racing_git(*arguments: str) -> str:
-            if arguments[:3] == ("add", "-A", "--"):
+            if arguments[:2] == ("add", "-A"):
                 (self.repo / paths[0]).write_text("foreign race\n", encoding="utf-8")
             return original_git(*arguments)
 

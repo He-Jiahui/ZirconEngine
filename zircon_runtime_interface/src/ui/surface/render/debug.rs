@@ -48,9 +48,11 @@ impl UiRenderDebugSnapshot {
                 .batches
                 .iter()
                 .map(|batch| UiRenderBatchDebugEntry {
+                    layer: batch.layer,
                     key: batch.key.clone(),
                     first_element: batch.range.first_element,
                     element_count: batch.range.element_count,
+                    source_indices: batch.source_indices.clone(),
                     node_ids: batch.node_ids.clone(),
                     split_reason: batch.split_reason,
                 })
@@ -71,9 +73,11 @@ pub struct UiRenderDebugStatsV2 {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderBatchDebugEntry {
+    pub layer: i32,
     pub key: UiBatchKey,
     pub first_element: usize,
     pub element_count: usize,
+    pub source_indices: Vec<usize>,
     pub node_ids: Vec<UiNodeId>,
     pub split_reason: UiBatchSplitReason,
 }

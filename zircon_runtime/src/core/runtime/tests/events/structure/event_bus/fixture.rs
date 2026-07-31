@@ -2,10 +2,11 @@ pub(super) struct EventBusSources {
     pub(super) root: &'static str,
     pub(super) subscribe: &'static str,
     pub(super) publish: &'static str,
-    pub(super) failure: &'static str,
     pub(super) prune: &'static str,
+    pub(super) diagnostics: &'static str,
+    pub(super) subscriber: &'static str,
+    pub(super) topic: &'static str,
     pub(super) combined: String,
-    pub(super) normalized_combined: String,
 }
 
 impl EventBusSources {
@@ -13,35 +14,23 @@ impl EventBusSources {
         let root = include_str!("../../../../events.rs");
         let subscribe = include_str!("../../../../events/subscribe.rs");
         let publish = include_str!("../../../../events/publish.rs");
-        let failure = include_str!("../../../../events/failure.rs");
         let prune = include_str!("../../../../events/prune.rs");
-        let combined = format!("{subscribe}\n{publish}\n{failure}\n{prune}\n{root}");
-        let normalized_combined = combined.replace("\r\n", "\n");
+        let diagnostics = include_str!("../../../../events/diagnostics.rs");
+        let subscriber = include_str!("../../../../events/subscriber.rs");
+        let topic = include_str!("../../../../events/topic.rs");
+        let combined = format!(
+            "{subscribe}\n{publish}\n{prune}\n{diagnostics}\n{subscriber}\n{topic}\n{root}"
+        );
         Self {
             root,
             subscribe,
             publish,
-            failure,
             prune,
+            diagnostics,
+            subscriber,
+            topic,
             combined,
-            normalized_combined,
         }
-    }
-
-    pub(super) fn publish_body(&self) -> &str {
-        slice_between(
-            self.publish,
-            "pub fn publish(&self, event: EngineEvent)",
-            "fn snapshot_topic_subscribers(&self, topic: &str)",
-        )
-    }
-
-    pub(super) fn occupied_subscribe_body(&self) -> &str {
-        slice_between(self.subscribe, "Entry::Occupied(mut entry)", "        rx")
-    }
-
-    pub(super) fn prune_body(&self) -> &str {
-        slice_from(self.prune, "fn prune_topic_subscribers(")
     }
 }
 
@@ -66,18 +55,4 @@ pub(super) fn assert_ordered(haystack: &str, fragments: &[&str]) {
             .unwrap_or_else(|| panic!("expected ordered fragment `{fragment}`"));
         cursor += offset + fragment.len();
     }
-}
-
-pub(super) fn slice_between<'a>(haystack: &'a str, start: &str, end: &str) -> &'a str {
-    let start_index = assert_contains(haystack, start);
-    let end_index = haystack[start_index..]
-        .find(end)
-        .map(|offset| start_index + offset)
-        .unwrap_or_else(|| panic!("expected source to contain end marker `{end}`"));
-    &haystack[start_index..end_index]
-}
-
-pub(super) fn slice_from<'a>(haystack: &'a str, start: &str) -> &'a str {
-    let start_index = assert_contains(haystack, start);
-    &haystack[start_index..]
 }

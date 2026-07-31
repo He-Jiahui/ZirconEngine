@@ -188,6 +188,9 @@ pub(super) struct SdfTextMaterialResources {
     buffer: wgpu::Buffer,
     uniform_stride: u32,
     capacity: usize,
+    uploaded_materials: Vec<SdfTextMaterial>,
+    upload_bytes: Vec<u8>,
+    upload_initialized: bool,
 }
 
 impl SdfTextMaterialResources {
@@ -219,6 +222,9 @@ impl SdfTextMaterialResources {
             buffer,
             uniform_stride,
             capacity: 1,
+            uploaded_materials: Vec::new(),
+            upload_bytes: Vec::new(),
+            upload_initialized: false,
         }
     }
 
@@ -232,6 +238,7 @@ impl SdfTextMaterialResources {
         let byte_len = usize::try_from(self.uniform_stride)
             .unwrap_or(usize::MAX)
             .saturating_mul(material_count);
+        let mut buffer_recreated = false;
         if material_count > self.capacity {
             self.buffer = create_material_buffer(device, byte_len as u64);
             self.bind_group = create_material_bind_group(
@@ -241,15 +248,24 @@ impl SdfTextMaterialResources {
                 std::mem::size_of::<SdfTextMaterialUniform>() as u64,
             );
             self.capacity = material_count;
+            buffer_recreated = true;
         }
-        let mut bytes = vec![0_u8; byte_len];
+        if self.upload_initialized && !buffer_recreated && self.uploaded_materials == materials {
+            return;
+        }
+
+        self.upload_bytes.clear();
+        self.upload_bytes.resize(byte_len, 0);
         for (index, material) in materials.iter().enumerate() {
             let offset = index * self.uniform_stride as usize;
             let uniform = material.uniform();
             let source = bytemuck::bytes_of(&uniform);
-            bytes[offset..offset + source.len()].copy_from_slice(source);
+            self.upload_bytes[offset..offset + source.len()].copy_from_slice(source);
         }
-        queue.write_buffer(&self.buffer, 0, &bytes);
+        queue.write_buffer(&self.buffer, 0, &self.upload_bytes);
+        self.uploaded_materials.clear();
+        self.uploaded_materials.extend_from_slice(materials);
+        self.upload_initialized = true;
     }
 
     pub(super) fn dynamic_offset(&self, material_index: u32) -> u32 {

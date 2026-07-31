@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::asset::{AssetManager, AssetUri, ASSET_MODULE_NAME};
-use crate::core::framework::scene::LevelManager;
+use crate::core::framework::scene::{LevelManager, SCENE_MODULE_NAME};
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::modules::TIME_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
@@ -24,7 +24,6 @@ use core_error::scene_core_error;
 pub use default_level_manager::DefaultLevelManager;
 pub use world_driver::WorldDriver;
 
-pub const SCENE_MODULE_NAME: &str = "SceneModule";
 pub const WORLD_DRIVER_NAME: &str = "SceneModule.Driver.WorldDriver";
 pub const DEFAULT_LEVEL_MANAGER_NAME: &str = "SceneModule.Manager.DefaultLevelManager";
 

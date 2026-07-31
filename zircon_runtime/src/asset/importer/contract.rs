@@ -194,11 +194,11 @@ impl AssetImportContext {
     }
 
     pub fn source_text(&self) -> Result<String, AssetImportError> {
-        String::from_utf8(self.source_bytes.clone()).map_err(|error| {
-            AssetImportError::Parse(format!(
-                "source {} is not valid utf-8: {error}",
-                self.source_path.display()
-            ))
+        String::from_utf8(self.source_bytes.clone()).map_err(|source| {
+            AssetImportError::SourceTextDecode {
+                path: self.source_path.clone(),
+                source,
+            }
         })
     }
 

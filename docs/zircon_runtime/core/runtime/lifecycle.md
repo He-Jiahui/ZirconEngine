@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/engine_module/mod.rs
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/core/runtime/descriptors/mod.rs
   - zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs
   - zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs
@@ -79,7 +79,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/engine_module/mod.rs
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/core/runtime/descriptors/mod.rs
   - zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs
   - zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs
@@ -168,8 +168,8 @@ tests:
   - zircon_app::plugins::tests::builtin_plugin_groups_finish_in_descriptor_activation_order
   - rustc --edition 2021 --test zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs zircon_runtime/src/core/runtime/handle/registration/service_lists/specialized.rs zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs zircon_runtime/src/core/runtime/handle/registration/register_module.rs
-  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/core/runtime/lifecycle.rs zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs zircon_runtime/src/core/runtime/descriptors/module_order.rs zircon_runtime/src/core/runtime/descriptors/mod.rs zircon_runtime/src/core/runtime/mod.rs zircon_runtime/src/core/mod.rs zircon_runtime/src/engine_module/mod.rs zircon_runtime/src/core/framework/error.rs zircon_runtime/src/core/runtime/tests/registration/behavior.rs zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs
-  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/core/runtime/lifecycle.rs zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs zircon_runtime/src/core/runtime/handle/activation.rs zircon_runtime/src/core/runtime/handle/activation/module_lifecycle.rs zircon_runtime/src/core/runtime/runtime.rs zircon_runtime/src/core/runtime/mod.rs zircon_runtime/src/core/mod.rs zircon_runtime/src/engine_module/mod.rs zircon_runtime/src/core/framework/error.rs zircon_runtime/src/core/runtime/tests/activation/behavior.rs zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/core/runtime/lifecycle.rs zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs zircon_runtime/src/core/runtime/descriptors/module_order.rs zircon_runtime/src/core/runtime/descriptors/mod.rs zircon_runtime/src/core/runtime/mod.rs zircon_runtime/src/core/mod.rs zircon_runtime/src/engine_module/mod.rs zircon_runtime/src/core/runtime/error.rs zircon_runtime/src/core/runtime/tests/registration/behavior.rs zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/core/runtime/lifecycle.rs zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs zircon_runtime/src/core/runtime/handle/activation.rs zircon_runtime/src/core/runtime/handle/activation/module_lifecycle.rs zircon_runtime/src/core/runtime/runtime.rs zircon_runtime/src/core/runtime/mod.rs zircon_runtime/src/core/mod.rs zircon_runtime/src/engine_module/mod.rs zircon_runtime/src/core/runtime/error.rs zircon_runtime/src/core/runtime/tests/activation/behavior.rs zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs
   - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/core/runtime/handle/activation/batch.rs zircon_runtime/src/core/runtime/handle/activation.rs zircon_runtime/src/core/runtime/runtime.rs zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs
   - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/builtin/runtime_modules/core_modules.rs zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs zircon_runtime/src/builtin/runtime_modules/load_report/report.rs zircon_runtime/src/builtin/runtime_modules/assembly.rs zircon_app/src/plugins/builder.rs zircon_app/src/entry/engine_entry.rs zircon_app/src/entry/builtin_modules.rs zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs zircon_app/src/plugins/tests.rs
   - cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-m2-0703 --message-format short --color never

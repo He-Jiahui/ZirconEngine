@@ -1,0 +1,41 @@
+var console = %import("zr.system.console");
+var container = %import("zr.container");
+var catalog = %import("generated/current_known_ability_catalog");
+var contract = %import("generated/cc_contract");
+var motion = %import("world/motion_aura_state");
+
+var abilityCodes = new container.Array<uint>();
+var sourceIds = new container.Array<uint>();
+var kindCodes = new container.Array<uint>();
+var remaining = new container.Array<float>();
+
+abilityCodes.add(<uint>catalog.abilityCode("deep_freeze"));
+sourceIds.add(<uint>41);
+kindCodes.add(contract.motionAuraKindCode("stun"));
+remaining.add(0.10);
+abilityCodes.add(<uint>catalog.abilityCode("entangling_roots"));
+sourceIds.add(<uint>42);
+kindCodes.add(contract.motionAuraKindCode("root"));
+remaining.add(0.10);
+abilityCodes.add(<uint>catalog.abilityCode("ice_floes"));
+sourceIds.add(<uint>43);
+kindCodes.add(contract.motionAuraKindCode("ice_floes"));
+remaining.add(0.10);
+
+if (!motion.rowsAreValid(abilityCodes, sourceIds, kindCodes, remaining, 0, 3, true) ||
+    !motion.isStunned(abilityCodes, sourceIds, kindCodes, remaining, 0, 3, true) ||
+    !motion.isRooted(abilityCodes, sourceIds, kindCodes, remaining, 0, 3, true) ||
+    !motion.hasIceFloes(abilityCodes, sourceIds, kindCodes, remaining, 0, 3, true) ||
+    !motion.canCastWhileMoving(false, abilityCodes, sourceIds, kindCodes, remaining, 0, 3, true) ||
+    !motion.canCastWhileMoving(true, abilityCodes, sourceIds, kindCodes, remaining, 0, 2, true)) {
+    return -1;
+}
+if (motion.remainsActiveAfterTick(0.05, true) ||
+    !motion.remainsActiveAfterTick(0.051, true) ||
+    motion.remainingAfterTick(0.05, true) != 0.0 ||
+    motion.remainingAfterTick(0.10, true) != 0.05) {
+    return -2;
+}
+
+console.printLine("wos39-motion-aura-state-test");
+return 0;

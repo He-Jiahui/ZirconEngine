@@ -241,7 +241,8 @@ doc_type: module-detail
 
 `zircon_editor::scene::viewport` 现在是 viewport authoring 类型的唯一 owner：
 
-- `SceneViewportTool`
+- `SceneModeActivation`
+- `TransformHandleKind`
 - `TransformSpace`
 - `ViewOrientation`
 - `GridMode`
@@ -500,7 +501,7 @@ editor asset host 在 `sync_from_project()` 里现在同时读取两份文档：
 
 这一轮之后，runtime 非测试生产代码里已经看不到这些旧残留：
 
-- `SceneViewportTool`
+- retired viewport-tool enum and command protocol
 - `TransformSpace`
 - `ViewOrientation`
 - `GridMode`

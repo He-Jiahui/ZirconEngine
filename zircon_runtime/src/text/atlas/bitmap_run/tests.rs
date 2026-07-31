@@ -8,6 +8,7 @@ use crate::core::math::UVec2;
 
 mod dirty_upload;
 mod draw_batches;
+mod persistent_slots;
 mod retry;
 
 #[test]
@@ -46,10 +47,11 @@ fn render_text_atlas_bitmap_run_allocates_bitmap_formats_to_distinct_pages() {
         plan.glyphs[2].page_key,
         GlyphAtlasPageKey::new(GlyphAtlasFormat::Color, 0)
     );
-    assert!(plan
-        .glyphs
-        .iter()
-        .all(|glyph| glyph.atlas_rect.x == 0 && glyph.atlas_rect.y == 0));
+    assert!(
+        plan.glyphs
+            .iter()
+            .all(|glyph| glyph.atlas_rect.x == 0 && glyph.atlas_rect.y == 0)
+    );
 }
 
 #[test]
@@ -191,8 +193,6 @@ fn render_text_atlas_bitmap_run_emits_upload_copies_for_staging_sources() {
                 content_size: UVec2::new(8, 4),
                 source_bytes_per_row: 8,
                 source_byte_len: 32,
-                atlas_bytes_per_row: 32,
-                atlas_byte_offset: 0,
             },
             GlyphAtlasBitmapUploadCopy {
                 source_index: 1,
@@ -201,8 +201,6 @@ fn render_text_atlas_bitmap_run_emits_upload_copies_for_staging_sources() {
                 content_size: UVec2::new(6, 4),
                 source_bytes_per_row: 6 * 4,
                 source_byte_len: 96,
-                atlas_bytes_per_row: 32 * 4,
-                atlas_byte_offset: 0,
             },
         ]
     );
@@ -237,18 +235,18 @@ fn render_text_atlas_bitmap_upload_staging_plan_copies_sources_into_page_rows() 
         staging.pages[0].page_key,
         GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0)
     );
+    assert_eq!(staging.pages[0].target_rect, atlas_rect(0, 0, 8, 2));
     assert_eq!(staging.pages[0].bytes_per_row, 8);
     assert_eq!(
         staging.pages[0].bytes,
         vec![
-            1, 2, 3, 4, 101, 102, 103, 104, 5, 6, 7, 8, 105, 106, 107, 108, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0,
+            1, 2, 3, 4, 101, 102, 103, 104, 5, 6, 7, 8, 105, 106, 107, 108,
         ]
     );
 }
 
 #[test]
-fn render_text_atlas_bitmap_upload_staging_plan_preserves_rgba_page_stride() {
+fn render_text_atlas_bitmap_upload_staging_plan_uses_packed_rgba_stride() {
     let plan = glyph_atlas_bitmap_run_plan_with_padding(
         [source(
             GlyphAtlasFormat::SubpixelMask,
@@ -270,13 +268,11 @@ fn render_text_atlas_bitmap_upload_staging_plan_preserves_rgba_page_stride() {
 
     assert!(!staging.has_failures());
     assert_eq!(staging.pages.len(), 1);
-    assert_eq!(staging.pages[0].bytes_per_row, 16);
+    assert_eq!(staging.pages[0].target_rect, atlas_rect(0, 0, 2, 1));
+    assert_eq!(staging.pages[0].bytes_per_row, 8);
     assert_eq!(
         staging.pages[0].bytes,
-        vec![
-            10, 20, 30, 40, 50, 60, 70, 80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0
-        ]
+        vec![10, 20, 30, 40, 50, 60, 70, 80,]
     );
 }
 
@@ -306,14 +302,8 @@ fn render_text_atlas_bitmap_staged_upload_plan_binds_page_bytes_to_upload_comman
 
     assert!(!staged.has_failures());
     assert_eq!(staged.uploads.len(), 1);
-    assert_eq!(
-        staged.uploads[0],
-        GlyphAtlasBitmapStagedUpload {
-            staging_page_index: 0,
-            command: plan.upload_commands[0],
-            staging_page_byte_len: 32,
-        }
-    );
+    assert_eq!(staged.uploads[0].staging_page_index, 0);
+    assert_eq!(staged.uploads[0].staging_page_byte_len, 16);
     assert_eq!(
         staged.uploads[0].command.mode,
         GlyphAtlasUploadMode::PartialRect
@@ -321,6 +311,7 @@ fn render_text_atlas_bitmap_staged_upload_plan_binds_page_bytes_to_upload_comman
     assert_eq!(staged.uploads[0].command.rect, atlas_rect(0, 0, 8, 2));
     assert_eq!(staged.uploads[0].command.source_offset, 0);
     assert_eq!(staged.uploads[0].command.bytes_per_row, 8);
+    assert_eq!(staged.uploads[0].command.rows_per_image, 2);
     assert_eq!(staged.uploads[0].command.upload_byte_len, 16);
 }
 
@@ -373,6 +364,7 @@ fn render_text_atlas_bitmap_staged_upload_plan_reports_short_page_bytes() {
         pages: vec![GlyphAtlasBitmapPageUploadStaging {
             page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0),
             page_generation: 0,
+            target_rect: atlas_rect(0, 0, 4, 2),
             bytes_per_row: 8,
             bytes: vec![0; 4],
         }],
@@ -419,14 +411,8 @@ fn render_text_atlas_bitmap_prepared_upload_plan_builds_staging_and_uploads() {
     assert!(!prepared.has_failures());
     assert_eq!(prepared.staging.pages.len(), 1);
     assert_eq!(prepared.staged_uploads.uploads.len(), 1);
-    assert_eq!(
-        prepared.staged_uploads.uploads[0],
-        GlyphAtlasBitmapStagedUpload {
-            staging_page_index: 0,
-            command: plan.upload_commands[0],
-            staging_page_byte_len: 32,
-        }
-    );
+    assert_eq!(prepared.staged_uploads.uploads[0].staging_page_index, 0);
+    assert_eq!(prepared.staged_uploads.uploads[0].staging_page_byte_len, 16);
 }
 
 #[test]
@@ -466,9 +452,9 @@ fn render_text_atlas_bitmap_texture_upload_request_plan_projects_renderer_write_
             extent: UVec2::new(8, 2),
             source_offset: 0,
             bytes_per_row: 8,
-            rows_per_image: 4,
+            rows_per_image: 2,
             upload_byte_len: 16,
-            staging_page_byte_len: 32,
+            staging_page_byte_len: 16,
         }]
     );
 }
@@ -722,6 +708,13 @@ fn render_text_atlas_bitmap_run_records_failures_for_invalid_sources() {
     );
 }
 
+#[test]
+fn bitmap_upload_staging_does_not_allocate_per_glyph_row_range_vec() {
+    let source = include_str!("staging.rs");
+
+    assert!(!source.contains("let mut row_ranges = Vec::with_capacity"));
+}
+
 fn source(
     format: GlyphAtlasFormat,
     content_size: UVec2,
@@ -729,6 +722,7 @@ fn source(
     source_byte_len: usize,
 ) -> GlyphAtlasBitmapSource {
     GlyphAtlasBitmapSource {
+        raster_key: None,
         format,
         content_size,
         screen_rect: GlyphAtlasScreenRect::new(

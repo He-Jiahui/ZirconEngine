@@ -9,6 +9,33 @@ use crate::scene::viewport::{SceneInspectorFieldValue, SceneViewportController};
 const CLOUD_LAYER_TYPE_PATH: &str = "weather.Component.CloudLayer";
 
 #[test]
+fn viewport_edit_mode_projection_borrows_runtime_inspection_artifacts() {
+    let source = include_str!("../../scene/viewport/edit_mode_projection/build.rs");
+    let snapshot_source =
+        include_str!("../../ui/workbench/snapshot/data/editor_state_snapshot_build.rs");
+    let selection_state_source = include_str!("../../ui/workbench/state/editor_state_selection.rs");
+    let viewport_root = include_str!("../../scene/viewport/mod.rs");
+    let controller_root = include_str!("../../scene/viewport/controller/mod.rs");
+
+    assert!(viewport_root.contains("mod edit_mode_projection;"));
+    assert!(!viewport_root.contains("#[cfg(test)]\nmod edit_mode_projection;"));
+    assert!(controller_root.contains("mod scene_viewport_controller_build_edit_mode_projection;"));
+    assert!(!controller_root
+        .contains("#[cfg(test)]\nmod scene_viewport_controller_build_edit_mode_projection;"));
+    assert!(source.contains("scene.inspection_artifact()"));
+    assert!(source.contains("scene.inspection_fields_artifact(entity)"));
+    assert!(!source.contains("scene.inspect_hierarchy()"));
+    assert!(!source.contains("scene.inspect_fields(entity)"));
+    assert!(!source.contains("scene.contains_entity(*entity)"));
+    assert!(!source.contains("artifact.fields().to_vec()"));
+    assert!(snapshot_source.contains("let hierarchy = scene.inspection_artifact();"));
+    assert!(snapshot_source.contains("hierarchy.hierarchy_row(*entity).is_some()"));
+    assert!(!snapshot_source.contains("scene.contains_entity(*entity)"));
+    assert!(selection_state_source.contains(".inspection_fields_artifact(selected)"));
+    assert!(!selection_state_source.contains("scene.find_node(selected)"));
+}
+
+#[test]
 fn viewport_edit_mode_projection_consumes_runtime_reflection_inspector_fields() {
     let mut scene = Scene::empty();
     scene

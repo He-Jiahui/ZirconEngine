@@ -11,8 +11,6 @@ use zircon_runtime_interface::ui::surface::{
     UiTextRange, UiTextWritingMode,
 };
 
-use crate::text::ParagraphOverride;
-
 use super::adapter::text_style;
 use super::rich_text::parse_source_text;
 
@@ -284,19 +282,6 @@ fn block_line_constraints(
         first_physical_line,
         provider,
     )
-}
-
-fn paragraph_align_for_offset(
-    paragraphs: &[((u32, u32), ParagraphOverride)],
-    offset: usize,
-    fallback: UiTextAlign,
-) -> UiTextAlign {
-    let offset = u32::try_from(offset).unwrap_or(u32::MAX);
-    paragraphs
-        .iter()
-        .find(|(range, _)| range.0 <= offset && offset < range.1)
-        .and_then(|(_, paragraph)| paragraph.align.map(Into::into))
-        .unwrap_or(fallback)
 }
 
 fn resolve_overflow_style_with_provider(

@@ -1,0 +1,505 @@
+// Focused M5 player-trade source-contract fixture projected from source commit
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. It is not imported by main.zr or
+// world/state.zr: production trade remains blocked on the Runtime10/Plugins08
+// byte bridge. Both confirmations revalidate ownership, currency and
+// post-give capacity before the atomic bilateral swap.
+var catalog = %import("generated/m5_content_catalog");
+var container = %import("zr.container");
+var ledger = %import("progression/inventory_instance_ledger");
+
+var INVENTORY_CAPACITY = 16;
+
+class TradeState {
+    pub var copperA: int;
+    pub var copperB: int;
+    pub var deadA: bool;
+    pub var deadB: bool;
+    pub var distance: float;
+    pub var inventoryA: ledger.InventoryInstanceLedger;
+    pub var inventoryB: ledger.InventoryInstanceLedger;
+    pub var invitePending: bool;
+    pub var inviteExpiresTick: int;
+    pub var sessionOpen: bool;
+    pub var offerAIds: container.Array<string>;
+    pub var offerACounts: container.Array<int>;
+    pub var offerBIds: container.Array<string>;
+    pub var offerBCounts: container.Array<int>;
+    pub var offerACopper: int;
+    pub var offerBCopper: int;
+    pub var acceptedA: bool;
+    pub var acceptedB: bool;
+    pub var tickCount: int;
+    pub var completedTradesA: int;
+    pub var completedTradesB: int;
+    pub var completedEvents: int;
+    pub var cancelledEvents: int;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.copperA = 0;
+        this.copperB = 0;
+        this.deadA = false;
+        this.deadB = false;
+        this.distance = 0.0;
+        this.inventoryA = new ledger.InventoryInstanceLedger();
+        this.inventoryB = new ledger.InventoryInstanceLedger();
+        this.invitePending = false;
+        this.inviteExpiresTick = 0;
+        this.sessionOpen = false;
+        this.offerAIds = new container.Array<string>();
+        this.offerACounts = new container.Array<int>();
+        this.offerBIds = new container.Array<string>();
+        this.offerBCounts = new container.Array<int>();
+        this.offerACopper = 0;
+        this.offerBCopper = 0;
+        this.acceptedA = false;
+        this.acceptedB = false;
+        this.tickCount = 0;
+        this.completedTradesA = 0;
+        this.completedTradesB = 0;
+        this.completedEvents = 0;
+        this.cancelledEvents = 0;
+        this.lastError = 0;
+    }
+}
+
+stackSize(itemId: string): int {
+    var item = catalog.indexOf("item", itemId);
+    if (item < 0) { return 20; }
+    var kind = catalog.text("item", item, "kind");
+    if (kind == "weapon" || kind == "armor" || kind == "bag" || kind == "tool") {
+        return 1;
+    }
+    return 20;
+}
+
+inventoryFor(state: TradeState, player: int): ledger.InventoryInstanceLedger {
+    return player == 1 ? state.inventoryA : state.inventoryB;
+}
+
+addPlain(inventory: ledger.InventoryInstanceLedger, itemId: string, count: int): void {
+    ledger.setStackLimit(inventory, itemId, stackSize(itemId));
+    ledger.addStacked(inventory, itemId, count);
+}
+
+copyInventory(source: ledger.InventoryInstanceLedger): ledger.InventoryInstanceLedger {
+    var copied = new ledger.InventoryInstanceLedger();
+    var index = 0;
+    while (index < source.slots.length) {
+        var slot = <ledger.InventoryInstanceSlot>source.slots[index];
+        if (slot.hasInstance) {
+            ledger.addItemInstance(copied, slot.itemId, ledger.slotInstance(source, index));
+        } else {
+            addPlain(copied, slot.itemId, slot.count);
+        }
+        index = index + 1;
+    }
+    return copied;
+}
+
+removeNewestInstance(
+    inventory: ledger.InventoryInstanceLedger,
+    itemId: string
+): ledger.ItemInstanceData {
+    var index = inventory.slots.length - 1;
+    while (index >= 0) {
+        var slot = <ledger.InventoryInstanceSlot>inventory.slots[index];
+        if (slot.itemId == itemId && slot.hasInstance) {
+            var payload = ledger.slotInstance(inventory, index);
+            inventory.slots.removeAt(index);
+            return payload;
+        }
+        index = index - 1;
+    }
+    return new ledger.ItemInstanceData();
+}
+
+removePreferFungible(
+    inventory: ledger.InventoryInstanceLedger,
+    itemId: string,
+    count: int
+): int {
+    var fungible = ledger.countFungibleItem(inventory, itemId);
+    var plainCount = count < fungible ? count : fungible;
+    if (plainCount > 0) {
+        ledger.removeFungible(inventory, itemId, plainCount);
+    }
+    var remaining = count - plainCount;
+    while (remaining > 0) {
+        removeNewestInstance(inventory, itemId);
+        remaining = remaining - 1;
+    }
+    return count - plainCount;
+}
+
+pub addItem(state: TradeState, player: int, itemId: string, count: int): void {
+    if (player == 1 || player == 2) { addPlain(inventoryFor(state, player), itemId, count); }
+}
+
+pub addItemInstance(
+    state: TradeState,
+    player: int,
+    itemId: string,
+    payload: ledger.ItemInstanceData
+): void {
+    if (player == 1 || player == 2) {
+        ledger.addItemInstance(inventoryFor(state, player), itemId, payload);
+    }
+}
+
+pub countItem(state: TradeState, player: int, itemId: string): int {
+    if (player == 1 || player == 2) { return ledger.countItem(inventoryFor(state, player), itemId); }
+    return 0;
+}
+
+instanceSigner(state: TradeState, player: int, itemId: string): string {
+    var inventory = inventoryFor(state, player);
+    var index = 0;
+    while (index < inventory.slots.length) {
+        var slot = <ledger.InventoryInstanceSlot>inventory.slots[index];
+        if (slot.itemId == itemId && slot.hasInstance) {
+            return ledger.slotInstance(inventory, index).signer;
+        }
+        index = index + 1;
+    }
+    return "";
+}
+
+instanceCharge(state: TradeState, player: int, itemId: string, chargeId: string): int {
+    var inventory = inventoryFor(state, player);
+    var index = 0;
+    while (index < inventory.slots.length) {
+        var slot = <ledger.InventoryInstanceSlot>inventory.slots[index];
+        if (slot.itemId == itemId && slot.hasInstance) {
+            return ledger.chargeCount(ledger.slotInstance(inventory, index), chargeId);
+        }
+        index = index + 1;
+    }
+    return 0;
+}
+
+clearOffer(state: TradeState, player: int): void {
+    if (player == 1) {
+        while (state.offerAIds.length > 0) {
+            state.offerAIds.removeAt(state.offerAIds.length - 1);
+            state.offerACounts.removeAt(state.offerACounts.length - 1);
+        }
+        state.offerACopper = 0;
+    }
+    if (player == 2) {
+        while (state.offerBIds.length > 0) {
+            state.offerBIds.removeAt(state.offerBIds.length - 1);
+            state.offerBCounts.removeAt(state.offerBCounts.length - 1);
+        }
+        state.offerBCopper = 0;
+    }
+}
+
+closeSession(state: TradeState): void {
+    state.sessionOpen = false;
+    state.acceptedA = false;
+    state.acceptedB = false;
+    clearOffer(state, 1);
+    clearOffer(state, 2);
+}
+
+pub request(state: TradeState): bool {
+    state.lastError = 0;
+    if (state.sessionOpen || state.invitePending || state.distance > 10.0) {
+        state.lastError = -1;
+        return false;
+    }
+    state.invitePending = true;
+    state.inviteExpiresTick = state.tickCount + 600;
+    return true;
+}
+
+pub accept(state: TradeState): bool {
+    state.lastError = 0;
+    if (!state.invitePending || state.inviteExpiresTick < state.tickCount) {
+        state.lastError = -2;
+        return false;
+    }
+    state.invitePending = false;
+    if (state.sessionOpen) { state.lastError = -1; return false; }
+    state.sessionOpen = true;
+    clearOffer(state, 1);
+    clearOffer(state, 2);
+    return true;
+}
+
+pub setOffer(
+    state: TradeState,
+    player: int,
+    itemId: string,
+    requestedCount: int,
+    requestedCopper: int
+): bool {
+    state.lastError = 0;
+    if (!state.sessionOpen) { state.lastError = -3; return false; }
+    clearOffer(state, player);
+    var availableCopper = player == 1 ? state.copperA : state.copperB;
+    var copper = requestedCopper;
+    if (copper < 0) { copper = 0; }
+    if (copper > availableCopper) { copper = availableCopper; }
+    var item = catalog.indexOf("item", itemId);
+    var count = requestedCount > 0 ? requestedCount : 1;
+    var validItem = item >= 0 && catalog.text("item", item, "kind") != "quest" &&
+        countItem(state, player, itemId) >= count;
+    if (player == 1) {
+        state.offerACopper = copper;
+        if (validItem) { state.offerAIds.add(itemId); state.offerACounts.add(count); }
+    }
+    if (player == 2) {
+        state.offerBCopper = copper;
+        if (validItem) { state.offerBIds.add(itemId); state.offerBCounts.add(count); }
+    }
+    state.acceptedA = false;
+    state.acceptedB = false;
+    return validItem || copper > 0 || itemId == "";
+}
+
+offerCovered(state: TradeState, player: int): bool {
+    var ids = player == 1 ? state.offerAIds : state.offerBIds;
+    var counts = player == 1 ? state.offerACounts : state.offerBCounts;
+    var index = 0;
+    while (index < ids.length) {
+        if (countItem(state, player, <string>ids[index]) < <int>counts[index]) { return false; }
+        index = index + 1;
+    }
+    return true;
+}
+
+fitsAfterSwap(state: TradeState, player: int): bool {
+    var sourceInventory = inventoryFor(state, player);
+    var giverInventory = inventoryFor(state, player == 1 ? 2 : 1);
+    var givesIds = player == 1 ? state.offerAIds : state.offerBIds;
+    var givesCounts = player == 1 ? state.offerACounts : state.offerBCounts;
+    var receivesIds = player == 1 ? state.offerBIds : state.offerAIds;
+    var receivesCounts = player == 1 ? state.offerBCounts : state.offerACounts;
+    var scratch = copyInventory(sourceInventory);
+    var index = 0;
+    while (index < givesIds.length) {
+        removePreferFungible(scratch, <string>givesIds[index], <int>givesCounts[index]);
+        index = index + 1;
+    }
+    index = 0;
+    while (index < receivesIds.length) {
+        var itemId = <string>receivesIds[index];
+        var count = <int>receivesCounts[index];
+        var fungibleAvailable = ledger.countFungibleItem(giverInventory, itemId);
+        var instanceCount = count - fungibleAvailable;
+        if (instanceCount < 0) { instanceCount = 0; }
+        var plainCount = count - instanceCount;
+        if (plainCount > 0) {
+            ledger.setStackLimit(scratch, itemId, stackSize(itemId));
+            if (ledger.countFit(scratch, INVENTORY_CAPACITY, itemId, plainCount) < plainCount) {
+                return false;
+            }
+            addPlain(scratch, itemId, plainCount);
+        }
+        while (instanceCount > 0) {
+            if (scratch.slots.length >= INVENTORY_CAPACITY) { return false; }
+            ledger.addItemInstance(scratch, itemId, new ledger.ItemInstanceData());
+            instanceCount = instanceCount - 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+transferOffer(state: TradeState, from: int, to: int): void {
+    var ids = from == 1 ? state.offerAIds : state.offerBIds;
+    var counts = from == 1 ? state.offerACounts : state.offerBCounts;
+    var sourceInventory = inventoryFor(state, from);
+    var targetInventory = inventoryFor(state, to);
+    var index = 0;
+    while (index < ids.length) {
+        var itemId = <string>ids[index];
+        var count = <int>counts[index];
+        var fungibleAvailable = ledger.countFungibleItem(sourceInventory, itemId);
+        var plainCount = count < fungibleAvailable ? count : fungibleAvailable;
+        if (plainCount > 0) {
+            ledger.removeFungible(sourceInventory, itemId, plainCount);
+            addPlain(targetInventory, itemId, plainCount);
+        }
+        var instanceCount = count - plainCount;
+        while (instanceCount > 0) {
+            ledger.addItemInstance(targetInventory, itemId, removeNewestInstance(sourceInventory, itemId));
+            instanceCount = instanceCount - 1;
+        }
+        index = index + 1;
+    }
+}
+
+pub confirm(state: TradeState, player: int): bool {
+    state.lastError = 0;
+    if (!state.sessionOpen) { state.lastError = -3; return false; }
+    if (player == 1) { state.acceptedA = true; }
+    if (player == 2) { state.acceptedB = true; }
+    if (!state.acceptedA || !state.acceptedB) { return true; }
+
+    var valid = state.offerACopper <= state.copperA && state.offerBCopper <= state.copperB &&
+        offerCovered(state, 1) && offerCovered(state, 2);
+    if (!valid) {
+        state.lastError = -4;
+        closeSession(state);
+        return false;
+    }
+    if (!fitsAfterSwap(state, 1) || !fitsAfterSwap(state, 2)) {
+        state.lastError = -5;
+        closeSession(state);
+        return false;
+    }
+
+    state.copperA = state.copperA - state.offerACopper + state.offerBCopper;
+    state.copperB = state.copperB - state.offerBCopper + state.offerACopper;
+    var nonEmpty = state.offerAIds.length > 0 || state.offerBIds.length > 0 ||
+        state.offerACopper > 0 || state.offerBCopper > 0;
+    transferOffer(state, 1, 2);
+    transferOffer(state, 2, 1);
+    if (nonEmpty) {
+        state.completedTradesA = state.completedTradesA + 1;
+        state.completedTradesB = state.completedTradesB + 1;
+    }
+    state.completedEvents = state.completedEvents + 2;
+    closeSession(state);
+    return true;
+}
+
+pub cancel(state: TradeState): bool {
+    if (!state.sessionOpen) { return false; }
+    closeSession(state);
+    state.cancelledEvents = state.cancelledEvents + 2;
+    return true;
+}
+
+pub advanceTick(state: TradeState): void {
+    state.tickCount = state.tickCount + 1;
+    // Mirrors updateTradesAndInvites, which owns stale invitation cleanup.
+    if (state.invitePending && state.inviteExpiresTick < state.tickCount) {
+        state.invitePending = false;
+    }
+    if (state.sessionOpen &&
+        (state.distance > 14.0 || state.deadA || state.deadB)) {
+        cancel(state);
+    }
+}
+
+pub contractTest(): int {
+    var scenario = new TradeState();
+    scenario.distance = 3.0;
+    scenario.copperA = 100;
+    scenario.copperB = 50;
+    addItem(scenario, 1, "baked_bread", 5);
+    addItem(scenario, 1, "wolf_fang", 3);
+    addItem(scenario, 2, "baked_bread", 7);
+    addItem(scenario, 2, "spring_water", 5);
+    if (!request(scenario) || !accept(scenario) || !scenario.sessionOpen ||
+        !setOffer(scenario, 1, "wolf_fang", 2, 30) ||
+        !setOffer(scenario, 2, "baked_bread", 1, 10) ||
+        !confirm(scenario, 1) || !scenario.sessionOpen ||
+        !confirm(scenario, 2) || scenario.sessionOpen) {
+        return -1;
+    }
+    if (scenario.copperA != 80 || scenario.copperB != 70 ||
+        countItem(scenario, 1, "wolf_fang") != 1 ||
+        countItem(scenario, 1, "baked_bread") != 6 ||
+        countItem(scenario, 2, "wolf_fang") != 2 ||
+        countItem(scenario, 2, "baked_bread") != 6 ||
+        scenario.completedTradesA != 1 || scenario.completedTradesB != 1) {
+        return -2;
+    }
+
+    if (!request(scenario) || !accept(scenario) ||
+        !setOffer(scenario, 1, "wolf_fang", 1, 0) ||
+        !confirm(scenario, 1) || !cancel(scenario) || scenario.sessionOpen ||
+        scenario.copperA != 80 || countItem(scenario, 1, "wolf_fang") != 1) {
+        return -3;
+    }
+    if (!request(scenario) || !accept(scenario)) { return -4; }
+    scenario.distance = 40.0;
+    advanceTick(scenario);
+    if (scenario.sessionOpen || scenario.cancelledEvents != 4) { return -5; }
+
+    var exactExpiry = new TradeState();
+    if (!request(exactExpiry)) { return -6; }
+    exactExpiry.tickCount = 599;
+    advanceTick(exactExpiry);
+    if (!exactExpiry.invitePending || !accept(exactExpiry) || !exactExpiry.sessionOpen) {
+        return -7;
+    }
+
+    var sweepExpiry = new TradeState();
+    if (!request(sweepExpiry)) { return -8; }
+    sweepExpiry.tickCount = 599;
+    advanceTick(sweepExpiry);
+    if (!sweepExpiry.invitePending) { return -9; }
+    advanceTick(sweepExpiry);
+    if (sweepExpiry.invitePending) { return -10; }
+
+    var directExpired = new TradeState();
+    if (!request(directExpired)) { return -11; }
+    directExpired.tickCount = 601;
+    if (accept(directExpired) || !directExpired.invitePending || directExpired.lastError != -2) {
+        return -12;
+    }
+    advanceTick(directExpired);
+    if (directExpired.invitePending) { return -13; }
+
+    var invalid = new TradeState();
+    invalid.distance = 2.0;
+    invalid.copperA = 5;
+    addItem(invalid, 1, "boar_hide", 1);
+    if (!request(invalid) || !accept(invalid) ||
+        setOffer(invalid, 1, "boar_hide", 1, 99) ||
+        invalid.offerAIds.length != 0 || invalid.offerACopper != 5) {
+        return -14;
+    }
+
+    var full = new TradeState();
+    full.distance = 2.0;
+    addItem(full, 1, "cryptbone_helm", 16);
+    addItem(full, 2, "wolf_fang", 1);
+    if (!request(full) || !accept(full) ||
+        !setOffer(full, 2, "wolf_fang", 1, 0) ||
+        !confirm(full, 1) || confirm(full, 2) || full.lastError != -5 ||
+        full.sessionOpen || countItem(full, 1, "wolf_fang") != 0 ||
+        countItem(full, 2, "wolf_fang") != 1) {
+        return -15;
+    }
+
+    var payload = new ledger.ItemInstanceData();
+    payload.signer = "The Quartermaster";
+    payload.rolledMasterwork = true;
+    payload.enchant = "emberward";
+    payload.boundTo = 2;
+    ledger.setCharge(payload, "trade_charge", 3);
+    var preserve = new TradeState();
+    preserve.distance = 2.0;
+    addItemInstance(preserve, 2, "wolf_fang", payload);
+    if (!request(preserve) || !accept(preserve) ||
+        !setOffer(preserve, 2, "wolf_fang", 1, 0) || !confirm(preserve, 1) ||
+        !confirm(preserve, 2) || countItem(preserve, 1, "wolf_fang") != 1 ||
+        countItem(preserve, 2, "wolf_fang") != 0 ||
+        instanceSigner(preserve, 1, "wolf_fang") != "The Quartermaster" ||
+        instanceCharge(preserve, 1, "wolf_fang", "trade_charge") != 3) {
+        return -16;
+    }
+
+    var instanceCapacity = new TradeState();
+    instanceCapacity.distance = 2.0;
+    addItem(instanceCapacity, 1, "cryptbone_helm", 15);
+    addItem(instanceCapacity, 1, "wolf_fang", 19);
+    addItemInstance(instanceCapacity, 2, "wolf_fang", payload);
+    if (!request(instanceCapacity) || !accept(instanceCapacity) ||
+        !setOffer(instanceCapacity, 2, "wolf_fang", 1, 0) ||
+        !confirm(instanceCapacity, 1) || confirm(instanceCapacity, 2) ||
+        instanceCapacity.lastError != -5 || instanceCapacity.sessionOpen ||
+        instanceCapacity.inventoryA.slots.length != INVENTORY_CAPACITY ||
+        countItem(instanceCapacity, 1, "wolf_fang") != 19 ||
+        instanceSigner(instanceCapacity, 2, "wolf_fang") != "The Quartermaster") {
+        return -17;
+    }
+    return 1;
+}

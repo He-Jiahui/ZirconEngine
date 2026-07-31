@@ -37,8 +37,9 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
         "editor viewport controller should submit RenderFrameExtract through RenderFramework"
     );
     assert!(
-        viewport_poll_source.contains("capture_frame"),
-        "editor viewport controller should pull captured frames through RenderFramework"
+        viewport_poll_source.contains("capture_frame_if_newer")
+            && viewport_poll_source.contains("shared.latest_generation"),
+        "editor viewport controller should reject stale generations before copying captured RGBA"
     );
 
     for forbidden in [

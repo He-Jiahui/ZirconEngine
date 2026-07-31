@@ -21,10 +21,11 @@ related_code:
   - zircon_editor/src/ui/host/asset_editor_sessions/lifecycle.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/open.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/preview_refresh.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/commit.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/job.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/save.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/sync.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/watcher/host.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/binding.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/inspector.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/navigation.rs
@@ -58,10 +59,11 @@ implementation_files:
   - zircon_editor/src/ui/host/asset_editor_sessions/lifecycle.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/open.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/preview_refresh.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/commit.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/job.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/save.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/sync.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/watcher/host.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/binding.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/inspector.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/navigation.rs
@@ -93,7 +95,9 @@ Production host code should not call `Mutex::lock().unwrap()` or `Mutex::lock().
 
 ## Owner Helpers
 
-`EditorUiHost` exposes owner-local lock helpers in `editor_ui_host.rs`: `lock_session`, `lock_view_registry`, `lock_window_host_manager`, `lock_animation_editor_sessions`, `lock_ui_asset_sessions`, `lock_ui_asset_workspace_watcher`, `lock_subsystem_report`, and `lock_capability_snapshot`.
+`EditorUiHost` exposes owner-local lock helpers in `editor_ui_host.rs`: `lock_session`, `lock_view_registry`, `lock_window_host_manager`, `lock_animation_editor_sessions`, `lock_ui_asset_sessions`, `lock_ui_asset_dependency_generation`, `lock_ui_asset_refresh_pipeline`, `lock_ui_asset_workspace_watcher`, `lock_subsystem_report`, and `lock_capability_snapshot`.
+
+UI asset import state and its reverse-dependency projection use one explicit nested order whenever both must change: acquire `ui_asset_dependency_generation` first, then `ui_asset_sessions`, update the session plus reverse edges, and release in reverse order. Hydration, deterministic refresh, and background-generation commit all follow that order; a session owner must never acquire the dependency-generation mutex while already holding the session mutex. Filesystem I/O, parsing, job submission/cancellation, and retained-host synchronization run outside this two-lock commit epoch.
 
 The helper policy is intentionally narrow: recover poisoned locks with `into_inner()` and keep the original operation result path unchanged. This round does not introduce a new editor error variant for poisoning, because the selected hot path was direct panic removal rather than semantic state reconciliation after a panic.
 

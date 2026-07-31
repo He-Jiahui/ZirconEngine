@@ -61,6 +61,7 @@ fn finish_accepted_expanded_mutation(
         event,
         delivered: true,
         drag: None,
+        template_action: None,
     });
     append_binding_report_diagnostic(&mut result, &report);
     result

@@ -12,6 +12,7 @@ mod mode;
 mod options;
 mod report;
 mod resolver;
+mod resolver_index;
 mod run;
 mod scan;
 mod sidecar;
@@ -22,6 +23,9 @@ pub use mode::AssetMigrationMode;
 pub use options::AssetMigrationOptions;
 pub use report::{
     AssetMigrationChange, AssetMigrationIssue, AssetMigrationIssueKind, AssetMigrationReport,
+};
+pub(crate) use resolver_index::{
+    MigrationCompoundBinding, MigrationResolverIndex, MigrationSourceProjection,
 };
 pub use run::migrate_project_assets;
 #[cfg(test)]
@@ -38,3 +42,5 @@ pub(crate) use run::migrate_project_assets_with_rollback_cleanup_fault;
 pub(crate) use run::migrate_project_assets_with_stage_fault;
 #[cfg(test)]
 pub(crate) use run::migrate_project_assets_with_terminal_interruption;
+#[cfg(test)]
+pub(crate) use scan::scan_migration_inventory_for_test;

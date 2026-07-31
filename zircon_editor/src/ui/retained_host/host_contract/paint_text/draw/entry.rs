@@ -1,11 +1,16 @@
-use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
+use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens, surface::UiTextRunPaintStyle,
+};
 
 use super::super::super::data::FrameRect;
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::draw_text_with_size_and_style_impl;
 
-pub(in crate::ui::retained_host::host_contract::paint_text) const DEFAULT_FONT_SIZE: f32 = 12.0;
-pub(in crate::ui::retained_host::host_contract::paint_text) const DEFAULT_LINE_HEIGHT: f32 = 14.0;
+pub(in crate::ui::retained_host::host_contract::paint_text) const DEFAULT_FONT_SIZE: f32 =
+    EditorTypographyTokens::WORKBENCH_BODY_SIZE;
+pub(in crate::ui::retained_host::host_contract::paint_text) const DEFAULT_LINE_HEIGHT: f32 =
+    EditorTypographyTokens::WORKBENCH_BODY_SIZE
+        * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_text(
     frame: &mut HostRgbaFrame,

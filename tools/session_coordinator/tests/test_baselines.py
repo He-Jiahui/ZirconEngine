@@ -44,6 +44,8 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(BaselineHealth.DEGRADED, degraded.health)
         self.assertGreater(accepted.epoch_id, first.epoch_id)
         self.assertEqual(BaselineHealth.HEALTHY, accepted.health)
+        restarted = BaselineService(self.database, self.repo)
+        self.assertEqual([], restarted.diff())
 
     def test_reconcile_restores_health_without_absorbing_attributed_change(self) -> None:
         initial = self.service.initialize()

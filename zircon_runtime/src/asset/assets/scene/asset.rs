@@ -24,9 +24,7 @@ impl SceneAsset {
             ReferenceResolutionError,
         >,
     ) -> Result<String, ProjectDocumentError> {
-        let document = crate::asset::assets::project_document::serialize_scene(self, resolver)?;
-        crate::asset::assets::project_document::validate_scene(&document)?;
-        Ok(document)
+        crate::asset::assets::project_document::serialize_scene(self, resolver)
     }
 
     pub fn from_project_toml_str(
@@ -35,7 +33,6 @@ impl SceneAsset {
             &zircon_runtime_interface::project::PersistedAssetReference,
         ) -> Result<AssetReference, ReferenceResolutionError>,
     ) -> Result<Self, ProjectDocumentError> {
-        crate::asset::assets::project_document::validate_scene(document)?;
         crate::asset::assets::project_document::deserialize_scene(document, resolver)
     }
 
@@ -65,53 +62,45 @@ impl SceneAsset {
 
     pub fn overview(&self) -> SceneAssetOverview {
         let entities = self.entity_overviews();
-        SceneAssetOverview {
+        let mut overview = SceneAssetOverview {
             entity_count: entities.len(),
-            active_entity_count: entities.iter().filter(|entity| entity.active).count(),
-            root_entity_count: entities
-                .iter()
-                .filter(|entity| entity.parent.is_none())
-                .count(),
-            camera_count: entities.iter().filter(|entity| entity.has_camera).count(),
-            mesh_instance_count: entities.iter().filter(|entity| entity.has_mesh).count(),
-            direct_mesh_reference_count: entities
-                .iter()
-                .map(|entity| entity.direct_mesh_reference_count)
-                .sum(),
-            mesh_primitive_binding_count: entities
-                .iter()
-                .map(|entity| entity.mesh_primitive_binding_count)
-                .sum(),
-            morph_weight_count: entities
-                .iter()
-                .map(|entity| entity.morph_weight_count)
-                .sum(),
-            mesh_material_binding_count: entities.iter().filter(|entity| entity.has_mesh).count(),
-            collider_material_binding_count: entities
-                .iter()
-                .filter(|entity| entity.has_collider_material)
-                .count(),
-            light_count: entities.iter().map(SceneEntityOverview::light_count).sum(),
-            physics_component_count: entities
-                .iter()
-                .map(SceneEntityOverview::physics_component_count)
-                .sum(),
-            animation_binding_count: entities
-                .iter()
-                .map(SceneEntityOverview::animation_binding_count)
-                .sum(),
-            terrain_count: entities.iter().filter(|entity| entity.has_terrain).count(),
-            tilemap_count: entities.iter().filter(|entity| entity.has_tilemap).count(),
-            prefab_instance_count: entities
-                .iter()
-                .filter(|entity| entity.has_prefab_instance)
-                .count(),
-            direct_reference_count: entities
-                .iter()
-                .map(|entity| entity.direct_reference_count)
-                .sum(),
+            active_entity_count: 0,
+            root_entity_count: 0,
+            camera_count: 0,
+            mesh_instance_count: 0,
+            direct_mesh_reference_count: 0,
+            mesh_primitive_binding_count: 0,
+            morph_weight_count: 0,
+            mesh_material_binding_count: 0,
+            collider_material_binding_count: 0,
+            light_count: 0,
+            physics_component_count: 0,
+            animation_binding_count: 0,
+            terrain_count: 0,
+            tilemap_count: 0,
+            prefab_instance_count: 0,
+            direct_reference_count: 0,
             entities,
+        };
+        for entity in &overview.entities {
+            overview.active_entity_count += usize::from(entity.active);
+            overview.root_entity_count += usize::from(entity.parent.is_none());
+            overview.camera_count += usize::from(entity.has_camera);
+            overview.mesh_instance_count += usize::from(entity.has_mesh);
+            overview.direct_mesh_reference_count += entity.direct_mesh_reference_count;
+            overview.mesh_primitive_binding_count += entity.mesh_primitive_binding_count;
+            overview.morph_weight_count += entity.morph_weight_count;
+            overview.mesh_material_binding_count += usize::from(entity.has_mesh);
+            overview.collider_material_binding_count += usize::from(entity.has_collider_material);
+            overview.light_count += entity.light_count();
+            overview.physics_component_count += entity.physics_component_count();
+            overview.animation_binding_count += entity.animation_binding_count();
+            overview.terrain_count += usize::from(entity.has_terrain);
+            overview.tilemap_count += usize::from(entity.has_tilemap);
+            overview.prefab_instance_count += usize::from(entity.has_prefab_instance);
+            overview.direct_reference_count += entity.direct_reference_count;
         }
+        overview
     }
 
     pub fn management_record(&self, scene_id: ResourceId) -> SceneAssetManagementRecord {
@@ -125,6 +114,9 @@ impl SceneAsset {
         &self,
         scene_id: ResourceId,
     ) -> Vec<SceneEntityManagementRecord> {
-        self.management_record(scene_id).entity_management_records()
+        self.entity_overviews()
+            .into_iter()
+            .map(|entity| SceneEntityManagementRecord { scene_id, entity })
+            .collect()
     }
 }

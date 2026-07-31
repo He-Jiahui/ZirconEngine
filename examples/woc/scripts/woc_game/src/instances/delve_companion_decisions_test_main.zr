@@ -1,0 +1,45 @@
+var decisions = %import("instances/delve_companion_decisions");
+
+if (decisions.healIntervalTicks(true) != 60 || decisions.healRange(true) != 22.0 ||
+    decisions.maxRank(true) != 3) {
+    return -1;
+}
+
+// The owner is the priority revive target. Party selection runs only while the
+// owner is alive and preserves source party order outside this scalar rule.
+if (!decisions.shouldSelectOwnerRevive(3, false, true, true) ||
+    decisions.shouldSelectOwnerRevive(2, false, true, true) ||
+    decisions.shouldSelectOwnerRevive(3, true, true, true) ||
+    !decisions.shouldSelectPartyRevive(3, false, false, true, true, true) ||
+    decisions.shouldSelectPartyRevive(3, false, true, true, true, true) ||
+    decisions.shouldSelectPartyRevive(3, false, true, true, false, true) ||
+    decisions.shouldSelectPartyRevive(3, false, true, false, true, true)) {
+    return -2;
+}
+
+// Heal replacement is strict: equal health fractions retain the earlier owner
+// or party member. Delivery still verifies the selected target is hurt/in range.
+if (!decisions.shouldReplaceHealTarget(500, 1000, 400, 1000, false, true, true) ||
+    decisions.shouldReplaceHealTarget(500, 1000, 500, 1000, false, true, true) ||
+    decisions.shouldReplaceHealTarget(500, 1000, 300, 1000, true, true, true) ||
+    decisions.shouldReplaceHealTarget(500, 1000, 300, 1000, false, false, true) ||
+    !decisions.canDeliverHeal(999, 1000, true, true) ||
+    decisions.canDeliverHeal(1000, 1000, true, true) ||
+    decisions.canDeliverHeal(999, 1000, false, true)) {
+    return -3;
+}
+
+if (decisions.revivedHealth(1, true) != 1 || decisions.revivedHealth(1001, true) != 501 ||
+    decisions.revivedResource(100, 1000, true, true) != 500 ||
+    decisions.revivedResource(700, 1000, true, true) != 700 ||
+    decisions.revivedResource(100, 1000, false, true) != 100 ||
+    decisions.healedAmount(1, 500, 1000, true) != 60 ||
+    decisions.healedAmount(2, 500, 1000, true) != 80 ||
+    decisions.healedAmount(7, 500, 1000, true) != 100 ||
+    decisions.healedAmount(3, 970, 1000, true) != 30 ||
+    decisions.healedAmount(3, 1000, 1000, true) != 0 ||
+    decisions.contractTest() != 1) {
+    return -4;
+}
+
+return 0;

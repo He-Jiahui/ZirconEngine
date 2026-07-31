@@ -313,33 +313,58 @@ fn project_manifest_for_plugin_selection(
 
 #[derive(Debug)]
 struct DescriptorBackedEngineModule {
-    name: &'static str,
-    description: &'static str,
     descriptor: ModuleDescriptor,
 }
 
 impl DescriptorBackedEngineModule {
     fn new(descriptor: ModuleDescriptor) -> Self {
-        let name = Box::leak(descriptor.name.clone().into_boxed_str());
-        let description = Box::leak(descriptor.description.clone().into_boxed_str());
-        Self {
-            name,
-            description,
-            descriptor,
-        }
+        Self { descriptor }
     }
 }
 
 impl EngineModule for DescriptorBackedEngineModule {
-    fn module_name(&self) -> &'static str {
-        self.name
+    fn module_name(&self) -> &str {
+        &self.descriptor.name
     }
 
-    fn module_description(&self) -> &'static str {
-        self.description
+    fn module_description(&self) -> &str {
+        &self.descriptor.description
     }
 
     fn descriptor(&self) -> ModuleDescriptor {
         self.descriptor.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn descriptor_backed_modules_borrow_dynamic_text_at_supported_cardinalities() {
+        for cardinality in [1, 100, 1_000] {
+            let modules = (0..cardinality)
+                .map(|index| {
+                    DescriptorBackedEngineModule::new(ModuleDescriptor::new(
+                        format!("RuntimePluginModule{index}"),
+                        format!("Runtime plugin descriptor {index}"),
+                    ))
+                })
+                .collect::<Vec<_>>();
+
+            assert_eq!(modules.len(), cardinality);
+            for module in modules {
+                assert_eq!(
+                    module.module_name().as_ptr(),
+                    module.descriptor.name.as_ptr(),
+                    "module names must borrow the descriptor-owned allocation"
+                );
+                assert_eq!(
+                    module.module_description().as_ptr(),
+                    module.descriptor.description.as_ptr(),
+                    "module descriptions must borrow the descriptor-owned allocation"
+                );
+            }
+        }
     }
 }

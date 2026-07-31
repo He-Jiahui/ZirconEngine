@@ -10,6 +10,7 @@ pub(crate) fn glyph_atlas_bitmap_source_from_glyph_bitmap(
     background_color: [f32; 4],
 ) -> GlyphAtlasBitmapSource {
     GlyphAtlasBitmapSource {
+        raster_key: None,
         format: bitmap.required_atlas_format(),
         content_size: bitmap.size,
         screen_rect,

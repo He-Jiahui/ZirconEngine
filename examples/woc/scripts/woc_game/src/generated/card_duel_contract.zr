@@ -1,0 +1,6 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub deckSize(required: bool): int { return required ? 20 : 0; }
+pub cardMaxValue(required: bool): int { return required ? 10 : 0; }
+pub startingHandSize(required: bool): int { return required ? 4 : 0; }
+pub roundsToWin(required: bool): int { return required ? 2 : 0; }
+pub roundDeadlineSeconds(required: bool): float { return required ? 90.0 : 0.0; }

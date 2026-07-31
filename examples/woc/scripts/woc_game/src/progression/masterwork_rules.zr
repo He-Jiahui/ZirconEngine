@@ -1,0 +1,61 @@
+// Current-head pure projection of professions/masterwork.ts. The craft reducer
+// owns the single shared-RNG proc draw and item_budget owns baked stat deltas;
+// this leaf owns only deterministic chance and one-step quality promotion.
+var contract = %import("generated/masterwork_contract");
+
+pub masterworkProcChance(
+    tiersAboveRecipe: int,
+    signedReagent: bool,
+    specialized: bool,
+    materialTierBonus: float
+): float {
+    var tiersAbove = tiersAboveRecipe;
+    if (tiersAbove < 0) tiersAbove = 0;
+    var chance = contract.baseChance(true) +
+        contract.perTierAboveChance(true) * <float>tiersAbove +
+        (signedReagent ? contract.signedReagentChance(true) : 0.0) +
+        (specialized ? contract.specializationChance(true) : 0.0) +
+        materialTierBonus;
+    return chance > contract.chanceCap(true) ? contract.chanceCap(true) : chance;
+}
+
+// Empty input stands for an absent ItemDef quality and follows the source's
+// `quality ?? "common"` normalization. Empty output means no legal bump.
+pub masterworkBumpedQuality(quality: string): string {
+    var base = quality == "" ? "common" : quality;
+    if (base == "common") return "uncommon";
+    if (base == "uncommon") return "rare";
+    if (base == "rare") return "epic";
+    if (base == "epic") return "legendary";
+    return "";
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    if (!closeEnough(masterworkProcChance(0, false, false, 0.0), 0.03) ||
+        !closeEnough(masterworkProcChance(-2, false, false, 0.0), 0.03)) {
+        return -1;
+    }
+    if (!closeEnough(masterworkProcChance(4, true, true, 0.0), 0.12) ||
+        !closeEnough(masterworkProcChance(40, true, true, 0.05), 0.15)) {
+        return -2;
+    }
+    if (masterworkBumpedQuality("") != "uncommon" ||
+        masterworkBumpedQuality("common") != "uncommon" ||
+        masterworkBumpedQuality("uncommon") != "rare" ||
+        masterworkBumpedQuality("rare") != "epic" ||
+        masterworkBumpedQuality("epic") != "legendary") {
+        return -3;
+    }
+    if (masterworkBumpedQuality("legendary") != "" ||
+        masterworkBumpedQuality("poor") != "" ||
+        masterworkBumpedQuality("unknown") != "") {
+        return -4;
+    }
+    return 1;
+}

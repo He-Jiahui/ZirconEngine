@@ -1,14 +1,15 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use serde_json::Value;
 use zircon_runtime_interface::project::{
+    PersistedAssetReference, RetiredAssetRefMigrationError,
     migrate_retired_persisted_asset_reference_with,
-    migrate_retired_persisted_asset_references_with, PersistedAssetReference,
-    RetiredAssetRefMigrationError,
 };
 
-use crate::asset::{ModelAsset, SceneAsset, ZMaterialDocument};
+use crate::asset::assets::project_document::{
+    ProjectDocumentArtifact, deserialize_material_artifact, deserialize_model_artifact,
+    deserialize_scene_artifact,
+};
 
 use super::resolver::{MigrationResolver, ResolutionFailure};
 use super::{AssetMigrationIssue, AssetMigrationIssueKind};
@@ -20,198 +21,339 @@ pub(super) struct PendingDocument {
     pub(super) retired_path: Option<PathBuf>,
 }
 
+/// Observations from one authoring document consumed by the migration generation.
+pub(super) struct DocumentMigrationResult {
+    pub(super) pending: Option<PendingDocument>,
+    pub(super) reference_visits: usize,
+}
+
+struct MigrationDocumentArtifact {
+    document: ProjectDocumentArtifact,
+    changed: bool,
+}
+
+impl MigrationDocumentArtifact {
+    fn parse(path: &Path, source: &str) -> Result<Self, AssetMigrationIssue> {
+        let document = ProjectDocumentArtifact::parse(source)
+            .map_err(|error| invalid(path, error.to_string()))?;
+        Ok(Self {
+            document,
+            changed: false,
+        })
+    }
+
+    fn value(&self) -> &toml::Value {
+        self.document.value()
+    }
+
+    fn value_mut(&mut self) -> &mut toml::Value {
+        self.document.value_mut()
+    }
+
+    fn record_change(&mut self, changed: bool) {
+        self.changed |= changed;
+    }
+
+    fn changed(&self) -> bool {
+        self.changed
+    }
+
+    fn to_pretty_bytes(&self, path: &Path) -> Result<Vec<u8>, AssetMigrationIssue> {
+        self.document
+            .to_pretty_bytes()
+            .map_err(|error| invalid(path, error.to_string()))
+    }
+
+    fn into_project_document(self) -> ProjectDocumentArtifact {
+        self.document
+    }
+}
+
 pub(super) fn migrate_document(
     path: &Path,
     resolver: &MigrationResolver<'_>,
-) -> Result<Option<PendingDocument>, AssetMigrationIssue> {
+) -> Result<DocumentMigrationResult, AssetMigrationIssue> {
     let source = fs::read_to_string(path).map_err(|error| invalid(path, error.to_string()))?;
-    let toml_value =
-        toml::from_str::<toml::Value>(&source).map_err(|error| invalid(path, error.to_string()))?;
-    validate_current_document(path, &toml_value)?;
-    let original =
-        serde_json::to_value(toml_value).map_err(|error| invalid(path, error.to_string()))?;
+    let mut artifact = MigrationDocumentArtifact::parse(path, &source)?;
+
     let mut reference_count = 0;
-    let migrated = if path.extension().and_then(|extension| extension.to_str()) == Some("zmaterial")
-    {
-        migrate_material_references(original.clone(), resolver, &mut reference_count)
-            .map_err(|error| migration_issue(path, error))?
+    let mut reference_visits = 0;
+    let retired_changed = if is_material_document(path) {
+        migrate_material_references(
+            artifact.value_mut(),
+            resolver,
+            &mut reference_count,
+            &mut reference_visits,
+        )
+        .map_err(|error| migration_issue(path, error))?
     } else {
-        migrate_retired_persisted_asset_references_with(original.clone(), |reference| {
-            let resolved = resolver.resolve(reference)?;
-            reference_count += 1;
-            Ok::<_, ResolutionFailure>(resolved)
-        })
+        migrate_retired_references(
+            artifact.value_mut(),
+            resolver,
+            &mut reference_count,
+            &mut reference_visits,
+        )
         .map_err(|error| migration_issue(path, error))?
     };
-    let migrated =
-        repair_current_references(migrated, resolver, &mut reference_count).map_err(|error| {
-            AssetMigrationIssue::new(error.kind, Some(path.to_path_buf()), error.message)
-        })?;
-    if migrated == original {
-        validate_formal_reader(path, &source, resolver)?;
-        return Ok(None);
+    artifact.record_change(retired_changed);
+    let current_changed = repair_current_references(
+        artifact.value_mut(),
+        resolver,
+        &mut reference_count,
+        &mut reference_visits,
+    )
+    .map_err(|error| {
+        AssetMigrationIssue::new(error.kind, Some(path.to_path_buf()), error.message)
+    })?;
+    artifact.record_change(current_changed);
+
+    let bytes = artifact
+        .changed()
+        .then(|| artifact.to_pretty_bytes(path))
+        .transpose()?;
+    validate_formal_reader(
+        path,
+        artifact.into_project_document(),
+        resolver,
+        &mut reference_visits,
+    )?;
+
+    Ok(DocumentMigrationResult {
+        pending: bytes.map(|bytes| PendingDocument {
+            path: path.to_path_buf(),
+            bytes,
+            reference_count,
+            retired_path: None,
+        }),
+        reference_visits,
+    })
+}
+
+fn migrate_retired_references(
+    value: &mut toml::Value,
+    resolver: &MigrationResolver<'_>,
+    reference_count: &mut usize,
+    reference_visits: &mut usize,
+) -> Result<bool, RetiredAssetRefMigrationError<ResolutionFailure>> {
+    match value {
+        toml::Value::Array(values) => {
+            let mut changed = false;
+            for value in values {
+                changed |=
+                    migrate_retired_references(value, resolver, reference_count, reference_visits)?;
+            }
+            Ok(changed)
+        }
+        toml::Value::Table(values) if is_retired_reference_table(values) => {
+            let reference = std::mem::replace(value, toml::Value::Table(toml::Table::new()));
+            *value = migrate_one_reference(reference, resolver, reference_count, reference_visits)?;
+            Ok(true)
+        }
+        toml::Value::Table(values) => {
+            let mut changed = false;
+            for (_, value) in values.iter_mut() {
+                changed |=
+                    migrate_retired_references(value, resolver, reference_count, reference_visits)?;
+            }
+            Ok(changed)
+        }
+        _ => Ok(false),
     }
-    let toml_ready = omit_toml_null_subfields(migrated);
-    let migrated = serde_json::from_value::<toml::Value>(toml_ready)
-        .map_err(|error| invalid(path, error.to_string()))?;
-    let bytes = toml::to_string_pretty(&migrated)
-        .map_err(|error| invalid(path, error.to_string()))?
-        .into_bytes();
-    let canonical =
-        std::str::from_utf8(&bytes).map_err(|error| invalid(path, error.to_string()))?;
-    validate_formal_reader(path, canonical, resolver)?;
-    Ok(Some(PendingDocument {
-        path: path.to_path_buf(),
-        bytes,
-        reference_count,
-        retired_path: None,
-    }))
 }
 
 fn repair_current_references(
-    value: Value,
+    value: &mut toml::Value,
     resolver: &MigrationResolver<'_>,
     reference_count: &mut usize,
-) -> Result<Value, ResolutionFailure> {
+    reference_visits: &mut usize,
+) -> Result<bool, ResolutionFailure> {
     match value {
-        Value::Array(values) => values
-            .into_iter()
-            .map(|value| repair_current_references(value, resolver, reference_count))
-            .collect::<Result<Vec<_>, _>>()
-            .map(Value::Array),
-        Value::Object(mut values) if is_current_project_reference(&values) => {
-            let mut reference_fields = serde_json::Map::new();
-            for key in ["kind", "guid", "path_hint", "sub"] {
-                if let Some(value) = values.remove(key) {
-                    reference_fields.insert(key.to_owned(), value);
-                }
+        toml::Value::Array(values) => {
+            let mut changed = false;
+            for value in values {
+                changed |=
+                    repair_current_references(value, resolver, reference_count, reference_visits)?;
             }
-            let persisted = serde_json::from_value::<PersistedAssetReference>(Value::Object(
-                reference_fields.clone(),
-            ))
-            .map_err(|error| ResolutionFailure {
-                kind: AssetMigrationIssueKind::InvalidDocument,
-                message: error.to_string(),
-            })?;
-            let reference = persisted.project_ref().expect("project reference shape");
-            let Some(repaired) = resolver.repair_current(reference)? else {
-                // Preserve the exact already-current JSON fields. Re-serializing the
-                // typed reference would materialize absent optional fields as null,
-                // making an unchanged TOML document look dirty on every migration.
-                values.extend(reference_fields);
-                return Ok(Value::Object(values));
-            };
-            *reference_count += 1;
-            let Value::Object(fields) = serde_json::to_value(PersistedAssetReference::project(
-                repaired,
-            ))
-            .map_err(|error| ResolutionFailure {
-                kind: AssetMigrationIssueKind::InvalidDocument,
-                message: error.to_string(),
-            })?
-            else {
-                unreachable!("persisted reference serializes as object")
-            };
-            values.extend(fields);
-            Ok(Value::Object(values))
+            Ok(changed)
         }
-        Value::Object(values) => values
-            .into_iter()
-            .map(|(key, value)| {
-                repair_current_references(value, resolver, reference_count)
-                    .map(|value| (key, value))
-            })
-            .collect::<Result<serde_json::Map<_, _>, _>>()
-            .map(Value::Object),
-        value => Ok(value),
+        toml::Value::Table(values) if is_current_project_reference(values) => {
+            repair_current_reference(values, resolver, reference_count, reference_visits)
+        }
+        toml::Value::Table(values) => {
+            let mut changed = false;
+            for (_, value) in values.iter_mut() {
+                changed |=
+                    repair_current_references(value, resolver, reference_count, reference_visits)?;
+            }
+            Ok(changed)
+        }
+        _ => Ok(false),
     }
 }
 
-fn is_current_project_reference(values: &serde_json::Map<String, Value>) -> bool {
-    values.get("kind").and_then(Value::as_str) == Some("project")
+fn repair_current_reference(
+    values: &mut toml::Table,
+    resolver: &MigrationResolver<'_>,
+    reference_count: &mut usize,
+    reference_visits: &mut usize,
+) -> Result<bool, ResolutionFailure> {
+    let mut reference_fields = toml::Table::new();
+    for key in ["kind", "guid", "path_hint", "sub"] {
+        if let Some(value) = values.remove(key) {
+            reference_fields.insert(key.to_owned(), value);
+        }
+    }
+    let persisted = parse_current_reference(&reference_fields)?;
+    let reference = persisted.project_ref().expect("project reference shape");
+    *reference_visits += 1;
+    let repaired = resolver.repair_current(reference)?;
+    let changed = repaired.is_some();
+    let fields = match repaired {
+        Some(repaired) => {
+            *reference_count += 1;
+            serialize_current_reference(PersistedAssetReference::project(repaired))?
+        }
+        None => reference_fields,
+    };
+    values.extend(fields);
+    Ok(changed)
+}
+
+fn parse_current_reference(
+    reference_fields: &toml::Table,
+) -> Result<PersistedAssetReference, ResolutionFailure> {
+    let value = serde_json::to_value(toml::Value::Table(reference_fields.clone()))
+        .map_err(invalid_resolution)?;
+    serde_json::from_value::<PersistedAssetReference>(value).map_err(invalid_resolution)
+}
+
+fn serialize_current_reference(
+    reference: PersistedAssetReference,
+) -> Result<toml::Table, ResolutionFailure> {
+    let value = serde_json::to_value(reference).map_err(invalid_resolution)?;
+    persisted_reference_table(value).map_err(invalid_resolution)
+}
+
+fn persisted_reference_table(
+    mut value: serde_json::Value,
+) -> Result<toml::Table, serde_json::Error> {
+    if let Some(fields) = value.as_object_mut() {
+        let is_project = fields.get("kind").and_then(serde_json::Value::as_str) == Some("project");
+        if is_project && fields.get("sub").is_some_and(serde_json::Value::is_null) {
+            fields.remove("sub");
+        }
+    }
+    let toml::Value::Table(fields) = serde_json::from_value::<toml::Value>(value)? else {
+        unreachable!("persisted reference serializes as a TOML table")
+    };
+    Ok(fields)
+}
+
+fn is_current_project_reference(values: &toml::Table) -> bool {
+    values.get("kind").and_then(toml::Value::as_str) == Some("project")
         && values.contains_key("guid")
         && values.contains_key("path_hint")
 }
 
 fn migrate_material_references(
-    mut document: Value,
+    document: &mut toml::Value,
     resolver: &MigrationResolver<'_>,
     reference_count: &mut usize,
-) -> Result<Value, RetiredAssetRefMigrationError<ResolutionFailure>> {
+    reference_visits: &mut usize,
+) -> Result<bool, RetiredAssetRefMigrationError<ResolutionFailure>> {
     let root =
         document
-            .as_object_mut()
+            .as_table_mut()
             .ok_or_else(|| RetiredAssetRefMigrationError::InvalidShape {
                 message: "material document root must be an object".to_string(),
             })?;
+    let mut changed = false;
     for field in ["shader", "parent"] {
         let Some(reference) = root.get_mut(field) else {
             continue;
         };
-        if is_retired_reference_object(reference) {
-            *reference = migrate_one_reference(reference.take(), resolver, reference_count)?;
+        if is_retired_reference(reference) {
+            let retired = std::mem::replace(reference, toml::Value::Table(toml::Table::new()));
+            *reference =
+                migrate_one_reference(retired, resolver, reference_count, reference_visits)?;
+            changed = true;
         }
     }
-    if let Some(Value::Object(textures)) = root.get_mut("textures") {
-        for slot in textures.values_mut() {
-            migrate_flattened_material_slot(slot, resolver, reference_count)?;
+    if let Some(toml::Value::Table(textures)) = root.get_mut("textures") {
+        for (_, slot) in textures.iter_mut() {
+            changed |=
+                migrate_flattened_material_slot(slot, resolver, reference_count, reference_visits)?;
         }
     }
-    Ok(document)
+    Ok(changed)
 }
 
 fn migrate_flattened_material_slot(
-    slot: &mut Value,
+    slot: &mut toml::Value,
     resolver: &MigrationResolver<'_>,
     reference_count: &mut usize,
-) -> Result<(), RetiredAssetRefMigrationError<ResolutionFailure>> {
-    let Some(values) = slot.as_object_mut() else {
-        return Ok(());
+    reference_visits: &mut usize,
+) -> Result<bool, RetiredAssetRefMigrationError<ResolutionFailure>> {
+    let Some(values) = slot.as_table_mut() else {
+        return Ok(false);
     };
     if !values.contains_key("uuid") && !values.contains_key("url") {
-        return Ok(());
+        return Ok(false);
     }
-    let uuid = values.remove("uuid");
-    let url = values.remove("url");
-    let mut exact = serde_json::Map::new();
-    if let Some(uuid) = uuid {
+    let mut exact = toml::Table::new();
+    if let Some(uuid) = values.remove("uuid") {
         exact.insert("uuid".to_string(), uuid);
     }
-    if let Some(url) = url {
+    if let Some(url) = values.remove("url") {
         exact.insert("url".to_string(), url);
     }
-    let migrated = migrate_one_reference(Value::Object(exact), resolver, reference_count)?;
-    let Value::Object(fields) = migrated else {
-        unreachable!("single-reference migration always serializes an object");
+    let migrated = migrate_one_reference(
+        toml::Value::Table(exact),
+        resolver,
+        reference_count,
+        reference_visits,
+    )?;
+    let toml::Value::Table(fields) = migrated else {
+        unreachable!("single-reference migration always serializes a TOML table")
     };
     values.extend(fields);
-    Ok(())
+    Ok(true)
 }
 
 fn migrate_one_reference(
-    value: Value,
+    value: toml::Value,
     resolver: &MigrationResolver<'_>,
     reference_count: &mut usize,
-) -> Result<Value, RetiredAssetRefMigrationError<ResolutionFailure>> {
-    migrate_retired_persisted_asset_reference_with(value, |reference| {
+    reference_visits: &mut usize,
+) -> Result<toml::Value, RetiredAssetRefMigrationError<ResolutionFailure>> {
+    let value = serde_json::to_value(value).map_err(invalid_migration_shape)?;
+    let migrated = migrate_retired_persisted_asset_reference_with(value, |reference| {
         let resolved = resolver.resolve(reference)?;
         *reference_count += 1;
+        *reference_visits += 1;
         Ok(resolved)
-    })
+    })?;
+    persisted_reference_table(migrated)
+        .map(toml::Value::Table)
+        .map_err(invalid_migration_shape)
 }
 
-fn is_retired_reference_object(value: &Value) -> bool {
-    value.as_object().is_some_and(|values| {
-        values.len() == 2 && values.contains_key("uuid") && values.contains_key("url")
-    })
+fn is_retired_reference(value: &toml::Value) -> bool {
+    value.as_table().is_some_and(is_retired_reference_table)
+}
+
+fn is_retired_reference_table(values: &toml::Table) -> bool {
+    values.len() == 2 && values.contains_key("uuid") && values.contains_key("url")
 }
 
 fn validate_formal_reader(
     path: &Path,
-    document: &str,
+    document: ProjectDocumentArtifact,
     resolver: &MigrationResolver<'_>,
+    reference_visits: &mut usize,
 ) -> Result<(), AssetMigrationIssue> {
-    let resolve = |reference: &zircon_runtime_interface::project::PersistedAssetReference| {
+    let resolve = |reference: &PersistedAssetReference| {
+        *reference_visits += 1;
         resolver.resolve_persisted(reference)
     };
     let name = path
@@ -219,11 +361,11 @@ fn validate_formal_reader(
         .and_then(|name| name.to_str())
         .unwrap_or_default();
     let result = if name.ends_with(".scene.toml") {
-        SceneAsset::from_project_toml_str(document, resolve).map(|_| ())
+        deserialize_scene_artifact(document, resolve).map(|_| ())
     } else if name.ends_with(".model.toml") {
-        ModelAsset::from_project_toml_str(document, resolve).map(|_| ())
+        deserialize_model_artifact(document, resolve).map(|_| ())
     } else {
-        ZMaterialDocument::from_project_toml_str(document, resolve).map(|_| ())
+        deserialize_material_artifact(document, resolve).map(|_| ())
     };
     result.map_err(|error| {
         invalid(
@@ -233,48 +375,20 @@ fn validate_formal_reader(
     })
 }
 
-fn validate_current_document(
-    path: &Path,
-    document: &toml::Value,
-) -> Result<(), AssetMigrationIssue> {
-    if path.extension().and_then(|extension| extension.to_str()) != Some("zmaterial") {
-        return Ok(());
-    }
-    match document.get("version").and_then(toml::Value::as_integer) {
-        Some(2) => Ok(()),
-        Some(version) => Err(invalid(
-            path,
-            format!("unsupported material schema version {version}; expected version 2"),
-        )),
-        None => Err(invalid(
-            path,
-            "material schema version is required".to_string(),
-        )),
+fn is_material_document(path: &Path) -> bool {
+    path.extension().and_then(|extension| extension.to_str()) == Some("zmaterial")
+}
+
+fn invalid_resolution(error: impl std::fmt::Display) -> ResolutionFailure {
+    ResolutionFailure {
+        kind: AssetMigrationIssueKind::InvalidDocument,
+        message: error.to_string(),
     }
 }
 
-fn omit_toml_null_subfields(value: Value) -> Value {
-    match value {
-        Value::Array(values) => {
-            Value::Array(values.into_iter().map(omit_toml_null_subfields).collect())
-        }
-        Value::Object(mut values) => {
-            let is_asset_ref = values.len() == 4
-                && values.get("kind").and_then(Value::as_str) == Some("project")
-                && values.contains_key("guid")
-                && values.contains_key("path_hint")
-                && values.get("sub").is_some_and(Value::is_null);
-            if is_asset_ref {
-                values.remove("sub");
-            }
-            Value::Object(
-                values
-                    .into_iter()
-                    .map(|(key, value)| (key, omit_toml_null_subfields(value)))
-                    .collect(),
-            )
-        }
-        value => value,
+fn invalid_migration_shape<E>(error: impl std::fmt::Display) -> RetiredAssetRefMigrationError<E> {
+    RetiredAssetRefMigrationError::InvalidShape {
+        message: error.to_string(),
     }
 }
 

@@ -12,11 +12,11 @@ impl RuntimeEntryApp {
         paths: Vec<PathBuf>,
     ) {
         for path in paths {
-            let path_text = path.to_string_lossy().to_string();
+            let path_text = path.to_string_lossy();
             let event = ZrRuntimeEventV1::file_dropped(
                 ZIRCON_RUNTIME_ABI_VERSION_V1,
                 self.viewport,
-                byte_slice(path_text.as_str()),
+                byte_slice(path_text.as_ref()),
             );
             if self.session.handle_event(event).is_err() {
                 event_loop.exit();

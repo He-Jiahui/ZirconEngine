@@ -2,7 +2,7 @@ use zircon_editor::core::asset::AssetTypeContribution;
 use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodePaletteDescriptor, TimelineEditorDescriptor,
-    TimelineTrackDescriptor, ViewportToolModeDescriptor,
+    TimelineTrackDescriptor,
 };
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use zircon_editor::core::editor_extension::{
@@ -10,6 +10,7 @@ use zircon_editor::core::editor_extension::{
     EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
     ViewDescriptor,
 };
+use zircon_editor::scene::modes::SceneModeRegistration;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct EditorAuthoringSurface<'a> {
@@ -69,7 +70,7 @@ pub struct EditorAuthoringContributionBatch {
     pub asset_importers: Vec<AssetImporterDescriptor>,
     pub asset_type_contributions: Vec<AssetTypeContribution>,
     pub component_drawers: Vec<ComponentDrawerDescriptor>,
-    pub viewport_tool_modes: Vec<ViewportToolModeDescriptor>,
+    pub scene_modes: Vec<SceneModeRegistration>,
     pub graph_editors: Vec<GraphEditorDescriptor>,
     pub graph_node_palettes: Vec<GraphNodePaletteDescriptor>,
     pub timeline_editors: Vec<TimelineEditorDescriptor>,
@@ -95,8 +96,8 @@ pub fn register_authoring_contribution_batch(
     for drawer in batch.component_drawers {
         registry.register_component_drawer(drawer)?;
     }
-    for tool_mode in batch.viewport_tool_modes {
-        registry.register_viewport_tool_mode(tool_mode)?;
+    for scene_mode in batch.scene_modes {
+        registry.register_scene_mode(scene_mode)?;
     }
     for graph_editor in batch.graph_editors {
         registry.register_graph_editor(graph_editor)?;
@@ -146,9 +147,38 @@ mod tests {
         AssetTypePresentation, ThumbnailProviderDescriptor,
     };
     use zircon_editor::core::editor_authoring_extension::{
-        GraphNodeDescriptor, GraphPinDescriptor,
+        GraphNodeDescriptor, GraphPinDescriptor, SceneModeDescriptor,
     };
+    use zircon_editor::core::editor_message::SceneModeId;
     use zircon_editor::core::editor_operation::EditorOperationPath;
+    use zircon_editor::scene::modes::{
+        EditorSceneMode, InputOutcome, SceneModeCtx, ViewportOverlayBuilder,
+    };
+    use zircon_editor::scene::viewport::ViewportInput;
+
+    struct SupportPaintMode {
+        id: SceneModeId,
+    }
+
+    impl EditorSceneMode for SupportPaintMode {
+        fn id(&self) -> &SceneModeId {
+            &self.id
+        }
+
+        fn enter(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
+
+        fn exit(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
+
+        fn handle_input(
+            &mut self,
+            _input: &ViewportInput,
+            _ctx: &mut SceneModeCtx<'_>,
+        ) -> InputOutcome {
+            InputOutcome::Consumed
+        }
+
+        fn build_overlay(&self, _out: &mut ViewportOverlayBuilder) {}
+    }
 
     fn operation(path: &str) -> EditorOperationPath {
         EditorOperationPath::parse(path).expect("valid test operation path")
@@ -178,72 +208,92 @@ mod tests {
                     EditorCommandDescriptor::operation(create.clone(), "Create Support Asset"),
                     EditorCommandDescriptor::operation(activate.clone(), "Activate Support Tool"),
                 ],
-                menu_items: vec![EditorMenuItemDescriptor::new(
-                    "Plugins/Support/Import",
-                    import.clone(),
-                )
-                .with_required_capabilities(["editor.extension.support_authoring"])],
-                asset_importers: vec![AssetImporterDescriptor::new(
-                    "support.asset.importer",
-                    "Support Asset",
-                    import.clone(),
-                )
-                .with_source_extension("support")
-                .with_output_type(support_type.clone())],
-                asset_type_contributions: vec![AssetTypeContribution::define(
-                    support_type.clone(),
-                    AssetTypePresentation::new(
+                menu_items: vec![
+                    EditorMenuItemDescriptor::new("Plugins/Support/Import", import.clone())
+                        .with_required_capabilities(["editor.extension.support_authoring"]),
+                ],
+                asset_importers: vec![
+                    AssetImporterDescriptor::new(
+                        "support.asset.importer",
                         "Support Asset",
-                        "SUP",
-                        "asset-support",
-                        "asset.support",
+                        import.clone(),
+                    )
+                    .with_source_extension("support")
+                    .with_output_type(support_type.clone()),
+                ],
+                asset_type_contributions: vec![
+                    AssetTypeContribution::define(
+                        support_type.clone(),
+                        AssetTypePresentation::new(
+                            "Support Asset",
+                            "SUP",
+                            "asset-support",
+                            "asset.support",
+                        ),
+                        ThumbnailProviderDescriptor::Icon("asset-support".to_owned()),
+                    )
+                    .with_toolkit(AssetToolkitDescriptor::new(
+                        "support.authoring",
+                        open.clone(),
+                    ))
+                    .with_creation_template(
+                        AssetCreationTemplateDescriptor::new(
+                            "support.template.asset",
+                            "Support Asset",
+                            create,
+                        ),
                     ),
-                    ThumbnailProviderDescriptor::Icon("asset-support".to_owned()),
-                )
-                .with_toolkit(AssetToolkitDescriptor::new(
-                    "support.authoring",
-                    open.clone(),
-                ))
-                .with_creation_template(AssetCreationTemplateDescriptor::new(
-                    "support.template.asset",
-                    "Support Asset",
-                    create,
-                ))],
-                component_drawers: vec![ComponentDrawerDescriptor::new(
-                    "support.Component",
-                    "plugins://support/editor/component.zui",
-                    "support.editor.component",
-                )
-                .with_binding(validate.as_str())],
-                viewport_tool_modes: vec![ViewportToolModeDescriptor::new(
-                    "support.tool.paint",
-                    "Paint Support",
-                    "support.authoring",
-                    activate,
+                ],
+                component_drawers: vec![
+                    ComponentDrawerDescriptor::new(
+                        "support.Component",
+                        "plugins://support/editor/component.zui",
+                        "support.editor.component",
+                    )
+                    .with_binding(validate.as_str()),
+                ],
+                scene_modes: vec![SceneModeRegistration::new(
+                    SceneModeDescriptor::new(
+                        "support.tool.paint",
+                        "Paint Support",
+                        "support.authoring",
+                        activate,
+                    ),
+                    || {
+                        Box::new(SupportPaintMode {
+                            id: SceneModeId::new("support.tool.paint"),
+                        }) as Box<dyn EditorSceneMode>
+                    },
                 )],
-                graph_editors: vec![GraphEditorDescriptor::new(
-                    AssetTypeId::parse("support.graph").unwrap(),
-                    "support.authoring",
-                    "Support Graph",
-                    open.clone(),
-                    validate,
-                )
-                .with_compile_operation(compile)],
-                graph_node_palettes: vec![GraphNodePaletteDescriptor::new(
-                    "support.palette",
-                    AssetTypeId::parse("support.graph").unwrap(),
-                )
-                .with_node(
-                    GraphNodeDescriptor::new("output", "Output", "Graph")
-                        .with_input(GraphPinDescriptor::new("value", "float").required(true)),
-                )],
-                timeline_editors: vec![TimelineEditorDescriptor::new(
-                    AssetTypeId::parse("support.timeline").unwrap(),
-                    "support.authoring",
-                    "Support Timeline",
-                    open,
-                )
-                .with_track_type("support.track.event")],
+                graph_editors: vec![
+                    GraphEditorDescriptor::new(
+                        AssetTypeId::parse("support.graph").unwrap(),
+                        "support.authoring",
+                        "Support Graph",
+                        open.clone(),
+                        validate,
+                    )
+                    .with_compile_operation(compile),
+                ],
+                graph_node_palettes: vec![
+                    GraphNodePaletteDescriptor::new(
+                        "support.palette",
+                        AssetTypeId::parse("support.graph").unwrap(),
+                    )
+                    .with_node(
+                        GraphNodeDescriptor::new("output", "Output", "Graph")
+                            .with_input(GraphPinDescriptor::new("value", "float").required(true)),
+                    ),
+                ],
+                timeline_editors: vec![
+                    TimelineEditorDescriptor::new(
+                        AssetTypeId::parse("support.timeline").unwrap(),
+                        "support.authoring",
+                        "Support Timeline",
+                        open,
+                    )
+                    .with_track_type("support.track.event"),
+                ],
                 timeline_track_types: vec![TimelineTrackDescriptor::new(
                     "support.track.event",
                     "Event",
@@ -275,7 +325,10 @@ mod tests {
             registry.component_drawers()[0].component_type(),
             "support.Component"
         );
-        assert_eq!(registry.viewport_tool_modes()[0].id(), "support.tool.paint");
+        assert_eq!(
+            registry.scene_mode_descriptors()[0].id(),
+            "support.tool.paint"
+        );
         assert_eq!(
             registry.graph_editors()[0].asset_type().as_str(),
             "support.graph"

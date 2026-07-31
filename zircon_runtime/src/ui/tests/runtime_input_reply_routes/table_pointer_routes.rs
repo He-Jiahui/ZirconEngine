@@ -1,5 +1,6 @@
 use super::*;
 use std::collections::BTreeMap;
+use zircon_runtime_interface::ui::template::UiActionRef;
 
 mod resize;
 mod selection;
@@ -138,10 +139,11 @@ columns = [
     {{ field = "triangles", width = 96.0 }},
 ]
 rows = [
-    {{ id = "sphere", name = "Sphere", triangles = 64 }},
-    {{ id = "cube", name = "Cube", triangles = 12 }},
-    {{ id = "camera", name = "Camera", triangles = 1 }},
+    {{ id = "sphere", surface_entity = 41, name = "Sphere", triangles = 64 }},
+    {{ id = "cube", surface_entity = 73, name = "Cube", triangles = 12 }},
+    {{ id = "camera", surface_entity = 101, name = "Camera", triangles = 1 }},
 ]
+row_identity_field = "surface_entity"
 row_count = 40
 rowCount = 40
 rowHeight = 24.0
@@ -183,7 +185,23 @@ min_column_width = 40.0
                         binding("GeometryTable/BeginDrag", UiEventKind::DragBegin),
                         binding("GeometryTable/DragDelta", UiEventKind::DragUpdate),
                         binding("GeometryTable/EndDrag", UiEventKind::DragEnd),
-                        binding("GeometryTable/SelectOption", UiEventKind::Change),
+                        UiBindingRef {
+                            id: "GeometryTable/SelectOption".to_string(),
+                            event: UiEventKind::Change,
+                            route: Some("GeometryTable/SelectOption".to_string()),
+                            action: Some(UiActionRef {
+                                route: Some("test.navigation.surface".to_string()),
+                                action: None,
+                                payload: BTreeMap::from([(
+                                    "surface_entity".to_string(),
+                                    toml::Value::String(
+                                        "=control.GeometryTable.prop.selected_row_identity"
+                                            .to_string(),
+                                    ),
+                                )]),
+                            }),
+                            targets: Vec::new(),
+                        },
                         binding("GeometryTable/SetVisibleRange", UiEventKind::Change),
                     ],
                     ..Default::default()
@@ -240,6 +258,7 @@ min_column_width = 40.0
         "root/table/sphere-row",
         "sphere",
         0,
+        41,
         UiFrame::new(10.0, 42.0, 252.0, 24.0),
     );
     insert_table_row(
@@ -249,6 +268,7 @@ min_column_width = 40.0
         "root/table/cube-row",
         "cube",
         1,
+        73,
         UiFrame::new(10.0, 66.0, 252.0, 24.0),
     );
     insert_table_row(
@@ -258,8 +278,46 @@ min_column_width = 40.0
         "root/table/camera-row",
         "camera",
         2,
+        101,
         UiFrame::new(10.0, 90.0, 252.0, 24.0),
     );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(9), UiNodePath::new("root/bake-selected"))
+                .with_frame(UiFrame::new(10.0, 120.0, 120.0, 30.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(input_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Button".to_string(),
+                    control_id: Some("BakeSelected".to_string()),
+                    attributes: toml::from_str(r#"text = "Bake selected""#)
+                        .expect("button attributes should parse"),
+                    bindings: vec![UiBindingRef {
+                        id: "BakeSelected/Click".to_string(),
+                        event: UiEventKind::Click,
+                        route: Some("test.navigation.bake.surface".to_string()),
+                        action: Some(UiActionRef {
+                            route: Some("test.navigation.bake.surface".to_string()),
+                            action: None,
+                            payload: BTreeMap::from([
+                                (
+                                    "surface_entity".to_string(),
+                                    toml::Value::String(
+                                        "=control.GeometryTable.prop.selected_row_identity"
+                                            .to_string(),
+                                    ),
+                                ),
+                                ("force_full_rebuild".to_string(), toml::Value::Boolean(true)),
+                            ]),
+                        }),
+                        targets: Vec::new(),
+                    }],
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
 
     surface.rebuild();
     surface
@@ -303,6 +361,7 @@ fn insert_table_row(
     path: &str,
     row_id: &str,
     row_index: usize,
+    surface_entity: u64,
     frame: UiFrame,
 ) {
     surface
@@ -324,6 +383,7 @@ fn insert_table_row(
                         r#"
 row_id = "{row_id}"
 row_index = {row_index}
+surface_entity = {surface_entity}
 "#
                     ))
                     .expect("row attributes should parse"),

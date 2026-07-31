@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var echo = %import("combat/temporal_echo_state");
+
+console.printLine("m4-temporal-echo-state-test");
+var result = echo.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

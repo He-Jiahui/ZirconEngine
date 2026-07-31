@@ -6,6 +6,15 @@ pub enum RuntimeEventMirrorError {
     EmptyEventId,
     #[error("runtime event mirror `{event_id}` payload schema cannot be empty")]
     EmptyPayloadSchema { event_id: String },
+    #[error(
+        "runtime event mirror `{event_id}` {field} is {actual_bytes} bytes, maximum is {max_bytes}"
+    )]
+    DescriptorTooLarge {
+        event_id: String,
+        field: &'static str,
+        actual_bytes: usize,
+        max_bytes: usize,
+    },
     #[error("runtime event mirror `{event_id}` is already registered")]
     DuplicateEventId { event_id: String },
     #[error("runtime event mirror `{event_id}` is not registered")]
@@ -28,6 +37,24 @@ pub enum RuntimeEventMirrorError {
     Disconnected { event_id: String },
     #[error("runtime event mirror `{event_id}` failed to serialize its payload: {message}")]
     Serialize { event_id: String, message: String },
+    #[error(
+        "runtime event mirror `{event_id}` payload is {payload_bytes} bytes, page maximum is {max_payload_bytes}"
+    )]
+    PayloadTooLarge {
+        event_id: String,
+        payload_bytes: usize,
+        max_payload_bytes: usize,
+    },
+    #[error(
+        "runtime event mirror `{event_id}` queue overflowed at {pending_events}/{max_events} events and {pending_payload_bytes}/{max_payload_bytes} payload bytes"
+    )]
+    QueueOverflow {
+        event_id: String,
+        pending_events: usize,
+        pending_payload_bytes: usize,
+        max_events: usize,
+        max_payload_bytes: usize,
+    },
     #[error("runtime event mirror `{event_id}` reader-count callback failed: {message}")]
     ReaderCountCallback { event_id: String, message: String },
 }

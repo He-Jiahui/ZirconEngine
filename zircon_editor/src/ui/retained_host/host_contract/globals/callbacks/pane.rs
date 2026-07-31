@@ -1,4 +1,5 @@
 use crate::ui::retained_host::primitives::SharedString;
+use zircon_runtime_interface::ui::dispatch::UiPointerComponentEvent;
 
 use super::super::super::data::WorkbenchContextMenuRequestData;
 use super::types::{
@@ -33,6 +34,8 @@ pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
         Option<Callback1<SharedString>>,
     pub(in crate::ui::retained_host::host_contract) surface_control_clicked:
         Option<Callback2<SharedString, SharedString>>,
+    pub(in crate::ui::retained_host::host_contract) pointer_component_event:
+        Option<Callback1<UiPointerComponentEvent>>,
     pub(in crate::ui::retained_host::host_contract) workbench_context_menu_requested:
         Option<Callback1<WorkbenchContextMenuRequestData>>,
     pub(in crate::ui::retained_host::host_contract) surface_control_edited:
@@ -82,7 +85,7 @@ pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
     pub(in crate::ui::retained_host::host_contract) welcome_control_clicked:
         Option<Callback1<SharedString>>,
     pub(in crate::ui::retained_host::host_contract) viewport_pointer_event:
-        Option<Callback5<i32, i32, f32, f32, f32>>,
+        Option<Callback7<i32, i32, f32, f32, f32, bool, bool>>,
     pub(in crate::ui::retained_host::host_contract) viewport_toolbar_pointer_clicked:
         Option<Callback5<SharedString, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) ui_asset_action:

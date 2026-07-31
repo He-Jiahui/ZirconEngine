@@ -4,7 +4,7 @@ use super::cycle_grid_mode_route::cycle_grid_mode_route;
 use super::frame_selection_route::frame_selection_route;
 use super::play_mode_route::play_mode_route;
 use super::set_projection_mode_route::set_projection_mode_route;
-use super::set_tool_route::set_tool_route;
+use super::set_scene_mode_route::set_scene_mode_route;
 use super::set_transform_space_route::set_transform_space_route;
 use super::snap_routes::snap_route;
 use super::toggle_routes::toggle_route;
@@ -15,7 +15,7 @@ pub(super) fn route_for_control(
     control_id: &str,
 ) -> Result<ViewportToolbarPointerRoute, String> {
     for route in [
-        set_tool_route(surface_key, control_id),
+        set_scene_mode_route(surface_key, control_id),
         set_transform_space_route(surface_key, control_id),
         set_projection_mode_route(surface_key, control_id),
         align_view_route(surface_key, control_id),

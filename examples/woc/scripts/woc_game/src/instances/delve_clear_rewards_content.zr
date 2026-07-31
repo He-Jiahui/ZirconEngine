@@ -1,0 +1,77 @@
+// Generated Delve completion XP and copper-range content.
+pub delveCount(required: bool): int {
+    if (!required) { throw "woc Delve reward catalog is required"; }
+    return 2;
+}
+
+pub delveId(delveIndex: int, required: bool): string {
+    if (!required) { throw "woc Delve reward catalog is required"; }
+    if (delveIndex == 0) { return "collapsed_reliquary"; }
+    if (delveIndex == 1) { return "drowned_litany"; }
+    return "";
+}
+
+pub tierCount(delveIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve reward catalog is required"; }
+    if (delveIndex == 0) { return 2; }
+    if (delveIndex == 1) { return 2; }
+    return 0;
+}
+
+pub tierId(delveIndex: int, tierIndex: int, required: bool): string {
+    if (!required) { throw "woc Delve reward catalog is required"; }
+    if (delveIndex == 0 && tierIndex == 0) { return "normal"; }
+    if (delveIndex == 0 && tierIndex == 1) { return "heroic"; }
+    if (delveIndex == 1 && tierIndex == 0) { return "normal"; }
+    if (delveIndex == 1 && tierIndex == 1) { return "heroic"; }
+    return "";
+}
+
+pub markMultiplier(delveIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve reward catalog is required"; }
+    return delveIndex == 1 ? 2 : 1;
+}
+
+pub firstClearXp(delveIndex: int, tierIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve clear reward is required"; }
+    if (delveIndex == 0 && tierIndex == 0) { return 700; }
+    if (delveIndex == 0 && tierIndex == 1) { return 1050; }
+    if (delveIndex == 1 && tierIndex == 0) { return 1250; }
+    if (delveIndex == 1 && tierIndex == 1) { return 1850; }
+    throw "woc Delve reward tier is invalid";
+}
+
+pub repeatClearXp(delveIndex: int, tierIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve clear reward is required"; }
+    if (delveIndex == 0 && tierIndex == 0) { return 420; }
+    if (delveIndex == 0 && tierIndex == 1) { return 650; }
+    if (delveIndex == 1 && tierIndex == 0) { return 760; }
+    if (delveIndex == 1 && tierIndex == 1) { return 1140; }
+    throw "woc Delve reward tier is invalid";
+}
+
+pub copperMinimum(delveIndex: int, tierIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve clear reward is required"; }
+    if (delveIndex == 0 && tierIndex == 0) { return 8; }
+    if (delveIndex == 0 && tierIndex == 1) { return 16; }
+    if (delveIndex == 1 && tierIndex == 0) { return 18; }
+    if (delveIndex == 1 && tierIndex == 1) { return 32; }
+    throw "woc Delve reward tier is invalid";
+}
+
+pub copperMaximum(delveIndex: int, tierIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve clear reward is required"; }
+    if (delveIndex == 0 && tierIndex == 0) { return 14; }
+    if (delveIndex == 0 && tierIndex == 1) { return 24; }
+    if (delveIndex == 1 && tierIndex == 0) { return 30; }
+    if (delveIndex == 1 && tierIndex == 1) { return 48; }
+    throw "woc Delve reward tier is invalid";
+}
+
+pub contractTest(): int {
+    return delveCount(true) == 2 && delveId(0, true) == "collapsed_reliquary" &&
+        tierId(1, 1, true) == "heroic" && firstClearXp(0, 0, true) == 700 &&
+        repeatClearXp(0, 1, true) == 650 && copperMinimum(1, 0, true) == 18 &&
+        copperMaximum(1, 1, true) == 48 && markMultiplier(0, true) == 1 &&
+        markMultiplier(1, true) == 2 ? 1 : -1;
+}

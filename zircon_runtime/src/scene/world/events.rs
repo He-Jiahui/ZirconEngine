@@ -1,6 +1,6 @@
 use crate::scene::ecs::{
-    Event, EventCapacityMetrics, EventPayloadProfile, EventReadIter, EventStore, EventSubscription,
-    EventTypeId, Events,
+    Event, EventCapacityMetrics, EventObserverHandle, EventPayloadProfile, EventReadIter,
+    EventStore, EventSubscription, EventTypeId, Events,
 };
 
 use super::World;
@@ -91,9 +91,24 @@ impl World {
         subscription.disconnect(&mut self.events)
     }
 
+    pub(crate) fn observe_event_delivery<T, F>(
+        &mut self,
+        callback: F,
+    ) -> Option<EventObserverHandle>
+    where
+        T: Event,
+        F: Fn(&T) -> bool + Send + Sync + 'static,
+    {
+        self.events.observe::<T, F>(callback)
+    }
+
+    pub(crate) fn unobserve_event_delivery(&mut self, handle: EventObserverHandle) -> bool {
+        self.events.unobserve(handle)
+    }
+
     pub fn read_event_subscription<'events, T>(
         &'events self,
-        subscription: &mut EventSubscription<T>,
+        subscription: &'events mut EventSubscription<T>,
     ) -> EventReadIter<'events, T>
     where
         T: Event,

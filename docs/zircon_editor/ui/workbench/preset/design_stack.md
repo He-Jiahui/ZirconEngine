@@ -143,7 +143,7 @@ The generated `ActivityWindowLayout.descriptor_id` values are also covered by bu
 
 When the runtime diagnostics subsystem is unavailable, `builtin_hybrid_layout_for_subsystems(...)` removes `editor.runtime_diagnostics#1` from both the root drawer map and the workbench activity-window drawer map, then collapses any drawer that becomes empty. The shell view instance seed follows the same preset direction by dropping the legacy `editor.project#1` seed and retitling `editor.assets#1` as `Asset Browser`.
 
-The previous `layout_drawers.rs` and `workbench_page.rs` sources remain on disk as legacy references, but `builtin_layout::mod` no longer wires them into the startup path. They should not be used as the design source for new workbench behavior unless the UI plan explicitly calls for a legacy comparison.
+The previous hand-built `layout_drawers.rs` and `workbench_page.rs` sources were removed after `builtin_layout::mod` stopped wiring them into the startup path. New workbench behavior must use the preset layout rather than reviving the legacy startup model.
 
 ## Boundaries
 

@@ -16,7 +16,7 @@ mod register_handled_pointer_node;
 mod root_frame;
 mod route_for_control;
 mod set_projection_mode_route;
-mod set_tool_route;
+mod set_scene_mode_route;
 mod set_transform_space_route;
 mod snap_routes;
 mod surface_layout;

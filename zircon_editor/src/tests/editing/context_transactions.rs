@@ -1,7 +1,11 @@
 use std::ptr;
 
 use crate::core::context::EditorContextBuilder;
-use crate::core::editing::engine::{HistoryContextId, TransactionEventKind};
+use crate::core::editing::engine::HistoryContextId;
+use crate::core::editor_message::{
+    EditorMessagePayload, EditorTopic, SharedEditorMessageBus, TransactionMessage,
+    TOPIC_TRANSACTION,
+};
 use crate::core::jobs::test_job_scheduler;
 
 #[test]
@@ -13,7 +17,12 @@ fn editor_context_exposes_one_transaction_engine_instance() {
 
 #[test]
 fn committing_an_empty_context_transaction_does_not_create_history() {
-    let context = EditorContextBuilder::new(test_job_scheduler()).build();
+    let bus = SharedEditorMessageBus::default();
+    let topic = EditorTopic::parse(TOPIC_TRANSACTION).unwrap();
+    let subscriber = bus.register_subscriber([topic.clone()]).unwrap();
+    let context = EditorContextBuilder::new(test_job_scheduler())
+        .with_bus(bus.clone())
+        .build();
     let transaction = context
         .transactions()
         .begin("Metadata-only dispatch", HistoryContextId::Global)
@@ -23,16 +32,20 @@ fn committing_an_empty_context_transaction_does_not_create_history() {
 
     let history = context
         .transactions()
-        .history_snapshot(HistoryContextId::Global)
+        .history_status(HistoryContextId::Global)
         .expect("query global history");
     assert_eq!(history.len, 0);
     assert!(!history.can_undo);
     assert!(!history.can_redo);
-    let events = context
-        .transactions()
-        .drain_events()
-        .expect("drain transaction events");
-    assert_eq!(events.len(), 2);
-    assert_eq!(events[0].kind, TransactionEventKind::Started);
-    assert_eq!(events[1].kind, TransactionEventKind::Committed);
+    let deliveries = bus.drain_deliveries(subscriber);
+    assert_eq!(deliveries.len(), 2);
+    assert!(deliveries.iter().all(|delivery| delivery.topic() == &topic));
+    assert!(matches!(
+        deliveries[0].message().payload(),
+        EditorMessagePayload::Transaction(TransactionMessage::Started { .. })
+    ));
+    assert!(matches!(
+        deliveries[1].message().payload(),
+        EditorMessagePayload::Transaction(TransactionMessage::Committed { .. })
+    ));
 }

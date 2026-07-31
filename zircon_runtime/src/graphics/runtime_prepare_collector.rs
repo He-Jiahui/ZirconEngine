@@ -12,10 +12,10 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::ResourceId;
-use crate::graphics::scene::resources::MaterialCaptureSeed;
-use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::GraphicsError;
 use crate::graphics::ViewportRenderFrame;
+use crate::graphics::scene::resources::MaterialCaptureSeed;
+use crate::graphics::scene::resources::ResourceStreamer;
 
 pub trait RuntimePrepareCollector: Send + Sync {
     fn collect(

@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -33,13 +35,14 @@ impl RenderMaterialManagementSelection {
         let requested_material_ids = unique_material_ids(material_ids);
         let mut selected_records = Vec::new();
         let mut missing_material_ids = Vec::new();
+        let mut records_by_id = HashMap::with_capacity(records.len());
+        for record in records {
+            records_by_id.entry(record.material_id).or_insert(record);
+        }
 
         for material_id in &requested_material_ids {
-            if let Some(record) = records
-                .iter()
-                .find(|record| record.material_id == *material_id)
-            {
-                selected_records.push(record.clone());
+            if let Some(record) = records_by_id.get(material_id) {
+                selected_records.push((**record).clone());
             } else {
                 missing_material_ids.push(*material_id);
             }
@@ -84,8 +87,9 @@ impl RenderMaterialManagementSelection {
 
 fn unique_material_ids(material_ids: impl IntoIterator<Item = ResourceId>) -> Vec<ResourceId> {
     let mut unique_ids = Vec::new();
+    let mut seen_ids = HashSet::new();
     for material_id in material_ids {
-        if !unique_ids.contains(&material_id) {
+        if seen_ids.insert(material_id) {
             unique_ids.push(material_id);
         }
     }

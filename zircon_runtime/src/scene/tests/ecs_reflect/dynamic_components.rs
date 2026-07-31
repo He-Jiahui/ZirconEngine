@@ -1,12 +1,13 @@
 use serde_json::json;
 use std::path::{Path, PathBuf};
 use zircon_runtime_interface::reflect::{
-    ReflectError, ReflectFieldValue, ReflectObjectAddress, ReflectReadRequest, ReflectTypeKind,
-    ReflectWriteRequest, ReflectedValue,
+    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue, ReflectObjectAddress,
+    ReflectReadRequest, ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypeKind,
+    ReflectTypePath, ReflectTypeRegistration, ReflectWriteRequest, ReflectedValue,
 };
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
-use crate::scene::{NodeKind, SceneError, World};
+use crate::scene::{NodeKind, SceneError, VmTypeBacking, World};
 
 #[test]
 fn dynamic_component_descriptor_registers_reflected_json_component() {
@@ -319,6 +320,7 @@ fn dynamic_component_reflection_writes_json_property_through_facade() {
             json!({ "coverage": 0.25, "label": "storm front" }),
         )
         .expect("dynamic component should attach");
+    let generation = world.world_generation();
 
     let response = world
         .reflect_write(ReflectWriteRequest::new(
@@ -337,6 +339,59 @@ fn dynamic_component_reflection_writes_json_property_through_facade() {
         world.dynamic_component(entity, "weather.Component.CloudLayer"),
         Some(&json!({ "coverage": 0.9, "label": "storm front" }))
     );
+    assert_eq!(world.world_generation(), generation + 1);
+
+    let unchanged = world
+        .reflect_write(ReflectWriteRequest::new(
+            cloud_layer_address(entity),
+            "coverage",
+            ReflectedValue::Scalar(0.9),
+        ))
+        .expect("identical dynamic field write should be accepted");
+    assert!(!unchanged.changed);
+    assert_eq!(world.world_generation(), generation + 1);
+}
+
+#[test]
+fn vm_dynamic_component_reflection_write_advances_generation_once_per_change() {
+    let mut world = World::empty();
+    world
+        .register_vm_type(
+            vm_cloud_layer_registration(),
+            VmTypeBacking::DynamicComponent,
+        )
+        .expect("VM-backed dynamic descriptor should register");
+    let entity = world.spawn_node(NodeKind::Mesh);
+    world
+        .set_dynamic_component(
+            entity,
+            "weather.Component.VmCloudLayer",
+            json!({ "coverage": 0.25, "label": "storm front" }),
+        )
+        .expect("VM-backed dynamic component should attach");
+    let generation = world.world_generation();
+    let address = ReflectObjectAddress::component(entity, "weather.Component.VmCloudLayer")
+        .expect("VM dynamic component address should be valid");
+
+    let changed = world
+        .reflect_write(ReflectWriteRequest::new(
+            address.clone(),
+            "coverage",
+            ReflectedValue::Scalar(0.9),
+        ))
+        .expect("VM dynamic field should write through reflection");
+    assert!(changed.changed);
+    assert_eq!(world.world_generation(), generation + 1);
+
+    let unchanged = world
+        .reflect_write(ReflectWriteRequest::new(
+            address,
+            "coverage",
+            ReflectedValue::Scalar(0.9),
+        ))
+        .expect("identical VM dynamic field write should be accepted");
+    assert!(!unchanged.changed);
+    assert_eq!(world.world_generation(), generation + 1);
 }
 
 #[test]
@@ -474,6 +529,69 @@ fn plugin_unload_guard_still_counts_reflected_dynamic_components() {
         .contains_type_path("weather.Component.CloudLayer"));
 }
 
+#[test]
+fn dynamic_component_rows_are_type_scoped_and_stably_sorted() {
+    let mut world = world_with_cloud_layer_descriptor();
+    world
+        .register_component_type(ComponentTypeDescriptor::new(
+            "weather.Component.Wind",
+            "weather",
+            "Wind",
+        ))
+        .expect("second dynamic descriptor should register");
+
+    let first = world.spawn_node(NodeKind::Mesh);
+    let unrelated = world.spawn_node(NodeKind::Mesh);
+    let last = world.spawn_node(NodeKind::Mesh);
+    world
+        .set_dynamic_component(
+            first,
+            "weather.Component.CloudLayer",
+            json!({ "coverage": 0.25, "label": "first" }),
+        )
+        .expect("first cloud layer should attach");
+    world
+        .set_dynamic_component(
+            unrelated,
+            "weather.Component.Wind",
+            json!({ "speed": 12.0 }),
+        )
+        .expect("unrelated dynamic component should attach");
+    world
+        .set_dynamic_component(
+            last,
+            "weather.Component.CloudLayer",
+            json!({ "coverage": 0.75, "label": "last" }),
+        )
+        .expect("last cloud layer should attach");
+
+    let mut rows = Vec::new();
+    world.dynamic_component_rows("weather.Component.CloudLayer", &mut rows);
+
+    assert_eq!(
+        rows.iter().map(|(entity, _)| *entity).collect::<Vec<_>>(),
+        vec![first, last],
+        "component-row enumeration must not leak other dynamic component types"
+    );
+    assert_eq!(rows[0].1["label"], "first");
+    assert_eq!(rows[1].1["label"], "last");
+
+    drop(rows);
+    world
+        .remove_dynamic_component(last, "weather.Component.CloudLayer")
+        .expect("last cloud layer should detach");
+    let mut updated_rows = Vec::new();
+    world.dynamic_component_rows("weather.Component.CloudLayer", &mut updated_rows);
+    assert_eq!(
+        updated_rows
+            .iter()
+            .map(|(entity, _)| *entity)
+            .collect::<Vec<_>>(),
+        vec![first],
+        "removing a dynamic component must also remove its typed row"
+    );
+}
+
 fn world_with_cloud_layer_descriptor() -> World {
     let mut world = World::empty();
     world
@@ -486,6 +604,23 @@ fn cloud_layer_descriptor() -> ComponentTypeDescriptor {
     ComponentTypeDescriptor::new("weather.Component.CloudLayer", "weather", "Cloud Layer")
         .with_property("coverage", "Scalar", true)
         .with_property("label", "String", false)
+}
+
+fn vm_cloud_layer_registration() -> ReflectTypeRegistration {
+    ReflectTypeRegistration::new(
+        ReflectTypePath::new("weather.Component.VmCloudLayer", "VmCloudLayer")
+            .expect("VM test type path should be valid"),
+        "VM Cloud Layer",
+        ReflectTypeInfo::json_with_fields(vec![
+            ReflectFieldInfo::new("coverage", "Scalar", ReflectEditorHint::Scalar),
+            ReflectFieldInfo::new("label", "String", ReflectEditorHint::String)
+                .with_editable(false),
+        ]),
+        ReflectSerializationStrategy::Json,
+    )
+    .as_component()
+    .with_plugin_owned(true)
+    .with_plugin_id("weather")
 }
 
 fn cloud_layer_address(entity: u64) -> ReflectObjectAddress {

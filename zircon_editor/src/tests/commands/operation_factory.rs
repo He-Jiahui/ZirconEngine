@@ -7,7 +7,7 @@ use crate::core::editing::engine::{
 };
 use crate::core::editing::operation::{
     OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
-    OperationCommandFactoryRegistration,
+    OperationCommandFactoryRegistration, PendingEditRetention,
 };
 use crate::core::editor_event::{EditorEvent, EditorEventTransient};
 use crate::core::editor_operation::{EditorOperationInvocation, EditorOperationPath};
@@ -50,6 +50,32 @@ fn command_registry_registers_descriptor_and_factory_as_one_operation() {
     assert_eq!(
         registry.command(operation_id.as_str()).unwrap(),
         registry.commands().next().unwrap()
+    );
+}
+
+#[test]
+fn operation_factory_is_the_only_owner_of_deferred_edit_retention() {
+    let operation_id = EditorOperationPath::parse("test.operation.rename").unwrap();
+    let registration = OperationCommandFactoryRegistration::new(
+        operation_id.clone(),
+        "Rename",
+        Arc::new(FixtureOperationFactory),
+    )
+    .with_pending_edit_retention(
+        PendingEditRetention::bounded(2, 1_024, std::time::Duration::from_secs(5)).unwrap(),
+    );
+    let invocation = EditorOperationInvocation::new(operation_id)
+        .with_arguments(serde_json::json!({ "delta": 7 }));
+
+    let deferred = registration.defer(invocation).unwrap();
+
+    assert_eq!(
+        deferred.retention(),
+        &PendingEditRetention::bounded(2, 1_024, std::time::Duration::from_secs(5)).unwrap()
+    );
+    assert_eq!(
+        deferred.invocation().operation_id.as_str(),
+        "test.operation.rename"
     );
 }
 

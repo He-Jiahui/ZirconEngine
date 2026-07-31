@@ -1,15 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::core::TaskPool;
 use crate::core::framework::render::{
     ProjectionMode, RenderFrameExtract, RenderHybridGiExtract, RenderVirtualGeometryExtract,
     ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
-use crate::core::math::{is_finite_vec3, Real};
-use crate::core::TaskPool;
+use crate::core::math::{Real, is_finite_vec3};
 
 use super::super::super::culling::parallel_frustum::{
-    mesh_frustum_visibility, MeshFrustumCandidate,
+    MeshFrustumCandidate, mesh_frustum_visibility,
 };
 use super::super::super::declarations::{
     VisibilityBounds, VisibilityBvhInstance, VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy,
@@ -86,11 +86,7 @@ impl VisibilityContext {
             history_entries,
         } = collect_batching_result(value);
 
-        let bvh_history_snapshot = VisibilityHistorySnapshot {
-            instances: history_entries.clone(),
-            ..VisibilityHistorySnapshot::default()
-        };
-        let bvh_update_plan = build_bvh_update_plan(&bvh_history_snapshot, previous);
+        let bvh_update_plan = build_bvh_update_plan(&history_entries, previous);
         let static_index_instances = static_bvh_instances(&bvh_instances);
         let (static_index, mut static_index_report) = build_static_index(
             previous_static_index,

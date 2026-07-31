@@ -1,5 +1,6 @@
 use zircon_runtime_interface::export::ExportStage;
 
+use super::output_tail::push_bounded_output_line;
 use super::{
     ExportWizardCommandOutputLine, ExportWizardCommandOutputStream, ExportWizardPipelineExecution,
     ExportWizardPipelinePlan, ExportWizardProgressState, ExportWizardStageExecution,
@@ -96,12 +97,7 @@ impl ExportWizardJobState {
         output: ExportWizardCommandOutputLine,
         progress: ExportWizardProgressState,
     ) {
-        self.begin_stage(stage, progress);
-        let buffer = self.stage_output_buffer_mut(stage);
-        match output.stream {
-            ExportWizardCommandOutputStream::Stdout => buffer.stdout_lines.push(output.line),
-            ExportWizardCommandOutputStream::Stderr => buffer.stderr_lines.push(output.line),
-        }
+        self.snapshot.apply_stage_output(stage, output, progress);
     }
 
     pub fn mark_cancelled(&mut self, diagnostic: impl Into<String>) {
@@ -149,31 +145,6 @@ impl ExportWizardJobState {
     pub fn into_snapshot(self) -> ExportWizardJobSnapshot {
         self.snapshot
     }
-
-    fn stage_output_buffer_mut(
-        &mut self,
-        stage: ExportStage,
-    ) -> &mut ExportWizardStageOutputBuffer {
-        if let Some(index) = self
-            .snapshot
-            .live_stage_outputs
-            .iter()
-            .position(|buffer| buffer.stage == stage)
-        {
-            return &mut self.snapshot.live_stage_outputs[index];
-        }
-        self.snapshot
-            .live_stage_outputs
-            .push(ExportWizardStageOutputBuffer {
-                stage,
-                stdout_lines: Vec::new(),
-                stderr_lines: Vec::new(),
-            });
-        self.snapshot
-            .live_stage_outputs
-            .last_mut()
-            .expect("stage output buffer was just inserted")
-    }
 }
 
 impl ExportWizardJobSnapshot {
@@ -184,5 +155,64 @@ impl ExportWizardJobSnapshot {
                 | ExportWizardJobStatus::Finished
                 | ExportWizardJobStatus::Failed
         )
+    }
+
+    pub fn event_header(&self) -> Self {
+        Self {
+            job_id: self.job_id.clone(),
+            profile: self.profile.clone(),
+            out: self.out.clone(),
+            status: self.status,
+            current_stage: self.current_stage,
+            progress: self.progress.clone(),
+            stages: Vec::new(),
+            live_stage_outputs: Vec::new(),
+            diagnostics: Vec::new(),
+            fatal: self.fatal,
+            cancel_requested: self.cancel_requested,
+        }
+    }
+
+    pub fn apply_stage_output(
+        &mut self,
+        stage: ExportStage,
+        output: ExportWizardCommandOutputLine,
+        progress: ExportWizardProgressState,
+    ) {
+        if matches!(self.status, ExportWizardJobStatus::Pending) {
+            self.status = ExportWizardJobStatus::Running;
+        }
+        self.current_stage = Some(stage);
+        self.progress = progress;
+        let buffer = self.stage_output_buffer_mut(stage);
+        match output.stream {
+            ExportWizardCommandOutputStream::Stdout => {
+                push_bounded_output_line(&mut buffer.stdout_lines, output.line);
+            }
+            ExportWizardCommandOutputStream::Stderr => {
+                push_bounded_output_line(&mut buffer.stderr_lines, output.line);
+            }
+        }
+    }
+
+    fn stage_output_buffer_mut(
+        &mut self,
+        stage: ExportStage,
+    ) -> &mut ExportWizardStageOutputBuffer {
+        if let Some(index) = self
+            .live_stage_outputs
+            .iter()
+            .position(|buffer| buffer.stage == stage)
+        {
+            return &mut self.live_stage_outputs[index];
+        }
+        self.live_stage_outputs.push(ExportWizardStageOutputBuffer {
+            stage,
+            stdout_lines: Vec::new(),
+            stderr_lines: Vec::new(),
+        });
+        self.live_stage_outputs
+            .last_mut()
+            .expect("stage output buffer was just inserted")
     }
 }

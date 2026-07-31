@@ -1,0 +1,1230 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "selection_sha256": "8ca27346974d182821b35f50d9ad5a63df44442d450eeed5a26f7830c60f4755",
+  "entries": [
+    {
+      "role": "player-model",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/models/chars/players/knight.glb",
+      "asset_path": "assets/m8/models/chars/players/knight.glb",
+      "byte_length": 1212756,
+      "sha256": "ce0d0a5ec1d67594629ecac20a7576fde22a44456e7628e8eb100891bc6dda97",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 22,
+        "skin_count": 9
+      }
+    },
+    {
+      "role": "player-model",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/models/chars/players/paladin.glb",
+      "asset_path": "assets/m8/models/chars/players/paladin.glb",
+      "byte_length": 1215256,
+      "sha256": "d58b07df5a5ac41b8c20ef298183e9e19ab2b51695aa9348cb25323ecfe319a3",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 22,
+        "skin_count": 6
+      }
+    },
+    {
+      "role": "player-model",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/models/chars/players/ranger.glb",
+      "asset_path": "assets/m8/models/chars/players/ranger.glb",
+      "byte_length": 1238412,
+      "sha256": "bd35fdb403f25b2a1f57c98e883980c916ef83261856ffe01ca1c4c8c7d98227",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 22,
+        "skin_count": 8
+      }
+    },
+    {
+      "role": "player-model",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/models/chars/players/rogue.glb",
+      "asset_path": "assets/m8/models/chars/players/rogue.glb",
+      "byte_length": 1221148,
+      "sha256": "11c7e99ea73b8f81eac0fa73bc1e6a03b6c2d85ad910c84fa96c79bbf3439e0e",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 22,
+        "skin_count": 7
+      }
+    },
+    {
+      "role": "player-model",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/models/chars/players/mage.glb",
+      "asset_path": "assets/m8/models/chars/players/mage.glb",
+      "byte_length": 1212924,
+      "sha256": "473bcf6ad4d1a8e23a874b02acb3347ed215f06af7e89cec8e2f2a7657b84c9b",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 22,
+        "skin_count": 8
+      }
+    },
+    {
+      "role": "player-model",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/models/chars/players/barbarian.glb",
+      "asset_path": "assets/m8/models/chars/players/barbarian.glb",
+      "byte_length": 1215868,
+      "sha256": "d64973ac468398f2c1428eb43743f734bd74c9ed90cf6fe28b92794ac9a84850",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 22,
+        "skin_count": 7
+      }
+    },
+    {
+      "role": "player-model",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/models/chars/players/druid.glb",
+      "asset_path": "assets/m8/models/chars/players/druid.glb",
+      "byte_length": 1233800,
+      "sha256": "44d44747b0b1859931907b27ce9049e15761dad01b0811b96a0ae1d137247eba",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 22,
+        "skin_count": 7
+      }
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/knight/base.png",
+      "asset_path": "assets/m8/textures/skins/knight/base.png",
+      "byte_length": 12914,
+      "sha256": "028db4d1cd8b3471e6ba21686515abd4e36ae582f8b314b71ad2ab1fb5453b12"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/knight/alt_a.png",
+      "asset_path": "assets/m8/textures/skins/knight/alt_a.png",
+      "byte_length": 12341,
+      "sha256": "f80ecdec4895cddc9e983eea9fcc2c3454942d93598a3741fc6c523e878c5a1f"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/knight/alt_b.png",
+      "asset_path": "assets/m8/textures/skins/knight/alt_b.png",
+      "byte_length": 12614,
+      "sha256": "1b133dadff6261b9f594086cfbf5aa9b515dc22e5382d55707d30d2897979d22"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/knight/alt_c.png",
+      "asset_path": "assets/m8/textures/skins/knight/alt_c.png",
+      "byte_length": 13021,
+      "sha256": "215692ab91b7faefb3d1224592782ebd8934947ce81876c636da87cfeba5bfe6"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/paladin/base.png",
+      "asset_path": "assets/m8/textures/skins/paladin/base.png",
+      "byte_length": 21068,
+      "sha256": "34709f20dfc85b745fef07ff89a3f189f7039939ef92d91eadfa96b62f526fd7"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/paladin/alt_a.png",
+      "asset_path": "assets/m8/textures/skins/paladin/alt_a.png",
+      "byte_length": 20293,
+      "sha256": "bfa07731777cc6014bf9694f0e647ea1d83209b61b1674eeb215a9d2c62d366b"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/ranger/base.png",
+      "asset_path": "assets/m8/textures/skins/ranger/base.png",
+      "byte_length": 13248,
+      "sha256": "639cd0ba5106fbdf65370b52b9290091d3bd92fe267693abc8dc474471bb800f"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/ranger/alt_a.png",
+      "asset_path": "assets/m8/textures/skins/ranger/alt_a.png",
+      "byte_length": 13547,
+      "sha256": "6ff473d8db432b9cd03e7956cd26502ee7973cc8df3ddafa8599a40478c92c71"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/ranger/alt_b.png",
+      "asset_path": "assets/m8/textures/skins/ranger/alt_b.png",
+      "byte_length": 13259,
+      "sha256": "acb7e3e2e0079ffb987806c1efbed4f9d8eee8beed9df6b74af55a3bf3c614ac"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/ranger/alt_c.png",
+      "asset_path": "assets/m8/textures/skins/ranger/alt_c.png",
+      "byte_length": 13458,
+      "sha256": "3998a09aca289019d82afa7068e5144e2f8c70564ff7b67ae472eca4cd510586"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/rogue/base.png",
+      "asset_path": "assets/m8/textures/skins/rogue/base.png",
+      "byte_length": 15026,
+      "sha256": "2e2fc741e20e7e2c85b176c8143b49b769bca0d2ed1a1cfc1807a758a0e4d3e1"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/rogue/alt_a.png",
+      "asset_path": "assets/m8/textures/skins/rogue/alt_a.png",
+      "byte_length": 12370,
+      "sha256": "2f596728529e8192a27fd1f9c102426522dc24b530d2fafad76db950e1821a1f"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/rogue/alt_b.png",
+      "asset_path": "assets/m8/textures/skins/rogue/alt_b.png",
+      "byte_length": 11638,
+      "sha256": "338368783406fb0a97bf0d82f3147ce6a276e7202374f3391ab393c91a9128fe"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/rogue/alt_c.png",
+      "asset_path": "assets/m8/textures/skins/rogue/alt_c.png",
+      "byte_length": 12273,
+      "sha256": "313b6e6b64bb27937a5107d4fa9522273e7a611bebc4ad03894940f45be07ba3"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/mage/base.png",
+      "asset_path": "assets/m8/textures/skins/mage/base.png",
+      "byte_length": 14740,
+      "sha256": "9ef9672e93b231fc4e0e19238edfae3be22513aaf634df1898f45842ce6e4b5f"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/mage/alt_a.png",
+      "asset_path": "assets/m8/textures/skins/mage/alt_a.png",
+      "byte_length": 14136,
+      "sha256": "39e64cd8441add6e419c06039b59a595e322f839a65a79c76032f3ebf44f5e0d"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/mage/alt_b.png",
+      "asset_path": "assets/m8/textures/skins/mage/alt_b.png",
+      "byte_length": 13673,
+      "sha256": "32a046c3944712ab3c0a3f8c7a240542807a63bd05281e19db7ed1a38ada5cc9"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/mage/alt_c.png",
+      "asset_path": "assets/m8/textures/skins/mage/alt_c.png",
+      "byte_length": 15809,
+      "sha256": "1f88d079ad1d926bca7c4b76d8546202761c23940ac697d7e5343eaa1fed947d"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/barbarian/base.png",
+      "asset_path": "assets/m8/textures/skins/barbarian/base.png",
+      "byte_length": 14424,
+      "sha256": "f11434d3e5e4df929dacd2c69d15734effb82babf8176a80bb040d2007f5f882"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/barbarian/alt_a.png",
+      "asset_path": "assets/m8/textures/skins/barbarian/alt_a.png",
+      "byte_length": 13545,
+      "sha256": "3433bfc8444856a2d9cc2a8400d893525324f43ff00c5202c223b5369f1d4574"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/barbarian/alt_b.png",
+      "asset_path": "assets/m8/textures/skins/barbarian/alt_b.png",
+      "byte_length": 14964,
+      "sha256": "23af16cb9251508f038be571bd5dfda34fd69e5e1cbd9e69b0c083f8809c47f9"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/barbarian/alt_c.png",
+      "asset_path": "assets/m8/textures/skins/barbarian/alt_c.png",
+      "byte_length": 14419,
+      "sha256": "5e1f20e038b4a41dac94b359a9dccaa079bab71d9a29f3221a6b0a04e6bee3c9"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/druid/base.png",
+      "asset_path": "assets/m8/textures/skins/druid/base.png",
+      "byte_length": 15263,
+      "sha256": "702f10c2bcaab1954069d500d0c912d8109af702c9a1a9aea400cbb3d17f8d72"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/druid/alt_a.png",
+      "asset_path": "assets/m8/textures/skins/druid/alt_a.png",
+      "byte_length": 14816,
+      "sha256": "84c2524aa03e92aa03044da7eb86cdb23319f3fac433186cba30b4ed69b9f81b"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/druid/alt_b.png",
+      "asset_path": "assets/m8/textures/skins/druid/alt_b.png",
+      "byte_length": 15360,
+      "sha256": "96d105c976c4ceea7d6acae99128b9dbd3061cf741723244c25df7efd38cef84"
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "source_path": "public/textures/skins/druid/alt_c.png",
+      "asset_path": "assets/m8/textures/skins/druid/alt_c.png",
+      "byte_length": 14899,
+      "sha256": "0c1df6538b4a64e80d204ef70eeaa8a578f8882b45cfe06fd60361b0ee777405"
+    },
+    {
+      "role": "creature-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/creatures/wolf_basic.glb",
+      "asset_path": "assets/m8/models/creatures/wolf_basic.glb",
+      "byte_length": 333040,
+      "sha256": "655da121afa8768c13a3b2aa172e6875c716d06e352110bf68eaa4f34c9fec6e",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 14,
+        "skin_count": 1
+      }
+    },
+    {
+      "role": "creature-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/creatures/wild_boar.glb",
+      "asset_path": "assets/m8/models/creatures/wild_boar.glb",
+      "byte_length": 290900,
+      "sha256": "d47c367f463004fdb6acb00a051c2bdc6d615c7e36c8b6165a726bd59b1843cf",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_materials_unlit",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 32,
+        "skin_count": 1
+      }
+    },
+    {
+      "role": "foliage-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/foliage/oak_1.glb",
+      "asset_path": "assets/m8/models/foliage/oak_1.glb",
+      "byte_length": 184216,
+      "sha256": "e8c8b7e02173490bfe5e802fad47c1b7824b787bb6c9274163bde7fda065c102",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "foliage-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/foliage/oak_3.glb",
+      "asset_path": "assets/m8/models/foliage/oak_3.glb",
+      "byte_length": 131976,
+      "sha256": "9941db1c8735e39f3b05a58ed83724a6c7183ee805eeb54e117be099ccfcec5c",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "foliage-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/foliage/bush.glb",
+      "asset_path": "assets/m8/models/foliage/bush.glb",
+      "byte_length": 49064,
+      "sha256": "614172ada35fc6048487a6af6d77059a5c031e0a93eff9d58036649ea0d16c12",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "foliage-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/foliage/bush_flowers.glb",
+      "asset_path": "assets/m8/models/foliage/bush_flowers.glb",
+      "byte_length": 100676,
+      "sha256": "e03f73e8085a436009378bf177a83bb76aa73d6453f15cc364a3a49b16ada6c8",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "foliage-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/foliage/fern.glb",
+      "asset_path": "assets/m8/models/foliage/fern.glb",
+      "byte_length": 58660,
+      "sha256": "721b74ca324aa67f42a4d8b36a7db4cddedd62df8a943573d3f4871d23056884",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "foliage-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/foliage/rock_1.glb",
+      "asset_path": "assets/m8/models/foliage/rock_1.glb",
+      "byte_length": 28352,
+      "sha256": "3c51714b28b0cb6f42f8a9ea69190d12805b5eb3d8f4b91282f67f11fc67172f",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "foliage-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/foliage/rock_2.glb",
+      "asset_path": "assets/m8/models/foliage/rock_2.glb",
+      "byte_length": 27164,
+      "sha256": "eff4dc3e7fde32821e0650e9a67a7aa03467bae3d77ddc0c16888c76044daefa",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/props/house_1.glb",
+      "asset_path": "assets/m8/models/props/house_1.glb",
+      "byte_length": 84484,
+      "sha256": "87c8306f95e335ce01150ef3fb90b52cabc15e047077f98d1f25df8d76a95b9e",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/props/house_2.glb",
+      "asset_path": "assets/m8/models/props/house_2.glb",
+      "byte_length": 103180,
+      "sha256": "ede3299a2b09bdf66fc56cb56187ae1cdd673ee23eb44b75a40aa38cd8855e93",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/props/inn.glb",
+      "asset_path": "assets/m8/models/props/inn.glb",
+      "byte_length": 92748,
+      "sha256": "a1386fe4db504f5110df670b91f4e5f6fdc3baf545cc023fb21ebcc457867a04",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/props/well.glb",
+      "asset_path": "assets/m8/models/props/well.glb",
+      "byte_length": 27788,
+      "sha256": "9308ba09ea3bed048984eeb14307b0557c5ea11404556d33afa9ed904b6ee123",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/props/cart.glb",
+      "asset_path": "assets/m8/models/props/cart.glb",
+      "byte_length": 30972,
+      "sha256": "8bb07d235482439d0e4f1d9152d932b6487cdb09b3331c668f882461401f43d9",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/props/market_stand_1.glb",
+      "asset_path": "assets/m8/models/props/market_stand_1.glb",
+      "byte_length": 25184,
+      "sha256": "d59645bb16549882280e091e41804cca09dac4a693772960bde0418e5d0229b5",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/props/fence.glb",
+      "asset_path": "assets/m8/models/props/fence.glb",
+      "byte_length": 4836,
+      "sha256": "ff22bf2593398774f20e7e6f82f3a9184e326cc4c45cd780a0981590a54172c0",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/props/crate_wooden.glb",
+      "asset_path": "assets/m8/models/props/crate_wooden.glb",
+      "byte_length": 318100,
+      "sha256": "7a5f880c07a60adbc9b50b92557e47a1fa35a7dfa0e3a9fe4fe9f42216d31131",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "source_path": "public/models/props/bonfire.glb",
+      "asset_path": "assets/m8/models/props/bonfire.glb",
+      "byte_length": 13284,
+      "sha256": "3e5f78d3d6dbd24ee71ead9127ae10b59f286f87b89432d0285b921d99258747",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "world-prop-model",
+      "license_id": "kenney-cc0",
+      "source_path": "public/models/biome/camp_signpost.glb",
+      "asset_path": "assets/m8/models/biome/camp_signpost.glb",
+      "byte_length": 10824,
+      "sha256": "847aa7d91aa99dc4806f41102d54d38b34dec9f83eb6b44be754bee2e53bc1d5",
+      "gltf": {
+        "version": "2.0",
+        "extensions_used": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization",
+          "KHR_texture_transform"
+        ],
+        "extensions_required": [
+          "EXT_meshopt_compression",
+          "KHR_mesh_quantization"
+        ],
+        "animation_count": 0,
+        "skin_count": 0
+      }
+    },
+    {
+      "role": "environment-lighting",
+      "license_id": "polyhaven-cc0",
+      "source_path": "public/env/vale_day_1k.hdr",
+      "asset_path": "assets/m8/env/vale_day_1k.hdr",
+      "byte_length": 1435119,
+      "sha256": "fd94c84997b8a3c353b62c2125a9b44e19509956986a126e472684432a02d798"
+    },
+    {
+      "role": "environment-backdrop",
+      "license_id": "woc-project-asset",
+      "source_path": "public/env/vale_backdrop.webp",
+      "asset_path": "assets/m8/env/vale_backdrop.webp",
+      "byte_length": 410136,
+      "sha256": "1a566508b6246bbf5eed76d50ecf1ecb82c87b13f3473a93b4fc8d035a21719a"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/Grass001_Color.jpg",
+      "asset_path": "assets/m8/textures/terrain/Grass001_Color.jpg",
+      "byte_length": 1764300,
+      "sha256": "b9b6d61bc3b6137b868a3447eef18737896acd26d58fe2f4b83ce8c0e9d3f8ad"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/Grass001_NormalGL.jpg",
+      "asset_path": "assets/m8/textures/terrain/Grass001_NormalGL.jpg",
+      "byte_length": 2338245,
+      "sha256": "eef0b56db5f00a6fcb3d0e0f8463e4e141e88aa85b26527a04d617b75a4ab5d2"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/Grass001_Roughness.jpg",
+      "asset_path": "assets/m8/textures/terrain/Grass001_Roughness.jpg",
+      "byte_length": 823623,
+      "sha256": "8810effd44756341170d551501b7d0c645dc2395dbce46a8c7f1e61045258a06"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/Grass001_AmbientOcclusion.jpg",
+      "asset_path": "assets/m8/textures/terrain/Grass001_AmbientOcclusion.jpg",
+      "byte_length": 902486,
+      "sha256": "a5e6e6a1c4329562e99f009313f09e44dd179dedbfb5dd679feeaf17ca122ab9"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/Ground048_Color.jpg",
+      "asset_path": "assets/m8/textures/terrain/Ground048_Color.jpg",
+      "byte_length": 2057859,
+      "sha256": "5ed6949bbe77332e12f9fdcfcadcd1d851ae2240ea0a46196e9a171fac201e8b"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/Ground048_NormalGL.jpg",
+      "asset_path": "assets/m8/textures/terrain/Ground048_NormalGL.jpg",
+      "byte_length": 2401117,
+      "sha256": "25913cd978fa3ca5e7984fc1a5f16a62b16049d4c0014678c9a800b409bbc72f"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/Ground048_Roughness.jpg",
+      "asset_path": "assets/m8/textures/terrain/Ground048_Roughness.jpg",
+      "byte_length": 674211,
+      "sha256": "d01edc56c96ccfba1ae307d02d294fe13e470d9e913b9f421fddb4f308a05398"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/Ground048_AmbientOcclusion.jpg",
+      "asset_path": "assets/m8/textures/terrain/Ground048_AmbientOcclusion.jpg",
+      "byte_length": 855981,
+      "sha256": "b0d54c243c66eb6cf23cf6ee741e6afbc3ecf9cf5b55752433cef0d549a61833"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/PavingStones046_Color.jpg",
+      "asset_path": "assets/m8/textures/terrain/PavingStones046_Color.jpg",
+      "byte_length": 1083584,
+      "sha256": "342a049071ba62dc2d1792868752fc19f88cdb45f5858206da933034bba571c4"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/PavingStones046_NormalGL.jpg",
+      "asset_path": "assets/m8/textures/terrain/PavingStones046_NormalGL.jpg",
+      "byte_length": 2176030,
+      "sha256": "8819849a3b3ceee6c3581ebc1c9c8fa41d275e4e843f65c5869388e1a980dd2e"
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "source_path": "public/textures/terrain/PavingStones046_Roughness.jpg",
+      "asset_path": "assets/m8/textures/terrain/PavingStones046_Roughness.jpg",
+      "byte_length": 636185,
+      "sha256": "c24eda1eb09198a23ab29a79ce4c1e335d9bb1eb8145ed368639ac78036e9365"
+    },
+    {
+      "role": "water-normal",
+      "license_id": "threejs-mit",
+      "source_path": "public/textures/water/water_1_normal.jpg",
+      "asset_path": "assets/m8/textures/water/water_1_normal.jpg",
+      "byte_length": 406361,
+      "sha256": "6d7825469a374ff84700b4fb1a2890bd1fce0ca1f777bdd4d5ecdaf15833a804"
+    },
+    {
+      "role": "water-normal",
+      "license_id": "threejs-mit",
+      "source_path": "public/textures/water/water_2_normal.jpg",
+      "asset_path": "assets/m8/textures/water/water_2_normal.jpg",
+      "byte_length": 437899,
+      "sha256": "1f6f3fc5af584fb3ad7ff97df39b1835aaa184f53bf647c63120a83be7d63183"
+    },
+    {
+      "role": "ui-font",
+      "license_id": "sil-ofl-1.1",
+      "source_path": "public/fonts/cinzel-400-700-latin.woff2",
+      "asset_path": "assets/m8/fonts/cinzel-400-700-latin.woff2",
+      "byte_length": 25888,
+      "sha256": "ef95296c778719c3d658a8284d65078100450948851b9114485ada01d9d3d3f8"
+    },
+    {
+      "role": "ui-font",
+      "license_id": "sil-ofl-1.1",
+      "source_path": "public/fonts/alegreya-sans-400-latin.woff2",
+      "asset_path": "assets/m8/fonts/alegreya-sans-400-latin.woff2",
+      "byte_length": 17136,
+      "sha256": "624ea7e85a53f6bcb15f862179386546d3182ec8edde32c512662d31e1bfde18"
+    },
+    {
+      "role": "ui-font",
+      "license_id": "sil-ofl-1.1",
+      "source_path": "public/fonts/alegreya-sans-700-latin.woff2",
+      "asset_path": "assets/m8/fonts/alegreya-sans-700-latin.woff2",
+      "byte_length": 17172,
+      "sha256": "1a2f3006ecc704345bd35be43341c07b2bc33ff25955d70f47980cffb3099c48"
+    },
+    {
+      "role": "ability-icon",
+      "license_id": "craftpix-premium",
+      "source_path": "public/ui/skills/warrior/rend.webp",
+      "asset_path": "assets/m8/ui/skills/warrior/rend.webp",
+      "byte_length": 2288,
+      "sha256": "f55b578e2b646a6ab043e7c070cc08d6af424f6e95a63819f72fdb1db1ad1373"
+    },
+    {
+      "role": "ability-icon",
+      "license_id": "craftpix-premium",
+      "source_path": "public/ui/skills/warrior/heroic_strike.webp",
+      "asset_path": "assets/m8/ui/skills/warrior/heroic_strike.webp",
+      "byte_length": 4442,
+      "sha256": "5e9778fe29ad437dd0bbe67611f53603fcdf884097dbdfec8a3aaa84ba21133c"
+    },
+    {
+      "role": "ability-icon",
+      "license_id": "craftpix-premium",
+      "source_path": "public/ui/skills/warrior/battle_shout.webp",
+      "asset_path": "assets/m8/ui/skills/warrior/battle_shout.webp",
+      "byte_length": 4482,
+      "sha256": "50fefdf9e186adde82ee779103a73a05dec631414ed5fbf97ab0cde56337f791"
+    },
+    {
+      "role": "ability-icon",
+      "license_id": "craftpix-premium",
+      "source_path": "public/ui/skills/warrior/charge.webp",
+      "asset_path": "assets/m8/ui/skills/warrior/charge.webp",
+      "byte_length": 4036,
+      "sha256": "05c5e019eb9c04730d26f76258a4cb3dcb89c3893e2ce1f16b279256968932ea"
+    },
+    {
+      "role": "ability-icon",
+      "license_id": "craftpix-premium",
+      "source_path": "public/ui/skills/warrior/hamstring.webp",
+      "asset_path": "assets/m8/ui/skills/warrior/hamstring.webp",
+      "byte_length": 2950,
+      "sha256": "c9ab9d54402ee936d4eb9c794b6464a6eaff4e8520a411ec8d284c84ce01e571"
+    },
+    {
+      "role": "item-icon",
+      "license_id": "woc-project-asset",
+      "source_path": "public/ui/items/backpack.webp",
+      "asset_path": "assets/m8/ui/items/backpack.webp",
+      "byte_length": 2926,
+      "sha256": "b6c576f5838dc13a59c3915546cbbab54362377774670d63e33cd61822154ce3"
+    },
+    {
+      "role": "item-icon",
+      "license_id": "woc-project-asset",
+      "source_path": "public/ui/items/baked_bread.webp",
+      "asset_path": "assets/m8/ui/items/baked_bread.webp",
+      "byte_length": 3008,
+      "sha256": "933d847615ab4575a56c5737656fb5ed963e17b295e61b6c68db8ebf3dda6a03"
+    },
+    {
+      "role": "item-icon",
+      "license_id": "woc-project-asset",
+      "source_path": "public/ui/items/boar_hide.webp",
+      "asset_path": "assets/m8/ui/items/boar_hide.webp",
+      "byte_length": 2848,
+      "sha256": "7e0bd759bef6b6024f47bdc7990fa54f1d26f7a3c055df30e38294629bbf2e3f"
+    },
+    {
+      "role": "item-icon",
+      "license_id": "woc-project-asset",
+      "source_path": "public/ui/items/milepost_boots.webp",
+      "asset_path": "assets/m8/ui/items/milepost_boots.webp",
+      "byte_length": 2604,
+      "sha256": "d9cb9668b3649cde3903e5e31f51b08227b25a37458984df4c71eeebbd4462a4"
+    },
+    {
+      "role": "item-icon",
+      "license_id": "woc-project-asset",
+      "source_path": "public/ui/items/wolf_fang.webp",
+      "asset_path": "assets/m8/ui/items/wolf_fang.webp",
+      "byte_length": 2520,
+      "sha256": "fea51bcc3275bc9e5fa8d96d69d27112f7ae581d5a4f624587ec34a9bfe0e3a8"
+    },
+    {
+      "role": "item-icon",
+      "license_id": "woc-project-asset",
+      "source_path": "public/ui/items/wolfhide_satchel.webp",
+      "asset_path": "assets/m8/ui/items/wolfhide_satchel.webp",
+      "byte_length": 3418,
+      "sha256": "5e957cdb385a22882dbb51d5fedf1cae1e9b98b9e3b3c7200acf4e49d29dda8c"
+    },
+    {
+      "role": "quest-sfx",
+      "license_id": "jamiecypher-cc0",
+      "source_path": "public/audio/sfx/quest_accept.mp3",
+      "asset_path": "assets/m8/audio/sfx/quest_accept.mp3",
+      "byte_length": 48944,
+      "sha256": "acbd9f192e5744b51de52f071a38bec55bbefb5dca3709adec221d10663ec9a2"
+    },
+    {
+      "role": "quest-sfx",
+      "license_id": "jamiecypher-cc0",
+      "source_path": "public/audio/sfx/quest_complete.mp3",
+      "asset_path": "assets/m8/audio/sfx/quest_complete.mp3",
+      "byte_length": 67752,
+      "sha256": "138ccf128c697ec11f7b5e7f491ada69bd61445a063ae1fcf79fdbc2dac68989"
+    },
+    {
+      "role": "ui-sfx",
+      "license_id": "woc-project-asset",
+      "source_path": "public/audio/sfx/ui_click.mp3",
+      "asset_path": "assets/m8/audio/sfx/ui_click.mp3",
+      "byte_length": 13835,
+      "sha256": "98598833b3360cd0ad24c1e409b21434b0b822ecaa0482de9c6342cca13cd242"
+    },
+    {
+      "role": "ui-sfx",
+      "license_id": "woc-project-asset",
+      "source_path": "public/audio/sfx/ui_coin.mp3",
+      "asset_path": "assets/m8/audio/sfx/ui_coin.mp3",
+      "byte_length": 13835,
+      "sha256": "fb359faa8c11ea4761c082008ae30c97a9a3a3db5de9a053f5465b58bc13adea"
+    },
+    {
+      "role": "ui-sfx",
+      "license_id": "woc-project-asset",
+      "source_path": "public/audio/sfx/ui_death.mp3",
+      "asset_path": "assets/m8/audio/sfx/ui_death.mp3",
+      "byte_length": 37659,
+      "sha256": "406a4b11ef9e5ce2001c04a4ac90c6604d651b1dbe18a81625da1a3d72bf1b18"
+    },
+    {
+      "role": "ui-sfx",
+      "license_id": "woc-project-asset",
+      "source_path": "public/audio/sfx/ui_error.mp3",
+      "asset_path": "assets/m8/audio/sfx/ui_error.mp3",
+      "byte_length": 13835,
+      "sha256": "0aa0c8a92206834409400120def1993a6d3d94d1099edbf264139cf2e06a7926"
+    },
+    {
+      "role": "ui-sfx",
+      "license_id": "woc-project-asset",
+      "source_path": "public/audio/sfx/ui_level_up.mp3",
+      "asset_path": "assets/m8/audio/sfx/ui_level_up.mp3",
+      "byte_length": 24493,
+      "sha256": "61b1e4f944c895ae0c2358e90093afb8a83b86af33647a0bc26cc1d6cb0937eb"
+    },
+    {
+      "role": "ui-sfx",
+      "license_id": "woc-project-asset",
+      "source_path": "public/audio/sfx/ui_loot_item.mp3",
+      "asset_path": "assets/m8/audio/sfx/ui_loot_item.mp3",
+      "byte_length": 13835,
+      "sha256": "db7d1ba940a58a624fcc4169daab70cf43f7b6c7be4d608f59d8d8f6f1c8d924"
+    },
+    {
+      "role": "ui-sfx",
+      "license_id": "woc-project-asset",
+      "source_path": "public/audio/sfx/ui_bag_open.mp3",
+      "asset_path": "assets/m8/audio/sfx/ui_bag_open.mp3",
+      "byte_length": 13835,
+      "sha256": "afc097c7f775620787517db0bbc602cb3bfcc5931066f971fe2c9182e65f9d64"
+    },
+    {
+      "role": "ui-sfx",
+      "license_id": "woc-project-asset",
+      "source_path": "public/audio/sfx/ui_bag_close.mp3",
+      "asset_path": "assets/m8/audio/sfx/ui_bag_close.mp3",
+      "byte_length": 13835,
+      "sha256": "bfa8e0f3ec568f733d59f46ca0b934e366e47c30ee8f9b6813de3cedeeea03b8"
+    },
+    {
+      "role": "license-evidence",
+      "license_id": "woc-project-asset",
+      "source_path": "CREDITS.md",
+      "asset_path": "assets/m8/licenses/source-CREDITS.md",
+      "byte_length": 10692,
+      "sha256": "0713eec0df1a3b54bad597ce2795310dd2fabcd9e3e49a2fc2b38eca85d4feab"
+    },
+    {
+      "role": "license-evidence",
+      "license_id": "target-mit",
+      "source_path": "LICENSE",
+      "asset_path": "assets/m8/licenses/source-LICENSE.txt",
+      "byte_length": 1068,
+      "sha256": "eb2ac1eda3c4630a394d9953094d714cdd618e226f0082ef29f8ca8f65864101"
+    }
+  ],
+  "licenses": [
+    {
+      "id": "kaykit-cc0",
+      "name": "CC0 1.0",
+      "author": "Kay Lousberg (KayKit)",
+      "source": "https://kaylousberg.itch.io/kaykit",
+      "animation_source": "https://kaylousberg.itch.io/kaykit-character-animations"
+    },
+    {
+      "id": "quaternius-cc0",
+      "name": "CC0 1.0",
+      "author": "Quaternius",
+      "source": "https://quaternius.com"
+    },
+    {
+      "id": "kenney-cc0",
+      "name": "CC0 1.0",
+      "author": "Kenney",
+      "source": "https://kenney.nl"
+    },
+    {
+      "id": "ambientcg-cc0",
+      "name": "CC0 1.0",
+      "author": "ambientCG",
+      "source": "https://ambientcg.com"
+    },
+    {
+      "id": "polyhaven-cc0",
+      "name": "CC0 1.0",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com"
+    },
+    {
+      "id": "threejs-mit",
+      "name": "MIT",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js/blob/r165/LICENSE"
+    },
+    {
+      "id": "sil-ofl-1.1",
+      "name": "SIL Open Font License 1.1",
+      "author": "Natanael Gama; Huerta Tipografica",
+      "source": "https://openfontlicense.org"
+    },
+    {
+      "id": "craftpix-premium",
+      "name": "CraftPix premium royalty-free commercial license",
+      "author": "CraftPix",
+      "source": "https://craftpix.net/file-licenses/"
+    },
+    {
+      "id": "jamiecypher-cc0",
+      "name": "CC0 1.0",
+      "author": "@jamiecypher",
+      "source": "https://freesound.org"
+    },
+    {
+      "id": "woc-project-asset",
+      "name": "World of ClaudeCraft project asset",
+      "author": "World of ClaudeCraft",
+      "source": "CREDITS.md"
+    },
+    {
+      "id": "target-mit",
+      "name": "MIT",
+      "author": "World of ClaudeCraft contributors",
+      "source": "LICENSE"
+    }
+  ],
+  "totals": {
+    "files": 93,
+    "bytes": 29611202,
+    "glbs": 26,
+    "animations": 200,
+    "skins": 54,
+    "by_role": {
+      "player-model": 7,
+      "player-skin-texture": 26,
+      "creature-model": 2,
+      "foliage-model": 7,
+      "village-prop-model": 9,
+      "world-prop-model": 1,
+      "environment-lighting": 1,
+      "environment-backdrop": 1,
+      "terrain-texture": 11,
+      "water-normal": 2,
+      "ui-font": 3,
+      "ability-icon": 5,
+      "item-icon": 6,
+      "quest-sfx": 2,
+      "ui-sfx": 8,
+      "license-evidence": 2
+    },
+    "by_license": {
+      "kaykit-cc0": 33,
+      "quaternius-cc0": 18,
+      "kenney-cc0": 1,
+      "polyhaven-cc0": 1,
+      "woc-project-asset": 16,
+      "ambientcg-cc0": 11,
+      "threejs-mit": 2,
+      "sil-ofl-1.1": 3,
+      "craftpix-premium": 5,
+      "jamiecypher-cc0": 2,
+      "target-mit": 1
+    }
+  }
+}

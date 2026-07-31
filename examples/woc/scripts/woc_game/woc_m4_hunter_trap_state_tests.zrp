@@ -1,0 +1,1 @@
+{ "name":"woc_m4_hunter_trap_state_tests", "source":"src", "binary":"bin-m4-hunter-trap-state-tests", "entry":"combat/hunter_trap_state_test_main" }

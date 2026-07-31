@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_ranged_shot_state_tests",
+  "source": "src",
+  "binary": "bin-m4-ranged-shot-state-tests",
+  "entry": "combat/ranged_shot_state_test_main"
+}

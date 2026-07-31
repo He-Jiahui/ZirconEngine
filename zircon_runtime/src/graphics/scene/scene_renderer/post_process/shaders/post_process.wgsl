@@ -119,7 +119,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
 }
 
 fn apply_color_grading(color: vec3<f32>) -> vec3<f32> {
-    let exposure = params.grading.x * max(exposure_buffer[0].x, 0.0);
+    let exposure = params.grading.x;
     let contrast = params.grading.y;
     let saturation = params.grading.z;
     let gamma = params.grading.w;
@@ -589,7 +589,7 @@ fn apply_tonemap_and_lut(color: vec3<f32>) -> vec3<f32> {
         return sample_effect_lut_3d(color);
     }
 
-    let exposure = exp2(params.effect_tonemap_lut.x);
+    let exposure = exp2(params.effect_tonemap_lut.x) * max(exposure_buffer[0].x, 0.0);
     let white_point = max(params.effect_tonemap_lut.y, 0.001);
     var mapped = max(color * exposure, vec3<f32>(0.0));
     if (params.effect_flags.x == 1u) {

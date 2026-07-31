@@ -28,7 +28,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
-  - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/mod.rs
+  - zircon_editor/src/ui/preferences/appearance.rs
+  - zircon_editor/src/ui/preferences/persistence.rs
+  - zircon_editor/src/ui/preferences/startup.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/draw.rs
@@ -79,7 +82,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
-  - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/mod.rs
+  - zircon_editor/src/ui/preferences/appearance.rs
+  - zircon_editor/src/ui/preferences/persistence.rs
+  - zircon_editor/src/ui/preferences/startup.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
@@ -159,7 +165,7 @@ tests:
   - direct D:\cargo-targets\zircon-editor-runtime-shape-line-0703\debug\deps\zircon_editor-5f4f470ab76133bf.exe retained_text_raster_uses_swash_for_ui_face --nocapture --test-threads=1 (2026-07-03 retained-host swash subpixel mask preservation: passed, 1/1 before external target cleanup)
   - direct D:\cargo-targets\zircon-editor-runtime-shape-line-0703\debug\deps\zircon_editor-5f4f470ab76133bf.exe capture_m3_gui_acceptance_visual_artifacts --ignored --nocapture --test-threads=1 (2026-07-03 retained-host swash subpixel mask preservation screenshot refresh: passed, 1/1; refreshed docs/tests/editor before external target cleanup)
   - docs/tests/editor/editor-window-m3-asset-browser-subpixel-mask-tabs-crop-3x-20260703.png (2026-07-03 tab text crop visual proof: inspected; 1080x108; modified 2026-07-03 11:08:22 +08:00; SHA256 B7F3A8D6AA766AE25E7B9AF7C36A13850E2595070201454980A4B68FA0408348; target same-name scan found no matches)
-  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/design_tokens.rs zircon_editor/src/ui/preferences.rs zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs (2026-07-03 retained-host global font smoothing preference: passed)
+  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/design_tokens.rs zircon_editor/src/ui/preferences/mod.rs zircon_editor/src/ui/preferences/appearance.rs zircon_editor/src/ui/preferences/persistence.rs zircon_editor/src/ui/preferences/startup.rs zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs (current-owner replay command for the retained-host global font smoothing preference)
   - cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-interface-text-smoothing-0703 --message-format short --color never (2026-07-03 retained-host global font smoothing preference: passed)
   - cargo check -p zircon_editor --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-smoothing-0703 --message-format short --color never (2026-07-03 retained-host global font smoothing preference: passed with existing warnings)
   - cargo test -p zircon_editor --lib smoothing --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-smoothing-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 retained-host global font smoothing preference final wrapper rerun: timed out after 604s with no Rust diagnostics; no Cargo wrapper pass claimed)
@@ -293,7 +299,7 @@ The public boundary remains intentionally narrow: callers keep using `draw_text(
 
 Asset Browser toolbar chips and utility tabs do not own concrete font choices. Their button content code only chooses text semantics (`UI`, `strong`, or `code` when a future component explicitly asks for code semantics) and label-slot padding. The concrete face remains globally switchable through typography preferences, matching the same path that will allow editor preferences to switch fonts, color themes, and style packs.
 
-The 2026-07-02 appearance-preference hardening moved the startup owner for retained-host design tokens into `zircon_editor/src/ui/preferences.rs`. `retained_host/app.rs` now installs host text preferences through `EditorAppearancePreferences` instead of constructing the workbench token set inline. `paint_text/font.rs` still owns `fontdb` resolution and embedded fallback bytes, but the runtime family reported to measurement keeps the requested user or logical family. Embedded fallback files are therefore an implementation fallback, not a hardcoded UI font policy. The refreshed utility-tab crop at `docs/tests/editor/editor-window-m3-asset-browser-utility-tabs-appearance-preferences-crop-3x-20260702.png` is recorded as inspection evidence only; it does not close the remaining text-quality work.
+The appearance-preference hard cut assigns startup selection to `zircon_editor/src/ui/preferences/startup.rs`, the token model to `preferences/appearance.rs`, and persistence to `preferences/persistence.rs`; `preferences/mod.rs` remains structural only. `retained_host/app.rs` installs host text preferences through `EditorAppearancePreferences` instead of constructing the workbench token set inline. `paint_text/font.rs` still owns `fontdb` resolution and embedded fallback bytes, but the runtime family reported to measurement keeps the requested user or logical family. Embedded fallback files are therefore an implementation fallback, not a hardcoded UI font policy. The refreshed utility-tab crop at `docs/tests/editor/editor-window-m3-asset-browser-utility-tabs-appearance-preferences-crop-3x-20260702.png` is recorded as inspection evidence only; it does not close the remaining text-quality work.
 
 The retained font-weight contract follow-up closes the next mismatch visible in the user's mixed-font editor screenshot. `measure_runtime_text_width_with_style(...)` and `draw/layout.rs::runtime_single_line_text(...)` now derive a `HostTextFontRequest` for the selected face and pass its `weight` into `UiResolvedStyle.font_weight`; the runtime side carries that value through `UiTextStyleKey`, glyphon `Weight`, `UiTextPaint`, paint runs, and the text font resource id. Retained-host code still only chooses UI semantics and the current host face; it does not hardcode concrete UI families or own a separate measurement rule.
 

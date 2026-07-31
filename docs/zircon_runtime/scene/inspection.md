@@ -27,7 +27,13 @@ related_code:
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/reflect/type_registry.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection/active_in_hierarchy.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/identity.rs
+  - zircon_runtime/src/scene/components/scene/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/node.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs
   - zircon_runtime/src/scene/components/scene/lighting.rs
   - zircon_runtime/src/scene/components/scene/reflection/mesh_renderer.rs

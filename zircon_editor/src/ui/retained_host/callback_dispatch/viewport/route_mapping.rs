@@ -19,10 +19,10 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
 ) -> Result<UiHostEventEffects, String> {
     let settings = runtime.chrome_snapshot().scene_viewport_settings;
     let (control_id, event_kind, arguments) = match route {
-        ViewportToolbarPointerRoute::SetTool { tool, .. } => (
-            "SetTool",
+        ViewportToolbarPointerRoute::ActivateSceneMode { mode, .. } => (
+            "ActivateSceneMode",
             UiEventKind::Change,
-            vec![UiBindingValue::string(tool)],
+            vec![UiBindingValue::string(mode)],
         ),
         ViewportToolbarPointerRoute::SetTransformSpace { space, .. } => (
             "SetTransformSpace",

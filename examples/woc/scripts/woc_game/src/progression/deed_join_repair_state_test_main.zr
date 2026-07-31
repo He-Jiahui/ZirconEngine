@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var repairs = %import("progression/deed_join_repair_state");
+
+console.printLine("m5-deed-join-repair-state-test");
+var result = repairs.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

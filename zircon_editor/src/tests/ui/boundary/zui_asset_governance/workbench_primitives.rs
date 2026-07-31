@@ -1,8 +1,6 @@
 use std::collections::BTreeSet;
-use std::fs;
 
 use toml::Value;
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 use super::support::editor_asset_root;
@@ -751,10 +749,7 @@ fn workbench_primitive_component_assets_keep_native_component_contract() {
         let path = editor_asset_root()
             .join("ui/editor/components")
             .join(contract.file_name);
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        let document = super::support::load_zui_document(&path);
         let Some(component) = document.components.get(contract.component_name) else {
             offenders.push(format!(
                 "{} should declare component `{}`",
@@ -862,10 +857,7 @@ fn workbench_overlay_primitives_expose_popup_shell_contract() {
         let path = editor_asset_root()
             .join("ui/editor/components")
             .join(contract.file_name);
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        let document = super::support::load_zui_document(&path);
         let Some(component) = document.components.get(contract.component_name) else {
             offenders.push(format!(
                 "{} should declare component `{}`",
@@ -938,10 +930,7 @@ fn workbench_drag_overlay_exposes_drag_visual_contract() {
     let path = editor_asset_root()
         .join("ui/editor/components")
         .join("workbench/primitives/feedback/workbench_drag_overlay.zui");
-    let source = fs::read_to_string(&path)
-        .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-    let document = UiZuiAssetLoader::load_zui_str(&source)
-        .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+    let document = super::support::load_zui_document(&path);
     let component = document
         .components
         .get("WorkbenchDragOverlay")
@@ -984,10 +973,7 @@ fn workbench_shell_surface_component_assets_keep_bottom_up_composition_contract(
         let path = editor_asset_root()
             .join("ui/editor/components")
             .join(contract.file_name);
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        let document = super::support::load_zui_document(&path);
         let Some(component) = document.components.get(contract.component_name) else {
             offenders.push(format!(
                 "{} should declare component `{}`",
@@ -1140,10 +1126,7 @@ fn workbench_component_drawer_composes_workbench_primitive_assets() {
     let path = editor_asset_root()
         .join("ui/editor/components")
         .join("workbench/shell/workbench_component_drawer.zui");
-    let source = fs::read_to_string(&path)
-        .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-    let document = UiZuiAssetLoader::load_zui_str(&source)
-        .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+    let document = super::support::load_zui_document(&path);
     let widget_imports = document
         .imports
         .widgets

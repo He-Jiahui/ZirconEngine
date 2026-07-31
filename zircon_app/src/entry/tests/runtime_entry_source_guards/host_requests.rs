@@ -12,6 +12,7 @@ fn runtime_entry_applies_runtime_ime_host_requests_from_session_drain() {
     assert_source_order(
         frame_loop_source,
         &[
+            "self.frame_cadence.take_frame_request(now)",
             "self.session.tick_frame()",
             "self.apply_runtime_host_requests(event_loop)",
             "window.request_redraw();",

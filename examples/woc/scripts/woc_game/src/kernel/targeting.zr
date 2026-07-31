@@ -1,0 +1,484 @@
+var {Array} = %import("zr.container");
+var container = %import("zr.container");
+
+class TargetState {
+    pub var entityIds: Array<uint>;
+    pub var entityX: Array<float>;
+    pub var entityZ: Array<float>;
+    pub var entityDead: Array<bool>;
+    pub var threatIds: Array<uint>;
+    pub var threatValues: Array<float>;
+    pub var currentId: uint;
+    pub var forcedId: uint;
+    pub var forcedTimer: float;
+    pub var mobX: float;
+    pub var mobZ: float;
+    pub var meleeReach: float;
+    pub var aiState: string;
+    pub var inCombat: bool;
+
+    pub @constructor() {
+        var container = %import("zr.container");
+        this.entityIds = new container.Array<uint>();
+        this.entityX = new container.Array<float>();
+        this.entityZ = new container.Array<float>();
+        this.entityDead = new container.Array<bool>();
+        this.threatIds = new container.Array<uint>();
+        this.threatValues = new container.Array<float>();
+        this.currentId = <uint>0;
+        this.forcedId = <uint>0;
+        this.forcedTimer = 0.0;
+        this.mobX = 0.0;
+        this.mobZ = 0.0;
+        this.meleeReach = 6.0;
+        this.aiState = "idle";
+        this.inCombat = false;
+    }
+}
+
+class TargetScenario {
+    pub var tankId: uint;
+    pub var bruiserId: uint;
+    pub var casterId: uint;
+    pub var mobId: uint;
+    pub var baselineTarget: uint;
+    pub var meleeTarget: uint;
+    pub var rangedBoundaryTarget: uint;
+    pub var rangedTarget: uint;
+    pub var forcedTarget: uint;
+    pub var forcedWindowMicros: int;
+    pub var forcedTimerMicros: int;
+    pub var expiredTarget: uint;
+    pub var retargetedTarget: uint;
+    pub var finalTarget: uint;
+    pub var finalThreatCount: int;
+    pub var finalAiState: string;
+
+    pub @constructor() {
+        this.tankId = <uint>408;
+        this.bruiserId = <uint>409;
+        this.casterId = <uint>410;
+        this.mobId = <uint>411;
+        this.baselineTarget = <uint>0;
+        this.meleeTarget = <uint>0;
+        this.rangedBoundaryTarget = <uint>0;
+        this.rangedTarget = <uint>0;
+        this.forcedTarget = <uint>0;
+        this.forcedWindowMicros = 0;
+        this.forcedTimerMicros = 0;
+        this.expiredTarget = <uint>0;
+        this.retargetedTarget = <uint>0;
+        this.finalTarget = <uint>0;
+        this.finalThreatCount = 0;
+        this.finalAiState = "idle";
+    }
+}
+
+entityIndex(state: TargetState, id: uint): int {
+    var ids = state.entityIds;
+    var index = 0;
+    while (index < ids.length) {
+        if (<uint>ids[index] == id) {
+            return index;
+        }
+        index = index + 1;
+    }
+    return -1;
+}
+
+isAlive(state: TargetState, id: uint): bool {
+    if (id == <uint>0) {
+        return false;
+    }
+    var index = entityIndex(state, id);
+    if (index < 0) {
+        return false;
+    }
+    return !<bool>state.entityDead[index];
+}
+
+addEntity(state: TargetState, id: uint, x: float, z: float): void {
+    state.entityIds.add(id);
+    state.entityX.add(x);
+    state.entityZ.add(z);
+    state.entityDead.add(false);
+}
+
+setThreat(state: TargetState, id: uint, value: float): void {
+    var ids = state.threatIds;
+    var values = state.threatValues;
+    var index = 0;
+    while (index < ids.length) {
+        if (<uint>ids[index] == id) {
+            values[index] = value;
+            return;
+        }
+        index = index + 1;
+    }
+    ids.add(id);
+    values.add(value);
+}
+
+threatFor(state: TargetState, id: uint): float {
+    var ids = state.threatIds;
+    var values = state.threatValues;
+    var index = 0;
+    while (index < ids.length) {
+        if (<uint>ids[index] == id) {
+            return <float>values[index];
+        }
+        index = index + 1;
+    }
+    return 0.0;
+}
+
+highestThreatTarget(state: TargetState): uint {
+    var ids = state.threatIds;
+    var values = state.threatValues;
+    var bestId: uint = <uint>0;
+    var bestThreat = -1.0;
+    var index = 0;
+    while (index < ids.length) {
+        var id = <uint>ids[index];
+        if (!isAlive(state, id)) {
+            ids.removeAt(index);
+            values.removeAt(index);
+        } else {
+            var value = <float>values[index];
+            if (value > bestThreat) {
+                bestThreat = value;
+                bestId = id;
+            }
+            index = index + 1;
+        }
+    }
+    return bestId;
+}
+
+updateTarget(state: TargetState): void {
+    if (state.forcedTimer > 0.0) {
+        state.forcedTimer = state.forcedTimer - 0.05;
+        if (isAlive(state, state.forcedId)) {
+            state.currentId = state.forcedId;
+            return;
+        }
+    }
+    if (state.forcedTimer <= 0.0) {
+        state.forcedId = <uint>0;
+    }
+    if (!isAlive(state, state.currentId)) {
+        var next = highestThreatTarget(state);
+        if (next != <uint>0) {
+            state.currentId = next;
+        }
+        return;
+    }
+    var currentId = state.currentId;
+    var currentThreat = threatFor(state, currentId);
+    var bestId = currentId;
+    var bestThreat = currentThreat;
+    var ids = state.threatIds;
+    var values = state.threatValues;
+    var index = 0;
+    while (index < ids.length) {
+        var id = <uint>ids[index];
+        var value = <float>values[index];
+        if (id != currentId && value > bestThreat) {
+            var entityIndexValue = entityIndex(state, id);
+            if (entityIndexValue < 0 || <bool>state.entityDead[entityIndexValue]) {
+                ids.removeAt(index);
+                values.removeAt(index);
+                index = index - 1;
+            } else {
+                var dx = <float>state.entityX[entityIndexValue] - state.mobX;
+                var dz = <float>state.entityZ[entityIndexValue] - state.mobZ;
+                var math = %import("zr.zircon.math");
+                var distance = math.sqrt(dx * dx + dz * dz);
+                var reach = state.meleeReach;
+                if (reach < 6.0) {
+                    reach = 6.0;
+                }
+                var needed = currentThreat * 1.3;
+                if (distance <= reach) {
+                    needed = currentThreat * 1.1;
+                }
+                if (value > needed) {
+                    bestId = id;
+                    bestThreat = value;
+                }
+            }
+        }
+        index = index + 1;
+    }
+    state.currentId = bestId;
+}
+
+retarget(state: TargetState): void {
+    var next = highestThreatTarget(state);
+    if (next != <uint>0) {
+        state.currentId = next;
+        state.aiState = "chase";
+        state.inCombat = true;
+        return;
+    }
+    state.currentId = <uint>0;
+    state.aiState = "evade";
+}
+
+runScenario(): TargetScenario {
+    var result = new TargetScenario();
+    var state = new TargetState();
+    addEntity(state, result.tankId, 2.0, 0.0);
+    addEntity(state, result.bruiserId, -2.0, 0.0);
+    addEntity(state, result.casterId, 0.0, 20.0);
+
+    setThreat(state, result.tankId, 100.0);
+    setThreat(state, result.bruiserId, 50.0);
+    setThreat(state, result.casterId, 50.0);
+    state.currentId = result.tankId;
+    state.aiState = "attack";
+    state.inCombat = true;
+    updateTarget(state);
+    result.baselineTarget = state.currentId;
+
+    setThreat(state, result.bruiserId, 120.0);
+    updateTarget(state);
+    result.meleeTarget = state.currentId;
+
+    state.currentId = result.tankId;
+    setThreat(state, result.bruiserId, 50.0);
+    setThreat(state, result.casterId, 130.0);
+    updateTarget(state);
+    result.rangedBoundaryTarget = state.currentId;
+
+    state.currentId = result.tankId;
+    setThreat(state, result.casterId, 140.0);
+    updateTarget(state);
+    result.rangedTarget = state.currentId;
+
+    state.currentId = result.casterId;
+    state.forcedId = result.tankId;
+    state.forcedTimer = 3.0;
+    updateTarget(state);
+    result.forcedTarget = state.currentId;
+    result.forcedWindowMicros = <int>(state.forcedTimer * 1000000.0 + 0.5);
+
+    state.forcedTimer = 0.025;
+    updateTarget(state);
+    result.forcedTimerMicros = <int>(state.forcedTimer * 1000000.0);
+
+    updateTarget(state);
+    result.expiredTarget = state.currentId;
+
+    retarget(state);
+    result.retargetedTarget = state.currentId;
+
+    state.threatIds.clear();
+    state.threatValues.clear();
+    setThreat(state, <uint>900001, 30.0);
+    setThreat(state, <uint>900002, 10.0);
+    state.currentId = result.casterId;
+    state.aiState = "chase";
+    retarget(state);
+    result.finalTarget = state.currentId;
+    result.finalThreatCount = state.threatIds.length;
+    result.finalAiState = state.aiState;
+    return result;
+}
+
+// Keep experimental ZrVM class values inside this module. The world trace driver
+// receives one built-in scalar vector, avoiding a custom-class ABI crossing.
+scenarioVector(required: bool): container.Array<int> {
+    if (!required) {
+        throw "mob targeting scenario vector must be observed";
+    }
+    var scenario = runScenario();
+    var values = new container.Array<int>();
+    values.add(1014);
+    values.add(2);
+    values.add(0);
+    values.add(11);
+    values.add(412);
+    values.add(<int>scenario.tankId);
+    values.add(<int>scenario.bruiserId);
+    values.add(<int>scenario.casterId);
+    values.add(<int>scenario.mobId);
+    values.add(<int>scenario.baselineTarget);
+    values.add(<int>scenario.meleeTarget);
+    values.add(<int>scenario.rangedBoundaryTarget);
+    values.add(<int>scenario.rangedTarget);
+    values.add(<int>scenario.forcedTarget);
+    values.add(scenario.forcedTimerMicros);
+    values.add(<int>scenario.expiredTarget);
+    values.add(<int>scenario.retargetedTarget);
+    values.add(<int>scenario.finalTarget);
+    values.add(scenario.finalThreatCount);
+    values.add(scenario.finalAiState == "evade" ? 2 : 0);
+    values.add(<int>2166136261);
+    values.add(scenario.forcedWindowMicros);
+    values.add(100);
+    values.add(50);
+    values.add(50);
+    values.add(120);
+    values.add(130);
+    values.add(140);
+    return values;
+}
+
+pub scenarioMetric(metric: int, required: bool): int {
+    if (!required || metric < 0 || metric > 27) {
+        throw "mob targeting scenario metric is invalid";
+    }
+    var values = scenarioVector(true);
+    var index = 0;
+    for (var value in values) {
+        if (index == metric) {
+            return <int>value;
+        }
+        index = index + 1;
+    }
+    throw "mob targeting scenario metric is missing";
+}
+
+pub scenarioContractTest(): int {
+    var expected = new container.Array<int>();
+    expected.add(1014);
+    expected.add(2);
+    expected.add(0);
+    expected.add(11);
+    expected.add(412);
+    expected.add(408);
+    expected.add(409);
+    expected.add(410);
+    expected.add(411);
+    expected.add(408);
+    expected.add(409);
+    expected.add(408);
+    expected.add(410);
+    expected.add(408);
+    expected.add(-25000);
+    expected.add(410);
+    expected.add(410);
+    expected.add(0);
+    expected.add(0);
+    expected.add(2);
+    expected.add(<int>2166136261);
+    expected.add(2950000);
+    expected.add(100);
+    expected.add(50);
+    expected.add(50);
+    expected.add(120);
+    expected.add(130);
+    expected.add(140);
+    var actual = scenarioVector(true);
+    if (actual.length != expected.length) {
+        return -100;
+    }
+    var metric = 0;
+    for (var value in actual) {
+        if (<int>value != <int>expected[metric]) {
+            return -(metric + 1);
+        }
+        metric = metric + 1;
+    }
+    return 1;
+}
+
+pub parityRulesTest(): int {
+    var state = new TargetState();
+    addEntity(state, <uint>1, 2.0, 0.0);
+    addEntity(state, <uint>2, -2.0, 0.0);
+    addEntity(state, <uint>3, 0.0, 20.0);
+    setThreat(state, <uint>1, 100.0);
+    setThreat(state, <uint>2, 50.0);
+    setThreat(state, <uint>3, 50.0);
+    state.currentId = <uint>1;
+    state.aiState = "attack";
+    state.inCombat = true;
+    updateTarget(state);
+    if (state.currentId != <uint>1) {
+        return -1;
+    }
+
+    setThreat(state, <uint>2, 120.0);
+    updateTarget(state);
+    if (state.currentId != <uint>2) {
+        return -2;
+    }
+
+    state.currentId = <uint>1;
+    setThreat(state, <uint>2, 50.0);
+    setThreat(state, <uint>3, 130.0);
+    updateTarget(state);
+    if (state.currentId != <uint>1) {
+        return -3;
+    }
+
+    setThreat(state, <uint>3, 140.0);
+    updateTarget(state);
+    if (state.currentId != <uint>3) {
+        return -4;
+    }
+
+    state.currentId = <uint>3;
+    state.forcedId = <uint>1;
+    state.forcedTimer = 3.0;
+    updateTarget(state);
+    if (state.currentId != <uint>1 || state.forcedTimer < 2.949999 ||
+        state.forcedTimer > 2.950001) {
+        return -5;
+    }
+
+    state.forcedTimer = 0.025;
+    updateTarget(state);
+    if (state.currentId != <uint>1 || state.forcedTimer >= 0.0) {
+        return -6;
+    }
+
+    updateTarget(state);
+    if (state.currentId != <uint>3 || state.forcedId != <uint>0) {
+        return -7;
+    }
+
+    retarget(state);
+    if (state.currentId != <uint>3 || state.aiState != "chase" || !state.inCombat) {
+        return -8;
+    }
+
+    state.threatIds.clear();
+    state.threatValues.clear();
+    setThreat(state, <uint>900001, 30.0);
+    setThreat(state, <uint>900002, 10.0);
+    state.currentId = <uint>3;
+    state.aiState = "chase";
+    retarget(state);
+    if (state.currentId != <uint>0 || state.aiState != "evade" ||
+        state.threatIds.length != 0 || state.threatValues.length != 0) {
+        return -9;
+    }
+    return 1;
+}
+
+pub tieBreakTest(): int {
+    var state = new TargetState();
+    addEntity(state, <uint>1, 2.0, 0.0);
+    addEntity(state, <uint>2, -2.0, 0.0);
+    setThreat(state, <uint>2, 100.0);
+    setThreat(state, <uint>1, 100.0);
+    retarget(state);
+    if (state.currentId != <uint>2) {
+        return -1;
+    }
+    updateTarget(state);
+    if (state.currentId != <uint>2) {
+        return -2;
+    }
+    var dead = state.entityDead;
+    dead[entityIndex(state, <uint>2)] = true;
+    retarget(state);
+    if (state.currentId != <uint>1 || state.threatIds.length != 1 ||
+        <uint>state.threatIds[0] != <uint>1) {
+        return -3;
+    }
+    return 1;
+}

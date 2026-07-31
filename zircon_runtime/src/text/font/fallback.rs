@@ -1,8 +1,15 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use crate::text::{CompositeFontDescriptor, FontFaceId, FontQuery, FontScript};
 use unicode_normalization::char::canonical_combining_class;
 
-use super::composite_resolve::{candidate_faces_for_cluster, script_for_char};
+use super::composite_resolve::{candidate_faces_for_cluster, script_for_char, CompositeFontIndex};
 use super::database::FontDatabase;
+use super::fallback_cache::{
+    fallback_candidate_cache_key, fallback_query_identity, fallback_resolution_cache_key,
+    FallbackQueryIdentity,
+};
 
 pub(super) const DEFAULT_FALLBACK_MAX_DEPTH: u8 = 10;
 pub(super) const DEFAULT_MISSING_GLYPH_CAPACITY: usize = 1_024;
@@ -26,9 +33,26 @@ pub(super) enum FallbackResolutionSource {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct MissingGlyphLog {
     entries: Vec<MissingGlyphDiagnostic>,
+    // The map owns only bounded lookup state; `entries` retains report insertion order.
+    entry_by_key: HashMap<MissingGlyphKey, usize>,
     capacity: usize,
     overflowed: bool,
     dropped_count: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct MissingGlyphKey {
+    face: FontFaceId,
+    codepoint: u32,
+}
+
+impl From<&MissingGlyphDiagnostic> for MissingGlyphKey {
+    fn from(diagnostic: &MissingGlyphDiagnostic) -> Self {
+        Self {
+            face: diagnostic.face,
+            codepoint: diagnostic.codepoint,
+        }
+    }
 }
 
 impl Default for MissingGlyphLog {
@@ -40,7 +64,8 @@ impl Default for MissingGlyphLog {
 impl MissingGlyphLog {
     pub(super) fn with_capacity(capacity: usize) -> Self {
         Self {
-            entries: Vec::new(),
+            entries: Vec::with_capacity(capacity),
+            entry_by_key: HashMap::with_capacity(capacity),
             capacity,
             overflowed: false,
             dropped_count: 0,
@@ -63,9 +88,9 @@ impl MissingGlyphLog {
     }
 
     pub(super) fn push(&mut self, diagnostic: MissingGlyphDiagnostic) {
-        if let Some(existing) = self.entries.iter_mut().find(|existing| {
-            existing.face == diagnostic.face && existing.codepoint == diagnostic.codepoint
-        }) {
+        let key = MissingGlyphKey::from(&diagnostic);
+        if let Some(&index) = self.entry_by_key.get(&key) {
+            let existing = &mut self.entries[index];
             existing.occurrence_count = existing
                 .occurrence_count
                 .saturating_add(diagnostic.occurrence_count);
@@ -76,7 +101,9 @@ impl MissingGlyphLog {
             self.dropped_count = self.dropped_count.saturating_add(1);
             return;
         }
+        let index = self.entries.len();
         self.entries.push(diagnostic);
+        self.entry_by_key.insert(key, index);
     }
 
     pub(super) fn append(&mut self, other: Self) {
@@ -123,7 +150,8 @@ pub(crate) struct MissingGlyphDiagnosticsReport {
 pub(super) struct FallbackResolver<'a> {
     db: &'a FontDatabase,
     query: &'a FontQuery,
-    composite: Option<&'a CompositeFontDescriptor>,
+    composite: Option<Arc<CompositeFontIndex>>,
+    query_identity: FallbackQueryIdentity,
     language: Option<&'a str>,
     max_depth: u8,
     diagnostics: MissingGlyphLog,
@@ -146,10 +174,17 @@ impl<'a> FallbackResolver<'a> {
         language: Option<&'a str>,
         max_depth: u8,
     ) -> Self {
+        let composite = db.fallback_composite_index(composite);
+        let query_identity = fallback_query_identity(
+            query,
+            composite.as_ref().map(|(identity, _)| *identity),
+            language,
+        );
         Self {
             db,
             query,
-            composite,
+            composite: composite.map(|(_, index)| index),
+            query_identity,
             language,
             max_depth,
             diagnostics: MissingGlyphLog::default(),
@@ -167,7 +202,7 @@ impl<'a> FallbackResolver<'a> {
         script: FontScript,
         codepoints: &[char],
     ) -> FallbackResolution {
-        if codepoints.is_empty() || self.db.face_covers_all(primary, codepoints) {
+        if codepoints.is_empty() {
             return FallbackResolution {
                 face: primary,
                 missing: false,
@@ -175,56 +210,31 @@ impl<'a> FallbackResolver<'a> {
             };
         }
 
-        if self.max_depth == 0 {
-            self.record_missing(
-                primary,
-                script,
-                codepoints,
-                MissingGlyphReason::DepthLimitExceeded,
-            );
-            return FallbackResolution {
-                face: primary,
-                missing: true,
-                source: FallbackResolutionSource::DepthLimitExceeded,
+        let candidate_key = fallback_candidate_cache_key(self.query_identity, script, codepoints);
+        let resolution_key = fallback_resolution_cache_key(primary, candidate_key, self.max_depth);
+        let resolution = self
+            .db
+            .cached_fallback_resolution(resolution_key)
+            .unwrap_or_else(|| {
+                let resolution = self.resolve_uncached(primary, script, codepoints, candidate_key);
+                self.db
+                    .cache_fallback_resolution(resolution_key, resolution.clone());
+                resolution
+            });
+        if resolution.missing {
+            let reason = if resolution.source == FallbackResolutionSource::DepthLimitExceeded {
+                MissingGlyphReason::DepthLimitExceeded
+            } else {
+                MissingGlyphReason::MissingGlyph
             };
+            self.record_missing(resolution.face, script, codepoints, reason);
         }
-
-        let candidates = self.candidates_for_cluster(script, codepoints);
-        for candidate in &candidates {
-            let candidate = *candidate;
-            if candidate != primary && self.db.face_covers_all(candidate, codepoints) {
-                return FallbackResolution {
-                    face: candidate,
-                    missing: false,
-                    source: FallbackResolutionSource::Fallback,
-                };
-            }
-        }
-
-        if let Some(face) = self.best_partial_coverage_face(primary, &candidates, codepoints) {
-            self.record_missing(face, script, codepoints, MissingGlyphReason::MissingGlyph);
-            return FallbackResolution {
-                face,
-                missing: true,
-                source: FallbackResolutionSource::PartialCoverage,
-            };
-        }
-
-        self.record_missing(
-            primary,
-            script,
-            codepoints,
-            MissingGlyphReason::MissingGlyph,
-        );
-        FallbackResolution {
-            face: primary,
-            missing: true,
-            source: FallbackResolutionSource::LastResort,
-        }
+        resolution
     }
 
     pub(super) fn candidates_for_codepoint(&self, codepoint: char) -> Vec<FontFaceId> {
         self.candidates_for_cluster(script_for_char(codepoint), &[codepoint])
+            .to_vec()
     }
 
     pub(super) fn resolve_codepoint(
@@ -239,15 +249,80 @@ impl<'a> FallbackResolver<'a> {
         std::mem::take(&mut self.diagnostics)
     }
 
-    fn candidates_for_cluster(&self, script: FontScript, codepoints: &[char]) -> Vec<FontFaceId> {
-        candidate_faces_for_cluster(
-            self.db,
-            self.query,
-            self.composite,
-            script,
-            codepoints,
-            self.language,
-        )
+    fn candidates_for_cluster(&self, script: FontScript, codepoints: &[char]) -> Arc<[FontFaceId]> {
+        let key = fallback_candidate_cache_key(self.query_identity, script, codepoints);
+        self.candidates_for_cluster_with_key(script, codepoints, key)
+    }
+
+    fn candidates_for_cluster_with_key(
+        &self,
+        script: FontScript,
+        codepoints: &[char],
+        key: super::fallback_cache::FallbackCandidateCacheKey,
+    ) -> Arc<[FontFaceId]> {
+        if let Some(candidates) = self.db.cached_fallback_candidates(key) {
+            return candidates;
+        }
+        let candidates = Arc::from(
+            candidate_faces_for_cluster(
+                self.db,
+                self.query,
+                self.composite.as_deref(),
+                script,
+                codepoints,
+                self.language,
+            )
+            .into_boxed_slice(),
+        );
+        self.db
+            .cache_fallback_candidates(key, Arc::clone(&candidates));
+        candidates
+    }
+
+    fn resolve_uncached(
+        &self,
+        primary: FontFaceId,
+        script: FontScript,
+        codepoints: &[char],
+        candidate_key: super::fallback_cache::FallbackCandidateCacheKey,
+    ) -> FallbackResolution {
+        if self.db.face_covers_all(primary, codepoints) {
+            return FallbackResolution {
+                face: primary,
+                missing: false,
+                source: FallbackResolutionSource::Primary,
+            };
+        }
+        if self.max_depth == 0 {
+            return FallbackResolution {
+                face: primary,
+                missing: true,
+                source: FallbackResolutionSource::DepthLimitExceeded,
+            };
+        }
+
+        let candidates = self.candidates_for_cluster_with_key(script, codepoints, candidate_key);
+        for candidate in candidates.iter().copied() {
+            if candidate != primary && self.db.face_covers_all(candidate, codepoints) {
+                return FallbackResolution {
+                    face: candidate,
+                    missing: false,
+                    source: FallbackResolutionSource::Fallback,
+                };
+            }
+        }
+        if let Some(face) = self.best_partial_coverage_face(primary, &candidates, codepoints) {
+            return FallbackResolution {
+                face,
+                missing: true,
+                source: FallbackResolutionSource::PartialCoverage,
+            };
+        }
+        FallbackResolution {
+            face: primary,
+            missing: true,
+            source: FallbackResolutionSource::LastResort,
+        }
     }
 
     fn record_missing(

@@ -1,7 +1,10 @@
+use std::borrow::Cow;
+
+use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{
-    insert_marker, pop_group, push_group, RENDERDOC_MARKER_HISTORY_COPY,
-    RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
+    RENDERDOC_MARKER_HISTORY_COPY, RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
+    insert_marker, pop_group, push_group,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -13,10 +16,9 @@ use crate::graphics::scene::scene_renderer::overlay::PreparedOverlayBuffers;
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::shadow::ShadowFramePlan;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
-use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::scene_renderer_core::SceneRendererCore;
-use super::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
+use super::execute_graph_stage::{RenderGraphStageExecution, execute_graph_stage};
 
 const EARLY_GRAPH_STAGES: &[RenderPassStage] = &[
     RenderPassStage::DepthPrepass,
@@ -192,18 +194,21 @@ impl SceneRendererCore {
             history_textures.as_deref(),
             history_available,
         )?;
-        let mut runtime_frame = frame.clone();
-        if !history_available {
-            let historyless_stack = runtime_frame
+        let runtime_frame = if history_available {
+            Cow::Borrowed(frame)
+        } else {
+            let mut historyless_frame = frame.clone();
+            let historyless_stack = historyless_frame
                 .extract
                 .post_process
                 .stack
                 .without_history_resources();
             let historyless_graph = historyless_stack.validated_graph();
-            let extract = runtime_frame.extract_mut();
+            let extract = historyless_frame.extract_mut();
             extract.post_process.stack = historyless_stack;
             extract.post_process.graph = historyless_graph;
-        }
+            Cow::Owned(historyless_frame)
+        };
         insert_marker(encoder, RENDERDOC_MARKER_POST_PROCESS);
         let post_process_stack = RenderPassPostProcessStackContext::new(
             &self.post_process,
@@ -221,7 +226,7 @@ impl SceneRendererCore {
             device,
             queue,
             encoder,
-            &runtime_frame,
+            runtime_frame.as_ref(),
             &self.scene_bind_group_layout,
             self.scene_color_format,
             self.depth_format,
@@ -313,21 +318,22 @@ impl SceneRendererCore {
     }
 }
 
-fn active_late_graph_stages(pipeline: &CompiledRenderPipeline) -> Vec<RenderPassStage> {
+fn active_late_graph_stages(
+    pipeline: &CompiledRenderPipeline,
+) -> impl Iterator<Item = RenderPassStage> + '_ {
     pipeline
         .stages
         .iter()
         .copied()
         .filter(|stage| LATE_GRAPH_STAGES.contains(stage))
-        .collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{active_late_graph_stages, EARLY_GRAPH_STAGES, LATE_GRAPH_STAGES};
+    use super::{EARLY_GRAPH_STAGES, LATE_GRAPH_STAGES, active_late_graph_stages};
     use crate::core::framework::render::RenderPipelineHandle;
-    use crate::graphics::pipeline::RenderPassStage;
     use crate::graphics::CompiledRenderPipeline;
+    use crate::graphics::pipeline::RenderPassStage;
     use crate::render_graph::RenderGraphBuilder;
 
     #[test]
@@ -344,6 +350,16 @@ mod tests {
     }
 
     #[test]
+    fn compiled_scene_stage_execution_borrows_stable_frame_and_late_stage_iterator() {
+        let source = include_str!("execute_compiled_scene_graph_stages.rs");
+        let borrowed_frame = ["Cow::Borrowed(", "frame)"].concat();
+        let iterator_return = ["-> impl ", "Iterator<Item = RenderPassStage>"].concat();
+
+        assert!(source.contains(&borrowed_frame));
+        assert!(source.contains(&iterator_return));
+    }
+
+    #[test]
     fn active_late_graph_stages_follow_compiled_pipeline_order() {
         let default_3d = compiled_pipeline_with_stages(vec![
             RenderPassStage::DepthPrepass,
@@ -353,7 +369,7 @@ mod tests {
             RenderPassStage::Ui,
         ]);
         assert_eq!(
-            active_late_graph_stages(&default_3d),
+            active_late_graph_stages(&default_3d).collect::<Vec<_>>(),
             vec![
                 RenderPassStage::Overlay,
                 RenderPassStage::Debug,
@@ -369,7 +385,7 @@ mod tests {
             RenderPassStage::Debug,
         ]);
         assert_eq!(
-            active_late_graph_stages(&core2d),
+            active_late_graph_stages(&core2d).collect::<Vec<_>>(),
             vec![
                 RenderPassStage::Ui,
                 RenderPassStage::Overlay,

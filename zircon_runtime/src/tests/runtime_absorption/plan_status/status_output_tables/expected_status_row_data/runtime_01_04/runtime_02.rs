@@ -13,10 +13,10 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 02 F6 core resource registry typed errors",
         &[
-            "core_resource_registry_typed_errors_coremin_check_passed",
-            "review_f6_core_resource_registry_rename_uses_core_error",
-            "registry_rename_reports_missing_locator_with_core_error",
-            "MissingResourceRecordForLocator",
+            "frameworks_01_m1_resource_error_owner_hardcut_static_passed_cargo_pending",
+            "review_f6_core_resource_registry_rename_uses_resource_error",
+            "registry_rename_reports_missing_locator_with_resource_error",
+            "MissingRecordForLocator",
         ],
     ),
     (

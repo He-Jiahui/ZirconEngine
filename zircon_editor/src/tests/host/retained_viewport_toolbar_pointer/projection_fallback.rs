@@ -1,17 +1,17 @@
 use crate::core::editor_event::{EditorEvent, EditorViewportEvent};
 use crate::scene::viewport::DisplayMode;
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+use crate::tests::editor_event::support::{EventRuntimeHarness, env_lock};
 use crate::ui::retained_host::callback_dispatch::{
-    dispatch_shared_viewport_toolbar_pointer_click, BuiltinViewportToolbarTemplateBridge,
+    BuiltinViewportToolbarTemplateBridge, dispatch_shared_viewport_toolbar_pointer_click,
 };
 use crate::ui::retained_host::viewport_toolbar_pointer::{
-    build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
+    ViewportToolbarPointerBridge, build_viewport_toolbar_pointer_layout,
 };
 use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 #[test]
-fn shared_viewport_toolbar_pointer_click_falls_back_to_surface_projection_when_control_rect_is_empty(
-) {
+fn shared_viewport_toolbar_pointer_click_falls_back_to_surface_projection_when_control_rect_is_empty()
+ {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_viewport_toolbar_projection_fallback");
@@ -77,7 +77,7 @@ fn viewport_toolbar_surface_frame_includes_projected_route_controls_without_acti
         .collect::<Vec<_>>();
 
     for required in [
-        "SetTool",
+        "ActivateSceneMode",
         "SetTransformSpace",
         "SetDisplayMode",
         "SetGridMode",

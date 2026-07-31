@@ -42,7 +42,7 @@ pub(crate) fn import_shader_package(
         }
     };
     let wgsl_files = wgsl_files_for_document(&package_dir, &document)?;
-    let (wgsl_source, source_files) =
+    let (wgsl_source, source_files, wgsl_data_sources) =
         read_wgsl_sources(&package_dir, &context.uri, wgsl_files.as_slice())?;
     let mut validation_diagnostics = Vec::new();
     let mut import_diagnostics = Vec::new();
@@ -169,9 +169,7 @@ pub(crate) fn import_shader_package(
         "zshader",
         zshader_source,
     )?);
-    for wgsl_file in wgsl_files {
-        let path = package_dir.join(&wgsl_file);
-        let source = fs::read_to_string(&path)?;
+    for (path, source) in wgsl_data_sources {
         outcome = outcome.with_entry(data_entry_for_file(context, &path, "wgsl", source)?);
     }
     Ok(outcome)
@@ -455,9 +453,10 @@ fn read_wgsl_sources(
     package_dir: &Path,
     root_uri: &AssetUri,
     files: &[PathBuf],
-) -> Result<(String, Vec<ShaderSourceFileAsset>), AssetImportError> {
+) -> Result<(String, Vec<ShaderSourceFileAsset>, Vec<(PathBuf, String)>), AssetImportError> {
     let mut combined = String::new();
-    let mut source_files = Vec::new();
+    let mut source_files = Vec::with_capacity(files.len());
+    let mut data_sources = Vec::with_capacity(files.len());
     for file in files {
         let source_path = package_dir.join(file);
         let source = fs::read_to_string(&source_path)?;
@@ -469,8 +468,9 @@ fn read_wgsl_sources(
             path: normalized_relative_path(file),
             url: included_file_uri(root_uri, file)?,
         });
+        data_sources.push((source_path, source));
     }
-    Ok((combined, source_files))
+    Ok((combined, source_files, data_sources))
 }
 
 fn data_entry_for_file(

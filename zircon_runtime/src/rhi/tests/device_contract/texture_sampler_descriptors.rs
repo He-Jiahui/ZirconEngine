@@ -1,8 +1,8 @@
 use super::*;
 
 #[test]
-fn wgpu_rhi_rejects_sparse_reserved_texture_without_backend_support() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_rejects_sparse_reserved_texture_without_backend_support() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let sparse = TextureDesc::new(
         "virtual-terrain-pages",
         4096,
@@ -23,8 +23,8 @@ fn wgpu_rhi_rejects_sparse_reserved_texture_without_backend_support() {
 }
 
 #[test]
-fn wgpu_rhi_roundtrips_hdr_array_and_cube_texture_descriptors() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_roundtrips_hdr_array_and_cube_texture_descriptors() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let hdr_array = TextureDesc::new(
         "hdr-array",
         16,
@@ -57,8 +57,8 @@ fn wgpu_rhi_roundtrips_hdr_array_and_cube_texture_descriptors() {
 }
 
 #[test]
-fn wgpu_rhi_device_roundtrips_resource_descriptors_by_handle() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_device_roundtrips_resource_descriptors_by_handle() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let buffer_desc = BufferDesc::new(
         "frame-uniform",
         256,
@@ -103,8 +103,8 @@ fn wgpu_rhi_device_roundtrips_resource_descriptors_by_handle() {
 }
 
 #[test]
-fn wgpu_rhi_roundtrips_shadow_and_trilinear_sampler_descriptors() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_roundtrips_shadow_and_trilinear_sampler_descriptors() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let trilinear = SamplerDesc::linear_mipmap_linear("material-trilinear")
         .with_lod_clamp(0.0, 12.0)
         .with_anisotropy_clamp(16);

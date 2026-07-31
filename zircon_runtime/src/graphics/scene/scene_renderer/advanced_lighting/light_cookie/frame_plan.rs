@@ -21,6 +21,7 @@ pub(crate) struct CookieGpuMetadata {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct CookieAtlasEntry {
+    pub(crate) slot: u32,
     pub(crate) light_id: u64,
     pub(crate) texture: ResourceId,
     pub(crate) metadata: CookieGpuMetadata,
@@ -60,6 +61,7 @@ pub(crate) fn build_cookie_frame_plan(cookies: &[LightCookieData]) -> CookieFram
             let y = slot / COOKIE_ATLAS_GRID_SIZE;
             let (projection, wrap, offset, scale) = projection_metadata(cookie.projection);
             CookieAtlasEntry {
+                slot,
                 light_id,
                 texture: cookie.texture,
                 metadata: CookieGpuMetadata {
@@ -140,6 +142,8 @@ mod tests {
         assert_eq!(plan.entries().len(), 2);
         assert_eq!(plan.entries()[0].light_id, 3);
         assert_eq!(plan.entries()[1].light_id, 9);
+        assert_eq!(plan.entries()[0].slot, 0);
+        assert_eq!(plan.entries()[1].slot, 1);
         assert_eq!(plan.entries()[0].metadata.uv_rect, [0.0, 0.0, 0.125, 0.125]);
         assert_eq!(
             plan.entries()[1].metadata.uv_rect,

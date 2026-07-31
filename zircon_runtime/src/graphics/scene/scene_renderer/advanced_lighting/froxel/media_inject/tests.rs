@@ -17,8 +17,8 @@ const PRODUCT_REPORT: &str = "plan18_volumetric_media_inject_wgpu_20260711.txt";
 
 #[test]
 fn render_volumetric_media_inject_upload_bytes_follow_local_volume_payload() {
-    assert_eq!(FroxelMediaInjectPipeline::uploaded_bytes(0, true), 208);
-    assert_eq!(FroxelMediaInjectPipeline::uploaded_bytes(8, false), 208);
+    assert_eq!(FroxelMediaInjectPipeline::uploaded_bytes(0, true), 160);
+    assert_eq!(FroxelMediaInjectPipeline::uploaded_bytes(8, false), 160);
     assert_eq!(FroxelMediaInjectPipeline::uploaded_bytes(2, true), 256);
 }
 

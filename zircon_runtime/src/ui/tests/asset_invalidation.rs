@@ -213,3 +213,21 @@ fn snapshot_for_document(document: &UiAssetDocument) -> UiInvalidationSnapshot {
         ..Default::default()
     }
 }
+
+#[test]
+fn invalidation_diagnostics_visit_document_nodes_once() {
+    let source = include_str!("../template/asset/invalidation/diagnostic.rs");
+    let collector = source
+        .split_once("pub fn collect_invalidation_diagnostics(")
+        .expect("invalidation diagnostics collector must remain available")
+        .1
+        .split_once("fn warning(")
+        .expect("collector boundary must remain available")
+        .0;
+
+    assert_eq!(
+        collector.matches("document.iter_nodes()").count(),
+        1,
+        "node count and scroll pressure must share one tree visit"
+    );
+}

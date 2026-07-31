@@ -20,5 +20,8 @@ pub use runtime_plugin_catalog::{
     RuntimePluginBridgeLifecycleBlock, RuntimePluginBridgeLifecycleError,
     RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
     RuntimePluginBridgeLifecycleReport, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
-    RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
+    RuntimePluginCatalogProjectPlanMetrics, RuntimePluginCatalogProjectionMetrics,
+    RuntimePluginCatalogUpdate, RuntimePluginCatalogUpdateMetrics,
+    RuntimePluginCatalogUpdateOutcome, RuntimePluginFeatureBlock,
+    RuntimePluginFeatureDependencyReport,
 };

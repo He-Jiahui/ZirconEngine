@@ -116,7 +116,7 @@ Use this table as the exact replacement source. Preserve every non-icon property
 | `host/workbench_shell.zui` | `AssetsToggle` | `icon = "editor_pages/asset_browser/navigation/folder.svg"` | `direct` |
 | `host/workbench_shell.zui` | `HierarchyToggle` | `icon = "editor_pages/hierarchy/entity/scene.svg"` | `direct` |
 | `host/workbench_shell.zui` | `ConsoleToggle` | `icon = "editor_pages/console_profiler/logs/log-info.svg"` | `near` |
-| `host/scene_viewport_toolbar.zui` | `SetTool` | `icon = "editor_pages/scene_viewport/tools/universal-transform.svg"` | `near` |
+| `host/scene_viewport_toolbar.zui` | `ActivateSceneMode` | `icon = "editor_pages/scene_viewport/tools/universal-transform.svg"` | `near` |
 | `host/scene_viewport_toolbar.zui` | `SetDisplayMode` | `icon = "editor_pages/scene_viewport/display/lit.svg"` | `near` |
 | `host/scene_viewport_toolbar.zui` | `SetGridMode` | `icon = "editor_pages/scene_viewport/display/grid-overlay.svg"` | `direct` |
 | `host/scene_viewport_toolbar.zui` | `SetTranslateSnap` | `icon = "editor_pages/scene_viewport/snapping/grid-snap.svg"` | `near` |

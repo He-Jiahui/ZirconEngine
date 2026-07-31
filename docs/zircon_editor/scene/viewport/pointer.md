@@ -9,6 +9,10 @@ related_code:
   - zircon_editor/src/scene/viewport/pointer/overlay_router/rebuild_surface.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_event.rs
+  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
+  - zircon_editor/src/scene/viewport/interaction_extract/cache.rs
+  - zircon_editor/src/scene/viewport/interaction_extract/extract.rs
+  - zircon_editor/src/scene/viewport/interaction_extract/key.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/precision_candidates_from_layout.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/handle_candidate.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/scene_gizmo_candidate.rs
@@ -53,7 +57,9 @@ This is the M2 editor-adapter step in the Bevy completion plan. It does not yet 
 
 ## Data Flow
 
-`ViewportPointerLayout` is rebuilt from editor overlays: transform handles, scene gizmos, and coarse renderable candidates. The candidate builders still perform editor-local screen-space projection because they consume authoring overlay DTOs and current editor camera state.
+`SceneViewportController` owns one `ViewportInteractionExtractCache`. Its key combines runtime `world_generation`, selection, viewport settings, camera, and viewport size. The render path seeds that cache from the runtime `SceneViewportRenderPacket.scene.meshes`; the pointer path consumes the same `Arc<ViewportInteractionExtract>`, and only performs a runtime packet extract itself when pointer input arrives before a render snapshot for the new generation. Handles and scene gizmos are built once per key. `ViewportPointerLayout` keeps `Arc` slices for handles, gizmos, and coarse renderable candidates, while the router uses extract pointer identity for the stable-generation early-out.
+
+Renderable candidate construction no longer scans `Scene::nodes()`. It projects the runtime camera/layer/active-state-filtered `RenderMeshSnapshot` sequence and collapses adjacent primitives with the same entity id into one coarse candidate. Screen-space precision projection remains editor-owned because it consumes authoring overlay DTOs and the current editor camera. Runtime packet overlays still require owned vectors, so render performs a boundary copy from the shared `Arc` slices; it does not rebuild or rescan their facts.
 
 `rebuild_surface` maps those precision candidates into the retained UI surface so the existing UI pointer dispatcher can provide the stacked nodes under a cursor. On move/down/up/scroll, `build_dispatcher` now calls `runtime_picking_adapter::resolve_runtime_route`.
 
@@ -61,7 +67,9 @@ The adapter converts every stacked precision candidate that scores at the cursor
 
 The precision score DTO now carries only screen-space distance and projected depth. Candidate category priority is intentionally not stored there anymore: UI z-index may still decide which retained UI nodes appear in the cursor stack, but authoritative handle/gizmo/renderable ordering is the runtime `HitTarget` priority inside `sorted_hits_for_pointer`.
 
-`ViewportOverlayPointerRouter::debug_feed_at` exposes the same adapter as a read-only devtools path. It asks the retained UI surface for the current hit stack at a point, locks the shared candidate map, and returns `PickingDebugFeed` built from the runtime `PickingPipelineReport`. The normal `ViewportPointerDispatch` also carries this feed after move/down dispatch, so overlay/devtools panels can display raw hit counts, hovered hit counts, and top/blocking runtime targets without reimplementing the editor route resolver.
+`ViewportOverlayPointerRouter::debug_feed_at` exposes the same adapter as a read-only devtools path. It asks the retained UI surface for the current hit stack at a point, locks the shared candidate map, and returns `PickingDebugFeed` built from the runtime `PickingPipelineReport`. Normal move/down/up/scroll dispatch computes route and feed from one `PointerHits` vector inside the dispatcher and stores both in shared resolution state; it does not call `debug_feed_at` and repeat hit testing/scoring after dispatch. Overlay/devtools panels therefore receive raw hit counts, hovered hit counts, and top/blocking runtime targets without reimplementing or rerunning the editor route resolver.
+
+Ring hit bounds scan projected segment endpoints as an iterator instead of materializing a second 96-point vector. Ring segments reserve their fixed 48-entry budget and the precision candidate vector reserves the layout's known upper bound. These are allocation reductions only; segment precision and hit semantics are unchanged.
 
 The normal dispatch result also carries `PointerInput` through `ViewportPointerDispatch::runtime_input`. The conversion is intentionally thin: UI move/down/up/scroll events become runtime pointer actions with the editor viewport pointer id and a stable viewport handle. Release and scroll now use the same runtime resolver as hover and press, so route/debug consumers see one runtime picking view for the full UI pointer event vocabulary currently exposed by `UiPointerEventKind`. The current UI event payload only stores the absolute cursor, so move deltas are emitted as `Vec2::ZERO` until a later stateful input collector owns previous-position tracking.
 
@@ -99,6 +107,14 @@ The pointer subsystem root file is intentionally structural. Focused route-adapt
 - the source guard keeps the pointer root structural and keeps the overlay dispatcher routed through `resolve_runtime_route` instead of the removed editor-only resolver.
 
 Fresh validation evidence should be recorded here whenever the viewport pointer adapter changes.
+
+2026-07-18 performance continuation:
+
+- Stable scene sync now uses a generation key and a lazy handle closure; the focused test requires two identical syncs to invoke handle construction once.
+- Route and debug feed share a single candidate scoring pass; the existing feed equality assertions remain the behavioral contract.
+- Source guards reject dispatch-time `self.debug_feed_at(point)` recomputation and ring hit-frame endpoint `Vec` materialization.
+- `rustfmt` and scoped `git diff --check` passed with repository CRLF warnings only. Current-source `cargo test -p zircon_editor --lib scene:: --locked --jobs 1 --color never -- --test-threads=1` is queued through coordinator reservation `e2164e1487534df98aa6d6ccf808c29b`; it is not yet claimed as passing.
+- Remaining changed-generation work is tracked by `docs/plans/zircon_editor/editor/05/failure-2026-07-18-viewport-pointer-candidate-regeneration.md`: the shared projection context and one render/pointer gizmo extract are landed; a true spatial/BVH or pick-id broad phase plus 1/1k/10k visit counters remains open because the current runtime mesh extract is camera/layer filtered rather than cursor-query bounded.
 
 Latest continuation note:
 

@@ -331,3 +331,18 @@ fn reference_uris(references: &[AssetReference]) -> Vec<String> {
 fn uri(value: &str) -> AssetUri {
     AssetUri::parse(value).unwrap()
 }
+
+#[test]
+fn dependency_index_cascade_borrows_graph_identity_and_allocates_only_results() {
+    let source = include_str!("../template/asset/dependency_index.rs");
+    let cascade = source
+        .split_once("pub fn cascade_invalidation_targets")
+        .expect("dependency cascade must remain available")
+        .1;
+
+    assert!(cascade.contains("let mut seen: BTreeSet<&str>"));
+    assert!(cascade.contains("let mut queue: VecDeque<&str>"));
+    assert!(cascade.contains("dependents_by_asset.get(asset_id)"));
+    assert!(!cascade.contains("queue.push_back(dependent.clone())"));
+    assert!(cascade.contains("targets.push(dependent.to_string())"));
+}

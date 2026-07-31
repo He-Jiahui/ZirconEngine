@@ -1,0 +1,6 @@
+{
+  "name": "woc_card_duel_primitives_tests",
+  "source": "src",
+  "binary": "bin-card-duel-primitives-tests",
+  "entry": "social/card_duel_primitives_test_main"
+}

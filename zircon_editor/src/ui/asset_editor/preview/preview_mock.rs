@@ -311,11 +311,15 @@ pub(crate) fn reconcile_preview_mock_state(
     state: &mut UiAssetPreviewMockState,
 ) {
     state.overrides.retain(|node_id, values| {
-        let keep_node = document.node(node_id).is_some();
-        if !keep_node {
+        let Some(node) = document.node(node_id) else {
             return false;
-        }
-        values.retain(|key, _| property_kind(document, node_id, key).is_some());
+        };
+        values.retain(|key, _| {
+            node.props
+                .get(key)
+                .and_then(|value| preview_mock_kind_for_property(key, value))
+                .is_some()
+        });
         !values.is_empty()
     });
     state.selected_subject_node_id = state.selected_subject_node_id.take().filter(|node_id| {
@@ -343,11 +347,15 @@ pub(crate) fn select_preview_mock_subject_node(
         return false;
     }
     state.overrides.retain(|override_node_id, values| {
-        let keep_node = document.node(override_node_id).is_some();
-        if !keep_node {
+        let Some(node) = document.node(override_node_id) else {
             return false;
-        }
-        values.retain(|key, _| property_kind(document, override_node_id, key).is_some());
+        };
+        values.retain(|key, _| {
+            node.props
+                .get(key)
+                .and_then(|value| preview_mock_kind_for_property(key, value))
+                .is_some()
+        });
         !values.is_empty()
     });
     let next_subject = Some(node_id.to_string());
@@ -493,9 +501,11 @@ pub(crate) fn apply_selected_preview_mock_suggestion(
     let Some((node_id, entry)) = selected_preview_mock_entry(document, selection, state) else {
         return Ok(None);
     };
-    let suggestions =
-        mock_suggestions::preview_mock_suggestions(&entry, state.selected_nested_key.as_deref());
-    let Some(suggestion) = suggestions.get(suggestion_index).cloned() else {
+    let Some(suggestion) =
+        mock_suggestions::preview_mock_suggestions(&entry, state.selected_nested_key.as_deref())
+            .into_iter()
+            .nth(suggestion_index)
+    else {
         return Ok(None);
     };
 

@@ -5,17 +5,17 @@ use crate::core::framework::render::{
     RenderPostProcessEffectStackSettings, RenderViewportHandle, RenderVirtualGeometryExtract,
     RenderVirtualGeometryPayloadSource,
 };
-use crate::graphics::runtime::FrameHistoryValidationKey;
 use crate::graphics::ViewportRenderOutputTarget;
+use crate::graphics::runtime::FrameHistoryValidationKey;
 use std::sync::Arc;
 use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
 use crate::graphics::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
 
 use super::super::super::compiled_feature_names::compiled_feature_names;
-use super::super::super::wgpu_render_framework::WgpuRenderFramework;
+use super::super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 use super::super::frame_submission_context::{
-    temporal_jitter_for_submission, FrameSubmissionContext, UiSubmissionStats,
+    FrameSubmissionContext, UiSubmissionStats, temporal_jitter_for_submission,
 };
 use super::camera_history_key::camera_history_key_for_extract;
 use super::compile_pipeline::{
@@ -29,7 +29,7 @@ use super::subsurface_profile_extract::resolve_subsurface_material_profiles;
 use super::target_resolution::resolve_camera_target_descriptor;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context_from_runtime_frame_extract(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     extract: &mut Arc<RenderFrameExtract>,
     ui_extract: Option<&UiRenderExtract>,
@@ -66,7 +66,7 @@ impl<'a> FrameSubmissionSourcePayloads<'a> {
 }
 
 fn build_frame_submission_context_from_source(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     extract_source: &mut Arc<RenderFrameExtract>,
     ui_extract: Option<&UiRenderExtract>,
@@ -92,7 +92,7 @@ fn build_frame_submission_context_from_source(
     {
         let sized_extract = Arc::make_mut(extract_source);
         sized_extract.apply_viewport_size(submission_size);
-        apply_renderer_owned_particle_previous_state(sized_extract, &viewport_state);
+        apply_renderer_owned_particle_previous_state(sized_extract, &mut viewport_state);
     }
     let sized_extract = extract_source.as_ref();
     let camera_history_key = camera_history_key_for_extract(sized_extract);
@@ -116,8 +116,8 @@ fn build_frame_submission_context_from_source(
         sized_extract,
         compile_camera_target,
     )?;
-    let advanced_runtime_plan = viewport_state.advanced_runtime_plan().clone();
-    let solari_runtime_report = viewport_state.solari_runtime_report().clone();
+    let advanced_runtime_plan = viewport_state.take_advanced_runtime_plan();
+    let solari_runtime_report = viewport_state.take_solari_runtime_report();
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
         resolve_enabled_features(&compiled_pipeline, &advanced_runtime_plan);
     let runtime_features = compiled_pipeline.runtime_feature_flags();
@@ -163,11 +163,26 @@ fn build_frame_submission_context_from_source(
         authored_virtual_geometry_present,
         automatic_virtual_geometry_output.is_some(),
     );
-    let effective_virtual_geometry_extract = authored_virtual_geometry_extract.or_else(|| {
-        automatic_virtual_geometry_output
-            .as_ref()
-            .map(|output| output.extract().clone())
-    });
+    let (
+        automatic_virtual_geometry_extract,
+        virtual_geometry_cpu_reference_instances,
+        virtual_geometry_bvh_visualization_instances,
+        virtual_geometry_resident_page_payloads,
+    ) = automatic_virtual_geometry_output
+        .map(VirtualGeometryRuntimeExtractOutput::into_parts)
+        .map(
+            |(extract, cpu_references, bvh_instances, resident_payloads)| {
+                (
+                    Some(extract),
+                    cpu_references,
+                    bvh_instances,
+                    resident_payloads,
+                )
+            },
+        )
+        .unwrap_or_default();
+    let effective_virtual_geometry_extract =
+        authored_virtual_geometry_extract.or(automatic_virtual_geometry_extract);
     let hybrid_gi_settings_present = sized_extract.lighting.hybrid_global_illumination.is_some();
     let hybrid_gi_settings_present = hybrid_gi_settings_present || source_hybrid_gi.is_some();
     let effective_hybrid_gi_extract = hybrid_gi_enabled
@@ -183,24 +198,12 @@ fn build_frame_submission_context_from_source(
         effective_effect_stack,
     );
     let effective_extract = extract_source.as_ref();
-    let virtual_geometry_cpu_reference_instances = automatic_virtual_geometry_output
-        .as_ref()
-        .map(|output| output.cpu_reference_instances().to_vec())
-        .unwrap_or_default();
-    let virtual_geometry_bvh_visualization_instances = automatic_virtual_geometry_output
-        .as_ref()
-        .map(|output| output.bvh_visualization_instances().to_vec())
-        .unwrap_or_default();
-    let virtual_geometry_resident_page_payloads = automatic_virtual_geometry_output
-        .as_ref()
-        .map(|output| output.resident_page_payloads().to_vec())
-        .unwrap_or_default();
     let visibility_context =
         VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads(
             effective_extract,
             viewport_state.previous_visibility(),
             viewport_state.previous_static_index(),
-            Some(&framework.compute_task_pool),
+            Some(framework.compute_task_pool()),
             effective_hybrid_gi_extract.as_ref(),
             virtual_geometry_enabled
                 .then_some(effective_virtual_geometry_extract.as_ref())
@@ -316,18 +319,21 @@ fn build_frame_submission_context_from_source(
         .then_some(effective_virtual_geometry_extract)
         .flatten();
     let source_extract = Arc::clone(extract_source);
+    let quality_profile = viewport_state.take_quality_profile();
+    let capabilities = viewport_state.take_capabilities();
+    let previous_motion_vector_camera = viewport_state.take_previous_motion_vector_camera();
 
     Ok(FrameSubmissionContext::new(
         submission_size,
         render_size,
         viewport_state.pipeline_handle(),
         viewport_state.viewport_generation(),
-        viewport_state.take_quality_profile(),
+        quality_profile,
         viewport_state.shader_quality(),
         compiled_pipeline,
-        viewport_state.capabilities().clone(),
+        capabilities,
         visibility_context,
-        viewport_state.previous_motion_vector_camera().cloned(),
+        previous_motion_vector_camera,
         camera_history_key,
         history_validation_key,
         history_invalidation_reason,
@@ -365,12 +371,12 @@ fn build_frame_submission_context_from_source(
 
 fn apply_renderer_owned_particle_previous_state(
     extract: &mut RenderFrameExtract,
-    viewport_state: &super::viewport_record_state::ViewportRecordState,
+    viewport_state: &mut super::viewport_record_state::ViewportRecordState,
 ) {
     if !extract.particles.previous_sprites.is_empty() {
         return;
     }
-    extract.particles.previous_sprites = viewport_state.previous_particle_sprites().to_vec();
+    extract.particles.previous_sprites = viewport_state.take_previous_particle_sprites();
 }
 
 fn apply_effective_post_process_settings(
@@ -387,7 +393,7 @@ fn apply_effective_post_process_settings(
 }
 
 fn frame_history_invalidation_reason(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     target_size: crate::core::math::UVec2,
     render_size: crate::core::math::UVec2,
@@ -425,18 +431,21 @@ fn apply_virtual_geometry_debug_override(
 }
 
 fn build_automatic_virtual_geometry_extract(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     extract: &RenderFrameExtract,
 ) -> Option<VirtualGeometryRuntimeExtractOutput> {
-    let (registration, asset_manager) = {
+    let (provider, asset_manager) = {
         let state = framework.lock_state();
         (
-            state.virtual_geometry_runtime_provider.clone()?,
+            state
+                .virtual_geometry_runtime_provider
+                .as_ref()?
+                .provider_arc(),
             state.renderer.asset_manager_for_runtime_extract().ok()?,
         )
     };
     let mut load_model = |model_id| asset_manager.load_model_asset(model_id).ok();
-    registration.provider().build_extract_from_meshes(
+    provider.build_extract_from_meshes(
         &extract.geometry.meshes,
         extract.geometry.virtual_geometry_debug,
         &mut load_model,
@@ -532,6 +541,16 @@ mod tests {
             hybrid_gi_payload_source_for_frame(true, false),
             RenderHybridGiPayloadSource::None
         );
+    }
+
+    #[test]
+    fn context_build_moves_owned_viewport_and_virtual_geometry_payloads() {
+        let source = include_str!("build.rs");
+
+        assert!(source.contains("take_previous_particle_sprites()"));
+        assert!(source.contains("VirtualGeometryRuntimeExtractOutput::into_parts"));
+        assert!(!source.contains(concat!("previous_particle_sprites()", ".to_vec()")));
+        assert!(!source.contains(concat!("virtual_geometry_runtime_provider", ".clone()")));
     }
 }
 

@@ -9,7 +9,7 @@ fn publish_routes_each_typed_family_only_to_its_exact_topic() {
     let mut bus = EditorMessageBus::default();
     let subscribers = typed_messages()
         .into_iter()
-        .map(|(topic_name, _)| bus.register_subscriber([topic(topic_name)]))
+        .map(|(topic_name, _)| bus.register_subscriber([topic(topic_name)]).unwrap())
         .collect::<Vec<_>>();
 
     for (index, (topic_name, message)) in typed_messages().into_iter().enumerate() {
@@ -36,7 +36,7 @@ fn publish_routes_each_typed_family_only_to_its_exact_topic() {
 #[test]
 fn publish_marks_the_message_view_dirty() {
     let mut bus = EditorMessageBus::default();
-    let subscriber = bus.register_subscriber([topic("editor.focus")]);
+    let subscriber = bus.register_subscriber([topic("editor.focus")]).unwrap();
     let scene_view = view("scene.workspace");
     let (_, focus_message) = typed_messages().pop().unwrap();
 

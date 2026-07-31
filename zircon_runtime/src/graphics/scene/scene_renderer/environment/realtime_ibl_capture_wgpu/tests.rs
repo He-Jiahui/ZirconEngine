@@ -6,7 +6,9 @@ fn realtime_capture_and_downsample_shaders_parse() {
     naga::front::wgsl::parse_str(CAPTURE_WGSL).expect("capture WGSL");
     naga::front::wgsl::parse_str(DOWNSAMPLE_WGSL).expect("downsample WGSL");
     assert!(CAPTURE_WGSL.contains("vec3<f32>(1.0, -uv.y, -uv.x)"));
-    assert!(CAPTURE_WGSL.contains("dot(direction, sun_direction)"));
+    assert!(CAPTURE_WGSL.contains("dot(direction, params.sun_direction.xyz)"));
+    assert!(!CAPTURE_WGSL.contains("length(params.sun_direction.xyz)"));
+    assert!(!CAPTURE_WGSL.contains("cos("));
     assert!(!CAPTURE_WGSL.contains("rotate_y"));
     assert!(!CAPTURE_WGSL.contains("max(params.intensity"));
     assert!(DOWNSAMPLE_WGSL.contains("vec3<f32>(-uv.x, -uv.y, -1.0)"));
@@ -22,19 +24,37 @@ fn capture_uniform_carries_directional_sun_without_final_sampling_parameters() {
     params.intensity = 4.0;
     params.rotation_radians = 1.5;
 
-    let bytes = capture_params_bytes(&params, 128, 3);
+    let bytes: [u8; 112] = capture_params_bytes(&params, 128, 3);
     assert_eq!(bytes.len(), 112);
     let words = bytes
         .chunks_exact(4)
         .map(|word| u32::from_le_bytes(word.try_into().unwrap()))
         .collect::<Vec<_>>();
-    assert_eq!(f32::from_bits(words[12]), params.sun_direction.x);
+    let normalized = params.sun_direction.truncate().normalize();
+    assert_close(f32::from_bits(words[12]), normalized.x);
+    assert_close(f32::from_bits(words[13]), normalized.y);
+    assert_close(f32::from_bits(words[14]), normalized.z);
+    assert_eq!(f32::from_bits(words[15]), 1.0);
     assert_eq!(f32::from_bits(words[20]), params.sun_intensity);
-    assert_eq!(f32::from_bits(words[21]), params.sun_angular_radius_radians);
+    assert_close(
+        f32::from_bits(words[21]),
+        params.sun_angular_radius_radians.cos(),
+    );
+    assert_close(
+        f32::from_bits(words[22]),
+        (params.sun_angular_radius_radians * 0.72).cos(),
+    );
     assert_eq!(words[24], 128);
     assert_eq!(words[25], 3);
     assert!(!words.contains(&params.intensity.to_bits()));
     assert!(!words.contains(&params.rotation_radians.to_bits()));
+}
+
+fn assert_close(actual: f32, expected: f32) {
+    assert!(
+        (actual - expected).abs() <= 1.0e-6,
+        "{actual} != {expected}"
+    );
 }
 
 #[test]

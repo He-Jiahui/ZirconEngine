@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var itemScore = %import("progression/item_score_state");
+
+console.printLine("m5-item-score-state-test");
+var result = itemScore.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

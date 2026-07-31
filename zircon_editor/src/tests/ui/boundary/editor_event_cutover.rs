@@ -42,9 +42,6 @@ fn editor_event_owners_are_split_without_the_legacy_aggregate() {
         core_root.join("play").join("bridge.rs"),
         ui_host_root.join("editor_host_event_controller.rs"),
         workbench_root.join("shell_state.rs"),
-        viewport_root
-            .join("interaction")
-            .join("gizmo_drag_state.rs"),
     ] {
         assert!(
             required.exists(),
@@ -100,6 +97,22 @@ fn editor_event_owners_are_split_without_the_legacy_aggregate() {
     );
     assert!(!ui_host_mod.contains("mod editor_event_runtime_bootstrap;"));
     assert!(!ui_host_mod.contains("mod editor_event_listener_control;"));
+}
+
+#[test]
+fn core_remains_independent_from_the_ui_layer() {
+    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let core_root = crate_root.join("core");
+    let ui_import_root = concat!("use crate", "::ui");
+    let ui_module_path = concat!("crate", "::ui", "::");
+
+    for file in collect_rust_files(&core_root) {
+        let source = std::fs::read_to_string(&file).expect("core source");
+        assert!(
+            !source.contains(ui_import_root) && !source.contains(ui_module_path),
+            "core source must not depend on the UI layer: {file:?}"
+        );
+    }
 }
 
 #[test]

@@ -1,13 +1,14 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_popup_row_adornments::{
-    option_adornment_kind, push_popup_row_adornment, PopupRowAdornmentKind,
+    option_adornment_kind, push_popup_row_adornment,
 };
 use super::super::content::popup_row_content_style;
 use super::super::layers::{popup_row_adornment_order, popup_row_base_order};
 use super::super::surface::{push_popup_background, push_popup_row_surface};
 use super::super::text::push_popup_row_label;
 use super::style::{popup_option_row_marked, popup_option_row_style};
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use crate::ui::retained_host::host_contract::template_popup_layout::{
     template_option_popup_frame_within, template_option_row_frame_within,
 };
@@ -31,17 +32,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_op
     push_popup_background(commands, &popup_rect, clip, order, opacity);
 
     for row in 0..row_count {
-        let row_order = popup_row_base_order(order, row);
-        let Some(option) = node.structured_options.row_data(row) else {
-            continue;
-        };
         let Some(row_rect) = template_option_row_frame_within(node, rect, row_count, row, bounds)
         else {
             continue;
         };
+        if intersect(&row_rect, clip).is_none() {
+            continue;
+        }
+        let Some(option) = node.structured_options.row_data(row) else {
+            continue;
+        };
+        let row_order = popup_row_base_order(order, row);
         let style = popup_option_row_style(&option);
         let content_style = popup_row_content_style(&style);
         let selected = popup_option_row_marked(&option);
+        let adornment = option_adornment_kind(selected);
         push_popup_row_surface(commands, &row_rect, clip, row_order, style, opacity);
         push_popup_row_label(
             commands,
@@ -50,16 +55,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_op
             row_order,
             option.label.to_string(),
             content_style.text,
-            option_adornment_kind(selected),
+            adornment,
             opacity,
         );
-        if selected {
+        if let Some(adornment) = adornment {
             push_popup_row_adornment(
                 commands,
                 &row_rect,
                 clip,
                 popup_row_adornment_order(row_order),
-                PopupRowAdornmentKind::Check,
+                adornment,
                 content_style.adornment,
                 opacity,
             );

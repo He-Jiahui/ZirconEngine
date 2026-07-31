@@ -8,7 +8,8 @@ use zircon_runtime::{
     core::framework::project::ExportPackagingStrategy, core::framework::project::ExportProfile,
     core::framework::project::ExportTargetPlatform,
     core::framework::project::ProjectPluginManifest,
-    core::framework::project::ProjectPluginSelection, plugin::ExportBuildPlan,
+    core::framework::project::ProjectPluginSelection, core::framework::project::RuntimeProfileId,
+    plugin::ExportBuildPlan,
 };
 
 #[test]
@@ -31,6 +32,7 @@ fn native_dynamic_strategy_only_loads_native_packaged_selections() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([
         ExportPackagingStrategy::SourceTemplate,
@@ -71,6 +73,7 @@ fn source_template_without_library_embed_serializes_selection_without_linking_cr
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::SourceTemplate])];
 
@@ -104,6 +107,7 @@ fn native_dynamic_selection_requires_native_dynamic_profile_strategy() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([
         ExportPackagingStrategy::SourceTemplate,
@@ -141,6 +145,7 @@ fn native_dynamic_runtime_builtin_domains_are_not_exported_as_plugin_packages() 
         "native-only",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 
@@ -171,6 +176,7 @@ fn library_embed_selection_without_source_or_library_profile_reports_unexported_
         "native-only",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 
@@ -205,8 +211,8 @@ fn materialize_report_carries_planner_diagnostics_even_without_generated_files()
         "native-only",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Minimal,
     )
-    .with_runtime_profile_id(zircon_runtime::core::framework::project::RuntimeProfileId::Minimal)
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "native-only").unwrap();
@@ -249,6 +255,7 @@ fn library_embed_deduplicates_runtime_crate_dependencies_and_registration_calls(
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([
         ExportPackagingStrategy::SourceTemplate,
@@ -297,6 +304,7 @@ fn native_dynamic_deduplicates_loader_manifest_packages_by_plugin_id() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 
@@ -343,6 +351,7 @@ fn native_dynamic_deduplicates_loader_manifest_packages_by_output_directory() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 

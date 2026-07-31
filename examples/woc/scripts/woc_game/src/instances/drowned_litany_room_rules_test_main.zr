@@ -1,0 +1,25 @@
+var rules = %import("instances/drowned_litany_room_rules");
+
+if (!rules.isLitanyPuzzleKind("sluice_valve", true) ||
+    !rules.isLitanyPuzzleKind("grave_tablet", true) ||
+    !rules.isLitanyPuzzleKind("corpse_candle", true) ||
+    !rules.isLitanyPuzzleKind("bell_rope", true) ||
+    rules.isLitanyPuzzleKind("pressure_plate", true) ||
+    rules.isLitanyPuzzleKind("unknown", true)) {
+    return -1;
+}
+
+if (!rules.isDelvePuzzleKind("pressure_plate", true) ||
+    !rules.isDelvePuzzleKind("bell_rope", true) ||
+    rules.isDelvePuzzleKind("unknown", true) ||
+    rules.triggeredTemplate("sluice_valve", false, true) != "" ||
+    rules.triggeredTemplate("sluice_valve", true, true) != "delve_sluice_valve_open" ||
+    rules.triggeredTemplate("grave_tablet", true, true) != "delve_grave_tablet_lit" ||
+    rules.triggeredTemplate("corpse_candle", true, true) != "delve_corpse_candle_lit" ||
+    rules.triggeredTemplate("bell_rope", true, true) != "delve_bell_rope_pulled" ||
+    rules.triggeredTemplate("unknown", true, true) != "" ||
+    rules.bellRopeDamage(true) != 18 || rules.contractTest() != 1) {
+    return -2;
+}
+
+return 0;

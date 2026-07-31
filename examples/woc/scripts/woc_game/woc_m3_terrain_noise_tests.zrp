@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_terrain_noise_tests",
+  "source": "src",
+  "binary": "bin-m3-terrain-noise-tests",
+  "entry": "world/terrain_noise_test_main"
+}

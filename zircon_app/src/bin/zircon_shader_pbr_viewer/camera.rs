@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::render::{
-    CameraRenderDescriptor, ProjectionMode, RenderLayerSet, ViewportCameraSnapshot,
-    DEFAULT_RENDER_LAYER_MASK,
+    CameraRenderDescriptor, DEFAULT_RENDER_LAYER_MASK, ProjectionMode, RenderLayerSet,
+    ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3};
 
@@ -34,7 +34,7 @@ impl Default for OrbitCamera {
 impl OrbitCamera {
     pub(crate) fn from_angles(yaw_degrees: f32, pitch_degrees: f32) -> Self {
         Self {
-            yaw_degrees,
+            yaw_degrees: normalize_yaw_degrees(yaw_degrees),
             pitch_degrees: pitch_degrees
                 .clamp(-CAMERA_PITCH_LIMIT_DEGREES, CAMERA_PITCH_LIMIT_DEGREES),
             ..Self::default()
@@ -50,7 +50,8 @@ impl OrbitCamera {
     }
 
     pub(crate) fn drag(&mut self, delta_x: f32, delta_y: f32) {
-        self.yaw_degrees += delta_x * CAMERA_DRAG_DEGREES_PER_PIXEL;
+        self.yaw_degrees =
+            normalize_yaw_degrees(self.yaw_degrees + delta_x * CAMERA_DRAG_DEGREES_PER_PIXEL);
         self.pitch_degrees = (self.pitch_degrees - delta_y * CAMERA_DRAG_DEGREES_PER_PIXEL)
             .clamp(-CAMERA_PITCH_LIMIT_DEGREES, CAMERA_PITCH_LIMIT_DEGREES);
     }
@@ -70,6 +71,15 @@ impl OrbitCamera {
                 self.radius * pitch.sin(),
                 self.radius * yaw.cos() * cos_pitch,
             )
+    }
+}
+
+fn normalize_yaw_degrees(yaw_degrees: f32) -> f32 {
+    let wrapped = yaw_degrees.rem_euclid(360.0);
+    if wrapped > 180.0 {
+        wrapped - 360.0
+    } else {
+        wrapped
     }
 }
 
@@ -107,7 +117,10 @@ fn stable_camera_up(forward: Vec3) -> Vec3 {
 
 #[cfg(test)]
 mod tests {
-    use super::{OrbitCamera, CAMERA_PITCH_LIMIT_DEGREES, MAX_CAMERA_RADIUS, MIN_CAMERA_RADIUS};
+    use super::{
+        CAMERA_PITCH_LIMIT_DEGREES, MAX_CAMERA_RADIUS, MIN_CAMERA_RADIUS, OrbitCamera,
+        normalize_yaw_degrees,
+    };
 
     #[test]
     fn initial_angles_preserve_yaw_and_clamp_pitch() {
@@ -137,5 +150,17 @@ mod tests {
             camera.zoom(-1.0);
         }
         assert_eq!(camera.radius, MAX_CAMERA_RADIUS);
+    }
+
+    #[test]
+    fn yaw_normalization_preserves_cardinal_orbit_equivalence() {
+        assert_eq!(normalize_yaw_degrees(480.0), 120.0);
+        assert_eq!(normalize_yaw_degrees(-480.0), -120.0);
+        assert_eq!(normalize_yaw_degrees(540.0), 180.0);
+        assert_eq!(normalize_yaw_degrees(-540.0), 180.0);
+
+        let mut camera = OrbitCamera::from_angles(0.0, 0.0);
+        camera.drag(3_600.0, 0.0);
+        assert_eq!(camera.yaw_degrees(), 180.0);
     }
 }

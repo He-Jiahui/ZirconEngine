@@ -1,0 +1,75 @@
+// Source-compatible $WOC holder tiers from sim/holder_tier.ts. The source is
+// presentation/analytics-only; this pure scalar projection owns no wallet or
+// gameplay state. `hasBalance` represents the source null-wallet case.
+
+pub wocMaxSupply(): int { return 1000000000; }
+pub holderTierCount(): int { return 18; }
+
+pub holderTierKey(index: int): string {
+    if (index == 1) return "ember";
+    if (index == 2) return "coinbearer";
+    if (index == 3) return "coppercrest";
+    if (index == 4) return "silverbound";
+    if (index == 5) return "gilded";
+    if (index == 6) return "vaultwarden";
+    if (index == 7) return "whale";
+    if (index == 8) return "leviathan";
+    if (index == 9) return "tidelord";
+    if (index == 10) return "stormcaller";
+    if (index == 11) return "krakencrown";
+    if (index == 12) return "titanforged";
+    if (index == 13) return "starhoard";
+    if (index == 14) return "voidwarden";
+    if (index == 15) return "realmshaper";
+    if (index == 16) return "worldforger";
+    if (index == 17) return "worldbearer";
+    if (index == 18) return "sovereign";
+    return "";
+}
+
+pub holderTierThreshold(index: int): int {
+    if (index == 1) return 1;
+    if (index == 2) return 10;
+    if (index == 3) return 100;
+    if (index == 4) return 1000;
+    if (index == 5) return 10000;
+    if (index == 6) return 100000;
+    if (index == 7) return 1000000;
+    if (index == 8) return 10000000;
+    if (index == 9) return 20000000;
+    if (index == 10) return 30000000;
+    if (index == 11) return 40000000;
+    if (index == 12) return 50000000;
+    if (index == 13) return 60000000;
+    if (index == 14) return 70000000;
+    if (index == 15) return 80000000;
+    if (index == 16) return 90000000;
+    if (index == 17) return 100000000;
+    if (index == 18) return wocMaxSupply();
+    return 0;
+}
+
+// The source accepts number | null and rejects non-finite values. Zr receives
+// an integral whole-token balance, so the explicit availability bit covers the
+// null case and integer values need no finite-number branch.
+pub holderTierIndexForBalance(hasBalance: bool, balance: int): int {
+    if (!hasBalance || balance < holderTierThreshold(1)) { return 0; }
+    var result = 0;
+    var index = 1;
+    while (index <= holderTierCount()) {
+        if (balance >= holderTierThreshold(index)) {
+            result = index;
+        } else {
+            return result;
+        }
+        index = index + 1;
+    }
+    return result;
+}
+
+// Valid one-based indexes match holderTierByIndex(). For the scalar boundary,
+// invalid indexes use zero rather than an object-language undefined value.
+pub tierSupplyShare(index: int): float {
+    var threshold = holderTierThreshold(index);
+    return threshold > 0 ? <float>threshold / <float>wocMaxSupply() : 0.0;
+}

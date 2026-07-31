@@ -1,0 +1,59 @@
+var console = %import("zr.system.console");
+var inventory = %import("progression/inventory_instance_ledger");
+
+console.printLine("m5-inventory-instance-ledger-test");
+
+var stacks = new inventory.InventoryInstanceLedger();
+inventory.setStackLimit(stacks, "baked_bread", 20);
+inventory.addStacked(stacks, "baked_bread", 18);
+inventory.addStacked(stacks, "baked_bread", 25);
+if (inventory.usedSlots(stacks) != 3 || inventory.slotCount(stacks, 0) != 20 ||
+    inventory.slotCount(stacks, 1) != 20 || inventory.slotCount(stacks, 2) != 3) {
+    return -1;
+}
+
+var instances = new inventory.InventoryInstanceLedger();
+inventory.setStackLimit(instances, "baked_bread", 20);
+var signed = new inventory.ItemInstanceData();
+signed.signer = "Ana";
+signed.boundTo = 42;
+signed.rolledMasterwork = true;
+signed.rolledQuality = "uncommon";
+signed.intel = 1;
+signed.spi = 1;
+inventory.setCharge(signed, "water_jet", 3);
+inventory.addItemInstance(instances, "baked_bread", signed);
+if (inventory.countFit(instances, 1, "baked_bread", 1) != 0) {
+    return -2;
+}
+inventory.addStacked(instances, "baked_bread", 3);
+if (inventory.usedSlots(instances) != 2 || inventory.slotCount(instances, 0) != 1 ||
+    !inventory.slotHasInstance(instances, 0) || inventory.slotCount(instances, 1) != 3) {
+    return -20;
+}
+
+var copied = inventory.cloneInstance(signed);
+inventory.setCharge(copied, "water_jet", 1);
+if (inventory.chargeCount(signed, "water_jet") != 3 ||
+    inventory.chargeCount(copied, "water_jet") != 1) {
+    return -3;
+}
+
+var removal = new inventory.InventoryInstanceLedger();
+inventory.setStackLimit(removal, "baked_bread", 20);
+inventory.addStacked(removal, "baked_bread", 2);
+inventory.addItemInstance(removal, "baked_bread", signed);
+if (inventory.removeStacked(removal, "baked_bread", 1) != 1 ||
+    inventory.usedSlots(removal) != 1 || inventory.lastRemovedInstanceCount(removal) != 1 ||
+    inventory.slotHasInstance(removal, 0)) {
+    return -4;
+}
+inventory.addItemInstance(removal, "baked_bread", signed);
+if (inventory.removeFungible(removal, "baked_bread", 1) != 1 ||
+    inventory.usedSlots(removal) != 1 || !inventory.slotHasInstance(removal, 0)) {
+    return -5;
+}
+
+var result = inventory.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

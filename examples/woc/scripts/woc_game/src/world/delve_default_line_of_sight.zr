@@ -1,0 +1,37 @@
+// Exact source line-of-sight fallback for a Delve with no active run. The
+// source resolves the start point's default module once, then samples the whole
+// ray in that module's local space; it does not switch modules mid-ray.
+
+var fallback = %import("world/delve_default_collision_router");
+var moduleSight = %import("world/delve_line_of_sight");
+
+pub isClear(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    radius: float,
+    required: bool
+): bool {
+    if (!required || radius < 0.0 || !fallback.isNoActiveRunDefaultPosition(fromX, true)) {
+        throw "woc default Delve line-of-sight arguments are invalid";
+    }
+    var moduleIndex = fallback.defaultModuleIndexAt(fromX, fromZ, true);
+    var originX = fallback.defaultModuleOriginCoordinate(fromX, fromZ, 1, true);
+    var originZ = fallback.defaultModuleOriginCoordinate(fromX, fromZ, 2, true);
+    return moduleSight.isClearInModule(
+        fromX, fromZ, toX, toZ, originX, originZ, moduleIndex, radius, true
+    );
+}
+
+pub contractTest(): int {
+    if (isClear(4770.0, -1206.0, 4780.0, -1206.0, 0.05, true) ||
+        !isClear(4800.0, -1220.0, 4802.0, -1220.0, 0.05, true) ||
+        isClear(5395.333333333333, -1248.0, 5395.333333333333, -1262.0, 0.05, true) ||
+        !isClear(5400.0, -1240.0, 5400.0, -1230.0, 0.05, true) ||
+        isClear(5970.0, -1206.0, 5980.0, -1206.0, 0.05, true) ||
+        !isClear(6000.0, -1220.0, 6002.0, -1220.0, 0.05, true)) {
+        return -1;
+    }
+    return 1;
+}

@@ -1,10 +1,6 @@
 use super::super::scene_post_process_resources::ScenePostProcessResources;
-use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
-use crate::graphics::scene::scene_renderer::post_process::resources::render_region::{
-    apply_local_render_region_to_pass, apply_physical_render_region_to_pass,
-    create_local_terminal_region_params_buffer, create_physical_terminal_region_params_buffer,
-};
+use crate::graphics::scene::scene_renderer::post_process::resources::render_region::apply_physical_render_region_to_pass;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -15,25 +11,14 @@ impl ScenePostProcessResources {
         encoder: &mut wgpu::CommandEncoder,
         tonemapped_view: &wgpu::TextureView,
         final_color_view: &wgpu::TextureView,
-        final_color_resource_name: &str,
         attachment_ops: RenderGraphAttachmentOps,
         render_region: ViewportRenderRegion,
     ) {
-        let output_is_local_terminal_input =
-            final_color_resource_name == PostProcessGraphResourceNames::FINAL_COMPOSITED;
-        let terminal_region_params_buffer = if output_is_local_terminal_input {
-            create_local_terminal_region_params_buffer(
-                device,
-                "zircon-output-transfer-terminal-region-params",
-                render_region,
-            )
-        } else {
-            create_physical_terminal_region_params_buffer(
-                device,
-                "zircon-output-transfer-terminal-region-params",
-                render_region,
-            )
-        };
+        // FINAL_COMPOSITED is the full-resolution terminal input after upscale, so every
+        // output-transfer target uses physical coordinates rather than the internal render size.
+        let terminal_region_params_buffer = self
+            .terminal_resource_cache
+            .physical_terminal_region_params_buffer(device, render_region);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-output-transfer-bind-group"),
             layout: &self.output_transfer_bind_group_layout,
@@ -61,11 +46,7 @@ impl ScenePostProcessResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        let region_applied = if output_is_local_terminal_input {
-            apply_local_render_region_to_pass(&mut pass, render_region)
-        } else {
-            apply_physical_render_region_to_pass(&mut pass, render_region)
-        };
+        let region_applied = apply_physical_render_region_to_pass(&mut pass, render_region);
         if !region_applied {
             return;
         }

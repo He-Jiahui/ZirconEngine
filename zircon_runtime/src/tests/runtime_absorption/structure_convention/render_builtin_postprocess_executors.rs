@@ -59,6 +59,10 @@ fn runtime_15_builtin_postprocess_executors_are_folder_backed() {
             "builtin_postprocess_executors.rs should delegate {moved_owner} to child owners"
         );
     }
+    assert!(
+        !parent.contains("uber_input_resource(context)"),
+        "uber executor must not scan graph resource routing when the selected name is unused"
+    );
     assert_contains_all(
         "frame-effects child owns frame effect predicates",
         &frame_effects,

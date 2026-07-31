@@ -1,6 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/mod.rs
+  - zircon_editor/src/ui/preferences/appearance.rs
+  - zircon_editor/src/ui/preferences/persistence.rs
+  - zircon_editor/src/ui/preferences/startup.rs
   - zircon_editor/src/ui/preferences/typography_migration.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
@@ -21,7 +24,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/
   - zircon_editor/src/tests/host/retained_menu_pointer/appearance_visual_screenshot.rs
 implementation_files:
-  - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/mod.rs
+  - zircon_editor/src/ui/preferences/appearance.rs
+  - zircon_editor/src/ui/preferences/persistence.rs
+  - zircon_editor/src/ui/preferences/startup.rs
   - zircon_editor/src/ui/preferences/typography_migration.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
@@ -108,12 +114,12 @@ tests:
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never (2026-07-02 passed with existing warnings)
   - cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never (2026-07-02 passed with existing warnings)
   - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --ignored --test-threads=1 --nocapture (2026-07-02 passed 1/1, refreshed docs/tests/editor/editor-window-m3-asset-browser-900x620.png)
-  - rustfmt --check zircon_editor/src/ui/preferences.rs (2026-07-03 passed)
+  - rustfmt --check zircon_editor/src/ui/preferences/mod.rs zircon_editor/src/ui/preferences/appearance.rs zircon_editor/src/ui/preferences/persistence.rs zircon_editor/src/ui/preferences/startup.rs (current-owner replay command)
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-03 passed with existing warnings)
   - cargo test -p zircon_editor --lib appearance_preferences --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never -- --nocapture --test-threads=1 with CARGO_INCREMENTAL=0 (2026-07-03 passed 8/8)
   - D:\cargo-targets\zircon-editor-appearance-prefs-0703\debug\deps\zircon_editor-34f3a39d0731014c.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --nocapture --test-threads=1 (2026-07-03 passed 1/1, refreshed docs/tests/editor M3 PNGs)
-  - preferences.rs concrete font/code-style scan (2026-07-03 no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)
-  - rustfmt --check zircon_editor/src/ui/preferences.rs zircon_editor/src/ui/retained_host/app.rs (2026-07-03 passed after startup appearance load path)
+  - preferences subtree concrete font/code-style scan (no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)
+  - rustfmt --check zircon_editor/src/ui/preferences/mod.rs zircon_editor/src/ui/preferences/appearance.rs zircon_editor/src/ui/preferences/persistence.rs zircon_editor/src/ui/preferences/startup.rs zircon_editor/src/ui/retained_host/app.rs (current-owner replay command after startup appearance load path)
   - cargo test -p zircon_editor --lib appearance_preferences --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never -- --nocapture --test-threads=1 with CARGO_INCREMENTAL=0 (2026-07-03 passed 11/11 after startup appearance load path)
   - D:\cargo-targets\zircon-editor-appearance-prefs-0703\debug\deps\zircon_editor-34f3a39d0731014c.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --nocapture --test-threads=1 (2026-07-03 passed 1/1, refreshed docs/tests/editor M3 PNGs at 08:17)
   - preferences/app concrete font/code-style scan (2026-07-03 no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)

@@ -19,10 +19,10 @@ pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_MIN_VISIBLE_HEI
     MENU_POPUP_MIN_HEIGHT;
 pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_TEXT_INSET_X: f32 = 8.0;
 pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_TEXT_INSET_Y: f32 = 6.0;
-const MENU_POPUP_FONT_SIZE: f32 = 12.0;
 
 pub(crate) fn menu_popup_text_width(text: &str) -> f32 {
-    measure_runtime_text_width(text, MENU_POPUP_FONT_SIZE) + current_host_metrics().text_clip_guard
+    let metrics = current_host_metrics();
+    measure_runtime_text_width(text, metrics.font_body) + metrics.text_clip_guard
 }
 
 pub(in crate::ui::retained_host::host_contract) fn menu_popup_row_stride() -> f32 {

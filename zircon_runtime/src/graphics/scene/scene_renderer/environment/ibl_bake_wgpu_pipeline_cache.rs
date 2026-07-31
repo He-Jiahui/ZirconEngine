@@ -3,11 +3,14 @@ use std::collections::HashMap;
 use crate::core::framework::render::ComputePipelineCacheKey;
 
 use super::ibl_bake_shader_plan::IBL_BAKE_COMPUTE_ENTRY_POINT;
-use super::ibl_bake_wgpu_binding::IblBakeWgpuBindGroupLayouts;
+use super::ibl_bake_wgpu_binding::{
+    IblBakeWgpuBindGroupLayouts, create_ibl_bake_wgpu_source_sampler,
+};
 use super::ibl_bake_wgpu_command_plan::{IblBakeWgpuCommandPlan, IblBakeWgpuOutputBindingKind};
 
 pub(in crate::graphics::scene::scene_renderer) struct IblBakeWgpuPipelineCache {
     bind_group_layouts: IblBakeWgpuBindGroupLayouts,
+    source_sampler: wgpu::Sampler,
     shader_modules: HashMap<ComputePipelineCacheKey, wgpu::ShaderModule>,
     pipeline_layouts: HashMap<IblBakeWgpuOutputBindingKind, wgpu::PipelineLayout>,
     compute_pipelines: HashMap<IblBakeWgpuComputePipelineCacheKey, wgpu::ComputePipeline>,
@@ -30,6 +33,7 @@ impl IblBakeWgpuPipelineCache {
     pub(in crate::graphics::scene::scene_renderer) fn new(device: &wgpu::Device) -> Self {
         Self {
             bind_group_layouts: IblBakeWgpuBindGroupLayouts::new(device),
+            source_sampler: create_ibl_bake_wgpu_source_sampler(device),
             shader_modules: HashMap::new(),
             pipeline_layouts: HashMap::new(),
             compute_pipelines: HashMap::new(),
@@ -40,6 +44,10 @@ impl IblBakeWgpuPipelineCache {
         &self,
     ) -> &IblBakeWgpuBindGroupLayouts {
         &self.bind_group_layouts
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn source_sampler(&self) -> &wgpu::Sampler {
+        &self.source_sampler
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn ensure_compute_pipeline(
@@ -143,7 +151,7 @@ mod tests {
 
     use super::super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
     use super::super::ibl_bake_wgpu_command_plan::{
-        ibl_bake_wgpu_command_plan_for_request, IblBakeWgpuCommandPlan,
+        IblBakeWgpuCommandPlan, ibl_bake_wgpu_command_plan_for_request,
     };
     use super::*;
 
@@ -195,6 +203,15 @@ mod tests {
                 compute_pipeline_count: 2,
             }
         );
+    }
+
+    #[test]
+    fn pipeline_cache_owns_the_production_source_sampler() {
+        let source = include_str!("ibl_bake_wgpu_dispatch.rs");
+        let realtime = include_str!("realtime_ibl_wgpu_recorder.rs");
+
+        assert!(!source.contains("create_ibl_bake_wgpu_source_sampler"));
+        assert!(!realtime.contains("create_ibl_bake_wgpu_source_sampler"));
     }
 
     fn request(

@@ -1,0 +1,324 @@
+var container = %import("zr.container");
+
+// The relationship layer supplies only candidates accepted by the upstream
+// enemy/friendly predicates. This module owns deterministic ordering, not
+// faction, pet, arena or Vale Cup policy.
+// The WOS command reducer materializes source-approved relationship rows into
+// this value-only input. Selection order remains owned by this module.
+pub class CandidateSet {
+    pub var enemyIds: container.Array<uint>;
+    pub var enemyDx: container.Array<float>;
+    pub var enemyDz: container.Array<float>;
+    pub var enemyEngaged: container.Array<bool>;
+    pub var friendlyIds: container.Array<uint>;
+    pub var friendlyDx: container.Array<float>;
+    pub var friendlyDz: container.Array<float>;
+
+    pub @constructor() {
+        this.enemyIds = new container.Array<uint>();
+        this.enemyDx = new container.Array<float>();
+        this.enemyDz = new container.Array<float>();
+        this.enemyEngaged = new container.Array<bool>();
+        this.friendlyIds = new container.Array<uint>();
+        this.friendlyDx = new container.Array<float>();
+        this.friendlyDz = new container.Array<float>();
+    }
+
+    pub addEnemy(id: uint, dx: float, dz: float, engaged: bool): void {
+        if (id == <uint>0) {
+            throw "target selection enemy id is invalid";
+        }
+        this.enemyIds.add(id);
+        this.enemyDx.add(dx);
+        this.enemyDz.add(dz);
+        this.enemyEngaged.add(engaged);
+    }
+
+    pub addFriendly(id: uint, dx: float, dz: float): void {
+        if (id == <uint>0) {
+            throw "target selection friendly id is invalid";
+        }
+        this.friendlyIds.add(id);
+        this.friendlyDx.add(dx);
+        this.friendlyDz.add(dz);
+    }
+}
+
+class EnemyOrder {
+    pub var ids: container.Array<uint>;
+    pub var near: container.Array<bool>;
+    pub var tiers: container.Array<int>;
+    pub var distances: container.Array<float>;
+    pub var primaryCount: int;
+
+    pub @constructor() {
+        this.ids = new container.Array<uint>();
+        this.near = new container.Array<bool>();
+        this.tiers = new container.Array<int>();
+        this.distances = new container.Array<float>();
+        this.primaryCount = 0;
+    }
+}
+
+pub tabVisible(dx: float, dz: float, facing: float, marker: int): bool {
+    if (marker != 1) {
+        throw "target selection visibility marker is invalid";
+    }
+    var math = %import("zr.zircon.math");
+    var distance = math.sqrt(dx * dx + dz * dz);
+    if (distance <= 0.000001) {
+        return true;
+    }
+    var t = distance / 30.0;
+    if (t < 0.0) { t = 0.0; }
+    if (t > 1.0) { t = 1.0; }
+    var nearHalf = 0.7853981633974483;
+    var farHalf = 1.0471975511965976;
+    var halfAngle = nearHalf + (farHalf - nearHalf) * t;
+    var cosine = (math.sin(facing) * dx + math.cos(facing) * dz) / distance;
+    return cosine >= math.cos(halfAngle);
+}
+
+pub tabTier(engaged: bool, visible: bool, marker: int): int {
+    if (marker != 1) {
+        throw "target selection tier marker is invalid";
+    }
+    if (engaged && visible) { return 0; }
+    if (visible) { return 1; }
+    if (engaged) { return 2; }
+    return 3;
+}
+
+pub tabNear(engaged: bool, visible: bool, distance: float, marker: int): bool {
+    if (marker != 1 || distance < 0.0) {
+        throw "target selection near-cluster input is invalid";
+    }
+    return visible && (engaged || distance <= 30.0);
+}
+
+validateCandidates(candidates: CandidateSet): void {
+    if (candidates.enemyIds.length != candidates.enemyDx.length ||
+        candidates.enemyIds.length != candidates.enemyDz.length ||
+        candidates.enemyIds.length != candidates.enemyEngaged.length ||
+        candidates.friendlyIds.length != candidates.friendlyDx.length ||
+        candidates.friendlyIds.length != candidates.friendlyDz.length) {
+        throw "target selection candidate columns have different lengths";
+    }
+}
+
+pub nearestEnemy(candidates: CandidateSet, currentId: uint): uint {
+    validateCandidates(candidates);
+    var bestId = currentId;
+    var bestDistanceSquared = 1600.0;
+    var index = 0;
+    while (index < candidates.enemyIds.length) {
+        var dx = <float>candidates.enemyDx[index];
+        var dz = <float>candidates.enemyDz[index];
+        var distanceSquared = dx * dx + dz * dz;
+        // The source initializes bestD2 to radius squared and compares strictly.
+        if (distanceSquared < bestDistanceSquared) {
+            bestDistanceSquared = distanceSquared;
+            bestId = <uint>candidates.enemyIds[index];
+        }
+        index = index + 1;
+    }
+    return bestId;
+}
+
+pub nearestFriendly(candidates: CandidateSet, currentId: uint): uint {
+    validateCandidates(candidates);
+    var bestId = currentId;
+    var bestDistanceSquared = 1000000000000.0;
+    var index = 0;
+    while (index < candidates.friendlyIds.length) {
+        var dx = <float>candidates.friendlyDx[index];
+        var dz = <float>candidates.friendlyDz[index];
+        var distanceSquared = dx * dx + dz * dz;
+        if (distanceSquared <= 1600.0 && distanceSquared < bestDistanceSquared) {
+            bestDistanceSquared = distanceSquared;
+            bestId = <uint>candidates.friendlyIds[index];
+        }
+        index = index + 1;
+    }
+    return bestId;
+}
+
+enemyOrder(candidates: CandidateSet, facing: float): EnemyOrder {
+    validateCandidates(candidates);
+    var math = %import("zr.zircon.math");
+    var order = new EnemyOrder();
+    var index = 0;
+    while (index < candidates.enemyIds.length) {
+        var dx = <float>candidates.enemyDx[index];
+        var dz = <float>candidates.enemyDz[index];
+        var distanceSquared = dx * dx + dz * dz;
+        if (distanceSquared <= 1600.0) {
+            var id = <uint>candidates.enemyIds[index];
+            var engaged = <bool>candidates.enemyEngaged[index];
+            var distance = math.sqrt(distanceSquared);
+            var visible = tabVisible(dx, dz, facing, 1);
+            var near = tabNear(engaged, visible, distance, 1);
+            var tier = tabTier(engaged, visible, 1);
+            var insert = order.ids.length;
+            order.ids.add(id);
+            order.near.add(near);
+            order.tiers.add(tier);
+            order.distances.add(distance);
+            while (insert > 0) {
+                var previous = insert - 1;
+                var previousNear = <bool>order.near[previous];
+                var previousTier = <int>order.tiers[previous];
+                var previousDistance = <float>order.distances[previous];
+                var previousId = <uint>order.ids[previous];
+                var before = (near && !previousNear) ||
+                    (near == previousNear && tier < previousTier) ||
+                    (near == previousNear && tier == previousTier &&
+                        distance < previousDistance) ||
+                    (near == previousNear && tier == previousTier &&
+                        distance == previousDistance && id < previousId);
+                if (!before) {
+                    break;
+                }
+                order.ids[insert] = previousId;
+                order.near[insert] = previousNear;
+                order.tiers[insert] = previousTier;
+                order.distances[insert] = previousDistance;
+                insert = previous;
+            }
+            order.ids[insert] = id;
+            order.near[insert] = near;
+            order.tiers[insert] = tier;
+            order.distances[insert] = distance;
+            if (near) {
+                order.primaryCount = order.primaryCount + 1;
+            }
+        }
+        index = index + 1;
+    }
+    return order;
+}
+
+pub tabEnemy(candidates: CandidateSet, currentId: uint, facing: float): uint {
+    var order = enemyOrder(candidates, facing);
+    if (order.ids.length == 0) {
+        return currentId;
+    }
+    var currentIndex = -1;
+    var index = 0;
+    while (index < order.ids.length) {
+        if (<uint>order.ids[index] == currentId) {
+            currentIndex = index;
+            break;
+        }
+        index = index + 1;
+    }
+    if (currentIndex < 0) {
+        return <uint>order.ids[0];
+    }
+    if (currentIndex < order.primaryCount) {
+        var nextPrimary = currentIndex + 1;
+        if (nextPrimary >= order.primaryCount) {
+            nextPrimary = 0;
+        }
+        return <uint>order.ids[nextPrimary];
+    }
+    var next = currentIndex + 1;
+    return next < order.ids.length ? <uint>order.ids[next] : <uint>order.ids[0];
+}
+
+pub friendlyCycle(candidates: CandidateSet, currentId: uint): uint {
+    validateCandidates(candidates);
+    var ids = new container.Array<uint>();
+    var distances = new container.Array<float>();
+    var index = 0;
+    while (index < candidates.friendlyIds.length) {
+        var dx = <float>candidates.friendlyDx[index];
+        var dz = <float>candidates.friendlyDz[index];
+        var distanceSquared = dx * dx + dz * dz;
+        if (distanceSquared <= 1600.0) {
+            var id = <uint>candidates.friendlyIds[index];
+            var insert = ids.length;
+            ids.add(id);
+            distances.add(distanceSquared);
+            // Equal distances retain candidate traversal order, matching stable JS sort.
+            while (insert > 0 && distanceSquared < <float>distances[insert - 1]) {
+                ids[insert] = <uint>ids[insert - 1];
+                distances[insert] = <float>distances[insert - 1];
+                insert = insert - 1;
+            }
+            ids[insert] = id;
+            distances[insert] = distanceSquared;
+        }
+        index = index + 1;
+    }
+    if (ids.length == 0) {
+        return currentId;
+    }
+    var currentIndex = -1;
+    index = 0;
+    while (index < ids.length) {
+        if (<uint>ids[index] == currentId) {
+            currentIndex = index;
+            break;
+        }
+        index = index + 1;
+    }
+    var next = currentIndex + 1;
+    if (next >= ids.length) {
+        next = 0;
+    }
+    return <uint>ids[next];
+}
+
+pub contractTest(): int {
+    var nearest = new CandidateSet();
+    nearest.addEnemy(<uint>30, 10.0, 0.0, false);
+    nearest.addEnemy(<uint>20, -10.0, 0.0, false);
+    if (nearestEnemy(nearest, <uint>99) != <uint>30) { return -1; }
+
+    var enemyBoundary = new CandidateSet();
+    enemyBoundary.addEnemy(<uint>1, 40.0, 0.0, false);
+    if (nearestEnemy(enemyBoundary, <uint>99) != <uint>99) { return -2; }
+
+    var friendlyBoundary = new CandidateSet();
+    friendlyBoundary.addFriendly(<uint>7, 40.0, 0.0);
+    if (nearestFriendly(friendlyBoundary, <uint>99) != <uint>7) { return -3; }
+
+    var tab = new CandidateSet();
+    tab.addEnemy(<uint>30, 0.0, 35.0, true);
+    tab.addEnemy(<uint>10, 0.0, 10.0, false);
+    tab.addEnemy(<uint>20, 0.0, -5.0, true);
+    tab.addEnemy(<uint>40, 5.0, 0.0, false);
+    if (tabEnemy(tab, <uint>0, 0.0) != <uint>30) { return -4; }
+    if (tabEnemy(tab, <uint>30, 0.0) != <uint>10) { return -5; }
+    if (tabEnemy(tab, <uint>10, 0.0) != <uint>30) { return -6; }
+    if (tabEnemy(tab, <uint>20, 0.0) != <uint>40) { return -7; }
+    if (tabEnemy(tab, <uint>40, 0.0) != <uint>30) { return -8; }
+
+    var fallback = new CandidateSet();
+    fallback.addEnemy(<uint>3, 0.0, -5.0, true);
+    fallback.addEnemy(<uint>2, 2.0, 0.0, false);
+    if (tabEnemy(fallback, <uint>0, 0.0) != <uint>3) { return -9; }
+    if (tabEnemy(fallback, <uint>3, 0.0) != <uint>2) { return -10; }
+    if (tabEnemy(fallback, <uint>2, 0.0) != <uint>3) { return -11; }
+
+    var friendly = new CandidateSet();
+    friendly.addFriendly(<uint>5, 10.0, 0.0);
+    friendly.addFriendly(<uint>3, 5.0, 0.0);
+    friendly.addFriendly(<uint>4, -5.0, 0.0);
+    if (nearestFriendly(friendly, <uint>0) != <uint>3) { return -12; }
+    if (friendlyCycle(friendly, <uint>0) != <uint>3) { return -13; }
+    if (friendlyCycle(friendly, <uint>3) != <uint>4) { return -14; }
+    if (friendlyCycle(friendly, <uint>4) != <uint>5) { return -15; }
+    if (friendlyCycle(friendly, <uint>5) != <uint>3) { return -16; }
+
+    var empty = new CandidateSet();
+    if (tabEnemy(empty, <uint>77, 0.0) != <uint>77 ||
+        nearestFriendly(empty, <uint>77) != <uint>77) {
+        return -17;
+    }
+    var outside = new CandidateSet();
+    outside.addEnemy(<uint>1, 0.0, 40.000001, true);
+    if (tabEnemy(outside, <uint>77, 0.0) != <uint>77) { return -18; }
+    return 1;
+}

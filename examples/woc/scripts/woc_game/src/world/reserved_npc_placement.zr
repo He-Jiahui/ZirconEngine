@@ -1,0 +1,71 @@
+// Post-roster construction projection for Groundskeeper Bram and FURY. Their
+// reserved entity IDs, and their Vale Cup/PvP behavior, stay with WorldState.
+
+var catalog = %import("generated/m3_reserved_npc_placement");
+var safePosition = %import("world/safe_position");
+var terrainContent = %import("world/terrain_content");
+var terrainGround = %import("world/terrain_ground");
+
+pub reservedNpcCount(required: bool): int {
+    return catalog.reservedNpcCount(required);
+}
+
+pub npcId(index: int, required: bool): string {
+    return catalog.npcId(index, required);
+}
+
+pub entityId(index: int, required: bool): int {
+    return catalog.entityId(index, required);
+}
+
+pub facing(index: int, required: bool): float {
+    return catalog.facing(index, required);
+}
+
+pub finalCoordinate(seed: uint, index: int, axis: int, required: bool): float {
+    if (!required || (axis != 1 && axis != 2)) {
+        throw "woc reserved NPC final coordinate is invalid";
+    }
+    var rawX = catalog.rawCoordinate(index, 1, true);
+    var rawZ = catalog.rawCoordinate(index, 2, true);
+    return safePosition.findBuiltinSafePositionCoordinate(
+        seed, rawX, rawZ, terrainContent.waterLevel(true) + 0.6, axis, true
+    );
+}
+
+pub finalGroundY(seed: uint, index: int, required: bool): float {
+    if (!required) {
+        throw "woc reserved NPC ground height is required";
+    }
+    return terrainGround.builtinGroundHeight(
+        finalCoordinate(seed, index, 1, true), finalCoordinate(seed, index, 2, true), seed, true
+    );
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub contractTest(): int {
+    var seed = <uint>20061;
+    if (catalog.contractTest() != 1 || reservedNpcCount(true) != 2 ||
+        npcId(0, true) != "groundskeeper_bram" || entityId(0, true) != 1000000000 ||
+        npcId(1, true) != "fury" || entityId(1, true) != 1000000001) {
+        return -1;
+    }
+    if (finalCoordinate(seed, 0, 1, true) != -6.0 || finalCoordinate(seed, 0, 2, true) != -82.0 ||
+        !closeEnough(finalGroundY(seed, 0, true), -2.258229712481497) ||
+        !closeEnough(facing(0, true), 3.141592653589793)) {
+        return -2;
+    }
+    if (finalCoordinate(seed, 1, 1, true) != -11.0 || finalCoordinate(seed, 1, 2, true) != 1.0 ||
+        finalGroundY(seed, 1, true) != 1.5 ||
+        !closeEnough(facing(1, true), 1.5707963267948966)) {
+        return -3;
+    }
+    return 1;
+}

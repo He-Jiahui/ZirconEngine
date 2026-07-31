@@ -1,0 +1,180 @@
+// Scalar aura/timer rules from the reference simulation. The single-entry
+// shape is temporary until Plugins 08 accepts reliable helper dispatch.
+pub metric(
+    kind: int,
+    first: float,
+    second: float,
+    third: float,
+    fourth: float
+): float {
+    if (kind == 0) {
+        var manaRegen = third / 3.0 + 4.0 + <float><int>(fourth / 5.0);
+        var roundedManaRegen = <float><int>(manaRegen + 0.5);
+        var manaAfter = first + roundedManaRegen;
+        return manaAfter < second ? manaAfter : second;
+    }
+    if (kind == 1) {
+        var energyRegen = <float><int>(20.0 * (1.0 + third) + 0.5);
+        var energyAfter = first + energyRegen;
+        return energyAfter < second ? energyAfter : second;
+    }
+    if (kind == 2) {
+        var rageAfter = first - 2.0;
+        return rageAfter > 0.0 ? rageAfter : 0.0;
+    }
+    if (kind == 3) {
+        var healthRegen = <float><int>(third * 0.3 + 2.5);
+        var healthAfter = first + healthRegen;
+        return healthAfter < second ? healthAfter : second;
+    }
+    if (kind == 4) {
+        var consumableHeal = <float><int>(third * fourth + 0.5);
+        var missingHealth = second - first;
+        if (missingHealth <= 0.0 || consumableHeal <= 0.0) { return 0.0; }
+        return consumableHeal < missingHealth ? consumableHeal : missingHealth;
+    }
+    if (kind == 5) {
+        var manaAfterDrink = first + third;
+        return manaAfterDrink < second ? manaAfterDrink : second;
+    }
+    if (kind == 6) {
+        var countdown = first - 0.05;
+        return countdown > 0.0 ? countdown : 0.0;
+    }
+    if (kind == 7) { return first + 0.05; }
+    if (kind == 8) {
+        var tickDamage = first;
+        if (<int>third == 1) {
+            var bleedFraction = second > 1.0 ? second / 100.0 : second;
+            tickDamage = <float><int>(first * (1.0 + bleedFraction) + 0.5);
+        }
+        return tickDamage;
+    }
+    if (kind == 9) {
+        var hotHealing = <float><int>(third * fourth + 0.5);
+        var hotMissing = second - first;
+        if (hotMissing <= 0.0 || hotHealing <= 0.0) { return 0.0; }
+        return hotHealing < hotMissing ? hotHealing : hotMissing;
+    }
+    if (kind == 10) {
+        var polymorphHeal = <float><int>(second * 0.1 + 0.5);
+        var polymorphAfter = first + polymorphHeal;
+        return polymorphAfter < second ? polymorphAfter : second;
+    }
+    if (kind == 11) { return first - 0.05; }
+    if (kind == 12) {
+        var tickTimer = first - 0.05;
+        if (tickTimer <= 0.000000001) { tickTimer = tickTimer + second; }
+        return tickTimer;
+    }
+    if (kind == 13) {
+        if (<int>fourth == 1) { return first; }
+        var sapAfter = first + <float><int>(third + 0.5);
+        return sapAfter < second ? sapAfter : second;
+    }
+    if (kind == 14) {
+        if (third <= 0.0 || first <= 0.0 || first >= second * 0.35) { return 0.0; }
+        var secondWind = <float><int>(second * third * 2.0 + 0.5);
+        var secondWindMissing = second - first;
+        return secondWind < secondWindMissing ? secondWind : secondWindMissing;
+    }
+    throw "aura rule metric is invalid";
+}
+
+pub rejectedFriendlyNpcAura(kind: string, marker: int): bool {
+    if (marker != 1) {
+        throw "friendly NPC aura classification marker is invalid";
+    }
+    return kind == "dot" || kind == "slow" || kind == "stun" || kind == "root" ||
+        kind == "incapacitate" || kind == "polymorph" || kind == "attackspeed" ||
+        kind == "sunder" || kind == "bleed_vuln" || kind == "corrode" ||
+        kind == "faerie_fire" || kind == "spellvuln" || kind == "vulnerability" ||
+        kind == "tongues" || kind == "cost_tax" || kind == "critvuln";
+}
+
+pub rejectedFriendlyNpcAuraContractTest(): int {
+    return rejectedFriendlyNpcAura("dot", 1) &&
+        rejectedFriendlyNpcAura("slow", 1) &&
+        rejectedFriendlyNpcAura("stun", 1) &&
+        rejectedFriendlyNpcAura("root", 1) &&
+        rejectedFriendlyNpcAura("incapacitate", 1) &&
+        rejectedFriendlyNpcAura("polymorph", 1) &&
+        rejectedFriendlyNpcAura("attackspeed", 1) &&
+        rejectedFriendlyNpcAura("sunder", 1) &&
+        rejectedFriendlyNpcAura("bleed_vuln", 1) &&
+        rejectedFriendlyNpcAura("corrode", 1) &&
+        rejectedFriendlyNpcAura("faerie_fire", 1) &&
+        rejectedFriendlyNpcAura("spellvuln", 1) &&
+        rejectedFriendlyNpcAura("vulnerability", 1) &&
+        rejectedFriendlyNpcAura("tongues", 1) &&
+        rejectedFriendlyNpcAura("cost_tax", 1) &&
+        rejectedFriendlyNpcAura("critvuln", 1) &&
+        !rejectedFriendlyNpcAura("buff_armor", 1) &&
+        !rejectedFriendlyNpcAura("hot", 1) ? 1 : -1;
+}
+
+// Pins c3_aura_runner's load-bearing statement order without depending on the
+// unavailable cross-module object/container bridge.
+pub scenarioContract(marker: int, discriminator: int): float {
+    if (marker != 1 || discriminator != 2) {
+        throw "aura scenario contract marker is invalid";
+    }
+
+    var victimHp = 40;
+    var victimDead = false;
+    var riderAuraVisited = false;
+    var auraIndex = 1;
+    while (auraIndex >= 0) {
+        if (auraIndex == 1) {
+            victimHp = victimHp - <int>metric(8, 9999.0, 0.0, 0.0, 0.0);
+            if (victimHp <= 0) { victimDead = true; }
+            if (victimDead) { break; }
+        } else {
+            riderAuraVisited = true;
+        }
+        auraIndex = auraIndex - 1;
+    }
+
+    var playerHp = 400;
+    var playerMana = 200;
+    var foodRemaining = 6;
+    var drinkRemaining = 6;
+    var tickCount = 40;
+    if (tickCount % 40 == 0) {
+        playerHp = playerHp + <int>metric(4, <float>playerHp, 1000.0, 90.0, 1.0);
+        playerMana = <int>metric(5, <float>playerMana, 660.0, 50.0, 0.0);
+        foodRemaining = foodRemaining - 2;
+        drinkRemaining = drinkRemaining - 2;
+    }
+
+    var auraRemaining = 1.5;
+    var auraPresent = true;
+    var statsDirty = false;
+    var statsRecalcCount = 0;
+    var expiryTicks = 0;
+    while (expiryTicks < 60) {
+        if (auraPresent) {
+            auraRemaining = metric(11, auraRemaining, 0.0, 0.0, 0.0);
+            if (auraRemaining <= 0.000000001) {
+                auraPresent = false;
+                statsDirty = true;
+                statsRecalcCount = statsRecalcCount + 1;
+            }
+        }
+        expiryTicks = expiryTicks + 1;
+    }
+
+    var firstAoeTarget = 410;
+    var secondAoeTarget = 411;
+    var aoeDraws = 0;
+    if (firstAoeTarget < secondAoeTarget) {
+        aoeDraws = aoeDraws + 1;
+        aoeDraws = aoeDraws + 1;
+    }
+
+    return victimDead && !riderAuraVisited &&
+        playerHp == 490 && playerMana == 250 &&
+        foodRemaining == 4 && drinkRemaining == 4 &&
+        statsDirty && !auraPresent && statsRecalcCount == 1 &&
+        aoeDraws == 2 ? 1.0 : 0.0;
+}

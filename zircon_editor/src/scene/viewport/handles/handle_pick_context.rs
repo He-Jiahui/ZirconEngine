@@ -1,4 +1,6 @@
-use crate::scene::viewport::{SceneViewportSettings, ViewportCameraSnapshot};
+use crate::scene::viewport::{
+    SceneViewportSettings, SceneViewportSnapSteps, ViewportCameraSnapshot,
+};
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::Vec2;
 
@@ -7,6 +9,7 @@ pub(crate) struct HandlePickContext<'a> {
     pub(crate) scene: &'a Scene,
     pub(crate) selected: Option<u64>,
     pub(crate) settings: &'a SceneViewportSettings,
+    pub(crate) snap_steps: SceneViewportSnapSteps,
     pub(crate) camera: &'a ViewportCameraSnapshot,
     pub(crate) cursor: Vec2,
 }

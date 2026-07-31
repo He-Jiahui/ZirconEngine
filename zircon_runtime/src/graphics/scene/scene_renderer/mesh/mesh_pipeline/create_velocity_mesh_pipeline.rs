@@ -53,8 +53,8 @@ mod tests {
     use super::super::test_support::create_standard_mesh_pipeline_layout;
     use super::create_velocity_mesh_pipeline;
     use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
-    use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::resources::GpuMeshVertex;
+    use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::mesh_pipeline_velocity_template_source_for_geometry;
 
     #[test]
@@ -80,9 +80,11 @@ mod tests {
         .expect("velocity template source should assemble");
 
         assert!(source.wgsl_source.contains("struct ZrVelocityVertexInput"));
-        assert!(source
-            .wgsl_source
-            .contains("@location(8) previous_position"));
+        assert!(
+            source
+                .wgsl_source
+                .contains("@location(8) previous_position")
+        );
         assert!(source.wgsl_source.contains("fn vs_main("));
         assert!(source.wgsl_source.contains("fn fs_main("));
     }

@@ -15,6 +15,9 @@ pub fn wgpu_backend_caps(
         .with_offscreen_support(true)
         .with_async_copy(true)
         .with_pipeline_cache(false)
+        .with_gpu_timestamp(features.contains(
+            wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS,
+        ))
         .with_storage_buffers(true)
         .with_fragment_writable_storage(supports_fragment_writable_storage)
         .with_max_storage_buffers_per_shader_stage(limits.max_storage_buffers_per_shader_stage)
@@ -36,4 +39,30 @@ pub fn wgpu_backend_caps(
         .with_debug_groups(true)
         .with_graphics_debugger_capture(true)
         .with_acceleration_structures(AccelerationStructureCaps::disabled())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wgpu_backend_caps;
+
+    #[test]
+    fn timestamp_capability_requires_query_and_encoder_writes() {
+        let full = wgpu_backend_caps(
+            "full",
+            wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS,
+            wgpu::Limits::default(),
+            false,
+            false,
+        );
+        let query_only = wgpu_backend_caps(
+            "query-only",
+            wgpu::Features::TIMESTAMP_QUERY,
+            wgpu::Limits::default(),
+            false,
+            false,
+        );
+
+        assert!(full.supports_gpu_timestamp);
+        assert!(!query_only.supports_gpu_timestamp);
+    }
 }

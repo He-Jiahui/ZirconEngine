@@ -8,7 +8,7 @@ use super::super::state::{
 };
 use super::geometry::circular_progress_rect;
 use super::key::circular_progress_image_key;
-use super::pixels::circular_progress_pixels;
+use super::pixels::{circular_progress_pixels, normalized_circular_progress_percent};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_circular_progress_command(
     commands: &mut Vec<HostPaintCommand>,
@@ -27,11 +27,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ci
         return;
     }
 
-    let progress = if progress_is_indeterminate(node) {
+    let progress = normalized_circular_progress_percent(if progress_is_indeterminate(node) {
         material_feedback_metrics().circular_indeterminate_percent
     } else {
         progress_percent(node)
-    };
+    });
     let track = progress_track_color(node);
     let fill = progress_fill_color(node);
     let rgba = circular_progress_pixels(size, progress, track, fill);
@@ -39,7 +39,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ci
         image_rect,
         Some(clip.clone()),
         order,
-        circular_progress_image_key(size, progress_percent(node), track, fill),
+        circular_progress_image_key(size, progress, track, fill),
         size,
         size,
         rgba,

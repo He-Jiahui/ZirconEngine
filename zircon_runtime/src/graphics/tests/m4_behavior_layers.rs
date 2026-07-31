@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::assets::{AlphaMode, MaterialAsset, ShaderAsset, ShaderSourceLanguage};
@@ -19,12 +19,12 @@ use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
 };
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::graphics::RenderFeatureDescriptor;
 use crate::graphics::{
-    offline_bake_frame, OfflineBakeSettings, RenderPassExecutorRegistration, WgpuRenderFramework,
+    OfflineBakeSettings, RenderPassExecutorRegistration, WgpuRenderFramework, offline_bake_frame,
 };
 
 use super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
@@ -54,9 +54,10 @@ fn offline_bake_outputs_reflection_probe_data_without_fake_baked_ambient() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                default_render_layer_mask(),
-            ),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+                ..Default::default()
+            },
         }],
         vec![RenderDirectionalLightSnapshot {
             node_id: 7,
@@ -416,11 +417,7 @@ fn ring_luma(rgba: &[u8], viewport_size: UVec2, inner_radius: f32, outer_radius:
             count += 1.0;
         }
     }
-    if count <= 0.0 {
-        0.0
-    } else {
-        total / count
-    }
+    if count <= 0.0 { 0.0 } else { total / count }
 }
 
 fn dominant_red_pixels(rgba: &[u8]) -> usize {
@@ -470,11 +467,7 @@ fn average_channel_in_region(
             count += 1.0;
         }
     }
-    if count <= 0.0 {
-        0.0
-    } else {
-        total / count
-    }
+    if count <= 0.0 { 0.0 } else { total / count }
 }
 
 fn write_flat_color_wgsl(path: PathBuf, color: [f32; 3]) {

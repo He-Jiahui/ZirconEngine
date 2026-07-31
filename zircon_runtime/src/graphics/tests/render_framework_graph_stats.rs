@@ -1,18 +1,16 @@
-use std::{collections::BTreeSet, sync::Arc};
+use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
-    RenderFrameExtract, RenderFramework, RenderGraphStageExecutionReport, RenderViewportDescriptor,
-    RenderWorldSnapshotHandle,
+    CapturedFrame, RenderFrameExtract, RenderFrameProfile, RenderFramework, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
 };
 use crate::core::math::UVec2;
-use crate::graphics::{
-    debug_markers, runtime::WgpuRenderFramework, RenderPipelineAsset, RenderPipelineCompileOptions,
-};
+use crate::graphics::{debug_markers, runtime::WgpuRenderFramework, RenderPipelineAsset};
 use crate::scene::world::World;
 
 #[test]
-fn render_framework_stats_report_transient_allocation_bytes() {
+fn render_framework_stats_publish_transient_allocation_bytes_to_captured_profile() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
@@ -21,44 +19,22 @@ fn render_framework_stats_report_transient_allocation_bytes() {
         .unwrap();
     let mut extract = test_extract();
     extract.apply_viewport_size(viewport_size);
-    let expected_pipeline = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default().with_async_compute(false),
-        )
-        .unwrap();
-    let expected_allocation_plan = expected_pipeline.graph().transient_allocation_plan();
-
-    server.submit_frame_extract(viewport, extract).unwrap();
-    let stats = server.query_stats().unwrap();
+    let (stats, capture) = submit_frame_with_capture(&server, viewport, extract);
+    let profile = captured_frame_profile(&capture);
 
     assert_eq!(
-        stats.last_graph_transient_texture_slot_count,
-        expected_allocation_plan.texture_slot_count
+        profile.transient_texture_peak_bytes,
+        stats.last_graph_transient_texture_bytes_reserved
     );
     assert_eq!(
-        stats.last_graph_sparse_texture_slot_count,
-        expected_allocation_plan.sparse_texture_slot_count
+        profile.transient_buffer_peak_bytes,
+        stats.last_graph_transient_buffer_bytes_reserved
     );
     assert_eq!(
-        stats.last_graph_transient_buffer_slot_count,
-        expected_allocation_plan.buffer_slot_count
-    );
-    assert_eq!(
-        stats.last_graph_transient_texture_bytes_reserved,
-        expected_allocation_plan.dense_texture_bytes_reserved
-    );
-    assert_eq!(
-        stats.last_graph_transient_buffer_bytes_reserved,
-        expected_allocation_plan.dense_buffer_bytes_reserved
-    );
-    assert_eq!(
-        stats.last_graph_transient_dense_bytes_reserved,
-        expected_allocation_plan.total_dense_bytes_reserved()
-    );
-    assert_eq!(
-        stats.last_graph_sparse_texture_virtual_bytes,
-        expected_allocation_plan.sparse_texture_virtual_bytes
+        profile
+            .transient_texture_peak_bytes
+            .saturating_add(profile.transient_buffer_peak_bytes),
+        stats.last_graph_transient_dense_bytes_reserved
     );
 }
 
@@ -72,21 +48,9 @@ fn render_framework_stats_report_graph_execution_coverage() {
         .unwrap();
     let mut extract = test_extract();
     extract.apply_viewport_size(viewport_size);
-    let expected_pipeline = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default().with_async_compute(false),
-        )
-        .unwrap();
-    let planned_live_pass_count = expected_pipeline
-        .graph()
-        .passes()
-        .iter()
-        .filter(|pass| !pass.culled)
-        .count();
-
-    server.submit_frame_extract(viewport, extract).unwrap();
-    let stats = server.query_stats().unwrap();
+    let (stats, capture) = submit_frame_with_capture(&server, viewport, extract);
+    let planned_live_pass_count =
+        non_culled_pass_names_from_graph_dump(captured_graph_dump(&capture)).len();
     let report = stats.last_graph_execution_coverage_report;
 
     assert_eq!(report.planned_live_pass_count, planned_live_pass_count);
@@ -111,24 +75,22 @@ fn render_framework_stats_report_graph_stage_execution() {
         .unwrap();
     let mut extract = test_extract();
     extract.apply_viewport_size(viewport_size);
-    let expected_pipeline = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default().with_async_compute(false),
-        )
-        .unwrap();
-    let expected_report = live_stage_execution_report(&expected_pipeline);
+    let (stats, capture) = submit_frame_with_capture(&server, viewport, extract);
+    let planned_live_pass_count =
+        non_culled_pass_names_from_graph_dump(captured_graph_dump(&capture)).len();
+    let report = stats.last_graph_stage_execution_report;
 
-    server.submit_frame_extract(viewport, extract).unwrap();
-    let stats = server.query_stats().unwrap();
-
-    assert_eq!(stats.last_graph_stage_execution_report, expected_report);
     assert_eq!(
-        stats
-            .last_graph_stage_execution_report
-            .stage_order_violation_count,
-        0
+        report.staged_pass_count + report.unstaged_pass_count,
+        planned_live_pass_count
     );
+    assert_eq!(
+        report.staged_pass_count,
+        stats.last_graph_executed_pass_count
+    );
+    assert!(report.unique_stage_count <= report.staged_pass_count);
+    assert!(report.stage_transition_count <= report.staged_pass_count.saturating_sub(1));
+    assert_eq!(report.stage_order_violation_count, 0);
 }
 
 #[test]
@@ -166,7 +128,7 @@ fn render_graph_steady_state_second_frame_skips_recompile() {
 }
 
 #[test]
-fn render_graph_executed_markers_match_dump_pass_rows() {
+fn render_perf_pass_names_match_graph_dump_and_markers() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
@@ -175,25 +137,78 @@ fn render_graph_executed_markers_match_dump_pass_rows() {
         .unwrap();
     let mut extract = test_extract();
     extract.apply_viewport_size(viewport_size);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default().with_async_compute(false),
-        )
-        .unwrap();
-    let expected_markers = compiled
-        .graph()
-        .dump()
-        .pass_rows
+    let (stats, capture) = submit_frame_with_capture(&server, viewport, extract);
+    let expected_pass_names = non_culled_pass_names_from_graph_dump(captured_graph_dump(&capture));
+    let capture_profile = captured_frame_profile(&capture);
+    let expected_markers = expected_pass_names
         .iter()
-        .filter(|pass| !pass.culled)
-        .map(|pass| debug_markers::marker_for_render_graph_pass(&pass.name))
+        .map(|pass_name| debug_markers::marker_for_render_graph_pass(pass_name))
         .collect::<Vec<_>>();
 
+    assert_eq!(stats.last_graph_executed_debug_markers, expected_markers);
+    assert_eq!(
+        capture_profile
+            .passes
+            .iter()
+            .map(|pass| pass.pass_name.as_str())
+            .collect::<Vec<_>>(),
+        expected_pass_names
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+    );
+    assert_eq!(
+        capture_profile
+            .passes
+            .iter()
+            .map(|pass| debug_markers::marker_for_render_graph_pass(&pass.pass_name))
+            .collect::<Vec<_>>(),
+        stats.last_graph_executed_debug_markers,
+    );
+}
+
+fn non_culled_pass_names_from_graph_dump(graph_dump: &str) -> Vec<String> {
+    graph_dump
+        .lines()
+        .filter_map(|line| {
+            let pass_row = line.strip_prefix("  pass[")?;
+            let (_, pass_row) = pass_row.split_once(" name=")?;
+            let (name, pass_row) = pass_row.split_once(" queue=")?;
+            pass_row.contains(" culled=false ").then(|| name.to_owned())
+        })
+        .collect()
+}
+
+fn submit_frame_with_capture(
+    server: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+    extract: RenderFrameExtract,
+) -> (RenderStats, CapturedFrame) {
+    server.request_graphics_debugger_capture(viewport).unwrap();
     server.submit_frame_extract(viewport, extract).unwrap();
     let stats = server.query_stats().unwrap();
+    let capture = server
+        .capture_frame(viewport)
+        .unwrap()
+        .expect("requested graph/profile capture should be available");
+    (stats, capture)
+}
 
-    assert_eq!(stats.last_graph_executed_debug_markers, expected_markers);
+fn captured_graph_dump(capture: &CapturedFrame) -> &str {
+    capture
+        .graph_dump
+        .as_deref()
+        .expect("capture should retain the runtime graph dump")
+}
+
+fn captured_frame_profile(capture: &CapturedFrame) -> RenderFrameProfile {
+    serde_json::from_str(
+        capture
+            .frame_profile_json
+            .as_deref()
+            .expect("capture should retain the runtime frame profile"),
+    )
+    .expect("captured frame profile should remain decodable")
 }
 
 #[test]
@@ -238,49 +253,6 @@ fn render_framework_stats_report_shadow_atlas_graph_execution() {
         "shadow-atlas should emit a graph debug marker; markers={:?}",
         stats.last_graph_executed_debug_markers
     );
-}
-
-fn live_stage_execution_report(
-    compiled_pipeline: &crate::graphics::pipeline::CompiledRenderPipeline,
-) -> RenderGraphStageExecutionReport {
-    let mut unique_stages = BTreeSet::new();
-    let mut staged_pass_count = 0;
-    let mut unstaged_pass_count = 0;
-    let mut stage_transition_count = 0;
-    let mut stage_order_violation_count = 0;
-    let mut previous_stage = None;
-
-    for pass in compiled_pipeline
-        .graph()
-        .passes()
-        .iter()
-        .filter(|pass| !pass.culled)
-    {
-        if let Some(stage) = compiled_pipeline.pass_stage(&pass.name) {
-            staged_pass_count += 1;
-            unique_stages.insert(stage);
-            if let Some(previous) = previous_stage {
-                if previous != stage {
-                    stage_transition_count += 1;
-                }
-                if previous > stage {
-                    stage_order_violation_count += 1;
-                }
-            }
-            previous_stage = Some(stage);
-        } else {
-            unstaged_pass_count += 1;
-            previous_stage = None;
-        }
-    }
-
-    RenderGraphStageExecutionReport::new(
-        staged_pass_count,
-        unstaged_pass_count,
-        unique_stages.len(),
-        stage_transition_count,
-        stage_order_violation_count,
-    )
 }
 
 fn test_extract() -> RenderFrameExtract {

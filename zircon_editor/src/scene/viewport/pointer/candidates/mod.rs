@@ -7,7 +7,6 @@ mod renderable_candidate;
 mod renderable_candidates;
 mod renderable_pick_radius;
 mod scene_gizmo_candidate;
-mod scene_gizmo_candidates;
 mod state_flags;
 
 pub(in crate::scene::viewport::pointer) use candidate_z_index::candidate_z_index;
@@ -19,7 +18,6 @@ pub(in crate::scene::viewport::pointer) use renderable_candidate::renderable_can
 pub(in crate::scene::viewport::pointer) use renderable_candidates::renderable_candidates;
 pub(in crate::scene::viewport::pointer) use renderable_pick_radius::renderable_pick_radius;
 pub(in crate::scene::viewport::pointer) use scene_gizmo_candidate::scene_gizmo_candidate;
-pub(in crate::scene::viewport::pointer) use scene_gizmo_candidates::scene_gizmo_candidates;
 pub(in crate::scene::viewport::pointer) use state_flags::{
     interactive_state_flags, passive_state_flags,
 };

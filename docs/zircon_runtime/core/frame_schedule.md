@@ -1,5 +1,8 @@
 ---
 related_code:
+  - zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy/frame_cadence.rs
+  - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/profile.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
@@ -31,6 +34,8 @@ related_code:
   - zircon_runtime/src/core/framework/time/fixed_step_plan.rs
 implementation_files:
   - docs/zircon_runtime/core/frame_schedule.md
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy/frame_cadence.rs
+  - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
   - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/profile.rs
@@ -49,6 +54,11 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md
   - docs/plans/zircon_runtime/runtime/index.md
 tests:
+  - reactive_cadence_coalesces_requests_and_suppresses_idle_frames
+  - continuous_cadence_never_suppresses_frame_pumps
+  - headless_cadence_uses_fixed_wait_deadlines
+  - headless_early_wake_does_not_pump_or_move_fixed_deadline
+  - redraw_delivery_does_not_schedule_another_reactive_frame
   - python -m unittest tools.tests.test_runtime_schedule_frame_loop_audit
   - tests/acceptance/runtime-schedule-frame-loop-audit-owner-sync.md
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/time/fixed_step_plan.rs zircon_runtime/src/tests/time.rs zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/scene/level_system.rs zircon_runtime/src/scene/module/world_driver.rs zircon_runtime/src/scene/tests/ecs_schedule.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
@@ -80,26 +90,44 @@ This document is the runtime-owned frame-loop record for plan 03. It records the
 
 ## Current Conclusion
 
-The runtime has a single authoritative stage enum, fixed-loop stages, and a single time-advance handoff for the dynamic session frame path. The `SystemStage` declaration is owned by the neutral `core/framework/scene` contract layer; the scene scheduler consumes that declaration and owns execution, with no second scene-local enum. `RuntimeDynamicSession::tick_frame` advances time once through `tick_time(...)`, passes the resulting `RuntimeTimeAdvance` through `LevelSystem`, and `WorldDriver` consumes that plan without calling `advance_time_by(...)` again.
+The runtime has a single authoritative stage enum, fixed-loop stages, a profile-aware host cadence owner, and a single time-advance handoff for the dynamic session frame path. The `SystemStage` declaration is owned by the neutral `core/framework/scene` contract layer; the scene scheduler consumes that declaration and owns execution, with no second scene-local enum. `RuntimeDynamicSession::tick_frame` advances time once through `tick_time(...)`, passes the resulting `RuntimeTimeAdvance` through `LevelSystem`, and `WorldDriver` consumes that plan without calling `advance_time_by(...)` again.
 
 The remaining higher-level design choice is whether a future UI/render plan wants to move UI extraction into a scheduled `RenderExtract` producer. For the runtime 03 plan, the current contract is explicit: UI extraction is a legal dynamic-session side path.
 
 ## Current Frame Chain
 
-1. The dynamic ABI entry `zircon_runtime/src/dynamic_api/session.rs` exposes `tick_frame(handle)`.
-2. `RuntimeDynamicSession::tick_frame` calls `self.runtime.tick_time(self.profile.max_fixed_steps_per_frame())`.
-3. The profile cap comes from `DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME = 8` in `zircon_runtime/src/dynamic_api/session/profile.rs`, returned through `max_fixed_steps_per_frame()`.
-4. `CoreHandle::tick_time(...)` at `zircon_runtime/src/core/runtime/handle/time.rs:43` samples `FrameClock::tick()` and delegates to `advance_time_by(...)`.
-5. `CoreHandle::advance_time_by(...)` at `zircon_runtime/src/core/runtime/handle/time.rs:29` advances `RuntimeTimeClocks`, then records time diagnostics at `record_time_diagnostics(...)` around `zircon_runtime/src/core/runtime/handle/time.rs:77`.
-6. `RuntimeTimeClocks::advance_by(...)` at `zircon_runtime/src/core/runtime/time.rs:45` advances real time, virtual time, fixed overstep, and drains a `FixedStepPlan`.
-7. `RuntimeDynamicSession::tick_frame` passes the full `RuntimeTimeAdvance` into `LevelSystem::tick(...)`.
-8. `LevelSystem::tick(...)` at `zircon_runtime/src/scene/level_system.rs:103` resolves `WorldDriver` and calls `driver.tick_level(core, self, advance)`.
-9. `WorldDriver::tick_level(...)` at `zircon_runtime/src/scene/module/world_driver.rs:11` converts `advance.real_delta()` and the fixed timestep to `Real`, then consumes `advance.fixed_step_plan()`.
-10. `WorldDriver` consumes that single `FixedStepPlan`: when the schedule reaches `SystemStage::FixedFirst`, it runs every stage in `SystemStage::FIXED_LOOP` once per drained step, then skips fixed-loop stages in the outer stage iteration.
-11. `run_stage(...)` at `zircon_runtime/src/scene/module/world_driver.rs:64` delegates to `SceneScheduleRunner::run_stage(...)`.
-12. `SceneScheduleRunner::run_stage(...)` at `zircon_runtime/src/scene/ecs/schedule_runner.rs:13` executes `Internal`, `Native`, `ApplyDeferred`, and `Hook` steps. Internal non-`ApplyDeferred` systems and hooks flush deferred world work after each step.
+1. The winit host `RuntimeEntryApp::about_to_wait(...)` delegates to `pump_frame_loop(...)`. `RuntimeFrameCadence::take_frame_request()` admits or suppresses the host pump according to the selected product profile.
+2. An admitted host pump calls the dynamic ABI entry `zircon_runtime/src/dynamic_api/session.rs::tick_frame(handle)`.
+3. `RuntimeDynamicSession::tick_frame` calls `self.runtime.tick_time(self.profile.max_fixed_steps_per_frame())`.
+4. The profile cap comes from `DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME = 8` in `zircon_runtime/src/dynamic_api/session/profile.rs`, returned through `max_fixed_steps_per_frame()`.
+5. `CoreHandle::tick_time(...)` at `zircon_runtime/src/core/runtime/handle/time.rs:43` samples `FrameClock::tick()` and delegates to `advance_time_by(...)`.
+6. `CoreHandle::advance_time_by(...)` at `zircon_runtime/src/core/runtime/handle/time.rs:29` advances `RuntimeTimeClocks`, then records time diagnostics at `record_time_diagnostics(...)` around `zircon_runtime/src/core/runtime/handle/time.rs:77`.
+7. `RuntimeTimeClocks::advance_by(...)` at `zircon_runtime/src/core/runtime/time.rs:45` advances real time, virtual time, fixed overstep, and drains a `FixedStepPlan`.
+8. `RuntimeDynamicSession::tick_frame` passes the full `RuntimeTimeAdvance` into `LevelSystem::tick(...)`.
+9. `LevelSystem::tick(...)` at `zircon_runtime/src/scene/level_system.rs:103` resolves `WorldDriver` and calls `driver.tick_level(core, self, advance)`.
+10. `WorldDriver::tick_level(...)` at `zircon_runtime/src/scene/module/world_driver.rs:11` converts `advance.real_delta()` and the fixed timestep to `Real`, then consumes `advance.fixed_step_plan()`.
+11. `WorldDriver` consumes that single `FixedStepPlan`: when the schedule reaches `SystemStage::FixedFirst`, it runs every stage in `SystemStage::FIXED_LOOP` once per drained step, then skips fixed-loop stages in the outer stage iteration.
+12. `run_stage(...)` at `zircon_runtime/src/scene/module/world_driver.rs:64` delegates to `SceneScheduleRunner::run_stage(...)`.
+13. `SceneScheduleRunner::run_stage(...)` at `zircon_runtime/src/scene/ecs/schedule_runner.rs:13` executes `Internal`, `Native`, `ApplyDeferred`, and `Hook` steps. Internal non-`ApplyDeferred` systems and hooks flush deferred world work after each step.
 
-The old gap was step 9: `WorldDriver` used to advance time again after the dynamic session had already called `tick_time(...)`. Current source has removed that second advance.
+The old gap was step 10: `WorldDriver` used to advance time again after the dynamic session had already called `tick_time(...)`. Current source has removed that second advance.
+
+## Product Profile Cadence
+
+`zircon_app/src/entry/runtime_entry_app/event_loop_policy/frame_cadence.rs` is the host cadence owner. It keeps cadence state separate from `RuntimeEntryAppConfig`: config selects `EventLoopPolicy`, construction consumes it into one `RuntimeFrameCadence`, and the app does not keep a second policy field.
+
+| Product policy | Winit control flow | Pump admission |
+|---|---|---|
+| `Game` / `Continuous` | `Poll` | Every `about_to_wait`; continuous gameplay is unchanged. |
+| `Mobile` | `Poll` | Continuous while the mobile event loop is active, so animation/time does not stall behind an event-only wait. |
+| `DesktopApp` | `Wait` | One initial frame, then only after a non-redraw window event, device event, resume/surface creation, or `proxy_wake_up`. Repeated requests coalesce. |
+| `Headless` | `WaitUntil(next_deadline)` | Fixed periodic pump without a window/redraw dependency. The persistent deadline advances only after a due pump, so an early OS/proxy wake neither pumps an extra frame nor shifts the interval. The 16 ms local policy constant is private to this host cadence owner. |
+
+Reactive admission occurs before gamepad polling, `tick_frame`, host-request draining, and OS redraw. An idle Desktop `about_to_wait` therefore returns before all four. `WindowEvent::RedrawRequested` is explicitly excluded from new frame admission, so presenting an admitted frame cannot schedule itself forever. The existing tick → host request → redraw order is unchanged for admitted frames.
+
+`RuntimeEntryApp` logs `runtime_frame_cadence_summary` on shutdown with frame-request, pump, idle-suppression, and redraw-request counts. Those counters are the application-side correlate for the required WPR CPU/wakeup trace; they are not a substitute for WPR acceptance.
+
+The reactive contract is not yet a fixed return. OS input and the `ApplicationHandler::proxy_wake_up` consumer are wired, but the product does not yet construct and route a proven `EventLoopProxy` producer from runtime-owned long animation, timer, or background-completion sources. Until the managed app tests, Desktop 30-second WPR trace, and runtime-origin wake product regression pass, the Runtime03 idle-cadence failure remains open.
 
 ## Stage Table
 

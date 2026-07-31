@@ -1,0 +1,504 @@
+// Stateful M4 projection of the affix cascade after a base mob swing lands.
+// Base miss/dodge, weapon range, crit and damage remain the mob-swing shell's
+// owner; this module consumes only configured affix draws in source order.
+var container = %import("zr.container");
+
+class MobSwingAffixState {
+    pub var sourceId: uint;
+    pub var templateId: string;
+    pub var sourceHostile: bool;
+    pub var sourceDead: bool;
+    pub var targetKind: string;
+    pub var targetDead: bool;
+    pub var hasRampage: bool;
+    pub var rampageAp: float;
+    pub var rampageMaxStacks: int;
+    pub var rampageDuration: float;
+    pub var hasVenom: bool;
+    pub var venomChance: float;
+    pub var venomPerTick: float;
+    pub var venomInterval: float;
+    pub var venomDuration: float;
+    pub var hasBleed: bool;
+    pub var bleedChance: float;
+    pub var bleedPerTick: float;
+    pub var bleedInterval: float;
+    pub var bleedDuration: float;
+    pub var hasSilence: bool;
+    pub var silenceChance: float;
+    pub var silenceDuration: float;
+    pub var hasDisarm: bool;
+    pub var disarmChance: float;
+    pub var disarmDuration: float;
+    pub var disarmSchool: string;
+    pub var hasHealAbsorb: bool;
+    pub var healAbsorbChance: float;
+    pub var healAbsorbAmount: float;
+    pub var healAbsorbDuration: float;
+    pub var hasEnsnare: bool;
+    pub var ensnareChance: float;
+    pub var ensnareDuration: float;
+    pub var hasStun: bool;
+    pub var stunChance: float;
+    pub var stunDuration: float;
+    pub var sourceAuraIds: container.Array<string>;
+    pub var sourceAuraKinds: container.Array<string>;
+    pub var sourceAuraValues: container.Array<float>;
+    pub var sourceAuraStacks: container.Array<int>;
+    pub var sourceAuraRemaining: container.Array<float>;
+    pub var targetAuraIds: container.Array<string>;
+    pub var targetAuraKinds: container.Array<string>;
+    pub var targetAuraValues: container.Array<float>;
+    pub var targetAuraRemaining: container.Array<float>;
+    pub var targetAuraDurations: container.Array<float>;
+    pub var targetAuraIntervals: container.Array<float>;
+    pub var targetAuraSchools: container.Array<string>;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var drawLabels: container.Array<string>;
+    pub var sourceAuraGainedEvents: int;
+    pub var targetAuraGainedEvents: int;
+
+    pub @constructor() {
+        this.sourceId = <uint>1;
+        this.templateId = "mob";
+        this.sourceHostile = true;
+        this.sourceDead = false;
+        this.targetKind = "player";
+        this.targetDead = false;
+        this.hasRampage = false;
+        this.rampageAp = 0.0;
+        this.rampageMaxStacks = 0;
+        this.rampageDuration = 0.0;
+        this.hasVenom = false;
+        this.venomChance = 0.0;
+        this.venomPerTick = 0.0;
+        this.venomInterval = 0.0;
+        this.venomDuration = 0.0;
+        this.hasBleed = false;
+        this.bleedChance = 0.0;
+        this.bleedPerTick = 0.0;
+        this.bleedInterval = 0.0;
+        this.bleedDuration = 0.0;
+        this.hasSilence = false;
+        this.silenceChance = 0.0;
+        this.silenceDuration = 0.0;
+        this.hasDisarm = false;
+        this.disarmChance = 0.0;
+        this.disarmDuration = 0.0;
+        this.disarmSchool = "physical";
+        this.hasHealAbsorb = false;
+        this.healAbsorbChance = 0.0;
+        this.healAbsorbAmount = 0.0;
+        this.healAbsorbDuration = 0.0;
+        this.hasEnsnare = false;
+        this.ensnareChance = 0.0;
+        this.ensnareDuration = 0.0;
+        this.hasStun = false;
+        this.stunChance = 0.0;
+        this.stunDuration = 0.0;
+        this.sourceAuraIds = new container.Array<string>();
+        this.sourceAuraKinds = new container.Array<string>();
+        this.sourceAuraValues = new container.Array<float>();
+        this.sourceAuraStacks = new container.Array<int>();
+        this.sourceAuraRemaining = new container.Array<float>();
+        this.targetAuraIds = new container.Array<string>();
+        this.targetAuraKinds = new container.Array<string>();
+        this.targetAuraValues = new container.Array<float>();
+        this.targetAuraRemaining = new container.Array<float>();
+        this.targetAuraDurations = new container.Array<float>();
+        this.targetAuraIntervals = new container.Array<float>();
+        this.targetAuraSchools = new container.Array<string>();
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.drawLabels = new container.Array<string>();
+        this.sourceAuraGainedEvents = 0;
+        this.targetAuraGainedEvents = 0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+takeChance(state: MobSwingAffixState, label: string, chance: float): bool {
+    if (state.randomIndex < 0 || state.randomIndex >= state.randomUnits.length) {
+        throw "mob-swing affix random stream is exhausted";
+    }
+    state.drawLabels.add(label);
+    var sample = <float>state.randomUnits[state.randomIndex];
+    state.randomIndex = state.randomIndex + 1;
+    return sample < chance;
+}
+
+findSourceAura(state: MobSwingAffixState, id: string): int {
+    var index = 0;
+    while (index < state.sourceAuraIds.length) {
+        if (<string>state.sourceAuraIds[index] == id) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+removeSourceAuraAt(state: MobSwingAffixState, index: int): void {
+    state.sourceAuraIds.removeAt(index);
+    state.sourceAuraKinds.removeAt(index);
+    state.sourceAuraValues.removeAt(index);
+    state.sourceAuraStacks.removeAt(index);
+    state.sourceAuraRemaining.removeAt(index);
+}
+
+removeTargetAuraAt(state: MobSwingAffixState, index: int): void {
+    state.targetAuraIds.removeAt(index);
+    state.targetAuraKinds.removeAt(index);
+    state.targetAuraValues.removeAt(index);
+    state.targetAuraRemaining.removeAt(index);
+    state.targetAuraDurations.removeAt(index);
+    state.targetAuraIntervals.removeAt(index);
+    state.targetAuraSchools.removeAt(index);
+}
+
+applyTargetAura(
+    state: MobSwingAffixState,
+    id: string,
+    kind: string,
+    value: float,
+    duration: float,
+    interval: float,
+    school: string
+): void {
+    var index = state.targetAuraIds.length - 1;
+    while (index >= 0) {
+        if (<string>state.targetAuraIds[index] == id) {
+            removeTargetAuraAt(state, index);
+        }
+        index = index - 1;
+    }
+    state.targetAuraIds.add(id);
+    state.targetAuraKinds.add(kind);
+    state.targetAuraValues.add(value);
+    state.targetAuraRemaining.add(duration);
+    state.targetAuraDurations.add(duration);
+    state.targetAuraIntervals.add(interval);
+    state.targetAuraSchools.add(school);
+    state.targetAuraGainedEvents = state.targetAuraGainedEvents + 1;
+}
+
+applyRampage(state: MobSwingAffixState): void {
+    if (!state.hasRampage || !state.sourceHostile || state.sourceDead) { return; }
+    var id = "rampage_" + state.templateId;
+    var existing = findSourceAura(state, id);
+    var stacks = existing >= 0 ? <int>state.sourceAuraStacks[existing] + 1 : 1;
+    if (stacks > state.rampageMaxStacks) { stacks = state.rampageMaxStacks; }
+    if (existing >= 0) { removeSourceAuraAt(state, existing); }
+    state.sourceAuraIds.add(id);
+    state.sourceAuraKinds.add("buff_ap");
+    state.sourceAuraValues.add(state.rampageAp * <float>stacks);
+    state.sourceAuraStacks.add(stacks);
+    state.sourceAuraRemaining.add(state.rampageDuration);
+    state.sourceAuraGainedEvents = state.sourceAuraGainedEvents + 1;
+}
+
+applyVenom(state: MobSwingAffixState): void {
+    if (!state.hasVenom || !state.sourceHostile || state.targetDead) { return; }
+    if (!takeChance(state, "venom", state.venomChance)) { return; }
+    var value = roundPositive(state.venomPerTick);
+    if (value < 1) { value = 1; }
+    applyTargetAura(
+        state,
+        "venom_" + state.templateId,
+        "dot",
+        <float>value,
+        state.venomDuration,
+        state.venomInterval,
+        "nature"
+    );
+}
+
+applyBleed(state: MobSwingAffixState): void {
+    if (!state.hasBleed || !state.sourceHostile || state.targetDead) { return; }
+    if (!takeChance(state, "bleed", state.bleedChance)) { return; }
+    var value = roundPositive(state.bleedPerTick);
+    if (value < 1) { value = 1; }
+    applyTargetAura(
+        state,
+        "bleed_" + state.templateId,
+        "dot",
+        <float>value,
+        state.bleedDuration,
+        state.bleedInterval,
+        "physical"
+    );
+}
+
+applySilence(state: MobSwingAffixState): void {
+    if (!state.hasSilence || !state.sourceHostile || state.targetDead) { return; }
+    if (!takeChance(state, "silence", state.silenceChance)) { return; }
+    applyTargetAura(
+        state,
+        "silence_" + state.templateId,
+        "silence",
+        0.0,
+        state.silenceDuration,
+        0.0,
+        "shadow"
+    );
+}
+
+targetIsDisarmed(state: MobSwingAffixState): bool {
+    var index = 0;
+    while (index < state.targetAuraKinds.length) {
+        if (<string>state.targetAuraKinds[index] == "disarm") { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+applyDisarm(state: MobSwingAffixState): void {
+    if (!state.hasDisarm || !state.sourceHostile ||
+        state.targetKind != "player" || state.targetDead) {
+        return;
+    }
+    // Preserve source ordering: the chance roll occurs before the active-disarm
+    // guard, so a repeat proc cannot perturb later draws in the affix cascade.
+    if (!takeChance(state, "disarm", state.disarmChance)) { return; }
+    if (targetIsDisarmed(state)) { return; }
+    applyTargetAura(
+        state,
+        "disarm_" + state.templateId,
+        "disarm",
+        0.0,
+        state.disarmDuration,
+        0.0,
+        state.disarmSchool
+    );
+}
+
+applyHealAbsorb(state: MobSwingAffixState): void {
+    if (!state.hasHealAbsorb || !state.sourceHostile || state.targetDead) { return; }
+    if (!takeChance(state, "healAbsorb", state.healAbsorbChance)) { return; }
+    applyTargetAura(
+        state,
+        "heal_absorb_" + state.templateId,
+        "heal_absorb",
+        state.healAbsorbAmount,
+        state.healAbsorbDuration,
+        0.0,
+        "shadow"
+    );
+}
+
+applyEnsnare(state: MobSwingAffixState): void {
+    if (!state.hasEnsnare || !state.sourceHostile ||
+        state.targetKind != "player" || state.targetDead) {
+        return;
+    }
+    if (!takeChance(state, "ensnare", state.ensnareChance)) { return; }
+    applyTargetAura(
+        state,
+        "ensnare_" + state.templateId,
+        "root",
+        0.0,
+        state.ensnareDuration,
+        0.0,
+        "nature"
+    );
+}
+
+applyStun(state: MobSwingAffixState): void {
+    if (!state.hasStun || !state.sourceHostile ||
+        state.targetKind != "player" || state.targetDead) {
+        return;
+    }
+    if (!takeChance(state, "stun", state.stunChance)) { return; }
+    applyTargetAura(
+        state,
+        "stun_" + state.templateId,
+        "stun",
+        0.0,
+        state.stunDuration,
+        0.0,
+        "physical"
+    );
+}
+
+pub runLandedAffixes(state: MobSwingAffixState): void {
+    // These calls retain their relative positions in the 918-line source cascade.
+    applyRampage(state);
+    applyVenom(state);
+    applyBleed(state);
+    applySilence(state);
+    applyDisarm(state);
+    applyHealAbsorb(state);
+    applyEnsnare(state);
+    applyStun(state);
+}
+
+addZeroSamples(state: MobSwingAffixState, count: int): void {
+    var index = 0;
+    while (index < count) {
+        state.randomUnits.add(0.0);
+        index = index + 1;
+    }
+}
+
+pub contractTest(): int {
+    var lackey = new MobSwingAffixState();
+    lackey.templateId = "mogger_lackey";
+    lackey.hasStun = true;
+    lackey.stunChance = 1.0;
+    lackey.stunDuration = 1.0;
+    addZeroSamples(lackey, 6);
+    var round = 0;
+    while (round < 6) { runLandedAffixes(lackey); round = round + 1; }
+    if (lackey.randomIndex != 6 || lackey.targetAuraIds.length != 1 ||
+        <string>lackey.targetAuraIds[0] != "stun_mogger_lackey" ||
+        <string>lackey.targetAuraKinds[0] != "stun") {
+        return -1;
+    }
+
+    var spider = new MobSwingAffixState();
+    spider.templateId = "webwood_spider";
+    spider.hasVenom = true;
+    spider.venomChance = 1.0;
+    spider.venomPerTick = 2.0;
+    spider.venomInterval = 2.0;
+    spider.venomDuration = 10.0;
+    spider.hasEnsnare = true;
+    spider.ensnareChance = 0.25;
+    spider.ensnareDuration = 3.0;
+    addZeroSamples(spider, 12);
+    round = 0;
+    while (round < 6) { runLandedAffixes(spider); round = round + 1; }
+    if (spider.randomIndex != 12 || spider.targetAuraIds.length != 2 ||
+        <int>spider.targetAuraValues[0] != 2 ||
+        <string>spider.drawLabels[0] != "venom" ||
+        <string>spider.drawLabels[1] != "ensnare") {
+        return -2;
+    }
+
+    var summoner = new MobSwingAffixState();
+    summoner.templateId = "gravecaller_summoner";
+    summoner.hasSilence = true;
+    summoner.silenceChance = 1.0;
+    summoner.silenceDuration = 4.0;
+    summoner.hasHealAbsorb = true;
+    summoner.healAbsorbChance = 0.25;
+    summoner.healAbsorbAmount = 120.0;
+    summoner.healAbsorbDuration = 10.0;
+    addZeroSamples(summoner, 12);
+    round = 0;
+    while (round < 6) { runLandedAffixes(summoner); round = round + 1; }
+    if (summoner.randomIndex != 12 || summoner.targetAuraIds.length != 2 ||
+        <string>summoner.drawLabels[0] != "silence" ||
+        <string>summoner.drawLabels[1] != "healAbsorb" ||
+        <float>summoner.targetAuraValues[1] != 120.0) {
+        return -3;
+    }
+
+    var drogmar = new MobSwingAffixState();
+    drogmar.templateId = "warlord_drogmar";
+    drogmar.hasRampage = true;
+    drogmar.rampageAp = 20.0;
+    drogmar.rampageMaxStacks = 5;
+    drogmar.rampageDuration = 10.0;
+    round = 0;
+    while (round < 6) { runLandedAffixes(drogmar); round = round + 1; }
+    if (drogmar.randomIndex != 0 || drogmar.sourceAuraIds.length != 1 ||
+        <int>drogmar.sourceAuraStacks[0] != 5 ||
+        <float>drogmar.sourceAuraValues[0] != 100.0 ||
+        drogmar.sourceAuraGainedEvents != 6) {
+        return -4;
+    }
+
+    if (lackey.randomIndex + spider.randomIndex + summoner.randomIndex != 30) {
+        return -5;
+    }
+
+    var crusher = new MobSwingAffixState();
+    crusher.templateId = "ogre_crusher";
+    crusher.hasDisarm = true;
+    crusher.disarmChance = 1.0;
+    crusher.disarmDuration = 6.0;
+    crusher.randomUnits.add(0.0);
+    crusher.randomUnits.add(0.0);
+    runLandedAffixes(crusher);
+    if (crusher.randomIndex != 1 || crusher.targetAuraIds.length != 1 ||
+        <string>crusher.targetAuraIds[0] != "disarm_ogre_crusher" ||
+        <string>crusher.targetAuraKinds[0] != "disarm" ||
+        <float>crusher.targetAuraRemaining[0] != 6.0 ||
+        crusher.targetAuraGainedEvents != 1) {
+        return -6;
+    }
+    crusher.targetAuraRemaining[0] = 1.0;
+    runLandedAffixes(crusher);
+    if (crusher.randomIndex != 2 || crusher.targetAuraIds.length != 1 ||
+        <float>crusher.targetAuraRemaining[0] != 1.0 ||
+        crusher.targetAuraGainedEvents != 1 ||
+        <string>crusher.drawLabels[0] != "disarm" ||
+        <string>crusher.drawLabels[1] != "disarm") {
+        return -7;
+    }
+
+    var friendly = new MobSwingAffixState();
+    friendly.sourceHostile = false;
+    friendly.hasRampage = true;
+    friendly.rampageMaxStacks = 5;
+    friendly.hasVenom = true;
+    friendly.hasBleed = true;
+    friendly.hasSilence = true;
+    friendly.hasDisarm = true;
+    friendly.hasHealAbsorb = true;
+    friendly.hasEnsnare = true;
+    friendly.hasStun = true;
+    runLandedAffixes(friendly);
+    if (friendly.randomIndex != 0 || friendly.sourceAuraIds.length != 0 ||
+        friendly.targetAuraIds.length != 0) {
+        return -8;
+    }
+
+    var ridge = new MobSwingAffixState();
+    ridge.templateId = "ridge_stalker";
+    ridge.hasBleed = true;
+    ridge.bleedChance = 1.0;
+    ridge.bleedPerTick = 5.0;
+    ridge.bleedInterval = 3.0;
+    ridge.bleedDuration = 9.0;
+    addZeroSamples(ridge, 5);
+    round = 0;
+    while (round < 5) { runLandedAffixes(ridge); round = round + 1; }
+    if (ridge.randomIndex != 5 || ridge.targetAuraIds.length != 1 ||
+        <string>ridge.targetAuraIds[0] != "bleed_ridge_stalker" ||
+        <int>ridge.targetAuraValues[0] != 5 ||
+        <float>ridge.targetAuraIntervals[0] != 3.0 ||
+        <float>ridge.targetAuraDurations[0] != 9.0) {
+        return -9;
+    }
+
+    var all = new MobSwingAffixState();
+    all.templateId = "order";
+    all.hasVenom = true;
+    all.venomChance = 1.0;
+    all.hasBleed = true;
+    all.bleedChance = 1.0;
+    all.hasSilence = true;
+    all.silenceChance = 1.0;
+    all.hasHealAbsorb = true;
+    all.healAbsorbChance = 1.0;
+    all.hasEnsnare = true;
+    all.ensnareChance = 1.0;
+    all.hasStun = true;
+    all.stunChance = 1.0;
+    addZeroSamples(all, 6);
+    runLandedAffixes(all);
+    if (all.drawLabels.length != 6 ||
+        <string>all.drawLabels[0] != "venom" ||
+        <string>all.drawLabels[1] != "bleed" ||
+        <string>all.drawLabels[2] != "silence" ||
+        <string>all.drawLabels[3] != "healAbsorb" ||
+        <string>all.drawLabels[4] != "ensnare" ||
+        <string>all.drawLabels[5] != "stun") {
+        return -10;
+    }
+    return 1;
+}

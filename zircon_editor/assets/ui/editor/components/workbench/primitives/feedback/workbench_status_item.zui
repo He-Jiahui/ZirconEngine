@@ -6,7 +6,7 @@ display_name = "Workbench Status Item"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchStatusItem]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-status-item", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchStatusItemRoot"
 classes = ["workbench-status-item"]
-props = { text = "Status", font_size = 13.333333, text_tone = "primary" }
-layout = { width = { min = 80.0, preferred = 112.0, max = 160.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { text = "Status", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", foreground_color = "$editor.text.primary", disabled_foreground_color = "$editor.text.disabled", text_tone = "primary" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

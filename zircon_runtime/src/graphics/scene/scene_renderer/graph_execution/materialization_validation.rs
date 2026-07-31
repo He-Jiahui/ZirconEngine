@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use crate::core::framework::render::RenderGraphMaterializationReport;
 use crate::render_graph::{
     CompiledRenderGraph, RenderGraphExternalResourceType, RenderGraphResourceDesc,
@@ -15,11 +13,6 @@ pub(super) fn validate_materialized_graph_resources(
     let mut report = RenderGraphMaterializationReport::default();
     let mut missing_materialized = Vec::new();
     let mut missing_required_external = Vec::new();
-    let live_lifetime_names = graph
-        .resource_lifetimes()
-        .iter()
-        .map(|lifetime| lifetime.name.as_str())
-        .collect::<BTreeSet<_>>();
 
     for lifetime in graph.resource_lifetimes() {
         match &lifetime.desc {
@@ -72,11 +65,11 @@ pub(super) fn validate_materialized_graph_resources(
 
     let stale_texture_bindings = resources
         .bound_texture_view_names()
-        .filter(|name| !live_lifetime_names.contains(*name))
+        .filter(|name| graph.resource_lifetime_by_name(name).is_none())
         .collect::<Vec<_>>();
     let stale_buffer_bindings = resources
         .bound_buffer_names()
-        .filter(|name| !live_lifetime_names.contains(*name))
+        .filter(|name| graph.resource_lifetime_by_name(name).is_none())
         .collect::<Vec<_>>();
     report.stale_texture_binding_count = stale_texture_bindings.len();
     report.stale_buffer_binding_count = stale_buffer_bindings.len();
@@ -137,6 +130,21 @@ mod tests {
         PassFlags, QueueLane, RenderGraphBuilder, RenderGraphExternalResourceBinding,
     };
     use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
+
+    #[test]
+    fn materialization_validation_reuses_compiled_lifetime_name_index() {
+        let source = include_str!("materialization_validation.rs");
+        let ordered_tree_set = ["BTree", "Set"].concat();
+
+        assert!(
+            !source.contains(&ordered_tree_set),
+            "per-frame validation should not rebuild the compiled lifetime name index"
+        );
+        assert!(
+            source.contains("graph.resource_lifetime_by_name(name)"),
+            "stale-binding validation should reuse the compiled graph lookup index"
+        );
+    }
 
     #[test]
     fn materialization_validation_reports_unbound_compiled_lifetimes() {

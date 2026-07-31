@@ -1,17 +1,10 @@
 //! Read-only runtime diagnostics snapshots for editor and tooling surfaces.
 
 mod animation;
-mod collect;
 mod devtools;
 mod frame_diagnostics;
 mod physics;
 mod physics_backend;
-#[cfg(feature = "physics-contracts")]
-#[path = "physics_collection_enabled.rs"]
-mod physics_collection;
-#[cfg(not(feature = "physics-contracts"))]
-#[path = "physics_collection_disabled.rs"]
-mod physics_collection;
 pub mod profiling;
 mod render;
 mod render_stats_store;
@@ -19,10 +12,9 @@ mod snapshot;
 mod store;
 
 pub use animation::RuntimeAnimationDiagnostics;
-pub use collect::collect_runtime_diagnostics;
+pub(crate) use devtools::project_runtime_devtools_snapshot;
 pub use devtools::{
-    collect_runtime_devtools_snapshot, RuntimeDevtoolsBackendStatus,
-    RuntimeDevtoolsDiagnosticsSummary, RuntimeDevtoolsModuleSnapshot,
+    RuntimeDevtoolsBackendStatus, RuntimeDevtoolsDiagnosticsSummary, RuntimeDevtoolsModuleSnapshot,
     RuntimeDevtoolsPluginCatalogEntry, RuntimeDevtoolsSceneHookSnapshot,
     RuntimeDevtoolsServiceSnapshot, RuntimeDevtoolsSnapshot,
 };
@@ -37,6 +29,7 @@ pub use profiling::{
     ProfileRecorderStatus, ProfileScope, ProfileSnapshot, ProfileSpanSnapshot,
 };
 pub use render::RuntimeRenderDiagnostics;
+pub(crate) use render_stats_store::record_render_stats_diagnostics;
 pub use snapshot::RuntimeDiagnosticsSnapshot;
 pub use store::{
     DiagnosticMeasurement, DiagnosticPath, DiagnosticSeriesSnapshot, DiagnosticStore,

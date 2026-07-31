@@ -15,7 +15,7 @@ use super::tab_like::{
 };
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::template_component_family::uses_workbench_visual_language;
-use zircon_runtime_interface::ui::style::UiStyleColor;
+use zircon_runtime_interface::ui::style::{ButtonInteractionState, UiStyleColor};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_button_style(
     node: &TemplatePaneNodeData,
@@ -31,7 +31,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
         return style;
     }
 
-    if should_apply_declared_button_surface(node, kind) {
+    if should_apply_declared_button_surface(node, kind, interaction) {
         if let Some(surface) =
             declared_button_style_color(node.button_style.element.background_color.as_ref())
         {
@@ -71,12 +71,14 @@ fn declared_button_style_color(color: Option<&UiStyleColor>) -> Option<[u8; 4]> 
 fn should_apply_declared_button_surface(
     node: &TemplatePaneNodeData,
     kind: WorkbenchButtonKind,
+    interaction: ButtonInteractionState,
 ) -> bool {
     uses_workbench_visual_language(node)
         && !matches!(
             kind,
             WorkbenchButtonKind::Primary | WorkbenchButtonKind::Danger
         )
+        && interaction == ButtonInteractionState::Normal
 }
 
 fn should_apply_declared_button_foreground(

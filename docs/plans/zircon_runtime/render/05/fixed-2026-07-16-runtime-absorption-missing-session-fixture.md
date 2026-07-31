@@ -10,7 +10,8 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/tests/runtime_absorption
-  - .codex/sessions/20260612-0847-runtime-architecture-implementation.md
+  - zircon_runtime/src/tests/runtime_absorption/current_source_fixture.rs
+  - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
 tests:
   - managed cargo test -p zircon_runtime render_shadow_atlas_compare_function_matches_forward_depth_contract --locked
 resolved_at: 2026-07-16
@@ -60,6 +61,6 @@ Shared `runtime_absorption` compile-time guard fixtures retain `include_str!`-st
 ## 修复结果与回传
 
 - 根因：27 runtime_absorption guards depended on an untracked deleted .codex session note; the previous durable-evidence guard scanned only structure_convention and missed sibling guard trees.
-- 架构修复：Hard-cut all 27 consumers to tracked Runtime15 archive ownership, preserve literal include_str inputs for seven concat consumers, reuse numbered archive aggregation for five status guards, and widen durable-evidence scanning to the whole runtime_absorption tree.
+- 架构修复：Hard-cut all 27 consumers to tracked Runtime15 archive ownership at `docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md`; `zircon_runtime/src/tests/runtime_absorption/current_source_fixture.rs` owns the shared current-source fixture constant. The repair preserves literal `include_str!` inputs for seven concat consumers, reuses numbered archive aggregation for five status guards, and widens durable-evidence scanning to the whole runtime_absorption tree. The deleted `.codex/sessions/20260612-0847-runtime-architecture-implementation.md` remains historical failure evidence only, never a current machine owner.
 - 验证：Static regression 1/1; zero stale session paths; independent review 0 critical/0 important; managed retry 3b954179608e4144b0aa183c8a4497f6 compiled zircon_runtime lib tests and executed exactly one Render05 test, producing the expected sampler RED GreaterEqual versus LessEqual.
 - 回传：Runtime01 removed the shared compile precondition blocker and returned valid Render05 focused RED evidence; sampler production remains unchanged for Render05 TDD.

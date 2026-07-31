@@ -1,8 +1,8 @@
 use crate::core::framework::render::{
-    ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef, IblBakeArtifactContents,
-    IblBakeArtifactRequest, RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind,
-    ShaderResourceAccess, ShaderResourceDescriptor, ShaderResourceKind,
-    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    source_cubemap_roughness_from_pmrem_mip, ComputeDispatchBuilder, ComputeDispatchPlan,
+    ComputeKernelRef, IblBakeArtifactContents, IblBakeArtifactRequest,
+    RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind, ShaderResourceAccess,
+    ShaderResourceDescriptor, ShaderResourceKind, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 
 use super::ibl_bake_graph_plan::{
@@ -35,8 +35,6 @@ const IBL_BAKE_PMREM_NORMAL_SAMPLE_COUNT: u32 = 64;
 const IBL_BAKE_PMREM_FAST_SAMPLE_COUNT: u32 = 32;
 const IBL_BAKE_PMREM_ROUGH_SAMPLE_COUNT: u32 = 128;
 const IBL_BAKE_IRRADIANCE_SAMPLE_COUNT: u32 = 64;
-const IBL_BAKE_ROUGHEST_MIP: f32 = 1.0;
-const IBL_BAKE_ROUGHNESS_MIP_SCALE: f32 = 1.2;
 const IBL_BAKE_PMREM_LOW_ROUGHNESS_THRESHOLD: f32 = 0.1;
 const IBL_BAKE_PMREM_HIGH_ROUGHNESS_THRESHOLD: f32 = 0.75;
 
@@ -284,15 +282,7 @@ fn pmrem_sample_count(roughness: f32, mip_level: u32) -> u32 {
 }
 
 fn pmrem_roughness_for_mip(mip_count: u32, mip_level: u32) -> f32 {
-    if mip_level == 0 || mip_count <= 1 {
-        return 0.0;
-    }
-    let max_mip = mip_count.saturating_sub(1);
-    let clamped_mip = mip_level.min(max_mip);
-    let level_from_1x1 = max_mip.saturating_sub(1).saturating_sub(clamped_mip) as f32;
-    2.0_f32
-        .powf((IBL_BAKE_ROUGHEST_MIP - level_from_1x1) / IBL_BAKE_ROUGHNESS_MIP_SCALE)
-        .clamp(0.0, 1.0)
+    source_cubemap_roughness_from_pmrem_mip(mip_level, mip_count)
 }
 
 fn source_lod_for_sample_face_size(source_face_size: u32, sample_face_size: u32) -> f32 {
@@ -458,7 +448,7 @@ mod tests {
             irradiance.dispatch.parameters.get("source_lod"),
             Some(&ShaderParameterValue::F32 { value: 4.0 })
         );
-        assert_eq!(pmrem_roughness_for_mip(8, 5), 1.0);
+        assert_eq!(pmrem_roughness_for_mip(8, 6), 1.0);
     }
 
     #[test]

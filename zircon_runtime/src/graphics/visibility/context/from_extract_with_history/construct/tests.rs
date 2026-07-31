@@ -1,11 +1,11 @@
 use crate::core::framework::render::{
-    sort_render_cameras, CameraRenderDescriptor, CorePipelineKind, DebugOverlayExtract,
-    EnvironmentExtract, GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract,
-    ParticleExtract, PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode,
-    RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot,
-    RenderSpotLightSnapshot, RenderViewExtract, RenderWorldSnapshotHandle, ShadowPcfQuality,
-    ShadowResolutionTier, SpriteExtract, ViewportCameraSnapshot,
+    CameraRenderDescriptor, CorePipelineKind, DebugOverlayExtract, EnvironmentExtract,
+    GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract, ParticleExtract,
+    PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget, RenderDirectionalLightSnapshot,
+    RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
+    RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot, RenderSpotLightSnapshot,
+    RenderViewExtract, RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier,
+    SpriteExtract, ViewportCameraSnapshot, sort_render_cameras,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Real, Transform, Vec3, Vec4};
@@ -72,13 +72,15 @@ fn visibility_context_records_relevance_and_filters_main_view_layers() {
     assert_eq!(main_view.stats.frustum_culled_count, 0);
     assert_eq!(main_view.stats.occlusion_culled_count, 0);
     assert_eq!(main_view.stats.visible_count, 1);
-    assert!(context
-        .frame_visibility
-        .view(&VisibilityViewKey::ShadowCascade {
-            light: 10,
-            cascade: 0
-        })
-        .is_none());
+    assert!(
+        context
+            .frame_visibility
+            .view(&VisibilityViewKey::ShadowCascade {
+                light: 10,
+                cascade: 0
+            })
+            .is_none()
+    );
 
     let visible = context
         .primitive_relevance
@@ -257,10 +259,12 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
 
     assert_eq!(context.frame_visibility.shadow_views().count(), 11);
     for cascade in 0..4 {
-        assert!(context
-            .frame_visibility
-            .view(&VisibilityViewKey::ShadowCascade { light: 10, cascade })
-            .is_some());
+        assert!(
+            context
+                .frame_visibility
+                .view(&VisibilityViewKey::ShadowCascade { light: 10, cascade })
+                .is_some()
+        );
     }
     let first_cascade = context
         .frame_visibility
@@ -282,15 +286,19 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
         first_cascade.camera.transform.translation
     );
     for face in 0..6 {
-        assert!(context
-            .frame_visibility
-            .view(&VisibilityViewKey::ShadowPointFace { light: 20, face })
-            .is_some());
+        assert!(
+            context
+                .frame_visibility
+                .view(&VisibilityViewKey::ShadowPointFace { light: 20, face })
+                .is_some()
+        );
     }
-    assert!(context
-        .frame_visibility
-        .view(&VisibilityViewKey::ShadowSpot { light: 30 })
-        .is_some());
+    assert!(
+        context
+            .frame_visibility
+            .view(&VisibilityViewKey::ShadowSpot { light: 30 })
+            .is_some()
+    );
 }
 
 #[test]
@@ -496,7 +504,11 @@ fn mesh_at_layers(
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::default(),
-        render_layer_mask,
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: render_layer_mask,
+            is_static: true,
+            ..Default::default()
+        },
     }
 }
 
@@ -509,4 +521,11 @@ fn shadow_settings() -> LightShadowSettings {
         resolution_preference: ShadowResolutionTier::T512,
         pcf_quality: ShadowPcfQuality::High,
     }
+}
+
+#[test]
+fn visibility_context_borrows_history_entries_for_bvh_plan() {
+    let source = include_str!("../construct.rs");
+
+    assert!(!source.contains(concat!("history_entries", ".clone()")));
 }

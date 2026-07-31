@@ -193,8 +193,12 @@ fn push_bind_group_diagnostics(
     expected_bindings: &[ExpectedRendererBinding],
     diagnostics: &mut Vec<RenderMaterialValidationError>,
 ) {
-    let groups = matching_bind_groups(shader, group);
-    if groups.is_empty() {
+    let mut groups = shader
+        .pipeline_layout
+        .bind_groups
+        .iter()
+        .filter(|bind_group| bind_group.group == group);
+    let Some(bind_group) = groups.next() else {
         diagnostics.push(material_abi_diagnostic(
             bind_group_path(group),
             format!(
@@ -203,19 +207,19 @@ fn push_bind_group_diagnostics(
             ),
         ));
         return;
-    }
+    };
 
-    if groups.len() > 1 {
+    let duplicate_group_count = groups.count();
+    if duplicate_group_count != 0 {
         diagnostics.push(material_abi_diagnostic(
             bind_group_path(group),
             format!(
                 "{abi_name} expects one bind group descriptor for group {group}, but shader declares {}",
-                groups.len()
+                duplicate_group_count + 1
             ),
         ));
     }
 
-    let bind_group = groups[0];
     for expected in expected_bindings {
         push_expected_binding_diagnostics(group, abi_name, bind_group, expected, diagnostics);
     }
@@ -229,13 +233,11 @@ fn push_expected_binding_diagnostics(
     expected: &ExpectedRendererBinding,
     diagnostics: &mut Vec<RenderMaterialValidationError>,
 ) {
-    let bindings = bind_group
+    let mut bindings = bind_group
         .bindings
         .iter()
-        .filter(|binding| binding.binding == expected.binding)
-        .collect::<Vec<_>>();
-
-    if bindings.is_empty() {
+        .filter(|binding| binding.binding == expected.binding);
+    let Some(binding) = bindings.next() else {
         diagnostics.push(material_abi_diagnostic(
             binding_path(group, expected.binding),
             format!(
@@ -244,20 +246,20 @@ fn push_expected_binding_diagnostics(
             ),
         ));
         return;
-    }
+    };
 
-    if bindings.len() > 1 {
+    let duplicate_binding_count = bindings.count();
+    if duplicate_binding_count != 0 {
         diagnostics.push(material_abi_diagnostic(
             binding_path(group, expected.binding),
             format!(
                 "{abi_name} expects one descriptor for group {group} binding {}, but shader declares {}",
                 expected.binding,
-                bindings.len()
+                duplicate_binding_count + 1
             ),
         ));
     }
 
-    let binding = bindings[0];
     if binding.resource_type != expected.resource_type {
         diagnostics.push(material_abi_diagnostic(
             binding_path(group, expected.binding),
@@ -301,18 +303,6 @@ fn push_extra_binding_diagnostics(
             ),
         ));
     }
-}
-
-fn matching_bind_groups(
-    shader: &ShaderAsset,
-    group: u32,
-) -> Vec<&RenderShaderBindGroupLayoutDescriptor> {
-    shader
-        .pipeline_layout
-        .bind_groups
-        .iter()
-        .filter(|bind_group| bind_group.group == group)
-        .collect::<Vec<_>>()
 }
 
 fn binding_has_required_visibility(
@@ -512,9 +502,11 @@ mod tests {
             "pipeline_layout.group3",
             "@group(3)"
         ));
-        assert!(!diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic_path(diagnostic) == Some("pipeline_layout.group1")));
+        assert!(
+            !diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic_path(diagnostic) == Some("pipeline_layout.group1"))
+        );
     }
 
     #[test]

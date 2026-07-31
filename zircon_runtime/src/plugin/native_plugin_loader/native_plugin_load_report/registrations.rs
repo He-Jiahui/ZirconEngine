@@ -3,12 +3,26 @@ use crate::plugin::{
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 
-use super::NativePluginLoadReport;
+use super::{projection::NativePluginLoadProjection, NativePluginLoadReport};
 
 impl NativePluginLoadReport {
     pub fn runtime_plugin_registration_reports(&self) -> Vec<RuntimePluginRegistrationReport> {
+        self.projection().runtime_plugin_registration_reports()
+    }
+
+    pub fn runtime_plugin_feature_registration_reports(
+        &self,
+    ) -> Vec<RuntimePluginFeatureRegistrationReport> {
+        self.projection()
+            .runtime_plugin_feature_registration_reports()
+    }
+}
+
+impl NativePluginLoadProjection {
+    pub fn runtime_plugin_registration_reports(&self) -> Vec<RuntimePluginRegistrationReport> {
         self.package_manifests()
-            .into_iter()
+            .iter()
+            .cloned()
             .filter(|manifest| {
                 manifest.package_kind != PluginPackageKind::FeatureExtension
                     && has_runtime_module(manifest)
@@ -20,7 +34,7 @@ impl NativePluginLoadReport {
                 );
                 report
                     .diagnostics
-                    .extend(self.diagnostics_for_runtime_plugin(&plugin_id));
+                    .extend(self.runtime_diagnostics_for_plugin(&plugin_id));
                 report.diagnostics.sort();
                 report.diagnostics.dedup();
                 report
@@ -32,7 +46,7 @@ impl NativePluginLoadReport {
         &self,
     ) -> Vec<RuntimePluginFeatureRegistrationReport> {
         self.package_manifests()
-            .into_iter()
+            .iter()
             .flat_map(|manifest| {
                 let plugin_id = manifest.id.clone();
                 runtime_feature_manifests(&manifest)
@@ -51,7 +65,7 @@ impl NativePluginLoadReport {
                             );
                         report
                             .diagnostics
-                            .extend(self.diagnostics_for_runtime_plugin(&plugin_id));
+                            .extend(self.runtime_diagnostics_for_plugin(&plugin_id));
                         report.diagnostics.sort();
                         report.diagnostics.dedup();
                         report

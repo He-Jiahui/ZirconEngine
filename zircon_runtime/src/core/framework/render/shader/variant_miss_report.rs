@@ -75,26 +75,12 @@ pub struct ShaderVariantRuntimeDimensionSummary {
 
 impl ShaderVariantRuntimeDimensionSummary {
     fn record(&mut self, key: &ShaderVariantKey, outcome: ShaderVariantRuntimeOutcome) {
-        record_dimension(
-            &mut self.pass_types,
-            key.pass_type.token().to_string(),
-            outcome,
-        );
-        record_dimension(
-            &mut self.geometry_source_ids,
-            key.geometry_source.value().to_string(),
-            outcome,
-        );
-        record_dimension(
-            &mut self.shading_model_ids,
-            key.shading_model.value().to_string(),
-            outcome,
-        );
-        record_dimension(
-            &mut self.quality_tiers,
-            key.quality.token().to_string(),
-            outcome,
-        );
+        record_dimension(&mut self.pass_types, key.pass_type.token(), outcome);
+        let geometry_source_id = key.geometry_source.value().to_string();
+        record_dimension(&mut self.geometry_source_ids, &geometry_source_id, outcome);
+        let shading_model_id = key.shading_model.value().to_string();
+        record_dimension(&mut self.shading_model_ids, &shading_model_id, outcome);
+        record_dimension(&mut self.quality_tiers, key.quality.token(), outcome);
     }
 
     fn accumulate(&mut self, other: &Self) {
@@ -152,10 +138,17 @@ enum ShaderVariantRuntimeOutcome {
 
 fn record_dimension(
     counts: &mut BTreeMap<String, ShaderVariantRuntimeDimensionCount>,
-    key: String,
+    key: &str,
     outcome: ShaderVariantRuntimeOutcome,
 ) {
-    counts.entry(key).or_default().record(outcome);
+    if let Some(count) = counts.get_mut(key) {
+        count.record(outcome);
+        return;
+    }
+
+    let mut count = ShaderVariantRuntimeDimensionCount::default();
+    count.record(outcome);
+    counts.insert(key.to_owned(), count);
 }
 
 fn accumulate_dimensions(
@@ -175,8 +168,8 @@ mod tests {
     use zircon_runtime_interface::resource::ResourceId;
 
     use crate::core::framework::render::{
-        GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
-        SHADING_MODEL_ID_STANDARD_PBR,
+        GeometrySourceId, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
+        ShaderQualityTier, ShaderVariantKey,
     };
 
     use super::ShaderVariantMissReport;

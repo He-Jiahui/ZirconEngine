@@ -4,10 +4,14 @@
 //! manifest and descriptor contracts without moving ownership out of
 //! `zircon_runtime`.
 
+#[cfg(feature = "runtime")]
+mod declaration;
 #[cfg(feature = "native")]
 pub mod dist;
 #[cfg(feature = "editor")]
 pub mod editor;
+#[cfg(feature = "editor_contribution")]
+pub mod editor_contribution;
 #[cfg(feature = "runtime")]
 pub mod manifest;
 #[cfg(feature = "native")]
@@ -23,8 +27,12 @@ mod runtime_exports;
 #[cfg(feature = "runtime")]
 pub mod test;
 
+#[cfg(feature = "runtime")]
+pub use declaration::PluginDeclaration;
 #[cfg(feature = "editor")]
 pub use editor::EditorPluginDeclaration;
+#[cfg(feature = "editor_contribution")]
+pub use editor_contribution::EditorContributionBuilder;
 #[cfg(feature = "runtime")]
 pub use manifest::{
     default_export_packaging, default_supported_platforms, importer_runtime_supported_platforms,

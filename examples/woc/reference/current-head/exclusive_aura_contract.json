@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/exclusive_aura_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/exclusive_aura.ts": "b521aeb0acc0514c76bbc1cd9ed7578d39e9c7621dd882ddb846a40c8af82d29"
+  },
+  "order": "descending"
+}

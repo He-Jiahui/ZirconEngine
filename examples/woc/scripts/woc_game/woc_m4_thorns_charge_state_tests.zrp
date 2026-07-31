@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_thorns_charge_state_tests",
+  "source": "src",
+  "binary": "bin-m4-thorns-charge-state-tests",
+  "entry": "combat/thorns_charge_state_test_main"
+}

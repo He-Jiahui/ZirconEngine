@@ -131,6 +131,59 @@ class MilestoneControlClientTests(unittest.TestCase):
 
 
 class MilestoneCliTests(unittest.TestCase):
+    def test_runtime14_rust_template_is_a_closed_cli_choice(self) -> None:
+        arguments = cli._parser().parse_args(
+            [
+                "--repo-root",
+                ".",
+                "milestone",
+                "validate",
+                "--session-id",
+                "session-a",
+                "--run-id",
+                "run-a",
+                "--milestone",
+                "M4",
+                "--template",
+                "runtime14-rust-focused",
+            ]
+        )
+
+        self.assertEqual("runtime14-rust-focused", arguments.template)
+
+    @mock.patch("tools.session_coordinator.cli.CoordinatorClient.from_runtime")
+    def test_failure_deferral_cli_uses_one_durable_typed_command(self, from_runtime) -> None:
+        client = from_runtime.return_value
+        client.command.return_value = {"deferral": {"targetMilestoneId": "M3"}}
+        arguments = cli._parser().parse_args(
+            [
+                "milestone",
+                "defer-failure",
+                "--session-id",
+                "session-a",
+                "--source-milestone",
+                "m2",
+                "--target-milestone",
+                "m3",
+                "--failure-lifecycle-key",
+                "failure-key",
+            ]
+        )
+
+        result = cli._run(arguments)
+
+        self.assertEqual("M3", result["deferral"]["targetMilestoneId"])
+        client.command.assert_called_once_with(
+            "milestone.defer_failure",
+            {
+                "session_id": "session-a",
+                "source_milestone_key": "M2",
+                "target_milestone_key": "M3",
+                "failure_lifecycle_key": "failure-key",
+                "actor": "session-a",
+            },
+        )
+
     def test_main_serializes_database_failures_without_traceback_or_raw_details(self) -> None:
         with mock.patch.object(
             cli, "_run", side_effect=sqlite3.DatabaseError("raw database detail")

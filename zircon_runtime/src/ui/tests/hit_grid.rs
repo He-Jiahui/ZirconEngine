@@ -16,6 +16,15 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+fn exact_hit_hot_path_borrows_single_cell_without_query_scratch() {
+    let source = include_str!("../tree/hit_test.rs");
+
+    assert!(source.contains("if cursor_radius <= 0.0"));
+    assert!(source.contains("cell.entries.iter().rev()"));
+    assert!(source.contains("return hit_result_from_stacked"));
+}
+
+#[test]
 fn hit_grid_omits_disabled_nodes_and_debug_dump_reports_why() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
     surface.tree.insert_root(

@@ -1,3 +1,4 @@
+mod adaptive;
 mod identity;
 mod inline;
 mod style;

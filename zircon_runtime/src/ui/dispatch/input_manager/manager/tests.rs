@@ -1,14 +1,15 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
 use zircon_runtime_interface::ui::{
     component::{UiComponentEvent, UiValue},
     dispatch::{
         UiComponentEventReport, UiDispatchDisposition, UiDispatchReply, UiInputDispatchResult,
         UiInputEvent, UiInputEventMetadata, UiInputRoutePolicy, UiInputSequence, UiInputTimestamp,
-        UiTextInputEvent,
+        UiPointerSource, UiTextInputEvent,
     },
     dispatch::{UiDispatchHostRequestKind, UiTooltipTimerInputEventKind},
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
+    surface::UiPointerButton,
     tree::{UiTemplateNodeMetadata, UiTreeNode},
     widget::UiWidgetContract,
 };
@@ -16,6 +17,57 @@ use zircon_runtime_interface::ui::{
 use crate::ui::surface::UiSurface;
 
 use super::UiInputManager;
+
+#[test]
+fn frame_visible_timer_deadline_returns_earliest_non_negative_delay() {
+    let now = UiInputTimestamp::from_micros(1_000);
+    let mut manager = UiInputManager::default();
+
+    manager
+        .timers
+        .arm_typeahead_expiration(UiNodeId::new(1), now, 90);
+    manager
+        .timers
+        .arm_submenu_hover_expiration(UiNodeId::new(2), "file", now, 40);
+    manager
+        .timers
+        .arm_tooltip_expiration(UiNodeId::new(3), "status.hint", now, 60);
+    manager
+        .timers
+        .arm_toast_expiration(UiNodeId::new(4), "saved", now, 80);
+
+    assert_eq!(
+        manager.next_frame_visible_delay(now),
+        Some(Duration::from_millis(40))
+    );
+    assert_eq!(
+        manager.next_frame_visible_delay(UiInputTimestamp::from_micros(41_001)),
+        Some(Duration::ZERO),
+        "an overdue frame-visible timer must request an immediate frame"
+    );
+}
+
+#[test]
+fn double_click_candidate_is_not_a_frame_visible_deadline() {
+    let now = UiInputTimestamp::from_micros(1_000);
+    let mut manager = UiInputManager::default();
+
+    assert_eq!(manager.next_frame_visible_delay(now), None);
+    manager.timers.arm_double_click_candidate(
+        UiNodeId::new(1),
+        None,
+        UiPointerSource::Mouse,
+        Some(UiPointerButton::Primary),
+        1,
+        now,
+    );
+
+    assert_eq!(
+        manager.next_frame_visible_delay(now),
+        None,
+        "double-click state is input classification, not frame-visible work"
+    );
+}
 
 #[test]
 fn hovered_menu_option_arms_replaces_and_clears_submenu_hover_timer() {
@@ -455,6 +507,7 @@ fn component_event_result(target: UiNodeId, event: UiComponentEvent) -> UiInputD
         event,
         delivered: true,
         drag: None,
+        template_action: None,
     });
     result
 }

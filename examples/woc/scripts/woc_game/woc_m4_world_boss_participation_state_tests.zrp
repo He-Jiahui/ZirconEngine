@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_world_boss_participation_state_tests",
+  "source": "src",
+  "binary": "bin-m4-world-boss-participation-state-tests",
+  "entry": "world/world_boss_participation_state_test_main"
+}

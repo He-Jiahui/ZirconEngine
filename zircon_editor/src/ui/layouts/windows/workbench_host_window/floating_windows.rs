@@ -26,6 +26,42 @@ pub(crate) fn collect_floating_windows(
     build_export: &BuildExportPaneViewData,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> Vec<FloatingWindowData> {
+    let template_v2_data = std::collections::BTreeMap::new();
+    collect_floating_windows_with_template_v2_data(
+        model,
+        chrome,
+        geometry,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        &template_v2_data,
+        floating_window_projection_bundle,
+    )
+}
+
+pub(crate) fn collect_floating_windows_with_template_v2_data(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    geometry: &WorkbenchShellGeometry,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+) -> Vec<FloatingWindowData> {
     model
         .floating_windows
         .iter()
@@ -39,6 +75,7 @@ pub(crate) fn collect_floating_windows(
                 runtime_diagnostics,
                 module_plugins,
                 build_export,
+                template_v2_data,
                 floating_window_projection_bundle,
             )
         })
@@ -60,12 +97,16 @@ fn floating_window_data(
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
     module_plugins: &ModulePluginsPaneViewData,
     build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> FloatingWindowData {
     let active_tab = window.focus_target_tab();
     let active_pane = active_tab
         .map(|tab| {
-            pane_from_tab(
+            pane_from_tab_with_template_v2_data(
                 &tab.instance_id.0,
                 &window.window_id.0,
                 &tab.title,
@@ -79,6 +120,7 @@ fn floating_window_data(
                 runtime_diagnostics,
                 module_plugins,
                 build_export,
+                template_v2_data,
             )
         })
         .unwrap_or_else(blank_pane);

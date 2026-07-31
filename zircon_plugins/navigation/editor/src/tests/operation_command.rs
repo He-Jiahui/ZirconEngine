@@ -11,15 +11,14 @@ use zircon_editor::core::gateway::{
     EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError,
 };
 use zircon_runtime::core::framework::navigation::{
-    NavMeshAsset, NavMeshBakeRequest, NavigationGeneratedBakeChange,
-    NavigationGeneratedBakeSnapshot, NAVIGATION_BAKE_SCENE_OPERATION,
-    NAVIGATION_BAKE_SURFACE_OPERATION, NAVIGATION_CLEAR_SURFACE_OPERATION,
-    NAVIGATION_RESTORE_BAKE_OPERATION,
+    NAVIGATION_BAKE_SCENE_OPERATION, NAVIGATION_BAKE_SURFACE_OPERATION,
+    NAVIGATION_CLEAR_SURFACE_OPERATION, NAVIGATION_RESTORE_BAKE_OPERATION, NavMeshAsset,
+    NavMeshBakeRequest, NavigationGeneratedBakeChange, NavigationGeneratedBakeSnapshot,
 };
 use zircon_runtime_interface::{
-    ZrRuntimeOperationHandle, ZrRuntimeOperationPhase, ZrRuntimeOperationProgressV1,
-    ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
-    ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimeSessionHandle,
 };
 
 use crate::operation_command::NavigationOperationCommand;
@@ -53,11 +52,11 @@ fn factory_request_payload(operation: &str, arguments: serde_json::Value) -> ser
 }
 
 #[test]
-fn navigation_selected_surface_factory_accepts_retained_positional_arguments() {
+fn navigation_selected_surface_factory_accepts_typed_object_arguments() {
     assert_eq!(
         factory_request_payload(
             NAVIGATION_BAKE_SURFACE_OPERATION,
-            serde_json::json!([41, true])
+            serde_json::json!({ "surface_entity": 41, "force_full_rebuild": true })
         ),
         serde_json::json!({
             "surface_entity": 41,
@@ -67,7 +66,10 @@ fn navigation_selected_surface_factory_accepts_retained_positional_arguments() {
         })
     );
     assert_eq!(
-        factory_request_payload(NAVIGATION_CLEAR_SURFACE_OPERATION, serde_json::json!([73])),
+        factory_request_payload(
+            NAVIGATION_CLEAR_SURFACE_OPERATION,
+            serde_json::json!({ "surface_entity": 73 })
+        ),
         serde_json::json!({ "surface_entity": 73 })
     );
 }
@@ -90,13 +92,17 @@ fn navigation_selected_surface_factory_rejects_missing_or_malformed_selection_ar
         serde_json::json!(["not-an-entity", false]),
         serde_json::json!([41]),
         serde_json::json!([41, false, "extra"]),
+        serde_json::json!({ "surface_entity": "not-an-entity", "force_full_rebuild": false }),
+        serde_json::json!({ "force_full_rebuild": false }),
     ] {
-        assert!(factory
-            .create(&operation_invocation(
-                NAVIGATION_BAKE_SURFACE_OPERATION,
-                arguments
-            ))
-            .is_err());
+        assert!(
+            factory
+                .create(&operation_invocation(
+                    NAVIGATION_BAKE_SURFACE_OPERATION,
+                    arguments
+                ))
+                .is_err()
+        );
     }
 }
 

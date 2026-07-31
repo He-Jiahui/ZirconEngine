@@ -1,17 +1,13 @@
-use std::sync::Arc;
-
 use super::{
-    hook::{StateHook, StateTransitionDispatch},
-    NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
+    hook::StateTransitionDispatch, NextState, OnEnter, OnExit, OnTransition, State, StateHookIndex,
+    StateSpec, StateTransitionEvent,
 };
 
 pub(crate) struct StateMachine<T: StateSpec> {
     current: Option<State<T>>,
     next: NextState<T>,
     events: Vec<StateTransitionEvent<T>>,
-    on_enter: Vec<(OnEnter<T>, StateHook<T>)>,
-    on_exit: Vec<(OnExit<T>, StateHook<T>)>,
-    on_transition: Vec<(OnTransition<T>, StateHook<T>)>,
+    hooks: StateHookIndex<T>,
 }
 
 impl<T: StateSpec> Default for StateMachine<T> {
@@ -20,9 +16,7 @@ impl<T: StateSpec> Default for StateMachine<T> {
             current: None,
             next: NextState::Unchanged,
             events: Vec::new(),
-            on_enter: Vec::new(),
-            on_exit: Vec::new(),
-            on_transition: Vec::new(),
+            hooks: StateHookIndex::default(),
         }
     }
 }
@@ -83,21 +77,21 @@ impl<T: StateSpec> StateMachine<T> {
     where
         F: Fn(&StateTransitionEvent<T>) + Send + Sync + 'static,
     {
-        self.on_enter.push((label, Arc::new(hook)));
+        self.hooks.register_on_enter(label, hook);
     }
 
     pub(crate) fn register_on_exit<F>(&mut self, label: OnExit<T>, hook: F)
     where
         F: Fn(&StateTransitionEvent<T>) + Send + Sync + 'static,
     {
-        self.on_exit.push((label, Arc::new(hook)));
+        self.hooks.register_on_exit(label, hook);
     }
 
     pub(crate) fn register_on_transition<F>(&mut self, label: OnTransition<T>, hook: F)
     where
         F: Fn(&StateTransitionEvent<T>) + Send + Sync + 'static,
     {
-        self.on_transition.push((label, Arc::new(hook)));
+        self.hooks.register_on_transition(label, hook);
     }
 
     fn record_transition(
@@ -108,42 +102,6 @@ impl<T: StateSpec> StateMachine<T> {
     ) -> StateTransitionDispatch<T> {
         let event = StateTransitionEvent::new(exited, entered, allow_same_state_transitions);
         self.events.push(event.clone());
-        let exit_hooks = self.exit_hooks_for(&event);
-        let transition_hooks = self.transition_hooks_for(&event);
-        let enter_hooks = self.enter_hooks_for(&event);
-        StateTransitionDispatch::new(event, exit_hooks, transition_hooks, enter_hooks)
-    }
-
-    fn enter_hooks_for(&self, event: &StateTransitionEvent<T>) -> Vec<StateHook<T>> {
-        let Some(entered) = event.entered.as_ref() else {
-            return Vec::new();
-        };
-        self.on_enter
-            .iter()
-            .filter(|(label, _)| &label.state == entered)
-            .map(|(_, hook)| Arc::clone(hook))
-            .collect()
-    }
-
-    fn exit_hooks_for(&self, event: &StateTransitionEvent<T>) -> Vec<StateHook<T>> {
-        let Some(exited) = event.exited.as_ref() else {
-            return Vec::new();
-        };
-        self.on_exit
-            .iter()
-            .filter(|(label, _)| &label.state == exited)
-            .map(|(_, hook)| Arc::clone(hook))
-            .collect()
-    }
-
-    fn transition_hooks_for(&self, event: &StateTransitionEvent<T>) -> Vec<StateHook<T>> {
-        let (Some(exited), Some(entered)) = (event.exited.as_ref(), event.entered.as_ref()) else {
-            return Vec::new();
-        };
-        self.on_transition
-            .iter()
-            .filter(|(label, _)| &label.exited == exited && &label.entered == entered)
-            .map(|(_, hook)| Arc::clone(hook))
-            .collect()
+        self.hooks.dispatch(event)
     }
 }

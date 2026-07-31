@@ -1,0 +1,25 @@
+var rules = %import("progression/stat_core_rules");
+
+if (rules.primaryAtLevel(23, 2, 1) != 23 || rules.primaryAtLevel(23, 2, 20) != 61 ||
+    rules.hpFromStamina(-1) != 0 || rules.hpFromStamina(20) != 20 ||
+    rules.hpFromStamina(22) != 40 || rules.hpFromStamina(60) != 420 ||
+    rules.manaFromIntellect(-1) != 0 || rules.manaFromIntellect(20) != 20 ||
+    rules.manaFromIntellect(25) != 95 ||
+    rules.attackPower("warrior", 23, 20, 0, 0.0) != 46 ||
+    rules.attackPower("rogue", 17, 25, 0, 0.0) != 42 ||
+    rules.attackPower("mage", 10, 12, 0, 0.0) != 10 ||
+    rules.attackPower("hunter", 14, 25, 0, 0.0) != 39 ||
+    rules.rangedPower(true, 25, 0, 0.0) != 50 ||
+    rules.rangedPower(false, 25, 0, 0.0) != 0 ||
+    rules.spellPower(25, 0) != 13 || rules.spellPower(-10, 0) != 0 ||
+    rules.critChance(20, 0.0) != 0.06 || rules.dodgeChance(20, 0.0) != 0.06 ||
+    rules.dodgeChance(0, -0.1) != 0.0 ||
+    rules.maxHp(50, 18, 20, 60, false, 0.0, 1.0) != 812 ||
+    rules.maxHp(50, 18, 1, 22, true, 0.1, 1.0) != 114 ||
+    rules.maxHp(50, 18, 1, 22, true, 0.1, 1.35) != 154 ||
+    rules.maxMana(100, 24, 1, 25) != 195 ||
+    rules.contractTest() != 1) {
+    return -1;
+}
+
+return 0;

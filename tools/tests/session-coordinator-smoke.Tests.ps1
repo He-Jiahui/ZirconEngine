@@ -4,7 +4,10 @@ param(
     [switch]$LeaseAndPatch,
     [switch]$CargoAndCleanup,
     [switch]$FinalizeInTempRepo,
-    [switch]$LegacyRollout
+    [switch]$LegacyRollout,
+    [switch]$JsonClient,
+    [switch]$StrictJsonParser,
+    [switch]$ValidatorDryRun
 )
 
 Set-StrictMode -Version Latest
@@ -97,6 +100,211 @@ function Test-Kernel {
         if (Test-Path -LiteralPath $testRoot) {
             Remove-Item -LiteralPath $testRoot -Recurse -Force
         }
+    }
+}
+
+function Test-JsonClientOutput {
+    $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("zircon-coordinator-json-client-" + [guid]::NewGuid().ToString("N"))
+    $repo = Join-Path $testRoot "repo"
+    $launcher = Join-Path $sourceRoot "tools\zircon-session.ps1"
+    $started = $false
+    $daemonPid = $null
+    try {
+        New-Item -ItemType Directory -Path $repo -Force | Out-Null
+        & git -C $repo init -q
+        & git -C $repo config user.email "coordinator-smoke@example.invalid"
+        & git -C $repo config user.name "Coordinator Smoke"
+        & git -C $repo config core.autocrlf false
+        & git -C $repo branch -M main
+        [System.IO.File]::WriteAllText(
+            (Join-Path $repo "README.md"), "baseline`n", [System.Text.UTF8Encoding]::new($false)
+        )
+        & git -C $repo add README.md
+        & git -C $repo commit -q -m "test: baseline"
+
+        $coldRegisterOutput = & $launcher -Command session -RepoRoot $repo -Port 0 -Json register --session-id "json-client-cold"
+        Assert-True ($LASTEXITCODE -eq 0) "Cold JSON launcher session registration failed: $($coldRegisterOutput -join [Environment]::NewLine)"
+        $coldRegistered = ($coldRegisterOutput -join [Environment]::NewLine) | ConvertFrom-Json
+        Assert-True ($coldRegistered.session.session_id -eq "json-client-cold") "Cold JSON launcher session payload was incomplete."
+        $started = $true
+
+        $coordinatorReady = $false
+        for ($attempt = 0; $attempt -lt 50; $attempt++) {
+            Start-Sleep -Milliseconds 100
+            $statusOutput = & $launcher -Command status -RepoRoot $repo -Port 0 -Json
+            if ($LASTEXITCODE -eq 0) {
+                $status = ($statusOutput -join [Environment]::NewLine) | ConvertFrom-Json
+                if ($status.status -eq "ok") {
+                    $coordinatorReady = $true
+                    break
+                }
+            }
+        }
+        Assert-True $coordinatorReady "JSON launcher coordinator did not become healthy."
+
+        $runtimePath = Join-Path $repo ".codex\state\session-coordinator\runtime.json"
+        $runtime = Get-Content -Raw -LiteralPath $runtimePath | ConvertFrom-Json
+        $daemonPid = [int]$runtime.pid
+        Assert-True ($daemonPid -gt 0) "JSON launcher runtime descriptor did not identify its daemon process."
+
+        $statusOutput = & $launcher -Command status -RepoRoot $repo -Port 0 -Json
+        Assert-True ($LASTEXITCODE -eq 0) "JSON launcher status failed: $($statusOutput -join [Environment]::NewLine)"
+        $status = ($statusOutput -join [Environment]::NewLine) | ConvertFrom-Json
+        Assert-True ($status.status -eq "ok") "JSON launcher status payload was incomplete."
+
+        $registerOutput = & $launcher -Command session -RepoRoot $repo -Port 0 -Json register --session-id "json-client-warm"
+        Assert-True ($LASTEXITCODE -eq 0) "JSON launcher session registration failed: $($registerOutput -join [Environment]::NewLine)"
+        $registered = ($registerOutput -join [Environment]::NewLine) | ConvertFrom-Json
+        Assert-True ($registered.session.session_id -eq "json-client-warm") "JSON launcher session payload was incomplete."
+
+        $reusedStartOutput = & $launcher -Command start -RepoRoot $repo -Port 0 -Json
+        Assert-True ($LASTEXITCODE -eq 0) "JSON launcher reuse start failed: $($reusedStartOutput -join [Environment]::NewLine)"
+        $reusedStart = ($reusedStartOutput -join [Environment]::NewLine) | ConvertFrom-Json
+        Assert-True ($reusedStart.status -eq "ok") "JSON launcher reuse start payload was incomplete."
+
+        $humanOutput = & $launcher -Command start -RepoRoot $repo -Port 0
+        Assert-True ($LASTEXITCODE -eq 0) "Human-readable launcher start failed: $($humanOutput -join [Environment]::NewLine)"
+        Assert-True (($humanOutput -join [Environment]::NewLine) -match "Coordinator ready\.") "Human-readable launcher start did not report readiness."
+
+        Stop-Process -Id $daemonPid -Force -ErrorAction Stop
+        $started = $false
+        $stopped = $false
+        for ($attempt = 0; $attempt -lt 50; $attempt++) {
+            Start-Sleep -Milliseconds 100
+            if ($null -eq (Get-Process -Id $daemonPid -ErrorAction SilentlyContinue)) {
+                $stopped = $true
+                break
+            }
+        }
+        Assert-True $stopped "JSON launcher daemon process remained alive after stop."
+        Write-Host "PASS: coordinator JSON client output"
+    }
+    finally {
+        if ($started -and $null -ne $daemonPid) {
+            Stop-Process -Id $daemonPid -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath $testRoot) {
+            Remove-Item -LiteralPath $testRoot -Recurse -Force
+        }
+    }
+}
+
+function Test-StrictJsonParser {
+    $validator = Join-Path $sourceRoot ".codex\skills\zircon-dev\scripts\validate-matrix.ps1"
+    $oldTestMode = $env:VALIDATE_MATRIX_TEST_MODE
+    try {
+        $env:VALIDATE_MATRIX_TEST_MODE = "1"
+        & {
+            . $validator
+            $response = ConvertFrom-StrictCoordinatorJson `
+                -Command "session register" `
+                -RawOutput @('{"status":"ok"}')
+            Assert-True ($response.status -eq "ok") "Strict JSON parser rejected a single object response."
+
+            $failure = $null
+            try {
+                ConvertFrom-StrictCoordinatorJson `
+                    -Command "session register" `
+                    -RawOutput @('{"status":"ok"}', '{"status":"duplicate"}') | Out-Null
+            }
+            catch {
+                $failure = $_
+            }
+            Assert-True ($null -ne $failure) "Strict JSON parser accepted multiple JSON documents."
+            Assert-True ($failure.Exception.Message -match "exactly one JSON document") `
+                "Strict JSON parser did not identify the multiple-document protocol violation: $($failure.Exception.Message)"
+
+            $malformedFailure = $null
+            try {
+                ConvertFrom-StrictCoordinatorJson `
+                    -Command "session register" `
+                    -RawOutput @('{"status":') | Out-Null
+            }
+            catch {
+                $malformedFailure = $_
+            }
+            Assert-True ($null -ne $malformedFailure) "Strict JSON parser accepted malformed JSON."
+            Assert-True ($malformedFailure.Exception.Message -notmatch "null-valued expression") `
+                "Strict JSON parser masked the malformed-response cause with cleanup failure: $($malformedFailure.Exception.Message)"
+
+            $rootFailure = $null
+            try {
+                ConvertFrom-StrictCoordinatorJson `
+                    -Command "session register" `
+                    -RawOutput @('[]') | Out-Null
+            }
+            catch {
+                $rootFailure = $_
+            }
+            Assert-True ($null -ne $rootFailure) "Strict JSON parser accepted a non-object JSON root."
+            Assert-True ($rootFailure.Exception.Message -match "root must be an object") `
+                "Strict JSON parser did not identify the non-object root: $($rootFailure.Exception.Message)"
+
+            $schemaFailure = $null
+            try {
+                Require-CoordinatorResponseField `
+                    -Response ([pscustomobject]@{ requestId = "missing-job" }) `
+                    -Command "cargo acquire" `
+                    -FieldPath "job.job_id" | Out-Null
+            }
+            catch {
+                $schemaFailure = $_
+            }
+            Assert-True ($null -ne $schemaFailure) "Coordinator response schema guard accepted a missing job id."
+            Assert-True ($schemaFailure.Exception.Message -match "job.job_id") `
+                "Coordinator response schema guard did not identify the missing field: $($schemaFailure.Exception.Message)"
+        }
+        Write-Host "PASS: strict coordinator JSON parser"
+    }
+    finally {
+        $env:VALIDATE_MATRIX_TEST_MODE = $oldTestMode
+    }
+}
+
+function Test-ValidatorDryRun {
+    $validator = Join-Path $sourceRoot ".codex\skills\zircon-dev\scripts\validate-matrix.ps1"
+    $oldTestMode = $env:VALIDATE_MATRIX_TEST_MODE
+    $oldSessionId = $env:ZIRCON_SESSION_ID
+    $sessionId = "m0-1-validator-dry-run-" + [guid]::NewGuid().ToString("N")
+    try {
+        $env:VALIDATE_MATRIX_TEST_MODE = "1"
+        $env:ZIRCON_SESSION_ID = $sessionId
+        & {
+            . $validator
+            $completeCoordinatorTarget = (Get-Command Complete-CoordinatorCargoTarget).ScriptBlock
+            $releaseCalls = [System.Collections.Generic.List[object]]::new()
+            function Invoke-SessionCoordinatorJson {
+                param([string]$RepoRoot, [string[]]$Arguments)
+
+                $releaseCalls.Add([pscustomobject]@{
+                    RepoRoot = $RepoRoot
+                    Arguments = @($Arguments)
+                })
+                return [pscustomobject]@{ status = "ok" }
+            }
+
+            $dryRunTarget = [pscustomobject]@{
+                JobId = "dry-run-job"
+                OwnerId = $sessionId
+                DryRun = $true
+            }
+            & $completeCoordinatorTarget `
+                -RepoRoot $sourceRoot `
+                -ResolvedTarget $dryRunTarget `
+                -ExitCode 1 `
+                -Started:$false
+
+            Assert-True ($releaseCalls.Count -eq 1) "Dry-run cleanup did not issue exactly one coordinator command."
+            $release = $releaseCalls[0]
+            Assert-True ($release.RepoRoot -eq $sourceRoot) "Dry-run cleanup used the wrong repository root."
+            Assert-True (($release.Arguments -join " ") -eq "cargo release dry-run-job --session-id $sessionId") `
+                "Dry-run cleanup did not release its coordinator job: $($release.Arguments -join " ")"
+        }
+        Write-Host "PASS: validator dry-run coordinator release contract"
+    }
+    finally {
+        $env:VALIDATE_MATRIX_TEST_MODE = $oldTestMode
+        $env:ZIRCON_SESSION_ID = $oldSessionId
     }
 }
 
@@ -471,7 +679,8 @@ function Test-LegacyRollout {
 }
 
 $runAll = -not $KernelOnly -and -not $LeaseAndPatch -and -not $CargoAndCleanup -and `
-    -not $FinalizeInTempRepo -and -not $LegacyRollout
+    -not $FinalizeInTempRepo -and -not $LegacyRollout -and -not $JsonClient -and -not $StrictJsonParser -and `
+    -not $ValidatorDryRun
 
 if ($KernelOnly -or $runAll) {
     Test-Kernel
@@ -491,4 +700,16 @@ if ($FinalizeInTempRepo -or $runAll) {
 
 if ($LegacyRollout -or $runAll) {
     Test-LegacyRollout
+}
+
+if ($JsonClient -or $runAll) {
+    Test-JsonClientOutput
+}
+
+if ($StrictJsonParser -or $runAll) {
+    Test-StrictJsonParser
+}
+
+if ($ValidatorDryRun -or $runAll) {
+    Test-ValidatorDryRun
 }

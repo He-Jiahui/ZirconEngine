@@ -24,7 +24,7 @@ impl RuntimePluginRegistrationReport {
             diagnostics.push(error.to_string());
         }
         let package_manifest = plugin.package_manifest();
-        validate_runtime_plugin_package_manifest(
+        let projection = validate_runtime_plugin_package_manifest(
             Some(plugin.descriptor()),
             &package_manifest,
             &mut diagnostics,
@@ -36,11 +36,13 @@ impl RuntimePluginRegistrationReport {
         );
         validate_runtime_plugin_registration_interfaces(
             &package_manifest,
+            &projection,
             &extensions,
             &mut diagnostics,
         );
         validate_runtime_plugin_registration_system_anchors(
             &package_manifest,
+            &projection,
             &extensions,
             &mut diagnostics,
         );

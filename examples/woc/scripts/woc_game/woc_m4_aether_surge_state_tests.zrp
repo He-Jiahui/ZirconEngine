@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_aether_surge_state_tests",
+  "source": "src",
+  "binary": "bin-m4-aether-surge-state-tests",
+  "entry": "combat/aether_surge_state_test_main"
+}

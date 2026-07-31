@@ -1,0 +1,31 @@
+// Source-compatible simulation-text formatter from src/sim/format_money.ts.
+// This deliberately returns the compact English transport fragment used by
+// loot/vendor/quest/market events; retained UI owns locale-aware presentation.
+var math = %import("zr.zircon.math");
+
+appendMoneyPart(current: string, hasPart: bool, amount: int, suffix: string): string {
+    var fragment = <string>amount + suffix;
+    return hasPart ? current + " " + fragment : fragment;
+}
+
+pub formatMoney(copper: int): string {
+    // Preserve JavaScript Math.floor and remainder order, including the source's
+    // odd negative-input output. Gameplay currency producers are integral.
+    var gold = <int>math.floor(<float>copper / 10000.0);
+    var silver = <int>math.floor(<float>(copper % 10000) / 100.0);
+    var copperPart = copper % 100;
+    var output = "";
+    var hasPart = false;
+    if (gold > 0) {
+        output = appendMoneyPart(output, hasPart, gold, "g");
+        hasPart = true;
+    }
+    if (silver > 0) {
+        output = appendMoneyPart(output, hasPart, silver, "s");
+        hasPart = true;
+    }
+    if (copperPart > 0 || !hasPart) {
+        output = appendMoneyPart(output, hasPart, copperPart, "c");
+    }
+    return output;
+}

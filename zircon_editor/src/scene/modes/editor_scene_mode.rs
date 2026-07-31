@@ -12,4 +12,9 @@ pub trait EditorSceneMode: Send {
     fn update(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
 
     fn build_overlay(&self, _out: &mut ViewportOverlayBuilder) {}
+
+    #[doc(hidden)]
+    fn take_boundary_failure(&mut self) -> Option<String> {
+        None
+    }
 }

@@ -119,6 +119,10 @@ fn static_mesh(node_id: u64, translation: Vec3) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: true,
+            ..Default::default()
+        },
     }
 }

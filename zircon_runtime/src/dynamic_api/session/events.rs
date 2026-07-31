@@ -59,10 +59,12 @@ impl RuntimeDynamicSession {
             }
             ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1 => {
                 let cursor = Vec2::new(event.x, event.y);
-                self.submit_input_event(InputEvent::CursorMoved {
+                if self.submit_input_event(InputEvent::CursorMoved {
                     x: cursor.x,
                     y: cursor.y,
-                });
+                }) {
+                    self.record_submitted_pointer_move();
+                }
                 self.handle_cursor_moved(cursor);
                 ZrStatus::ok()
             }
@@ -122,11 +124,15 @@ impl RuntimeDynamicSession {
         };
         match event.state {
             ZR_RUNTIME_BUTTON_STATE_PRESSED_V1 => {
-                self.submit_input_event(InputEvent::ButtonPressed(button));
+                if self.submit_input_event(InputEvent::ButtonPressed(button)) {
+                    self.record_submitted_mouse_button_press();
+                }
                 self.handle_pressed(event.button);
             }
             ZR_RUNTIME_BUTTON_STATE_RELEASED_V1 => {
-                self.submit_input_event(InputEvent::ButtonReleased(button));
+                if self.submit_input_event(InputEvent::ButtonReleased(button)) {
+                    self.record_submitted_mouse_button_release();
+                }
                 self.handle_released(event.button);
             }
             _ => return invalid_argument(b"unknown runtime button state"),
@@ -228,13 +234,19 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_KEY_ACTION_RELEASED_V1 => false,
             _ => return ZrStatus::ok(),
         };
-        self.submit_input_event(InputEvent::KeyboardInput {
+        if self.submit_input_event(InputEvent::KeyboardInput {
             key_code: event.key_code,
             logical_key: keyboard_logical_key(event.key_code, text.as_deref()),
             text,
             pressed,
             repeat: false,
-        });
+        }) {
+            if pressed {
+                self.record_submitted_keyboard_press();
+            } else {
+                self.record_submitted_keyboard_release();
+            }
+        }
         ZrStatus::ok()
     }
 

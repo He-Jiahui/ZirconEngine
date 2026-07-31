@@ -9,13 +9,11 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
+use crate::ui::retained_host::welcome_recent_geometry::welcome_recent_row_geometry;
 
-use super::constants::{
-    BUTTON_Y, ITEM_GAP, ITEM_HEIGHT, OPEN_BUTTON_X, REMOVE_BUTTON_X, ROOT_NODE_ID,
-    VIEWPORT_INNER_WIDTH_INSET, VIEWPORT_NODE_ID,
-};
+use super::constants::{ROOT_NODE_ID, VIEWPORT_NODE_ID};
 use super::helper::{
-    base_state, button_size, content_height, item_node_id, item_route_id, list_surface_route_id,
+    base_state, content_height, item_node_id, item_route_id, list_surface_route_id,
     open_button_node_id, open_button_route_id, remove_button_node_id, remove_button_route_id,
     viewport_frame,
 };
@@ -75,17 +73,11 @@ impl WelcomeRecentPointerBridge {
             EditorRouteIntent::WelcomeRecent(WelcomeRecentPointerRouteIntent::ListSurface),
         );
 
-        let row_width = (viewport.width - VIEWPORT_INNER_WIDTH_INSET).max(0.0);
-        let (button_width, button_height) = button_size();
         for (item_index, path) in self.layout.recent_project_paths.iter().enumerate() {
             let item_node_id = item_node_id(item_index);
-            let item_frame = UiFrame::new(
-                viewport.x,
-                viewport.y + item_index as f32 * (ITEM_HEIGHT + ITEM_GAP)
-                    - self.state.scroll_offset,
-                row_width,
-                ITEM_HEIGHT,
-            );
+            let geometry =
+                welcome_recent_row_geometry(viewport, item_index, self.state.scroll_offset);
+            let item_frame = geometry.row;
             surface
                 .tree
                 .insert_child(
@@ -116,12 +108,7 @@ impl WelcomeRecentPointerBridge {
                         open_node_id,
                         UiNodePath::new(format!("editor.welcome.recent/item_{item_index}/open")),
                     )
-                    .with_frame(UiFrame::new(
-                        item_frame.x + OPEN_BUTTON_X,
-                        item_frame.y + BUTTON_Y,
-                        button_width,
-                        button_height,
-                    ))
+                    .with_frame(geometry.open)
                     .with_z_index(120 + item_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),
@@ -147,12 +134,7 @@ impl WelcomeRecentPointerBridge {
                         remove_node_id,
                         UiNodePath::new(format!("editor.welcome.recent/item_{item_index}/remove")),
                     )
-                    .with_frame(UiFrame::new(
-                        item_frame.x + REMOVE_BUTTON_X,
-                        item_frame.y + BUTTON_Y,
-                        button_width,
-                        button_height,
-                    ))
+                    .with_frame(geometry.remove)
                     .with_z_index(220 + item_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),

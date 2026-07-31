@@ -7,8 +7,8 @@ use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 use super::compute_workload::{SSAO_PIPELINE_LABEL, SSAO_WORKGROUP_SIZE};
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
-) -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
+-> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "screen_space_ambient_occlusion",
         vec![
@@ -19,19 +19,21 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         vec![FrameHistoryBinding::read_write(
             FrameHistorySlot::AmbientOcclusion,
         )],
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::AmbientOcclusion,
-            "ssao-evaluate",
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id("ao.ssao-evaluate")
-        .with_compute_workload(RenderGraphComputeWorkload::viewport(
-            SSAO_PIPELINE_LABEL,
-            SSAO_WORKGROUP_SIZE,
-        ))
-        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-        .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
-        .write_storage_external_texture(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::AmbientOcclusion,
+                "ssao-evaluate",
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id("ao.ssao-evaluate")
+            .with_compute_workload(RenderGraphComputeWorkload::viewport(
+                SSAO_PIPELINE_LABEL,
+                SSAO_WORKGROUP_SIZE,
+            ))
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+            .write_storage_external_texture(PostProcessGraphResourceNames::AMBIENT_OCCLUSION),
+        ],
     )
 }

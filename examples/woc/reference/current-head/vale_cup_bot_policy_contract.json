@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/vale_cup_bot_policy_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/social/vale_cup_bots.ts": "ec25a00ee885150c2bcb9305a2e123268ce1a36b39555e607ac14bc2e88a5ed6"
+  },
+  "constants": {
+    "field_cast_period": 44,
+    "keeper_cast_period": 8,
+    "keeper_shade": 5.2,
+    "keeper_guard_depth": 1,
+    "kick_reach": 3.5,
+    "sprint_ball_distance": 13,
+    "shoot_range": 14,
+    "pass_min_lead": 6,
+    "aim_error_max": 3.6,
+    "aim_error_period": 90,
+    "shoot_range_encoding": 34,
+    "intercept_lead": 0.5
+  },
+  "role_codes": {
+    "allrounder": 0,
+    "keeper": 1,
+    "sweeper": 2,
+    "striker": 3
+  },
+  "source_formulas": {
+    "aim_phase_pid_multiplier": 37,
+    "aim_half_period_divisor": 2,
+    "shot_fraction_min": 0.42,
+    "shot_fraction_max": 0.6,
+    "shot_fraction_base": 0.4,
+    "shot_fraction_distance_divisor": 55,
+    "shot_goal_post_margin": 1
+  }
+}

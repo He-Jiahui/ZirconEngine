@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var yumiMaze = %import("social/yumi_maze_layout");
+
+var result = yumiMaze.contractTest();
+
+console.printLine("m6-yumi-maze-layout-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

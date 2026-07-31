@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_nythraxis_quest_interact_state_tests",
+  "source": "src",
+  "binary": "bin-m4-nythraxis-quest-interact-state-tests",
+  "entry": "combat/nythraxis_quest_interact_state_test_main"
+}

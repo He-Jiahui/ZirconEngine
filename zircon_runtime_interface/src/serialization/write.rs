@@ -1,4 +1,5 @@
 use std::fmt;
+use std::io::{self, Write};
 
 use serde::ser::{
     SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
@@ -7,8 +8,14 @@ use serde::ser::{
 use serde::{Serialize, Serializer};
 
 use super::binary::encode_binary_payload;
-use super::text::{canonical::canonicalize_value, document::TextDocument, envelope::TextEnvelope};
-use super::{Format, PayloadHeader, VersionedSchema, WriteError};
+use super::text::{
+    canonical_writer::{
+        SERDE_JSON_RAW_VALUE_TOKEN, write_canonical_text, write_canonical_text_unbounded,
+    },
+    document::TextDocument,
+    envelope::TextEnvelope,
+};
+use super::{CanonicalTextWriteError, Format, PayloadHeader, VersionedSchema, WriteError};
 
 /// Encodes a payload with the current schema header and canonical text rules.
 pub fn write_versioned<T>(value: &T, format: Format) -> Result<Vec<u8>, WriteError>
@@ -16,9 +23,13 @@ where
     T: VersionedSchema + Serialize,
 {
     match format {
-        Format::Text => write_versioned_text(value).map(String::into_bytes),
+        Format::Text => {
+            let mut encoded = Vec::new();
+            write_versioned_text_to(value, &mut encoded)?;
+            Ok(encoded)
+        }
         Format::Binary => {
-            let payload = encode_payload(value)?;
+            let payload = encode_binary_payload_value(value)?;
             encode_binary_payload(current_header::<T>(), payload)
         }
     }
@@ -29,31 +40,79 @@ pub fn write_versioned_text<T>(value: &T) -> Result<String, WriteError>
 where
     T: VersionedSchema + Serialize,
 {
-    let payload = encode_payload(value)?;
+    let mut encoded = Vec::new();
+    write_versioned_text_to(value, &mut encoded)?;
+    String::from_utf8(encoded).map_err(|error| WriteError::TextEncode {
+        schema_id: T::SCHEMA.as_str().to_string(),
+        schema_version: T::VERSION,
+        source: serde_json::Error::io(io::Error::new(io::ErrorKind::InvalidData, error)),
+    })
+}
+
+/// Streams canonical, pretty JSON with a single trailing newline to a sink.
+///
+/// The caller owns any buffering policy. This function never constructs a
+/// complete text document solely to write it to the supplied sink.
+pub fn write_versioned_text_to<T, W>(value: &T, sink: &mut W) -> Result<usize, WriteError>
+where
+    T: VersionedSchema + Serialize,
+    W: Write + ?Sized,
+{
     let document = TextDocument {
         envelope: TextEnvelope {
             header: current_header::<T>(),
-            payload,
+            payload: value,
         },
     };
-    let canonical = canonicalize_value(serde_json::to_value(document).map_err(|source| {
-        WriteError::TextEncode {
+    write_canonical_text(&document, sink).map_err(|error| match error {
+        CanonicalTextWriteError::NonFinite { value } => WriteError::NonFiniteFloat {
             schema_id: T::SCHEMA.as_str().to_string(),
             schema_version: T::VERSION,
-            source,
+            value,
+        },
+        CanonicalTextWriteError::PayloadValidation { reason } => WriteError::PayloadValidation {
+            schema_id: T::SCHEMA.as_str().to_string(),
+            schema_version: T::VERSION,
+            reason,
+        },
+        CanonicalTextWriteError::PayloadEncode { reason } => WriteError::PayloadEncode {
+            schema_id: T::SCHEMA.as_str().to_string(),
+            schema_version: T::VERSION,
+            source: <serde_json::Error as serde::ser::Error>::custom(reason),
+        },
+        CanonicalTextWriteError::OutputTooLarge { max, found } => {
+            WriteError::TextDocumentTooLarge {
+                schema_id: T::SCHEMA.as_str().to_string(),
+                schema_version: T::VERSION,
+                max,
+                found,
+            }
         }
-    })?);
-    let mut encoded =
-        serde_json::to_string_pretty(&canonical).map_err(|source| WriteError::TextEncode {
+        CanonicalTextWriteError::Io { operation, source } => WriteError::TextWrite {
             schema_id: T::SCHEMA.as_str().to_string(),
             schema_version: T::VERSION,
+            operation,
             source,
-        })?;
-    encoded.push('\n');
-    Ok(encoded)
+        },
+    })
 }
 
-fn encode_payload<T>(value: &T) -> Result<serde_json::Value, WriteError>
+/// Streams canonical JSON without applying a versioned-schema envelope.
+///
+/// This is reserved for runtime-owned archive formats that already define
+/// their own compatibility contract.
+pub fn write_canonical_text_to<T, W>(
+    value: &T,
+    sink: &mut W,
+) -> Result<usize, CanonicalTextWriteError>
+where
+    T: ?Sized + Serialize,
+    W: Write + ?Sized,
+{
+    write_canonical_text_unbounded(value, sink)
+}
+
+fn encode_binary_payload_value<T>(value: &T) -> Result<serde_json::Value, WriteError>
 where
     T: VersionedSchema + Serialize,
 {
@@ -195,13 +254,20 @@ impl Serializer for FiniteFloatGuard {
 
     fn serialize_newtype_struct<T>(
         self,
-        _name: &'static str,
+        name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        value.serialize(self)
+        if name == SERDE_JSON_RAW_VALUE_TOKEN {
+            Err(FloatValidationError::Custom {
+                reason: "serde_json RawValue is outside the canonical versioned payload domain"
+                    .to_string(),
+            })
+        } else {
+            value.serialize(self)
+        }
     }
 
     fn serialize_newtype_variant<T>(
@@ -249,10 +315,17 @@ impl Serializer for FiniteFloatGuard {
 
     fn serialize_struct(
         self,
-        _name: &'static str,
+        name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(FiniteFloatCompound)
+        if name == SERDE_JSON_RAW_VALUE_TOKEN {
+            Err(FloatValidationError::Custom {
+                reason: "serde_json RawValue is outside the canonical versioned payload domain"
+                    .to_string(),
+            })
+        } else {
+            Ok(FiniteFloatCompound)
+        }
     }
 
     fn serialize_struct_variant(

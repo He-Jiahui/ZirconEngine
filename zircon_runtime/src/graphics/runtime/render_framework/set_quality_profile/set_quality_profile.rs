@@ -14,46 +14,61 @@ pub(in crate::graphics::runtime::render_framework) fn set_quality_profile(
     profile: RenderQualityProfile,
 ) -> Result<(), RenderFrameworkError> {
     let _operation_guard = framework.lock_operation();
-    let mut state = framework.lock_state();
-    let capabilities = state.stats.capabilities.clone();
-    let active_pipeline = state
-        .viewports
-        .get(&viewport)
-        .ok_or(RenderFrameworkError::UnknownViewport {
-            viewport: viewport.raw(),
-        })?
-        .pipeline();
-    let effective_pipeline = active_pipeline.or(profile.pipeline_override);
-    if let Some(pipeline) = profile.pipeline_override {
-        if !state.pipelines.contains_key(&pipeline) {
-            return Err(RenderFrameworkError::UnknownPipeline {
-                pipeline: pipeline.raw(),
-            });
+    let (capabilities, effective_pipeline, pipeline_asset) = {
+        let state = framework.lock_state();
+        let active_pipeline = state
+            .viewports
+            .get(&viewport)
+            .ok_or(RenderFrameworkError::UnknownViewport {
+                viewport: viewport.raw(),
+            })?
+            .pipeline();
+        let effective_pipeline = active_pipeline.or(profile.pipeline_override);
+        if let Some(pipeline) = profile.pipeline_override {
+            if !state.pipelines.contains_key(&pipeline) {
+                return Err(RenderFrameworkError::UnknownPipeline {
+                    pipeline: pipeline.raw(),
+                });
+            }
         }
-    }
-    if let Some(pipeline) = effective_pipeline {
-        let pipeline_asset = state.pipelines.get(&pipeline).cloned().ok_or(
-            RenderFrameworkError::UnknownPipeline {
-                pipeline: pipeline.raw(),
-            },
-        )?;
-        let compiled = compile_pipeline_for_validation(&pipeline_asset)?;
+        let pipeline_asset = effective_pipeline
+            .map(|pipeline| {
+                state.pipelines.get(&pipeline).cloned().ok_or(
+                    RenderFrameworkError::UnknownPipeline {
+                        pipeline: pipeline.raw(),
+                    },
+                )
+            })
+            .transpose()?;
+        (
+            state.stats.capabilities.clone(),
+            effective_pipeline,
+            pipeline_asset,
+        )
+    };
+    let compiled = pipeline_asset
+        .as_ref()
+        .map(compile_pipeline_for_validation)
+        .transpose()?;
+    let profile_name = profile.name.clone();
+    let mut state = framework.lock_state();
+    if let Some((pipeline, compiled)) = effective_pipeline.zip(compiled.as_ref()) {
         state
             .renderer
-            .validate_compiled_pipeline_executors(&compiled)
+            .validate_compiled_pipeline_executors(compiled)
             .map_err(|message| RenderFrameworkError::GraphCompileFailure {
                 pipeline: pipeline.raw(),
                 message,
             })?;
-        validate_compiled_pipeline_capabilities(&compiled, &capabilities)?;
+        validate_compiled_pipeline_capabilities(compiled, &capabilities)?;
     }
     validate_quality_profile_capabilities(effective_pipeline, &profile, &capabilities)?;
     let record = state
         .viewports
         .get_mut(&viewport)
         .expect("viewport checked above");
-    record.set_quality_profile(profile.clone());
-    state.stats.last_quality_profile = Some(profile.name);
+    record.set_quality_profile(profile);
+    state.stats.last_quality_profile = Some(profile_name);
     Ok(())
 }
 
@@ -74,6 +89,26 @@ mod tests {
     use crate::render_graph::QueueLane;
 
     use super::set_quality_profile;
+
+    #[test]
+    fn set_quality_profile_compiles_outside_framework_state_lock() {
+        let source = include_str!("set_quality_profile.rs");
+        let compile = source
+            .find(concat!("let compiled = ", "pipeline_asset"))
+            .expect("quality profile should compile the validation graph");
+        let snapshot = source[..compile]
+            .rfind(concat!(
+                "let (capabilities, effective_pipeline, pipeline_asset) = ",
+                "{"
+            ))
+            .expect("pipeline asset should be snapshotted in a short lock scope");
+        let relock = compile
+            + source[compile..]
+                .find(concat!("let mut state = framework.", "lock_state();"))
+                .expect("framework state should be reacquired after compilation");
+
+        assert!(snapshot < compile && compile < relock);
+    }
 
     #[test]
     fn set_quality_profile_revalidates_override_graph_executor_contract() {
@@ -97,13 +132,15 @@ mod tests {
                 "profile-override-invalid-executor-feature",
                 Vec::new(),
                 Vec::new(),
-                vec![RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "profile-override-invalid-executor-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("custom.profile-override-missing-executor")
-                .with_side_effects()],
+                vec![
+                    RenderFeaturePassDescriptor::new(
+                        RenderPassStage::PostProcess,
+                        "profile-override-invalid-executor-pass",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("custom.profile-override-missing-executor")
+                    .with_side_effects(),
+                ],
             ));
         framework
             .state

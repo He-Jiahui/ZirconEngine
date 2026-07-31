@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "generated_files": [
+    {
+      "path": "Cargo.toml",
+      "purpose": "generated runtime package manifest",
+      "contents": "[package]\nname = \"source-template-smoke\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\nzircon_app = { path = \"../../zircon_app\", default-features = false }\n"
+    },
+    {
+      "path": "src/main.rs",
+      "purpose": "generated runtime entrypoint",
+      "contents": "fn main() {}\n"
+    }
+  ]
+}

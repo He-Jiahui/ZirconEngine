@@ -14,7 +14,7 @@ impl EditorRequestHandler for EchoPayloadHandler {
 }
 
 #[test]
-fn publish_request_and_broadcast_preserve_all_four_typed_payload_families() {
+fn publish_request_and_broadcast_preserve_all_typed_payload_families() {
     for (topic_name, message) in typed_messages() {
         assert_protocol_preserves_payload(EditorMessageProtocol::Publish, topic_name, &message);
         assert_protocol_preserves_payload(EditorMessageProtocol::Request, topic_name, &message);
@@ -28,7 +28,7 @@ fn assert_protocol_preserves_payload(
     message: &EditorMessage,
 ) {
     let mut bus = EditorMessageBus::default();
-    let target = bus.register_subscriber([topic(topic_name)]);
+    let target = bus.register_subscriber([topic(topic_name)]).unwrap();
 
     match protocol {
         EditorMessageProtocol::Publish => {
@@ -48,7 +48,8 @@ fn assert_protocol_preserves_payload(
         }
     }
 
-    let delivery = &bus.deliveries_for(target)[0];
+    let deliveries = bus.deliveries_for(target);
+    let delivery = &deliveries[0];
     assert_eq!(delivery.protocol(), protocol);
     assert_eq!(delivery.message().payload(), message.payload());
 }

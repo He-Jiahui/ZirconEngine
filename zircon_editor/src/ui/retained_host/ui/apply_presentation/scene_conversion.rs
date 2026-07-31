@@ -168,6 +168,7 @@ pub(super) fn to_host_contract_page_chrome(
         project_path_frame: to_host_contract_frame_rect(&page.project_path_frame),
         overflow_frame: to_host_contract_frame_rect(&page.overflow_frame),
         overflow_hidden_tab_indices: page.overflow_hidden_tab_indices.clone(),
+        overflow_widest_title_width_px: page.overflow_widest_title_width_px,
         tab_frames: map_model_rc(&page.tab_frames, to_host_contract_chrome_tab),
         tabs: to_host_contract_tabs(&page.tabs),
         project_path: page.project_path.clone(),
@@ -219,6 +220,7 @@ pub(super) fn to_host_contract_side_dock(
     dock: &host_window::HostSideDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
+    hierarchy_filter_query: &str,
 ) -> host_contract::HostSideDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.panel_width_px,
@@ -244,6 +246,7 @@ pub(super) fn to_host_contract_side_dock(
             pane_size,
             component_showcase_runtime,
             welcome,
+            hierarchy_filter_query,
         ),
         rail_width_px: dock.rail_width_px,
         panel_width_px: dock.panel_width_px,
@@ -255,6 +258,7 @@ pub(super) fn to_host_contract_document_dock(
     dock: &host_window::HostDocumentDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
+    hierarchy_filter_query: &str,
 ) -> host_contract::HostDocumentDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
@@ -274,6 +278,7 @@ pub(super) fn to_host_contract_document_dock(
             pane_size,
             component_showcase_runtime,
             welcome,
+            hierarchy_filter_query,
         ),
         header_height_px: dock.header_height_px,
     }
@@ -283,6 +288,7 @@ pub(super) fn to_host_contract_bottom_dock(
     dock: &host_window::HostBottomDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
+    hierarchy_filter_query: &str,
 ) -> host_contract::HostBottomDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
@@ -301,6 +307,7 @@ pub(super) fn to_host_contract_bottom_dock(
             pane_size,
             component_showcase_runtime,
             welcome,
+            hierarchy_filter_query,
         ),
         expanded: dock.expanded,
         header_height_px: dock.header_height_px,
@@ -311,6 +318,7 @@ pub(super) fn to_host_contract_floating_layer(
     layer: &host_window::HostFloatingWindowLayerData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
+    hierarchy_filter_query: &str,
 ) -> host_contract::HostFloatingWindowLayerData {
     host_contract::HostFloatingWindowLayerData {
         floating_windows: to_host_contract_floating_windows(
@@ -318,6 +326,7 @@ pub(super) fn to_host_contract_floating_layer(
             layer.header_height_px,
             component_showcase_runtime,
             welcome,
+            hierarchy_filter_query,
         ),
         header_height_px: layer.header_height_px,
     }
@@ -327,13 +336,14 @@ pub(super) fn to_host_contract_floating_layer(
 pub(in crate::ui::retained_host::ui) fn to_host_contract_host_scene_data(
     scene: &host_window::HostWindowSceneData,
 ) -> host_contract::HostWindowSceneData {
-    to_host_contract_host_scene_data_with_runtime(scene, None, None)
+    to_host_contract_host_scene_data_with_runtime(scene, None, None, "")
 }
 
 pub(super) fn to_host_contract_host_scene_data_with_runtime(
     scene: &host_window::HostWindowSceneData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
+    hierarchy_filter_query: &str,
 ) -> host_contract::HostWindowSceneData {
     let layout = {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_layout");
@@ -369,23 +379,48 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
     };
     let left_dock = {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_left_dock");
-        to_host_contract_side_dock(&scene.left_dock, component_showcase_runtime, welcome)
+        to_host_contract_side_dock(
+            &scene.left_dock,
+            component_showcase_runtime,
+            welcome,
+            hierarchy_filter_query,
+        )
     };
     let document_dock = {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_document_dock");
-        to_host_contract_document_dock(&scene.document_dock, component_showcase_runtime, welcome)
+        to_host_contract_document_dock(
+            &scene.document_dock,
+            component_showcase_runtime,
+            welcome,
+            hierarchy_filter_query,
+        )
     };
     let right_dock = {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_right_dock");
-        to_host_contract_side_dock(&scene.right_dock, component_showcase_runtime, welcome)
+        to_host_contract_side_dock(
+            &scene.right_dock,
+            component_showcase_runtime,
+            welcome,
+            hierarchy_filter_query,
+        )
     };
     let bottom_dock = {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_bottom_dock");
-        to_host_contract_bottom_dock(&scene.bottom_dock, component_showcase_runtime, welcome)
+        to_host_contract_bottom_dock(
+            &scene.bottom_dock,
+            component_showcase_runtime,
+            welcome,
+            hierarchy_filter_query,
+        )
     };
     let floating_layer = {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_floating_layer");
-        to_host_contract_floating_layer(&scene.floating_layer, component_showcase_runtime, welcome)
+        to_host_contract_floating_layer(
+            &scene.floating_layer,
+            component_showcase_runtime,
+            welcome,
+            hierarchy_filter_query,
+        )
     };
 
     host_contract::HostWindowSceneData {
@@ -409,6 +444,7 @@ pub(super) fn to_host_contract_native_floating_surface_data_with_runtime(
     surface: &host_window::HostNativeFloatingWindowSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
+    hierarchy_filter_query: &str,
 ) -> host_contract::HostNativeFloatingWindowSurfaceData {
     host_contract::HostNativeFloatingWindowSurfaceData {
         floating_windows: to_host_contract_floating_windows(
@@ -416,6 +452,7 @@ pub(super) fn to_host_contract_native_floating_surface_data_with_runtime(
             surface.header_height_px,
             component_showcase_runtime,
             welcome,
+            hierarchy_filter_query,
         ),
         native_floating_window_id: surface.native_floating_window_id.clone(),
         native_surface_tree_id: surface.native_surface_tree_id.clone(),

@@ -1,0 +1,52 @@
+// Scalar room-puzzle contracts from drowned_litany_rooms.ts. Object lookup,
+// walk-on range, companion barks, entity templates and event emission stay
+// with the authoritative DelveRun reducer.
+
+pub isLitanyPuzzleKind(kind: string, required: bool): bool {
+    if (!required) { throw "woc Drowned Litany puzzle kind is required"; }
+    return kind == "sluice_valve" || kind == "grave_tablet" ||
+        kind == "corpse_candle" || kind == "bell_rope";
+}
+
+pub isDelvePuzzleKind(kind: string, required: bool): bool {
+    if (!required) { throw "woc Delve puzzle kind is required"; }
+    return kind == "pressure_plate" || isLitanyPuzzleKind(kind, true);
+}
+
+// An empty string represents the source's null template result; valid callers
+// use it only as a scalar decision before changing an actual object template.
+pub triggeredTemplate(kind: string, triggered: bool, required: bool): string {
+    if (!required) { throw "woc Drowned Litany puzzle template is required"; }
+    if (!triggered) { return ""; }
+    if (kind == "sluice_valve") { return "delve_sluice_valve_open"; }
+    if (kind == "grave_tablet") { return "delve_grave_tablet_lit"; }
+    if (kind == "corpse_candle") { return "delve_corpse_candle_lit"; }
+    if (kind == "bell_rope") { return "delve_bell_rope_pulled"; }
+    return "";
+}
+
+pub bellRopeDamage(required: bool): int {
+    if (!required) { throw "woc Drowned Litany bell rope damage is required"; }
+    return 18;
+}
+
+pub contractTest(): int {
+    if (!isLitanyPuzzleKind("sluice_valve", true) ||
+        !isLitanyPuzzleKind("grave_tablet", true) ||
+        !isLitanyPuzzleKind("corpse_candle", true) ||
+        !isLitanyPuzzleKind("bell_rope", true) ||
+        isLitanyPuzzleKind("pressure_plate", true) ||
+        !isDelvePuzzleKind("pressure_plate", true) ||
+        isDelvePuzzleKind("unknown", true)) {
+        return -1;
+    }
+    if (triggeredTemplate("sluice_valve", false, true) != "" ||
+        triggeredTemplate("sluice_valve", true, true) != "delve_sluice_valve_open" ||
+        triggeredTemplate("grave_tablet", true, true) != "delve_grave_tablet_lit" ||
+        triggeredTemplate("corpse_candle", true, true) != "delve_corpse_candle_lit" ||
+        triggeredTemplate("bell_rope", true, true) != "delve_bell_rope_pulled" ||
+        triggeredTemplate("unknown", true, true) != "" || bellRopeDamage(true) != 18) {
+        return -2;
+    }
+    return 1;
+}

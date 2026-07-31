@@ -6,9 +6,9 @@ use crate::rhi::{
     VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc,
     VertexStepMode,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
-fn create_pipeline_layout(device: &WgpuRenderDevice) -> PipelineLayoutHandle {
+fn create_pipeline_layout(device: &DeterministicRhiContractDevice) -> PipelineLayoutHandle {
     device
         .create_pipeline_layout(&PipelineLayoutDesc::new("pipeline-layout", Vec::new()))
         .unwrap()
@@ -26,7 +26,7 @@ fn create_test_bind_group_layout_desc(label: &str) -> BindGroupLayoutDesc {
 }
 
 fn create_shader(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     stage: ShaderStage,
     entry_point: &str,
@@ -37,7 +37,7 @@ fn create_shader(
         .unwrap()
 }
 
-fn create_vertex_shader(device: &WgpuRenderDevice) -> ShaderModuleHandle {
+fn create_vertex_shader(device: &DeterministicRhiContractDevice) -> ShaderModuleHandle {
     create_shader(
         device,
         "vs",
@@ -47,7 +47,7 @@ fn create_vertex_shader(device: &WgpuRenderDevice) -> ShaderModuleHandle {
     )
 }
 
-fn create_fragment_shader(device: &WgpuRenderDevice) -> ShaderModuleHandle {
+fn create_fragment_shader(device: &DeterministicRhiContractDevice) -> ShaderModuleHandle {
     create_shader(
         device,
         "fs",
@@ -57,7 +57,7 @@ fn create_fragment_shader(device: &WgpuRenderDevice) -> ShaderModuleHandle {
     )
 }
 
-fn create_compute_shader(device: &WgpuRenderDevice) -> ShaderModuleHandle {
+fn create_compute_shader(device: &DeterministicRhiContractDevice) -> ShaderModuleHandle {
     create_shader(
         device,
         "cs",
@@ -105,8 +105,8 @@ fn create_vertex_input_layout() -> VertexInputLayoutDesc {
 }
 
 #[test]
-fn wgpu_rhi_roundtrips_pipeline_layouts_and_shader_bound_pipelines() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_roundtrips_pipeline_layouts_and_shader_bound_pipelines() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let material_layout = device
         .create_bind_group_layout(&BindGroupLayoutDesc::new(
             "material-bindings",
@@ -164,8 +164,8 @@ fn wgpu_rhi_roundtrips_pipeline_layouts_and_shader_bound_pipelines() {
 }
 
 #[test]
-fn wgpu_rhi_rejects_invalid_shader_and_pipeline_descriptors() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_rejects_invalid_shader_and_pipeline_descriptors() {
+    let device = DeterministicRhiContractDevice::new_headless();
 
     assert_eq!(
         device
@@ -326,8 +326,8 @@ fn wgpu_rhi_rejects_invalid_shader_and_pipeline_descriptors() {
 }
 
 #[test]
-fn wgpu_rhi_roundtrips_raster_pipeline_state_for_color_depth_and_depth_only() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_roundtrips_raster_pipeline_state_for_color_depth_and_depth_only() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let layout = create_pipeline_layout(&device);
     let vertex = create_vertex_shader(&device);
     let fragment = create_fragment_shader(&device);
@@ -397,8 +397,8 @@ fn wgpu_rhi_roundtrips_raster_pipeline_state_for_color_depth_and_depth_only() {
 }
 
 #[test]
-fn wgpu_rhi_rejects_invalid_raster_pipeline_state_descriptors() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_rejects_invalid_raster_pipeline_state_descriptors() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let layout = create_pipeline_layout(&device);
     let vertex = create_vertex_shader(&device);
     let fragment = create_fragment_shader(&device);

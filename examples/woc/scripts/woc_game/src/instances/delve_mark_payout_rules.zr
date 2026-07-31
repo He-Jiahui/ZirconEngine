@@ -1,0 +1,26 @@
+// Pure projection of delveMarkPayout. RNG has already produced the repeat-normal chance bit.
+var content = %import("instances/delve_mark_payout_content");
+
+pub marksForClear(
+    dailyMarkClears: int,
+    heroic: bool,
+    repeatNormalChance: bool
+): int {
+    if (dailyMarkClears < content.firstFullClearLimit(true)) {
+        return heroic ? content.firstHeroicMarks(true) : content.firstNormalMarks(true);
+    }
+    if (heroic) {
+        return content.repeatHeroicMarks(true);
+    }
+    return repeatNormalChance ? content.firstNormalMarks(true) : 0;
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || marksForClear(0, false, false) != 1 ||
+        marksForClear(2, true, false) != 2 || marksForClear(3, true, false) != 1 ||
+        marksForClear(3, false, true) != 1 || marksForClear(3, false, false) != 0 ||
+        marksForClear(-1, false, false) != 1) {
+        return -1;
+    }
+    return 1;
+}

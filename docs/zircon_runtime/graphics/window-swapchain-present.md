@@ -18,6 +18,8 @@ related_code:
   - zircon_runtime/src/graphics/types/viewport_camera_stack_output_policy.rs
   - zircon_runtime/src/graphics/tests/surface_targets.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_surface.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs
@@ -40,6 +42,8 @@ implementation_files:
   - zircon_runtime/src/graphics/types/viewport_camera_stack_output_policy.rs
   - zircon_runtime/src/graphics/tests/surface_targets.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_surface.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs
@@ -80,6 +84,8 @@ The neutral `RenderFramework` default implementation treats viewport surface pre
 The window path still renders the full scene through the existing extract, pipeline, runtime-prepare, history, feedback, overlay, and UI path. The difference is the final step. `present_frame_extract` now resolves the Base/Overlay selected-camera loop, validates that the viewport-terminal child targets `PrimarySurface`, and preflights the bound surface once before rendering. Non-owner child frames render offscreen with inactive shared history; only the viewport-terminal child calls `ViewportSurface::present_texture`, which acquires a wgpu `SurfaceTexture`, draws a full-screen blit from the offscreen final color view into the swapchain texture, submits that GPU work, and calls `SurfaceTexture::present()`.
 
 This first window-present slice deliberately keeps the offscreen render target as the product render target. That preserves existing post-process, history, UI composition, capture, and readback behavior while removing the CPU readback from the live window redraw path. It also gives RenderDoc a real present boundary, so captures should report the runtime as presenting instead of `D3D12 (Not Presenting)` when the window path is active.
+
+`SceneRenderer` exposes the same backend capability to direct tools through `SceneViewportSurface`. A tool creates the surface from a `RenderViewportSurfaceDescriptor` only after its native window is available, then calls `render_to_viewport_surface(...)` for interactive frames. The renderer keeps its existing offscreen final-color target, resizes the surface to that target, and executes `ViewportSurface::present_texture(...)`; it does not construct a `ViewportFrame` or call `read_texture_rgba()`. `SceneRenderer::render(...)` remains the separate owned-RGBA path for screenshots, image encoding, headless use, and deterministic frame assertions. Surface creation or presentation failure is recoverable at the host: the PBR viewer disables direct presentation and redraws once through its existing softbuffer path instead of changing the rendering result or attempting a second renderer.
 
 ## Surface Details
 

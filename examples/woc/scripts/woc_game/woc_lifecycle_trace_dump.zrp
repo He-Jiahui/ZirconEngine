@@ -1,0 +1,6 @@
+{
+  "name": "woc_lifecycle_trace_dump",
+  "source": "src",
+  "binary": "bin-lifecycle-trace-dump",
+  "entry": "parity/m3_lifecycle_trace_dump_main"
+}

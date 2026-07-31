@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var motionVerticalWorld = %import("world/player_motion_vertical_world");
+
+console.printLine("m3-player-motion-vertical-world-test");
+var result = motionVerticalWorld.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

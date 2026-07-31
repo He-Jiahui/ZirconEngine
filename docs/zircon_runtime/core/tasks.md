@@ -34,11 +34,20 @@ plan_sources:
   - .codex/plans/ZirconEngine Bevy 参照基础设施收束计划.md
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
   - docs/plans/zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md
+  - docs/plans/zircon_runtime/runtime/11/failure-2026-07-17-task-diagnostics-accuracy.md
+  - docs/plans/zircon_runtime/runtime/11/2026-07-17-task-diagnostics-accuracy-current-source.md
+  - docs/plans/performance/01/2026-07-17-task-system-static-review.md
   - dev/bevy/crates/bevy_app/src/task_pool_plugin.rs
   - dev/bevy/crates/bevy_tasks/src/usages.rs
   - docs/zircon_runtime/core/job_system.md
 tests:
   - zircon_runtime/src/tests/tasks.rs
+  - zircon_runtime/src/tests/tasks.rs::task_diagnostics_track_ready_queue_active_and_queue_wait
+  - zircon_runtime/src/tests/tasks.rs::task_diagnostics_queue_pressure_matrix_drains_without_gauge_leaks
+  - zircon_runtime/src/tests/tasks.rs::task_diagnostics_reports_conserved_lifecycle_snapshots_during_transitions
+  - zircon_runtime/src/tests/tasks.rs::worker_side_wait_is_reported_as_explicit_wait
+  - zircon_runtime/src/tests/tasks.rs::task_diagnostics_distinguish_panics_from_dependency_cancellation
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs::tests::detached_spawn_counts_panicked_tasks_as_completed
   - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::repeated_editor_runtime_fixtures_release_every_runtime_root
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs::tests::job_handle_accessors_recover_poisoned_state_lock
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs::tests::job_handle_wait_recovers_poisoned_state_lock
@@ -95,7 +104,7 @@ Runtime 15 M3 extends the E9/F2 poison-safe lock rule to JobSystem state. `job_h
 
 `TaskPools::report()` is the read-only diagnostic surface for task-pool composition. `CoreRuntime::task_pool_report()` and `CoreHandle::task_pool_report()` expose the same report from the runtime boundary so callers do not need to know where the concrete pools are stored. The report mirrors the shape used by app module-selection diagnostics: `diagnostic_lines()` returns stable key/value lines and `format_diagnostics()` joins them for log files, command-line tooling, or tests. The report does not spawn work and does not expose rayon internals; it only describes the already-created pools.
 
-`JobScheduler::diagnostic_report()` is the read-only diagnostic surface for logical scheduled work. `JobScheduler::record_diagnostics(store, frame)` publishes the same values into `DiagnosticStore` with `tasks` and `job_scheduler` tags. `spawn`, `schedule`, and `schedule_after` increment `tasks.scheduled`; task closures increment `tasks.completed`; dependency-release latency is accumulated in `tasks.dependency_wait_ms`; explicit `JobHandle::wait()` and `JobScheduler::wait_all(...)` synchronization is accumulated in `tasks.main_thread_wait_ms`.
+`JobScheduler::diagnostic_report()` is the read-only diagnostic surface for logical scheduled work. `JobScheduler::record_diagnostics(store, frame)` publishes the same values into `DiagnosticStore` with `tasks` and `job_scheduler` tags. Monotonic lifecycle and duration atomics are bracketed by an in-flight writer count and epoch; overlapping writers retire through an acquire/release chain before readers can observe zero active writers. A reader makes at most 16 attempts, derives dependency-waiting, ready-queue, active-task, and terminal gauges (`tasks.dependency_waiting`, `tasks.queued`, `tasks.active`, `tasks.completed`) only from a writer-free unchanged-epoch snapshot, and falls back to its last confirmed stable snapshot under continuous mutation. These gauges conserve `tasks.scheduled`. This keeps reporting bounded and pairs cumulative enqueue-to-start duration/sample count (`tasks.queue_wait_ms`, `tasks.queue_wait_samples`) without putting a mutex on task updates. The report also exposes `tasks.panicked`, `tasks.cancelled`, and dependency-release duration (`tasks.dependency_wait_ms`). `JobHandle::wait()` and `JobScheduler::wait_all(...)` accumulate `tasks.explicit_wait_ms`; no `tasks.main_thread_wait_ms` alias remains because worker-side waits are valid and caller identity is not part of the handle contract.
 
 `JobSchedulerDiagnosticsState` remains private to `core::runtime::tasks`. `tasks/mod.rs` imports it for sibling task modules, but does not re-export it outside the owner module. The public diagnostic surface remains `JobSchedulerReport`, the scheduler diagnostic methods, and the stable `tasks.*` diagnostic keys.
 

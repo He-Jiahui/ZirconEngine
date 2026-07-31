@@ -6,6 +6,14 @@ use zircon_runtime_interface::ui::component::{
 };
 
 #[test]
+fn table_common_sort_and_column_width_paths_avoid_deep_value_clones() {
+    let source = include_str!("../../../component/state_reducer/table.rs");
+
+    assert!(source.contains("left.and_then(borrowed_sort_text)"));
+    assert!(!source.contains("Some(UiValue::Map(widths)) => widths.clone()"));
+}
+
+#[test]
 fn table_sort_column_toggles_direction_and_sorts_rows() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
     let table = registry.descriptor("Table").expect("Table descriptor");

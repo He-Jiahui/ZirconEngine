@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    RenderPhase, RenderPhaseQueueOrderingKey, RenderPhaseQueueSummary, RENDER_PHASES_BY_QUEUE_ORDER,
+    RENDER_PHASES_BY_QUEUE_ORDER, RenderPhase, RenderPhaseQueueOrderingKey, RenderPhaseQueueSummary,
 };
 
 /// Read-only reporting view that keeps mesh and sprite queue summaries side by side.
@@ -202,9 +202,28 @@ impl RenderFramePhaseQueueSummary {
 }
 
 fn phase_diagnostic_name(phases: &[RenderPhase]) -> String {
-    phases
+    let capacity = phases
         .iter()
-        .map(|phase| phase.diagnostic_name())
-        .collect::<Vec<_>>()
-        .join("+")
+        .map(|phase| phase.diagnostic_name().len())
+        .sum::<usize>()
+        .saturating_add(phases.len().saturating_sub(1));
+    let mut diagnostic_name = String::with_capacity(capacity);
+    for (index, phase) in phases.iter().enumerate() {
+        if index > 0 {
+            diagnostic_name.push('+');
+        }
+        diagnostic_name.push_str(phase.diagnostic_name());
+    }
+    diagnostic_name
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn frame_summary_builds_diagnostic_names_without_temporary_vec() {
+        let source = include_str!("frame_phase_queue_summary.rs");
+
+        assert!(!source.contains(concat!(".collect::<Vec<_>>()", ".join(\"+\")")));
+        assert!(source.contains(concat!("String::with_", "capacity(capacity)")));
+    }
 }

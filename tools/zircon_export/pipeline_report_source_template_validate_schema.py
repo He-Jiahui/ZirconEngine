@@ -6,6 +6,7 @@ from typing import Any
 
 from .pipeline_report_schema_primitives import (
     validate_bool_schema_diagnostics,
+    validate_integer_schema_diagnostics,
     validate_object_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
@@ -30,15 +31,17 @@ SOURCE_TEMPLATE_VALIDATE_BUILD_PLAN_BOOL_FIELDS = ("release",)
 SOURCE_TEMPLATE_VALIDATE_BUILD_PLAN_STRING_ARRAY_FIELDS = ("command",)
 
 SOURCE_TEMPLATE_VALIDATE_GENERATED_FILE_FIELDS = (
-    "contents",
+    "byte_length",
+    "content_digest",
     "path",
     "purpose",
 )
 SOURCE_TEMPLATE_VALIDATE_GENERATED_FILE_STRING_FIELDS = (
-    "contents",
+    "content_digest",
     "path",
     "purpose",
 )
+SOURCE_TEMPLATE_VALIDATE_GENERATED_FILE_INTEGER_FIELDS = ("byte_length",)
 
 
 def source_template_validate_build_plan_schema_diagnostics(
@@ -134,6 +137,26 @@ def source_template_validate_generated_file_schema_diagnostics(
             diagnostics.append(
                 f"SourceTemplate Validate generated_files[{index}].{field} "
                 "must be a non-empty trimmed string"
+            )
+        elif field == "content_digest" and (
+            len(value) != 64 or any(character not in "0123456789abcdef" for character in value)
+        ):
+            diagnostics.append(
+                f"SourceTemplate Validate generated_files[{index}].{field} "
+                "must be a 64-character lowercase SHA-256 digest"
+            )
+    for field in SOURCE_TEMPLATE_VALIDATE_GENERATED_FILE_INTEGER_FIELDS:
+        value = file.get(field)
+        diagnostics.extend(
+            validate_integer_schema_diagnostics(
+                f"SourceTemplate Validate generated_files[{index}].{field}",
+                value,
+            )
+        )
+        if type(value) is int and value < 0:
+            diagnostics.append(
+                f"SourceTemplate Validate generated_files[{index}].{field} "
+                "must be non-negative"
             )
     return diagnostics
 

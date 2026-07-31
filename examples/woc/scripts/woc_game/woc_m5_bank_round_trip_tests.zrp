@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_bank_round_trip_tests",
+  "source": "src",
+  "binary": "bin-m5-bank-round-trip-tests",
+  "entry": "progression/bank_state_test_main"
+}

@@ -11,7 +11,13 @@ related_code:
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime_interface/src/runtime_api/api_table.rs
   - zircon_runtime/src/scene/level_system.rs
+  - zircon_editor/src/core/gateway/mod.rs
+  - zircon_editor/src/core/gateway/session.rs
+  - zircon_editor/src/tests/gateway/session.rs
   - zircon_app/src/entry/entry_runner/editor.rs
+  - zircon_app/src/entry/entry_runner/editor/tests.rs
+  - zircon_app/src/entry/runtime_library/loaded_runtime.rs
+  - zircon_app/src/entry/runtime_library/tests.rs
 reference_sources:
   - dev/Fyrox/editor/src/lib.rs
   - dev/Fyrox/editor/src/message.rs
@@ -273,7 +279,7 @@ pub struct EditorRuntimeFrame {
 }
 
 pub trait EditorRuntimeGateway: Send + Sync {
-    fn capabilities(&self) -> RuntimeCapabilities;
+    fn capabilities(&self) -> Arc<RuntimeCapabilities>;
     fn session_handle(&self) -> ZrRuntimeSessionHandle;
     // 借用式（仅 InProcess 支持）
     fn with_world(&self, f: &mut dyn FnMut(&World)) -> Result<(), GatewayError>;
@@ -342,7 +348,7 @@ pub trait EditorRuntimeGateway: Send + Sync {
 ### M2 Gateway 双实现与 selected_node 迁出
 
 - 切片 2.1：`gateway/contract.rs` + `InProcessGateway`（`EditorRuntimeClient` 迁入删原位）；`src/ui/**` 的 `zircon_runtime::scene/core` 深路径直用点改走门面（执行时 Grep 清点记状态节）。
-- 切片 2.2：`SessionGateway` 包装已验证的 V2 session 函数表与 handle；create/destroy 继续由 `RuntimeSession` 单一生命周期 owner 负责，gateway 持有 provider `Arc` 防止函数指针或 frame buffer 越过库生命周期，不复制 destroy 权限。当前基础面覆盖 tick/frame/event/profile/plugin-event/operation；可选 `profile_control` 缺失返回 `Ok(None)`，必需入口缺失才返回 `CapabilityMissing`；`RuntimeCapabilities` 物化为 owned 快照。
+- 切片 2.2：`SessionGateway` 包装已验证的 V2 session 函数表与 handle；create/destroy 继续由 `RuntimeSession` 单一生命周期 owner 负责，gateway 持有 provider `Arc` 防止函数指针或 frame buffer 越过库生命周期，不复制 destroy 权限。当前基础面覆盖 tick/frame/event/profile/plugin-event/operation；可选 `profile_control` 缺失返回 `Ok(None)`，必需入口缺失才返回 `CapabilityMissing`；`RuntimeCapabilities` 物化为 generation-bound `Arc` 快照，stable handle 通过 `ArcSwap` 发布完整 generation，数据面不再进入共享 `RwLock`。
 - 切片 2.3：runtime 侧删 `RuntimeDynamicSession.selected_node`。当前源证明该字段只保存 construction 阶段默认 cube orbit anchor，没有编辑器更新入口或高亮消费；Runtime10 删除字段与高频 pointer/scroll selection-sync helper，保留中性初始 orbit target。正式 `push_editor_overlay`/HighlightSet 输入仍由 05 接管，不得为等待 05 而保留第二份选择真相。
 - 切片 2.4：守卫测试——`core/` 下 `use crate::ui` 为零（00 §7 不变量，拆解后首次可启用）；`src/ui/**` 禁 `LevelSystem/CoreHandle` 深路径（白名单=gateway 实现文件）。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked` + `cargo test -p zircon_runtime --lib --locked`（session 字段删除牵连）+ `cargo test -p zircon_runtime_interface --locked`；双实现契约测试矩阵全绿；守卫红→绿记录。更新 `docs/zircon_editor/core/gateway.md`。
@@ -360,13 +366,42 @@ pub trait EditorRuntimeGateway: Send + Sync {
 
 当前状态：M1.1-M1.3 的实现与聚焦合同已完成；最后一轮完整门禁仍为 2763 passed / 133 failed / 34 ignored，失败已按 Editor UI 03/05/06/08 功能计划接管，因此 Editor01 M1 保持 `in_progress`。M2.1 已完成 `InProcessGateway` 借用访问基础切片：同 world 读写、稳定 handle 转发、detached 定型拒绝、重入 fail-fast、panic 恢复、跨线程 TLS 隔离及 raw owner accessor 删除均已落地；current-source review 为 0/0/0，最终受管门为 7 passed / 0 failed / exit 0（job `37b0965d5e7647bb8952c3adb523145d`，run `6b173cb849884a49b827961fdfcb6667`）。`EditorRuntimeClient` 当前源码 occurrence 已为 0，旧 client owner 不再存在。该证据只关闭基础切片；UI runtime 深路径清理、双实现矩阵和 M2.4 守卫仍未完成，因此整个 M2.1 继续 `in_progress`。
 
-M2.2 current source 已落地 `SessionGateway`、owned `RuntimeCapabilities`/`EditorRuntimeFrame`、provider lifetime、V2 tick/event/frame/profile/plugin-event/operation 转发与 app stable-handle cutover，并删除 `RuntimeSession` 的旧 gateway trait/profile bridge。独立首审为 0/2/0：owned-buffer 与 optional-profile 路径已接受；子计划记录缺失已补齐，editor-normalized table 的 create/destroy lifecycle authority 也已按 test-first source guard 硬切，`RuntimeSession` 保持唯一 create/Drop owner。最终 current-source 复审为 0/0/0。Render01 编译阻断关闭后，受管 job `18d3e80c10094fe09357ae25892bc2b8` / run `2feb43d1b0944a389cbc7cc4b3a7a0e7` 执行 focused app lifecycle gate，1 passed / 0 failed / 175 filtered、exit 0，证明 normalized table 不再携带 create/destroy 且 `RuntimeSession::Drop` 仍唯一销毁 session。gateway matrix 首个实际 run `5636833c80374faf974920f821287952` 被 Performance01 的 `SharedString` 类型推断 E0282 阻断；该问题已按对应功能计划 fixed 回传并由受管提交 `43a1957e929739e229fcd34ab0ef1c36f0f156c3` 关闭。最终 job `13392907003549dbac31e080da7ab7aa` / run `ff0b13f008754335abe011470ad59f75` 执行 `cargo test -p zircon_editor --lib gateway:: --locked --jobs 1 -- --test-threads=1`，24 passed / 0 failed / 3334 filtered、exit 0。app runtime-library 上行门 reservation `1b02c0fbbda6495c9385c057654310a6` 仍在受管 FIFO，因此 M2.2 继续 `in_progress`。
+M2.2 current source 已落地 `SessionGateway`、owned `RuntimeCapabilities`/`EditorRuntimeFrame`、provider lifetime、V2 tick/event/frame/profile/plugin-event/operation 转发与 app stable-handle cutover，并删除 `RuntimeSession` 的旧 gateway trait/profile bridge。独立首审为 0/2/0：owned-buffer 与 optional-profile 路径已接受；子计划记录缺失已补齐，editor-normalized table 的 create/destroy lifecycle authority 也已按 test-first source guard 硬切，`RuntimeSession` 保持唯一 create/Drop owner。Render01 编译阻断关闭后，受管 job `18d3e80c10094fe09357ae25892bc2b8` / run `2feb43d1b0944a389cbc7cc4b3a7a0e7` 执行 focused app lifecycle gate，1 passed / 0 failed / 175 filtered、exit 0。随后 gateway matrix job `13392907003549dbac31e080da7ab7aa` / run `ff0b13f008754335abe011470ad59f75` 为 24 passed / 0 failed / 3334 filtered、exit 0。第二轮独立评审得到 0/2/4，当前源码已补 `isize::MAX`/非 OK output 验证、非空 RGBA 形状、subscription/operation response identity，并继续缩小 normalized table；`entry_runner/editor.rs` 的内联测试也已硬切到目录模块。因为源码指纹已变化，旧 24/24 只能作为历史证据，app reservation `1b02c0fbbda6495c9385c057654310a6` 已在无 job 状态释放；新 gateway/app 门与复审仍 pending，M2.2 继续 `in_progress`。
+
+M2.2 的 Performance01 `gateway-stable-call-lock-and-clone` priority-0 failure 已进入当前源码修复：`EditorRuntimeGatewayHandle` 由共享 `RwLock<Arc<dyn Gateway>>` 硬切为 `ArcSwap<GatewayGeneration>`，generation 同时持 transport 与 capability `Arc`；稳定调用只持原子 guard，replace 才进入可恢复 writer mutex。合同测试新增同 generation capability Arc 身份、generation 单调推进、并发调用期旧 transport 存活、失败 replacement 保留旧 generation/poison recovery，以及 `RwLock` 零命中源码守卫。当前文件格式、gateway static contract 6/6、dependency guard 3/3、test inventory 4/4 与 scoped diff check 已通过。原受管 reservation `a604598586b74e0e8e6b4d63fe948347` 因 exact 租约过期且 Coordinator01 的 `pending-cpu-reservation-absolute-expiry-not-enforced` 阻断 FIFO，已由本会话在无 job/未启动状态释放；exact-16 租约随后无冲突重取。必须在 Coordinator failure fixed 后建立 fresh source-bound reservation；在 terminal GREEN、独立复审与产品 trace 完成前 failure 保持 open。
 
 - M1 详细产出归档：[2026-07-14-editor-kernel-m1-output-records](01/2026-07-14-editor-kernel-m1-output-records.md)
 - M2 当前进度：[2026-07-17-m2-gateway-current-source](01/2026-07-17-m2-gateway-current-source.md)
 - fixed 已修复：[font discovery](01/fixed-2026-07-11-editor-m1-font-discovery.md) · [plugin provider lookup](01/fixed-2026-07-11-editor-m1-plugin-provider-lookup.md) · [ZUI governance](01/fixed-2026-07-11-editor-m1-zui-governance.md) · [OIT buffer plan export](01/fixed-2026-07-12-oit-buffer-plan-export.md) · [collider shape exhaustiveness](01/fixed-2026-07-12-collider-shape-consumer-exhaustiveness.md)
 - fixed 已修复：[plan-output-record-archive-limit](09/fixed-2026-07-14-plan-output-record-archive-limit.md)
+- open 待修复：[Editor12 document message producer](01/failure-2026-07-29-document-message-producer-missing.md)
 - open 待修复：[EditorUI03 retained text](../editor_ui/03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md) · [EditorUI05 UI Asset V2](../editor_ui/05/failure-2026-07-11-ui-asset-v2-projection-drift.md) · [EditorUI06 native painter](../editor_ui/06/failure-2026-07-11-mui-native-painter-contract-drift.md) · [EditorUI08 retained window](../editor_ui/08/failure-2026-07-11-retained-window-hard-cutover-expectations.md) · [EditorUI08 runtime diagnostics](../editor_ui/08/failure-2026-07-11-runtime-diagnostics-physics-state-format.md)
 - fixed 已修复：[font-database-render-input-equivalence-visibility](01/fixed-2026-07-17-font-database-render-input-equivalence-visibility.md)
 - fixed 已修复：[Runtime15 screen-space UI text font-id report mount drift](../../zircon_runtime/text/01/fixed-2026-07-17-screen-space-ui-text-font-id-report-mount-drift.md)；Runtime15 已恢复生产挂载并收敛到 shaping query/actual glyph 单一 owner，受管 `text_font` 门 47/47、独立复审 0/0/0。
 - open 待回传：[Runtime10 editor selection state session boundary](../../zircon_runtime/runtime/10/failure-2026-07-17-editor-selection-state-runtime-session-boundary.md)；M2.3 当前源已删除 `RuntimeDynamicSession.selected_node` 与 pointer/scroll selection-sync helper，保留 construction-only 中性 orbit target，聚焦门 2/2、独立复审 0/0/0；`dynamic_api` 上行 94/112 后的 Runtime10 owner gate 已到 12/13，唯一 Runtime05 stale mirror 已按 single-source hard cut 删除并复审 0/0/0，精确重跑已进入 FIFO。Runtime15 与 Render01 跨 owner failure、Runtime10 重跑和 canonical failure return 全部完成前不能 fixed。
+- 2026-07-18 viewport capture性能交接：`RenderFramework::capture_frame_if_newer`已让retained editor与dynamic runtime在stored generation相同且无新帧时于RGBA clone前返回，stale poll copy bytes=0；Editor01仍须联动EditorUI08/Render17把新帧capture改为短锁handle+GPU texture或bounded async readback，并移出controller mutex内的framework call与image import。见PERF-MVP-023及`docs/plans/performance/01/2026-07-18-runtime-core-framework-render-capture-profile-static-review.md`。
+- 2026-07-18 viewport surface提交交接：Editor01保持surface bind/unbind/resize的latest-value lifecycle，不在controller锁内触发pipeline构造或额外submit；Render01/02把present blit并入主frame submit并按device+format共享pipeline。resize burst每frame reconfigure≤1、stable editor viewport额外encoder/submit=0，见PERF-MVP-407。
+- 2026-07-18 framework lifecycle ticket交接：除既有controller锁外，framework内部operation/state锁也跨surface driver与大capture/stats clone。Editor01提交latest-value bind/resize/destroy ticket后不得在UI/controller锁内等待；stale generation结果丢弃，独立pane慢surface不阻塞其他pane query/submit。见PERF-MVP-411。
+- 2026-07-18 camera loop ticket交接：present preflight与实际submit须消费同一Render09 camera plan；Editor01只提交viewport/camera generation ticket并观察terminal completion，不在UI/controller锁内resolve/clone全camera stack或等待planar/multi-camera loop。见PERF-MVP-417。
+- 2026-07-18 submit transaction补充交接：Editor01把frame/present请求作为latest viewport generation ticket交给Runtime07/Render10 render-owner lane，UI/controller锁内不得同步等待prepare、GPU submit/present、feedback或Phase C publish；旧generation完成只丢弃/合并，不触发第二次全量提交。见PERF-MVP-411并复用417。
+- 2026-07-30 core gateway current-source纠正：`SessionGateway::tick_frame`已校验并返回OnDemand/bounded SleepUntil/Continuous，retained host已消费该demand；`capture_frame`也已私有托管foreign owned buffer到release/drop，不再在gateway复制RGBA。PERF-MVP-424/023旧结论据此缩到剩余host cadence与render/framework GPU readback。ArcSwap generation/capability Arc还修复PERF-MVP-068稳定锁/深clone；新PERF-MVP-597跟踪active Play在retained UI caller同步tick、plugin drain与JSON decode。当前8/8生产+4/4测试已读，scoped diff check通过，但3文件rustfmt、managed Cargo、slow-provider/scale与F4仍待；证据见`../../performance/01/2026-07-30-editor-core-gateway-current-review.md`。
+- 2026-07-30 editor startup current-source更新：`entry_runner/**`13/13确认产品GUI/CLI已使用单个`EditorStartupPreparation`，project按路径open/parse一次，prepared manager与first-party registrations以move传递；旧“first-party重复构造/project二次open”结论已纠正。PERF-MVP-427与open [`01/failure-2026-07-19-editor-startup-single-projection.md`](01/failure-2026-07-19-editor-startup-single-projection.md)剩余边界是`EntryConfig`深clone project plugin manifest、公开composition深clone整组runtime report，以及entry native selection和host manifest apply各调用一次`load_discovered_editor`。Editor01把现有preparation冻结为single generation-owned artifact，Editor12提供同代native load report/plugin/extension registry共享handle；GUI/CLI/composition × 0/1/100/1,000 plugins要求open/parse/native discovery/load/entry/build≤1/generation、manifest/registration deep-clone bytes=0，并记录分阶段F0 wall/p95与卸载/失败回滚。
+- 2026-07-30 Performance01 document drift纠正：`DocumentLifecycleAuthority` current source已满足PERF-MVP-593的single root owner、active `DocumentId`、borrowed known-root query与1,024 closed-root硬界，禁止再按旧“三份PathBuf/无界identity map”设计第二套authority。Editor01先在roots 1/1K/100K门记录collision/trim visits、path clone与mutex p95；只有cap内线性扫描超预算才增加insertion-order closed queue和direct id occupancy index，且不得复制第二份path正文。current 8个inline tests尚未执行，证据见`../../performance/01/2026-07-30-editor-core-document-sync-current-review.md`。
+- 2026-07-30 Performance01 authoring-world交接：stable `EditorRuntimeGatewayHandle`仍是正确边界，PERF-MVP-068不得重开；但其下游每次authoring访问会做generation load/Arc clone、dyn/TLS dispatch，并让`LevelSystem`单`World` mutex覆盖完整UI callback。Editor01联动Editor03/05与Runtime07按PERF-MVP-600发布共享immutable authoring generation；stable hierarchy/inspection/render/selection读world lock=0，changed generation至多一次有界read/seal，且不得向workbench暴露runtime scene owner或建立第二UI authority。24/24静态证据见`../../performance/01/2026-07-30-editor-core-editing-current-review.md`。
+- 2026-07-30 Performance01 host startup交接：`ui/host/startup/**`与project activation 10/10确认prepared manager后仍在首帧caller同步串联Runtime04全量scan/import、Editor09逐asset meta/artifact catalog rebuild、watcher、workspace/settings/default scene及native第二次load。Editor01只持generation ticket并在lifecycle安全点短commit ready/last-good startup state；不得在UI/controller/editor锁内等待I/O、decode、plugin load或建私有startup pool。recent/save分别消费Editor10/Runtime11 ticket，规模门见PERF-MVP-075/100/427/499及`../../performance/01/2026-07-30-editor-ui-host-startup-project-current-review.md`。
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- M1 的核心裁决「拆解 `EditorEventRuntimeState` 单锁 14 字段、`lock_inner` 归零、`EditorEventRuntime` 更名 `EditorEventService`」在代码里已经**完成**，但正文 §「现状与证据」仍以现在时描述这些反例结构。守卫测试 `zircon_editor/src/tests/ui/boundary/editor_event_cutover.rs:66-100` 已断言全仓 `EditorEventRuntime` / `EditorEventRuntimeState` / `lock_inner(` / `editor_event_runtime_state` 零残留，且 `core/` 下 `use crate::ui` 为零（`:102-116`）。建议把 §现状证据整段标注为「M1 已收敛的历史基线」，否则读者会误以为大锁仍在。
+- §「EditorContext 与构造顺序」给出的目标结构体只列 `bus/events/gateway/jobs/transactions/commands/command_eval`，但实际 `core/context/editor_context.rs:14-24` 还持有 `notifications(EditorNotificationService)` 与 `tools(ToolSchedulerService)` 两字段，且顺序不同。建议同步该代码块，或改为引用 00 §3 统一维护，避免两处结构定义各自漂移。
+- §迁移映射表把 `.runtime_play_mode_backend → core/play/bridge.rs（04 收编为 PluginBridgeActivation）` 记为落点；实际 04 已落地在 `core/play/` 下的 `plugin_activation` 家族（见 04 计划与 `core/play/` 目录），且 `editor_event_cutover.rs:42` 断言 `core/play/bridge.rs` 存在。两处路径命名（`bridge.rs` vs `plugin_activation`）需对齐一次，避免 03/04 交叉引用时指向不存在的文件。
+
+### 实现风险 / 技术债
+
+- `EditorMessageTransactionEventSink::publish`（`core/context/builder.rs:34-49`）把 bus 投递结果折算为 `Delivered/Backpressured/Rejected`：当 `report.error().is_some() || !report.dropped().is_empty()` 即判 `Rejected`。事务生命周期事件被判 `Rejected` 时，03 事务引擎是否有补偿/重投递路径，本计划未定义。建议在 §风险节补一条「事务事件投递失败的可观测性」——目前失败只反映在返回枚举里，若无订阅者消费该失败信号，历史面板/脏态订阅者会静默丢事件。
+
+### 验证缺口
+
+- §M2 的守卫「`src/ui/**` 禁 `LevelSystem/CoreHandle` 深路径（白名单=gateway 实现文件）」在 `editor_event_cutover.rs` 中未见对应断言（该文件只守 `core/ui` 分层与 legacy event 符号）。若该守卫已落在别处测试请在计划里注明文件名；若尚未落地，应在状态节标记为 M2.4 未完成项，避免「守卫红→绿」被误读为已闭环。

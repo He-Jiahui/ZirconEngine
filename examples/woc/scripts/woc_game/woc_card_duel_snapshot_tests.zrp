@@ -1,0 +1,6 @@
+{
+  "name": "woc_card_duel_snapshot_tests",
+  "source": "src",
+  "binary": "bin-card-duel-snapshot-tests",
+  "entry": "social/card_duel_snapshot_test_main"
+}

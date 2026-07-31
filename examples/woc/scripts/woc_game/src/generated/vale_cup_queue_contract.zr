@@ -1,0 +1,8 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub bracketMin(required: bool): int { return required ? 1 : 0; }
+pub bracketMax(required: bool): int { return required ? 5 : 0; }
+pub nationCount(required: bool): int { return required ? 8 : 0; }
+pub roleAllrounder(required: bool): int { return required ? 0 : 0; }
+pub roleKeeper(required: bool): int { return required ? 1 : 0; }
+pub roleSweeper(required: bool): int { return required ? 2 : 0; }
+pub roleStriker(required: bool): int { return required ? 3 : 0; }

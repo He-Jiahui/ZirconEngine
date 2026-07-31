@@ -1,7 +1,7 @@
-use super::gpu_scene::{create_storage_buffer, GpuScene};
+use super::gpu_scene::{GpuScene, create_storage_buffer};
 use super::layout::{
-    GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GPU_MORPH_DELTA_STRIDE,
-    GPU_MORPH_PAYLOAD_STRIDE, GPU_MORPH_WEIGHT_STRIDE,
+    GPU_MORPH_DELTA_STRIDE, GPU_MORPH_PAYLOAD_STRIDE, GPU_MORPH_WEIGHT_STRIDE, GpuMorphDelta,
+    GpuMorphPayload, GpuMorphWeight,
 };
 use super::upload::write_full_pod_buffer;
 
@@ -23,6 +23,9 @@ impl GpuScene {
         deltas: &[GpuMorphDelta],
         weights: &[GpuMorphWeight],
     ) -> GpuSceneMorphUploadReport {
+        let payload_changed = self.morph_payloads_shadow != payloads;
+        let delta_changed = self.morph_deltas_shadow != deltas;
+        let weight_changed = self.morph_weights_shadow != weights;
         let payload_capacity_changed = self.morph_payloads_shadow.len() != payloads.len();
         let delta_capacity_changed = self.morph_deltas_shadow.len() != deltas.len();
         let weight_capacity_changed = self.morph_weights_shadow.len() != weights.len();
@@ -49,29 +52,47 @@ impl GpuScene {
             );
         }
 
-        self.morph_payloads_shadow.clear();
-        self.morph_payloads_shadow.extend_from_slice(payloads);
-        self.morph_deltas_shadow.clear();
-        self.morph_deltas_shadow.extend_from_slice(deltas);
-        self.morph_weights_shadow.clear();
-        self.morph_weights_shadow.extend_from_slice(weights);
+        if payload_changed {
+            self.morph_payloads_shadow.clear();
+            self.morph_payloads_shadow.extend_from_slice(payloads);
+        }
+        if delta_changed {
+            self.morph_deltas_shadow.clear();
+            self.morph_deltas_shadow.extend_from_slice(deltas);
+        }
+        if weight_changed {
+            self.morph_weights_shadow.clear();
+            self.morph_weights_shadow.extend_from_slice(weights);
+        }
 
-        let uploaded_bytes = write_full_pod_buffer(
-            queue,
-            &self.morph_payloads_buffer,
-            &self.morph_payloads_shadow,
-            payloads.len(),
-        ) + write_full_pod_buffer(
-            queue,
-            &self.morph_deltas_buffer,
-            &self.morph_deltas_shadow,
-            deltas.len(),
-        ) + write_full_pod_buffer(
-            queue,
-            &self.morph_weights_buffer,
-            &self.morph_weights_shadow,
-            weights.len(),
-        );
+        let uploaded_bytes = if payload_changed {
+            write_full_pod_buffer(
+                queue,
+                &self.morph_payloads_buffer,
+                &self.morph_payloads_shadow,
+                payloads.len(),
+            )
+        } else {
+            0
+        } + if delta_changed {
+            write_full_pod_buffer(
+                queue,
+                &self.morph_deltas_buffer,
+                &self.morph_deltas_shadow,
+                deltas.len(),
+            )
+        } else {
+            0
+        } + if weight_changed {
+            write_full_pod_buffer(
+                queue,
+                &self.morph_weights_buffer,
+                &self.morph_weights_shadow,
+                weights.len(),
+            )
+        } else {
+            0
+        };
         let rebuilt_bind_group =
             payload_capacity_changed || delta_capacity_changed || weight_capacity_changed;
         if rebuilt_bind_group {
@@ -164,7 +185,7 @@ mod tests {
         assert_eq!(second_report.payload_count, 1);
         assert_eq!(second_report.delta_count, 2);
         assert_eq!(second_report.weight_count, 2);
-        assert!(second_report.uploaded_bytes > 0);
+        assert_eq!(second_report.uploaded_bytes, 0);
         assert!(!second_report.rebuilt_bind_group);
     }
 

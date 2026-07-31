@@ -1,9 +1,12 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetKind};
+
+static PRODUCTION_ZUI_DOCUMENTS: OnceLock<BTreeMap<PathBuf, UiV2AssetDocument>> = OnceLock::new();
 
 pub(super) fn editor_asset_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("assets")
@@ -22,7 +25,11 @@ pub(super) fn collect_zui_files(root: &Path) -> Vec<PathBuf> {
 }
 
 pub(super) fn collect_zui_document_files(root: &Path) -> Vec<PathBuf> {
-    collect_files_with_suffix(root, ".zui")
+    production_zui_documents()
+        .keys()
+        .filter(|path| path.starts_with(root))
+        .cloned()
+        .collect()
 }
 
 pub(super) fn collect_zui_component_files(root: &Path) -> Vec<PathBuf> {
@@ -45,11 +52,13 @@ pub(super) fn collect_ui_root_document_files(root: &Path) -> Vec<PathBuf> {
     files
 }
 
-pub(super) fn load_zui_document(path: &Path) -> UiV2AssetDocument {
-    let source = fs::read_to_string(path)
-        .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-    UiZuiAssetLoader::load_zui_str(&source)
-        .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()))
+pub(super) fn load_zui_document(path: &Path) -> &'static UiV2AssetDocument {
+    production_zui_documents().get(path).unwrap_or_else(|| {
+        panic!(
+            "cached production .zui document `{}` should exist",
+            path.display()
+        )
+    })
 }
 
 pub(super) fn is_ui_root_kind(kind: UiV2AssetKind) -> bool {
@@ -92,6 +101,25 @@ fn collect_files_with_suffix(root: &Path, suffix: &str) -> Vec<PathBuf> {
     }
     files.sort();
     files
+}
+
+fn production_zui_documents() -> &'static BTreeMap<PathBuf, UiV2AssetDocument> {
+    PRODUCTION_ZUI_DOCUMENTS.get_or_init(|| {
+        [
+            editor_asset_root().join("ui"),
+            runtime_asset_root().join("ui"),
+        ]
+        .into_iter()
+        .flat_map(|root| collect_files_with_suffix(&root, ".zui"))
+        .map(|path| {
+            let source = fs::read_to_string(&path)
+                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
+            let document = UiZuiAssetLoader::load_zui_str(&source)
+                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            (path, document)
+        })
+        .collect()
+    })
 }
 
 pub(super) fn resource_locator_for_path(asset_root: &Path, path: &Path) -> String {

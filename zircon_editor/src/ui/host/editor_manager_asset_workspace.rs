@@ -1,4 +1,4 @@
-use super::asset_editor_sessions::UiAssetDiffSnapshot;
+use super::asset_editor_sessions::{UiAssetDiffSnapshot, UiAssetWorkspaceWatchPollReport};
 use super::editor_error::EditorError;
 use super::editor_manager::EditorManager;
 use crate::ui::workbench::view::ViewInstanceId;
@@ -58,7 +58,9 @@ impl EditorManager {
             .refresh_ui_asset_workspace_for_changes(changed_asset_ids)
     }
 
-    pub fn poll_ui_asset_workspace_watcher(&self) -> Result<Vec<String>, EditorError> {
+    pub fn poll_ui_asset_workspace_watcher(
+        &self,
+    ) -> Result<UiAssetWorkspaceWatchPollReport, EditorError> {
         self.host.poll_ui_asset_workspace_watcher()
     }
 }

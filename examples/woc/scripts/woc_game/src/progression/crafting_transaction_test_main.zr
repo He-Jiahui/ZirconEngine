@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var crafting = %import("progression/crafting_transaction");
+
+console.printLine("m5-crafting-transaction-test");
+var result = crafting.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

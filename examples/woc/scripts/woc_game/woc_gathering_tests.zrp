@@ -1,0 +1,6 @@
+{
+  "name": "woc_gathering_tests",
+  "source": "src",
+  "binary": "bin-gathering-tests",
+  "entry": "progression/gathering_test_main"
+}

@@ -1,17 +1,10 @@
-use std::path::Path;
-
 use crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData;
 use zircon_runtime::core::framework::project::ExportProfile;
 use zircon_runtime::plugin::ExportBuildPlan;
 
-use super::super::super::super::{build_export_actions, RetainedEditorHost};
-use super::super::diagnostics::prepend_desktop_export_output_diagnostic;
+use super::super::super::super::build_export_actions;
 
-pub(super) fn target_from_export_plan(
-    host: &RetainedEditorHost,
-    project_root: &Path,
-    plan: ExportBuildPlan,
-) -> BuildExportTargetViewData {
+pub(super) fn target_from_export_plan(plan: ExportBuildPlan) -> BuildExportTargetViewData {
     let has_fatal_diagnostics = plan.has_fatal_diagnostics();
     let profile_name = plan.profile.name.clone();
     let diagnostics = plan
@@ -21,8 +14,6 @@ pub(super) fn target_from_export_plan(
         .cloned()
         .collect::<Vec<_>>()
         .join("\n");
-    let output_root = host.effective_desktop_export_output_root(project_root, &profile_name);
-    let diagnostics = prepend_desktop_export_output_diagnostic(output_root.as_path(), diagnostics);
 
     BuildExportTargetViewData {
         preset_name: profile_name.clone().into(),
@@ -52,14 +43,9 @@ pub(super) fn target_from_export_plan(
 }
 
 pub(super) fn blocked_target_from_profile(
-    host: &RetainedEditorHost,
-    project_root: &Path,
     profile: &ExportProfile,
     error: impl ToString,
 ) -> BuildExportTargetViewData {
-    let output_root = host.effective_desktop_export_output_root(project_root, &profile.name);
-    let diagnostics =
-        prepend_desktop_export_output_diagnostic(output_root.as_path(), error.to_string());
     BuildExportTargetViewData {
         profile_name: profile.name.clone().into(),
         platform: build_export_actions::export_platform_label(profile.target_platform).into(),
@@ -72,7 +58,7 @@ pub(super) fn blocked_target_from_profile(
             .join(", ")
             .into(),
         status: "Blocked".into(),
-        diagnostics: diagnostics.into(),
+        diagnostics: error.to_string().into(),
         fatal: true,
         ..BuildExportTargetViewData::default()
     }

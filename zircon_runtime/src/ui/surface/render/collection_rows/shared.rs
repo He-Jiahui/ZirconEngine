@@ -1,26 +1,17 @@
+use std::sync::OnceLock;
+
 use toml::Value;
 use zircon_runtime_interface::ui::{
     component::UiComponentState,
+    design_tokens::{EditorDesignTokens, EditorTypographyTokens},
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
     tree::UiTemplateNodeMetadata,
 };
 
 use super::super::painter_state::UiRenderPainterStateSource;
-
-pub(super) const FONT_SIZE: f32 = 12.0;
-pub(super) const TABLE_FONT_SIZE: f32 = 11.0;
-pub(super) const TEXT: &str = "#c5d0d5";
-pub(super) const TEXT_SELECTED: &str = "#cce8ea";
-pub(super) const TEXT_MUTED: &str = "#828c93";
-pub(super) const TEXT_DISABLED: &str = "#59656c";
-pub(super) const ACCENT: &str = "#35c7d0";
-pub(super) const SURFACE_SELECTED: &str = "#0d4149";
-pub(super) const SURFACE_HOVER: &str = "#1a2429";
-pub(super) const SURFACE_PRESSED: &str = "#12343d";
-pub(super) const SURFACE_DISABLED: &str = "#252c31";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum CollectionRowKind {
@@ -31,8 +22,8 @@ pub(super) enum CollectionRowKind {
 
 #[derive(Clone, Copy)]
 pub(super) struct RowRenderState {
-    family: UiPainterFamily,
-    visual_state: UiPainterResolvedState,
+    pub(super) family: UiPainterFamily,
+    pub(super) visual_state: UiPainterResolvedState,
     selected: bool,
     checked: bool,
     expanded: bool,
@@ -129,6 +120,164 @@ impl RowRenderState {
     }
 }
 
+/// Shared visual roles keep list, tree, and table rows in one token-driven state model.
+#[derive(Clone, Copy)]
+pub(super) struct CollectionRowVisual {
+    pub(super) focus_surface: UiRgbaColor,
+    pub(super) table_surface: UiRgbaColor,
+    pub(super) table_header_surface: UiRgbaColor,
+    pub(super) table_tail_surface: UiRgbaColor,
+    pub(super) hover_surface: UiRgbaColor,
+    pub(super) selected_surface: UiRgbaColor,
+    pub(super) selected_hover_surface: UiRgbaColor,
+    pub(super) pressed_surface: UiRgbaColor,
+    pub(super) disabled_surface: UiRgbaColor,
+    pub(super) separator: UiRgbaColor,
+    pub(super) focus_border: UiRgbaColor,
+    pub(super) text_primary: UiRgbaColor,
+    pub(super) text_secondary: UiRgbaColor,
+    pub(super) text_selected: UiRgbaColor,
+    pub(super) text_disabled: UiRgbaColor,
+    pub(super) icon_secondary: UiRgbaColor,
+    pub(super) icon_selected: UiRgbaColor,
+    pub(super) border_width: f32,
+    pub(super) corner_radius: f32,
+    pub(super) body_font_size: f32,
+    pub(super) caption_font_size: f32,
+    pub(super) line_height_ratio: f32,
+    pub(super) inline_inset: f32,
+    pub(super) compact_inset: f32,
+    pub(super) action_size: f32,
+    pub(super) action_gap: f32,
+    pub(super) tree_indent: f32,
+}
+
+impl CollectionRowVisual {
+    pub(super) fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
+        let mut visual = *default_collection_row_visual();
+        if let Some(color) = first_rgba_attribute(metadata, &["background_color"]) {
+            visual.focus_surface = color;
+            visual.table_surface = color;
+            visual.selected_surface = color;
+            visual.selected_hover_surface = color;
+        }
+        visual.hover_surface = first_rgba_attribute(metadata, &["hover_background_color"])
+            .unwrap_or(visual.hover_surface);
+        visual.selected_surface = first_rgba_attribute(metadata, &["selected_background_color"])
+            .unwrap_or(visual.selected_surface);
+        visual.selected_hover_surface =
+            first_rgba_attribute(metadata, &["selected_hover_background_color"])
+                .unwrap_or(visual.selected_hover_surface);
+        visual.pressed_surface = first_rgba_attribute(metadata, &["pressed_background_color"])
+            .unwrap_or(visual.pressed_surface);
+        visual.disabled_surface = first_rgba_attribute(metadata, &["disabled_background_color"])
+            .unwrap_or(visual.disabled_surface);
+        visual.separator = first_rgba_attribute(metadata, &["separator_color", "border_color"])
+            .unwrap_or(visual.separator);
+        visual.focus_border =
+            first_rgba_attribute(metadata, &["focus_border_color", "border_color"])
+                .unwrap_or(visual.focus_border);
+
+        if let Some(color) = first_rgba_attribute(metadata, &["foreground_color", "text_color"]) {
+            visual.text_primary = color;
+            visual.text_selected = color;
+        }
+        visual.text_secondary =
+            first_rgba_attribute(metadata, &["secondary_foreground_color", "value_color"])
+                .unwrap_or(visual.text_secondary);
+        visual.text_selected = first_rgba_attribute(metadata, &["selected_foreground_color"])
+            .unwrap_or(visual.text_selected);
+        visual.text_disabled = first_rgba_attribute(metadata, &["disabled_foreground_color"])
+            .unwrap_or(visual.text_disabled);
+        visual.icon_secondary =
+            first_rgba_attribute(metadata, &["icon_color"]).unwrap_or(visual.icon_secondary);
+        visual.icon_selected = first_rgba_attribute(metadata, &["selected_icon_color"])
+            .unwrap_or(visual.icon_selected);
+
+        visual.border_width = metric_attribute(metadata, "border_width")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.border_width);
+        visual.corner_radius = metric_attribute(metadata, "corner_radius")
+            .or_else(|| metric_attribute(metadata, "radius"))
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.corner_radius);
+        if let Some(font_size) =
+            metric_attribute(metadata, "font_size").filter(|value| *value > 0.0)
+        {
+            visual.body_font_size = font_size;
+            visual.caption_font_size = font_size;
+        }
+        visual.caption_font_size = metric_attribute(metadata, "table_font_size")
+            .or_else(|| metric_attribute(metadata, "caption_font_size"))
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.caption_font_size);
+        visual.line_height_ratio = metric_attribute(metadata, "line_height_ratio")
+            .or_else(|| metric_attribute(metadata, "line_height"))
+            .filter(|value| *value > 0.0 && *value <= 4.0)
+            .unwrap_or(visual.line_height_ratio);
+        visual.inline_inset = metric_attribute(metadata, "layout_padding_left")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.inline_inset);
+        visual.compact_inset = metric_attribute(metadata, "layout_spacing")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.compact_inset);
+        visual.action_size = metric_attribute(metadata, "layout_icon_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.action_size);
+        visual.action_gap = metric_attribute(metadata, "layout_action_gap")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.action_gap);
+        visual.tree_indent = metric_attribute(metadata, "tree_indent_px")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.tree_indent);
+        visual
+    }
+
+    pub(super) fn line_height(self, font_size: f32) -> f32 {
+        font_size * self.line_height_ratio
+    }
+}
+
+fn default_collection_row_visual() -> &'static CollectionRowVisual {
+    static VISUAL: OnceLock<CollectionRowVisual> = OnceLock::new();
+    VISUAL.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let palette = &tokens.palette;
+        let controls = &tokens.controls;
+        let density = &tokens.density;
+        let typography = &tokens.typography;
+        CollectionRowVisual {
+            focus_surface: palette.surface[1],
+            table_surface: palette.surface_recessed,
+            table_header_surface: palette.surface[1],
+            table_tail_surface: palette.surface[0],
+            hover_surface: palette.surface_hover,
+            selected_surface: palette.surface_selected,
+            selected_hover_surface: palette.accent_soft,
+            pressed_surface: palette.surface[3],
+            disabled_surface: palette.surface_disabled,
+            separator: palette.separator_soft,
+            focus_border: palette.accent,
+            text_primary: palette.text_primary,
+            text_secondary: palette.text_secondary,
+            text_selected: palette.text_primary,
+            text_disabled: palette.text_disabled,
+            icon_secondary: palette.text_secondary,
+            icon_selected: palette.text_primary,
+            border_width: controls.border_width,
+            corner_radius: controls.small_radius,
+            body_font_size: typography.body_size,
+            caption_font_size: typography.caption_size,
+            line_height_ratio: EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+            inline_inset: density.gap_medium,
+            compact_inset: density.gap_small,
+            action_size: density.gap_large,
+            action_gap: density.gap_medium,
+            tree_indent: density.gap_large + density.gap_medium,
+        }
+    })
+}
+
 pub(super) fn collection_row_kind(metadata: &UiTemplateNodeMetadata) -> Option<CollectionRowKind> {
     match metadata.component.as_str() {
         "ListRow" => Some(CollectionRowKind::List),
@@ -138,13 +287,12 @@ pub(super) fn collection_row_kind(metadata: &UiTemplateNodeMetadata) -> Option<C
     }
 }
 
-pub(super) fn row_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
+pub(super) fn row_label(metadata: &UiTemplateNodeMetadata) -> Option<&str> {
     ["label", "text", "value_text", "title"]
         .iter()
         .find_map(|key| string_attribute(metadata, key))
         .map(str::trim)
         .filter(|label| !label.is_empty())
-        .map(str::to_string)
 }
 
 pub(super) fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
@@ -162,29 +310,13 @@ pub(super) fn string_attribute<'a>(
     metadata.attributes.get(key).and_then(Value::as_str)
 }
 
-pub(super) fn color_attribute<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<&'a str> {
-    metadata
-        .style_overrides
-        .get(key)
-        .or_else(|| metadata.attributes.get(key))
-        .and_then(Value::as_str)
-        .filter(|color| !color.trim().is_empty())
-}
-
-pub(super) fn line_height(font_size: f32) -> f32 {
-    font_size * 1.2
-}
-
 pub(super) fn quad_command(
     node_id: UiNodeId,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
-    background: &str,
-    border: Option<&str>,
+    background: UiRgbaColor,
+    border: Option<UiRgbaColor>,
     border_width: f32,
     corner_radius: f32,
     state: &RowRenderState,
@@ -197,8 +329,8 @@ pub(super) fn quad_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            background_color: Some(background.to_string()),
-            border_color: border.map(str::to_string),
+            background_color: Some(css_color(background)),
+            border_color: border.map(css_color),
             border_width,
             corner_radius,
             ..UiResolvedStyle::default()
@@ -217,8 +349,9 @@ pub(super) fn text_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     text: String,
-    foreground: &str,
+    foreground: UiRgbaColor,
     font_size: f32,
+    line_height: f32,
     state: &RowRenderState,
     opacity: f32,
 ) -> UiRenderCommand {
@@ -229,9 +362,9 @@ pub(super) fn text_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
+            foreground_color: Some(css_color(foreground)),
             font_size,
-            line_height: line_height(font_size),
+            line_height,
             ..UiResolvedStyle::default()
         }
         .with_painter_state(state.family, state.visual_state),
@@ -248,7 +381,7 @@ pub(super) fn icon_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     icon: &str,
-    foreground: &str,
+    foreground: UiRgbaColor,
     state: &RowRenderState,
     opacity: f32,
 ) -> UiRenderCommand {
@@ -259,7 +392,7 @@ pub(super) fn icon_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
+            foreground_color: Some(css_color(foreground)),
             ..UiResolvedStyle::default()
         }
         .with_painter_state(state.family, state.visual_state),
@@ -270,9 +403,62 @@ pub(super) fn icon_command(
     }
 }
 
+fn first_rgba_attribute(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> Option<UiRgbaColor> {
+    keys.iter().find_map(|key| {
+        metadata
+            .style_overrides
+            .get(*key)
+            .or_else(|| metadata.attributes.get(*key))
+            .and_then(Value::as_str)
+            .and_then(parse_css_color)
+    })
+}
+
+fn metric_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
+    metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))
+        .and_then(value_as_f32)
+}
+
 fn value_as_f32(value: &Value) -> Option<f32> {
-    value
-        .as_float()
-        .or_else(|| value.as_integer().map(|value| value as f64))
-        .map(|value| value as f32)
+    let value = match value {
+        Value::Integer(value) => *value as f64,
+        Value::Float(value) if value.is_finite() => *value,
+        _ => return None,
+    } as f32;
+    value.is_finite().then_some(value)
+}
+
+fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
+    let encoded = value.trim().strip_prefix('#')?;
+    if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
+        return None;
+    }
+    let (red, green, blue, alpha) = match encoded.len() {
+        6 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::MAX,
+        ),
+        8 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::from_str_radix(&encoded[6..8], 16).ok()?,
+        ),
+        _ => return None,
+    };
+    Some(UiRgbaColor::from_u8(red, green, blue, alpha))
+}
+
+fn css_color(color: UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    if alpha == u8::MAX {
+        format!("#{red:02x}{green:02x}{blue:02x}")
+    } else {
+        format!("#{red:02x}{green:02x}{blue:02x}{alpha:02x}")
+    }
 }

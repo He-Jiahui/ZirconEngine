@@ -1,0 +1,4512 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_delve_collision_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/colliders.ts": "2a34c3c2d97b19ba96b676b29820829291364c7a6025328072f909b3a2ccb11d",
+    "src/sim/data.ts": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431",
+    "src/sim/delve_layout.ts": "bab9792386316e45b9d04ae920d056755f1e7facaa2bec30d4dc6793dc3fdd1e",
+    "src/sim/delve_litany_layout.ts": "47df22aecfe89de51f6dddf6725687ea70516ada159c89d20771ca7793915d2c"
+  },
+  "layouts": [
+    {
+      "id": "reliquary_sunken_ossuary",
+      "span": 110,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -25,
+          "z": 36,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 55,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 25,
+          "z": 36,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 55,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 91,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -19,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 14,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 14,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 66,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 66,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 18,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 18,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 43,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 43,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 68,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 68,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 0,
+          "z": 12,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9.5,
+          "z": 21.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 31,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9.2,
+          "z": 40.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -13,
+          "z": 50,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 7.5,
+          "z": 59.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 69,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 11,
+          "z": 78.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "reliquary_bell_niche",
+      "span": 110,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -25,
+          "z": 36,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 55,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 25,
+          "z": 36,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 55,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 91,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -19,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -15,
+          "z": 32,
+          "radius": 0,
+          "half_width": 10,
+          "half_depth": 5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 15,
+          "z": 32,
+          "radius": 0,
+          "half_width": 10,
+          "half_depth": 5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -15,
+          "z": 62,
+          "radius": 0,
+          "half_width": 10,
+          "half_depth": 5,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 15,
+          "z": 62,
+          "radius": 0,
+          "half_width": 10,
+          "half_depth": 5,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 16,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 16,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 41,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 41,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 66,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 66,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 0,
+          "z": 12,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9.5,
+          "z": 21.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9.2,
+          "z": 40.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -13,
+          "z": 50,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 69,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 11,
+          "z": 78.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "reliquary_saintless_hall",
+      "span": 110,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -25,
+          "z": 36,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 55,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 25,
+          "z": 36,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 55,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 91,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -19,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 14,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 14,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 66,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 66,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 20,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 20,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 44,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 44,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 68,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 68,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 0,
+          "z": 12,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9.5,
+          "z": 21.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 31,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9.2,
+          "z": 40.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -13,
+          "z": 50,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 7.5,
+          "z": 59.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 69,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 11,
+          "z": 78.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "reliquary_finale",
+      "span": 110,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -25,
+          "z": 36,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 55,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 25,
+          "z": 36,
+          "radius": 0,
+          "half_width": 1,
+          "half_depth": 55,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 91,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -19,
+          "radius": 0,
+          "half_width": 24,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 12,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 12,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 28,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 14,
+          "z": 28,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 16,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 16,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 28,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 19,
+          "z": 28,
+          "radius": 0,
+          "half_width": 1.1,
+          "half_depth": 2.1,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 0,
+          "z": 12,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9.5,
+          "z": 21.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -14,
+          "z": 31,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 9.2,
+          "z": 40.5,
+          "radius": 0.8,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "litany_sluice",
+      "span": 74,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -4.666666666666667,
+          "z": -14,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -14,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 4.666666666666668,
+          "z": -14,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 8.625,
+          "z": -11.5,
+          "radius": 0,
+          "half_width": 2.981715110469141,
+          "half_depth": 1,
+          "rotation": -0.9944211062037129
+        },
+        {
+          "kind": "obb",
+          "x": 11.875,
+          "z": -6.5,
+          "radius": 0,
+          "half_width": 2.981715110469141,
+          "half_depth": 1,
+          "rotation": -0.9944211062037129
+        },
+        {
+          "kind": "obb",
+          "x": 13.75,
+          "z": -1.666666666666667,
+          "radius": 0,
+          "half_width": 2.3466879733881205,
+          "half_depth": 1,
+          "rotation": -1.464060654145761
+        },
+        {
+          "kind": "obb",
+          "x": 14.25,
+          "z": 3,
+          "radius": 0,
+          "half_width": 2.3466879733881205,
+          "half_depth": 1,
+          "rotation": -1.464060654145761
+        },
+        {
+          "kind": "obb",
+          "x": 14.75,
+          "z": 7.666666666666668,
+          "radius": 0,
+          "half_width": 2.3466879733881205,
+          "half_depth": 1,
+          "rotation": -1.464060654145761
+        },
+        {
+          "kind": "obb",
+          "x": 15.083333333333334,
+          "z": 12.666666666666666,
+          "radius": 0,
+          "half_width": 2.6679684322636867,
+          "half_depth": 1,
+          "rotation": -1.5395564933646284
+        },
+        {
+          "kind": "obb",
+          "x": 15.25,
+          "z": 18,
+          "radius": 0,
+          "half_width": 2.6679684322636867,
+          "half_depth": 1,
+          "rotation": -1.5395564933646284
+        },
+        {
+          "kind": "obb",
+          "x": 15.416666666666666,
+          "z": 23.333333333333336,
+          "radius": 0,
+          "half_width": 2.6679684322636867,
+          "half_depth": 1,
+          "rotation": -1.5395564933646284
+        },
+        {
+          "kind": "obb",
+          "x": 15.416666666666666,
+          "z": 28.666666666666668,
+          "radius": 0,
+          "half_width": 2.6679684322636867,
+          "half_depth": 1,
+          "rotation": -1.602036160225165
+        },
+        {
+          "kind": "obb",
+          "x": 15.25,
+          "z": 34,
+          "radius": 0,
+          "half_width": 2.6679684322636867,
+          "half_depth": 1,
+          "rotation": -1.602036160225165
+        },
+        {
+          "kind": "obb",
+          "x": 15.083333333333334,
+          "z": 39.333333333333336,
+          "radius": 0,
+          "half_width": 2.6679684322636867,
+          "half_depth": 1,
+          "rotation": -1.602036160225165
+        },
+        {
+          "kind": "obb",
+          "x": 15,
+          "z": 45,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 15,
+          "z": 51,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 15,
+          "z": 56,
+          "radius": 0,
+          "half_width": 2,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 13,
+          "z": 59.75,
+          "radius": 0,
+          "half_width": 2.6575364531836625,
+          "half_depth": 1,
+          "rotation": -2.4227626539681686
+        },
+        {
+          "kind": "obb",
+          "x": 9,
+          "z": 63.25,
+          "radius": 0,
+          "half_width": 2.6575364531836625,
+          "half_depth": 1,
+          "rotation": -2.4227626539681686
+        },
+        {
+          "kind": "obb",
+          "x": 4.666666666666667,
+          "z": 65,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 65,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -4.666666666666668,
+          "z": 65,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -8,
+          "z": 63.166666666666664,
+          "radius": 0,
+          "half_width": 2.088327347690278,
+          "half_depth": 1,
+          "rotation": 2.0701430484750265
+        },
+        {
+          "kind": "obb",
+          "x": -10,
+          "z": 59.5,
+          "radius": 0,
+          "half_width": 2.088327347690278,
+          "half_depth": 1,
+          "rotation": 2.0701430484750265
+        },
+        {
+          "kind": "obb",
+          "x": -12,
+          "z": 55.83333333333333,
+          "radius": 0,
+          "half_width": 2.088327347690278,
+          "half_depth": 1,
+          "rotation": 2.0701430484750265
+        },
+        {
+          "kind": "obb",
+          "x": -13.916666666666666,
+          "z": 51.666666666666664,
+          "radius": 0,
+          "half_width": 2.506934826081887,
+          "half_depth": 1,
+          "rotation": 1.9451299428024806
+        },
+        {
+          "kind": "obb",
+          "x": -15.75,
+          "z": 47,
+          "radius": 0,
+          "half_width": 2.506934826081887,
+          "half_depth": 1,
+          "rotation": 1.9451299428024806
+        },
+        {
+          "kind": "obb",
+          "x": -17.583333333333336,
+          "z": 42.33333333333333,
+          "radius": 0,
+          "half_width": 2.506934826081887,
+          "half_depth": 1,
+          "rotation": 1.9451299428024806
+        },
+        {
+          "kind": "obb",
+          "x": -18.583333333333332,
+          "z": 37.333333333333336,
+          "radius": 0,
+          "half_width": 2.6679684322636867,
+          "half_depth": 1,
+          "rotation": 1.602036160225165
+        },
+        {
+          "kind": "obb",
+          "x": -18.75,
+          "z": 32,
+          "radius": 0,
+          "half_width": 2.6679684322636867,
+          "half_depth": 1,
+          "rotation": 1.602036160225165
+        },
+        {
+          "kind": "obb",
+          "x": -18.916666666666668,
+          "z": 26.666666666666664,
+          "radius": 0,
+          "half_width": 2.6679684322636867,
+          "half_depth": 1,
+          "rotation": 1.602036160225165
+        },
+        {
+          "kind": "obb",
+          "x": -18.833333333333332,
+          "z": 21.333333333333332,
+          "radius": 0,
+          "half_width": 2.6718699236469,
+          "half_depth": 1,
+          "rotation": 1.5083775167989393
+        },
+        {
+          "kind": "obb",
+          "x": -18.5,
+          "z": 16,
+          "radius": 0,
+          "half_width": 2.6718699236469,
+          "half_depth": 1,
+          "rotation": 1.5083775167989393
+        },
+        {
+          "kind": "obb",
+          "x": -18.166666666666668,
+          "z": 10.666666666666666,
+          "radius": 0,
+          "half_width": 2.6718699236469,
+          "half_depth": 1,
+          "rotation": 1.5083775167989393
+        },
+        {
+          "kind": "obb",
+          "x": -17.166666666666668,
+          "z": 6,
+          "radius": 0,
+          "half_width": 2.1666666666666665,
+          "half_depth": 1,
+          "rotation": 1.1760052070951352
+        },
+        {
+          "kind": "obb",
+          "x": -15.5,
+          "z": 2,
+          "radius": 0,
+          "half_width": 2.1666666666666665,
+          "half_depth": 1,
+          "rotation": 1.1760052070951352
+        },
+        {
+          "kind": "obb",
+          "x": -13.833333333333332,
+          "z": -2,
+          "radius": 0,
+          "half_width": 2.1666666666666665,
+          "half_depth": 1,
+          "rotation": 1.1760052070951352
+        },
+        {
+          "kind": "obb",
+          "x": -11.5,
+          "z": -6.5,
+          "radius": 0,
+          "half_width": 2.91547594742265,
+          "half_depth": 1,
+          "rotation": 1.0303768265243125
+        },
+        {
+          "kind": "obb",
+          "x": -8.5,
+          "z": -11.5,
+          "radius": 0,
+          "half_width": 2.91547594742265,
+          "half_depth": 1,
+          "rotation": 1.0303768265243125
+        },
+        {
+          "kind": "circle",
+          "x": -9,
+          "z": 16,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -7,
+          "z": 36,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 5,
+          "z": 30,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -3,
+          "z": 50,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "litany_ledger",
+      "span": 100,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -5.333333333333334,
+          "z": -16,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -16,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 5.333333333333334,
+          "z": -16,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 9.166666666666666,
+          "z": -14.333333333333334,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": 11.5,
+          "z": -11,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": 13.833333333333334,
+          "z": -7.666666666666666,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": 15.75,
+          "z": -3.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": -1.2793395323170296
+        },
+        {
+          "kind": "obb",
+          "x": 17.25,
+          "z": 1.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": -1.2793395323170296
+        },
+        {
+          "kind": "obb",
+          "x": 18.5,
+          "z": 6,
+          "radius": 0,
+          "half_width": 2.0615528128088303,
+          "half_depth": 1,
+          "rotation": -1.3258176636680326
+        },
+        {
+          "kind": "obb",
+          "x": 19.5,
+          "z": 10,
+          "radius": 0,
+          "half_width": 2.0615528128088303,
+          "half_depth": 1,
+          "rotation": -1.3258176636680326
+        },
+        {
+          "kind": "obb",
+          "x": 20.166666666666668,
+          "z": 14,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": -1.4876550949064553
+        },
+        {
+          "kind": "obb",
+          "x": 20.5,
+          "z": 18,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": -1.4876550949064553
+        },
+        {
+          "kind": "obb",
+          "x": 20.833333333333332,
+          "z": 22,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": -1.4876550949064553
+        },
+        {
+          "kind": "obb",
+          "x": 20.75,
+          "z": 26.5,
+          "radius": 0,
+          "half_width": 2.5124689052802225,
+          "half_depth": 1,
+          "rotation": -1.6704649792860586
+        },
+        {
+          "kind": "obb",
+          "x": 20.25,
+          "z": 31.5,
+          "radius": 0,
+          "half_width": 2.5124689052802225,
+          "half_depth": 1,
+          "rotation": -1.6704649792860586
+        },
+        {
+          "kind": "obb",
+          "x": 19.5,
+          "z": 36,
+          "radius": 0,
+          "half_width": 2.0615528128088303,
+          "half_depth": 1,
+          "rotation": -1.8157749899217608
+        },
+        {
+          "kind": "obb",
+          "x": 18.5,
+          "z": 40,
+          "radius": 0,
+          "half_width": 2.0615528128088303,
+          "half_depth": 1,
+          "rotation": -1.8157749899217608
+        },
+        {
+          "kind": "obb",
+          "x": 18.5,
+          "z": 44.5,
+          "radius": 0,
+          "half_width": 2.5495097567963927,
+          "half_depth": 1,
+          "rotation": -1.373400766945016
+        },
+        {
+          "kind": "obb",
+          "x": 19.5,
+          "z": 49.5,
+          "radius": 0,
+          "half_width": 2.5495097567963927,
+          "half_depth": 1,
+          "rotation": -1.373400766945016
+        },
+        {
+          "kind": "obb",
+          "x": 20.25,
+          "z": 54.5,
+          "radius": 0,
+          "half_width": 2.5124689052802225,
+          "half_depth": 1,
+          "rotation": -1.4711276743037347
+        },
+        {
+          "kind": "obb",
+          "x": 20.75,
+          "z": 59.5,
+          "radius": 0,
+          "half_width": 2.5124689052802225,
+          "half_depth": 1,
+          "rotation": -1.4711276743037347
+        },
+        {
+          "kind": "obb",
+          "x": 20.25,
+          "z": 64.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": -1.8622531212727638
+        },
+        {
+          "kind": "obb",
+          "x": 18.75,
+          "z": 69.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": -1.8622531212727638
+        },
+        {
+          "kind": "obb",
+          "x": 17.333333333333332,
+          "z": 74,
+          "radius": 0,
+          "half_width": 2.1081851067789197,
+          "half_depth": 1,
+          "rotation": -1.892546881191539
+        },
+        {
+          "kind": "obb",
+          "x": 16,
+          "z": 78,
+          "radius": 0,
+          "half_width": 2.1081851067789197,
+          "half_depth": 1,
+          "rotation": -1.892546881191539
+        },
+        {
+          "kind": "obb",
+          "x": 14.666666666666666,
+          "z": 82,
+          "radius": 0,
+          "half_width": 2.1081851067789197,
+          "half_depth": 1,
+          "rotation": -1.892546881191539
+        },
+        {
+          "kind": "obb",
+          "x": 12.25,
+          "z": 85.25,
+          "radius": 0,
+          "half_width": 2.1505813167606567,
+          "half_depth": 1,
+          "rotation": -2.5213431676069717
+        },
+        {
+          "kind": "obb",
+          "x": 8.75,
+          "z": 87.75,
+          "radius": 0,
+          "half_width": 2.1505813167606567,
+          "half_depth": 1,
+          "rotation": -2.5213431676069717
+        },
+        {
+          "kind": "obb",
+          "x": 4.666666666666667,
+          "z": 89,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 89,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -4.666666666666668,
+          "z": 89,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -8.75,
+          "z": 87.75,
+          "radius": 0,
+          "half_width": 2.1505813167606567,
+          "half_depth": 1,
+          "rotation": 2.5213431676069717
+        },
+        {
+          "kind": "obb",
+          "x": -12.25,
+          "z": 85.25,
+          "radius": 0,
+          "half_width": 2.1505813167606567,
+          "half_depth": 1,
+          "rotation": 2.5213431676069717
+        },
+        {
+          "kind": "obb",
+          "x": -15,
+          "z": 82,
+          "radius": 0,
+          "half_width": 2.23606797749979,
+          "half_depth": 1,
+          "rotation": 2.0344439357957027
+        },
+        {
+          "kind": "obb",
+          "x": -17,
+          "z": 78,
+          "radius": 0,
+          "half_width": 2.23606797749979,
+          "half_depth": 1,
+          "rotation": 2.0344439357957027
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 74,
+          "radius": 0,
+          "half_width": 2.23606797749979,
+          "half_depth": 1,
+          "rotation": 2.0344439357957027
+        },
+        {
+          "kind": "obb",
+          "x": -20,
+          "z": 69.5,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -20,
+          "z": 64.5,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -20.25,
+          "z": 59.25,
+          "radius": 0,
+          "half_width": 2.7613402542968153,
+          "half_depth": 1,
+          "rotation": 1.661456213995642
+        },
+        {
+          "kind": "obb",
+          "x": -20.75,
+          "z": 53.75,
+          "radius": 0,
+          "half_width": 2.7613402542968153,
+          "half_depth": 1,
+          "rotation": 1.661456213995642
+        },
+        {
+          "kind": "obb",
+          "x": -20.875,
+          "z": 48.75,
+          "radius": 0,
+          "half_width": 2.2534695471649933,
+          "half_depth": 1,
+          "rotation": 1.5152978215491797
+        },
+        {
+          "kind": "obb",
+          "x": -20.625,
+          "z": 44.25,
+          "radius": 0,
+          "half_width": 2.2534695471649933,
+          "half_depth": 1,
+          "rotation": 1.5152978215491797
+        },
+        {
+          "kind": "obb",
+          "x": -20.375,
+          "z": 39.75,
+          "radius": 0,
+          "half_width": 2.2534695471649933,
+          "half_depth": 1,
+          "rotation": 1.5152978215491797
+        },
+        {
+          "kind": "obb",
+          "x": -20.125,
+          "z": 35.25,
+          "radius": 0,
+          "half_width": 2.2534695471649933,
+          "half_depth": 1,
+          "rotation": 1.5152978215491797
+        },
+        {
+          "kind": "obb",
+          "x": -20.5,
+          "z": 30.25,
+          "radius": 0,
+          "half_width": 2.795084971874737,
+          "half_depth": 1,
+          "rotation": 1.750649826587375
+        },
+        {
+          "kind": "obb",
+          "x": -21.5,
+          "z": 24.75,
+          "radius": 0,
+          "half_width": 2.795084971874737,
+          "half_depth": 1,
+          "rotation": 1.750649826587375
+        },
+        {
+          "kind": "obb",
+          "x": -22,
+          "z": 19.5,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -22,
+          "z": 14.5,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -21.25,
+          "z": 10,
+          "radius": 0,
+          "half_width": 2.1360009363293826,
+          "half_depth": 1,
+          "rotation": 1.2120256565243244
+        },
+        {
+          "kind": "obb",
+          "x": -19.75,
+          "z": 6,
+          "radius": 0,
+          "half_width": 2.1360009363293826,
+          "half_depth": 1,
+          "rotation": 1.2120256565243244
+        },
+        {
+          "kind": "obb",
+          "x": -18,
+          "z": 1.5,
+          "radius": 0,
+          "half_width": 2.6925824035672523,
+          "half_depth": 1,
+          "rotation": 1.1902899496825317
+        },
+        {
+          "kind": "obb",
+          "x": -16,
+          "z": -3.5,
+          "radius": 0,
+          "half_width": 2.6925824035672523,
+          "half_depth": 1,
+          "rotation": 1.1902899496825317
+        },
+        {
+          "kind": "obb",
+          "x": -13.833333333333334,
+          "z": -7.666666666666666,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": -11.5,
+          "z": -11,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": -9.166666666666666,
+          "z": -14.333333333333334,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 0.960070362405688
+        },
+        {
+          "kind": "circle",
+          "x": 16,
+          "z": 30,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -16,
+          "z": 42,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 15,
+          "z": 62,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -15,
+          "z": 16,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "litany_ring",
+      "span": 106,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -6,
+          "z": -17,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -17,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 6,
+          "z": -17,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 10.833333333333334,
+          "z": -15.833333333333334,
+          "radius": 0,
+          "half_width": 2.173067468400883,
+          "half_depth": 1,
+          "rotation": -0.5667292175235064
+        },
+        {
+          "kind": "obb",
+          "x": 14.5,
+          "z": -13.5,
+          "radius": 0,
+          "half_width": 2.173067468400883,
+          "half_depth": 1,
+          "rotation": -0.5667292175235064
+        },
+        {
+          "kind": "obb",
+          "x": 18.166666666666668,
+          "z": -11.166666666666666,
+          "radius": 0,
+          "half_width": 2.173067468400883,
+          "half_depth": 1,
+          "rotation": -0.5667292175235064
+        },
+        {
+          "kind": "obb",
+          "x": 21.55,
+          "z": -8,
+          "radius": 0,
+          "half_width": 2.530316185775999,
+          "half_depth": 1,
+          "rotation": -0.9114862584620388
+        },
+        {
+          "kind": "obb",
+          "x": 24.65,
+          "z": -4,
+          "radius": 0,
+          "half_width": 2.530316185775999,
+          "half_depth": 1,
+          "rotation": -0.9114862584620388
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 0.833333333333333,
+          "radius": 0,
+          "half_width": 2.8333333333333335,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 6.5,
+          "radius": 0,
+          "half_width": 2.8333333333333335,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 12.166666666666668,
+          "radius": 0,
+          "half_width": 2.8333333333333335,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 17.75,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 23.25,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 28.75,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 34.25,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 39,
+          "radius": 0,
+          "half_width": 2,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 43.75,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 49.25,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 54.75,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 26.2,
+          "z": 60.25,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 25.95,
+          "z": 65,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": -1.6951513213416582
+        },
+        {
+          "kind": "obb",
+          "x": 25.45,
+          "z": 69,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": -1.6951513213416582
+        },
+        {
+          "kind": "obb",
+          "x": 24.95,
+          "z": 73,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": -1.6951513213416582
+        },
+        {
+          "kind": "obb",
+          "x": 24.025,
+          "z": 76.75,
+          "radius": 0,
+          "half_width": 1.8756665481902692,
+          "half_depth": 1,
+          "rotation": -1.9389270981200601
+        },
+        {
+          "kind": "obb",
+          "x": 22.675,
+          "z": 80.25,
+          "radius": 0,
+          "half_width": 1.8756665481902692,
+          "half_depth": 1,
+          "rotation": -1.9389270981200601
+        },
+        {
+          "kind": "obb",
+          "x": 20.25,
+          "z": 83.5,
+          "radius": 0,
+          "half_width": 2.3048861143232218,
+          "half_depth": 1,
+          "rotation": -2.4329663814621227
+        },
+        {
+          "kind": "obb",
+          "x": 16.75,
+          "z": 86.5,
+          "radius": 0,
+          "half_width": 2.3048861143232218,
+          "half_depth": 1,
+          "rotation": -2.4329663814621227
+        },
+        {
+          "kind": "obb",
+          "x": 13.25,
+          "z": 89,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": -2.6224465393432705
+        },
+        {
+          "kind": "obb",
+          "x": 9.75,
+          "z": 91,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": -2.6224465393432705
+        },
+        {
+          "kind": "obb",
+          "x": 5.333333333333334,
+          "z": 92,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 92,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -5.333333333333334,
+          "z": 92,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -9.75,
+          "z": 91,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": 2.6224465393432705
+        },
+        {
+          "kind": "obb",
+          "x": -13.25,
+          "z": 89,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": 2.6224465393432705
+        },
+        {
+          "kind": "obb",
+          "x": -16.75,
+          "z": 86.5,
+          "radius": 0,
+          "half_width": 2.3048861143232218,
+          "half_depth": 1,
+          "rotation": 2.4329663814621227
+        },
+        {
+          "kind": "obb",
+          "x": -20.25,
+          "z": 83.5,
+          "radius": 0,
+          "half_width": 2.3048861143232218,
+          "half_depth": 1,
+          "rotation": 2.4329663814621227
+        },
+        {
+          "kind": "obb",
+          "x": -22.675,
+          "z": 80.25,
+          "radius": 0,
+          "half_width": 1.8756665481902692,
+          "half_depth": 1,
+          "rotation": 1.9389270981200601
+        },
+        {
+          "kind": "obb",
+          "x": -24.025,
+          "z": 76.75,
+          "radius": 0,
+          "half_width": 1.8756665481902692,
+          "half_depth": 1,
+          "rotation": 1.9389270981200601
+        },
+        {
+          "kind": "obb",
+          "x": -24.95,
+          "z": 73,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": 1.6951513213416582
+        },
+        {
+          "kind": "obb",
+          "x": -25.45,
+          "z": 69,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": 1.6951513213416582
+        },
+        {
+          "kind": "obb",
+          "x": -25.95,
+          "z": 65,
+          "radius": 0,
+          "half_width": 2.0155644370746373,
+          "half_depth": 1,
+          "rotation": 1.6951513213416582
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 60.25,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 54.75,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 49.25,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 43.75,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 39,
+          "radius": 0,
+          "half_width": 2,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 34.25,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 28.75,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 23.25,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 17.75,
+          "radius": 0,
+          "half_width": 2.75,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 12.166666666666668,
+          "radius": 0,
+          "half_width": 2.8333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 6.5,
+          "radius": 0,
+          "half_width": 2.8333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -26.2,
+          "z": 0.8333333333333321,
+          "radius": 0,
+          "half_width": 2.8333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -24.65,
+          "z": -4,
+          "radius": 0,
+          "half_width": 2.530316185775999,
+          "half_depth": 1,
+          "rotation": 0.9114862584620388
+        },
+        {
+          "kind": "obb",
+          "x": -21.55,
+          "z": -8,
+          "radius": 0,
+          "half_width": 2.530316185775999,
+          "half_depth": 1,
+          "rotation": 0.9114862584620388
+        },
+        {
+          "kind": "obb",
+          "x": -18.166666666666668,
+          "z": -11.166666666666666,
+          "radius": 0,
+          "half_width": 2.173067468400883,
+          "half_depth": 1,
+          "rotation": 0.5667292175235064
+        },
+        {
+          "kind": "obb",
+          "x": -14.5,
+          "z": -13.5,
+          "radius": 0,
+          "half_width": 2.173067468400883,
+          "half_depth": 1,
+          "rotation": 0.5667292175235064
+        },
+        {
+          "kind": "obb",
+          "x": -10.833333333333332,
+          "z": -15.833333333333334,
+          "radius": 0,
+          "half_width": 2.173067468400883,
+          "half_depth": 1,
+          "rotation": 0.5667292175235064
+        },
+        {
+          "kind": "circle",
+          "x": -8,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 8,
+          "z": 40,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 0,
+          "z": 30,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "litany_baptistry",
+      "span": 84,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -4.666666666666667,
+          "z": -14,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": -14,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 4.666666666666668,
+          "z": -14,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 8.5,
+          "z": -12,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": -0.9272952180016122
+        },
+        {
+          "kind": "obb",
+          "x": 11.5,
+          "z": -8,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": -0.9272952180016122
+        },
+        {
+          "kind": "obb",
+          "x": 14.166666666666666,
+          "z": -4.333333333333334,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": 16.5,
+          "z": -1,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": 18.833333333333336,
+          "z": 2.333333333333334,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": 20.166666666666668,
+          "z": 6,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": -1.4876550949064553
+        },
+        {
+          "kind": "obb",
+          "x": 20.5,
+          "z": 10,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": -1.4876550949064553
+        },
+        {
+          "kind": "obb",
+          "x": 20.833333333333332,
+          "z": 14,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": -1.4876550949064553
+        },
+        {
+          "kind": "obb",
+          "x": 21,
+          "z": 18.333333333333332,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 21,
+          "z": 23,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 21,
+          "z": 27.666666666666668,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 21,
+          "z": 33,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 21,
+          "z": 39,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 20.833333333333332,
+          "z": 44,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": -1.653937558683338
+        },
+        {
+          "kind": "obb",
+          "x": 20.5,
+          "z": 48,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": -1.653937558683338
+        },
+        {
+          "kind": "obb",
+          "x": 20.166666666666668,
+          "z": 52,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": -1.653937558683338
+        },
+        {
+          "kind": "obb",
+          "x": 19.166666666666668,
+          "z": 55.833333333333336,
+          "radius": 0,
+          "half_width": 2.0138409955990952,
+          "half_depth": 1,
+          "rotation": -1.9974238199217729
+        },
+        {
+          "kind": "obb",
+          "x": 17.5,
+          "z": 59.5,
+          "radius": 0,
+          "half_width": 2.0138409955990952,
+          "half_depth": 1,
+          "rotation": -1.9974238199217729
+        },
+        {
+          "kind": "obb",
+          "x": 15.833333333333332,
+          "z": 63.16666666666667,
+          "radius": 0,
+          "half_width": 2.0138409955990952,
+          "half_depth": 1,
+          "rotation": -1.9974238199217729
+        },
+        {
+          "kind": "obb",
+          "x": 13.25,
+          "z": 67,
+          "radius": 0,
+          "half_width": 2.6575364531836625,
+          "half_depth": 1,
+          "rotation": -2.289626326416521
+        },
+        {
+          "kind": "obb",
+          "x": 9.75,
+          "z": 71,
+          "radius": 0,
+          "half_width": 2.6575364531836625,
+          "half_depth": 1,
+          "rotation": -2.289626326416521
+        },
+        {
+          "kind": "obb",
+          "x": 5.333333333333334,
+          "z": 73,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 73,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -5.333333333333334,
+          "z": 73,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -9.75,
+          "z": 70.75,
+          "radius": 0,
+          "half_width": 2.850438562747845,
+          "half_depth": 1,
+          "rotation": 2.2318394956455836
+        },
+        {
+          "kind": "obb",
+          "x": -13.25,
+          "z": 66.25,
+          "radius": 0,
+          "half_width": 2.850438562747845,
+          "half_depth": 1,
+          "rotation": 2.2318394956455836
+        },
+        {
+          "kind": "obb",
+          "x": -16.5,
+          "z": 62,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": 2.214297435588181
+        },
+        {
+          "kind": "obb",
+          "x": -19.5,
+          "z": 58,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": 2.214297435588181
+        },
+        {
+          "kind": "obb",
+          "x": -21,
+          "z": 53.666666666666664,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -21,
+          "z": 49,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -21,
+          "z": 44.33333333333333,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -21,
+          "z": 39,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -21,
+          "z": 33,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -21,
+          "z": 27.666666666666668,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -21,
+          "z": 23,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -21,
+          "z": 18.333333333333332,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -20.833333333333332,
+          "z": 14,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": 1.4876550949064553
+        },
+        {
+          "kind": "obb",
+          "x": -20.5,
+          "z": 10,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": 1.4876550949064553
+        },
+        {
+          "kind": "obb",
+          "x": -20.166666666666668,
+          "z": 6,
+          "radius": 0,
+          "half_width": 2.0069324297987157,
+          "half_depth": 1,
+          "rotation": 1.4876550949064553
+        },
+        {
+          "kind": "obb",
+          "x": -18.833333333333332,
+          "z": 2.3333333333333335,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": -16.5,
+          "z": -1,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": -14.166666666666666,
+          "z": -4.333333333333334,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 0.960070362405688
+        },
+        {
+          "kind": "obb",
+          "x": -11.5,
+          "z": -8,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": 0.9272952180016122
+        },
+        {
+          "kind": "obb",
+          "x": -8.5,
+          "z": -12,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": 0.9272952180016122
+        },
+        {
+          "kind": "circle",
+          "x": 8,
+          "z": 34,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -8,
+          "z": 34,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 8,
+          "z": 46,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -8,
+          "z": 46,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "litany_choir_loft",
+      "span": 96,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -3,
+          "z": -14,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 3,
+          "z": -14,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 7,
+          "z": -11.5,
+          "radius": 0,
+          "half_width": 2.6925824035672523,
+          "half_depth": 1,
+          "rotation": -1.1902899496825317
+        },
+        {
+          "kind": "obb",
+          "x": 9,
+          "z": -6.5,
+          "radius": 0,
+          "half_width": 2.6925824035672523,
+          "half_depth": 1,
+          "rotation": -1.1902899496825317
+        },
+        {
+          "kind": "obb",
+          "x": 10.75,
+          "z": -2.25,
+          "radius": 0,
+          "half_width": 1.9039432764659772,
+          "half_depth": 1,
+          "rotation": -1.1659045405098132
+        },
+        {
+          "kind": "obb",
+          "x": 12.25,
+          "z": 1.25,
+          "radius": 0,
+          "half_width": 1.9039432764659772,
+          "half_depth": 1,
+          "rotation": -1.1659045405098132
+        },
+        {
+          "kind": "obb",
+          "x": 13.75,
+          "z": 5.75,
+          "radius": 0,
+          "half_width": 2.850438562747845,
+          "half_depth": 1,
+          "rotation": -1.3045442776439713
+        },
+        {
+          "kind": "obb",
+          "x": 15.25,
+          "z": 11.25,
+          "radius": 0,
+          "half_width": 2.850438562747845,
+          "half_depth": 1,
+          "rotation": -1.3045442776439713
+        },
+        {
+          "kind": "obb",
+          "x": 18,
+          "z": 16,
+          "radius": 0,
+          "half_width": 2.8284271247461903,
+          "half_depth": 1,
+          "rotation": -0.7853981633974483
+        },
+        {
+          "kind": "obb",
+          "x": 21.425,
+          "z": 18.75,
+          "radius": 0,
+          "half_width": 1.6103182915187915,
+          "half_depth": 1,
+          "rotation": -0.48447792903702325
+        },
+        {
+          "kind": "obb",
+          "x": 24.275,
+          "z": 20.25,
+          "radius": 0,
+          "half_width": 1.6103182915187915,
+          "half_depth": 1,
+          "rotation": -0.48447792903702325
+        },
+        {
+          "kind": "obb",
+          "x": 25.666666666666664,
+          "z": 23.166666666666668,
+          "radius": 0,
+          "half_width": 2.1669230617526676,
+          "half_depth": 1,
+          "rotation": -1.5861797285754917
+        },
+        {
+          "kind": "obb",
+          "x": 25.6,
+          "z": 27.5,
+          "radius": 0,
+          "half_width": 2.1669230617526676,
+          "half_depth": 1,
+          "rotation": -1.5861797285754917
+        },
+        {
+          "kind": "obb",
+          "x": 25.53333333333333,
+          "z": 31.833333333333336,
+          "radius": 0,
+          "half_width": 2.1669230617526676,
+          "half_depth": 1,
+          "rotation": -1.5861797285754917
+        },
+        {
+          "kind": "obb",
+          "x": 25.5,
+          "z": 37,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 25.5,
+          "z": 42,
+          "radius": 0,
+          "half_width": 2,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 25.5,
+          "z": 46,
+          "radius": 0,
+          "half_width": 2,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 25.5,
+          "z": 51,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 25.5,
+          "z": 57,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 24.625,
+          "z": 61.5,
+          "radius": 0,
+          "half_width": 1.7365554986812257,
+          "half_depth": 1,
+          "rotation": -2.0988707752212563
+        },
+        {
+          "kind": "obb",
+          "x": 22.875,
+          "z": 64.5,
+          "radius": 0,
+          "half_width": 1.7365554986812257,
+          "half_depth": 1,
+          "rotation": -2.0988707752212563
+        },
+        {
+          "kind": "obb",
+          "x": 20.833333333333332,
+          "z": 67.66666666666667,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": 18.5,
+          "z": 71,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": 16.166666666666664,
+          "z": 74.33333333333333,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": 13.833333333333334,
+          "z": 77.66666666666667,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": 11.5,
+          "z": 81,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": 9.166666666666666,
+          "z": 84.33333333333333,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": -2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": 5.333333333333334,
+          "z": 86,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": 0,
+          "z": 86,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -5.333333333333334,
+          "z": 86,
+          "radius": 0,
+          "half_width": 2.6666666666666665,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -9.166666666666666,
+          "z": 84.33333333333333,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": -11.5,
+          "z": 81,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": -13.833333333333334,
+          "z": 77.66666666666667,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": -16.166666666666668,
+          "z": 74.33333333333333,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": -18.5,
+          "z": 71,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": -20.833333333333336,
+          "z": 67.66666666666667,
+          "radius": 0,
+          "half_width": 2.034425935955617,
+          "half_depth": 1,
+          "rotation": 2.1815222911841055
+        },
+        {
+          "kind": "obb",
+          "x": -22.875,
+          "z": 64.5,
+          "radius": 0,
+          "half_width": 1.7365554986812257,
+          "half_depth": 1,
+          "rotation": 2.0988707752212563
+        },
+        {
+          "kind": "obb",
+          "x": -24.625,
+          "z": 61.5,
+          "radius": 0,
+          "half_width": 1.7365554986812257,
+          "half_depth": 1,
+          "rotation": 2.0988707752212563
+        },
+        {
+          "kind": "obb",
+          "x": -25.5,
+          "z": 57,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -25.5,
+          "z": 51,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -25.5,
+          "z": 46,
+          "radius": 0,
+          "half_width": 2,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -25.5,
+          "z": 42,
+          "radius": 0,
+          "half_width": 2,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -25.5,
+          "z": 37,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -25.53333333333333,
+          "z": 31.833333333333332,
+          "radius": 0,
+          "half_width": 2.1669230617526676,
+          "half_depth": 1,
+          "rotation": 1.5861797285754917
+        },
+        {
+          "kind": "obb",
+          "x": -25.6,
+          "z": 27.5,
+          "radius": 0,
+          "half_width": 2.1669230617526676,
+          "half_depth": 1,
+          "rotation": 1.5861797285754917
+        },
+        {
+          "kind": "obb",
+          "x": -25.666666666666664,
+          "z": 23.166666666666664,
+          "radius": 0,
+          "half_width": 2.1669230617526676,
+          "half_depth": 1,
+          "rotation": 1.5861797285754917
+        },
+        {
+          "kind": "obb",
+          "x": -24.275,
+          "z": 20.25,
+          "radius": 0,
+          "half_width": 1.6103182915187915,
+          "half_depth": 1,
+          "rotation": 0.48447792903702325
+        },
+        {
+          "kind": "obb",
+          "x": -21.425,
+          "z": 18.75,
+          "radius": 0,
+          "half_width": 1.6103182915187915,
+          "half_depth": 1,
+          "rotation": 0.48447792903702325
+        },
+        {
+          "kind": "obb",
+          "x": -18.6,
+          "z": 16,
+          "radius": 0,
+          "half_width": 2.4413111231467406,
+          "half_depth": 1,
+          "rotation": 0.9600703624056879
+        },
+        {
+          "kind": "obb",
+          "x": -16.15,
+          "z": 11.25,
+          "radius": 0,
+          "half_width": 2.943637205907005,
+          "half_depth": 1,
+          "rotation": 1.2060615125304834
+        },
+        {
+          "kind": "obb",
+          "x": -14.05,
+          "z": 5.75,
+          "radius": 0,
+          "half_width": 2.943637205907005,
+          "half_depth": 1,
+          "rotation": 1.2060615125304834
+        },
+        {
+          "kind": "obb",
+          "x": -12.25,
+          "z": 1.25,
+          "radius": 0,
+          "half_width": 1.9039432764659772,
+          "half_depth": 1,
+          "rotation": 1.1659045405098132
+        },
+        {
+          "kind": "obb",
+          "x": -10.75,
+          "z": -2.25,
+          "radius": 0,
+          "half_width": 1.9039432764659772,
+          "half_depth": 1,
+          "rotation": 1.1659045405098132
+        },
+        {
+          "kind": "obb",
+          "x": -9,
+          "z": -6.5,
+          "radius": 0,
+          "half_width": 2.6925824035672523,
+          "half_depth": 1,
+          "rotation": 1.1902899496825317
+        },
+        {
+          "kind": "obb",
+          "x": -7,
+          "z": -11.5,
+          "radius": 0,
+          "half_width": 2.6925824035672523,
+          "half_depth": 1,
+          "rotation": 1.1902899496825317
+        },
+        {
+          "kind": "circle",
+          "x": -20,
+          "z": 48,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 20,
+          "z": 48,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -12,
+          "z": 18,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 12,
+          "z": 18,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "litany_causeway",
+      "span": 106,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -3,
+          "z": -14,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 3,
+          "z": -14,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 6.75,
+          "z": -11.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": -1.2793395323170296
+        },
+        {
+          "kind": "obb",
+          "x": 8.25,
+          "z": -6.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": -1.2793395323170296
+        },
+        {
+          "kind": "obb",
+          "x": 9.625,
+          "z": -1.5,
+          "radius": 0,
+          "half_width": 2.576941016011038,
+          "half_depth": 1,
+          "rotation": -1.3258176636680326
+        },
+        {
+          "kind": "obb",
+          "x": 10.875,
+          "z": 3.5,
+          "radius": 0,
+          "half_width": 2.576941016011038,
+          "half_depth": 1,
+          "rotation": -1.3258176636680326
+        },
+        {
+          "kind": "obb",
+          "x": 11.875,
+          "z": 8.5,
+          "radius": 0,
+          "half_width": 2.5279685520195856,
+          "half_depth": 1,
+          "rotation": -1.4219063791853994
+        },
+        {
+          "kind": "obb",
+          "x": 12.625,
+          "z": 13.5,
+          "radius": 0,
+          "half_width": 2.5279685520195856,
+          "half_depth": 1,
+          "rotation": -1.4219063791853994
+        },
+        {
+          "kind": "obb",
+          "x": 13,
+          "z": 18.333333333333332,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 13,
+          "z": 23,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 13,
+          "z": 27.666666666666668,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 13.125,
+          "z": 32.5,
+          "radius": 0,
+          "half_width": 2.5031230493125984,
+          "half_depth": 1,
+          "rotation": -1.5208379310729538
+        },
+        {
+          "kind": "obb",
+          "x": 13.375,
+          "z": 37.5,
+          "radius": 0,
+          "half_width": 2.5031230493125984,
+          "half_depth": 1,
+          "rotation": -1.5208379310729538
+        },
+        {
+          "kind": "obb",
+          "x": 13.416666666666666,
+          "z": 42,
+          "radius": 0,
+          "half_width": 2.0017353582440522,
+          "half_depth": 1,
+          "rotation": -1.6124389058934852
+        },
+        {
+          "kind": "obb",
+          "x": 13.25,
+          "z": 46,
+          "radius": 0,
+          "half_width": 2.0017353582440522,
+          "half_depth": 1,
+          "rotation": -1.6124389058934852
+        },
+        {
+          "kind": "obb",
+          "x": 13.083333333333334,
+          "z": 50,
+          "radius": 0,
+          "half_width": 2.0017353582440522,
+          "half_depth": 1,
+          "rotation": -1.6124389058934852
+        },
+        {
+          "kind": "obb",
+          "x": 13,
+          "z": 55,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 13,
+          "z": 61,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": 12.5,
+          "z": 66.5,
+          "radius": 0,
+          "half_width": 2.5495097567963927,
+          "half_depth": 1,
+          "rotation": -1.7681918866447774
+        },
+        {
+          "kind": "obb",
+          "x": 11.5,
+          "z": 71.5,
+          "radius": 0,
+          "half_width": 2.5495097567963927,
+          "half_depth": 1,
+          "rotation": -1.7681918866447774
+        },
+        {
+          "kind": "obb",
+          "x": 10.5,
+          "z": 76.5,
+          "radius": 0,
+          "half_width": 2.5495097567963927,
+          "half_depth": 1,
+          "rotation": -1.7681918866447774
+        },
+        {
+          "kind": "obb",
+          "x": 9.5,
+          "z": 81.5,
+          "radius": 0,
+          "half_width": 2.5495097567963927,
+          "half_depth": 1,
+          "rotation": -1.7681918866447774
+        },
+        {
+          "kind": "obb",
+          "x": 8.25,
+          "z": 86.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": -1.8622531212727638
+        },
+        {
+          "kind": "obb",
+          "x": 6.75,
+          "z": 91.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": -1.8622531212727638
+        },
+        {
+          "kind": "obb",
+          "x": 3,
+          "z": 94,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -3,
+          "z": 94,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -7.125,
+          "z": 91.5,
+          "radius": 0,
+          "half_width": 2.7414640249326636,
+          "half_depth": 1,
+          "rotation": 1.9936502529278375
+        },
+        {
+          "kind": "obb",
+          "x": -9.375,
+          "z": 86.5,
+          "radius": 0,
+          "half_width": 2.7414640249326636,
+          "half_depth": 1,
+          "rotation": 1.9936502529278375
+        },
+        {
+          "kind": "obb",
+          "x": -10.625,
+          "z": 81.5,
+          "radius": 0,
+          "half_width": 2.5031230493125984,
+          "half_depth": 1,
+          "rotation": 1.6207547225168395
+        },
+        {
+          "kind": "obb",
+          "x": -10.875,
+          "z": 76.5,
+          "radius": 0,
+          "half_width": 2.5031230493125984,
+          "half_depth": 1,
+          "rotation": 1.6207547225168395
+        },
+        {
+          "kind": "obb",
+          "x": -11.5,
+          "z": 71.5,
+          "radius": 0,
+          "half_width": 2.5495097567963927,
+          "half_depth": 1,
+          "rotation": 1.7681918866447774
+        },
+        {
+          "kind": "obb",
+          "x": -12.5,
+          "z": 66.5,
+          "radius": 0,
+          "half_width": 2.5495097567963927,
+          "half_depth": 1,
+          "rotation": 1.7681918866447774
+        },
+        {
+          "kind": "obb",
+          "x": -13,
+          "z": 61,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -13,
+          "z": 55,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -13.083333333333334,
+          "z": 50,
+          "radius": 0,
+          "half_width": 2.0017353582440522,
+          "half_depth": 1,
+          "rotation": 1.6124389058934852
+        },
+        {
+          "kind": "obb",
+          "x": -13.25,
+          "z": 46,
+          "radius": 0,
+          "half_width": 2.0017353582440522,
+          "half_depth": 1,
+          "rotation": 1.6124389058934852
+        },
+        {
+          "kind": "obb",
+          "x": -13.416666666666666,
+          "z": 42,
+          "radius": 0,
+          "half_width": 2.0017353582440522,
+          "half_depth": 1,
+          "rotation": 1.6124389058934852
+        },
+        {
+          "kind": "obb",
+          "x": -13.375,
+          "z": 37.5,
+          "radius": 0,
+          "half_width": 2.5031230493125984,
+          "half_depth": 1,
+          "rotation": 1.5208379310729538
+        },
+        {
+          "kind": "obb",
+          "x": -13.125,
+          "z": 32.5,
+          "radius": 0,
+          "half_width": 2.5031230493125984,
+          "half_depth": 1,
+          "rotation": 1.5208379310729538
+        },
+        {
+          "kind": "obb",
+          "x": -13,
+          "z": 27.666666666666668,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -13,
+          "z": 23,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -13,
+          "z": 18.333333333333332,
+          "radius": 0,
+          "half_width": 2.3333333333333335,
+          "half_depth": 1,
+          "rotation": 1.5707963267948966
+        },
+        {
+          "kind": "obb",
+          "x": -12.625,
+          "z": 13.5,
+          "radius": 0,
+          "half_width": 2.5279685520195856,
+          "half_depth": 1,
+          "rotation": 1.4219063791853994
+        },
+        {
+          "kind": "obb",
+          "x": -11.875,
+          "z": 8.5,
+          "radius": 0,
+          "half_width": 2.5279685520195856,
+          "half_depth": 1,
+          "rotation": 1.4219063791853994
+        },
+        {
+          "kind": "obb",
+          "x": -10.875,
+          "z": 3.5,
+          "radius": 0,
+          "half_width": 2.576941016011038,
+          "half_depth": 1,
+          "rotation": 1.3258176636680326
+        },
+        {
+          "kind": "obb",
+          "x": -9.625,
+          "z": -1.5,
+          "radius": 0,
+          "half_width": 2.576941016011038,
+          "half_depth": 1,
+          "rotation": 1.3258176636680326
+        },
+        {
+          "kind": "obb",
+          "x": -8.25,
+          "z": -6.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": 1.2793395323170296
+        },
+        {
+          "kind": "obb",
+          "x": -6.75,
+          "z": -11.5,
+          "radius": 0,
+          "half_width": 2.6100766272276377,
+          "half_depth": 1,
+          "rotation": 1.2793395323170296
+        },
+        {
+          "kind": "circle",
+          "x": -10,
+          "z": 16,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 10,
+          "z": 30,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -10,
+          "z": 52,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 10,
+          "z": 64,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -8,
+          "z": 82,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "litany_apse",
+      "span": 108,
+      "colliders": [
+        {
+          "kind": "obb",
+          "x": -3,
+          "z": -19,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 3,
+          "z": -19,
+          "radius": 0,
+          "half_width": 3,
+          "half_depth": 1,
+          "rotation": 0
+        },
+        {
+          "kind": "obb",
+          "x": 7,
+          "z": -16.75,
+          "radius": 0,
+          "half_width": 2.462214450449026,
+          "half_depth": 1,
+          "rotation": -1.1525719972156676
+        },
+        {
+          "kind": "obb",
+          "x": 9,
+          "z": -12.25,
+          "radius": 0,
+          "half_width": 2.462214450449026,
+          "half_depth": 1,
+          "rotation": -1.1525719972156676
+        },
+        {
+          "kind": "obb",
+          "x": 11,
+          "z": -7.5,
+          "radius": 0,
+          "half_width": 2.6925824035672523,
+          "half_depth": 1,
+          "rotation": -1.1902899496825317
+        },
+        {
+          "kind": "obb",
+          "x": 13,
+          "z": -2.5,
+          "radius": 0,
+          "half_width": 2.6925824035672523,
+          "half_depth": 1,
+          "rotation": -1.1902899496825317
+        },
+        {
+          "kind": "obb",
+          "x": 16.25,
+          "z": 1.5,
+          "radius": 0,
+          "half_width": 2.704163456597992,
+          "half_depth": 1,
+          "rotation": -0.5880026035475675
+        },
+        {
+          "kind": "obb",
+          "x": 20.75,
+          "z": 4.5,
+          "radius": 0,
+          "half_width": 2.704163456597992,
+          "half_depth": 1,
+          "rotation": -0.5880026035475675
+        },
+        {
+          "kind": "obb",
+          "x": 23.1,
+          "z": 8.4,
+          "radius": 0,
+          "half_width": 2.4020824298928627,
+          "half_depth": 1,
+          "rotation": -1.5291537476963082
+        },
+        {
+          "kind": "obb",
+          "x": 23.3,
+          "z": 13.2,
+          "radius": 0,
+          "half_width": 2.4020824298928627,
+          "half_depth": 1,
+          "rotation": -1.5291537476963082
+        },
+        {
+          "kind": "obb",
+          "x": 23.5,
+          "z": 18,
+          "radius": 0,
+          "half_width": 2.4020824298928627,
+          "half_depth": 1,
+          "rotation": -1.5291537476963082
+        },
+        {
+          "kind": "obb",
+          "x": 23.7,
+          "z": 22.799999999999997,
+          "radius": 0,
+          "half_width": 2.4020824298928627,
+          "half_depth": 1,
+          "rotation": -1.5291537476963082
+        },
+        {
+          "kind": "obb",
+          "x": 23.9,
+          "z": 27.6,
+          "radius": 0,
+          "half_width": 2.4020824298928627,
+          "half_depth": 1,
+          "rotation": -1.5291537476963082
+        },
+        {
+          "kind": "obb",
+          "x": 23.375,
+          "z": 32.75,
+          "radius": 0,
+          "half_width": 2.820128543169619,
+          "half_depth": 1,
+          "rotation": -1.7942729279355298
+        },
+        {
+          "kind": "obb",
+          "x": 22.125,
+          "z": 38.25,
+          "radius": 0,
+          "half_width": 2.820128543169619,
+          "half_depth": 1,
+          "rotation": -1.7942729279355298
+        },
+        {
+          "kind": "obb",
+          "x": 22.1,
+          "z": 42.75,
+          "radius": 0,
+          "half_width": 1.85,
+          "half_depth": 1,
+          "rotation": -1.2404989719656432
+        },
+        {
+          "kind": "obb",
+          "x": 23.299999999999997,
+          "z": 46.25,
+          "radius": 0,
+          "half_width": 1.85,
+          "half_depth": 1,
+          "rotation": -1.2404989719656432
+        },
+        {
+          "kind": "obb",
+          "x": 23.881249999999998,
+          "z": 50.6875,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": -1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": 23.84375,
+          "z": 56.0625,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": -1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": 23.80625,
+          "z": 61.4375,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": -1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": 23.76875,
+          "z": 66.8125,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": -1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": 23.73125,
+          "z": 72.1875,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": -1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": 23.69375,
+          "z": 77.5625,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": -1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": 23.65625,
+          "z": 82.9375,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": -1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": 23.618750000000002,
+          "z": 88.3125,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": -1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": 21.333333333333336,
+          "z": 91.5,
+          "radius": 0,
+          "half_width": 2.321158714473825,
+          "half_depth": 1,
+          "rotation": -2.9244813388548883
+        },
+        {
+          "kind": "obb",
+          "x": 16.8,
+          "z": 92.5,
+          "radius": 0,
+          "half_width": 2.321158714473825,
+          "half_depth": 1,
+          "rotation": -2.9244813388548883
+        },
+        {
+          "kind": "obb",
+          "x": 12.266666666666666,
+          "z": 93.5,
+          "radius": 0,
+          "half_width": 2.321158714473825,
+          "half_depth": 1,
+          "rotation": -2.9244813388548883
+        },
+        {
+          "kind": "obb",
+          "x": 7.5,
+          "z": 94,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": 2.5,
+          "z": 94,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -2.5,
+          "z": 94,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -7.5,
+          "z": 94,
+          "radius": 0,
+          "half_width": 2.5,
+          "half_depth": 1,
+          "rotation": -3.141592653589793
+        },
+        {
+          "kind": "obb",
+          "x": -12.266666666666666,
+          "z": 93.5,
+          "radius": 0,
+          "half_width": 2.321158714473825,
+          "half_depth": 1,
+          "rotation": 2.9244813388548883
+        },
+        {
+          "kind": "obb",
+          "x": -16.8,
+          "z": 92.5,
+          "radius": 0,
+          "half_width": 2.321158714473825,
+          "half_depth": 1,
+          "rotation": 2.9244813388548883
+        },
+        {
+          "kind": "obb",
+          "x": -21.333333333333336,
+          "z": 91.5,
+          "radius": 0,
+          "half_width": 2.321158714473825,
+          "half_depth": 1,
+          "rotation": 2.9244813388548883
+        },
+        {
+          "kind": "obb",
+          "x": -23.618750000000002,
+          "z": 88.3125,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": 1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": -23.65625,
+          "z": 82.9375,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": 1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": -23.69375,
+          "z": 77.5625,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": 1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": -23.73125,
+          "z": 72.1875,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": 1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": -23.76875,
+          "z": 66.8125,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": 1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": -23.80625,
+          "z": 61.4375,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": 1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": -23.84375,
+          "z": 56.0625,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": 1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": -23.881249999999998,
+          "z": 50.6875,
+          "radius": 0,
+          "half_width": 2.687565406180843,
+          "half_depth": 1,
+          "rotation": 1.5777729577866688
+        },
+        {
+          "kind": "obb",
+          "x": -22.424999999999997,
+          "z": 46.25,
+          "radius": 0,
+          "half_width": 2.288695043032164,
+          "half_depth": 1,
+          "rotation": 0.8704637033660934
+        },
+        {
+          "kind": "obb",
+          "x": -19.475,
+          "z": 42.75,
+          "radius": 0,
+          "half_width": 2.288695043032164,
+          "half_depth": 1,
+          "rotation": 0.8704637033660934
+        },
+        {
+          "kind": "obb",
+          "x": -19,
+          "z": 39.166666666666664,
+          "radius": 0,
+          "half_width": 2.088327347690278,
+          "half_depth": 1,
+          "rotation": 2.0701430484750265
+        },
+        {
+          "kind": "obb",
+          "x": -21,
+          "z": 35.5,
+          "radius": 0,
+          "half_width": 2.088327347690278,
+          "half_depth": 1,
+          "rotation": 2.0701430484750265
+        },
+        {
+          "kind": "obb",
+          "x": -23,
+          "z": 31.833333333333332,
+          "radius": 0,
+          "half_width": 2.088327347690278,
+          "half_depth": 1,
+          "rotation": 2.0701430484750265
+        },
+        {
+          "kind": "obb",
+          "x": -24.25,
+          "z": 27.125,
+          "radius": 0,
+          "half_width": 2.8858490951537994,
+          "half_depth": 1,
+          "rotation": 1.6575346654708818
+        },
+        {
+          "kind": "obb",
+          "x": -24.75,
+          "z": 21.375,
+          "radius": 0,
+          "half_width": 2.8858490951537994,
+          "half_depth": 1,
+          "rotation": 1.6575346654708818
+        },
+        {
+          "kind": "obb",
+          "x": -25.25,
+          "z": 15.625,
+          "radius": 0,
+          "half_width": 2.8858490951537994,
+          "half_depth": 1,
+          "rotation": 1.6575346654708818
+        },
+        {
+          "kind": "obb",
+          "x": -25.75,
+          "z": 9.875,
+          "radius": 0,
+          "half_width": 2.8858490951537994,
+          "half_depth": 1,
+          "rotation": 1.6575346654708818
+        },
+        {
+          "kind": "obb",
+          "x": -24.5,
+          "z": 5.666666666666667,
+          "radius": 0,
+          "half_width": 2.006932429798716,
+          "half_depth": 1,
+          "rotation": 0.7266423406817256
+        },
+        {
+          "kind": "obb",
+          "x": -21.5,
+          "z": 3,
+          "radius": 0,
+          "half_width": 2.006932429798716,
+          "half_depth": 1,
+          "rotation": 0.7266423406817256
+        },
+        {
+          "kind": "obb",
+          "x": -18.5,
+          "z": 0.33333333333333304,
+          "radius": 0,
+          "half_width": 2.006932429798716,
+          "half_depth": 1,
+          "rotation": 0.7266423406817256
+        },
+        {
+          "kind": "obb",
+          "x": -15.25,
+          "z": -3.25,
+          "radius": 0,
+          "half_width": 2.850438562747845,
+          "half_depth": 1,
+          "rotation": 0.9097531579442097
+        },
+        {
+          "kind": "obb",
+          "x": -11.75,
+          "z": -7.75,
+          "radius": 0,
+          "half_width": 2.850438562747845,
+          "half_depth": 1,
+          "rotation": 0.9097531579442097
+        },
+        {
+          "kind": "obb",
+          "x": -9,
+          "z": -12.25,
+          "radius": 0,
+          "half_width": 2.462214450449026,
+          "half_depth": 1,
+          "rotation": 1.1525719972156676
+        },
+        {
+          "kind": "obb",
+          "x": -7,
+          "z": -16.75,
+          "radius": 0,
+          "half_width": 2.462214450449026,
+          "half_depth": 1,
+          "rotation": 1.1525719972156676
+        },
+        {
+          "kind": "circle",
+          "x": -16,
+          "z": 12,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 16,
+          "z": 14,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": -16,
+          "z": 26,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        },
+        {
+          "kind": "circle",
+          "x": 16,
+          "z": 28,
+          "radius": 1,
+          "half_width": 0,
+          "half_depth": 0,
+          "rotation": 0
+        }
+      ]
+    }
+  ],
+  "default_chains": [
+    {
+      "id": "collapsed_reliquary",
+      "index": 0,
+      "modules": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "drowned_litany",
+      "index": 1,
+      "modules": [
+        4,
+        5,
+        6,
+        10
+      ]
+    }
+  ],
+  "routing": {
+    "delve_band_x_min": 4773,
+    "yumi_band_x_min": 8000,
+    "delve_origin_base_x": 4800,
+    "delve_origin_index_spacing": 600,
+    "delve_origin_z0": -1250,
+    "delve_slot_count": 24,
+    "delve_slot_spacing": 620,
+    "delve_module_gap": 16,
+    "delve_module_z_start": 8
+  },
+  "source_vectors": [
+    {
+      "id": "reliquary_side_wall",
+      "module_index": 0,
+      "world_x": 4774,
+      "world_z": -1206,
+      "origin_x": 4800,
+      "origin_z": -1242,
+      "resolved": {
+        "x": 4773.5,
+        "z": -1206
+      }
+    },
+    {
+      "id": "litany_sluice_entry_slab",
+      "module_index": 4,
+      "world_x": 5395.333333333333,
+      "world_z": -1256,
+      "origin_x": 5400,
+      "origin_z": -1242,
+      "resolved": {
+        "x": 5395.333333333333,
+        "z": -1254.5
+      }
+    }
+  ],
+  "movement_vectors": [
+    {
+      "id": "reliquary_side_wall_sweep",
+      "module_index": 0,
+      "origin_x": 4800,
+      "origin_z": -1242,
+      "from_x": 4770,
+      "from_z": -1206,
+      "to_x": 4780,
+      "to_z": -1206,
+      "resolved": {
+        "x": 4773.5,
+        "z": -1206
+      }
+    },
+    {
+      "id": "litany_sluice_slab_sweep",
+      "module_index": 4,
+      "origin_x": 5400,
+      "origin_z": -1242,
+      "from_x": 5395.333333333333,
+      "from_z": -1248,
+      "to_x": 5395.333333333333,
+      "to_z": -1262,
+      "resolved": {
+        "x": 5395.333333333333,
+        "z": -1254.5
+      }
+    }
+  ],
+  "sight_vectors": [
+    {
+      "id": "reliquary_wall",
+      "from": {
+        "x": 4770,
+        "z": -1206
+      },
+      "to": {
+        "x": 4780,
+        "z": -1206
+      },
+      "radius": 0.05,
+      "clear": false,
+      "expected": false
+    },
+    {
+      "id": "reliquary_clear",
+      "from": {
+        "x": 4800,
+        "z": -1220
+      },
+      "to": {
+        "x": 4802,
+        "z": -1220
+      },
+      "radius": 0.05,
+      "clear": true,
+      "expected": true
+    },
+    {
+      "id": "litany_slab",
+      "from": {
+        "x": 5395.333333333333,
+        "z": -1248
+      },
+      "to": {
+        "x": 5395.333333333333,
+        "z": -1262
+      },
+      "radius": 0.05,
+      "clear": false,
+      "expected": false
+    },
+    {
+      "id": "litany_clear",
+      "from": {
+        "x": 5400,
+        "z": -1240
+      },
+      "to": {
+        "x": 5400,
+        "z": -1230
+      },
+      "radius": 0.05,
+      "clear": true,
+      "expected": true
+    },
+    {
+      "id": "fallback_wall",
+      "from": {
+        "x": 5970,
+        "z": -1206
+      },
+      "to": {
+        "x": 5980,
+        "z": -1206
+      },
+      "radius": 0.05,
+      "clear": false,
+      "expected": false
+    },
+    {
+      "id": "fallback_clear",
+      "from": {
+        "x": 6000,
+        "z": -1220
+      },
+      "to": {
+        "x": 6002,
+        "z": -1220
+      },
+      "radius": 0.05,
+      "clear": true,
+      "expected": true
+    }
+  ],
+  "catalog_sha256": "6bcc7e962363aeb1ffdf71b268db35e819e5701350ed5760308189bc29ec2376"
+}

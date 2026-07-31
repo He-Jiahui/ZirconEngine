@@ -4,7 +4,7 @@ mod query_graphics_debugger_status;
 mod request_graphics_debugger_capture;
 mod submit_capture;
 
-pub(in crate::graphics::runtime::render_framework) use environment::renderdoc_capture_next_from_env;
+pub(in crate::graphics::runtime::render_framework) use environment::renderdoc_capture_frame_count_from_env;
 #[cfg(test)]
 pub(crate) use environment::renderdoc_capture_next_from_value;
 pub(in crate::graphics::runtime::render_framework) use graphics_debugger_state::GraphicsDebuggerState;

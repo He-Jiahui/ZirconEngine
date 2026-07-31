@@ -44,7 +44,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         let Some(task) = task else {
             self.set_visible(STATUS_TASK_PROGRESS, false)?;
-            self.sync_task_control_values("", "", 0.0, "linear", "#2099a2", "info")?;
+            self.sync_task_control_values("", "", 0.0, "linear", "info")?;
             return Ok(());
         };
 
@@ -55,14 +55,12 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             "linear-indeterminate"
         };
         let tone = task_tone(task.tone);
-        let fill_color = task_fill_color(task.tone);
         self.set_visible(STATUS_TASK_PROGRESS, true)?;
         self.sync_task_control_values(
             &task_display_text(task),
             &task.detail,
             percent as f64,
             variant,
-            fill_color,
             tone,
         )?;
         Ok(())
@@ -74,7 +72,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         detail: &str,
         value: f64,
         variant: &str,
-        fill_color: &str,
         tone: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         for control_id in [STATUS_TASK_PROGRESS, STATUS_TASK_LABEL] {
@@ -101,16 +98,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             )?;
             self.mutate_control_property(
                 control_id,
-                "track_fill_color",
-                UiValue::String(fill_color.to_string()),
-            )?;
-            self.mutate_control_property(
-                control_id,
-                "value_color",
-                UiValue::String(fill_color.to_string()),
-            )?;
-            self.mutate_control_property(
-                control_id,
                 "text_tone",
                 UiValue::String(tone.to_string()),
             )?;
@@ -132,14 +119,5 @@ fn task_tone(tone: StatusTaskProgressTone) -> &'static str {
         StatusTaskProgressTone::Success => "success",
         StatusTaskProgressTone::Warning => "warning",
         StatusTaskProgressTone::Error => "error",
-    }
-}
-
-fn task_fill_color(tone: StatusTaskProgressTone) -> &'static str {
-    match tone {
-        StatusTaskProgressTone::Info => "#2099a2",
-        StatusTaskProgressTone::Success => "#58b866",
-        StatusTaskProgressTone::Warning => "#f2c356",
-        StatusTaskProgressTone::Error => "#e35d5b",
     }
 }

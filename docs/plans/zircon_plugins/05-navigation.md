@@ -225,6 +225,8 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation
 - M6-T2 viewport provider host：`待修复（open）`；[Editor 05 failure](../zircon_editor/editor/05/failure-2026-07-13-plugin-viewport-overlay-provider-runtime-wiring.md)。
 - fixed 已修复：[navigation-runtime-driver-manager-layering](../zircon_runtime/render/18/fixed-2026-07-13-navigation-runtime-driver-manager-layering.md)
 - fixed 已修复：[plugin-editor-runtime-mirror-consumer-wiring](05/fixed-2026-07-15-plugin-editor-runtime-mirror-consumer-wiring.md)
+- fallback typed projection generation contract：`待修复（open）`；[Runtime08 failure](../zircon_runtime/runtime/08/failure-2026-07-27-dynamic-component-property-world-generation.md)。
+- 2026-07-30 navigation gizmo性能交接：PERF-MVP-583要求M6 viewport overlay按navmesh generation持有indexed unique-edge geometry，stable/hidden不重建，visible/selected tile服从command+byte+LOD预算；禁止每frame先物化triangle DTO再发约3T重复line。对照Godot `debug_path_dirty`持久mesh，证据见`docs/plans/performance/01/2026-07-30-runtime-framework-animation-ai-navigation-tasks-static-review.md`。
 
 ## 10. 治理失败交接
 

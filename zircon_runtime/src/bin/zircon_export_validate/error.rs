@@ -26,4 +26,37 @@ pub enum ExportValidateError {
         #[source]
         source: io::Error,
     },
+    #[error(
+        "failed to create export validate contents artifact directory {}: {source}",
+        path.display()
+    )]
+    CreateContentsArtifactDirectory {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error(
+        "failed to write export validate contents artifact {}: {source}",
+        path.display()
+    )]
+    WriteContentsArtifact {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error(
+        "failed to resolve export validate contents artifact path {}: {source}",
+        path.display()
+    )]
+    ResolveContentsArtifactPath {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error(
+        "export validate report {} and contents artifact {} resolve to the same open file",
+        report.display(),
+        artifact.display()
+    )]
+    OutputPathsAlias { report: PathBuf, artifact: PathBuf },
 }

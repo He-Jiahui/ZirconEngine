@@ -1,41 +1,41 @@
 use super::*;
 
 #[test]
-fn play_mode_menu_operations_use_runtime_backend_and_record_operation_identity() {
+fn play_mode_menu_operations_use_plugin_activation_and_record_operation_identity() {
     use std::path::Path;
     use std::sync::{Arc, Mutex};
 
-    use crate::core::play::{EditorRuntimePlayModeBackend, EditorRuntimePlayModeBackendReport};
+    use crate::core::play::{PluginBridgeActivation, PluginBridgeActivationReport};
 
     #[derive(Default)]
-    struct RecordingBackend {
+    struct RecordingActivation {
         calls: Mutex<Vec<String>>,
     }
 
-    impl EditorRuntimePlayModeBackend for RecordingBackend {
-        fn enter_play_mode(
+    impl PluginBridgeActivation for RecordingActivation {
+        fn activate(
             &self,
             project_root: Option<&Path>,
-        ) -> Result<EditorRuntimePlayModeBackendReport, String> {
+        ) -> Result<PluginBridgeActivationReport, String> {
             self.calls.lock().unwrap().push(format!(
                 "enter:{}",
                 project_root.is_some_and(|path| path.is_absolute())
             ));
-            Ok(EditorRuntimePlayModeBackendReport::default())
+            Ok(PluginBridgeActivationReport::default())
         }
 
-        fn exit_play_mode(&self) -> Result<EditorRuntimePlayModeBackendReport, String> {
+        fn deactivate(&self) -> Result<PluginBridgeActivationReport, String> {
             self.calls.lock().unwrap().push("exit".to_string());
-            Ok(EditorRuntimePlayModeBackendReport::default())
+            Ok(PluginBridgeActivationReport::default())
         }
     }
 
     let _guard = env_lock().lock().unwrap();
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_play_mode_backend");
-    let backend = Arc::new(RecordingBackend::default());
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_play_session_controller");
+    let activation = Arc::new(RecordingActivation::default());
     runtime
         .runtime
-        .set_runtime_play_mode_backend(backend.clone());
+        .set_plugin_bridge_activation(activation.clone());
 
     let enter_record = runtime
         .runtime
@@ -69,17 +69,17 @@ fn play_mode_menu_operations_use_runtime_backend_and_record_operation_identity()
         crate::ui::workbench::startup::EditorSessionMode::Project
     );
     assert_eq!(
-        backend.calls.lock().unwrap().as_slice(),
+        activation.calls.lock().unwrap().as_slice(),
         ["enter:true".to_string(), "exit".to_string()]
     );
 }
 
 #[test]
-fn play_mode_backend_bridge_matrix_projects_to_editor_snapshot() {
+fn plugin_bridge_activation_matrix_projects_to_editor_snapshot() {
     use std::path::Path;
     use std::sync::Arc;
 
-    use crate::core::play::{EditorRuntimePlayModeBackend, EditorRuntimePlayModeBackendReport};
+    use crate::core::play::{PluginBridgeActivation, PluginBridgeActivationReport};
     use zircon_runtime::core::framework::bridge::{
         BridgeDiagnosticsSnapshot, BridgeInterfaceStatus, InterfaceSlot,
     };
@@ -88,14 +88,14 @@ fn play_mode_backend_bridge_matrix_projects_to_editor_snapshot() {
         PluginModuleId,
     };
 
-    struct BridgeMatrixBackend;
+    struct BridgeMatrixActivation;
 
-    impl EditorRuntimePlayModeBackend for BridgeMatrixBackend {
-        fn enter_play_mode(
+    impl PluginBridgeActivation for BridgeMatrixActivation {
+        fn activate(
             &self,
             _project_root: Option<&Path>,
-        ) -> Result<EditorRuntimePlayModeBackendReport, String> {
-            Ok(EditorRuntimePlayModeBackendReport {
+        ) -> Result<PluginBridgeActivationReport, String> {
+            Ok(PluginBridgeActivationReport {
                 diagnostics: Vec::new(),
                 bridge_diagnostics: Some(BridgeDiagnosticsMatrix {
                     summary: BridgeTableDiagnosticsSummary {
@@ -123,8 +123,8 @@ fn play_mode_backend_bridge_matrix_projects_to_editor_snapshot() {
             })
         }
 
-        fn exit_play_mode(&self) -> Result<EditorRuntimePlayModeBackendReport, String> {
-            Ok(EditorRuntimePlayModeBackendReport::default())
+        fn deactivate(&self) -> Result<PluginBridgeActivationReport, String> {
+            Ok(PluginBridgeActivationReport::default())
         }
     }
 
@@ -132,7 +132,7 @@ fn play_mode_backend_bridge_matrix_projects_to_editor_snapshot() {
     let runtime = EventRuntimeHarness::new("zircon_editor_event_bridge_matrix_backend");
     runtime
         .runtime
-        .set_runtime_play_mode_backend(Arc::new(BridgeMatrixBackend));
+        .set_plugin_bridge_activation(Arc::new(BridgeMatrixActivation));
 
     runtime
         .runtime
@@ -205,6 +205,121 @@ fn inspector_field_apply_batch_records_operation_identity_without_synthetic_hist
             .as_deref(),
         Some("inspector.field.apply_batch")
     );
+}
+
+#[test]
+fn inspector_binding_trace_records_path_and_transaction() {
+    use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_inspector_binding_trace");
+    let binding = EditorUiBinding::new(
+        "Inspector",
+        "TransformPositionXCommit",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            [InspectorFieldChange::new(
+                "transform.translation.x",
+                UiBindingValue::Float(42.0),
+            )],
+        ),
+    );
+    let binding_path = binding.path().native_prefix();
+
+    let record = runtime
+        .runtime
+        .dispatch_binding(binding, EditorEventSource::RetainedHost)
+        .expect("inspector binding commit");
+
+    assert_eq!(record.binding_path.as_deref(), Some(binding_path.as_str()));
+    assert_eq!(
+        record.operation_id.as_deref(),
+        Some("inspector.field.apply_batch")
+    );
+    let transaction_id = record
+        .transaction_id
+        .expect("inspector must create a transaction");
+    assert_eq!(record.save_generation, None);
+
+    let serialized = serde_json::to_value(&record).expect("trace record should serialize");
+    assert_eq!(serialized["binding_path"], serde_json::json!(binding_path));
+    assert_eq!(
+        serialized["transaction_id"],
+        serde_json::json!(transaction_id)
+    );
+    assert!(serialized.get("save_generation").is_none());
+}
+
+#[test]
+fn inspector_no_op_trace_does_not_reuse_a_prior_transaction_identity() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_inspector_no_op_trace");
+    let event = EditorEvent::Inspector(EditorInspectorEvent {
+        subject_path: "entity://selected".to_string(),
+        changes: vec![InspectorFieldChange::new(
+            "transform.translation.x",
+            UiBindingValue::Float(42.0),
+        )],
+    });
+
+    let committed = runtime
+        .runtime
+        .dispatch_event(EditorEventSource::RetainedHost, event.clone())
+        .expect("initial inspector edit must commit a transaction");
+    assert!(committed.transaction_id.is_some());
+
+    let no_op = runtime
+        .runtime
+        .dispatch_event(EditorEventSource::RetainedHost, event)
+        .expect("repeating the same inspector value must be accepted as a no-op");
+    assert_eq!(no_op.transaction_id, None);
+}
+
+#[test]
+fn operation_binding_trace_records_path() {
+    use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_binding_trace");
+    let binding = EditorUiBinding::new(
+        "WindowMenu",
+        "ResetLayout",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::editor_operation("window.layout.reset"),
+    );
+    let binding_path = binding.path().native_prefix();
+
+    let record = runtime
+        .runtime
+        .dispatch_binding(binding, EditorEventSource::RetainedHost)
+        .expect("operation binding should dispatch");
+
+    assert_eq!(record.binding_path.as_deref(), Some(binding_path.as_str()));
+    assert_eq!(record.operation_id.as_deref(), Some("window.layout.reset"));
+}
+
+#[test]
+fn operation_execution_trace_records_its_transaction_identity() {
+    use crate::core::editor_event::EditorOperationEvent;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_transaction_trace");
+
+    let record = runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::RetainedHost,
+            EditorEvent::Operation(EditorOperationEvent::CommandExecuted {
+                operation_id: "scene.node.duplicate".to_string(),
+                transaction_id: 17,
+                group_open: false,
+            }),
+        )
+        .expect("operation execution event should dispatch");
+
+    assert_eq!(record.transaction_id, Some(17));
+    assert_eq!(record.save_generation, None);
 }
 
 #[test]

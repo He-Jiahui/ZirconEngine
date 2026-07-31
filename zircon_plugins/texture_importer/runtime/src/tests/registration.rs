@@ -1,5 +1,6 @@
 use crate::{
-    package_manifest, plugin_registration, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY,
+    package_manifest, plugin_registration, runtime_capabilities, runtime_plugin_descriptor,
+    MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, TEXTURE_IMPORTER_DECLARATION,
     TEXTURE_IMPORTER_DIST_CRATE_NAME, TEXTURE_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
@@ -23,6 +24,37 @@ fn package_declares_texture_importers() {
         .asset_importers
         .iter()
         .any(|importer| importer.id == "texture_importer.array"));
+}
+
+#[test]
+fn declaration_projects_texture_package_metadata() {
+    let descriptor = runtime_plugin_descriptor();
+    let manifest = package_manifest();
+
+    assert_eq!(descriptor.package_id(), TEXTURE_IMPORTER_DECLARATION.id());
+    assert_eq!(
+        descriptor.category(),
+        TEXTURE_IMPORTER_DECLARATION.category()
+    );
+    assert_eq!(
+        descriptor.target_modes(),
+        TEXTURE_IMPORTER_DECLARATION.target_modes()
+    );
+    assert_eq!(
+        descriptor.capabilities(),
+        runtime_capabilities()
+            .iter()
+            .map(|capability| capability.to_string())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        manifest.supported_platforms.as_slice(),
+        TEXTURE_IMPORTER_DECLARATION.supported_platforms()
+    );
+    assert_eq!(
+        manifest.default_packaging.as_slice(),
+        TEXTURE_IMPORTER_DECLARATION.default_packaging()
+    );
 }
 
 #[test]

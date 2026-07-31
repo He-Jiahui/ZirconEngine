@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_frost_frozen_cast_state_tests",
+  "source": "src",
+  "binary": "bin-m4-frost-frozen-cast-state-tests",
+  "entry": "combat/frost_frozen_cast_state_test_main"
+}

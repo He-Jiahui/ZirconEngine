@@ -1,22 +1,18 @@
 use std::collections::BTreeMap;
 
 use super::super::declarations::{
-    VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy, VisibilityHistorySnapshot,
+    VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy, VisibilityHistoryEntry,
+    VisibilityHistorySnapshot,
 };
 
 pub(crate) fn build_bvh_update_plan(
-    current: &VisibilityHistorySnapshot,
+    current_instances: &[VisibilityHistoryEntry],
     previous: Option<&VisibilityHistorySnapshot>,
 ) -> VisibilityBvhUpdatePlan {
-    let current_entities = current
-        .instances
-        .iter()
-        .map(|entry| entry.entity)
-        .collect::<Vec<_>>();
     let Some(previous) = previous else {
         return VisibilityBvhUpdatePlan {
             strategy: VisibilityBvhUpdateStrategy::FullRebuild,
-            inserted_entities: current_entities,
+            inserted_entities: current_instances.iter().map(|entry| entry.entity).collect(),
             updated_entities: Vec::new(),
             removed_entities: Vec::new(),
         };
@@ -25,7 +21,7 @@ pub(crate) fn build_bvh_update_plan(
     if previous.instances.is_empty() {
         return VisibilityBvhUpdatePlan {
             strategy: VisibilityBvhUpdateStrategy::FullRebuild,
-            inserted_entities: current_entities,
+            inserted_entities: current_instances.iter().map(|entry| entry.entity).collect(),
             updated_entities: Vec::new(),
             removed_entities: Vec::new(),
         };
@@ -36,19 +32,16 @@ pub(crate) fn build_bvh_update_plan(
         .iter()
         .map(|entry| (entry.entity, entry))
         .collect::<BTreeMap<_, _>>();
-    let current_by_entity = current
-        .instances
+    let current_by_entity = current_instances
         .iter()
         .map(|entry| (entry.entity, entry))
         .collect::<BTreeMap<_, _>>();
-    let inserted_entities = current
-        .instances
+    let inserted_entities = current_instances
         .iter()
         .filter(|entry| !previous_by_entity.contains_key(&entry.entity))
         .map(|entry| entry.entity)
         .collect::<Vec<_>>();
-    let updated_entities = current
-        .instances
+    let updated_entities = current_instances
         .iter()
         .filter(|entry| {
             previous_by_entity

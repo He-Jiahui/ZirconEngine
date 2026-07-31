@@ -4,6 +4,7 @@ related_code:
   - zircon_editor/src/core/editing/engine/command.rs
   - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editing/engine/transaction.rs
+  - zircon_editor/src/core/editing/engine/transaction/dirty_batch.rs
   - zircon_editor/src/core/editing/engine/routing.rs
   - zircon_editor/src/core/editing/engine/events.rs
   - zircon_editor/src/core/editing/context.rs
@@ -16,6 +17,7 @@ implementation_files:
   - zircon_editor/src/core/editing/engine/command.rs
   - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editing/engine/transaction.rs
+  - zircon_editor/src/core/editing/engine/transaction/dirty_batch.rs
   - zircon_editor/src/core/editing/engine/routing.rs
   - zircon_editor/src/core/editing/engine/events.rs
   - zircon_editor/src/core/editing/context.rs
@@ -26,9 +28,13 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_editor/src/core/editing/command.rs::tests::editor_commands_avoid_recollecting_batches_and_reapplying_unchanged_node_fields
   - zircon_editor/src/core/editing/engine/transaction.rs::tests::nested_cancel_does_not_remove_from_the_front_of_a_vec
+  - zircon_editor/src/tests/editing/history.rs
+  - zircon_editor/src/tests/editing/node_ops.rs
+  - zircon_editor/src/tests/editing/reflected_command.rs
+  - zircon_editor/src/tests/editing/inspector.rs
   - zircon_editor/src/tests/editing/transaction_engine/history.rs
+  - zircon_editor/src/tests/editing/transaction_engine/dirty_batch.rs
   - zircon_editor/src/tests/editing/transaction_engine/scope.rs
   - zircon_editor/src/tests/editing/transaction_engine/events.rs
   - zircon_editor/src/tests/editing/transaction_engine/locking.rs
@@ -66,6 +72,20 @@ The engine uses one state mutex, but removes the edit context and the active his
 
 `MergeMode::Disable` keeps every command, `Ends` offers only the latest command as a merge target, and `All` searches backward through all commands in the active scope. An absorbed command is finalized immediately.
 
+## Scene command integration
+
+`EditorCommand` is the scene mutation family consumed by the shared engine. Its four variants are create, delete, update, and reflected-field write. Constructors only capture intent or before/after values from `&Scene`; they never mutate the world. `TransactionScope::push` is the first mutation point. The deleted `Batch` variant is replaced by multiple pushes in one scope, and command-local selection fields are replaced by the transaction record's before/after selection snapshots.
+
+`CoreEditContext` binds the active `LevelSystem` handle plus a typed `SceneSelectionSnapshot` immediately before a scene transaction. Workbench create/delete/rename/reparent/transform/import/inspector actions, undo, and redo all use `EditorContext::transactions()` with `HistoryContextId::Global`; `EditorState` has no private history owner. Replacing or closing a project clears and finalizes the shared Global history before the bound scene is replaced.
+
+Project replacement, project close, and play enter/exit hold an exclusive transaction-engine transition from gizmo cancellation through world mutation. Project transitions finalize Global history and clear `CoreEditContext` inside that same operation lane, so another command cannot bind the old world or append old-world history between cleanup steps. Ordinary scene actions cancel a gizmo preview before command capture; the shared executor rejects a leaked active capture, while gizmo release alone uses the private already-applied commit path.
+
+Gizmo interaction previews transforms directly while the gesture retains only the initial and latest `Transform`. Release constructs one already-applied transform command and commits it through one transaction scope; a 100-frame drag therefore produces one transaction and one retained command without per-frame command or node-name allocation. This staging is gesture-local transform data, not a second undo stack.
+
+Play mode retains the edit history but rejects scene mutation, undo, and redo intents while the play snapshot is active. Gizmos are disabled for the play session and the prior setting is restored on exit, preventing viewport handle mutation from bypassing the transaction guard. Snapshot `can_undo/can_redo` is false while playing and reflects the retained edit history again after exit.
+
+Production state construction requires an explicit `Arc<EditorContext>`. Test-only convenience constructors may build a fixture Context under `#[cfg(test)]`; production retained-host and CLI operation paths inject the owning `EditorManager` Context so commands, jobs, gateway, and transactions stay single-owner.
+
 ## Events and validation status
 
 The engine records the five internal states `Started`, `Canceled`, `Committed`, `UndoApplied`, and `RedoApplied`. It does not publish them to the editor message bus in M1.1; that projection is reserved for M4.
@@ -78,12 +98,61 @@ On 2026-07-14, a standalone `rustc --test` harness directly compiled the current
 
 ## Performance-sensitive mutation paths
 
-The 2026-07-17 pass removed a redundant batch collect. `UpdateNodeCommand` now captures the node
-once, derives before/after snapshots, and applies only fields whose directional values differ;
+The 2026-07-17 pass removed a redundant batch collect. `UpdateNodeCommand` captures the node once,
+derives before/after snapshots, and applies only fields whose directional values differ;
 single-field edits no longer recapture or rewrite parent, name, and transform together. Nested
 cancel collects frames in normal order and restores them by `pop`, preserving reverse rollback
-without repeated front removal and shifting.
+without repeated front removal and shifting. The 2026-07-18 hard cut removes the scene-only
+`EditorHistory` and `Batch` command entirely, so scene history no longer performs front removal or
+duplicates transaction storage.
 
-The two source guards completed RED-to-GREEN and scoped formatting/diff checks pass. Current-source
-transaction behavior tests and an interaction trace are still pending, so this is not dynamic
-performance acceptance.
+The Editor03 M2 source contract is 13/13. Non-selection edits
+preserve multi-selection, the shared scene executor rejects play-mode mutation, and viewport input
+is the sole fallible gizmo transaction owner with transform rollback on transaction failure. The
+old host `GizmoDragState` and gizmo lifecycle intents are physically removed. Gesture staging keeps
+only initial/latest transforms; ordinary actions cancel preview before capture, and every rollback
+path clears lifecycle state even when transform restoration fails. Project replacement, project
+clear, and play entry/exit use one exclusive engine transition across preview cleanup and world
+switching; project history/context cleanup occurs inside that barrier. Viewport rollback failures
+invalidate render as well as presentation. Scoped formatting and diff checks remain pending after
+the latest independent-review fixes.
+Independent incremental source review is 0/0/0. Current-source Cargo behavior and product
+interaction remain pending behind the Coordinator01 validation-copy terminal-evidence failure, so
+this is not dynamic performance acceptance.
+
+## Atomic saved-top completion
+
+Saving a document uses `EditorTransactionEngine::capture_save_token(history)` before I/O and
+`mark_saved_if_unchanged(history, token)` only after the write succeeds. The token binds the history
+context, originating engine lineage, current transaction identity (or the empty root), and a
+per-history branch generation. Committed records, successful undo/redo, redo replacement, capacity
+eviction, and history clear invalidate older tokens. Capture and completion reject an active
+transaction scope; completion updates `saved_top` under the same operation lane and state lock and
+returns `HistorySaveMarkOutcome::{Marked, AlreadyMarked}` or a typed engine/history/change error.
+
+Operation groups publish an identity-bearing `Initializing` reservation before creating their root
+transaction, bind that reservation to the new transaction before the first push, and transition
+through `Open` and `Flushing`. `begin_transaction` validates reservation ownership in the same state
+lock that creates the active frame, so a caller that passed an earlier flush cannot cross a newly
+published group. Failed flushes restore only the matching group; delayed continuation cleanup cannot
+delete a successor group, and an unrecoverable first-push rollback preserves the original command and
+rollback errors while removing the failed reservation.
+
+The former unconditional transaction `mark_saved(history)` API is deleted. Callers must not compare
+`HistorySnapshot.top` outside the engine, cache a dirty boolean, or assume the UI thread excludes a
+concurrent commit. External-effect revisions remain Editor09-owned and are cleared independently.
+
+## Dirty batch generation
+
+`EditorTransactionEngine::dirty_states_since` publishes an engine-lineage-bound
+`HistoryDirtyCursor` and `HistoryDirtyBatchKind::{Unchanged, Delta, Reset}`. A 4,096-entry journal
+records only changed `HistoryContextId` values. Stable cursors return an empty state slice before any
+history-set construction; live cursors deduplicate only journal delta; cursors older than retained
+history receive Reset. Reset includes histories known by the engine, including cleared histories
+whose branch generation is retained.
+
+Commit, successful undo/redo and exclusive history clear advance branch generation and dirty
+generation together. A successful `mark_saved_if_unchanged` that moves `saved_top` advances only the
+dirty generation: the clean transition becomes observable without invalidating the same save token's
+idempotent `AlreadyMarked` completion. The journal never stores a dirty boolean; each returned state
+derives it from the current `HistoryStore::is_dirty` under the engine lock.

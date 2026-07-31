@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     RenderPhase, RenderPhaseMeshSource, RenderQueueValue, RenderSpriteImageMode, RenderSpriteRect,
     RenderSpriteScalingMode, RenderSpriteSliceScaleMode, RenderSpriteSlicer,
 };
-use crate::core::math::{Vec2, Vec3};
+use crate::core::math::{Mat4, Vec2, Vec3};
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::types::ViewportRenderFrame;
 
@@ -54,7 +54,7 @@ pub(crate) fn build_sprite_vertices(
         .into_iter()
         .filter_map(|index| frame.sprites().get(index).map(|sprite| (index, sprite)))
         .filter_map(|(index, sprite)| {
-            if !camera_layers.intersects(&sprite.render_layer_mask) {
+            if !camera_layers.intersects(&sprite.common.layer_mask) {
                 return None;
             }
             if !sprite.color.is_finite() || sprite.color.w <= f32::EPSILON {
@@ -80,9 +80,11 @@ fn sprite_image_vertices(
     size: Vec2,
 ) -> Vec<SpriteVertex> {
     let base_rect = sprite_base_rect(sprite);
-    let mut vertices = Vec::new();
-    for slice in sprite_image_slices(sprite.image_mode, base_rect, size) {
-        vertices.extend(sprite_quad_vertices(sprite, size, slice));
+    let slices = sprite_image_slices(sprite.image_mode, base_rect, size);
+    let mut vertices = Vec::with_capacity(slices.len().saturating_mul(6));
+    let transform = sprite.transform.matrix();
+    for slice in slices {
+        append_sprite_quad_vertices(sprite, size, slice, &transform, &mut vertices);
     }
     vertices
 }
@@ -96,16 +98,17 @@ fn sprite_base_rect(
     })
 }
 
-fn sprite_quad_vertices(
+fn append_sprite_quad_vertices(
     sprite: &crate::core::framework::render::RenderSpriteSnapshot,
     sprite_size: Vec2,
     slice: SpriteImageSlice,
-) -> Vec<SpriteVertex> {
+    transform: &Mat4,
+    vertices: &mut Vec<SpriteVertex>,
+) {
     let anchor = sprite.anchor.normalized;
     let anchor_offset = Vec2::new(-anchor.x * sprite_size.x, -anchor.y * sprite_size.y);
     let min = anchor_offset + slice.offset - slice.draw_size * 0.5;
     let max = anchor_offset + slice.offset + slice.draw_size * 0.5;
-    let transform = sprite.transform.matrix();
     let position = |x: f32, y: f32| transform.transform_point3(Vec3::new(x, y, 0.0));
     let (atlas_min, atlas_max) = sprite
         .atlas_region
@@ -133,14 +136,14 @@ fn sprite_quad_vertices(
     let top_right = position(max.x, max.y);
     let bottom_left = position(min.x, min.y);
     let bottom_right = position(max.x, min.y);
-    vec![
+    vertices.extend([
         SpriteVertex::new(top_left, Vec2::new(uv_min.x, uv_max.y), sprite.color),
         SpriteVertex::new(bottom_left, Vec2::new(uv_min.x, uv_min.y), sprite.color),
         SpriteVertex::new(top_right, Vec2::new(uv_max.x, uv_max.y), sprite.color),
         SpriteVertex::new(top_right, Vec2::new(uv_max.x, uv_max.y), sprite.color),
         SpriteVertex::new(bottom_left, Vec2::new(uv_min.x, uv_min.y), sprite.color),
         SpriteVertex::new(bottom_right, Vec2::new(uv_max.x, uv_min.y), sprite.color),
-    ]
+    ]);
 }
 
 fn remap_texture_point(

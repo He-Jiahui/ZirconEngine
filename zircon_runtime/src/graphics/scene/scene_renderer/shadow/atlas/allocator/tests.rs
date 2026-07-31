@@ -57,10 +57,12 @@ fn render_shadow_atlas_allocates_tiers_descending() {
     assert_eq!(frame.scale_factor, 1);
     assert_eq!(frame.allocations.len(), 4);
     assert!(frame.rejected.is_empty());
-    assert!(frame
-        .allocations
-        .iter()
-        .all(|allocation| allocation.allocated_tier == ShadowResolutionTier::T256));
+    assert!(
+        frame
+            .allocations
+            .iter()
+            .all(|allocation| allocation.allocated_tier == ShadowResolutionTier::T256)
+    );
     assert!(no_allocations_overlap(&frame.allocations));
 }
 

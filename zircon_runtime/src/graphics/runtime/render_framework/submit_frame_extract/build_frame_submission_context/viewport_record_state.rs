@@ -24,7 +24,7 @@ pub(super) struct ViewportRecordState {
     previous_particle_sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
     pipeline_asset: RenderPipelineAsset,
     compile_options: RenderPipelineCompileOptions,
-    advanced_runtime_plan: AdvancedProfileRuntimePlan,
+    advanced_runtime_plan: Option<AdvancedProfileRuntimePlan>,
     solari_runtime_report: SolariRuntimeReport,
     capabilities: RenderCapabilitySummary,
     predicted_generation: u64,
@@ -65,7 +65,7 @@ impl ViewportRecordState {
             previous_particle_sprites,
             pipeline_asset,
             compile_options,
-            advanced_runtime_plan,
+            advanced_runtime_plan: Some(advanced_runtime_plan),
             solari_runtime_report,
             capabilities,
             predicted_generation,
@@ -96,12 +96,14 @@ impl ViewportRecordState {
         self.previous_static_index.as_ref()
     }
 
-    pub(super) fn previous_motion_vector_camera(&self) -> Option<&ViewportCameraSnapshot> {
-        self.previous_motion_vector_camera.as_ref()
+    pub(super) fn take_previous_motion_vector_camera(&mut self) -> Option<ViewportCameraSnapshot> {
+        self.previous_motion_vector_camera.take()
     }
 
-    pub(super) fn previous_particle_sprites(&self) -> &[RenderParticlePreviousSpriteSnapshot] {
-        &self.previous_particle_sprites
+    pub(super) fn take_previous_particle_sprites(
+        &mut self,
+    ) -> Vec<RenderParticlePreviousSpriteSnapshot> {
+        std::mem::take(&mut self.previous_particle_sprites)
     }
 
     pub(super) fn pipeline_asset(&self) -> &RenderPipelineAsset {
@@ -112,16 +114,22 @@ impl ViewportRecordState {
         &self.compile_options
     }
 
-    pub(super) fn advanced_runtime_plan(&self) -> &AdvancedProfileRuntimePlan {
-        &self.advanced_runtime_plan
+    pub(super) fn take_advanced_runtime_plan(&mut self) -> AdvancedProfileRuntimePlan {
+        self.advanced_runtime_plan
+            .take()
+            .expect("advanced runtime plan is moved into one submission context")
     }
 
-    pub(super) fn solari_runtime_report(&self) -> &SolariRuntimeReport {
-        &self.solari_runtime_report
+    pub(super) fn take_solari_runtime_report(&mut self) -> SolariRuntimeReport {
+        std::mem::take(&mut self.solari_runtime_report)
     }
 
     pub(super) fn capabilities(&self) -> &RenderCapabilitySummary {
         &self.capabilities
+    }
+
+    pub(super) fn take_capabilities(&mut self) -> RenderCapabilitySummary {
+        std::mem::take(&mut self.capabilities)
     }
 
     pub(super) fn take_quality_profile(&mut self) -> Option<String> {

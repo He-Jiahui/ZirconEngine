@@ -9,16 +9,30 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/15
 plan_link_mode: child_record_only
 related_code:
+  - zircon_editor/src/core/export/inventory.rs
   - zircon_editor/src/core/export/stages/executor.rs
+  - zircon_editor/src/core/export/stages/compile_host.rs
   - zircon_editor/src/core/export/pipeline.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/artifacts.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/manager.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/output_tail.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_host_projection.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection
+  - zircon_editor/src/ui/retained_host/app/build_export_projection.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_projection/cache.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows/constructors.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows/overlays.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/polling.rs
 reference_sources:
   - dev/godot/editor/export/editor_export_platform.cpp
@@ -77,4 +91,6 @@ Godot export 的 `FileExportCache` 持久保存 source modified time、MD5 与 s
 
 ## 修复结果与回传
 
-Open state: `待 Editor15 实现 generation inventory、重叠 digest 去重与持久 warm cache，并回传 bytes-read/hash-count/增量正确性`。
+Partial implementation（2026-07-18）：Editor15 已新增 generation-scoped `ExportGenerationInventory`，canonical file node 在同一 executor run 内最多读取/哈希一次，重叠 root/child artifact 的目录 digest 改由有序 Merkle projection 组合；CompileHost inputs、输出、PlatformBundle 重叠输出与 resume 磁盘验证已统一使用该 owner，旧 stage-local recursive digest helper 已删除。重建前同时失效 staged subtree 与 cached ancestors，避免 reuse 检查缓存污染重建后的 parent digest。静态 TDD 合同 2/2、精确 rustfmt 与 scoped diff check 通过；Rust overlap/invalidation 行为测试已写但受共享 Cargo/source-bound 顺序门影响尚未运行。详见 [子计划记录](2026-07-18-export-generation-inventory.md)。
+
+Open state: `单 generation inventory、重叠 digest、强identity持久cache、toolchain generation identity、native staging delta和日志/event/pane有界化已实现；2026-07-22 cache-miss hash进一步改64KiB streaming并让pipeline failure report零深clone。仍待stable directory walk/stat/canonicalize收敛、Drop同步cache clone/pretty encode/write/fsync迁显式Runtime11 ticket，以及current-source Cargo、warm p95/规模和独立复审；failure保持open。`。

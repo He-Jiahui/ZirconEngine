@@ -10,7 +10,9 @@ fixing_child_dir: docs/plans/zircon_editor/editor/02
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/editor_event/journal.rs
-  - zircon_editor/src/core/editor_event/listener.rs
+  - zircon_editor/src/core/editor_event/retention.rs
+  - zircon_editor/src/core/editor_event/listener/mod.rs
+  - zircon_editor/src/core/editor_event/listener/registry.rs
   - zircon_editor/src/core/editor_event/service/editor_event_service.rs
 reference_sources:
   - dev/bevy/crates/bevy_ecs/src/message/messages.rs
@@ -55,4 +57,14 @@ journal、listener inbox 与 service fanout 没有共同的 retention/ownership 
 
 ## 修复结果与回传
 
-Open state: `待 Editor02 定义 retention classes、共享 payload 与锁外 fanout，并回传 storm/长会话内存和交互 p95`。
+Open state: `2026-07-18 源码已落地 retention classes、共享 Arc payload、per-listener inbox 与 sequence/journal/listener 分锁；静态契约和 diff gate 已通过。仍待 Coordinator01 immutable full-input barrier fixed return 后执行 source-bound 1k/10k stress、完整 editor_event 回归、独立 review、failure -> fixed return 与 managed commit；在这些证据完成前不得标记 fixed。`
+
+实现与当前阻塞证据：[`2026-07-18-editor-event-retention-and-lock-split.md`](2026-07-18-editor-event-retention-and-lock-split.md)。
+
+2026-07-22 current-source补充：本轮让ack单遍累计removed bytes、diagnostics首末sequence直接读单调队列两端，listener status不再clone+merge+sort全部records。PERF-MVP-067仍open：每事件exact byte accounting继续完整serde traversal、LatestState线性coalesce，listener registry全局锁仍跨逐listener filter/enqueue；Cargo/storm与per-owner锁拆分完成前不得fixed。
+
+2026-07-30 Performance01 current-source校正：32/32生产文件与22/22外部test文件已复读。三类entry/byte/age硬预算、共享Arc、filter预规范化与ack/status止损继续成立，故标题保留为历史failure slug但不得继续描述为当前“无界”。剩余P0根因扩展为：成功dispatch深clone完整record；每event为byte accounting完整serde counting traversal；LatestState在每inbox线性扫描并中段remove；全局listener锁跨filter/prune/coalesce/enqueue；journal/listener polling先全量merge/sort再cursor过滤，并深cloneowned delivery后再次JSON物化。
+
+Editor02后续必须以shared encoded owner/一次accounting、immutable route/filter generation、锁外per-owner enqueue、latest key index和cursor-first bounded k-way page修复，不得退回无界channel或私有线程池。验收增加0/1/1k/10k listeners/events、64B/2MiB/64MiB payload、0/50/100% filter、0/1/99% cursor与1/16 threads，记录serde traversal、record/delivery/JSON clone bytes、coalesce visits/shifts、merge/sort、lock wait/hold、queue bytes/age、p95/RSS，并复跑当前117 tests和F4 retained-host WPR。
+
+当前源码静态边界：`listener/registry.rs` inline test与`src/tests/editor_event/retention.rs` helper的`EditorEventRecord` literal缺新增`binding_path`、`transaction_id`、`save_generation`字段。Performance01未运行Cargo、未编辑这些foreign dirty文件，因此这不是动态RED；current-source gate与独立review完成前failure继续open。

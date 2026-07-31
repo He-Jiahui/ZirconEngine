@@ -215,7 +215,7 @@ fn agent_tick_registered_after_ai_behavior_tick() {
     assert!(report.extensions.plugin_resources().any(|(_, resource)| {
         resource
             .type_name()
-            .ends_with("agent::repath::NavRepathBudget")
+            .ends_with("navigation::repath_budget::NavRepathBudget")
     }));
     assert!(report.extensions.plugin_resources().any(|(_, resource)| {
         resource

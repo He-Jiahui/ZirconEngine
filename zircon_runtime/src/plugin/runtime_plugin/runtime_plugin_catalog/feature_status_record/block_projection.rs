@@ -5,9 +5,11 @@ use super::FeatureStatus;
 
 impl FeatureStatus {
     pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn into_block(
-        self,
+        mut self,
         selection: &ProjectPluginFeatureSelection,
     ) -> RuntimePluginFeatureBlock {
+        self.missing_capabilities
+            .retain(|capability| self.missing_capability_membership.contains(capability));
         RuntimePluginFeatureBlock {
             feature_id: self.feature_id,
             owner_plugin_id: self.owner_plugin_id,

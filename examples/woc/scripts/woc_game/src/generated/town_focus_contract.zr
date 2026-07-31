@@ -1,0 +1,33 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub focusPointBudget(): int { return 10; }
+pub pointsPerTierBonus(): int { return 5; }
+pub maxFocusTierBonus(): int { return 2; }
+pub focusYieldBonusPerPoint(): float { return 0.1; }
+pub harvestTierCount(): int { return 6; }
+pub harvestTierAt(index: int): string {
+    if (index == 0) return "poor";
+    if (index == 1) return "common";
+    if (index == 2) return "uncommon";
+    if (index == 3) return "rare";
+    if (index == 4) return "epic";
+    if (index == 5) return "legendary";
+    return "";
+}
+pub respecDurationMsPerPoint(tierCode: int): int {
+    if (tierCode == 0) return 60000;
+    if (tierCode == 1) return 15000;
+    if (tierCode == 2) return 0;
+    return 0;
+}
+pub respecCoinPerPoint(tierCode: int): int {
+    if (tierCode == 0) return 0;
+    if (tierCode == 1) return 5;
+    if (tierCode == 2) return 25;
+    return 0;
+}
+pub respecMaterialsPerPoint(tierCode: int): int {
+    if (tierCode == 0) return 0;
+    if (tierCode == 1) return 1;
+    if (tierCode == 2) return 5;
+    return 0;
+}

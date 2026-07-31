@@ -25,7 +25,7 @@ pub(in crate::graphics::runtime::render_framework) fn bind_viewport_surface(
         .viewports
         .get_mut(&viewport)
         .expect("viewport checked above");
-    record.bind_surface(surface);
+    record.bind_surface(surface.into_backend_surface());
     Ok(())
 }
 

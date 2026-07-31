@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_lore_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff"
+  },
+  "content": {
+    "lore_order": [
+      "eastbrook_ledger",
+      "first_collapse",
+      "gravecaller_mark",
+      "bell_below",
+      "tessa_note"
+    ]
+  },
+  "catalog_sha256": "567823b3054abd3c9ef568906800ad666b0697a8ee6d08cdd036d8cd0bf06506"
+}

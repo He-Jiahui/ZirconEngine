@@ -1,0 +1,31 @@
+// Generated Delve Mark payout content.
+pub firstFullClearLimit(required: bool): int {
+    if (!required) { throw "woc Delve Mark payout is required"; }
+    return 3;
+}
+
+pub firstNormalMarks(required: bool): int {
+    if (!required) { throw "woc Delve Mark payout is required"; }
+    return 1;
+}
+
+pub firstHeroicMarks(required: bool): int {
+    if (!required) { throw "woc Delve Mark payout is required"; }
+    return 2;
+}
+
+pub repeatHeroicMarks(required: bool): int {
+    if (!required) { throw "woc Delve Mark payout is required"; }
+    return 1;
+}
+
+pub repeatNormalProbability(required: bool): float {
+    if (!required) { throw "woc Delve Mark payout is required"; }
+    return 0.5;
+}
+
+pub contractTest(): int {
+    return firstFullClearLimit(true) == 3 && firstNormalMarks(true) == 1 &&
+        firstHeroicMarks(true) == 2 && repeatHeroicMarks(true) == 1 &&
+        repeatNormalProbability(true) == 0.5 ? 1 : -1;
+}

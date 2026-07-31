@@ -1,0 +1,6 @@
+{
+  "name": "woc_lifecycle_trace_tests",
+  "source": "src",
+  "binary": "bin-lifecycle-trace-tests",
+  "entry": "parity/m3_lifecycle_trace_test_main"
+}

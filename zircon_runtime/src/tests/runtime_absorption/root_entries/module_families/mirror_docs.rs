@@ -23,7 +23,7 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for (family, expected_count) in [
         ("animation", 28usize),
-        ("navigation", 9),
+        ("navigation", 12),
         ("diagnostic_log", 7),
         ("engine_module", 8),
     ] {
@@ -63,39 +63,27 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
         );
     }
 
-    let mirror_docs = [
+    let current_mirror_docs = [
         (
             "Runtime 14 plan",
+            include_str!(
+                "../../../../../../docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md"
+            ),
+        ),
+        (
+            "Runtime 14 current output record",
             include_str!(
                 "../../../../../../docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md"
             ),
         ),
-        (
-            "runtime index",
-            include_str!(
-                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
-            ),
-        ),
-        (
-            "M0 review",
-            include_str!(
-                "../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
-            ),
-        ),
-        (
-            "interface convergence",
-            include_str!(
-                "../../../../../../docs/engine-architecture/runtime-interface-convergence.md"
-            ),
-        ),
     ];
 
-    for (doc_name, doc_source) in mirror_docs {
+    for (doc_name, doc_source) in current_mirror_docs {
         for required_anchor in [
             "module_family_boundary",
             "expected_family_count = 4",
             "animation = 28",
-            "navigation = 9",
+            "navigation = 12",
             "diagnostic_log = 7",
             "engine_module = 8",
             "root_seat_guard_present = true",
@@ -114,5 +102,18 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
                 "{doc_name} should mirror Runtime 14 module-family audit anchor `{required_anchor}`"
             );
         }
+    }
+
+    let navigation_doc =
+        include_str!("../../../../../../docs/zircon_runtime/navigation/runtime.md");
+    for required_anchor in [
+        "12 Rust owner files",
+        "operation/{mod,handler,registration}.rs",
+        "runtime_navigation_boundary_file_set_requires_doc_update",
+    ] {
+        assert!(
+            navigation_doc.contains(required_anchor),
+            "navigation runtime doc should keep current Runtime 14 anchor `{required_anchor}`"
+        );
     }
 }

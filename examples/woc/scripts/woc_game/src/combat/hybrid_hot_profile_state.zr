@@ -1,0 +1,84 @@
+// A source hybrid heal applies its direct cast-time coefficient exactly once.
+// The attached HoT therefore retains only its generated base tick and does not
+// snapshot spell power; WorldState owns queue identity and lifecycle routing.
+var abilities = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+
+class HybridHotProfile {
+    pub var valid: bool;
+    pub var heal: int;
+    pub var duration: float;
+    pub var interval: float;
+
+    pub @constructor() {
+        this.valid = false;
+        this.heal = 0;
+        this.duration = 0.0;
+        this.interval = 0.0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+hybridHotProfile(
+    abilityIndex: int,
+    rank: int
+): HybridHotProfile {
+    var profile = new HybridHotProfile();
+    if (abilityIndex < 0 || abilityIndex >= abilities.count() || rank <= 0 ||
+        rank > abilities.rankCount(abilityIndex) ||
+        effects.count(abilityIndex, rank) != 2 ||
+        effects.typeAt(abilityIndex, rank, 0) != "heal" ||
+        effects.typeAt(abilityIndex, rank, 1) != "hot") {
+        return profile;
+    }
+    var duration = effects.metric(abilityIndex, rank, 1, "duration");
+    var interval = effects.metric(abilityIndex, rank, 1, "interval");
+    if (duration <= 0.0 || interval <= 0.0 || duration < interval) { return profile; }
+    var ticks = duration / interval;
+    var base = roundPositive(effects.metric(abilityIndex, rank, 1, "total") / ticks);
+    if (base < 1) { base = 1; }
+    profile.valid = true;
+    profile.heal = base;
+    profile.duration = duration;
+    profile.interval = interval;
+    return profile;
+}
+
+pub resolveHybridHotProfile(abilityIndex: int, rank: int): HybridHotProfile {
+    return hybridHotProfile(abilityIndex, rank);
+}
+
+pub hybridHotProfileMatches(
+    abilityIndex: int,
+    rank: int,
+    heal: int,
+    duration: float,
+    interval: float
+): bool {
+    var profile = hybridHotProfile(abilityIndex, rank);
+    return profile.valid && profile.heal == heal &&
+        closeEnough(profile.duration, duration) && closeEnough(profile.interval, interval);
+}
+
+pub contractTest(): int {
+    var regrowth = abilities.indexOf("regrowth");
+    var profile = resolveHybridHotProfile(regrowth, 1);
+    if (!profile.valid || profile.heal != 7 || !closeEnough(profile.duration, 21.0) ||
+        !closeEnough(profile.interval, 3.0)) {
+        return -1;
+    }
+    if (!hybridHotProfileMatches(regrowth, 1, 7, 21.0, 3.0) ||
+        hybridHotProfileMatches(regrowth, 1, 8, 21.0, 3.0)) {
+        return -2;
+    }
+    return 1;
+}

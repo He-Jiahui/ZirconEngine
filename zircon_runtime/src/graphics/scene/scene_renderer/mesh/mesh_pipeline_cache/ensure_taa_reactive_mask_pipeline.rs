@@ -5,8 +5,8 @@ use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::{
     create_taa_reactive_mask_mesh_pipeline, create_taa_reactive_material_mask_mesh_pipeline,
 };
-use super::shader_source::mesh_pipeline_taa_reactive_mask_template_source_for_geometry_descriptor_with_streamer;
 use super::MeshPipelineCache;
+use super::shader_source::mesh_pipeline_taa_reactive_mask_template_source_for_geometry_descriptor_with_streamer;
 
 const TAA_REACTIVE_MASK_MESH_SHADER_KEY_PREFIX: &str = "zircon.builtin.taa-reactive-mask-mesh@1";
 
@@ -70,6 +70,9 @@ impl MeshPipelineCache {
         streamer: &ResourceStreamer,
         variant_id: MeshPipelineVariantId,
     ) -> Option<&'a wgpu::RenderPipeline> {
+        if self.cached_taa_reactive_pipeline(variant_id).is_some() {
+            return self.cached_taa_reactive_pipeline(variant_id);
+        }
         let (kind, pipeline_key, shader_variant_key) =
             self.pipeline_and_shader_key_for_variant(variant_id)?;
         match kind {
@@ -90,6 +93,18 @@ impl MeshPipelineCache {
                 ),
             _ => None,
         }
+    }
+
+    fn cached_taa_reactive_pipeline(
+        &self,
+        variant_id: MeshPipelineVariantId,
+    ) -> Option<&wgpu::RenderPipeline> {
+        self.taa_reactive_mask_mesh_pipelines
+            .get(&variant_id)
+            .or_else(|| {
+                self.taa_reactive_material_mask_mesh_pipelines
+                    .get(&variant_id)
+            })
     }
 
     fn ensure_taa_reactive_material_mask_pipeline<'a>(
@@ -162,7 +177,7 @@ mod tests {
     use crate::graphics::scene::resources::default_pipeline_key;
 
     use super::super::mesh_pipeline_taa_reactive_mask_template_source_for_geometry;
-    use super::{taa_reactive_mask_mesh_shader_key, TAA_REACTIVE_MASK_MESH_SHADER_KEY_PREFIX};
+    use super::{TAA_REACTIVE_MASK_MESH_SHADER_KEY_PREFIX, taa_reactive_mask_mesh_shader_key};
 
     #[test]
     fn taa_reactive_mask_shader_key_includes_shader_variant_identity_and_source_hash() {

@@ -31,9 +31,21 @@ fn collect_rs(path: &Path, sources: &mut Vec<PathBuf>) {
     for entry in std::fs::read_dir(path).unwrap() {
         let path = entry.unwrap().path();
         if path.is_dir() {
+            if path.file_name().is_some_and(|name| name == "tests") {
+                continue;
+            }
             collect_rs(&path, sources);
-        } else if path.extension().is_some_and(|extension| extension == "rs") {
+        } else if path.extension().is_some_and(|extension| extension == "rs")
+            && !is_test_source_path(&path)
+        {
             sources.push(path);
         }
     }
+}
+
+fn is_test_source_path(path: &Path) -> bool {
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    file_name == "tests.rs" || file_name.ends_with("_test.rs") || file_name.ends_with("_tests.rs")
 }

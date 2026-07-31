@@ -1,5 +1,7 @@
+use super::super::render_commands::HostPaintCommandKind;
+use super::commands::push_dialog_commands;
 use super::identity::{dialog_paint_state, DialogKind, DialogPaintState};
-use super::layout::body_rect;
+use super::layout::{body_rect, dialog_has_visible_area, pixel_aligned_rect};
 use super::metrics::dialog_metrics_from_host;
 use super::style::{dialog_border_color, dialog_palette_from_host};
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
@@ -40,6 +42,8 @@ fn dialog_metrics_project_from_host_control_metrics() {
     assert_eq!(metrics.action_gap, 18.0);
     assert_eq!(metrics.action_stack_gap, 6.5);
     assert_eq!(metrics.action_min_width, 61.0);
+    assert_eq!(metrics.action_height, 26.0);
+    assert_eq!(metrics.action_radius, 5.0);
     assert_eq!(metrics.action_text_padding_x, 12.0);
     assert_eq!(metrics.action_text_clip_guard, 4.0);
     assert_eq!(metrics.action_font_size, 11.0);
@@ -154,7 +158,7 @@ fn short_confirm_dialog_compacts_the_body_action_gap_before_dropping_content() {
         height: 84.0,
     };
     let metrics = super::metrics::dialog_metrics();
-    let action_top = rect.y + rect.height - metrics.action_bottom - metrics.action_line_height;
+    let action_top = rect.y + rect.height - metrics.action_bottom - metrics.action_height;
     let body = body_rect(&rect, DialogKind::ConfirmDialog, Some(action_top))
         .expect("the atlas confirm dialog compacts spacing instead of hiding its body");
     let effective_gap = action_top - (body.y + body.height);
@@ -183,4 +187,84 @@ fn alert_dialog_retains_its_separate_legacy_identity_and_body_offset() {
     let body = body_rect(&rect, DialogKind::AlertDialog, None)
         .expect("the legacy alert body is always positioned by its established body offset");
     assert_eq!(body.y, rect.y + super::metrics::dialog_metrics().body_top);
+}
+
+#[test]
+fn collapsed_dialog_extent_stays_collapsed_after_pixel_alignment() {
+    let rect = FrameRect {
+        x: 12.4,
+        y: 18.6,
+        width: 0.0,
+        height: 0.0,
+    };
+
+    let aligned = pixel_aligned_rect(&rect);
+
+    assert_eq!(aligned.width, 0.0);
+    assert_eq!(aligned.height, 0.0);
+    assert!(!dialog_has_visible_area(&aligned));
+}
+
+#[test]
+fn dialog_root_must_stay_fully_within_its_clip_before_emitting_commands() {
+    let node = TemplatePaneNodeData {
+        role: "Dialog".to_string(),
+        popup_open: true,
+        text: "Discard changes?".to_string(),
+        ..TemplatePaneNodeData::default()
+    };
+    let root = FrameRect {
+        x: 8.0,
+        y: 20.0,
+        width: 180.0,
+        height: 120.0,
+    };
+    let clip = FrameRect {
+        x: 12.0,
+        y: 20.0,
+        width: 180.0,
+        height: 120.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_dialog_commands(
+        &mut commands,
+        &node,
+        &root,
+        &clip,
+        0,
+        1.0,
+    ));
+
+    assert!(commands.is_empty());
+}
+
+#[test]
+fn narrow_dialog_keeps_chrome_but_omits_text_that_cannot_fit_inside_the_surface() {
+    let node = TemplatePaneNodeData {
+        role: "Dialog".to_string(),
+        popup_open: true,
+        text: "Scene Settings".to_string(),
+        ..TemplatePaneNodeData::default()
+    };
+    let root = FrameRect {
+        x: 20.0,
+        y: 20.0,
+        width: 20.0,
+        height: 20.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_dialog_commands(
+        &mut commands,
+        &node,
+        &root,
+        &root,
+        0,
+        1.0,
+    ));
+
+    assert!(commands
+        .iter()
+        .all(|command| !matches!(command.kind, HostPaintCommandKind::Text)));
 }

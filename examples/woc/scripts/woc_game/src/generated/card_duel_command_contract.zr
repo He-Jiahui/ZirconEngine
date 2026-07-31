@@ -1,0 +1,13 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub queueJoinCommandId(required: bool): uint { return required ? <uint>90 : <uint>0; }
+pub queueLeaveCommandId(required: bool): uint { return required ? <uint>91 : <uint>0; }
+pub playCardCommandId(required: bool): uint { return required ? <uint>92 : <uint>0; }
+pub forfeitCommandId(required: bool): uint { return required ? <uint>93 : <uint>0; }
+pub playCardPayloadBytes(required: bool): int { return required ? 4 : 0; }
+// kind: 1 empty, 2 i32_le.
+pub payloadKind(id: uint, required: bool): int {
+    if (!required) return 0;
+    if (id == <uint>90 || id == <uint>91 || id == <uint>93) return 1;
+    if (id == <uint>92) return 2;
+    return 0;
+}

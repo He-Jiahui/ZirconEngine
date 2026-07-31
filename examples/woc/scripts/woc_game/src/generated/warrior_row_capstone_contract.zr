@@ -1,0 +1,17 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub isDoubleCharge(optionId: string): bool { return optionId == "war_row_double_charge"; }
+pub isVictoryRush(optionId: string): bool { return optionId == "war_row_victory_rush"; }
+pub isLingeringDread(optionId: string): bool { return optionId == "war_row_lingering_dread"; }
+pub isBladestorm(optionId: string): bool { return optionId == "war_row_bladestorm"; }
+pub chargeBonusUses(required: bool): int { return required ? 1 : 0; }
+pub chargeRechargeSeconds(required: bool): float { return required ? 15 : 0.0; }
+pub victoryRushWindowSeconds(required: bool): float { return required ? 20 : 0.0; }
+pub victoryRushHealPctMax(required: bool): float { return required ? 0.2 : 0.0; }
+pub lingeringDreadBreakPct(required: bool): float { return required ? 0.2 : 0.0; }
+pub bladestormCost(required: bool): int { return required ? 25 : 0; }
+pub bladestormCooldownSeconds(required: bool): float { return required ? 90 : 0.0; }
+pub bladestormDurationSeconds(required: bool): float { return required ? 4 : 0.0; }
+pub bladestormTicks(required: bool): int { return required ? 4 : 0; }
+pub bladestormRadius(required: bool): float { return required ? 6 : 0.0; }
+pub bladestormMinDamage(required: bool): int { return required ? 16 : 0; }
+pub bladestormMaxDamage(required: bool): int { return required ? 22 : 0; }

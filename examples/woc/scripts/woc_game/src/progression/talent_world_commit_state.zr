@@ -1,0 +1,95 @@
+// WOS Talents V2 commit boundary. Allocation ownership stays in the commit
+// reducer and scalar data ownership stays in the modifier reducer; this module
+// composes the two only after a source-equivalent changed allocation commits.
+var allocation = %import("progression/talent_allocation_commit_state");
+var modifiers = %import("progression/talent_modifier_state");
+
+syncModifiers(
+    state: allocation.TalentAllocationCommitState,
+    modifierState: modifiers.TalentModifierState,
+    effects: allocation.TalentCommitEffects
+): void {
+    if (!effects.applied) return;
+    modifierState.playerLevel = state.playerLevel;
+    modifiers.recompute(
+        modifierState, state.specCode, state.row5, state.row8, state.row11,
+        state.row14, state.row17, state.row20
+    );
+}
+
+pub apply(
+    state: allocation.TalentAllocationCommitState,
+    modifierState: modifiers.TalentModifierState,
+    candidate: allocation.TalentAllocationCandidate,
+    effects: allocation.TalentCommitEffects
+): bool {
+    var result = allocation.apply(state, candidate, effects);
+    syncModifiers(state, modifierState, effects);
+    return result;
+}
+
+pub setSpec(
+    state: allocation.TalentAllocationCommitState,
+    modifierState: modifiers.TalentModifierState,
+    specCode: uint,
+    effects: allocation.TalentCommitEffects
+): bool {
+    var result = allocation.setSpec(state, specCode, effects);
+    syncModifiers(state, modifierState, effects);
+    return result;
+}
+
+pub selectRow(
+    state: allocation.TalentAllocationCommitState,
+    modifierState: modifiers.TalentModifierState,
+    level: int,
+    optionCode: uint,
+    clear: bool,
+    effects: allocation.TalentCommitEffects
+): bool {
+    var result = allocation.selectRow(state, level, optionCode, clear, effects);
+    syncModifiers(state, modifierState, effects);
+    return result;
+}
+
+pub respec(
+    state: allocation.TalentAllocationCommitState,
+    modifierState: modifiers.TalentModifierState,
+    effects: allocation.TalentCommitEffects
+): bool {
+    var result = allocation.respec(state, effects);
+    syncModifiers(state, modifierState, effects);
+    return result;
+}
+
+pub contractTest(): int {
+    var state = new allocation.TalentAllocationCommitState();
+    state.classId = "mage";
+    state.playerLevel = 20;
+    var modifierState = new modifiers.TalentModifierState();
+    var effects = new allocation.TalentCommitEffects();
+    var candidate = allocation.candidateFromState(state);
+    candidate.specCode = <uint>20;
+    candidate.row5 = <uint>109;
+    if (!apply(state, modifierState, candidate, effects) || !effects.applied ||
+        modifiers.statField(modifierState, "crit") != 0.02 ||
+        modifiers.globalField(modifierState, "ignitionPct") != 0.4 ||
+        modifierState.grantAbilityIds.length != 2 ||
+        <string>modifierState.grantAbilityIds[1] != "ice_floes") return -1;
+
+    var revision = state.allocationRevision;
+    if (!apply(state, modifierState, candidate, effects) || effects.applied ||
+        state.allocationRevision != revision || modifiers.statField(modifierState, "crit") != 0.02) return -2;
+
+    state.inCombat = true;
+    var rejected = allocation.candidateFromState(state);
+    rejected.specCode = <uint>21;
+    if (apply(state, modifierState, rejected, effects) || effects.applied ||
+        state.lastError != allocation.errorCombatLock() ||
+        modifiers.globalField(modifierState, "ignitionPct") != 0.4) return -3;
+    state.inCombat = false;
+    if (!respec(state, modifierState, effects) || !effects.applied ||
+        state.row5 != <uint>0 || modifierState.grantAbilityIds.length != 1 ||
+        modifiers.globalField(modifierState, "ignitionPct") != 0.4) return -4;
+    return 1;
+}

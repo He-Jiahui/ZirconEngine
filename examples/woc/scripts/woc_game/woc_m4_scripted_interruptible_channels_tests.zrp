@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_scripted_interruptible_channels_tests",
+  "source": "src",
+  "binary": "bin-m4-scripted-interruptible-channels-tests",
+  "entry": "combat/scripted_interruptible_channels_test_main"
+}

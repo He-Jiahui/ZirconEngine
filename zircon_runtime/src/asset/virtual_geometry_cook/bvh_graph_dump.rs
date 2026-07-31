@@ -8,14 +8,15 @@ use crate::asset::{
 pub fn format_virtual_geometry_cook_bvh_graph_dump(asset: &VirtualGeometryAsset) -> String {
     let mut graph = String::new();
     let cluster_ids_by_node = cluster_ids_by_node(asset);
+    let hierarchy_nodes = sorted_hierarchy_nodes(asset);
 
     write_line(&mut graph, format_args!("digraph virtual_geometry_bvh {{"));
     write_line(&mut graph, format_args!("  graph [rankdir=TB];"));
     write_line(&mut graph, format_args!("  node [fontname=\"monospace\"];"));
-    for node in sorted_hierarchy_nodes(asset) {
+    for node in &hierarchy_nodes {
         write_node(&mut graph, node, &cluster_ids_by_node);
     }
-    for node in sorted_hierarchy_nodes(asset) {
+    for node in hierarchy_nodes {
         for child_node_id in &node.child_node_ids {
             write_line(
                 &mut graph,
@@ -35,7 +36,7 @@ fn write_node(
 ) {
     let cluster_ids = cluster_ids_by_node
         .get(&node.node_id)
-        .cloned()
+        .map(Vec::as_slice)
         .unwrap_or_default();
     let shape = if node.child_node_ids.is_empty() {
         "ellipse"
@@ -51,7 +52,7 @@ fn write_node(
             node.node_id,
             node.mip_level,
             node.page_id,
-            format_u32_list(&cluster_ids),
+            format_u32_list(cluster_ids),
             node.screen_space_error
         ),
     );

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/combo_eligibility_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/combo_eligibility.ts": "91f6e0e4284d2c4c2424bff5ff6be80fba571924c45693db204f4888ed87181a",
+    "src/sim/professions/wheel.ts": "d734aabf742f56fd0826db459bbe97cb6583deb77ffc29a308ff52e50b6d8356"
+  },
+  "tier_skill_step": 25,
+  "reasons": [
+    "not_attuned",
+    "wrong_pair",
+    "tier_unmet"
+  ],
+  "source_semantics": {
+    "no_requirement": "passes without inspecting identity or skill state",
+    "pair": "activeArchetype and pairedMajor match craftA/craftB in either order",
+    "tiers": "unmet crafts are emitted in requirement order after craftCeiling evaluates both required crafts"
+  }
+}

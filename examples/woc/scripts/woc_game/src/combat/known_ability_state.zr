@@ -1,0 +1,379 @@
+// Source-order selection for PlayerMeta.known. The WOS owner must supply the
+// full content catalog and persisted talent facts; this module never invents a
+// class kit, grant, or action-bar mapping.
+var container = %import("zr.container");
+var contract = %import("generated/known_ability_contract");
+var sourceCatalog = %import("generated/current_known_ability_catalog");
+var selectionCatalog = %import("generated/current_talent_selection_catalog");
+var forms = %import("combat/forms_state");
+
+pub class AbilityAvailability {
+    pub var definitionPresent: bool;
+    // This is exactly `grantIds.has(id) || !baseIds.includes(id)` from source.
+    pub var grantBypassesRestrictions: bool;
+    pub var learnLevel: int;
+    pub var hasRequiredSpecs: bool;
+    pub var hasCommittedSpec: bool;
+    pub var matchesRequiredSpec: bool;
+    pub var hasExcludedSpecs: bool;
+    pub var matchesExcludedSpec: bool;
+    // The source default for `excludeSpecsAtLevel` is zero.
+    pub var excludeAtLevel: int;
+
+    pub @constructor() {
+        this.definitionPresent = false;
+        this.grantBypassesRestrictions = false;
+        this.learnLevel = 1;
+        this.hasRequiredSpecs = false;
+        this.hasCommittedSpec = false;
+        this.matchesRequiredSpec = false;
+        this.hasExcludedSpecs = false;
+        this.matchesExcludedSpec = false;
+        this.excludeAtLevel = 0;
+    }
+}
+
+// Mirrors the filter half of abilitiesKnownAt. Rank/effect resolution and
+// applyTalentMods are separate content-owner steps after a row is selected.
+pub includeInKnownList(entry: AbilityAvailability, level: int): bool {
+    if (!entry.definitionPresent) { return false; }
+    if (entry.grantBypassesRestrictions) { return true; }
+    if (entry.learnLevel > level) { return false; }
+    if (entry.hasRequiredSpecs &&
+        (!entry.hasCommittedSpec || !entry.matchesRequiredSpec)) {
+        return false;
+    }
+    if (entry.hasExcludedSpecs && entry.hasCommittedSpec &&
+        entry.matchesExcludedSpec && level >= entry.excludeAtLevel) {
+        return false;
+    }
+    return true;
+}
+
+containsAbility(abilities: container.Array<uint>, ability: uint): bool {
+    var index = 0;
+    while (index < abilities.length) {
+        if (<uint>abilities[index] == ability) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+abilityIndex(abilities: container.Array<uint>, ability: uint): int {
+    var index = 0;
+    while (index < abilities.length) {
+        if (<uint>abilities[index] == ability) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+// The source copies all base ids as-is, then appends a granted id only when it
+// is absent from that evolving list. Ability codes are catalog-owned, so this
+// function has no dependency on the temporary M4 subset.
+pub sourceOrderedAbilityCodes(
+    baseAbilityCodes: container.Array<uint>,
+    grantAbilityCodes: container.Array<uint>
+): container.Array<uint> {
+    var result = new container.Array<uint>();
+    for (var ability in baseAbilityCodes) {
+        result.add(<uint>ability);
+    }
+    for (var ability in grantAbilityCodes) {
+        var code = <uint>ability;
+        if (!containsAbility(result, code)) { result.add(code); }
+    }
+    return result;
+}
+
+// castAbilityBySlot performs a bounds lookup and silently does nothing for an
+// absent slot. The caller can retain that behavior by checking this predicate
+// before decoding the selected catalog code.
+pub slotExists(knownAbilityCodes: container.Array<uint>, slot: int): bool {
+    return slot >= 0 && slot < knownAbilityCodes.length;
+}
+
+pub slotAbilityCode(knownAbilityCodes: container.Array<uint>, slot: int): uint {
+    if (!slotExists(knownAbilityCodes, slot)) {
+        throw "WOC action-bar slot is absent";
+    }
+    return <uint>knownAbilityCodes[slot];
+}
+
+// These adapters expose the complete current source catalog without coupling
+// this pure selection layer to WOS row storage or temporary M4 ability ids.
+pub sourceClassBaseAbilityCodes(classIndex: int): container.Array<uint> {
+    var result = new container.Array<uint>();
+    var count = sourceCatalog.classAbilityCount(classIndex);
+    var slot = 0;
+    while (slot < count) {
+        result.add(sourceCatalog.classAbilityCode(classIndex, slot));
+        slot = slot + 1;
+    }
+    return result;
+}
+
+pub sourceAvailability(code: uint, granted: bool, committedSpec: string): AbilityAvailability {
+    var index = <int>code;
+    var entry = new AbilityAvailability();
+    entry.definitionPresent = sourceCatalog.abilityExists(index);
+    entry.grantBypassesRestrictions = granted;
+    entry.learnLevel = sourceCatalog.learnLevel(index);
+    entry.hasRequiredSpecs = sourceCatalog.hasRequiredSpecs(index);
+    entry.hasCommittedSpec = committedSpec.length > 0;
+    entry.matchesRequiredSpec = sourceCatalog.matchesRequiredSpec(index, committedSpec);
+    entry.hasExcludedSpecs = sourceCatalog.hasExcludedSpecs(index);
+    entry.matchesExcludedSpec = sourceCatalog.matchesExcludedSpec(index, committedSpec);
+    entry.excludeAtLevel = sourceCatalog.excludeAtLevel(index);
+    return entry;
+}
+
+// Rank resolution precedes talent modifiers in abilitiesKnownAt. The WOS known
+// list stores catalog codes, so callers derive this scalar from the same pinned
+// content and current player level instead of persisting a duplicate rank.
+pub sourceRankAt(code: uint, level: int): int {
+    return sourceCatalog.rankAt(<int>code, level);
+}
+
+// Mirrors casting_lifecycle's action-locking form gate. The full ability
+// catalog owns `requiresForm` and `usableInForm`; effect dispatch supplies the
+// form-toggle fact so this selection layer does not infer it from effects.
+// Return 1 admits the action, -1 means the required bear/cat form is missing,
+// and -2 means an action-locking form rejects a normal kit action.
+pub sourceFormAdmission(code: uint, activeForm: string, isFormToggle: bool): int {
+    var required = sourceCatalog.requiresForm(<int>code);
+    if (required != "") {
+        var expected = required == "bear" ? "form_bear" : "form_cat";
+        return activeForm == expected ? 1 : -1;
+    }
+    if (forms.isActionLockingFormAuraKind(activeForm) && !isFormToggle &&
+        !sourceCatalog.usableInForm(<int>code)) {
+        return -2;
+    }
+    return 1;
+}
+
+// Full catalog admission precedes effect execution. The caller owns transient
+// target, resource, cooldown, and cast-state checks; this layer owns content
+// eligibility so every executor consumes one current-head rule set.
+// Return values: 1 admitted; -1 unknown; -2 wrong class; -3 passive;
+// -4 unavailable at this level/spec; -5 stealth required; -6 wrong form;
+// -7 action-locking form rejects the action.
+pub sourceAbilityAdmission(
+    code: uint,
+    playerClass: string,
+    level: int,
+    granted: bool,
+    committedSpec: string,
+    activeForm: string,
+    isFormToggle: bool,
+    stealthed: bool
+): int {
+    if (!sourceCatalog.abilityExists(<int>code)) { return -1; }
+    if (sourceCatalog.abilityClassId(<int>code) != playerClass) { return -2; }
+    if (sourceCatalog.isPassive(<int>code)) { return -3; }
+    if (!sourceCatalog.isKnownAt(<int>code, level, granted, committedSpec)) { return -4; }
+    if (sourceCatalog.requiresStealth(<int>code) && !stealthed) { return -5; }
+    var formAdmission = sourceFormAdmission(code, activeForm, isFormToggle);
+    if (formAdmission == -1) { return -6; }
+    if (formAdmission == -2) { return -7; }
+    return 1;
+}
+
+talentRowLevel(index: int): int {
+    if (index == 0) return 5;
+    if (index == 1) return 8;
+    if (index == 2) return 11;
+    if (index == 3) return 14;
+    if (index == 4) return 17;
+    if (index == 5) return 20;
+    return 0;
+}
+
+// Mirrors computeTalentModifiers' grant sequence only: specialization signature
+// first, then selected row grants in declaration order. Numeric/stat/proc
+// modifiers still belong to their dedicated combat and progression owners.
+pub sourceTalentGrantAbilityCodes(
+    classIndex: int,
+    level: int,
+    specCode: uint,
+    selectedRowOptionCodes: container.Array<uint>
+): container.Array<uint> {
+    if (classIndex < 0 || classIndex >= sourceCatalog.classCount() ||
+        selectedRowOptionCodes.length != 6) {
+        throw "WOC talent selection shape is invalid";
+    }
+    var classId = sourceCatalog.classId(classIndex);
+    var grants = new container.Array<uint>();
+    if (specCode != <uint>0) {
+        if (level < 5 || !selectionCatalog.specMatchesClass(classId, specCode)) {
+            throw "WOC specialization selection is invalid";
+        }
+        var signatureCode = selectionCatalog.specSignatureAbilityCode(specCode);
+        if (!sourceCatalog.abilityExists(<int>signatureCode)) {
+            throw "WOC specialization signature is absent from the ability catalog";
+        }
+        grants.add(signatureCode);
+    }
+    var rowIndex = 0;
+    while (rowIndex < selectedRowOptionCodes.length) {
+        var optionCode = <uint>selectedRowOptionCodes[rowIndex];
+        var rowLevel = talentRowLevel(rowIndex);
+        if (rowLevel == 0) { throw "WOC talent row index is invalid"; }
+        if (optionCode != <uint>0) {
+            if (level < rowLevel ||
+                !selectionCatalog.optionMatchesClassRow(classId, rowLevel, optionCode)) {
+                throw "WOC talent row selection is invalid";
+            }
+            var grantCode = selectionCatalog.optionGrantAbilityCode(optionCode);
+            if (grantCode != <uint>0) {
+                if (!sourceCatalog.abilityExists(<int>grantCode)) {
+                    throw "WOC talent row grant is absent from the ability catalog";
+                }
+                grants.add(grantCode);
+            }
+        }
+        rowIndex = rowIndex + 1;
+    }
+    return grants;
+}
+
+// This is the code-list portion of abilitiesKnownAt for a validated Talent V2
+// allocation. It deliberately ends before rank/effect/cost/cast modifier
+// resolution, which stays with the combat/progression owners.
+pub sourceKnownAbilityCodes(
+    classIndex: int,
+    level: int,
+    specCode: uint,
+    selectedRowOptionCodes: container.Array<uint>
+): container.Array<uint> {
+    var classId = sourceCatalog.classId(classIndex);
+    if (classId == "") { throw "WOC ability class index is invalid"; }
+    var grants = sourceTalentGrantAbilityCodes(
+        classIndex, level, specCode, selectedRowOptionCodes
+    );
+    var base = sourceClassBaseAbilityCodes(classIndex);
+    var ordered = sourceOrderedAbilityCodes(base, grants);
+    var specId = specCode == <uint>0 ? "" : selectionCatalog.specId(specCode);
+    var result = new container.Array<uint>();
+    for (var abilityCode in ordered) {
+        var code = <uint>abilityCode;
+        var granted = containsAbility(grants, code) || !containsAbility(base, code);
+        if (sourceCatalog.isKnownAt(<int>code, level, granted, specId)) {
+            result.add(code);
+        }
+    }
+    return result;
+}
+
+pub contractTest(): int {
+    if (contract.ruleCount() != 6 || !contract.grantsBypassLevelAndSpecs() ||
+        !contract.appliesTalentModifiersAfterSelection()) {
+        return -1;
+    }
+    var base = new container.Array<uint>();
+    base.add(<uint>7);
+    base.add(<uint>11);
+    var grants = new container.Array<uint>();
+    grants.add(<uint>11);
+    grants.add(<uint>13);
+    var ordered = sourceOrderedAbilityCodes(base, grants);
+    if (ordered.length != 3 || <uint>ordered[0] != <uint>7 ||
+        <uint>ordered[1] != <uint>11 || <uint>ordered[2] != <uint>13 ||
+        !slotExists(ordered, 2) || slotExists(ordered, -1) ||
+        slotExists(ordered, 3) || slotAbilityCode(ordered, 1) != <uint>11) {
+        return -2;
+    }
+    var warrior = sourceCatalog.classIndex("warrior");
+    var warriorCodes = sourceClassBaseAbilityCodes(warrior);
+    if (warrior < 0 || sourceCatalog.classCount() != 9 || warriorCodes.length <= 0 ||
+        !sourceCatalog.abilityExists(<int>warriorCodes[0]) ||
+        sourceCatalog.abilityId(<int>warriorCodes[0]).length <= 0) {
+        return -9;
+    }
+    var sourceEntry = sourceAvailability(<uint>warriorCodes[0], false, "");
+    if (!sourceEntry.definitionPresent || sourceEntry.grantBypassesRestrictions) {
+        return -10;
+    }
+    if (!sourceCatalog.isKnownAt(<int>warriorCodes[0], 1, false, "") ||
+        sourceCatalog.isKnownAt(0, 100, true, "")) {
+        return -11;
+    }
+    var fireball = sourceCatalog.abilityCode("fireball");
+    if (sourceRankAt(<uint>fireball, 5) != 1 || sourceRankAt(<uint>fireball, 6) != 2 ||
+        sourceRankAt(<uint>fireball, 12) != 3 || sourceRankAt(<uint>fireball, 18) != 4 ||
+        sourceRankAt(<uint>0, 20) != 0) {
+        return -12;
+    }
+    var charge = sourceCatalog.abilityCode("charge");
+    var battleStance = sourceCatalog.abilityCode("battle_stance");
+    var ambush = sourceCatalog.abilityCode("ambush");
+    if (sourceCatalog.abilityClassId(charge) != "warrior" ||
+        sourceCatalog.exclusiveGroup(battleStance) != "warrior_stance" ||
+        !sourceCatalog.requiresStealth(ambush) ||
+        sourceCatalog.requiresForm(charge) != "") {
+        return -14;
+    }
+    var barkskin = <uint>sourceCatalog.abilityCode("barkskin");
+    var wrath = <uint>sourceCatalog.abilityCode("wrath");
+    var bearForm = <uint>sourceCatalog.abilityCode("bear_form");
+    var maul = <uint>sourceCatalog.abilityCode("maul");
+    if (!sourceCatalog.usableInForm(<int>barkskin) ||
+        sourceCatalog.usableInForm(<int>wrath) ||
+        sourceFormAdmission(barkskin, "form_bear", false) != 1 ||
+        sourceFormAdmission(wrath, "form_bear", false) != -2 ||
+        sourceFormAdmission(wrath, "form_moonkin", false) != 1 ||
+        sourceFormAdmission(bearForm, "form_bear", true) != 1 ||
+        sourceFormAdmission(maul, "form_bear", false) != 1 ||
+        sourceFormAdmission(maul, "form_cat", false) != -1) {
+        return -15;
+    }
+    var deepWounds = <uint>sourceCatalog.abilityCode("deep_wounds");
+    if (sourceAbilityAdmission(barkskin, "druid", 20, false, "", "form_bear", false, false) != 1 ||
+        sourceAbilityAdmission(wrath, "druid", 20, false, "", "form_bear", false, false) != -7 ||
+        sourceAbilityAdmission(maul, "druid", 20, false, "", "form_cat", false, false) != -6 ||
+        sourceAbilityAdmission(ambush, "rogue", 20, false, "", "", false, false) != -5 ||
+        sourceAbilityAdmission(ambush, "rogue", 20, false, "", "", false, true) != 1 ||
+        sourceAbilityAdmission(barkskin, "mage", 20, false, "", "", false, false) != -2 ||
+        sourceAbilityAdmission(deepWounds, "warrior", 20, false, "", "", false, false) != -3 ||
+        sourceAbilityAdmission(<uint>0, "druid", 20, false, "", "", false, false) != -1) {
+        return -16;
+    }
+    var selectedRows = new container.Array<uint>();
+    var rowIndex = 0;
+    while (rowIndex < 6) {
+        selectedRows.add(<uint>0);
+        rowIndex = rowIndex + 1;
+    }
+    selectedRows[1] = selectionCatalog.optionCode("warrior", 8, "war_row_die_by_the_sword");
+    var arms = selectionCatalog.specCode("warrior", "arms");
+    var selectedKnown = sourceKnownAbilityCodes(0, 8, arms, selectedRows);
+    var mortalStrike = <uint>sourceCatalog.abilityCode("mortal_strike");
+    var dieBySword = <uint>sourceCatalog.abilityCode("die_by_sword");
+    if (arms == <uint>0 || selectedRows[1] == <uint>0 ||
+        abilityIndex(selectedKnown, mortalStrike) < 0 ||
+        abilityIndex(selectedKnown, dieBySword) <= abilityIndex(selectedKnown, mortalStrike)) {
+        return -13;
+    }
+    var entry = new AbilityAvailability();
+    entry.definitionPresent = true;
+    entry.learnLevel = 10;
+    if (includeInKnownList(entry, 9) || !includeInKnownList(entry, 10)) {
+        return -3;
+    }
+    entry.hasRequiredSpecs = true;
+    if (includeInKnownList(entry, 10)) { return -4; }
+    entry.hasCommittedSpec = true;
+    entry.matchesRequiredSpec = true;
+    if (!includeInKnownList(entry, 10)) { return -5; }
+    entry.hasExcludedSpecs = true;
+    entry.matchesExcludedSpec = true;
+    entry.excludeAtLevel = 12;
+    if (!includeInKnownList(entry, 11) || includeInKnownList(entry, 12)) {
+        return -6;
+    }
+    entry.grantBypassesRestrictions = true;
+    if (!includeInKnownList(entry, 1)) { return -7; }
+    entry.definitionPresent = false;
+    return includeInKnownList(entry, 100) ? -8 : 1;
+}

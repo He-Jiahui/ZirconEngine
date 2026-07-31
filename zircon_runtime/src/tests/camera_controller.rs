@@ -136,3 +136,18 @@ fn orbit_camera_controller_orbits_pans_and_zooms_around_target() {
     assert!(panned.changed);
     assert!(distance_after_zoom < distance_after_pan);
 }
+
+#[test]
+fn camera_controller_idle_paths_skip_expensive_delta_math() {
+    let output_source = include_str!("../core/framework/camera_controller/controller_output.rs");
+    assert!(
+        output_source.contains("if before == after"),
+        "unchanged transforms must skip quaternion inverse and delta projection"
+    );
+
+    let free_source = include_str!("../core/framework/camera_controller/free/controller.rs");
+    assert!(
+        free_source.contains("if self.state.velocity == Vec3::ZERO"),
+        "idle free-camera updates must skip exponential damping"
+    );
+}

@@ -1,4 +1,4 @@
-use serde::{de::Error as DeError, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as DeError};
 use std::fmt::{Display, Formatter};
 use std::path::{Component, Path};
 

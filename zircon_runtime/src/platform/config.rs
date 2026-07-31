@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::platform::{PreferenceStorageBackendKind, RuntimeTargetMode};
 
 use super::{
     PlatformCapabilityMatrix, PlatformCapabilityReport, PlatformFeatureSelection, PlatformTarget,
@@ -21,10 +21,30 @@ impl PlatformConfig {
         PlatformCapabilityMatrix::new(self.features).report(self.target, self.target_mode)
     }
 
+    pub fn capability_report_with_preference_storage_backend(
+        &self,
+        backend: PreferenceStorageBackendKind,
+    ) -> PlatformCapabilityReport {
+        self.capability_report()
+            .with_preference_storage_backend(backend)
+    }
+
     pub fn diagnostic_lines(&self) -> Vec<String> {
-        let mut lines = Vec::with_capacity(28);
+        self.diagnostic_lines_with_preference_storage_backend(
+            PreferenceStorageBackendKind::Unavailable,
+        )
+    }
+
+    pub fn diagnostic_lines_with_preference_storage_backend(
+        &self,
+        backend: PreferenceStorageBackendKind,
+    ) -> Vec<String> {
+        let mut lines = Vec::with_capacity(29);
         lines.push(format!("platform.enabled={}", self.enabled));
-        lines.extend(self.capability_report().diagnostic_lines());
+        lines.extend(
+            self.capability_report_with_preference_storage_backend(backend)
+                .diagnostic_lines(),
+        );
         lines
     }
 

@@ -5,7 +5,7 @@ use zircon_runtime::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderHybridGiCompositePolicy, RenderHybridGiDebugView,
     RenderHybridGiExtract, RenderHybridGiFallbackReason, RenderHybridGiMode, RenderHybridGiProfile,
     RenderHybridGiQuality, RenderHybridGiResolvedSettings, RenderLayerSet, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderPointLightSnapshot, RenderSpotLightSnapshot,
+    RenderMeshStaticState, RenderPointLightSnapshot, RenderSpotLightSnapshot, RendererCommon,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
@@ -558,6 +558,16 @@ impl HybridGiSceneRepresentation {
     }
 
     #[cfg(test)]
+    pub(crate) fn radiance_cache_clipmap_topology(&self) -> Vec<(u32, u32, f32)> {
+        self.radiance_cache.clipmap_topology()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn radiance_cache_probe_demands(&self) -> Vec<(u32, [i32; 3])> {
+        self.radiance_cache.probe_demands()
+    }
+
+    #[cfg(test)]
     pub(crate) fn card_capture_requests(&self) -> Vec<(u32, u32, u32, u32, [f32; 3], f32)> {
         self.card_capture_requests
             .iter()
@@ -710,6 +720,10 @@ fn placeholder_mesh(card_id: u32) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: true,
+            ..RendererCommon::default()
+        },
     }
 }

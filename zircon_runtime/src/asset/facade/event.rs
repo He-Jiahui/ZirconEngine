@@ -1,8 +1,6 @@
-use std::time::Duration;
+use std::{marker::PhantomData, time::Duration, time::Instant};
 
-use crossbeam_channel::{
-    bounded, select, unbounded, Receiver, RecvError, RecvTimeoutError, Sender, TryRecvError,
-};
+use crossbeam_channel::{RecvError, RecvTimeoutError, TryRecvError};
 use serde::{Deserialize, Serialize};
 
 use super::{Asset, Handle};
@@ -10,31 +8,50 @@ use crate::core::framework::channel::ChannelReceiver;
 use crate::core::resource::{
     ResourceEvent, ResourceEventKind, ResourceKind, ResourceLocator, ResourceMarker,
 };
-use crate::core::runtime::tasks::spawn_named_thread;
 
 pub struct AssetEventReceiver<TAsset: Asset> {
-    receiver: Receiver<AssetEvent<TAsset>>,
-    _shutdown: Sender<()>,
+    receiver: ChannelReceiver<ResourceEvent>,
+    _asset: PhantomData<fn() -> TAsset>,
 }
 
 impl<TAsset: Asset> AssetEventReceiver<TAsset> {
-    fn new(receiver: Receiver<AssetEvent<TAsset>>, shutdown: Sender<()>) -> Self {
+    fn new(receiver: ChannelReceiver<ResourceEvent>) -> Self {
         Self {
             receiver,
-            _shutdown: shutdown,
+            _asset: PhantomData,
         }
     }
 
     pub fn recv(&self) -> Result<AssetEvent<TAsset>, RecvError> {
-        self.receiver.recv()
+        loop {
+            let event = self.receiver.recv()?;
+            if let Some(event) = AssetEvent::from_resource_event(event) {
+                return Ok(event);
+            }
+        }
     }
 
     pub fn recv_timeout(&self, timeout: Duration) -> Result<AssetEvent<TAsset>, RecvTimeoutError> {
-        self.receiver.recv_timeout(timeout)
+        let started = Instant::now();
+        loop {
+            let remaining = timeout.saturating_sub(started.elapsed());
+            let event = self.receiver.recv_timeout(remaining)?;
+            if let Some(event) = AssetEvent::from_resource_event(event) {
+                return Ok(event);
+            }
+            if started.elapsed() >= timeout {
+                return Err(RecvTimeoutError::Timeout);
+            }
+        }
     }
 
     pub fn try_recv(&self) -> Result<AssetEvent<TAsset>, TryRecvError> {
-        self.receiver.try_recv()
+        loop {
+            let event = self.receiver.try_recv()?;
+            if let Some(event) = AssetEvent::from_resource_event(event) {
+                return Ok(event);
+            }
+        }
     }
 }
 
@@ -143,6 +160,39 @@ mod tests {
             "\"reload_failed\""
         );
     }
+
+    #[test]
+    fn typed_asset_receiver_skips_other_resource_kinds_without_a_filter_thread() {
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        let typed = typed_event_receiver::<TextureAsset>(receiver);
+        let shader_id = ResourceId::from_stable_label("typed event unrelated shader");
+        let texture_id = ResourceId::from_stable_label("typed event target texture");
+        sender
+            .send(ResourceEvent {
+                kind: ResourceEventKind::Added,
+                resource_kind: ResourceKind::Shader,
+                id: shader_id,
+                locator: None,
+                previous_locator: None,
+                revision: 1,
+            })
+            .unwrap();
+        sender
+            .send(ResourceEvent {
+                kind: ResourceEventKind::Added,
+                resource_kind: ResourceKind::Texture,
+                id: texture_id,
+                locator: None,
+                previous_locator: None,
+                revision: 2,
+            })
+            .unwrap();
+
+        let event = typed.try_recv().expect("typed texture event");
+
+        assert_eq!(event.handle().id(), texture_id);
+        assert_eq!(event.revision(), 2);
+    }
 }
 
 impl<TAsset: Asset> AssetEvent<TAsset> {
@@ -240,24 +290,5 @@ impl<TAsset: Asset> AssetEvent<TAsset> {
 pub(crate) fn typed_event_receiver<TAsset: Asset>(
     resource_events: ChannelReceiver<ResourceEvent>,
 ) -> AssetEventReceiver<TAsset> {
-    let (sender, receiver) = unbounded();
-    let (shutdown_sender, shutdown_receiver) = bounded::<()>(0);
-    let _ = spawn_named_thread(format!("asset-event-filter-{}", TAsset::LABEL), move || {
-        loop {
-            select! {
-                recv(resource_events) -> event => match event {
-                    Ok(event) => {
-                        if let Some(event) = AssetEvent::<TAsset>::from_resource_event(event) {
-                            if sender.send(event).is_err() {
-                                break;
-                            }
-                        }
-                    }
-                    Err(_) => break,
-                },
-                recv(shutdown_receiver) -> _ => break,
-            }
-        }
-    });
-    AssetEventReceiver::new(receiver, shutdown_sender)
+    AssetEventReceiver::new(resource_events)
 }

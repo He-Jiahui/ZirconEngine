@@ -1,7 +1,7 @@
 use super::palette::{workbench_dropdown_palette, workbench_dropdown_palette_from_host};
 use super::selection::select_workbench_dropdown_style;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::project_host_palette;
+use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};
@@ -10,8 +10,10 @@ use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, U
 fn dropdown_palette_projects_from_host_appearance_tokens() {
     let mut tokens = EditorDesignTokens::workbench_dark();
     tokens.palette.surface_recessed = UiRgbaColor::from_u8(6, 8, 10, 255);
-    tokens.palette.popup = UiRgbaColor::from_u8(12, 14, 16, 255);
-    tokens.palette.surface[3] = UiRgbaColor::from_u8(18, 20, 22, 255);
+    tokens.palette.surface_hover = UiRgbaColor::from_u8(12, 14, 16, 255);
+    tokens.palette.accent_soft = UiRgbaColor::from_u8(18, 20, 22, 255);
+    tokens.palette.popup = UiRgbaColor::from_u8(36, 38, 40, 255);
+    tokens.palette.surface[3] = UiRgbaColor::from_u8(42, 44, 46, 255);
     tokens.palette.surface_disabled = UiRgbaColor::from_u8(24, 26, 28, 255);
     tokens.palette.border = UiRgbaColor::from_u8(30, 32, 34, 255);
     tokens.palette.focus_ring = UiRgbaColor::from_u8(42, 180, 210, 255);
@@ -37,6 +39,56 @@ fn dropdown_palette_projects_from_host_appearance_tokens() {
     assert_eq!(palette.disabled_text, [92, 100, 108, 255]);
     assert_eq!(palette.chevron, [144, 152, 160, 255]);
     assert_eq!(palette.active_chevron, [42, 180, 210, 255]);
+}
+
+#[test]
+fn dropdown_hover_and_open_use_their_declared_token_surfaces() {
+    let palette = workbench_dropdown_palette();
+
+    let mut hovered = TemplatePaneNodeData::default();
+    hovered.hovered = true;
+    let hovered_style = select_workbench_dropdown_style(&hovered, false);
+
+    let mut open = TemplatePaneNodeData::default();
+    open.popup_open = true;
+    let open_style = select_workbench_dropdown_style(&open, false);
+
+    assert_eq!(hovered_style.state, UiPainterResolvedState::Hovered);
+    assert_eq!(hovered_style.surface, palette.hover_surface);
+    assert_eq!(open_style.state, UiPainterResolvedState::Open);
+    assert_eq!(open_style.surface, palette.open_surface);
+    assert_ne!(hovered_style.surface, palette.surface);
+    assert_ne!(open_style.surface, PALETTE.surface_pressed);
+}
+
+#[test]
+fn dropdown_dynamic_surfaces_ignore_a_normal_background_override() {
+    let palette = workbench_dropdown_palette();
+    let override_color = UiStyleColor::Rgba(UiRgbaColor::from_u8(93, 97, 101, 255));
+
+    let mut normal = TemplatePaneNodeData::default();
+    normal.button_style.element.background_color = Some(override_color.clone());
+    let normal_style = select_workbench_dropdown_style(&normal, false);
+
+    let mut hovered = TemplatePaneNodeData::default();
+    hovered.hovered = true;
+    hovered.button_style.element.background_color = Some(override_color.clone());
+    let hovered_style = select_workbench_dropdown_style(&hovered, false);
+
+    let mut open = TemplatePaneNodeData::default();
+    open.popup_open = true;
+    open.button_style.element.background_color = Some(override_color.clone());
+    let open_style = select_workbench_dropdown_style(&open, false);
+
+    let mut pressed = TemplatePaneNodeData::default();
+    pressed.pressed = true;
+    pressed.button_style.element.background_color = Some(override_color);
+    let pressed_style = select_workbench_dropdown_style(&pressed, false);
+
+    assert_eq!(normal_style.surface, [93, 97, 101, 255]);
+    assert_eq!(hovered_style.surface, palette.hover_surface);
+    assert_eq!(open_style.surface, palette.open_surface);
+    assert_eq!(pressed_style.surface, palette.open_surface);
 }
 
 #[test]

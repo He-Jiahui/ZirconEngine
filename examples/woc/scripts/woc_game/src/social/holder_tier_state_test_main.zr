@@ -1,0 +1,47 @@
+var console = %import("zr.system.console");
+var holderTier = %import("social/holder_tier_state");
+
+closeEnough(value: float, expected: float): bool {
+    var difference = value - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+var result = 1;
+if (holderTier.wocMaxSupply() != 1000000000 ||
+    holderTier.holderTierIndexForBalance(false, 1000000000) != 0 ||
+    holderTier.holderTierIndexForBalance(true, 0) != 0 ||
+    holderTier.holderTierIndexForBalance(true, 1) != 1 ||
+    holderTier.holderTierIndexForBalance(true, 9) != 1 ||
+    holderTier.holderTierIndexForBalance(true, 10) != 2 ||
+    holderTier.holderTierIndexForBalance(true, 9999999) != 7 ||
+    holderTier.holderTierIndexForBalance(true, 10000000) != 8) {
+    result = -1;
+}
+if (result == 1 && (holderTier.holderTierIndexForBalance(true, 90000000) != 16 ||
+    holderTier.holderTierIndexForBalance(true, 100000000) != 17 ||
+    holderTier.holderTierIndexForBalance(true, 1000000000) != 18)) {
+    result = -2;
+}
+if (result == 1 && (holderTier.holderTierKey(1) != "ember" ||
+    holderTier.holderTierKey(8) != "leviathan" ||
+    holderTier.holderTierKey(18) != "sovereign" ||
+    holderTier.holderTierThreshold(1) != 1 ||
+    holderTier.holderTierThreshold(17) != 100000000 ||
+    holderTier.holderTierThreshold(18) != holderTier.wocMaxSupply())) {
+    result = -3;
+}
+if (result == 1 && (!closeEnough(holderTier.tierSupplyShare(8), 0.01) ||
+    !closeEnough(holderTier.tierSupplyShare(17), 0.1) ||
+    !closeEnough(holderTier.tierSupplyShare(18), 1.0))) {
+    result = -4;
+}
+if (result == 1 && (holderTier.holderTierKey(0) != "" ||
+    holderTier.holderTierThreshold(19) != 0 ||
+    !closeEnough(holderTier.tierSupplyShare(-1), 0.0))) {
+    result = -5;
+}
+
+console.printLine("m6-holder-tier-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

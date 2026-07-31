@@ -309,6 +309,7 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 |------|------|------|
 | 18 进阶光照与透明特性 | `18-advanced-lighting-features.md` | 体积雾/体积光(05/07)、light cookies(05/13)、clearcoat/anisotropy/transmission(08)、OIT(09 排序之上可选)、局部 irradiance volumes(11 姊妹项)、planar reflection(09 RT 相机)、Burley SSS(07/08) |
 | 19 GPU 能力利用与带宽优化 | `19-gpu-capability-optimizations.md` | GC-M1 能力 gate 修复建议随阶段 A;bindless(03/08)、multi_draw_indirect_count(03/04)、subgroup 归约(04/07/13/16)、pipeline statistics(17)、静态阴影缓存(05)、半分辨率透明(07/09/12)、mip 流送(13,与 SVT 分工)、GPU 排序(12/16)、specular AA(08/13) |
+| 20 统一光栅/光追 RHI 与跨平台能力门控 | `20-hybrid-raster-raytracing-rhi.md` | RT-M1 能力 resolver 依赖 19/17;RHI/AS 合同依赖 01/08;共享 BLAS/TLAS 依赖 03/09/13;混合 graph 依赖 01/06;消费者只回接 05/07/18、Hybrid GI 与 Solari |
 
 阶段划分:
 
@@ -318,7 +319,7 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 - 阶段 D(时域与后处理):06 → 07。velocity/jitter/TAA 解链后定稿后处理顺序、色彩空间与 Volume 容器。
 - 阶段 E(材质收敛):08。几何源、光照模型与材质排列正交化,GPU skinning 全材质可用。
 - 阶段 F(能力铺开):10 → {11、12、13、14 任意并行} → 15;16 的 NN 插件部分随需启动。能力层各计划共享骨架层产出的注册表、排序键、instancing 与资源池,不允许另起旁路。
-- 扩展层(18/19)不占用阶段序:每项机制在其依赖计划的里程碑完成后即可独立启动;19 的 GC-M1(能力 gate 探测/请求断链修复)建议随阶段 A 一并完成。
+- 扩展层(18/19/20)不占用阶段序:每项机制在其依赖计划的里程碑完成后即可独立启动;19 的 GC-M1(通用能力探测/请求断链修复)与 20 的 RT-M1(设备能力/项目策略/feature 需求三层 resolver)建议随阶段 A 一并完成。20 的 RT-M2 之后才允许创建 BLAS/TLAS 或 RT graph 节点。
 
 阶段 B 之后,既有的 Hybrid GI(Lumen-style)与 Virtual Geometry(Nanite-like)计划可以切换到这套基础设施继续推进:VG 的 N3/N4(GPU 剔除、indirect)直接复用 03/04;HGI 的多灯型与 grid 复用 05。
 
@@ -367,12 +368,17 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 | clearcoat / anisotropy / transmission / SSS、OIT、局部 irradiance volumes | 18(+08/11) | shading 扩展位 + 独立 pass,feature 可关 |
 | bindless、indirect_count、subgroup、pipeline statistics | 19 | 能力 gate + 回退路径双轨,产物逐像素一致 |
 | 静态阴影缓存、半分辨率透明、纹理 mip 流送、GPU 排序、specular AA | 19 | 带宽/缓存类优化,逐项接 05/07/12/13 |
+| 硬件光追能力开关(设备支持 / 项目策略 / feature 需求) | 20 | `Capabilities + Policy + CapabilityPlan -> Selection`;Disabled/Auto/Required,缺失能力与策略阻断均可诊断 |
+| BLAS/TLAS、inline RayQuery、完整 ray pipeline、SBT | 20 | 三类能力独立报告与启停;光栅/光追共用 mesh buffer;无能力时不创建资源 |
+| 混合 raster/compute/RT 调度与确定性降级 | 20(+01/05/07/18/HGI) | feature 声明有序候选;上层禁止按 DX12/Vulkan/Metal/WebGPU 名称分支 |
 
 ## 5. 与既有 .codex/plans 计划的关系
 
 - 承接:`Zircon SRP_RHI Rendering Architecture Roadmap.md` 已落地的 RHI v1、RenderGraph 资源图、feature descriptor、executor registry 是本计划的起点;本计划相当于该路线图的下一大段。
 - 吸收:`Runtime 渲染风险清单与 RenderDoc 调试支持计划.md` 的 P0(history ghosting、缺 motion vector 重投影)由计划 06 正面解决;P1(RenderGraph 偏统计、资源生命周期固定)由计划 01 解决;RenderDoc/debug marker 接口在各计划的诊断切片中复用。
 - 协同:`Hybrid GI Lumen-Style V1 三阶段计划.md` 与 `M5 Nanite-Like Virtual Geometry 全链收束计划.md` 保持独立推进,但其 GPU 数据面与剔除面应在阶段 B 完成后切换到 GPUScene/可见性新底座,避免插件各自维护私有场景缓冲。
+- 光追边界:`Hybrid GI Lumen-Style V1 三阶段计划.md` 的 Optional Hardware RT、Solari 与未来 ray-traced shadow/reflection 统一消费计划 20 的 capability resolver、RayTracingScene 和 RHI;消费者不得私建 BLAS/TLAS。当前 WGPU HGI 的 SDF/Voxel 基线不因计划 20 改变。
+- 调研映射:`.codex/plans/Hybrid GI 计算机图形学合集工程映射.md` 维护用户指定微信合集的逐篇工程归属。文章只提供问题线索;API、扩展可用性和性能结论必须回到本地实现、参考引擎与官方规范复核。
 - 细化替代:`ZirconEngine Bevy-Level Rendering Completion Plan.md` 中 post/AA 相关条目由计划 06/07 按 UE 对齐口径细化;冲突时以本目录为准。
 - 能力层协同:`UI SDF 字体真实 Bake 收束计划.md` 的 SDF 产物由计划 14 的共享文本服务消费;`ZirconEngine Particles 插件完善计划.md` 的模拟面与计划 12 的渲染契约对接;`ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md` 的纹理条目并入计划 13 执行;`Rendering 插件选项补齐计划.md` 的 8 个 feature 选项分别由 05(contact shadow)、07(post 效果)、11(探针/烘焙)、12(decals/vfx)承接深化。
 - 不触碰:Editor/Runtime UI 渲染链(GPU Command Stream、direct-screen、damage cache)已闭环,本计划不改其路径,仅要求 UI pass 继续作为 graph 末端 executor 存在。
@@ -388,6 +394,8 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 4. 插件能力(GI/VG/SSAO/decals 等)只经 RenderFeature descriptor 接入;feature 关闭时 compiled graph 不含对应 pass。
 5. 硬切换:新路径落地的同一变更内迁移调用方并删除旧路径,不保留兼容 re-export 或双路径。
 6. 渲染模块只消费 `RenderFrameExtract`,不直接访问 ECS World;extract 仅由 runtime 生成。
+7. `wgpu` 是当前唯一必须实现的主后端;DX12/Vulkan/Metal 只通过计划 20 定义未来 adapter 映射,不得提前创建原生后端或把平台类型暴露给 framework/feature。
+8. 能力选择只由“设备实际启用能力 ∩ 项目策略 ∩ feature 候选需求”决定;`backend_name` 只用于诊断。硬件光追缺失时必须选择已声明的 raster/compute fallback、禁用 feature 或返回 strict mismatch,不得静默假支持。
 
 ## 7. 全局验收与测试基线
 
@@ -410,6 +418,7 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 6. **测试命名**:`render_<topic>_*` 单测、`render_product_*` 产物对拍、`render_perf_*` 性能计数断言(确定性计数:draw 数/状态切换/上传字节/瞬态峰值,归计划 17;时间类指标只观测不断言);各子计划"工程落地细化"章节给出函数级测试清单。
 7. **实施权威**:每份子计划的"## 工程落地细化"章节是该计划的实施权威 —— 文件落点、类型签名、GPU 布局、切片步骤、测试清单以该章节为准;与正文概述冲突时以细化章节为新。
 8. **参考对照纪律(防凭空实现)**:每个新机制动手前必须先读对应子计划"参考代码"表列出的文件 —— UE/Unity 提供设计与算法样板,`dev/bevy`/`dev/Fyrox` 提供 Rust/wgpu 落地形态(API 形态、所有权组织、wgpu 资源管理),两类都要读,不得只凭记忆或常识实现;计划中显式标注"无 Rust 同类参照"的机制(如 SVT、NN 算子),实现时必须对拍测试先行、逐切片抓帧验证。
+9. **能力开关**:通用 capability 由计划 19 维护,硬件光追的分层开关和候选解析唯一归计划 20。设备探测、device feature 请求、项目 Disabled/Auto/Required 策略、RenderFeature execution candidates 与 compiled selection 必须是不同对象;禁止用单个 bool 同时表达四层状态。
 
 ## 代码结构规范
 

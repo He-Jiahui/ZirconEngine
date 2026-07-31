@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/pvp_honor_policy_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/pvp/honor.ts": "48ff90892560724b97fbe56607b451965ab252b1f50365304b7dd621c32e95dd"
+  },
+  "ranked_arena_win_honor": {
+    "one_v_one": 25,
+    "two_v_two": 50
+  },
+  "fiesta_honor": {
+    "kill": 20,
+    "completion": 20,
+    "win_bonus": 40
+  },
+  "arena_repeat_dr": [
+    1,
+    0
+  ],
+  "honor_repeat_dr": [
+    1,
+    0.5,
+    0.25,
+    0
+  ],
+  "arena_daily_taper": {
+    "full_through_wins": 9,
+    "half_through_wins": 14,
+    "floor_multiplier": 0.25
+  }
+}

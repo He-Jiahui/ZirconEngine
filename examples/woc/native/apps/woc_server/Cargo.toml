@@ -1,0 +1,10 @@
+[package]
+name = "woc_server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WOC authoritative server role bootstrap."
+
+[dependencies]
+woc_protocol.workspace = true
+woc_runtime.workspace = true

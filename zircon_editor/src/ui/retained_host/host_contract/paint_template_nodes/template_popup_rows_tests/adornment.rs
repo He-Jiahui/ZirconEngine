@@ -14,10 +14,8 @@ fn menu_item_adornment_kind_reads_icon_danger_and_submenu_flags() {
     let save = menu_item("Save", false, false, false);
 
     assert!(menu_item_has_flag(&delete, "danger"));
-    assert_eq!(
-        menu_item_flag_value(&delete, "icon").as_deref(),
-        Some("trash")
-    );
+    let icon: Option<&str> = menu_item_flag_value(&delete, "icon");
+    assert_eq!(icon, Some("trash"));
     assert_eq!(
         menu_row_adornment_kind(&delete),
         Some(PopupRowAdornmentKind::Trash)
@@ -33,4 +31,23 @@ fn menu_item_adornment_kind_reads_icon_danger_and_submenu_flags() {
     let content_style = popup_row_content_style(&popup_menu_row_style(&delete));
     assert_eq!(content_style.text, POPUP_ROW_DANGER_TEXT);
     assert_eq!(content_style.adornment, POPUP_ROW_DANGER_TEXT);
+}
+
+#[test]
+fn popup_rows_clip_before_model_clone_and_classify_adornment_once() {
+    let menu = include_str!("../template_popup_rows/menu/entry.rs");
+    let option = include_str!("../template_popup_rows/options/entry.rs");
+
+    assert!(
+        menu.find("let Some(row_rect) = menu_item_row_frame")
+            .expect("menu frame")
+            < menu.find("row_data(row)").expect("menu row data")
+    );
+    assert!(
+        option
+            .find("let Some(row_rect) = template_option_row_frame_within")
+            .expect("option frame")
+            < option.find("row_data(row)").expect("option row data")
+    );
+    assert_eq!(menu.matches("menu_row_adornment_kind(&item)").count(), 1);
 }

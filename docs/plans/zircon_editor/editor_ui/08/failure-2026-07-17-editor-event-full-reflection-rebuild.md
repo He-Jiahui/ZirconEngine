@@ -21,6 +21,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/resize_surface.rs
+  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs
+  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/state.rs
+  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces/ui_writeback.rs
   - zircon_editor/src/ui/retained_host/tab_drag/strip_hitbox.rs
   - zircon_editor/src/ui/retained_host/tab_drag/host_resolution.rs
   - zircon_editor/src/ui/retained_host/tab_drag/route_resolution.rs
@@ -52,6 +55,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/presentation/snapshot.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/template_hover/nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/template_hover/panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/planned_present
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes
@@ -72,6 +77,7 @@ tests:
   - incremental snapshot byte/order/route parity matrix
   - capture-disabled 1000-present zero-artifact-work trace
   - one-shot artifact worker and 1/100/10000-control hit-route scale matrix
+  - unchanged asset-content pointer UI-writeback source contract
 ---
 
 # EditorUI08：每 editor event 同步全量 reflection rebuild
@@ -94,6 +100,10 @@ Workbench 下游进一步确认了放大链：`WorkbenchShellState` 用单 mutex
 
 Retained host 451 文件审查补充了同一链的直接 consumer：每次成功 render submission 都只为 diagnostics 无条件 `mark_presentation_dirty()`，即使诊断 pane 不可见也会把下一帧送入完整 slow recompute；任何非 paint-only dirtiness 又串行重建 layout/chrome/model/geometry、root/workbench template bridges、全部 pane payload/pointer surfaces/native presenters。viewport resize 还会在同次 recompute 内第二次构建 chrome/model。`active_activity_window_template_document_is` 为每次 componentized workbench control/edit/option gate 构建完整 chrome，Inspector 单对象 drag/apply 也读取完整 editor snapshot。
 
+2026-07-30非startup `host_lifecycle` current-source 32/32复读确认上述链仍在，并补齐native/window放大：pure paint-only已经准确短路，这是必须保留的边界；但非paint slow path仍先准备main pane payload与presentation，存在native target时又重复准备Module/Plugin、Build/Export与component showcase。native store无per-window applied generation，每次为target/stale分配集合并对全部target完整apply；floating bounds与host bundle同样每slow path全量同步。成功submit的源码测试仍要求`mark_presentation_dirty()`，故不能直接删除而丢post-submit diagnostics，必须先分离render-stats generation。
+
+同轮还确认pending decision在`tick()`与每次dispatch side-effect结束后两处调用；每次先走会构造完整chrome的active-template gate。它与PERF-MVP-596的stable pending全投影叠加，使交互帧可能重复支付同一decision/template工作。EditorUI08必须以captured generation在每frame最多apply一次，而不是仅优化decision center内部。
+
 Callback dispatch 135 文件审查进一步确认 template bridge 的放大：Workbench recompute 先执行 root/workbench surface layout，应用 drawer/responsive/data sync 后又对 template surface执行 layout；data sync即使多数值未变，也为每个 row/property走 control lookup和mutation。floating focus/drawer/viewport toolbar等单一动作会构建或 clone完整 chrome/layout/model snapshot，只为读取一个 target/settings。此次已让 floating source同尺寸重算 no-op，并消除 responsive tier逐节点 lowercase分配，但 full model snapshot、typed delta和每帧一次 template layout仍必须由本计划统一解决。
 
 Retained presentation core审查补充最终 replace成本：`apply_presentation` 先 `get_host_presentation()`深 clone完整旧 scene/native/window node DTO，只为保留menu/focus/viewport等少数字段；随后重新构造ShellPresentation，四个 dock与floating pane又clone中间PaneData，再整份 `set_host_presentation`。本轮直接消除了 ModelRc唯一source二次clone、template mapping源行clone、Welcome只读窗口clone，并把workbench父链索引收敛到近O(N)；未变generation仍全量转换/replace的问题必须由本计划的typed patch解决。
@@ -103,6 +113,14 @@ Pane conversion审查还确认 Runtime Diagnostics 的特殊放大：普通pane 
 Native Workbench hit testing同样缺generation-owned surface：每次pointer event仍重新扫描全部node bounds并新建/填充/rebuild完整hit `UiSurface`，之后才做popup/base hit。PERF-MVP-146已局部消除node/row clone并把uniform popup row定位收敛到O(1)，但presentation generation仍必须持有该surface与open-popup z stack；input event不能成为layout/hit-tree build触发器。
 
 Host-contract data审查补充PERF-MVP-147/148：`get_host_presentation()`在pointer move、scroll、keyboard、present和viewport sync等入口深clone完整presentation；其`PaneData`同时嵌入所有pane payload，viewport image还可能复制RGBA Vec。结构snapshot必须以immutable generation handle读取，interaction与viewport image独立分代，active pane只持有对应tagged/shared payload；窄字段查询不得物化整树。
+
+2026-07-30 viewport current-source 34/34复读量化了该放大：新generation在framework clone stored `CapturedFrame`后，Editor import、未读`latest_image` retain、host `to_rgba8`与DTO `to_vec`再做4次整RGBA copy；4K单份31.6MiB，DTO还全量hash。toolbar click为一个frame深clone完整presentation；stable world-space每frame在controller锁内重建commands并复制至少5个String/command。EditorUI08必须让viewport image、toolbar frame和world-space extract各自以immutable generation/shared handle消费，结构presentation不得承载整帧bytes或成为pointer query接口；见`../../../performance/01/2026-07-30-editor-retained-viewport-current-review.md`。
+
+同日pointer-layout current-source 11/11复读确认“下游no rebuild”仍不是stable零工作：activity/browser先clone两份workspace snapshot并构造8个owned list layout；hierarchy复制scene slice并逐row格式化id；menu保留layout后再clone给bridge；Welcome重收集paths。相等bridge返回前这些成本已发生，随后adapter还无条件做11次同值RefCell写与14个空setter调用。EditorUI08必须以domain generation在调用整组pointer projection前短路；EditorUI01只接changed rows/sizes，见`../../../performance/01/2026-07-30-editor-retained-pointer-layout-current-review.md`。
+
+workbench-pointer current-source 7/7进一步定位到单击路径：floating header用已提交shell hit得到window id后，仍重新构造chrome、project context和完整WorkbenchViewModel并持commands锁，仅为解析一个instance；direct路径不使用已有same-window guard。floating tab activate/close成功返回后又构造完整chrome并线性扫描floating windows记录source id，即使route为空。EditorUI08应随presentation generation发布surface→window/active-instance index和focused identity，单击不得重建model/snapshot；见`../../../performance/01/2026-07-30-editor-retained-workbench-pointer-current-review.md`。
+
+native-windows current-source 4/4把逐window放大继续量化：target collection每slow pathclone id/title/tree形成Vec；store再建全id BTreeSet与stale Vec，existing window无applied generation地全部apply。每个apply依次经历完整workbench presentation、toolbar全presentation clone/replace、native ids/bounds第二次clone/replace，合计至少三次完整presentation事务，并无条件调用OS position/size。EditorUI08必须把main/native pane artifact共享、toolbar/native fields合为一次changed patch，并记录per-window applied target/presentation/bounds generation；见`../../../performance/01/2026-07-30-editor-retained-native-windows-current-review.md`。
 
 Presenter 31文件审查补充PERF-MVP-149：Softbuffer为把diagnostics overlay text写进`host_shell`，每次present再次clone完整presentation；overlay/damage fixed-point最多格式化9次，verbose summary在重复判断前分配。Overlay必须成为独立draw/transient generation，不能通过复制结构树注入。
 
@@ -205,6 +223,9 @@ dirty mask、message bus 和 reflection snapshot 没有 generation/consumer curs
 - render stats 使用独立 generation/counter；正常 render success 不置 presentation dirty，只有可见 diagnostics/capture consumer 读取，稳定 viewport presentation rebuild=0。
 - active template、selection/inspector identity 与 pane visibility 来自 committed generation/index；1k control/edit/option/press 不构建完整 chrome/editor snapshot。
 - 同一帧 viewport resize 后 chrome/model build 总数仍为 1；payload、pointer、native-window domain 只消费各自 dirty generation。
+- main/native presenter共享同一generation-owned pane artifact；Module/Plugin、Build/Export、showcase每generation总build不超过1，native target只在其applied generation落后时apply，unchanged bounds write=0。
+- pending decision/template gate每frame与每decision generation最多执行一次；dispatch只合并dirty generation，不同步重跑stable projection。
+- invalidation diagnostics只在counter generation变化时publish；33个stable pointer入口的setter/`RefCell` write=0，paint/slow/render新counter在下一present前各提交一次。
 - root/workbench/template surface 每 dirty generation 每帧 layout 总数各≤1；drawer/responsive/data sync提交 typed delta，不以第二次全树 layout收敛。
 - floating focus、drawer toggle、viewport toolbar route只读 committed identity/settings/geometry handle，不构建或深 clone完整 chrome/layout/model snapshot。
 - presentation owner分别保留结构generation与交互state；更新结构时不先clone完整旧presentation，四 dock/floating只patch changed pane/window，未变 pane conversion=0。
@@ -258,3 +279,27 @@ dirty mask、message bus 和 reflection snapshot 没有 generation/consumer curs
 ## 修复结果与回传
 
 Open state: `待 EditorUI08 实现 domain generations、frame coalescing 与 incremental snapshot，并回传 storm/lock/clone/byte parity`。
+
+2026-07-22增量证据：`zircon_editor/src/tests/host/retained_callback_dispatch`当前54/54逐文件复核。已有合同正确锁定无反馈viewport move不置dirty、same frame/floating source no-op、decorative hit不dispatch，以及Workbench hover/press/slider/focus只paint-only且不写journal；virtual row也有pool created/reused/recycled计数。缺口仍与本failure一致：layout动作普遍layout+presentation dirty，pointer move仍逐event journal，module/popup/scene/inspector同步没有stable-generation build=0、clone bytes或125/500/1000 Hz门；唯一千节点startup profile被ignore且只打印墙钟。本轮仅按PERF-MVP-136让两个test contract-node helper借用`ModelRc::get`行，删除宽DTO probe clone，不改变产品failure open状态。
+
+2026-07-22 `host/retained_window`增量证据：29/29 Rust test owner逐文件复核。native host已用行为合同锁定same-target hover no-redraw、100次hierarchy hover不重建presentation、viewport input等待新image、text field局部damage与menu/tab/drawer/floating有界damage；但像素小样本不证明stable-generation build/clone/cache预算。本轮仅做consumer安全止损：`template_hover/nodes.rs`先借用`ModelRc::get`查目标，非owner dock不再clone全部宽node；`panes.rs`先借用检查floating pane，整层无目标直接返回。源码合同2/2、组合合同15/15、rustfmt/diff通过。命中pane仍替换完整ModelRc，pointer/present读取仍clone结构presentation；本failure保持open，最终验收仍要求transient hover generation、stable control index、1/100/10k node clone/visit计数、Cargo/F4与像素/RenderDoc parity。
+
+2026-07-22 retained pointer短目录增量证据：activity/detail/document/drawer-header/drawer-resize/list/viewport-toolbar共37/37 Rust files逐文件复核，已有unchanged layout/state与重复measured frame no-op。`drawer_resize/movement.rs`原对相同preferred也写transient并mark layout dirty；本轮源码RED→GREEN在capture pointer state更新后比较previous/base，相同值直接返回，合同1/1、rustfmt/diff通过。raw pointer入口宽presentation clone、changed storm逐event layout与release group双事务仍open，分别按PERF-MVP-172/131由本计划实现transient generation/coalescing/typed batch。
+
+2026-07-22 `host/retained_menu_pointer`增量证据：40/40 Rust files逐文件复核。menu/Asset Browser/Assets Drawer合同锁定closed/unchanged不重建、scroll局部damage和single-target hover；其余组件与Blend Space测试多为小规模视觉/状态样本，不能证明stable generation、虚拟化或高频输入预算。生产回查发现asset-content同一hover/scroll state仍调用全量UI writeback并重复设置8项pointer属性；本轮源码RED→GREEN让same state直接返回，组合性能源合同21/21、rustfmt/diff通过。有效scroll仍全量重建pointer surface，Asset Browser/Drawer规模仍小；本failure保持open，最终要求1k same-row move property write=0、10k rows visited=visible+overscan、changed old/new row局部damage，并补Cargo/F4/RenderDoc证据。
+
+2026-07-22 Host Page/Tab Drag增量证据：`retained_host_page_pointer` 6/6与`retained_tab_drag` 9/9 Rust files逐文件复核。已有合同锁定unchanged page layout no-rebuild、overflow paint-only、document edge/drawer/floating route优先级及stale geometry不回退；规模仅2–4 pages、3 tabs、1 floating window。产品drag move虽已same target group不set state，但仍逐move生成group key并读取完整drag state，release再clone全部target tabs到临时strip。本failure保持open，最终以committed route/strip index和transient group identity让1k same-target moves的state DTO read/write、String alloc、surface scan=0，并对1/100/10k pages/tabs/windows记录route probes/clone bytes/p95，保留attach/split/anchor/order语义。
+
+2026-07-30 current-source增量证据：`zircon_editor/src/ui/retained_host/app/host_lifecycle/**`排除startup后32/32、1,548行、7 tests完成逐文件静态复读，组合指纹`4e38ee86b056dd6b7ab76c28f083e4cf748482ba66d9b9a91b6effc0fd0ec4fc`。Godot以pending redraw在draw完成前合并递归请求，Bevy Reactive按事件/deadline驱动并在广播后清redraw request；本failure据此要求Zircon保留连续viewport render能力，但stats/presentation/native-window/decision各按需求generation驱动。managed Cargo、规模counter、independent review、WPR/Tracy、F4与RenderDoc parity未完成，failure保持open；完整证据见`../../../performance/01/2026-07-30-editor-retained-host-lifecycle-current-review.md`。
+
+2026-07-30 invalidation增量证据：`app/invalidation.rs`与`invalidation/**`当前9/9、359行、6 tests静态复读及rustfmt通过，组合指纹`7c7e7787b6d3ffb60a91822b62a19cc66ec07ac3920be523db7467b302fa04eb`。u16 pending合并与paint-only分流不是瓶颈；新增PERF-MVP-601记录33个pointer入口的相同diagnostics `RefCell`重写。managed Cargo、1M pointer/1000Hz setter/write counter、independent review与F4 overlay parity未完成，failure保持open；完整证据见`../../../performance/01/2026-07-30-editor-retained-invalidation-current-review.md`。
+
+2026-07-31 native-window-close增量证据：`app/native_window_close.rs`与子树当前7/7、262行、1 inline test完成静态复读，组合指纹`7e9b2a94469f5f060c14b52485b3491f4c8bc0e4ab4166a7ac8ce62435d8a49d`。floating预检full layout/view clone与`O(V*k)`membership之后，`k`个CloseView仍逐项触发全metadata/window-registry、event/journal/invalidation以及与layout无关的authoring-world scene observe；新增PERF-MVP-602要求typed atomic close batch和纯layout不发布scene-inspection。同步save另交Editor09/14，但最终completion只能一次dirty-domain commit。managed Cargo、1/8/128/1K tabs规模counter、WPR/Tracy、F4 native parity与independent review未完成，failure保持open；完整证据见`../../../performance/01/2026-07-31-editor-retained-native-window-close-current-review.md`。
+
+2026-07-31 workspace-docking增量证据：`app/workspace_docking.rs`与子树当前6/6、327行、1 inline test完成静态复读，组合指纹`cdcad19d0a8aab9b53302c6be0e1644b9dde859c452d216fdf511847c44749b6`。drag move同group前仍String分配/宽state get，release双hit且detach前full model build；collapsed drawer attach+reopen双event。新增PERF-MVP-603要求typed drag generation、single release route与atomic drop；no-move resize双unchanged event补强131，same-preferred止损继续归172。managed Cargo、1M move/10K layout规模counter、WPR/Tracy、F4与independent review未完成，failure保持open；完整证据见`../../../performance/01/2026-07-31-editor-retained-workspace-docking-current-review.md`。
+
+2026-07-31 small input adapters增量证据：`app/{pane_payload_visibility.rs,native_keyboard_actions.rs,workbench_context_menu.rs,menu_pointer.rs}`当前4/4、127行、0 inline tests完成静态复读。visible-kind在一次main/native projection中最多重复全tab扫描7次；context-menu单document gate仍构建完整chrome；menu stable event叠加同值diagnostics写。PERF-MVP-105/106/601验收补充visible-kind scan≤1/model generation、document-id gate full chrome build=0、stable pointer diagnostics write=0。native keyboard无新增热点且外部F2 route保持原样。direct rustfmt 4/4通过；managed Cargo、规模counter、F4与independent review未完成，failure保持open；完整证据见`../../../performance/01/2026-07-31-editor-retained-small-input-adapters-current-review.md`。
+
+2026-07-31 state/visibility helpers增量证据：`app/{asset_surface_pointer_state.rs,reference_drop_payload.rs,runtime_diagnostics_visibility.rs,workbench_snapshot_access.rs}`当前4/4、208行、0 inline tests完成静态复读。前两项为常数正向边界；diagnostics让main/native同model visibility遍历达到6/8次，active document/floating/Welcome仍有full chrome、window scan和path Vec。PERF-MVP-105/106验收补充单generation visibility traversal≤1、active identity query full chrome=0、surface lookup近O(1)；Welcome沿117。direct rustfmt 4/4通过；managed Cargo、规模counter、F4与independent review未完成，failure保持open。完整证据见`../../../performance/01/2026-07-31-editor-retained-state-visibility-helpers-current-review.md`。
+
+2026-07-31 tick projection adapters增量证据：`app/{backend_refresh.rs,job_progress.rs,workbench_notifications.rs}`当前3/3、332行、7 inline tests完成静态复读。无效selected UUID full snapshot、stable progress owned projection和empty pending generation早退分别补强PERF-MVP-104/017/596，pending template gate继续归105。direct rustfmt 2/3通过，唯一失败是外部modified `job_progress.rs`测试断言排版；managed Cargo、规模counter、F4与independent review未完成，failure保持open。完整证据见`../../../performance/01/2026-07-31-editor-retained-tick-projection-adapters-current-review.md`。

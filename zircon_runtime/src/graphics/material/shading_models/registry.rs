@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
-    GBufferChannelMask, RenderMaterialLightingModel, ShadingModelDescriptor, ShadingModelId,
-    ShadingModelRegistrationError, SHADING_MODEL_PLUGIN_ID_START,
+    GBufferChannelMask, RenderMaterialLightingModel, SHADING_MODEL_PLUGIN_ID_START,
+    ShadingModelDescriptor, ShadingModelId, ShadingModelRegistrationError,
 };
 
 #[derive(Clone, Debug)]
@@ -30,16 +30,29 @@ impl ShadingModelRegistry {
     }
 
     fn resolve_token(&self, token: &str) -> Option<&ShadingModelDescriptor> {
-        self.tokens
-            .get(&token.trim().to_ascii_lowercase())
-            .and_then(|id| self.get(*id))
+        let trimmed = token.trim();
+        if let Some(id) = self.tokens.get(trimmed) {
+            return self.get(*id);
+        }
+        let normalized = trimmed.to_ascii_lowercase();
+        self.tokens.get(&normalized).and_then(|id| self.get(*id))
     }
 
     pub(crate) fn resolve_lighting_model(
         &self,
         model: &RenderMaterialLightingModel,
     ) -> Option<&ShadingModelDescriptor> {
-        self.resolve_token(&model.as_token())
+        match model {
+            RenderMaterialLightingModel::Pbr => self.resolve_token("pbr"),
+            RenderMaterialLightingModel::BlinnPhong => self.resolve_token("blinn_phong"),
+            RenderMaterialLightingModel::Unlit => self.resolve_token("unlit"),
+            RenderMaterialLightingModel::Custom { name } => {
+                let mut token = String::with_capacity("custom:".len() + name.len());
+                token.push_str("custom:");
+                token.push_str(name);
+                self.resolve_token(&token)
+            }
+        }
     }
 
     pub(crate) fn register_builtin(
@@ -101,12 +114,21 @@ impl ShadingModelRegistry {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GBufferChannelMask, RenderMaterialLightingModel, ShadingModelDescriptor, ShadingModelId,
-        ShadingModelRegistrationError, SHADING_MODEL_ID_STANDARD_PBR,
-        SHADING_MODEL_PLUGIN_ID_START,
+        GBufferChannelMask, RenderMaterialLightingModel, SHADING_MODEL_ID_STANDARD_PBR,
+        SHADING_MODEL_PLUGIN_ID_START, ShadingModelDescriptor, ShadingModelId,
+        ShadingModelRegistrationError,
     };
 
     use super::ShadingModelRegistry;
+
+    #[test]
+    fn common_shading_model_lookups_use_borrowed_normalized_tokens() {
+        let source = include_str!("registry.rs");
+
+        assert!(source.contains("self.tokens.get(trimmed)"));
+        assert!(source.contains("RenderMaterialLightingModel::Pbr => self.resolve_token(\"pbr\")"));
+        assert!(!source.contains(concat!("model.", "as_token()")));
+    }
 
     fn descriptor(id: u8, token: &str) -> ShadingModelDescriptor {
         ShadingModelDescriptor::new(

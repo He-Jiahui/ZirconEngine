@@ -1,0 +1,538 @@
+var container = %import("zr.container");
+
+pub class GroundEffectSpec {
+    pub var id: uint;
+    pub var sourceId: uint;
+    pub var x: float;
+    pub var z: float;
+    pub var radius: float;
+    pub var minimum: float;
+    pub var maximum: float;
+    pub var duration: float;
+    pub var interval: float;
+    pub var tickTimer: float;
+    pub var school: string;
+    pub var spellPowerBonus: float;
+    pub var threatFlat: float;
+    pub var threatMultiplier: float;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.sourceId = <uint>0;
+        this.x = 0.0;
+        this.z = 0.0;
+        this.radius = 0.0;
+        this.minimum = 0.0;
+        this.maximum = 0.0;
+        this.duration = 0.0;
+        this.interval = 0.0;
+        this.tickTimer = 0.0;
+        this.school = "physical";
+        this.spellPowerBonus = 0.0;
+        this.threatFlat = 0.0;
+        this.threatMultiplier = 1.0;
+    }
+}
+
+pub class GroundAoEState {
+    pub var sourceIds: container.Array<uint>;
+    pub var sourceAlive: container.Array<bool>;
+    pub var sourceSpellMultipliers: container.Array<float>;
+    pub var sourceThreatMultipliers: container.Array<float>;
+    // Targets retain the traversal order supplied by the spatial-grid projection.
+    pub var targetIds: container.Array<uint>;
+    pub var targetX: container.Array<float>;
+    pub var targetZ: container.Array<float>;
+    pub var targetHp: container.Array<int>;
+    pub var targetDead: container.Array<bool>;
+    pub var targetHostile: container.Array<bool>;
+    pub var targetMob: container.Array<bool>;
+    pub var targetLineOfSight: container.Array<bool>;
+    pub var targetThreat: container.Array<float>;
+    pub var effectIds: container.Array<uint>;
+    pub var effectSourceIds: container.Array<uint>;
+    pub var effectX: container.Array<float>;
+    pub var effectZ: container.Array<float>;
+    pub var effectRadius: container.Array<float>;
+    pub var effectMinimum: container.Array<float>;
+    pub var effectMaximum: container.Array<float>;
+    pub var effectRemaining: container.Array<float>;
+    pub var effectInterval: container.Array<float>;
+    pub var effectTickTimer: container.Array<float>;
+    pub var effectSchool: container.Array<string>;
+    pub var effectSpellPowerBonus: container.Array<float>;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var pulseEvents: int;
+    pub var damageEvents: int;
+    pub var directDamageEvents: int;
+    pub var spellFxEvents: int;
+    pub var pulseEffectIds: container.Array<uint>;
+    pub var damageTargetIds: container.Array<uint>;
+    pub var damageAmounts: container.Array<int>;
+
+    pub @constructor() {
+        this.sourceIds = new container.Array<uint>();
+        this.sourceAlive = new container.Array<bool>();
+        this.sourceSpellMultipliers = new container.Array<float>();
+        this.sourceThreatMultipliers = new container.Array<float>();
+        this.targetIds = new container.Array<uint>();
+        this.targetX = new container.Array<float>();
+        this.targetZ = new container.Array<float>();
+        this.targetHp = new container.Array<int>();
+        this.targetDead = new container.Array<bool>();
+        this.targetHostile = new container.Array<bool>();
+        this.targetMob = new container.Array<bool>();
+        this.targetLineOfSight = new container.Array<bool>();
+        this.targetThreat = new container.Array<float>();
+        this.effectIds = new container.Array<uint>();
+        this.effectSourceIds = new container.Array<uint>();
+        this.effectX = new container.Array<float>();
+        this.effectZ = new container.Array<float>();
+        this.effectRadius = new container.Array<float>();
+        this.effectMinimum = new container.Array<float>();
+        this.effectMaximum = new container.Array<float>();
+        this.effectRemaining = new container.Array<float>();
+        this.effectInterval = new container.Array<float>();
+        this.effectTickTimer = new container.Array<float>();
+        this.effectSchool = new container.Array<string>();
+        this.effectSpellPowerBonus = new container.Array<float>();
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.pulseEvents = 0;
+        this.damageEvents = 0;
+        this.directDamageEvents = 0;
+        this.spellFxEvents = 0;
+        this.pulseEffectIds = new container.Array<uint>();
+        this.damageTargetIds = new container.Array<uint>();
+        this.damageAmounts = new container.Array<int>();
+    }
+
+    pub addSource(
+        id: uint,
+        alive: bool,
+        spellMultiplier: float,
+        threatMultiplier: float
+    ): void {
+        if (id == <uint>0 || spellMultiplier < 0.0 || threatMultiplier < 0.0) {
+            throw "ground AoE source is invalid";
+        }
+        this.sourceIds.add(id);
+        this.sourceAlive.add(alive);
+        this.sourceSpellMultipliers.add(spellMultiplier);
+        this.sourceThreatMultipliers.add(threatMultiplier);
+    }
+
+    pub addTarget(
+        id: uint,
+        x: float,
+        z: float,
+        hp: int,
+        dead: bool,
+        hostile: bool,
+        mob: bool,
+        lineOfSight: bool
+    ): void {
+        if (id == <uint>0 || hp < 0) {
+            throw "ground AoE target is invalid";
+        }
+        this.targetIds.add(id);
+        this.targetX.add(x);
+        this.targetZ.add(z);
+        this.targetHp.add(hp);
+        this.targetDead.add(dead);
+        this.targetHostile.add(hostile);
+        this.targetMob.add(mob);
+        this.targetLineOfSight.add(lineOfSight);
+        this.targetThreat.add(0.0);
+    }
+}
+
+validatePulseSpec(spec: GroundEffectSpec): void {
+    if (spec.id == <uint>0 || spec.sourceId == <uint>0 || spec.radius < 0.0 ||
+        spec.maximum < spec.minimum) {
+        throw "ground AoE pulse is invalid";
+    }
+}
+
+validateEffect(spec: GroundEffectSpec): void {
+    validatePulseSpec(spec);
+    if (spec.duration <= 0.0 || spec.interval <= 0.0) {
+        throw "ground AoE effect is invalid";
+    }
+}
+
+sourceIndex(state: GroundAoEState, sourceId: uint): int {
+    var index = 0;
+    while (index < state.sourceIds.length) {
+        if (<uint>state.sourceIds[index] == sourceId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+takeRandomUnit(state: GroundAoEState): float {
+    if (state.randomIndex < 0 || state.randomIndex >= state.randomUnits.length) {
+        throw "ground AoE random stream is exhausted";
+    }
+    var value = <float>state.randomUnits[state.randomIndex];
+    state.randomIndex = state.randomIndex + 1;
+    return value;
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+// Every instant or persistent pulse uses this exact row predicate. Keeping the
+// count beside the dispatcher lets the world reserve only the source-required
+// random draws before handing the opaque mutable projection to this module.
+targetQualifies(
+    state: GroundAoEState,
+    sourceId: uint,
+    x: float,
+    z: float,
+    radius: float,
+    targetIndex: int
+): bool {
+    if (targetIndex < 0 || targetIndex >= state.targetIds.length) {
+        return false;
+    }
+    var dx = <float>state.targetX[targetIndex] - x;
+    var dz = <float>state.targetZ[targetIndex] - z;
+    return <uint>state.targetIds[targetIndex] != sourceId &&
+        !<bool>state.targetDead[targetIndex] &&
+        <bool>state.targetHostile[targetIndex] &&
+        dx * dx + dz * dz <= radius * radius &&
+        <bool>state.targetLineOfSight[targetIndex];
+}
+
+pub eligibleTargetCount(state: GroundAoEState, spec: GroundEffectSpec): int {
+    validatePulseSpec(spec);
+    var ownerIndex = sourceIndex(state, spec.sourceId);
+    if (ownerIndex < 0 || !<bool>state.sourceAlive[ownerIndex]) {
+        return 0;
+    }
+    var count = 0;
+    var targetIndex = 0;
+    while (targetIndex < state.targetIds.length) {
+        if (targetQualifies(
+                state, spec.sourceId, spec.x, spec.z, spec.radius, targetIndex
+            )) {
+            count = count + 1;
+        }
+        targetIndex = targetIndex + 1;
+    }
+    return count;
+}
+
+appendGroundAoE(state: GroundAoEState, spec: GroundEffectSpec): void {
+    validateEffect(spec);
+    state.effectIds.add(spec.id);
+    state.effectSourceIds.add(spec.sourceId);
+    state.effectX.add(spec.x);
+    state.effectZ.add(spec.z);
+    state.effectRadius.add(spec.radius);
+    state.effectMinimum.add(spec.minimum);
+    state.effectMaximum.add(spec.maximum);
+    state.effectRemaining.add(spec.duration);
+    state.effectInterval.add(spec.interval);
+    state.effectTickTimer.add(spec.tickTimer);
+    state.effectSchool.add(spec.school);
+    state.effectSpellPowerBonus.add(spec.spellPowerBonus);
+}
+
+removeEffectAt(state: GroundAoEState, index: int): void {
+    state.effectIds.removeAt(index);
+    state.effectSourceIds.removeAt(index);
+    state.effectX.removeAt(index);
+    state.effectZ.removeAt(index);
+    state.effectRadius.removeAt(index);
+    state.effectMinimum.removeAt(index);
+    state.effectMaximum.removeAt(index);
+    state.effectRemaining.removeAt(index);
+    state.effectInterval.removeAt(index);
+    state.effectTickTimer.removeAt(index);
+    state.effectSchool.removeAt(index);
+    state.effectSpellPowerBonus.removeAt(index);
+}
+
+pulseValues(
+    state: GroundAoEState,
+    effectId: uint,
+    sourceId: uint,
+    x: float,
+    z: float,
+    radius: float,
+    minimum: float,
+    maximum: float,
+    school: string,
+    spellPowerBonus: float,
+    threatFlat: float,
+    threatMultiplier: float,
+    direct: bool
+): void {
+    var ownerIndex = sourceIndex(state, sourceId);
+    if (ownerIndex < 0 || !<bool>state.sourceAlive[ownerIndex]) { return; }
+    state.pulseEvents = state.pulseEvents + 1;
+    state.spellFxEvents = state.spellFxEvents + 1;
+    state.pulseEffectIds.add(effectId);
+    var targetIndex = 0;
+    while (targetIndex < state.targetIds.length) {
+        var targetId = <uint>state.targetIds[targetIndex];
+        if (targetQualifies(state, sourceId, x, z, radius, targetIndex)) {
+            var randomUnit = takeRandomUnit(state);
+            var rawDamage = minimum + randomUnit * (maximum - minimum) + spellPowerBonus;
+            if (school != "physical") {
+                rawDamage = rawDamage * <float>state.sourceSpellMultipliers[ownerIndex];
+            }
+            var damage = roundPositive(rawDamage);
+            state.targetHp[targetIndex] = <int>state.targetHp[targetIndex] - damage;
+            if (<int>state.targetHp[targetIndex] <= 0) {
+                state.targetHp[targetIndex] = 0;
+                state.targetDead[targetIndex] = true;
+            }
+            state.damageEvents = state.damageEvents + 1;
+            if (direct) { state.directDamageEvents = state.directDamageEvents + 1; }
+            state.damageTargetIds.add(targetId);
+            state.damageAmounts.add(damage);
+            if (<bool>state.targetMob[targetIndex]) {
+                var threat = (damage * threatMultiplier + threatFlat) *
+                    <float>state.sourceThreatMultipliers[ownerIndex];
+                if (threat > 0.0) {
+                    state.targetThreat[targetIndex] =
+                        <float>state.targetThreat[targetIndex] + threat;
+                }
+            }
+        }
+        targetIndex = targetIndex + 1;
+    }
+}
+
+pulseAt(state: GroundAoEState, index: int, direct: bool): void {
+    pulseValues(
+        state,
+        <uint>state.effectIds[index],
+        <uint>state.effectSourceIds[index],
+        <float>state.effectX[index],
+        <float>state.effectZ[index],
+        <float>state.effectRadius[index],
+        <float>state.effectMinimum[index],
+        <float>state.effectMaximum[index],
+        <string>state.effectSchool[index],
+        <float>state.effectSpellPowerBonus[index],
+        0.0,
+        1.0,
+        direct
+    );
+}
+
+pub queueGroundAoE(state: GroundAoEState, spec: GroundEffectSpec): void {
+    appendGroundAoE(state, spec);
+}
+
+pub castGroundAoE(state: GroundAoEState, spec: GroundEffectSpec): void {
+    validateEffect(spec);
+    // The reference dispatches the direct pulse before the effect enters the list.
+    pulseValues(
+        state,
+        spec.id,
+        spec.sourceId,
+        spec.x,
+        spec.z,
+        spec.radius,
+        spec.minimum,
+        spec.maximum,
+        spec.school,
+        spec.spellPowerBonus,
+        spec.threatFlat,
+        spec.threatMultiplier,
+        true
+    );
+    appendGroundAoE(state, spec);
+}
+
+// Arcane Explosion style effects pulse at the supplied center and never enter
+// the persistent ground-effect queue. Their callers still use the shared target
+// predicate, damage arithmetic and deterministic draw order above.
+pub castInstantAoE(state: GroundAoEState, spec: GroundEffectSpec): void {
+    validatePulseSpec(spec);
+    pulseValues(
+        state,
+        spec.id,
+        spec.sourceId,
+        spec.x,
+        spec.z,
+        spec.radius,
+        spec.minimum,
+        spec.maximum,
+        spec.school,
+        spec.spellPowerBonus,
+        spec.threatFlat,
+        spec.threatMultiplier,
+        true
+    );
+}
+
+pub fixedTick(state: GroundAoEState): void {
+    var index = state.effectIds.length - 1;
+    while (index >= 0) {
+        state.effectRemaining[index] = <float>state.effectRemaining[index] - 0.05;
+        state.effectTickTimer[index] = <float>state.effectTickTimer[index] - 0.05;
+        while (<float>state.effectTickTimer[index] <= 0.000000001 &&
+            <float>state.effectRemaining[index] > 0.000000001) {
+            state.effectTickTimer[index] =
+                <float>state.effectTickTimer[index] + <float>state.effectInterval[index];
+            pulseAt(state, index, false);
+        }
+        if (<float>state.effectRemaining[index] <= 0.000000001) {
+            removeEffectAt(state, index);
+        }
+        index = index - 1;
+    }
+}
+
+consecrationSpec(id: uint): GroundEffectSpec {
+    var effect = new GroundEffectSpec();
+    effect.id = id;
+    effect.sourceId = <uint>1;
+    effect.radius = 8.0;
+    effect.minimum = 28.0;
+    effect.maximum = 34.0;
+    effect.duration = 10.0;
+    effect.interval = 2.0;
+    effect.tickTimer = 2.0;
+    effect.school = "holy";
+    return effect;
+}
+
+pub contractTest(): int {
+    var consecration = new GroundAoEState();
+    consecration.addSource(<uint>1, true, 1.0, 1.0);
+    consecration.addTarget(<uint>2, 0.0, 3.0, 1000, false, true, true, true);
+    var draw = 0;
+    while (draw < 5) {
+        consecration.randomUnits.add(0.0);
+        draw = draw + 1;
+    }
+    castGroundAoE(consecration, consecrationSpec(<uint>100));
+    var tick = 0;
+    while (tick < 200) {
+        fixedTick(consecration);
+        tick = tick + 1;
+    }
+    if (consecration.effectIds.length != 0 || consecration.pulseEvents != 5 ||
+        consecration.damageEvents != 5 || consecration.directDamageEvents != 1 ||
+        consecration.randomIndex != 5 || <int>consecration.targetHp[0] != 860 ||
+        <float>consecration.targetThreat[0] != 140.0) {
+        return -1;
+    }
+
+    var boundary = new GroundAoEState();
+    boundary.addSource(<uint>1, true, 1.0, 1.0);
+    boundary.addTarget(<uint>2, 0.0, 0.0, 100, false, true, true, true);
+    var expiring = consecrationSpec(<uint>200);
+    expiring.duration = 0.04;
+    expiring.interval = 1.0;
+    expiring.tickTimer = 0.0;
+    queueGroundAoE(boundary, expiring);
+    fixedTick(boundary);
+    if (boundary.effectIds.length != 0 || boundary.pulseEvents != 0 ||
+        boundary.randomIndex != 0) {
+        return -2;
+    }
+
+    var reverse = new GroundAoEState();
+    reverse.addSource(<uint>1, true, 1.0, 1.0);
+    reverse.addTarget(<uint>2, 0.0, 0.0, 100, false, true, true, true);
+    reverse.randomUnits.add(0.0);
+    reverse.randomUnits.add(0.0);
+    var first = consecrationSpec(<uint>10);
+    first.duration = 2.0;
+    first.interval = 1.0;
+    first.tickTimer = 0.0;
+    var second = consecrationSpec(<uint>20);
+    second.duration = 2.0;
+    second.interval = 1.0;
+    second.tickTimer = 0.0;
+    queueGroundAoE(reverse, first);
+    queueGroundAoE(reverse, second);
+    fixedTick(reverse);
+    if (reverse.pulseEffectIds.length != 2 ||
+        <uint>reverse.pulseEffectIds[0] != <uint>20 ||
+        <uint>reverse.pulseEffectIds[1] != <uint>10) {
+        return -3;
+    }
+
+    var filtering = new GroundAoEState();
+    filtering.addSource(<uint>1, true, 1.5, 1.6);
+    filtering.addTarget(<uint>10, 1.0, 0.0, 100, false, true, true, true);
+    filtering.addTarget(<uint>20, 2.0, 0.0, 100, false, true, true, false);
+    filtering.addTarget(<uint>30, 9.0, 0.0, 100, false, true, true, true);
+    filtering.addTarget(<uint>40, 3.0, 0.0, 0, true, true, true, true);
+    filtering.addTarget(<uint>50, 4.0, 0.0, 100, false, false, true, true);
+    filtering.addTarget(<uint>60, 5.0, 0.0, 100, false, true, false, true);
+    filtering.randomUnits.add(0.5);
+    filtering.randomUnits.add(0.5);
+    filtering.randomUnits.add(0.5);
+    filtering.randomUnits.add(0.5);
+    var filteredEffect = consecrationSpec(<uint>300);
+    filteredEffect.minimum = 20.0;
+    filteredEffect.maximum = 40.0;
+    filteredEffect.threatFlat = 10.0;
+    filteredEffect.threatMultiplier = 2.0;
+    castGroundAoE(filtering, filteredEffect);
+    tick = 0;
+    while (tick < 40) {
+        fixedTick(filtering);
+        tick = tick + 1;
+    }
+    if (filtering.damageEvents != 4 || filtering.directDamageEvents != 2 ||
+        filtering.randomIndex != 4 || filtering.damageTargetIds.length != 4 ||
+        <uint>filtering.damageTargetIds[0] != <uint>10 ||
+        <uint>filtering.damageTargetIds[1] != <uint>60 ||
+        <uint>filtering.damageTargetIds[2] != <uint>10 ||
+        <uint>filtering.damageTargetIds[3] != <uint>60 ||
+        <int>filtering.targetHp[0] != 10 || <int>filtering.targetHp[5] != 10 ||
+        <float>filtering.targetThreat[0] != 232.0 ||
+        <float>filtering.targetThreat[5] != 0.0) {
+        return -4;
+    }
+
+    var deadSource = new GroundAoEState();
+    deadSource.addSource(<uint>1, false, 1.0, 1.0);
+    deadSource.addTarget(<uint>2, 0.0, 0.0, 100, false, true, true, true);
+    castGroundAoE(deadSource, consecrationSpec(<uint>400));
+    if (deadSource.effectIds.length != 1 || deadSource.pulseEvents != 0 ||
+        deadSource.spellFxEvents != 0 || deadSource.randomIndex != 0) {
+        return -5;
+    }
+
+    var instant = new GroundAoEState();
+    instant.addSource(<uint>1, true, 1.5, 1.0);
+    instant.addTarget(<uint>2, 10.0, 0.0, 100, false, true, true, true);
+    instant.addTarget(<uint>3, 0.0, 10.0, 100, false, true, true, true);
+    instant.addTarget(<uint>4, 10.01, 0.0, 100, false, true, true, true);
+    instant.randomUnits.add(0.0);
+    instant.randomUnits.add(1.0);
+    var instantSpec = new GroundEffectSpec();
+    instantSpec.id = <uint>500;
+    instantSpec.sourceId = <uint>1;
+    instantSpec.radius = 10.0;
+    instantSpec.minimum = 26.0;
+    instantSpec.maximum = 31.0;
+    instantSpec.school = "arcane";
+    if (eligibleTargetCount(instant, instantSpec) != 2) { return -6; }
+    castInstantAoE(instant, instantSpec);
+    if (instant.effectIds.length != 0 || instant.pulseEvents != 1 ||
+        instant.damageEvents != 2 || instant.directDamageEvents != 2 ||
+        instant.randomIndex != 2 || instant.damageAmounts.length != 2 ||
+        <uint>instant.damageTargetIds[0] != <uint>2 ||
+        <uint>instant.damageTargetIds[1] != <uint>3 ||
+        <int>instant.damageAmounts[0] != 39 || <int>instant.damageAmounts[1] != 47 ||
+        <int>instant.targetHp[0] != 61 || <int>instant.targetHp[1] != 53 ||
+        <int>instant.targetHp[2] != 100) {
+        return -7;
+    }
+    return 1;
+}

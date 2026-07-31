@@ -73,6 +73,14 @@ impl GpuSceneUpdateQueue {
         drain_merged_upload_ranges(&mut self.dirty_instance_spans, stride)
     }
 
+    pub(crate) fn discard_primitive_updates(&mut self) {
+        self.dirty_primitives.clear();
+    }
+
+    pub(crate) fn discard_instance_updates(&mut self) {
+        self.dirty_instance_spans.clear();
+    }
+
     pub(crate) fn dirty_entry_count(&self) -> usize {
         self.dirty_primitives.len() + self.dirty_instance_spans.len()
     }
@@ -91,22 +99,19 @@ fn drain_merged_upload_ranges(
     }
 
     ranges.sort_by_key(|range| range.start);
-    let merged = merge_sorted_ranges(ranges.drain(..));
-    merged
-        .into_iter()
+    merge_sorted_ranges_in_place(ranges);
+    ranges
+        .drain(..)
         .map(|range| GpuSceneUploadRange::from_dirty_range(range, stride))
         .collect()
 }
 
-fn merge_sorted_ranges(
-    ranges: impl IntoIterator<Item = GpuSceneDirtyRange>,
-) -> Vec<GpuSceneDirtyRange> {
-    let mut merged: Vec<GpuSceneDirtyRange> = Vec::new();
-    for range in ranges {
-        if range.len == 0 {
-            continue;
-        }
-        if let Some(current) = merged.last_mut() {
+fn merge_sorted_ranges_in_place(ranges: &mut Vec<GpuSceneDirtyRange>) {
+    let mut merged_len = 0;
+    for read_index in 0..ranges.len() {
+        let range = ranges[read_index];
+        if merged_len != 0 {
+            let current = &mut ranges[merged_len - 1];
             let current_end = current.end_exclusive();
             let merge_limit = current_end
                 .checked_add(GPU_SCENE_DIRTY_RANGE_MERGE_GAP)
@@ -117,9 +122,10 @@ fn merge_sorted_ranges(
                 continue;
             }
         }
-        merged.push(range);
+        ranges[merged_len] = range;
+        merged_len += 1;
     }
-    merged
+    ranges.truncate(merged_len);
 }
 
 #[cfg(test)]
@@ -173,5 +179,17 @@ mod tests {
                 byte_len: 80,
             }]
         );
+    }
+
+    #[test]
+    fn render_gpu_scene_update_queue_discards_ranges_after_full_upload() {
+        let mut queue = GpuSceneUpdateQueue::new();
+        queue.mark_primitive(7);
+        queue.mark_instances(12, 4);
+
+        queue.discard_primitive_updates();
+        queue.discard_instance_updates();
+
+        assert!(queue.is_empty());
     }
 }

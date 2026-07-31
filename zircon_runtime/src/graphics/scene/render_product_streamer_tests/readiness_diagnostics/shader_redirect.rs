@@ -61,10 +61,12 @@ fn render_product_streamer_resolves_shader_redirect_imports_into_module_sources(
         .expect("streamer readiness report");
     assert!(report.validation_errors.is_empty());
     assert!(!report.uses_fallback());
-    assert!(streamer
-        .shader_source(&include_id)
-        .expect("redirect include shader prepared")
-        .contains("redirected_lighting"));
+    assert!(
+        streamer
+            .shader_source(&include_id)
+            .expect("redirect include shader prepared")
+            .contains("redirected_lighting")
+    );
     let includes = streamer.shader_module_include_sources(&surface_id);
     assert_eq!(includes.len(), 1);
     assert_eq!(includes[0].token, "zircon_product::lighting");

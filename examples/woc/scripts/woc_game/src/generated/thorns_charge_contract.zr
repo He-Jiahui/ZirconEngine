@@ -1,0 +1,4 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub thornsKind(): string { return "thorns"; }
+pub dt(): float { return 0.05; }
+pub castCompleteEps(): float { return 1e-9; }

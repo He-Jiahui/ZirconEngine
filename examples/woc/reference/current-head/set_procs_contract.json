@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/set_procs_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/set_procs.ts": "d3bb03687f0bd5d085eae14e9f3179dad4629ef0d99fb6243573a3e066be19d1",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "trigger_values": [
+    "spellCast",
+    "weaponCrit",
+    "spellCrit",
+    "kill"
+  ],
+  "default_school": "arcane",
+  "rng_order": "trigger_then_icd_then_recipient_liveness_then_one_chance_draw_then_cooldown_and_aura",
+  "stack_rule": "first_matching_proc_id_and_source_id; min(maxStacks, previous_or_zero_plus_one)"
+}

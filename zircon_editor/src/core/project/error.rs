@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 use zircon_runtime::asset::project::ProjectManifestError;
+use zircon_runtime::asset::AssetImportError;
 use zircon_runtime_interface::project::ProjectNameError;
 use zircon_runtime_interface::project::ProjectTemplatePackError;
 
@@ -15,6 +16,8 @@ pub enum ProjectAuthorityError {
     },
     #[error("project location cannot be empty")]
     EmptyProjectLocation,
+    #[error("project path cannot be empty or blank")]
+    EmptyProjectPath,
     #[error("could not resolve current directory: {source}")]
     CurrentDirectory {
         #[source]
@@ -35,6 +38,12 @@ pub enum ProjectAuthorityError {
         #[from]
         #[source]
         source: ProjectManifestError,
+    },
+    #[error("project generation preparation failed: {source}")]
+    ProjectGeneration {
+        #[from]
+        #[source]
+        source: AssetImportError,
     },
     #[error("project template pack failed: {source}")]
     TemplatePack {
@@ -58,6 +67,16 @@ pub enum ProjectAuthorityError {
         #[source]
         commit_source: std::io::Error,
         restore_source: std::io::Error,
+    },
+    #[error(
+        "post-commit project rollback failed moving {from} to {to}; preserved empty-target backup: {backup:?}: {source}"
+    )]
+    PostCommitRollbackFailed {
+        from: PathBuf,
+        to: PathBuf,
+        backup: Option<PathBuf>,
+        #[source]
+        source: std::io::Error,
     },
     #[error("project session JSON decode failed: {source}")]
     SessionDecode {

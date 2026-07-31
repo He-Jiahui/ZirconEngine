@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 
 use zircon_runtime::core::framework::{
     picking::{
-        hovered_hits_for_pointer, HitData, HitRecord, PickingDebugFeed, PickingPipelineReport,
-        PointerAction, PointerButton, PointerHits, PointerId, PointerInput, PointerLocation,
-        PointerScrollUnit,
+        HitData, HitRecord, PickingDebugFeed, PickingPipelineReport, PointerAction, PointerButton,
+        PointerHits, PointerId, PointerInput, PointerLocation, PointerScrollUnit,
+        hovered_hits_for_pointer,
     },
     render::RenderViewportHandle,
 };
@@ -34,7 +34,22 @@ pub(in crate::scene::viewport::pointer) fn resolve_runtime_route(
     point: UiPoint,
 ) -> Option<ViewportPointerRoute> {
     let outputs = runtime_pointer_hits_for_candidates(candidates, stacked, point);
-    let target = hovered_hits_for_pointer(&outputs, EDITOR_VIEWPORT_POINTER_ID)
+    route_from_outputs(&outputs)
+}
+
+pub(in crate::scene::viewport::pointer) fn resolve_runtime_route_and_debug_feed(
+    candidates: &BTreeMap<UiNodeId, PrecisionCandidate>,
+    stacked: &[UiNodeId],
+    point: UiPoint,
+) -> (Option<ViewportPointerRoute>, PickingDebugFeed) {
+    let outputs = runtime_pointer_hits_for_candidates(candidates, stacked, point);
+    let route = route_from_outputs(&outputs);
+    let debug_feed = PickingDebugFeed::from_report(&PickingPipelineReport::from_outputs(&outputs));
+    (route, debug_feed)
+}
+
+fn route_from_outputs(outputs: &[PointerHits]) -> Option<ViewportPointerRoute> {
+    let target = hovered_hits_for_pointer(outputs, EDITOR_VIEWPORT_POINTER_ID)
         .first()
         .map(|hit| hit.target)?;
     Some(ViewportPointerRoute::from_target(target))

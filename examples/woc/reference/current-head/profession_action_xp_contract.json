@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/profession_action_xp_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/profession_xp.ts": "262e7feda54bd6a077acdcfe62f5f25acd2cc6dfbf6621e6f5ba59daaa87885a",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "gather_xp_base": 10,
+  "gather_xp_per_level": 2,
+  "craft_xp_base": 20,
+  "craft_xp_per_level": 4,
+  "zero_diff_bands": {
+    "bands": [
+      {
+        "max_player_level": 7,
+        "zero_diff": 5
+      },
+      {
+        "max_player_level": 9,
+        "zero_diff": 6
+      },
+      {
+        "max_player_level": 15,
+        "zero_diff": 7
+      }
+    ],
+    "fallback_zero_diff": 8
+  },
+  "higher_level_bonus_per_level": 0.05,
+  "higher_level_bonus_cap": 4,
+  "semantics": {
+    "higher_or_equal": "round base XP after a 5 percent per-level bonus capped at four levels",
+    "lower_level": "linearly reduce base XP until zeroDiff(playerLevel) levels below; gray content yields zero",
+    "scope": "pure character XP calculation for one gather or successful craft; it does not mutate craft skill or progression state"
+  }
+}

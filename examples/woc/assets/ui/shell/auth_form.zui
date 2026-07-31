@@ -1,0 +1,196 @@
+[asset]
+kind = "view"
+id = "res://ui/shell/auth_form.zui"
+version = 2
+display_name = "World of ClaudeCraft Authentication"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui"]
+resources = [
+  { kind = "image", uri = "res://m8/env/vale_backdrop.webp", fallback = { mode = "optional" } },
+]
+
+[root]
+node = "auth_root"
+
+[nodes.stage_scrim]
+component = "Space"
+classes = ["woc-stage-scrim"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.title]
+component = "Label"
+control_id = "AuthTitle"
+classes = ["woc-screen-title"]
+props = { text = "Enter the Realm", text_align = "center", dynamic_mode_owner = "auth_flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.username_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Username" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.username]
+component = "TextField"
+control_id = "AuthUsername"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Enter username", helper_text = "", variant = "outlined", max_length = 24, autocomplete = "username" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocAuth/UsernameChanged", event = "Change", route = "woc.shell.auth.set_username" },
+  { id = "WocAuth/UsernameSubmitted", event = "Submit", route = "woc.shell.auth.submit" },
+]
+
+[nodes.password_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Password" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.password]
+component = "TextField"
+control_id = "AuthPassword"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Enter password", helper_text = "", variant = "outlined", max_length = 128, input_kind = "password", autocomplete = "current-password" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocAuth/PasswordChanged", event = "Change", route = "woc.shell.auth.set_password" },
+  { id = "WocAuth/PasswordSubmitted", event = "Submit", route = "woc.shell.auth.submit" },
+]
+
+[nodes.email_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Email" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.email]
+component = "TextField"
+control_id = "AuthEmail"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "you@example.com", helper_text = "", variant = "outlined", max_length = 254, input_kind = "email", autocomplete = "email" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocAuth/EmailChanged", event = "Change", route = "woc.shell.auth.set_email" },
+  { id = "WocAuth/EmailSubmitted", event = "Submit", route = "woc.shell.auth.submit" },
+]
+
+[nodes.email_field]
+component = "VerticalBox"
+control_id = "AuthEmailField"
+props = { visibility = "collapsed", dynamic_mode_owner = "auth_flow" }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 70.0, preferred = 70.0, max = 70.0, stretch = "Fixed" } }
+children = [{ node = "email_label" }, { node = "email" }]
+
+[nodes.turnstile_host]
+component = "Space"
+control_id = "AuthTurnstileHost"
+classes = ["woc-auth-provider-host"]
+props = { visibility = "collapsed", capability = "turnstile", dynamic_provider_owner = "auth_flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.0, max = 76.0, stretch = "Fixed" } }
+
+[nodes.two_factor_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Authentication code" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.two_factor]
+component = "TextField"
+control_id = "AuthTwoFactorCode"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "6-digit or recovery code", helper_text = "", variant = "outlined", max_length = 14, input_mode = "numeric", autocomplete = "one-time-code" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocAuth/TwoFactorChanged", event = "Change", route = "woc.shell.auth.set_two_factor" },
+  { id = "WocAuth/TwoFactorSubmitted", event = "Submit", route = "woc.shell.auth.submit" },
+]
+
+[nodes.two_factor_hint]
+component = "Label"
+classes = ["woc-muted"]
+props = { text = "Enter the code from your authenticator app or a recovery code.", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 38.0, max = 50.0, stretch = "Fixed" } }
+
+[nodes.two_factor_field]
+component = "VerticalBox"
+control_id = "AuthTwoFactorField"
+props = { visibility = "collapsed", dynamic_mode_owner = "auth_flow" }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 104.0, preferred = 112.0, max = 128.0, stretch = "Fixed" } }
+children = [{ node = "two_factor_label" }, { node = "two_factor" }, { node = "two_factor_hint" }]
+
+[nodes.error]
+component = "Label"
+control_id = "AuthError"
+classes = ["woc-error"]
+props = { text = "", text_align = "center", dynamic_status_owner = "auth_flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 32.0, max = 56.0, stretch = "Fixed" } }
+
+[nodes.apple_host]
+component = "Space"
+control_id = "AuthAppleProviderHost"
+classes = ["woc-auth-provider-host"]
+props = { visibility = "collapsed", capability = "apple_sign_in", dynamic_provider_owner = "auth_flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.discord_host]
+component = "Space"
+control_id = "AuthDiscordProviderHost"
+classes = ["woc-auth-provider-host"]
+props = { visibility = "collapsed", capability = "discord_oauth", dynamic_provider_owner = "auth_flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.back]
+component = "Button"
+control_id = "AuthBack"
+classes = ["woc-secondary-action"]
+props = { text = "Back", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocAuth/Back", event = "Click", route = "woc.shell.auth.back" }]
+
+[nodes.submit]
+component = "Button"
+control_id = "AuthSubmit"
+classes = ["woc-primary-action"]
+props = { text = "Log In", button_variant = "contained", dynamic_mode_owner = "auth_flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocAuth/Submit", event = "Click", route = "woc.shell.auth.submit" }]
+
+[nodes.actions]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "back" }, { node = "submit" }]
+
+[nodes.toggle_mode]
+component = "Button"
+control_id = "AuthToggleMode"
+classes = ["woc-auth-link"]
+props = { text = "Create Account", button_variant = "text", dynamic_mode_owner = "auth_flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+events = [{ id = "WocAuth/ToggleMode", event = "Click", route = "woc.shell.auth.toggle_mode" }]
+
+[nodes.open_forgot]
+component = "Button"
+control_id = "AuthOpenForgotPassword"
+classes = ["woc-auth-link"]
+props = { text = "Forgot password?", button_variant = "text" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+events = [{ id = "WocAuth/OpenForgot", event = "Click", route = "woc.shell.auth.open_forgot" }]
+
+[nodes.panel]
+component = "ScrollBox"
+control_id = "AuthPanel"
+classes = ["woc-panel-strong", "woc-auth-form"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, padding = { left = 22.0, right = 22.0, top = 22.0, bottom = 22.0 }, width = { min = 300.0, preferred = 420.0, max = 500.0, stretch = "Stretch" }, height = { min = 360.0, preferred = 600.0, max = 760.0, stretch = "Stretch" } }
+children = [{ node = "title" }, { node = "username_label" }, { node = "username" }, { node = "password_label" }, { node = "password" }, { node = "email_field" }, { node = "turnstile_host" }, { node = "two_factor_field" }, { node = "error" }, { node = "apple_host" }, { node = "discord_host" }, { node = "actions" }, { node = "toggle_mode" }, { node = "open_forgot" }]
+
+[nodes.auth_root]
+component = "Overlay"
+control_id = "Authentication"
+classes = ["woc-shell", "woc-authentication"]
+props = { background_image = "res://m8/env/vale_backdrop.webp" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "stage_scrim" }, { node = "panel" }]

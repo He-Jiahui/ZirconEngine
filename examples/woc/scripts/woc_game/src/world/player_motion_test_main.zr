@@ -1,0 +1,12 @@
+var console = %import("zr.system.console");
+var motion = %import("world/player_motion");
+
+console.printLine("m3-player-motion-test");
+var result = motion.contractTest();
+var verticalResult = motion.verticalContractTest();
+console.printLine(result);
+console.printLine(verticalResult);
+if (result != 1) {
+    return result;
+}
+return verticalResult == 1 ? 0 : verticalResult;

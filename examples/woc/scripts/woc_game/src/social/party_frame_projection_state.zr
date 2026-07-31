@@ -1,0 +1,380 @@
+var container = %import("kernel/container");
+
+// This is the post-classification party-frame projection. The caller supplies
+// `relevant` and `priority` from the source aura classifier so this module does
+// not replace its Unicode-sensitive `buff_` prefix rule.
+pub class PartyFrameProjectionState {
+    pub var auraIds: container.Array<string>;
+    pub var auraKinds: container.Array<string>;
+    pub var auraValues: container.Array<float>;
+    pub var auraRemaining: container.Array<float>;
+    pub var auraRelevant: container.Array<bool>;
+    pub var auraPriorities: container.Array<int>;
+
+    pub var summaryIds: container.Array<string>;
+    pub var summaryKinds: container.Array<string>;
+    pub var summaryHasNegativeMarker: container.Array<bool>;
+    pub var summaryRemaining: container.Array<int>;
+
+    pub var mobKinds: container.Array<bool>;
+    pub var mobDead: container.Array<bool>;
+    pub var mobAiDead: container.Array<bool>;
+    pub var mobHasAggroTarget: container.Array<bool>;
+    pub var mobAggroTargetIds: container.Array<int>;
+    pub var aggroTargetIds: container.Array<int>;
+
+    pub var casterPlayers: container.Array<bool>;
+    pub var casterDead: container.Array<bool>;
+    pub var casterCasting: container.Array<bool>;
+    pub var casterHasTarget: container.Array<bool>;
+    pub var casterTargetIds: container.Array<int>;
+    pub var casterAbilityResolved: container.Array<bool>;
+    pub var casterEffectStarts: container.Array<int>;
+    pub var casterEffectCounts: container.Array<int>;
+    pub var effectKinds: container.Array<string>;
+    pub var effectMinimums: container.Array<float>;
+    pub var effectMaximums: container.Array<float>;
+    pub var incomingHealTargetIds: container.Array<int>;
+    pub var incomingHealAmounts: container.Array<float>;
+
+    pub @constructor() {
+        this.auraIds = new container.Array<string>();
+        this.auraKinds = new container.Array<string>();
+        this.auraValues = new container.Array<float>();
+        this.auraRemaining = new container.Array<float>();
+        this.auraRelevant = new container.Array<bool>();
+        this.auraPriorities = new container.Array<int>();
+        this.summaryIds = new container.Array<string>();
+        this.summaryKinds = new container.Array<string>();
+        this.summaryHasNegativeMarker = new container.Array<bool>();
+        this.summaryRemaining = new container.Array<int>();
+        this.mobKinds = new container.Array<bool>();
+        this.mobDead = new container.Array<bool>();
+        this.mobAiDead = new container.Array<bool>();
+        this.mobHasAggroTarget = new container.Array<bool>();
+        this.mobAggroTargetIds = new container.Array<int>();
+        this.aggroTargetIds = new container.Array<int>();
+        this.casterPlayers = new container.Array<bool>();
+        this.casterDead = new container.Array<bool>();
+        this.casterCasting = new container.Array<bool>();
+        this.casterHasTarget = new container.Array<bool>();
+        this.casterTargetIds = new container.Array<int>();
+        this.casterAbilityResolved = new container.Array<bool>();
+        this.casterEffectStarts = new container.Array<int>();
+        this.casterEffectCounts = new container.Array<int>();
+        this.effectKinds = new container.Array<string>();
+        this.effectMinimums = new container.Array<float>();
+        this.effectMaximums = new container.Array<float>();
+        this.incomingHealTargetIds = new container.Array<int>();
+        this.incomingHealAmounts = new container.Array<float>();
+    }
+}
+
+pub partyMemberAuraCap(): int {
+    return 8;
+}
+
+pub addAura(
+    state: PartyFrameProjectionState,
+    id: string,
+    kind: string,
+    value: float,
+    remaining: float,
+    relevant: bool,
+    priority: int
+): void {
+    state.auraIds.add(id);
+    state.auraKinds.add(kind);
+    state.auraValues.add(value);
+    state.auraRemaining.add(remaining);
+    state.auraRelevant.add(relevant);
+    state.auraPriorities.add(priority);
+}
+
+clearAuraSummary(state: PartyFrameProjectionState): void {
+    while (state.summaryIds.length > 0) { state.summaryIds.removeAt(state.summaryIds.length - 1); }
+    while (state.summaryKinds.length > 0) { state.summaryKinds.removeAt(state.summaryKinds.length - 1); }
+    while (state.summaryHasNegativeMarker.length > 0) {
+        state.summaryHasNegativeMarker.removeAt(state.summaryHasNegativeMarker.length - 1);
+    }
+    while (state.summaryRemaining.length > 0) {
+        state.summaryRemaining.removeAt(state.summaryRemaining.length - 1);
+    }
+}
+
+// The source uses Math.max(0, Math.ceil(remaining)). Aura timers are finite;
+// this scalar form keeps the same result without depending on a VM math host.
+pub visibleAuraRemaining(remaining: float): int {
+    if (remaining <= 0.0) { return 0; }
+    var whole = <int>remaining;
+    return <float>whole < remaining ? whole + 1 : whole;
+}
+
+// Stable bubble sort is intentional: JavaScript's stable Array.sort retains
+// source aura order for equal priority values.
+sortRelevantAuraIndexes(state: PartyFrameProjectionState): container.Array<int> {
+    var indexes = new container.Array<int>();
+    var index = 0;
+    while (index < state.auraIds.length) {
+        if (<bool>state.auraRelevant[index]) { indexes.add(index); }
+        index = index + 1;
+    }
+    var pass = indexes.length - 1;
+    while (pass > 0) {
+        var cursor = 0;
+        while (cursor < pass) {
+            var left = <int>indexes[cursor];
+            var right = <int>indexes[cursor + 1];
+            if (<int>state.auraPriorities[left] > <int>state.auraPriorities[right]) {
+                indexes[cursor] = right;
+                indexes[cursor + 1] = left;
+            }
+            cursor = cursor + 1;
+        }
+        pass = pass - 1;
+    }
+    return indexes;
+}
+
+pub projectPartyFrameAuras(state: PartyFrameProjectionState, cap: int): void {
+    clearAuraSummary(state);
+    var indexes = sortRelevantAuraIndexes(state);
+    var limit = cap;
+    if (limit < 0) { limit = indexes.length + limit; }
+    if (limit < 0) { limit = 0; }
+    if (limit > indexes.length) { limit = indexes.length; }
+    var output = 0;
+    while (output < limit) {
+        var input = <int>indexes[output];
+        state.summaryIds.add(<string>state.auraIds[input]);
+        state.summaryKinds.add(<string>state.auraKinds[input]);
+        state.summaryHasNegativeMarker.add(<float>state.auraValues[input] < 0.0);
+        state.summaryRemaining.add(visibleAuraRemaining(<float>state.auraRemaining[input]));
+        output = output + 1;
+    }
+}
+
+pub projectDefaultPartyFrameAuras(state: PartyFrameProjectionState): void {
+    projectPartyFrameAuras(state, partyMemberAuraCap());
+}
+
+pub partyFrameAbsorb(state: PartyFrameProjectionState): float {
+    var total = 0.0;
+    var index = 0;
+    while (index < state.auraKinds.length) {
+        if (<string>state.auraKinds[index] == "absorb") {
+            var value = <float>state.auraValues[index];
+            if (value > 0.0) { total = total + value; }
+        }
+        index = index + 1;
+    }
+    return total;
+}
+
+pub addMob(
+    state: PartyFrameProjectionState,
+    isMob: bool,
+    dead: bool,
+    aiStateDead: bool,
+    hasAggroTarget: bool,
+    aggroTargetId: int
+): void {
+    state.mobKinds.add(isMob);
+    state.mobDead.add(dead);
+    state.mobAiDead.add(aiStateDead);
+    state.mobHasAggroTarget.add(hasAggroTarget);
+    state.mobAggroTargetIds.add(aggroTargetId);
+}
+
+containsId(ids: container.Array<int>, id: int): bool {
+    var index = 0;
+    while (index < ids.length) {
+        if (<int>ids[index] == id) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+clearAggroTargets(state: PartyFrameProjectionState): void {
+    while (state.aggroTargetIds.length > 0) {
+        state.aggroTargetIds.removeAt(state.aggroTargetIds.length - 1);
+    }
+}
+
+pub projectPartyFrameAggroTargets(state: PartyFrameProjectionState): void {
+    clearAggroTargets(state);
+    var index = 0;
+    while (index < state.mobKinds.length) {
+        if (<bool>state.mobKinds[index] && !<bool>state.mobDead[index] &&
+            !<bool>state.mobAiDead[index] && <bool>state.mobHasAggroTarget[index]) {
+            var targetId = <int>state.mobAggroTargetIds[index];
+            if (!containsId(state.aggroTargetIds, targetId)) {
+                state.aggroTargetIds.add(targetId);
+            }
+        }
+        index = index + 1;
+    }
+}
+
+pub addCaster(
+    state: PartyFrameProjectionState,
+    isPlayer: bool,
+    dead: bool,
+    casting: bool,
+    hasTarget: bool,
+    targetId: int,
+    abilityResolved: bool
+): int {
+    var index = state.casterPlayers.length;
+    state.casterPlayers.add(isPlayer);
+    state.casterDead.add(dead);
+    state.casterCasting.add(casting);
+    state.casterHasTarget.add(hasTarget);
+    state.casterTargetIds.add(targetId);
+    state.casterAbilityResolved.add(abilityResolved);
+    state.casterEffectStarts.add(state.effectKinds.length);
+    state.casterEffectCounts.add(0);
+    return index;
+}
+
+// Effects are appended in source ability-effect order. A complete ability is
+// registered before moving to the next caster, matching entity iteration.
+pub addCasterEffect(
+    state: PartyFrameProjectionState,
+    casterIndex: int,
+    kind: string,
+    minimum: float,
+    maximum: float
+): void {
+    if (casterIndex != state.casterPlayers.length - 1) {
+        throw "party-frame caster effects must append to the latest caster";
+    }
+    state.effectKinds.add(kind);
+    state.effectMinimums.add(minimum);
+    state.effectMaximums.add(maximum);
+    state.casterEffectCounts[casterIndex] = <int>state.casterEffectCounts[casterIndex] + 1;
+}
+
+incomingTargetIndex(state: PartyFrameProjectionState, targetId: int): int {
+    var index = 0;
+    while (index < state.incomingHealTargetIds.length) {
+        if (<int>state.incomingHealTargetIds[index] == targetId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+clearIncomingHeals(state: PartyFrameProjectionState): void {
+    while (state.incomingHealTargetIds.length > 0) {
+        state.incomingHealTargetIds.removeAt(state.incomingHealTargetIds.length - 1);
+    }
+    while (state.incomingHealAmounts.length > 0) {
+        state.incomingHealAmounts.removeAt(state.incomingHealAmounts.length - 1);
+    }
+}
+
+pub projectPartyFrameIncomingHeals(state: PartyFrameProjectionState): void {
+    clearIncomingHeals(state);
+    var caster = 0;
+    while (caster < state.casterPlayers.length) {
+        if (<bool>state.casterPlayers[caster] && !<bool>state.casterDead[caster] &&
+            <bool>state.casterCasting[caster] && <bool>state.casterHasTarget[caster] &&
+            <bool>state.casterAbilityResolved[caster]) {
+            var amount = 0.0;
+            var effect = <int>state.casterEffectStarts[caster];
+            var end = effect + <int>state.casterEffectCounts[caster];
+            while (effect < end) {
+                var kind = <string>state.effectKinds[effect];
+                if (kind == "heal" || kind == "chainHeal") {
+                    amount = amount + (<float>state.effectMinimums[effect] +
+                        <float>state.effectMaximums[effect]) / 2.0;
+                }
+                effect = effect + 1;
+            }
+            if (amount > 0.0) {
+                var targetId = <int>state.casterTargetIds[caster];
+                var target = incomingTargetIndex(state, targetId);
+                if (target < 0) {
+                    state.incomingHealTargetIds.add(targetId);
+                    state.incomingHealAmounts.add(amount);
+                } else {
+                    state.incomingHealAmounts[target] =
+                        <float>state.incomingHealAmounts[target] + amount;
+                }
+            }
+        }
+        caster = caster + 1;
+    }
+}
+
+pub partyFrameRole(role: string, hasRole: bool): string {
+    return hasRole ? role : "dps";
+}
+
+pub contractTest(): int {
+    var state = new PartyFrameProjectionState();
+    addAura(state, "maintenance", "buff_ap", 1.0, 50.0, false, 3);
+    addAura(state, "slow", "slow", -1.0, 1.2, true, 0);
+    addAura(state, "echo", "temporal_echo", 1.0, 0.0, true, 1);
+    addAura(state, "hot", "hot", 1.0, 2.0, true, 2);
+    addAura(state, "ward", "absorb", 20.0, 8.0, true, 2);
+    addAura(state, "spent", "absorb", -5.0, 8.0, true, 2);
+    projectPartyFrameAuras(state, 3);
+    if (partyMemberAuraCap() != 8 || state.summaryIds.length != 3 ||
+        <string>state.summaryIds[0] != "slow" || <string>state.summaryIds[1] != "echo" ||
+        <string>state.summaryIds[2] != "hot" || !<bool>state.summaryHasNegativeMarker[0] ||
+        <bool>state.summaryHasNegativeMarker[1] || <int>state.summaryRemaining[0] != 2 ||
+        <int>state.summaryRemaining[1] != 0 || partyFrameAbsorb(state) != 20.0) {
+        return -1;
+    }
+    projectPartyFrameAuras(state, -1);
+    if (state.summaryIds.length != 4 || <string>state.summaryIds[3] != "ward") {
+        return -2;
+    }
+
+    addMob(state, true, false, false, true, 7);
+    addMob(state, true, false, false, true, 7);
+    addMob(state, true, true, false, true, 8);
+    addMob(state, true, false, true, true, 9);
+    addMob(state, false, false, false, true, 10);
+    projectPartyFrameAggroTargets(state);
+    if (state.aggroTargetIds.length != 1 || <int>state.aggroTargetIds[0] != 7) {
+        return -3;
+    }
+
+    var first = addCaster(state, true, false, true, true, 4, true);
+    addCasterEffect(state, first, "heal", 10.0, 14.0);
+    addCasterEffect(state, first, "chainHeal", 4.0, 6.0);
+    addCasterEffect(state, first, "damage", 100.0, 100.0);
+    var second = addCaster(state, true, false, true, true, 4, true);
+    addCasterEffect(state, second, "heal", 2.0, 2.0);
+    var ignored = addCaster(state, true, true, true, true, 4, true);
+    addCasterEffect(state, ignored, "heal", 90.0, 90.0);
+    projectPartyFrameIncomingHeals(state);
+    if (state.incomingHealTargetIds.length != 1 || <int>state.incomingHealTargetIds[0] != 4 ||
+        <float>state.incomingHealAmounts[0] != 19.0 || partyFrameRole("tank", true) != "tank" ||
+        partyFrameRole("", false) != "dps") {
+        return -4;
+    }
+
+    var capped = new PartyFrameProjectionState();
+    addAura(capped, "hot_0", "hot", 20.0, 10.0, true, 2);
+    addAura(capped, "hot_1", "hot", 20.0, 10.0, true, 2);
+    addAura(capped, "hot_2", "hot", 20.0, 10.0, true, 2);
+    addAura(capped, "hot_3", "hot", 20.0, 10.0, true, 2);
+    addAura(capped, "hot_4", "hot", 20.0, 10.0, true, 2);
+    addAura(capped, "hot_5", "hot", 20.0, 10.0, true, 2);
+    addAura(capped, "hot_6", "hot", 20.0, 10.0, true, 2);
+    addAura(capped, "hot_7", "hot", 20.0, 10.0, true, 2);
+    addAura(capped, "rend", "dot", 5.0, 10.0, true, 0);
+    addAura(capped, "temporal_echo", "temporal_echo", 0.0, 10.0, true, 1);
+    projectDefaultPartyFrameAuras(capped);
+    if (capped.summaryIds.length != 8 || <string>capped.summaryIds[0] != "rend" ||
+        <string>capped.summaryIds[1] != "temporal_echo" ||
+        <string>capped.summaryIds[2] != "hot_0" || <string>capped.summaryIds[7] != "hot_5" ||
+        <string>capped.auraIds[0] != "hot_0" || <string>capped.auraIds[8] != "rend" ||
+        <string>capped.auraIds[9] != "temporal_echo") {
+        return -5;
+    }
+    return 1;
+}

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var scenarios = %import("instances/m7_scenario_matrix");
+
+console.printLine("m7-eleven-scenario-source-matrix-test");
+var result = scenarios.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

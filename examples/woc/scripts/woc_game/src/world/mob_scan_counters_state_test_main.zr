@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var counters = %import("world/mob_scan_counters_state");
+
+var result = counters.contractTest();
+
+console.printLine("m4-mob-scan-counters-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

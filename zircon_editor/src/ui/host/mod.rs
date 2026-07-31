@@ -16,6 +16,7 @@ mod editor_event_runtime_reflection;
 mod editor_extension_registration;
 mod editor_extension_views;
 mod editor_host_event_controller;
+mod editor_host_startup;
 mod editor_manager;
 mod editor_manager_animation_editor;
 mod editor_manager_asset_editor;
@@ -28,6 +29,7 @@ mod editor_manager_runtime_diagnostics;
 mod editor_manager_startup;
 mod editor_manager_workspace;
 mod editor_operation_dispatch;
+mod editor_scene_mode_lifecycle;
 mod editor_session_state;
 mod editor_subsystems;
 mod editor_ui_host;
@@ -40,18 +42,25 @@ mod layout_persistence;
 pub(crate) mod minimal_host_contract;
 pub(crate) mod module;
 mod native_dynamic_export_preparation;
-mod project_access;
+pub(crate) mod play_pending_decision;
+pub(crate) mod project_access;
 pub(crate) mod resource_access;
+mod scene_inspection_publication;
 mod startup;
 mod ui_asset_promotion;
 mod view_registry;
 mod window_host_manager;
 mod workspace_state;
 
+pub use asset_editor_sessions::{
+    UiAssetWorkspaceWatchDiagnostics, UiAssetWorkspaceWatchPollReport,
+};
 pub(crate) use builtin_layout::builtin_hybrid_layout;
 pub use editor_capabilities::EditorCapabilitySnapshot;
 pub use editor_error::EditorError;
 pub use editor_host_event_controller::EditorHostEventController;
+pub(crate) use editor_host_startup::resolve_editor_startup_session;
+pub use editor_host_startup::EditorHostStartupSession;
 pub use editor_manager::EditorManager;
 pub use editor_manager_plugins_export::{
     apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,

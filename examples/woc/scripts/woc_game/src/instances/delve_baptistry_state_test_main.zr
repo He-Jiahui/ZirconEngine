@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var baptistry = %import("instances/delve_baptistry_state");
+
+console.printLine("m7-delve-baptistry-state-test");
+var result = baptistry.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
 
 const SHELL_SCALE_FACTOR_EPSILON: f32 = 0.001;
 

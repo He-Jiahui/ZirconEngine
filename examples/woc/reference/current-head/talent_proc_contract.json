@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/talent_proc_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/talent_procs.ts": "e4d551b9acb5a40a4aadf6a740bb2d94c09f1d3ee15d0c36617613cd53d33e6a",
+    "src/sim/rng.ts": "d516034919a56ce15f3a893cfd07345b851a2eb833704009fbfbace24c446713"
+  },
+  "triggers": [
+    "castNth",
+    "spellCrit",
+    "shieldConsumed",
+    "hotExpired",
+    "bigHitTaken",
+    "meleeSwingWhile",
+    "thornsReflect"
+  ],
+  "responses": [
+    "empowerNext",
+    "cooldownRefund",
+    "resource",
+    "heal",
+    "absorb",
+    "aura",
+    "echo"
+  ],
+  "defaults": {
+    "school": "holy",
+    "personal_barrier_sentinel": "personal_barrier",
+    "proc_fx": "procSurge",
+    "ward_fx": "wardBloom"
+  },
+  "semantics": {
+    "cast_nth": "empowered_casts_skip_counter; active_icd_skips_without_banking; counter_resets_before_optional_chance; failed_chance_does_not_arm_icd",
+    "crit_and_melee": "active_icd_skips; optional_chance_draw_occurs_only_after_all_non_rng_admission; shared_rng_chance_is_strictly_random_less_than_chance; icd_arms_only_on_success",
+    "big_hit": "max_hp_must_be_positive; amount_must_reach_hp_fraction; icd_arms_before_response",
+    "tick": "each_active_icd_subtracts_dt_and_is_removed_at_or_below_zero"
+  }
+}

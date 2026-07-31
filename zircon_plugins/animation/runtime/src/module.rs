@@ -6,7 +6,7 @@ use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
 };
-use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
+use zircon_runtime::engine_module::{EngineModule, dependency_on, factory, qualified_name};
 
 use crate::DefaultAnimationManager;
 

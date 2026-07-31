@@ -1,16 +1,17 @@
 //! Transaction staging owns only reserved sibling artifacts; live targets are untouched here.
 
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 
 use super::schema::CommitFault;
-use super::{digest_bytes, digest_file, remove_if_exists, transaction_error, transaction_sibling};
+use super::{remove_if_exists, transaction_error, transaction_sibling};
 use crate::asset::migration::document::PendingDocument;
 use crate::asset::migration::{AssetMigrationError, AssetMigrationTransactionPhase};
 
+const COPY_BUFFER_BYTES: usize = 64 * 1024;
+
 pub(super) struct StagedDocument {
-    pub(super) transaction_id: String,
     pub(super) target: PathBuf,
     pub(super) staging: PathBuf,
     pub(super) backup: Option<PathBuf>,
@@ -37,9 +38,11 @@ impl StageArtifactGuard {
             armed: true,
         }
     }
+
     fn track(&mut self, path: &Path) {
         self.artifacts.push(path.to_path_buf());
     }
+
     fn disarm(&mut self) {
         self.armed = false;
     }
@@ -65,6 +68,7 @@ pub(super) fn stage_document(
     let _ = (fault, document_index);
     let mut guard = StageArtifactGuard::new();
     let parent = document.path.parent().unwrap_or_else(|| Path::new("."));
+    let target_existed = document.path.exists();
     let staging = transaction_sibling(parent, &document.path, "stage", transaction_id);
     let mut file = OpenOptions::new()
         .write(true)
@@ -86,29 +90,21 @@ pub(super) fn stage_document(
             io::Error::new(io::ErrorKind::Other, "injected staging write failure"),
         ));
     }
-    if let Err(source) = write_and_sync(&mut file, &document.bytes) {
-        drop(file);
-        let _ = fs::remove_file(&staging);
-        return Err(transaction_error(
-            AssetMigrationTransactionPhase::Stage,
-            document.path,
-            source,
-        ));
-    }
-    drop(file);
-    let target_existed = document.path.exists();
-    let original_digest = target_existed
-        .then(|| digest_file(&document.path))
-        .transpose()
-        .map_err(|source| {
-            transaction_error(
+    let new_digest = match write_and_sync_hash(&mut file, &document.bytes) {
+        Ok(digest) => digest,
+        Err(source) => {
+            drop(file);
+            let _ = fs::remove_file(&staging);
+            return Err(transaction_error(
                 AssetMigrationTransactionPhase::Stage,
-                document.path.clone(),
+                document.path,
                 source,
-            )
-        })?;
-    let new_digest = digest_bytes(&document.bytes);
-    let backup = if target_existed {
+            ));
+        }
+    };
+    drop(file);
+
+    let (backup, original_digest) = if target_existed {
         let backup = transaction_sibling(parent, &document.path, "backup", transaction_id);
         guard.track(&backup);
         #[cfg(test)]
@@ -119,25 +115,19 @@ pub(super) fn stage_document(
                 io::Error::new(io::ErrorKind::Other, "injected backup copy failure"),
             ));
         }
-        fs::copy(&document.path, &backup).map_err(|source| {
+        let digest = copy_and_sync_hash(&document.path, &backup).map_err(|source| {
             transaction_error(
                 AssetMigrationTransactionPhase::Stage,
                 document.path.clone(),
                 source,
             )
         })?;
-        sync_existing_file(&backup).map_err(|source| {
-            transaction_error(
-                AssetMigrationTransactionPhase::Stage,
-                document.path.clone(),
-                source,
-            )
-        })?;
-        Some(backup)
+        (Some(backup), Some(digest))
     } else {
-        None
+        (None, None)
     };
-    let retired_backup = if let Some(retired) = &document.retired_path {
+
+    let (retired_backup, retired_digest) = if let Some(retired) = &document.retired_path {
         let backup = transaction_sibling(
             retired.parent().unwrap_or_else(|| Path::new(".")),
             retired,
@@ -145,13 +135,6 @@ pub(super) fn stage_document(
             transaction_id,
         );
         guard.track(&backup);
-        fs::copy(retired, &backup).map_err(|source| {
-            transaction_error(
-                AssetMigrationTransactionPhase::Stage,
-                retired.clone(),
-                source,
-            )
-        })?;
         #[cfg(test)]
         if matches!(fault, CommitFault::FailRetiredBackupSync(index) if index == document_index) {
             return Err(transaction_error(
@@ -160,34 +143,19 @@ pub(super) fn stage_document(
                 io::Error::new(io::ErrorKind::Other, "injected retired backup sync failure"),
             ));
         }
-        sync_existing_file(&backup).map_err(|source| {
+        let digest = copy_and_sync_hash(retired, &backup).map_err(|source| {
             transaction_error(
                 AssetMigrationTransactionPhase::Stage,
                 retired.clone(),
                 source,
             )
         })?;
-        Some(backup)
+        (Some(backup), Some(digest))
     } else {
-        None
+        (None, None)
     };
-    let retired_digest = document
-        .retired_path
-        .as_ref()
-        .map(|path| digest_file(path))
-        .transpose()
-        .map_err(|source| {
-            transaction_error(
-                AssetMigrationTransactionPhase::Stage,
-                document
-                    .retired_path
-                    .clone()
-                    .unwrap_or_else(|| document.path.clone()),
-                source,
-            )
-        })?;
+
     let staged = StagedDocument {
-        transaction_id: transaction_id.to_string(),
         target: document.path,
         staging,
         backup,
@@ -204,32 +172,49 @@ pub(super) fn stage_document(
     Ok(staged)
 }
 
-fn write_and_sync(file: &mut File, bytes: &[u8]) -> io::Result<()> {
-    file.write_all(bytes)?;
-    file.flush()?;
-    file.sync_all()
-}
-
-fn sync_existing_file(path: &Path) -> io::Result<()> {
-    OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(path)?
-        .sync_all()
-}
-
 pub(super) fn cleanup_staging(staged: &[StagedDocument]) {
     for document in staged {
-        if document.staging.exists() {
-            let _ = fs::remove_file(&document.staging);
-        }
-        if !document.committed {
-            if let Some(backup) = &document.backup {
-                let _ = fs::remove_file(backup);
-            }
-            if let Some(backup) = &document.retired_backup {
-                let _ = fs::remove_file(backup);
-            }
+        for artifact in [
+            Some(&document.staging),
+            document.backup.as_ref(),
+            document.retired_backup.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            let _ = remove_if_exists(artifact);
         }
     }
+}
+
+fn write_and_sync_hash(file: &mut File, bytes: &[u8]) -> io::Result<String> {
+    let mut hasher = blake3::Hasher::new();
+    for chunk in bytes.chunks(COPY_BUFFER_BYTES) {
+        file.write_all(chunk)?;
+        hasher.update(chunk);
+    }
+    file.flush()?;
+    file.sync_all()?;
+    Ok(hasher.finalize().to_hex().to_string())
+}
+
+fn copy_and_sync_hash(source: &Path, target: &Path) -> io::Result<String> {
+    let mut source = File::open(source)?;
+    let mut target = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(target)?;
+    let mut buffer = [0_u8; COPY_BUFFER_BYTES];
+    let mut hasher = blake3::Hasher::new();
+    loop {
+        let read = source.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        target.write_all(&buffer[..read])?;
+        hasher.update(&buffer[..read]);
+    }
+    target.flush()?;
+    target.sync_all()?;
+    Ok(hasher.finalize().to_hex().to_string())
 }

@@ -6,7 +6,7 @@ display_name = "Workbench Caption"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchCaption]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-caption", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchCaptionRoot"
 classes = ["workbench-caption"]
-props = { text = "Caption", font_size = 10.666667, font_weight = 600, text_tone = "secondary", layout_padding_left = 0.0, layout_padding_right = 0.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+props = { text = "Caption", font_size = "$editor.typography.caption.size", font_weight = "$editor.typography.strong.weight", text_tone = "secondary", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
 layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 20.0, max = 22.0, stretch = "Fixed" } }

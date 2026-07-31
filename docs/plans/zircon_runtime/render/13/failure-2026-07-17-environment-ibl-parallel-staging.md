@@ -51,4 +51,13 @@ tests:
 
 ## 修复结果与回传
 
-Open state: `待 Render13/TX-M3 修复`; Shader06 仅保留测量与上游验收责任。
+Open state: `实现已完成，待受管验证与独立审查`; Shader06 仅保留测量与上游验收责任。
+
+### 当前实现状态（2026-07-17）
+
+- `ProjectManager` 将运行时拥有的可选 `TaskPool` 传入 environment IBL staging；没有运行时任务所有者的直接工具路径保留串行基线。
+- source cubemap 构建继续通过注入的 `ParallelSliceExecutor` 处理 equirectangular 基础投影和 source mip；equirect 与 captured-face 的并行入口都会将每个 PMREM mip 的六个独立 cube face 任务交给同一执行器，结果统一按固定 face-major 顺序回写。
+- staging 在构建前检查完整的 `.zcube`/`.zribl` 当前缓存对。缓存命中会直接返回 `Reused`，不会调用 source mip 或 PMREM 的并行任务。
+- 已有聚焦契约覆盖 serial/parallel 字节等价、PMREM 每 mip 调度和 cache-hit 零重算；尚未运行当前源码的受管 Cargo gate，故本 handoff 仍为 `open`，不得作为 Shader06 首次/二次 bake 性能结论。
+- 独立静态复审已闭合为 `Critical 0 / Important 0 / Minor 0`：已复核 equirect sampler 的 `Fn + Send + Sync` 边界、PMREM 直接调度契约、captured-face 并行 PMREM 路径和缓存短路；该结论不替代待 FIFO 的受管 Cargo 验证。
+- 查看器性能接线补充（2026-07-17）：parallel staging 新增 caller-decoded RGBA32F 入口，viewer 将同一份 HDR 像素用于曝光/尺寸和 equirect → source/PMREM staging，消除重复完整 decode；仍以原始 `AssetImportContext` bytes/settings 生成 request 与 cache key。现有 serial-versus-parallel staging contract 已改为通过该入口写 parallel bundle，仍需 fresh managed Cargo 证明当前源码。

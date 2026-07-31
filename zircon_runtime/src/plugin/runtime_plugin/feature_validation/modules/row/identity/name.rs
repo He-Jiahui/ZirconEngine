@@ -5,10 +5,10 @@ use super::super::super::super::shape::{
     validate_runtime_plugin_feature_field, validate_runtime_plugin_feature_namespace,
 };
 
-pub(super) fn validate_runtime_plugin_feature_module_name<'a>(
+pub(super) fn validate_runtime_plugin_feature_module_name(
     feature: &PluginFeatureBundleManifest,
-    module: &'a PluginModuleManifest,
-    seen_names: &mut Vec<&'a str>,
+    module: &PluginModuleManifest,
+    is_duplicate: bool,
     diagnostics: &mut Vec<String>,
 ) {
     validate_runtime_plugin_module_name(
@@ -16,7 +16,7 @@ pub(super) fn validate_runtime_plugin_feature_module_name<'a>(
         "feature id",
         &feature.id,
         module,
-        seen_names,
+        is_duplicate,
         validate_runtime_plugin_feature_field,
         validate_runtime_plugin_feature_namespace,
         diagnostics,

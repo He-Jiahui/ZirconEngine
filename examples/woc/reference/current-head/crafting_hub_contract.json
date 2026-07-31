@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/crafting_hub_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/crafting_hub.ts": "b6b0c2eab63cf0e454313d09b49c4761ee44573bf838e6513a681808cf33f68d",
+    "src/sim/content/professions.ts": "d2d8567ab607693ab59a19d145187d0bad8b153c209c85b8f3cce5eed6277c3b",
+    "src/sim/content/zone3.ts": "8361952b8878ae4d0a17513ccb27ad09e48f4469eddcea93633455fc45743579"
+  },
+  "zone_id": "thornpeak_heights",
+  "position": {
+    "x": 0,
+    "z": 660
+  },
+  "radius": 20,
+  "min_level": 20,
+  "semantics": {
+    "location": "inside the inclusive Highwatch hub circle in Thornpeak Heights",
+    "level": "character level must be at least the configured crafting-hub minimum",
+    "access": "both location and level gates must pass before a station-bound recipe is usable"
+  }
+}

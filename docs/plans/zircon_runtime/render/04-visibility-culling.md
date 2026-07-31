@@ -82,6 +82,8 @@ plan_sources:
 
 # 计划 04:可见性与剔除(InitViews 对齐)
 
+- 来自 Editor05 的失败交接（`open / viewport picking 缺少 renderer-neutral visible spatial query`）：[`04/failure-2026-07-18-viewport-picking-visible-spatial-query.md`](04/failure-2026-07-18-viewport-picking-visible-spatial-query.md)
+
 ## 目标
 
 把可见性从"BVH 视锥剔除一步到位"升级为 UE InitViews 式多级流水:
@@ -553,3 +555,11 @@ V1 测试流程:每个 thread 处理一个 indirect args 记录;从 `first_insta
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`04/2026-07-09-visibility-culling-output-records.md`](04/2026-07-09-visibility-culling-output-records.md)
+- 2026-07-18 layer-mask性能交接：legacy 32-bit mask构造/导出/相交已改first-block O(1)，per-entity camera相交不再创建临时Vec；VC-M1/M4仍须把常见≤64 layer收口inline storage并让visibility/extract引用generation-owned mask，避免每renderable小Vec构造/clone。验收legacy intersect alloc=0、最终≤64 layer构造/clone heap alloc=0；见PERF-MVP-344及`docs/plans/performance/01/2026-07-18-runtime-core-framework-render-camera-view-static-review.md`。
+- 2026-07-18 HZB批处理性能交接：VC-M2与`HzbBuildPlan`虽声明每批最多4 mip、1923×1081应为11 mip/3批，当前产品executor仍逐mip创建view/bind group、copy参数并开启11个compute passes；params临时Vec已先改固定栈数组。VC-M2必须完成1–4 mip shader permutation/UAV数组、持久参数ring与per-backing mip-view/bind-group bundle；验收1080p/odd-size HZB reduce pass/dispatch≤3，warm GPU object/create/copy无逐mip放大。见PERF-MVP-367及`docs/plans/performance/01/2026-07-18-graphics-hzb-build-static-review.md`。
+- 2026-07-18 HZB readback/neutral资源交接：产品有dispatch时在`queue.submit`后多次`PollType::wait_indefinitely`同步读取stats/args/draw-count，直接制造GPU bubble；无execution时又逐帧创建最多6个fallback buffers。VC-M2联动Render17交付有界async readback ring和persistent neutral owner，diagnostics off readback=0、产品阻塞poll=0、stable fallback create=0；见PERF-MVP-373/375/376及compiled-scene render静态证据。
+- 2026-07-18 Virtual Geometry execution交接：`build_mesh_draws`当前每帧按segment clone pending draw并新建5个indirect/metadata buffer，resident pages又全量重建payload与上传。Render04联动Render03把cull/LOD输出发布为generation-owned dense segment/page delta，复用persistent args/metadata capacity；stable clone/map/create/upload=0、1% page churn工作近delta，并与HZB indirect compaction共用唯一generation。见PERF-MVP-388。
+- 2026-07-18 shadow-view visibility交接：shadow replay当前对每slot把已有view visibility重新物化成`BTreeSet<EntityId>`，再扫描完整shadow command stream。Render04须让visibility generation直接发布dense visible command indices/ranges或bitset，与Render05 atlas slot view key共享；stable set materialization=0、command visits近visible而非slots×all。见PERF-MVP-391。
+- 2026-07-18 HZB history slot交接：history全包CPU初始化已GPU clear止损；VC-M2仍须让HZB texture/mip-view按render-size plan独立于TAA/GI/AO/SSR创建和替换，HZB-only不得分配其他full-res histories，stable handle clone=0。见PERF-MVP-395及history静态证据。
+- 2026-07-18 GPUScene visible-remap identity交接：Render04不得为cull/compaction重建第二套instance identity；visible remap、indirect args与Render03 `CompiledGpuSceneDelta`共享stable dense slot/generation，removed slot按GPU completion epoch回收。stable remap key rebuild=0、1% visibility change近dirty ranges，并共享large scatter graph节点。见PERF-MVP-405。
+- 2026-07-18 visibility全目录性能交接：61/61文件确认mesh frustum原per-primitive重算matrix/tan、extra view重复candidate已局部清零；剩余每view全primitive结果、过滤顺序、FrameVisibility多轮projection归PERF-MVP-419。Context/static index每frame多表与深clone、无界cell跨度归420；生产VG ordinal/frontier/lineage多重扫描归421。VC owner须发布prepared view/frustum、generation primitive SoA/index与bounded CPU/GPU cull artifacts，并由Render17量化。

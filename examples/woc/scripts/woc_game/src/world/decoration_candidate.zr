@@ -1,0 +1,269 @@
+// Builtin generateDecorations candidate/filter projection from src/sim/world.ts.
+// It is pure and deliberately does not cache records or feed collision yet.
+
+var math = %import("zr.zircon.math");
+var terrainContent = %import("world/terrain_content");
+var terrainGradient = %import("world/terrain_gradient");
+var terrainHeight = %import("world/terrain_height");
+var terrainNoise = %import("world/terrain_noise");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+minimum(first: float, second: float): float {
+    return first < second ? first : second;
+}
+
+maximum(first: float, second: float): float {
+    return first > second ? first : second;
+}
+
+pub gridStartX(required: bool): int {
+    if (!required) {
+        throw "woc decoration grid query is required";
+    }
+    return -<int>(terrainContent.worldMaxX(true) - 14.0);
+}
+
+pub gridEndXExclusive(required: bool): int {
+    if (!required) {
+        throw "woc decoration grid query is required";
+    }
+    return <int>(terrainContent.worldMaxX(true) - 14.0);
+}
+
+pub gridStartZ(required: bool): int {
+    if (!required) {
+        throw "woc decoration grid query is required";
+    }
+    return <int>(terrainContent.worldMinZ(true) + 14.0);
+}
+
+pub gridEndZExclusive(required: bool): int {
+    if (!required) {
+        throw "woc decoration grid query is required";
+    }
+    return <int>(terrainContent.worldMaxZ(true) - 14.0);
+}
+
+pub candidateX(gridX: int, gridZ: int, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc decoration candidate query is required";
+    }
+    return <float>gridX + (terrainNoise.hash2(gridX, gridZ, seed + <uint>57, true) - 0.5) * 10.0;
+}
+
+pub candidateZ(gridX: int, gridZ: int, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc decoration candidate query is required";
+    }
+    return <float>gridZ + (terrainNoise.hash2(gridX, gridZ, seed + <uint>91, true) - 0.5) * 10.0;
+}
+
+pub candidateScale(gridX: int, gridZ: int, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc decoration scale query is required";
+    }
+    return 0.7 + terrainNoise.hash2(gridX, gridZ, seed + <uint>13, true) * 0.9;
+}
+
+pub candidateVariant(gridX: int, gridZ: int, seed: uint, required: bool): int {
+    if (!required) {
+        throw "woc decoration variant query is required";
+    }
+    return <int>math.floor(terrainNoise.hash2(gridX, gridZ, seed + <uint>77, true) * 3.0);
+}
+
+pub isInSowfieldShell(x: float, z: float, required: bool): bool {
+    if (!required) {
+        throw "woc Sowfield shell query is required";
+    }
+    return x >= terrainContent.sowfieldExcludeMinX(true) &&
+        x <= terrainContent.sowfieldExcludeMaxX(true) &&
+        z >= terrainContent.sowfieldExcludeMinZ(true) &&
+        z <= terrainContent.sowfieldExcludeMaxZ(true);
+}
+
+pub isDecorationExcluded(x: float, z: float, required: bool): bool {
+    if (!required) {
+        throw "woc decoration exclusion query is required";
+    }
+    var index = 0;
+    while (index < terrainContent.decorationExclusionCount(true)) {
+        var dx = x - terrainContent.decorationExclusionX(index, true);
+        var dz = z - terrainContent.decorationExclusionZ(index, true);
+        if (math.sqrt(dx * dx + dz * dz) < terrainContent.decorationExclusionRadius(true)) {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+pub roadDistance(x: float, z: float, required: bool): float {
+    if (!required) {
+        throw "woc road distance query is required";
+    }
+    var hasDistance = false;
+    var best = 0.0;
+    var roadIndex = 0;
+    while (roadIndex < terrainContent.roadCount(true)) {
+        var pointIndex = 0;
+        while (pointIndex + 1 < terrainContent.roadPointCount(roadIndex, true)) {
+            var ax = terrainContent.roadPointX(roadIndex, pointIndex, true);
+            var az = terrainContent.roadPointZ(roadIndex, pointIndex, true);
+            var bx = terrainContent.roadPointX(roadIndex, pointIndex + 1, true);
+            var bz = terrainContent.roadPointZ(roadIndex, pointIndex + 1, true);
+            var abx = bx - ax;
+            var abz = bz - az;
+            var apx = x - ax;
+            var apz = z - az;
+            var lengthSquared = abx * abx + abz * abz;
+            var fraction = lengthSquared > 0.0 ? (apx * abx + apz * abz) / lengthSquared : 0.0;
+            fraction = maximum(0.0, minimum(1.0, fraction));
+            var dx = apx - abx * fraction;
+            var dz = apz - abz * fraction;
+            var distance = math.sqrt(dx * dx + dz * dz);
+            if (!hasDistance || distance < best) {
+                best = distance;
+                hasDistance = true;
+            }
+            pointIndex = pointIndex + 1;
+        }
+        roadIndex = roadIndex + 1;
+    }
+    return best;
+}
+
+candidateKindFromRandom(biomeCode: int, random: float): int {
+    if (biomeCode == 1) {
+        if (random > 0.48) { return 0; }
+        return random < 0.3 ? 1 : (random < 0.4 ? 2 : 3);
+    }
+    if (biomeCode == 2) {
+        if (random > 0.34) { return 0; }
+        return random < 0.08 ? 1 : (random < 0.26 ? 2 : 3);
+    }
+    if (random > 0.44) { return 0; }
+    return random < 0.2 ? 1 : (random < 0.24 ? 2 : 3);
+}
+
+pub candidateKindCode(gridX: int, gridZ: int, seed: uint, required: bool): int {
+    if (!required) {
+        throw "woc decoration kind query is required";
+    }
+    var random = terrainNoise.hash2(gridX, gridZ, seed + <uint>31, true);
+    var biomeCode = terrainContent.zoneBiomeCode(
+        terrainContent.zoneIndexAt(<float>gridZ, true),
+        true
+    );
+    var kind = candidateKindFromRandom(biomeCode, random);
+    if (kind == 0) {
+        return 0;
+    }
+    var x = candidateX(gridX, gridZ, seed, true);
+    var z = candidateZ(gridX, gridZ, seed, true);
+    if (isDecorationExcluded(x, z, true) || isInSowfieldShell(x, z, true)) {
+        return 0;
+    }
+    var zoneIndex = 0;
+    while (zoneIndex < terrainContent.zoneCount(true)) {
+        var hubX = x - terrainContent.zoneHubX(zoneIndex, true);
+        var hubZ = z - terrainContent.zoneHubZ(zoneIndex, true);
+        var hubRadius = terrainContent.zoneHubRadius(zoneIndex, true) + 4.0;
+        if (math.sqrt(hubX * hubX + hubZ * hubZ) < hubRadius) {
+            return 0;
+        }
+        zoneIndex = zoneIndex + 1;
+    }
+    if (terrainHeight.builtinTerrainHeight(x, z, seed, true) < terrainContent.waterLevel(true) + 1.0 ||
+        roadDistance(x, z, true) < 5.0) {
+        return 0;
+    }
+    var campIndex = 0;
+    while (campIndex < terrainContent.campCount(true)) {
+        var campX = x - terrainContent.campX(campIndex, true);
+        var campZ = z - terrainContent.campZ(campIndex, true);
+        var campRadius = terrainContent.campRadius(campIndex, true) + 3.0;
+        if (math.sqrt(campX * campX + campZ * campZ) < campRadius) {
+            return 0;
+        }
+        campIndex = campIndex + 1;
+    }
+    if (terrainGradient.builtinTerrainSteepnessAt(x, z, seed, true) >
+        terrainContent.decorationMaxSlope(true)) {
+        return 0;
+    }
+    return kind;
+}
+
+pub candidateCollisionRadius(gridX: int, gridZ: int, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc decoration collider query is required";
+    }
+    var kind = candidateKindCode(gridX, gridZ, seed, true);
+    var scale = candidateScale(gridX, gridZ, seed, true);
+    if (kind == 1 || kind == 2) {
+        return 0.55 * scale;
+    }
+    if (kind == 3 && scale >= 0.8) {
+        return 0.7 * scale;
+    }
+    return 0.0;
+}
+
+pub contractTest(): int {
+    if (gridStartX(true) != -166 || gridEndXExclusive(true) != 166 ||
+        gridStartZ(true) != -166 || gridEndZExclusive(true) != 886 ||
+        candidateVariant(-166, -166, <uint>20061, true) < 0 ||
+        candidateVariant(-166, -166, <uint>20061, true) > 2) {
+        return -1;
+    }
+    if (!isInSowfieldShell(-11.0, -112.0, true) || isInSowfieldShell(44.1, -112.0, true) ||
+        !isDecorationExcluded(2.456450840458274, 211.33819991815835, true) ||
+        isDecorationExcluded(4.0, 211.33819991815835, true)) {
+        return -2;
+    }
+    if (roadDistance(0.0, 8.0, true) != 0.0 ||
+        !closeEnough(roadDistance(0.0, 13.0, true), 1.708715315433522)) {
+        return -3;
+    }
+    if (candidateKindCode(-166, -156, <uint>20061, true) != 1 ||
+        !closeEnough(candidateX(-166, -156, <uint>20061, true), -169.3387614414096) ||
+        !closeEnough(candidateZ(-166, -156, <uint>20061, true), -160.52844868181273) ||
+        !closeEnough(candidateScale(-166, -156, <uint>20061, true), 1.5322133257519455) ||
+        candidateVariant(-166, -156, <uint>20061, true) != 2 ||
+        !closeEnough(candidateCollisionRadius(-166, -156, <uint>20061, true), 0.8427173291635701)) {
+        return -4;
+    }
+    if (candidateKindCode(-166, 414, <uint>20061, true) != 2 ||
+        !closeEnough(candidateX(-166, 414, <uint>20061, true), -168.22639372805133) ||
+        !closeEnough(candidateZ(-166, 414, <uint>20061, true), 414.9621403273195) ||
+        !closeEnough(candidateScale(-166, 414, <uint>20061, true), 1.5958704779157413) ||
+        candidateVariant(-166, 414, <uint>20061, true) != 2 ||
+        !closeEnough(candidateCollisionRadius(-166, 414, <uint>20061, true), 0.8777287628536578)) {
+        return -5;
+    }
+    if (candidateKindCode(-166, -96, <uint>20061, true) != 3 ||
+        !closeEnough(candidateScale(-166, -96, <uint>20061, true), 0.9458959557348862) ||
+        candidateVariant(-166, -96, <uint>20061, true) != 2 ||
+        !closeEnough(candidateCollisionRadius(-166, -96, <uint>20061, true), 0.6621271690144203)) {
+        return -6;
+    }
+    if (candidateKindCode(-166, 514, <uint>20061, true) != 3 ||
+        !closeEnough(candidateScale(-166, 514, <uint>20061, true), 0.755136255454272) ||
+        candidateVariant(-166, 514, <uint>20061, true) != 0 ||
+        candidateCollisionRadius(-166, 514, <uint>20061, true) != 0.0) {
+        return -7;
+    }
+    if (candidateCollisionRadius(0, 8, <uint>20061, true) != 0.0 ||
+        candidateKindCode(0, 8, <uint>20061, true) != 0) {
+        return -8;
+    }
+    return 1;
+}

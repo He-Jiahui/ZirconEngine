@@ -1,208 +1,97 @@
 //! Runtime IO-pool orchestration for CPU-side asset decoding.
 
-use crossbeam_channel::unbounded;
-use std::collections::HashMap;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::Condvar;
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
-use crate::core::diagnostics::DiagnosticStore;
-use crate::core::framework::channel::{ChannelReceiver, ChannelSender};
-use crate::core::runtime::tasks::{TaskPool, TaskPoolKind};
+use crate::asset::types::{AssetRequest, CpuAssetPayload};
+use crate::core::runtime::tasks::{TaskPool, TaskPoolKind, TaskTimer};
 use crate::core::{CoreError, CoreResult};
 
-use crate::asset::load::{mesh, texture};
-use crate::asset::types::{AssetRequest, CpuAssetPayload};
+mod completion;
+mod diagnostics;
+mod options;
+mod payload;
 
-pub const ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC: &str = "asset.worker.in_flight";
-pub const ASSET_WORKER_COMPLETED_DIAGNOSTIC: &str = "asset.worker.completed";
-pub const ASSET_WORKER_FAILED_DIAGNOSTIC: &str = "asset.worker.failed";
-pub const ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC: &str = "asset.worker.queue_peak";
-pub const ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC: &str = "asset.worker.budgeted_threads";
-pub const ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC: &str = "asset.worker.frame_completed";
-pub const ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC: &str = "asset.worker.frame_failed";
+use completion::{
+    deadline_after, expire_entries, lock_completion_registry, lock_worker_diagnostics,
+    maintain_completion_registry, publish_completion, record_expiry_for_diagnostics,
+    record_queue_age, schedule_entry_expiry, AssetWorkerExpiryTimer, AssetWorkerRejectionKind,
+    CompletionEntry, CompletionRegistry, CompletionTerminal, ExpiryReport, WaiterAdmission,
+};
+pub use completion::{AssetWorkerCompletionError, AssetWorkerCompletionTicket};
+use diagnostics::record_duration_measurement;
+pub use diagnostics::{
+    AssetWorkerPoolDiagnostics, AssetWorkerPoolFrameDiagnostics, AssetWorkerPoolFrameSampler,
+    AssetWorkerThreadBudgetSource, ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
+    ASSET_WORKER_CANCELLED_DIAGNOSTIC, ASSET_WORKER_CANCEL_WALL_MAX_MS_DIAGNOSTIC,
+    ASSET_WORKER_CANCEL_WALL_SAMPLES_DIAGNOSTIC, ASSET_WORKER_CANCEL_WALL_TOTAL_MS_DIAGNOSTIC,
+    ASSET_WORKER_COMPLETED_DIAGNOSTIC, ASSET_WORKER_COMPLETION_BYTES_DIAGNOSTIC,
+    ASSET_WORKER_COMPLETION_REJECTED_DIAGNOSTIC, ASSET_WORKER_DROP_WALL_MAX_MS_DIAGNOSTIC,
+    ASSET_WORKER_DROP_WALL_SAMPLES_DIAGNOSTIC, ASSET_WORKER_DROP_WALL_TOTAL_MS_DIAGNOSTIC,
+    ASSET_WORKER_EXPIRED_DIAGNOSTIC, ASSET_WORKER_FAILED_DIAGNOSTIC,
+    ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC, ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC,
+    ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC, ASSET_WORKER_MERGED_DIAGNOSTIC,
+    ASSET_WORKER_PAYLOAD_CLONE_BYTES_DIAGNOSTIC, ASSET_WORKER_QUEUE_AGE_MAX_MS_DIAGNOSTIC,
+    ASSET_WORKER_QUEUE_AGE_SAMPLES_DIAGNOSTIC, ASSET_WORKER_QUEUE_AGE_TOTAL_MS_DIAGNOSTIC,
+    ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC, ASSET_WORKER_QUEUE_REJECTED_DIAGNOSTIC,
+    ASSET_WORKER_REJECTED_DIAGNOSTIC, ASSET_WORKER_WAITER_REJECTED_DIAGNOSTIC,
+};
+pub use options::AssetWorkerPoolOptions;
+use options::DEFAULT_ASSET_WORKER_QUEUE_DEPTH;
+use payload::process_request;
 
+#[cfg(test)]
+#[path = "worker_pool/tests.rs"]
+mod tests;
+
+/// Shared owner for one immutable CPU payload. Tickets are observers, never copies.
 pub struct AssetWorkerPool {
     options: AssetWorkerPoolOptions,
     task_pool: TaskPool,
-    in_flight: Arc<Mutex<HashMap<AssetRequest, usize>>>,
+    expiry_timer: AssetWorkerExpiryTimer,
+    completions: Arc<CompletionRegistry>,
     diagnostics: Arc<Mutex<AssetWorkerPoolDiagnostics>>,
-    completion_tx: ChannelSender<CpuAssetPayload>,
-    completion_rx: ChannelReceiver<CpuAssetPayload>,
-    lifecycle: Arc<AssetWorkerLifecycle>,
-}
-
-struct AssetWorkerLifecycle {
-    pending_jobs: Mutex<usize>,
-    pending_jobs_changed: Condvar,
-}
-
-struct PendingJobGuard {
-    lifecycle: Arc<AssetWorkerLifecycle>,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum AssetWorkerThreadBudgetSource {
-    #[default]
-    TaskPoolIo,
-}
-
-impl AssetWorkerThreadBudgetSource {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::TaskPoolIo => "task_pool_io",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct AssetWorkerPoolOptions {
-    pub queue_depth: Option<usize>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct AssetWorkerPoolDiagnostics {
-    pub thread_budget_source: AssetWorkerThreadBudgetSource,
-    pub budgeted_threads: usize,
-    pub in_flight: usize,
-    pub completed: u64,
-    pub failed: u64,
-    pub queue_peak: usize,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct AssetWorkerPoolFrameDiagnostics {
-    pub thread_budget_source: AssetWorkerThreadBudgetSource,
-    pub budgeted_threads: usize,
-    pub in_flight: usize,
-    pub completed_delta: u64,
-    pub failed_delta: u64,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct AssetWorkerPoolFrameSampler {
-    last_completed: u64,
-    last_failed: u64,
-}
-
-impl AssetWorkerPoolOptions {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn with_queue_depth(mut self, queue_depth: usize) -> Self {
-        self.queue_depth = Some(queue_depth);
-        self
-    }
-}
-
-impl AssetWorkerPoolDiagnostics {
-    fn for_task_pool(task_pool: &TaskPool) -> Self {
-        Self {
-            thread_budget_source: AssetWorkerThreadBudgetSource::TaskPoolIo,
-            budgeted_threads: task_pool.parallelism(),
-            in_flight: 0,
-            completed: 0,
-            failed: 0,
-            queue_peak: 0,
-        }
-    }
-}
-
-impl AssetWorkerPoolFrameDiagnostics {
-    pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
-        store.record(
-            ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC,
-            frame_index,
-            self.in_flight as f64,
-            Some("request"),
-            ["asset", "worker"],
-        );
-        store.record(
-            ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
-            frame_index,
-            self.budgeted_threads as f64,
-            Some("thread"),
-            [
-                "asset",
-                "worker",
-                "budget",
-                self.thread_budget_source.as_str(),
-            ],
-        );
-        store.record(
-            ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC,
-            frame_index,
-            self.completed_delta as f64,
-            Some("request"),
-            ["asset", "worker", "frame"],
-        );
-        store.record(
-            ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC,
-            frame_index,
-            self.failed_delta as f64,
-            Some("request"),
-            ["asset", "worker", "frame"],
-        );
-    }
-}
-
-impl AssetWorkerPoolFrameSampler {
-    pub fn from_pool(pool: &AssetWorkerPool) -> Self {
-        let diagnostics = pool.diagnostics();
-        Self {
-            last_completed: diagnostics.completed,
-            last_failed: diagnostics.failed,
-        }
-    }
-
-    pub fn sample(&mut self, pool: &AssetWorkerPool) -> AssetWorkerPoolFrameDiagnostics {
-        let diagnostics = pool.diagnostics();
-        let frame = AssetWorkerPoolFrameDiagnostics {
-            thread_budget_source: diagnostics.thread_budget_source,
-            budgeted_threads: diagnostics.budgeted_threads,
-            in_flight: diagnostics.in_flight,
-            completed_delta: diagnostics.completed.saturating_sub(self.last_completed),
-            failed_delta: diagnostics.failed.saturating_sub(self.last_failed),
-        };
-        self.last_completed = diagnostics.completed;
-        self.last_failed = diagnostics.failed;
-        frame
-    }
-
-    pub fn record_diagnostics(
-        &mut self,
-        pool: &AssetWorkerPool,
-        store: &mut DiagnosticStore,
-        frame_index: u64,
-    ) {
-        self.sample(pool).record_diagnostics(store, frame_index);
-    }
+    #[cfg(test)]
+    test_execution_gate: Option<tests::AssetWorkerTestExecutionGate>,
 }
 
 impl AssetWorkerPool {
     pub fn new(task_pool: TaskPool, options: AssetWorkerPoolOptions) -> Self {
+        Self::new_with_expiry_timer(task_pool, options, AssetWorkerExpiryTimer::ProcessDefault)
+    }
+
+    /// Creates an asset worker pool bound to an explicit runtime lifecycle timer.
+    pub(crate) fn with_expiry_timer(
+        task_pool: TaskPool,
+        options: AssetWorkerPoolOptions,
+        timer: TaskTimer,
+    ) -> Self {
+        Self::new_with_expiry_timer(task_pool, options, AssetWorkerExpiryTimer::Explicit(timer))
+    }
+
+    fn new_with_expiry_timer(
+        task_pool: TaskPool,
+        options: AssetWorkerPoolOptions,
+        expiry_timer: AssetWorkerExpiryTimer,
+    ) -> Self {
         assert_eq!(
             task_pool.kind(),
             TaskPoolKind::Io,
             "AssetWorkerPool requires the runtime IO task pool"
         );
-        let (completion_tx, completion_rx) = unbounded();
         let diagnostics = Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::for_task_pool(
             &task_pool,
         )));
-
+        let completions = Arc::new(CompletionRegistry::new());
         Self {
             options,
             task_pool,
-            in_flight: Arc::new(Mutex::new(HashMap::new())),
+            expiry_timer,
+            completions,
             diagnostics,
-            completion_tx,
-            completion_rx,
-            lifecycle: Arc::new(AssetWorkerLifecycle {
-                pending_jobs: Mutex::new(0),
-                pending_jobs_changed: Condvar::new(),
-            }),
+            #[cfg(test)]
+            test_execution_gate: None,
         }
     }
 
@@ -214,268 +103,299 @@ impl AssetWorkerPool {
         &self.task_pool
     }
 
-    pub fn request(&self, request: AssetRequest) -> CoreResult<()> {
-        let mut in_flight = self.lock_in_flight();
-        if let Some(waiter_count) = in_flight.get_mut(&request) {
-            *waiter_count += 1;
-            self.record_in_flight_locked(&in_flight);
-            return Ok(());
-        }
+    /// Reaps request and completion entries whose bounded lifetime elapsed.
+    ///
+    /// Reaps entries whose deadline elapsed before their timer callback acquired the registry.
+    pub fn maintain(&self) {
+        maintain_completion_registry(&self.completions, &self.diagnostics);
+    }
 
-        if self.unique_request_capacity_reached(in_flight.len()) {
+    /// Starts or joins one bounded single-flight request.
+    pub fn request(&self, request: AssetRequest) -> CoreResult<AssetWorkerCompletionTicket> {
+        let now = Instant::now();
+        let mut state = lock_completion_registry(&self.completions);
+        let expiry = expire_entries(&mut state, now);
+        self.record_expiry(expiry);
+        if state.closing {
+            return Err(CoreError::ChannelSend(
+                "asset worker pool is shutting down".to_string(),
+            ));
+        }
+        if let Some(entry) = state.in_flight.get(&request).cloned() {
+            match entry.try_add_waiter(self.options.waiter_capacity) {
+                WaiterAdmission::Added => {
+                    self.record_merge(true);
+                    return Ok(self.completion_ticket(entry));
+                }
+                WaiterAdmission::Full => {
+                    self.record_rejection(AssetWorkerRejectionKind::Waiter);
+                    return Err(CoreError::ChannelSend(format!(
+                        "asset request observer budget full: {request:?}"
+                    )));
+                }
+                WaiterAdmission::Terminal => {
+                    state.in_flight.remove(&request);
+                    let waiters = entry.waiter_count();
+                    entry.cancel_expiry();
+                    self.record_expiry(ExpiryReport {
+                        in_flight_entries: 1,
+                        in_flight_waiters: waiters,
+                        ..ExpiryReport::default()
+                    });
+                }
+            }
+        }
+        if let Some(entry) = state
+            .completed
+            .get(&request)
+            .map(|completed| Arc::clone(&completed.entry))
+        {
+            // A retained immutable result is charged by entry and bytes, not by live observers.
+            self.record_merge(false);
+            return Ok(self.completion_ticket(entry));
+        }
+        if self.unique_request_capacity_reached(state.scheduled_jobs) {
+            self.record_rejection(AssetWorkerRejectionKind::Queue);
             return Err(CoreError::ChannelSend(format!(
                 "asset request queue full: {request:?}"
             )));
         }
+        if self.options.waiter_capacity == 0 {
+            self.record_rejection(AssetWorkerRejectionKind::Waiter);
+            return Err(CoreError::ChannelSend(format!(
+                "asset request observer budget full: {request:?}"
+            )));
+        }
 
-        in_flight.insert(request.clone(), 1);
-        self.record_in_flight_locked(&in_flight);
-        drop(in_flight);
+        let request_deadline = deadline_after(now, self.options.request_max_age);
+        let entry = Arc::new(CompletionEntry::new(request.clone(), request_deadline));
+        let expiry_generation = entry.begin_expiry();
+        let expiry_subscription = schedule_entry_expiry(
+            &self.expiry_timer,
+            &self.completions,
+            &self.diagnostics,
+            &entry,
+            request_deadline,
+            expiry_generation,
+        )?;
+        entry.install_expiry_subscription(expiry_generation, expiry_subscription);
+        state.in_flight.insert(request.clone(), Arc::clone(&entry));
+        state.scheduled_jobs = state.scheduled_jobs.saturating_add(1);
+        drop(state);
+        self.record_request_admitted();
 
-        self.begin_pending_job();
         let task_pool = self.task_pool.clone();
-        let completion_tx = self.completion_tx.clone();
-        let in_flight = Arc::clone(&self.in_flight);
+        let completions = Arc::clone(&self.completions);
         let diagnostics = Arc::clone(&self.diagnostics);
-        let lifecycle = Arc::clone(&self.lifecycle);
+        let options = self.options.clone();
+        let expiry_timer = self.expiry_timer.clone();
+        let task_entry = Arc::clone(&entry);
+        #[cfg(test)]
+        let test_execution_gate = self.test_execution_gate.clone();
         task_pool.spawn(move || {
-            let _pending_job = PendingJobGuard { lifecycle };
             let panic_request = request.clone();
-            let payload = catch_unwind(AssertUnwindSafe(|| process_request(request))).unwrap_or(
-                CpuAssetPayload::Failure {
-                    request: panic_request,
-                    message: "asset worker task panicked".to_string(),
-                },
+            let queue_age = task_entry.mark_started(Instant::now());
+            #[cfg(test)]
+            if queue_age.is_some() {
+                if let Some(gate) = test_execution_gate {
+                    gate.wait_for_test_release();
+                }
+            }
+            let payload = if let Some(queue_age) = queue_age {
+                record_queue_age(&diagnostics, queue_age);
+                Some(
+                    catch_unwind(AssertUnwindSafe(|| process_request(request))).unwrap_or(
+                        CpuAssetPayload::Failure {
+                            request: panic_request,
+                            message: "asset worker task panicked".to_string(),
+                        },
+                    ),
+                )
+            } else {
+                None
+            };
+            publish_completion(
+                &expiry_timer,
+                &completions,
+                &diagnostics,
+                &options,
+                task_entry,
+                payload,
             );
-            publish_completion(&completion_tx, &in_flight, &diagnostics, payload);
         });
-        Ok(())
+        Ok(self.completion_ticket(entry))
     }
 
-    pub fn completion_receiver(&self) -> ChannelReceiver<CpuAssetPayload> {
-        self.completion_rx.clone()
+    /// Cancels a queued, running, or unharvested completion without waiting for workers.
+    pub fn cancel(&self, request: &AssetRequest) -> bool {
+        let cancel_started = Instant::now();
+        let mut state = lock_completion_registry(&self.completions);
+        let expiry = expire_entries(&mut state, cancel_started);
+        self.record_expiry(expiry);
+        if let Some(entry) = state.in_flight.remove(request) {
+            let waiters = entry.terminate(CompletionTerminal::Cancelled).unwrap_or(0);
+            drop(state);
+            let mut diagnostics = self.lock_diagnostics();
+            diagnostics.in_flight = diagnostics.in_flight.saturating_sub(1);
+            diagnostics.in_flight_waiters = diagnostics.in_flight_waiters.saturating_sub(waiters);
+            diagnostics.cancelled = diagnostics.cancelled.saturating_add(1);
+            (
+                diagnostics.cancel_wall_total,
+                diagnostics.cancel_wall_max,
+                diagnostics.cancel_wall_samples,
+            ) = record_duration_measurement(
+                diagnostics.cancel_wall_total,
+                diagnostics.cancel_wall_max,
+                diagnostics.cancel_wall_samples,
+                cancel_started.elapsed(),
+            );
+            return true;
+        }
+        if let Some(completed) = state.completed.remove(request) {
+            state.completed_bytes = state.completed_bytes.saturating_sub(completed.bytes);
+            let cancelled = completed
+                .entry
+                .terminate(CompletionTerminal::Cancelled)
+                .is_some();
+            drop(state);
+            let mut diagnostics = self.lock_diagnostics();
+            diagnostics.completion_entries = diagnostics.completion_entries.saturating_sub(1);
+            diagnostics.completion_bytes =
+                diagnostics.completion_bytes.saturating_sub(completed.bytes);
+            if cancelled {
+                diagnostics.cancelled = diagnostics.cancelled.saturating_add(1);
+                (
+                    diagnostics.cancel_wall_total,
+                    diagnostics.cancel_wall_max,
+                    diagnostics.cancel_wall_samples,
+                ) = record_duration_measurement(
+                    diagnostics.cancel_wall_total,
+                    diagnostics.cancel_wall_max,
+                    diagnostics.cancel_wall_samples,
+                    cancel_started.elapsed(),
+                );
+            }
+            return cancelled;
+        }
+        false
     }
 
     pub fn diagnostics(&self) -> AssetWorkerPoolDiagnostics {
         *self.lock_diagnostics()
     }
 
-    pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
-        let diagnostics = self.diagnostics();
-        for (path, value) in [
-            (
-                ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC,
-                diagnostics.in_flight as f64,
-            ),
-            (
-                ASSET_WORKER_COMPLETED_DIAGNOSTIC,
-                diagnostics.completed as f64,
-            ),
-            (ASSET_WORKER_FAILED_DIAGNOSTIC, diagnostics.failed as f64),
-            (
-                ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC,
-                diagnostics.queue_peak as f64,
-            ),
-        ] {
-            store.record(
-                path,
-                frame_index,
-                value,
-                Some("request"),
-                ["asset", "worker"],
-            );
-        }
-        store.record(
-            ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
-            frame_index,
-            diagnostics.budgeted_threads as f64,
-            Some("thread"),
-            [
-                "asset",
-                "worker",
-                "budget",
-                diagnostics.thread_budget_source.as_str(),
-            ],
-        );
-    }
-
     fn unique_request_capacity_reached(&self, unique_in_flight: usize) -> bool {
-        self.options.queue_depth.is_some_and(|queue_depth| {
-            let capacity = self.task_pool.parallelism().saturating_add(queue_depth);
-            unique_in_flight >= capacity
-        })
+        let queue_depth = self
+            .options
+            .queue_depth
+            .unwrap_or(DEFAULT_ASSET_WORKER_QUEUE_DEPTH);
+        let capacity = self.task_pool.parallelism().saturating_add(queue_depth);
+        unique_in_flight >= capacity
     }
 
-    fn begin_pending_job(&self) {
-        *lock_pending_jobs(&self.lifecycle) += 1;
-    }
-
-    fn record_in_flight_locked(&self, in_flight: &HashMap<AssetRequest, usize>) {
-        let in_flight_count = total_waiter_count(in_flight);
+    fn record_request_admitted(&self) {
         let mut diagnostics = self.lock_diagnostics();
-        diagnostics.in_flight = in_flight_count;
-        diagnostics.queue_peak = diagnostics.queue_peak.max(in_flight_count);
+        diagnostics.in_flight = diagnostics.in_flight.saturating_add(1);
+        diagnostics.in_flight_waiters = diagnostics.in_flight_waiters.saturating_add(1);
+        diagnostics.queue_peak = diagnostics.queue_peak.max(diagnostics.in_flight);
     }
 
-    fn lock_in_flight(&self) -> MutexGuard<'_, HashMap<AssetRequest, usize>> {
-        lock_in_flight_map(&self.in_flight)
+    fn completion_ticket(&self, entry: Arc<CompletionEntry>) -> AssetWorkerCompletionTicket {
+        AssetWorkerCompletionTicket::new(
+            entry,
+            Arc::clone(&self.completions),
+            Arc::clone(&self.diagnostics),
+        )
+    }
+
+    fn record_merge(&self, in_flight: bool) {
+        let mut diagnostics = self.lock_diagnostics();
+        diagnostics.merged = diagnostics.merged.saturating_add(1);
+        if in_flight {
+            diagnostics.in_flight_waiters = diagnostics.in_flight_waiters.saturating_add(1);
+        }
+    }
+
+    fn record_rejection(&self, kind: AssetWorkerRejectionKind) {
+        let mut diagnostics = self.lock_diagnostics();
+        diagnostics.rejected = diagnostics.rejected.saturating_add(1);
+        match kind {
+            AssetWorkerRejectionKind::Queue => {
+                diagnostics.queue_rejected = diagnostics.queue_rejected.saturating_add(1);
+            }
+            AssetWorkerRejectionKind::Waiter => {
+                diagnostics.waiter_rejected = diagnostics.waiter_rejected.saturating_add(1);
+            }
+        }
+    }
+
+    fn record_expiry(&self, expiry: ExpiryReport) {
+        if expiry.is_empty() {
+            return;
+        }
+        let mut diagnostics = self.lock_diagnostics();
+        diagnostics.in_flight = diagnostics
+            .in_flight
+            .saturating_sub(expiry.in_flight_entries);
+        diagnostics.in_flight_waiters = diagnostics
+            .in_flight_waiters
+            .saturating_sub(expiry.in_flight_waiters);
+        diagnostics.completion_entries = diagnostics
+            .completion_entries
+            .saturating_sub(expiry.completed_entries);
+        diagnostics.completion_bytes = diagnostics
+            .completion_bytes
+            .saturating_sub(expiry.completed_bytes);
+        diagnostics.expired = diagnostics
+            .expired
+            .saturating_add(expiry.total_entries() as u64);
     }
 
     fn lock_diagnostics(&self) -> MutexGuard<'_, AssetWorkerPoolDiagnostics> {
         lock_worker_diagnostics(&self.diagnostics)
     }
-
-    fn wait_for_pending_jobs(&self) {
-        let mut pending_jobs = lock_pending_jobs(&self.lifecycle);
-        while *pending_jobs > 0 {
-            pending_jobs = self
-                .lifecycle
-                .pending_jobs_changed
-                .wait(pending_jobs)
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-        }
-    }
 }
 
 impl Drop for AssetWorkerPool {
     fn drop(&mut self) {
-        if !self.task_pool.is_current_worker() {
-            self.wait_for_pending_jobs();
+        let drop_started = Instant::now();
+        let mut state = lock_completion_registry(&self.completions);
+        state.closing = true;
+        let in_flight = std::mem::take(&mut state.in_flight);
+        let completed = std::mem::take(&mut state.completed);
+        state.completed_bytes = 0;
+        drop(state);
+
+        let mut cancelled = 0usize;
+        for entry in in_flight.into_values() {
+            if entry.terminate(CompletionTerminal::Cancelled).is_some() {
+                cancelled = cancelled.saturating_add(1);
+            }
         }
-    }
-}
-
-impl Drop for PendingJobGuard {
-    fn drop(&mut self) {
-        let mut pending_jobs = lock_pending_jobs(&self.lifecycle);
-        *pending_jobs = pending_jobs.saturating_sub(1);
-        if *pending_jobs == 0 {
-            self.lifecycle.pending_jobs_changed.notify_all();
+        for completed in completed.into_values() {
+            if completed
+                .entry
+                .terminate(CompletionTerminal::Cancelled)
+                .is_some()
+            {
+                cancelled = cancelled.saturating_add(1);
+            }
         }
-    }
-}
-
-fn publish_completion(
-    completion_tx: &ChannelSender<CpuAssetPayload>,
-    in_flight: &Mutex<HashMap<AssetRequest, usize>>,
-    diagnostics: &Mutex<AssetWorkerPoolDiagnostics>,
-    payload: CpuAssetPayload,
-) {
-    let request = request_for_payload(&payload);
-    let (waiter_count, remaining_waiters) = {
-        let mut in_flight = lock_in_flight_map(in_flight);
-        let waiter_count = in_flight.remove(&request).unwrap_or(1);
-        (waiter_count, total_waiter_count(&in_flight))
-    };
-    {
-        let mut diagnostics = lock_worker_diagnostics(diagnostics);
-        diagnostics.in_flight = remaining_waiters;
-        diagnostics.completed += waiter_count as u64;
-        if matches!(payload, CpuAssetPayload::Failure { .. }) {
-            diagnostics.failed += waiter_count as u64;
-        }
-    }
-    for _ in 0..waiter_count {
-        let _ = completion_tx.send(payload.clone());
-    }
-}
-
-fn lock_in_flight_map(
-    in_flight: &Mutex<HashMap<AssetRequest, usize>>,
-) -> MutexGuard<'_, HashMap<AssetRequest, usize>> {
-    in_flight
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-}
-
-fn lock_worker_diagnostics(
-    diagnostics: &Mutex<AssetWorkerPoolDiagnostics>,
-) -> MutexGuard<'_, AssetWorkerPoolDiagnostics> {
-    diagnostics
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-}
-
-fn lock_pending_jobs(lifecycle: &AssetWorkerLifecycle) -> MutexGuard<'_, usize> {
-    lifecycle
-        .pending_jobs
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-}
-
-fn total_waiter_count(in_flight: &HashMap<AssetRequest, usize>) -> usize {
-    in_flight.values().sum()
-}
-
-fn request_for_payload(payload: &CpuAssetPayload) -> AssetRequest {
-    match payload {
-        CpuAssetPayload::Texture(texture) => AssetRequest::Texture(texture.source.clone()),
-        CpuAssetPayload::Mesh(mesh) => AssetRequest::Mesh(mesh.source.clone()),
-        CpuAssetPayload::Failure { request, .. } => request.clone(),
-    }
-}
-
-fn process_request(request: AssetRequest) -> CpuAssetPayload {
-    match request {
-        AssetRequest::Texture(source) => match texture::load_texture(&source) {
-            Ok(texture) => CpuAssetPayload::Texture(texture),
-            Err(error) => CpuAssetPayload::Failure {
-                request: AssetRequest::Texture(source),
-                message: error.to_string(),
-            },
-        },
-        AssetRequest::Mesh(source) => match mesh::load_mesh(&source) {
-            Ok(mesh) => CpuAssetPayload::Mesh(mesh),
-            Err(error) => CpuAssetPayload::Failure {
-                request: AssetRequest::Mesh(source),
-                message: error.to_string(),
-            },
-        },
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crossbeam_channel::TryRecvError;
-    use std::panic::{catch_unwind, AssertUnwindSafe};
-    use std::time::Duration;
-
-    use crate::asset::types::TextureSource;
-    use crate::core::runtime::tasks::TaskPoolDescriptor;
-
-    use super::*;
-
-    #[test]
-    fn asset_worker_pool_accessors_recover_poisoned_locks() {
-        let pool = AssetWorkerPool::new(
-            TaskPool::new(TaskPoolDescriptor::io().with_worker_threads(1)),
-            AssetWorkerPoolOptions::new(),
+        let mut diagnostics = self.lock_diagnostics();
+        diagnostics.in_flight = 0;
+        diagnostics.in_flight_waiters = 0;
+        diagnostics.completion_entries = 0;
+        diagnostics.completion_bytes = 0;
+        diagnostics.cancelled = diagnostics.cancelled.saturating_add(cancelled as u64);
+        (
+            diagnostics.drop_wall_total,
+            diagnostics.drop_wall_max,
+            diagnostics.drop_wall_samples,
+        ) = record_duration_measurement(
+            diagnostics.drop_wall_total,
+            diagnostics.drop_wall_max,
+            diagnostics.drop_wall_samples,
+            drop_started.elapsed(),
         );
-        let completions = pool.completion_receiver();
-        let request = AssetRequest::Texture(TextureSource::Path(
-            "missing-poison-recovery-texture.png".to_string(),
-        ));
-
-        let _ = catch_unwind(AssertUnwindSafe(|| {
-            let _guard = pool.in_flight.lock().unwrap();
-            panic!("poison asset worker in-flight lock");
-        }));
-        let _ = catch_unwind(AssertUnwindSafe(|| {
-            let _guard = pool.diagnostics.lock().unwrap();
-            panic!("poison asset worker diagnostics lock");
-        }));
-
-        pool.request(request)
-            .expect("request should recover poisoned locks");
-
-        assert!(matches!(
-            completions.recv_timeout(Duration::from_secs(2)),
-            Ok(CpuAssetPayload::Failure { .. })
-        ));
-        let diagnostics = pool.diagnostics();
-        assert_eq!(diagnostics.in_flight, 0);
-        assert_eq!(diagnostics.completed, 1);
-        assert_eq!(diagnostics.failed, 1);
-        assert!(matches!(completions.try_recv(), Err(TryRecvError::Empty)));
     }
 }

@@ -423,6 +423,14 @@ impl RenderGraphBuilder {
         let mut lifetimes = spans
             .into_iter()
             .map(|(resource, (first_pass, last_pass))| {
+                let usage = resource_usages.get(&resource).copied().unwrap_or_default();
+                // Readback consumers run after graph recording, so their backing must
+                // remain unique and live through the terminal compiled pass.
+                let last_pass = if usage.readback {
+                    ordered.len().saturating_sub(1)
+                } else {
+                    last_pass
+                };
                 let kind = match resource {
                     RenderGraphResource::TransientTexture(_) => {
                         RenderGraphResourceKind::TransientTexture
@@ -453,7 +461,7 @@ impl RenderGraphBuilder {
                         resource_descs.get(&resource),
                         Some(RenderGraphResourceDesc::External)
                     ),
-                    usage: resource_usages.get(&resource).copied().unwrap_or_default(),
+                    usage,
                 }
             })
             .collect::<Vec<_>>();

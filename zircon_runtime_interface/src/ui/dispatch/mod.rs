@@ -29,5 +29,5 @@ pub use navigation::{
 pub use pointer::{
     UiPointerComponentEvent, UiPointerComponentEventReason, UiPointerDispatchContext,
     UiPointerDispatchDiagnostics, UiPointerDispatchEffect, UiPointerDispatchInvocation,
-    UiPointerDispatchResult, UiPointerEvent,
+    UiPointerDispatchResult, UiPointerEvent, UiTemplateActionInvocation,
 };

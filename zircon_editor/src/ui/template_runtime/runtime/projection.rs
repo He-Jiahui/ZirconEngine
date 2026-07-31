@@ -8,7 +8,11 @@ use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::template::UiTemplateInstance;
 use zircon_runtime::ui::v2::UiV2CompiledDocument;
 use zircon_runtime_interface::ui::{
-    event_ui::UiNodeId, template::UiTemplateNode, v2::UiV2NodeHandle,
+    component::UiValue,
+    dispatch::UiTemplateActionInvocation,
+    event_ui::UiNodeId,
+    template::{UiActionRef, UiBindingExpression, UiTemplateNode},
+    v2::UiV2NodeHandle,
 };
 
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
@@ -83,6 +87,7 @@ pub(super) fn build_host_model(
         .collect::<BTreeMap<_, _>>();
     let mut nodes = Vec::new();
     collect_host_nodes(&projection.root, None, "root", &bindings, &mut nodes)?;
+    resolve_template_actions(&mut nodes);
     Ok(RetainedUiHostModel {
         document_id: projection.document_id.clone(),
         nodes,
@@ -103,6 +108,7 @@ pub(super) fn build_host_model_with_surface(
         collect_surface_host_nodes(surface, *root_id, &bindings, &mut nodes)?;
     }
     merge_projection_only_host_nodes(&mut nodes, projection, &bindings)?;
+    resolve_template_actions(&mut nodes);
     Ok(RetainedUiHostModel {
         document_id: projection.document_id.clone(),
         nodes,
@@ -182,22 +188,15 @@ fn merge_projection_metadata(
     projection_node: &RetainedUiHostNodeProjection,
 ) {
     for (key, value) in &projection_node.attributes {
-        surface_node
-            .attributes
-            .entry(key.clone())
-            .or_insert_with(|| value.clone());
+        surface_node.attributes.insert(key.clone(), value.clone());
     }
     for (key, value) in &projection_node.style_tokens {
-        surface_node
-            .style_tokens
-            .entry(key.clone())
-            .or_insert_with(|| value.clone());
+        surface_node.style_tokens.insert(key.clone(), value.clone());
     }
     for (key, value) in &projection_node.style_overrides {
         surface_node
             .style_overrides
-            .entry(key.clone())
-            .or_insert_with(|| value.clone());
+            .insert(key.clone(), value.clone());
     }
 }
 
@@ -216,6 +215,7 @@ fn project_node(
             binding_id: binding_ref.id.clone(),
             binding,
             route_id: None,
+            template_action: binding_ref.action.clone(),
         });
     }
 
@@ -313,6 +313,7 @@ fn project_v2_binding_ids(
             binding_id: binding_ref.id.clone(),
             binding,
             route_id: None,
+            template_action: binding_ref.action.clone(),
         });
     }
     Ok(binding_ids)
@@ -452,6 +453,8 @@ fn node_bindings_from_ids(
                     action_id: retained_action_id_for_binding(&binding.binding),
                     event_kind: binding.binding.path().event_kind,
                     route_id: binding.route_id,
+                    template_action_source: binding.template_action.clone(),
+                    template_action: None,
                 })
                 .ok_or_else(|| EditorUiHostRuntimeError::MissingProjectionBinding {
                     binding_id: binding_id.clone(),
@@ -468,8 +471,170 @@ fn retained_action_id_for_binding(binding: &EditorUiBinding) -> String {
     }
 }
 
+fn resolve_template_actions(nodes: &mut [RetainedUiHostNodeProjection]) {
+    let attributes_by_control = nodes
+        .iter()
+        .filter_map(|node| {
+            node.control_id
+                .as_ref()
+                .map(|control_id| (control_id.clone(), node.attributes.clone()))
+        })
+        .collect::<BTreeMap<_, _>>();
+    for node in nodes {
+        for binding in &mut node.bindings {
+            binding.template_action = binding.template_action_source.as_ref().and_then(|action| {
+                resolve_template_action(action, &node.attributes, &attributes_by_control)
+            });
+        }
+    }
+}
+
+pub(super) fn resolve_template_action(
+    action: &UiActionRef,
+    source_attributes: &BTreeMap<String, Value>,
+    attributes_by_control: &BTreeMap<String, BTreeMap<String, Value>>,
+) -> Option<UiTemplateActionInvocation> {
+    let route = action.route.as_deref().or(action.action.as_deref())?.trim();
+    (!route.is_empty()).then_some(())?;
+    let payload = action
+        .payload
+        .iter()
+        .map(|(key, value)| {
+            Some((
+                key.clone(),
+                resolve_template_action_value(value, source_attributes, attributes_by_control)?,
+            ))
+        })
+        .collect::<Option<_>>()?;
+    Some(UiTemplateActionInvocation::new(route, payload))
+}
+
+fn resolve_template_action_value(
+    value: &Value,
+    source_attributes: &BTreeMap<String, Value>,
+    attributes_by_control: &BTreeMap<String, BTreeMap<String, Value>>,
+) -> Option<UiValue> {
+    let Value::String(expression_text) = value else {
+        return Some(UiValue::from_toml(value));
+    };
+    if !expression_text.trim_start().starts_with('=') {
+        return Some(UiValue::String(expression_text.clone()));
+    }
+    UiBindingExpression::parse(expression_text)
+        .ok()
+        .and_then(|expression| {
+            resolve_template_action_expression(
+                &expression,
+                source_attributes,
+                attributes_by_control,
+            )
+        })
+}
+
+fn resolve_template_action_expression(
+    expression: &UiBindingExpression,
+    source_attributes: &BTreeMap<String, Value>,
+    attributes_by_control: &BTreeMap<String, BTreeMap<String, Value>>,
+) -> Option<UiValue> {
+    match expression {
+        UiBindingExpression::Literal(value) => Some(value.clone()),
+        UiBindingExpression::ParamRef(_) => None,
+        UiBindingExpression::PropRef(property) => {
+            source_attributes.get(property).map(UiValue::from_toml)
+        }
+        UiBindingExpression::ControlPropRef {
+            control_id,
+            property,
+        } => attributes_by_control
+            .get(control_id.as_str())
+            .and_then(|attributes| attributes.get(property))
+            .map(UiValue::from_toml),
+        UiBindingExpression::Equals(lhs, rhs) => Some(UiValue::Bool(
+            resolve_template_action_expression(lhs, source_attributes, attributes_by_control)?
+                == resolve_template_action_expression(
+                    rhs,
+                    source_attributes,
+                    attributes_by_control,
+                )?,
+        )),
+        UiBindingExpression::NotEquals(lhs, rhs) => Some(UiValue::Bool(
+            resolve_template_action_expression(lhs, source_attributes, attributes_by_control)?
+                != resolve_template_action_expression(
+                    rhs,
+                    source_attributes,
+                    attributes_by_control,
+                )?,
+        )),
+        UiBindingExpression::And(lhs, rhs) => Some(UiValue::Bool(
+            template_action_bool(&resolve_template_action_expression(
+                lhs,
+                source_attributes,
+                attributes_by_control,
+            )?)? && template_action_bool(&resolve_template_action_expression(
+                rhs,
+                source_attributes,
+                attributes_by_control,
+            )?)?,
+        )),
+        UiBindingExpression::Or(lhs, rhs) => Some(UiValue::Bool(
+            template_action_bool(&resolve_template_action_expression(
+                lhs,
+                source_attributes,
+                attributes_by_control,
+            )?)? || template_action_bool(&resolve_template_action_expression(
+                rhs,
+                source_attributes,
+                attributes_by_control,
+            )?)?,
+        )),
+        UiBindingExpression::Not(value) => Some(UiValue::Bool(!template_action_bool(
+            &resolve_template_action_expression(value, source_attributes, attributes_by_control)?,
+        )?)),
+    }
+}
+
+fn template_action_bool(value: &UiValue) -> Option<bool> {
+    match value {
+        UiValue::Bool(value) => Some(*value),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
-mod performance_tests {
+mod tests {
+    use std::collections::BTreeMap;
+
+    use toml::Value;
+    use zircon_runtime_interface::ui::{
+        component::UiValue, dispatch::UiTemplateActionInvocation, template::UiActionRef,
+    };
+
+    use super::resolve_template_action;
+
+    #[test]
+    fn resolves_typed_action_payload_from_a_control_property_snapshot() {
+        let action = UiActionRef {
+            route: Some("plugin.operation".to_string()),
+            action: None,
+            payload: BTreeMap::from([(
+                "entity".to_string(),
+                Value::String("=control.RowList.prop.selected_row_identity".to_string()),
+            )]),
+        };
+        let control_attributes = BTreeMap::from([(
+            "RowList".to_string(),
+            BTreeMap::from([("selected_row_identity".to_string(), Value::Integer(73))]),
+        )]);
+
+        assert_eq!(
+            resolve_template_action(&action, &BTreeMap::new(), &control_attributes),
+            Some(UiTemplateActionInvocation::new(
+                "plugin.operation",
+                BTreeMap::from([("entity".to_string(), UiValue::Int(73))]),
+            ))
+        );
+    }
+
     #[test]
     fn host_projection_indexes_bindings_by_reference() {
         let source = include_str!("projection.rs");

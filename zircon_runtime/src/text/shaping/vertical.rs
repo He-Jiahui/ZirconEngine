@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use crate::text::font::FontDatabase;
-use crate::text::{BackendShapeRequest, ShapedGlyph, ShapedGlyphRun, TextOrientation};
+use crate::text::{BackendShapeRequest, FontFaceId, ShapedGlyph, ShapedGlyphRun, TextOrientation};
 
 #[path = "vertical/orientation.rs"]
 mod orientation;
@@ -41,6 +43,7 @@ pub(super) fn apply_vertical_layout(
 ) {
     let backend_advances =
         font_database.map(|database| apply_vertical_backend_shaping(shaped, request, database));
+    let mut vertical_metrics = HashMap::new();
     apply_vertical_layout_with_native_metrics(shaped, request, |line_index, glyph_index, glyph| {
         backend_advances
             .as_ref()
@@ -50,13 +53,29 @@ pub(super) fn apply_vertical_layout(
             .flatten()
             .or_else(|| {
                 let face = glyph.font_id?;
-                font_database?.vertical_glyph_advance_px(
+                let metrics = cached_vertical_metrics(
+                    &mut vertical_metrics,
+                    font_database?,
                     face,
-                    glyph.glyph_id,
                     request.style.font_size,
-                )
+                )?;
+                metrics.glyph_advance_px(glyph.glyph_id)
             })
     });
+}
+
+fn cached_vertical_metrics<'a>(
+    cache: &mut HashMap<FontFaceId, crate::text::font::FontVerticalMetrics<'a>>,
+    database: &'a FontDatabase,
+    face: FontFaceId,
+    font_size: f32,
+) -> Option<crate::text::font::FontVerticalMetrics<'a>> {
+    if let Some(metrics) = cache.get(&face) {
+        return Some(*metrics);
+    }
+    let metrics = database.vertical_metrics(face, font_size)?;
+    cache.insert(face, metrics);
+    Some(metrics)
 }
 
 fn apply_vertical_layout_with_native_metrics(

@@ -1,0 +1,3464 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m4_ability_codegen.mjs",
+  "source_identities": {
+    "representation": "git_blob_lf",
+    "scenarios": {
+      "path": "tests/parity/scenarios.ts",
+      "bytes": 194197,
+      "sha256": "626beaaa2585ac56814cf47509572e0902f7fb1e85bb2ef169443e0059121c97"
+    },
+    "abilities": {
+      "path": "src/sim/content/classes.ts",
+      "bytes": 200029,
+      "sha256": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889"
+    }
+  },
+  "reference_manifest_identity": {
+    "representation": "git_blob_lf",
+    "path": "tests/parity/scenarios.ts",
+    "bytes": 194197,
+    "sha256": "626beaaa2585ac56814cf47509572e0902f7fb1e85bb2ef169443e0059121c97"
+  },
+  "catalog_sha256": "1f7d61d439831b44390a5609d1962c97d019f4dec62d5499051e0a2af0ded047",
+  "entries": [
+    {
+      "index": 0,
+      "id": "heroic_strike",
+      "scenarios": [
+        "c5_auto_attack",
+        "solo_warrior"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.heroic_strike",
+      "definition": {
+        "id": "heroic_strike",
+        "name": "Reaver Strike",
+        "class": "warrior",
+        "learnLevel": 1,
+        "cost": 15,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "onNextSwing": true,
+        "offGcd": true,
+        "excludeSpecs": [
+          "prot",
+          "arms",
+          "fury"
+        ],
+        "threat": {
+          "flat": 20
+        },
+        "effects": [
+          {
+            "type": "weaponDamage",
+            "bonus": 11
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 8,
+            "cost": 15,
+            "threatFlat": 39,
+            "effects": [
+              {
+                "type": "weaponDamage",
+                "bonus": 21
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 14,
+            "cost": 15,
+            "threatFlat": 59,
+            "effects": [
+              {
+                "type": "weaponDamage",
+                "bonus": 32
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 15,
+            "threatFlat": 78,
+            "effects": [
+              {
+                "type": "weaponDamage",
+                "bonus": 44
+              }
+            ]
+          }
+        ],
+        "description": "A strong attack that increases melee damage by $d. Activates on your next swing."
+      }
+    },
+    {
+      "index": 1,
+      "id": "fireball",
+      "scenarios": [
+        "c4a_casting_lifecycle",
+        "hit_rating_heroic_geared",
+        "hit_rating_heroic_ungeared",
+        "solo_mage"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.fireball",
+      "definition": {
+        "id": "fireball",
+        "name": "Cinderbolt",
+        "class": "mage",
+        "learnLevel": 1,
+        "cost": 30,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "fire",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 16,
+            "max": 25
+          },
+          {
+            "type": "dot",
+            "total": 2,
+            "duration": 4,
+            "interval": 2
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 6,
+            "cost": 45,
+            "castTime": 2,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 22,
+                "max": 31
+              },
+              {
+                "type": "dot",
+                "total": 3,
+                "duration": 6,
+                "interval": 2
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 12,
+            "cost": 65,
+            "castTime": 2.5,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 36,
+                "max": 48
+              },
+              {
+                "type": "dot",
+                "total": 6,
+                "duration": 6,
+                "interval": 2
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 18,
+            "cost": 95,
+            "castTime": 3,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 58,
+                "max": 78
+              },
+              {
+                "type": "dot",
+                "total": 12,
+                "duration": 8,
+                "interval": 2
+              }
+            ]
+          }
+        ],
+        "description": "Hurls a fiery ball that causes $d Fire damage plus additional damage over time."
+      }
+    },
+    {
+      "index": 2,
+      "id": "frostbolt",
+      "scenarios": [
+        "solo_mage"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.frostbolt",
+      "definition": {
+        "id": "frostbolt",
+        "name": "Rimelance",
+        "class": "mage",
+        "learnLevel": 4,
+        "cost": 25,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "frost",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 18,
+            "max": 20
+          },
+          {
+            "type": "slow",
+            "mult": 0.6,
+            "duration": 5
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 8,
+            "cost": 35,
+            "castTime": 2,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 31,
+                "max": 35
+              },
+              {
+                "type": "slow",
+                "mult": 0.6,
+                "duration": 6
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 14,
+            "cost": 50,
+            "castTime": 2.5,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 44,
+                "max": 50
+              },
+              {
+                "type": "slow",
+                "mult": 0.6,
+                "duration": 7
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 70,
+            "castTime": 2.5,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 66,
+                "max": 74
+              },
+              {
+                "type": "slow",
+                "mult": 0.6,
+                "duration": 9
+              }
+            ]
+          }
+        ],
+        "description": "Launches a bolt of frost, causing $d Frost damage and slowing movement by 40%."
+      }
+    },
+    {
+      "index": 3,
+      "id": "sinister_strike",
+      "scenarios": [
+        "c4b_effect_dispatch",
+        "solo_rogue"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.sinister_strike",
+      "definition": {
+        "id": "sinister_strike",
+        "name": "Wicked Slash",
+        "class": "rogue",
+        "learnLevel": 1,
+        "cost": 45,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "awardsCombo": 1,
+        "effects": [
+          {
+            "type": "weaponStrike",
+            "bonus": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 8,
+            "cost": 45,
+            "effects": [
+              {
+                "type": "weaponStrike",
+                "bonus": 6
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 14,
+            "cost": 45,
+            "effects": [
+              {
+                "type": "weaponStrike",
+                "bonus": 12
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 45,
+            "effects": [
+              {
+                "type": "weaponStrike",
+                "bonus": 18
+              }
+            ]
+          }
+        ],
+        "description": "An instant strike for weapon damage plus $d. Awards 1 combo point."
+      }
+    },
+    {
+      "index": 4,
+      "id": "taunt",
+      "scenarios": [
+        "affix_mob"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.taunt",
+      "definition": {
+        "id": "taunt",
+        "name": "Goad",
+        "class": "warrior",
+        "learnLevel": 5,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 10,
+        "range": 8,
+        "school": "physical",
+        "requiresTarget": true,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "taunt"
+          }
+        ],
+        "description": "Goads the target: your threat rises to match its most hated enemy and it is compelled to attack you for 3 sec."
+      }
+    },
+    {
+      "index": 5,
+      "id": "consecration",
+      "scenarios": [
+        "c3_aura_runner",
+        "c4b_effect_dispatch",
+        "paladin_consecration"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.consecration",
+      "definition": {
+        "id": "consecration",
+        "name": "Holy Ground",
+        "class": "paladin",
+        "learnLevel": 8,
+        "cost": 60,
+        "castTime": 0,
+        "cooldown": 8,
+        "range": 0,
+        "school": "holy",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "groundAoE",
+            "min": 28,
+            "max": 34,
+            "radius": 8,
+            "duration": 10,
+            "interval": 2
+          }
+        ],
+        "description": "Consecrates the ground beneath you, searing nearby enemies for $d Holy damage every 2 sec for 10 sec."
+      }
+    },
+    {
+      "index": 6,
+      "id": "lesser_heal",
+      "scenarios": [
+        "c4a_casting_lifecycle"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.lesser_heal",
+      "definition": {
+        "id": "lesser_heal",
+        "name": "Whispered Prayer",
+        "class": "priest",
+        "learnLevel": 1,
+        "cost": 30,
+        "castTime": 2,
+        "cooldown": 0,
+        "range": 30,
+        "school": "holy",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "heal",
+            "min": 47,
+            "max": 58
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 6,
+            "cost": 45,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 72,
+                "max": 86
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 12,
+            "cost": 65,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 110,
+                "max": 132
+              }
+            ]
+          }
+        ],
+        "description": "Heals a friendly target for $d."
+      }
+    },
+    {
+      "index": 7,
+      "id": "drain_life",
+      "scenarios": [
+        "c4a_casting_lifecycle"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.drain_life",
+      "definition": {
+        "id": "drain_life",
+        "name": "Consume",
+        "class": "warlock",
+        "learnLevel": 10,
+        "cost": 35,
+        "castTime": 0,
+        "channel": {
+          "duration": 5,
+          "ticks": 5
+        },
+        "cooldown": 0,
+        "range": 20,
+        "school": "shadow",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "drainTick",
+            "min": 7,
+            "max": 7,
+            "healFrac": 1
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 14,
+            "cost": 50,
+            "effects": [
+              {
+                "type": "drainTick",
+                "min": 12,
+                "max": 12,
+                "healFrac": 1
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 20,
+            "cost": 70,
+            "effects": [
+              {
+                "type": "drainTick",
+                "min": 17,
+                "max": 17,
+                "healFrac": 1
+              }
+            ]
+          }
+        ],
+        "description": "Drains the target's life, transferring $d health to you each second for 5 sec."
+      }
+    },
+    {
+      "index": 8,
+      "id": "fear",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.fear",
+      "definition": {
+        "id": "fear",
+        "name": "Harrow",
+        "class": "warlock",
+        "learnLevel": 14,
+        "cost": 40,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 20,
+        "school": "shadow",
+        "requiresTarget": true,
+        "fearDr": true,
+        "effects": [
+          {
+            "type": "incapacitate",
+            "duration": 8
+          }
+        ],
+        "description": "Strikes terror into the enemy, leaving it cowering for up to 8 sec. Any damage breaks the effect."
+      }
+    },
+    {
+      "index": 9,
+      "id": "summon_imp",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.summon_imp",
+      "definition": {
+        "id": "summon_imp",
+        "name": "Summon Emberkin",
+        "class": "warlock",
+        "learnLevel": 1,
+        "cost": 50,
+        "castTime": 5,
+        "cooldown": 0,
+        "range": 0,
+        "school": "shadow",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "summonDemon",
+            "mobId": "emberkin"
+          }
+        ],
+        "description": "Summons an Emberkin under the command of the Warlock. The Emberkin hurls Ashbolts at your enemies from afar. Summoning a new demon dismisses your current one. You may have one demon at a time."
+      }
+    },
+    {
+      "index": 10,
+      "id": "sunder_armor",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.sunder_armor",
+      "definition": {
+        "id": "sunder_armor",
+        "name": "Armor Shear",
+        "class": "warrior",
+        "learnLevel": 5,
+        "specs": [
+          "prot"
+        ],
+        "cost": 15,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "threat": {
+          "flat": 100
+        },
+        "effects": [
+          {
+            "type": "sunder",
+            "armor": 25,
+            "maxStacks": 5
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 16,
+            "cost": 15,
+            "threatFlat": 130,
+            "effects": [
+              {
+                "type": "sunder",
+                "armor": 40,
+                "maxStacks": 5
+              }
+            ]
+          }
+        ],
+        "description": "Sunders the target's armor, reducing it by $d% per application. Stacks up to 5 times. Generates a high amount of threat."
+      }
+    },
+    {
+      "index": 11,
+      "id": "arcane_explosion",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.arcane_explosion",
+      "definition": {
+        "id": "arcane_explosion",
+        "name": "Aetherburst",
+        "class": "mage",
+        "learnLevel": 7,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 60,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "arcane",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "aoeDamage",
+            "min": 26,
+            "max": 31,
+            "radius": 10
+          }
+        ],
+        "description": "A burst of Arcane energy hits all nearby enemies for $d Arcane damage."
+      }
+    },
+    {
+      "index": 12,
+      "id": "eviscerate",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.eviscerate",
+      "definition": {
+        "id": "eviscerate",
+        "name": "Dirt Nap",
+        "class": "rogue",
+        "learnLevel": 1,
+        "cost": 35,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "spendsCombo": true,
+        "effects": [
+          {
+            "type": "finisherDamage",
+            "base": 4,
+            "perCombo": 7,
+            "variance": 4
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 35,
+            "effects": [
+              {
+                "type": "finisherDamage",
+                "base": 8,
+                "perCombo": 12,
+                "variance": 6
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 35,
+            "effects": [
+              {
+                "type": "finisherDamage",
+                "base": 14,
+                "perCombo": 18,
+                "variance": 9
+              }
+            ]
+          }
+        ],
+        "description": "Finishing move that causes $d."
+      }
+    },
+    {
+      "index": 13,
+      "id": "kidney_shot",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.kidney_shot",
+      "definition": {
+        "id": "kidney_shot",
+        "name": "Low Blow",
+        "class": "rogue",
+        "learnLevel": 8,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 20,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "spendsCombo": true,
+        "effects": [
+          {
+            "type": "finisherStun",
+            "base": 1,
+            "perCombo": 1
+          }
+        ],
+        "description": "Finishing move that stuns the target. Lasts 1 sec longer per combo point."
+      }
+    },
+    {
+      "index": 14,
+      "id": "seal_of_righteousness",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.seal_of_righteousness",
+      "definition": {
+        "id": "seal_of_righteousness",
+        "name": "Oathbrand",
+        "class": "paladin",
+        "learnLevel": 1,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "holy",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "imbue",
+            "bonus": 4,
+            "duration": 30,
+            "judgeMin": 10,
+            "judgeMax": 18
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 10,
+            "cost": 35,
+            "effects": [
+              {
+                "type": "imbue",
+                "bonus": 7,
+                "duration": 30,
+                "judgeMin": 18,
+                "judgeMax": 28
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 16,
+            "cost": 50,
+            "effects": [
+              {
+                "type": "imbue",
+                "bonus": 11,
+                "duration": 30,
+                "judgeMin": 30,
+                "judgeMax": 44
+              }
+            ]
+          }
+        ],
+        "description": "Fills you with Holy power for 30 sec, causing each of your melee swings to deal $d additional Holy damage. Unleash with Verdict."
+      }
+    },
+    {
+      "index": 15,
+      "id": "judgement",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.judgement",
+      "definition": {
+        "id": "judgement",
+        "name": "Verdict",
+        "class": "paladin",
+        "learnLevel": 4,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 10,
+        "range": 10,
+        "school": "holy",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "judgement"
+          }
+        ],
+        "description": "Unleashes your active Seal upon the enemy, consuming it to deal its judgement damage."
+      }
+    },
+    {
+      "index": 16,
+      "id": "moonfire",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.moonfire",
+      "definition": {
+        "id": "moonfire",
+        "name": "Lunar Tempest",
+        "class": "druid",
+        "learnLevel": 4,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 30,
+        "school": "arcane",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 9,
+            "max": 12
+          },
+          {
+            "type": "dot",
+            "total": 12,
+            "duration": 9,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 10,
+            "cost": 40,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 17,
+                "max": 21
+              },
+              {
+                "type": "dot",
+                "total": 24,
+                "duration": 12,
+                "interval": 3
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 16,
+            "cost": 60,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 28,
+                "max": 34
+              },
+              {
+                "type": "dot",
+                "total": 40,
+                "duration": 12,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "Burns the enemy with moonfire for $d Arcane damage plus damage over time."
+      }
+    },
+    {
+      "index": 17,
+      "id": "bear_form",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.bear_form",
+      "definition": {
+        "id": "bear_form",
+        "name": "Bruin Form",
+        "class": "druid",
+        "learnLevel": 8,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "form_bear",
+            "value": 0.65,
+            "duration": 3600
+          }
+        ],
+        "description": "Shapeshift into a bear: armor +90%, greatly increased attack power, your attacks build rage and generate 30% more threat. Cast again to return to caster form."
+      }
+    },
+    {
+      "index": 18,
+      "id": "cat_form",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.cat_form",
+      "definition": {
+        "id": "cat_form",
+        "name": "Wolf Form",
+        "class": "druid",
+        "learnLevel": 5,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "form_cat",
+            "value": 0.71,
+            "duration": 3600
+          }
+        ],
+        "description": "Shapeshift into a wolf: agility rises with your level, attack power +8 plus 2 per level, your attacks use energy and combo points, and you generate 29% less threat. Cast again to return to caster form."
+      }
+    },
+    {
+      "index": 19,
+      "id": "rejuvenation",
+      "scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.rejuvenation",
+      "definition": {
+        "id": "rejuvenation",
+        "name": "Wildbloom",
+        "class": "druid",
+        "learnLevel": 4,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "hot",
+            "total": 32,
+            "duration": 12,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 10,
+            "cost": 40,
+            "effects": [
+              {
+                "type": "hot",
+                "total": 56,
+                "duration": 12,
+                "interval": 3
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 16,
+            "cost": 60,
+            "effects": [
+              {
+                "type": "hot",
+                "total": 88,
+                "duration": 12,
+                "interval": 3
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 80,
+            "effects": [
+              {
+                "type": "hot",
+                "total": 116,
+                "duration": 12,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "Heals the target for $d over 12 sec."
+      }
+    },
+    {
+      "index": 20,
+      "id": "raptor_strike",
+      "scenarios": [
+        "c5_auto_attack"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.raptor_strike",
+      "definition": {
+        "id": "raptor_strike",
+        "name": "Gutting Strike",
+        "class": "hunter",
+        "learnLevel": 1,
+        "cost": 15,
+        "castTime": 0,
+        "cooldown": 6,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "onNextSwing": true,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "weaponDamage",
+            "bonus": 5
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 8,
+            "cost": 25,
+            "effects": [
+              {
+                "type": "weaponDamage",
+                "bonus": 11
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 14,
+            "cost": 35,
+            "effects": [
+              {
+                "type": "weaponDamage",
+                "bonus": 18
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 45,
+            "effects": [
+              {
+                "type": "weaponDamage",
+                "bonus": 27
+              }
+            ]
+          }
+        ],
+        "description": "A strong melee attack that increases damage by $d. Activates on your next swing."
+      }
+    },
+    {
+      "index": 21,
+      "id": "backstab",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.backstab",
+      "definition": {
+        "id": "backstab",
+        "name": "Craven Thrust",
+        "class": "rogue",
+        "learnLevel": 4,
+        "cost": 60,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "awardsCombo": 1,
+        "effects": [
+          {
+            "type": "weaponStrike",
+            "bonus": 11,
+            "requiresBehind": true,
+            "weaponMult": 1.5
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 60,
+            "effects": [
+              {
+                "type": "weaponStrike",
+                "bonus": 20,
+                "requiresBehind": true,
+                "weaponMult": 1.5
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 60,
+            "effects": [
+              {
+                "type": "weaponStrike",
+                "bonus": 32,
+                "requiresBehind": true,
+                "weaponMult": 1.5
+              }
+            ]
+          }
+        ],
+        "description": "Drive your dagger into the target's back for 150% weapon damage plus $d. Must be behind the target. Requires a dagger. Awards 1 combo point."
+      }
+    },
+    {
+      "index": 22,
+      "id": "gouge",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.gouge",
+      "definition": {
+        "id": "gouge",
+        "name": "Eye Jab",
+        "class": "rogue",
+        "learnLevel": 6,
+        "cost": 45,
+        "castTime": 0,
+        "cooldown": 10,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "awardsCombo": 1,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 8,
+            "max": 9
+          },
+          {
+            "type": "incapacitate",
+            "duration": 4
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 14,
+            "cost": 45,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 15,
+                "max": 17
+              },
+              {
+                "type": "incapacitate",
+                "duration": 4
+              }
+            ]
+          }
+        ],
+        "description": "Strikes the target for $d damage, incapacitating it for 4 sec. Any damage breaks the effect. Awards 1 combo point."
+      }
+    },
+    {
+      "index": 23,
+      "id": "serpent_sting",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.serpent_sting",
+      "definition": {
+        "id": "serpent_sting",
+        "name": "Venom Barb",
+        "class": "hunter",
+        "learnLevel": 4,
+        "cost": 15,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 35,
+        "minRange": 8,
+        "school": "nature",
+        "scalesWith": "ranged",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "dot",
+            "total": 20,
+            "duration": 15,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 10,
+            "cost": 25,
+            "effects": [
+              {
+                "type": "dot",
+                "total": 35,
+                "duration": 15,
+                "interval": 3
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 16,
+            "cost": 35,
+            "effects": [
+              {
+                "type": "dot",
+                "total": 55,
+                "duration": 15,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "Stings the target, dealing $d Nature damage over 15 sec."
+      }
+    },
+    {
+      "index": 24,
+      "id": "shadow_word_pain",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.shadow_word_pain",
+      "definition": {
+        "id": "shadow_word_pain",
+        "name": "Dirge of Decay",
+        "class": "priest",
+        "learnLevel": 4,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 30,
+        "school": "shadow",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "dot",
+            "total": 30,
+            "duration": 18,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 10,
+            "cost": 38,
+            "effects": [
+              {
+                "type": "dot",
+                "total": 54,
+                "duration": 18,
+                "interval": 3
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 16,
+            "cost": 55,
+            "effects": [
+              {
+                "type": "dot",
+                "total": 84,
+                "duration": 18,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "A word of darkness causes $d Shadow damage over 18 sec."
+      }
+    },
+    {
+      "index": 25,
+      "id": "renew",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.renew",
+      "definition": {
+        "id": "renew",
+        "name": "Lingering Grace",
+        "class": "priest",
+        "learnLevel": 8,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 30,
+        "school": "holy",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "hot",
+            "total": 45,
+            "duration": 15,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 14,
+            "cost": 50,
+            "effects": [
+              {
+                "type": "hot",
+                "total": 90,
+                "duration": 15,
+                "interval": 3
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 20,
+            "cost": 75,
+            "effects": [
+              {
+                "type": "hot",
+                "total": 140,
+                "duration": 15,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "Heals the target for $d over 15 sec."
+      }
+    },
+    {
+      "index": 26,
+      "id": "power_word_shield",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.power_word_shield",
+      "definition": {
+        "id": "power_word_shield",
+        "name": "Psalm of Warding",
+        "class": "priest",
+        "learnLevel": 6,
+        "cost": 45,
+        "castTime": 0,
+        "cooldown": 6,
+        "range": 30,
+        "school": "holy",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "absorb",
+            "amount": 48,
+            "duration": 30
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 70,
+            "effects": [
+              {
+                "type": "absorb",
+                "amount": 90,
+                "duration": 30
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 100,
+            "effects": [
+              {
+                "type": "absorb",
+                "amount": 145,
+                "duration": 30
+              }
+            ]
+          }
+        ],
+        "description": "Shields the target, absorbing $d damage for 30 sec."
+      }
+    },
+    {
+      "index": 27,
+      "id": "smite",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.smite",
+      "definition": {
+        "id": "smite",
+        "name": "Smite",
+        "class": "priest",
+        "learnLevel": 1,
+        "cost": 20,
+        "castTime": 2,
+        "cooldown": 0,
+        "range": 30,
+        "school": "holy",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 15,
+            "max": 20
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 8,
+            "cost": 32,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 26,
+                "max": 33
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 14,
+            "cost": 48,
+            "castTime": 2.5,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 42,
+                "max": 52
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 70,
+            "castTime": 2.5,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 64,
+                "max": 78
+              }
+            ]
+          }
+        ],
+        "description": "Smites the enemy for $d Holy damage."
+      }
+    },
+    {
+      "index": 28,
+      "id": "mind_blast",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.mind_blast",
+      "definition": {
+        "id": "mind_blast",
+        "name": "Mindfracture",
+        "class": "priest",
+        "learnLevel": 5,
+        "cost": 50,
+        "castTime": 1.5,
+        "cooldown": 8,
+        "range": 30,
+        "school": "shadow",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 42,
+            "max": 46
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 14,
+            "cost": 70,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 60,
+                "max": 66
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 20,
+            "cost": 95,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 86,
+                "max": 94
+              }
+            ]
+          }
+        ],
+        "description": "Blasts the target's mind for $d Shadow damage."
+      }
+    },
+    {
+      "index": 29,
+      "id": "heal",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.heal",
+      "definition": {
+        "id": "heal",
+        "name": "Solemn Prayer",
+        "class": "priest",
+        "learnLevel": 14,
+        "cost": 95,
+        "castTime": 2.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "holy",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "heal",
+            "min": 165,
+            "max": 195
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 20,
+            "cost": 130,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 230,
+                "max": 270
+              }
+            ]
+          }
+        ],
+        "description": "A slow but powerful prayer that heals a friendly target for $d."
+      }
+    },
+    {
+      "index": 30,
+      "id": "flash_heal",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.flash_heal",
+      "definition": {
+        "id": "flash_heal",
+        "name": "Urgent Prayer",
+        "class": "priest",
+        "learnLevel": 20,
+        "cost": 75,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "holy",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "heal",
+            "min": 120,
+            "max": 142
+          }
+        ],
+        "description": "A fast prayer that heals a friendly target for $d."
+      }
+    },
+    {
+      "index": 31,
+      "id": "mind_flay",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.mind_flay",
+      "definition": {
+        "id": "mind_flay",
+        "name": "Litany of Woe",
+        "class": "priest",
+        "learnLevel": 14,
+        "cost": 45,
+        "castTime": 0,
+        "channel": {
+          "duration": 3,
+          "ticks": 3
+        },
+        "cooldown": 0,
+        "range": 20,
+        "school": "shadow",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "drainTick",
+            "min": 12,
+            "max": 12,
+            "healFrac": 0
+          }
+        ],
+        "description": "Assaults the target's mind with Shadow energy, causing $d Shadow damage each second for 3 sec."
+      }
+    },
+    {
+      "index": 32,
+      "id": "lightning_bolt",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.lightning_bolt",
+      "definition": {
+        "id": "lightning_bolt",
+        "name": "Arc Bolt",
+        "class": "shaman",
+        "learnLevel": 1,
+        "cost": 15,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "projectileFx": "lightning",
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 15,
+            "max": 17
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 8,
+            "cost": 25,
+            "castTime": 2,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 26,
+                "max": 30
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 14,
+            "cost": 40,
+            "castTime": 2.5,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 45,
+                "max": 51
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 60,
+            "castTime": 3,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 75,
+                "max": 85
+              }
+            ]
+          }
+        ],
+        "description": "Hurls a bolt of lightning for $d Nature damage."
+      }
+    },
+    {
+      "index": 33,
+      "id": "healing_wave",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.healing_wave",
+      "definition": {
+        "id": "healing_wave",
+        "name": "Mending Waters",
+        "class": "shaman",
+        "learnLevel": 1,
+        "cost": 25,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "heal",
+            "min": 36,
+            "max": 44
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 6,
+            "cost": 40,
+            "castTime": 2,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 56,
+                "max": 68
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 12,
+            "cost": 65,
+            "castTime": 2.5,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 92,
+                "max": 110
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 18,
+            "cost": 90,
+            "castTime": 2.5,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 138,
+                "max": 164
+              }
+            ]
+          }
+        ],
+        "description": "Heals a friendly target for $d."
+      }
+    },
+    {
+      "index": 34,
+      "id": "earth_shock",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.earth_shock",
+      "definition": {
+        "id": "earth_shock",
+        "name": "Earthen Jolt",
+        "class": "shaman",
+        "learnLevel": 4,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 6,
+        "range": 20,
+        "school": "nature",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 19,
+            "max": 22
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 10,
+            "cost": 45,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 33,
+                "max": 38
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 16,
+            "cost": 65,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 54,
+                "max": 61
+              }
+            ]
+          }
+        ],
+        "description": "Instantly shocks the target with concussive force for $d Nature damage."
+      }
+    },
+    {
+      "index": 35,
+      "id": "frost_shock",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.frost_shock",
+      "definition": {
+        "id": "frost_shock",
+        "name": "Rime Jolt",
+        "class": "shaman",
+        "learnLevel": 8,
+        "cost": 50,
+        "castTime": 0,
+        "cooldown": 6,
+        "range": 20,
+        "school": "frost",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 36,
+            "max": 42
+          },
+          {
+            "type": "slow",
+            "mult": 0.5,
+            "duration": 8
+          }
+        ],
+        "description": "Instantly shocks the target with frost for $d Frost damage and slows its movement by 50% for 8 sec."
+      }
+    },
+    {
+      "index": 36,
+      "id": "flame_shock",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.flame_shock",
+      "definition": {
+        "id": "flame_shock",
+        "name": "Cinder Jolt",
+        "class": "shaman",
+        "learnLevel": 8,
+        "cost": 35,
+        "castTime": 0,
+        "cooldown": 6,
+        "range": 20,
+        "school": "fire",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 25,
+            "max": 25
+          },
+          {
+            "type": "dot",
+            "total": 28,
+            "duration": 12,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 16,
+            "cost": 55,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 42,
+                "max": 42
+              },
+              {
+                "type": "dot",
+                "total": 48,
+                "duration": 12,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "Sears the target with fire for $d damage plus $o over 12 sec."
+      }
+    },
+    {
+      "index": 37,
+      "id": "flametongue_weapon",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.flametongue_weapon",
+      "definition": {
+        "id": "flametongue_weapon",
+        "name": "Pyrebrand Weapon",
+        "class": "shaman",
+        "learnLevel": 5,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "fire",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "imbue",
+            "bonus": 8,
+            "duration": 300
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 18,
+            "cost": 40,
+            "effects": [
+              {
+                "type": "imbue",
+                "bonus": 13,
+                "duration": 300
+              }
+            ]
+          }
+        ],
+        "description": "Imbues your weapon with elemental fire: each swing deals $d additional Fire damage for 5 min."
+      }
+    },
+    {
+      "index": 38,
+      "id": "frostbrand_weapon",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.frostbrand_weapon",
+      "definition": {
+        "id": "frostbrand_weapon",
+        "name": "Rimebound Weapon",
+        "class": "shaman",
+        "learnLevel": 5,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "frost",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "imbue",
+            "bonus": 8,
+            "duration": 300
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 20,
+            "cost": 40,
+            "effects": [
+              {
+                "type": "imbue",
+                "bonus": 13,
+                "duration": 300
+              }
+            ]
+          }
+        ],
+        "description": "Imbues your weapon with biting frost: each swing deals $d additional damage for 5 min."
+      }
+    },
+    {
+      "index": 39,
+      "id": "ghost_wolf",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.ghost_wolf",
+      "definition": {
+        "id": "ghost_wolf",
+        "name": "Shadewolf",
+        "class": "shaman",
+        "learnLevel": 16,
+        "cost": 35,
+        "castTime": 2,
+        "cooldown": 0,
+        "range": 0,
+        "school": "nature",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_speed",
+            "value": 1.4,
+            "duration": 3600
+          }
+        ],
+        "description": "Turns you into a Shadewolf, increasing movement speed by 40%. Cast again to return to normal form."
+      }
+    },
+    {
+      "index": 40,
+      "id": "stormstrike",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.stormstrike",
+      "definition": {
+        "id": "stormstrike",
+        "name": "Ancestral Strike",
+        "class": "shaman",
+        "learnLevel": 20,
+        "cost": 40,
+        "castTime": 0,
+        "cooldown": 12,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "weaponStrike",
+            "bonus": 26
+          }
+        ],
+        "description": "Channels the storm through your weapon, instantly striking for weapon damage plus $d."
+      }
+    },
+    {
+      "index": 41,
+      "id": "shadow_bolt",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.shadow_bolt",
+      "definition": {
+        "id": "shadow_bolt",
+        "name": "Gloom Bolt",
+        "class": "warlock",
+        "learnLevel": 1,
+        "cost": 25,
+        "castTime": 1.7,
+        "cooldown": 0,
+        "range": 30,
+        "school": "shadow",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 13,
+            "max": 18
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 8,
+            "cost": 38,
+            "castTime": 2.2,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 24,
+                "max": 31
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 14,
+            "cost": 55,
+            "castTime": 2.7,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 42,
+                "max": 53
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 80,
+            "castTime": 3,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 68,
+                "max": 84
+              }
+            ]
+          }
+        ],
+        "description": "Sends a shadowy bolt at the enemy for $d Shadow damage."
+      }
+    },
+    {
+      "index": 42,
+      "id": "immolate",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.immolate",
+      "definition": {
+        "id": "immolate",
+        "name": "Burning Pact",
+        "class": "warlock",
+        "learnLevel": 1,
+        "cost": 25,
+        "castTime": 2,
+        "cooldown": 0,
+        "range": 30,
+        "school": "fire",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 11,
+            "max": 11
+          },
+          {
+            "type": "dot",
+            "total": 20,
+            "duration": 15,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 10,
+            "cost": 40,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 22,
+                "max": 22
+              },
+              {
+                "type": "dot",
+                "total": 35,
+                "duration": 15,
+                "interval": 3
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 16,
+            "cost": 60,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 38,
+                "max": 38
+              },
+              {
+                "type": "dot",
+                "total": 60,
+                "duration": 15,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "Burns the enemy for $d Fire damage and an additional $o over 15 sec."
+      }
+    },
+    {
+      "index": 43,
+      "id": "corruption",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.corruption",
+      "definition": {
+        "id": "corruption",
+        "name": "Blackrot",
+        "class": "warlock",
+        "learnLevel": 4,
+        "cost": 35,
+        "castTime": 2,
+        "cooldown": 0,
+        "range": 30,
+        "school": "shadow",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "dot",
+            "total": 40,
+            "duration": 18,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 55,
+            "effects": [
+              {
+                "type": "dot",
+                "total": 72,
+                "duration": 18,
+                "interval": 3
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 75,
+            "effects": [
+              {
+                "type": "dot",
+                "total": 85,
+                "duration": 18,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "Corrupts the target, causing $d Shadow damage over 18 sec."
+      }
+    },
+    {
+      "index": 44,
+      "id": "life_tap",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.life_tap",
+      "definition": {
+        "id": "life_tap",
+        "name": "Hard Bargain",
+        "class": "warlock",
+        "learnLevel": 6,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "shadow",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "lifeTap",
+            "hp": 30,
+            "mana": 30
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 14,
+            "cost": 0,
+            "effects": [
+              {
+                "type": "lifeTap",
+                "hp": 55,
+                "mana": 55
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 20,
+            "cost": 0,
+            "effects": [
+              {
+                "type": "lifeTap",
+                "hp": 85,
+                "mana": 85
+              }
+            ]
+          }
+        ],
+        "description": "Converts $d health into $d mana."
+      }
+    },
+    {
+      "index": 45,
+      "id": "curse_of_agony",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.curse_of_agony",
+      "definition": {
+        "id": "curse_of_agony",
+        "name": "Hex of Anguish",
+        "class": "warlock",
+        "learnLevel": 8,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 30,
+        "school": "shadow",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "dot",
+            "total": 36,
+            "duration": 24,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 14,
+            "cost": 40,
+            "effects": [
+              {
+                "type": "dot",
+                "total": 72,
+                "duration": 24,
+                "interval": 3
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 20,
+            "cost": 60,
+            "effects": [
+              {
+                "type": "dot",
+                "total": 78,
+                "duration": 24,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "Curses the target with agony: $d Shadow damage over 24 sec."
+      }
+    },
+    {
+      "index": 46,
+      "id": "searing_pain",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.searing_pain",
+      "definition": {
+        "id": "searing_pain",
+        "name": "Sear",
+        "class": "warlock",
+        "learnLevel": 14,
+        "cost": 35,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "fire",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 30,
+            "max": 38
+          }
+        ],
+        "description": "Sears the enemy with agonizing fire for $d Fire damage. Quick to cast."
+      }
+    },
+    {
+      "index": 47,
+      "id": "shadowburn",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.shadowburn",
+      "definition": {
+        "id": "shadowburn",
+        "name": "Duskfire",
+        "class": "warlock",
+        "learnLevel": 14,
+        "cost": 70,
+        "castTime": 0,
+        "cooldown": 15,
+        "range": 20,
+        "school": "shadow",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 56,
+            "max": 66
+          }
+        ],
+        "description": "Instantly blasts the target with searing shadow for $d Shadow damage."
+      }
+    },
+    {
+      "index": 48,
+      "id": "demon_skin",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.demon_skin",
+      "definition": {
+        "id": "demon_skin",
+        "name": "Fiendhide",
+        "class": "warlock",
+        "learnLevel": 1,
+        "cost": 20,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "shadow",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_armor",
+            "value": 30,
+            "duration": 1800
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 35,
+            "effects": [
+              {
+                "type": "selfBuff",
+                "kind": "buff_armor",
+                "value": 55,
+                "duration": 1800
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 20,
+            "cost": 50,
+            "effects": [
+              {
+                "type": "selfBuff",
+                "kind": "buff_armor",
+                "value": 80,
+                "duration": 1800
+              }
+            ]
+          }
+        ],
+        "description": "Demonic skin increases your armor by $b for 30 min."
+      }
+    },
+    {
+      "index": 49,
+      "id": "rain_of_fire",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.rain_of_fire",
+      "definition": {
+        "id": "rain_of_fire",
+        "name": "Rain of Fire",
+        "class": "warlock",
+        "learnLevel": 18,
+        "cost": 85,
+        "castTime": 0,
+        "cooldown": 10,
+        "range": 30,
+        "school": "fire",
+        "requiresTarget": false,
+        "targetMode": "position",
+        "channel": {
+          "duration": 4,
+          "ticks": 4
+        },
+        "effects": [
+          {
+            "type": "aoeDamage",
+            "min": 14,
+            "max": 18,
+            "radius": 7
+          }
+        ],
+        "description": "Calls a rain of fire onto the target area for 4 sec, burning enemies for $d Fire damage each second."
+      }
+    },
+    {
+      "index": 50,
+      "id": "conflagrate",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.conflagrate",
+      "definition": {
+        "id": "conflagrate",
+        "name": "Conflagrate",
+        "class": "warlock",
+        "learnLevel": 10,
+        "cost": 55,
+        "castTime": 0,
+        "cooldown": 6,
+        "range": 30,
+        "school": "fire",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "consumeAura",
+            "auraIds": [
+              "immolate"
+            ],
+            "deal": {
+              "min": 54,
+              "max": 64
+            }
+          }
+        ],
+        "description": "Consumes your Burning Pact on the enemy to ignite them for $d Fire damage. (Destruction signature)"
+      }
+    },
+    {
+      "index": 51,
+      "id": "siphon_life",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.siphon_life",
+      "definition": {
+        "id": "siphon_life",
+        "name": "Veinleech",
+        "class": "warlock",
+        "learnLevel": 10,
+        "cost": 45,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 30,
+        "school": "shadow",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "dot",
+            "total": 60,
+            "duration": 30,
+            "interval": 3,
+            "leechPct": 1
+          }
+        ],
+        "description": "Siphons life from the enemy, causing $d Shadow damage over 30 sec and healing you for the damage done. (Affliction signature)"
+      }
+    },
+    {
+      "index": 52,
+      "id": "swiftmend",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.swiftmend",
+      "definition": {
+        "id": "swiftmend",
+        "name": "Swiftmend",
+        "class": "druid",
+        "learnLevel": 10,
+        "cost": 55,
+        "castTime": 0,
+        "cooldown": 8,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "consumeAura",
+            "auraKind": "hot",
+            "heal": {
+              "min": 105,
+              "max": 125
+            }
+          }
+        ],
+        "description": "Consumes a heal-over-time effect on a friendly target to heal them for $d. (Restoration signature)"
+      }
+    },
+    {
+      "index": 53,
+      "id": "wrath",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.wrath",
+      "definition": {
+        "id": "wrath",
+        "name": "Wildbolt",
+        "class": "druid",
+        "learnLevel": 1,
+        "cost": 20,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 13,
+            "max": 16
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 8,
+            "cost": 32,
+            "castTime": 2,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 24,
+                "max": 29
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 14,
+            "cost": 48,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 38,
+                "max": 45
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 70,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 60,
+                "max": 71
+              }
+            ]
+          }
+        ],
+        "description": "Hurls a bolt of nature energy for $d Nature damage."
+      }
+    },
+    {
+      "index": 54,
+      "id": "healing_touch",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.healing_touch",
+      "definition": {
+        "id": "healing_touch",
+        "name": "Wildmend",
+        "class": "druid",
+        "learnLevel": 1,
+        "cost": 25,
+        "castTime": 2.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "heal",
+            "min": 37,
+            "max": 51
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 8,
+            "cost": 45,
+            "castTime": 3,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 68,
+                "max": 86
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 14,
+            "cost": 75,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 115,
+                "max": 140
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "level": 20,
+            "cost": 110,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 175,
+                "max": 208
+              }
+            ]
+          }
+        ],
+        "description": "Heals a friendly target for $d."
+      }
+    },
+    {
+      "index": 55,
+      "id": "starfire",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.starfire",
+      "definition": {
+        "id": "starfire",
+        "name": "Skyfall",
+        "class": "druid",
+        "learnLevel": 14,
+        "cost": 80,
+        "castTime": 3,
+        "cooldown": 0,
+        "range": 30,
+        "school": "arcane",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 80,
+            "max": 112
+          }
+        ],
+        "description": "Calls down a bolt of stellar fire, causing $d Arcane damage."
+      }
+    },
+    {
+      "index": 56,
+      "id": "entangling_roots",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.entangling_roots",
+      "definition": {
+        "id": "entangling_roots",
+        "name": "Gripping Roots",
+        "class": "druid",
+        "learnLevel": 8,
+        "cost": 35,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "root",
+            "duration": 12
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 16,
+            "cost": 50,
+            "effects": [
+              {
+                "type": "root",
+                "duration": 12
+              },
+              {
+                "type": "dot",
+                "total": 32,
+                "duration": 12,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "Roots the target in place for up to 12 sec."
+      }
+    },
+    {
+      "index": 57,
+      "id": "maul",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.maul",
+      "definition": {
+        "id": "maul",
+        "name": "Bonecrush",
+        "class": "druid",
+        "learnLevel": 10,
+        "cost": 15,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "onNextSwing": true,
+        "offGcd": true,
+        "requiresForm": "bear",
+        "threat": {
+          "flat": 35
+        },
+        "effects": [
+          {
+            "type": "weaponDamage",
+            "bonus": 18
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 16,
+            "cost": 15,
+            "threatFlat": 50,
+            "effects": [
+              {
+                "type": "weaponDamage",
+                "bonus": 27
+              }
+            ]
+          }
+        ],
+        "description": "A mauling attack that increases melee damage by $d and causes a high amount of threat. Activates on your next swing. Bruin Form only."
+      }
+    },
+    {
+      "index": 58,
+      "id": "growl",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.growl",
+      "definition": {
+        "id": "growl",
+        "name": "Menace",
+        "class": "druid",
+        "learnLevel": 10,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 10,
+        "range": 8,
+        "school": "physical",
+        "requiresTarget": true,
+        "offGcd": true,
+        "requiresForm": "bear",
+        "effects": [
+          {
+            "type": "taunt"
+          }
+        ],
+        "description": "Menaces the target: your threat rises to match its most hated enemy and it is compelled to attack you for 3 sec. Bruin Form only."
+      }
+    },
+    {
+      "index": 59,
+      "id": "demoralizing_roar",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.demoralizing_roar",
+      "definition": {
+        "id": "demoralizing_roar",
+        "name": "Craven Roar",
+        "class": "druid",
+        "learnLevel": 10,
+        "cost": 10,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "requiresForm": "bear",
+        "effects": [
+          {
+            "type": "aoeAttackPower",
+            "amount": 20,
+            "duration": 20,
+            "radius": 8
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 16,
+            "cost": 10,
+            "effects": [
+              {
+                "type": "aoeAttackPower",
+                "amount": 35,
+                "duration": 20,
+                "radius": 8
+              }
+            ]
+          }
+        ],
+        "description": "Demoralizes nearby enemies, reducing their attack power by 20 for 20 sec. Bruin Form only."
+      }
+    },
+    {
+      "index": 60,
+      "id": "prowl",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.prowl",
+      "definition": {
+        "id": "prowl",
+        "name": "Stalk",
+        "class": "druid",
+        "learnLevel": 5,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "requiresForm": "cat",
+        "requiresOutOfCombat": true,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "stealth",
+            "value": 0.5,
+            "duration": 3600
+          }
+        ],
+        "description": "Enter stealth while in Wolf Form, moving 50% slower. Cannot be used in combat."
+      }
+    },
+    {
+      "index": 61,
+      "id": "rake",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.rake",
+      "definition": {
+        "id": "rake",
+        "name": "Flense",
+        "class": "druid",
+        "learnLevel": 5,
+        "cost": 35,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "awardsCombo": 1,
+        "requiresForm": "cat",
+        "requiresStealth": true,
+        "effects": [
+          {
+            "type": "weaponStrike",
+            "bonus": 8
+          },
+          {
+            "type": "dot",
+            "total": 30,
+            "duration": 9,
+            "interval": 3
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 18,
+            "cost": 35,
+            "effects": [
+              {
+                "type": "weaponStrike",
+                "bonus": 12
+              },
+              {
+                "type": "dot",
+                "total": 48,
+                "duration": 9,
+                "interval": 3
+              }
+            ]
+          }
+        ],
+        "description": "A stealth opener that rakes the enemy for weapon damage plus $d and causes bleeding damage over 9 sec. Awards 1 combo point. Wolf Form only."
+      }
+    },
+    {
+      "index": 62,
+      "id": "claw",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.claw",
+      "definition": {
+        "id": "claw",
+        "name": "Claw",
+        "class": "druid",
+        "learnLevel": 5,
+        "cost": 45,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "awardsCombo": 1,
+        "requiresForm": "cat",
+        "effects": [
+          {
+            "type": "weaponStrike",
+            "bonus": 12
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 18,
+            "cost": 45,
+            "effects": [
+              {
+                "type": "weaponStrike",
+                "bonus": 20
+              }
+            ]
+          }
+        ],
+        "description": "Claw the enemy for weapon damage plus $d. Awards 1 combo point. Wolf Form only."
+      }
+    },
+    {
+      "index": 63,
+      "id": "ferocious_bite",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.ferocious_bite",
+      "definition": {
+        "id": "ferocious_bite",
+        "name": "Gorebite",
+        "class": "druid",
+        "learnLevel": 14,
+        "cost": 35,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "spendsCombo": true,
+        "requiresForm": "cat",
+        "effects": [
+          {
+            "type": "finisherDamage",
+            "base": 10,
+            "perCombo": 14,
+            "variance": 6
+          }
+        ],
+        "description": "Finishing move that causes $d. Wolf Form only."
+      }
+    },
+    {
+      "index": 64,
+      "id": "swipe",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.swipe",
+      "definition": {
+        "id": "swipe",
+        "name": "Sweeping Claws",
+        "class": "druid",
+        "learnLevel": 16,
+        "cost": 20,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "requiresForm": "bear",
+        "threat": {
+          "mult": 1.75
+        },
+        "effects": [
+          {
+            "type": "aoeDamage",
+            "min": 12,
+            "max": 15,
+            "radius": 5
+          }
+        ],
+        "description": "Sweep your claws through nearby enemies for $d damage. Causes extra threat. Bruin Form only."
+      }
+    },
+    {
+      "index": 65,
+      "id": "regrowth",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.regrowth",
+      "definition": {
+        "id": "regrowth",
+        "name": "Second Bloom",
+        "class": "druid",
+        "learnLevel": 14,
+        "cost": 55,
+        "castTime": 2,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "heal",
+            "min": 52,
+            "max": 62
+          },
+          {
+            "type": "hot",
+            "total": 49,
+            "duration": 21,
+            "interval": 3
+          }
+        ],
+        "description": "Heals a friendly target for $d and an additional amount over 21 sec."
+      }
+    },
+    {
+      "index": 66,
+      "id": "barkskin",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.barkskin",
+      "definition": {
+        "id": "barkskin",
+        "name": "Oakhide",
+        "class": "druid",
+        "learnLevel": 16,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 60,
+        "range": 0,
+        "school": "nature",
+        "requiresTarget": false,
+        "offGcd": true,
+        "usableInForm": true,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_armor",
+            "value": 150,
+            "duration": 15
+          }
+        ],
+        "description": "Your skin hardens like bark, increasing armor by 150 for 15 sec."
+      }
+    },
+    {
+      "index": 67,
+      "id": "primal_reflexes",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.primal_reflexes",
+      "definition": {
+        "id": "primal_reflexes",
+        "name": "Primal Reflexes",
+        "class": "druid",
+        "learnLevel": 20,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 60,
+        "range": 0,
+        "school": "nature",
+        "requiresTarget": false,
+        "offGcd": true,
+        "usableInForm": true,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_dodge",
+            "value": 0.5,
+            "duration": 6
+          }
+        ],
+        "description": "Your instincts sharpen, increasing your chance to dodge by 50% for 6 sec."
+      }
+    },
+    {
+      "index": 68,
+      "id": "enrage",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.enrage",
+      "definition": {
+        "id": "enrage",
+        "name": "Stoke",
+        "class": "druid",
+        "learnLevel": 16,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 60,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "offGcd": true,
+        "requiresForm": "bear",
+        "effects": [
+          {
+            "type": "gainResource",
+            "amount": 20
+          }
+        ],
+        "description": "Generates 20 rage instantly. Bruin Form only."
+      }
+    },
+    {
+      "index": 69,
+      "id": "bash",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.bash",
+      "definition": {
+        "id": "bash",
+        "name": "Concuss",
+        "class": "druid",
+        "learnLevel": 8,
+        "cost": 10,
+        "castTime": 0,
+        "cooldown": 60,
+        "range": 8,
+        "school": "physical",
+        "requiresTarget": true,
+        "requiresForm": "bear",
+        "effects": [
+          {
+            "type": "stun",
+            "duration": 2
+          }
+        ],
+        "description": "Stuns the target for 2 sec. Bruin Form only."
+      }
+    },
+    {
+      "index": 70,
+      "id": "faerie_fire",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.faerie_fire",
+      "definition": {
+        "id": "faerie_fire",
+        "name": "Witchlight",
+        "class": "druid",
+        "learnLevel": 18,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "faerieFire",
+            "duration": 40
+          }
+        ],
+        "description": "Decreases the target's armor by $d% for 40 sec. Does not stack with Armor Shear."
+      }
+    },
+    {
+      "index": 71,
+      "id": "hibernate",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.hibernate",
+      "definition": {
+        "id": "hibernate",
+        "name": "Slumber",
+        "class": "druid",
+        "learnLevel": 18,
+        "cost": 50,
+        "castTime": 1.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "incapacitate",
+            "duration": 8
+          }
+        ],
+        "description": "Forces the target into a deep sleep for up to 8 sec. Any damage will awaken it."
+      }
+    },
+    {
+      "index": 72,
+      "id": "dash",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.dash",
+      "definition": {
+        "id": "dash",
+        "name": "Dash",
+        "class": "druid",
+        "learnLevel": 18,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 60,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "offGcd": true,
+        "requiresForm": "cat",
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_speed",
+            "value": 1.5,
+            "duration": 15
+          }
+        ],
+        "description": "Sprint forward, increasing movement speed by 50% for 15 sec. Wolf Form only."
+      }
+    },
+    {
+      "index": 73,
+      "id": "pounce",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.pounce",
+      "definition": {
+        "id": "pounce",
+        "name": "Slinkstrike",
+        "class": "druid",
+        "learnLevel": 18,
+        "cost": 50,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 8,
+        "school": "physical",
+        "requiresTarget": true,
+        "awardsCombo": 1,
+        "requiresForm": "cat",
+        "requiresStealth": true,
+        "effects": [
+          {
+            "type": "stun",
+            "duration": 2
+          }
+        ],
+        "description": "A stealth opener that stuns the target for 2 sec. Awards 1 combo point. Wolf Form only."
+      }
+    },
+    {
+      "index": 74,
+      "id": "insect_swarm",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.insect_swarm",
+      "definition": {
+        "id": "insect_swarm",
+        "name": "Stinging Swarm",
+        "class": "druid",
+        "learnLevel": 20,
+        "cost": 45,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "dot",
+            "total": 48,
+            "duration": 12,
+            "interval": 3
+          }
+        ],
+        "description": "The enemy is swarmed by insects, taking $d Nature damage over 12 sec."
+      }
+    },
+    {
+      "index": 75,
+      "id": "tigers_fury",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.tigers_fury",
+      "definition": {
+        "id": "tigers_fury",
+        "name": "Wolfsblood",
+        "class": "druid",
+        "learnLevel": 20,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 30,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "requiresForm": "cat",
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_ap",
+            "value": 40,
+            "duration": 6
+          }
+        ],
+        "description": "Increases attack power by $b for $t sec. Wolf Form only."
+      }
+    },
+    {
+      "index": 76,
+      "id": "rip",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.rip",
+      "definition": {
+        "id": "rip",
+        "name": "Rip",
+        "class": "druid",
+        "learnLevel": 14,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "spendsCombo": true,
+        "requiresForm": "cat",
+        "effects": [
+          {
+            "type": "dot",
+            "total": 60,
+            "duration": 12,
+            "interval": 2
+          }
+        ],
+        "description": "Finishing move that causes $d Bleed damage over 12 sec. Consumes combo points. Wolf Form only."
+      }
+    },
+    {
+      "index": 77,
+      "id": "hurricane",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.hurricane",
+      "definition": {
+        "id": "hurricane",
+        "name": "Galeheart",
+        "class": "druid",
+        "learnLevel": 18,
+        "cost": 90,
+        "castTime": 0,
+        "cooldown": 12,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": false,
+        "targetMode": "position",
+        "channel": {
+          "duration": 6,
+          "ticks": 6
+        },
+        "effects": [
+          {
+            "type": "aoeDamage",
+            "min": 12,
+            "max": 16,
+            "radius": 8
+          }
+        ],
+        "description": "Calls a hurricane onto the target area for 6 sec, battering enemies for $d Nature damage each second."
+      }
+    },
+    {
+      "index": 78,
+      "id": "skull_bash",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.skull_bash",
+      "definition": {
+        "id": "skull_bash",
+        "name": "Headbutt",
+        "class": "druid",
+        "learnLevel": 10,
+        "cost": 10,
+        "castTime": 0,
+        "cooldown": 15,
+        "range": 8,
+        "school": "physical",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "interrupt",
+            "lockout": 4
+          }
+        ],
+        "description": "Interrupts spellcasting and prevents any spell in that school from being cast for 4 sec. (Druid talent)"
+      }
+    }
+  ]
+}

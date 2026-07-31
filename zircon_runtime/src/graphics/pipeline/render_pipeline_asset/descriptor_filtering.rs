@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{cell::OnceCell, collections::BTreeSet};
 
 use crate::core::framework::render::{
     PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessStackDescriptor,
@@ -96,9 +96,11 @@ fn filter_no_stack_post_process_resources(
 fn filter_no_stack_plugin_post_process_resources(
     mut descriptor: RenderFeatureDescriptor,
 ) -> RenderFeatureDescriptor {
+    let preserves_default_motion_vector_chain = descriptor.name == "post_process";
     descriptor.stage_passes.retain(|pass| {
         pass.executor_id.as_str() != SMAA_EXECUTOR_ID
-            && !plugin_pass_references_scene_velocity(pass)
+            && (preserves_default_motion_vector_chain
+                || !plugin_pass_references_scene_velocity(pass))
     });
     descriptor
 }
@@ -127,10 +129,11 @@ fn filter_plugin_post_process_descriptor(
     mut descriptor: RenderFeatureDescriptor,
     stack: &PostProcessStackDescriptor,
 ) -> RenderFeatureDescriptor {
+    let active_resources = OnceCell::new();
     descriptor.stage_passes = descriptor
         .stage_passes
         .into_iter()
-        .filter_map(|pass| filter_plugin_post_process_pass(pass, stack))
+        .filter_map(|pass| filter_plugin_post_process_pass(pass, stack, &active_resources))
         .collect();
     descriptor
 }
@@ -138,6 +141,7 @@ fn filter_plugin_post_process_descriptor(
 fn filter_plugin_post_process_pass(
     pass: RenderFeaturePassDescriptor,
     stack: &PostProcessStackDescriptor,
+    active_resources: &OnceCell<BTreeSet<String>>,
 ) -> Option<RenderFeaturePassDescriptor> {
     if !plugin_post_process_pass_enabled(&pass, stack) {
         return None;
@@ -149,7 +153,12 @@ fn filter_plugin_post_process_pass(
         BuiltinRenderFeature::PostProcess,
         pass.executor_id.as_str(),
     ) {
-        return filter_post_process_pass(pass, BuiltinRenderFeature::PostProcess, stack);
+        return filter_post_process_pass(
+            pass,
+            BuiltinRenderFeature::PostProcess,
+            stack,
+            active_resources.get_or_init(|| active_post_process_graph_resources(stack)),
+        );
     }
     Some(pass)
 }
@@ -180,10 +189,11 @@ fn filter_post_process_descriptor(
     feature: BuiltinRenderFeature,
     stack: &PostProcessStackDescriptor,
 ) -> RenderFeatureDescriptor {
+    let active_resources = active_post_process_graph_resources(stack);
     descriptor.stage_passes = descriptor
         .stage_passes
         .into_iter()
-        .filter_map(|pass| filter_post_process_pass(pass, feature, stack))
+        .filter_map(|pass| filter_post_process_pass(pass, feature, stack, &active_resources))
         .collect();
     sync_optional_history_bindings(&mut descriptor, feature, stack);
     descriptor
@@ -214,6 +224,7 @@ fn filter_post_process_pass(
     mut pass: RenderFeaturePassDescriptor,
     feature: BuiltinRenderFeature,
     stack: &PostProcessStackDescriptor,
+    active_resources: &BTreeSet<String>,
 ) -> Option<RenderFeaturePassDescriptor> {
     if !post_process_pass_can_be_filtered(feature, pass.executor_id.as_str()) {
         return Some(pass);
@@ -221,11 +232,10 @@ fn filter_post_process_pass(
     if !optional_post_process_pass_enabled(feature, pass.executor_id.as_str(), stack) {
         return None;
     }
-    let active_resources = active_post_process_graph_resources(stack);
     pass.resources = pass
         .resources
         .into_iter()
-        .filter(|resource| post_process_resource_is_active(resource, &active_resources))
+        .filter(|resource| post_process_resource_is_active(resource, active_resources))
         .collect();
     route_bloom_to_latest_scene_color_input(&mut pass, feature, stack);
     route_scene_composite_to_latest_scene_color_input(&mut pass, feature, stack);

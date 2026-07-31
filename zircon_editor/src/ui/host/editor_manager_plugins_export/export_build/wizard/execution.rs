@@ -8,8 +8,7 @@ use std::{
 use crate::core::jobs::{EditorJobSystem, JobFailure};
 use crate::ui::host::export_process_support::{
     configure_process_tree_cancellation, create_output_capture, final_output_drain,
-    join_output_with_poll, terminate_process_tree, CapturedOutputChunk, ExportProcessChildGuard,
-    ExportProcessError,
+    join_output_with_poll, terminate_process_tree, ExportProcessChildGuard, ExportProcessError,
 };
 use zircon_runtime_interface::export::ExportStage;
 
@@ -20,8 +19,11 @@ use super::{
 };
 
 mod core_pipeline;
+mod output_capture;
 
+use super::output_tail::{push_bounded_output_line, retain_bounded_output_tail};
 use core_pipeline::{run_core_compile_host, run_core_platform_bundle};
+use output_capture::ExportWizardOutputCapture;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardCommandExecution {
@@ -159,13 +161,15 @@ impl ExportWizardCommandRunner for ProcessCommandRunner {
             }
         }
         if should_cancel() {
-            return Err(EditorExportBuildError::cancelled(
-                format!("{:?} process launch", command.stage),
-                None,
-            ));
+            return Err(EditorExportBuildError::cancelled(format!(
+                "{:?} process launch",
+                command.stage
+            )));
         }
 
         let label = format!("export stage {:?}", command.stage);
+        let mut persisted_output = ExportWizardOutputCapture::open(command)
+            .map_err(EditorExportBuildError::materialize)?;
         let (stdout_writer, stderr_writer, mut output_readers) = create_output_capture(&label)?;
         let mut process = Command::new(command.native_program.as_ref().map_or_else(
             || std::ffi::OsStr::new(&command.program),
@@ -199,10 +203,6 @@ impl ExportWizardCommandRunner for ProcessCommandRunner {
         })?;
         let mut child_guard = ExportProcessChildGuard::new(child, label.clone());
 
-        let mut stdout_lines = Vec::new();
-        let mut stderr_lines = Vec::new();
-        let mut stdout_buffer = IncrementalLineBuffer::default();
-        let mut stderr_buffer = IncrementalLineBuffer::default();
         let status = loop {
             let child = child_guard.child_mut();
             let (output, polled) = join_output_with_poll(&self.jobs, &mut output_readers, || {
@@ -220,15 +220,9 @@ impl ExportWizardCommandRunner for ProcessCommandRunner {
                         .into());
                 }
             };
-            record_captured_output(
-                output,
-                false,
-                &mut stdout_buffer,
-                &mut stderr_buffer,
-                &mut stdout_lines,
-                &mut stderr_lines,
-                emit_output,
-            );
+            persisted_output
+                .record(output, false, emit_output)
+                .map_err(EditorExportBuildError::materialize)?;
             let polled = match polled {
                 Ok(polled) => polled,
                 Err(error) => {
@@ -246,22 +240,27 @@ impl ExportWizardCommandRunner for ProcessCommandRunner {
             }
             thread::sleep(Duration::from_millis(25));
         };
-        record_captured_output(
-            final_output_drain(&self.jobs, &mut output_readers)?,
-            true,
-            &mut stdout_buffer,
-            &mut stderr_buffer,
-            &mut stdout_lines,
-            &mut stderr_lines,
-            emit_output,
-        );
+        persisted_output
+            .record(
+                final_output_drain(&self.jobs, &mut output_readers)?,
+                true,
+                emit_output,
+            )
+            .map_err(EditorExportBuildError::materialize)?;
         child_guard.disarm();
 
+        let persisted_output = persisted_output
+            .finish()
+            .map_err(EditorExportBuildError::materialize)?;
         let mut execution = ExportWizardCommandExecution {
             exit_code: status.code(),
-            stdout_lines,
-            stderr_lines,
+            stdout_lines: persisted_output.stdout_lines,
+            stderr_lines: persisted_output.stderr_lines,
         };
+        for artifact_line in persisted_output.artifact_lines {
+            push_bounded_output_line(&mut execution.stdout_lines, artifact_line.line.clone());
+            emit_output(artifact_line);
+        }
         if status.success() {
             project_core_stage_success(command, &mut execution, emit_output)?;
         }
@@ -357,7 +356,9 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
     };
 
     match runner.run_with_output_and_cancel(command, &mut observe_output, &mut observe_cancel) {
-        Ok(execution) => {
+        Ok(mut execution) => {
+            retain_bounded_output_tail(&mut execution.stdout_lines);
+            retain_bounded_output_tail(&mut execution.stderr_lines);
             let cancelled = cancel_observed_during_run;
             if cancelled {
                 diagnostics.push(format!(
@@ -514,30 +515,13 @@ fn project_core_stage_success(
         format!("report={}", report_path.display()),
         format!("host={host_path}"),
     ] {
-        execution.stdout_lines.push(line.clone());
+        push_bounded_output_line(&mut execution.stdout_lines, line.clone());
         emit_output(ExportWizardCommandOutputLine {
             stream: ExportWizardCommandOutputStream::Stdout,
             line,
         });
     }
     Ok(())
-}
-
-fn record_output_line(
-    output: ExportWizardCommandOutputLine,
-    stdout_lines: &mut Vec<String>,
-    stderr_lines: &mut Vec<String>,
-    emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
-) {
-    match output.stream {
-        ExportWizardCommandOutputStream::Stdout => {
-            stdout_lines.push(output.line.clone());
-        }
-        ExportWizardCommandOutputStream::Stderr => {
-            stderr_lines.push(output.line.clone());
-        }
-    }
-    emit_output(output);
 }
 
 fn try_wait_export_process(
@@ -603,69 +587,4 @@ fn poll_export_process(
         return terminate_child_for_cancel(child, stage, label).map(Some);
     }
     try_wait_export_process(child, stage)
-}
-
-fn record_captured_output(
-    output: CapturedOutputChunk,
-    finalize: bool,
-    stdout_buffer: &mut IncrementalLineBuffer,
-    stderr_buffer: &mut IncrementalLineBuffer,
-    stdout_lines: &mut Vec<String>,
-    stderr_lines: &mut Vec<String>,
-    emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
-) {
-    for line in stdout_buffer.push(output.stdout, finalize) {
-        record_output_line(
-            ExportWizardCommandOutputLine {
-                stream: ExportWizardCommandOutputStream::Stdout,
-                line,
-            },
-            stdout_lines,
-            stderr_lines,
-            emit_output,
-        );
-    }
-    for line in stderr_buffer.push(output.stderr, finalize) {
-        record_output_line(
-            ExportWizardCommandOutputLine {
-                stream: ExportWizardCommandOutputStream::Stderr,
-                line,
-            },
-            stdout_lines,
-            stderr_lines,
-            emit_output,
-        );
-    }
-}
-
-#[derive(Default)]
-struct IncrementalLineBuffer {
-    pending: Vec<u8>,
-}
-
-impl IncrementalLineBuffer {
-    fn push(&mut self, bytes: Vec<u8>, finalize: bool) -> Vec<String> {
-        self.pending.extend(bytes);
-        let mut lines = Vec::new();
-        let mut consumed = 0;
-        for (index, byte) in self.pending.iter().enumerate() {
-            if *byte == b'\n' {
-                lines.push(decode_output_line(&self.pending[consumed..index]));
-                consumed = index + 1;
-            }
-        }
-        if consumed > 0 {
-            self.pending.drain(..consumed);
-        }
-        if finalize && !self.pending.is_empty() {
-            lines.push(decode_output_line(&self.pending));
-            self.pending.clear();
-        }
-        lines
-    }
-}
-
-fn decode_output_line(bytes: &[u8]) -> String {
-    let bytes = bytes.strip_suffix(b"\r").unwrap_or(bytes);
-    String::from_utf8_lossy(bytes).to_string()
 }

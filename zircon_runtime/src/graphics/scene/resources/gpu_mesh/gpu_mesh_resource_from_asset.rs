@@ -1,5 +1,3 @@
-use crate::core::math::Vec3;
-
 use super::gpu_mesh_resource::GpuMeshResource;
 use super::gpu_mesh_vertex::GpuMeshVertex;
 use super::mesh_bounds::mesh_bounds;
@@ -14,11 +12,6 @@ impl GpuMeshResource {
         payload: crate::asset::assets::ModelPrimitiveAsset,
     ) -> Self {
         let indirect_order_signature = indirect_order_signature(&payload);
-        let positions: Vec<Vec3> = payload
-            .vertices
-            .iter()
-            .map(|vertex| Vec3::from_array(vertex.position))
-            .collect();
         let vertices: Vec<GpuMeshVertex> = payload.vertices.into_iter().map(Into::into).collect();
         let vertex_buffer = wgpu::util::DeviceExt::create_buffer_init(
             device,
@@ -36,14 +29,14 @@ impl GpuMeshResource {
                 usage: wgpu::BufferUsages::INDEX,
             },
         );
-        let (bounds_min, bounds_max) = mesh_bounds(&positions);
+        let (bounds_min, bounds_max) = mesh_bounds(&vertices);
 
         Self {
             vertex_buffer,
             index_buffer,
             index_count: payload.indices.len() as u32,
             indirect_order_signature,
-            wire_segments: build_wire_segments(&positions, &payload.indices),
+            wire_segments: build_wire_segments(&vertices, &payload.indices),
             bounds_min,
             bounds_max,
         }
@@ -95,4 +88,15 @@ fn fnv1a_u32(mut hash: u64, value: u32) -> u64 {
         hash = hash.wrapping_mul(FNV_PRIME);
     }
     hash
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn gpu_mesh_upload_does_not_duplicate_vertex_positions() {
+        let source = include_str!("gpu_mesh_resource_from_asset.rs");
+        let duplicate_positions_declaration = ["let positions", ": Vec<Vec3>"].concat();
+
+        assert!(!source.contains(&duplicate_positions_declaration));
+    }
 }

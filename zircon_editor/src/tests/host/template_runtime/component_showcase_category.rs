@@ -1,21 +1,8 @@
+use super::support::showcase_binding;
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostProjection, RetainedUiHostValue,
     UiComponentShowcaseDemoEventInput,
 };
-
-fn showcase_binding(
-    runtime: &EditorUiHostRuntime,
-    binding_id: &str,
-) -> crate::ui::binding::EditorUiBinding {
-    runtime
-        .project_document("res://ui/editor/component_showcase.zui")
-        .unwrap()
-        .bindings
-        .into_iter()
-        .find(|binding| binding.binding_id == binding_id)
-        .unwrap_or_else(|| panic!("missing showcase binding `{binding_id}`"))
-        .binding
-}
 
 fn apply_showcase_binding(
     runtime: &mut EditorUiHostRuntime,

@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var lifecycle = %import("world/mob_lifecycle_state");
+
+var result = lifecycle.contractTest();
+
+console.printLine("m4-mob-lifecycle-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,0 +1,25 @@
+// Generated Delve instance empty-reset contract.
+pub checkTickInterval(required: bool): int {
+    if (!required) { throw "woc Delve empty reset is required"; }
+    return 20;
+}
+
+pub occupancyXRadius(required: bool): float {
+    if (!required) { throw "woc Delve empty reset is required"; }
+    return 120.0;
+}
+
+pub emptyTimeoutSeconds(required: bool): int {
+    if (!required) { throw "woc Delve empty reset is required"; }
+    return 300;
+}
+
+pub strictBounds(required: bool): bool {
+    if (!required) { throw "woc Delve empty reset is required"; }
+    return true;
+}
+
+pub contractTest(): int {
+    return checkTickInterval(true) == 20 && occupancyXRadius(true) == 120.0 &&
+        emptyTimeoutSeconds(true) == 300 && strictBounds(true) ? 1 : -1;
+}

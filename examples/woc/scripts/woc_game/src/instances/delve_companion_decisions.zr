@@ -1,0 +1,182 @@
+// Scalar decisions from updateDelveCompanion. The future Delve/entity reducer
+// owns party ordering, mutable move input, events and health/resource writes;
+// this module pins the source predicates and rounded amounts without requiring
+// a cross-module entity collection.
+
+var math = %import("zr.zircon.math");
+var companionContent = %import("instances/delve_companion_content");
+
+pub maxRank(required: bool): int {
+    if (!required) {
+        throw "woc Delve companion max rank is required";
+    }
+    return companionContent.maxRank(true);
+}
+
+// 3 seconds at the authoritative 20 Hz fixed step.
+pub healIntervalTicks(required: bool): int {
+    if (!required) {
+        throw "woc Delve companion heal interval is required";
+    }
+    return 60;
+}
+
+pub healRange(required: bool): float {
+    if (!required) {
+        throw "woc Delve companion heal range is required";
+    }
+    return 22.0;
+}
+
+// The source tries the owner before reading party members. The caller runs this
+// first, then scans party order with shouldSelectPartyRevive.
+pub shouldSelectOwnerRevive(
+    rank: int,
+    reviveUsed: bool,
+    ownerDead: bool,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc Delve companion owner revive query is required";
+    }
+    return rank >= maxRank(true) && !reviveUsed && ownerDead;
+}
+
+pub shouldSelectPartyRevive(
+    rank: int,
+    reviveUsed: bool,
+    ownerDead: bool,
+    candidateDead: bool,
+    candidateInRange: bool,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc Delve companion party revive query is required";
+    }
+    return rank >= maxRank(true) && !reviveUsed && !ownerDead &&
+        candidateDead && candidateInRange;
+}
+
+// A scan replaces the current target only on a strict lower health fraction,
+// retaining the first source party member at equal fraction.
+pub shouldReplaceHealTarget(
+    currentHealth: int,
+    currentMaximumHealth: int,
+    candidateHealth: int,
+    candidateMaximumHealth: int,
+    candidateDead: bool,
+    candidateInRange: bool,
+    required: bool
+): bool {
+    if (!required || currentMaximumHealth <= 0 || candidateMaximumHealth <= 0 ||
+        currentHealth < 0 || currentHealth > currentMaximumHealth ||
+        candidateHealth < 0 || candidateHealth > candidateMaximumHealth) {
+        throw "woc Delve companion heal target query is invalid";
+    }
+    if (candidateDead || !candidateInRange) {
+        return false;
+    }
+    return <float>candidateHealth / <float>candidateMaximumHealth <
+        <float>currentHealth / <float>currentMaximumHealth;
+}
+
+pub canDeliverHeal(
+    targetHealth: int,
+    targetMaximumHealth: int,
+    targetInRange: bool,
+    required: bool
+): bool {
+    if (!required || targetMaximumHealth <= 0 || targetHealth < 0 ||
+        targetHealth > targetMaximumHealth) {
+        throw "woc Delve companion heal delivery query is invalid";
+    }
+    return targetHealth < targetMaximumHealth && targetInRange;
+}
+
+pub revivedHealth(maximumHealth: int, required: bool): int {
+    if (!required || maximumHealth <= 0) {
+        throw "woc Delve companion revive health is invalid";
+    }
+    var half = <int>math.floor(<float>maximumHealth * 0.5 + 0.5);
+    return half < 1 ? 1 : half;
+}
+
+// Only mana users refill resource. Source preserves an already higher value
+// rather than clamping it down while applying the rank-three revive boon.
+pub revivedResource(
+    currentResource: int,
+    maximumResource: int,
+    resourceIsMana: bool,
+    required: bool
+): int {
+    if (!required || currentResource < 0 || maximumResource < 0) {
+        throw "woc Delve companion revive resource is invalid";
+    }
+    if (!resourceIsMana) {
+        return currentResource;
+    }
+    var half = <int>math.floor(<float>maximumResource * 0.5 + 0.5);
+    return currentResource > half ? currentResource : half;
+}
+
+pub healPercent(rank: int, required: bool): float {
+    if (!required || rank < 1) {
+        throw "woc Delve companion rank is invalid";
+    }
+    var effectiveRank = rank > maxRank(true) ? maxRank(true) : rank;
+    if (effectiveRank == 1) { return 0.06; }
+    if (effectiveRank == 2) { return 0.08; }
+    return 0.1;
+}
+
+pub healedAmount(
+    rank: int,
+    targetHealth: int,
+    targetMaximumHealth: int,
+    required: bool
+): int {
+    if (!required || targetMaximumHealth <= 0 || targetHealth < 0 ||
+        targetHealth > targetMaximumHealth) {
+        throw "woc Delve companion heal amount is invalid";
+    }
+    var missing = targetMaximumHealth - targetHealth;
+    if (missing == 0) {
+        return 0;
+    }
+    var raw = <int>math.floor(<float>targetMaximumHealth * healPercent(rank, true) + 0.5);
+    return raw < missing ? raw : missing;
+}
+
+pub contractTest(): int {
+    if (healIntervalTicks(true) != 60 || healRange(true) != 22.0 || maxRank(true) != 3 ||
+        !shouldSelectOwnerRevive(3, false, true, true) ||
+        shouldSelectOwnerRevive(2, false, true, true) ||
+        shouldSelectOwnerRevive(3, true, true, true) ||
+        !shouldSelectPartyRevive(3, false, false, true, true, true) ||
+        shouldSelectPartyRevive(3, false, true, true, true, true) ||
+        shouldSelectPartyRevive(3, false, true, true, false, true) ||
+        shouldSelectPartyRevive(3, false, true, false, true, true)) {
+        return -1;
+    }
+    if (!shouldReplaceHealTarget(500, 1000, 400, 1000, false, true, true) ||
+        shouldReplaceHealTarget(500, 1000, 500, 1000, false, true, true) ||
+        shouldReplaceHealTarget(500, 1000, 300, 1000, true, true, true) ||
+        shouldReplaceHealTarget(500, 1000, 300, 1000, false, false, true) ||
+        !canDeliverHeal(999, 1000, true, true) ||
+        canDeliverHeal(1000, 1000, true, true) ||
+        canDeliverHeal(999, 1000, false, true)) {
+        return -2;
+    }
+    if (revivedHealth(1, true) != 1 || revivedHealth(1001, true) != 501 ||
+        revivedResource(100, 1000, true, true) != 500 ||
+        revivedResource(700, 1000, true, true) != 700 ||
+        revivedResource(100, 1000, false, true) != 100 ||
+        healedAmount(1, 500, 1000, true) != 60 ||
+        healedAmount(2, 500, 1000, true) != 80 ||
+        healedAmount(7, 500, 1000, true) != 100 ||
+        healedAmount(3, 970, 1000, true) != 30 ||
+        healedAmount(3, 1000, 1000, true) != 0) {
+        return -3;
+    }
+    return 1;
+}

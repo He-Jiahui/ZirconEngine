@@ -1,6 +1,6 @@
 use super::super::*;
 use super::snapshot::RecomputeShellSnapshot;
-use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
 use crate::ui::workbench::autolayout::compute_workbench_shell_geometry;
 use crate::ui::workbench::model::WorkbenchViewModel;
 

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_mailbox_placement_tests",
+  "source": "src",
+  "binary": "bin-m3-mailbox-placement-tests",
+  "entry": "world/mailbox_placement_test_main"
+}

@@ -1,0 +1,110 @@
+// Source-aligned ridge and rim contribution from src/sim/world.ts. Callers add
+// this only at the target terrainHeight stage after the Sowfield flatten and
+// before the Mirefen crater and terrain-edit layers.
+
+var math = %import("zr.zircon.math");
+var terrainContent = %import("world/terrain_content");
+var terrainNoise = %import("world/terrain_noise");
+var terrainShape = %import("world/terrain_shape");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+maximum(first: float, second: float): float {
+    return first > second ? first : second;
+}
+
+pub mountainDetail(x: float, z: float, required: bool): float {
+    if (!required) {
+        throw "woc terrain mountain detail is required";
+    }
+    var beyond = maximum(0.0, terrainContent.worldMinZ(true) - z);
+    beyond = maximum(beyond, z - terrainContent.worldMaxZ(true));
+    beyond = maximum(beyond, absolute(x) - terrainContent.worldMaxX(true));
+    return 1.0 - terrainShape.smoothstep(2.0, 10.0, beyond, true);
+}
+
+pub mountainContribution(x: float, z: float, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc terrain mountain contribution is required";
+    }
+    var detail = mountainDetail(x, z, true);
+    var mountainAdd = 0.0;
+    var ridgeIndex = 0;
+    while (ridgeIndex + 1 < terrainContent.zoneCount(true)) {
+        var ridgeZ = terrainContent.zoneZMax(ridgeIndex, true);
+        var dz = absolute(z - ridgeZ);
+        if (dz < 30.0) {
+            var pass = terrainShape.smoothstep(10.0, 34.0, absolute(x), true);
+            if (pass > 0.0) {
+                var profile = math.exp(-(dz * dz) / 200.0);
+                var crest = 1.0 +
+                    (terrainNoise.fbm2(x * 0.03, ridgeZ * 0.03, seed + <uint>19, 2, true) -
+                        0.5) * 0.4 * detail +
+                    (terrainNoise.fbm2(x * 0.11, ridgeZ * 0.11, seed + <uint>23, 2, true) -
+                        0.5) * 0.14 * detail;
+                mountainAdd = mountainAdd + 40.0 * crest * profile * pass;
+            }
+        }
+        ridgeIndex = ridgeIndex + 1;
+    }
+    var rimX = terrainShape.smoothstep(
+        terrainContent.worldMaxX(true) - 30.0,
+        terrainContent.worldMaxX(true) - 6.0,
+        absolute(x),
+        true
+    );
+    var rimSouth = terrainShape.smoothstep(
+        terrainContent.worldMinZ(true) + 30.0,
+        terrainContent.worldMinZ(true) + 6.0,
+        z,
+        true
+    );
+    var rimNorth = terrainShape.smoothstep(
+        terrainContent.worldMaxZ(true) - 30.0,
+        terrainContent.worldMaxZ(true) - 6.0,
+        z,
+        true
+    );
+    var rim = maximum(rimX, maximum(rimSouth, rimNorth));
+    if (rim > 0.0) {
+        var rimCrest = 1.0 +
+            (terrainNoise.fbm2(x * 0.025, z * 0.025, seed + <uint>29, 3, true) -
+                0.5) * 0.35 * detail +
+            (terrainNoise.fbm2(x * 0.09, z * 0.09, seed + <uint>37, 2, true) -
+                0.5) * 0.15 * detail;
+        mountainAdd = mountainAdd + rim * 55.0 * rimCrest;
+    }
+    if (mountainAdd == 0.0) {
+        return 0.0;
+    }
+    var terraced = terrainShape.terraceStep(mountainAdd, 6.0, 0.6, 0.5, true);
+    return terraced * detail + mountainAdd * (1.0 - detail);
+}
+
+pub contractTest(): int {
+    if (mountainDetail(0.0, 0.0, true) != 1.0 ||
+        mountainDetail(0.0, terrainContent.worldMaxZ(true) + 10.0, true) != 0.0 ||
+        mountainContribution(0.0, 0.0, <uint>20061, true) != 0.0 ||
+        mountainContribution(0.0, 180.0, <uint>20061, true) != 0.0 ||
+        mountainContribution(0.0, 540.0, <uint>20061, true) != 0.0) {
+        return -1;
+    }
+    if (!closeEnough(mountainContribution(60.0, 180.0, <uint>20061, true), 41.21971544428485) ||
+        !closeEnough(mountainContribution(120.0, 180.0, <uint>20061, true), 36.0) ||
+        !closeEnough(mountainContribution(-160.0, 300.0, <uint>20061, true), 18.0) ||
+        !closeEnough(mountainContribution(170.0, 180.0, <uint>20061, true), 84.0) ||
+        !closeEnough(mountainContribution(120.0, 540.0, <uint>20061, true), 36.0)) {
+        return -2;
+    }
+    return 1;
+}

@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "animation"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Animation"
 category = "runtime"
 description = "Optional runtime animation scheduling, clip playback, and editor animation authoring package."
@@ -37,7 +37,7 @@ kind = "runtime"
 crate_name = "zircon_plugin_animation_runtime"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.animation", "runtime.feature.animation.timeline_event_track"]
-system_sets = ["animation.evaluation"]
+system_sets = ["animation.main"]
 system_anchors = ["animation.evaluate"]
 
 [[modules]]

@@ -26,6 +26,7 @@ pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<Edit
     let path = match action {
         MenuAction::OpenProject => "file.project.open",
         MenuAction::SaveProject => "file.project.save",
+        MenuAction::CloseProject => "file.project.close",
         MenuAction::SaveLayout => "window.layout.save",
         MenuAction::ResetLayout => "window.layout.reset",
         MenuAction::EnterPlayMode => "runtime.play_mode.enter",

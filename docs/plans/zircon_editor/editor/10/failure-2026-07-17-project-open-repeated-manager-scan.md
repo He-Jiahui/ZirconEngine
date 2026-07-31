@@ -10,12 +10,15 @@ fixing_child_dir: docs/plans/zircon_editor/editor/10
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/ui/host/project_access.rs
-  - zircon_editor/src/ui/workbench/project/editor_project_document_load_from_path.rs
-  - zircon_editor/src/ui/workbench/project/editor_project_document_save_to_path.rs
+  - zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
+  - zircon_editor/src/ui/workbench/project/editor_project_document_save.rs
   - zircon_editor/src/ui/workbench/startup/editor_startup_session_document_welcome_pane_snapshot.rs
   - zircon_editor/src/ui/workbench/project/layout_preset_assets.rs
-  - zircon_editor/src/core/project
-  - zircon_runtime/src/asset/project
+  - zircon_editor/src/core/project/authority.rs
+  - zircon_editor/src/core/project/opened_project.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
+  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
 tests:
   - project open manager/manifest/scan build-count regression
   - 1/100/1000 locator resolution project-manager open-count regression
@@ -56,6 +59,17 @@ open flow 只在层间传 path/String，不传递一个 generation-bound `Opened
 - 不得绕过 `ProjectAuthority` 的 canonical/symlink/reparse validation。
 - 不得让 runtime/editor 各持一份可独立变更的 manifest truth。
 
+## 产出记录与时间
+
+| 里程碑 | 切片 | 状态 | 完成日期 | 完成项目与证据 |
+|---|---|---|---|---|
+| Editor10 M1 / Performance01 | generation-bound open/document/watcher/locator | `open-实现与静态门完成-独立复审/受管行为门待执行` | 2026-07-18 | `OpenedProject` 持有已解析 manifest/registry index 的 prepared `ProjectManager`，Runtime 在同一实例执行唯一 source scan；Editor asset、document、watcher、save 与 UI asset external effects 复用活动 generation。`open_project_manager_for_paths`、document path load/save API 与旧 `_from_path.rs` owner 全仓清零。 |
+| Editor10 M1 / Performance01 | welcome/locator/preset 稳定投影 | `open-独立复审整改已落地-复审/受管行为门待执行` | 2026-07-18 | welcome 创建/打开校验迁入 Background/Index job 并缓存结果，受控回归覆盖 A→B 迟到、退出取消及 job/submit failure；Runtime manager-owned path/URI 查询使 locator 与 preset 正常投影不再深 clone 完整 `ProjectManager`，1,000 locator/100 preset 回归已加入。list 不 reopen/read_dir/read_to_string；preset save/load 保留 typed `SceneProjectError`。详见 `2026-07-17-project-authority-reference-regression-closeout.md`。 |
+
 ## 修复结果与回传
 
-Open state: `待 Editor10/Runtime asset project 建立 generation-bound opened-project snapshot，并回传 open/scan/locator build-count 与 I/O trace`。
+Open state: `generation-bound 与 manager-owned source-index hot query 已实现；待 current-source exact Cargo、复审及 open/scan/locator I/O trace。save 后 transactional targeted import 尚由 Runtime04 failure-2026-07-18-project-source-index-targeted-import.md 处理，因此本 performance failure 不回传 fixed`。
+
+2026-07-22 current-source补充：ProjectAuthority canonical root后的第二次ancestor link/reparse metadata walk已删除；该局部安全等价止损不关闭failure。welcome/recent probe稳定filesystem I/O和跨Authority/Runtime/Editor manager generation复用仍按PERF-MVP-075/100验收。
+
+2026-07-30 retained-host current consumer补充：`reload_default_scene`在asset/resource event已经由活动manager处理后仍重新`ProjectManager::open + scan_and_import`；`import_model_into_project`也为活动root再open manager，并在UI callback执行stage/import链。Editor10不得新增缓存，而应让host从Runtime04活动generation取得prepared scene/model transaction ticket；default-scene event的manager open/scan=0，模型按钮manager open≤1且UI I/O=0。证据：`docs/plans/performance/01/2026-07-30-editor-retained-host-assets-current-review.md`；current-source managed Cargo与F0/F4 trace前failure保持open。

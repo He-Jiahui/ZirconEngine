@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[test]
-fn export_plan_uses_explicit_runtime_profile_id_before_name_inference() {
+fn export_plan_uses_declared_runtime_profile_id_for_availability_projection() {
     let mut manifest = ProjectManifest::new(
         "Explicit Runtime Profile Export Test",
         AssetUri::parse("res://scenes/main.zscene").unwrap(),
@@ -20,8 +20,8 @@ fn export_plan_uses_explicit_runtime_profile_id_before_name_inference() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client3d,
     )
-    .with_runtime_profile_id(RuntimeProfileId::Client3d)
     .with_strategy(ExportPackagingStrategy::SourceTemplate)];
 
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
@@ -36,6 +36,43 @@ fn export_plan_uses_explicit_runtime_profile_id_before_name_inference() {
         &plan.runtime_plugin_availability.externalized_missing,
         "tilemap_2d"
     ));
+}
+
+#[test]
+fn export_profile_runtime_profile_selection_has_no_name_or_target_fallback() {
+    let source = include_str!("../../plugin/export_build_plan/from_project_manifest/profile.rs");
+    let compact_source = source.split_whitespace().collect::<String>();
+
+    assert!(compact_source.contains(
+        "fnruntime_profile_for_export_profile(profile:&ExportProfile,)->Option<RuntimeProfileDescriptor>{profile.runtime_profile_id.map(RuntimeProfileDescriptor::for_id)}"
+    ));
+    assert!(!source.contains("contains(\"3d\")"));
+    assert!(!source.contains("RuntimeTargetMode::"));
+}
+
+#[test]
+fn export_profile_without_runtime_profile_id_is_fatal_and_does_not_infer_availability() {
+    let mut manifest = ProjectManifest::new(
+        "Missing Runtime Profile Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    let mut profile = ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client3d,
+    )
+    .with_strategy(ExportPackagingStrategy::SourceTemplate);
+    profile.runtime_profile_id = None;
+    manifest.export_profiles = vec![profile];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+
+    assert!(plan.has_fatal_diagnostics());
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
+        == "export profile \"client\" must declare runtime_profile_id explicitly"));
+    assert_eq!(plan.runtime_plugin_availability, Default::default());
 }
 
 #[test]
@@ -82,8 +119,8 @@ fn export_plan_rejects_runtime_profile_id_target_mode_mismatch() {
         "bad-client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Server,
     )
-    .with_runtime_profile_id(RuntimeProfileId::Server)
     .with_strategy(ExportPackagingStrategy::SourceTemplate)];
 
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "bad-client").unwrap();
@@ -112,6 +149,7 @@ fn export_plan_reports_duplicate_profile_strategies_and_generates_sanitized_prof
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([
         ExportPackagingStrategy::SourceTemplate,
@@ -172,6 +210,7 @@ fn export_plan_reports_empty_profile_strategies_as_fatal() {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([])];
 
@@ -205,12 +244,14 @@ fn export_plan_reports_duplicate_profile_names_as_fatal() {
             "client",
             RuntimeTargetMode::ClientRuntime,
             ExportTargetPlatform::Windows,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate),
         ExportProfile::new(
             "client",
             RuntimeTargetMode::ServerRuntime,
             ExportTargetPlatform::Headless,
+            RuntimeProfileId::Server,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate),
     ];
@@ -241,6 +282,7 @@ fn export_plan_reports_invalid_profile_names_as_fatal() {
             profile_name,
             RuntimeTargetMode::ClientRuntime,
             ExportTargetPlatform::Windows,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate)];
 
@@ -275,6 +317,7 @@ fn export_plan_reports_invalid_profile_output_names_and_generates_sanitized_prof
             "client",
             RuntimeTargetMode::ClientRuntime,
             ExportTargetPlatform::Windows,
+            RuntimeProfileId::Client2d,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate);
         profile.output_name = raw_output_name.to_string();

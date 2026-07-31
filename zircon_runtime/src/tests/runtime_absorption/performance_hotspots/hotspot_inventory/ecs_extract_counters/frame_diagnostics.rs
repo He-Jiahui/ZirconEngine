@@ -2,16 +2,25 @@ use super::super::sources::HotspotInventorySources;
 
 pub(super) fn assert_ecs_frame_diagnostic_aggregation(sources: &HotspotInventorySources) {
     for required_schedule_span_anchor in [
-        "profile_dynamic_scope!",
+        "profile_scope!",
         "\"runtime\"",
         "\"frame\"",
-        "runtime_frame_schedule_stage.{stage:?}",
+        "schedule_stage_profile_name(stage)",
+        "runtime_frame_schedule_stage.RenderExtract",
     ] {
         assert!(
-            sources.schedule_runner.contains(required_schedule_span_anchor),
+            sources
+                .schedule_runner
+                .contains(required_schedule_span_anchor),
             "SceneScheduleRunner should keep Runtime 07 schedule-stage span anchor `{required_schedule_span_anchor}`"
         );
     }
+    assert!(
+        !sources
+            .schedule_runner
+            .contains("format!(\"runtime_frame_schedule_stage"),
+        "SceneScheduleRunner stage spans should use static labels without per-frame formatting"
+    );
 
     for required_ecs_frame_diagnostic_anchor in [
         "pub struct EcsFramePerformanceDiagnostics",

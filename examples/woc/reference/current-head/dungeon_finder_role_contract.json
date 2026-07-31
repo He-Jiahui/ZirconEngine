@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/dungeon_finder_role_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/social/dungeon_finder.ts": "d4fb5466df4ac30256fa213e866931faa82645a66a3f5f10e854e27969d5c4cf",
+    "src/sim/content/dungeon_finder.ts": "887f6e63594ef361309ca4a0a047714b225c9e68e0e9b6322761e521fe01cf10"
+  },
+  "role_codes": {
+    "none": 0,
+    "tank": 1,
+    "healer": 2,
+    "dps": 3
+  },
+  "role_order": [
+    "tank",
+    "healer",
+    "dps"
+  ],
+  "default_compositions": {
+    "five": {
+      "tank": 1,
+      "healer": 1,
+      "dps": 3
+    },
+    "ten": {
+      "tank": 2,
+      "healer": 2,
+      "dps": 6
+    }
+  },
+  "matching": {
+    "algorithm": "kuhn_augmenting_path",
+    "member_order": "input",
+    "visited_scope": "one_augmenting_path"
+  }
+}

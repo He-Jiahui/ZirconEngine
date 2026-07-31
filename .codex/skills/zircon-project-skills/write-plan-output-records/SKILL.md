@@ -1,6 +1,6 @@
 ---
 name: write-plan-output-records
-description: Use when ZirconEngine work needs a canonical plan record for an accepted milestone, testing result, cross-plan failure, or closeout under `docs/plans`.
+description: Use when ZirconEngine work needs a minimal canonical plan record for an accepted milestone, cross-plan failure/fix, or terminal closeout under `docs/plans`.
 ---
 
 # Write Plan Output Records
@@ -8,6 +8,8 @@ description: Use when ZirconEngine work needs a canonical plan record for an acc
 ## Core Rule
 
 Treat one accepted milestone outcome as child-plan-owned evidence. Never use an `index.md`, an `engine-code-*.md`, or a `.codex/sessions/*.md` note as the canonical owner of that evidence.
+
+Keep plan output minimal: one short status row per accepted milestone, plus a failure/fixed handoff only when cross-plan work truly needs it. A test result by itself is not a record event. Do not create a separate narrative report, command-log transcript, per-slice progress row, or duplicated documentation record.
 
 Use this exact notice at every output-record position retained in an `index.md` or `engine-code-*.md` after moving concrete records out:
 
@@ -17,12 +19,12 @@ Keep only a concise current-state overview and links to the owning child plan or
 
 ## Concrete Record Definition
 
-Treat an item as a concrete output record when it captures an accepted milestone outcome, test stage, migration, critical fix, or acceptance result and includes details such as:
+Treat an item as a concrete output record when it captures an accepted milestone outcome, migration, critical fix, or acceptance result and includes details such as:
 
 - a milestone or accepted scope name;
 - a machine-readable status anchor;
 - a completion or attempt date;
-- commands, logs, screenshots, hashes, pass/fail counts, or other evidence;
+- a concise evidence reference such as a validation suite, action ID, or linked handoff;
 - a specific list of changed files, resolved failures, remaining blockers, or acceptance claims.
 
 Do not treat a short aggregate status, current milestone summary, child-plan link, or risk overview as a concrete record when it does not reproduce individual evidence rows.
@@ -42,7 +44,7 @@ Apply `../handle-plan-failure-handoffs/SKILL.md` whenever a record uses the `fai
 1. Identify the owning plan family under `docs/plans/{plans_path}`.
 2. Select the child plan whose numbered filename and topic own the work, such as `01-*.md` through `NN-*.md`.
 3. When the coordinator is available, register that numbered plan and run `tools/zircon-session.ps1 plan authorize <target>`. A denied decision is a routing error; do not bypass it with direct editing.
-4. Append one accepted milestone outcome under that child plan's existing `## 状态与产出记录` heading or equivalent output-record heading. Preserve the local table or list schema.
+4. Append one short accepted-milestone status row under that child plan's existing `## 状态与产出记录` heading or equivalent output-record heading. Preserve the local table or list schema.
 5. If no output-record heading exists, add `## 状态与产出记录` and use the repository-standard milestone/slice/status/date/evidence table.
 6. Never append a concrete record to any `index.md` or `engine-code-*.md`. Replace an existing concrete record there with the exact notice, a current-state overview, and a link to the new owner.
 7. Move records without dropping evidence, changing their status meaning, or leaving duplicate canonical copies.
@@ -78,12 +80,12 @@ docs/plans/zircon_runtime/runtime/07/2026-07-10-owner-budget-validation.md
 
 ## Session Requirements
 
-Apply this workflow when a session writes an accepted milestone, critical failure/fix, testing-stage, or closeout output record.
+Apply this workflow only when a session writes an accepted milestone, critical failure/fix, or terminal closeout output record.
 
 - Use `.codex/sessions/*.md` only for live coordination state, current steps, blockers, touched modules, and handoff notes.
 - Do not use a session note as the permanent or sole copy of a concrete plan output record.
 - Resolve the owning numbered child plan before writing a record.
-- Do not write records for ordinary implementation slices. Write one concise accepted milestone outcome after its validation gate; failures and closeouts remain separate lifecycle events.
+- Do not write records for ordinary implementation slices, testing-stage runs, isolated test attempts, document-only cleanup, or transient diagnostics. Write one concise accepted milestone outcome after its validation gate; failures and closeouts remain separate lifecycle events.
 - If accepted outcomes make a child plan difficult to scan, perform the archive migration before closing that plan or as a dedicated maintenance task.
 - If a session updates an index or engine-code overview, include only the exact notice, current-state summary, and owner links.
 

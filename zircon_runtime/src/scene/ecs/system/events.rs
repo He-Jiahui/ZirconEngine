@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 
+use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, EventCursor, EventReadIter, EventStore, EventTypeId, Events, SystemParam,
     SystemParamAccess, SystemParamError,
 };
-use crate::scene::World;
 
 pub struct EventReaderParam<T>(PhantomData<fn() -> T>);
 
@@ -22,7 +22,7 @@ pub struct EventWriter<'world, T> {
 }
 
 impl<'world, T> EventReader<'world, T> {
-    pub fn iter(&mut self) -> EventReadIter<'world, T> {
+    pub fn iter(&mut self) -> EventReadIter<'_, T> {
         self.cursor.read(self.events)
     }
 

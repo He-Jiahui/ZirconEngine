@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import http.client
 import json
+import os
 import time
 import urllib.error
 import urllib.request
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -12,6 +15,21 @@ from .config import CoordinatorConfig
 
 _PENDING_ACTION_STATUSES = frozenset({"previewed", "executing"})
 _ACTION_POLL_INTERVAL_SECONDS = 0.25
+_COMMAND_RECONCILIATION_TIMEOUT_SECONDS = 1.0
+_COMMAND_RECONCILIATION_POLL_INTERVAL_SECONDS = 0.05
+_RUNTIME_DESCRIPTOR_RETRY_SECONDS = 3.0
+_RUNTIME_DESCRIPTOR_POLL_INTERVAL_SECONDS = 0.05
+
+
+def _environment_timeout_seconds(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        timeout = float(raw)
+    except ValueError:
+        return default
+    return timeout if timeout > 0 else default
 
 
 class CoordinatorClientError(RuntimeError):
@@ -33,19 +51,28 @@ class CoordinatorClient:
     timeout_seconds: float = 3.0
     control_timeout_seconds: float = 30.0
     command_timeout_seconds: float = 300.0
+    reconciliation_timeout_seconds: float = _COMMAND_RECONCILIATION_TIMEOUT_SECONDS
 
     @classmethod
     def from_runtime(cls, config: CoordinatorConfig) -> "CoordinatorClient":
-        try:
-            runtime = json.loads(config.runtime_path.read_text(encoding="utf-8"))
-            host = str(runtime["host"])
-            port = int(runtime["port"])
-        except (OSError, ValueError, KeyError, TypeError) as error:
-            raise CoordinatorClientError(
-                "offline",
-                "Coordinator runtime descriptor is unavailable",
-                details={"transport": "descriptor_absent"},
-            ) from error
+        deadline = time.monotonic() + _RUNTIME_DESCRIPTOR_RETRY_SECONDS
+        while True:
+            try:
+                runtime = json.loads(config.runtime_path.read_text(encoding="utf-8"))
+                host = str(runtime["host"])
+                port = int(runtime["port"])
+                break
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                if time.monotonic() >= deadline:
+                    raise CoordinatorClientError(
+                        "offline",
+                        "Coordinator runtime descriptor is unavailable",
+                        details={"transport": "descriptor_absent"},
+                    ) from error
+                # A controlled rollover removes the predecessor descriptor before
+                # the successor atomically publishes its own. Retry only this
+                # read boundary; command requests are never replayed here.
+                time.sleep(_RUNTIME_DESCRIPTOR_POLL_INTERVAL_SECONDS)
         descriptor_key = runtime.get("repository_key")
         if descriptor_key is not None and descriptor_key != config.repository_key:
             raise CoordinatorClientError(
@@ -60,6 +87,9 @@ class CoordinatorClient:
             base_url=f"http://{host}:{port}",
             token="",
             expected_repository_key=config.repository_key,
+            command_timeout_seconds=_environment_timeout_seconds(
+                "ZIRCON_COORDINATOR_COMMAND_TIMEOUT_SECONDS", 300.0
+            ),
         )
 
     def health(self) -> dict[str, Any]:
@@ -67,27 +97,142 @@ class CoordinatorClient:
         self._require_expected_repository(health)
         return health
 
+    def command_request_status(self, request_id: str) -> dict[str, Any]:
+        return self._validated_command_request_status(request_id)
+
+    def _validated_command_request_status(
+        self, request_id: str, *, timeout_seconds: float | None = None
+    ) -> dict[str, Any]:
+        if timeout_seconds is None:
+            result = self._request("GET", f"/command/requests/{request_id}")
+        else:
+            result = self._request(
+                "GET", f"/command/requests/{request_id}", timeout_seconds=timeout_seconds
+            )
+        if self.expected_repository_key is not None:
+            actual = result.get("repositoryKey")
+            if actual != self.expected_repository_key:
+                raise CoordinatorClientError(
+                    "repository_mismatch",
+                    "Command request status belongs to another repository",
+                    details={
+                        "expectedRepositoryKey": self.expected_repository_key,
+                        "actualRepositoryKey": actual,
+                    },
+                )
+        return result
+
+    def _reconcile_command_request(self, request_id: str) -> dict[str, Any]:
+        """Recover one timed-out command without replaying its mutation."""
+        deadline = time.monotonic() + max(0.0, self.reconciliation_timeout_seconds)
+        last_query_error: CoordinatorClientError | None = None
+        submission = "unknown"
+
+        while True:
+            remaining = deadline - time.monotonic()
+            query_timeout = min(
+                self.timeout_seconds,
+                max(0.001, remaining),
+            )
+            try:
+                query = self._validated_command_request_status(
+                    request_id, timeout_seconds=query_timeout
+                )
+            except CoordinatorClientError as error:
+                if error.code == "repository_mismatch":
+                    raise
+                last_query_error = error
+            else:
+                request = query.get("request")
+                if isinstance(request, dict):
+                    status = str(request.get("status") or "")
+                    if status == "completed" and isinstance(query.get("result"), dict):
+                        return query["result"]
+                    if status == "failed" and isinstance(query.get("error"), dict):
+                        issue = query["error"]
+                        raise CoordinatorClientError(
+                            str(issue.get("code", "command_failed")),
+                            str(issue.get("message", "Coordinator command failed")),
+                            details=issue.get("details") or {},
+                        )
+                    if status == "accepted":
+                        submission = "accepted"
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            time.sleep(min(_COMMAND_RECONCILIATION_POLL_INTERVAL_SECONDS, remaining))
+
+        if (
+            submission == "unknown"
+            and last_query_error is not None
+            and last_query_error.code == "command_request_not_found"
+        ):
+            raise CoordinatorClientError(
+                "command_post_not_accepted",
+                "Coordinator did not accept the command before reconciliation completed",
+                details={
+                    "requestId": request_id,
+                    "phase": "post_response",
+                    "submission": "not_accepted",
+                    "recovery": f"GET /command/requests/{request_id}",
+                },
+            )
+
+        raise CoordinatorClientError(
+            "command_post_timeout",
+            "Coordinator command remains accepted but has no terminal result",
+            details={
+                "requestId": request_id,
+                "phase": "post_response",
+                "submission": submission,
+                "recovery": f"GET /command/requests/{request_id}",
+            },
+        )
+
     def command(self, command: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
-        self._verify_endpoint_repository()
+        request_id = uuid.uuid4().hex
+        try:
+            self._verify_endpoint_repository()
+        except CoordinatorClientError as error:
+            if error.code != "command_timeout":
+                raise
+            raise CoordinatorClientError(
+                "command_preflight_timeout",
+                "Coordinator health preflight exceeded its deadline; command was not submitted",
+                details={
+                    "requestId": request_id,
+                    "command": command,
+                    "phase": "preflight",
+                    "submission": "not_submitted",
+                },
+            ) from error
+        payload = {
+            "request_id": request_id,
+            "command": command,
+            "arguments": arguments or {},
+        }
         try:
             return self._request(
                 "POST",
                 "/command",
-                {"command": command, "arguments": arguments or {}},
+                payload,
                 timeout_seconds=self.command_timeout_seconds,
             )
         except CoordinatorClientError as error:
-            if error.code != "command_timeout":
+            if error.code not in {"command_timeout", "offline", "invalid_response"}:
                 raise
-            details = dict(error.details)
-            details.update(
-                {
-                    "command": command,
-                    "timeoutSeconds": self.command_timeout_seconds,
-                    "recovery": "query health and the typed job/session status before retrying",
-                }
-            )
-            raise CoordinatorClientError(error.code, error.message, details=details) from error
+            try:
+                return self._reconcile_command_request(request_id)
+            except CoordinatorClientError as reconciliation_error:
+                details = dict(reconciliation_error.details)
+                details.setdefault("command", command)
+                details.setdefault("timeoutSeconds", self.command_timeout_seconds)
+                raise CoordinatorClientError(
+                    reconciliation_error.code,
+                    reconciliation_error.message,
+                    details=details,
+                ) from error
 
     def shutdown(self) -> dict[str, Any]:
         preview = self.control_request(
@@ -166,7 +311,12 @@ class CoordinatorClient:
                     details={"actionId": action_id, "kind": kind},
                 )
             time.sleep(min(_ACTION_POLL_INTERVAL_SECONDS, remaining))
-            detail = self.control_request("GET", f"/control/v1/actions/{action_id}")
+            try:
+                detail = self.control_request("GET", f"/control/v1/actions/{action_id}")
+            except CoordinatorClientError as error:
+                if kind != "service.rollover" or error.code not in {"offline", "command_timeout"}:
+                    raise
+                continue
             action = detail.get("action")
             if not isinstance(action, dict):
                 raise CoordinatorClientError(
@@ -250,6 +400,10 @@ class CoordinatorClient:
                 request, timeout=timeout_seconds or self.timeout_seconds
             ) as response:
                 body = json.loads(response.read().decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError, http.client.IncompleteRead) as error:
+            raise CoordinatorClientError(
+                "invalid_response", "Coordinator response was truncated or invalid JSON"
+            ) from error
         except urllib.error.HTTPError as error:
             try:
                 body = json.loads(error.read().decode("utf-8"))
@@ -259,8 +413,16 @@ class CoordinatorClient:
                     str(issue.get("message", error.reason)),
                     details=issue.get("details") or {},
                 ) from error
-            except (ValueError, AttributeError):
-                raise CoordinatorClientError("http_error", str(error.reason)) from error
+            except (
+                ValueError,
+                AttributeError,
+                UnicodeDecodeError,
+                http.client.IncompleteRead,
+                OSError,
+            ) as parse_error:
+                raise CoordinatorClientError(
+                    "invalid_response", "Coordinator error response was truncated or invalid JSON"
+                ) from parse_error
             finally:
                 error.close()
         except TimeoutError as error:

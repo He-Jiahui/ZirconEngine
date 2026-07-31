@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
 use zircon_runtime_interface::ui::{
     dispatch::{UiInputTimestamp, UiPointerId, UiPointerSource},
@@ -50,6 +50,33 @@ struct UiToastTimerExpiration {
 impl UiInputTimerState {
     pub fn last_tick(&self) -> Option<UiInputTimestamp> {
         self.last_tick
+    }
+
+    pub fn next_frame_visible_delay(&self, now: UiInputTimestamp) -> Option<Duration> {
+        let earliest_deadline_micros = self
+            .typeahead_expirations
+            .values()
+            .map(|deadline| deadline.monotonic_micros)
+            .chain(
+                self.submenu_hover_expirations
+                    .values()
+                    .map(|expiration| expiration.deadline.monotonic_micros),
+            )
+            .chain(
+                self.tooltip_expirations
+                    .values()
+                    .map(|expiration| expiration.deadline.monotonic_micros),
+            )
+            .chain(
+                self.toast_expirations
+                    .values()
+                    .map(|expiration| expiration.deadline.monotonic_micros),
+            )
+            .min()?;
+
+        Some(Duration::from_micros(
+            earliest_deadline_micros.saturating_sub(now.monotonic_micros),
+        ))
     }
 
     pub fn record_tick(&mut self, now: UiInputTimestamp) {

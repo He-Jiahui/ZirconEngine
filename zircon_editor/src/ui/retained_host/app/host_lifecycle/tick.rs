@@ -1,19 +1,32 @@
 use super::super::*;
 use crate::ui::retained_host::ui_perf::{
-    enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
+    UiPerfScenario, enter_ui_perf_scenario, time_ui_perf_scenario,
 };
+use std::time::Instant;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn tick(&mut self) {
         zircon_runtime::profile_frame!("editor", "retained_host_tick");
         zircon_runtime::profile_scope!("editor", "retained_host", "tick");
         self.pump_editor_job_events();
+        self.poll_welcome_project_probe();
         self.poll_desktop_export_jobs();
         self.poll_desktop_export_wizard_sessions();
         self.sync_editor_job_progress();
-        if let Err(error) = self.runtime.pump_runtime_event_consumers() {
+        if let Err(error) = self.runtime.pump_plugin_lifecycle_messages() {
+            self.set_status_line(error);
+        }
+        self.runtime.update_scene_modes();
+        match self.runtime.pump_runtime_event_consumers() {
+            Ok(frame_demand) => self
+                .ui
+                .apply_runtime_frame_demand(frame_demand, Instant::now()),
+            Err(error) => self.set_status_line(error.to_string()),
+        }
+        if let Err(error) = self.sync_plugin_template_documents_if_changed() {
             self.set_status_line(error.to_string());
         }
+        self.sync_pending_play_decisions();
 
         {
             let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::AssetRefresh);
@@ -86,8 +99,36 @@ mod tests {
         let progress_sync = production
             .find("self.sync_editor_job_progress();")
             .expect("retained tick should project the unified job progress source");
+        let lifecycle_pump = production
+            .find("self.runtime.pump_plugin_lifecycle_messages()")
+            .expect("retained tick should pump plugin lifecycle message subscriptions");
         assert!(pump < export_poll);
         assert!(export_poll < wizard_poll);
         assert!(wizard_poll < progress_sync);
+        assert!(progress_sync < lifecycle_pump);
+    }
+
+    #[test]
+    fn retained_tick_syncs_pending_play_decisions_after_backend_polling() {
+        let source = include_str!("tick.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("tick source should contain its production section");
+        let backend_poll = production
+            .find("self.runtime.pump_runtime_event_consumers()")
+            .expect("retained tick should poll the play backend");
+        let lifecycle_pump = production
+            .find("self.runtime.pump_plugin_lifecycle_messages()")
+            .expect("retained tick should pump plugin lifecycle message subscriptions before backend polling");
+        let template_sync = production
+            .find("self.sync_plugin_template_documents_if_changed()")
+            .expect("retained tick should synchronize plugin templates after backend polling");
+        let decision_sync = production
+            .find("self.sync_pending_play_decisions();")
+            .expect("retained tick should project pending play decisions");
+        assert!(lifecycle_pump < backend_poll);
+        assert!(backend_poll < template_sync);
+        assert!(template_sync < decision_sync);
     }
 }

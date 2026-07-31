@@ -1,9 +1,9 @@
 use std::fs;
 
+use crate::asset::AssetUri;
 use crate::asset::pipeline::manager::AssetManager;
 use crate::asset::project::ProjectManager;
 use crate::asset::project::{ProjectManifest, ProjectPaths};
-use crate::asset::AssetUri;
 use crate::core::framework::render::{
     PostProcessGraphResourceNames, RenderDirectionalLightSnapshot, RenderFramework, RenderLayerSet,
     RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderStats,
@@ -12,7 +12,7 @@ use crate::core::framework::render::{
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker};
 use crate::graphics::WgpuRenderFramework;
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 use super::super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
 use super::{
@@ -123,9 +123,12 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                    default_render_layer_mask(),
-                ),
+                common: crate::core::framework::render::RendererCommon {
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                        default_render_layer_mask(),
+                    ),
+                    ..Default::default()
+                },
             }],
             Vec::new(),
             viewport_size,
@@ -150,9 +153,12 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                    default_render_layer_mask(),
-                ),
+                common: crate::core::framework::render::RendererCommon {
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                        default_render_layer_mask(),
+                    ),
+                    ..Default::default()
+                },
             }],
             Vec::new(),
             viewport_size,
@@ -189,9 +195,12 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                    default_render_layer_mask(),
-                ),
+                common: crate::core::framework::render::RendererCommon {
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                        default_render_layer_mask(),
+                    ),
+                    ..Default::default()
+                },
             }],
             Vec::new(),
             viewport_size,
@@ -277,9 +286,12 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                    default_render_layer_mask(),
-                ),
+                common: crate::core::framework::render::RendererCommon {
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                        default_render_layer_mask(),
+                    ),
+                    ..Default::default()
+                },
             },
             RenderMeshSnapshot {
                 node_id: 2,
@@ -294,9 +306,12 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                    default_render_layer_mask(),
-                ),
+                common: crate::core::framework::render::RendererCommon {
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                        default_render_layer_mask(),
+                    ),
+                    ..Default::default()
+                },
             },
         ],
         Vec::new(),
@@ -484,9 +499,10 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                default_render_layer_mask(),
-            ),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+                ..Default::default()
+            },
         }],
         lights,
         viewport_size,
@@ -640,9 +656,10 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                default_render_layer_mask(),
-            ),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+                ..Default::default()
+            },
         }],
         Vec::new(),
         viewport_size,

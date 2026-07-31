@@ -5,16 +5,15 @@ use crate::asset::pipeline::manager::{
 };
 use crate::asset::AssetImporterRegistry;
 use crate::core::framework::asset::ResourceManager;
+use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;
 use crate::core::manager::{resolve_manager_service, RegisteredManagerService};
+use crate::core::runtime::modules::TASKS_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
     DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
     ServiceKind, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
-use crate::foundation::FOUNDATION_MODULE_NAME;
-
-use crate::core::runtime::modules::TASKS_MODULE_NAME;
 
 pub const ASSET_MODULE_NAME: &str = "AssetModule";
 pub const ASSET_IO_DRIVER_NAME: &str = "AssetModule.Driver.AssetIoDriver";

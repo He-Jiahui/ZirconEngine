@@ -82,9 +82,38 @@ impl UiHitTestIndex {
                 path: UiHitPath::from_query(&query),
             };
         }
-        let mut stacked = Vec::new();
         let point = query.hit_point();
         let cursor_radius = query.sanitized_cursor_radius();
+        if cursor_radius <= 0.0 {
+            let mut stacked = Vec::new();
+            if let Some(cell) =
+                cell_index_for_point(grid, point).and_then(|cell_index| grid.cells.get(cell_index))
+            {
+                for entry_index in cell.entries.iter().rev() {
+                    let Some(entry) = grid.entries.get(*entry_index) else {
+                        continue;
+                    };
+                    let Some(node) = arranged_tree.get(entry.node_id) else {
+                        continue;
+                    };
+                    let clipped_frame = node
+                        .frame
+                        .intersection(entry.clip_frame)
+                        .unwrap_or(entry.clip_frame);
+                    if !clipped_frame.contains_point(point) {
+                        continue;
+                    }
+                    if arranged_effective_input_policy(arranged_tree, entry.node_id)
+                        .is_ok_and(|policy| policy == UiInputPolicy::Ignore)
+                    {
+                        continue;
+                    }
+                    stacked.push(entry.node_id);
+                }
+            }
+            return hit_result_from_stacked(arranged_tree, &query, stacked);
+        }
+
         let entry_indices = hit_entry_indices_for_query(grid, point, cursor_radius);
         let mut exact_hits = Vec::new();
         let mut radius_hits = Vec::new();
@@ -115,21 +144,28 @@ impl UiHitTestIndex {
             }
         }
         radius_hits.sort_by(|left, right| left.0.total_cmp(&right.0));
-        stacked.extend(exact_hits);
+        let mut stacked = exact_hits;
         stacked.extend(radius_hits.into_iter().map(|(_, node_id)| node_id));
+        hit_result_from_stacked(arranged_tree, &query, stacked)
+    }
+}
 
-        let top_hit = stacked.first().copied();
-        let bubble_route = top_hit
-            .and_then(|node_id| arranged_bubble_route(arranged_tree, node_id).ok())
-            .unwrap_or_default();
-        let mut root_to_leaf = bubble_route.clone();
-        root_to_leaf.reverse();
+fn hit_result_from_stacked(
+    arranged_tree: &UiArrangedTree,
+    query: &UiHitTestQuery,
+    stacked: Vec<UiNodeId>,
+) -> UiHitTestResult {
+    let top_hit = stacked.first().copied();
+    let bubble_route = top_hit
+        .and_then(|node_id| arranged_bubble_route(arranged_tree, node_id).ok())
+        .unwrap_or_default();
+    let mut root_to_leaf = bubble_route.clone();
+    root_to_leaf.reverse();
 
-        UiHitTestResult {
-            top_hit,
-            stacked,
-            path: UiHitPath::from_query(&query).with_route(top_hit, root_to_leaf, bubble_route),
-        }
+    UiHitTestResult {
+        top_hit,
+        stacked,
+        path: UiHitPath::from_query(query).with_route(top_hit, root_to_leaf, bubble_route),
     }
 }
 

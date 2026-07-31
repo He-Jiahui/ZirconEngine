@@ -15,6 +15,8 @@ pub(super) fn dispatch_viewport_pointer_scroll(
         local_x,
         local_y,
         delta,
+        false,
+        false,
     );
     NativePointerDispatchResult::idle()
 }

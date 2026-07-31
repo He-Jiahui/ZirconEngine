@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_npc_initialization_tests",
+  "source": "src",
+  "binary": "bin-m3-npc-initialization-tests",
+  "entry": "generated/m3_npc_initialization_test_main"
+}

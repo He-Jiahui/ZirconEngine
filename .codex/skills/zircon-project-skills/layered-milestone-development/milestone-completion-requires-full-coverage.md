@@ -8,5 +8,5 @@
 - If the milestone concerns parsing, type handling, runtime helpers, or library behavior, target changed variants and known regression boundaries instead of duplicating stable equivalent coverage.
 - When tests are missing, add them before declaring success.
 - Unit-test code may be written during implementation, but the milestone is not complete until the testing stage has run the declared compile/build and unit-test evidence and fixed failures.
-- The milestone is not complete until the active plan's `## 状态与产出记录` table has one concise accepted outcome with the testing-stage evidence and accepted residual risk.
+- The milestone is not complete until the active plan's `## 状态与产出记录` table has one concise accepted outcome linked to the testing-stage batch and any accepted residual risk. Do not add a testing report or command transcript.
 - When an upper-layer scenario fails, reopen the lower-layer inventory first and prove the shared support path is correct before adjusting the upper layer.

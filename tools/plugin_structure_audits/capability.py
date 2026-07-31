@@ -187,6 +187,134 @@ def audit_plugin_capability_conformance(repo_root: Path) -> PluginCapabilityAudi
     )
 
 
+def skip_rust_non_code(text: str, index: int) -> int | None:
+    """Return the first code index after a literal or comment at ``index``."""
+    raw_string = re.match(r'r(?P<hashes>#{0,255})"', text[index:])
+    if raw_string is not None:
+        terminator = '"' + raw_string.group("hashes")
+        closing = text.find(terminator, index + raw_string.end())
+        if closing < 0:
+            return None
+        return closing + len(terminator)
+
+    character = text[index]
+    if character in ('"', "'"):
+        quote = character
+        index += 1
+        while index < len(text):
+            if text[index] == "\\":
+                index += 2
+                continue
+            if text[index] == quote:
+                return index + 1
+            index += 1
+        return None
+    if character != "/" or index + 1 >= len(text):
+        return index
+
+    next_character = text[index + 1]
+    if next_character == "/":
+        newline = text.find("\n", index + 2)
+        return len(text) if newline < 0 else newline + 1
+    if next_character != "*":
+        return index
+
+    depth = 1
+    index += 2
+    while index < len(text):
+        if text.startswith("/*", index):
+            depth += 1
+            index += 2
+            continue
+        if text.startswith("*/", index):
+            depth -= 1
+            index += 2
+            if depth == 0:
+                return index
+            continue
+        index += 1
+    return None
+
+
+def matching_rust_brace(text: str, opening_brace: int) -> int | None:
+    depth = 0
+    index = opening_brace
+    while index < len(text):
+        skipped = skip_rust_non_code(text, index)
+        if skipped is None:
+            return None
+        if skipped != index:
+            index = skipped
+            continue
+
+        character = text[index]
+        if character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return None
+
+
+def rust_code_mask(text: str) -> list[bool]:
+    """Mark code positions while excluding comments and string literals."""
+    mask = [True] * len(text)
+    index = 0
+    while index < len(text):
+        skipped = skip_rust_non_code(text, index)
+        if skipped is None:
+            for masked in range(index, len(text)):
+                mask[masked] = False
+            return mask
+        if skipped == index:
+            index += 1
+            continue
+        for masked in range(index, skipped):
+            mask[masked] = False
+        index = skipped
+    return mask
+
+
+def declare_plugin_bodies(text: str) -> list[str]:
+    marker = "zircon_plugin_sdk::declare_plugin!"
+    bodies: list[str] = []
+    index = 0
+    while index < len(text):
+        skipped = skip_rust_non_code(text, index)
+        if skipped is None:
+            return bodies
+        if skipped != index:
+            index = skipped
+            continue
+        if not text.startswith(marker, index):
+            index += 1
+            continue
+
+        opening_brace = index + len(marker)
+        while opening_brace < len(text):
+            skipped = skip_rust_non_code(text, opening_brace)
+            if skipped is None:
+                return bodies
+            if skipped != opening_brace:
+                opening_brace = skipped
+                continue
+            if text[opening_brace].isspace():
+                opening_brace += 1
+                continue
+            break
+        if opening_brace == len(text) or text[opening_brace] != "{":
+            index += len(marker)
+            continue
+        closing_brace = matching_rust_brace(text, opening_brace)
+        if closing_brace is None:
+            return bodies
+        bodies.append(text[opening_brace + 1 : closing_brace])
+        index = closing_brace + 1
+    return bodies
+
+
 def parse_capability_string_constants(capability_path: Path) -> dict[str, str]:
     constants: dict[str, str] = {}
     text = capability_path.read_text(encoding="utf-8")
@@ -196,6 +324,23 @@ def parse_capability_string_constants(capability_path: Path) -> dict[str, str]:
         re.MULTILINE,
     ):
         constants[match.group(1)] = match.group(2)
+
+    # `declare_plugin!` generates the same public constants at expansion time. Scan only complete
+    # macro bodies so braces in descriptions or later declarations cannot change the owner set.
+    for declaration in declare_plugin_bodies(text):
+        code_mask = rust_code_mask(declaration)
+        for capabilities in re.finditer(
+            r"\bcapabilities\s*:\s*\[(?P<body>(?:\s*[A-Z0-9_]*CAPABILITY\s*=\s*\"[^\"]+\"\s*,?)+\s*)\]\s*,\s*maturity\s*:\s*(?:core|stable|beta|experimental|externalized|stub|deprecated)\s*,",
+            declaration,
+            re.DOTALL,
+        ):
+            if not code_mask[capabilities.start()]:
+                continue
+            for match in re.finditer(
+                r"\b([A-Z0-9_]*CAPABILITY)\s*=\s*\"([^\"]+)\"",
+                capabilities.group("body"),
+            ):
+                constants.setdefault(match.group(1), match.group(2))
     return constants
 
 

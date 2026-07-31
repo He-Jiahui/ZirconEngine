@@ -6,7 +6,7 @@ display_name = "Workbench Alert"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchAlert]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-alert", "workbench-primitive"]
 component = "Alert"
 control_id = "WorkbenchAlertRoot"
 classes = ["workbench-alert"]
-props = { text = "Unsaved scene changes", severity = "warning", variant = "outlined", color = "warning", icon = "warning", show_icon = true, closeText = "Close", layout_offset_x = 0.0, layout_offset_y = 0.0, status_mark_size = 18.0, status_mark_color = "#c99721", action_color = "#d2a331" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 38.0, stretch = "Fixed" } }
+props = { text = "Unsaved scene changes", severity = "warning", variant = "outlined", color = "warning", icon = "warning", show_icon = true, closeText = "Close", background_color = "$editor.semantic.warning.container", border_color = "$editor.semantic.warning", foreground_color = "$editor.semantic.warning", icon_color = "$editor.semantic.warning", action_color = "$editor.semantic.warning", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.small", layout_offset_x = 0.0, layout_offset_y = 0.0, status_mark_size = 18.0, status_mark_color = "$editor.semantic.warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.default", max = 38.0, stretch = "Fixed" } }

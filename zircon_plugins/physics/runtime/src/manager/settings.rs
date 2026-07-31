@@ -2,9 +2,10 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::{
-    physics::PhysicsSettings, scene::physics::PhysicsMaterialMetadata,
+    physics::{PhysicsSettings, PhysicsSettingsStoreError},
+    scene::physics::PhysicsMaterialMetadata,
 };
-use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
+use zircon_runtime::core::{CoreHandle, CoreWeak};
 
 use crate::backend::{default_backend_name, default_simulation_mode};
 use crate::manager::DefaultPhysicsManager;
@@ -45,7 +46,10 @@ impl DefaultPhysicsManager {
         *recover_lock(&self.core) = Some(core.downgrade());
     }
 
-    pub fn store_settings(&self, settings: PhysicsSettings) -> Result<(), CoreError> {
+    pub fn store_settings(
+        &self,
+        settings: PhysicsSettings,
+    ) -> Result<(), PhysicsSettingsStoreError> {
         let backend_changed = recover_lock(&self.settings).backend != settings.backend;
         #[cfg(feature = "backend-jolt")]
         if backend_changed {
@@ -60,7 +64,8 @@ impl DefaultPhysicsManager {
             .as_ref()
             .and_then(CoreWeak::upgrade);
         if let Some(core) = core {
-            core.store_config(crate::PHYSICS_SETTINGS_CONFIG_KEY, &settings)?;
+            core.store_config(crate::PHYSICS_SETTINGS_CONFIG_KEY, &settings)
+                .map_err(|source| PhysicsSettingsStoreError::persistence(source.to_string()))?;
         }
         Ok(())
     }

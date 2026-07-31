@@ -1,0 +1,44 @@
+var rules = %import("instances/delve_dynamic_collision_rules");
+
+if (rules.objectSolidRadius("reward_chest", 0, true) != 2.4 ||
+    rules.objectSolidRadius("locked_chest", 0, true) != 2.4 ||
+    rules.objectSolidRadius("drowned_reliquary", 0, true) != 2.4 ||
+    rules.objectSolidRadius("cracked_grave", 0, true) != 1.0 ||
+    rules.objectSolidRadius("destructible_wall", 1, true) != 3.2 ||
+    rules.objectSolidRadius("destructible_wall", 0, true) != 0.0 ||
+    rules.objectSolidRadius("pressure_plate", 1, true) != 0.0 ||
+    rules.lockedDoorHalfWidth(true) != 24.0 || rules.lockedDoorHalfDepth(true) != 1.2) {
+    return -1;
+}
+
+if (rules.resolveObjectCoordinate("locked_door", false, 1, 0.0, 0.0, 0.5,
+        0.0, 0.0, 1, true) != 0.0 ||
+    rules.resolveObjectCoordinate("locked_door", false, 1, 0.0, 0.0, 0.5,
+        0.0, 0.0, 2, true) != 1.7 ||
+    rules.resolveObjectCoordinate("locked_door", false, 1, 23.0, 0.0, 0.5,
+        0.0, 0.0, 1, true) != 24.5 ||
+    rules.resolveObjectCoordinate("locked_door", false, 1, 23.0, 0.0, 0.5,
+        0.0, 0.0, 2, true) != 0.0 ||
+    rules.resolveObjectCoordinate("locked_door", false, 1, 24.5, 0.0, 0.5,
+        0.0, 0.0, 1, true) != 24.5 ||
+    rules.resolveObjectCoordinate("locked_door", true, 1, 0.0, 0.0, 0.5,
+        0.0, 0.0, 2, true) != 0.0) {
+    return -2;
+}
+
+if (rules.resolveObjectCoordinate("reward_chest", false, 0, 0.0, 0.0, 0.5,
+        0.0, 0.0, 1, true) != 2.9 ||
+    rules.resolveObjectCoordinate("reward_chest", false, 0, 0.0, 0.0, 0.5,
+        0.0, 0.0, 2, true) != 0.0 ||
+    rules.resolveObjectCoordinate("cracked_grave", false, 0, 0.0, 0.0, 0.5,
+        0.0, 0.0, 1, true) != 1.5 ||
+    rules.resolveObjectCoordinate("destructible_wall", false, 1, 0.0, 0.0, 0.5,
+        0.0, 0.0, 1, true) != 3.7 ||
+    rules.resolveObjectCoordinate("destructible_wall", false, 0, 0.0, 0.0, 0.5,
+        0.0, 0.0, 1, true) != 0.0 ||
+    rules.resolveObjectCoordinate("pressure_plate", false, 1, 1.0, 2.0, 0.5,
+        0.0, 0.0, 1, true) != 1.0 || rules.contractTest() != 1) {
+    return -3;
+}
+
+return 0;

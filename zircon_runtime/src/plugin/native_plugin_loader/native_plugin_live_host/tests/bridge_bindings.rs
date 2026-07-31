@@ -93,13 +93,10 @@ fn native_live_host_reuses_installed_bridge_bindings_for_loaded_manifest_scopes(
 #[test]
 fn native_live_host_auto_installs_discovered_bridge_bindings_from_load_report() {
     let host = NativePluginLiveHost::default();
-    let load_report = NativePluginLoadReport {
-        discovered: Vec::new(),
-        loaded: vec![native_live_host_test_plugin_with_discovered_bridge_table(
-            "physics",
-        )],
-        diagnostics: Vec::new(),
-    };
+    let mut load_report = NativePluginLoadReport::default();
+    load_report.push_loaded(native_live_host_test_plugin_with_discovered_bridge_table(
+        "physics",
+    ));
 
     let report = host
         .load_reported_plugins(load_report, PluginModuleKind::Runtime)

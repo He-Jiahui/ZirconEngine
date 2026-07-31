@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
 use super::super::host_template_node;
+use super::parse::{parse_count, reset_parse_count};
 use super::{
-    projected_notification_center_options, projected_notification_center_structured_options,
-    projected_notification_center_value_text,
+    projected_notification_center_metadata, projected_notification_center_options,
+    projected_notification_center_structured_options, projected_notification_center_value_text,
 };
 use crate::ui::template_runtime::RetainedUiHostNodeProjection;
 use toml::Value;
@@ -17,6 +18,9 @@ fn runtime_component_projection_projects_notification_center_rows_for_native_pai
             ("open", Value::Boolean(true)),
             ("title", Value::String("Notifications".into())),
             ("empty_text", Value::String("No notifications".into())),
+            ("notification_generation", Value::Integer(7)),
+            ("unread_count", Value::Integer(2)),
+            ("overflow_count", Value::Integer(3)),
             ("selected_notification_id", Value::String("build".into())),
             ("focused_index", Value::Integer(1)),
             ("visible_limit", Value::Integer(2)),
@@ -57,6 +61,12 @@ fn runtime_component_projection_projects_notification_center_rows_for_native_pai
     assert!(node.popup_open);
     assert_eq!(node.text.as_str(), "Notifications");
     assert_eq!(node.value_text.as_str(), "No notifications");
+    assert_eq!(node.notification_generation, 7);
+    assert_eq!(node.notification_unread_count, 2);
+    assert_eq!(node.notification_overflow_count, 3);
+    assert_eq!(node.notification_selected_id.as_str(), "build");
+    assert_eq!(node.notification_focused_index, 1);
+    assert_eq!(node.notification_visible_limit, 2);
     assert_eq!(node.options.row_count(), 2);
     assert_eq!(node.options.row_data(0).as_deref(), Some("Build failed"));
     assert_eq!(
@@ -87,6 +97,24 @@ fn runtime_component_projection_projects_notification_center_rows_for_native_pai
     assert_eq!(second.tone.as_str(), "success");
     assert!(second.focused);
     assert!(second.unread);
+}
+
+#[test]
+fn visible_limit_stops_notification_parsing_before_offscreen_rows() {
+    let notifications = (0..64)
+        .map(|index| Value::String(format!("row-{index}|title=Notification {index}")))
+        .collect();
+    let attributes = notification_attributes([
+        ("visible_limit", Value::Integer(2)),
+        ("notifications", Value::Array(notifications)),
+    ]);
+
+    reset_parse_count();
+    let rows = projected_notification_center_structured_options("notification-center", &attributes)
+        .expect("notification rows should project");
+
+    assert_eq!(rows.len(), 2);
+    assert_eq!(parse_count(), 2);
 }
 
 #[test]
@@ -148,6 +176,23 @@ fn non_notification_roles_do_not_claim_options() {
         projected_notification_center_structured_options("command-palette", &attributes),
         None
     );
+    assert_eq!(
+        projected_notification_center_metadata("command-palette", &attributes),
+        None
+    );
+}
+
+#[test]
+fn workbench_projection_builds_notification_option_pairs_once() {
+    let source = include_str!("../../../workbench_window_projection.rs");
+    let paired_projection = "projected_notification_center_option_rows(";
+    let duplicate_options_projection = ["projected_notification_center_", "options("].concat();
+    let duplicate_structured_projection =
+        ["projected_notification_center_", "structured_options("].concat();
+
+    assert!(source.contains(paired_projection));
+    assert!(!source.contains(&duplicate_options_projection));
+    assert!(!source.contains(&duplicate_structured_projection));
 }
 
 fn projected_node(

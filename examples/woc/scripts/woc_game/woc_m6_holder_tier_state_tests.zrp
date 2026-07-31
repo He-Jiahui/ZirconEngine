@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_holder_tier_state_tests",
+  "source": "src",
+  "binary": "bin-m6-holder-tier-state-tests",
+  "entry": "social/holder_tier_state_test_main"
+}

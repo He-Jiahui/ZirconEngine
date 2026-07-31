@@ -1,0 +1,7 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub isSpellCrit(kind: string): bool { return kind == "buff_spellcrit"; }
+pub isSpellDamage(kind: string): bool { return kind == "buff_spelldmg"; }
+pub isMoonkin(kind: string): bool { return kind == "form_moonkin"; }
+pub isSpellHaste(kind: string): bool { return kind == "buff_spellhaste"; }
+pub isCastShield(kind: string): bool { return kind == "cast_shield"; }
+pub moonkinSpellDamageBonus(): float { return 0.2; }

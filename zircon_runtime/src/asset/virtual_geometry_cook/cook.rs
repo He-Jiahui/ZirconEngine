@@ -121,6 +121,7 @@ struct CookBuildState {
     next_node_id: u32,
     next_cluster_id: u32,
     next_page_id: u32,
+    next_page_offset: u64,
     page_dependencies: Vec<VirtualGeometryPageDependencyAsset>,
 }
 
@@ -347,17 +348,15 @@ fn append_page_payload(
         }
     }
 
-    let start_offset = cooked
-        .cluster_page_headers
-        .iter()
-        .map(|page| page.payload_size_bytes)
-        .sum::<u64>();
+    let start_offset = cooked.next_page_offset;
+    let payload_size_bytes = u64::try_from(payload.len()).unwrap_or(u64::MAX);
+    cooked.next_page_offset = start_offset.saturating_add(payload_size_bytes);
     cooked
         .cluster_page_headers
         .push(VirtualGeometryClusterPageHeaderAsset {
             page_id: summary.page_id,
             start_offset: u32::try_from(start_offset).unwrap_or(u32::MAX),
-            payload_size_bytes: u64::try_from(payload.len()).unwrap_or(u64::MAX),
+            payload_size_bytes,
         });
     cooked.cluster_page_data.push(payload);
 }

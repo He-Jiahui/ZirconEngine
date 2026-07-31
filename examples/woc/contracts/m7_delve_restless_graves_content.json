@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_restless_graves_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/combat/damage.ts": "6b4b18cd513e10f2cbcd7b5aab65e544b27c30944a0db744b37c5dc36c2dfcb4",
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff"
+  },
+  "content": {
+    "delay_seconds": 3,
+    "spawn_mob_id": "reliquary_bonewalker",
+    "requires_affix": true,
+    "excludes_boss": true,
+    "excludes_elite": true,
+    "excludes_affix_spawned": true,
+    "ready_at_or_before_time": true,
+    "preserves_source_order": true,
+    "spawn_marks_affix_spawned": true
+  },
+  "catalog_sha256": "cb65a2d89a575cbe20ea49c14797d081b513ec556365b13cfbfedc13227143b0"
+}

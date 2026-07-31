@@ -5,8 +5,8 @@ use super::super::atlas_texture_upload::{
     create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,
     write_glyph_atlas_texture_upload_command,
 };
-use super::super::sdf_atlas::{distance_field_atlas_layer_count, SdfAtlasPlan};
-use super::super::sdf_upload::{sdf_atlas_upload_commands, SdfAtlasUploadReport};
+use super::super::sdf_atlas::{SdfAtlasPlan, distance_field_atlas_layer_count};
+use super::super::sdf_upload::{SdfAtlasUploadReport, sdf_atlas_upload_commands};
 
 const SDF_ATLAS_TEXTURE_LABEL: &str = "zircon-screen-space-ui-sdf-atlas";
 const SDF_ATLAS_VIEW_LABEL: &str = "zircon-screen-space-ui-sdf-atlas-view";
@@ -107,7 +107,7 @@ impl DistanceFieldAtlasResources {
         if pixels.is_empty() {
             return;
         }
-        for command in sdf_atlas_upload_commands(atlas_plan, upload.clone(), pixels.len()) {
+        for command in sdf_atlas_upload_commands(atlas_plan, upload, pixels.len()) {
             let texture = match command.page_key.format {
                 GlyphAtlasFormat::Sdf => &self.sdf_texture,
                 GlyphAtlasFormat::Msdf => &self.msdf_texture,

@@ -1,0 +1,1409 @@
+// Source-authored M7 Delve lifecycle projection at 20 Hz. Lock layout draws use
+// a run-local stream; companion swings alone delegate to shared combat RNG here.
+var container = %import("zr.container");
+var math = %import("zr.zircon.math");
+var runLayout = %import("world/delve_run_layout");
+var activeCollision = %import("world/delve_collision_routing");
+var activeSweep = %import("world/delve_collision_sweep");
+var activeLineOfSight = %import("world/delve_line_of_sight");
+var moduleContent = %import("instances/delve_module_content");
+var shopContent = %import("instances/delve_shop_content");
+var shopRules = %import("instances/delve_shop_rules");
+var loreRules = %import("instances/delve_lore_rules");
+var restlessRules = %import("instances/delve_restless_graves_rules");
+var inventoryLedger = %import("progression/inventory_instance_ledger");
+var companionUpgradeContent = %import("instances/delve_companion_content");
+var lockpickRules = %import("instances/delve_lockpick_rules");
+var lockpickSessionModule = %import("instances/delve_lockpick_session");
+var bountifulRules = %import("instances/delve_bountiful_rules");
+var rngModule = %import("kernel/rng");
+var rngObserver = %import("instances/m7_rng_observer");
+
+class DelveState {
+    pub var tick: int;
+    pub var runActive: bool;
+    pub var failed: bool;
+    pub var ejected: bool;
+    pub var bountiful: bool;
+    // Source DelveRun keeps the selected module list. The list is immutable
+    // after claim, so this scalar context re-derives it from its source inputs.
+    pub var sourceRunBound: bool;
+    pub var sourceDelveIndex: int;
+    pub var sourceRunSlot: int;
+    pub var sourceRunSeed: int;
+    pub var sourceTierIndex: int;
+    pub var sourcePuzzle0Triggered: bool;
+    pub var sourcePuzzle1Triggered: bool;
+    pub var sourcePuzzle2Triggered: bool;
+    pub var sourcePuzzle3Triggered: bool;
+    pub var moduleCount: int;
+    pub var moduleIndex: int;
+    pub var moduleSpawnCount: int;
+    pub var finaleIndex: int;
+    pub var mobsAlive: int;
+    pub var pressurePlates: int;
+    pub var pressureTriggered: int;
+    pub var moduleExitOpen: bool;
+    pub var surfaceExitOpen: bool;
+    pub var rewardChestAvailable: bool;
+    pub var chestAttemptAvailable: bool;
+    pub var chestOpen: bool;
+    pub var pendingLootCount: int;
+    pub var delveMarks: int;
+    pub var copper: int;
+    // The target records `delveId:tierId` clear counts per player. Keep the
+    // three partitions by generated shop index so all offer gates use the same
+    // source-owned purchase path, including future non-Normal/heroic tiers.
+    pub var shopNormalClears: container.Array<int>;
+    pub var shopHeroicClears: container.Array<int>;
+    pub var shopOtherTierClears: container.Array<int>;
+    // Delve shop purchases use the project-wide instance-safe inventory model.
+    // addStacked intentionally ignores capacity after the command is accepted,
+    // matching the target's Sim.addItem grant hub.
+    pub var inventory: inventoryLedger.InventoryInstanceLedger;
+    pub var lastVendorItemId: string;
+    // The source emits stable lore ids at clear time; text remains a client
+    // localization concern, so the transactional state never stores prose.
+    pub var unlockedDelveLoreIds: container.Array<string>;
+    pub var lastDelveLoreId: string;
+    // Pending Restless Graves arrivals stay in source death order until their
+    // deterministic three-second due time, then become active Delve mobs.
+    pub var restlessGraves: restlessRules.RestlessGravesState;
+    pub var restlessGravesActive: bool;
+    pub var companionRank: int;
+    pub var dailyDate: int;
+    pub var dailyFirstClearCount: int;
+    pub var dailyMarkClears: int;
+    pub var deathsThisRun: int;
+    pub var ownerDead: bool;
+    pub var ownerHp: int;
+    pub var ownerMaxHp: int;
+    pub var ownerResource: int;
+    pub var ownerX: float;
+    pub var ownerZ: float;
+    pub var ownerTargetBoss: bool;
+    pub var ownerInCombat: bool;
+    pub var companionExists: bool;
+    pub var companionReviveUsed: bool;
+    pub var companionX: float;
+    pub var companionZ: float;
+    pub var companionSwingTicks: int;
+    pub var companionHealTicks: int;
+    pub var companionInCombat: bool;
+    pub var bossAlive: bool;
+    pub var bossX: float;
+    pub var bossZ: float;
+    pub var lockpickActive: bool;
+    pub var lockpickAnte: int;
+    pub var lockpickPages: int;
+    pub var lockpickPage: int;
+    pub var lockpickTries: int;
+    pub var lockpickDeadlineTick: int;
+    // The lock board, retry seed and deadline have one owner. These scalar
+    // fields remain a host-neutral snapshot projection of that session.
+    pub var lockpickSession: lockpickSessionModule.LockpickSession;
+    pub var lockpickRunSeed: uint;
+    pub var lockpickChestId: uint;
+    pub var lockpickOwnerId: uint;
+    // Page starts are not RNG draws. The real seeded board keeps its own
+    // observed local-stream metrics in delve_lockpick_rules.
+    pub var lockpickPageStarts: int;
+    pub var sharedRandomDraws: int;
+    pub var sharedRandomDigest: uint;
+    pub var sharedRandomState: uint;
+    pub var events: container.Array<int>;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.tick = 0;
+        this.runActive = false;
+        this.failed = false;
+        this.ejected = false;
+        this.bountiful = false;
+        this.sourceRunBound = false;
+        this.sourceDelveIndex = 0;
+        this.sourceRunSlot = 0;
+        this.sourceRunSeed = 0;
+        this.sourceTierIndex = 0;
+        this.sourcePuzzle0Triggered = false;
+        this.sourcePuzzle1Triggered = false;
+        this.sourcePuzzle2Triggered = false;
+        this.sourcePuzzle3Triggered = false;
+        this.moduleCount = 0;
+        this.moduleIndex = 0;
+        this.moduleSpawnCount = 0;
+        this.finaleIndex = 0;
+        this.mobsAlive = 0;
+        this.pressurePlates = 0;
+        this.pressureTriggered = 0;
+        this.moduleExitOpen = false;
+        this.surfaceExitOpen = false;
+        this.rewardChestAvailable = false;
+        this.chestAttemptAvailable = false;
+        this.chestOpen = false;
+        this.pendingLootCount = 0;
+        this.delveMarks = 0;
+        this.copper = 0;
+        this.shopNormalClears = new container.Array<int>();
+        this.shopHeroicClears = new container.Array<int>();
+        this.shopOtherTierClears = new container.Array<int>();
+        var shopIndex = 0;
+        while (shopIndex < shopContent.shopCount(true)) {
+            this.shopNormalClears.add(0);
+            this.shopHeroicClears.add(0);
+            this.shopOtherTierClears.add(0);
+            shopIndex = shopIndex + 1;
+        }
+        this.inventory = new inventoryLedger.InventoryInstanceLedger();
+        this.lastVendorItemId = "";
+        this.unlockedDelveLoreIds = new container.Array<string>();
+        this.lastDelveLoreId = "";
+        this.restlessGraves = new restlessRules.RestlessGravesState();
+        this.restlessGravesActive = false;
+        this.companionRank = 1;
+        this.dailyDate = 0;
+        this.dailyFirstClearCount = 0;
+        this.dailyMarkClears = 0;
+        this.deathsThisRun = 0;
+        this.ownerDead = false;
+        this.ownerHp = 1000;
+        this.ownerMaxHp = 1000;
+        this.ownerResource = 1000;
+        this.ownerX = 0.0;
+        this.ownerZ = 0.0;
+        this.ownerTargetBoss = false;
+        this.ownerInCombat = false;
+        this.companionExists = false;
+        this.companionReviveUsed = false;
+        this.companionX = 2.0;
+        this.companionZ = 0.0;
+        this.companionSwingTicks = 0;
+        this.companionHealTicks = 60;
+        this.companionInCombat = false;
+        this.bossAlive = false;
+        this.bossX = 20.0;
+        this.bossZ = 0.0;
+        this.lockpickActive = false;
+        this.lockpickAnte = 0;
+        this.lockpickPages = 0;
+        this.lockpickPage = 0;
+        this.lockpickTries = 0;
+        this.lockpickDeadlineTick = 0;
+        this.lockpickSession = new lockpickSessionModule.LockpickSession();
+        this.lockpickRunSeed = <uint>20061;
+        this.lockpickChestId = <uint>1;
+        this.lockpickOwnerId = <uint>1;
+        this.lockpickPageStarts = 0;
+        this.sharedRandomDraws = 0;
+        this.sharedRandomDigest = <uint>2166136261;
+        this.sharedRandomState = <uint>0;
+        this.events = new container.Array<int>();
+        this.lastError = 0;
+    }
+}
+
+recordEvent(state: DelveState, code: int): void {
+    var events = state.events;
+    events.add(code);
+}
+
+eventCount(state: DelveState, code: int): int {
+    var count = 0;
+    var index = 0;
+    while (index < state.events.length) {
+        if (<int>state.events[index] == code) { count = count + 1; }
+        index = index + 1;
+    }
+    return count;
+}
+
+absFloat(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+distance(ax: float, az: float, bx: float, bz: float): float {
+    var dx = absFloat(ax - bx);
+    var dz = absFloat(az - bz);
+    return dx > dz ? dx + dz * 0.41421356 : dz + dx * 0.41421356;
+}
+
+syncObservedRng(state: DelveState, stream: rngModule.Mulberry32): void {
+    state.sharedRandomDraws = <int>rngObserver.drawCount(stream, true);
+    state.sharedRandomDigest = rngObserver.drawDigest(stream, true);
+    state.sharedRandomState = rngObserver.streamState(stream, true);
+}
+
+consumeSharedDraws(state: DelveState, stream: rngModule.Mulberry32, count: int): void {
+    rngObserver.consume(stream, count, true);
+    syncObservedRng(state, stream);
+}
+
+moveToward(value: float, target: float, step: float): float {
+    if (value < target) {
+        value = value + step;
+        return value > target ? target : value;
+    }
+    value = value - step;
+    return value < target ? target : value;
+}
+
+pub timeoutTicksForAnte(ante: int): int {
+    return ante < 1 || ante > 3 ? 0 : lockpickRules.timeoutTicksForAnte(ante, true);
+}
+
+pagesForAnte(ante: int): int {
+    return ante < 1 || ante > 3 ? 0 : lockpickRules.pagesForAnte(ante, true);
+}
+
+triesForAnte(ante: int): int {
+    return ante < 1 || ante > 3 ? 0 : lockpickRules.triesForAnte(ante, true);
+}
+
+spawnCompanion(state: DelveState): void {
+    state.companionExists = true;
+    state.companionX = state.ownerX + 2.0;
+    state.companionZ = state.ownerZ;
+    state.companionSwingTicks = 0;
+    state.companionHealTicks = 60;
+    state.companionInCombat = false;
+    recordEvent(state, 2);
+}
+
+pub enterRun(state: DelveState, moduleCount: int): bool {
+    state.lastError = 0;
+    if (state.runActive || moduleCount < 1) { state.lastError = -1; return false; }
+    state.runActive = true;
+    state.failed = false;
+    state.ejected = false;
+    state.bountiful = false;
+    state.restlessGraves = new restlessRules.RestlessGravesState();
+    state.restlessGravesActive = false;
+    state.lockpickSession = new lockpickSessionModule.LockpickSession();
+    state.lockpickRunSeed = <uint>20061;
+    state.lockpickChestId = <uint>1;
+    state.lockpickOwnerId = <uint>1;
+    state.lockpickActive = false;
+    state.lockpickAnte = 0;
+    state.lockpickPages = 0;
+    state.lockpickPage = 0;
+    state.lockpickTries = 0;
+    state.lockpickDeadlineTick = 0;
+    state.lockpickPageStarts = 0;
+    state.sourceRunBound = false;
+    state.sourcePuzzle0Triggered = false;
+    state.sourcePuzzle1Triggered = false;
+    state.sourcePuzzle2Triggered = false;
+    state.sourcePuzzle3Triggered = false;
+    state.moduleCount = moduleCount;
+    state.moduleIndex = 0;
+    state.finaleIndex = moduleCount - 1;
+    state.deathsThisRun = 0;
+    state.companionReviveUsed = false;
+    spawnCompanion(state);
+    recordEvent(state, 1);
+    return true;
+}
+
+// This binds the immutable source-run inputs after the source entry flow has
+// selected a free slot. It intentionally does not fabricate a default chain.
+pub enterRunFromSourceLayout(
+    state: DelveState,
+    delveIndex: int,
+    slot: int,
+    seed: int,
+    tierIndex: int
+): bool {
+    var count = runLayout.runModuleCount(delveIndex, tierIndex, true);
+    if (!enterRun(state, count)) {
+        return false;
+    }
+    state.sourceRunBound = true;
+    state.sourceDelveIndex = delveIndex;
+    state.sourceRunSlot = slot;
+    state.sourceRunSeed = seed;
+    state.sourceTierIndex = tierIndex;
+    state.lockpickRunSeed = <uint>seed;
+    // Mirrors claimDelveRun: this is a separate run-local stream, never a
+    // shared-combat draw. Unknown tier routing remains the source default.
+    state.bountiful = bountifulRules.isBountiful(
+        <uint>seed,
+        tierIndex == 1 ? "heroic" : "normal",
+        true
+    );
+    return true;
+}
+
+pub activeRunModuleLayoutIndex(state: DelveState): int {
+    if (!state.runActive || !state.sourceRunBound) {
+        throw "woc active Delve run context is unavailable";
+    }
+    return runLayout.activeRunModuleIndex(
+        state.sourceDelveIndex,
+        state.sourceTierIndex,
+        state.sourceRunSeed,
+        state.moduleIndex,
+        true
+    );
+}
+
+pub activeRunModuleOriginCoordinate(state: DelveState, axis: int): float {
+    if (!state.runActive || !state.sourceRunBound) {
+        throw "woc active Delve run context is unavailable";
+    }
+    return runLayout.activeRunModuleOriginCoordinate(
+        state.sourceDelveIndex,
+        state.sourceRunSlot,
+        state.sourceTierIndex,
+        state.sourceRunSeed,
+        state.moduleIndex,
+        axis,
+        true
+    );
+}
+
+pub resolveActiveRunCollisionCoordinate(
+    state: DelveState,
+    x: float,
+    z: float,
+    bodyRadius: float,
+    axis: int
+): float {
+    var originX = activeRunModuleOriginCoordinate(state, 1);
+    var originZ = activeRunModuleOriginCoordinate(state, 2);
+    return activeCollision.resolveActiveModuleWorldCoordinate(
+        x,
+        z,
+        originX,
+        originZ,
+        activeRunModuleLayoutIndex(state),
+        bodyRadius,
+        axis,
+        true
+    );
+}
+
+pub resolveActiveRunMovementCoordinate(
+    state: DelveState,
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    bodyRadius: float,
+    ignoreFences: bool,
+    axis: int
+): float {
+    var originX = activeRunModuleOriginCoordinate(state, 1);
+    var originZ = activeRunModuleOriginCoordinate(state, 2);
+    return activeSweep.resolveActiveModuleMovementCoordinate(
+        fromX,
+        fromZ,
+        toX,
+        toZ,
+        originX,
+        originZ,
+        activeRunModuleLayoutIndex(state),
+        bodyRadius,
+        ignoreFences,
+        axis,
+        true
+    );
+}
+
+pub activeRunLineOfSightClear(
+    state: DelveState,
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    radius: float
+): bool {
+    return activeLineOfSight.isClearInModule(
+        fromX,
+        fromZ,
+        toX,
+        toZ,
+        activeRunModuleOriginCoordinate(state, 1),
+        activeRunModuleOriginCoordinate(state, 2),
+        activeRunModuleLayoutIndex(state),
+        radius,
+        true
+    );
+}
+
+resetSourcePuzzleTriggers(state: DelveState): void {
+    state.sourcePuzzle0Triggered = false;
+    state.sourcePuzzle1Triggered = false;
+    state.sourcePuzzle2Triggered = false;
+    state.sourcePuzzle3Triggered = false;
+}
+
+sourcePuzzleTriggered(state: DelveState, puzzleOffset: int): bool {
+    if (puzzleOffset == 0) { return state.sourcePuzzle0Triggered; }
+    if (puzzleOffset == 1) { return state.sourcePuzzle1Triggered; }
+    if (puzzleOffset == 2) { return state.sourcePuzzle2Triggered; }
+    return puzzleOffset == 3 ? state.sourcePuzzle3Triggered : false;
+}
+
+markSourcePuzzleTriggered(state: DelveState, puzzleOffset: int): void {
+    if (puzzleOffset == 0) { state.sourcePuzzle0Triggered = true; return; }
+    if (puzzleOffset == 1) { state.sourcePuzzle1Triggered = true; return; }
+    if (puzzleOffset == 2) { state.sourcePuzzle2Triggered = true; return; }
+    if (puzzleOffset == 3) { state.sourcePuzzle3Triggered = true; return; }
+    throw "woc active Delve puzzle offset is invalid";
+}
+
+pub triggerActiveRunPuzzle(state: DelveState, puzzleOffset: int): bool {
+    if (!state.runActive || !state.sourceRunBound) { return false; }
+    var sourceModule = activeRunModuleLayoutIndex(state);
+    var puzzleCount = moduleContent.puzzleInteractableCount(sourceModule, true);
+    if (puzzleOffset < 0 || puzzleOffset >= puzzleCount ||
+        sourcePuzzleTriggered(state, puzzleOffset)) {
+        return false;
+    }
+    // This validates the target's source-order puzzle-to-object mapping even
+    // though object identity awaits the full persistent DelveRun implementation.
+    moduleContent.puzzleInteractableIndex(sourceModule, puzzleOffset, true);
+    markSourcePuzzleTriggered(state, puzzleOffset);
+    state.pressureTriggered = state.pressureTriggered + 1;
+    recordEvent(state, 4);
+    tryOpenModuleExit(state);
+    return true;
+}
+
+pub activeRunPuzzleWorldCoordinate(
+    state: DelveState,
+    puzzleOffset: int,
+    axis: int
+): float {
+    if (!state.runActive || !state.sourceRunBound || (axis != 1 && axis != 2)) {
+        throw "woc active Delve puzzle coordinate is unavailable";
+    }
+    var sourceModule = activeRunModuleLayoutIndex(state);
+    var interactableIndex = moduleContent.puzzleInteractableIndex(
+        sourceModule, puzzleOffset, true
+    );
+    var local = moduleContent.interactableCoordinate(
+        sourceModule, interactableIndex, axis, true
+    );
+    return activeRunModuleOriginCoordinate(state, axis) + local;
+}
+
+pub tryTriggerActiveRunPuzzleAt(
+    state: DelveState,
+    puzzleOffset: int,
+    actorX: float,
+    actorZ: float
+): bool {
+    if (!state.runActive || !state.sourceRunBound) { return false; }
+    var sourceModule = activeRunModuleLayoutIndex(state);
+    var interactableIndex = moduleContent.puzzleInteractableIndex(
+        sourceModule, puzzleOffset, true
+    );
+    var kind = moduleContent.interactableKind(sourceModule, interactableIndex, true);
+    // In the source, valves/tablets/candles share the walk-on plate radius;
+    // bell ropes alone are deliberate six-yard interactions.
+    var range = kind == "bell_rope" ? 6.0 : 2.5;
+    var targetX = activeRunPuzzleWorldCoordinate(state, puzzleOffset, 1);
+    var targetZ = activeRunPuzzleWorldCoordinate(state, puzzleOffset, 2);
+    var dx = actorX - targetX;
+    var dz = actorZ - targetZ;
+    if (math.sqrt(dx * dx + dz * dz) > range) {
+        return false;
+    }
+    return triggerActiveRunPuzzle(state, puzzleOffset);
+}
+
+pub spawnModule(state: DelveState): bool {
+    if (!state.runActive || state.moduleIndex < 0 || state.moduleIndex >= state.moduleCount) {
+        return false;
+    }
+    state.moduleSpawnCount = state.moduleSpawnCount + 1;
+    state.moduleExitOpen = false;
+    state.surfaceExitOpen = false;
+    state.pressureTriggered = 0;
+    resetSourcePuzzleTriggers(state);
+    if (state.moduleIndex == state.finaleIndex) {
+        if (state.sourceRunBound) {
+            var finaleModule = activeRunModuleLayoutIndex(state);
+            state.mobsAlive = moduleContent.spawnCount(finaleModule, 0, true);
+            state.bossX = activeRunModuleOriginCoordinate(state, 1) +
+                moduleContent.spawnCoordinate(finaleModule, 0, 0, 1, true);
+            state.bossZ = activeRunModuleOriginCoordinate(state, 2) +
+                moduleContent.spawnCoordinate(finaleModule, 0, 0, 2, true);
+        } else {
+            state.mobsAlive = 1;
+            state.bossX = 20.0;
+            state.bossZ = 0.0;
+        }
+        state.pressurePlates = 0;
+        state.bossAlive = true;
+    } else {
+        if (state.sourceRunBound) {
+            var sourceModule = activeRunModuleLayoutIndex(state);
+            state.mobsAlive = moduleContent.spawnCount(sourceModule, 0, true);
+            state.pressurePlates = moduleContent.puzzleInteractableCount(sourceModule, true);
+        } else {
+            state.mobsAlive = 3;
+            state.pressurePlates = 2;
+        }
+        state.bossAlive = false;
+    }
+    recordEvent(state, 3);
+    return true;
+}
+
+tryOpenModuleExit(state: DelveState): void {
+    if (state.moduleIndex < state.finaleIndex && state.mobsAlive == 0 &&
+        state.pressureTriggered >= state.pressurePlates) {
+        state.moduleExitOpen = true;
+        recordEvent(state, 5);
+    }
+}
+
+pub clearModuleMobs(state: DelveState): void {
+    state.mobsAlive = 0;
+    tryOpenModuleExit(state);
+}
+
+pub triggerPressurePlate(state: DelveState): bool {
+    if (!state.runActive) { return false; }
+    if (state.sourceRunBound) {
+        var sourceModule = activeRunModuleLayoutIndex(state);
+        var puzzleCount = moduleContent.puzzleInteractableCount(sourceModule, true);
+        var puzzleOffset = 0;
+        while (puzzleOffset < puzzleCount && sourcePuzzleTriggered(state, puzzleOffset)) {
+            puzzleOffset = puzzleOffset + 1;
+        }
+        return puzzleOffset < puzzleCount ? triggerActiveRunPuzzle(state, puzzleOffset) : false;
+    }
+    if (state.pressureTriggered >= state.pressurePlates) { return false; }
+    state.pressureTriggered = state.pressureTriggered + 1;
+    recordEvent(state, 4);
+    tryOpenModuleExit(state);
+    return true;
+}
+
+pub walkModuleExit(state: DelveState): bool {
+    if (!state.moduleExitOpen || state.moduleIndex >= state.finaleIndex) { return false; }
+    state.moduleIndex = state.moduleIndex + 1;
+    recordEvent(state, 6);
+    return spawnModule(state);
+}
+
+pub killFinalBoss(state: DelveState): bool {
+    if (!state.runActive || state.moduleIndex != state.finaleIndex || !state.bossAlive) {
+        return false;
+    }
+    state.bossAlive = false;
+    state.mobsAlive = 0;
+    state.rewardChestAvailable = true;
+    state.chestAttemptAvailable = true;
+    recordEvent(state, 7);
+    return true;
+}
+
+syncLockpickProjection(state: DelveState): void {
+    var session = state.lockpickSession;
+    if (!session.initialized) {
+        state.lockpickActive = false;
+        state.lockpickAnte = 0;
+        state.lockpickPages = 0;
+        state.lockpickPage = 0;
+        state.lockpickTries = 0;
+        state.lockpickDeadlineTick = 0;
+        return;
+    }
+    state.lockpickActive = session.active;
+    state.lockpickAnte = session.ante;
+    state.lockpickPages = session.pages;
+    state.lockpickPage = session.page;
+    state.lockpickTries = session.tries;
+    state.lockpickDeadlineTick = session.deadline;
+}
+
+pub configureLockpickIdentity(
+    state: DelveState,
+    runSeed: uint,
+    chestId: uint,
+    ownerId: uint
+): bool {
+    if (!state.runActive || state.lockpickActive) { return false; }
+    state.lockpickRunSeed = runSeed;
+    state.lockpickChestId = chestId;
+    state.lockpickOwnerId = ownerId;
+    return true;
+}
+
+pub lockpickEngage(state: DelveState, ante: int): bool {
+    state.lastError = 0;
+    if (!state.runActive || !state.rewardChestAvailable || !state.chestAttemptAvailable ||
+        state.chestOpen || state.lockpickActive || ante < 1 || ante > 3 ||
+        (state.bountiful && ante != 1)) {
+        state.lastError = -2;
+        return false;
+    }
+    var runTier = state.sourceRunBound ? state.sourceTierIndex : 0;
+    var engaged = lockpickSessionModule.engageForDelveRun(
+        state.lockpickSession,
+        state.lockpickRunSeed,
+        state.lockpickChestId,
+        state.lockpickChestId,
+        true,
+        state.lockpickOwnerId,
+        ante,
+        runTier,
+        state.bountiful,
+        state.tick,
+        true
+    );
+    if (engaged != 1) {
+        state.lastError = -2;
+        return false;
+    }
+    syncLockpickProjection(state);
+    state.lockpickPageStarts = state.lockpickPageStarts + state.lockpickPages;
+    recordEvent(state, 8);
+    return true;
+}
+
+lockpickSucceed(state: DelveState): void {
+    state.lockpickActive = false;
+    state.chestAttemptAvailable = false;
+    state.chestOpen = true;
+    state.pendingLootCount = 2;
+    state.delveMarks = state.delveMarks + 5;
+    state.copper = state.copper + 200;
+    unlockNextDelveLore(state);
+    if (state.sourceRunBound) {
+        recordShopClear(state, state.sourceDelveIndex, state.sourceTierIndex);
+    }
+    state.surfaceExitOpen = true;
+    recordEvent(state, 10);
+}
+
+lockpickFail(state: DelveState): void {
+    state.lockpickActive = false;
+    state.chestAttemptAvailable = false;
+    state.surfaceExitOpen = true;
+    recordEvent(state, 11);
+}
+
+lockpickGuaranteedAction(session: lockpickSessionModule.LockpickSession): int {
+    if (!session.active || session.column < 0 ||
+        session.column + 1 >= session.board.columns) {
+        return -1;
+    }
+    var delta = <int>session.board.pathRows[session.column + 1] -
+        <int>session.board.pathRows[session.column];
+    var action = 0;
+    while (action < 5) {
+        if (lockpickRules.actionDelta(action, true) == delta) { return action; }
+        action = action + 1;
+    }
+    return -1;
+}
+
+applyLockpickResult(state: DelveState, result: int): void {
+    if (result == 0) { return; }
+    syncLockpickProjection(state);
+    if (result == 3) {
+        state.lockpickPageStarts = state.lockpickPageStarts + state.lockpickPages;
+        recordEvent(state, 12);
+        return;
+    }
+    if (result == 2 || result == 4) {
+        recordEvent(state, 9);
+        return;
+    }
+    if (result == 5) {
+        lockpickSucceed(state);
+        return;
+    }
+    if (result == 6) {
+        lockpickFail(state);
+        return;
+    }
+    if (result == 7) { recordEvent(state, 24); }
+}
+
+pub lockpickAction(
+    state: DelveState,
+    action: int,
+    ownerId: uint,
+    providedSessionId: string,
+    hasProvidedSessionId: bool
+): int {
+    if (!state.lockpickActive) { return 0; }
+    if (state.tick >= state.lockpickDeadlineTick) {
+        lockpickTimeout(state);
+        return 0;
+    }
+    var result = lockpickSessionModule.applyAction(
+        state.lockpickSession,
+        action,
+        state.tick,
+        ownerId,
+        providedSessionId,
+        hasProvidedSessionId,
+        true
+    );
+    applyLockpickResult(state, result);
+    return result;
+}
+
+// Existing M7 scenarios express one proven page at a time. Derive the exact
+// path action from the generated board so this convenience method no longer
+// bypasses the authoritative session's gates, traps, retries or timeout.
+pub lockpickCorrectPage(state: DelveState): bool {
+    if (!state.lockpickActive || state.tick >= state.lockpickDeadlineTick) { return false; }
+    var page = state.lockpickSession.page;
+    var guard = 0;
+    while (state.lockpickSession.active && state.lockpickSession.page == page && guard < 16) {
+        var action = lockpickGuaranteedAction(state.lockpickSession);
+        if (action < 0) { return false; }
+        var result = lockpickAction(state, action, state.lockpickOwnerId, "", false);
+        if (result != 2 && result != 4 && result != 5) { return false; }
+        guard = guard + 1;
+    }
+    return guard > 0 && (!state.lockpickSession.active || state.lockpickSession.page != page);
+}
+
+pub lockpickAbort(state: DelveState, ownerId: uint, sessionId: string, hasSessionId: bool): bool {
+    if (!state.lockpickActive) { return false; }
+    var result = lockpickSessionModule.abandon(
+        state.lockpickSession,
+        ownerId,
+        sessionId,
+        hasSessionId,
+        true
+    );
+    applyLockpickResult(state, result);
+    return result == 7;
+}
+
+lockpickTimeout(state: DelveState): void {
+    if (!state.lockpickActive) { return; }
+    var result = lockpickSessionModule.tick(state.lockpickSession, state.tick, true);
+    applyLockpickResult(state, result);
+}
+
+pub collectChest(state: DelveState): int {
+    if (!state.chestOpen || state.pendingLootCount <= 0) { return 0; }
+    var count = state.pendingLootCount;
+    state.pendingLootCount = 0;
+    return count;
+}
+
+failRun(state: DelveState): void {
+    state.runActive = false;
+    state.failed = true;
+    state.ejected = true;
+    state.companionExists = false;
+    state.lockpickActive = false;
+    state.lockpickSession = new lockpickSessionModule.LockpickSession();
+    state.lockpickAnte = 0;
+    state.lockpickPages = 0;
+    state.lockpickPage = 0;
+    state.lockpickTries = 0;
+    state.lockpickDeadlineTick = 0;
+    state.restlessGraves = new restlessRules.RestlessGravesState();
+    state.restlessGravesActive = false;
+    recordEvent(state, 14);
+}
+
+pub releaseSpirit(state: DelveState): bool {
+    if (!state.runActive || !state.ownerDead) { return false; }
+    state.deathsThisRun = state.deathsThisRun + 1;
+    if (state.deathsThisRun >= 2) {
+        state.ownerDead = false;
+        failRun(state);
+        return true;
+    }
+    state.ownerDead = false;
+    state.ownerX = 0.0;
+    state.ownerZ = 0.0;
+    state.ownerHp = <int>(<float>state.ownerMaxHp * 0.5 + 0.5);
+    state.ownerResource = 500;
+    state.ownerTargetBoss = false;
+    state.ownerInCombat = false;
+    spawnCompanion(state);
+    recordEvent(state, 13);
+    return true;
+}
+
+shopIndexIsValid(state: DelveState, delveIndex: int): bool {
+    return delveIndex >= 0 && delveIndex < shopContent.shopCount(true) &&
+        delveIndex < state.shopNormalClears.length &&
+        delveIndex < state.shopHeroicClears.length &&
+        delveIndex < state.shopOtherTierClears.length;
+}
+
+// Mirrors unlockNextDelveLore: the next source-order id is added exactly once
+// per successful clear, and exhaustion leaves the state unchanged.
+pub unlockNextDelveLore(state: DelveState): bool {
+    state.lastDelveLoreId = "";
+    var loreId = loreRules.nextLoreId(state.unlockedDelveLoreIds.length);
+    if (loreId == "") { return false; }
+    state.unlockedDelveLoreIds.add(loreId);
+    state.lastDelveLoreId = loreId;
+    return true;
+}
+
+pub unlockedDelveLoreCount(state: DelveState): int {
+    return state.unlockedDelveLoreIds.length;
+}
+
+pub unlockedDelveLoreId(state: DelveState, index: int): string {
+    if (index < 0 || index >= state.unlockedDelveLoreIds.length) { return ""; }
+    return <string>state.unlockedDelveLoreIds[index];
+}
+
+pub setRestlessGravesActive(state: DelveState, active: bool): bool {
+    if (!state.runActive) { return false; }
+    state.restlessGravesActive = active;
+    return true;
+}
+
+// Mirrors the source death hook. The caller supplies the target predicates
+// owned by the full entity layer; the pending spawn's timestamp is always the
+// authoritative 20 Hz commit clock, never host wall time.
+pub queueRestlessGrave(
+    state: DelveState,
+    x: float,
+    z: float,
+    templateExists: bool,
+    boss: bool,
+    elite: bool,
+    affixSpawned: bool
+): bool {
+    if (!state.runActive) { return false; }
+    var eligible = restlessRules.shouldQueue(
+        state.restlessGravesActive,
+        templateExists,
+        boss,
+        elite,
+        affixSpawned
+    );
+    return restlessRules.enqueue(
+        state.restlessGraves,
+        <float>state.tick * 0.05,
+        x,
+        z,
+        eligible
+    );
+}
+
+tickRestlessGraves(state: DelveState): void {
+    if (!state.runActive) { return; }
+    var spawned = restlessRules.tick(state.restlessGraves, <float>state.tick * 0.05);
+    if (spawned <= 0) { return; }
+    state.mobsAlive = state.mobsAlive + spawned;
+    recordEvent(state, 23);
+}
+
+pub setShopClears(
+    state: DelveState,
+    delveIndex: int,
+    normalClears: int,
+    heroicClears: int,
+    otherTierClears: int
+): bool {
+    if (!shopIndexIsValid(state, delveIndex) || normalClears < 0 ||
+        heroicClears < 0 || otherTierClears < 0) {
+        return false;
+    }
+    state.shopNormalClears[delveIndex] = normalClears;
+    state.shopHeroicClears[delveIndex] = heroicClears;
+    state.shopOtherTierClears[delveIndex] = otherTierClears;
+    return true;
+}
+
+// Tier 0 is Normal and tier 1 is Heroic. A later source tier remains part of
+// the same `delveId:` total for clears-gated offers without gaining Heroic's
+// distinct unlock privilege.
+pub recordShopClear(state: DelveState, delveIndex: int, tierIndex: int): bool {
+    if (!shopIndexIsValid(state, delveIndex) || tierIndex < 0) { return false; }
+    if (tierIndex == 0) {
+        state.shopNormalClears[delveIndex] = <int>state.shopNormalClears[delveIndex] + 1;
+    } else if (tierIndex == 1) {
+        state.shopHeroicClears[delveIndex] = <int>state.shopHeroicClears[delveIndex] + 1;
+    } else {
+        state.shopOtherTierClears[delveIndex] = <int>state.shopOtherTierClears[delveIndex] + 1;
+    }
+    return true;
+}
+
+pub shopItemCount(state: DelveState, delveIndex: int, offerIndex: int): int {
+    if (!shopIndexIsValid(state, delveIndex) || offerIndex < 0 ||
+        offerIndex >= shopContent.offerCount(delveIndex, true)) {
+        return 0;
+    }
+    return inventoryLedger.countItem(
+        state.inventory,
+        shopContent.offerItemId(delveIndex, offerIndex, true)
+    );
+}
+
+// Mirrors delveBuyShopItem: validate stock, source gate, then Marks before
+// committing both the debit and stack-aware item grant. There is no capacity
+// check after acceptance because the target's addItem grant hub is likewise
+// intentionally force-granting.
+pub buyShopOffer(state: DelveState, delveIndex: int, offerIndex: int): bool {
+    state.lastError = 0;
+    state.lastVendorItemId = "";
+    if (!shopIndexIsValid(state, delveIndex) || offerIndex < 0 ||
+        offerIndex >= shopContent.offerCount(delveIndex, true)) {
+        state.lastError = -6;
+        return false;
+    }
+    if (!shopRules.offerUnlocked(
+        shopContent.shopId(delveIndex, true),
+        offerIndex,
+        <int>state.shopNormalClears[delveIndex],
+        <int>state.shopHeroicClears[delveIndex],
+        <int>state.shopOtherTierClears[delveIndex]
+    )) {
+        state.lastError = -7;
+        return false;
+    }
+    var marks = shopContent.offerMarks(delveIndex, offerIndex, true);
+    if (state.delveMarks < marks) {
+        state.lastError = -3;
+        return false;
+    }
+    var itemId = shopContent.offerItemId(delveIndex, offerIndex, true);
+    state.delveMarks = state.delveMarks - marks;
+    inventoryLedger.addStacked(state.inventory, itemId, 1);
+    state.lastVendorItemId = itemId;
+    recordEvent(state, 15);
+    return true;
+}
+
+// Retained for the already-published entry point; it now delegates to the
+// complete catalog transaction rather than keeping an alternate hard-coded
+// debit/grant path.
+pub buyReliquaryLegs(state: DelveState): bool {
+    return buyShopOffer(state, 0, 0);
+}
+
+pub upgradeCompanion(state: DelveState): bool {
+    if (state.companionRank >= companionUpgradeContent.maxRank(true)) {
+        state.lastError = -4;
+        return false;
+    }
+    var nextRank = state.companionRank + 1;
+    var marksCost = companionUpgradeContent.upgradeMarks(nextRank, true);
+    var copperCost = companionUpgradeContent.upgradeCopper(nextRank, true);
+    if (state.delveMarks < marksCost || state.copper < copperCost) {
+        state.lastError = -5;
+        return false;
+    }
+    state.delveMarks = state.delveMarks - marksCost;
+    state.copper = state.copper - copperCost;
+    state.companionRank = state.companionRank + 1;
+    recordEvent(state, 16);
+    return true;
+}
+
+pub refreshDaily(state: DelveState, day: int): void {
+    if (day != 0 && state.dailyDate != day) {
+        state.dailyDate = day;
+        state.dailyFirstClearCount = 0;
+        state.dailyMarkClears = 0;
+        recordEvent(state, 17);
+    }
+}
+
+updateCompanion(state: DelveState, stream: rngModule.Mulberry32): void {
+    if (!state.companionExists || !state.runActive) { return; }
+    if (state.companionRank >= 3 && !state.companionReviveUsed && state.ownerDead) {
+        state.companionReviveUsed = true;
+        state.ownerDead = false;
+        state.ownerHp = <int>(<float>state.ownerMaxHp * 0.5 + 0.5);
+        if (state.ownerResource < 500) { state.ownerResource = 500; }
+        recordEvent(state, 18);
+    }
+    if (state.ownerDead) {
+        state.companionExists = false;
+        return;
+    }
+    state.companionSwingTicks = state.companionSwingTicks - 1;
+    var combatTarget = state.ownerTargetBoss && state.bossAlive;
+    if (combatTarget) {
+        state.companionInCombat = true;
+        var d = distance(state.companionX, state.companionZ, state.bossX, state.bossZ);
+        if (d > 1.8) {
+            state.companionSwingTicks = state.companionSwingTicks - 1;
+            state.companionX = moveToward(state.companionX, state.bossX, 0.4);
+            state.companionZ = moveToward(state.companionZ, state.bossZ, 0.4);
+        } else if (state.companionSwingTicks <= 0) {
+            consumeSharedDraws(state, stream, 2);
+            state.companionSwingTicks = 40;
+            recordEvent(state, 19);
+        }
+    } else {
+        state.companionInCombat = false;
+    }
+    state.companionHealTicks = state.companionHealTicks - 1;
+    if (state.companionHealTicks <= 0) {
+        state.companionHealTicks = 60;
+        if (state.ownerHp < state.ownerMaxHp &&
+            distance(state.companionX, state.companionZ, state.ownerX, state.ownerZ) <= 22.0) {
+            var pct = state.companionRank == 1 ? 0.06 : state.companionRank == 2 ? 0.08 : 0.10;
+            var healed = <int>(<float>state.ownerMaxHp * pct + 0.5);
+            if (healed > state.ownerMaxHp - state.ownerHp) {
+                healed = state.ownerMaxHp - state.ownerHp;
+            }
+            state.ownerHp = state.ownerHp + healed;
+            recordEvent(state, 20);
+        }
+    }
+    if (combatTarget) { return; }
+    var ownerDistance = distance(state.companionX, state.companionZ,
+        state.ownerX, state.ownerZ);
+    if (ownerDistance > 60.0) {
+        state.companionX = state.ownerX;
+        state.companionZ = state.ownerZ;
+        recordEvent(state, 22);
+    } else if (ownerDistance > 4.0) {
+        state.companionX = moveToward(state.companionX, state.ownerX, 0.4);
+        state.companionZ = moveToward(state.companionZ, state.ownerZ, 0.4);
+        recordEvent(state, 21);
+    }
+}
+
+pub tickOnce(state: DelveState, stream: rngModule.Mulberry32): void {
+    syncObservedRng(state, stream);
+    state.tick = state.tick + 1;
+    tickRestlessGraves(state);
+    updateCompanion(state, stream);
+    if (state.lockpickActive) {
+        lockpickTimeout(state);
+    }
+}
+
+pub tickMany(state: DelveState, count: int, stream: rngModule.Mulberry32): void {
+    var index = 0;
+    while (index < count) { tickOnce(state, stream); index = index + 1; }
+}
+
+setupFinale(state: DelveState): bool {
+    if (!enterRun(state, 1)) { return false; }
+    state.bountiful = false;
+    return spawnModule(state);
+}
+
+pub delveLockpickScenarioTest(): int {
+    var state = new DelveState();
+    var stream = new rngModule.Mulberry32(<uint>42);
+    if (!setupFinale(state)) { return -1; }
+    state.ownerTargetBoss = true;
+    state.companionX = state.bossX + 1.0;
+    tickMany(state, 30, stream);
+    if (eventCount(state, 19) < 1 || state.sharedRandomDraws < 2 ||
+        state.sharedRandomDraws != <int>stream.draws ||
+        state.sharedRandomDigest != stream.drawDigest || state.sharedRandomState != stream.state) {
+        return -2;
+    }
+    if (!killFinalBoss(state) || !lockpickEngage(state, 1)) { return -3; }
+    if (!lockpickCorrectPage(state) || !lockpickCorrectPage(state) ||
+        !lockpickCorrectPage(state) || !state.chestOpen || state.lockpickActive ||
+        !state.surfaceExitOpen || state.delveMarks != 5 || state.pendingLootCount != 2) {
+        return -4;
+    }
+    if (collectChest(state) != 2 || state.pendingLootCount != 0) { return -5; }
+    return 1;
+}
+
+pub delveLockpickFailScenarioTest(): int {
+    var state = new DelveState();
+    var stream = new rngModule.Mulberry32(<uint>42);
+    if (!setupFinale(state) || !killFinalBoss(state) || !lockpickEngage(state, 1)) {
+        return -1;
+    }
+    tickMany(state, 64, stream);
+    if (state.lockpickActive || state.chestAttemptAvailable || !state.surfaceExitOpen ||
+        eventCount(state, 12) != 1 || eventCount(state, 11) != 1) {
+        return -2;
+    }
+    if (lockpickEngage(state, 1)) { return -3; }
+    return 1;
+}
+
+pub delveDeathScenarioTest(): int {
+    var state = new DelveState();
+    if (!setupFinale(state)) { return -1; }
+    state.ownerDead = true;
+    if (!releaseSpirit(state) || state.ownerDead || state.ownerHp != 500 ||
+        state.deathsThisRun != 1 || !state.companionExists || state.failed) {
+        return -2;
+    }
+    state.ownerDead = true;
+    if (!releaseSpirit(state) || state.runActive || !state.failed || !state.ejected ||
+        state.deathsThisRun != 2 || eventCount(state, 14) != 1) {
+        return -3;
+    }
+    return 1;
+}
+
+pub delveProgressionScenarioTest(): int {
+    var state = new DelveState();
+    if (!enterRun(state, 2) || !spawnModule(state)) { return -1; }
+    clearModuleMobs(state);
+    if (!triggerPressurePlate(state) || !triggerPressurePlate(state) ||
+        !state.moduleExitOpen || !walkModuleExit(state) || state.moduleIndex != 1 ||
+        state.moduleSpawnCount != 2 || !state.bossAlive) {
+        return -2;
+    }
+    state.delveMarks = 100;
+    state.copper = 100000;
+    if (!buyReliquaryLegs(state) || state.delveMarks != 92 ||
+        shopItemCount(state, 0, 0) != 1 ||
+        !upgradeCompanion(state) || state.companionRank != 2 || state.delveMarks != 89) {
+        return -3;
+    }
+    state.dailyDate = 20990101;
+    state.dailyFirstClearCount = 1;
+    state.dailyMarkClears = 2;
+    refreshDaily(state, 20990625);
+    if (state.dailyDate != 20990625 || state.dailyFirstClearCount != 0 ||
+        state.dailyMarkClears != 0) {
+        return -4;
+    }
+    return 1;
+}
+
+pub delveSourceRunLayoutScenarioTest(): int {
+    var state = new DelveState();
+    if (!enterRunFromSourceLayout(state, 1, 3, 42, 0) || !spawnModule(state)) {
+        return -1;
+    }
+    if (!state.sourceRunBound || state.moduleCount != 4 || state.finaleIndex != 3 ||
+        activeRunModuleLayoutIndex(state) != 5 || state.mobsAlive != 6 ||
+        state.pressurePlates != 4 ||
+        activeRunModuleOriginCoordinate(state, 1) != 5400.0 ||
+        activeRunModuleOriginCoordinate(state, 2) != 618.0) {
+        return -2;
+    }
+    clearModuleMobs(state);
+    if (!triggerActiveRunPuzzle(state, 0) || !triggerActiveRunPuzzle(state, 1) ||
+        triggerActiveRunPuzzle(state, 1) || state.moduleExitOpen ||
+        !triggerActiveRunPuzzle(state, 2) || !triggerActiveRunPuzzle(state, 3) ||
+        !walkModuleExit(state) || state.moduleIndex != 1 ||
+        activeRunModuleLayoutIndex(state) != 4 || state.moduleSpawnCount != 2 ||
+        state.mobsAlive != 6 || state.pressurePlates != 2) {
+        return -3;
+    }
+    if (enterRunFromSourceLayout(state, 0, 0, 20061, -1)) {
+        return -4;
+    }
+    var unknownTier = new DelveState();
+    if (!enterRunFromSourceLayout(unknownTier, 0, 0, 20061, -1) ||
+        !spawnModule(unknownTier) || activeRunModuleLayoutIndex(unknownTier) != 1 ||
+        unknownTier.mobsAlive != 4 || unknownTier.pressurePlates != 0 ||
+        activeRunModuleOriginCoordinate(unknownTier, 1) != 4800.0 ||
+        activeRunModuleOriginCoordinate(unknownTier, 2) != -1242.0) {
+        return -5;
+    }
+    var finale = new DelveState();
+    if (!enterRunFromSourceLayout(finale, 0, 0, 5, 0)) {
+        return -6;
+    }
+    finale.moduleIndex = finale.finaleIndex;
+    if (!spawnModule(finale) || !finale.bossAlive || finale.mobsAlive != 1 ||
+        finale.bossX != activeRunModuleOriginCoordinate(finale, 1) ||
+        finale.bossZ != activeRunModuleOriginCoordinate(finale, 2) + 72.0) {
+        return -7;
+    }
+    var ledger = new DelveState();
+    if (!enterRunFromSourceLayout(ledger, 1, 3, 42, 0) || !spawnModule(ledger)) {
+        return -8;
+    }
+    var ledgerX = activeRunPuzzleWorldCoordinate(ledger, 0, 1);
+    var ledgerZ = activeRunPuzzleWorldCoordinate(ledger, 0, 2);
+    if (tryTriggerActiveRunPuzzleAt(ledger, 0, ledgerX + 2.6, ledgerZ) ||
+        !tryTriggerActiveRunPuzzleAt(ledger, 0, ledgerX, ledgerZ) ||
+        tryTriggerActiveRunPuzzleAt(ledger, 0, ledgerX, ledgerZ)) {
+        return -9;
+    }
+    var plate = new DelveState();
+    if (!enterRunFromSourceLayout(plate, 0, 0, 5, 0) || !spawnModule(plate)) {
+        return -10;
+    }
+    var plateX = activeRunPuzzleWorldCoordinate(plate, 0, 1);
+    var plateZ = activeRunPuzzleWorldCoordinate(plate, 0, 2);
+    if (tryTriggerActiveRunPuzzleAt(plate, 0, plateX + 2.6, plateZ) ||
+        !tryTriggerActiveRunPuzzleAt(plate, 0, plateX, plateZ)) {
+        return -11;
+    }
+    return 1;
+}
+
+// claimDelveRun derives Bountiful from the immutable run seed and tier before
+// any module is spawned. The same local draw is Normal-false / Heroic-true.
+pub delveBountifulClaimScenarioTest(): int {
+    var normal = new DelveState();
+    if (!enterRunFromSourceLayout(normal, 0, 0, 2147483647, 0) || normal.bountiful) {
+        return -1;
+    }
+    var heroic = new DelveState();
+    if (!enterRunFromSourceLayout(heroic, 0, 0, 2147483647, 1) || !heroic.bountiful) {
+        return -2;
+    }
+    failRun(heroic);
+    if (!enterRun(heroic, 1) || heroic.bountiful) {
+        return -3;
+    }
+    return 1;
+}
+
+pub delveActiveRunCollisionScenarioTest(): int {
+    var reliquary = new DelveState();
+    if (!enterRunFromSourceLayout(reliquary, 0, 0, 5, 0) || !spawnModule(reliquary) ||
+        activeRunModuleLayoutIndex(reliquary) != 0 ||
+        resolveActiveRunCollisionCoordinate(reliquary, 4774.0, -1206.0, 0.5, 1) != 4773.5 ||
+        resolveActiveRunCollisionCoordinate(reliquary, 4774.0, -1206.0, 0.5, 2) != -1206.0) {
+        return -1;
+    }
+    if (resolveActiveRunMovementCoordinate(
+        reliquary, 4770.0, -1206.0, 4780.0, -1206.0, 0.5, false, 1
+    ) != 4773.5 || resolveActiveRunMovementCoordinate(
+        reliquary, 4770.0, -1206.0, 4780.0, -1206.0, 0.5, false, 2
+    ) != -1206.0 || activeRunLineOfSightClear(
+        reliquary, 4770.0, -1206.0, 4780.0, -1206.0, 0.05
+    ) || !activeRunLineOfSightClear(
+        reliquary, 4800.0, -1220.0, 4802.0, -1220.0, 0.05
+    )) {
+        return -2;
+    }
+    var litany = new DelveState();
+    if (!enterRunFromSourceLayout(litany, 1, 0, 2, 0) || !spawnModule(litany) ||
+        activeRunModuleLayoutIndex(litany) != 4 ||
+        resolveActiveRunCollisionCoordinate(
+            litany, 5395.333333333333, -1256.0, 0.5, 1
+        ) != 5395.333333333333 || resolveActiveRunCollisionCoordinate(
+            litany, 5395.333333333333, -1256.0, 0.5, 2
+        ) != -1254.5) {
+        return -3;
+    }
+    if (resolveActiveRunMovementCoordinate(
+        litany, 5395.333333333333, -1248.0, 5395.333333333333, -1262.0,
+        0.5, false, 1
+    ) != 5395.333333333333 || resolveActiveRunMovementCoordinate(
+        litany, 5395.333333333333, -1248.0, 5395.333333333333, -1262.0,
+        0.5, false, 2
+    ) != -1254.5 || activeRunLineOfSightClear(
+        litany, 5395.333333333333, -1248.0, 5395.333333333333, -1262.0, 0.05
+    ) || !activeRunLineOfSightClear(
+        litany, 5400.0, -1240.0, 5400.0, -1230.0, 0.05
+    )) {
+        return -4;
+    }
+    return 1;
+}
+
+pub delveCompanionScenarioTest(): int {
+    var state = new DelveState();
+    var stream = new rngModule.Mulberry32(<uint>42);
+    state.companionRank = 2;
+    if (!setupFinale(state)) { return -1; }
+    state.ownerTargetBoss = true;
+    state.ownerInCombat = true;
+    state.companionX = state.bossX + 1.0;
+    state.companionSwingTicks = 0;
+    tickMany(state, 20, stream);
+    if (eventCount(state, 19) < 1 || !state.companionInCombat) { return -2; }
+    state.companionX = state.bossX + 10.0;
+    tickMany(state, 20, stream);
+    if (state.companionX >= state.bossX + 10.0) { return -3; }
+    state.ownerX = state.companionX + 3.0;
+    state.ownerZ = state.companionZ;
+    state.ownerHp = 500;
+    state.companionHealTicks = 0;
+    tickOnce(state, stream);
+    if (state.ownerHp != 580 || eventCount(state, 20) < 1) { return -4; }
+    state.bossAlive = false;
+    state.ownerTargetBoss = false;
+    state.ownerInCombat = false;
+    state.ownerX = state.companionX + 12.0;
+    tickMany(state, 8, stream);
+    if (eventCount(state, 21) < 1) { return -5; }
+    state.ownerX = state.companionX + 80.0;
+    tickOnce(state, stream);
+    if (eventCount(state, 22) < 1 || state.companionX != state.ownerX) { return -6; }
+    return 1;
+}
+
+delveInvariantTest(): int {
+    var stream = new rngModule.Mulberry32(<uint>42);
+    if (timeoutTicksForAnte(1) != 60 || timeoutTicksForAnte(2) != 120 ||
+        timeoutTicksForAnte(3) != 180 || pagesForAnte(1) != 3 || pagesForAnte(2) != 2 ||
+        pagesForAnte(3) != 1 || triesForAnte(1) != 1 || triesForAnte(2) != 2 ||
+        triesForAnte(3) != 3) {
+        return -1;
+    }
+    var retry = new DelveState();
+    setupFinale(retry);
+    killFinalBoss(retry);
+    lockpickEngage(retry, 2);
+    tickMany(retry, 120, stream);
+    if (!retry.lockpickActive || retry.lockpickTries != 1 || retry.lockpickPage != 0) {
+        return -2;
+    }
+    tickMany(retry, 120, stream);
+    if (retry.lockpickActive || retry.chestAttemptAvailable || !retry.surfaceExitOpen) {
+        return -3;
+    }
+    var revive = new DelveState();
+    revive.companionRank = 3;
+    setupFinale(revive);
+    revive.ownerDead = true;
+    tickOnce(revive, stream);
+    if (revive.ownerDead || revive.ownerHp != 500 || !revive.companionReviveUsed ||
+        eventCount(revive, 18) != 1) {
+        return -4;
+    }
+    revive.ownerDead = true;
+    tickOnce(revive, stream);
+    if (revive.companionExists) { return -5; }
+    var marksBefore = revive.delveMarks;
+    if (buyReliquaryLegs(revive) || revive.delveMarks != marksBefore ||
+        shopItemCount(revive, 0, 0) != 0) { return -6; }
+    return 1;
+}
+
+delveRngObserverSyncTest(): int {
+    var state = new DelveState();
+    var stream = new rngModule.Mulberry32(<uint>17);
+    stream.nextU32();
+    tickOnce(state, stream);
+    if (state.sharedRandomDraws != <int>stream.draws ||
+        state.sharedRandomDigest != stream.drawDigest || state.sharedRandomState != stream.state) {
+        return -1;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = delveLockpickScenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = delveLockpickFailScenarioTest();
+    if (result != 1) { return -200 + result; }
+    result = delveDeathScenarioTest();
+    if (result != 1) { return -300 + result; }
+    result = delveProgressionScenarioTest();
+    if (result != 1) { return -400 + result; }
+    result = delveSourceRunLayoutScenarioTest();
+    if (result != 1) { return -450 + result; }
+    result = delveBountifulClaimScenarioTest();
+    if (result != 1) { return -460 + result; }
+    result = delveActiveRunCollisionScenarioTest();
+    if (result != 1) { return -475 + result; }
+    result = delveCompanionScenarioTest();
+    if (result != 1) { return -500 + result; }
+    result = delveInvariantTest();
+    if (result != 1) { return -600 + result; }
+    result = delveRngObserverSyncTest();
+    if (result != 1) { return -700 + result; }
+    return 1;
+}

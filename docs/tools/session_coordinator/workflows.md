@@ -6,6 +6,10 @@ related_code:
   - tools/session_coordinator/workflows/store.py
   - tools/session_coordinator/workflows/projections.py
   - tools/session_coordinator/workflows/milestones.py
+  - tools/session_coordinator/workflows/failure_closeouts.py
+  - tools/session_coordinator/control_plane/actions/executor.py
+  - tools/session_coordinator/control_plane/actions/models.py
+  - tools/session_coordinator/cli.py
   - tools/session_coordinator/failures.py
   - tools/session_coordinator/git_finalize.py
   - tools/session_coordinator/models.py
@@ -19,6 +23,10 @@ implementation_files:
   - tools/session_coordinator/workflows/store.py
   - tools/session_coordinator/workflows/projections.py
   - tools/session_coordinator/workflows/milestones.py
+  - tools/session_coordinator/workflows/failure_closeouts.py
+  - tools/session_coordinator/control_plane/actions/executor.py
+  - tools/session_coordinator/control_plane/actions/models.py
+  - tools/session_coordinator/cli.py
   - tools/session_coordinator/failures.py
   - tools/session_coordinator/git_finalize.py
   - tools/session_coordinator/models.py
@@ -34,6 +42,9 @@ tests:
   - tools/session_coordinator/tests/test_workflow_projections.py
   - tools/session_coordinator/tests/test_workflow_topology.py
   - tools/session_coordinator/tests/test_workflow_commit.py
+  - tools/session_coordinator/tests/test_failure_closeout.py
+  - tools/session_coordinator/tests/test_action_execution.py
+  - tools/session_coordinator/tests/test_milestone_cli.py
   - tools/session_coordinator/tests/test_failures.py
   - tools/session_coordinator/tests/test_milestone_failure_scope.py
 doc_type: module-detail
@@ -115,6 +126,43 @@ includes every open Failure assigned to the fixing plan. The same selector is
 used when computing gate fingerprints, refreshing `failure_audit`, and twice
 inside the Git mutex before the scoped commit, so a newly opened applicable
 Failure invalidates the commit rather than being bypassed.
+
+### Future-milestone Failure deferral
+
+An executor may defer one open Failure from the current milestone only to a
+strictly reachable successor in the same active plan. The durable record binds the
+Session, plan path, semantic topology hash, source milestone, target milestone and
+exact lifecycle key; it is not transferable to another run owner. Reverse, unrelated
+or foreign-Session requests fail before a record is written. A semantic dependency
+change immediately makes the old deferral inapplicable, while the ordinary
+prepare/commit/Goal-closeout gates retain their stronger content-hash check and reject
+any plan-text drift after import.
+
+The `runtime14-rust-focused` validation template is a closed action/CLI choice. It
+runs only `cargo +1.94.1 test -p zircon_runtime --lib
+runtime_14_module_family_mirror_docs_match_structure_audit_counts --locked --jobs 1
+-- --nocapture --test-threads=1`. Unlike Python and Web templates, this Rust template
+uses the server-owned Cargo metadata closure planner: the immutable copy includes the
+root manifests/toolchain plus every workspace member and recursively reachable local
+path package required to reload the workspace, including `zircon_runtime_interface`
+and `zircon_reflect_derive`. Registry/Git packages remain Cargo-managed. Source-null
+path packages outside the repository are fail-closed by default; this closed template
+may discover only sibling Git repositories, pin their HEAD, derive the job-root mount
+and archive the manifest-referenced package roots without reading dirty worktree bytes.
+Cargo metadata is decoded as UTF-8 independently of the Windows process locale. The
+exact template identity is stored beside legacy validation bindings without rebuilding
+an older database table.
+
+### Atomic combined Failure closeout
+
+When one accumulated full-blob delivery resolves multiple overlapping lifecycles, the
+closeout accepts a sorted, deduplicated target set only when every target has the same
+fixing plan, a canonical fixed artifact and exactly one return receipt. Supplemental
+docs, tests and output records require a typed `failure_closeout_delivery` record bound
+to the exact lifecycle-key set and explicit delivery paths; arbitrary snapshot extras
+are rejected. Paths owned by any preserved open Failure remain forbidden. Prepare and
+finalize revalidate all targets, returns, validation evidence and preserved lifecycles
+under the Git mutex, so the union is committed once or not at all.
 
 ## Extension Constraints
 

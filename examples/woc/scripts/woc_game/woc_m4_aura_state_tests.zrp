@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_aura_state_tests",
+  "source": "src",
+  "binary": "bin-m4-aura-state-tests",
+  "entry": "combat/aura_state_test_main"
+}

@@ -6,7 +6,7 @@ display_name = "Workbench Divider"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchDivider]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-divider", "workbench-primitive"]
 component = "Divider"
 control_id = "WorkbenchDividerRoot"
 classes = ["workbench-divider"]
-props = { orientation = "horizontal", variant = "fullWidth", separator_color = "#2b343a", thickness = 1.0, layout_min_height = 1.0 }
-layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 6.0, stretch = "Fixed" } }
+props = { orientation = "horizontal", variant = "fullWidth", separator_color = "$editor.separator.soft", disabled_separator_color = "$editor.border.disabled", thickness = "$editor.control.border_width", inset = "$editor.density.gap.medium", layout_min_height = "$editor.control.border_width" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.border_width", preferred = "$editor.control.border_width", max = "$editor.density.gap.medium", stretch = "Fixed" } }

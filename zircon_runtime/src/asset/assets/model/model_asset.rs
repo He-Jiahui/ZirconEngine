@@ -132,9 +132,7 @@ impl ModelAsset {
             crate::asset::ReferenceResolutionError,
         >,
     ) -> Result<String, crate::asset::assets::ProjectDocumentError> {
-        let document = crate::asset::assets::project_document::serialize_model(self, resolver)?;
-        crate::asset::assets::project_document::validate_model(&document)?;
-        Ok(document)
+        crate::asset::assets::project_document::serialize_model(self, resolver)
     }
 
     pub fn from_project_toml_str(
@@ -143,7 +141,6 @@ impl ModelAsset {
             &zircon_runtime_interface::project::PersistedAssetReference,
         ) -> Result<AssetReference, crate::asset::ReferenceResolutionError>,
     ) -> Result<Self, crate::asset::assets::ProjectDocumentError> {
-        crate::asset::assets::project_document::validate_model(document)?;
         crate::asset::assets::project_document::deserialize_model(document, resolver)
     }
 

@@ -10,7 +10,7 @@ mod plugin;
 
 pub use capability::{
     IMPORTER_FAMILY, MODULE_NAME, NAGA_IMPORTER_CAPABILITY, PLUGIN_ID, RUNTIME_CAPABILITY,
-    RUNTIME_CRATE_NAME, WGSL_IMPORTER_CAPABILITY,
+    RUNTIME_CRATE_NAME, SHADER_ASSET_IMPORTER_DECLARATION, WGSL_IMPORTER_CAPABILITY,
 };
 pub use plugin::{
     asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,

@@ -1,4 +1,4 @@
-use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::platform::{PreferenceStorageBackendKind, RuntimeTargetMode};
 
 use super::backends::{
     CursorBoundaryBackend, CursorOptionsBackend, EventLoopPolicy, FileDragDropBackend,
@@ -38,11 +38,22 @@ pub struct PlatformCapabilityReport {
     pub gamepad_events: CapabilityStatus<GamepadEventBackend>,
     pub gamepad_rumble: CapabilityStatus<GamepadRumbleBackend>,
     pub file_drag_drop: CapabilityStatus<FileDragDropBackend>,
+    pub persistent_preferences: CapabilityStatus<PreferenceStorageBackendKind>,
     pub linux_x11: CapabilityStatus<LinuxWindowProtocol>,
     pub linux_wayland: CapabilityStatus<LinuxWindowProtocol>,
 }
 
 impl PlatformCapabilityReport {
+    pub fn with_preference_storage_backend(
+        mut self,
+        backend: PreferenceStorageBackendKind,
+    ) -> Self {
+        if backend.is_persistent() {
+            self.persistent_preferences = CapabilityStatus::Supported(backend);
+        }
+        self
+    }
+
     pub fn diagnostic_lines(&self) -> Vec<String> {
         vec![
             format!("platform.target={}", self.target.as_str()),
@@ -145,6 +156,13 @@ impl PlatformCapabilityReport {
             format!(
                 "platform.file_drag_drop={}",
                 format_capability(self.file_drag_drop, FileDragDropBackend::as_str)
+            ),
+            format!(
+                "platform.persistent_preferences={}",
+                format_capability(
+                    self.persistent_preferences,
+                    PreferenceStorageBackendKind::as_str
+                )
             ),
             format!(
                 "platform.linux_x11={}",

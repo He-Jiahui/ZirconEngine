@@ -1,0 +1,49 @@
+// Source vectors for the built-in open-world collision grid and Sim.findSafePos.
+// This deliberately exercises a procedural tree, a fixed prop, and the spiral.
+
+var collisionGrid = %import("world/collision_grid");
+var safePosition = %import("world/safe_position");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+var seed = <uint>20061;
+
+if (!closeEnough(collisionGrid.resolveBuiltinWorldCoordinate(
+    seed, -169.3387614414096, -160.52844868181273, 0.6, false, 1, true
+), -167.89604411224602) || !closeEnough(collisionGrid.resolveBuiltinWorldCoordinate(
+    seed, -169.3387614414096, -160.52844868181273, 0.6, false, 2, true
+), -160.52844868181273)) {
+    throw "woc procedural decoration collision vector failed";
+}
+
+if (!closeEnough(collisionGrid.resolveBuiltinWorldCoordinate(
+    seed, 10.0, 12.0, 0.5, false, 1, true
+), 8.637035801919723) || !closeEnough(collisionGrid.resolveBuiltinWorldCoordinate(
+    seed, 10.0, 12.0, 0.5, false, 2, true
+), 15.223713479010097)) {
+    throw "woc fixed prop grid collision vector failed";
+}
+
+if (!closeEnough(safePosition.findBuiltinSafePositionCoordinate(
+    seed, -169.3387614414096, -160.52844868181273, -100.0, 1, true
+), -168.00128594340597) || !closeEnough(safePosition.findBuiltinSafePositionCoordinate(
+    seed, -169.3387614414096, -160.52844868181273, -100.0, 2, true
+), -161.9884347407325)) {
+    throw "woc procedural safe position vector failed";
+}
+
+if (!closeEnough(safePosition.findBuiltinSafePositionCoordinate(
+    seed, 0.0, 0.0, 0.6, 1, true
+), 1.3374754980036003) || !closeEnough(safePosition.findBuiltinSafePositionCoordinate(
+    seed, 0.0, 0.0, 0.6, 2, true
+), -1.459986058919749)) {
+    throw "woc safe position spiral vector failed";
+}
+
+return 0;

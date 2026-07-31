@@ -1,17 +1,47 @@
+use zircon_runtime::scene::NodeId;
+
 use super::super::{SceneEntry, UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata};
 use crate::ui::retained_host::hierarchy_pointer::HierarchyPointerRoute;
 
-pub(super) fn scene_drag_payload_from_route(
+pub(super) struct HierarchyDragSource {
+    pub(super) node_ids: Vec<NodeId>,
+    pub(super) payload: UiDragPayload,
+}
+
+pub(super) fn hierarchy_drag_source_from_route(
     route: Option<HierarchyPointerRoute>,
     scene_entries: &[SceneEntry],
-) -> Option<UiDragPayload> {
-    let HierarchyPointerRoute::Node { node_id, .. } = route? else {
+    authoritative_scene_entries: &[SceneEntry],
+) -> Option<HierarchyDragSource> {
+    let HierarchyPointerRoute::Node { item_index, .. } = route? else {
         return None;
     };
-    scene_entries
-        .iter()
-        .find(|entry| entry.id.to_string() == node_id)
-        .map(scene_drag_payload_from_entry)
+    let entry = scene_entries.get(item_index)?;
+    let node_ids = if entry.selected {
+        authoritative_scene_entries
+            .iter()
+            .filter(|entry| entry.selected)
+            .map(|entry| entry.id)
+            .collect()
+    } else {
+        vec![entry.id]
+    };
+    Some(HierarchyDragSource {
+        node_ids,
+        payload: scene_drag_payload_from_entry(entry),
+    })
+}
+
+pub(super) fn hierarchy_reparent_target_from_route(
+    route: Option<HierarchyPointerRoute>,
+    scene_entries: &[SceneEntry],
+) -> Option<Option<NodeId>> {
+    match route? {
+        HierarchyPointerRoute::Node { item_index, .. } => {
+            scene_entries.get(item_index).map(|entry| Some(entry.id))
+        }
+        HierarchyPointerRoute::ListSurface => Some(None),
+    }
 }
 
 fn scene_drag_payload_from_entry(entry: &SceneEntry) -> UiDragPayload {
@@ -26,4 +56,108 @@ fn scene_drag_payload_from_entry(entry: &SceneEntry) -> UiDragPayload {
             ..UiDragSourceMetadata::default()
         },
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{hierarchy_drag_source_from_route, hierarchy_reparent_target_from_route};
+    use crate::ui::retained_host::hierarchy_pointer::HierarchyPointerRoute;
+    use crate::ui::workbench::snapshot::SceneEntry;
+
+    fn entries() -> Vec<SceneEntry> {
+        vec![
+            SceneEntry {
+                id: 3,
+                name: "Camera".to_string(),
+                depth: 0,
+                selected: true,
+            },
+            SceneEntry {
+                id: 7,
+                name: "Cube".to_string(),
+                depth: 0,
+                selected: true,
+            },
+            SceneEntry {
+                id: 11,
+                name: "Light".to_string(),
+                depth: 0,
+                selected: false,
+            },
+        ]
+    }
+
+    #[test]
+    fn selected_hierarchy_drag_preserves_the_full_selection() {
+        let entries = entries();
+        let source = hierarchy_drag_source_from_route(
+            Some(HierarchyPointerRoute::Node {
+                item_index: 1,
+                node_id: "7".to_string(),
+            }),
+            &entries,
+            &entries,
+        )
+        .unwrap();
+
+        assert_eq!(source.node_ids, vec![3, 7]);
+        assert_eq!(source.payload.reference, "scene://node/7");
+    }
+
+    #[test]
+    fn unselected_hierarchy_drag_uses_only_the_pressed_node() {
+        let entries = entries();
+        let source = hierarchy_drag_source_from_route(
+            Some(HierarchyPointerRoute::Node {
+                item_index: 2,
+                node_id: "11".to_string(),
+            }),
+            &entries,
+            &entries,
+        )
+        .unwrap();
+
+        assert_eq!(source.node_ids, vec![11]);
+    }
+
+    #[test]
+    fn selected_hierarchy_drag_uses_the_authoritative_selection_beyond_the_filtered_projection() {
+        let authoritative_entries = entries();
+        let visible_entries = vec![authoritative_entries[1].clone()];
+
+        let source = hierarchy_drag_source_from_route(
+            Some(HierarchyPointerRoute::Node {
+                item_index: 0,
+                node_id: "7".to_string(),
+            }),
+            &visible_entries,
+            &authoritative_entries,
+        )
+        .unwrap();
+
+        assert_eq!(source.node_ids, vec![3, 7]);
+    }
+
+    #[test]
+    fn hierarchy_reparent_target_keeps_node_and_root_targets_distinct() {
+        let entries = entries();
+
+        assert_eq!(
+            hierarchy_reparent_target_from_route(
+                Some(HierarchyPointerRoute::Node {
+                    item_index: 0,
+                    node_id: "3".to_string(),
+                }),
+                &entries,
+            ),
+            Some(Some(3))
+        );
+        assert_eq!(
+            hierarchy_reparent_target_from_route(
+                Some(HierarchyPointerRoute::ListSurface),
+                &entries
+            ),
+            Some(None)
+        );
+    }
 }

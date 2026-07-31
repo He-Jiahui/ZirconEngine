@@ -1,0 +1,6 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub sourceCommit(): string { return "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a"; }
+pub sourceSha256(): string { return "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889"; }
+pub ruleCount(): int { return 6; }
+pub grantsBypassLevelAndSpecs(): bool { return true; }
+pub appliesTalentModifiersAfterSelection(): bool { return true; }

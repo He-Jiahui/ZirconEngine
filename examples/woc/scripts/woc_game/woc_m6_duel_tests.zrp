@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_duel_tests",
+  "source": "src",
+  "binary": "bin-m6-duel-tests",
+  "entry": "social/duel_state_test_main"
+}

@@ -1,0 +1,337 @@
+// Durable Card Duel service state. The WOS owner stores only this opaque byte
+// payload so game rules remain portable across VM/plugin backends and no
+// mutable service object crosses the experimental host ABI.
+var container = %import("zr.container");
+var contract = %import("generated/card_duel_contract");
+var handModule = %import("social/card_duel_hand");
+var matchModule = %import("social/card_duel_match");
+var serviceModule = %import("social/card_duel_service");
+
+var SNAPSHOT_VERSION: uint = <uint>1;
+var MAX_RECORDS: uint = <uint>100000;
+// The ZrVM match port uses zero as the absent played-card sentinel because
+// card values are constrained to 1..cardMaxValue. Keep CDS1 congruent with
+// that owned runtime representation rather than inventing a wire-only -1.
+
+class SnapshotReader {
+    pri var bytes: container.Array<uint>;
+    pri var offset: int;
+
+    pub @constructor(source: container.Array<uint>) {
+        this.bytes = source;
+        this.offset = 0;
+    }
+
+    pub byte(required: bool): uint {
+        if (!required || this.offset >= this.bytes.length) {
+            throw "card duel snapshot is truncated";
+        }
+        var value = <uint>this.bytes[this.offset];
+        if (value > <uint>255) throw "card duel snapshot byte is invalid";
+        this.offset = this.offset + 1;
+        return value;
+    }
+
+    pub u16(required: bool): uint {
+        if (!required) throw "card duel snapshot u16 is invalid";
+        return this.byte(true) + this.byte(true) * <uint>256;
+    }
+
+    pub u32(required: bool): uint {
+        if (!required) throw "card duel snapshot u32 is invalid";
+        return this.u16(true) + this.u16(true) * <uint>65536;
+    }
+
+    pub u64(required: bool): uint {
+        if (!required) throw "card duel snapshot u64 is invalid";
+        return this.u32(true) + this.u32(true) * <uint>4294967296;
+    }
+
+    pub fixed6(required: bool): float {
+        if (!required) throw "card duel snapshot fixed6 is invalid";
+        var negative = this.byte(true);
+        if (negative > <uint>1) throw "card duel snapshot fixed6 sign is invalid";
+        var magnitude = this.u64(true);
+        var value = <float>magnitude / 1000000.0;
+        return negative == <uint>1 && magnitude != <uint>0 ? -value : value;
+    }
+
+    pub finish(required: bool): void {
+        if (!required || this.offset != this.bytes.length) {
+            throw "card duel snapshot has trailing bytes";
+        }
+    }
+}
+
+class SnapshotWriter {
+    pri var bytes: container.Array<uint>;
+
+    pub @constructor() {
+        this.bytes = new container.Array<uint>();
+    }
+
+    pub byte(value: uint, required: bool): void {
+        if (!required || value > <uint>255) throw "card duel snapshot byte is invalid";
+        this.bytes.add(value);
+    }
+
+    pub u16(value: uint, required: bool): void {
+        if (!required) throw "card duel snapshot u16 is invalid";
+        this.byte(value & <uint>255, true);
+        this.byte((value >> 8) & <uint>255, true);
+    }
+
+    pub u32(value: uint, required: bool): void {
+        if (!required) throw "card duel snapshot u32 is invalid";
+        this.u16(value & <uint>65535, true);
+        this.u16((value >> 16) & <uint>65535, true);
+    }
+
+    pub u64(value: uint, required: bool): void {
+        if (!required) throw "card duel snapshot u64 is invalid";
+        this.u32(value & <uint>4294967295, true);
+        this.u32(value >> 32, true);
+    }
+
+    pub fixed6(value: float, required: bool): void {
+        if (!required) throw "card duel snapshot fixed6 is invalid";
+        var negative = value < 0.0;
+        var magnitude = negative ? -value : value;
+        this.byte(negative ? <uint>1 : <uint>0, true);
+        this.u64(<uint>(magnitude * 1000000.0 + 0.5), true);
+    }
+
+    pub finish(required: bool): container.Array<uint> {
+        if (!required) throw "card duel snapshot writer was not finalized";
+        var result = new container.Array<uint>();
+        for (var value in this.bytes) result.add(<uint>value);
+        return result;
+    }
+}
+
+containsPid(players: container.Array<serviceModule.CardDuelServicePlayer>, pid: uint): bool {
+    for (var player in players) {
+        if (player.pid == pid) return true;
+    }
+    return false;
+}
+
+matchContainsPid(matches: container.Array<matchModule.CardDuelMatch>, pid: uint): bool {
+    for (var match in matches) {
+        if (match.a == pid || match.b == pid) return true;
+    }
+    return false;
+}
+
+cardsAreValid(cards: container.Array<uint>): bool {
+    for (var value in cards) {
+        if (value == <uint>0 || value > <uint>contract.cardMaxValue(true)) return false;
+    }
+    return true;
+}
+
+writeCards(writer: SnapshotWriter, cards: container.Array<uint>): void {
+    if (cards.length > <int>contract.deckSize(true) || !cardsAreValid(cards)) {
+        throw "card duel snapshot card list is invalid";
+    }
+    writer.u16(<uint>cards.length, true);
+    for (var value in cards) writer.byte(<uint>value, true);
+}
+
+readCards(reader: SnapshotReader): container.Array<uint> {
+    var count = reader.u16(true);
+    if (count > <uint>contract.deckSize(true)) throw "card duel snapshot card list is oversized";
+    var result = new container.Array<uint>();
+    var index: uint = <uint>0;
+    while (index < count) {
+        var value = reader.byte(true);
+        if (value == <uint>0 || value > <uint>contract.cardMaxValue(true)) {
+            throw "card duel snapshot card is invalid";
+        }
+        result.add(value);
+        index = index + <uint>1;
+    }
+    return result;
+}
+
+writeHand(writer: SnapshotWriter, hand: handModule.CardHandState): void {
+    var total = hand.deck.length + hand.hand.length + hand.discard.length;
+    if (total != contract.deckSize(true) || !cardsAreValid(hand.deck) ||
+        !cardsAreValid(hand.hand) || !cardsAreValid(hand.discard)) {
+        throw "card duel snapshot hand state is invalid";
+    }
+    writeCards(writer, hand.deck);
+    writeCards(writer, hand.hand);
+    writeCards(writer, hand.discard);
+}
+
+readHand(reader: SnapshotReader): handModule.CardHandState {
+    var result = new handModule.CardHandState();
+    result.deck = readCards(reader);
+    result.hand = readCards(reader);
+    result.discard = readCards(reader);
+    if (result.deck.length + result.hand.length + result.discard.length != contract.deckSize(true)) {
+        throw "card duel snapshot hand total is invalid";
+    }
+    return result;
+}
+
+writePlayedCard(writer: SnapshotWriter, value: int): void {
+    if (value < 0 || value > <int>contract.cardMaxValue(true)) {
+        throw "card duel snapshot played card is invalid";
+    }
+    writer.u16(<uint>value, true);
+}
+
+readPlayedCard(reader: SnapshotReader): int {
+    var encoded = reader.u16(true);
+    if (encoded > contract.cardMaxValue(true)) {
+        throw "card duel snapshot played card is invalid";
+    }
+    return <int>encoded;
+}
+
+pub encode(state: serviceModule.CardDuelService): container.Array<uint> {
+    if (state.players.length > <int>MAX_RECORDS || state.matches.length > <int>MAX_RECORDS) {
+        throw "card duel snapshot record count exceeds world limit";
+    }
+    var writer = new SnapshotWriter();
+    writer.byte(<uint>67, true); // C
+    writer.byte(<uint>68, true); // D
+    writer.byte(<uint>83, true); // S
+    writer.byte(<uint>49, true); // 1
+    writer.u16(SNAPSHOT_VERSION, true);
+    writer.u32(state.rng.state, true);
+    writer.u32(state.rng.draws, true);
+    writer.u32(state.rng.drawDigest, true);
+    writer.u64(state.lastWinner, true);
+    writer.u64(state.lastForfeiter, true);
+    writer.byte(state.lastMatchVoidedValue ? <uint>1 : <uint>0, true);
+    writer.u32(<uint>state.players.length, true);
+    var previousPid: uint = <uint>0;
+    for (var player in state.players) {
+        if (player.pid == <uint>0 || player.pid <= previousPid || player.wins < 0) {
+            throw "card duel snapshot player ordering is invalid";
+        }
+        previousPid = player.pid;
+        writer.u64(player.pid, true);
+        writer.byte(player.queueable ? <uint>1 : <uint>0, true);
+        writer.byte(player.cardMasterInRange ? <uint>1 : <uint>0, true);
+        writer.u32(<uint>player.wins, true);
+    }
+    var queued = state.queue.snapshotEntries();
+    if (queued.length > <int>MAX_RECORDS) throw "card duel snapshot queue exceeds world limit";
+    writer.u32(<uint>queued.length, true);
+    for (var pid in queued) {
+        if (pid == <uint>0 || !containsPid(state.players, <uint>pid) ||
+            matchContainsPid(state.matches, <uint>pid)) {
+            throw "card duel snapshot queue entry is invalid";
+        }
+        writer.u64(<uint>pid, true);
+    }
+    writer.u32(<uint>state.matches.length, true);
+    for (var match in state.matches) {
+        if (match.a == <uint>0 || match.b == <uint>0 || match.a == match.b || match.finished ||
+            !containsPid(state.players, match.a) || !containsPid(state.players, match.b) ||
+            match.playedA < 0 || match.playedA > contract.cardMaxValue(true) ||
+            match.playedB < 0 || match.playedB > contract.cardMaxValue(true) ||
+            match.roundsA < 0 || match.roundsA >= contract.roundsToWin(true) ||
+            match.roundsB < 0 || match.roundsB >= contract.roundsToWin(true) ||
+            match.roundDeadline < 0.0) {
+            throw "card duel snapshot match is invalid";
+        }
+        writer.u64(match.a, true);
+        writer.u64(match.b, true);
+        writeHand(writer, match.handA);
+        writeHand(writer, match.handB);
+        writePlayedCard(writer, match.playedA);
+        writePlayedCard(writer, match.playedB);
+        writer.u16(<uint>match.roundsA, true);
+        writer.u16(<uint>match.roundsB, true);
+        writer.fixed6(match.roundDeadline, true);
+    }
+    return writer.finish(true);
+}
+
+pub decode(bytes: container.Array<uint>, seed: uint): serviceModule.CardDuelService {
+    if (bytes.length == 0) return new serviceModule.CardDuelService(seed);
+    var reader = new SnapshotReader(bytes);
+    if (reader.byte(true) != <uint>67 || reader.byte(true) != <uint>68 ||
+        reader.byte(true) != <uint>83 || reader.byte(true) != <uint>49 ||
+        reader.u16(true) != SNAPSHOT_VERSION) {
+        throw "card duel snapshot header is invalid";
+    }
+    var state = new serviceModule.CardDuelService(seed);
+    state.rng.restore(reader.u32(true), reader.u32(true), reader.u32(true));
+    state.lastWinner = reader.u64(true);
+    state.lastForfeiter = reader.u64(true);
+    var voided = reader.byte(true);
+    if (voided > <uint>1) throw "card duel snapshot void marker is invalid";
+    state.lastMatchVoidedValue = voided == <uint>1;
+    var playerCount = reader.u32(true);
+    if (playerCount > MAX_RECORDS) throw "card duel snapshot player count exceeds world limit";
+    var previousPid: uint = <uint>0;
+    var playerIndex: uint = <uint>0;
+    while (playerIndex < playerCount) {
+        var pid = reader.u64(true);
+        var queueable = reader.byte(true);
+        var inRange = reader.byte(true);
+        var wins = reader.u32(true);
+        if (pid == <uint>0 || pid <= previousPid || queueable > <uint>1 || inRange > <uint>1) {
+            throw "card duel snapshot player record is invalid";
+        }
+        previousPid = pid;
+        serviceModule.upsertPlayer(state, pid, queueable == <uint>1, inRange == <uint>1);
+        state.players[state.players.length - 1].wins = <int>wins;
+        playerIndex = playerIndex + <uint>1;
+    }
+    var queueCount = reader.u32(true);
+    if (queueCount > MAX_RECORDS) throw "card duel snapshot queue count exceeds world limit";
+    var queued = new container.Array<uint>();
+    var queueIndex: uint = <uint>0;
+    while (queueIndex < queueCount) {
+        var pid = reader.u64(true);
+        if (pid == <uint>0 || !containsPid(state.players, pid)) {
+            throw "card duel snapshot queue player is invalid";
+        }
+        for (var existing in queued) {
+            if (existing == pid) throw "card duel snapshot queue has duplicate player";
+        }
+        queued.add(pid);
+        queueIndex = queueIndex + <uint>1;
+    }
+    var matchCount = reader.u32(true);
+    if (matchCount > MAX_RECORDS) throw "card duel snapshot match count exceeds world limit";
+    var matchIndex: uint = <uint>0;
+    while (matchIndex < matchCount) {
+        var match = new matchModule.CardDuelMatch();
+        match.a = reader.u64(true);
+        match.b = reader.u64(true);
+        match.handA = readHand(reader);
+        match.handB = readHand(reader);
+        match.playedA = readPlayedCard(reader);
+        match.playedB = readPlayedCard(reader);
+        match.roundsA = <int>reader.u16(true);
+        match.roundsB = <int>reader.u16(true);
+        match.roundDeadline = reader.fixed6(true);
+        if (match.a == <uint>0 || match.b == <uint>0 || match.a == match.b ||
+            !containsPid(state.players, match.a) || !containsPid(state.players, match.b) ||
+            matchContainsPid(state.matches, match.a) || matchContainsPid(state.matches, match.b) ||
+            match.playedA < 0 || match.playedA > contract.cardMaxValue(true) ||
+            match.playedB < 0 || match.playedB > contract.cardMaxValue(true) ||
+            match.roundsA >= contract.roundsToWin(true) || match.roundsB >= contract.roundsToWin(true) ||
+            match.roundDeadline < 0.0) {
+            throw "card duel snapshot match record is invalid";
+        }
+        state.matches.add(match);
+        matchIndex = matchIndex + <uint>1;
+    }
+    for (var pid in queued) {
+        if (matchContainsPid(state.matches, <uint>pid)) {
+            throw "card duel snapshot queued player is already matched";
+        }
+    }
+    state.queue.restoreEntries(queued);
+    reader.finish(true);
+    return state;
+}

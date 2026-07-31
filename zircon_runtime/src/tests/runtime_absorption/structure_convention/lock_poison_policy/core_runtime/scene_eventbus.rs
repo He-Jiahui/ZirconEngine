@@ -9,6 +9,8 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
     let event_publish = read_runtime_src("core/runtime/events/publish.rs");
     let event_subscribe = read_runtime_src("core/runtime/events/subscribe.rs");
     let event_prune = read_runtime_src("core/runtime/events/prune.rs");
+    let event_subscriber = read_runtime_src("core/runtime/events/subscriber.rs");
+    let event_topic = read_runtime_src("core/runtime/events/topic.rs");
     let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -64,28 +66,43 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
     );
 
     assert_contains_all(
-        "EventBus poison recovery helpers",
-        &event_bus,
+        "EventBusState and EventTopic poison recovery helpers",
+        &event_topic,
         &[
-            "fn lock_subscribers(&self) -> MutexGuard<'_, EventSubscriberMap>",
-            "fn lock_delivery(&self) -> MutexGuard<'_, ()>",
+            "fn lock_topics(&self) -> MutexGuard<'_, EventTopicMap>",
+            "pub(super) fn lock_subscribers(&self) -> MutexGuard<'_, EventSubscriberSnapshot>",
+            "pub(super) fn lock_delivery(&self) -> MutexGuard<'_, ()>",
+            ".unwrap_or_else(|poisoned| poisoned.into_inner())",
+        ],
+    );
+    assert_contains_all(
+        "EventSubscriber poison recovery helper",
+        &event_subscriber,
+        &[
+            "fn lock_queue_state(&self) -> MutexGuard<'_, EventQueueState>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
         ],
     );
     assert_contains_all(
         "EventBus publish/subscribe/prune helpers",
         &event_publish,
-        &["self.lock_delivery()", "self.prune_topic_subscribers("],
+        &[
+            "topic.lock_delivery()",
+            "topic.remove_subscribers_while_delivery_locked",
+        ],
     );
     assert_contains_all(
         "EventBus subscribe helper",
         &event_subscribe,
-        &["let mut subscribers = self.lock_subscribers();"],
+        &["self.state.subscribe(topic.into(), policy)"],
     );
     assert_contains_all(
         "EventBus prune helper",
         &event_prune,
-        &["let mut subscribers = self.lock_subscribers();"],
+        &[
+            "topic.lock_delivery()",
+            "topic.remove_subscribers_while_delivery_locked",
+        ],
     );
 
     for (label, source) in [
@@ -96,6 +113,8 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
         ("event publish", event_publish.as_str()),
         ("event subscribe", event_subscribe.as_str()),
         ("event prune", event_prune.as_str()),
+        ("event subscriber", event_subscriber.as_str()),
+        ("event topic", event_topic.as_str()),
     ] {
         assert_no_direct_lock_unwrap_in_production(label, source);
     }

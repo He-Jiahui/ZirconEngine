@@ -5,6 +5,7 @@ use crossbeam_channel::unbounded;
 use super::super::errors::asset_error;
 use super::super::project_asset_manager::ProjectAssetManager;
 use super::super::records::{build_project_info, build_status_record};
+use super::super::resource_sync::{clear_removed_project_resources, project_locators};
 use super::super::{
     AssetManager as AssetManagerContract, AssetPipelineInfo, AssetStatusRecord, ProjectInfo,
 };
@@ -13,6 +14,7 @@ use crate::asset::watch::{AssetChange, AssetChangeKind, AssetWatchError};
 use crate::asset::{
     AssetImportError, AssetImporterCapabilityReport, AssetImporterHandler, AssetUri,
 };
+use crate::core::resource::ResourceScheme;
 use std::sync::Arc;
 
 impl AssetManagerContract for ProjectAssetManager {
@@ -52,8 +54,45 @@ impl AssetManagerContract for ProjectAssetManager {
         ProjectAssetManager::open_prepared_project(self, project)
     }
 
+    fn close_project(&self) -> Result<Option<std::path::PathBuf>, CoreError> {
+        ProjectAssetManager::close_project(self)
+    }
+
     fn current_project_snapshot(&self) -> Option<ProjectManager> {
         self.project_read().as_ref().cloned()
+    }
+
+    fn current_project_source_path(
+        &self,
+        uri: &AssetUri,
+    ) -> Result<Option<std::path::PathBuf>, AssetImportError> {
+        let project = self.project_read();
+        let Some(project) = project.as_ref() else {
+            return Ok(None);
+        };
+        if let Some(path) = self.indexed_project_source_path(uri) {
+            return Ok(Some(path));
+        }
+        match uri.scheme() {
+            ResourceScheme::Res | ResourceScheme::Package => {
+                Err(AssetImportError::MissingProjectAssetUri { uri: uri.clone() })
+            }
+            ResourceScheme::Library | ResourceScheme::Builtin | ResourceScheme::Memory => {
+                project.source_path_for_uri(uri).map(Some)
+            }
+        }
+    }
+
+    fn current_project_asset_uris(&self) -> Vec<AssetUri> {
+        let project = self.project_read();
+        let Some(project) = project.as_ref() else {
+            return Vec::new();
+        };
+        project
+            .registry()
+            .values()
+            .map(|record| record.primary_locator().clone())
+            .collect()
     }
 
     fn current_project(&self) -> Option<ProjectInfo> {
@@ -98,16 +137,44 @@ impl AssetManagerContract for ProjectAssetManager {
 
     fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError> {
         let uri = AssetUri::parse(uri).map_err(asset_error)?;
+        let _generation = self.project_generation_read();
+        let indexed_source_path = self.indexed_project_source_path(&uri);
         let mut project = self.project_write();
-        let Some(project) = project.as_mut() else {
+        let Some(active_project) = project.as_mut() else {
             return Ok(None);
         };
-        project.scan_and_import().map_err(asset_error)?;
-        self.sync_project_resources(project)?;
-        let status = project
+        let source_path = match indexed_source_path {
+            Some(path) => path,
+            None if uri.scheme() == ResourceScheme::Res => active_project
+                .primary_project_source_path_for_uri(&uri)
+                .map_err(asset_error)?,
+            None => {
+                return Err(asset_error(AssetImportError::MissingProjectAssetUri {
+                    uri,
+                }));
+            }
+        };
+        let previous_source_records = active_project.source_resource_records(&uri);
+        let mut candidate = active_project.clone();
+        let (imported, affected, ready_payloads) = candidate
+            .import_targeted_generation(&uri, &source_path)
+            .map_err(asset_error)?;
+        let prepared = self.prepare_targeted_project_resource_sync(
+            &candidate,
+            &uri,
+            source_path,
+            &previous_source_records,
+            &imported,
+            &affected,
+            ready_payloads,
+        );
+        let status = candidate
             .registry()
             .get_by_locator(&uri)
             .map(build_status_record);
+        self.commit_targeted_project_resource_sync(prepared);
+        *active_project = candidate;
+        drop(project);
         if status.is_some() {
             self.broadcast(vec![AssetChange::new(AssetChangeKind::Modified, uri, None)]);
         }
@@ -115,13 +182,20 @@ impl AssetManagerContract for ProjectAssetManager {
     }
 
     fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError> {
+        let _generation = self.project_generation_read();
         let mut project = self.project_write();
-        let Some(project) = project.as_mut() else {
+        let Some(active_project) = project.as_mut() else {
             return Ok(Vec::new());
         };
-        let imported = project.scan_and_import().map_err(asset_error)?;
-        self.sync_project_resources(project)?;
+        let previous_locators = project_locators(active_project);
+        let mut candidate = active_project.clone();
+        let imported = candidate.scan_and_import().map_err(asset_error)?;
+        let prepared = self.prepare_project_resource_sync(&candidate)?;
         let statuses = imported.iter().map(build_status_record).collect::<Vec<_>>();
+        clear_removed_project_resources(&self.resource_manager(), &previous_locators, &candidate);
+        self.commit_project_resource_sync(prepared);
+        *active_project = candidate;
+        drop(project);
         self.broadcast(
             imported
                 .into_iter()
@@ -135,5 +209,187 @@ impl AssetManagerContract for ProjectAssetManager {
                 .collect(),
         );
         Ok(statuses)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use crate::asset::project::{ProjectManager, ProjectManifest};
+    use crate::asset::{AssetImportError, AssetManager, AssetUri};
+
+    use super::ProjectAssetManager;
+
+    #[test]
+    fn project_queries_resolve_inside_the_manager_without_cloning_a_project_snapshot() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "zircon_asset_manager_project_queries_{}_{}",
+            std::process::id(),
+            unique
+        ));
+        let shader_path = root.join("assets/shaders/query.wgsl");
+        let unrelated_path = root.join("assets/shaders/unrelated.wgsl");
+        fs::create_dir_all(shader_path.parent().unwrap()).unwrap();
+        ProjectManifest::new(
+            "Project Query Fixture",
+            AssetUri::parse("res://shaders/query.wgsl").unwrap(),
+            1,
+        )
+        .save(root.join("zircon-project.toml"))
+        .unwrap();
+        fs::write(
+            &shader_path,
+            "@vertex fn vs_main() -> @builtin(position) vec4f { return vec4f(0.0, 0.0, 0.0, 1.0); }",
+        )
+        .unwrap();
+        fs::write(
+            &unrelated_path,
+            "@vertex fn vs_main() -> @builtin(position) vec4f { return vec4f(1.0, 0.0, 0.0, 1.0); }",
+        )
+        .unwrap();
+        let manager = ProjectAssetManager::default();
+        let mut project = ProjectManager::open(&root).unwrap();
+        project.scan_and_import().unwrap();
+        let prepared = manager.prepare_project_resource_sync(&project).unwrap();
+        manager.commit_project_resource_sync(prepared);
+        *manager.project_write() = Some(project);
+        let locator = AssetUri::parse("res://shaders/query.wgsl").unwrap();
+        let labelled = AssetUri::parse("res://shaders/query.wgsl#vertex").unwrap();
+        let unrelated = AssetUri::parse("res://shaders/unrelated.wgsl").unwrap();
+
+        fs::remove_file(&unrelated_path).unwrap();
+
+        assert_eq!(
+            AssetManager::current_project_source_path(&manager, &locator).unwrap(),
+            Some(shader_path)
+        );
+        assert_eq!(
+            AssetManager::current_project_source_path(&manager, &labelled).unwrap(),
+            AssetManager::current_project_source_path(&manager, &locator).unwrap()
+        );
+        assert_eq!(
+            AssetManager::current_project_source_path(&manager, &unrelated).unwrap(),
+            Some(unrelated_path.clone())
+        );
+        assert!(AssetManager::current_project_asset_uris(&manager).contains(&locator));
+        assert!(AssetManager::current_project_asset_uris(&manager).contains(&unrelated));
+
+        let candidate = manager.project_read().as_ref().unwrap().clone();
+        assert!(manager.prepare_project_resource_sync(&candidate).is_err());
+        assert_eq!(
+            AssetManager::current_project_source_path(&manager, &unrelated).unwrap(),
+            Some(unrelated_path)
+        );
+
+        drop(manager);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn package_source_path_is_generation_indexed_and_missing_after_reimport_removes_it() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "zircon_asset_manager_package_queries_{}_{}",
+            std::process::id(),
+            unique
+        ));
+        let package_root = std::env::temp_dir().join(format!(
+            "zircon_asset_manager_package_sources_{}_{}",
+            std::process::id(),
+            unique
+        ));
+        fs::create_dir_all(root.join("assets")).unwrap();
+        fs::create_dir_all(package_root.join("data")).unwrap();
+        ProjectManifest::new(
+            "Package Query Fixture",
+            AssetUri::parse("res://scenes/default.scene.toml").unwrap(),
+            1,
+        )
+        .save(root.join("zircon-project.toml"))
+        .unwrap();
+        let package_source = package_root.join("data/settings.json");
+        fs::write(&package_source, r#"{ "enabled": true }"#).unwrap();
+
+        let mut project = ProjectManager::open(&root).unwrap();
+        project
+            .register_package_asset_root("com.zircon.fixture", &package_root)
+            .unwrap();
+        project.scan_and_import().unwrap();
+        let manager = ProjectAssetManager::default();
+        let prepared = manager.prepare_project_resource_sync(&project).unwrap();
+        manager.commit_project_resource_sync(prepared);
+        *manager.project_write() = Some(project);
+        let locator = AssetUri::parse("package://com.zircon.fixture/data/settings.json").unwrap();
+
+        assert_eq!(
+            AssetManager::current_project_source_path(&manager, &locator).unwrap(),
+            Some(package_source.clone())
+        );
+
+        fs::remove_file(&package_source).unwrap();
+        AssetManager::reimport_all(&manager).unwrap();
+
+        assert!(matches!(
+            AssetManager::current_project_source_path(&manager, &locator),
+            Err(AssetImportError::MissingProjectAssetUri { uri }) if uri == locator
+        ));
+
+        drop(manager);
+        let _ = fs::remove_dir_all(root);
+        let _ = fs::remove_dir_all(package_root);
+    }
+
+    #[test]
+    fn targeted_facade_import_preserves_unrelated_deleted_generation_entry() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "zircon_asset_manager_targeted_import_{}_{}",
+            std::process::id(),
+            unique
+        ));
+        let target_path = root.join("assets/data/target.json");
+        let unrelated_path = root.join("assets/data/unrelated.json");
+        fs::create_dir_all(target_path.parent().unwrap()).unwrap();
+        ProjectManifest::new(
+            "Targeted Facade Fixture",
+            AssetUri::parse("res://data/target.json").unwrap(),
+            1,
+        )
+        .save(root.join("zircon-project.toml"))
+        .unwrap();
+        fs::write(&target_path, r#"{ "version": 1 }"#).unwrap();
+        fs::write(&unrelated_path, r#"{ "retained": true }"#).unwrap();
+        let manager = ProjectAssetManager::default();
+        AssetManager::open_prepared_project(&manager, ProjectManager::open(&root).unwrap())
+            .unwrap();
+        let target = AssetUri::parse("res://data/target.json").unwrap();
+        let unrelated = AssetUri::parse("res://data/unrelated.json").unwrap();
+
+        fs::write(&target_path, r#"{ "version": 2 }"#).unwrap();
+        fs::remove_file(&unrelated_path).unwrap();
+        let status = AssetManager::import_asset(&manager, &target.to_string())
+            .unwrap()
+            .expect("targeted status");
+
+        assert_eq!(status.uri, target.to_string());
+        assert!(AssetManager::current_project_asset_uris(&manager).contains(&unrelated));
+        assert_eq!(
+            AssetManager::current_project_source_path(&manager, &unrelated).unwrap(),
+            Some(unrelated_path)
+        );
+        drop(manager);
+        let _ = fs::remove_dir_all(root);
     }
 }

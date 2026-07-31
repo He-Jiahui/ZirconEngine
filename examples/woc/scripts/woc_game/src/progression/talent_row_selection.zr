@@ -1,0 +1,128 @@
+// Current-head `selectTalentRow` transaction projection. Option membership is
+// generated from every target class row; full TalentModifiers rebaking and
+// ability/pet cleanup stay at the WOS allocation-commit boundary.
+var container = %import("zr.container");
+var contract = %import("generated/talent_row_contract");
+
+pub class TalentRowSelectionState {
+    pub var classId: string;
+    pub var playerLevel: int;
+    pub var inCombat: bool;
+    pub var inArena: bool;
+    pub var selected: container.Array<string>;
+    pub var allocationCommits: int;
+    // -1 is source's Invalid talent build path; -2 is the shared allocation
+    // lock after the row input has already passed structural validation.
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.classId = "warrior";
+        this.playerLevel = 1;
+        this.inCombat = false;
+        this.inArena = false;
+        this.selected = new container.Array<string>();
+        var index = 0;
+        while (index < 6) {
+            this.selected.add("");
+            index = index + 1;
+        }
+        this.allocationCommits = 0;
+        this.lastError = 0;
+    }
+}
+
+rowIndex(level: int): int {
+    if (level == 5) return 0;
+    if (level == 8) return 1;
+    if (level == 11) return 2;
+    if (level == 14) return 3;
+    if (level == 17) return 4;
+    if (level == 20) return 5;
+    return -1;
+}
+
+pub selectedOption(state: TalentRowSelectionState, level: int): string {
+    var index = rowIndex(level);
+    if (index < 0) return "";
+    return <string>state.selected[index];
+}
+
+// `clear` represents the target wire value optionId:null. Row and level are
+// checked before the shared in-combat/arena allocation lock, preserving source
+// rejection order for malformed remote input.
+pub selectTalentRow(
+    state: TalentRowSelectionState,
+    level: int,
+    optionId: string,
+    clear: bool
+): bool {
+    state.lastError = 0;
+    var index = rowIndex(level);
+    if (!contract.knownClass(state.classId) || !contract.isRowLevel(level) ||
+        index < 0 || state.playerLevel < level ||
+        (!clear && !contract.hasOption(state.classId, level, optionId))) {
+        state.lastError = -1;
+        return false;
+    }
+    if (state.inCombat || state.inArena) {
+        state.lastError = -2;
+        return false;
+    }
+    var next = clear ? "" : optionId;
+    if (<string>state.selected[index] == next) return true;
+    state.selected[index] = next;
+    state.allocationCommits = state.allocationCommits + 1;
+    return true;
+}
+
+pub contractTest(): int {
+    var mage = new TalentRowSelectionState();
+    mage.classId = "mage";
+    mage.playerLevel = 4;
+    if (selectTalentRow(mage, 5, "mag_r5_ice_floes", false) || mage.lastError != -1 ||
+        mage.allocationCommits != 0 || selectedOption(mage, 5) != "") {
+        return -1;
+    }
+    mage.playerLevel = 5;
+    if (!selectTalentRow(mage, 5, "mag_r5_ice_floes", false) ||
+        selectedOption(mage, 5) != "mag_r5_ice_floes" || mage.allocationCommits != 1) {
+        return -2;
+    }
+    // An equal allocation succeeds without a commit, as applyTalentAllocation
+    // returns true before recomputing modifiers.
+    if (!selectTalentRow(mage, 5, "mag_r5_ice_floes", false) || mage.allocationCommits != 1) {
+        return -3;
+    }
+    mage.inCombat = true;
+    if (selectTalentRow(mage, 5, "mag_r5_double_blink", false) || mage.lastError != -2 ||
+        selectedOption(mage, 5) != "mag_r5_ice_floes") {
+        return -4;
+    }
+    // Structural row validation happens before the shared lock.
+    if (selectTalentRow(mage, 5, "not_a_mage_option", false) || mage.lastError != -1) {
+        return -5;
+    }
+    mage.inCombat = false;
+    if (!selectTalentRow(mage, 5, "ignored_for_null", true) || selectedOption(mage, 5) != "" ||
+        mage.allocationCommits != 2) {
+        return -6;
+    }
+
+    var warrior = new TalentRowSelectionState();
+    warrior.classId = "warrior";
+    warrior.playerLevel = 20;
+    if (!selectTalentRow(warrior, 20, "war_row_bladestorm", false) ||
+        !selectTalentRow(warrior, 5, "war_row_double_charge", false) ||
+        selectedOption(warrior, 20) != "war_row_bladestorm" ||
+        selectedOption(warrior, 5) != "war_row_double_charge") {
+        return -7;
+    }
+    if (selectTalentRow(warrior, 9, "war_row_double_charge", false) || warrior.lastError != -1) {
+        return -8;
+    }
+    warrior.classId = "unknown";
+    if (selectTalentRow(warrior, 5, "war_row_double_charge", false) || warrior.lastError != -1) {
+        return -9;
+    }
+    return 1;
+}

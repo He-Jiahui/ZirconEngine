@@ -1,7 +1,7 @@
 use crate::core::editor_event::{MenuAction, ViewDescriptorId};
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::workbench::event::{
-    dispatch_editor_host_binding, menu_action_binding, EditorHostEvent,
+    EditorHostEvent, dispatch_editor_host_binding, menu_action_binding,
 };
 use zircon_runtime::scene::components::NodeKind;
 
@@ -58,6 +58,21 @@ fn play_mode_menu_action_bindings_roundtrip_through_headless_dispatch() {
 }
 
 #[test]
+fn project_close_menu_action_binding_roundtrips_through_headless_dispatch() {
+    let action = MenuAction::CloseProject;
+    let binding = menu_action_binding(&action);
+
+    assert_eq!(
+        binding.native_binding(),
+        r#"WorkbenchMenuBar/CloseProject:onClick(MenuAction("workbench.project.close"))"#
+    );
+    assert_eq!(
+        dispatch_editor_host_binding(&binding).unwrap(),
+        EditorHostEvent::Menu(action)
+    );
+}
+
+#[test]
 fn dotted_menu_action_ids_roundtrip_through_headless_dispatch() {
     for (action_id, expected_action) in [
         (
@@ -78,6 +93,11 @@ fn dotted_menu_action_ids_roundtrip_through_headless_dispatch() {
             MenuAction::SaveProject,
         ),
         ("SaveProject", MenuAction::SaveProject),
+        (
+            "menu_action.workbench.project.close",
+            MenuAction::CloseProject,
+        ),
+        ("CloseProject", MenuAction::CloseProject),
     ] {
         let binding = EditorUiBinding::new(
             "WorkbenchMenuBar",

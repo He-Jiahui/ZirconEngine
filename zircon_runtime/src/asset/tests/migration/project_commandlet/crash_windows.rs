@@ -62,10 +62,12 @@ fn write_legacy_material(
 }
 
 fn assert_transaction_artifacts_cleared(root: &std::path::Path, owner: &std::path::Path) {
-    assert!(!fs::read_dir(owner)
-        .unwrap()
-        .filter_map(Result::ok)
-        .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
+    assert!(
+        !fs::read_dir(owner)
+            .unwrap()
+            .filter_map(Result::ok)
+            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
+    );
     assert_eq!(
         fs::read_dir(root.join(".zircon/asset-migration"))
             .unwrap()
@@ -106,21 +108,116 @@ fn post_stage_pre_journal_activation_crash_is_detected_and_converges_on_apply() 
     ))
     .unwrap();
     assert!(!dry_run.succeeded());
-    assert!(dry_run
-        .issues()
-        .iter()
-        .any(|issue| issue.kind() == AssetMigrationIssueKind::PendingRecovery));
+    assert!(
+        dry_run
+            .issues()
+            .iter()
+            .any(|issue| issue.kind() == AssetMigrationIssueKind::PendingRecovery)
+    );
     assert_eq!(directory_snapshot(material.parent().unwrap()), before);
 
     let report =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
             .unwrap();
     assert!(report.succeeded());
-    assert!(fs::read_to_string(&material)
-        .unwrap()
-        .contains("kind = \"project\""));
+    assert!(
+        fs::read_to_string(&material)
+            .unwrap()
+            .contains("kind = \"project\"")
+    );
     assert_transaction_artifacts_cleared(&root, material.parent().unwrap());
     fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn append_journal_records_each_document_once_and_recovers_after_commit_interruption() {
+    let root = fixture_root("transaction-append-journal-linear-growth");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "ab111111-2222-4333-8444-555555555555".parse().unwrap();
+    write_registered_source(
+        &root,
+        "assets",
+        "shaders/pbr.zshader",
+        guid,
+        AssetKind::Shader,
+    );
+    let materials = root.join("assets/materials");
+    let document_count = 3;
+    for index in 0..document_count {
+        write_legacy_material(&root, &format!("append-{index}.zmaterial"), guid);
+    }
+
+    migrate_project_assets_with_process_interruption(
+        AssetMigrationOptions::new(&root, AssetMigrationMode::Apply),
+        document_count - 1,
+    )
+    .expect_err("commit interruption must retain append-only recovery evidence");
+
+    let journal = fs::read_dir(root.join(".zircon/asset-migration"))
+        .unwrap()
+        .next()
+        .expect("interruption must retain one transaction journal")
+        .unwrap()
+        .path();
+    let journal_source = fs::read_to_string(&journal).unwrap();
+    assert_eq!(
+        journal_source.matches("[[documents]]").count(),
+        document_count
+    );
+    assert_eq!(
+        journal_source.matches("[[transitions]]").count(),
+        document_count * 3 + 1,
+        "one prepared record plus committing/committed records per document and one activation record"
+    );
+
+    let recovered =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+    assert!(recovered.succeeded());
+    for index in 0..document_count {
+        assert!(
+            fs::read_to_string(materials.join(format!("append-{index}.zmaterial")))
+                .unwrap()
+                .contains("kind = \"project\"")
+        );
+    }
+    assert_transaction_artifacts_cleared(&root, &materials);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn direct_transaction_replacement_keeps_platform_durability_barrier() {
+    const COMMIT_SOURCE: &str = include_str!("../../../migration/transaction/commit.rs");
+    const JOURNAL_SOURCE: &str = include_str!("../../../migration/transaction/journal.rs");
+
+    assert!(
+        COMMIT_SOURCE.contains("sync_parent_directory(target)"),
+        "a committed target replacement must persist its directory entry on Unix"
+    );
+    assert!(
+        COMMIT_SOURCE.contains("sync_parent_directory(retired)"),
+        "retired sidecar deletion must persist its directory entry on Unix"
+    );
+    assert!(
+        COMMIT_SOURCE.contains("REPLACEFILE_WRITE_THROUGH"),
+        "Windows replacement must request a write-through commit"
+    );
+    assert!(
+        COMMIT_SOURCE.contains("MOVEFILE_WRITE_THROUGH"),
+        "Windows first-write promotion must request a write-through rename"
+    );
+    assert!(
+        JOURNAL_SOURCE.contains("sync_committed_journal(path)"),
+        "the immutable intent must be synced after its atomic replacement"
+    );
+    assert!(
+        JOURNAL_SOURCE.contains(".write(true)"),
+        "Windows journal flushing requires a read-write committed-file handle"
+    );
+    assert!(
+        JOURNAL_SOURCE.contains("fs::File::open(parent)?.sync_all()"),
+        "the immutable intent must persist its parent directory entry on Unix"
+    );
 }
 
 #[test]

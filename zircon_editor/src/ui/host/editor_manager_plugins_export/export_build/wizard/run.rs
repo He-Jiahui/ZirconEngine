@@ -1,7 +1,8 @@
 use super::{
-    execute_export_wizard_stage_with_output_and_cancel, ExportWizardCommandRunner,
-    ExportWizardJobSnapshot, ExportWizardJobState, ExportWizardJobStatus,
-    ExportWizardPipelineExecution, ExportWizardPipelinePlan, ExportWizardProgressState,
+    execute_export_wizard_stage_with_output_and_cancel, ExportWizardCommandOutputLine,
+    ExportWizardCommandRunner, ExportWizardJobSnapshot, ExportWizardJobState,
+    ExportWizardJobStatus, ExportWizardPipelineExecution, ExportWizardPipelinePlan,
+    ExportWizardProgressState,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -20,6 +21,15 @@ pub enum ExportWizardJobEventKind {
 pub struct ExportWizardJobEvent {
     pub kind: ExportWizardJobEventKind,
     pub snapshot: ExportWizardJobSnapshot,
+    pub output_delta: Option<ExportWizardStageOutputDelta>,
+    pub coalesced_output_events: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExportWizardStageOutputDelta {
+    pub stage: zircon_runtime_interface::export::ExportStage,
+    pub output: ExportWizardCommandOutputLine,
+    pub progress: ExportWizardProgressState,
 }
 
 pub trait ExportWizardCancelSignal: Sync {
@@ -81,8 +91,14 @@ pub fn run_export_wizard_job(
             runner,
             &mut progress,
             &mut |output, progress| {
-                job.record_stage_output(command.stage, output, progress.clone());
-                emit_job_event(emit_event, ExportWizardJobEventKind::StageOutput, &job);
+                let progress = progress.clone();
+                let output_delta = ExportWizardStageOutputDelta {
+                    stage: command.stage,
+                    output: output.clone(),
+                    progress: progress.clone(),
+                };
+                job.record_stage_output(command.stage, output, progress);
+                emit_stage_output_event(emit_event, output_delta, &job);
             },
             &mut || cancel_signal.is_cancel_requested(),
         );
@@ -151,5 +167,20 @@ fn emit_job_event(
     emit_event(ExportWizardJobEvent {
         kind,
         snapshot: job.snapshot().clone(),
+        output_delta: None,
+        coalesced_output_events: 0,
+    });
+}
+
+fn emit_stage_output_event(
+    emit_event: &mut (impl FnMut(ExportWizardJobEvent) + Send),
+    output_delta: ExportWizardStageOutputDelta,
+    job: &ExportWizardJobState,
+) {
+    emit_event(ExportWizardJobEvent {
+        kind: ExportWizardJobEventKind::StageOutput,
+        snapshot: job.snapshot().event_header(),
+        output_delta: Some(output_delta),
+        coalesced_output_events: 0,
     });
 }

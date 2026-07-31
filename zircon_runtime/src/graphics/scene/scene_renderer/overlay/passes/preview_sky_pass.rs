@@ -1,5 +1,3 @@
-use crate::core::framework::render::SkyboxMode;
-
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
@@ -55,18 +53,22 @@ impl PreviewSkyPass {
         color_attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) {
-        let volumetric_params_buffer = volumetric_apply.create_params_buffer(
-            device,
-            frame,
-            render_region,
-            integrated_volumetric_view.is_some(),
-            "zircon-sky-volumetric-params",
-        );
-        let volumetric_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-sky-volumetric-bind-group"),
-            layout: volumetric_layout,
-            entries: &volumetric_apply
-                .bind_group_entries(&volumetric_params_buffer, integrated_volumetric_view),
+        let skybox_enabled = frame.environment().skybox.is_enabled();
+        let volumetric_binding = skybox_enabled.then(|| {
+            let params_buffer = volumetric_apply.create_params_buffer(
+                device,
+                frame,
+                render_region,
+                integrated_volumetric_view.is_some(),
+                "zircon-sky-volumetric-params",
+            );
+            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("zircon-sky-volumetric-bind-group"),
+                layout: volumetric_layout,
+                entries: &volumetric_apply
+                    .bind_group_entries(&params_buffer, integrated_volumetric_view),
+            });
+            (params_buffer, bind_group)
         });
         let clear_color = frame.preview().clear_color;
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -97,11 +99,33 @@ impl PreviewSkyPass {
         if !render_region.apply_physical_to_render_pass(&mut pass) {
             return;
         }
-        if !matches!(frame.environment().skybox.mode, SkyboxMode::Disabled) {
+        if let Some((_params_buffer, bind_group)) = &volumetric_binding {
             pass.set_bind_group(0, scene_bind_group, &[]);
-            pass.set_bind_group(1, &volumetric_bind_group, &[]);
+            pass.set_bind_group(1, bind_group, &[]);
             pass.set_pipeline(sky_pipeline);
             pass.draw(0..3, 0..1);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn disabled_sky_skips_volumetric_gpu_objects_before_recording() {
+        let source = include_str!("preview_sky_pass.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("preview sky implementation");
+        let enabled_guard = implementation
+            .find("let skybox_enabled = frame.environment().skybox.is_enabled()")
+            .expect("skybox enabled guard");
+        let params_buffer = implementation
+            .find("volumetric_apply.create_params_buffer")
+            .expect("volumetric params buffer creation");
+
+        assert!(enabled_guard < params_buffer);
+        assert!(implementation.contains("let volumetric_binding = skybox_enabled.then(||"));
+        assert!(implementation.contains("if let Some((_params_buffer, bind_group))"));
     }
 }

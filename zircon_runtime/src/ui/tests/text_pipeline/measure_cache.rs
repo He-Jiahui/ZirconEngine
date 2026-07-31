@@ -9,6 +9,31 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+fn ui_text_hot_paths_borrow_existing_text_and_advances() {
+    let hit_test = include_str!("../../text/hit_test.rs");
+    let resolved_layout = include_str!("../../text/resolved_layout.rs");
+    let measure_cache = include_str!("../../text/measure_cache.rs");
+    let wrapping = include_str!("../../text/layout_engine/wrapping.rs");
+
+    assert!(
+        hit_test.contains("Cow::Borrowed(&line.glyph_advances)"),
+        "hit testing should borrow already-resolved glyph advances"
+    );
+    assert!(
+        resolved_layout.contains("pub(crate) fn resolved_text(&self) -> Cow<'_, str>"),
+        "plain layout requests should borrow their source text"
+    );
+    assert!(
+        measure_cache.contains("let resolved_text: Arc<str> = Arc::from(resolved_text.as_ref());"),
+        "layout caches should share one resolved source allocation after the frame-cache miss"
+    );
+    assert!(
+        wrapping.contains("struct TextSegment<'a>") && wrapping.contains("text: &'a str"),
+        "newline segmentation should borrow source slices"
+    );
+}
+
+#[test]
 fn text_measure_cache_hits_same_layout_request() {
     let style = UiResolvedStyle {
         font_size: 10.0,

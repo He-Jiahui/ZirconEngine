@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var corpseLootRights = %import("world/corpse_loot_rights_state");
+
+console.printLine("corpse-loot-rights-state-test");
+var result = corpseLootRights.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

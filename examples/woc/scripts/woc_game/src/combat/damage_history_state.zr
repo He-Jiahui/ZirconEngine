@@ -1,0 +1,66 @@
+// Current-head Chronomancy Rewind damage history. Runtime-only by design:
+// entries are not persistence or parity-digest state.
+var container = %import("zr.container");
+var contract = %import("generated/rewind_contract");
+
+pub class DamageHistoryState {
+    pub var ticks: container.Array<int>;
+    pub var amounts: container.Array<int>;
+    pub @constructor() {
+        this.ticks = new container.Array<int>();
+        this.amounts = new container.Array<int>();
+    }
+}
+
+pub rewindWindowSeconds(): int { return contract.windowSeconds(true); }
+pub rewindWindowTicks(): int { return contract.windowTicks(true); }
+
+pub prune(state: DamageHistoryState, now: int): void {
+    var cutoff = now - rewindWindowTicks();
+    var drop = 0;
+    while (drop < state.ticks.length && <int>state.ticks[drop] <= cutoff) {
+        drop = drop + 1;
+    }
+    while (drop > 0) {
+        state.ticks.removeAt(0);
+        state.amounts.removeAt(0);
+        drop = drop - 1;
+    }
+}
+
+// `amount` is real post-mitigation/post-absorb HP loss. Avoided and fully
+// absorbed hits do not enter the ring.
+pub recordDamageTaken(state: DamageHistoryState, amount: int, tick: int): void {
+    if (amount <= 0) return;
+    state.ticks.add(tick);
+    state.amounts.add(amount);
+    prune(state, tick);
+}
+
+// Read-only: concurrent Rewind casters observe the same ring independently.
+pub damageTakenWithin(state: DamageHistoryState, now: int, windowTicks: int): int {
+    var cutoff = now - windowTicks;
+    var sum = 0;
+    var index = 0;
+    while (index < state.ticks.length) {
+        if (<int>state.ticks[index] > cutoff) sum = sum + <int>state.amounts[index];
+        index = index + 1;
+    }
+    return sum;
+}
+
+pub contractTest(): int {
+    var state = new DamageHistoryState();
+    recordDamageTaken(state, 10, 0);
+    recordDamageTaken(state, 0, 1);
+    recordDamageTaken(state, -4, 2);
+    recordDamageTaken(state, 20, 100);
+    // Tick zero is exactly at cutoff and must be excluded/pruned.
+    if (state.ticks.length != 1 || <int>state.ticks[0] != 100 ||
+        damageTakenWithin(state, 100, 100) != 20 || damageTakenWithin(state, 100, 0) != 0) return -1;
+    recordDamageTaken(state, 5, 101);
+    if (damageTakenWithin(state, 101, 100) != 25 || state.ticks.length != 2) return -2;
+    var before = state.ticks.length;
+    if (damageTakenWithin(state, 200, 100) != 0 || state.ticks.length != before) return -3;
+    return 1;
+}

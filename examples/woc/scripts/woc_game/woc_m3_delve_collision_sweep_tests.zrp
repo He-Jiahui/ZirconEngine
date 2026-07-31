@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_delve_collision_sweep_tests",
+  "source": "src",
+  "binary": "bin-m3-delve-collision-sweep-tests",
+  "entry": "world/delve_collision_sweep_test_main"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_talent_loadout_migration_tests",
+  "source": "src",
+  "binary": "bin-m5-talent-loadout-migration-tests",
+  "entry": "progression/talent_loadout_migration_test_main"
+}

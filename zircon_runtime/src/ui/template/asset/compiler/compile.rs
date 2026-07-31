@@ -25,6 +25,13 @@ impl UiDocumentCompiler {
 
     pub fn compile(&self, document: &UiAssetDocument) -> Result<UiCompiledDocument, UiAssetError> {
         self.validate_compiler_preconditions(document)?;
+        self.compile_validated(document)
+    }
+
+    pub(super) fn compile_validated(
+        &self,
+        document: &UiAssetDocument,
+    ) -> Result<UiCompiledDocument, UiAssetError> {
         let root = document
             .root
             .as_ref()
@@ -83,7 +90,7 @@ impl UiDocumentCompiler {
         }
 
         let invalidation_report = cache.report_for_miss(&key, document);
-        let compiled = self.compile(document)?;
+        let compiled = self.compile_validated(document)?;
         cache.store(key, compiled.clone());
         Ok(UiCompileCacheOutcome {
             compiled,

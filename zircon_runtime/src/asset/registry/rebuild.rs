@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::asset::project::{AssetMetaDocument, AssetMetaEntry};
+use crate::asset::project::AssetMetaDocument;
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::{AssetUri, AssetUuid};
 
@@ -242,29 +242,42 @@ pub(super) fn build_index(
 }
 
 pub(super) fn refresh_dependency_edges(index: &mut AssetRegistryIndex, metas: &[ScannedMeta]) {
-    let dependency_paths = metas
-        .iter()
-        .flat_map(|scanned| dependency_paths(&scanned.document))
-        .collect::<HashMap<_, _>>();
-    let uuids_by_path = index.uuids_by_path.clone();
+    let mut dependency_paths: HashMap<AssetUuid, &[AssetUri]> = HashMap::new();
+    for scanned in metas {
+        let meta = &scanned.document;
+        if !meta.entries.iter().any(|entry| entry.url.label().is_none()) {
+            dependency_paths.insert(meta.uuid, &meta.dependencies);
+        }
+        for entry in &meta.entries {
+            dependency_paths.insert(entry.uuid, &entry.dependencies);
+        }
+    }
+    let uuids_by_path = &index.uuids_by_path;
     let mut unresolved = Vec::new();
-    for entry in index.entries_by_uuid.values_mut() {
+    let mut resolved_by_uuid = Vec::with_capacity(index.entries_by_uuid.len());
+    for entry in index.entries_by_uuid.values() {
         let paths = dependency_paths
             .get(&entry.uuid())
-            .cloned()
+            .copied()
             .unwrap_or_default();
         let mut dependencies = Vec::new();
         for path in paths {
-            if let Some(uuid) = uuids_by_path.get(&path).copied() {
+            if let Some(uuid) = uuids_by_path.get(path).copied() {
                 dependencies.push(uuid);
             } else {
                 unresolved.push(AssetRegistryDiagnostic::UnresolvedDependency {
                     owner: entry.uuid(),
-                    path,
+                    path: path.clone(),
                 });
             }
         }
-        entry.set_dependencies(dependencies);
+        resolved_by_uuid.push((entry.uuid(), dependencies));
+    }
+    for (uuid, paths) in dependency_paths {
+        index.replace_dependency_paths(uuid, paths.to_vec());
+    }
+    for (uuid, dependencies) in resolved_by_uuid {
+        index.replace_dependencies(uuid, dependencies);
     }
     index.diagnostics.retain(|diagnostic| {
         !matches!(
@@ -303,19 +316,6 @@ pub(super) fn registry_entries(meta: &AssetMetaDocument) -> Vec<AssetRegistryEnt
         .with_tags(tags)
     }));
     entries
-}
-
-fn dependency_paths(meta: &AssetMetaDocument) -> Vec<(AssetUuid, Vec<AssetUri>)> {
-    let mut dependencies = Vec::new();
-    if !meta.entries.iter().any(|entry| entry.url.label().is_none()) {
-        dependencies.push((meta.uuid, meta.dependencies.clone()));
-    }
-    dependencies.extend(
-        meta.entries
-            .iter()
-            .map(|entry: &AssetMetaEntry| (entry.uuid, entry.dependencies.clone())),
-    );
-    dependencies
 }
 
 fn unique_uuid(used: &HashMap<AssetUuid, AssetUri>) -> AssetUuid {

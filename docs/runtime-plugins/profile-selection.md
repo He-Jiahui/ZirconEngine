@@ -19,6 +19,7 @@ related_code:
   - zircon_runtime/src/core/runtime/modules/tasks.rs
   - zircon_runtime/src/core/runtime/modules/time.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
@@ -255,6 +256,12 @@ This document uses Bevy as the dominant reference for default/minimal compositio
 ## Manifest Projection
 
 `RuntimeProfileDescriptor::project_manifest()` converts a profile into a deterministic `ProjectPluginManifest` by preserving default plugin order and assigning each selection to the profile target mode. The legacy `default_manifest_for_target()` behavior is preserved for runtime bootstrap compatibility, while `manifest_for_runtime_profile()` exposes the new profile-driven manifest for export/editor surfaces that opt into M1 profile selection.
+
+## Runtime Plugin Identity Ownership
+
+`RuntimePluginId` is an open identity type rather than a closed core enum. Built-in associated constants use static string storage and remain allocation-free. Valid external keys use reference-counted `Arc<str>` storage, so a catalog, profile, availability report, or hot-reload generation owns only the IDs it retains and dropping the last owner releases the dynamic string. There is no process-global runtime-plugin ID interner and no leaked dynamic key table.
+
+`RuntimePluginId` is `Clone` but not `Copy`. APIs that retain an ID clone the handle explicitly, while lookup and formatting paths borrow it. Equality, hashing, ordering, display, and serde use the normalized textual key rather than allocation identity, so static and dynamic storage never create distinct logical IDs for the same key.
 
 ## App Plugin Groups
 

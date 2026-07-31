@@ -8,6 +8,8 @@ fn runtime_component_projection_preserves_primary_click_binding_id() {
         action_id: String::new(),
         event_kind: UiEventKind::Click,
         route_id: None,
+        template_action_source: None,
+        template_action: None,
     });
 
     let projected = host_template_node(button)
@@ -28,6 +30,8 @@ fn runtime_component_projection_carries_primary_click_menu_action_id() {
         action_id: "workbench.generated_bottom.open_panel.invoke".to_owned(),
         event_kind: UiEventKind::Click,
         route_id: None,
+        template_action_source: None,
+        template_action: None,
     });
 
     let projected = host_template_node(button)
@@ -55,12 +59,16 @@ fn runtime_component_projection_derives_text_edit_targets_from_change_and_submit
         action_id: String::new(),
         event_kind: UiEventKind::Change,
         route_id: None,
+        template_action_source: None,
+        template_action: None,
     });
     input.bindings.push(RetainedUiHostBindingProjection {
         binding_id: "InspectorView/ApplyBatchButton".to_owned(),
         action_id: String::new(),
         event_kind: UiEventKind::Submit,
         route_id: None,
+        template_action_source: None,
+        template_action: None,
     });
 
     let projected = host_template_node(input)

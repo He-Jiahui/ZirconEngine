@@ -1,0 +1,165 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+var container = %import("zr.container");
+pub isForm(kind: string): bool { return kind == "form_bear" || kind == "form_cat" || kind == "form_travel" || kind == "form_fireball" || kind == "form_moonkin" || kind == "form_shadow"; }
+pub isResourceShift(kind: string): bool { return kind == "form_bear" || kind == "form_cat" || kind == "form_travel"; }
+pub isResourceBarShift(kind: string): bool { return kind == "form_bear" || kind == "form_cat"; }
+pub isActionLocking(kind: string): bool { return kind == "form_bear" || kind == "form_cat" || kind == "form_travel" || kind == "form_fireball"; }
+pub isTravel(kind: string): bool { return kind == "form_travel" || kind == "form_fireball"; }
+
+pub formAbilityCode(kind: string): uint {
+    if (kind == "form_bear") { return <uint>23; }
+    if (kind == "form_cat") { return <uint>40; }
+    if (kind == "form_travel") { return <uint>298; }
+    if (kind == "form_fireball") { return <uint>110; }
+    if (kind == "form_moonkin") { return <uint>187; }
+    if (kind == "form_shadow") { return <uint>241; }
+    return <uint>0;
+}
+
+pub formKindForAbilityCode(code: uint): string {
+    if (code == <uint>23) { return "form_bear"; }
+    if (code == <uint>40) { return "form_cat"; }
+    if (code == <uint>298) { return "form_travel"; }
+    if (code == <uint>110) { return "form_fireball"; }
+    if (code == <uint>187) { return "form_moonkin"; }
+    if (code == <uint>241) { return "form_shadow"; }
+    return "";
+}
+
+pub isFormAbilityCode(code: uint): bool { return formKindForAbilityCode(code) != ""; }
+pub formAbilityCodeForExactPayload(
+    payloadBytes: container.Array<uint>, offset: uint, length: uint
+): uint {
+    if (length == <uint>9 &&
+        <uint>payloadBytes[<int>(offset + <uint>0)] == <uint>98 &&
+        <uint>payloadBytes[<int>(offset + <uint>1)] == <uint>101 &&
+        <uint>payloadBytes[<int>(offset + <uint>2)] == <uint>97 &&
+        <uint>payloadBytes[<int>(offset + <uint>3)] == <uint>114 &&
+        <uint>payloadBytes[<int>(offset + <uint>4)] == <uint>95 &&
+        <uint>payloadBytes[<int>(offset + <uint>5)] == <uint>102 &&
+        <uint>payloadBytes[<int>(offset + <uint>6)] == <uint>111 &&
+        <uint>payloadBytes[<int>(offset + <uint>7)] == <uint>114 &&
+        <uint>payloadBytes[<int>(offset + <uint>8)] == <uint>109) { return <uint>23; }
+    if (length == <uint>8 &&
+        <uint>payloadBytes[<int>(offset + <uint>0)] == <uint>99 &&
+        <uint>payloadBytes[<int>(offset + <uint>1)] == <uint>97 &&
+        <uint>payloadBytes[<int>(offset + <uint>2)] == <uint>116 &&
+        <uint>payloadBytes[<int>(offset + <uint>3)] == <uint>95 &&
+        <uint>payloadBytes[<int>(offset + <uint>4)] == <uint>102 &&
+        <uint>payloadBytes[<int>(offset + <uint>5)] == <uint>111 &&
+        <uint>payloadBytes[<int>(offset + <uint>6)] == <uint>114 &&
+        <uint>payloadBytes[<int>(offset + <uint>7)] == <uint>109) { return <uint>40; }
+    if (length == <uint>11 &&
+        <uint>payloadBytes[<int>(offset + <uint>0)] == <uint>116 &&
+        <uint>payloadBytes[<int>(offset + <uint>1)] == <uint>114 &&
+        <uint>payloadBytes[<int>(offset + <uint>2)] == <uint>97 &&
+        <uint>payloadBytes[<int>(offset + <uint>3)] == <uint>118 &&
+        <uint>payloadBytes[<int>(offset + <uint>4)] == <uint>101 &&
+        <uint>payloadBytes[<int>(offset + <uint>5)] == <uint>108 &&
+        <uint>payloadBytes[<int>(offset + <uint>6)] == <uint>95 &&
+        <uint>payloadBytes[<int>(offset + <uint>7)] == <uint>102 &&
+        <uint>payloadBytes[<int>(offset + <uint>8)] == <uint>111 &&
+        <uint>payloadBytes[<int>(offset + <uint>9)] == <uint>114 &&
+        <uint>payloadBytes[<int>(offset + <uint>10)] == <uint>109) { return <uint>298; }
+    if (length == <uint>13 &&
+        <uint>payloadBytes[<int>(offset + <uint>0)] == <uint>102 &&
+        <uint>payloadBytes[<int>(offset + <uint>1)] == <uint>105 &&
+        <uint>payloadBytes[<int>(offset + <uint>2)] == <uint>114 &&
+        <uint>payloadBytes[<int>(offset + <uint>3)] == <uint>101 &&
+        <uint>payloadBytes[<int>(offset + <uint>4)] == <uint>98 &&
+        <uint>payloadBytes[<int>(offset + <uint>5)] == <uint>97 &&
+        <uint>payloadBytes[<int>(offset + <uint>6)] == <uint>108 &&
+        <uint>payloadBytes[<int>(offset + <uint>7)] == <uint>108 &&
+        <uint>payloadBytes[<int>(offset + <uint>8)] == <uint>95 &&
+        <uint>payloadBytes[<int>(offset + <uint>9)] == <uint>102 &&
+        <uint>payloadBytes[<int>(offset + <uint>10)] == <uint>111 &&
+        <uint>payloadBytes[<int>(offset + <uint>11)] == <uint>114 &&
+        <uint>payloadBytes[<int>(offset + <uint>12)] == <uint>109) { return <uint>110; }
+    if (length == <uint>12 &&
+        <uint>payloadBytes[<int>(offset + <uint>0)] == <uint>109 &&
+        <uint>payloadBytes[<int>(offset + <uint>1)] == <uint>111 &&
+        <uint>payloadBytes[<int>(offset + <uint>2)] == <uint>111 &&
+        <uint>payloadBytes[<int>(offset + <uint>3)] == <uint>110 &&
+        <uint>payloadBytes[<int>(offset + <uint>4)] == <uint>107 &&
+        <uint>payloadBytes[<int>(offset + <uint>5)] == <uint>105 &&
+        <uint>payloadBytes[<int>(offset + <uint>6)] == <uint>110 &&
+        <uint>payloadBytes[<int>(offset + <uint>7)] == <uint>95 &&
+        <uint>payloadBytes[<int>(offset + <uint>8)] == <uint>102 &&
+        <uint>payloadBytes[<int>(offset + <uint>9)] == <uint>111 &&
+        <uint>payloadBytes[<int>(offset + <uint>10)] == <uint>114 &&
+        <uint>payloadBytes[<int>(offset + <uint>11)] == <uint>109) { return <uint>187; }
+    if (length == <uint>10 &&
+        <uint>payloadBytes[<int>(offset + <uint>0)] == <uint>115 &&
+        <uint>payloadBytes[<int>(offset + <uint>1)] == <uint>104 &&
+        <uint>payloadBytes[<int>(offset + <uint>2)] == <uint>97 &&
+        <uint>payloadBytes[<int>(offset + <uint>3)] == <uint>100 &&
+        <uint>payloadBytes[<int>(offset + <uint>4)] == <uint>111 &&
+        <uint>payloadBytes[<int>(offset + <uint>5)] == <uint>119 &&
+        <uint>payloadBytes[<int>(offset + <uint>6)] == <uint>102 &&
+        <uint>payloadBytes[<int>(offset + <uint>7)] == <uint>111 &&
+        <uint>payloadBytes[<int>(offset + <uint>8)] == <uint>114 &&
+        <uint>payloadBytes[<int>(offset + <uint>9)] == <uint>109) { return <uint>241; }
+    return <uint>0;
+}
+pub formCost(code: uint): int {
+    if (code == <uint>23) { return 30; }
+    if (code == <uint>40) { return 30; }
+    if (code == <uint>298) { return 30; }
+    if (code == <uint>110) { return 50; }
+    if (code == <uint>187) { return 55; }
+    if (code == <uint>241) { return 60; }
+    return 0;
+}
+
+pub formCastTime(code: uint): float {
+    if (code == <uint>23) { return 0.0; }
+    if (code == <uint>40) { return 0.0; }
+    if (code == <uint>298) { return 0.0; }
+    if (code == <uint>110) { return 2.0; }
+    if (code == <uint>187) { return 0.0; }
+    if (code == <uint>241) { return 0.0; }
+    return 0.0;
+}
+
+pub formCooldown(code: uint): float {
+    if (code == <uint>23) { return 0.0; }
+    if (code == <uint>40) { return 0.0; }
+    if (code == <uint>298) { return 0.0; }
+    if (code == <uint>110) { return 10.0; }
+    if (code == <uint>187) { return 0.0; }
+    if (code == <uint>241) { return 0.0; }
+    return 0.0;
+}
+
+pub formAuraValue(code: uint): float {
+    if (code == <uint>23) { return 0.65; }
+    if (code == <uint>40) { return 0.71; }
+    if (code == <uint>298) { return 1.4; }
+    if (code == <uint>110) { return 1.4; }
+    if (code == <uint>187) { return 0.0; }
+    if (code == <uint>241) { return 15.0; }
+    return 0.0;
+}
+
+pub bearArmorMultiplier(): float { return 1.9; }
+pub bearBonusAttackPowerFlat(): int { return 15; }
+pub bearBonusAttackPowerPerAgility(): float { return 1.5; }
+pub bearMaxHpMultiplier(): float { return 1.15; }
+pub catBonusAttackPowerFlat(): int { return 8; }
+pub catBonusAttackPowerPerLevel(): int { return 2; }
+pub catAgilityMinimum(): int { return 2; }
+pub catAgilityLevelDivisor(): int { return 2; }
+pub moonkinArmorMultiplier(): float { return 1.5; }
+pub bearThreatMultiplier(): float { return 1.3; }
+pub catThreatMultiplier(): float { return 0.71; }
+pub moonkinSpellDamageBonus(): float { return 0.2; }
+
+pub isResourceShiftAbilityCode(code: uint): bool { return isResourceShift(formKindForAbilityCode(code)); }
+pub isResourceBarShiftAbilityCode(code: uint): bool { return isResourceBarShift(formKindForAbilityCode(code)); }
+pub resourceKindForFormAbilityCode(code: uint): uint {
+    if (code == <uint>23) { return <uint>2; }
+    if (code == <uint>40) { return <uint>3; }
+    return <uint>0;
+}
+pub isActionLockingAbilityCode(code: uint): bool { return isActionLocking(formKindForAbilityCode(code)); }
+pub isTravelAbilityCode(code: uint): bool { return isTravel(formKindForAbilityCode(code)); }

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_inventory_instance_ledger_tests",
+  "source": "src",
+  "binary": "bin-m5-inventory-instance-ledger-tests",
+  "entry": "progression/inventory_instance_ledger_test_main"
+}

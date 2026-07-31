@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/temporal_echo_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/chronomancy.ts": "5c451f64a4df1892fbd494461eac8f6063a6d1ffaf4ca68ed99de2e804af5cce"
+  },
+  "id": "temporal_echo",
+  "constants": {
+    "TEMPORAL_ECHO_DURATION": 15,
+    "ECHO_CONVERT_SINGLE": 0.35,
+    "ECHO_CONVERT_AOE": 0.15,
+    "ECHO_GROUP_CONVERT_SINGLE": 0.13,
+    "ECHO_GROUP_CONVERT_AOE": 0.06
+  },
+  "conversion": "living_targets_in_entity_order; first_matching_mark_per_target; source_must_be_player_arcane_positive_damage",
+  "placement": "individual_strips_only_own_non_group; group_preserves_own_individual_and_only_extends_to_duration"
+}

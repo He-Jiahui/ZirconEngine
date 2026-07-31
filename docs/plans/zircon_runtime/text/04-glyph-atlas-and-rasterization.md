@@ -9,10 +9,16 @@ related_code:
   - zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs
   - zircon_runtime/src/text/atlas/bitmap_run/staging.rs
   - zircon_runtime/src/text/atlas/bitmap_run/tests.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/tests/persistent_slots.rs
   - zircon_runtime/src/text/atlas/bitmap_run/types.rs
   - zircon_runtime/src/text/atlas/bitmap_run/upload.rs
   - zircon_runtime/src/text/atlas/bitmap_run/validation.rs
   - zircon_runtime/src/text/atlas/page.rs
+  - zircon_runtime/src/text/atlas/page_shadow/mod.rs
+  - zircon_runtime/src/text/atlas/page_shadow/commit.rs
+  - zircon_runtime/src/text/atlas/page_shadow/patch.rs
+  - zircon_runtime/src/text/atlas/page_shadow/shadow.rs
+  - zircon_runtime/src/text/atlas/page_shadow/store.rs
   - zircon_runtime/src/text/atlas/page_residency.rs
   - zircon_runtime/src/text/atlas/page_residency/tests.rs
   - zircon_runtime/src/text/atlas/render_contract.rs
@@ -22,12 +28,12 @@ related_code:
   - zircon_runtime/src/text/atlas/render_batch.rs
   - zircon_runtime/src/text/atlas/render_batch/tests.rs
   - zircon_runtime/src/text/atlas/render_gpu_plan.rs
+  - zircon_runtime/src/text/atlas/render_gpu_plan/instance.rs
+  - zircon_runtime/src/text/atlas/render_gpu_plan/viewport.rs
   - zircon_runtime/src/text/atlas/render_gpu_plan/tests.rs
   - zircon_runtime/src/text/atlas/render_gpu_plan/bind_group.rs
   - zircon_runtime/src/text/atlas/render_gpu_plan/draw_command.rs
   - zircon_runtime/src/text/atlas/render_gpu_plan/pipeline.rs
-  - zircon_runtime/src/text/atlas/render_gpu_plan/vertex.rs
-  - zircon_runtime/src/text/atlas/render_gpu_plan/viewport.rs
   - zircon_runtime/src/text/atlas/render_submission.rs
   - zircon_runtime/src/text/atlas/render_submission/placeholder.rs
   - zircon_runtime/src/text/atlas/render_submission/frame_driver.rs
@@ -37,6 +43,8 @@ related_code:
   - zircon_runtime/src/text/atlas/shaders/glyph_atlas_sampling.wgsl
   - zircon_runtime/src/text/atlas/shaders/glyph_atlas_pipeline.wgsl
   - zircon_runtime/src/text/atlas/shelf_allocator.rs
+  - zircon_runtime/src/text/atlas/slot_cache.rs
+  - zircon_runtime/src/text/atlas/slot_cache/tests.rs
   - zircon_runtime/src/text/atlas/dirty.rs
   - zircon_runtime/src/text/atlas/dirty/tests.rs
   - zircon_runtime/src/text/atlas/upload.rs
@@ -46,6 +54,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache/lru.rs
   - zircon_runtime/src/text/native_bitmap_atlas/storage.rs
   - zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
@@ -54,6 +63,7 @@ related_code:
   - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/storage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
@@ -63,10 +73,13 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/vertex.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/state.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/product_framebuffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests
@@ -142,8 +155,8 @@ status: in_progress
 - `graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs`:2026-07-07 继续把 requeue frame report 推到 renderer prepare telemetry。生产 `prepare_submission(...)` / `prepare_storage_submissions(...)` 现在用 submission 自带的 live `GlyphAtlasSet` 调用 `glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas(...)`,不再绕过 page-generation/missing-page guard；`GlyphAtlasBitmapRendererPrepareReport` 汇总 `upload_requeued_count`、`upload_missing_page_requeue_count`、`upload_page_generation_mismatch_requeue_count` 与 `upload_face_invalidated_count`,且 `upload_failure_count` 将 requeued uploads 计入失败口径。该切片关闭 renderer telemetry handoff 缺口,但 per-face artifact validity source、真实 async worker、global glyph slot invalidation、完整 glyphon `TextAtlas` cutover 与 live editor-window typography QA 仍未完成。
 - `text/atlas/bitmap_run.rs` + `render_submission/retry.rs` + `text/native_bitmap_atlas.rs`:2026-07-07 补上主 native bitmap atlas 路径的持久 atlas state 与 slot invalidation 数据面首段。bitmap run/render submission/retry driver 现在可接收上一帧 `GlyphAtlasSet`,在帧开始清除 page reference,需要重建未引用页时记录 `GlyphAtlasBitmapSlotInvalidation { page_key, page_generation }` 并把整页标脏；`ScreenSpaceUiTextBackend` 在非空 native bitmap frame 间保留主 submission atlas,字体 face invalidation 与空 native text frame 则清空该 atlas。该切片让 page-generation guard 有真实跨帧 page state 可比较,避免 atlas page 重建后旧 slot 继续静默可写；同日 follow-up 又把 storage partition/submission 逻辑拆到 `text/native_bitmap_atlas/storage.rs`,并让 per-storage submission 通过 `glyph_atlas_bitmap_render_submission_plan_with_atlas(...)` 继承主 frame 的 `self.submission.run.atlas.clone()`,关闭 mixed R8/RGBA storage split 中 per-storage default-atlas reset。真实 async worker、完整 glyph slot owner、focused Cargo green、完整 glyphon `TextAtlas` cutover 与 live editor-window typography QA 仍未完成。
 - `text/native_bitmap_atlas.rs` + `native_bitmap_atlas/handoff.rs`:2026-07-07 继续把 native bitmap atlas 的缺失 raster 图像从静默跳过改为可诊断 fail-closed。`source_cache.image(...)` 返回 `None` 时累计 `missing_raster_image_count`,prepare report 暴露该计数；handoff owner 新增 `MissingRasterImage` fallback reason,并确保只要缺图计数非 0,native atlas 不能替代 glyphon,即使 source image count 与 visible glyph count 看起来相等。该切片不完成真实 async raster worker 或首帧占位渲染,但关闭 atlas 输入不完整时仍接管 glyphon 的首帧降级风险。
-- `text/native_bitmap_atlas/source_cache.rs` + `text/parallel/raster_pool.rs`:2026-07-07 继续补真实 async raster worker 的 atlas 回流端。`TextRasterCompletionDrain` 现在保留 stale-page 与 face-invalidated work id,`NativeBitmapAtlasSourceCache` 记录 work id → glyphon `CacheKey` pending 映射并消费 completion drain；accepted `GlyphBitmap` 被转成 native source cache 的 `SwashContent`、bearing、尺寸与 bytes,failed/unknown/invalid/stale/face-invalidated/pending worker 计数进入 `NativeBitmapAtlasSourceCacheFrameReport`。idle frame 与 face invalidation 会同步清空 pending worker key。直接 lib-test binary 通过 source-cache 5/5 与 worker-drain 1/1；该切片仍不声明 production native bitmap atlas miss scheduling、把已闭合的 CacheKey request parity 接入实际 worker request、per-page upload merge 或完整 glyphon `TextAtlas` cutover 完成。
-- `scene_renderer/ui/text.rs` + `text/native_bitmap_atlas.rs` + `native_bitmap_atlas/source_cache.rs`:2026-07-07 将 production native bitmap atlas miss scheduling 接到真实 worker request。`ScreenSpaceUiTextBackend` 持有 optional `TextRasterWorkerPool`;native frame 先 drain completion,再让 miss 调用 `request_worker_image(...)`。source cache 用真实 face index/font bytes 和 glyphon `CacheKey` 生成 `SwashRasterRequest::glyphon_cache_key(...)`,提交 `TextRasterWorkItem`,并用 `CacheKey` pending map 去重；source image 只从已完成 cache 读取,不再在 native atlas miss 路径同步调用 glyphon `SwashCache`。该切片关闭 production miss -> worker request 首段,但 `page_generation=0` 仍待 per-page upload merge 替换,live editor-window typography QA 与完整 glyphon `TextAtlas` cutover 仍未完成。
+- `text/native_bitmap_atlas/source_cache.rs` + `text/parallel/raster_pool.rs`:2026-07-07 继续补真实 async raster worker 的 atlas 回流端。`NativeBitmapAtlasSourceCache` 记录 work id → glyphon `CacheKey` pending 映射并消费 completion drain；accepted `GlyphBitmap` 被转成 native source cache 的 `SwashContent`、bearing、尺寸与 bytes,failed/unknown/invalid/face-invalidated/pending worker 计数进入 `NativeBitmapAtlasSourceCacheFrameReport`。2026-07-17 owner hard cut 删除 worker 层伪 `page_generation=0` target 与 stale-page completion telemetry：raster bitmap 在 atlas page 分配之前产生，只能由 face epoch 失效；真实 page generation 继续由 allocation/staging/upload request guard 校验。idle frame 与 face invalidation 会同步清空 pending worker key。该边界仍待 focused Cargo，per-page upload merge 与完整 glyphon `TextAtlas` cutover 继续 open。
+- `scene_renderer/ui/text.rs` + `text/native_bitmap_atlas.rs` + `native_bitmap_atlas/source_cache.rs`:2026-07-07 将 production native bitmap atlas miss scheduling 接到真实 worker request。`ScreenSpaceUiTextBackend` 持有 optional `TextRasterWorkerPool`;native frame 先按当前 face epoch drain completion,再让 miss 调用 `request_worker_image(...)`。source cache 用真实 face index/font bytes 和 glyphon `CacheKey` 生成 `SwashRasterRequest::glyphon_cache_key(...)`,提交只携 face epoch 的 `TextRasterWorkItem`,并用 `CacheKey` pending map 去重；source image 只从已完成 cache 读取,不再在 native atlas miss 路径同步调用 glyphon `SwashCache`。2026-07-17 已关闭伪 page target；per-page upload merge 是后续上传合并优化，不再通过 raster worker target 表达。live editor-window typography QA 与完整 glyphon `TextAtlas` cutover 仍未完成。
 - `text/native_bitmap_atlas/source_cache.rs` + `native_bitmap_atlas.rs` + `native_bitmap_atlas/handoff.rs`:2026-07-07 关闭 PF-M3 “已有近似桶”首帧替代切片。source cache 只在 font/glyph/size/weight/flags 完全相同且仅 subpixel bin 不同时返回近似图像,并记录 `approximate_hit_count`;native frame 仍为 exact key 排队 worker request,但当前帧可用近似 source image 继续 native bitmap atlas submission,不走透明占位;prepare report 记录 `approximate_raster_image_count`,first-frame degradation 记录 `ApproximateBucketReplacement`。该切片不替代 per-page upload merge、persistent glyph slot owner 或 full glyphon `TextAtlas` cutover。
 - `text/native_bitmap_atlas/source_cache.rs`:2026-07-08 继续收窄 native bitmap atlas 在用户小字号 editor label 上的横向相位抖动风险。source cache 现在通过 `native_bitmap_atlas_stable_raster_cache_key(...)` 把 glyphon `CacheKey.x_bin` 归一为 `SubpixelBin::Zero`,并在 worker registration、cache lookup、approximate lookup、worker request、pending check 与 insert 入口统一使用该 key。该切片关闭 horizontal subpixel bucket 反复生成 source image / pending worker request 的数据面；`y_bin` 仍保留给纵向近似桶 fallback,不改变 per-page upload merge 或完整 glyphon `TextAtlas` cutover 口径。
 - `scene_renderer/ui/text.rs` + `text/native_bitmap_atlas/source_cache.rs`:2026-07-10 追加 native raster/upload prepare-report 聚合层。`ScreenSpaceUiTextPrepareReport.raster_upload` 从 native bitmap atlas prepare report 读取 visible/source/missing/approx glyph、source-cache hit/miss/worker-request 与 submission upload bytes,再合并 bitmap renderer upload/requeue/failure/ready 状态,为 AT-M3/PF-M4 的 scroll raster/upload 计数断言提供单一入口。该切片只接入可观测 surface,不声明 per-page upload merge、真实 scroll increment assertion、live editor-window typography QA 或完整 glyphon `TextAtlas` cutover 完成。
@@ -334,6 +347,12 @@ bevy 对照:`FontAtlasKey { font_size_bits, variations_hash, hinting, font_smoot
 | `text_atlas_oversized_glyph_falls_back_to_sdf` | 超页字形降级 SDF,不 panic |
 | `text_raster_emoji_strike_selection` | (2026-07-02 评审收口)CBDT/sbix 选 ≥目标尺寸最近 strike 下采样,bearing 按比例换算;COLR 存在时优先矢量 |
 | `render_text_atlas_blocked_queues_glyph_to_next_frame` | (2026-07-02 评审收口)全页本帧引用时新增 glyph 排队下帧+占位渲染,blocked 计数进 `render_perf_text_*`,不 panic |
+| `render_perf_text_atlas_reuses_persistent_slot_without_upload` | 相同 neutral raster key 跨帧复用同一 rect,只更新 screen rect,稳定帧不产生 dirty/upload |
+| `render_perf_text_atlas_persistent_slot_allocates_only_new_glyph` | 已缓存 glyph 命中,仅新 glyph 分配 slot 并上传 |
+| `render_text_atlas_same_frame_slot_projection_preserves_upload` | mixed-storage 同帧子提交复用 rect 但仍保留 dirty/upload；仅后续帧命中跳过上传 |
+| `render_perf_text_atlas_submission_reports_persistent_slot_counters` | submission report 准确投影 slot hit/miss/insert 与稳定帧零 upload |
+| `render_text_atlas_persistent_slot_eviction_invalidates_page_identity` | 页逐出同步清 allocator/slot,key 再出现必须 miss,且 page generation 单调推进 |
+| `render_text_atlas_persistent_slot_rebuilds_when_page_size_changes` | page size 改变不得复用旧 rect,必须重建并上传 |
 
 里程碑命令:`cargo test -p zircon_runtime render_text_atlas --locked`、`text_raster --locked`。
 
@@ -348,6 +367,38 @@ bevy 对照:`FontAtlasKey { font_size_bits, variations_hash, hinting, font_smoot
 
 当前概述（2026-07-11）：真实 runtime 产品帧缓冲继续通过 native glyphon/cosmic bitmap/color atlas 绘制中文、RTL 与彩色 Emoji，并直接锁定 `Segoe UI Emoji`、`SwashContent::Color` 与 RGBA 字节合同。本轮又让 SDF atlas key 保留 shaping backend 的实际 glyph id + face id，`sdf_atlas/text_keys.rs` 独立拥有 key 收集，避免 renderer root 或 `sdf_atlas.rs` 堆入第二套字形身份推导；atlas owner 精确测试 23/23、font bake 10/10。native bitmap atlas 的 mixed-storage handoff 现在按原始绘制顺序拆分连续 storage runs，`R8 -> RGBA -> R8` 可生成三个有序 renderer passes，不再因同一格式重复出现而退回 glyphon；当前源 native atlas 44/44、atlas renderer 13/13。动态 framebuffer 背景获取、完整 glyphon atlas 硬切、DPI 重栅格、persistent native glyph-slot 全闭环与 live editor-window typography QA 仍未关闭。
 
+2026-07-17 MVP 边界更新：异步 swash raster source 已硬切为 face-epoch owner，删除固定 `page_generation=0` 与 worker stale-page 分支；真实 page generation 继续由 bitmap allocation、staging、texture-upload request 与 renderer binding 校验。这样 atlas page LRU churn 不再无效丢弃可复用 CPU bitmap，同时旧页写入仍 fail-closed。`render_perf_text_async_upload_merges_per_page` 又锁住同页多 glyph 只生成一个 dirty rect、upload command、staging page 与 texture request。实现与 focused test code 已完成，scoped rustfmt 与旧符号扫描通过；focused Cargo 与产品帧验证仍为 `validation_pending`，完整 glyphon atlas 硬切和 live editor-window typography QA 继续 open。
+
+2026-07-18 persistent slot MVP 更新：`GlyphAtlasSet` 已由“只持久 page residency”推进到同时持有 neutral `GlyphRasterKey -> page/generation/inserted-frame/rect/content-size` 槽位与每页 shelf allocator。精确 native bitmap source 在 face/instance、glyph、物理 px 桶、水平/垂直 subpixel phase、format、hinting/smoothing 与 synthetic oblique 完全一致时可跨帧命中，后续帧命中只重建 draw placement，不再重复 dirty/upload；同帧 mixed-storage 子提交复用 rect 但仍保留首次 GPU upload，新 key 只增量分配和上传。页逐出会原子清理该页 allocator 与所有 slot，page size 改变会拒绝旧 rect；裁剪 glyph、近似桶、pixel-font、无稳定 face identity 或 mixed legacy source 保持旧帧内策略，避免错误缓存。slot hit/miss/insert 已进入 submission report。实现、focused test code、scoped rustfmt 与 diff check 已完成，状态为 `implemented / validation_pending`；受管 focused/default/graphics-only、真实 WGPU 产品帧截图、完整 glyphon `TextAtlas` 硬切与 live editor typography QA 仍 open。
+
+2026-07-19 AT-M2 native DPI key 传播更新：生产 native path 的 `LayoutGlyph::physical((left, top), text_area.scale)` 已在 cosmic owner 内把 logical font size 乘 surface scale，并将物理字号写入 `CacheKey.font_size_bits`。`native_bitmap_atlas_raster_key_from_physical_cache(...)` 现在显式拥有这条已物理化输入到 neutral `GlyphRasterKey` 的投影，并固定 generic request `scale_factor=1.0`，避免把同一 DPI scale 乘两次；`native_bitmap_atlas_physical_cache_key_rebuckets_at_2x_scale` 锁定 12px/24px physical cache key 分别产生 12/24 bucket 与不同 atlas identity。该切片关闭 native persistent-slot key 的 DPI propagation contract，不宣称真实 2x framebuffer 清晰度已经验收；scoped rustfmt/diff-check 与 fresh managed focused Cargo 仍待本里程碑 testing stage，`render_text_dpi_rerasterize_at_2x_sharp` WGPU 产品门继续 open。
+
+2026-07-30 Text04 native raster settle 第一段：native source-cache 已将每个 backend face 在当前 face epoch 内映射为稳定的 Swash identity，并把 `[face_epoch, face_id]` 经 `SwashRasterRequest` 传给 per-worker `ScaleContext::builder_with_id(...)`。这消除了 fresh identity 造成的 proxy/hint cache miss，同时 face invalidation 会同步清空 identity 与共享 font bytes。worker request 还直接持有 `FontDatabase` 已缓存的 `Arc<VariationCoords>`，避免同 face/weight 的每 glyph variations Vec clone；回归覆盖同 face request identity 复用、face invalidation 后 identity 变化及 shared variations handle。
+
+2026-07-30 Text04 native raster settle 第二段：真实 WGPU 产品 framebuffer job `a0053c3a4254472cab826db7e32b3216` 已重编译第一段源码，但 120 帧后仍有 115 个 native-atlas raster placeholder pending（failed=0），因此没有 capture 帧或新 PNG。r5 将剩余根因收敛为同 face/size/instance 的逐 glyph scaler build：worker 在既有有界队列内至多收集 32 项，按 shared font bytes、face identity、物理字号、hint 和变体分组；同组只 parse 一次 `FontRef`、build 一次 scaler，并逐项立即发布到既有 cancellation、completion-byte-budget 与 diagnostics 边界。`text_raster_swash_rasterizer_batches_compatible_requests_into_one_scaler` 使用真实 FiraSans 字形锁定这一合同，worker 回归锁定批内取消不阻断其余兼容 glyph。为遵守代码结构规范，执行状态机已拆为 `text/parallel/raster_pool/worker.rs`（251 行），`raster_pool.rs` 回落至 806 行。scoped rustfmt/diff check 已通过，定向 Cargo 预约 `cf4d662d664d4845988bf418890a6803` 等待 FIFO；状态为 `implemented / resolving_failure / managed_validation_pending`，不声明截图、产出记录或提交完成。
+
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`04/2026-07-09-glyph-atlas-and-rasterization-output-records.md`](04/2026-07-09-glyph-atlas-and-rasterization-output-records.md)
+
+2026-07-31 当前源编译门：受管 job `4d6d648211034a6492c2bd0b0443a757` 在运行 Text04 新增的 Swash scaler 回归前以 exit `101` 停在 `zircon_runtime` lib-test 编译。诊断来自授权范围外的 `scene/level_system.rs:181`（不稳定 `cfg` 表达式属性）和 `core/runtime/tests/tasks.rs:1`（私有 `environment` 模块导入）。因此 Text04 维持 `implemented / resolving_failure / managed_validation_pending`：两个定向回归、真实 WGPU framebuffer 和新 PNG 都尚未通过或产生，不声明截图、产出记录或提交完成。
+
+2026-07-31 审查收敛：`SwashRasterizer::rasterize(...)` 不再以生产 `expect` 假定批处理回调必定写入结果；异常路径现在返回现有 `MissingGlyphImage` 错误。新增 `text_raster_swash_rasterizer_separates_different_physical_sizes`，锁定 18px 与 19px 请求各自 build scaler，防止 DPI 栅格结果被错误合批。该回归及既有兼容批次回归仍等待默认 feature 的受管编译门恢复后执行。
+
+2026-07-31 当前生产编译证据：受管 check job `eeee3c03fa29475ca1191c3b3031b5aa` / run `16170cacbdc44455bfd6856788ae8fca` 执行 `cargo +1.94.1 check -p zircon_runtime --lib --features animation --locked --jobs 1 --color never`，以 exit `0` 完成（27m12s）。它直接编译本切片的 Swash rasterizer、raster worker、native atlas source-cache 路径；546 个既有 library warning 未升级为 error。该 partial feature check 只证明当前生产代码可编译，不替代默认 feature 的两个定向回归、真实 WGPU framebuffer settle 门或新 PNG 证据。
+
+2026-07-31 Text04 retained bitmap-page replay 实现完成 / 受管验证待执行：为修复 persistent slot 的局部 upload 合并在 staging 中零填充仍在用的 atlas texel（P1）这一 failure，`GlyphAtlasSet` 现持有受 32 MiB 上限约束、按 page generation 校验的 CPU page-shadow；新 glyph 的 compact staging 先从该 shadow 回放，再写入本帧栅格字节。dirty page 在可回放时被严格压到每页至多 8 次 GPU write，逐出、重建、generation 不符或提交未 ready 时会清除受影响页的 slot/shadow，让下一帧前向重传，绝不保留可能对应半提交 GPU 内容的缓存。renderer 的真实 `Queue::write_texture` handoff 已仅在 frame ready 后提交 shadow patch；mixed storage pass 聚合相同的提交令牌，避免稳态逐帧深拷贝 atlas/shadow。实现遵守结构规范：shadow data-plane 拆为 `page_shadow/{commit,patch,shadow,store}.rs`，根 `page.rs` 保持 482 行，未引入生产 panic、compatibility shim 或无界 per-frame clone。新增 ignored 的 `render_text_native_bitmap_atlas_product_framebuffer` 真实 WGPU product test：它从 native alpha bitmap atlas upload、draw submission 到 offscreen target/readback，验证四个规划屏幕位置均有 GPU 像素，并且只在成功时导出 `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_product_framebuffer_20260731.png`，同时拒绝同名文件落在任意 target。
+
+2026-07-31 PERF-MVP-244 前向修复实现完成 / 受管验证待执行：bitmap atlas draw 现只保留一次 clipped occurrence，并将每 glyph 打包为 68 B `GlyphAtlasGpuInstance`（screen rect、UV rect、前景/背景色、atlas layer）；`vertex_index` 在 `glyph_atlas_pipeline.wgsl` 展开固定六个 triangle-list corner，viewport pixel→NDC 已硬切到 16 B vertex-stage uniform，CPU 不再为每 glyph 物化或投影六个 52 B 顶点。renderer 的 WGPU instance buffer 使用 `VertexStepMode::Instance` 和 `draw(0..6, instance_range)`；batch 只合并相邻的相同 page/contract，保留 Alpha/Color/Subpixel painter order。稳定/缩小 instance 帧复用同一 `VERTEX | COPY_DST` buffer，只通过 `Queue::write_buffer` 写入有效字节；仅首次或容量不足时才按至少 4 KiB 的二次幂重新分配，prepare report 记录实际 capacity/reallocation count；显式 idle 则释放所有历史 pass buffer，仅保留一个空 pass，避免 mixed-storage 峰值常驻。旧 `render_gpu_plan/vertex.rs` 与 `atlas_renderer/vertex.rs` 均删除，分别由 `instance.rs` leaf owner 接替；为遵守结构规范，renderer state/prepare DTO 已拆到 `state.rs`，instance-buffer 生命周期拆到 `instance_buffer.rs`，当前 renderer root 为 725 行、state leaf 为 137 行、instance-buffer leaf 为 68 行。atlas resource 异常缺失时不再以生产 `expect` 中断，而是将 upload 降级为 binding failure、禁用 shadow commit，使下一帧前向重传。新/更新的 leaf tests 固定 instance stride、instance range、uniform payload、角点几何、非相邻格式次序、容量增长、idle resource release 与该 forward-retry 合同；新增整页阈值提升回归，将已 shadow-commit 的 8x8 持久槽位与同页 56x64 新槽位组合，要求 full-page staging 回放旧槽位四角像素。screenshot-guard P2 在目录创建前将 output/target 解析为“最深存在祖先”的 canonical identity 并重附缺失尾部，避免 Windows `\\?\` 与普通 DOS 前缀混用；不可解析时 Windows 按组件忽略 ASCII 大小写比较，覆盖 `..` 和 `DOCS` target 别名，独立静态复审已通过。scoped rustfmt 与无索引 diff check 已通过。受管 Cargo/WGPU product framebuffer 尚未收到成功回执，因此全部关联 failure 继续为 open，未生成截图、未声明验证或提交完成。状态维持 `implemented / resolving_failure / managed_validation_pending`。
+
+2026-07-31 Text04 mixed-storage page-shadow P1 前向修复：连续 `AlphaMask → Color → AlphaMask` split 在同一帧各自持有 atlas clone，因而 pending `zero_initialize_shadow_pages` 不能被后一个 Alpha split 当作已可回放 shadow；否则其 75% dirty threshold full-page upload 会清除前一 split 的同页像素。storage owner 已只以 generation-matched committed shadow 授权 replay；缺少 committed shadow 时，包含其他 split slot 的页维持 partial upload。新回归以 8x8 Alpha、Color、56x64 Alpha 构造共享 Alpha page，并锁定后一个 Alpha command/staging 为 compact partial rect。该 P1 的独立静态复审与受管 Cargo/WGPU 仍待执行；failure 保持 open，未生成 PNG 或声明验证完成。
+
+2026-07-31 Text04 mixed-storage shadow replay follow-up：上一帧 committed shadow 也不能回放同一帧 sibling split 新写入的 slot。storage split 现在若发现同页有当前 range 之外的 upload copy，禁止该 split 将 dirty threshold 升级到 full page；它仍使用 bounded region merge/partial staging，避免退化成每 glyph write。跨帧回归先提交 cached Alpha shadow，再用 `cached Alpha → new Alpha → Color → later Alpha(64x48)` 固定 shared page 与 75% threshold，断言后一个 Alpha 只能 partial upload。独立静态复审已确认 fresh 与 committed-shadow 两条 split 覆盖路径均无 P0/P1/P2；受管 Cargo/WGPU 仍待执行，failure 保持 open，未生成 PNG 或声明验证完成。
+
+2026-07-31 PERF-MVP-242 source-cache 非验收收敛：当前 native bitmap source cache 的空文本帧只刷新 report，不再清除 resident image 或 pending worker；CPU residency 同时受 2048 entry 与 8 MiB hard cap 约束，cached pixels 使用共享 `Arc<[u8]>`，approximate lookup 直接构造最多 3 个 vertical-bin key。LRU 的 head/tail 与双向链接已从 601 行 cache owner 拆到 239 行 `source_cache/lru.rs` leaf，正常 hit/insert/evict 只做常数次 HashMap 操作；链接不一致时不再通过生产 `expect` panic，而是执行一次异常 O(n) 索引重建并增加 `lru_repair_count`。回归人为注入 dangling tail，锁定修复后最近使用顺序、逐出结果和 telemetry；二次静态审查未发现 P0/P1/P2，scoped Cargo 尚未执行。跨 source/slot/GPU page 的统一 budget-pressure eviction、300 empty-frame 规模证据及 WGPU/RenderDoc 像素验收仍 open，状态为 `implemented / resolving_failure / managed_validation_pending`。
+
+2026-07-31 PERF-MVP-245 retry 产品预算 current-source 复核：native bitmap 产品入口不再使用 unlimited policy；Text09 权威的 256 glyph / 2 MiB 确定性帧预算被 old retry 与 new visible work 各分 128 glyph / 1 MiB，retained blocked queue 另有 256 entry / 2 MiB hard cap，超限以独立 overflow/rejected counter fail-closed 到 Glyphon。retry/new 只对 persistent-slot miss 计预算，同 `GlyphRasterKey`/generation 在帧内去重；队列保留旧项顺序并轮转 backpressured 项，300 帧回归固定三项各尝试 100 次。Text09 对 CPU time 的契约仍是只观测不 gate，因此本阶段不新增无标定毫秒/像素常数；current-source Cargo、规模 telemetry 与产品像素尚未执行，failure 保持 open。
+
+2026-07-31 Text04 raster completion API current-source 复核：native atlas/source cache/worker pool 已硬切到唯一 `face_epoch` identity 与 `drain_completed_for_face_epoch(..., TextRasterCompletionDrainBudget)`；旧 `TextRasterWorkTarget`、`drain_completed_for_target` 及 completion-side page-generation 字段在 Text owner 扫描为 0。真实 page generation 仍只由 allocation/staging/upload owner 校验，避免 CPU raster completion 因 page churn 被错误丢弃。7 月 31 日 partial-feature `zircon_runtime --lib` 生产 check 已覆盖这些 owner，但 focused lib-test、Editor09 upward gate、独立复审与受管 commit SHA 仍待完成，接口 failure 不转 fixed。
+
+2026-07-31 Auto raster route current-source 复核：screen-space UI 的 Auto batch 已由 `resolved_auto_text_render_mode(...)` 统一进入 `GlyphRasterPolicyRequest`；无显式 font default 时，小字号 alpha 走 Native，大字号/outline/shadow 走 SDF，true-distance glow 走 MTSDF，font asset 明确指定 Native/Sdf/Msdf/Mtsdf 时保持作者语义。产品与 policy tests 已覆盖这些分支，旧“policy 仅测试消费”描述不再成立。当前 `ScreenSpaceUiTextBatch` 尚无稳定 command/layout identity，因此不能以数组下标或 text hash 错建跨帧 hysteresis；稳定 identity、physical scale 输入、residency-aware hysteresis 与产品 WGPU 仍 open。

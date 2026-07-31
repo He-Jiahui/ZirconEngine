@@ -8,12 +8,16 @@ related_code:
   - zircon_editor/src/core/project/new_project_draft.rs
   - zircon_editor/src/core/project/new_project_template.rs
   - zircon_editor/src/core/project/opened_project.rs
+  - zircon_editor/src/core/project/project_probe.rs
   - zircon_editor/src/core/project/recent_project_entry.rs
   - zircon_editor/src/core/project/recent_project_validation.rs
   - zircon_editor/src/core/project/stored_recent_project_entry.rs
   - zircon_editor/src/core/project/stored_startup_session.rs
   - zircon_editor/src/ui/host/startup/create_or_open.rs
   - zircon_editor/src/ui/host/startup/recent_projects.rs
+  - zircon_editor/src/ui/host/project_access.rs
+  - zircon_editor/src/ui/workbench/startup/editor_startup_session_document_welcome_pane_snapshot.rs
+  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe.rs
   - zircon_runtime_interface/src/project/template_pack/mod.rs
   - zircon_runtime_interface/src/project/template_pack/render.rs
   - templates/projects/renderable-empty/zircon-project.toml
@@ -27,12 +31,15 @@ implementation_files:
   - zircon_editor/src/core/project/new_project_draft.rs
   - zircon_editor/src/core/project/new_project_template.rs
   - zircon_editor/src/core/project/opened_project.rs
+  - zircon_editor/src/core/project/project_probe.rs
   - zircon_editor/src/core/project/recent_project_entry.rs
   - zircon_editor/src/core/project/recent_project_validation.rs
   - zircon_editor/src/core/project/stored_recent_project_entry.rs
   - zircon_editor/src/core/project/stored_startup_session.rs
   - zircon_editor/src/ui/host/startup/create_or_open.rs
   - zircon_editor/src/ui/host/startup/recent_projects.rs
+  - zircon_editor/src/ui/host/project_access.rs
+  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - user: 2026-07-11 Plan10 M1 slice 1.2 ProjectAuthority hard cut
@@ -48,6 +55,7 @@ tests:
   - zircon_editor/src/tests/workbench/project/renderable_template.rs
   - zircon_editor/src/tests/host/manager/support.rs
   - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
+  - zircon_editor/src/tests/host/manager/project_generation_projection.rs
   - zircon_editor/src/tests/host/manager/ui_asset_reference_and_promotion.rs
   - zircon_editor/src/tests/host/manager/ui_asset_session_preview.rs
   - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
@@ -72,7 +80,13 @@ The versioned source truth is `templates/projects/renderable-empty/`; the Editor
 
 Opening accepts either a project root or `zircon-project.toml`, resolves an absolute canonical root, rejects linked path components, loads the current manifest, and ensures the five regenerable directories below `.zircon`: `cache`, `registry`, `autosave`, `play`, and `thumbnails`. Physical `library/` ownership and the former `library_root()`/`runtime_cache_root()` APIs do not exist.
 
-`ProjectAuthority::probe_project` and `probe_draft` perform the same canonical path and typed manifest parse without mutating the derived layout. Welcome actions and snapshots use this authority probe; the draft DTO no longer owns a weaker existence-only open check.
+`ProjectAuthority::open_project` returns an `OpenedProject` that owns a prepared `ProjectManager` generation with its parsed manifest/registry index and summary. Runtime `AssetManager::open_prepared_project` performs the single source inventory/import scan on that instance; Editor asset projection, watcher, workspace document, save and locator consumers then reuse its snapshot instead of passing a root path through layers and reopening it. `ProjectProbe` remains the lightweight manifest-only value for recent-project and explicit probe flows; it is not a second manager or inventory truth.
+
+`ProjectAuthority::probe_project` and `probe_draft` perform canonical path and typed manifest parsing without mutating the derived layout. The retained welcome host schedules creation-target validation and existing-project probing through the Editor Job System only when the draft changes. `welcome_pane_snapshot` copies the cached result and performs no filesystem validation. A newer draft cancels the old ticket; only the current active probe can update the session projection.
+
+`EditorProjectDocument` loads and saves only from an explicit `&ProjectManager`. The former path-taking entry points and their `_from_path.rs` files were deleted, including test-only use sites; a fixture must create the project through `ProjectAuthority`, open/scan one manager, and pass that generation onward. This prevents a test helper from preserving a production-forbidden reopen architecture.
+
+Layout preset name projection uses the Runtime asset manager's manager-owned locator query. The query copies only active registry locators under the project read lock; it does not clone the complete `ProjectManager` or its registry/index maps. Explicit preset save/load may access the file through a generation snapshot and then requests a Runtime import refresh; listing never opens a manager, enumerates a directory, or parses every preset document. Runtime's current refresh is still a full import. Its transactional targeted replacement remains an open Runtime04 failure and is not claimed by this Editor projection slice.
 
 ## Recent projects
 
@@ -88,6 +102,4 @@ flow while preserving the standalone update API.
 
 Source tests cover complete template copy, v2 name rewrite, unsafe project-name rejection, actual reopen and manifest probe, `.zircon` layout, non-empty refusal, commit failure restoration, commit-plus-restore failure backup preservation, Summary roundtrip/refresh, and the core-to-UI dependency guard. The renderable-template regression now opens and scans the created project through `ProjectManager`; Editor Manager fixtures use one `ProjectAuthority`-backed helper instead of treating document save as project creation. On 2026-07-13, a current-source Windows lib-test binary ran `tests::host::manager:: --nocapture --test-threads=1` with 83 passed and 0 failed; the focused renderable-template test passed 1/1.
 
-The 2026-07-17 no-reopen source guard and formatting/diff checks pass. A current-source startup
-Cargo rerun and file-I/O trace remain pending; the historical 2026-07-13 binary does not validate
-this new optimization.
+The 2026-07-17/18 current slice also excludes the boundary test directory from its own forbidden-token scan without weakening production checks, removes `open_project_manager_for_paths` and `current_project_root`, and adds source guards for welcome/preset projection I/O plus generation-survival document tests. Welcome probing has deterministic Job tests for replacement, late completion, cancellation, job failure and submit failure. The new projection family lives in `tests/host/manager/project_generation_projection.rs`; the touched bootstrap test owner is 719 lines and the new behavior file is 255 lines, both below the test budget. Scoped formatting and diff checks pass. Independent re-review and current-source Windows Cargo gates remain pending; historical binaries do not validate this generation-bound change.

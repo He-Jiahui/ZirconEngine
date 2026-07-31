@@ -1,3 +1,5 @@
+use std::fmt;
+
 use winit::event::ElementState;
 use winit::keyboard::{KeyCode, NativeKeyCode, PhysicalKey};
 use zircon_runtime_interface::{
@@ -21,7 +23,7 @@ pub(in crate::entry::runtime_entry_app) fn physical_key_code(key: &PhysicalKey) 
             KeyCode::KeyD => u32::from(b'D'),
             KeyCode::KeyS => u32::from(b'S'),
             KeyCode::KeyW => u32::from(b'W'),
-            _ => stable_key_code(format!("{code:?}").as_bytes()),
+            _ => stable_key_code(code),
         },
         PhysicalKey::Unidentified(native) => native_key_code(native),
     }
@@ -35,16 +37,38 @@ fn native_key_code(native: &NativeKeyCode) -> u32 {
     }
 }
 
-fn stable_key_code(bytes: &[u8]) -> u32 {
-    const FNV_OFFSET: u32 = 2_166_136_261;
-    const FNV_PRIME: u32 = 16_777_619;
+const FNV_OFFSET: u32 = 2_166_136_261;
+const FNV_PRIME: u32 = 16_777_619;
 
-    let mut hash = FNV_OFFSET;
-    for byte in bytes {
-        hash ^= u32::from(*byte);
-        hash = hash.wrapping_mul(FNV_PRIME);
+struct StableKeyCodeHasher {
+    hash: u32,
+}
+
+impl StableKeyCodeHasher {
+    fn new() -> Self {
+        Self { hash: FNV_OFFSET }
     }
-    hash.max(1)
+
+    fn finish(self) -> u32 {
+        self.hash.max(1)
+    }
+}
+
+impl fmt::Write for StableKeyCodeHasher {
+    fn write_str(&mut self, value: &str) -> fmt::Result {
+        for byte in value.as_bytes() {
+            self.hash ^= u32::from(*byte);
+            self.hash = self.hash.wrapping_mul(FNV_PRIME);
+        }
+        Ok(())
+    }
+}
+
+fn stable_key_code(code: &KeyCode) -> u32 {
+    let mut hasher = StableKeyCodeHasher::new();
+    let result = fmt::write(&mut hasher, format_args!("{code:?}"));
+    debug_assert!(result.is_ok());
+    hasher.finish()
 }
 
 #[cfg(test)]
@@ -82,5 +106,30 @@ mod tests {
             physical_key_code(&PhysicalKey::Unidentified(NativeKeyCode::Xkb(77))),
             77
         );
+    }
+
+    #[test]
+    fn fallback_key_codes_keep_the_previous_debug_fnv_values() {
+        for (code, expected) in [
+            (KeyCode::Escape, 3_082_514_982),
+            (KeyCode::F12, 3_736_956_062),
+            (KeyCode::ArrowUp, 154_847_355),
+            (KeyCode::Numpad9, 2_061_263_975),
+        ] {
+            assert_eq!(physical_key_code(&PhysicalKey::Code(code)), expected);
+        }
+    }
+
+    #[test]
+    fn production_key_fallback_formats_into_the_hash_without_allocating() {
+        let production = include_str!("keyboard.rs")
+            .split_once("\n#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("keyboard production source precedes its test module");
+
+        assert!(!production.contains("format!("));
+        assert!(!production.contains("to_string("));
+        assert!(production.contains("impl fmt::Write for StableKeyCodeHasher"));
+        assert!(production.contains("fmt::write(&mut hasher, format_args!(\"{code:?}\"))"));
     }
 }

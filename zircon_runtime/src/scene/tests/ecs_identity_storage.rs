@@ -150,6 +150,77 @@ fn stable_entity_location_survives_archetype_move_and_invalidates_on_despawn() {
 }
 
 #[test]
+fn despawn_updates_only_the_swapped_archetype_location() {
+    let mut world = World::empty();
+    let first = world
+        .spawn((Name("First".to_string()), StoredHealth(1)))
+        .unwrap();
+    let removed = world
+        .spawn((Name("Removed".to_string()), StoredHealth(2)))
+        .unwrap();
+    let swapped = world
+        .spawn((Name("Swapped".to_string()), StoredHealth(3)))
+        .unwrap();
+    let removed_location = world.internal_entity_location(removed).unwrap().location;
+    let swapped_before = world.internal_entity_location(swapped).unwrap().location;
+
+    assert_eq!(removed_location.archetype_id, swapped_before.archetype_id);
+    assert!(world.remove_entity(removed));
+
+    let swapped_after = world.internal_entity_location(swapped).unwrap().location;
+    assert_eq!(swapped_after.archetype_id, removed_location.archetype_id);
+    assert_eq!(swapped_after.table_row, removed_location.table_row);
+    assert_eq!(world.get::<StoredHealth>(swapped), Some(&StoredHealth(3)));
+    assert_eq!(world.get::<StoredHealth>(first), Some(&StoredHealth(1)));
+}
+
+#[test]
+fn world_despawn_uses_known_archetype_location_without_full_rebuild() {
+    let hierarchy = include_str!("../world/hierarchy.rs");
+    let remove_entity = hierarchy
+        .split("pub fn remove_entity(&mut self, entity: EntityId) -> bool")
+        .nth(1)
+        .and_then(|text| text.split("pub fn remove_entity_recursive").next())
+        .expect("read World::remove_entity body");
+
+    assert!(
+        remove_entity.contains("self.remove_entity_from_archetype(entity);")
+            && !remove_entity.contains("self.refresh_stable_entity_locations();"),
+        "despawn must remove from the known archetype row and repair only the swapped entity instead of rebuilding every archetype"
+    );
+}
+
+#[test]
+fn explicit_empty_spawn_updates_only_the_empty_archetype() {
+    let mut world = World::empty();
+    assert!(world.spawn_empty_at(40));
+    assert!(world.spawn_empty_at(80));
+
+    let first = world.internal_entity_location(40).unwrap().location;
+    let second = world.internal_entity_location(80).unwrap().location;
+    assert_eq!(first.archetype_id, ArchetypeId::EMPTY);
+    assert_eq!(second.archetype_id, ArchetypeId::EMPTY);
+    assert_eq!(first.table_row, 0);
+    assert_eq!(second.table_row, 1);
+}
+
+#[test]
+fn explicit_empty_spawn_does_not_rebuild_all_archetypes() {
+    let source = include_str!("../world/typed_api.rs");
+    let spawn_empty = source
+        .split("pub(crate) fn spawn_empty_at(")
+        .nth(1)
+        .and_then(|text| text.split("pub(crate) fn spawn_at").next())
+        .expect("read World::spawn_empty_at body");
+
+    assert!(
+        spawn_empty.contains("self.refresh_entity_archetype(entity);")
+            && !spawn_empty.contains("self.refresh_stable_entity_locations();"),
+        "explicit empty spawn must add only the new entity to the empty archetype instead of rebuilding the world index"
+    );
+}
+
+#[test]
 fn world_contains_entity_uses_entity_registry_membership() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -225,11 +296,12 @@ fn entity_archetype_refresh_uses_direct_previous_archetype_branch() {
 
     assert!(
         refresh.contains("let previous = match self.entity_registry.location_for_stable(entity)")
-            && refresh.contains("Some(location) => Some(location.location.archetype_id)")
+            && refresh.contains("let location = location.location;")
+            && refresh.contains("Some((location.archetype_id, location.table_row))")
             && refresh.contains("None => None")
             && refresh.contains("self.assign_entity_archetype(entity, previous)")
-            && !refresh.contains(".map(|location| location.location.archetype_id)"),
-        "entity archetype refresh must branch directly on the previous stable location"
+            && !refresh.contains(".map(|location|"),
+        "entity archetype refresh must preserve the previous archetype row for O(1) movement"
     );
 }
 

@@ -46,4 +46,27 @@ impl MeshIndices {
             Self::U32(values) => values.clone(),
         }
     }
+
+    pub(super) fn for_each_triangle(&self, mut visit: impl FnMut([usize; 3])) {
+        match self {
+            Self::U16(values) => {
+                for triangle in values.chunks_exact(3) {
+                    visit([
+                        usize::from(triangle[0]),
+                        usize::from(triangle[1]),
+                        usize::from(triangle[2]),
+                    ]);
+                }
+            }
+            Self::U32(values) => {
+                for triangle in values.chunks_exact(3) {
+                    visit([
+                        triangle[0] as usize,
+                        triangle[1] as usize,
+                        triangle[2] as usize,
+                    ]);
+                }
+            }
+        }
+    }
 }

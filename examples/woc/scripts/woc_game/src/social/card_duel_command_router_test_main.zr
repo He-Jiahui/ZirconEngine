@@ -1,0 +1,54 @@
+var console = %import("zr.system.console");
+var container = %import("zr.container");
+var command = %import("social/card_duel_command_router");
+var contract = %import("generated/card_duel_command_contract");
+var service = %import("social/card_duel_service");
+
+empty(): container.Array<uint> {
+    return new container.Array<uint>();
+}
+
+u32(value: uint): container.Array<uint> {
+    var bytes = new container.Array<uint>();
+    bytes.add(value & <uint>255);
+    bytes.add((value >> 8) & <uint>255);
+    bytes.add((value >> 16) & <uint>255);
+    bytes.add((value >> 24) & <uint>255);
+    return bytes;
+}
+
+contractTest(): int {
+    var state = new service.CardDuelService(<uint>1010);
+    service.upsertPlayer(state, <uint>1, true, true);
+    service.upsertPlayer(state, <uint>2, true, true);
+    var malformed = command.apply(state, <uint>1, contract.playCardCommandId(true), empty(), 0.0);
+    if (malformed.accepted || malformed.status != -1 || service.queueSize(state) != 0) return -1;
+
+    var firstJoin = command.apply(state, <uint>1, contract.queueJoinCommandId(true), empty(), 0.0);
+    var secondJoin = command.apply(state, <uint>2, contract.queueJoinCommandId(true), empty(), 0.0);
+    if (!firstJoin.accepted || !secondJoin.accepted || firstJoin.status != 1 || secondJoin.status != 1) {
+        return -2;
+    }
+    service.update(state, 0.0);
+    if (!service.inMatch(state, <uint>1) || !service.inMatch(state, <uint>2)) return -3;
+
+    var unknown = command.apply(state, <uint>1, contract.playCardCommandId(true), u32(<uint>99), 0.0);
+    if (unknown.accepted || unknown.status != -4 || service.waitingOnOpponent(state, <uint>1)) return -4;
+    var card = service.heldCardAt(state, <uint>1, 0);
+    var play = command.apply(state, <uint>1, contract.playCardCommandId(true), u32(card), 0.0);
+    if (!play.accepted || play.status != 1 || !service.waitingOnOpponent(state, <uint>1)) return -5;
+
+    var leave = command.apply(state, <uint>1, contract.queueLeaveCommandId(true), empty(), 0.0);
+    if (leave.accepted || leave.status != 0 || !service.inMatch(state, <uint>1)) return -6;
+    var forfeit = command.apply(state, <uint>2, contract.forfeitCommandId(true), empty(), 0.0);
+    if (!forfeit.accepted || !forfeit.matchFinished || !forfeit.voided ||
+        forfeit.winner != <uint>0 || service.inMatch(state, <uint>1)) {
+        return -7;
+    }
+    return 1;
+}
+
+console.printLine("card-duel-command-router-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

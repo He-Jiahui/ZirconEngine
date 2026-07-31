@@ -2,27 +2,41 @@
 related_code:
   - zircon_editor/src/core/gateway/capabilities.rs
   - zircon_editor/src/core/gateway/contract.rs
+  - zircon_editor/src/core/gateway/error.rs
   - zircon_editor/src/core/gateway/handle.rs
   - zircon_editor/src/core/gateway/in_process.rs
+  - zircon_editor/src/core/gateway/mod.rs
   - zircon_editor/src/core/gateway/session.rs
   - zircon_editor/src/core/gateway/detached.rs
   - zircon_editor/src/core/context/editor_context.rs
+  - zircon_editor/src/ui/host/editor_host_event_controller.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/entry_runner/editor.rs
+  - zircon_app/src/entry/entry_runner/editor/tests.rs
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
   - zircon_runtime/src/scene/level_system.rs
 implementation_files:
   - zircon_editor/src/core/gateway/capabilities.rs
   - zircon_editor/src/core/gateway/contract.rs
+  - zircon_editor/src/core/gateway/error.rs
   - zircon_editor/src/core/gateway/handle.rs
   - zircon_editor/src/core/gateway/in_process.rs
+  - zircon_editor/src/core/gateway/mod.rs
   - zircon_editor/src/core/gateway/session.rs
   - zircon_editor/src/core/gateway/detached.rs
   - zircon_editor/src/core/context/editor_context.rs
+  - zircon_editor/src/ui/host/editor_host_event_controller.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/entry_runner/editor.rs
+  - zircon_app/src/entry/entry_runner/editor/tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
@@ -45,15 +59,15 @@ doc_type: module-detail
 
 `InProcessGateway` owns the runtime `CoreHandle` and the active `LevelSystem`. Its borrowed `with_world` and `with_world_mut` methods call the level system directly, so GUI/editor code can inspect or mutate the same world instance without serializing it or cloning scene state.
 
-`SessionGateway` is the serialized transport over a normalized `ZrRuntimeApiV2` function table and one valid runtime session handle. It calls the ABI entries for frame ticks, events, frame capture, profiling, plugin-event mirroring, and asynchronous operations. The optional `profile_control` entry returns `Ok(None)` when the provider does not expose it; missing required entries still return `CapabilityMissing`. Borrowed world access is permanently rejected with `RequiresSerializedAccess`. The gateway also retains an opaque `Arc<dyn Send + Sync>` provider owner; its unsafe constructor requires that owner to keep every copied function pointer loaded until the gateway is dropped. In `zircon_app`, that owner is the `Arc<RuntimeSession>`, so session destruction and dynamic-library unload cannot occur while editor calls remain possible.
+`SessionGateway` is the serialized transport over the normalized `ZrRuntimeApiV3` function table and one valid runtime session handle. It calls the ABI entries for frame ticks, events, frame capture, profiling, plugin-event mirroring, and asynchronous operations. Tick output is caller-owned and initialized to `ZrRuntimeFrameDemandV1::idle()` before entering the runtime. The gateway validates ABI version, raw kind, and kind-specific delay, then maps the result once to the editor-owned `EditorRuntimeFrameDemand::{OnDemand, SleepUntil, Continuous}` facade; malformed demand is a protocol error instead of being silently ignored. `AFTER` demand is clamped to a 60-second host-safe wake, so a provider cannot turn an extreme ABI delay into an unbounded or lost native wait. The retained host window independently applies the same bound to every `SleepUntil` facade value and falls back to an immediate wake if native instant arithmetic cannot represent it. The retained host consumes that facade without importing ABI types: `OnDemand` clears a prior wake, `SleepUntil` owns one native `WaitUntil` deadline, and `Continuous` queues the next frame through the external redraw path. The optional `profile_control` entry returns `Ok(None)` when the provider does not expose it; missing required entries still return `CapabilityMissing`. Borrowed world access is permanently rejected with `RequiresSerializedAccess`. The gateway also retains an opaque `Arc<dyn Send + Sync>` provider owner; its unsafe constructor requires that owner to keep every copied function pointer loaded until the gateway is dropped. In `zircon_app`, that owner is the `Arc<RuntimeSession>`, so session destruction and dynamic-library unload cannot occur while editor calls remain possible.
 
-Every `ZrOwnedByteBuffer` returned by the session table is wrapped immediately. The wrapper validates `len <= capacity`, rejects null or callback-less owned storage, parses only validated initialized bytes, and invokes the provider's `free` callback exactly once. Empty plugin-event batches, invalid JSON, malformed buffers, and runtime error statuses all use the same cleanup path; decoding errors cannot leak provider-owned storage. Frame capture is also a hard ownership boundary: `SessionGateway` copies validated provider RGBA bytes into `EditorRuntimeFrame` and frees the ABI buffer before returning. No editor-visible frame retains a provider function pointer, so replacing a gateway transport cannot leave a frame whose destructor jumps into an unloaded runtime library.
+Every `ZrOwnedByteBuffer` returned by the session table is wrapped immediately. The wrapper validates `len <= capacity <= isize::MAX`, rejects null or callback-less owned storage on both success and non-OK status paths, parses only validated initialized bytes, and invokes the provider's `free` callback exactly once when one exists. Empty plugin-event batches, invalid JSON, malformed buffers, and runtime error statuses all use the same cleanup path; decoding errors cannot leak provider-owned storage. Frame capture is also a hard ownership boundary: `SessionGateway` copies provider RGBA bytes into `EditorRuntimeFrame`, rejects non-empty payloads whose length is not exactly `width * height * 4`, and frees the ABI buffer before returning. Plugin deliveries must retain the requested subscription identity, and operation poll/harvest responses must retain the requested handle. No editor-visible value retains a provider function pointer, so replacing a gateway transport cannot leave a destructor that jumps into an unloaded runtime library.
 
-`RuntimeCapabilities` materializes the five-state session profile, the canonical sorted/deduplicated `EditorCoreProfile` capability set, and a canonical plugin activation summary. Registration diagnostics distinguish active, disabled, and rejected plugins. Plugin summaries are sorted by ID, version, and activation state; only exact duplicates are removed, so contradictory registrations remain visible in deterministic order. Gateway calls return this object by value as an immutable snapshot. Returning a borrowed reference would be unsound for `EditorRuntimeGatewayHandle`, because transport replacement can retire the previous gateway while existing callers still hold the stable handle.
+`RuntimeCapabilities` materializes the five-state session profile, the canonical sorted/deduplicated `EditorCoreProfile` capability set, and a canonical plugin activation summary. Registration diagnostics distinguish active, disabled, and rejected plugins. Plugin summaries are sorted by ID, version, and activation state; only exact duplicates are removed, so contradictory registrations remain visible in deterministic order. Each gateway returns an `Arc<RuntimeCapabilities>`; `EditorRuntimeGatewayHandle` captures that Arc once while constructing a generation. Stable capability queries therefore clone only the Arc and never rebuild or deep-clone the string collections.
 
 `DetachedEditorRuntimeGateway` represents a transport without a live in-process runtime. Borrowed world access returns `GatewayError::RequiresSerializedAccess`. This rejection is the permanent contract for detached and future session-backed transports; consumers that must work in both modes need a serialized query or command API.
 
-`EditorRuntimeGatewayHandle` is the stable, replaceable gateway reference. Every call snapshots the current `Arc<dyn EditorRuntimeGateway>` and forwards to that transport. Replacing a transport therefore changes later calls without invalidating handles already held by editor services.
+`EditorRuntimeGatewayHandle` is the stable, replaceable gateway reference. Its owner publishes an immutable `{generation, gateway, capabilities}` record through `ArcSwap`. Tick, event, capture, world access, subscription, and operation calls hold an atomic generation guard for the duration of the call; they do not enter a shared `RwLock` or clone the transport Arc. Replacement is the only serialized control-plane path. It builds the next capability snapshot before publishing, keeps the previous generation alive until all in-flight guards retire, and recovers the writer mutex after a failed snapshot construction without replacing the last valid generation.
 
 The app-side `RuntimeSession` remains the general client/runtime lifecycle owner, but no longer implements the editor gateway trait. Editor startup builds a `SessionGateway` from its validated normalized API table and capability projection. This is a hard cut: there is one editor ABI transport implementation, with no compatibility trait implementation left on `RuntimeSession`.
 
@@ -77,6 +91,8 @@ The initial focused gateway binary proved 3/3 for same-level mutation, stable-ha
 
 M2.2 has separate evidence and does not reuse the M2.1 7/7 result. Its initial current-source review was Critical/Important/Minor 0/2/0: the owned-buffer, optional-profile, frame-copy, provider-lifetime, and RuntimeSession hard-cut paths were accepted, while the editor-normalized API table still carried create/destroy lifecycle pointers and the child-plan record had not yet been advanced. The plan record is now current. A test-first app gate was added for lifecycle stripping; managed job `5134b3bff56c478da5607b04d8bd4495`, run `c6085185488f45b4ae825127483a5238`, was blocked before reaching the assertion by the active Runtime12 input-event-buffer owner, so it is not RED evidence. The source has since removed both lifecycle assignments from `editor_gateway_api_table`; `RuntimeSession` remains the only create/destroy caller, and static source/rustfmt/diff guards pass. Final current-source review is 0/0/0. After the foreign Render01 E0425 was fixed, managed job `18d3e80c10094fe09357ae25892bc2b8`, run `2feb43d1b0944a389cbc7cc4b3a7a0e7`, executed the focused app lifecycle gate and passed 1/1 with 175 filtered and exit 0.
 
-The first managed gateway-matrix job `a4ff529bd2d64b4984fd09783e31af68`, run `5636833c80374faf974920f821287952`, was blocked before tests by a Performance01-owned `SharedString` conversion E0282 in retained text input. That cross-plan failure was returned canonically and closed by managed commit `43a1957e929739e229fcd34ab0ef1c36f0f156c3`. The current-source retry used job `13392907003549dbac31e080da7ab7aa`, run `ff0b13f008754335abe011470ad59f75`, and passed `cargo test -p zircon_editor --lib gateway:: --locked --jobs 1 -- --test-threads=1` with 24 passed, 0 failed, 3334 filtered, and exit 0. M2.2 remains partially verified only because the `zircon_app` runtime-library upstream gate is still queued under exact reservation `1b02c0fbbda6495c9385c057654310a6`.
+The first managed gateway-matrix job `a4ff529bd2d64b4984fd09783e31af68`, run `5636833c80374faf974920f821287952`, was blocked before tests by a Performance01-owned `SharedString` conversion E0282 in retained text input. That cross-plan failure was returned canonically and closed by managed commit `43a1957e929739e229fcd34ab0ef1c36f0f156c3`. The retry used job `13392907003549dbac31e080da7ab7aa`, run `ff0b13f008754335abe011470ad59f75`, and passed `cargo test -p zircon_editor --lib gateway:: --locked --jobs 1 -- --test-threads=1` with 24 passed, 0 failed, 3334 filtered, and exit 0. A later independent review returned 0/2/4 and caused the buffer, response-identity, normalized-table, and app test-layout hardening described above. Those changes supersede the prior source fingerprint: exact gateway and app runtime-library managed revalidation is pending, and the old app reservation `1b02c0fbbda6495c9385c057654310a6` was released before job creation.
 
 The former Runtime15 screen-space UI text font-id report blocker has been fixed and returned with the managed `text_font` gate at 47/47 and independent review 0/0/0. That historical blocker does not replace the current M2.2 validation requirements.
+
+The generation-bound ArcSwap hard cut has passed file formatting, a 6/6 static gateway contract, a 3/3 dependency guard, a 4/4 test inventory guard, and scoped diff validation. Its former exact-11 reservation `a604598586b74e0e8e6b4d63fe948347` was released before job creation after the source leases expired and the coordinator failed to advance absolute-expired FIFO heads. A fresh source-bound reservation is required after the Coordinator01 failure is returned fixed; these static checks are not a managed Cargo acceptance result.

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_mob_melee_pursuit_state_tests",
+  "source": "src",
+  "binary": "bin-m4-mob-melee-pursuit-state-tests",
+  "entry": "combat/mob_melee_pursuit_state_test_main"
+}

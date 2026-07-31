@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::asset::{AssetUri, AssetUuid};
 
+use crate::ui::host::editor_asset_manager::manager::project_sync::source_generation::EditorAssetProjectSourceGeneration;
 use crate::ui::host::editor_asset_manager::{
-    AssetCatalogRecord, PreviewCache, PreviewScheduler, ReferenceGraph,
+    AssetCatalogRecord, EditorAssetCatalogGeneration, PreviewCache, PreviewScheduler,
+    ReferenceGraph,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -15,7 +18,8 @@ pub(in crate::ui::host::editor_asset_manager::manager) struct EditorAssetState {
     pub(in crate::ui::host::editor_asset_manager::manager) cache_root: Option<PathBuf>,
     pub(in crate::ui::host::editor_asset_manager::manager) project_name: String,
     pub(in crate::ui::host::editor_asset_manager::manager) default_scene_uri: Option<AssetUri>,
-    pub(in crate::ui::host::editor_asset_manager::manager) catalog_revision: u64,
+    pub(in crate::ui::host::editor_asset_manager::manager) catalog_generation:
+        Arc<EditorAssetCatalogGeneration>,
     pub(in crate::ui::host::editor_asset_manager::manager) project: Option<ProjectManager>,
     pub(in crate::ui::host::editor_asset_manager::manager) catalog_by_uuid:
         HashMap<AssetUuid, AssetCatalogRecord>,
@@ -24,4 +28,6 @@ pub(in crate::ui::host::editor_asset_manager::manager) struct EditorAssetState {
     pub(in crate::ui::host::editor_asset_manager::manager) reference_graph: ReferenceGraph,
     pub(in crate::ui::host::editor_asset_manager::manager) preview_cache: Option<PreviewCache>,
     pub(in crate::ui::host::editor_asset_manager::manager) preview_scheduler: PreviewScheduler,
+    pub(in crate::ui::host::editor_asset_manager::manager) source_generation:
+        Arc<EditorAssetProjectSourceGeneration>,
 }

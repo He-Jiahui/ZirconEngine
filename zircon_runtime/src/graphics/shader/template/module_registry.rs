@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
-    is_generated_shader_module_token, strip_wgsl_include_directives, wgsl_include_paths,
-    GeometrySourceDescriptor, ShadingModelDescriptor, GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH,
-    GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH,
-    GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
+    GeometrySourceDescriptor, ShadingModelDescriptor, is_generated_shader_module_token,
+    strip_wgsl_include_directives, wgsl_include_paths,
 };
 
 const SURFACE_TYPES_INCLUDE_TOKEN: &str = "zr_surface_types.wgsl";
@@ -127,18 +127,14 @@ impl ShaderTemplateIncludeRegistry {
         }
     }
 
-    pub(crate) fn include_tokens(&self) -> Vec<String> {
-        self.includes
-            .iter()
-            .map(|include| include.token.clone())
-            .collect()
-    }
-
-    pub(crate) fn content_hashes(&self) -> Vec<String> {
-        self.includes
-            .iter()
-            .map(|include| include.content_hash.clone())
-            .collect()
+    pub(crate) fn into_manifest(self) -> (Vec<String>, Vec<String>) {
+        let mut tokens = Vec::with_capacity(self.includes.len());
+        let mut content_hashes = Vec::with_capacity(self.includes.len());
+        for include in self.includes {
+            tokens.push(include.token);
+            content_hashes.push(include.content_hash);
+        }
+        (tokens, content_hashes)
     }
 }
 
@@ -456,6 +452,19 @@ mod tests {
     use crate::core::framework::render::strip_wgsl_include_directives;
 
     use super::*;
+
+    #[test]
+    fn shader_template_assemblies_move_the_include_manifest() {
+        for source in [
+            include_str!("assemble.rs"),
+            include_str!("deferred_gbuffer.rs"),
+            include_str!("taa_reactive_mask.rs"),
+        ] {
+            assert!(source.contains("registry.into_manifest()"));
+            assert!(!source.contains(concat!("registry.include_", "tokens()")));
+            assert!(!source.contains(concat!("registry.content_", "hashes()")));
+        }
+    }
 
     #[test]
     fn builtin_lightmap_resolves_irradiance_volume_dependency_first() {

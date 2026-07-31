@@ -2,6 +2,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::actions::push_table_action;
 use super::cells::{push_table_cells, table_cells};
+use super::geometry::has_paintable_table_row_extent;
 use super::identity::{is_table_row, is_workbench_table_row};
 use super::layers::{action_slot_order, cells_order};
 use super::surface::{push_table_row_surface, table_paint_rect};
@@ -24,6 +25,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     }
 
     let rect = table_paint_rect(node, rect);
+    if !has_paintable_table_row_extent(&rect) {
+        return true;
+    }
     push_table_row_surface(commands, node, &rect, clip, order, opacity);
     push_table_cells(
         commands,

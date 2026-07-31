@@ -38,7 +38,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_
         return rect;
     }
 
-    let height = max_height.round().max(metrics.min_paint_rect_extent);
+    let height = max_height.round().max(0.0);
     FrameRect {
         y: (rect.y + ((rect.height - height) * 0.5)).round(),
         height,

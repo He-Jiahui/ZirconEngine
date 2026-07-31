@@ -182,16 +182,14 @@ impl InputActionEvaluator {
                         continue;
                     }
 
-                    let axis_transition =
-                        binding_axis_transition(&frame_axes, binding, &consumed_axes);
-                    let axis_value = binding_axis_value(&frame_axes, binding, &consumed_axes);
-                    if axis_value != 0.0 {
+                    let axis = evaluate_binding_axes(&frame_axes, binding, &consumed_axes);
+                    if axis.value != 0.0 {
                         action_pressed = true;
-                        action_value = dominant_action_value(action_value, axis_value);
+                        action_value = dominant_action_value(action_value, axis.value);
                         action_just_activated |=
-                            (has_buttons && any_just_pressed) || axis_transition.activated;
+                            (has_buttons && any_just_pressed) || axis.activated;
                     } else {
-                        action_just_deactivated |= axis_transition.deactivated;
+                        action_just_deactivated |= axis.deactivated;
                     }
                     continue;
                 }
@@ -228,7 +226,7 @@ impl InputActionEvaluator {
             return true;
         };
 
-        if !self.action_map.context_enabled(context) {
+        if !self.binding_index.context_enabled(context) {
             return false;
         }
 
@@ -243,39 +241,15 @@ fn binding_axis_consumed(
     consumed_axes.contains(&gamepad_axis)
 }
 
-fn binding_axis_value(
+fn evaluate_binding_axes(
     frame_axes: &FrameAxisIndex,
     binding: &InputBinding,
     consumed_axes: &BTreeSet<GamepadAxisInput>,
-) -> f32 {
-    binding
-        .axes
-        .iter()
-        .filter(|binding_axis| {
-            !binding_axis_consumed(
-                GamepadAxisInput::new(binding_axis.gamepad, binding_axis.axis),
-                consumed_axes,
-            )
-        })
-        .filter_map(|binding_axis| {
-            frame_axes
-                .value(GamepadAxisInput::new(
-                    binding_axis.gamepad,
-                    binding_axis.axis,
-                ))
-                .map(|value| binding_axis.value(value))
-        })
-        .fold(0.0, dominant_action_value)
-}
-
-fn binding_axis_transition(
-    frame_axes: &FrameAxisIndex,
-    binding: &InputBinding,
-    consumed_axes: &BTreeSet<GamepadAxisInput>,
-) -> BindingAxisTransition {
+) -> BindingAxisEvaluation {
     let mut any_transition = false;
     let mut previous_value = 0.0;
-    let mut value = 0.0;
+    let mut transition_value = 0.0;
+    let mut action_value = 0.0;
 
     for binding_axis in &binding.axes {
         if binding_axis_consumed(
@@ -286,10 +260,14 @@ fn binding_axis_transition(
         }
 
         let axis_input = GamepadAxisInput::new(binding_axis.gamepad, binding_axis.axis);
+        let current_state = frame_axes.value(axis_input);
+        if let Some(current_state) = current_state {
+            action_value = dominant_action_value(action_value, binding_axis.value(current_state));
+        }
         let axis_transition = frame_axes.transition(axis_input);
         let current_source = axis_transition
             .map(|axis| axis.value)
-            .or_else(|| frame_axes.value(axis_input))
+            .or(current_state)
             .unwrap_or(0.0);
         let previous_source = axis_transition
             .map(|axis| axis.previous_value)
@@ -297,17 +275,20 @@ fn binding_axis_transition(
 
         any_transition |= axis_transition.is_some();
         previous_value = dominant_action_value(previous_value, binding_axis.value(previous_source));
-        value = dominant_action_value(value, binding_axis.value(current_source));
+        transition_value =
+            dominant_action_value(transition_value, binding_axis.value(current_source));
     }
 
-    BindingAxisTransition {
-        activated: any_transition && previous_value == 0.0 && value != 0.0,
-        deactivated: any_transition && previous_value != 0.0 && value == 0.0,
+    BindingAxisEvaluation {
+        value: action_value,
+        activated: any_transition && previous_value == 0.0 && transition_value != 0.0,
+        deactivated: any_transition && previous_value != 0.0 && transition_value == 0.0,
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-struct BindingAxisTransition {
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+struct BindingAxisEvaluation {
+    value: f32,
     activated: bool,
     deactivated: bool,
 }

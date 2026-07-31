@@ -1,4 +1,7 @@
-use std::sync::mpsc::Receiver;
+use std::{
+    sync::mpsc::Receiver,
+    time::{Duration, Instant},
+};
 
 use crate::core::jobs::JobError;
 use zircon_runtime_interface::export::ExportStage;
@@ -8,6 +11,9 @@ use super::{
     ExportWizardJobSnapshot, ExportWizardJobState, ExportWizardJobStatus, ExportWizardPipelinePlan,
     ExportWizardStageArtifactPath, ExportWizardStageExecution, ExportWizardStageOutputBuffer,
 };
+
+const MAX_EVENTS_PER_DRAIN: usize = 64;
+const MAX_EVENT_DRAIN_TIME: Duration = Duration::from_millis(2);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardControlState {
@@ -59,6 +65,7 @@ pub struct ExportWizardPanelViewModel {
     missing_inputs: Vec<ExportWizardStageMissingInputs>,
     latest_event_kind: Option<ExportWizardJobEventKind>,
     event_count: usize,
+    coalesced_output_events: u64,
 }
 
 impl ExportWizardPanelViewModel {
@@ -89,12 +96,33 @@ impl ExportWizardPanelViewModel {
             missing_inputs,
             latest_event_kind: None,
             event_count: 0,
+            coalesced_output_events: 0,
         }
     }
 
     pub fn apply_event(&mut self, event: ExportWizardJobEvent) {
         self.latest_event_kind = Some(event.kind);
-        let mut snapshot = event.snapshot;
+        self.coalesced_output_events = self
+            .coalesced_output_events
+            .max(event.coalesced_output_events);
+        let mut snapshot = match event.output_delta {
+            Some(output_delta) => {
+                let mut snapshot = self.snapshot.clone();
+                snapshot.job_id = event.snapshot.job_id;
+                snapshot.profile = event.snapshot.profile;
+                snapshot.out = event.snapshot.out;
+                snapshot.status = event.snapshot.status;
+                snapshot.fatal = event.snapshot.fatal;
+                snapshot.cancel_requested = event.snapshot.cancel_requested;
+                snapshot.apply_stage_output(
+                    output_delta.stage,
+                    output_delta.output,
+                    output_delta.progress,
+                );
+                snapshot
+            }
+            None => event.snapshot,
+        };
         if self.snapshot.cancel_requested && !snapshot.cancel_requested && !snapshot.is_terminal() {
             snapshot.cancel_requested = true;
             if matches!(
@@ -139,6 +167,8 @@ impl ExportWizardPanelViewModel {
             self.apply_event(ExportWizardJobEvent {
                 kind,
                 snapshot: snapshot.clone(),
+                output_delta: None,
+                coalesced_output_events: self.coalesced_output_events,
             });
         }
     }
@@ -165,8 +195,12 @@ impl ExportWizardPanelViewModel {
     }
 
     pub fn drain_events(&mut self, events: &Receiver<ExportWizardJobEvent>) -> usize {
+        let started_at = Instant::now();
         let mut drained = 0;
-        while let Ok(event) = events.try_recv() {
+        while drained < MAX_EVENTS_PER_DRAIN && started_at.elapsed() < MAX_EVENT_DRAIN_TIME {
+            let Ok(event) = events.try_recv() else {
+                break;
+            };
             self.apply_event(event);
             drained += 1;
         }
@@ -183,6 +217,10 @@ impl ExportWizardPanelViewModel {
 
     pub fn event_count(&self) -> usize {
         self.event_count
+    }
+
+    pub fn coalesced_output_events(&self) -> u64 {
+        self.coalesced_output_events
     }
 
     pub fn plan_ready(&self) -> bool {

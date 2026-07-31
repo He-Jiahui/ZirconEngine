@@ -15,6 +15,7 @@ from tools.session_coordinator.control_plane.actions.models import (
     ActionContext,
     ActionKind,
     SessionParameters,
+    ValidationStartParameters,
     ValidationTemplate,
 )
 from tools.session_coordinator.control_plane.actions.service import ActionService
@@ -367,6 +368,110 @@ class ActionExecutionTests(unittest.TestCase):
             ("tools/session_coordinator/web",),
             ActionExecutor._validation_dependency_roots(ValidationTemplate.WEB_CHECK),
         )
+        self.assertEqual(
+            (
+                "cargo",
+                "+1.94.1",
+                "test",
+                "-p",
+                "zircon_runtime",
+                "--lib",
+                "runtime_14_module_family_mirror_docs_match_structure_audit_counts",
+                "--locked",
+                "--jobs",
+                "1",
+                "--",
+                "--nocapture",
+                "--test-threads=1",
+            ),
+            ActionExecutor._validation_command(
+                ValidationTemplate.RUNTIME14_RUST_FOCUSED
+            ),
+        )
+
+    def test_runtime14_validation_uses_server_cargo_closure_with_exact_inputs(self) -> None:
+        workspace_copy = mock.Mock()
+        record = SimpleNamespace(job_id="copy-runtime14", to_dict=lambda: {"jobId": "copy-runtime14"})
+        workspace_copy.materialize_cargo.return_value = record
+        workspace_copy.scoped_manifest_hash.return_value = "manifest-hash"
+        workspace_copy.start.return_value = {"runId": "validation-run"}
+        milestones = mock.Mock()
+        executor = ActionExecutor(
+            sessions=self.sessions,
+            leases=self.leases,
+            patches=self.executor.patches,
+            failures=self.executor.failures,
+            workspace_copy=workspace_copy,
+            workflows=None,
+            milestones=milestones,
+        )
+        parameters = ValidationStartParameters(
+            "session-a",
+            ValidationTemplate.RUNTIME14_RUST_FOCUSED,
+            "workflow-run",
+            "M14",
+        )
+        overlays = ("src/feature.py",)
+        command = ActionExecutor._validation_command(parameters.template)
+
+        result = executor._start_validation(
+            parameters,
+            overlays,
+            actor="reviewer",
+            action_id="action-runtime14",
+        )
+
+        workspace_copy.materialize_cargo.assert_called_once_with(
+            "session-a",
+            command=command,
+            overlay_paths=overlays,
+            discover_external_sources=True,
+        )
+        workspace_copy.materialize_validation.assert_not_called()
+        workspace_copy.start.assert_called_once_with(
+            "session-a",
+            "copy-runtime14",
+            command=command,
+            run_id=mock.ANY,
+        )
+        self.assertEqual("copy-runtime14", result["copy"]["jobId"])
+
+    def test_non_cargo_validation_keeps_declared_dependency_materialization(self) -> None:
+        workspace_copy = mock.Mock()
+        record = SimpleNamespace(job_id="copy-python", to_dict=lambda: {"jobId": "copy-python"})
+        workspace_copy.materialize_validation.return_value = record
+        workspace_copy.scoped_manifest_hash.return_value = "manifest-hash"
+        workspace_copy.start.return_value = {"runId": "validation-run"}
+        milestones = mock.Mock()
+        executor = ActionExecutor(
+            sessions=self.sessions,
+            leases=self.leases,
+            patches=self.executor.patches,
+            failures=self.executor.failures,
+            workspace_copy=workspace_copy,
+            workflows=None,
+            milestones=milestones,
+        )
+        parameters = ValidationStartParameters(
+            "session-a",
+            ValidationTemplate.COORDINATOR_ACTIONS,
+            "workflow-run",
+            "M1",
+        )
+
+        executor._start_validation(
+            parameters,
+            ("src/feature.py",),
+            actor="reviewer",
+            action_id="action-python",
+        )
+
+        workspace_copy.materialize_validation.assert_called_once_with(
+            "session-a",
+            dependency_roots=("tools/session_coordinator",),
+            overlay_paths=("src/feature.py",),
+        )
+        workspace_copy.materialize_cargo.assert_not_called()
 
     def test_second_validation_for_the_same_milestone_is_rejected_while_first_runs(self) -> None:
         parameters = {

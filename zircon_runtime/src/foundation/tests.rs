@@ -1,8 +1,10 @@
 use std::sync::{Mutex, OnceLock};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crossbeam_channel::TryRecvError;
-
+use crate::core::framework::events::{
+    EngineEventDeliveryPolicy, EngineEventReceiveError, EngineEventReceiveTimeoutError,
+    EngineEventTryReceiveError,
+};
 use crate::core::manager::{ManagerResolver, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME};
 use crate::core::CoreRuntime;
 use serde_json::json;
@@ -106,7 +108,7 @@ fn event_manager_publish_subscribe_roundtrip_works() {
 
     let resolver = ManagerResolver::new(runtime.handle());
     let events = resolver.resolve(resolver.event_handle().unwrap()).unwrap();
-    let receiver = events.subscribe("engine.ready");
+    let receiver = events.subscribe("engine.ready", EngineEventDeliveryPolicy::Lossless);
     events.publish("engine.ready", json!({"ok": true}));
 
     let event = receiver.recv().unwrap();
@@ -136,9 +138,33 @@ fn foundation_registry_services_do_not_retain_the_runtime_root() {
         Err(crate::core::CoreError::RuntimeUnavailable)
     );
 
-    let receiver = events.subscribe("runtime.gone");
-    assert_eq!(receiver.try_recv(), Err(TryRecvError::Disconnected));
+    let receiver = events.subscribe("runtime.gone", EngineEventDeliveryPolicy::Lossless);
+    assert_eq!(receiver.recv(), Err(EngineEventReceiveError::Disconnected));
+    assert_eq!(
+        receiver.try_recv(),
+        Err(EngineEventTryReceiveError::Disconnected)
+    );
+    assert_eq!(
+        receiver.recv_timeout(Duration::ZERO),
+        Err(EngineEventReceiveTimeoutError::Disconnected)
+    );
     events.publish("runtime.gone", json!({"ignored": true}));
+}
+
+#[test]
+fn disconnected_event_subscription_is_zero_state_without_an_unbounded_channel() {
+    let source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("foundation")
+            .join("runtime")
+            .join("event_manager.rs"),
+    )
+    .unwrap();
+
+    assert!(source.contains("struct DisconnectedEventSubscription;"));
+    assert!(!source.contains("crossbeam_channel"));
+    assert!(!source.contains("unbounded"));
 }
 
 #[test]
@@ -159,6 +185,7 @@ fn config_manager_persists_values_to_disk() {
     config
         .set_value("editor.workbench.default_layout", json!({"page": "main"}))
         .unwrap();
+    config.flush(Duration::from_secs(2)).unwrap();
 
     let second_runtime = CoreRuntime::new();
     second_runtime.register_module(module_descriptor()).unwrap();

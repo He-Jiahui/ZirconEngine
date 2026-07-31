@@ -1,3 +1,6 @@
+use std::rc::Rc;
+
+use super::host_value_toml::{notification_text_copy_count, reset_notification_text_copy_count};
 use super::*;
 use crate::ui::template_runtime::RetainedUiHostComponentKind;
 
@@ -42,6 +45,118 @@ fn workbench_projection_treats_parent_cycles_as_not_render_visible() {
 
     assert!(!node_index.render_visible(&first));
     assert!(!node_index.render_visible(&second));
+}
+
+#[test]
+fn mounted_workbench_projection_translates_frames_clips_and_popup_anchors() {
+    let mut node = test_host_node("Panel", "panel", None, []);
+    node.frame = UiFrame::new(8.0, 12.0, 80.0, 40.0);
+    node.clip_frame = Some(UiFrame::new(10.0, 14.0, 60.0, 20.0));
+    node.has_popup_anchor = true;
+    node.popup_anchor_x = 24.0;
+    node.popup_anchor_y = 36.0;
+    let projection = RetainedUiHostProjection {
+        document_id: "mounted-workbench-test".to_string(),
+        nodes: vec![node],
+    };
+
+    let mounted = to_host_contract_workbench_window_nodes_with_previous_at_mount(
+        Some(&projection),
+        None,
+        Some(UiFrame::new(0.0, 57.0, 320.0, 180.0)),
+    );
+    let node = mounted.get(0).expect("mounted workbench node");
+
+    assert_eq!(node.frame.y, 69.0);
+    assert_eq!(node.clip_frame.y, 71.0);
+    assert_eq!(node.popup_anchor_x, 24.0);
+    assert_eq!(node.popup_anchor_y, 93.0);
+}
+
+#[test]
+fn notification_rows_are_reused_only_while_the_complete_cache_key_matches() {
+    let mut notification = test_host_node("NotificationCenter", "notification-center", None, []);
+    notification.properties.extend([
+        (
+            "notification_generation".to_string(),
+            RetainedUiHostValue::Integer(7),
+        ),
+        ("unread_count".to_string(), RetainedUiHostValue::Integer(2)),
+        (
+            "overflow_count".to_string(),
+            RetainedUiHostValue::Integer(3),
+        ),
+        (
+            "selected_notification_id".to_string(),
+            RetainedUiHostValue::String("row-0".to_string()),
+        ),
+        ("focused_index".to_string(), RetainedUiHostValue::Integer(0)),
+        ("visible_limit".to_string(), RetainedUiHostValue::Integer(2)),
+        (
+            "notifications".to_string(),
+            RetainedUiHostValue::Array(vec![
+                RetainedUiHostValue::String("row-0|title=First".to_string()),
+                RetainedUiHostValue::String("row-1|title=Second".to_string()),
+                RetainedUiHostValue::String("row-2|title=Offscreen".to_string()),
+            ]),
+        ),
+    ]);
+    let projection = RetainedUiHostProjection {
+        document_id: "notification-cache-test".to_string(),
+        nodes: vec![notification],
+    };
+
+    let first = to_host_contract_workbench_window_nodes(Some(&projection));
+    reset_notification_text_copy_count();
+    let second =
+        to_host_contract_workbench_window_nodes_with_previous(Some(&projection), Some(&first));
+    let first_node = first.get(0).expect("first projected notification node");
+    let second_node = second.get(0).expect("reused projected notification node");
+
+    assert!(first_node.options.shares_values_with(&second_node.options));
+    assert!(Rc::ptr_eq(
+        &first_node.options_text,
+        &second_node.options_text
+    ));
+    assert!(first_node
+        .structured_options
+        .shares_values_with(&second_node.structured_options));
+    assert_eq!(notification_text_copy_count(), 0);
+
+    let mut other_document_projection = projection.clone();
+    other_document_projection.document_id = "other-workbench-document".to_string();
+    reset_notification_text_copy_count();
+    let other_document = to_host_contract_workbench_window_nodes_with_previous(
+        Some(&other_document_projection),
+        Some(&second),
+    );
+    let other_document_node = other_document
+        .get(0)
+        .expect("other-document projected notification node");
+    assert!(!second_node
+        .structured_options
+        .shares_values_with(&other_document_node.structured_options));
+    assert_eq!(notification_text_copy_count(), 3);
+
+    let mut changed_projection = projection;
+    changed_projection.nodes[0].properties.insert(
+        "notification_generation".to_string(),
+        RetainedUiHostValue::Integer(8),
+    );
+    reset_notification_text_copy_count();
+    let changed = to_host_contract_workbench_window_nodes_with_previous(
+        Some(&changed_projection),
+        Some(&second),
+    );
+    let changed_node = changed.get(0).expect("changed projected notification node");
+
+    assert!(!second_node
+        .options
+        .shares_values_with(&changed_node.options));
+    assert!(!second_node
+        .structured_options
+        .shares_values_with(&changed_node.structured_options));
+    assert_eq!(notification_text_copy_count(), 3);
 }
 
 #[test]

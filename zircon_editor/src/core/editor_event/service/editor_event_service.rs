@@ -1,21 +1,35 @@
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::core::editor_event::{EditorEventJournal, EditorEventRecord};
+use crate::core::editor_event::{
+    EditorEventJournal, EditorEventJournalStore, EditorEventListenerRegistry, EditorEventRecord,
+    EditorEventRetentionPolicy, SharedEditorEventRecord,
+};
 use crate::core::editor_message::SharedEditorMessageBus;
 
-use super::state::EditorEventServiceState;
+use super::state::EditorEventSequenceState;
 use super::EditorEventStamp;
 
 /// Journal, listener, sequence, and revision owner for editor events.
 pub struct EditorEventService {
-    state: Mutex<EditorEventServiceState>,
+    sequence_state: Mutex<EditorEventSequenceState>,
+    journal: Mutex<EditorEventJournalStore>,
+    listeners: Mutex<EditorEventListenerRegistry>,
     bus: SharedEditorMessageBus,
 }
 
 impl EditorEventService {
     pub fn new(bus: SharedEditorMessageBus) -> Self {
+        Self::with_retention_policy(bus, EditorEventRetentionPolicy::default())
+    }
+
+    pub fn with_retention_policy(
+        bus: SharedEditorMessageBus,
+        retention_policy: EditorEventRetentionPolicy,
+    ) -> Self {
         Self {
-            state: Mutex::new(EditorEventServiceState::default()),
+            sequence_state: Mutex::new(EditorEventSequenceState::default()),
+            journal: Mutex::new(EditorEventJournalStore::new(retention_policy.journal)),
+            listeners: Mutex::new(EditorEventListenerRegistry::new(retention_policy.listeners)),
             bus,
         }
     }
@@ -33,17 +47,19 @@ impl EditorEventService {
     }
 
     pub(crate) fn record(&self, record: EditorEventRecord) {
-        let mut state = self.lock_state();
-        state.journal.push(record.clone());
-        state.listeners.notify(&record);
+        let record = Arc::new(SharedEditorEventRecord::new(record));
+        {
+            self.lock_journal().push(Arc::clone(&record));
+        }
+        self.lock_listeners().notify(record);
     }
 
     pub fn journal(&self) -> EditorEventJournal {
-        self.lock_state().journal.clone()
+        self.lock_journal().snapshot()
     }
 
     fn allocate_stamp(&self, advances_revision: bool) -> EditorEventStamp {
-        let mut state = self.lock_state();
+        let mut state = self.lock_sequence_state();
         state.next_event_id = state.next_event_id.saturating_add(1);
         state.next_sequence = state.next_sequence.saturating_add(1);
         let before_revision = state.revision;
@@ -58,8 +74,20 @@ impl EditorEventService {
         }
     }
 
-    pub(super) fn lock_state(&self) -> MutexGuard<'_, EditorEventServiceState> {
-        self.state
+    fn lock_sequence_state(&self) -> MutexGuard<'_, EditorEventSequenceState> {
+        self.sequence_state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn lock_journal(&self) -> MutexGuard<'_, EditorEventJournalStore> {
+        self.journal
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(super) fn lock_listeners(&self) -> MutexGuard<'_, EditorEventListenerRegistry> {
+        self.listeners
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }

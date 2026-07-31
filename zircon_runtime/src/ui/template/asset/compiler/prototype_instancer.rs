@@ -728,8 +728,8 @@ fn apply_prototype_inline_styles_iterative(root: &mut UiTemplateNode) {
         append_mui_style_classes(node);
         if !node.style_overrides.is_empty() {
             apply_mui_sx_to_node(node);
-            let inline = node.style_overrides.clone();
-            merge_value_maps(&mut node.attributes, &inline);
+            let (attributes, style_overrides) = (&mut node.attributes, &node.style_overrides);
+            merge_value_maps(attributes, style_overrides);
         } else {
             apply_mui_sx_to_node(node);
         }

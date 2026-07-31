@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var state = %import("world/state");
+
+console.printLine("world-state-test");
+var result = state.selfTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

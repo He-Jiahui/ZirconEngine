@@ -1,0 +1,85 @@
+// Builtin open-world projection of Sim.findSafePos.  Instance and active-Delve
+// routing stay with their owning contexts; callers must not use this for x>600.
+
+var math = %import("zr.zircon.math");
+var collisionGrid = %import("world/collision_grid");
+var terrainGround = %import("world/terrain_ground");
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+isBuiltinSafePosition(seed: uint, x: float, z: float, minHeight: float): bool {
+    // The public entry only admits the built-in field.  A probe near its
+    // boundary may still step beyond it, where this scoped resolver has no
+    // authority to substitute instance or Delve collision.
+    if (!collisionGrid.isBuiltinOpenWorldPosition(x, true)) {
+        return false;
+    }
+    if (terrainGround.builtinGroundHeight(x, z, seed, true) < minHeight) {
+        return false;
+    }
+    var resolvedX = collisionGrid.resolveBuiltinWorldCoordinate(seed, x, z, 0.6, false, 1, true);
+    var resolvedZ = collisionGrid.resolveBuiltinWorldCoordinate(seed, x, z, 0.6, false, 2, true);
+    return absolute(resolvedX - x) < 0.0001 && absolute(resolvedZ - z) < 0.0001;
+}
+
+pub findBuiltinSafePositionCoordinate(
+    seed: uint,
+    x: float,
+    z: float,
+    minHeight: float,
+    axis: int,
+    required: bool
+): float {
+    if (!required || (axis != 1 && axis != 2) ||
+        !collisionGrid.isBuiltinOpenWorldPosition(x, true)) {
+        throw "woc builtin safe position arguments are invalid";
+    }
+    if (isBuiltinSafePosition(seed, x, z, minHeight)) {
+        return axis == 1 ? x : z;
+    }
+    var index = 1;
+    while (index <= 80) {
+        var radius = 0.9 * math.sqrt(<float>index) * 2.2;
+        var angle = <float>index * 2.39996;
+        var candidateX = x + math.sin(angle) * radius;
+        var candidateZ = z + math.cos(angle) * radius;
+        if (isBuiltinSafePosition(seed, candidateX, candidateZ, minHeight)) {
+            return axis == 1 ? candidateX : candidateZ;
+        }
+        index = index + 1;
+    }
+    return axis == 1 ? x : z;
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub contractTest(): int {
+    var seed = <uint>20061;
+    if (!closeEnough(findBuiltinSafePositionCoordinate(
+        seed, -169.3387614414096, -160.52844868181273, -100.0, 1, true
+    ), -168.00128594340597) || !closeEnough(findBuiltinSafePositionCoordinate(
+        seed, -169.3387614414096, -160.52844868181273, -100.0, 2, true
+    ), -161.9884347407325)) {
+        return -1;
+    }
+    if (!closeEnough(findBuiltinSafePositionCoordinate(
+        seed, 0.0, 0.0, 0.6, 1, true
+    ), 1.3374754980036003) || !closeEnough(findBuiltinSafePositionCoordinate(
+        seed, 0.0, 0.0, 0.6, 2, true
+    ), -1.459986058919749)) {
+        return -2;
+    }
+    if (findBuiltinSafePositionCoordinate(seed, 123.0, 456.0, -100.0, 1, true) != 123.0 ||
+        findBuiltinSafePositionCoordinate(seed, 123.0, 456.0, -100.0, 2, true) != 456.0) {
+        return -3;
+    }
+    return 1;
+}

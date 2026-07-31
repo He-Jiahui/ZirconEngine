@@ -1,0 +1,90 @@
+// Current-head source port of src/sim/minigames/card_hand.ts at
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. This pure state module is not
+// connected to WOS8 or a production ZrVM transaction until M6's real-M2 gate.
+var container = %import("zr.container");
+var rngModule = %import("kernel/rng");
+var contract = %import("generated/card_duel_contract");
+
+pub class CardHandState {
+    pub var deck: container.Array<uint>;
+    pub var hand: container.Array<uint>;
+    pub var discard: container.Array<uint>;
+
+    pub @constructor() {
+        this.deck = new container.Array<uint>();
+        this.hand = new container.Array<uint>();
+        this.discard = new container.Array<uint>();
+    }
+}
+
+copyCards(cards: container.Array<uint>): container.Array<uint> {
+    var result = new container.Array<uint>();
+    var index = 0;
+    while (index < cards.length) {
+        result.add(<uint>cards[index]);
+        index = index + 1;
+    }
+    return result;
+}
+
+// Exact Fisher-Yates order: one shared deterministic draw for every i=n-1..1.
+// The caller supplies the authoritative stream; this module owns no RNG state.
+pub shuffle(stream: rngModule.Mulberry32, cards: container.Array<uint>): container.Array<uint> {
+    var shuffled = copyCards(cards);
+    var index = shuffled.length - 1;
+    while (index > 0) {
+        var swapIndex = <int>(stream.next() * <float>(index + 1));
+        var value = <uint>shuffled[index];
+        shuffled[index] = <uint>shuffled[swapIndex];
+        shuffled[swapIndex] = value;
+        index = index - 1;
+    }
+    return shuffled;
+}
+
+pub createCardHand(stream: rngModule.Mulberry32): CardHandState {
+    var unshuffled = new container.Array<uint>();
+    var value: uint = <uint>1;
+    while (value <= <uint>contract.cardMaxValue(true)) {
+        unshuffled.add(value);
+        unshuffled.add(value);
+        value = value + <uint>1;
+    }
+    var state = new CardHandState();
+    state.deck = shuffle(stream, unshuffled);
+    var draw = 0;
+    while (draw < contract.startingHandSize(true)) {
+        var last = state.deck.length - 1;
+        state.hand.add(<uint>state.deck[last]);
+        state.deck.removeAt(last);
+        draw = draw + 1;
+    }
+    return state;
+}
+
+// Empty deck reshuffles the complete discard pile, then removes its last card,
+// matching TypeScript's `deck.pop()` behavior exactly.
+pub drawOne(stream: rngModule.Mulberry32, state: CardHandState): void {
+    if (state.deck.length == 0) {
+        if (state.discard.length == 0) return;
+        state.deck = shuffle(stream, state.discard);
+        state.discard = new container.Array<uint>();
+    }
+    var last = state.deck.length - 1;
+    state.hand.add(<uint>state.deck[last]);
+    state.deck.removeAt(last);
+}
+
+// Returns the played value or zero, the only value outside the generated deck.
+pub playCard(state: CardHandState, value: uint): int {
+    var index = 0;
+    while (index < state.hand.length) {
+        if (<uint>state.hand[index] == value) {
+            state.hand.removeAt(index);
+            state.discard.add(value);
+            return <int>value;
+        }
+        index = index + 1;
+    }
+    return 0;
+}

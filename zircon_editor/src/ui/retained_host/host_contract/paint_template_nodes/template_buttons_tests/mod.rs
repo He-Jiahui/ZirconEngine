@@ -1,3 +1,4 @@
+mod adaptive;
 mod geometry;
 mod identity;
 mod paint;

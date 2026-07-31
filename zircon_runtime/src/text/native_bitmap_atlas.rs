@@ -1,4 +1,7 @@
-use glyphon::{cosmic_text::LayoutGlyph, Color, FontSystem, SwashContent, TextArea, TextBounds};
+use std::sync::Arc;
+
+use glyphon::cosmic_text::LayoutGlyph;
+use glyphon::{Color, FontSystem, SwashContent, TextArea, TextBounds};
 
 use crate::core::math::UVec2;
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
@@ -8,15 +11,19 @@ use crate::text::atlas::{
     GlyphAtlasBitmapRenderSubmissionReport, GlyphAtlasBitmapRetryFrameState,
     GlyphAtlasBitmapRetryFrameStateReport, GlyphAtlasBitmapRetryFrameSubmissionReport,
     GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat, GlyphAtlasSet,
-    GlyphAtlasStorageFormat,
+    GlyphAtlasStorageFormat, GlyphRasterKey,
 };
 use crate::text::font::FontDatabase;
-use crate::text::parallel::raster_pool::{TextRasterWorkTarget, TextRasterWorkerPool};
+use crate::text::parallel::raster_pool::{TextRasterCompletionDrainBudget, TextRasterWorkerPool};
 
 mod handoff;
+mod raster_key;
 mod retry_frame;
 mod source_cache;
 mod storage;
+
+const NATIVE_BITMAP_ATLAS_MAX_RASTER_COMPLETIONS_PER_FRAME: usize = 256;
+const NATIVE_BITMAP_ATLAS_MAX_RASTER_COMPLETION_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 
 pub(crate) use handoff::{
     native_bitmap_atlas_first_frame_degradation_for_report,
@@ -24,17 +31,18 @@ pub(crate) use handoff::{
     NativeBitmapAtlasFirstFrameDegradation, NativeBitmapAtlasGlyphonFallbackReason,
     NativeBitmapAtlasHandoff,
 };
+use raster_key::native_bitmap_atlas_raster_key;
 use retry_frame::native_bitmap_atlas_retry_frame;
 
 pub(crate) use source_cache::{
     NativeBitmapAtlasSourceCache, NativeBitmapAtlasSourceCacheFrameReport,
+    NativeBitmapAtlasWorkerRequestStatus,
 };
+pub(crate) use storage::NativeBitmapAtlasStorageSubmission;
 use storage::{
     native_bitmap_atlas_has_mixed_storage_formats, native_bitmap_atlas_storage_submissions,
-    single_native_bitmap_atlas_storage_format, NativeBitmapAtlasStorageSubmission,
+    single_native_bitmap_atlas_format, single_native_bitmap_atlas_storage_format,
 };
-
-const NATIVE_BITMAP_ATLAS_WORK_PAGE_GENERATION: u64 = 0;
 
 pub(crate) struct NativeBitmapAtlasFrame {
     pub(crate) submission: GlyphAtlasBitmapRenderSubmissionPlan,
@@ -92,7 +100,7 @@ pub(crate) struct NativeBitmapAtlasTextArea<'a, 'text> {
 #[derive(Clone)]
 struct NativeBitmapAtlasSourceImage {
     source: GlyphAtlasBitmapSource,
-    bytes: Vec<u8>,
+    bytes: Arc<[u8]>,
     face_epoch: u64,
 }
 
@@ -124,7 +132,7 @@ impl NativeBitmapAtlasFrame {
         self.source_coverage_supports_replacement()
             && self.submission.run.allocation_failures.is_empty()
             && self.submission.gpu_draw.visible_glyph_count == self.visible_raster_glyph_count
-            && self.atlas_storage_format().is_some()
+            && self.atlas_format().is_some()
             && self.background_composite_supports_replacement()
     }
 
@@ -151,9 +159,8 @@ impl NativeBitmapAtlasFrame {
 
     pub(crate) fn storage_submissions(&self) -> Vec<NativeBitmapAtlasStorageSubmission> {
         native_bitmap_atlas_storage_submissions(
-            &self.submission.run.atlas,
+            &self.submission,
             &self.source_images,
-            self.frame_index,
             self.viewport_size,
             self.clip_rect,
             self.face_epoch,
@@ -182,8 +189,36 @@ impl NativeBitmapAtlasFrame {
         )
     }
 
+    pub(crate) fn atlas_format(&self) -> Option<GlyphAtlasFormat> {
+        single_native_bitmap_atlas_format(
+            self.submission
+                .run
+                .glyphs
+                .iter()
+                .map(|glyph| glyph.page_key.format),
+        )
+    }
+
     pub(crate) fn prepare_report(&self) -> NativeBitmapAtlasPrepareReport {
         let storage_submissions = self.storage_submissions();
+        self.prepare_report_for_storage_submissions(&storage_submissions)
+    }
+
+    pub(crate) fn prepare_report_with_storage_submissions(
+        &self,
+    ) -> (
+        NativeBitmapAtlasPrepareReport,
+        Vec<NativeBitmapAtlasStorageSubmission>,
+    ) {
+        let storage_submissions = self.storage_submissions();
+        let report = self.prepare_report_for_storage_submissions(&storage_submissions);
+        (report, storage_submissions)
+    }
+
+    fn prepare_report_for_storage_submissions(
+        &self,
+        storage_submissions: &[NativeBitmapAtlasStorageSubmission],
+    ) -> NativeBitmapAtlasPrepareReport {
         let storage_submission_visible_glyph_count = storage_submissions
             .iter()
             .map(NativeBitmapAtlasStorageSubmission::visible_glyph_count)
@@ -299,9 +334,15 @@ pub(crate) fn native_bitmap_atlas_frame(
     text_areas: &[NativeBitmapAtlasTextArea<'_, '_>],
 ) -> NativeBitmapAtlasFrame {
     source_cache.begin_frame();
-    let worker_target = native_bitmap_atlas_worker_target(source_cache);
+    let face_epoch = source_cache.face_epoch();
     if let Some(raster_worker_pool) = raster_worker_pool {
-        let completion_drain = raster_worker_pool.drain_completed_for_target(worker_target);
+        let completion_drain = raster_worker_pool.drain_completed_for_face_epoch(
+            face_epoch,
+            TextRasterCompletionDrainBudget::new(
+                NATIVE_BITMAP_ATLAS_MAX_RASTER_COMPLETIONS_PER_FRAME,
+                NATIVE_BITMAP_ATLAS_MAX_RASTER_COMPLETION_BYTES_PER_FRAME,
+            ),
+        );
         source_cache.apply_worker_completion_drain(completion_drain);
     }
 
@@ -321,35 +362,45 @@ pub(crate) fn native_bitmap_atlas_frame(
         for run in text_area.buffer.layout_runs() {
             for glyph in run.glyphs {
                 let physical = glyph.physical((text_area.left, text_area.top), text_area.scale);
+                let mut persistent_raster_key = None;
                 let image = match source_cache.cached_image(physical.cache_key) {
-                    Some(image) => image,
+                    Some(image) => {
+                        persistent_raster_key = native_bitmap_atlas_raster_key(
+                            font_database,
+                            physical.cache_key,
+                            native_bitmap_atlas_format(image.content),
+                        );
+                        image
+                    }
                     None => {
                         if let Some(approximate_image) =
                             source_cache.approximate_cached_image(physical.cache_key)
                         {
                             approximate_raster_image_count =
                                 approximate_raster_image_count.saturating_add(1);
-                            source_cache.request_worker_image(
+                            let _ = source_cache.request_worker_image(
                                 font_system,
                                 font_database,
                                 raster_worker_pool,
-                                worker_target,
+                                face_epoch,
                                 physical.cache_key,
                             );
                             approximate_image
                         } else {
-                            let already_pending =
-                                source_cache.has_pending_worker_request(physical.cache_key);
-                            let submitted = source_cache
-                                .request_worker_image(
-                                    font_system,
-                                    font_database,
-                                    raster_worker_pool,
-                                    worker_target,
-                                    physical.cache_key,
-                                )
-                                .is_some();
-                            if already_pending || submitted {
+                            let worker_request = source_cache.request_worker_image(
+                                font_system,
+                                font_database,
+                                raster_worker_pool,
+                                face_epoch,
+                                physical.cache_key,
+                            );
+                            if matches!(
+                                worker_request,
+                                NativeBitmapAtlasWorkerRequestStatus::Submitted(_)
+                                    | NativeBitmapAtlasWorkerRequestStatus::Pending
+                                    | NativeBitmapAtlasWorkerRequestStatus::DeferredByFrameBudget
+                                    | NativeBitmapAtlasWorkerRequestStatus::DeferredByWorkerBackpressure
+                            ) {
                                 pending_placeholders.push(native_bitmap_atlas_pending_placeholder(
                                     glyph,
                                     run.line_top,
@@ -414,9 +465,12 @@ pub(crate) fn native_bitmap_atlas_frame(
                         bitmap_text_area.background_color,
                     ),
                 };
-                if let Some(clipped_source) =
-                    native_bitmap_atlas_source_from_image(glyph_image, clipped_rect, image.bytes)
-                {
+                if let Some(clipped_source) = native_bitmap_atlas_source_from_image(
+                    glyph_image,
+                    clipped_rect,
+                    image.bytes,
+                    persistent_raster_key,
+                ) {
                     clipped_glyph_count += usize::from(clipped_source.was_clipped);
                     source_images.push(NativeBitmapAtlasSourceImage {
                         source: clipped_source.source,
@@ -472,15 +526,6 @@ pub(crate) fn native_bitmap_atlas_frame(
     }
 }
 
-fn native_bitmap_atlas_worker_target(
-    source_cache: &NativeBitmapAtlasSourceCache,
-) -> TextRasterWorkTarget {
-    TextRasterWorkTarget::new(
-        NATIVE_BITMAP_ATLAS_WORK_PAGE_GENERATION,
-        source_cache.face_epoch(),
-    )
-}
-
 fn native_bitmap_atlas_pending_placeholder(
     glyph: &LayoutGlyph,
     line_top: f32,
@@ -532,7 +577,7 @@ pub(crate) fn native_bitmap_atlas_idle_prepare_report(
     retry_state: &mut GlyphAtlasBitmapRetryFrameState,
 ) -> NativeBitmapAtlasPrepareReport {
     NativeBitmapAtlasPrepareReport {
-        source_cache: source_cache.discard_all_for_idle_frame(),
+        source_cache: source_cache.idle_frame_report(),
         retry_state: retry_state.take_report(),
         ..NativeBitmapAtlasPrepareReport::default()
     }
@@ -544,14 +589,15 @@ pub(crate) fn bitmap_atlas_page_size() -> UVec2 {
 
 struct NativeBitmapAtlasClippedSource {
     source: GlyphAtlasBitmapSource,
-    bytes: Vec<u8>,
+    bytes: Arc<[u8]>,
     was_clipped: bool,
 }
 
 fn native_bitmap_atlas_source_from_image(
     image: NativeBitmapGlyphImage,
     clipped_rect: GlyphAtlasScreenRect,
-    source_bytes: Vec<u8>,
+    source_bytes: Arc<[u8]>,
+    raster_key: Option<GlyphRasterKey>,
 ) -> Option<NativeBitmapAtlasClippedSource> {
     let content_size = UVec2::new(u32::from(image.width), u32::from(image.height));
     if content_size.x == 0 || content_size.y == 0 {
@@ -574,6 +620,7 @@ fn native_bitmap_atlas_source_from_image(
     let crop = native_bitmap_atlas_crop_from_clip(screen_rect, clipped_rect, content_size)?;
     let bytes = crop_native_bitmap_source_bytes(source_bytes, content_size, image.format, crop)?;
     let source = GlyphAtlasBitmapSource {
+        raster_key: raster_key.filter(|_| !crop.was_clipped),
         format: image.format,
         content_size: crop.size,
         screen_rect: clipped_rect,
@@ -710,11 +757,11 @@ fn rounded_non_negative_u32(value: f32) -> Option<u32> {
 }
 
 fn crop_native_bitmap_source_bytes(
-    source_bytes: Vec<u8>,
+    source_bytes: Arc<[u8]>,
     source_size: UVec2,
     format: GlyphAtlasFormat,
     crop: NativeBitmapAtlasCrop,
-) -> Option<Vec<u8>> {
+) -> Option<Arc<[u8]>> {
     if !crop.was_clipped {
         return Some(source_bytes);
     }
@@ -736,7 +783,7 @@ fn crop_native_bitmap_source_bytes(
         let source_end = source_start.saturating_add(crop_stride);
         cropped.extend_from_slice(source_bytes.get(source_start..source_end)?);
     }
-    Some(cropped)
+    Some(Arc::from(cropped))
 }
 
 fn unpack_color(color: Color) -> [f32; 4] {

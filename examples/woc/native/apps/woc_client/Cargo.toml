@@ -1,0 +1,11 @@
+[package]
+name = "woc_client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WOC client role bootstrap."
+
+[dependencies]
+serde_json = { workspace = true, features = ["arbitrary_precision", "preserve_order"] }
+woc_protocol.workspace = true
+woc_runtime.workspace = true

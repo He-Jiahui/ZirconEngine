@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/fire_mage_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/fire_mage.ts": "67a295857b5bcd736f10c138683e196d434166f317c1aa2dd85e363c51015c39"
+  },
+  "id": "fire_mage",
+  "constants": {
+    "SCORCH_EXECUTE_HP": 0.3,
+    "HEATING_UP_WINDOW": 10,
+    "HOT_STREAK_DURATION": 12,
+    "COMBUSTION_CDR_PER_CRIT": 1,
+    "CAUTERIZE_ICD": 300,
+    "CAUTERIZE_HEAL_FRAC": 0.25,
+    "CAUTERIZE_BURN_PER_SEC": 0.05,
+    "CAUTERIZE_BURN_DURATION": 6,
+    "CAUTERIZE_FIRE_DMG_BONUS": 0.12,
+    "IGNITE_DURATION": 6,
+    "IGNITE_INTERVAL": 2
+  },
+  "hot_streak_builders": [
+    "fireball",
+    "fire_blast",
+    "scorch",
+    "pyroblast",
+    "flamestrike",
+    "dragons_breath"
+  ],
+  "hot_streak_spenders": [
+    "pyroblast",
+    "flamestrike"
+  ],
+  "ordering": "eligible_fire_builder; noncrit_removes_heating; crit_reduces_combustion_outside_combustion; first_crit_heating; second_crit_hot_streak_pair",
+  "cauterize": "lethal_inclusive; fatigue_blocks; heal_to_quarter; burn_per_second_is_rounded_positive_twentieth",
+  "ignite": "dead_or_nonpositive_burn_inert; rounded_positive_third_per_tick; owned_stack_adds_then_refreshes"
+}

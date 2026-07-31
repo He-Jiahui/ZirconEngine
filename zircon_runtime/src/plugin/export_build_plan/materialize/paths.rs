@@ -40,7 +40,7 @@ pub(super) fn validated_materialized_relative_path(
                         "path components must be UTF-8",
                     ));
                 };
-                normalized.push(component.to_string());
+                normalized.push(component);
             }
             Component::CurDir => {
                 return Err(invalid_materialized_path(

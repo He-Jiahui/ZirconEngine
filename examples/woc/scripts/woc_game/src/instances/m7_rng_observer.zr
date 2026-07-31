@@ -1,0 +1,30 @@
+// M7 systems consume a caller-owned deterministic stream.  The observer does
+// not seed or reset it: WorldState remains the sole authority for shared draw
+// ordering, while standalone scenario drivers can supply their own stream.
+var rng = %import("kernel/rng");
+
+pub consume(stream: rng.Mulberry32, count: int, required: bool): void {
+    if (!required || count < 0) {
+        throw "woc M7 RNG observation count is invalid";
+    }
+    var index = 0;
+    while (index < count) {
+        stream.nextU32();
+        index = index + 1;
+    }
+}
+
+pub drawCount(stream: rng.Mulberry32, required: bool): uint {
+    if (!required) { throw "woc M7 RNG draw count is required"; }
+    return stream.draws;
+}
+
+pub drawDigest(stream: rng.Mulberry32, required: bool): uint {
+    if (!required) { throw "woc M7 RNG draw digest is required"; }
+    return stream.drawDigest;
+}
+
+pub streamState(stream: rng.Mulberry32, required: bool): uint {
+    if (!required) { throw "woc M7 RNG state is required"; }
+    return stream.state;
+}

@@ -3,12 +3,12 @@ use std::sync::Arc;
 
 use crate::asset::{AssetReference, MaterialAsset, ShaderAsset, TextureUploadSupport};
 use crate::core::framework::render::{
-    RenderImageUsage, RenderMaterialAlphaMode, RenderMaterialDiagnosticSource,
-    RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
-    RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload,
-    RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
-    RenderMaterialTextureDimension, RenderMaterialTextureSlotState,
-    RenderMaterialTextureSlotSummary, RenderMaterialValidationError, SHADING_MODEL_ID_STANDARD_PBR,
+    RenderImageUsage, RenderMaterialAlphaMode, RenderMaterialFallbackPolicy,
+    RenderMaterialFallbackReason, RenderMaterialFallbackUsage, RenderMaterialLightingModel,
+    RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValueState,
+    RenderMaterialPropertyValueSummary, RenderMaterialTextureDimension,
+    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
+    RenderMaterialValidationError, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, ResourceLocator};
@@ -17,13 +17,22 @@ use crate::graphics::types::GraphicsError;
 
 use super::super::prepared::{PreparedMaterial, PreparedMaterialTextureDependency};
 use super::super::{
-    default_pipeline_key, texture_upload_support_from_device, GpuMaterialUniformResource,
-    MaterialDisabledPasses, MaterialRuntime, PipelineKey,
+    GpuMaterialUniformResource, MaterialDisabledPasses, MaterialRuntime, PipelineKey,
+    default_pipeline_key, texture_upload_support_from_device,
 };
-use super::resource_streamer_validate_material_shader_layout::renderer_material_layout_diagnostics;
 use super::ResourceStreamer;
+use super::resource_streamer_validate_material_shader_layout::renderer_material_layout_diagnostics;
 
-const FALLBACK_MATERIAL_URI: &str = "builtin://missing-material";
+mod material_readiness;
+#[cfg(test)]
+mod tests;
+
+use self::material_readiness::{
+    fallback_material_uri, invalid_parent_diagnostic, is_standard_texture_slot,
+    material_prepare_result, material_uses_renderer_material_abi_fallback,
+    missing_material_fallback_usage, prepared_material_cache_identity_is_current,
+};
+
 const MAX_MATERIAL_PARENT_DEPTH: usize = 4;
 
 impl ResourceStreamer {
@@ -496,6 +505,7 @@ impl ResourceStreamer {
                 PreparedMaterial {
                     revision: prepared_revision,
                     texture_dependencies: texture_dependencies.clone(),
+                    texture_support,
                     runtime,
                     uniform,
                     standard_uniform,
@@ -503,6 +513,7 @@ impl ResourceStreamer {
             );
             return prepare_result;
         }
+        let mut ensured_texture_ids = BTreeSet::new();
         for texture_id in [
             base_color_texture.id(),
             normal_texture.id(),
@@ -518,13 +529,16 @@ impl ResourceStreamer {
                 .iter()
                 .filter_map(|(_slot, texture)| texture.id()),
         ) {
-            self.ensure_material_texture(device, queue, texture_layout, texture_id)?;
+            if ensured_texture_ids.insert(texture_id) {
+                self.ensure_material_texture(device, queue, texture_layout, texture_id)?;
+            }
         }
         self.materials.insert(
             id,
             PreparedMaterial {
                 revision: prepared_revision,
                 texture_dependencies,
+                texture_support,
                 runtime,
                 uniform,
                 standard_uniform,
@@ -565,11 +579,26 @@ impl ResourceStreamer {
         requested_revision: Option<u64>,
         texture_support: TextureUploadSupport,
     ) -> bool {
-        prepared.revision == requested_revision
-            && prepared.texture_dependencies.iter().all(|dependency| {
-                self.texture_dependency_snapshot_for_locator(&dependency.locator, texture_support)
-                    == *dependency
-            })
+        prepared_material_cache_identity_is_current(
+            prepared.revision,
+            requested_revision,
+            prepared.texture_support,
+            texture_support,
+            &prepared.texture_dependencies,
+            |locator| self.texture_dependency_revision_for_locator(locator),
+        )
+    }
+
+    fn texture_dependency_revision_for_locator(
+        &self,
+        locator: &ResourceLocator,
+    ) -> Option<(ResourceId, u64)> {
+        self.asset_manager()
+            .ok()?
+            .resource_manager()
+            .registry()
+            .get_by_locator(locator)
+            .map(|record| (record.id(), record.revision))
     }
 
     fn material_texture_dependency_snapshots<'a>(
@@ -710,84 +739,4 @@ impl ResourceStreamer {
         effective.parent = None;
         (effective, diagnostics)
     }
-}
-
-fn material_prepare_result(
-    id: ResourceId,
-    report: &crate::core::framework::render::RenderMaterialReadinessReport,
-) -> Result<(), GraphicsError> {
-    if has_blocking_material_validation(&report.validation_errors) {
-        Err(GraphicsError::Asset(format!(
-            "material {} is not render-ready: {:?}",
-            id, report.validation_errors
-        )))
-    } else {
-        Ok(())
-    }
-}
-
-fn has_blocking_material_validation(validation_errors: &[RenderMaterialValidationError]) -> bool {
-    validation_errors.iter().any(|error| {
-        matches!(
-            error,
-            RenderMaterialValidationError::InvalidMaskCutoff { .. }
-                | RenderMaterialValidationError::MissingRuntimeShaderSource
-        )
-    })
-}
-
-fn material_uses_renderer_material_abi_fallback(
-    validation_errors: &[RenderMaterialValidationError],
-) -> bool {
-    validation_errors.iter().any(|error| {
-        matches!(
-            error,
-            RenderMaterialValidationError::ShaderReadinessDiagnostic {
-                source: RenderMaterialDiagnosticSource::RendererMaterialAbi,
-                ..
-            }
-        )
-    })
-}
-
-fn fallback_material_uri() -> ResourceLocator {
-    ResourceLocator::parse(FALLBACK_MATERIAL_URI).expect("builtin fallback material uri")
-}
-
-fn missing_material_fallback_usage(
-    material: ResourceId,
-) -> (RenderMaterialValidationError, RenderMaterialFallbackUsage) {
-    (
-        RenderMaterialValidationError::UnresolvedMaterialReference { material },
-        RenderMaterialFallbackUsage {
-            reason: RenderMaterialFallbackReason::Material { material },
-            fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
-        },
-    )
-}
-
-fn invalid_parent_diagnostic(diagnostic: String) -> RenderMaterialValidationError {
-    RenderMaterialValidationError::InvalidMaterialParent {
-        source: RenderMaterialDiagnosticSource::MaterialOverride,
-        path: "parent".to_string(),
-        diagnostic,
-    }
-}
-
-fn is_standard_texture_slot(slot: &str) -> bool {
-    matches!(
-        slot,
-        "base_color"
-            | "base_color_texture"
-            | "albedo"
-            | "diffuse"
-            | "normal"
-            | "normal_texture"
-            | "metallic_roughness"
-            | "metallic_roughness_texture"
-            | "occlusion"
-            | "occlusion_texture"
-            | "emissive"
-            | "emissive_texture"
-    )
 }

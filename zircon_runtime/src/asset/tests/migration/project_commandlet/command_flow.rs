@@ -156,9 +156,11 @@ fn scene_material_and_model_are_the_only_first_wave_authoring_document_formats()
     .into_iter()
     .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(authoring_changes, expected_authoring_changes);
-    assert!(fs::read_to_string(root.join("assets/notes.toml"))
-        .unwrap()
-        .contains("uuid"));
+    assert!(
+        fs::read_to_string(root.join("assets/notes.toml"))
+            .unwrap()
+            .contains("uuid")
+    );
     fs::remove_dir_all(root).unwrap();
 }
 

@@ -1,4 +1,7 @@
-use zircon_runtime_interface::ui::component::UiValue;
+use zircon_runtime_interface::ui::{binding::UiBindingValue, component::UiValue};
+
+use crate::core::editor_event::InspectorFieldChange;
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 
 use super::{
     componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge,
@@ -27,6 +30,54 @@ struct TransformAxisEdit {
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    pub(crate) fn transform_position_axis_commit_binding(
+        &self,
+        control_id: &str,
+        binding_id: &str,
+        value: &str,
+    ) -> Option<EditorUiBinding> {
+        let (expected_control_id, field_id, axis_label, binding_control_id) = match binding_id {
+            "Inspector/TransformPositionXCommit" => (
+                POSITION_X,
+                "transform.translation.x",
+                "X",
+                "TransformPositionXCommit",
+            ),
+            "Inspector/TransformPositionYCommit" => (
+                POSITION_Y,
+                "transform.translation.y",
+                "Y",
+                "TransformPositionYCommit",
+            ),
+            "Inspector/TransformPositionZCommit" => (
+                POSITION_Z,
+                "transform.translation.z",
+                "Z",
+                "TransformPositionZCommit",
+            ),
+            _ => return None,
+        };
+        if !control_id.is_empty() && control_id != expected_control_id {
+            return None;
+        }
+        if !self.has_control(expected_control_id) {
+            return None;
+        }
+
+        Some(EditorUiBinding::new(
+            "Inspector",
+            binding_control_id,
+            EditorUiEventKind::Submit,
+            EditorUiBindingPayload::inspector_field_batch(
+                "entity://selected",
+                [InspectorFieldChange::new(
+                    field_id,
+                    UiBindingValue::string(strip_axis_prefix(value, axis_label)),
+                )],
+            ),
+        ))
+    }
+
     pub(crate) fn edit_inspector_transform_axis(
         &mut self,
         control_id: &str,

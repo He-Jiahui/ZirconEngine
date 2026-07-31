@@ -1,8 +1,8 @@
 use super::super::material::{
-    aligned_uniform_stride, fragment_screen_px_range, mtsdf_glow_coverage, sdf_effect_coverage,
-    shadow_sample_uv, straight_alpha_over, SdfScreenPxRangeMode, SdfTextMaterial,
-    SdfTextMaterialDrawPlan, SdfTextMaterialUniform, SDF_TEXT_EFFECT_GLOW, SDF_TEXT_EFFECT_OUTLINE,
-    SDF_TEXT_EFFECT_SHADOW,
+    SDF_TEXT_EFFECT_GLOW, SDF_TEXT_EFFECT_OUTLINE, SDF_TEXT_EFFECT_SHADOW, SdfScreenPxRangeMode,
+    SdfTextMaterial, SdfTextMaterialDrawPlan, SdfTextMaterialUniform, aligned_uniform_stride,
+    fragment_screen_px_range, mtsdf_glow_coverage, sdf_effect_coverage, shadow_sample_uv,
+    straight_alpha_over,
 };
 use super::*;
 use crate::graphics::scene::scene_renderer::ui::render::text_effects::{
@@ -10,6 +10,24 @@ use crate::graphics::scene::scene_renderer::ui::render::text_effects::{
     ScreenSpaceUiTextShadow,
 };
 use crate::graphics::scene::scene_renderer::ui::render::text_projection::ScreenSpaceUiTextClipTransform;
+
+#[test]
+fn render_text_stable_materials_reuse_upload_state() {
+    let source = include_str!("../material.rs");
+    let uploaded_materials = ["uploaded_", "materials"].concat();
+    let upload_bytes = ["upload_", "bytes"].concat();
+
+    assert!(source.contains(&uploaded_materials));
+    assert!(source.contains(&upload_bytes));
+}
+
+#[test]
+fn render_text_advance_count_does_not_materialize_render_scalars() {
+    let source = include_str!("../../sdf_render.rs");
+    let allocating_count = ["render_scalars()", ".len()"].concat();
+
+    assert!(!source.contains(&allocating_count));
+}
 
 #[test]
 fn render_text_material_uniform_abi_is_seven_aligned_vec4_slots() {

@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use crate::asset::{
-    texture_asset_from_ibl_bake_artifact_pmrem, AssetUri, ProjectAssetManager, TextureAsset,
+    AssetUri, ProjectAssetManager, TextureAsset, texture_asset_from_ibl_bake_artifact_pmrem,
 };
 use crate::core::framework::render::{
-    build_source_cubemap_from_equirect, IblBakeArtifactBlob, IblBakeArtifactContents,
-    IblBakeArtifactDescriptor, IblBakeArtifactPayload, ProbeInfluenceShape, ProceduralSkyParams,
-    ReflectionProbeData,
+    IblBakeArtifactBlob, IblBakeArtifactContents, IblBakeArtifactDescriptor,
+    IblBakeArtifactPayload, ProbeInfluenceShape, ProceduralSkyParams, ReflectionProbeData,
+    build_source_cubemap_from_equirect,
 };
 use crate::core::math::{Quat, UVec2, Vec3};
 use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord};
@@ -16,14 +16,38 @@ use crate::graphics::types::ViewportRenderFrame;
 use crate::scene::world::World;
 
 use super::super::resources::{
-    SceneReflectionProbeResources, MAX_REFLECTION_PROBES, REFLECTION_PROBE_FACE_SIZE,
-    REFLECTION_PROBE_MIP_COUNT,
+    MAX_REFLECTION_PROBES, REFLECTION_PROBE_FACE_SIZE, REFLECTION_PROBE_MIP_COUNT,
+    SceneReflectionProbeResources,
 };
 use super::super::upload::ReflectionProbeAssetRejectionReason;
 
 #[test]
 fn render_probe_gpu_capacity_matches_plan_v1_limit() {
     assert_eq!(MAX_REFLECTION_PROBES, 64);
+}
+
+#[test]
+fn render_probe_prepare_reads_registry_before_candidate_upload_loop() {
+    let source = include_str!("../resources.rs");
+    let prepare_start = source
+        .find("fn prepare(")
+        .expect("probe prepare implementation");
+    let prepare_end = source[prepare_start..]
+        .find("fn write_probe_header")
+        .map(|offset| prepare_start + offset)
+        .expect("probe prepare boundary");
+    let prepare = &source[prepare_start..prepare_end];
+    let registry_read = prepare
+        .find("resource_manager.registry()")
+        .expect("probe registry read");
+    let candidate_loop = prepare
+        .find("in candidates {")
+        .expect("probe candidate upload loop");
+
+    assert!(
+        registry_read < candidate_loop,
+        "probe prepare must read candidate revisions under one short registry lock before loading assets"
+    );
 }
 
 #[test]

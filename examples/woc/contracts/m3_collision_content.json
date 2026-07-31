@@ -1,0 +1,1754 @@
+{
+  "schema_version": 2,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_collision_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/colliders.ts": "2a34c3c2d97b19ba96b676b29820829291364c7a6025328072f909b3a2ccb11d",
+    "src/sim/data.ts": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431",
+    "src/sim/content/zone1.ts": "ba684edd445b581cf2d03e9b34c0f14d8b73da9a623df425e94262d3f6010d2a",
+    "src/sim/content/zone2.ts": "169c8bc8cd98a535ad60ac0f2159cd94e5e0685d231bf78e0328df7157a1dd6b",
+    "src/sim/content/zone3.ts": "8361952b8878ae4d0a17513ccb27ad09e48f4469eddcea93633455fc45743579",
+    "src/sim/vale_cup_layout.ts": "2753e400098f218c9fabcd21bd9ef88635102b9c68d62502587ea6b1605b55e9"
+  },
+  "colliders": [
+    {
+      "kind": "obb",
+      "x": 10,
+      "z": 12,
+      "radius": 0,
+      "half_width": 3.5,
+      "half_depth": 3,
+      "rotation": -0.4,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -10,
+      "z": 10,
+      "radius": 0,
+      "half_width": 3,
+      "half_depth": 2.5,
+      "rotation": 0.5,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 12,
+      "z": -6,
+      "radius": 0,
+      "half_width": 3,
+      "half_depth": 3.5,
+      "rotation": 2.4,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -16,
+      "z": -8,
+      "radius": 0,
+      "half_width": 2.5,
+      "half_depth": 3.5,
+      "rotation": 0.9,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 13,
+      "z": 306,
+      "radius": 0,
+      "half_width": 3,
+      "half_depth": 3.5,
+      "rotation": -1,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -13,
+      "z": 308,
+      "radius": 0,
+      "half_width": 3.5,
+      "half_depth": 3,
+      "rotation": 0.5,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -12,
+      "z": 291,
+      "radius": 0,
+      "half_width": 3,
+      "half_depth": 2.5,
+      "rotation": 2.6,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 11,
+      "z": 316,
+      "radius": 0,
+      "half_width": 3,
+      "half_depth": 2.5,
+      "rotation": 0.3,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 14,
+      "z": 671,
+      "radius": 0,
+      "half_width": 3.5,
+      "half_depth": 3,
+      "rotation": -0.5,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 8,
+      "z": 650,
+      "radius": 0,
+      "half_width": 3,
+      "half_depth": 2.5,
+      "rotation": 0.4,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 18,
+      "z": 660,
+      "radius": 0,
+      "half_width": 3,
+      "half_depth": 2.5,
+      "rotation": 1.2,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -15,
+      "z": 666,
+      "radius": 0,
+      "half_width": 3,
+      "half_depth": 3.5,
+      "rotation": 0.6,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -16,
+      "z": 650,
+      "radius": 0,
+      "half_width": 2.5,
+      "half_depth": 3.5,
+      "rotation": 0.9,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 0,
+      "z": 2,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 0,
+      "z": 302,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 0,
+      "z": 662,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -8.5,
+      "z": 3,
+      "radius": 1.7,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 9.5,
+      "z": 17.5,
+      "radius": 1.7,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 0,
+      "z": 11.5,
+      "radius": 1.8,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -5,
+      "z": 310.5,
+      "radius": 1.7,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -7.5,
+      "z": 667,
+      "radius": 1.7,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -4.5,
+      "z": 673.5,
+      "radius": 1.7,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -90.43901070905838,
+      "z": -70.36880281178036,
+      "radius": 5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 91.09161125120731,
+      "z": 613.4148992442603,
+      "radius": 5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -155.4,
+      "z": 610,
+      "radius": 5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -67.58819449748198,
+      "z": 60.85138724928202,
+      "radius": 0,
+      "half_width": 1.7,
+      "half_depth": 1.5,
+      "rotation": -2.2,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -63.91945922099626,
+      "z": 301.9551108284697,
+      "radius": 0,
+      "half_width": 1.7,
+      "half_depth": 1.5,
+      "rotation": 1.68,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 62,
+      "z": -61,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 69,
+      "z": -69,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 88,
+      "z": -86,
+      "radius": 1.9500000000000002,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 95,
+      "z": -94,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 12,
+      "z": 474,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 20,
+      "z": 466,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -22,
+      "z": 486,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -28,
+      "z": 494,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -3,
+      "z": 505,
+      "radius": 1.9500000000000002,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -120,
+      "z": 733,
+      "radius": 1.9500000000000002,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -128,
+      "z": 744,
+      "radius": 1.9500000000000002,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -136,
+      "z": 752,
+      "radius": 2.25,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 50,
+      "z": 815,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 58,
+      "z": 823,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 60,
+      "z": 812,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 28,
+      "z": 848,
+      "radius": 1.5,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -62,
+      "z": 783,
+      "radius": 1.6500000000000001,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 60,
+      "z": -63,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 66,
+      "z": -67,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 87,
+      "z": -88,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 93,
+      "z": -90,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 70,
+      "z": -72,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 14,
+      "z": 468,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 18,
+      "z": 471,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -23,
+      "z": 491,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 2,
+      "z": 504,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -118,
+      "z": 728,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -124,
+      "z": 735,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -130,
+      "z": 742,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 52,
+      "z": 818,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 57,
+      "z": 820,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -60,
+      "z": 786,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -58,
+      "z": 789,
+      "radius": 0.65,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 3,
+      "z": -4,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 65,
+      "z": -65,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 90,
+      "z": -90,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -80,
+      "z": -60,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -61,
+      "z": 56,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 4,
+      "z": 299,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -2,
+      "z": 293,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 16,
+      "z": 470,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -25,
+      "z": 489,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 0,
+      "z": 506,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 2,
+      "z": 658,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -122,
+      "z": 736,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -136,
+      "z": 743,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 52,
+      "z": 817,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 28,
+      "z": 847,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -63,
+      "z": 788,
+      "radius": 0.85,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -73,
+      "z": 59,
+      "radius": 1.1,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -78,
+      "z": 54,
+      "radius": 1.1,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -69,
+      "z": 55,
+      "radius": 1.1,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -78,
+      "z": 269,
+      "radius": 1.1,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -83,
+      "z": 266,
+      "radius": 1.1,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -74,
+      "z": 275,
+      "radius": 1.1,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -117,
+      "z": 346,
+      "radius": 1.1,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -123,
+      "z": 354,
+      "radius": 1.1,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 80,
+      "z": 85,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 85.47282037727621,
+      "z": 82.36442861301114,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 86.82449538527277,
+      "z": 76.4423534623058,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 83.0371861738229,
+      "z": 71.69321792468307,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 76.9628138261771,
+      "z": 71.69321792468307,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 73.17550461472723,
+      "z": 76.4423534623058,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 74.52717962272379,
+      "z": 82.36442861301113,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -5,
+      "z": -52,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 1.9282032302755088,
+      "z": -56,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 1.9282032302755097,
+      "z": -64,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -4.999999999999999,
+      "z": -68,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -11.928203230275507,
+      "z": -64,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -11.928203230275509,
+      "z": -56,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 100,
+      "z": 442,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 105.47282037727621,
+      "z": 439.3644286130111,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 106.82449538527277,
+      "z": 433.4423534623058,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 103.0371861738229,
+      "z": 428.69321792468304,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 96.9628138261771,
+      "z": 428.69321792468304,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 93.17550461472723,
+      "z": 433.4423534623058,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 94.52717962272379,
+      "z": 439.3644286130111,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -40,
+      "z": 837,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -33.93782217350893,
+      "z": 833.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -33.93782217350893,
+      "z": 826.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -40,
+      "z": 823,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -46.062177826491066,
+      "z": 826.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -46.06217782649107,
+      "z": 833.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 141,
+      "z": 719,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 147.06217782649108,
+      "z": 715.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 147.06217782649108,
+      "z": 708.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 141,
+      "z": 705,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 134.93782217350892,
+      "z": 708.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 134.93782217350892,
+      "z": 715.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 138,
+      "z": 845,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 144.06217782649108,
+      "z": 841.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 144.06217782649108,
+      "z": 834.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 138,
+      "z": 831,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 131.93782217350892,
+      "z": 834.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 131.93782217350892,
+      "z": 841.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -139,
+      "z": 794,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -132.93782217350892,
+      "z": 790.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -132.93782217350892,
+      "z": 783.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -139,
+      "z": 780,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -145.06217782649108,
+      "z": 783.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -145.06217782649108,
+      "z": 790.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -12,
+      "z": 868,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -6.293660902229079,
+      "z": 863.8541019662497,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -8.47328848624516,
+      "z": 857.1458980337503,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -15.526711513754838,
+      "z": 857.1458980337503,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -17.706339097770922,
+      "z": 863.8541019662497,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 12,
+      "z": 864,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 17.706339097770922,
+      "z": 859.8541019662497,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 15.52671151375484,
+      "z": 853.1458980337503,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 8.473288486245162,
+      "z": 853.1458980337503,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 6.293660902229078,
+      "z": 859.8541019662497,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -70,
+      "z": 799,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -63.93782217350893,
+      "z": 795.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -63.93782217350893,
+      "z": 788.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -70,
+      "z": 785,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -76.06217782649107,
+      "z": 788.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -76.06217782649107,
+      "z": 795.5,
+      "radius": 0.6,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 19,
+      "z": 10,
+      "radius": 0,
+      "half_width": 7.058203932499369,
+      "half_depth": 0.35,
+      "rotation": 1.1071487177940904,
+      "is_fence": true
+    },
+    {
+      "kind": "obb",
+      "x": -18,
+      "z": 8,
+      "radius": 0,
+      "half_width": 6.674555320336759,
+      "half_depth": 0.35,
+      "rotation": 1.892546881191539,
+      "is_fence": true
+    },
+    {
+      "kind": "obb",
+      "x": 18.5,
+      "z": 305,
+      "radius": 0,
+      "half_width": 6.85,
+      "half_depth": 0.35,
+      "rotation": 1.1760052070951352,
+      "is_fence": true
+    },
+    {
+      "kind": "obb",
+      "x": -20,
+      "z": 306.5,
+      "radius": 0,
+      "half_width": 7.150735254367722,
+      "half_depth": 0.35,
+      "rotation": 1.869295258381076,
+      "is_fence": true
+    },
+    {
+      "kind": "obb",
+      "x": -9,
+      "z": 648,
+      "radius": 0,
+      "half_width": 5.449019513592785,
+      "half_depth": 0.35,
+      "rotation": 0.19739555984988078,
+      "is_fence": true
+    },
+    {
+      "kind": "obb",
+      "x": 9,
+      "z": 648,
+      "radius": 0,
+      "half_width": 5.449019513592785,
+      "half_depth": 0.35,
+      "rotation": -0.19739555984988078,
+      "is_fence": true
+    },
+    {
+      "kind": "obb",
+      "x": -31,
+      "z": -97,
+      "radius": 0,
+      "half_width": 17,
+      "half_depth": 0.5,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 9,
+      "z": -97,
+      "radius": 0,
+      "half_width": 17,
+      "half_depth": 0.5,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -11,
+      "z": -127,
+      "radius": 0,
+      "half_width": 37,
+      "half_depth": 0.5,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -48,
+      "z": -122.5,
+      "radius": 0,
+      "half_width": 0.5,
+      "half_depth": 4.5,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -48,
+      "z": -101.5,
+      "radius": 0,
+      "half_width": 0.5,
+      "half_depth": 4.5,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 26,
+      "z": -122.5,
+      "radius": 0,
+      "half_width": 0.5,
+      "half_depth": 4.5,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 26,
+      "z": -101.5,
+      "radius": 0,
+      "half_width": 0.5,
+      "half_depth": 4.5,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -48,
+      "z": -118,
+      "radius": 0.35,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -48,
+      "z": -106,
+      "radius": 0.35,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -50.5,
+      "z": -112,
+      "radius": 0,
+      "half_width": 0.3,
+      "half_depth": 6.6,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -49.25,
+      "z": -118,
+      "radius": 0,
+      "half_width": 1.25,
+      "half_depth": 0.3,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -49.25,
+      "z": -106,
+      "radius": 0,
+      "half_width": 1.25,
+      "half_depth": 0.3,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 26,
+      "z": -118,
+      "radius": 0.35,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": 26,
+      "z": -106,
+      "radius": 0.35,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 28.5,
+      "z": -112,
+      "radius": 0,
+      "half_width": 0.3,
+      "half_depth": 6.6,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 27.25,
+      "z": -118,
+      "radius": 0,
+      "half_width": 1.25,
+      "half_depth": 0.3,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": 27.25,
+      "z": -106,
+      "radius": 0,
+      "half_width": 1.25,
+      "half_depth": 0.3,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -11,
+      "z": -86.8,
+      "radius": 0,
+      "half_width": 31.2,
+      "half_depth": 0.3,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "obb",
+      "x": -11,
+      "z": -138.2,
+      "radius": 0,
+      "half_width": 31.2,
+      "half_depth": 0.3,
+      "rotation": 0,
+      "is_fence": false
+    },
+    {
+      "kind": "circle",
+      "x": -16,
+      "z": -82,
+      "radius": 0.9,
+      "half_width": 0,
+      "half_depth": 0,
+      "rotation": 0,
+      "is_fence": false
+    }
+  ],
+  "fence_segments": [
+    {
+      "x1": 16,
+      "z1": 16,
+      "x2": 22,
+      "z2": 4
+    },
+    {
+      "x1": -16,
+      "z1": 14,
+      "x2": -20,
+      "z2": 2
+    },
+    {
+      "x1": 16,
+      "z1": 311,
+      "x2": 21,
+      "z2": 299
+    },
+    {
+      "x1": -18,
+      "z1": 313,
+      "x2": -22,
+      "z2": 300
+    },
+    {
+      "x1": -14,
+      "z1": 649,
+      "x2": -4,
+      "z2": 647
+    },
+    {
+      "x1": 4,
+      "z1": 647,
+      "x2": 14,
+      "z2": 649
+    }
+  ],
+  "catalog_sha256": "ce0b834f9f1a414e3441f1635b8187d7a3e74883046602a5a0bfb9f4565fc30b"
+}

@@ -1,5 +1,5 @@
-pub(super) fn visible_collection_items(
-    items: Vec<String>,
+pub(super) fn visible_collection_items<T>(
+    items: Vec<T>,
     visible_start: i32,
     visible_count: i32,
     overscan: i32,

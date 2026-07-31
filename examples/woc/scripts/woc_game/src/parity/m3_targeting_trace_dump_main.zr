@@ -1,0 +1,5 @@
+var trace = %import("parity/m3_targeting_trace");
+var console = %import("zr.system.console");
+
+console.printLine(trace.traceHexForValidation(true));
+return 0;

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::core::framework::scene::SystemStage;
@@ -65,14 +66,22 @@ impl SceneRuntimeHookSet {
         &self,
         registrations: impl IntoIterator<Item = SceneRuntimeHookRegistration>,
     ) -> Result<Self, String> {
-        let mut ordered = self.ordered.clone();
-        for registration in registrations {
+        let registrations = registrations.into_iter().collect::<Vec<_>>();
+        let mut hook_ids = HashSet::with_capacity(self.ordered.len() + registrations.len());
+        for current in &self.ordered {
+            hook_ids.insert(current.descriptor().id.as_str());
+        }
+        for registration in &registrations {
             let id = registration.descriptor().id.as_str();
-            if ordered.iter().any(|current| current.descriptor().id == id) {
+            if !hook_ids.insert(id) {
                 return Err(id.to_string());
             }
-            ordered.push(registration);
         }
+        drop(hook_ids);
+
+        let mut ordered = Vec::with_capacity(self.ordered.len() + registrations.len());
+        ordered.extend(self.ordered.iter().cloned());
+        ordered.extend(registrations);
         ordered.sort_by(|left, right| {
             left.descriptor()
                 .stage

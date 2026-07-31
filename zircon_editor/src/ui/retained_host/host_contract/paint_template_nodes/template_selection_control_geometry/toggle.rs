@@ -7,8 +7,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toggle_
 ) -> FrameRect {
     let metrics = workbench_selection_control_metrics();
     let track_width =
-        toggle_track_width(node, metrics).min((rect.width - metrics.mark_inset_x * 2.0).max(1.0));
-    let track_height = toggle_track_height(node, metrics).min(rect.height.max(1.0));
+        toggle_track_width(node, metrics).min((rect.width - metrics.mark_inset_x * 2.0).max(0.0));
+    let track_height = toggle_track_height(node, metrics).min(rect.height.max(0.0));
     FrameRect {
         x: (rect.x + rect.width - metrics.toggle_right_inset - track_width).max(rect.x),
         y: rect.y + (rect.height - track_height).max(0.0) * 0.5,
@@ -25,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toggle_
     let thumb_size = toggle_thumb_size(node, metrics)
         .min(track.width)
         .min(track.height)
-        .max(1.0);
+        .max(0.0);
     let available = (track.width - thumb_size - metrics.toggle_thumb_inset * 2.0).max(0.0);
     let offset = if node.checked || node.selected {
         available

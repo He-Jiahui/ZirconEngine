@@ -5,7 +5,7 @@ use crate::core::framework::text::{
     TextFontFaceHandle, TextFontRequest, TextGlyphRotation, TextLayoutError, TextLayoutService,
     TextRenderMode, TextShapeRequest, TextShapeResult,
 };
-use crate::text::{shared_text_layout_service, ShapedGlyphRotation};
+use crate::text::{ShapedGlyphRotation, shared_text_layout_service};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiShapedGlyph {
@@ -77,14 +77,14 @@ pub(super) fn resolve_screen_space_text_glyphs(
         Err(error) => (Vec::new(), Some(error)),
     };
     let glyph_advances = if matches!(request.writing_mode, UiTextWritingMode::VerticalRl) {
+        let grapheme_ranges = source_grapheme_ranges(request.text, request.source_range);
         let resolved_advances = if glyph_advances.is_empty() {
-            vertical_advances_by_source_grapheme(request.text, request.source_range, &shaped_glyphs)
+            vertical_advances_for_source_ranges(&grapheme_ranges, &shaped_glyphs)
         } else {
             glyph_advances
         };
-        apply_resolved_vertical_advances(
-            request.text,
-            request.source_range,
+        apply_vertical_advances_for_source_ranges(
+            &grapheme_ranges,
             resolved_advances.as_slice(),
             &mut shaped_glyphs,
         );
@@ -233,21 +233,34 @@ pub(super) fn vertical_advances_by_source_grapheme(
     source_range: UiTextRange,
     glyphs: &[ScreenSpaceUiShapedGlyph],
 ) -> Vec<f32> {
+    let grapheme_ranges = source_grapheme_ranges(text, source_range);
+    vertical_advances_for_source_ranges(&grapheme_ranges, glyphs)
+}
+
+fn source_grapheme_ranges(text: &str, source_range: UiTextRange) -> Vec<UiTextRange> {
     text.grapheme_indices(true)
-        .map(|(start, grapheme)| {
-            let range = UiTextRange {
-                start: source_range.start + start,
-                end: source_range.start + start + grapheme.len(),
-            };
-            glyphs
-                .iter()
-                .filter(|glyph| {
-                    glyph.source_range.end > range.start && glyph.source_range.end <= range.end
-                })
-                .map(|glyph| glyph.advance)
-                .sum::<f32>()
+        .map(|(start, grapheme)| UiTextRange {
+            start: source_range.start + start,
+            end: source_range.start + start + grapheme.len(),
         })
         .collect()
+}
+
+fn vertical_advances_for_source_ranges(
+    grapheme_ranges: &[UiTextRange],
+    glyphs: &[ScreenSpaceUiShapedGlyph],
+) -> Vec<f32> {
+    let mut advances = vec![0.0; grapheme_ranges.len()];
+    for glyph in glyphs {
+        let index = grapheme_ranges.partition_point(|range| range.end < glyph.source_range.end);
+        let Some(range) = grapheme_ranges.get(index) else {
+            continue;
+        };
+        if glyph.source_range.end > range.start {
+            advances[index] += glyph.advance;
+        }
+    }
+    advances
 }
 
 pub(super) fn apply_resolved_vertical_advances(
@@ -256,19 +269,16 @@ pub(super) fn apply_resolved_vertical_advances(
     resolved_advances: &[f32],
     glyphs: &mut [ScreenSpaceUiShapedGlyph],
 ) {
-    let graphemes = text
-        .grapheme_indices(true)
-        .map(|(start, grapheme)| {
-            (
-                UiTextRange {
-                    start: source_range.start + start,
-                    end: source_range.start + start + grapheme.len(),
-                },
-                grapheme,
-            )
-        })
-        .collect::<Vec<_>>();
-    if resolved_advances.len() != graphemes.len()
+    let grapheme_ranges = source_grapheme_ranges(text, source_range);
+    apply_vertical_advances_for_source_ranges(&grapheme_ranges, resolved_advances, glyphs);
+}
+
+fn apply_vertical_advances_for_source_ranges(
+    grapheme_ranges: &[UiTextRange],
+    resolved_advances: &[f32],
+    glyphs: &mut [ScreenSpaceUiShapedGlyph],
+) {
+    if resolved_advances.len() != grapheme_ranges.len()
         || !resolved_advances.iter().any(|advance| *advance > 0.0)
     {
         return;
@@ -281,12 +291,17 @@ pub(super) fn apply_resolved_vertical_advances(
             continue;
         }
         previous_range = Some(glyph.source_range);
-        let advance = graphemes
+        let first = grapheme_ranges.partition_point(|range| range.end <= glyph.source_range.start);
+        let mut advance = 0.0;
+        for (range, resolved_advance) in grapheme_ranges[first..]
             .iter()
-            .zip(resolved_advances)
-            .filter(|((range, _), _)| ranges_overlap(*range, glyph.source_range))
-            .map(|(_, advance)| sanitized_advance(*advance))
-            .sum::<f32>();
+            .zip(&resolved_advances[first..])
+        {
+            if range.start >= glyph.source_range.end {
+                break;
+            }
+            advance += sanitized_advance(*resolved_advance);
+        }
         if advance > 0.0 {
             glyph.advance = advance;
         }
@@ -303,10 +318,6 @@ fn source_scalar_for_range(
     text.get(start..end)?.chars().next()
 }
 
-fn ranges_overlap(lhs: UiTextRange, rhs: UiTextRange) -> bool {
-    lhs.start < rhs.end && rhs.start < lhs.end
-}
-
 fn sanitized_advance(value: f32) -> f32 {
     if value.is_finite() {
         value.max(0.0)
@@ -316,17 +327,60 @@ fn sanitized_advance(value: f32) -> f32 {
 }
 
 fn sanitized_position(value: f32) -> f32 {
-    if value.is_finite() {
-        value
-    } else {
-        0.0
-    }
+    if value.is_finite() { value } else { 0.0 }
 }
 
 #[cfg(all(test, target_os = "windows"))]
 mod tests {
     use super::*;
     use crate::text::font::shared_font_database_snapshot;
+
+    #[test]
+    fn vertical_advance_projection_uses_indexed_source_ranges() {
+        let source = include_str!("text_advances.rs");
+        let indexed_range_api = ["partition", "_point"].concat();
+        let nested_glyph_scan = [".filter", "(|glyph|"].concat();
+
+        assert!(source.contains(&indexed_range_api));
+        assert!(!source.contains(&nested_glyph_scan));
+    }
+
+    #[test]
+    fn vertical_advance_projection_preserves_visual_order_and_spanning_clusters() {
+        let text = "ab";
+        let source_range = UiTextRange { start: 0, end: 2 };
+        let mut glyphs = vec![
+            test_glyph(UiTextRange { start: 1, end: 2 }, 3.0),
+            test_glyph(UiTextRange { start: 0, end: 1 }, 2.0),
+            test_glyph(UiTextRange { start: 0, end: 2 }, 5.0),
+        ];
+
+        assert_eq!(
+            vertical_advances_by_source_grapheme(text, source_range, &glyphs),
+            vec![2.0, 8.0]
+        );
+
+        apply_resolved_vertical_advances(text, source_range, &[10.0, 20.0], &mut glyphs);
+        assert_eq!(
+            glyphs.iter().map(|glyph| glyph.advance).collect::<Vec<_>>(),
+            vec![20.0, 10.0, 30.0]
+        );
+    }
+
+    fn test_glyph(source_range: UiTextRange, advance: f32) -> ScreenSpaceUiShapedGlyph {
+        ScreenSpaceUiShapedGlyph {
+            glyph_id: 1,
+            font_id: None,
+            font_instance_id: None,
+            source_scalar: 'a',
+            source_range,
+            advance,
+            offset_x: 0.0,
+            offset_y: 0.0,
+            rotation: ShapedGlyphRotation::None,
+            requires_atlas_slot: false,
+        }
+    }
 
     #[test]
     fn text_vertical_renderer_projects_backend_advances_by_source_grapheme() {

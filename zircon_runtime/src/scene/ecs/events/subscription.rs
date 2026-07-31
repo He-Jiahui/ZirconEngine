@@ -61,7 +61,10 @@ where
         true
     }
 
-    pub fn read<'events>(&mut self, store: &'events EventStore) -> EventReadIter<'events, T> {
+    pub fn read<'events>(
+        &'events mut self,
+        store: &'events EventStore,
+    ) -> EventReadIter<'events, T> {
         if !self.is_connected() {
             self.cursor.clear(None);
             return EventReadIter::empty();

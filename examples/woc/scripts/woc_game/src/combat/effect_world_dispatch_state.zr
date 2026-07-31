@@ -1,0 +1,829 @@
+// Stateful M4 projection of effect cases that require world, spatial-grid or
+// pet ownership. Ground pulses are delegated to ground_aoe_state; this module
+// preserves the synchronous pulse-before-enqueue call order and shared inputs.
+var container = %import("zr.container");
+var abilities = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+var empowered = %import("generated/empowered_cone_contract");
+var empoweredCone = %import("combat/empowered_cone_state");
+var glacial = %import("combat/glacial_front_state");
+var scaling = %import("combat/spell_scaling");
+
+class WorldSource {
+    pub var id: uint;
+    pub var level: int;
+    pub var x: float;
+    pub var z: float;
+    pub var facing: float;
+    pub var hasCastAim: bool;
+    pub var castAimX: float;
+    pub var castAimZ: float;
+    pub var spellPower: float;
+    pub var rangedPower: float;
+    pub var attackPower: float;
+    pub var spellDamageMultiplier: float;
+    pub var spellCrit: float;
+    pub var critDmgSpellBonus: float;
+    pub var hasOwner: bool;
+    pub var inCombat: bool;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.level = 1;
+        this.x = 0.0;
+        this.z = 0.0;
+        this.facing = 0.0;
+        this.hasCastAim = false;
+        this.castAimX = 0.0;
+        this.castAimZ = 0.0;
+        this.spellPower = 0.0;
+        this.rangedPower = 0.0;
+        this.attackPower = 0.0;
+        this.spellDamageMultiplier = 1.0;
+        this.spellCrit = 0.0;
+        this.critDmgSpellBonus = 0.0;
+        this.hasOwner = false;
+        this.inCombat = false;
+    }
+}
+
+class WorldTargetSpec {
+    pub var id: uint;
+    pub var x: float;
+    pub var z: float;
+    pub var dead: bool;
+    pub var hp: int;
+    pub var hostile: bool;
+    pub var lineOfSight: bool;
+    pub var fireGuaranteedCrit: bool;
+    pub var mob: bool;
+    pub var armorReduction: float;
+    pub var threatTop: float;
+    pub var threatMine: float;
+    pub var ignoreTaunt: bool;
+    pub var dummy: bool;
+    pub var boss: bool;
+    pub var aiState: string;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.x = 0.0;
+        this.z = 0.0;
+        this.dead = false;
+        this.hp = 100;
+        this.hostile = true;
+        this.lineOfSight = true;
+        this.fireGuaranteedCrit = false;
+        this.mob = true;
+        this.armorReduction = 0.0;
+        this.threatTop = 0.0;
+        this.threatMine = 0.0;
+        this.ignoreTaunt = false;
+        this.dummy = false;
+        this.boss = false;
+        this.aiState = "idle";
+    }
+}
+
+class WorldDispatchState {
+    pub var source: WorldSource;
+    // Target arrays retain the spatial-grid traversal order supplied by host.
+    pub var targetIds: container.Array<uint>;
+    pub var targetX: container.Array<float>;
+    pub var targetZ: container.Array<float>;
+    pub var targetDead: container.Array<bool>;
+    pub var targetHp: container.Array<int>;
+    pub var targetHostile: container.Array<bool>;
+    pub var targetLineOfSight: container.Array<bool>;
+    pub var targetFireGuaranteedCrit: container.Array<bool>;
+    pub var targetMob: container.Array<bool>;
+    pub var targetArmorReduction: container.Array<float>;
+    pub var targetThreatTop: container.Array<float>;
+    pub var targetThreatMine: container.Array<float>;
+    pub var targetIgnoreTaunt: container.Array<bool>;
+    pub var targetDummy: container.Array<bool>;
+    pub var targetBoss: container.Array<bool>;
+    pub var targetAiState: container.Array<string>;
+    pub var targetAggroTargetId: container.Array<uint>;
+    pub var targetForcedTargetId: container.Array<uint>;
+    pub var targetForcedTargetTimer: container.Array<float>;
+    pub var targetFleeTimer: container.Array<float>;
+    pub var targetFleeReturnTimer: container.Array<float>;
+    pub var targetInCombat: container.Array<bool>;
+    pub var targetSlowMultipliers: container.Array<float>;
+    pub var targetSlowDurations: container.Array<float>;
+    pub var targetRootDurations: container.Array<float>;
+    pub var targetIncapacitateDurations: container.Array<float>;
+    pub var targetPresent: bool;
+    pub var explicitTargetIndex: int;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var damageTargetIds: container.Array<uint>;
+    pub var damageAmounts: container.Array<int>;
+    pub var damageSchools: container.Array<string>;
+    pub var damageThreatFlat: container.Array<float>;
+    pub var damageThreatMult: container.Array<float>;
+    pub var entitySpellFxEvents: int;
+    pub var worldSpellFxEvents: int;
+    pub var empoweredFxEvents: int;
+    pub var empoweredFxKinds: container.Array<string>;
+    pub var empoweredFxRanges: container.Array<float>;
+    pub var empoweredFxAngles: container.Array<float>;
+    pub var empoweredFxLevels: container.Array<int>;
+    pub var hotStreakNotes: int;
+    pub var hotStreakCrits: int;
+    pub var groundCenterX: container.Array<float>;
+    pub var groundCenterZ: container.Array<float>;
+    pub var groundRadius: container.Array<float>;
+    pub var groundMinimum: container.Array<float>;
+    pub var groundMaximum: container.Array<float>;
+    pub var groundDuration: container.Array<float>;
+    pub var groundInterval: container.Array<float>;
+    pub var groundSpellPowerBonus: container.Array<float>;
+    pub var groundThreatFlat: container.Array<float>;
+    pub var groundThreatMult: container.Array<float>;
+    pub var groundPulseCalls: int;
+    pub var groundEnqueueCalls: int;
+    pub var worldEventOrder: container.Array<string>;
+    pub var summonMobIds: container.Array<string>;
+    pub var aggroMobCalls: int;
+    pub var enterCombatEvents: int;
+    pub var consumedEffects: int;
+
+    pub @constructor() {
+        this.source = new WorldSource();
+        this.targetIds = new container.Array<uint>();
+        this.targetX = new container.Array<float>();
+        this.targetZ = new container.Array<float>();
+        this.targetDead = new container.Array<bool>();
+        this.targetHp = new container.Array<int>();
+        this.targetHostile = new container.Array<bool>();
+        this.targetLineOfSight = new container.Array<bool>();
+        this.targetFireGuaranteedCrit = new container.Array<bool>();
+        this.targetMob = new container.Array<bool>();
+        this.targetArmorReduction = new container.Array<float>();
+        this.targetThreatTop = new container.Array<float>();
+        this.targetThreatMine = new container.Array<float>();
+        this.targetIgnoreTaunt = new container.Array<bool>();
+        this.targetDummy = new container.Array<bool>();
+        this.targetBoss = new container.Array<bool>();
+        this.targetAiState = new container.Array<string>();
+        this.targetAggroTargetId = new container.Array<uint>();
+        this.targetForcedTargetId = new container.Array<uint>();
+        this.targetForcedTargetTimer = new container.Array<float>();
+        this.targetFleeTimer = new container.Array<float>();
+        this.targetFleeReturnTimer = new container.Array<float>();
+        this.targetInCombat = new container.Array<bool>();
+        this.targetSlowMultipliers = new container.Array<float>();
+        this.targetSlowDurations = new container.Array<float>();
+        this.targetRootDurations = new container.Array<float>();
+        this.targetIncapacitateDurations = new container.Array<float>();
+        this.targetPresent = false;
+        this.explicitTargetIndex = -1;
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.damageTargetIds = new container.Array<uint>();
+        this.damageAmounts = new container.Array<int>();
+        this.damageSchools = new container.Array<string>();
+        this.damageThreatFlat = new container.Array<float>();
+        this.damageThreatMult = new container.Array<float>();
+        this.entitySpellFxEvents = 0;
+        this.worldSpellFxEvents = 0;
+        this.empoweredFxEvents = 0;
+        this.empoweredFxKinds = new container.Array<string>();
+        this.empoweredFxRanges = new container.Array<float>();
+        this.empoweredFxAngles = new container.Array<float>();
+        this.empoweredFxLevels = new container.Array<int>();
+        this.hotStreakNotes = 0;
+        this.hotStreakCrits = 0;
+        this.groundCenterX = new container.Array<float>();
+        this.groundCenterZ = new container.Array<float>();
+        this.groundRadius = new container.Array<float>();
+        this.groundMinimum = new container.Array<float>();
+        this.groundMaximum = new container.Array<float>();
+        this.groundDuration = new container.Array<float>();
+        this.groundInterval = new container.Array<float>();
+        this.groundSpellPowerBonus = new container.Array<float>();
+        this.groundThreatFlat = new container.Array<float>();
+        this.groundThreatMult = new container.Array<float>();
+        this.groundPulseCalls = 0;
+        this.groundEnqueueCalls = 0;
+        this.worldEventOrder = new container.Array<string>();
+        this.summonMobIds = new container.Array<string>();
+        this.aggroMobCalls = 0;
+        this.enterCombatEvents = 0;
+        this.consumedEffects = 0;
+    }
+}
+
+appendTarget(state: WorldDispatchState, spec: WorldTargetSpec): void {
+    state.targetIds.add(spec.id);
+    state.targetX.add(spec.x);
+    state.targetZ.add(spec.z);
+    state.targetDead.add(spec.dead);
+    state.targetHp.add(spec.hp);
+    state.targetHostile.add(spec.hostile);
+    state.targetLineOfSight.add(spec.lineOfSight);
+    state.targetFireGuaranteedCrit.add(spec.fireGuaranteedCrit);
+    state.targetMob.add(spec.mob);
+    state.targetArmorReduction.add(spec.armorReduction);
+    state.targetThreatTop.add(spec.threatTop);
+    state.targetThreatMine.add(spec.threatMine);
+    state.targetIgnoreTaunt.add(spec.ignoreTaunt);
+    state.targetDummy.add(spec.dummy);
+    state.targetBoss.add(spec.boss);
+    state.targetAiState.add(spec.aiState);
+    state.targetAggroTargetId.add(<uint>0);
+    state.targetForcedTargetId.add(<uint>0);
+    state.targetForcedTargetTimer.add(0.0);
+    state.targetFleeTimer.add(5.0);
+    state.targetFleeReturnTimer.add(5.0);
+    state.targetInCombat.add(false);
+    state.targetSlowMultipliers.add(0.0);
+    state.targetSlowDurations.add(0.0);
+    state.targetRootDurations.add(0.0);
+    state.targetIncapacitateDurations.add(0.0);
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+takeRandomUnit(state: WorldDispatchState): float {
+    if (state.randomIndex < 0 || state.randomIndex >= state.randomUnits.length) {
+        throw "world effect random stream is exhausted";
+    }
+    var result = <float>state.randomUnits[state.randomIndex];
+    state.randomIndex = state.randomIndex + 1;
+    return result;
+}
+
+randomRange(state: WorldDispatchState, minimum: float, maximum: float): float {
+    return minimum + takeRandomUnit(state) * (maximum - minimum);
+}
+
+centerX(state: WorldDispatchState): float {
+    return state.source.hasCastAim ? state.source.castAimX : state.source.x;
+}
+
+centerZ(state: WorldDispatchState): float {
+    return state.source.hasCastAim ? state.source.castAimZ : state.source.z;
+}
+
+emitNova(state: WorldDispatchState): void {
+    if (state.source.hasCastAim) {
+        state.worldSpellFxEvents = state.worldSpellFxEvents + 1;
+    } else {
+        state.entitySpellFxEvents = state.entitySpellFxEvents + 1;
+    }
+    state.worldEventOrder.add("fx");
+}
+
+scalingPower(state: WorldDispatchState, school: string): float {
+    return scaling.abilityScalingPower(
+        state.source.spellPower,
+        state.source.rangedPower,
+        state.source.attackPower,
+        school,
+        false
+    );
+}
+
+aoeSpellPowerBonus(state: WorldDispatchState, abilityIndex: int): int {
+    var school = abilities.text(abilityIndex, "school");
+    return scaling.directHitBonus(
+        scalingPower(state, school),
+        school,
+        false,
+        abilities.metric(abilityIndex, state.source.level, "castTime"),
+        true
+    );
+}
+
+eligibleRadiusTarget(
+    state: WorldDispatchState,
+    index: int,
+    x: float,
+    z: float,
+    radius: float
+): bool {
+    if (<uint>state.targetIds[index] == state.source.id ||
+        <bool>state.targetDead[index] ||
+        <bool>state.targetHostile[index] == false ||
+        <bool>state.targetLineOfSight[index] == false) {
+        return false;
+    }
+    var dx = <float>state.targetX[index] - x;
+    var dz = <float>state.targetZ[index] - z;
+    return dx * dx + dz * dz <= radius * radius;
+}
+
+recordDamage(
+    state: WorldDispatchState,
+    index: int,
+    amount: int,
+    school: string,
+    abilityIndex: int
+): void {
+    state.damageTargetIds.add(<uint>state.targetIds[index]);
+    state.damageAmounts.add(amount);
+    state.damageSchools.add(school);
+    state.damageThreatFlat.add(
+        abilities.metric(abilityIndex, state.source.level, "threatFlat")
+    );
+    state.damageThreatMult.add(
+        abilities.metric(abilityIndex, state.source.level, "threatMult")
+    );
+}
+
+// The existing generic world-effect fixture stores pre-mitigation damage
+// events. Empowered cones need the immediately-following liveness decision to
+// preserve effect_dispatch's `if (m.dead) continue`, so this narrow bridge also
+// updates the fixture hit point projection before returning control metadata.
+targetSurvivesEmpoweredDamage(
+    state: WorldDispatchState,
+    index: int,
+    amount: int,
+    school: string
+): bool {
+    state.damageTargetIds.add(<uint>state.targetIds[index]);
+    state.damageAmounts.add(amount);
+    state.damageSchools.add(school);
+    state.damageThreatFlat.add(0.0);
+    state.damageThreatMult.add(1.0);
+    state.worldEventOrder.add("damage");
+    var remaining = <int>state.targetHp[index] - amount;
+    if (remaining <= 0) {
+        state.targetHp[index] = 0;
+        state.targetDead[index] = true;
+        return false;
+    }
+    state.targetHp[index] = remaining;
+    return true;
+}
+
+empoweredSpellPowerBonus(
+    state: WorldDispatchState,
+    ability: uint,
+    level: int
+): float {
+    var stages = empowered.stageCount(ability);
+    if (stages <= 0) return 0.0;
+    return <float>scaling.directHitBonus(
+        scalingPower(state, empowered.school(ability)),
+        empowered.school(ability),
+        false,
+        empowered.castTime(ability) * (<float>level / <float>stages),
+        true
+    );
+}
+
+// Source effect_dispatch emits spellfx once, then visits `hostilesInRadius` in
+// supplied spatial order. Each surviving eligible target consumes crit then
+// damage RNG; a lethal hit still contributes to Dragon's Breath's deferred Hot
+// Streak note, but never receives its post-damage control aura or combat entry.
+pub dispatchEmpoweredCone(
+    state: WorldDispatchState,
+    ability: uint,
+    requestedLevel: int
+): int {
+    var cast = empoweredCone.beginCast(ability, requestedLevel);
+    if (!cast.valid) return 0;
+    state.empoweredFxEvents = state.empoweredFxEvents + 1;
+    state.empoweredFxKinds.add(cast.fx);
+    state.empoweredFxRanges.add(cast.range);
+    state.empoweredFxAngles.add(cast.angle);
+    state.empoweredFxLevels.add(cast.level);
+    state.worldEventOrder.add("empoweredFx");
+
+    var spellPower = empoweredSpellPowerBonus(state, ability, cast.level);
+    var batch = new empoweredCone.EmpoweredConeBatch();
+    var index = 0;
+    while (index < state.targetIds.length) {
+        if (<uint>state.targetIds[index] != state.source.id &&
+            !<bool>state.targetDead[index] && <int>state.targetHp[index] > 0 &&
+            <bool>state.targetHostile[index] && <bool>state.targetLineOfSight[index]) {
+            var target = new glacial.PointXZ(
+                <float>state.targetX[index], <float>state.targetZ[index]
+            );
+            var origin = new glacial.PointXZ(state.source.x, state.source.z);
+            if (glacial.glacialFrontContains(origin, state.source.facing, target, cast.range, cast.angle)) {
+                var critRoll = takeRandomUnit(state) < state.source.spellCrit;
+                var damageUnit = takeRandomUnit(state);
+                var provisional = empoweredCone.resolveHit(
+                    ability, cast.level, origin, state.source.facing, target,
+                    true, true, true, critRoll,
+                    <bool>state.targetFireGuaranteedCrit[index], damageUnit,
+                    spellPower, state.source.spellDamageMultiplier,
+                    state.source.critDmgSpellBonus
+                );
+                var survives = targetSurvivesEmpoweredDamage(
+                    state, index, provisional.damage, empowered.school(ability)
+                );
+                var hit = empoweredCone.resolveHit(
+                    ability, cast.level, origin, state.source.facing, target,
+                    true, true, survives, critRoll,
+                    <bool>state.targetFireGuaranteedCrit[index], damageUnit,
+                    spellPower, state.source.spellDamageMultiplier,
+                    state.source.critDmgSpellBonus
+                );
+                batch.record(hit);
+                if (hit.appliesSlow) {
+                    state.targetSlowMultipliers[index] = hit.slowMultiplier;
+                    state.targetSlowDurations[index] = hit.slowDuration;
+                    state.worldEventOrder.add("slow");
+                }
+                if (hit.appliesIncapacitate) {
+                    state.targetIncapacitateDurations[index] = hit.incapacitateDuration;
+                    state.worldEventOrder.add("incapacitate");
+                }
+                if (hit.appliesRoot) {
+                    state.targetRootDurations[index] = hit.rootDuration;
+                    state.worldEventOrder.add("root");
+                }
+                if (hit.entersCombat) {
+                    enterCombat(state, index);
+                    state.worldEventOrder.add("combat");
+                }
+            }
+        }
+        index = index + 1;
+    }
+    if (batch.shouldNoteHotStreak(ability)) {
+        state.hotStreakNotes = state.hotStreakNotes + 1;
+        if (batch.hotStreakCritical) state.hotStreakCrits = state.hotStreakCrits + 1;
+        state.worldEventOrder.add("hotStreak");
+    }
+    return batch.eligibleHitCount;
+}
+
+dispatchAoeDamage(
+    state: WorldDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    var x = centerX(state);
+    var z = centerZ(state);
+    var radius = effects.metric(abilityIndex, rank, effectIndex, "radius");
+    var school = abilities.text(abilityIndex, "school");
+    var isSpell = school != "physical";
+    var bonus = aoeSpellPowerBonus(state, abilityIndex);
+    emitNova(state);
+    var index = 0;
+    while (index < state.targetIds.length) {
+        if (eligibleRadiusTarget(state, index, x, z, radius)) {
+            var damage = randomRange(
+                state,
+                effects.metric(abilityIndex, rank, effectIndex, "min"),
+                effects.metric(abilityIndex, rank, effectIndex, "max")
+            ) + <float>bonus;
+            if (isSpell) {
+                damage = damage * state.source.spellDamageMultiplier;
+            } else {
+                damage = damage * (1.0 - <float>state.targetArmorReduction[index]);
+            }
+            recordDamage(state, index, roundPositive(damage), school, abilityIndex);
+        }
+        index = index + 1;
+    }
+}
+
+dispatchGroundAoe(
+    state: WorldDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): void {
+    emitNova(state);
+    state.groundCenterX.add(centerX(state));
+    state.groundCenterZ.add(centerZ(state));
+    state.groundRadius.add(effects.metric(abilityIndex, rank, effectIndex, "radius"));
+    state.groundMinimum.add(effects.metric(abilityIndex, rank, effectIndex, "min"));
+    state.groundMaximum.add(effects.metric(abilityIndex, rank, effectIndex, "max"));
+    state.groundDuration.add(effects.metric(abilityIndex, rank, effectIndex, "duration"));
+    state.groundInterval.add(effects.metric(abilityIndex, rank, effectIndex, "interval"));
+    var spellPowerBonus = aoeSpellPowerBonus(state, abilityIndex);
+    state.groundSpellPowerBonus.add(<float>spellPowerBonus);
+    state.groundThreatFlat.add(
+        abilities.metric(abilityIndex, state.source.level, "threatFlat")
+    );
+    state.groundThreatMult.add(
+        abilities.metric(abilityIndex, state.source.level, "threatMult")
+    );
+    // pulseGroundAoE is synchronous; only after it returns is the zone retained.
+    state.groundPulseCalls = state.groundPulseCalls + 1;
+    state.worldEventOrder.add("groundPulse");
+    state.groundEnqueueCalls = state.groundEnqueueCalls + 1;
+    state.worldEventOrder.add("groundEnqueue");
+}
+
+validExplicitTarget(state: WorldDispatchState): bool {
+    return state.targetPresent &&
+        state.explicitTargetIndex >= 0 &&
+        state.explicitTargetIndex < state.targetIds.length;
+}
+
+enterCombat(state: WorldDispatchState, index: int): void {
+    state.source.inCombat = true;
+    state.targetInCombat[index] = true;
+    state.enterCombatEvents = state.enterCombatEvents + 1;
+}
+
+dispatchTaunt(state: WorldDispatchState): void {
+    if (!validExplicitTarget(state)) { return; }
+    var index = state.explicitTargetIndex;
+    if (<bool>state.targetMob[index] == false || <bool>state.targetDead[index]) { return; }
+    var top = <float>state.targetThreatTop[index];
+    var mine = <float>state.targetThreatMine[index];
+    if (mine < top) { mine = top; }
+    if (mine < 1.0) { mine = 1.0; }
+    state.targetThreatMine[index] = mine;
+    if (<bool>state.targetIgnoreTaunt[index] || <bool>state.targetDummy[index] ||
+        (state.source.hasOwner && <bool>state.targetBoss[index])) {
+        enterCombat(state, index);
+        return;
+    }
+    state.targetForcedTargetId[index] = state.source.id;
+    state.targetForcedTargetTimer[index] = 3.0;
+    var aiState = <string>state.targetAiState[index];
+    if (aiState == "idle") {
+        state.aggroMobCalls = state.aggroMobCalls + 1;
+    } else if (aiState == "chase" || aiState == "attack") {
+        state.targetAggroTargetId[index] = state.source.id;
+    } else if (aiState == "flee") {
+        state.targetAggroTargetId[index] = state.source.id;
+        state.targetAiState[index] = "attack";
+        state.targetFleeTimer[index] = 0.0;
+        state.targetFleeReturnTimer[index] = 0.0;
+    }
+    enterCombat(state, index);
+}
+
+pub dispatchWorldEffect(
+    state: WorldDispatchState,
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int
+): bool {
+    var effectType = effects.typeAt(abilityIndex, rank, effectIndex);
+    if (effectType == "aoeDamage") {
+        dispatchAoeDamage(state, abilityIndex, rank, effectIndex);
+    } else if (effectType == "groundAoE") {
+        dispatchGroundAoe(state, abilityIndex, rank, effectIndex);
+    } else if (effectType == "taunt") {
+        dispatchTaunt(state);
+    } else if (effectType == "summonDemon") {
+        state.summonMobIds.add(effects.text(abilityIndex, rank, effectIndex, "mobId"));
+    } else {
+        return false;
+    }
+    state.consumedEffects = state.consumedEffects + 1;
+    return true;
+}
+
+pub dispatchWorldAbility(
+    state: WorldDispatchState,
+    abilityIndex: int,
+    rank: int
+): int {
+    var handled = 0;
+    var index = 0;
+    while (index < effects.count(abilityIndex, rank)) {
+        if (dispatchWorldEffect(state, abilityIndex, rank, index)) {
+            handled = handled + 1;
+        }
+        index = index + 1;
+    }
+    return handled;
+}
+
+pub contractTest(): int {
+    var area = new WorldDispatchState();
+    area.source.id = <uint>1;
+    area.source.level = 14;
+    area.source.spellPower = 300.0;
+    var first = new WorldTargetSpec();
+    first.id = <uint>2;
+    first.x = 3.0;
+    appendTarget(area, first);
+    var dead = new WorldTargetSpec();
+    dead.id = <uint>3;
+    dead.x = 2.0;
+    dead.dead = true;
+    appendTarget(area, dead);
+    var blocked = new WorldTargetSpec();
+    blocked.id = <uint>4;
+    blocked.x = 4.0;
+    blocked.lineOfSight = false;
+    appendTarget(area, blocked);
+    var second = new WorldTargetSpec();
+    second.id = <uint>5;
+    second.x = 5.0;
+    appendTarget(area, second);
+    var far = new WorldTargetSpec();
+    far.id = <uint>6;
+    far.x = 12.0;
+    appendTarget(area, far);
+    var friendly = new WorldTargetSpec();
+    friendly.id = <uint>7;
+    friendly.x = 1.0;
+    friendly.hostile = false;
+    appendTarget(area, friendly);
+    area.randomUnits.add(0.0);
+    area.randomUnits.add(0.5);
+    if (dispatchWorldAbility(area, 11, 1) != 1 || area.randomIndex != 2 ||
+        area.entitySpellFxEvents != 1 || area.worldSpellFxEvents != 0 ||
+        area.damageAmounts.length != 2 ||
+        <uint>area.damageTargetIds[0] != <uint>2 ||
+        <uint>area.damageTargetIds[1] != <uint>5 ||
+        <int>area.damageAmounts[0] != 69 || <int>area.damageAmounts[1] != 72) {
+        return -1;
+    }
+
+    var aimed = new WorldDispatchState();
+    aimed.source.id = <uint>1;
+    aimed.source.level = 14;
+    aimed.source.hasCastAim = true;
+    aimed.source.castAimX = 10.0;
+    var aimedTarget = new WorldTargetSpec();
+    aimedTarget.id = <uint>8;
+    aimedTarget.x = 12.0;
+    appendTarget(aimed, aimedTarget);
+    aimed.randomUnits.add(0.0);
+    dispatchWorldAbility(aimed, 11, 1);
+    if (aimed.worldSpellFxEvents != 1 || aimed.entitySpellFxEvents != 0 ||
+        aimed.damageTargetIds.length != 1 || aimed.randomIndex != 1) {
+        return -2;
+    }
+
+    var ground = new WorldDispatchState();
+    ground.source.id = <uint>9;
+    ground.source.level = 18;
+    ground.source.spellPower = 300.0;
+    dispatchWorldAbility(ground, 5, 1);
+    if (ground.randomIndex != 0 || ground.groundPulseCalls != 1 ||
+        ground.groundEnqueueCalls != 1 || ground.groundRadius.length != 1 ||
+        !closeEnough(<float>ground.groundRadius[0], 8.0) ||
+        !closeEnough(<float>ground.groundMinimum[0], 28.0) ||
+        !closeEnough(<float>ground.groundMaximum[0], 34.0) ||
+        !closeEnough(<float>ground.groundDuration[0], 10.0) ||
+        !closeEnough(<float>ground.groundInterval[0], 2.0) ||
+        !closeEnough(<float>ground.groundSpellPowerBonus[0], 43.0) ||
+        ground.worldEventOrder.length != 3 ||
+        <string>ground.worldEventOrder[0] != "fx" ||
+        <string>ground.worldEventOrder[1] != "groundPulse" ||
+        <string>ground.worldEventOrder[2] != "groundEnqueue") {
+        return -3;
+    }
+
+    var taunt = new WorldDispatchState();
+    taunt.source.id = <uint>3;
+    var fleeing = new WorldTargetSpec();
+    fleeing.id = <uint>20;
+    fleeing.x = 1.0;
+    fleeing.threatTop = 100.0;
+    fleeing.threatMine = 20.0;
+    fleeing.aiState = "flee";
+    appendTarget(taunt, fleeing);
+    taunt.targetPresent = true;
+    taunt.explicitTargetIndex = 0;
+    dispatchWorldAbility(taunt, 4, 1);
+    if (!closeEnough(<float>taunt.targetThreatMine[0], 100.0) ||
+        <uint>taunt.targetForcedTargetId[0] != <uint>3 ||
+        !closeEnough(<float>taunt.targetForcedTargetTimer[0], 3.0) ||
+        <uint>taunt.targetAggroTargetId[0] != <uint>3 ||
+        <string>taunt.targetAiState[0] != "attack" ||
+        !closeEnough(<float>taunt.targetFleeTimer[0], 0.0) ||
+        !taunt.source.inCombat || <bool>taunt.targetInCombat[0] == false) {
+        return -4;
+    }
+
+    var immune = new WorldDispatchState();
+    immune.source.id = <uint>4;
+    var dummy = new WorldTargetSpec();
+    dummy.id = <uint>21;
+    dummy.x = 1.0;
+    dummy.threatTop = 50.0;
+    dummy.ignoreTaunt = true;
+    appendTarget(immune, dummy);
+    immune.targetPresent = true;
+    immune.explicitTargetIndex = 0;
+    dispatchWorldAbility(immune, 4, 1);
+    if (!closeEnough(<float>immune.targetThreatMine[0], 50.0) ||
+        <uint>immune.targetForcedTargetId[0] != <uint>0 ||
+        immune.enterCombatEvents != 1) {
+        return -5;
+    }
+
+    var petBoss = new WorldDispatchState();
+    petBoss.source.id = <uint>5;
+    petBoss.source.hasOwner = true;
+    var boss = new WorldTargetSpec();
+    boss.id = <uint>22;
+    boss.x = 1.0;
+    boss.boss = true;
+    boss.threatTop = 80.0;
+    appendTarget(petBoss, boss);
+    petBoss.targetPresent = true;
+    petBoss.explicitTargetIndex = 0;
+    dispatchWorldAbility(petBoss, 4, 1);
+    if (!closeEnough(<float>petBoss.targetThreatMine[0], 80.0) ||
+        <uint>petBoss.targetForcedTargetId[0] != <uint>0) {
+        return -6;
+    }
+
+    var idle = new WorldDispatchState();
+    idle.source.id = <uint>6;
+    var idleMob = new WorldTargetSpec();
+    idleMob.id = <uint>23;
+    idleMob.x = 1.0;
+    appendTarget(idle, idleMob);
+    idle.targetPresent = true;
+    idle.explicitTargetIndex = 0;
+    dispatchWorldAbility(idle, 4, 1);
+    if (idle.aggroMobCalls != 1 ||
+        <uint>idle.targetForcedTargetId[0] != <uint>6) {
+        return -7;
+    }
+
+    var summon = new WorldDispatchState();
+    dispatchWorldAbility(summon, 9, 1);
+    if (summon.summonMobIds.length != 1 ||
+        <string>summon.summonMobIds[0] != "emberkin" ||
+        summon.randomIndex != 0) {
+        return -8;
+    }
+
+    var glacialCone = new WorldDispatchState();
+    glacialCone.source.id = <uint>30;
+    glacialCone.source.facing = 0.0;
+    var glacialTarget = new WorldTargetSpec();
+    glacialTarget.id = <uint>31;
+    glacialTarget.z = 10.0;
+    glacialTarget.hp = 200;
+    appendTarget(glacialCone, glacialTarget);
+    glacialCone.randomUnits.add(0.8);
+    glacialCone.randomUnits.add(0.5);
+    if (dispatchEmpoweredCone(glacialCone, empowered.glacialFrontAbilityCode(true), 4) != 1 ||
+        glacialCone.empoweredFxEvents != 1 || glacialCone.empoweredFxRanges.length != 1 ||
+        !closeEnough(<float>glacialCone.empoweredFxRanges[0], 16.0) ||
+        <int>glacialCone.empoweredFxLevels[0] != 4 || glacialCone.randomIndex != 2 ||
+        glacialCone.damageAmounts.length != 1 || <int>glacialCone.damageAmounts[0] != 96 ||
+        <int>glacialCone.targetHp[0] != 104 || <bool>glacialCone.targetDead[0] ||
+        !closeEnough(<float>glacialCone.targetSlowDurations[0], 4.0) ||
+        !closeEnough(<float>glacialCone.targetRootDurations[0], 1.0) ||
+        glacialCone.enterCombatEvents != 1) {
+        return -10;
+    }
+
+    var dragonCone = new WorldDispatchState();
+    dragonCone.source.id = <uint>40;
+    dragonCone.source.facing = 0.0;
+    var dragonTarget = new WorldTargetSpec();
+    dragonTarget.id = <uint>41;
+    dragonTarget.z = 10.0;
+    dragonTarget.hp = 200;
+    appendTarget(dragonCone, dragonTarget);
+    dragonCone.randomUnits.add(0.8);
+    dragonCone.randomUnits.add(0.5);
+    if (dispatchEmpoweredCone(dragonCone, empowered.dragonsBreathAbilityCode(true), 4) != 1 ||
+        glacialCone.hotStreakNotes != 0 || dragonCone.hotStreakNotes != 1 ||
+        dragonCone.hotStreakCrits != 1 || <int>dragonCone.damageAmounts[0] != 150 ||
+        <int>dragonCone.targetHp[0] != 50 ||
+        !closeEnough(<float>dragonCone.targetIncapacitateDurations[0], 3.0) ||
+        dragonCone.enterCombatEvents != 1) {
+        return -11;
+    }
+
+    var lethalDragon = new WorldDispatchState();
+    lethalDragon.source.id = <uint>50;
+    lethalDragon.source.facing = 0.0;
+    var lethalTarget = new WorldTargetSpec();
+    lethalTarget.id = <uint>51;
+    lethalTarget.z = 5.0;
+    lethalTarget.hp = 100;
+    appendTarget(lethalDragon, lethalTarget);
+    lethalDragon.randomUnits.add(0.8);
+    lethalDragon.randomUnits.add(0.9);
+    if (dispatchEmpoweredCone(lethalDragon, empowered.dragonsBreathAbilityCode(true), 4) != 1 ||
+        !<bool>lethalDragon.targetDead[0] || <int>lethalDragon.targetHp[0] != 0 ||
+        !closeEnough(<float>lethalDragon.targetIncapacitateDurations[0], 0.0) ||
+        lethalDragon.enterCombatEvents != 0 || lethalDragon.hotStreakNotes != 1 ||
+        lethalDragon.hotStreakCrits != 1) {
+        return -12;
+    }
+
+    var unsupported = new WorldDispatchState();
+    if (dispatchWorldEffect(unsupported, 1, 1, 0) ||
+        unsupported.consumedEffects != 0 || unsupported.randomIndex != 0) {
+        return -9;
+    }
+    return 1;
+}

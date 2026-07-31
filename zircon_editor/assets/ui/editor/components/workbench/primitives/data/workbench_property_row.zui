@@ -6,7 +6,7 @@ display_name = "Workbench Property Row"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchPropertyRow]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-property-row", "workbench-primitive"]
 component = "PropertyRow"
 control_id = "WorkbenchPropertyRowRoot"
 classes = ["workbench-property-row"]
-props = { text = "Property", value = "Value", layout_padding_left = 8.0, layout_padding_right = 8.0, layout_spacing = 4.0, layout_min_height = 28.0 }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Property", value = "Value", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.dense" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }

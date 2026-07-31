@@ -22,7 +22,7 @@ fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_st
         &wgpu_device,
         &[
             "use std::sync::{Arc, Mutex, MutexGuard};",
-            "fn lock_state(&self) -> MutexGuard<'_, WgpuRenderDeviceState>",
+            "fn lock_state(&self) -> MutexGuard<'_, DeterministicRhiContractDeviceState>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "self.lock_state().transient_allocator_stats()",
             "wgpu_render_device_state_accessors_recover_poisoned_lock",

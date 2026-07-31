@@ -94,8 +94,8 @@ def _native_dynamic_package_export(
         "editor_entry_source": "NativePluginAbiV3.editor_entry_name",
         "host_function_table": "NativePluginHostFunctionTableV3",
         "entry_report_contract": "NativePluginEntryReportV3",
-        "behavior_contract": "NativePluginBehaviorV3",
-        "state_snapshot_contract": "NativePluginBehaviorV3.save_state/restore_state",
+        "behavior_contract": "NativePluginBehaviorV4",
+        "state_snapshot_contract": "NativePluginBehaviorV4.save_state/restore_state",
         "bridge_method_table": "NativePluginBridgeMethodTableV3",
     }
     if abi_overrides:

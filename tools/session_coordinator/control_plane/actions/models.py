@@ -340,6 +340,7 @@ class SessionParameters(ActionParameters):
 class ValidationTemplate(StrEnum):
     COORDINATOR_ACTIONS = "coordinator-actions"
     WEB_CHECK = "web-check"
+    RUNTIME14_RUST_FOCUSED = "runtime14-rust-focused"
 
 
 @dataclass(frozen=True, slots=True)
@@ -557,18 +558,26 @@ class TopologyRefreshParameters(ActionParameters):
     def parse(cls, payload: Mapping[str, object]) -> "TopologyRefreshParameters":
         keys = set(payload)
         basic = {"sessionId"}
+        prepare = {"sessionId", "milestoneId"}
         review = {
             "sessionId", "executorSessionId", "runId", "milestoneId", "criticalCount",
             "importantCount", "summary",
         }
-        if keys not in (basic, review):
+        if keys not in (basic, prepare, review):
             raise CoordinatorError(
                 "action_parameters_invalid",
-                "Topology refresh accepts either a Session or one complete review submission",
+                "Topology refresh accepts a Session, a milestone prepare, or one complete review submission",
             )
         session = SessionParameters._from_payload({"sessionId": payload["sessionId"]})
         if keys == basic:
             return cls(session.session_id)
+        if keys == prepare:
+            milestone_id = str(payload["milestoneId"]).strip().upper()
+            if _COMMIT_NODE_ID.fullmatch(milestone_id) is None:
+                raise CoordinatorError(
+                    "action_parameters_invalid", "Milestone or slice ID is invalid"
+                )
+            return cls(session.session_id, milestone_id=milestone_id)
         executor = SessionParameters._from_payload(
             {"sessionId": payload["executorSessionId"]}
         )
@@ -608,7 +617,10 @@ class TopologyRefreshParameters(ActionParameters):
 
     def to_payload(self) -> dict[str, object]:
         if self.run_id is None:
-            return {"sessionId": self.session_id}
+            payload: dict[str, object] = {"sessionId": self.session_id}
+            if self.milestone_id is not None:
+                payload["milestoneId"] = self.milestone_id
+            return payload
         return {
             "sessionId": self.session_id,
             "executorSessionId": self.executor_session_id or "",

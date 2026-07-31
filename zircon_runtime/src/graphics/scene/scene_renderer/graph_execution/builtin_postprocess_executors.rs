@@ -12,7 +12,6 @@ use self::frame_effects::{
 use self::graph_resources::product_postprocess_executor;
 use self::resource_routing::{
     bloom_input_resource, output_transfer_input_resource, output_transfer_output_resource,
-    uber_input_resource,
 };
 
 mod frame_effects;
@@ -567,7 +566,6 @@ pub(super) fn screen_space_reflection_specular_occlusion_executor(
 pub(super) fn uber_postprocess_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
-    let _input_resource = uber_input_resource(context);
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_post_process_stack(&pass_name)

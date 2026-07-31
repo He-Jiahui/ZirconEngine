@@ -16,3 +16,17 @@ fn ripple_enabled_does_not_imply_full_state_layer_overlay() {
 
     assert_eq!(commands.len(), 1);
 }
+
+#[test]
+fn idle_state_layer_checks_paint_eligibility_before_resolving_color() {
+    let source = include_str!("../material_state_layer.rs");
+    let opacity = source
+        .find("let overlay_opacity = state_layer_opacity(node)")
+        .expect("entry should resolve overlay eligibility");
+    let color = source
+        .find("let color = state_layer_color(node)")
+        .expect("entry should resolve color only for visible paint");
+
+    assert!(opacity < color);
+    assert!(source[opacity..color].contains("return"));
+}

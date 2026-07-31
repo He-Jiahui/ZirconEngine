@@ -514,7 +514,7 @@ fn minimal_runtime_profile_module_loading_does_not_inherit_legacy_target_default
     assert_eq!(
         module_names,
         vec![
-            crate::foundation::FOUNDATION_MODULE_NAME,
+            crate::core::framework::foundation::FOUNDATION_MODULE_NAME,
             crate::core::runtime::modules::TASKS_MODULE_NAME,
             crate::core::runtime::modules::TIME_MODULE_NAME,
             crate::core::runtime::modules::FRAME_COUNT_MODULE_NAME,

@@ -1,5 +1,7 @@
 mod commands;
 mod identity;
+#[cfg(test)]
+mod instrumentation;
 mod layout;
 mod panel;
 mod row;

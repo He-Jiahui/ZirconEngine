@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/casting_lifecycle_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/casting_lifecycle.ts": "3cbc1421bbf3970a9e43f14400f6dfd0420e82dbd9faf01a1218e8fa4eaf214e",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "id": "casting_lifecycle",
+  "constants": {
+    "tick_rate": 20,
+    "dt": 0.05,
+    "cast_complete_eps": 1e-9,
+    "cast_pushback_sec": 0.5,
+    "channel_pushback_fraction": 0.25
+  },
+  "mass_resurrection_order": "stun; mass_resurrection_in_combat; mass_resurrection_no_dead_group_member; silence; school_lockout; tick"
+}

@@ -94,6 +94,45 @@ fn componentized_workbench_status_bar_syncs_chrome_and_task_progress() {
 }
 
 #[test]
+fn status_task_progress_uses_semantic_tone_without_local_rgb_overrides() {
+    let _guard = env_lock().lock().unwrap();
+    let mut chrome = default_preview_fixture().build_chrome();
+    chrome.status_task_progress = Some(
+        StatusTaskProgressSnapshot::new("shader_compile:3", "Compile shaders")
+            .with_percent(48)
+            .with_tone(StatusTaskProgressTone::Warning),
+    );
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+
+    bridge.sync_from_chrome(&chrome).unwrap();
+
+    for control_id in [
+        "WorkbenchStatusTaskProgress",
+        "WorkbenchStatusTaskLabel",
+        "WorkbenchStatusTaskBar",
+    ] {
+        assert_eq!(
+            control_string(&bridge, control_id, "text_tone").as_deref(),
+            Some("warning"),
+            "{control_id} should preserve semantic task tone"
+        );
+    }
+    for control_id in ["WorkbenchStatusTaskProgress", "WorkbenchStatusTaskBar"] {
+        assert_eq!(
+            control_string(&bridge, control_id, "track_fill_color"),
+            None,
+            "{control_id} should resolve its track from the shared palette"
+        );
+        assert_eq!(
+            control_string(&bridge, control_id, "value_color"),
+            None,
+            "{control_id} should resolve its fill from the semantic tone"
+        );
+    }
+}
+
+#[test]
 fn componentized_workbench_status_bar_collapses_task_slot_when_idle() {
     let _guard = env_lock().lock().unwrap();
     let chrome = default_preview_fixture().build_chrome();
@@ -362,19 +401,21 @@ fn assert_compact_status_item_frame(frame: UiFrame, expected_width: f32) {
     assert!((frame.height - 46.0).abs() < 0.001 || (frame.height - 30.0).abs() < 0.001);
 }
 
-fn template_contract_node(
-    nodes: &ModelRc<TemplatePaneNodeData>,
+fn template_contract_node<'a>(
+    nodes: &'a ModelRc<TemplatePaneNodeData>,
     control_id: &str,
-) -> TemplatePaneNodeData {
-    template_contract_node_optional(nodes, control_id)
+) -> &'a TemplatePaneNodeData {
+    (0..nodes.row_count())
+        .filter_map(|row| nodes.get(row))
+        .find(|node| node.control_id.as_str() == control_id)
         .unwrap_or_else(|| panic!("{control_id} should project to the host contract"))
 }
 
-fn template_contract_node_optional(
-    nodes: &ModelRc<TemplatePaneNodeData>,
+fn template_contract_node_optional<'a>(
+    nodes: &'a ModelRc<TemplatePaneNodeData>,
     control_id: &str,
-) -> Option<TemplatePaneNodeData> {
+) -> Option<&'a TemplatePaneNodeData> {
     (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
+        .filter_map(|row| nodes.get(row))
         .find(|node| node.control_id.as_str() == control_id)
 }

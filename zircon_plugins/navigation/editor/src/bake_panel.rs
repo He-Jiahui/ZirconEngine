@@ -1,10 +1,10 @@
 use std::fmt;
 
 use zircon_editor::core::editor_operation::{EditorOperationInvocation, EditorOperationPath};
-use zircon_runtime::core::framework::navigation::{NavMeshBakeReport, NavMeshBakeRequest};
 use zircon_runtime::core::framework::navigation::{
     NAVIGATION_BAKE_SURFACE_OPERATION, NAVIGATION_CLEAR_SURFACE_OPERATION,
 };
+use zircon_runtime::core::framework::navigation::{NavMeshBakeReport, NavMeshBakeRequest};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NavigationBakeSurfaceRow {
@@ -420,9 +420,12 @@ impl NavigationBakePanel {
         let operation = EditorOperationPath::parse(operation)
             .expect("navigation retained operation constants must remain valid");
         let arguments = if operation.as_str() == NAVIGATION_BAKE_SURFACE_OPERATION {
-            serde_json::json!([surface_entity, self.force_full_rebuild])
+            serde_json::json!({
+                "surface_entity": surface_entity,
+                "force_full_rebuild": self.force_full_rebuild,
+            })
         } else {
-            serde_json::json!([surface_entity])
+            serde_json::json!({ "surface_entity": surface_entity })
         };
         Ok(EditorOperationInvocation::new(operation).with_arguments(arguments))
     }

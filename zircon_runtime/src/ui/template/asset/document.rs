@@ -294,25 +294,23 @@ impl UiAssetDocumentRuntimeExt for UiAssetDocument {
         else {
             return Ok(false);
         };
-        if self.style_sheet(target_stylesheet_id).is_none() {
-            return Ok(false);
-        }
-
-        let mut stylesheets = self.stylesheets.clone();
-        let rule = stylesheets[source_stylesheet_index]
-            .rules
-            .remove(source_rule_index);
-        let target_stylesheet_index = stylesheets
+        let Some(target_stylesheet_index) = self
+            .stylesheets
             .iter()
             .position(|stylesheet| stylesheet.id == target_stylesheet_id)
-            .expect("target stylesheet checked above");
-        let insert_index = target_index.min(stylesheets[target_stylesheet_index].rules.len());
-        stylesheets[target_stylesheet_index]
+        else {
+            return Ok(false);
+        };
+
+        validate_style_rule_ids(&self.asset.id, &self.stylesheets)?;
+        validate_style_rule_selectors(&self.stylesheets)?;
+        let rule = self.stylesheets[source_stylesheet_index]
+            .rules
+            .remove(source_rule_index);
+        let insert_index = target_index.min(self.stylesheets[target_stylesheet_index].rules.len());
+        self.stylesheets[target_stylesheet_index]
             .rules
             .insert(insert_index, rule);
-        validate_style_rule_ids(&self.asset.id, &stylesheets)?;
-        validate_style_rule_selectors(&stylesheets)?;
-        self.stylesheets = stylesheets;
         Ok(true)
     }
 
@@ -481,7 +479,8 @@ impl UiAssetDocumentRuntimeExt for UiAssetDocument {
     }
 
     fn iter_nodes(&self) -> UiAssetNodeIter<'_> {
-        let mut stack = Vec::new();
+        let mut stack =
+            Vec::with_capacity(self.components.len() + usize::from(self.root.is_some()));
         for component in self.components.values().rev() {
             stack.push(&component.root);
         }

@@ -478,3 +478,20 @@ fn ui_document_compiler_resolves_nested_material_role_tokens_in_props_and_styles
         "style rules should resolve typography role aliases"
     );
 }
+
+#[test]
+fn component_reference_inline_style_merge_borrows_overrides_without_deep_clone() {
+    let style_apply = include_str!("../template/asset/compiler/style_apply.rs");
+    let prototype = include_str!("../template/asset/compiler/prototype_instancer.rs");
+
+    for source in [style_apply, prototype] {
+        assert!(
+            source.contains("(&mut node.attributes, &node.style_overrides)"),
+            "inline style merge must borrow disjoint node fields"
+        );
+        assert!(
+            !source.contains("let inline = node.style_overrides.clone();"),
+            "inline style merge must not deep-clone the full override map"
+        );
+    }
+}

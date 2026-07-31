@@ -9,6 +9,8 @@ related_code:
   - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
+  - zircon_runtime/src/plugin/export_build_plan/export_profile_validation.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_search_does_not_allocate_normalized_ids
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_matches_short_and_qualified_ids_without_normalizing
@@ -51,6 +53,8 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
   - zircon_runtime/src/asset/tests/project/manifest.rs
+  - zircon_app/src/entry/tests/export_bootstrap.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/profiles.rs
 implementation_files:
   - zircon_runtime_interface/src/export/mod.rs
   - zircon_runtime_interface/src/export/artifact.rs
@@ -60,6 +64,8 @@ implementation_files:
   - zircon_runtime/src/asset/project/manifest.rs
   - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
+  - zircon_runtime/src/plugin/export_build_plan/export_profile_validation.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
@@ -90,7 +96,12 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
   - zircon_runtime/src/asset/tests/project/manifest.rs
+  - zircon_app/src/entry/tests/export_bootstrap.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/profiles.rs
 plan_sources:
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - docs/plans/zircon_editor/editor/15-build-export-and-publishing.md
   - docs/plans/zircon_plugins/09-export-publishing.md
   - docs/plans/zircon_plugins/index.md
@@ -98,6 +109,8 @@ tests:
   - zircon_runtime_interface/src/export/tests.rs
   - zircon_editor/src/core/export/tests.rs
   - export_profile_map_table_parses_planned_profile_asset_fields
+  - export_profile_deserialization_preserves_missing_runtime_profile_id_for_validation
+  - export_profile_runtime_profile_selection_has_no_name_or_target_fallback
   - profile_with_features_compiles_to_build_plan
   - invalid_plugin_combination_rejected_with_diagnostic
   - validate_report_summarizes_profile_plan_and_fatal_state
@@ -160,6 +173,18 @@ key when the profile body omits it.
 - `features` is a per-owner map of selected optional feature ids.
 - `asset_filter` is stored on the profile for the later asset-pack/cook stage.
 
+## Runtime Profile Identity Hard Cut
+
+`ExportProfile::new` requires a canonical `RuntimeProfileId` together with target mode and target
+platform. Runtime, App, and Editor construction paths therefore state Client2d, Client3d, Editor,
+Minimal, or Server identity at the call site; there is no builder that can add the identity later.
+
+The serialized field remains `Option<RuntimeProfileId>` only because project files are an
+untrusted input boundary. A missing value produces the same diagnostic in `diagnostics` and
+`fatal_diagnostics`, leaves runtime-plugin availability empty, and blocks export materialization.
+`from_project_manifest/profile.rs` never derives an identity from target mode or from profile-name
+text such as `"3d"`.
+
 ## Projection Rules
 
 `from_project_manifest/profile_projection.rs` runs after builtin catalog completion and before the
@@ -194,24 +219,39 @@ usable by editor, runtime binaries, and plugin packages without depending on run
 
 `ExportValidateReport::from_build_plan(...)` records:
 
-- `stage = Validate`, the project manifest path, profile name, stage output directory, profile
-  presence, and fatal state.
+- `schema_version = 2`, `stage = Validate`, the project manifest path, profile name, stage output
+  directory, profile presence, and fatal state.
 - de-duplicated `diagnostics` and `effective_fatal_diagnostics`.
 - a profile summary containing target mode, target platform, build mode, strategies, selected
   plugins, selected features, and asset filter.
 - a plan summary containing enabled runtime plugins, linked runtime crates, native dynamic
-  packages, NativeDynamic ABI v3 package exports, generated file metadata plus generated contents
-  for SourceTemplate materialization, optional LibraryEmbed/SourceTemplate build plans, and runtime
-  plugin availability.
+  packages, NativeDynamic ABI v3 package exports, compact generated-file metadata
+  (`path`/`purpose`/byte length/content digest), optional LibraryEmbed/SourceTemplate build plans,
+  and runtime plugin availability. Generated contents are never embedded in the default report.
+
+Callers that need full generated contents must request the separate schema-v1 contents artifact.
+The report records that artifact's absolute path, encoded byte length, and SHA-256 digest, so
+consumers can verify it without duplicating the payload into the report or guessing which working
+directory owned a relative CLI argument.
+
+The Python `Validate` stage always requests both files. Before `SourceTemplate` creates or resets a
+generated project, it validates the complete report schema v2, verifies the artifact byte length
+and SHA-256 against the report, validates the artifact schema with an exact integer version, and
+matches every artifact row to the compact report metadata. There is no report-embedded `contents`
+fallback.
 
 The `zircon_export_validate` binary is a thin shell around this DTO. It loads `ProjectManifest`,
-calls `ExportBuildPlan::from_project_manifest`, writes optional `report.json`, prints the same JSON
-to stdout, and exits with code `2` when the report is fatal.
+calls `ExportBuildPlan::from_project_manifest`, writes optional `report.json` and explicit contents
+artifact outputs, and exits with code `2` when the report is fatal. Supplying `--report` suppresses
+stdout unless `--stdout` is also present. When both outputs are requested, the CLI opens and
+compares their file identities before truncating either file, rejecting same-path, hard-link, and
+symlink/parent-component aliases.
 
 Runtime 15 F5 export CLI typed errors (`runtime_15_export_cli_typed_errors_static_passed_cargo_deferred`)
 keeps that shell thin while giving it a typed internal error boundary. `zircon_export_validate/error.rs`
 owns `ExportValidateError` / `ExportValidateResult`; argument usage, report JSON encoding, report
-directory creation, and report file writes are no longer transported as `Result<_, String>`.
+or contents-artifact directory creation, output identity checks, and file writes are no longer
+transported as `Result<_, String>`.
 Project-manifest load and build-plan validation failures still become `ExportValidateReport`
 diagnostics, because those are user-facing stage-report fields rather than internal Rust errors.
 `review_f5_export_cli_uses_typed_errors_before_cli_boundary` locks the boundary together with the

@@ -126,6 +126,7 @@ impl EditorUiHost {
         registry.clear_instances();
         self.lock_animation_editor_sessions().clear();
         self.lock_ui_asset_sessions().clear();
+        self.lock_ui_asset_dependency_generation().clear();
 
         let workspace = workspace.expect("checked above");
         session.layout = workspace.workbench;
@@ -189,6 +190,7 @@ impl EditorUiHost {
         registry.clear_instances();
         self.lock_animation_editor_sessions().clear();
         self.lock_ui_asset_sessions().clear();
+        self.lock_ui_asset_dependency_generation().clear();
         let mut session = EditorSessionState::default();
         let snapshot = self.lock_capability_snapshot().clone();
         let subsystem_report = self.lock_subsystem_report().clone();
@@ -250,8 +252,20 @@ impl EditorUiHost {
         }
         self.lock_animation_editor_sessions()
             .retain(|instance_id, _| session.open_view_instances.contains_key(instance_id));
-        self.lock_ui_asset_sessions()
-            .retain(|instance_id, _| session.open_view_instances.contains_key(instance_id));
+        let removed_ui_asset_instances = {
+            let mut sessions = self.lock_ui_asset_sessions();
+            let removed = sessions
+                .keys()
+                .filter(|instance_id| !session.open_view_instances.contains_key(*instance_id))
+                .cloned()
+                .collect::<Vec<_>>();
+            sessions.retain(|instance_id, _| session.open_view_instances.contains_key(instance_id));
+            removed
+        };
+        let mut dependency_generation = self.lock_ui_asset_dependency_generation();
+        for instance_id in removed_ui_asset_instances {
+            dependency_generation.remove(&instance_id);
+        }
         self.lock_window_host_manager()
             .sync_layout_windows(&session.layout);
     }

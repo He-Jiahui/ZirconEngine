@@ -1,7 +1,7 @@
 mod commands;
 mod identity;
 mod layers;
-mod layout;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) mod layout;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) mod metrics;
 mod surface;
 mod text;

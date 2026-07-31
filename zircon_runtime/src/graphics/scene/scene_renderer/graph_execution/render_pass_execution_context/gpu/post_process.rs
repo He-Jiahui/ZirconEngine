@@ -5,8 +5,8 @@ use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::post_process::{
-    color_lut_bake_dispatch_groups, color_lut_bake_workgroup_size, ScenePostProcessResources,
-    SceneRuntimeFeatureFlags,
+    ScenePostProcessResources, SceneRuntimeFeatureFlags, color_lut_bake_dispatch_groups,
+    color_lut_bake_workgroup_size,
 };
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::{

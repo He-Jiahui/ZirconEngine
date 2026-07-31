@@ -1,21 +1,50 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::math::{transform_to_mat4, Mat4, Transform};
+use crate::core::math::{Mat4, Transform, transform_to_mat4};
 
 use super::World;
+use crate::scene::EntityId;
 use crate::scene::components::{ActiveInHierarchy, NodeKind, NodeRecord, SceneNode, WorldMatrix};
 use crate::scene::ecs::{InternalSceneSystem, SystemStage};
-use crate::scene::EntityId;
+
+pub(super) const NODE_KIND_ORDINAL_COUNT: usize = 9;
+
+const fn node_kind_ordinal_index(kind: NodeKind) -> usize {
+    match kind {
+        NodeKind::Empty => 0,
+        NodeKind::Camera => 1,
+        NodeKind::Cube => 2,
+        NodeKind::Mesh => 3,
+        NodeKind::AmbientLight => 4,
+        NodeKind::DirectionalLight => 5,
+        NodeKind::PointLight => 6,
+        NodeKind::RectLight => 7,
+        NodeKind::SpotLight => 8,
+    }
+}
 
 impl World {
     pub(super) fn ordinal_for(&self, kind: NodeKind) -> usize {
-        let mut ordinal = 1;
-        for entity in self.entities.iter().copied() {
-            if self.kinds.get(&entity) == Some(&kind) {
-                ordinal += 1;
-            }
+        self.node_kind_ordinals[node_kind_ordinal_index(kind)].saturating_add(1)
+    }
+
+    pub(super) fn record_node_kind_added(&mut self, kind: NodeKind) {
+        let ordinal = &mut self.node_kind_ordinals[node_kind_ordinal_index(kind)];
+        *ordinal = ordinal.saturating_add(1);
+    }
+
+    pub(super) fn record_node_kind_removed(&mut self, kind: NodeKind) {
+        let ordinal = &mut self.node_kind_ordinals[node_kind_ordinal_index(kind)];
+        *ordinal = ordinal.saturating_sub(1);
+    }
+
+    pub(super) fn rebuild_node_kind_ordinals(&mut self) {
+        let mut ordinals = [0_usize; NODE_KIND_ORDINAL_COUNT];
+        for kind in self.kinds.values().copied() {
+            let ordinal = &mut ordinals[node_kind_ordinal_index(kind)];
+            *ordinal = ordinal.saturating_add(1);
         }
-        ordinal
+        self.node_kind_ordinals = ordinals;
     }
 
     pub(super) fn node_kind(&self, entity: EntityId) -> Option<NodeKind> {
@@ -129,6 +158,21 @@ impl World {
     pub(super) fn collect_subtree_records(&self, entity: EntityId, records: &mut Vec<NodeRecord>) {
         let traversal = self.hierarchy_traversal_index();
         self.collect_subtree_records_with_traversal(entity, records, &traversal);
+    }
+
+    pub(super) fn subtree_entity_ids(&self, root: EntityId) -> Vec<EntityId> {
+        if !self.contains_entity(root) {
+            return Vec::new();
+        }
+
+        let traversal = self.hierarchy_traversal_index();
+        let mut entities = Vec::new();
+        let mut stack = vec![root];
+        while let Some(entity) = stack.pop() {
+            entities.push(entity);
+            stack.extend(traversal.children_of(entity).iter().rev().copied());
+        }
+        entities
     }
 
     fn collect_subtree_records_with_traversal(
@@ -261,6 +305,7 @@ impl World {
 
     fn rebuild_hierarchy_validity(&mut self) {
         let parents = self.hierarchy_parent_snapshot();
+        let mut seen = HashSet::new();
 
         for entity_index in 0..self.entities.len() {
             let entity = self.entities[entity_index];
@@ -271,7 +316,7 @@ impl World {
             hierarchy.parent = parent.filter(|parent| {
                 *parent != entity
                     && parents.contains_key(parent)
-                    && !parent_chain_is_invalid(*parent, entity, &parents)
+                    && !parent_chain_is_invalid(*parent, entity, &parents, &mut seen)
             });
         }
     }
@@ -457,8 +502,10 @@ fn parent_chain_is_invalid(
     start_parent: EntityId,
     entity: EntityId,
     parents: &HashMap<EntityId, Option<EntityId>>,
+    seen: &mut HashSet<EntityId>,
 ) -> bool {
-    let mut seen = HashSet::from([entity]);
+    seen.clear();
+    seen.insert(entity);
     let mut cursor = Some(start_parent);
     while let Some(current) = cursor {
         if !seen.insert(current) {

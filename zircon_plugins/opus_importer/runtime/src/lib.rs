@@ -2,8 +2,8 @@ mod capability;
 mod plugin;
 
 pub use capability::{
-    MODULE_NAME, NATIVE_IMPORTER_CAPABILITY, OPUS_IMPORTER_CAPABILITY, OPUS_IMPORTER_ID,
-    OPUS_IMPORTER_PRIORITY, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+    MODULE_NAME, NATIVE_IMPORTER_CAPABILITY, OPUS_IMPORTER_CAPABILITY, OPUS_IMPORTER_DECLARATION,
+    OPUS_IMPORTER_ID, OPUS_IMPORTER_PRIORITY, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
 pub use plugin::{
     asset_importer_descriptor, asset_importer_descriptors, dist_module_manifest, module_descriptor,
@@ -31,8 +31,11 @@ mod tests {
             runtime_capabilities(),
             &[RUNTIME_CAPABILITY, OPUS_IMPORTER_CAPABILITY]
         );
-        assert_eq!(manifest.supported_targets, supported_targets());
-        assert_eq!(manifest.supported_platforms, supported_platforms());
+        assert_eq!(manifest.supported_targets.as_slice(), supported_targets());
+        assert_eq!(
+            manifest.supported_platforms.as_slice(),
+            supported_platforms()
+        );
         assert!(manifest
             .capabilities
             .contains(&RUNTIME_CAPABILITY.to_string()));
@@ -82,6 +85,34 @@ mod tests {
         let selection = runtime_selection();
         assert_eq!(selection.packaging, ExportPackagingStrategy::LibraryEmbed);
         assert_eq!(selection.runtime_crate.as_deref(), Some(RUNTIME_CRATE_NAME));
+    }
+
+    #[test]
+    fn declaration_projects_opus_package_metadata() {
+        let descriptor = runtime_plugin_descriptor();
+        let manifest = package_manifest();
+
+        assert_eq!(descriptor.package_id(), OPUS_IMPORTER_DECLARATION.id());
+        assert_eq!(descriptor.category(), OPUS_IMPORTER_DECLARATION.category());
+        assert_eq!(
+            descriptor.target_modes(),
+            OPUS_IMPORTER_DECLARATION.target_modes()
+        );
+        assert_eq!(
+            descriptor.capabilities(),
+            runtime_capabilities()
+                .iter()
+                .map(|capability| capability.to_string())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            manifest.supported_platforms.as_slice(),
+            OPUS_IMPORTER_DECLARATION.supported_platforms()
+        );
+        assert_eq!(
+            manifest.default_packaging.as_slice(),
+            OPUS_IMPORTER_DECLARATION.default_packaging()
+        );
     }
 
     #[test]

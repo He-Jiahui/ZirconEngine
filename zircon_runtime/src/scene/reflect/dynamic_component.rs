@@ -159,7 +159,7 @@ fn read_fields(
     let fields = &registration.type_info.fields;
     let mut values = Vec::with_capacity(fields.len());
     for field in fields {
-        let value = read_field(world, entity, type_path, &field.name)?;
+        let value = read_declared_field(world, entity, type_path, field)?;
         values.push(ReflectFieldValue::new(field.name.clone(), value));
     }
     Ok(values)

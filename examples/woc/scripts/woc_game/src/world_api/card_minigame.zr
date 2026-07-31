@@ -1,0 +1,174 @@
+// Current-head host-neutral projection of IWorldCardMinigame from
+// src/world_api/card_minigame.ts and src/ui/card_duel_view.ts at
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. WOS publication and retained
+// painting are deliberately separate runtime/UI responsibilities.
+var container = %import("zr.container");
+var deckContract = %import("generated/card_duel_contract");
+var serviceModule = %import("social/card_duel_service");
+
+// Mirrors CardMinigameInfo without exposing an opponent hand. matchPresent
+// represents TypeScript's nullable `match` so the value stays ZrVM-friendly.
+pub class CardMinigameInfo {
+    pub var queued: bool;
+    pub var available: bool;
+    pub var matchPresent: bool;
+    pub var opponentId: uint;
+    pub var opponentName: string;
+    pub var hand: container.Array<uint>;
+    pub var deckCount: int;
+    pub var discardCount: int;
+    pub var myRounds: int;
+    pub var opponentRounds: int;
+    pub var waitingOnOpponent: bool;
+
+    pub @constructor() {
+        this.queued = false;
+        this.available = false;
+        this.matchPresent = false;
+        this.opponentId = <uint>0;
+        this.opponentName = "";
+        this.hand = new container.Array<uint>();
+        this.deckCount = 0;
+        this.discardCount = 0;
+        this.myRounds = 0;
+        this.opponentRounds = 0;
+        this.waitingOnOpponent = false;
+    }
+}
+
+pub class CardDuelHandCardView {
+    pub var value: uint;
+    pub var playable: bool;
+
+    pub @constructor() {
+        this.value = <uint>0;
+        this.playable = false;
+    }
+}
+
+// state: 1 idle, 2 unavailable, 3 queued, 4 in-match.
+pub class CardDuelViewModel {
+    pub var state: int;
+    pub var hand: container.Array<CardDuelHandCardView>;
+    pub var deckCount: int;
+    pub var discardCount: int;
+    pub var opponentName: string;
+    pub var myRounds: int;
+    pub var opponentRounds: int;
+    pub var waitingOnOpponent: bool;
+
+    pub @constructor() {
+        this.state = 2;
+        this.hand = new container.Array<CardDuelHandCardView>();
+        this.deckCount = 0;
+        this.discardCount = 0;
+        this.opponentName = "";
+        this.myRounds = 0;
+        this.opponentRounds = 0;
+        this.waitingOnOpponent = false;
+    }
+}
+
+copyHand(source: container.Array<uint>): container.Array<uint> {
+    var result = new container.Array<uint>();
+    for (var value in source) result.add(<uint>value);
+    return result;
+}
+
+pub idleInfo(queued: bool, available: bool): CardMinigameInfo {
+    var info = new CardMinigameInfo();
+    info.queued = queued;
+    info.available = available;
+    return info;
+}
+
+pub matchInfo(
+    opponentId: uint,
+    opponentName: string,
+    hand: container.Array<uint>,
+    deckCount: int,
+    discardCount: int,
+    myRounds: int,
+    opponentRounds: int,
+    waitingOnOpponent: bool
+): CardMinigameInfo {
+    if (opponentId == <uint>0 || deckCount < 0 || discardCount < 0 ||
+        myRounds < 0 || opponentRounds < 0) {
+        throw "card minigame snapshot has invalid counts";
+    }
+    var cardMax = <uint>deckContract.cardMaxValue(true);
+    for (var value in hand) {
+        if (<uint>value == <uint>0 || <uint>value > cardMax) {
+            throw "card minigame snapshot has an invalid hand value";
+        }
+    }
+    var info = new CardMinigameInfo();
+    info.queued = false;
+    info.available = true;
+    info.matchPresent = true;
+    info.opponentId = opponentId;
+    info.opponentName = opponentName;
+    info.hand = copyHand(hand);
+    info.deckCount = deckCount;
+    info.discardCount = discardCount;
+    info.myRounds = myRounds;
+    info.opponentRounds = opponentRounds;
+    info.waitingOnOpponent = waitingOnOpponent;
+    return info;
+}
+
+// The world owns identity/display-name lookup. The Card Duel service exposes
+// only the queried player's hand, and this adapter copies that one local view
+// into the IWorld-shaped DTO used by the retained UI projection.
+pub infoFromService(
+    state: serviceModule.CardDuelService,
+    pid: uint,
+    opponentName: string
+): CardMinigameInfo {
+    if (!serviceModule.inMatch(state, pid)) {
+        return idleInfo(serviceModule.queued(state, pid), serviceModule.available(state, pid));
+    }
+    var hand = new container.Array<uint>();
+    var index = 0;
+    while (index < serviceModule.handCount(state, pid)) {
+        hand.add(serviceModule.heldCardAt(state, pid, index));
+        index = index + 1;
+    }
+    return matchInfo(
+        serviceModule.opponentId(state, pid),
+        opponentName,
+        hand,
+        serviceModule.deckCount(state, pid),
+        serviceModule.discardCount(state, pid),
+        serviceModule.myRounds(state, pid),
+        serviceModule.opponentRounds(state, pid),
+        serviceModule.waitingOnOpponent(state, pid)
+    );
+}
+
+// Same state precedence as buildCardDuelView: a live match wins; otherwise a
+// queued snapshot wins over availability so its leave action remains visible.
+pub viewState(info: CardMinigameInfo): int {
+    if (info.matchPresent) return 4;
+    if (info.queued) return 3;
+    return info.available ? 1 : 2;
+}
+
+pub buildView(info: CardMinigameInfo): CardDuelViewModel {
+    var view = new CardDuelViewModel();
+    view.state = viewState(info);
+    if (!info.matchPresent) return view;
+    view.deckCount = info.deckCount;
+    view.discardCount = info.discardCount;
+    view.opponentName = info.opponentName;
+    view.myRounds = info.myRounds;
+    view.opponentRounds = info.opponentRounds;
+    view.waitingOnOpponent = info.waitingOnOpponent;
+    for (var value in info.hand) {
+        var card = new CardDuelHandCardView();
+        card.value = <uint>value;
+        card.playable = !info.waitingOnOpponent;
+        view.hand.add(card);
+    }
+    return view;
+}

@@ -1,0 +1,262 @@
+// Current-head projection of Nythraxis quest-object interaction. Entity spawn,
+// event delivery, and persistent quest logs stay at the plugin/WOS boundary;
+// this state retains the credit, resolved-count, and sharing decisions.
+var container = %import("zr.container");
+
+var NYTHRAXIS_PARTY_INTERACT_RANGE = 30.0;
+
+pub class NythraxisQuestParticipant {
+    pub var id: int;
+    pub var active: bool;
+    pub var dead: bool;
+    pub var partyMember: bool;
+    pub var distance: float;
+    pub var objectiveCount: int;
+    pub var hasResolvedObjectiveRequired: bool;
+    pub var resolvedObjectiveRequired: int;
+
+    pub @constructor(id: int) {
+        this.id = id;
+        this.active = true;
+        this.dead = false;
+        this.partyMember = true;
+        this.distance = 0.0;
+        this.objectiveCount = 0;
+        this.hasResolvedObjectiveRequired = false;
+        this.resolvedObjectiveRequired = 0;
+    }
+}
+
+pub class NythraxisQuestInteractState {
+    pub var objectItemId: string;
+    pub var objectiveMatchesObject: bool;
+    pub var actorId: int;
+    pub var objectiveBaseRequired: int;
+    pub var ritualHasKeystone: bool;
+    pub var guardianKillCount: int;
+    pub var guardianKillRequired: int;
+    pub var participants: container.Array<NythraxisQuestParticipant>;
+    pub var handled: bool;
+    pub var missingKeystoneErrors: int;
+    pub var guardianSummonRequests: int;
+    pub var progressEvents: int;
+    pub var readyChecks: int;
+    pub var visionEmissions: int;
+    pub var visionRecipientIds: container.Array<int>;
+    pub var progressRecipientIds: container.Array<int>;
+    pub var progressRequiredValues: container.Array<int>;
+
+    pub @constructor() {
+        this.objectItemId = "";
+        this.objectiveMatchesObject = true;
+        this.actorId = 0;
+        this.objectiveBaseRequired = 1;
+        this.ritualHasKeystone = false;
+        this.guardianKillCount = 0;
+        this.guardianKillRequired = 1;
+        this.participants = new container.Array<NythraxisQuestParticipant>();
+        this.handled = false;
+        this.missingKeystoneErrors = 0;
+        this.guardianSummonRequests = 0;
+        this.progressEvents = 0;
+        this.readyChecks = 0;
+        this.visionEmissions = 0;
+        this.visionRecipientIds = new container.Array<int>();
+        this.progressRecipientIds = new container.Array<int>();
+        this.progressRequiredValues = new container.Array<int>();
+    }
+}
+
+pub addParticipant(state: NythraxisQuestInteractState, participant: NythraxisQuestParticipant): void {
+    state.participants.add(participant);
+}
+
+findParticipantIndex(state: NythraxisQuestInteractState, id: int): int {
+    var index = 0;
+    while (index < state.participants.length) {
+        var member = <NythraxisQuestParticipant>state.participants[index];
+        if (member.id == id) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+actorParticipant(state: NythraxisQuestInteractState): NythraxisQuestParticipant {
+    var index = findParticipantIndex(state, state.actorId);
+    if (index < 0) { throw "Nythraxis quest actor is missing"; }
+    return <NythraxisQuestParticipant>state.participants[index];
+}
+
+pub resolvedObjectiveRequired(
+    state: NythraxisQuestInteractState,
+    participant: NythraxisQuestParticipant
+): int {
+    return participant.hasResolvedObjectiveRequired ?
+        participant.resolvedObjectiveRequired : state.objectiveBaseRequired;
+}
+
+isSharedNythraxisObject(objectItemId: string): bool {
+    return objectItemId == "grave_sir_aldren" ||
+        objectItemId == "grave_high_priest_malric" ||
+        objectItemId == "grave_captain_voss" ||
+        objectItemId == "crypt_ritual_circle";
+}
+
+containsId(ids: container.Array<int>, id: int): bool {
+    var index = 0;
+    while (index < ids.length) {
+        if (<int>ids[index] == id) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+sharedParticipantIds(state: NythraxisQuestInteractState): container.Array<int> {
+    var recipients = new container.Array<int>();
+    var actor = actorParticipant(state);
+    if (!isSharedNythraxisObject(state.objectItemId)) {
+        recipients.add(actor.id);
+        return recipients;
+    }
+    var index = 0;
+    while (index < state.participants.length) {
+        var member = <NythraxisQuestParticipant>state.participants[index];
+        // This is deliberately the authored objective count, matching the
+        // source prefilter. Credit below applies each member's resolved count.
+        if (member.partyMember && member.active && !member.dead &&
+            member.objectiveCount < state.objectiveBaseRequired &&
+            member.distance <= NYTHRAXIS_PARTY_INTERACT_RANGE) {
+            recipients.add(member.id);
+        }
+        index = index + 1;
+    }
+    if (!containsId(recipients, actor.id)) {
+        recipients.add(actor.id);
+    }
+    return recipients;
+}
+
+// Returns handled after the target-object match. The source marks a matching
+// interaction handled even when an already-complete objective emits no credit.
+pub interactQuestObject(state: NythraxisQuestInteractState): bool {
+    state.handled = false;
+    var actor = actorParticipant(state);
+    if (!actor.active || !state.objectiveMatchesObject) { return false; }
+    state.handled = true;
+
+    var ritual = state.objectItemId == "crypt_ritual_circle";
+    if (ritual && !state.ritualHasKeystone) {
+        state.missingKeystoneErrors = state.missingKeystoneErrors + 1;
+        return true;
+    }
+    if (ritual && state.guardianKillCount < state.guardianKillRequired) {
+        state.guardianSummonRequests = state.guardianSummonRequests + 1;
+    }
+    if (actor.objectiveCount >= resolvedObjectiveRequired(state, actor)) { return true; }
+
+    var recipients = sharedParticipantIds(state);
+    var index = 0;
+    while (index < recipients.length) {
+        var memberIndex = findParticipantIndex(state, <int>recipients[index]);
+        if (memberIndex >= 0) {
+            var member = <NythraxisQuestParticipant>state.participants[memberIndex];
+            if (member.active) {
+                var required = resolvedObjectiveRequired(state, member);
+                if (member.objectiveCount < required) {
+                    member.objectiveCount = member.objectiveCount + 1;
+                    state.progressEvents = state.progressEvents + 1;
+                    state.readyChecks = state.readyChecks + 1;
+                    state.progressRecipientIds.add(member.id);
+                    state.progressRequiredValues.add(required);
+                }
+            }
+        }
+        index = index + 1;
+    }
+    index = 0;
+    while (index < recipients.length) {
+        state.visionRecipientIds.add(<int>recipients[index]);
+        index = index + 1;
+    }
+    state.visionEmissions = state.visionEmissions + 1;
+    return true;
+}
+
+pub contractTest(): int {
+    var shared = new NythraxisQuestInteractState();
+    shared.objectItemId = "grave_sir_aldren";
+    shared.actorId = 1;
+    shared.objectiveBaseRequired = 3;
+    var actor = new NythraxisQuestParticipant(1);
+    actor.hasResolvedObjectiveRequired = true;
+    actor.resolvedObjectiveRequired = 1;
+    var nearby = new NythraxisQuestParticipant(2);
+    nearby.distance = 12.0;
+    nearby.hasResolvedObjectiveRequired = true;
+    nearby.resolvedObjectiveRequired = 1;
+    var far = new NythraxisQuestParticipant(3);
+    far.distance = 30.1;
+    addParticipant(shared, actor);
+    addParticipant(shared, nearby);
+    addParticipant(shared, far);
+    if (!interactQuestObject(shared) || actor.objectiveCount != 1 ||
+        nearby.objectiveCount != 1 || far.objectiveCount != 0 ||
+        shared.progressEvents != 2 || shared.readyChecks != 2 ||
+        shared.visionEmissions != 1 || shared.visionRecipientIds.length != 2 ||
+        <int>shared.visionRecipientIds[0] != 1 || <int>shared.visionRecipientIds[1] != 2 ||
+        <int>shared.progressRequiredValues[0] != 1 || <int>shared.progressRequiredValues[1] != 1) {
+        return -1;
+    }
+    if (!interactQuestObject(shared) || shared.progressEvents != 2 ||
+        shared.visionEmissions != 1 || shared.visionRecipientIds.length != 2) {
+        return -2;
+    }
+
+    var resolvedCap = new NythraxisQuestInteractState();
+    resolvedCap.objectItemId = "grave_high_priest_malric";
+    resolvedCap.actorId = 4;
+    resolvedCap.objectiveBaseRequired = 2;
+    var capActor = new NythraxisQuestParticipant(4);
+    var capPeer = new NythraxisQuestParticipant(5);
+    capPeer.objectiveCount = 1;
+    capPeer.hasResolvedObjectiveRequired = true;
+    capPeer.resolvedObjectiveRequired = 1;
+    addParticipant(resolvedCap, capActor);
+    addParticipant(resolvedCap, capPeer);
+    if (!interactQuestObject(resolvedCap) || capActor.objectiveCount != 1 ||
+        capPeer.objectiveCount != 1 || resolvedCap.progressEvents != 1 ||
+        resolvedCap.visionRecipientIds.length != 2 ||
+        <int>resolvedCap.progressRequiredValues[0] != 2) {
+        return -3;
+    }
+
+    var ritual = new NythraxisQuestInteractState();
+    ritual.objectItemId = "crypt_ritual_circle";
+    ritual.actorId = 6;
+    ritual.objectiveBaseRequired = 1;
+    var ritualActor = new NythraxisQuestParticipant(6);
+    addParticipant(ritual, ritualActor);
+    if (!interactQuestObject(ritual) || ritual.missingKeystoneErrors != 1 ||
+        ritual.guardianSummonRequests != 0 || ritualActor.objectiveCount != 0) {
+        return -4;
+    }
+    ritual.ritualHasKeystone = true;
+    if (!interactQuestObject(ritual) || ritual.guardianSummonRequests != 1 ||
+        ritualActor.objectiveCount != 1 || ritual.visionEmissions != 1) {
+        return -5;
+    }
+    if (!interactQuestObject(ritual) || ritual.guardianSummonRequests != 2 ||
+        ritual.progressEvents != 1 || ritual.visionEmissions != 1) {
+        return -6;
+    }
+
+    var unmatched = new NythraxisQuestInteractState();
+    unmatched.objectItemId = "grave_captain_voss";
+    unmatched.objectiveMatchesObject = false;
+    unmatched.actorId = 7;
+    addParticipant(unmatched, new NythraxisQuestParticipant(7));
+    if (interactQuestObject(unmatched) || unmatched.handled || unmatched.progressEvents != 0) {
+        return -7;
+    }
+    return 1;
+}

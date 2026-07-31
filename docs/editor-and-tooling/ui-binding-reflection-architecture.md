@@ -44,7 +44,8 @@ related_code:
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/core/editor_event/service/editor_event_service.rs
-  - zircon_editor/src/core/editor_event/listener.rs
+  - zircon_editor/src/core/editor_event/listener/mod.rs
+  - zircon_editor/src/core/editor_event/retention.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_event/journal.rs
@@ -169,7 +170,8 @@ implementation_files:
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/core/editor_event/mod.rs
-  - zircon_editor/src/core/editor_event/listener.rs
+  - zircon_editor/src/core/editor_event/listener/mod.rs
+  - zircon_editor/src/core/editor_event/retention.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_event/journal.rs

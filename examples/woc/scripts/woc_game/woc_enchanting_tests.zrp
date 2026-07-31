@@ -1,0 +1,6 @@
+{
+  "name": "woc_enchanting_tests",
+  "source": "src",
+  "binary": "bin-enchanting-tests",
+  "entry": "progression/enchanting_test_main"
+}

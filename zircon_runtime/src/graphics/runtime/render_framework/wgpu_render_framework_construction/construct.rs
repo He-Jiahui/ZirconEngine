@@ -1,7 +1,5 @@
 use std::collections::{HashMap, HashSet};
-#[cfg(test)]
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 #[cfg(test)]
 use crate::asset::ProjectAssetManager;
@@ -18,12 +16,12 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 
-use super::super::capability_summary::capability_summary;
+use super::super::capability_summary::{capability_summary, render_device_diagnostics};
 use super::super::graphics_debugger_capture::{
-    renderdoc_capture_next_from_env, GraphicsDebuggerState,
+    renderdoc_capture_frame_count_from_env, GraphicsDebuggerState,
 };
 use super::super::render_framework_state::RenderFrameworkState;
-use super::super::wgpu_render_framework::WgpuRenderFramework;
+use super::super::wgpu_render_framework::{WgpuRenderFramework, WgpuRenderFrameworkCore};
 use super::create_default_pipelines::create_default_pipelines;
 
 impl WgpuRenderFramework {
@@ -290,32 +288,39 @@ impl WgpuRenderFramework {
             plugin_geometry_sources,
             plugin_shading_models,
         )?;
-        let render_capabilities = capability_summary(&renderer.backend_caps());
-        let graphics_debugger = GraphicsDebuggerState::available_with_capture_next_created_viewport(
+        let backend_caps = renderer.backend_caps();
+        let render_capabilities = capability_summary(&backend_caps);
+        let device_diagnostics = render_device_diagnostics(&backend_caps);
+        let graphics_debugger = GraphicsDebuggerState::available_with_capture_frame_count(
             renderer.backend_name(),
-            renderdoc_capture_next_from_env(),
+            renderdoc_capture_frame_count_from_env(),
         );
         Ok(Self {
-            operation_lock: Mutex::new(()),
-            compute_task_pool,
-            planar_reflection_updates: Mutex::new(Default::default()),
-            state: Mutex::new(RenderFrameworkState {
-                renderer,
-                next_viewport_id: 1,
-                next_history_id: 1,
-                pipelines: create_default_pipelines(&render_features),
-                compiled_graph_cache: CompiledGraphCache::default(),
-                hybrid_gi_runtime_provider: selected_hybrid_gi_runtime_provider,
-                solari_runtime_provider: selected_solari_runtime_provider,
-                virtual_geometry_runtime_provider: selected_virtual_geometry_runtime_provider,
-                last_virtual_geometry_debug_snapshot: None,
-                viewports: HashMap::new(),
-                stats: crate::core::framework::render::RenderStats {
-                    capabilities: render_capabilities,
-                    advanced_provider_availability,
-                    ..crate::core::framework::render::RenderStats::default()
-                },
-                graphics_debugger,
+            submission_scheduler: Mutex::new(Default::default()),
+            core: Arc::new(WgpuRenderFrameworkCore {
+                operation_lock: Mutex::new(()),
+                compute_task_pool,
+                planar_reflection_updates: Mutex::new(Default::default()),
+                state: Mutex::new(RenderFrameworkState {
+                    renderer,
+                    next_viewport_id: 1,
+                    next_history_id: 1,
+                    pipelines: create_default_pipelines(&render_features),
+                    compiled_graph_cache: CompiledGraphCache::default(),
+                    hybrid_gi_runtime_provider: selected_hybrid_gi_runtime_provider,
+                    solari_runtime_provider: selected_solari_runtime_provider,
+                    virtual_geometry_runtime_provider: selected_virtual_geometry_runtime_provider,
+                    last_virtual_geometry_debug_snapshot: None,
+                    viewports: HashMap::new(),
+                    stats: crate::core::framework::render::RenderStats {
+                        device_diagnostics,
+                        capabilities: render_capabilities,
+                        advanced_provider_availability,
+                        ..crate::core::framework::render::RenderStats::default()
+                    },
+                    frame_profiler: Default::default(),
+                    graphics_debugger,
+                }),
             }),
         })
     }
@@ -369,7 +374,7 @@ fn selected_advanced_provider_availability(
     }
 }
 
-fn select_provider<T: Clone>(
+fn select_provider<T>(
     feature_label: &str,
     providers: Vec<T>,
     provider_id: impl Fn(&T) -> &str,
@@ -382,12 +387,13 @@ fn select_provider<T: Clone>(
     let mut seen_provider_ids = HashSet::new();
     for provider in &providers {
         let id = provider_id(provider);
-        if !seen_provider_ids.insert(id.to_string()) {
+        if !seen_provider_ids.insert(id) {
             return Err(GraphicsError::AdvancedProviderSelection(format!(
                 "{feature_label} provider `{id}` registered more than once"
             )));
         }
     }
+    drop(seen_provider_ids);
 
     let mut best_index = 0;
     let mut best_priority = priority(&providers[0]);
@@ -411,12 +417,15 @@ fn select_provider<T: Clone>(
         )));
     }
 
-    Ok(Some(providers[best_index].clone()))
+    Ok(providers.into_iter().nth(best_index))
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
 
     use crate::graphics::{
         HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput, HybridGiRuntimePrepareOutput,
@@ -428,9 +437,26 @@ mod tests {
     };
 
     use super::{
-        select_hybrid_gi_runtime_provider, select_virtual_geometry_runtime_provider,
-        selected_advanced_provider_availability,
+        select_hybrid_gi_runtime_provider, select_provider,
+        select_virtual_geometry_runtime_provider, selected_advanced_provider_availability,
     };
+
+    struct CloneCountingProvider {
+        id: String,
+        priority: i32,
+        clone_count: Arc<AtomicUsize>,
+    }
+
+    impl Clone for CloneCountingProvider {
+        fn clone(&self) -> Self {
+            self.clone_count.fetch_add(1, Ordering::Relaxed);
+            Self {
+                id: self.id.clone(),
+                priority: self.priority,
+                clone_count: Arc::clone(&self.clone_count),
+            }
+        }
+    }
 
     #[derive(Debug)]
     struct NoopVirtualGeometryProvider;
@@ -554,5 +580,32 @@ mod tests {
             Some("high")
         );
         assert_eq!(availability.hybrid_gi_provider_id.as_deref(), Some("gi"));
+    }
+
+    #[test]
+    fn provider_selection_moves_the_owned_winner_without_cloning() {
+        let clone_count = Arc::new(AtomicUsize::new(0));
+        let selected = select_provider(
+            "test",
+            vec![
+                CloneCountingProvider {
+                    id: "low".into(),
+                    priority: 1,
+                    clone_count: Arc::clone(&clone_count),
+                },
+                CloneCountingProvider {
+                    id: "high".into(),
+                    priority: 10,
+                    clone_count: Arc::clone(&clone_count),
+                },
+            ],
+            |provider| provider.id.as_str(),
+            |provider| provider.priority,
+        )
+        .expect("provider selection should succeed")
+        .expect("one provider should be selected");
+
+        assert_eq!(selected.id, "high");
+        assert_eq!(clone_count.load(Ordering::Relaxed), 0);
     }
 }

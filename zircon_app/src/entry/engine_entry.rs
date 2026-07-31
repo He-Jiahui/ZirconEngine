@@ -2,7 +2,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use zircon_runtime::core::diagnostics::RuntimeDevtoolsPluginCatalogEntry;
-use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::{PreferenceStorageBackendKind, RuntimeTargetMode};
 use zircon_runtime::core::framework::project::RuntimeProfileId;
 use zircon_runtime::core::framework::render::RENDER_PROFILE_CONFIG_KEY;
 use zircon_runtime::core::framework::window::{
@@ -11,7 +11,8 @@ use zircon_runtime::core::framework::window::{
 use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::platform::{
-    PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
+    PlatformConfig, PlatformFeatureSelection, PlatformTarget, PreferenceStorageBackend,
+    PLATFORM_CONFIG_KEY,
 };
 use zircon_runtime::plugin::{
     RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState, RuntimePluginDescriptor,
@@ -33,6 +34,10 @@ use super::{
 };
 
 use super::first_party_runtime_plugin_registrations_for_config;
+use super::platform_preferences::{
+    install_default_preference_storage, planned_preference_storage_backend,
+    HostPreferenceStorageBackend,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EntryRunMode {
@@ -67,6 +72,7 @@ pub struct EntryModuleSelectionReport {
     pub runtime_profile: Option<RuntimeProfileId>,
     pub target_mode: RuntimeTargetMode,
     pub platform_config: PlatformConfig,
+    pub preference_storage_backend: PreferenceStorageBackendKind,
     pub window_descriptor: WindowDescriptor,
     pub plugin_group: String,
     pub runtime_plugin_availability: RuntimePluginAvailabilityReport,
@@ -92,7 +98,10 @@ impl EntryModuleSelectionReport {
                 .unwrap_or_else(|| "none".to_string())
         ));
         lines.push(format!("entry.target_mode={:?}", self.target_mode));
-        lines.extend(self.platform_config.diagnostic_lines());
+        lines.extend(
+            self.platform_config
+                .diagnostic_lines_with_preference_storage_backend(self.preference_storage_backend),
+        );
         lines.extend(self.window_descriptor.diagnostic_lines());
         lines.push(format!("entry.plugin_group={}", self.plugin_group));
         self.runtime_plugin_availability
@@ -164,6 +173,7 @@ pub struct BuiltinEngineEntry {
     plugin_group: ResolvedPluginGroup,
     runtime_plugin_availability: RuntimePluginAvailabilityReport,
     plugin_bridge_lifecycle_state: Option<RuntimePluginBridgeLifecycleState>,
+    preference_storage_backend: Option<HostPreferenceStorageBackend>,
 }
 
 impl BuiltinEngineEntry {
@@ -179,6 +189,7 @@ impl BuiltinEngineEntry {
             plugin_group: plugin_group_for_config(config, selection.modules)?,
             runtime_plugin_availability: selection.runtime_plugin_availability,
             plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
+            preference_storage_backend: None,
         })
     }
 
@@ -210,6 +221,7 @@ impl BuiltinEngineEntry {
             plugin_group: plugin_group_for_config(config, selection.modules)?,
             runtime_plugin_availability: selection.runtime_plugin_availability,
             plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
+            preference_storage_backend: None,
         })
     }
 
@@ -231,6 +243,7 @@ impl BuiltinEngineEntry {
             plugin_group: plugin_group_for_config(config, selection.modules)?,
             runtime_plugin_availability: selection.runtime_plugin_availability,
             plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
+            preference_storage_backend: None,
         })
     }
 
@@ -249,7 +262,16 @@ impl BuiltinEngineEntry {
             plugin_group: plugin_group_for_config(config, selection.modules)?,
             runtime_plugin_availability: selection.runtime_plugin_availability,
             plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
+            preference_storage_backend: None,
         })
+    }
+
+    pub fn with_preference_storage_backend(
+        mut self,
+        backend: Arc<dyn PreferenceStorageBackend>,
+    ) -> Self {
+        self.preference_storage_backend = Some(HostPreferenceStorageBackend::new(backend));
+        self
     }
 
     pub fn plugin_group(&self) -> &ResolvedPluginGroup {
@@ -267,18 +289,25 @@ impl BuiltinEngineEntry {
     }
 
     pub fn module_selection_report(&self) -> EntryModuleSelectionReport {
+        let platform_config = platform_config_for_entry_config(&self.config);
         EntryModuleSelectionReport {
             profile: self.profile,
             run_mode: self.run_mode(),
             runtime_profile: self.config.runtime_profile(),
             target_mode: self.config.target_mode,
-            platform_config: platform_config_for_entry_config(&self.config),
+            preference_storage_backend: planned_preference_storage_backend(
+                &platform_config,
+                self.preference_storage_backend.as_ref(),
+            ),
+            platform_config,
             window_descriptor: self.config.window_descriptor.clone(),
             plugin_group: self.plugin_group.name().to_string(),
             runtime_plugin_availability: self.runtime_plugin_availability.clone(),
             modules: self
+                .plugin_group
                 .module_descriptors()
-                .into_iter()
+                .iter()
+                .cloned()
                 .map(EntryModuleSelection::from)
                 .collect(),
         }
@@ -332,19 +361,29 @@ impl EngineEntry for BuiltinEngineEntry {
         self.plugin_group.modules()
     }
 
+    fn module_descriptors(&self) -> Vec<ModuleDescriptor> {
+        self.plugin_group.module_descriptors().to_vec()
+    }
+
     fn bootstrap(&self) -> Result<CoreHandle, CoreError> {
         let runtime = CoreRuntime::new();
-        let descriptors = self.module_descriptors();
+        let descriptors = self.plugin_group.module_descriptors();
+        let platform_config = platform_config_for_entry_config(&self.config);
 
         self.store_entry_config(&runtime);
         runtime.replace_devtools_plugin_catalog_entries(builtin_plugin_catalog_entries());
         if let Some(state) = self.plugin_bridge_lifecycle_state.clone() {
             runtime.install_runtime_module_lifecycle_observer(Arc::new(state));
         }
-        for descriptor in &descriptors {
+        for descriptor in descriptors {
             runtime.register_module(descriptor.clone())?;
         }
         runtime.activate_registered_modules()?;
+        install_default_preference_storage(
+            &runtime,
+            &platform_config,
+            self.preference_storage_backend.as_ref(),
+        )?;
         self.store_entry_config(&runtime);
 
         Ok(runtime.handle())

@@ -2,6 +2,60 @@ use super::*;
 use zircon_runtime::scene::AnimationStateTransitionRuntime;
 
 #[test]
+fn graph_backed_state_samples_events_and_pose_from_one_graph_evaluation() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let asset_manager = runtime_asset_manager(&runtime.handle());
+    let skeleton_uri = AssetUri::parse("res://animation/state-graph-once.skeleton.zranim").unwrap();
+    let clip_uri = AssetUri::parse("res://animation/state-graph-once.clip.zranim").unwrap();
+    let clip_b_uri = AssetUri::parse("res://animation/state-graph-once-b.clip.zranim").unwrap();
+    let graph_uri = AssetUri::parse("res://animation/state-graph-once.graph.zranim").unwrap();
+    let machine_uri = AssetUri::parse("res://animation/state-graph-once.machine.zranim").unwrap();
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let machine_id = ResourceId::from_locator(&machine_uri);
+    register_animation_blend_assets(&asset_manager, &skeleton_uri, &clip_uri, &clip_b_uri);
+    register_single_clip_graph(&asset_manager, &graph_uri, &clip_uri);
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(machine_id, ResourceKind::AnimationStateMachine, machine_uri),
+        single_state_machine(&graph_uri),
+    );
+
+    let level = runtime.create_default_level().unwrap();
+    level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_skeleton(
+                entity,
+                Some(AnimationSkeletonComponent {
+                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(skeleton_id),
+                }),
+            )
+            .unwrap();
+        world
+            .set_animation_state_machine_player(
+                entity,
+                Some(AnimationStateMachinePlayerComponent {
+                    state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
+                    parameters: BTreeMap::new(),
+                    active_state: Some("Idle".to_string()),
+                    playing: true,
+                }),
+            )
+            .unwrap();
+    });
+
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert_eq!(
+        level.with_world(|world| {
+            world
+                .resource::<zircon_plugin_animation_runtime::AnimationEvaluationPipeline>()
+                .graph_evaluation_count()
+        }),
+        1,
+        "state event and pose sampling must share the compiled graph evaluation"
+    );
+}
+
+#[test]
 fn invalid_or_zero_previous_transition_duration_switches_immediately_to_target_pose() {
     for duration_seconds in [0.0, -1.0, f32::NAN] {
         assert_invalid_duration_switches_immediately(duration_seconds);

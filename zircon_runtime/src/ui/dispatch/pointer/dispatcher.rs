@@ -119,12 +119,12 @@ impl UiPointerDispatcher {
             .into_iter()
             .flat_map(|handlers| handlers.iter());
 
+        let context = UiPointerDispatchContext {
+            node_id,
+            phase,
+            route: result.route.clone(),
+        };
         for handler in phase_handlers.chain(unqualified_handlers) {
-            let context = UiPointerDispatchContext {
-                node_id,
-                phase,
-                route: result.route.clone(),
-            };
             let effect = handler(&context);
             if effect == UiPointerDispatchEffect::Unhandled {
                 continue;

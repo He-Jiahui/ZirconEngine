@@ -32,14 +32,16 @@ pub(crate) fn host_module_impl(args: HostModuleArgs, item: ItemMod) -> syn::Resu
             "zircon_host_module requires an inline module body",
         )
     })?;
-    let function_names = items
-        .iter()
-        .filter_map(host_attr_function_ident)
-        .collect::<Vec<_>>();
-    let type_names = items
-        .iter()
-        .filter_map(script_type_ident)
-        .collect::<Vec<_>>();
+    let mut function_names = Vec::new();
+    let mut type_names = Vec::new();
+    for item in items {
+        if let Some(function) = host_attr_function_ident(item) {
+            function_names.push(function);
+        }
+        if let Some(script_type) = script_type_ident(item) {
+            type_names.push(script_type);
+        }
+    }
     let function_descriptors = function_names.iter().map(|name| {
         let descriptor = format_ident!("__zircon_host_function_descriptor_{}", name);
         quote!(.with_function(#descriptor()))

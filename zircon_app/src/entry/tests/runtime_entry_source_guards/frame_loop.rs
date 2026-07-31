@@ -10,11 +10,11 @@ fn runtime_entry_ticks_dynamic_runtime_time_before_redraw_request() {
 
     assert!(
         runtime_session_source.contains("pub(crate) fn tick_frame"),
-        "runtime session should expose an optional dynamic runtime tick wrapper"
+        "runtime session should expose the required V3 dynamic runtime tick wrapper"
     );
     assert!(
-        runtime_app_source.contains("event_loop_policy: EventLoopPolicy"),
-        "runtime entry app should store the selected event-loop policy"
+        runtime_app_source.contains("frame_cadence: RuntimeFrameCadence"),
+        "runtime entry app should store the profile-aware frame cadence state"
     );
     assert_source_order(
         runtime_handler_source,
@@ -29,11 +29,16 @@ fn runtime_entry_ticks_dynamic_runtime_time_before_redraw_request() {
         runtime_frame_loop_source,
         &[
             "fn pump_frame_loop",
+            "let should_pump = self.frame_cadence.take_frame_request(now);",
             "self.apply_event_loop_policy(event_loop);",
+            "if !should_pump {",
+            "return;",
             "self.session.tick_frame()",
+            "apply_runtime_demand",
+            "self.session.wake_host();",
             "self.apply_runtime_host_requests(event_loop)",
             "window.request_redraw();",
         ],
-        "runtime entry should advance runtime time and apply host requests before requesting the next redraw",
+        "runtime entry should suppress idle reactive frames, consume V3 demand, wake when required, then apply host requests before requesting redraw",
     );
 }

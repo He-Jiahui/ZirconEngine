@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_glacial_front_state_tests",
+  "source": "src",
+  "binary": "bin-m4-glacial-front-state-tests",
+  "entry": "combat/glacial_front_state_test_main"
+}

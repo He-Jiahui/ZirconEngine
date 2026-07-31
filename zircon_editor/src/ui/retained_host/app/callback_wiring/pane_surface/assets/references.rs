@@ -1,6 +1,6 @@
 use super::*;
-use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::retained_host::PaneSurfaceHostContext;
+use crate::ui::retained_host::primitives::SharedString;
 
 pub(super) fn wire_asset_reference_callbacks(
     pane_surface_host: &PaneSurfaceHostContext,

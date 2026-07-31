@@ -4,7 +4,10 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::{
     paint_template_nodes_for_test_with_background, TemplateNodeFrameData, TemplatePaneNodeData,
 };
-use zircon_runtime_interface::ui::design_tokens::EditorPaletteTokens;
+use zircon_runtime_interface::ui::{
+    design_tokens::EditorPaletteTokens,
+    style::{UiRgbaColor, UiStyleColor},
+};
 
 const FIELD_COMPONENT_SCREENSHOT: &str = "editor-components-fields-900x360.png";
 const FIELD_ATLAS_WIDTH: u32 = 900;
@@ -75,6 +78,11 @@ fn field_component_visual_paints_input_search_stepper_focus_and_disabled() {
         focused_border,
         EditorPaletteTokens::WORKBENCH_FOCUS_RING,
         "focused field should paint the shared Starship primary focus outline"
+    );
+    assert_eq!(
+        pixel_at(&bytes, 682, 148),
+        EditorPaletteTokens::WORKBENCH_SURFACE_RECESSED,
+        "focused field should keep its recessed state surface when authored normal chrome exists"
     );
     assert!(
         distinct_pixel_count(
@@ -312,7 +320,7 @@ fn field(
     height: f32,
     state: FieldState,
 ) -> TemplatePaneNodeData {
-    TemplatePaneNodeData {
+    let mut node = TemplatePaneNodeData {
         control_id: control_id.into(),
         role: "InputField".into(),
         component_role: component_role.into(),
@@ -324,7 +332,14 @@ fn field(
         disabled: matches!(state, FieldState::Disabled),
         frame: frame(x, y, width, height),
         ..TemplatePaneNodeData::default()
+    };
+    if control_id == "WorkbenchInputFocused" {
+        node.button_style.element.background_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(81, 88, 94, 255)));
+        node.button_style.element.border_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(109, 116, 122, 255)));
     }
+    node
 }
 
 fn surface(

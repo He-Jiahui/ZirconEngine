@@ -1,0 +1,8 @@
+var toolEffect = %import("progression/tool_effect_state");
+
+console.printLine("m5-tool-effect-test");
+var result = toolEffect.contractTest();
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "tool effect contract failed";
+}

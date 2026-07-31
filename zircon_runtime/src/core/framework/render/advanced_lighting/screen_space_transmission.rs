@@ -37,7 +37,7 @@ impl Default for ScreenSpaceTransmissionSettings {
 
 #[cfg(test)]
 mod tests {
-    use super::{ScreenSpaceTransmissionSettings, MAX_SCREEN_SPACE_TRANSMISSION_STEPS};
+    use super::{MAX_SCREEN_SPACE_TRANSMISSION_STEPS, ScreenSpaceTransmissionSettings};
 
     #[test]
     fn render_screen_space_transmission_settings_normalize_step_budget() {

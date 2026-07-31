@@ -1,0 +1,190 @@
+// Source-order idle proximity selection. SpatialGridState owns query ordering;
+// this module consumes its ordered candidate projection and owns no world write.
+
+var container = %import("zr.system.container");
+
+pub class IdleAggroCandidate {
+    pub var id: uint;
+    pub var level: int;
+    pub var dead: bool;
+    pub var stealthed: bool;
+    // Source delveDetectMult is a per-candidate factor. Open-world callers use 1.
+    pub var detectionMultiplier: float;
+    pub var distanceSquared: float;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.level = 1;
+        this.dead = false;
+        this.stealthed = false;
+        this.detectionMultiplier = 1.0;
+        this.distanceSquared = 0.0;
+    }
+}
+
+pub class IdleAggroSelection {
+    pub var targetId: uint;
+    pub var scanVisits: int;
+
+    pub @constructor() {
+        this.targetId = <uint>0;
+        this.scanVisits = 0;
+    }
+}
+
+minimum(first: float, second: float): float {
+    return first < second ? first : second;
+}
+
+maximum(first: float, second: float): float {
+    return first > second ? first : second;
+}
+
+pub maxAggroRadius(required: bool): float {
+    if (!required) {
+        throw "woc maximum aggro radius is required";
+    }
+    return 20.0;
+}
+
+pub idleAggroRadius(
+    templateAggroRadius: float,
+    mobLevel: int,
+    playerLevel: int,
+    required: bool
+): float {
+    if (!required || templateAggroRadius < 0.0 || mobLevel < 1 || playerLevel < 1) {
+        throw "woc idle aggro radius arguments are invalid";
+    }
+    return maximum(
+        4.0,
+        minimum(maxAggroRadius(true), templateAggroRadius + <float>(mobLevel - playerLevel) * 1.5)
+    );
+}
+
+pub stealthDetectionMultiplier(
+    observerLevel: int,
+    stealthedLevel: int,
+    required: bool
+): float {
+    if (!required || observerLevel < 1 || stealthedLevel < 1) {
+        throw "woc stealth detection levels are invalid";
+    }
+    var raw = 0.25 + <float>(observerLevel - stealthedLevel) * 0.08;
+    return maximum(0.1, minimum(1.0, raw));
+}
+
+pub isTrivialToPlayer(
+    mobLevel: int,
+    playerLevel: int,
+    elite: bool,
+    rare: bool,
+    boss: bool,
+    required: bool
+): bool {
+    if (!required || mobLevel < 1 || playerLevel < 1) {
+        throw "woc trivial-con levels are invalid";
+    }
+    if (elite || rare || boss) {
+        return false;
+    }
+    return playerLevel - mobLevel >= 10;
+}
+
+// Candidates must arrive in SpatialGridState.queryInRadius callback order.
+// The strict nearest comparison preserves the source's first-callback tie rule.
+pub selectIdleAggroTarget(
+    output: IdleAggroSelection,
+    mobLevel: int,
+    templateAggroRadius: float,
+    elite: bool,
+    rare: bool,
+    boss: bool,
+    candidates: container.Array<IdleAggroCandidate>,
+    required: bool
+): void {
+    if (!required || mobLevel < 1 || templateAggroRadius < 0.0) {
+        throw "woc idle aggro selection arguments are invalid";
+    }
+    output.targetId = <uint>0;
+    output.scanVisits = 0;
+    var bestDistanceSquared = 0.0;
+    var candidateIndex = 0;
+    while (candidateIndex < candidates.length) {
+        var candidate = <IdleAggroCandidate>candidates[candidateIndex];
+        if (candidate.id == <uint>0 || candidate.level < 1 ||
+            candidate.detectionMultiplier < 0.0 || candidate.distanceSquared < 0.0) {
+            throw "woc idle aggro candidate is invalid";
+        }
+        output.scanVisits = output.scanVisits + 1;
+        if (!candidate.dead && !isTrivialToPlayer(
+            mobLevel,
+            candidate.level,
+            elite,
+            rare,
+            boss,
+            true
+        )) {
+            var radius = idleAggroRadius(
+                templateAggroRadius,
+                mobLevel,
+                candidate.level,
+                true
+            ) * candidate.detectionMultiplier;
+            if (candidate.stealthed) {
+                radius = radius * stealthDetectionMultiplier(mobLevel, candidate.level, true);
+            }
+            if (candidate.distanceSquared < radius * radius &&
+                (output.targetId == <uint>0 || candidate.distanceSquared < bestDistanceSquared)) {
+                output.targetId = candidate.id;
+                bestDistanceSquared = candidate.distanceSquared;
+            }
+        }
+        candidateIndex = candidateIndex + 1;
+    }
+}
+
+pub contractTest(): int {
+    if (maxAggroRadius(true) != 20.0 ||
+        idleAggroRadius(10.0, 1, 1, true) != 10.0 ||
+        idleAggroRadius(30.0, 1, 1, true) != 20.0 ||
+        idleAggroRadius(1.0, 1, 9, true) != 4.0 ||
+        stealthDetectionMultiplier(1, 1, true) != 0.25 ||
+        stealthDetectionMultiplier(1, 10, true) != 0.1 ||
+        stealthDetectionMultiplier(20, 1, true) != 1.0 ||
+        !isTrivialToPlayer(1, 11, false, false, false, true) ||
+        isTrivialToPlayer(1, 11, true, false, false, true)) {
+        return -1;
+    }
+    var candidates = new container.Array<IdleAggroCandidate>();
+    var far = new IdleAggroCandidate();
+    far.id = <uint>11;
+    far.distanceSquared = 81.0;
+    candidates.add(far);
+    var near = new IdleAggroCandidate();
+    near.id = <uint>12;
+    near.distanceSquared = 25.0;
+    candidates.add(near);
+    var edge = new IdleAggroCandidate();
+    edge.id = <uint>13;
+    edge.distanceSquared = 100.0;
+    candidates.add(edge);
+    var selection = new IdleAggroSelection();
+    selectIdleAggroTarget(selection, 1, 10.0, false, false, false, candidates, true);
+    if (selection.targetId != <uint>12 || selection.scanVisits != 3) {
+        return -2;
+    }
+    near.stealthed = true;
+    near.distanceSquared = 9.0;
+    selectIdleAggroTarget(selection, 1, 10.0, false, false, false, candidates, true);
+    if (selection.targetId != <uint>11 || selection.scanVisits != 3) {
+        return -3;
+    }
+    far.dead = true;
+    near.dead = true;
+    selectIdleAggroTarget(selection, 1, 10.0, false, false, false, candidates, true);
+    if (selection.targetId != <uint>0 || selection.scanVisits != 3) {
+        return -4;
+    }
+    return 1;
+}

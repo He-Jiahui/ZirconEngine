@@ -11,8 +11,8 @@ use crate::core::framework::render::{
     RenderMaterialTextureSlotFallbackReason, RenderMaterialTextureTransform,
     RenderMaterialValidationError, RenderShaderBindGroupLayoutDescriptor,
     RenderShaderBindingDescriptor, RenderShaderBindingResourceType, RenderShaderDefinitionValue,
-    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, ShaderAssetKind,
-    SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
+    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, SHADING_MODEL_ID_BLINN_PHONG,
+    SHADING_MODEL_ID_STANDARD_PBR, ShaderAssetKind,
 };
 use crate::core::resource::{
     MaterialMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,

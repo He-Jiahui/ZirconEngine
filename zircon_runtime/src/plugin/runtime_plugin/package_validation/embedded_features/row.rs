@@ -1,6 +1,7 @@
 mod provider;
 mod target_coverage;
 
+use super::super::projection::{EmbeddedFeatureKind, RuntimePluginPackageValidationProjection};
 use crate::plugin::{PluginFeatureBundleManifest, PluginPackageManifest};
 
 use self::{
@@ -9,19 +10,27 @@ use self::{
 };
 use super::manifest::validate_runtime_plugin_package_embedded_feature_manifest;
 
-pub(super) fn validate_runtime_plugin_package_embedded_feature_row<'a>(
+pub(super) fn validate_runtime_plugin_package_embedded_feature_row(
     field_name: &str,
-    feature: &'a PluginFeatureBundleManifest,
-    package_manifest: &'a PluginPackageManifest,
-    seen_feature_providers: &mut Vec<(&'a str, &'a str)>,
+    feature: &PluginFeatureBundleManifest,
+    package_manifest: &PluginPackageManifest,
+    kind: EmbeddedFeatureKind,
+    feature_index: usize,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     diagnostics: &mut Vec<String>,
 ) {
-    validate_runtime_plugin_package_embedded_feature_manifest(feature, diagnostics);
+    validate_runtime_plugin_package_embedded_feature_manifest(
+        feature,
+        kind,
+        feature_index,
+        projection,
+        diagnostics,
+    );
     validate_runtime_plugin_package_embedded_feature_provider(
         field_name,
         feature,
         package_manifest,
-        seen_feature_providers,
+        projection.embedded_feature_provider_is_duplicate(kind, feature_index),
         diagnostics,
     );
     validate_runtime_plugin_package_embedded_feature_target_coverage(

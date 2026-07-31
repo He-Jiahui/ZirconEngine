@@ -1,8 +1,9 @@
-use std::{collections::BTreeSet, fs};
+use std::collections::BTreeSet;
 
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
-
-use super::support::{editor_asset, material_prototype_path, MUI_X_PROTOTYPES};
+use super::support::{
+    editor_material_theme_selectors, editor_material_theme_source, material_prototype_fixture,
+    MUI_X_PROTOTYPES,
+};
 
 const MUI_X_THEME_SELECTORS: &[&str] = &[
     ".MuiDataGrid-root",
@@ -524,8 +525,8 @@ const MUI_X_SAMPLE_STATE_SELECTORS: &[SampleStateContract] = &[
 
 #[test]
 fn material_component_lab_theme_styles_mui_x_runtime_utility_classes() {
-    let source = editor_theme_source();
-    let selectors = theme_selectors(&source);
+    let source = editor_material_theme_source();
+    let selectors = editor_material_theme_selectors();
 
     for selector in MUI_X_THEME_SELECTORS {
         assert!(
@@ -554,8 +555,7 @@ fn material_component_lab_theme_styles_mui_x_runtime_utility_classes() {
 
 #[test]
 fn material_component_lab_theme_styles_mui_x_runtime_slot_utility_classes() {
-    let source = editor_theme_source();
-    let selectors = theme_selectors(&source);
+    let selectors = editor_material_theme_selectors();
 
     for selector in MUI_X_RUNTIME_SLOT_SELECTORS {
         assert!(
@@ -567,8 +567,7 @@ fn material_component_lab_theme_styles_mui_x_runtime_slot_utility_classes() {
 
 #[test]
 fn material_component_lab_theme_styles_mui_x_runtime_root_state_classes() {
-    let source = editor_theme_source();
-    let selectors = theme_selectors(&source);
+    let selectors = editor_material_theme_selectors();
 
     for selector in MUI_X_RUNTIME_ROOT_STATE_SELECTORS {
         assert!(
@@ -580,15 +579,12 @@ fn material_component_lab_theme_styles_mui_x_runtime_root_state_classes() {
 
 #[test]
 fn material_component_lab_mui_x_state_props_have_themed_feedback_selectors() {
-    let source = editor_theme_source();
-    let selectors = theme_selectors(&source);
+    let selectors = editor_material_theme_selectors();
 
     for contract in MUI_X_SAMPLE_STATE_SELECTORS {
-        let path = material_prototype_path(contract.prototype_key);
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+        let fixture = material_prototype_fixture(contract.prototype_key);
+        let path = &fixture.path;
+        let document = &fixture.document;
         let sample = document
             .nodes
             .get("sample")
@@ -665,15 +661,12 @@ fn material_component_lab_mui_x_state_props_have_themed_feedback_selectors() {
 
 #[test]
 fn material_component_lab_mui_x_samples_only_use_themed_utility_classes() {
-    let source = editor_theme_source();
-    let selectors = theme_selectors(&source);
+    let selectors = editor_material_theme_selectors();
 
     for prototype_key in MUI_X_PROTOTYPES {
-        let path = material_prototype_path(prototype_key);
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+        let fixture = material_prototype_fixture(prototype_key);
+        let path = &fixture.path;
+        let document = &fixture.document;
         let sample = document
             .nodes
             .get("sample")
@@ -703,31 +696,6 @@ fn material_component_lab_mui_x_samples_only_use_themed_utility_classes() {
             );
         }
     }
-}
-
-fn editor_theme_source() -> String {
-    let path = editor_asset("assets/ui/theme/editor_material.zui");
-    fs::read_to_string(&path)
-        .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()))
-}
-
-fn theme_selectors(source: &str) -> BTreeSet<String> {
-    toml::from_str::<toml::Value>(source)
-        .unwrap_or_else(|error| panic!("Editor Material theme should parse as TOML: {error}"))
-        .get("stylesheets")
-        .and_then(toml::Value::as_array)
-        .into_iter()
-        .flatten()
-        .flat_map(|stylesheet| {
-            stylesheet
-                .get("rules")
-                .and_then(toml::Value::as_array)
-                .into_iter()
-                .flatten()
-        })
-        .filter_map(|rule| rule.get("selector").and_then(toml::Value::as_str))
-        .map(ToOwned::to_owned)
-        .collect()
 }
 
 fn collect_slot_class_names(value: &toml::Value, class_names: &mut BTreeSet<String>) {

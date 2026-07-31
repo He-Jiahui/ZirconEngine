@@ -23,9 +23,9 @@ const DEFAULT_PADDING_Y: f32 = 4.0;
 const DEFAULT_FONT_SIZE: f32 = 11.0;
 const CARET_WIDTH: f32 = 1.0;
 
-struct InputMethodTextLayout {
-    layout: UiResolvedTextLayout,
-    style: UiResolvedStyle,
+struct InputMethodTextLayout<'a> {
+    layout: &'a UiResolvedTextLayout,
+    style: &'a UiResolvedStyle,
 }
 
 pub(super) fn input_method_update_for_text_state(
@@ -81,14 +81,14 @@ fn cursor_rect_for_state(
     surface: &UiSurface,
     target: UiNodeId,
     state: &UiEditableTextState,
-    text_layout: Option<&InputMethodTextLayout>,
+    text_layout: Option<&InputMethodTextLayout<'_>>,
 ) -> Option<UiFrame> {
     if let Some(frame) = text_layout.and_then(|text_layout| {
         caret_frame_for_text_layout_with_source_metrics(
-            &text_layout.layout,
+            text_layout.layout,
             &state.caret,
             state.text.as_str(),
-            &text_layout.style,
+            text_layout.style,
         )
     }) {
         return Some(frame);
@@ -114,17 +114,17 @@ fn composition_rects_for_state(
     surface: &UiSurface,
     target: UiNodeId,
     state: &UiEditableTextState,
-    text_layout: Option<&InputMethodTextLayout>,
+    text_layout: Option<&InputMethodTextLayout<'_>>,
 ) -> Vec<UiFrame> {
     let Some(composition) = state.composition.as_ref() else {
         return Vec::new();
     };
     if let Some(text_layout) = text_layout {
         return text_range_frames_for_text_layout_with_source_metrics(
-            &text_layout.layout,
+            text_layout.layout,
             composition.range,
             state.text.as_str(),
-            &text_layout.style,
+            text_layout.style,
         );
     }
 
@@ -142,11 +142,11 @@ fn composition_rects_for_state(
     )
 }
 
-fn resolved_text_layout_for_state(
-    surface: &UiSurface,
+fn resolved_text_layout_for_state<'a>(
+    surface: &'a UiSurface,
     target: UiNodeId,
     state: &UiEditableTextState,
-) -> Option<InputMethodTextLayout> {
+) -> Option<InputMethodTextLayout<'a>> {
     surface
         .render_extract
         .list
@@ -155,11 +155,11 @@ fn resolved_text_layout_for_state(
         .find_map(|command| rendered_text_layout_for_command(command, target, state))
 }
 
-fn rendered_text_layout_for_command(
-    command: &UiRenderCommand,
+fn rendered_text_layout_for_command<'a>(
+    command: &'a UiRenderCommand,
     target: UiNodeId,
     state: &UiEditableTextState,
-) -> Option<InputMethodTextLayout> {
+) -> Option<InputMethodTextLayout<'a>> {
     if command.node_id != target || command.text.as_deref() != Some(state.text.as_str()) {
         return None;
     }
@@ -168,8 +168,8 @@ fn rendered_text_layout_for_command(
         return None;
     }
     Some(InputMethodTextLayout {
-        layout: layout.clone(),
-        style: command.style.clone(),
+        layout,
+        style: &command.style,
     })
 }
 

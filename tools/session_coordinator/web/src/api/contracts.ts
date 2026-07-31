@@ -102,6 +102,7 @@ export interface SessionProjection {
   displayName: string | null;
   planPath: string | null;
   status: string;
+  waitKind?: "lease" | "validation" | "external" | null;
   statusReason: string | null;
   baseHead: string | null;
   baselineEpoch: number | null;
@@ -174,6 +175,16 @@ export interface ValidationProjection {
   cpuBurst: CpuBurstProjection;
   artifactLifecycle: ArtifactLifecycleProjection;
   validationCopies: ValidationCopyProjection[];
+  runHealth?: CargoRunHealthProjection[];
+}
+
+export interface CargoRunHealthProjection {
+  runId: string;
+  jobId: string;
+  sessionId: string;
+  startedAt: string;
+  outputState: "awaiting_output" | "output_observed" | "log_unavailable";
+  lastOutputAt?: string;
 }
 
 export interface CpuBurstProjection {
@@ -220,11 +231,40 @@ export interface ExperienceProjection {
   continuations: Array<{
     sessionId: string;
     planPath: string;
-    waitKind: "validation" | "lease";
-    candidate: { milestone: string; title: string };
+    waitKind: "validation" | "lease" | "external";
+    candidate: {
+      kind?: "same_plan" | "unowned_failure";
+      planPath?: string;
+      milestone: string;
+      title: string;
+    };
     scopeClaimRequired: boolean;
     returnToPrimary: boolean;
   }>;
+  intervention?: InterventionProjection;
+}
+
+export interface InterventionProjection {
+  openFailureCount: number;
+  responsiblePlanCount: number;
+  mode: "single_plan";
+  maxConcurrentPlans: 1;
+  suggestedNext: {
+    kind: "failure";
+    planPath: string;
+    summary: string;
+    priority: number;
+    action: "resolve_one_failure";
+  } | null;
+  validation: {
+    waitingSessionCount: number;
+    pendingReservationCount: number;
+    nextReservation: {
+      sessionId: string;
+      queuePosition: number;
+      executionMode: "warm" | "burst";
+    } | null;
+  };
 }
 
 export interface FailureNode extends JsonObject {

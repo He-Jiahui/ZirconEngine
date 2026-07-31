@@ -1,0 +1,46 @@
+// Current-head professions/crafting_hub.ts projection. This is the geometric
+// and level gate that owns CraftingTransactionState.atHub; crafting itself
+// remains responsible for recipe, material, fee and RNG transaction rules.
+var crafting = %import("progression/crafting_transaction");
+var contract = %import("generated/crafting_hub_contract");
+
+pub isAtCraftingHub(x: float, z: float): bool {
+    var dx = x - contract.hubX();
+    var dz = z - contract.hubZ();
+    var radius = contract.hubRadius();
+    return dx * dx + dz * dz <= radius * radius;
+}
+
+pub meetsCraftingHubLevel(level: int): bool {
+    return level >= contract.minLevel();
+}
+
+pub canUseCraftingHubStation(x: float, z: float, level: int): bool {
+    return isAtCraftingHub(x, z) && meetsCraftingHubLevel(level);
+}
+
+// Converts current world position and character level into the existing
+// crafting transaction precondition. It deliberately leaves all other
+// transaction state untouched.
+pub syncCraftingHubAccess(
+    state: crafting.CraftingTransactionState, x: float, z: float, level: int
+): bool {
+    var allowed = canUseCraftingHubStation(x, z, level);
+    state.atHub = allowed;
+    return allowed;
+}
+
+pub contractTest(): int {
+    if (!isAtCraftingHub(contract.hubX(), contract.hubZ()) ||
+        !isAtCraftingHub(contract.hubX() + contract.hubRadius(), contract.hubZ()) ||
+        isAtCraftingHub(contract.hubX() + contract.hubRadius() + 1.0, contract.hubZ())) return -1;
+    if (meetsCraftingHubLevel(contract.minLevel() - 1) ||
+        !meetsCraftingHubLevel(contract.minLevel())) return -2;
+    if (canUseCraftingHubStation(contract.hubX(), contract.hubZ(), contract.minLevel() - 1) ||
+        canUseCraftingHubStation(contract.hubX() + contract.hubRadius() + 1.0, contract.hubZ(), contract.minLevel()) ||
+        !canUseCraftingHubStation(contract.hubX(), contract.hubZ(), contract.minLevel())) return -3;
+    var state = new crafting.CraftingTransactionState();
+    if (syncCraftingHubAccess(state, contract.hubX(), contract.hubZ(), contract.minLevel() - 1) || state.atHub) return -4;
+    if (!syncCraftingHubAccess(state, contract.hubX(), contract.hubZ(), contract.minLevel()) || !state.atHub) return -5;
+    return 1;
+}

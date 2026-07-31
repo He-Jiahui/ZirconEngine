@@ -28,7 +28,14 @@ impl AnimationEvaluationPipeline {
         graph_id: AssetId,
         skeleton_id: AssetId,
         parameters: &AnimationParameterMap,
-    ) -> Option<CompiledAnimationGraphEvaluation> {
+    ) -> Option<Arc<CompiledAnimationGraphEvaluation>> {
+        if let Some(cached) = self.graph_evaluation_cache.iter().find(|cached| {
+            cached.graph_id == graph_id
+                && cached.skeleton_id == skeleton_id
+                && cached.parameters == *parameters
+        }) {
+            return Some(Arc::clone(&cached.evaluation));
+        }
         let graph = load_graph_snapshot(assets, graph_id)?;
         let skeleton = load_skeleton_snapshot(assets, skeleton_id)?;
         let key = (graph_id, skeleton_id);
@@ -56,7 +63,10 @@ impl AnimationEvaluationPipeline {
 
         let cached = self.graph_cache.get_mut(&key)?;
         cached.last_used = access;
-        Some(cached.graph.evaluate(parameters))
+        let evaluation = Arc::new(cached.graph.evaluate(parameters));
+        self.graph_evaluation_count = self.graph_evaluation_count.saturating_add(1);
+        self.cache_graph_evaluation(graph_id, skeleton_id, parameters, Arc::clone(&evaluation));
+        Some(evaluation)
     }
 
     fn enforce_graph_cache_limit(&mut self) {

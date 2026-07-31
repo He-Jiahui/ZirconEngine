@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/frost_frozen_cast_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/frost_mage.ts": "62b99bbb5adbf1f38814545e6e38e8820b5ac95ab3acc391d9f2ab79445748a5"
+  },
+  "id": "frost_frozen_cast",
+  "constants": {
+    "ICE_LANCE_FROZEN_MULT": 3
+  },
+  "ordering": "target_and_physical_gate; committed_frost_gate; rooted_without_spend; ice_lance_fingers; winters_chill",
+  "default_charges": "missing_stacks_or_charges_means_one"
+}

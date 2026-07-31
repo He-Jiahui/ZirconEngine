@@ -5,22 +5,19 @@ use super::super::render_commands::HostPaintCommand;
 use super::geometry::TimelineStripGeometry;
 use super::metrics::TimelineStripMetrics;
 use super::palette::TimelineStripPalette;
-use super::surface::timeline_ticks;
 
 pub(super) fn push_timeline_text(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     geometry: &TimelineStripGeometry,
+    ticks: &[f32],
     clip: &FrameRect,
     order: i32,
     opacity: f32,
     metrics: TimelineStripMetrics,
     palette: TimelineStripPalette,
 ) {
-    for tick in timeline_ticks(
-        node.timeline_strip.duration,
-        node.timeline_strip.tick_interval,
-    ) {
+    for &tick in ticks {
         let x = geometry.x_for_time(tick, node.timeline_strip.duration);
         push_text(
             commands,

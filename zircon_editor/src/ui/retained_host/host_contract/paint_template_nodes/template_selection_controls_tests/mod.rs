@@ -1,3 +1,4 @@
+mod adaptive;
 mod identity;
 mod marks;
 mod paint;

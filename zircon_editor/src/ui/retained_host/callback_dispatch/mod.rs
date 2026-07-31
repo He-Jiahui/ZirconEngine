@@ -41,7 +41,7 @@ pub(crate) use shared_pointer::{
 };
 pub(crate) use template_binding::{
     dispatch_builtin_template_binding, dispatch_builtin_template_binding_with_arguments,
-    dispatch_template_binding_with_arguments,
+    dispatch_template_action, dispatch_template_binding_with_arguments,
 };
 pub(crate) use template_bridge::{
     load_startup_builtin_template_runtime, BuiltinAssetSurfaceTemplateBridge,
@@ -74,6 +74,7 @@ pub(crate) use workbench::{
     dispatch_componentized_workbench_pointer_event,
     dispatch_componentized_workbench_popup_cancelled,
     dispatch_componentized_workbench_surface_control_edited,
+    dispatch_componentized_workbench_transform_axis_commit,
     dispatch_host_menu_action_with_template_fallback, dispatch_menu_action,
     WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
 };

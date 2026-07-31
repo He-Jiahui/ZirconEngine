@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var terrainSowfield = %import("world/terrain_sowfield");
+
+console.printLine("m3-terrain-sowfield-test");
+var result = terrainSowfield.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

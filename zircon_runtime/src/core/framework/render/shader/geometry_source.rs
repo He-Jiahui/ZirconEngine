@@ -251,14 +251,14 @@ mod tests {
     use std::collections::HashSet;
 
     use super::{
-        builtin_geometry_source_descriptor, builtin_geometry_source_descriptors,
-        GeometrySourceBindingKind, GeometrySourceId, GeometrySourceVertexAttribute,
         GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
         GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
         GEOMETRY_SOURCE_PLUGIN_ID_START, GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH,
         GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH,
         GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH,
-        GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
+        GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH, GeometrySourceBindingKind, GeometrySourceId,
+        GeometrySourceVertexAttribute, builtin_geometry_source_descriptor,
+        builtin_geometry_source_descriptors,
     };
 
     #[test]
@@ -329,7 +329,9 @@ mod tests {
         assert!(
             skinned_morphed.has_vertex_attribute(GeometrySourceVertexAttribute::MorphNormalDelta)
         );
-        assert!(skinned_morphed.requires_binding(GeometrySourceBindingKind::SkinningPaletteStorage));
+        assert!(
+            skinned_morphed.requires_binding(GeometrySourceBindingKind::SkinningPaletteStorage)
+        );
         assert!(skinned_morphed.requires_binding(GeometrySourceBindingKind::MorphTargetStorage));
     }
 }

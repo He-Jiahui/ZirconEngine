@@ -1,0 +1,11 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub roleNone(required: bool): int { return required ? 0 : 0; }
+pub roleTank(required: bool): int { return required ? 1 : 0; }
+pub roleHealer(required: bool): int { return required ? 2 : 0; }
+pub roleDps(required: bool): int { return required ? 3 : 0; }
+pub fiveTank(required: bool): int { return required ? 1 : 0; }
+pub fiveHealer(required: bool): int { return required ? 1 : 0; }
+pub fiveDps(required: bool): int { return required ? 3 : 0; }
+pub tenTank(required: bool): int { return required ? 2 : 0; }
+pub tenHealer(required: bool): int { return required ? 2 : 0; }
+pub tenDps(required: bool): int { return required ? 6 : 0; }

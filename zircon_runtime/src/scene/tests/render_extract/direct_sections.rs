@@ -81,7 +81,8 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     assert_eq!(dynamic_row.tint, Vec4::new(0.2, 0.4, 0.6, 1.0));
     assert_eq!(
         dynamic_row
-            .render_layer_mask
+            .common
+            .layer_mask
             .to_scene_schema_v1_mask_lossy(),
         0b0010
     );
@@ -110,6 +111,13 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
 
     assert_eq!(extract.sprites.sprites.len(), 1);
     assert_eq!(extract.sprites.sprites[0].entity, sprite);
+    assert_eq!(
+        extract.sprites.sprites[0]
+            .common
+            .layer_mask
+            .to_scene_schema_v1_mask_lossy(),
+        0b0010
+    );
     assert!(extract
         .sprites
         .phase_queue

@@ -630,7 +630,8 @@ class PipelineReportSourceTemplateTests(unittest.TestCase):
                 {
                     "path": "src/main.rs",
                     "purpose": "duplicate generated runtime entrypoint",
-                    "contents": "fn main() {}\n",
+                    "byte_length": len("fn main() {}\n".encode("utf-8")),
+                    "content_digest": "0" * 64,
                 }
             )
             validate_path.write_text(json.dumps(validate_report, indent=2), encoding="utf-8")

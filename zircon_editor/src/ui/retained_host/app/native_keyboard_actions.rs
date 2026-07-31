@@ -8,6 +8,9 @@ impl RetainedEditorHost {
         &mut self,
         keyboard: UiKeyboardInputEvent,
     ) {
+        if self.try_begin_hierarchy_rename_from_keyboard(&keyboard) {
+            return;
+        }
         match self
             .runtime
             .dispatch_keyboard_keymap_command(&keyboard, EditorEventSource::RetainedHost)

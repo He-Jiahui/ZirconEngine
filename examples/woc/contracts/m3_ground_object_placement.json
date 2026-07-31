@@ -1,0 +1,344 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_ground_object_placement_codegen.mjs",
+  "source_identity": {
+    "source_path": "src/sim/data.ts",
+    "git_blob": "b72cf99eaf8670decdb3f260a45eeffe5a646ebe",
+    "sha256": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431"
+  },
+  "definition_count": 18,
+  "placements": [
+    {
+      "item_id": "supply_crate",
+      "name": "Stolen Supply Crate",
+      "x": 58,
+      "z": -58
+    },
+    {
+      "item_id": "supply_crate",
+      "name": "Stolen Supply Crate",
+      "x": 73,
+      "z": -70
+    },
+    {
+      "item_id": "supply_crate",
+      "name": "Stolen Supply Crate",
+      "x": 86,
+      "z": -82
+    },
+    {
+      "item_id": "supply_crate",
+      "name": "Stolen Supply Crate",
+      "x": 95,
+      "z": -97
+    },
+    {
+      "item_id": "supply_crate",
+      "name": "Stolen Supply Crate",
+      "x": 64,
+      "z": -76
+    },
+    {
+      "item_id": "supply_crate",
+      "name": "Stolen Supply Crate",
+      "x": 81,
+      "z": -94
+    },
+    {
+      "item_id": "gravecaller_sigil",
+      "name": "Gravecaller's Sigil",
+      "x": 84,
+      "z": 88
+    },
+    {
+      "item_id": "gravecaller_sigil",
+      "name": "Gravecaller's Sigil",
+      "x": 76,
+      "z": 92
+    },
+    {
+      "item_id": "weathered_ledger_page",
+      "name": "Weathered Ledger Page",
+      "x": 78,
+      "z": 84
+    },
+    {
+      "item_id": "weathered_ledger_page",
+      "name": "Weathered Ledger Page",
+      "x": 83,
+      "z": 88
+    },
+    {
+      "item_id": "weathered_ledger_page",
+      "name": "Weathered Ledger Page",
+      "x": 86,
+      "z": 92
+    },
+    {
+      "item_id": "morthen_grimoire",
+      "name": "Morthen's Grimoire",
+      "x": 78,
+      "z": 86
+    },
+    {
+      "item_id": "fen_muster_order",
+      "name": "Fenbridge Muster Order",
+      "x": 1,
+      "z": 294
+    },
+    {
+      "item_id": "fen_muster_order",
+      "name": "Fenbridge Muster Order",
+      "x": -2,
+      "z": 297
+    },
+    {
+      "item_id": "lost_caravan_goods",
+      "name": "Lost Caravan Goods",
+      "x": 1,
+      "z": 192
+    },
+    {
+      "item_id": "lost_caravan_goods",
+      "name": "Lost Caravan Goods",
+      "x": -3,
+      "z": 206
+    },
+    {
+      "item_id": "lost_caravan_goods",
+      "name": "Lost Caravan Goods",
+      "x": -6,
+      "z": 221
+    },
+    {
+      "item_id": "lost_caravan_goods",
+      "name": "Lost Caravan Goods",
+      "x": -8,
+      "z": 237
+    },
+    {
+      "item_id": "lost_caravan_goods",
+      "name": "Lost Caravan Goods",
+      "x": -7,
+      "z": 252
+    },
+    {
+      "item_id": "lost_caravan_goods",
+      "name": "Lost Caravan Goods",
+      "x": -3,
+      "z": 268
+    },
+    {
+      "item_id": "lost_caravan_goods",
+      "name": "Lost Caravan Goods",
+      "x": 2,
+      "z": 283
+    },
+    {
+      "item_id": "rusted_censer",
+      "name": "Rusted Censer",
+      "x": 96,
+      "z": 429
+    },
+    {
+      "item_id": "rusted_censer",
+      "name": "Rusted Censer",
+      "x": 103,
+      "z": 430
+    },
+    {
+      "item_id": "rusted_censer",
+      "name": "Rusted Censer",
+      "x": 99,
+      "z": 434
+    },
+    {
+      "item_id": "rusted_censer",
+      "name": "Rusted Censer",
+      "x": 106,
+      "z": 437
+    },
+    {
+      "item_id": "rusted_censer",
+      "name": "Rusted Censer",
+      "x": 97,
+      "z": 440
+    },
+    {
+      "item_id": "rusted_censer",
+      "name": "Rusted Censer",
+      "x": 104,
+      "z": 441
+    },
+    {
+      "item_id": "bastion_ward_stone",
+      "name": "Bastion Ward Stone",
+      "x": 43,
+      "z": 512
+    },
+    {
+      "item_id": "bastion_ward_stone",
+      "name": "Bastion Ward Stone",
+      "x": 48,
+      "z": 517
+    },
+    {
+      "item_id": "unknown_alien_weaponry",
+      "name": "Smoldering Meteor Debris",
+      "x": 151.8,
+      "z": 294.2
+    },
+    {
+      "item_id": "highwatch_summons",
+      "name": "Highwatch Summons",
+      "x": 1,
+      "z": 654
+    },
+    {
+      "item_id": "highwatch_summons",
+      "name": "Highwatch Summons",
+      "x": -2,
+      "z": 657
+    },
+    {
+      "item_id": "ogre_war_totem",
+      "name": "Ogre War Totem",
+      "x": -116,
+      "z": 726
+    },
+    {
+      "item_id": "ogre_war_totem",
+      "name": "Ogre War Totem",
+      "x": -122,
+      "z": 733
+    },
+    {
+      "item_id": "ogre_war_totem",
+      "name": "Ogre War Totem",
+      "x": -129,
+      "z": 727
+    },
+    {
+      "item_id": "ogre_war_totem",
+      "name": "Ogre War Totem",
+      "x": -136,
+      "z": 738
+    },
+    {
+      "item_id": "ogre_war_totem",
+      "name": "Ogre War Totem",
+      "x": -140,
+      "z": 747
+    },
+    {
+      "item_id": "ogre_war_totem",
+      "name": "Ogre War Totem",
+      "x": -133,
+      "z": 753
+    },
+    {
+      "item_id": "ogre_war_totem",
+      "name": "Ogre War Totem",
+      "x": -124,
+      "z": 750
+    },
+    {
+      "item_id": "gravewyrm_sigil",
+      "name": "Gravewyrm Sigil",
+      "x": -8,
+      "z": 852
+    },
+    {
+      "item_id": "gravewyrm_sigil",
+      "name": "Gravewyrm Sigil",
+      "x": -3,
+      "z": 857
+    },
+    {
+      "item_id": "gravewyrm_sigil",
+      "name": "Gravewyrm Sigil",
+      "x": 3,
+      "z": 861
+    },
+    {
+      "item_id": "gravewyrm_sigil",
+      "name": "Gravewyrm Sigil",
+      "x": 8,
+      "z": 866
+    },
+    {
+      "item_id": "sanctum_key_shard",
+      "name": "Sanctum Key Shard",
+      "x": -6,
+      "z": 872
+    },
+    {
+      "item_id": "sanctum_key_shard",
+      "name": "Sanctum Key Shard",
+      "x": -2,
+      "z": 876
+    },
+    {
+      "item_id": "sanctum_key_shard",
+      "name": "Sanctum Key Shard",
+      "x": 2,
+      "z": 873
+    },
+    {
+      "item_id": "sanctum_key_shard",
+      "name": "Sanctum Key Shard",
+      "x": 6,
+      "z": 878
+    },
+    {
+      "item_id": "grave_sir_aldren",
+      "name": "Grave of Captain Aldren",
+      "x": 138,
+      "z": 838
+    },
+    {
+      "item_id": "grave_high_priest_malric",
+      "name": "Grave of High Priest Malric",
+      "x": 141,
+      "z": 712
+    },
+    {
+      "item_id": "grave_captain_voss",
+      "name": "Grave of Royal Assassin Voss",
+      "x": -139,
+      "z": 787
+    },
+    {
+      "item_id": "crypt_ritual_circle",
+      "name": "Ritual Circle",
+      "x": 68,
+      "z": 800
+    },
+    {
+      "item_id": "moongate_rubbing",
+      "name": "Warded Shore-Rock",
+      "x": -74,
+      "z": 786
+    },
+    {
+      "item_id": "moongate_rubbing",
+      "name": "Warded Shore-Rock",
+      "x": -68,
+      "z": 783
+    },
+    {
+      "item_id": "moongate_rubbing",
+      "name": "Warded Shore-Rock",
+      "x": -76,
+      "z": 796
+    },
+    {
+      "item_id": "moongate_rubbing",
+      "name": "Warded Shore-Rock",
+      "x": -64,
+      "z": 794
+    }
+  ],
+  "catalog_sha256": "047ea1a46844f263934ff0a994669f020a3ededd7bd4186eff3c4126a828be8c"
+}

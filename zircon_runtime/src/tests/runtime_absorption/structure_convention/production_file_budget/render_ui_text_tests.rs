@@ -7,6 +7,13 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     let resolved_batches =
         read_runtime_src("graphics/scene/scene_renderer/ui/text/resolved_batches.rs");
     let tests = read_runtime_src("graphics/scene/scene_renderer/ui/text/tests.rs");
+    let font_asset_tests =
+        read_runtime_src("graphics/scene/scene_renderer/ui/text/tests/font_assets.rs");
+    let prepare_report_tests =
+        read_runtime_src("graphics/scene/scene_renderer/ui/text/tests/prepare_report.rs");
+    let rendering_tests =
+        read_runtime_src("graphics/scene/scene_renderer/ui/text/tests/rendering.rs");
+    let test_support = read_runtime_src("graphics/scene/scene_renderer/ui/text/tests/support.rs");
     let native_buffer = read_runtime_src("text/native_buffer.rs");
     let render_state = read_runtime_src("text/render_state.rs");
     let native_bitmap_atlas_tests = read_runtime_src("text/native_bitmap_atlas/tests.rs");
@@ -31,10 +38,20 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
         &["pub(super) fn resolve_text_batches("],
     );
 
+    assert_contains_all(
+        "screen-space UI text test facade remains folder-backed",
+        &tests,
+        &[
+            "#[path = \"tests/font_assets.rs\"]\nmod font_assets;",
+            "#[path = \"tests/prepare_report.rs\"]\nmod prepare_report;",
+            "#[path = \"tests/rendering.rs\"]\nmod rendering;",
+            "#[path = \"tests/support.rs\"]\nmod support;",
+        ],
+    );
+
     for moved_test in [
         "fn text_backend_routing_keeps_explicit_native_out_of_sdf_atlas_batches(",
         "fn text_backend_routing_respects_auto_font_mode_without_crossing_backends(",
-        "fn text_prepare_report_summarizes_input_routing_and_sdf_reports(",
         "fn auto_text_mode_uses_font_asset_default_when_present(",
         "fn explicit_text_mode_overrides_font_asset_default(",
         "fn auto_text_mode_falls_back_to_native_without_font_asset_default(",
@@ -47,27 +64,58 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
             "screen-space UI text parent should not own moved test `{moved_test}`"
         );
         assert!(
-            tests.contains(moved_test),
-            "screen-space UI text test owner should contain moved test `{moved_test}`"
+            rendering_tests.contains(moved_test),
+            "screen-space UI text rendering owner should contain moved test `{moved_test}`"
+        );
+    }
+
+    for moved_test in [
+        "fn text_prepare_report_summarizes_input_routing_and_sdf_reports(",
+        "fn text_prepare_report_exposes_raster_upload_scroll_counters(",
+    ] {
+        assert!(
+            !parent.contains(moved_test),
+            "screen-space UI text parent should not own moved test `{moved_test}`"
+        );
+        assert!(
+            prepare_report_tests.contains(moved_test),
+            "screen-space UI text prepare-report owner should contain moved test `{moved_test}`"
         );
     }
 
     assert_contains_all(
-        "screen-space UI text test owner keeps private helper coverage",
-        &tests,
+        "screen-space UI text folder-backed owners keep private helper coverage",
+        &rendering_tests,
         &[
-            "use super::super::sdf_atlas::SdfAtlasDirtyPageReport;",
-            "use super::super::sdf_upload::SdfAtlasUploadPageReport;",
-            "use crate::text::sdf::SdfAtlasRect;",
-            "use super::*;",
-            "fn text_batch(",
             "native_text_area_placement(",
+            "text_batch(\"Normal\", UiTextRenderMode::Native)",
         ],
     );
     assert_eq!(
-        tests.matches("#[test]").count(),
-        14,
-        "screen-space UI text test owner should preserve the current 14 private regression tests"
+        font_asset_tests.matches("#[test]").count()
+            + prepare_report_tests.matches("#[test]").count()
+            + rendering_tests.matches("#[test]").count(),
+        23,
+        "screen-space UI text folder-backed owners should preserve the current 23 private regression tests"
+    );
+    assert_contains_all(
+        "screen-space UI text folder-backed fixture owner",
+        &test_support,
+        &[
+            "pub(super) fn text_batch(",
+            "pub(super) struct TextFontProject",
+            "pub(super) struct RuntimeFontAssetGuard",
+        ],
+    );
+    assert_contains_all(
+        "screen-space UI text prepare-report owner keeps its shared fixture import",
+        &prepare_report_tests,
+        &[
+            "use super::support::text_batch;",
+            "use crate::text::sdf::SdfAtlasRect;",
+            "use super::super::super::sdf_atlas::SdfAtlasDirtyPageReport;",
+            "use super::super::super::sdf_upload::SdfAtlasUploadPageReport;",
+        ],
     );
     assert_contains_all(
         "text CPU preparation owns native attrs regression coverage",

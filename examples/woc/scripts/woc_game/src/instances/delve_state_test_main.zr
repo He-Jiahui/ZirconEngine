@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var delve = %import("instances/delve_state");
+
+console.printLine("m7-delve-state-test");
+var result = delve.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

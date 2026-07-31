@@ -65,8 +65,8 @@ mod tests {
         RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
         RenderVirtualGeometryReadbackOutputs,
     };
-    use crate::graphics::backend::RenderBackend;
     use crate::graphics::RuntimePrepareExternalBufferBinding;
+    use crate::graphics::backend::RenderBackend;
 
     #[test]
     fn advanced_plugin_readbacks_hold_neutral_plugin_renderer_outputs() {

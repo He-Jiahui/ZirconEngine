@@ -7,7 +7,7 @@ use zircon_runtime::scene::SystemStage;
 #[derive(Clone, Debug, Default)]
 pub struct AnimationRuntimeSystem;
 
-pub const ANIMATION_SYSTEM_SET: &str = "animation.evaluation";
+pub const ANIMATION_SYSTEM_SET: &str = "animation.main";
 pub const ANIMATION_EVALUATE_SYSTEM: &str = "animation.evaluate";
 pub const ANIMATION_EVALUATION_DIAGNOSTIC_EVENT: &str = "animation.events.evaluation_diagnostic";
 pub const ANIMATION_EVALUATION_DIAGNOSTIC_SCHEMA: &str = "animation.evaluation_diagnostic.v1";

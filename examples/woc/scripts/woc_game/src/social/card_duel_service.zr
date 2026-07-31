@@ -1,0 +1,308 @@
+// Current-head Card Duel lifecycle from src/sim/social/card_duel.ts. This is
+// the authoritative state layer between the pure queue/match rules and the
+// later WOS transaction bridge: it owns liveness sweeping, pairing, deadlines
+// and deed-worthy wins without exposing a rival's hand to callers.
+var container = %import("zr.container");
+var matchModule = %import("social/card_duel_match");
+var queueModule = %import("social/card_duel_queue_coordinator");
+var rngModule = %import("kernel/rng");
+
+pub class CardDuelServicePlayer {
+    pub var pid: uint;
+    // `queueable` means a live human. Fiesta and Vale Cup bots are false.
+    pub var queueable: bool;
+    pub var cardMasterInRange: bool;
+    pub var wins: int;
+
+    pub @constructor() {
+        this.pid = <uint>0;
+        this.queueable = false;
+        this.cardMasterInRange = false;
+        this.wins = 0;
+    }
+}
+
+pub class CardDuelService {
+    pub var players: container.Array<CardDuelServicePlayer>;
+    pub var queue: queueModule.CardDuelQueueCoordinator;
+    pub var matches: container.Array<matchModule.CardDuelMatch>;
+    pub var rng: rngModule.Mulberry32;
+    pub var lastWinner: uint;
+    pub var lastForfeiter: uint;
+    pub var lastMatchVoidedValue: bool;
+
+    pub @constructor(seed: uint) {
+        this.players = new container.Array<CardDuelServicePlayer>();
+        this.queue = new queueModule.CardDuelQueueCoordinator();
+        this.matches = new container.Array<matchModule.CardDuelMatch>();
+        this.rng = new rngModule.Mulberry32(seed);
+        this.lastWinner = <uint>0;
+        this.lastForfeiter = <uint>0;
+        this.lastMatchVoidedValue = false;
+    }
+}
+
+playerIndex(state: CardDuelService, pid: uint): int {
+    var index = 0;
+    while (index < state.players.length) {
+        if (<uint>state.players[index].pid == pid) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+matchIndex(state: CardDuelService, pid: uint): int {
+    var index = 0;
+    while (index < state.matches.length) {
+        var match = state.matches[index];
+        if (match.a == pid || match.b == pid) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+hasOtherQueueablePlayer(state: CardDuelService, pid: uint): bool {
+    for (var player in state.players) {
+        if (player.pid != pid && player.queueable) return true;
+    }
+    return false;
+}
+
+recordFinishedMatch(
+    state: CardDuelService,
+    index: int,
+    transition: matchModule.CardDuelTransition
+): void {
+    state.lastWinner = transition.winner;
+    state.lastForfeiter = transition.forfeiter;
+    state.lastMatchVoidedValue = transition.voided;
+    if (!transition.voided && transition.winner != <uint>0) {
+        var winnerIndex = playerIndex(state, transition.winner);
+        if (winnerIndex >= 0) {
+            var winner = state.players[winnerIndex];
+            winner.wins = winner.wins + 1;
+        }
+    }
+    state.matches.removeAt(index);
+}
+
+pub upsertPlayer(
+    state: CardDuelService,
+    pid: uint,
+    queueable: bool,
+    cardMasterInRange: bool
+): void {
+    if (pid == <uint>0) throw "card duel service player id is invalid";
+    var index = playerIndex(state, pid);
+    if (index < 0) {
+        var player = new CardDuelServicePlayer();
+        player.pid = pid;
+        player.queueable = queueable;
+        player.cardMasterInRange = cardMasterInRange;
+        state.players.add(player);
+    } else {
+        var existing = state.players[index];
+        existing.queueable = queueable;
+        existing.cardMasterInRange = cardMasterInRange;
+    }
+    state.queue.upsert(pid, queueable);
+}
+
+pub queued(state: CardDuelService, pid: uint): bool {
+    return state.queue.queued(pid);
+}
+
+pub queueSize(state: CardDuelService): int {
+    return state.queue.size();
+}
+
+pub available(state: CardDuelService, pid: uint): bool {
+    return playerIndex(state, pid) >= 0 && hasOtherQueueablePlayer(state, pid);
+}
+
+pub inMatch(state: CardDuelService, pid: uint): bool {
+    return matchIndex(state, pid) >= 0;
+}
+
+matchFor(state: CardDuelService, pid: uint) {
+    var index = matchIndex(state, pid);
+    if (index < 0) return null;
+    return state.matches[index];
+}
+
+// The service deliberately exposes only the caller's hand. The WOS/world
+// adapter can combine these values with an opponent name, but must never
+// project the opponent's hand as part of a local Card Minigame view.
+pub handCount(state: CardDuelService, pid: uint): int {
+    var match = matchFor(state, pid);
+    if (match == null) return 0;
+    return pid == match.a ? match.handA.hand.length : match.handB.hand.length;
+}
+
+pub heldCardAt(state: CardDuelService, pid: uint, index: int): uint {
+    var match = matchFor(state, pid);
+    if (match == null || index < 0) return <uint>0;
+    var hand = pid == match.a ? match.handA.hand : match.handB.hand;
+    if (index >= hand.length) return <uint>0;
+    return <uint>hand[index];
+}
+
+pub deckCount(state: CardDuelService, pid: uint): int {
+    var match = matchFor(state, pid);
+    if (match == null) return 0;
+    return pid == match.a ? match.handA.deck.length : match.handB.deck.length;
+}
+
+pub discardCount(state: CardDuelService, pid: uint): int {
+    var match = matchFor(state, pid);
+    if (match == null) return 0;
+    return pid == match.a ? match.handA.discard.length : match.handB.discard.length;
+}
+
+pub opponentId(state: CardDuelService, pid: uint): uint {
+    var match = matchFor(state, pid);
+    if (match == null) return <uint>0;
+    return pid == match.a ? match.b : match.a;
+}
+
+pub myRounds(state: CardDuelService, pid: uint): int {
+    var match = matchFor(state, pid);
+    if (match == null) return 0;
+    return pid == match.a ? match.roundsA : match.roundsB;
+}
+
+pub opponentRounds(state: CardDuelService, pid: uint): int {
+    var match = matchFor(state, pid);
+    if (match == null) return 0;
+    return pid == match.a ? match.roundsB : match.roundsA;
+}
+
+pub waitingOnOpponent(state: CardDuelService, pid: uint): bool {
+    var match = matchFor(state, pid);
+    if (match == null) return false;
+    return pid == match.a ? match.playedA != 0 : match.playedB != 0;
+}
+
+pub roundDeadlineFor(state: CardDuelService, pid: uint): float {
+    var match = matchFor(state, pid);
+    return match == null ? -1.0 : match.roundDeadline;
+}
+
+scenarioCard(state: CardDuelService, pid: uint, highest: bool): uint {
+    var result: uint = <uint>0;
+    var index = 0;
+    while (index < handCount(state, pid)) {
+        var value = heldCardAt(state, pid, index);
+        if (result == <uint>0 || (highest && value > result) || (!highest && value < result)) {
+            result = value;
+        }
+        index = index + 1;
+    }
+    return result;
+}
+
+pub wins(state: CardDuelService, pid: uint): int {
+    var index = playerIndex(state, pid);
+    return index < 0 ? 0 : state.players[index].wins;
+}
+
+pub lastMatchVoided(state: CardDuelService): bool {
+    return state.lastMatchVoidedValue;
+}
+
+// 1 joined, 0 already queued, -1 unknown player, -2 not a live human,
+// -3 out of Card Master range, -4 no human opponent is online, -5 in duel.
+pub joinQueue(state: CardDuelService, pid: uint): int {
+    var index = playerIndex(state, pid);
+    if (index < 0) return -1;
+    var player = state.players[index];
+    if (!player.queueable) return -2;
+    if (!player.cardMasterInRange) return -3;
+    if (!hasOtherQueueablePlayer(state, pid)) return -4;
+    return state.queue.join(pid, inMatch(state, pid));
+}
+
+pub leaveQueue(state: CardDuelService, pid: uint): bool {
+    return state.queue.leave(pid);
+}
+
+pub play(state: CardDuelService, pid: uint, cardValue: uint, nowSeconds: float): int {
+    var player = playerIndex(state, pid);
+    if (player < 0) return -1;
+    if (!state.players[player].queueable) return -2;
+    var index = matchIndex(state, pid);
+    if (index < 0) return -3;
+    var transition = matchModule.playCard(state.matches[index], pid, cardValue, state.rng, nowSeconds);
+    if (!transition.accepted) return transition.error;
+    if (transition.finished) recordFinishedMatch(state, index, transition);
+    return 1;
+}
+
+pub forfeit(state: CardDuelService, pid: uint): int {
+    var index = matchIndex(state, pid);
+    if (index < 0) return -1;
+    var transition = matchModule.forfeit(state.matches[index], pid);
+    if (!transition.accepted) return transition.error;
+    recordFinishedMatch(state, index, transition);
+    return 1;
+}
+
+// Disconnect and explicit world-leave use the same source behavior: remove a
+// pending queue entry and forfeit a live match, if one exists.
+pub leaveEntirely(state: CardDuelService, pid: uint): void {
+    state.queue.leave(pid);
+    var index = matchIndex(state, pid);
+    if (index < 0) return;
+    var transition = matchModule.forfeit(state.matches[index], pid);
+    if (transition.accepted) recordFinishedMatch(state, index, transition);
+}
+
+// Source ordering is deliberate: sweep/pair the queue first, then resolve
+// the deadline of each distinct live match at the same authoritative time.
+pub update(state: CardDuelService, nowSeconds: float): void {
+    if (nowSeconds < 0.0) throw "card duel service time is invalid";
+    var pair = state.queue.pairNext();
+    while (pair.ready) {
+        state.matches.add(matchModule.createCardDuelMatch(pair.a, pair.b, state.rng, nowSeconds));
+        pair = state.queue.pairNext();
+    }
+    var index = state.matches.length - 1;
+    while (index >= 0) {
+        var transition = matchModule.expireDeadline(state.matches[index], nowSeconds);
+        if (transition.finished) recordFinishedMatch(state, index, transition);
+        index = index - 1;
+    }
+}
+
+// The M6 social matrix uses one end-to-end service scenario. Detailed stale
+// queue and deadline arms live in card_duel_service_test_main.
+pub scenarioTest(): int {
+    var state = new CardDuelService(<uint>1010);
+    upsertPlayer(state, <uint>1, true, true);
+    upsertPlayer(state, <uint>2, true, true);
+    if (joinQueue(state, <uint>1) != 1 || joinQueue(state, <uint>2) != 1) {
+        return -1;
+    }
+    update(state, 0.0);
+    if (!inMatch(state, <uint>1) || !inMatch(state, <uint>2) ||
+        handCount(state, <uint>1) != 4 || handCount(state, <uint>2) != 4) {
+        return -2;
+    }
+    var guard = 0;
+    while (myRounds(state, <uint>1) == 0 && myRounds(state, <uint>2) == 0 && guard < 20) {
+        var aCard = scenarioCard(state, <uint>1, true);
+        var bCard = scenarioCard(state, <uint>2, false);
+        if (play(state, <uint>1, aCard, 0.0) != 1 ||
+            play(state, <uint>2, bCard, 0.0) != 1) {
+            return -3;
+        }
+        guard = guard + 1;
+    }
+    var winner = myRounds(state, <uint>1) > 0 ? <uint>1 : <uint>2;
+    var forfeiter = winner == <uint>1 ? <uint>2 : <uint>1;
+    if (guard == 20 || forfeit(state, forfeiter) != 1 || inMatch(state, <uint>1) ||
+        wins(state, winner) != 1 || lastMatchVoided(state)) {
+        return -3;
+    }
+    return 1;
+}

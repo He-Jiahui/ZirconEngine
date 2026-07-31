@@ -6,7 +6,7 @@ display_name = "Workbench Icon"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchIcon]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-icon", "workbench-primitive"]
 component = "Icon"
 control_id = "WorkbenchIconRoot"
 classes = ["workbench-icon"]
-props = { icon = "zircon_editor_shell/controls/add.svg", label = "Icon", icon_size = 18.0, layout_icon_size = 18.0, icon_color = "#98a3a8", foreground_color = "#98a3a8", preserve_aspect = true }
-layout = { width = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+props = { icon = "zircon_editor_shell/controls/add.svg", label = "Icon", icon_size = "$editor.typography.title.size", layout_icon_size = "$editor.typography.title.size", icon_color = "$editor.text.secondary", foreground_color = "$editor.text.secondary", preserve_aspect = true }
+layout = { width = { min = "$editor.typography.title.size", preferred = "$editor.typography.title.size", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { min = "$editor.typography.title.size", preferred = "$editor.typography.title.size", max = "$editor.control.height.dense", stretch = "Fixed" } }

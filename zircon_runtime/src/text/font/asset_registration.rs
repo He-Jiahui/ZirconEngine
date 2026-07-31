@@ -4,11 +4,18 @@ use crate::asset::{FontAsset, FontAssetFaceStyle, FontAssetFamilyMember, FontAss
 use crate::text::{FontFaceDescriptor, FontStyle, FontWeight, VariationCoords};
 
 use super::database::{canonical_source_key, normalized_family_key};
-use super::descriptors::{descriptor_from_font_bytes, stretch_from_ttf_width_class};
+use super::descriptors::{descriptor_from_font_metadata, stretch_from_ttf_width_class};
+use super::face_metadata::FontFaceMetadata;
+
+pub(super) struct FontAssetFaceRegistration {
+    pub(super) descriptor: FontFaceDescriptor,
+    pub(super) metadata: FontFaceMetadata,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) struct FontAssetSourceKey {
     path: PathBuf,
+    source_identity: [u8; 16],
     face_index: u32,
     family: String,
     weight: u16,
@@ -18,7 +25,11 @@ pub(super) struct FontAssetSourceKey {
 }
 
 impl FontAssetSourceKey {
-    pub(super) fn from_descriptor(source_path: &Path, descriptor: &FontFaceDescriptor) -> Self {
+    pub(super) fn from_descriptor(
+        source_path: &Path,
+        descriptor: &FontFaceDescriptor,
+        source_identity: [u8; 16],
+    ) -> Self {
         let mut variations: Vec<(u32, u32)> = descriptor
             .variations
             .0
@@ -28,6 +39,7 @@ impl FontAssetSourceKey {
         variations.sort_unstable();
         Self {
             path: canonical_source_key(source_path),
+            source_identity,
             face_index: descriptor.face_index,
             family: normalized_family_key(descriptor.family.as_str()),
             weight: descriptor.weight.0,
@@ -55,11 +67,11 @@ impl From<FontStyle> for FontStyleKey {
     }
 }
 
-pub(super) fn font_asset_descriptors(
+pub(super) fn font_asset_faces(
     asset: &FontAsset,
     bytes: &[u8],
     source_path: &Path,
-) -> Vec<FontFaceDescriptor> {
+) -> Vec<FontAssetFaceRegistration> {
     let primary_index = primary_family_member_index(asset);
     let mut descriptors = Vec::new();
 
@@ -70,12 +82,16 @@ pub(super) fn font_asset_descriptors(
             &asset.family_members[index],
         ));
     } else {
-        descriptors.push(descriptor_from_font_bytes(
-            bytes,
-            asset.family.as_deref(),
-            source_path,
-            asset.face_index,
-        ));
+        let metadata = FontFaceMetadata::from_sfnt_bytes(bytes, asset.face_index);
+        descriptors.push(FontAssetFaceRegistration {
+            descriptor: descriptor_from_font_metadata(
+                &metadata,
+                asset.family.as_deref(),
+                source_path,
+                asset.face_index,
+            ),
+            metadata,
+        });
     }
 
     for (index, member) in asset.family_members.iter().enumerate() {
@@ -120,9 +136,10 @@ fn descriptor_from_font_asset_member(
     bytes: &[u8],
     source_path: &Path,
     member: &FontAssetFamilyMember,
-) -> FontFaceDescriptor {
-    let mut descriptor = descriptor_from_font_bytes(
-        bytes,
+) -> FontAssetFaceRegistration {
+    let metadata = FontFaceMetadata::from_sfnt_bytes(bytes, member.face_index);
+    let mut descriptor = descriptor_from_font_metadata(
+        &metadata,
         Some(member.family.as_str()),
         source_path,
         member.face_index,
@@ -137,7 +154,10 @@ fn descriptor_from_font_asset_member(
         descriptor.style = style_from_font_asset(style);
     }
     descriptor.variations = variation_coords_from_font_asset(&member.variations);
-    descriptor
+    FontAssetFaceRegistration {
+        descriptor,
+        metadata,
+    }
 }
 
 fn style_from_font_asset(style: FontAssetFaceStyle) -> FontStyle {

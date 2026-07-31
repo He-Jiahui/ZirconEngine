@@ -1,5 +1,6 @@
 mod actions;
 mod commands;
+mod geometry;
 mod identity;
 mod labels;
 mod layers;

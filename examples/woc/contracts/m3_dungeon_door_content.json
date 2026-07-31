@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_dungeon_door_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/data.ts": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431",
+    "src/sim/mob/locomotion.ts": "0deec16a09eb2a9c761b99b6b243aab6578c1f09aeae1362621a0358751c21bd",
+    "src/sim/dungeon_door_clearance.ts": "1632f956de849a5e4c10dc10f126676e3b7295b182e3ee9af6d44460f86e7073"
+  },
+  "clear_radius": 20,
+  "doors": [
+    {
+      "x": 80,
+      "z": 90
+    },
+    {
+      "x": 45,
+      "z": 515
+    },
+    {
+      "x": 0,
+      "z": 858
+    },
+    {
+      "x": -152,
+      "z": 610
+    },
+    {
+      "x": -70,
+      "z": 792
+    }
+  ],
+  "content_sha256": "16c708c47d92fc9a3a2f3bdf0639819c113ca29a167bb2c7ca14486a8c4db37f"
+}

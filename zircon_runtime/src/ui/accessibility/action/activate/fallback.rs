@@ -13,5 +13,6 @@ pub(super) fn default_activate_commit_event(target: UiNodeId) -> UiComponentEven
         },
         delivered: true,
         drag: None,
+        template_action: None,
     }
 }

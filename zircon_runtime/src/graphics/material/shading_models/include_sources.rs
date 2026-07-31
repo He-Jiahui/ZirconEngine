@@ -127,7 +127,10 @@ impl Display for ShadingModelIncludeSourceError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::MissingInclude { token } => {
-                write!(f, "shading model include `{token}` was not found in ready shader assets")
+                write!(
+                    f,
+                    "shading model include `{token}` was not found in ready shader assets"
+                )
             }
             Self::DuplicateIncludeToken {
                 token,
@@ -160,16 +163,15 @@ fn resolve_include_source(
     shader_records: &[ResourceRecord],
     token: &str,
 ) -> Result<ShadingModelIncludeSource, ShadingModelIncludeSourceError> {
-    let matches = shader_records
+    let mut matches = shader_records
         .iter()
-        .filter(|record| record_matches_include_token(record, token))
-        .collect::<Vec<_>>();
-    let Some(record) = matches.first() else {
+        .filter(|record| record_matches_include_token(record, token));
+    let Some(record) = matches.next() else {
         return Err(ShadingModelIncludeSourceError::MissingInclude {
             token: token.to_string(),
         });
     };
-    if let Some(second) = matches.get(1) {
+    if let Some(second) = matches.next() {
         return Err(ShadingModelIncludeSourceError::DuplicateIncludeToken {
             token: token.to_string(),
             first_locator: record.primary_locator.to_string(),
@@ -219,17 +221,33 @@ fn normalize_include_token(value: &str) -> String {
 mod tests {
     use crate::asset::{ProjectAssetManager, ShaderAsset, ShaderSourceLanguage};
     use crate::core::framework::render::{
-        builtin_geometry_source_descriptor, GBufferChannelMask, ShaderAssetKind, ShaderPassType,
-        ShadingModelDescriptor, ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
-        SHADING_MODEL_ID_STANDARD_PBR,
+        GBufferChannelMask, GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
+        ShaderAssetKind, ShaderPassType, ShadingModelDescriptor, ShadingModelId,
+        builtin_geometry_source_descriptor,
     };
     use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
     use crate::graphics::shader::{
-        assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
         DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateRequest,
+        assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
     };
 
     use super::*;
+
+    #[test]
+    fn include_resolution_stops_after_the_duplicate_witness() {
+        let source = include_str!("include_sources.rs");
+        let start = source
+            .find("fn resolve_include_source(")
+            .expect("include resolver");
+        let end = start
+            + source[start..]
+                .find("fn record_matches_include_token(")
+                .expect("next include helper");
+        let resolver = &source[start..end];
+
+        assert!(!resolver.contains(concat!("collect::<", "Vec<_>>()")));
+        assert_eq!(resolver.matches("matches.next()").count(), 2);
+    }
 
     #[test]
     fn project_shader_records_export_plugin_shading_model_include_sources() {
@@ -313,12 +331,16 @@ mod tests {
         )
         .expect("deferred GBuffer template should consume exported include source set");
 
-        assert!(forward
-            .wgsl_source
-            .contains("// include: zr_shading_toon.wgsl"));
-        assert!(gbuffer
-            .wgsl_source
-            .contains("// include: zr_gbuffer_encode_toon.wgsl"));
+        assert!(
+            forward
+                .wgsl_source
+                .contains("// include: zr_shading_toon.wgsl")
+        );
+        assert!(
+            gbuffer
+                .wgsl_source
+                .contains("// include: zr_gbuffer_encode_toon.wgsl")
+        );
     }
 
     #[test]

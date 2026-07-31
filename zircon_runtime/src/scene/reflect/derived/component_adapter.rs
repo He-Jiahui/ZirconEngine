@@ -13,7 +13,8 @@ where
 {
     let registration = T::reflect_type_registration()?;
     let type_path = registration.type_path.type_path.clone();
-    derived_component_registration_with_adapter::<T>(
+    finish_component_registration(
+        registration,
         ReflectComponent::new(
             type_path,
             contains::<T>,
@@ -33,6 +34,13 @@ where
     T: ZrReflect,
 {
     let registration = T::reflect_type_registration()?;
+    finish_component_registration(registration, component)
+}
+
+fn finish_component_registration(
+    registration: ReflectTypeRegistration,
+    component: ReflectComponent,
+) -> Result<RuntimeTypeRegistration, ReflectError> {
     validate_component_registration(&registration)?;
     Ok(RuntimeTypeRegistration {
         registration,

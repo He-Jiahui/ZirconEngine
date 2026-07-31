@@ -608,6 +608,36 @@ fn str_attr<'a>(node: &'a UiTemplateNode, name: &str) -> Option<&'a str> {
     node.attributes.get(name).and_then(Value::as_str)
 }
 
+#[test]
+fn template_asset_hot_paths_style_matching_sorts_borrowed_rules() {
+    let source = include_str!("../template/asset/compiler/style_apply.rs");
+
+    assert!(
+        source.contains("let mut matched: Vec<&ParsedStyleRule>"),
+        "style matching should sort borrowed rules"
+    );
+    assert!(
+        !source.contains(
+            ".filter(|rule| rule.selector.matches_path(&path_snapshot))\n        .cloned()"
+        ),
+        "style matching must not clone every matched declaration and token map"
+    );
+}
+
+#[test]
+fn template_asset_hot_paths_slot_classes_borrow_owner_attributes() {
+    let source = include_str!("../template/asset/compiler/style_apply/slot_contract.rs");
+
+    assert!(
+        source.contains("let owner_attributes = &node.attributes;"),
+        "slot class application should borrow the owner attribute map"
+    );
+    assert!(
+        !source.contains("let owner_attributes = node.attributes.clone();"),
+        "slot class application must not clone the complete owner attribute map"
+    );
+}
+
 fn bool_attr(node: &UiTemplateNode, name: &str) -> Option<bool> {
     node.attributes.get(name).and_then(Value::as_bool)
 }

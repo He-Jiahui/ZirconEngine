@@ -70,12 +70,13 @@ fn review_f5_native_plugin_string_helpers_use_typed_error() {
     }
 
     assert!(
-        native_plugin_abi.contains("read_required_descriptor_field(abi.plugin_id, \"plugin_id\")")
-            && native_plugin_abi
-                .contains("NativePluginDescriptorAbiError::InvalidRequiredField")
-            && native_plugin_abi.contains("NativePluginDescriptorAbiError::InvalidPackageManifest")
-            && native_plugin_abi.contains("NativePluginEntryAbiError::InvalidPackageManifest"),
-        "native plugin ABI should keep descriptor string helpers typed and wrap entry string helpers inside the entry ABI typed error"
+        native_plugin_abi.contains("read_required_descriptor_field(")
+            && native_plugin_abi.contains("abi.plugin_id")
+            && native_plugin_abi.contains("\"plugin_id\"")
+            && native_plugin_abi.contains("PluginLoadError::invalid_payload(")
+            && native_plugin_abi.contains("\"package_manifest_toml\"")
+            && native_plugin_abi.contains("source"),
+        "native plugin ABI should preserve descriptor and entry string helper sources inside the unified loader error"
     );
     assert!(
         bridge_method_abi.contains("read_required_c_string(value, field_name)")

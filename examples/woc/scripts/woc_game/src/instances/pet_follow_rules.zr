@@ -1,0 +1,87 @@
+// Source-locked from src/sim/pet/pet_ai.ts at 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a.
+// This exposes scalar petFollow decisions only. Path construction, line-of-sight,
+// position mutation and spatial rebucketing remain with the authoritative world state.
+
+pub followDistance(): float {
+    return 3.5;
+}
+
+pub teleportDistance(): float {
+    return 60.0;
+}
+
+pub forceRecoveryDistance(): float {
+    return 96.0;
+}
+
+pub pathRecalcInterval(): float {
+    return 0.5;
+}
+
+pub pathSearchSpan(): int {
+    return 96;
+}
+
+pub shouldClearPath(distanceToOwner: float): bool {
+    return distanceToOwner <= followDistance();
+}
+
+pub shouldRecomputePath(
+    pathCooldown: float,
+    hasCachedPathEnd: bool,
+    cachedEndDistanceToOwner: float,
+): bool {
+    return pathCooldown <= 0.0 && (!hasCachedPathEnd || cachedEndDistanceToOwner > 4.0);
+}
+
+pub shouldDropReachedWaypoint(pathLength: int, waypointDistance: float): bool {
+    return pathLength > 1 && waypointDistance < 1.0;
+}
+
+// `freshPathLength` is the result after the required, unthrottled second path query.
+pub shouldWarpAfterFreshPath(
+    distanceToOwner: float,
+    cachedPathLength: int,
+    lineOfSightClear: bool,
+    freshPathLength: int,
+): bool {
+    return cachedPathLength <= 1 && distanceToOwner > teleportDistance() &&
+        (distanceToOwner > forceRecoveryDistance() || !lineOfSightClear) &&
+        freshPathLength <= 1;
+}
+
+pub followSpeed(petMoveSpeed: float, moveSpeedMultiplier: float): float {
+    var baseSpeed = petMoveSpeed;
+    if (baseSpeed < 7.7) {
+        baseSpeed = 7.7;
+    }
+    return baseSpeed * moveSpeedMultiplier;
+}
+
+pub contractTest(): int {
+    if (pathRecalcInterval() != 0.5 || pathSearchSpan() != 96 ||
+        !shouldClearPath(3.5) || shouldClearPath(3.5001) ||
+        !shouldRecomputePath(0.0, false, 0.0) ||
+        !shouldRecomputePath(0.0, true, 4.0001) ||
+        shouldRecomputePath(0.0001, false, 0.0) ||
+        shouldRecomputePath(0.0, true, 4.0)) {
+        return -1;
+    }
+    if (!shouldDropReachedWaypoint(2, 0.9999) || shouldDropReachedWaypoint(1, 0.0) ||
+        shouldDropReachedWaypoint(2, 1.0)) {
+        return -2;
+    }
+    if (shouldWarpAfterFreshPath(60.0, 1, false, 1) ||
+        !shouldWarpAfterFreshPath(60.0001, 1, false, 1) ||
+        shouldWarpAfterFreshPath(80.0, 1, true, 1) ||
+        shouldWarpAfterFreshPath(96.0, 1, true, 1) ||
+        !shouldWarpAfterFreshPath(96.0001, 1, true, 1) ||
+        shouldWarpAfterFreshPath(100.0, 2, false, 1) ||
+        shouldWarpAfterFreshPath(100.0, 1, false, 2)) {
+        return -3;
+    }
+    if (followSpeed(6.0, 1.0) != 7.7 || followSpeed(8.0, 1.25) != 10.0) {
+        return -4;
+    }
+    return 1;
+}

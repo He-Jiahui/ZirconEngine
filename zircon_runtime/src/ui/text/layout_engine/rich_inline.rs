@@ -2,8 +2,9 @@ use crate::text::layout::{
     layout_rich_text_glyph_wrapped_with_provider, layout_rich_text_with_provider,
     layout_rich_text_word_wrapped_with_provider, measured_grapheme_widths_with_provider,
     resolve_rich_run_style, rich_forced_line_ranges, rich_glyph_line_ranges_with_provider,
-    RichWordWrapMode, ELLIPSIS,
+    soft_hyphen_break_suffix_at, RichWordWrapMode, ELLIPSIS,
 };
+use crate::text::shaping::TextShapeRunProvider;
 use crate::text::LayoutItem;
 use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -14,7 +15,7 @@ use zircon_runtime_interface::ui::surface::{
 
 use super::super::adapter::text_style;
 use super::super::rich_text::UiParsedText;
-use super::candidate_line::CandidateLine;
+use super::candidate_line::{append_segment, CandidateLine};
 use super::ellipsis::{ellipsize_line_with_advances, is_ellipsis_overflow};
 use super::line_box::aligned_x;
 use super::visual_order::apply_visual_order_with_advances;
@@ -124,6 +125,14 @@ pub(super) fn layout_inline_rich_text_with_provider(
             pending_break_suffix: None,
             ellipsized: false,
         };
+        append_soft_hyphen_break_suffix(
+            &mut visual_line,
+            &mut glyph_advances,
+            parsed,
+            style,
+            source_range.end,
+            provider,
+        );
         apply_visual_order_with_advances(
             &mut visual_line,
             &parsed.text,
@@ -146,6 +155,7 @@ pub(super) fn layout_inline_rich_text_with_provider(
             overflow_clipped |= visual_line.ellipsized;
         }
         let measured_width = glyph_advances.iter().copied().sum::<f32>();
+        let resolved_source_range = visual_line.source_range;
         let line_width = measured_width.min(constraints.max_width);
         let line_align = constraints.align;
         let content_frame =
@@ -163,7 +173,7 @@ pub(super) fn layout_inline_rich_text_with_provider(
         resolved_lines.push(UiResolvedTextLine {
             text: visual_line.text,
             frame: line_frame,
-            source_range,
+            source_range: resolved_source_range,
             visual_range: UiTextRange {
                 start: 0,
                 end: visual_line
@@ -208,6 +218,43 @@ pub(super) fn layout_inline_rich_text_with_provider(
         overflow_clipped,
         editable: None,
     })
+}
+
+pub(super) fn append_soft_hyphen_break_suffix<P>(
+    line: &mut CandidateLine,
+    glyph_advances: &mut Vec<f32>,
+    parsed: &UiParsedText,
+    base_style: &UiResolvedStyle,
+    break_end: usize,
+    provider: &mut P,
+) where
+    P: TextShapeRunProvider + ?Sized,
+{
+    let Some(suffix) = soft_hyphen_break_suffix_at(&parsed.text, break_end) else {
+        return;
+    };
+    let source_range = UiTextRange {
+        start: suffix.source_range.start,
+        end: suffix.source_range.end,
+    };
+    let run = parsed.runs.iter().find(|run| {
+        run.source_range.start <= source_range.start && source_range.end <= run.source_range.end
+    });
+    let kind = run.map_or(
+        zircon_runtime_interface::ui::surface::UiTextRunKind::Plain,
+        |run| run.kind,
+    );
+    let suffix_style = run.map_or_else(
+        || text_style(base_style),
+        |run| resolve_rich_run_style(&text_style(base_style), &run.style),
+    );
+    let suffix_advance =
+        measured_grapheme_widths_with_provider(suffix.text, &suffix_style, provider)
+            .into_iter()
+            .next()
+            .unwrap_or_default();
+    append_segment(line, kind, suffix.text, source_range);
+    glyph_advances.push(suffix_advance);
 }
 
 pub(super) fn resolved_runs_for_line(

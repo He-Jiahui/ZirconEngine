@@ -1,9 +1,9 @@
-use crate::text::atlas::render_contract::{GlyphAtlasBlendMode, GLYPH_ATLAS_TEXT_SHADER};
+use crate::text::atlas::render_contract::{GLYPH_ATLAS_TEXT_SHADER, GlyphAtlasBlendMode};
 use crate::text::atlas::render_gpu_plan::{
     GlyphAtlasGpuPipelineContract, GlyphAtlasGpuPrimitiveTopology,
 };
 
-use super::vertex::glyph_atlas_wgpu_vertex_buffer_layout;
+use super::instance::glyph_atlas_wgpu_instance_buffer_layout;
 
 pub(super) fn create_glyph_atlas_bitmap_shader(device: &wgpu::Device) -> wgpu::ShaderModule {
     device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -31,7 +31,7 @@ pub(super) fn create_glyph_atlas_bitmap_pipeline(
     contract: GlyphAtlasGpuPipelineContract,
 ) -> wgpu::RenderPipeline {
     let label = glyph_atlas_bitmap_pipeline_label(contract);
-    let vertex_layout = glyph_atlas_wgpu_vertex_buffer_layout(contract.vertex_layout);
+    let instance_layout = glyph_atlas_wgpu_instance_buffer_layout(contract.instance_layout);
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(label.as_str()),
         layout: Some(pipeline_layout),
@@ -39,7 +39,7 @@ pub(super) fn create_glyph_atlas_bitmap_pipeline(
             module: shader,
             entry_point: Some(contract.shader_entry_points.vertex),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
-            buffers: &[vertex_layout],
+            buffers: &[instance_layout],
         },
         primitive: glyph_atlas_wgpu_primitive_state(contract.key.primitive_topology),
         depth_stencil: None,

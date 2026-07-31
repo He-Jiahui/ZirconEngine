@@ -10,6 +10,7 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
     let runtime_config_source = runtime_config_source();
     let runtime_window_creation_source = include_str!("../../runtime_entry_app/window_creation.rs");
     let runtime_construct_source = include_str!("../../runtime_entry_app/construct.rs");
+    let runtime_failure_source = include_str!("../../runtime_entry_app/failure.rs");
     let runtime_runner_source = include_str!("../../entry_runner/runtime.rs");
     let root = entry_root();
 
@@ -32,16 +33,19 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         runtime_config_source.contains("WindowDescriptor")
             && runtime_config_source.contains("EventLoopPolicy")
             && runtime_config_source.contains("WindowLifecyclePolicy")
-            && runtime_config_source.contains("exit_after_first_presented_frame"),
-        "runtime entry app config should carry the neutral window descriptor, event-loop policy, lifecycle policy, and first-frame exit validation policy"
+            && runtime_config_source.contains("exit_after_first_presented_frame")
+            && runtime_config_source.contains("require_persisted_scene_diagnostics"),
+        "runtime entry app config should carry the neutral window descriptor, event-loop policy, lifecycle policy, first-frame exit validation policy, and persisted-scene diagnostic policy"
     );
     assert!(
         runtime_config_source.contains("with_window_lifecycle_policy")
             && runtime_config_source.contains("with_close_when_requested")
             && runtime_config_source.contains("window_lifecycle_policy(&self)")
             && runtime_config_source.contains("with_exit_after_first_presented_frame")
-            && runtime_config_source.contains("exit_after_first_presented_frame(&self)"),
-        "runtime entry app config should expose the Bevy-style close/exit host policy and the explicit startup-smoke first-frame exit policy"
+            && runtime_config_source.contains("exit_after_first_presented_frame(&self)")
+            && runtime_config_source.contains("with_persisted_scene_diagnostics")
+            && runtime_config_source.contains("require_persisted_scene_diagnostics(&self)"),
+        "runtime entry app config should expose the Bevy-style close/exit host policy, explicit startup-smoke first-frame exit policy, and project-scoped F2 diagnostics policy"
     );
     assert_source_order(
         runtime_config_app_config_source,
@@ -51,13 +55,16 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "event_loop_policy: EventLoopPolicy",
             "window_lifecycle_policy: WindowLifecyclePolicy",
             "exit_after_first_presented_frame: bool",
+            "require_persisted_scene_diagnostics: bool",
             "fn with_window_descriptor",
             "fn with_event_loop_policy",
             "fn with_window_lifecycle_policy",
             "fn with_exit_after_first_presented_frame",
+            "fn with_persisted_scene_diagnostics",
             "impl Default for RuntimeEntryAppConfig",
             "EventLoopPolicy::Game",
             "exit_after_first_presented_frame: false",
+            "require_persisted_scene_diagnostics: false",
         ],
         "runtime app-config implementation should keep host policy fields, builder methods, and defaults source-visible",
     );
@@ -66,13 +73,32 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             && runtime_construct_source.contains("config.window_descriptor")
             && runtime_construct_source.contains("config.event_loop_policy")
             && runtime_construct_source.contains("config.window_lifecycle_policy")
-            && runtime_construct_source.contains("config.exit_after_first_presented_frame"),
-        "runtime entry construction should seed host state from RuntimeEntryAppConfig"
+            && runtime_construct_source.contains("config.exit_after_first_presented_frame")
+            && runtime_construct_source.contains("config.require_persisted_scene_diagnostics"),
+        "runtime entry construction should seed host state and persisted-scene diagnostic policy from RuntimeEntryAppConfig"
     );
     assert!(
         runtime_app_source.contains("window_lifecycle_policy: WindowLifecyclePolicy")
-            && runtime_app_source.contains("exit_after_first_presented_frame: bool"),
-        "runtime entry construction should store close/exit and first-frame-exit policies from RuntimeEntryAppConfig"
+            && runtime_app_source.contains("exit_after_first_presented_frame: bool")
+            && runtime_app_source.contains("require_persisted_scene_diagnostics: bool")
+            && runtime_app_source.contains("failure_state: RuntimeEntryAppFailureState"),
+        "runtime entry construction should retain close/exit, first-frame-exit, persisted-scene diagnostic, and terminal callback-failure policies"
+    );
+    assert!(
+        runtime_failure_source.contains("runtime startup diagnostic: component={}")
+            && runtime_failure_source.contains("RuntimeEntryAppFailureState")
+            && runtime_failure_source.contains("if recorded_failure.is_none()"),
+        "runtime entry failures should remain actionable and retain the first terminal callback failure"
+    );
+    assert!(
+        runtime_runner_source
+            .matches("runtime_startup_execution_error(")
+            .count()
+            >= 4
+            && runtime_runner_source.contains("\"runtime_event_loop\"")
+            && runtime_runner_source.contains("\"runtime_session\"")
+            && runtime_runner_source.contains("runtime_session_startup_request("),
+        "runtime startup should wrap event-loop and runtime-session initialization failures in the same typed product diagnostic boundary"
     );
     assert!(
         runtime_window_creation_source.contains("self.window_descriptor.primary_window.is_none()"),
@@ -86,16 +112,22 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "runtime_session_args.project_root.as_deref()",
             "runtime_entry_app_config_for_session_profile_with_first_frame_exit",
             "runtime_exit_after_first_frame_enabled()",
-            "RuntimeEntryApp::new(session, host_config)",
+            ".with_persisted_scene_diagnostics(runtime_session_args.project_root.is_some())",
+            "RuntimeEntryAppFailureState::default()",
+            "RuntimeEntryApp::new(session, host_config, failure_state.clone())",
+            "event_loop.run_app(app)",
+            "failure_state.take()",
+            "return Err(failure.into())",
         ],
-        "runtime runner should derive the app host config from the already-parsed session profile before creating the app",
+        "runtime runner should derive the app host config from the parsed session profile and return terminal callback failures after the event loop ends",
     );
     assert!(
         runtime_runner_source.contains("ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME"),
         "runtime startup smoke should keep the first-frame exit validation hook source-visible"
     );
     for required in [
-        "RuntimeSessionProfile::Runtime => RuntimeEntryAppConfig::default()",
+        "RuntimeSessionProfile::Runtime | RuntimeSessionProfile::RuntimePipelined",
+        "RuntimeEntryAppConfig::default()",
         "RuntimeSessionProfile::Editor | RuntimeSessionProfile::Dev",
         "EventLoopPolicy::DesktopApp",
         "RuntimeSessionProfile::Minimal | RuntimeSessionProfile::Headless",

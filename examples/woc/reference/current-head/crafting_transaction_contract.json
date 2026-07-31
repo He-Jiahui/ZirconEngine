@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/crafting_transaction_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/crafting.ts": "1c194e5621b24644713e905148cf12e5b074440bf912b0291a94f75e4767aab0",
+    "src/sim/professions/wheel.ts": "d734aabf742f56fd0826db459bbe97cb6583deb77ffc29a308ff52e50b6d8356",
+    "src/sim/content/professions.ts": "d2d8567ab607693ab59a19d145187d0bad8b153c209c85b8f3cce5eed6277c3b"
+  },
+  "constants": {
+    "craft_skill_gain": 1,
+    "gold_sink_copper_per_budget": 2,
+    "throttle_window_seconds": 60,
+    "throttle_max_per_window": 10,
+    "tier_skill_step": 25,
+    "specialized_skill_threshold": 75,
+    "material_discount_pct": 0.2
+  },
+  "denial_order": [
+    "not_at_hub",
+    "combo_requirement_unmet",
+    "recipe_not_learned",
+    "insufficient_materials",
+    "throttled"
+  ],
+  "success_semantics": {
+    "known_recipe": "recipes with absent or empty acquisition remain known without a learned-recipe entry; acquisition rejects unknown, already-known, then invalid sources",
+    "materials": "self-signed reduction floors at one before specialized percentage discount floors at one",
+    "rng": "one unconditional proc draw happens after consumption on every successful craft only",
+    "gold": "the fee is ceil(itemLevelBudget * copperPerBudget) and clamps copper at zero without denying",
+    "progression": "skill requirement is not an admission gate; success awards a tier/ceiling-scaled gain"
+  }
+}

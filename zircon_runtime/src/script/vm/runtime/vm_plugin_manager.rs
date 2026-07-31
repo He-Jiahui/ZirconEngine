@@ -282,9 +282,9 @@ impl VmPluginManager {
         arguments: &[ScriptHostValue],
     ) -> Result<Option<ScriptHostValue>, VmHostInterfaceError> {
         let generation = self
-            .slot(handle.slot)
-            .map_err(VmHostInterfaceError::CallbackFailed)?
-            .generation;
+            .coordinator
+            .generation(handle.slot)
+            .map_err(VmHostInterfaceError::CallbackFailed)?;
         let (module, function) = self.host_interfaces.resolve_callback(handle, generation)?;
         self.call_slot_export(handle.slot, module.as_ref(), function.as_ref(), arguments)
             .map_err(VmHostInterfaceError::CallbackFailed)
@@ -297,13 +297,14 @@ impl VmPluginManager {
         delta_seconds: f32,
     ) -> Result<usize, VmHostInterfaceError> {
         let systems = self.registered_systems(stage);
-        for mut system in systems.iter().cloned() {
+        let system_count = systems.len();
+        for mut system in systems {
             self.invoke_callback(
                 &mut system.callback,
                 &[ScriptHostValue::Float(f64::from(delta_seconds))],
             )?;
         }
-        Ok(systems.len())
+        Ok(system_count)
     }
 
     /// Returns active VM system descriptors for one scheduler stage.
@@ -445,6 +446,31 @@ fn derive_plugin_roots(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn callback_and_system_dispatch_avoid_wide_record_clones() {
+        let source = include_str!("vm_plugin_manager.rs")
+            .split_once("#[cfg(test)]")
+            .unwrap()
+            .0;
+        let callback = source.split("pub fn invoke_callback").nth(1).unwrap();
+        let callback = callback
+            .split("pub fn run_registered_systems")
+            .next()
+            .unwrap();
+        let systems = source
+            .split("pub fn run_registered_systems")
+            .nth(1)
+            .unwrap();
+        let systems = systems.split("pub fn registered_systems").next().unwrap();
+
+        assert!(callback.contains(".coordinator"));
+        assert!(callback.contains(".generation(handle.slot)"));
+        assert!(!callback.contains("self.slot(handle.slot)"));
+        assert!(systems.contains("let system_count = systems.len();"));
+        assert!(systems.contains("for mut system in systems"));
+        assert!(!systems.contains("systems.iter().cloned()"));
+    }
 
     #[test]
     fn vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock() {

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/thorns_charge_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/thorns_charge.ts": "245145774a3674208cbee620d267a7dce971d752bceb3ffd63362465f3732fae",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "thorns_kind": "thorns",
+  "tick_rate": 20,
+  "dt": 0.05,
+  "cast_complete_eps": 1e-9,
+  "charge_model": "undefined_is_unlimited; consume_before_reflect; depleted_removed_in_reverse_index_order"
+}

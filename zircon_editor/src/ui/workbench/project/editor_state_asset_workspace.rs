@@ -3,17 +3,17 @@ use zircon_runtime::asset::AssetUri;
 use zircon_runtime_interface::resource::{ResourceKind, ResourceRecord};
 
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
+    EditorAssetCatalogGeneration, EditorAssetDetailsGeneration,
 };
 use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode};
 use crate::ui::workbench::state::EditorState;
 
 impl EditorState {
-    pub fn sync_asset_catalog(&mut self, catalog: EditorAssetCatalogSnapshotRecord) {
+    pub fn sync_asset_catalog(&mut self, catalog: Arc<EditorAssetCatalogGeneration>) {
         self.asset_workspace.sync_catalog(catalog);
     }
 
-    pub fn sync_asset_details(&mut self, details: Option<EditorAssetDetailsRecord>) {
+    pub fn sync_asset_details(&mut self, details: Option<Arc<EditorAssetDetailsGeneration>>) {
         self.asset_workspace.sync_selected_details(details);
     }
 
@@ -61,3 +61,4 @@ impl EditorState {
         self.asset_workspace.set_browser_utility_tab(tab);
     }
 }
+use std::sync::Arc;

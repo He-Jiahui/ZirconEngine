@@ -1,0 +1,6 @@
+{
+  "name": "woc_fleeing_social_aggro_state_tests",
+  "source": "src",
+  "binary": "bin-fleeing-social-aggro-state-tests",
+  "entry": "world/fleeing_social_aggro_state_test_main"
+}

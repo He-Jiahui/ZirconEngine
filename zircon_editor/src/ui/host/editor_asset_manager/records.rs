@@ -63,7 +63,7 @@ pub struct EditorAssetDetailsRecord {
     pub subassets: Vec<EditorAssetSubassetRecord>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EditorAssetCatalogSnapshotRecord {
     pub project_name: String,
     pub project_root: String,
@@ -75,10 +75,11 @@ pub struct EditorAssetCatalogSnapshotRecord {
     pub assets: Vec<EditorAssetCatalogRecord>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EditorAssetChangeKind {
     CatalogChanged,
     PreviewChanged,
+    PreviewAdmissionAvailable,
     ReferenceChanged,
 }
 

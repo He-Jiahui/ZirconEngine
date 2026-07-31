@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/pet_water_jet_contract_codegen.mjs",
+  "source_blobs": {
+    "src/net/online.ts": "9399fac7e5dc49883cf04e772475b73893a0f06c9c65ae4ee5a22944cd3d4ff0",
+    "server/game.ts": "d5f0d0f715037ef4b79594925c64b1d0e676ed5ccebe24605f6ed16bcfc41556",
+    "src/sim/pet/pet_commands.ts": "cc3eb23dcf1f4b5416ae47259ce4feefdd3ed9284e6344967bbf800e5f4109e3",
+    "src/sim/pet/pet_ai.ts": "322c1cfe6874d4701ad0854c0414b04dee8d12994c9e40be1846b2c715adf8a0",
+    "src/sim/content/mage_pets.ts": "41861e38408f304a875f63b130cf2535ec44c3f27d6414f6a57415486d9811fd"
+  },
+  "commands": [
+    {
+      "id": 57,
+      "name": "pet_water_jet",
+      "source_shape": {
+        "method": "petWaterJet",
+        "fields": []
+      }
+    },
+    {
+      "id": 60,
+      "name": "pet_auto_water_jet",
+      "source_shape": {
+        "method": "setPetAutoWaterJet",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "boolean"
+          }
+        ]
+      }
+    }
+  ],
+  "water_elemental": {
+    "range": 25,
+    "jet": {
+      "total": 30,
+      "duration_seconds": 3,
+      "interval_seconds": 1,
+      "slow_multiplier": 0.6,
+      "cooldown_seconds": 8,
+      "range": 25
+    }
+  },
+  "source_semantics": {
+    "manual": "silent no-op unless the live pet has a jet, is not dead/casting/cooling down, and the owner target is hostile and in range",
+    "auto": "enabled only for a pet with a jet; pet AI starts the same channel once a valid target is in reach",
+    "channel": "the channel locks pet target and shared petTauntTimer cooldown; a broken connection removes only this pet source water_jet and water_jet_slow auras"
+  }
+}

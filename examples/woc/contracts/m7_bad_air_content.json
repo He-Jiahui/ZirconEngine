@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_bad_air_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff"
+  },
+  "content": {
+    "interval_seconds": 8,
+    "aura": {
+      "id": "bad_air",
+      "name": "Bad Air",
+      "kind": "dot",
+      "school": "nature",
+      "remaining": 4,
+      "duration": 4,
+      "value": 3,
+      "tick_interval": 2,
+      "tick_timer": 2,
+      "source_id": "self"
+    }
+  },
+  "catalog_sha256": "fc4ba3bdc9f01043cd62a679acd208f2e6844f6c212fb5656f84c56b123159fd"
+}

@@ -1,6 +1,7 @@
 mod crates;
 mod duplicates;
 mod identity;
+mod projection;
 mod provider;
 mod target_modes;
 mod tokens;
@@ -16,6 +17,9 @@ pub(super) use identity::{
     project_plugin_package_id_diagnostics, project_plugin_package_id_is_valid,
     sanitize_project_identity_rows,
 };
+pub(super) use projection::ProjectPluginManifestValidationProjection;
+#[cfg(test)]
+pub(super) use projection::{begin_projection_build_observation, observed_projection_builds};
 pub(super) use provider::{
     project_feature_provider_package_id_diagnostics,
     sanitize_invalid_project_provider_package_overrides,

@@ -5,6 +5,7 @@ use crate::scene::ecs::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, IntoSceneSystem, Schedule, ScheduleError,
     SystemParam, SystemStage,
 };
+use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 
 impl World {
     pub fn schedule(&self) -> &Schedule {
@@ -69,13 +70,56 @@ impl World {
         };
         self.schedule = schedule;
 
-        system.run(self);
+        let result = catch_unwind(AssertUnwindSafe(|| system.run(self)));
 
         let mut schedule = std::mem::take(&mut self.schedule);
         schedule.restore_native_system(system);
         self.schedule = schedule;
 
+        if let Err(payload) = result {
+            resume_unwind(payload);
+        }
+
         true
+    }
+
+    pub(crate) fn take_worldless_native_scene_systems(
+        &mut self,
+        ids: &[&str],
+    ) -> Option<Vec<BoxedSceneSystem>> {
+        let mut schedule = std::mem::take(&mut self.schedule);
+        let mut systems = Vec::with_capacity(ids.len());
+        for id in ids {
+            let Some(system) = schedule.take_native_system(id) else {
+                for system in systems {
+                    schedule.restore_native_system(system);
+                }
+                self.schedule = schedule;
+                return None;
+            };
+            if !system.supports_worldless_execution() {
+                schedule.restore_native_system(system);
+                for system in systems {
+                    schedule.restore_native_system(system);
+                }
+                self.schedule = schedule;
+                return None;
+            }
+            systems.push(system);
+        }
+        self.schedule = schedule;
+        Some(systems)
+    }
+
+    pub(crate) fn restore_worldless_native_scene_systems(
+        &mut self,
+        systems: Vec<BoxedSceneSystem>,
+    ) {
+        let mut schedule = std::mem::take(&mut self.schedule);
+        for system in systems {
+            schedule.restore_native_system(system);
+        }
+        self.schedule = schedule;
     }
 
     #[cfg(test)]

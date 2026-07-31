@@ -2,13 +2,14 @@ use std::collections::BTreeMap;
 
 use crate::ui::binding::EditorUiBinding;
 use toml::Value;
-use zircon_runtime_interface::ui::event_ui::UiRouteId;
+use zircon_runtime_interface::ui::{event_ui::UiRouteId, template::UiActionRef};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RetainedUiBindingProjection {
     pub binding_id: String,
     pub binding: EditorUiBinding,
     pub route_id: Option<UiRouteId>,
+    pub template_action: Option<UiActionRef>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

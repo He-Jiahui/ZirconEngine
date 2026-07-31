@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_pet_tests",
+  "source": "src",
+  "binary": "bin-m7-pet-tests",
+  "entry": "instances/pet_state_test_main"
+}

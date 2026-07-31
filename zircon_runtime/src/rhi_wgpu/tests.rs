@@ -56,3 +56,22 @@ fn native_ui_surface_source_uses_direct_surface_without_offscreen_blit() {
         "native UI surface damage must use the retained cache restore path"
     );
 }
+
+#[test]
+fn command_copy_execution_does_not_clone_whole_source_resources() {
+    let source = include_str!("command_validation.rs");
+    let compact = source.split_whitespace().collect::<String>();
+
+    assert!(
+        !compact.contains("contents[source_start..source_end].to_vec();"),
+        "buffer-to-buffer execution must not allocate a temporary byte vector"
+    );
+    assert!(
+        !compact.contains(".contents.clone();"),
+        "buffer-to-texture execution must borrow source contents instead of cloning the whole buffer"
+    );
+    assert!(
+        !compact.contains("letsource_texture=state.textures.get(source).ok_or(RhiError::UnknownTexture(source.raw()))?.clone();"),
+        "texture-to-buffer execution must borrow the source texture instead of cloning the whole resource"
+    );
+}

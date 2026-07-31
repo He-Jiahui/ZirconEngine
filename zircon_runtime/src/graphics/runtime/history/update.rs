@@ -1,5 +1,6 @@
 use crate::graphics::visibility::VisibilityStaticIndex;
 use crate::graphics::{FrameHistoryBinding, VisibilityHistorySnapshot};
+use std::sync::Arc;
 
 use super::{FrameHistoryValidationKey, ViewportFrameHistory};
 
@@ -10,7 +11,7 @@ impl ViewportFrameHistory {
         bindings: Vec<FrameHistoryBinding>,
         visibility: VisibilityHistorySnapshot,
         static_index: VisibilityStaticIndex,
-        validation_key: FrameHistoryValidationKey,
+        validation_key: Arc<FrameHistoryValidationKey>,
     ) {
         self.generation = generation;
         self.bindings = bindings;

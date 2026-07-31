@@ -63,6 +63,58 @@ fn system_set_intern_is_stable() {
 }
 
 #[test]
+fn system_set_intern_rejects_empty_dot_separated_segments() {
+    let mut registry = SystemSetRegistry::default();
+
+    for name in ["physics", ".main", "physics.", "physics..main"] {
+        assert_eq!(
+            registry.intern(name),
+            Err(crate::scene::ecs::ScheduleError::InvalidSystemSetName(
+                name.to_string()
+            ))
+        );
+    }
+
+    let first = registry
+        .intern("physics.main")
+        .expect("valid system set name after rejected inputs");
+    assert_eq!(first.raw(), 0);
+}
+
+#[test]
+fn system_set_intern_rejects_non_plugin_token_segments() {
+    let mut registry = SystemSetRegistry::default();
+
+    for name in [
+        "Physics.main",
+        "physics.Main",
+        "physics .main",
+        "physics.main!",
+        "physics.m\u{00E4}in",
+        "physics.simulation.post",
+    ] {
+        assert_eq!(
+            registry.intern(name),
+            Err(crate::scene::ecs::ScheduleError::InvalidSystemSetName(
+                name.to_string()
+            ))
+        );
+    }
+}
+
+#[test]
+fn system_set_intern_accepts_lowercase_ascii_tokens() {
+    let mut registry = SystemSetRegistry::default();
+
+    let id = registry
+        .intern("physics2.main_2")
+        .expect("lowercase ASCII system-set tokens are valid");
+
+    assert_eq!(id.raw(), 0);
+    assert_eq!(registry.name(id), Some("physics2.main_2"));
+}
+
+#[test]
 fn stage_plan_orders_by_constraints_then_order() {
     let mut schedule = Schedule::default();
 

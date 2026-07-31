@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
 
-pub const SDK_API_VERSION: &str = "0.1.0";
+pub const SDK_API_VERSION: &str = "0.2.0";
 
 pub fn default_supported_platforms() -> [ExportTargetPlatform; 3] {
     [

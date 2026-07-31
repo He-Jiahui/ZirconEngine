@@ -17,7 +17,16 @@ impl RenderPhaseQueue {
     }
 
     pub fn items_for_phase(&self, phase: RenderPhase) -> impl Iterator<Item = &RenderPhaseItem> {
-        self.items.iter().filter(move |item| item.phase == phase)
+        let phase_order = phase.queue_order();
+        let start = self
+            .items
+            .partition_point(|item| item.phase.queue_order() < phase_order);
+        let end = self
+            .items
+            .partition_point(|item| item.phase.queue_order() <= phase_order);
+        self.items[start..end]
+            .iter()
+            .filter(move |item| item.phase == phase)
     }
 
     pub fn summary(&self) -> RenderPhaseQueueSummary {
@@ -230,5 +239,20 @@ impl SpritePhaseInput {
             sort_key: super::RenderPhaseSortKey::for_components(phase, sort_components),
             mesh_source: RenderPhaseMeshSource::SpriteIndex(self.sprite_index),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn phase_iteration_limits_work_to_the_sorted_phase_order_span() {
+        let source = include_str!("phase_queue.rs");
+
+        assert!(source.contains(concat!("partition", "_point")));
+        assert!(source.contains(concat!("let phase_order", " = phase.queue_order();")));
+        assert!(!source.contains(concat!(
+            "self.items.iter().",
+            "filter(move |item| item.phase == phase)"
+        )));
     }
 }

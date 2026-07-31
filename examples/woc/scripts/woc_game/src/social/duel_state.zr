@@ -1,0 +1,286 @@
+// Authoritative M6 duel lifecycle projected from source commit
+// 7c10f280eec380e9877e66ce16333089e171fe42 at the fixed 20 Hz tick rate.
+// This focused source-contract fixture remains outside main/world_state until the
+// production byte bridge can carry authoritative social and entity state.
+var container = %import("zr.container");
+
+class DuelState {
+    pub var tick: int;
+    pub var positionA: float;
+    pub var positionB: float;
+    pub var hpA: int;
+    pub var hpB: int;
+    pub var deadA: bool;
+    pub var deadB: bool;
+    pub var inRaidA: bool;
+    pub var inRaidB: bool;
+    pub var pendingSocialA: bool;
+    pub var pendingSocialB: bool;
+    pub var inviteFrom: int;
+    pub var inviteTarget: int;
+    pub var inviteExpiresTick: int;
+    pub var duelExists: bool;
+    pub var duelA: int;
+    pub var duelB: int;
+    pub var duelPhase: int;
+    pub var duelTimerTicks: int;
+    pub var autoAttackA: bool;
+    pub var autoAttackB: bool;
+    pub var duelsWonA: int;
+    pub var duelsWonB: int;
+    pub var duelsLostA: int;
+    pub var duelsLostB: int;
+    pub var actionEvents: container.Array<int>;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.tick = 0;
+        this.positionA = 0.0;
+        this.positionB = 4.0;
+        this.hpA = 90;
+        this.hpB = 54;
+        this.deadA = false;
+        this.deadB = false;
+        this.inRaidA = false;
+        this.inRaidB = false;
+        this.pendingSocialA = false;
+        this.pendingSocialB = false;
+        this.inviteFrom = 0;
+        this.inviteTarget = 0;
+        this.inviteExpiresTick = 0;
+        this.duelExists = false;
+        this.duelA = 0;
+        this.duelB = 0;
+        this.duelPhase = 0;
+        this.duelTimerTicks = 0;
+        this.autoAttackA = false;
+        this.autoAttackB = false;
+        this.duelsWonA = 0;
+        this.duelsWonB = 0;
+        this.duelsLostA = 0;
+        this.duelsLostB = 0;
+        this.actionEvents = new container.Array<int>();
+        this.lastError = 0;
+    }
+}
+
+validPlayer(player: int): bool {
+    return player == 1 || player == 2;
+}
+
+positionFor(state: DuelState, player: int): float {
+    return player == 1 ? state.positionA : state.positionB;
+}
+
+distance(state: DuelState): float {
+    var value = state.positionA - state.positionB;
+    return value < 0.0 ? -value : value;
+}
+
+inRaid(state: DuelState, player: int): bool {
+    return player == 1 ? state.inRaidA : state.inRaidB;
+}
+
+pendingSocial(state: DuelState, player: int): bool {
+    if (player == 1 ? state.pendingSocialA : state.pendingSocialB) { return true; }
+    if (state.inviteFrom == 0 || state.inviteTarget != player) { return false; }
+    if (state.inviteExpiresTick < state.tick) {
+        state.inviteFrom = 0;
+        state.inviteTarget = 0;
+        state.inviteExpiresTick = 0;
+        return false;
+    }
+    return true;
+}
+
+recordEvent(state: DuelState, code: int): void {
+    var events = state.actionEvents;
+    events.add(code);
+}
+
+pub request(state: DuelState, actor: int, target: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(actor) || !validPlayer(target) || actor == target) {
+        state.lastError = -1;
+        return false;
+    }
+    if (inRaid(state, actor) || inRaid(state, target)) {
+        state.lastError = -2;
+        return false;
+    }
+    if (state.duelExists) { state.lastError = -3; return false; }
+    if (distance(state) > 30.0) { state.lastError = -4; return false; }
+    if (pendingSocial(state, target)) { state.lastError = -5; return false; }
+    state.inviteFrom = actor;
+    state.inviteTarget = target;
+    state.inviteExpiresTick = state.tick + 600;
+    recordEvent(state, 1);
+    return true;
+}
+
+pub accept(state: DuelState, player: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(player) || state.inviteFrom == 0 || state.inviteTarget != player ||
+        state.inviteExpiresTick < state.tick) {
+        state.lastError = -6;
+        return false;
+    }
+    var actor = state.inviteFrom;
+    state.inviteFrom = 0;
+    state.inviteTarget = 0;
+    state.inviteExpiresTick = 0;
+    if (state.duelExists || inRaid(state, actor) || inRaid(state, player)) {
+        state.lastError = -3;
+        return false;
+    }
+    state.duelExists = true;
+    state.duelA = actor;
+    state.duelB = player;
+    state.duelPhase = 1;
+    state.duelTimerTicks = 60;
+    recordEvent(state, 2);
+    return true;
+}
+
+pub decline(state: DuelState, player: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(player) || state.inviteFrom == 0 || state.inviteTarget != player) {
+        return false;
+    }
+    state.inviteFrom = 0;
+    state.inviteTarget = 0;
+    state.inviteExpiresTick = 0;
+    return true;
+}
+
+endDuel(state: DuelState, winner: int): void {
+    if (!state.duelExists) { return; }
+    state.duelExists = false;
+    state.duelPhase = 0;
+    state.duelTimerTicks = 0;
+    state.autoAttackA = false;
+    state.autoAttackB = false;
+    if (winner == 1) { state.duelsWonA = state.duelsWonA + 1; state.duelsLostB = state.duelsLostB + 1; }
+    if (winner == 2) { state.duelsWonB = state.duelsWonB + 1; state.duelsLostA = state.duelsLostA + 1; }
+    recordEvent(state, winner == 0 ? 5 : 4);
+}
+
+pub tickOnce(state: DuelState): void {
+    state.tick = state.tick + 1;
+    if (!state.duelExists) { return; }
+    if (state.duelPhase == 1) {
+        state.duelTimerTicks = state.duelTimerTicks - 1;
+        if (state.duelTimerTicks <= 0) {
+            state.duelPhase = 2;
+            state.duelTimerTicks = 0;
+            recordEvent(state, 3);
+        }
+        return;
+    }
+    if (distance(state) > 60.0) { endDuel(state, 0); return; }
+    if (state.deadA) { endDuel(state, 2); return; }
+    if (state.deadB) { endDuel(state, 1); }
+}
+
+pub tickMany(state: DuelState, count: int): void {
+    var index = 0;
+    while (index < count) {
+        tickOnce(state);
+        index = index + 1;
+    }
+}
+
+pub finishingBlow(state: DuelState, actor: int, target: int): bool {
+    state.lastError = 0;
+    if (!state.duelExists || state.duelPhase != 2 || actor == target ||
+        (actor != state.duelA && actor != state.duelB) ||
+        (target != state.duelA && target != state.duelB)) {
+        state.lastError = -7;
+        return false;
+    }
+    if (target == 1) { state.hpA = 1; }
+    if (target == 2) { state.hpB = 1; }
+    endDuel(state, actor);
+    return true;
+}
+
+pub scenarioTest(): int {
+    var state = new DuelState();
+    if (!request(state, 1, 2) || !accept(state, 2) || !state.duelExists ||
+        state.duelPhase != 1 || state.duelTimerTicks != 60) {
+        return -1;
+    }
+    tickMany(state, 60);
+    if (!state.duelExists || state.duelPhase != 2 || !finishingBlow(state, 1, 2) ||
+        state.duelExists || state.hpB != 1 || state.duelsWonA != 1 ||
+        state.duelsLostB != 1 || state.duelsWonB != 0 || state.duelsLostA != 0 ||
+        state.actionEvents.length != 4) {
+        return -2;
+    }
+    return 1;
+}
+
+duelInvariantTest(): int {
+    var expired = new DuelState();
+    if (!request(expired, 1, 2)) { return -1; }
+    tickMany(expired, 601);
+    if (accept(expired, 2) || expired.lastError != -6 || expired.duelExists ||
+        expired.inviteFrom != 1 || expired.inviteTarget != 2 || !decline(expired, 2) ||
+        expired.inviteFrom != 0) {
+        return -2;
+    }
+
+    var requestRules = new DuelState();
+    requestRules.deadA = true;
+    if (!request(requestRules, 1, 2) || !decline(requestRules, 2)) { return -21; }
+    requestRules.pendingSocialA = true;
+    if (request(requestRules, 2, 1) || requestRules.lastError != -5 ||
+        requestRules.inviteFrom != 0) {
+        return -22;
+    }
+    var wrongRecipient = new DuelState();
+    if (!request(wrongRecipient, 1, 2) || accept(wrongRecipient, 1) ||
+        wrongRecipient.inviteFrom != 1 || wrongRecipient.inviteTarget != 2 ||
+        !decline(wrongRecipient, 2) || decline(wrongRecipient, 2)) {
+        return -23;
+    }
+    var occupiedTarget = new DuelState();
+    if (!request(occupiedTarget, 1, 2) || request(occupiedTarget, 1, 2) ||
+        occupiedTarget.lastError != -5 || occupiedTarget.inviteFrom != 1 ||
+        !decline(occupiedTarget, 2)) {
+        return -24;
+    }
+    var staleTarget = new DuelState();
+    if (!request(staleTarget, 1, 2)) { return -25; }
+    tickMany(staleTarget, 601);
+    if (!request(staleTarget, 1, 2) || staleTarget.inviteFrom != 1 ||
+        !decline(staleTarget, 2)) {
+        return -26;
+    }
+
+    var range = new DuelState();
+    range.positionB = 31.0;
+    if (request(range, 1, 2) || range.lastError != -4 || range.inviteFrom != 0) {
+        return -3;
+    }
+
+    var forfeit = new DuelState();
+    request(forfeit, 1, 2);
+    accept(forfeit, 2);
+    tickMany(forfeit, 60);
+    forfeit.positionB = 61.0;
+    tickOnce(forfeit);
+    if (forfeit.duelExists || forfeit.duelsWonA != 0 || forfeit.duelsWonB != 0 ||
+        <int>forfeit.actionEvents[3] != 5 || finishingBlow(forfeit, 1, 2)) {
+        return -4;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = scenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = duelInvariantTest();
+    if (result != 1) { return -200 + result; }
+    return 1;
+}

@@ -1,6 +1,6 @@
 use crate::ui::retained_host::app::{HostInvalidationMask, RetainedEditorHost};
 use crate::ui::retained_host::ui_perf::{
-    current_ui_perf_scenario, record_current_ui_perf_counter, UiPerfCounter, UiPerfScenario,
+    UiPerfCounter, UiPerfScenario, current_ui_perf_scenario, record_current_ui_perf_counter,
 };
 
 fn record_ui_dirty_mask(mask: HostInvalidationMask) {

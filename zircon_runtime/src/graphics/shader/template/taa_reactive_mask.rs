@@ -1,16 +1,16 @@
 use crate::core::framework::render::{
-    strip_wgsl_include_directives, GeometrySourceDescriptor, RenderShaderDefinitionValue,
-    ShaderFeatureBits,
+    GeometrySourceDescriptor, RenderShaderDefinitionValue, ShaderFeatureBits,
+    strip_wgsl_include_directives,
 };
 
 use super::assemble::{
-    format_defines_header, generated_material_include, push_include_chunk,
-    push_source_module_includes, rename_material_surface_entry, MaterialShaderTemplateAssembly,
-    ShaderAssemblyBuilder, ShaderAssemblySegmentKind, ShaderTemplateAssemblyError,
+    MaterialShaderTemplateAssembly, ShaderAssemblyBuilder, ShaderAssemblySegmentKind,
+    ShaderTemplateAssemblyError, format_defines_header, generated_material_include,
+    push_include_chunk, push_source_module_includes, rename_material_surface_entry,
 };
 use super::module_registry::{
-    geometry_source_include_for, gpu_scene_include, scene_runtime_include, surface_types_include,
-    ShaderTemplateInclude, ShaderTemplateIncludeRegistry,
+    ShaderTemplateInclude, ShaderTemplateIncludeRegistry, geometry_source_include_for,
+    gpu_scene_include, scene_runtime_include, surface_types_include,
 };
 use super::pass_specialization::MATERIAL_SHADER_TEMPLATE_REVISION;
 
@@ -144,11 +144,12 @@ pub(crate) fn assemble_taa_reactive_mask_shader_template(
         ShaderTemplateInclude::new(TAA_REACTIVE_MASK_TEMPLATE_TOKEN, TAA_REACTIVE_MASK_TEMPLATE),
     );
     let (wgsl_source, segments) = builder.finish();
+    let (include_tokens, include_content_hashes) = registry.into_manifest();
 
     Ok(MaterialShaderTemplateAssembly {
         wgsl_source,
-        include_tokens: registry.include_tokens(),
-        include_content_hashes: registry.content_hashes(),
+        include_tokens,
+        include_content_hashes,
         template_revision: MATERIAL_SHADER_TEMPLATE_REVISION.to_string(),
         segments,
     })

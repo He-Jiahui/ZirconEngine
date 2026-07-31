@@ -14,6 +14,7 @@ pub(super) fn dispatch_viewport_result_target(
         input.state,
         input.button,
         input.button_id,
+        input.modifiers,
         input.cleared_text_input_frame.clone(),
     )
 }

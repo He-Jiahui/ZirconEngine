@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_ground_object_placement_tests",
+  "source": "src",
+  "binary": "bin-m3-ground-object-placement-tests",
+  "entry": "world/ground_object_placement_test_main"
+}

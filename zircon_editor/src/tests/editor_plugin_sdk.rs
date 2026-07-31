@@ -1,43 +1,51 @@
-use crate::core::asset::{AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId};
+use crate::core::asset::{
+    AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId, AssetTypeRegistry,
+};
 use crate::core::commands::EditorCommandDescriptor;
-use std::cell::RefCell;
+use crate::core::editor_authoring_extension::SceneModeDescriptor;
+use std::sync::{Arc, Mutex};
 
 use zircon_runtime::plugin::PluginPackageManifest;
 use zircon_runtime_interface::resource::ResourceKind;
 
-use crate::core::editor_extension::{AssetImporterDescriptor, EditorExtensionRegistry};
+use crate::core::editor_extension::{
+    AssetImporterDescriptor, EditorExtensionRegistry, ViewDescriptor,
+};
 use crate::core::editor_operation::EditorOperationPath;
-use crate::core::editor_plugin::{
-    EditorPlugin, EditorPluginCatalog, EditorPluginDescriptor, EditorPluginRegistrationReport,
-};
-use crate::core::editor_plugin_sdk::examples::{
-    ExampleAssetInspectorPlugin, ExampleWindowEditorPlugin,
-};
-use crate::core::editor_plugin_sdk::lifecycle::{
+use crate::core::plugin::sdk::examples::{ExampleAssetInspectorPlugin, ExampleWindowEditorPlugin};
+use crate::core::plugin::sdk::lifecycle::{
     EditorPluginLifecycleError, EditorPluginLifecycleEvent, EditorPluginLifecycleStage,
 };
-use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::core::plugin::{
+    EditorPlugin, EditorPluginCatalog, EditorPluginDescriptor, EditorPluginManager,
+    EditorPluginTransitionError,
+};
 use crate::ui::host::EditorManager;
+use crate::ui::host::module::EDITOR_MANAGER_NAME;
 
-use super::editor_event::support::{env_lock, EventRuntimeHarness};
+use super::editor_event::support::{EventRuntimeHarness, env_lock};
 
 #[test]
 fn editor_plugin_sdk_examples_publish_window_and_asset_contributions() {
-    let window = ExampleWindowEditorPlugin::default();
-    let asset = ExampleAssetInspectorPlugin::default();
-    let plugins: Vec<(&dyn EditorPlugin, PluginPackageManifest)> = vec![
+    let window = Arc::new(ExampleWindowEditorPlugin::default());
+    let asset = Arc::new(ExampleAssetInspectorPlugin::default());
+    let plugins: Vec<(Arc<dyn EditorPlugin + Send + Sync>, PluginPackageManifest)> = vec![
         (
-            &window,
+            Arc::clone(&window),
             PluginPackageManifest::new("sdk_example_window", "SDK Example Window"),
         ),
         (
-            &asset,
+            Arc::clone(&asset),
             PluginPackageManifest::new("sdk_example_asset", "SDK Example Asset Tools"),
         ),
     ];
 
-    let catalog = crate::core::editor_plugin::EditorPluginCatalog::from_plugins(plugins);
-    let extension_report = catalog.editor_extensions();
+    let catalog = crate::core::plugin::EditorPluginCatalog::from_plugins(plugins);
+    let manager = EditorPluginManager::new(catalog).expect("the example catalog is admissible");
+    let snapshot = manager
+        .advance_loading_phase(crate::core::plugin::EditorPluginLoadingPhase::Default)
+        .expect("the default phase should activate example plugins");
+    let extension_report = snapshot.active_extensions();
 
     assert!(
         extension_report.is_success(),
@@ -53,32 +61,41 @@ fn editor_plugin_sdk_examples_publish_window_and_asset_contributions() {
         model_definition.toolkit().unwrap().view_id(),
         "sdk.example.asset_inspector"
     );
-    let registry = extension_report.registry;
-    assert!(registry
-        .views()
-        .iter()
-        .any(|view| view.id() == "sdk.example.weather_window"));
-    assert!(registry
-        .asset_importers()
-        .iter()
-        .any(
-            |importer| importer.id() == "sdk.example.asset.model_importer"
-                && importer.source_extensions() == ["glb".to_string(), "gltf".to_string()]
-        ));
-    assert!(registry
-        .component_drawers()
-        .iter()
-        .any(|drawer| drawer.component_type() == "sdk.example.ModelImportSettings"));
+    let registry = &extension_report.registry;
+    assert!(
+        registry
+            .views()
+            .iter()
+            .any(|view| view.id() == "sdk.example.weather_window")
+    );
+    assert!(
+        registry
+            .asset_importers()
+            .iter()
+            .any(
+                |importer| importer.id() == "sdk.example.asset.model_importer"
+                    && importer.source_extensions() == ["glb".to_string(), "gltf".to_string()]
+            )
+    );
+    assert!(
+        registry
+            .component_drawers()
+            .iter()
+            .any(|drawer| drawer.component_type() == "sdk.example.ModelImportSettings")
+    );
 
-    let stages = catalog
-        .registrations()
-        .iter()
-        .flat_map(|registration| {
-            registration
+    let stages = ["sdk_example_window", "sdk_example_asset"]
+        .into_iter()
+        .flat_map(|package_id| {
+            snapshot
+                .catalog_snapshot()
+                .registration(package_id)
+                .expect("the activated example plugin should retain its lifecycle report")
                 .lifecycle
                 .records()
                 .iter()
                 .map(|record| record.event().stage().clone())
+                .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
     assert_eq!(
@@ -90,6 +107,133 @@ fn editor_plugin_sdk_examples_publish_window_and_asset_contributions() {
             EditorPluginLifecycleStage::Enabled,
         ]
     );
+}
+
+#[test]
+fn editor_plugin_catalog_reuses_one_materialization_per_generation() {
+    let catalog = EditorPluginCatalog::from_descriptors(
+        EditorPluginDescriptor::builtin_catalog(),
+        Vec::<PluginPackageManifest>::new(),
+    );
+
+    let manager = EditorPluginManager::new(catalog).expect("the builtin catalog is admissible");
+    let snapshot = manager
+        .advance_loading_phase(crate::core::plugin::EditorPluginLoadingPhase::Default)
+        .expect("the default phase should materialize builtin extensions");
+    let first = Arc::clone(snapshot.active_extensions());
+    let second = Arc::clone(manager.state_snapshot().active_extensions());
+
+    assert!(Arc::ptr_eq(&first, &second));
+    assert_eq!(first.catalog_generation, snapshot.catalog_generation());
+}
+
+#[test]
+fn catalog_asset_batch_preserves_diagnostics_between_other_extension_failures() {
+    struct OrderedCatalogPlugin {
+        descriptor: EditorPluginDescriptor,
+        toolkit_view: &'static str,
+        toolkit_operation: &'static str,
+    }
+
+    impl EditorPlugin for OrderedCatalogPlugin {
+        fn descriptor(&self) -> &EditorPluginDescriptor {
+            &self.descriptor
+        }
+
+        fn register_editor_extensions(
+            &self,
+            registry: &mut EditorExtensionRegistry,
+        ) -> Result<(), crate::core::editor_extension::EditorExtensionRegistryError> {
+            registry.register_view(ViewDescriptor::new(
+                "sdk.batch.shared_view",
+                "Shared Batch View",
+                "Testing",
+            ))?;
+            registry.register_asset_type_contribution(
+                AssetTypeContribution::augment(AssetTypeId::from_resource_kind(
+                    ResourceKind::Model,
+                ))
+                .with_toolkit(AssetToolkitDescriptor::new(
+                    self.toolkit_view,
+                    EditorOperationPath::parse(self.toolkit_operation).unwrap(),
+                )),
+            )?;
+            registry.register_scene_mode(
+                crate::tests::support::pass_through_scene_mode_registration(
+                    SceneModeDescriptor::new(
+                        "sdk.batch.shared_tool",
+                        "Shared Batch Tool",
+                        "sdk.batch.shared_view",
+                        EditorOperationPath::parse("sdk.batch.tool.activate").unwrap(),
+                    ),
+                ),
+            )
+        }
+    }
+
+    let first = Arc::new(OrderedCatalogPlugin {
+        descriptor: EditorPluginDescriptor::new(
+            "sdk_batch_first",
+            "SDK Batch First",
+            "zircon_editor_sdk_batch_first",
+        ),
+        toolkit_view: "sdk.batch.first_toolkit",
+        toolkit_operation: "sdk.batch.first.open",
+    });
+    let second = Arc::new(OrderedCatalogPlugin {
+        descriptor: EditorPluginDescriptor::new(
+            "sdk_batch_second",
+            "SDK Batch Second",
+            "zircon_editor_sdk_batch_second",
+        ),
+        toolkit_view: "sdk.batch.second_toolkit",
+        toolkit_operation: "sdk.batch.second.open",
+    });
+    let catalog = EditorPluginCatalog::from_plugins([
+        (
+            Arc::clone(&first) as Arc<dyn EditorPlugin + Send + Sync>,
+            PluginPackageManifest::new("sdk_batch_first", "SDK Batch First"),
+        ),
+        (
+            Arc::clone(&second) as Arc<dyn EditorPlugin + Send + Sync>,
+            PluginPackageManifest::new("sdk_batch_second", "SDK Batch Second"),
+        ),
+    ]);
+
+    let manager = EditorPluginManager::new(catalog).expect("the batch catalog is admissible");
+    let snapshot = manager
+        .advance_loading_phase(crate::core::plugin::EditorPluginLoadingPhase::Default)
+        .expect("the default phase should materialize batch contributions");
+    let report = snapshot.active_extensions();
+
+    assert_eq!(report.diagnostics.len(), 3);
+    assert!(report.diagnostics[0].contains("editor view sdk.batch.shared_view already registered"));
+    assert!(report.diagnostics[1].contains(
+        "asset type `model` field `toolkit` is owned by both `sdk_batch_first` and `sdk_batch_second`"
+    ));
+    assert!(
+        report.diagnostics[2]
+            .contains("editor scene mode sdk.batch.shared_tool already registered")
+    );
+    assert_eq!(
+        report.asset_types.generation(),
+        AssetTypeRegistry::with_builtins().unwrap().generation() + 1
+    );
+}
+
+#[test]
+fn editor_host_reuses_asset_type_registry_for_unchanged_extension_generation() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("asset_type_registry_generation_cache");
+    let model_type = AssetTypeId::from_resource_kind(ResourceKind::Model);
+
+    let _ = runtime.runtime.asset_type_definition(&model_type).unwrap();
+    let after_first = runtime.runtime.asset_type_registry_cache_counts();
+    let _ = runtime.runtime.asset_type_definition(&model_type).unwrap();
+    let after_second = runtime.runtime.asset_type_registry_cache_counts();
+
+    assert_eq!(after_second.1, after_first.1);
+    assert_eq!(after_second.0, after_first.0 + 1);
 }
 
 #[test]
@@ -130,28 +274,39 @@ fn editor_plugin_sdk_reports_lifecycle_failures_without_discarding_extensions() 
         }
     }
 
-    let plugin = FailingLifecyclePlugin {
+    let plugin = Arc::new(FailingLifecyclePlugin {
         descriptor: EditorPluginDescriptor::new(
             "sdk_failure",
             "SDK Failure",
             "zircon_editor_sdk_failure",
         ),
-    };
-
-    let report = EditorPluginRegistrationReport::from_plugin(
-        &plugin,
+    });
+    let catalog = EditorPluginCatalog::from_plugins([(
+        Arc::clone(&plugin) as Arc<dyn EditorPlugin + Send + Sync>,
         PluginPackageManifest::new("sdk_failure", "SDK Failure"),
-    );
+    )]);
+    let manager = EditorPluginManager::new(catalog).expect("the fixture catalog is admissible");
+    let snapshot = manager
+        .advance_loading_phase(crate::core::plugin::EditorPluginLoadingPhase::Default)
+        .expect("the manager should dispatch the enabled lifecycle callback");
+    let report = snapshot
+        .catalog_snapshot()
+        .registration("sdk_failure")
+        .expect("the failed plugin registration should remain inspectable");
 
     assert!(!report.is_success());
-    assert!(report
-        .diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.contains("simulated enable failure")));
-    assert!(report
-        .extensions
-        .pending_command(&EditorOperationPath::parse("sdk.failure.open").unwrap())
-        .is_some());
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("simulated enable failure"))
+    );
+    assert!(
+        report
+            .extensions
+            .pending_command(&EditorOperationPath::parse("sdk.failure.open").unwrap())
+            .is_some()
+    );
     assert_eq!(report.lifecycle.records().len(), 2);
 }
 
@@ -159,7 +314,7 @@ fn editor_plugin_sdk_reports_lifecycle_failures_without_discarding_extensions() 
 fn editor_plugin_sdk_dispatches_post_registration_lifecycle_events() {
     struct RecordingLifecyclePlugin {
         descriptor: EditorPluginDescriptor,
-        events: RefCell<Vec<(EditorPluginLifecycleStage, Option<String>)>>,
+        events: Mutex<Vec<(EditorPluginLifecycleStage, Option<String>)>>,
     }
 
     impl EditorPlugin for RecordingLifecyclePlugin {
@@ -172,30 +327,37 @@ fn editor_plugin_sdk_dispatches_post_registration_lifecycle_events() {
             event: &EditorPluginLifecycleEvent,
         ) -> Result<(), EditorPluginLifecycleError> {
             self.events
-                .borrow_mut()
+                .lock()
+                .expect("lifecycle event fixture lock should not be poisoned")
                 .push((event.stage().clone(), event.subject().map(str::to_string)));
             Ok(())
         }
     }
 
-    let plugin = RecordingLifecyclePlugin {
+    let plugin = Arc::new(RecordingLifecyclePlugin {
         descriptor: EditorPluginDescriptor::new(
             "sdk_lifecycle",
             "SDK Lifecycle",
             "zircon_editor_sdk_lifecycle",
         ),
-        events: RefCell::default(),
-    };
-    let mut report = EditorPluginRegistrationReport::from_plugin(
-        &plugin,
+        events: Mutex::default(),
+    });
+    let catalog = EditorPluginCatalog::from_plugins([(
+        Arc::clone(&plugin) as Arc<dyn EditorPlugin + Send + Sync>,
         PluginPackageManifest::new("sdk_lifecycle", "SDK Lifecycle"),
-    );
+    )]);
+    let manager = EditorPluginManager::new(catalog).expect("the fixture catalog is admissible");
+    manager
+        .advance_loading_phase(crate::core::plugin::EditorPluginLoadingPhase::Default)
+        .expect("the manager should schedule the default plugin");
 
-    let hot_reload_report = report.record_lifecycle_event(
-        &plugin,
-        EditorPluginLifecycleEvent::new(EditorPluginLifecycleStage::HotReloaded)
-            .with_subject("zircon_editor_sdk_lifecycle.dll"),
-    );
+    let hot_reload_report = manager
+        .dispatch_lifecycle_event(
+            "sdk_lifecycle",
+            EditorPluginLifecycleEvent::new(EditorPluginLifecycleStage::HotReloaded)
+                .with_subject("zircon_editor_sdk_lifecycle.dll"),
+        )
+        .expect("the manager should dispatch post-registration lifecycle events");
 
     assert!(hot_reload_report.is_success());
     assert_eq!(hot_reload_report.records().len(), 1);
@@ -207,18 +369,34 @@ fn editor_plugin_sdk_dispatches_post_registration_lifecycle_events() {
         hot_reload_report.records()[0].event().subject(),
         Some("zircon_editor_sdk_lifecycle.dll")
     );
-    assert_eq!(report.lifecycle.records().len(), 3);
-    assert!(plugin.events.borrow().iter().any(|(stage, subject)| {
-        stage == &EditorPluginLifecycleStage::HotReloaded
-            && subject.as_deref() == Some("zircon_editor_sdk_lifecycle.dll")
-    }));
+    assert_eq!(
+        manager
+            .catalog_snapshot()
+            .registration("sdk_lifecycle")
+            .expect("the lifecycle fixture registration should remain published")
+            .lifecycle
+            .records()
+            .len(),
+        3
+    );
+    assert!(
+        plugin
+            .events
+            .lock()
+            .expect("lifecycle event fixture lock should not be poisoned")
+            .iter()
+            .any(|(stage, subject)| {
+                stage == &EditorPluginLifecycleStage::HotReloaded
+                    && subject.as_deref() == Some("zircon_editor_sdk_lifecycle.dll")
+            })
+    );
 }
 
 #[test]
-fn editor_plugin_catalog_records_registered_lifecycle_events_and_rejects_unknown_plugins() {
+fn editor_plugin_manager_records_lifecycle_events_and_rejects_unknown_plugins() {
     struct RecordingLifecyclePlugin {
         descriptor: EditorPluginDescriptor,
-        events: RefCell<Vec<EditorPluginLifecycleStage>>,
+        events: Mutex<Vec<EditorPluginLifecycleStage>>,
     }
 
     impl EditorPlugin for RecordingLifecyclePlugin {
@@ -230,54 +408,65 @@ fn editor_plugin_catalog_records_registered_lifecycle_events_and_rejects_unknown
             &self,
             event: &EditorPluginLifecycleEvent,
         ) -> Result<(), EditorPluginLifecycleError> {
-            self.events.borrow_mut().push(event.stage().clone());
+            self.events
+                .lock()
+                .expect("lifecycle event fixture lock should not be poisoned")
+                .push(event.stage().clone());
             Ok(())
         }
     }
 
-    let plugin = RecordingLifecyclePlugin {
+    let plugin = Arc::new(RecordingLifecyclePlugin {
         descriptor: EditorPluginDescriptor::new(
             "sdk_catalog_lifecycle",
             "SDK Catalog Lifecycle",
             "zircon_editor_sdk_catalog_lifecycle",
         ),
-        events: RefCell::default(),
-    };
-    let unknown_plugin = RecordingLifecyclePlugin {
-        descriptor: EditorPluginDescriptor::new(
-            "sdk_unknown_lifecycle",
-            "SDK Unknown Lifecycle",
-            "zircon_editor_sdk_unknown_lifecycle",
-        ),
-        events: RefCell::default(),
-    };
-    let mut catalog = EditorPluginCatalog::from_plugins([(
-        &plugin as &dyn EditorPlugin,
+        events: Mutex::default(),
+    });
+    let catalog = EditorPluginCatalog::from_plugins([(
+        Arc::clone(&plugin) as Arc<dyn EditorPlugin + Send + Sync>,
         PluginPackageManifest::new("sdk_catalog_lifecycle", "SDK Catalog Lifecycle"),
     )]);
+    let manager = EditorPluginManager::new(catalog).expect("the fixture catalog is admissible");
 
-    let disabled_report = catalog.record_lifecycle_event(
-        &plugin,
-        EditorPluginLifecycleEvent::new(EditorPluginLifecycleStage::Disabled),
-    );
-    assert!(disabled_report.is_success());
+    let hot_reload_report = manager
+        .dispatch_lifecycle_event(
+            "sdk_catalog_lifecycle",
+            EditorPluginLifecycleEvent::new(EditorPluginLifecycleStage::HotReloaded),
+        )
+        .expect("the manager should own plugin lifecycle dispatch");
+    assert!(hot_reload_report.is_success());
     assert_eq!(
-        catalog.registrations()[0].lifecycle.records()[2]
+        manager
+            .catalog_snapshot()
+            .registration("sdk_catalog_lifecycle")
+            .expect("the lifecycle fixture registration should remain published")
+            .lifecycle
+            .records()[0]
             .event()
             .stage(),
-        &EditorPluginLifecycleStage::Disabled
+        &EditorPluginLifecycleStage::HotReloaded
     );
 
-    let unknown_report = catalog.record_lifecycle_event(
-        &unknown_plugin,
-        EditorPluginLifecycleEvent::new(EditorPluginLifecycleStage::Unloaded),
+    let unknown_error = manager
+        .dispatch_lifecycle_event(
+            "sdk_unknown_lifecycle",
+            EditorPluginLifecycleEvent::new(EditorPluginLifecycleStage::Unloaded),
+        )
+        .expect_err("unknown plugins must not receive a lifecycle callback");
+    assert!(matches!(
+        unknown_error,
+        EditorPluginTransitionError::UnknownPlugin { .. }
+    ));
+    assert_eq!(
+        plugin
+            .events
+            .lock()
+            .expect("lifecycle event fixture lock should not be poisoned")
+            .as_slice(),
+        [EditorPluginLifecycleStage::HotReloaded]
     );
-    assert!(!unknown_report.is_success());
-    assert!(unknown_report
-        .diagnostics()
-        .iter()
-        .any(|diagnostic| diagnostic.contains("sdk_unknown_lifecycle")));
-    assert!(unknown_plugin.events.borrow().is_empty());
 }
 
 #[test]
@@ -438,17 +627,21 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
         .runtime
         .register_editor_extension_with_required_capabilities(extension, vec![capability.clone()])
         .expect("register asset authoring extension");
-    assert!(runtime
-        .runtime
-        .asset_importers_for_extension(".glb")
-        .is_empty());
+    assert!(
+        runtime
+            .runtime
+            .asset_importers_for_extension(".glb")
+            .is_empty()
+    );
     let model_type = AssetTypeId::from_resource_kind(ResourceKind::Model);
-    assert!(runtime
-        .runtime
-        .asset_type_definition(&model_type)
-        .unwrap()
-        .toolkit()
-        .is_none());
+    assert!(
+        runtime
+            .runtime
+            .asset_type_definition(&model_type)
+            .unwrap()
+            .toolkit()
+            .is_none()
+    );
 
     let manager = runtime
         .core

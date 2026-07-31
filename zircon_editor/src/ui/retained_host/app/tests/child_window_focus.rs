@@ -8,7 +8,7 @@ fn child_window_viewport_pointer_event_focuses_source_window_before_runtime_disp
     let child = harness.detach_view_to_child_window("editor.scene#1", "window:scene");
     let baseline = harness.journal_len();
 
-    pane_surface_host(&child).invoke_viewport_pointer_event(0, 1, 24.0, 32.0, 0.0);
+    pane_surface_host(&child).invoke_viewport_pointer_event(0, 1, 24.0, 32.0, 0.0, false, false);
 
     assert_eq!(
         harness.delta_events_since(baseline),
@@ -16,7 +16,11 @@ fn child_window_viewport_pointer_event_focuses_source_window_before_runtime_disp
             EditorEvent::Layout(EventLayoutCommand::FocusView {
                 instance_id: EventViewInstanceId::new("editor.scene#1"),
             }),
-            EditorEvent::Viewport(EditorViewportEvent::LeftPressed { x: 24.0, y: 32.0 }),
+            EditorEvent::Viewport(EditorViewportEvent::LeftPressed {
+                x: 24.0,
+                y: 32.0,
+                selection_mutation: crate::scene::selection::SelectionMutation::Replace,
+            }),
         ]
     );
 

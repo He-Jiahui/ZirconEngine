@@ -1,11 +1,24 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use image::{imageops::FilterType, DynamicImage, ImageBuffer, ImageFormat, Rgba};
 
 use crate::core::asset::ThumbnailPlaceholderPalette;
 use zircon_runtime::asset::AssetUuid;
+
+const MAX_PREVIEW_IN_FLIGHT: usize = 64;
+static NEXT_PREVIEW_JOB_TOKEN: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct PreviewJobToken(u64);
+
+impl PreviewJobToken {
+    fn next() -> Self {
+        Self(NEXT_PREVIEW_JOB_TOKEN.fetch_add(1, Ordering::Relaxed))
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PreviewArtifactKey {
@@ -14,10 +27,15 @@ pub struct PreviewArtifactKey {
 }
 
 impl PreviewArtifactKey {
-    pub fn thumbnail(asset_uuid: AssetUuid) -> Self {
+    pub fn thumbnail(asset_uuid: AssetUuid, source_hash: &str) -> Self {
+        let source_hash = if source_hash.is_empty() {
+            "unversioned"
+        } else {
+            source_hash
+        };
         Self {
             asset_uuid,
-            variant: "thumbnail".to_string(),
+            variant: format!("thumbnail-{source_hash}"),
         }
     }
 }
@@ -96,6 +114,7 @@ impl PreviewCache {
 pub struct PreviewScheduler {
     dirty: HashSet<AssetUuid>,
     visible: HashSet<AssetUuid>,
+    in_flight: HashMap<AssetUuid, PreviewJobToken>,
 }
 
 impl PreviewScheduler {
@@ -103,14 +122,43 @@ impl PreviewScheduler {
         self.dirty.insert(asset_uuid);
     }
 
-    pub fn request_refresh(&mut self, asset_uuid: AssetUuid, visible: bool) -> bool {
+    pub(crate) fn request_refresh(
+        &mut self,
+        asset_uuid: AssetUuid,
+        visible: bool,
+    ) -> Option<PreviewJobToken> {
         if visible {
             self.visible.insert(asset_uuid);
         } else {
             self.visible.remove(&asset_uuid);
         }
 
-        visible && self.dirty.remove(&asset_uuid)
+        if !visible
+            || self.in_flight.contains_key(&asset_uuid)
+            || self.in_flight.len() >= MAX_PREVIEW_IN_FLIGHT
+            || !self.dirty.remove(&asset_uuid)
+        {
+            return None;
+        }
+        let token = PreviewJobToken::next();
+        self.in_flight.insert(asset_uuid, token);
+        Some(token)
+    }
+
+    pub(crate) fn complete_refresh(
+        &mut self,
+        asset_uuid: AssetUuid,
+        token: PreviewJobToken,
+    ) -> bool {
+        if self.in_flight.get(&asset_uuid) != Some(&token) {
+            return false;
+        }
+        self.in_flight.remove(&asset_uuid);
+        true
+    }
+
+    pub(crate) fn owns_refresh(&self, asset_uuid: AssetUuid, token: PreviewJobToken) -> bool {
+        self.in_flight.get(&asset_uuid) == Some(&token)
     }
 }
 
@@ -126,4 +174,51 @@ fn blend(left: [u8; 4], right: [u8; 4], t: f32) -> Rgba<u8> {
 
 fn invalid_data(error: impl std::error::Error) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::InvalidData, error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PreviewScheduler, MAX_PREVIEW_IN_FLIGHT};
+    use zircon_runtime::asset::AssetUuid;
+
+    #[test]
+    fn preview_scheduler_bounds_in_flight_assets_without_implicitly_retrying_completion() {
+        let mut scheduler = PreviewScheduler::default();
+        let mut admitted = Vec::new();
+        for _ in 0..MAX_PREVIEW_IN_FLIGHT {
+            let uuid = AssetUuid::new();
+            scheduler.mark_dirty(uuid);
+            let token = scheduler.request_refresh(uuid, true).expect("admitted");
+            admitted.push((uuid, token));
+        }
+        let waiting = AssetUuid::new();
+        scheduler.mark_dirty(waiting);
+        assert!(scheduler.request_refresh(waiting, true).is_none());
+
+        assert!(scheduler.complete_refresh(admitted[0].0, admitted[0].1));
+        let waiting_token = scheduler.request_refresh(waiting, true).expect("refill");
+        assert!(scheduler.complete_refresh(waiting, waiting_token));
+        assert!(scheduler.request_refresh(waiting, true).is_none());
+        scheduler.mark_dirty(waiting);
+        assert!(scheduler.request_refresh(waiting, true).is_some());
+    }
+
+    #[test]
+    fn stale_job_token_cannot_release_new_generation_admission() {
+        let asset_uuid = AssetUuid::new();
+        let mut previous = PreviewScheduler::default();
+        previous.mark_dirty(asset_uuid);
+        let stale_token = previous
+            .request_refresh(asset_uuid, true)
+            .expect("old generation admission");
+
+        let mut current = PreviewScheduler::default();
+        current.mark_dirty(asset_uuid);
+        let current_token = current
+            .request_refresh(asset_uuid, true)
+            .expect("new generation admission");
+
+        assert!(!current.complete_refresh(asset_uuid, stale_token));
+        assert!(current.owns_refresh(asset_uuid, current_token));
+    }
 }

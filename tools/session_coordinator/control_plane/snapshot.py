@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from datetime import datetime, timezone
 from pathlib import Path
 
 from ..database import Database
@@ -55,6 +56,7 @@ class ControlSnapshotService:
                     "experience": {
                         **self._experience(connection),
                         "continuations": self.continuations.project(connection),
+                        "intervention": self._intervention(connection),
                     },
                     "git": self._git(connection),
                     "audit": self._audit(connection),
@@ -163,6 +165,7 @@ class ControlSnapshotService:
                 "planPath": row["plan_path"],
                 "status": row["status"],
                 "statusReason": row["status_reason"],
+                "waitKind": row["wait_kind"],
                 "baseHead": row["base_head"],
                 "baselineEpoch": row["baseline_epoch"],
                 "writeScope": json.loads(row["write_scope_json"]),
@@ -176,7 +179,19 @@ class ControlSnapshotService:
                     WHERE status IN ('completed', 'stale', 'archived', 'cancelled')
                     ORDER BY updated_at DESC, session_id DESC LIMIT ?
                 )
-                SELECT * FROM sessions
+                SELECT sessions.*,
+                       CASE
+                           WHEN sessions.status='waiting_lease' THEN 'lease'
+                           WHEN sessions.status='waiting_validation' AND EXISTS (
+                               SELECT 1
+                               FROM cargo_lane_reservations AS reservation
+                               WHERE reservation.session_id=sessions.session_id
+                                 AND reservation.status='pending'
+                           ) THEN 'validation'
+                           WHEN sessions.status='waiting_validation' THEN 'external'
+                           ELSE NULL
+                       END AS wait_kind
+                FROM sessions
                 WHERE status NOT IN ('completed', 'stale', 'archived', 'cancelled')
                    OR session_id IN (SELECT session_id FROM recent_terminal)
                 ORDER BY updated_at DESC, session_id
@@ -351,6 +366,7 @@ class ControlSnapshotService:
             "validationCopies": copies,
             "currentCargoTargets": current_targets,
             "cargoReservations": reservations,
+            "runHealth": ControlSnapshotService._run_health(connection),
             "cpuBurst": {
                 "capacity": 1,
                 "active": int(cpu_burst["active"]),
@@ -358,6 +374,44 @@ class ControlSnapshotService:
             },
             "artifactLifecycle": ControlSnapshotService._artifact_lifecycle(current_targets),
         }
+
+    @staticmethod
+    def _run_health(connection) -> list[dict[str, object]]:
+        """Expose bounded live-run output state without leaking log locations or contents."""
+        rows = connection.execute(
+            """
+            SELECT run.run_id, run.job_id, run.session_id, run.stdout_path,
+                   run.stderr_path, run.started_at
+            FROM cargo_job_runs AS run
+            JOIN cargo_jobs AS job ON job.job_id=run.job_id
+            WHERE run.status='running' AND job.status IN ('leased', 'running')
+            ORDER BY run.started_at, run.run_id
+            LIMIT 20
+            """
+        ).fetchall()
+        health: list[dict[str, object]] = []
+        for row in rows:
+            paths = (Path(row["stdout_path"]), Path(row["stderr_path"]))
+            try:
+                log_stats = tuple(path.stat() for path in paths)
+            except OSError:
+                output_state = "log_unavailable"
+            else:
+                output_stats = tuple(stat for stat in log_stats if stat.st_size > 0)
+                output_state = "output_observed" if output_stats else "awaiting_output"
+            item: dict[str, object] = {
+                "runId": row["run_id"],
+                "jobId": row["job_id"],
+                "sessionId": row["session_id"],
+                "startedAt": row["started_at"],
+                "outputState": output_state,
+            }
+            if output_state == "output_observed":
+                item["lastOutputAt"] = datetime.fromtimestamp(
+                    max(stat.st_mtime for stat in output_stats), timezone.utc
+                ).isoformat()
+            health.append(item)
+        return health
 
     @staticmethod
     def _experience(connection) -> dict[str, object]:
@@ -398,6 +452,94 @@ class ControlSnapshotService:
                 "averageDurationMs": int(sync["average_duration_ms"]),
             },
             "blockers": blockers,
+        }
+
+    @staticmethod
+    def _intervention(connection) -> dict[str, object]:
+        """Offer one advisory next action without turning queues into a global block."""
+        counts = connection.execute(
+            """
+            SELECT COUNT(*) AS open_failure_count,
+                   COUNT(DISTINCT fixing_plan) AS responsible_plan_count
+            FROM failure_nodes
+            WHERE status='open'
+            """
+        ).fetchone()
+        next_failure = connection.execute(
+            """
+            SELECT fixing_plan, summary_slug, priority
+            FROM failure_nodes
+            WHERE status='open'
+            ORDER BY priority, created_at, node_id
+            LIMIT 1
+            """
+        ).fetchone()
+        waiting = connection.execute(
+            """
+            SELECT COUNT(DISTINCT sessions.session_id) AS count
+            FROM sessions
+            WHERE sessions.status IN ('active', 'waiting_validation')
+              AND EXISTS (
+                  SELECT 1
+                  FROM cargo_lane_reservations AS reservation
+                  WHERE reservation.session_id=sessions.session_id
+                    AND reservation.status='pending'
+              )
+            """
+        ).fetchone()
+        pending = connection.execute(
+            """
+            WITH queued AS (
+                SELECT session_id, execution_mode,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY lane_scope, execution_mode
+                           ORDER BY created_at, reservation_id
+                       ) AS queue_position
+                FROM cargo_lane_reservations
+                WHERE lane_scope='cpu' AND status='pending'
+            )
+            SELECT session_id, execution_mode, queue_position
+            FROM queued
+            ORDER BY CASE execution_mode WHEN 'warm' THEN 0 ELSE 1 END, queue_position
+            LIMIT 1
+            """
+        ).fetchone()
+        pending_count = connection.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM cargo_lane_reservations
+            WHERE lane_scope='cpu' AND status='pending'
+            """
+        ).fetchone()
+        return {
+            "openFailureCount": int(counts["open_failure_count"]),
+            "responsiblePlanCount": int(counts["responsible_plan_count"]),
+            "mode": "single_plan",
+            "maxConcurrentPlans": 1,
+            "suggestedNext": (
+                {
+                    "kind": "failure",
+                    "planPath": next_failure["fixing_plan"],
+                    "summary": next_failure["summary_slug"],
+                    "priority": int(next_failure["priority"]),
+                    "action": "resolve_one_failure",
+                }
+                if next_failure is not None
+                else None
+            ),
+            "validation": {
+                "waitingSessionCount": int(waiting["count"]),
+                "pendingReservationCount": int(pending_count["count"]),
+                "nextReservation": (
+                    {
+                        "sessionId": pending["session_id"],
+                        "queuePosition": int(pending["queue_position"]),
+                        "executionMode": pending["execution_mode"],
+                    }
+                    if pending is not None
+                    else None
+                ),
+            },
         }
 
     @staticmethod

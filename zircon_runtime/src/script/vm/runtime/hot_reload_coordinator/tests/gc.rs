@@ -1,6 +1,24 @@
 use super::*;
 
 #[test]
+fn gc_pending_queue_deduplicates_without_linear_queue_search() {
+    let mut pending = PendingGcSlots::default();
+    let slot = PluginSlotId::new(7);
+
+    assert!(pending.push_back(slot));
+    assert!(!pending.push_back(slot));
+    assert_eq!(pending.pop_front(), Some(slot));
+    assert!(pending.push_front(slot));
+    assert!(!pending.push_front(slot));
+    assert!(pending.remove(slot));
+    assert_eq!(pending.pop_front(), None);
+
+    let source = include_str!("../../hot_reload_coordinator.rs");
+    assert!(source.contains("members: HashSet<PluginSlotId>"));
+    assert!(!source.contains("pending.contains(&slot)"));
+}
+
+#[test]
 fn gc_step_respects_frame_budget() {
     let calls = Arc::new(Mutex::new(Vec::new()));
     let backend = GcRecordingBackend {

@@ -7,9 +7,7 @@ use zircon_runtime::plugin::native::{NativePluginLoadReport, NativePluginLoader}
 use zircon_runtime::plugin::ExportBuildPlan;
 
 use super::super::super::editor_manager::EditorManager;
-use super::super::super::native_dynamic_export_preparation::{
-    cleanup_native_dynamic_preparation, prepare_native_dynamic_packages_with_cancellation,
-};
+use super::super::super::native_dynamic_export_preparation::prepare_native_dynamic_packages_with_cancellation;
 use super::cargo_build::{invoke_cargo_build, invoke_cargo_build_with_cancellation};
 use super::diagnostics::{
     cargo_invocation_diagnostics, cargo_invocation_diagnostics_with_label,
@@ -101,6 +99,7 @@ impl EditorManager {
         );
         let native_report =
             NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let native_projection = native_report.projection();
         emit_export_progress(
             &mut progress,
             "resolve-export-plan",
@@ -108,7 +107,10 @@ impl EditorManager {
             format!("Resolving desktop export plan {profile_name}"),
         );
         let plan = ExportBuildPlan::from_project_manifest(
-            &self.complete_project_plugin_manifest_with_native_report(manifest, &native_report),
+            &self.complete_project_plugin_manifest_with_native_projection(
+                manifest,
+                &native_projection,
+            ),
             profile_name,
         )?;
         if plan.has_fatal_diagnostics() {
@@ -132,51 +134,32 @@ impl EditorManager {
             cancel,
         )?;
         if cancel.is_cancelled() {
-            let cleanup_error = cleanup_native_dynamic_preparation(&native_preparation).err();
             return Err(EditorExportBuildError::cancelled(
                 "native dynamic package preparation",
-                cleanup_error,
             ));
         }
         emit_export_progress(
             &mut progress,
             "materialize-export",
             45,
-            "Writing export files and plugin package payloads",
+            format!(
+                "Writing export files after native staging copied {} file(s), {} byte(s), removed {} file(s)",
+                native_preparation.staging_stats.copied_files,
+                native_preparation.staging_stats.copied_bytes,
+                native_preparation.staging_stats.removed_files,
+            ),
         );
         let materialized = match plan
             .materialize_with_native_packages(&native_preparation.plugin_root, output_root.as_ref())
         {
             Ok(materialized) => materialized,
             Err(source) => {
-                let cleanup_error = cleanup_native_dynamic_preparation(&native_preparation).err();
-                return Err(EditorExportBuildError::materialize_with_cleanup(
-                    source,
-                    cleanup_error,
-                ));
+                return Err(EditorExportBuildError::materialize(source));
             }
         };
         if cancel.is_cancelled() {
-            let cleanup_error = cleanup_native_dynamic_preparation(&native_preparation).err();
-            return Err(EditorExportBuildError::cancelled(
-                "export materialization",
-                cleanup_error,
-            ));
+            return Err(EditorExportBuildError::cancelled("export materialization"));
         }
-        emit_export_progress(
-            &mut progress,
-            "cleanup-native-staging",
-            58,
-            "Cleaning temporary native dynamic staging directories",
-        );
-        let cleanup_result = cleanup_native_dynamic_preparation(&native_preparation);
-        if cancel.is_cancelled() {
-            return Err(EditorExportBuildError::cancelled(
-                "export cleanup",
-                cleanup_result.err(),
-            ));
-        }
-        cleanup_result?;
         let cargo_invocation = if should_invoke_cargo(&plan, &materialized.generated_files) {
             emit_export_progress(
                 &mut progress,
@@ -198,9 +181,9 @@ impl EditorManager {
             );
             None
         };
-        let mut diagnostics = native_report.diagnostics.clone();
-        diagnostics.extend(native_report.descriptor_diagnostics());
-        diagnostics.extend(native_report.entry_diagnostics());
+        let mut diagnostics = native_report.diagnostics().to_vec();
+        diagnostics.extend(native_projection.descriptor_diagnostics().iter().cloned());
+        diagnostics.extend(native_projection.entry_diagnostics().iter().cloned());
         diagnostics.extend(std::mem::take(&mut native_preparation.diagnostics));
         for invocation in &native_preparation.cargo_invocations {
             diagnostics.extend(cargo_invocation_diagnostics_with_label(
@@ -221,9 +204,20 @@ impl EditorManager {
                 output_root.as_ref(),
                 plan.profile.target_mode,
             );
-            diagnostics.extend(exported_native_report.diagnostics.iter().cloned());
-            diagnostics.extend(exported_native_report.descriptor_diagnostics());
-            diagnostics.extend(exported_native_report.entry_diagnostics());
+            let exported_native_projection = exported_native_report.projection();
+            diagnostics.extend(exported_native_report.diagnostics().iter().cloned());
+            diagnostics.extend(
+                exported_native_projection
+                    .descriptor_diagnostics()
+                    .iter()
+                    .cloned(),
+            );
+            diagnostics.extend(
+                exported_native_projection
+                    .entry_diagnostics()
+                    .iter()
+                    .cloned(),
+            );
         }
         if let Some(cargo_invocation) = &cargo_invocation {
             diagnostics.extend(cargo_invocation_diagnostics(cargo_invocation));

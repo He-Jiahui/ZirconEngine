@@ -13,9 +13,9 @@ use crate::scene::components::{default_render_layer_mask, Mobility};
 use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
 use zircon_runtime::core::framework::render::{
     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
-    RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryPage, RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
 };
 
 use crate::{
@@ -675,6 +675,8 @@ fn build_overlapping_extract(
             meshes: vec![
                 RenderMeshSnapshot {
                     node_id: materials[0].0,
+                    stable_instance_key: materials[0].0 << 16,
+                    transform_revision: 0,
                     transform: Transform {
                         translation: Vec3::ZERO,
                         scale: Vec3::new(0.8, 0.8, 1.0),
@@ -683,12 +685,23 @@ fn build_overlapping_extract(
                     model: model.clone(),
                     mesh: None,
                     material: materials[0].1,
+                    mesh_lod: None,
+                    morph_weights: Vec::new(),
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
-                    render_layer_mask: default_render_layer_mask(),
+                    static_state: Default::default(),
+                    common: RendererCommon {
+                        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                            default_render_layer_mask(),
+                        ),
+                        is_static: false,
+                        ..RendererCommon::default()
+                    },
                 },
                 RenderMeshSnapshot {
                     node_id: materials[1].0,
+                    stable_instance_key: materials[1].0 << 16,
+                    transform_revision: 0,
                     transform: Transform {
                         translation: Vec3::ZERO,
                         scale: Vec3::new(0.8, 0.8, 1.0),
@@ -697,9 +710,18 @@ fn build_overlapping_extract(
                     model,
                     mesh: None,
                     material: materials[1].1,
+                    mesh_lod: None,
+                    morph_weights: Vec::new(),
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
-                    render_layer_mask: default_render_layer_mask(),
+                    static_state: Default::default(),
+                    common: RendererCommon {
+                        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                            default_render_layer_mask(),
+                        ),
+                        is_static: false,
+                        ..RendererCommon::default()
+                    },
                 },
             ],
             directional_lights: Vec::new(),

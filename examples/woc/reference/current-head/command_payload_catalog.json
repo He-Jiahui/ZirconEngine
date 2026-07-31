@@ -1,0 +1,4364 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/command_payload_source_extract.mjs",
+  "source_blobs": {
+    "src/net/online.ts": "9399fac7e5dc49883cf04e772475b73893a0f06c9c65ae4ee5a22944cd3d4ff0",
+    "server/game.ts": "d5f0d0f715037ef4b79594925c64b1d0e676ed5ccebe24605f6ed16bcfc41556"
+  },
+  "command_catalog_sha256": "3660a0d84f3f85ab20324564b0f60773101cca421511e3f1859542e9e4b32700",
+  "totals": {
+    "commands": 165,
+    "client_send_commands": 156,
+    "dispatch_only_commands": 9,
+    "observed_client_commands": 156,
+    "client_send_sites": 158,
+    "declared_server_fields": 63
+  },
+  "entries": [
+    {
+      "id": 0,
+      "name": "castSlot",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "castAbilityBySlot",
+          "source_owner": "src/net/online.ts:2618",
+          "fields": [
+            {
+              "name": "slot",
+              "expression": "slot",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "slot"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 1,
+      "name": "castAt",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "castAbilityAt",
+          "source_owner": "src/net/online.ts:2622",
+          "fields": [
+            {
+              "name": "ability",
+              "expression": "abilityId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "x",
+              "expression": "aim.x",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "z",
+              "expression": "aim.z",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "ability",
+        "x",
+        "z"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 2,
+      "name": "cast",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "castAbility",
+          "source_owner": "src/net/online.ts:2611",
+          "fields": [
+            {
+              "name": "ability",
+              "expression": "abilityId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        },
+        {
+          "sender": "cmd",
+          "method": "castAbilityOn",
+          "source_owner": "src/net/online.ts:2629",
+          "fields": [
+            {
+              "name": "ability",
+              "expression": "abilityId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "target",
+              "expression": "targetId",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "ability",
+        "target"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 3,
+      "name": "cancel_aura",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "cancelAura",
+          "source_owner": "src/net/online.ts:2637",
+          "fields": [
+            {
+              "name": "aura",
+              "expression": "auraId",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "aura"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 4,
+      "name": "target",
+      "kind": "client_send",
+      "facet": "IWorldTargeting",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "targetEntity",
+          "source_owner": "src/net/online.ts:2669",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 5,
+      "name": "tab",
+      "kind": "client_send",
+      "facet": "IWorldTargeting",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "tabTarget",
+          "source_owner": "src/net/online.ts:2672",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 6,
+      "name": "targetNearest",
+      "kind": "dispatch_only",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [],
+      "client_field_names": [],
+      "status": "dispatch_only"
+    },
+    {
+      "id": 7,
+      "name": "tabFriendly",
+      "kind": "client_send",
+      "facet": "IWorldTargeting",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "friendlyTabTarget",
+          "source_owner": "src/net/online.ts:2678",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 8,
+      "name": "targetNearestFriendly",
+      "kind": "client_send",
+      "facet": "IWorldTargeting",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "targetNearestFriendly",
+          "source_owner": "src/net/online.ts:2675",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 9,
+      "name": "attack",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "startAutoAttack",
+          "source_owner": "src/net/online.ts:2640",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 10,
+      "name": "stopattack",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "stopAutoAttack",
+          "source_owner": "src/net/online.ts:2643",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 11,
+      "name": "interact",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "interact",
+          "source_owner": "src/net/online.ts:2687",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 12,
+      "name": "loot",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmdWithOutcome",
+          "method": "lootCorpse",
+          "source_owner": "src/net/online.ts:2690",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 13,
+      "name": "harvestCorpse",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "harvestCorpse",
+          "source_owner": "src/net/online.ts:2696",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "components",
+              "expression": "components",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "components",
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 14,
+      "name": "lootRoll",
+      "kind": "client_send",
+      "facet": "IWorldLoot",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "submitLootRoll",
+          "source_owner": "src/net/online.ts:2703",
+          "fields": [
+            {
+              "name": "rollId",
+              "expression": "rollId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "choice",
+              "expression": "choice",
+              "server_type": {
+                "optional": true,
+                "type": "'need' | 'greed' | 'pass'"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "choice",
+        "rollId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 15,
+      "name": "pickup",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmdWithOutcome",
+          "method": "pickUpObject",
+          "source_owner": "src/net/online.ts:2712",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 16,
+      "name": "accept",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "acceptQuest",
+          "source_owner": "src/net/online.ts:2717",
+          "fields": [
+            {
+              "name": "quest",
+              "expression": "questId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "selection",
+              "expression": "selection",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "quest",
+        "selection"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 17,
+      "name": "turnin",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "turnInQuest",
+          "source_owner": "src/net/online.ts:2722",
+          "fields": [
+            {
+              "name": "quest",
+              "expression": "questId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "quest"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 18,
+      "name": "abandon",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "abandonQuest",
+          "source_owner": "src/net/online.ts:2728",
+          "fields": [
+            {
+              "name": "quest",
+              "expression": "questId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "quest"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 19,
+      "name": "qlinkaccept",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "acceptLinkedQuest",
+          "source_owner": "src/net/online.ts:2731",
+          "fields": [
+            {
+              "name": "quest",
+              "expression": "questId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "from",
+              "expression": "fromPid",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "from",
+        "quest"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 20,
+      "name": "equip",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "equipItem",
+          "source_owner": "src/net/online.ts:2737",
+          "fields": [
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        },
+        {
+          "sender": "cmd",
+          "method": "equipItemToSlot",
+          "source_owner": "src/net/online.ts:2745",
+          "fields": [
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "slot",
+              "expression": "slot",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "item",
+        "slot"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 21,
+      "name": "inv_move",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "moveInventoryItem",
+          "source_owner": "src/net/online.ts:2740",
+          "fields": [
+            {
+              "name": "from",
+              "expression": "from",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "to",
+              "expression": "to",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "from",
+        "to"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 22,
+      "name": "unequip_item",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "unequipItem",
+          "source_owner": "src/net/online.ts:2748",
+          "fields": [
+            {
+              "name": "slot",
+              "expression": "slot",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "slot"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 23,
+      "name": "use",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "useItem",
+          "source_owner": "src/net/online.ts:2760",
+          "fields": [
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "item"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 24,
+      "name": "discard",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "discardItem",
+          "source_owner": "src/net/online.ts:2763",
+          "fields": [
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "count",
+              "expression": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "count",
+        "item"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 25,
+      "name": "buy",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "buyItem",
+          "source_owner": "src/net/online.ts:2766",
+          "fields": [
+            {
+              "name": "npc",
+              "expression": "npcId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "item",
+        "npc"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 26,
+      "name": "sell",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "sellItem",
+          "source_owner": "src/net/online.ts:2775",
+          "fields": [
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "count",
+              "expression": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "count",
+        "item"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 27,
+      "name": "buyback",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "buyBackItem",
+          "source_owner": "src/net/online.ts:2781",
+          "fields": [
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "item"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 28,
+      "name": "sell_all_junk",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "sellAllJunk",
+          "source_owner": "src/net/online.ts:2778",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 29,
+      "name": "harvest_node",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmdWithOutcome",
+          "method": "harvestNode",
+          "source_owner": "src/net/online.ts:2769",
+          "fields": [
+            {
+              "name": "node",
+              "expression": "nodeId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "node"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 30,
+      "name": "craft_item",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "craftItem",
+          "source_owner": "src/net/online.ts:2772",
+          "fields": [
+            {
+              "name": "recipe",
+              "expression": "recipeId",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "recipe"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 31,
+      "name": "change_skin",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "changeSkin",
+          "source_owner": "src/net/online.ts:2796",
+          "fields": [
+            {
+              "name": "skin",
+              "expression": "idx",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "catalog",
+              "expression": "catalog",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "catalog",
+        "skin"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 32,
+      "name": "unequip_mech_chroma",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "unequipMechChroma",
+          "source_owner": "src/net/online.ts:2832",
+          "fields": [
+            {
+              "name": "chroma",
+              "expression": "chromaId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "chroma"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 33,
+      "name": "claim_event_skin",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "claimEventSkin",
+          "source_owner": "src/net/online.ts:2800",
+          "fields": [
+            {
+              "name": "skin",
+              "expression": "idx",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "skin"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 34,
+      "name": "change_weapon_skin",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "changeWeaponSkin",
+          "source_owner": "src/net/online.ts:2856",
+          "fields": [
+            {
+              "name": "skin",
+              "expression": "skinId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "wtype",
+              "expression": "type ?? null",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "skin",
+        "wtype"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 35,
+      "name": "release",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "releaseSpirit",
+          "source_owner": "src/net/online.ts:2646",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 36,
+      "name": "challengeResponse",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "onMessage",
+          "source_owner": "src/net/online.ts:1914",
+          "fields": [
+            {
+              "name": "n",
+              "expression": "msg.nonce",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "r",
+              "expression": "challengeResponse",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "sig",
+              "expression": "signature",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "n",
+        "r",
+        "sig"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 37,
+      "name": "chat",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "chat",
+          "source_owner": "src/net/online.ts:2859",
+          "fields": [
+            {
+              "name": "text",
+              "expression": "text",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "text"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 38,
+      "name": "emote",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "playEmote",
+          "source_owner": "src/net/online.ts:2867",
+          "fields": [
+            {
+              "name": "emote",
+              "expression": "emoteId",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "emote"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 39,
+      "name": "pinvite",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "partyInvite",
+          "source_owner": "src/net/online.ts:2923",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "targetPid",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 40,
+      "name": "paccept",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "partyAccept",
+          "source_owner": "src/net/online.ts:2926",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 41,
+      "name": "pdecline",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "partyDecline",
+          "source_owner": "src/net/online.ts:2932",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 42,
+      "name": "pleave",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "partyLeave",
+          "source_owner": "src/net/online.ts:2935",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 43,
+      "name": "pkick",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "partyKick",
+          "source_owner": "src/net/online.ts:2938",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "targetPid",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 44,
+      "name": "ppromote",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "partyPromote",
+          "source_owner": "src/net/online.ts:2941",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "targetPid",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 45,
+      "name": "praid",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "convertPartyToRaid",
+          "source_owner": "src/net/online.ts:2944",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 46,
+      "name": "punraid",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "convertRaidToParty",
+          "source_owner": "src/net/online.ts:2947",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 47,
+      "name": "pmoveRaid",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "moveRaidMember",
+          "source_owner": "src/net/online.ts:2950",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "targetPid",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "group",
+              "expression": "group",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "group",
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 48,
+      "name": "setLootMaster",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "setPartyLootMaster",
+          "source_owner": "src/net/online.ts:2953",
+          "fields": [
+            {
+              "name": "enabled",
+              "expression": "enabled",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            },
+            {
+              "name": "looter",
+              "expression": "looter",
+              "server_type": null
+            },
+            {
+              "name": "threshold",
+              "expression": "threshold",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "enabled",
+        "looter",
+        "threshold"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 49,
+      "name": "masterAssign",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "assignMasterLoot",
+          "source_owner": "src/net/online.ts:2956",
+          "fields": [
+            {
+              "name": "rollId",
+              "expression": "rollId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "pids",
+              "expression": "targetPids",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "pids",
+        "rollId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 50,
+      "name": "setMarker",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "setMarker",
+          "source_owner": "src/net/online.ts:2963",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "entityId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "marker",
+              "expression": "markerId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id",
+        "marker"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 51,
+      "name": "clearMarker",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "clearMarker",
+          "source_owner": "src/net/online.ts:2966",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "entityId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 52,
+      "name": "readyrespond",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "readyCheckRespond",
+          "source_owner": "src/net/online.ts:2929",
+          "fields": [
+            {
+              "name": "ready",
+              "expression": "ready",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "ready"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 53,
+      "name": "pet_abandon",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "abandonPet",
+          "source_owner": "src/net/online.ts:2873",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 54,
+      "name": "pet_rename",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "renamePet",
+          "source_owner": "src/net/online.ts:2876",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 55,
+      "name": "pet_revive",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "revivePet",
+          "source_owner": "src/net/online.ts:2879",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 56,
+      "name": "pet_attack",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "petAttack",
+          "source_owner": "src/net/online.ts:2882",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 57,
+      "name": "pet_water_jet",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "petWaterJet",
+          "source_owner": "src/net/online.ts:2888",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 58,
+      "name": "pet_taunt",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "petTaunt",
+          "source_owner": "src/net/online.ts:2885",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 59,
+      "name": "pet_auto_taunt",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "setPetAutoTaunt",
+          "source_owner": "src/net/online.ts:2897",
+          "fields": [
+            {
+              "name": "enabled",
+              "expression": "enabled",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "enabled"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 60,
+      "name": "pet_auto_water_jet",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "setPetAutoWaterJet",
+          "source_owner": "src/net/online.ts:2907",
+          "fields": [
+            {
+              "name": "enabled",
+              "expression": "enabled",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "enabled"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 61,
+      "name": "pet_feed",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "feedPet",
+          "source_owner": "src/net/online.ts:2910",
+          "fields": [
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "item"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 62,
+      "name": "pet_heal",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "healPet",
+          "source_owner": "src/net/online.ts:2913",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 63,
+      "name": "pet_mode",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "setPetMode",
+          "source_owner": "src/net/online.ts:2916",
+          "fields": [
+            {
+              "name": "mode",
+              "expression": "mode",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "mode"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 64,
+      "name": "trade_req",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "tradeRequest",
+          "source_owner": "src/net/online.ts:2970",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "targetPid",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 65,
+      "name": "trade_accept",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "tradeAccept",
+          "source_owner": "src/net/online.ts:2973",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 66,
+      "name": "trade_offer",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "tradeSetOffer",
+          "source_owner": "src/net/online.ts:2976",
+          "fields": [
+            {
+              "name": "items",
+              "expression": "items",
+              "server_type": null
+            },
+            {
+              "name": "copper",
+              "expression": "copper",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "copper",
+        "items"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 67,
+      "name": "trade_confirm",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "tradeConfirm",
+          "source_owner": "src/net/online.ts:2979",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 68,
+      "name": "trade_cancel",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "tradeCancel",
+          "source_owner": "src/net/online.ts:2982",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 69,
+      "name": "duel_req",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "duelRequest",
+          "source_owner": "src/net/online.ts:2987",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "targetPid",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 70,
+      "name": "duel_accept",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "duelAccept",
+          "source_owner": "src/net/online.ts:2990",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 71,
+      "name": "duel_decline",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "duelDecline",
+          "source_owner": "src/net/online.ts:2993",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 72,
+      "name": "friend_add",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "friendAdd",
+          "source_owner": "src/net/online.ts:3082",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 73,
+      "name": "friend_remove",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "friendRemove",
+          "source_owner": "src/net/online.ts:3085",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 74,
+      "name": "block_add",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "blockAdd",
+          "source_owner": "src/net/online.ts:3088",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 75,
+      "name": "block_remove",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "blockRemove",
+          "source_owner": "src/net/online.ts:3091",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 76,
+      "name": "social_refresh",
+      "kind": "dispatch_only",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [],
+      "client_field_names": [],
+      "status": "dispatch_only"
+    },
+    {
+      "id": 77,
+      "name": "guild_create",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildCreate",
+          "source_owner": "src/net/online.ts:3100",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 78,
+      "name": "guild_invite",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildInvite",
+          "source_owner": "src/net/online.ts:3103",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 79,
+      "name": "guild_accept",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildAccept",
+          "source_owner": "src/net/online.ts:3106",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 80,
+      "name": "guild_decline",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildDecline",
+          "source_owner": "src/net/online.ts:3109",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 81,
+      "name": "guild_leave",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildLeave",
+          "source_owner": "src/net/online.ts:3112",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 82,
+      "name": "guild_kick",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildKick",
+          "source_owner": "src/net/online.ts:3115",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 83,
+      "name": "guild_promote",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildPromote",
+          "source_owner": "src/net/online.ts:3118",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 84,
+      "name": "guild_demote",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildDemote",
+          "source_owner": "src/net/online.ts:3121",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 85,
+      "name": "guild_transfer",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildTransfer",
+          "source_owner": "src/net/online.ts:3124",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 86,
+      "name": "guild_disband",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildDisband",
+          "source_owner": "src/net/online.ts:3127",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 87,
+      "name": "arena_queue",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "arenaQueueJoin",
+          "source_owner": "src/net/online.ts:2996",
+          "fields": [
+            {
+              "name": "format",
+              "expression": "format ?? '1v1'",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "format"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 88,
+      "name": "arena_leave",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "arenaQueueLeave",
+          "source_owner": "src/net/online.ts:2999",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 89,
+      "name": "arena_augment",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "arenaAugmentPick",
+          "source_owner": "src/net/online.ts:3002",
+          "fields": [
+            {
+              "name": "augment",
+              "expression": "augmentId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "augment"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 90,
+      "name": "card_queue_join",
+      "kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "joinCardDuelQueue",
+          "source_owner": "src/net/online.ts:3039",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 91,
+      "name": "card_queue_leave",
+      "kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "leaveCardDuelQueue",
+          "source_owner": "src/net/online.ts:3042",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 92,
+      "name": "play_card",
+      "kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "playCardInDuel",
+          "source_owner": "src/net/online.ts:3045",
+          "fields": [
+            {
+              "name": "value",
+              "expression": "cardValue",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "value"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 93,
+      "name": "card_forfeit",
+      "kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "forfeitCardDuel",
+          "source_owner": "src/net/online.ts:3048",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 94,
+      "name": "prestige",
+      "kind": "client_send",
+      "facet": "IWorldProgressionXp",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "prestige",
+          "source_owner": "src/net/online.ts:3618",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 95,
+      "name": "applyTalents",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "applyTalents",
+          "source_owner": "src/net/online.ts:3627",
+          "fields": [
+            {
+              "name": "alloc",
+              "expression": "alloc",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "alloc"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 96,
+      "name": "respec",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "respec",
+          "source_owner": "src/net/online.ts:3630",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 97,
+      "name": "setSpec",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "setSpec",
+          "source_owner": "src/net/online.ts:3633",
+          "fields": [
+            {
+              "name": "spec",
+              "expression": "specId",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "spec"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 98,
+      "name": "saveLoadout",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "saveLoadout",
+          "source_owner": "src/net/online.ts:3639",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "bar",
+              "expression": "bar",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            },
+            {
+              "name": "alloc",
+              "expression": "alloc",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "alloc",
+        "bar",
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 99,
+      "name": "switchLoadout",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "switchLoadout",
+          "source_owner": "src/net/online.ts:3642",
+          "fields": [
+            {
+              "name": "index",
+              "expression": "index",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "index"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 100,
+      "name": "deleteLoadout",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "deleteLoadout",
+          "source_owner": "src/net/online.ts:3645",
+          "fields": [
+            {
+              "name": "index",
+              "expression": "index",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "index"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 101,
+      "name": "market_search",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "marketSearch",
+          "source_owner": "src/net/online.ts:3226",
+          "fields": [
+            {
+              "name": "q",
+              "expression": "query.search",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "itemType",
+              "expression": "query.itemType",
+              "server_type": null
+            },
+            {
+              "name": "subtype",
+              "expression": "query.subtype",
+              "server_type": null
+            },
+            {
+              "name": "rarity",
+              "expression": "query.rarity",
+              "server_type": null
+            },
+            {
+              "name": "page",
+              "expression": "query.page",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "itemType",
+        "page",
+        "q",
+        "rarity",
+        "subtype"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 102,
+      "name": "market_list",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "marketList",
+          "source_owner": "src/net/online.ts:3236",
+          "fields": [
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "count",
+              "expression": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "price",
+              "expression": "price",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "count",
+        "item",
+        "price"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 103,
+      "name": "market_buy",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "marketBuy",
+          "source_owner": "src/net/online.ts:3239",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "listingId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 104,
+      "name": "market_cancel",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "marketCancel",
+          "source_owner": "src/net/online.ts:3242",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "listingId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 105,
+      "name": "market_collect",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "marketCollect",
+          "source_owner": "src/net/online.ts:3245",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 106,
+      "name": "dev_level",
+      "kind": "dispatch_only",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [],
+      "client_field_names": [],
+      "status": "dispatch_only"
+    },
+    {
+      "id": 107,
+      "name": "dev_teleport",
+      "kind": "dispatch_only",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [],
+      "client_field_names": [],
+      "status": "dispatch_only"
+    },
+    {
+      "id": 108,
+      "name": "dev_give",
+      "kind": "dispatch_only",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [],
+      "client_field_names": [],
+      "status": "dispatch_only"
+    },
+    {
+      "id": 109,
+      "name": "dev_complete_quest",
+      "kind": "dispatch_only",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [],
+      "client_field_names": [],
+      "status": "dispatch_only"
+    },
+    {
+      "id": 110,
+      "name": "dev_complete_all_quests",
+      "kind": "dispatch_only",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [],
+      "client_field_names": [],
+      "status": "dispatch_only"
+    },
+    {
+      "id": 111,
+      "name": "enter_crypt",
+      "kind": "dispatch_only",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [],
+      "client_field_names": [],
+      "status": "dispatch_only"
+    },
+    {
+      "id": 112,
+      "name": "enter_dungeon",
+      "kind": "client_send",
+      "facet": "IWorldDungeons",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmdWithOutcome",
+          "method": "enterDungeon",
+          "source_owner": "src/net/online.ts:3315",
+          "fields": [
+            {
+              "name": "dungeon",
+              "expression": "dungeonId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "dungeon"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 113,
+      "name": "leave_crypt",
+      "kind": "dispatch_only",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [],
+      "client_field_names": [],
+      "status": "dispatch_only"
+    },
+    {
+      "id": 114,
+      "name": "leave_dungeon",
+      "kind": "client_send",
+      "facet": "IWorldDungeons",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmdWithOutcome",
+          "method": "leaveDungeon",
+          "source_owner": "src/net/online.ts:3318",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 115,
+      "name": "enter_delve",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "enterDelve",
+          "source_owner": "src/net/online.ts:3348",
+          "fields": [
+            {
+              "name": "delveId",
+              "expression": "delveId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "tierId",
+              "expression": "tierId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "delveId",
+        "tierId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 116,
+      "name": "leave_delve",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "leaveDelve",
+          "source_owner": "src/net/online.ts:3351",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 117,
+      "name": "delve_interact",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmdWithOutcome",
+          "method": "delveInteract",
+          "source_owner": "src/net/online.ts:3354",
+          "fields": [
+            {
+              "name": "objectId",
+              "expression": "objectId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "objectId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 118,
+      "name": "companion_upgrade",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "companionUpgrade",
+          "source_owner": "src/net/online.ts:3357",
+          "fields": [
+            {
+              "name": "companionId",
+              "expression": "companionId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "companionId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 119,
+      "name": "delve_buy",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "delveBuyShopItem",
+          "source_owner": "src/net/online.ts:3360",
+          "fields": [
+            {
+              "name": "delveId",
+              "expression": "delveId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "itemId",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "delveId",
+        "itemId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 120,
+      "name": "lockpick_engage",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "lockpickEngage",
+          "source_owner": "src/net/online.ts:3366",
+          "fields": [
+            {
+              "name": "objectId",
+              "expression": "objectId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "ante",
+              "expression": "ante",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "ante",
+        "objectId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 121,
+      "name": "lockpick_action",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "lockpickAction",
+          "source_owner": "src/net/online.ts:3369",
+          "fields": [
+            {
+              "name": "sid",
+              "expression": "this.lockpickState?.sessionId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "action",
+              "expression": "action",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "action",
+        "sid"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 122,
+      "name": "lockpick_abort",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "lockpickAbort",
+          "source_owner": "src/net/online.ts:3372",
+          "fields": [
+            {
+              "name": "sid",
+              "expression": "this.lockpickState?.sessionId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "sid"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 123,
+      "name": "collect_delve_chest_loot",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "collectDelveChestLoot",
+          "source_owner": "src/net/online.ts:3375",
+          "fields": [
+            {
+              "name": "objectId",
+              "expression": "chestId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "objectId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 124,
+      "name": "delve_rite_choose",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "delveRiteChoose",
+          "source_owner": "src/net/online.ts:3400",
+          "fields": [
+            {
+              "name": "intensity",
+              "expression": "intensity",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "intensity"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 125,
+      "name": "telemetry",
+      "kind": "client_send",
+      "facet": "IWorldTelemetry",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "reportTelemetry",
+          "source_owner": "src/net/online.ts:2684",
+          "fields": [
+            {
+              "name": "kind",
+              "expression": "kind",
+              "server_type": null
+            },
+            {
+              "name": null,
+              "expression": "...data",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "kind"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 126,
+      "name": "equip_bag",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "equipBag",
+          "source_owner": "src/net/online.ts:2754",
+          "fields": [
+            {
+              "name": "item",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "socket",
+              "expression": "socket",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "item",
+        "socket"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 127,
+      "name": "unequip_bag",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "unequipBag",
+          "source_owner": "src/net/online.ts:2757",
+          "fields": [
+            {
+              "name": "socket",
+              "expression": "socket",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "socket"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 128,
+      "name": "mail_send",
+      "kind": "client_send",
+      "facet": "IWorldMail",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "mailSend",
+          "source_owner": "src/net/online.ts:3250",
+          "fields": [
+            {
+              "name": "to",
+              "expression": "to",
+              "server_type": null
+            },
+            {
+              "name": "subject",
+              "expression": "subject",
+              "server_type": null
+            },
+            {
+              "name": "body",
+              "expression": "body",
+              "server_type": null
+            },
+            {
+              "name": "copper",
+              "expression": "copper",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "items",
+              "expression": "items.map((s) => ({ itemId: s.itemId, count: s.count }))",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "body",
+        "copper",
+        "items",
+        "subject",
+        "to"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 129,
+      "name": "mail_take",
+      "kind": "client_send",
+      "facet": "IWorldMail",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "mailTake",
+          "source_owner": "src/net/online.ts:3260",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "mailId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 130,
+      "name": "mail_delete",
+      "kind": "client_send",
+      "facet": "IWorldMail",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "mailDelete",
+          "source_owner": "src/net/online.ts:3263",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "mailId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 131,
+      "name": "mail_read",
+      "kind": "client_send",
+      "facet": "IWorldMail",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "mailMarkRead",
+          "source_owner": "src/net/online.ts:3266",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "mailId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 132,
+      "name": "guild_event_create",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildEventCreate",
+          "source_owner": "src/net/online.ts:3130",
+          "fields": [
+            {
+              "name": "day",
+              "expression": "day",
+              "server_type": null
+            },
+            {
+              "name": "hour",
+              "expression": "hour",
+              "server_type": null
+            },
+            {
+              "name": "title",
+              "expression": "title",
+              "server_type": null
+            },
+            {
+              "name": "note",
+              "expression": "note",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "day",
+        "hour",
+        "note",
+        "title"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 133,
+      "name": "guild_event_remove",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "guildEventRemove",
+          "source_owner": "src/net/online.ts:3133",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "eventId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 134,
+      "name": "autoloot",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "autoLoot",
+          "source_owner": "src/net/online.ts:2693",
+          "fields": [
+            {
+              "name": "id",
+              "expression": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "id"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 135,
+      "name": "resurrect_corpse",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "resurrectAtCorpse",
+          "source_owner": "src/net/online.ts:2649",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 136,
+      "name": "resurrect_healer",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmdWithOutcome",
+          "method": "resurrectAtSpiritHealer",
+          "source_owner": "src/net/online.ts:2652",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 137,
+      "name": "bank_deposit",
+      "kind": "client_send",
+      "facet": "IWorldBank",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "bankDeposit",
+          "source_owner": "src/net/online.ts:3274",
+          "fields": [
+            {
+              "name": "slot",
+              "expression": "slotIndex",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            },
+            {
+              "name": "count",
+              "expression": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "count",
+        "slot"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 138,
+      "name": "bank_withdraw",
+      "kind": "client_send",
+      "facet": "IWorldBank",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "bankWithdraw",
+          "source_owner": "src/net/online.ts:3277",
+          "fields": [
+            {
+              "name": "slot",
+              "expression": "slotIndex",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            },
+            {
+              "name": "count",
+              "expression": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "count",
+        "slot"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 139,
+      "name": "bank_buy_slots",
+      "kind": "client_send",
+      "facet": "IWorldBank",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "bankBuySlots",
+          "source_owner": "src/net/online.ts:3280",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 140,
+      "name": "set_town_focus",
+      "kind": "client_send",
+      "facet": null,
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "setTownFocus",
+          "source_owner": "src/net/online.ts:2699",
+          "fields": [
+            {
+              "name": "allocation",
+              "expression": "allocation",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "allocation"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 141,
+      "name": "set_dungeon_difficulty",
+      "kind": "client_send",
+      "facet": "IWorldDungeons",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "setDungeonDifficulty",
+          "source_owner": "src/net/online.ts:3325",
+          "fields": [
+            {
+              "name": "difficulty",
+              "expression": "difficulty",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "difficulty"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 142,
+      "name": "heroic_buy",
+      "kind": "client_send",
+      "facet": "IWorldDungeons",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "buyHeroicVendorItem",
+          "source_owner": "src/net/online.ts:3328",
+          "fields": [
+            {
+              "name": "itemId",
+              "expression": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "itemId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 143,
+      "name": "vcup_queue",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "vcupQueueJoin",
+          "source_owner": "src/net/online.ts:3058",
+          "fields": [
+            {
+              "name": "bracket",
+              "expression": "bracket",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "nation",
+              "expression": "nation",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "role",
+              "expression": "role",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "guild",
+              "expression": "enterAsGuild",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "bracket",
+        "guild",
+        "nation",
+        "role"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 144,
+      "name": "vcup_leave",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "vcupQueueLeave",
+          "source_owner": "src/net/online.ts:3061",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 145,
+      "name": "vcup_role",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "vcupSetRole",
+          "source_owner": "src/net/online.ts:3064",
+          "fields": [
+            {
+              "name": "role",
+              "expression": "role",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "role"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 146,
+      "name": "vcup_ready",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "vcupReady",
+          "source_owner": "src/net/online.ts:3067",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 147,
+      "name": "vcup_bet",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "vcupBet",
+          "source_owner": "src/net/online.ts:3070",
+          "fields": [
+            {
+              "name": "side",
+              "expression": "side",
+              "server_type": null
+            },
+            {
+              "name": "amount",
+              "expression": "amount",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "amount",
+        "side"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 148,
+      "name": "vcup_practice",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "vcupPracticeStart",
+          "source_owner": "src/net/online.ts:3076",
+          "fields": [
+            {
+              "name": "bracket",
+              "expression": "bracket",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "bracket"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 149,
+      "name": "releaseEmpowered",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "releaseEmpoweredAbility",
+          "source_owner": "src/net/online.ts:2632",
+          "fields": [
+            {
+              "name": "ability",
+              "expression": "abilityId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "ability"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 150,
+      "name": "df_roles",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "dungeonFinderSetRoles",
+          "source_owner": "src/net/online.ts:3007",
+          "fields": [
+            {
+              "name": "roles",
+              "expression": "roles",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "roles"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 151,
+      "name": "df_queue",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "dungeonFinderQueueJoin",
+          "source_owner": "src/net/online.ts:3010",
+          "fields": [
+            {
+              "name": "activities",
+              "expression": "activityIds",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "activities"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 152,
+      "name": "df_queue_leave",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "dungeonFinderQueueLeave",
+          "source_owner": "src/net/online.ts:3013",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 153,
+      "name": "df_proposal",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "dungeonFinderRespond",
+          "source_owner": "src/net/online.ts:3016",
+          "fields": [
+            {
+              "name": "accept",
+              "expression": "accept",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "accept"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 154,
+      "name": "df_list_create",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "dungeonFinderListingCreate",
+          "source_owner": "src/net/online.ts:3022",
+          "fields": [
+            {
+              "name": "activity",
+              "expression": "activityId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "tags",
+              "expression": "tags",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "activity",
+        "tags"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 155,
+      "name": "df_list_close",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "dungeonFinderListingClose",
+          "source_owner": "src/net/online.ts:3025",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 156,
+      "name": "df_apply",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "dungeonFinderApply",
+          "source_owner": "src/net/online.ts:3028",
+          "fields": [
+            {
+              "name": "listing",
+              "expression": "listingId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "listing"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 157,
+      "name": "df_apply_cancel",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "dungeonFinderApplyCancel",
+          "source_owner": "src/net/online.ts:3031",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 158,
+      "name": "df_app_respond",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "dungeonFinderApplicationRespond",
+          "source_owner": "src/net/online.ts:3034",
+          "fields": [
+            {
+              "name": "applicant",
+              "expression": "applicantPid",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "accept",
+              "expression": "accept",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "accept",
+        "applicant"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 159,
+      "name": "deed_set_title",
+      "kind": "client_send",
+      "facet": "IWorldDeeds",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "setActiveTitle",
+          "source_owner": "src/net/online.ts:3286",
+          "fields": [
+            {
+              "name": "deedId",
+              "expression": "deedId",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "deedId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 160,
+      "name": "ignore_add",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "ignoreAdd",
+          "source_owner": "src/net/online.ts:3094",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 161,
+      "name": "ignore_remove",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "ignoreRemove",
+          "source_owner": "src/net/online.ts:3097",
+          "fields": [
+            {
+              "name": "name",
+              "expression": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "name"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 162,
+      "name": "stow_weapon",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "toggleWeaponStow",
+          "source_owner": "src/net/online.ts:2808",
+          "fields": []
+        }
+      ],
+      "client_field_names": [],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 163,
+      "name": "selectTalentRow",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "selectTalentRow",
+          "source_owner": "src/net/online.ts:3636",
+          "fields": [
+            {
+              "name": "level",
+              "expression": "level",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "optionId",
+              "expression": "optionId",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "level",
+        "optionId"
+      ],
+      "status": "observed_client_send"
+    },
+    {
+      "id": 164,
+      "name": "resurrect_respond",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "client_sends": [
+        {
+          "sender": "cmd",
+          "method": "respondToResurrection",
+          "source_owner": "src/net/online.ts:2655",
+          "fields": [
+            {
+              "name": "accept",
+              "expression": "accept",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "client_field_names": [
+        "accept"
+      ],
+      "status": "observed_client_send"
+    }
+  ]
+}

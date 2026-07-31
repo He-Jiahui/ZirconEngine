@@ -1,5 +1,9 @@
-//! Undoable editor commands that mutate the ECS world.
+//! Pure scene edit commands executed by the shared transaction engine.
 
+use std::any::Any;
+use std::io;
+
+use serde::Serialize;
 use zircon_runtime::scene::components::{NodeKind, NodeRecord};
 use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::math::Transform;
@@ -8,240 +12,249 @@ use zircon_runtime_interface::reflect::{
 };
 use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
+use super::context::CoreEditContext;
+use super::engine::{
+    CommandEffect, CommandExecutionError, CommandJournalPayload, CommandJournalUnavailable,
+    EditCommand, EditCommandError, EditContext, MergeOutcome,
+};
+use super::selection::SceneSelection;
+
 #[derive(Clone, Debug)]
 pub(crate) enum EditorCommand {
     CreateNode(CreateNodeCommand),
     DeleteNode(DeleteNodeCommand),
     UpdateNode(UpdateNodeCommand),
     SetReflectedSceneField(SetReflectedSceneFieldCommand),
-    Batch(BatchEditorCommand),
 }
 
 impl EditorCommand {
-    pub(crate) fn create_node(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
-        kind: NodeKind,
-    ) -> Result<Self, String> {
-        Ok(Self::CreateNode(CreateNodeCommand::spawn_node(
-            scene, selected, kind,
-        )?))
+    pub(crate) fn create_node(kind: NodeKind) -> Self {
+        Self::CreateNode(CreateNodeCommand::new(CreateNodeIntent::Node { kind }))
     }
 
     pub(crate) fn import_mesh(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
         model: ResourceHandle<ModelMarker>,
         material: ResourceHandle<MaterialMarker>,
-    ) -> Result<Self, String> {
-        Ok(Self::CreateNode(CreateNodeCommand::import_mesh(
-            scene, selected, model, material,
-        )?))
+    ) -> Self {
+        Self::CreateNode(CreateNodeCommand::new(CreateNodeIntent::Mesh {
+            model,
+            material,
+        }))
     }
 
-    pub(crate) fn delete_node(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
-        node_id: NodeId,
-    ) -> Result<Self, String> {
-        Ok(Self::DeleteNode(DeleteNodeCommand::capture(
-            scene, selected, node_id,
-        )?))
+    pub(crate) fn delete_node(scene: &Scene, node_id: NodeId) -> Result<Self, EditCommandError> {
+        DeleteNodeCommand::capture(scene, node_id).map(Self::DeleteNode)
     }
 
     pub(crate) fn rename_node(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
+        scene: &Scene,
         node_id: NodeId,
         name: String,
-    ) -> Result<Option<Self>, String> {
-        Ok(UpdateNodeCommand::capture_name(scene, selected, node_id, name)?.map(Self::UpdateNode))
+    ) -> Result<Option<Self>, EditCommandError> {
+        UpdateNodeCommand::capture_name(scene, node_id, name)
+            .map(|command| command.map(Self::UpdateNode))
     }
 
     pub(crate) fn set_parent(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
+        scene: &Scene,
         node_id: NodeId,
         parent: Option<NodeId>,
-    ) -> Result<Option<Self>, String> {
-        Ok(
-            UpdateNodeCommand::capture_parent(scene, selected, node_id, parent)?
-                .map(Self::UpdateNode),
-        )
+    ) -> Result<Option<Self>, EditCommandError> {
+        UpdateNodeCommand::capture_parent(scene, node_id, parent)
+            .map(|command| command.map(Self::UpdateNode))
     }
 
     pub(crate) fn set_transform(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
+        scene: &Scene,
         node_id: NodeId,
-        after: Transform,
-    ) -> Result<Option<Self>, String> {
-        Ok(
-            UpdateNodeCommand::capture_transform(scene, selected, node_id, after)?
-                .map(Self::UpdateNode),
-        )
+        transform: Transform,
+    ) -> Result<Option<Self>, EditCommandError> {
+        UpdateNodeCommand::capture_transform(scene, node_id, transform)
+            .map(|command| command.map(Self::UpdateNode))
+    }
+
+    pub(crate) fn applied_transform(
+        node_id: NodeId,
+        before: NodeEditState,
+        after: NodeEditState,
+    ) -> Option<Self> {
+        UpdateNodeCommand::new(node_id, before, after, true).map(Self::UpdateNode)
     }
 
     pub(crate) fn set_reflected_scene_field(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
+        scene: &Scene,
         node_id: NodeId,
         component_type_path: impl Into<String>,
         field_name: impl Into<String>,
         after: ReflectedValue,
-    ) -> Result<Option<Self>, String> {
-        Ok(SetReflectedSceneFieldCommand::capture(
+    ) -> Result<Option<Self>, EditCommandError> {
+        SetReflectedSceneFieldCommand::capture(
             scene,
-            selected,
             node_id,
             component_type_path.into(),
             field_name.into(),
             after,
-        )?
-        .map(Self::SetReflectedSceneField))
-    }
-
-    pub(crate) fn batch(commands: Vec<Self>) -> Option<Self> {
-        BatchEditorCommand::new(commands)
-    }
-
-    pub(crate) fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        match self {
-            Self::CreateNode(command) => command.apply(scene),
-            Self::DeleteNode(command) => command.apply(scene),
-            Self::UpdateNode(command) => command.apply(scene),
-            Self::SetReflectedSceneField(command) => command.apply(scene),
-            Self::Batch(command) => command.apply(scene),
-        }
-    }
-
-    pub(crate) fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        match self {
-            Self::CreateNode(command) => command.undo(scene),
-            Self::DeleteNode(command) => command.undo(scene),
-            Self::UpdateNode(command) => command.undo(scene),
-            Self::SetReflectedSceneField(command) => command.undo(scene),
-            Self::Batch(command) => command.undo(scene),
-        }
-    }
-
-    pub(crate) fn target_node(&self) -> NodeId {
-        match self {
-            Self::CreateNode(command) => command.node_id(),
-            Self::DeleteNode(command) => command.node_id(),
-            Self::UpdateNode(command) => command.node_id(),
-            Self::SetReflectedSceneField(command) => command.node_id(),
-            Self::Batch(command) => command.node_id(),
-        }
-    }
-
-    pub(crate) fn selection_after(&self) -> Option<NodeId> {
-        match self {
-            Self::CreateNode(command) => Some(command.node_id()),
-            Self::DeleteNode(command) => command.selection_after,
-            Self::UpdateNode(command) => command.selection_after,
-            Self::SetReflectedSceneField(command) => command.selection_after,
-            Self::Batch(command) => command.selection_after(),
-        }
+        )
+        .map(|command| command.map(Self::SetReflectedSceneField))
     }
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct BatchEditorCommand {
-    commands: Vec<EditorCommand>,
+impl EditCommand for EditorCommand {
+    fn label(&self) -> &str {
+        match self {
+            Self::CreateNode(_) => "Create scene node",
+            Self::DeleteNode(_) => "Delete scene node",
+            Self::UpdateNode(_) => "Update scene node",
+            Self::SetReflectedSceneField(_) => "Set reflected scene field",
+        }
+    }
+
+    fn apply(&mut self, context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+        let context = core_context(context)?;
+        match self {
+            Self::CreateNode(command) => command.apply(context),
+            Self::DeleteNode(command) => command.apply(context),
+            Self::UpdateNode(command) => command.apply(context),
+            Self::SetReflectedSceneField(command) => command.apply(context),
+        }
+    }
+
+    fn revert(&mut self, context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+        let context = core_context(context)?;
+        match self {
+            Self::CreateNode(command) => command.revert(context),
+            Self::DeleteNode(command) => command.revert(context),
+            Self::UpdateNode(command) => command.revert(context),
+            Self::SetReflectedSceneField(command) => command.revert(context),
+        }
+    }
+
+    fn try_merge(&mut self, next: &dyn EditCommand) -> MergeOutcome {
+        let Some(next) = next.as_any().downcast_ref::<Self>() else {
+            return MergeOutcome::Reject;
+        };
+        match (self, next) {
+            (Self::UpdateNode(current), Self::UpdateNode(next))
+                if current.node_id == next.node_id =>
+            {
+                current.after = next.after.clone();
+                current.already_applied = false;
+                MergeOutcome::Merged
+            }
+            _ => MergeOutcome::Reject,
+        }
+    }
+
+    fn journal_payload(&self) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
+        match self {
+            Self::CreateNode(command) => command.journal_payload(),
+            Self::DeleteNode(command) => command.journal_payload(),
+            Self::UpdateNode(command) => command.journal_payload(),
+            Self::SetReflectedSceneField(command) => command.journal_payload(),
+        }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
-impl BatchEditorCommand {
-    fn new(commands: Vec<EditorCommand>) -> Option<EditorCommand> {
-        let mut commands = commands;
-        match commands.len() {
-            0 => None,
-            1 => commands.pop(),
-            _ => Some(EditorCommand::Batch(Self { commands })),
-        }
-    }
-
-    fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        let mut selection = None;
-        for command in &self.commands {
-            selection = command.apply(scene)?;
-        }
-        Ok(selection)
-    }
-
-    fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        let mut selection = None;
-        for command in self.commands.iter().rev() {
-            selection = command.undo(scene)?;
-        }
-        Ok(selection)
-    }
-
-    fn node_id(&self) -> NodeId {
-        self.commands[0].target_node()
-    }
-
-    fn selection_after(&self) -> Option<NodeId> {
-        self.commands
-            .last()
-            .and_then(EditorCommand::selection_after)
-    }
+#[derive(Clone, Debug, Serialize)]
+enum CreateNodeIntent {
+    Node {
+        kind: NodeKind,
+    },
+    Mesh {
+        model: ResourceHandle<ModelMarker>,
+        material: ResourceHandle<MaterialMarker>,
+    },
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct CreateNodeCommand {
-    record: NodeRecord,
-    previous_selected: Option<NodeId>,
+    intent: CreateNodeIntent,
+    record: Option<NodeRecord>,
 }
 
 impl CreateNodeCommand {
-    fn spawn_node(
-        scene: &mut Scene,
-        previous_selected: Option<NodeId>,
-        kind: NodeKind,
-    ) -> Result<Self, String> {
-        let node_id = scene.spawn_node(kind);
-        let record = scene
-            .node_record(node_id)
-            .ok_or_else(|| format!("created node {node_id} is missing from world"))?;
-        Ok(Self {
-            record,
-            previous_selected,
-        })
-    }
-
-    fn import_mesh(
-        scene: &mut Scene,
-        previous_selected: Option<NodeId>,
-        model: ResourceHandle<ModelMarker>,
-        material: ResourceHandle<MaterialMarker>,
-    ) -> Result<Self, String> {
-        let node_id = scene.spawn_mesh_node(model, material);
-        let record = scene
-            .node_record(node_id)
-            .ok_or_else(|| format!("imported node {node_id} is missing from world"))?;
-        Ok(Self {
-            record,
-            previous_selected,
-        })
-    }
-
-    fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        scene
-            .insert_node_record(self.record.clone())
-            .map_err(|error| error.to_string())?;
-        Ok(Some(self.record.id))
-    }
-
-    fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        if !scene.remove_entity(self.record.id) {
-            return Err(format!("cannot remove missing node {}", self.record.id));
+    fn new(intent: CreateNodeIntent) -> Self {
+        Self {
+            intent,
+            record: None,
         }
-        Ok(self.previous_selected)
     }
 
-    fn node_id(&self) -> NodeId {
-        self.record.id
+    fn apply(&mut self, context: &mut CoreEditContext) -> Result<(), CommandExecutionError> {
+        if let Some(retained) = self.record.as_ref() {
+            let node_id = retained.id;
+            let record = retained.clone();
+            context
+                .with_scene_mut(move |scene| scene.insert_node_record(record))
+                .map_err(unchanged)?
+                .map_err(|error| unchanged(external_error(error.to_string())))?;
+            context
+                .set_scene_selection(SceneSelection::new(vec![node_id], Some(node_id)))
+                .map_err(unchanged)?;
+            return Ok(());
+        }
+
+        let intent = self.intent.clone();
+        let record = context
+            .with_scene_mut(|scene| {
+                let node_id = match intent {
+                    CreateNodeIntent::Node { kind } => scene.spawn_node(kind),
+                    CreateNodeIntent::Mesh { model, material } => {
+                        scene.spawn_mesh_node(model, material)
+                    }
+                };
+                match scene.node_record(node_id) {
+                    Some(record) => Ok(record),
+                    None => {
+                        let _ = scene.remove_entity(node_id);
+                        Err(EditCommandError::TargetMissing {
+                            target: format!("created node {node_id}"),
+                        })
+                    }
+                }
+            })
+            .map_err(unchanged)?
+            .map_err(unchanged)?;
+        let node_id = record.id;
+        self.record = Some(record);
+        context
+            .set_scene_selection(SceneSelection::new(vec![node_id], Some(node_id)))
+            .map_err(unchanged)?;
+        Ok(())
+    }
+
+    fn revert(&mut self, context: &mut CoreEditContext) -> Result<(), CommandExecutionError> {
+        let Some(node_id) = self.record.as_ref().map(|record| record.id) else {
+            return Err(unchanged(EditCommandError::InvariantViolation {
+                invariant: "create command must be applied before it can be reverted",
+            }));
+        };
+        let removed = context
+            .with_scene_mut(|scene| scene.remove_entity(node_id))
+            .map_err(unchanged)?;
+        if !removed {
+            return Err(unchanged(EditCommandError::TargetMissing {
+                target: format!("scene node {node_id}"),
+            }));
+        }
+        Ok(())
+    }
+
+    fn journal_payload(&self) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
+        let record = self.record.as_ref().ok_or_else(|| {
+            CommandJournalUnavailable::new("create scene node command has not retained its record")
+        })?;
+        journal_payload(
+            "zircon.editor.scene.create_node",
+            &CreateNodeJournalPayload {
+                intent: &self.intent,
+                record,
+            },
+        )
     }
 }
 
@@ -249,74 +262,110 @@ impl CreateNodeCommand {
 pub(crate) struct DeleteNodeCommand {
     root_id: NodeId,
     records: Vec<NodeRecord>,
-    previous_selected: Option<NodeId>,
     previous_active_camera: NodeId,
-    pub(crate) selection_after: Option<NodeId>,
-    active_camera_after: NodeId,
+    fallback_selection: Option<NodeId>,
+    active_camera_after: Option<NodeId>,
 }
 
 impl DeleteNodeCommand {
-    fn capture(
-        scene: &mut Scene,
-        previous_selected: Option<NodeId>,
-        node_id: NodeId,
-    ) -> Result<Self, String> {
+    fn capture(scene: &Scene, node_id: NodeId) -> Result<Self, EditCommandError> {
         let records = scene.subtree_records(node_id);
         if records.is_empty() {
-            return Err(format!("cannot delete missing node {node_id}"));
+            return Err(EditCommandError::TargetMissing {
+                target: format!("scene node {node_id}"),
+            });
         }
         let removed_camera_count = records
             .iter()
             .filter(|record| record.camera.is_some())
             .count();
         if removed_camera_count >= scene.camera_count() {
-            return Err("cannot delete the last remaining camera".to_string());
+            return Err(EditCommandError::InvariantViolation {
+                invariant: "cannot delete the last remaining camera",
+            });
         }
-
-        let previous_active_camera = scene.active_camera();
-        let fallback_selection = scene
-            .parent_of(node_id)
-            .filter(|parent| scene.contains_entity(*parent));
-
-        let _removed = scene.remove_entity_recursive(node_id);
-        let active_camera_after = scene.active_camera();
-        let selection_after = fallback_selection.or(Some(active_camera_after));
-
         Ok(Self {
             root_id: node_id,
             records,
-            previous_selected,
-            previous_active_camera,
-            selection_after,
-            active_camera_after,
+            previous_active_camera: scene.active_camera(),
+            fallback_selection: scene
+                .parent_of(node_id)
+                .filter(|parent| scene.contains_entity(*parent)),
+            active_camera_after: None,
         })
     }
 
-    fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        let removed = scene.remove_entity_recursive(self.root_id);
-        if removed.is_empty() {
-            return Err(format!("cannot delete missing node {}", self.root_id));
-        }
-        if scene.contains_entity(self.active_camera_after) {
-            scene.set_active_camera(self.active_camera_after);
-        }
-        Ok(self.selection_after)
+    fn apply(&mut self, context: &mut CoreEditContext) -> Result<(), CommandExecutionError> {
+        let before = context.scene_selection().map_err(unchanged)?;
+        let root_id = self.root_id;
+        let fallback = self.fallback_selection;
+        let preferred_camera = self.active_camera_after;
+        let (active_camera, surviving) = context
+            .with_scene_mut(|scene| {
+                let removed = scene.remove_entity_recursive(root_id);
+                if removed.is_empty() {
+                    return Err(EditCommandError::TargetMissing {
+                        target: format!("scene node {root_id}"),
+                    });
+                }
+                if let Some(camera) =
+                    preferred_camera.filter(|camera| scene.contains_entity(*camera))
+                {
+                    scene.set_active_camera(camera);
+                }
+                let active_camera = scene.active_camera();
+                let mut items = before
+                    .items()
+                    .iter()
+                    .copied()
+                    .filter(|node| scene.contains_entity(*node))
+                    .collect::<Vec<_>>();
+                if items.is_empty() {
+                    if let Some(node) = fallback.or(Some(active_camera)) {
+                        items.push(node);
+                    }
+                }
+                let primary = before
+                    .primary()
+                    .filter(|node| items.contains(node))
+                    .or_else(|| items.first().copied());
+                Ok((active_camera, SceneSelection::new(items, primary)))
+            })
+            .map_err(unchanged)?
+            .map_err(unchanged)?;
+        self.active_camera_after = Some(active_camera);
+        context.set_scene_selection(surviving).map_err(unchanged)?;
+        Ok(())
     }
 
-    fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        scene
-            .insert_node_records(&self.records)
-            .map_err(|error| error.to_string())?;
-        scene.set_active_camera(self.previous_active_camera);
-        Ok(self.previous_selected)
+    fn revert(&mut self, context: &mut CoreEditContext) -> Result<(), CommandExecutionError> {
+        context
+            .with_scene_mut(|scene| {
+                scene
+                    .insert_node_records(&self.records)
+                    .map_err(|error| external_error(error.to_string()))?;
+                scene.set_active_camera(self.previous_active_camera);
+                Ok::<(), EditCommandError>(())
+            })
+            .map_err(unchanged)?
+            .map_err(unchanged)
     }
 
-    fn node_id(&self) -> NodeId {
-        self.root_id
+    fn journal_payload(&self) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
+        journal_payload(
+            "zircon.editor.scene.delete_node",
+            &DeleteNodeJournalPayload {
+                root_id: self.root_id,
+                records: &self.records,
+                previous_active_camera: self.previous_active_camera,
+                fallback_selection: self.fallback_selection,
+                active_camera_after: self.active_camera_after,
+            },
+        )
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub(crate) struct NodeEditState {
     pub(crate) name: String,
     pub(crate) parent: Option<NodeId>,
@@ -324,10 +373,12 @@ pub(crate) struct NodeEditState {
 }
 
 impl NodeEditState {
-    fn capture(scene: &Scene, node_id: NodeId) -> Result<Self, String> {
+    pub(crate) fn capture(scene: &Scene, node_id: NodeId) -> Result<Self, EditCommandError> {
         let node = scene
             .find_node(node_id)
-            .ok_or_else(|| format!("missing node {node_id}"))?;
+            .ok_or_else(|| EditCommandError::TargetMissing {
+                target: format!("scene node {node_id}"),
+            })?;
         Ok(Self {
             name: node.name.clone(),
             parent: node.parent,
@@ -341,8 +392,7 @@ pub(crate) struct UpdateNodeCommand {
     node_id: NodeId,
     before: NodeEditState,
     after: NodeEditState,
-    selection_before: Option<NodeId>,
-    pub(crate) selection_after: Option<NodeId>,
+    already_applied: bool,
 }
 
 impl UpdateNodeCommand {
@@ -350,131 +400,128 @@ impl UpdateNodeCommand {
         node_id: NodeId,
         before: NodeEditState,
         after: NodeEditState,
-        selection_before: Option<NodeId>,
-        selection_after: Option<NodeId>,
+        already_applied: bool,
     ) -> Option<Self> {
         (before != after).then_some(Self {
             node_id,
             before,
             after,
-            selection_before,
-            selection_after,
+            already_applied,
         })
     }
 
-    fn capture(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
-        node_id: NodeId,
-        after: NodeEditState,
-    ) -> Result<Option<Self>, String> {
-        let before = NodeEditState::capture(scene, node_id)?;
-        Self::capture_with_before(scene, selected, node_id, before, after)
-    }
-
-    fn capture_with_before(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
-        node_id: NodeId,
-        before: NodeEditState,
-        after: NodeEditState,
-    ) -> Result<Option<Self>, String> {
-        let after = normalize_edit_state(after)?;
-        if before == after {
-            return Ok(None);
-        }
-        Self::apply_changes(scene, node_id, &before, &after)?;
-        Ok(Some(Self {
-            node_id,
-            before,
-            after,
-            selection_before: selected,
-            selection_after: Some(node_id),
-        }))
-    }
-
     fn capture_name(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
+        scene: &Scene,
         node_id: NodeId,
         name: String,
-    ) -> Result<Option<Self>, String> {
+    ) -> Result<Option<Self>, EditCommandError> {
         let before = NodeEditState::capture(scene, node_id)?;
         let mut after = before.clone();
         after.name = name;
-        Self::capture_with_before(scene, selected, node_id, before, after)
+        Self::capture_with_before(node_id, before, after)
     }
 
     fn capture_parent(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
+        scene: &Scene,
         node_id: NodeId,
         parent: Option<NodeId>,
-    ) -> Result<Option<Self>, String> {
+    ) -> Result<Option<Self>, EditCommandError> {
         let before = NodeEditState::capture(scene, node_id)?;
         let mut after = before.clone();
         after.parent = parent;
-        Self::capture_with_before(scene, selected, node_id, before, after)
+        Self::capture_with_before(node_id, before, after)
     }
 
     fn capture_transform(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
+        scene: &Scene,
         node_id: NodeId,
         transform: Transform,
-    ) -> Result<Option<Self>, String> {
+    ) -> Result<Option<Self>, EditCommandError> {
         let before = NodeEditState::capture(scene, node_id)?;
         let mut after = before.clone();
         after.transform = transform;
-        Self::capture_with_before(scene, selected, node_id, before, after)
+        Self::capture_with_before(node_id, before, after)
     }
 
-    fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        Self::apply_changes(scene, self.node_id, &self.before, &self.after)?;
-        Ok(self.selection_after)
-    }
-
-    fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        Self::apply_changes(scene, self.node_id, &self.after, &self.before)?;
-        Ok(self.selection_before)
-    }
-
-    fn apply_changes(
-        scene: &mut Scene,
+    fn capture_with_before(
         node_id: NodeId,
-        before: &NodeEditState,
-        after: &NodeEditState,
-    ) -> Result<(), String> {
-        if scene.find_node(node_id).is_none() {
-            return Err(format!("missing node {node_id}"));
-        }
-        if before.parent != after.parent {
-            let _ = scene
-                .set_parent_checked(node_id, after.parent)
-                .map_err(|error| error.to_string())?;
-        }
-        if before.name != after.name {
-            scene
-                .rename_node(node_id, after.name.clone())
-                .map_err(|error| error.to_string())?;
-        }
-        if before.transform != after.transform {
-            let _ = scene
-                .update_transform(node_id, after.transform)
-                .map_err(|error| error.to_string())?;
+        before: NodeEditState,
+        after: NodeEditState,
+    ) -> Result<Option<Self>, EditCommandError> {
+        let after = normalize_edit_state(after)?;
+        Ok(Self::new(node_id, before, after, false))
+    }
+
+    fn apply(&mut self, context: &mut CoreEditContext) -> Result<(), CommandExecutionError> {
+        if self.already_applied {
+            self.already_applied = false;
+        } else {
+            context
+                .with_scene_mut(|scene| {
+                    apply_node_state(scene, self.node_id, &self.before, &self.after)
+                })
+                .map_err(unchanged)?
+                .map_err(unchanged)?;
         }
         Ok(())
     }
 
-    fn node_id(&self) -> NodeId {
-        self.node_id
+    fn revert(&mut self, context: &mut CoreEditContext) -> Result<(), CommandExecutionError> {
+        context
+            .with_scene_mut(|scene| {
+                apply_node_state(scene, self.node_id, &self.after, &self.before)
+            })
+            .map_err(unchanged)?
+            .map_err(unchanged)
+    }
+
+    fn journal_payload(&self) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
+        journal_payload(
+            "zircon.editor.scene.update_node",
+            &UpdateNodeJournalPayload {
+                node_id: self.node_id,
+                before: &self.before,
+                after: &self.after,
+            },
+        )
     }
 }
 
-fn normalize_edit_state(mut state: NodeEditState) -> Result<NodeEditState, String> {
+fn apply_node_state(
+    scene: &mut Scene,
+    node_id: NodeId,
+    before: &NodeEditState,
+    after: &NodeEditState,
+) -> Result<(), EditCommandError> {
+    if scene.find_node(node_id).is_none() {
+        return Err(EditCommandError::TargetMissing {
+            target: format!("scene node {node_id}"),
+        });
+    }
+    if before.parent != after.parent {
+        scene
+            .set_parent_checked(node_id, after.parent)
+            .map_err(|error| external_error(error.to_string()))?;
+    }
+    if before.name != after.name {
+        scene
+            .rename_node(node_id, after.name.clone())
+            .map_err(|error| external_error(error.to_string()))?;
+    }
+    if before.transform != after.transform {
+        scene
+            .update_transform(node_id, after.transform)
+            .map_err(|error| external_error(error.to_string()))?;
+    }
+    Ok(())
+}
+
+fn normalize_edit_state(mut state: NodeEditState) -> Result<NodeEditState, EditCommandError> {
     state.name = state.name.trim().to_string();
     if state.name.is_empty() {
-        return Err("node name cannot be empty".to_string());
+        return Err(EditCommandError::InvariantViolation {
+            invariant: "node name cannot be empty",
+        });
     }
     Ok(state)
 }
@@ -486,72 +533,143 @@ pub(crate) struct SetReflectedSceneFieldCommand {
     field_name: String,
     before: ReflectedValue,
     after: ReflectedValue,
-    selection_before: Option<NodeId>,
-    pub(crate) selection_after: Option<NodeId>,
 }
 
 impl SetReflectedSceneFieldCommand {
     fn capture(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
+        scene: &Scene,
         node_id: NodeId,
         component_type_path: String,
         field_name: String,
         after: ReflectedValue,
-    ) -> Result<Option<Self>, String> {
+    ) -> Result<Option<Self>, EditCommandError> {
+        ensure_reflected_field_editable(scene, &component_type_path, &field_name)?;
         let before =
             read_reflected_component_field(scene, node_id, &component_type_path, &field_name)?;
-        if before == after {
-            return Ok(None);
-        }
-
-        let (after, changed) = write_reflected_component_field(
-            scene,
-            node_id,
-            &component_type_path,
-            &field_name,
-            after,
-        )?;
-        if !changed {
-            return Ok(None);
-        }
-
-        Ok(Some(Self {
+        Ok((before != after).then_some(Self {
             node_id,
             component_type_path,
             field_name,
             before,
             after,
-            selection_before: selected,
-            selection_after: Some(node_id),
         }))
     }
 
-    fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        let _ = write_reflected_component_field(
-            scene,
-            self.node_id,
-            &self.component_type_path,
-            &self.field_name,
-            self.after.clone(),
-        )?;
-        Ok(self.selection_after)
+    fn apply(&mut self, context: &mut CoreEditContext) -> Result<(), CommandExecutionError> {
+        context
+            .with_scene_mut(|scene| {
+                write_reflected_component_field(
+                    scene,
+                    self.node_id,
+                    &self.component_type_path,
+                    &self.field_name,
+                    self.after.clone(),
+                )
+            })
+            .map_err(unchanged)?
+            .map_err(unchanged)?;
+        Ok(())
     }
 
-    fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        let _ = write_reflected_component_field(
-            scene,
-            self.node_id,
-            &self.component_type_path,
-            &self.field_name,
-            self.before.clone(),
-        )?;
-        Ok(self.selection_before)
+    fn revert(&mut self, context: &mut CoreEditContext) -> Result<(), CommandExecutionError> {
+        context
+            .with_scene_mut(|scene| {
+                write_reflected_component_field(
+                    scene,
+                    self.node_id,
+                    &self.component_type_path,
+                    &self.field_name,
+                    self.before.clone(),
+                )
+            })
+            .map_err(unchanged)?
+            .map(|_| ())
+            .map_err(unchanged)
     }
 
-    fn node_id(&self) -> NodeId {
-        self.node_id
+    fn journal_payload(&self) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
+        journal_payload(
+            "zircon.editor.scene.set_reflected_field",
+            &SetReflectedSceneFieldJournalPayload {
+                node_id: self.node_id,
+                component_type_path: &self.component_type_path,
+                field_name: &self.field_name,
+                before: &self.before,
+                after: &self.after,
+            },
+        )
     }
+}
+
+#[derive(Serialize)]
+struct CreateNodeJournalPayload<'a> {
+    intent: &'a CreateNodeIntent,
+    record: &'a NodeRecord,
+}
+
+#[derive(Serialize)]
+struct DeleteNodeJournalPayload<'a> {
+    root_id: NodeId,
+    records: &'a [NodeRecord],
+    previous_active_camera: NodeId,
+    fallback_selection: Option<NodeId>,
+    active_camera_after: Option<NodeId>,
+}
+
+#[derive(Serialize)]
+struct UpdateNodeJournalPayload<'a> {
+    node_id: NodeId,
+    before: &'a NodeEditState,
+    after: &'a NodeEditState,
+}
+
+#[derive(Serialize)]
+struct SetReflectedSceneFieldJournalPayload<'a> {
+    node_id: NodeId,
+    component_type_path: &'a str,
+    field_name: &'a str,
+    before: &'a ReflectedValue,
+    after: &'a ReflectedValue,
+}
+
+fn journal_payload(
+    command_type: &'static str,
+    payload: &impl Serialize,
+) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
+    serde_json::to_value(payload)
+        .map(|payload| CommandJournalPayload::new(command_type, 1, payload))
+        .map_err(|error| {
+            CommandJournalUnavailable::new(format!(
+                "{command_type} journal payload serialization failed: {error}"
+            ))
+        })
+}
+
+fn ensure_reflected_field_editable(
+    scene: &Scene,
+    component_type_path: &str,
+    field_name: &str,
+) -> Result<(), EditCommandError> {
+    let schema = scene
+        .reflect_schema(component_type_path)
+        .map_err(|error| reflect_error(error.to_string()))?;
+    let editable = schema
+        .type_info
+        .fields
+        .iter()
+        .find(|field| field.name == field_name)
+        .map(|field| field.editable)
+        .ok_or_else(|| {
+            reflect_error(format!(
+                "reflected field `{field_name}` is not registered on `{component_type_path}`"
+            ))
+        })?;
+    if !editable {
+        return Err(reflect_error(format!(
+            "reflected field `{field_name}` on `{component_type_path}` is not editable"
+        )));
+    }
+    Ok(())
 }
 
 fn read_reflected_component_field(
@@ -559,13 +677,13 @@ fn read_reflected_component_field(
     node_id: NodeId,
     component_type_path: &str,
     field_name: &str,
-) -> Result<ReflectedValue, String> {
+) -> Result<ReflectedValue, EditCommandError> {
     let address = ReflectObjectAddress::component(node_id, component_type_path)
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| reflect_error(error.to_string()))?;
     scene
         .reflect_read(ReflectReadRequest::new(address, field_name))
         .map(|response| response.field.value)
-        .map_err(|error| error.to_string())
+        .map_err(|error| reflect_error(error.to_string()))
 }
 
 fn write_reflected_component_field(
@@ -574,23 +692,54 @@ fn write_reflected_component_field(
     component_type_path: &str,
     field_name: &str,
     value: ReflectedValue,
-) -> Result<(ReflectedValue, bool), String> {
+) -> Result<bool, EditCommandError> {
     let address = ReflectObjectAddress::component(node_id, component_type_path)
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| reflect_error(error.to_string()))?;
     scene
         .reflect_write(ReflectWriteRequest::new(address, field_name, value))
-        .map(|response| (response.field.value, response.changed))
-        .map_err(|error| error.to_string())
+        .map(|response| response.changed)
+        .map_err(|error| reflect_error(error.to_string()))
+}
+
+fn core_context(
+    context: &mut dyn EditContext,
+) -> Result<&mut CoreEditContext, CommandExecutionError> {
+    context
+        .as_any_mut()
+        .downcast_mut::<CoreEditContext>()
+        .ok_or_else(|| {
+            unchanged(EditCommandError::ContextTypeMismatch {
+                expected: "CoreEditContext",
+            })
+        })
+}
+
+fn unchanged(source: EditCommandError) -> CommandExecutionError {
+    CommandExecutionError {
+        effect: CommandEffect::Unchanged,
+        source,
+    }
+}
+
+fn external_error(message: String) -> EditCommandError {
+    EditCommandError::ExternalEffect {
+        source: Box::new(io::Error::other(message)),
+    }
+}
+
+fn reflect_error(message: String) -> EditCommandError {
+    EditCommandError::ReflectError {
+        source: Box::new(io::Error::other(message)),
+    }
 }
 
 #[cfg(test)]
-mod tests {
+mod performance_source_guards {
     #[test]
-    fn editor_commands_avoid_recollecting_batches_and_reapplying_unchanged_node_fields() {
+    fn create_node_redo_clones_the_retained_record_only_once() {
         let source = include_str!("command.rs");
-        let batch_recollect = ["commands.into_iter()", ".collect::<Vec<_>>()"].concat();
-        let full_state_apply = ["Self::", "apply_state(scene"].concat();
-        assert!(!source.contains(&batch_recollect));
-        assert!(!source.contains(&full_state_apply));
+        let second_clone = ["insert_node_record", "(record.clone())"].concat();
+
+        assert!(!source.contains(&second_clone));
     }
 }

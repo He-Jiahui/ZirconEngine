@@ -25,8 +25,7 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
         .map(|doc| quote!(.with_documentation(#doc)));
     let (type_info, fields, default_prototype) = match input.data {
         Data::Struct(data) => {
-            let registrations = field_registration_tokens(&data.fields)?;
-            let projections = field_projection_tokens(&data.fields)?;
+            let (registrations, projections) = field_tokens(&data.fields)?;
             (
                 quote!(::zircon_runtime::core::framework::script::__reflect::ReflectTypeInfo::struct_with_fields(
                     vec![#(#registrations),*]
@@ -88,44 +87,8 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
     })
 }
 
-fn field_registration_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
+fn field_tokens(fields: &Fields) -> syn::Result<(Vec<TokenStream2>, Vec<TokenStream2>)> {
     let mut registrations = Vec::new();
-    for (index, field) in fields.iter().enumerate() {
-        let args = parse_field_attrs(&field.attrs)?;
-        if args.skip {
-            continue;
-        }
-        let field_name = match (&args.name, &field.ident) {
-            (Some(name), _) => name.clone(),
-            (None, Some(ident)) => ident.to_string(),
-            (None, None) => index.to_string(),
-        };
-        let field_type = &field.ty;
-        let type_ref = script_host_type_ref_tokens(
-            field_type,
-            args.value_kind.map(path_tokens),
-            args.type_name,
-            quote!(::zircon_runtime::core::framework::script::ScriptHostFromValue),
-        );
-        let documentation = args
-            .documentation
-            .map(|doc| quote!(.with_documentation(#doc)));
-        registrations.push(quote! {{
-            let type_ref = #type_ref;
-            ::zircon_runtime::core::framework::script::__reflect::ReflectFieldInfo::new(
-                #field_name,
-                type_ref.type_name,
-                ::zircon_runtime::core::framework::script::__reflect::ReflectEditorHint::None,
-            )
-            .with_serializable(false)
-            .with_editor_visible(false)
-            #documentation
-        }});
-    }
-    Ok(registrations)
-}
-
-fn field_projection_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
     let mut projections = Vec::new();
     for (index, field) in fields.iter().enumerate() {
         let args = parse_field_attrs(&field.attrs)?;
@@ -138,15 +101,30 @@ fn field_projection_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
             (None, None) => index.to_string(),
         };
         let field_type = &field.ty;
-        let type_ref = script_host_type_ref_tokens(
+        let registration_type_ref = script_host_type_ref_tokens(
             field_type,
-            args.value_kind.map(path_tokens),
-            args.type_name,
+            args.value_kind.clone().map(path_tokens),
+            args.type_name.clone(),
             quote!(::zircon_runtime::core::framework::script::ScriptHostFromValue),
         );
+        let projection_type_ref = registration_type_ref.clone();
+        let documentation = args
+            .documentation
+            .map(|doc| quote!(.with_documentation(#doc)));
+        registrations.push(quote! {{
+            let type_ref = #registration_type_ref;
+            ::zircon_runtime::core::framework::script::__reflect::ReflectFieldInfo::new(
+                #field_name,
+                type_ref.type_name,
+                ::zircon_runtime::core::framework::script::__reflect::ReflectEditorHint::None,
+            )
+            .with_serializable(false)
+            .with_editor_visible(false)
+            #documentation
+        }});
         projections.push(quote! {
             .with_field({
-                let type_ref = #type_ref;
+                let type_ref = #projection_type_ref;
                 ::zircon_runtime::core::framework::script::ScriptHostFieldProjection::new(
                     #field_name,
                     type_ref.value_kind,
@@ -154,5 +132,5 @@ fn field_projection_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
             })
         });
     }
-    Ok(projections)
+    Ok((registrations, projections))
 }

@@ -2,6 +2,8 @@
 related_code:
   - zircon_editor/src/core/editor_message/mod.rs
   - zircon_editor/src/core/editor_message/bus.rs
+  - zircon_editor/src/core/editor_message/inbox.rs
+  - zircon_editor/src/core/editor_message/retention.rs
   - zircon_editor/src/core/editor_message/shared.rs
   - zircon_editor/src/core/editor_message/topics.rs
   - zircon_editor/src/core/editor_message/topic.rs
@@ -34,6 +36,8 @@ related_code:
 implementation_files:
   - zircon_editor/src/core/editor_message/mod.rs
   - zircon_editor/src/core/editor_message/bus.rs
+  - zircon_editor/src/core/editor_message/inbox.rs
+  - zircon_editor/src/core/editor_message/retention.rs
   - zircon_editor/src/core/editor_message/shared.rs
   - zircon_editor/src/core/editor_message/topics.rs
   - zircon_editor/src/core/editor_message/topic.rs
@@ -90,15 +94,27 @@ Plan 01 M1.1 removes the old `Empty` and `Text` payloads. A message now belongs 
 
 ## Related Files
 
-The module is split by ownership. `bus.rs` owns mutable routing state, `shared.rs` owns synchronization and the request callback boundary, `topics.rs` owns built-in topic names, `ids/` owns stable lightweight identifiers, and `message/` owns one transport declaration per file. `mod.rs` files contain only module wiring and curated re-exports.
+The module is split by ownership. `bus.rs` owns mutable routing state, `inbox.rs` owns bounded subscriber storage and pressure counters, `retention.rs` owns protocol/payload retention classification, and `shared.rs` owns synchronization and the request callback boundary. `topics.rs` owns built-in topic names, `ids/` owns stable lightweight identifiers, and `message/` owns one transport declaration per file. `mod.rs` files contain only module wiring and curated re-exports.
 
 ## Behavior Model
 
-Subscribers register exact `EditorTopic` values. `publish` targets matching subscribers, `broadcast` targets every subscriber, and `request` targets one subscriber. Each delivery preserves the protocol, topic, and typed payload.
+Subscribers register exact `EditorTopic` values. `publish` targets matching subscribers, `broadcast` targets every subscriber, and `request` targets one subscriber. Each publication constructs one immutable delivery payload; subscriber fanout clones only its `Arc` handle, so custom JSON and job strings are not deep-cloned per recipient.
+
+Each inbox has three independent count limits, a 2 MiB default single-delivery logical byte limit, a 16 MiB default total logical retained-payload limit, and one protocol-owned retention policy:
+
+- `Lossless`: transaction events, document open/close/save, play-state edges, job start/terminal events, and every synchronous request. A full lossless lane preserves existing edges and reports backpressure instead of discarding them; a request does not invoke its handler when admission fails.
+- `Latest`: document dirty state, focus request/object, scene mode, selection revision per domain, and job progress per job id. Publishing the same semantic key replaces the older queued state while moving the new state to its publication position. Under total-byte pressure the inbox first plans any required eviction of other older Latest entries, then atomically commits the replacement; dispatch reports expose both coalescing and dropping when both occur.
+- `Bounded`: schema-labelled custom messages whose semantics are unknown to the core. A full lane evicts its oldest bounded item and increments an explicit drop counter.
+
+`EditorMessageInboxStats` exposes depth by class, drained/coalesced/dropped/backpressured totals, and queue age in publication messages. Production consumers drain deliveries; the old cloning inspection helper is test-only and cannot become a per-frame production polling API.
+
+The inbox stores surviving deliveries in a sequence-keyed `BTreeMap` and maintains lane depth/bytes at enqueue, replacement, eviction, and drain boundaries. `latest_by_key` resolves coalescing without searching the mixed queue; `latest_order` and `bounded_order` restrict pressure scans to their bounded lanes. Drain iterates the sequence map, preserving global surviving publication order. Payload byte cost, including the dynamic dirty-view identifier, is computed once before the delivery is shared and is never reserialized per subscriber. Dirty state is merged only when at least one inbox accepts the publication, so an oversized rejected message cannot retain its view identifier through the dirty set.
+
+Subscriber allocation uses checked identity and returns `SubscriberIdExhausted` before changing subscriptions or inboxes. Delivery sequence exhaustion returns `DeliverySequenceExhausted` in publish/broadcast dispatch reports and synchronous request errors before dirty state or handler execution changes. No ID is saturated or reused.
 
 `SharedEditorMessageBus::request` performs three phases:
 
-1. lock the bus, validate the target, record the request delivery, then release the lock;
+1. lock the bus, validate the target, admit the lossless request delivery, then release the lock; a full lossless lane returns `EditorMessageBusError::Backpressured`;
 2. invoke `EditorRequestHandler`, allowing the handler to publish or request through the same shared bus;
 3. lock again, revalidate the target, and record response invalidation.
 
@@ -123,6 +139,8 @@ Built-in topic strings are `editor.document`, `editor.transaction`, `editor.mode
 ## Edge Cases And Constraints
 
 - Unknown and concurrently removed request targets return a typed error.
+- Lossless inbox saturation returns typed backpressure and retains the already queued edge order.
+- Latest and bounded pressure is visible through dispatch reports and inbox counters; no pane owns a private retention rule.
 - Empty invalidation masks are ignored.
 - The raw `EditorMessageBus` is crate-private; cross-service consumers use `SharedEditorMessageBus`.
 - `serde_json::Value` makes message envelopes `PartialEq`, not `Eq`.
@@ -130,7 +148,7 @@ Built-in topic strings are `editor.document`, `editor.transaction`, `editor.mode
 
 ## Test Coverage
 
-The Plan 01 M1.1 test code covers four-family exact-topic routing, the 3×4 protocol/payload matrix, broadcast delivery, dirty-mask merging, unknown request targets, handler re-entry through the same shared bus, and target removal during the unlocked callback window. The latest recorded focused evidence is 9/9 for editor messages, while the declared complete editor-library gate remains open. Runtime Text 01, Frameworks 02, and Editor Layout 15 now own the concrete glyph, provider lookup, and ZUI/layout failure handoffs under their numbered `2026-07-11-editor-m1-failure-handoff.md` archives.
+The message tests cover exact-topic routing, protocol/payload matrix, broadcast, dirty merging, unknown/backpressured requests, handler re-entry, checked ID exhaustion, lossless order, latest coalescing plus atomic same-key replacement eviction, bounded eviction, mixed/zero/drain lane counters, single/total/dirty-view byte budgets, shared fanout identity, and a paused 100-subscriber/10,000-update storm. The ignored single-thread evidence gate runs 1/5/100 subscribers over a full 4,096 lossless mixed backlog, requires Windows RSS samples, enforces a 50 ms publish-p95 budget, permits only bounded per-inbox metadata allocation, and still rejects payload-size multiplied by fanout. It reports allocation/RSS/queue counters. The static architecture contract is green; managed editor-library and performance gates remain pending and no fixed return is claimed yet.
 
 ## Plan Sources
 

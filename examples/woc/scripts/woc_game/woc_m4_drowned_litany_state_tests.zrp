@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_drowned_litany_state_tests",
+  "source": "src",
+  "binary": "bin-m4-drowned-litany-state-tests",
+  "entry": "combat/drowned_litany_state_test_main"
+}

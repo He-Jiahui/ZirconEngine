@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "licenses": [
+    {
+      "id": "kaykit-cc0",
+      "name": "CC0 1.0",
+      "author": "Kay Lousberg (KayKit)",
+      "source": "https://kaylousberg.itch.io/kaykit",
+      "animation_source": "https://kaylousberg.itch.io/kaykit-character-animations"
+    },
+    {
+      "id": "quaternius-cc0",
+      "name": "CC0 1.0",
+      "author": "Quaternius",
+      "source": "https://quaternius.com"
+    },
+    {
+      "id": "kenney-cc0",
+      "name": "CC0 1.0",
+      "author": "Kenney",
+      "source": "https://kenney.nl"
+    },
+    {
+      "id": "ambientcg-cc0",
+      "name": "CC0 1.0",
+      "author": "ambientCG",
+      "source": "https://ambientcg.com"
+    },
+    {
+      "id": "polyhaven-cc0",
+      "name": "CC0 1.0",
+      "author": "Poly Haven",
+      "source": "https://polyhaven.com"
+    },
+    {
+      "id": "threejs-mit",
+      "name": "MIT",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js/blob/r165/LICENSE"
+    },
+    {
+      "id": "sil-ofl-1.1",
+      "name": "SIL Open Font License 1.1",
+      "author": "Natanael Gama; Huerta Tipografica",
+      "source": "https://openfontlicense.org"
+    },
+    {
+      "id": "craftpix-premium",
+      "name": "CraftPix premium royalty-free commercial license",
+      "author": "CraftPix",
+      "source": "https://craftpix.net/file-licenses/"
+    },
+    {
+      "id": "jamiecypher-cc0",
+      "name": "CC0 1.0",
+      "author": "@jamiecypher",
+      "source": "https://freesound.org"
+    },
+    {
+      "id": "woc-project-asset",
+      "name": "World of ClaudeCraft project asset",
+      "author": "World of ClaudeCraft",
+      "source": "CREDITS.md"
+    },
+    {
+      "id": "target-mit",
+      "name": "MIT",
+      "author": "World of ClaudeCraft contributors",
+      "source": "LICENSE"
+    }
+  ],
+  "groups": [
+    {
+      "role": "player-model",
+      "license_id": "kaykit-cc0",
+      "paths": [
+        "public/models/chars/players/knight.glb",
+        "public/models/chars/players/paladin.glb",
+        "public/models/chars/players/ranger.glb",
+        "public/models/chars/players/rogue.glb",
+        "public/models/chars/players/mage.glb",
+        "public/models/chars/players/barbarian.glb",
+        "public/models/chars/players/druid.glb"
+      ]
+    },
+    {
+      "role": "player-skin-texture",
+      "license_id": "kaykit-cc0",
+      "paths": [
+        "public/textures/skins/knight/base.png",
+        "public/textures/skins/knight/alt_a.png",
+        "public/textures/skins/knight/alt_b.png",
+        "public/textures/skins/knight/alt_c.png",
+        "public/textures/skins/paladin/base.png",
+        "public/textures/skins/paladin/alt_a.png",
+        "public/textures/skins/ranger/base.png",
+        "public/textures/skins/ranger/alt_a.png",
+        "public/textures/skins/ranger/alt_b.png",
+        "public/textures/skins/ranger/alt_c.png",
+        "public/textures/skins/rogue/base.png",
+        "public/textures/skins/rogue/alt_a.png",
+        "public/textures/skins/rogue/alt_b.png",
+        "public/textures/skins/rogue/alt_c.png",
+        "public/textures/skins/mage/base.png",
+        "public/textures/skins/mage/alt_a.png",
+        "public/textures/skins/mage/alt_b.png",
+        "public/textures/skins/mage/alt_c.png",
+        "public/textures/skins/barbarian/base.png",
+        "public/textures/skins/barbarian/alt_a.png",
+        "public/textures/skins/barbarian/alt_b.png",
+        "public/textures/skins/barbarian/alt_c.png",
+        "public/textures/skins/druid/base.png",
+        "public/textures/skins/druid/alt_a.png",
+        "public/textures/skins/druid/alt_b.png",
+        "public/textures/skins/druid/alt_c.png"
+      ]
+    },
+    {
+      "role": "creature-model",
+      "license_id": "quaternius-cc0",
+      "paths": [
+        "public/models/creatures/wolf_basic.glb",
+        "public/models/creatures/wild_boar.glb"
+      ]
+    },
+    {
+      "role": "foliage-model",
+      "license_id": "quaternius-cc0",
+      "paths": [
+        "public/models/foliage/oak_1.glb",
+        "public/models/foliage/oak_3.glb",
+        "public/models/foliage/bush.glb",
+        "public/models/foliage/bush_flowers.glb",
+        "public/models/foliage/fern.glb",
+        "public/models/foliage/rock_1.glb",
+        "public/models/foliage/rock_2.glb"
+      ]
+    },
+    {
+      "role": "village-prop-model",
+      "license_id": "quaternius-cc0",
+      "paths": [
+        "public/models/props/house_1.glb",
+        "public/models/props/house_2.glb",
+        "public/models/props/inn.glb",
+        "public/models/props/well.glb",
+        "public/models/props/cart.glb",
+        "public/models/props/market_stand_1.glb",
+        "public/models/props/fence.glb",
+        "public/models/props/crate_wooden.glb",
+        "public/models/props/bonfire.glb"
+      ]
+    },
+    {
+      "role": "world-prop-model",
+      "license_id": "kenney-cc0",
+      "paths": [
+        "public/models/biome/camp_signpost.glb"
+      ]
+    },
+    {
+      "role": "environment-lighting",
+      "license_id": "polyhaven-cc0",
+      "paths": [
+        "public/env/vale_day_1k.hdr"
+      ]
+    },
+    {
+      "role": "environment-backdrop",
+      "license_id": "woc-project-asset",
+      "paths": [
+        "public/env/vale_backdrop.webp"
+      ]
+    },
+    {
+      "role": "terrain-texture",
+      "license_id": "ambientcg-cc0",
+      "paths": [
+        "public/textures/terrain/Grass001_Color.jpg",
+        "public/textures/terrain/Grass001_NormalGL.jpg",
+        "public/textures/terrain/Grass001_Roughness.jpg",
+        "public/textures/terrain/Grass001_AmbientOcclusion.jpg",
+        "public/textures/terrain/Ground048_Color.jpg",
+        "public/textures/terrain/Ground048_NormalGL.jpg",
+        "public/textures/terrain/Ground048_Roughness.jpg",
+        "public/textures/terrain/Ground048_AmbientOcclusion.jpg",
+        "public/textures/terrain/PavingStones046_Color.jpg",
+        "public/textures/terrain/PavingStones046_NormalGL.jpg",
+        "public/textures/terrain/PavingStones046_Roughness.jpg"
+      ]
+    },
+    {
+      "role": "water-normal",
+      "license_id": "threejs-mit",
+      "paths": [
+        "public/textures/water/water_1_normal.jpg",
+        "public/textures/water/water_2_normal.jpg"
+      ]
+    },
+    {
+      "role": "ui-font",
+      "license_id": "sil-ofl-1.1",
+      "paths": [
+        "public/fonts/cinzel-400-700-latin.woff2",
+        "public/fonts/alegreya-sans-400-latin.woff2",
+        "public/fonts/alegreya-sans-700-latin.woff2"
+      ]
+    },
+    {
+      "role": "ability-icon",
+      "license_id": "craftpix-premium",
+      "paths": [
+        "public/ui/skills/warrior/rend.webp",
+        "public/ui/skills/warrior/heroic_strike.webp",
+        "public/ui/skills/warrior/battle_shout.webp",
+        "public/ui/skills/warrior/charge.webp",
+        "public/ui/skills/warrior/hamstring.webp"
+      ]
+    },
+    {
+      "role": "item-icon",
+      "license_id": "woc-project-asset",
+      "paths": [
+        "public/ui/items/backpack.webp",
+        "public/ui/items/baked_bread.webp",
+        "public/ui/items/boar_hide.webp",
+        "public/ui/items/milepost_boots.webp",
+        "public/ui/items/wolf_fang.webp",
+        "public/ui/items/wolfhide_satchel.webp"
+      ]
+    },
+    {
+      "role": "quest-sfx",
+      "license_id": "jamiecypher-cc0",
+      "paths": [
+        "public/audio/sfx/quest_accept.mp3",
+        "public/audio/sfx/quest_complete.mp3"
+      ]
+    },
+    {
+      "role": "ui-sfx",
+      "license_id": "woc-project-asset",
+      "paths": [
+        "public/audio/sfx/ui_click.mp3",
+        "public/audio/sfx/ui_coin.mp3",
+        "public/audio/sfx/ui_death.mp3",
+        "public/audio/sfx/ui_error.mp3",
+        "public/audio/sfx/ui_level_up.mp3",
+        "public/audio/sfx/ui_loot_item.mp3",
+        "public/audio/sfx/ui_bag_open.mp3",
+        "public/audio/sfx/ui_bag_close.mp3"
+      ]
+    },
+    {
+      "role": "license-evidence",
+      "license_id": "woc-project-asset",
+      "paths": [
+        {
+          "source_path": "CREDITS.md",
+          "output_path": "assets/m8/licenses/source-CREDITS.md"
+        }
+      ]
+    },
+    {
+      "role": "license-evidence",
+      "license_id": "target-mit",
+      "paths": [
+        {
+          "source_path": "LICENSE",
+          "output_path": "assets/m8/licenses/source-LICENSE.txt"
+        }
+      ]
+    }
+  ]
+}

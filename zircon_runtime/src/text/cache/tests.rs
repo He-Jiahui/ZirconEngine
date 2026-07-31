@@ -5,11 +5,11 @@ use crate::text::{
 use crate::text::{TextAlign, TextRange, TextStyle, TextWrap};
 
 use super::{
-    ShapedRunCache, ShapedRunCacheKey, TextFrameDedup, TextLayoutCache, TextLayoutWidthValidity,
-    TextMeasureCache,
+    ShapedRunCache, ShapedRunCacheKey, ShapedRunCacheLookupKey, TextFrameDedup, TextLayoutCache,
+    TextLayoutWidthValidity, TextMeasureCache,
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 struct MeasureKey {
     text_hash: u64,
     wrap_width_bits: u32,
@@ -299,6 +299,109 @@ fn text_frame_dedup_updates_exact_entry() {
 }
 
 #[test]
+fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant_for_exact_updates() {
+    let measure_key = MeasureKey::new(55, 80.0);
+    let mut measure = TextMeasureCache::with_capacity(2);
+    measure.begin_frame(1);
+    measure.insert(measure_key.clone(), "measure", 10_u32);
+    measure.insert(measure_key.clone(), "measure", 20_u32);
+
+    assert_eq!(measure.get(&measure_key, "measure"), Some(&20));
+    assert_eq!(measure.len(), 1);
+    assert_eq!(measure.report().update_count, 1);
+
+    let layout_key = MeasureKey::new(56, 80.0);
+    let width = TextLayoutWidthValidity::exact(80.0);
+    let mut layout = TextLayoutCache::with_capacity(2);
+    layout.begin_frame(1);
+    layout.insert(layout_key.clone(), "layout", width, 30_u32);
+    layout.insert(layout_key.clone(), "layout", width, 40_u32);
+
+    assert_eq!(layout.get(&layout_key, "layout", 80.0), Some(&40));
+    assert_eq!(layout.len(), 1);
+    assert_eq!(layout.report().update_count, 1);
+}
+
+#[test]
+fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant() {
+    const RESIDENT_ENTRY_COUNTS: [usize; 5] = [16, 256, 1024, 2048, 4096];
+    let width = TextLayoutWidthValidity::exact(128.0);
+    let style = TextStyle::default();
+
+    for capacity in RESIDENT_ENTRY_COUNTS {
+        let mut measure = TextMeasureCache::with_capacity(capacity);
+        let mut layout = TextLayoutCache::with_capacity(capacity);
+        let mut dedup = TextFrameDedup::default();
+        let mut shaped = ShapedRunCache::with_capacity(capacity);
+
+        measure.begin_frame(1);
+        layout.begin_frame(1);
+        dedup.begin_frame(1);
+        shaped.begin_frame(1);
+        for index in 0..capacity {
+            let text = format!("cache-entry-{index}");
+            let key = MeasureKey::new(index as u64, 128.0);
+            measure.insert(key.clone(), text.as_str(), index as u32);
+            layout.insert(key.clone(), text.as_str(), width, index as u32);
+            dedup.insert(key, text.as_str(), index as u32);
+            let shaped_key = key_for(text.as_str(), &style);
+            shaped.insert(
+                shaped_key,
+                text.as_str(),
+                dummy_run(text.as_str(), index as f32),
+            );
+        }
+
+        let hot_index = capacity - 1;
+        let hot_text = format!("cache-entry-{hot_index}");
+        let hot_key = MeasureKey::new(hot_index as u64, 128.0);
+        let hot_shaped_key = key_for(hot_text.as_str(), &style);
+        assert_eq!(
+            dedup.get(&hot_key, hot_text.as_str()),
+            Some(&(hot_index as u32))
+        );
+        assert_eq!(dedup.report().lookup_candidate_count, 1);
+        measure.begin_frame(2);
+        layout.begin_frame(2);
+        shaped.begin_frame(2);
+
+        assert_eq!(
+            measure.get(&hot_key, hot_text.as_str()),
+            Some(&(hot_index as u32))
+        );
+        assert_eq!(
+            layout.get(&hot_key, hot_text.as_str(), 128.0),
+            Some(&(hot_index as u32))
+        );
+        assert!(shaped.get(&hot_shaped_key, hot_text.as_str()).is_some());
+        assert_eq!(measure.report().lookup_candidate_count, 1);
+        assert_eq!(layout.report().lookup_candidate_count, 1);
+        assert_eq!(shaped.report().lookup_candidate_count, 1);
+
+        let replacement_text = format!("cache-replacement-{capacity}");
+        let replacement_key = MeasureKey::new(capacity as u64 + 10_000, 128.0);
+        let replacement_shaped_key = key_for(replacement_text.as_str(), &style);
+        measure.insert(replacement_key.clone(), replacement_text.as_str(), u32::MAX);
+        layout.insert(replacement_key, replacement_text.as_str(), width, u32::MAX);
+        shaped.insert(
+            replacement_shaped_key,
+            replacement_text.as_str(),
+            dummy_run(replacement_text.as_str(), u32::MAX as f32),
+        );
+
+        assert_eq!(measure.report().evicted_count, 1);
+        assert_eq!(layout.report().evicted_count, 1);
+        assert_eq!(shaped.report().evicted_count, 1);
+        assert_eq!(measure.report().eviction_scan_count, 0);
+        assert_eq!(layout.report().eviction_scan_count, 0);
+        assert_eq!(shaped.report().eviction_scan_count, 0);
+        assert_eq!(measure.report().entry_move_count, 0);
+        assert_eq!(layout.report().entry_move_count, 0);
+        assert_eq!(shaped.report().entry_move_count, 0);
+    }
+}
+
+#[test]
 fn shaped_run_cache_key_omits_wrap_alignment_and_overflow() {
     let mut style = TextStyle {
         font_family: Some("DengXian".to_string()),
@@ -506,6 +609,34 @@ fn shaped_run_cache_get_or_insert_shapes_only_on_miss() {
     assert_eq!(second.measured_width, 32.0);
     assert_eq!(cache.report().hit_count, 1);
     assert_eq!(cache.report().miss_count, 1);
+}
+
+#[test]
+fn shaped_run_cache_borrowed_request_lookup_avoids_owned_key_bytes_on_hot_hit() {
+    let style = TextStyle {
+        font_family: Some(" DengXian ".to_string()),
+        ..TextStyle::default()
+    };
+    let request = BackendShapeRequest::horizontal(
+        "editor base.zui",
+        &style,
+        TextDirection::LeftToRight,
+        source_range_for("editor base.zui"),
+    )
+    .with_language(Some(" ZH_hans-CN "));
+    let lookup = ShapedRunCacheLookupKey::from_request(&request);
+    let mut cache = ShapedRunCache::with_capacity(4);
+
+    cache.begin_frame(1);
+    let key = cache.own_lookup_key(&lookup);
+    cache.insert(key, request.text, dummy_run(request.text, 96.0));
+    assert!(cache.report().owned_key_allocation_bytes > 0);
+
+    cache.begin_frame(2);
+    assert!(cache.get_with_lookup(&lookup, request.text).is_some());
+    let report = cache.report();
+    assert_eq!(report.owned_key_allocation_bytes, 0);
+    assert_eq!(report.hit_count, 1);
 }
 
 fn key_for(text: &str, style: &TextStyle) -> ShapedRunCacheKey {

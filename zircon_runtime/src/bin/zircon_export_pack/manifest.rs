@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use crate::pack::{
@@ -62,8 +63,12 @@ impl ExportAssetPackManifest {
 
         let mut pack_assets = Vec::new();
         let mut asset_source_errors = Vec::new();
+        let mut entries_by_path = HashMap::with_capacity(self.assets.len());
+        for entry in &self.assets {
+            entries_by_path.entry(entry.path.as_str()).or_insert(entry);
+        }
         for path in &trim_report.included_assets {
-            let Some(entry) = self.assets.iter().find(|asset| asset.path == *path) else {
+            let Some(entry) = entries_by_path.get(path.as_str()) else {
                 let diagnostic = format!("included asset {path} was not found in manifest");
                 diagnostics.push(diagnostic.clone());
                 asset_source_errors.push(diagnostic);
@@ -103,5 +108,22 @@ fn source_path(manifest_dir: &Path, source: &Path) -> PathBuf {
         source.to_path_buf()
     } else {
         manifest_dir.join(source)
+    }
+}
+
+#[cfg(test)]
+mod performance_contract_tests {
+    #[test]
+    fn included_assets_use_a_manifest_path_index() {
+        let source = include_str!("manifest.rs")
+            .split_once("#[cfg(test)]")
+            .unwrap()
+            .0;
+        let function = source.split("pub fn pack_inputs").nth(1).unwrap();
+        let function = function.split("fn source_path").next().unwrap();
+
+        assert!(function.contains("HashMap::with_capacity(self.assets.len())"));
+        assert!(function.contains("entries_by_path.get(path.as_str())"));
+        assert!(!function.contains("self.assets.iter().find"));
     }
 }

@@ -1,0 +1,28 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
+id = "editor_contribution_fixture"
+version = "0.1.0"
+sdk_api_version = "0.2.0"
+display_name = "Editor Contribution Fixture"
+category = "sdk"
+description = "Real native editor fixture for the versioned serialized editor contribution ABI."
+maturity = "experimental"
+supported_targets = ["editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = ["editor.extension.editor_contribution_fixture"]
+default_packaging = ["native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_editor_contribution_fixture_native"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+editor_entry = "zircon_editor_contribution_fixture_entry_v3"
+
+[[modules]]
+name = "editor_contribution_fixture.editor"
+kind = "editor"
+crate_name = "zircon_plugin_editor_contribution_fixture_native"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.editor_contribution_fixture"]

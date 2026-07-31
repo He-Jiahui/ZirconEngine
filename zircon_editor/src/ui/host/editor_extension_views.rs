@@ -1,5 +1,8 @@
 use crate::core::editor_extension::ViewDescriptor as ExtensionViewDescriptor;
-use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewKind};
+use crate::ui::workbench::view::{
+    PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace, PaneTemplateSpec,
+    ViewDescriptor, ViewDescriptorId, ViewKind,
+};
 
 use super::editor_error::EditorError;
 use super::editor_manager::EditorManager;
@@ -95,6 +98,14 @@ fn extension_view_descriptor(
     )
     .with_icon_key(descriptor.id());
     view.document_kind = descriptor.document_kind().cloned();
+    if let Some(template_id) = descriptor.ui_template_id() {
+        view = view.with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
+            template_id,
+            PanePayloadKind::TemplateV2,
+            PaneRouteNamespace::Template,
+            PaneInteractionMode::TemplateOnly,
+        )));
+    }
     view.required_capabilities = required_capabilities.to_vec();
     view
 }

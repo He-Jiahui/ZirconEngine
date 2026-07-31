@@ -2,8 +2,8 @@ use crate::core::framework::scene::EntityId;
 use crate::core::math::{UVec2, Vec4};
 
 use super::{
-    aspect_ratio_from_viewport_size, RenderCameraTarget, RenderCameraTargetOrderKey,
-    RenderLayerSet, ViewportCameraSnapshot,
+    RenderCameraTarget, RenderCameraTargetOrderKey, RenderLayerSet, ViewportCameraSnapshot,
+    aspect_ratio_from_viewport_size,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -167,13 +167,32 @@ pub fn resolve_camera_sequence_borrowed<'a>(
     let active = cameras
         .into_iter()
         .filter(|camera| camera.is_active())
-        .cloned()
         .collect::<Vec<_>>();
     resolve_active_camera_sequence(active)
 }
 
-fn resolve_active_camera_sequence(mut active: Vec<CameraRenderDescriptor>) -> CameraSequenceReport {
+trait CameraDescriptorRef {
+    fn camera_descriptor(&self) -> &CameraRenderDescriptor;
+}
+
+impl CameraDescriptorRef for CameraRenderDescriptor {
+    fn camera_descriptor(&self) -> &CameraRenderDescriptor {
+        self
+    }
+}
+
+impl CameraDescriptorRef for &CameraRenderDescriptor {
+    fn camera_descriptor(&self) -> &CameraRenderDescriptor {
+        self
+    }
+}
+
+fn resolve_active_camera_sequence(
+    mut active: Vec<impl CameraDescriptorRef>,
+) -> CameraSequenceReport {
     active.sort_by(|left, right| {
+        let left = left.camera_descriptor();
+        let right = right.camera_descriptor();
         (
             left.render_order,
             left.target_key(),
@@ -190,6 +209,7 @@ fn resolve_active_camera_sequence(mut active: Vec<CameraRenderDescriptor>) -> Ca
     let mut sequence = Vec::new();
 
     for camera in &active {
+        let camera = camera.camera_descriptor();
         if camera.render_type == CameraRenderType::Overlay && !camera.stack.is_empty() {
             violations.push(CameraSequenceViolation {
                 entity: camera.entity,
@@ -200,12 +220,14 @@ fn resolve_active_camera_sequence(mut active: Vec<CameraRenderDescriptor>) -> Ca
 
     for base in active
         .iter()
+        .map(|camera| camera.camera_descriptor())
         .filter(|camera| camera.render_type == CameraRenderType::Base)
     {
         let mut overlays = Vec::new();
         for referenced in &base.stack {
             match active
                 .iter()
+                .map(|camera| camera.camera_descriptor())
                 .find(|camera| camera.entity == Some(*referenced))
             {
                 None => violations.push(CameraSequenceViolation {
@@ -395,6 +417,12 @@ mod tests {
 
     #[test]
     fn render_camera_sequence_resolves_borrowed_descriptors_without_consuming_source() {
+        let source = include_str!("camera_stack.rs");
+        assert!(!source.contains(concat!(
+            ".filter(|camera| camera.is_active())\n        .",
+            "cloned()"
+        )));
+
         let base = descriptor(
             0,
             1,

@@ -1,7 +1,9 @@
 use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::plugin::native::{NativePluginLoadReport, NativePluginLoader};
+use zircon_runtime::plugin::native::{
+    NativePluginLoadProjection, NativePluginLoadReport, NativePluginLoader,
+};
 use zircon_runtime::plugin::PluginModuleKind;
 
 use super::super::super::editor_manager::EditorManager;
@@ -22,9 +24,18 @@ impl EditorManager {
         manifest: &ProjectManifest,
         native_report: &NativePluginLoadReport,
     ) -> ProjectManifest {
+        let projection = native_report.projection();
+        self.complete_project_plugin_manifest_with_native_projection(manifest, &projection)
+    }
+
+    pub(in crate::ui::host::editor_manager_plugins_export) fn complete_project_plugin_manifest_with_native_projection(
+        &self,
+        manifest: &ProjectManifest,
+        projection: &NativePluginLoadProjection,
+    ) -> ProjectManifest {
         let mut completed = self.complete_project_plugin_manifest(manifest);
-        for package in native_report.package_manifests() {
-            let native_selection = native_project_selection(&package);
+        for package in projection.package_manifests() {
+            let native_selection = native_project_selection(package);
             if !completed
                 .plugins
                 .selections
@@ -41,10 +52,10 @@ impl EditorManager {
                 .find(|selection| selection.id == package.id)
             {
                 if selection.runtime_crate.is_none() {
-                    selection.runtime_crate = module_crate(&package, PluginModuleKind::Runtime);
+                    selection.runtime_crate = module_crate(package, PluginModuleKind::Runtime);
                 }
                 if selection.editor_crate.is_none() {
-                    selection.editor_crate = module_crate(&package, PluginModuleKind::Editor);
+                    selection.editor_crate = module_crate(package, PluginModuleKind::Editor);
                 }
                 if selection.target_modes.is_empty() {
                     selection.target_modes = native_selection.target_modes.clone();

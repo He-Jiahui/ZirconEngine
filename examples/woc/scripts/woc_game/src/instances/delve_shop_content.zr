@@ -1,0 +1,120 @@
+// Generated Delve Marks shop catalog and gate metadata.
+pub shopCount(required: bool): int {
+    if (!required) { throw "woc Delve shop catalog is required"; }
+    return 2;
+}
+
+pub shopId(delveIndex: int, required: bool): string {
+    if (!required) { throw "woc Delve shop catalog is required"; }
+    if (delveIndex == 0) { return "collapsed_reliquary"; }
+    if (delveIndex == 1) { return "drowned_litany"; }
+    return "";
+}
+
+pub offerCount(delveIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve shop catalog is required"; }
+    if (delveIndex == 0) { return 9; }
+    if (delveIndex == 1) { return 9; }
+    return 0;
+}
+
+pub offerItemId(delveIndex: int, offerIndex: int, required: bool): string {
+    if (!required) { throw "woc Delve shop offer is required"; }
+    if (delveIndex == 0 && offerIndex == 0) { return "reliquary_legs"; }
+    if (delveIndex == 0 && offerIndex == 1) { return "reliquary_shoulder"; }
+    if (delveIndex == 0 && offerIndex == 2) { return "reliquary_gloves_rog"; }
+    if (delveIndex == 0 && offerIndex == 3) { return "reliquary_cloth_chest"; }
+    if (delveIndex == 0 && offerIndex == 4) { return "reliquary_leather_chest"; }
+    if (delveIndex == 0 && offerIndex == 5) { return "reliquary_plate_chest"; }
+    if (delveIndex == 0 && offerIndex == 6) { return "reliquary_helm"; }
+    if (delveIndex == 0 && offerIndex == 7) { return "deacon_reliquary_helm"; }
+    if (delveIndex == 0 && offerIndex == 8) { return "varric_shadow_cowl"; }
+    if (delveIndex == 1 && offerIndex == 0) { return "litany_legs"; }
+    if (delveIndex == 1 && offerIndex == 1) { return "litany_shoulder"; }
+    if (delveIndex == 1 && offerIndex == 2) { return "litany_gloves_rog"; }
+    if (delveIndex == 1 && offerIndex == 3) { return "litany_cloth_chest"; }
+    if (delveIndex == 1 && offerIndex == 4) { return "litany_leather_chest"; }
+    if (delveIndex == 1 && offerIndex == 5) { return "litany_plate_chest"; }
+    if (delveIndex == 1 && offerIndex == 6) { return "litany_helm"; }
+    if (delveIndex == 1 && offerIndex == 7) { return "sister_nhalia_choir_plate"; }
+    if (delveIndex == 1 && offerIndex == 8) { return "drowned_choir_fang"; }
+    throw "woc Delve shop offer index is invalid";
+}
+
+pub offerMarks(delveIndex: int, offerIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve shop offer is required"; }
+    if (delveIndex == 0 && offerIndex == 0) { return 8; }
+    if (delveIndex == 0 && offerIndex == 1) { return 8; }
+    if (delveIndex == 0 && offerIndex == 2) { return 8; }
+    if (delveIndex == 0 && offerIndex == 3) { return 10; }
+    if (delveIndex == 0 && offerIndex == 4) { return 10; }
+    if (delveIndex == 0 && offerIndex == 5) { return 10; }
+    if (delveIndex == 0 && offerIndex == 6) { return 12; }
+    if (delveIndex == 0 && offerIndex == 7) { return 28; }
+    if (delveIndex == 0 && offerIndex == 8) { return 28; }
+    if (delveIndex == 1 && offerIndex == 0) { return 16; }
+    if (delveIndex == 1 && offerIndex == 1) { return 16; }
+    if (delveIndex == 1 && offerIndex == 2) { return 16; }
+    if (delveIndex == 1 && offerIndex == 3) { return 20; }
+    if (delveIndex == 1 && offerIndex == 4) { return 20; }
+    if (delveIndex == 1 && offerIndex == 5) { return 20; }
+    if (delveIndex == 1 && offerIndex == 6) { return 24; }
+    if (delveIndex == 1 && offerIndex == 7) { return 56; }
+    if (delveIndex == 1 && offerIndex == 8) { return 56; }
+    throw "woc Delve shop offer index is invalid";
+}
+
+pub offerGateKind(delveIndex: int, offerIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve shop offer is required"; }
+    if (delveIndex == 0 && offerIndex == 0) { return 1; }
+    if (delveIndex == 0 && offerIndex == 1) { return 1; }
+    if (delveIndex == 0 && offerIndex == 2) { return 1; }
+    if (delveIndex == 0 && offerIndex == 3) { return 1; }
+    if (delveIndex == 0 && offerIndex == 4) { return 1; }
+    if (delveIndex == 0 && offerIndex == 5) { return 1; }
+    if (delveIndex == 0 && offerIndex == 6) { return 2; }
+    if (delveIndex == 0 && offerIndex == 7) { return 3; }
+    if (delveIndex == 0 && offerIndex == 8) { return 3; }
+    if (delveIndex == 1 && offerIndex == 0) { return 1; }
+    if (delveIndex == 1 && offerIndex == 1) { return 1; }
+    if (delveIndex == 1 && offerIndex == 2) { return 1; }
+    if (delveIndex == 1 && offerIndex == 3) { return 1; }
+    if (delveIndex == 1 && offerIndex == 4) { return 1; }
+    if (delveIndex == 1 && offerIndex == 5) { return 1; }
+    if (delveIndex == 1 && offerIndex == 6) { return 2; }
+    if (delveIndex == 1 && offerIndex == 7) { return 3; }
+    if (delveIndex == 1 && offerIndex == 8) { return 3; }
+    throw "woc Delve shop offer index is invalid";
+}
+
+pub offerRequiredClears(delveIndex: int, offerIndex: int, required: bool): int {
+    if (!required) { throw "woc Delve shop offer is required"; }
+    if (delveIndex == 0 && offerIndex == 0) { return 0; }
+    if (delveIndex == 0 && offerIndex == 1) { return 0; }
+    if (delveIndex == 0 && offerIndex == 2) { return 0; }
+    if (delveIndex == 0 && offerIndex == 3) { return 0; }
+    if (delveIndex == 0 && offerIndex == 4) { return 0; }
+    if (delveIndex == 0 && offerIndex == 5) { return 0; }
+    if (delveIndex == 0 && offerIndex == 6) { return 3; }
+    if (delveIndex == 0 && offerIndex == 7) { return 0; }
+    if (delveIndex == 0 && offerIndex == 8) { return 0; }
+    if (delveIndex == 1 && offerIndex == 0) { return 0; }
+    if (delveIndex == 1 && offerIndex == 1) { return 0; }
+    if (delveIndex == 1 && offerIndex == 2) { return 0; }
+    if (delveIndex == 1 && offerIndex == 3) { return 0; }
+    if (delveIndex == 1 && offerIndex == 4) { return 0; }
+    if (delveIndex == 1 && offerIndex == 5) { return 0; }
+    if (delveIndex == 1 && offerIndex == 6) { return 3; }
+    if (delveIndex == 1 && offerIndex == 7) { return 0; }
+    if (delveIndex == 1 && offerIndex == 8) { return 0; }
+    throw "woc Delve shop offer index is invalid";
+}
+
+pub contractTest(): int {
+    return shopCount(true) == 2 && shopId(0, true) == "collapsed_reliquary" &&
+        shopId(1, true) == "drowned_litany" && offerCount(0, true) == 9 &&
+        offerCount(1, true) == 9 && offerItemId(0, 0, true) == "reliquary_legs" &&
+        offerMarks(0, 6, true) == 12 && offerGateKind(0, 6, true) == 2 &&
+        offerRequiredClears(0, 6, true) == 3 && offerGateKind(1, 8, true) == 3 &&
+        offerMarks(1, 8, true) == 56 ? 1 : -1;
+}

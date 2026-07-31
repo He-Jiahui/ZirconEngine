@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
 use std::rc::{Rc, Weak};
@@ -12,7 +12,7 @@ use zircon_runtime::core::framework::asset::ResourceManager;
 use zircon_runtime::core::framework::channel::ChannelReceiver;
 use zircon_runtime::core::manager::{ManagerResolver, ManagerServiceHandle};
 use zircon_runtime::core::CoreHandle;
-use zircon_runtime::scene::Scene;
+use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::resource::{
     MaterialMarker, ModelMarker, ResourceEvent, ResourceHandle, ResourceLocator,
@@ -24,6 +24,7 @@ use zircon_runtime_interface::ui::{
         UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiDragPayload,
         UiDragPayloadKind, UiDragSourceMetadata, UiValue,
     },
+    dispatch::UiPointerComponentEvent,
     layout::UiFrame,
     layout::UiPoint,
     layout::UiSize,
@@ -33,18 +34,20 @@ use crate::core::editing::paths::canonical_model_source_path;
 use crate::core::editor_event::EditorViewportEvent;
 use crate::core::gateway::SharedEditorRuntimeGateway;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
-use crate::core::play::NativePluginEditorRuntimePlayModeBackend;
+use crate::core::play::NativePluginBridgeActivation;
+use crate::core::settings::editor_design_tokens_at_startup;
 use crate::ui::binding_dispatch::WelcomeHostEvent;
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetChange, EditorAssetManager as EditorAssetManagerContract,
+    EditorAssetChange, EditorAssetChangeSubscription,
+    EditorAssetManager as EditorAssetManagerContract,
 };
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::host::EditorManager;
-use crate::ui::preferences::editor_startup_appearance_preferences;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
-use crate::ui::template_runtime::EditorUiHostRuntime;
+use crate::ui::template_runtime::{EditorUiHostRuntime, EditorUiHostRuntimeError};
+use crate::ui::v2_design_tokens::install_editor_v2_design_tokens;
 use crate::ui::workbench::autolayout::{
     ShellRegionId, ShellSizePx, WorkbenchChromeMetrics, WorkbenchShellGeometry,
 };
@@ -115,7 +118,9 @@ mod command_palette_actions;
 mod component_showcase_runtime;
 mod detail_scroll_pointer;
 mod helpers;
+mod hierarchy_filter;
 mod hierarchy_pointer;
+pub(in crate::ui::retained_host) mod hierarchy_rename;
 mod host_lifecycle;
 mod inspector;
 mod invalidation;
@@ -129,6 +134,7 @@ mod native_windows;
 mod pane_payload_visibility;
 mod pane_surface_actions;
 mod pointer_layout;
+mod product_frame_diagnostics;
 mod profiling;
 mod reference_drop_payload;
 mod runtime_diagnostics_visibility;
@@ -164,7 +170,8 @@ pub(crate) use native_windows::{
     collect_native_floating_window_targets, configure_native_floating_window_presentation,
     NativeFloatingWindowTarget,
 };
-pub(super) use startup::build_startup_state;
+use product_frame_diagnostics::editor_product_frame_diagnostics;
+pub(crate) use startup::build_startup_state;
 
 pub fn run_editor(
     core: CoreHandle,
@@ -190,20 +197,33 @@ pub fn run_editor_with_config(
     runtime_gateway: SharedEditorRuntimeGateway,
     config: EditorHostRunConfig,
 ) -> Result<(), Box<dyn Error>> {
-    let appearance_preferences = editor_startup_appearance_preferences();
-    let design_tokens = appearance_preferences.design_tokens();
-    apply_host_appearance_from_tokens(design_tokens);
+    let design_tokens = editor_design_tokens_at_startup();
+    apply_host_appearance_from_tokens(&design_tokens);
+    install_editor_v2_design_tokens(&design_tokens);
     let exit_after_first_presented_frame = config.exit_after_first_presented_frame();
-    let (startup_request, editor_plugin_registrations) = config.into_parts();
+    let (
+        startup_request,
+        prepared_project,
+        first_presented_frame_capture_path,
+        editor_plugin_registrations,
+    ) = config.into_parts();
+    let product_frame_evidence_requested = first_presented_frame_capture_path.is_some();
     let ui = UiHostWindow::new()?;
     ui.set_exit_after_first_presented_frame(exit_after_first_presented_frame);
-    let mut retained_host =
-        RetainedEditorHost::new(core, runtime_gateway, ui.clone_strong(), startup_request)?;
+    ui.set_first_presented_frame_capture_path(first_presented_frame_capture_path);
+    let mut retained_host = RetainedEditorHost::new(
+        core,
+        runtime_gateway,
+        ui.clone_strong(),
+        startup_request,
+        prepared_project,
+    )?;
     for registration in editor_plugin_registrations {
         retained_host
             .runtime
             .register_editor_plugin_registration(registration)?;
     }
+    retained_host.sync_plugin_template_documents_if_changed()?;
     let host = Rc::new(RefCell::new(retained_host));
     wire_callbacks(&ui, &host);
     let host_weak = Rc::downgrade(&host);
@@ -217,7 +237,15 @@ pub fn run_editor_with_config(
     host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
 
     host.borrow_mut().refresh_ui();
+    if product_frame_evidence_requested {
+        let diagnostic =
+            editor_product_frame_diagnostics(&host.borrow().runtime.editor_snapshot())?;
+        zircon_runtime::diagnostic_log::write_log("editor_host_window", &diagnostic);
+    }
     ui.run()?;
+    if let Some(error) = ui.take_first_presented_frame_capture_error() {
+        return Err(std::io::Error::other(error).into());
+    }
     Ok(())
 }
 
@@ -226,6 +254,8 @@ struct RetainedEditorHost {
     self_handle: Option<Weak<RefCell<RetainedEditorHost>>>,
     runtime: EditorHostEventController,
     editor_manager: Arc<EditorManager>,
+    module_plugin_projection_cache:
+        RefCell<module_plugin_projection::ModulePluginPaneProjectionCache>,
     #[cfg(feature = "profiling")]
     runtime_gateway: SharedEditorRuntimeGateway,
     module_plugin_live_host_backend: Box<dyn module_plugin_actions::ModulePluginLiveHostBackend>,
@@ -239,12 +269,16 @@ struct RetainedEditorHost {
     resource_manager_resolver: ManagerResolver,
     resource_manager: ManagerServiceHandle<dyn ResourceManager>,
     asset_change_events: ChannelReceiver<AssetChange>,
-    editor_asset_change_events: ChannelReceiver<EditorAssetChange>,
+    editor_asset_change_events: EditorAssetChangeSubscription,
     resource_change_events: ChannelReceiver<ResourceEvent>,
+    asset_refresh_queue_age: assets::AssetRefreshQueueAgeState,
     startup_session: EditorStartupSessionDocument,
+    welcome_project_probe: welcome_session::WelcomeProjectProbeState,
     viewport_size: UVec2,
     viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge,
     builtin_template_runtime: Arc<EditorUiHostRuntime>,
+    plugin_template_generation: u64,
+    plugin_template_capabilities: Vec<String>,
     template_bridge: callback_dispatch::BuiltinHostWindowTemplateBridge,
     workbench_window_bridge: callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge,
     floating_window_source_bridge: callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge,
@@ -271,6 +305,7 @@ struct RetainedEditorHost {
     hierarchy_pointer_state: HierarchyPointerState,
     hierarchy_pointer_size: UiSize,
     hierarchy_scene_entries: Arc<[SceneEntry]>,
+    hierarchy_filter_query: String,
     console_scroll_surface: ScrollSurfaceHostState,
     inspector_scroll_surface: ScrollSurfaceHostState,
     browser_asset_details_scroll_surface: ScrollSurfaceHostState,
@@ -278,6 +313,8 @@ struct RetainedEditorHost {
     browser_asset_pointer: AssetSurfacePointerState,
     active_asset_drag_payload: Option<UiDragPayload>,
     active_scene_drag_payload: Option<UiDragPayload>,
+    active_hierarchy_drag_node_ids: Vec<NodeId>,
+    last_hierarchy_rename_click: Option<hierarchy_rename::HierarchyRenameClick>,
     active_object_drag_payload: Option<UiDragPayload>,
     native_window_presenters: NativeWindowPresenterStore,
     floating_window_projection_bundle: FloatingWindowProjectionBundle,
@@ -297,6 +334,30 @@ struct RetainedEditorHost {
     layout_dirty: bool,
     window_metrics_dirty: bool,
     render_dirty: bool,
+}
+
+impl RetainedEditorHost {
+    fn sync_plugin_template_documents_if_changed(
+        &mut self,
+    ) -> Result<(), EditorUiHostRuntimeError> {
+        let (generation, enabled_capabilities) = self.runtime.plugin_template_revision();
+        if self.plugin_template_generation == generation
+            && self.plugin_template_capabilities == enabled_capabilities
+        {
+            return Ok(());
+        }
+
+        let (generation, enabled_capabilities, templates_by_owner) =
+            self.runtime.enabled_plugin_template_descriptors();
+        self.builtin_template_runtime
+            .sync_plugin_v2_template_descriptor_sets(&templates_by_owner)?;
+
+        // The runtime publishes the complete owner set atomically before this revision advances.
+        self.plugin_template_generation = generation;
+        self.plugin_template_capabilities = enabled_capabilities;
+        self.mark_presentation_dirty();
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

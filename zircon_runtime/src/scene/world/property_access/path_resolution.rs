@@ -41,16 +41,44 @@ impl World {
                 return false;
             }
             segment_index -= 1;
-            let Some(segment) = self.path_segment_for_entity(current) else {
-                return false;
-            };
-            if segment != target_segments[segment_index] {
+            if !self.entity_path_segment_matches(current, &target_segments[segment_index]) {
                 return false;
             }
             cursor = self.parent_of(current);
         }
 
         segment_index == 0
+    }
+
+    fn entity_path_segment_matches(&self, entity: EntityId, target: &str) -> bool {
+        let Some(name) = self.names.get(&entity) else {
+            return false;
+        };
+        let name = name.0.trim();
+        let duplicate = self.entity_has_duplicate_path_name(entity, name);
+        if name.is_empty() {
+            let Some(suffix) = target.strip_prefix("Entity") else {
+                return false;
+            };
+            if duplicate {
+                let Some((base_id, duplicate_id)) = suffix.split_once('#') else {
+                    return false;
+                };
+                return decimal_entity_id_matches(base_id, entity)
+                    && decimal_entity_id_matches(duplicate_id, entity);
+            }
+            return decimal_entity_id_matches(suffix, entity);
+        }
+        if !duplicate {
+            return target == name;
+        }
+        let Some(duplicate_id) = target
+            .strip_prefix(name)
+            .and_then(|suffix| suffix.strip_prefix('#'))
+        else {
+            return false;
+        };
+        decimal_entity_id_matches(duplicate_id, entity)
     }
 
     fn entity_path_segment_capacity(&self, entity: EntityId) -> usize {
@@ -97,4 +125,25 @@ impl World {
 
         false
     }
+}
+
+fn decimal_entity_id_matches(text: &str, expected: EntityId) -> bool {
+    let bytes = text.as_bytes();
+    if bytes.is_empty() || (bytes.len() > 1 && bytes[0] == b'0') {
+        return false;
+    }
+    let mut value = 0_u64;
+    for byte in bytes.iter().copied() {
+        if !byte.is_ascii_digit() {
+            return false;
+        }
+        let Some(next) = value
+            .checked_mul(10)
+            .and_then(|value| value.checked_add(u64::from(byte - b'0')))
+        else {
+            return false;
+        };
+        value = next;
+    }
+    value == expected
 }

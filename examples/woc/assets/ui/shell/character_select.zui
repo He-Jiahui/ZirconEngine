@@ -1,0 +1,360 @@
+[asset]
+kind = "view"
+id = "res://ui/shell/character_select.zui"
+version = 2
+display_name = "World of ClaudeCraft Online Character Select"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui"]
+resources = [
+  { kind = "image", uri = "res://m8/env/vale_backdrop.webp", fallback = { mode = "optional" } },
+]
+
+[root]
+node = "character_select_root"
+
+[nodes.stage_scrim]
+component = "Space"
+classes = ["woc-stage-scrim"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.title_label]
+component = "Label"
+classes = ["woc-screen-title"]
+props = { text = "Characters:" }
+layout = { width = { min = 120.0, preferred = 140.0, max = 180.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.account_name]
+component = "Label"
+control_id = "OnlineCharacterAccountName"
+classes = ["woc-screen-title"]
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.title_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "title_label" }, { node = "account_name" }]
+
+[nodes.realm_button]
+component = "Button"
+control_id = "OnlineCharacterRealm"
+classes = ["woc-secondary-action"]
+props = { text = "World", button_variant = "outlined" }
+layout = { width = { min = 150.0, preferred = 190.0, max = 260.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/ChangeRealm", event = "Click", route = "woc.shell.characters.change_realm" }]
+
+[nodes.sort_button]
+component = "Button"
+control_id = "OnlineCharacterSort"
+classes = ["woc-secondary-action"]
+props = { text = "Sort: Level", button_variant = "outlined" }
+layout = { width = { min = 150.0, preferred = 190.0, max = 260.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/ToggleSort", event = "Click", route = "woc.shell.characters.toggle_sort" }]
+
+[nodes.control_row]
+component = "HorizontalBox"
+control_id = "OnlineCharacterControls"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "realm_button" }, { node = "sort_button" }]
+
+[nodes.sort_level]
+component = "Button"
+control_id = "OnlineCharacterSortLevel"
+classes = ["woc-secondary-action"]
+props = { text = "Level", button_variant = "text" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/Sort/level", event = "Click", route = "woc.shell.characters.sort.level" }]
+
+[nodes.sort_name]
+component = "Button"
+control_id = "OnlineCharacterSortName"
+classes = ["woc-secondary-action"]
+props = { text = "Name", button_variant = "text" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/Sort/name", event = "Click", route = "woc.shell.characters.sort.name" }]
+
+[nodes.sort_recent]
+component = "Button"
+control_id = "OnlineCharacterSortRecent"
+classes = ["woc-secondary-action"]
+props = { text = "Recent", button_variant = "text" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/Sort/recent", event = "Click", route = "woc.shell.characters.sort.recent" }]
+
+[nodes.sort_playtime]
+component = "Button"
+control_id = "OnlineCharacterSortPlaytime"
+classes = ["woc-secondary-action"]
+props = { text = "Playtime", button_variant = "text" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/Sort/playtime", event = "Click", route = "woc.shell.characters.sort.playtime" }]
+
+[nodes.sort_menu]
+component = "VerticalBox"
+control_id = "OnlineCharacterSortMenu"
+classes = ["woc-panel-strong"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 2.0 }, padding = { left = 6.0, right = 6.0, top = 6.0, bottom = 6.0 }, width = { min = 180.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { min = 172.0, preferred = 172.0, max = 172.0, stretch = "Fixed" } }
+children = [{ node = "sort_level" }, { node = "sort_name" }, { node = "sort_recent" }, { node = "sort_playtime" }]
+
+[nodes.wallet_host]
+component = "Space"
+control_id = "OnlineCharacterWalletHost"
+props = { visibility = "collapsed", capability = "wallet" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 80.0, stretch = "Fixed" } }
+
+[nodes.github_host]
+component = "Space"
+control_id = "OnlineCharacterGithubHost"
+props = { visibility = "collapsed", capability = "github" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 80.0, stretch = "Fixed" } }
+
+[nodes.steam_host]
+component = "Space"
+control_id = "OnlineCharacterSteamHost"
+props = { visibility = "collapsed", capability = "steam" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 80.0, stretch = "Fixed" } }
+
+[nodes.integration_hosts]
+component = "VerticalBox"
+control_id = "OnlineCharacterIntegrationHosts"
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.0, max = 240.0, stretch = "Fixed" } }
+children = [{ node = "wallet_host" }, { node = "github_host" }, { node = "steam_host" }]
+
+[nodes.header]
+component = "VerticalBox"
+control_id = "OnlineCharacterHeader"
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 84.0, preferred = 84.0, max = 340.0, stretch = "Fixed" } }
+children = [{ node = "title_row" }, { node = "control_row" }, { node = "sort_menu" }, { node = "integration_hosts" }]
+
+[nodes.loading]
+component = "Label"
+control_id = "OnlineCharacterLoading"
+classes = ["woc-muted"]
+props = { text = "Loading characters...", text_align = "center", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+
+[nodes.empty]
+component = "Label"
+control_id = "OnlineCharacterEmpty"
+classes = ["woc-muted"]
+props = { text = "No characters yet", text_align = "center", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+
+[nodes.error]
+component = "Label"
+control_id = "OnlineCharacterError"
+classes = ["woc-error"]
+props = { text = "", text_align = "center", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.roster_host]
+component = "ScrollBox"
+control_id = "OnlineCharacterRosterHost"
+classes = ["woc-roster-host"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true, dynamic_route_prefix = "woc.shell.characters.row" }
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 220.0, preferred = 420.0, max = 720.0, stretch = "Stretch" } }
+
+[nodes.back]
+component = "Button"
+control_id = "OnlineCharacterBack"
+classes = ["woc-secondary-action"]
+props = { text = "Back", button_variant = "outlined" }
+layout = { width = { min = 96.0, preferred = 120.0, max = 160.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/Back", event = "Click", route = "woc.shell.characters.back" }]
+
+[nodes.new_character]
+component = "Button"
+control_id = "OnlineCharacterNew"
+classes = ["woc-secondary-action"]
+props = { text = "New Character", button_variant = "outlined" }
+layout = { width = { min = 124.0, preferred = 160.0, max = 220.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/New", event = "Click", route = "woc.shell.characters.new" }]
+
+[nodes.primary]
+component = "Button"
+control_id = "OnlineCharacterPrimary"
+classes = ["woc-primary-action"]
+props = { text = "Enter World", button_variant = "contained", disabled = true }
+layout = { width = { min = 124.0, preferred = 180.0, max = 240.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/Primary", event = "Click", route = "woc.shell.characters.primary" }]
+
+[nodes.actions]
+component = "HorizontalBox"
+control_id = "OnlineCharacterActions"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "back" }, { node = "new_character" }, { node = "primary" }]
+
+[nodes.list_panel]
+component = "VerticalBox"
+control_id = "OnlineCharacterListPanel"
+classes = ["woc-panel-strong"]
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, padding = { left = 14.0, right = 14.0, top = 14.0, bottom = 14.0 }, width = { min = 300.0, preferred = 560.0, max = 720.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "loading" }, { node = "empty" }, { node = "error" }, { node = "roster_host" }, { node = "actions" }]
+
+[nodes.preview_name]
+component = "Label"
+control_id = "OnlineCharacterPreviewName"
+classes = ["woc-screen-title"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.preview_host]
+component = "Space"
+control_id = "OnlineCharacterPreviewHost"
+classes = ["woc-preview-host"]
+layout = { width = { stretch = "Stretch" }, height = { min = 220.0, preferred = 260.0, max = 360.0, stretch = "Fixed" } }
+
+[nodes.class_details_host]
+component = "ScrollBox"
+control_id = "OnlineCharacterClassDetailsHost"
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 160.0, preferred = 260.0, max = 480.0, stretch = "Stretch" } }
+
+[nodes.detail_panel]
+component = "VerticalBox"
+control_id = "OnlineCharacterDetailPanel"
+classes = ["woc-panel-strong"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, padding = { left = 16.0, right = 16.0, top = 16.0, bottom = 16.0 }, width = { min = 280.0, preferred = 430.0, max = 520.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "preview_name" }, { node = "preview_host" }, { node = "class_details_host" }]
+
+[nodes.body]
+component = "Stack"
+control_id = "OnlineCharacterBody"
+props = { direction = { xs = "column", md = "row" } }
+layout = { container = { kind = "Stack", gap = 14.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "list_panel" }, { node = "detail_panel" }]
+
+[nodes.content]
+component = "VerticalBox"
+control_id = "OnlineCharacterContent"
+layout = { container = { kind = "VerticalBox", gap = 14.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, padding = { left = 18.0, right = 18.0, top = 18.0, bottom = 18.0 }, width = { min = 320.0, preferred = 1100.0, max = 1160.0, stretch = "Stretch" }, height = { min = 520.0, preferred = 720.0, max = 900.0, stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "body" }]
+
+[nodes.takeover_text]
+component = "Label"
+control_id = "OnlineCharacterTakeOverText"
+classes = ["woc-label"]
+props = { text = "This character is already in the world. Take over the active session?", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 64.0, max = 88.0, stretch = "Fixed" } }
+
+[nodes.takeover_cancel]
+component = "Button"
+control_id = "OnlineCharacterTakeOverCancel"
+classes = ["woc-secondary-action"]
+props = { text = "Cancel", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/TakeOver/Cancel", event = "Click", route = "woc.shell.characters.takeover.cancel" }]
+
+[nodes.takeover_confirm]
+component = "Button"
+control_id = "OnlineCharacterTakeOverConfirm"
+classes = ["woc-primary-action"]
+props = { text = "Take Over", button_variant = "contained" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/TakeOver/Confirm", event = "Click", route = "woc.shell.characters.takeover.confirm" }]
+
+[nodes.takeover_actions]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "takeover_cancel" }, { node = "takeover_confirm" }]
+
+[nodes.takeover_card]
+component = "VerticalBox"
+control_id = "OnlineCharacterTakeOverCard"
+classes = ["woc-modal-card"]
+layout = { container = { kind = "VerticalBox", gap = 14.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, padding = { left = 20.0, right = 20.0, top = 20.0, bottom = 20.0 }, width = { min = 300.0, preferred = 440.0, max = 520.0, stretch = "Fixed" }, height = { min = 150.0, preferred = 170.0, max = 210.0, stretch = "Fixed" } }
+children = [{ node = "takeover_text" }, { node = "takeover_actions" }]
+
+[nodes.takeover_modal]
+component = "Overlay"
+control_id = "OnlineCharacterTakeOverModal"
+classes = ["woc-stage-scrim"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "takeover_card" }]
+
+[nodes.delete_title]
+component = "Label"
+classes = ["woc-screen-title"]
+props = { text = "Delete Character" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.delete_body]
+component = "Label"
+control_id = "OnlineCharacterDeleteBody"
+classes = ["woc-label"]
+props = { text = "Type the character name to confirm permanent deletion.", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 56.0, max = 72.0, stretch = "Fixed" } }
+
+[nodes.delete_name]
+component = "Label"
+control_id = "OnlineCharacterDeleteName"
+classes = ["woc-section-title"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.delete_confirmation]
+component = "TextField"
+control_id = "OnlineCharacterDeleteConfirmation"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Character name", helper_text = "", variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocCharacters/Delete/Change", event = "Change", route = "woc.shell.characters.delete.set_confirmation" },
+  { id = "WocCharacters/Delete/SubmitField", event = "Submit", route = "woc.shell.characters.delete.submit" },
+]
+
+[nodes.delete_error]
+component = "Label"
+control_id = "OnlineCharacterDeleteError"
+classes = ["woc-error"]
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.delete_cancel]
+component = "Button"
+control_id = "OnlineCharacterDeleteCancel"
+classes = ["woc-secondary-action"]
+props = { text = "Cancel", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/Delete/Cancel", event = "Click", route = "woc.shell.characters.delete.cancel" }]
+
+[nodes.delete_submit]
+component = "Button"
+control_id = "OnlineCharacterDeleteSubmit"
+classes = ["woc-danger-action"]
+props = { text = "Delete Permanently", button_variant = "contained", disabled = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacters/Delete/Submit", event = "Click", route = "woc.shell.characters.delete.submit" }]
+
+[nodes.delete_actions]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "delete_cancel" }, { node = "delete_submit" }]
+
+[nodes.delete_card]
+component = "VerticalBox"
+control_id = "OnlineCharacterDeleteCard"
+classes = ["woc-modal-card"]
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, padding = { left = 20.0, right = 20.0, top = 20.0, bottom = 20.0 }, width = { min = 300.0, preferred = 460.0, max = 540.0, stretch = "Fixed" }, height = { min = 300.0, preferred = 330.0, max = 380.0, stretch = "Fixed" } }
+children = [{ node = "delete_title" }, { node = "delete_body" }, { node = "delete_name" }, { node = "delete_confirmation" }, { node = "delete_error" }, { node = "delete_actions" }]
+
+[nodes.delete_modal]
+component = "Overlay"
+control_id = "OnlineCharacterDeleteModal"
+classes = ["woc-stage-scrim"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "delete_card" }]
+
+[nodes.character_select_root]
+component = "Overlay"
+control_id = "OnlineCharacterSelect"
+classes = ["woc-shell", "woc-character-select"]
+props = { background_image = "res://m8/env/vale_backdrop.webp" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "stage_scrim" }, { node = "content" }, { node = "takeover_modal" }, { node = "delete_modal" }]

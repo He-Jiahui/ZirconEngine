@@ -58,11 +58,9 @@ def source_template_generated_files_plan_diagnostics(
 
 def materialize_generated_files(
     project_dir: Path,
-    validate_payload: dict[str, Any],
+    files: list[dict[str, str]],
     diagnostics: list[str],
 ) -> bool:
-    plan_summary = validate_payload.get("plan_summary", {})
-    files = plan_summary.get("generated_files", []) if isinstance(plan_summary, dict) else []
     duplicate_diagnostics = generated_file_path_duplicate_diagnostics(files)
     if duplicate_diagnostics:
         diagnostics.extend(duplicate_diagnostics)
@@ -75,8 +73,6 @@ def materialize_generated_files(
         )
         return False
     for file in files:
-        if not isinstance(file, dict):
-            continue
         path = file.get("path")
         contents = file.get("contents")
         if not isinstance(path, str):
@@ -101,6 +97,28 @@ def materialize_generated_files(
                 f"SourceTemplate generated file {path} could not be written: {error}"
             )
     return True
+
+
+def generated_file_path_safety_diagnostics(
+    project_dir: Path,
+    validate_payload: dict[str, Any] | None,
+) -> list[str]:
+    if validate_payload is None:
+        return []
+    plan_summary = validate_payload.get("plan_summary")
+    if not isinstance(plan_summary, dict):
+        return []
+    files = plan_summary.get("generated_files")
+    if not isinstance(files, list):
+        return []
+    diagnostics: list[str] = []
+    for file in files:
+        if not isinstance(file, dict):
+            continue
+        path = file.get("path")
+        if isinstance(path, str):
+            resolve_project_child(project_dir, path, diagnostics)
+    return diagnostics
 
 
 def generated_file_path_duplicate_diagnostics(files: object) -> list[str]:

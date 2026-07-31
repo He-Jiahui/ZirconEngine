@@ -15,18 +15,23 @@ fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
         "RuntimePluginId string-newtype source",
         plugin_id_source,
         &[
-            "pub struct RuntimePluginId(&'static str)",
+            "pub struct RuntimePluginId(RuntimePluginIdStorage)",
+            "enum RuntimePluginIdStorage",
+            "Static(&'static str)",
+            "Dynamic(Arc<str>)",
             "pub const fn from_static",
             "pub fn parse_key",
-            "_ => Self(intern_runtime_plugin_key(normalized))",
-            "fn intern_runtime_plugin_key",
+            "_ => Self(RuntimePluginIdStorage::Dynamic(Arc::from(",
             "runtime_plugin_id_accepts_external_keys_without_core_variant",
+            "dynamic_plugin_id_storage_retires_with_the_last_generation_owner",
         ],
     );
     assert!(
-        !plugin_id_source.contains("enum RuntimePluginId"),
-        "RuntimePluginId should not regress to a closed enum"
+        !plugin_id_source.contains("pub enum RuntimePluginId"),
+        "RuntimePluginId should not regress to a closed public enum"
     );
+    assert!(!plugin_id_source.contains(concat!("Box", "::leak")));
+    assert!(!plugin_id_source.contains(concat!("static INTERNED", "_KEYS")));
 
     assert_contains_all(
         "RuntimePluginId external fallback tests",
@@ -83,6 +88,35 @@ fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
             "review_d6_runtime_plugin_id_accepts_external_string_keys",
             "RuntimePluginId",
         ],
+    );
+}
+
+#[test]
+fn runtime_plugin_id_non_copy_contract_reaches_workspace_consumers() {
+    let entry_config_source =
+        include_str!("../../../../../../zircon_app/src/entry/entry_config.rs");
+    let editor_catalog_source =
+        include_str!("../../../../../../zircon_plugins/first_party_editor_catalog/src/catalog.rs");
+    let runtime_catalog_source =
+        include_str!("../../../../../../zircon_plugins/first_party_runtime_catalog/src/lib.rs");
+
+    assert!(
+        !entry_config_source.contains(".copied()"),
+        "RuntimePluginId slices must clone generation-owned IDs instead of requiring Copy"
+    );
+    assert!(
+        editor_catalog_source.contains("_plugin_id == RuntimePluginId::Navigation")
+            && editor_catalog_source.contains("seen.insert(plugin_id.clone())")
+            && !editor_catalog_source.contains("match plugin_id")
+            && !editor_catalog_source.contains("match _plugin_id"),
+        "editor provider projection must clone the dedup owner and use typed ID equality"
+    );
+    assert!(
+        runtime_catalog_source.contains("_id == RuntimePluginId::Ai")
+            && runtime_catalog_source.contains("seen.insert(runtime_id.clone())")
+            && !runtime_catalog_source.contains("match id")
+            && !runtime_catalog_source.contains("match _id"),
+        "runtime provider projection must clone the dedup owner and use typed ID equality"
     );
 }
 

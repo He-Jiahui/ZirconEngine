@@ -19,7 +19,18 @@ impl ResourceStreamer {
         let uri = &reference.locator;
         let mut fallback_report = None;
         let asset_manager = self.asset_manager()?;
-        let (shader_id, shader) = match asset_manager.resolve_asset_id(uri) {
+        let resolved_shader_id = asset_manager.resolve_asset_id(uri);
+        if let Some(shader_id) = resolved_shader_id {
+            let revision = self.resource_revision(shader_id)?;
+            if self
+                .shaders
+                .get(&shader_id)
+                .is_some_and(|prepared| prepared.revision == revision)
+            {
+                return Ok((shader_id, revision, None));
+            }
+        }
+        let (shader_id, shader) = match resolved_shader_id {
             Some(shader_id) => match asset_manager.load_shader_asset(shader_id) {
                 Ok(shader) => (shader_id, shader),
                 Err(_) => {

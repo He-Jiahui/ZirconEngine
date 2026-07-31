@@ -1,0 +1,102 @@
+// Source-compatible manual bag layout for the existing item-instance ledger.
+// A returned cell stores the authoritative ledger slot index, or -1 for a hole.
+var container = %import("zr.system.container");
+var ledger = %import("progression/inventory_instance_ledger");
+
+slotAt(state: ledger.InventoryInstanceLedger, index: int): ledger.InventoryInstanceSlot {
+    return <ledger.InventoryInstanceSlot>state.slots[index];
+}
+
+normalizedCapacity(capacity: int): int {
+    return capacity < 0 ? 0 : capacity;
+}
+
+// Mirrors layoutBagCells. The persisted WOC bag capacity and manual cell are
+// integer fields, so source float/NaN hints are rejected before this reducer.
+pub layoutCellIndices(
+    state: ledger.InventoryInstanceLedger, capacity: int
+): container.Array<int> {
+    var normalized = normalizedCapacity(capacity);
+    var cells = new container.Array<int>();
+    var cellIndex = 0;
+    while (cellIndex < normalized) {
+        cells.add(-1);
+        cellIndex = cellIndex + 1;
+    }
+    var unplaced = new container.Array<int>();
+    var slotIndex = 0;
+    while (slotIndex < state.slots.length) {
+        var hint = slotAt(state, slotIndex).manualSlot;
+        if (hint >= 0 && hint < cells.length && <int>cells[hint] == -1) {
+            cells[hint] = slotIndex;
+        } else {
+            unplaced.add(slotIndex);
+        }
+        slotIndex = slotIndex + 1;
+    }
+    var nextFree = 0;
+    for (var unplacedIndex in unplaced) {
+        while (nextFree < cells.length && <int>cells[nextFree] != -1) {
+            nextFree = nextFree + 1;
+        }
+        if (nextFree >= cells.length) {
+            // Source preserves legacy over-capacity stacks after the visible grid.
+            cells.add(<int>unplacedIndex);
+        } else {
+            cells[nextFree] = <int>unplacedIndex;
+        }
+    }
+    return cells;
+}
+
+// Inverse of layoutCellIndices: one resolved cell per dense ledger slot.
+pub cellOfIndices(
+    state: ledger.InventoryInstanceLedger, capacity: int
+): container.Array<int> {
+    var cells = layoutCellIndices(state, capacity);
+    var resolved = new container.Array<int>();
+    var slotIndex = 0;
+    while (slotIndex < state.slots.length) {
+        resolved.add(-1);
+        slotIndex = slotIndex + 1;
+    }
+    var cellIndex = 0;
+    while (cellIndex < cells.length) {
+        var index = <int>cells[cellIndex];
+        if (index >= 0) { resolved[index] = cellIndex; }
+        cellIndex = cellIndex + 1;
+    }
+    return resolved;
+}
+
+// Mirrors moveStackToCell: preserve real holes, and exchange cells when the
+// requested destination is occupied. Invalid moves leave the ledger untouched.
+pub moveStackToCell(
+    state: ledger.InventoryInstanceLedger, from: int, to: int, capacity: int
+): bool {
+    var normalized = normalizedCapacity(capacity);
+    if (from < 0 || from >= state.slots.length || to < 0 || to >= normalized) {
+        return false;
+    }
+    var cells = layoutCellIndices(state, normalized);
+    var fromCell = -1;
+    var cellIndex = 0;
+    while (cellIndex < cells.length) {
+        if (<int>cells[cellIndex] == from) {
+            fromCell = cellIndex;
+            break;
+        }
+        cellIndex = cellIndex + 1;
+    }
+    if (fromCell < 0 || fromCell == to) { return false; }
+    var displaced = <int>cells[to];
+    cellIndex = 0;
+    while (cellIndex < cells.length) {
+        var index = <int>cells[cellIndex];
+        if (index >= 0) { slotAt(state, index).manualSlot = cellIndex; }
+        cellIndex = cellIndex + 1;
+    }
+    slotAt(state, from).manualSlot = to;
+    if (displaced >= 0) { slotAt(state, displaced).manualSlot = fromCell; }
+    return true;
+}

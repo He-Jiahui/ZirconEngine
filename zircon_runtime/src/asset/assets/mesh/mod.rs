@@ -25,4 +25,4 @@ pub use mesh_asset::{
 pub use metadata::{MeshMorphTargetAsset, MeshSkinAsset};
 pub use usage::MeshAssetUsage;
 pub use validation::MeshValidationError;
-pub use zmesh_document::{ZMeshDocument, ZMESH_DOCUMENT_VERSION};
+pub use zmesh_document::{ZMESH_DOCUMENT_VERSION, ZMeshDocument};

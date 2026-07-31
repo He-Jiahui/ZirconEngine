@@ -5,6 +5,10 @@ use super::super::super::super::super::data::{PaneData, TemplatePaneNodeData};
 pub(super) fn select_pane_template_nodes(
     pane: &PaneData,
 ) -> Option<&ModelRc<TemplatePaneNodeData>> {
+    if pane.template_v2.nodes.row_count() > 0 {
+        return Some(&pane.template_v2.nodes);
+    }
+
     match pane.kind.as_str() {
         "Hierarchy" => Some(&pane.hierarchy.nodes),
         "Inspector" => Some(&pane.inspector.nodes),

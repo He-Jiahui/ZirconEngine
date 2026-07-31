@@ -53,14 +53,16 @@ fn dirty_floating_window_close_request_shows_cancelable_prompt() {
     );
 
     assert!(!child.get_host_presentation().close_prompt.visible);
-    assert!(harness
-        .host
-        .borrow()
-        .runtime
-        .current_layout()
-        .floating_windows
-        .iter()
-        .any(|window| window.window_id == window_id));
+    assert!(
+        harness
+            .host
+            .borrow()
+            .runtime
+            .current_layout()
+            .floating_windows
+            .iter()
+            .any(|window| window.window_id == window_id)
+    );
 }
 
 #[test]
@@ -106,14 +108,16 @@ fn dirty_saveable_floating_window_save_prompt_saves_then_closes_window() {
         prompt.save_button_frame.y + 4.0,
     );
 
-    assert!(harness
-        .host
-        .borrow()
-        .runtime
-        .current_layout()
-        .floating_windows
-        .iter()
-        .all(|window| window.window_id != window_id));
+    assert!(
+        harness
+            .host
+            .borrow()
+            .runtime
+            .current_layout()
+            .floating_windows
+            .iter()
+            .all(|window| window.window_id != window_id)
+    );
     let _ = std::fs::remove_file(ui_asset_path);
 }
 
@@ -153,14 +157,16 @@ fn dirty_floating_window_discard_prompt_closes_all_window_tabs() {
         prompt.discard_button_frame.y + 4.0,
     );
 
-    assert!(harness
-        .host
-        .borrow()
-        .runtime
-        .current_layout()
-        .floating_windows
-        .iter()
-        .all(|window| window.window_id != window_id));
+    assert!(
+        harness
+            .host
+            .borrow()
+            .runtime
+            .current_layout()
+            .floating_windows
+            .iter()
+            .all(|window| window.window_id != window_id)
+    );
 }
 
 #[test]

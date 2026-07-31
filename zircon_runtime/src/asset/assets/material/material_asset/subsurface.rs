@@ -1,7 +1,7 @@
 use crate::core::framework::render::{RenderMaterialLightingModel, SubsurfaceProfileData};
 use crate::core::math::Vec3;
 
-use super::{material_control, override_f32, override_vec3, MaterialAsset};
+use super::{MaterialAsset, material_control, override_f32, override_vec3};
 
 impl MaterialAsset {
     pub fn subsurface_profile_index(&self) -> u32 {

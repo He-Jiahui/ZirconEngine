@@ -7,16 +7,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn menu_it
     menu_item_flags(item).any(|flag| flag.eq_ignore_ascii_case(expected))
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn menu_item_flag_value(
-    item: &TemplatePaneMenuItemData,
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn menu_item_flag_value<
+    'a,
+>(
+    item: &'a TemplatePaneMenuItemData,
     expected_key: &str,
-) -> Option<String> {
+) -> Option<&'a str> {
     menu_item_flags(item).find_map(|flag| {
         let (key, value) = flag.split_once('=')?;
-        key.trim()
-            .eq_ignore_ascii_case(expected_key)
-            .then(|| value.trim().to_string())
-            .filter(|value| !value.is_empty())
+        let value = value.trim();
+        (key.trim().eq_ignore_ascii_case(expected_key) && !value.is_empty()).then_some(value)
     })
 }
 

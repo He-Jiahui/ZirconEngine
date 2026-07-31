@@ -6,17 +6,17 @@ use crate::asset::{
     ShaderSourceLanguage,
 };
 use crate::core::framework::render::{
-    AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DisplayMode,
-    FallbackSkyboxKind, GeometryExtract, MaterialPropertyKind, PreviewEnvironmentExtract,
-    ProjectionMode, RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderFrameExtract,
-    RenderFramework, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
-    RenderOverlayExtract, RenderPhase, RenderPipelineHandle, RenderPointLightSnapshot,
-    RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
-    RenderRectLightSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderSpotLightSnapshot, RenderSpriteAnchor, RenderSpriteImageMode, RenderSpriteSnapshot,
-    RenderViewportDescriptor, RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
-    ShaderAssetKind, SolariRuntimeStatus, SpriteExtract, ViewportCameraSnapshot,
-    DEFAULT_RENDER_LAYER_MASK,
+    AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DEFAULT_RENDER_LAYER_MASK,
+    DisplayMode, FallbackSkyboxKind, GeometryExtract, MaterialPropertyKind,
+    PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract, RenderPhase,
+    RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature, RenderProductProfile,
+    RenderProfileBundle, RenderQualityProfile, RenderRectLightSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteAnchor, RenderSpriteImageMode,
+    RenderSpriteSnapshot, RenderViewportDescriptor, RenderVirtualGeometryPayloadSource,
+    RenderWorldSnapshotHandle, ShaderAssetKind, SolariRuntimeStatus, SpriteExtract,
+    ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -314,7 +314,10 @@ fn render_product_submit_material_stats_count_non_blocking_diagnostics() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+                ..Default::default()
+            },
         }],
     );
 
@@ -376,7 +379,10 @@ fn render_product_submit_material_stats_count_material_uniform_diagnostics() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+                ..Default::default()
+            },
         }],
     );
 
@@ -448,7 +454,10 @@ fn pbr_mesh_with_missing_material() -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            ..Default::default()
+        },
     }
 }
 
@@ -473,7 +482,7 @@ pub(super) fn material_with_import_note() -> MaterialAsset {
         property_values: Default::default(),
         texture_slots: Default::default(),
         validation_diagnostics: vec![
-            "glTF material imported with generated renderer defaults".to_string()
+            "glTF material imported with generated renderer defaults".to_string(),
         ],
     }
 }

@@ -244,6 +244,8 @@ fn render_text_atlas_bitmap_submission_report_summarizes_upload_and_gpu_work() {
     assert_eq!(report.atlas_capacity_failure_count(), 0);
     assert_eq!(report.dirty_page_count, 2);
     assert_eq!(report.rebuilt_page_count, 0);
+    assert_eq!(report.resident_page_count, 2);
+    assert_eq!(report.resident_page_byte_len, 32 * 32 * (1 + 4));
     assert_eq!(report.upload_command_count, 2);
     assert_eq!(report.full_page_upload_count, 0);
     assert_eq!(report.partial_upload_count, 2);
@@ -529,6 +531,7 @@ fn source(
     source_byte_len: usize,
 ) -> GlyphAtlasBitmapSource {
     GlyphAtlasBitmapSource {
+        raster_key: None,
         format,
         content_size,
         screen_rect: GlyphAtlasScreenRect::new(

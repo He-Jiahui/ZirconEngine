@@ -1,12 +1,12 @@
 use super::super::support::*;
+use crate::ui::retained_host::HostInvalidationMask;
 use crate::ui::retained_host::callback_dispatch::load_startup_builtin_template_runtime;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
-use crate::ui::retained_host::HostInvalidationMask;
 use crate::ui::retained_host::{
-    to_host_contract_workbench_window_nodes, TemplatePaneMenuItemData, TemplatePaneNodeData,
-    TemplatePaneOptionData,
+    TemplatePaneMenuItemData, TemplatePaneNodeData, TemplatePaneOptionData,
+    to_host_contract_workbench_window_nodes,
 };
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::fixture::default_preview_fixture;
@@ -802,10 +802,12 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         standalone_toast.frame.y + standalone_toast.frame.height
             <= component_feedback.frame.y + component_feedback.frame.height + 0.001
     );
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchFeedbackToastOffset")
-        .is_none());
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchFeedbackToastOffset")
+            .is_none()
+    );
     let table_item = template_contract_node(&nodes, "WorkbenchTableItem");
     assert_eq!(table_item.role.as_str(), "Table");
     assert_eq!(table_item.component_role.as_str(), "table");
@@ -1271,123 +1273,149 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         module_workspace.control_id.as_str(),
         "WorkbenchMainBandModuleWorkspace"
     );
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchEffectRulesTab")
-        .expect("effect rules tab projection")
-        .routes
-        .iter()
-        .any(|route| route.binding_id == "WorkbenchModule/EffectRulesTab"
-            && route.event_kind == UiEventKind::Click));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchMaterialGraphTab")
-        .expect("material graph tab projection")
-        .routes
-        .iter()
-        .any(
-            |route| route.binding_id == "WorkbenchModule/MaterialGraphTab"
-                && route.event_kind == UiEventKind::Click
-        ));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchAssetsImportButton")
-        .expect("assets import button projection")
-        .routes
-        .iter()
-        .any(|route| route.binding_id == "WorkbenchModule/AssetsImport"
-            && route.event_kind == UiEventKind::Click));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchMaterialDomainDropdown")
-        .expect("material domain dropdown projection")
-        .routes
-        .iter()
-        .any(
-            |route| route.binding_id == "WorkbenchModule/MaterialDomainEdit"
-                && route.event_kind == UiEventKind::Change
-        ));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchBehaviorNodeRow03")
-        .expect("behavior node row projection")
-        .routes
-        .iter()
-        .any(
-            |route| route.binding_id == "WorkbenchModule/BehaviorNodeCooldown"
-                && route.event_kind == UiEventKind::Click
-        ));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchVfxSystemField")
-        .expect("vfx system field projection")
-        .routes
-        .iter()
-        .any(|route| route.binding_id == "WorkbenchModule/VfxSystemEdit"
-            && route.event_kind == UiEventKind::Change));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchModuleAbility")
-        .expect("ability module tab projection")
-        .routes
-        .iter()
-        .any(|route| route.binding_id == "WorkbenchModule/Ability"
-            && route.event_kind == UiEventKind::Click));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchAbilityNameField")
-        .expect("ability name field projection")
-        .routes
-        .iter()
-        .any(
-            |route| route.binding_id == "WorkbenchModule/AbilityNameEdit"
-                && route.event_kind == UiEventKind::Change
-        ));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchTagsAbilityActivateRow")
-        .expect("tags ability row projection")
-        .routes
-        .iter()
-        .any(
-            |route| route.binding_id == "WorkbenchModule/TagsAbilityActivate"
-                && route.event_kind == UiEventKind::Click
-        ));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchPerceptionConfigDropdown")
-        .expect("perception config dropdown projection")
-        .routes
-        .iter()
-        .any(
-            |route| route.binding_id == "WorkbenchModule/PerceptionConfigEdit"
-                && route.event_kind == UiEventKind::Change
-        ));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchRenderLightingPassRow")
-        .expect("render lighting pass row projection")
-        .routes
-        .iter()
-        .any(
-            |route| route.binding_id == "WorkbenchModule/RenderLightingPass"
-                && route.event_kind == UiEventKind::Click
-        ));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchHudScreenDropdown")
-        .expect("hud screen dropdown projection")
-        .routes
-        .iter()
-        .any(|route| route.binding_id == "WorkbenchModule/HudScreenEdit"
-            && route.event_kind == UiEventKind::Change));
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchEffectRulesTab")
+            .expect("effect rules tab projection")
+            .routes
+            .iter()
+            .any(|route| route.binding_id == "WorkbenchModule/EffectRulesTab"
+                && route.event_kind == UiEventKind::Click)
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchMaterialGraphTab")
+            .expect("material graph tab projection")
+            .routes
+            .iter()
+            .any(
+                |route| route.binding_id == "WorkbenchModule/MaterialGraphTab"
+                    && route.event_kind == UiEventKind::Click
+            )
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchAssetsImportButton")
+            .expect("assets import button projection")
+            .routes
+            .iter()
+            .any(|route| route.binding_id == "WorkbenchModule/AssetsImport"
+                && route.event_kind == UiEventKind::Click)
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchMaterialDomainDropdown")
+            .expect("material domain dropdown projection")
+            .routes
+            .iter()
+            .any(
+                |route| route.binding_id == "WorkbenchModule/MaterialDomainEdit"
+                    && route.event_kind == UiEventKind::Change
+            )
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchBehaviorNodeRow03")
+            .expect("behavior node row projection")
+            .routes
+            .iter()
+            .any(
+                |route| route.binding_id == "WorkbenchModule/BehaviorNodeCooldown"
+                    && route.event_kind == UiEventKind::Click
+            )
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchVfxSystemField")
+            .expect("vfx system field projection")
+            .routes
+            .iter()
+            .any(|route| route.binding_id == "WorkbenchModule/VfxSystemEdit"
+                && route.event_kind == UiEventKind::Change)
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchModuleAbility")
+            .expect("ability module tab projection")
+            .routes
+            .iter()
+            .any(|route| route.binding_id == "WorkbenchModule/Ability"
+                && route.event_kind == UiEventKind::Click)
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchAbilityNameField")
+            .expect("ability name field projection")
+            .routes
+            .iter()
+            .any(
+                |route| route.binding_id == "WorkbenchModule/AbilityNameEdit"
+                    && route.event_kind == UiEventKind::Change
+            )
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchTagsAbilityActivateRow")
+            .expect("tags ability row projection")
+            .routes
+            .iter()
+            .any(
+                |route| route.binding_id == "WorkbenchModule/TagsAbilityActivate"
+                    && route.event_kind == UiEventKind::Click
+            )
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchPerceptionConfigDropdown")
+            .expect("perception config dropdown projection")
+            .routes
+            .iter()
+            .any(
+                |route| route.binding_id == "WorkbenchModule/PerceptionConfigEdit"
+                    && route.event_kind == UiEventKind::Change
+            )
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchRenderLightingPassRow")
+            .expect("render lighting pass row projection")
+            .routes
+            .iter()
+            .any(
+                |route| route.binding_id == "WorkbenchModule/RenderLightingPass"
+                    && route.event_kind == UiEventKind::Click
+            )
+    );
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchHudScreenDropdown")
+            .expect("hud screen dropdown projection")
+            .routes
+            .iter()
+            .any(|route| route.binding_id == "WorkbenchModule/HudScreenEdit"
+                && route.event_kind == UiEventKind::Change)
+    );
 
     assert!(matches!(
         bridge
             .binding_for_control("WorkbenchToolMove", UiEventKind::Click)
             .expect("move tool binding")
             .payload(),
-        EditorUiBindingPayload::ViewportCommand(ViewportCommand::SetTool(SceneViewportTool::Move))
+        EditorUiBindingPayload::ViewportCommand(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Transform(TransformHandleKind::Move)
+        ))
     ));
 
     bridge.recompute_layout(UiSize::new(1440.0, 941.0)).unwrap();
@@ -2089,16 +2117,18 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         .as_deref(),
         Some("1")
     );
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchComponentPropertyVirtualRow05")
-        .expect("virtual component property row projection")
-        .routes
-        .iter()
-        .any(
-            |route| route.binding_id == "Inspector/ComponentProperty04Edit"
-                && route.event_kind == UiEventKind::Change
-        ));
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchComponentPropertyVirtualRow05")
+            .expect("virtual component property row projection")
+            .routes
+            .iter()
+            .any(
+                |route| route.binding_id == "Inspector/ComponentProperty04Edit"
+                    && route.event_kind == UiEventKind::Change
+            )
+    );
     let mesh_row = bridge
         .host_projection()
         .node_by_control_id("WorkbenchMeshRow")
@@ -2121,10 +2151,9 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         .host_projection()
         .node_by_control_id("WorkbenchMaterialRow")
         .expect("material/property row projection");
-    let material_host_row = template_contract_node(
-        &to_host_contract_workbench_window_nodes(Some(bridge.host_projection())),
-        "WorkbenchMaterialRow",
-    );
+    let material_host_nodes =
+        to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
+    let material_host_row = template_contract_node(&material_host_nodes, "WorkbenchMaterialRow");
     assert_eq!(
         style_color_u8(
             material_host_row
@@ -2198,10 +2227,10 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         control_visibility(&bridge, "WorkbenchInspectorTransform"),
         Some(UiVisibility::Collapsed)
     );
-    let cleared_material_row = template_contract_node(
-        &to_host_contract_workbench_window_nodes(Some(bridge.host_projection())),
-        "WorkbenchMaterialRow",
-    );
+    let cleared_material_host_nodes =
+        to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
+    let cleared_material_row =
+        template_contract_node(&cleared_material_host_nodes, "WorkbenchMaterialRow");
     assert_eq!(
         style_color_u8(
             cleared_material_row
@@ -2271,10 +2300,12 @@ fn componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_sna
         "WorkbenchSceneVirtualItem13",
         "selected"
     ));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchSceneVirtualItem13")
-        .is_some());
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchSceneVirtualItem13")
+            .is_some()
+    );
     let virtual_binding = bridge
         .binding_for_control("WorkbenchSceneVirtualItem13", UiEventKind::Click)
         .expect("virtual scene row binding should resolve through authored prototype route");
@@ -2294,10 +2325,12 @@ fn componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_sna
     bridge
         .sync_scene_and_inspector(&two_entries, Some(&inspector))
         .unwrap();
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchSceneVirtualItem11")
-        .is_none());
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchSceneVirtualItem11")
+            .is_none()
+    );
     assert!(
         bridge
             .surface()
@@ -2314,10 +2347,12 @@ fn componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_sna
         control_string(&bridge, "WorkbenchSceneVirtualItem12", "text").as_deref(),
         Some("SceneNode_12")
     );
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchSceneVirtualItem12")
-        .is_some());
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id("WorkbenchSceneVirtualItem12")
+            .is_some()
+    );
     assert!(
         bridge
             .surface()
@@ -2349,7 +2384,9 @@ fn componentized_workbench_window_template_bridge_updates_tool_selection_state()
 
     assert!(matches!(
         binding.payload(),
-        EditorUiBindingPayload::ViewportCommand(ViewportCommand::SetTool(SceneViewportTool::Move))
+        EditorUiBindingPayload::ViewportCommand(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Transform(TransformHandleKind::Move)
+        ))
     ));
     assert!(!control_bool(&bridge, "WorkbenchToolSelect", "selected"));
     assert!(control_bool(&bridge, "WorkbenchToolMove", "selected"));
@@ -2401,8 +2438,8 @@ fn componentized_workbench_control_dispatch_updates_state_and_emits_typed_event(
     );
     assert_eq!(
         harness.runtime.journal().records().last().unwrap().event,
-        EditorEvent::Viewport(EditorViewportEvent::SetTool {
-            tool: SceneViewportTool::Rotate,
+        EditorEvent::Viewport(EditorViewportEvent::ActivateSceneMode {
+            mode: SceneModeActivation::Transform(TransformHandleKind::Rotate),
         })
     );
     assert!(effects.render_dirty);
@@ -2425,9 +2462,11 @@ fn componentized_workbench_pointer_dispatch_hits_tool_control_and_emits_typed_ev
     )
     .expect("tool pointer press should request paint-only feedback")
     .unwrap();
-    assert!(press_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        press_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert!(!press_effects.render_dirty);
     assert!(!press_effects.presentation_dirty);
 
@@ -2443,8 +2482,8 @@ fn componentized_workbench_pointer_dispatch_hits_tool_control_and_emits_typed_ev
     assert!(control_bool(&bridge, "WorkbenchToolScale", "checked"));
     assert_eq!(
         harness.runtime.journal().records().last().unwrap().event,
-        EditorEvent::Viewport(EditorViewportEvent::SetTool {
-            tool: SceneViewportTool::Scale,
+        EditorEvent::Viewport(EditorViewportEvent::ActivateSceneMode {
+            mode: SceneModeActivation::Transform(TransformHandleKind::Scale),
         })
     );
     assert!(effects.render_dirty);
@@ -2548,9 +2587,11 @@ fn componentized_workbench_pointer_dispatch_hits_component_drawer_toggle_once() 
     )
     .expect("checkbox pointer press should request paint-only feedback")
     .unwrap();
-    assert!(press_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        press_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert!(!press_effects.render_dirty);
     assert!(!press_effects.presentation_dirty);
 
@@ -2779,9 +2820,11 @@ fn componentized_workbench_pointer_dispatch_hits_component_drawer_tab_visibility
     )
     .expect("drawer tab pointer press should request paint-only feedback")
     .unwrap();
-    assert!(press_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        press_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert!(!press_effects.render_dirty);
     assert!(!press_effects.presentation_dirty);
 
@@ -3036,9 +3079,11 @@ fn componentized_workbench_dropdown_option_selection_updates_value_and_projectio
     ));
     assert!(!control_bool(&bridge, "WorkbenchInputDropdown", "focused"));
     assert!(!control_bool(&bridge, "WorkbenchInputDropdown", "selected"));
-    assert!(effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert_eq!(
         harness.runtime.journal().records().last().unwrap().event,
         EditorEvent::Transient(EditorEventTransient::PressNode {
@@ -3127,9 +3172,11 @@ fn componentized_workbench_popup_cancel_closes_dropdown_without_value_dispatch()
         control_string(&bridge, "WorkbenchInputDropdown", "value").as_deref(),
         Some("dropdown")
     );
-    assert!(effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
 
     let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
     let dropdown = template_contract_node(&nodes, "WorkbenchInputDropdown");
@@ -3185,9 +3232,11 @@ fn componentized_workbench_popup_menu_item_selection_updates_value_and_projectio
     assert!(!control_bool(&bridge, "WorkbenchPopupMenu", "popup_open"));
     assert!(!control_bool(&bridge, "WorkbenchPopupMenu", "focused"));
     assert!(!control_bool(&bridge, "WorkbenchPopupMenu", "selected"));
-    assert!(effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert!(harness.runtime.journal().records().is_empty());
 
     let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
@@ -3198,13 +3247,15 @@ fn componentized_workbench_popup_menu_item_selection_updates_value_and_projectio
     assert!(!delete.hovered);
     assert!(!delete.pressed);
 
-    assert!(dispatch_componentized_workbench_menu_item_selected(
-        &harness.runtime,
-        &mut bridge,
-        "WorkbenchPopupMenu",
-        "Missing"
-    )
-    .is_none());
+    assert!(
+        dispatch_componentized_workbench_menu_item_selected(
+            &harness.runtime,
+            &mut bridge,
+            "WorkbenchPopupMenu",
+            "Missing"
+        )
+        .is_none()
+    );
 }
 
 #[test]
@@ -3227,9 +3278,11 @@ fn componentized_workbench_popup_cancel_closes_menu_without_selecting_item() {
     assert!(!control_bool(&bridge, "WorkbenchPopupMenu", "popup_open"));
     assert!(!control_bool(&bridge, "WorkbenchPopupMenu", "focused"));
     assert!(!control_bool(&bridge, "WorkbenchPopupMenu", "selected"));
-    assert!(effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
 
     let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
     let popup_menu = template_contract_node(&nodes, "WorkbenchPopupMenu");
@@ -3281,9 +3334,11 @@ fn componentized_workbench_pointer_focuses_input_fields_without_authored_binding
         render_border_for_control(&bridge, "WorkbenchInputText").as_deref(),
         Some("#2a3238")
     );
-    assert!(effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert!(!effects.render_dirty);
     assert!(!effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -3312,9 +3367,11 @@ fn componentized_workbench_pointer_focuses_input_fields_without_authored_binding
         render_border_for_control(&bridge, "WorkbenchInputStepper").as_deref(),
         Some("#2a3238")
     );
-    assert!(effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert!(!effects.render_dirty);
     assert!(!effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -3447,10 +3504,12 @@ fn startup_template_runtime_loads_componentized_workbench_window_bridge_source()
     )
     .unwrap();
 
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id(EditorWorkbenchTemplateControlIds::ROOT)
-        .is_some());
+    assert!(
+        bridge
+            .host_projection()
+            .node_by_control_id(EditorWorkbenchTemplateControlIds::ROOT)
+            .is_some()
+    );
     assert_eq!(
         bridge.control_frame(EditorWorkbenchTemplateControlIds::STATUS_BAR),
         Some(UiFrame::new(0.0, 895.0, 1672.0, 46.0))
@@ -3472,12 +3531,12 @@ fn numbered_scene_entries(count: usize, selected_index: usize) -> Vec<SceneEntry
         .collect()
 }
 
-fn template_contract_node(
-    nodes: &ModelRc<TemplatePaneNodeData>,
+fn template_contract_node<'a>(
+    nodes: &'a ModelRc<TemplatePaneNodeData>,
     control_id: &str,
-) -> TemplatePaneNodeData {
+) -> &'a TemplatePaneNodeData {
     (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
+        .filter_map(|row| nodes.get(row))
         .find(|node| node.control_id.as_str() == control_id)
         .unwrap_or_else(|| panic!("{control_id} should project to the host contract"))
 }

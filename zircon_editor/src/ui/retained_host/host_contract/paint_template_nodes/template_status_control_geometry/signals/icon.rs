@@ -26,7 +26,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
     let metrics = status_signal_metrics();
     let size = metrics
         .signal_marker_size
-        .min(rect.width.min(rect.height).max(1.0))
-        .max(1.0);
+        .min(rect.width.min(rect.height).max(0.0))
+        .max(0.0);
     centered_rect(rect, size)
 }

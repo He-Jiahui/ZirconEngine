@@ -1,7 +1,7 @@
 use crate::ui::retained_host::callback_dispatch::dispatch_builtin_floating_window_focus_for_source;
 use crate::ui::workbench::layout::MainPageId;
 
-use super::super::super::super::{workbench_snapshot_access, RetainedEditorHost};
+use super::super::super::super::{RetainedEditorHost, workbench_snapshot_access};
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn with_callback_source_window<T>(

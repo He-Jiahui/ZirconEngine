@@ -52,7 +52,18 @@ pub(crate) fn build_transparent_submission_order(
     mesh_commands: &[MeshDrawCommand],
     sprite_phase_queue: &RenderPhaseQueue,
 ) -> Vec<TransparentSubmissionItem> {
-    let mut items = Vec::new();
+    let sprite_items = sprite_phase_queue
+        .items_for_phase(RenderPhase::Transparent3d)
+        .filter_map(|phase_item| match phase_item.mesh_source {
+            RenderPhaseMeshSource::SpriteIndex(sprite_index) => Some(TransparentSubmissionItem {
+                source: TransparentSubmissionSource::Sprite { sprite_index },
+                sort_key: phase_item.sort_key.raw(),
+                entity: phase_item.entity,
+            }),
+            RenderPhaseMeshSource::MeshIndex(_) => None,
+        });
+    let sprite_capacity = sprite_items.size_hint().1.unwrap_or(0);
+    let mut items = Vec::with_capacity(mesh_commands.len().saturating_add(sprite_capacity));
     items.extend(
         mesh_commands
             .iter()
@@ -63,21 +74,8 @@ pub(crate) fn build_transparent_submission_order(
                 entity: command.source_entity,
             }),
     );
-    items.extend(
-        sprite_phase_queue
-            .items_for_phase(RenderPhase::Transparent3d)
-            .filter_map(|phase_item| match phase_item.mesh_source {
-                RenderPhaseMeshSource::SpriteIndex(sprite_index) => {
-                    Some(TransparentSubmissionItem {
-                        source: TransparentSubmissionSource::Sprite { sprite_index },
-                        sort_key: phase_item.sort_key.raw(),
-                        entity: phase_item.entity,
-                    })
-                }
-                RenderPhaseMeshSource::MeshIndex(_) => None,
-            }),
-    );
-    items.sort_by_key(|item| item.ordering_key());
+    items.extend(sprite_items);
+    items.sort_unstable_by_key(|item| item.ordering_key());
     items
 }
 
@@ -93,8 +91,8 @@ mod tests {
     };
 
     use super::{
-        build_transparent_submission_order, has_transparent_sprite_submissions,
-        TransparentSubmissionSource,
+        TransparentSubmissionSource, build_transparent_submission_order,
+        has_transparent_sprite_submissions,
     };
 
     #[test]
@@ -159,6 +157,19 @@ mod tests {
         }]);
 
         assert!(!has_transparent_sprite_submissions(&sprite_phase_queue));
+    }
+
+    #[test]
+    fn transparent_submission_order_preallocates_and_sorts_in_place() {
+        let source = include_str!("mixed_submission.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("mixed transparent submission implementation");
+
+        assert!(implementation.contains("Vec::with_capacity("));
+        assert!(implementation.contains("sort_unstable_by_key("));
+        assert!(!implementation.contains(".sort_by_key("));
     }
 
     fn mesh_command(sort_key: u64, entity: u64, source_draw_index: usize) -> MeshDrawCommand {

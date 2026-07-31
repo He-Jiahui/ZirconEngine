@@ -10,6 +10,7 @@ use crate::core::framework::render::{
     RenderPostProcessEffectStackSettings, RenderSceneVelocityReadbackReport, RenderTonemapOperator,
     RenderTonemapSettings,
 };
+use crate::graphics::backend::GpuPassTimer;
 #[cfg(test)]
 use crate::graphics::backend::{read_buffer_f32x4, read_texture_rgba, read_texture_rgba16float_3d};
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -43,6 +44,7 @@ pub(super) struct CompiledSceneFrameSubmissionContext<'a> {
     pub(super) mesh_pass_indirect_draws: &'a MeshPassIndirectDrawExecutions,
     pub(super) environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
     pub(super) realtime_ibl_submission: Option<RealtimeIblPendingSubmission>,
+    pub(super) gpu_pass_timer: Option<&'a mut GpuPassTimer>,
 }
 
 impl SceneRendererCore {
@@ -61,6 +63,7 @@ impl SceneRendererCore {
             mesh_pass_indirect_draws,
             environment_ibl_bake_request,
             realtime_ibl_submission,
+            gpu_pass_timer,
         } = ctx;
 
         let hzb_occlusion_indirect_args_readbacks = encode_hzb_occlusion_indirect_args_readbacks(
@@ -70,6 +73,9 @@ impl SceneRendererCore {
             graph_execution_record,
         );
         queue.submit([encoder.finish()]);
+        if let Some(timer) = gpu_pass_timer {
+            timer.after_submit();
+        }
         if let Some(submission) = realtime_ibl_submission {
             self.realtime_ibl
                 .complete_submission(device, queue, submission, true);
@@ -300,7 +306,8 @@ impl ColorTransformLutReadbackReference {
     }
 
     fn apply_tonemap(self, color: [f32; 3]) -> [f32; 3] {
-        let exposure = 2.0_f32.powf(self.tonemap.render_exposure_bias() as f32);
+        let exposure = 2.0_f32.powf(self.tonemap.render_exposure_bias() as f32)
+            * self.exposure_multiplier.max(0.0);
         let white_point = (self.tonemap.render_white_point() as f32).max(0.001);
         let mut mapped = map_color(color, |channel| (channel * exposure).max(0.0));
         mapped = match self.tonemap.operator {
@@ -325,7 +332,7 @@ impl ColorTransformLutReadbackReference {
     }
 
     fn apply_color_grading(self, color: [f32; 3]) -> [f32; 3] {
-        let exposure = (self.grading.exposure as f32).max(0.0) * self.exposure_multiplier.max(0.0);
+        let exposure = (self.grading.exposure as f32).max(0.0);
         let contrast = (self.grading.contrast as f32).max(0.0);
         let saturation = (self.grading.saturation as f32).max(0.0);
         let gamma = (self.grading.gamma as f32).max(0.001);

@@ -1,0 +1,133 @@
+// Two-phase set-proc plan. WOS calls shouldDraw before consuming one RNG value,
+// then calls buildSuccess only after that value passes the authored chance.
+var contract = %import("generated/set_procs_contract");
+
+pub class SetProcSpec {
+    pub var id: string;
+    pub var name: string;
+    pub var trigger: string;
+    pub var chance: float;
+    pub var aura: string;
+    pub var duration: float;
+    pub var hasValue: bool;
+    pub var value: float;
+    pub var hasIcd: bool;
+    pub var icd: float;
+    pub var applyToTarget: bool;
+    pub var hasTickInterval: bool;
+    pub var tickInterval: float;
+    pub var hasMaxStacks: bool;
+    pub var maxStacks: int;
+    pub var hasSchool: bool;
+    pub var school: string;
+    pub @constructor(id: string, name: string, trigger: string, chance: float, aura: string, duration: float) {
+        this.id = id;
+        this.name = name;
+        this.trigger = trigger;
+        this.chance = chance;
+        this.aura = aura;
+        this.duration = duration;
+        this.hasValue = false;
+        this.value = 0.0;
+        this.hasIcd = false;
+        this.icd = 0.0;
+        this.applyToTarget = false;
+        this.hasTickInterval = false;
+        this.tickInterval = 0.0;
+        this.hasMaxStacks = false;
+        this.maxStacks = 0;
+        this.hasSchool = false;
+        this.school = "";
+    }
+}
+
+pub class SetProcApplication {
+    pub var recipientTarget: bool;
+    pub var readyAt: float;
+    pub var id: string;
+    pub var name: string;
+    pub var kind: string;
+    pub var remaining: float;
+    pub var duration: float;
+    pub var value: float;
+    pub var hasTickInterval: bool;
+    pub var tickInterval: float;
+    pub var hasStacks: bool;
+    pub var stacks: int;
+    pub var school: string;
+    pub @constructor() {
+        this.recipientTarget = false;
+        this.readyAt = 0.0;
+        this.id = "";
+        this.name = "";
+        this.kind = "";
+        this.remaining = 0.0;
+        this.duration = 0.0;
+        this.value = 0.0;
+        this.hasTickInterval = false;
+        this.tickInterval = 0.0;
+        this.hasStacks = false;
+        this.stacks = 0;
+        this.school = contract.defaultSchool();
+    }
+}
+
+// True exactly when the source would call rng.chance for this proc.
+pub shouldDraw(proc: SetProcSpec, trigger: string, time: float, hasReadyAt: bool, readyAt: float, sourceDead: bool, targetPresent: bool, targetDead: bool): bool {
+    if (proc.trigger != trigger) return false;
+    if (proc.hasIcd && proc.icd != 0.0 && time < (hasReadyAt ? readyAt : 0.0)) return false;
+    if (proc.applyToTarget) return targetPresent && !targetDead;
+    return !sourceDead;
+}
+
+// Call only after shouldDraw and an authored chance roll return true.
+pub buildSuccess(proc: SetProcSpec, time: float, hasExisting: bool, existingHasStacks: bool, existingStacks: int): SetProcApplication {
+    var out = new SetProcApplication();
+    out.recipientTarget = proc.applyToTarget;
+    out.readyAt = time + (proc.hasIcd ? proc.icd : 0.0);
+    out.id = proc.id;
+    out.name = proc.name;
+    out.kind = proc.aura;
+    out.remaining = proc.duration;
+    out.duration = proc.duration;
+    var base = proc.hasValue ? proc.value : 0.0;
+    if (proc.hasMaxStacks && proc.maxStacks != 0) {
+        var previous = (hasExisting && existingHasStacks) ? existingStacks : 0;
+        var next = previous + 1;
+        if (next > proc.maxStacks) next = proc.maxStacks;
+        out.hasStacks = true;
+        out.stacks = next;
+        out.value = base * <float>next;
+    } else out.value = base;
+    out.hasTickInterval = proc.hasTickInterval;
+    out.tickInterval = proc.tickInterval;
+    out.school = proc.hasSchool ? proc.school : contract.defaultSchool();
+    return out;
+}
+
+pub contractTest(): int {
+    var selfProc = new SetProcSpec("clear", "Clearcasting", "spellCast", 0.1, "next_cast_free", 10.0);
+    if (!shouldDraw(selfProc, "spellCast", 5.0, false, 0.0, false, false, false)) return -1;
+    selfProc.hasIcd = true;
+    selfProc.icd = 12.0;
+    if (shouldDraw(selfProc, "spellCast", 5.0, true, 6.0, false, false, false)) return -2;
+    if (shouldDraw(selfProc, "weaponCrit", 7.0, false, 0.0, false, false, false)) return -3;
+    var basic = buildSuccess(selfProc, 20.0, false, false, 0);
+    if (basic.recipientTarget || basic.readyAt != 32.0 || basic.value != 0.0 || basic.hasStacks || basic.school != contract.defaultSchool()) return -4;
+
+    var bleed = new SetProcSpec("bleed", "Rending Echo", "weaponCrit", 1.0, "dot", 8.0);
+    bleed.applyToTarget = true;
+    bleed.hasValue = true;
+    bleed.value = 3.0;
+    bleed.hasMaxStacks = true;
+    bleed.maxStacks = 3;
+    bleed.hasTickInterval = true;
+    bleed.tickInterval = 2.0;
+    bleed.hasSchool = true;
+    bleed.school = "physical";
+    if (shouldDraw(bleed, "weaponCrit", 0.0, false, 0.0, false, false, false)) return -5;
+    if (!shouldDraw(bleed, "weaponCrit", 0.0, false, 0.0, false, true, false)) return -6;
+    var stacked = buildSuccess(bleed, 4.0, true, true, 2);
+    if (!stacked.recipientTarget || !stacked.hasStacks || stacked.stacks != 3 || stacked.value != 9.0 || !stacked.hasTickInterval || stacked.tickInterval != 2.0 || stacked.school != "physical") return -7;
+    return 1;
+}

@@ -5,6 +5,9 @@ use super::super::template_tree_row_glyphs::{
     push_tree_disclosure_glyph, push_tree_object_icon_glyph,
 };
 use super::actions::push_tree_actions;
+use super::geometry::{
+    has_paintable_tree_row_extent, tree_row_contains, tree_row_has_action_space,
+};
 use super::identity::is_workbench_tree_row;
 use super::labels::push_tree_label;
 use super::layers::{
@@ -24,6 +27,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
     if !is_workbench_tree_row(node) {
         return false;
     }
+    if !has_paintable_tree_row_extent(rect) {
+        return true;
+    }
 
     push_tree_row_surface(commands, node, rect, clip, order, opacity);
     push_tree_indent_guides(
@@ -36,6 +42,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
     );
 
     let disclosure = tree_disclosure_rect(node, rect);
+    if !tree_row_contains(rect, &disclosure) {
+        return true;
+    }
     push_tree_disclosure_glyph(
         commands,
         node,
@@ -47,6 +56,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
     );
 
     let icon = tree_icon_rect(&disclosure);
+    if !tree_row_contains(rect, &icon) {
+        return true;
+    }
     push_tree_object_icon_glyph(
         commands,
         node,
@@ -66,13 +78,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         label_order(order),
         opacity,
     );
-    push_tree_actions(
-        commands,
-        node,
-        rect,
-        clip,
-        action_slot_order(order),
-        opacity,
-    );
+    if tree_row_has_action_space(rect) {
+        push_tree_actions(
+            commands,
+            node,
+            rect,
+            clip,
+            action_slot_order(order),
+            opacity,
+        );
+    }
     true
 }

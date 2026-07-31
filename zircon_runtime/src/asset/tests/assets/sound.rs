@@ -14,6 +14,14 @@ const SPEAKER_SIDE_RIGHT: u32 = 0x0000_0400;
 const SPEAKER_TOP_CENTER: u32 = 0x0000_0800;
 
 #[test]
+fn sound_wav_decode_uses_infallible_reads_after_sample_alignment_validation() {
+    let source = include_str!("../../assets/sound.rs");
+    assert!(!source.contains(".map(|chunk| Ok(read_i16"));
+    assert!(!source.contains(".map(|chunk| Ok(read_i32"));
+    assert!(!source.contains(".map(|chunk| Ok(read_f32"));
+}
+
+#[test]
 fn sound_asset_plain_wav_uses_named_layout_fallback_from_channel_count() {
     let asset = SoundAsset::from_wav_bytes(
         &AssetUri::parse("res://audio/stereo.wav").unwrap(),

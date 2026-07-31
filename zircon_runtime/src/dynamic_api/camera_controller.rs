@@ -75,36 +75,39 @@ impl RuntimeCameraController {
     }
 
     fn apply_orbit(&mut self, scene: &mut Scene, previous: Vec2, current: Vec2) {
-        let Some(camera) = scene.find_node(scene.active_camera()) else {
+        let camera = scene.active_camera();
+        let Some(transform) = scene.local_transform(camera) else {
             return;
         };
         let output = self.orbit.update(
-            camera.transform,
+            transform,
             OrbitCameraInput::orbit(previous, current).with_viewport_size(self.viewport_size),
         );
-        let _ = scene.update_transform(camera.id, output.transform);
+        let _ = scene.update_transform(camera, output.transform);
     }
 
     fn apply_pan(&mut self, scene: &mut Scene, previous: Vec2, current: Vec2) {
-        let Some(camera) = scene.find_node(scene.active_camera()) else {
+        let camera = scene.active_camera();
+        let Some(transform) = scene.local_transform(camera) else {
             return;
         };
         let output = self.orbit.update(
-            camera.transform,
+            transform,
             OrbitCameraInput::pan(previous, current).with_viewport_size(self.viewport_size),
         );
-        let _ = scene.update_transform(camera.id, output.transform);
+        let _ = scene.update_transform(camera, output.transform);
     }
 
     fn apply_zoom(&mut self, scene: &mut Scene, delta: f32) {
-        let Some(camera) = scene.find_node(scene.active_camera()) else {
+        let camera = scene.active_camera();
+        let Some(transform) = scene.local_transform(camera) else {
             return;
         };
         let output = self.orbit.update(
-            camera.transform,
+            transform,
             OrbitCameraInput::zoom(delta).with_viewport_size(self.viewport_size),
         );
-        let _ = scene.update_transform(camera.id, output.transform);
+        let _ = scene.update_transform(camera, output.transform);
     }
 }
 
@@ -124,5 +127,17 @@ mod tests {
 
         let after = scene.find_node(camera).unwrap().transform;
         assert!(after.translation.length() < before.translation.length());
+    }
+
+    #[test]
+    fn dynamic_runtime_camera_controller_reads_only_the_camera_transform() {
+        let source = include_str!("camera_controller.rs");
+        let full_node_read = ["scene.find_node(", "scene.active_camera())"].concat();
+        assert!(
+            !source.contains(&full_node_read),
+            "camera input must not project and clone a full SceneNode"
+        );
+        let local_transform_read = ["scene.", "local_transform(camera)"].concat();
+        assert_eq!(source.matches(&local_transform_read).count(), 3);
     }
 }

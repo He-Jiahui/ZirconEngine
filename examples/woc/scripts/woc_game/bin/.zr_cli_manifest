@@ -1,0 +1,59 @@
+zr_cli_manifest_v3
+module main
+hash 728f33a779131e5b
+zro_hash db912936cd7e2d6a
+zro E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\main.zro
+zri E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\main.zri
+aot_c E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\aot_c\src\main.c
+imports 5
+import zr.container
+import world/state
+import generated/contracts
+import protocol/commands
+import identity
+end
+module world/state
+hash 77ab34411b640d3d
+zro_hash b896de6666caf70e
+zro E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\world\state.zro
+zri E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\world\state.zri
+aot_c E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\aot_c\src\world\state.c
+imports 2
+import zr.container
+import protocol/binary
+end
+module protocol/binary
+hash 1d59c536170823d3
+zro_hash deb0f25ac48dbbc5
+zro E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\protocol\binary.zro
+zri E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\protocol\binary.zri
+aot_c E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\aot_c\src\protocol\binary.c
+imports 3
+import zr.container
+import generated/contracts
+import protocol/commands
+end
+module generated/contracts
+hash 948d6afa3255dad7
+zro_hash 0f315c94a23d643b
+zro E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\generated\contracts.zro
+zri E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\generated\contracts.zri
+aot_c E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\aot_c\src\generated\contracts.c
+imports 0
+end
+module protocol/commands
+hash dd341cbf20b21ff6
+zro_hash d8cf4b1d15fc1d7e
+zro E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\protocol\commands.zro
+zri E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\protocol\commands.zri
+aot_c E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\aot_c\src\protocol\commands.c
+imports 0
+end
+module identity
+hash 49148026c32d43d6
+zro_hash e6a597c02c6cbcd4
+zro E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\identity.zro
+zri E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\identity.zri
+aot_c E:\Git\ZirconEngine\examples\woc\scripts\woc_game\bin\aot_c\src\identity.c
+imports 0
+end

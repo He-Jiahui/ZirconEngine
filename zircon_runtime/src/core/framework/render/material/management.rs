@@ -13,8 +13,8 @@ pub use record::{RenderMaterialManagementRecord, RenderMaterialManagementSnapsho
 mod record_set;
 pub use record_set::RenderMaterialManagementRecordSet;
 mod record_summary;
-use record_summary::readiness_summary_has_issue_kind;
 pub use record_summary::RenderMaterialManagementRecordSummary;
+use record_summary::readiness_summary_has_issue_kind;
 mod query;
 pub use query::{RenderMaterialManagementQuery, RenderMaterialManagementQueryResult};
 mod query_controls;

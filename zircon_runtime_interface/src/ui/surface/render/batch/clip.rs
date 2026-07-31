@@ -82,11 +82,7 @@ fn clip_mode_identity(mode: UiClipMode) -> u8 {
 }
 
 fn normalized_float_bits(value: f32) -> u32 {
-    if value == 0.0 {
-        0
-    } else {
-        value.to_bits()
-    }
+    if value == 0.0 { 0 } else { value.to_bits() }
 }
 
 /// Stack semantics for nested clipping during render extraction.

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var charges = %import("combat/ability_charge_state");
+
+console.printLine("m4-ability-charge-state-test");
+var result = charges.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

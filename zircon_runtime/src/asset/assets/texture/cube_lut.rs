@@ -1,10 +1,10 @@
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    RenderImageColorSpace, RenderImageDimension, RenderSamplerAddressMode, RenderSamplerDescriptor,
-    RenderSamplerFilter, MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE,
+    MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE, RenderImageColorSpace,
+    RenderImageDimension, RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
 };
 
-use super::{TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT};
+use super::{RGBA8_UNORM_FORMAT, TextureAsset, TextureAssetDescriptor};
 
 pub fn texture_asset_from_cube_lut(
     uri: AssetUri,
@@ -13,6 +13,7 @@ pub fn texture_asset_from_cube_lut(
     let parsed = parse_cube_lut(source)?;
     let size = parsed.size;
     let rgba = parsed.rgba;
+    let defaults = TextureAssetDescriptor::rgba8_srgb();
     let descriptor = TextureAssetDescriptor {
         format: RGBA8_UNORM_FORMAT.to_string(),
         color_space: RenderImageColorSpace::Linear,
@@ -26,11 +27,11 @@ pub fn texture_asset_from_cube_lut(
             min_filter: RenderSamplerFilter::Linear,
             mipmap_filter: RenderSamplerFilter::Nearest,
         },
-        usage: TextureAssetDescriptor::rgba8_srgb().usage,
-        asset_usage: TextureAssetDescriptor::rgba8_srgb().asset_usage,
+        usage: defaults.usage,
+        asset_usage: defaults.asset_usage,
         mip_count: 1,
         array_layer_count: 1,
-        fallback: TextureAssetDescriptor::rgba8_srgb().fallback,
+        fallback: defaults.fallback,
     };
     Ok(TextureAsset::new_rgba8(uri, size, size, rgba).with_descriptor(descriptor))
 }

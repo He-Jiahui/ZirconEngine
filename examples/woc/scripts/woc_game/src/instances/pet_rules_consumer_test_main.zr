@@ -1,0 +1,31 @@
+var rng = %import("kernel/rng");
+var pets = %import("instances/pet_state");
+
+var state = new pets.PetState();
+var stream = new rng.Mulberry32(<uint>20061);
+if (!pets.completeTame(state) || !pets.setPetMode(state, 2)) {
+    return -1;
+}
+
+// Aggressive target selection is bounded by the generated source range.
+state.petX[0] = 0.0;
+state.enemyX[0] = 17.5;
+pets.tickOnce(state, stream);
+if (state.petTarget[0] != 1) {
+    return -2;
+}
+
+// Passive is unable to acquire a target and instead follows once the source
+// follow distance is exceeded.
+if (!pets.setPetMode(state, 0)) {
+    return -3;
+}
+state.petTarget[0] = 0;
+state.ownerX = 10.0;
+state.enemyX[0] = 100.0;
+pets.tickOnce(state, stream);
+if (state.petTarget[0] != 0 || state.petX[0] <= 0.0) {
+    return -4;
+}
+
+return 0;

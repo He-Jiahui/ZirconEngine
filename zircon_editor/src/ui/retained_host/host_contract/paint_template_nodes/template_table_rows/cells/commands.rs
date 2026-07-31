@@ -2,6 +2,7 @@ use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::render_commands::HostPaintCommand;
+use super::super::actions::table_action_column_width;
 use super::super::style::table_cell_color;
 use super::allocation::{table_column_alignment, TableColumnAlignment};
 use super::geometry::table_cell_rect;
@@ -18,9 +19,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     cells: &[String],
 ) {
     let metrics = table_cell_metrics();
+    if !has_paintable_table_cell_area(rect, metrics) {
+        return;
+    }
     for (index, cell) in cells.iter().take(TABLE_COLUMN_COUNT).enumerate() {
         let cell_rect = table_cell_rect(node, rect, index);
-        if cell_rect.width <= 0.0 {
+        if cell_rect.width <= 0.0 || cell_rect.height <= 0.0 {
             continue;
         }
         let Some(command) = text_command(
@@ -36,6 +40,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         };
         commands.push(command);
     }
+}
+
+fn has_paintable_table_cell_area(rect: &FrameRect, metrics: WorkbenchTableCellMetrics) -> bool {
+    rect.x.is_finite()
+        && rect.y.is_finite()
+        && rect.width.is_finite()
+        && rect.height.is_finite()
+        && rect.width - metrics.inset_x * 2.0 - table_action_column_width() > 0.0
+        && rect.height - metrics.inset_y * 2.0 > 0.0
 }
 
 fn text_frame_for_cell(
@@ -74,6 +87,15 @@ fn text_command(
     metrics: WorkbenchTableCellMetrics,
     opacity: f32,
 ) -> Option<HostPaintCommand> {
+    if !rect.x.is_finite()
+        || !rect.y.is_finite()
+        || !rect.width.is_finite()
+        || !rect.height.is_finite()
+        || rect.width <= 0.0
+        || rect.height <= 0.0
+    {
+        return None;
+    }
     let clip = intersect(&rect, clip)?;
     Some(HostPaintCommand::text(
         rect,

@@ -20,16 +20,37 @@ events = [{ id = "Navigation/BakeScene", event = "Click", route = "navigation.ba
 [nodes.navigation_bake_selected_button]
 component = "Button"
 control_id = "NavigationBakeSelectedButton"
-props = { text = "Bake Selected", button_variant = "outlined", button_color = "secondary" }
+props = { text = "Bake Selected", button_variant = "outlined", button_color = "secondary", disabled = "=control.NavigationBakeSurfaceList.prop.selected_row_identity == null" }
 layout = { width = { min = 112.0, preferred = 120.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "Navigation/BakeSelected", event = "Click", route = "navigation.bake.surface" }]
+
+[[nodes.navigation_bake_selected_button.events]]
+id = "Navigation/BakeSelected"
+event = "Click"
+route = "navigation.bake.surface"
+
+[nodes.navigation_bake_selected_button.events.action]
+route = "navigation.bake.surface"
+
+[nodes.navigation_bake_selected_button.events.action.payload]
+surface_entity = "=control.NavigationBakeSurfaceList.prop.selected_row_identity"
+force_full_rebuild = "=control.NavigationForceFullRebuild.prop.checked"
 
 [nodes.navigation_clear_button]
 component = "Button"
 control_id = "NavigationClearBakeButton"
-props = { text = "Clear Selected", button_variant = "outlined", button_color = "warning" }
+props = { text = "Clear Selected", button_variant = "outlined", button_color = "warning", disabled = "=control.NavigationBakeSurfaceList.prop.selected_row_identity == null" }
 layout = { width = { min = 112.0, preferred = 120.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "Navigation/ClearSelected", event = "Click", route = "navigation.bake.clear_surface" }]
+
+[[nodes.navigation_clear_button.events]]
+id = "Navigation/ClearSelected"
+event = "Click"
+route = "navigation.bake.clear_surface"
+
+[nodes.navigation_clear_button.events.action]
+route = "navigation.bake.clear_surface"
+
+[nodes.navigation_clear_button.events.action.payload]
+surface_entity = "=control.NavigationBakeSurfaceList.prop.selected_row_identity"
 
 [nodes.navigation_bake_toolbar_fill]
 component = "Space"
@@ -52,7 +73,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 2
 [nodes.navigation_surface_list]
 component = "Table"
 control_id = "NavigationBakeSurfaceList"
-props = { selected_index = 0 }
+props = { selected_index = -1, row_identity_field = "surface_entity" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.navigation_surface_column]

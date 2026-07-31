@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_delve_tests",
+  "source": "src",
+  "binary": "bin-m7-delve-tests",
+  "entry": "instances/delve_state_test_main"
+}

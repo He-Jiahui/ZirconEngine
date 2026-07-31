@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_talent_row_selection_tests",
+  "source": "src",
+  "binary": "bin-m5-talent-row-selection-tests",
+  "entry": "progression/talent_row_selection_test_main"
+}

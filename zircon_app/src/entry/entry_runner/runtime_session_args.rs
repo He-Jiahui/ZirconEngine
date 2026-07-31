@@ -1,5 +1,8 @@
-use std::error::Error;
-use std::path::PathBuf;
+use std::{
+    error::Error,
+    fmt::{self, Display, Formatter},
+    path::{Path, PathBuf},
+};
 
 const RUNTIME_SESSION_PROJECT_ARG: &str = "--project";
 const RUNTIME_SESSION_PROFILE_ARG: &str = "--runtime-session-profile";
@@ -12,7 +15,7 @@ Usage: zircon_runtime [OPTIONS]
 Options:
   --project <path>                     Load a Zircon project root and run its default scene
   --project=<path>                     Load the same project root with an equals-form argument
-  --runtime-session-profile <profile>   Select runtime, editor, dev, minimal, or headless dynamic session policy
+  --runtime-session-profile <profile>   Select runtime, runtime-pipelined, editor, dev, minimal, or headless dynamic session policy
   --runtime-session-profile=<profile>   Select the same dynamic session policy with an equals-form argument
   --log-level <level>                   Select verbose, debug, log, warn, error, or off process logging
   --log-filter <filter>                 Select comma-separated log filters such as warn,zircon_runtime::asset=debug
@@ -24,9 +27,11 @@ Environment:
   ZIRCON_LOG                            Alias for scoped process log filters when ZIRCON_LOG_FILTER is unset
   RUST_LOG                              Bevy-style fallback scoped log filter when Zircon filter variables are unset
   ZIRCON_LOG_LEVEL                      Override the minimum process log level
+  ZIRCON_RUNTIME_CAPTURE_FRAME_PNG      Write the first successfully presented runtime frame to this PNG path
 
 Profiles:
   runtime                               Default runtime preview policy
+  runtime-pipelined                     Render-owner pipelined runtime preview policy
   editor                                Editor-host policy accepted by the runtime ABI
   dev                                   Runtime-owned dev diagnostics, including diagnostic-store log cadence
   minimal                               Minimal runtime session policy
@@ -45,10 +50,80 @@ pub(super) struct RuntimeSessionStartupArgs {
 pub(super) enum RuntimeSessionProfile {
     #[default]
     Runtime,
+    RuntimePipelined,
     Editor,
     Dev,
     Minimal,
     Headless,
+}
+
+#[derive(Debug)]
+pub(super) struct RuntimeStartupArgumentError {
+    argument: &'static str,
+    requested: String,
+    cause: &'static str,
+    recovery: &'static str,
+}
+
+impl RuntimeStartupArgumentError {
+    fn new(
+        argument: &'static str,
+        requested: impl Into<String>,
+        cause: &'static str,
+        recovery: &'static str,
+    ) -> Self {
+        Self {
+            argument,
+            requested: requested.into(),
+            cause,
+            recovery,
+        }
+    }
+}
+
+impl Display for RuntimeStartupArgumentError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "runtime startup diagnostic: component=runtime_app argument={} requested={} cause={} recovery={}",
+            self.argument, self.requested, self.cause, self.recovery
+        )
+    }
+}
+
+impl Error for RuntimeStartupArgumentError {}
+
+pub(super) fn unknown_runtime_argument_error(
+    argument: impl Into<String>,
+) -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        "<unknown>",
+        argument,
+        "unsupported runtime argument",
+        "run zircon_runtime --help to inspect supported startup arguments",
+    )
+}
+
+pub(super) fn invalid_runtime_project_root_error(
+    project_root: &Path,
+) -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_SESSION_PROJECT_ARG,
+        project_root.display().to_string(),
+        "project root is not an existing directory",
+        "provide an existing project-root directory after --project",
+    )
+}
+
+pub(super) fn missing_runtime_project_manifest_error(
+    project_root: &Path,
+) -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_SESSION_PROJECT_ARG,
+        project_root.display().to_string(),
+        "project manifest zircon-project.toml is missing",
+        "provide a Zircon project root containing zircon-project.toml",
+    )
 }
 
 pub(super) fn parse_runtime_session_startup_args<I, S>(
@@ -73,15 +148,13 @@ where
 
         if arg == RUNTIME_SESSION_PROJECT_ARG {
             if project_root.is_some() {
-                return Err(
-                    format!("{RUNTIME_SESSION_PROJECT_ARG} was provided more than once").into(),
-                );
+                return Err(duplicate_project_value_error().into());
             }
             let Some(value) = args.next() else {
                 return Err(missing_project_value_error().into());
             };
-            if value.is_empty() {
-                return Err(missing_project_value_error().into());
+            if value.trim().is_empty() {
+                return Err(empty_project_value_error().into());
             }
             project_root = Some(PathBuf::from(value));
             continue;
@@ -89,12 +162,10 @@ where
 
         if let Some(value) = arg.strip_prefix("--project=") {
             if project_root.is_some() {
-                return Err(
-                    format!("{RUNTIME_SESSION_PROJECT_ARG} was provided more than once").into(),
-                );
+                return Err(duplicate_project_value_error().into());
             }
-            if value.is_empty() {
-                return Err(missing_project_value_error().into());
+            if value.trim().is_empty() {
+                return Err(empty_project_value_error().into());
             }
             project_root = Some(PathBuf::from(value));
             continue;
@@ -102,13 +173,14 @@ where
 
         if arg == RUNTIME_SESSION_PROFILE_ARG {
             if profile_provided {
-                return Err(
-                    format!("{RUNTIME_SESSION_PROFILE_ARG} was provided more than once").into(),
-                );
+                return Err(duplicate_profile_value_error().into());
             }
             let Some(value) = args.next() else {
                 return Err(missing_profile_value_error().into());
             };
+            if value.trim().is_empty() {
+                return Err(empty_profile_value_error().into());
+            }
             profile = RuntimeSessionProfile::parse(value)?;
             profile_provided = true;
             continue;
@@ -116,12 +188,10 @@ where
 
         if let Some(value) = arg.strip_prefix("--runtime-session-profile=") {
             if profile_provided {
-                return Err(
-                    format!("{RUNTIME_SESSION_PROFILE_ARG} was provided more than once").into(),
-                );
+                return Err(duplicate_profile_value_error().into());
             }
-            if value.is_empty() {
-                return Err(missing_profile_value_error().into());
+            if value.trim().is_empty() {
+                return Err(empty_profile_value_error().into());
             }
             profile = RuntimeSessionProfile::parse(value)?;
             profile_provided = true;
@@ -147,6 +217,7 @@ impl RuntimeSessionProfile {
     pub(super) const fn as_str(self) -> &'static str {
         match self {
             Self::Runtime => "runtime",
+            Self::RuntimePipelined => "runtime-pipelined",
             Self::Editor => "editor",
             Self::Dev => "dev",
             Self::Minimal => "minimal",
@@ -157,25 +228,74 @@ impl RuntimeSessionProfile {
     fn parse(value: impl AsRef<str>) -> Result<Self, Box<dyn Error>> {
         match value.as_ref().trim().to_ascii_lowercase().as_str() {
             "runtime" => Ok(Self::Runtime),
+            "runtime-pipelined" => Ok(Self::RuntimePipelined),
             "editor" => Ok(Self::Editor),
             "dev" => Ok(Self::Dev),
             "minimal" => Ok(Self::Minimal),
             "headless" => Ok(Self::Headless),
-            _ => Err(format!(
-                "unknown runtime session profile `{}`; expected runtime, editor, dev, minimal, or headless",
-                value.as_ref()
+            _ => Err(RuntimeStartupArgumentError::new(
+                RUNTIME_SESSION_PROFILE_ARG,
+                value.as_ref(),
+                "unsupported runtime session profile",
+                "choose runtime, runtime-pipelined, editor, dev, minimal, or headless",
             )
             .into()),
         }
     }
 }
 
-fn missing_profile_value_error() -> String {
-    format!("{RUNTIME_SESSION_PROFILE_ARG} requires runtime, editor, dev, minimal, or headless")
+fn duplicate_project_value_error() -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_SESSION_PROJECT_ARG,
+        "<multiple>",
+        "project root was provided more than once",
+        "provide exactly one project root after --project",
+    )
 }
 
-fn missing_project_value_error() -> String {
-    format!("{RUNTIME_SESSION_PROJECT_ARG} requires a project root path")
+fn missing_profile_value_error() -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_SESSION_PROFILE_ARG,
+        "<missing>",
+        "missing runtime session profile",
+        "provide runtime, runtime-pipelined, editor, dev, minimal, or headless after --runtime-session-profile",
+    )
+}
+
+fn duplicate_profile_value_error() -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_SESSION_PROFILE_ARG,
+        "<multiple>",
+        "runtime session profile was provided more than once",
+        "provide exactly one --runtime-session-profile value",
+    )
+}
+
+fn empty_profile_value_error() -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_SESSION_PROFILE_ARG,
+        "<empty>",
+        "missing runtime session profile",
+        "provide runtime, runtime-pipelined, editor, dev, minimal, or headless after --runtime-session-profile",
+    )
+}
+
+fn missing_project_value_error() -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_SESSION_PROJECT_ARG,
+        "<missing>",
+        "missing project root path",
+        "provide an existing Zircon project root after --project",
+    )
+}
+
+fn empty_project_value_error() -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_SESSION_PROJECT_ARG,
+        "<empty>",
+        "missing project root path",
+        "provide an existing Zircon project root after --project",
+    )
 }
 
 #[cfg(test)]
@@ -218,6 +338,18 @@ mod tests {
         assert_eq!(parsed.profile.as_bytes(), b"headless");
         assert_eq!(parsed.project_root, None);
         assert!(!parsed.help_requested);
+        assert!(parsed.remaining_args.is_empty());
+    }
+
+    #[test]
+    fn runtime_session_args_accept_pipelined_runtime_profile() {
+        let parsed = parse_runtime_session_startup_args([
+            "--runtime-session-profile=runtime-pipelined".to_string(),
+        ])
+        .unwrap();
+
+        assert_eq!(parsed.profile, RuntimeSessionProfile::RuntimePipelined);
+        assert_eq!(parsed.profile.as_bytes(), b"runtime-pipelined");
         assert!(parsed.remaining_args.is_empty());
     }
 
@@ -269,6 +401,7 @@ mod tests {
         for expected in [
             "--runtime-session-profile",
             "runtime",
+            "runtime-pipelined",
             "editor",
             "dev",
             "minimal",
@@ -298,21 +431,36 @@ mod tests {
         ])
         .unwrap_err();
 
-        assert_eq!(error.to_string(), "--project was provided more than once");
+        assert_eq!(
+            error.to_string(),
+            "runtime startup diagnostic: component=runtime_app argument=--project requested=<multiple> cause=project root was provided more than once recovery=provide exactly one project root after --project"
+        );
     }
 
     #[test]
     fn runtime_session_args_reject_missing_project_root() {
         let error = parse_runtime_session_startup_args(["--project".to_string()]).unwrap_err();
 
-        assert_eq!(error.to_string(), "--project requires a project root path");
+        assert_eq!(
+            error.to_string(),
+            "runtime startup diagnostic: component=runtime_app argument=--project requested=<missing> cause=missing project root path recovery=provide an existing Zircon project root after --project"
+        );
     }
 
     #[test]
     fn runtime_session_args_reject_empty_project_root() {
-        let error = parse_runtime_session_startup_args(["--project=".to_string()]).unwrap_err();
+        for args in [
+            vec!["--project=".to_string()],
+            vec!["--project".to_string(), "  ".to_string()],
+            vec!["--project=  ".to_string()],
+        ] {
+            let error = parse_runtime_session_startup_args(args).unwrap_err();
 
-        assert_eq!(error.to_string(), "--project requires a project root path");
+            assert_eq!(
+                error.to_string(),
+                "runtime startup diagnostic: component=runtime_app argument=--project requested=<empty> cause=missing project root path recovery=provide an existing Zircon project root after --project"
+            );
+        }
     }
 
     #[test]
@@ -326,7 +474,7 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
-            "--runtime-session-profile was provided more than once"
+            "runtime startup diagnostic: component=runtime_app argument=--runtime-session-profile requested=<multiple> cause=runtime session profile was provided more than once recovery=provide exactly one --runtime-session-profile value"
         );
     }
 
@@ -337,8 +485,24 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
-            "--runtime-session-profile requires runtime, editor, dev, minimal, or headless"
+            "runtime startup diagnostic: component=runtime_app argument=--runtime-session-profile requested=<missing> cause=missing runtime session profile recovery=provide runtime, runtime-pipelined, editor, dev, minimal, or headless after --runtime-session-profile"
         );
+    }
+
+    #[test]
+    fn runtime_session_args_reject_empty_profile_value() {
+        for args in [
+            vec!["--runtime-session-profile=".to_string()],
+            vec!["--runtime-session-profile".to_string(), "  ".to_string()],
+            vec!["--runtime-session-profile=  ".to_string()],
+        ] {
+            let error = parse_runtime_session_startup_args(args).unwrap_err();
+
+            assert_eq!(
+                error.to_string(),
+                "runtime startup diagnostic: component=runtime_app argument=--runtime-session-profile requested=<empty> cause=missing runtime session profile recovery=provide runtime, runtime-pipelined, editor, dev, minimal, or headless after --runtime-session-profile"
+            );
+        }
     }
 
     #[test]
@@ -350,7 +514,7 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
-            "unknown runtime session profile `debug-tools`; expected runtime, editor, dev, minimal, or headless"
+            "runtime startup diagnostic: component=runtime_app argument=--runtime-session-profile requested=debug-tools cause=unsupported runtime session profile recovery=choose runtime, runtime-pipelined, editor, dev, minimal, or headless"
         );
     }
 }

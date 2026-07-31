@@ -1,118 +1,105 @@
-use super::fixture::{
-    assert_absent, assert_contains, assert_ordered, slice_between, EventBusSources,
-};
+use super::fixture::{EventBusSources, assert_absent, assert_contains, assert_ordered};
 
 #[test]
-fn event_bus_publish_snapshots_before_delivery_and_moves_final_event() {
+fn event_bus_publish_shares_one_immutable_payload_under_a_per_topic_delivery_lock() {
     let sources = EventBusSources::load();
-    let publish_body = sources.publish_body();
-    let three_body = slice_between(
-        sources.publish,
-        "[first_subscriber, second_subscriber, third_subscriber] =>",
-        "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber] =>",
-    );
-    let four_body = slice_between(
-        sources.publish,
-        "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber] =>",
-        "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber, fifth_subscriber]",
-    );
-    let five_body = slice_between(
-        sources.publish,
-        "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber, fifth_subscriber]",
-        "[leading_subscribers @ .., last_subscriber]",
-    );
 
     assert_ordered(
-        publish_body,
-        &[
-            "let Some(subscribers) = self.snapshot_topic_subscribers(&event.topic) else",
-            "let _delivery_guard = self.lock_delivery();",
-            "match subscribers.as_ref()",
-            "[] => return,",
-            "[subscriber] =>",
-            "subscriber.send(event)",
-            "std::slice::from_ref(subscriber)",
-            "[first_subscriber, second_subscriber] =>",
-            "let subscriber_count = 2;",
-            "first_subscriber.send(event.clone())",
-            "second_subscriber.send(event)",
-            "self.prune_failed_publish_subscribers(",
-            "[first_subscriber, second_subscriber, third_subscriber] =>",
-            "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber] =>",
-            "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber, fifth_subscriber]",
-            "[leading_subscribers @ .., last_subscriber]",
-            "let subscriber_count = leading_subscribers.len() + 1;",
-            "for subscriber in leading_subscribers",
-            "subscriber.send(event.clone())",
-            "last_subscriber.send(event)",
-        ],
-    );
-    assert_ordered(
-        three_body,
-        &[
-            "let subscriber_count = 3;",
-            "first_subscriber.send(event.clone())",
-            "second_subscriber.send(event.clone())",
-            "third_subscriber.send(event)",
-            "self.prune_failed_publish_subscribers(",
-        ],
-    );
-    assert_ordered(
-        four_body,
-        &[
-            "let subscriber_count = 4;",
-            "first_subscriber.send(event.clone())",
-            "second_subscriber.send(event.clone())",
-            "third_subscriber.send(event.clone())",
-            "fourth_subscriber.send(event)",
-            "self.prune_failed_publish_subscribers(",
-        ],
-    );
-    assert_ordered(
-        five_body,
-        &[
-            "let subscriber_count = 5;",
-            "first_subscriber.send(event.clone())",
-            "second_subscriber.send(event.clone())",
-            "third_subscriber.send(event.clone())",
-            "fourth_subscriber.send(event.clone())",
-            "fifth_subscriber.send(event)",
-            "self.prune_failed_publish_subscribers(",
-        ],
-    );
-    assert_contains(
         sources.publish,
-        "fn snapshot_topic_subscribers(&self, topic: &str) -> Option<Arc<[ChannelSender<EngineEvent>]>>",
+        &[
+            "impl EventBus",
+            "pub fn publish(&self, event: EngineEvent)",
+            "self.state.publish(event);",
+            "pub fn diagnostic_report(&self)",
+            "self.state.diagnostic_report()",
+            "impl EventBusState",
+            "pub(super) fn publish(&self, event: EngineEvent)",
+            "self.diagnostics.record_published();",
+            "Arc::new(event)",
+            "let _delivery = if let Some(delivery) = topic.try_lock_delivery()",
+            "topic.snapshot_subscribers()",
+            "subscriber.deliver(Arc::clone(&event))",
+            "EventDeliveryStatus::Disconnected",
+            "topic.remove_subscribers_while_delivery_locked",
+            "self.remove_topic_if_empty(&topic);",
+            "self.diagnostics.record_publish_duration(started);",
+        ],
     );
-    assert_contains(
+    assert_contains(sources.subscriber, "event: Arc<EngineEvent>");
+    assert_absent(sources.publish, "ChannelSender<EngineEvent>");
+    assert_absent(sources.publish, "lock_subscribers()");
+    assert_absent(sources.publish, "event.clone()");
+}
+
+#[test]
+fn event_subscriber_linearizes_physical_queue_changes_with_depth_accounting() {
+    let sources = EventBusSources::load();
+
+    assert_contains(sources.subscriber, "queue: VecDeque<QueuedEngineEvent>");
+    assert_contains(sources.subscriber, "queue_ready: Condvar");
+    assert_ordered(
+        sources.subscriber,
+        &[
+            "let mut queue_state = self.lock_queue_state();",
+            "let dropped = queue_state",
+            ".pop_front()",
+            "record_overflow_drop",
+            "queue_state.queue.push_back",
+            "self.diagnostics.record_enqueued();",
+            "self.queue_ready.notify_one();",
+            "fn pop_front_while_locked",
+            "let queued = queue_state.queue.pop_front()?;",
+            "self.diagnostics.record_dequeued",
+        ],
+    );
+    assert_absent(sources.subscriber, "crossbeam_channel");
+    assert_absent(sources.subscriber, ".recv()");
+    assert_absent(sources.subscriber, ".try_recv()");
+}
+
+#[test]
+fn event_bus_diagnostics_measure_delivery_wait_and_skip_timestamps_when_disabled() {
+    let sources = EventBusSources::load();
+
+    assert_ordered(
         sources.publish,
-        "let subscribers = self.lock_subscribers();",
+        &[
+            "let started = self.diagnostics.capture_time();",
+            "self.diagnostics.record_published();",
+            "let _delivery = if let Some(delivery) = topic.try_lock_delivery()",
+            "delivery",
+            "} else {",
+            "let wait_started = self.diagnostics.capture_time();",
+            "self.diagnostics.record_publisher_waiting();",
+            "let delivery = topic.lock_delivery();",
+            "self.diagnostics.record_publisher_resumed(wait_started);",
+            "self.diagnostics.record_publish_duration(started);",
+        ],
     );
-    assert_contains(sources.publish, "let snapshot = subscribers.get(topic)?;");
-    assert_contains(sources.publish, "if snapshot.is_empty()");
-    assert_contains(sources.publish, "Some(snapshot.clone())");
+    assert_contains(sources.diagnostics, "enabled: bool");
+    assert_contains(sources.diagnostics, "self.enabled.then(Instant::now)");
+    assert_contains(sources.diagnostics, "if !self.enabled");
+    assert_contains(sources.diagnostics, "waiting_publishers: AtomicU64");
+    assert_contains(sources.diagnostics, "delivery_lock_wait_samples: AtomicU64");
+    assert_contains(sources.topic, "pub(super) fn try_lock_delivery(");
+    assert_contains(sources.topic, "Err(TryLockError::WouldBlock) => None");
     assert_contains(
-        sources.normalized_combined.as_str(),
-        "let snapshot = subscribers.get(topic)?;\n        if snapshot.is_empty()",
+        sources.topic,
+        "Err(TryLockError::Poisoned(poisoned)) => Some(poisoned.into_inner())",
     );
-    assert_absent(publish_body, "self.subscribers.lock()");
-    assert_absent(publish_body, "if subscribers.is_empty()");
-    assert_absent(publish_body, "let topic = event.topic.clone();");
-    assert_absent(publish_body, "if let [subscriber] = subscribers.as_ref()");
-    assert_absent(publish_body, "subscribers.split_last()");
-    assert_absent(
-        publish_body,
-        "for (index, subscriber) in subscribers.iter().enumerate()",
+    assert_ordered(
+        sources.diagnostics,
+        &[
+            "pub(super) fn snapshot(",
+            "if !self.enabled",
+            "return EventBusDiagnosticsSnapshot",
+            "..EventBusDiagnosticsSnapshot::default()",
+            "let queued = self.queued.load(Ordering::Acquire);",
+        ],
     );
-    assert_absent(publish_body, "if index + 1 == subscribers.len()");
-    assert_absent(publish_body, "let mut event = Some(event);");
-    assert_absent(publish_body, "event.take().unwrap()");
-    assert_absent(publish_body, "event.as_ref().unwrap().clone()");
-    assert_absent(publish_body, "let mut failed_subscribers = Vec::new();");
-    assert_absent(
-        publish_body,
-        "let mut failed_subscribers = Vec::with_capacity",
+    assert_contains(
+        sources.subscriber,
+        "queued_at: self.diagnostics.capture_time()",
     );
-    assert_absent(publish_body, "collect::<Vec<_>>()");
-    assert_absent(sources.publish, "unwrap_or_default()");
+    assert_absent(sources.publish, "Instant::now()");
 }

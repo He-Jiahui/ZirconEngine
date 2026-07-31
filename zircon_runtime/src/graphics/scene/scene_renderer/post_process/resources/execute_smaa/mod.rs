@@ -1,10 +1,6 @@
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
-use crate::graphics::scene::scene_renderer::post_process::resources::render_region::{
-    apply_physical_render_region_to_pass, create_local_terminal_region_params_buffer,
-    create_physical_terminal_region_params_buffer,
-};
-use crate::graphics::scene::scene_renderer::post_process::SMAA_STAGE_FORMAT;
+use crate::graphics::scene::scene_renderer::post_process::resources::render_region::apply_physical_render_region_to_pass;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -21,15 +17,11 @@ impl ScenePostProcessResources {
         attachment_ops: RenderGraphAttachmentOps,
         render_region: ViewportRenderRegion,
     ) {
-        let extent = wgpu::Extent3d {
-            width: viewport_size.x.max(1),
-            height: viewport_size.y.max(1),
-            depth_or_array_layers: 1,
-        };
-        let edge_texture = create_smaa_stage_texture(device, extent, "zircon-smaa-edges");
-        let edge_view = edge_texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let blend_texture = create_smaa_stage_texture(device, extent, "zircon-smaa-blend");
-        let blend_view = blend_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let stage_textures = self
+            .terminal_resource_cache
+            .smaa_stage_textures(device, viewport_size);
+        let edge_view = stage_textures.edge_view();
+        let blend_view = stage_textures.blend_view();
 
         let edge_bind_group = self.smaa_bind_group(
             device,
@@ -44,7 +36,7 @@ impl ScenePostProcessResources {
             "SmaaEdgePass",
             &self.smaa_edge_pipeline,
             &edge_bind_group,
-            &edge_view,
+            edge_view,
             RenderGraphAttachmentOps::clear_store(),
             None,
         );
@@ -53,7 +45,7 @@ impl ScenePostProcessResources {
             device,
             "zircon-smaa-blend-bind-group",
             terminal_input_view,
-            &edge_view,
+            edge_view,
             ViewportRenderRegion::default(),
             TerminalRegionSpace::Local,
         );
@@ -62,7 +54,7 @@ impl ScenePostProcessResources {
             "SmaaBlendPass",
             &self.smaa_blend_pipeline,
             &blend_bind_group,
-            &blend_view,
+            blend_view,
             RenderGraphAttachmentOps::clear_store(),
             None,
         );
@@ -71,7 +63,7 @@ impl ScenePostProcessResources {
             device,
             "zircon-smaa-resolve-bind-group",
             terminal_input_view,
-            &blend_view,
+            blend_view,
             render_region,
             TerminalRegionSpace::Physical,
         );
@@ -96,16 +88,12 @@ impl ScenePostProcessResources {
         region_space: TerminalRegionSpace,
     ) -> wgpu::BindGroup {
         let terminal_region_params_buffer = match region_space {
-            TerminalRegionSpace::Local => create_local_terminal_region_params_buffer(
-                device,
-                "zircon-smaa-terminal-region-params",
-                render_region,
-            ),
-            TerminalRegionSpace::Physical => create_physical_terminal_region_params_buffer(
-                device,
-                "zircon-smaa-terminal-region-params",
-                render_region,
-            ),
+            TerminalRegionSpace::Local => self
+                .terminal_resource_cache
+                .local_terminal_region_params_buffer(device),
+            TerminalRegionSpace::Physical => self
+                .terminal_resource_cache
+                .physical_terminal_region_params_buffer(device, render_region),
         };
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some(label),
@@ -173,26 +161,9 @@ enum TerminalRegionSpace {
     Physical,
 }
 
-fn create_smaa_stage_texture(
-    device: &wgpu::Device,
-    extent: wgpu::Extent3d,
-    label: &'static str,
-) -> wgpu::Texture {
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some(label),
-        size: extent,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: SMAA_STAGE_FORMAT,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[],
-    })
-}
-
 #[cfg(test)]
 mod tests {
-    use super::SMAA_STAGE_FORMAT;
+    use crate::graphics::scene::scene_renderer::post_process::SMAA_STAGE_FORMAT;
 
     #[test]
     fn smaa_stage_textures_store_edge_and_blend_weights() {

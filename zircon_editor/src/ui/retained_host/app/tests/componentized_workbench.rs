@@ -1,8 +1,17 @@
 use super::*;
 use crate::core::editor_event::{EditorEventTransient, EditorViewportEvent, SelectionHostEvent};
-use crate::scene::viewport::SceneViewportTool;
+use crate::scene::modes::SceneModeActivation;
+use crate::scene::viewport::TransformHandleKind;
 use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
-use zircon_runtime_interface::ui::tree::UiVisibility;
+use zircon_runtime_interface::ui::{
+    binding::UiEventKind,
+    component::{UiComponentEvent, UiValue},
+    dispatch::{
+        UiPointerComponentEvent, UiPointerComponentEventReason, UiTemplateActionInvocation,
+    },
+    event_ui::{UiNodeId, UiTreeId},
+    tree::UiVisibility,
+};
 
 const ASSET_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/windows/asset_window.zui";
 
@@ -44,9 +53,42 @@ fn root_componentized_workbench_surface_tool_click_updates_bridge_and_runtime() 
     ));
     assert_eq!(
         harness.delta_events_since(baseline),
-        vec![EditorEvent::Viewport(EditorViewportEvent::SetTool {
-            tool: SceneViewportTool::Scale,
-        })]
+        vec![EditorEvent::Viewport(
+            EditorViewportEvent::ActivateSceneMode {
+                mode: SceneModeActivation::Transform(TransformHandleKind::Scale),
+            }
+        )]
+    );
+}
+
+#[test]
+fn pointer_component_template_action_reaches_retained_host_operation_dispatch() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_retained_pointer_component_template_action");
+    let baseline = harness.journal_len();
+    let event = UiPointerComponentEvent::new(
+        &UiTreeId::new("editor.plugin.template"),
+        UiNodeId::new(7),
+        "PluginOpenProject",
+        "PluginOpenProject/Click",
+        UiEventKind::Click,
+        UiComponentEvent::Commit {
+            property: "activated".to_string(),
+            value: UiValue::Bool(true),
+        },
+        UiPointerComponentEventReason::DefaultClick,
+    )
+    .with_template_action(UiTemplateActionInvocation::new(
+        "file.project.open",
+        Default::default(),
+    ));
+
+    pane_surface_host(&harness.root_ui).invoke_pointer_component_event(event);
+
+    assert_eq!(
+        harness.delta_events_since(baseline),
+        vec![EditorEvent::WorkbenchMenu(MenuAction::OpenProject)]
     );
 }
 
@@ -162,9 +204,10 @@ fn componentized_workbench_surface_control_requires_active_workbench_window_temp
 
     let mut host = harness.host.borrow_mut();
     let selected_before = workbench_control_bool(&host, "WorkbenchToolScale", "selected");
-    assert!(host
-        .dispatch_componentized_workbench_surface_control("WorkbenchToolScale", "Tool/Scale")
-        .is_none());
+    assert!(
+        host.dispatch_componentized_workbench_surface_control("WorkbenchToolScale", "Tool/Scale")
+            .is_none()
+    );
     assert_eq!(
         workbench_control_bool(&host, "WorkbenchToolScale", "selected"),
         selected_before

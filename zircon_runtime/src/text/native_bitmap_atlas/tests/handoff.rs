@@ -1,4 +1,5 @@
 use super::*;
+use crate::text::atlas::GlyphAtlasBitmapRetryFrameSubmissionReport;
 
 #[test]
 fn native_bitmap_atlas_handoff_uses_single_storage_replacement() {
@@ -136,5 +137,96 @@ fn native_bitmap_atlas_glyphon_fallback_reports_incomplete_source_coverage() {
     assert_eq!(
         native_bitmap_atlas_glyphon_fallback_reason_for_report(&report),
         Some(NativeBitmapAtlasGlyphonFallbackReason::IncompleteSourceCoverage)
+    );
+}
+
+#[test]
+fn native_bitmap_atlas_glyphon_fallback_reports_terminal_retry_byte_budget_rejection() {
+    let report = NativeBitmapAtlasPrepareReport {
+        visible_raster_glyph_count: 1,
+        source_image_count: 0,
+        retry_submission: GlyphAtlasBitmapRetryFrameSubmissionReport {
+            rejected_new_source_count: 1,
+            rejected_new_source_byte_count: 1024 * 1024 + 1,
+            ..GlyphAtlasBitmapRetryFrameSubmissionReport::default()
+        },
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::GlyphonFallback
+    );
+    assert_eq!(
+        native_bitmap_atlas_glyphon_fallback_reason_for_report(&report),
+        Some(NativeBitmapAtlasGlyphonFallbackReason::RetryByteBudgetRejected)
+    );
+    assert_eq!(
+        native_bitmap_atlas_first_frame_degradation_for_report(&report),
+        Some(NativeBitmapAtlasFirstFrameDegradation::GlyphonFallback)
+    );
+}
+
+#[test]
+fn native_bitmap_atlas_byte_budget_rejection_overrides_unrelated_placeholder_work() {
+    let report = NativeBitmapAtlasPrepareReport {
+        visible_raster_glyph_count: 2,
+        source_image_count: 1,
+        storage_submission_visible_glyph_count: 1,
+        submission: GlyphAtlasBitmapRenderSubmissionReport {
+            visible_placeholder_count: 1,
+            ..GlyphAtlasBitmapRenderSubmissionReport::default()
+        },
+        retry_submission: GlyphAtlasBitmapRetryFrameSubmissionReport {
+            rejected_new_source_count: 1,
+            rejected_new_source_byte_count: 1024 * 1024 + 1,
+            ..GlyphAtlasBitmapRetryFrameSubmissionReport::default()
+        },
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::GlyphonFallback
+    );
+    assert_eq!(
+        native_bitmap_atlas_glyphon_fallback_reason_for_report(&report),
+        Some(NativeBitmapAtlasGlyphonFallbackReason::RetryByteBudgetRejected)
+    );
+    assert_eq!(
+        native_bitmap_atlas_first_frame_degradation_for_report(&report),
+        Some(NativeBitmapAtlasFirstFrameDegradation::GlyphonFallback)
+    );
+}
+
+#[test]
+fn native_bitmap_atlas_retry_queue_overflow_overrides_placeholder_work() {
+    let report = NativeBitmapAtlasPrepareReport {
+        visible_raster_glyph_count: 2,
+        source_image_count: 1,
+        storage_submission_visible_glyph_count: 1,
+        submission: GlyphAtlasBitmapRenderSubmissionReport {
+            visible_placeholder_count: 1,
+            ..GlyphAtlasBitmapRenderSubmissionReport::default()
+        },
+        retry_state: GlyphAtlasBitmapRetryFrameStateReport {
+            queue_overflow_blocked_glyph_count: 1,
+            queue_overflow_blocked_source_byte_count: 64,
+            ..GlyphAtlasBitmapRetryFrameStateReport::default()
+        },
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::GlyphonFallback
+    );
+    assert_eq!(
+        native_bitmap_atlas_glyphon_fallback_reason_for_report(&report),
+        Some(NativeBitmapAtlasGlyphonFallbackReason::RetryQueueCapacityExceeded)
+    );
+    assert_eq!(
+        native_bitmap_atlas_first_frame_degradation_for_report(&report),
+        Some(NativeBitmapAtlasFirstFrameDegradation::GlyphonFallback)
     );
 }

@@ -1,0 +1,18 @@
+// Pure projection of the source delveDetectMult Candleblind branch.
+var content = %import("instances/delve_candleblind_content");
+
+pub detectionMultiplier(candleblindActive: bool): float {
+    return content.detectionMultiplier(candleblindActive);
+}
+
+pub requiresActiveAffix(): bool {
+    return content.requiresActiveAffix(true);
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || detectionMultiplier(false) != 1.0 ||
+        detectionMultiplier(true) != 0.65 || !requiresActiveAffix()) {
+        return -1;
+    }
+    return 1;
+}

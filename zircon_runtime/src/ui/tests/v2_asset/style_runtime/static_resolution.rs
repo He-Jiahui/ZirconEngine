@@ -1,4 +1,5 @@
 use super::super::*;
+use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
 #[test]
 fn ui_v2_style_specificity_and_pseudo_state_are_resolved() {
@@ -33,6 +34,101 @@ fn ui_v2_style_specificity_and_pseudo_state_are_resolved() {
 
     assert_eq!(root.self_values["fg"].as_str(), Some("#6750a4"));
     assert_eq!(root.self_values["radius"].as_str(), Some("6"));
+}
+
+#[test]
+fn ui_v2_style_id_specificity_exceeds_any_number_of_class_selectors() {
+    let mut document = v2_document("asset://ui/tests/style_id_specificity.v2.ui", "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            control_id: Some("RunButton".to_string()),
+            classes: vec![
+                "one".to_string(),
+                "two".to_string(),
+                "three".to_string(),
+                "four".to_string(),
+                "five".to_string(),
+                "six".to_string(),
+                "seven".to_string(),
+                "eight".to_string(),
+                "nine".to_string(),
+                "ten".to_string(),
+            ],
+            ..Default::default()
+        },
+    );
+    document.stylesheets.push(UiV2StyleSheet {
+        id: "specificity".to_string(),
+        rules: vec![
+            style_rule("#RunButton", [("foreground", "#ffffff")]),
+            style_rule(
+                ".one.two.three.four.five.six.seven.eight.nine.ten",
+                [("foreground", "#ff0000")],
+            ),
+        ],
+    });
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let resolved = UiV2StyleResolver::resolve(&document, &compiled.arena).unwrap();
+
+    assert_eq!(
+        resolved.nodes["root"].self_values["foreground"].as_str(),
+        Some("#ffffff")
+    );
+}
+
+#[test]
+fn ui_v2_style_resolver_registers_editor_tokens_for_css_custom_properties() {
+    let mut document = v2_document("asset://ui/tests/editor_token_style.v2.ui", "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            ..Default::default()
+        },
+    );
+    document.stylesheets.push(UiV2StyleSheet {
+        id: "editor_tokens".to_string(),
+        rules: vec![style_rule(
+            "Button",
+            [
+                ("background", "var(--editor-surface-1)"),
+                ("focused_background", "var(--editor-state-focused)"),
+            ],
+        )],
+    });
+    document.tokens.insert(
+        "editor.obsolete".to_string(),
+        Value::String("#ff00ff".to_string()),
+    );
+    document.tokens.insert(
+        "--editor-obsolete".to_string(),
+        Value::String("$editor.obsolete".to_string()),
+    );
+    UiV2StyleResolver::register_editor_design_tokens(
+        &mut document,
+        &EditorDesignTokens::workbench_dark(),
+    );
+    assert!(!document.tokens.contains_key("editor.obsolete"));
+    assert!(!document.tokens.contains_key("--editor-obsolete"));
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let resolved = UiV2StyleResolver::resolve(&document, &compiled.arena).unwrap();
+    let root = &resolved.nodes["root"];
+
+    assert_eq!(root.self_values["background"].as_str(), Some("#171a1d"));
+    assert_eq!(
+        root.self_values["focused_background"].as_str(),
+        Some("#173942")
+    );
+    assert_eq!(
+        root.style_tokens
+            .get("focused_background")
+            .map(String::as_str),
+        Some("token.--editor-state-focused -> token.editor.state.focused -> token.editor.surface.selected")
+    );
 }
 
 #[test]

@@ -146,6 +146,18 @@ fn render_mesh_phase_projection_consumes_entries_without_cloning_snapshots() {
         !source.contains("fn material_property_overrides_for_meshes"),
         "visible mesh overrides must be captured once while their MeshRenderer is already borrowed, not re-looked-up and cloned once per primitive"
     );
+    let snapshot_visitor = source
+        .split("fn visit_render_mesh_snapshots_for_camera")
+        .nth(1)
+        .and_then(|text| text.split("fn collect_render_sprites").next())
+        .expect("read render mesh snapshot visitor");
+    assert_eq!(
+        snapshot_visitor
+            .matches("render_mesh_transform_revision(&transform)")
+            .count(),
+        1,
+        "a multi-primitive mesh must hash its shared transform once per entity, not once per primitive"
+    );
 }
 
 #[test]

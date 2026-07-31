@@ -1,0 +1,13 @@
+[package]
+name = "woc_parity"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Golden trace orchestration for the WOC reconstruction."
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+woc_protocol.workspace = true

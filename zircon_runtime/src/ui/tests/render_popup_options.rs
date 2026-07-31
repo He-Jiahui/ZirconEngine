@@ -8,6 +8,21 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+fn popup_option_rendering_reuses_position_and_avoids_parser_allocations() {
+    let options = include_str!("../surface/render/popup_options.rs");
+    let position = include_str!("../surface/render/popup_position.rs");
+
+    assert!(
+        !options.contains("option_row_frame_within"),
+        "popup row frames should derive from the already-resolved popup frame"
+    );
+    assert!(
+        !position.contains("to_ascii_lowercase") && !position.contains(".replace("),
+        "popup placement parsing should compare normalized separators without allocating"
+    );
+}
+
+#[test]
 fn render_extract_expands_open_dropdown_options() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.popup_options"));
     surface.tree.insert_root(

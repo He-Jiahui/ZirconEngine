@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var duel = %import("social/duel_state");
+
+console.printLine("m6-duel-state-test");
+var result = duel.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

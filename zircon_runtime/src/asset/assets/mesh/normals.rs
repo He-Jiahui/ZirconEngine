@@ -88,17 +88,9 @@ fn smooth_normals_for_positions_and_indices(
     indices: &MeshIndices,
 ) -> Vec<[f32; 3]> {
     let mut normal_sums = vec![[0.0, 0.0, 0.0]; positions.len()];
-    for triangle in indices.to_u32_vec().chunks_exact(3) {
-        accumulate_angle_weighted_triangle_normal(
-            [
-                triangle[0] as usize,
-                triangle[1] as usize,
-                triangle[2] as usize,
-            ],
-            positions,
-            &mut normal_sums,
-        );
-    }
+    indices.for_each_triangle(|triangle| {
+        accumulate_angle_weighted_triangle_normal(triangle, positions, &mut normal_sums);
+    });
     normal_sums.into_iter().map(normalize).collect()
 }
 

@@ -1,0 +1,29 @@
+// Generated Delve member-entry horizontal placement contract.
+// Terrain height remains a host/world query after this source-derived offset.
+pub partyMaxMembers(required: bool): int {
+    if (!required) { throw "woc Delve party limit is required"; }
+    return 2;
+}
+
+pub spawnSpread(required: bool): float {
+    if (!required) { throw "woc Delve spawn spread is required"; }
+    return 2.2;
+}
+
+pub slotOffsetCoordinate(slotIndex: int, axis: int, required: bool): float {
+    if (!required) { throw "woc Delve member spawn is required"; }
+    if (slotIndex < 0 || slotIndex >= partyMaxMembers(true)) {
+        throw "woc Delve member slot is outside the source solo/duo limit";
+    }
+    if (axis != 1 && axis != 2) { throw "woc Delve member spawn axis is invalid"; }
+    if (slotIndex == 0) { return 0.0; }
+    return axis == 1 ? 1.1000000000000003 : 1.905255888325765;
+}
+
+pub contractTest(): int {
+    return partyMaxMembers(true) == 2 && spawnSpread(true) == 2.2 &&
+        slotOffsetCoordinate(0, 1, true) == 0.0 &&
+        slotOffsetCoordinate(0, 2, true) == 0.0 &&
+        slotOffsetCoordinate(1, 1, true) == 1.1000000000000003 &&
+        slotOffsetCoordinate(1, 2, true) == 1.905255888325765 ? 1 : -1;
+}

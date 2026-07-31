@@ -1,0 +1,829 @@
+// Stateful M4 projection of the ordinary post-mitigation damage route. PvP
+// terminal modes and full death-credit/progression teardown remain separate
+// owners; this module preserves the common path they enter before branching.
+var container = %import("zr.container");
+var pvpPower = %import("combat/pvp_power_state");
+var forms = %import("combat/forms_state");
+var formDerived = %import("combat/form_derived_stats");
+
+class Combatant {
+    pub var id: uint;
+    pub var kind: string;
+    pub var hasOwner: bool;
+    pub var ownerId: uint;
+    pub var dead: bool;
+    pub var gm: bool;
+    pub var devGod: bool;
+    pub var wildEvading: bool;
+    pub var hostile: bool;
+    pub var leaving: bool;
+    pub var rareOrWorldBoss: bool;
+    pub var hp: int;
+    pub var maxHp: int;
+    pub var level: int;
+    pub var resourceType: string;
+    pub var resource: float;
+    pub var maxResource: float;
+    pub var stealthed: bool;
+    pub var inCombat: bool;
+    pub var eating: bool;
+    pub var drinking: bool;
+    pub var sitting: bool;
+    pub var hasCastingAbility: bool;
+    pub var castingAbility: string;
+    pub var channeling: bool;
+    pub var castRemaining: float;
+    pub var castTotal: float;
+    pub var castPushbackReduction: float;
+    pub var damageDealt: int;
+    pub var damageTaken: int;
+    pub var threat: float;
+    pub var pvpOffense: float;
+    pub var pvpDefense: float;
+    pub var hasTap: bool;
+    pub var tappedById: uint;
+    pub var contributorIds: container.Array<uint>;
+    pub var frenzyOnHit: bool;
+    pub var frenzyChance: float;
+    pub var frenzyHaste: float;
+    pub var frenzyDuration: float;
+    pub var spellReflectValue: int;
+    pub var spellReflectSchool: string;
+    // WOS40 is the authority for active forms. Legacy isolated tests can still
+    // supply form auras when this value is zero.
+    pub var activeFormAbilityCode: uint;
+    pub var auraIds: container.Array<string>;
+    pub var auraKinds: container.Array<string>;
+    pub var auraValues: container.Array<float>;
+    pub var auraRemaining: container.Array<float>;
+    pub var auraBreaksOnDamage: container.Array<bool>;
+    // Zero retains classic instant break-on-damage; positive values are the
+    // source breakChanceScale denominator fraction of maximum health.
+    pub var auraBreakChanceScales: container.Array<float>;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.kind = "mob";
+        this.hasOwner = false;
+        this.ownerId = <uint>0;
+        this.dead = false;
+        this.gm = false;
+        this.devGod = false;
+        this.wildEvading = false;
+        this.hostile = false;
+        this.leaving = false;
+        this.rareOrWorldBoss = false;
+        this.hp = 100;
+        this.maxHp = 100;
+        this.level = 1;
+        this.resourceType = "mana";
+        this.resource = 0.0;
+        this.maxResource = 100.0;
+        this.stealthed = false;
+        this.inCombat = false;
+        this.eating = false;
+        this.drinking = false;
+        this.sitting = false;
+        this.hasCastingAbility = false;
+        this.castingAbility = "";
+        this.channeling = false;
+        this.castRemaining = 0.0;
+        this.castTotal = 0.0;
+        this.castPushbackReduction = 0.0;
+        this.damageDealt = 0;
+        this.damageTaken = 0;
+        this.threat = 0.0;
+        this.pvpOffense = 0.0;
+        this.pvpDefense = 0.0;
+        this.hasTap = false;
+        this.tappedById = <uint>0;
+        this.contributorIds = new container.Array<uint>();
+        this.frenzyOnHit = false;
+        this.frenzyChance = 0.0;
+        this.frenzyHaste = 1.0;
+        this.frenzyDuration = 0.0;
+        this.spellReflectValue = 0;
+        this.spellReflectSchool = "shadow";
+        this.activeFormAbilityCode = <uint>0;
+        this.auraIds = new container.Array<string>();
+        this.auraKinds = new container.Array<string>();
+        this.auraValues = new container.Array<float>();
+        this.auraRemaining = new container.Array<float>();
+        this.auraBreaksOnDamage = new container.Array<bool>();
+        this.auraBreakChanceScales = new container.Array<float>();
+    }
+
+    pub addAura(
+        id: string,
+        kind: string,
+        value: float,
+        remaining: float,
+        breaksOnDamage: bool
+    ): void {
+        this.addAuraWithBreakChance(
+            id,
+            kind,
+            value,
+            remaining,
+            breaksOnDamage,
+            0.0
+        );
+    }
+
+    pub addAuraWithBreakChance(
+        id: string,
+        kind: string,
+        value: float,
+        remaining: float,
+        breaksOnDamage: bool,
+        breakChanceScale: float
+    ): void {
+        this.auraIds.add(id);
+        this.auraKinds.add(kind);
+        this.auraValues.add(value);
+        this.auraRemaining.add(remaining);
+        this.auraBreaksOnDamage.add(breaksOnDamage);
+        this.auraBreakChanceScales.add(breakChanceScale);
+        if (kind == "stealth") { this.stealthed = true; }
+    }
+}
+
+class DamageHit {
+    pub var sourcePresent: bool;
+    pub var amount: int;
+    pub var crit: bool;
+    pub var school: string;
+    pub var kind: string;
+    pub var hasAbility: bool;
+    pub var ability: string;
+    pub var noRage: bool;
+    pub var direct: bool;
+    pub var alreadyFinal: bool;
+    pub var devCommands: bool;
+    pub var hostileRelationship: bool;
+    pub var threatFlat: float;
+    pub var threatMultiplier: float;
+
+    pub @constructor() {
+        this.sourcePresent = true;
+        this.amount = 0;
+        this.crit = false;
+        this.school = "physical";
+        this.kind = "hit";
+        this.hasAbility = false;
+        this.ability = "";
+        this.noRage = false;
+        this.direct = true;
+        this.alreadyFinal = false;
+        this.devCommands = false;
+        this.hostileRelationship = true;
+        this.threatFlat = 0.0;
+        this.threatMultiplier = 1.0;
+    }
+}
+
+class DamageEvents {
+    pub var damageEvents: int;
+    pub var healEvents: int;
+    pub var auraLostEvents: int;
+    pub var deathEvents: int;
+    pub var leashRefreshes: int;
+    pub var cancelCastEvents: int;
+    pub var pushbackCastEvents: int;
+    pub var frenzyRandomDraws: int;
+    pub var frenzyGainedEvents: int;
+    pub var reflectEvents: int;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var eventOrder: container.Array<int>;
+
+    pub @constructor() {
+        this.damageEvents = 0;
+        this.healEvents = 0;
+        this.auraLostEvents = 0;
+        this.deathEvents = 0;
+        this.leashRefreshes = 0;
+        this.cancelCastEvents = 0;
+        this.pushbackCastEvents = 0;
+        this.frenzyRandomDraws = 0;
+        this.frenzyGainedEvents = 0;
+        this.reflectEvents = 0;
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.eventOrder = new container.Array<int>();
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+removeAuraAt(entity: Combatant, index: int): void {
+    entity.auraIds.removeAt(index);
+    entity.auraKinds.removeAt(index);
+    entity.auraValues.removeAt(index);
+    entity.auraRemaining.removeAt(index);
+    entity.auraBreaksOnDamage.removeAt(index);
+    entity.auraBreakChanceScales.removeAt(index);
+}
+
+removeAuraWithEvent(entity: Combatant, index: int, events: DamageEvents): void {
+    removeAuraAt(entity, index);
+    events.auraLostEvents = events.auraLostEvents + 1;
+    events.eventOrder.add(1);
+}
+
+findAura(entity: Combatant, kind: string): int {
+    var index = 0;
+    while (index < entity.auraKinds.length) {
+        if (<string>entity.auraKinds[index] == kind) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+sumAuras(entity: Combatant, kind: string): float {
+    var result = 0.0;
+    var index = 0;
+    while (index < entity.auraKinds.length) {
+        if (<string>entity.auraKinds[index] == kind) {
+            result = result + <float>entity.auraValues[index];
+        }
+        index = index + 1;
+    }
+    return result;
+}
+
+maxAura(entity: Combatant, kind: string): float {
+    var result = 0.0;
+    var index = 0;
+    while (index < entity.auraKinds.length) {
+        if (<string>entity.auraKinds[index] == kind &&
+            <float>entity.auraValues[index] > result) {
+            result = <float>entity.auraValues[index];
+        }
+        index = index + 1;
+    }
+    return result;
+}
+
+productReduction(entity: Combatant, kind: string): float {
+    var result = 1.0;
+    var index = 0;
+    while (index < entity.auraKinds.length) {
+        if (<string>entity.auraKinds[index] == kind) {
+            result = result * (1.0 - <float>entity.auraValues[index]);
+        }
+        index = index + 1;
+    }
+    return result < 0.0 ? 0.0 : result;
+}
+
+hasActiveFormState(source: Combatant): bool {
+    return forms.isFormAbilityCode(source.activeFormAbilityCode);
+}
+
+threatModifier(source: Combatant, school: string): float {
+    var result = 1.0;
+    var activeFormState = hasActiveFormState(source);
+    var index = 0;
+    while (index < source.auraKinds.length) {
+        var kind = <string>source.auraKinds[index];
+        if (kind == "defensive_stance") {
+            result = result * 1.3;
+        } else if (kind == "righteous_fury" && school == "holy") {
+            result = result * 1.6;
+        } else {
+            var auraFormCode = forms.formAbilityCode(kind);
+            if (!activeFormState && auraFormCode != <uint>0) {
+                result = result * formDerived.formThreatMultiplier(auraFormCode);
+            }
+        }
+        index = index + 1;
+    }
+    if (activeFormState) {
+        result = result * formDerived.formThreatMultiplier(source.activeFormAbilityCode);
+    }
+    return result;
+}
+
+rageConversion(level: int): float {
+    var value = <float>level;
+    return 0.0091 * value * value + 3.23 * value + 4.27;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+addContributor(target: Combatant, contributorId: uint): void {
+    var index = 0;
+    while (index < target.contributorIds.length) {
+        if (<uint>target.contributorIds[index] == contributorId) { return; }
+        index = index + 1;
+    }
+    target.contributorIds.add(contributorId);
+}
+
+takeRandomUnit(events: DamageEvents): float {
+    if (events.randomIndex < 0 || events.randomIndex >= events.randomUnits.length) {
+        throw "damage random stream is exhausted";
+    }
+    var result = <float>events.randomUnits[events.randomIndex];
+    events.randomIndex = events.randomIndex + 1;
+    return result;
+}
+
+takeFrenzyRandomUnit(events: DamageEvents): float {
+    var result = takeRandomUnit(events);
+    events.frenzyRandomDraws = events.frenzyRandomDraws + 1;
+    return result;
+}
+
+breakStealth(entity: Combatant, events: DamageEvents): void {
+    var index = findAura(entity, "stealth");
+    if (index < 0) { return; }
+    removeAuraWithEvent(entity, index, events);
+    entity.stealthed = false;
+}
+
+handleNormalDeath(entity: Combatant, events: DamageEvents): void {
+    entity.dead = true;
+    entity.hp = 0;
+    while (entity.auraIds.length > 0) {
+        removeAuraAt(entity, entity.auraIds.length - 1);
+    }
+    entity.hasCastingAbility = false;
+    events.deathEvents = events.deathEvents + 1;
+    events.eventOrder.add(5);
+}
+
+maybeFrenzy(
+    source: Combatant,
+    target: Combatant,
+    hit: DamageHit,
+    amount: int,
+    events: DamageEvents
+): void {
+    if (!target.frenzyOnHit || target.kind != "mob" || !target.hostile ||
+        target.hasOwner || !hit.sourcePresent || source.id == target.id ||
+        (source.kind != "player" && !source.hasOwner)) {
+        return;
+    }
+    if (takeFrenzyRandomUnit(events) >= target.frenzyChance) { return; }
+    var existing = 0;
+    while (existing < target.auraIds.length) {
+        if (<string>target.auraIds[existing] == "blood_frenzy") {
+            target.auraRemaining[existing] = target.frenzyDuration;
+            return;
+        }
+        existing = existing + 1;
+    }
+    target.addAura(
+        "blood_frenzy",
+        "buff_haste",
+        target.frenzyHaste,
+        target.frenzyDuration,
+        false
+    );
+    events.frenzyGainedEvents = events.frenzyGainedEvents + 1;
+    events.eventOrder.add(6);
+}
+
+pub applyDamage(
+    source: Combatant,
+    target: Combatant,
+    hit: DamageHit,
+    events: DamageEvents
+): int {
+    if (target.dead || target.gm || target.devGod || target.wildEvading) { return 0; }
+    var amount = hit.amount > 0 ? hit.amount : 0;
+    if (hit.sourcePresent && source.devGod && source.kind == "player" && hit.devCommands) {
+        amount = amount * 100;
+    }
+    var different = hit.sourcePresent && source.id != target.id;
+    if (!hit.alreadyFinal && different && findAura(source, "defensive_stance") >= 0) {
+        amount = roundPositive(<float>amount * 0.9);
+    }
+    if (different && findAura(target, "defensive_stance") >= 0) {
+        amount = roundPositive(<float>amount * 0.9);
+    }
+    // WARFARE is a hostile player-versus-player modifier only. It receives
+    // post-mitigation damage and applies before shield absorption, matching
+    // the source order. Pets, friendly effects, self-damage and PvE stay
+    // byte-identical to the pre-WARFARE path.
+    if (amount > 0 && hit.sourcePresent && source.kind == "player" &&
+        target.kind == "player" && source.id != target.id &&
+        hit.hostileRelationship) {
+        amount = roundPositive(<float>amount *
+            pvpPower.pvpDamageMultiplier(source.pvpOffense, target.pvpDefense));
+    }
+    var shieldWall = maxAura(target, "shield_wall");
+    if (amount > 0 && shieldWall > 0.0) {
+        amount = roundPositive(<float>amount * (1.0 - shieldWall));
+    }
+    if (amount > 0 && hit.school == "physical") {
+        var expose = sumAuras(target, "expose");
+        if (expose != 0.0) { amount = roundPositive(<float>amount * (1.0 + expose)); }
+    }
+    if (amount > 0 && hit.school != "physical" && hit.school != "holy") {
+        var spellVulnerability = sumAuras(target, "spellvuln");
+        if (spellVulnerability > 0.0) {
+            amount = roundPositive(<float>amount * (1.0 + spellVulnerability));
+        }
+    }
+    if (amount > 0) {
+        var vulnerability = sumAuras(target, "vulnerability");
+        if (vulnerability > 0.0) {
+            amount = roundPositive(<float>amount * (1.0 + vulnerability));
+        }
+    }
+    if (!hit.alreadyFinal && different) {
+        var hexMultiplier = productReduction(source, "hex");
+        if (hexMultiplier != 1.0) {
+            amount = roundPositive(<float>amount * hexMultiplier);
+        }
+    }
+    if (!hit.alreadyFinal && hit.sourcePresent && hit.school == "shadow" && amount > 0) {
+        if (hasActiveFormState(source)) {
+            amount = formDerived.applyShadowFormDamage(
+                amount, hit.school, source.activeFormAbilityCode, hit.alreadyFinal
+            );
+        } else {
+            var shadowForm = findAura(source, "form_shadow");
+            if (shadowForm >= 0) {
+                amount = roundPositive(
+                    <float>amount * (1.0 + <float>source.auraValues[shadowForm] / 100.0)
+                );
+            }
+        }
+    }
+    if (hit.crit && amount > 0 && different) {
+        var critVulnerability = maxAura(target, "critvuln");
+        if (critVulnerability > 0.0) {
+            amount = roundPositive(<float>amount * (1.0 + critVulnerability));
+        }
+    }
+
+    var absorbIndex = target.auraIds.length - 1;
+    while (absorbIndex >= 0 && amount > 0) {
+        if (<string>target.auraKinds[absorbIndex] == "absorb") {
+            var budget = <float>target.auraValues[absorbIndex];
+            var soaked = budget < <float>amount ? budget : <float>amount;
+            target.auraValues[absorbIndex] = budget - soaked;
+            amount = amount - <int>soaked;
+            if (<float>target.auraValues[absorbIndex] <= 0.0) {
+                removeAuraWithEvent(target, absorbIndex, events);
+            }
+        }
+        absorbIndex = absorbIndex - 1;
+    }
+
+    var guardianRestore = 0;
+    if (amount > 0 && target.kind == "player" && different &&
+        hit.hostileRelationship && target.hp - amount <= 0) {
+        var guardian = findAura(target, "guardian_ward");
+        if (guardian >= 0) {
+            var restoreFraction = <float>target.auraValues[guardian];
+            removeAuraWithEvent(target, guardian, events);
+            amount = target.hp > 0 ? target.hp : 0;
+            guardianRestore = roundPositive(<float>target.maxHp * restoreFraction);
+            if (guardianRestore < 1) { guardianRestore = 1; }
+        }
+    }
+
+    target.hp = guardianRestore > 0 ? guardianRestore : target.hp - amount;
+    if (target.hp < 0) { target.hp = 0; }
+    events.damageEvents = events.damageEvents + 1;
+    events.eventOrder.add(2);
+    if (guardianRestore > 0) {
+        events.healEvents = events.healEvents + 1;
+        events.eventOrder.add(3);
+    }
+
+    if (amount > 0) {
+        var breakIndex = target.auraIds.length - 1;
+        while (breakIndex >= 0) {
+            if (<bool>target.auraBreaksOnDamage[breakIndex]) {
+                var breakChanceScale = <float>target.auraBreakChanceScales[breakIndex];
+                if (breakChanceScale > 0.0 && target.maxHp > 0) {
+                    var breakChance = <float>amount /
+                        (breakChanceScale * <float>target.maxHp);
+                    if (breakChance > 1.0) { breakChance = 1.0; }
+                    if (takeRandomUnit(events) >= breakChance) {
+                        breakIndex = breakIndex - 1;
+                        continue;
+                    }
+                }
+                removeAuraWithEvent(target, breakIndex, events);
+            }
+            breakIndex = breakIndex - 1;
+        }
+        breakStealth(target, events);
+        if (different) { breakStealth(source, events); }
+    }
+    if (different) {
+        source.inCombat = true;
+        target.inCombat = true;
+    }
+    if (hit.direct) { events.leashRefreshes = events.leashRefreshes + 1; }
+
+    if (different && target.kind == "mob" && target.hostile &&
+        (source.kind == "player" || source.hasOwner)) {
+        var threat = (<float>amount * hit.threatMultiplier + hit.threatFlat) *
+            threatModifier(source, hit.school);
+        if (threat > 0.0) { target.threat = target.threat + threat; }
+    }
+    if (hit.sourcePresent && target.kind == "mob" && target.hostile &&
+        !target.hasTap && amount > 0 && !source.leaving &&
+        (source.kind == "player" || source.hasOwner)) {
+        target.hasTap = true;
+        target.tappedById = source.kind == "player" ? source.id : source.ownerId;
+    }
+    if (hit.sourcePresent && amount > 0 && target.rareOrWorldBoss &&
+        (source.kind == "player" || source.hasOwner)) {
+        addContributor(target, source.kind == "player" ? source.id : source.ownerId);
+    }
+
+    if (different && source.kind == "player") {
+        source.damageDealt = source.damageDealt + amount;
+        if (source.resourceType == "rage" && !hit.noRage &&
+            hit.school == "physical" && !hit.hasAbility) {
+            source.resource = source.resource + 7.5 * <float>amount / rageConversion(source.level);
+            if (source.resource > source.maxResource) { source.resource = source.maxResource; }
+        }
+    }
+    if (target.kind == "player") {
+        target.damageTaken = target.damageTaken + amount;
+        if (target.resourceType == "rage" && different) {
+            var attackerLevel = source.level > 1 ? source.level : 1;
+            target.resource = target.resource + <float>amount / (<float>attackerLevel * 1.5);
+            if (target.resource > target.maxResource) { target.resource = target.maxResource; }
+        }
+        target.eating = false;
+        target.drinking = false;
+        target.sitting = false;
+        if (target.hasCastingAbility && different && amount > 0 && hit.kind == "hit") {
+            if (target.castingAbility == "fishing") {
+                target.hasCastingAbility = false;
+                events.cancelCastEvents = events.cancelCastEvents + 1;
+            } else if (target.castingAbility != "ghost_wolf" &&
+                findAura(target, "cast_shield") < 0) {
+                var factor = 1.0 - target.castPushbackReduction;
+                if (factor > 0.0) {
+                    if (target.channeling) {
+                        target.castRemaining = target.castRemaining -
+                            target.castTotal * 0.25 * factor;
+                        if (target.castRemaining < 0.0) { target.castRemaining = 0.0; }
+                    } else {
+                        target.castRemaining = target.castRemaining + 0.5 * factor;
+                        target.castTotal = target.castTotal + 0.5 * factor;
+                    }
+                    events.pushbackCastEvents = events.pushbackCastEvents + 1;
+                }
+            }
+        }
+    }
+
+    if (hit.kind == "hit" && amount > 0 && !target.dead && target.hp > 0) {
+        maybeFrenzy(source, target, hit, amount, events);
+    }
+    if (hit.sourcePresent && source.kind == "player" && different &&
+        target.kind == "mob" && target.hp > 0 && hit.kind == "hit" &&
+        amount > 0 && hit.school != "physical" && target.spellReflectValue > 0) {
+        var reflected = new DamageHit();
+        reflected.amount = target.spellReflectValue;
+        reflected.school = target.spellReflectSchool;
+        reflected.noRage = true;
+        reflected.hostileRelationship = true;
+        events.reflectEvents = events.reflectEvents + 1;
+        applyDamage(target, source, reflected, events);
+    }
+    if (target.hp <= 0 && !target.dead) { handleNormalDeath(target, events); }
+    return amount;
+}
+
+makeEntity(id: uint, kind: string, hp: int): Combatant {
+    var result = new Combatant();
+    result.id = id;
+    result.kind = kind;
+    result.hp = hp;
+    result.maxHp = hp;
+    result.hostile = kind == "mob";
+    return result;
+}
+
+basicHit(amount: int, school: string): DamageHit {
+    var result = new DamageHit();
+    result.amount = amount;
+    result.school = school;
+    return result;
+}
+
+pub contractTest(): int {
+    var source = makeEntity(<uint>1, "player", 5000);
+    var target = makeEntity(<uint>2, "mob", 5000);
+    source.addAura("stance", "defensive_stance", 0.0, 30.0, false);
+    source.addAura("hex", "hex", 0.2, 10.0, false);
+    source.addAura("shadow", "form_shadow", 15.0, 30.0, false);
+    target.addAura("target_stance", "defensive_stance", 0.0, 30.0, false);
+    target.addAura("wall", "shield_wall", 0.4, 8.0, false);
+    target.addAura("spell", "spellvuln", 0.2, 8.0, false);
+    target.addAura("frailty", "vulnerability", 0.5, 8.0, false);
+    target.addAura("critical", "critvuln", 0.5, 8.0, false);
+    target.addAura("absorb_small", "absorb", 100.0, 8.0, false);
+    target.addAura("absorb_large", "absorb", 200.0, 8.0, false);
+    var hit = basicHit(1000, "shadow");
+    hit.crit = true;
+    var events = new DamageEvents();
+    if (applyDamage(source, target, hit, events) != 908 || target.hp != 4092 ||
+        findAura(target, "absorb") >= 0 || events.auraLostEvents != 2) {
+        return -1;
+    }
+
+    var physicalSource = makeEntity(<uint>4, "player", 1000);
+    var physicalTarget = makeEntity(<uint>3, "mob", 1000);
+    physicalTarget.addAura("expose_a", "expose", 0.18, 8.0, false);
+    physicalTarget.addAura("expose_b", "expose", 0.18, 8.0, false);
+    if (applyDamage(physicalSource, physicalTarget, basicHit(100, "physical"),
+        new DamageEvents()) != 136) {
+        return -2;
+    }
+
+    var guardianSource = makeEntity(<uint>10, "player", 1000);
+    guardianSource.resourceType = "rage";
+    guardianSource.maxResource = 100.0;
+    guardianSource.addAura("source_stealth", "stealth", 1.0, 10.0, false);
+    var guardian = makeEntity(<uint>11, "player", 1000);
+    guardian.hp = 100;
+    guardian.addAura("ward", "guardian_ward", 0.35, 10.0, false);
+    guardian.addAura("cc", "incapacitate", 0.0, 10.0, true);
+    guardian.addAura("target_stealth", "stealth", 1.0, 10.0, false);
+    guardian.eating = true;
+    guardian.drinking = true;
+    guardian.sitting = true;
+    guardian.hasCastingAbility = true;
+    guardian.castingAbility = "lesser_heal";
+    guardian.castRemaining = 1.0;
+    guardian.castTotal = 2.0;
+    events = new DamageEvents();
+    if (applyDamage(guardianSource, guardian, basicHit(500, "physical"), events) != 100 ||
+        guardian.dead || guardian.hp != 350 || guardian.damageTaken != 100 ||
+        guardianSource.damageDealt != 100 || guardianSource.resource <= 0.0 ||
+        guardian.eating || guardian.drinking || guardian.sitting ||
+        guardian.stealthed || guardianSource.stealthed ||
+        guardian.castRemaining != 1.5 || guardian.castTotal != 2.5 ||
+        events.healEvents != 1 || events.pushbackCastEvents != 1) {
+        return -3;
+    }
+
+    var threatSource = makeEntity(<uint>20, "player", 1000);
+    threatSource.addAura("stance", "defensive_stance", 0.0, 30.0, false);
+    threatSource.addAura("fury", "righteous_fury", 0.0, 30.0, false);
+    var threatTarget = makeEntity(<uint>21, "mob", 1000);
+    threatTarget.rareOrWorldBoss = true;
+    hit = basicHit(100, "holy");
+    hit.threatFlat = 20.0;
+    hit.threatMultiplier = 1.5;
+    applyDamage(threatSource, threatTarget, hit, new DamageEvents());
+    applyDamage(threatSource, threatTarget, hit, new DamageEvents());
+    if (threatTarget.hp != 820 || !closeEnough(threatTarget.threat, 644.8) ||
+        !threatTarget.hasTap || threatTarget.tappedById != <uint>20 ||
+        threatTarget.contributorIds.length != 1 ||
+        <uint>threatTarget.contributorIds[0] != <uint>20) {
+        return -4;
+    }
+
+    var frenzySource = makeEntity(<uint>30, "player", 1000);
+    var frenzyTarget = makeEntity(<uint>31, "mob", 1000);
+    frenzyTarget.frenzyOnHit = true;
+    frenzyTarget.frenzyChance = 0.25;
+    frenzyTarget.frenzyHaste = 1.3;
+    frenzyTarget.frenzyDuration = 8.0;
+    events = new DamageEvents();
+    events.randomUnits.add(0.1);
+    events.randomUnits.add(0.2);
+    applyDamage(frenzySource, frenzyTarget, basicHit(10, "physical"), events);
+    var frenzyIndex = findAura(frenzyTarget, "buff_haste");
+    if (frenzyIndex < 0) { return -5; }
+    frenzyTarget.auraRemaining[frenzyIndex] = 2.0;
+    applyDamage(frenzySource, frenzyTarget, basicHit(10, "physical"), events);
+    if (events.frenzyRandomDraws != 2 || events.frenzyGainedEvents != 1 ||
+        <float>frenzyTarget.auraRemaining[frenzyIndex] != 8.0) {
+        return -6;
+    }
+
+    var ordinaryTarget = makeEntity(<uint>32, "mob", 100);
+    events = new DamageEvents();
+    applyDamage(frenzySource, ordinaryTarget, basicHit(10, "physical"), events);
+    if (ordinaryTarget.hp != 90 || events.frenzyRandomDraws != 0 ||
+        events.randomIndex != 0) {
+        return -7;
+    }
+
+    var reflectSource = makeEntity(<uint>40, "player", 100);
+    var reflector = makeEntity(<uint>41, "mob", 100);
+    reflector.spellReflectValue = 20;
+    events = new DamageEvents();
+    applyDamage(reflectSource, reflector, basicHit(10, "fire"), events);
+    if (reflector.hp != 90 || reflectSource.hp != 80 || events.reflectEvents != 1 ||
+        events.damageEvents != 2) {
+        return -8;
+    }
+    reflector.hp = 5;
+    reflectSource.hp = 100;
+    events = new DamageEvents();
+    applyDamage(reflectSource, reflector, basicHit(50, "fire"), events);
+    if (!reflector.dead || reflectSource.hp != 100 || events.reflectEvents != 0) {
+        return -9;
+    }
+
+    var guarded = makeEntity(<uint>50, "mob", 100);
+    guarded.wildEvading = true;
+    events = new DamageEvents();
+    if (applyDamage(source, guarded, basicHit(50, "physical"), events) != 0 ||
+        guarded.hp != 100 || events.damageEvents != 0) {
+        return -10;
+    }
+    var warfareSource = makeEntity(<uint>60, "player", 1000);
+    warfareSource.pvpOffense = 0.2;
+    var warfareTarget = makeEntity(<uint>61, "player", 1000);
+    warfareTarget.pvpDefense = 0.1;
+    events = new DamageEvents();
+    if (applyDamage(warfareSource, warfareTarget, basicHit(100, "physical"), events) != 108 ||
+        warfareTarget.hp != 892) {
+        return -11;
+    }
+    var friendlyTarget = makeEntity(<uint>62, "player", 1000);
+    friendlyTarget.pvpDefense = 0.1;
+    var friendlyHit = basicHit(100, "physical");
+    friendlyHit.hostileRelationship = false;
+    events = new DamageEvents();
+    if (applyDamage(warfareSource, friendlyTarget, friendlyHit, events) != 100 ||
+        friendlyTarget.hp != 900) {
+        return -12;
+    }
+    var shadowCode = forms.formAbilityCode("form_shadow");
+    var bearCode = forms.formAbilityCode("form_bear");
+    var catCode = forms.formAbilityCode("form_cat");
+    if (shadowCode == <uint>0 || bearCode == <uint>0 || catCode == <uint>0) {
+        return -13;
+    }
+    var activeShadowSource = makeEntity(<uint>70, "player", 1000);
+    activeShadowSource.activeFormAbilityCode = shadowCode;
+    activeShadowSource.addAura("legacy_shadow", "form_shadow", 15.0, 30.0, false);
+    var activeShadowTarget = makeEntity(<uint>71, "mob", 1000);
+    if (applyDamage(activeShadowSource, activeShadowTarget,
+        basicHit(100, "shadow"), new DamageEvents()) != 115) {
+        return -14;
+    }
+    var activeBearSource = makeEntity(<uint>72, "player", 1000);
+    activeBearSource.activeFormAbilityCode = bearCode;
+    activeBearSource.addAura("legacy_bear", "form_bear", 0.65, 30.0, false);
+    var activeBearTarget = makeEntity(<uint>73, "mob", 1000);
+    applyDamage(activeBearSource, activeBearTarget, basicHit(100, "physical"),
+        new DamageEvents());
+    if (!closeEnough(activeBearTarget.threat, 130.0)) { return -15; }
+    var activeCatSource = makeEntity(<uint>74, "player", 1000);
+    activeCatSource.activeFormAbilityCode = catCode;
+    var activeCatTarget = makeEntity(<uint>75, "mob", 1000);
+    applyDamage(activeCatSource, activeCatTarget, basicHit(100, "physical"),
+        new DamageEvents());
+    if (!closeEnough(activeCatTarget.threat, 71.0)) { return -16; }
+
+    var fearBreakSource = makeEntity(<uint>80, "player", 1000);
+    var fearBreakTarget = makeEntity(<uint>81, "mob", 1000);
+    fearBreakTarget.addAuraWithBreakChance(
+        "fear_incap",
+        "incapacitate",
+        0.0,
+        8.0,
+        true,
+        0.1
+    );
+    events = new DamageEvents();
+    events.randomUnits.add(0.5);
+    events.randomUnits.add(0.9);
+    applyDamage(fearBreakSource, fearBreakTarget, basicHit(50, "shadow"), events);
+    if (fearBreakTarget.auraIds.length != 1 || events.randomIndex != 1 ||
+        events.frenzyRandomDraws != 0 || events.auraLostEvents != 0) {
+        return -17;
+    }
+    applyDamage(fearBreakSource, fearBreakTarget, basicHit(100, "shadow"), events);
+    if (fearBreakTarget.auraIds.length != 0 || events.randomIndex != 2 ||
+        events.frenzyRandomDraws != 0 || events.auraLostEvents != 1) {
+        return -18;
+    }
+
+    var ordinaryBreakTarget = makeEntity(<uint>82, "mob", 1000);
+    ordinaryBreakTarget.addAura("ordinary_incap", "incapacitate", 0.0, 8.0, true);
+    events = new DamageEvents();
+    applyDamage(fearBreakSource, ordinaryBreakTarget, basicHit(1, "shadow"), events);
+    if (ordinaryBreakTarget.auraIds.length != 0 || events.randomIndex != 0 ||
+        events.auraLostEvents != 1) {
+        return -19;
+    }
+    return 1;
+}

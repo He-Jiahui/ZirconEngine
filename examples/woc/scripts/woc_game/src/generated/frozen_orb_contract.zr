@@ -1,0 +1,3 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub speed(required: bool): float { return required ? 4.0 : 0.0; }
+pub dt(required: bool): float { return required ? 0.05 : 0.0; }

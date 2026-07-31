@@ -55,6 +55,7 @@ FRAMEWORK_INPUT_MODULES = (
     "zircon_runtime/src/core/framework/input/input_manager.rs",
     "zircon_runtime/src/core/framework/input/input_snapshot.rs",
     "zircon_runtime/src/core/framework/input/mod.rs",
+    "zircon_runtime/src/core/framework/input/module_identity.rs",
     "zircon_runtime/src/core/framework/input/mouse_wheel.rs",
     "zircon_runtime/src/core/framework/input/touch.rs",
     "zircon_runtime/src/core/framework/input/window_status.rs",

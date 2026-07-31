@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/frameworks/02
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/text/parallel/raster_pool.rs
   - tools/tests/test_frameworks_02_core_error_single_source.py
 tests:
@@ -30,7 +30,7 @@ resolved_at: 2026-07-16
 
 ## 失败现象与复现证据
 
-先写结构守卫并执行 `python tools/tests/test_frameworks_02_core_error_single_source.py`。首次 RED 因 `core/framework/error.rs` 仍声明旧错误枚举而失败；Frameworks02 完成生产 owner、task helper、asset worker、root facade 与 prelude 的最小硬切后再次运行，守卫继续按预期失败，并精确报告：
+先写结构守卫并执行 `python tools/tests/test_frameworks_02_core_error_single_source.py`。首次 RED 因当时的并行 framework error owner 仍声明旧错误枚举而失败；Frameworks02 完成生产 owner、task helper、asset worker、root facade 与 prelude 的最小硬切后再次运行，守卫继续按预期失败，并精确报告：
 
 ```text
 stale_consumers = ['zircon_runtime/src/text/parallel/raster_pool.rs']

@@ -1,4 +1,5 @@
 use std::sync::MutexGuard;
+use std::time::Instant;
 
 use crate::core::framework::render::{RenderFrameworkError, RenderViewportHandle};
 
@@ -7,13 +8,16 @@ use crate::graphics::{
     ViewportCameraStackOutputPolicy, ViewportRenderRegion,
 };
 
+use super::super::super::frame_profiler::FrameProfiler;
 use super::super::super::graphics_debugger_capture::{
     begin_graphics_debugger_capture, fail_pending_graphics_debugger_capture,
     finish_active_capture_and_relock,
 };
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::super::render_framework_state::RenderFrameworkState;
-use super::super::super::wgpu_render_framework::WgpuRenderFramework;
+use super::super::super::wgpu_render_framework::{
+    WgpuRenderFramework, WgpuRenderFrameworkAccess, WgpuRenderFrameworkCore,
+};
 use super::super::build_frame_submission_context::{
     build_frame_submission_context_from_runtime_frame_extract, FrameSubmissionSourcePayloads,
 };
@@ -37,21 +41,39 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     frame: ViewportRenderFrame,
 ) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "submit_runtime_frame");
-    let _operation_guard = framework.lock_operation();
+    framework.dispatch_runtime_frame_submission(submit_runtime_frame_on_core, viewport, frame)
+}
+
+fn submit_runtime_frame_on_core(
+    framework: &WgpuRenderFrameworkCore,
+    viewport: RenderViewportHandle,
+    frame: ViewportRenderFrame,
+) -> Result<(), RenderFrameworkError> {
+    submit_runtime_frame_locked(framework, viewport, frame)
+}
+
+fn submit_runtime_frame_locked(
+    framework: &dyn WgpuRenderFrameworkAccess,
+    viewport: RenderViewportHandle,
+    frame: ViewportRenderFrame,
+) -> Result<(), RenderFrameworkError> {
+    let submit_started = Instant::now();
     submit_camera_loop_frame(
         framework,
         viewport,
         frame,
+        &submit_started,
         fail_pending_capture_after_preflight_error,
         submit_selected_runtime_frame,
     )
 }
 
 fn submit_selected_runtime_frame(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     frame: &mut ViewportRenderFrame,
     source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
+    submit_started: &Instant,
     output_policy: CameraLoopOutputPolicy,
 ) -> Result<(), RenderFrameworkError> {
     let output_policy = ViewportCameraStackOutputPolicy::from(output_policy);
@@ -183,13 +205,20 @@ fn submit_selected_runtime_frame(
     release_previous_history(&mut state.renderer, &record_update);
     if owns_shared_viewport_products {
         let shared_product_reports = SharedViewportProductReports::new(camera_light_grid_report);
-        update_stats(
+        let frame_profile_write = update_stats(
             &mut state,
             &context,
             &record_update,
             frame_generation,
+            FrameProfiler::elapsed_micros(*submit_started),
             shared_product_reports,
         );
+        let viewport_record =
+            viewport_record_mut_after_generation_check(&mut state, viewport, &context)?;
+        viewport_record.attach_capture_frame_profile(&frame_profile_write.capture_profile);
+        if let Some(profile) = frame_profile_write.resolved_gpu_profile.as_deref() {
+            viewport_record.attach_capture_frame_profile(profile);
+        }
     }
     crate::profile_counter!(
         "runtime",
@@ -209,7 +238,7 @@ fn apply_submission_extract_to_runtime_frame(
 }
 
 fn fail_pending_capture_after_preflight_error(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     error: &RenderFrameworkError,
 ) {
@@ -253,7 +282,7 @@ fn attach_prepared_sidebands_to_runtime_frame(
 }
 
 fn finish_or_fail_capture_after_submission_error(
-    framework: &WgpuRenderFramework,
+    framework: &dyn WgpuRenderFrameworkAccess,
     mut state: MutexGuard<'_, RenderFrameworkState>,
     viewport: RenderViewportHandle,
     active_capture: bool,

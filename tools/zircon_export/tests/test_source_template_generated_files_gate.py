@@ -23,8 +23,8 @@ class SourceTemplateGeneratedFilesGateTests(unittest.TestCase):
         def blank_purpose(payload: dict[str, object]) -> None:
             payload["plan_summary"]["generated_files"][0]["purpose"] = "   "
 
-        def missing_contents(payload: dict[str, object]) -> None:
-            payload["plan_summary"]["generated_files"][0].pop("contents")
+        def missing_byte_length(payload: dict[str, object]) -> None:
+            payload["plan_summary"]["generated_files"][0].pop("byte_length")
 
         def non_object_row(payload: dict[str, object]) -> None:
             payload["plan_summary"]["generated_files"].append("src/sidecar.rs")
@@ -46,9 +46,9 @@ class SourceTemplateGeneratedFilesGateTests(unittest.TestCase):
                 "SourceTemplate Validate generated_files[0].purpose must be a non-empty string",
             ),
             (
-                "missing contents",
-                missing_contents,
-                "SourceTemplate Validate generated_files[0].contents must be a string",
+                "missing byte length",
+                missing_byte_length,
+                "SourceTemplate Validate generated_files[0].byte_length must be an integer",
             ),
             (
                 "non-object row",
@@ -109,7 +109,8 @@ class SourceTemplateGeneratedFilesGateTests(unittest.TestCase):
                 {
                     "path": "src/main.rs",
                     "purpose": "duplicate generated runtime entrypoint",
-                    "contents": "fn main() {}\n",
+                    "byte_length": len("fn main() {}\n".encode("utf-8")),
+                    "content_digest": "0" * 64,
                 }
             )
             validate_report = root / "validate.json"

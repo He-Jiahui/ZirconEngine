@@ -1,5 +1,6 @@
-use std::any::{type_name, TypeId};
+use std::any::{TypeId, type_name};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt;
 
 use crate::scene::ecs::{ChangeTick, ComponentTicks};
@@ -22,27 +23,25 @@ impl ResourceStore {
         tick: ChangeTick,
     ) -> Option<T> {
         let type_id = TypeId::of::<T>();
-        let ticks = if let Some(stored) = self.resources.get(&type_id) {
-            let mut ticks = stored.ticks;
-            ticks.set_changed(tick);
-            ticks
-        } else {
-            ComponentTicks::new(tick)
-        };
-        let Some(stored) = self.resources.insert(
-            type_id,
-            StoredResource {
-                value: Box::new(resource),
-                type_name: type_name::<T>(),
-                ticks,
-            },
-        ) else {
-            return None;
-        };
-        let Ok(boxed) = stored.value.downcast::<T>() else {
-            return None;
-        };
-        Some(*boxed)
+        match self.resources.entry(type_id) {
+            Entry::Occupied(mut occupied) => {
+                let stored = occupied.get_mut();
+                stored.ticks.set_changed(tick);
+                let previous = std::mem::replace(&mut stored.value, Box::new(resource));
+                let Ok(boxed) = previous.downcast::<T>() else {
+                    return None;
+                };
+                Some(*boxed)
+            }
+            Entry::Vacant(vacant) => {
+                vacant.insert(StoredResource {
+                    value: Box::new(resource),
+                    type_name: type_name::<T>(),
+                    ticks: ComponentTicks::new(tick),
+                });
+                None
+            }
+        }
     }
 
     pub fn get<T: 'static + Send + Sync>(&self) -> Option<&T> {

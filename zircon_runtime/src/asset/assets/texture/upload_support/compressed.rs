@@ -2,8 +2,8 @@ use crate::core::framework::render::RenderImageDimension;
 
 use super::super::TextureAsset;
 use super::{
-    div_ceil, ready, unsupported, TextureUploadCompressionFamily, TextureUploadPlan,
-    TextureUploadReadiness, TextureUploadSupport,
+    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
+    TextureUploadSupport, div_ceil, ready, unsupported,
 };
 pub(super) fn compressed_plan_readiness(
     texture: &TextureAsset,

@@ -1,12 +1,12 @@
 use crate::core::commands::{
     EditorCommandDescriptor, EditorCommandDispatchError, EditorCommandRegistry,
 };
+use crate::core::editing::engine::HistoryContextId;
 use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope,
     EditorEventListenerControlRequest, EditorEventListenerControlResponse, EditorEventRecord,
-    EditorEventResult, EditorEventSource, EditorEventTransient, MenuAction,
+    EditorEventResult, EditorEventSource, EditorEventTransient, EditorOperationEvent, MenuAction,
 };
-use crate::core::editor_message::EditorViewInvalidationMask;
 use crate::core::editor_operation::{
     EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
 };
@@ -15,6 +15,7 @@ use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_ev
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use serde_json::{Number, Value};
+use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventBinding};
 
 use super::editor_event_execution::{event_result_value, execute_event, undo_policy_for_event};
@@ -34,7 +35,7 @@ impl EditorHostEventController {
         source: EditorEventSource,
         event: EditorEvent,
     ) -> Result<EditorEventRecord, String> {
-        self.dispatch_normalized_event_with_operation(source, event, None)
+        self.dispatch_normalized_event_with_metadata(source, event, None, None)
     }
 
     pub(crate) fn dispatch_normalized_event_with_operation(
@@ -42,6 +43,17 @@ impl EditorHostEventController {
         source: EditorEventSource,
         event: EditorEvent,
         operation: Option<(EditorOperationPath, String, Value, Option<String>)>,
+        binding_path: Option<String>,
+    ) -> Result<EditorEventRecord, String> {
+        self.dispatch_normalized_event_with_metadata(source, event, operation, binding_path)
+    }
+
+    fn dispatch_normalized_event_with_metadata(
+        &self,
+        source: EditorEventSource,
+        event: EditorEvent,
+        operation: Option<(EditorOperationPath, String, Value, Option<String>)>,
+        binding_path: Option<String>,
     ) -> Result<EditorEventRecord, String> {
         let stamp = self.context().events().begin_event();
         let undo_policy = undo_policy_for_event(&event);
@@ -78,39 +90,45 @@ impl EditorHostEventController {
             Ok(outcome) => outcome,
             Err(error) => {
                 self.shell().lock().state.set_status_line(error.clone());
+                let effects = failure_effects_for_event(&event);
                 let record = EditorEventRecord {
                     event_id: stamp.event_id,
                     sequence: stamp.sequence,
                     source,
                     event,
+                    binding_path: binding_path.clone(),
                     operation_id: operation_id.clone(),
                     operation_display_name: operation_display_name.clone(),
                     operation_arguments: operation_arguments.clone(),
                     operation_group: operation_group.clone(),
-                    effects: vec![
-                        EditorEventEffect::PresentationChanged,
-                        EditorEventEffect::ReflectionChanged,
-                    ],
+                    transaction_id: None,
+                    save_generation: None,
+                    effects: effects.clone(),
                     undo_policy,
                     before_revision: stamp.before_revision,
                     after_revision: stamp.after_revision,
                     result: EditorEventResult::failure(error.clone()),
                 };
-                self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
+                self.refresh_workbench_for_effects(&effects);
+                emit_mvp_authoring_product_trace(&record, "failed");
                 self.context().events().record(record);
                 return Err(error);
             }
         };
 
+        let (transaction_id, save_generation) = self.authoring_trace(&event, execution.changed());
         let record = EditorEventRecord {
             event_id: stamp.event_id,
             sequence: stamp.sequence,
             source,
             event,
+            binding_path,
             operation_id,
             operation_display_name,
             operation_arguments,
             operation_group,
+            transaction_id,
+            save_generation,
             effects: execution.effects().to_vec(),
             undo_policy,
             before_revision: stamp.before_revision,
@@ -120,9 +138,134 @@ impl EditorHostEventController {
                 execution.changed(),
             )),
         };
+        if execution.changed() {
+            self.publish_scene_inspection_publication();
+        }
         self.refresh_workbench_for_effects(execution.effects());
+        emit_mvp_authoring_product_trace(&record, "completed");
         self.context().events().record(record.clone());
         Ok(record)
+    }
+
+    fn authoring_trace(&self, event: &EditorEvent, changed: bool) -> (Option<u64>, Option<u64>) {
+        let transactions = self.context().transactions();
+        match event {
+            EditorEvent::Inspector(_) if changed => (
+                transactions
+                    .history_status(HistoryContextId::Global)
+                    .ok()
+                    .and_then(|history| history.top.map(|transaction| transaction.raw())),
+                None,
+            ),
+            EditorEvent::Operation(EditorOperationEvent::CommandExecuted {
+                transaction_id,
+                ..
+            }) => (Some(*transaction_id), None),
+            EditorEvent::WorkbenchMenu(MenuAction::SaveProject) => (
+                None,
+                transactions
+                    .history_generation_snapshot(HistoryContextId::Global)
+                    .ok(),
+            ),
+            _ => (None, None),
+        }
+    }
+}
+
+fn emit_mvp_authoring_product_trace(record: &EditorEventRecord, result: &str) {
+    let Some(event_kind) = mvp_authoring_trace_event_kind(&record.event) else {
+        return;
+    };
+    write_log(
+        "editor_authoring_trace",
+        mvp_authoring_product_trace_diagnostic(
+            result,
+            event_kind,
+            record.binding_path.as_deref(),
+            record.operation_id.as_deref(),
+            record.transaction_id,
+            record.save_generation,
+        ),
+    );
+}
+
+fn mvp_authoring_trace_event_kind(event: &EditorEvent) -> Option<&'static str> {
+    match event {
+        EditorEvent::Selection(_) => Some("selection"),
+        EditorEvent::Inspector(_) => Some("inspector"),
+        EditorEvent::WorkbenchMenu(MenuAction::SaveProject) => Some("save_project"),
+        _ => None,
+    }
+}
+
+fn mvp_authoring_product_trace_diagnostic(
+    result: &str,
+    event_kind: &str,
+    binding_path: Option<&str>,
+    operation_id: Option<&str>,
+    transaction_id: Option<u64>,
+    save_generation: Option<u64>,
+) -> String {
+    let transaction_id = transaction_id
+        .map(|transaction_id| transaction_id.to_string())
+        .unwrap_or_else(|| "none".to_string());
+    let save_generation = save_generation
+        .map(|generation| generation.to_string())
+        .unwrap_or_else(|| "none".to_string());
+    format!(
+        "editor_authoring_trace result={result} event={event_kind} binding={} operation={} transaction_id={transaction_id} save_generation={save_generation}",
+        binding_path.unwrap_or("unbound"),
+        operation_id.unwrap_or("unresolved"),
+    )
+}
+
+fn failure_effects_for_event(event: &EditorEvent) -> Vec<EditorEventEffect> {
+    let mut effects = vec![
+        EditorEventEffect::PresentationChanged,
+        EditorEventEffect::ReflectionChanged,
+    ];
+    if matches!(event, EditorEvent::Viewport(_)) {
+        effects.push(EditorEventEffect::RenderChanged);
+    }
+    effects
+}
+
+#[cfg(test)]
+mod failure_effect_tests {
+    use super::*;
+
+    #[test]
+    fn viewport_failure_invalidates_render_and_presentation() {
+        let effects = failure_effects_for_event(&EditorEvent::Viewport(
+            crate::core::editor_event::EditorViewportEvent::LeftReleased,
+        ));
+
+        assert!(effects.contains(&EditorEventEffect::RenderChanged));
+        assert!(effects.contains(&EditorEventEffect::PresentationChanged));
+        assert!(effects.contains(&EditorEventEffect::ReflectionChanged));
+    }
+
+    #[test]
+    fn mvp_authoring_trace_keeps_binding_operation_and_generation_correlation() {
+        let trace = mvp_authoring_product_trace_diagnostic(
+            "completed",
+            "inspector",
+            Some("Inspector/TransformPositionXCommit"),
+            Some("inspector.transform.position.x.commit"),
+            Some(42),
+            Some(8),
+        );
+
+        assert!(trace.contains("result=completed"));
+        assert!(trace.contains("event=inspector"));
+        assert!(trace.contains("binding=Inspector/TransformPositionXCommit"));
+        assert!(trace.contains("operation=inspector.transform.position.x.commit"));
+        assert!(trace.contains("transaction_id=42"));
+        assert!(trace.contains("save_generation=8"));
+        assert_eq!(
+            mvp_authoring_trace_event_kind(&EditorEvent::WorkbenchMenu(MenuAction::SaveProject)),
+            Some("save_project")
+        );
     }
 }
 
@@ -175,7 +318,12 @@ impl EditorEventDispatcher for EditorHostEventController {
             let commands = self.commands().lock();
             normalize_editor_event_binding(&binding, &commands, &context)?
         };
-        self.dispatch_normalized_event(source, event)
+        self.dispatch_normalized_event_with_metadata(
+            source,
+            event,
+            None,
+            Some(binding.path().native_prefix()),
+        )
     }
 
     fn dispatch_event(
@@ -218,11 +366,15 @@ impl EditorHostEventController {
                 arguments,
             } => {
                 let invocation = operation_invocation(operation_id, arguments)?;
-                self.invoke_operation(operation_source_for_event_source(source), invocation)
-                    .map(Some)
+                self.invoke_operation_with_binding_path(
+                    operation_source_for_event_source(source),
+                    invocation,
+                    Some(binding.path().native_prefix()),
+                )
+                .map(Some)
             }
             EditorUiBindingPayload::EditorCommand { command_id } => self
-                .dispatch_editor_command_binding(command_id, source)
+                .dispatch_editor_command_binding(command_id, source, binding.path().native_prefix())
                 .map(Some),
             _ => Ok(None),
         }
@@ -232,6 +384,7 @@ impl EditorHostEventController {
         &self,
         command_id: &str,
         source: EditorEventSource,
+        binding_path: String,
     ) -> Result<EditorEventRecord, String> {
         let command_id = {
             let commands = self.commands().lock();
@@ -242,9 +395,10 @@ impl EditorHostEventController {
         .ok_or_else(|| {
             EditorCommandDispatchError::UnknownCommand(command_id.to_string()).to_string()
         })?;
-        self.invoke_operation(
+        self.invoke_operation_with_binding_path(
             operation_source_for_event_source(source),
             EditorOperationInvocation::new(command_id),
+            Some(binding_path),
         )
     }
 
@@ -265,10 +419,13 @@ impl EditorHostEventController {
             sequence: stamp.sequence,
             source,
             event,
+            binding_path: Some(binding.path().native_prefix()),
             operation_id: None,
             operation_display_name: Some("Material Component Lab Feedback".to_string()),
             operation_arguments: None,
             operation_group: Some("MaterialComponentLab".to_string()),
+            transaction_id: None,
+            save_generation: None,
             effects: Vec::new(),
             undo_policy,
             before_revision: stamp.before_revision,
@@ -297,6 +454,7 @@ impl EditorHostEventController {
             sequence: stamp.sequence,
             source,
             event,
+            binding_path: Some(binding.path().native_prefix()),
             operation_id: None,
             operation_display_name: Some("Component Lab Preview Action".to_string()),
             operation_arguments: Some(serde_json::json!({
@@ -305,6 +463,8 @@ impl EditorHostEventController {
                 "action_id": action_id,
             })),
             operation_group: Some("ComponentLabPreview".to_string()),
+            transaction_id: None,
+            save_generation: None,
             effects: Vec::new(),
             undo_policy,
             before_revision: stamp.before_revision,

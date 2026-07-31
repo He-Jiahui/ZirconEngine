@@ -1,4 +1,4 @@
-use super::super::super::{close_prompt, RetainedEditorHost};
+use super::super::super::{RetainedEditorHost, close_prompt};
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::native_window_close) fn save_dirty_prompt_views(

@@ -1,0 +1,17 @@
+var console = %import("zr.system.console");
+var selection = %import("world/target_selection");
+
+console.printLine("target-selection-test");
+var result = selection.contractTest();
+if (result == 1 && !selection.tabVisible(0.0, 0.0, 0.0, 1)) { result = -101; }
+if (result == 1 && selection.tabVisible(8.660254, 5.0, 0.0, 1)) { result = -102; }
+if (result == 1 && !selection.tabVisible(24.574561, 17.207294, 0.0, 1)) { result = -103; }
+if (result == 1 && selection.tabTier(true, true, 1) != 0) { result = -104; }
+if (result == 1 && selection.tabTier(false, true, 1) != 1) { result = -105; }
+if (result == 1 && selection.tabTier(true, false, 1) != 2) { result = -106; }
+if (result == 1 && selection.tabTier(false, false, 1) != 3) { result = -107; }
+if (result == 1 && !selection.tabNear(true, true, 40.0, 1)) { result = -108; }
+if (result == 1 && selection.tabNear(true, false, 5.0, 1)) { result = -109; }
+if (result == 1 && selection.tabNear(false, true, 30.000001, 1)) { result = -110; }
+console.printLine(result);
+return result == 1 ? 0 : result;

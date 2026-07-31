@@ -8,6 +8,46 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+fn render_cache_reuses_the_owned_incoming_command_without_cloning() {
+    let source = include_str!("../surface/render/cache.rs");
+
+    assert!(
+        source.contains("retained_commands.push(command);"),
+        "a stable cache hit should keep the already-owned incoming command"
+    );
+    assert!(
+        !source.contains("retained_commands.push(entry.command.clone());"),
+        "a stable cache hit must not deep-clone the cached command"
+    );
+}
+
+#[test]
+fn render_extract_rejects_invisible_nodes_before_resolving_visual_data() {
+    let source = include_str!("../surface/render/extract.rs");
+    let visibility_check = source
+        .find("if !is_arranged_render_visible(arranged_tree, node_id)")
+        .expect("render extraction should test arranged visibility");
+    let visual_resolution = source
+        .find("let visual = UiNodeVisualData::resolve")
+        .expect("render extraction should resolve visual data for visible nodes");
+
+    assert!(
+        visibility_check < visual_resolution,
+        "invisible nodes should exit before style, text, image, and editable-state resolution"
+    );
+}
+
+#[test]
+fn render_style_enum_parsing_does_not_allocate_lowercase_strings() {
+    let source = include_str!("../surface/render/resolve.rs");
+
+    assert!(
+        !source.contains("to_ascii_lowercase"),
+        "render style enum parsing should use allocation-free ASCII comparisons"
+    );
+}
+
+#[test]
 fn render_extract_carries_label_and_icon_atoms_through_generic_path() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.atoms"));
     surface.tree.insert_root(

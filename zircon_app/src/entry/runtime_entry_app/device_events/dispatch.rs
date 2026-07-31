@@ -9,6 +9,7 @@ impl RuntimeEntryApp {
         event_loop: &dyn ActiveEventLoop,
         event: DeviceEvent,
     ) {
+        self.request_runtime_frame();
         self.handle_pointer_device_event(event_loop, event);
     }
 }

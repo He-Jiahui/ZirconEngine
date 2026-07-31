@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var townFocus = %import("progression/town_focus_state");
+
+console.printLine("town-focus-state-test");
+var result = townFocus.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

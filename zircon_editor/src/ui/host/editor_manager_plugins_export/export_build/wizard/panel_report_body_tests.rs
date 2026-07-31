@@ -6,6 +6,12 @@ use super::*;
 
 struct PipelineReportRunner;
 
+#[test]
+fn panel_report_json_is_parsed_once_for_all_summaries() {
+    let projection = include_str!("panel_projection.rs");
+    assert_eq!(projection.matches("serde_json::from_str").count(), 1);
+}
+
 impl ExportWizardCommandRunner for PipelineReportRunner {
     fn run(
         &mut self,

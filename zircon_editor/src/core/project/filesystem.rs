@@ -7,6 +7,7 @@ use super::ProjectAuthorityError;
 const PROJECT_MANIFEST_FILE: &str = "zircon-project.toml";
 
 pub(super) fn canonical_project_root(path: &Path) -> Result<PathBuf, ProjectAuthorityError> {
+    reject_blank_project_path(path)?;
     let root = if path
         .file_name()
         .is_some_and(|name| name == OsStr::new(PROJECT_MANIFEST_FILE))
@@ -32,6 +33,7 @@ pub(super) fn canonical_project_root(path: &Path) -> Result<PathBuf, ProjectAuth
 }
 
 pub(super) fn validate_creation_target(root: &Path) -> Result<(), ProjectAuthorityError> {
+    reject_blank_project_path(root)?;
     reject_linked_components(root)?;
     if root.is_file() {
         return Err(ProjectAuthorityError::TargetIsFile {
@@ -57,8 +59,9 @@ pub(super) fn validate_creation_target(root: &Path) -> Result<(), ProjectAuthori
     Ok(())
 }
 
-pub(super) fn validate_existing_project_root(root: &Path) -> Result<(), ProjectAuthorityError> {
-    reject_linked_components(root)?;
+pub(super) fn validate_canonical_existing_project_root(
+    root: &Path,
+) -> Result<(), ProjectAuthorityError> {
     if !root.is_dir() {
         return Err(ProjectAuthorityError::ProjectMissing {
             path: root.to_path_buf(),
@@ -67,6 +70,13 @@ pub(super) fn validate_existing_project_root(root: &Path) -> Result<(), ProjectA
     let manifest = root.join(PROJECT_MANIFEST_FILE);
     if !manifest.is_file() {
         return Err(ProjectAuthorityError::ManifestMissing { path: manifest });
+    }
+    Ok(())
+}
+
+fn reject_blank_project_path(path: &Path) -> Result<(), ProjectAuthorityError> {
+    if path.as_os_str().is_empty() || path.to_str().is_some_and(|value| value.trim().is_empty()) {
+        return Err(ProjectAuthorityError::EmptyProjectPath);
     }
     Ok(())
 }
@@ -90,6 +100,28 @@ fn reject_linked_components(path: &Path) -> Result<(), ProjectAuthorityError> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::super::ProjectAuthorityError;
+    use super::{canonical_project_root, validate_creation_target};
+
+    #[test]
+    fn project_root_validation_rejects_empty_and_blank_paths_before_filesystem_access() {
+        for path in [Path::new(""), Path::new(" "), Path::new("\u{2003}")] {
+            assert!(matches!(
+                canonical_project_root(path),
+                Err(ProjectAuthorityError::EmptyProjectPath)
+            ));
+            assert!(matches!(
+                validate_creation_target(path),
+                Err(ProjectAuthorityError::EmptyProjectPath)
+            ));
+        }
+    }
 }
 
 #[cfg(windows)]

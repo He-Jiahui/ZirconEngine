@@ -1,0 +1,1 @@
+var s=%import("combat/sure_crit_state");var r=s.contractTest();return r==1?0:r;

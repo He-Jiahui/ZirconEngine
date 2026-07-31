@@ -221,7 +221,7 @@ fn zr_vm_runtime_module_registers_backend_with_vm_manager() {
         .unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     runtime
-        .activate_module(zircon_runtime::scene::SCENE_MODULE_NAME)
+        .activate_module(zircon_runtime::core::framework::scene::SCENE_MODULE_NAME)
         .unwrap();
     runtime
         .activate_module(zircon_runtime::script::SCRIPT_MODULE_NAME)
@@ -263,19 +263,38 @@ fn zr_vm_backend_has_one_plugin_owned_dense_production_path() {
     );
     assert!(host_modules.contains("script_call_table"));
     assert!(host_modules.contains("ScriptCallSite"));
+    assert!(!host_modules.contains("script_call_table()?"));
     assert!(!host_modules.contains(".call_with_capabilities("));
     assert!(!instance.contains("vampire_lifecycle_or_export"));
 
     let call_table_position = host_modules
-        .find("let call_table = host.host_exports.script_call_table()?;")
+        .find("let call_table = host.host_exports.script_call_table();")
         .expect("real backend resolves the dense call table once");
+    let resolve_chain = concat!(
+        ".resolve(&module.descriptor.name, &function.name)\n",
+        "                .cloned()\n",
+        "                .ok_or_else"
+    );
     let resolve_position = host_modules
-        .find(".resolve(&module.descriptor.name, &function.name)")
-        .expect("real backend resolves each host callback before registration");
+        .find(resolve_chain)
+        .expect("real backend resolves and clones each host callback before registration");
+    let clone_position = resolve_position
+        + resolve_chain
+            .find(".cloned()")
+            .expect("borrowed resolve chain owns one registration-boundary clone");
     let callback_position = host_modules
         .find("builder = builder.add_function(build_native_function(")
         .expect("real backend registers the resolved callback");
-    assert!(call_table_position < resolve_position && resolve_position < callback_position);
+    assert_eq!(
+        host_modules.matches(".cloned()").count(),
+        1,
+        "real backend should clone the borrowed call site exactly once"
+    );
+    assert!(
+        call_table_position < resolve_position
+            && resolve_position < clone_position
+            && clone_position < callback_position
+    );
 
     let native_callback = host_modules
         .split_once("fn build_native_function(")

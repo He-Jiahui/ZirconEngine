@@ -1,0 +1,69 @@
+var sessionModule = %import("instances/delve_lockpick_session");
+var projection = %import("instances/delve_lockpick_projection");
+
+// Target LockpickView vector: normal board page 4087162011 at source tick 100.
+// The view is owner-scoped, 1-based for presentation page numbering and sends
+// only the thirteen fog-window cells in source column/row order.
+var session = new sessionModule.LockpickSession();
+if (sessionModule.engage(session, <uint>20061, <uint>423, <uint>77, 2, 0, 100, true) != 1 ||
+    !projection.isVisibleTo(session, <uint>77, true) ||
+    projection.isVisibleTo(session, <uint>78, true) ||
+    projection.sessionId(session, <uint>77, true) != "lp_423_100" ||
+    projection.objectId(session, <uint>77, true) != <uint>423 ||
+    projection.columns(session, <uint>77, true) != 12 ||
+    projection.rows(session, <uint>77, true) != 6 ||
+    projection.currentColumn(session, <uint>77, true) != 0 ||
+    projection.currentRow(session, <uint>77, true) != 1 ||
+    projection.page(session, <uint>77, true) != 1 ||
+    projection.pageCount(session, <uint>77, true) != 2 ||
+    projection.tries(session, <uint>77, true) != 2 ||
+    projection.triesTotal(session, <uint>77, true) != 2 ||
+    projection.lootTier(session, <uint>77, true) != "medium" ||
+    projection.stepTimeoutMilliseconds(session, <uint>77, true) != 6000 ||
+    projection.actionCount(session, <uint>77, true) != 5 ||
+    projection.actionAt(session, <uint>77, 0, true) != 0 ||
+    projection.actionAt(session, <uint>77, 4, true) != 4 ||
+    projection.timerKey(session, <uint>77, true) != "lp_423_100:1:2:0" ||
+    projection.visibleCellCount(session, <uint>77, true) != 13) {
+    return -1;
+}
+
+// Exact target visibleCells() ordering and kinds: open=1, gate=2, seat=3,
+// trap=4. The hidden-board cells never cross this scalar projection boundary.
+if (projection.visibleCellColumn(session, <uint>77, 0, true) != 0 ||
+    projection.visibleCellRow(session, <uint>77, 0, true) != 0 ||
+    projection.visibleCellKind(session, <uint>77, 0, true) != 1 ||
+    projection.visibleCellColumn(session, <uint>77, 3, true) != 1 ||
+    projection.visibleCellRow(session, <uint>77, 3, true) != 2 ||
+    projection.visibleCellKind(session, <uint>77, 5, true) != 4 ||
+    projection.visibleCellColumn(session, <uint>77, 9, true) != 3 ||
+    projection.visibleCellRow(session, <uint>77, 9, true) != 1 ||
+    projection.visibleCellKind(session, <uint>77, 9, true) != 2 ||
+    projection.visibleCellColumn(session, <uint>77, 10, true) != 4 ||
+    projection.visibleCellRow(session, <uint>77, 10, true) != 0 ||
+    projection.visibleCellKind(session, <uint>77, 10, true) != 4 ||
+    projection.visibleCellColumn(session, <uint>77, 12, true) != 4 ||
+    projection.visibleCellRow(session, <uint>77, 12, true) != 2 ||
+    projection.visibleCellKind(session, <uint>77, 12, true) != 4) {
+    return -2;
+}
+
+// The source selector offers all antes except that a Bountiful Coffer exposes
+// only ante one. A valid advance changes the presentational timer identity.
+if (!projection.anteOffered(false, 1, true) || !projection.anteOffered(false, 2, true) ||
+    !projection.anteOffered(false, 3, true) || !projection.anteOffered(true, 1, true) ||
+    projection.anteOffered(true, 2, true) || projection.anteOffered(true, 3, true) ||
+    sessionModule.applyAction(session, 3, 101, <uint>77, "lp_423_100", true, true) != 2 ||
+    projection.currentColumn(session, <uint>77, true) != 1 ||
+    projection.currentRow(session, <uint>77, true) != 2 ||
+    projection.timerKey(session, <uint>77, true) != "lp_423_100:1:2:1" ||
+    projection.contractTest() != 1) {
+    return -3;
+}
+
+if (sessionModule.abandon(session, <uint>77, "lp_423_100", true, true) != 7 ||
+    projection.isVisibleTo(session, <uint>77, true)) {
+    return -4;
+}
+
+return 0;

@@ -1,10 +1,14 @@
-use crate::core::editor_plugin::EditorPluginRegistrationReport;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
+use crate::core::plugin::EditorPluginRegistrationReport;
+use std::path::PathBuf;
+use zircon_runtime::asset::project::ProjectManager;
 
 #[derive(Clone, Debug, Default)]
 pub struct EditorHostRunConfig {
     startup_request: Option<EditorGuiStartupRequest>,
+    startup_project: Option<ProjectManager>,
     exit_after_first_presented_frame: bool,
+    first_presented_frame_capture_path: Option<PathBuf>,
     editor_plugin_registrations: Vec<EditorPluginRegistrationReport>,
 }
 
@@ -18,8 +22,20 @@ impl EditorHostRunConfig {
         self
     }
 
+    /// Transfers a project generation prepared by the application entry into the host.
+    pub fn with_prepared_project(mut self, project: Option<ProjectManager>) -> Self {
+        self.startup_project = project;
+        self
+    }
+
     pub fn with_exit_after_first_presented_frame(mut self, exit: bool) -> Self {
         self.exit_after_first_presented_frame = exit;
+        self
+    }
+
+    /// Captures the retained host presentation after its first successful native present.
+    pub fn with_first_presented_frame_capture_path(mut self, path: PathBuf) -> Self {
+        self.first_presented_frame_capture_path = Some(path);
         self
     }
 
@@ -39,6 +55,10 @@ impl EditorHostRunConfig {
         self.exit_after_first_presented_frame
     }
 
+    pub fn first_presented_frame_capture_path(&self) -> Option<&std::path::Path> {
+        self.first_presented_frame_capture_path.as_deref()
+    }
+
     pub fn editor_plugin_registration_count(&self) -> usize {
         self.editor_plugin_registrations.len()
     }
@@ -47,9 +67,16 @@ impl EditorHostRunConfig {
         self,
     ) -> (
         Option<EditorGuiStartupRequest>,
+        Option<ProjectManager>,
+        Option<PathBuf>,
         Vec<EditorPluginRegistrationReport>,
     ) {
-        (self.startup_request, self.editor_plugin_registrations)
+        (
+            self.startup_request,
+            self.startup_project,
+            self.first_presented_frame_capture_path,
+            self.editor_plugin_registrations,
+        )
     }
 }
 
@@ -83,13 +110,27 @@ mod tests {
     }
 
     #[test]
+    fn editor_host_run_config_carries_a_one_shot_presented_frame_capture_path() {
+        let path = PathBuf::from("evidence/editor-first-frame.png");
+        let config =
+            EditorHostRunConfig::new().with_first_presented_frame_capture_path(path.clone());
+
+        assert_eq!(
+            config.first_presented_frame_capture_path(),
+            Some(path.as_path())
+        );
+        let (_, _, capture_path, _) = config.into_parts();
+        assert_eq!(capture_path, Some(path));
+    }
+
+    #[test]
     fn editor_host_run_config_carries_composition_root_plugin_registrations() {
-        let descriptor = crate::core::editor_plugin::EditorPluginDescriptor::new(
+        let descriptor = crate::core::plugin::EditorPluginDescriptor::new(
             "tests.composed",
             "Composed",
             "tests_composed_editor",
         );
-        let registration = crate::core::editor_plugin::EditorPluginRegistrationReport::from_plugin(
+        let registration = crate::core::plugin::EditorPluginRegistrationReport::from_plugin(
             &descriptor,
             descriptor.standalone_package_manifest(),
         );
@@ -97,8 +138,16 @@ mod tests {
         let config = EditorHostRunConfig::new().with_editor_plugin_registrations([registration]);
 
         assert_eq!(config.editor_plugin_registration_count(), 1);
-        let (_, registrations) = config.into_parts();
+        let (_, _, _, registrations) = config.into_parts();
         assert_eq!(registrations.len(), 1);
         assert_eq!(registrations[0].package_manifest.id, "tests.composed");
+    }
+
+    #[test]
+    fn prepared_project_startup_does_not_reopen_a_path() {
+        let startup_source = include_str!("../host/editor_host_startup.rs");
+
+        assert!(startup_source.contains("prepared_project"));
+        assert!(startup_source.contains("open_prepared_project_and_remember"));
     }
 }

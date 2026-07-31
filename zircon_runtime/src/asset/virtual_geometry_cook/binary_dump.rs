@@ -34,7 +34,8 @@ pub fn encode_virtual_geometry_cook_binary_dump(asset: &VirtualGeometryAsset) ->
     for cluster in sorted_clusters(asset) {
         append_cluster_header(&mut dump, cluster);
     }
-    for (header, _) in sorted_pages(asset) {
+    let pages = sorted_pages(asset);
+    for (header, _) in &pages {
         append_page_header(&mut dump, header);
     }
     for page_id in sorted_u32s(asset.root_page_table.clone()) {
@@ -50,7 +51,7 @@ pub fn encode_virtual_geometry_cook_binary_dump(asset: &VirtualGeometryAsset) ->
     for dependency in sorted_page_dependencies(asset) {
         append_page_dependency(&mut dump, dependency);
     }
-    for (header, payload) in sorted_pages(asset) {
+    for (header, payload) in pages {
         append_u32(&mut dump, header.page_id);
         if let Some(payload) = payload {
             append_u64(&mut dump, u64::try_from(payload.len()).unwrap_or(u64::MAX));

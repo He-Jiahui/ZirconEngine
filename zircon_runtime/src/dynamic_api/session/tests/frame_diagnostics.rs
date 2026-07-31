@@ -1,4 +1,4 @@
-use crate::core::diagnostics::collect_runtime_diagnostics;
+use crate::runtime_diagnostics::collect_runtime_diagnostics;
 use crate::scene::ecs::{
     ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
     ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,

@@ -1,0 +1,59 @@
+// Built-in GroundObjectDef flattening from the Sim constructor. The actual
+// entity, loot and collection mutation remains owned by WorldState.
+
+var catalog = %import("generated/m3_ground_object_placement");
+var terrainGround = %import("world/terrain_ground");
+
+pub placementCount(required: bool): int {
+    return catalog.placementCount(required);
+}
+
+pub itemId(index: int, required: bool): string {
+    return catalog.itemId(index, required);
+}
+
+pub name(index: int, required: bool): string {
+    return catalog.name(index, required);
+}
+
+pub finalCoordinate(index: int, axis: int, required: bool): float {
+    return catalog.rawCoordinate(index, axis, required);
+}
+
+pub finalGroundY(seed: uint, index: int, required: bool): float {
+    if (!required) {
+        throw "woc ground-object final ground height is required";
+    }
+    return terrainGround.builtinGroundHeight(
+        finalCoordinate(index, 1, true), finalCoordinate(index, 2, true), seed, true
+    );
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub contractTest(): int {
+    var seed = <uint>20061;
+    if (catalog.contractTest() != 1 || placementCount(true) != 55 ||
+        itemId(0, true) != "supply_crate" || itemId(54, true) != "moongate_rubbing") {
+        return -1;
+    }
+    if (finalCoordinate(0, 1, true) != 58.0 || finalCoordinate(0, 2, true) != -58.0 ||
+        !closeEnough(finalGroundY(seed, 0, true), -3.398948988694494)) {
+        return -2;
+    }
+    if (finalCoordinate(29, 1, true) != 151.8 || finalCoordinate(29, 2, true) != 294.2 ||
+        !closeEnough(finalGroundY(seed, 29, true), -3.426070395249082)) {
+        return -3;
+    }
+    if (finalCoordinate(54, 1, true) != -64.0 || finalCoordinate(54, 2, true) != 794.0 ||
+        !closeEnough(finalGroundY(seed, 54, true), 8.7518563701256)) {
+        return -4;
+    }
+    return 1;
+}

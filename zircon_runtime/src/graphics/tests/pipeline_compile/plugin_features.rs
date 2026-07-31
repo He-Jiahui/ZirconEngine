@@ -178,6 +178,45 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
 }
 
 #[test]
+fn rendering_plugin_default_features_preserve_motion_vector_and_bloom_composite_contract() {
+    for pipeline in [
+        RenderPipelineAsset::default_forward_plus(),
+        RenderPipelineAsset::default_deferred(),
+    ] {
+        let compiled = pipeline
+            .with_plugin_render_features(default_rendering_feature_descriptors())
+            .compile(&test_extract())
+            .unwrap();
+        let pass_names = compiled
+            .graph()
+            .passes()
+            .iter()
+            .map(|pass| pass.name.as_str())
+            .collect::<Vec<_>>();
+        let pass_index = |name| {
+            pass_names
+                .iter()
+                .position(|pass| *pass == name)
+                .unwrap_or_else(|| panic!("plugin default graph should keep `{name}`"))
+        };
+
+        pass_resource_access(
+            &compiled,
+            "motion-vector-tile-max",
+            PostProcessGraphResourceNames::SCENE_VELOCITY,
+            RenderGraphResourceAccessKind::Read,
+        );
+        assert!(
+            pass_index("bloom-extract") < pass_index("reflection-probe-composite")
+                && pass_index("reflection-probe-composite")
+                    < pass_index("baked-lighting-composite")
+                && pass_index("baked-lighting-composite") < pass_index("motion-vector-tile-max"),
+            "the default plugin graph must sample Bloom before scene-color composites and begin the motion-vector chain afterwards"
+        );
+    }
+}
+
+#[test]
 fn plugin_feature_buffer_minimum_size_survives_graph_resource_planning() {
     const PLUGIN_PACKET_SIZE_BYTES: u64 = 1_280;
 
@@ -185,19 +224,21 @@ fn plugin_feature_buffer_minimum_size_survives_graph_resource_planning() {
         "fixed-size-plugin-packet",
         vec!["view".to_string()],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Lighting,
-            "fixed-size-plugin-packet-write",
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id("test.fixed-size-plugin-packet")
-        .with_compute_workload(RenderGraphComputeWorkload::fixed(
-            "test-fixed-size-plugin-packet",
-            [1, 1, 1],
-            [1, 1, 1],
-        ))
-        .with_side_effects()
-        .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Lighting,
+                "fixed-size-plugin-packet-write",
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id("test.fixed-size-plugin-packet")
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                "test-fixed-size-plugin-packet",
+                [1, 1, 1],
+                [1, 1, 1],
+            ))
+            .with_side_effects()
+            .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES),
+        ],
     );
 
     let compiled = RenderPipelineAsset::default_forward_plus()

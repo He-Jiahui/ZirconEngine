@@ -5,6 +5,10 @@ use super::super::super::data::{PaneData, TemplatePaneNodeData};
 pub(in crate::ui::retained_host::host_contract) fn pane_template_nodes(
     pane: &PaneData,
 ) -> Option<&ModelRc<TemplatePaneNodeData>> {
+    if pane.template_v2.nodes.row_count() > 0 {
+        return Some(&pane.template_v2.nodes);
+    }
+
     match pane.kind.as_str() {
         "Hierarchy" => Some(&pane.hierarchy.nodes),
         "Inspector" => Some(&pane.inspector.nodes),

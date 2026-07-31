@@ -1,10 +1,14 @@
-use std::collections::VecDeque;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
-use zircon_runtime::core::framework::ai::{AiAgentTickReport, AiHearingStimulusEvent};
+use zircon_runtime::core::framework::ai::{
+    AiAgentTickReport, AiBehaviorDebugFrame, AiBehaviorDebugSnapshot, AiHearingStimulusEvent,
+    AiPerceptionDebugSnapshot, BtNodeResultEvent,
+};
 use zircon_runtime::core::framework::animation::AnimationEventRecord;
 use zircon_runtime::core::framework::physics::PhysicsQueryInterface;
+use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::framework::script::ScriptBehaviorBridge;
 use zircon_runtime::core::framework::sound::SoundGameplayEmissionRead;
 use zircon_runtime::core::manager::{resolve_manager_service, sound_manager_handle};
@@ -12,22 +16,26 @@ use zircon_runtime::plugin::{
     PluginEventCatalogManifest, PluginEventManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError,
 };
-use zircon_runtime::scene::ecs::{EventCursor, EventReadIter, Resource};
 use zircon_runtime::scene::World;
+use zircon_runtime::scene::ecs::{EventCursor, EventReadIter, Resource};
 
 use crate::behavior_tree::{
     BehaviorNodeRegistry, BehaviorNodeRegistryService, RuntimeBehaviorIntegrationHost,
 };
 use crate::perception::{
-    ai_perception_component_descriptors, hearing_event_from_animation, hearing_event_from_sound,
-    tick_perception, AiTickBudget, HearingStimulusAdapter, PerceivedStimuli,
-    AI_HEARING_INGEST_EVENT_LIMIT, AI_HEARING_PENDING_EVENT_CAPACITY,
+    AI_HEARING_INGEST_EVENT_LIMIT, AI_HEARING_PENDING_EVENT_CAPACITY, AiTickBudget,
+    HearingStimulusAdapter, PerceivedStimuli, ai_perception_component_descriptors,
+    hearing_event_from_animation, hearing_event_from_sound, perception_receiver, tick_perception,
 };
-use crate::{AiBehaviorTickLod, DefaultAiManager, AI_MODULE_NAME};
+use crate::{AI_MODULE_NAME, AiBehaviorTickLod, DefaultAiManager};
 
 pub const AI_BEHAVIOR_TICK_SYSTEM: &str = "ai.behavior_tick";
 pub const AI_PERCEPTION_TICK_SYSTEM: &str = "ai.perception_tick";
 pub const AI_EVENT_NAMESPACE: &str = "ai.events";
+pub const AI_BEHAVIOR_DEBUG_SNAPSHOT_EVENT_ID: &str = "ai.events.behavior_debug_snapshot";
+pub const AI_BEHAVIOR_DEBUG_SNAPSHOT_PAYLOAD_SCHEMA: &str = "ai.events.behavior_debug_snapshot.v1";
+pub const BT_NODE_RESULT_EVENT_ID: &str = "ai.events.bt_node_result";
+pub const BT_NODE_RESULT_PAYLOAD_SCHEMA: &str = "ai.events.bt_node_result.v1";
 
 pub(crate) struct PerceptionEventSubscriptions {
     hearing: EventCursor<AiHearingStimulusEvent>,
@@ -225,7 +233,12 @@ pub(super) fn ai_event_catalog() -> PluginEventCatalogManifest {
     PluginEventCatalogManifest {
         namespace: AI_EVENT_NAMESPACE.to_string(),
         version: 1,
-        events: vec![ai_tick_report_event(), hearing_stimulus_event()],
+        events: vec![
+            ai_tick_report_event(),
+            bt_node_result_event(),
+            ai_behavior_debug_snapshot_event(),
+            hearing_stimulus_event(),
+        ],
     }
 }
 
@@ -242,6 +255,22 @@ fn ai_tick_report_event() -> PluginEventManifest {
         id: "ai.events.agent_tick_completed".to_string(),
         display_name: "AI Agent Tick Completed".to_string(),
         payload_schema: "ai.events.agent_tick_report.v1".to_string(),
+    }
+}
+
+fn bt_node_result_event() -> PluginEventManifest {
+    PluginEventManifest {
+        id: BT_NODE_RESULT_EVENT_ID.to_string(),
+        display_name: "Behavior Tree Node Result".to_string(),
+        payload_schema: BT_NODE_RESULT_PAYLOAD_SCHEMA.to_string(),
+    }
+}
+
+fn ai_behavior_debug_snapshot_event() -> PluginEventManifest {
+    PluginEventManifest {
+        id: AI_BEHAVIOR_DEBUG_SNAPSHOT_EVENT_ID.to_string(),
+        display_name: "AI Behavior Debug Snapshot".to_string(),
+        payload_schema: AI_BEHAVIOR_DEBUG_SNAPSHOT_PAYLOAD_SCHEMA.to_string(),
     }
 }
 
@@ -274,6 +303,8 @@ pub(super) fn register_runtime_extensions(
         revocation_manager.revoke_behavior_node_owner(revoked_owner);
     });
     module.event::<AiAgentTickReport>(ai_tick_report_event())?;
+    module.event::<BtNodeResultEvent>(bt_node_result_event())?;
+    module.event::<AiBehaviorDebugSnapshot>(ai_behavior_debug_snapshot_event())?;
     module.event::<AiHearingStimulusEvent>(hearing_stimulus_event())?;
     let physics_query = module.import_interface::<dyn PhysicsQueryInterface>()?;
     let perception_manager = manager.clone();
@@ -365,7 +396,7 @@ pub(super) fn register_runtime_extensions(
             AI_BEHAVIOR_TICK_SYSTEM.to_string(),
         ))
         .register()?;
-    let mut frame = 0_u64;
+    let mut debug_reports_by_entity = BTreeMap::new();
     let script_bridge = module.import_interface::<dyn ScriptBehaviorBridge>()?;
     module
         .runtime_scene_system(
@@ -373,12 +404,12 @@ pub(super) fn register_runtime_extensions(
             zircon_runtime::scene::SystemStage::Update,
             move |context| {
                 let world_handle = context.level.world_handle();
-                let active_entities = manager.active_agent_entities(world_handle);
+                let active_entities_before_tick = manager.active_agent_entities(world_handle);
                 context.level.with_world_mut(|world| {
                     let camera_position = world
                         .world_transform(world.active_camera())
                         .map(|transform| transform.translation);
-                    let lod_by_entity = active_entities
+                    let lod_by_entity = active_entities_before_tick
                         .iter()
                         .copied()
                         .map(|entity| {
@@ -401,7 +432,7 @@ pub(super) fn register_runtime_extensions(
                         .tick_active_agents_with_lod_and_integration_host(
                             world_handle,
                             context.delta_seconds,
-                            frame,
+                            context.core.real_time().frame_index(),
                             |entity| lod_by_entity.get(&entity).copied().unwrap_or_default(),
                             &mut integration_host,
                         )
@@ -412,14 +443,68 @@ pub(super) fn register_runtime_extensions(
                             )
                         })?;
                     drop(integration_host);
+                    let active_entities = manager
+                        .active_agent_entities(world_handle)
+                        .into_iter()
+                        .collect::<BTreeSet<_>>();
+                    let snapshots_by_entity = manager
+                        .runtime_snapshot()
+                        .agents
+                        .into_iter()
+                        .filter(|snapshot| snapshot.world == world_handle)
+                        .filter(|snapshot| active_entities.contains(&snapshot.entity))
+                        .map(|snapshot| (snapshot.entity, snapshot))
+                        .collect::<BTreeMap<_, _>>();
+                    let world_id = world_handle.get();
+                    debug_reports_by_entity.retain(|(report_world, entity), _| {
+                        *report_world != world_id || active_entities.contains(entity)
+                    });
+                    for report in &reports {
+                        if let Some(node_result) = report.node_result_event() {
+                            world.send_event(node_result);
+                        }
+                        debug_reports_by_entity.insert((world_id, report.entity), report.clone());
+                    }
+                    let frames = debug_reports_by_entity
+                        .iter()
+                        .filter(|((report_world, entity), _)| {
+                            *report_world == world_id && active_entities.contains(entity)
+                        })
+                        .filter_map(|((_, entity), report)| {
+                            snapshots_by_entity
+                                .get(entity)
+                                .map(|snapshot| AiBehaviorDebugFrame {
+                                    report: report.clone(),
+                                    behavior_tree: snapshot.behavior_tree.clone(),
+                                    blackboard: snapshot.blackboard.clone(),
+                                    perception: snapshot.perception.clone(),
+                                    perception_debug: perception_debug_snapshot(world, *entity),
+                                })
+                        })
+                        .collect();
                     for report in reports {
                         world.send_event(report);
                     }
+                    world.send_event(AiBehaviorDebugSnapshot {
+                        world: world_handle,
+                        frames,
+                    });
                     Ok(())
                 })?;
-                frame = frame.wrapping_add(1);
                 Ok(())
             },
         )
         .register()
+}
+
+fn perception_debug_snapshot(world: &World, entity: EntityId) -> Option<AiPerceptionDebugSnapshot> {
+    let receiver = perception_receiver(world, entity)?;
+    let transform = world.world_transform(entity)?;
+    Some(AiPerceptionDebugSnapshot {
+        position: transform.translation,
+        forward: transform.forward().normalize_or_zero(),
+        sight_fov_degrees: receiver.sight_fov_degrees,
+        sight_range: receiver.sight_range,
+        hearing_radius: receiver.hearing_radius,
+    })
 }

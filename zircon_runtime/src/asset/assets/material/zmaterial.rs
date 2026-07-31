@@ -7,6 +7,8 @@ use crate::asset::AssetReference;
 
 use super::MaterialTextureSlotValue;
 
+pub(in crate::asset::assets) const ZMATERIAL_DOCUMENT_VERSION: u32 = 2;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ZMaterialDocument {
@@ -42,9 +44,7 @@ impl ZMaterialDocument {
             crate::asset::ReferenceResolutionError,
         >,
     ) -> Result<String, crate::asset::assets::ProjectDocumentError> {
-        let document = crate::asset::assets::project_document::serialize_material(self, resolver)?;
-        crate::asset::assets::project_document::validate_material(&document)?;
-        Ok(document)
+        crate::asset::assets::project_document::serialize_material(self, resolver)
     }
 
     pub fn from_project_toml_str(
@@ -53,16 +53,14 @@ impl ZMaterialDocument {
             &zircon_runtime_interface::project::PersistedAssetReference,
         ) -> Result<AssetReference, crate::asset::ReferenceResolutionError>,
     ) -> Result<Self, crate::asset::assets::ProjectDocumentError> {
-        crate::asset::assets::project_document::validate_material(document)?;
-        let parsed =
-            crate::asset::assets::project_document::deserialize_material(document, resolver)?;
-        validate_version(parsed).map_err(Into::into)
+        crate::asset::assets::project_document::deserialize_material(document, resolver)
     }
 
     #[cfg(test)]
     pub fn from_toml_str(document: &str) -> Result<Self, toml::de::Error> {
         let parsed: Self = toml::from_str(document)?;
-        validate_version(parsed)
+        validate_zmaterial_version(parsed.version)?;
+        Ok(parsed)
     }
 
     #[cfg(test)]
@@ -71,19 +69,21 @@ impl ZMaterialDocument {
     }
 }
 
-fn validate_version(document: ZMaterialDocument) -> Result<ZMaterialDocument, toml::de::Error> {
-    if document.version == 2 {
-        Ok(document)
+pub(in crate::asset::assets) fn validate_zmaterial_version(
+    version: u32,
+) -> Result<(), toml::de::Error> {
+    if version == ZMATERIAL_DOCUMENT_VERSION {
+        Ok(())
     } else {
         Err(toml::de::Error::custom(format!(
-            "zmaterial v2 document version `{}` is unsupported; migrate material files to version = 2",
-            document.version
+            "zmaterial v{ZMATERIAL_DOCUMENT_VERSION} document version `{}` is unsupported; migrate material files to version = {ZMATERIAL_DOCUMENT_VERSION}",
+            version,
         )))
     }
 }
 
 fn default_zmaterial_version() -> u32 {
-    2
+    ZMATERIAL_DOCUMENT_VERSION
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

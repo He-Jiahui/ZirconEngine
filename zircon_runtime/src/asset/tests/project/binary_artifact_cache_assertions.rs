@@ -15,23 +15,12 @@ pub(crate) fn assert_binary_artifact_cache(artifact_cache_root: &Path, artifact_
     );
     let payload = fs::read(artifact_cache_root.join(artifact_uri.path())).unwrap();
     assert!(
-        payload.starts_with(b"ZRARTZ01"),
-        "artifact cache entry should start with the compressed binary cache magic: {artifact}"
+        payload.starts_with(b"ZRARTM03"),
+        "artifact cache entry should start with the versioned artifact manifest magic: {artifact}"
     );
-    assert_ne!(
-        payload.get(b"ZRARTZ01".len()..b"ZRARTZ01".len() + 4),
-        Some(&b"JSON"[..]),
-        "artifact cache entry should not carry a JSON cache marker: {artifact}"
-    );
-    assert_ne!(
-        payload.get(b"ZRARTZ01".len()..b"ZRARTZ01".len() + 4),
-        Some(&b"BIN\0"[..]),
-        "artifact cache entry should not carry a legacy bincode format marker: {artifact}"
-    );
-    let cache = zstd::stream::decode_all(&payload[b"ZRARTZ01".len()..]).unwrap();
     assert!(
-        !matches!(cache.first(), Some(b'{') | Some(b'[')),
-        "decompressed artifact cache entry should be bincode payload bytes: {artifact}"
+        artifact_cache_root.join("chunks").is_dir(),
+        "artifact cache should publish content-addressed chunks: {artifact}"
     );
 }
 
@@ -40,7 +29,11 @@ pub(crate) fn assert_artifact_cache_files_are_zassets(path: &Path) {
         let entry = entry.unwrap();
         let path = entry.path();
         if path.is_dir() {
-            assert_artifact_cache_files_are_zassets(&path);
+            if path.file_name().and_then(|name| name.to_str()) == Some("chunks") {
+                assert_content_addressed_chunk_files(&path);
+            } else {
+                assert_artifact_cache_files_are_zassets(&path);
+            }
         } else {
             assert_eq!(
                 path.extension().and_then(|extension| extension.to_str()),
@@ -49,5 +42,17 @@ pub(crate) fn assert_artifact_cache_files_are_zassets(path: &Path) {
                 path.display()
             );
         }
+    }
+}
+
+fn assert_content_addressed_chunk_files(path: &Path) {
+    for entry in fs::read_dir(path).unwrap() {
+        let path = entry.unwrap().path();
+        assert_eq!(
+            path.extension().and_then(|extension| extension.to_str()),
+            Some("zchunk"),
+            "content-addressed artifact chunk should use .zchunk: {}",
+            path.display()
+        );
     }
 }

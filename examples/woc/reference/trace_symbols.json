@@ -1,0 +1,7839 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "golden_files": 51,
+  "golden_symbol_count": 965,
+  "hidden_symbol_count": 13,
+  "symbol_count": 978,
+  "sha256": "f65b6ed13487f4deef754cfd32822fcc09931a9de5c9f0bbb2d89e59b0de3577",
+  "wire_fingerprint_hex": "f65b6ed13487f4d",
+  "entries": [
+    {
+      "id": 1,
+      "name": "ValueEmpty0_e3b0c442",
+      "text": "",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Text_3e39b076",
+      "text": "/me + predefined /wave emotes via broadcastEmote + findPlayerByName; playEmote bubble",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Text_b4c5ac2f",
+      "text": "1v1:[\"name:bet\"]",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Text_8adf2593",
+      "text": "2099-06-25",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Text_663dab3b",
+      "text": "2v2:[\"name:dalet\",\"name:gimel\"]",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Text_beaf0a13",
+      "text": "a level-up ding (grantXp level loop, C1)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Text_2ceec223",
+      "text": "a-chats",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Text_ec3a52a9",
+      "text": "abandon-noop",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "ValueAbandoned_20e7f550",
+      "text": "abandoned",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Text_71554dba",
+      "text": "abandonQuest questLog.delete + log emit, plus the not-in-log early-return guard",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "ValueAbsorb_22b090dd",
+      "text": "absorb",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "ValueAbsorbBig_589c3dc6",
+      "text": "absorb_big",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Text_c0e667b7",
+      "text": "acceptLinkedQuest party-gate: not-in-party error then in-party share",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Text_e76c063e",
+      "text": "acceptQuest -> finalizeQuestAccept -> onInventoryChangedForQuests",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "ValueAcolyteTessa_ae30a6f8",
+      "text": "acolyte_tessa",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "ValueActive_96879611",
+      "text": "active",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "KeyActiveLoadout_a5767e81",
+      "text": "activeLoadout",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Text_eac60ec9",
+      "text": "addEntity roster + spatial grids",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Text_d5d888b6",
+      "text": "advanced-to-apse",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Text_6290ee9b",
+      "text": "advanced-to-finale",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 21,
+      "name": "ValueAffixMob_8cb6c5a2",
+      "text": "affix_mob",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 22,
+      "name": "ValueAffixes_ac87aaef",
+      "text": "affixes",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Text_861598e1",
+      "text": "after-loot-a",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Text_38f8c130",
+      "text": "after-loot-b",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Text_0c9b388c",
+      "text": "after-rolls",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Text_e694872c",
+      "text": "after-stop",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 27,
+      "name": "ValueAggressive_42eddc67",
+      "text": "aggressive",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 28,
+      "name": "KeyAggroTargetId_dcf1a08e",
+      "text": "aggroTargetId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 29,
+      "name": "KeyAgi_1a3e9f24",
+      "text": "agi",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 30,
+      "name": "KeyAiState_81570fde",
+      "text": "aiState",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 31,
+      "name": "KeyAlloc_bcd3b184",
+      "text": "alloc",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Text_1f563867",
+      "text": "amp stack + threat handoff + tap rights across multiple attackers",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Text_e2a91a62",
+      "text": "aoe-pulse",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 34,
+      "name": "Text_775046b3",
+      "text": "aoeDamage per-target rng.range (mage arcane_explosion, 2 mobs)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 35,
+      "name": "Text_5a4803b9",
+      "text": "apply-arms",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 36,
+      "name": "Text_d80dc101",
+      "text": "applyChannelTick drainTick (rng.range draw + dealDamage + self-heal + healingThreat)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Text_f9f5fdfe",
+      "text": "applyDemonHealTick (heal2 + healingThreat) via the Demon Heal channel",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Text_e1bb4bd5",
+      "text": "applyHeal core: crit branch (rng.chance(spellCrit) draw), overheal clamp, heal2 emit",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 39,
+      "name": "Text_5aa4631d",
+      "text": "applyTalents valid spec build (G1a) + recomputeTalents flat-struct bake",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 40,
+      "name": "Text_28927e02",
+      "text": "applyTaunt pet auto-taunt arm (~8110)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 41,
+      "name": "Text_7a332c36",
+      "text": "applyTaunt pet manual-taunt arm (petTaunt, ~4885)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 42,
+      "name": "Text_a34a0bab",
+      "text": "applyTaunt player-cast arm (taunt ability, ~4279)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 43,
+      "name": "ValueApprenticeRobe_b0c2303e",
+      "text": "apprentice_robe",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 44,
+      "name": "ValueArcane_25b380d8",
+      "text": "arcane",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 45,
+      "name": "KeyArchetype_277ab9e0",
+      "text": "archetype",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 46,
+      "name": "Text_41c7411b",
+      "text": "arena 1v1 match + Elo result",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 47,
+      "name": "Text_3ee7c937",
+      "text": "arena 2v2 matchmaking (matchmakeTeamFormat: four solos -> two teams)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 48,
+      "name": "ValueArena1v1_90f66c11",
+      "text": "arena_1v1",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 49,
+      "name": "ValueArena2v2Wipe_4d0522d4",
+      "text": "arena_2v2_wipe",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 50,
+      "name": "KeyArena2v2Losses_bd729106",
+      "text": "arena2v2Losses",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 51,
+      "name": "KeyArena2v2Rating_998103cc",
+      "text": "arena2v2Rating",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 52,
+      "name": "KeyArena2v2Wins_c1d79119",
+      "text": "arena2v2Wins",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 53,
+      "name": "KeyArenaLosses_092a6558",
+      "text": "arenaLosses",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 54,
+      "name": "KeyArenaRating_42ca8c49",
+      "text": "arenaRating",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 55,
+      "name": "KeyArenaWins_126c9966",
+      "text": "arenaWins",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 56,
+      "name": "KeyArmor_d81ea159",
+      "text": "armor",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 57,
+      "name": "Text_5a593985",
+      "text": "Armor Shear",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 58,
+      "name": "ValueArms_d86982d2",
+      "text": "arms",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 59,
+      "name": "ValueArms_f831a06b",
+      "text": "Arms",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 60,
+      "name": "KeyArmsImpOverpower_65af9571",
+      "text": "arms_imp_overpower",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 61,
+      "name": "ValueAssassination_47135852",
+      "text": "assassination",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 62,
+      "name": "ValueAttack_fca30679",
+      "text": "attack",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 63,
+      "name": "Text_c25425ba",
+      "text": "attack arm aoePulse rng.range(pulse.min,pulse.max) + spellfx (mogger Ground Pound)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 64,
+      "name": "Text_c873cbb7",
+      "text": "attack arm Banshee terrify rng.range(-PI,PI) fear facing + fear_incap aura (sister_nhalia)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 65,
+      "name": "Text_589c2aa6",
+      "text": "attack arm War Stomp rng.range(stomp.min,stomp.max) + stomp_stun aura (korgath)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 66,
+      "name": "KeyAttackPower_98d076a8",
+      "text": "attackPower",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 67,
+      "name": "ValueAugFleetfoot_7c0aa8ce",
+      "text": "aug_fleetfoot",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 68,
+      "name": "Text_2364708a",
+      "text": "augment wave: fiestaPickOffers + arenaAugmentPick (fiestaAugments on meta + augmentOffer/Chosen events)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 69,
+      "name": "KeyAuras_38193c67",
+      "text": "auras",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 70,
+      "name": "KeyAutoAttack_36f515c2",
+      "text": "autoAttack",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 71,
+      "name": "KeyAutoEquip_f01f71c1",
+      "text": "autoEquip",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 72,
+      "name": "Text_c511b5b8",
+      "text": "b-chats",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 73,
+      "name": "KeyBags_8ecbaf60",
+      "text": "bags",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 74,
+      "name": "ValueBakedBread_d88de7d5",
+      "text": "baked_bread",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 75,
+      "name": "ValueBanditBandana_9f779b98",
+      "text": "bandit_bandana",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 76,
+      "name": "KeyBank_4381dc2a",
+      "text": "bank",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 77,
+      "name": "ValueBankRoundTrip_b46c5996",
+      "text": "bank_round_trip",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 78,
+      "name": "Text_2623f3f4",
+      "text": "bank-setup",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 79,
+      "name": "Text_39e954eb",
+      "text": "bankBuySlots: meta.copper - BANK_EXPANSION_PRICES[0] + purchasedSlots + 6",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 80,
+      "name": "Text_52450405",
+      "text": "bankDeposit partial: a fraction of a fungible stack moves bags -> bank",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 81,
+      "name": "Text_6fc0e2b2",
+      "text": "bankDeposit whole: the remaining stack merges into the bank slot",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 82,
+      "name": "Text_65207123",
+      "text": "banker-proximity gate (nearBanker) satisfied by standing at a bursar",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 83,
+      "name": "Text_e8e4998c",
+      "text": "bankWithdraw partial then whole: bank -> bags, gated by bag capacity",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 84,
+      "name": "KeyBar_fcde2b2e",
+      "text": "bar",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 85,
+      "name": "Text_5ab88cd7",
+      "text": "base mobSwing (mob swings the player)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 86,
+      "name": "Text_66b80358",
+      "text": "baseline-tank",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 87,
+      "name": "ValueBastionWardStone_1cea89a9",
+      "text": "bastion_ward_stone",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 88,
+      "name": "ValueBeastMastery_eff93645",
+      "text": "beast_mastery",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 89,
+      "name": "Text_d8fe83ed",
+      "text": "bell-rope pull -> Bell Shock on live cantors (delveInteract)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 90,
+      "name": "ValueBleedRidgeStalker_a091e9ef",
+      "text": "bleed_ridge_stalker",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 91,
+      "name": "Text_1c5beb72",
+      "text": "Blood Frenzy",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 92,
+      "name": "ValueBloodFrenzy_41de5f0c",
+      "text": "blood_frenzy",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 93,
+      "name": "Text_83ece0b1",
+      "text": "blood_frenzy push then refresh branches",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 94,
+      "name": "ValueBoarHide_e3e825a5",
+      "text": "boar_hide",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 95,
+      "name": "ValueBogBloat_dc6d9b49",
+      "text": "bog_bloat",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 96,
+      "name": "ValueBonechillWidow_d503d992",
+      "text": "bonechill_widow",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 97,
+      "name": "KeyBossDamagers_d882bedd",
+      "text": "bossDamagers",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 98,
+      "name": "ValueBought_39deaf7c",
+      "text": "bought",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 99,
+      "name": "Text_2cf096d2",
+      "text": "bought-back",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 100,
+      "name": "Text_316805f4",
+      "text": "bought-slots",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 101,
+      "name": "Text_61260145",
+      "text": "bout-active",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 102,
+      "name": "KeyBreaksOnDamage_6841fb79",
+      "text": "breaksOnDamage",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 103,
+      "name": "ValueBrotherAldricRaid_60bea9a4",
+      "text": "brother_aldric_raid",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 104,
+      "name": "ValueBuffAllstatsPct_fbad9729",
+      "text": "buff_allstats_pct",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 105,
+      "name": "ValueBuffAp_3c6ad553",
+      "text": "buff_ap",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 106,
+      "name": "ValueBuffHaste_f5048234",
+      "text": "buff_haste",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 107,
+      "name": "ValueBuffSta_6e277afb",
+      "text": "buff_sta",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 108,
+      "name": "Text_f3e65b30",
+      "text": "buyBackItem: meta.copper spend + addItemSilent + onInventoryChangedForQuests",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 109,
+      "name": "Text_5606854b",
+      "text": "buyItem: meta.copper - buyValue*stackSize + addItem stack at trader_wilkes (vendor proximity gate)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 110,
+      "name": "ValueC3AuraRunner_862602c0",
+      "text": "c3_aura_runner",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 111,
+      "name": "ValueC4aCastingLifecycle_02723613",
+      "text": "c4a_casting_lifecycle",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 112,
+      "name": "ValueC4aSilence_72948845",
+      "text": "c4a_silence",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 113,
+      "name": "ValueC4bEffectDispatch_cd35a43e",
+      "text": "c4b_effect_dispatch",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 114,
+      "name": "ValueC5AutoAttack_2adf229a",
+      "text": "c5_auto_attack",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 115,
+      "name": "Text_8604c2e3",
+      "text": "cancelCast fishing arm via dealDamage (FISHING_CAST_ID, not pushback)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 116,
+      "name": "ValueCancelled_8b47045e",
+      "text": "cancelled",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 117,
+      "name": "Text_98fe4fe0",
+      "text": "cantor phases + Final Bell + rite choose -> playback pulses",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 118,
+      "name": "Text_5d9e4639",
+      "text": "castAbility channel START (warlock drain_life): spend+arm at START",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 119,
+      "name": "Text_7d541ec7",
+      "text": "castAbility timed-cast START (mage fireball) + Math.max gcd arm",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 120,
+      "name": "Text_2434bb53",
+      "text": "casting lifecycle (C4a)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 121,
+      "name": "KeyCastingAbility_f4acbfed",
+      "text": "castingAbility",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 122,
+      "name": "KeyCastRemaining_36f72b8f",
+      "text": "castRemaining",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 123,
+      "name": "KeyCastTargetId_70a55c9e",
+      "text": "castTargetId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 124,
+      "name": "KeyCastTotal_7ad745bb",
+      "text": "castTotal",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 125,
+      "name": "ValueCatForm_279db79f",
+      "text": "cat_form",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 126,
+      "name": "KeyChanneling_0096f3fd",
+      "text": "channeling",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 127,
+      "name": "KeyChannelTickEvery_cfcf9de7",
+      "text": "channelTickEvery",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 128,
+      "name": "KeyChannelTickTimer_d60cbcdc",
+      "text": "channelTickTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 129,
+      "name": "ValueChase_5b3d7e7a",
+      "text": "chase",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 130,
+      "name": "ValueChatSocial_874890a8",
+      "text": "chat_social",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 131,
+      "name": "Text_063900c6",
+      "text": "chat-setup",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 132,
+      "name": "Text_591a1667",
+      "text": "checkQuestReady promotion (active -> ready)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 133,
+      "name": "Text_533bc19d",
+      "text": "checkQuestReady promotion AND demotion (ready <-> active)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 134,
+      "name": "KeyChest_7ca0d701",
+      "text": "chest",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 135,
+      "name": "KeyChoices_39db15dc",
+      "text": "choices",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 136,
+      "name": "ValueChrValePackbreaker_7299941c",
+      "text": "chr_vale_packbreaker",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 137,
+      "name": "ValueCinderbolt_0267b24f",
+      "text": "Cinderbolt",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 138,
+      "name": "Text_643fb6ae",
+      "text": "class:hunter",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 139,
+      "name": "Text_f9e6f9fd",
+      "text": "class:hunter (pet owner)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 140,
+      "name": "Text_f42cc3ae",
+      "text": "class:hunter (tame/feed/revive/abandon/stow)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 141,
+      "name": "Text_b2f3f25e",
+      "text": "class:mage (caster)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 142,
+      "name": "Text_8e7ee900",
+      "text": "class:paladin",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 143,
+      "name": "Text_e250c5a9",
+      "text": "class:rogue",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 144,
+      "name": "Text_0a55ad7e",
+      "text": "class:warlock (caster)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 145,
+      "name": "Text_9d46033c",
+      "text": "class:warlock (summon/demon-swap/healPet channel)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 146,
+      "name": "Text_660817b9",
+      "text": "class:warrior",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 147,
+      "name": "Text_dec52da5",
+      "text": "classes:warrior,mage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 148,
+      "name": "KeyCls_84cdb981",
+      "text": "cls",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 149,
+      "name": "ValueCmbFirstBlood_f551c1df",
+      "text": "cmb_first_blood",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 150,
+      "name": "ValueCmbFirstFall_50da7eda",
+      "text": "cmb_first_fall",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 151,
+      "name": "ValueCmbGiantslayer_be509158",
+      "text": "cmb_giantslayer",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 152,
+      "name": "ValueColFirstEpic_4d80a8b5",
+      "text": "col_first_epic",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 153,
+      "name": "Text_ff3dfd3c",
+      "text": "collapsed_reliquary:normal",
+      "kinds": [
+        "key",
+        "value"
+      ]
+    },
+    {
+      "id": 154,
+      "name": "Text_e9774645",
+      "text": "collect-demoted",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 155,
+      "name": "Text_210fac04",
+      "text": "collect-re-ready",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 156,
+      "name": "Text_02099f42",
+      "text": "collect-ready",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 157,
+      "name": "ValueCollected_8ff79c0b",
+      "text": "collected",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 158,
+      "name": "ValueCombat_8d988fa3",
+      "text": "combat",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 159,
+      "name": "Text_522aaca5",
+      "text": "combat_start/low_hp barks via maybeCompanionBark (stays on Sim)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 160,
+      "name": "KeyCombatTimer_c7e89e66",
+      "text": "combatTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 161,
+      "name": "Text_a16a7c1f",
+      "text": "combo points",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 162,
+      "name": "KeyComboPoints_fb1edf21",
+      "text": "comboPoints",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 163,
+      "name": "KeyComboUntil_a069aafb",
+      "text": "comboUntil",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 164,
+      "name": "KeyCompanionTessa_65ce285b",
+      "text": "companion_tessa",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 165,
+      "name": "Text_eb7f7dac",
+      "text": "companionUpgrade rank bump + refreshDelveDaily day rollover",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 166,
+      "name": "KeyCompanionUpgrades_611e2ee1",
+      "text": "companionUpgrades",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 167,
+      "name": "KeyComplete_eebbf645",
+      "text": "complete",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 168,
+      "name": "Text_79df4c37",
+      "text": "completeTame + syncPetLevel (tamePet target -> owned pet scaled to owner)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 169,
+      "name": "ValueConsecration_92316544",
+      "text": "consecration",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 170,
+      "name": "ValueConsumed_8082d8aa",
+      "text": "consumed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 171,
+      "name": "Text_d58902f5",
+      "text": "consumeHealAbsorb soak: small shield depletes+filters, big shield survives",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 172,
+      "name": "Text_bce4e924",
+      "text": "convertPartyToRaid full-party gate (RAID_MIN) + normalizeRaidGroups",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 173,
+      "name": "KeyCooldowns_fcc083bf",
+      "text": "cooldowns",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 174,
+      "name": "KeyCopper_d16f06fe",
+      "text": "copper",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 175,
+      "name": "Text_f41a9615",
+      "text": "corpse-tick -> detonateCorpse: fuse reaches 0, rng.range(dt.min,dt.max) per in-radius living player + dealDamage burst, fires once",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 176,
+      "name": "Text_b4e2f471",
+      "text": "corpse-tick -> respawnMob: a slain wild mob respawns at spawnPos (rng.range(2,8) wanderTimer) and despawnSummonedAdds drops its summoned add",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 177,
+      "name": "Text_7e5a810e",
+      "text": "corpse-tick gate: a dungeon mob (spawnPos.x > DUNGEON_X_THRESHOLD) stays dead, no respawn",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 178,
+      "name": "KeyCorpsePos_c146bf46",
+      "text": "corpsePos",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 179,
+      "name": "KeyCorpseTimer_ba8ad95f",
+      "text": "corpseTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 180,
+      "name": "Text_02cc87cf",
+      "text": "cosmetic prestige accept + below-threshold reject (prestige, G1b)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 181,
+      "name": "KeyCount_6c35493a",
+      "text": "count",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 182,
+      "name": "KeyCounters_332daf8d",
+      "text": "counters",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 183,
+      "name": "KeyCounts_cdd93696",
+      "text": "counts",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 184,
+      "name": "KeyCoverage_c3a3091b",
+      "text": "coverage",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 185,
+      "name": "Text_66d78bad",
+      "text": "cowardly flee: maybeFlee at FLEE_HP_THRESHOLD -> flee arm (fleeMoveSpeed run-away)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 186,
+      "name": "KeyCraftSkills_09a1997c",
+      "text": "craftSkills",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 187,
+      "name": "KeyCraftThrottle_551cc33b",
+      "text": "craftThrottle",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 188,
+      "name": "Text_d446affe",
+      "text": "crit-vuln-damage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 189,
+      "name": "KeyCritChance_e7a5e41e",
+      "text": "critChance",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 190,
+      "name": "KeyCritDmgPhysBonus_22003d3f",
+      "text": "critDmgPhysBonus",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 191,
+      "name": "KeyCrits_46911bd0",
+      "text": "crits",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 192,
+      "name": "ValueCritvuln_a40f8eb2",
+      "text": "critvuln",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 193,
+      "name": "Text_3c20184c",
+      "text": "cross-team takedown + respawn bench",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 194,
+      "name": "ValueCryptShambler_13105351",
+      "text": "crypt_shambler",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 195,
+      "name": "ValueCryptboneHelm_91f7278f",
+      "text": "cryptbone_helm",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 196,
+      "name": "ValueCvM1_2fe2854f",
+      "text": "cv_m1",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 197,
+      "name": "KeyDagger_6415fae6",
+      "text": "dagger",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 198,
+      "name": "KeyDamageDealt_7ff31217",
+      "text": "damageDealt",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 199,
+      "name": "KeyDamageTaken_9232a99e",
+      "text": "damageTaken",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 200,
+      "name": "KeyDate_0e87632c",
+      "text": "date",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 201,
+      "name": "ValueDeaconVarric_b5f0eec2",
+      "text": "deacon_varric",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 202,
+      "name": "KeyDead_28a3a5e8",
+      "text": "dead",
+      "kinds": [
+        "key",
+        "value"
+      ]
+    },
+    {
+      "id": 203,
+      "name": "Text_2fb61eba",
+      "text": "dealDamage -> maybeFrenzyOnHit rng draw (the only in-slice draw, ~5651/5702)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 204,
+      "name": "Text_05a9d15a",
+      "text": "dealDamage consumers: critVulnBonus (crit-only) + hexOutputMult on a damage hit",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 205,
+      "name": "Text_bba8d5c7",
+      "text": "dealDamage fiesta cross-team takedown emit-then-fiestaTakedown order (~5512-5525)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 206,
+      "name": "Text_c72a4867",
+      "text": "dealDamage fiesta mid-cast fishing-cancel (cancelCast ~5663)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 207,
+      "name": "Text_67c17b64",
+      "text": "dealDamage fiesta mid-cast pushback (pushbackCast ~5664)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 208,
+      "name": "ValueDeath_52c8e029",
+      "text": "death",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 209,
+      "name": "Text_2f41c7c8",
+      "text": "death -> armDeathThroes: a deathThroes mob arms its detonateTimer fuse + swell telegraph (no rng)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 210,
+      "name": "Text_95a66e1f",
+      "text": "death -> frenzyPackmates: a packFrenzy mob death gives same-template hostile neighbors the Pack Frenzy buff_haste aura (different-template boar unaffected; no rng)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 211,
+      "name": "Text_dfb14d8e",
+      "text": "Deathless Rage interrupt via tryStartNythraxisWardChannel (object-click channel) + boss self-stun",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 212,
+      "name": "Text_6388af03",
+      "text": "Deathless Rage Interrupted",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 213,
+      "name": "Text_2b721d55",
+      "text": "deathless-interrupt",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 214,
+      "name": "Text_152c6d48",
+      "text": "deathless-start",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 215,
+      "name": "KeyDeathlessCastRemaining_322896e0",
+      "text": "deathlessCastRemaining",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 216,
+      "name": "KeyDeathlessStunRemaining_f0ddd3e4",
+      "text": "deathlessStunRemaining",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 217,
+      "name": "KeyDeathlessTimer_df774bde",
+      "text": "deathlessTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 218,
+      "name": "KeyDeaths_8f16aaa0",
+      "text": "deaths",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 219,
+      "name": "KeyDeathSpoken_8f497ffc",
+      "text": "deathSpoken",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 220,
+      "name": "KeyDeedsEarned_50eac89b",
+      "text": "deedsEarned",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 221,
+      "name": "KeyDeedStats_bc4b93ac",
+      "text": "deedStats",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 222,
+      "name": "ValueDefensive_6cf2c255",
+      "text": "defensive",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 223,
+      "name": "Text_37f9a79c",
+      "text": "delve run (collapsed_reliquary finale)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 224,
+      "name": "ValueDelveCompanion_77659463",
+      "text": "delve_companion",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 225,
+      "name": "ValueDelveDeath_9a8701ac",
+      "text": "delve_death",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 226,
+      "name": "ValueDelveLockedChest_3c0bfec6",
+      "text": "delve_locked_chest",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 227,
+      "name": "ValueDelveLockpick_59b12e3b",
+      "text": "delve_lockpick",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 228,
+      "name": "ValueDelveLockpickFail_b06ae667",
+      "text": "delve_lockpick_fail",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 229,
+      "name": "ValueDelveProgression_ab62f4f7",
+      "text": "delve_progression",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 230,
+      "name": "ValueDelveRewardChest_16187723",
+      "text": "delve_reward_chest",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 231,
+      "name": "Text_251a0cb9",
+      "text": "delve-end",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 232,
+      "name": "Text_d8372885",
+      "text": "delve-fail",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 233,
+      "name": "Text_e5f3c463",
+      "text": "delve-first-release",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 234,
+      "name": "KeyDelveClears_c0b6d931",
+      "text": "delveClears",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 235,
+      "name": "KeyDelveDaily_eeb0803b",
+      "text": "delveDaily",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 236,
+      "name": "KeyDelveLoreUnlocked_67ccd99d",
+      "text": "delveLoreUnlocked",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 237,
+      "name": "KeyDelveMarks_16a02739",
+      "text": "delveMarks",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 238,
+      "name": "ValueDemonHeal_9bed48b0",
+      "text": "demon_heal",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 239,
+      "name": "Text_ecf1dff8",
+      "text": "demon-despawned",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 240,
+      "name": "Text_e727ae8f",
+      "text": "demon-heal-start",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 241,
+      "name": "Text_752a2722",
+      "text": "demon-heal-tick",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 242,
+      "name": "Text_09db4c01",
+      "text": "demon-resummoned",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 243,
+      "name": "Text_1c5ca137",
+      "text": "deposited-partial",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 244,
+      "name": "Text_8c90971f",
+      "text": "deposited-whole",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 245,
+      "name": "Text_f942c9d6",
+      "text": "despawn prologue: despawnTimer + DAMAGE_IDLE_DESPAWN idle-despawn (collect-then-drop)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 246,
+      "name": "Text_55a128fa",
+      "text": "despawnPersistentPet threat-scrub + retargetMob (abandon, demon swap, stow beast)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 247,
+      "name": "Text_eaf0eabf",
+      "text": "despawnPet player-target + threat scrub + retargetMob (stow demon)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 248,
+      "name": "KeyDetonateTimer_79b4860a",
+      "text": "detonateTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 249,
+      "name": "ValueDgnNythraxis_12ef2983",
+      "text": "dgn_nythraxis",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 250,
+      "name": "ValueDgnNythraxisGravebreaker_15256bab",
+      "text": "dgn_nythraxis_gravebreaker",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 251,
+      "name": "ValueDgnNythraxisWardens_23e3da18",
+      "text": "dgn_nythraxis_wardens",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 252,
+      "name": "KeyDialogueBusyUntil_b417842b",
+      "text": "dialogueBusyUntil",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 253,
+      "name": "KeyDialogueToken_6344eb42",
+      "text": "dialogueToken",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 254,
+      "name": "KeyDigest_0bf47489",
+      "text": "digest",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 255,
+      "name": "ValueDing_ca46a3f7",
+      "text": "ding",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 256,
+      "name": "Text_ed564fd3",
+      "text": "directDamage/finisherDamage range-then-chance (druid moonfire, rogue eviscerate)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 257,
+      "name": "ValueDisband_45d31171",
+      "text": "disband",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 258,
+      "name": "ValueDiscarded_1fcc4b37",
+      "text": "discarded",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 259,
+      "name": "Text_d651b103",
+      "text": "discardItem: removeItem the discarded count",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 260,
+      "name": "ValueDiscipline_d43c8bd5",
+      "text": "discipline",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 261,
+      "name": "ValueDlvReliquary_0859d73a",
+      "text": "dlv_reliquary",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 262,
+      "name": "ValueDlvTumblerPremium_fb3d9b96",
+      "text": "dlv_tumbler_premium",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 263,
+      "name": "ValueDlvVarricRingers_c22a18fa",
+      "text": "dlv_varric_ringers",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 264,
+      "name": "KeyDodgeChance_9a866d87",
+      "text": "dodgeChance",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 265,
+      "name": "ValueDot_e392dad8",
+      "text": "dot",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 266,
+      "name": "Text_7c73fba9",
+      "text": "dot-guard",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 267,
+      "name": "Text_afa013e3",
+      "text": "down + respawn-timer revive (fiestaRevive)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 268,
+      "name": "ValueDrainLife_1075874b",
+      "text": "drain_life",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 269,
+      "name": "KeyDrawDigest_1e19ce74",
+      "text": "drawDigest",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 270,
+      "name": "KeyDraws_0aa2666b",
+      "text": "draws",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 271,
+      "name": "Text_d4c52608",
+      "text": "drift-cancelled",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 272,
+      "name": "Text_38f2c954",
+      "text": "drift-open",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 273,
+      "name": "ValueDrink_218ae6b4",
+      "text": "drink",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 274,
+      "name": "KeyDrinking_93481e6d",
+      "text": "drinking",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 275,
+      "name": "ValueDrownedLitany_aade6087",
+      "text": "drowned_litany",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 276,
+      "name": "Text_c36bad76",
+      "text": "drowned_litany heroic run (ruin affix roll + module advance)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 277,
+      "name": "ValueDruid_7ff2b4df",
+      "text": "druid",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 278,
+      "name": "Text_a263984c",
+      "text": "druid-moonfire-forms",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 279,
+      "name": "ValueDuelToWinner_8b001959",
+      "text": "duel_to_winner",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 280,
+      "name": "Text_cc8aa921",
+      "text": "duel-active",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 281,
+      "name": "Text_c98d9681",
+      "text": "duel-ended",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 282,
+      "name": "Text_efdfbbf0",
+      "text": "duelRequest/duelAccept duel formation (~11982/12022)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 283,
+      "name": "KeyDuelsLost_b11db5c0",
+      "text": "duelsLost",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 284,
+      "name": "KeyDuelsWon_5db59312",
+      "text": "duelsWon",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 285,
+      "name": "ValueDungeonExit_5d385676",
+      "text": "dungeon_exit",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 286,
+      "name": "ValueDungeonInstances_c52fbfd1",
+      "text": "dungeon_instances",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 287,
+      "name": "ValueDungeonRaidLockout_e8ff8e07",
+      "text": "dungeon_raid_lockout",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 288,
+      "name": "Text_4eae53c9",
+      "text": "dungeon-stays-dead",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 289,
+      "name": "KeyDungeonClears_6bec0f7b",
+      "text": "dungeonClears",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 290,
+      "name": "KeyDungeonFinalBossKills_df69e095",
+      "text": "dungeonFinalBossKills",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 291,
+      "name": "KeyDungeonId_ad6f5c7a",
+      "text": "dungeonId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 292,
+      "name": "KeyDuration_caa79af4",
+      "text": "duration",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 293,
+      "name": "ValueEastbrookLedger_2c070bd3",
+      "text": "eastbrook_ledger",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 294,
+      "name": "KeyEating_cca0151a",
+      "text": "eating",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 295,
+      "name": "Text_3d5c4a00",
+      "text": "effect dispatch + spell damage (C4b/C1)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 296,
+      "name": "ValueElixirElixirOfTheBear_9bd9bec9",
+      "text": "elixir_elixir_of_the_bear",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 297,
+      "name": "ValueElixirOfTheBear_16ca4587",
+      "text": "elixir_of_the_bear",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 298,
+      "name": "ValueEmberkin_e154248d",
+      "text": "emberkin",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 299,
+      "name": "Text_31bc2cc6",
+      "text": "emitDueDelayedEvents drain (fires / guard-drops / stays-pending)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 300,
+      "name": "Text_3b896504",
+      "text": "endArenaMatch ranked Elo on both teams (arena2v2 standings) + returnFromArena",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 301,
+      "name": "Text_dd99caa4",
+      "text": "endDuel on a PvP finishing blow (winner/loser + this.duels cleared)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 302,
+      "name": "ValueEnergy_381cfb6e",
+      "text": "energy",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 303,
+      "name": "ValueEngage_fac6a324",
+      "text": "engage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 304,
+      "name": "KeyEnraged_4e191187",
+      "text": "enraged",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 305,
+      "name": "ValueEnsnareWebwoodSpider_536b98d5",
+      "text": "ensnare_webwood_spider",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 306,
+      "name": "Text_442f0682",
+      "text": "enterDungeon -> claimInstance rng.int per spawn (~14774) + addEntity mobs/objects/exit",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 307,
+      "name": "Text_e2a318cb",
+      "text": "enterDungeon raid gating: convertPartyToRaid + canEnterNythraxisRaid attunement (~14640)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 308,
+      "name": "ValueEntered_e9b72a02",
+      "text": "entered",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 309,
+      "name": "KeyEntities_2cc49785",
+      "text": "entities",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 310,
+      "name": "ValueEntityRoster_ed5e301f",
+      "text": "entity_roster",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 311,
+      "name": "KeyEntityId_556eb4fe",
+      "text": "entityId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 312,
+      "name": "Text_1bc7a9d1",
+      "text": "equip-swapped",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 313,
+      "name": "Text_89166ca2",
+      "text": "equipItem empty-slot equip + recalcPlayerStats",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 314,
+      "name": "Text_69962ec9",
+      "text": "equipItem same-slot SWAP: old piece returned to bags via addItemSilent + recalc",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 315,
+      "name": "KeyEquipment_1c09f5a7",
+      "text": "equipment",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 316,
+      "name": "KeyEquipmentInstance_0ea931a7",
+      "text": "equipmentInstance",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 317,
+      "name": "ValueEquipped_74f66e8c",
+      "text": "equipped",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 318,
+      "name": "ValueEvade_c8e11d43",
+      "text": "evade",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 319,
+      "name": "Text_8c8685fd",
+      "text": "evade arm arrival -> resetEvadingMob (rng.range(2,8), full-heal, clearThreat, telegraph re-arm)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 320,
+      "name": "Text_6fb14d55",
+      "text": "evade-reset",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 321,
+      "name": "KeyEvents_862417b9",
+      "text": "events",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 322,
+      "name": "Text_c586bcfc",
+      "text": "everyone-passes returnLootRollItemToCorpse",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 323,
+      "name": "ValueExpired_fa64ea1e",
+      "text": "expired",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 324,
+      "name": "KeyFacing_b319c617",
+      "text": "facing",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 325,
+      "name": "Text_14ea14fb",
+      "text": "fair-split copper with remainder (Fisher-Yates rng.int draw)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 326,
+      "name": "KeyFallStartY_b7b58b35",
+      "text": "fallStartY",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 327,
+      "name": "ValueFearIncap_4027c6fe",
+      "text": "fear_incap",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 328,
+      "name": "ValueFeatEraCap_f3e6bda8",
+      "text": "feat_era_cap",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 329,
+      "name": "ValueFed_bd618904",
+      "text": "Fed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 330,
+      "name": "ValueFeedPet_61392034",
+      "text": "feed_pet",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 331,
+      "name": "Text_e2466324",
+      "text": "feedPet feed_pet HoT (replace-then-apply)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 332,
+      "name": "ValueFiesta_5911d015",
+      "text": "fiesta",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 333,
+      "name": "Text_76c1bd7b",
+      "text": "fiesta lifesteal augment arm (~5499)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 334,
+      "name": "Text_b3fe67e7",
+      "text": "fiesta match (2v2 score mode)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 335,
+      "name": "Text_eaf8ded5",
+      "text": "fiesta power-up spawn (f.rng pick/next) + telegraph + grab (buff aura)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 336,
+      "name": "ValueFiestaMidcastKill_dafe8536",
+      "text": "fiesta_midcast_kill",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 337,
+      "name": "ValueFiestaPowerups_4cae40eb",
+      "text": "fiesta_powerups",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 338,
+      "name": "Text_d2d17078",
+      "text": "fiesta:pow_berserker",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 339,
+      "name": "KeyFiestaAugments_7c744d64",
+      "text": "fiestaAugments",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 340,
+      "name": "KeyFiestaCompletionsByOpponent_96e1cc1f",
+      "text": "fiestaCompletionsByOpponent",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 341,
+      "name": "KeyFiestaRestore_734f842d",
+      "text": "fiestaRestore",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 342,
+      "name": "ValueFinal_2443630b",
+      "text": "final",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 343,
+      "name": "Text_36587151",
+      "text": "Final Stand",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 344,
+      "name": "Text_d582d8cd",
+      "text": "Final Stand enrage at 5% + grantNythraxisLockout (raidLockouts) + onBossDeath death dialogue",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 345,
+      "name": "Text_278dc6ae",
+      "text": "finalizeQuestAccept via the linked-share path (questLog.set + fallback re-grant + sharer notice)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 346,
+      "name": "ValueFinalstand_c6cc5da6",
+      "text": "finalstand",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 347,
+      "name": "KeyFinalStand_539490fe",
+      "text": "finalStand",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 348,
+      "name": "Text_8809ac31",
+      "text": "Find Weakness",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 349,
+      "name": "ValueFire_dc9f28b1",
+      "text": "fire",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 350,
+      "name": "ValueFireball_d81bc59a",
+      "text": "fireball",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 351,
+      "name": "Text_6b2c1aeb",
+      "text": "fireball-landed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 352,
+      "name": "Text_b2cc527f",
+      "text": "first kill does not end the match; team wipe (isArenaTeamWiped) does",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 353,
+      "name": "Text_67ff400d",
+      "text": "first-down",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 354,
+      "name": "KeyFirstClearXp_23bc4a57",
+      "text": "firstClearXp",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 355,
+      "name": "KeyFiveSecondRule_e2f64bfd",
+      "text": "fiveSecondRule",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 356,
+      "name": "ValueFlee_d15a1edf",
+      "text": "flee",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 357,
+      "name": "Text_4be5195f",
+      "text": "flee-panic",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 358,
+      "name": "Text_87e1607f",
+      "text": "flee-run",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 359,
+      "name": "KeyFleeTimer_6456f5c5",
+      "text": "fleeTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 360,
+      "name": "ValueFood_c1f02658",
+      "text": "food",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 361,
+      "name": "ValueFootpadJerkin_630c99fd",
+      "text": "footpad_jerkin",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 362,
+      "name": "Text_998249c4",
+      "text": "forced-target/taunt branch + forcedTargetTimer -= DT expiry + forcedTargetId clear",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 363,
+      "name": "KeyForcedTargetId_c33084ea",
+      "text": "forcedTargetId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 364,
+      "name": "KeyForcedTargetTimer_ad527f69",
+      "text": "forcedTargetTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 365,
+      "name": "ValueForestWolf_b0c272f6",
+      "text": "forest_wolf",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 366,
+      "name": "ValueFormCat_5b0aa2d3",
+      "text": "form_cat",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 367,
+      "name": "KeyFrames_594cfd26",
+      "text": "frames",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 368,
+      "name": "Text_afaa0659",
+      "text": "frenzy-round-0",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 369,
+      "name": "Text_372d9dac",
+      "text": "frenzy-round-1",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 370,
+      "name": "Text_992439e3",
+      "text": "frenzy-round-2",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 371,
+      "name": "Text_48166645",
+      "text": "frenzy-round-3",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 372,
+      "name": "Text_15684cd7",
+      "text": "frenzyOnHit (old_greyjaw -> blood_frenzy)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 373,
+      "name": "Text_a4658379",
+      "text": "friendly-pet mobSwing: mob.hostile=false short-circuits every proc (no debuff on its target)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 374,
+      "name": "Text_be29c0bc",
+      "text": "friendly-tab-1",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 375,
+      "name": "Text_ae89f57e",
+      "text": "friendly-tab-2",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 376,
+      "name": "ValueFury_f44a052a",
+      "text": "fury",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 377,
+      "name": "ValueG1bXpPrestige_85d24bda",
+      "text": "g1b_xp_prestige",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 378,
+      "name": "KeyGatheringProficiency_e38888f6",
+      "text": "gatheringProficiency",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 379,
+      "name": "KeyGcdRemaining_ba01f997",
+      "text": "gcdRemaining",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 380,
+      "name": "KeyGhost_ead6ef03",
+      "text": "ghost",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 381,
+      "name": "Text_dce89234",
+      "text": "ghost-release",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 382,
+      "name": "ValueGloomshade_35500523",
+      "text": "gloomshade",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 383,
+      "name": "KeyGloves_0e376c13",
+      "text": "gloves",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 384,
+      "name": "ValueGnarledStaff_d4dcee43",
+      "text": "gnarled_staff",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 385,
+      "name": "Text_c9108958",
+      "text": "Grave Blight",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 386,
+      "name": "Text_6e272d59",
+      "text": "Gravebreaker rng.range weapon draw + front-cone Gravebreaker damage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 387,
+      "name": "KeyGravebreakerCasts_7f623a6b",
+      "text": "gravebreakerCasts",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 388,
+      "name": "KeyGravebreakerTimer_db9ca74c",
+      "text": "gravebreakerTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 389,
+      "name": "ValueGravecallerSummoner_0d2e0ed7",
+      "text": "gravecaller_summoner",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 390,
+      "name": "ValueGreyjawHideBoots_861cca7d",
+      "text": "greyjaw_hide_boots",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 391,
+      "name": "ValueGroundBastionWardStone_68aca9af",
+      "text": "ground_bastion_ward_stone",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 392,
+      "name": "Text_60145bf7",
+      "text": "groundAoE on-cast pulse (paladin consecration)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 393,
+      "name": "Text_9da825c2",
+      "text": "handleChannelMembership /join opt-in channels; chatAllowed token-bucket throttle",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 394,
+      "name": "ValueHarrow_ef6d625b",
+      "text": "Harrow",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 395,
+      "name": "KeyHasFled_872f6f51",
+      "text": "hasFled",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 396,
+      "name": "Text_557652e9",
+      "text": "hazard ring burn (fiestaRingDamage) outside the closing ring",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 397,
+      "name": "ValueHeal_599f8341",
+      "text": "heal",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 398,
+      "name": "ValueHealAbsorb_fab1f7ad",
+      "text": "heal_absorb",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 399,
+      "name": "ValueHealAbsorbGravecallerSummoner_65f952ff",
+      "text": "heal_absorb_gravecaller_summoner",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 400,
+      "name": "Text_e2553b21",
+      "text": "healer-resurrect",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 401,
+      "name": "Text_563ef1ea",
+      "text": "healingThreat even split across multiple aware mobs (entities.values insertion order)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 402,
+      "name": "ValueHeals_1cd05afd",
+      "text": "heals",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 403,
+      "name": "ValueHeel_aee12eeb",
+      "text": "heel",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 404,
+      "name": "Text_8923949e",
+      "text": "heel-teleport",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 405,
+      "name": "Text_d9f6c24b",
+      "text": "heel-walk",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 406,
+      "name": "KeyHelmet_11558486",
+      "text": "helmet",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 407,
+      "name": "ValueHeroicStrike_a2cf9659",
+      "text": "heroic_strike",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 408,
+      "name": "KeyHeroicDaily_d5217f3d",
+      "text": "heroicDaily",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 409,
+      "name": "ValueHex_128df13c",
+      "text": "hex",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 410,
+      "name": "ValueHexDr_1454741b",
+      "text": "hex_dr",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 411,
+      "name": "Text_6353d8b9",
+      "text": "hexOutputMult outgoing cut (hex on source) + healingTakenMult Mortal-Wound cut (target)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 412,
+      "name": "ValueHidFallDeath_da4e9bb8",
+      "text": "hid_fall_death",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 413,
+      "name": "Text_8fe34501",
+      "text": "Hit rating from authored gear vs a +3 target",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 414,
+      "name": "ValueHitRatingHeroicGeared_01adf2c7",
+      "text": "hit_rating_heroic_geared",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 415,
+      "name": "ValueHitRatingHeroicUngeared_8f28b353",
+      "text": "hit_rating_heroic_ungeared",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 416,
+      "name": "KeyHitBonus_a649d6ad",
+      "text": "hitBonus",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 417,
+      "name": "KeyHitRating_378cf9bd",
+      "text": "hitRating",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 418,
+      "name": "ValueHollowAcolyte_af127e86",
+      "text": "hollow_acolyte",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 419,
+      "name": "ValueHollowCrypt_041d05bf",
+      "text": "hollow_crypt",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 420,
+      "name": "ValueHoly_1551d1eb",
+      "text": "holy",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 421,
+      "name": "KeyHonor_8ab4ca2f",
+      "text": "honor",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 422,
+      "name": "KeyHonorArenaDaily_197b8256",
+      "text": "honorArenaDaily",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 423,
+      "name": "KeyHostile_8f383ccd",
+      "text": "hostile",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 424,
+      "name": "ValueHot_7f5d1618",
+      "text": "hot",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 425,
+      "name": "Text_b7563ed8",
+      "text": "hot aura-tick heal path (healingTakenMult ~3089 + healingThreat ~3101)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 426,
+      "name": "ValueHotTk_10b8ea01",
+      "text": "hot_tk",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 427,
+      "name": "KeyHp_93969d19",
+      "text": "hp",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 428,
+      "name": "KeyHpPer2s_84efc59d",
+      "text": "hpPer2s",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 429,
+      "name": "KeyHunDeflection_c4fabb3b",
+      "text": "hun_deflection",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 430,
+      "name": "KeyHunEfficiency_f07d5a4c",
+      "text": "hun_efficiency",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 431,
+      "name": "KeyHunEnduranceTraining_587927da",
+      "text": "hun_endurance_training",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 432,
+      "name": "KeyHunImpHawk_916f31e1",
+      "text": "hun_imp_hawk",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 433,
+      "name": "KeyHunLethalShots_79252c26",
+      "text": "hun_lethal_shots",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 434,
+      "name": "ValueHunter_e9a63a4e",
+      "text": "hunter",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 435,
+      "name": "ValueHunterPet_78482487",
+      "text": "hunter_pet",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 436,
+      "name": "KeyId_a5614527",
+      "text": "id",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 437,
+      "name": "ValueIdle_4fb62348",
+      "text": "idle",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 438,
+      "name": "Text_f629d90d",
+      "text": "idle arm wander draws (range(0,2PI) heading + range(2,9) radius -> groundPos wanderTarget)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 439,
+      "name": "Text_132373f4",
+      "text": "idle-wander",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 440,
+      "name": "ValueImbue_3d11d398",
+      "text": "imbue",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 441,
+      "name": "ValueIncapacitate_c4e0f8f0",
+      "text": "incapacitate",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 442,
+      "name": "Text_037a5aec",
+      "text": "incapacitate fear-angle draw rng.range(-PI,PI) (warlock fear)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 443,
+      "name": "KeyInCombat_5a6054c5",
+      "text": "inCombat",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 444,
+      "name": "ValueInit_bb54068a",
+      "text": "init",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 445,
+      "name": "KeyInt_6da88c34",
+      "text": "int",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 446,
+      "name": "KeyIntroSpoken_67c6fc59",
+      "text": "introSpoken",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 447,
+      "name": "KeyInventory_b11a85b2",
+      "text": "inventory",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 448,
+      "name": "ValueInventoryVendor_92163c94",
+      "text": "inventory_vendor",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 449,
+      "name": "Text_3a2a612d",
+      "text": "isRaidLocked active lockout blocks entry (~14706) + locked-to-arena emit",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 450,
+      "name": "KeyItemId_59c47fe8",
+      "text": "itemId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 451,
+      "name": "KeyItems_5f3c4f85",
+      "text": "items",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 452,
+      "name": "KeyItemsDiscovered_e6871f21",
+      "text": "itemsDiscovered",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 453,
+      "name": "Text_b729ef59",
+      "text": "iv-setup",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 454,
+      "name": "Text_7ad2d93a",
+      "text": "jammed chest (attemptAvailable=false) + surface exit opens",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 455,
+      "name": "ValueJudgement_a9c9cca6",
+      "text": "judgement",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 456,
+      "name": "Text_608b09e2",
+      "text": "judgement range-then-chance (paladin seal -> judgement)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 457,
+      "name": "Text_e91247ba",
+      "text": "Keening Wail",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 458,
+      "name": "ValueKidneyShot_ba922843",
+      "text": "kidney_shot",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 459,
+      "name": "ValueKidneyShotStun_6d0fe3dd",
+      "text": "kidney_shot_stun",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 460,
+      "name": "ValueKill_2bda9b4d",
+      "text": "kill",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 461,
+      "name": "KeyKills_a52ff550",
+      "text": "kills",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 462,
+      "name": "KeyKind_0b27c158",
+      "text": "kind",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 463,
+      "name": "ValueKorgathTheBound_93c01bda",
+      "text": "korgath_the_bound",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 464,
+      "name": "ValueL1LootDistribution_770d43eb",
+      "text": "l1_loot_distribution",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 465,
+      "name": "KeyLabel_1aca80e8",
+      "text": "label",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 466,
+      "name": "Text_68774e34",
+      "text": "leader-left",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 467,
+      "name": "KeyLeashAnchor_da6e921c",
+      "text": "leashAnchor",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 468,
+      "name": "ValueLeft_360f8403",
+      "text": "left",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 469,
+      "name": "KeyLegs_14e32f3c",
+      "text": "legs",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 470,
+      "name": "KeyLevel_0081779c",
+      "text": "level",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 471,
+      "name": "KeyLevelUps_1c308b0c",
+      "text": "levelUps",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 472,
+      "name": "KeyLifetimeHonor_353df390",
+      "text": "lifetimeHonor",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 473,
+      "name": "KeyLifetimeXp_894655e2",
+      "text": "lifetimeXp",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 474,
+      "name": "Text_b865f098",
+      "text": "link-accepted",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 475,
+      "name": "Text_d4fea274",
+      "text": "link-no-party",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 476,
+      "name": "ValueListed_56547a7c",
+      "text": "listed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 477,
+      "name": "KeyLoadouts_ad4d6368",
+      "text": "loadouts",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 478,
+      "name": "ValueLocked_14493f5f",
+      "text": "locked",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 479,
+      "name": "Text_58354f3f",
+      "text": "lockout-blocked",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 480,
+      "name": "Text_0d372436",
+      "text": "lockpick minigame (flawless solve)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 481,
+      "name": "Text_861d8422",
+      "text": "lockpick minigame (server-authoritative timeout jam)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 482,
+      "name": "Text_fffa73dd",
+      "text": "lockpick-jammed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 483,
+      "name": "KeyLoot_5c52b6de",
+      "text": "loot",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 484,
+      "name": "KeyLootable_072bd41f",
+      "text": "lootable",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 485,
+      "name": "KeyLootCopper_bd862385",
+      "text": "lootCopper",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 486,
+      "name": "Text_f5d79396",
+      "text": "looter-takes-all common item + personal-loot visibility",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 487,
+      "name": "KeyLootFfaTimer_92f76011",
+      "text": "lootFfaTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 488,
+      "name": "KeyLootRecipientIds_17fb3f05",
+      "text": "lootRecipientIds",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 489,
+      "name": "Text_14ba2d90",
+      "text": "Low Blow",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 490,
+      "name": "ValueLunarChoirLeggings_bd4f917a",
+      "text": "lunar_choir_leggings",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 491,
+      "name": "ValueLunarTideGreatstaff_b3e83f69",
+      "text": "lunar_tide_greatstaff",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 492,
+      "name": "Text_e3e279cb",
+      "text": "m2-dead",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 493,
+      "name": "KeyMagArcaneFocus_db8a829f",
+      "text": "mag_arcane_focus",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 494,
+      "name": "KeyMagElementalPrecision_a99da0ef",
+      "text": "mag_elemental_precision",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 495,
+      "name": "KeyMagFlameThrowing_f6b77c69",
+      "text": "mag_flame_throwing",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 496,
+      "name": "KeyMagIceShards_9630f035",
+      "text": "mag_ice_shards",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 497,
+      "name": "KeyMagWandSpecialization_a7dc6def",
+      "text": "mag_wand_specialization",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 498,
+      "name": "ValueMage_66614735",
+      "text": "mage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 499,
+      "name": "Text_b4c50153",
+      "text": "mage-arcane-explosion",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 500,
+      "name": "Text_76db3f38",
+      "text": "mage-pushback",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 501,
+      "name": "Text_ffa1405b",
+      "text": "mage-queued",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 502,
+      "name": "KeyMailWelcomed_c0fe2928",
+      "text": "mailWelcomed",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 503,
+      "name": "KeyMainhand_6e7cb55d",
+      "text": "mainhand",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 504,
+      "name": "ValueMana_c1212091",
+      "text": "mana",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 505,
+      "name": "KeyManaPer2s_23279526",
+      "text": "manaPer2s",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 506,
+      "name": "Text_c258e871",
+      "text": "mark-moved",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 507,
+      "name": "Text_a686f204",
+      "text": "mark-set",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 508,
+      "name": "Text_0f527107",
+      "text": "mark-toggle-off",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 509,
+      "name": "KeyMarkClears_4cbeb3f4",
+      "text": "markClears",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 510,
+      "name": "ValueMarketRoundTrip_b1c8022d",
+      "text": "market_round_trip",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 511,
+      "name": "Text_baafdfc7",
+      "text": "market-setup",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 512,
+      "name": "Text_df5a85c0",
+      "text": "marketBuy cross-player sale: buyer copper - price + addItem; seller proceeds = floor(price*(1-MARKET_CUT))",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 513,
+      "name": "Text_1b4efa9c",
+      "text": "marketCancel reclaim escrow to bags",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 514,
+      "name": "Text_3de12199",
+      "text": "marketCollect: gold + expired items move to bags, collection cleared",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 515,
+      "name": "KeyMarketSaleCopper_466da56b",
+      "text": "marketSaleCopper",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 516,
+      "name": "Text_2fa55e63",
+      "text": "marketSearch browse filter (narrow to a substring, then clear)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 517,
+      "name": "Text_139a1ec9",
+      "text": "Marks shop buy (delveBuyShopItem gate + addItem + vendor)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 518,
+      "name": "KeyMax_9baf3a40",
+      "text": "max",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 519,
+      "name": "Text_bf614381",
+      "text": "max-level overflow -> lifetimeXp / virtualLevelUp (accrueLifetimeXp, C1)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 520,
+      "name": "KeyMaxHp_ee243749",
+      "text": "maxHp",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 521,
+      "name": "KeyMaxResource_34a74a5a",
+      "text": "maxResource",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 522,
+      "name": "Text_79ed0bd0",
+      "text": "melee-pullover",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 523,
+      "name": "Text_497d0a78",
+      "text": "meleeSwing weaponStrike (heroic_strike via castAbility ~3736)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 524,
+      "name": "Text_ac9e466f",
+      "text": "meleeSwing weaponStrike (sinister_strike via castAbility ~3736)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 525,
+      "name": "Text_740eb86b",
+      "text": "meleeSwing white-hit table: single rng.next() miss/dodge + crit + armor mitigation",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 526,
+      "name": "Text_6892e54c",
+      "text": "midcast-fishcancel",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 527,
+      "name": "Text_0989f124",
+      "text": "midcast-pushback",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 528,
+      "name": "Text_6e58b190",
+      "text": "Might of the Bear",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 529,
+      "name": "KeyMin_1f6fa6f6",
+      "text": "min",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 530,
+      "name": "ValueMinorHealingPotion_384ad9ca",
+      "text": "minor_healing_potion",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 531,
+      "name": "ValueMob_9a370ebd",
+      "text": "mob",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 532,
+      "name": "ValueMobLifecycle_bda6110d",
+      "text": "mob_lifecycle",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 533,
+      "name": "ValueMobLocomotion_c27c807d",
+      "text": "mob_locomotion",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 534,
+      "name": "ValueMobSwingAffixes_b9cb669b",
+      "text": "mob_swing_affixes",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 535,
+      "name": "ValueMobTargeting_a3a47872",
+      "text": "mob_targeting",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 536,
+      "name": "Text_088e51a7",
+      "text": "mobSwing affix cascade: rampage stacking buff_ap (warlord_drogmar self-buff)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 537,
+      "name": "Text_3a036d46",
+      "text": "mobSwing affix cascade: silence (gravecaller_summoner -> silence aura on player)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 538,
+      "name": "Text_7f54ffcf",
+      "text": "mobSwing affix cascade: stunOnHit (mogger_lackey -> stun aura on player)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 539,
+      "name": "Text_a5d67e3e",
+      "text": "mobSwing affix cascade: venom DoT (webwood_spider -> dot aura on player)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 540,
+      "name": "Text_4be35783",
+      "text": "mobSwing delve-companion caller (~16762)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 541,
+      "name": "Text_b7c11dd2",
+      "text": "mobSwing pet arm (voidwalker melee ~8117)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 542,
+      "name": "ValueMogger_e15b2afe",
+      "text": "mogger",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 543,
+      "name": "ValueMoggerLackey_a8b1a829",
+      "text": "mogger_lackey",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 544,
+      "name": "ValueMortalStrike_0a7042cf",
+      "text": "mortal_strike",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 545,
+      "name": "ValueMorthen_3fdee292",
+      "text": "morthen",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 546,
+      "name": "Text_c3cacc25",
+      "text": "Mounting Rage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 547,
+      "name": "ValueMoved_5edd1832",
+      "text": "moved",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 548,
+      "name": "KeyMoveSpeed_c717ca5a",
+      "text": "moveSpeed",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 549,
+      "name": "ValueMultiClassFrenzy_6087fe71",
+      "text": "multi_class_frenzy",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 550,
+      "name": "ValueMultiClassHeal_ec2e1639",
+      "text": "multi_class_heal",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 551,
+      "name": "Text_b60942ef",
+      "text": "multi-class casters: mage/priest/warlock",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 552,
+      "name": "Text_a2cfe65f",
+      "text": "multi-class healers: priest/paladin/druid/shaman",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 553,
+      "name": "Text_829c768f",
+      "text": "multi-class sources: warrior/mage/rogue",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 554,
+      "name": "Text_c1b8de79",
+      "text": "multi-module delve: spawnDelveModule(non-finale) -> clear -> advanceDelveModule",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 555,
+      "name": "Text_406e1663",
+      "text": "multi-player fiesta meta",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 556,
+      "name": "Text_a1e24808",
+      "text": "multi-player meta",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 557,
+      "name": "Text_ddd8d5c1",
+      "text": "multi-player party",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 558,
+      "name": "Text_2a720c3d",
+      "text": "multi-player PlayerMeta sampling",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 559,
+      "name": "KeyName_82a3537f",
+      "text": "name",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 560,
+      "name": "ValueNature_5697abca",
+      "text": "nature",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 561,
+      "name": "Text_6a0dd295",
+      "text": "nearest-enemy",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 562,
+      "name": "Text_7d4bebc9",
+      "text": "nearest-friendly",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 563,
+      "name": "ValueNecrotic_d503a674",
+      "text": "Necrotic",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 564,
+      "name": "Text_3a3d3839",
+      "text": "need/greed/pass roll in party-member order (need beats greed)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 565,
+      "name": "KeyNextId_8570b715",
+      "text": "nextId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 566,
+      "name": "ValueNighttalonCrown_b7f55685",
+      "text": "nighttalon_crown",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 567,
+      "name": "KeyNodeHarvestReadyAt_ed17452f",
+      "text": "nodeHarvestReadyAt",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 568,
+      "name": "ValueNpc_87e31e75",
+      "text": "npc",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 569,
+      "name": "Text_a2121a02",
+      "text": "npc:bursar_fernando",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 570,
+      "name": "KeyNythraxis_d3484f7b",
+      "text": "nythraxis",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 571,
+      "name": "KeyNythraxisBossArena_fc0594c7",
+      "text": "nythraxis_boss_arena",
+      "kinds": [
+        "key",
+        "value"
+      ]
+    },
+    {
+      "id": 572,
+      "name": "ValueNythraxisDeathlessRage_51ceaa80",
+      "text": "nythraxis_deathless_rage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 573,
+      "name": "ValueNythraxisDeathlessStun_1e49189d",
+      "text": "nythraxis_deathless_stun",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 574,
+      "name": "ValueNythraxisFinalStand_416496d2",
+      "text": "nythraxis_final_stand",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 575,
+      "name": "ValueNythraxisFullPull_fae74c7f",
+      "text": "nythraxis_full_pull",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 576,
+      "name": "ValueNythraxisScourgeOfThornpeak_cd01999e",
+      "text": "nythraxis_scourge_of_thornpeak",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 577,
+      "name": "ValueNythraxisSkeletonWarrior_5f6b5406",
+      "text": "nythraxis_skeleton_warrior",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 578,
+      "name": "ValueNythraxisSoulRend_777ea9b4",
+      "text": "nythraxis_soul_rend",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 579,
+      "name": "ValueNythraxisTransitionPause_a3515397",
+      "text": "nythraxis_transition_pause",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 580,
+      "name": "ValueNythraxisTransitionStun_da7d2a2f",
+      "text": "nythraxis_transition_stun",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 581,
+      "name": "ValueNythraxisWardstoneLit_da0ce5c3",
+      "text": "nythraxis_wardstone_lit",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 582,
+      "name": "Text_72ee174f",
+      "text": "nythraxisAddFallbackTarget / scheduleNythraxisAddDespawnIfBossReset seam callbacks (non-add -> no-op)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 583,
+      "name": "ValueOathbrand_3348faf9",
+      "text": "Oathbrand",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 584,
+      "name": "ValueObject_2958d416",
+      "text": "object",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 585,
+      "name": "KeyObjectId_1611b2d2",
+      "text": "objectId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 586,
+      "name": "KeyObjectItemId_140cee72",
+      "text": "objectItemId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 587,
+      "name": "ValueOldGreyjaw_4a3e112b",
+      "text": "old_greyjaw",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 588,
+      "name": "Text_20bb2254",
+      "text": "on-hit affix cascade via mobSwing (ridge_stalker bleed, ~7070/7100)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 589,
+      "name": "KeyOnGround_482742ef",
+      "text": "onGround",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 590,
+      "name": "Text_ac4db752",
+      "text": "onInventoryChangedForQuests via addItem/removeItem inventory hub (~9782/9800)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 591,
+      "name": "Text_92ca31dc",
+      "text": "onMobKilledForQuests kill credit via handleDeath party loop (~5925)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 592,
+      "name": "KeyOpenToAll_d8a07879",
+      "text": "openToAll",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 593,
+      "name": "ValueOverflow_94fa3e55",
+      "text": "overflow",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 594,
+      "name": "ValueOverpower_9a3631c2",
+      "text": "overpower",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 595,
+      "name": "KeyOverpowerUntil_81885cd2",
+      "text": "overpowerUntil",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 596,
+      "name": "Text_02a48ad5",
+      "text": "overpowerUntil window set on a melee dodge",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 597,
+      "name": "KeyOwnerId_5902c040",
+      "text": "ownerId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 598,
+      "name": "Text_b292632f",
+      "text": "Pack Frenzy",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 599,
+      "name": "ValuePackFrenzy_6d1426bc",
+      "text": "pack_frenzy",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 600,
+      "name": "Text_0c2c7695",
+      "text": "pack-frenzy",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 601,
+      "name": "ValuePaladin_b9e40e48",
+      "text": "paladin",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 602,
+      "name": "ValuePaladinConsecration_36fe1bcf",
+      "text": "paladin_consecration",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 603,
+      "name": "Text_31aa6210",
+      "text": "paladin-judge-consecrate",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 604,
+      "name": "ValueParityDrink_1d3bb188",
+      "text": "parity_drink",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 605,
+      "name": "ValueParityFood_affadff1",
+      "text": "parity_food",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 606,
+      "name": "ValuePartied_995149c4",
+      "text": "partied",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 607,
+      "name": "KeyPartiesJoined_b490ef50",
+      "text": "partiesJoined",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 608,
+      "name": "Text_4dcadcc2",
+      "text": "party need/greed loot roll (lootCorpse/submitLootRoll)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 609,
+      "name": "Text_a57408e9",
+      "text": "party shares ONE instance via instanceKeyFor (second member joins, no re-claim)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 610,
+      "name": "ValuePartyLoot_3627cda3",
+      "text": "party_loot",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 611,
+      "name": "ValuePartyRaid_f5da4f25",
+      "text": "party_raid",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 612,
+      "name": "Text_e6f3f2e6",
+      "text": "party-of-5",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 613,
+      "name": "Text_e5c1aecd",
+      "text": "partyInvite/partyAccept party formation (~11864/11901)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 614,
+      "name": "ValuePassive_a7f1d7bc",
+      "text": "passive",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 615,
+      "name": "KeyPersonalFor_de46b353",
+      "text": "personalFor",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 616,
+      "name": "ValuePetAi_f0893cf0",
+      "text": "pet_ai",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 617,
+      "name": "ValuePetCommands_50881bea",
+      "text": "pet_commands",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 618,
+      "name": "Text_85b07047",
+      "text": "pet-abandoned",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 619,
+      "name": "Text_7bf53938",
+      "text": "pet-dead",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 620,
+      "name": "Text_911e0cc2",
+      "text": "pet-fed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 621,
+      "name": "Text_4eb824ff",
+      "text": "pet-passive",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 622,
+      "name": "Text_48333477",
+      "text": "pet-restored",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 623,
+      "name": "Text_aab408e7",
+      "text": "pet-revived",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 624,
+      "name": "Text_dfd9048b",
+      "text": "pet-stowed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 625,
+      "name": "Text_b11b480b",
+      "text": "pet-taunt",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 626,
+      "name": "KeyPetAutoTaunt_a0cfd50d",
+      "text": "petAutoTaunt",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 627,
+      "name": "Text_b60c4332",
+      "text": "petFollow heel transition (pets return to a moved owner)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 628,
+      "name": "KeyPetMode_5d0f9358",
+      "text": "petMode",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 629,
+      "name": "KeyPetPath_43e7ff24",
+      "text": "petPath",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 630,
+      "name": "KeyPetPathCooldown_bc03ee93",
+      "text": "petPathCooldown",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 631,
+      "name": "Text_13e34ed5",
+      "text": "petPickTarget aggressive auto-pull",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 632,
+      "name": "Text_1a91ff56",
+      "text": "petRangedAttack imp-bolt arm (petRanged crit roll + AP-scaled fire damage)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 633,
+      "name": "Text_4c92bddb",
+      "text": "petTaunt -> applyTaunt manual arm + PET_GROWL_INTERVAL cooldown",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 634,
+      "name": "KeyPetTauntTimer_47466df1",
+      "text": "petTauntTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 635,
+      "name": "KeyPhase_02195b8e",
+      "text": "phase",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 636,
+      "name": "Text_11f84857",
+      "text": "phase1-adds",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 637,
+      "name": "ValuePhase2_b48ab14c",
+      "text": "phase2",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 638,
+      "name": "ValuePhysical_4b60d190",
+      "text": "physical",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 639,
+      "name": "ValuePlayer_cdb59355",
+      "text": "player",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 640,
+      "name": "Text_c3fb0183",
+      "text": "player auto-attack (C5)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 641,
+      "name": "Text_3457fabe",
+      "text": "player auto-attack driver updatePlayerAutoAttack (swingTimer cadence, facing/range gates)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 642,
+      "name": "ValuePlayerTrade_64dd1fbc",
+      "text": "player_trade",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 643,
+      "name": "KeyPlayerId_30bbe547",
+      "text": "playerId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 644,
+      "name": "KeyPlayers_afc0d772",
+      "text": "players",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 645,
+      "name": "Text_53db47f4",
+      "text": "poi:eastbrook_vale:eastbrook",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 646,
+      "name": "Text_5d4469d3",
+      "text": "poi:eastbrook_vale:reliquary_hill",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 647,
+      "name": "KeyPos_7160f868",
+      "text": "pos",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 648,
+      "name": "Text_7ab081d3",
+      "text": "post-churn",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 649,
+      "name": "KeyPotionCooldownUntil_49fca5fe",
+      "text": "potionCooldownUntil",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 650,
+      "name": "Text_b46509d5",
+      "text": "prestige-accept",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 651,
+      "name": "Text_e3b5670d",
+      "text": "prestige-reject",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 652,
+      "name": "KeyPrestigeRank_73352459",
+      "text": "prestigeRank",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 653,
+      "name": "KeyPriImpFortitude_5cfa5cca",
+      "text": "pri_imp_fortitude",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 654,
+      "name": "KeyPriMeditation_73b9c4c3",
+      "text": "pri_meditation",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 655,
+      "name": "KeyPriShadowAffinity_2ce25f8f",
+      "text": "pri_shadow_affinity",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 656,
+      "name": "KeyPriSpiritTap_b2cefd4e",
+      "text": "pri_spirit_tap",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 657,
+      "name": "KeyPriWandSpecialization_7fc02aa8",
+      "text": "pri_wand_specialization",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 658,
+      "name": "ValuePriest_0fc4816b",
+      "text": "priest",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 659,
+      "name": "Text_832e88b7",
+      "text": "priest-silence-cancel",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 660,
+      "name": "ValueProgDoubleDigits_d245f87a",
+      "text": "prog_double_digits",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 661,
+      "name": "ValueProgFindingYourFeet_2d87aa58",
+      "text": "prog_finding_your_feet",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 662,
+      "name": "ValueProgFirstSteps_e8e79b9a",
+      "text": "prog_first_steps",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 663,
+      "name": "ValueProgLevelCap_32837b60",
+      "text": "prog_level_cap",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 664,
+      "name": "ValueProgTheLongMiddle_324703a3",
+      "text": "prog_the_long_middle",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 665,
+      "name": "ValueProgWellRested_712c222d",
+      "text": "prog_well_rested",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 666,
+      "name": "Text_40dd0969",
+      "text": "pulseGroundAoE both callers (immediate ~4097 + deferred ~3052)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 667,
+      "name": "Text_9e0741a9",
+      "text": "pulseGroundAoE over 2+ in-radius hostiles: rng.range per target, stable order",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 668,
+      "name": "KeyPulseTimer_6427b955",
+      "text": "pulseTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 669,
+      "name": "KeyPurchasedSlots_d129c2d0",
+      "text": "purchasedSlots",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 670,
+      "name": "Text_ab3fdcbe",
+      "text": "pushbackCast channel-fraction branch via dealDamage mid-channel",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 671,
+      "name": "Text_56e931d8",
+      "text": "pushbackCast timed branch (+CAST_PUSHBACK_SEC) via dealDamage mid-cast",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 672,
+      "name": "ValuePvpArenaFirstMatch_d3e3fb76",
+      "text": "pvp_arena_first_match",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 673,
+      "name": "ValuePvpArenaFirstWin_42e45a1e",
+      "text": "pvp_arena_first_win",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 674,
+      "name": "ValuePvpDuelFirstWin_a25471f7",
+      "text": "pvp_duel_first_win",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 675,
+      "name": "ValuePvpDuelGrace_15a3c39b",
+      "text": "pvp_duel_grace",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 676,
+      "name": "ValueQBoars_3ea5f07a",
+      "text": "q_boars",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 677,
+      "name": "ValueQNythraxisBoundGuardian_53210f47",
+      "text": "q_nythraxis_bound_guardian",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 678,
+      "name": "ValueQNythraxisScourgesEnd_3ab45387",
+      "text": "q_nythraxis_scourges_end",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 679,
+      "name": "ValueQWolves_82da2a70",
+      "text": "q_wolves",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 680,
+      "name": "Text_94b600a1",
+      "text": "quaffed-elixir",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 681,
+      "name": "Text_fb088a8e",
+      "text": "quaffed-potion",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 682,
+      "name": "Text_c5fbd679",
+      "text": "quality:epic",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 683,
+      "name": "ValueQuestCollectTurnin_d84ff844",
+      "text": "quest_collect_turnin",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 684,
+      "name": "ValueQuestKillCredit_9fdbbc6e",
+      "text": "quest_kill_credit",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 685,
+      "name": "ValueQuestLinkAbandon_5eae444f",
+      "text": "quest_link_abandon",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 686,
+      "name": "Text_798c0c25",
+      "text": "quest-accepted",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 687,
+      "name": "Text_50b24e5e",
+      "text": "quest-ready",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 688,
+      "name": "Text_adcb07e9",
+      "text": "quest-turned-in",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 689,
+      "name": "KeyQuestId_5c1cf230",
+      "text": "questId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 690,
+      "name": "KeyQuestIds_ccf1780a",
+      "text": "questIds",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 691,
+      "name": "KeyQuestLog_cbdfb96d",
+      "text": "questLog",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 692,
+      "name": "KeyQuestProgress_f6634ffc",
+      "text": "questProgress",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 693,
+      "name": "KeyQuestsCompleted_3da9a664",
+      "text": "questsCompleted",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 694,
+      "name": "KeyQuestsDone_024f1a18",
+      "text": "questsDone",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 695,
+      "name": "KeyQueuedCastAbility_4f56bc80",
+      "text": "queuedCastAbility",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 696,
+      "name": "KeyQueuedOnSwing_9f77ffff",
+      "text": "queuedOnSwing",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 697,
+      "name": "Text_2af15627",
+      "text": "queuedOnSwing heroic_strike spend + bonus (warrior, cooldown 0)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 698,
+      "name": "Text_d9831cb0",
+      "text": "queuedOnSwing raptor_strike spend + bonus + on-next-swing cooldown set (hunter, cooldown 6)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 699,
+      "name": "ValueRage_e59389d9",
+      "text": "rage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 700,
+      "name": "ValueRaid_263dae9a",
+      "text": "raid",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 701,
+      "name": "Text_4148e692",
+      "text": "raid fill to two subgroups (nextRaidGroupFor) + moveRaidMember (RAID_GROUP_MAX)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 702,
+      "name": "Text_720f6475",
+      "text": "raid-of-7",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 703,
+      "name": "KeyRaidLockouts_d95a160e",
+      "text": "raidLockouts",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 704,
+      "name": "Text_46d2947c",
+      "text": "Raise Fallen add wave (spawnNythraxisAdds) in phase one",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 705,
+      "name": "KeyRaiseFallenTimer_7cf9b434",
+      "text": "raiseFallenTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 706,
+      "name": "ValueRampageWarlordDrogmar_6c6c2b32",
+      "text": "rampage_warlord_drogmar",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 707,
+      "name": "Text_b143ef0a",
+      "text": "ranged-boundary-no-switch",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 708,
+      "name": "Text_817bc066",
+      "text": "ranged-pullover",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 709,
+      "name": "KeyRangedPower_86427480",
+      "text": "rangedPower",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 710,
+      "name": "Text_20987cac",
+      "text": "rangedSwing Auto Shot (hunter, physical, armor-mitigated, 8yd dead zone)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 711,
+      "name": "Text_50379e4f",
+      "text": "rangedSwing Wand (mage, arcane, no armor, no dead zone)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 712,
+      "name": "KeyRanks_7cad15d4",
+      "text": "ranks",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 713,
+      "name": "ValueRaptorStrike_0e97f61e",
+      "text": "raptor_strike",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 714,
+      "name": "Text_0f62d669",
+      "text": "readout-emote",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 715,
+      "name": "ValueReady_b24d6d33",
+      "text": "ready",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 716,
+      "name": "Text_efd3b32f",
+      "text": "rebucket after delve respawn teleport",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 717,
+      "name": "ValueRecruitTunic_e7e2faa4",
+      "text": "recruit_tunic",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 718,
+      "name": "Text_295b3064",
+      "text": "refreshKnownAbilities(announce=false): known-ability list flips per change",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 719,
+      "name": "Text_bec8657a",
+      "text": "regen-expiry",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 720,
+      "name": "ValueRejuvenation_f8a66e81",
+      "text": "Rejuvenation",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 721,
+      "name": "Text_e2ca5517",
+      "text": "releaseSpirit ghost release + Spirit Healer resurrect (Resurrection Sickness)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 722,
+      "name": "Text_2dd7c3c5",
+      "text": "releaseSpiritInDelve first death (50% hp respawn at module entry, ~16345)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 723,
+      "name": "Text_9d33f538",
+      "text": "releaseSpiritInDelve second death fails the run (deathsThisRun >= 2)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 724,
+      "name": "ValueReliquaryLegs_f99b06a4",
+      "text": "reliquary_legs",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 725,
+      "name": "KeyRemaining_43e3ece7",
+      "text": "remaining",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 726,
+      "name": "Text_e50076d5",
+      "text": "removeFromParty leadership handoff + disband + partyOf via SimContext",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 727,
+      "name": "Text_d8cb4f7b",
+      "text": "Rending Claws",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 728,
+      "name": "KeyRenown_a27d4c91",
+      "text": "renown",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 729,
+      "name": "ValueReset_01be30bb",
+      "text": "reset",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 730,
+      "name": "KeyResource_5de95319",
+      "text": "resource",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 731,
+      "name": "KeyResourceType_8c5d82bc",
+      "text": "resourceType",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 732,
+      "name": "ValueRespawn_d4a29946",
+      "text": "respawn",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 733,
+      "name": "KeyRespawnTimer_2940e36a",
+      "text": "respawnTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 734,
+      "name": "ValueRespec_a6e5fb34",
+      "text": "respec",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 735,
+      "name": "Text_90d1f4a5",
+      "text": "respec wipes ranks, keeps spec",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 736,
+      "name": "Text_b6276131",
+      "text": "rested double-up on a kill award (grantXp restedBonus consumption, C1)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 737,
+      "name": "Text_b29be97f",
+      "text": "rested-accrued",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 738,
+      "name": "Text_d4f784ed",
+      "text": "rested-consumed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 739,
+      "name": "Text_3948be02",
+      "text": "rested-XP accrual inside an inn footprint (updateRested + isResting, G1b)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 740,
+      "name": "KeyRestedXp_0c5a5391",
+      "text": "restedXp",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 741,
+      "name": "Text_e65f6003",
+      "text": "Resurrection Sickness",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 742,
+      "name": "ValueResurrectionSickness_aaabde7c",
+      "text": "resurrection_sickness",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 743,
+      "name": "Text_7a685c4d",
+      "text": "retarget-evade",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 744,
+      "name": "Text_12bb0587",
+      "text": "retarget-highest",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 745,
+      "name": "Text_7aab2dc7",
+      "text": "retargetMob highest-threat pick + prune-to-evade (highestThreatTarget delete-during-iterate)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 746,
+      "name": "ValueReturned_68752bf6",
+      "text": "returned",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 747,
+      "name": "Text_ecb0b346",
+      "text": "revivePet (dead pet -> alive at 35%)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 748,
+      "name": "Text_8ef7d350",
+      "text": "reward chest + delve marks",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 749,
+      "name": "ValueRidgeStalker_c783a792",
+      "text": "ridge_stalker",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 750,
+      "name": "Text_ed72a7e9",
+      "text": "rite-started",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 751,
+      "name": "KeyRng_b1dc753b",
+      "text": "rng",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 752,
+      "name": "ValueRoadwardensHelm_616ed90e",
+      "text": "roadwardens_helm",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 753,
+      "name": "KeyRogCamouflage_2a64b12d",
+      "text": "rog_camouflage",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 754,
+      "name": "KeyRogDeflection_b3619dbd",
+      "text": "rog_deflection",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 755,
+      "name": "KeyRogImpSinister_0abcb263",
+      "text": "rog_imp_sinister",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 756,
+      "name": "KeyRogLightningReflexes_6c930272",
+      "text": "rog_lightning_reflexes",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 757,
+      "name": "KeyRogMalice_f584087d",
+      "text": "rog_malice",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 758,
+      "name": "ValueRogue_d20bcf17",
+      "text": "rogue",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 759,
+      "name": "Text_4877a571",
+      "text": "rogue-combo-finishers",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 760,
+      "name": "Text_24c3952a",
+      "text": "rollLoot via mob death (L1, ~5876/6036)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 761,
+      "name": "ValueRoot_4813494d",
+      "text": "root",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 762,
+      "name": "Text_ea9bd211",
+      "text": "runEffects multi-class multi-effect dispatch",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 763,
+      "name": "ValueRustyDagger_0c289db4",
+      "text": "rusty_dagger",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 764,
+      "name": "ValueRustyHatchet_cb90ad4e",
+      "text": "rusty_hatchet",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 765,
+      "name": "Text_31d77165",
+      "text": "same shared-RNG draw count/order as the ungeared spell-resist path",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 766,
+      "name": "KeySampleEvery_a76fcded",
+      "text": "sampleEvery",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 767,
+      "name": "ValueSashOfTheSunkenCourt_d95c4ab9",
+      "text": "sash_of_the_sunken_court",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 768,
+      "name": "KeySavedMana_9961b23b",
+      "text": "savedMana",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 769,
+      "name": "Text_a6c35441",
+      "text": "saveLoadout (object-alloc overload) + switchLoadout (2 of 4 slots)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 770,
+      "name": "Text_a06379a9",
+      "text": "say/yell range delivery + party/general/world/lfg channel routing",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 771,
+      "name": "KeyScenario_ee26f413",
+      "text": "scenario",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 772,
+      "name": "KeySchool_d64debd9",
+      "text": "school",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 773,
+      "name": "ValueSealOfRighteousness_f09165b6",
+      "text": "seal_of_righteousness",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 774,
+      "name": "Text_29d714db",
+      "text": "search-cleared",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 775,
+      "name": "ValueSearched_72c5ab8e",
+      "text": "searched",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 776,
+      "name": "Text_33263b04",
+      "text": "second-build",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 777,
+      "name": "KeySeed_19b25856",
+      "text": "seed",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 778,
+      "name": "Text_25238ead",
+      "text": "sellAllJunk: bulk gray sweep, per-stack buyback record, one summary line",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 779,
+      "name": "Text_8878f09b",
+      "text": "sellItem: vendorInRange gate + recordVendorBuyback + meta.copper payout",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 780,
+      "name": "Text_a73fbec9",
+      "text": "set-spec",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 781,
+      "name": "Text_6c93f676",
+      "text": "setMarker set/toggle-off/symbol-uniqueness + clearEntityMarker death-strip (~11956/12002)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 782,
+      "name": "Text_290ca2cf",
+      "text": "setPetMode passive clears aggroTargetId/inCombat/autoAttack",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 783,
+      "name": "Text_6aec49a5",
+      "text": "setSpec drops the prior spec tree points",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 784,
+      "name": "ValueSextonMarrow_e9475eff",
+      "text": "sexton_marrow",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 785,
+      "name": "ValueShadow_0bb09d80",
+      "text": "shadow",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 786,
+      "name": "ValueShadowpulseHandwraps_47e1c399",
+      "text": "shadowpulse_handwraps",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 787,
+      "name": "ValueShaman_e656f6cd",
+      "text": "shaman",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 788,
+      "name": "Text_dffd1dec",
+      "text": "shop-daily",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 789,
+      "name": "Text_b5a68be7",
+      "text": "Shuddering Stomp",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 790,
+      "name": "ValueSilence_e6c18fdb",
+      "text": "silence",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 791,
+      "name": "ValueSilenceGravecallerSummoner_ca08ea86",
+      "text": "silence_gravecaller_summoner",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 792,
+      "name": "ValueSilenced_472d834b",
+      "text": "Silenced",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 793,
+      "name": "Text_5d50c947",
+      "text": "Silencing Shriek",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 794,
+      "name": "Text_38a71efe",
+      "text": "single-slot spell queue (#1360): tail-window press queues, fires on completion",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 795,
+      "name": "Text_c05226d2",
+      "text": "Sister Nhalia driver: Blackwater Mark + Tolling Bells volley rng draws",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 796,
+      "name": "ValueSisterNhalia_42e2a28e",
+      "text": "sister_nhalia",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 797,
+      "name": "ValueSisterNhaliaDrownedCanticle_77f37004",
+      "text": "sister_nhalia_drowned_canticle",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 798,
+      "name": "KeySitting_558413b7",
+      "text": "sitting",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 799,
+      "name": "ValueSkullthump_293120f1",
+      "text": "Skullthump",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 800,
+      "name": "ValueSocFirstParty_31ed2427",
+      "text": "soc_first_party",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 801,
+      "name": "ValueSocFirstTrade_0928ab3b",
+      "text": "soc_first_trade",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 802,
+      "name": "ValueSocMeetBursar_9f2ce5fb",
+      "text": "soc_meet_bursar",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 803,
+      "name": "ValueSocRoomForMore_7471e848",
+      "text": "soc_room_for_more",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 804,
+      "name": "ValueSold_a6fffccf",
+      "text": "sold",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 805,
+      "name": "Text_a4241565",
+      "text": "sold-junk",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 806,
+      "name": "ValueSoloMage_0bc1cea7",
+      "text": "solo_mage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 807,
+      "name": "ValueSoloRogue_b0e340b4",
+      "text": "solo_rogue",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 808,
+      "name": "ValueSoloWarrior_299f3de0",
+      "text": "solo_warrior",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 809,
+      "name": "Text_7a8069f1",
+      "text": "Soul Rend",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 810,
+      "name": "Text_da0bcf60",
+      "text": "Soul Rend rng.int marks pick + mark-expiry damage",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 811,
+      "name": "Text_6c4f3295",
+      "text": "Soul Ward",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 812,
+      "name": "ValueSoulflameCowl_1f2fbc30",
+      "text": "soulflame_cowl",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 813,
+      "name": "ValueSoulflameMantle_a2acd7fb",
+      "text": "soulflame_mantle",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 814,
+      "name": "ValueSoulrend_ba093d1b",
+      "text": "soulrend",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 815,
+      "name": "KeySoulRendLockout_de94d4de",
+      "text": "soulRendLockout",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 816,
+      "name": "KeySoulRendMarks_4f55cf92",
+      "text": "soulRendMarks",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 817,
+      "name": "KeySoulRendTimer_81649335",
+      "text": "soulRendTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 818,
+      "name": "KeySourceId_92340ce0",
+      "text": "sourceId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 819,
+      "name": "KeySpawnPos_6e7d814e",
+      "text": "spawnPos",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 820,
+      "name": "KeySpec_d4f02eaa",
+      "text": "spec",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 821,
+      "name": "KeySpeed_bbccb9c0",
+      "text": "speed",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 822,
+      "name": "KeySpellHaste_d81a211e",
+      "text": "spellHaste",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 823,
+      "name": "KeySpellPower_fe84410a",
+      "text": "spellPower",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 824,
+      "name": "KeySpi_8f3c5690",
+      "text": "spi",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 825,
+      "name": "Text_5c51eb45",
+      "text": "Spider Venom",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 826,
+      "name": "Text_62b3ce7b",
+      "text": "spiked-hide reflect tail of meleeSwing (wild_boar Bristled Hide)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 827,
+      "name": "ValueSpringWater_5edbebf7",
+      "text": "spring_water",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 828,
+      "name": "KeySta_bc904d7c",
+      "text": "sta",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 829,
+      "name": "KeyStacks_b4f4e6c4",
+      "text": "stacks",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 830,
+      "name": "KeyState_4ba69735",
+      "text": "state",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 831,
+      "name": "KeyStats_4b5af442",
+      "text": "stats",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 832,
+      "name": "Text_e205662c",
+      "text": "Sticky Web",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 833,
+      "name": "ValueStompStun_74117d31",
+      "text": "stomp_stun",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 834,
+      "name": "KeyStompTimer_dd716e44",
+      "text": "stompTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 835,
+      "name": "Text_c1c3953a",
+      "text": "stopAutoAttack public entry",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 836,
+      "name": "Text_e1e44481",
+      "text": "stowPetForDelve/restorePetFromDelveStash (serializePet/restorePet round-trip)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 837,
+      "name": "KeyStr_8c25cb36",
+      "text": "str",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 838,
+      "name": "ValueStun_dcc94faf",
+      "text": "stun",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 839,
+      "name": "ValueStunMoggerLackey_55ddb4f1",
+      "text": "stun_mogger_lackey",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 840,
+      "name": "Text_a31db0de",
+      "text": "summonDemon -> summonPet (warlock summon_imp) + selfBuff form switch (druid)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 841,
+      "name": "KeySummonedIds_074739b4",
+      "text": "summonedIds",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 842,
+      "name": "ValueSunder_9e31f4c4",
+      "text": "sunder",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 843,
+      "name": "Text_05781568",
+      "text": "sunder miss rng.chance (warrior sunder_armor)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 844,
+      "name": "ValueSunderArmor_11753664",
+      "text": "sunder_armor",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 845,
+      "name": "ValueSwapped_37e0d515",
+      "text": "swapped",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 846,
+      "name": "ValueSwings_dd00b897",
+      "text": "swings",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 847,
+      "name": "KeySwingTimer_a2bb2d2a",
+      "text": "swingTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 848,
+      "name": "Text_1f40cfa0",
+      "text": "switch-loadout",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 849,
+      "name": "Text_2cc6c3ae",
+      "text": "tab-1",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 850,
+      "name": "Text_1076e25d",
+      "text": "tab-2",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 851,
+      "name": "Text_4eef0e4e",
+      "text": "tab-3",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 852,
+      "name": "Text_eb098773",
+      "text": "tabTarget cycle over visible enemies via orderTabTargets + grid order (~9690)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 853,
+      "name": "ValueTakedown_bda596b2",
+      "text": "takedown",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 854,
+      "name": "KeyTalents_415f92ac",
+      "text": "talents",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 855,
+      "name": "ValueTalentsProgression_99727ccf",
+      "text": "talents_progression",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 856,
+      "name": "KeyTappedById_8fcd06cb",
+      "text": "tappedById",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 857,
+      "name": "KeyTargetId_d3747e24",
+      "text": "targetId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 858,
+      "name": "ValueTargetingMarkers_1726c1c8",
+      "text": "targeting_markers",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 859,
+      "name": "Text_6727d95c",
+      "text": "targetNearestEnemy / enemyCandidates grid scan, engaged vs idle (~9724/9740)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 860,
+      "name": "Text_2a7be2a5",
+      "text": "targetNearestFriendly + friendlyTabTarget wrap, autoAttack never armed (~9782/9797)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 861,
+      "name": "ValueTaunt_d69d13c0",
+      "text": "taunt",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 862,
+      "name": "Text_d4142b81",
+      "text": "taunt-decrement",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 863,
+      "name": "Text_7d3560e5",
+      "text": "taunt-expired",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 864,
+      "name": "Text_e7ed5b4f",
+      "text": "taunt-forced",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 865,
+      "name": "Text_669cebdf",
+      "text": "team-wiped",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 866,
+      "name": "KeyTemplateId_9238906e",
+      "text": "templateId",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 867,
+      "name": "ValueTerrify_d70f695f",
+      "text": "terrify",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 868,
+      "name": "KeyTerrifyTimer_34625326",
+      "text": "terrifyTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 869,
+      "name": "KeyThreat_a569b9b2",
+      "text": "threat",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 870,
+      "name": "Text_4df8a108",
+      "text": "threatEntryMatchesEntity direct-target + pet-owner branches",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 871,
+      "name": "Text_81014cb1",
+      "text": "throes-arm",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 872,
+      "name": "Text_918b3208",
+      "text": "throes-detonate",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 873,
+      "name": "ValueThrottled_b97630a8",
+      "text": "throttled",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 874,
+      "name": "KeyTick_55a4bc5b",
+      "text": "tick",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 875,
+      "name": "Text_b4247f41",
+      "text": "tickDelvePressurePlates + exit portal open + tombstone advance",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 876,
+      "name": "KeyTickInterval_b78f02cf",
+      "text": "tickInterval",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 877,
+      "name": "Text_2dc765e0",
+      "text": "tickLockpickTimeout -> lockpickStepTimeout -> lockpickBurnTry -> lockpickFail",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 878,
+      "name": "KeyTicks_724ef7ea",
+      "text": "ticks",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 879,
+      "name": "KeyTickTimer_e98cb353",
+      "text": "tickTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 880,
+      "name": "KeyTime_33607480",
+      "text": "time",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 881,
+      "name": "KeyTotalWins_0b45781d",
+      "text": "totalWins",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 882,
+      "name": "KeyTownFocus_a270c808",
+      "text": "townFocus",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 883,
+      "name": "Text_dd280a2a",
+      "text": "trade-setup",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 884,
+      "name": "Text_2b51dc29",
+      "text": "tradeCancel closes an open session with both sides notified",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 885,
+      "name": "Text_3af9875b",
+      "text": "tradeRequest + tradeAccept open a shared session (both pids point at it)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 886,
+      "name": "KeyTradesCompleted_6f701dbd",
+      "text": "tradesCompleted",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 887,
+      "name": "Text_def45fe3",
+      "text": "tradeSetOffer validates items against bags; tradeConfirm swaps items + copper atomically",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 888,
+      "name": "ValueTrainingMace_5992eb35",
+      "text": "training_mace",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 889,
+      "name": "ValueTransition_70dd37c1",
+      "text": "transition",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 890,
+      "name": "Text_04b82bee",
+      "text": "transition: nythraxis_transition_stun room stun + Aldric spawn/walk-in + wardstones lit",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 891,
+      "name": "KeyTransitionReleased_60e376db",
+      "text": "transitionReleased",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 892,
+      "name": "KeyTransitionStarted_458a27c2",
+      "text": "transitionStarted",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 893,
+      "name": "KeyTransitionTimer_a945106e",
+      "text": "transitionTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 894,
+      "name": "Text_487fc9cf",
+      "text": "turnInQuest -> removeItem -> onInventoryChangedForQuests (xp + copper)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 895,
+      "name": "Text_b4079400",
+      "text": "turnInQuest (xp + copper reward)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 896,
+      "name": "Text_797f4d38",
+      "text": "unequipItem: piece back to bags, slot emptied, recalc",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 897,
+      "name": "ValueUnequipped_425e29df",
+      "text": "unequipped",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 898,
+      "name": "Text_c7d9e02e",
+      "text": "updateAuras aura-expiry statsDirty -> recalcPlayerStats + applyNonPlayerStatAura",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 899,
+      "name": "Text_272fd1af",
+      "text": "updateAuras dot-tick kills target mid-walk -> e.dead guard short-circuits (~3095)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 900,
+      "name": "Text_9aeefe23",
+      "text": "updateCasting progress + finish -> applyAbility spell-hit roll (rng) -> runEffects",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 901,
+      "name": "Text_17d02246",
+      "text": "updateCasting silence branch -> cancelCast (priest lesser_heal, holy)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 902,
+      "name": "Text_125fd373",
+      "text": "updateDelveCompanion combat arm: acquire owner target -> close-to-reach -> mobSwing on cadence (~16762 rng draws)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 903,
+      "name": "Text_4e12d787",
+      "text": "updateDelveCompanion heel arm: moveToward owner past DELVE_COMPANION_FOLLOW, then warp + rebucket past PET_TELEPORT_DISTANCE",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 904,
+      "name": "Text_b50a31b8",
+      "text": "updateDelveCompanion rank-2 heal arm: DELVE_COMPANION_HEAL_PCT[2] percent heal of the lowest-HP party member (heal + spellfx tick)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 905,
+      "name": "Text_53b07b61",
+      "text": "updateDoorTriggers door-trigger enter (~14612)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 906,
+      "name": "Text_c2a2e9e3",
+      "text": "updateDoorTriggers exit portal -> leaveDungeon (~14620)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 907,
+      "name": "Text_5c1efdc0",
+      "text": "updateDuels countdown -> active + duelStart",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 908,
+      "name": "Text_bcec20ef",
+      "text": "updateGroundAoEs first-in-tick (~2256)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 909,
+      "name": "Text_c7321ae1",
+      "text": "updateInstances empty-reset -> freeInstance despawn + partyKey null (~14841/14816)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 910,
+      "name": "Text_b8fde4ee",
+      "text": "updateMarket once-a-second expiry sweep (% 20): expired listing -> seller collection",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 911,
+      "name": "Text_687d6732",
+      "text": "updateMobTarget 110% melee pull-over (MELEE_SWITCH_MULT, inMelee MELEE_RANGE*1.2)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 912,
+      "name": "Text_f598247d",
+      "text": "updateMobTarget 130% ranged pull-over (RANGED_SWITCH_MULT) + strict-boundary no-switch",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 913,
+      "name": "Text_3b2785f0",
+      "text": "updateNythraxisEncounter full pull (phase 1 -> transition -> phase 2 -> final stand -> death)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 914,
+      "name": "Text_8926b78b",
+      "text": "updatePet melee arm: close + auto-taunt + mobSwing (PET_COMBAT_LINGER owner inCombat)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 915,
+      "name": "Text_3168696d",
+      "text": "updateRangedPetAttack friendly pet arm (~8093/8217)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 916,
+      "name": "Text_7d8c55dc",
+      "text": "updateRangedPetAttack hostile-mob arm (~6776)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 917,
+      "name": "Text_edc1de0a",
+      "text": "updateRegen eat/drink path (ctx.healingTakenMult + 'heal' emit) + out-of-combat regen",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 918,
+      "name": "Text_ae4fe6dc",
+      "text": "updateTradesAndInvites drift cancel when the traders walk out of range",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 919,
+      "name": "Text_9e23bba7",
+      "text": "useItem food/drink (sit + eating/drinking slot), potion (heal + cooldown), elixir (applyAura)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 920,
+      "name": "KeyValue_cd42404d",
+      "text": "value",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 921,
+      "name": "KeyValue2_0537d481",
+      "text": "value2",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 922,
+      "name": "KeyValue3_89dc6ae7",
+      "text": "value3",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 923,
+      "name": "KeyVendorBuyback_a024e14d",
+      "text": "vendorBuyback",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 924,
+      "name": "ValueVenomWebwoodSpider_24d04562",
+      "text": "venom_webwood_spider",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 925,
+      "name": "KeyVisited_a96a5b94",
+      "text": "visited",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 926,
+      "name": "ValueVulnerability_32ceacc0",
+      "text": "vulnerability",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 927,
+      "name": "KeyWaist_6c2456b9",
+      "text": "waist",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 928,
+      "name": "KeyWanderTarget_0491650d",
+      "text": "wanderTarget",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 929,
+      "name": "KeyWanderTimer_6b833f1e",
+      "text": "wanderTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 930,
+      "name": "KeyWarCruelty_048998e4",
+      "text": "war_cruelty",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 931,
+      "name": "KeyWarDeflection_7c785b35",
+      "text": "war_deflection",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 932,
+      "name": "KeyWarImpHeroicStrike_2d515bfd",
+      "text": "war_imp_heroic_strike",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 933,
+      "name": "KeyWarImpThunderClap_8421df36",
+      "text": "war_imp_thunder_clap",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 934,
+      "name": "KeyWarToughness_bf0220f0",
+      "text": "war_toughness",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 935,
+      "name": "Text_d503f7ae",
+      "text": "war-stomp",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 936,
+      "name": "KeyWardChannels_5fea584f",
+      "text": "wardChannels",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 937,
+      "name": "KeyWardTimer_ef52191c",
+      "text": "wardTimer",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 938,
+      "name": "ValueWarlock_2341a4d5",
+      "text": "warlock",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 939,
+      "name": "ValueWarlockImp_5494b816",
+      "text": "warlock_imp",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 940,
+      "name": "ValueWarlockPet_683f2e11",
+      "text": "warlock_pet",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 941,
+      "name": "Text_642a894c",
+      "text": "warlock-channel-pushback",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 942,
+      "name": "Text_c8e5aad3",
+      "text": "warlock-fear",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 943,
+      "name": "Text_280cc15f",
+      "text": "warlock-fishing-cancel",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 944,
+      "name": "Text_0e414b94",
+      "text": "warlock-summon",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 945,
+      "name": "ValueWarlordDrogmar_9003e7d2",
+      "text": "warlord_drogmar",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 946,
+      "name": "ValueWarrior_ffb29103",
+      "text": "warrior",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 947,
+      "name": "Text_15c763a4",
+      "text": "warrior-sunder",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 948,
+      "name": "Text_54b95fd1",
+      "text": "Weakening Hex",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 949,
+      "name": "KeyWeapon_c68fef1a",
+      "text": "weapon",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 950,
+      "name": "Text_c2bba379",
+      "text": "weaponStrike awardCombo latch + finisher combo-spend reset",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 951,
+      "name": "ValueWebwoodSpider_9a8e49bb",
+      "text": "webwood_spider",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 952,
+      "name": "Text_61dc1ed6",
+      "text": "whisper /w + /r round-trip via resolveWhisperTarget (exact-then-unambiguous-CI)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 953,
+      "name": "ValueWildBoar_a65095bd",
+      "text": "wild_boar",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 954,
+      "name": "KeyWinsByOpponent_46913482",
+      "text": "winsByOpponent",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 955,
+      "name": "Text_a1800126",
+      "text": "withdrew-partial",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 956,
+      "name": "Text_79f29709",
+      "text": "withdrew-whole",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 957,
+      "name": "Text_cbf31e79",
+      "text": "Wolf Form",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 958,
+      "name": "ValueWolfFang_5a02e971",
+      "text": "wolf_fang",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 959,
+      "name": "Text_771de2cf",
+      "text": "World Market: marketList escrow (ctx.removeItem pulls the stack from bags)",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 960,
+      "name": "ValueWornSword_f1bd4955",
+      "text": "worn_sword",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 961,
+      "name": "KeyX_2d711642",
+      "text": "x",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 962,
+      "name": "KeyXp_9a3576ca",
+      "text": "xp",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 963,
+      "name": "KeyXpGained_6f82cc1b",
+      "text": "xpGained",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 964,
+      "name": "KeyY_a1fce436",
+      "text": "y",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 965,
+      "name": "KeyZ_594e519a",
+      "text": "z",
+      "kinds": [
+        "key"
+      ]
+    },
+    {
+      "id": 966,
+      "name": "ValueBerserker_143f40fd",
+      "text": "Berserker",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 967,
+      "name": "ValueBlessing_5f4c7406",
+      "text": "Blessing",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 968,
+      "name": "ValueBuffSpeed_9f0148c1",
+      "text": "buff_speed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 969,
+      "name": "Text_7265d5ca",
+      "text": "Drowned Canticle",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 970,
+      "name": "ValueFear_58d54e7c",
+      "text": "fear",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 971,
+      "name": "ValueLesserHeal_6382264d",
+      "text": "lesser_heal",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 972,
+      "name": "ValueNhaliaCantorShield_882a1a63",
+      "text": "nhalia_cantor_shield",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 973,
+      "name": "ValueNythraxisWardChannel_fe990ebc",
+      "text": "nythraxis_ward_channel",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 974,
+      "name": "ValuePowerupPowBerserkerBuffAp_146aeb49",
+      "text": "powerup_pow_berserker_buff_ap",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 975,
+      "name": "ValuePowerupPowBerserkerBuffSpeed_9b090daa",
+      "text": "powerup_pow_berserker_buff_speed",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 976,
+      "name": "ValueShortBuff_6a304ec8",
+      "text": "short_buff",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 977,
+      "name": "ValueSummonImp_c5431c19",
+      "text": "summon_imp",
+      "kinds": [
+        "value"
+      ]
+    },
+    {
+      "id": 978,
+      "name": "ValueSummonVoidwalker_64804831",
+      "text": "summon_voidwalker",
+      "kinds": [
+        "value"
+      ]
+    }
+  ]
+}

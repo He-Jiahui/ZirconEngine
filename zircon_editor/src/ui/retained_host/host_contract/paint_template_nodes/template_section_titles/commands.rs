@@ -1,7 +1,9 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_section_title_glyphs::{push_section_icon, section_title_icon};
-use super::geometry::{pixel_aligned_rect, section_icon_rect};
+use super::geometry::{
+    frame_is_within, has_paintable_section_title_extent, pixel_aligned_rect, section_icon_rect,
+};
 use super::identity::is_workbench_section_title;
 use super::surface::push_section_title_surface;
 use super::text::push_section_label;
@@ -18,23 +20,30 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
         return false;
     }
     let rect = pixel_aligned_rect(rect);
-    if rect.width <= 0.0 || rect.height <= 0.0 {
+    if !has_paintable_section_title_extent(&rect) {
         return true;
     }
 
     push_section_title_surface(commands, &rect, clip, order, opacity);
     let icon = section_title_icon(node);
-    if let Some(icon) = icon {
+    let icon_painted = if let Some(icon) = icon {
         let icon_rect = section_icon_rect(&rect);
-        push_section_icon(commands, &icon_rect, clip, order + 2, icon, opacity);
-    }
+        if frame_is_within(&rect, &icon_rect) {
+            push_section_icon(commands, &icon_rect, clip, order + 2, icon, opacity);
+            true
+        } else {
+            false
+        }
+    } else {
+        false
+    };
     push_section_label(
         commands,
         node,
         &rect,
         clip,
         order + 3,
-        icon.is_some(),
+        icon_painted,
         opacity,
     );
     true

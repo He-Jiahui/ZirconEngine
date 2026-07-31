@@ -1,0 +1,90 @@
+// Fixed M7 scenario-to-owner routing for the final eleven parity factories at
+// reference commit 7c10f280eec380e9877e66ce16333089e171fe42.
+var pets = %import("instances/pet_state");
+var delve = %import("instances/delve_state");
+var dungeon = %import("instances/dungeon_state");
+var memberSpawn = %import("instances/delve_member_spawn_rules");
+var shop = %import("instances/delve_shop_rules");
+var markPayout = %import("instances/delve_mark_payout_rules");
+var clearRewards = %import("instances/delve_clear_rewards_rules");
+var lore = %import("instances/delve_lore_rules");
+var daily = %import("instances/delve_daily_rules");
+var companionUpgrade = %import("instances/delve_companion_upgrade_rules");
+var emptyReset = %import("instances/delve_empty_reset_rules");
+var lockpickRules = %import("instances/delve_lockpick_rules");
+var lockpickSession = %import("instances/delve_lockpick_session");
+var lockpickProjection = %import("instances/delve_lockpick_projection");
+var bountifulRules = %import("instances/delve_bountiful_rules");
+var lockpickRewards = %import("instances/delve_lockpick_rewards_rules");
+var companionTargetRules = %import("instances/delve_companion_target_rules");
+var companionDecisions = %import("instances/delve_companion_decisions");
+var nhaliaBossRules = %import("instances/drowned_litany_boss_rules");
+var riteState = %import("combat/drowned_litany_state");
+var riteRules = %import("instances/drowned_litany_rite_rules");
+var riteLootRules = %import("instances/drowned_litany_loot_rules");
+var riteRoomRules = %import("instances/drowned_litany_room_rules");
+var waterJet = %import("instances/pet_water_jet_state");
+
+pub scenarioCount(required: bool): int {
+    if (!required) { return 0; }
+    return 11;
+}
+
+pub scenarioName(index: int): string {
+    if (index == 0) { return "pet_ai"; }
+    if (index == 1) { return "pet_commands"; }
+    if (index == 2) { return "hunter_pet"; }
+    if (index == 3) { return "warlock_pet"; }
+    if (index == 4) { return "delve_companion"; }
+    if (index == 5) { return "delve_death"; }
+    if (index == 6) { return "delve_lockpick"; }
+    if (index == 7) { return "delve_lockpick_fail"; }
+    if (index == 8) { return "delve_progression"; }
+    if (index == 9) { return "dungeon_instances"; }
+    if (index == 10) { return "dungeon_raid_lockout"; }
+    return "";
+}
+
+pub runScenario(index: int): int {
+    if (index == 0) { return pets.petAiScenarioTest(); }
+    if (index == 1) { return pets.petCommandsScenarioTest(); }
+    if (index == 2) { return pets.hunterPetScenarioTest(); }
+    if (index == 3) { return pets.warlockPetScenarioTest(); }
+    if (index == 4) { return delve.delveCompanionScenarioTest(); }
+    if (index == 5) { return delve.delveDeathScenarioTest(); }
+    if (index == 6) { return delve.delveLockpickScenarioTest(); }
+    if (index == 7) { return delve.delveLockpickFailScenarioTest(); }
+    if (index == 8) { return delve.delveProgressionScenarioTest(); }
+    if (index == 9) { return dungeon.dungeonInstancesScenarioTest(); }
+    if (index == 10) { return dungeon.dungeonRaidLockoutScenarioTest(); }
+    return -1;
+}
+
+pub contractTest(): int {
+    if (scenarioCount(true) != 11 || scenarioCount(false) != 0 ||
+        scenarioName(-1) != "" || scenarioName(11) != "" || runScenario(-1) != -1 ||
+        runScenario(11) != -1) {
+        return -1;
+    }
+    if (memberSpawn.contractTest() != 1 || shop.contractTest() != 1 ||
+        markPayout.contractTest() != 1 || clearRewards.contractTest() != 1 ||
+        lore.contractTest() != 1 || daily.contractTest() != 1 ||
+        companionUpgrade.contractTest() != 1 || emptyReset.contractTest() != 1 ||
+        lockpickRules.contractTest() != 1 || lockpickSession.contractTest() != 1 ||
+        lockpickProjection.contractTest() != 1 || bountifulRules.contractTest() != 1 ||
+        lockpickRewards.contractTest() != 1 || companionTargetRules.contractTest() != 1 ||
+        companionDecisions.contractTest() != 1 || nhaliaBossRules.contractTest() != 1 ||
+        riteState.contractTest() != 1 || riteRules.contractTest() != 1 ||
+        riteLootRules.contractTest() != 1 || riteRoomRules.contractTest() != 1 ||
+        waterJet.contractTest() != 1) {
+        return -2;
+    }
+    var index = 0;
+    while (index < scenarioCount(true)) {
+        if (scenarioName(index) == "") { return -10 - index; }
+        var result = runScenario(index);
+        if (result != 1) { return -100 - index; }
+        index = index + 1;
+    }
+    return 1;
+}

@@ -109,7 +109,7 @@ pub enum UiTextRunKind {
 
 #[cfg(test)]
 mod tests {
-    use super::{resolve_ui_text_render_mode, UiTextRenderMode};
+    use super::{UiTextRenderMode, resolve_ui_text_render_mode};
 
     #[test]
     fn text_render_mode_resolution_uses_explicit_request_then_font_default() {

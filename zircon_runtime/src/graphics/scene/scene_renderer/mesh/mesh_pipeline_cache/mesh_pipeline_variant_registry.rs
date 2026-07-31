@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::core::framework::render::{
-    GeometrySourceId, ShaderPassType, ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
-    GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceId, ShaderPassType, ShaderQualityTier,
+    ShaderVariantKey, ShaderVariantMissReport,
 };
 use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
@@ -182,8 +182,8 @@ impl MeshPipelineVariantResolver for MeshPipelineVariantRegistry {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        ShaderFeatureBits, ShaderPassType, ShaderQualityTier, GEOMETRY_SOURCE_ID_SKINNED_MESH,
-        GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
+        SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType, ShaderQualityTier,
     };
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
@@ -261,12 +261,16 @@ mod tests {
             GEOMETRY_SOURCE_ID_SKINNED_MESH
         );
         assert_eq!(shader_variant.shading_model, SHADING_MODEL_ID_STANDARD_PBR);
-        assert!(shader_variant
-            .features
-            .contains(ShaderFeatureBits::ALPHA_TEST));
-        assert!(shader_variant
-            .canonical_string()
-            .contains("|platform=wgpu-runtime"));
+        assert!(
+            shader_variant
+                .features
+                .contains(ShaderFeatureBits::ALPHA_TEST)
+        );
+        assert!(
+            shader_variant
+                .canonical_string()
+                .contains("|platform=wgpu-runtime")
+        );
     }
 
     #[test]

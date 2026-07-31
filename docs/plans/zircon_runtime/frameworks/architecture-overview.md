@@ -69,28 +69,29 @@ plan_sources:
 依赖方向严格自下而上；同层横向依赖必须经 `zr_contracts` 或在计划 01 §3 显式批准。
 
 ```
-facade   ┌─────────────────────────────────────────────────────────────────┐
-         │ zircon_runtime 门面：builtin 模块组装 · plugin 加载 · dynamic_api │
-         │ core/manager resolver 组装 · prelude · curated re-export · cdylib│
-         └───────▲──────────▲──────────▲──────────▲──────────▲─────────────┘
-optional │ zr_script │ zr_animation │ zr_navigation │        （feature 可选） │
-layer 5  ┌─────────────────┐                                                │
-         │      zr_ui      │  布局/模板/组件/表面                             │
-layer 4  ├─────────────────┼─────────────────┐                              │
-         │   zr_graphics   │     zr_text     │  渲染内核 · 共享文本服务        │
-layer 3  ├─────────┬───────┴───┬─────────────┤                              │
-         │ zr_rhi  │ zr_rhi_wgpu│zr_render_graph│  RHI 契约/wgpu 后端/渲染图   │
-layer 2  ├─────────┴───┬───────┴─────────────┤                              │
-         │  zr_asset   │      zr_scene       │  资产管线 · ECS 世界           │
-layer 1  ├─────────────┼──────────┬──────────┤                              │
-         │ zr_platform │ zr_input │zr_diagnostics│  平台(winit 收拢)/输入/诊断 │
-layer 0  ├─────────────┴──────────┴──────────┴──────────────────────────────┤
-         │  zr_kernel（生命周期/调度/描述符） · zr_contracts（纯契约,按域门控）  │
-         │  zr_math（转发 interface::math） · zr_resource（句柄/注册表/租约）   │
-         └─────────────────────────────────────────────────────────────────┘
+facade    zircon_runtime（builtin 组装 · plugin 加载 · dynamic_api ·
+          core/manager resolver 组装 · prelude · curated re-export · cdylib）
+optional  zr_script / zr_animation / zr_navigation（feature 可选）
+layer 5   zr_ui（布局/模板/组件/表面）
+layer 4   zr_graphics（渲染内核；拥有 text GPU atlas/upload/draw backend）
+layer 3   zr_rhi / zr_rhi_wgpu / zr_render_graph
+          zr_operation（kernel + contracts + scene + interface 的有界 operation service）
+          zr_text（backend-neutral shaping/layout/font/source/SDF）
+layer 2   zr_asset / zr_scene（资产管线 / ECS 世界）
+layer 1   zr_diagnostics / zr_foundation / zr_platform / zr_input
+layer 0b  zr_kernel（生命周期/调度/描述符；只依赖 0a）
+layer 0a  zr_math / zr_resource / zr_contracts（纯契约，按域门控）
 ```
 
-铁律：layer 0 禁止 wgpu/winit 等重依赖；wgpu 只允许出现在 `zr_rhi_wgpu`/`zr_graphics` 依赖树；`zircon_app`/`zircon_editor`/插件永远只依赖门面，直连 `zr_*` 是架构违规（守卫 G1）。
+铁律：layer 0 禁止 wgpu/winit 等重依赖；wgpu 只允许出现在 `zr_rhi_wgpu`/`zr_graphics` 依赖树。`zr_operation` 不得并入 kernel，optional navigation 可向下依赖它；`zr_text` 不得直接依赖完整 wgpu/naga/glyphon，GPU text backend 只在 graphics/rhi_wgpu，且 `zr_text ↔ zr_graphics` 循环计数必须为 0。`zircon_app`/`zircon_editor`/插件永远只依赖门面，直连 `zr_*` 是架构违规（守卫 G1）。
+
+当前物理硬切顺序固定为 `zr_math/zr_resource → zr_contracts → zr_kernel → zr_diagnostics`，再按
+`foundation → platform/input → asset/scene → zr_operation → rhi/rhi_wgpu/render_graph`，随后
+`zr_text → graphics text backend/graphics → ui/optional` 推进；每段同批迁移 consumer 并删除旧
+内部 owner，不留双轨。依赖治理执行 stable-first：`notify 9.0.0-rc.3`、
+`winit 0.31.0-beta.2`、`zip 9.0.0-pre2` 只能作为精确 package/version + owner/reason/expiry/ticket
+的限期例外，过期保持 RED，禁止 wildcard、全局禁用或 advisory 静默。此图是目标态而非完成声明：
+四份 cold/incremental timings 尚未生成，`zircon_runtime/crates/` 物理迁移尚未开始。
 
 ## 3. 启动与模块生命周期（计划 02 目标态）
 

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::{parse_build_export_action, BuildExportAction};
+use super::{BuildExportAction, parse_build_export_action};
 use crate::ui::retained_host::app::RetainedEditorHost;
 
 mod jobs;
@@ -18,6 +18,8 @@ impl RetainedEditorHost {
 
         match action {
             BuildExportAction::GeneratePlan { profile_name } => {
+                self.desktop_export_wizard_sessions
+                    .invalidate_projection_source();
                 self.mark_layout_dirty();
                 self.set_status_line(format!("Desktop export plan for {profile_name} refreshed"));
             }
@@ -33,6 +35,8 @@ impl RetainedEditorHost {
             } => {
                 self.desktop_export_output_overrides
                     .insert(profile_name.to_string(), PathBuf::from(output_root));
+                self.desktop_export_wizard_sessions
+                    .invalidate_projection_overlay();
                 self.mark_layout_dirty();
                 self.set_status_line(format!(
                     "Desktop export output for {profile_name} set to {output_root}"
@@ -40,6 +44,8 @@ impl RetainedEditorHost {
             }
             BuildExportAction::ClearOutput { profile_name } => {
                 self.desktop_export_output_overrides.remove(profile_name);
+                self.desktop_export_wizard_sessions
+                    .invalidate_projection_overlay();
                 self.mark_layout_dirty();
                 self.set_status_line(format!(
                     "Desktop export output for {profile_name} reset to project default"

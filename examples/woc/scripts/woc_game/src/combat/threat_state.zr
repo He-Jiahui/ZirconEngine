@@ -1,0 +1,205 @@
+// Primitive-only projection of src/sim/threat.ts. WorldState owns persistence
+// and target selection; this module owns no entity rows or cross-ABI objects.
+var container = %import("zr.container");
+
+pub class ThreatSourceState {
+    pub var level: int;
+    pub var auraKinds: container.Array<string>;
+
+    pub @constructor() {
+        this.level = 1;
+        this.auraKinds = new container.Array<string>();
+    }
+}
+
+pub class ThreatTableState {
+    pub var dead: bool;
+    pub var sourceIds: container.Array<uint>;
+    pub var values: container.Array<float>;
+    // Zero is the source null sentinel for no forced target.
+    pub var forcedTargetId: uint;
+    pub var forcedTargetTimer: float;
+
+    pub @constructor() {
+        this.dead = false;
+        this.sourceIds = new container.Array<uint>();
+        this.values = new container.Array<float>();
+        this.forcedTargetId = <uint>0;
+        this.forcedTargetTimer = 0.0;
+    }
+}
+
+pub class ThreatEntries {
+    pub var sourceIds: container.Array<uint>;
+    pub var roundedValues: container.Array<int>;
+
+    pub @constructor() {
+        this.sourceIds = new container.Array<uint>();
+        this.roundedValues = new container.Array<int>();
+    }
+}
+
+defensiveStanceThreatMultiplier(): float { return 1.3; }
+bearFormThreatMultiplier(): float { return 1.3; }
+catFormThreatMultiplier(): float { return 0.71; }
+righteousFuryThreatMultiplier(): float { return 1.6; }
+stealthDetectionBaseMultiplier(): float { return 0.25; }
+stealthDetectionPerLevel(): float { return 0.08; }
+stealthDetectionMinimum(): float { return 0.1; }
+stealthDetectionMaximum(): float { return 1.0; }
+
+pub threatModifier(source: ThreatSourceState, school: string): float {
+    var multiplier = 1.0;
+    var index = 0;
+    while (index < source.auraKinds.length) {
+        var kind = <string>source.auraKinds[index];
+        if (kind == "defensive_stance") multiplier = multiplier * defensiveStanceThreatMultiplier();
+        else if (kind == "form_bear") multiplier = multiplier * bearFormThreatMultiplier();
+        else if (kind == "form_cat") multiplier = multiplier * catFormThreatMultiplier();
+        else if (kind == "righteous_fury" && school == "holy") {
+            multiplier = multiplier * righteousFuryThreatMultiplier();
+        }
+        index = index + 1;
+    }
+    return multiplier;
+}
+
+pub stealthDetectionMultiplier(observerLevel: int, stealthedLevel: int): float {
+    var raw = stealthDetectionBaseMultiplier() +
+        <float>(observerLevel - stealthedLevel) * stealthDetectionPerLevel();
+    if (raw < stealthDetectionMinimum()) return stealthDetectionMinimum();
+    return raw > stealthDetectionMaximum() ? stealthDetectionMaximum() : raw;
+}
+
+pub stealthDetectionRadius(observerLevel: int, stealthedLevel: int, baseRadius: float): float {
+    return baseRadius * stealthDetectionMultiplier(observerLevel, stealthedLevel);
+}
+
+findSource(table: ThreatTableState, sourceId: uint): int {
+    var index = 0;
+    while (index < table.sourceIds.length) {
+        if (<uint>table.sourceIds[index] == sourceId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub addThreat(table: ThreatTableState, sourceId: uint, amount: float): void {
+    if (table.dead || amount <= 0.0) return;
+    var index = findSource(table, sourceId);
+    if (index < 0) {
+        table.sourceIds.add(sourceId);
+        table.values.add(amount);
+    } else {
+        table.values[index] = <float>table.values[index] + amount;
+    }
+}
+
+pub clearThreat(table: ThreatTableState): void {
+    table.sourceIds.clear();
+    table.values.clear();
+    table.forcedTargetId = <uint>0;
+    table.forcedTargetTimer = 0.0;
+}
+
+pub dropThreat(table: ThreatTableState, sourceId: uint): void {
+    var index = findSource(table, sourceId);
+    if (index >= 0) {
+        table.sourceIds.removeAt(index);
+        table.values.removeAt(index);
+    }
+    if (table.forcedTargetId == sourceId) {
+        table.forcedTargetId = <uint>0;
+        table.forcedTargetTimer = 0.0;
+    }
+}
+
+pub topThreatValue(table: ThreatTableState): float {
+    var top = 0.0;
+    var index = 0;
+    while (index < table.values.length) {
+        if (<float>table.values[index] > top) top = <float>table.values[index];
+        index = index + 1;
+    }
+    return top;
+}
+
+roundPositive(value: float): int { return <int>(value + 0.5); }
+
+pub topThreatEntries(table: ThreatTableState, limit: int, output: ThreatEntries): void {
+    output.sourceIds.clear();
+    output.roundedValues.clear();
+    var count = limit;
+    if (count < 0) count = table.sourceIds.length + count;
+    if (count < 0) count = 0;
+    if (count > table.sourceIds.length) count = table.sourceIds.length;
+    var selected = new container.Array<bool>();
+    var index = 0;
+    while (index < table.sourceIds.length) {
+        selected.add(false);
+        index = index + 1;
+    }
+    var emitted = 0;
+    while (emitted < count) {
+        var best = -1;
+        index = 0;
+        while (index < table.values.length) {
+            if (!<bool>selected[index] &&
+                (best < 0 || <float>table.values[index] > <float>table.values[best])) {
+                best = index;
+            }
+            index = index + 1;
+        }
+        if (best < 0) return;
+        selected[best] = true;
+        output.sourceIds.add(<uint>table.sourceIds[best]);
+        output.roundedValues.add(roundPositive(<float>table.values[best]));
+        emitted = emitted + 1;
+    }
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var source = new ThreatSourceState();
+    source.auraKinds.add("defensive_stance");
+    source.auraKinds.add("righteous_fury");
+    if (!closeEnough(threatModifier(source, "holy"), 2.08) ||
+        !closeEnough(threatModifier(source, "fire"), 1.3)) return -1;
+    source.auraKinds.clear();
+    source.auraKinds.add("form_cat");
+    if (!closeEnough(threatModifier(source, "physical"), 0.71)) return -2;
+    if (!closeEnough(stealthDetectionMultiplier(0, 10), 0.1) ||
+        !closeEnough(stealthDetectionMultiplier(100, 1), 1.0) ||
+        !closeEnough(stealthDetectionRadius(5, 5, 40.0), 10.0)) return -3;
+
+    var table = new ThreatTableState();
+    table.dead = true;
+    addThreat(table, <uint>4, 10.0);
+    table.dead = false;
+    addThreat(table, <uint>4, 10.6);
+    addThreat(table, <uint>2, 9.4);
+    addThreat(table, <uint>6, 10.6);
+    addThreat(table, <uint>4, 2.0);
+    if (table.sourceIds.length != 3 || !closeEnough(topThreatValue(table), 12.6)) return -4;
+    var entries = new ThreatEntries();
+    topThreatEntries(table, 2, entries);
+    if (entries.sourceIds.length != 2 || <uint>entries.sourceIds[0] != <uint>4 ||
+        <uint>entries.sourceIds[1] != <uint>6 || <int>entries.roundedValues[0] != 13 ||
+        <int>entries.roundedValues[1] != 11) return -5;
+    topThreatEntries(table, -1, entries);
+    if (entries.sourceIds.length != 2 || <uint>entries.sourceIds[0] != <uint>4 ||
+        <uint>entries.sourceIds[1] != <uint>6) return -6;
+    table.forcedTargetId = <uint>4;
+    table.forcedTargetTimer = 3.0;
+    dropThreat(table, <uint>4);
+    if (table.forcedTargetId != <uint>0 || table.forcedTargetTimer != 0.0 ||
+        table.sourceIds.length != 2 || !closeEnough(topThreatValue(table), 10.6)) return -7;
+    clearThreat(table);
+    return table.sourceIds.length == 0 && table.values.length == 0 &&
+        table.forcedTargetId == <uint>0 && table.forcedTargetTimer == 0.0 ? 1 : -8;
+}

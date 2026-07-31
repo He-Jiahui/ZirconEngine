@@ -24,11 +24,11 @@ pub(crate) struct SceneUniform {
     pub(crate) sky_ground_color: [f32; 4],
     /// xyz = procedural sun direction, w = enabled flag.
     pub(crate) sky_sun_direction: [f32; 4],
-    /// rgb = procedural sun radiance color, w = angular radius in radians.
+    /// rgb = procedural sun radiance color, w = authored angular radius for diagnostics.
     pub(crate) sky_sun_color_radius: [f32; 4],
-    /// x = procedural sun intensity, yzw reserved.
+    /// x = sun intensity, y = outer cosine, z = inner cosine, w reserved.
     pub(crate) sky_sun_params: [f32; 4],
-    /// x = skybox enabled, y = sky intensity, z = sky rotation radians, w = IBL enabled.
+    /// x = source IEM available, y = sky intensity, z = sky rotation radians, w = IBL enabled.
     pub(crate) environment_params: [f32; 4],
     /// x = environment source kind, y = base sample width, z = base sample height, w = mip count.
     pub(crate) environment_sample_params: [f32; 4],

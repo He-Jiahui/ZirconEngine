@@ -26,12 +26,16 @@ related_code:
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/inspector.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/navigation.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/node_ops.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/imports.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/generation.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/traversal.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/lifecycle.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/open.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/job.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/commit.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/queue.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/service.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/save.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/watcher/host.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/workspace_state.rs
   - zircon_editor/src/ui/host/ui_asset_promotion.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
@@ -188,12 +192,16 @@ implementation_files:
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/inspector.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/navigation.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/node_ops.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/imports.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/generation.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports/traversal.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/lifecycle.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/open.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/job.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/commit.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/queue.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/service.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/save.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/watcher/host.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/workspace_state.rs
   - zircon_editor/src/ui/host/ui_asset_promotion.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
@@ -534,7 +542,10 @@ doc_type: module-detail
 M5 的 workspace owner 现在也收口在 host 层，而不是塞回 `UiAssetEditorSession`：
 
 - `EditorUiHost` 在 project open/save 后重启 `UiAssetWorkspaceWatcher`，watch `project_root/assets` 下的 `.zui` 文件，并把路径规整成 `res://...` asset id
-- `refresh_ui_asset_workspace_for_changes(...)` 是 deterministic refresh 入口；真实 watcher poll、保存后的 dependent refresh、promotion undo/redo 外部 effect 都走同一条入口
+- `refresh_ui_asset_workspace_for_changes(...)` 只保留为显式保存、promotion undo/redo 与测试所用的 deterministic refresh 入口；真实 watcher poll 把变化合并进 `EditorJobSystem` background index job，由 reverse-dependency generation 选择受影响 session，并在 UI 线程做 generation/baseline/fingerprint 校验后提交，避免 watcher tick 同步读盘、解析或扫描全部打开文档
+- reverse-dependency generation 同时维护 direct route 与 normalized import edge；import edge 在 resolve/read/parse 前登记，因此 missing、暂时不可读或语法损坏的依赖修复后仍能精确命中 stale consumer。一个 background generation 在全部受影响文档间共享 physical-path parse cache，同一物理文件只读取/解析一次
+- generation commit 以 dependency-generation mutex 为外层、session mutex 为内层，同一 epoch 更新 resolved imports、stale diagnostics 与 reverse edges；项目切换会取消活动 job 并清空 pending/deferred 代次，旧项目 asset id 不会重排到新项目
+- direct-source 瞬态 I/O 或 commit-time replace 失败进入 50ms 起步、2s 封顶、最多 6 次的有界指数退避；新的 watcher 事件会重置该 asset 的退避，成功的 unchanged validation 会清理 route-owned stale diagnostic。确定性的 missing/invalid/conflict 状态保留 last-good session，由后续真实文件事件恢复
 - `UiAssetWorkspaceEntry` 持有 disk baseline、external conflict、diff snapshot 和 stale import diagnostics；`UiAssetEditorSession` 仍只负责 source/document/preview 与 authoring state
 - clean direct asset change 会从磁盘重建 session、更新 baseline、清理 conflict，并重新 hydrate imports
 - dirty direct asset change 不覆盖本地 source，而是记录 `UiAssetExternalConflict`；pane/reflection 暴露 `has_external_conflict`、reload/keep-local/save-local-copy/diff snapshot affordance
@@ -883,7 +894,7 @@ UI Asset Editor 的 v2 authoring preview 现在有独立的 import compiler stat
 
 Host 层的 UI Asset Editor session 构造现在只接收 `.zui` source schema。`editor_event_execution::asset_event` 只把 `.zui` 交给 `OpenAsset -> UI Asset Editor` 生产入口；`.ui.toml` 和 `.v2.ui.toml` 不再创建 `editor.ui_asset` view instance。`asset_editor_sessions::mod` 提供集中 helper：source 通过 `UiZuiAssetLoader` 推导 route kind 并走 `UiAssetEditorSession::from_v2_source(...)`。首次打开、workspace restore、从磁盘 reload、clean external-change hot reload 共用这个 helper，所以 authoring session 不会在刷新路径回退到 retired layout parser。
 
-The 2026-06-24 visual-layout pass tightened this helper boundary. `UiV2AssetKind::ThemeTokens` is routed as an editor Style asset anywhere the legacy UI Asset Editor route kind is needed, matching the runtime v2 loader and authoring preview behavior for style/theme-token documents. The helper return type also preserves `UiAssetEditorSessionError` until the host API boundary instead of collapsing parse/session failures into `Result<_, String>` inside `asset_editor_sessions::mod`; `lifecycle.rs`, `open.rs`, and `refresh.rs` stringify only when converting into the existing host-facing `EditorError::UiAsset`.
+The 2026-06-24 visual-layout pass tightened this helper boundary. `UiV2AssetKind::ThemeTokens` is routed as an editor Style asset anywhere the legacy UI Asset Editor route kind is needed, matching the runtime v2 loader and authoring preview behavior for style/theme-token documents. The helper return type also preserves `UiAssetEditorSessionError` until the host API boundary instead of collapsing parse/session failures into `Result<_, String>` inside `asset_editor_sessions::mod`; `lifecycle.rs`, `open.rs`, and `refresh/normalize.rs` stringify only when converting into the existing host-facing `EditorError::UiAsset`.
 
 这个路径覆盖了当前最关键的复合组件 authoring 语义：外部 `asset#Component` 引用可展开，`Slot` 占位会被调用方 children 填充，prototype 的 `default_classes` 与实例节点的 `classes` 合并，实例 `props/state/layout/style/events` 会 patch 到 prototype root。canonical save 仍保存当前 v2 view 的 flat `[nodes.*]` 和 import reference，不把外部 prototype 的内部节点复制回当前 asset。尚未完成的是可视化 UI 上的 import 管理器、slot picker、props/state patch inspector；底层 session/preview 合同已经先落地。
 

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_delve_bad_air_rules_tests",
+  "source": "src",
+  "binary": "bin-m7-delve-bad-air-rules-tests",
+  "entry": "instances/delve_bad_air_rules_test_main"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_effect_world_dispatch_state_tests",
+  "source": "src",
+  "binary": "bin-m4-effect-world-dispatch-state-tests",
+  "entry": "combat/effect_world_dispatch_state_test_main"
+}

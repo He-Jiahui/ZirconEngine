@@ -1,0 +1,7618 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m5_class_baseline_stats_codegen.mjs",
+  "basis": {
+    "equipment": "each class startWeapon and startChest only",
+    "talents": "none",
+    "aura": "none",
+    "hp": "full maxHp after recalcPlayerStats",
+    "resource": "mana=maxResource, energy=100, rage=0 after recalcPlayerStats"
+  },
+  "source_identities": {
+    "representation": "git_blob_lf",
+    "files": [
+      {
+        "path": "src/sim/entity.ts",
+        "bytes": 29924,
+        "sha256": "e5906007bc4a34cd019bcfb980520e34dc646ed7bc71a3b7f6ec69e8cdc7da11"
+      },
+      {
+        "path": "src/sim/sim.ts",
+        "bytes": 382437,
+        "sha256": "fa0965112495b10ac2d793e672927de569666f9b3c938282eedc08b303cd6b03"
+      },
+      {
+        "path": "src/sim/types.ts",
+        "bytes": 204442,
+        "sha256": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+      },
+      {
+        "path": "src/sim/data.ts",
+        "bytes": 25410,
+        "sha256": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431"
+      },
+      {
+        "path": "src/sim/item_level_req.ts",
+        "bytes": 3395,
+        "sha256": "3533502e4131a730afdb2e367c3d388490defd4cd5b0fb47f4d57a3eefb88f77"
+      },
+      {
+        "path": "src/sim/pvp/index.ts",
+        "bytes": 603,
+        "sha256": "cb183665f580c78e0830f7de72e25eec232379526b5d5598fa195b09c88e8610"
+      },
+      {
+        "path": "src/sim/content/classes.ts",
+        "bytes": 200029,
+        "sha256": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889"
+      },
+      {
+        "path": "src/sim/content/items.ts",
+        "bytes": 47704,
+        "sha256": "d3c5791f88973956b651eeab71d4020d9e3697803cddc007ccae214f6738d37b"
+      },
+      {
+        "path": "src/sim/content/weapon_skin_rules.ts",
+        "bytes": 8313,
+        "sha256": "96e8c0d7f609f1625f3ae23e27a78c9b09730ecec95f972f3b22147e7ff20506"
+      }
+    ]
+  },
+  "max_level": 20,
+  "classes": [
+    {
+      "class_id": "warrior",
+      "resource_type": "rage",
+      "equipment": {
+        "mainhand": "worn_sword",
+        "chest": "recruit_tunic"
+      },
+      "equipment_contributions": {
+        "mainhand": {
+          "item_id": "worn_sword",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 0
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          }
+        },
+        "chest": {
+          "item_id": "recruit_tunic",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 20
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 0,
+            "max": 0,
+            "speed": 0
+          }
+        }
+      },
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "stats": {
+            "str": 23,
+            "agi": 20,
+            "sta": 22,
+            "int": 10,
+            "spi": 11,
+            "armor": 110,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 90,
+          "hp": 90,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 46,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.060000000000000005,
+          "dodge_chance": 0.060000000000000005,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 23,
+            "agility": 20,
+            "stamina": 22,
+            "intellect": 10,
+            "armor_before_agility": 70,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 2,
+          "stats": {
+            "str": 25,
+            "agi": 21,
+            "sta": 24,
+            "int": 10,
+            "spi": 11,
+            "armor": 124,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 128,
+          "hp": 128,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 50,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.060500000000000005,
+          "dodge_chance": 0.060500000000000005,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 25,
+            "agility": 21,
+            "stamina": 24,
+            "intellect": 10,
+            "armor_before_agility": 82,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 3,
+          "stats": {
+            "str": 27,
+            "agi": 22,
+            "sta": 26,
+            "int": 10,
+            "spi": 11,
+            "armor": 138,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 166,
+          "hp": 166,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 54,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.061,
+          "dodge_chance": 0.061,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 27,
+            "agility": 22,
+            "stamina": 26,
+            "intellect": 10,
+            "armor_before_agility": 94,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 4,
+          "stats": {
+            "str": 29,
+            "agi": 23,
+            "sta": 28,
+            "int": 10,
+            "spi": 11,
+            "armor": 152,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 204,
+          "hp": 204,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 58,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.0615,
+          "dodge_chance": 0.0615,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 29,
+            "agility": 23,
+            "stamina": 28,
+            "intellect": 10,
+            "armor_before_agility": 106,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 5,
+          "stats": {
+            "str": 31,
+            "agi": 24,
+            "sta": 30,
+            "int": 10,
+            "spi": 11,
+            "armor": 166,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 242,
+          "hp": 242,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 62,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.062,
+          "dodge_chance": 0.062,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 31,
+            "agility": 24,
+            "stamina": 30,
+            "intellect": 10,
+            "armor_before_agility": 118,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 6,
+          "stats": {
+            "str": 33,
+            "agi": 25,
+            "sta": 32,
+            "int": 10,
+            "spi": 11,
+            "armor": 180,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 280,
+          "hp": 280,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 66,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.0625,
+          "dodge_chance": 0.0625,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 33,
+            "agility": 25,
+            "stamina": 32,
+            "intellect": 10,
+            "armor_before_agility": 130,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 7,
+          "stats": {
+            "str": 35,
+            "agi": 26,
+            "sta": 34,
+            "int": 10,
+            "spi": 11,
+            "armor": 194,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 318,
+          "hp": 318,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 70,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.063,
+          "dodge_chance": 0.063,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 35,
+            "agility": 26,
+            "stamina": 34,
+            "intellect": 10,
+            "armor_before_agility": 142,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 8,
+          "stats": {
+            "str": 37,
+            "agi": 27,
+            "sta": 36,
+            "int": 10,
+            "spi": 11,
+            "armor": 208,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 356,
+          "hp": 356,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 74,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.0635,
+          "dodge_chance": 0.0635,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 37,
+            "agility": 27,
+            "stamina": 36,
+            "intellect": 10,
+            "armor_before_agility": 154,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 9,
+          "stats": {
+            "str": 39,
+            "agi": 28,
+            "sta": 38,
+            "int": 10,
+            "spi": 11,
+            "armor": 222,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 394,
+          "hp": 394,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 78,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.064,
+          "dodge_chance": 0.064,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 39,
+            "agility": 28,
+            "stamina": 38,
+            "intellect": 10,
+            "armor_before_agility": 166,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 10,
+          "stats": {
+            "str": 41,
+            "agi": 29,
+            "sta": 40,
+            "int": 10,
+            "spi": 11,
+            "armor": 236,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 432,
+          "hp": 432,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 82,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.0645,
+          "dodge_chance": 0.0645,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 41,
+            "agility": 29,
+            "stamina": 40,
+            "intellect": 10,
+            "armor_before_agility": 178,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 11,
+          "stats": {
+            "str": 43,
+            "agi": 30,
+            "sta": 42,
+            "int": 10,
+            "spi": 11,
+            "armor": 250,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 470,
+          "hp": 470,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 86,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.065,
+          "dodge_chance": 0.065,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 43,
+            "agility": 30,
+            "stamina": 42,
+            "intellect": 10,
+            "armor_before_agility": 190,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 12,
+          "stats": {
+            "str": 45,
+            "agi": 31,
+            "sta": 44,
+            "int": 10,
+            "spi": 11,
+            "armor": 264,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 508,
+          "hp": 508,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 90,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.0655,
+          "dodge_chance": 0.0655,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 45,
+            "agility": 31,
+            "stamina": 44,
+            "intellect": 10,
+            "armor_before_agility": 202,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 13,
+          "stats": {
+            "str": 47,
+            "agi": 32,
+            "sta": 46,
+            "int": 10,
+            "spi": 11,
+            "armor": 278,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 546,
+          "hp": 546,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 94,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.066,
+          "dodge_chance": 0.066,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 47,
+            "agility": 32,
+            "stamina": 46,
+            "intellect": 10,
+            "armor_before_agility": 214,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 14,
+          "stats": {
+            "str": 49,
+            "agi": 33,
+            "sta": 48,
+            "int": 10,
+            "spi": 11,
+            "armor": 292,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 584,
+          "hp": 584,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 98,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.0665,
+          "dodge_chance": 0.0665,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 49,
+            "agility": 33,
+            "stamina": 48,
+            "intellect": 10,
+            "armor_before_agility": 226,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 15,
+          "stats": {
+            "str": 51,
+            "agi": 34,
+            "sta": 50,
+            "int": 10,
+            "spi": 11,
+            "armor": 306,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 622,
+          "hp": 622,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 102,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.067,
+          "dodge_chance": 0.067,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 51,
+            "agility": 34,
+            "stamina": 50,
+            "intellect": 10,
+            "armor_before_agility": 238,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 16,
+          "stats": {
+            "str": 53,
+            "agi": 35,
+            "sta": 52,
+            "int": 10,
+            "spi": 11,
+            "armor": 320,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 660,
+          "hp": 660,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 106,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.0675,
+          "dodge_chance": 0.0675,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 53,
+            "agility": 35,
+            "stamina": 52,
+            "intellect": 10,
+            "armor_before_agility": 250,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 17,
+          "stats": {
+            "str": 55,
+            "agi": 36,
+            "sta": 54,
+            "int": 10,
+            "spi": 11,
+            "armor": 334,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 698,
+          "hp": 698,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 110,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.068,
+          "dodge_chance": 0.068,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 55,
+            "agility": 36,
+            "stamina": 54,
+            "intellect": 10,
+            "armor_before_agility": 262,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 18,
+          "stats": {
+            "str": 57,
+            "agi": 37,
+            "sta": 56,
+            "int": 10,
+            "spi": 11,
+            "armor": 348,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 736,
+          "hp": 736,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 114,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.0685,
+          "dodge_chance": 0.0685,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 57,
+            "agility": 37,
+            "stamina": 56,
+            "intellect": 10,
+            "armor_before_agility": 274,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 19,
+          "stats": {
+            "str": 59,
+            "agi": 38,
+            "sta": 58,
+            "int": 10,
+            "spi": 11,
+            "armor": 362,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 774,
+          "hp": 774,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 118,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.069,
+          "dodge_chance": 0.069,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 59,
+            "agility": 38,
+            "stamina": 58,
+            "intellect": 10,
+            "armor_before_agility": 286,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        },
+        {
+          "level": 20,
+          "stats": {
+            "str": 61,
+            "agi": 39,
+            "sta": 60,
+            "int": 10,
+            "spi": 11,
+            "armor": 376,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2
+          },
+          "max_hp": 812,
+          "hp": 812,
+          "max_resource": 100,
+          "resource": 0,
+          "attack_power": 122,
+          "ranged_power": 0,
+          "spell_power": 5,
+          "crit_chance": 0.0695,
+          "dodge_chance": 0.0695,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 61,
+            "agility": 39,
+            "stamina": 60,
+            "intellect": 10,
+            "armor_before_agility": 298,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 18
+          }
+        }
+      ]
+    },
+    {
+      "class_id": "mage",
+      "resource_type": "mana",
+      "equipment": {
+        "mainhand": "gnarled_staff",
+        "chest": "apprentice_robe"
+      },
+      "equipment_contributions": {
+        "mainhand": {
+          "item_id": "gnarled_staff",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 1,
+            "armor": 0
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          }
+        },
+        "chest": {
+          "item_id": "apprentice_robe",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 8
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 0,
+            "max": 0,
+            "speed": 0
+          }
+        }
+      },
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 14,
+            "int": 25,
+            "spi": 22,
+            "armor": 57,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 54,
+          "hp": 54,
+          "max_resource": 195,
+          "resource": 195,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 13,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 14,
+            "intellect": 25,
+            "armor_before_agility": 33,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 2,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 15,
+            "int": 28,
+            "spi": 24,
+            "armor": 61,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 67,
+          "hp": 67,
+          "max_resource": 264,
+          "resource": 264,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 14,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 15,
+            "intellect": 28,
+            "armor_before_agility": 37,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 3,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 16,
+            "int": 31,
+            "spi": 26,
+            "armor": 65,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 80,
+          "hp": 80,
+          "max_resource": 333,
+          "resource": 333,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 16,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 16,
+            "intellect": 31,
+            "armor_before_agility": 41,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 4,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 17,
+            "int": 34,
+            "spi": 28,
+            "armor": 69,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 93,
+          "hp": 93,
+          "max_resource": 402,
+          "resource": 402,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 17,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 17,
+            "intellect": 34,
+            "armor_before_agility": 45,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 5,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 18,
+            "int": 37,
+            "spi": 30,
+            "armor": 73,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 106,
+          "hp": 106,
+          "max_resource": 471,
+          "resource": 471,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 19,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 18,
+            "intellect": 37,
+            "armor_before_agility": 49,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 6,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 19,
+            "int": 40,
+            "spi": 32,
+            "armor": 77,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 119,
+          "hp": 119,
+          "max_resource": 540,
+          "resource": 540,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 20,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 19,
+            "intellect": 40,
+            "armor_before_agility": 53,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 7,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 20,
+            "int": 43,
+            "spi": 34,
+            "armor": 81,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 132,
+          "hp": 132,
+          "max_resource": 609,
+          "resource": 609,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 22,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 20,
+            "intellect": 43,
+            "armor_before_agility": 57,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 8,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 21,
+            "int": 46,
+            "spi": 36,
+            "armor": 85,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 154,
+          "hp": 154,
+          "max_resource": 678,
+          "resource": 678,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 23,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 21,
+            "intellect": 46,
+            "armor_before_agility": 61,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 9,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 22,
+            "int": 49,
+            "spi": 38,
+            "armor": 89,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 176,
+          "hp": 176,
+          "max_resource": 747,
+          "resource": 747,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 25,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 22,
+            "intellect": 49,
+            "armor_before_agility": 65,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 10,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 23,
+            "int": 52,
+            "spi": 40,
+            "armor": 93,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 198,
+          "hp": 198,
+          "max_resource": 816,
+          "resource": 816,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 26,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 23,
+            "intellect": 52,
+            "armor_before_agility": 69,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 11,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 24,
+            "int": 55,
+            "spi": 42,
+            "armor": 97,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 220,
+          "hp": 220,
+          "max_resource": 885,
+          "resource": 885,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 28,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 24,
+            "intellect": 55,
+            "armor_before_agility": 73,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 12,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 25,
+            "int": 58,
+            "spi": 44,
+            "armor": 101,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 242,
+          "hp": 242,
+          "max_resource": 954,
+          "resource": 954,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 29,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 25,
+            "intellect": 58,
+            "armor_before_agility": 77,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 13,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 26,
+            "int": 61,
+            "spi": 46,
+            "armor": 105,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 264,
+          "hp": 264,
+          "max_resource": 1023,
+          "resource": 1023,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 31,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 26,
+            "intellect": 61,
+            "armor_before_agility": 81,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 14,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 27,
+            "int": 64,
+            "spi": 48,
+            "armor": 109,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 286,
+          "hp": 286,
+          "max_resource": 1092,
+          "resource": 1092,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 32,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 27,
+            "intellect": 64,
+            "armor_before_agility": 85,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 15,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 28,
+            "int": 67,
+            "spi": 50,
+            "armor": 113,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 308,
+          "hp": 308,
+          "max_resource": 1161,
+          "resource": 1161,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 34,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 28,
+            "intellect": 67,
+            "armor_before_agility": 89,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 16,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 29,
+            "int": 70,
+            "spi": 52,
+            "armor": 117,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 330,
+          "hp": 330,
+          "max_resource": 1230,
+          "resource": 1230,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 35,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 29,
+            "intellect": 70,
+            "armor_before_agility": 93,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 17,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 30,
+            "int": 73,
+            "spi": 54,
+            "armor": 121,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 352,
+          "hp": 352,
+          "max_resource": 1299,
+          "resource": 1299,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 37,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 30,
+            "intellect": 73,
+            "armor_before_agility": 97,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 18,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 31,
+            "int": 76,
+            "spi": 56,
+            "armor": 125,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 374,
+          "hp": 374,
+          "max_resource": 1368,
+          "resource": 1368,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 38,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 31,
+            "intellect": 76,
+            "armor_before_agility": 101,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 19,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 32,
+            "int": 79,
+            "spi": 58,
+            "armor": 129,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 396,
+          "hp": 396,
+          "max_resource": 1437,
+          "resource": 1437,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 40,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 32,
+            "intellect": 79,
+            "armor_before_agility": 105,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 20,
+          "stats": {
+            "str": 10,
+            "agi": 12,
+            "sta": 33,
+            "int": 82,
+            "spi": 60,
+            "armor": 133,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 418,
+          "hp": 418,
+          "max_resource": 1506,
+          "resource": 1506,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 41,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 12,
+            "stamina": 33,
+            "intellect": 82,
+            "armor_before_agility": 109,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 40,
+            "hp_per_level": 12
+          }
+        }
+      ]
+    },
+    {
+      "class_id": "rogue",
+      "resource_type": "energy",
+      "equipment": {
+        "mainhand": "rusty_dagger",
+        "chest": "footpad_jerkin"
+      },
+      "equipment_contributions": {
+        "mainhand": {
+          "item_id": "rusty_dagger",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 0
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          }
+        },
+        "chest": {
+          "item_id": "footpad_jerkin",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 14
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 0,
+            "max": 0,
+            "speed": 0
+          }
+        }
+      },
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "stats": {
+            "str": 17,
+            "agi": 25,
+            "sta": 17,
+            "int": 11,
+            "spi": 12,
+            "armor": 104,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 62,
+          "hp": 62,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 42,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.0625,
+          "dodge_chance": 0.0625,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 17,
+            "agility": 25,
+            "stamina": 17,
+            "intellect": 11,
+            "armor_before_agility": 54,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 2,
+          "stats": {
+            "str": 18,
+            "agi": 28,
+            "sta": 18,
+            "int": 11,
+            "spi": 12,
+            "armor": 118,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 78,
+          "hp": 78,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 46,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.064,
+          "dodge_chance": 0.064,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 18,
+            "agility": 28,
+            "stamina": 18,
+            "intellect": 11,
+            "armor_before_agility": 62,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 3,
+          "stats": {
+            "str": 19,
+            "agi": 31,
+            "sta": 19,
+            "int": 11,
+            "spi": 12,
+            "armor": 132,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 94,
+          "hp": 94,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 50,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.0655,
+          "dodge_chance": 0.0655,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 19,
+            "agility": 31,
+            "stamina": 19,
+            "intellect": 11,
+            "armor_before_agility": 70,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 4,
+          "stats": {
+            "str": 20,
+            "agi": 34,
+            "sta": 20,
+            "int": 11,
+            "spi": 12,
+            "armor": 146,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 110,
+          "hp": 110,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 54,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.067,
+          "dodge_chance": 0.067,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 20,
+            "agility": 34,
+            "stamina": 20,
+            "intellect": 11,
+            "armor_before_agility": 78,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 5,
+          "stats": {
+            "str": 21,
+            "agi": 37,
+            "sta": 21,
+            "int": 11,
+            "spi": 12,
+            "armor": 160,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 135,
+          "hp": 135,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 58,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.0685,
+          "dodge_chance": 0.0685,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 21,
+            "agility": 37,
+            "stamina": 21,
+            "intellect": 11,
+            "armor_before_agility": 86,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 6,
+          "stats": {
+            "str": 22,
+            "agi": 40,
+            "sta": 22,
+            "int": 11,
+            "spi": 12,
+            "armor": 174,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 160,
+          "hp": 160,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 62,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.07,
+          "dodge_chance": 0.07,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 22,
+            "agility": 40,
+            "stamina": 22,
+            "intellect": 11,
+            "armor_before_agility": 94,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 7,
+          "stats": {
+            "str": 23,
+            "agi": 43,
+            "sta": 23,
+            "int": 11,
+            "spi": 12,
+            "armor": 188,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 185,
+          "hp": 185,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 66,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.07150000000000001,
+          "dodge_chance": 0.07150000000000001,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 23,
+            "agility": 43,
+            "stamina": 23,
+            "intellect": 11,
+            "armor_before_agility": 102,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 8,
+          "stats": {
+            "str": 24,
+            "agi": 46,
+            "sta": 24,
+            "int": 11,
+            "spi": 12,
+            "armor": 202,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 210,
+          "hp": 210,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 70,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.07300000000000001,
+          "dodge_chance": 0.07300000000000001,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 24,
+            "agility": 46,
+            "stamina": 24,
+            "intellect": 11,
+            "armor_before_agility": 110,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 9,
+          "stats": {
+            "str": 25,
+            "agi": 49,
+            "sta": 25,
+            "int": 11,
+            "spi": 12,
+            "armor": 216,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 235,
+          "hp": 235,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 74,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.07450000000000001,
+          "dodge_chance": 0.07450000000000001,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 25,
+            "agility": 49,
+            "stamina": 25,
+            "intellect": 11,
+            "armor_before_agility": 118,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 10,
+          "stats": {
+            "str": 26,
+            "agi": 52,
+            "sta": 26,
+            "int": 11,
+            "spi": 12,
+            "armor": 230,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 260,
+          "hp": 260,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 78,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.07600000000000001,
+          "dodge_chance": 0.07600000000000001,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 26,
+            "agility": 52,
+            "stamina": 26,
+            "intellect": 11,
+            "armor_before_agility": 126,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 11,
+          "stats": {
+            "str": 27,
+            "agi": 55,
+            "sta": 27,
+            "int": 11,
+            "spi": 12,
+            "armor": 244,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 285,
+          "hp": 285,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 82,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.0775,
+          "dodge_chance": 0.0775,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 27,
+            "agility": 55,
+            "stamina": 27,
+            "intellect": 11,
+            "armor_before_agility": 134,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 12,
+          "stats": {
+            "str": 28,
+            "agi": 58,
+            "sta": 28,
+            "int": 11,
+            "spi": 12,
+            "armor": 258,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 310,
+          "hp": 310,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 86,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.079,
+          "dodge_chance": 0.079,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 28,
+            "agility": 58,
+            "stamina": 28,
+            "intellect": 11,
+            "armor_before_agility": 142,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 13,
+          "stats": {
+            "str": 29,
+            "agi": 61,
+            "sta": 29,
+            "int": 11,
+            "spi": 12,
+            "armor": 272,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 335,
+          "hp": 335,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 90,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.0805,
+          "dodge_chance": 0.0805,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 29,
+            "agility": 61,
+            "stamina": 29,
+            "intellect": 11,
+            "armor_before_agility": 150,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 14,
+          "stats": {
+            "str": 30,
+            "agi": 64,
+            "sta": 30,
+            "int": 11,
+            "spi": 12,
+            "armor": 286,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 360,
+          "hp": 360,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 94,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.082,
+          "dodge_chance": 0.082,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 30,
+            "agility": 64,
+            "stamina": 30,
+            "intellect": 11,
+            "armor_before_agility": 158,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 15,
+          "stats": {
+            "str": 31,
+            "agi": 67,
+            "sta": 31,
+            "int": 11,
+            "spi": 12,
+            "armor": 300,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 385,
+          "hp": 385,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 98,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.0835,
+          "dodge_chance": 0.0835,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 31,
+            "agility": 67,
+            "stamina": 31,
+            "intellect": 11,
+            "armor_before_agility": 166,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 16,
+          "stats": {
+            "str": 32,
+            "agi": 70,
+            "sta": 32,
+            "int": 11,
+            "spi": 12,
+            "armor": 314,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 410,
+          "hp": 410,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 102,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.085,
+          "dodge_chance": 0.085,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 32,
+            "agility": 70,
+            "stamina": 32,
+            "intellect": 11,
+            "armor_before_agility": 174,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 17,
+          "stats": {
+            "str": 33,
+            "agi": 73,
+            "sta": 33,
+            "int": 11,
+            "spi": 12,
+            "armor": 328,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 435,
+          "hp": 435,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 106,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.0865,
+          "dodge_chance": 0.0865,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 33,
+            "agility": 73,
+            "stamina": 33,
+            "intellect": 11,
+            "armor_before_agility": 182,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 18,
+          "stats": {
+            "str": 34,
+            "agi": 76,
+            "sta": 34,
+            "int": 11,
+            "spi": 12,
+            "armor": 342,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 460,
+          "hp": 460,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 110,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.088,
+          "dodge_chance": 0.088,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 34,
+            "agility": 76,
+            "stamina": 34,
+            "intellect": 11,
+            "armor_before_agility": 190,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 19,
+          "stats": {
+            "str": 35,
+            "agi": 79,
+            "sta": 35,
+            "int": 11,
+            "spi": 12,
+            "armor": 356,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 485,
+          "hp": 485,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 114,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.0895,
+          "dodge_chance": 0.0895,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 35,
+            "agility": 79,
+            "stamina": 35,
+            "intellect": 11,
+            "armor_before_agility": 198,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 20,
+          "stats": {
+            "str": 36,
+            "agi": 82,
+            "sta": 36,
+            "int": 11,
+            "spi": 12,
+            "armor": 370,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 4,
+            "speed": 1.8
+          },
+          "max_hp": 510,
+          "hp": 510,
+          "max_resource": 100,
+          "resource": 100,
+          "attack_power": 118,
+          "ranged_power": 0,
+          "spell_power": 6,
+          "crit_chance": 0.091,
+          "dodge_chance": 0.091,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 36,
+            "agility": 82,
+            "stamina": 36,
+            "intellect": 11,
+            "armor_before_agility": 206,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 15
+          }
+        }
+      ]
+    },
+    {
+      "class_id": "paladin",
+      "resource_type": "mana",
+      "equipment": {
+        "mainhand": "training_mace",
+        "chest": "recruit_tunic"
+      },
+      "equipment_contributions": {
+        "mainhand": {
+          "item_id": "training_mace",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 0
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          }
+        },
+        "chest": {
+          "item_id": "recruit_tunic",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 20
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 0,
+            "max": 0,
+            "speed": 0
+          }
+        }
+      },
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "stats": {
+            "str": 22,
+            "agi": 17,
+            "sta": 22,
+            "int": 13,
+            "spi": 14,
+            "armor": 99,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 95,
+          "hp": 95,
+          "max_resource": 93,
+          "resource": 93,
+          "attack_power": 44,
+          "ranged_power": 0,
+          "spell_power": 7,
+          "crit_chance": 0.0585,
+          "dodge_chance": 0.0585,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 22,
+            "agility": 17,
+            "stamina": 22,
+            "intellect": 13,
+            "armor_before_agility": 65,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 2,
+          "stats": {
+            "str": 24,
+            "agi": 18,
+            "sta": 24,
+            "int": 14,
+            "spi": 15,
+            "armor": 113,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 132,
+          "hp": 132,
+          "max_resource": 114,
+          "resource": 114,
+          "attack_power": 48,
+          "ranged_power": 0,
+          "spell_power": 7,
+          "crit_chance": 0.059000000000000004,
+          "dodge_chance": 0.059000000000000004,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 24,
+            "agility": 18,
+            "stamina": 24,
+            "intellect": 14,
+            "armor_before_agility": 77,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 3,
+          "stats": {
+            "str": 26,
+            "agi": 19,
+            "sta": 26,
+            "int": 15,
+            "spi": 16,
+            "armor": 127,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 169,
+          "hp": 169,
+          "max_resource": 135,
+          "resource": 135,
+          "attack_power": 52,
+          "ranged_power": 0,
+          "spell_power": 8,
+          "crit_chance": 0.059500000000000004,
+          "dodge_chance": 0.059500000000000004,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 26,
+            "agility": 19,
+            "stamina": 26,
+            "intellect": 15,
+            "armor_before_agility": 89,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 4,
+          "stats": {
+            "str": 28,
+            "agi": 20,
+            "sta": 28,
+            "int": 16,
+            "spi": 17,
+            "armor": 141,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 206,
+          "hp": 206,
+          "max_resource": 156,
+          "resource": 156,
+          "attack_power": 56,
+          "ranged_power": 0,
+          "spell_power": 8,
+          "crit_chance": 0.060000000000000005,
+          "dodge_chance": 0.060000000000000005,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 28,
+            "agility": 20,
+            "stamina": 28,
+            "intellect": 16,
+            "armor_before_agility": 101,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 5,
+          "stats": {
+            "str": 30,
+            "agi": 21,
+            "sta": 30,
+            "int": 17,
+            "spi": 18,
+            "armor": 155,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 243,
+          "hp": 243,
+          "max_resource": 177,
+          "resource": 177,
+          "attack_power": 60,
+          "ranged_power": 0,
+          "spell_power": 9,
+          "crit_chance": 0.060500000000000005,
+          "dodge_chance": 0.060500000000000005,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 30,
+            "agility": 21,
+            "stamina": 30,
+            "intellect": 17,
+            "armor_before_agility": 113,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 6,
+          "stats": {
+            "str": 32,
+            "agi": 22,
+            "sta": 32,
+            "int": 18,
+            "spi": 19,
+            "armor": 169,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 280,
+          "hp": 280,
+          "max_resource": 198,
+          "resource": 198,
+          "attack_power": 64,
+          "ranged_power": 0,
+          "spell_power": 9,
+          "crit_chance": 0.061,
+          "dodge_chance": 0.061,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 32,
+            "agility": 22,
+            "stamina": 32,
+            "intellect": 18,
+            "armor_before_agility": 125,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 7,
+          "stats": {
+            "str": 34,
+            "agi": 23,
+            "sta": 34,
+            "int": 19,
+            "spi": 20,
+            "armor": 183,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 317,
+          "hp": 317,
+          "max_resource": 219,
+          "resource": 219,
+          "attack_power": 68,
+          "ranged_power": 0,
+          "spell_power": 10,
+          "crit_chance": 0.0615,
+          "dodge_chance": 0.0615,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 34,
+            "agility": 23,
+            "stamina": 34,
+            "intellect": 19,
+            "armor_before_agility": 137,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 8,
+          "stats": {
+            "str": 36,
+            "agi": 24,
+            "sta": 36,
+            "int": 20,
+            "spi": 21,
+            "armor": 197,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 354,
+          "hp": 354,
+          "max_resource": 240,
+          "resource": 240,
+          "attack_power": 72,
+          "ranged_power": 0,
+          "spell_power": 10,
+          "crit_chance": 0.062,
+          "dodge_chance": 0.062,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 36,
+            "agility": 24,
+            "stamina": 36,
+            "intellect": 20,
+            "armor_before_agility": 149,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 9,
+          "stats": {
+            "str": 38,
+            "agi": 25,
+            "sta": 38,
+            "int": 21,
+            "spi": 22,
+            "armor": 211,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 391,
+          "hp": 391,
+          "max_resource": 275,
+          "resource": 275,
+          "attack_power": 76,
+          "ranged_power": 0,
+          "spell_power": 11,
+          "crit_chance": 0.0625,
+          "dodge_chance": 0.0625,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 38,
+            "agility": 25,
+            "stamina": 38,
+            "intellect": 21,
+            "armor_before_agility": 161,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 10,
+          "stats": {
+            "str": 40,
+            "agi": 26,
+            "sta": 40,
+            "int": 22,
+            "spi": 23,
+            "armor": 225,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 428,
+          "hp": 428,
+          "max_resource": 310,
+          "resource": 310,
+          "attack_power": 80,
+          "ranged_power": 0,
+          "spell_power": 11,
+          "crit_chance": 0.063,
+          "dodge_chance": 0.063,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 40,
+            "agility": 26,
+            "stamina": 40,
+            "intellect": 22,
+            "armor_before_agility": 173,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 11,
+          "stats": {
+            "str": 42,
+            "agi": 27,
+            "sta": 42,
+            "int": 23,
+            "spi": 24,
+            "armor": 239,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 465,
+          "hp": 465,
+          "max_resource": 345,
+          "resource": 345,
+          "attack_power": 84,
+          "ranged_power": 0,
+          "spell_power": 12,
+          "crit_chance": 0.0635,
+          "dodge_chance": 0.0635,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 42,
+            "agility": 27,
+            "stamina": 42,
+            "intellect": 23,
+            "armor_before_agility": 185,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 12,
+          "stats": {
+            "str": 44,
+            "agi": 28,
+            "sta": 44,
+            "int": 24,
+            "spi": 25,
+            "armor": 253,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 502,
+          "hp": 502,
+          "max_resource": 380,
+          "resource": 380,
+          "attack_power": 88,
+          "ranged_power": 0,
+          "spell_power": 12,
+          "crit_chance": 0.064,
+          "dodge_chance": 0.064,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 44,
+            "agility": 28,
+            "stamina": 44,
+            "intellect": 24,
+            "armor_before_agility": 197,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 13,
+          "stats": {
+            "str": 46,
+            "agi": 29,
+            "sta": 46,
+            "int": 25,
+            "spi": 26,
+            "armor": 267,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 539,
+          "hp": 539,
+          "max_resource": 415,
+          "resource": 415,
+          "attack_power": 92,
+          "ranged_power": 0,
+          "spell_power": 13,
+          "crit_chance": 0.0645,
+          "dodge_chance": 0.0645,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 46,
+            "agility": 29,
+            "stamina": 46,
+            "intellect": 25,
+            "armor_before_agility": 209,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 14,
+          "stats": {
+            "str": 48,
+            "agi": 30,
+            "sta": 48,
+            "int": 26,
+            "spi": 27,
+            "armor": 281,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 576,
+          "hp": 576,
+          "max_resource": 450,
+          "resource": 450,
+          "attack_power": 96,
+          "ranged_power": 0,
+          "spell_power": 13,
+          "crit_chance": 0.065,
+          "dodge_chance": 0.065,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 48,
+            "agility": 30,
+            "stamina": 48,
+            "intellect": 26,
+            "armor_before_agility": 221,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 15,
+          "stats": {
+            "str": 50,
+            "agi": 31,
+            "sta": 50,
+            "int": 27,
+            "spi": 28,
+            "armor": 295,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 613,
+          "hp": 613,
+          "max_resource": 485,
+          "resource": 485,
+          "attack_power": 100,
+          "ranged_power": 0,
+          "spell_power": 14,
+          "crit_chance": 0.0655,
+          "dodge_chance": 0.0655,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 50,
+            "agility": 31,
+            "stamina": 50,
+            "intellect": 27,
+            "armor_before_agility": 233,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 16,
+          "stats": {
+            "str": 52,
+            "agi": 32,
+            "sta": 52,
+            "int": 28,
+            "spi": 29,
+            "armor": 309,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 650,
+          "hp": 650,
+          "max_resource": 520,
+          "resource": 520,
+          "attack_power": 104,
+          "ranged_power": 0,
+          "spell_power": 14,
+          "crit_chance": 0.066,
+          "dodge_chance": 0.066,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 52,
+            "agility": 32,
+            "stamina": 52,
+            "intellect": 28,
+            "armor_before_agility": 245,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 17,
+          "stats": {
+            "str": 54,
+            "agi": 33,
+            "sta": 54,
+            "int": 29,
+            "spi": 30,
+            "armor": 323,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 687,
+          "hp": 687,
+          "max_resource": 555,
+          "resource": 555,
+          "attack_power": 108,
+          "ranged_power": 0,
+          "spell_power": 15,
+          "crit_chance": 0.0665,
+          "dodge_chance": 0.0665,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 54,
+            "agility": 33,
+            "stamina": 54,
+            "intellect": 29,
+            "armor_before_agility": 257,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 18,
+          "stats": {
+            "str": 56,
+            "agi": 34,
+            "sta": 56,
+            "int": 30,
+            "spi": 31,
+            "armor": 337,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 724,
+          "hp": 724,
+          "max_resource": 590,
+          "resource": 590,
+          "attack_power": 112,
+          "ranged_power": 0,
+          "spell_power": 15,
+          "crit_chance": 0.067,
+          "dodge_chance": 0.067,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 56,
+            "agility": 34,
+            "stamina": 56,
+            "intellect": 30,
+            "armor_before_agility": 269,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 19,
+          "stats": {
+            "str": 58,
+            "agi": 35,
+            "sta": 58,
+            "int": 31,
+            "spi": 32,
+            "armor": 351,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 761,
+          "hp": 761,
+          "max_resource": 625,
+          "resource": 625,
+          "attack_power": 116,
+          "ranged_power": 0,
+          "spell_power": 16,
+          "crit_chance": 0.0675,
+          "dodge_chance": 0.0675,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 58,
+            "agility": 35,
+            "stamina": 58,
+            "intellect": 31,
+            "armor_before_agility": 281,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        },
+        {
+          "level": 20,
+          "stats": {
+            "str": 60,
+            "agi": 36,
+            "sta": 60,
+            "int": 32,
+            "spi": 33,
+            "armor": 365,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 798,
+          "hp": 798,
+          "max_resource": 660,
+          "resource": 660,
+          "attack_power": 120,
+          "ranged_power": 0,
+          "spell_power": 16,
+          "crit_chance": 0.068,
+          "dodge_chance": 0.068,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 60,
+            "agility": 36,
+            "stamina": 60,
+            "intellect": 32,
+            "armor_before_agility": 293,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 55,
+            "hp_per_level": 17
+          }
+        }
+      ]
+    },
+    {
+      "class_id": "hunter",
+      "resource_type": "mana",
+      "equipment": {
+        "mainhand": "rusty_hatchet",
+        "chest": "footpad_jerkin"
+      },
+      "equipment_contributions": {
+        "mainhand": {
+          "item_id": "rusty_hatchet",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 0
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          }
+        },
+        "chest": {
+          "item_id": "footpad_jerkin",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 14
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 0,
+            "max": 0,
+            "speed": 0
+          }
+        }
+      },
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "stats": {
+            "str": 14,
+            "agi": 25,
+            "sta": 19,
+            "int": 13,
+            "spi": 14,
+            "armor": 109,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 69,
+          "hp": 69,
+          "max_resource": 93,
+          "resource": 93,
+          "attack_power": 39,
+          "ranged_power": 50,
+          "spell_power": 7,
+          "crit_chance": 0.0625,
+          "dodge_chance": 0.0625,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 14,
+            "agility": 25,
+            "stamina": 19,
+            "intellect": 13,
+            "armor_before_agility": 59,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 2,
+          "stats": {
+            "str": 15,
+            "agi": 28,
+            "sta": 21,
+            "int": 14,
+            "spi": 15,
+            "armor": 123,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 95,
+          "hp": 95,
+          "max_resource": 112,
+          "resource": 112,
+          "attack_power": 43,
+          "ranged_power": 56,
+          "spell_power": 7,
+          "crit_chance": 0.064,
+          "dodge_chance": 0.064,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 15,
+            "agility": 28,
+            "stamina": 21,
+            "intellect": 14,
+            "armor_before_agility": 67,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 3,
+          "stats": {
+            "str": 16,
+            "agi": 31,
+            "sta": 23,
+            "int": 15,
+            "spi": 16,
+            "armor": 137,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 130,
+          "hp": 130,
+          "max_resource": 131,
+          "resource": 131,
+          "attack_power": 47,
+          "ranged_power": 62,
+          "spell_power": 8,
+          "crit_chance": 0.0655,
+          "dodge_chance": 0.0655,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 16,
+            "agility": 31,
+            "stamina": 23,
+            "intellect": 15,
+            "armor_before_agility": 75,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 4,
+          "stats": {
+            "str": 17,
+            "agi": 34,
+            "sta": 25,
+            "int": 16,
+            "spi": 17,
+            "armor": 151,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 165,
+          "hp": 165,
+          "max_resource": 150,
+          "resource": 150,
+          "attack_power": 51,
+          "ranged_power": 68,
+          "spell_power": 8,
+          "crit_chance": 0.067,
+          "dodge_chance": 0.067,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 17,
+            "agility": 34,
+            "stamina": 25,
+            "intellect": 16,
+            "armor_before_agility": 83,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 5,
+          "stats": {
+            "str": 18,
+            "agi": 37,
+            "sta": 27,
+            "int": 17,
+            "spi": 18,
+            "armor": 165,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 200,
+          "hp": 200,
+          "max_resource": 169,
+          "resource": 169,
+          "attack_power": 55,
+          "ranged_power": 74,
+          "spell_power": 9,
+          "crit_chance": 0.0685,
+          "dodge_chance": 0.0685,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 18,
+            "agility": 37,
+            "stamina": 27,
+            "intellect": 17,
+            "armor_before_agility": 91,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 6,
+          "stats": {
+            "str": 19,
+            "agi": 40,
+            "sta": 29,
+            "int": 18,
+            "spi": 19,
+            "armor": 179,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 235,
+          "hp": 235,
+          "max_resource": 188,
+          "resource": 188,
+          "attack_power": 59,
+          "ranged_power": 80,
+          "spell_power": 9,
+          "crit_chance": 0.07,
+          "dodge_chance": 0.07,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 19,
+            "agility": 40,
+            "stamina": 29,
+            "intellect": 18,
+            "armor_before_agility": 99,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 7,
+          "stats": {
+            "str": 20,
+            "agi": 43,
+            "sta": 31,
+            "int": 19,
+            "spi": 20,
+            "armor": 193,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 270,
+          "hp": 270,
+          "max_resource": 207,
+          "resource": 207,
+          "attack_power": 63,
+          "ranged_power": 86,
+          "spell_power": 10,
+          "crit_chance": 0.07150000000000001,
+          "dodge_chance": 0.07150000000000001,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 20,
+            "agility": 43,
+            "stamina": 31,
+            "intellect": 19,
+            "armor_before_agility": 107,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 8,
+          "stats": {
+            "str": 21,
+            "agi": 46,
+            "sta": 33,
+            "int": 20,
+            "spi": 21,
+            "armor": 207,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 305,
+          "hp": 305,
+          "max_resource": 226,
+          "resource": 226,
+          "attack_power": 67,
+          "ranged_power": 92,
+          "spell_power": 10,
+          "crit_chance": 0.07300000000000001,
+          "dodge_chance": 0.07300000000000001,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 21,
+            "agility": 46,
+            "stamina": 33,
+            "intellect": 20,
+            "armor_before_agility": 115,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 9,
+          "stats": {
+            "str": 22,
+            "agi": 49,
+            "sta": 35,
+            "int": 21,
+            "spi": 22,
+            "armor": 221,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 340,
+          "hp": 340,
+          "max_resource": 259,
+          "resource": 259,
+          "attack_power": 71,
+          "ranged_power": 98,
+          "spell_power": 11,
+          "crit_chance": 0.07450000000000001,
+          "dodge_chance": 0.07450000000000001,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 22,
+            "agility": 49,
+            "stamina": 35,
+            "intellect": 21,
+            "armor_before_agility": 123,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 10,
+          "stats": {
+            "str": 23,
+            "agi": 52,
+            "sta": 37,
+            "int": 22,
+            "spi": 23,
+            "armor": 235,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 375,
+          "hp": 375,
+          "max_resource": 292,
+          "resource": 292,
+          "attack_power": 75,
+          "ranged_power": 104,
+          "spell_power": 11,
+          "crit_chance": 0.07600000000000001,
+          "dodge_chance": 0.07600000000000001,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 23,
+            "agility": 52,
+            "stamina": 37,
+            "intellect": 22,
+            "armor_before_agility": 131,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 11,
+          "stats": {
+            "str": 24,
+            "agi": 55,
+            "sta": 39,
+            "int": 23,
+            "spi": 24,
+            "armor": 249,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 410,
+          "hp": 410,
+          "max_resource": 325,
+          "resource": 325,
+          "attack_power": 79,
+          "ranged_power": 110,
+          "spell_power": 12,
+          "crit_chance": 0.0775,
+          "dodge_chance": 0.0775,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 24,
+            "agility": 55,
+            "stamina": 39,
+            "intellect": 23,
+            "armor_before_agility": 139,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 12,
+          "stats": {
+            "str": 25,
+            "agi": 58,
+            "sta": 41,
+            "int": 24,
+            "spi": 25,
+            "armor": 263,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 445,
+          "hp": 445,
+          "max_resource": 358,
+          "resource": 358,
+          "attack_power": 83,
+          "ranged_power": 116,
+          "spell_power": 12,
+          "crit_chance": 0.079,
+          "dodge_chance": 0.079,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 25,
+            "agility": 58,
+            "stamina": 41,
+            "intellect": 24,
+            "armor_before_agility": 147,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 13,
+          "stats": {
+            "str": 26,
+            "agi": 61,
+            "sta": 43,
+            "int": 25,
+            "spi": 26,
+            "armor": 277,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 480,
+          "hp": 480,
+          "max_resource": 391,
+          "resource": 391,
+          "attack_power": 87,
+          "ranged_power": 122,
+          "spell_power": 13,
+          "crit_chance": 0.0805,
+          "dodge_chance": 0.0805,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 26,
+            "agility": 61,
+            "stamina": 43,
+            "intellect": 25,
+            "armor_before_agility": 155,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 14,
+          "stats": {
+            "str": 27,
+            "agi": 64,
+            "sta": 45,
+            "int": 26,
+            "spi": 27,
+            "armor": 291,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 515,
+          "hp": 515,
+          "max_resource": 424,
+          "resource": 424,
+          "attack_power": 91,
+          "ranged_power": 128,
+          "spell_power": 13,
+          "crit_chance": 0.082,
+          "dodge_chance": 0.082,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 27,
+            "agility": 64,
+            "stamina": 45,
+            "intellect": 26,
+            "armor_before_agility": 163,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 15,
+          "stats": {
+            "str": 28,
+            "agi": 67,
+            "sta": 47,
+            "int": 27,
+            "spi": 28,
+            "armor": 305,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 550,
+          "hp": 550,
+          "max_resource": 457,
+          "resource": 457,
+          "attack_power": 95,
+          "ranged_power": 134,
+          "spell_power": 14,
+          "crit_chance": 0.0835,
+          "dodge_chance": 0.0835,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 28,
+            "agility": 67,
+            "stamina": 47,
+            "intellect": 27,
+            "armor_before_agility": 171,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 16,
+          "stats": {
+            "str": 29,
+            "agi": 70,
+            "sta": 49,
+            "int": 28,
+            "spi": 29,
+            "armor": 319,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 585,
+          "hp": 585,
+          "max_resource": 490,
+          "resource": 490,
+          "attack_power": 99,
+          "ranged_power": 140,
+          "spell_power": 14,
+          "crit_chance": 0.085,
+          "dodge_chance": 0.085,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 29,
+            "agility": 70,
+            "stamina": 49,
+            "intellect": 28,
+            "armor_before_agility": 179,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 17,
+          "stats": {
+            "str": 30,
+            "agi": 73,
+            "sta": 51,
+            "int": 29,
+            "spi": 30,
+            "armor": 333,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 620,
+          "hp": 620,
+          "max_resource": 523,
+          "resource": 523,
+          "attack_power": 103,
+          "ranged_power": 146,
+          "spell_power": 15,
+          "crit_chance": 0.0865,
+          "dodge_chance": 0.0865,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 30,
+            "agility": 73,
+            "stamina": 51,
+            "intellect": 29,
+            "armor_before_agility": 187,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 18,
+          "stats": {
+            "str": 31,
+            "agi": 76,
+            "sta": 53,
+            "int": 30,
+            "spi": 31,
+            "armor": 347,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 655,
+          "hp": 655,
+          "max_resource": 556,
+          "resource": 556,
+          "attack_power": 107,
+          "ranged_power": 152,
+          "spell_power": 15,
+          "crit_chance": 0.088,
+          "dodge_chance": 0.088,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 31,
+            "agility": 76,
+            "stamina": 53,
+            "intellect": 30,
+            "armor_before_agility": 195,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 19,
+          "stats": {
+            "str": 32,
+            "agi": 79,
+            "sta": 55,
+            "int": 31,
+            "spi": 32,
+            "armor": 361,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 690,
+          "hp": 690,
+          "max_resource": 589,
+          "resource": 589,
+          "attack_power": 111,
+          "ranged_power": 158,
+          "spell_power": 16,
+          "crit_chance": 0.0895,
+          "dodge_chance": 0.0895,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 32,
+            "agility": 79,
+            "stamina": 55,
+            "intellect": 31,
+            "armor_before_agility": 203,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 20,
+          "stats": {
+            "str": 33,
+            "agi": 82,
+            "sta": 57,
+            "int": 32,
+            "spi": 33,
+            "armor": 375,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.2
+          },
+          "max_hp": 725,
+          "hp": 725,
+          "max_resource": 622,
+          "resource": 622,
+          "attack_power": 115,
+          "ranged_power": 164,
+          "spell_power": 16,
+          "crit_chance": 0.091,
+          "dodge_chance": 0.091,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 33,
+            "agility": 82,
+            "stamina": 57,
+            "intellect": 32,
+            "armor_before_agility": 211,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 50,
+            "hp_per_level": 15
+          }
+        }
+      ]
+    },
+    {
+      "class_id": "priest",
+      "resource_type": "mana",
+      "equipment": {
+        "mainhand": "gnarled_staff",
+        "chest": "apprentice_robe"
+      },
+      "equipment_contributions": {
+        "mainhand": {
+          "item_id": "gnarled_staff",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 1,
+            "armor": 0
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          }
+        },
+        "chest": {
+          "item_id": "apprentice_robe",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 8
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 0,
+            "max": 0,
+            "speed": 0
+          }
+        }
+      },
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 13,
+            "int": 23,
+            "spi": 24,
+            "armor": 50,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 51,
+          "hp": 51,
+          "max_resource": 175,
+          "resource": 175,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 12,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 13,
+            "intellect": 23,
+            "armor_before_agility": 28,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 2,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 14,
+            "int": 25,
+            "spi": 27,
+            "armor": 54,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 63,
+          "hp": 63,
+          "max_resource": 231,
+          "resource": 231,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 13,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 14,
+            "intellect": 25,
+            "armor_before_agility": 32,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 3,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 15,
+            "int": 27,
+            "spi": 30,
+            "armor": 58,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 75,
+          "hp": 75,
+          "max_resource": 287,
+          "resource": 287,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 14,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 15,
+            "intellect": 27,
+            "armor_before_agility": 36,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 4,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 16,
+            "int": 29,
+            "spi": 33,
+            "armor": 62,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 87,
+          "hp": 87,
+          "max_resource": 343,
+          "resource": 343,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 15,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 16,
+            "intellect": 29,
+            "armor_before_agility": 40,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 5,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 17,
+            "int": 31,
+            "spi": 36,
+            "armor": 66,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 99,
+          "hp": 99,
+          "max_resource": 399,
+          "resource": 399,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 16,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 17,
+            "intellect": 31,
+            "armor_before_agility": 44,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 6,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 18,
+            "int": 33,
+            "spi": 39,
+            "armor": 70,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 111,
+          "hp": 111,
+          "max_resource": 455,
+          "resource": 455,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 17,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 18,
+            "intellect": 33,
+            "armor_before_agility": 48,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 7,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 19,
+            "int": 35,
+            "spi": 42,
+            "armor": 74,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 123,
+          "hp": 123,
+          "max_resource": 511,
+          "resource": 511,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 18,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 19,
+            "intellect": 35,
+            "armor_before_agility": 52,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 8,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 20,
+            "int": 37,
+            "spi": 45,
+            "armor": 78,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 135,
+          "hp": 135,
+          "max_resource": 567,
+          "resource": 567,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 19,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 20,
+            "intellect": 37,
+            "armor_before_agility": 56,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 9,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 21,
+            "int": 39,
+            "spi": 48,
+            "armor": 82,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 156,
+          "hp": 156,
+          "max_resource": 623,
+          "resource": 623,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 20,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 21,
+            "intellect": 39,
+            "armor_before_agility": 60,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 10,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 22,
+            "int": 41,
+            "spi": 51,
+            "armor": 86,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 177,
+          "hp": 177,
+          "max_resource": 679,
+          "resource": 679,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 21,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 22,
+            "intellect": 41,
+            "armor_before_agility": 64,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 11,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 23,
+            "int": 43,
+            "spi": 54,
+            "armor": 90,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 198,
+          "hp": 198,
+          "max_resource": 735,
+          "resource": 735,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 22,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 23,
+            "intellect": 43,
+            "armor_before_agility": 68,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 12,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 24,
+            "int": 45,
+            "spi": 57,
+            "armor": 94,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 219,
+          "hp": 219,
+          "max_resource": 791,
+          "resource": 791,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 23,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 24,
+            "intellect": 45,
+            "armor_before_agility": 72,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 13,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 25,
+            "int": 47,
+            "spi": 60,
+            "armor": 98,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 240,
+          "hp": 240,
+          "max_resource": 847,
+          "resource": 847,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 24,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 25,
+            "intellect": 47,
+            "armor_before_agility": 76,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 14,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 26,
+            "int": 49,
+            "spi": 63,
+            "armor": 102,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 261,
+          "hp": 261,
+          "max_resource": 903,
+          "resource": 903,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 25,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 26,
+            "intellect": 49,
+            "armor_before_agility": 80,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 15,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 27,
+            "int": 51,
+            "spi": 66,
+            "armor": 106,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 282,
+          "hp": 282,
+          "max_resource": 959,
+          "resource": 959,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 26,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 27,
+            "intellect": 51,
+            "armor_before_agility": 84,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 16,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 28,
+            "int": 53,
+            "spi": 69,
+            "armor": 110,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 303,
+          "hp": 303,
+          "max_resource": 1015,
+          "resource": 1015,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 27,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 28,
+            "intellect": 53,
+            "armor_before_agility": 88,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 17,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 29,
+            "int": 55,
+            "spi": 72,
+            "armor": 114,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 324,
+          "hp": 324,
+          "max_resource": 1071,
+          "resource": 1071,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 28,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 29,
+            "intellect": 55,
+            "armor_before_agility": 92,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 18,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 30,
+            "int": 57,
+            "spi": 75,
+            "armor": 118,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 345,
+          "hp": 345,
+          "max_resource": 1127,
+          "resource": 1127,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 29,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 30,
+            "intellect": 57,
+            "armor_before_agility": 96,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 19,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 31,
+            "int": 59,
+            "spi": 78,
+            "armor": 122,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 366,
+          "hp": 366,
+          "max_resource": 1183,
+          "resource": 1183,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 30,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 31,
+            "intellect": 59,
+            "armor_before_agility": 100,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        },
+        {
+          "level": 20,
+          "stats": {
+            "str": 10,
+            "agi": 11,
+            "sta": 32,
+            "int": 61,
+            "spi": 81,
+            "armor": 126,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 387,
+          "hp": 387,
+          "max_resource": 1239,
+          "resource": 1239,
+          "attack_power": 10,
+          "ranged_power": 0,
+          "spell_power": 31,
+          "crit_chance": 0.0555,
+          "dodge_chance": 0.0555,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 10,
+            "agility": 11,
+            "stamina": 32,
+            "intellect": 61,
+            "armor_before_agility": 104,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 38,
+            "hp_per_level": 11
+          }
+        }
+      ]
+    },
+    {
+      "class_id": "shaman",
+      "resource_type": "mana",
+      "equipment": {
+        "mainhand": "training_mace",
+        "chest": "footpad_jerkin"
+      },
+      "equipment_contributions": {
+        "mainhand": {
+          "item_id": "training_mace",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 0
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          }
+        },
+        "chest": {
+          "item_id": "footpad_jerkin",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 14
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 0,
+            "max": 0,
+            "speed": 0
+          }
+        }
+      },
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "stats": {
+            "str": 18,
+            "agi": 16,
+            "sta": 20,
+            "int": 18,
+            "spi": 18,
+            "armor": 86,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 68,
+          "hp": 68,
+          "max_resource": 108,
+          "resource": 108,
+          "attack_power": 36,
+          "ranged_power": 0,
+          "spell_power": 9,
+          "crit_chance": 0.058,
+          "dodge_chance": 0.058,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 18,
+            "agility": 16,
+            "stamina": 20,
+            "intellect": 18,
+            "armor_before_agility": 54,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 2,
+          "stats": {
+            "str": 19,
+            "agi": 17,
+            "sta": 22,
+            "int": 20,
+            "spi": 20,
+            "armor": 98,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 103,
+          "hp": 103,
+          "max_resource": 132,
+          "resource": 132,
+          "attack_power": 38,
+          "ranged_power": 0,
+          "spell_power": 10,
+          "crit_chance": 0.0585,
+          "dodge_chance": 0.0585,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 19,
+            "agility": 17,
+            "stamina": 22,
+            "intellect": 20,
+            "armor_before_agility": 64,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 3,
+          "stats": {
+            "str": 20,
+            "agi": 18,
+            "sta": 24,
+            "int": 22,
+            "spi": 22,
+            "armor": 110,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 138,
+          "hp": 138,
+          "max_resource": 184,
+          "resource": 184,
+          "attack_power": 40,
+          "ranged_power": 0,
+          "spell_power": 11,
+          "crit_chance": 0.059000000000000004,
+          "dodge_chance": 0.059000000000000004,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 20,
+            "agility": 18,
+            "stamina": 24,
+            "intellect": 22,
+            "armor_before_agility": 74,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 4,
+          "stats": {
+            "str": 21,
+            "agi": 19,
+            "sta": 26,
+            "int": 24,
+            "spi": 24,
+            "armor": 122,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 173,
+          "hp": 173,
+          "max_resource": 236,
+          "resource": 236,
+          "attack_power": 42,
+          "ranged_power": 0,
+          "spell_power": 12,
+          "crit_chance": 0.059500000000000004,
+          "dodge_chance": 0.059500000000000004,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 21,
+            "agility": 19,
+            "stamina": 26,
+            "intellect": 24,
+            "armor_before_agility": 84,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 5,
+          "stats": {
+            "str": 22,
+            "agi": 20,
+            "sta": 28,
+            "int": 26,
+            "spi": 26,
+            "armor": 134,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 208,
+          "hp": 208,
+          "max_resource": 288,
+          "resource": 288,
+          "attack_power": 44,
+          "ranged_power": 0,
+          "spell_power": 13,
+          "crit_chance": 0.060000000000000005,
+          "dodge_chance": 0.060000000000000005,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 22,
+            "agility": 20,
+            "stamina": 28,
+            "intellect": 26,
+            "armor_before_agility": 94,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 6,
+          "stats": {
+            "str": 23,
+            "agi": 21,
+            "sta": 30,
+            "int": 28,
+            "spi": 28,
+            "armor": 146,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 243,
+          "hp": 243,
+          "max_resource": 340,
+          "resource": 340,
+          "attack_power": 46,
+          "ranged_power": 0,
+          "spell_power": 14,
+          "crit_chance": 0.060500000000000005,
+          "dodge_chance": 0.060500000000000005,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 23,
+            "agility": 21,
+            "stamina": 30,
+            "intellect": 28,
+            "armor_before_agility": 104,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 7,
+          "stats": {
+            "str": 24,
+            "agi": 22,
+            "sta": 32,
+            "int": 30,
+            "spi": 30,
+            "armor": 158,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 278,
+          "hp": 278,
+          "max_resource": 392,
+          "resource": 392,
+          "attack_power": 48,
+          "ranged_power": 0,
+          "spell_power": 15,
+          "crit_chance": 0.061,
+          "dodge_chance": 0.061,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 24,
+            "agility": 22,
+            "stamina": 32,
+            "intellect": 30,
+            "armor_before_agility": 114,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 8,
+          "stats": {
+            "str": 25,
+            "agi": 23,
+            "sta": 34,
+            "int": 32,
+            "spi": 32,
+            "armor": 170,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 313,
+          "hp": 313,
+          "max_resource": 444,
+          "resource": 444,
+          "attack_power": 50,
+          "ranged_power": 0,
+          "spell_power": 16,
+          "crit_chance": 0.0615,
+          "dodge_chance": 0.0615,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 25,
+            "agility": 23,
+            "stamina": 34,
+            "intellect": 32,
+            "armor_before_agility": 124,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 9,
+          "stats": {
+            "str": 26,
+            "agi": 24,
+            "sta": 36,
+            "int": 34,
+            "spi": 34,
+            "armor": 182,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 348,
+          "hp": 348,
+          "max_resource": 496,
+          "resource": 496,
+          "attack_power": 52,
+          "ranged_power": 0,
+          "spell_power": 17,
+          "crit_chance": 0.062,
+          "dodge_chance": 0.062,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 26,
+            "agility": 24,
+            "stamina": 36,
+            "intellect": 34,
+            "armor_before_agility": 134,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 10,
+          "stats": {
+            "str": 27,
+            "agi": 25,
+            "sta": 38,
+            "int": 36,
+            "spi": 36,
+            "armor": 194,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 383,
+          "hp": 383,
+          "max_resource": 548,
+          "resource": 548,
+          "attack_power": 54,
+          "ranged_power": 0,
+          "spell_power": 18,
+          "crit_chance": 0.0625,
+          "dodge_chance": 0.0625,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 27,
+            "agility": 25,
+            "stamina": 38,
+            "intellect": 36,
+            "armor_before_agility": 144,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 11,
+          "stats": {
+            "str": 28,
+            "agi": 26,
+            "sta": 40,
+            "int": 38,
+            "spi": 38,
+            "armor": 206,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 418,
+          "hp": 418,
+          "max_resource": 600,
+          "resource": 600,
+          "attack_power": 56,
+          "ranged_power": 0,
+          "spell_power": 19,
+          "crit_chance": 0.063,
+          "dodge_chance": 0.063,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 28,
+            "agility": 26,
+            "stamina": 40,
+            "intellect": 38,
+            "armor_before_agility": 154,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 12,
+          "stats": {
+            "str": 29,
+            "agi": 27,
+            "sta": 42,
+            "int": 40,
+            "spi": 40,
+            "armor": 218,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 453,
+          "hp": 453,
+          "max_resource": 652,
+          "resource": 652,
+          "attack_power": 58,
+          "ranged_power": 0,
+          "spell_power": 20,
+          "crit_chance": 0.0635,
+          "dodge_chance": 0.0635,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 29,
+            "agility": 27,
+            "stamina": 42,
+            "intellect": 40,
+            "armor_before_agility": 164,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 13,
+          "stats": {
+            "str": 30,
+            "agi": 28,
+            "sta": 44,
+            "int": 42,
+            "spi": 42,
+            "armor": 230,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 488,
+          "hp": 488,
+          "max_resource": 704,
+          "resource": 704,
+          "attack_power": 60,
+          "ranged_power": 0,
+          "spell_power": 21,
+          "crit_chance": 0.064,
+          "dodge_chance": 0.064,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 30,
+            "agility": 28,
+            "stamina": 44,
+            "intellect": 42,
+            "armor_before_agility": 174,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 14,
+          "stats": {
+            "str": 31,
+            "agi": 29,
+            "sta": 46,
+            "int": 44,
+            "spi": 44,
+            "armor": 242,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 523,
+          "hp": 523,
+          "max_resource": 756,
+          "resource": 756,
+          "attack_power": 62,
+          "ranged_power": 0,
+          "spell_power": 22,
+          "crit_chance": 0.0645,
+          "dodge_chance": 0.0645,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 31,
+            "agility": 29,
+            "stamina": 46,
+            "intellect": 44,
+            "armor_before_agility": 184,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 15,
+          "stats": {
+            "str": 32,
+            "agi": 30,
+            "sta": 48,
+            "int": 46,
+            "spi": 46,
+            "armor": 254,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 558,
+          "hp": 558,
+          "max_resource": 808,
+          "resource": 808,
+          "attack_power": 64,
+          "ranged_power": 0,
+          "spell_power": 23,
+          "crit_chance": 0.065,
+          "dodge_chance": 0.065,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 32,
+            "agility": 30,
+            "stamina": 48,
+            "intellect": 46,
+            "armor_before_agility": 194,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 16,
+          "stats": {
+            "str": 33,
+            "agi": 31,
+            "sta": 50,
+            "int": 48,
+            "spi": 48,
+            "armor": 266,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 593,
+          "hp": 593,
+          "max_resource": 860,
+          "resource": 860,
+          "attack_power": 66,
+          "ranged_power": 0,
+          "spell_power": 24,
+          "crit_chance": 0.0655,
+          "dodge_chance": 0.0655,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 33,
+            "agility": 31,
+            "stamina": 50,
+            "intellect": 48,
+            "armor_before_agility": 204,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 17,
+          "stats": {
+            "str": 34,
+            "agi": 32,
+            "sta": 52,
+            "int": 50,
+            "spi": 50,
+            "armor": 278,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 628,
+          "hp": 628,
+          "max_resource": 912,
+          "resource": 912,
+          "attack_power": 68,
+          "ranged_power": 0,
+          "spell_power": 25,
+          "crit_chance": 0.066,
+          "dodge_chance": 0.066,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 34,
+            "agility": 32,
+            "stamina": 52,
+            "intellect": 50,
+            "armor_before_agility": 214,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 18,
+          "stats": {
+            "str": 35,
+            "agi": 33,
+            "sta": 54,
+            "int": 52,
+            "spi": 52,
+            "armor": 290,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 663,
+          "hp": 663,
+          "max_resource": 964,
+          "resource": 964,
+          "attack_power": 70,
+          "ranged_power": 0,
+          "spell_power": 26,
+          "crit_chance": 0.0665,
+          "dodge_chance": 0.0665,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 35,
+            "agility": 33,
+            "stamina": 54,
+            "intellect": 52,
+            "armor_before_agility": 224,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 19,
+          "stats": {
+            "str": 36,
+            "agi": 34,
+            "sta": 56,
+            "int": 54,
+            "spi": 54,
+            "armor": 302,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 698,
+          "hp": 698,
+          "max_resource": 1016,
+          "resource": 1016,
+          "attack_power": 72,
+          "ranged_power": 0,
+          "spell_power": 27,
+          "crit_chance": 0.067,
+          "dodge_chance": 0.067,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 36,
+            "agility": 34,
+            "stamina": 56,
+            "intellect": 54,
+            "armor_before_agility": 234,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        },
+        {
+          "level": 20,
+          "stats": {
+            "str": 37,
+            "agi": 35,
+            "sta": 58,
+            "int": 56,
+            "spi": 56,
+            "armor": 314,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 2,
+            "max": 5,
+            "speed": 2.6
+          },
+          "max_hp": 733,
+          "hp": 733,
+          "max_resource": 1068,
+          "resource": 1068,
+          "attack_power": 74,
+          "ranged_power": 0,
+          "spell_power": 28,
+          "crit_chance": 0.0675,
+          "dodge_chance": 0.0675,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 37,
+            "agility": 35,
+            "stamina": 58,
+            "intellect": 56,
+            "armor_before_agility": 244,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 48,
+            "hp_per_level": 15
+          }
+        }
+      ]
+    },
+    {
+      "class_id": "warlock",
+      "resource_type": "mana",
+      "equipment": {
+        "mainhand": "gnarled_staff",
+        "chest": "apprentice_robe"
+      },
+      "equipment_contributions": {
+        "mainhand": {
+          "item_id": "gnarled_staff",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 1,
+            "armor": 0
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          }
+        },
+        "chest": {
+          "item_id": "apprentice_robe",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 8
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 0,
+            "max": 0,
+            "speed": 0
+          }
+        }
+      },
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 15,
+            "int": 22,
+            "spi": 21,
+            "armor": 54,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 57,
+          "hp": 57,
+          "max_resource": 155,
+          "resource": 155,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 11,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 15,
+            "intellect": 22,
+            "armor_before_agility": 30,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 2,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 16,
+            "int": 25,
+            "spi": 23,
+            "armor": 58,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 70,
+          "hp": 70,
+          "max_resource": 225,
+          "resource": 225,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 13,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 16,
+            "intellect": 25,
+            "armor_before_agility": 34,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 3,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 17,
+            "int": 28,
+            "spi": 25,
+            "armor": 62,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 83,
+          "hp": 83,
+          "max_resource": 295,
+          "resource": 295,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 14,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 17,
+            "intellect": 28,
+            "armor_before_agility": 38,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 4,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 18,
+            "int": 31,
+            "spi": 27,
+            "armor": 66,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 96,
+          "hp": 96,
+          "max_resource": 365,
+          "resource": 365,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 16,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 18,
+            "intellect": 31,
+            "armor_before_agility": 42,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 5,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 19,
+            "int": 34,
+            "spi": 29,
+            "armor": 70,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 109,
+          "hp": 109,
+          "max_resource": 435,
+          "resource": 435,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 17,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 19,
+            "intellect": 34,
+            "armor_before_agility": 46,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 6,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 20,
+            "int": 37,
+            "spi": 31,
+            "armor": 74,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 122,
+          "hp": 122,
+          "max_resource": 505,
+          "resource": 505,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 19,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 20,
+            "intellect": 37,
+            "armor_before_agility": 50,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 7,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 21,
+            "int": 40,
+            "spi": 33,
+            "armor": 78,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 144,
+          "hp": 144,
+          "max_resource": 575,
+          "resource": 575,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 20,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 21,
+            "intellect": 40,
+            "armor_before_agility": 54,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 8,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 22,
+            "int": 43,
+            "spi": 35,
+            "armor": 82,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 166,
+          "hp": 166,
+          "max_resource": 645,
+          "resource": 645,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 22,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 22,
+            "intellect": 43,
+            "armor_before_agility": 58,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 9,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 23,
+            "int": 46,
+            "spi": 37,
+            "armor": 86,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 188,
+          "hp": 188,
+          "max_resource": 715,
+          "resource": 715,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 23,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 23,
+            "intellect": 46,
+            "armor_before_agility": 62,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 10,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 24,
+            "int": 49,
+            "spi": 39,
+            "armor": 90,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 210,
+          "hp": 210,
+          "max_resource": 785,
+          "resource": 785,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 25,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 24,
+            "intellect": 49,
+            "armor_before_agility": 66,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 11,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 25,
+            "int": 52,
+            "spi": 41,
+            "armor": 94,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 232,
+          "hp": 232,
+          "max_resource": 855,
+          "resource": 855,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 26,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 25,
+            "intellect": 52,
+            "armor_before_agility": 70,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 12,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 26,
+            "int": 55,
+            "spi": 43,
+            "armor": 98,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 254,
+          "hp": 254,
+          "max_resource": 925,
+          "resource": 925,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 28,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 26,
+            "intellect": 55,
+            "armor_before_agility": 74,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 13,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 27,
+            "int": 58,
+            "spi": 45,
+            "armor": 102,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 276,
+          "hp": 276,
+          "max_resource": 995,
+          "resource": 995,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 29,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 27,
+            "intellect": 58,
+            "armor_before_agility": 78,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 14,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 28,
+            "int": 61,
+            "spi": 47,
+            "armor": 106,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 298,
+          "hp": 298,
+          "max_resource": 1065,
+          "resource": 1065,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 31,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 28,
+            "intellect": 61,
+            "armor_before_agility": 82,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 15,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 29,
+            "int": 64,
+            "spi": 49,
+            "armor": 110,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 320,
+          "hp": 320,
+          "max_resource": 1135,
+          "resource": 1135,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 32,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 29,
+            "intellect": 64,
+            "armor_before_agility": 86,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 16,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 30,
+            "int": 67,
+            "spi": 51,
+            "armor": 114,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 342,
+          "hp": 342,
+          "max_resource": 1205,
+          "resource": 1205,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 34,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 30,
+            "intellect": 67,
+            "armor_before_agility": 90,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 17,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 31,
+            "int": 70,
+            "spi": 53,
+            "armor": 118,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 364,
+          "hp": 364,
+          "max_resource": 1275,
+          "resource": 1275,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 35,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 31,
+            "intellect": 70,
+            "armor_before_agility": 94,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 18,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 32,
+            "int": 73,
+            "spi": 55,
+            "armor": 122,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 386,
+          "hp": 386,
+          "max_resource": 1345,
+          "resource": 1345,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 37,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 32,
+            "intellect": 73,
+            "armor_before_agility": 98,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 19,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 33,
+            "int": 76,
+            "spi": 57,
+            "armor": 126,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 408,
+          "hp": 408,
+          "max_resource": 1415,
+          "resource": 1415,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 38,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 33,
+            "intellect": 76,
+            "armor_before_agility": 102,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        },
+        {
+          "level": 20,
+          "stats": {
+            "str": 11,
+            "agi": 12,
+            "sta": 34,
+            "int": 79,
+            "spi": 59,
+            "armor": 130,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 430,
+          "hp": 430,
+          "max_resource": 1485,
+          "resource": 1485,
+          "attack_power": 11,
+          "ranged_power": 0,
+          "spell_power": 40,
+          "crit_chance": 0.056,
+          "dodge_chance": 0.056,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 11,
+            "agility": 12,
+            "stamina": 34,
+            "intellect": 79,
+            "armor_before_agility": 106,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 42,
+            "hp_per_level": 12
+          }
+        }
+      ]
+    },
+    {
+      "class_id": "druid",
+      "resource_type": "mana",
+      "equipment": {
+        "mainhand": "gnarled_staff",
+        "chest": "footpad_jerkin"
+      },
+      "equipment_contributions": {
+        "mainhand": {
+          "item_id": "gnarled_staff",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 1,
+            "armor": 0
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          }
+        },
+        "chest": {
+          "item_id": "footpad_jerkin",
+          "stats": {
+            "str": 0,
+            "agi": 0,
+            "sta": 0,
+            "int": 0,
+            "armor": 14
+          },
+          "spell_power": 0,
+          "crit_rating": 0,
+          "haste_rating": 0,
+          "hit_rating": 0,
+          "weapon": {
+            "min": 0,
+            "max": 0,
+            "speed": 0
+          }
+        }
+      },
+      "start_items": [
+        {
+          "item_id": "baked_bread",
+          "count": 5
+        },
+        {
+          "item_id": "spring_water",
+          "count": 5
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "stats": {
+            "str": 15,
+            "agi": 15,
+            "sta": 17,
+            "int": 20,
+            "spi": 20,
+            "armor": 74,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 62,
+          "hp": 62,
+          "max_resource": 115,
+          "resource": 115,
+          "attack_power": 30,
+          "ranged_power": 0,
+          "spell_power": 10,
+          "crit_chance": 0.0575,
+          "dodge_chance": 0.0575,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 15,
+            "agility": 15,
+            "stamina": 17,
+            "intellect": 20,
+            "armor_before_agility": 44,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 2,
+          "stats": {
+            "str": 16,
+            "agi": 16,
+            "sta": 19,
+            "int": 22,
+            "spi": 22,
+            "armor": 82,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 77,
+          "hp": 77,
+          "max_resource": 167,
+          "resource": 167,
+          "attack_power": 32,
+          "ranged_power": 0,
+          "spell_power": 11,
+          "crit_chance": 0.058,
+          "dodge_chance": 0.058,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 16,
+            "agility": 16,
+            "stamina": 19,
+            "intellect": 22,
+            "armor_before_agility": 50,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 3,
+          "stats": {
+            "str": 17,
+            "agi": 17,
+            "sta": 21,
+            "int": 24,
+            "spi": 24,
+            "armor": 90,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 101,
+          "hp": 101,
+          "max_resource": 219,
+          "resource": 219,
+          "attack_power": 34,
+          "ranged_power": 0,
+          "spell_power": 12,
+          "crit_chance": 0.0585,
+          "dodge_chance": 0.0585,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 17,
+            "agility": 17,
+            "stamina": 21,
+            "intellect": 24,
+            "armor_before_agility": 56,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 4,
+          "stats": {
+            "str": 18,
+            "agi": 18,
+            "sta": 23,
+            "int": 26,
+            "spi": 26,
+            "armor": 98,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 134,
+          "hp": 134,
+          "max_resource": 271,
+          "resource": 271,
+          "attack_power": 36,
+          "ranged_power": 0,
+          "spell_power": 13,
+          "crit_chance": 0.059000000000000004,
+          "dodge_chance": 0.059000000000000004,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 18,
+            "agility": 18,
+            "stamina": 23,
+            "intellect": 26,
+            "armor_before_agility": 62,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 5,
+          "stats": {
+            "str": 19,
+            "agi": 19,
+            "sta": 25,
+            "int": 28,
+            "spi": 28,
+            "armor": 106,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 167,
+          "hp": 167,
+          "max_resource": 323,
+          "resource": 323,
+          "attack_power": 38,
+          "ranged_power": 0,
+          "spell_power": 14,
+          "crit_chance": 0.059500000000000004,
+          "dodge_chance": 0.059500000000000004,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 19,
+            "agility": 19,
+            "stamina": 25,
+            "intellect": 28,
+            "armor_before_agility": 68,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 6,
+          "stats": {
+            "str": 20,
+            "agi": 20,
+            "sta": 27,
+            "int": 30,
+            "spi": 30,
+            "armor": 114,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 200,
+          "hp": 200,
+          "max_resource": 375,
+          "resource": 375,
+          "attack_power": 40,
+          "ranged_power": 0,
+          "spell_power": 15,
+          "crit_chance": 0.060000000000000005,
+          "dodge_chance": 0.060000000000000005,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 20,
+            "agility": 20,
+            "stamina": 27,
+            "intellect": 30,
+            "armor_before_agility": 74,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 7,
+          "stats": {
+            "str": 21,
+            "agi": 21,
+            "sta": 29,
+            "int": 32,
+            "spi": 32,
+            "armor": 122,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 233,
+          "hp": 233,
+          "max_resource": 427,
+          "resource": 427,
+          "attack_power": 42,
+          "ranged_power": 0,
+          "spell_power": 16,
+          "crit_chance": 0.060500000000000005,
+          "dodge_chance": 0.060500000000000005,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 21,
+            "agility": 21,
+            "stamina": 29,
+            "intellect": 32,
+            "armor_before_agility": 80,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 8,
+          "stats": {
+            "str": 22,
+            "agi": 22,
+            "sta": 31,
+            "int": 34,
+            "spi": 34,
+            "armor": 130,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 266,
+          "hp": 266,
+          "max_resource": 479,
+          "resource": 479,
+          "attack_power": 44,
+          "ranged_power": 0,
+          "spell_power": 17,
+          "crit_chance": 0.061,
+          "dodge_chance": 0.061,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 22,
+            "agility": 22,
+            "stamina": 31,
+            "intellect": 34,
+            "armor_before_agility": 86,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 9,
+          "stats": {
+            "str": 23,
+            "agi": 23,
+            "sta": 33,
+            "int": 36,
+            "spi": 36,
+            "armor": 138,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 299,
+          "hp": 299,
+          "max_resource": 531,
+          "resource": 531,
+          "attack_power": 46,
+          "ranged_power": 0,
+          "spell_power": 18,
+          "crit_chance": 0.0615,
+          "dodge_chance": 0.0615,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 23,
+            "agility": 23,
+            "stamina": 33,
+            "intellect": 36,
+            "armor_before_agility": 92,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 10,
+          "stats": {
+            "str": 24,
+            "agi": 24,
+            "sta": 35,
+            "int": 38,
+            "spi": 38,
+            "armor": 146,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 332,
+          "hp": 332,
+          "max_resource": 583,
+          "resource": 583,
+          "attack_power": 48,
+          "ranged_power": 0,
+          "spell_power": 19,
+          "crit_chance": 0.062,
+          "dodge_chance": 0.062,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 24,
+            "agility": 24,
+            "stamina": 35,
+            "intellect": 38,
+            "armor_before_agility": 98,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 11,
+          "stats": {
+            "str": 25,
+            "agi": 25,
+            "sta": 37,
+            "int": 40,
+            "spi": 40,
+            "armor": 154,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 365,
+          "hp": 365,
+          "max_resource": 635,
+          "resource": 635,
+          "attack_power": 50,
+          "ranged_power": 0,
+          "spell_power": 20,
+          "crit_chance": 0.0625,
+          "dodge_chance": 0.0625,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 25,
+            "agility": 25,
+            "stamina": 37,
+            "intellect": 40,
+            "armor_before_agility": 104,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 12,
+          "stats": {
+            "str": 26,
+            "agi": 26,
+            "sta": 39,
+            "int": 42,
+            "spi": 42,
+            "armor": 162,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 398,
+          "hp": 398,
+          "max_resource": 687,
+          "resource": 687,
+          "attack_power": 52,
+          "ranged_power": 0,
+          "spell_power": 21,
+          "crit_chance": 0.063,
+          "dodge_chance": 0.063,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 26,
+            "agility": 26,
+            "stamina": 39,
+            "intellect": 42,
+            "armor_before_agility": 110,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 13,
+          "stats": {
+            "str": 27,
+            "agi": 27,
+            "sta": 41,
+            "int": 44,
+            "spi": 44,
+            "armor": 170,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 431,
+          "hp": 431,
+          "max_resource": 739,
+          "resource": 739,
+          "attack_power": 54,
+          "ranged_power": 0,
+          "spell_power": 22,
+          "crit_chance": 0.0635,
+          "dodge_chance": 0.0635,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 27,
+            "agility": 27,
+            "stamina": 41,
+            "intellect": 44,
+            "armor_before_agility": 116,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 14,
+          "stats": {
+            "str": 28,
+            "agi": 28,
+            "sta": 43,
+            "int": 46,
+            "spi": 46,
+            "armor": 178,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 464,
+          "hp": 464,
+          "max_resource": 791,
+          "resource": 791,
+          "attack_power": 56,
+          "ranged_power": 0,
+          "spell_power": 23,
+          "crit_chance": 0.064,
+          "dodge_chance": 0.064,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 28,
+            "agility": 28,
+            "stamina": 43,
+            "intellect": 46,
+            "armor_before_agility": 122,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 15,
+          "stats": {
+            "str": 29,
+            "agi": 29,
+            "sta": 45,
+            "int": 48,
+            "spi": 48,
+            "armor": 186,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 497,
+          "hp": 497,
+          "max_resource": 843,
+          "resource": 843,
+          "attack_power": 58,
+          "ranged_power": 0,
+          "spell_power": 24,
+          "crit_chance": 0.0645,
+          "dodge_chance": 0.0645,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 29,
+            "agility": 29,
+            "stamina": 45,
+            "intellect": 48,
+            "armor_before_agility": 128,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 16,
+          "stats": {
+            "str": 30,
+            "agi": 30,
+            "sta": 47,
+            "int": 50,
+            "spi": 50,
+            "armor": 194,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 530,
+          "hp": 530,
+          "max_resource": 895,
+          "resource": 895,
+          "attack_power": 60,
+          "ranged_power": 0,
+          "spell_power": 25,
+          "crit_chance": 0.065,
+          "dodge_chance": 0.065,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 30,
+            "agility": 30,
+            "stamina": 47,
+            "intellect": 50,
+            "armor_before_agility": 134,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 17,
+          "stats": {
+            "str": 31,
+            "agi": 31,
+            "sta": 49,
+            "int": 52,
+            "spi": 52,
+            "armor": 202,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 563,
+          "hp": 563,
+          "max_resource": 947,
+          "resource": 947,
+          "attack_power": 62,
+          "ranged_power": 0,
+          "spell_power": 26,
+          "crit_chance": 0.0655,
+          "dodge_chance": 0.0655,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 31,
+            "agility": 31,
+            "stamina": 49,
+            "intellect": 52,
+            "armor_before_agility": 140,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 18,
+          "stats": {
+            "str": 32,
+            "agi": 32,
+            "sta": 51,
+            "int": 54,
+            "spi": 54,
+            "armor": 210,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 596,
+          "hp": 596,
+          "max_resource": 999,
+          "resource": 999,
+          "attack_power": 64,
+          "ranged_power": 0,
+          "spell_power": 27,
+          "crit_chance": 0.066,
+          "dodge_chance": 0.066,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 32,
+            "agility": 32,
+            "stamina": 51,
+            "intellect": 54,
+            "armor_before_agility": 146,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 19,
+          "stats": {
+            "str": 33,
+            "agi": 33,
+            "sta": 53,
+            "int": 56,
+            "spi": 56,
+            "armor": 218,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 629,
+          "hp": 629,
+          "max_resource": 1051,
+          "resource": 1051,
+          "attack_power": 66,
+          "ranged_power": 0,
+          "spell_power": 28,
+          "crit_chance": 0.0665,
+          "dodge_chance": 0.0665,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 33,
+            "agility": 33,
+            "stamina": 53,
+            "intellect": 56,
+            "armor_before_agility": 152,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        },
+        {
+          "level": 20,
+          "stats": {
+            "str": 34,
+            "agi": 34,
+            "sta": 55,
+            "int": 58,
+            "spi": 58,
+            "armor": 226,
+            "pvp_offense": 0,
+            "pvp_defense": 0
+          },
+          "weapon": {
+            "min": 3,
+            "max": 6,
+            "speed": 2.9
+          },
+          "max_hp": 662,
+          "hp": 662,
+          "max_resource": 1103,
+          "resource": 1103,
+          "attack_power": 68,
+          "ranged_power": 0,
+          "spell_power": 29,
+          "crit_chance": 0.067,
+          "dodge_chance": 0.067,
+          "move_speed": 7,
+          "pre_form": {
+            "strength": 34,
+            "agility": 34,
+            "stamina": 55,
+            "intellect": 58,
+            "armor_before_agility": 158,
+            "bonus_attack_power": 0,
+            "bonus_spell_power": 0,
+            "base_hp": 45,
+            "hp_per_level": 13
+          }
+        }
+      ]
+    }
+  ],
+  "catalog_sha256": "2e3e5c235d2590839f6844c6720a4ab53ea9bfbd0d576b516a5747d3d4716802"
+}

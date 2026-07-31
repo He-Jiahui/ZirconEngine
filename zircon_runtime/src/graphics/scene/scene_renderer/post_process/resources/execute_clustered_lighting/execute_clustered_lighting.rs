@@ -19,23 +19,29 @@ impl ScenePostProcessResources {
         viewport_size: UVec2,
         cluster_dimensions: UVec2,
         cluster_buffer: &wgpu::Buffer,
-        cluster_buffer_bytes: usize,
         lights: &[RenderDirectionalLightSnapshot],
         enabled: bool,
     ) {
         if !enabled {
-            queue.write_buffer(cluster_buffer, 0, &vec![0_u8; cluster_buffer_bytes]);
+            encoder.clear_buffer(cluster_buffer, 0, None);
             return;
         }
 
         let mut gpu_lights = [ClusteredDirectionalLight::zeroed(); MAX_DIRECTIONAL_LIGHTS];
-        for (slot, light) in lights.iter().take(MAX_DIRECTIONAL_LIGHTS).enumerate() {
+        let directional_light_count = lights.len().min(MAX_DIRECTIONAL_LIGHTS);
+        for (slot, light) in lights.iter().take(directional_light_count).enumerate() {
             gpu_lights[slot] = ClusteredDirectionalLight {
                 direction: [light.direction.x, light.direction.y, light.direction.z, 0.0],
                 color_intensity: [light.color.x, light.color.y, light.color.z, light.intensity],
             };
         }
-        queue.write_buffer(&self.light_buffer, 0, bytemuck::cast_slice(&gpu_lights));
+        if directional_light_count > 0 {
+            queue.write_buffer(
+                &self.light_buffer,
+                0,
+                bytemuck::cast_slice(&gpu_lights[..directional_light_count]),
+            );
+        }
 
         let params = ClusterParams {
             viewport_and_clusters: [
@@ -44,12 +50,7 @@ impl ScenePostProcessResources {
                 cluster_dimensions.x.max(1),
                 cluster_dimensions.y.max(1),
             ],
-            counts: [
-                lights.len().min(MAX_DIRECTIONAL_LIGHTS) as u32,
-                CLUSTER_TILE_SIZE,
-                0,
-                0,
-            ],
+            counts: [directional_light_count as u32, CLUSTER_TILE_SIZE, 0, 0],
             strengths: [0.42, 0.18, 0.0, 0.0],
         };
         queue.write_buffer(&self.cluster_params_buffer, 0, bytemuck::bytes_of(&params));
@@ -84,5 +85,22 @@ impl ScenePostProcessResources {
             cluster_dimensions.y.max(1).div_ceil(CLUSTER_WORKGROUP_SIZE),
             1,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn clustered_lighting_avoids_cpu_clear_and_inactive_light_uploads() {
+        let source = include_str!("execute_clustered_lighting.rs");
+        let cpu_clear = ["vec![0_u8;", " cluster_buffer_bytes]"].concat();
+        let legacy_size_argument = ["cluster_buffer_", "bytes: usize"].concat();
+        let gpu_clear = ["encoder.clear_", "buffer(cluster_buffer, 0, None)"].concat();
+        let active_prefix = ["&gpu_lights[..", "directional_light_count]"].concat();
+
+        assert!(!source.contains(&cpu_clear));
+        assert!(!source.contains(&legacy_size_argument));
+        assert!(source.contains(&gpu_clear));
+        assert!(source.contains(&active_prefix));
     }
 }

@@ -14,7 +14,7 @@ node = "animation_editor_root"
 
 [nodes.header_top_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
 
 [nodes.header_mode_row_left_space]
 component = "Space"
@@ -31,7 +31,7 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 
 [nodes.header_mode_row_shell]
 component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 children = [{ node = "header_mode_row_left_space" }, { node = "header_mode_row" }, { node = "header_mode_row_right_space" }]
 
 [nodes.header_mode_path_gap]
@@ -53,7 +53,7 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 
 [nodes.header_path_row_shell]
 component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 children = [{ node = "header_path_row_left_space" }, { node = "header_path_row" }, { node = "header_path_row_right_space" }]
 
 [nodes.header_path_status_gap]
@@ -75,7 +75,7 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 
 [nodes.header_status_row_shell]
 component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 children = [{ node = "header_status_row_left_space" }, { node = "header_status_row" }, { node = "header_status_row_right_space" }]
 
 [nodes.header_bottom_space]
@@ -85,7 +85,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.
 [nodes.header_panel]
 component = "VerticalBox"
 control_id = "AnimationEditorHeaderPanel"
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
+props = { surface_variant = "panel", radius = 4.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" } }
 children = [{ node = "header_top_space" }, { node = "header_mode_row_shell" }, { node = "header_mode_path_gap" }, { node = "header_path_row_shell" }, { node = "header_path_status_gap" }, { node = "header_status_row_shell" }, { node = "header_bottom_space" }]
 
 [nodes.sequence_top_space]

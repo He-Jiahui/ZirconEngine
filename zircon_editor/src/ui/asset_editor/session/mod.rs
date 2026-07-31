@@ -17,6 +17,7 @@ pub(crate) mod command_entry;
 pub(crate) mod designer_state;
 pub(crate) mod emergency_state;
 pub(crate) mod hierarchy_projection;
+mod import_reference_access;
 pub(crate) mod journal;
 pub(crate) mod lifecycle;
 pub(crate) mod navigation_state;

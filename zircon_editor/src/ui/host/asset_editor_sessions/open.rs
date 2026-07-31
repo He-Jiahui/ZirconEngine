@@ -32,6 +32,7 @@ impl EditorUiHost {
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let route = ui_asset_editor_route_from_source(asset_id, &source, mode.unwrap_or_default())
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        let route_asset_id = route.asset_id.clone();
         let preview_size = preview_size_for_preset(route.preview_preset);
         let session =
             build_ui_asset_editor_session_from_source(route, source.clone(), preview_size)
@@ -42,6 +43,8 @@ impl EditorUiHost {
             instance_id.clone(),
             UiAssetWorkspaceEntry::new(source_path, source, session),
         );
+        self.lock_ui_asset_dependency_generation()
+            .register_route(instance_id.clone(), &route_asset_id);
         self.hydrate_ui_asset_editor_imports(&instance_id)?;
         self.sync_ui_asset_editor_instance(&instance_id)?;
         let _ = self.focus_view(&instance_id);

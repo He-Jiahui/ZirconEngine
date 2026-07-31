@@ -24,5 +24,8 @@ pub use perception::{
     AiHearingStimulusEvent, AiHearingStimulusOrigin, AiPerceptionSense, AiPerceptionSnapshot,
     AiPerceptionStimulus,
 };
-pub use snapshot::{AiAgentRuntimeSnapshot, AiRuntimeSnapshot};
-pub use tick::{AiAgentTickReport, AiAgentTickRequest, AiDecisionStatus};
+pub use snapshot::{
+    AiAgentRuntimeSnapshot, AiBehaviorDebugFrame, AiBehaviorDebugSnapshot,
+    AiPerceptionDebugSnapshot, AiRuntimeSnapshot,
+};
+pub use tick::{AiAgentTickReport, AiAgentTickRequest, AiDecisionStatus, BtNodeResultEvent};

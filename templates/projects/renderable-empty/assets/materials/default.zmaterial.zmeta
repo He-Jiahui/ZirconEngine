@@ -1,0 +1,15 @@
+format_version = 7
+uuid = "00000000-0000-0000-0000-000000000003"
+url = "res://materials/default.zmaterial"
+asset_kind = "Material"
+included_files = []
+importer_id = ""
+import_settings = {}
+config_hash = ""
+source_mtime_unix_ms = 0
+source_digest = ""
+preview_state = "dirty"
+importer_version = 0
+migration_summary = ""
+dependencies = []
+entries = []

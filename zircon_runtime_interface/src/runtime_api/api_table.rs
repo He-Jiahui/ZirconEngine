@@ -5,17 +5,18 @@ use crate::status::ZrStatus;
 
 use super::{
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeBindViewportSurfaceRequestV1,
-    ZrRuntimeDrainPluginEventsFnV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
-    ZrRuntimeHarvestOperationFnV1, ZrRuntimeHostFetchRequestV1, ZrRuntimePollOperationFnV1,
+    ZrRuntimeDrainPluginEventsFnV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHarvestOperationFnV1,
+    ZrRuntimeHostFetchRequestV1, ZrRuntimePollOperationFnV1, ZrRuntimeSessionConfigV2,
     ZrRuntimeSubmitOperationFnV1, ZrRuntimeSubscribePluginEventFnV1,
     ZrRuntimeUnsubscribePluginEventFnV1,
 };
 
-pub const ZR_RUNTIME_GET_API_SYMBOL_V2: &[u8] = b"zircon_runtime_get_api_v2\0";
+pub const ZR_RUNTIME_GET_API_SYMBOL_V3: &[u8] = b"zircon_runtime_get_api_v3\0";
 
-pub type ZrRuntimeGetApiFnV2 = unsafe extern "C" fn(*const ZrHostApiV1) -> *const ZrRuntimeApiV2;
-pub type ZrRuntimeCreateSessionFnV1 =
-    unsafe extern "C" fn(ZrRuntimeSessionConfigV1, *mut ZrRuntimeSessionHandle) -> ZrStatus;
+pub type ZrRuntimeGetApiFnV3 = unsafe extern "C" fn(*const ZrHostApiV1) -> *const ZrRuntimeApiV3;
+pub type ZrRuntimeCreateSessionFnV2 =
+    unsafe extern "C" fn(ZrRuntimeSessionConfigV2, *mut ZrRuntimeSessionHandle) -> ZrStatus;
 pub type ZrRuntimeDestroySessionFnV1 = unsafe extern "C" fn(ZrRuntimeSessionHandle) -> ZrStatus;
 pub type ZrRuntimeHandleEventFnV1 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeEventV1) -> ZrStatus;
@@ -35,7 +36,8 @@ pub type ZrRuntimeUnbindViewportSurfaceFnV1 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeViewportHandle) -> ZrStatus;
 pub type ZrRuntimePresentViewportFnV1 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeFrameRequestV1) -> ZrStatus;
-pub type ZrRuntimeTickFrameFnV1 = unsafe extern "C" fn(ZrRuntimeSessionHandle) -> ZrStatus;
+pub type ZrRuntimeTickFrameFnV2 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, *mut ZrRuntimeFrameDemandV1) -> ZrStatus;
 pub type ZrRuntimeDrainHostRequestsFnV1 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, *mut ZrOwnedByteBuffer) -> ZrStatus;
 pub type ZrRuntimeHostFetchFnV1 =
@@ -61,16 +63,16 @@ impl ZrHostApiV1 {
     }
 }
 
-/// The immutable runtime API V2 table.
+/// The immutable runtime API V3 table.
 ///
 /// This shape is frozen. Any future field addition requires a new table
 /// version and a coordinated hard cutover of all dynamic hosts.
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub struct ZrRuntimeApiV2 {
+pub struct ZrRuntimeApiV3 {
     pub abi_version: u32,
     pub size_bytes: usize,
-    pub create_session: Option<ZrRuntimeCreateSessionFnV1>,
+    pub create_session: Option<ZrRuntimeCreateSessionFnV2>,
     pub destroy_session: Option<ZrRuntimeDestroySessionFnV1>,
     pub handle_event: Option<ZrRuntimeHandleEventFnV1>,
     pub capture_frame: Option<ZrRuntimeCaptureFrameFnV1>,
@@ -79,7 +81,7 @@ pub struct ZrRuntimeApiV2 {
     pub unbind_viewport_surface: Option<ZrRuntimeUnbindViewportSurfaceFnV1>,
     pub present_viewport: Option<ZrRuntimePresentViewportFnV1>,
     pub profile_control: Option<ZrRuntimeProfileControlFnV1>,
-    pub tick_frame: Option<ZrRuntimeTickFrameFnV1>,
+    pub tick_frame: Option<ZrRuntimeTickFrameFnV2>,
     pub drain_host_requests: Option<ZrRuntimeDrainHostRequestsFnV1>,
     pub subscribe_plugin_event: Option<ZrRuntimeSubscribePluginEventFnV1>,
     pub unsubscribe_plugin_event: Option<ZrRuntimeUnsubscribePluginEventFnV1>,
@@ -89,10 +91,10 @@ pub struct ZrRuntimeApiV2 {
     pub harvest_operation: Option<ZrRuntimeHarvestOperationFnV1>,
 }
 
-impl ZrRuntimeApiV2 {
+impl ZrRuntimeApiV3 {
     pub const fn empty() -> Self {
         Self {
-            abi_version: crate::version::ZIRCON_RUNTIME_API_VERSION_V2,
+            abi_version: crate::version::ZIRCON_RUNTIME_API_VERSION_V3,
             size_bytes: core::mem::size_of::<Self>(),
             create_session: None,
             destroy_session: None,
@@ -111,24 +113,6 @@ impl ZrRuntimeApiV2 {
             submit_operation: None,
             poll_operation: None,
             harvest_operation: None,
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ZrRuntimeSessionConfigV1 {
-    pub abi_version: u32,
-    pub profile: ZrByteSlice,
-    pub project_manifest: ZrByteSlice,
-}
-
-impl ZrRuntimeSessionConfigV1 {
-    pub const fn empty(abi_version: u32) -> Self {
-        Self {
-            abi_version,
-            profile: ZrByteSlice::empty(),
-            project_manifest: ZrByteSlice::empty(),
         }
     }
 }

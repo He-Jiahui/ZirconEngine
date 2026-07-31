@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_collision_geometry_tests",
+  "source": "src",
+  "binary": "bin-m3-collision-geometry-tests",
+  "entry": "world/collision_geometry_test_main"
+}

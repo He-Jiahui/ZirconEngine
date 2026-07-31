@@ -1,0 +1,39 @@
+// Generated Delve companion identities and rank-up costs.
+pub maxRank(required: bool): int {
+    if (!required) { throw "woc Delve companion catalog is required"; }
+    return 3;
+}
+
+pub companionCount(required: bool): int {
+    if (!required) { throw "woc Delve companion catalog is required"; }
+    return 2;
+}
+
+pub companionId(index: int, required: bool): string {
+    if (!required) { throw "woc Delve companion catalog is required"; }
+    if (index == 0) { return "companion_tessa"; }
+    if (index == 1) { return "companion_edda"; }
+    return "";
+}
+
+pub upgradeMarks(rank: int, required: bool): int {
+    if (!required) { throw "woc Delve companion upgrade is required"; }
+    if (rank == 2) { return 3; }
+    if (rank == 3) { return 5; }
+    return 0;
+}
+
+pub upgradeCopper(rank: int, required: bool): int {
+    if (!required) { throw "woc Delve companion upgrade is required"; }
+    if (rank == 2) { return 0; }
+    if (rank == 3) { return 0; }
+    return 0;
+}
+
+pub contractTest(): int {
+    return maxRank(true) == 3 && companionCount(true) == 2 &&
+        companionId(0, true) == "companion_tessa" &&
+        companionId(1, true) == "companion_edda" && upgradeMarks(2, true) == 3 &&
+        upgradeMarks(3, true) == 5 && upgradeCopper(2, true) == 0 &&
+        upgradeCopper(3, true) == 0 ? 1 : -1;
+}

@@ -1,0 +1,37 @@
+// Generated Bad Air timer and aura contract from the pinned Delve source.
+
+pub intervalSeconds(required: bool): float {
+    if (!required) { throw "woc Bad Air interval is required"; }
+    return 8.0;
+}
+
+pub auraText(field: int, required: bool): string {
+    if (!required || field < 1 || field > 4) {
+        throw "woc Bad Air aura text field is invalid";
+    }
+    if (field == 1) { return "bad_air"; }
+    if (field == 2) { return "Bad Air"; }
+    if (field == 3) { return "dot"; }
+    return "nature";
+}
+
+pub auraNumber(field: int, required: bool): float {
+    if (!required || field < 1 || field > 5) {
+        throw "woc Bad Air aura number field is invalid";
+    }
+    if (field == 1) { return 4.0; }
+    if (field == 2) { return 4.0; }
+    if (field == 3) { return 3.0; }
+    if (field == 4) { return 2.0; }
+    return 2.0;
+}
+
+pub contractTest(): int {
+    if (intervalSeconds(true) != 8.0 ||
+        auraText(1, true) != "bad_air" || auraText(4, true) != "nature" ||
+        auraNumber(1, true) != 4.0 ||
+        auraNumber(5, true) != 2.0) {
+        return -1;
+    }
+    return 1;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_fire_mage_state_tests",
+  "source": "src",
+  "binary": "bin-m4-fire-mage-state-tests",
+  "entry": "combat/fire_mage_state_test_main"
+}

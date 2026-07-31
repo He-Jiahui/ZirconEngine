@@ -1,0 +1,40 @@
+var rng = %import("kernel/rng");
+var delve = %import("instances/delve_state");
+
+var state = new delve.DelveState();
+var stream = new rng.Mulberry32(<uint>20061);
+if (!delve.enterRun(state, 1) || !delve.setRestlessGravesActive(state, true) ||
+    !delve.queueRestlessGrave(state, 1.0, 2.0, true, false, false, false) ||
+    delve.queueRestlessGrave(state, 3.0, 4.0, true, true, false, false) ||
+    delve.queueRestlessGrave(state, 3.0, 4.0, true, false, true, false) ||
+    delve.queueRestlessGrave(state, 3.0, 4.0, true, false, false, true)) {
+    return -1;
+}
+
+delve.tickMany(state, 59, stream);
+if (state.restlessGraves.spawned != 0 || state.mobsAlive != 0) {
+    return -2;
+}
+delve.tickOnce(state, stream);
+if (state.restlessGraves.spawned != 1 || state.mobsAlive != 1 ||
+    state.restlessGraves.lastSpawnX != 1.0 || state.restlessGraves.lastSpawnZ != 2.0) {
+    return -3;
+}
+
+var restarted = new delve.DelveState();
+if (!delve.enterRun(restarted, 1) || !delve.setRestlessGravesActive(restarted, true) ||
+    !delve.queueRestlessGrave(restarted, 9.0, 10.0, true, false, false, false)) {
+    return -4;
+}
+// Simulate the terminal teardown before the next claim; its delayed spawn must
+// never leak into the fresh run.
+restarted.runActive = false;
+if (!delve.enterRun(restarted, 1)) {
+    return -5;
+}
+delve.tickMany(restarted, 60, stream);
+if (restarted.restlessGraves.spawned != 0 || restarted.mobsAlive != 0) {
+    return -6;
+}
+
+return 0;

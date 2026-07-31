@@ -34,6 +34,8 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
 tests:
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
+  - cargo test -p zircon_editor --lib mvp_run_controls_remain_reachable_across_narrow_regular_and_wide_layouts --locked --jobs 1 --color never -- --exact --test-threads=1
+  - direct fresh zircon_editor test binary capture_narrow_workbench_mvp_run_controls_visual_artifact --exact --ignored --test-threads=1 --nocapture (writes docs/tests/editor/editor-window-m3-workbench-mvp-run-controls-640x520.png)
   - cargo test -p zircon_editor --lib compact_workbench_toolbar_uses_slate_command_density --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib full_workbench_secondary_module_commands_keep_readable_width --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-atomic-20260710-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-10: 1 passed)
   - direct fresh zircon_editor test binary capture_full_workbench_run_mode_visual_artifact --exact --ignored --test-threads=1 --nocapture (2026-07-10: passed; docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png, SHA256 02FB8D64...F888B)
@@ -54,20 +56,24 @@ tests:
   - cargo build -p zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never
   - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --ignored --test-threads=1 --nocapture
 doc_type: module-detail
-status: implemented-focused-passed-build-screenshot-passed
+status: implemented-awaiting-managed-validation
 ---
 
 # Workbench Toolbar Layout
 
 `workbench_top_toolbar.zui` owns the authored two-row shell for the componentized Workbench top toolbar. The toolbar is a 72 px `VerticalGroup`: a 36 px command row contains file icons, primary module commands, tool commands, stretch spacers, and run controls; a 34 px module tab row below it contains Scene, Effect, Ability, Tags, Perception, Material, and the More overflow entry.
 
-`toolbar_layout.rs` owns the responsive visibility rules. At compact and regular widths it keeps the primary authoring modules readable, hides secondary module tabs and secondary command groups, and exposes `WorkbenchModuleMore` as the overflow entry. `componentized_window.rs` only wires this owner after layout recomputation.
+`toolbar_layout.rs` owns the responsive visibility rules. At compact and regular widths it keeps the primary authoring modules readable, hides secondary module tabs and command groups, keeps the MVP Play/Run Mode group reachable, and exposes `WorkbenchModuleMore` as the module overflow entry. `componentized_window.rs` only wires this owner after layout recomputation.
 
 `workbench_window.zui` keeps the top toolbar region and static popup defaults aligned to the 72 px toolbar bottom. `window_menu_state.rs` still computes live menu frames from trigger frames, toolbar bottom, popup constraints, and root bounds, so Main, Run Mode, Layout, and Module More menus follow the final arranged toolbar instead of depending on hand-authored open-state coordinates.
 
 ## Compact Behavior
 
-At widths up to `COMPACT_TOOLBAR_MAX_WIDTH`, the toolbar keeps Scene, Effect, Ability, Tags, Perception, and Material visible with readable widths. Behavior, Render, Assets, VFX, and HUD are hidden behind the overflow entry. Diff, Simulate, and secondary tool/run groups are hidden until full-toolbar width.
+At widths up to `COMPACT_TOOLBAR_MAX_WIDTH`, the toolbar keeps Scene, Effect, Ability, Tags, Perception, and Material visible with readable widths. Behavior, Render, Assets, VFX, and HUD are hidden behind the overflow entry. Diff, Simulate, and the transform tool group are hidden until full-toolbar width.
+
+The run group is an MVP exception to secondary-toolbar collapse. At 640, 900, and 1260 logical pixels it keeps Play and Run Mode visible in a 70 px group derived at runtime from their authored 34 px and 32 px preferred widths plus the `HorizontalBox` 4 px gap. Layout and Theme remain collapsed at these tiers. At `FULL_TOOLBAR_MIN_WIDTH` and above, the same content-width owner restores those two secondary children and derives the 142 px group result from all four visible children. Rust does not mirror either composite width, so template child metrics remain authoritative. This preserves project run-mode reachability without duplicating controls in the module command group or introducing pixel-position branches.
+
+Visibility does not create a second execution path. The existing `Run/Play` template binding remains the single adapter to `EditorUiBindingPayload::menu_action("workbench.play_mode.enter")`, which is consumed by the same play-mode event owner as the scene viewport toolbar and F5 command. The three-tier contract dispatches the visible top-toolbar control and verifies that canonical payload.
 
 The compact module command group reserves 276 px for the primary text commands: Save is 72 px, Browse is 92 px, Compile is 104 px, and the two inter-command gaps remain 4 px. The full command group is 388 px: it preserves those primary widths, gives Diff 54 px and Sim 50 px, and keeps all four gaps at 4 px. This follows the Slate toolbar rule used by the current design slice: keep command labels readable first, then collapse secondary commands at smaller breakpoints instead of compressing labels into clipped fragments.
 
@@ -75,7 +81,7 @@ The compact module command group reserves 276 px for the primary text commands: 
 
 `WorkbenchModuleMore` uses `zircon_editor_shell/toolbar/more-vertical.svg` so the compact module overflow trigger reads as a toolbar menu/overflow affordance. It no longer reuses the tab/file-shaped `editor_pages/workbench/tabs/tab-overflow.svg` placeholder. The rendering path still uses the existing SVG visual asset raster path first and the established glyph fallback only when an asset is missing.
 
-`WorkbenchRunMode` uses `zircon_editor_shell/toolbar/dropdown.svg` so the full-width run mode trigger reads as a toolbar dropdown affordance. It no longer reuses the tab/file-shaped `editor_pages/workbench/tabs/tab-overflow.svg` placeholder. Compact 900px layouts intentionally hide the run group; the full toolbar route is locked at 1672x941 by `full_workbench_run_mode_uses_toolbar_dropdown_icon` and the focused wide screenshot artifact.
+`WorkbenchRunMode` uses `zircon_editor_shell/toolbar/dropdown.svg` so every tier reads it as a toolbar dropdown affordance. It no longer reuses the tab/file-shaped `editor_pages/workbench/tabs/tab-overflow.svg` placeholder. The 640/900/1260 contract is locked by `mvp_run_controls_remain_reachable_across_narrow_regular_and_wide_layouts`; the complete 1672x941 group remains locked by `full_workbench_run_mode_uses_toolbar_dropdown_icon` and the focused wide screenshot artifact.
 
 `WorkbenchToolbarOpen` and `WorkbenchModuleBrowse` use `zircon_editor_shell/toolbar/folder-open.svg`, while `WorkbenchToolbarSave` and `WorkbenchModuleSave` use `zircon_editor_shell/toolbar/save.svg`. These controls now share the toolbar icon family instead of borrowing Workbench menu icon assets, so file-group icon buttons and module command buttons follow the same primitive visual identity.
 
@@ -84,6 +90,8 @@ The follow-up shell icon asset pass centralizes toolbar and compound-control ico
 When the toolbar is not compact, `toolbar_layout.rs` collapses the overflow trigger and closes `WorkbenchModuleOverflowMenu` so a stale hidden popup cannot remain open after resizing. `window_menu_state.rs` also includes the overflow popup in the toolbar menu exclusivity set, so More, File/Edit, Run Mode, and Layout menus cannot stay open together.
 
 ## Visual Evidence
+
+The S15.5i implementation adds `capture_narrow_workbench_mvp_run_controls_visual_artifact`, which writes `docs/tests/editor/editor-window-m3-workbench-mvp-run-controls-640x520.png`. Managed Cargo execution, the ignored capture, hash recording, target scan, and visual review remain pending at this document revision; no acceptance claim is made before that testing stage completes.
 
 The 2026-07-10 wide-toolbar correction refreshed `docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` from the fresh test binary. Diff and Sim now render as complete labels in the 1672-pixel toolbar; the screenshot is 206249 bytes with SHA256 `02FB8D6447185527245C1CE436E17DC938237CCBCDC1E5628BE88794654F888B`. The 900-pixel M3 set was also rerun and kept its previous hash, confirming the compact hidden-secondary route did not regress. Target scans found no matching validation PNGs under the repository or external Cargo target.
 

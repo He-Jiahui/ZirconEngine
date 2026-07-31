@@ -1,0 +1,6 @@
+{
+  "name": "woc_town_focus_state_tests",
+  "source": "src",
+  "binary": "bin-town-focus-state-tests",
+  "entry": "progression/town_focus_state_test_main"
+}

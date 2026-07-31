@@ -1,15 +1,18 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use super::schema::{
-    JournalDocument, JournalPhase, JournalState, TransactionJournal, JOURNAL_DIRECTORY,
-    JOURNAL_VERSION,
+    FoldedTransactionJournal, JOURNAL_VERSION, JournalDocument, JournalPhase, JournalState,
+    TransactionJournal,
 };
-use super::{digest_file, transaction_error, valid_transaction_id};
+use super::toml_evidence::TomlEvidenceReader;
+use super::{transaction_error, valid_transaction_id};
 use crate::asset::migration::{AssetMigrationError, AssetMigrationTransactionPhase};
 use crate::asset::safe_project_path::is_link_or_reparse;
+
+const EVIDENCE_READ_BUFFER_BYTES: usize = 64 * 1024;
 
 pub(in crate::asset::migration) fn recover_pending_transactions(
     project_root: &Path,
@@ -19,10 +22,9 @@ pub(in crate::asset::migration) fn recover_pending_transactions(
     let journals = load_pending_transactions(project_root, roots, allowed_targets)?;
     for (path, journal) in journals {
         match journal.phase {
-            JournalPhase::Intent | JournalPhase::Active => {
-                cleanup_completed_journal(&path, &journal)?
-            }
-            JournalPhase::RollbackCompleted
+            JournalPhase::Intent
+            | JournalPhase::Active
+            | JournalPhase::RollbackCompleted
             | JournalPhase::CleanupRollback
             | JournalPhase::AllCommitted
             | JournalPhase::Cleanup => cleanup_completed_journal(&path, &journal)?,
@@ -48,7 +50,7 @@ fn load_pending_transactions(
     project_root: &Path,
     roots: &[PathBuf],
     allowed_targets: &[PathBuf],
-) -> Result<Vec<(PathBuf, TransactionJournal)>, AssetMigrationError> {
+) -> Result<Vec<(PathBuf, FoldedTransactionJournal)>, AssetMigrationError> {
     let Some(directory) = super::journal_owner::existing_journal_directory(project_root)? else {
         return Ok(Vec::new());
     };
@@ -84,12 +86,32 @@ fn load_pending_transactions(
     for path in journal_paths {
         let source =
             fs::read_to_string(&path).map_err(|error| recovery_error(path.clone(), error))?;
-        let journal = toml::from_str::<TransactionJournal>(&source).map_err(|source| {
+        let value = toml::from_str::<toml::Value>(&source).map_err(|source| {
             AssetMigrationError::JournalDeserialize {
                 path: path.clone(),
                 source,
             }
         })?;
+        if value.get("version").and_then(toml::Value::as_integer)
+            != Some(i64::from(JOURNAL_VERSION))
+        {
+            return Err(invalid_journal(
+                &path,
+                "unsupported migration journal version",
+            ));
+        }
+        let parsed = toml::from_str::<TransactionJournal>(&source).map_err(|source| {
+            AssetMigrationError::JournalDeserialize {
+                path: path.clone(),
+                source,
+            }
+        })?;
+        if parsed.documents.is_empty() {
+            return Err(invalid_journal(&path, "empty migration journal"));
+        }
+        let journal = parsed
+            .fold()
+            .map_err(|reason| invalid_journal(&path, reason))?;
         journals.push((path, journal));
     }
     validate_journals(&journals, &canonical_roots, allowed_targets)?;
@@ -97,7 +119,7 @@ fn load_pending_transactions(
 }
 
 fn validate_journals(
-    journals: &[(PathBuf, TransactionJournal)],
+    journals: &[(PathBuf, FoldedTransactionJournal)],
     roots: &[PathBuf],
     allowed_targets: &[PathBuf],
 ) -> Result<(), AssetMigrationError> {
@@ -106,13 +128,8 @@ fn validate_journals(
         .iter()
         .filter_map(|path| path_identity(path))
         .collect::<HashSet<_>>();
+    let mut evidence = RecoveryEvidence::new();
     for (journal_path, journal) in journals {
-        if journal.version != JOURNAL_VERSION || journal.documents.is_empty() {
-            return Err(invalid_journal(
-                journal_path,
-                "unsupported or empty migration journal",
-            ));
-        }
         if !valid_transaction_id(&journal.transaction_id) {
             return Err(invalid_journal(
                 journal_path,
@@ -130,42 +147,7 @@ fn validate_journals(
                 "journal filename does not match transaction id",
             ));
         }
-        match journal.phase {
-            JournalPhase::Intent
-                if journal
-                    .documents
-                    .iter()
-                    .any(|document| document.state != JournalState::Prepared) =>
-            {
-                return Err(invalid_journal(
-                    journal_path,
-                    "transaction intent requires every document to be prepared",
-                ));
-            }
-            JournalPhase::AllCommitted | JournalPhase::Cleanup
-                if journal
-                    .documents
-                    .iter()
-                    .any(|document| document.state != JournalState::Committed) =>
-            {
-                return Err(invalid_journal(
-                    journal_path,
-                    "commit cleanup phase requires every document to be committed",
-                ));
-            }
-            JournalPhase::RollbackCompleted | JournalPhase::CleanupRollback
-                if journal
-                    .documents
-                    .iter()
-                    .any(|document| document.state != JournalState::Prepared) =>
-            {
-                return Err(invalid_journal(
-                    journal_path,
-                    "rollback cleanup phase requires every document to be prepared",
-                ));
-            }
-            _ => {}
-        }
+        validate_phase(journal_path, journal)?;
         for document in &journal.documents {
             let target_identity = path_identity(&document.target).ok_or_else(|| {
                 invalid_journal(journal_path, "journal target has no canonical identity")
@@ -197,19 +179,49 @@ fn validate_journals(
                 roots,
                 &mut identities,
             )?;
-            if journal.phase == JournalPhase::Active
-                && (document.backup.as_ref().is_some_and(|path| !path.is_file())
-                    || document
-                        .retired_backup
-                        .as_ref()
-                        .is_some_and(|path| !path.is_file()))
-            {
-                return Err(invalid_journal(journal_path, "journal backup is missing"));
-            }
-            validate_document_evidence(journal_path, journal, document)?;
+            validate_document_evidence(journal_path, journal, document, &mut evidence)?;
         }
     }
     Ok(())
+}
+
+fn validate_phase(
+    journal_path: &Path,
+    journal: &FoldedTransactionJournal,
+) -> Result<(), AssetMigrationError> {
+    let valid = match journal.phase {
+        JournalPhase::Intent => journal.documents.iter().all(|document| {
+            matches!(
+                document.state,
+                JournalState::Intent | JournalState::Prepared
+            )
+        }),
+        JournalPhase::Active => journal.documents.iter().all(|document| {
+            matches!(
+                document.state,
+                JournalState::Prepared
+                    | JournalState::Committing
+                    | JournalState::Committed
+                    | JournalState::RollingBack
+            )
+        }),
+        JournalPhase::RollbackCompleted | JournalPhase::CleanupRollback => journal
+            .documents
+            .iter()
+            .all(|document| document.state == JournalState::Prepared),
+        JournalPhase::AllCommitted | JournalPhase::Cleanup => journal
+            .documents
+            .iter()
+            .all(|document| document.state == JournalState::Committed),
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(invalid_journal(
+            journal_path,
+            "journal phase and folded document states disagree",
+        ))
+    }
 }
 
 fn validate_document_paths(
@@ -294,7 +306,7 @@ fn validate_document_paths(
             return Err(invalid_journal(
                 journal_path,
                 "retired path and retired backup must be present together",
-            ))
+            ));
         }
     }
     Ok(())
@@ -302,79 +314,100 @@ fn validate_document_paths(
 
 fn validate_document_evidence(
     journal_path: &Path,
-    journal: &TransactionJournal,
+    journal: &FoldedTransactionJournal,
     document: &JournalDocument,
+    evidence: &mut RecoveryEvidence,
 ) -> Result<(), AssetMigrationError> {
-    if document.target_existed != document.original_digest.is_some() {
+    if document.state == JournalState::Intent {
+        return validate_existing_toml_evidence(journal_path, document, evidence);
+    }
+
+    let target_existed = document.target_existed.ok_or_else(|| {
+        invalid_journal(
+            journal_path,
+            "document state is missing target origin evidence",
+        )
+    })?;
+    let new_digest = document.new_digest.as_deref().ok_or_else(|| {
+        invalid_journal(
+            journal_path,
+            "document state is missing staged digest evidence",
+        )
+    })?;
+    if target_existed != document.original_digest.is_some()
+        || target_existed != document.backup.is_some()
+    {
         return Err(invalid_journal(
             journal_path,
-            "target origin and original digest disagree",
+            "target origin, backup role, and original digest disagree",
+        ));
+    }
+    if document.retired_path.is_some() != document.retired_digest.is_some() {
+        return Err(invalid_journal(
+            journal_path,
+            "retired sidecar and retired digest disagree",
         ));
     }
     let artifacts_may_be_missing = matches!(
         journal.phase,
-        JournalPhase::Intent | JournalPhase::Cleanup | JournalPhase::CleanupRollback
+        JournalPhase::RollbackCompleted | JournalPhase::Cleanup | JournalPhase::CleanupRollback
     );
-    let rollback_complete = matches!(
-        journal.phase,
-        JournalPhase::RollbackCompleted | JournalPhase::CleanupRollback
-    );
-    if journal.phase == JournalPhase::Active {
-        validate_active_target_observation(journal_path, document)?;
-    } else {
-        match document.state {
-            JournalState::Committed => require_file_digest(
-                journal_path,
-                &document.target,
-                &document.new_digest,
-                false,
-                "committed target",
-            )?,
-            JournalState::Prepared if document.target_existed => require_file_digest(
-                journal_path,
-                &document.target,
-                document.original_digest.as_deref().unwrap_or_default(),
-                false,
-                "original target",
-            )?,
-            JournalState::Prepared => {
-                if document.target.exists() {
-                    return Err(invalid_journal(
-                        journal_path,
-                        "new target exists before transaction commit",
-                    ));
-                }
-            }
-            JournalState::Committing => {
-                return Err(invalid_journal(
-                    journal_path,
-                    "committing state is valid only in an active transaction",
-                ));
-            }
-        }
+    let staging_may_be_missing = artifacts_may_be_missing
+        || document.state == JournalState::Committed
+        || document.state == JournalState::RollingBack
+        || (document.state == JournalState::Committing
+            && target_matches_digest(journal_path, &document.target, new_digest, evidence)?);
+
+    match document.state {
+        JournalState::Prepared => validate_original_target(
+            journal_path,
+            document,
+            target_existed,
+            artifacts_may_be_missing,
+            evidence,
+        )?,
+        JournalState::Committing => validate_active_target_observation(
+            journal_path,
+            document,
+            target_existed,
+            new_digest,
+            evidence,
+        )?,
+        JournalState::RollingBack => validate_active_target_observation(
+            journal_path,
+            document,
+            target_existed,
+            new_digest,
+            evidence,
+        )?,
+        JournalState::Committed => require_file_digest(
+            journal_path,
+            &document.target,
+            new_digest,
+            false,
+            "committed target",
+            evidence,
+        )?,
+        JournalState::Intent => unreachable!("handled before evidence validation"),
     }
+
     require_file_digest(
         journal_path,
         &document.staging,
-        &document.new_digest,
-        artifacts_may_be_missing,
+        new_digest,
+        staging_may_be_missing,
         "staging artifact",
+        evidence,
     )?;
-    match (&document.backup, &document.original_digest) {
-        (Some(backup), Some(digest)) => require_file_digest(
+    if let (Some(backup), Some(digest)) = (&document.backup, &document.original_digest) {
+        require_file_digest(
             journal_path,
             backup,
             digest,
             artifacts_may_be_missing,
             "backup artifact",
-        )?,
-        (None, None) => {}
-        _ => {
-            return Err(invalid_journal(
-                journal_path,
-                "backup evidence does not match target origin",
-            ))
-        }
+            evidence,
+        )?;
     }
     match (
         &document.retired_path,
@@ -382,19 +415,42 @@ fn validate_document_evidence(
         &document.retired_digest,
     ) {
         (Some(retired), Some(backup), Some(digest)) => {
-            if journal.phase == JournalPhase::Active {
-                if retired.exists() {
-                    require_file_digest(journal_path, retired, digest, false, "retired sidecar")?;
+            match document.state {
+                JournalState::Prepared => require_file_digest(
+                    journal_path,
+                    retired,
+                    digest,
+                    false,
+                    "retired sidecar",
+                    evidence,
+                )?,
+                JournalState::Committing | JournalState::RollingBack if retired.exists() => {
+                    require_file_digest(
+                        journal_path,
+                        retired,
+                        digest,
+                        false,
+                        "retired sidecar",
+                        evidence,
+                    )?
                 }
-            } else if document.state == JournalState::Committed {
-                if retired.exists() {
+                JournalState::Committing => require_file_digest(
+                    journal_path,
+                    &document.target,
+                    new_digest,
+                    false,
+                    "committing target after retired-sidecar deletion",
+                    evidence,
+                )?,
+                JournalState::RollingBack => {}
+                JournalState::Committed if retired.exists() => {
                     return Err(invalid_journal(
                         journal_path,
                         "committed retired sidecar still exists",
                     ));
                 }
-            } else {
-                require_file_digest(journal_path, retired, digest, false, "retired sidecar")?;
+                JournalState::Committed => {}
+                JournalState::Intent => unreachable!("handled before evidence validation"),
             }
             require_file_digest(
                 journal_path,
@@ -402,6 +458,7 @@ fn validate_document_evidence(
                 digest,
                 artifacts_may_be_missing,
                 "retired backup",
+                evidence,
             )?;
         }
         (None, None, None) => {}
@@ -409,15 +466,43 @@ fn validate_document_evidence(
             return Err(invalid_journal(
                 journal_path,
                 "retired sidecar evidence is incomplete",
-            ))
+            ));
         }
     }
-    if rollback_complete && document.state != JournalState::Prepared {
-        return Err(invalid_journal(
+    validate_existing_toml_evidence(journal_path, document, evidence)
+}
+
+fn validate_original_target(
+    journal_path: &Path,
+    document: &JournalDocument,
+    target_existed: bool,
+    artifacts_may_be_missing: bool,
+    evidence: &mut RecoveryEvidence,
+) -> Result<(), AssetMigrationError> {
+    if target_existed {
+        require_file_digest(
             journal_path,
-            "rollback completion must retain prepared state",
-        ));
+            &document.target,
+            document.original_digest.as_deref().unwrap_or_default(),
+            false,
+            "original target",
+            evidence,
+        )
+    } else if document.target.exists() && !artifacts_may_be_missing {
+        Err(invalid_journal(
+            journal_path,
+            "new target exists before transaction commit",
+        ))
+    } else {
+        Ok(())
     }
+}
+
+fn validate_existing_toml_evidence(
+    journal_path: &Path,
+    document: &JournalDocument,
+    evidence: &mut RecoveryEvidence,
+) -> Result<(), AssetMigrationError> {
     for (artifact, label) in [
         (Some(&document.target), "target"),
         (Some(&document.staging), "staging artifact"),
@@ -428,31 +513,10 @@ fn validate_document_evidence(
     .into_iter()
     .filter_map(|(path, label)| path.map(|path| (path, label)))
     {
-        validate_toml_evidence(journal_path, artifact, label)?;
+        if artifact.exists() {
+            let _ = file_evidence(journal_path, artifact, label, evidence)?;
+        }
     }
-    Ok(())
-}
-
-fn validate_toml_evidence(
-    journal_path: &Path,
-    path: &Path,
-    label: &str,
-) -> Result<(), AssetMigrationError> {
-    if !path.exists() {
-        return Ok(());
-    }
-    let source = fs::read_to_string(path).map_err(|error| {
-        invalid_journal(
-            journal_path,
-            format!("{label} {} is not UTF-8 TOML: {error}", path.display()),
-        )
-    })?;
-    toml::from_str::<toml::Table>(&source).map_err(|error| {
-        invalid_journal(
-            journal_path,
-            format!("{label} {} is not a TOML table: {error}", path.display()),
-        )
-    })?;
     Ok(())
 }
 
@@ -462,6 +526,7 @@ fn require_file_digest(
     expected: &str,
     allow_missing: bool,
     label: &str,
+    evidence: &mut RecoveryEvidence,
 ) -> Result<(), AssetMigrationError> {
     if !path.exists() {
         return if allow_missing {
@@ -470,8 +535,7 @@ fn require_file_digest(
             Err(invalid_journal(journal_path, format!("{label} is missing")))
         };
     }
-    let actual = digest_file(path).map_err(|source| recovery_error(path.to_path_buf(), source))?;
-    if actual != expected {
+    if file_evidence(journal_path, path, label, evidence)?.digest != expected {
         return Err(invalid_journal(
             journal_path,
             format!("{label} digest does not match journal evidence"),
@@ -483,9 +547,12 @@ fn require_file_digest(
 fn validate_active_target_observation(
     journal_path: &Path,
     document: &JournalDocument,
+    target_existed: bool,
+    new_digest: &str,
+    evidence: &mut RecoveryEvidence,
 ) -> Result<(), AssetMigrationError> {
     if !document.target.exists() {
-        return if document.target_existed {
+        return if target_existed {
             Err(invalid_journal(
                 journal_path,
                 "existing active target is missing",
@@ -494,9 +561,8 @@ fn validate_active_target_observation(
             Ok(())
         };
     }
-    let actual = digest_file(&document.target)
-        .map_err(|source| recovery_error(document.target.clone(), source))?;
-    let matches_new = actual == document.new_digest;
+    let actual = &file_evidence(journal_path, &document.target, "active target", evidence)?.digest;
+    let matches_new = actual == new_digest;
     let matches_original = document
         .original_digest
         .as_deref()
@@ -509,6 +575,71 @@ fn validate_active_target_observation(
             "active target matches neither original nor migrated digest",
         ))
     }
+}
+
+fn target_matches_digest(
+    journal_path: &Path,
+    path: &Path,
+    expected: &str,
+    evidence: &mut RecoveryEvidence,
+) -> Result<bool, AssetMigrationError> {
+    if !path.exists() {
+        return Ok(false);
+    }
+    Ok(file_evidence(journal_path, path, "transaction target", evidence)?.digest == expected)
+}
+
+fn file_evidence<'a>(
+    journal_path: &Path,
+    path: &Path,
+    label: &str,
+    evidence: &'a mut RecoveryEvidence,
+) -> Result<&'a FileEvidence, AssetMigrationError> {
+    if !evidence.artifacts.contains_key(path) {
+        let value = stream_file_evidence(path, &mut evidence.reader).map_err(|source| {
+            invalid_journal(
+                journal_path,
+                format!(
+                    "{label} {} does not satisfy bounded TOML structure evidence: {source}",
+                    path.display()
+                ),
+            )
+        })?;
+        evidence.artifacts.insert(path.to_path_buf(), value);
+    }
+    evidence.artifacts.get(path).ok_or_else(|| {
+        invalid_journal(
+            journal_path,
+            format!(
+                "{label} {} was not retained after evidence insertion",
+                path.display()
+            ),
+        )
+    })
+}
+
+fn stream_file_evidence(path: &Path, reader: &mut TomlEvidenceReader) -> io::Result<FileEvidence> {
+    Ok(FileEvidence {
+        digest: reader.stream_file_digest(path)?,
+    })
+}
+
+struct RecoveryEvidence {
+    artifacts: HashMap<PathBuf, FileEvidence>,
+    reader: TomlEvidenceReader,
+}
+
+impl RecoveryEvidence {
+    fn new() -> Self {
+        Self {
+            artifacts: HashMap::new(),
+            reader: TomlEvidenceReader::new(EVIDENCE_READ_BUFFER_BYTES),
+        }
+    }
+}
+
+struct FileEvidence {
+    digest: String,
 }
 
 fn validate_sibling_role(
@@ -581,13 +712,6 @@ fn path_identity(path: &Path) -> Option<String> {
     Some(identity.to_string_lossy().into_owned())
 }
 
-fn invalid_journal(path: &Path, message: impl Into<String>) -> AssetMigrationError {
-    AssetMigrationError::InvalidJournal {
-        path: path.to_path_buf(),
-        reason: message.into(),
-    }
-}
-
 fn path_is_within_roots(path: &Path, roots: &[PathBuf]) -> bool {
     if !path.is_absolute() {
         return false;
@@ -608,7 +732,7 @@ fn path_is_within_roots(path: &Path, roots: &[PathBuf]) -> bool {
 
 fn cleanup_completed_journal(
     path: &Path,
-    journal: &TransactionJournal,
+    journal: &FoldedTransactionJournal,
 ) -> Result<(), AssetMigrationError> {
     for document in &journal.documents {
         for artifact in [
@@ -631,6 +755,13 @@ fn remove_if_exists(path: &Path) -> io::Result<()> {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error),
+    }
+}
+
+fn invalid_journal(path: &Path, message: impl Into<String>) -> AssetMigrationError {
+    AssetMigrationError::InvalidJournal {
+        path: path.to_path_buf(),
+        reason: message.into(),
     }
 }
 

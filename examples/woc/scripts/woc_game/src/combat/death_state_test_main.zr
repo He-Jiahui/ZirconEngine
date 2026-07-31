@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var deathState = %import("combat/death_state");
+
+console.printLine("m4-death-state-test");
+var result = deathState.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

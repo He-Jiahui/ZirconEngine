@@ -27,6 +27,7 @@ pub use job::EditorJob;
 pub use limits::EditorJobLimits;
 pub use mutex_group::MutexGroup;
 pub use progress::{EditorJobProgress, EditorJobProgressSnapshot, EditorJobProgressSource};
+pub use pump::{JobEventPumpBudget, DEFAULT_JOB_EVENT_PUMP_BUDGET};
 pub use shutdown::UnfinishedEditorJob;
 pub use spec::EditorJobSpec;
 pub use system::EditorJobSystem;

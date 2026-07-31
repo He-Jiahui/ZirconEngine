@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_dungeon_entrance_codegen.mjs",
+  "source_identity": {
+    "source_path": "src/sim/data.ts",
+    "git_blob": "b72cf99eaf8670decdb3f260a45eeffe5a646ebe",
+    "sha256": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431"
+  },
+  "instance_slot_count": 24,
+  "dungeons": [
+    {
+      "id": "hollow_crypt",
+      "name": "The Hollow Crypt",
+      "index": 0,
+      "overworld_door": true,
+      "x": 80,
+      "z": 90
+    },
+    {
+      "id": "sunken_bastion",
+      "name": "The Sunken Bastion",
+      "index": 1,
+      "overworld_door": true,
+      "x": 45,
+      "z": 515
+    },
+    {
+      "id": "gravewyrm_sanctum",
+      "name": "Gravewyrm Sanctum",
+      "index": 2,
+      "overworld_door": true,
+      "x": 0,
+      "z": 858
+    },
+    {
+      "id": "drowned_temple",
+      "name": "The Drowned Temple",
+      "index": 3,
+      "overworld_door": true,
+      "x": -70,
+      "z": 792
+    },
+    {
+      "id": "nythraxis_crypt",
+      "name": "Abandoned Crypt",
+      "index": 4,
+      "overworld_door": true,
+      "x": -152,
+      "z": 610
+    },
+    {
+      "id": "nythraxis_boss_arena",
+      "name": "Nythraxis Raid Arena",
+      "index": 5,
+      "overworld_door": false,
+      "x": -152,
+      "z": 610
+    }
+  ],
+  "catalog_sha256": "a8c64e4832a082ff1edfee640656b1f8159ea67bd4150562f2ab69f95a076499"
+}

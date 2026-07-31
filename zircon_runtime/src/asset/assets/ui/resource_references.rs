@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiChildMount, UiNodeDefinition, UiStyleDeclarationBlock,
 };
 
-pub(super) fn collect_resource_uris(document: &UiAssetDocument) -> Vec<String> {
+pub(super) fn collect_resource_uris(document: &UiAssetDocument) -> Vec<&str> {
     let mut uris = Vec::new();
     for reference in &document.imports.resources {
         push_uri(&reference.uri, &mut uris);
@@ -28,7 +28,7 @@ pub(super) fn collect_resource_uris(document: &UiAssetDocument) -> Vec<String> {
     uris
 }
 
-fn collect_node(node: &UiNodeDefinition, uris: &mut Vec<String>) {
+fn collect_node<'a>(node: &'a UiNodeDefinition, uris: &mut Vec<&'a str>) {
     collect_values(node.props.values(), uris);
     collect_values(node.params.values(), uris);
     if let Some(layout) = &node.layout {
@@ -40,23 +40,23 @@ fn collect_node(node: &UiNodeDefinition, uris: &mut Vec<String>) {
     }
 }
 
-fn collect_child(child: &UiChildMount, uris: &mut Vec<String>) {
+fn collect_child<'a>(child: &'a UiChildMount, uris: &mut Vec<&'a str>) {
     collect_values(child.slot.values(), uris);
     collect_node(&child.node, uris);
 }
 
-fn collect_declaration_block(block: &UiStyleDeclarationBlock, uris: &mut Vec<String>) {
+fn collect_declaration_block<'a>(block: &'a UiStyleDeclarationBlock, uris: &mut Vec<&'a str>) {
     collect_values(block.self_values.values(), uris);
     collect_values(block.slot.values(), uris);
 }
 
-fn collect_values<'a>(values: impl Iterator<Item = &'a Value>, uris: &mut Vec<String>) {
+fn collect_values<'a>(values: impl Iterator<Item = &'a Value>, uris: &mut Vec<&'a str>) {
     for value in values {
         collect_value(value, uris);
     }
 }
 
-fn collect_value(value: &Value, uris: &mut Vec<String>) {
+fn collect_value<'a>(value: &'a Value, uris: &mut Vec<&'a str>) {
     match value {
         Value::String(uri) => push_uri(uri, uris),
         Value::Array(values) => collect_values(values.iter(), uris),
@@ -65,8 +65,8 @@ fn collect_value(value: &Value, uris: &mut Vec<String>) {
     }
 }
 
-fn push_uri(uri: &str, uris: &mut Vec<String>) {
+fn push_uri<'a>(uri: &'a str, uris: &mut Vec<&'a str>) {
     if uri.starts_with("res://") || uri.starts_with("asset://") || uri.starts_with("project://") {
-        uris.push(uri.to_string());
+        uris.push(uri);
     }
 }

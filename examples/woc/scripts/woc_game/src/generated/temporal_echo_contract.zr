@@ -1,0 +1,7 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub echoKind(): string { return "temporal_echo"; }
+pub duration(): float { return 15.0; }
+pub singleRate(): float { return 0.35; }
+pub areaRate(): float { return 0.15; }
+pub groupSingleRate(): float { return 0.13; }
+pub groupAreaRate(): float { return 0.06; }

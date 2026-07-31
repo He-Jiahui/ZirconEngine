@@ -1,6 +1,5 @@
 use unicode_segmentation::UnicodeSegmentation;
 
-const OVERFLOW_EPSILON: f32 = 0.01;
 pub(crate) const ELLIPSIS: &str = "…";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -11,131 +10,109 @@ pub(crate) enum EllipsisPlacement {
     Middle,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum EllipsisSegment {
-    Text { start: usize, end: usize },
-    Ellipsis,
-}
-
-pub(crate) fn ellipsize_text<F>(
+pub(crate) fn retained_grapheme_counts(
     text: &str,
-    max_width: f32,
+    graphemes: &[(usize, usize)],
+    advances: &[f32],
+    available: f32,
     placement: EllipsisPlacement,
-    mut measure: F,
-) -> Vec<EllipsisSegment>
-where
-    F: FnMut(&str) -> f32,
-{
-    if measure(ELLIPSIS) > max_width + OVERFLOW_EPSILON {
-        return vec![EllipsisSegment::Ellipsis];
-    }
-
+) -> (usize, usize) {
     match placement {
-        EllipsisPlacement::End => end_ellipsis(text, max_width, &mut measure),
-        EllipsisPlacement::EndWord => end_word_ellipsis(text, max_width, &mut measure),
-        EllipsisPlacement::Start => start_ellipsis(text, max_width, &mut measure),
-        EllipsisPlacement::Middle => middle_ellipsis(text, max_width, &mut measure),
+        EllipsisPlacement::Start => (0, fitting_suffix_count(advances, available)),
+        EllipsisPlacement::Middle => middle_retained_grapheme_counts(advances, available),
+        EllipsisPlacement::EndWord => {
+            let fitted = fitting_prefix_count(advances, available);
+            let fitted_end = graphemes
+                .get(fitted.saturating_sub(1))
+                .map(|(_, end)| *end)
+                .unwrap_or_default();
+            let word_end = word_ellipsis_prefix_end(text, fitted_end);
+            (graphemes.partition_point(|&(_, end)| end <= word_end), 0)
+        }
+        EllipsisPlacement::End => (fitting_prefix_count(advances, available), 0),
     }
 }
 
-fn end_ellipsis(
-    text: &str,
-    max_width: f32,
-    measure: &mut dyn FnMut(&str) -> f32,
-) -> Vec<EllipsisSegment> {
-    let mut retained_end = 0;
-    for (start, grapheme) in text.grapheme_indices(true) {
-        let end = start + grapheme.len();
-        let mut candidate = String::with_capacity(end + ELLIPSIS.len());
-        candidate.push_str(&text[..end]);
-        candidate.push_str(ELLIPSIS);
-        if measure(&candidate) > max_width + OVERFLOW_EPSILON {
+fn middle_retained_grapheme_counts(advances: &[f32], available: f32) -> (usize, usize) {
+    let mut prefix_count = 0;
+    let mut suffix_count = 0;
+    let mut retained_width = 0.0;
+    let mut prefer_suffix = true;
+
+    loop {
+        let remaining = advances.len().saturating_sub(prefix_count + suffix_count);
+        if remaining == 0 {
             break;
         }
-        retained_end = end;
-    }
 
-    let mut segments = Vec::new();
-    if retained_end > 0 {
-        segments.push(EllipsisSegment::Text {
-            start: 0,
-            end: retained_end,
-        });
-    }
-    segments.push(EllipsisSegment::Ellipsis);
-    segments
-}
-
-fn end_word_ellipsis(
-    text: &str,
-    max_width: f32,
-    measure: &mut dyn FnMut(&str) -> f32,
-) -> Vec<EllipsisSegment> {
-    let mut retained_end = 0;
-    for (start, grapheme) in text.grapheme_indices(true) {
-        let end = start + grapheme.len();
-        let word_end = word_trim_end(text, end);
-        if word_end == 0 {
+        let next_index = if prefer_suffix {
+            advances.len() - suffix_count - 1
+        } else {
+            prefix_count
+        };
+        let next_width = advances[next_index];
+        if retained_width + next_width <= available {
+            retained_width += next_width;
+            if prefer_suffix {
+                suffix_count += 1;
+            } else {
+                prefix_count += 1;
+            }
+            prefer_suffix = !prefer_suffix;
             continue;
         }
-        let mut candidate = String::with_capacity(word_end + ELLIPSIS.len());
-        candidate.push_str(&text[..word_end]);
-        candidate.push_str(ELLIPSIS);
-        if measure(&candidate) > max_width + OVERFLOW_EPSILON {
+
+        if !prefer_suffix {
             break;
         }
-        retained_end = word_end;
+
+        let prefix_width = advances[prefix_count];
+        if retained_width + prefix_width > available {
+            break;
+        }
+        retained_width += prefix_width;
+        prefix_count += 1;
+        prefer_suffix = false;
     }
 
-    let mut segments = Vec::new();
-    if retained_end > 0 {
-        segments.push(EllipsisSegment::Text {
-            start: 0,
-            end: retained_end,
-        });
-    }
-    segments.push(EllipsisSegment::Ellipsis);
-    segments
+    (prefix_count, suffix_count)
 }
 
-fn start_ellipsis(
+pub(crate) fn trim_end_ellipsis_trailing_graphemes(
     text: &str,
-    max_width: f32,
-    measure: &mut dyn FnMut(&str) -> f32,
-) -> Vec<EllipsisSegment> {
-    let graphemes = text
-        .grapheme_indices(true)
-        .map(|(start, grapheme)| (start, start + grapheme.len()))
-        .collect::<Vec<_>>();
-    let mut retained_start = text.len();
-    for tail_count in 1..=graphemes.len() {
-        let tail_start = graphemes[graphemes.len() - tail_count].0;
-        let mut candidate = String::with_capacity(text.len() - tail_start + ELLIPSIS.len());
-        candidate.push_str(ELLIPSIS);
-        candidate.push_str(&text[tail_start..]);
-        if measure(&candidate) > max_width + OVERFLOW_EPSILON {
+    graphemes: &[(usize, usize)],
+    prefix_count: &mut usize,
+    placement: EllipsisPlacement,
+) {
+    if !matches!(
+        placement,
+        EllipsisPlacement::End | EllipsisPlacement::EndWord
+    ) {
+        return;
+    }
+    while *prefix_count > 0 {
+        let (start, end) = graphemes[*prefix_count - 1];
+        if !text[start..end].chars().all(char::is_whitespace) {
             break;
         }
-        retained_start = tail_start;
+        *prefix_count -= 1;
     }
-
-    let mut segments = vec![EllipsisSegment::Ellipsis];
-    if retained_start < text.len() {
-        segments.push(EllipsisSegment::Text {
-            start: retained_start,
-            end: text.len(),
-        });
-    }
-    segments
 }
 
-fn word_trim_end(text: &str, end: usize) -> usize {
-    let prefix = &text[..end];
+fn word_ellipsis_prefix_end(text: &str, end: usize) -> usize {
+    let Some(prefix) = text.get(..end) else {
+        return 0;
+    };
     let trimmed_end = prefix.trim_end_matches(char::is_whitespace).len();
     if trimmed_end == 0 {
         return 0;
     }
-    if trimmed_end < end || text[end..].chars().next().map_or(true, char::is_whitespace) {
+    if trimmed_end < end
+        || text
+            .get(end..)
+            .and_then(|suffix| suffix.chars().next())
+            .map_or(true, char::is_whitespace)
+    {
         return trimmed_end;
     }
 
@@ -152,103 +129,74 @@ fn word_trim_end(text: &str, end: usize) -> usize {
     0
 }
 
-fn middle_ellipsis(
-    text: &str,
-    max_width: f32,
-    measure: &mut dyn FnMut(&str) -> f32,
-) -> Vec<EllipsisSegment> {
-    let graphemes = text
-        .grapheme_indices(true)
-        .map(|(start, grapheme)| (start, start + grapheme.len()))
-        .collect::<Vec<_>>();
-    if graphemes.is_empty() {
-        return vec![EllipsisSegment::Ellipsis];
-    }
-
-    let mut head_count = 0;
-    let mut tail_count = 0;
-    let mut prefer_tail = true;
-    loop {
-        let remaining = graphemes.len().saturating_sub(head_count + tail_count);
-        if remaining == 0 {
-            break;
-        }
-
-        let next_head = if prefer_tail {
-            head_count
-        } else {
-            head_count + 1
-        };
-        let next_tail = if prefer_tail {
-            tail_count + 1
-        } else {
-            tail_count
-        };
-        if next_head + next_tail > graphemes.len() {
-            break;
-        }
-        if !middle_candidate_fits(text, &graphemes, next_head, next_tail, max_width, measure) {
-            if prefer_tail {
-                prefer_tail = false;
-                if head_count + 1 + tail_count <= graphemes.len()
-                    && middle_candidate_fits(
-                        text,
-                        &graphemes,
-                        head_count + 1,
-                        tail_count,
-                        max_width,
-                        measure,
-                    )
-                {
-                    head_count += 1;
-                } else {
-                    break;
-                }
-            } else {
-                break;
+fn fitting_prefix_count(advances: &[f32], available: f32) -> usize {
+    let mut width = 0.0;
+    advances
+        .iter()
+        .take_while(|advance| {
+            let fits = width + **advance <= available;
+            if fits {
+                width += **advance;
             }
-        } else if prefer_tail {
-            tail_count += 1;
-            prefer_tail = false;
-        } else {
-            head_count += 1;
-            prefer_tail = true;
-        }
-    }
-
-    let mut segments = Vec::new();
-    if head_count > 0 {
-        segments.push(EllipsisSegment::Text {
-            start: 0,
-            end: graphemes[head_count - 1].1,
-        });
-    }
-    segments.push(EllipsisSegment::Ellipsis);
-    if tail_count > 0 {
-        let tail_start = graphemes[graphemes.len() - tail_count].0;
-        segments.push(EllipsisSegment::Text {
-            start: tail_start,
-            end: text.len(),
-        });
-    }
-    segments
+            fits
+        })
+        .count()
 }
 
-fn middle_candidate_fits(
-    text: &str,
-    graphemes: &[(usize, usize)],
-    head_count: usize,
-    tail_count: usize,
-    max_width: f32,
-    measure: &mut dyn FnMut(&str) -> f32,
-) -> bool {
-    let mut candidate = String::with_capacity(text.len() + ELLIPSIS.len());
-    if head_count > 0 {
-        candidate.push_str(&text[..graphemes[head_count - 1].1]);
+fn fitting_suffix_count(advances: &[f32], available: f32) -> usize {
+    let mut width = 0.0;
+    advances
+        .iter()
+        .rev()
+        .take_while(|advance| {
+            let fits = width + **advance <= available;
+            if fits {
+                width += **advance;
+            }
+            fits
+        })
+        .count()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{retained_grapheme_counts, EllipsisPlacement};
+    use unicode_segmentation::UnicodeSegmentation;
+
+    #[test]
+    fn end_word_ellipsis_drops_an_incomplete_first_word() {
+        let text = "alpha beta";
+        let graphemes = text
+            .grapheme_indices(true)
+            .map(|(start, grapheme)| (start, start + grapheme.len()))
+            .collect::<Vec<_>>();
+        let advances = vec![1.0; graphemes.len()];
+
+        assert_eq!(
+            retained_grapheme_counts(text, &graphemes, &advances, 8.0, EllipsisPlacement::EndWord),
+            (5, 0),
+            "the incomplete `be` prefix must not survive a word ellipsis"
+        );
     }
-    candidate.push_str(ELLIPSIS);
-    if tail_count > 0 {
-        candidate.push_str(&text[graphemes[graphemes.len() - tail_count].0..]);
+
+    #[test]
+    fn middle_ellipsis_preserves_the_existing_suffix_first_selection_order() {
+        let text = "abcd";
+        let graphemes = text
+            .grapheme_indices(true)
+            .map(|(start, grapheme)| (start, start + grapheme.len()))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            retained_grapheme_counts(
+                text,
+                &graphemes,
+                &[1.0, 5.0, 5.0, 1.0],
+                6.0,
+                EllipsisPlacement::Middle,
+            ),
+            (1, 1),
+            "middle ellipsis must keep the old suffix-first alternating selection policy"
+        );
     }
-    measure(&candidate) <= max_width + OVERFLOW_EPSILON
 }

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var masterwork = %import("progression/masterwork_rules");
+
+console.printLine("m5-masterwork-rules-test");
+var result = masterwork.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,0 +1,10 @@
+[package]
+name = "woc_protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Neutral protocol identity and generated contracts for WOC."
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true

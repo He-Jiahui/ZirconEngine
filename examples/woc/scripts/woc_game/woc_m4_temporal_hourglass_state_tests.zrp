@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_temporal_hourglass_state_tests",
+  "source": "src",
+  "binary": "bin-m4-temporal-hourglass-state-tests",
+  "entry": "combat/temporal_hourglass_state_test_main"
+}

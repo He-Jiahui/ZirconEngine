@@ -1,0 +1,999 @@
+[asset]
+kind = "view"
+id = "res://ui/hud/in_world_hud.zui"
+version = 2
+display_name = "World of ClaudeCraft In-World HUD"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui", "res://ui/hud/hud_theme.zui"]
+resources = []
+
+[root]
+node = "hud_root"
+
+[nodes.combat_live]
+component = "Label"
+control_id = "CombatLiveRegion"
+classes = ["woc-live-region"]
+props = { text = "", overflow = "elide" }
+layout = { width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.target_live]
+component = "Label"
+control_id = "TargetLiveRegion"
+classes = ["woc-live-region"]
+props = { text = "", overflow = "elide" }
+layout = { width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.chat_live]
+component = "Label"
+control_id = "ChatLiveRegion"
+classes = ["woc-live-region"]
+props = { text = "", overflow = "elide" }
+layout = { width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.live_regions]
+component = "VerticalBox"
+control_id = "HudLiveRegions"
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -8.0, y = -8.0 }, width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" }, height = { min = 3.0, preferred = 3.0, max = 3.0, stretch = "Fixed" } }
+children = [{ node = "combat_live" }, { node = "target_live" }, { node = "chat_live" }]
+
+[nodes.target_portrait]
+component = "Space"
+control_id = "TargetPortraitHost"
+classes = ["woc-portrait"]
+layout = { width = { min = 60.0, preferred = 60.0, max = 60.0, stretch = "Fixed" }, height = { min = 60.0, preferred = 60.0, max = 60.0, stretch = "Fixed" } }
+
+[nodes.target_level]
+component = "Label"
+control_id = "TargetLevel"
+classes = ["woc-level-chip"]
+props = { text = "", text_align = "center" }
+layout = { anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = 2.0, y = 2.0 }, width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.target_portrait_wrap]
+component = "Overlay"
+control_id = "TargetPortrait"
+layout = { container = { kind = "Overlay" }, width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
+children = [{ node = "target_portrait" }, { node = "target_level" }]
+
+[nodes.target_name]
+component = "Label"
+control_id = "TargetName"
+classes = ["woc-unit-name"]
+props = { text = "", overflow = "elide", text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.target_health_fill]
+component = "Space"
+control_id = "TargetHealthFill"
+classes = ["woc-health-fill"]
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.target_absorb]
+component = "Space"
+control_id = "TargetAbsorbFill"
+classes = ["woc-absorb-fill"]
+props = { visibility = "collapsed" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.target_health_text]
+component = "Label"
+control_id = "TargetHealthText"
+classes = ["woc-bar-text"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.target_health]
+component = "Overlay"
+control_id = "TargetHealth"
+classes = ["woc-bar-rail"]
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+children = [{ node = "target_health_fill" }, { node = "target_absorb" }, { node = "target_health_text" }]
+
+[nodes.target_resource_fill]
+component = "Space"
+control_id = "TargetResourceFill"
+classes = ["woc-resource-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.target_resource_text]
+component = "Label"
+control_id = "TargetResourceText"
+classes = ["woc-bar-text"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.target_resource]
+component = "Overlay"
+control_id = "TargetResource"
+classes = ["woc-bar-rail"]
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+children = [{ node = "target_resource_fill" }, { node = "target_resource_text" }]
+
+[nodes.target_cast_fill]
+component = "Space"
+control_id = "TargetCastFill"
+classes = ["woc-cast-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.target_cast_text]
+component = "Label"
+control_id = "TargetCastText"
+classes = ["woc-bar-text"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.target_cast_bar]
+component = "Overlay"
+control_id = "TargetCastBar"
+classes = ["woc-bar-rail"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+children = [{ node = "target_cast_fill" }, { node = "target_cast_text" }]
+
+[nodes.target_info]
+component = "VerticalBox"
+control_id = "TargetInfo"
+layout = { container = { kind = "VerticalBox", gap = 2.0 }, padding = { left = 8.0, right = 18.0, top = 5.0, bottom = 5.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 64.0, preferred = 64.0, max = 82.0, stretch = "Fixed" } }
+children = [{ node = "target_name" }, { node = "target_health" }, { node = "target_resource" }, { node = "target_cast_bar" }]
+
+[nodes.target_body]
+component = "HorizontalBox"
+control_id = "TargetFrameBody"
+classes = ["woc-unit-frame", "woc-unit-frame-target"]
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 244.0, preferred = 244.0, max = 244.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 88.0, stretch = "Fixed" } }
+children = [{ node = "target_info" }, { node = "target_portrait_wrap" }]
+
+[nodes.target_debuffs]
+component = "HorizontalBox"
+control_id = "TargetDebuffs"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, anchor = { x = 0.0, y = 1.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 6.0 }, width = { min = 190.0, preferred = 244.0, max = 320.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 56.0, stretch = "Fixed" } }
+
+[nodes.tot_portrait]
+component = "Space"
+control_id = "TargetOfTargetPortraitHost"
+classes = ["woc-portrait"]
+layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+
+[nodes.tot_name]
+component = "Label"
+control_id = "TargetOfTargetName"
+classes = ["woc-unit-name"]
+props = { text = "", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.tot_health_fill]
+component = "Space"
+control_id = "TargetOfTargetHealthFill"
+classes = ["woc-health-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.tot_health_text]
+component = "Label"
+control_id = "TargetOfTargetHealthText"
+classes = ["woc-bar-text"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.tot_health]
+component = "Overlay"
+control_id = "TargetOfTargetHealth"
+classes = ["woc-bar-rail"]
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+children = [{ node = "tot_health_fill" }, { node = "tot_health_text" }]
+
+[nodes.tot_info]
+component = "VerticalBox"
+layout = { container = { kind = "VerticalBox", gap = 2.0 }, padding = { left = 7.0, right = 7.0, top = 4.0, bottom = 4.0 }, width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+children = [{ node = "tot_name" }, { node = "tot_health" }]
+
+[nodes.target_of_target]
+component = "HorizontalBox"
+control_id = "TargetOfTargetFrame"
+classes = ["woc-unit-frame"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 6.0 }, width = { min = 174.0, preferred = 174.0, max = 174.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "tot_info" }, { node = "tot_portrait" }]
+
+[nodes.target_frame]
+component = "Overlay"
+control_id = "TargetFrame"
+props = { visibility = "collapsed" }
+layout = { container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 12.0 }, width = { min = 244.0, preferred = 244.0, max = 320.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 148.0, stretch = "Fixed" } }
+children = [{ node = "target_body" }, { node = "target_debuffs" }, { node = "target_of_target" }]
+
+[nodes.quest_title]
+component = "Label"
+control_id = "QuestTrackerTitle"
+classes = ["woc-section-title"]
+props = { text = "Quests" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.quest_name]
+component = "Label"
+control_id = "QuestTrackerName"
+classes = ["woc-label"]
+props = { text = "", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.quest_objective]
+component = "Label"
+control_id = "QuestTrackerObjective"
+classes = ["woc-muted"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 44.0, max = 72.0, stretch = "Fixed" } }
+
+[nodes.quest_tracker]
+component = "VerticalBox"
+control_id = "QuestTracker"
+classes = ["woc-tracker"]
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, padding = { left = 12.0, right = 12.0, top = 9.0, bottom = 9.0 }, width = { min = 220.0, preferred = 260.0, max = 320.0, stretch = "Fixed" }, height = { min = 92.0, preferred = 106.0, max = 148.0, stretch = "Fixed" } }
+children = [{ node = "quest_title" }, { node = "quest_name" }, { node = "quest_objective" }]
+
+[nodes.tracker_stack]
+component = "VerticalBox"
+control_id = "RightTrackerStack"
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -24.0, y = 226.0 }, width = { min = 220.0, preferred = 260.0, max = 320.0, stretch = "Fixed" }, height = { min = 92.0, preferred = 106.0, max = 360.0, stretch = "Fixed" } }
+children = [{ node = "quest_tracker" }]
+
+[nodes.minimap_surface]
+component = "Space"
+control_id = "MinimapSurfaceHost"
+classes = ["woc-minimap"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.zone_name]
+component = "Label"
+control_id = "ZoneName"
+classes = ["woc-section-title"]
+props = { text = "Eastbrook Vale", text_align = "center", overflow = "elide" }
+layout = { anchor = { x = 0.5, y = 0.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 0.0, y = -4.0 }, width = { min = 150.0, preferred = 180.0, max = 220.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.minimap_coords]
+component = "Label"
+control_id = "MinimapCoordinates"
+classes = ["woc-muted"]
+props = { text = "0, 0", text_align = "center" }
+layout = { anchor = { x = 0.5, y = 1.0 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 4.0 }, width = { min = 90.0, preferred = 120.0, max = 140.0, stretch = "Fixed" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.minimap_cluster]
+component = "Overlay"
+control_id = "MinimapCluster"
+layout = { container = { kind = "Overlay" }, anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -24.0, y = 28.0 }, width = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" }, height = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" } }
+children = [{ node = "minimap_surface" }, { node = "zone_name" }, { node = "minimap_coords" }]
+
+[nodes.player_portrait]
+component = "Space"
+control_id = "PlayerPortraitHost"
+classes = ["woc-portrait"]
+layout = { width = { min = 60.0, preferred = 60.0, max = 60.0, stretch = "Fixed" }, height = { min = 60.0, preferred = 60.0, max = 60.0, stretch = "Fixed" } }
+
+[nodes.player_level]
+component = "Label"
+control_id = "PlayerLevel"
+classes = ["woc-level-chip"]
+props = { text = "1", text_align = "center" }
+layout = { anchor = { x = 0.0, y = 1.0 }, pivot = { x = 0.0, y = 1.0 }, position = { x = -2.0, y = 2.0 }, width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.player_portrait_wrap]
+component = "Overlay"
+control_id = "PlayerPortrait"
+layout = { container = { kind = "Overlay" }, width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
+children = [{ node = "player_portrait" }, { node = "player_level" }]
+
+[nodes.player_name]
+component = "Label"
+control_id = "PlayerName"
+classes = ["woc-unit-name"]
+props = { text = "", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.player_health_fill]
+component = "Space"
+control_id = "PlayerHealthFill"
+classes = ["woc-health-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.player_absorb]
+component = "Space"
+control_id = "PlayerAbsorbFill"
+classes = ["woc-absorb-fill"]
+props = { visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.player_health_text]
+component = "Label"
+control_id = "PlayerHealthText"
+classes = ["woc-bar-text"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.player_health]
+component = "Overlay"
+control_id = "PlayerHealth"
+classes = ["woc-bar-rail"]
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+children = [{ node = "player_health_fill" }, { node = "player_absorb" }, { node = "player_health_text" }]
+
+[nodes.player_resource_fill]
+component = "Space"
+control_id = "PlayerResourceFill"
+classes = ["woc-resource-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.player_resource_text]
+component = "Label"
+control_id = "PlayerResourceText"
+classes = ["woc-bar-text"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.player_resource]
+component = "Overlay"
+control_id = "PlayerResource"
+classes = ["woc-bar-rail"]
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+children = [{ node = "player_resource_fill" }, { node = "player_resource_text" }]
+
+[nodes.player_info]
+component = "VerticalBox"
+control_id = "PlayerInfo"
+layout = { container = { kind = "VerticalBox", gap = 2.0 }, padding = { left = 14.0, right = 8.0, top = 5.0, bottom = 5.0 }, width = { min = 520.0, preferred = 520.0, max = 520.0, stretch = "Fixed" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
+children = [{ node = "player_name" }, { node = "player_health" }, { node = "player_resource" }]
+
+[nodes.player_frame]
+component = "HorizontalBox"
+control_id = "PlayerFrame"
+classes = ["woc-unit-frame"]
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 612.0, preferred = 612.0, max = 612.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+children = [{ node = "player_portrait_wrap" }, { node = "player_info" }]
+
+[nodes.player_cast_fill]
+component = "Space"
+control_id = "PlayerCastFill"
+classes = ["woc-cast-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.player_cast_text]
+component = "Label"
+control_id = "PlayerCastText"
+classes = ["woc-bar-text"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.player_cast_bar]
+component = "Overlay"
+control_id = "PlayerCastBar"
+classes = ["woc-bar-rail"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "Overlay" }, width = { min = 300.0, preferred = 420.0, max = 612.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+children = [{ node = "player_cast_fill" }, { node = "player_cast_text" }]
+
+[nodes.xp_fill]
+component = "Space"
+control_id = "ExperienceFill"
+classes = ["woc-xp-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.xp_rested]
+component = "Space"
+control_id = "ExperienceRestedFill"
+classes = ["woc-xp-rested"]
+props = { visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.xp_text]
+component = "Label"
+control_id = "ExperienceText"
+classes = ["woc-bar-text"]
+props = { text = "", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.xp_bar]
+component = "Overlay"
+control_id = "ExperienceBar"
+classes = ["woc-bar-rail"]
+layout = { container = { kind = "Overlay" }, width = { min = 612.0, preferred = 612.0, max = 612.0, stretch = "Fixed" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+children = [{ node = "xp_fill" }, { node = "xp_rested" }, { node = "xp_text" }]
+
+[nodes.action_slot_0]
+component = "Button"
+control_id = "ActionSlot0"
+classes = ["woc-action-slot"]
+props = { text = "Attack", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/0", event = "Click", route = "woc.hud.action.activate.0" }]
+
+[nodes.action_slot_1]
+component = "Button"
+control_id = "ActionSlot1"
+classes = ["woc-action-slot"]
+props = { text = "1", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/1", event = "Click", route = "woc.hud.action.activate.1" }]
+
+[nodes.action_slot_2]
+component = "Button"
+control_id = "ActionSlot2"
+classes = ["woc-action-slot"]
+props = { text = "2", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/2", event = "Click", route = "woc.hud.action.activate.2" }]
+
+[nodes.action_slot_3]
+component = "Button"
+control_id = "ActionSlot3"
+classes = ["woc-action-slot"]
+props = { text = "3", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/3", event = "Click", route = "woc.hud.action.activate.3" }]
+
+[nodes.action_slot_4]
+component = "Button"
+control_id = "ActionSlot4"
+classes = ["woc-action-slot"]
+props = { text = "4", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/4", event = "Click", route = "woc.hud.action.activate.4" }]
+
+[nodes.action_slot_5]
+component = "Button"
+control_id = "ActionSlot5"
+classes = ["woc-action-slot"]
+props = { text = "5", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/5", event = "Click", route = "woc.hud.action.activate.5" }]
+
+[nodes.action_slot_6]
+component = "Button"
+control_id = "ActionSlot6"
+classes = ["woc-action-slot"]
+props = { text = "6", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/6", event = "Click", route = "woc.hud.action.activate.6" }]
+
+[nodes.action_slot_7]
+component = "Button"
+control_id = "ActionSlot7"
+classes = ["woc-action-slot"]
+props = { text = "7", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/7", event = "Click", route = "woc.hud.action.activate.7" }]
+
+[nodes.action_slot_8]
+component = "Button"
+control_id = "ActionSlot8"
+classes = ["woc-action-slot"]
+props = { text = "8", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/8", event = "Click", route = "woc.hud.action.activate.8" }]
+
+[nodes.action_slot_9]
+component = "Button"
+control_id = "ActionSlot9"
+classes = ["woc-action-slot"]
+props = { text = "9", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/9", event = "Click", route = "woc.hud.action.activate.9" }]
+
+[nodes.action_slot_10]
+component = "Button"
+control_id = "ActionSlot10"
+classes = ["woc-action-slot"]
+props = { text = "0", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/10", event = "Click", route = "woc.hud.action.activate.10" }]
+
+[nodes.action_slot_11]
+component = "Button"
+control_id = "ActionSlot11"
+classes = ["woc-action-slot"]
+props = { text = "-", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/11", event = "Click", route = "woc.hud.action.activate.11" }]
+
+[nodes.action_slot_12]
+component = "Button"
+control_id = "ActionSlot12"
+classes = ["woc-action-slot"]
+props = { text = "S1", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/12", event = "Click", route = "woc.hud.action.activate.12" }]
+
+[nodes.action_slot_13]
+component = "Button"
+control_id = "ActionSlot13"
+classes = ["woc-action-slot"]
+props = { text = "S2", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/13", event = "Click", route = "woc.hud.action.activate.13" }]
+
+[nodes.action_slot_14]
+component = "Button"
+control_id = "ActionSlot14"
+classes = ["woc-action-slot"]
+props = { text = "S3", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/14", event = "Click", route = "woc.hud.action.activate.14" }]
+
+[nodes.action_slot_15]
+component = "Button"
+control_id = "ActionSlot15"
+classes = ["woc-action-slot"]
+props = { text = "S4", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/15", event = "Click", route = "woc.hud.action.activate.15" }]
+
+[nodes.action_slot_16]
+component = "Button"
+control_id = "ActionSlot16"
+classes = ["woc-action-slot"]
+props = { text = "S5", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/16", event = "Click", route = "woc.hud.action.activate.16" }]
+
+[nodes.action_slot_17]
+component = "Button"
+control_id = "ActionSlot17"
+classes = ["woc-action-slot"]
+props = { text = "S6", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/17", event = "Click", route = "woc.hud.action.activate.17" }]
+
+[nodes.action_slot_18]
+component = "Button"
+control_id = "ActionSlot18"
+classes = ["woc-action-slot"]
+props = { text = "S7", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/18", event = "Click", route = "woc.hud.action.activate.18" }]
+
+[nodes.action_slot_19]
+component = "Button"
+control_id = "ActionSlot19"
+classes = ["woc-action-slot"]
+props = { text = "S8", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/19", event = "Click", route = "woc.hud.action.activate.19" }]
+
+[nodes.action_slot_20]
+component = "Button"
+control_id = "ActionSlot20"
+classes = ["woc-action-slot"]
+props = { text = "S9", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/20", event = "Click", route = "woc.hud.action.activate.20" }]
+
+[nodes.action_slot_21]
+component = "Button"
+control_id = "ActionSlot21"
+classes = ["woc-action-slot"]
+props = { text = "S0", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/21", event = "Click", route = "woc.hud.action.activate.21" }]
+
+[nodes.action_slot_22]
+component = "Button"
+control_id = "ActionSlot22"
+classes = ["woc-action-slot"]
+props = { text = "S-", button_variant = "outlined" }
+layout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Action/22", event = "Click", route = "woc.hud.action.activate.22" }]
+
+[nodes.primary_action_bar]
+component = "HorizontalBox"
+control_id = "PrimaryActionBar"
+classes = ["woc-action-bar"]
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, padding = { left = 6.0, right = 6.0, top = 6.0, bottom = 6.0 }, width = { min = 612.0, preferred = 612.0, max = 612.0, stretch = "Fixed" }, height = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" } }
+children = [{ node = "action_slot_0" }, { node = "action_slot_1" }, { node = "action_slot_2" }, { node = "action_slot_3" }, { node = "action_slot_4" }, { node = "action_slot_5" }, { node = "action_slot_6" }, { node = "action_slot_7" }, { node = "action_slot_8" }, { node = "action_slot_9" }, { node = "action_slot_10" }, { node = "action_slot_11" }]
+
+[nodes.secondary_action_bar]
+component = "HorizontalBox"
+control_id = "SecondaryActionBar"
+classes = ["woc-action-bar"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, padding = { left = 6.0, right = 6.0, top = 4.0, bottom = 4.0 }, width = { min = 562.0, preferred = 562.0, max = 612.0, stretch = "Fixed" }, height = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" } }
+children = [{ node = "action_slot_12" }, { node = "action_slot_13" }, { node = "action_slot_14" }, { node = "action_slot_15" }, { node = "action_slot_16" }, { node = "action_slot_17" }, { node = "action_slot_18" }, { node = "action_slot_19" }, { node = "action_slot_20" }, { node = "action_slot_21" }, { node = "action_slot_22" }]
+
+[nodes.desktop_bottom]
+component = "VerticalBox"
+control_id = "DesktopBottomCluster"
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, anchor = { x = 0.5, y = 1.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 0.0, y = -6.0 }, width = { min = 612.0, preferred = 612.0, max = 612.0, stretch = "Fixed" }, height = { min = 144.0, preferred = 144.0, max = 268.0, stretch = "Fixed" } }
+children = [{ node = "player_cast_bar" }, { node = "player_frame" }, { node = "xp_bar" }, { node = "secondary_action_bar" }, { node = "primary_action_bar" }]
+
+[nodes.low_health_vignette]
+component = "Space"
+control_id = "LowHealthVignette"
+classes = ["woc-low-health-vignette"]
+props = { visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.desktop_hud]
+component = "Overlay"
+control_id = "DesktopHudLayer"
+props = { visibility = { xs = "collapsed", md = "visible" } }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "target_frame" }, { node = "tracker_stack" }, { node = "minimap_cluster" }, { node = "desktop_bottom" }, { node = "low_health_vignette" }]
+
+[nodes.touch_player_name]
+component = "Label"
+control_id = "TouchPlayerName"
+classes = ["woc-unit-name"]
+props = { text = "", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.touch_player_health_fill]
+component = "Space"
+control_id = "TouchPlayerHealthFill"
+classes = ["woc-health-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.touch_player_health]
+component = "Overlay"
+control_id = "TouchPlayerHealth"
+classes = ["woc-bar-rail"]
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+children = [{ node = "touch_player_health_fill" }]
+
+[nodes.touch_player_resource_fill]
+component = "Space"
+control_id = "TouchPlayerResourceFill"
+classes = ["woc-resource-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.touch_player_resource]
+component = "Overlay"
+control_id = "TouchPlayerResource"
+classes = ["woc-bar-rail"]
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+children = [{ node = "touch_player_resource_fill" }]
+
+[nodes.touch_player_frame]
+component = "VerticalBox"
+control_id = "TouchPlayerFrame"
+classes = ["woc-unit-frame"]
+layout = { container = { kind = "VerticalBox", gap = 2.0 }, padding = { left = 8.0, right = 8.0, top = 5.0, bottom = 5.0 }, anchor = { x = 0.5, y = 1.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 0.0, y = -12.0 }, width = { min = 220.0, preferred = 246.0, max = 280.0, stretch = "Fixed" }, height = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" } }
+children = [{ node = "touch_player_name" }, { node = "touch_player_health" }, { node = "touch_player_resource" }]
+
+[nodes.touch_target_name]
+component = "Label"
+control_id = "TouchTargetName"
+classes = ["woc-unit-name"]
+props = { text = "", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.touch_target_health_fill]
+component = "Space"
+control_id = "TouchTargetHealthFill"
+classes = ["woc-health-fill"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.touch_target_health]
+component = "Overlay"
+control_id = "TouchTargetHealth"
+classes = ["woc-bar-rail"]
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+children = [{ node = "touch_target_health_fill" }]
+
+[nodes.touch_target_frame]
+component = "VerticalBox"
+control_id = "TouchTargetFrame"
+classes = ["woc-unit-frame", "woc-unit-frame-target"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, padding = { left = 8.0, right = 8.0, top = 6.0, bottom = 6.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 18.0, y = 78.0 }, width = { min = 190.0, preferred = 210.0, max = 240.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+children = [{ node = "touch_target_name" }, { node = "touch_target_health" }]
+
+[nodes.touch_move_zone]
+component = "Space"
+control_id = "TouchMoveZone"
+classes = ["woc-touch-zone"]
+layout = { anchor = { x = 0.0, y = 1.0 }, pivot = { x = 0.0, y = 1.0 }, position = { x = 18.0, y = -18.0 }, width = { min = 136.0, preferred = 156.0, max = 176.0, stretch = "Fixed" }, height = { min = 136.0, preferred = 156.0, max = 176.0, stretch = "Fixed" } }
+
+[nodes.touch_camera_zone]
+component = "Space"
+control_id = "TouchCameraZone"
+classes = ["woc-touch-zone"]
+layout = { anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -18.0, y = -18.0 }, width = { min = 136.0, preferred = 156.0, max = 176.0, stretch = "Fixed" }, height = { min = 136.0, preferred = 156.0, max = 176.0, stretch = "Fixed" } }
+
+[nodes.touch_chat]
+component = "Button"
+control_id = "TouchChat"
+classes = ["woc-touch-action"]
+props = { text = "Chat", button_variant = "outlined" }
+layout = { width = { min = 48.0, preferred = 54.0, max = 60.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Chat", event = "Click", route = "woc.hud.touch.open_chat" }]
+
+[nodes.touch_social]
+component = "Button"
+control_id = "TouchSocial"
+classes = ["woc-touch-action"]
+props = { text = "Social", button_variant = "outlined" }
+layout = { width = { min = 54.0, preferred = 58.0, max = 64.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Social", event = "Click", route = "woc.hud.touch.open_social" }]
+
+[nodes.touch_quest]
+component = "Button"
+control_id = "TouchQuest"
+classes = ["woc-touch-action"]
+props = { text = "Quests", button_variant = "outlined" }
+layout = { width = { min = 54.0, preferred = 58.0, max = 64.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Quest", event = "Click", route = "woc.hud.touch.open_quests" }]
+
+[nodes.touch_menu]
+component = "Button"
+control_id = "TouchMenu"
+classes = ["woc-touch-action"]
+props = { text = "Menu", button_variant = "outlined" }
+layout = { width = { min = 48.0, preferred = 54.0, max = 60.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Menu", event = "Click", route = "woc.hud.pause.open" }]
+
+[nodes.touch_more]
+component = "Button"
+control_id = "TouchMore"
+classes = ["woc-touch-action"]
+props = { text = "More", button_variant = "outlined" }
+layout = { width = { min = 48.0, preferred = 54.0, max = 60.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/More", event = "Click", route = "woc.hud.touch.open_more" }]
+
+[nodes.touch_top_actions]
+component = "HorizontalBox"
+control_id = "TouchTopActions"
+layout = { container = { kind = "HorizontalBox", gap = 5.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 16.0, y = 16.0 }, width = { min = 280.0, preferred = 310.0, max = 340.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+children = [{ node = "touch_chat" }, { node = "touch_social" }, { node = "touch_quest" }, { node = "touch_menu" }, { node = "touch_more" }]
+
+[nodes.touch_action_0]
+component = "Button"
+control_id = "TouchAction0"
+classes = ["woc-touch-action"]
+props = { text = "1", button_variant = "outlined" }
+layout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 4.0, y = 76.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Action/0", event = "Click", route = "woc.hud.touch.activate.0" }]
+
+[nodes.touch_action_1]
+component = "Button"
+control_id = "TouchAction1"
+classes = ["woc-touch-action"]
+props = { text = "2", button_variant = "outlined" }
+layout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 42.0, y = 24.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Action/1", event = "Click", route = "woc.hud.touch.activate.1" }]
+
+[nodes.touch_action_2]
+component = "Button"
+control_id = "TouchAction2"
+classes = ["woc-touch-action"]
+props = { text = "3", button_variant = "outlined" }
+layout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 102.0, y = 4.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Action/2", event = "Click", route = "woc.hud.touch.activate.2" }]
+
+[nodes.touch_action_3]
+component = "Button"
+control_id = "TouchAction3"
+classes = ["woc-touch-action"]
+props = { text = "4", button_variant = "outlined" }
+layout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 162.0, y = 24.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Action/3", event = "Click", route = "woc.hud.touch.activate.3" }]
+
+[nodes.touch_action_4]
+component = "Button"
+control_id = "TouchAction4"
+classes = ["woc-touch-action"]
+props = { text = "5", button_variant = "outlined" }
+layout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 200.0, y = 76.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Action/4", event = "Click", route = "woc.hud.touch.activate.4" }]
+
+[nodes.touch_attack]
+component = "Button"
+control_id = "TouchAttack"
+classes = ["woc-touch-action"]
+props = { text = "Attack", button_variant = "contained" }
+layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 20.0 }, width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Attack", event = "Click", route = "woc.hud.touch.attack" }]
+
+[nodes.touch_target]
+component = "Button"
+control_id = "TouchTargetCycle"
+classes = ["woc-touch-action"]
+props = { text = "Target", button_variant = "outlined" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -2.0, y = 132.0 }, width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Target", event = "Click", route = "woc.hud.touch.target_cycle" }]
+
+[nodes.touch_interact]
+component = "Button"
+control_id = "TouchInteract"
+classes = ["woc-touch-action"]
+props = { text = "Use", button_variant = "outlined" }
+layout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 2.0, y = 132.0 }, width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Interact", event = "Click", route = "woc.hud.touch.interact" }]
+
+[nodes.touch_jump]
+component = "Button"
+control_id = "TouchJump"
+classes = ["woc-touch-action"]
+props = { text = "Jump", button_variant = "outlined" }
+layout = { anchor = { x = 0.5, y = 1.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Jump", event = "Click", route = "woc.hud.touch.jump" }]
+
+[nodes.touch_page]
+component = "Button"
+control_id = "TouchActionPage"
+classes = ["woc-touch-action"]
+props = { text = "1 / 2", button_variant = "outlined" }
+layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = -28.0 }, width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Page", event = "Click", route = "woc.hud.touch.next_page" }]
+
+[nodes.touch_action_ring]
+component = "Overlay"
+control_id = "TouchActionRing"
+layout = { container = { kind = "Overlay" }, anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -14.0, y = -14.0 }, width = { min = 254.0, preferred = 254.0, max = 254.0, stretch = "Fixed" }, height = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" } }
+children = [{ node = "touch_action_0" }, { node = "touch_action_1" }, { node = "touch_action_2" }, { node = "touch_action_3" }, { node = "touch_action_4" }, { node = "touch_attack" }, { node = "touch_target" }, { node = "touch_interact" }, { node = "touch_jump" }, { node = "touch_page" }]
+
+[nodes.touch_consumable_0]
+component = "Button"
+control_id = "TouchConsumable0"
+classes = ["woc-touch-action"]
+props = { text = "1", button_variant = "outlined" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Consume/0", event = "Click", route = "woc.hud.touch.consume.0" }]
+
+[nodes.touch_consumable_1]
+component = "Button"
+control_id = "TouchConsumable1"
+classes = ["woc-touch-action"]
+props = { text = "2", button_variant = "outlined" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Consume/1", event = "Click", route = "woc.hud.touch.consume.1" }]
+
+[nodes.touch_consumable_2]
+component = "Button"
+control_id = "TouchConsumable2"
+classes = ["woc-touch-action"]
+props = { text = "3", button_variant = "outlined" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Consume/2", event = "Click", route = "woc.hud.touch.consume.2" }]
+
+[nodes.touch_consumable_3]
+component = "Button"
+control_id = "TouchConsumable3"
+classes = ["woc-touch-action"]
+props = { text = "4", button_variant = "outlined" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Consume/3", event = "Click", route = "woc.hud.touch.consume.3" }]
+
+[nodes.touch_consumable_4]
+component = "Button"
+control_id = "TouchConsumable4"
+classes = ["woc-touch-action"]
+props = { text = "5", button_variant = "outlined" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Consume/4", event = "Click", route = "woc.hud.touch.consume.4" }]
+
+[nodes.touch_consumable_5]
+component = "Button"
+control_id = "TouchConsumable5"
+classes = ["woc-touch-action"]
+props = { text = "6", button_variant = "outlined" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Consume/5", event = "Click", route = "woc.hud.touch.consume.5" }]
+
+[nodes.touch_consumables]
+component = "HorizontalBox"
+control_id = "TouchConsumables"
+props = { visibility = "collapsed" }
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 16.0, y = 66.0 }, width = { min = 284.0, preferred = 284.0, max = 284.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "touch_consumable_0" }, { node = "touch_consumable_1" }, { node = "touch_consumable_2" }, { node = "touch_consumable_3" }, { node = "touch_consumable_4" }, { node = "touch_consumable_5" }]
+
+[nodes.touch_consumables_toggle]
+component = "Button"
+control_id = "TouchConsumablesToggle"
+classes = ["woc-touch-action"]
+props = { text = "Items", button_variant = "outlined" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 16.0, y = 116.0 }, width = { min = 54.0, preferred = 58.0, max = 64.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Touch/Consumables", event = "Click", route = "woc.hud.touch.toggle_consumables" }]
+
+[nodes.touch_hud]
+component = "Overlay"
+control_id = "TouchHudLayer"
+props = { visibility = { xs = "visible", md = "collapsed" } }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "touch_move_zone" }, { node = "touch_camera_zone" }, { node = "touch_target_frame" }, { node = "touch_player_frame" }, { node = "touch_top_actions" }, { node = "touch_consumables" }, { node = "touch_consumables_toggle" }, { node = "touch_action_ring" }]
+
+[nodes.pause_keybinds]
+component = "Button"
+control_id = "PauseKeyBindings"
+classes = ["woc-pause-action"]
+props = { text = "Key Bindings", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Pause/KeyBindings", event = "Click", route = "woc.hud.pause.open.keybinds" }]
+
+[nodes.pause_controller]
+component = "Button"
+control_id = "PauseController"
+classes = ["woc-pause-action"]
+props = { text = "Controller", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Pause/Controller", event = "Click", route = "woc.hud.pause.open.controller" }]
+
+[nodes.pause_graphics]
+component = "Button"
+control_id = "PauseGraphics"
+classes = ["woc-pause-action"]
+props = { text = "Graphics", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Pause/Graphics", event = "Click", route = "woc.hud.pause.open.graphics" }]
+
+[nodes.pause_interface]
+component = "Button"
+control_id = "PauseInterface"
+classes = ["woc-pause-action"]
+props = { text = "Interface", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Pause/Interface", event = "Click", route = "woc.hud.pause.open.interface" }]
+
+[nodes.pause_audio]
+component = "Button"
+control_id = "PauseAudio"
+classes = ["woc-pause-action"]
+props = { text = "Audio", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Pause/Audio", event = "Click", route = "woc.hud.pause.open.audio" }]
+
+[nodes.pause_performance]
+component = "Button"
+control_id = "PausePerformance"
+classes = ["woc-pause-action"]
+props = { text = "Performance", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Pause/Performance", event = "Click", route = "woc.hud.pause.open.performance" }]
+
+[nodes.pause_bug_report]
+component = "Button"
+control_id = "PauseBugReport"
+classes = ["woc-pause-action"]
+props = { text = "Report a Bug", button_variant = "outlined", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Pause/BugReport", event = "Click", route = "woc.hud.pause.open.bug_report" }]
+
+[nodes.pause_logout]
+component = "Button"
+control_id = "PauseLogout"
+classes = ["woc-pause-action"]
+props = { text = "Log Out", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Pause/Logout", event = "Click", route = "woc.hud.pause.logout" }]
+
+[nodes.pause_return]
+component = "Button"
+control_id = "PauseReturnToGame"
+classes = ["woc-primary-action"]
+props = { text = "Return to Game", button_variant = "contained" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocHud/Pause/Return", event = "Click", route = "woc.hud.pause.return_to_game" }]
+
+[nodes.pause_menu]
+component = "VerticalBox"
+control_id = "PauseMenu"
+classes = ["woc-pause-menu"]
+layout = { container = { kind = "VerticalBox", gap = 7.0 }, padding = { left = 20.0, right = 20.0, top = 20.0, bottom = 20.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, width = { min = 300.0, preferred = 340.0, max = 380.0, stretch = "Fixed" }, height = { min = 392.0, preferred = 448.0, max = 520.0, stretch = "Fixed" } }
+children = [{ node = "pause_keybinds" }, { node = "pause_controller" }, { node = "pause_graphics" }, { node = "pause_interface" }, { node = "pause_audio" }, { node = "pause_performance" }, { node = "pause_bug_report" }, { node = "pause_logout" }, { node = "pause_return" }]
+
+[nodes.pause_scrim]
+component = "Space"
+control_id = "PauseScrim"
+classes = ["woc-pause-scrim"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.pause_layer]
+component = "Overlay"
+control_id = "PauseLayer"
+props = { visibility = "collapsed" }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "pause_scrim" }, { node = "pause_menu" }]
+
+[nodes.hud_root]
+component = "Overlay"
+control_id = "InWorldHud"
+classes = ["woc-hud-root"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "live_regions" }, { node = "desktop_hud" }, { node = "touch_hud" }, { node = "pause_layer" }]

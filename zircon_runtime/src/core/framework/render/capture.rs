@@ -109,6 +109,7 @@ pub struct CapturedFrame {
     pub generation: u64,
     pub capture_report: RenderCaptureReport,
     pub graph_dump: Option<String>,
+    pub frame_profile_json: Option<String>,
 }
 
 impl CapturedFrame {
@@ -151,6 +152,26 @@ impl CapturedFrame {
         capture_report: RenderCaptureReport,
         graph_dump: Option<String>,
     ) -> Self {
+        Self::with_capture_report_graph_dump_and_frame_profile_json(
+            width,
+            height,
+            rgba,
+            generation,
+            capture_report,
+            graph_dump,
+            None,
+        )
+    }
+
+    pub fn with_capture_report_graph_dump_and_frame_profile_json(
+        width: u32,
+        height: u32,
+        rgba: Vec<u8>,
+        generation: u64,
+        capture_report: RenderCaptureReport,
+        graph_dump: Option<String>,
+        frame_profile_json: Option<String>,
+    ) -> Self {
         Self {
             width,
             height,
@@ -158,6 +179,7 @@ impl CapturedFrame {
             generation,
             capture_report,
             graph_dump,
+            frame_profile_json,
         }
     }
 }
@@ -180,6 +202,7 @@ mod tests {
         );
         assert_eq!(frame.capture_report.output_size, UVec2::new(16, 8));
         assert_eq!(frame.graph_dump, None);
+        assert_eq!(frame.frame_profile_json, None);
     }
 
     #[test]
@@ -209,6 +232,28 @@ mod tests {
         assert_eq!(
             converted.writeback_status,
             RenderCameraTargetWritebackStatus::Converted
+        );
+    }
+
+    #[test]
+    fn capture_can_carry_profile_json_with_its_graph_dump() {
+        let frame = CapturedFrame::with_capture_report_graph_dump_and_frame_profile_json(
+            16,
+            8,
+            vec![0; 16 * 8 * 4],
+            7,
+            RenderCaptureReport::framework_offscreen(
+                RenderCameraTargetKind::PrimarySurface,
+                UVec2::new(16, 8),
+            ),
+            Some("MainScene".to_string()),
+            Some("{\"frame_generation\":7}".to_string()),
+        );
+
+        assert_eq!(frame.graph_dump.as_deref(), Some("MainScene"));
+        assert_eq!(
+            frame.frame_profile_json.as_deref(),
+            Some("{\"frame_generation\":7}")
         );
     }
 }

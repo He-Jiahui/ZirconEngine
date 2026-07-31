@@ -1,6 +1,14 @@
 use super::*;
 
 #[test]
+fn screen_space_ui_rich_inline_reuses_the_command_parse() {
+    let source = include_str!("../rich_text.rs");
+    let parse_call = ["parse_rich", "_text("].concat();
+
+    assert_eq!(source.matches(&parse_call).count(), 1);
+}
+
+#[test]
 fn screen_space_ui_plan_places_html_inline_image_without_placeholder_glyph() {
     let markup = "before<img src=\"res://icons/star.png\" width=\"16\" height=\"24\">after";
     let style = UiResolvedStyle {
@@ -50,10 +58,11 @@ fn screen_space_ui_plan_places_html_inline_image_without_placeholder_glyph() {
     assert_eq!(plan.native_texts.len(), 2);
     assert_eq!(plan.native_texts[0].text, "before");
     assert_eq!(plan.native_texts[1].text, "after");
-    assert!(plan
-        .native_texts
-        .iter()
-        .all(|batch| !batch.text.contains('\u{fffc}')));
+    assert!(
+        plan.native_texts
+            .iter()
+            .all(|batch| !batch.text.contains('\u{fffc}'))
+    );
 }
 
 #[test]
@@ -97,10 +106,11 @@ fn screen_space_ui_plan_renders_bbcode_icon_as_glyph_batch() {
         .find(|batch| batch.text == "★")
         .expect("inline icon glyph batch");
     assert_eq!(icon.font_family.as_deref(), Some("Zircon Icons"));
-    assert!(plan
-        .native_texts
-        .iter()
-        .all(|batch| !batch.text.contains('\u{fffc}')));
+    assert!(
+        plan.native_texts
+            .iter()
+            .all(|batch| !batch.text.contains('\u{fffc}'))
+    );
     assert!(plan.images.is_empty());
     assert!(plan.vertices.is_empty());
 }
@@ -145,10 +155,11 @@ fn screen_space_ui_plan_keeps_inline_image_retained_by_ellipsis() {
 
     assert_eq!(plan.images.len(), 1);
     assert!((plan.images[0].frame.width - 16.0).abs() < 0.01);
-    assert!(plan
-        .native_texts
-        .iter()
-        .all(|batch| !batch.text.contains('\u{fffc}')));
+    assert!(
+        plan.native_texts
+            .iter()
+            .all(|batch| !batch.text.contains('\u{fffc}'))
+    );
 }
 
 #[test]

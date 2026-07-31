@@ -1,0 +1,140 @@
+// Pure projection of delveChestItemsForTier. The authoritative Delve reducer
+// observes any required shared-RNG draw and applies the resulting item IDs to
+// inventory; this module neither draws RNG nor owns an item collection.
+var lockpickContent = %import("instances/delve_lockpick_content");
+var clearRewards = %import("instances/delve_clear_rewards_rules");
+
+requireAnte(ante: int, required: bool): void {
+    if (!required || ante < 1 || ante > 3) {
+        throw "woc Delve lockpick reward ante is invalid";
+    }
+}
+
+requireUnit(draw: float, required: bool): void {
+    if (!required || draw < 0.0 || draw >= 1.0) {
+        throw "woc Delve lockpick reward draw is invalid";
+    }
+}
+
+// 0=WAR, 1=ROG, 2=MAG. This matches the target's default WAR fallback.
+pub classArchetypeIndex(classId: string, required: bool): int {
+    if (!required) { throw "woc Delve lockpick reward class is required"; }
+    if (classId == "rogue" || classId == "hunter") { return 1; }
+    if (classId == "mage" || classId == "priest" || classId == "warlock" ||
+        classId == "druid") {
+        return 2;
+    }
+    return 0;
+}
+
+// The source only consults ctx.rng for regular premium WAR/MAG and low loot.
+// Bountiful, medium and premium ROG paths must leave the shared stream alone.
+pub requiresObservedDraw(ante: int, classId: string, bountiful: bool, required: bool): bool {
+    requireAnte(ante, required);
+    if (bountiful || ante == 2) { return false; }
+    if (ante == 3) { return true; }
+    return classArchetypeIndex(classId, true) != 1;
+}
+
+pub itemCount(ante: int, classId: string, bountiful: bool, required: bool): int {
+    requireAnte(ante, required);
+    if (bountiful) { return 2; }
+    return ante == 1 && classArchetypeIndex(classId, true) == 1 ? 2 : 1;
+}
+
+// Mirrors grantLockpickBonus. The target derives its copper base from each
+// Delve's baseRewards, which is the current Normal clear range in this catalog.
+pub bonusMarks(ante: int, required: bool): int {
+    requireAnte(ante, required);
+    return lockpickContent.rewardBonusMarksForAnte(ante, true);
+}
+
+pub bonusCopper(delveId: string, ante: int, required: bool): int {
+    requireAnte(ante, required);
+    if (clearRewards.delveIndex(delveId) < 0) {
+        throw "woc Delve lockpick reward Delve is invalid";
+    }
+    var minimum = clearRewards.copperMinimum(delveId, "normal");
+    var maximum = clearRewards.copperMaximum(delveId, "normal");
+    var baseCopper = <int>(<float>(minimum + maximum) * 0.5 + 0.5);
+    var numerator = lockpickContent.rewardCopperNumeratorForAnte(ante, true);
+    var denominator = lockpickContent.rewardCopperDenominatorForAnte(ante, true);
+    return <int>(<float>baseCopper *
+        (<float>(numerator - denominator) / <float>denominator) + 0.5);
+}
+
+pub itemId(
+    ante: int,
+    classId: string,
+    bountiful: bool,
+    observedDraw: float,
+    ordinal: int,
+    required: bool
+): string {
+    requireAnte(ante, required);
+    requireUnit(observedDraw, required);
+    var count = itemCount(ante, classId, bountiful, true);
+    if (ordinal < 0 || ordinal >= count) {
+        throw "woc Delve lockpick reward ordinal is invalid";
+    }
+    var archetype = classArchetypeIndex(classId, true);
+    if (bountiful) {
+        if (archetype == 0) {
+            return ordinal == 0 ? "deacon_reliquary_helm" : "reliquary_plate_chest";
+        }
+        if (archetype == 1) {
+            return ordinal == 0 ? "reliquary_leather_chest" : "reliquary_gloves_rog";
+        }
+        return ordinal == 0 ? "varric_shadow_cowl" : "reliquary_cloth_chest";
+    }
+    if (ante == 1) {
+        if (archetype == 1) {
+            return ordinal == 0 ? "reliquary_leather_chest" : "reliquary_gloves_rog";
+        }
+        if (archetype == 0) {
+            return observedDraw < 0.5 ? "deacon_reliquary_helm" : "reliquary_plate_chest";
+        }
+        return observedDraw < 0.5 ? "varric_shadow_cowl" : "reliquary_cloth_chest";
+    }
+    if (ante == 2) {
+        if (archetype == 0) { return "reliquary_plate_chest"; }
+        return archetype == 1 ? "reliquary_leather_chest" : "reliquary_cloth_chest";
+    }
+    return observedDraw < 0.5 ? "reliquary_legs" : "reliquary_shoulder";
+}
+
+pub contractTest(): int {
+    if (classArchetypeIndex("paladin", true) != 0 ||
+        classArchetypeIndex("shaman", true) != 0 ||
+        classArchetypeIndex("rogue", true) != 1 ||
+        classArchetypeIndex("hunter", true) != 1 ||
+        classArchetypeIndex("mage", true) != 2 ||
+        classArchetypeIndex("warlock", true) != 2 ||
+        classArchetypeIndex("druid", true) != 2 ||
+        !requiresObservedDraw(1, "warrior", false, true) ||
+        requiresObservedDraw(1, "rogue", false, true) ||
+        requiresObservedDraw(2, "mage", false, true) ||
+        !requiresObservedDraw(3, "mage", false, true) ||
+        requiresObservedDraw(1, "warrior", true, true) ||
+        bonusMarks(1, true) != 2 || bonusMarks(2, true) != 1 ||
+        bonusMarks(3, true) != 0 ||
+        bonusCopper("collapsed_reliquary", 1, true) != 11 ||
+        bonusCopper("collapsed_reliquary", 2, true) != 6 ||
+        bonusCopper("drowned_litany", 1, true) != 24 ||
+        bonusCopper("drowned_litany", 2, true) != 12) {
+        return -1;
+    }
+    if (itemCount(1, "warrior", true, true) != 2 ||
+        itemCount(1, "rogue", false, true) != 2 ||
+        itemCount(2, "warlock", false, true) != 1 ||
+        itemId(1, "warrior", true, 0.9, 0, true) != "deacon_reliquary_helm" ||
+        itemId(1, "mage", true, 0.1, 1, true) != "reliquary_cloth_chest" ||
+        itemId(1, "warrior", false, 0.5, 0, true) != "reliquary_plate_chest" ||
+        itemId(1, "rogue", false, 0.0, 1, true) != "reliquary_gloves_rog" ||
+        itemId(2, "rogue", false, 0.0, 0, true) != "reliquary_leather_chest" ||
+        itemId(3, "warrior", false, 0.499999, 0, true) != "reliquary_legs" ||
+        itemId(3, "warrior", false, 0.5, 0, true) != "reliquary_shoulder") {
+        return -2;
+    }
+    return 1;
+}

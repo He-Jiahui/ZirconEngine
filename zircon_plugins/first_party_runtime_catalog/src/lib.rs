@@ -14,55 +14,79 @@ pub fn first_party_runtime_plugin_registrations_for_manifest(
     target_mode: RuntimeTargetMode,
     manifest: &ProjectPluginManifest,
 ) -> Vec<RuntimePluginRegistrationReport> {
-    let mut seen = HashSet::new();
-    manifest
-        .enabled_for_target(target_mode)
-        .filter_map(|selection| RuntimePluginId::parse_key(&selection.id))
-        .filter(|runtime_id| seen.insert(*runtime_id))
-        .filter_map(first_party_registration_for_runtime_plugin)
-        .collect()
+    let mut seen = HashSet::with_capacity(manifest.selections.len());
+    let mut registrations = Vec::with_capacity(manifest.selections.len());
+    for selection in manifest.enabled_for_target(target_mode) {
+        let Some(runtime_id) = RuntimePluginId::parse_key(&selection.id) else {
+            continue;
+        };
+        if !seen.insert(runtime_id.clone()) {
+            continue;
+        }
+        let Some(registration) = first_party_registration_for_runtime_plugin(runtime_id) else {
+            continue;
+        };
+        registrations.push(registration);
+    }
+    registrations
 }
 
 pub fn first_party_registration_for_runtime_plugin(
-    id: RuntimePluginId,
+    _id: RuntimePluginId,
 ) -> Option<RuntimePluginRegistrationReport> {
-    match id {
-        #[cfg(feature = "base-runtime-plugins")]
-        RuntimePluginId::Ai => Some(zircon_plugin_ai_runtime::plugin_registration()),
-        #[cfg(feature = "base-runtime-plugins")]
-        RuntimePluginId::Sound => Some(zircon_plugin_sound_runtime::plugin_registration()),
-        #[cfg(feature = "base-runtime-plugins")]
-        RuntimePluginId::Texture => Some(zircon_plugin_texture_runtime::plugin_registration()),
-        #[cfg(feature = "base-runtime-plugins")]
-        RuntimePluginId::Net => Some(zircon_plugin_net_runtime::plugin_registration()),
-        #[cfg(feature = "navigation-runtime-plugin")]
-        RuntimePluginId::Navigation => {
-            Some(zircon_plugin_navigation_runtime::plugin_registration())
-        }
-        #[cfg(feature = "base-runtime-plugins")]
-        RuntimePluginId::Particles => Some(zircon_plugin_particles_runtime::plugin_registration()),
-        #[cfg(feature = "base-runtime-plugins")]
-        RuntimePluginId::Animation => Some(zircon_plugin_animation_runtime::plugin_registration()),
-        #[cfg(feature = "base-runtime-plugins")]
-        RuntimePluginId::Rendering => Some(zircon_plugin_rendering_runtime::plugin_registration()),
-        #[cfg(feature = "base-runtime-plugins")]
-        RuntimePluginId::GltfImporter => {
-            Some(zircon_plugin_gltf_importer_runtime::plugin_registration())
-        }
-        #[cfg(feature = "advanced-render-runtime-plugins")]
-        RuntimePluginId::VirtualGeometry => {
-            Some(zircon_plugin_virtual_geometry_runtime::plugin_registration())
-        }
-        #[cfg(feature = "advanced-render-runtime-plugins")]
-        RuntimePluginId::HybridGi => Some(zircon_plugin_hybrid_gi_runtime::plugin_registration()),
-        #[cfg(feature = "advanced-render-runtime-plugins")]
-        RuntimePluginId::Solari => Some(zircon_plugin_solari_runtime::plugin_registration()),
-        #[cfg(feature = "zr-vm-language-runtime-plugin")]
-        RuntimePluginId::ZrVmLanguage => {
-            Some(zircon_plugin_zr_vm_language_runtime::plugin_registration())
-        }
-        _ => None,
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::Ai {
+        return Some(zircon_plugin_ai_runtime::plugin_registration());
     }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::Sound {
+        return Some(zircon_plugin_sound_runtime::plugin_registration());
+    }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::Texture {
+        return Some(zircon_plugin_texture_runtime::plugin_registration());
+    }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::Net {
+        return Some(zircon_plugin_net_runtime::plugin_registration());
+    }
+    #[cfg(feature = "navigation-runtime-plugin")]
+    if _id == RuntimePluginId::Navigation {
+        return Some(zircon_plugin_navigation_runtime::plugin_registration());
+    }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::Particles {
+        return Some(zircon_plugin_particles_runtime::plugin_registration());
+    }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::Animation {
+        return Some(zircon_plugin_animation_runtime::plugin_registration());
+    }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::Rendering {
+        return Some(zircon_plugin_rendering_runtime::plugin_registration());
+    }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::GltfImporter {
+        return Some(zircon_plugin_gltf_importer_runtime::plugin_registration());
+    }
+    #[cfg(feature = "advanced-render-runtime-plugins")]
+    if _id == RuntimePluginId::VirtualGeometry {
+        return Some(zircon_plugin_virtual_geometry_runtime::plugin_registration());
+    }
+    #[cfg(feature = "advanced-render-runtime-plugins")]
+    if _id == RuntimePluginId::HybridGi {
+        return Some(zircon_plugin_hybrid_gi_runtime::plugin_registration());
+    }
+    #[cfg(feature = "advanced-render-runtime-plugins")]
+    if _id == RuntimePluginId::Solari {
+        return Some(zircon_plugin_solari_runtime::plugin_registration());
+    }
+    #[cfg(feature = "zr-vm-language-runtime-plugin")]
+    if _id == RuntimePluginId::ZrVmLanguage {
+        return Some(zircon_plugin_zr_vm_language_runtime::plugin_registration());
+    }
+    None
 }
 
 #[cfg(test)]
@@ -204,6 +228,28 @@ mod tests {
         ),
     ];
 
+    #[test]
+    fn runtime_catalog_preallocates_manifest_projection_storage() {
+        let source = include_str!("lib.rs");
+        let projection = source
+            .split("pub fn first_party_runtime_plugin_registrations_for_manifest")
+            .nth(1)
+            .and_then(|text| {
+                text.split("pub fn first_party_registration_for_runtime_plugin")
+                    .next()
+            })
+            .expect("read runtime catalog manifest projection");
+
+        assert!(
+            projection.contains("HashSet::with_capacity(manifest.selections.len())")
+                && projection.contains("Vec::with_capacity(manifest.selections.len())")
+                && projection.contains("for selection in manifest.enabled_for_target(target_mode)")
+                && projection.contains("registrations.push(registration);")
+                && !projection.contains(".collect()"),
+            "runtime catalog projection must preallocate dedup and result storage from the manifest selection count"
+        );
+    }
+
     #[derive(Debug, Default)]
     struct ParsedPluginManifest {
         id: String,
@@ -287,7 +333,7 @@ mod tests {
             feature = "zr-vm-language-runtime-plugin"
         ))]
         assert_runtime_descriptor_manifests_match_generated_static_manifests();
-        assert_native_dynamic_fixture_keeps_single_hand_written_manifest();
+        assert_native_dynamic_fixture_manifest_is_sdk_declared();
     }
 
     #[cfg(any(
@@ -959,21 +1005,25 @@ mod tests {
             .collect()
     }
 
-    fn assert_native_dynamic_fixture_keeps_single_hand_written_manifest() {
+    fn assert_native_dynamic_fixture_manifest_is_sdk_declared() {
         let native_manifest = include_str!("../../native_dynamic_fixture/plugin.toml");
         assert!(
-            !native_manifest.starts_with(GENERATED_MANIFEST_HEADER),
-            "native_dynamic_fixture/plugin.toml must stay hand-written until native SDK generation"
+            native_manifest.starts_with(
+                "# @generated from zircon_plugin_sdk::native_plugin_manifest_v3!; do not edit by hand."
+            ),
+            "native_dynamic_fixture/plugin.toml must be generated from the native SDK declaration"
         );
 
         let native_source = include_str!("../../native_dynamic_fixture/native/src/lib.rs");
         assert!(
-            native_source.contains("concat!(include_str!(\"../../plugin.toml\"), \"\\0\")"),
-            "native fixture must embed the hand-written root plugin.toml with include_str!"
+            native_source.contains("zircon_plugin_sdk::native_plugin_manifest_v3!"),
+            "native fixture must declare package metadata through the native SDK"
         );
         assert!(
-            !native_source.contains("r#\"id = \"native_dynamic_fixture\""),
-            "native fixture must not carry a second inline plugin.toml copy"
+            !native_source.contains(
+                "const PLUGIN_MANIFEST: &str = concat!(include_str!(\"../../plugin.toml\"), \"\\0\");"
+            ),
+            "native fixture production manifest must not embed the checked-in plugin.toml"
         );
     }
 }

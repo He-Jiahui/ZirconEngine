@@ -6,7 +6,7 @@ display_name = "Workbench Panel Header"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchPanelHeader]
 root = "root"
@@ -17,7 +17,8 @@ slots = { title = { multiple = false }, actions = { multiple = true } }
 component = "HorizontalGroup"
 control_id = "WorkbenchPanelHeaderRoot"
 classes = ["workbench-panel-toolbar"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+props = { background_color = "$editor.surface.1", border_color = "$editor.separator.soft", border_width = "$editor.control.border_width" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.compact", stretch = "Fixed" } }
 children = [{ node = "title_slot" }, { node = "actions_slot" }]
 
 [nodes.title_slot]

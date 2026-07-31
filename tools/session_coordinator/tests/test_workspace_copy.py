@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import io
 import sqlite3
 import sys
+import tarfile
 import tempfile
 import threading
 import unittest
@@ -17,6 +19,7 @@ from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
+from tools.session_coordinator.validation_copies import CargoInputClosure
 from tools.session_coordinator.workspace_copy import WorkspaceCopyService
 
 
@@ -140,6 +143,189 @@ class WorkspaceCopyTests(unittest.TestCase):
             set(archives[0][-4:]),
         )
 
+    def test_materialize_drains_baseline_archive_stream_before_waiting(self) -> None:
+        archive_buffer = io.BytesIO()
+        with tarfile.open(fileobj=archive_buffer, mode="w") as archive:
+            content = b"baseline\n"
+            member = tarfile.TarInfo("README.md")
+            member.size = len(content)
+            archive.addfile(member, io.BytesIO(content))
+
+        class DrainAwareStream(io.BytesIO):
+            closed_with_unread_bytes = False
+
+            def close(self) -> None:
+                self.closed_with_unread_bytes = self.tell() < len(self.getbuffer())
+                super().close()
+
+        class ArchiveProcess:
+            def __init__(self) -> None:
+                # A real git archive can still be writing record padding after
+                # tarfile has consumed the end-of-archive markers.
+                self.stdout = DrainAwareStream(archive_buffer.getvalue() + b"\0" * 20_480)
+                self.stderr = io.BytesIO()
+                self.returncode: int | None = None
+
+            def poll(self) -> int | None:
+                return self.returncode
+
+            def kill(self) -> None:
+                self.returncode = -9
+
+            def communicate(self) -> tuple[bytes, bytes]:
+                stdout = self.stdout.read()
+                stderr = self.stderr.read()
+                self.wait()
+                self.stdout.close()
+                self.stderr.close()
+                return stdout, stderr
+
+            def wait(self) -> int:
+                if self.returncode is None:
+                    self.returncode = 141 if self.stdout.closed_with_unread_bytes else 0
+                return self.returncode
+
+        process = ArchiveProcess()
+        original_popen = subprocess.Popen
+
+        def replace_archive(arguments, *args, **kwargs):
+            if len(arguments) > 1 and arguments[1] == "archive":
+                return process
+            return original_popen(arguments, *args, **kwargs)
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.subprocess.Popen",
+            side_effect=replace_archive,
+        ):
+            result = self.service.materialize(
+                "session-a", include_paths=("README.md",)
+            )
+
+        self.assertEqual("baseline\n", (result.source_root / "README.md").read_text())
+        self.assertFalse(process.stdout.closed_with_unread_bytes)
+
+    def test_archive_cleanup_failure_does_not_mask_extraction_error(self) -> None:
+        class InvalidArchiveProcess:
+            def __init__(self) -> None:
+                self.stdout = io.BytesIO(b"not a tar archive")
+                self.stderr = io.BytesIO()
+                self.returncode: int | None = None
+
+            def poll(self) -> int | None:
+                return self.returncode
+
+            def kill(self) -> None:
+                self.returncode = -9
+
+            def communicate(self) -> tuple[bytes, bytes]:
+                raise OSError("injected archive cleanup failure")
+
+        process = InvalidArchiveProcess()
+        original_popen = subprocess.Popen
+
+        def replace_archive(arguments, *args, **kwargs):
+            if len(arguments) > 1 and arguments[1] == "archive":
+                return process
+            return original_popen(arguments, *args, **kwargs)
+
+        with (
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.subprocess.Popen",
+                side_effect=replace_archive,
+            ),
+            self.assertRaises(tarfile.ReadError),
+        ):
+            self.service.materialize("session-a", include_paths=("README.md",))
+
+    def test_runtime_cargo_closure_materializes_workspace_and_runs_from_copy(self) -> None:
+        files = {
+            "Cargo.toml": "[workspace]\nmembers=['zircon_runtime','zircon_runtime_interface','zircon_reflect_derive','workspace_tool']\n",
+            "Cargo.lock": "# fixture lock\n",
+            "rust-toolchain.toml": "[toolchain]\nchannel='1.94.1'\n",
+            "zircon_runtime/Cargo.toml": "[package]\nname='zircon_runtime'\nversion='0.1.0'\n",
+            "zircon_runtime/src/lib.rs": "pub fn runtime() {}\n",
+            "zircon_runtime_interface/Cargo.toml": "[package]\nname='zircon_runtime_interface'\nversion='0.1.0'\n",
+            "zircon_runtime_interface/src/lib.rs": "pub fn interface() {}\n",
+            "zircon_reflect_derive/Cargo.toml": "[package]\nname='zircon_reflect_derive'\nversion='0.1.0'\n",
+            "zircon_reflect_derive/src/lib.rs": "pub fn derive_marker() {}\n",
+            "workspace_tool/Cargo.toml": "[package]\nname='workspace_tool'\nversion='0.1.0'\n",
+            "workspace_tool/src/lib.rs": "pub fn tool() {}\n",
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *files], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add runtime Cargo closure"],
+            cwd=self.repo,
+            check=True,
+        )
+        packages = [
+            {
+                "id": f"{name}-id",
+                "name": name,
+                "manifest_path": str(self.repo / name / "Cargo.toml"),
+            }
+            for name in (
+                "zircon_runtime",
+                "zircon_runtime_interface",
+                "zircon_reflect_derive",
+                "workspace_tool",
+            )
+        ]
+        metadata = {
+            "packages": packages,
+            "workspace_members": [item["id"] for item in packages],
+            "resolve": {
+                "nodes": [
+                    {
+                        "id": "zircon_runtime-id",
+                        "deps": [
+                            {"pkg": "zircon_runtime_interface-id"},
+                            {"pkg": "zircon_reflect_derive-id"},
+                        ],
+                    },
+                    {"id": "zircon_runtime_interface-id", "deps": []},
+                    {"id": "zircon_reflect_derive-id", "deps": []},
+                    {"id": "workspace_tool-id", "deps": []},
+                ]
+            },
+        }
+        cargo_command = ("cargo", "+1.94.1", "test", "-p", "zircon_runtime", "--lib")
+
+        record = self.service.materialize_cargo(
+            "session-a",
+            command=cargo_command,
+            metadata_runner=lambda _command: metadata,
+        )
+
+        for relative in (
+            "Cargo.toml",
+            "zircon_runtime/Cargo.toml",
+            "zircon_runtime_interface/Cargo.toml",
+            "zircon_reflect_derive/Cargo.toml",
+            "workspace_tool/Cargo.toml",
+        ):
+            self.assertTrue((record.source_root / relative).is_file(), relative)
+        evidence = self.service.run(
+            "session-a",
+            record.job_id,
+            command=(
+                sys.executable,
+                "-c",
+                "from pathlib import Path; "
+                "assert Path.cwd().name == 'source'; "
+                "assert Path('zircon_runtime_interface/Cargo.toml').is_file(); "
+                "assert Path('zircon_reflect_derive/Cargo.toml').is_file(); "
+                "assert Path('workspace_tool/Cargo.toml').is_file(); "
+                "print('runtime14 focused test reached')",
+            ),
+        )
+
+        self.assertEqual(0, evidence.exit_code)
+        self.assertIn("runtime14 focused test reached", evidence.stdout)
+
     def test_async_materialize_returns_before_copy_finishes_and_exposes_status(self) -> None:
         started = threading.Event()
         release = threading.Event()
@@ -171,6 +357,249 @@ class WorkspaceCopyTests(unittest.TestCase):
                 break
             threading.Event().wait(0.02)
         self.assertEqual("materialized", status)
+
+    def test_async_cargo_acknowledges_before_closure_planning_and_finishes_off_thread(self) -> None:
+        """Cargo closure planning must not hold the command request open."""
+        started = threading.Event()
+        release = threading.Event()
+        metadata = {
+            "packages": [
+                {
+                    "id": "runtime-id",
+                    "name": "zircon_runtime",
+                    "manifest_path": str(self.repo / "Cargo.toml"),
+                }
+            ],
+            "workspace_members": ["runtime-id"],
+            "resolve": {"nodes": [{"id": "runtime-id", "deps": []}]},
+        }
+
+        (self.repo / "Cargo.toml").write_text(
+            "[package]\nname='zircon_runtime'\nversion='0.1.0'\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "Cargo.toml"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-qm", "test: add cargo async fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+
+        def delayed_metadata(_command):
+            started.set()
+            release.wait(timeout=5)
+            return metadata
+
+        accepted = self.service.materialize_cargo_async(
+            "session-a",
+            command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            metadata_runner=delayed_metadata,
+        )
+
+        self.assertEqual("materializing", accepted.status)
+        self.assertEqual((), accepted.manifest)
+        self.assertTrue(started.wait(timeout=1))
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """SELECT status, materialization_kind, materialization_phase
+                   FROM validation_copies WHERE job_id=?""",
+                (accepted.job_id,),
+            ).fetchone()
+        self.assertEqual("planned", row["status"])
+        self.assertEqual("cargo", row["materialization_kind"])
+        self.assertEqual("closure_planning", row["materialization_phase"])
+
+        release.set()
+        for _ in range(100):
+            if self.service.status("session-a", accepted.job_id).status == "materialized":
+                break
+            threading.Event().wait(0.02)
+        self.assertEqual("materialized", self.service.status("session-a", accepted.job_id).status)
+
+    def test_async_cargo_ack_is_durable_before_disk_or_git_probes(self) -> None:
+        """Accepting a Cargo copy must not perform worker-only host probes inline."""
+        with (
+            mock.patch.object(self.service, "_spawn_cargo_materialization_worker"),
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.shutil.disk_usage",
+                side_effect=AssertionError("disk probing belongs to the worker"),
+            ),
+            mock.patch.object(
+                self.service,
+                "_git_text",
+                side_effect=AssertionError("Git pinning belongs to the worker"),
+            ),
+            mock.patch.object(
+                self.service,
+                "_normalize",
+                side_effect=AssertionError("overlay normalization belongs to the worker"),
+            ),
+        ):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+                overlay_paths=("README.md",),
+            )
+
+        self.assertEqual("materializing", accepted.status)
+        self.assertEqual("accepted", accepted.materialization_phase)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """SELECT status, materialization_phase, head_commit
+                   FROM validation_copies WHERE job_id=?""",
+                (accepted.job_id,),
+            ).fetchone()
+        self.assertEqual("planned", row["status"])
+        self.assertEqual("accepted", row["materialization_phase"])
+        self.assertEqual("pending", row["head_commit"])
+
+    def test_async_cargo_persists_then_rejects_unowned_overlay_and_invalid_external_descriptor(self) -> None:
+        """Ownership validation is durable worker work, never pre-ack request work."""
+        metadata = {
+            "packages": [
+                {
+                    "id": "runtime-id",
+                    "name": "zircon_runtime",
+                    "manifest_path": str(self.repo / "Cargo.toml"),
+                }
+            ],
+            "workspace_members": ["runtime-id"],
+            "resolve": {"nodes": [{"id": "runtime-id", "deps": []}]},
+        }
+        (self.repo / "Cargo.toml").write_text(
+            "[package]\nname='zircon_runtime'\nversion='0.1.0'\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "Cargo.toml"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-qm", "test: add cargo ownership fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+
+        unowned = self.service.materialize_cargo_async(
+            "session-a",
+            command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            overlay_paths=("unowned.rs",),
+            metadata_runner=lambda _command: metadata,
+        )
+        invalid_external = self.service.materialize_cargo_async(
+            "session-a",
+            command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            external_sources=({"repoRoot": str(self.repo)},),
+            metadata_runner=lambda _command: metadata,
+        )
+
+        for _ in range(100):
+            statuses = (
+                self.service.status("session-a", unowned.job_id),
+                self.service.status("session-a", invalid_external.job_id),
+            )
+            if all(item.status == "failed" for item in statuses):
+                break
+            threading.Event().wait(0.02)
+        self.assertEqual("failed", statuses[0].status)
+        self.assertEqual("validation_copy_overlay_not_owned", statuses[0].error_code)
+        self.assertEqual("overlay_ownership", statuses[0].error_stage)
+        self.assertEqual("failed", statuses[1].status)
+        self.assertEqual("validation_copy_external_source_invalid", statuses[1].error_code)
+        self.assertEqual("closure_planning", statuses[1].error_stage)
+
+    def test_async_cargo_terminalizes_tracked_path_added_after_pinned_baseline(self) -> None:
+        """A closure drift must be typed, not misreported as an unowned overlay."""
+
+        def plan_after_baseline(*_args, **_kwargs):
+            drifted = self.repo / "foreign-after-baseline.rs"
+            drifted.write_text("pub const DRIFTED: bool = true;\n", encoding="utf-8")
+            subprocess.run(["git", "add", drifted.name], cwd=self.repo, check=True)
+            subprocess.run(
+                ["git", "commit", "-qm", "test: add foreign closure after baseline"],
+                cwd=self.repo,
+                check=True,
+            )
+            return CargoInputClosure(("README.md", drifted.name), ())
+
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            )
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            side_effect=plan_after_baseline,
+        ):
+            self.service._materialize_cargo_async_worker(
+                accepted.job_id,
+                metadata_runner=None,
+            )
+
+        status = self.service.status("session-a", accepted.job_id)
+        self.assertEqual("failed", status.status)
+        self.assertEqual("failed", status.materialization_phase)
+        self.assertEqual("validation_copy_baseline_drift", status.error_code)
+        self.assertEqual("materialization_prepare", status.error_stage)
+        self.assertEqual("foreign-after-baseline.rs", status.error_path)
+
+    def test_startup_recovery_claims_an_accepted_cargo_copy_once(self) -> None:
+        """A restart may resume the same durable job, but never create another worker claim."""
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker") as spawn:
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            )
+        spawn.assert_called_once_with(accepted.job_id, metadata_runner=None)
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            return_value=CargoInputClosure(("README.md",), ()),
+        ) as planned:
+            with mock.patch(
+                "tools.session_coordinator.workspace_copy._is_managed_validation_root",
+                return_value=True,
+            ):
+                restarted = WorkspaceCopyService(
+                    self.database,
+                    self.repo,
+                    (self.target_root,),
+                )
+            restarted.recover_interrupted_jobs(startup=True)
+            for _ in range(100):
+                if restarted.status("session-a", accepted.job_id).status == "materialized":
+                    break
+                threading.Event().wait(0.02)
+            restarted.recover_interrupted_jobs(startup=True)
+
+        self.assertEqual("materialized", restarted.status("session-a", accepted.job_id).status)
+        self.assertEqual(1, planned.call_count)
+
+    def test_cargo_worker_terminalizes_a_malformed_durable_request_once(self) -> None:
+        """Corrupt persisted request JSON must not remain an endlessly recoverable ACK."""
+        job_id = "malformed-cargo-request"
+        job_root = self.target_root / "verify" / job_id
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO validation_copies(
+                    job_id, session_id, job_root, source_root, target_root, head_commit,
+                    manifest_json, status, created_at, external_sources_json,
+                    materialization_kind, materialization_request_json,
+                    materialization_phase, materialization_attempt
+                ) VALUES (?, 'session-a', ?, ?, ?, 'pending', '[]', 'planned',
+                          '2026-07-26T00:00:00+00:00', '[]', 'cargo',
+                          '{malformed', 'accepted', 0)
+                """,
+                (job_id, str(job_root), str(job_root / "source"), str(job_root / "target")),
+            )
+
+        self.service._materialize_cargo_async_worker(job_id, metadata_runner=None)
+
+        status = self.service.status("session-a", job_id)
+        self.assertEqual("failed", status.status)
+        self.assertEqual("failed", status.materialization_phase)
+        self.assertEqual("validation_copy_cargo_request_invalid", status.error_code)
+        self.assertEqual("request_decode", status.error_stage)
+        self.assertIsNone(status.error_path)
 
     def test_validation_copy_keeps_baseline_dependencies_outside_milestone_manifest(self) -> None:
         dependency = self.repo / "tools/session_coordinator/probe.py"

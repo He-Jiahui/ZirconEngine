@@ -25,11 +25,13 @@ mod ui;
 pub(crate) mod ui_perf;
 mod viewport;
 pub(crate) mod viewport_toolbar_pointer;
+pub(crate) mod welcome_recent_geometry;
 pub(crate) mod welcome_recent_pointer;
 pub(crate) mod workbench_notifications;
 pub(crate) mod workbench_popup_actions;
 pub(crate) mod workbench_preview_actions;
 
+pub(crate) use app::build_startup_state;
 pub(crate) use app::HostInvalidationMask;
 pub(crate) use host_contract::*;
 

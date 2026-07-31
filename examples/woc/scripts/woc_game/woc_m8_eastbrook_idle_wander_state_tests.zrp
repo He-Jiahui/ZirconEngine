@@ -1,0 +1,6 @@
+{
+  "name": "woc_m8_eastbrook_idle_wander_state_tests",
+  "source": "src",
+  "binary": "bin-m8-eastbrook-idle-wander-state-tests",
+  "entry": "world/eastbrook_idle_wander_state_test_main"
+}

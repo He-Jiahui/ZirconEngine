@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/natures_fury_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/natures_fury.ts": "c5b9017061eea8f20069a727ba359cdddc929caef6d321cc370f76768a4513a3"
+  },
+  "radius": 30,
+  "ticks": 20,
+  "refresh": 3
+}

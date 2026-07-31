@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError,
+    CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderProfileBundle,
     RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
+    RENDER_PROFILE_CONFIG_KEY,
 };
 use crate::core::manager::{
     render_framework_handle, resolve_manager_service, ManagerServiceHandle,
@@ -30,6 +31,22 @@ impl RuntimeRenderBridge {
             crate::profile_scope!("runtime", "render_bridge", "resolve_render_framework");
             render_framework_handle(core)?
         };
+        let submission_config = match core.load_config_value(RENDER_PROFILE_CONFIG_KEY) {
+            Some(_) => core
+                .load_config::<RenderProfileBundle>(RENDER_PROFILE_CONFIG_KEY)?
+                .submission_config(),
+            None => Default::default(),
+        };
+        if submission_config.pipelined_render {
+            resolve_manager_service(core, render_framework.clone())?
+                .set_submission_config(submission_config)
+                .map_err(|error| {
+                    CoreError::Initialization(
+                        "render submission configuration".to_string(),
+                        error.to_string(),
+                    )
+                })?;
+        }
         Ok(Self {
             core: core.clone(),
             render_framework,
@@ -57,13 +74,33 @@ impl RuntimeRenderBridge {
         let render_framework = self.resolve_render_framework()?;
         let viewport = self.ensure_viewport(size, render_framework.as_ref())?;
         extract.apply_viewport_size(size);
+
+        let pipelined_before_submit = render_framework.submission_config().pipelined_render;
+        let completed_frame = if pipelined_before_submit {
+            // Read frame N before queueing N+1 so capture does not collapse the
+            // intentional one-frame render/simulation overlap.
+            self.capture_frame_if_newer(render_framework.as_ref(), viewport)?
+        } else {
+            None
+        };
+
         render_framework.submit_frame_extract_with_ui(viewport, extract, ui)?;
-        let Some(frame) = render_framework.capture_frame(viewport)? else {
+        if pipelined_before_submit && render_framework.submission_config().pipelined_render {
+            return Ok(completed_frame);
+        }
+        self.capture_frame_if_newer(render_framework.as_ref(), viewport)
+    }
+
+    fn capture_frame_if_newer(
+        &mut self,
+        render_framework: &dyn RenderFramework,
+        viewport: RenderViewportHandle,
+    ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
+        let Some(frame) =
+            render_framework.capture_frame_if_newer(viewport, self.last_generation)?
+        else {
             return Ok(None);
         };
-        if self.last_generation == Some(frame.generation) {
-            return Ok(None);
-        }
         self.last_generation = Some(frame.generation);
         Ok(Some(frame))
     }

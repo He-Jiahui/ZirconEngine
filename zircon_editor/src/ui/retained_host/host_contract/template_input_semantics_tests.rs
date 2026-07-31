@@ -29,6 +29,7 @@ fn popup_rows_do_not_inherit_text_input_focus() {
 
 fn hit_with_family(family: Option<TemplateComponentFamily>) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        pane_id: SharedString::new(),
         control_id: "Control".into(),
         action_id: SharedString::new(),
         binding_id: SharedString::new(),
@@ -38,6 +39,10 @@ fn hit_with_family(family: Option<TemplateComponentFamily>) -> TemplateNodePoint
         value_text: SharedString::new(),
         edit_action_id: SharedString::new(),
         commit_action_id: SharedString::new(),
+        disabled: false,
         frame: FrameRect::default(),
+        table_row_source_index: None,
+        table_row_identity_kind: SharedString::new(),
+        table_row_identity_text: SharedString::new(),
     }
 }

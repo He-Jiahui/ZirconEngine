@@ -3,7 +3,10 @@ use crate::graphics::scene::scene_renderer::attachment_ops::{
 };
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassGpuExecutionContext;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawCommandReplayer;
-use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
+use crate::render_graph::{
+    RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
+    RenderGraphResourceAccessKind,
+};
 
 impl RenderPassGpuExecutionContext<'_> {
     pub(in crate::graphics::scene::scene_renderer) fn record_velocity_object_to_resource(
@@ -38,6 +41,12 @@ impl RenderPassGpuExecutionContext<'_> {
                 "mesh object velocity graph executor for pass `{pass_name}` requires resource streamer context"
             )
         })?;
+        if stream.is_empty()
+            && attachment_ops.load == RenderGraphAttachmentLoadOp::Load
+            && attachment_ops.store == RenderGraphAttachmentStoreOp::Store
+        {
+            return Ok(());
+        }
 
         let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("MeshObjectVelocityPass"),
@@ -120,6 +129,28 @@ mod tests {
         assert!(source.contains(
             "create_forward_shadow_receiver_bind_group(\n                self.device,\n                self.shadow_atlas_resources,\n                None,\n                None,\n                None,\n            )"
         ));
-        assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
+        assert!(
+            source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])")
+        );
+    }
+
+    #[test]
+    fn object_velocity_skips_empty_load_store_pass_before_recording() {
+        let source = include_str!("execute_velocity_object.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("object velocity implementation");
+        let empty_guard = implementation
+            .find("attachment_ops.load == RenderGraphAttachmentLoadOp::Load")
+            .expect("empty Load+Store guard");
+        let begin_pass = implementation
+            .find("let mut pass = self.encoder.begin_render_pass")
+            .expect("object velocity render pass");
+
+        assert!(empty_guard < begin_pass);
+        assert!(
+            implementation.contains("attachment_ops.store == RenderGraphAttachmentStoreOp::Store")
+        );
     }
 }

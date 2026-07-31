@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_terrain_sowfield_tests",
+  "source": "src",
+  "binary": "bin-m3-terrain-sowfield-tests",
+  "entry": "world/terrain_sowfield_test_main"
+}

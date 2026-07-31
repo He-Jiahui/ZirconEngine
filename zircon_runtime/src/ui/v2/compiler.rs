@@ -100,12 +100,12 @@ fn validate_reachable_root(
                     });
                 }
                 if let Some(repeat) = &node.repeat {
-                    repeat.validate(&node_id).map_err(|detail| {
-                        UiV2AssetError::InvalidDocument {
+                    repeat
+                        .validate(&node_id)
+                        .map_err(|source| UiV2AssetError::InvalidRepeat {
                             asset_id: document.asset.id.clone(),
-                            detail,
-                        }
-                    })?;
+                            source,
+                        })?;
                 }
                 stack.push(VisitFrame::Exit(node_id.clone()));
                 for child in node.children.iter().rev() {
@@ -189,6 +189,13 @@ fn arena_from_document(
 
 fn with_component_context(error: UiV2AssetError, component_name: &str) -> UiV2AssetError {
     match error {
+        UiV2AssetError::InvalidRepeat { asset_id, source } => {
+            UiV2AssetError::InvalidRepeatInComponent {
+                asset_id,
+                component: component_name.to_string(),
+                source,
+            }
+        }
         UiV2AssetError::InvalidDocument { asset_id, detail } => UiV2AssetError::InvalidDocument {
             asset_id,
             detail: format!("component {component_name}: {detail}"),

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var collisionSweep = %import("world/collision_sweep");
+
+console.printLine("m3-collision-sweep-test");
+var result = collisionSweep.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "ai"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "AI"
 category = "runtime"
 description = "Optional runtime AI contracts for behavior trees, blackboards, perception snapshots, and agent ticks."
@@ -52,6 +52,8 @@ namespace = "ai.events"
 version = 1
 events = [
     { id = "ai.events.agent_tick_completed", display_name = "AI Agent Tick Completed", payload_schema = "ai.events.agent_tick_report.v1" },
+    { id = "ai.events.bt_node_result", display_name = "Behavior Tree Node Result", payload_schema = "ai.events.bt_node_result.v1" },
+    { id = "ai.events.behavior_debug_snapshot", display_name = "AI Behavior Debug Snapshot", payload_schema = "ai.events.behavior_debug_snapshot.v1" },
     { id = "ai.events.hearing_stimulus", display_name = "AI Hearing Stimulus", payload_schema = "ai.events.hearing_stimulus.v1" },
 ]
 
@@ -92,3 +94,28 @@ kind = "native"
 crate_name = "zircon_plugin_ai_dist"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.ai", "runtime.feature.ai.behavior_tree", "runtime.feature.ai.blackboard", "runtime.feature.ai.perception"]
+
+[[modules]]
+name = "ai.editor"
+kind = "editor"
+crate_name = "zircon_plugin_ai_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.ai_authoring", "editor.extension.ai_debug"]
+
+[[modules.event_consumers]]
+consumer_id = "ai.editor.behavior_debug"
+event_id = "ai.events.behavior_debug_snapshot"
+payload_schema = "ai.events.behavior_debug_snapshot.v1"
+required_capability = "editor.extension.ai_debug"
+
+[[modules.event_consumers]]
+consumer_id = "ai.editor.bt_node_result"
+event_id = "ai.events.bt_node_result"
+payload_schema = "ai.events.bt_node_result.v1"
+required_capability = "editor.extension.ai_debug"
+
+[[modules.event_consumers]]
+consumer_id = "ai.editor.bt_node_result_snapshot_prune"
+event_id = "ai.events.behavior_debug_snapshot"
+payload_schema = "ai.events.behavior_debug_snapshot.v1"
+required_capability = "editor.extension.ai_debug"

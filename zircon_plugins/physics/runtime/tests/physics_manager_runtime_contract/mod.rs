@@ -6,6 +6,7 @@ use zircon_plugin_physics_runtime::{
     register_runtime_systems, DefaultPhysicsManager, PhysicsBodyCommand,
     DEFAULT_PHYSICS_MANAGER_NAME, PHYSICS_MODULE_NAME, PLUGIN_RUNTIME_MODULE_NAME,
 };
+use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::core::framework::{
     physics::{
         PhysicsBackendState, PhysicsColliderShape, PhysicsJointType, PhysicsManager,
@@ -27,7 +28,7 @@ use zircon_runtime::scene::components::{
     RigidBodyType,
 };
 use zircon_runtime::scene::{
-    create_default_level, install_world_runtime_extension_plan, LevelSystem, SCENE_MODULE_NAME,
+    create_default_level, install_world_runtime_extension_plan, LevelSystem,
 };
 
 const TEST_MAX_FIXED_STEPS: u32 = 4;

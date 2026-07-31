@@ -144,6 +144,8 @@ plan_sources:
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render, feature-first with tests deferred
   - user: 2026-06-17 continue Plan 01 required external texture import and materialization modularization
 tests:
+  - zircon_runtime/src/render_graph/tests/builder_validation.rs::builder_rejects_out_of_range_resource_handles
+  - zircon_runtime/src/render_graph/tests/builder_validation.rs::builder_resource_validation_uses_constant_time_handle_bounds
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_rejects_duplicate_resource_names
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_tracks_transient_lifetimes_and_resource_edges
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_rejects_transient_read_without_producer
@@ -348,6 +350,12 @@ The same follow-up removes dead-code suppression from `RenderPassExecutionContex
 `RenderStats` exposes compiled-cache hit, miss, eviction, and live-entry counts as `last_graph_compiled_cache_*`, and runtime diagnostics mirror them under `render.graph.compiled_cache.*`. These rows are hot-path compile evidence, not GPU execution evidence.
 
 The 2026-06-24 CompiledGraphCache tests owner split keeps `graphics/pipeline/compiled_graph_cache.rs` as the 309-line production cache parent for key/fingerprint/status/cache API and LRU eviction, with only a `#[cfg(test)] mod tests;` mount. The 460-line `graphics/pipeline/compiled_graph_cache/tests.rs` child owns cache hit/miss/status, compile fingerprint, camera target/format class, revision invalidation, LRU eviction, and descriptor test-extension helpers. The structure guard `runtime_15_compiled_graph_cache_tests_are_child_owner` and status anchor `render_plan01_compiled_graph_cache_tests_owner_split_static_passed_cargo_deferred_implementation_cadence` lock those source-contract tests out of the production parent while Cargo/WGPU/RenderDoc remain deferred to the milestone testing stage.
+
+## Performance Boundaries
+
+Resource handles are dense typed indices owned by one `RenderGraphBuilder` authoring sequence. `ensure_resource` validates them against `next_texture`, `next_buffer`, or `next_external_resource`; declaring a pass access must not scan the resource declaration vector. `builder_validation.rs` locks both out-of-range rejection and the O(1) source contract.
+
+The compiled graph is immutable. Stable frame diagnostics should consume compile-time metadata rather than rescan passes/resources, and stable graph topology should reuse a compiled generation. Dependency inference, producer validation and culling remain the Render01 owner; performance acceptance is tracked by PERF-MVP-224 and `render/01/failure-2026-07-18-render-graph-compile-analysis-scaling.md`.
 
 ## History Preparation
 

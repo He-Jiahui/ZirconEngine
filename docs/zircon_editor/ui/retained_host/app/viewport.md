@@ -123,7 +123,7 @@ Viewport toolbar projection flow:
 3. The docked child derives document, left, right, and bottom toolbar widths from content frames plus the optional componentized document toolbar width.
 4. The floating child rebuilds the floating-window model rows after attaching toolbar frame data to eligible active panes.
 5. `pane_frame.rs` accepts only visible Scene/Game toolbars, recomputes the template bridge, writes the projected toolbar surface frame, or clears stale toolbar frame data when eligibility/layout fails.
-6. `hit_controls.rs` maps template projection controls such as `SetTool`, `SetProjectionMode`, and `AlignView` to the stable viewport toolbar action ids used by pointer dispatch.
+6. `hit_controls.rs` maps template projection controls such as `ActivateSceneMode`, `SetProjectionMode`, and `AlignView` to stable viewport toolbar action ids. Custom scene-mode ids remain intact across projection and pointer dispatch.
 
 ## Edge Cases and Constraints
 

@@ -25,20 +25,19 @@ impl AnimationChannelSampleExt for AnimationChannelAsset {
             return Some(last.value.clone());
         }
 
-        for pair in self.keys.windows(2) {
-            let left = &pair[0];
-            let right = &pair[1];
-            if time_seconds < left.time_seconds || time_seconds > right.time_seconds {
-                continue;
-            }
-            return Some(match self.interpolation {
-                AnimationInterpolationAsset::Step => left.value.clone(),
-                AnimationInterpolationAsset::Linear => sample_linear(left, right, time_seconds),
-                AnimationInterpolationAsset::Hermite => sample_hermite(left, right, time_seconds),
-            });
-        }
-
-        Some(last.value.clone())
+        // The channel boundary checks above establish a valid interior sample.
+        // Exact key times remain in the preceding interval, matching Step's
+        // established hold behavior while locating that interval logarithmically.
+        let right_index = self
+            .keys
+            .partition_point(|key| key.time_seconds < time_seconds);
+        let left = &self.keys[right_index - 1];
+        let right = &self.keys[right_index];
+        Some(match self.interpolation {
+            AnimationInterpolationAsset::Step => left.value.clone(),
+            AnimationInterpolationAsset::Linear => sample_linear(left, right, time_seconds),
+            AnimationInterpolationAsset::Hermite => sample_hermite(left, right, time_seconds),
+        })
     }
 }
 
@@ -139,6 +138,27 @@ mod tests {
 
         assert!((midpoint.length() - 1.0).abs() < 0.0001);
         assert!(midpoint.abs_diff_eq(expected, 0.0001));
+    }
+
+    #[test]
+    fn step_interpolation_keeps_the_preceding_value_at_an_exact_interior_key() {
+        let channel = AnimationChannelAsset {
+            interpolation: AnimationInterpolationAsset::Step,
+            keys: vec![
+                key(0.0, AnimationChannelValueAsset::Scalar(1.0)),
+                key(1.0, AnimationChannelValueAsset::Scalar(2.0)),
+                key(2.0, AnimationChannelValueAsset::Scalar(3.0)),
+            ],
+        };
+
+        assert_eq!(
+            channel.sample(1.0),
+            Some(AnimationChannelValueAsset::Scalar(1.0))
+        );
+        assert_eq!(
+            channel.sample(1.000_1),
+            Some(AnimationChannelValueAsset::Scalar(2.0))
+        );
     }
 
     fn key(time_seconds: Real, value: AnimationChannelValueAsset) -> AnimationChannelKeyAsset {

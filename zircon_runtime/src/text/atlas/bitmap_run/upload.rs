@@ -1,6 +1,6 @@
 use super::super::{
-    glyph_atlas_upload_command, GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasPageSpec,
-    GlyphAtlasRect, GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
+    GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasPageSpec, GlyphAtlasRect, GlyphAtlasSet,
+    GlyphAtlasUploadCommand, GlyphAtlasUploadMode, glyph_atlas_upload_command,
 };
 use super::types::{GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadCopy};
 
@@ -8,7 +8,6 @@ pub(super) fn bitmap_upload_copy(
     source_index: usize,
     source: GlyphAtlasBitmapSource,
     allocation: GlyphAtlasAllocation,
-    page_size: crate::core::math::UVec2,
 ) -> GlyphAtlasBitmapUploadCopy {
     let bytes_per_pixel = source.format.storage_format().bytes_per_pixel();
     GlyphAtlasBitmapUploadCopy {
@@ -18,10 +17,6 @@ pub(super) fn bitmap_upload_copy(
         content_size: source.content_size,
         source_bytes_per_row: source.content_size.x.saturating_mul(bytes_per_pixel),
         source_byte_len: source.source_byte_len,
-        atlas_bytes_per_row: page_size.x.saturating_mul(bytes_per_pixel),
-        atlas_byte_offset: ((allocation.rect.y as u64 * page_size.x as u64)
-            + allocation.rect.x as u64)
-            * bytes_per_pixel as u64,
     }
 }
 
@@ -29,20 +24,30 @@ pub(super) fn bitmap_upload_commands(
     atlas: &GlyphAtlasSet,
     dirty_pages: &[GlyphAtlasDirtyPage],
 ) -> Vec<GlyphAtlasUploadCommand> {
-    dirty_pages
-        .iter()
-        .filter_map(|dirty_page| {
-            let page_key = dirty_page.page_key();
-            let page = atlas.page(page_key.format, page_key.page_index)?;
-            let dirty_rect = dirty_page.merged_rect()?;
-            glyph_atlas_upload_command(
+    let mut commands = Vec::new();
+    for dirty_page in dirty_pages {
+        let page_key = dirty_page.page_key();
+        let Some(page) = atlas.page(page_key.format, page_key.page_index) else {
+            continue;
+        };
+        let page_rect = GlyphAtlasRect {
+            x: 0,
+            y: 0,
+            width: page.size.x.max(1),
+            height: page.size.y.max(1),
+        };
+        for dirty_rect in dirty_page.regions_for_page(page_rect) {
+            if let Some(command) = glyph_atlas_upload_command(
                 page,
                 bitmap_upload_mode(page, dirty_rect),
                 Some(dirty_rect),
                 bitmap_page_source_byte_len(page),
-            )
-        })
-        .collect()
+            ) {
+                commands.push(command);
+            }
+        }
+    }
+    commands
 }
 
 fn bitmap_upload_mode(

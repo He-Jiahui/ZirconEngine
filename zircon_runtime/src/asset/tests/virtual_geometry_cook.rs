@@ -33,6 +33,15 @@ fn virtual_geometry_cook_builds_stable_four_ary_bvh_pages_and_payload() {
         .iter()
         .zip(cooked.cluster_page_data.iter())
         .all(|(header, payload)| header.payload_size_bytes == payload.len() as u64));
+    let mut expected_offset = 0_u64;
+    for (header, payload) in cooked
+        .cluster_page_headers
+        .iter()
+        .zip(cooked.cluster_page_data.iter())
+    {
+        assert_eq!(u64::from(header.start_offset), expected_offset);
+        expected_offset += payload.len() as u64;
+    }
     assert_eq!(
         cooked.page_dependencies.len(),
         cooked.cluster_page_headers.len()
@@ -239,6 +248,25 @@ fn virtual_geometry_cook_binary_dump_exports_stable_inspection_bytes() {
     assert_eq!(cursor.read_u32(), 1);
     assert_eq!(cursor.read_u32(), 1);
     assert_eq!(cursor.read_u32(), 8);
+}
+
+#[test]
+fn virtual_geometry_cook_hot_paths_do_not_rescan_prior_pages_or_resort_dumps() {
+    let cook_source = include_str!("../virtual_geometry_cook/cook.rs");
+    assert!(cook_source.contains("next_page_offset"));
+    assert!(!cook_source.contains(".map(|page| page.payload_size_bytes)"));
+
+    let binary_dump_source = include_str!("../virtual_geometry_cook/binary_dump.rs");
+    assert_eq!(binary_dump_source.matches("sorted_pages(asset)").count(), 1);
+
+    let graph_dump_source = include_str!("../virtual_geometry_cook/bvh_graph_dump.rs");
+    assert_eq!(
+        graph_dump_source
+            .matches("sorted_hierarchy_nodes(asset)")
+            .count(),
+        1
+    );
+    assert!(!graph_dump_source.contains(".cloned()"));
 }
 
 fn five_triangle_mesh() -> (Vec<MeshVertex>, Vec<u32>) {

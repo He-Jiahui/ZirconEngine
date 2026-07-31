@@ -1,0 +1,456 @@
+// Current-head Talent V2 allocation, loadout, and known-ability projection
+// for the M5 `talents_progression` scenario. All mutations validate a complete
+// `{ spec, rows }` candidate before committing the live state.
+var container = %import("zr.container");
+var catalog = %import("generated/m5_content_catalog");
+var abilityCatalog = %import("generated/current_known_ability_catalog");
+var abilityState = %import("combat/known_ability_state");
+var selectionCatalog = %import("generated/current_talent_selection_catalog");
+var loadoutContract = %import("generated/talent_loadout_migration_contract");
+
+class TalentState {
+    pub var level: int;
+    pub var inCombat: bool;
+    pub var inArena: bool;
+    pub var specId: string;
+    pub var row5Option: string;
+    pub var row8Option: string;
+    pub var row11Option: string;
+    pub var row14Option: string;
+    pub var row17Option: string;
+    pub var row20Option: string;
+    pub var chargeBonus: int;
+    pub var activeLoadout: int;
+    pub var loadoutNames: container.Array<string>;
+    pub var loadoutSpecs: container.Array<string>;
+    pub var loadoutRow5: container.Array<string>;
+    pub var loadoutRow8: container.Array<string>;
+    pub var loadoutRow11: container.Array<string>;
+    pub var loadoutRow14: container.Array<string>;
+    pub var loadoutRow17: container.Array<string>;
+    pub var loadoutRow20: container.Array<string>;
+    pub var loadoutBars: container.Array<string>;
+    pub var recomputeEvents: int;
+    pub var logEvents: int;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.level = 1;
+        this.inCombat = false;
+        this.inArena = false;
+        this.specId = "";
+        this.row5Option = "";
+        this.row8Option = "";
+        this.row11Option = "";
+        this.row14Option = "";
+        this.row17Option = "";
+        this.row20Option = "";
+        this.chargeBonus = 0;
+        this.activeLoadout = -1;
+        this.loadoutNames = new container.Array<string>();
+        this.loadoutSpecs = new container.Array<string>();
+        this.loadoutRow5 = new container.Array<string>();
+        this.loadoutRow8 = new container.Array<string>();
+        this.loadoutRow11 = new container.Array<string>();
+        this.loadoutRow14 = new container.Array<string>();
+        this.loadoutRow17 = new container.Array<string>();
+        this.loadoutRow20 = new container.Array<string>();
+        this.loadoutBars = new container.Array<string>();
+        this.recomputeEvents = 0;
+        this.logEvents = 0;
+        this.lastError = 0;
+    }
+}
+
+locked(state: TalentState): bool {
+    return state.inCombat || state.inArena;
+}
+
+rowLevel(index: int): int {
+    if (index == 0) return 5;
+    if (index == 1) return 8;
+    if (index == 2) return 11;
+    if (index == 3) return 14;
+    if (index == 4) return 17;
+    if (index == 5) return 20;
+    return 0;
+}
+
+rowOption(
+    level: int,
+    row5: string,
+    row8: string,
+    row11: string,
+    row14: string,
+    row17: string,
+    row20: string
+): string {
+    if (level == 5) return row5;
+    if (level == 8) return row8;
+    if (level == 11) return row11;
+    if (level == 14) return row14;
+    if (level == 17) return row17;
+    if (level == 20) return row20;
+    return "";
+}
+
+validRowOption(level: int, optionId: string, playerLevel: int): bool {
+    if (optionId == "") return true;
+    return playerLevel >= level &&
+        selectionCatalog.optionCode("warrior", level, optionId) != <uint>0;
+}
+
+validAllocation(
+    state: TalentState,
+    specId: string,
+    row5: string,
+    row8: string,
+    row11: string,
+    row14: string,
+    row17: string,
+    row20: string
+): bool {
+    if (specId != "" &&
+        (state.level < loadoutContract.specUnlockLevel(true) ||
+            !loadoutContract.knownSpec("warrior", specId))) {
+        return false;
+    }
+    return validRowOption(5, row5, state.level) &&
+        validRowOption(8, row8, state.level) &&
+        validRowOption(11, row11, state.level) &&
+        validRowOption(14, row14, state.level) &&
+        validRowOption(17, row17, state.level) &&
+        validRowOption(20, row20, state.level);
+}
+
+sameAllocation(
+    state: TalentState,
+    specId: string,
+    row5: string,
+    row8: string,
+    row11: string,
+    row14: string,
+    row17: string,
+    row20: string
+): bool {
+    return state.specId == specId && state.row5Option == row5 &&
+        state.row8Option == row8 && state.row11Option == row11 &&
+        state.row14Option == row14 && state.row17Option == row17 &&
+        state.row20Option == row20;
+}
+
+commitAllocation(
+    state: TalentState,
+    specId: string,
+    row5: string,
+    row8: string,
+    row11: string,
+    row14: string,
+    row17: string,
+    row20: string
+): void {
+    state.specId = specId;
+    state.row5Option = row5;
+    state.row8Option = row8;
+    state.row11Option = row11;
+    state.row14Option = row14;
+    state.row17Option = row17;
+    state.row20Option = row20;
+    var charge = catalog.indexOf("talent_option", "war_row_double_charge");
+    state.chargeBonus = row5 == "war_row_double_charge" && charge >= 0 ?
+        <int>catalog.metric("talent_option", charge, "bonusCharges") : 0;
+    state.recomputeEvents = state.recomputeEvents + 1;
+}
+
+pub applyTalents(
+    state: TalentState,
+    specId: string,
+    row5: string,
+    row8: string,
+    row11: string,
+    row14: string,
+    row17: string,
+    row20: string
+): bool {
+    state.lastError = 0;
+    if (!validAllocation(state, specId, row5, row8, row11, row14, row17, row20)) {
+        state.lastError = -2;
+        return false;
+    }
+    if (locked(state)) {
+        state.lastError = -1;
+        return false;
+    }
+    if (sameAllocation(state, specId, row5, row8, row11, row14, row17, row20)) return true;
+    commitAllocation(state, specId, row5, row8, row11, row14, row17, row20);
+    state.logEvents = state.logEvents + 1;
+    return true;
+}
+
+pub selectTalentRow(
+    state: TalentState,
+    level: int,
+    optionId: string,
+    clear: bool
+): bool {
+    var next = clear ? "" : optionId;
+    if (rowLevel(0) != 5 || rowLevel(5) != 20 || level != 5 && level != 8 &&
+        level != 11 && level != 14 && level != 17 && level != 20 ||
+        !validRowOption(level, next, state.level)) {
+        state.lastError = -2;
+        return false;
+    }
+    return applyTalents(
+        state,
+        state.specId,
+        level == 5 ? next : state.row5Option,
+        level == 8 ? next : state.row8Option,
+        level == 11 ? next : state.row11Option,
+        level == 14 ? next : state.row14Option,
+        level == 17 ? next : state.row17Option,
+        level == 20 ? next : state.row20Option
+    );
+}
+
+pub respec(state: TalentState): bool {
+    return applyTalents(state, state.specId, "", "", "", "", "", "");
+}
+
+pub setSpec(state: TalentState, specId: string): bool {
+    if (specId != "" && !loadoutContract.knownSpec("warrior", specId)) {
+        state.lastError = -2;
+        return false;
+    }
+    return applyTalents(
+        state, specId, state.row5Option, state.row8Option, state.row11Option,
+        state.row14Option, state.row17Option, state.row20Option
+    );
+}
+
+findLoadout(state: TalentState, name: string): int {
+    var index = 0;
+    while (index < state.loadoutNames.length) {
+        if (<string>state.loadoutNames[index] == name) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+writeLoadoutBars(state: TalentState, index: int, bar: container.Array<string>): void {
+    var slots = loadoutContract.barSlots(true);
+    var slot = 0;
+    while (slot < slots) {
+        var value = slot < bar.length ? <string>bar[slot] : "";
+        var offset = index * slots + slot;
+        if (offset < state.loadoutBars.length) state.loadoutBars[offset] = value;
+        else state.loadoutBars.add(value);
+        slot = slot + 1;
+    }
+}
+
+writeLoadoutAllocation(
+    state: TalentState,
+    index: int,
+    specId: string,
+    row5: string,
+    row8: string,
+    row11: string,
+    row14: string,
+    row17: string,
+    row20: string
+): void {
+    if (index < state.loadoutSpecs.length) {
+        state.loadoutSpecs[index] = specId;
+        state.loadoutRow5[index] = row5;
+        state.loadoutRow8[index] = row8;
+        state.loadoutRow11[index] = row11;
+        state.loadoutRow14[index] = row14;
+        state.loadoutRow17[index] = row17;
+        state.loadoutRow20[index] = row20;
+        return;
+    }
+    state.loadoutSpecs.add(specId);
+    state.loadoutRow5.add(row5);
+    state.loadoutRow8.add(row8);
+    state.loadoutRow11.add(row11);
+    state.loadoutRow14.add(row14);
+    state.loadoutRow17.add(row17);
+    state.loadoutRow20.add(row20);
+}
+
+pub saveLoadout(
+    state: TalentState,
+    requestedName: string,
+    bar: container.Array<string>,
+    specId: string,
+    row5: string,
+    row8: string,
+    row11: string,
+    row14: string,
+    row17: string,
+    row20: string
+): int {
+    if (!applyTalents(state, specId, row5, row8, row11, row14, row17, row20)) return -1;
+    var name = requestedName == "" ? "Build" : requestedName;
+    var index = findLoadout(state, name);
+    if (index < 0 && state.loadoutNames.length >= loadoutContract.maxLoadouts(true)) {
+        state.lastError = -3;
+        return -1;
+    }
+    if (index < 0) {
+        state.loadoutNames.add(name);
+        index = state.loadoutNames.length - 1;
+    }
+    writeLoadoutAllocation(
+        state, index, state.specId, state.row5Option, state.row8Option, state.row11Option,
+        state.row14Option, state.row17Option, state.row20Option
+    );
+    writeLoadoutBars(state, index, bar);
+    state.activeLoadout = index;
+    state.logEvents = state.logEvents + 1;
+    return index;
+}
+
+pub switchLoadout(state: TalentState, index: int): bool {
+    state.lastError = 0;
+    if (index < 0 || index >= state.loadoutNames.length ||
+        index >= loadoutContract.maxLoadouts(true)) {
+        state.lastError = -4;
+        return false;
+    }
+    if (!applyTalents(
+            state,
+            <string>state.loadoutSpecs[index],
+            <string>state.loadoutRow5[index],
+            <string>state.loadoutRow8[index],
+            <string>state.loadoutRow11[index],
+            <string>state.loadoutRow14[index],
+            <string>state.loadoutRow17[index],
+            <string>state.loadoutRow20[index]
+        )) return false;
+    state.activeLoadout = index;
+    state.logEvents = state.logEvents + 1;
+    return true;
+}
+
+pub deleteLoadout(state: TalentState, index: int): bool {
+    state.lastError = 0;
+    if (index < 0 || index >= state.loadoutNames.length || locked(state)) {
+        state.lastError = locked(state) ? -1 : -4;
+        return false;
+    }
+    var wasActive = state.activeLoadout == index;
+    state.loadoutNames.removeAt(index);
+    state.loadoutSpecs.removeAt(index);
+    state.loadoutRow5.removeAt(index);
+    state.loadoutRow8.removeAt(index);
+    state.loadoutRow11.removeAt(index);
+    state.loadoutRow14.removeAt(index);
+    state.loadoutRow17.removeAt(index);
+    state.loadoutRow20.removeAt(index);
+    var slots = loadoutContract.barSlots(true);
+    var slot = 0;
+    while (slot < slots) {
+        state.loadoutBars.removeAt(index * slots);
+        slot = slot + 1;
+    }
+    if (wasActive) {
+        state.activeLoadout = state.loadoutNames.length > 0 ? index : -1;
+        if (state.activeLoadout >= state.loadoutNames.length) {
+            state.activeLoadout = state.loadoutNames.length - 1;
+        }
+        if (state.activeLoadout >= 0 && !switchLoadout(state, state.activeLoadout)) return false;
+    } else if (state.activeLoadout > index) {
+        state.activeLoadout = state.activeLoadout - 1;
+    }
+    state.logEvents = state.logEvents + 1;
+    return true;
+}
+
+pub loadoutBarAbility(state: TalentState, index: int, slot: int): string {
+    var slots = loadoutContract.barSlots(true);
+    if (index < 0 || index >= state.loadoutNames.length || slot < 0 || slot >= slots) return "";
+    return <string>state.loadoutBars[index * slots + slot];
+}
+
+selectedRowCodes(state: TalentState): container.Array<uint> {
+    var result = new container.Array<uint>();
+    result.add(selectionCatalog.optionCode("warrior", 5, state.row5Option));
+    result.add(selectionCatalog.optionCode("warrior", 8, state.row8Option));
+    result.add(selectionCatalog.optionCode("warrior", 11, state.row11Option));
+    result.add(selectionCatalog.optionCode("warrior", 14, state.row14Option));
+    result.add(selectionCatalog.optionCode("warrior", 17, state.row17Option));
+    result.add(selectionCatalog.optionCode("warrior", 20, state.row20Option));
+    return result;
+}
+
+pub knowsAbility(state: TalentState, abilityId: string): bool {
+    var abilityCode = abilityCatalog.abilityCode(abilityId);
+    if (abilityCode <= 0) return false;
+    var specCode = state.specId == "" ? <uint>0 :
+        selectionCatalog.specCode("warrior", state.specId);
+    var known = abilityState.sourceKnownAbilityCodes(0, state.level, specCode, selectedRowCodes(state));
+    for (var code in known) {
+        if (<uint>code == <uint>abilityCode) return true;
+    }
+    return false;
+}
+
+pub contractTest(): int {
+    var scenario = new TalentState();
+    scenario.level = 20;
+    if (!applyTalents(
+            scenario, "arms", "war_row_double_charge", "war_row_die_by_the_sword",
+            "", "", "", ""
+        ) || scenario.specId != "arms" || scenario.chargeBonus != 1 ||
+        !knowsAbility(scenario, "mortal_strike") || !knowsAbility(scenario, "overpower") ||
+        !knowsAbility(scenario, "die_by_sword") || knowsAbility(scenario, "victory_rush")) {
+        return -1;
+    }
+    if (!respec(scenario) || scenario.specId != "arms" || scenario.row5Option != "" ||
+        scenario.row8Option != "" || scenario.chargeBonus != 0 ||
+        !knowsAbility(scenario, "mortal_strike") || knowsAbility(scenario, "die_by_sword")) {
+        return -2;
+    }
+    var bar = new container.Array<string>();
+    bar.add("mortal_strike");
+    bar.add("overpower");
+    bar.add("");
+    if (saveLoadout(
+            scenario, "Arms", bar, "arms", "", "war_row_die_by_the_sword", "", "", "", ""
+        ) != 0 || scenario.activeLoadout != 0 || scenario.loadoutNames.length != 1 ||
+        loadoutBarAbility(scenario, 0, 0) != "mortal_strike" ||
+        loadoutBarAbility(scenario, 0, 1) != "overpower" ||
+        loadoutBarAbility(scenario, 0, 21) != "") {
+        return -3;
+    }
+    if (!applyTalents(
+            scenario, "arms", "", "war_row_victory_rush", "", "", "", ""
+        ) || !knowsAbility(scenario, "victory_rush") || knowsAbility(scenario, "die_by_sword") ||
+        !switchLoadout(scenario, 0) || scenario.row8Option != "war_row_die_by_the_sword" ||
+        !knowsAbility(scenario, "die_by_sword") || knowsAbility(scenario, "victory_rush")) {
+        return -4;
+    }
+    if (!setSpec(scenario, "fury") || scenario.specId != "fury" ||
+        scenario.row8Option != "war_row_die_by_the_sword" ||
+        !knowsAbility(scenario, "bloodthirst") || knowsAbility(scenario, "mortal_strike") ||
+        !knowsAbility(scenario, "die_by_sword") || scenario.recomputeEvents != 6) {
+        return -5;
+    }
+    var rejected = new TalentState();
+    rejected.level = 4;
+    if (setSpec(rejected, "arms") || rejected.lastError != -2) return -6;
+    rejected.level = 5;
+    if (!setSpec(rejected, "arms") ||
+        selectTalentRow(rejected, 8, "war_row_die_by_the_sword", false) ||
+        rejected.lastError != -2 ||
+        !selectTalentRow(rejected, 5, "war_row_double_charge", false)) {
+        return -7;
+    }
+    rejected.inCombat = true;
+    if (selectTalentRow(rejected, 5, "war_row_pursuit", false) || rejected.lastError != -1 ||
+        selectTalentRow(rejected, 5, "not_an_option", false) || rejected.lastError != -2) {
+        return -8;
+    }
+    return 1;
+}

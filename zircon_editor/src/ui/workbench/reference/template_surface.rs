@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use thiserror::Error;
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
@@ -45,36 +47,54 @@ pub struct EditorWorkbenchTemplateFrames {
 }
 
 impl EditorWorkbenchTemplateFrames {
-    fn from_surface(surface: &UiSurface) -> Result<Self, EditorWorkbenchTemplateSurfaceError> {
+    fn from_surface(
+        surface: &UiSurface,
+        control_nodes: &HashMap<String, UiNodeId>,
+    ) -> Result<Self, EditorWorkbenchTemplateSurfaceError> {
         Ok(Self {
-            root: required_control_frame(surface, EditorWorkbenchTemplateControlIds::ROOT)?,
+            root: required_control_frame(
+                surface,
+                control_nodes,
+                EditorWorkbenchTemplateControlIds::ROOT,
+            )?,
             top_toolbar: required_control_frame(
                 surface,
+                control_nodes,
                 EditorWorkbenchTemplateControlIds::TOP_TOOLBAR,
             )?,
             main_band: required_control_frame(
                 surface,
+                control_nodes,
                 EditorWorkbenchTemplateControlIds::MAIN_BAND,
             )?,
             activity_rail: required_control_frame(
                 surface,
+                control_nodes,
                 EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL,
             )?,
             scene_tree: required_control_frame(
                 surface,
+                control_nodes,
                 EditorWorkbenchTemplateControlIds::SCENE_TREE,
             )?,
-            viewport: required_control_frame(surface, EditorWorkbenchTemplateControlIds::VIEWPORT)?,
+            viewport: required_control_frame(
+                surface,
+                control_nodes,
+                EditorWorkbenchTemplateControlIds::VIEWPORT,
+            )?,
             inspector: required_control_frame(
                 surface,
+                control_nodes,
                 EditorWorkbenchTemplateControlIds::INSPECTOR,
             )?,
             component_drawer: required_control_frame(
                 surface,
+                control_nodes,
                 EditorWorkbenchTemplateControlIds::COMPONENT_DRAWER,
             )?,
             status_bar: required_control_frame(
                 surface,
+                control_nodes,
                 EditorWorkbenchTemplateControlIds::STATUS_BAR,
             )?,
         })
@@ -89,6 +109,7 @@ pub struct EditorWorkbenchTemplateSurface {
     pub host_projection: RetainedUiHostProjection,
     layout_size: UiSize,
     source_projection: RetainedUiProjection,
+    control_nodes: HashMap<String, UiNodeId>,
 }
 
 impl EditorWorkbenchTemplateSurface {
@@ -111,21 +132,34 @@ impl EditorWorkbenchTemplateSurface {
     }
 
     pub fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
-        control_frame(&self.surface, control_id)
+        let node_id = self.control_node_id(control_id)?;
+        self.surface
+            .tree
+            .nodes
+            .get(&node_id)
+            .map(|node| node.layout_cache.frame)
     }
 
     pub fn visible_control_frame(&self, control_id: &str) -> Option<UiFrame> {
-        visible_control_frame(&self.surface, control_id)
+        visible_arranged_control_frame(&self.surface, self.control_node_id(control_id)?)
     }
 
     fn refresh_projection(
         &mut self,
         runtime: &EditorUiHostRuntime,
     ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
-        self.frames = EditorWorkbenchTemplateFrames::from_surface(&self.surface)?;
+        self.frames =
+            EditorWorkbenchTemplateFrames::from_surface(&self.surface, &self.control_nodes)?;
         self.host_projection = runtime
             .build_retained_host_projection_with_surface(&self.source_projection, &self.surface)?;
         Ok(())
+    }
+
+    fn control_node_id(&self, control_id: &str) -> Option<UiNodeId> {
+        self.control_nodes
+            .get(control_id)
+            .copied()
+            .or_else(|| find_control_node_id(&self.surface, control_id))
     }
 }
 
@@ -148,7 +182,8 @@ pub fn build_editor_workbench_template_surface(
     runtime.register_projection_routes(&mut route_service, &mut source_projection)?;
     let mut surface = runtime.build_shared_surface(WORKBENCH_WINDOW_DOCUMENT_ID)?;
     surface.compute_layout(metrics.target_size())?;
-    let frames = EditorWorkbenchTemplateFrames::from_surface(&surface)?;
+    let control_nodes = build_control_node_index(&surface);
+    let frames = EditorWorkbenchTemplateFrames::from_surface(&surface, &control_nodes)?;
     let host_projection =
         runtime.build_retained_host_projection_with_surface(&source_projection, &surface)?;
     Ok(EditorWorkbenchTemplateSurface {
@@ -158,33 +193,47 @@ pub fn build_editor_workbench_template_surface(
         host_projection,
         layout_size: metrics.target_size(),
         source_projection,
+        control_nodes,
     })
 }
 
 fn required_control_frame(
     surface: &UiSurface,
+    control_nodes: &HashMap<String, UiNodeId>,
     control_id: &'static str,
 ) -> Result<UiFrame, EditorWorkbenchTemplateSurfaceError> {
-    control_frame(surface, control_id)
+    control_nodes
+        .get(control_id)
+        .and_then(|node_id| surface.tree.nodes.get(node_id))
+        .map(|node| node.layout_cache.frame)
         .ok_or(EditorWorkbenchTemplateSurfaceError::MissingControl { control_id })
 }
 
-fn control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFrame> {
-    surface.tree.nodes.values().find_map(|node| {
-        node.template_metadata
+fn build_control_node_index(surface: &UiSurface) -> HashMap<String, UiNodeId> {
+    let mut control_nodes = HashMap::new();
+    for (node_id, node) in &surface.tree.nodes {
+        let Some(control_id) = node
+            .template_metadata
             .as_ref()
             .and_then(|metadata| metadata.control_id.as_deref())
-            .filter(|candidate| *candidate == control_id)
-            .map(|_| node.layout_cache.frame)
-    })
+        else {
+            continue;
+        };
+        control_nodes
+            .entry(control_id.to_string())
+            .or_insert(*node_id);
+    }
+    control_nodes
 }
 
-fn visible_control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFrame> {
-    surface.arranged_tree.nodes.iter().find_map(|node| {
-        node.control_id
-            .as_deref()
-            .filter(|candidate| *candidate == control_id)
-            .and_then(|_| visible_arranged_control_frame(surface, node.node_id))
+fn find_control_node_id(surface: &UiSurface, control_id: &str) -> Option<UiNodeId> {
+    surface.tree.nodes.iter().find_map(|(node_id, node)| {
+        (node
+            .template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.as_deref())
+            == Some(control_id))
+        .then_some(*node_id)
     })
 }
 

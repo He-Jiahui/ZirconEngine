@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use crate::asset::{ProjectAssetManager, ShaderAsset, ShaderSourceLanguage};
 use crate::core::framework::render::ShaderAssetKind;
@@ -6,9 +7,10 @@ use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceR
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
+use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 
 use super::super::super::lighting_bind_group_layout::create_lighting_bind_group_layout;
-use super::super::create_lighting_pipeline;
+use super::super::DeferredLightingPipelineCache;
 use super::{toon_shading_model_descriptor, CUSTOM_TOON_DEFERRED_INCLUDE};
 
 const CUSTOM_TOON_FORWARD_INCLUDE: &str = r#"
@@ -35,7 +37,7 @@ fn encode_gbuffer(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> ZrDeferred
 "#;
 
 #[test]
-fn custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source() {
+fn custom_shading_model_deferred_lighting_pipelines_create_with_project_include_source() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
     let asset_manager = ProjectAssetManager::default();
     let descriptor = toon_shading_model_descriptor();
@@ -56,7 +58,10 @@ fn custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_
     );
 
     let scene_layout = scene_bind_group_layout(&backend.device);
-    let lighting_layout = create_lighting_bind_group_layout(&backend.device);
+    let lighting_layout = create_lighting_bind_group_layout(
+        &backend.device,
+        SceneRendererDeferredLightingProfile::FullScene,
+    );
     let gpu_scene_palette_buffer =
         Arc::new(backend.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-test-custom-deferred-lighting-skinned-palette"),
@@ -73,7 +78,7 @@ fn custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_
     let error_scope = backend
         .device
         .push_error_scope(wgpu::ErrorFilter::Validation);
-    let _pipeline = create_lighting_pipeline(
+    let (pipelines, _) = DeferredLightingPipelineCache::new(
         &backend.device,
         &asset_manager,
         &scene_layout,
@@ -82,13 +87,63 @@ fn custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_
         wgpu::TextureFormat::Rgba8Unorm,
         &[descriptor],
         false,
-        true,
+        SceneRendererDeferredLightingProfile::FullScene,
     )
     .expect("custom deferred lighting pipeline should be created from project WGSL include source");
+    let _standard_pipeline = pipelines.pipeline(&backend.device, &lighting_layout, false);
+    let _subsurface_pipeline = pipelines.pipeline(&backend.device, &lighting_layout, true);
     let error = pollster::block_on(error_scope.pop());
     assert!(
         error.is_none(),
-        "custom deferred lighting pipeline should pass WGPU validation: {error:?}"
+        "custom deferred lighting pipelines should pass WGPU validation: {error:?}"
+    );
+}
+
+#[test]
+fn environment_only_pbr_pipeline_defers_startup_pso_and_creates_on_demand_without_direct_light_layout_entries(
+) {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let asset_manager = ProjectAssetManager::default();
+    let scene_layout = scene_bind_group_layout(&backend.device);
+    let lighting_layout = create_lighting_bind_group_layout(
+        &backend.device,
+        SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+    );
+    let gpu_scene_palette_buffer =
+        Arc::new(backend.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-test-environment-only-pbr-skinned-palette"),
+            size: 64,
+            usage: wgpu::BufferUsages::STORAGE,
+            mapped_at_creation: false,
+        }));
+    let gpu_scene = GpuScene::new(
+        &backend.device,
+        gpu_scene_palette_buffer,
+        wgpu::BufferSize::new(64).unwrap(),
+    );
+
+    let error_scope = backend
+        .device
+        .push_error_scope(wgpu::ErrorFilter::Validation);
+    let (pipelines, startup) = DeferredLightingPipelineCache::new(
+        &backend.device,
+        &asset_manager,
+        &scene_layout,
+        &lighting_layout,
+        gpu_scene.scene_bind_group_layout(),
+        wgpu::TextureFormat::Rgba8Unorm,
+        &[],
+        false,
+        SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+    )
+    .expect("environment-only PBR pipeline should assemble without direct-light sources");
+    assert_eq!(startup.pipeline_foundation(), Duration::ZERO);
+    assert_eq!(startup.standard_pipeline(), Duration::ZERO);
+    let _pipeline = pipelines.pipeline(&backend.device, &lighting_layout, false);
+    let error = pollster::block_on(error_scope.pop());
+    assert!(
+        error.is_none(),
+        "environment-only PBR layout and pipeline should pass WGPU validation: {error:?}"
     );
 }
 

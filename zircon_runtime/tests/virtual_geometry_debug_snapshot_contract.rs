@@ -41,7 +41,7 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullTraversalRecord, RenderVirtualGeometryPage,
     RenderVirtualGeometryPageDependency, RenderVirtualGeometryPageRequestInspection,
     RenderVirtualGeometryResidentPageInspection, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometryVisBufferMark, RenderWorldSnapshotHandle,
+    RenderVirtualGeometryVisBufferMark, RenderWorldSnapshotHandle, RendererCommon,
 };
 use zircon_runtime::core::math::{view_matrix, Mat4, Transform, UVec2, Vec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
@@ -594,7 +594,11 @@ fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: default_render_layer_set(),
+        common: RendererCommon {
+            layer_mask: default_render_layer_set(),
+            is_static: false,
+            ..RendererCommon::default()
+        },
     }];
     snapshot.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
         forced_mip: Some(3),
@@ -988,7 +992,11 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: default_render_layer_set(),
+            common: RendererCommon {
+                layer_mask: default_render_layer_set(),
+                is_static: false,
+                ..RendererCommon::default()
+            },
         },
     ];
     snapshot.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
@@ -1397,7 +1405,11 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: default_render_layer_set(),
+            common: RendererCommon {
+                layer_mask: default_render_layer_set(),
+                is_static: false,
+                ..RendererCommon::default()
+            },
         },
     ];
     snapshot.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
@@ -1834,7 +1846,11 @@ fn automatic_virtual_geometry_frame_extract(
         tint: Vec4::new(0.08, 0.08, 0.08, 1.0),
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: default_render_layer_set(),
+        common: RendererCommon {
+            layer_mask: default_render_layer_set(),
+            is_static: false,
+            ..RendererCommon::default()
+        },
     }];
     snapshot.overlays = Default::default();
     snapshot.virtual_geometry_debug = Some(debug);

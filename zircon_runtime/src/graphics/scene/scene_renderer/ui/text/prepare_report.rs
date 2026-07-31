@@ -1,14 +1,14 @@
+use super::ScreenSpaceUiNativePrepareReport;
 use super::font_id_report::ScreenSpaceUiTextFontIdReport;
 use super::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use super::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
-use super::ScreenSpaceUiNativePrepareReport;
 use crate::graphics::scene::scene_renderer::ui::atlas_renderer::GlyphAtlasBitmapRendererPrepareReport;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasCacheReport;
 use crate::graphics::scene::scene_renderer::ui::sdf_render::ScreenSpaceUiSdfPrepareReport;
+use crate::text::TextLayoutFallbackReport;
 use crate::text::font::MissingGlyphDiagnosticsReport;
 use crate::text::native_bitmap_atlas::NativeBitmapAtlasPrepareReport;
-use crate::text::TextLayoutFallbackReport;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ScreenSpaceUiTextPrepareReport {
@@ -40,6 +40,7 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
     pub(super) source_cache_insert_count: usize,
     pub(super) worker_request_submitted_count: usize,
     pub(crate) worker_request_pending_count: usize,
+    pub(crate) worker_request_deferred_count: usize,
     pub(crate) worker_request_unavailable_count: usize,
     pub(crate) worker_request_failed_count: usize,
     pub(super) upload_command_count: usize,
@@ -103,6 +104,9 @@ fn text_raster_upload_report(
         worker_request_pending_count: native_bitmap_atlas
             .source_cache
             .worker_request_pending_count,
+        worker_request_deferred_count: native_bitmap_atlas
+            .source_cache
+            .worker_request_deferred_count,
         worker_request_unavailable_count: native_bitmap_atlas
             .source_cache
             .worker_request_unavailable_count,

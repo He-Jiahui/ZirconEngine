@@ -21,7 +21,8 @@ use zircon_runtime::asset::{
 use zircon_runtime::core::math::{Vec2, Vec3};
 
 pub use capability::{
-    IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+    GLTF_IMPORTER_DECLARATION, IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY,
+    RUNTIME_CRATE_NAME,
 };
 pub use plugin::{
     asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,

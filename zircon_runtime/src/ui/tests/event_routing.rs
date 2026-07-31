@@ -34,6 +34,26 @@ mod dispatch_effects;
 mod pointer_state;
 mod shared_input;
 
+#[test]
+fn pointer_dispatch_does_not_clone_an_unused_hover_path() {
+    let source = include_str!("../surface/surface/event_routing.rs");
+
+    assert!(
+        !source.contains("_hover_before_dispatch"),
+        "pointer dispatch must not clone the hovered path before routing when that copy is unused"
+    );
+}
+
+#[test]
+fn default_table_sort_borrows_common_scalar_text() {
+    let source = include_str!("../surface/surface/default_interactions/table/columns.rs");
+
+    assert!(
+        source.contains("left.and_then(borrowed_sort_text)"),
+        "default table sorting should compare common string-like values without allocating display text"
+    );
+}
+
 fn capture_pointer_for_test(surface: &mut UiSurface, pointer_id: UiPointerId, owner: UiNodeId) {
     surface.focus.captured = Some(owner);
     surface.input.set_pointer_capture_for_id(pointer_id, owner);

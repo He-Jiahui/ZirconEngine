@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/ui/surface/component_state.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/surface/render/node_visual_data.rs
@@ -63,7 +63,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/ui/surface/component_state.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/surface/render/node_visual_data.rs

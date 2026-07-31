@@ -1,7 +1,9 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+
+use zircon_runtime::asset::project::ProjectManager;
 
 use super::editor_error::EditorError;
-use super::project_access::{open_project_manager_for_paths, resolve_project_asset_write_path};
+use super::project_access::resolve_project_asset_write_path;
 
 pub(crate) struct UiAssetExternalWidgetTarget {
     pub(crate) source_path: PathBuf,
@@ -17,12 +19,11 @@ pub(crate) struct UiAssetExternalStyleTarget {
 }
 
 pub(crate) fn resolve_external_widget_target(
-    project_root: &Path,
+    project: &ProjectManager,
     preferred_asset_id: &str,
     _component_name: &str,
     preferred_document_id: &str,
 ) -> Result<UiAssetExternalWidgetTarget, EditorError> {
-    let project = open_project_manager_for_paths(project_root)?;
     let mut suffix = 0usize;
     loop {
         let asset_id = if suffix == 0 {
@@ -35,7 +36,7 @@ pub(crate) fn resolve_external_widget_target(
         } else {
             format!("{preferred_document_id}_{suffix}")
         };
-        let source_path = resolve_project_asset_write_path(&project, &asset_id)?;
+        let source_path = resolve_project_asset_write_path(project, &asset_id)?;
         if !source_path.exists() {
             return Ok(UiAssetExternalWidgetTarget {
                 source_path,
@@ -48,12 +49,11 @@ pub(crate) fn resolve_external_widget_target(
 }
 
 pub(crate) fn resolve_external_style_target(
-    project_root: &Path,
+    project: &ProjectManager,
     preferred_asset_id: &str,
     preferred_document_id: &str,
     preferred_display_name: &str,
 ) -> Result<UiAssetExternalStyleTarget, EditorError> {
-    let project = open_project_manager_for_paths(project_root)?;
     let mut suffix = 0usize;
     loop {
         let asset_id = if suffix == 0 {
@@ -71,7 +71,7 @@ pub(crate) fn resolve_external_style_target(
         } else {
             format!("{preferred_display_name} {suffix}")
         };
-        let source_path = resolve_project_asset_write_path(&project, &asset_id)?;
+        let source_path = resolve_project_asset_write_path(project, &asset_id)?;
         if !source_path.exists() {
             return Ok(UiAssetExternalStyleTarget {
                 source_path,

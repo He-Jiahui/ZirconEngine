@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var weaponStow = %import("combat/weapon_stow_state");
+
+console.printLine("m4-weapon-stow-state-test");
+var result = weaponStow.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -4,6 +4,7 @@ use crate::ui::binding::UiBindingUpdateReport;
 use crate::ui::component::{UiComponentEvent, UiDragMetrics};
 use crate::ui::event_ui::UiNodeId;
 
+use super::super::UiTemplateActionInvocation;
 use super::{
     UiClipboardRequest, UiDispatchEffect, UiDispatchReply, UiDispatchReplyStepTrace, UiInputEvent,
     UiInputMethodRequest, UiPointerLockPolicy, UiPopupEffectKind, UiTooltipEffectKind,
@@ -127,6 +128,12 @@ pub struct UiComponentEventReport {
     pub delivered: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drag: Option<UiDragMetrics>,
+    /// Action resolved from the template binding that produced this event.
+    ///
+    /// Absent reports are ordinary component notifications and must not be
+    /// interpreted by a host as an action invocation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template_action: Option<UiTemplateActionInvocation>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

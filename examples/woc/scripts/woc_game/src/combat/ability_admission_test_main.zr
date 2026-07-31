@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var admission = %import("combat/ability_admission");
+
+console.printLine("m4-ability-admission-test");
+var result = admission.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

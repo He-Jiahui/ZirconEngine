@@ -1,8 +1,8 @@
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::host_contract::data::{
     TemplateNodeFrameData, TemplatePaneNodeData, TemplatePaneSampleGridData,
-    TemplatePaneSampleGridPointData,
 };
+use crate::ui::sample_grid::{SampleGridGeneration, SampleGridGenerationInput, SampleGridPoint};
 
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 
@@ -13,28 +13,20 @@ pub(super) fn sample_grid_node(width: f32, height: f32) -> TemplatePaneNodeData 
         component_role: "canvas".into(),
         component_variant: "sample-grid".into(),
         sample_grid: TemplatePaneSampleGridData {
-            x_axis_label: "Direction (deg)".into(),
-            y_axis_label: "Speed (cm/s)".into(),
-            x_min: -180.0,
-            x_max: 180.0,
-            y_min: 0.0,
-            y_max: 600.0,
-            x_ticks: model_rc(vec![-180.0, -90.0, 0.0, 90.0, 180.0]),
-            y_ticks: model_rc(vec![0.0, 150.0, 300.0, 450.0, 600.0]),
-            points: model_rc(vec![
-                TemplatePaneSampleGridPointData {
-                    x: 0.0,
-                    y: 600.0,
-                    label: "Run_Fwd".into(),
-                    selected: true,
-                },
-                TemplatePaneSampleGridPointData {
-                    x: -180.0,
-                    y: 300.0,
-                    label: "Run_Left".into(),
-                    selected: false,
-                },
-            ]),
+            generation: SampleGridGeneration::new(SampleGridGenerationInput {
+                x_axis_label: "Direction (deg)".to_string(),
+                y_axis_label: "Speed (cm/s)".to_string(),
+                x_min: -180.0,
+                x_max: 180.0,
+                y_min: 0.0,
+                y_max: 600.0,
+                x_ticks: vec![-180.0, -90.0, 0.0, 90.0, 180.0],
+                y_ticks: vec![0.0, 150.0, 300.0, 450.0, 600.0],
+                points: vec![
+                    SampleGridPoint::new(0.0, 600.0, "Run_Fwd", true),
+                    SampleGridPoint::new(-180.0, 300.0, "Run_Left", false),
+                ],
+            }),
         },
         frame: TemplateNodeFrameData {
             x: 0.0,

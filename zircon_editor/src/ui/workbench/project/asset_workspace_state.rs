@@ -1,8 +1,9 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::core::asset::AssetTypeId;
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
+    EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetDetailsGeneration,
     EditorAssetFolderRecord,
 };
 use zircon_runtime_interface::resource::{ResourceKind, ResourceRecord, ResourceState};
@@ -17,10 +18,10 @@ use zircon_runtime::asset::AssetUri;
 
 #[derive(Clone, Debug)]
 pub(crate) struct AssetWorkspaceState {
-    catalog: Option<EditorAssetCatalogSnapshotRecord>,
+    catalog: Option<Arc<EditorAssetCatalogGeneration>>,
     selected_folder_id: String,
     selected_asset_uuid: Option<String>,
-    selected_details: Option<EditorAssetDetailsRecord>,
+    selected_details: Option<Arc<EditorAssetDetailsGeneration>>,
     resources_by_locator: HashMap<String, ResourceRecord>,
     search_query: String,
     kind_filter: Option<ResourceKind>,
@@ -49,7 +50,7 @@ impl Default for AssetWorkspaceState {
 }
 
 impl AssetWorkspaceState {
-    pub fn sync_catalog(&mut self, catalog: EditorAssetCatalogSnapshotRecord) {
+    pub fn sync_catalog(&mut self, catalog: Arc<EditorAssetCatalogGeneration>) {
         self.catalog = Some(catalog);
 
         if !self.folder_exists(&self.selected_folder_id) {
@@ -65,7 +66,7 @@ impl AssetWorkspaceState {
         }
     }
 
-    pub fn sync_selected_details(&mut self, details: Option<EditorAssetDetailsRecord>) {
+    pub fn sync_selected_details(&mut self, details: Option<Arc<EditorAssetDetailsGeneration>>) {
         self.selected_details = details;
     }
 
@@ -111,9 +112,7 @@ impl AssetWorkspaceState {
         let locator = locator.to_string();
         self.catalog
             .as_ref()?
-            .assets
-            .iter()
-            .find(|asset| asset.locator == locator)
+            .asset_by_locator(&locator)
             .map(|asset| AssetTypeId::from_resource_kind(asset.kind))
     }
 
@@ -166,7 +165,7 @@ impl AssetWorkspaceState {
         };
 
         let normalized_search_query = self.search_query.to_ascii_lowercase();
-        let folder_tree = build_folder_tree(&catalog.folders, &self.selected_folder_id);
+        let folder_tree = build_folder_tree(catalog.folders.as_ref(), &self.selected_folder_id);
         let visible_folders = catalog
             .folders
             .iter()
@@ -194,11 +193,11 @@ impl AssetWorkspaceState {
             .collect::<Vec<_>>();
 
         AssetWorkspaceSnapshot {
-            project_name: catalog.project_name.clone(),
-            project_root: catalog.project_root.clone(),
-            assets_root: catalog.assets_root.clone(),
-            cache_root: catalog.cache_root.clone(),
-            default_scene_uri: catalog.default_scene_uri.clone(),
+            project_name: catalog.project_name.to_string(),
+            project_root: catalog.project_root.to_string(),
+            assets_root: catalog.assets_root.to_string(),
+            cache_root: catalog.cache_root.to_string(),
+            default_scene_uri: catalog.default_scene_uri.to_string(),
             catalog_revision: catalog.catalog_revision,
             surface_mode,
             view_mode: self.view_mode(surface_mode),
@@ -232,11 +231,11 @@ impl AssetWorkspaceState {
         };
 
         ProjectOverviewSnapshot {
-            project_name: catalog.project_name.clone(),
-            project_root: catalog.project_root.clone(),
-            assets_root: catalog.assets_root.clone(),
-            cache_root: catalog.cache_root.clone(),
-            default_scene_uri: catalog.default_scene_uri.clone(),
+            project_name: catalog.project_name.to_string(),
+            project_root: catalog.project_root.to_string(),
+            assets_root: catalog.assets_root.to_string(),
+            cache_root: catalog.cache_root.to_string(),
+            default_scene_uri: catalog.default_scene_uri.to_string(),
             catalog_revision: catalog.catalog_revision,
             folder_count: catalog.folders.len(),
             asset_count: catalog.assets.len(),
@@ -258,20 +257,13 @@ impl AssetWorkspaceState {
     }
 
     fn folder_exists(&self, folder_id: &str) -> bool {
-        self.catalog.as_ref().is_some_and(|catalog| {
-            catalog
-                .folders
-                .iter()
-                .any(|folder| folder.folder_id == folder_id)
-        })
+        self.catalog
+            .as_ref()
+            .is_some_and(|catalog| catalog.folder(folder_id).is_some())
     }
 
     fn asset_record(&self, asset_uuid: &str) -> Option<&EditorAssetCatalogRecord> {
-        self.catalog
-            .as_ref()?
-            .assets
-            .iter()
-            .find(|asset| asset.uuid == asset_uuid)
+        self.catalog.as_ref()?.asset(asset_uuid)
     }
 
     fn asset_belongs_to_folder(&self, asset_uuid: &str, folder_id: &str) -> bool {
@@ -303,12 +295,14 @@ impl AssetWorkspaceState {
             toolkit_view_id: String::new(),
             toolkit_open_operation: String::new(),
             context_commands: Vec::new(),
-            package_id: details.and_then(|details| details.package_id.clone()),
+            package_id: details
+                .and_then(|details| details.package_id.as_deref())
+                .map(str::to_string),
             asset_unit: details
                 .map(|details| asset_unit_label(details.unit).to_string())
                 .unwrap_or_default(),
             included_files: details
-                .map(|details| details.included_files.clone())
+                .map(|details| details.included_files.to_vec())
                 .unwrap_or_default(),
             subassets: details
                 .map(|details| {
@@ -515,7 +509,9 @@ mod performance_tests {
     #[test]
     fn asset_snapshot_normalizes_search_once_and_streams_parent_paths() {
         let source = include_str!("asset_workspace_state.rs");
-        let test_module = source.rfind("#[cfg(test)]").expect("performance test module");
+        let test_module = source
+            .rfind("#[cfg(test)]")
+            .expect("performance test module");
         let implementation = &source[..test_module];
         assert_eq!(
             implementation

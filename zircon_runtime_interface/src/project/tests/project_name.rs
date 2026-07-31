@@ -1,4 +1,4 @@
-use super::super::{validate_project_name, ProjectNameError};
+use super::super::{ProjectNameError, validate_project_name};
 
 #[test]
 fn project_name_accepts_one_portable_filename_component() {

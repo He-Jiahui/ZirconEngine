@@ -1,60 +1,61 @@
 use crate::plugin::PluginPackageManifest;
 
 use super::super::{
+    projection::RuntimePluginPackageValidationProjection,
     validate_runtime_plugin_package_namespace, validate_runtime_plugin_package_token,
 };
 
 pub(super) fn validate_runtime_plugin_package_provided_interfaces(
     package_manifest: &PluginPackageManifest,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     diagnostics: &mut Vec<String>,
 ) {
-    let mut seen = Vec::new();
-    for interface in &package_manifest.provides_interfaces {
+    for (interface_index, interface) in package_manifest.provides_interfaces.iter().enumerate() {
         validate_runtime_plugin_package_namespace(
             "provided interface id",
             interface.id.as_str(),
             diagnostics,
         );
-        if seen.contains(&interface.id.as_str()) {
+        if projection.provided_interface_is_duplicate(interface_index) {
             diagnostics.push(format!(
                 "runtime plugin package manifest provided interface `{}` must be unique",
                 interface.id
             ));
-        } else {
-            seen.push(interface.id.as_str());
         }
-        validate_interface_methods(&interface.id, interface, diagnostics);
+        validate_interface_methods(
+            interface_index,
+            &interface.id,
+            interface,
+            projection,
+            diagnostics,
+        );
     }
 }
 
 fn validate_interface_methods(
+    interface_index: usize,
     interface_id: &str,
     interface: &crate::plugin::PluginInterfaceManifest,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     diagnostics: &mut Vec<String>,
 ) {
-    let mut seen_names = Vec::new();
-    let mut seen_slots = Vec::new();
-    for method in &interface.methods {
+    for (method_index, method) in interface.methods.iter().enumerate() {
         validate_runtime_plugin_package_token(
             "provided interface method name",
             method.name.as_str(),
             diagnostics,
         );
-        if seen_names.contains(&method.name.as_str()) {
+        if projection.provided_method_name_is_duplicate(interface_index, method_index) {
             diagnostics.push(format!(
                 "runtime plugin package manifest provided interface `{interface_id}` method `{}` must be unique",
                 method.name
             ));
-        } else {
-            seen_names.push(method.name.as_str());
         }
-        if seen_slots.contains(&method.method_slot) {
+        if projection.provided_method_slot_is_duplicate(interface_index, method_index) {
             diagnostics.push(format!(
                 "runtime plugin package manifest provided interface `{interface_id}` method slot {} must be unique",
                 method.method_slot
             ));
-        } else {
-            seen_slots.push(method.method_slot);
         }
         for parameter in &method.parameters {
             validate_runtime_plugin_package_token(
@@ -63,20 +64,21 @@ fn validate_interface_methods(
                 diagnostics,
             );
         }
-        let mut seen_capabilities = Vec::new();
-        for capability in &method.required_capabilities {
+        for (capability_index, capability) in method.required_capabilities.iter().enumerate() {
             validate_runtime_plugin_package_namespace(
                 "provided interface method required capability",
                 capability,
                 diagnostics,
             );
-            if seen_capabilities.contains(&capability.as_str()) {
+            if projection.provided_method_capability_is_duplicate(
+                interface_index,
+                method_index,
+                capability_index,
+            ) {
                 diagnostics.push(format!(
                     "runtime plugin package manifest provided interface `{interface_id}` method `{}` required capability `{capability}` must be unique",
                     method.name
                 ));
-            } else {
-                seen_capabilities.push(capability.as_str());
             }
         }
     }

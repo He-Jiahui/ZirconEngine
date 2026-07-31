@@ -7,8 +7,9 @@ mod public_runtime_frame;
 #[path = "tests/runtime_ui_support/mod.rs"]
 mod runtime_ui_support;
 
+pub use crate::core::framework::ui::UI_MODULE_NAME;
 pub use module::{
-    module_descriptor, UiConfig, UiModule, UiRuntimeDriver, UI_EVENT_MANAGER_NAME, UI_MODULE_NAME,
+    module_descriptor, UiConfig, UiModule, UiRuntimeDriver, UI_EVENT_MANAGER_NAME,
     UI_RUNTIME_DRIVER_NAME,
 };
 pub(crate) use public_runtime_frame::PublicRuntimeFrame;

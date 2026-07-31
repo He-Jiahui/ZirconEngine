@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_projectile_travel_state_tests",
+  "source": "src",
+  "binary": "bin-m4-projectile-travel-state-tests",
+  "entry": "world/projectile_travel_state_test_main"
+}

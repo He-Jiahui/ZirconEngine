@@ -1,5 +1,5 @@
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::core::CoreError;
 use crate::plugin::RuntimeExtensionRegistryError;
@@ -71,7 +71,11 @@ pub struct RuntimeSceneSystemRegistrationBuilder<'registry, S> {
 
 impl<'registry, S> RuntimeSceneSystemRegistrationBuilder<'registry, S>
 where
-    S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
+    S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError>
+        + Send
+        + Sync
+        + Clone
+        + 'static,
 {
     pub(super) fn new(
         registry: &'registry mut RuntimeExtensionRegistry,
@@ -120,22 +124,17 @@ where
         let order = self.order;
         let sets = self.sets;
         let constraints = self.constraints;
-        let shared_system = Arc::new(Mutex::new(self.system));
+        let system_template = self.system;
         let metadata = SceneSystemMetadata::new(id.clone(), stage, order)
             .with_sets(sets.clone())
             .with_constraints(constraints.clone());
         let build = SharedRuntimeSceneSystemBuild::new(
             id.clone(),
             Arc::new(move || {
-                let shared_system = Arc::clone(&shared_system);
+                let mut system = system_template.clone();
                 let system: BoxedRuntimeSceneSystem = Box::new(FunctionRuntimeSceneSystem::new(
                     metadata.clone(),
-                    move |context| {
-                        let mut system = shared_system
-                            .lock()
-                            .expect("runtime scene system callback lock was poisoned");
-                        (*system)(context)
-                    },
+                    move |context| system(context),
                 ));
                 system
             }),
@@ -163,7 +162,11 @@ impl RuntimeExtensionRegistry {
         system: S,
     ) -> RuntimeSceneSystemRegistrationBuilder<'_, S>
     where
-        S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
+        S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError>
+            + Send
+            + Sync
+            + Clone
+            + 'static,
     {
         RuntimeSceneSystemRegistrationBuilder::new(self, owner, id, stage, system)
     }
@@ -193,5 +196,64 @@ impl RuntimeExtensionRegistry {
         self.plugin_runtime_systems
             .iter()
             .map(|(owner, _key, registration)| (owner, registration))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use super::*;
+    use crate::core::framework::scene::SCENE_MODULE_NAME;
+    use crate::core::CoreRuntime;
+    use crate::scene::ecs::RuntimeSceneSystemContext;
+    use crate::scene::{create_default_level, module_descriptor};
+
+    #[test]
+    fn runtime_scene_system_callback_state_is_private_per_instance() {
+        let observed = Arc::new(Mutex::new(Vec::new()));
+        let mut registry = RuntimeExtensionRegistry::default();
+        let owner = registry.intern_plugin_module("tests.runtime").unwrap();
+        let observed_for_system = Arc::clone(&observed);
+        let mut calls = 0usize;
+
+        registry
+            .register_runtime_scene_system(
+                owner,
+                "tests.runtime.private-state",
+                SystemStage::Update,
+                move |_| {
+                    calls += 1;
+                    observed_for_system.lock().unwrap().push(calls);
+                    Ok(())
+                },
+            )
+            .register()
+            .unwrap();
+
+        let runtime = CoreRuntime::new();
+        runtime.register_module(module_descriptor()).unwrap();
+        runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+        let level = create_default_level(&runtime.handle()).unwrap();
+        let registration = registry.plugin_runtime_systems().next().unwrap().1;
+        let mut first = registration.build();
+        let mut second = registration.build();
+
+        first
+            .run(RuntimeSceneSystemContext::new(
+                &runtime.handle(),
+                &level,
+                0.0,
+            ))
+            .unwrap();
+        second
+            .run(RuntimeSceneSystemContext::new(
+                &runtime.handle(),
+                &level,
+                0.0,
+            ))
+            .unwrap();
+
+        assert_eq!(*observed.lock().unwrap(), vec![1, 1]);
     }
 }

@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
+use crate::core::framework::platform::PLATFORM_MODULE_NAME;
 use crate::core::framework::render::{
-    GeometrySourceDescriptor, RenderFramework, RenderingManager, ShadingModelDescriptor,
-    GRAPHICS_MODULE_NAME,
+    GRAPHICS_MODULE_NAME, GeometrySourceDescriptor, RenderFramework, RenderingManager,
+    ShadingModelDescriptor,
 };
+use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
@@ -17,15 +19,12 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 
-use crate::asset::ASSET_MODULE_NAME;
-use crate::platform::PLATFORM_MODULE_NAME;
-use crate::scene::SCENE_MODULE_NAME;
-
 use super::super::create::create_render_framework_with_render_features;
 use super::super::driver::WgpuDriver;
 use super::super::rendering_manager::WgpuRenderingManager;
 use super::graphics_core_error::graphics_core_error;
 use super::service_names::RENDER_FRAMEWORK_NAME;
+use crate::asset::ASSET_MODULE_NAME;
 
 pub fn module_descriptor() -> ModuleDescriptor {
     module_descriptor_with_render_features(

@@ -1,11 +1,8 @@
-use crate::core::{
-    resource::{
-        AssetReference, AssetUuid, MaterialMarker, ModelMarker, ResourceDiagnostic,
-        ResourceEventKind, ResourceHandle, ResourceId, ResourceKind, ResourceLocator,
-        ResourceLocatorError, ResourceManager, ResourceRecord, ResourceScheme, ResourceState,
-        RuntimeResourceState, UntypedResourceHandle,
-    },
-    CoreError,
+use crate::core::resource::{
+    AssetReference, AssetUuid, MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceEventKind,
+    ResourceHandle, ResourceId, ResourceKind, ResourceLocator, ResourceLocatorError,
+    ResourceManager, ResourceRecord, ResourceRegistryError, ResourceScheme, ResourceState,
+    RuntimeResourceState, UntypedResourceHandle,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -149,20 +146,20 @@ fn registry_rename_preserves_id_and_remove_clears_lookup() {
 }
 
 #[test]
-fn registry_rename_reports_missing_locator_with_core_error() {
+fn registry_rename_reports_missing_locator_with_resource_error() {
     let mut registry = crate::core::resource::ResourceRegistry::default();
     let missing = locator("res://materials/missing.zmaterial");
     let target = locator("res://materials/target.zmaterial");
 
     let error = registry
         .rename(&missing, target)
-        .expect_err("missing locator should return CoreError");
+        .expect_err("missing locator should return ResourceRegistryError");
 
     match error {
-        CoreError::MissingResourceRecordForLocator { locator } => {
+        ResourceRegistryError::MissingRecordForLocator { locator } => {
             assert_eq!(locator, missing.to_string());
         }
-        other => panic!("expected missing resource locator CoreError, got {other:?}"),
+        other => panic!("expected missing resource locator ResourceRegistryError, got {other:?}"),
     }
 }
 
@@ -434,4 +431,20 @@ fn register_ready_bumps_revision_when_dependency_ids_change() {
     let stored = registry.get(id).expect("record exists");
     assert_eq!(stored.revision, 2);
     assert_eq!(stored.dependency_ids, vec![dependency]);
+}
+
+#[test]
+fn resource_manager_hot_paths_avoid_redundant_record_projection() {
+    let registry = include_str!("registry.rs");
+    let payload_ops = include_str!("manager/payload_ops.rs");
+    let lease_ops = include_str!("manager/lease_ops.rs");
+    let registry_ops = include_str!("manager/registry_ops.rs");
+    let registry_export = include_str!("manager/registry_export.rs");
+
+    assert!(!registry.contains("self.by_id.get(&record.id).cloned()"));
+    assert!(!payload_ops.contains("registry.upsert(record.clone())"));
+    assert!(!payload_ops.contains("self.snapshot::<TMarker, TData>(handle)"));
+    assert!(lease_ops.contains("let payload = self.get::<TMarker, TData>(handle)?;"));
+    assert!(!registry_ops.contains("registry.upsert(record.clone())"));
+    assert!(!registry_export.contains("left.id.to_string().cmp(&right.id.to_string())"));
 }

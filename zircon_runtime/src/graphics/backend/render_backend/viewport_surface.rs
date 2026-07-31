@@ -80,6 +80,17 @@ impl ViewportSurface {
         surface_texture.present();
         Ok(())
     }
+
+    pub(crate) fn resize(&mut self, device: &wgpu::Device, size: UVec2) {
+        let size = clamp_surface_size(size);
+        if self.size() == size {
+            return;
+        }
+
+        self.config.width = size.x;
+        self.config.height = size.y;
+        self.surface.configure(device, &self.config);
+    }
 }
 
 impl RenderBackend {

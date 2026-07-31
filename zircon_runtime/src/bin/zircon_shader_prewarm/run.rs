@@ -85,9 +85,7 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
     let resource_registry = if let Some(path) = args.resource_registry.as_deref() {
         Some(ShaderPrewarmResourceRegistryOverlay::read(path).map_err(|error| error.to_string())?)
     } else {
-        exported_resource_records
-            .clone()
-            .map(ShaderPrewarmResourceRegistryOverlay::from_records)
+        exported_resource_records.map(ShaderPrewarmResourceRegistryOverlay::from_records)
     };
     for asset_root in &args.asset_roots {
         manifest = merge_manifests(
@@ -197,6 +195,21 @@ fn export_shader_resource_registry_for_asset_roots(
 mod tests {
     use super::*;
     use zircon_runtime::core::resource::{ResourceKind, ResourceRecord, ResourceState};
+
+    #[test]
+    fn exported_resource_records_move_into_the_overlay() {
+        let source = include_str!("run.rs").split_once("#[cfg(test)]").unwrap().0;
+        let projection = source
+            .split("let resource_registry =")
+            .nth(1)
+            .unwrap()
+            .split("for asset_root")
+            .next()
+            .unwrap();
+
+        assert!(projection.contains("exported_resource_records.map("));
+        assert!(!projection.contains("exported_resource_records\n            .clone()"));
+    }
 
     #[test]
     fn shader_prewarm_report_write_reports_typed_directory_error() {

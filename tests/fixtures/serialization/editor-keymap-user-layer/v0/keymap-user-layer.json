@@ -1,0 +1,8 @@
+{
+  "bindings": {
+    "file.project.open": "Ctrl+Shift+O",
+    "file.project.save": null,
+    "plugin.absent.command": null,
+    "plugin.fixture.open": "Alt+F1"
+  }
+}

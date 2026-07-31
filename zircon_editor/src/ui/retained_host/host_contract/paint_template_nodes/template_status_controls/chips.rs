@@ -6,7 +6,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_status_chip_style;
 use super::super::template_node_labels::template_node_label;
 use super::super::template_status_control_geometry::{
-    status_chip_radius, status_control_offset_rect, workbench_status_metrics,
+    frame_is_within, status_chip_radius, status_control_offset_rect, workbench_status_metrics,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_status_chip(
@@ -17,11 +17,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
     order: i32,
     opacity: f32,
 ) {
-    let rect = status_control_offset_rect(node, rect);
+    let parent_rect = rect;
+    let control_rect = status_control_offset_rect(node, parent_rect);
+    if !frame_is_within(parent_rect, &control_rect) {
+        return;
+    }
     let style = select_workbench_status_chip_style(node);
     push_status_chip_surface(
         commands,
-        &rect,
+        &control_rect,
         clip,
         order,
         style.background,
@@ -33,7 +37,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
     if !label.trim().is_empty() {
         push_status_chip_text(
             commands,
-            &rect,
+            &control_rect,
             clip,
             order + 2,
             &label,

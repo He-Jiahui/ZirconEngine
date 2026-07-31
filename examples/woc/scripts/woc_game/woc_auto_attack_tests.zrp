@@ -1,0 +1,6 @@
+{
+  "name": "woc_auto_attack_tests",
+  "source": "src",
+  "binary": "bin-auto-attack-tests",
+  "entry": "combat/auto_attack_test_main"
+}

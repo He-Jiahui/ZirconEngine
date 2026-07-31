@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use super::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, InternalSceneSystem, IntoSceneSystem,
     RuntimeSceneSystem, SceneSystem, SceneSystemDescriptor, SceneSystemMetadata,
-    ScheduleConflictGraph, ScheduleConflictNode, ScheduleError, SystemParam, SystemStage,
+    SceneSystemThreadAffinity, ScheduleConflictGraph, ScheduleConflictNode, ScheduleError,
+    SystemParam, SystemStage,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -132,8 +133,13 @@ impl SceneSystemRegistry {
             .iter()
             .filter(|system| system.stage() == stage)
             .flat_map(|system| {
-                let native_step =
-                    super::ScheduledSceneStep::native(system.id(), system.stage(), system.order());
+                let native_step = super::ScheduledSceneStep::native(
+                    system.id(),
+                    system.stage(),
+                    system.order(),
+                    worker_safe_dispatch(system.as_ref()),
+                    system.access().has_conservative_world_access(),
+                );
                 let apply_deferred_step = system.has_deferred_commands().then(|| {
                     super::ScheduledSceneStep::apply_deferred_after(
                         system.id(),
@@ -158,6 +164,8 @@ impl SceneSystemRegistry {
                 system.id(),
                 system.stage(),
                 system.order(),
+                worker_safe_dispatch(system.as_ref()),
+                system.access().has_conservative_world_access(),
             ));
             if system.has_deferred_commands() {
                 steps.push(super::ScheduledSceneStep::apply_deferred_after(
@@ -548,6 +556,12 @@ fn native_conflict_graph_node_count_for_stage(
         }
     }
     count
+}
+
+fn worker_safe_dispatch(system: &dyn SceneSystem) -> bool {
+    system.thread_affinity() == SceneSystemThreadAffinity::WorkerSafe
+        && system.supports_worldless_execution()
+        && system.constraints().is_empty()
 }
 
 fn native_step_counts_by_stage(

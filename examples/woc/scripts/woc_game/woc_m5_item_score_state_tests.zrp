@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_item_score_state_tests",
+  "source": "src",
+  "binary": "bin-m5-item-score-state-tests",
+  "entry": "progression/item_score_state_test_main"
+}

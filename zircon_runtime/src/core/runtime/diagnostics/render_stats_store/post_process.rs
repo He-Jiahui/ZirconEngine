@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     RenderColorLutReadbackReport, RenderExposureReadbackReport, RenderStats,
 };
 
-use super::{record_bool, record_bytes, record_count, DiagnosticStore};
+use super::{DiagnosticStore, record_bool, record_bytes, record_count};
 
 const COLOR_LUT_READBACK_TAGS: &[&str] = &["render", "post_process", "color_lut", "readback"];
 const COLOR_LUT_READBACK_IDENTITY_TAGS: &[&str] = &[

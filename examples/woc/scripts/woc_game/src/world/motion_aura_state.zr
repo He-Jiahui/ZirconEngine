@@ -1,0 +1,201 @@
+// Numeric, motion-relevant projection of the target's active aura rows. WOS
+// owns the flattened columns; this module only derives control and cast
+// mobility facts from those source identities.
+var container = %import("zr.container");
+var abilities = %import("generated/current_known_ability_catalog");
+var contract = %import("generated/cc_contract");
+
+pub tickSeconds(required: bool): float {
+    if (!required) throw "woc motion aura tick is required";
+    return 0.05;
+}
+
+pub rowsAreValid(
+    abilityCodes: container.Array<uint>,
+    sourceIds: container.Array<uint>,
+    kindCodes: container.Array<uint>,
+    remaining: container.Array<float>,
+    start: int,
+    end: int,
+    required: bool
+): bool {
+    if (!required || abilityCodes.length != sourceIds.length ||
+        abilityCodes.length != kindCodes.length || abilityCodes.length != remaining.length ||
+        start < 0 || end < start || end > abilityCodes.length) {
+        return false;
+    }
+    var index = start;
+    while (index < end) {
+        var abilityCode = <uint>abilityCodes[index];
+        var kindCode = <uint>kindCodes[index];
+        var seconds = <float>remaining[index];
+        if (abilityCode == <uint>0 || abilityCode > <uint>abilities.abilityCount() ||
+            !contract.isMotionAuraKindCode(kindCode) || !(seconds > 0.0)) {
+            return false;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+requireRows(
+    abilityCodes: container.Array<uint>,
+    sourceIds: container.Array<uint>,
+    kindCodes: container.Array<uint>,
+    remaining: container.Array<float>,
+    start: int,
+    end: int,
+    required: bool
+): void {
+    if (!rowsAreValid(abilityCodes, sourceIds, kindCodes, remaining, start, end, required)) {
+        throw "woc motion aura rows are invalid";
+    }
+}
+
+pub isStunned(
+    abilityCodes: container.Array<uint>,
+    sourceIds: container.Array<uint>,
+    kindCodes: container.Array<uint>,
+    remaining: container.Array<float>,
+    start: int,
+    end: int,
+    required: bool
+): bool {
+    requireRows(abilityCodes, sourceIds, kindCodes, remaining, start, end, required);
+    var index = start;
+    while (index < end) {
+        if (contract.isMotionStunnedKindCode(<uint>kindCodes[index])) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+pub isRooted(
+    abilityCodes: container.Array<uint>,
+    sourceIds: container.Array<uint>,
+    kindCodes: container.Array<uint>,
+    remaining: container.Array<float>,
+    start: int,
+    end: int,
+    required: bool
+): bool {
+    requireRows(abilityCodes, sourceIds, kindCodes, remaining, start, end, required);
+    var index = start;
+    while (index < end) {
+        if (contract.isMotionRootedKindCode(<uint>kindCodes[index])) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+pub hasIceFloes(
+    abilityCodes: container.Array<uint>,
+    sourceIds: container.Array<uint>,
+    kindCodes: container.Array<uint>,
+    remaining: container.Array<float>,
+    start: int,
+    end: int,
+    required: bool
+): bool {
+    requireRows(abilityCodes, sourceIds, kindCodes, remaining, start, end, required);
+    var index = start;
+    while (index < end) {
+        if (contract.isIceFloesKindCode(<uint>kindCodes[index])) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+// Source movement uses the smallest active slow multiplied by the largest
+// speed buff or travel-form multiplier. The WOS65 row stores the speed-buff
+// value while Frostbolt's current ranks reconstruct their shared slow value.
+pub movementMultiplier(
+    slowMultiplier: float,
+    formSpeedMultiplier: float,
+    abilityCodes: container.Array<uint>,
+    sourceIds: container.Array<uint>,
+    kindCodes: container.Array<uint>,
+    remaining: container.Array<float>,
+    values: container.Array<float>,
+    start: int,
+    end: int,
+    required: bool
+): float {
+    return movementMultiplierWithStealth(
+        slowMultiplier,
+        1.0,
+        formSpeedMultiplier,
+        abilityCodes,
+        sourceIds,
+        kindCodes,
+        remaining,
+        values,
+        start,
+        end,
+        required
+    );
+}
+
+// Stealth is a source aura rather than a motion-aura kind. Its movement value
+// still shares the source's minimum-slow, maximum-speed aggregation order.
+pub movementMultiplierWithStealth(
+    slowMultiplier: float,
+    stealthMultiplier: float,
+    formSpeedMultiplier: float,
+    abilityCodes: container.Array<uint>,
+    sourceIds: container.Array<uint>,
+    kindCodes: container.Array<uint>,
+    remaining: container.Array<float>,
+    values: container.Array<float>,
+    start: int,
+    end: int,
+    required: bool
+): float {
+    requireRows(abilityCodes, sourceIds, kindCodes, remaining, start, end, required);
+    if (slowMultiplier <= 0.0 || slowMultiplier > 1.0 ||
+        stealthMultiplier <= 0.0 || stealthMultiplier > 1.0 || formSpeedMultiplier < 1.0 ||
+        values.length != abilityCodes.length) {
+        throw "woc movement multiplier is invalid";
+    }
+    var slow = stealthMultiplier;
+    var speed = formSpeedMultiplier;
+    var index = start;
+    while (index < end) {
+        if (contract.isMotionSlowKindCode(<uint>kindCodes[index]) &&
+            slowMultiplier < slow) {
+            slow = slowMultiplier;
+        }
+        if (contract.isMotionSpeedBuffKindCode(<uint>kindCodes[index]) &&
+            <float>values[index] > speed) {
+            speed = <float>values[index];
+        }
+        index = index + 1;
+    }
+    return slow * speed;
+}
+
+pub canCastWhileMoving(
+    baseOrTalentMobile: bool,
+    abilityCodes: container.Array<uint>,
+    sourceIds: container.Array<uint>,
+    kindCodes: container.Array<uint>,
+    remaining: container.Array<float>,
+    start: int,
+    end: int,
+    required: bool
+): bool {
+    if (baseOrTalentMobile) return true;
+    return hasIceFloes(abilityCodes, sourceIds, kindCodes, remaining, start, end, required);
+}
+
+pub remainsActiveAfterTick(seconds: float, required: bool): bool {
+    if (!required || !(seconds > 0.0)) {
+        throw "woc motion aura remaining time is invalid";
+    }
+    return seconds > tickSeconds(true);
+}
+
+pub remainingAfterTick(seconds: float, required: bool): float {
+    if (!remainsActiveAfterTick(seconds, required)) return 0.0;
+    return seconds - tickSeconds(true);
+}

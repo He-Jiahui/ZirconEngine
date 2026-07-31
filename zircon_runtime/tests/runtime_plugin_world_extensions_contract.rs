@@ -1,3 +1,4 @@
+use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::plugin::{PluginEventManifest, RuntimeExtensionRegistry};
 use zircon_runtime::scene::ecs::{ResMut, ResMutParam, Resource, SystemStage};
@@ -52,7 +53,7 @@ fn installed_world_extensions_reach_new_levels() {
     for module_name in [
         foundation::FOUNDATION_MODULE_NAME,
         asset::ASSET_MODULE_NAME,
-        scene::SCENE_MODULE_NAME,
+        SCENE_MODULE_NAME,
     ] {
         runtime.activate_module(module_name).unwrap();
     }

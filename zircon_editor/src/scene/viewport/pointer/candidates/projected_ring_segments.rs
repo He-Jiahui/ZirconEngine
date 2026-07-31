@@ -1,14 +1,12 @@
-use crate::scene::viewport::ViewportCameraSnapshot;
-use zircon_runtime_interface::math::{UVec2, Vec2, Vec3};
+use zircon_runtime_interface::math::{Vec2, Vec3};
 
-use crate::scene::viewport::projection::projected_point;
+use crate::scene::viewport::projection::ViewportProjectionContext;
 
 pub(in crate::scene::viewport::pointer) fn projected_ring_segments(
     center: Vec3,
     normal: Vec3,
     radius: f32,
-    camera: &ViewportCameraSnapshot,
-    viewport: UVec2,
+    projection: &ViewportProjectionContext<'_>,
 ) -> Vec<(Vec2, Vec2)> {
     let normal = normal.normalize_or_zero();
     if normal.length_squared() <= f32::EPSILON {
@@ -21,14 +19,14 @@ pub(in crate::scene::viewport::pointer) fn projected_ring_segments(
     };
     let bitangent = normal.cross(tangent).normalize_or_zero();
     const SEGMENTS: usize = 48;
-    let mut segments = Vec::new();
+    let mut segments = Vec::with_capacity(SEGMENTS);
     let mut previous = center + tangent * radius;
     for step in 1..=SEGMENTS {
         let angle = std::f32::consts::TAU * step as f32 / SEGMENTS as f32;
         let next = center + (tangent * angle.cos() + bitangent * angle.sin()) * radius;
         let (Some(a), Some(b)) = (
-            projected_point(previous, camera, viewport),
-            projected_point(next, camera, viewport),
+            projection.projected_point(previous),
+            projection.projected_point(next),
         ) else {
             previous = next;
             continue;

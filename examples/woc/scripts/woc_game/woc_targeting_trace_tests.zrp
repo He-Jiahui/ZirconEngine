@@ -1,0 +1,6 @@
+{
+  "name": "woc_targeting_trace_tests",
+  "source": "src",
+  "binary": "bin-targeting-trace-tests-r2",
+  "entry": "parity/m3_targeting_trace_test_main"
+}

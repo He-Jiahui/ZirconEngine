@@ -81,6 +81,15 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
         / "zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs"
     )
     worker_pool = root / "zircon_runtime/src/asset/pipeline/worker_pool.rs"
+    worker_pool_options = (
+        root / "zircon_runtime/src/asset/pipeline/worker_pool/options.rs"
+    )
+    worker_pool_completion = (
+        root / "zircon_runtime/src/asset/pipeline/worker_pool/completion.rs"
+    )
+    worker_pool_diagnostics = (
+        root / "zircon_runtime/src/asset/pipeline/worker_pool/diagnostics.rs"
+    )
     construction = (
         root
         / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs"
@@ -129,7 +138,13 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     )
     worker_sources = tuple(
         _read_text(path)
-        for path in (worker_pool, construction)
+        for path in (
+            worker_pool,
+            worker_pool_options,
+            worker_pool_completion,
+            worker_pool_diagnostics,
+            construction,
+        )
         if path.exists()
     )
     watcher_sources = tuple(
@@ -173,6 +188,9 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
             "zircon_runtime/src/asset/tests/facade/failure_reason.rs",
             "zircon_runtime/src/asset/tests/facade/hot_reload.rs",
             "zircon_runtime/src/asset/tests/pipeline/worker_pool.rs",
+            "zircon_runtime/src/asset/tests/pipeline/worker_pool/diagnostics.rs",
+            "zircon_runtime/src/asset/tests/pipeline/worker_pool/single_flight.rs",
+            "zircon_runtime/src/asset/tests/pipeline/worker_pool/task_pool.rs",
             "zircon_runtime/src/asset/tests/watcher.rs",
             "zircon_runtime/src/asset/tests/assets/artifact_store.rs",
             "zircon_runtime/src/core/resource/tests.rs",

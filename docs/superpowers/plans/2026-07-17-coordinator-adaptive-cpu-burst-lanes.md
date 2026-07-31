@@ -228,7 +228,47 @@
 ### Testing stage
 
 - [x] Run snapshot and browser contract/component tests. Verified 2026-07-17: `test_control_snapshot` 13/13; front-end typecheck, 56/56 tests, production build, and 27 hashed asset checks passed. A waiting Session receives one bounded same-plan unchecked implementation candidate; testing-only checkboxes and untrusted/non-numbered plan paths never become browser work; active validation keeps code-first continuation guidance while terminal validation returns the primary milestone to the front.
-- [ ] Roll out only through a natural no-Cargo `service.rollover`; then verify `read_write`, `maintenanceHold=false`, one queued validation continues to show as local-only, and the Overview exposes a continuation rather than a global stop.
+- [x] Roll out only through a natural no-Cargo `service.rollover`; then verify `read_write`, `maintenanceHold=false`, one queued validation continues to show as local-only, and the Overview exposes a continuation rather than a global stop. Verified 2026-07-17: controlled rollover `8b9df8…` produced healthy successor `1e3d…`; the live control snapshot exposes the continuation field and the served Overview chunk contains `验证等待时的续作`.
+
+## M12 — 语义拓扑身份与精确里程碑准备
+
+### Implementation slices
+
+- [x] Treat the active workflow topology hash, rather than incidental plan content, as the version boundary. Ordinary status text, Failure links, and evidence prose now reuse the active immutable topology version instead of creating a replacement version that disconnects manifests, validation, or review evidence.
+- [x] Keep the immutable topology row unchanged. The controlled refresh result reports the currently observed content hash while all evidence continues to point to the original semantic topology version.
+- [x] Extend `topology.refresh` with a typed prepare variant `{ sessionId, milestoneId }`. `milestone prepare --milestone` forwards the normalized node key; the action refreshes the plan, binds the exact current-version manifest, and returns its milestone key, node ID, topology version ID, manifest ID, and manifest hash.
+- [x] Retain the full typed independent-review variant unchanged. The prepare path cannot silently choose a different node or merge historical same-numbered records.
+
+### Testing stage
+
+- [x] Run `python -m unittest tools.session_coordinator.tests.test_milestone_cli tools.session_coordinator.tests.test_topology_prepare_identity tools.session_coordinator.tests.test_workflow_topology -v`. Verified 2026-07-17: 22/22 passed, including the former red CLI, semantic-topology, and exact prepare-binding regressions.
+- [ ] The adjacent action/commit/failure-scope batch exceeded the local 64-second command window without a failure payload. It remains a bounded verification follow-up; continue unrelated coordinator implementation and deployment work before retrying it in smaller focused groups.
+
+## M13 — 原生切片关闭验收器不依赖共享暂存区
+
+### Implementation slices
+
+- [x] Accept native slice identifiers such as `M2.1` in the closeout checker, while retaining the normal milestone `M<n>` form.
+- [x] Treat exact attributed manifest evidence under the registered plan's numbered child directory as the closeout contract. When the shared Git index is empty, read that evidence from the worktree rather than incorrectly demanding it be staged.
+- [x] Add an isolated-listener override to the local CLI and `tools/zircon-session.ps1`. The production default remains 6518; test coordinators can request port `0` and let the OS choose an independent loopback port.
+- [x] Move closeout-test coordinators to explicit private listeners with PID-and-command-line verified cleanup. Legacy `Temp/zircon-closeout-*` services can no longer reuse the production listener or make a closeout check query the wrong repository.
+- [x] Permit enterprise-WeChat webhook configuration in an auditable Git commit, as requested. Maintenance capabilities and generic credentials remain closeout blockers.
+
+### Testing stage
+
+- [x] Parse-check the launcher, checker, and PowerShell fixture; run the focused CLI port regression. Verified 2026-07-17: Python compile and both PowerShell parsers passed; `test_cli_port_override_supports_an_isolated_listener` passed.
+- [ ] The full closeout suite remains a bounded queued follow-up. Its PowerShell scripts now carry UTF-8 BOM for the installed Windows PowerShell/Pester 3 reader, and its private listener/cleanup code no longer competes with the live service. Continue unrelated coordinator work while it runs.
+
+## M14 — 心跳自动恢复可继续的开发会话
+
+### Implementation slices
+
+- [x] Make a heartbeat from a `stale` Session atomically transition it back to `active`, emit the usual `session.status_changed` audit event, and retain the current liveness timestamp.
+- [x] Keep the recovery intentionally narrow: archived/cancelled Sessions are not revived, expired CPU reservations remain terminal, and a prior wait reason is not inferred or restored. The next code-first continuation projection decides subsequent work.
+
+### Testing stage
+
+- [x] Run the existing heartbeat persistence regression plus the stale-resume regression. Verified 2026-07-17: 2/2 passed.
 
 ## 状态与产出记录
 
@@ -241,3 +281,4 @@
 | M8 | 最近同步健康优先于历史噪声 | accepted-production | 2026-07-17 | 前端类型检查、53/53 测试、生产构建与 27 项资源校验通过；实时 Overview chunk 包含“最近一次安静同步”“24 小时趋势”，不含旧“静默同步”主指标；真实最近扫描为 245 项、0 变更、294ms，Session 准入仍为 `read_write`。 |
 | M9 | 运行作业进程观察可视化 | accepted-production | 2026-07-17 | 红测先证明旧快照缺少结论字段；快照回归 11/11、前端类型检查、54/54 测试、生产构建与 27 项资源校验通过。无 Cargo 窗口的受控 `service.rollover` 后，继任实例 `b52be…` 为 `read_write`、`maintenanceHold=false`、Session TTL 3600；实时运行作业显示 `process_observation=observed`，浏览器行仅有 11 个安全字段，不含 PID、命令或路径。 |
 | M10 | 重复 rollover 合并 | accepted-production | 2026-07-17 | 监督动作回归 31/31、控制快照回归 11/11、范围格式检查通过。自然空窗后后继 `658bb4…` 保持 `read_write`、`maintenanceHold=false`；受控重复请求 `c9cf4…` 成功返回 `coalesced`，指向唯一物理接班动作 `3a172…`，没有第二次关停。 |
+| M11 | 验证等待时同计划续作与主任务回归 | accepted-production | 2026-07-17 | 快照回归 13/13；浏览器类型检查、56/56 测试、生产构建和 27 项资源校验通过。自然空窗受控 rollover `8b9df8…` 后继 `1e3d…` 为 `read_write`、健康且 `maintenanceHold=false`；实时快照带 continuation 字段，已发布 Overview chunk 包含“验证等待时的续作”。 |

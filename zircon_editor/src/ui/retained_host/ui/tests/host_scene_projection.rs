@@ -59,6 +59,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
             project_path_frame: host_frame_rect(900.0, 48.0, 280.0, 14.0),
             overflow_frame: Default::default(),
             overflow_hidden_tab_indices: Vec::new(),
+            overflow_widest_title_width_px: 123.0,
             tab_frames: host_chrome_tab_frames(&["document-tab"]),
             tabs: host_tabs(&["document-tab"]),
             project_path: "res://project".into(),
@@ -980,5 +981,6 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
     };
 
     let projected = to_host_contract_host_scene_data(&scene);
+    assert_eq!(projected.page_chrome.overflow_widest_title_width_px, 123.0);
     assertions::assert_host_contract_scene(&projected);
 }

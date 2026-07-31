@@ -1,0 +1,4 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub sweepQueryPadding(required: bool): float { return required ? 30.0 : 0.0; }
+pub outerBoundaryInclusive(required: bool): bool { return required; }
+pub zeroLengthProjectionT(required: bool): float { return required ? 0.0 : -1.0; }

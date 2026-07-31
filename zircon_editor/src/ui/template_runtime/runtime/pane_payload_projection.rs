@@ -7,6 +7,7 @@ use crate::ui::template::{
     EditorTemplateAdapter, EditorTemplateRegistry, EditorTemplateRuntimeService,
 };
 use crate::ui::template_runtime::{RetainedUiNodeProjection, RetainedUiProjection};
+use zircon_runtime_interface::ui::component::{UiComponentProjectionPatch, UiValue};
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::{projection::project_instance, runtime_host::EditorUiHostRuntimeError};
@@ -34,6 +35,34 @@ pub(super) fn inject_pane_projection_attributes(
     body: &PaneBodyPresentation,
 ) {
     root.attributes.extend(pane_body_attributes(body));
+    inject_template_v2_component_patches(root, &body.payload);
+}
+
+pub(super) fn template_v2_component_patch_attributes(
+    body: &PaneBodyPresentation,
+) -> BTreeMap<String, BTreeMap<String, Value>> {
+    let PanePayload::TemplateV2(payload) = &body.payload else {
+        return BTreeMap::new();
+    };
+    let mut control_attributes = BTreeMap::new();
+    for patch in &payload.component_patches {
+        let attributes = control_attributes
+            .entry(patch.control_id.clone())
+            .or_insert_with(BTreeMap::new);
+        attributes.extend(
+            patch
+                .attributes
+                .iter()
+                .map(|(key, value)| (key.clone(), ui_value_to_toml(value))),
+        );
+        attributes.extend(
+            patch
+                .state_values
+                .iter()
+                .map(|(key, value)| (key.clone(), ui_value_to_toml(value))),
+        );
+    }
+    control_attributes
 }
 
 fn pane_body_attributes(body: &PaneBodyPresentation) -> BTreeMap<String, Value> {
@@ -60,6 +89,18 @@ fn pane_body_attributes(body: &PaneBodyPresentation) -> BTreeMap<String, Value> 
 
 fn inject_payload_attributes(attributes: &mut BTreeMap<String, Value>, payload: &PanePayload) {
     match payload {
+        PanePayload::TemplateV2(payload) => {
+            attributes.insert(
+                "template_data".to_string(),
+                Value::Table(
+                    payload
+                        .values
+                        .iter()
+                        .map(|(key, value)| (key.clone(), ui_value_to_toml(value)))
+                        .collect(),
+                ),
+            );
+        }
         PanePayload::ConsoleV1(payload) => {
             attributes.insert(
                 "payload_status_text".to_string(),
@@ -495,6 +536,46 @@ fn inject_payload_attributes(attributes: &mut BTreeMap<String, Value>, payload: 
             );
         }
     }
+}
+
+fn inject_template_v2_component_patches(
+    root: &mut RetainedUiNodeProjection,
+    payload: &PanePayload,
+) {
+    let PanePayload::TemplateV2(payload) = payload else {
+        return;
+    };
+    for patch in &payload.component_patches {
+        apply_component_projection_patch(root, patch);
+    }
+}
+
+fn apply_component_projection_patch(
+    node: &mut RetainedUiNodeProjection,
+    patch: &UiComponentProjectionPatch,
+) -> bool {
+    if node.control_id.as_deref() == Some(patch.control_id.as_str()) {
+        node.attributes.extend(
+            patch
+                .attributes
+                .iter()
+                .map(|(key, value)| (key.clone(), ui_value_to_toml(value))),
+        );
+        node.attributes.extend(
+            patch
+                .state_values
+                .iter()
+                .map(|(key, value)| (key.clone(), ui_value_to_toml(value))),
+        );
+        return true;
+    }
+    node.children
+        .iter_mut()
+        .any(|child| apply_component_projection_patch(child, patch))
+}
+
+fn ui_value_to_toml(value: &UiValue) -> Value {
+    value.to_toml()
 }
 
 fn append_hybrid_slot_anchor(root: &mut UiTemplateNode, body: &PaneBodyPresentation) {

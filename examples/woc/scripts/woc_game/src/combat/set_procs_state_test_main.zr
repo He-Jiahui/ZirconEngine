@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var procs = %import("combat/set_procs_state");
+
+console.printLine("m4-set-procs-state-test");
+var result = procs.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

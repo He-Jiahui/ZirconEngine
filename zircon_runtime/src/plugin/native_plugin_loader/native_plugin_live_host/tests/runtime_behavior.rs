@@ -1,5 +1,555 @@
 use super::*;
 
+use std::sync::mpsc;
+use std::sync::{Arc, Condvar, Mutex, OnceLock};
+use std::time::Duration;
+
+use super::super::super::abi_declarations::{
+    NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginOutputSinkV4,
+};
+use super::super::super::behavior_calls::NativePluginCommandTable;
+
+struct SlowCallbackProbe {
+    entered: Mutex<Option<mpsc::Sender<()>>>,
+    released: Mutex<bool>,
+    release_signal: Condvar,
+}
+
+impl SlowCallbackProbe {
+    fn new(entered: mpsc::Sender<()>) -> Self {
+        Self {
+            entered: Mutex::new(Some(entered)),
+            released: Mutex::new(false),
+            release_signal: Condvar::new(),
+        }
+    }
+
+    fn wait_for_release(&self) {
+        if let Some(entered) = self
+            .entered
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
+        {
+            let _ = entered.send(());
+        }
+        let released = self
+            .released
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let _released = self
+            .release_signal
+            .wait_while(released, |released| !*released)
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+    }
+
+    fn release(&self) {
+        *self
+            .released
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = true;
+        self.release_signal.notify_all();
+    }
+}
+
+fn callback_concurrency_fixture_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+fn reentrant_host_slot() -> &'static Mutex<Option<Arc<NativePluginLiveHost>>> {
+    static HOST: OnceLock<Mutex<Option<Arc<NativePluginLiveHost>>>> = OnceLock::new();
+    HOST.get_or_init(|| Mutex::new(None))
+}
+
+fn slow_callback_slot() -> &'static Mutex<Option<Arc<SlowCallbackProbe>>> {
+    static PROBE: OnceLock<Mutex<Option<Arc<SlowCallbackProbe>>>> = OnceLock::new();
+    PROBE.get_or_init(|| Mutex::new(None))
+}
+
+unsafe extern "C" fn reentrant_descriptor_command(
+    _command_slot: u32,
+    _payload: NativePluginByteSliceV2,
+    _output: NativePluginOutputSinkV4,
+) -> NativePluginCallbackStatusV2 {
+    let host = reentrant_host_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .as_ref()
+        .expect("reentrant host fixture should be installed")
+        .clone();
+    let (completed_tx, completed_rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let result = host.runtime_behavior_descriptor("physics");
+        let _ = completed_tx.send(result);
+    });
+    let completed = completed_rx
+        .recv_timeout(Duration::from_millis(250))
+        .is_ok();
+    NativePluginCallbackStatusV2 {
+        code: if completed {
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK
+        } else {
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR
+        },
+        diagnostics: std::ptr::null(),
+    }
+}
+
+unsafe extern "C" fn slow_runtime_command(
+    _command_slot: u32,
+    _payload: NativePluginByteSliceV2,
+    _output: NativePluginOutputSinkV4,
+) -> NativePluginCallbackStatusV2 {
+    let probe = slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .as_ref()
+        .expect("slow callback fixture should be installed")
+        .clone();
+    probe.wait_for_release();
+    NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        diagnostics: std::ptr::null(),
+    }
+}
+
+unsafe extern "C" fn successful_unload() -> NativePluginCallbackStatusV2 {
+    NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        diagnostics: std::ptr::null(),
+    }
+}
+
+unsafe extern "C" fn slow_unload() -> NativePluginCallbackStatusV2 {
+    let probe = slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .as_ref()
+        .expect("slow unload fixture should be installed")
+        .clone();
+    probe.wait_for_release();
+    successful_unload()
+}
+
+pub(super) unsafe extern "C" fn successful_runtime_command(
+    _command_slot: u32,
+    _payload: NativePluginByteSliceV2,
+    _output: NativePluginOutputSinkV4,
+) -> NativePluginCallbackStatusV2 {
+    NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        diagnostics: std::ptr::null(),
+    }
+}
+
+pub(super) fn callback_test_behavior(
+    invoke_command: super::super::super::abi_declarations::NativePluginInvokeCommandFnV4,
+) -> NativePluginBehavior {
+    let command_manifest = r#"
+        schema = "zircon.native.command-manifest/4"
+        [[commands]]
+        name = "probe"
+        slot = 0
+        payload_schema = "bytes"
+        max_output_bytes = 0
+    "#;
+    NativePluginBehavior {
+        is_stateless: true,
+        state_schema_version: 0,
+        command_manifest_schema: Some("zircon.native.command-manifest/4".to_string()),
+        event_manifest_schema: None,
+        registration_manifest_schema: None,
+        command_manifest: Some(command_manifest.to_string()),
+        event_manifest: None,
+        registration_manifest: None,
+        command_table: Some(Arc::new(
+            NativePluginCommandTable::from_manifest_v4(command_manifest).unwrap(),
+        )),
+        invoke_command: Some(invoke_command),
+        save_state: None,
+        restore_state: None,
+        unload: Some(successful_unload),
+    }
+}
+
+#[test]
+fn native_callback_can_reenter_live_host_descriptor_without_deadlock() {
+    let _fixture = callback_concurrency_fixture_lock();
+    let host = Arc::new(NativePluginLiveHost::default());
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_behavior(
+                "physics",
+                callback_test_behavior(reentrant_descriptor_command),
+            ),
+        );
+    }
+    *reentrant_host_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(host.clone());
+
+    let report = host
+        .invoke_runtime_plugin_command("physics", "probe", b"")
+        .expect("loaded plugin callback should return a report");
+
+    *reentrant_host_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+    assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+}
+
+#[test]
+fn slow_callback_allows_queries_and_rejects_concurrent_unload_as_busy() {
+    let _fixture = callback_concurrency_fixture_lock();
+    let host = Arc::new(NativePluginLiveHost::default());
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_behavior(
+                "physics",
+                callback_test_behavior(slow_runtime_command),
+            ),
+        );
+    }
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let probe = Arc::new(SlowCallbackProbe::new(entered_tx));
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(probe.clone());
+
+    let command_host = host.clone();
+    let command = std::thread::spawn(move || {
+        command_host.invoke_runtime_plugin_command("physics", "probe", b"")
+    });
+    entered_rx
+        .recv_timeout(Duration::from_secs(1))
+        .expect("slow callback should enter before concurrency probes");
+    let active_callback_diagnostics = host
+        .plugin_callback_diagnostics("physics", PluginModuleKind::Runtime)
+        .expect("active callback diagnostics should remain queryable");
+    assert_eq!(active_callback_diagnostics.active_callbacks, 1);
+    assert!(!active_callback_diagnostics.lifecycle_transition_active);
+
+    let (descriptor_tx, descriptor_rx) = mpsc::channel();
+    let descriptor_host = host.clone();
+    let descriptor = std::thread::spawn(move || {
+        let _ = descriptor_tx.send(descriptor_host.runtime_behavior_descriptor("physics"));
+    });
+    let descriptor_while_active = descriptor_rx.recv_timeout(Duration::from_millis(250));
+
+    let (unload_tx, unload_rx) = mpsc::channel();
+    let unload_host = host.clone();
+    let unload = std::thread::spawn(move || {
+        let _ = unload_tx.send(unload_host.unload_runtime_plugin("physics"));
+    });
+    let unload_while_active = unload_rx.recv_timeout(Duration::from_millis(250));
+
+    let (reload_tx, reload_rx) = mpsc::channel();
+    let reload_host = host.clone();
+    let reload = std::thread::spawn(move || {
+        let mut report = NativePluginLoadReport::default();
+        report.push_loaded(native_live_host_test_plugin_with_behavior(
+            "physics",
+            callback_test_behavior(successful_runtime_command),
+        ));
+        let result = reload_host.hot_reload_reported_plugin(
+            report,
+            std::path::Path::new("callback-owner-test"),
+            "physics",
+            PluginModuleKind::Runtime,
+        );
+        let _ = reload_tx.send(result);
+    });
+    let reload_while_active = reload_rx.recv_timeout(Duration::from_millis(250));
+
+    let (load_tx, load_rx) = mpsc::channel();
+    let load_host = host.clone();
+    let load = std::thread::spawn(move || {
+        let mut report = NativePluginLoadReport::default();
+        report.push_loaded(native_live_host_test_plugin_with_behavior(
+            "physics",
+            callback_test_behavior(successful_runtime_command),
+        ));
+        let result = load_host.load_reported_plugins(report, PluginModuleKind::Runtime);
+        let _ = load_tx.send(result);
+    });
+    let load_while_active = load_rx.recv_timeout(Duration::from_millis(250));
+
+    probe.release();
+    let command_report = command
+        .join()
+        .expect("command worker should not panic")
+        .expect("command worker should return a report");
+    descriptor
+        .join()
+        .expect("descriptor worker should not panic");
+    unload.join().expect("unload worker should not panic");
+    reload.join().expect("hot reload worker should not panic");
+    load.join().expect("bulk load worker should not panic");
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+
+    assert_eq!(command_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert!(descriptor_while_active
+        .expect("descriptor query should finish while callback is active")
+        .is_ok());
+    let unload_error = unload_while_active
+        .expect("unload should reject active callbacks without waiting")
+        .expect_err("active callback snapshot should make the plugin busy");
+    assert!(unload_error.contains("active native callback"));
+    let reload_error = reload_while_active
+        .expect("hot reload should reject active callbacks without waiting")
+        .expect_err("active callback snapshot should make hot reload busy");
+    assert!(reload_error.contains("active native callback"));
+    let load_error = load_while_active
+        .expect("bulk load should reject active callbacks without waiting")
+        .expect_err("active callback snapshot should make bulk load busy");
+    assert!(load_error.contains("active native callback"));
+    let callback_diagnostics = host
+        .plugin_callback_diagnostics("physics", PluginModuleKind::Runtime)
+        .expect("busy unload should keep callback diagnostics available");
+    assert_eq!(callback_diagnostics.active_callbacks, 0);
+    assert!(callback_diagnostics.completed_callbacks >= 1);
+    assert!(callback_diagnostics.max_callback_duration_ns > 0);
+    assert!(
+        callback_diagnostics.total_callback_duration_ns
+            >= callback_diagnostics.max_callback_duration_ns
+    );
+    let live_host_diagnostics = host.live_host_diagnostics();
+    assert!(live_host_diagnostics.loaded_lock_acquisitions > 0);
+    assert!(
+        live_host_diagnostics.total_loaded_lock_wait_ns
+            >= live_host_diagnostics.max_loaded_lock_wait_ns
+    );
+}
+
+#[test]
+fn bulk_reload_unload_callback_runs_outside_live_host_lock() {
+    let _fixture = callback_concurrency_fixture_lock();
+    let host = Arc::new(NativePluginLiveHost::default());
+    let mut old_behavior = callback_test_behavior(successful_runtime_command);
+    old_behavior.unload = Some(slow_unload);
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_behavior("physics", old_behavior),
+        );
+    }
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let probe = Arc::new(SlowCallbackProbe::new(entered_tx));
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(probe.clone());
+
+    let load_host = host.clone();
+    let load = std::thread::spawn(move || {
+        let mut report = NativePluginLoadReport::default();
+        report.push_loaded(native_live_host_test_plugin_with_behavior(
+            "physics",
+            callback_test_behavior(successful_runtime_command),
+        ));
+        load_host.load_reported_plugins(report, PluginModuleKind::Runtime)
+    });
+    entered_rx
+        .recv_timeout(Duration::from_secs(1))
+        .expect("bulk reload should enter the old plugin unload callback");
+
+    let (descriptor_tx, descriptor_rx) = mpsc::channel();
+    let descriptor_host = host.clone();
+    let descriptor = std::thread::spawn(move || {
+        let _ = descriptor_tx.send(descriptor_host.runtime_behavior_descriptor("physics"));
+    });
+    let descriptor_while_unloading = descriptor_rx.recv_timeout(Duration::from_millis(250));
+    let callback_error = host
+        .invoke_runtime_plugin_command("physics", "probe", b"")
+        .expect_err("transitioning plugin should reject new callbacks");
+    let transition_diagnostics = host
+        .plugin_callback_diagnostics("physics", PluginModuleKind::Runtime)
+        .expect("transitioning plugin diagnostics should remain queryable");
+
+    probe.release();
+    let load_report = load
+        .join()
+        .expect("bulk reload worker should not panic")
+        .expect("bulk reload should finish after unload is released");
+    descriptor
+        .join()
+        .expect("descriptor worker should not panic");
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+
+    assert!(descriptor_while_unloading
+        .expect("descriptor query should finish while unload callback is active")
+        .is_ok());
+    assert!(callback_error.contains("lifecycle transition is active"));
+    assert!(transition_diagnostics.lifecycle_transition_active);
+    assert_eq!(load_report.loaded_plugin_ids, vec!["physics".to_string()]);
+    assert!(
+        !host
+            .plugin_callback_diagnostics("physics", PluginModuleKind::Runtime)
+            .expect("replacement diagnostics should be available")
+            .lifecycle_transition_active
+    );
+    assert_eq!(
+        host.invoke_runtime_plugin_command("physics", "probe", b"")
+            .expect("replacement plugin should accept callbacks")
+            .status_code,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK
+    );
+}
+
+#[test]
+fn native_runtime_broadcast_snapshot_preserves_sorted_plugin_order() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        for plugin_id in ["physics-c", "physics-a", "physics-b"] {
+            loaded.insert(
+                live_key(PluginModuleKind::Runtime, plugin_id),
+                native_live_host_test_plugin_with_behavior(
+                    plugin_id,
+                    callback_test_behavior(successful_runtime_command),
+                ),
+            );
+        }
+    }
+
+    let report = host
+        .dispatch_runtime_plugin_command("probe", b"")
+        .expect("runtime broadcast should succeed");
+
+    assert_eq!(
+        report
+            .calls
+            .iter()
+            .map(|call| call.plugin_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["physics-a", "physics-b", "physics-c"]
+    );
+}
+
+#[test]
+fn aborted_broadcast_snapshot_does_not_record_unexecuted_callbacks() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        for plugin_id in ["plugin-a", "plugin-b"] {
+            loaded.insert(
+                live_key(PluginModuleKind::Runtime, plugin_id),
+                native_live_host_test_plugin_with_behavior(
+                    plugin_id,
+                    callback_test_behavior(successful_runtime_command),
+                ),
+            );
+        }
+        loaded
+            .get(&live_key(PluginModuleKind::Runtime, "plugin-b"))
+            .expect("second plugin should be loaded")
+            .begin_lifecycle_transition()
+            .expect("second plugin transition should begin");
+    }
+
+    let error = host
+        .dispatch_runtime_plugin_command("probe", b"")
+        .expect_err("broadcast should reject a transitioning snapshot");
+
+    assert!(error.contains("lifecycle transition is active"));
+    let first_diagnostics = host
+        .plugin_callback_diagnostics("plugin-a", PluginModuleKind::Runtime)
+        .expect("first plugin diagnostics should remain available");
+    assert_eq!(first_diagnostics.active_callbacks, 0);
+    assert_eq!(first_diagnostics.completed_callbacks, 0);
+    lock_loaded_native_plugins(&host.loaded)
+        .expect("test should lock the native live host")
+        .get(&live_key(PluginModuleKind::Runtime, "plugin-b"))
+        .expect("second plugin should remain loaded")
+        .cancel_lifecycle_transition();
+}
+
+#[test]
+#[ignore = "manual 1/8/32 native callback broadcast microbenchmark"]
+fn native_runtime_broadcast_1_8_32_plugin_benchmark() {
+    for plugin_count in [1_usize, 8, 32] {
+        let host = NativePluginLiveHost::default();
+        {
+            let mut loaded = lock_loaded_native_plugins(&host.loaded)
+                .expect("benchmark should lock the native live host");
+            for index in (0..plugin_count).rev() {
+                let plugin_id = format!("plugin-{index:02}");
+                loaded.insert(
+                    live_key(PluginModuleKind::Runtime, &plugin_id),
+                    native_live_host_test_plugin_with_behavior(
+                        &plugin_id,
+                        callback_test_behavior(successful_runtime_command),
+                    ),
+                );
+            }
+        }
+        let started = std::time::Instant::now();
+        for _ in 0..100 {
+            let report = host
+                .dispatch_runtime_plugin_command("benchmark", b"")
+                .expect("benchmark broadcast should succeed");
+            assert_eq!(report.calls.len(), plugin_count);
+            assert!(report
+                .calls
+                .windows(2)
+                .all(|calls| calls[0].plugin_id < calls[1].plugin_id));
+        }
+        let callback_diagnostics = (0..plugin_count)
+            .map(|index| {
+                host.plugin_callback_diagnostics(
+                    format!("plugin-{index:02}"),
+                    PluginModuleKind::Runtime,
+                )
+                .expect("benchmark plugin callback diagnostics")
+            })
+            .collect::<Vec<_>>();
+        let completed_callbacks = callback_diagnostics
+            .iter()
+            .map(|diagnostics| diagnostics.completed_callbacks)
+            .sum::<u64>();
+        let total_callback_duration_ns = callback_diagnostics
+            .iter()
+            .map(|diagnostics| diagnostics.total_callback_duration_ns)
+            .sum::<u64>();
+        let max_callback_duration_ns = callback_diagnostics
+            .iter()
+            .map(|diagnostics| diagnostics.max_callback_duration_ns)
+            .max()
+            .unwrap_or_default();
+        let live_host_diagnostics = host.live_host_diagnostics();
+        assert_eq!(completed_callbacks, (plugin_count * 100) as u64);
+        assert!(callback_diagnostics
+            .iter()
+            .all(|diagnostics| diagnostics.active_callbacks == 0));
+        eprintln!(
+            "native callback broadcast: plugins={plugin_count} iterations=100 elapsed_ns={} \
+             completed_callbacks={completed_callbacks} total_callback_duration_ns={total_callback_duration_ns} \
+             max_callback_duration_ns={max_callback_duration_ns} loaded_lock_acquisitions={} \
+             total_loaded_lock_wait_ns={} max_loaded_lock_wait_ns={}",
+            started.elapsed().as_nanos(),
+            live_host_diagnostics.loaded_lock_acquisitions,
+            live_host_diagnostics.total_loaded_lock_wait_ns,
+            live_host_diagnostics.max_loaded_lock_wait_ns,
+        );
+    }
+}
+
 #[test]
 fn native_live_host_runtime_descriptor_includes_validation_report() {
     let host = NativePluginLiveHost::default();
@@ -163,4 +713,18 @@ fn native_live_host_runtime_snapshot_restore_skips_schema_mismatch() {
         ]
     );
     assert!(!restore.is_clean());
+}
+
+#[test]
+fn native_live_host_runtime_snapshot_restore_borrows_state_payload_after_unlock() {
+    let source = include_str!("../runtime_behavior.rs")
+        .split_once("pub(super) fn restore_runtime_plugin_states_result")
+        .expect("runtime state restore implementation should exist")
+        .1
+        .split_once("pub fn enter_runtime_play_mode")
+        .expect("play mode implementation should follow restore")
+        .0;
+
+    assert!(source.contains("plugin_state.state.as_slice()"));
+    assert!(!source.contains("plugin_state.state.clone()"));
 }

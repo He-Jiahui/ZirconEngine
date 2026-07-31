@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "runtime_diagnostics"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Runtime Diagnostics"
 description = "Optional editor diagnostics views for inspecting embedded runtime state."
 category = "diagnostics"

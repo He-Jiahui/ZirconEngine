@@ -1,12 +1,13 @@
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
-    component::UiComponentEvent,
+    component::{UiComponentEvent, UiValue},
     dispatch::{
         UiPointerComponentEvent, UiPointerComponentEventReason, UiPointerDispatchResult,
-        UiPointerEvent,
+        UiPointerEvent, UiTemplateActionInvocation,
     },
     event_ui::UiNodeId,
     surface::{UiPointerActivationPhase, UiPointerEventKind, UiPointerRoute},
+    template::{UiBindingExpression, UiBindingRef},
     tree::{UiDirtyFlags, UiTreeError},
 };
 
@@ -350,8 +351,137 @@ impl UiSurface {
             if let Some(drag) = drag {
                 component_event = component_event.with_drag_metrics(drag);
             }
+            if let Some(template_action) = self.template_action_for_binding(node_id, binding) {
+                component_event = component_event.with_template_action(template_action);
+            }
             events.push(component_event);
         }
         Ok(())
+    }
+
+    pub(super) fn template_action_for_binding(
+        &self,
+        source_node_id: UiNodeId,
+        binding: &UiBindingRef,
+    ) -> Option<UiTemplateActionInvocation> {
+        if !self.tree.node(source_node_id)?.state_flags.enabled {
+            return None;
+        }
+        let action = binding.action.as_ref()?;
+        let route = action.route.as_deref().or(action.action.as_deref())?.trim();
+        if route.is_empty() {
+            return None;
+        }
+
+        let payload = action
+            .payload
+            .iter()
+            .map(|(key, value)| {
+                Some((
+                    key.clone(),
+                    self.template_action_payload_value(source_node_id, value)?,
+                ))
+            })
+            .collect::<Option<_>>()?;
+        Some(UiTemplateActionInvocation::new(route, payload))
+    }
+
+    fn template_action_payload_value(
+        &self,
+        source_node_id: UiNodeId,
+        value: &toml::Value,
+    ) -> Option<UiValue> {
+        let toml::Value::String(expression_text) = value else {
+            return Some(UiValue::from_toml(value));
+        };
+        if !expression_text.trim_start().starts_with('=') {
+            return Some(UiValue::String(expression_text.clone()));
+        }
+
+        UiBindingExpression::parse(expression_text)
+            .ok()
+            .and_then(|expression| {
+                self.resolve_template_action_expression(source_node_id, &expression)
+            })
+    }
+
+    fn resolve_template_action_expression(
+        &self,
+        source_node_id: UiNodeId,
+        expression: &UiBindingExpression,
+    ) -> Option<UiValue> {
+        match expression {
+            UiBindingExpression::Literal(value) => Some(value.clone()),
+            UiBindingExpression::ParamRef(_) => None,
+            UiBindingExpression::PropRef(property) => {
+                self.template_action_property_value(source_node_id, property)
+            }
+            UiBindingExpression::ControlPropRef {
+                control_id,
+                property,
+            } => self.template_action_control_property_value(control_id, property),
+            UiBindingExpression::Equals(lhs, rhs) => Some(UiValue::Bool(
+                self.resolve_template_action_expression(source_node_id, lhs)?
+                    == self.resolve_template_action_expression(source_node_id, rhs)?,
+            )),
+            UiBindingExpression::NotEquals(lhs, rhs) => Some(UiValue::Bool(
+                self.resolve_template_action_expression(source_node_id, lhs)?
+                    != self.resolve_template_action_expression(source_node_id, rhs)?,
+            )),
+            UiBindingExpression::And(lhs, rhs) => Some(UiValue::Bool(
+                template_action_bool(
+                    &self.resolve_template_action_expression(source_node_id, lhs)?,
+                )? && template_action_bool(
+                    &self.resolve_template_action_expression(source_node_id, rhs)?,
+                )?,
+            )),
+            UiBindingExpression::Or(lhs, rhs) => Some(UiValue::Bool(
+                template_action_bool(
+                    &self.resolve_template_action_expression(source_node_id, lhs)?,
+                )? || template_action_bool(
+                    &self.resolve_template_action_expression(source_node_id, rhs)?,
+                )?,
+            )),
+            UiBindingExpression::Not(value) => Some(UiValue::Bool(!template_action_bool(
+                &self.resolve_template_action_expression(source_node_id, value)?,
+            )?)),
+        }
+    }
+
+    fn template_action_control_property_value(
+        &self,
+        control_id: &str,
+        property: &str,
+    ) -> Option<UiValue> {
+        self.tree
+            .nodes
+            .iter()
+            .find_map(|(node_id, node)| {
+                (node.template_metadata.as_ref()?.control_id.as_deref() == Some(control_id))
+                    .then_some(*node_id)
+            })
+            .map(|node_id| self.template_action_property_value(node_id, property))
+            .flatten()
+    }
+
+    fn template_action_property_value(&self, node_id: UiNodeId, property: &str) -> Option<UiValue> {
+        self.component_states
+            .get(node_id)
+            .and_then(|state| state.value(property))
+            .cloned()
+            .or_else(|| {
+                self.tree
+                    .node(node_id)
+                    .and_then(|node| node.template_metadata.as_ref())
+                    .and_then(|metadata| metadata.attributes.get(property))
+                    .map(UiValue::from_toml)
+            })
+    }
+}
+
+fn template_action_bool(value: &UiValue) -> Option<bool> {
+    match value {
+        UiValue::Bool(value) => Some(*value),
+        _ => None,
     }
 }

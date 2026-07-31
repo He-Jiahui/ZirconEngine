@@ -8,6 +8,15 @@ use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
 static NEXT_ROOT: AtomicU64 = AtomicU64::new(1);
 
+#[test]
+fn migration_report_formats_into_one_output_buffer() {
+    let source = include_str!("../../migration/report.rs");
+
+    assert!(source.contains("let mut output = String::new()"));
+    assert!(!source.contains("let mut lines = vec!"));
+    assert!(!source.contains("lines.join"));
+}
+
 fn fixture_root(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!(
         "zircon_migrate_assets_{label}_{}_{}",

@@ -1,0 +1,25 @@
+var console = %import("zr.system.console");
+var money = %import("progression/money_format_state");
+
+var result = 1;
+
+// Reference format_money.ts: omit zero gold/silver/copper fragments except that
+// a completely empty result always emits a copper fragment.
+if (money.formatMoney(0) != "0c" || money.formatMoney(7) != "7c" ||
+    money.formatMoney(100) != "1s" || money.formatMoney(105) != "1s 5c" ||
+    money.formatMoney(10000) != "1g" || money.formatMoney(10001) != "1g 1c" ||
+    money.formatMoney(123405) != "12g 34s 5c") {
+    result = -1;
+}
+
+// The source accepts JavaScript numbers. Currency producers are integral, but
+// its floor/modulo decomposition has observable negative-input results.
+if (result == 1 && (money.formatMoney(-1) != "-1c" ||
+    money.formatMoney(-100) != "0c" || money.formatMoney(-101) != "-1c" ||
+    money.formatMoney(-10001) != "-1c")) {
+    result = -2;
+}
+
+console.printLine("m5-money-format-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

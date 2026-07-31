@@ -2,8 +2,8 @@ use std::{fs, path::PathBuf, sync::Arc};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::AssetUri;
+use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     CameraRenderDescriptor, CapturedFrame, DisplayMode, GeometryExtract, ProjectionMode,
     RenderCameraClear, RenderFrameExtract, RenderFramework, RenderLayerSet,
@@ -21,10 +21,8 @@ use super::super::render_product_submit::{
 };
 use super::register_material_asset_revision;
 
-const STATUS: &str =
-    "render_plan08_three_shading_models_forward_deferred_parity_wgpu_passed_light_grid_fallback_renderdoc_deferred";
-const PRODUCT_READBACK_PNG_STATUS: &str =
-    "render_plan08_three_shading_models_forward_deferred_product_readback_png_passed_renderdoc_deferred";
+const STATUS: &str = "render_plan08_three_shading_models_forward_deferred_parity_wgpu_passed_light_grid_fallback_renderdoc_deferred";
+const PRODUCT_READBACK_PNG_STATUS: &str = "render_plan08_three_shading_models_forward_deferred_product_readback_png_passed_renderdoc_deferred";
 const FORWARD_PIPELINE_HANDLE: RenderPipelineHandle = RenderPipelineHandle::new(1);
 const DEFERRED_PIPELINE_HANDLE: RenderPipelineHandle = RenderPipelineHandle::new(2);
 
@@ -186,7 +184,10 @@ fn shading_model_mesh(case: &ShadingModelParityCase) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::from_transform_static(false),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            ..Default::default()
+        },
     }
 }
 

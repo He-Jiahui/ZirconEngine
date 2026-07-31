@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_dungeon_difficulty_state_tests",
+  "source": "src",
+  "binary": "bin-m4-dungeon-difficulty-state-tests",
+  "entry": "world/dungeon_difficulty_state_test_main"
+}

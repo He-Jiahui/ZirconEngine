@@ -1,10 +1,10 @@
 use super::*;
 use crate::core::framework::render::{
-    builtin_geometry_source_descriptor, ShaderFeatureBits, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderFeatureBits, builtin_geometry_source_descriptor,
 };
 use crate::graphics::shader::{
-    assemble_deferred_gbuffer_shader_template, standard_material_surface_source_for_features,
-    DeferredGBufferShaderTemplateRequest,
+    DeferredGBufferShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
+    standard_material_surface_source_for_features,
 };
 
 fn deferred_gbuffer_test_shader() -> String {
@@ -94,8 +94,7 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
     assert!(
         geometry_shader.contains(
             "zr_deferred_encode_material_flags(surface.shading_model_id, receive_shadows)"
-        )
-            && lighting_shader.contains("let receive_shadows = decode_receive_shadows(material.a);")
+        ) && lighting_shader.contains("let receive_shadows = decode_receive_shadows(material.a);")
             && lighting_shader.contains("if (receive_shadows)"),
         "deferred material G-buffer alpha should preserve receive-shadow state for deferred lighting"
     );

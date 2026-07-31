@@ -1,0 +1,36 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub maxLoadouts(required: bool): int { return required ? 10 : 0; }
+pub barSlots(required: bool): int { return required ? 22 : 0; }
+pub nameLimit(required: bool): int { return required ? 24 : 0; }
+pub contentRevision(required: bool): int { return required ? 1 : 0; }
+pub specUnlockLevel(required: bool): int { return required ? 5 : 0; }
+pub knownSpec(classId: string, specId: string): bool {
+    if (classId == "warrior" && specId == "arms") return true;
+    if (classId == "warrior" && specId == "fury") return true;
+    if (classId == "warrior" && specId == "prot") return true;
+    if (classId == "paladin" && specId == "holy") return true;
+    if (classId == "paladin" && specId == "protection") return true;
+    if (classId == "paladin" && specId == "retribution") return true;
+    if (classId == "hunter" && specId == "beast_mastery") return true;
+    if (classId == "hunter" && specId == "marksmanship") return true;
+    if (classId == "hunter" && specId == "survival") return true;
+    if (classId == "mage" && specId == "arcane") return true;
+    if (classId == "mage" && specId == "fire") return true;
+    if (classId == "mage" && specId == "frost") return true;
+    if (classId == "rogue" && specId == "assassination") return true;
+    if (classId == "rogue" && specId == "combat") return true;
+    if (classId == "rogue" && specId == "subtlety") return true;
+    if (classId == "priest" && specId == "discipline") return true;
+    if (classId == "priest" && specId == "holy") return true;
+    if (classId == "priest" && specId == "shadow") return true;
+    if (classId == "shaman" && specId == "elemental") return true;
+    if (classId == "shaman" && specId == "enhancement") return true;
+    if (classId == "shaman" && specId == "restoration") return true;
+    if (classId == "warlock" && specId == "affliction") return true;
+    if (classId == "warlock" && specId == "demonology") return true;
+    if (classId == "warlock" && specId == "destruction") return true;
+    if (classId == "druid" && specId == "balance") return true;
+    if (classId == "druid" && specId == "feral") return true;
+    if (classId == "druid" && specId == "restoration") return true;
+    return false;
+}

@@ -6,7 +6,7 @@ use crate::rhi::{
     RenderQueueClass, SamplerDesc, SamplerHandle, ShaderModuleDesc, ShaderModuleHandle,
     ShaderStage, TextureDesc, TextureDimension, TextureFormat, TextureHandle, TextureUsage,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
 fn test_bind_group_layout_desc(label: &str) -> BindGroupLayoutDesc {
     BindGroupLayoutDesc::new(
@@ -23,7 +23,10 @@ fn test_bind_group_layout_desc(label: &str) -> BindGroupLayoutDesc {
     )
 }
 
-fn create_test_pipeline_layout(device: &WgpuRenderDevice, label: &str) -> PipelineLayoutHandle {
+fn create_test_pipeline_layout(
+    device: &DeterministicRhiContractDevice,
+    label: &str,
+) -> PipelineLayoutHandle {
     let bind_group_layout = device
         .create_bind_group_layout(&test_bind_group_layout_desc(&format!("{label}-bind-group")))
         .unwrap();

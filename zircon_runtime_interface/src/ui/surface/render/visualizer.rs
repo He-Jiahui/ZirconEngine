@@ -85,9 +85,11 @@ impl UiRenderVisualizerSnapshot {
                     .find(|entry| entry.batch_index == batch_index);
                 UiRenderVisualizerBatchGroup {
                     batch_index,
+                    layer: batch.layer,
                     key: batch.key.clone(),
                     first_element: batch.range.first_element,
                     element_count: batch.range.element_count,
+                    source_indices: batch.source_indices.clone(),
                     node_ids: batch.node_ids.clone(),
                     split_reason: batch.split_reason,
                     cache_status: cache_entry.map(|entry| entry.status),
@@ -154,9 +156,11 @@ pub struct UiRenderVisualizerPaintElement {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderVisualizerBatchGroup {
     pub batch_index: usize,
+    pub layer: i32,
     pub key: UiBatchKey,
     pub first_element: usize,
     pub element_count: usize,
+    pub source_indices: Vec<usize>,
     pub node_ids: Vec<UiNodeId>,
     pub split_reason: UiBatchSplitReason,
     pub cache_status: Option<UiRenderCacheStatus>,
@@ -376,11 +380,7 @@ fn visualizer_overlays(
     }
 
     for (batch_index, batch) in plan.batches.iter().enumerate() {
-        if let Some(frame) = batch_bounds(
-            elements,
-            batch.range.first_element,
-            batch.range.element_count,
-        ) {
+        if let Some(frame) = batch_bounds(elements, &batch.source_indices) {
             overlays.push(UiRenderVisualizerOverlay {
                 kind: UiRenderVisualizerOverlayKind::BatchBounds,
                 frame,
@@ -393,11 +393,7 @@ fn visualizer_overlays(
             });
         }
         if batch.key.resource.is_some() {
-            if let Some(frame) = batch_bounds(
-                elements,
-                batch.range.first_element,
-                batch.range.element_count,
-            ) {
+            if let Some(frame) = batch_bounds(elements, &batch.source_indices) {
                 overlays.push(UiRenderVisualizerOverlay {
                     kind: UiRenderVisualizerOverlayKind::ResourceAtlas,
                     frame,
@@ -487,14 +483,10 @@ fn visible_paint_frame(element: &UiPaintElement) -> Option<UiFrame> {
     Some(frame)
 }
 
-fn batch_bounds(
-    elements: &[UiPaintElement],
-    first_element: usize,
-    element_count: usize,
-) -> Option<UiFrame> {
-    elements
-        .get(first_element..first_element.saturating_add(element_count))?
+fn batch_bounds(elements: &[UiPaintElement], source_indices: &[usize]) -> Option<UiFrame> {
+    source_indices
         .iter()
+        .filter_map(|&source_index| elements.get(source_index))
         .map(|element| element.geometry.render_bounds)
         .reduce(union_frame)
 }
@@ -508,10 +500,9 @@ fn union_frame(left: UiFrame, right: UiFrame) -> UiFrame {
 }
 
 fn batch_index_for_paint_index(plan: &UiBatchPlan, paint_index: usize) -> Option<usize> {
-    plan.batches.iter().position(|batch| {
-        paint_index >= batch.range.first_element
-            && paint_index < batch.range.first_element + batch.range.element_count
-    })
+    plan.batches
+        .iter()
+        .position(|batch| batch.source_indices.contains(&paint_index))
 }
 
 fn paint_resource_keys(element: &UiPaintElement) -> Vec<UiRenderResourceKey> {

@@ -5,7 +5,7 @@ use crate::core::editor_operation::EditorOperationPath;
 use crate::ui::workbench::autolayout::ShellFrame;
 use std::collections::BTreeMap;
 
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowHostMode,
     ActivityWindowId, ActivityWindowLayout, DocumentNode, MainHostPageLayout, MainPageId,
@@ -603,7 +603,7 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),
-            scene_viewport_settings: SceneViewportSettings::default(),
+            scene_viewport_settings: SceneViewportChromeSettings::default(),
             mesh_import_path: String::new(),
             project_overview: ProjectOverviewSnapshot::default(),
             asset_activity: AssetWorkspaceSnapshot::default(),

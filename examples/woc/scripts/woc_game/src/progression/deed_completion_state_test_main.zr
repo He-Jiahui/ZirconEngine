@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var deeds = %import("progression/deed_completion_state");
+
+console.printLine("m5-deed-completion-state-test");
+var result = deeds.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -137,11 +137,18 @@ Frameworks 02 显式子路径锚：`code_review_findings/plugin_importer_dx/d1_c
 
 ## 2. 现状与差距
 
-- 五态生命周期（Init→PreActivation→Active→PreDeactivation→Inactive，`core/runtime/lifecycle.rs`）与 Driver/Manager 依赖规则已固定，健康。
-- 缺 bevy 式 `ready()` 异步就绪语义（`dev/bevy/crates/bevy_app/src/plugin.rs`：build/ready/finish/cleanup）——GPU 上下文、异步 asset 初始化目前只能靠模块内部自旋或顺序假设。
-- 缺 godot/UE 式初始化层级（MODULE_INITIALIZATION_LEVEL_* / LoadingPhase）：`builtin/runtime_modules/core_modules.rs` 靠手工列表决定内建模块顺序，插件与模块的相对时机（"editor 就绪后再注册"）没有声明位。
-- `ModuleDescriptor`（name/description/drivers/managers/plugins）与 `RuntimePluginDescriptor` 是两套描述符词汇，`EngineModule` trait 与 `RuntimePlugin` trait 生命周期钩子不同构，plugin 与 module 的排序/依赖不在同一个解析器里。
-- 内核错误类型对依赖环、缺失依赖、重复注册的报告能力需要系统化验证（诊断字符串 vs 类型化错误）。
+- 五态服务生命周期与 Driver/Manager 依赖规则已固定，健康。M1 内核语义也已 code-complete：
+  `InitLevel::{Kernel,Services,Scene,Editor,Post}`、`ModuleLifecycle::{build,ready,finish,cleanup}`、
+  `ModuleDescriptor` 的 level/dependencies/lifecycle、拓扑排序器以及依赖/超时/rollback 类型化错误均已存在。
+- `CoreHandle::wait_until_module_ready` 已使用有界 sleep 轮询并产生 `ModuleReadyTimeout`；测试 fixture
+  会真实返回 `false` 直至超时，并验证 cleanup 与已启动服务回滚。当前缺口不是内核分支测试，
+  而是尚无 production built-in module 通过 `with_lifecycle(...)` 接入真实 GPU/asset readiness 信号。
+- `RuntimePluginDescriptor` 已只内嵌一份 `ModuleDescriptor`，builtin modules、runtime-plugin catalog
+  与 app plugin builder 已共用 `sort_module_activation_order`。M3 的 descriptor/sorter 主干已落地，
+  SDK/native ABI 同步与当前源码受管验收仍待关闭。
+- 内建模块顺序已经由 descriptor sorter 决定；剩余 M2 问题是 Minimal profile 仍通过
+  `minimal_profile_runtime_modules` 另造五个模块实例，形成与 profile 声明平行的成员集事实源。
+  该特殊构造路径必须退役，不能把“选择哪些模块”重新混同为手工顺序。
 
 ## 3. 设计决策
 
@@ -159,6 +166,12 @@ pub enum InitLevel {
 
 每个 `ModuleDescriptor`/`RuntimePluginDescriptor` 声明 `init_level`（默认 Post）。内核按层级推进，同层级内按声明依赖拓扑排序。`builtin/runtime_modules` 的手工顺序列表退役为按层级过滤 + 自动排序的组装函数（profile 只决定"选哪些"，不再决定"什么顺序"）。
 
+M2 的 profile 组装硬切为两步单源：先由 target 构建一份 builtin candidate registry，再由
+profile-owned 的类型化 module identity 集选择成员、补齐并校验 dependency closure，最后统一调用
+descriptor sorter。删除 `minimal_profile_runtime_modules` 特殊构造函数；Minimal 的期望成员集只在
+profile declaration 中出现一次，不在 assembly 里重复 `Arc::new(...)`。profile selection 不进入
+`ModuleDescriptor`，避免 kernel 吸收上层 profile 语义。
+
 ### 3.2 四阶段生命周期钩子
 
 在既有五态之上统一钩子词汇（bevy 对齐，语义映射固定）：
@@ -171,6 +184,11 @@ pub enum InitLevel {
 | `cleanup(ctx)` | PreDeactivation | 反向依赖顺序释放 |
 
 `EngineModule` 与 `RuntimePlugin` 共享同一钩子 trait（内核层定义于 zr_kernel/core/runtime），plugin 侧仅追加 capability/manifest 语义。热重载语义（save_state/restore_state，Fyrox prepare_to_reload→reload→on_loaded 对齐）挂在同一状态机上，实装归计划 04。
+
+当前 kernel fixture 已覆盖 `false→true` 与持续 `false→ModuleReadyTimeout`。M2 仍须选择至少一个
+已经拥有非阻塞 readiness 信号的 production built-in module（优先 asset index 或 graphics surface）
+接入该 lifecycle；不得为满足门禁新增 busy-loop、阻塞 I/O 或恒假 adapter。其 focused 集成测试必须
+证明真实信号驱动 `ready`，而不是只复用 `NoopModuleLifecycle`。
 
 ### 3.3 描述符单源
 
@@ -186,6 +204,9 @@ pub enum InitLevel {
 
 ### M1 内核语义落地（InitLevel + 四阶段 + 描述符扩展）
 
+状态（2026-07-31）：上述代码与 focused fixture 已完成；current-source 受管 Cargo 门及对应文档
+镜像尚未形成完整验收，因此 M1 为 `code-complete / validation-pending`，不声明 accepted。
+
 实现切片：
 - `core/runtime` 增加 InitLevel、四阶段钩子 trait、描述符扩展与拓扑排序器；
 - `CoreError` 类型化；`CoreRuntime` 推进循环支持 ready 轮询、超时预算与失败 rollback；
@@ -199,8 +220,15 @@ pub enum InitLevel {
 
 ### M2 内建模块与 profile 组装切换
 
+状态（2026-07-31）：descriptor 排序及 builtin 调用已完成；Minimal profile 成员集单源化、
+production readiness 接线、app groups 收口和受管验证仍未完成，M2 不得标记完成。
+
 实现切片：
-- `builtin/runtime_modules/core_modules.rs` 手工顺序列表 → 声明 init_level + 依赖后由排序器输出；profile 过滤逻辑保持（勾稽 `docs/runtime-plugins/profile-selection.md` 六 profile）；
+- `builtin/runtime_modules/core_modules.rs` 已由 sorter 决定顺序；继续删除 Minimal 特殊构造路径，
+  让六个 profile 只声明类型化成员选择并经统一 candidate registry + dependency closure + sorter 组装
+  （勾稽 `docs/runtime-plugins/profile-selection.md`）；
+- 将至少一个已有非阻塞 readiness 信号的 production built-in module 接入 `ModuleLifecycle::ready`，
+  不引入 busy-loop/阻塞 I/O/恒假 adapter；
 - `zircon_app/src/plugins/groups.rs` 的 Minimal/Default/Dev/Headless 组改为纯 feature/描述符集合声明。
 
 测试阶段（policy §3 最小批次）：
@@ -210,6 +238,9 @@ pub enum InitLevel {
 - 验收证据：组装输出与切换前模块序对比快照（允许等价重排，需人工确认差异表）；Minimal profile 模块集与 profile-selection.md 一致的断言测试。
 
 ### M3 RuntimePlugin 生命周期并轨
+
+状态（2026-07-31）：`RuntimePluginDescriptor` 单份 module descriptor 与 catalog/app sorter wiring
+已经 code-complete；SDK/native ABI 同步、全插件工作区验证和交付文档仍 pending，M3 未完成。
 
 实现切片：
 - `RuntimePluginDescriptor` 内嵌 ModuleDescriptor；插件注册进入统一排序器（默认 InitLevel::Post）；
@@ -242,6 +273,10 @@ pub enum InitLevel {
 - fixed 已修复：[runtime-module-lifecycle-observer-import-cutover](../../zircon_editor/editor/09/fixed-2026-07-13-runtime-module-lifecycle-observer-import-cutover.md)
 - 插件结构硬切换：[`Plugins 05 Navigation registration hard cut`](../../zircon_plugins/05/2026-07-13-navigation-registration-hard-cut-output-records.md) 已关闭全仓最后两处 registration compatibility debt；静态门禁与 10 项审计回归通过，当前源包级 Cargo 复验正在等待受管通道。
 
+- 当前里程碑判定（2026-07-31）：M1 code-complete/validation-pending；M2 仅排序器切片完成；
+  M3 仅 descriptor/sorter 主干完成。未关闭 Minimal 单源、production readiness、SDK/native ABI
+  与受管门之前，本计划不声明完成。
+
 
 ## 2026-07-10 Runtime 15 M3 Review-Guard Row-Data Minimum Cross-Doc Anchors
 
@@ -256,3 +291,13 @@ Cross-doc moved-row and status-doc anchors: `Runtime 15 M3 review-guard row-data
 ## 2026-07-10 Runtime 15 M3 Review-Guard Row-Data Supplemental Anchors
 
 Supplemental child-file anchors for focused row-data guard closure: `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/route_mounts.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/status_current.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/budgets.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/split_layout.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/route_mounts.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/status_current.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/budgets.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/split_layout.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/structure_guard_rows.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/typed_error_structure_rows.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/plugin_importer_rows.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/typed_error_rows.rs` / `runtime_15_review_guard_row_data_status_docs_guard_is_folder_backed` / `Runtime 15 M3 review guard row-data topic child-owner split` / `runtime_15_review_guard_row_data_topic_child_owner_split_static_passed_cargo_deferred` / `Cargo gate deferred`.
+
+## Code Review 收敛 (2026-07-31)
+
+- 已按 current source 把 InitLevel、四阶段 lifecycle、descriptor 单源、typed errors 与三处 sorter
+  wiring 从“缺失”改为 code-complete；里程碑只声明实现态，受管 Cargo pending，不虚报 accepted。
+- 已验证 timeout 并非测试空洞：`RecordingLifecycle::ready_after(usize::MAX)` 会真实返回 `false`，
+  `module_ready_timeout_resets_module_and_started_services` 断言类型化超时、cleanup 与 service reset。
+  剩余缺口准确收敛为 production built-in readiness adoption。
+- 已把 Minimal profile 的平行构造清单提升为 M2 hard-cut：candidate registry、profile-owned typed
+  selection、dependency closure 与统一 sorter 单源；删除特殊构造函数，不把 profile 语义下沉 kernel。

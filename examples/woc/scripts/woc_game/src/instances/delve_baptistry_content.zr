@@ -1,0 +1,204 @@
+// Generated Sinkhole Baptistry waves, egg-sac positions and constants.
+// Source: src/sim/delves/drowned_litany_rooms.ts at the pinned WOC commit.
+
+pub constantValue(field: int, required: bool): float {
+    if (!required || field < 1 || field > 5) {
+        throw "woc Baptistry constant is invalid";
+    }
+    if (field == 1) {
+        return 7.0;
+    }
+    if (field == 2) {
+        return 0.06;
+    }
+    if (field == 3) {
+        return 1.1;
+    }
+    if (field == 4) {
+        return 0.8;
+    }
+    return 12.0;
+}
+
+pub waveCount(required: bool): int {
+    if (!required) {
+        throw "woc Baptistry wave count is required";
+    }
+    return 3;
+}
+
+pub waveSpawnCount(waveIndex: int, required: bool): int {
+    if (!required || waveIndex < 0 || waveIndex >= 3) {
+        throw "woc Baptistry wave spawn count is invalid";
+    }
+    if (waveIndex == 0) {
+        return 6;
+    }
+    if (waveIndex == 1) {
+        return 6;
+    }
+    return 3;
+}
+
+pub waveMobId(waveIndex: int, spawnIndex: int, required: bool): string {
+    if (!required || waveIndex < 0 || waveIndex >= 3 || spawnIndex < 0) {
+        throw "woc Baptistry wave mob id is invalid";
+    }
+    if (waveIndex == 0) {
+        if (spawnIndex >= 6) {
+            throw "woc Baptistry wave mob id is invalid";
+        }
+        if (spawnIndex == 0) {
+            return "mirefen_widowling";
+        }
+        if (spawnIndex == 1) {
+            return "mirefen_widowling";
+        }
+        if (spawnIndex == 2) {
+            return "mirefen_widowling";
+        }
+        if (spawnIndex == 3) {
+            return "mirefen_widowling";
+        }
+        if (spawnIndex == 4) {
+            return "deepfen_spearjaw";
+        }
+        return "deepfen_spearjaw";
+    }
+    if (waveIndex == 1) {
+        if (spawnIndex >= 6) {
+            throw "woc Baptistry wave mob id is invalid";
+        }
+        if (spawnIndex == 0) {
+            return "reedbound_acolyte";
+        }
+        if (spawnIndex == 1) {
+            return "reedbound_acolyte";
+        }
+        if (spawnIndex == 2) {
+            return "drowned_cantor";
+        }
+        if (spawnIndex == 3) {
+            return "choir_thrall";
+        }
+        if (spawnIndex == 4) {
+            return "choir_thrall";
+        }
+        return "choir_thrall";
+    }
+    if (waveIndex == 2) {
+        if (spawnIndex >= 3) {
+            throw "woc Baptistry wave mob id is invalid";
+        }
+        if (spawnIndex == 0) {
+            return "grave_silt_bulwark";
+        }
+        if (spawnIndex == 1) {
+            return "mirefen_widowling";
+        }
+        return "mirefen_widowling";
+    }
+    throw "woc Baptistry wave mob id is invalid";
+}
+
+pub waveCoordinate(waveIndex: int, spawnIndex: int, axis: int, required: bool): float {
+    if (!required || waveIndex < 0 || waveIndex >= 3 || spawnIndex < 0 ||
+        (axis != 1 && axis != 2)) {
+        throw "woc Baptistry wave coordinate is invalid";
+    }
+    if (waveIndex == 0) {
+        if (spawnIndex >= 6) {
+            throw "woc Baptistry wave coordinate is invalid";
+        }
+        if (spawnIndex == 0) {
+            return axis == 1 ? -12.0 : 22.0;
+        }
+        if (spawnIndex == 1) {
+            return axis == 1 ? 12.0 : 22.0;
+        }
+        if (spawnIndex == 2) {
+            return axis == 1 ? -16.0 : 30.0;
+        }
+        if (spawnIndex == 3) {
+            return axis == 1 ? 16.0 : 30.0;
+        }
+        if (spawnIndex == 4) {
+            return axis == 1 ? -4.0 : 26.0;
+        }
+        return axis == 1 ? 4.0 : 26.0;
+    }
+    if (waveIndex == 1) {
+        if (spawnIndex >= 6) {
+            throw "woc Baptistry wave coordinate is invalid";
+        }
+        if (spawnIndex == 0) {
+            return axis == 1 ? -16.0 : 56.0;
+        }
+        if (spawnIndex == 1) {
+            return axis == 1 ? 16.0 : 56.0;
+        }
+        if (spawnIndex == 2) {
+            return axis == 1 ? 0.0 : 58.0;
+        }
+        if (spawnIndex == 3) {
+            return axis == 1 ? -5.0 : 52.0;
+        }
+        if (spawnIndex == 4) {
+            return axis == 1 ? 5.0 : 52.0;
+        }
+        return axis == 1 ? 0.0 : 64.0;
+    }
+    if (waveIndex == 2) {
+        if (spawnIndex >= 3) {
+            throw "woc Baptistry wave coordinate is invalid";
+        }
+        if (spawnIndex == 0) {
+            return axis == 1 ? 0.0 : 30.0;
+        }
+        if (spawnIndex == 1) {
+            return axis == 1 ? -10.0 : 24.0;
+        }
+        return axis == 1 ? 10.0 : 24.0;
+    }
+    throw "woc Baptistry wave coordinate is invalid";
+}
+
+pub eggSacSpotCount(required: bool): int {
+    if (!required) {
+        throw "woc Baptistry egg-sac spot count is required";
+    }
+    return 3;
+}
+
+pub eggSacSpotCoordinate(spotIndex: int, axis: int, required: bool): float {
+    if (!required || spotIndex < 0 || spotIndex >= 3 ||
+        (axis != 1 && axis != 2)) {
+        throw "woc Baptistry egg-sac spot coordinate is invalid";
+    }
+    if (spotIndex == 0) {
+        return axis == 1 ? 15.0 : 10.0;
+    }
+    if (spotIndex == 1) {
+        return axis == 1 ? -15.0 : 6.0;
+    }
+    return axis == 1 ? 0.0 : 58.0;
+}
+
+pub contractTest(): int {
+    if (waveCount(true) != 3 ||
+        waveSpawnCount(0, true) != 6 ||
+        waveSpawnCount(1, true) != 6 ||
+        waveSpawnCount(2, true) != 3 ||
+        waveMobId(0, 0, true) != "mirefen_widowling" ||
+        waveCoordinate(1, 2, 2, true) != 58.0) {
+        return -1;
+    }
+    if (eggSacSpotCount(true) != 3 ||
+        eggSacSpotCoordinate(0, 1, true) != 15.0 ||
+        eggSacSpotCoordinate(2, 2, true) != 58.0 ||
+        constantValue(1, true) != 7.0 ||
+        constantValue(2, true) != 0.06) {
+        return -2;
+    }
+    return 1;
+}

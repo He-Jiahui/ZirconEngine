@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -24,7 +24,45 @@ pub struct HotReloadCoordinator {
     lifecycle_guard: Mutex<()>,
     gc_step_guard: Mutex<()>,
     slots: Mutex<HashMap<PluginSlotId, PluginSlot>>,
-    pending_gc_slots: Mutex<VecDeque<PluginSlotId>>,
+    pending_gc_slots: Mutex<PendingGcSlots>,
+}
+
+#[derive(Default)]
+struct PendingGcSlots {
+    queue: VecDeque<PluginSlotId>,
+    members: HashSet<PluginSlotId>,
+}
+
+impl PendingGcSlots {
+    fn push_back(&mut self, slot: PluginSlotId) -> bool {
+        if !self.members.insert(slot) {
+            return false;
+        }
+        self.queue.push_back(slot);
+        true
+    }
+
+    fn push_front(&mut self, slot: PluginSlotId) -> bool {
+        if !self.members.insert(slot) {
+            return false;
+        }
+        self.queue.push_front(slot);
+        true
+    }
+
+    fn pop_front(&mut self) -> Option<PluginSlotId> {
+        let slot = self.queue.pop_front()?;
+        self.members.remove(&slot);
+        Some(slot)
+    }
+
+    fn remove(&mut self, slot: PluginSlotId) -> bool {
+        if !self.members.remove(&slot) {
+            return false;
+        }
+        self.queue.retain(|pending_slot| *pending_slot != slot);
+        true
+    }
 }
 
 struct PluginSlot {
@@ -95,7 +133,7 @@ impl HotReloadCoordinator {
             lifecycle_guard: Mutex::new(()),
             gc_step_guard: Mutex::new(()),
             slots: Mutex::new(HashMap::new()),
-            pending_gc_slots: Mutex::new(VecDeque::new()),
+            pending_gc_slots: Mutex::new(PendingGcSlots::default()),
         }
     }
 
@@ -117,7 +155,7 @@ impl HotReloadCoordinator {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    fn lock_pending_gc_slots(&self) -> MutexGuard<'_, VecDeque<PluginSlotId>> {
+    fn lock_pending_gc_slots(&self) -> MutexGuard<'_, PendingGcSlots> {
         self.pending_gc_slots
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -547,8 +585,7 @@ impl HotReloadCoordinator {
         }
         host.host_interfaces.discard_slot(slot);
         self.lock_slots().remove(&slot);
-        self.lock_pending_gc_slots()
-            .retain(|pending_slot| *pending_slot != slot);
+        self.lock_pending_gc_slots().remove(slot);
         Ok(manifest)
     }
 
@@ -560,6 +597,14 @@ impl HotReloadCoordinator {
         let slots = self.lock_slots();
         let slot_entry = slots.get(&slot).ok_or(VmError::MissingSlot(slot.get()))?;
         Ok(slot_entry.record(slot))
+    }
+
+    pub(crate) fn generation(&self, slot: PluginSlotId) -> Result<u32, VmError> {
+        let slots = self.lock_slots();
+        slots
+            .get(&slot)
+            .map(|slot_entry| slot_entry.generation)
+            .ok_or(VmError::MissingSlot(slot.get()))
     }
 
     pub fn slot_for_package_name(&self, package_name: &str) -> Result<PluginSlotId, VmError> {
@@ -638,9 +683,7 @@ impl HotReloadCoordinator {
         {
             let mut pending = self.lock_pending_gc_slots();
             for slot in due_slots {
-                if !pending.contains(&slot) {
-                    pending.push_back(slot);
-                }
+                pending.push_back(slot);
             }
         }
 
@@ -705,9 +748,7 @@ impl HotReloadCoordinator {
 
     fn requeue_gc_slot_front(&self, slot: PluginSlotId) {
         let mut pending = self.lock_pending_gc_slots();
-        if !pending.contains(&slot) {
-            pending.push_front(slot);
-        }
+        pending.push_front(slot);
     }
 
     pub fn list_slots(&self) -> Vec<VmPluginSlotRecord> {

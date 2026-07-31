@@ -4,6 +4,7 @@ mod plugin;
 pub use capability::{
     CONTAINER_IMPORTER_CAPABILITY, IMPORTER_FAMILY, PLUGIN_ID, PSD_IMPORTER_CAPABILITY,
     RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+    TEXTURE_ASSET_IMPORTER_DECLARATION,
 };
 pub use plugin::{
     asset_importer_descriptors, dist_module_manifest, package_manifest, plugin_registration,

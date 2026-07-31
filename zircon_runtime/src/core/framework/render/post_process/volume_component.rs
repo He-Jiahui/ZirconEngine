@@ -16,8 +16,8 @@ use super::resolved_stack::RenderResolvedPostProcessSettings;
 mod params;
 
 pub use self::params::{
-    interp_bool, interp_discrete, interp_float_lerp, interp_vec3_lerp, VolumeParamInterpFn,
-    VolumeParamSchema, VolumeParamType, VolumeParamValue,
+    VolumeParamInterpFn, VolumeParamSchema, VolumeParamType, VolumeParamValue, interp_bool,
+    interp_discrete, interp_float_lerp, interp_vec3_lerp,
 };
 
 use self::params::{enum_param, float_param, uint_param, vec3_param};

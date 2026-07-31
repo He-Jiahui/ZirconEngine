@@ -57,7 +57,11 @@ fn prepare_hybrid_gi_runtime(
         return Ok(None);
     }
 
-    let Some(registration) = state.hybrid_gi_runtime_provider.clone() else {
+    let Some(provider) = state
+        .hybrid_gi_runtime_provider
+        .as_ref()
+        .map(crate::graphics::HybridGiRuntimeProviderRegistration::provider_arc)
+    else {
         if let Some(record) = state.viewports.get_mut(&viewport) {
             record.clear_hybrid_gi_runtimes();
         }
@@ -77,7 +81,7 @@ fn prepare_hybrid_gi_runtime(
     );
     Ok(Some(
         record
-            .ensure_hybrid_gi_runtime(context.camera_history_key(), registration.provider())
+            .ensure_hybrid_gi_runtime(context.camera_history_key(), provider.as_ref())
             .prepare_frame(input),
     ))
 }
@@ -94,7 +98,11 @@ fn prepare_virtual_geometry_runtime(
         return Ok(None);
     }
 
-    let Some(registration) = state.virtual_geometry_runtime_provider.clone() else {
+    let Some(provider) = state
+        .virtual_geometry_runtime_provider
+        .as_ref()
+        .map(crate::graphics::VirtualGeometryRuntimeProviderRegistration::provider_arc)
+    else {
         if let Some(record) = state.viewports.get_mut(&viewport) {
             record.clear_virtual_geometry_runtimes();
         }
@@ -111,7 +119,7 @@ fn prepare_virtual_geometry_runtime(
     );
     Ok(Some(
         record
-            .ensure_virtual_geometry_runtime(context.camera_history_key(), registration.provider())
+            .ensure_virtual_geometry_runtime(context.camera_history_key(), provider.as_ref())
             .prepare_frame(input),
     ))
 }
@@ -167,5 +175,13 @@ mod tests {
             vec![300]
         );
         assert!(merged.particles.is_empty());
+    }
+
+    #[test]
+    fn runtime_prepare_clones_provider_arcs_without_cloning_registrations() {
+        let source = include_str!("prepare.rs");
+
+        assert_eq!(source.matches("provider_arc)").count(), 2);
+        assert!(!source.contains(concat!("runtime_provider", ".clone()")));
     }
 }

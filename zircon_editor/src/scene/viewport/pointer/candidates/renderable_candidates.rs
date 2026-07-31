@@ -1,23 +1,24 @@
-use zircon_runtime::scene::Scene;
+use crate::scene::viewport::RenderMeshSnapshot;
 
 use crate::scene::viewport::pointer::viewport_renderable_pick_candidate::ViewportRenderablePickCandidate;
 
 use super::renderable_pick_radius;
 
 pub(in crate::scene::viewport::pointer) fn renderable_candidates(
-    scene: &Scene,
+    render_meshes: &[RenderMeshSnapshot],
 ) -> Vec<ViewportRenderablePickCandidate> {
-    scene
-        .nodes()
-        .iter()
-        .filter(|node| node.mesh.is_some() && scene.active_in_hierarchy(node.id) == Some(true))
-        .map(|node| {
-            let transform = scene.world_transform(node.id).unwrap_or(node.transform);
-            ViewportRenderablePickCandidate {
-                owner: node.id,
-                position: transform.translation,
-                radius_world: renderable_pick_radius(transform),
-            }
-        })
-        .collect()
+    let mut candidates = Vec::with_capacity(render_meshes.len());
+    let mut previous_owner = None;
+    for mesh in render_meshes {
+        if previous_owner == Some(mesh.node_id) {
+            continue;
+        }
+        previous_owner = Some(mesh.node_id);
+        candidates.push(ViewportRenderablePickCandidate {
+            owner: mesh.node_id,
+            position: mesh.transform.translation,
+            radius_world: renderable_pick_radius(mesh.transform),
+        });
+    }
+    candidates
 }

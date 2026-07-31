@@ -14,7 +14,9 @@ pub enum ScheduleError {
     DuplicateSystem(String),
     #[error("system {0} registration builder was already consumed")]
     SystemBuilderConsumed(String),
-    #[error("cross-stage ordering constraint in {system_id}: target {target_id} is in {target_stage:?}, not {stage:?}")]
+    #[error(
+        "cross-stage ordering constraint in {system_id}: target {target_id} is in {target_stage:?}, not {stage:?}"
+    )]
     CrossStageConstraint {
         system_id: String,
         target_id: String,
@@ -31,4 +33,6 @@ pub enum ScheduleError {
         system_id: String,
         source: SystemParamError,
     },
+    #[error("system {system_id} failed to resolve external access: {message}")]
+    ExternalAccess { system_id: String, message: String },
 }

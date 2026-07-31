@@ -9,6 +9,7 @@ pub mod diagnostic_log;
 pub mod dynamic_api;
 pub mod engine_module;
 pub mod prelude;
+pub mod runtime_diagnostics;
 
 #[cfg(feature = "animation")]
 pub mod animation;

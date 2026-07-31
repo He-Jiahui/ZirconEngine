@@ -26,6 +26,14 @@ related_code:
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
   - zircon_runtime/src/text/native_bitmap_atlas/storage.rs
+  - zircon_runtime/src/text/atlas/bitmap_run.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/tests/persistent_slots.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/types.rs
+  - zircon_runtime/src/text/atlas/page.rs
+  - zircon_runtime/src/text/atlas/raster_key/mod.rs
+  - zircon_runtime/src/text/atlas/render_submission/report.rs
+  - zircon_runtime/src/text/atlas/slot_cache.rs
+  - zircon_runtime/src/text/atlas/slot_cache/tests.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Text/ShapedTextCache.h
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Fonts/SlateSdfGenerator.cpp
@@ -116,11 +124,11 @@ status: in_progress
 
 2026-07-07 补记:`text/native_bitmap_atlas.rs` 现在在 `source_cache.image(...)` 返回 `None` 时累计 `missing_raster_image_count`,并把该计数写入 `NativeBitmapAtlasPrepareReport`。`native_bitmap_atlas/handoff.rs` 新增 `MissingRasterImage` fallback reason,且只要该计数非 0,native bitmap atlas 即使 source/visible 计数看起来匹配也不能替代 glyphon。该切片关闭 PF-M3 首帧缺失 raster 图像时静默跳过但仍接管 glyphon 的风险,属于 fail-closed 降级前置项；true async raster worker、占位/近似桶首帧降级、完整 glyph slot owner/reuse、live editor-window typography QA 和完整 `TextAtlas` cutover 仍 open。
 
-2026-07-07 补记:`text/parallel/raster_pool.rs` 现在落地真实 swash CPU glyph raster worker queue。`TextRasterWorkerPool` 按显式 worker count 或 `TaskPoolOptions` 的 async-compute budget 创建 `zircon-text-raster-*` worker；每个 worker 持有独立 `SwashRasterizer`,只消费 `Arc<[u8]>` 字体数据与 `SwashRasterRequest`,输出 `GlyphBitmap` completion。提交端维护 in-flight work id 去重、可选有界队列 backpressure 与诊断计数；completion drain 在主线程按 `page_generation` 与 `face_epoch` 区分 accepted/stale-page/face-invalidated 结果。该切片关闭 PF-M2/PF-M3 的真实 raster worker queue 首段,但仍未把 production native bitmap atlas miss 路径接到 worker completion；per-page upload merge、scroll raster/upload perf counters、live editor-window typography QA 和完整 `TextAtlas` cutover 仍 open。
+2026-07-07 补记:`text/parallel/raster_pool.rs` 现在落地真实 swash CPU glyph raster worker queue。`TextRasterWorkerPool` 按显式 worker count 或 `TaskPoolOptions` 的 async-compute budget 创建 `zircon-text-raster-*` worker；每个 worker 持有独立 `SwashRasterizer`,只消费 `Arc<[u8]>` 字体数据与 `SwashRasterRequest`,输出 `GlyphBitmap` completion。提交端维护 in-flight work id 去重、可选有界队列 backpressure 与诊断计数。2026-07-17 owner hard cut 把 completion 失效条件收敛为 `face_epoch`：raster source 在 page allocation 前生成，atlas page churn 不得使可复用 bitmap 失效；page generation 仍在后续 staging/upload boundary fail-closed。per-page upload merge、scroll raster/upload perf counters、live editor-window typography QA 和完整 `TextAtlas` cutover 仍 open。
 
-2026-07-07 补记:`TextRasterCompletionDrain` 已从纯计数扩展为同时携带 stale-page 与 face-invalidated work id,让主线程 owner 能清理被拒收 completion 的 pending 映射。`NativeBitmapAtlasSourceCache` 新增 `register_worker_request(...)` 与 `apply_worker_completion_drain(...)`,accepted `GlyphBitmap` 会转换为 source cache 可复用的 `SwashContent`/bearing/size/bytes；failed、unknown、invalid bitmap、stale-page、face-invalidated 与 pending worker 数都会进入 source-cache frame report。该切片关闭 PF-M3 worker completion 到 atlas source cache 的数据面,但仍未把 production miss 生成 `SwashRasterRequest`、worker scheduling、glyphon CacheKey parity、per-page upload merge 或 live editor-window typography QA 标为完成。直接运行 runtime lib-test binary 通过 source-cache 5/5 与 raster-pool drain 1/1,日志 SHA256 `C4E26C1EF98E95BBDA75609F7925CC658D19052A8E4F3DC0FCD187AB15B770F5` / `71FE22F34EA45DD9AAE6390131E1909AA4BFC7284903F1D2A4CB3020F63584FF`;本切片非视觉,未生成 PNG。
+2026-07-07 补记:`TextRasterCompletionDrain` 携带 face-invalidated work id,让主线程 owner 能清理被拒收 completion 的 pending 映射。`NativeBitmapAtlasSourceCache` 新增 `register_worker_request(...)` 与 `apply_worker_completion_drain(...)`,accepted `GlyphBitmap` 会转换为 source cache 可复用的 `SwashContent`/bearing/size/bytes；failed、unknown、invalid bitmap、face-invalidated 与 pending worker 数进入 source-cache frame report。2026-07-17 删除 stale-page work id/count，因为 raster source 不拥有 atlas page；历史 direct lib-test 只证明旧边界，新的 owner hard cut 仍待 current-source focused Cargo。本切片为非视觉数据面,不生成 PNG。
 
-2026-07-07 补记:`scene_renderer/ui/text.rs`、`text/native_bitmap_atlas.rs` 与 `native_bitmap_atlas/source_cache.rs` 已把 production native bitmap atlas miss 接到 `TextRasterWorkerPool` 请求面。`ScreenSpaceUiTextBackend` 持有 optional raster worker pool,每帧先 drain completion 到 source cache；glyph source cache miss 时不再同步调用 glyphon `SwashCache`,而是用当前 `fontdb` face index、font bytes 与 glyphon `CacheKey` 构造 `SwashRasterRequest::glyphon_cache_key(...)`,提交 `TextRasterWorkItem`,并以 `CacheKey` pending map 防止同 glyph 重复入队。该切片关闭 PF-M3 production miss scheduling + CacheKey worker request 首段；`page_generation=0` 仍只是等待 per-page upload merge 的临时 target,scroll raster/upload perf counters、live editor-window typography QA 与完整 `TextAtlas` cutover 仍 open。Focused lib test `native_bitmap_atlas_source_cache_schedules_glyphon_cache_key_worker_request` 通过 1/1(7258 filtered),日志 SHA256 `609DAB916950E0DACF5FDDEBE32426A2454DCE8844229B5DF12D6324DE8445BC`;宽 Cargo wrapper 先因 unrelated incremental cgu object cache error 退出 101,日志 SHA256 `8A94A88A4216168A33632131E1D418E6CC24660C90ED8317D9D9967261AAFF81`;本切片为非视觉数据面,未生成 PNG。
+2026-07-07 补记:`scene_renderer/ui/text.rs`、`text/native_bitmap_atlas.rs` 与 `native_bitmap_atlas/source_cache.rs` 已把 production native bitmap atlas miss 接到 `TextRasterWorkerPool` 请求面。`ScreenSpaceUiTextBackend` 持有 optional raster worker pool,每帧先按当前 face epoch drain completion 到 source cache；glyph source cache miss 时不再同步调用 glyphon `SwashCache`,而是用当前 `fontdb` face index、font bytes 与 glyphon `CacheKey` 构造 `SwashRasterRequest::glyphon_cache_key(...)`,提交 `TextRasterWorkItem`,并以 `CacheKey` pending map 防止同 glyph 重复入队。2026-07-17 已删除固定 `page_generation=0` target；per-page upload merge 仍是独立后续优化。scroll raster/upload perf counters、live editor-window typography QA 与完整 `TextAtlas` cutover 仍 open。新的 hard cut 仍待 focused Cargo；本切片为非视觉数据面,不生成 PNG。
 
 2026-07-08 补记:`text/native_bitmap_atlas/source_cache.rs` 已关闭横向亚像素 bucket 的 cache-key 抖动。`native_bitmap_atlas_stable_raster_cache_key(...)` 把 glyphon `CacheKey.x_bin` 归一为 `SubpixelBin::Zero`,并在 worker registration、cache lookup、approximate lookup、worker request、pending check 与 insert 入口统一使用该 stable key；`y_bin` 保留给纵向近似桶替代。scoped rustfmt 通过,`cargo check -p zircon_runtime --lib --tests --no-default-features --locked --jobs 1` exit 0,日志 `docs/tests/runtime/text/runtime_text_native_bitmap_stable_phase_check_tests_20260708.log` SHA256 `4C1B97B79C5783176B6C03256EDDF4D2B696FABA54D4E01CD730B6E169E4EE66`;完整 `native_bitmap_atlas` Cargo test 超时停止,不声明 full green。本切片为非视觉数据面,不生成 PNG；per-page upload merge、scroll raster/upload counters、live editor-window typography QA 与完整 `TextAtlas` cutover 仍 open。
 
@@ -129,6 +137,12 @@ status: in_progress
 2026-07-07 补记:`text/native_bitmap_atlas/source_cache.rs`、`native_bitmap_atlas.rs` 与 `native_bitmap_atlas/handoff.rs` 已落地 PF-M3 的已有近似桶首帧替代。source cache 在 exact `CacheKey` miss 后可保守查找同 font/glyph/size/weight/flags 且仅 subpixel bin 不同的缓存图像,并记录 `approximate_hit_count`;native frame 一边继续提交 exact worker request,一边用近似 source image 生成当前帧 atlas submission,不再透明占位;prepare report 暴露 `approximate_raster_image_count`,first-frame degradation 投影为 `ApproximateBucketReplacement`。静态验证通过 rustfmt/diff/字段覆盖扫描,日志 SHA256 `ADDE952DA2030E7AB8246E555A370814A31CA0E4454C181C27798D7B64FE826C`;Windows focused Cargo 与 WSL `/tmp` target 均在编译阶段超时,日志 SHA256 `6E3EA51A1E2FAA3764DA86EC0295B0A6514C7068E20DAD6D7BBC7355215CAB61` / `CDBF68EA4358BD9212588FF74A379FBE660B0DBFDCE1BA46AF2C5E7C79CCA447`,不声明 focused green。本切片为非视觉数据面,不生成 PNG。per-page upload merge、scroll raster/upload perf counters、live editor-window typography QA 与完整 `TextAtlas` cutover 仍 open。
 
 2026-07-07 补记:`zircon_runtime/src/ui/tests/text_pipeline` 已新增 PF-M4 首个滚动列表 cache 复用 guard `render_perf_text_scroll_list_reuses_cache`。测试先预热稳定 `"Hg"` metrics run,再渲染 5 行编辑器式资源 label 首屏；滚动 3 行后,absolute layout 因 row y 变化仍应 miss,但 `ShapedRunCache` 只允许 3 个新 row 产生 miss/insert,2 个重叠 row 必须命中。该切片锁住滚动列表 shape/layout 增量有界,不改 UI 字体、letter-spacing、ZUI token、root painter、atlas handoff 或 raster worker。raster/upload 字节与命中率计数还没有在 UI scroll test 中暴露,所以 PF-M4 raster 部分仍 open。静态验证 `runtime_text_scroll_cache_reuse_perf_rustfmt_check_20260707.log` SHA256 `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`,diff-check SHA256 `22FD7413CC13074CC1E6687BCD6B088A4C9EA15A00B765AC4A5F1739E0495A05`; final scoped diff-check SHA256 `0C2C4EF8AAB3E3943C4674E009561D3F5E8FAB3429CC0B08C123E71ADF59EBC3`,target/cargo-target PNG scan 0 SHA256 `E99A2829ECABA7855E71B61F879991A86D2DF3070B1CD2A23AD2D4242C975B7D`;active cargo/rustc lanes SHA256 `FF8B1878275A1D2AA7843370F3664834CF45966B479F68615D6BA4A18FF93D2D`,因此未启动新的 Cargo。本切片为非视觉 perf counter guard,不生成 PNG。
+
+2026-07-17 补记：PF-M4 的 per-page upload merge 不是缺失的 renderer 行为。`GlyphAtlasDirtyPage` 已按 page union glyph rect，`bitmap_upload_commands(...)` 每页只产一个 command，staging 与 texture request 延续这一基数。新增精确 guard `render_perf_text_async_upload_merges_per_page` 用同页两个 alpha glyph 锁定 `dirty page/upload command/staging page/staged upload/texture request = 1/1/1/1/1`，同时断言合并 extent。实现与静态门已完成，focused Cargo 仍为 `validation_pending`；scroll 场景 raster/upload bytes 增量与命中率计数继续 open。
+
+2026-07-19 补记：PF-M3 的“帧新栅格 glyph <=256”预算已接到最低 `NativeBitmapAtlasSourceCache::request_worker_image(...)` owner，而不是限制 atlas 的全部 visible source。每帧只允许 256 个成功提交的唯一 worker raster request；cache hit、既有 pending 与 worker unavailable 不消耗该成功预算，第 257 个及后续请求返回显式 `DeferredByFrameBudget`，当前帧继续走透明 placeholder，并在下一可见帧重新请求。`worker_request_deferred_count` 已进入 source-cache frame report 与 `ScreenSpaceUiTextRasterUploadReport`，连续两帧 guard 覆盖首帧 `256 submitted + 1 deferred` 以及次帧 deferred key 继续提交；稳定 atlas/cache-hit glyph 不被限流。Rust 1.94.1 rustfmt、scoped diff-check 与静态 owner/telemetry guards 已通过，fresh managed focused Cargo 仍为 `validation_pending`；真实 scroll raster/upload bytes 增量、2 MiB 图集上传字节预算和 live editor-window typography QA 继续 open。
+
+2026-07-19 补记：PF-M4 的 2 MiB 图集上传字节初始标定已新增确定性 contract code。`render_perf_text_typical_256_glyph_frame_stays_within_upload_budget` 使用 192 个 alpha glyph 与 64 个 RGBA glyph 模拟典型 64px/256-glyph 首帧，在四个 512x512 page 上断言每页每帧一次 full-page upload，总上传字节精确为 1,835,008 bytes（1.75 MiB），低于 2 MiB 初始预算。该测试是典型工作台的 synthetic proxy / 确定性基线，不把 2 MiB 误实现为 WGPU writer 末端静默丢写，也不改变现有 256-glyph 回压行为；Asset Browser + Console 万行 + Inspector + `text_corpus` 的真实工作台标定、scoped rustfmt/diff-check 与 fresh managed focused Cargo 仍待本里程碑 testing stage，因此状态为 `contract_implemented / managed_validation_pending`，真实 scroll raster/upload 增量与 live editor-window typography QA 继续 open。
 
 ### PF-M2 并行 shaping + 并行栅格
 
@@ -226,7 +240,7 @@ status: in_progress
 - cosmic-text `FontSystem` 非 `Sync`:每 worker 持独立 `FontSystem`(共享只读 `FontDatabase` 的 `Arc<[u8]>` 字体数据),或主 `FontSystem` 加 `Mutex`(测量阶段争用低)。隔离决策在 `shape_pool.rs`,不外泄。
 - 栅格(swash/fdsm)纯函数式输入输出,天然可并行;结果经通道回渲染线程。
 - 确定性:并行只影响顺序不影响结果;`text_parallel_raster_deterministic` 守卫并行=串行。
-- **代际与失效竞态(2026-07-02 评审收口)**:异步栅格产物回渲染线程时,目标页可能已被 `04` 页级 LRU 整页清空重建、或字体已被 `01` 卸载。上传队列条目必须携带 `page_generation` 并在应用前校验 face 有效性——代际不匹配或 face 已失效的产物**丢弃并重排队**(重排队时重新走 miss 路径),不得写入已易主的页。测试:`text_async_raster_discards_stale_page_generation`。
+- **代际与失效竞态(2026-07-17 owner 收口)**:CPU raster source 在 atlas page 分配前生成，只按字体 `face_epoch` 失效；它不得携带伪 page generation。allocation/staging/upload request 取得真实 page 后必须携带并校验 `page_generation`，代际不匹配或 face 已失效的上传**丢弃并重排队**，不得写入已易主的页。测试拆为 raster 边界 `text_raster_worker_pool_drain_accepts_atlas_independent_work_and_discards_old_faces` 与既有 upload page-generation mismatch guards。
 
 ### 性能预算(接 render/17)
 
@@ -256,7 +270,7 @@ status: in_progress
 | `render_perf_text_async_upload_merges_per_page` | 异步栅格,每页每帧≤1 次上传 |
 | `text_first_frame_missing_glyph_degrades_not_blocks` | 缺 glyph 首帧降级占位,不阻塞,不 panic |
 | `render_perf_text_scroll_list_reuses_cache` | 滚动列表 shape/layout 首段增量有界:滚动后只为新进入视口 row 增加 shaped miss/insert,重叠 row 命中 shaped cache；raster/upload prepare-report counter surface 已接入,真实滚动增量断言仍待补齐 |
-| `text_async_raster_discards_stale_page_generation` | 页代际不匹配/face 已失效的异步产物被丢弃重排队,不写入易主页(2026-07-02 评审收口) |
+| `text_raster_worker_pool_drain_accepts_atlas_independent_work_and_discards_old_faces` | CPU raster source 不因 atlas page churn 失效；旧 `face_epoch` completion 被丢弃。真实 page generation 继续由 allocation/staging/upload mismatch guards 验收 |
 | `render_perf_text_huge_log_shapes_visible_only` | 万行 log 首帧只 shape 可视区 ±N 段(2026-07-02 评审收口) |
 | `text_paragraph_dirty_reshapes_edited_only` | 编辑单段只重 shape 该段(2026-07-02 评审收口) |
 
@@ -271,8 +285,96 @@ status: in_progress
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前概述（2026-07-17）：Text MVP 的共享 FontDatabase 发布已从“每次调用均推进 generation”收敛为 render-input 语义变化才推进。等价 renderer 初始化保留 shaped-run、locale FontSystem 与 SDF bake resident cache；face 顺序、source、fallback、CompositeFont 或默认 UI family 变化仍执行一次完整 lineage invalidation。比较与替换只发生在低频 publish 写锁路径，普通 generation probe 与 shaping/raster 热路径不增加锁或字体字节扫描。test-only force publish 保留失效测试语义，test-only read guard 只隔离并行 SDF fixture。旧 shared focused batch 2/2 已绿；新增 default-family guard、并行 SDF 20 项、default/UI、graphics-only 与真实产品帧仍待里程碑测试阶段，因此状态为 `implemented / validation_pending`，PF/Text09 整体继续 `in_progress`。
+当前概述（2026-07-18）：Text MVP 的共享 FontDatabase 发布已从“每次调用均推进 generation”收敛为 render-input 语义变化才推进。等价 renderer 初始化保留 shaped-run、locale FontSystem 与 SDF bake resident cache；face 顺序、source、fallback、CompositeFont 或默认 UI family 变化仍执行一次完整 lineage invalidation。比较与替换只发生在低频 publish 写锁路径，普通 generation probe 与 shaping/raster 热路径不增加锁或字体字节扫描。系统字体 `Discover` 对 renderer clone 也已幂等，且 `TextRenderState` 用系统 locale + shared backend DB 直接构造 cosmic FontSystem，避免每次 renderer 构造的两次目录 I/O/backend face 追加；`sys-locale` 仅随 `text` feature 启用。test-only force publish 保留失效测试语义，test-only read guard 只隔离并行 SDF fixture。异步 raster worker 的 request sender 缺失路径也已从 production `expect` 改为 fail-closed `CoreError::ChannelSend`，错误发生在 work id 入队前，保持 `in_flight/queue_peak=0`。同一 worker boundary 已移除固定 `page_generation=0` 伪 target：completion 只按 face epoch 失效，真实 page generation 继续在 atlas allocation/staging/upload guard 中校验，避免 page churn 无效丢弃可复用 raster source。per-page upload merge 已由精确 1/1/1/1/1 基数 guard 覆盖。Text04 persistent slot MVP 又让精确 neutral raster key 跨帧复用 atlas rect，后续稳定帧不重复上传，同帧 mixed-storage 子提交仍保留首次 upload；页逐出/page-size 变化原子失效 slot，裁剪/近似/pixel-font/无稳定 identity 输入 fail-closed 回退旧策略，slot hit/miss/insert 已进入 submission report。旧 shared focused batch 2/2 已绿；新增 locale/default-family/idempotent-discovery guard、并行 SDF 20 项、raster worker 断链/face epoch hard-cut/per-page merge/persistent-slot 回归、default/UI、graphics-only 与真实产品帧仍待里程碑测试阶段，因此本轮新增切片状态为 `implemented / validation_pending`，PF/Text09 整体继续 `in_progress`。
+
+2026-07-29 状态更新：Text09 的 cache O(1) index/LRU、same-frame pending shape fingerprint index、不可变 font-handle batch snapshot 与 canonical `ShapedGlyphRun` 直通已经完成本地实现；raster worker test constructor 的完成队列 byte-budget move-after-move 编译回归已修复，并新增 `0 -> 1` 归一化与实际背压回归。受管精确 cache 门 job `2f42664ec83b4d66a27a9f02671d5653` / run `02c936b32c8149e28eb633ed944e146c` 以 `exit 101` 在测试执行前被共享 Runtime 编译边界阻断；Text09 不将其计为测试通过。已将 Runtime15 UI/late-API structure guard 源路径漂移导入 `15/failure-2026-07-29-structure-guard-include-path-drift.md`，其余动态事件、动态场景 I/O、readback 与 native discovery 错误分别落入既有 Runtime10/Runtime11/Render16 handoff。当前状态为 `implemented / resolving_failure / managed_validation_pending`；真实 WGPU 文本产品帧、截图像素检查、里程碑产出记录与提交均未完成。
+
+2026-07-30 状态更新：Runtime15 source-true F17 已在受管 job
+`3d962990f2984ef2a288327ca0412bd0` / run
+`3ef0c2c1b44645aaa5055db9d18555fa` 中完成，精确筛选执行 `1` 项并报告
+`1 passed; 0 failed`。这只解除共享 lib-test 编译与结构守卫门禁，不替代
+Text03 单次完整 shaping、Text09 batch-handle/cache 精确回归或真实 WGPU
+framebuffer 产品截图。当前 CPU 槽由 Frameworks04 的受管 Cargo 树占用，已
+续期的 Text03 预约仍待 FIFO 消费；在此期间补齐了 trailing-newline 的
+measure/layout 高度一致性与 font-handle snapshot generation 二次确认。状态
+保持 `implemented / resolving_failure / managed_validation_pending`，没有将
+排队或跨计划运行中的任务标记为 `blocked`，也未声称截图、产出记录或提交完成。
+
+2026-07-30 WGPU 验证状态：真实产品 framebuffer 命令已在 GPU job
+`5c40beaeeed1466b9f169325a944d545` / run
+`a38b36fd38504aafa06392083da6f2db` 中启动，但在渲染前以 `exit 101` 停止。
+最低共享编译层为 Plugins01 `runtime_profile/availability_projection.rs:262`：
+`RuntimePluginAvailabilitySummary::category_count` 是 `const fn`，却对
+`RuntimePluginAvailabilityCategory` 调用了非 const 的派生 `PartialEq`。
+随后 Frameworks04 的上游 lib-test job `e83f2aa0784d45cab6526effd572d7a2` /
+run `45760a71db784350a710e5b33d138fb4` 以同一低层边界失败，并额外证明
+`profile_availability_projection.rs:358` 与 `:362` 将
+`RuntimePluginAvailabilityGeneration::entries(...)` 返回的 iterator 当作
+slice 调用 `.first()`；它们应由该 API/测试 owner 一并收敛，而非由 Text09
+添加上层绕过。
+该 owner 已由 active `plugins01-availability-generation-r4-20260730` 和既有
+[`runtime-profile-availability-rebuild`](../../zircon_plugins/01/failure-2026-07-17-runtime-profile-availability-rebuild.md)
+handoff 覆盖，Text09 不跨租约绕过或复制修复。旧归档 PNG 在测试前的 SHA-256
+为 `A96F6D283EBDC43ABBF5A078D319FEDA91B8C2801F0FDF60A1008A7C6EC40A01`；本次
+没有通过 framebuffer readback、没有新 PNG、没有截图目检或产出记录。状态仍为
+`implemented / resolving_failure / managed_validation_pending`。
+
+2026-07-30 Text03 上游验证状态：availability owner 将 enum count 收敛为 const
+`match` 并将 iterator assertions 改为 `.next()` 后，受管 Text03 job
+`b2f400fa57644401825f314a28efa81e` / run
+`dce6fe65543e4a0f9b5e0d2a7e74b21e` 已越过该层，但仍在测试二进制启动前以
+`exit 101` 停止。新的最低共享边界是
+`RuntimePluginCatalog` 的 `RefCell` project-plan cache/counter 破坏了
+`OnceLock` 与 `RuntimeModuleLifecycleObserver: Sync` 契约，且 sibling consumers
+直接读取 `CompiledProjectPluginPlan` 私有报告字段；它们由既有
+[`runtime-plugin-catalog-derived-projection-rebuild`](../../zircon_plugins/01/failure-2026-07-17-runtime-plugin-catalog-derived-projection-rebuild.md)
+handoff 及其 active catalog owner 处理。availability regression 另有 row identity
+assertion 误用 `assert_eq!`（需要未承诺的 `PartialEq + Debug`）；保持 pointer identity
+断言即可。Text03/Text09 不添加 trait、公开字段或上层同步绕过；其精确测试、WGPU
+framebuffer、截图目检、里程碑记录与提交仍全部待完成。
+
+2026-07-30 shared-support 更新：Text03 current-source job
+`4959de0e7c1e4576af54e293fdd1d9f3` / run
+`c033e99c0d194c7d8f111279d88bfb99` 已越过 catalog accessors，却在测试二进制启动前
+停于 dynamic-session 对 frozen extension `Arc` 的可变应用。active Plugins01 consumer
+随后在同一运行窗口发布只读 `WorldRuntimeExtensionPlan`，故该退出只作为 source-raced
+上游诊断，不计 Text09 cache/font-handle regression，也不构成 WGPU framebuffer
+readback 或 PNG 证据。Text03 fresh reservation
+`e97f3d7bf6a4490ea685cde5cba94805` 已续期等待 FIFO；Text09 精确回归和真实 GPU 产品
+frame 仍严格排在其 current-source 结果之后。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`09/2026-07-09-threading-caching-and-performance-output-records.md`](09/2026-07-09-threading-caching-and-performance-output-records.md)
+
+2026-07-30 managed current-source progress: Text03 trailing-newline support regression
+passed `1/1` in job `a0818d9b32b24998990447d1df80d4a1` / run
+`0f98dc6c1b9043fc966d7aa108f9bc25`; it establishes the shared layout prerequisite
+only. Text09 batch-handle/cache exact regressions and the fresh WGPU product framebuffer
+are still pending FIFO execution, so no Text09 performance acceptance, screenshot, output
+record, or commit is claimed and the recovery status remains `resolving_failure`.
+
+2026-07-30 shared prerequisite update: Text03's single-shape grapheme projection
+regression passed `1/1` in job `b4e6f332a13b44f6b66b906487a52c95` / run
+`853e35937130424a9d276d69a9c20bd0`. Text09's own batch-handle/cache regressions and
+fresh WGPU product framebuffer remain pending and are not claimed by this prerequisite.
+
+2026-07-30 managed current-source progress: Text09's batch font-handle projection and
+resolution deduplication regression passed `1/1` in job
+`eb62a140fead4bfe9848c4d751f8a0d5` / run
+`3b971c5816aa4721a32def40b9aab40d` (cold compile `28m47s`, test `8.10s`). The
+source timestamps for `handle_registry.rs`, shared-font publication, and TextService
+remained stable at launch. The cache O(1) regression and a fresh WGPU product
+framebuffer remain required; no Text09 acceptance, screenshot, output record, or
+commit is claimed by this focused pass.
+
+2026-07-30 managed cache validation diagnostic: the exact cache O(1) job
+`31fb549441c24066a43536fd7c6758e5` / run
+`195c1cde803b4b80954e054539fbbd9c` reached current-source `zircon_runtime`
+lib-test compilation but stopped before the test binary with upstream `E0432` in
+`graphics/scene/scene_renderer/post_process/resources/construct/construct/construct.rs`:
+the `terminal_resource_cache` parent path was absent. No Text09 cache assertion ran, so
+this is a shared structure/import diagnostic rather than a cache regression failure.
+The plan remains `implemented / resolving_failure / managed_validation_pending`; rerun
+the same exact cache command after its owning source path is repaired, then continue to
+the real WGPU product framebuffer.

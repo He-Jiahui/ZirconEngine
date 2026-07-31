@@ -1,0 +1,6 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub casterOnlyWhenSolo(required: bool): bool { return required; }
+pub requiresPlayerMeta(required: bool): bool { return required; }
+pub excludesDead(required: bool): bool { return required; }
+pub planarRadius(required: bool): bool { return required; }
+pub ascendingEntityId(required: bool): bool { return required; }

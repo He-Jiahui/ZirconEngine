@@ -6,7 +6,7 @@ use crate::rhi::{
     TextureDesc, TextureDimension, TextureHandle, TextureUsage,
 };
 
-use super::device::WgpuRenderDeviceState;
+use super::device::DeterministicRhiContractDeviceState;
 use super::resource_validation::ensure_texture_usage;
 
 #[derive(Clone, Debug)]
@@ -39,7 +39,7 @@ impl ActiveRenderPass {
 
     pub(super) fn validate_pipeline_attachments(
         &self,
-        state: &WgpuRenderDeviceState,
+        state: &DeterministicRhiContractDeviceState,
         pipeline: &PipelineDesc,
     ) -> Result<(), RhiError> {
         let raster_state =
@@ -266,7 +266,7 @@ impl RenderPassAttachmentInfo {
 }
 
 pub(super) fn validate_render_pass_attachments(
-    state: &WgpuRenderDeviceState,
+    state: &DeterministicRhiContractDeviceState,
     color_attachments: &[RenderPassColorAttachmentDesc],
     depth_stencil_attachment: Option<RenderPassDepthStencilAttachmentDesc>,
 ) -> Result<RenderPassAttachmentInfo, RhiError> {

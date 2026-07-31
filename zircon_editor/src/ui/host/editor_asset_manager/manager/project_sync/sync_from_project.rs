@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::atomic::Ordering;
 
 use zircon_runtime::asset::importer::AssetImportError;
 use zircon_runtime::asset::project::ProjectManager;
@@ -12,15 +13,61 @@ use crate::ui::host::editor_asset_manager::{
 };
 
 use super::super::super::{EditorAssetChangeKind, EditorAssetChangeRecord};
+use super::super::catalog_generation::build_catalog_generation;
 use super::super::default_editor_asset_manager::DefaultEditorAssetManager;
 use super::super::reference_analysis::direct_references;
 use super::{
     display_name_for_path::display_name_for_path, meta_path_for_source::meta_path_for_source,
     preview_source_mtime::preview_source_mtime,
+    source_generation::EditorAssetProjectSourceGeneration,
 };
 
 impl DefaultEditorAssetManager {
     pub fn sync_from_project(&self, project: ProjectManager) -> Result<(), AssetImportError> {
+        // Registration and winner commit use the same source gate. A newer request
+        // either cancels this epoch before shader I/O or starts after this commit.
+        let source_sync_epoch = {
+            let _registration_guard = self
+                .source_sync_gate
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            self.source_sync_epoch.fetch_add(1, Ordering::AcqRel) + 1
+        };
+        let pending_source_generation =
+            std::sync::Arc::new(EditorAssetProjectSourceGeneration::capture(&project));
+        let (mut expected_generation, expected_source_generation) = {
+            let state = self.state.read().expect("editor asset state lock poisoned");
+            (
+                std::sync::Arc::clone(&state.catalog_generation),
+                std::sync::Arc::clone(&state.source_generation),
+            )
+        };
+        let resource_delta = pending_source_generation.delta_since(&expected_source_generation);
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.resource_delta_unchanged",
+            resource_delta.is_unchanged() as u8
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.resource_delta_added_count",
+            resource_delta.added.len()
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.resource_delta_modified_count",
+            resource_delta.modified.len()
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.resource_delta_removed_count",
+            resource_delta.removed.len()
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.resource_delta_renamed_count",
+            resource_delta.renamed.len()
+        );
         let preview_cache = PreviewCache::new(project.paths().cache_root())?;
         let mut catalog_by_uuid = HashMap::new();
         let mut uuid_by_locator = HashMap::new();
@@ -41,8 +88,10 @@ impl DefaultEditorAssetManager {
             } else {
                 Vec::new()
             };
-            let preview_artifact_path =
-                preview_cache.path_for(&PreviewArtifactKey::thumbnail(meta.uuid));
+            let preview_artifact_path = preview_cache.path_for(&PreviewArtifactKey::thumbnail(
+                meta.uuid,
+                &metadata.source_hash,
+            ));
             let file_name = source_path
                 .file_name()
                 .and_then(|name| name.to_str())
@@ -86,37 +135,111 @@ impl DefaultEditorAssetManager {
             catalog_by_uuid.insert(record.asset_uuid, record);
         }
 
+        {
+            let state = self.state.read().expect("editor asset state lock poisoned");
+            if std::sync::Arc::ptr_eq(&state.catalog_generation, &expected_generation) {
+                merge_current_preview_results(&mut catalog_by_uuid, &state.catalog_by_uuid);
+                preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
+            }
+        }
+
         let reference_graph = ReferenceGraph::rebuild(catalog_by_uuid.values());
+        let _source_commit_guard = self
+            .source_sync_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if self.source_sync_epoch.load(Ordering::Acquire) != source_sync_epoch {
+            return Ok(());
+        }
         refresh_shader_ide_env_after_import(&project)?;
         let primary_asset_root = project.primary_project_asset_root()?.to_path_buf();
-        let change = {
+        let change = loop {
+            let catalog_revision = expected_generation.catalog_revision.saturating_add(1);
+            let publish_epoch = expected_generation.publish_epoch.saturating_add(1);
+            let catalog_generation = build_catalog_generation(
+                &project,
+                &primary_asset_root,
+                catalog_revision,
+                publish_epoch,
+                &catalog_by_uuid,
+                &uuid_by_locator,
+                &reference_graph,
+            );
+            let _publish_guard = self
+                .publish_gate
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             let mut state = self
                 .state
                 .write()
                 .expect("editor asset state lock poisoned");
+            if !std::sync::Arc::ptr_eq(&state.source_generation, &expected_source_generation) {
+                return Ok(());
+            }
+            if !std::sync::Arc::ptr_eq(&state.catalog_generation, &expected_generation) {
+                if state.catalog_generation.catalog_revision != expected_generation.catalog_revision
+                {
+                    return Ok(());
+                }
+                merge_current_preview_results(&mut catalog_by_uuid, &state.catalog_by_uuid);
+                preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
+                expected_generation = std::sync::Arc::clone(&state.catalog_generation);
+                continue;
+            }
             state.project_root = Some(project.paths().root().to_path_buf());
             state.assets_root = Some(primary_asset_root);
             state.cache_root = Some(project.paths().cache_root().to_path_buf());
             state.project_name = project.manifest().name.clone();
             state.default_scene_uri = Some(project.manifest().default_scene.clone());
-            state.catalog_revision += 1;
+            state.catalog_generation = catalog_generation;
             state.project = Some(project);
             state.catalog_by_uuid = catalog_by_uuid;
             state.uuid_by_locator = uuid_by_locator;
             state.reference_graph = reference_graph;
             state.preview_cache = Some(preview_cache);
             state.preview_scheduler = preview_scheduler;
+            state.source_generation = pending_source_generation;
 
-            EditorAssetChangeRecord {
+            break EditorAssetChangeRecord {
                 kind: EditorAssetChangeKind::CatalogChanged,
-                catalog_revision: state.catalog_revision,
+                catalog_revision,
                 uuid: None,
                 locator: None,
-            }
+            };
         };
         self.broadcast(change);
         Ok(())
     }
+}
+
+fn merge_current_preview_results(
+    pending: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
+    current: &HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
+) {
+    for (uuid, pending_record) in pending {
+        let Some(current_record) = current.get(uuid) else {
+            continue;
+        };
+        if current_record.source_hash != pending_record.source_hash
+            || current_record.meta_path != pending_record.meta_path
+        {
+            continue;
+        }
+        pending_record.preview_state = current_record.preview_state;
+        pending_record.preview_artifact_path = current_record.preview_artifact_path.clone();
+        pending_record.dirty = current_record.dirty;
+        pending_record.meta.preview_state = current_record.meta.preview_state;
+    }
+}
+
+fn preview_scheduler_for(
+    catalog_by_uuid: &HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
+) -> PreviewScheduler {
+    let mut scheduler = PreviewScheduler::default();
+    for record in catalog_by_uuid.values().filter(|record| record.dirty) {
+        scheduler.mark_dirty(record.asset_uuid);
+    }
+    scheduler
 }
 
 fn refresh_shader_ide_env_after_import(project: &ProjectManager) -> Result<(), AssetImportError> {
@@ -279,7 +402,7 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
             shader.diagnostics
         );
         let details = manager
-            .asset_details_record(&shader.uuid)
+            .asset_details_generation(&shader.uuid)
             .expect("shader details");
         assert_eq!(details.unit, AssetSourceUnit::Compound);
         assert!(details.package_id.is_none());
@@ -308,7 +431,7 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
             .find(|asset| asset.locator == "package://com.zircon.navigation/nav/agent.json")
             .expect("package asset is visible in editor catalog");
         let package_details = manager
-            .asset_details_record(&package_asset.uuid)
+            .asset_details_generation(&package_asset.uuid)
             .expect("package details");
         assert_eq!(
             package_details.package_id.as_deref(),

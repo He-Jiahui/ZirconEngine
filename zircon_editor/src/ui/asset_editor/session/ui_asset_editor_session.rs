@@ -17,7 +17,7 @@ use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2As
 use super::{
     command::UiAssetEditorTreeEdit,
     hierarchy_projection::selection_for_node,
-    palette::PaletteInsertMode,
+    palette::{PaletteInsertMode, UiAssetPaletteEntry},
     palette_target_chooser::UiAssetPaletteTargetChooser,
     preview_host::UiAssetPreviewHost,
     preview_mock::UiAssetPreviewMockState,
@@ -123,6 +123,7 @@ pub struct UiAssetEditorSession {
     pub(super) selected_layout_semantic_path: Option<String>,
     pub(super) selected_locale_preview: String,
     pub(super) selected_palette_index: Option<usize>,
+    pub(super) selected_palette_entry: Option<UiAssetPaletteEntry>,
     pub(super) palette_target_chooser: Option<UiAssetPaletteTargetChooser>,
     pub(super) selected_promote_source_component_name: Option<String>,
     pub(super) selected_promote_widget_asset_id: Option<String>,

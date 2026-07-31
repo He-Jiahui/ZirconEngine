@@ -12,6 +12,32 @@ use zircon_runtime_interface::project::RelPath;
 use super::super::{resolve_font_face, SdfFontBakeCache};
 
 #[test]
+fn text_sdf_offline_lookup_resolves_manifest_and_instance_once() {
+    let source = include_str!("../offline_source.rs");
+
+    assert!(!source.contains("resolve_font_face("));
+    assert!(!source.contains("register_loaded_font_manifest("));
+    assert!(source.contains("manifests: HashMap<String, Option<LoadedTextFontSource>>"));
+    assert_eq!(
+        source
+            .matches("and_then(crate::text::font::resolve_font_instance_handle)")
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn text_sdf_font_bake_consumers_use_database_glyph_metadata_without_reparse() {
+    let dynamic_source = include_str!("../distance_field.rs");
+    let offline_source = include_str!("../offline_source.rs");
+
+    assert!(!dynamic_source.contains("Face::parse"));
+    assert!(!offline_source.contains("Face::parse"));
+    assert!(dynamic_source.contains("face_glyph_id"));
+    assert!(offline_source.contains("glyph_id_for_key(key, face_id, font_database)"));
+}
+
+#[test]
 fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     let fixture = OfflineFontProject::new();
     let asset_manager = ProjectAssetManager::default();
@@ -92,6 +118,7 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     assert_eq!(dynamic.report.offline_glyph_count, 0);
     assert_eq!(dynamic.report.dynamic_glyph_count, 1);
     assert!(dynamic.report.nonzero_pixel_count > 0);
+    assert_eq!(bake.offline_source.manifest_cache_len(), 1);
 
     bake.glyphs.clear();
     std::fs::remove_file(&artifact_path).unwrap();
@@ -129,6 +156,35 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     );
     assert_eq!(stale_source_result.report.offline_glyph_count, 0);
     assert_eq!(stale_source_result.report.dynamic_glyph_count, 1);
+
+    let late_manifest_ref = "res://fonts/late.font.toml";
+    assert!(bake
+        .offline_source
+        .load_manifest_for_test(late_manifest_ref, &asset_manager)
+        .is_none());
+    std::fs::copy(
+        fixture.font_root.join("offline.font.toml"),
+        fixture.font_root.join("late.font.toml"),
+    )
+    .unwrap();
+    asset_manager
+        .open_project(fixture.root.to_string_lossy().as_ref())
+        .expect("rescan fixture project after adding the late manifest");
+    assert!(
+        bake.offline_source
+            .load_manifest_for_test(late_manifest_ref, &asset_manager)
+            .is_none(),
+        "a missing manifest must remain negatively cached for the current font generation"
+    );
+    assert_eq!(bake.offline_source.manifest_cache_len(), 2);
+
+    let next_generation = bake.observed_font_generation.wrapping_add(1);
+    bake.sync_font_generation(next_generation);
+    assert_eq!(bake.offline_source.manifest_cache_len(), 0);
+    assert!(bake
+        .offline_source
+        .load_manifest_for_test(late_manifest_ref, &asset_manager)
+        .is_some());
 }
 
 fn write_artifact_at_expected_path(
@@ -148,6 +204,7 @@ fn write_artifact_at_expected_path(
 
 struct OfflineFontProject {
     root: std::path::PathBuf,
+    font_root: std::path::PathBuf,
 }
 
 impl OfflineFontProject {
@@ -184,7 +241,7 @@ impl OfflineFontProject {
             "source = \"FiraSans-Regular.ttf\"\nfamily = \"Offline Fira Sans\"\n",
         )
         .unwrap();
-        Self { root }
+        Self { root, font_root }
     }
 }
 

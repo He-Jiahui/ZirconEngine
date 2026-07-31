@@ -63,35 +63,6 @@ impl TextDecorationMetrics {
         }
     }
 
-    pub(crate) fn from_face_bytes(bytes: &[u8], face_index: u32, display_px: f32) -> Option<Self> {
-        let face = ttf_parser::Face::parse(bytes, face_index).ok()?;
-        Some(Self::from_font_units(
-            FontAssetFaceMetrics {
-                units_per_em: face.units_per_em(),
-                ascender: face.ascender(),
-                descender: face.descender(),
-                line_gap: face.line_gap(),
-                uses_typographic_metrics: face
-                    .tables()
-                    .os2
-                    .is_some_and(|table| table.use_typographic_metrics()),
-                windows_ascender: face
-                    .tables()
-                    .os2
-                    .map(|table| table.windows_ascender())
-                    .unwrap_or(0),
-                windows_descender: face
-                    .tables()
-                    .os2
-                    .map(|table| table.windows_descender())
-                    .unwrap_or(0),
-                underline: face.underline_metrics().map(asset_line_metrics),
-                strikeout: face.strikeout_metrics().map(asset_line_metrics),
-            },
-            display_px,
-        ))
-    }
-
     pub(crate) fn fallback(display_px: f32) -> Self {
         Self::from_font_units(FontAssetFaceMetrics::default(), display_px)
     }
@@ -134,12 +105,10 @@ impl TextDecorationMetricsCache {
             return *metrics;
         }
         let metrics = font_database
-            .face_bytes(face)
+            .face_metrics(face)
             .ok()
-            .zip(font_database.face_index(face).ok())
-            .and_then(|(bytes, face_index)| {
-                TextDecorationMetrics::from_face_bytes(bytes.as_ref(), face_index, display_px)
-            })
+            .flatten()
+            .map(|metrics| TextDecorationMetrics::from_font_units(metrics, display_px))
             .unwrap_or_else(|| TextDecorationMetrics::fallback(display_px));
         self.entries.insert(key, metrics);
         metrics
@@ -189,13 +158,6 @@ fn scaled_line_metrics(
             thickness_px: f32::from(metrics.thickness).abs() * unit_scale,
         },
     )
-}
-
-fn asset_line_metrics(metrics: ttf_parser::LineMetrics) -> FontAssetLineMetrics {
-    FontAssetLineMetrics {
-        position: metrics.position,
-        thickness: metrics.thickness,
-    }
 }
 
 fn normalized_display_px(display_px: f32) -> f32 {

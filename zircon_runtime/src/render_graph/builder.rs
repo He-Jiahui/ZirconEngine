@@ -382,7 +382,12 @@ impl RenderGraphBuilder {
     }
 
     fn ensure_resource(&self, resource: RenderGraphResource) -> Result<(), RenderGraphError> {
-        if self.resources.iter().any(|node| node.resource == resource) {
+        let known = match resource {
+            RenderGraphResource::TransientTexture(handle) => handle.index() < self.next_texture,
+            RenderGraphResource::TransientBuffer(handle) => handle.index() < self.next_buffer,
+            RenderGraphResource::External(handle) => handle.index() < self.next_external_resource,
+        };
+        if known {
             return Ok(());
         }
 

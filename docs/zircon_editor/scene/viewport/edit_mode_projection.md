@@ -103,7 +103,7 @@ This keeps the scene/editor boundary aligned with the convergence plan: `zircon_
 - `SceneHierarchyRow` contains entity id, parent id, display name, kind label, depth, selection state, active-in-hierarchy state, and child presence.
 - `SceneInspectorField` contains component group, display label, optional property path, typed value, and editability.
 - `SceneInspectorFieldValue` preserves typed values for UI binding without exposing runtime ECS storage internals.
-- `SceneViewportToolbarState` mirrors current viewport tool/settings state plus selection-derived affordances.
+- `SceneViewportToolbarState` mirrors the active scene-mode/settings state plus selection-derived affordances.
 - `SceneViewportStats` reports real counts from the runtime world: nodes, visible nodes, cameras, mesh renderers, lights, and selected entity.
 
 ## Runtime Boundary

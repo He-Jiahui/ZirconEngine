@@ -1,0 +1,74 @@
+// Current-head projection of the Power Echo direct-heal tail. The normal heal
+// owner resolves crits, reductions and overheal first; this reducer consumes an
+// armed echo and emits only the already-resolved, non-critting copy request.
+pub class PowerEchoHealState {
+    pub var powerEchoArmed: bool;
+    pub var powerEchoFraction: float;
+    pub var targetDead: bool;
+    pub var auraConsumed: bool;
+    pub var echoApplied: bool;
+    pub var echoAmount: int;
+    pub var echoCanCrit: bool;
+
+    pub @constructor() {
+        this.powerEchoArmed = false;
+        this.powerEchoFraction = 0.0;
+        this.targetDead = false;
+        this.auraConsumed = false;
+        this.echoApplied = false;
+        this.echoAmount = 0;
+        this.echoCanCrit = true;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub resolvePowerEchoHeal(
+    state: PowerEchoHealState,
+    isSpell: bool,
+    resolvedHeal: int
+): void {
+    if (!isSpell || !state.powerEchoArmed) return;
+    // Source consumes before evaluating the resolved-heal/dead-target guard, so
+    // a copy can never echo and an overheal still spends the armed aura.
+    state.powerEchoArmed = false;
+    state.auraConsumed = true;
+    if (state.targetDead || resolvedHeal <= 0) return;
+    var amount = roundPositive(<float>resolvedHeal * state.powerEchoFraction);
+    if (amount < 1) amount = 1;
+    state.echoApplied = true;
+    state.echoAmount = amount;
+    state.echoCanCrit = false;
+}
+
+pub contractTest(): int {
+    var copied = new PowerEchoHealState();
+    copied.powerEchoArmed = true;
+    copied.powerEchoFraction = 0.25;
+    resolvePowerEchoHeal(copied, true, 101);
+    if (copied.powerEchoArmed || !copied.auraConsumed || !copied.echoApplied ||
+        copied.echoAmount != 25 || copied.echoCanCrit) return -1;
+
+    var overheal = new PowerEchoHealState();
+    overheal.powerEchoArmed = true;
+    overheal.powerEchoFraction = 0.5;
+    resolvePowerEchoHeal(overheal, true, 0);
+    if (overheal.powerEchoArmed || !overheal.auraConsumed || overheal.echoApplied ||
+        overheal.echoAmount != 0) return -2;
+
+    var dead = new PowerEchoHealState();
+    dead.powerEchoArmed = true;
+    dead.powerEchoFraction = 0.01;
+    dead.targetDead = true;
+    resolvePowerEchoHeal(dead, true, 50);
+    if (dead.powerEchoArmed || !dead.auraConsumed || dead.echoApplied) return -3;
+
+    var physical = new PowerEchoHealState();
+    physical.powerEchoArmed = true;
+    physical.powerEchoFraction = 0.5;
+    resolvePowerEchoHeal(physical, false, 80);
+    if (!physical.powerEchoArmed || physical.auraConsumed || physical.echoApplied) return -4;
+    return 1;
+}

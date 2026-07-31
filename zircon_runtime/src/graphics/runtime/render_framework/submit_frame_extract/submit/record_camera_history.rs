@@ -46,7 +46,6 @@ pub(super) fn record_non_viewport_camera_state_after_success(
             record,
             context.camera_history_key(),
             virtual_geometry_feedback,
-            0,
         );
         update_temporal_camera_history_after_success(
             record,

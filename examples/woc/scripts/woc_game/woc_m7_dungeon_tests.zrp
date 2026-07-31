@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_dungeon_tests",
+  "source": "src",
+  "binary": "bin-m7-dungeon-tests",
+  "entry": "instances/dungeon_state_test_main"
+}

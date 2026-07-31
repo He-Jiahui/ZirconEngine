@@ -1,9 +1,16 @@
 use super::{RuntimeOperationContext, RuntimeOperationHandlerError};
 
 pub trait RuntimeOperationHandler: Send + Sync {
-    fn execute(
+    /// Validates and normalizes owned input without touching runtime-owned state.
+    fn prepare(
+        &self,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, RuntimeOperationHandlerError>;
+
+    /// Applies prepared work on the runtime owner thread.
+    fn apply(
         &self,
         context: RuntimeOperationContext<'_>,
-        payload: serde_json::Value,
+        prepared: serde_json::Value,
     ) -> Result<serde_json::Value, RuntimeOperationHandlerError>;
 }

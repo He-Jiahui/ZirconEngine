@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var specs = %import("content/camp_mob_spec");
+
+console.printLine("camp-mob-spec-test");
+var result = specs.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn command_list_records_bind_groups_and_submit_validates_raster_pipeline_layout() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let vertex_shader = device
         .create_shader_module(&ShaderModuleDesc::new(
             "bound-raster-vs",
@@ -90,7 +90,7 @@ fn command_list_records_bind_groups_and_submit_validates_raster_pipeline_layout(
 
 #[test]
 fn command_list_submit_validates_compute_pipeline_bind_groups() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let shader = device
         .create_shader_module(&ShaderModuleDesc::new(
             "bound-compute",
@@ -135,7 +135,7 @@ fn command_list_submit_validates_compute_pipeline_bind_groups() {
 
 #[test]
 fn command_list_submit_validates_bind_group_layout_compatibility() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let vertex_shader = device
         .create_shader_module(&ShaderModuleDesc::new(
             "layout-raster-vs",

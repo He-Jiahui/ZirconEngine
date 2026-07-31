@@ -7,9 +7,8 @@ mod stage;
 
 pub use artifact::{ExportArtifactRef, ExportDigest, ExportStageIo};
 pub use preset::{
-    load_export_preset, ExportCookCompression, ExportCookOptions, ExportFileMode,
-    ExportPluginSubset, ExportPreset, ExportPresetLoadError, ExportPresetValidationError,
-    ExportTargetMode,
+    ExportCookCompression, ExportCookOptions, ExportFileMode, ExportPluginSubset, ExportPreset,
+    ExportPresetLoadError, ExportPresetValidationError, ExportTargetMode, load_export_preset,
 };
 pub use report::{ExportPipelineReport, ExportStageRecord, ExportStageStatus};
 pub use stage::{ExportStage, ParseExportStageError};

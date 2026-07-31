@@ -1,24 +1,26 @@
 use super::gltf_animation_subassets::add_gltf_animation_and_skin_subassets;
+use super::gltf_decode::decode_gltf_source;
 use super::gltf_labeled_subassets::{
     add_gltf_material_subassets, add_gltf_mesh_subassets, add_gltf_scene_subassets,
-    add_gltf_texture_subassets, gltf_label_reference, GltfMeshSubasset, GltfPrimitiveSubasset,
+    add_gltf_texture_subassets, gltf_label_reference, gltf_label_uri, GltfMeshSubasset,
+    GltfPrimitiveSubasset,
 };
 use std::collections::BTreeMap;
-use std::path::Path;
 
 use super::primitive_from_indexed_mesh::primitive_from_indexed_mesh;
 use crate::asset::assets::{
-    MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
+    MeshAsset, MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
 };
 use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset};
 
 pub(crate) fn import_gltf(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    validate_external_gltf_buffers(context)?;
-    let (document, buffers, images) = gltf::import(&context.source_path)
-        .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
+    let decoded = decode_gltf_source(context)?;
+    let document = decoded.document;
+    let buffers = decoded.buffers;
+    let images = decoded.images;
     let mut primitives = Vec::new();
     let mut meshes = Vec::new();
     let mesh_skins = mesh_skin_assets_by_mesh(&document, &buffers);
@@ -104,21 +106,29 @@ pub(crate) fn import_gltf(
                 mesh_name,
                 &source_hint,
             )?;
-            primitive_asset.mesh = Some(gltf_label_reference(
-                &context.uri,
-                &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
-            ));
-            primitives.push(primitive_asset.clone());
+            let primitive_label = format!("Mesh{}/Primitive{}", mesh.index(), primitive.index());
+            let primitive_uri = gltf_label_uri(&context.uri, &primitive_label);
+            primitive_asset.mesh = Some(gltf_label_reference(&context.uri, &primitive_label));
+            let virtual_geometry = primitive_asset.virtual_geometry.take();
+            let mut mesh_asset = MeshAsset::from_model_primitive(primitive_uri, &primitive_asset);
+            mesh_asset.virtual_geometry = virtual_geometry;
+            mesh_asset.morph_targets = morph_targets_from_reader(&reader);
+            mesh_asset.skin = mesh_skins.get(&mesh.index()).cloned();
+            let primitive_reference = ModelPrimitiveAsset {
+                vertices: Vec::new(),
+                indices: Vec::new(),
+                mesh: primitive_asset.mesh,
+                virtual_geometry: None,
+            };
             mesh_primitives.push(GltfPrimitiveSubasset {
                 primitive_index: primitive.index(),
                 material_index: primitive.material().index(),
-                morph_targets: morph_targets_from_reader(&reader),
-                primitive: primitive_asset,
+                mesh: mesh_asset,
             });
+            primitives.push(primitive_reference);
         }
         meshes.push(GltfMeshSubasset {
             mesh_index: mesh.index(),
-            skin: mesh_skins.get(&mesh.index()).cloned(),
             primitives: mesh_primitives,
         });
     }
@@ -128,41 +138,12 @@ pub(crate) fn import_gltf(
         primitives,
     };
     let mut outcome = AssetImportOutcome::new(context.uri.clone(), ImportedAsset::Model(model));
-    outcome = add_gltf_texture_subassets(outcome, &context.uri, &document, &images)?;
+    outcome = add_gltf_texture_subassets(outcome, &context.uri, &document, images)?;
     outcome = add_gltf_material_subassets(outcome, &context.uri, &document);
-    outcome = add_gltf_mesh_subassets(outcome, &context.uri, &meshes);
+    outcome = add_gltf_mesh_subassets(outcome, &context.uri, meshes);
     outcome = add_gltf_scene_subassets(outcome, &context.uri, &document);
     outcome = add_gltf_animation_and_skin_subassets(outcome, &context.uri, &document, &buffers)?;
     Ok(outcome)
-}
-
-fn validate_external_gltf_buffers(context: &AssetImportContext) -> Result<(), AssetImportError> {
-    let gltf = gltf::Gltf::from_slice(&context.source_bytes)
-        .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
-    let base_dir = context
-        .source_path
-        .parent()
-        .unwrap_or_else(|| Path::new(""));
-    for buffer in gltf.document.buffers() {
-        let gltf::buffer::Source::Uri(uri) = buffer.source() else {
-            continue;
-        };
-        if uri
-            .get(..5)
-            .is_some_and(|prefix| prefix.eq_ignore_ascii_case("data:"))
-        {
-            continue;
-        }
-        let buffer_path = base_dir.join(uri);
-        if !buffer_path.exists() {
-            return Err(AssetImportError::Parse(format!(
-                "parse gltf: missing external buffer `{uri}` referenced by Buffer{} at {}",
-                buffer.index(),
-                buffer_path.display()
-            )));
-        }
-    }
-    Ok(())
 }
 
 fn morph_targets_from_reader<'a, 's, F>(

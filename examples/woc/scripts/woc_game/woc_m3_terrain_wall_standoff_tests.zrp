@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_terrain_wall_standoff_tests",
+  "source": "src",
+  "binary": "bin-m3-terrain-wall-standoff-tests",
+  "entry": "world/terrain_wall_standoff_test_main"
+}

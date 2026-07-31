@@ -1,0 +1,494 @@
+// Pure source-locked lockpick decisions. Board-cell construction and the
+// mutable session remain DelveRun-owned until the collection ABI is available.
+var content = %import("instances/delve_lockpick_content");
+var container = %import("zr.container");
+var rngModule = %import("kernel/rng");
+var rngObserver = %import("instances/m7_rng_observer");
+
+// The pinned content has at most sixteen columns and six rows. Keeping the
+// source's nested arrays as fixed flattened arrays avoids any host collection
+// boundary while preserving all board-local generation rules.
+pub class LockpickBoard {
+    pub var initialized: bool;
+    pub var seed: uint;
+    pub var localRandomDraws: uint;
+    pub var localRandomDigest: uint;
+    pub var localRandomState: uint;
+    pub var tierIndex: int;
+    pub var columns: int;
+    pub var rows: int;
+    pub var width: int;
+    pub var visibilityWindow: int;
+    pub var start: int;
+    pub var seat: int;
+    pub var pathRows: container.Array<int>;
+    pub var gateCells: container.Array<int>;
+    pub var openCells: container.Array<int>;
+    pub var trapCells: container.Array<int>;
+
+    pub @constructor() {
+        this.initialized = false;
+        this.seed = <uint>0;
+        this.localRandomDraws = <uint>0;
+        this.localRandomDigest = <uint>2166136261;
+        this.localRandomState = <uint>0;
+        this.tierIndex = 0;
+        this.columns = 0;
+        this.rows = 0;
+        this.width = 0;
+        this.visibilityWindow = 0;
+        this.start = 0;
+        this.seat = 0;
+        this.pathRows = new container.Array<int>();
+        this.gateCells = new container.Array<int>();
+        this.openCells = new container.Array<int>();
+        this.trapCells = new container.Array<int>();
+        var index = 0;
+        while (index < 16) {
+            this.pathRows.add(0);
+            this.gateCells.add(0);
+            index = index + 1;
+        }
+        index = 0;
+        while (index < 96) {
+            this.openCells.add(0);
+            this.trapCells.add(0);
+            index = index + 1;
+        }
+    }
+}
+
+flatIndex(column: int, row: int): int {
+    return column * 16 + row;
+}
+
+requireBoard(board: LockpickBoard, required: bool): void {
+    if (!required || !board.initialized) { throw "woc lockpick board is not initialized"; }
+}
+
+requireCell(board: LockpickBoard, column: int, row: int, required: bool): void {
+    requireBoard(board, required);
+    if (column < 0 || column >= board.columns || row < 0 || row >= board.rows) {
+        throw "woc lockpick cell is invalid";
+    }
+}
+
+isOpenCell(board: LockpickBoard, column: int, row: int): bool {
+    return <int>board.openCells[flatIndex(column, row)] != 0;
+}
+
+setOpenCell(board: LockpickBoard, column: int, row: int, open: bool): void {
+    board.openCells[flatIndex(column, row)] = open ? 1 : 0;
+}
+
+isTrapCell(board: LockpickBoard, column: int, row: int): bool {
+    return <int>board.trapCells[flatIndex(column, row)] != 0;
+}
+
+setTrapCell(board: LockpickBoard, column: int, row: int, trap: bool): void {
+    board.trapCells[flatIndex(column, row)] = trap ? 1 : 0;
+}
+
+isLegalDelta(board: LockpickBoard, delta: int): bool {
+    var action = 0;
+    while (action < 5) {
+        if (content.tierActionAllowed(board.tierIndex, action, true) &&
+            content.actionDelta(action, true) == delta) {
+            return true;
+        }
+        action = action + 1;
+    }
+    return false;
+}
+
+rngInt(rng: rngModule.Mulberry32, minimum: int, maximum: int): int {
+    if (minimum > maximum) { throw "woc lockpick rng range is invalid"; }
+    return minimum + <int>(rng.next() * <float>(maximum - minimum + 1));
+}
+
+recordLocalRng(board: LockpickBoard, stream: rngModule.Mulberry32): void {
+    board.localRandomDraws = rngObserver.drawCount(stream, true);
+    board.localRandomDigest = rngObserver.drawDigest(stream, true);
+    board.localRandomState = rngObserver.streamState(stream, true);
+}
+
+clearBoard(board: LockpickBoard): void {
+    var index = 0;
+    while (index < 16) {
+        board.pathRows[index] = 0;
+        board.gateCells[index] = 0;
+        index = index + 1;
+    }
+    index = 0;
+    while (index < 96) {
+        board.openCells[index] = 0;
+        board.trapCells[index] = 0;
+        index = index + 1;
+    }
+}
+
+generatePath(board: LockpickBoard, rng: rngModule.Mulberry32): void {
+    board.pathRows[0] = rngInt(rng, 0, board.rows - 1);
+    var column = 1;
+    while (column < board.columns) {
+        var previous = <int>board.pathRows[column - 1];
+        var legalCount = 0;
+        var action = 0;
+        while (action < 5) {
+            var candidate = previous + content.actionDelta(action, true);
+            if (content.tierActionAllowed(board.tierIndex, action, true) &&
+                candidate >= 0 && candidate < board.rows) {
+                legalCount = legalCount + 1;
+            }
+            action = action + 1;
+        }
+        var selected = rngInt(rng, 0, legalCount - 1);
+        action = 0;
+        var ordinal = 0;
+        while (action < 5) {
+            var candidate = previous + content.actionDelta(action, true);
+            if (content.tierActionAllowed(board.tierIndex, action, true) &&
+                candidate >= 0 && candidate < board.rows) {
+                if (ordinal == selected) {
+                    board.pathRows[column] = candidate;
+                    break;
+                }
+                ordinal = ordinal + 1;
+            }
+            action = action + 1;
+        }
+        column = column + 1;
+    }
+}
+
+generateGates(board: LockpickBoard, rng: rngModule.Mulberry32): void {
+    var candidates = new container.Array<int>();
+    var column = 1;
+    while (column <= board.columns - 2) {
+        candidates.add(column);
+        column = column + 1;
+    }
+    var index = candidates.length - 1;
+    while (index > 0) {
+        var selected = rngInt(rng, 0, index);
+        var value = <int>candidates[index];
+        candidates[index] = candidates[selected];
+        candidates[selected] = value;
+        index = index - 1;
+    }
+    var count = content.tierGateCount(board.tierIndex, true);
+    if (count > candidates.length) { count = candidates.length; }
+    index = 0;
+    while (index < count) {
+        board.gateCells[<int>candidates[index]] = 1;
+        index = index + 1;
+    }
+}
+
+buildOpenCells(board: LockpickBoard): void {
+    var column = 0;
+    while (column < board.columns) {
+        var pathRow = <int>board.pathRows[column];
+        if (column == board.columns - 1 || <int>board.gateCells[column] != 0) {
+            setOpenCell(board, column, pathRow, true);
+        } else {
+            var row = pathRow - board.width;
+            while (row <= pathRow + board.width) {
+                if (row >= 0 && row < board.rows) { setOpenCell(board, column, row, true); }
+                row = row + 1;
+            }
+        }
+        column = column + 1;
+    }
+}
+
+trimUnreachable(board: LockpickBoard): void {
+    var column = 1;
+    while (column < board.columns) {
+        var row = 0;
+        while (row < board.rows) {
+            if (isOpenCell(board, column, row)) {
+                var reachable = false;
+                var previous = 0;
+                while (previous < board.rows) {
+                    if (isOpenCell(board, column - 1, previous) && isLegalDelta(board, row - previous)) {
+                        reachable = true;
+                        break;
+                    }
+                    previous = previous + 1;
+                }
+                if (!reachable) { setOpenCell(board, column, row, false); }
+            }
+            row = row + 1;
+        }
+        column = column + 1;
+    }
+}
+
+trimDeadEnds(board: LockpickBoard): void {
+    var column = board.columns - 2;
+    while (column >= 0) {
+        var row = 0;
+        while (row < board.rows) {
+            if (isOpenCell(board, column, row)) {
+                var canReachNext = false;
+                var next = 0;
+                while (next < board.rows) {
+                    if (isOpenCell(board, column + 1, next) && isLegalDelta(board, next - row)) {
+                        canReachNext = true;
+                        break;
+                    }
+                    next = next + 1;
+                }
+                if (!canReachNext) { setOpenCell(board, column, row, false); }
+            }
+            row = row + 1;
+        }
+        column = column - 1;
+    }
+}
+
+generateTraps(board: LockpickBoard, rng: rngModule.Mulberry32): void {
+    var candidates = new container.Array<int>();
+    var column = 1;
+    while (column < board.columns - 1) {
+        if (<int>board.gateCells[column] == 0) {
+            var row = 0;
+            while (row < board.rows) {
+                if (isOpenCell(board, column, row) && row != <int>board.pathRows[column]) {
+                    candidates.add(flatIndex(column, row));
+                }
+                row = row + 1;
+            }
+        }
+        column = column + 1;
+    }
+    var index = candidates.length - 1;
+    while (index > 0) {
+        var selected = rngInt(rng, 0, index);
+        var value = <int>candidates[index];
+        candidates[index] = candidates[selected];
+        candidates[selected] = value;
+        index = index - 1;
+    }
+    var count = content.tierTrapCount(board.tierIndex, true);
+    if (count > candidates.length) { count = candidates.length; }
+    index = 0;
+    while (index < count) {
+        var cell = <int>candidates[index];
+        var trapColumn = cell / 16;
+        var trapRow = cell % 16;
+        setTrapCell(board, trapColumn, trapRow, true);
+        index = index + 1;
+    }
+}
+
+// A board consumes a fresh seed-derived local stream. It never borrows the
+// world combat stream, and callers may inject the fresh stream for trace tests.
+pub isFreshSeedStream(stream: rngModule.Mulberry32, seed: uint, required: bool): bool {
+    if (!required) { return false; }
+    var expectedInitialState = seed & <uint>4294967295;
+    if (expectedInitialState == <uint>0) { expectedInitialState = <uint>2654435769; }
+    return stream.draws == <uint>0 && stream.state == expectedInitialState;
+}
+
+pub initializeWithStream(
+    board: LockpickBoard,
+    stream: rngModule.Mulberry32,
+    seed: uint,
+    tierIndex: int,
+    required: bool
+): void {
+    if (!required || tierIndex < 0 || tierIndex > 1 || !isFreshSeedStream(stream, seed, true)) {
+        throw "woc lockpick tier or stream is invalid";
+    }
+    clearBoard(board);
+    board.initialized = true;
+    board.seed = seed;
+    board.tierIndex = tierIndex;
+    board.columns = content.tierColumns(tierIndex, true);
+    board.rows = content.tierRows(tierIndex, true);
+    board.width = content.tierWidth(tierIndex, true);
+    board.visibilityWindow = content.tierVisibilityWindow(tierIndex, true);
+    generatePath(board, stream);
+    generateGates(board, stream);
+    buildOpenCells(board);
+    trimUnreachable(board);
+    trimDeadEnds(board);
+    generateTraps(board, stream);
+    board.start = <int>board.pathRows[0];
+    board.seat = <int>board.pathRows[board.columns - 1];
+    recordLocalRng(board, stream);
+}
+
+pub initialize(board: LockpickBoard, seed: uint, tierIndex: int, required: bool): void {
+    var stream = new rngModule.Mulberry32(seed);
+    initializeWithStream(board, stream, seed, tierIndex, required);
+}
+
+pub startRow(board: LockpickBoard, required: bool): int {
+    requireBoard(board, required);
+    return board.start;
+}
+
+pub seatRow(board: LockpickBoard, required: bool): int {
+    requireBoard(board, required);
+    return board.seat;
+}
+
+pub isGate(board: LockpickBoard, column: int, required: bool): bool {
+    requireBoard(board, required);
+    if (column < 0 || column >= board.columns) { return false; }
+    return <int>board.gateCells[column] != 0;
+}
+
+// 0 = closed, 1 = open, 2 = gate, 3 = seat, 4 = trap.
+pub cellKind(board: LockpickBoard, column: int, row: int, required: bool): int {
+    requireCell(board, column, row, required);
+    if (!isOpenCell(board, column, row)) { return 0; }
+    if (column == board.columns - 1) { return 3; }
+    if (isGate(board, column, true)) { return 2; }
+    return isTrapCell(board, column, row) ? 4 : 1;
+}
+
+pub visibleCellCount(board: LockpickBoard, currentColumn: int, required: bool): int {
+    requireBoard(board, required);
+    if (currentColumn < 0) { throw "woc lockpick current column is invalid"; }
+    var last = board.columns - 1;
+    var maxColumn = board.visibilityWindow >= board.columns ? last : currentColumn + board.visibilityWindow;
+    if (maxColumn > last) { maxColumn = last; }
+    var count = 0;
+    var column = 0;
+    while (column <= maxColumn) {
+        var row = 0;
+        while (row < board.rows) {
+            if (isOpenCell(board, column, row)) { count = count + 1; }
+            row = row + 1;
+        }
+        column = column + 1;
+    }
+    return count;
+}
+
+// 0 = advanced, 1 = slip, 2 = bind, 3 = trap, 4 = success.
+pub stepResult(board: LockpickBoard, column: int, row: int, actionIndex: int, required: bool): int {
+    requireCell(board, column, row, required);
+    if (!content.tierActionAllowed(board.tierIndex, actionIndex, true)) {
+        throw "woc lockpick action is invalid";
+    }
+    var nextRow = row + content.actionDelta(actionIndex, true);
+    if (nextRow < 0) { nextRow = 0; }
+    if (nextRow >= board.rows) { nextRow = board.rows - 1; }
+    var nextColumn = column + 1;
+    if (nextColumn >= board.columns || !isOpenCell(board, nextColumn, nextRow)) {
+        return isGate(board, nextColumn, true) ? 2 : 1;
+    }
+    if (isTrapCell(board, nextColumn, nextRow)) { return 3; }
+    if (nextColumn == board.columns - 1 && nextRow == board.seat) { return 4; }
+    return 0;
+}
+
+pub actionDelta(actionIndex: int, required: bool): int {
+    return content.actionDelta(actionIndex, required);
+}
+
+pub pagesForAnte(ante: int, required: bool): int {
+    return content.antePages(ante, required);
+}
+
+pub triesForAnte(ante: int, required: bool): int {
+    return content.anteTries(ante, required);
+}
+
+pub timeoutTicksForAnte(ante: int, required: bool): int {
+    var milliseconds = content.anteStepTimeoutMilliseconds(ante, required);
+    var tickMilliseconds = content.tickMilliseconds(true);
+    return (milliseconds + tickMilliseconds - 1) / tickMilliseconds;
+}
+
+pub tierColumns(tierIndex: int, required: bool): int {
+    return content.tierColumns(tierIndex, required);
+}
+
+pub visibleLastColumn(currentColumn: int, tierIndex: int, required: bool): int {
+    if (currentColumn < 0) { throw "woc lockpick current column is invalid"; }
+    var lastColumn = content.tierColumns(tierIndex, required) - 1;
+    var visible = currentColumn + content.tierVisibilityWindow(tierIndex, true);
+    return visible > lastColumn ? lastColumn : visible;
+}
+
+pub nextRow(row: int, actionIndex: int, tierIndex: int, required: bool): int {
+    var rows = content.tierRows(tierIndex, required);
+    if (row < 0 || row >= rows || !content.tierActionAllowed(tierIndex, actionIndex, true)) {
+        throw "woc lockpick position is invalid";
+    }
+    var next = row + content.actionDelta(actionIndex, true);
+    if (next < 0) { return 0; }
+    return next >= rows ? rows - 1 : next;
+}
+
+pub baseSeed(runSeed: uint, chestId: uint, required: bool): uint {
+    if (!required) { throw "woc lockpick seed is required"; }
+    return (runSeed ^ ((chestId * content.baseSeedMultiplier(true)) & <uint>4294967295)) &
+        <uint>4294967295;
+}
+
+pub pageSeed(seed: uint, pageIndex: int, required: bool): uint {
+    if (!required || pageIndex < 0) { throw "woc lockpick page is invalid"; }
+    var ordinal = <uint>(pageIndex + 1);
+    return (seed ^ ((ordinal * content.pageSeedMultiplier(true)) & <uint>4294967295)) &
+        <uint>4294967295;
+}
+
+pub retrySeed(seed: uint, triesTotal: int, triesLeft: int, required: bool): uint {
+    if (!required || triesTotal < 1 || triesLeft < 1 || triesLeft >= triesTotal) {
+        throw "woc lockpick retry is invalid";
+    }
+    var triesUsed = <uint>(triesTotal - triesLeft);
+    return (seed ^ ((triesUsed * content.retrySeedMultiplier(true)) & <uint>4294967295)) &
+        <uint>4294967295;
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || actionDelta(0, true) != -2 ||
+        actionDelta(4, true) != 2 || pagesForAnte(1, true) != 3 ||
+        pagesForAnte(3, true) != 1 || triesForAnte(2, true) != 2 ||
+        timeoutTicksForAnte(1, true) != 60 || timeoutTicksForAnte(2, true) != 120 ||
+        timeoutTicksForAnte(3, true) != 180 || tierColumns(0, true) != 12 ||
+        tierColumns(1, true) != 16 || visibleLastColumn(0, 0, true) != 4 ||
+        visibleLastColumn(10, 0, true) != 11 || visibleLastColumn(10, 1, true) != 13 ||
+        nextRow(0, 0, 0, true) != 0 || nextRow(5, 4, 1, true) != 5 ||
+        nextRow(3, 1, 0, true) != 2 || baseSeed(<uint>20061, <uint>423, true) !=
+        <uint>1839881514 || pageSeed(<uint>1839881514, 0, true) != <uint>4087162011 ||
+        pageSeed(<uint>1839881514, 2, true) != <uint>3071029305 ||
+        retrySeed(<uint>1839881514, 2, 1, true) != <uint>3896612673) {
+        return -1;
+    }
+    var normal = new LockpickBoard();
+    var preflightStream = new rngModule.Mulberry32(<uint>20061);
+    if (!isFreshSeedStream(preflightStream, <uint>20061, true)) { return -2; }
+    var mismatched = new rngModule.Mulberry32(<uint>20062);
+    if (isFreshSeedStream(mismatched, <uint>20061, true)) { return -3; }
+    preflightStream.nextU32();
+    if (isFreshSeedStream(preflightStream, <uint>20061, true)) { return -4; }
+    var normalStream = new rngModule.Mulberry32(<uint>20061);
+    initializeWithStream(normal, normalStream, <uint>20061, 0, true);
+    if (startRow(normal, true) != 0 || seatRow(normal, true) != 1 ||
+        !isGate(normal, 2, true) || !isGate(normal, 10, true) ||
+        cellKind(normal, 6, 2, true) != 4 || visibleCellCount(normal, 0, true) != 10 ||
+        stepResult(normal, 1, 0, 0, true) != 2 || stepResult(normal, 5, 1, 3, true) != 3 ||
+        stepResult(normal, 10, 0, 3, true) != 4 ||
+        normal.localRandomDraws != normalStream.draws ||
+        normal.localRandomDigest != normalStream.drawDigest ||
+        normal.localRandomState != normalStream.state) {
+        return -5;
+    }
+    var heroic = new LockpickBoard();
+    initialize(heroic, <uint>2024, 1, true);
+    if (startRow(heroic, true) != 4 || seatRow(heroic, true) != 1 ||
+        !isGate(heroic, 4, true) || !isGate(heroic, 6, true) || !isGate(heroic, 8, true) ||
+        cellKind(heroic, 1, 3, true) != 4 || visibleCellCount(heroic, 0, true) != 12) {
+        return -6;
+    }
+    return 1;
+}

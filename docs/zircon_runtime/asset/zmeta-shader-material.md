@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime_interface/src/resource/asset_reference.rs
   - zircon_runtime_interface/src/resource/resource_id.rs
   - zircon_runtime/src/asset/project/meta.rs
-  - zircon_runtime/src/asset/project/meta_io.rs
+  - zircon_runtime/src/foundation/persistence/atomic_file.rs
   - zircon_runtime/src/asset/project/package_asset_registry.rs
   - zircon_runtime/src/asset/project/manager/package_assets.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
@@ -104,7 +104,7 @@ implementation_files:
   - zircon_runtime_interface/src/resource/locator.rs
   - zircon_runtime_interface/src/resource/asset_reference.rs
   - zircon_runtime/src/asset/project/meta.rs
-  - zircon_runtime/src/asset/project/meta_io.rs
+  - zircon_runtime/src/foundation/persistence/atomic_file.rs
   - zircon_runtime/src/asset/project/package_asset_registry.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
@@ -508,7 +508,7 @@ doc_type: module-detail
 
 The asset identity path is now owned by `zircon_runtime::asset` and `zircon_runtime::core::resource`: `.zmeta` stores UUID identity, human-readable URL, source unit, included files, subasset entries, importer state, artifact locators, and dependency locators. There is no second asset database.
 
-Current sidecars are format version 7 and spell the source fingerprint `source_digest`. `AssetMetaDocument::from_toml_str` first classifies missing, non-integer, negative, out-of-u32-range, old, current, and future versions; only current v7 then checks the retired `source_hash` key and strict top-level/nested serde shape. `AssetMetaDocument::save` writes and syncs a unique same-directory staging file, then commits by rename. Existing targets remain continuously visible: Windows commits replacement plus backup with one `ReplaceFileW` call, while Unix preserves a hard-link/copy backup and uses same-directory rename-overwrite. Injected or OS commit failure leaves the original target readable. Unix backup-sync failure cleans staging and backup; Windows ReplaceFileW failure preserves any backup created by the OS and returns its path together with the original OS error code/source. No serde alias or automatic legacy migration remains. Repository `.zmeta` files and Rust-authored sidecar strings use only the v7 shape. M2.1 tests cover typed schema classification, nested unknown fields, atomic replacement, injected commit rollback, and cleanup; Cargo execution remains for the milestone testing stage.
+Current sidecars are format version 7 and spell the source fingerprint `source_digest`. `AssetMetaDocument::from_toml_str` first classifies missing, non-integer, negative, out-of-u32-range, old, current, and future versions; only current v7 then checks the retired `source_hash` key and strict top-level/nested serde shape. `AssetMetaDocument::save` delegates to the shared foundation atomic-file owner, which writes and syncs a unique same-directory staging file before commit. Existing targets remain continuously visible: Windows commits replacement plus backup with one `ReplaceFileW` call, while Unix preserves a hard-link/copy backup and uses same-directory rename-overwrite. Injected or OS commit failure leaves the original target readable. Unix backup-sync failure cleans staging and backup; Windows ReplaceFileW failure preserves any backup created by the OS and returns its path together with the original OS error code/source. No asset-owned forwarding module, serde alias, or automatic legacy migration remains. Repository `.zmeta` files and Rust-authored sidecar strings use only the v7 shape. M2.1 tests cover typed schema classification, nested unknown fields, atomic replacement, injected commit rollback, and cleanup; Cargo execution remains for the milestone testing stage.
 
 ## Locator Rules
 

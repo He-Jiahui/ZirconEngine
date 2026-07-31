@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var resurrection = %import("combat/resurrection_offer");
+
+console.printLine("m4-resurrection-offer-test");
+var result = resurrection.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var selection = %import("instances/delve_affix_selection");
+
+console.printLine("m7-delve-affix-selection-test");
+var result = selection.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

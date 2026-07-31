@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_mob_idle_aggro_state_tests",
+  "source": "src",
+  "binary": "bin-m4-mob-idle-aggro-state-tests",
+  "entry": "world/mob_idle_aggro_state_test_main"
+}

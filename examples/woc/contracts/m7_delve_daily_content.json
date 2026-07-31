@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_daily_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff"
+  },
+  "content": {
+    "empty_utc_day_keeps_state": true,
+    "resets_first_clear_xp": true,
+    "resets_mark_clears": true
+  },
+  "catalog_sha256": "3512b88cf75aa166403f5c169f705c2d416c1a49259bf13ab9d38932f2fa07ed"
+}

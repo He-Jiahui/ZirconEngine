@@ -1,0 +1,8 @@
+var craftingHub = %import("progression/crafting_hub_state");
+
+console.printLine("m5-crafting-hub-test");
+var result = craftingHub.contractTest();
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "crafting hub contract failed";
+}

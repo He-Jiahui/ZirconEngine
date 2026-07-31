@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var regeneration = %import("combat/regeneration_state");
+
+console.printLine("m4-regeneration-state-test");
+var result = regeneration.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

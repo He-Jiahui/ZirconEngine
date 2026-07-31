@@ -4,7 +4,6 @@ pub const PHYSICS_TEMPLATE_ID: &str = "physics.authoring";
 pub const PHYSICS_DEBUG_VIEW_ID: &str = "physics.debug_overlay";
 pub const PHYSICS_DIAGNOSTICS_VIEW_ID: &str = "physics.diagnostics";
 pub const PHYSICS_RAGDOLL_PROFILE_VIEW_ID: &str = "physics.ragdoll_profile";
-pub const PHYSICS_DEBUG_OVERLAY_MODE_ID: &str = "physics.debug_overlay.mode";
 pub const PHYSICS_TOGGLE_OVERLAY_OPERATION: &str = "debug.physics.overlay.toggle";
 pub const PHYSICS_CREATE_RAGDOLL_PROFILE_OPERATION: &str = "asset.physics.ragdoll_profile.create";
 pub const RAGDOLL_PROFILE_ASSET_KIND: &str = "physics.ragdoll_profile";

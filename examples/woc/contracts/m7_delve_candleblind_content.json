@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_candleblind_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff"
+  },
+  "content": {
+    "inactive_multiplier": 1,
+    "active_multiplier": 0.65,
+    "requires_active_affix": true
+  },
+  "catalog_sha256": "85abb00978edb529be9c0aee0a9c997375ecf9730a06680e72bc5ddb00ba6dc1"
+}

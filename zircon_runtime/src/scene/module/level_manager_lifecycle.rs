@@ -29,14 +29,13 @@ impl DefaultLevelManager {
         metadata: LevelMetadata,
     ) -> Result<LevelSystem, CoreError> {
         let core = self.core.as_ref().and_then(CoreWeak::upgrade);
-        let mut levels = self.lock_levels();
         if let Some(core) = core {
             let driver = core.resolve_driver::<super::WorldDriver>(super::WORLD_DRIVER_NAME)?;
             driver.apply_world_runtime_extensions(&mut world)?;
         }
-        let handle = WorldHandle::new(self.next_handle.fetch_add(1, Ordering::SeqCst) + 1);
+        let handle = WorldHandle::new(self.next_handle.fetch_add(1, Ordering::Relaxed) + 1);
         let level = LevelSystem::new(handle, Arc::new(Mutex::new(world)), metadata);
-        levels.insert(handle, level.clone());
+        self.lock_levels().insert(handle, level.clone());
         Ok(level)
     }
 
@@ -48,8 +47,8 @@ impl DefaultLevelManager {
         &self,
         mut operation: impl FnMut(&mut World) -> Result<(), E>,
     ) -> Result<(), E> {
-        let levels = self.lock_levels();
-        for level in levels.values() {
+        let levels = self.lock_levels().values().cloned().collect::<Vec<_>>();
+        for level in levels {
             level.with_world_mut(&mut operation)?;
         }
         Ok(())

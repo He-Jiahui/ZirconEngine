@@ -1,4 +1,5 @@
 use crate::core::CoreRuntime;
+use crate::runtime_diagnostics::collect_runtime_diagnostics;
 
 use super::support::{
     assert_render_bool_series, assert_render_count_series, fake_render_module,
@@ -11,7 +12,7 @@ fn runtime_diagnostics_reports_motion_vector_camera_and_mesh_draw_eligibility() 
     runtime.register_module(fake_render_module()).unwrap();
     runtime.activate_module(DIAGNOSTICS_TEST_MODULE).unwrap();
 
-    let snapshot = crate::core::diagnostics::collect_runtime_diagnostics(&runtime.handle());
+    let snapshot = collect_runtime_diagnostics(&runtime.handle());
 
     assert_render_bool_series(
         &snapshot.store,

@@ -189,6 +189,7 @@ fn push_text_component_event_report(
         event,
         delivered: true,
         drag: result.drag,
+        template_action: None,
     });
 }
 

@@ -1,0 +1,532 @@
+var {Array} = %import("zr.container");
+var container = %import("zr.container");
+
+class SpiritState {
+    pub var dead: bool;
+    pub var ghost: bool;
+    pub var level: int;
+    pub var x: float;
+    pub var y: float;
+    pub var z: float;
+    pub var hp: int;
+    pub var maxHp: int;
+    pub var sickness: bool;
+    pub var sicknessRemaining: float;
+    pub var corpseX: float;
+    pub var corpseY: float;
+    pub var corpseZ: float;
+    pub var hasCorpse: bool;
+
+    pub @constructor() {
+        this.dead = false;
+        this.ghost = false;
+        this.level = 1;
+        this.x = 0.0;
+        this.y = 0.0;
+        this.z = 0.0;
+        this.hp = 100;
+        this.maxHp = 100;
+        this.sickness = false;
+        this.sicknessRemaining = 0.0;
+        this.corpseX = 0.0;
+        this.corpseY = 0.0;
+        this.corpseZ = 0.0;
+        this.hasCorpse = false;
+    }
+}
+
+class RosterState {
+    pub var entityIds: Array<uint>;
+    pub var entityKinds: Array<string>;
+    pub var entityTemplates: Array<string>;
+    pub var entityActive: Array<bool>;
+    pub var hasDespawnTimer: Array<bool>;
+    pub var despawnTimers: Array<float>;
+    pub var entityInCombat: Array<bool>;
+    pub var hasIdleTimer: Array<bool>;
+    pub var idleTimers: Array<float>;
+    pub var gridIds: Array<uint>;
+    pub var playerGridIds: Array<uint>;
+    pub var delayedAt: Array<float>;
+    pub var delayedGuard: Array<bool>;
+    pub var emittedRespawns: int;
+    pub var time: float;
+    pub var spirit: SpiritState;
+
+    pub @constructor() {
+        var container = %import("zr.container");
+        this.entityIds = new container.Array<uint>();
+        this.entityKinds = new container.Array<string>();
+        this.entityTemplates = new container.Array<string>();
+        this.entityActive = new container.Array<bool>();
+        this.hasDespawnTimer = new container.Array<bool>();
+        this.despawnTimers = new container.Array<float>();
+        this.entityInCombat = new container.Array<bool>();
+        this.hasIdleTimer = new container.Array<bool>();
+        this.idleTimers = new container.Array<float>();
+        this.gridIds = new container.Array<uint>();
+        this.playerGridIds = new container.Array<uint>();
+        this.delayedAt = new container.Array<float>();
+        this.delayedGuard = new container.Array<bool>();
+        this.emittedRespawns = 0;
+        this.time = 0.0;
+        this.spirit = new SpiritState();
+    }
+}
+
+class RosterScenario {
+    pub var activeAfterChurn: int;
+    pub var delayedAfterChurn: int;
+    pub var emittedAfterChurn: int;
+    pub var ghostDead: bool;
+    pub var ghost: bool;
+    pub var ghostHp: int;
+    pub var ghostMaxHp: int;
+    pub var ghostXMicros: int;
+    pub var ghostYMicros: int;
+    pub var ghostZMicros: int;
+    pub var healerDead: bool;
+    pub var healerGhost: bool;
+    pub var healerHp: int;
+    pub var healerMaxHp: int;
+    pub var healerSickness: bool;
+    pub var healerSicknessMicros: int;
+    pub var emittedAfterHealer: int;
+    pub var finalTimeMicros: int;
+    pub var finalSicknessMicros: int;
+    pub var rngDraws: uint;
+    pub var rngDigest: uint;
+
+    pub @constructor() {
+        this.activeAfterChurn = 0;
+        this.delayedAfterChurn = 0;
+        this.emittedAfterChurn = 0;
+        this.ghostDead = false;
+        this.ghost = false;
+        this.ghostHp = 0;
+        this.ghostMaxHp = 0;
+        this.ghostXMicros = 0;
+        this.ghostYMicros = 0;
+        this.ghostZMicros = 0;
+        this.healerDead = false;
+        this.healerGhost = false;
+        this.healerHp = 0;
+        this.healerMaxHp = 0;
+        this.healerSickness = false;
+        this.healerSicknessMicros = 0;
+        this.emittedAfterHealer = 0;
+        this.finalTimeMicros = 0;
+        this.finalSicknessMicros = 0;
+        this.rngDraws = <uint>0;
+        this.rngDigest = <uint>2166136261;
+    }
+}
+
+addEntity(state: RosterState, id: uint, kind: string, templateId: string): int {
+    state.entityIds.add(id);
+    state.entityKinds.add(kind);
+    state.entityTemplates.add(templateId);
+    state.entityActive.add(true);
+    state.hasDespawnTimer.add(false);
+    state.despawnTimers.add(0.0);
+    state.entityInCombat.add(false);
+    state.hasIdleTimer.add(false);
+    state.idleTimers.add(0.0);
+    state.gridIds.add(id);
+    if (kind == "player") {
+        state.playerGridIds.add(id);
+    }
+    return state.entityIds.length - 1;
+}
+
+dropEntity(state: RosterState, id: uint): void {
+    var ids = state.entityIds;
+    var active = state.entityActive;
+    var index = 0;
+    while (index < ids.length) {
+        if (<uint>ids[index] == id) {
+            active[index] = false;
+            var gridIds = state.gridIds;
+            var gridIndex = 0;
+            while (gridIndex < gridIds.length) {
+                if (<uint>gridIds[gridIndex] == id) {
+                    gridIds.removeAt(gridIndex);
+                    break;
+                }
+                gridIndex = gridIndex + 1;
+            }
+            var playerGridIds = state.playerGridIds;
+            var playerGridIndex = 0;
+            while (playerGridIndex < playerGridIds.length) {
+                if (<uint>playerGridIds[playerGridIndex] == id) {
+                    playerGridIds.removeAt(playerGridIndex);
+                    break;
+                }
+                playerGridIndex = playerGridIndex + 1;
+            }
+            return;
+        }
+        index = index + 1;
+    }
+}
+
+tickRoster(state: RosterState): void {
+    state.time = state.time + 0.05;
+    var ids = state.entityIds;
+    var templates = state.entityTemplates;
+    var active = state.entityActive;
+    var hasDespawn = state.hasDespawnTimer;
+    var despawn = state.despawnTimers;
+    var inCombat = state.entityInCombat;
+    var hasIdle = state.hasIdleTimer;
+    var idle = state.idleTimers;
+    var container = %import("zr.container");
+    var dropIds = new container.Array<uint>();
+    var index = 0;
+    while (index < ids.length) {
+        if (<bool>active[index]) {
+            if (<bool>hasDespawn[index]) {
+                despawn[index] = <float>despawn[index] - 0.05;
+                if (<float>despawn[index] <= 0.0) {
+                    dropIds.add(<uint>ids[index]);
+                }
+            }
+            var templateId = <string>templates[index];
+            if ((templateId == "varkas_boneguard" || templateId == "bound_guardian") &&
+                !<bool>inCombat[index] && <bool>hasIdle[index]) {
+                idle[index] = <float>idle[index] - 0.05;
+                if (<float>idle[index] <= 0.0) {
+                    dropIds.add(<uint>ids[index]);
+                }
+            }
+        }
+        index = index + 1;
+    }
+    for (var id in dropIds) {
+        dropEntity(state, <uint>id);
+    }
+
+    var delayedAt = state.delayedAt;
+    var delayedGuard = state.delayedGuard;
+    index = 0;
+    while (index < delayedAt.length) {
+        if (<float>delayedAt[index] <= state.time) {
+            if (<bool>delayedGuard[index]) {
+                state.emittedRespawns = state.emittedRespawns + 1;
+            }
+            delayedAt.removeAt(index);
+            delayedGuard.removeAt(index);
+        } else {
+            index = index + 1;
+        }
+    }
+    var spirit = state.spirit;
+    if (!spirit.dead && spirit.sicknessRemaining > 0.0) {
+        spirit.sicknessRemaining = spirit.sicknessRemaining - 0.05;
+        if (spirit.sicknessRemaining <= 0.0) {
+            spirit.sicknessRemaining = 0.0;
+            spirit.sickness = false;
+        }
+    }
+}
+
+releaseSpirit(state: RosterState, graveyardX: float, graveyardZ: float): void {
+    var spirit = state.spirit;
+    if (!spirit.dead || spirit.ghost) {
+        return;
+    }
+    spirit.corpseX = spirit.x;
+    spirit.corpseY = spirit.y;
+    spirit.corpseZ = spirit.z;
+    spirit.hasCorpse = true;
+    spirit.ghost = true;
+    spirit.x = graveyardX;
+    spirit.z = graveyardZ;
+    spirit.hp = spirit.maxHp;
+}
+
+resSicknessDuration(level: int): float {
+    if (level < 10) {
+        return 0.0;
+    }
+    var span = 50.0;
+    var scaled = 60.0 + (<float>level - 10.0) / span * 540.0;
+    return <float><int>(scaled + 0.5);
+}
+
+resurrectAtSpiritHealer(state: RosterState, healerInRange: bool): void {
+    var spirit = state.spirit;
+    if (!spirit.dead || !spirit.ghost || !healerInRange) {
+        return;
+    }
+    spirit.dead = false;
+    spirit.ghost = false;
+    spirit.hasCorpse = false;
+    spirit.hp = <int>(<float>spirit.maxHp * 0.2 + 0.5);
+    spirit.sicknessRemaining = resSicknessDuration(spirit.level);
+    spirit.sickness = spirit.sicknessRemaining > 0.0;
+    state.emittedRespawns = state.emittedRespawns + 1;
+}
+
+runScenario(): RosterScenario {
+    var state = new RosterState();
+    addEntity(state, <uint>408, "player", "warrior");
+    var ghostIndex = addEntity(state, <uint>409, "mob", "forest_wolf");
+    var guardIndex = addEntity(state, <uint>410, "mob", "varkas_boneguard");
+    var hasDespawn = state.hasDespawnTimer;
+    var despawn = state.despawnTimers;
+    var hasIdle = state.hasIdleTimer;
+    var idle = state.idleTimers;
+    var delayedAt = state.delayedAt;
+    var delayedGuard = state.delayedGuard;
+    hasDespawn[ghostIndex] = true;
+    despawn[ghostIndex] = 0.1;
+    hasIdle[guardIndex] = true;
+    idle[guardIndex] = 0.1;
+    delayedAt.add(0.05);
+    delayedGuard.add(true);
+    delayedAt.add(0.05);
+    delayedGuard.add(false);
+    delayedAt.add(100.0);
+    delayedGuard.add(true);
+
+    var rng = %import("kernel/rng");
+    rng.prepareSharedAfterConstruction(<uint>1012, 306, 5, 1, true);
+    // The two quiescent mobs each choose a heading and radius before their
+    // two-tick despawn boundary is reached.
+    rng.sharedNextU32(true);
+    rng.sharedNextU32(true);
+    rng.sharedNextU32(true);
+    rng.sharedNextU32(true);
+    var tick = 0;
+    while (tick < 5) {
+        tickRoster(state);
+        tick = tick + 1;
+    }
+
+    var result = new RosterScenario();
+    var active = state.entityActive;
+    for (var isActive in active) {
+        if (<bool>isActive) {
+            result.activeAfterChurn = result.activeAfterChurn + 1;
+        }
+    }
+    result.delayedAfterChurn = state.delayedAt.length;
+    result.emittedAfterChurn = state.emittedRespawns;
+
+    var spirit = state.spirit;
+    spirit.level = 10;
+    spirit.x = 2.0;
+    spirit.y = 1.5;
+    spirit.z = -2.0;
+    spirit.hp = 1;
+    spirit.maxHp = 432;
+    spirit.dead = true;
+    releaseSpirit(state, -14.0, -14.0);
+    // The authoritative terrain sampler supplies graveyard height.
+    spirit.y = 1.511848;
+    result.ghostDead = spirit.dead;
+    result.ghost = spirit.ghost;
+    result.ghostHp = spirit.hp;
+    result.ghostMaxHp = spirit.maxHp;
+    result.ghostXMicros = <int>(spirit.x * 1000000.0);
+    result.ghostYMicros = <int>(spirit.y * 1000000.0);
+    result.ghostZMicros = <int>(spirit.z * 1000000.0);
+
+    // Resurrection Sickness is applied before the 20% health restore, so the
+    // player stat system has already reduced the level-10 maximum to 222.
+    spirit.maxHp = 222;
+    resurrectAtSpiritHealer(state, true);
+    result.healerDead = spirit.dead;
+    result.healerGhost = spirit.ghost;
+    result.healerHp = spirit.hp;
+    result.healerMaxHp = spirit.maxHp;
+    result.healerSickness = spirit.sickness;
+    result.healerSicknessMicros = <int>(spirit.sicknessRemaining * 1000000.0);
+    result.emittedAfterHealer = state.emittedRespawns;
+
+    tickRoster(state);
+    tickRoster(state);
+    result.finalTimeMicros = <int>(state.time * 1000000.0 + 0.5);
+    result.finalSicknessMicros = <int>(spirit.sicknessRemaining * 1000000.0 + 0.5);
+    result.rngDraws = rng.sharedMetric(1, true);
+    result.rngDigest = rng.sharedMetric(2, true);
+    return result;
+}
+
+scenarioVector(required: bool): container.Array<int> {
+    if (!required) {
+        throw "entity roster scenario vector must be observed";
+    }
+    var scenario = runScenario();
+    var values = new container.Array<int>();
+    values.add(1012);
+    values.add(2);
+    values.add(7);
+    values.add(8);
+    values.add(411);
+    values.add(408);
+    values.add(409);
+    values.add(410);
+    values.add(scenario.activeAfterChurn);
+    values.add(scenario.delayedAfterChurn);
+    values.add(scenario.emittedAfterChurn);
+    values.add(scenario.ghostDead ? 1 : 0);
+    values.add(scenario.ghost ? 1 : 0);
+    values.add(scenario.ghostHp);
+    values.add(scenario.ghostMaxHp);
+    values.add(scenario.ghostXMicros);
+    values.add(scenario.ghostYMicros);
+    values.add(scenario.ghostZMicros);
+    values.add(scenario.healerDead ? 1 : 0);
+    values.add(scenario.healerGhost ? 1 : 0);
+    values.add(scenario.healerHp);
+    values.add(scenario.healerMaxHp);
+    values.add(scenario.healerSickness ? 1 : 0);
+    values.add(scenario.healerSicknessMicros);
+    values.add(scenario.emittedAfterHealer);
+    values.add(scenario.finalTimeMicros);
+    values.add(scenario.finalSicknessMicros);
+    values.add(<int>scenario.rngDraws);
+    values.add(<int>scenario.rngDigest);
+    return values;
+}
+
+pub scenarioMetric(metric: int, required: bool): int {
+    if (!required || metric < 0 || metric > 28) {
+        throw "entity roster scenario metric is invalid";
+    }
+    var values = scenarioVector(true);
+    var index = 0;
+    for (var value in values) {
+        if (index == metric) {
+            return <int>value;
+        }
+        index = index + 1;
+    }
+    throw "entity roster scenario metric is missing";
+}
+
+pub scenarioContractTest(): int {
+    var actual = scenarioVector(true);
+    var expected = new container.Array<int>();
+    expected.add(1012);
+    expected.add(2);
+    expected.add(7);
+    expected.add(8);
+    expected.add(411);
+    expected.add(408);
+    expected.add(409);
+    expected.add(410);
+    expected.add(1);
+    expected.add(1);
+    expected.add(1);
+    expected.add(1);
+    expected.add(1);
+    expected.add(432);
+    expected.add(432);
+    expected.add(-14000000);
+    expected.add(1511848);
+    expected.add(-14000000);
+    expected.add(0);
+    expected.add(0);
+    expected.add(44);
+    expected.add(222);
+    expected.add(1);
+    expected.add(60000000);
+    expected.add(2);
+    expected.add(350000);
+    expected.add(59900000);
+    expected.add(4);
+    expected.add(<int>2074694461);
+    if (actual.length != expected.length) {
+        return -100;
+    }
+    var metric = 0;
+    for (var value in actual) {
+        if (<int>value != <int>expected[metric]) {
+            return -(metric + 1);
+        }
+        metric = metric + 1;
+    }
+    return 1;
+}
+
+pub parityRulesTest(): int {
+    var state = new RosterState();
+    var player = addEntity(state, <uint>1, "player", "player_warrior");
+    var ghost = addEntity(state, <uint>2, "mob", "forest_wolf");
+    var guard = addEntity(state, <uint>3, "mob", "varkas_boneguard");
+    if (player != 0 || state.gridIds.length != 3 || state.playerGridIds.length != 1 ||
+        <uint>state.playerGridIds[0] != <uint>1) {
+        return -1;
+    }
+    var hasDespawn = state.hasDespawnTimer;
+    var despawn = state.despawnTimers;
+    hasDespawn[ghost] = true;
+    despawn[ghost] = 0.1;
+    var hasIdle = state.hasIdleTimer;
+    var idle = state.idleTimers;
+    hasIdle[guard] = true;
+    idle[guard] = 0.1;
+    state.delayedAt.add(0.05);
+    state.delayedGuard.add(true);
+    state.delayedAt.add(0.05);
+    state.delayedGuard.add(false);
+    state.delayedAt.add(100.0);
+    state.delayedGuard.add(true);
+    var tick = 0;
+    while (tick < 5) {
+        tickRoster(state);
+        tick = tick + 1;
+    }
+    if (<bool>state.entityActive[ghost] || <bool>state.entityActive[guard] ||
+        state.gridIds.length != 1 || <uint>state.gridIds[0] != <uint>1 ||
+        state.delayedAt.length != 1 || <float>state.delayedAt[0] != 100.0 ||
+        state.emittedRespawns != 1) {
+        return -2;
+    }
+
+    var spirit = state.spirit;
+    spirit.level = 10;
+    spirit.x = 2.0;
+    spirit.y = 1.5;
+    spirit.z = -2.0;
+    spirit.hp = 1;
+    spirit.maxHp = 100;
+    spirit.dead = true;
+    releaseSpirit(state, 10.0, 20.0);
+    if (!spirit.dead || !spirit.ghost || spirit.hp != 100 ||
+        spirit.x != 10.0 || spirit.z != 20.0 || spirit.corpseX != 2.0 ||
+        spirit.corpseY != 1.5 || spirit.corpseZ != -2.0 || !spirit.hasCorpse) {
+        return -3;
+    }
+    resurrectAtSpiritHealer(state, false);
+    if (!spirit.dead || !spirit.ghost) {
+        return -4;
+    }
+    resurrectAtSpiritHealer(state, true);
+    if (spirit.dead || spirit.ghost || spirit.hp != 20 ||
+        !spirit.sickness || spirit.sicknessRemaining != 60.0 ||
+        spirit.hasCorpse || state.emittedRespawns != 2) {
+        return -5;
+    }
+    tickRoster(state);
+    tickRoster(state);
+    if (spirit.sicknessRemaining < 59.8999 || spirit.sicknessRemaining > 59.9001) {
+        return -6;
+    }
+
+    var lowLevel = new RosterState();
+    addEntity(lowLevel, <uint>10, "player", "player_warrior");
+    var lowSpirit = lowLevel.spirit;
+    lowSpirit.level = 9;
+    lowSpirit.dead = true;
+    lowSpirit.ghost = true;
+    resurrectAtSpiritHealer(lowLevel, true);
+    if (lowSpirit.dead || lowSpirit.ghost || lowSpirit.sickness ||
+        lowSpirit.sicknessRemaining != 0.0) {
+        return -7;
+    }
+    return 1;
+}

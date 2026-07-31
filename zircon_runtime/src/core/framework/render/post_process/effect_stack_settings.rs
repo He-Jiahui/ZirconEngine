@@ -9,8 +9,8 @@ mod style_settings;
 
 pub use blur_settings::RenderBlurSettings;
 pub use color_transform_settings::{
-    RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderTonemapOperator,
-    RenderTonemapSettings, MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE,
+    MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE, RenderColorLookupSettings,
+    RenderColorLookupTextureLayout, RenderTonemapOperator, RenderTonemapSettings,
 };
 pub use depth_of_field_settings::RenderDepthOfFieldSettings;
 pub use motion_blur_settings::RenderMotionBlurSettings;

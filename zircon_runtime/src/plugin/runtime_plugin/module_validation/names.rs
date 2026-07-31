@@ -12,12 +12,12 @@ use self::{
     uniqueness::validate_runtime_plugin_module_name_uniqueness,
 };
 
-pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_module_name<'a>(
+pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_module_name(
     manifest_label: &str,
     owner_label: &str,
     owner_id: &str,
-    module: &'a PluginModuleManifest,
-    seen_names: &mut Vec<&'a str>,
+    module: &PluginModuleManifest,
+    is_duplicate: bool,
     validate_field: fn(&str, &str, &mut Vec<String>),
     validate_namespace: fn(&str, &str, &mut Vec<String>),
     diagnostics: &mut Vec<String>,
@@ -36,5 +36,10 @@ pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_module_name<'a>
         diagnostics,
     );
     validate_runtime_plugin_module_name_kind_suffix(manifest_label, module, diagnostics);
-    validate_runtime_plugin_module_name_uniqueness(manifest_label, module, seen_names, diagnostics);
+    validate_runtime_plugin_module_name_uniqueness(
+        manifest_label,
+        module,
+        is_duplicate,
+        diagnostics,
+    );
 }

@@ -14,50 +14,47 @@ pub(super) fn push_sample_grid_text(
     order: i32,
     opacity: f32,
 ) {
-    for row in 0..node.sample_grid.x_ticks.row_count() {
-        if let Some(value) = node.sample_grid.x_ticks.row_data(row) {
-            let x = geometry.x_for_value(value, node.sample_grid.x_min, node.sample_grid.x_max);
-            push_text(
-                commands,
-                FrameRect {
-                    x: x - 24.0,
-                    y: geometry.plot.y + geometry.plot.height + 4.0,
-                    width: 48.0,
-                    height: TICK_LINE_HEIGHT,
-                },
-                clip,
-                order + 4,
-                format_tick(value),
-                TICK_TEXT,
-                TICK_FONT_SIZE,
-                TICK_LINE_HEIGHT,
-                opacity,
-            );
-        }
+    let grid = &node.sample_grid.generation;
+    for tick in grid.x_ticks() {
+        let x = geometry.x_for_value(tick.value(), grid.x_min(), grid.x_max());
+        push_text(
+            commands,
+            FrameRect {
+                x: x - 24.0,
+                y: geometry.plot.y + geometry.plot.height + 4.0,
+                width: 48.0,
+                height: TICK_LINE_HEIGHT,
+            },
+            clip,
+            order + 4,
+            tick.label().to_string(),
+            TICK_TEXT,
+            TICK_FONT_SIZE,
+            TICK_LINE_HEIGHT,
+            opacity,
+        );
     }
-    for row in 0..node.sample_grid.y_ticks.row_count() {
-        if let Some(value) = node.sample_grid.y_ticks.row_data(row) {
-            let y = geometry.y_for_value(value, node.sample_grid.y_min, node.sample_grid.y_max);
-            push_text(
-                commands,
-                FrameRect {
-                    x: geometry.outer.x + 3.0,
-                    y: y - TICK_LINE_HEIGHT * 0.5,
-                    width: (geometry.plot.x - geometry.outer.x - 7.0).max(1.0),
-                    height: TICK_LINE_HEIGHT,
-                },
-                clip,
-                order + 4,
-                format_tick(value),
-                TICK_TEXT,
-                TICK_FONT_SIZE,
-                TICK_LINE_HEIGHT,
-                opacity,
-            );
-        }
+    for tick in grid.y_ticks() {
+        let y = geometry.y_for_value(tick.value(), grid.y_min(), grid.y_max());
+        push_text(
+            commands,
+            FrameRect {
+                x: geometry.outer.x + 3.0,
+                y: y - TICK_LINE_HEIGHT * 0.5,
+                width: (geometry.plot.x - geometry.outer.x - 7.0).max(1.0),
+                height: TICK_LINE_HEIGHT,
+            },
+            clip,
+            order + 4,
+            tick.label().to_string(),
+            TICK_TEXT,
+            TICK_FONT_SIZE,
+            TICK_LINE_HEIGHT,
+            opacity,
+        );
     }
 
-    if !node.sample_grid.y_axis_label.trim().is_empty() {
+    if !grid.y_axis_label().trim().is_empty() {
         push_text(
             commands,
             FrameRect {
@@ -68,14 +65,14 @@ pub(super) fn push_sample_grid_text(
             },
             clip,
             order + 5,
-            node.sample_grid.y_axis_label.to_string(),
+            grid.y_axis_label().to_string(),
             AXIS_TEXT,
             AXIS_FONT_SIZE,
             AXIS_LINE_HEIGHT,
             opacity,
         );
     }
-    if !node.sample_grid.x_axis_label.trim().is_empty() {
+    if !grid.x_axis_label().trim().is_empty() {
         push_text(
             commands,
             FrameRect {
@@ -86,7 +83,7 @@ pub(super) fn push_sample_grid_text(
             },
             clip,
             order + 5,
-            node.sample_grid.x_axis_label.to_string(),
+            grid.x_axis_label().to_string(),
             AXIS_TEXT,
             AXIS_FONT_SIZE,
             AXIS_LINE_HEIGHT,
@@ -117,12 +114,4 @@ pub(super) fn push_text(
         UiTextRunPaintStyle::default(),
         opacity,
     ));
-}
-
-fn format_tick(value: f32) -> String {
-    if value.fract().abs() < f32::EPSILON {
-        format!("{value:.0}")
-    } else {
-        format!("{value:.1}")
-    }
 }

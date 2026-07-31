@@ -73,7 +73,14 @@ impl World {
                 }
             }
         }
-        extracts.sort_by_key(|(entity, _)| *entity);
+        // Filtering a priority-ordered source preserves priority order for every camera mask, so
+        // per-camera volume evaluation only needs a linear influence scan in the common path.
+        extracts.sort_by(|(left_entity, left), (right_entity, right)| {
+            left.priority
+                .partial_cmp(&right.priority)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| left_entity.cmp(right_entity))
+        });
         fog_volumes.sort_by_key(|(entity, _)| *entity);
         CollectedPostProcessVolumes {
             extracts: extracts.into_iter().map(|(_, extract)| extract).collect(),

@@ -1,0 +1,17 @@
+// Pure targetability predicate for dead entities. WOS uses numeric kinds:
+// player=1, mob=2, and ownerId=0 means no owner (the source null value).
+pub deadTargetSelectable(lootable: bool, kind: uint, ownerId: uint, viewerId: uint): bool {
+    if (lootable) return true;
+    if (kind == <uint>1) return true;
+    return kind == <uint>2 && ownerId != <uint>0 && ownerId == viewerId;
+}
+
+pub contractTest(): int {
+    if (!deadTargetSelectable(true, <uint>2, <uint>0, <uint>1)) return -1;
+    if (!deadTargetSelectable(false, <uint>1, <uint>0, <uint>1)) return -2;
+    if (!deadTargetSelectable(false, <uint>2, <uint>1, <uint>1)) return -3;
+    if (deadTargetSelectable(false, <uint>2, <uint>2, <uint>1) ||
+        deadTargetSelectable(false, <uint>2, <uint>0, <uint>0) ||
+        deadTargetSelectable(false, <uint>3, <uint>1, <uint>1)) return -4;
+    return 1;
+}

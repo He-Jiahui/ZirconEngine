@@ -1,36 +1,36 @@
 use crate::core::framework::render::{MotionVectorCameraStatus, RenderStats};
 
-use super::{record_bool, record_count, DiagnosticStore};
+use super::{DiagnosticStore, record_bool, record_count};
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let report = &stats.last_post_process_effect_stack_report;
     let frame_index = stats.submitted_frames;
-    store.record(
+    record_bool(
+        store,
         "render.post_process.effect_stack.enabled",
         frame_index,
-        u8::from(report.enabled) as f64,
-        Some("bool"),
-        ["render", "post_process", "effect_stack"],
+        report.enabled,
+        &["render", "post_process", "effect_stack"],
     );
-    store.record(
+    record_count(
+        store,
         "render.post_process.effect_stack.active_family_count",
         frame_index,
-        report.active_family_count as f64,
-        Some("count"),
-        ["render", "post_process", "effect_stack"],
+        report.active_family_count,
+        &["render", "post_process", "effect_stack"],
     );
-    store.record(
+    record_count(
+        store,
         "render.post_process.effect_stack.approximated_family_count",
         frame_index,
-        report.approximated_family_count as f64,
-        Some("count"),
-        ["render", "post_process", "effect_stack"],
+        report.approximated_family_count,
+        &["render", "post_process", "effect_stack"],
     );
-    store.record(
+    record_count(
+        store,
         "render.post_process.effect_stack.missing_resource_count",
         frame_index,
-        report.missing_resource_count as f64,
-        Some("count"),
-        ["render", "post_process", "effect_stack"],
+        report.missing_resource_count,
+        &["render", "post_process", "effect_stack"],
     );
     record_count(
         store,

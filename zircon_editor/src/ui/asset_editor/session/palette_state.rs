@@ -32,6 +32,7 @@ impl UiAssetEditorSession {
         }
         let changed = self.selected_palette_index != Some(index);
         self.selected_palette_index = Some(index);
+        self.selected_palette_entry = palette_entries.get(index).cloned();
         if changed {
             self.clear_palette_drag_state();
         }
@@ -55,15 +56,11 @@ impl UiAssetEditorSession {
         surface_x: f32,
         surface_y: f32,
     ) -> Result<bool, UiAssetEditorSessionError> {
-        let next = reconcile_palette_target_chooser(
-            self.palette_target_chooser.as_ref(),
-            self.resolve_palette_drag_target(surface_x, surface_y),
-        );
-        if self.palette_target_chooser == next {
-            return Ok(false);
-        }
+        let next_resolution = self.resolve_palette_drag_target(surface_x, surface_y);
+        let previous = self.palette_target_chooser.take();
+        let (next, changed) = reconcile_palette_target_chooser(previous, next_resolution);
         self.palette_target_chooser = next;
-        Ok(true)
+        Ok(changed)
     }
 
     pub fn clear_palette_drag_target(&mut self) -> bool {
@@ -164,12 +161,7 @@ impl UiAssetEditorSession {
         let Some(preview_host) = self.preview_host.as_ref() else {
             return None;
         };
-        let Some(selected_palette_index) = self.selected_palette_index else {
-            return None;
-        };
-        let palette_entries =
-            build_palette_entries(&self.last_valid_document, &self.compiler_imports.widgets);
-        let entry = palette_entries.get(selected_palette_index)?;
+        let entry = self.selected_palette_entry.as_ref()?;
         let projection = build_preview_projection(
             &self.last_valid_document,
             Some(preview_host),
@@ -233,17 +225,12 @@ impl UiAssetEditorSession {
         target_node_id: &str,
     ) -> Result<bool, UiAssetEditorSessionError> {
         self.ensure_editable_source()?;
-        let Some(selected_palette_index) = self.selected_palette_index else {
-            return Ok(false);
-        };
-        let palette_entries =
-            build_palette_entries(&self.last_valid_document, &self.compiler_imports.widgets);
-        let Some(entry) = palette_entries.get(selected_palette_index) else {
+        let Some(entry) = self.selected_palette_entry.clone() else {
             return Ok(false);
         };
         let Some(plan) = build_palette_insert_plan(
             &self.last_valid_document,
-            entry,
+            &entry,
             target_node_id,
             mode,
             &self.compiler_imports.widgets,
@@ -259,19 +246,14 @@ impl UiAssetEditorSession {
         plan: &UiAssetPaletteInsertPlan,
     ) -> Result<bool, UiAssetEditorSessionError> {
         self.ensure_editable_source()?;
-        let Some(selected_palette_index) = self.selected_palette_index else {
-            return Ok(false);
-        };
-        let palette_entries =
-            build_palette_entries(&self.last_valid_document, &self.compiler_imports.widgets);
-        let Some(entry) = palette_entries.get(selected_palette_index) else {
+        let Some(entry) = self.selected_palette_entry.clone() else {
             return Ok(false);
         };
         let mut document = self.last_valid_document.clone();
         let Some(node_id) = insert_palette_item_with_placement(
             &mut document,
             &plan.node_id,
-            entry,
+            &entry,
             plan.mode,
             &plan.placement,
         ) else {

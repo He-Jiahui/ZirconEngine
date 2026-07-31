@@ -6,7 +6,7 @@ display_name = "Workbench Radio"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchRadio]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-radio", "workbench-primitive"]
 component = "Radio"
 control_id = "WorkbenchRadioRoot"
 classes = ["workbench-radio"]
-props = { text = "Radio option", value = false, checked = false, label_color = "#828c93", layout_spacing = 9.0, layout_icon_size = 16.0, dot_size = 7.0, dot_color = "#2aa6b8", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+props = { text = "Radio option", value = false, checked = false, background_color = "$editor.surface.recessed", checked_background_color = "$editor.surface.2", selected_background_color = "$editor.surface.selected", disabled_background_color = "$editor.surface.disabled", border_color = "$editor.separator.strong", checked_border_color = "$editor.border", focus_border_color = "$editor.accent", accent_color = "$editor.accent", disabled_border_color = "$editor.border.disabled", label_color = "$editor.text.secondary", disabled_foreground_color = "$editor.text.disabled", border_width = "$editor.control.border_width", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", layout_spacing = "$editor.density.gap.medium", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.compact", stretch = "Fixed" } }

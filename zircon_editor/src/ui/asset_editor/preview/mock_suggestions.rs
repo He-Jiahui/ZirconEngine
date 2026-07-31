@@ -123,18 +123,14 @@ fn immediate_preview_mock_suggestions(
             suggestions
         }
         Value::Table(entries) => {
-            let mut keys = entries.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            keys.into_iter()
-                .filter_map(|key| {
-                    entries
-                        .get(&key)
-                        .cloned()
-                        .map(|value| UiAssetPreviewMockSuggestion {
-                            display_key: key.clone(),
-                            resolved_key: resolved_object_key(root_prefix, &key),
-                            value,
-                        })
+            let mut sorted_entries = entries.iter().collect::<Vec<_>>();
+            sorted_entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+            sorted_entries
+                .into_iter()
+                .map(|(key, value)| UiAssetPreviewMockSuggestion {
+                    display_key: key.clone(),
+                    resolved_key: resolved_object_key(root_prefix, key),
+                    value: value.clone(),
                 })
                 .collect()
         }
@@ -177,12 +173,9 @@ fn collect_preview_mock_schema_items(value: &Value, base: &str, items: &mut Vec<
             items.push(format!("{base}[n] [{fallback_kind}]"));
         }
         Value::Table(entries) => {
-            let mut keys = entries.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            for key in keys {
-                let Some(entry) = entries.get(&key) else {
-                    continue;
-                };
+            let mut sorted_entries = entries.iter().collect::<Vec<_>>();
+            sorted_entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+            for (key, entry) in sorted_entries {
                 let Some(kind) = preview_mock_kind_for_nested_value(entry) else {
                     continue;
                 };

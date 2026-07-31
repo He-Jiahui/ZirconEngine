@@ -1,0 +1,8 @@
+var battlefieldXp = %import("progression/battlefield_xp_state");
+
+console.printLine("m5-battlefield-xp-test");
+var result = battlefieldXp.contractTest();
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "battlefield XP contract failed";
+}

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var reset = %import("instances/dungeon_reset_state");
+
+console.printLine("m7-dungeon-reset-state-test");
+var result = reset.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

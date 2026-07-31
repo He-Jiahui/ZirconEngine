@@ -1,10 +1,13 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    borrow::Cow,
+    hash::{Hash, Hasher},
+};
 
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
     surface::{
-        normalize_ui_text_language_tag, UiResolvedStyle, UiResolvedTextLayout, UiRichTextFormat,
-        UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap, UiTextWritingMode,
+        UiResolvedStyle, UiResolvedTextLayout, UiRichTextFormat, UiTextAlign, UiTextDirection,
+        UiTextOverflow, UiTextRange, UiTextWrap, UiTextWritingMode, normalize_ui_text_language_tag,
     },
 };
 
@@ -36,7 +39,24 @@ pub(crate) struct UiTextStyleKey {
     pub rich_text_format: UiRichTextFormat,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+impl Hash for UiTextStyleKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.font_family.hash(state);
+        self.language.hash(state);
+        self.font_weight.hash(state);
+        self.font_size_bits.hash(state);
+        self.line_height_bits.hash(state);
+        self.tab_size_bits.hash(state);
+        std::mem::discriminant(&self.text_align).hash(state);
+        std::mem::discriminant(&self.wrap).hash(state);
+        std::mem::discriminant(&self.text_direction).hash(state);
+        std::mem::discriminant(&self.text_writing_mode).hash(state);
+        self.text_overflow.hash(state);
+        std::mem::discriminant(&self.rich_text_format).hash(state);
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub(crate) enum UiTextOverflowKey {
     Clip,
     Ellipsis,
@@ -134,9 +154,9 @@ impl<'a> UiTextLayoutRequest<'a> {
         hasher.finish()
     }
 
-    pub(crate) fn resolved_text(&self) -> String {
+    pub(crate) fn resolved_text(&self) -> Cow<'_, str> {
         let Some(preedit) = self.preedit else {
-            return self.text.to_string();
+            return Cow::Borrowed(self.text);
         };
 
         let mut text = self.text.to_string();
@@ -145,7 +165,7 @@ impl<'a> UiTextLayoutRequest<'a> {
         if text.is_char_boundary(start) && text.is_char_boundary(end) {
             text.replace_range(start..end, &preedit.text);
         }
-        text
+        Cow::Owned(text)
     }
 }
 
@@ -180,7 +200,7 @@ fn resolve_text_layout_inner(
     layout: impl FnOnce(&str) -> UiResolvedTextLayout,
 ) -> UiTextLayoutResolution {
     let resolved_text = request.resolved_text();
-    let layout = layout(&resolved_text);
+    let layout = layout(resolved_text.as_ref());
     let size = UiSize::new(layout.measured_width, layout.measured_height);
     let first_baseline = layout
         .lines

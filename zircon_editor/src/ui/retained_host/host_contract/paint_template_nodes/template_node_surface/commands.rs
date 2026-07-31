@@ -19,6 +19,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_su
     order: i32,
     opacity: f32,
 ) {
+    if !has_paintable_surface_extent(rect) || !frame_is_within(rect, clip) {
+        return;
+    }
     let border_width = template_border_width(node);
     let corner_radius = template_corner_radius(node);
     if draws_elevation_shadow(node) {
@@ -77,6 +80,34 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_su
             opacity,
         );
     }
+}
+
+fn has_paintable_surface_extent(rect: &FrameRect) -> bool {
+    rect.x.is_finite()
+        && rect.y.is_finite()
+        && rect.width.is_finite()
+        && rect.height.is_finite()
+        && rect.width > 0.0
+        && rect.height > 0.0
+}
+
+fn frame_is_within(inner: &FrameRect, outer: &FrameRect) -> bool {
+    if !has_paintable_surface_extent(inner) || !has_paintable_surface_extent(outer) {
+        return false;
+    }
+
+    let inner_right = inner.x + inner.width;
+    let inner_bottom = inner.y + inner.height;
+    let outer_right = outer.x + outer.width;
+    let outer_bottom = outer.y + outer.height;
+    inner_right.is_finite()
+        && inner_bottom.is_finite()
+        && outer_right.is_finite()
+        && outer_bottom.is_finite()
+        && inner.x >= outer.x
+        && inner.y >= outer.y
+        && inner_right <= outer_right
+        && inner_bottom <= outer_bottom
 }
 
 fn draws_asset_thumbnail_name_area_surface(
@@ -269,5 +300,55 @@ mod tests {
         assert_eq!(commands[3].border_width, 0.0);
         assert_eq!(commands[3].corner_radius, 0.0);
         assert_eq!(commands[3].opacity, commands[2].opacity);
+    }
+
+    #[test]
+    fn degenerate_surface_does_not_emit_paint_commands() {
+        let rect = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 0.0,
+            height: 42.0,
+        };
+        let mut commands = Vec::new();
+
+        push_surface_commands(
+            &mut commands,
+            &TemplatePaneNodeData::default(),
+            &rect,
+            &rect,
+            7,
+            1.0,
+        );
+
+        assert!(commands.is_empty());
+    }
+
+    #[test]
+    fn surface_outside_clip_does_not_emit_paint_commands() {
+        let rect = FrameRect {
+            x: 11.0,
+            y: 20.0,
+            width: 96.0,
+            height: 42.0,
+        };
+        let clip = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 96.0,
+            height: 42.0,
+        };
+        let mut commands = Vec::new();
+
+        push_surface_commands(
+            &mut commands,
+            &TemplatePaneNodeData::default(),
+            &rect,
+            &clip,
+            7,
+            1.0,
+        );
+
+        assert!(commands.is_empty());
     }
 }

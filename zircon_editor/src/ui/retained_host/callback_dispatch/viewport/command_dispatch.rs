@@ -32,7 +32,15 @@ pub(crate) fn dispatch_viewport_command(
 pub(crate) fn viewport_event_from_command(command: ViewportCommand) -> EditorViewportEvent {
     match command {
         ViewportCommand::PointerMoved { x, y } => EditorViewportEvent::PointerMoved { x, y },
-        ViewportCommand::LeftPressed { x, y } => EditorViewportEvent::LeftPressed { x, y },
+        ViewportCommand::LeftPressed {
+            x,
+            y,
+            selection_mutation,
+        } => EditorViewportEvent::LeftPressed {
+            x,
+            y,
+            selection_mutation,
+        },
         ViewportCommand::LeftReleased => EditorViewportEvent::LeftReleased,
         ViewportCommand::RightPressed { x, y } => EditorViewportEvent::RightPressed { x, y },
         ViewportCommand::RightReleased => EditorViewportEvent::RightReleased,
@@ -42,7 +50,7 @@ pub(crate) fn viewport_event_from_command(command: ViewportCommand) -> EditorVie
         ViewportCommand::Resized { width, height } => {
             EditorViewportEvent::Resized { width, height }
         }
-        ViewportCommand::SetTool(tool) => EditorViewportEvent::SetTool { tool },
+        ViewportCommand::ActivateSceneMode(mode) => EditorViewportEvent::ActivateSceneMode { mode },
         ViewportCommand::SetTransformSpace(space) => {
             EditorViewportEvent::SetTransformSpace { space }
         }
@@ -64,6 +72,28 @@ pub(crate) fn viewport_event_from_command(command: ViewportCommand) -> EditorVie
         ViewportCommand::SetGizmosEnabled(enabled) => {
             EditorViewportEvent::SetGizmosEnabled { enabled }
         }
+        ViewportCommand::ToggleOverlayProvider { provider_id } => {
+            EditorViewportEvent::ToggleOverlayProvider { provider_id }
+        }
         ViewportCommand::FrameSelection => EditorViewportEvent::FrameSelection,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::viewport_event_from_command;
+    use crate::core::editor_event::EditorViewportEvent;
+    use crate::ui::binding::ViewportCommand;
+
+    #[test]
+    fn overlay_provider_toggle_preserves_its_registered_id() {
+        assert_eq!(
+            viewport_event_from_command(ViewportCommand::ToggleOverlayProvider {
+                provider_id: "weather.viewport.overlay.provider".to_string(),
+            }),
+            EditorViewportEvent::ToggleOverlayProvider {
+                provider_id: "weather.viewport.overlay.provider".to_string(),
+            }
+        );
     }
 }

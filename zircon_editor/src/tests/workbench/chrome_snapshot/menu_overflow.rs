@@ -1,6 +1,6 @@
 use zircon_runtime_interface::math::UVec2;
 
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot, MainPageSnapshot,
@@ -64,7 +64,7 @@ fn empty_editor_data() -> EditorDataSnapshot {
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
-        scene_viewport_settings: SceneViewportSettings::default(),
+        scene_viewport_settings: SceneViewportChromeSettings::default(),
         mesh_import_path: String::new(),
         project_overview: ProjectOverviewSnapshot::default(),
         asset_activity: AssetWorkspaceSnapshot::default(),

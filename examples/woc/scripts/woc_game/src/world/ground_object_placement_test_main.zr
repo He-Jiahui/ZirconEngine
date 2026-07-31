@@ -1,0 +1,39 @@
+// Current-source ground-object constructor vectors after groundPos sampling.
+
+var placement = %import("world/ground_object_placement");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+var seed = <uint>20061;
+
+if (placement.placementCount(true) != 55 || placement.itemId(0, true) != "supply_crate" ||
+    placement.name(0, true) != "Stolen Supply Crate" ||
+    placement.itemId(54, true) != "moongate_rubbing") {
+    throw "woc ground-object catalog vector failed";
+}
+
+if (placement.finalCoordinate(0, 1, true) != 58.0 ||
+    placement.finalCoordinate(0, 2, true) != -58.0 ||
+    !closeEnough(placement.finalGroundY(seed, 0, true), -3.398948988694494)) {
+    throw "woc first ground-object construction vector failed";
+}
+
+if (placement.finalCoordinate(29, 1, true) != 151.8 ||
+    placement.finalCoordinate(29, 2, true) != 294.2 ||
+    !closeEnough(placement.finalGroundY(seed, 29, true), -3.426070395249082)) {
+    throw "woc meteor ground-object construction vector failed";
+}
+
+if (placement.finalCoordinate(54, 1, true) != -64.0 ||
+    placement.finalCoordinate(54, 2, true) != 794.0 ||
+    !closeEnough(placement.finalGroundY(seed, 54, true), 8.7518563701256)) {
+    throw "woc final ground-object construction vector failed";
+}
+
+return 0;

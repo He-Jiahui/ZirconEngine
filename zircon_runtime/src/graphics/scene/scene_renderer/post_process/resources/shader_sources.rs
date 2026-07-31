@@ -29,8 +29,10 @@ mod tests {
     fn post_process_shader_source_assembles_screen_space_reflection_module() {
         assert!(POST_PROCESS_BASE_SHADER.contains("fn fs_main"));
         assert!(!POST_PROCESS_BASE_SHADER.contains("fn trace_screen_space_reflection"));
-        assert!(POST_PROCESS_SCREEN_SPACE_REFLECTION_SHADER
-            .contains("fn trace_screen_space_reflection"));
+        assert!(
+            POST_PROCESS_SCREEN_SPACE_REFLECTION_SHADER
+                .contains("fn trace_screen_space_reflection")
+        );
         assert!(POST_PROCESS_SHADER.contains("fn fs_main"));
         assert!(POST_PROCESS_SHADER.contains("fn trace_screen_space_reflection"));
         assert!(POST_PROCESS_SHADER.contains("fn resolve_screen_space_reflection_history"));

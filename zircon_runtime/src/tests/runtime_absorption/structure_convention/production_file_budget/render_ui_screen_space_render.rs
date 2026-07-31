@@ -3,6 +3,7 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_screen_space_ui_render_tests_are_child_owner_split() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/render.rs");
+    let record = read_runtime_src("graphics/scene/scene_renderer/ui/render/record.rs");
     let tests = read_runtime_src("graphics/scene/scene_renderer/ui/render/tests.rs");
 
     let plan_14 =
@@ -14,13 +15,27 @@ fn runtime_15_screen_space_ui_render_tests_are_child_owner_split() {
     let render_product_submit = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert_contains_all(
-        "screen-space UI render parent keeps production owner and test mount",
+        "screen-space UI render parent keeps planning owner and child mounts",
         &parent,
         &[
-            "pub(crate) fn record(",
+            "mod record;",
             "fn prepare_screen_space_ui(",
             "fn plan_screen_space_ui_batches(",
             "#[cfg(all(test, feature = \"ui\"))]\nmod tests;",
+        ],
+    );
+    assert!(
+        !parent.contains("pub(crate) fn record("),
+        "screen-space UI render parent should not retain the moved GPU submission owner"
+    );
+    assert_contains_all(
+        "screen-space UI record child owns GPU submission",
+        &record,
+        &[
+            "impl ScreenSpaceUiRenderer",
+            "pub(crate) fn record(",
+            "fn record_empty_screen_space_ui_pass(",
+            "color_attachment_operations(attachment_ops, clear_color)",
         ],
     );
 
@@ -56,6 +71,7 @@ fn runtime_15_screen_space_ui_render_tests_are_child_owner_split() {
 
     for (path, source) in [
         ("scene_renderer/ui/render.rs", parent.as_str()),
+        ("scene_renderer/ui/render/record.rs", record.as_str()),
         ("scene_renderer/ui/render/tests.rs", tests.as_str()),
     ] {
         let line_count = source.lines().count();

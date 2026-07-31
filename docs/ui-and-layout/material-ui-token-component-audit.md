@@ -20,7 +20,7 @@ related_code:
   - dev/material-ui/packages/mui-material/src/styles/createTransitions.js
   - dev/material-ui/packages/mui-material/src/styles/shadows.js
   - dev/material-ui/packages/mui-material/src/styles/zIndex.js
-  - dev/material-ui/packages/mui-system/src/createTheme/shape.js
+  - dev/material-ui/packages/mui-system/src/createTheme/shape.ts
   - zircon_editor/assets/ui/editor/welcome.zui
   - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
@@ -717,6 +717,11 @@ M2.2b is now covered by `zircon_editor/src/tests/ui/boundary/material_meta_compo
 | Binding/callback/capability/accessibility forwarding | `material_meta_component_roots_forward_interaction_accessibility_and_capability_params` | Button/IconButton/Field/List/Menu/Dialog-like Popup/Tabs/Navigation/Surface first-slice roots |
 | Runtime expanded-root callback | `ui_document_compiler_preserves_reference_instance_bindings_on_expanded_root` | reference component expansion preserves instance binding id, click route, callback action and payload on the expanded root |
 | Editor pane/template usage | `global_material_surface_assets` and `material_meta_components` focused gates | real editor/runtime `.ui.toml` asset scanning plus Material component state, input, popup and export contracts |
+
+Reference-owner refresh（2026-07-18）：当前检出的 Material UI reference commit `fd10d0d513074f0fdd5a376b2c56165e0245ca1e`
+已将 mui-system shape token owner 硬切为 TypeScript `packages/mui-system/src/createTheme/shape.ts`；该文件定义
+`Shape` / `ShapeOptions` 与默认 `borderRadius = 4`，`createTheme.js` 继续从 `./shape` 消费。已删除的
+`shape.js` 不再作为 current machine path，也不增加兼容 reference file。
 
 The 2026-05-07 shared component style pass keeps the public `TemplatePaneNodeData` shape unchanged. `pane_component_projection` already forwards `surface_variant`, `button_variant`, `text_tone`, `validation_level`, `selected`, `hovered`, `pressed`, `focused`, `disabled`, border, radius, and font metadata; `runtime_component_projection_preserves_material_visual_metadata` now asserts that full style/state set so root visual metadata cannot silently fall out of the native host contract. The 2026-05-27 M5 editor gate also makes the retained pane projection registry compose `UiComponentDescriptorRegistry::editor_showcase()` with `UiComponentDescriptorRegistry::material_editor_foundation()`, so Material AppBar, Alert, Chip, TimelineDot, and other foundation roles reach `TemplatePaneNodeData.component_role` instead of degrading into empty-role template nodes.
 

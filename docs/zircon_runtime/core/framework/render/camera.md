@@ -10,7 +10,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/tests.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_particles.rs
@@ -91,7 +91,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/mod.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_particles.rs

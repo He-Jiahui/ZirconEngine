@@ -10,24 +10,24 @@ mod validation;
 mod tests;
 
 pub(crate) use assemble::{
-    assemble_material_shader_template, MaterialShaderTemplateAssembly,
-    MaterialShaderTemplateRequest, ShaderAssemblySegmentKind, ShaderTemplateAssemblyError,
+    MaterialShaderTemplateAssembly, MaterialShaderTemplateRequest, ShaderAssemblySegmentKind,
+    ShaderTemplateAssemblyError, assemble_material_shader_template,
 };
 pub(crate) use deferred_gbuffer::{
-    assemble_deferred_gbuffer_shader_template, DeferredGBufferShaderTemplateRequest,
+    DeferredGBufferShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
 };
 pub(crate) use material_surface::{
-    standard_material_surface_source, standard_material_surface_source_for_features,
-    StandardMaterialSurfaceSource,
+    StandardMaterialSurfaceSource, standard_material_surface_source,
+    standard_material_surface_source_for_features,
 };
 pub(crate) use module_registry::{
-    builtin_shader_ide_module_includes, ShaderModuleRegistry, ShaderModuleResolutionError,
-    ShaderTemplateInclude,
+    ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
+    builtin_shader_ide_module_includes,
 };
 pub(crate) use taa_reactive_mask::{
-    assemble_taa_reactive_mask_shader_template, TaaReactiveMaskShaderTemplateRequest,
+    TaaReactiveMaskShaderTemplateRequest, assemble_taa_reactive_mask_shader_template,
 };
 pub(crate) use validation::{
-    validate_material_shader_template_wgsl, validate_shader_variant_prewarm_wgsl,
     MaterialShaderTemplateValidation, ShaderTemplateValidationError,
+    validate_material_shader_template_wgsl, validate_shader_variant_prewarm_wgsl,
 };

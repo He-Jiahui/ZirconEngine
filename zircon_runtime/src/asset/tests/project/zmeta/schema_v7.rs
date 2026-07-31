@@ -231,3 +231,11 @@ tags = ["ui", "ui"]
     assert!(toml::from_str::<AssetMetaDocument>(invalid_subasset).is_err());
     assert!(toml::from_str::<crate::asset::project::AssetMetaEntry>(duplicate_entry).is_err());
 }
+
+#[test]
+fn asset_meta_from_toml_reuses_the_parsed_value_for_typed_decode() {
+    let source = include_str!("../../../project/meta.rs");
+
+    assert_eq!(source.matches("toml::from_str(document)").count(), 1);
+    assert!(source.contains("let meta: Self = value.try_into().map_err(deserialize_error)?"));
+}

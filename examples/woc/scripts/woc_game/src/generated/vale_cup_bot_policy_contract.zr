@@ -1,0 +1,24 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub field_cast_period(required: bool): float { return required ? 44.0 : 0.0; }
+pub keeper_cast_period(required: bool): float { return required ? 8.0 : 0.0; }
+pub keeper_shade(required: bool): float { return required ? 5.2 : 0.0; }
+pub keeper_guard_depth(required: bool): float { return required ? 1.0 : 0.0; }
+pub kick_reach(required: bool): float { return required ? 3.5 : 0.0; }
+pub sprint_ball_distance(required: bool): float { return required ? 13.0 : 0.0; }
+pub shoot_range(required: bool): float { return required ? 14.0 : 0.0; }
+pub pass_min_lead(required: bool): float { return required ? 6.0 : 0.0; }
+pub aim_error_max(required: bool): float { return required ? 3.6 : 0.0; }
+pub aim_error_period(required: bool): float { return required ? 90.0 : 0.0; }
+pub shoot_range_encoding(required: bool): float { return required ? 34.0 : 0.0; }
+pub intercept_lead(required: bool): float { return required ? 0.5 : 0.0; }
+pub roleAllrounder(required: bool): int { return required ? 0 : 0; }
+pub roleKeeper(required: bool): int { return required ? 1 : 0; }
+pub roleSweeper(required: bool): int { return required ? 2 : 0; }
+pub roleStriker(required: bool): int { return required ? 3 : 0; }
+pub aim_phase_pid_multiplier(required: bool): float { return required ? 37.0 : 0.0; }
+pub aim_half_period_divisor(required: bool): float { return required ? 2.0 : 0.0; }
+pub shot_fraction_min(required: bool): float { return required ? 0.42 : 0.0; }
+pub shot_fraction_max(required: bool): float { return required ? 0.6 : 0.0; }
+pub shot_fraction_base(required: bool): float { return required ? 0.4 : 0.0; }
+pub shot_fraction_distance_divisor(required: bool): float { return required ? 55.0 : 0.0; }
+pub shot_goal_post_margin(required: bool): float { return required ? 1.0 : 0.0; }

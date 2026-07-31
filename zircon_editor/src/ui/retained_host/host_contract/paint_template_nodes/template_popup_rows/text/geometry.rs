@@ -14,8 +14,7 @@ pub(super) fn popup_row_label_rect(
     FrameRect {
         x: row_rect.x + metrics.text_left,
         y: row_rect.y + metrics.text_top,
-        width: (row_rect.width - metrics.text_left - right_reserved)
-            .max(metrics.min_text_rect_width),
+        width: (row_rect.width - metrics.text_left - right_reserved).max(0.0),
         height: popup_row_text_height(row_rect, metrics),
     }
 }
@@ -27,11 +26,11 @@ pub(super) fn popup_row_shortcut_rect(
     FrameRect {
         x: row_rect.x + row_rect.width * metrics.shortcut_left_ratio,
         y: row_rect.y + metrics.text_top,
-        width: (row_rect.width * metrics.shortcut_width_ratio).max(metrics.min_text_rect_width),
+        width: (row_rect.width * metrics.shortcut_width_ratio).max(0.0),
         height: popup_row_text_height(row_rect, metrics),
     }
 }
 
 fn popup_row_text_height(row_rect: &FrameRect, metrics: &WorkbenchPopupRowMetrics) -> f32 {
-    (row_rect.height - metrics.text_top - metrics.text_bottom).max(metrics.min_text_rect_height)
+    (row_rect.height - metrics.text_top - metrics.text_bottom).max(0.0)
 }

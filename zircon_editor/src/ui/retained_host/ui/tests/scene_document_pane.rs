@@ -20,7 +20,8 @@ fn scene_document_pane_uses_viewport_dimensions_and_enables_toolbar() {
 #[test]
 fn scene_document_pane_projects_viewport_toolbar_state() {
     let mut fixture = default_preview_fixture();
-    fixture.editor.scene_viewport_settings.tool = SceneViewportTool::Scale;
+    fixture.editor.scene_viewport_settings.mode =
+        SceneModeActivation::Transform(TransformHandleKind::Scale);
     fixture.editor.scene_viewport_settings.transform_space = TransformSpace::Global;
     fixture.editor.scene_viewport_settings.projection_mode = ProjectionMode::Orthographic;
     fixture.editor.scene_viewport_settings.view_orientation = ViewOrientation::NegZ;
@@ -42,7 +43,7 @@ fn scene_document_pane_projects_viewport_toolbar_state() {
     let pane = document_pane(&model, &chrome, &ui_asset_panes, &BTreeMap::new(), None);
 
     assert_eq!(pane.kind, "Scene");
-    assert_eq!(pane.viewport.tool, "Scale");
+    assert_eq!(pane.viewport.mode, "Transform.Scale");
     assert_eq!(pane.viewport.transform_space, "Global");
     assert_eq!(pane.viewport.projection_mode, "Orthographic");
     assert_eq!(pane.viewport.view_orientation, "NegZ");

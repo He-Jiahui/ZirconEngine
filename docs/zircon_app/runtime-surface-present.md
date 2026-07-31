@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_app/src/bin/runtime_preview.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
@@ -20,6 +21,7 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/file_drag_drop/cancelled.rs
   - zircon_app/src/entry/runtime_entry_app/file_drag_drop/dropped.rs
   - zircon_app/src/entry/runtime_entry_app/file_drag_drop/hovered.rs
+  - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
   - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/mod.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
@@ -44,12 +46,14 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/keyboard_input/event.rs
   - zircon_app/src/entry/runtime_entry_app/keyboard_input/payload.rs
   - zircon_app/src/entry/runtime_entry_app/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/mvp_input_probe.rs
   - zircon_app/src/entry/runtime_entry_app/pointer_input/mod.rs
   - zircon_app/src/entry/runtime_entry_app/pointer_input/button.rs
   - zircon_app/src/entry/runtime_entry_app/pointer_input/cursor.rs
   - zircon_app/src/entry/runtime_entry_app/pointer_input/device.rs
   - zircon_app/src/entry/runtime_entry_app/pointer_input/motion.rs
   - zircon_app/src/entry/runtime_entry_app/pointer_input/wheel.rs
+  - zircon_app/src/entry/runtime_entry_app/runtime_product_diagnostics.rs
   - zircon_app/src/entry/runtime_entry_app/surface_present/mod.rs
   - zircon_app/src/entry/runtime_entry_app/surface_present/binding.rs
   - zircon_app/src/entry/runtime_entry_app/surface_present/fallback.rs
@@ -386,6 +390,8 @@ The softbuffer conversion treats a complete RGBA payload as a full overwrite and
 
 `RuntimeEntryApp::drop()` calls `disable_surface_present()`, which unbinds the viewport surface when native present is enabled or was attempted. `RuntimeSession::drop()` also performs a best-effort unbind for the current default runtime viewport before destroying the session. That duplicate cleanup is intentionally harmless because the ABI unbind path is optional and best-effort.
 
+For the MVP product path, the `RenderableEmpty` project pins its Camera, Sun, and Cube to render layer `1`, so the visible primitive, light, and camera share an explicit default layer instead of relying on an implicit scene default. `ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME` enables first-frame exit only for the explicit values `1`, `true`, or `yes` (case-insensitive). Before that exit, the app writes an optional PNG capture and requires an `ok` runtime-diagnostics response proving a nonzero executed-pass, mesh-draw, and directional-light count, zero material-validation errors, and nonempty project, scene, and backend identity. When `ZIRCON_RUNTIME_MVP_INPUT_PROBE` enables the staged host probe, it submits one viewport resize plus pointer movement, mouse press/release, and keyboard press/release; the input counters must advance after those submissions, so natural operating-system input cannot stand in for the requested probe. Missing evidence becomes a terminal callback failure rather than a successful first-frame exit. After `run_app(...)` returns and no terminal callback failure was recorded, the entry writes `runtime_process_teardown_complete`; staged MVP runs use that marker to distinguish an exited process from a released runtime session.
+
 ## RenderDoc Launch
 
 For manual Windows validation, launch the runtime preview from RenderDoc or from a shell with the same environment:
@@ -415,7 +421,7 @@ Workspace validation has also exercised this app path through `./.opencode/skill
 
 The 2026-07-04 Frameworks02 app package gate reran the default package command after the Runtime03 real-backend test gating and surface-present guard sync. `runtime_library_project_capture_frame_draws_vampire_hud` is ignored unless `backend-zr-vm`, `ZIRCON_RUNTIME_LIBRARY`, and `ZR_VM_RUST_BINDING_LIB_DIR` are available, so default app validation no longer fails on a missing real ZrVM backend while the dedicated real-backend capture gate remains the behavioral proof. The resize/redraw source guard now tracks the current `if let Err(error) = ...` error-handling paths for `resize_viewport(...)` and `presenter.resize(...)`. Validation passed with scoped rustfmt, focused surface-present guard 1/1, direct app lib binary `132 passed; 0 failed; 1 ignored`, and full `$env:CARGO_PROFILE_DEV_DEBUG='0'; cargo test -p zircon_app --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-m2-0703 --message-format short --color never -- --test-threads=1` with lib tests `132 passed; 0 failed; 1 ignored`, runtime-preview bin tests 0/0, and doc-tests 0/0. Runtime/editor startup-to-first-frame remains separate.
 
-The 2026-07-04 runtime-preview startup smoke adds an opt-in first-present exit policy for validation. `RuntimeEntryAppConfig` carries `exit_after_first_presented_frame`, `EntryRunner::run_runtime_with_args(...)` enables it only when `ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME` is present, and `surface_present/redraw.rs` exits the event loop after the first successful native-present or softbuffer fallback-present frame. Normal runtime-preview behavior is unchanged when the environment variable is absent. Validation ran scoped rustfmt, full app lib tests `134 passed; 0 failed; 1 ignored`, and a bounded `cargo run -p zircon_app --no-default-features --features target-client --bin zircon_runtime` with `ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME=1` and `ZR_RUNTIME_FORCE_CAPTURE_PRESENT=1`, which exited with code 0. Editor startup-to-first-frame remains a separate Frameworks02 gate.
+The 2026-07-04 runtime-preview startup smoke adds an opt-in first-present exit policy for validation. `RuntimeEntryAppConfig` carries `exit_after_first_presented_frame`; `EntryRunner::run_runtime_with_args(...)` enables it only when `ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME` has an explicit enabled value (`1`, `true`, or `yes`); and `surface_present/redraw.rs` exits the event loop after the first successful native-present or softbuffer fallback-present frame. Normal runtime-preview behavior is unchanged when the environment variable is absent or disabled. Validation ran scoped rustfmt, full app lib tests `134 passed; 0 failed; 1 ignored`, and a bounded `cargo run -p zircon_app --no-default-features --features target-client --bin zircon_runtime` with `ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME=1` and `ZR_RUNTIME_FORCE_CAPTURE_PRESENT=1`, which exited with code 0. Editor startup-to-first-frame remains a separate Frameworks02 gate.
 
 The runtime session profile forwarding slice adds a focused app entry source guard plus parser unit coverage for the new startup argument and help output. Current slice validation is limited to Rust formatting and source hygiene while concurrent Cargo/rustc jobs are active; package-level `zircon_app` validation must be rerun at the milestone testing stage.
 

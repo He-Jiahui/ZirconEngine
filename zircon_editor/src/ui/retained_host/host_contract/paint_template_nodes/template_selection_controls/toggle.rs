@@ -1,7 +1,8 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_selection_control_geometry::{
-    selection_label_gap, toggle_thumb_rect, toggle_track_rect, workbench_selection_control_metrics,
+    frame_is_within, selection_label_gap, toggle_thumb_rect, toggle_track_rect,
+    workbench_selection_control_metrics,
 };
 use super::labels::push_selection_label;
 use super::layers::{toggle_label_order, toggle_thumb_order};
@@ -22,19 +23,24 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     let label_rect = FrameRect {
         x: rect.x + metrics.mark_inset_x,
         y: rect.y + metrics.text_inset_y,
-        width: (track.x - rect.x - metrics.mark_inset_x - selection_label_gap(node)).max(1.0),
-        height: (rect.height - metrics.text_inset_y * 2.0).max(1.0),
+        width: (track.x - rect.x - metrics.mark_inset_x - selection_label_gap(node)).max(0.0),
+        height: (rect.height - metrics.text_inset_y * 2.0).max(0.0),
     };
-    push_selection_label(
-        commands,
-        node,
-        label_rect,
-        clip,
-        toggle_label_order(order),
-        selection_text_color(node),
-        opacity,
-    );
+    if frame_is_within(&label_rect, rect) {
+        push_selection_label(
+            commands,
+            node,
+            label_rect,
+            clip,
+            toggle_label_order(order),
+            selection_text_color(node),
+            opacity,
+        );
+    }
 
+    if !frame_is_within(&track, rect) {
+        return;
+    }
     commands.push(HostPaintCommand::quad(
         track.clone(),
         Some(clip.clone()),
@@ -46,14 +52,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         opacity,
     ));
     let thumb = toggle_thumb_rect(node, &track);
-    commands.push(HostPaintCommand::quad(
-        thumb.clone(),
-        Some(clip.clone()),
-        toggle_thumb_order(order),
-        Some(toggle_thumb_color(node)),
-        None,
-        0.0,
-        thumb.height * 0.5,
-        opacity,
-    ));
+    if frame_is_within(&thumb, &track) {
+        commands.push(HostPaintCommand::quad(
+            thumb.clone(),
+            Some(clip.clone()),
+            toggle_thumb_order(order),
+            Some(toggle_thumb_color(node)),
+            None,
+            0.0,
+            thumb.height * 0.5,
+            opacity,
+        ));
+    }
 }

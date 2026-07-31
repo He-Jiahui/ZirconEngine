@@ -203,7 +203,10 @@ fn default_core2d_sprite_acceptance_extract() -> RenderFrameExtract {
             image_mode: RenderSpriteImageMode::Stretch,
             color: Vec4::ONE,
             z_order: 0,
-            render_layer_mask: RenderLayerSet::from_layers(0..u32::BITS),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_layers(0..u32::BITS),
+                ..crate::core::framework::render::RendererCommon::default()
+            },
             material_alpha_mode: RenderMaterialAlphaMode::Blend,
         }],
     );

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_empty_reset_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "content": {
+    "empty_check_tick_interval": 20,
+    "occupancy_x_radius": 120,
+    "empty_timeout_seconds": 300,
+    "strict_bounds": true
+  },
+  "catalog_sha256": "081003adcfb2b2cd790666d824a0b53b7cd1111594e556e4e69f7eda2a7cab62"
+}

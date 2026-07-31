@@ -21,7 +21,7 @@ impl RuntimePluginDescriptor {
     }
 
     pub fn runtime_id(&self) -> RuntimePluginId {
-        self.runtime_id
+        self.runtime_id.clone()
     }
 
     pub fn crate_name(&self) -> &str {

@@ -21,7 +21,9 @@ pub(crate) fn hit_test_pane_template_node(
 ) -> Option<TemplateNodePointerHit> {
     let nodes = pane_template_nodes(pane)?;
     let surface_frame = pane.body_surface_frame.as_ref()?;
-    hit_test_template_nodes(nodes, surface_frame, body, x, y)
+    let mut hit = hit_test_template_nodes(nodes, surface_frame, body, x, y)?;
+    hit.pane_id = pane.id.clone();
+    Some(hit)
 }
 
 pub(crate) fn hit_test_workbench_window_template_node(

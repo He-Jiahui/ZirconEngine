@@ -4,8 +4,8 @@ use std::time::Duration;
 
 use super::super::super::super::*;
 use super::super::super::fixtures::TestDriver;
-use crate::core::framework::error::CoreResult;
 use crate::core::runtime::ServiceObject;
+use crate::core::CoreResult;
 use crate::core::{CoreError, LifecycleState, ServiceKind, StartupMode};
 
 #[derive(Debug)]

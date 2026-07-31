@@ -754,10 +754,18 @@ jitter 注入点:`build_frame_submission_context` 在 `apply_viewport_size` 同�
 
 **URP `Runtime/TemporalAA.cs`**:`CalculateJitter`:`HaltonSequence.Get((frameIndex & 1023) + 1, 2/3) - 0.5` ——`TemporalJitterSequence::sample` 照搬(含 +1 避 index 0);`CalculateJitterMatrix`:`Matrix4x4.Translate(2*jitter.x/width, 2*jitter.y/height, 0)` 左乘投影——`ViewProjectionMatrixPair::from_camera` 同式;`Settings.m_FrameInfluence`(原 frameInfluence)与 `varianceClampScale` ↔ `TaaQualityPreset` 两参数;`jitterFrameCountOffset` 用于测试确定性 ↔ 我们直接用 `temporal_frame_index` 注入测试;`TemporalAADescFromCameraDesc` 强制 msaa=1、无 mip、`AccumulationFormatList` 首选 `R16G16B16A16_SFloat` ↔ `TemporalHistoryKey` 约束;`Render()` 的 `isNewFrame = GetAccumulationVersion(multipassId) != Time.frameCount`、重绘帧用 `blackTexture` 当 motion 源——对应本计划"提交失败/跳帧不翻转 + velocity 置黑"规则;`ValidateAndWarn` 的 MSAA/动态分辨率/相机栈禁用矩阵 ↔ `AntiAliasSettings::resolve` 的 fallback 报告(`UnsupportedTaa`),动态分辨率与 TAA 共存推迟到计划 07 动态分辨率定稿,V1 共存时按 URP 行为禁用 TAA 并出 fallback 报告。
 
+- 2026-07-18 reactive-mask性能交接：当前TAA每帧固定用独立pass清写整张R8 mask，0 reactive command仍产生pass与全屏写；有command再开mesh pass。TP-M4后续须让0-command绑定共享black mask并零mask pass/bytes，有command由唯一mesh writer以clear_store清零+绘制；同时发布resolve bind-group create与resource-view generation counter，只有lifetime稳定才缓存。见PERF-MVP-350及anti-alias静态证据。
+
 ## 状态与产出记录
+
+- 2026-07-18 history validation性能交接：`FrameHistoryValidationKey`在submission context与viewport history之间已改Arc共享，per-record wide deep clone=0；Render06仍须以scene/camera/post/particle/feature component revisions形成compact token，复用shared bindings/visibility/static handles，stable generation不重建/深比较，changed保持现有五类invalidation reason优先级。见PERF-MVP-413/414。
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`06/2026-07-09-temporal-pipeline-output-records.md`](06/2026-07-09-temporal-pipeline-output-records.md)
+- 2026-07-18 prepared-camera矩阵交接：zero-jitter路径的identity jitter matrix乘法已直接删除；scene uniform、froxel、postprocess、velocity、subsurface与Hybrid GI仍各自重建同camera projection/view pair。TP-M1/M3应产出per-camera/render-region generation的jittered/unjittered/inverse/previous prepared matrices供全部pass借用，最终pair build≤1/generation；见PERF-MVP-346及`docs/plans/performance/01/2026-07-18-runtime-core-framework-render-camera-view-static-review.md`。
+- 2026-07-18 TAA history owner交接：TAA双纹理CPU整图初始化已改GPU clear；TP-M1仍须让TAA pair按TAA feature+size generation独立创建/resize/flip，HZB或froxel质量变化不得重建TAA，TAA-off真实texture=0且stable view clone=0。见PERF-MVP-395。
+- 2026-07-18 temporal执行补充交接：object velocity空LoadStore pass已删除；TAA resolve与camera velocity仍每camera建bind group，camera params又重建current/previous matrix pair+inverse。TP-M1/M3消费prepared-camera artifact与resource-generation bindings，stable matrix build≤1/camera、bind create=0；0 reactive归PERF-MVP-350。见temporal静态证据。
+- 2026-07-18 particle velocity hard-cut交接：legacy velocity路径每frame重建anonymous ambiguity与previous identity树并CPU展开current+previous六顶点；compiled graph已保证object velocity先写、particle固定LoadStore。TP-M1只消费Render12/PERF-MVP-341发布的matched current/previous instance ranges，在同一velocity artifact/pass写入，禁止第二history索引和CPU quad owner。见PERF-MVP-396及particle静态证据。

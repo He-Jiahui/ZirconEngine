@@ -14,7 +14,7 @@ impl PrecisionShape {
                 ..
             } => {
                 let expand = *radius_px + *threshold_px;
-                Some(frame_from_points(&[*start, *end], expand))
+                frame_from_points([*start, *end], expand)
             }
             Self::Circle {
                 center,
@@ -38,15 +38,10 @@ impl PrecisionShape {
                 ..
             } => {
                 let expand = *radius_px + *thickness_px + *threshold_px;
-                let points: Vec<_> = segments
-                    .iter()
-                    .flat_map(|(start, end)| [*start, *end])
-                    .collect();
-                if points.is_empty() {
-                    None
-                } else {
-                    Some(frame_from_points(&points, expand))
-                }
+                frame_from_points(
+                    segments.iter().flat_map(|(start, end)| [*start, *end]),
+                    expand,
+                )
             }
         }
     }

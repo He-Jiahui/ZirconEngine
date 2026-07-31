@@ -131,17 +131,14 @@ impl Time<Fixed> {
     }
 
     pub fn drain_steps(&mut self, max_steps: u32) -> FixedStepPlan {
-        let mut step_count = 0;
         let timestep = self.timestep();
-        while step_count < max_steps && self.context.take_step() {
-            self.advance_by(timestep);
-            step_count += 1;
+        let step_count = self.context.take_steps(max_steps);
+        let consumed = timestep.saturating_mul(step_count);
+        if step_count > 0 {
+            self.delta = timestep;
+            self.elapsed = self.elapsed.saturating_add(consumed);
+            self.frame_index = self.frame_index.saturating_add(u64::from(step_count));
         }
-        FixedStepPlan::new(
-            step_count,
-            timestep,
-            timestep.saturating_mul(step_count),
-            self.overstep(),
-        )
+        FixedStepPlan::new(step_count, timestep, consumed, self.overstep())
     }
 }

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension};
 use crate::core::resource::{ResourceId, ResourceLocator, ResourceScheme};
-use crate::text::{rich::parse_rich_text, InlineObjectRef};
+use crate::text::{InlineObjectRef, rich::parse_rich_text};
 use zircon_runtime_interface::ui::surface::{UiRenderExtract, UiRichTextFormat, UiVisualAssetRef};
 
 use super::{GpuTextureResource, ResourceStreamer};

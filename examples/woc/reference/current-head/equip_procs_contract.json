@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/equip_procs_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/equip_procs.ts": "37faa32cefbf527ebdd3361ceaf5769641715a5390e7ad3c661810380b3730b0"
+  },
+  "id": "equip_procs",
+  "effect_kinds": [
+    "chainArc",
+    "attackSlow",
+    "dot",
+    "hot"
+  ],
+  "rng_order": "target_alive; mainhand_id; item_weapon_with_procs; level_gate; matching_trigger; one_chance_draw_per_matching_proc; effects_in_content_order"
+}

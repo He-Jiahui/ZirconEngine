@@ -1,5 +1,13 @@
 # 2026-07-17 MVP 任务系统静态审查
 
+## 2026-07-30 当前源增量复核
+
+- `core/runtime/tasks/**` 已从9个生产文件增为10个文件（新增`timer.rs`），当前2,316行、14条`#[test]`，聚合指纹`e8851f1544ad45859248869232320e4a7a5c2a0e99def1bdd72608e7c25abef3`。
+- `JobState::publish_terminal`仍在完成线程同步遍历全部continuation/observer，深chain可递归再入，宽fan-out或慢observer可独占worker；新增PERF-MVP-585要求bounded trampoline/affinity lane与1/100/10k chain/fan-out动态门。
+- `TaskTimer`注册数上限512，但同deadline callback在唯一timer线程无预算串行执行；PERF-MVP-585要求timer只发布到期ticket，慢callback不得延迟后续deadline。
+- 低核三池oversubscription与Bevy参考实现一致，继续保留WPR证据门，不凭线程数直接改策略；报告必须同时区分逻辑预算与实际worker总数。
+- 当前共享源码的`mod.rs`、`report.rs`、`timer.rs`存在rustfmt import排序差异；本轮未修改Rust，也未运行Cargo，动态状态仍为pending。
+
 ## 范围与状态
 
 - 已逐文件读取 `zircon_runtime/src/core/runtime/tasks/**` 9 个生产 Rust 文件、`zircon_runtime/src/core/runtime/modules/**` 6 个运行时模块文件，以及 `zircon_runtime/src/tests/tasks.rs`。
@@ -26,24 +34,19 @@
 
 Runtime 11/07 应先选择一种契约：显式传入/保存 main-thread identity 后只记录主线程，或将指标硬切换为 `tasks.explicit_wait_ms` 并迁移消费者。修改前增加 worker-side wait 回归，防止性能报告继续错误归因。
 
-### 调度器缺少判定堆积所需指标
+### 调度诊断已经扩充，但自身成为微任务共享原子热点
 
-现有诊断只有 scheduled、completed、dependency wait 与所谓 main-thread wait；没有 queued、active、queue delay、execution duration、steal/yield 或取消/失败计数。因此 `scheduled-completed` 只能给出粗略未终结任务数，无法区分排队、正在执行、panic 和依赖等待。
+当前源码已具备queued、active、queue wait、panicked、cancelled、dependency wait与explicit wait累计值，旧版“缺少这些字段”的描述不再成立；仍缺execution distribution、pool kind、steal/yield与peak queue。更关键的是每次scheduled/enqueued/started/terminal更新都用`updates_in_flight`与`update_epoch`包围payload，单事件额外执行4次共享原子RMW；高频no-op jobs下，诊断一致性协议可能比任务本体更贵。每次frame report还会锁`last_stable_snapshot`。
 
-Runtime 07/11 应增加低成本计数器和可选采样：
+Runtime 07/11 应提供默认低成本路径：诊断关闭时不做共享bookkeeping；开启时采用worker-local/sharded counters或有界采样，在frame snapshot合并。继续补充enqueue-to-start/execution p50/p95/p99、peak queue、pool kind及assist/yield；必须用1M微任务吞吐与原子争用证明诊断开销预算。
 
-- 当前 queued / active / peak queued；
-- enqueue-to-start p50/p95/p99 或直方图；
-- task execution duration 与 pool kind；
-- completed / panicked / cancelled 分项；
-- worker assist/yield 次数与主线程显式等待。
+### combined依赖终结重复锁已局部止损
 
-这些指标必须支持关闭或采样，不能让诊断本身在高频微任务下成为锁或原子热点。
+当前源码复审发现`JobHandle::combined_dependency_completed`在最后一个依赖到达时连续锁同一`JobState`三次：递减计数、读取panic、`mark_*`终结。已以源码守卫先确认RED，再让首个锁直接设置complete并`take` continuations，锁外notify/执行回调；panic传播、依赖顺序和下游continuation语义保持不变，守卫转GREEN。该修复对应PERF-MVP-317，current-source Cargo与fan-in竞争基准仍pending。
 
 ## 验收计划
 
-1. 运行 detached panic 聚焦测试和 `zircon_runtime` task 测试集。
-2. 用 1、2、逻辑核数三种配置提交短任务、长任务和依赖 fanout，记录吞吐、queue delay、上下文切换与 CPU 利用率。
+1. 运行 detached panic、combined terminal单锁聚焦测试和 `zircon_runtime` task 测试集。
+2. 用 1、2、逻辑核数三种配置提交短任务、长任务、1M no-op任务和1/100/10k依赖fan-in，记录锁/原子次数、吞吐、queue delay、上下文切换与CPU利用率。
 3. 在当前源码 runtime/editor MVP 中采集 WPR 线程时间线，核对 pool 数、空闲唤醒与主线程 wait。
 4. 动态证据通过且文档/责任计划回填后，才把任务目录从 `pending.md` 移入 `review.md`。
-

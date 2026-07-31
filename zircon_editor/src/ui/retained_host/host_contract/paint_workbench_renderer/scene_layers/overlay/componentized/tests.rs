@@ -1,17 +1,147 @@
 use std::rc::Rc;
 
 use crate::ui::retained_host::host_contract::data::{
-    FrameRect, HostWindowPresentationData, TemplateNodeFrameData, TemplatePaneNodeData,
+    FrameRect, HostViewportImageData, HostWindowPresentationData, TemplateNodeFrameData,
+    TemplatePaneNodeData,
 };
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
+use crate::ui::retained_host::host_contract::paint_template_nodes::TemplateNodePaintTransform;
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};
 
 use super::{
-    draw_componentized_extension_workspace, ExtensionWorkspaceSubtree,
+    draw_componentized_extension_workspace, draw_componentized_workbench_window,
+    ComponentizedChromeFallbackTransform, ExtensionWorkspaceSubtree,
     EXTENSION_MODULE_WORKSPACES_HOST_CONTROL_ID,
 };
 
 const SENTINEL: [u8; 4] = [241, 17, 193, 255];
+
+#[test]
+fn componentized_workbench_keeps_host_menu_chrome_above_its_mount() {
+    let mut presentation = HostWindowPresentationData {
+        workbench_window_nodes: model(vec![template_mount(
+            "workbench/root",
+            "",
+            "WorkbenchWindowRoot",
+            FrameRect {
+                x: 0.0,
+                y: 57.0,
+                width: 160.0,
+                height: 63.0,
+            },
+            "panel",
+        )]),
+        ..HostWindowPresentationData::default()
+    };
+    presentation.host_layout.center_band_frame = FrameRect {
+        x: 0.0,
+        y: 96.0,
+        width: 160.0,
+        height: 20.0,
+    };
+    presentation.host_layout.status_bar_frame = FrameRect {
+        x: 0.0,
+        y: 116.0,
+        width: 160.0,
+        height: 4.0,
+    };
+    presentation.host_scene_data.menu_chrome.template_nodes = model(vec![template_mount(
+        "host/menu",
+        "",
+        "WorkbenchMenuTopBar",
+        FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 160.0,
+            height: 24.0,
+        },
+        "accent",
+    )]);
+    presentation.host_scene_data.page_chrome.template_nodes = model(vec![template_mount(
+        "host/pages",
+        "",
+        "WorkbenchPageBar",
+        FrameRect {
+            x: 0.0,
+            y: 24.0,
+            width: 160.0,
+            height: 32.0,
+        },
+        "inset",
+    )]);
+    let mut frame = HostRgbaFrame::filled(160, 120, SENTINEL);
+
+    draw_componentized_workbench_window(&mut frame, &presentation);
+
+    assert_ne!(pixel(&frame, 4, 4), SENTINEL);
+    assert_ne!(pixel(&frame, 4, 30), SENTINEL);
+}
+
+#[test]
+fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
+    let presentation = HostWindowPresentationData {
+        viewport_image: Some(HostViewportImageData {
+            resource_key: "viewport:test".into(),
+            width: 1,
+            height: 1,
+            rgba: vec![255; 4],
+        }),
+        ..HostWindowPresentationData::default()
+    };
+    let filter = ComponentizedChromeFallbackTransform::from_presentation(&presentation);
+    let clip = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 100.0,
+        height: 100.0,
+    };
+
+    assert!(filter
+        .transform(template_node("WorkbenchViewportBackdrop"), clip.clone())
+        .is_none());
+    for control_id in [
+        "WorkbenchViewportToolbar",
+        "WorkbenchViewportSelectionTop",
+        "WorkbenchViewportAxisX",
+        "WorkbenchViewportGizmoCenter",
+        "WorkbenchUnrelatedControl",
+    ] {
+        assert!(filter
+            .transform(template_node(control_id), clip.clone())
+            .is_some());
+    }
+}
+
+#[test]
+fn missing_or_invalid_viewport_image_keeps_the_fallback_scene() {
+    for presentation in [
+        HostWindowPresentationData::default(),
+        HostWindowPresentationData {
+            viewport_image: Some(HostViewportImageData::default()),
+            ..HostWindowPresentationData::default()
+        },
+    ] {
+        let filter = ComponentizedChromeFallbackTransform::from_presentation(&presentation);
+        assert!(filter
+            .transform(
+                template_node("WorkbenchViewportBackdrop"),
+                FrameRect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 100.0,
+                    height: 100.0,
+                },
+            )
+            .is_some());
+    }
+}
+
+fn template_node(control_id: &str) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        ..TemplatePaneNodeData::default()
+    }
+}
 
 #[test]
 fn active_extension_workspace_paints_only_inside_its_adaptive_host_frame() {

@@ -1,4 +1,5 @@
 use crate::core::editor_event::{EditorEventEffect, EditorEventRecord};
+use crate::ui::host::play_pending_decision::PlayPendingEditDecisionOutcome;
 
 const DEFAULT_TOAST_DURATION_MS: i64 = 3_500;
 const IMPORT_TOAST_DURATION_MS: i64 = 4_000;
@@ -196,6 +197,59 @@ pub(crate) fn workbench_dispatch_error_notification(error: &str) -> WorkbenchNot
         WorkbenchNotificationSeverity::Error,
     )
     .with_duration_ms(ERROR_TOAST_DURATION_MS)
+}
+
+pub(crate) fn workbench_notification_for_pending_play_decision(
+    outcome: &PlayPendingEditDecisionOutcome,
+) -> Option<WorkbenchNotification> {
+    match outcome {
+        PlayPendingEditDecisionOutcome::Applied {
+            applied_count,
+            failures,
+        } if failures.is_empty() => Some(
+            WorkbenchNotification::new(
+                "play-pending-edits-applied",
+                "Queued play edits applied",
+                format!("Applied {applied_count} queued edit(s)."),
+                WorkbenchNotificationSeverity::Success,
+            )
+            .with_duration_ms(DEFAULT_TOAST_DURATION_MS),
+        ),
+        PlayPendingEditDecisionOutcome::Applied { failures, .. } => {
+            let diagnostics = failures
+                .iter()
+                .map(|failure| {
+                    format!(
+                        "pending edit {} ({}) failed: {}",
+                        failure.pending_edit_id(),
+                        failure.operation_id(),
+                        failure.error()
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("; ");
+            Some(
+                WorkbenchNotification::new(
+                    "play-pending-edits-apply-failed",
+                    "Queued play edits need attention",
+                    diagnostics,
+                    WorkbenchNotificationSeverity::Error,
+                )
+                .with_action_label("Review")
+                .with_duration_ms(ERROR_TOAST_DURATION_MS),
+            )
+        }
+        PlayPendingEditDecisionOutcome::Discarded { discarded_count } => Some(
+            WorkbenchNotification::new(
+                "play-pending-edits-discarded",
+                "Queued play edits discarded",
+                format!("Discarded {discarded_count} queued edit(s)."),
+                WorkbenchNotificationSeverity::Info,
+            )
+            .with_duration_ms(DEFAULT_TOAST_DURATION_MS),
+        ),
+        PlayPendingEditDecisionOutcome::AlreadyResolved { .. } => None,
+    }
 }
 
 fn workbench_record_error_notification(

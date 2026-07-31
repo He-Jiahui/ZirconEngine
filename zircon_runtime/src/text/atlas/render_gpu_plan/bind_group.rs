@@ -1,6 +1,7 @@
 const GLYPH_ATLAS_GPU_BIND_GROUP_INDEX: u32 = 0;
 const GLYPH_ATLAS_GPU_ATLAS_TEXTURE_BINDING: u32 = 0;
 const GLYPH_ATLAS_GPU_ATLAS_SAMPLER_BINDING: u32 = 1;
+const GLYPH_ATLAS_GPU_VIEWPORT_UNIFORM_BINDING: u32 = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum GlyphAtlasGpuTextureSampleType {
@@ -33,11 +34,18 @@ pub(crate) struct GlyphAtlasGpuSamplerBinding {
     pub(crate) binding_type: GlyphAtlasGpuSamplerBindingType,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct GlyphAtlasGpuViewportUniformBinding {
+    pub(crate) group: u32,
+    pub(crate) binding: u32,
+}
+
 /// Fixed texture-array and sampler binding contract consumed by the future wgpu atlas renderer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasGpuBindGroupLayout {
     pub(crate) atlas_texture: GlyphAtlasGpuTextureBinding,
     pub(crate) atlas_sampler: GlyphAtlasGpuSamplerBinding,
+    pub(crate) viewport_uniform: GlyphAtlasGpuViewportUniformBinding,
 }
 
 pub(crate) fn glyph_atlas_gpu_bind_group_layout() -> GlyphAtlasGpuBindGroupLayout {
@@ -53,6 +61,10 @@ pub(crate) fn glyph_atlas_gpu_bind_group_layout() -> GlyphAtlasGpuBindGroupLayou
             group: GLYPH_ATLAS_GPU_BIND_GROUP_INDEX,
             binding: GLYPH_ATLAS_GPU_ATLAS_SAMPLER_BINDING,
             binding_type: GlyphAtlasGpuSamplerBindingType::Filtering,
+        },
+        viewport_uniform: GlyphAtlasGpuViewportUniformBinding {
+            group: GLYPH_ATLAS_GPU_BIND_GROUP_INDEX,
+            binding: GLYPH_ATLAS_GPU_VIEWPORT_UNIFORM_BINDING,
         },
     }
 }

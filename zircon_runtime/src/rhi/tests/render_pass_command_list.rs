@@ -6,10 +6,10 @@ use crate::rhi::{
     RenderQueueClass, RhiError, ShaderModuleDesc, ShaderModuleHandle, ShaderStage, TextureDesc,
     TextureFormat, TextureHandle, TextureUsage,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
 fn create_shader(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     stage: ShaderStage,
     entry_point: &str,
@@ -21,7 +21,7 @@ fn create_shader(
 }
 
 fn create_raster_pipeline(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     color_format: TextureFormat,
     depth_format: Option<TextureFormat>,
@@ -65,7 +65,7 @@ fn create_raster_pipeline(
         .unwrap()
 }
 
-fn create_compute_pipeline(device: &WgpuRenderDevice) -> PipelineHandle {
+fn create_compute_pipeline(device: &DeterministicRhiContractDevice) -> PipelineHandle {
     let layout = device
         .create_pipeline_layout(&PipelineLayoutDesc::new("compute-layout", Vec::new()))
         .unwrap();
@@ -86,7 +86,7 @@ fn create_compute_pipeline(device: &WgpuRenderDevice) -> PipelineHandle {
 }
 
 fn create_render_attachment(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     format: TextureFormat,
 ) -> TextureHandle {
@@ -119,7 +119,7 @@ fn depth_attachment(texture: TextureHandle) -> RenderPassDepthStencilAttachmentD
 
 #[test]
 fn command_list_records_render_pass_and_validates_raster_attachments() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(&device, "scene-color", TextureFormat::Rgba8UnormSrgb);
     let depth = create_render_attachment(&device, "scene-depth", TextureFormat::Depth24Plus);
     let pipeline = create_raster_pipeline(
@@ -166,7 +166,7 @@ fn command_list_records_render_pass_and_validates_raster_attachments() {
 
 #[test]
 fn command_list_render_pass_submit_validates_pass_lifetime_and_queue() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(&device, "scene-color", TextureFormat::Rgba8UnormSrgb);
     let pipeline =
         create_raster_pipeline(&device, "fullscreen", TextureFormat::Rgba8UnormSrgb, None);
@@ -221,7 +221,7 @@ fn command_list_render_pass_submit_validates_pass_lifetime_and_queue() {
 
 #[test]
 fn command_list_render_pass_submit_validates_attachment_usage_and_formats() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(&device, "scene-color", TextureFormat::Rgba8UnormSrgb);
     let wrong_color = create_render_attachment(&device, "hdr-color", TextureFormat::Rgba16Float);
     let depth = create_render_attachment(&device, "scene-depth", TextureFormat::Depth24Plus);
@@ -303,7 +303,7 @@ fn command_list_render_pass_submit_validates_attachment_usage_and_formats() {
 
 #[test]
 fn command_list_render_pass_submit_validates_depth_stencil_attachment_contract() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(&device, "scene-color", TextureFormat::Rgba8UnormSrgb);
     let depth = create_render_attachment(&device, "scene-depth", TextureFormat::Depth24Plus);
     let stencil_depth =
@@ -385,7 +385,7 @@ fn command_list_render_pass_submit_validates_depth_stencil_attachment_contract()
 
 #[test]
 fn command_list_render_pass_rejects_compute_and_copy_work_inside_pass() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_attachment(&device, "scene-color", TextureFormat::Rgba8UnormSrgb);
     let compute_pipeline = create_compute_pipeline(&device);
     let source = device

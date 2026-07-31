@@ -3,13 +3,14 @@ use crate::capability::{
 };
 use crate::{
     module_descriptor, navigation_component_descriptors, navigation_event_catalog,
-    navigation_plugin_options, NavRepathBudget, NAVIGATION_MODULE_NAME, PLUGIN_ID,
+    navigation_plugin_options, NAVIGATION_MODULE_NAME, PLUGIN_ID,
 };
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavPathResult, NavigationDebugCapture, NavigationError,
     OffMeshTraverseEvent,
 };
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime::navigation::NavRepathBudget;
 use zircon_runtime::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
     PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,

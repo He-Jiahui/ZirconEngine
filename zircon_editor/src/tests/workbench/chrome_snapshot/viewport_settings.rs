@@ -1,7 +1,8 @@
 use zircon_runtime_interface::math::UVec2;
 
+use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportSettings, SceneViewportTool,
+    DisplayMode, GridMode, ProjectionMode, SceneViewportChromeSettings, TransformHandleKind,
     TransformSpace, ViewOrientation,
 };
 use crate::ui::workbench::layout::WorkbenchLayout;
@@ -12,8 +13,8 @@ use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 
 #[test]
 fn chrome_builder_carries_scene_viewport_settings_into_snapshot() {
-    let settings = SceneViewportSettings {
-        tool: SceneViewportTool::Scale,
+    let settings = SceneViewportChromeSettings {
+        mode: SceneModeActivation::Transform(TransformHandleKind::Scale),
         transform_space: TransformSpace::Global,
         projection_mode: ProjectionMode::Orthographic,
         view_orientation: ViewOrientation::PosY,

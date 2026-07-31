@@ -9,7 +9,7 @@ pub(crate) fn build_palette_entries(
     document: &UiAssetDocument,
     widget_imports: &BTreeMap<String, UiAssetDocument>,
 ) -> Vec<UiAssetPaletteEntry> {
-    let registry = UiComponentDescriptorRegistry::editor_showcase();
+    let registry = UiComponentDescriptorRegistry::editor_showcase_shared();
     let mut entries = registry
         .palette_entries_for_host(&UiHostCapabilitySet::editor_authoring())
         .into_iter()

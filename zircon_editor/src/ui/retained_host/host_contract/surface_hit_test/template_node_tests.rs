@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use crate::ui::retained_host::host_contract::data::{
-    FrameRect, HostWindowPresentationData, TemplateNodeFrameData, TemplatePaneMenuItemData,
-    TemplatePaneNodeData, TemplatePaneOptionData,
+    FrameRect, HostWindowPresentationData, TemplateNodeFrameData, TemplatePaneCollectionRowData,
+    TemplatePaneMenuItemData, TemplatePaneNodeData, TemplatePaneOptionData,
 };
 use crate::ui::retained_host::host_contract::template_component_family::TemplateComponentFamily;
 use crate::ui::retained_host::host_contract::template_geometry::template_nodes_bounds;
@@ -115,6 +115,93 @@ fn text_field_family_without_legacy_input_role_is_hit_tested() {
         hit.component_family,
         Some(TemplateComponentFamily::TextInput)
     );
+}
+
+#[test]
+fn workbench_hit_test_preserves_the_selected_table_row_identity() {
+    let presentation = HostWindowPresentationData {
+        workbench_window_nodes: model(vec![TemplatePaneNodeData {
+            node_id: "rows".into(),
+            control_id: "GenericRows".into(),
+            role: "Table".into(),
+            component_role: "table".into(),
+            frame: TemplateNodeFrameData {
+                x: 10.0,
+                y: 20.0,
+                width: 180.0,
+                height: 80.0,
+            },
+            collection_rows: model(vec![
+                TemplatePaneCollectionRowData {
+                    source_index: 3,
+                    row_identity_field: "surface_entity".into(),
+                    identity_kind: "integer".into(),
+                    identity_text: "41".into(),
+                    label: "Ground".into(),
+                },
+                TemplatePaneCollectionRowData {
+                    source_index: 9,
+                    row_identity_field: "surface_entity".into(),
+                    identity_kind: "integer".into(),
+                    identity_text: "73".into(),
+                    label: "Roof".into(),
+                },
+            ]),
+            ..TemplatePaneNodeData::default()
+        }]),
+        ..HostWindowPresentationData::default()
+    };
+
+    let hit = hit_test_workbench_window_template_node(&presentation, 24.0, 88.0)
+        .expect("second table row should be hit-tested");
+
+    assert_eq!(hit.table_row_source_index, Some(9));
+    assert_eq!(hit.table_row_identity_kind.as_str(), "integer");
+    assert_eq!(hit.table_row_identity_text.as_str(), "73");
+}
+
+#[test]
+fn workbench_hit_test_uses_the_declared_virtualized_row_extent() {
+    let presentation = HostWindowPresentationData {
+        workbench_window_nodes: model(vec![TemplatePaneNodeData {
+            node_id: "rows".into(),
+            control_id: "GenericRows".into(),
+            role: "Table".into(),
+            component_role: "table".into(),
+            frame: TemplateNodeFrameData {
+                x: 10.0,
+                y: 20.0,
+                width: 180.0,
+                height: 100.0,
+            },
+            collection_rows: model(vec![
+                TemplatePaneCollectionRowData {
+                    source_index: 3,
+                    row_identity_field: "surface_entity".into(),
+                    identity_kind: "integer".into(),
+                    identity_text: "41".into(),
+                    label: "Ground".into(),
+                },
+                TemplatePaneCollectionRowData {
+                    source_index: 9,
+                    row_identity_field: "surface_entity".into(),
+                    identity_kind: "integer".into(),
+                    identity_text: "73".into(),
+                    label: "Roof".into(),
+                },
+            ]),
+            virtualization_enabled: true,
+            virtualization_item_extent: 40.0,
+            ..TemplatePaneNodeData::default()
+        }]),
+        ..HostWindowPresentationData::default()
+    };
+
+    let hit = hit_test_workbench_window_template_node(&presentation, 24.0, 65.0)
+        .expect("the second declared virtualized row should be hit-tested");
+
+    assert_eq!(hit.table_row_source_index, Some(9));
+    assert_eq!(hit.table_row_identity_text.as_str(), "73");
 }
 
 #[test]

@@ -12,6 +12,9 @@ crate-type = ["cdylib"]
 default = ["dist"]
 dist = []
 abi_unknown_version = []
+descriptor_export_missing = []
+runtime_entry_export_missing = []
+required_capability_missing = []
 
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"] }

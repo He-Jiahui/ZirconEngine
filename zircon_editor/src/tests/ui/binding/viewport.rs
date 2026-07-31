@@ -1,5 +1,6 @@
+use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, ProjectionMode, TransformHandleKind, TransformSpace, ViewOrientation,
 };
 use crate::ui::binding::{
     EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, ViewportCommand,
@@ -35,11 +36,11 @@ fn viewport_toolbar_command_bindings_roundtrip_through_native_binding() {
                 "SceneView",
                 "ViewportToolbar",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::viewport_command(ViewportCommand::SetTool(
-                    SceneViewportTool::Rotate,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::ActivateSceneMode(
+                    SceneModeActivation::Transform(TransformHandleKind::Rotate),
                 )),
             ),
-            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetTool("Rotate"))"#,
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.ActivateSceneMode("Transform.Rotate"))"#,
         ),
         (
             EditorUiBinding::new(
@@ -189,7 +190,9 @@ fn viewport_toolbar_command_binding_roundtrips_with_typed_settings_payload() {
 #[test]
 fn viewport_toolbar_command_roundtrips_for_projection_alignment_and_snaps() {
     let commands = [
-        ViewportCommand::SetTool(SceneViewportTool::Scale),
+        ViewportCommand::ActivateSceneMode(SceneModeActivation::Transform(
+            TransformHandleKind::Scale,
+        )),
         ViewportCommand::SetTransformSpace(TransformSpace::Global),
         ViewportCommand::SetProjectionMode(ProjectionMode::Orthographic),
         ViewportCommand::AlignView(ViewOrientation::PosY),

@@ -4,11 +4,11 @@ use crate::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderPointLightSnapshot, RenderSpotLightSnapshot,
     ViewportCameraSnapshot,
 };
-use crate::core::math::{is_finite_vec3, view_matrix, Mat4, Real, Transform, Vec3};
+use crate::core::math::{Mat4, Real, Transform, Vec3, is_finite_vec3, view_matrix};
 
 use super::cascade::{
-    cascade_shadow_bounds_from_camera_slice, snapped_cascade_view_projection, CascadeRange,
-    CascadeShadowBounds,
+    CascadeRange, CascadeShadowBounds, cascade_shadow_bounds_from_camera_slice,
+    snapped_cascade_view_projection,
 };
 
 const POINT_LIGHT_SHADOW_FACE_COUNT: u8 = 6;

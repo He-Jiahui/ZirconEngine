@@ -1,0 +1,39 @@
+// Current-source overworld Spirit Healer constructor vectors.
+
+var placement = %import("world/spirit_healer_placement");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+var seed = <uint>20061;
+
+if (placement.healerCount(true) != 7 || placement.healerId(true) != "spirit_healer" ||
+    placement.healerName(true) != "The Pale Keeper" ||
+    !closeEnough(placement.healerFacing(true), 3.141592653589793)) {
+    throw "woc Spirit Healer identity vector failed";
+}
+
+if (placement.finalCoordinate(0, 1, true) != -14.0 ||
+    placement.finalCoordinate(0, 2, true) != -14.0 ||
+    !closeEnough(placement.finalGroundY(seed, 0, true), 1.4348289874851001)) {
+    throw "woc Eastbrook Spirit Healer vector failed";
+}
+
+if (placement.finalCoordinate(3, 1, true) != 15.0 ||
+    placement.finalCoordinate(3, 2, true) != 645.0 ||
+    !closeEnough(placement.finalGroundY(seed, 3, true), 8.852514501376778)) {
+    throw "woc Thornpeak Spirit Healer vector failed";
+}
+
+if (placement.finalCoordinate(6, 1, true) != -139.0 ||
+    placement.finalCoordinate(6, 2, true) != 787.0 ||
+    !closeEnough(placement.finalGroundY(seed, 6, true), 5.7351127648462565)) {
+    throw "woc West Spire Spirit Healer vector failed";
+}
+
+return 0;

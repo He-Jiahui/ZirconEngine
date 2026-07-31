@@ -25,7 +25,7 @@ Files: ["Cargo.lock", "docs/zircon_editor/scene/modes.md", "docs/plans/zircon_ed
 - Added `SceneModeFactory`, descriptor-backed `SceneModeRegistration`, and
   `SceneModeRegistry`. Registration rejects duplicate typed ids; creation
   rejects unknown ids and factories whose produced mode id differs from the
-  registered `ViewportToolModeDescriptor` id.
+  registered `SceneModeDescriptor` id.
 - Added the neutral `SceneModeStack::project_command_eval_ctx` route. It
   projects the active typed mode id and actual active-domain selection count
   without replacing unrelated command-evaluation fields; production host

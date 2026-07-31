@@ -1,5 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::metrics::workbench_slider_metrics;
+use zircon_runtime_interface::ui::surface::bounded_ui_slider_tick_count;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_percent(
     node: &TemplatePaneNodeData,
@@ -24,14 +25,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_tick_count(
     node: &TemplatePaneNodeData,
 ) -> Option<usize> {
-    let declared = node.layout_third_cell_offset_x.round() as usize;
-    if declared >= 2 {
-        Some(declared)
-    } else if node.control_id.as_str().contains("StepsSlider") {
-        Some(5)
-    } else {
-        None
-    }
+    bounded_ui_slider_tick_count(node.layout_third_cell_offset_x).or_else(|| {
+        node.control_id
+            .as_str()
+            .contains("StepsSlider")
+            .then_some(5)
+    })
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_fill_span(

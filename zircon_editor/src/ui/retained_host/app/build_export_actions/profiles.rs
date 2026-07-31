@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::{
-    ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
+    ExportPackagingStrategy, ExportProfile, ExportTargetPlatform, RuntimeProfileId,
 };
 
 pub(in crate::ui::retained_host::app) fn desktop_export_profiles() -> Vec<ExportProfile> {
@@ -13,7 +13,13 @@ pub(in crate::ui::retained_host::app) fn desktop_export_profiles() -> Vec<Export
     ]
     .into_iter()
     .map(|(name, platform)| {
-        ExportProfile::new(name, RuntimeTargetMode::ClientRuntime, platform).with_strategies([
+        ExportProfile::new(
+            name,
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+            RuntimeProfileId::Client2d,
+        )
+        .with_strategies([
             ExportPackagingStrategy::SourceTemplate,
             ExportPackagingStrategy::LibraryEmbed,
             ExportPackagingStrategy::NativeDynamic,
@@ -28,12 +34,12 @@ pub(in crate::ui::retained_host::app) fn desktop_export_profiles() -> Vec<Export
     ]
     .into_iter()
     .map(|(name, platform)| {
-        let target_mode = if platform == ExportTargetPlatform::Headless {
-            RuntimeTargetMode::ServerRuntime
+        let (target_mode, runtime_profile_id) = if platform == ExportTargetPlatform::Headless {
+            (RuntimeTargetMode::ServerRuntime, RuntimeProfileId::Server)
         } else {
-            RuntimeTargetMode::ClientRuntime
+            (RuntimeTargetMode::ClientRuntime, RuntimeProfileId::Client2d)
         };
-        ExportProfile::new(name, target_mode, platform).with_strategies([
+        ExportProfile::new(name, target_mode, platform, runtime_profile_id).with_strategies([
             ExportPackagingStrategy::SourceTemplate,
             ExportPackagingStrategy::LibraryEmbed,
         ])

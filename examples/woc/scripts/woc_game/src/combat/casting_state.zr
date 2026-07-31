@@ -1,0 +1,628 @@
+// This is the lifecycle projection only. WOS supplies ability resolution, target
+// validity, events and errors; the state retains only source-owned cast transitions.
+var lifecycleContract = %import("generated/casting_lifecycle_contract");
+
+pub class CastState {
+    pub var castingAbility: uint;
+    pub var castRemaining: float;
+    pub var castTotal: float;
+    pub var channeling: bool;
+    pub var channelTickEvery: float;
+    pub var channelTickTimer: float;
+    pub var channelTicksLeft: int;
+    pub var castAimLocked: bool;
+    pub var castTargetLocked: bool;
+    pub var castSchoolPhysical: bool;
+    pub var fishing: bool;
+    pub var massResurrection: bool;
+    pub var inCombat: bool;
+    pub var hasDeadGroupMember: bool;
+    pub var lastCancelReason: int;
+    pub var stunned: bool;
+    pub var silenced: bool;
+    pub var schoolLockedOut: bool;
+    pub var castShield: bool;
+    pub var castPushbackReduction: float;
+    pub var gcdRemaining: float;
+
+    pub var queuedAbility: uint;
+    pub var queuedDuration: float;
+    pub var queuedChanneling: bool;
+    pub var queuedTickEvery: float;
+    pub var queuedTickCount: int;
+    pub var queuedGcd: float;
+    pub var queuedPhysical: bool;
+    pub var queuedFishing: bool;
+    pub var queuedAimLocked: bool;
+
+    // An empowered cast is still an ordinary timed cast. These fields retain
+    // the source's stage count until either the hold is released or the timer
+    // completes, at which point lastResolvedEmpowerLevel captures the level
+    // handed to the downstream effect resolver.
+    pub var empowerStages: int;
+    pub var iceFloesUses: int;
+    pub var lastResolvedEmpowerLevel: int;
+
+    pub var startedCasts: int;
+    pub var successfulStops: int;
+    pub var cancelledStops: int;
+    pub var resolvedCasts: int;
+    pub var fishingCompletions: int;
+    pub var channelTicks: int;
+
+    pub @constructor() {
+        this.castingAbility = <uint>0;
+        this.castRemaining = 0.0;
+        this.castTotal = 0.0;
+        this.channeling = false;
+        this.channelTickEvery = 0.0;
+        this.channelTickTimer = 0.0;
+        this.channelTicksLeft = 0;
+        this.castAimLocked = false;
+        this.castTargetLocked = false;
+        this.castSchoolPhysical = false;
+        this.fishing = false;
+        this.massResurrection = false;
+        this.inCombat = false;
+        this.hasDeadGroupMember = false;
+        this.lastCancelReason = 0;
+        this.stunned = false;
+        this.silenced = false;
+        this.schoolLockedOut = false;
+        this.castShield = false;
+        this.castPushbackReduction = 0.0;
+        this.gcdRemaining = 0.0;
+        this.queuedAbility = <uint>0;
+        this.queuedDuration = 0.0;
+        this.queuedChanneling = false;
+        this.queuedTickEvery = 0.0;
+        this.queuedTickCount = 0;
+        this.queuedGcd = 0.0;
+        this.queuedPhysical = false;
+        this.queuedFishing = false;
+        this.queuedAimLocked = false;
+        this.empowerStages = 0;
+        this.iceFloesUses = 0;
+        this.lastResolvedEmpowerLevel = 0;
+        this.startedCasts = 0;
+        this.successfulStops = 0;
+        this.cancelledStops = 0;
+        this.resolvedCasts = 0;
+        this.fishingCompletions = 0;
+        this.channelTicks = 0;
+    }
+
+    pub lockTargets(aim: bool, target: bool): void {
+        this.castAimLocked = aim;
+        this.castTargetLocked = target;
+    }
+
+    pub armTimed(ability: uint, duration: float, gcd: float, physical: bool): void {
+        if (ability == <uint>0 || duration <= 0.0 || gcd < 0.0 ||
+            this.castingAbility != <uint>0) {
+            throw "timed cast start is invalid";
+        }
+        this.castingAbility = ability;
+        this.castRemaining = duration;
+        this.castTotal = duration;
+        this.channeling = false;
+        this.channelTickEvery = 0.0;
+        this.channelTickTimer = 0.0;
+        this.channelTicksLeft = 0;
+        this.castSchoolPhysical = physical;
+        this.fishing = false;
+        this.massResurrection = false;
+        this.lastCancelReason = 0;
+        this.empowerStages = 0;
+        if (gcd > this.gcdRemaining) { this.gcdRemaining = gcd; }
+        this.startedCasts = this.startedCasts + 1;
+    }
+
+    pub armFishing(ability: uint, duration: float, gcd: float): void {
+        this.armTimed(ability, duration, gcd, true);
+        this.fishing = true;
+    }
+
+    pub armEmpowered(
+        ability: uint,
+        duration: float,
+        gcd: float,
+        physical: bool,
+        stages: int
+    ): void {
+        if (stages <= 0) throw "empowered cast requires stages";
+        this.armTimed(ability, duration, gcd, physical);
+        this.empowerStages = stages;
+    }
+
+    pub armChannel(
+        ability: uint,
+        duration: float,
+        tickEvery: float,
+        tickCount: int,
+        gcd: float
+    ): void {
+        if (ability == <uint>0 || duration <= 0.0 || tickEvery <= 0.0 ||
+            tickCount < 0 || gcd < 0.0 || this.castingAbility != <uint>0) {
+            throw "channel cast start is invalid";
+        }
+        this.castingAbility = ability;
+        this.castRemaining = duration;
+        this.castTotal = duration;
+        this.channeling = true;
+        this.channelTickEvery = tickEvery;
+        this.channelTickTimer = tickEvery;
+        this.channelTicksLeft = tickCount;
+        this.castSchoolPhysical = false;
+        this.fishing = false;
+        this.massResurrection = false;
+        this.lastCancelReason = 0;
+        this.empowerStages = 0;
+        if (gcd > this.gcdRemaining) { this.gcdRemaining = gcd; }
+        this.startedCasts = this.startedCasts + 1;
+    }
+
+    pub queueTimed(ability: uint, duration: float, gcd: float, physical: bool): bool {
+        if (this.castingAbility == <uint>0 || this.fishing ||
+            this.castRemaining > 0.4 || ability == <uint>0 ||
+            duration <= 0.0 || gcd < 0.0) {
+            return false;
+        }
+        this.queuedAbility = ability;
+        this.queuedDuration = duration;
+        this.queuedChanneling = false;
+        this.queuedTickEvery = 0.0;
+        this.queuedTickCount = 0;
+        this.queuedGcd = gcd;
+        this.queuedPhysical = physical;
+        this.queuedFishing = false;
+        this.queuedAimLocked = false;
+        return true;
+    }
+
+    pub queueFishing(ability: uint, duration: float, gcd: float): bool {
+        if (!this.queueTimed(ability, duration, gcd, true)) {
+            return false;
+        }
+        this.queuedFishing = true;
+        return true;
+    }
+
+    pub queueChannel(
+        ability: uint,
+        duration: float,
+        tickEvery: float,
+        tickCount: int,
+        gcd: float
+    ): bool {
+        if (this.castingAbility == <uint>0 || this.fishing ||
+            this.castRemaining > 0.4 || ability == <uint>0 || duration <= 0.0 ||
+            tickEvery <= 0.0 || tickCount < 0 || gcd < 0.0) {
+            return false;
+        }
+        this.queuedAbility = ability;
+        this.queuedDuration = duration;
+        this.queuedChanneling = true;
+        this.queuedTickEvery = tickEvery;
+        this.queuedTickCount = tickCount;
+        this.queuedGcd = gcd;
+        this.queuedPhysical = false;
+        this.queuedFishing = false;
+        this.queuedAimLocked = false;
+        return true;
+    }
+
+    pub lockQueuedAim(required: bool): void {
+        if (this.queuedAbility == <uint>0) {
+            throw "queued cast aim cannot be set without a queued cast";
+        }
+        this.queuedAimLocked = required;
+    }
+
+    // WOS classifies the resolved ability and supplies these live world facts.
+    pub setMassResurrectionContext(isMassResurrection: bool, inCombat: bool, hasDeadGroupMember: bool): void {
+        this.massResurrection = isMassResurrection;
+        this.inCombat = inCombat;
+        this.hasDeadGroupMember = hasDeadGroupMember;
+        this.lastCancelReason = 0;
+    }
+}
+
+clearQueue(state: CastState): void {
+    state.queuedAbility = <uint>0;
+    state.queuedDuration = 0.0;
+    state.queuedChanneling = false;
+    state.queuedTickEvery = 0.0;
+    state.queuedTickCount = 0;
+    state.queuedGcd = 0.0;
+    state.queuedPhysical = false;
+    state.queuedFishing = false;
+    state.queuedAimLocked = false;
+}
+
+fireQueuedCast(state: CastState): void {
+    if (state.queuedAbility == <uint>0 || state.gcdRemaining > 0.0) {
+        return;
+    }
+    var ability = state.queuedAbility;
+    var duration = state.queuedDuration;
+    var channeling = state.queuedChanneling;
+    var tickEvery = state.queuedTickEvery;
+    var tickCount = state.queuedTickCount;
+    var gcd = state.queuedGcd;
+    var physical = state.queuedPhysical;
+    var fishing = state.queuedFishing;
+    var aimLocked = state.queuedAimLocked;
+    clearQueue(state);
+    if (channeling) {
+        state.armChannel(ability, duration, tickEvery, tickCount, gcd);
+    } else if (fishing) {
+        state.armFishing(ability, duration, gcd);
+    } else {
+        state.armTimed(ability, duration, gcd, physical);
+    }
+    state.castAimLocked = aimLocked;
+}
+
+pub cancelCast(state: CastState): void {
+    if (state.castingAbility == <uint>0) {
+        return;
+    }
+    state.castingAbility = <uint>0;
+    state.castRemaining = 0.0;
+    state.channeling = false;
+    state.channelTicksLeft = 0;
+    state.castSchoolPhysical = false;
+    state.fishing = false;
+    state.massResurrection = false;
+    state.empowerStages = 0;
+    state.castAimLocked = false;
+    state.castTargetLocked = false;
+    clearQueue(state);
+    state.cancelledStops = state.cancelledStops + 1;
+}
+
+empoweredCastProgress(total: float, remaining: float): float {
+    if (total <= 0.0) return 1.0;
+    var progress = (total - remaining) / total;
+    if (progress < 0.0) return 0.0;
+    if (progress > 1.0) return 1.0;
+    return progress;
+}
+
+empoweredStageForProgress(progress: float, stageCount: int): int {
+    if (stageCount <= 1) return 1;
+    var clamped = progress;
+    if (clamped < 0.0) clamped = 0.0;
+    if (clamped > 1.0) clamped = 1.0;
+    var stage = <int>(clamped * <float>stageCount) + 1;
+    if (stage > stageCount) return stageCount;
+    return stage;
+}
+
+// The client sends only an ability identity. The live cast clock is the sole
+// authority for stage selection, matching releaseEmpoweredAbility in the
+// current target; release timing supplied by a client is never represented.
+pub releaseEmpoweredAbility(state: CastState, ability: uint): void {
+    if (state.castingAbility != ability || state.channeling || state.empowerStages <= 0) {
+        return;
+    }
+    if (state.stunned ||
+        (!state.castSchoolPhysical && (state.silenced || state.schoolLockedOut))) {
+        cancelCast(state);
+        return;
+    }
+    var level = empoweredStageForProgress(
+        empoweredCastProgress(state.castTotal, state.castRemaining),
+        state.empowerStages
+    );
+    state.castingAbility = <uint>0;
+    state.castRemaining = 0.0;
+    state.channeling = false;
+    state.castSchoolPhysical = false;
+    state.fishing = false;
+    state.empowerStages = 0;
+    state.successfulStops = state.successfulStops + 1;
+    if (state.iceFloesUses > 0) {
+        state.iceFloesUses = state.iceFloesUses - 1;
+    }
+    state.lastResolvedEmpowerLevel = level;
+    state.resolvedCasts = state.resolvedCasts + 1;
+    state.castAimLocked = false;
+    state.castTargetLocked = false;
+    fireQueuedCast(state);
+}
+
+pub pushbackCast(state: CastState): void {
+    if (state.castShield) {
+        return;
+    }
+    var factor = 1.0 - state.castPushbackReduction;
+    if (factor <= 0.0) {
+        return;
+    }
+    if (state.channeling) {
+        state.castRemaining = state.castRemaining - state.castTotal * lifecycleContract.channelPushbackFraction() * factor;
+        if (state.castRemaining < 0.0) { state.castRemaining = 0.0; }
+    } else {
+        state.castRemaining = state.castRemaining + lifecycleContract.castPushbackSeconds() * factor;
+        state.castTotal = state.castTotal + lifecycleContract.castPushbackSeconds() * factor;
+    }
+}
+
+pub updateCasting(state: CastState): void {
+    if (state.castingAbility == <uint>0) {
+        if (state.queuedAbility != <uint>0) {
+            fireQueuedCast(state);
+        }
+        return;
+    }
+    if (state.stunned ||
+        (!state.fishing && !state.castSchoolPhysical &&
+            (state.silenced || state.schoolLockedOut))) {
+        cancelCast(state);
+        return;
+    }
+    if (state.massResurrection) {
+        if (state.inCombat) {
+            state.lastCancelReason = lifecycleContract.massResCombatReason();
+            cancelCast(state);
+            return;
+        }
+        if (!state.hasDeadGroupMember) {
+            state.lastCancelReason = lifecycleContract.massResNoDeadMemberReason();
+            cancelCast(state);
+            return;
+        }
+    }
+    state.castRemaining = state.castRemaining - lifecycleContract.tickDelta();
+    if (state.channeling) {
+        state.channelTickTimer = state.channelTickTimer - 0.05;
+        if (state.channelTickTimer <= 0.0) {
+            state.channelTickTimer = state.channelTickTimer + state.channelTickEvery;
+            if (state.channelTicksLeft > 0) {
+                state.channelTicksLeft = state.channelTicksLeft - 1;
+            }
+            state.channelTicks = state.channelTicks + 1;
+        }
+        if (state.castRemaining <= lifecycleContract.castCompleteEpsilon()) {
+            while (state.channelTicksLeft > 0) {
+                state.channelTicksLeft = state.channelTicksLeft - 1;
+                state.channelTicks = state.channelTicks + 1;
+            }
+            state.castingAbility = <uint>0;
+            state.channeling = false;
+            state.castSchoolPhysical = false;
+            state.fishing = false;
+            state.massResurrection = false;
+            state.empowerStages = 0;
+            state.castAimLocked = false;
+            state.castTargetLocked = false;
+            state.successfulStops = state.successfulStops + 1;
+            fireQueuedCast(state);
+        }
+        return;
+    }
+    if (state.castRemaining <= lifecycleContract.castCompleteEpsilon()) {
+        var fishing = state.fishing;
+        var completedEmpowerLevel = state.empowerStages;
+        state.castingAbility = <uint>0;
+        state.castRemaining = 0.0;
+        state.castSchoolPhysical = false;
+        state.fishing = false;
+        state.massResurrection = false;
+        state.empowerStages = 0;
+        state.castAimLocked = false;
+        state.castTargetLocked = false;
+        state.successfulStops = state.successfulStops + 1;
+        if (fishing) {
+            state.fishingCompletions = state.fishingCompletions + 1;
+            return;
+        }
+        if (state.iceFloesUses > 0) {
+            state.iceFloesUses = state.iceFloesUses - 1;
+        }
+        state.lastResolvedEmpowerLevel = completedEmpowerLevel;
+        state.resolvedCasts = state.resolvedCasts + 1;
+        fireQueuedCast(state);
+    }
+}
+
+pub advanceFixedTick(state: CastState): void {
+    // Source tick order runs casting before updateTimers decrements the GCD.
+    updateCasting(state);
+    state.gcdRemaining = state.gcdRemaining - lifecycleContract.tickDelta();
+    if (state.gcdRemaining < 0.0) { state.gcdRemaining = 0.0; }
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var timed = new CastState();
+    timed.armTimed(<uint>1, 0.05, 0.0, false);
+    timed.lockTargets(true, true);
+    advanceFixedTick(timed);
+    if (timed.castingAbility != <uint>0 || timed.castRemaining != 0.0 ||
+        timed.successfulStops != 1 || timed.resolvedCasts != 1 ||
+        timed.castAimLocked || timed.castTargetLocked) {
+        return -1;
+    }
+
+    var cancelled = new CastState();
+    cancelled.armChannel(<uint>2, 0.3, 0.1, 3, 0.0);
+    cancelled.lockTargets(true, true);
+    if (!cancelled.queueTimed(<uint>3, 1.0, 0.0, false)) { return -2; }
+    cancelCast(cancelled);
+    if (cancelled.castingAbility != <uint>0 || cancelled.castRemaining != 0.0 ||
+        cancelled.channeling || cancelled.channelTicksLeft != 0 ||
+        cancelled.queuedAbility != <uint>0 || cancelled.castAimLocked ||
+        cancelled.castTargetLocked || cancelled.cancelledStops != 1) {
+        return -3;
+    }
+
+    var timedPushback = new CastState();
+    timedPushback.armTimed(<uint>1, 1.5, 0.0, false);
+    timedPushback.castTotal = 3.0;
+    pushbackCast(timedPushback);
+    if (!closeEnough(timedPushback.castRemaining, 2.0) ||
+        !closeEnough(timedPushback.castTotal, 3.5)) {
+        return -4;
+    }
+    var halfPushback = new CastState();
+    halfPushback.armTimed(<uint>1, 1.5, 0.0, false);
+    halfPushback.castTotal = 3.0;
+    halfPushback.castPushbackReduction = 0.5;
+    pushbackCast(halfPushback);
+    if (!closeEnough(halfPushback.castRemaining, 1.75) ||
+        !closeEnough(halfPushback.castTotal, 3.25)) {
+        return -5;
+    }
+    var immunePushback = new CastState();
+    immunePushback.armTimed(<uint>1, 1.5, 0.0, false);
+    immunePushback.castPushbackReduction = 1.0;
+    pushbackCast(immunePushback);
+    if (!closeEnough(immunePushback.castRemaining, 1.5)) { return -6; }
+    var channelPushback = new CastState();
+    channelPushback.armChannel(<uint>1, 1.5, 0.5, 3, 0.0);
+    channelPushback.castTotal = 3.0;
+    pushbackCast(channelPushback);
+    if (!closeEnough(channelPushback.castRemaining, 0.75) ||
+        !closeEnough(channelPushback.castTotal, 3.0)) {
+        return -7;
+    }
+    channelPushback.castShield = true;
+    pushbackCast(channelPushback);
+    if (!closeEnough(channelPushback.castRemaining, 0.75)) { return -8; }
+
+    var fixedChannel = new CastState();
+    fixedChannel.armChannel(<uint>4, 0.1, 0.1, 2, 0.0);
+    advanceFixedTick(fixedChannel);
+    advanceFixedTick(fixedChannel);
+    if (fixedChannel.castingAbility != <uint>0 || fixedChannel.channeling ||
+        fixedChannel.channelTicksLeft != 0 || fixedChannel.channelTicks != 2 ||
+        fixedChannel.successfulStops != 1) {
+        return -9;
+    }
+
+    var queued = new CastState();
+    queued.armTimed(<uint>1, 0.05, 0.15, false);
+    if (!queued.queueTimed(<uint>2, 1.0, 0.0, false)) { return -10; }
+    advanceFixedTick(queued);
+    if (queued.castingAbility != <uint>0 || queued.queuedAbility != <uint>2 ||
+        queued.startedCasts != 1) {
+        return -11;
+    }
+    var retry = 0;
+    while (queued.castingAbility == <uint>0 && retry < 6) {
+        advanceFixedTick(queued);
+        retry = retry + 1;
+    }
+    if (queued.castingAbility != <uint>2 || queued.queuedAbility != <uint>0 ||
+        queued.startedCasts != 2) {
+        return -12;
+    }
+
+    var outsideWindow = new CastState();
+    outsideWindow.armTimed(<uint>1, 0.5, 0.0, false);
+    if (outsideWindow.queueTimed(<uint>2, 1.0, 0.0, false)) { return -13; }
+    var fishing = new CastState();
+    fishing.armFishing(<uint>9, 0.3, 0.0);
+    if (fishing.queueTimed(<uint>2, 1.0, 0.0, false)) { return -14; }
+    var fishingTicks = 0;
+    while (fishing.castingAbility != <uint>0 && fishingTicks < 8) {
+        advanceFixedTick(fishing);
+        fishingTicks = fishingTicks + 1;
+    }
+    if (fishing.castingAbility != <uint>0 || fishing.fishing ||
+        fishing.fishingCompletions != 1 || fishing.resolvedCasts != 0) {
+        return -15;
+    }
+
+    var silencedPhysical = new CastState();
+    silencedPhysical.armTimed(<uint>5, 0.1, 0.0, true);
+    silencedPhysical.silenced = true;
+    advanceFixedTick(silencedPhysical);
+    if (silencedPhysical.castingAbility != <uint>5 ||
+        !closeEnough(silencedPhysical.castRemaining, 0.05)) {
+        return -16;
+    }
+    var silencedSpell = new CastState();
+    silencedSpell.armTimed(<uint>6, 1.0, 0.0, false);
+    silencedSpell.silenced = true;
+    advanceFixedTick(silencedSpell);
+    if (silencedSpell.castingAbility != <uint>0 || silencedSpell.cancelledStops != 1) {
+        return -17;
+    }
+
+    var massResInCombat = new CastState();
+    massResInCombat.armTimed(<uint>70, 1.0, 0.0, false);
+    massResInCombat.setMassResurrectionContext(true, true, true);
+    advanceFixedTick(massResInCombat);
+    if (massResInCombat.castingAbility != <uint>0 || massResInCombat.cancelledStops != 1 ||
+        massResInCombat.lastCancelReason != lifecycleContract.massResCombatReason()) {
+        return -18;
+    }
+    var massResWithoutDeadMember = new CastState();
+    massResWithoutDeadMember.armTimed(<uint>71, 1.0, 0.0, false);
+    massResWithoutDeadMember.setMassResurrectionContext(true, false, false);
+    advanceFixedTick(massResWithoutDeadMember);
+    if (massResWithoutDeadMember.castingAbility != <uint>0 ||
+        massResWithoutDeadMember.lastCancelReason != lifecycleContract.massResNoDeadMemberReason()) {
+        return -19;
+    }
+
+    // At one quarter progress, a four-stage empowered cast releases at stage
+    // two. The client cannot choose this level; it is derived from live time.
+    var empowered = new CastState();
+    empowered.armEmpowered(<uint>77, 4.0, 0.0, false, 4);
+    empowered.castRemaining = 3.0;
+    empowered.iceFloesUses = 1;
+    empowered.lockTargets(true, true);
+    releaseEmpoweredAbility(empowered, <uint>77);
+    if (empowered.castingAbility != <uint>0 || empowered.channeling ||
+        empowered.lastResolvedEmpowerLevel != 2 || empowered.resolvedCasts != 1 ||
+        empowered.successfulStops != 1 || empowered.iceFloesUses != 0 ||
+        empowered.castAimLocked || empowered.castTargetLocked) {
+        return -20;
+    }
+
+    // Natural completion resolves the fully held stage, exactly as the target
+    // source builds an empowered ResolvedAbility at cast completion.
+    var naturallyCompleted = new CastState();
+    naturallyCompleted.armEmpowered(<uint>78, 0.05, 0.0, false, 4);
+    naturallyCompleted.iceFloesUses = 1;
+    advanceFixedTick(naturallyCompleted);
+    if (naturallyCompleted.lastResolvedEmpowerLevel != 4 ||
+        naturallyCompleted.resolvedCasts != 1 || naturallyCompleted.empowerStages != 0 ||
+        naturallyCompleted.iceFloesUses != 0) {
+        return -21;
+    }
+
+    var wrongRelease = new CastState();
+    wrongRelease.armEmpowered(<uint>79, 1.0, 0.0, false, 3);
+    releaseEmpoweredAbility(wrongRelease, <uint>80);
+    if (wrongRelease.castingAbility != <uint>79 || wrongRelease.resolvedCasts != 0) {
+        return -22;
+    }
+    wrongRelease.silenced = true;
+    releaseEmpoweredAbility(wrongRelease, <uint>79);
+    if (wrongRelease.castingAbility != <uint>0 || wrongRelease.cancelledStops != 1 ||
+        wrongRelease.resolvedCasts != 0) {
+        return -23;
+    }
+
+    // Release takes the same queued-cast continuation path as a normal finish.
+    var releaseQueue = new CastState();
+    releaseQueue.armEmpowered(<uint>81, 0.2, 0.0, false, 2);
+    if (!releaseQueue.queueTimed(<uint>82, 1.0, 0.0, false)) { return -24; }
+    releaseEmpoweredAbility(releaseQueue, <uint>81);
+    if (releaseQueue.castingAbility != <uint>82 || releaseQueue.queuedAbility != <uint>0 ||
+        releaseQueue.lastResolvedEmpowerLevel != 1 || releaseQueue.resolvedCasts != 1) {
+        return -25;
+    }
+    return 1;
+}

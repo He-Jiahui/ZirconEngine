@@ -1,9 +1,12 @@
 pub const PLUGIN_ID: &str = "animation";
 mod capability;
+mod channel_sampling;
 mod evaluation;
 mod gpu_skinning;
 mod ik;
+mod manager;
 mod mask;
+mod module;
 mod plugin;
 mod runtime_system;
 mod state_machine;
@@ -14,11 +17,12 @@ pub use capability::{
 pub use evaluation::{
     AnimationAssetRevision, AnimationChannelDataRole, AnimationClipCompileError,
     AnimationClipEvaluator, AnimationClipEvaluatorStats, AnimationEvaluationDiagnostic,
-    AnimationEvaluationError, AnimationEvaluationPipeline, AnimationGraphCompileError,
-    AnimationStateMachineLayerDiagnostic, AnimationStateMachineLayerError,
-    AnimationTransformChannel, CompiledAnimationClip, CompiledAnimationGraph,
-    CompiledAnimationGraphEvaluation, CompiledClipTrack, CompiledGraphClipInstance, PoseBlendError,
-    PoseBuffer, PoseBufferError, PoseLayer, PoseLayerBlendMode, PosePool, SkeletonTargetTable,
+    AnimationEvaluationError, AnimationEvaluationPipeline, AnimationEvaluationProjectionStats,
+    AnimationGraphCompileError, AnimationStateMachineLayerDiagnostic,
+    AnimationStateMachineLayerError, AnimationTransformChannel, CompiledAnimationClip,
+    CompiledAnimationGraph, CompiledAnimationGraphEvaluation, CompiledClipTrack,
+    CompiledGraphClipInstance, DirectClipWorkerStats, PoseBlendError, PoseBuffer, PoseBufferError,
+    PoseLayer, PoseLayerBlendMode, PosePool, SkeletonTargetTable, MAX_DIRECT_CLIP_WORKER_SHARDS,
 };
 pub use gpu_skinning::{
     AnimationGpuSkinningDecision, SkinningPalette, SkinningPaletteDoubleBuffer,
@@ -28,7 +32,12 @@ pub use ik::{
     AnimationIkDiagnostic, AnimationIkError, AnimationIkExecutionError, LookAtJob, TwoBoneIkJob,
     TwoBoneIkSolution,
 };
+pub use manager::DefaultAnimationManager;
 pub use mask::{AvatarMaskAsset, AvatarMaskError, AvatarMaskRule, MaskWeights};
+pub use module::{
+    module_descriptor, AnimationDriver, AnimationModule, ANIMATION_DRIVER_NAME,
+    ANIMATION_MODULE_NAME, DEFAULT_ANIMATION_MANAGER_NAME,
+};
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, AnimationRuntimePlugin, ANIMATION_DIST_CRATE_NAME,
@@ -50,9 +59,7 @@ pub use state_machine::{
     TransitionDesc, TransitionRequest, TransitionRuntime, TransitionState, TransitionWeights,
 };
 pub use zircon_runtime::animation::{
-    apply_sequence_to_world, module_descriptor, sample_clip_events, AnimationClipEvent,
-    AnimationDriver, AnimationModule, DefaultAnimationManager, ANIMATION_DRIVER_NAME,
-    ANIMATION_MODULE_NAME, ANIMATION_PLAYBACK_CONFIG_KEY, DEFAULT_ANIMATION_MANAGER_NAME,
+    apply_sequence_to_world, AnimationClipEvent, ANIMATION_PLAYBACK_CONFIG_KEY,
 };
 pub use zircon_runtime::core::framework::animation::AnimationSequenceApplyReport;
 pub use zircon_runtime::core::manager::ANIMATION_MANAGER_NAME;

@@ -42,7 +42,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
         "Runtime 06 should stay in_progress until plugin/native/app/plugins validation closes"
     );
     assert!(
-        plan_doc.contains("last_refined: 2026-07-12"),
+        plan_doc.contains("last_refined: 2026-07-22"),
         "Runtime 06 last_refined should cover the latest mirror-doc row"
     );
 
@@ -59,7 +59,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
     let native_namespace_symbols = native_plugin_namespace_reexport_symbols();
     assert_eq!(
         native_namespace_symbols.len(),
-        64,
+        68,
         "native plugin namespace re-export count changed; update native_plugin_public_surface and Runtime 06 mirror docs"
     );
     for required_symbol in [
@@ -163,9 +163,9 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
             "expected_doc_file_count = 5",
             "fallback lifecycle failure tests 4/4",
             "root_reexport_count = 0",
-            "native_namespace_reexport_count = 64",
+            "native_namespace_reexport_count = 68",
             "native root re-export 0/0",
-            "native namespace re-export 64/64",
+            "native namespace re-export 68/68",
             "M4 gate `classified-and-clear`",
             "debt groups 0/0",
             "native namespace symbol groups 5/5",

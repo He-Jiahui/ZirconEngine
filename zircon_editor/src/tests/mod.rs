@@ -10,6 +10,7 @@ mod gateway;
 mod host;
 mod jobs;
 mod runtime_event_consumer;
+mod runtime_event_consumer_bounded_pump;
 mod structure_convention;
 pub(crate) mod support;
 mod ui;

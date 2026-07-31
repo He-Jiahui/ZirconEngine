@@ -21,6 +21,15 @@ pub(in crate::ui::retained_host::host_contract) fn popup_keyboard_target_from_ro
         .as_ref()
         .map(|row| row.frame.clone())
         .unwrap_or_else(|| frame_from_template_node(node));
+    let window_count = usize::try_from(node.pagination_page_size)
+        .ok()
+        .filter(|count| *count > 0)
+        .unwrap_or(rows.len());
+    let window_offset = usize::try_from(node.virtualization_visible_start).unwrap_or(0);
+    // A cached visible window can arrive before its total-count projection catches up.
+    let total_count = usize::try_from(node.virtualization_total_count)
+        .unwrap_or(rows.len())
+        .max(window_offset.saturating_add(rows.len()));
     Some(PopupKeyboardTarget {
         control_id: node.control_id.clone(),
         dispatch_kind: dispatch_kind.into(),
@@ -29,6 +38,12 @@ pub(in crate::ui::retained_host::host_contract) fn popup_keyboard_target_from_ro
         current_row,
         current_frame,
         popup_frame,
+        window_offset,
+        window_count,
+        total_count,
+        window_navigation_enabled: node.control_id.as_str() == "WorkbenchCommandPalette"
+            && node.virtualization_enabled,
+        window_query: node.search_query.clone(),
     })
 }
 
@@ -55,4 +70,44 @@ fn active_row_index(
         .position(|row| row.focused)
         .or_else(|| rows.iter().position(|row| row.selected))
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn virtualized_target_total_covers_its_visible_window_when_projection_lags() {
+        let mut node = TemplatePaneNodeData::default();
+        node.control_id = "WorkbenchCommandPalette".into();
+        node.virtualization_enabled = true;
+        node.pagination_page_size = 12;
+        node.virtualization_total_count = 1;
+        node.virtualization_visible_start = 12;
+        let rows = (0..12).map(row).collect();
+
+        let target = popup_keyboard_target_from_rows(
+            &node,
+            "workbench_option",
+            rows,
+            FrameRect::default(),
+            &HostPaneInteractionStateData::default(),
+        )
+        .expect("visible command rows should produce a keyboard target");
+
+        assert_eq!(target.total_count, 24);
+    }
+
+    fn row(index: usize) -> PopupKeyboardRow {
+        PopupKeyboardRow {
+            action_id: format!("command_{index}").into(),
+            value_text: format!("command_{index}").into(),
+            identity: format!("command_{index}").into(),
+            search_text: format!("Command {index}").into(),
+            focused: false,
+            selected: false,
+            source_index: Some(index),
+            frame: FrameRect::default(),
+        }
+    }
 }

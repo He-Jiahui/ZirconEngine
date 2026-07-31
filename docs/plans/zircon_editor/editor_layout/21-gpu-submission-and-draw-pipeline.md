@@ -158,3 +158,7 @@ extract→command 契约归 `10`;wgpu pipeline/bind group/draw 实现归运行�
 ## 12. 状态与产出记录
 
 planned。后续项:S1 批次键合并语义 + layer 排序 + 裁剪栈契约。
+
+- 2026-07-18 scene UI image性能交接：每可见image当前逐frame创建bind group、6-vertex GPU buffer并单draw，即使相同texture；stable draw list无generation命中。S1必须把image纳入ordered batch key(texture generation+clip/scissor+blend)，以static quad+instance arena和persistent binding handle提交；stable prepare/create/upload=0，见PERF-MVP-397及UI image静态证据。
+- 2026-07-18 scene screen-space UI root交接：当前每frame从原始command重建七组plan Vec，并在`to_paint_elements`内逐command重建payload、serde hash和debug label；text line/advance/style再深clone。本轮只把decoration路径的重复paint投影2次降至1次。S1/S3必须让extract发布唯一generation-owned ordered plan、共享text/image handles与persistent geometry arena，stable generation projection/serde/hash/clone/plan rebuild/upload均为0；见PERF-MVP-398及UI render root静态证据。
+- 2026-07-18 scene UI render子目录补充交接：17/17文件确认root/helper现共享一次paint projection，rich parse已从每inline降至每command，vertical advance与background blocker嵌套全扫已索引/线性化；但rich-run查找、inline前缀、七组Vec、CPU rect vertices与text/style clone仍逐frame。S1/S3的唯一prepared plan须同时提供dense rich-run range和共享line/report handles，见PERF-MVP-398及UI render子目录证据。

@@ -26,6 +26,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     let action_color = style.action;
     let button_rect = table_action_button_rect(node, rect);
     let action_rect = table_action_icon_rect(&button_rect);
+    if !frame_is_within(rect, &button_rect) || !frame_is_within(rect, &action_rect) {
+        return;
+    }
     if is_table_header(node) {
         push_table_action_button_slot(commands, &button_rect, clip, order, false, opacity);
         if push_icon_asset_pixels(
@@ -72,6 +75,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
             opacity,
         );
     }
+}
+
+fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {
+    inner.x.is_finite()
+        && inner.y.is_finite()
+        && inner.width.is_finite()
+        && inner.height.is_finite()
+        && inner.width > 0.0
+        && inner.height > 0.0
+        && inner.x >= outer.x
+        && inner.y >= outer.y
+        && inner.x + inner.width <= outer.x + outer.width
+        && inner.y + inner.height <= outer.y + outer.height
 }
 
 fn push_table_action_button_slot(

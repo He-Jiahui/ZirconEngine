@@ -1,0 +1,137 @@
+// Effect-dispatch scalar outcomes. The public shape mirrors the stable content
+// metric boundary while Plugins 08 owns natural object/array effect dispatch.
+pub metric(
+    kind: int,
+    first: float,
+    second: float,
+    third: float,
+    fourth: float
+): float {
+    if (kind == 0) {
+        var direct = first + second;
+        if (third > 0.0) { direct = direct * (1.5 + fourth); }
+        return <float><int>(direct + 0.5);
+    }
+    if (kind == 1) {
+        return first + second * third + fourth / 14.0;
+    }
+    if (kind == 2) {
+        var judgement = first + second;
+        if (third > 0.0) { judgement = judgement * (1.5 + fourth); }
+        return <float><int>(judgement + 0.5);
+    }
+    if (kind == 3) {
+        var areaDamage = first + second;
+        if (fourth > 0.0) { areaDamage = areaDamage * (1.0 - third); }
+        return <float><int>(areaDamage + 0.5);
+    }
+    if (kind == 4) {
+        if (third > 0.0) { return second; }
+        var nextStacks = first + 1.0;
+        return nextStacks < second ? nextStacks : second;
+    }
+    if (kind == 5) { return first * second; }
+    if (kind == 6) { return first; }
+    if (kind == 7) { return second; }
+    if (kind == 8) { return first > 0.0 && second > 0.0 ? 0.0 : second; }
+    if (kind == 9) {
+        return first > 0.0 && third == 0.0 ? second : 0.0;
+    }
+    throw "effect rule metric is invalid";
+}
+
+// Multi-class c4b dispatch order. Each effect-local random decision increments
+// the shared draw count at the exact point the reference switch draws it.
+pub scenarioContract(seed: int, marker: int): float {
+    if (seed != 1018 || marker != 1) {
+        throw "effect scenario contract marker is invalid";
+    }
+
+    var randomDraws = 0;
+    var dispatchPhase = 0;
+
+    // Warlock: fear angle draw, then summon demon.
+    dispatchPhase = dispatchPhase + 1;
+    randomDraws = randomDraws + 1;
+    var fearAura = true;
+    var warlockPet = true;
+
+    // Warrior: sunder performs exactly one miss roll before aura/threat.
+    dispatchPhase = dispatchPhase + 1;
+    randomDraws = randomDraws + 1;
+    var sunderLanded = true;
+    var sunderThreat = sunderLanded;
+
+    // Mage: insertion-ordered hostiles each consume one range draw.
+    dispatchPhase = dispatchPhase + 1;
+    var arcaneTargets = 0;
+    var mageTargetIndex = 0;
+    while (mageTargetIndex < 2) {
+        randomDraws = randomDraws + 1;
+        arcaneTargets = arcaneTargets + 1;
+        mageTargetIndex = mageTargetIndex + 1;
+    }
+
+    // Rogue: weapon strike awards once; finisher draws range then chance. The
+    // character-bound combo pool clears only after all effects have run.
+    dispatchPhase = dispatchPhase + 1;
+    var rogueCombo = 0;
+    var comboAwarded = false;
+    var weaponStrikeHit = true;
+    if (weaponStrikeHit && !comboAwarded) {
+        rogueCombo = rogueCombo + 1;
+        comboAwarded = true;
+    }
+    rogueCombo = 3;
+    randomDraws = randomDraws + 1;
+    randomDraws = randomDraws + 1;
+    var roguePhysicalDamage = true;
+    var rogueComboResetEvent = false;
+    if (rogueCombo > 0) {
+        rogueCombo = 0;
+        rogueComboResetEvent = true;
+    }
+    rogueCombo = 2;
+    if (rogueCombo > 0) {
+        rogueCombo = 0;
+        rogueComboResetEvent = true;
+    }
+
+    // Paladin: judgement consumes the seal, then range/chance. Consecration
+    // immediately pulses one in-radius target before entering the ground list.
+    dispatchPhase = dispatchPhase + 1;
+    var sealActive = true;
+    var holyDamage = false;
+    if (sealActive) {
+        sealActive = false;
+        randomDraws = randomDraws + 1;
+        randomDraws = randomDraws + 1;
+        holyDamage = true;
+    }
+    var groundEffects = 0;
+    var holyGroundTargets = 1;
+    randomDraws = randomDraws + holyGroundTargets;
+    groundEffects = groundEffects + 1;
+
+    // Druid: moonfire draws range then chance and applies its dot in the same
+    // effect loop; changing bear to cat strips the prior exclusive form.
+    dispatchPhase = dispatchPhase + 1;
+    randomDraws = randomDraws + 1;
+    randomDraws = randomDraws + 1;
+    var moonfireDamage = true;
+    var moonfireDot = true;
+    var bearForm = true;
+    var catForm = false;
+    if (bearForm) {
+        bearForm = false;
+        catForm = true;
+    }
+    var rejuvenationHot = true;
+
+    return dispatchPhase == 6 && randomDraws == 11 &&
+        fearAura && warlockPet && sunderLanded && sunderThreat &&
+        arcaneTargets == 2 && roguePhysicalDamage &&
+        rogueCombo == 0 && rogueComboResetEvent && holyDamage &&
+        !sealActive && groundEffects == 1 && moonfireDamage && moonfireDot &&
+        catForm && !bearForm && rejuvenationHot ? 1.0 : 0.0;
+}

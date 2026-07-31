@@ -1,3 +1,4 @@
+mod admission_scaling_contract;
 mod background_storm_contract;
 mod progress_contract;
 mod pump_contract;

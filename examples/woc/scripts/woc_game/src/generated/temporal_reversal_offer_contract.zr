@@ -1,0 +1,25 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+
+pub abilityId(required: bool): string { return required ? "temporal_reversal" : ""; }
+pub resourceCost(required: bool): int { return required ? 60 : 0; }
+pub hpFraction(required: bool): float { return required ? 0.35 : 0.0; }
+pub castTimeSeconds(required: bool): float { return required ? 2.0 : 0.0; }
+pub globalCooldownSeconds(required: bool): float { return required ? 1.5 : 0.0; }
+pub minimumGlobalCooldownSeconds(required: bool): float { return required ? 0.75 : 0.0; }
+pub cooldownSeconds(required: bool): float { return required ? 600.0 : 0.0; }
+pub range(required: bool): float { return required ? 30.0 : 0.0; }
+pub targetsDead(required: bool): bool { return required; }
+pub overridePrecedesCurrentTarget(required: bool): bool { return required; }
+pub requiresPartyMembership(required: bool): bool { return required; }
+pub noSelfFallback(required: bool): bool { return required; }
+pub school(required: bool): string { return required ? "arcane" : ""; }
+pub fx(required: bool): string { return required ? "temporalGlyph" : ""; }
+
+pub contractTest(): int {
+    return abilityId(true) == "temporal_reversal" && resourceCost(true) == 60 && hpFraction(true) == 0.35 &&
+        castTimeSeconds(true) == 2.0 && globalCooldownSeconds(true) == 1.5 &&
+        minimumGlobalCooldownSeconds(true) == 0.75 && cooldownSeconds(true) == 600.0 &&
+        range(true) == 30.0 && targetsDead(true) && overridePrecedesCurrentTarget(true) &&
+        requiresPartyMembership(true) && noSelfFallback(true) && school(true) == "arcane" &&
+        fx(true) == "temporalGlyph" ? 1 : -1;
+}

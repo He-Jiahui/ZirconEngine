@@ -1,0 +1,6 @@
+{
+  "name": "woc_mobile_crafting_station_state_tests",
+  "source": "src",
+  "binary": "bin-mobile-crafting-station-state-tests",
+  "entry": "progression/mobile_crafting_station_state_test_main"
+}

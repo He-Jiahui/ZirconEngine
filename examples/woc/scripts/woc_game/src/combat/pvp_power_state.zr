@@ -1,0 +1,61 @@
+// Current-head WARFARE rating conversion and hostile player-versus-player
+// damage scaling from sim/pvp/power.ts. The caller owns gear stat derivation
+// and hostile-relationship routing; this leaf keeps the source formulas pure.
+var contract = %import("generated/pvp_power_contract");
+
+pub pvpFractionFromRating(rating: float, cap: float): float {
+    var normalized = rating;
+    if (normalized < 0.0) normalized = 0.0;
+    normalized = normalized / contract.ratingDenominator();
+    return normalized > cap ? cap : normalized;
+}
+
+pub pvpOffenseFractionFromRating(rating: float): float {
+    return pvpFractionFromRating(rating, contract.offenseCap());
+}
+
+pub pvpDefenseFractionFromRating(rating: float): float {
+    return pvpFractionFromRating(rating, contract.defenseCap());
+}
+
+// The source accepts a PvpCaps object for custom tests. The Zr projection
+// exposes the two caps explicitly to preserve the same independently tunable
+// calculation without requiring a transient object ABI.
+pub pvpFractionFromRatingWithCap(rating: float, cap: float): float {
+    return pvpFractionFromRating(rating, cap);
+}
+
+clampPvpFraction(value: float, cap: float): float {
+    var normalized = value;
+    if (normalized < 0.0) normalized = 0.0;
+    return normalized > cap ? cap : normalized;
+}
+
+pub pvpDamageMultiplier(offense: float, defense: float): float {
+    var normalizedOffense = clampPvpFraction(offense, contract.offenseCap());
+    var normalizedDefense = clampPvpFraction(defense, contract.defenseCap());
+    return (1.0 + normalizedOffense) * (1.0 - normalizedDefense);
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    if (!closeEnough(contract.ratingPerPct(), 10.0) ||
+        !closeEnough(contract.offenseCap(), 0.2) ||
+        !closeEnough(contract.defenseCap(), 0.2) ||
+        !closeEnough(contract.ratingDenominator(), 1000.0)) return -1;
+    if (!closeEnough(pvpOffenseFractionFromRating(-100.0), 0.0) ||
+        !closeEnough(pvpOffenseFractionFromRating(168.0), 0.0168) ||
+        !closeEnough(pvpOffenseFractionFromRating(10000.0), 0.2) ||
+        !closeEnough(pvpDefenseFractionFromRating(10000.0), 0.2)) return -2;
+    if (!closeEnough(pvpFractionFromRatingWithCap(10000.0, 0.07), 0.07) ||
+        !closeEnough(pvpFractionFromRatingWithCap(10000.0, 0.13), 0.13)) return -3;
+    if (!closeEnough(pvpDamageMultiplier(0.0, 0.0), 1.0) ||
+        !closeEnough(pvpDamageMultiplier(0.2, 0.2), 0.96) ||
+        !closeEnough(pvpDamageMultiplier(-100.0, -100.0), 1.0)) return -4;
+    return 1;
+}

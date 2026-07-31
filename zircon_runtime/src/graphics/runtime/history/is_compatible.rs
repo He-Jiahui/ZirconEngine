@@ -38,7 +38,7 @@ impl ViewportFrameHistory {
         if self.bindings != bindings {
             return Some(FrameHistoryInvalidationReason::HistoryBindingChanged);
         }
-        if self.validation_key != *validation_key {
+        if self.validation_key.as_ref() != validation_key {
             return Some(FrameHistoryInvalidationReason::FrameInputsChanged);
         }
         None

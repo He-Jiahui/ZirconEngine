@@ -259,3 +259,23 @@ fn ui_asset_style_positions_follow_editor_reorder_operations() {
     assert_eq!(position.rule_index, 1);
     assert!(document.style_rule_position("missing_rule").is_none());
 }
+
+#[test]
+fn ui_asset_style_rule_reorder_mutates_in_place_without_cloning_all_stylesheets() {
+    let source = include_str!("../../template/asset/document.rs");
+    let implementation = source
+        .split_once("impl UiAssetDocumentRuntimeExt for UiAssetDocument")
+        .expect("document runtime extension implementation must remain available")
+        .1;
+    let reorder = implementation
+        .split_once("fn move_style_rule(")
+        .expect("style rule reorder must remain available")
+        .1
+        .split_once("fn style_sheet(")
+        .expect("reorder boundary must remain available")
+        .0;
+
+    assert!(!reorder.contains("self.stylesheets.clone()"));
+    assert!(reorder.contains("validate_style_rule_selectors(&self.stylesheets)?"));
+    assert!(reorder.contains(".remove(source_rule_index)"));
+}

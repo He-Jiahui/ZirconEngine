@@ -1,0 +1,144 @@
+// Auto-attack scalar outcomes. Random samples enter this function only after
+// the shared seeded RNG has consumed them in the reference order.
+pub metric(
+    kind: int,
+    first: float,
+    second: float,
+    third: float,
+    fourth: float
+): float {
+    if (kind == 0) {
+        var timer = first - 0.05;
+        return timer > 0.0 ? timer : 0.0;
+    }
+    if (kind == 1) {
+        var minimumRange = fourth > 0.0 ? 0.0 : third;
+        return first <= second && first >= minimumRange ? 1.0 : 0.0;
+    }
+    if (kind == 2) {
+        if (first < second) { return 0.0; }
+        if (fourth == 0.0 && first < second + third) { return 1.0; }
+        return 2.0;
+    }
+    if (kind == 3) { return first + 5.0; }
+    if (kind == 4) { return first * second + third + fourth; }
+    if (kind == 5) {
+        var weaponDamage = fourth > 0.0 ? first : first * 0.6;
+        return weaponDamage + second / 14.0 * third;
+    }
+    if (kind == 6) {
+        var levelPenalty = second > 0.0 ? second * 0.002 : 0.0;
+        var critChance = first - levelPenalty;
+        return critChance > 0.005 ? critChance : 0.005;
+    }
+    if (kind == 7) {
+        var mitigated = first * (1.0 - second);
+        var rounded = <float><int>(mitigated + 0.5);
+        return rounded > 1.0 ? rounded : 1.0;
+    }
+    if (kind == 8) { return first * second / (1.0 + third); }
+    if (kind == 9) {
+        var resource = first - second;
+        return resource > 0.0 ? resource : 0.0;
+    }
+    if (kind == 10) { return first > 0.0 ? first : 0.0; }
+    if (kind == 11) { return 0.0; }
+    if (kind == 12) {
+        return first <= second && third == 0.0 ? 1.0 : 0.0;
+    }
+    throw "auto-attack rule metric is invalid";
+}
+
+// Five-lane c5_auto_attack ordering. It deliberately models samples rather
+// than inventing a second RNG; the authoritative RNG remains kernel/rng.zr.
+pub scenarioContract(seed: int, rounds: int): float {
+    if (seed != 1019 || rounds != 12) {
+        throw "auto-attack scenario contract marker is invalid";
+    }
+
+    var warriorAuto = true;
+    var rogueAuto = true;
+    var hunterMeleeAuto = true;
+    var hunterRangedAuto = true;
+    var mageWandAuto = true;
+    var warriorQueued = false;
+    var hunterQueued = false;
+    var hunterCooldown = 0.0;
+    var raptorCooldownArmed = false;
+    var autoShotEvents = 0;
+    var wandEvents = 0;
+    var physicalWhiteEvents = 0;
+    var queuedAbilityEvents = 0;
+    var reflectEvents = 0;
+    var overpowerUntil = 0.0;
+    var randomDraws = 0;
+    var hunterMeleeUsedRanged = false;
+
+    var round = 0;
+    while (round < rounds) {
+        if (!warriorQueued) { warriorQueued = true; }
+        if (!hunterQueued && hunterCooldown <= 0.0) { hunterQueued = true; }
+
+        var meleeLane = 0;
+        while (meleeLane < 3) {
+            // warrior, rogue, and the hunter inside the 8yd dead zone use melee.
+            if (meleeLane == 2 && metric(1, 1.5, 35.0, 8.0, 0.0) == 1.0) {
+                hunterMeleeUsedRanged = true;
+            }
+            randomDraws = randomDraws + 1;
+            var outcome = (round + meleeLane) % 6;
+
+            var namedQueuedSwing = false;
+            if (meleeLane == 0 && warriorQueued) {
+                warriorQueued = false;
+                namedQueuedSwing = true;
+            }
+            if (meleeLane == 2 && hunterQueued) {
+                hunterQueued = false;
+                hunterCooldown = 6.0;
+                raptorCooldownArmed = true;
+                namedQueuedSwing = true;
+            }
+            if (namedQueuedSwing) { queuedAbilityEvents = queuedAbilityEvents + 1; }
+
+            if (outcome == 0) {
+                physicalWhiteEvents = physicalWhiteEvents + 1;
+            } else if (outcome == 1) {
+                physicalWhiteEvents = physicalWhiteEvents + 1;
+                overpowerUntil = metric(3, <float>round * 0.5, 0.0, 0.0, 0.0);
+            } else {
+                randomDraws = randomDraws + 1;
+                randomDraws = randomDraws + 1;
+                physicalWhiteEvents = physicalWhiteEvents + 1;
+                if (meleeLane == 0) { reflectEvents = reflectEvents + 1; }
+            }
+            meleeLane = meleeLane + 1;
+        }
+
+        // Hunter Auto Shot: 20yd is outside its 8yd dead zone and inside 35yd.
+        if (hunterRangedAuto && metric(1, 20.0, 35.0, 8.0, 0.0) == 1.0) {
+            randomDraws = randomDraws + 1;
+            randomDraws = randomDraws + 1;
+            randomDraws = randomDraws + 1;
+            autoShotEvents = autoShotEvents + 1;
+        }
+        // Mage wand: 15yd is valid because wand minimum range is zero.
+        if (mageWandAuto && metric(1, 15.0, 30.0, 8.0, 1.0) == 1.0) {
+            randomDraws = randomDraws + 1;
+            randomDraws = randomDraws + 1;
+            randomDraws = randomDraws + 1;
+            wandEvents = wandEvents + 1;
+        }
+
+        hunterCooldown = hunterCooldown - 0.5;
+        if (hunterCooldown < 0.0) { hunterCooldown = 0.0; }
+        round = round + 1;
+    }
+
+    rogueAuto = false;
+    return warriorAuto && !rogueAuto && hunterMeleeAuto &&
+        hunterRangedAuto && mageWandAuto && !hunterMeleeUsedRanged &&
+        autoShotEvents > 0 && wandEvents > 0 && physicalWhiteEvents > 0 &&
+        queuedAbilityEvents > 0 && raptorCooldownArmed && reflectEvents > 0 &&
+        overpowerUntil > 0.0 && randomDraws > 0 ? 1.0 : 0.0;
+}

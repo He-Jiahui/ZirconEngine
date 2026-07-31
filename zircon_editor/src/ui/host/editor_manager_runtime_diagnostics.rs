@@ -1,4 +1,5 @@
-use zircon_runtime::core::diagnostics::{collect_runtime_diagnostics, RuntimeDiagnosticsSnapshot};
+use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
+use zircon_runtime::runtime_diagnostics::collect_runtime_diagnostics;
 
 use super::editor_manager::EditorManager;
 

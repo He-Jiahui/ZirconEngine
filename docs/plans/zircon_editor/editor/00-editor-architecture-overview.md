@@ -171,3 +171,15 @@ zircon_editor/src/
 ## 9. 与既有模块注册的关系
 
 `EditorModule`（`ui/host/module.rs:37-101`）保持五模块依赖与「1 Driver + 4 Lazy Manager」注册形态不变；本计划集新增服务**不逐个注册进模块内核**，而是全部经 `EditorContext` 聚合（`EditorManager` 构造）。理由：模块内核的 manager 粒度面向 runtime 生命周期，编辑器内部服务粒度细得多，逐个注册会把 13+ 服务名常量灌进模块描述符（root wiring 变厚，违反结构规则）。`EDITOR_COMMAND_REGISTRY_NAME`/`EDITOR_KEYMAP_NAME` 两个既有 manager 注册位在 08 迁移后指向 core/ 新 owner，名称与解析行为保持。
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- §3 的 `EditorContext` 定形结构体与已落地实现不一致。`zircon_editor/src/core/context/editor_context.rs:14-24` 当前字段为 `bus / events / jobs / notifications / transactions / commands / command_eval / tools / gateway`：计划列出的 `settings(17) / log(17) / journal / selection(05) / assets(09) / project(10) / contributions(06)` 七个字段尚未落地，而计划漏列了**已落地**的 `events(EditorEventService) / notifications(EditorNotificationService) / command_eval(CommandEvalSnapshotHandle) / tools(ToolSchedulerService)` 四字段。建议把 §3 拆成「当前字段」与「规划字段（含落点计划号）」两栏，避免读者按计划的理想结构去核对代码时误判为回归。
+- §7 目录终态把 `EditorContext` 落点写作单文件 `context.rs`，但实现已是文件夹 `core/context/`（`editor_context.rs` + `builder.rs` + `tool_scheduler.rs` + `mod.rs`，见 `core/context/mod.rs:1-7`）。§3 定形规则「字段只增不藏」已由 `editor_context.rs` 的私有字段 + 访问器（`:51-89`）满足，但目录终态图应同步为文件夹形态。
+- §6 事实源表把 `ContributionStore(06)`、`EditorAssetIndex(09)`、`ProjectAuthority(10)` 列为既定权威，但 `core/context/editor_context.rs` 聚合根尚未持有这些服务；表格宜标注「未接入 EditorContext」的当前状态，防止与「单事实源经聚合根暴露」的原则读起来自相矛盾。
+
+### 设计优化建议
+
+- §3 明令「禁止 `HashMap<TypeId, Box<dyn Any>>` 式服务定位器」，当前 `EditorContext` 也确实是显式字段。随着 §3 规划字段（settings/log/selection/assets/project/contributions/…）逐个加入，`EditorContextBuilder::build`（`core/context/builder.rs:118-144`）的构造顺序会线性膨胀。建议在本文补一条「构造顺序 = 依赖拓扑」的显式约束（如 bus→events→jobs→gateway→transactions→…），让后续计划新增字段时有明确插入位次，而不是各自往 builder 尾部堆。

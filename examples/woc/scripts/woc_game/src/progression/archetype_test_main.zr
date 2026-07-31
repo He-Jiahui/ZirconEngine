@@ -1,0 +1,8 @@
+var archetype = %import("progression/archetype_state");
+
+console.printLine("m5-archetype-test");
+var result = archetype.contractTest();
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "archetype contract failed";
+}

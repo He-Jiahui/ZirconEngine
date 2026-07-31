@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_dot_mutation_state_tests",
+  "source": "src",
+  "binary": "bin-m4-dot-mutation-state-tests",
+  "entry": "combat/dot_mutation_state_test_main"
+}

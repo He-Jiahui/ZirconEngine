@@ -1,0 +1,580 @@
+// Current-head projection of the successful craft transaction in
+// src/sim/professions/crafting.ts. The host owns hub discovery, the real item
+// store, gold, XP, and action throttling; this module owns the ordered gates,
+// atomic reagent debit, and the one shared-RNG draw made by each success.
+var container = %import("zr.container");
+var combo = %import("progression/combo_eligibility");
+var masterwork = %import("progression/masterwork_rules");
+var rng = %import("kernel/rng");
+var contract = %import("generated/crafting_transaction_contract");
+
+pub class CraftRecipe {
+    pub var id: string;
+    pub var professionId: string;
+    pub var outputItemId: string;
+    pub var outputCount: int;
+    pub var outputQuality: string;
+    pub var requiresHub: bool;
+    // An absent/empty acquisition list is grandfathered and known without a
+    // learned-recipe entry. Non-empty entries admit trainer, drop, or quest.
+    pub var acquisitionSources: container.Array<string>;
+    pub var requiresCombo: bool;
+    pub var comboCraftA: string;
+    pub var comboCraftB: string;
+    pub var comboMinTier: int;
+    pub var requiredSkill: int;
+    pub var itemLevelBudget: float;
+    pub var reagents: container.Array<string>;
+    pub var reagentCounts: container.Array<int>;
+    // This is true only when the source recipe has both a masterwork stat
+    // transform and a legal bumped quality. item_budget will own the stat blob.
+    pub var masterworkCapable: bool;
+    pub var bumpedTier: int;
+
+    pub @constructor() {
+        this.id = "";
+        this.professionId = "";
+        this.outputItemId = "";
+        this.outputCount = 1;
+        this.outputQuality = "common";
+        // Target recipes opt into requiresHubStation; normal recipes, including
+        // the professions_craft golden pair, are attemptable away from a hub.
+        this.requiresHub = false;
+        this.acquisitionSources = new container.Array<string>();
+        this.requiresCombo = false;
+        this.comboCraftA = "";
+        this.comboCraftB = "";
+        this.comboMinTier = 0;
+        this.requiredSkill = 0;
+        this.itemLevelBudget = 0.0;
+        this.reagents = new container.Array<string>();
+        this.reagentCounts = new container.Array<int>();
+        this.masterworkCapable = false;
+        this.bumpedTier = 0;
+    }
+}
+
+pub class CraftingTransactionState {
+    pub var atHub: bool;
+    pub var nowSeconds: float;
+    pub var throttleWindowStart: float;
+    pub var throttleCount: int;
+    pub var copper: int;
+    pub var activeArchetype: string;
+    pub var pairedMajor: string;
+    pub var materialTierBonus: float;
+    // -1 means no external archetype ceiling is imposed on this projection.
+    pub var archetypeCeilingTier: int;
+
+    pub var recipes: container.Array<CraftRecipe>;
+    pub var learnedRecipeIds: container.Array<string>;
+    pub var materialIds: container.Array<string>;
+    pub var materialCounts: container.Array<int>;
+    pub var materialSigned: container.Array<int>;
+    pub var materialSelfSigned: container.Array<int>;
+    pub var craftIds: container.Array<string>;
+    pub var craftSkills: container.Array<float>;
+    pub var outputIds: container.Array<string>;
+    pub var outputQualities: container.Array<string>;
+    pub var outputCounts: container.Array<int>;
+
+    // 0 is success. Ordered source gate failures are unknown recipe, hub,
+    // combo, unlearned recipe, insufficient materials, and throttle.
+    pub var lastReason: int;
+    // Mirrors the target's PlayerMeta.lastCraftResult DTO without any UI text.
+    pub var lastResultOk: bool;
+    pub var lastResultRecipeId: string;
+    pub var lastResultItemId: string;
+    pub var lastResultCount: int;
+    pub var lastResultQuality: string;
+    pub var lastMasterwork: bool;
+    // Target PlayerMeta.lastMasterwork persists across later plain crafts.
+    pub var latestMasterworkRecipeId: string;
+    pub var latestMasterworkItemId: string;
+    pub var lastSelfSignedBonus: bool;
+    pub var lastProcRoll: float;
+    pub var lastProcChance: float;
+    pub var lastSkillGain: float;
+    pub var lastCopperCharged: int;
+    pub var completedCrafts: int;
+
+    pub @constructor() {
+        this.atHub = false;
+        this.nowSeconds = 0.0;
+        this.throttleWindowStart = 0.0;
+        this.throttleCount = 0;
+        this.copper = 0;
+        this.activeArchetype = "";
+        this.pairedMajor = "";
+        this.materialTierBonus = 0.0;
+        this.archetypeCeilingTier = -1;
+        this.recipes = new container.Array<CraftRecipe>();
+        this.learnedRecipeIds = new container.Array<string>();
+        this.materialIds = new container.Array<string>();
+        this.materialCounts = new container.Array<int>();
+        this.materialSigned = new container.Array<int>();
+        this.materialSelfSigned = new container.Array<int>();
+        this.craftIds = new container.Array<string>();
+        this.craftSkills = new container.Array<float>();
+        this.outputIds = new container.Array<string>();
+        this.outputQualities = new container.Array<string>();
+        this.outputCounts = new container.Array<int>();
+        this.lastReason = 0;
+        this.lastResultOk = false;
+        this.lastResultRecipeId = "";
+        this.lastResultItemId = "";
+        this.lastResultCount = 0;
+        this.lastResultQuality = "";
+        this.lastMasterwork = false;
+        this.latestMasterworkRecipeId = "";
+        this.latestMasterworkItemId = "";
+        this.lastSelfSignedBonus = false;
+        this.lastProcRoll = -1.0;
+        this.lastProcChance = 0.0;
+        this.lastSkillGain = 0.0;
+        this.lastCopperCharged = 0;
+        this.completedCrafts = 0;
+    }
+}
+
+pub class RecipeAcquisitionResult {
+    pub var ok: bool;
+    // 0 success, 1 unknown recipe, 2 already known, 3 wrong source.
+    pub var reason: int;
+    pub var recipeId: string;
+
+    pub @constructor() {
+        this.ok = false;
+        this.reason = 0;
+        this.recipeId = "";
+    }
+}
+
+findString(values: container.Array<string>, value: string): int {
+    var index = 0;
+    while (index < values.length) {
+        if (<string>values[index] == value) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+findRecipe(state: CraftingTransactionState, recipeId: string): int {
+    var index = 0;
+    while (index < state.recipes.length) {
+        if ((<CraftRecipe>state.recipes[index]).id == recipeId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub addRecipe(state: CraftingTransactionState, recipe: CraftRecipe): void {
+    state.recipes.add(recipe);
+}
+
+pub learnRecipe(state: CraftingTransactionState, recipeId: string): void {
+    if (findString(state.learnedRecipeIds, recipeId) < 0) {
+        state.learnedRecipeIds.add(recipeId);
+    }
+}
+
+pub isRecipeKnown(state: CraftingTransactionState, recipe: CraftRecipe): bool {
+    return recipe.acquisitionSources.length == 0 || findString(state.learnedRecipeIds, recipe.id) >= 0;
+}
+
+// Source `acquireRecipeForRecipe` semantics. Source validation happens before
+// a state write: unknown, already-known, then invalid source all leave the
+// learned list unchanged.
+pub acquireRecipe(
+    state: CraftingTransactionState,
+    recipeId: string,
+    source: string
+): RecipeAcquisitionResult {
+    var result = new RecipeAcquisitionResult();
+    result.recipeId = recipeId;
+    var recipeIndex = findRecipe(state, recipeId);
+    if (recipeIndex < 0) {
+        result.reason = 1;
+        return result;
+    }
+    var recipe = <CraftRecipe>state.recipes[recipeIndex];
+    if (isRecipeKnown(state, recipe)) {
+        result.reason = 2;
+        return result;
+    }
+    if (findString(recipe.acquisitionSources, source) < 0) {
+        result.reason = 3;
+        return result;
+    }
+    learnRecipe(state, recipe.id);
+    result.ok = true;
+    return result;
+}
+
+pub setMaterial(
+    state: CraftingTransactionState,
+    itemId: string,
+    count: int,
+    signed: bool,
+    selfSigned: bool
+): void {
+    var index = findString(state.materialIds, itemId);
+    if (index < 0) {
+        state.materialIds.add(itemId);
+        state.materialCounts.add(count < 0 ? 0 : count);
+        state.materialSigned.add(signed ? 1 : 0);
+        state.materialSelfSigned.add(selfSigned ? 1 : 0);
+        return;
+    }
+    state.materialCounts[index] = count < 0 ? 0 : count;
+    state.materialSigned[index] = signed ? 1 : 0;
+    state.materialSelfSigned[index] = selfSigned ? 1 : 0;
+}
+
+pub materialCount(state: CraftingTransactionState, itemId: string): int {
+    var index = findString(state.materialIds, itemId);
+    return index < 0 ? 0 : <int>state.materialCounts[index];
+}
+
+pub setCraftSkill(state: CraftingTransactionState, craftId: string, skill: float): void {
+    var index = findString(state.craftIds, craftId);
+    if (index < 0) {
+        state.craftIds.add(craftId);
+        state.craftSkills.add(skill < 0.0 ? 0.0 : skill);
+        return;
+    }
+    state.craftSkills[index] = skill < 0.0 ? 0.0 : skill;
+}
+
+// Cross-progression policies can compose the same source of craft-skill truth
+// without duplicating the ordered craftIds/craftSkills representation.
+pub craftSkillFor(state: CraftingTransactionState, craftId: string): float {
+    return craftSkill(state, craftId);
+}
+
+craftSkill(state: CraftingTransactionState, craftId: string): float {
+    var index = findString(state.craftIds, craftId);
+    return index < 0 ? 0.0 : <float>state.craftSkills[index];
+}
+
+isSpecialized(state: CraftingTransactionState, craftId: string): bool {
+    return craftSkill(state, craftId) >= <float>contract.specializedSkillThreshold(true);
+}
+
+requiredReagentCount(
+    state: CraftingTransactionState,
+    recipe: CraftRecipe,
+    reagentIndex: int
+): int {
+    var listed = <int>recipe.reagentCounts[reagentIndex];
+    if (listed < 1) return 0;
+    var itemId = <string>recipe.reagents[reagentIndex];
+    var materialIndex = findString(state.materialIds, itemId);
+    var selfSigned = materialIndex >= 0 && (<int>state.materialSelfSigned[materialIndex]) != 0;
+    var afterSelfSigned = selfSigned ? (listed - 1 < 1 ? 1 : listed - 1) : listed;
+    var multiplier = isSpecialized(state, recipe.professionId)
+        ? contract.specializedMaterialMultiplier(true)
+        : 1.0;
+    var discounted = <int>(<float>afterSelfSigned * multiplier);
+    return discounted < 1 ? 1 : discounted;
+}
+
+hasAllReagents(state: CraftingTransactionState, recipe: CraftRecipe): bool {
+    var index = 0;
+    while (index < recipe.reagents.length) {
+        var itemId = <string>recipe.reagents[index];
+        if (materialCount(state, itemId) < requiredReagentCount(state, recipe, index)) return false;
+        index = index + 1;
+    }
+    return true;
+}
+
+consumeAllReagents(state: CraftingTransactionState, recipe: CraftRecipe): void {
+    var index = 0;
+    while (index < recipe.reagents.length) {
+        var itemId = <string>recipe.reagents[index];
+        var materialIndex = findString(state.materialIds, itemId);
+        var required = requiredReagentCount(state, recipe, index);
+        if (required > 0 && materialIndex >= 0) {
+            setMaterial(
+                state,
+                itemId,
+                materialCount(state, itemId) - required,
+                (<int>state.materialSigned[materialIndex]) != 0,
+                (<int>state.materialSelfSigned[materialIndex]) != 0
+            );
+        }
+        index = index + 1;
+    }
+}
+
+usesSelfSignedReagent(state: CraftingTransactionState, recipe: CraftRecipe): bool {
+    var index = 0;
+    while (index < recipe.reagents.length) {
+        var materialIndex = findString(state.materialIds, <string>recipe.reagents[index]);
+        if (materialIndex >= 0 && (<int>state.materialSelfSigned[materialIndex]) != 0 &&
+            (<int>recipe.reagentCounts[index]) > 1) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+usesSignedReagent(state: CraftingTransactionState, recipe: CraftRecipe): bool {
+    var index = 0;
+    while (index < recipe.reagents.length) {
+        var materialIndex = findString(state.materialIds, <string>recipe.reagents[index]);
+        if (materialIndex >= 0 && (<int>state.materialSigned[materialIndex]) != 0) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+recipeTier(recipe: CraftRecipe): int {
+    return combo.tierForSkill(recipe.requiredSkill);
+}
+
+tierProgressMultiplier(capabilityTier: int, requiredTier: int): float {
+    if (requiredTier <= 0) return 1.0;
+    var tiersBelow = capabilityTier - requiredTier;
+    if (tiersBelow <= 0) return 1.0;
+    if (tiersBelow == 1) return 0.5;
+    return 0.0;
+}
+
+withinCraftThrottle(state: CraftingTransactionState): bool {
+    // Current-head content: ten successful crafts in a sixty-second rolling
+    // window. Rollover is intentionally observable even when the following
+    // attempt is otherwise denied, matching the source helper's side effect.
+    if (state.nowSeconds - state.throttleWindowStart >= contract.throttleWindowSeconds(true)) {
+        state.throttleWindowStart = state.nowSeconds;
+        state.throttleCount = 0;
+    }
+    return state.throttleCount < contract.throttleMaxPerWindow(true);
+}
+
+craftGoldFee(recipe: CraftRecipe): int {
+    var scaled = recipe.itemLevelBudget * contract.goldSinkCopperPerBudget(true);
+    if (scaled <= 0.0) return 0;
+    var floored = <int>scaled;
+    return (<float>floored) < scaled ? floored + 1 : floored;
+}
+
+addOutput(state: CraftingTransactionState, itemId: string, quality: string, count: int): void {
+    var index = 0;
+    while (index < state.outputIds.length) {
+        if ((<string>state.outputIds[index]) == itemId &&
+            (<string>state.outputQualities[index]) == quality) {
+            state.outputCounts[index] = (<int>state.outputCounts[index]) + count;
+            return;
+        }
+        index = index + 1;
+    }
+    state.outputIds.add(itemId);
+    state.outputQualities.add(quality);
+    state.outputCounts.add(count);
+}
+
+pub outputCount(state: CraftingTransactionState, itemId: string, quality: string): int {
+    var index = 0;
+    while (index < state.outputIds.length) {
+        if ((<string>state.outputIds[index]) == itemId &&
+            (<string>state.outputQualities[index]) == quality) {
+            return <int>state.outputCounts[index];
+        }
+        index = index + 1;
+    }
+    return 0;
+}
+
+// A successful source craft always calls rng.next() once, before it determines
+// whether the rolled output is eligible for masterwork substitution.
+pub craft(state: CraftingTransactionState, recipeId: string, stream: rng.Mulberry32): bool {
+    state.lastReason = 0;
+    state.lastResultOk = false;
+    state.lastResultRecipeId = recipeId;
+    state.lastResultItemId = "";
+    state.lastResultCount = 0;
+    state.lastResultQuality = "";
+    state.lastMasterwork = false;
+    state.lastSelfSignedBonus = false;
+    state.lastProcRoll = -1.0;
+    state.lastProcChance = 0.0;
+    state.lastSkillGain = 0.0;
+    state.lastCopperCharged = 0;
+    var recipeIndex = findRecipe(state, recipeId);
+    if (recipeIndex < 0) {
+        state.lastReason = 1;
+        return false;
+    }
+    var recipe = <CraftRecipe>state.recipes[recipeIndex];
+    if (recipe.requiresHub && !state.atHub) {
+        state.lastReason = 2;
+        return false;
+    }
+    var eligibility = combo.comboEligibility(
+        recipe.requiresCombo,
+        recipe.comboCraftA,
+        recipe.comboCraftB,
+        recipe.comboMinTier,
+        state.activeArchetype,
+        state.pairedMajor,
+        <int>craftSkill(state, recipe.comboCraftA),
+        <int>craftSkill(state, recipe.comboCraftB)
+    );
+    if (!eligibility.ok) {
+        state.lastReason = 3;
+        return false;
+    }
+    if (!isRecipeKnown(state, recipe)) {
+        state.lastReason = 4;
+        return false;
+    }
+    if (!hasAllReagents(state, recipe)) {
+        state.lastReason = 5;
+        return false;
+    }
+    if (!withinCraftThrottle(state)) {
+        state.lastReason = 6;
+        return false;
+    }
+
+    var signedReagent = usesSignedReagent(state, recipe);
+    state.lastSelfSignedBonus = usesSelfSignedReagent(state, recipe);
+    state.lastCopperCharged = craftGoldFee(recipe);
+    state.copper = state.copper - state.lastCopperCharged;
+    if (state.copper < 0) state.copper = 0;
+    consumeAllReagents(state, recipe);
+    state.lastProcRoll = stream.next();
+    var capabilityTier = combo.tierForSkill(<int>craftSkill(state, recipe.professionId));
+    var currentRecipeTier = recipeTier(recipe);
+    var tiersAbove = capabilityTier - currentRecipeTier;
+    state.lastProcChance = masterwork.masterworkProcChance(
+        tiersAbove, signedReagent, isSpecialized(state, recipe.professionId), state.materialTierBonus
+    );
+    // Phase 2 crafting reports and grants the static output-def quality. A
+    // masterwork replaces one item instance with baked bonus stats; it never
+    // writes a rolled quality or changes CraftResult.quality.
+    var quality = recipe.outputQuality;
+    var bumpedQuality = masterwork.masterworkBumpedQuality(recipe.outputQuality);
+    var withinCeiling = state.archetypeCeilingTier < 0 || recipe.bumpedTier <= state.archetypeCeilingTier;
+    if (state.lastProcRoll < state.lastProcChance && recipe.masterworkCapable &&
+        bumpedQuality != "" && withinCeiling) {
+        state.lastMasterwork = true;
+        state.latestMasterworkRecipeId = recipe.id;
+        state.latestMasterworkItemId = recipe.outputItemId;
+    }
+    addOutput(state, recipe.outputItemId, quality, recipe.outputCount);
+    state.lastResultOk = true;
+    state.lastResultItemId = recipe.outputItemId;
+    state.lastResultCount = recipe.outputCount;
+    state.lastResultQuality = quality;
+    // A successful craft cannot be hard-gated by skill. The source instead
+    // awards full, half, or zero progress according to the capability curve,
+    // with an archetype-ceiling hard stop for progress above that ceiling.
+    state.lastSkillGain = currentRecipeTier > state.archetypeCeilingTier &&
+        state.archetypeCeilingTier >= 0
+        ? 0.0
+        : contract.craftSkillGain(true) * tierProgressMultiplier(capabilityTier, currentRecipeTier);
+    setCraftSkill(state, recipe.professionId, craftSkill(state, recipe.professionId) + state.lastSkillGain);
+    state.throttleCount = state.throttleCount + 1;
+    state.completedCrafts = state.completedCrafts + 1;
+    return true;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var recipe = new CraftRecipe();
+    recipe.id = "test_combo_vest";
+    recipe.professionId = "armorcrafting";
+    recipe.outputItemId = "test_vest";
+    recipe.outputQuality = "common";
+    recipe.requiresHub = true;
+    recipe.requiresCombo = true;
+    recipe.acquisitionSources.add("trainer");
+    recipe.comboCraftA = "armorcrafting";
+    recipe.comboCraftB = "weaponcrafting";
+    recipe.comboMinTier = 1;
+    recipe.requiredSkill = 25;
+    recipe.reagents.add("linen");
+    recipe.reagentCounts.add(5);
+    recipe.itemLevelBudget = 1.5;
+
+    var state = new CraftingTransactionState();
+    addRecipe(state, recipe);
+    var stream = new rng.Mulberry32(<uint>1);
+    if (craft(state, "missing", stream) || state.lastReason != 1 || state.lastResultOk ||
+        state.lastResultRecipeId != "missing" || stream.draws != <uint>0) return -1;
+    if (craft(state, recipe.id, stream) || state.lastReason != 2 || stream.draws != <uint>0) return -2;
+    state.atHub = true;
+    if (craft(state, recipe.id, stream) || state.lastReason != 3 || stream.draws != <uint>0) return -3;
+    state.activeArchetype = "armorcrafting";
+    state.pairedMajor = "weaponcrafting";
+    setCraftSkill(state, "armorcrafting", 75);
+    setCraftSkill(state, "weaponcrafting", 25);
+    if (craft(state, recipe.id, stream) || state.lastReason != 4 || stream.draws != <uint>0) return -4;
+    var unknownAcquire = acquireRecipe(state, "missing", "trainer");
+    if (unknownAcquire.ok || unknownAcquire.reason != 1) return -40;
+    var wrongAcquire = acquireRecipe(state, recipe.id, "quest");
+    if (wrongAcquire.ok || wrongAcquire.reason != 3 || isRecipeKnown(state, recipe)) return -41;
+    var acquired = acquireRecipe(state, recipe.id, "trainer");
+    if (!acquired.ok || acquired.reason != 0 || !isRecipeKnown(state, recipe)) return -42;
+    var againAcquire = acquireRecipe(state, recipe.id, "trainer");
+    if (againAcquire.ok || againAcquire.reason != 2) return -43;
+    if (craft(state, recipe.id, stream) || state.lastReason != 5 || stream.draws != <uint>0) return -5;
+    state.copper = 3;
+    // Self-signed first reduces five to four; specialization then floors
+    // four times 0.8 to three. An arbitrary signed copy still feeds the proc.
+    setMaterial(state, "linen", 2, true, true);
+    if (craft(state, recipe.id, stream) || state.lastReason != 5 || stream.draws != <uint>0) return -6;
+    setMaterial(state, "linen", 3, true, true);
+    state.throttleCount = 10;
+    if (craft(state, recipe.id, stream) || state.lastReason != 6 || stream.draws != <uint>0) return -7;
+    state.nowSeconds = 60.0;
+    if (!craft(state, recipe.id, stream) || state.lastReason != 0 || stream.draws != <uint>1 ||
+        materialCount(state, "linen") != 0 || state.lastMasterwork || !state.lastSelfSignedBonus ||
+        state.lastCopperCharged != 3 || state.copper != 0 || !closeEnough(state.lastSkillGain, 0.0) ||
+        !state.lastResultOk || state.lastResultItemId != "test_vest" ||
+        state.lastResultCount != 1 || state.lastResultQuality != "common" ||
+        outputCount(state, "test_vest", "common") != 1) return -8;
+
+    var masterRecipe = new CraftRecipe();
+    masterRecipe.id = "test_masterwork";
+    masterRecipe.professionId = "alchemy";
+    masterRecipe.outputItemId = "test_potion";
+    masterRecipe.masterworkCapable = true;
+    masterRecipe.bumpedTier = 2;
+    masterRecipe.reagents.add("signed_herb");
+    masterRecipe.reagentCounts.add(1);
+    var masterState = new CraftingTransactionState();
+    masterState.atHub = true;
+    masterState.archetypeCeilingTier = 2;
+    addRecipe(masterState, masterRecipe);
+    learnRecipe(masterState, masterRecipe.id);
+    setMaterial(masterState, "signed_herb", 1, true, false);
+    setCraftSkill(masterState, "alchemy", 200);
+    var masterStream = new rng.Mulberry32(<uint>7);
+    if (!craft(masterState, masterRecipe.id, masterStream) || !masterState.lastMasterwork ||
+        !closeEnough(masterState.lastProcChance, 0.15) || masterStream.draws != <uint>1 ||
+        masterState.latestMasterworkRecipeId != masterRecipe.id ||
+        masterState.latestMasterworkItemId != "test_potion" ||
+        outputCount(masterState, "test_potion", "common") != 1) return -9;
+
+    var cappedState = new CraftingTransactionState();
+    cappedState.atHub = true;
+    cappedState.archetypeCeilingTier = 1;
+    addRecipe(cappedState, masterRecipe);
+    learnRecipe(cappedState, masterRecipe.id);
+    setMaterial(cappedState, "signed_herb", 1, true, false);
+    setCraftSkill(cappedState, "alchemy", 200);
+    var cappedStream = new rng.Mulberry32(<uint>7);
+    if (!craft(cappedState, masterRecipe.id, cappedStream) || cappedState.lastMasterwork ||
+        cappedStream.draws != <uint>1 || outputCount(cappedState, "test_potion", "common") != 1) {
+        return -10;
+    }
+    return 1;
+}

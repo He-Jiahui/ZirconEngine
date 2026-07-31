@@ -1,11 +1,15 @@
 use std::fs;
-use std::io;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 
+use super::discovery_refresh::{
+    NativePluginDiscoveryRefreshError, NativePluginDiscoveryRefreshRequest,
+    NativePluginDiscoveryRefreshSink,
+};
 use super::dynamic_library_name::dynamic_library_file_name;
-use super::{NativePluginCandidate, NativePluginLoadReport};
+use super::NativePluginCandidate;
 
 pub(super) type NativePluginManifestCandidateResult<T> =
     std::result::Result<T, NativePluginManifestCandidateError>;
@@ -19,6 +23,9 @@ pub(super) enum NativePluginManifestCandidateError {
     ParseManifest {
         manifest_path: PathBuf,
         source: toml::de::Error,
+    },
+    ManifestChangedDuringRead {
+        manifest_path: PathBuf,
     },
     MissingRuntimeOrEditorModule {
         plugin_id: String,
@@ -44,6 +51,11 @@ impl std::fmt::Display for NativePluginManifestCandidateError {
                 "failed to parse native plugin manifest {}: {source}",
                 manifest_path.display()
             ),
+            Self::ManifestChangedDuringRead { manifest_path } => write!(
+                formatter,
+                "native plugin manifest changed while it was read: {}",
+                manifest_path.display()
+            ),
             Self::MissingRuntimeOrEditorModule { plugin_id } => write!(
                 formatter,
                 "native plugin {plugin_id} has no runtime or editor module crate declared"
@@ -57,22 +69,14 @@ impl std::error::Error for NativePluginManifestCandidateError {
         match self {
             Self::ReadManifest { source, .. } => Some(source),
             Self::ParseManifest { source, .. } => Some(source),
+            Self::ManifestChangedDuringRead { .. } => None,
             Self::MissingRuntimeOrEditorModule { .. } => None,
         }
     }
 }
 
-pub(super) fn push_candidate_from_manifest_path(
-    report: &mut NativePluginLoadReport,
-    manifest_path: PathBuf,
-) {
-    match candidate_from_manifest_path(manifest_path) {
-        Ok(candidate) => report.discovered.push(candidate),
-        Err(error) => report.diagnostics.push(error.to_string()),
-    }
-}
-
-fn candidate_from_manifest_path(
+#[cfg(test)]
+fn test_candidate_from_manifest_path(
     manifest_path: PathBuf,
 ) -> NativePluginManifestCandidateResult<NativePluginCandidate> {
     let source = fs::read_to_string(&manifest_path).map_err(|source| {
@@ -81,6 +85,185 @@ fn candidate_from_manifest_path(
             source,
         }
     })?;
+    candidate_from_manifest_source(manifest_path, &source)
+}
+
+pub(super) fn append_candidate_from_manifest_path(
+    request: &NativePluginDiscoveryRefreshRequest,
+    sink: &mut NativePluginDiscoveryRefreshSink,
+    manifest_path: PathBuf,
+) -> Result<(), NativePluginDiscoveryRefreshError> {
+    metered_candidate_from_manifest_path(request, sink, manifest_path)?.insert(sink);
+    Ok(())
+}
+
+/// A parsed candidate whose admission slot is deliberately held until a caller has applied its
+/// selection-specific validation. Full scans insert it immediately; load manifests validate path
+/// and id declarations before publication.
+pub(super) struct MeteredNativePluginCandidate {
+    reservation: super::discovery_refresh::NativePluginDiscoveryRefreshCandidateReservation,
+    candidate: NativePluginCandidate,
+}
+
+impl MeteredNativePluginCandidate {
+    pub(super) fn candidate(&self) -> &NativePluginCandidate {
+        &self.candidate
+    }
+
+    pub(super) fn insert(self, sink: &mut NativePluginDiscoveryRefreshSink) {
+        self.reservation.insert(sink, self.candidate);
+    }
+}
+
+pub(super) fn metered_candidate_from_manifest_path(
+    request: &NativePluginDiscoveryRefreshRequest,
+    sink: &mut NativePluginDiscoveryRefreshSink,
+    manifest_path: PathBuf,
+) -> Result<MeteredNativePluginCandidate, NativePluginDiscoveryRefreshError> {
+    let candidate_reservation = sink.reserve_candidate(request)?;
+    let source = read_bounded_utf8_file(request, sink, &manifest_path, "native plugin manifest")?;
+    let _parse_admission = sink.reserve_additional_scratch_bytes(request, source.len() as u64)?;
+    let candidate = candidate_from_manifest_source(manifest_path, &source)
+        .map_err(|error| NativePluginDiscoveryRefreshError::collector(error.to_string()))?;
+    Ok(MeteredNativePluginCandidate {
+        reservation: candidate_reservation,
+        candidate,
+    })
+}
+
+/// Reads exactly one bounded UTF-8 file through the refresh sink. Both directory traversal and
+/// explicit load-manifest selection use this one path so metadata changes, chunk reads, and
+/// scratch admission cannot diverge.
+pub(super) fn read_bounded_utf8_file(
+    request: &NativePluginDiscoveryRefreshRequest,
+    sink: &mut NativePluginDiscoveryRefreshSink,
+    path: &Path,
+    file_kind: &str,
+) -> Result<String, NativePluginDiscoveryRefreshError> {
+    const READ_CHUNK_BYTES: usize = 8 * 1024;
+
+    request.check_active()?;
+    let mut file = fs::File::open(path).map_err(|source| read_error(file_kind, path, source))?;
+    let expected_bytes = file
+        .metadata()
+        .map_err(|source| read_error(file_kind, path, source))?
+        .len();
+    if expected_bytes > sink.remaining_read_bytes() {
+        // Metadata is only an early rejection hint. Actual reads below remain individually
+        // admitted, including when a file grows after this first handle query.
+        return match sink.reserve_read_bytes(request, expected_bytes) {
+            Err(error) => Err(error),
+            Ok(_) => Err(NativePluginDiscoveryRefreshError::collector(format!(
+                "{file_kind} {} exceeded the remaining read budget without rejection",
+                path.display()
+            ))),
+        };
+    }
+    let expected_len = usize::try_from(expected_bytes).map_err(|_| {
+        NativePluginDiscoveryRefreshError::collector(format!(
+            "{file_kind} {} cannot fit this platform's bounded buffer",
+            path.display()
+        ))
+    })?;
+    let _source_admission = sink.reserve_additional_scratch_bytes(request, expected_bytes)?;
+    let mut source = Vec::<u8>::new();
+    source.try_reserve_exact(expected_len).map_err(|_| {
+        NativePluginDiscoveryRefreshError::collector(format!(
+            "{file_kind} {} cannot reserve its bounded source buffer",
+            path.display()
+        ))
+    })?;
+    source.resize(expected_len, 0);
+    let mut filled = 0;
+    while filled < source.len() {
+        request.check_active()?;
+        let end = filled.saturating_add(READ_CHUNK_BYTES).min(source.len());
+        let read_reservation = sink.reserve_read_bytes(request, (end - filled) as u64)?;
+        let actual_bytes = match file.read(&mut source[filled..end]) {
+            Ok(actual_bytes) => actual_bytes,
+            Err(source) => {
+                read_reservation.commit(sink, 0)?;
+                return Err(read_error(file_kind, path, source));
+            }
+        };
+        read_reservation.commit(sink, actual_bytes as u64)?;
+        if actual_bytes == 0 {
+            break;
+        }
+        filled = filled.saturating_add(actual_bytes);
+    }
+
+    request.check_active()?;
+    let current_bytes = file
+        .metadata()
+        .map_err(|source| read_error(file_kind, path, source))?
+        .len();
+    ensure_bounded_read_is_stable(
+        file_kind,
+        path,
+        expected_bytes,
+        source.len(),
+        filled,
+        current_bytes,
+    )?;
+    String::from_utf8(source).map_err(|error| {
+        read_error(
+            file_kind,
+            path,
+            io::Error::new(io::ErrorKind::InvalidData, error),
+        )
+    })
+}
+
+fn read_error(
+    file_kind: &str,
+    path: &Path,
+    source: io::Error,
+) -> NativePluginDiscoveryRefreshError {
+    NativePluginDiscoveryRefreshError::collector(format!(
+        "failed to read {file_kind} {}: {source}",
+        path.display()
+    ))
+}
+
+fn ensure_bounded_read_is_stable(
+    file_kind: &str,
+    path: &Path,
+    expected_bytes: u64,
+    buffer_len: usize,
+    filled: usize,
+    current_bytes: u64,
+) -> Result<(), NativePluginDiscoveryRefreshError> {
+    if filled == buffer_len && current_bytes == expected_bytes {
+        return Ok(());
+    }
+    Err(NativePluginDiscoveryRefreshError::collector(format!(
+        "{file_kind} changed while it was read: {}",
+        path.display()
+    )))
+}
+
+fn ensure_manifest_read_is_stable(
+    manifest_path: &Path,
+    expected_bytes: u64,
+    buffer_len: usize,
+    filled: usize,
+    current_bytes: u64,
+) -> NativePluginManifestCandidateResult<()> {
+    if filled == buffer_len && current_bytes == expected_bytes {
+        return Ok(());
+    }
+    Err(
+        NativePluginManifestCandidateError::ManifestChangedDuringRead {
+            manifest_path: manifest_path.to_path_buf(),
+        },
+    )
+}
+
+fn candidate_from_manifest_source(
+    manifest_path: PathBuf,
+    source: &str,
+) -> NativePluginManifestCandidateResult<NativePluginCandidate> {
     let manifest = toml::from_str::<PluginPackageManifest>(&source).map_err(|source| {
         NativePluginManifestCandidateError::ParseManifest {
             manifest_path: manifest_path.clone(),
@@ -250,7 +433,7 @@ mod tests {
                 .expect("system time should be after unix epoch")
                 .as_nanos()
         ));
-        let error = candidate_from_manifest_path(missing_manifest.clone())
+        let error = test_candidate_from_manifest_path(missing_manifest.clone())
             .expect_err("missing manifest should report typed candidate error");
 
         match error {
@@ -258,9 +441,31 @@ mod tests {
                 assert_eq!(manifest_path, missing_manifest);
             }
             NativePluginManifestCandidateError::ParseManifest { .. }
+            | NativePluginManifestCandidateError::ManifestChangedDuringRead { .. }
             | NativePluginManifestCandidateError::MissingRuntimeOrEditorModule { .. } => {
                 panic!("missing manifest should fail while reading manifest")
             }
+        }
+    }
+
+    #[test]
+    fn manifest_stability_check_rejects_short_or_changed_handle_reads() {
+        let manifest_path = PathBuf::from("plugins/weather/plugin.toml");
+
+        assert!(ensure_manifest_read_is_stable(&manifest_path, 12, 12, 12, 12).is_ok());
+        for (filled, current_bytes) in [(11, 12), (12, 13), (11, 13)] {
+            assert!(matches!(
+                ensure_manifest_read_is_stable(
+                    &manifest_path,
+                    12,
+                    12,
+                    filled,
+                    current_bytes
+                ),
+                Err(NativePluginManifestCandidateError::ManifestChangedDuringRead {
+                    manifest_path: changed_path,
+                }) if changed_path == manifest_path
+            ));
         }
     }
 

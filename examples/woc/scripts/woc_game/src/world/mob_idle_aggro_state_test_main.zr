@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var aggro = %import("world/mob_idle_aggro_state");
+
+var result = aggro.contractTest();
+
+console.printLine("m4-mob-idle-aggro-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

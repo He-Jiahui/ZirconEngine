@@ -1,0 +1,215 @@
+// Stable scalar metric ids keep custom classes out of the current ZrVM module ABI.
+// 1 moveSpeed; 2-4 pack frenzy; 5-7 pulse; 8-10 stomp; 11-13 terrify;
+// 14-17 death throes; 20-29 base stats and level bounds.
+pub metric(id: string, kind: int, marker: int, a: int, b: int): float {
+    if (marker != 1 || a != 2 || b != 3) {
+        throw "WOC mob content metric marker is invalid";
+    }
+    if (id == "forest_wolf") {
+        if (kind == 1) { return 8.0; }
+        if (kind == 2) { return 12.0; }
+        if (kind == 3) { return 1.3; }
+        if (kind == 4) { return 8.0; }
+        if (kind == 20) { return 40.0; }
+        if (kind == 21) { return 14.0; }
+        if (kind == 22) { return 3.0; }
+        if (kind == 23) { return 1.6; }
+        if (kind == 24) { return 2.0; }
+        if (kind == 25) { return 10.0; }
+        if (kind == 27) { return 1.0; }
+        if (kind == 28) { return 2.0; }
+        if (kind == 29) { return 10.0; }
+        return 0.0;
+    }
+    if (id == "wild_boar") {
+        if (kind == 1) { return 7.5; }
+        if (kind == 20) { return 38.0; }
+        if (kind == 21) { return 16.0; }
+        if (kind == 22) { return 4.0; }
+        if (kind == 23) { return 1.8; }
+        if (kind == 24) { return 2.2; }
+        if (kind == 25) { return 14.0; }
+        if (kind == 27) { return 2.0; }
+        if (kind == 28) { return 3.0; }
+        if (kind == 29) { return 9.0; }
+        return 0.0;
+    }
+    if (id == "bog_bloat") {
+        if (kind == 1) { return 6.0; }
+        if (kind == 14) { return 14.0; }
+        if (kind == 15) { return 22.0; }
+        if (kind == 16) { return 8.0; }
+        if (kind == 17) { return 1.5; }
+        if (kind == 20) { return 44.0; }
+        if (kind == 21) { return 17.0; }
+        if (kind == 22) { return 7.0; }
+        if (kind == 23) { return 2.0; }
+        if (kind == 24) { return 2.6; }
+        if (kind == 25) { return 9.0; }
+        if (kind == 27) { return 9.0; }
+        if (kind == 28) { return 11.0; }
+        if (kind == 29) { return 10.0; }
+        return 0.0;
+    }
+    if (id == "mogger") {
+        if (kind == 1) { return 7.4; }
+        if (kind == 5) { return 14.0; }
+        if (kind == 6) { return 20.0; }
+        if (kind == 7) { return 8.0; }
+        if (kind == 20) { return 300.0; }
+        if (kind == 21) { return 58.0; }
+        if (kind == 22) { return 12.0; }
+        if (kind == 23) { return 3.5; }
+        if (kind == 24) { return 2.2; }
+        if (kind == 25) { return 34.0; }
+        if (kind == 26) { return 1.0; }
+        if (kind == 27 || kind == 28) { return 6.0; }
+        if (kind == 29) { return 14.0; }
+        return 0.0;
+    }
+    if (id == "mogger_lackey") {
+        if (kind == 1) { return 7.5; }
+        if (kind == 20) { return 44.0; }
+        if (kind == 21) { return 18.0; }
+        if (kind == 22) { return 6.0; }
+        if (kind == 23) { return 2.0; }
+        if (kind == 24) { return 2.0; }
+        if (kind == 25) { return 18.0; }
+        if (kind == 27) { return 5.0; }
+        if (kind == 28) { return 6.0; }
+        if (kind == 29) { return 12.0; }
+        return 0.0;
+    }
+    if (id == "korgath_the_bound") {
+        if (kind == 1) { return 7.0; }
+        if (kind == 8) { return 20.0; }
+        if (kind == 9) { return 30.0; }
+        if (kind == 10) { return 1.5; }
+        if (kind == 20) { return 260.0; }
+        if (kind == 21) { return 36.0; }
+        if (kind == 22) { return 14.0; }
+        if (kind == 23) { return 2.9; }
+        if (kind == 24) { return 2.8; }
+        if (kind == 25) { return 30.0; }
+        if (kind == 26) { return 1.0; }
+        if (kind == 27 || kind == 28) { return 20.0; }
+        if (kind == 29) { return 15.0; }
+        return 0.0;
+    }
+    if (id == "sister_nhalia") {
+        if (kind == 1) { return 7.0; }
+        if (kind == 5) { return 18.0; }
+        if (kind == 6) { return 26.0; }
+        if (kind == 7) { return 11.0; }
+        if (kind == 11) { return 12.0; }
+        if (kind == 12) { return 16.0; }
+        if (kind == 13) { return 3.0; }
+        if (kind == 20) { return 330.0; }
+        if (kind == 21) { return 60.0; }
+        if (kind == 22) { return 16.0; }
+        if (kind == 23) { return 3.8; }
+        if (kind == 24) { return 2.0; }
+        if (kind == 25) { return 30.0; }
+        if (kind == 26) { return 1.0; }
+        if (kind == 27 || kind == 28) { return 12.0; }
+        if (kind == 29) { return 13.0; }
+        return 0.0;
+    }
+    throw "unknown WOC M3 mob definition";
+}
+
+// Derived kind: 1=maxHp, 2=weapon minimum, 3=weapon maximum, 4=armor.
+pub derived(
+    id: string,
+    level: int,
+    kind: int,
+    marker: int,
+    a: int,
+    b: int,
+    c: int
+): int {
+    if (marker != 1 || a != 2 || b != 3 || c != 5) {
+        throw "WOC mob derived metric marker is invalid";
+    }
+    var eliteMultiplier = metric(id, 26, 1, 2, 3) == 1.0 ? 2.3 : 1.0;
+    if (kind == 1) {
+        var hp = metric(id, 20, 1, 2, 3) +
+            metric(id, 21, 1, 2, 3) * <float>(level - 1);
+        return <int>(hp * eliteMultiplier + 0.5);
+    }
+    if (kind == 2 || kind == 3) {
+        var damageMultiplier = eliteMultiplier > 1.0 ? 1.5 : 1.0;
+        var damage = (metric(id, 22, 1, 2, 3) +
+            metric(id, 23, 1, 2, 3) * <float>(level - 1)) * damageMultiplier;
+        var weaponMultiplier = kind == 2 ? 0.8 : 1.25;
+        return <int>(damage * weaponMultiplier + 0.5);
+    }
+    if (kind == 4) {
+        return <int>(metric(id, 25, 1, 2, 3) * <float>(level - 1) + 0.5);
+    }
+    throw "WOC mob derived metric kind is invalid";
+}
+
+pub stageTest(stage: int): int {
+    if (stage == 1) {
+        return metric("forest_wolf", 20, 1, 2, 3) == 40.0 &&
+            metric("forest_wolf", 23, 1, 2, 3) == 1.6 ? 1 : -1;
+    }
+    if (stage == 2) {
+        return derived("forest_wolf", 5, 1, 1, 2, 3, 5) == 96 &&
+            derived("forest_wolf", 5, 2, 1, 2, 3, 5) == 8 &&
+            derived("forest_wolf", 5, 3, 1, 2, 3, 5) == 12 &&
+            derived("forest_wolf", 5, 4, 1, 2, 3, 5) == 40 ? 1 : -2;
+    }
+    if (stage == 3) {
+        return derived("wild_boar", 5, 1, 1, 2, 3, 5) == 102 &&
+            derived("wild_boar", 5, 2, 1, 2, 3, 5) == 9 &&
+            derived("wild_boar", 5, 3, 1, 2, 3, 5) == 14 &&
+            derived("wild_boar", 5, 4, 1, 2, 3, 5) == 56 ? 1 : -3;
+    }
+    if (stage == 4) {
+        return derived("bog_bloat", 10, 1, 1, 2, 3, 5) == 197 &&
+            metric("bog_bloat", 14, 1, 2, 3) == 14.0 &&
+            metric("bog_bloat", 17, 1, 2, 3) == 1.5 ? 1 : -4;
+    }
+    if (stage == 5) {
+        return metric("forest_wolf", 2, 1, 2, 3) == 12.0 &&
+            metric("forest_wolf", 3, 1, 2, 3) == 1.3 &&
+            metric("forest_wolf", 4, 1, 2, 3) == 8.0 ? 1 : -5;
+    }
+    if (stage == 6) {
+        return derived("mogger", 6, 1, 1, 2, 3, 5) == 1357 &&
+            metric("mogger", 5, 1, 2, 3) == 14.0 &&
+            metric("mogger", 6, 1, 2, 3) == 20.0 ? 1 : -6;
+    }
+    if (stage == 7) {
+        return derived("korgath_the_bound", 20, 1, 1, 2, 3, 5) == 2171 &&
+            metric("korgath_the_bound", 8, 1, 2, 3) == 20.0 &&
+            metric("korgath_the_bound", 10, 1, 2, 3) == 1.5 ? 1 : -7;
+    }
+    if (stage == 8) {
+        return derived("sister_nhalia", 12, 1, 1, 2, 3, 5) == 2277 &&
+            metric("sister_nhalia", 11, 1, 2, 3) == 12.0 &&
+            metric("sister_nhalia", 12, 1, 2, 3) == 16.0 ? 1 : -8;
+    }
+    if (stage == 9) {
+        return derived("mogger_lackey", 6, 1, 1, 2, 3, 5) == 134 &&
+            metric("mogger_lackey", 1, 1, 2, 3) == 7.5 ? 1 : -9;
+    }
+    return -99;
+}
+
+pub contractTest(a: int, b: int, c: int, d: int, e: int, f: int, g: int): int {
+    if (a != 1 || b != 1 || c != 2 || d != 3 || e != 5 || f != 8 || g != 13) {
+        return -10;
+    }
+    var stage = 1;
+    while (stage <= 9) {
+        var result = stageTest(stage);
+        if (result != 1) {
+            return result;
+        }
+        stage = stage + 1;
+    }
+    return 1;
+}

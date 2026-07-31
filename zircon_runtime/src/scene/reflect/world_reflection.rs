@@ -77,18 +77,22 @@ impl WorldReflection {
         world: &mut World,
         request: ReflectWriteRequest,
     ) -> Result<ReflectWriteResponse, ReflectError> {
-        let changed = match &request.address {
+        let (changed, value) = match &request.address {
             ReflectObjectAddress::Component { entity, type_path } => {
                 let adapter = component_adapter_for_write(world, type_path)?;
-                adapter.write_field(world, *entity, &request.field_name, request.value)?
+                let changed =
+                    adapter.write_field(world, *entity, &request.field_name, request.value)?;
+                let value = adapter.read_field(world, *entity, &request.field_name)?;
+                (changed, value)
             }
             ReflectObjectAddress::Resource { type_path } => {
                 let adapter = resource_adapter_for_write(world, type_path)?;
-                adapter.write_field(world, &request.field_name, request.value)?
+                let changed = adapter.write_field(world, &request.field_name, request.value)?;
+                let value = adapter.read_field(world, &request.field_name)?;
+                (changed, value)
             }
         };
 
-        let value = read_reflected_field(world, &request.address, &request.field_name)?;
         let field = ReflectFieldValue::new(request.field_name, value);
 
         Ok(ReflectWriteResponse::new(request.address, field, changed))

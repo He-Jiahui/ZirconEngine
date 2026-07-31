@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -50,8 +50,13 @@ impl RenderMaterialPropertyUniformPayload {
                     });
             }
         }
+        let layout_names = layout
+            .properties
+            .iter()
+            .map(|property| property.name.as_str())
+            .collect::<HashSet<_>>();
         for (name, value) in values {
-            if payload.layout.iter().any(|field| field.name == *name) {
+            if layout_names.contains(name.as_str()) {
                 continue;
             }
             if !value.is_uniform_eligible() {
@@ -104,12 +109,7 @@ impl RenderMaterialPropertyUniformPayload {
 
         let mut payload = self.clone();
         for (name, value) in overrides.values() {
-            let Some(field) = payload
-                .layout
-                .iter()
-                .find(|field| field.name == *name)
-                .cloned()
-            else {
+            let Some(field) = payload.layout.iter().find(|field| field.name == *name) else {
                 payload
                     .unsupported
                     .push(RenderMaterialPropertyUniformUnsupported {
@@ -127,8 +127,7 @@ impl RenderMaterialPropertyUniformPayload {
                     });
                 continue;
             };
-            if let Some(reason) =
-                write_field_override_value(&mut payload.bytes, &field, kind, value)
+            if let Some(reason) = write_field_override_value(&mut payload.bytes, field, kind, value)
             {
                 payload
                     .unsupported

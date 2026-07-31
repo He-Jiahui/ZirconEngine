@@ -7,7 +7,7 @@ pub(crate) fn fixed_zero_constraints() -> PaneConstraints {
     }
 }
 
-pub(super) fn fixed_axis(size: f32) -> AxisConstraint {
+pub(crate) fn fixed_axis(size: f32) -> AxisConstraint {
     AxisConstraint {
         min: size,
         max: size,

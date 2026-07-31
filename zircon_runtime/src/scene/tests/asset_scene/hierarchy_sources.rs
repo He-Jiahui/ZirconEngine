@@ -97,6 +97,53 @@ fn scene_asset_load_uses_asset_preserving_normalizer_source_guard() {
 }
 
 #[test]
+fn project_persistence_borrows_world_and_normalizes_without_entity_snapshot() {
+    let source = project_io_source();
+    let save = project_io_section(
+        source,
+        "pub fn save_project_to_path",
+        "pub fn load_project_from_path",
+    );
+    let normalize = project_io_section(
+        source,
+        "fn normalize_loaded_state",
+        "self.flush_scene_systems_now();",
+    );
+
+    assert!(
+        source.contains("struct ProjectDocumentRef<'world>")
+            && source.contains("world: &'world World,")
+            && save.contains("let document = ProjectDocumentRef {")
+            && save.contains("world: self,")
+            && !save.contains("world: self.clone(),"),
+        "project save must serialize a borrowed World instead of cloning the entire scene"
+    );
+    assert!(
+        normalize.contains("for entity_index in 0..self.entities.len()")
+            && normalize.contains("let entity = self.entities[entity_index];")
+            && !normalize.contains("self.entities.iter().copied().collect::<Vec<_>>()"),
+        "load normalization must index the stable entity list without allocating an id snapshot"
+    );
+}
+
+#[test]
+fn builtin_reference_locators_are_parsed_once() {
+    let source = include_str!("../../world/project_io/references.rs");
+    let lookup = source
+        .split("fn builtin_locator_for_id(")
+        .nth(1)
+        .expect("read builtin locator lookup");
+
+    assert!(
+        source.contains("static BUILTIN_LOCATORS: OnceLock<")
+            && source.contains("BUILTIN_LOCATORS.get_or_init(")
+            && lookup.contains("for (candidate_id, locator) in builtin_locators()")
+            && !lookup.contains("ResourceLocator::parse(locator_text)"),
+        "builtin resource locators and ids must be parsed once instead of once per saved handle"
+    );
+}
+
+#[test]
 fn scene_assets_keep_transform_only_hierarchy_nodes() {
     let root = unique_temp_project_root("scene_empty_hierarchy");
     let project = create_test_project(&root);

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_equip_procs_state_tests",
+  "source": "src",
+  "binary": "bin-m4-equip-procs-state-tests",
+  "entry": "combat/equip_procs_state_test_main"
+}

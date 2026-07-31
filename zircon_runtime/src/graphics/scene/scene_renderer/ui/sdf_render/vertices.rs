@@ -1,15 +1,15 @@
 use bytemuck::{Pod, Zeroable};
 
 use crate::core::math::UVec2;
+#[cfg(test)]
+use crate::text::TextRenderState;
 use crate::text::atlas::{GlyphAtlasFormat, GlyphRasterPlacement, GlyphSmoothingMode};
 use crate::text::layout::justify_line_advances;
 use crate::text::sdf::{
-    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasRect, SdfBakeParams, SdfBakedGlyph,
-    SdfGlyphMetrics, SdfMode, SdfRunCpuPreparation,
+    SdfAtlasBake, SdfAtlasRect, SdfBakeParams, SdfBakedGlyph, SdfGlyphMetrics, SdfMode,
+    SdfRunCpuPreparation, scale_sdf_metrics_for_display,
 };
 use crate::text::shaping::{vertical_glyph_advance, vertical_glyph_rotation};
-#[cfg(test)]
-use crate::text::TextRenderState;
 use crate::text::{ShapedGlyphRotation, VerticalMode};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextDirection, UiTextWritingMode};

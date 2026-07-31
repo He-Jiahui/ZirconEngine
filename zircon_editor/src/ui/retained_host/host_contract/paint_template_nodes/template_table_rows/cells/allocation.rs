@@ -33,7 +33,7 @@ fn allocate_table_columns(
     layout_tier: TableColumnLayoutTier,
     metrics: WorkbenchTableColumnMetrics,
 ) -> TableColumnLayout {
-    let available_width = available_width.max(1.0);
+    let available_width = finite_available_width(available_width);
     let mut visible = visible_columns_for_layout_tier(layout_tier);
     drop_columns_until_minimums_fit(&mut visible, available_width, metrics);
     let mut widths = proportional_visible_widths(visible, available_width, metrics);
@@ -122,6 +122,13 @@ fn clamp_visible_widths_to_minimums(
     available_width: f32,
     metrics: WorkbenchTableColumnMetrics,
 ) {
+    if only_name_column_visible(visible)
+        && available_width < visible_minimum_width(visible, metrics)
+    {
+        widths.fill(0.0);
+        widths[0] = available_width;
+        return;
+    }
     for (index, width) in widths.iter_mut().enumerate() {
         if visible[index] {
             *width = (*width).max(metrics.min_widths[index]);
@@ -174,4 +181,46 @@ fn visible_minimum_width(
 
 fn only_name_column_visible(visible: [bool; TABLE_COLUMN_COUNT]) -> bool {
     visible[0] && !visible[1] && !visible[2] && !visible[3]
+}
+
+fn finite_available_width(value: f32) -> f32 {
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn metrics() -> WorkbenchTableColumnMetrics {
+        WorkbenchTableColumnMetrics {
+            ratios: [0.36, 0.27, 0.19, 0.18],
+            min_widths: [100.0, 60.0, 60.0, 80.0],
+            drop_order: [3, 2, 1, 0],
+        }
+    }
+
+    #[test]
+    fn narrow_table_allocation_keeps_the_name_column_inside_real_available_width() {
+        let layout = allocate_table_columns(0.5, TableColumnLayoutTier::Regular, metrics());
+
+        assert_eq!(layout.width(0), 0.5);
+        assert_eq!(layout.width(1), 0.0);
+        assert_eq!(layout.width(2), 0.0);
+        assert_eq!(layout.width(3), 0.0);
+        assert_eq!(layout.x_offset(1), 0.5);
+    }
+
+    #[test]
+    fn non_finite_table_width_has_no_fallback_column_extent() {
+        let layout = allocate_table_columns(f32::NAN, TableColumnLayoutTier::Regular, metrics());
+
+        assert_eq!(layout.width(0), 0.0);
+        assert_eq!(layout.width(1), 0.0);
+        assert_eq!(layout.width(2), 0.0);
+        assert_eq!(layout.width(3), 0.0);
+    }
 }

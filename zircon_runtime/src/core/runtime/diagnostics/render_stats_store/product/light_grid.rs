@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderStats;
 
-use super::{record_bool, record_count, DiagnosticStore};
+use super::{DiagnosticStore, record_bool, record_count};
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_bool(
@@ -59,11 +59,11 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         stats.last_light_grid_peak_lights_per_cluster,
         &["render", "light_grid", "cluster", "peak"],
     );
-    store.record(
+    store.record_static(
         "render.light_grid.average_lights_per_cluster",
         frame_index,
         stats.last_light_grid_average_lights_per_cluster_milli as f64 / 1000.0,
         Some("count"),
-        ["render", "light_grid", "cluster", "average"],
+        &["render", "light_grid", "cluster", "average"],
     );
 }

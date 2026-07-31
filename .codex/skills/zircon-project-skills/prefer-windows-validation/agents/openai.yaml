@@ -1,0 +1,4 @@
+interface:
+  display_name: "Windows 优先验证"
+  short_description: "优先使用 Windows，并约束 WSL Cargo target 路径"
+  default_prompt: "使用 $prefer-windows-validation 选择 ZirconEngine 验证环境，并检查 WSL Cargo target 是否位于 /mnt/d、/mnt/e 或 /mnt/f。"

@@ -189,7 +189,8 @@ fn custom_target_two_viewport_stacks_preserve_independent_composites_before_prim
         "later PrimarySurface should sample the right stack red overlay; red={frame_right_red}, total={right_overlay_pixels}"
     );
     assert!(
-        frame_right_edge_blue > right_edge_pixels / 3 && frame_right_green < right_overlay_pixels / 10,
+        frame_right_edge_blue > right_edge_pixels / 3
+            && frame_right_green < right_overlay_pixels / 10,
         "later PrimarySurface should sample the right stack blue base without left green leakage; blue={frame_right_edge_blue}, green={frame_right_green}, edge_total={right_edge_pixels}, overlay_total={right_overlay_pixels}"
     );
 }

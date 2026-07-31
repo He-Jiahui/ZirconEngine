@@ -18,7 +18,22 @@ related_code:
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/text/layout/mod.rs
+  - zircon_runtime/src/text/layout/advance_index.rs
+  - zircon_runtime/src/text/layout/rich.rs
+  - zircon_runtime/src/text/layout/rich/materialize.rs
+  - zircon_runtime/src/text/layout/rich/metrics.rs
+  - zircon_runtime/src/text/layout/rich_advance_index.rs
+  - zircon_runtime/src/text/layout/rich_advance_index/tests.rs
+  - zircon_runtime/src/text/layout/rich_vertical.rs
+  - zircon_runtime/src/text/layout/rich_vertical/tests.rs
+  - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
+  - zircon_runtime/src/ui/text/layout_engine/wrapping/tests.rs
+  - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
+  - zircon_runtime/src/ui/text/layout_engine/rich_inline_vertical.rs
+  - zircon_runtime/src/ui/text/layout_engine/tests/soft_hyphen.rs
   - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/line_break/boundary_correction.rs
+  - zircon_runtime/src/text/layout/line_break/boundary_correction/tests.rs
   - zircon_runtime/src/text/layout/line_break/tests.rs
   - zircon_runtime/src/text/layout/line_break/glue.rs
   - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
@@ -70,9 +85,12 @@ related_code:
   - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
+  - zircon_runtime_interface/src/ui/surface/render/mod.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
+  - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime/src/ui/tests/text_layout/mod.rs
   - zircon_runtime/src/ui/tests/text_layout/alignment.rs
@@ -278,7 +296,7 @@ ShapedGlyphRun(02, 无宽度约束 + 断点机会) + LayoutConstraints { wrap_wi
 1. 竖排列切分(主轴 y、列宽=字号+列距)、列对齐、竖排禁则;`LaidOutLine` 在竖排语义下为"列"。
 2. 2026-07-01 首个实现切片已把 `UiTextWritingMode::{HorizontalTb,VerticalRl}` 加入 public contract,并贯穿 `UiResolvedStyle`、`UiResolvedTextLayout`、`UiShapedText` 与 `UiTextPaint`;surface parser 接受 `writing_mode = "vertical-rl"` / `font.writing_mode = "vertical-rl"`。UI resolved-layout 首段由 `zircon_runtime/src/ui/text/layout_engine/vertical.rs` 承接:以 frame height 为主轴断列,列从右向左排布,复用现有 CJK kinsoku chunk metadata,shaped DTO 的竖排 glyph frame 沿 y 轴推进并给 ASCII glyph 标记 `Cw90`。
 3. 2026-07-01 vertical_rl 几何消费首段已把 `ui/text/hit_test.rs` 与 `ui/text/geometry.rs` 接到竖排语义:命中测试按 x 选择右到左列、按 y/glyph advance midpoint 反查 source byte offset;caret/range/IME cursor rect 在竖排下投影为横向 1px bar,避免继续使用横排竖线几何。
-4. 2026-07-01 render-contract 编辑装饰消费首段已把 `zircon_runtime_interface/src/ui/surface/render/text_geometry.rs` 接到 `UiResolvedTextLayout.writing_mode`:selection 在竖排下使用整列宽度与 y 轴 range span,composition underline 改为列右侧竖向 side rule,caret 改为横向 bar,避免 neutral paint DTO 在平台绘制前仍输出横排装饰几何。
+4. 2026-07-01 render-contract 编辑装饰消费首段当前由 folder-backed `zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs` 接到 `UiResolvedTextLayout.writing_mode`:selection 在竖排下使用整列宽度与 y 轴 range span,composition underline 改为列右侧竖向 side rule,caret 改为横向 bar；`command.rs` 直接消费 `editable_text_decorations(...)`。source-byte 到 visual-cluster 的唯一映射 owner 为同目录 `source_map.rs`，其 DTO 只经 `render/mod.rs`、`surface/mod.rs` 重导出，再由 Runtime `ui/text/geometry.rs` 与 `ui/text/hit_test.rs` 消费；不在 neutral paint DTO 组装前重建横排装饰几何，也不保留已删除 flat owner。
 5. 2026-07-02 SDF render 消费首段已把 `ScreenSpaceUiTextBatch.writing_mode` 从 render extract 传到 `sdf_render.rs`;`VerticalRl` 下 SDF glyph quad 沿 y 轴推进并按列中心投影,避免布局 DTO 已是竖排但 SDF 上屏仍按横排 cursor_x 排列。该切片只处理 vertex projection,字体竖排替换与 Latin sideways rotation 仍属于 shaping/font-orientation 后续。
 
 测试:`vertical_rl_wraps_columns_on_frame_height`、`text_vertical_kinsoku_applies_to_column_break`、`render_extract_parses_vertical_rl_writing_mode_layout`、`ui_text_writing_mode_vertical_rl_serializes_as_contract_value`、`ui_shaped_text_contract_derives_vertical_rl_glyph_bounds`、`text_hit_test_vertical_rl_uses_column_x_and_vertical_advances`、`source_geometry_uses_vertical_writing_mode_advances`、`text_input_ime_cursor_rect_uses_vertical_rl_geometry`、`ui_text_decorations_use_vertical_rl_geometry`、`sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis`。
@@ -479,9 +497,136 @@ pub fn measure_text_size(run: &ShapedGlyphRun, c: &LayoutConstraints) -> Vec2;
 
 当前概述（2026-07-15）：LB-M4 的共享 `layout_text` 已在产品 proof 中把 CJK 文本断成右到左 VerticalRl columns，并关闭 soft-wrap affinity。LB-M5 的中立 `paragraph_layout` owner 现已把同一 first/continuation inset、nested/list prefix 与 paragraph align 约束投影到 VerticalRl y/height；S2 又把这组 physical-paragraph constraints 送入 `text/layout/rich_vertical.rs` 的真实 Glyph/Word/WordSmart 断列，使内联对象 height 在首列/续列可用高度内参与 wrap，并让 plain/rich-inline vertical 路径复用同一 y alignment owner。parser/interface/renderer 未新增 writing-mode 分支，也未采用 UI post-move 或 renderer reconstruction。当前源码的五条 focused regressions 已 5/5，通过 exact ignored WGPU exporter 1/1 完成真实 SDF atlas、WGPU submit 与 framebuffer readback；含 imported checker texture 的 node 120 截图已归档到 `docs/tests/runtime/text/runtime_text_vertical_rich_inline_paragraph_product_framebuffer_20260715.png`（1080×1840，SHA256 `A5B38D81F8ACA85BE826AC87E441E73A120437CAE12E7D769559FDABC681E77E`），原图目检、像素断言与 target/cargo-target 排除均通过。跨计划 operation sibling visibility Failure 已验证回传为 fixed。当前状态为 `LB-M5 VerticalRl paragraph rich-inline product acceptance passed`；全量 native/SDF paragraph parity、复杂 vertical source-range geometry 与平台实机输入仍按本计划后续项继续推进。
 
+2026-07-30 状态更新：基础 measure path 现在将末尾 `\n` 保留为一条空布局行，
+因此 `measure_text_size("line\n", ...)` 的高度与真实 layout 的两行高度一致；普通
+grapheme 宽度投影仍只对完整文本 shape 一次，不回退为逐 grapheme 整形。相邻 Runtime15
+F17 源路径守卫已在受管 job `3d962990f2984ef2a288327ca0412bd0` / run
+`3ef0c2c1b44645aaa5055db9d18555fa` 中精确通过 `1/1`，但这不构成 Text03 验收。
+Text03 的两项精确回归和本轮新鲜 WGPU 产品 framebuffer 仍待受管 CPU/GPU 槽执行；状态为
+`implemented / resolving_failure / managed_validation_pending`，未将共享队列等待写成
+`blocked`，也未提前记录截图、里程碑产出或提交。
+
+2026-07-30 current-source 验证更新：受管 Text03 job
+`4959de0e7c1e4576af54e293fdd1d9f3` / run
+`c033e99c0d194c7d8f111279d88bfb99` 在约六分钟编译后以 `exit 101` 于测试二进制
+启动前停在 `dynamic_api/session/construction.rs` 的 `Arc<RuntimeExtensionCatalogReport>`
+可变 registry 应用。该最低消费者路径由 active Plugins01 extension-snapshot handoff
+在同一运行窗口硬切为只读 `WorldRuntimeExtensionPlan`，所以本次结果是 source-raced
+诊断证据，不计 Text03 pass/fail。新的 trailing-newline exact reservation
+`e97f3d7bf6a4490ea685cde5cba94805` 已续期并等待 FIFO；在它实际通过、single-shape
+回归通过及 WGPU readback 通过前，不更新 Text03 验收、产品截图或里程碑提交状态。
+
+2026-07-30 上游验证更新：在 Plugins01 availability 的 const/iterator compile repair
+进入当前源码后，Text03 trailing-newline 精确命令以受管 job
+`b2f400fa57644401825f314a28efa81e` / run
+`dce6fe65543e4a0f9b5e0d2a7e74b21e` 重新编译。该 job 在测试二进制启动前停于
+`RuntimePluginCatalog` 的 `RefCell` 与 `Sync`/`OnceLock` 契约冲突、私有
+project-plan report sibling access，以及 availability row pointer-identity 回归的
+不当 `assert_eq!` trait 要求。因此没有 Text03 test pass/fail 计数可宣称；待既有
+Plugins01 catalog/availability handoff 回传后，按原命令重跑 trailing-newline 与
+single-shape 回归，再运行真实 WGPU 产品帧。
+
+- 2026-07-18 current-owner 文档硬切：front matter 与当前设计说明已从删除的 flat interface `text_geometry.rs` 升级为 `text_geometry/mod.rs` 编辑装饰协调 owner 和 `text_geometry/source_map.rs` source/visual cluster 映射 owner；不恢复旧文件、转发层或兼容重导出。Frameworks06 Batch17 focused G7 状态已由 `1` 条 missing-path 收敛为 `0`。
+
 - fixed 已修复：[runtime-operation-ffi-sibling-visibility](03/fixed-2026-07-15-runtime-operation-ffi-sibling-visibility.md)
 - fixed 已修复：[text-physical-owner-hard-cut-compile-break](03/fixed-2026-07-15-text-physical-owner-hard-cut-compile-break.md)
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`03/2026-07-09-line-breaking-measure-and-layout-output-records.md`](03/2026-07-09-line-breaking-measure-and-layout-output-records.md)
+
+2026-07-30 managed current-source progress: trailing-newline regression now passed
+`1/1` in job `a0818d9b32b24998990447d1df80d4a1` / run
+`0f98dc6c1b9043fc966d7aa108f9bc25` after a clean cold compile (test duration
+`1.36s`). `measure.rs` and the Plugins01 dynamic-session consumer mtimes were stable
+through the run. This accepts only the trailing-empty-line behavior; the single-shape
+regression, Text09 regressions, and fresh WGPU product framebuffer remain pending, so
+the plan stays `implemented / resolving_failure / managed_validation_pending` and no
+milestone output, PNG, or commit is claimed.
+
+2026-07-30 managed current-source progress: the single-shape grapheme projection
+regression also passed `1/1` in job `b4e6f332a13b44f6b66b906487a52c95` / run
+`853e35937130424a9d276d69a9c20bd0` (test duration `0.00s` after its cold build).
+The same source timestamps remained stable. Text03 measurement foundation is therefore
+implemented with both exact regressions green; Text09 regressions and the fresh WGPU
+product framebuffer remain required before any milestone output, PNG acceptance, or
+commit.
+
+2026-07-31 rich layout performance implementation update: horizontal and VerticalRl rich
+wrapping now compile sorted grapheme metrics into one shared `RichAdvanceIndex`. Each
+continuous text-style span is shaped once, inline objects retain an independent main-axis
+advance/cross-axis extent, and source-range totals use prefix advances instead of reshaping
+each grapheme or word chunk. Horizontal line materialization consumes the same index,
+borrows `parsed.text`, preserves original run indices, and advances a monotonic run cursor;
+it no longer clones the complete source or filters every run for every visual line. The initial
+single-span provider-count regressions were subsequently replaced by the 2026-08-01 bounded
+boundary-window/linear-call assertions because correct line-edge shaping intentionally adds
+bounded backend requests.
+
+The structure-priority review split materialization and metrics into folder-backed leaves:
+`rich.rs` is 283 lines, `rich/materialize.rs` 240, `advance_index.rs` 148,
+`rich_advance_index.rs` 231, `rich/metrics.rs` 72, and `rich_vertical.rs` 225. Production scans contain no
+`panic!`/`unwrap()`/`expect()` and no former per-grapheme rich-shape helpers. `rustfmt
+--check` and whitespace checks pass. Direct Cargo was not run because this repository
+requires managed validation and no coordinator submission surface is available in this
+session. The failure remains open for managed type/test execution, bounded
+kerning/ligature/soft-hyphen boundary correction, scale counters/bench evidence, and the
+fresh WGPU product framebuffer; no PNG or acceptance is claimed by this source slice.
+
+2026-07-31 greedy-wrap implementation update: plain and rich range queries now share the
+folder-level `GraphemeAdvanceIndex` storage/prefix implementation. UI Word/Glyph wrapping
+builds that index once per non-newline source segment, carries `current_advance`, and asks
+the shared greedy owner to compare accumulated plus next-range advances. Word chunks use
+prefix range totals; Glyph mode walks the precomputed metrics. The former
+`current_text + next_text` String allocation, complete growing-prefix reshape, and
+provider-based glyph-fallback admission API were deleted. Soft-hyphen suffixes remain
+pending-only until an actual break, and source/run byte ranges are unchanged.
+
+The initial regressions required the shared index to shape a complete source once and UI Glyph
+wrap to create multiple lines from that index; the 2026-08-01 slice replaces the stale exact-one
+miss assertion with bounded edge-window and linear miss budgets. Static guards reject the former growing-prefix symbol/candidate. These tests are
+present but not executed because managed Cargo remains unavailable in this session;
+`rustfmt --check`, whitespace, zero-panic, and zero-old-symbol scans pass. At that checkpoint,
+bounded kerning/ligature/soft-hyphen correction and scale tests were still pending; the next
+2026-08-01 record supersedes that implementation state.
+
+2026-08-01 boundary-correction implementation update: Text03 的非验收算法缺口已收敛到
+共享 `text/layout/line_break/boundary_correction.rs` owner。plain/UI 与 rich horizontal/
+VerticalRl Glyph、Word、WordSmart 都先复用 canonical `GraphemeAdvanceIndex` prefix advance，
+再仅对行首/行尾各 8 个 grapheme 做有界修正；单次 shaping request 最多覆盖 16 个
+context graphemes（另加实际 soft-hyphen suffix），indexed query 最多物化首尾共 32 个
+`BoundaryAdvanceUnit`。它不构造完整增长候选，也不扫描或分配完整候选行 units，因此
+超宽单行仍是近 O(G) 扫描而非 O(G^2)。plain/rich 原先重复的 tentative-range planner
+已合并为一个 metric-range owner。
+
+soft-hyphen 现在同时进入断行测量与实际视觉投影：普通 UI 继续使用
+`CandidateLine::pending_break_suffix`；含 inline object 的 rich horizontal/VerticalRl 路径
+通过共享 source-range 查询追加 synthetic `-` run 和对应真实 glyph advance，隐藏的
+U+00AD 不进入视觉文本。新增回归覆盖短行 `AV-` 边界、修正后 Glyph 断点移动、rich
+bounded requests、普通/rich/vertical-rich soft-hyphen，以及 1/100/1k/10k grapheme
+backend-call/window 上限、1/100/1k alternating rich-run single-shape 计数和 UI 1/100/1k
+token cache-miss 线性预算。
+ignored `boundary_scale_evidence_reports_p50_p95` 使用 31 个 sample 输出各 grapheme 规模的
+line count、backend calls、最大 shaping window 与 p50/p95 ns；它不以机器时延阈值决定
+正确性，正确性仍由 focused bounded-call/window 断言负责。
+
+二次静态审查先发现并修复了三项问题：plain/rich planner 重复、边界 shaping 虽有界但
+候选 units 仍按增长行完整收集、rich range-only 路径只修正 suffix 宽度却不绘制 suffix。
+修复后 production owner 行数为 `rich.rs` 279、`rich/materialize.rs` 258、
+`advance_index.rs` 193、`rich_advance_index.rs` 399、`rich/metrics.rs` 77、
+`rich_vertical.rs` 232、`line_break/boundary_correction.rs` 358、UI `wrapping.rs` 417、
+`rich_inline.rs` 315、`rich_inline_vertical.rs` 273，均低于 800 行 review warning。
+`rustfmt --check`、whitespace、旧增长候选和 production panic/unwrap/expect/dead-code allow
+扫描通过，二次审查未留下 actionable P0/P1/P2。
+
+当前状态为 `implementation_complete / resolving_failure / managed_validation_pending`。
+本计划及 child failure 仍保持 open，直到 coordinator 执行 focused/upward Cargo、
+上述 grapheme/run 受管规模回归与 p50/p95、Text09 cache 回归以及新鲜真实 WGPU 产品帧；
+等待这些受管验收只延迟 accepted closeout，不构成 blocked，也不生成或登记占位 PNG。
+
+Coordinator handoff（2026-08-01）：首次 validation submit 因 Session 尚未绑定 numbered Plan
+而被拒绝，另一次仅命中 coordinator health-preflight deadline；没有 ticket 进入 queued/running，
+因此不轮询。随后完整 Plan/scope registration 已以 durable accepted receipt
+`a6d7f08e10c24387be4c8b73611319e6` 提交；按 cross-session 规则不查询该 receipt，等待
+coordinator wakeup 后再提交 `boundary`、`rich_span_index`、`soft_hyphen`、ignored
+`boundary_scale_evidence_reports_p50_p95` 与 ignored exact WGPU product 命令。

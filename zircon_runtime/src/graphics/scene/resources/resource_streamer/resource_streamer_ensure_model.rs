@@ -5,8 +5,8 @@ use crate::core::resource::{ModelMarker, ResourceHandle};
 
 use crate::graphics::types::GraphicsError;
 
-use super::super::prepared::PreparedModel;
 use super::super::GpuModelResource;
+use super::super::prepared::PreparedModel;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {

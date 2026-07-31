@@ -1,0 +1,162 @@
+// Pure Drowned Reliquary item-loot interpretation. The Delve reducer alone
+// owns its shared RNG stream and supplies the two source-observed draws; this
+// module therefore cannot change global draw order or hold an item collection.
+
+requireUnit(value: float, required: bool): void {
+    if (!required || value < 0.0 || value >= 1.0) {
+        throw "woc Drowned Reliquary loot random unit is invalid";
+    }
+}
+
+requireTier(index: int, required: bool): void {
+    if (!required || index < 0 || index > 2) {
+        throw "woc Drowned Reliquary loot tier is invalid";
+    }
+}
+
+// 0=WAR, 1=ROG, 2=MAG. The source falls back to WAR for an unknown class.
+pub classArchetypeIndex(classId: string, required: bool): int {
+    if (!required) { throw "woc Drowned Reliquary class is required"; }
+    if (classId == "rogue" || classId == "hunter") { return 1; }
+    if (classId == "mage" || classId == "priest" || classId == "warlock" ||
+        classId == "druid") {
+        return 2;
+    }
+    return 0;
+}
+
+// Source tier order: low, medium, premium.
+pub lootTierIndex(tierId: string, required: bool): int {
+    if (!required) { throw "woc Drowned Reliquary loot tier is required"; }
+    if (tierId == "low") { return 0; }
+    if (tierId == "medium") { return 1; }
+    if (tierId == "premium") { return 2; }
+    return -1;
+}
+
+pub fixedDrawCount(required: bool): int {
+    if (!required) { throw "woc Drowned Reliquary loot draw count is required"; }
+    return 2;
+}
+
+pub firstDrawSelectsUncommonA(firstDraw: float, required: bool): bool {
+    requireUnit(firstDraw, required);
+    return firstDraw < 0.5;
+}
+
+uncommonA(archetype: int): string {
+    if (archetype == 0) { return "siltguard_helm"; }
+    if (archetype == 1) { return "reedstalker_jerkin"; }
+    return "cantors_drowned_sash";
+}
+
+uncommonB(archetype: int): string {
+    if (archetype == 0) { return "bulwark_rusted_pauldrons"; }
+    if (archetype == 1) { return "mirejaw_fang_knife"; }
+    return "corpse_candle_focus";
+}
+
+pub uncommonItem(classId: string, firstDraw: float, required: bool): string {
+    var archetype = classArchetypeIndex(classId, required);
+    return firstDrawSelectsUncommonA(firstDraw, true) ? uncommonA(archetype) : uncommonB(archetype);
+}
+
+pub rareItem(classId: string, required: bool): string {
+    var archetype = classArchetypeIndex(classId, required);
+    if (archetype == 0) { return "nhalias_bell_maul"; }
+    if (archetype == 1) { return "widow_silk_hood"; }
+    return "nhalias_litany_rod";
+}
+
+pub epicItem(classId: string, required: bool): string {
+    var archetype = classArchetypeIndex(classId, required);
+    if (archetype == 0) { return "blackwater_vanguard_chest"; }
+    if (archetype == 1) { return "siltstep_leggings"; }
+    return "sunken_reliquary_hood";
+}
+
+// This reports the exact second-draw chance. Medium has a zero chance but the
+// source still calls `rng.chance(0)` to preserve its two-draw stream contract.
+pub bonusChance(tier: int, bountiful: bool, required: bool): float {
+    requireTier(tier, required);
+    if (bountiful) { return 0.03; }
+    if (tier == 2) { return 0.2; }
+    return tier == 1 ? 0.0 : 0.5;
+}
+
+pub secondDrawAwardsBonus(tier: int, bountiful: bool, secondDraw: float, required: bool): bool {
+    requireUnit(secondDraw, required);
+    return secondDraw < bonusChance(tier, bountiful, required);
+}
+
+pub lootItemCount(tier: int, bountiful: bool, secondDraw: float, required: bool): int {
+    requireTier(tier, required);
+    var bonus = secondDrawAwardsBonus(tier, bountiful, secondDraw, true);
+    if (bountiful) { return bonus ? 3 : 2; }
+    if (tier == 2) { return bonus ? 2 : 1; }
+    if (tier == 1) { return 1; }
+    return bonus ? 1 : 0;
+}
+
+// `ordinal` is the target array insertion order. The caller has already
+// observed both draws, even where the requested tier awards no second-slot item.
+pub lootItemId(
+    classId: string,
+    tier: int,
+    bountiful: bool,
+    firstDraw: float,
+    secondDraw: float,
+    ordinal: int,
+    required: bool
+): string {
+    var count = lootItemCount(tier, bountiful, secondDraw, required);
+    if (ordinal < 0 || ordinal >= count) {
+        throw "woc Drowned Reliquary loot ordinal is invalid";
+    }
+    var uncommon = uncommonItem(classId, firstDraw, true);
+    if (bountiful) {
+        if (ordinal == 0) { return uncommon; }
+        if (ordinal == 1) { return rareItem(classId, true); }
+        return epicItem(classId, true);
+    }
+    if (tier == 2 && ordinal == 1) { return rareItem(classId, true); }
+    return uncommon;
+}
+
+pub contractTest(): int {
+    if (classArchetypeIndex("warrior", true) != 0 || classArchetypeIndex("hunter", true) != 1 ||
+        classArchetypeIndex("priest", true) != 2 || classArchetypeIndex("unknown", true) != 0 ||
+        lootTierIndex("low", true) != 0 || lootTierIndex("medium", true) != 1 ||
+        lootTierIndex("premium", true) != 2 || fixedDrawCount(true) != 2 ||
+        !firstDrawSelectsUncommonA(0.499999, true) || firstDrawSelectsUncommonA(0.5, true)) {
+        return -1;
+    }
+    if (uncommonItem("warrior", 0.0, true) != "siltguard_helm" ||
+        uncommonItem("rogue", 0.5, true) != "mirejaw_fang_knife" ||
+        uncommonItem("mage", 0.0, true) != "cantors_drowned_sash" ||
+        rareItem("rogue", true) != "widow_silk_hood" ||
+        epicItem("warlock", true) != "sunken_reliquary_hood") {
+        return -2;
+    }
+    if (bonusChance(0, false, true) != 0.5 || bonusChance(1, false, true) != 0.0 ||
+        bonusChance(2, false, true) != 0.2 || bonusChance(0, true, true) != 0.03 ||
+        lootItemCount(0, false, 0.5, true) != 0 ||
+        lootItemCount(0, false, 0.499999, true) != 1 ||
+        lootItemCount(1, false, 0.0, true) != 1 ||
+        lootItemCount(2, false, 0.2, true) != 1 ||
+        lootItemCount(2, false, 0.199999, true) != 2 ||
+        lootItemCount(0, true, 0.03, true) != 2 ||
+        lootItemCount(2, true, 0.029999, true) != 3) {
+        return -3;
+    }
+    if (lootItemId("warrior", 0, false, 0.0, 0.499999, 0, true) != "siltguard_helm" ||
+        lootItemId("rogue", 2, false, 0.5, 0.199999, 0, true) != "mirejaw_fang_knife" ||
+        lootItemId("rogue", 2, false, 0.5, 0.199999, 1, true) != "widow_silk_hood" ||
+        lootItemId("mage", 1, false, 0.0, 0.0, 0, true) != "cantors_drowned_sash" ||
+        lootItemId("warrior", 0, true, 0.5, 0.029999, 0, true) != "bulwark_rusted_pauldrons" ||
+        lootItemId("warrior", 0, true, 0.5, 0.029999, 1, true) != "nhalias_bell_maul" ||
+        lootItemId("warrior", 0, true, 0.5, 0.029999, 2, true) != "blackwater_vanguard_chest") {
+        return -4;
+    }
+    return 1;
+}

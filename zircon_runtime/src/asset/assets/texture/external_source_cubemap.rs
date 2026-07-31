@@ -1,14 +1,14 @@
 use thiserror::Error;
 
 use crate::core::framework::render::{
-    source_cubemap_mip_count, RenderImageDimension, SOURCE_CUBEMAP_FACE_COUNT,
+    RenderImageDimension, SOURCE_CUBEMAP_FACE_COUNT, source_cubemap_mip_count,
 };
 
 use super::{TextureAsset, TexturePayload};
 
 mod decode;
 
-pub use decode::{decode_external_source_cubemap, ExternalSourceCubemapDecodeError};
+pub use decode::{ExternalSourceCubemapDecodeError, decode_external_source_cubemap};
 
 const DDS_HEADER_SIZE: usize = 128;
 const DDS_DX10_HEADER_SIZE: usize = 148;
@@ -37,8 +37,7 @@ const KTX2_IDENTIFIER: &[u8] = b"\xABKTX 20\xBB\r\n\x1A\n";
 ///
 /// They are intentionally classified before compressed upload planning so a
 /// valid DDS/KTX cubemap cannot be consumed as a material texture or PMREM blob.
-pub const EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON: &str =
-    "external DDS/KTX cubemap containers are source cubemap inputs for IBL baking, not PMREM or direct texture upload payloads";
+pub const EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON: &str = "external DDS/KTX cubemap containers are source cubemap inputs for IBL baking, not PMREM or direct texture upload payloads";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExternalSourceCubemapContainerKind {
@@ -299,12 +298,14 @@ fn validate_ktx2_source_pixel_format(
     if matches!(vk_format, 97 | 109) && supercompression == 0 {
         return Ok(());
     }
-    Err(ExternalSourceCubemapContainerError::UnsupportedSourcePixelFormat {
-        kind: ExternalSourceCubemapContainerKind::Ktx2,
-        format: format!(
-            "Vulkan format {vk_format}, supercompression {supercompression}; expected uncompressed RGBA16F/RGBA32F"
-        ),
-    })
+    Err(
+        ExternalSourceCubemapContainerError::UnsupportedSourcePixelFormat {
+            kind: ExternalSourceCubemapContainerKind::Ktx2,
+            format: format!(
+                "Vulkan format {vk_format}, supercompression {supercompression}; expected uncompressed RGBA16F/RGBA32F"
+            ),
+        },
+    )
 }
 
 fn validate_texture_metadata(
@@ -501,7 +502,9 @@ struct ExternalSourceCubemapHeader {
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum ExternalSourceCubemapContainerError {
-    #[error("{kind:?} external source cubemap header is too short: expected at least {expected} bytes, found {actual}")]
+    #[error(
+        "{kind:?} external source cubemap header is too short: expected at least {expected} bytes, found {actual}"
+    )]
     TruncatedHeader {
         kind: ExternalSourceCubemapContainerKind,
         expected: usize,
@@ -517,7 +520,9 @@ pub enum ExternalSourceCubemapContainerError {
         kind: ExternalSourceCubemapContainerKind,
         format: String,
     },
-    #[error("{kind:?} external source cubemap arrays are not supported by .zcube: array_layers={array_layers}")]
+    #[error(
+        "{kind:?} external source cubemap arrays are not supported by .zcube: array_layers={array_layers}"
+    )]
     UnsupportedCubemapArray {
         kind: ExternalSourceCubemapContainerKind,
         array_layers: u32,
@@ -527,14 +532,18 @@ pub enum ExternalSourceCubemapContainerError {
         kind: ExternalSourceCubemapContainerKind,
         face_size: u32,
     },
-    #[error("{kind:?} external source cubemap mip chain is incomplete for face_size={face_size}: expected {expected}, found {actual}")]
+    #[error(
+        "{kind:?} external source cubemap mip chain is incomplete for face_size={face_size}: expected {expected}, found {actual}"
+    )]
     IncompleteMipChain {
         kind: ExternalSourceCubemapContainerKind,
         face_size: u32,
         expected: u32,
         actual: u32,
     },
-    #[error("{kind:?} external source cubemap texture metadata mismatch for {field}: expected {expected}, found {actual}")]
+    #[error(
+        "{kind:?} external source cubemap texture metadata mismatch for {field}: expected {expected}, found {actual}"
+    )]
     TextureMetadataMismatch {
         kind: ExternalSourceCubemapContainerKind,
         field: &'static str,

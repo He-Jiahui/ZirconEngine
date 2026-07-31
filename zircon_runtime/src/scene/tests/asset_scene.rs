@@ -11,7 +11,7 @@ use crate::core::framework::render::{
     RenderViewportRect,
 };
 use crate::core::framework::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
-use crate::core::math::{UVec2, Vec2, Vec3};
+use crate::core::math::{Transform, UVec2, Vec2, Vec3};
 use crate::scene::components::{
     AmbientLight, CameraComponent, ColliderShape, JointKind, RectLight, RigidBodyType,
 };

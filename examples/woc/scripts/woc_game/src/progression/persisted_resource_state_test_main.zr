@@ -1,0 +1,23 @@
+var console = %import("zr.system.console");
+var resources = %import("progression/persisted_resource_state");
+
+var result = 1;
+if (resources.persistedResource("mana", "rage", 35, 480) != 480 ||
+    resources.persistedResource("mana", "energy", 100, 320) != 320 ||
+    resources.persistedResource("mana", "", 20, 250) != 250) {
+    result = -1;
+}
+if (result == 1 && (resources.persistedResource("mana", "mana", 250, 0) != 250 ||
+    resources.persistedResource("energy", "energy", 77, 0) != 77 ||
+    resources.persistedResource("rage", "rage", 40, 0) != 40)) {
+    result = -2;
+}
+if (result == 1 && (resources.persistedResource("", "", 0, 0) != 0 ||
+    resources.persistedResource("", "mana", 17, 300) != 17 ||
+    resources.persistedResource("energy", "rage", 12, 300) != 12)) {
+    result = -3;
+}
+
+console.printLine("m5-persisted-resource-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

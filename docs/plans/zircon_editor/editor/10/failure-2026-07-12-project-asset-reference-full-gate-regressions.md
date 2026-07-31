@@ -66,6 +66,7 @@ Editor 15 将当前 test binary 按顶层 owner 拆分后，`core::` 65 tests �
 | Editor10 M1/M2 / Editor03+08 M1 | ProjectAuthority / AssetRef 当前全量门回归 | `open-待功能owner精确复现` | 2026-07-12 | job `520d85713df249afae31661a7697ad07` 完成编译并复现至少 10 个 project/reference 失败；原始日志 `D:/cargo-targets/editor08-m1-rerun4-20260712.log`，全包因线程/资源停滞未形成 panic summary。 |
 | Editor10 M1/M2 / Editor15 M1 | ProjectAuthority core boundary exact failure | `open-已取得精确根因` | 2026-07-12 | 当前 Editor test binary 的 `core::` 分片 64/65；唯一失败为 boundary guard 扫描自身并命中 6 个 forbidden needle 字面量。 |
 | Editor10 M1/M2 / Editor09 M1 | 当前源码完整门停滞前复现 | `open-继续由功能owner处理` | 2026-07-13 | job `e81ed19d256f40c28ddb2437e9a18460` 再次记录 ProjectAuthority boundary、asset references 与两个 workbench project roundtrip 失败；asset-reference exact 为 `left=[]`、`right=6 GUIDs`。日志 `.codex/tmp/editor09-m1-full-lib-test-r2-20260713.log`；不在 Editor09 复制 ProjectAuthority/reference registry。 |
+| Editor10 M1/M2 | 当前源码功能修复 | `open-实现与静态门完成-独立复审/受管行为门待执行` | 2026-07-17 | boundary guard 已排除自身测试目录且保留全部生产禁用词；ProjectAuthority generation、document roundtrip 与 AssetRef consumer 当前源码已收束，详见 `2026-07-17-project-authority-reference-regression-closeout.md`。未取得 current-source exact Cargo 输出前不改 fixed。 |
 
 ## 修复结果与回传
 

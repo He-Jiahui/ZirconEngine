@@ -1,9 +1,12 @@
+use std::sync::OnceLock;
+
 use toml::Value;
 use zircon_runtime_interface::ui::{
     component::UiComponentState,
+    design_tokens::EditorDesignTokens,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
     tree::UiTemplateNodeMetadata,
 };
@@ -20,21 +23,27 @@ const SELECTED_NOTIFICATION_ID: &str = "selected_notification_id";
 const VISIBLE_LIMIT: &str = "visible_limit";
 const TITLE: &str = "title";
 const EMPTY_TEXT: &str = "empty_text";
+const PANEL_SURFACE_COLOR: &str = "panel_surface_color";
+const PANEL_BORDER_COLOR: &str = "panel_border_color";
+const ROW_SURFACE_COLOR: &str = "row_surface_color";
+const ROW_UNREAD_SURFACE_COLOR: &str = "row_unread_surface_color";
+const ROW_DISABLED_SURFACE_COLOR: &str = "row_disabled_surface_color";
+const ROW_BORDER_COLOR: &str = "row_border_color";
+const HEADER_TEXT_COLOR: &str = "header_text_color";
+const MUTED_TEXT_COLOR: &str = "muted_text_color";
+const ACCENT_COLOR: &str = "accent_color";
+const SUCCESS_COLOR: &str = "success_color";
+const WARNING_COLOR: &str = "warning_color";
+const ERROR_COLOR: &str = "error_color";
+const PANEL_BORDER_WIDTH: &str = "panel_border_width";
+const PANEL_RADIUS: &str = "panel_radius";
+const ROW_RADIUS: &str = "row_radius";
+const MARK_RADIUS: &str = "mark_radius";
+const HEADER_FONT_SIZE: &str = "header_font_size";
+const TITLE_FONT_SIZE: &str = "title_font_size";
+const MESSAGE_FONT_SIZE: &str = "message_font_size";
+const TYPOGRAPHY_LINE_HEIGHT_RATIO: &str = "typography_line_height_ratio";
 
-const PANEL_SURFACE: &str = "#11181d";
-const PANEL_BORDER: &str = "#2d3a42";
-const HEADER_TEXT: &str = "#e7eef0";
-const MUTED_TEXT: &str = "#7f8f95";
-const ROW_SURFACE: &str = "#151e23";
-const ROW_UNREAD_SURFACE: &str = "#153035";
-const ROW_DISABLED_SURFACE: &str = "#252c31";
-const ROW_BORDER: &str = "#283842";
-const ACCENT: &str = "#35c7d0";
-const ERROR: &str = "#ef7066";
-const SUCCESS: &str = "#42b883";
-const WARNING: &str = "#e0a33a";
-
-const PANEL_RADIUS: f32 = 6.0;
 const PANEL_PADDING_X: f32 = 12.0;
 const HEADER_TOP: f32 = 10.0;
 const HEADER_HEIGHT: f32 = 16.0;
@@ -49,16 +58,114 @@ const MARK_HEIGHT: f32 = 32.0;
 const TEXT_LEFT: f32 = 22.0;
 const TEXT_RIGHT_INSET: f32 = 12.0;
 const TITLE_TOP: f32 = 7.0;
-const TITLE_HEIGHT: f32 = 14.0;
 const MESSAGE_TOP: f32 = 25.0;
-const MESSAGE_HEIGHT: f32 = 13.0;
-const HEADER_FONT_SIZE: f32 = 13.0;
-const HEADER_LINE_HEIGHT: f32 = 16.0;
-const TITLE_FONT_SIZE: f32 = 12.0;
-const TITLE_LINE_HEIGHT: f32 = 14.0;
-const MESSAGE_FONT_SIZE: f32 = 11.0;
-const MESSAGE_LINE_HEIGHT: f32 = 13.0;
 const EMPTY_TEXT_TOP: f32 = 48.0;
+
+#[derive(Clone, Copy)]
+struct NotificationCenterVisual {
+    panel_surface: UiRgbaColor,
+    panel_border: UiRgbaColor,
+    row_surface: UiRgbaColor,
+    row_unread_surface: UiRgbaColor,
+    row_disabled_surface: UiRgbaColor,
+    row_border: UiRgbaColor,
+    header_text: UiRgbaColor,
+    muted_text: UiRgbaColor,
+    accent: UiRgbaColor,
+    error: UiRgbaColor,
+    success: UiRgbaColor,
+    warning: UiRgbaColor,
+    border_width: f32,
+    panel_radius: f32,
+    row_radius: f32,
+    mark_radius: f32,
+    header_font_size: f32,
+    header_line_height: f32,
+    title_font_size: f32,
+    title_line_height: f32,
+    message_font_size: f32,
+    message_line_height: f32,
+}
+
+impl NotificationCenterVisual {
+    fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
+        let mut visual = *default_notification_center_visual();
+        visual.panel_surface =
+            rgba_attribute(metadata, PANEL_SURFACE_COLOR).unwrap_or(visual.panel_surface);
+        visual.panel_border =
+            rgba_attribute(metadata, PANEL_BORDER_COLOR).unwrap_or(visual.panel_border);
+        visual.row_surface =
+            rgba_attribute(metadata, ROW_SURFACE_COLOR).unwrap_or(visual.row_surface);
+        visual.row_unread_surface =
+            rgba_attribute(metadata, ROW_UNREAD_SURFACE_COLOR).unwrap_or(visual.row_unread_surface);
+        visual.row_disabled_surface = rgba_attribute(metadata, ROW_DISABLED_SURFACE_COLOR)
+            .unwrap_or(visual.row_disabled_surface);
+        visual.row_border = rgba_attribute(metadata, ROW_BORDER_COLOR).unwrap_or(visual.row_border);
+        visual.header_text =
+            rgba_attribute(metadata, HEADER_TEXT_COLOR).unwrap_or(visual.header_text);
+        visual.muted_text = rgba_attribute(metadata, MUTED_TEXT_COLOR).unwrap_or(visual.muted_text);
+        visual.accent = rgba_attribute(metadata, ACCENT_COLOR).unwrap_or(visual.accent);
+        visual.success = rgba_attribute(metadata, SUCCESS_COLOR).unwrap_or(visual.success);
+        visual.warning = rgba_attribute(metadata, WARNING_COLOR).unwrap_or(visual.warning);
+        visual.error = rgba_attribute(metadata, ERROR_COLOR).unwrap_or(visual.error);
+        visual.border_width =
+            positive_float_attribute(metadata, PANEL_BORDER_WIDTH).unwrap_or(visual.border_width);
+        visual.panel_radius =
+            nonnegative_float_attribute(metadata, PANEL_RADIUS).unwrap_or(visual.panel_radius);
+        visual.row_radius =
+            nonnegative_float_attribute(metadata, ROW_RADIUS).unwrap_or(visual.row_radius);
+        visual.mark_radius =
+            nonnegative_float_attribute(metadata, MARK_RADIUS).unwrap_or(visual.mark_radius);
+        visual.header_font_size =
+            positive_float_attribute(metadata, HEADER_FONT_SIZE).unwrap_or(visual.header_font_size);
+        visual.title_font_size =
+            positive_float_attribute(metadata, TITLE_FONT_SIZE).unwrap_or(visual.title_font_size);
+        visual.message_font_size = positive_float_attribute(metadata, MESSAGE_FONT_SIZE)
+            .unwrap_or(visual.message_font_size);
+
+        let line_height_ratio = positive_float_attribute(metadata, TYPOGRAPHY_LINE_HEIGHT_RATIO)
+            .unwrap_or(visual.header_line_height / visual.header_font_size);
+        visual.header_line_height = visual.header_font_size * line_height_ratio;
+        visual.title_line_height = visual.title_font_size * line_height_ratio;
+        visual.message_line_height = visual.message_font_size * line_height_ratio;
+        visual
+    }
+}
+
+fn default_notification_center_visual() -> &'static NotificationCenterVisual {
+    static VISUAL: OnceLock<NotificationCenterVisual> = OnceLock::new();
+    VISUAL.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let palette = &tokens.palette;
+        let typography = &tokens.typography;
+        let controls = &tokens.controls;
+
+        NotificationCenterVisual {
+            panel_surface: palette.popup,
+            panel_border: palette.border,
+            row_surface: palette.surface[1],
+            row_unread_surface: palette.surface_selected,
+            row_disabled_surface: palette.surface_disabled,
+            row_border: palette.separator_soft,
+            header_text: palette.text_primary,
+            muted_text: palette.text_secondary,
+            accent: palette.accent,
+            error: palette.error,
+            success: palette.success,
+            warning: palette.warning,
+            border_width: controls.border_width,
+            panel_radius: controls.panel_radius,
+            row_radius: controls.small_radius,
+            mark_radius: controls.border_width,
+            header_font_size: typography.body_size,
+            header_line_height: typography.body_size * typography.line_height,
+            title_font_size: typography.overlay_size,
+            title_line_height: typography.overlay_size * typography.line_height,
+            message_font_size: typography.caption_size,
+            message_line_height: typography.caption_size * typography.line_height,
+        }
+    })
+}
 
 pub(super) fn notification_center_suppresses_owner_text(
     metadata: Option<&UiTemplateNodeMetadata>,
@@ -99,15 +206,16 @@ pub(super) fn notification_center_render_commands(
     }
 
     let state = NotificationCenterRenderState::resolve(metadata, state_flags, component_state);
+    let visual = NotificationCenterVisual::resolve(metadata);
     let mut commands = vec![quad_command(
         node_id,
         frame,
         clip_frame,
         z_index.saturating_add(1),
-        PANEL_SURFACE,
-        Some(PANEL_BORDER),
-        1.0,
-        PANEL_RADIUS,
+        visual.panel_surface,
+        Some(visual.panel_border),
+        visual.border_width,
+        visual.panel_radius,
         state.panel_state,
         opacity,
     )];
@@ -123,9 +231,9 @@ pub(super) fn notification_center_render_commands(
         clip_frame,
         z_index.saturating_add(2),
         header_text(metadata),
-        HEADER_TEXT,
-        HEADER_FONT_SIZE,
-        HEADER_LINE_HEIGHT,
+        visual.header_text,
+        visual.header_font_size,
+        visual.header_line_height,
         state.panel_state,
         opacity,
     ));
@@ -138,23 +246,23 @@ pub(super) fn notification_center_render_commands(
                 frame.x + PANEL_PADDING_X,
                 frame.y + EMPTY_TEXT_TOP,
                 (frame.width - PANEL_PADDING_X * 2.0).max(1.0),
-                MESSAGE_HEIGHT,
+                visual.message_line_height,
             ),
             clip_frame,
             z_index.saturating_add(3),
             string_attribute(metadata, EMPTY_TEXT)
                 .unwrap_or("No notifications")
                 .to_string(),
-            MUTED_TEXT,
-            MESSAGE_FONT_SIZE,
-            MESSAGE_LINE_HEIGHT,
+            visual.muted_text,
+            visual.message_font_size,
+            visual.message_line_height,
             UiPainterResolvedState::Normal,
             opacity,
         ));
         return commands;
     }
 
-    for (index, row) in rows.iter().enumerate() {
+    for (index, row) in rows.into_iter().enumerate() {
         let row_frame = UiFrame::new(
             frame.x + ROW_INSET_X,
             frame.y + ROW_TOP + index as f32 * (ROW_HEIGHT + ROW_GAP),
@@ -163,16 +271,22 @@ pub(super) fn notification_center_render_commands(
         );
         let row_state = row.paint_state();
         let row_z = z_index.saturating_add(3 + index as i32 * 4);
+        let background = row.background(&visual);
+        let border = row.border(&visual);
+        let severity_color = row.severity_color(&visual);
+        let title_color = row.title_color(&visual);
+        let title = row.title;
+        let message = row.message;
 
         commands.push(quad_command(
             node_id,
             row_frame,
             clip_frame,
             row_z,
-            row.background(),
-            Some(row.border()),
-            1.0,
-            4.0,
+            background,
+            Some(border),
+            visual.border_width,
+            visual.row_radius,
             row_state,
             opacity,
         ));
@@ -186,10 +300,10 @@ pub(super) fn notification_center_render_commands(
             ),
             clip_frame,
             row_z.saturating_add(1),
-            row.severity_color(),
+            severity_color,
             None,
             0.0,
-            1.0,
+            visual.mark_radius,
             row_state,
             opacity,
         ));
@@ -201,33 +315,33 @@ pub(super) fn notification_center_render_commands(
                 row_frame.x + TEXT_LEFT,
                 row_frame.y + TITLE_TOP,
                 text_frame_width,
-                TITLE_HEIGHT,
+                visual.title_line_height,
             ),
             clip_frame,
             row_z.saturating_add(2),
-            row.title.clone(),
-            row.title_color(),
-            TITLE_FONT_SIZE,
-            TITLE_LINE_HEIGHT,
+            title,
+            title_color,
+            visual.title_font_size,
+            visual.title_line_height,
             row_state,
             opacity,
         ));
 
-        if !row.message.is_empty() {
+        if !message.is_empty() {
             commands.push(text_command(
                 node_id,
                 UiFrame::new(
                     row_frame.x + TEXT_LEFT,
                     row_frame.y + MESSAGE_TOP,
                     text_frame_width,
-                    MESSAGE_HEIGHT,
+                    visual.message_line_height,
                 ),
                 clip_frame,
                 row_z.saturating_add(3),
-                row.message.clone(),
-                MUTED_TEXT,
-                MESSAGE_FONT_SIZE,
-                MESSAGE_LINE_HEIGHT,
+                message,
+                visual.muted_text,
+                visual.message_font_size,
+                visual.message_line_height,
                 row_state,
                 opacity,
             ));
@@ -299,33 +413,33 @@ impl NotificationRow {
         }
     }
 
-    fn background(&self) -> &'static str {
+    fn background(&self, visual: &NotificationCenterVisual) -> UiRgbaColor {
         if self.disabled {
-            ROW_DISABLED_SURFACE
+            visual.row_disabled_surface
         } else if self.unread {
-            ROW_UNREAD_SURFACE
+            visual.row_unread_surface
         } else {
-            ROW_SURFACE
+            visual.row_surface
         }
     }
 
-    fn border(&self) -> &'static str {
+    fn border(&self, visual: &NotificationCenterVisual) -> UiRgbaColor {
         if self.selected || self.focused {
-            ACCENT
+            visual.accent
         } else {
-            ROW_BORDER
+            visual.row_border
         }
     }
 
-    fn severity_color(&self) -> &'static str {
-        self.severity.color()
+    fn severity_color(&self, visual: &NotificationCenterVisual) -> UiRgbaColor {
+        self.severity.color(visual)
     }
 
-    fn title_color(&self) -> &'static str {
+    fn title_color(&self, visual: &NotificationCenterVisual) -> UiRgbaColor {
         if self.disabled {
-            MUTED_TEXT
+            visual.muted_text
         } else {
-            HEADER_TEXT
+            visual.header_text
         }
     }
 }
@@ -340,22 +454,32 @@ enum NotificationSeverity {
 
 impl NotificationSeverity {
     fn from_str(value: &str) -> Self {
-        match value.trim().to_ascii_lowercase().as_str() {
-            "success" | "ok" | "done" => Self::Success,
-            "warning" | "warn" => Self::Warning,
-            "error" | "danger" | "failed" | "failure" => Self::Error,
-            _ => Self::Info,
+        let value = value.trim();
+        if matches_ascii_alias(value, &["success", "ok", "done"]) {
+            Self::Success
+        } else if matches_ascii_alias(value, &["warning", "warn"]) {
+            Self::Warning
+        } else if matches_ascii_alias(value, &["error", "danger", "failed", "failure"]) {
+            Self::Error
+        } else {
+            Self::Info
         }
     }
 
-    fn color(self) -> &'static str {
+    fn color(self, visual: &NotificationCenterVisual) -> UiRgbaColor {
         match self {
-            Self::Info => ACCENT,
-            Self::Success => SUCCESS,
-            Self::Warning => WARNING,
-            Self::Error => ERROR,
+            Self::Info => visual.accent,
+            Self::Success => visual.success,
+            Self::Warning => visual.warning,
+            Self::Error => visual.error,
         }
     }
+}
+
+fn matches_ascii_alias(value: &str, aliases: &[&str]) -> bool {
+    aliases
+        .iter()
+        .any(|alias| value.eq_ignore_ascii_case(alias))
 }
 
 fn is_notification_center(metadata: &UiTemplateNodeMetadata) -> bool {
@@ -480,6 +604,57 @@ fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Opti
     metadata.attributes.get(key).and_then(Value::as_str)
 }
 
+fn rgba_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<UiRgbaColor> {
+    let encoded = metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))
+        .and_then(Value::as_str)?
+        .trim()
+        .strip_prefix('#')?;
+    if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
+        return None;
+    }
+    let (red, green, blue, alpha) = match encoded.len() {
+        6 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::MAX,
+        ),
+        8 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::from_str_radix(&encoded[6..8], 16).ok()?,
+        ),
+        _ => return None,
+    };
+    Some(UiRgbaColor::from_u8(red, green, blue, alpha))
+}
+
+fn positive_float_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
+    nonnegative_float_attribute(metadata, key).filter(|value| *value > 0.0)
+}
+
+fn nonnegative_float_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
+    match metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))?
+    {
+        Value::Float(value) if value.is_finite() && *value >= 0.0 => {
+            let value = *value as f32;
+            value.is_finite().then_some(value)
+        }
+        Value::Integer(value) if *value >= 0 => {
+            let value = *value as f32;
+            value.is_finite().then_some(value)
+        }
+        _ => None,
+    }
+}
+
 fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
     metadata.attributes.get(key).and_then(Value::as_bool)
 }
@@ -521,8 +696,8 @@ fn quad_command(
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
-    background: &str,
-    border: Option<&str>,
+    background: UiRgbaColor,
+    border: Option<UiRgbaColor>,
     border_width: f32,
     corner_radius: f32,
     painter_state: UiPainterResolvedState,
@@ -535,8 +710,8 @@ fn quad_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            background_color: Some(background.to_string()),
-            border_color: border.map(str::to_string),
+            background_color: Some(css_color(background)),
+            border_color: border.map(css_color),
             border_width,
             corner_radius,
             ..UiResolvedStyle::default()
@@ -555,7 +730,7 @@ fn text_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     text: String,
-    foreground: &str,
+    foreground: UiRgbaColor,
     font_size: f32,
     line_height: f32,
     painter_state: UiPainterResolvedState,
@@ -568,7 +743,7 @@ fn text_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
+            foreground_color: Some(css_color(foreground)),
             font_size,
             line_height,
             ..UiResolvedStyle::default()
@@ -579,4 +754,15 @@ fn text_command(
         image: None,
         opacity,
     }
+}
+
+fn css_color(color: UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    let mut value = if alpha == u8::MAX {
+        format!("{red:02x}{green:02x}{blue:02x}")
+    } else {
+        format!("{red:02x}{green:02x}{blue:02x}{alpha:02x}")
+    };
+    value.insert(0, '#');
+    value
 }

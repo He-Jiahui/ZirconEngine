@@ -1,0 +1,804 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "entries": [
+    {
+      "index": 0,
+      "name": "solo_warrior",
+      "factory": "soloWarrior",
+      "source_owner": "tests/parity/scenarios.ts#soloWarrior",
+      "golden": "tests/parity/golden/solo_warrior.json",
+      "golden_sha256": "b6b1e825b303bfce47b01e0e5f2d2b03818d20fd80307ebe8ffcfa16ea4f1ac3",
+      "coverage": [
+        "class:warrior",
+        "meleeSwing weaponStrike (heroic_strike via castAbility ~3736)",
+        "player auto-attack (C5)",
+        "base mobSwing (mob swings the player)",
+        "rollLoot via mob death (L1, ~5876/6036)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/solo_warrior.zr"
+    },
+    {
+      "index": 1,
+      "name": "solo_mage",
+      "factory": "soloMage",
+      "source_owner": "tests/parity/scenarios.ts#soloMage",
+      "golden": "tests/parity/golden/solo_mage.json",
+      "golden_sha256": "6e594d37f9fe3ce34b48193b244b87947159d663e08a8d0ee7a55860803197b9",
+      "coverage": [
+        "class:mage (caster)",
+        "casting lifecycle (C4a)",
+        "effect dispatch + spell damage (C4b/C1)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/solo_mage.zr"
+    },
+    {
+      "index": 2,
+      "name": "solo_rogue",
+      "factory": "soloRogue",
+      "source_owner": "tests/parity/scenarios.ts#soloRogue",
+      "golden": "tests/parity/golden/solo_rogue.json",
+      "golden_sha256": "fe2fe1a04bb32c87893a8ec9f8c5ae4a78c76f705ff294365cef3ec7bf5011fb",
+      "coverage": [
+        "class:rogue",
+        "meleeSwing weaponStrike (sinister_strike via castAbility ~3736)",
+        "combo points"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/solo_rogue.zr"
+    },
+    {
+      "index": 3,
+      "name": "affix_mob",
+      "factory": "affixMob",
+      "source_owner": "tests/parity/scenarios.ts#affixMob",
+      "golden": "tests/parity/golden/affix_mob.json",
+      "golden_sha256": "795f9b9333284afd7419461e62ac842a1f8c2fe87544cdbaee04b23f1a41a8eb",
+      "coverage": [
+        "frenzyOnHit (old_greyjaw -> blood_frenzy)",
+        "on-hit affix cascade via mobSwing (ridge_stalker bleed, ~7070/7100)",
+        "applyTaunt player-cast arm (taunt ability, ~4279)",
+        "class:warrior"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/affix_mob.zr"
+    },
+    {
+      "index": 4,
+      "name": "mob_swing_affixes",
+      "factory": "mobSwingAffixes",
+      "source_owner": "tests/parity/scenarios.ts#mobSwingAffixes",
+      "golden": "tests/parity/golden/mob_swing_affixes.json",
+      "golden_sha256": "45959e436c292efd44c9bb1e79d251aa4cff7630e8dd6152ba9d9d5a72ffbdf0",
+      "coverage": [
+        "mobSwing affix cascade: stunOnHit (mogger_lackey -> stun aura on player)",
+        "mobSwing affix cascade: venom DoT (webwood_spider -> dot aura on player)",
+        "mobSwing affix cascade: silence (gravecaller_summoner -> silence aura on player)",
+        "mobSwing affix cascade: rampage stacking buff_ap (warlord_drogmar self-buff)",
+        "friendly-pet mobSwing: mob.hostile=false short-circuits every proc (no debuff on its target)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/mob_swing_affixes.zr"
+    },
+    {
+      "index": 5,
+      "name": "hunter_pet",
+      "factory": "hunterPet",
+      "source_owner": "tests/parity/scenarios.ts#hunterPet",
+      "golden": "tests/parity/golden/hunter_pet.json",
+      "golden_sha256": "a5312baf2d9b4d275d567b4439d165f5547fdf6b7f8c7f7b1af324bc291f2c6e",
+      "coverage": [
+        "class:hunter",
+        "updateRangedPetAttack friendly pet arm (~8093/8217)",
+        "updateRangedPetAttack hostile-mob arm (~6776)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/hunter_pet.zr"
+    },
+    {
+      "index": 6,
+      "name": "warlock_pet",
+      "factory": "warlockPet",
+      "source_owner": "tests/parity/scenarios.ts#warlockPet",
+      "golden": "tests/parity/golden/warlock_pet.json",
+      "golden_sha256": "8ac98b8bcc052c7f4a339cf41f1fc7da02331ec411828781338353bf5b6fdf25",
+      "coverage": [
+        "class:warlock (caster)",
+        "mobSwing pet arm (voidwalker melee ~8117)",
+        "applyTaunt pet auto-taunt arm (~8110)",
+        "applyTaunt pet manual-taunt arm (petTaunt, ~4885)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/warlock_pet.zr"
+    },
+    {
+      "index": 7,
+      "name": "pet_ai",
+      "factory": "petAi",
+      "source_owner": "tests/parity/scenarios.ts#petAi",
+      "golden": "tests/parity/golden/pet_ai.json",
+      "golden_sha256": "2306dbda1132907a4426229b9305f4176857603899a07c0b56a7164ae9ca186d",
+      "coverage": [
+        "class:hunter (pet owner)",
+        "petRangedAttack imp-bolt arm (petRanged crit roll + AP-scaled fire damage)",
+        "petPickTarget aggressive auto-pull",
+        "updatePet melee arm: close + auto-taunt + mobSwing (PET_COMBAT_LINGER owner inCombat)",
+        "petFollow heel transition (pets return to a moved owner)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/pet_ai.zr"
+    },
+    {
+      "index": 8,
+      "name": "pet_commands",
+      "factory": "petCommands",
+      "source_owner": "tests/parity/scenarios.ts#petCommands",
+      "golden": "tests/parity/golden/pet_commands.json",
+      "golden_sha256": "77ce09b7189a4a92678c7f44d97b45d594ca8260444247270a07bd6bc3477699",
+      "coverage": [
+        "class:hunter (tame/feed/revive/abandon/stow)",
+        "class:warlock (summon/demon-swap/healPet channel)",
+        "completeTame + syncPetLevel (tamePet target -> owned pet scaled to owner)",
+        "despawnPersistentPet threat-scrub + retargetMob (abandon, demon swap, stow beast)",
+        "despawnPet player-target + threat scrub + retargetMob (stow demon)",
+        "feedPet feed_pet HoT (replace-then-apply)",
+        "revivePet (dead pet -> alive at 35%)",
+        "setPetMode passive clears aggroTargetId/inCombat/autoAttack",
+        "applyDemonHealTick (heal2 + healingThreat) via the Demon Heal channel",
+        "petTaunt -> applyTaunt manual arm + PET_GROWL_INTERVAL cooldown",
+        "stowPetForDelve/restorePetFromDelveStash (serializePet/restorePet round-trip)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/pet_commands.zr"
+    },
+    {
+      "index": 9,
+      "name": "paladin_consecration",
+      "factory": "paladinConsecration",
+      "source_owner": "tests/parity/scenarios.ts#paladinConsecration",
+      "golden": "tests/parity/golden/paladin_consecration.json",
+      "golden_sha256": "106db2f0518b98242dd1fb1876d7b7434db65b6918297e93ff802eef951edb6e",
+      "coverage": [
+        "class:paladin",
+        "updateGroundAoEs first-in-tick (~2256)",
+        "pulseGroundAoE both callers (immediate ~4097 + deferred ~3052)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/paladin_consecration.zr"
+    },
+    {
+      "index": 10,
+      "name": "arena_1v1",
+      "factory": "arena1v1",
+      "source_owner": "tests/parity/scenarios.ts#arena1v1",
+      "golden": "tests/parity/golden/arena_1v1.json",
+      "golden_sha256": "4c67a027cadaa582e73077156c0ad285d041956db21a3bcd97b1566903bf9ce3",
+      "coverage": [
+        "arena 1v1 match + Elo result",
+        "multi-player PlayerMeta sampling",
+        "classes:warrior,mage"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/arena_1v1.zr"
+    },
+    {
+      "index": 11,
+      "name": "fiesta",
+      "factory": "fiesta",
+      "source_owner": "tests/parity/scenarios.ts#fiesta",
+      "golden": "tests/parity/golden/fiesta.json",
+      "golden_sha256": "4848ff0ff5e9cb90c5f29a60ab06268e2a2a2b732323cb445e9525d524e31187",
+      "coverage": [
+        "fiesta match (2v2 score mode)",
+        "cross-team takedown + respawn bench",
+        "augment wave: fiestaPickOffers + arenaAugmentPick (fiestaAugments on meta + augmentOffer/Chosen events)",
+        "multi-player meta"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/fiesta.zr"
+    },
+    {
+      "index": 12,
+      "name": "fiesta_powerups",
+      "factory": "fiestaPowerups",
+      "source_owner": "tests/parity/scenarios.ts#fiestaPowerups",
+      "golden": "tests/parity/golden/fiesta_powerups.json",
+      "golden_sha256": "df14331013c9fe2c1867161f0957ac6c1018c0372df8330c86c6061c314c66f1",
+      "coverage": [
+        "fiesta power-up spawn (f.rng pick/next) + telegraph + grab (buff aura)",
+        "hazard ring burn (fiestaRingDamage) outside the closing ring",
+        "down + respawn-timer revive (fiestaRevive)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/fiesta_powerups.zr"
+    },
+    {
+      "index": 13,
+      "name": "duel_to_winner",
+      "factory": "duelToWinner",
+      "source_owner": "tests/parity/scenarios.ts#duelToWinner",
+      "golden": "tests/parity/golden/duel_to_winner.json",
+      "golden_sha256": "6ec6b0173bba849ca472fafe9b6a6571954e2d25baea2ac6e4ee9efa50672fe7",
+      "coverage": [
+        "duelRequest/duelAccept duel formation (~11982/12022)",
+        "updateDuels countdown -> active + duelStart",
+        "endDuel on a PvP finishing blow (winner/loser + this.duels cleared)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/duel_to_winner.zr"
+    },
+    {
+      "index": 14,
+      "name": "arena_2v2_wipe",
+      "factory": "arena2v2Wipe",
+      "source_owner": "tests/parity/scenarios.ts#arena2v2Wipe",
+      "golden": "tests/parity/golden/arena_2v2_wipe.json",
+      "golden_sha256": "40267ce4f8ae7ff61c437c643ac2f91b3948a3f202ae9245d621d88eecce610c",
+      "coverage": [
+        "arena 2v2 matchmaking (matchmakeTeamFormat: four solos -> two teams)",
+        "first kill does not end the match; team wipe (isArenaTeamWiped) does",
+        "endArenaMatch ranked Elo on both teams (arena2v2 standings) + returnFromArena"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/arena_2v2_wipe.zr"
+    },
+    {
+      "index": 15,
+      "name": "delve_lockpick",
+      "factory": "delveLockpick",
+      "source_owner": "tests/parity/scenarios.ts#delveLockpick",
+      "golden": "tests/parity/golden/delve_lockpick.json",
+      "golden_sha256": "63a7cec689c6ad40b20c8ca970381b824a54495a865941981794891e86ed5da7",
+      "coverage": [
+        "delve run (collapsed_reliquary finale)",
+        "mobSwing delve-companion caller (~16762)",
+        "lockpick minigame (flawless solve)",
+        "reward chest + delve marks"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/delve_lockpick.zr"
+    },
+    {
+      "index": 16,
+      "name": "delve_lockpick_fail",
+      "factory": "delveLockpickFail",
+      "source_owner": "tests/parity/scenarios.ts#delveLockpickFail",
+      "golden": "tests/parity/golden/delve_lockpick_fail.json",
+      "golden_sha256": "d86f9a693a9f3ac9b5c2ff49a1d16ee6f6131be37b72ccc3189af87fc74d284d",
+      "coverage": [
+        "delve run (collapsed_reliquary finale)",
+        "lockpick minigame (server-authoritative timeout jam)",
+        "tickLockpickTimeout -> lockpickStepTimeout -> lockpickBurnTry -> lockpickFail",
+        "jammed chest (attemptAvailable=false) + surface exit opens"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/delve_lockpick_fail.zr"
+    },
+    {
+      "index": 17,
+      "name": "drowned_litany",
+      "factory": "drownedLitany",
+      "source_owner": "tests/parity/scenarios.ts#drownedLitany",
+      "golden": "tests/parity/golden/drowned_litany.json",
+      "golden_sha256": "52078ab50627bb934cd629d9868a723e173ba68f78313f90e6217afdf0941ff3",
+      "coverage": [
+        "drowned_litany heroic run (ruin affix roll + module advance)",
+        "bell-rope pull -> Bell Shock on live cantors (delveInteract)",
+        "Sister Nhalia driver: Blackwater Mark + Tolling Bells volley rng draws",
+        "cantor phases + Final Bell + rite choose -> playback pulses"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/drowned_litany.zr"
+    },
+    {
+      "index": 18,
+      "name": "party_loot",
+      "factory": "partyLoot",
+      "source_owner": "tests/parity/scenarios.ts#partyLoot",
+      "golden": "tests/parity/golden/party_loot.json",
+      "golden_sha256": "decfc4ecefc5c502631cc825f1966ac129ea3bb8851c7c9c8e5dbc517d66334b",
+      "coverage": [
+        "party need/greed loot roll (lootCorpse/submitLootRoll)",
+        "multi-player party"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/party_loot.zr"
+    },
+    {
+      "index": 19,
+      "name": "party_raid",
+      "factory": "partyRaid",
+      "source_owner": "tests/parity/scenarios.ts#partyRaid",
+      "golden": "tests/parity/golden/party_raid.json",
+      "golden_sha256": "9eee27a050c91aa9469c74226f5ed129a9bcc98a9196c845f99336e536d88b64",
+      "coverage": [
+        "partyInvite/partyAccept party formation (~11864/11901)",
+        "convertPartyToRaid full-party gate (RAID_MIN) + normalizeRaidGroups",
+        "raid fill to two subgroups (nextRaidGroupFor) + moveRaidMember (RAID_GROUP_MAX)",
+        "removeFromParty leadership handoff + disband + partyOf via SimContext"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/party_raid.zr"
+    },
+    {
+      "index": 20,
+      "name": "l1_loot_distribution",
+      "factory": "l1LootDistribution",
+      "source_owner": "tests/parity/scenarios.ts#l1LootDistribution",
+      "golden": "tests/parity/golden/l1_loot_distribution.json",
+      "golden_sha256": "01b818614bd70d2c223390c6698c5ab06caa6d172e6c6ed510d9e68178955f73",
+      "coverage": [
+        "fair-split copper with remainder (Fisher-Yates rng.int draw)",
+        "need/greed/pass roll in party-member order (need beats greed)",
+        "everyone-passes returnLootRollItemToCorpse",
+        "looter-takes-all common item + personal-loot visibility"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/l1_loot_distribution.zr"
+    },
+    {
+      "index": 21,
+      "name": "entity_roster",
+      "factory": "entityRoster",
+      "source_owner": "tests/parity/scenarios.ts#entityRoster",
+      "golden": "tests/parity/golden/entity_roster.json",
+      "golden_sha256": "c39f888c1fd9eb53a70e9207541b32307b04c14bd89d563222a053abd0b49094",
+      "coverage": [
+        "addEntity roster + spatial grids",
+        "despawn prologue: despawnTimer + DAMAGE_IDLE_DESPAWN idle-despawn (collect-then-drop)",
+        "emitDueDelayedEvents drain (fires / guard-drops / stays-pending)",
+        "releaseSpirit ghost release + Spirit Healer resurrect (Resurrection Sickness)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/entity_roster.zr"
+    },
+    {
+      "index": 22,
+      "name": "delve_death",
+      "factory": "delveDeath",
+      "source_owner": "tests/parity/scenarios.ts#delveDeath",
+      "golden": "tests/parity/golden/delve_death.json",
+      "golden_sha256": "09ba578026d87838c4dd0a1617b552b0bdaf042dbef3b25d8c01ff421d9df9a1",
+      "coverage": [
+        "releaseSpiritInDelve first death (50% hp respawn at module entry, ~16345)",
+        "releaseSpiritInDelve second death fails the run (deathsThisRun >= 2)",
+        "rebucket after delve respawn teleport"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/delve_death.zr"
+    },
+    {
+      "index": 23,
+      "name": "fiesta_midcast_kill",
+      "factory": "fiestaMidcastKill",
+      "source_owner": "tests/parity/scenarios.ts#fiestaMidcastKill",
+      "golden": "tests/parity/golden/fiesta_midcast_kill.json",
+      "golden_sha256": "b88a78ac8eee81cd0e089dd786a3b8ac915ddd1044a3b5462bdc382481fdd86a",
+      "coverage": [
+        "dealDamage fiesta mid-cast pushback (pushbackCast ~5664)",
+        "dealDamage fiesta mid-cast fishing-cancel (cancelCast ~5663)",
+        "dealDamage fiesta cross-team takedown emit-then-fiestaTakedown order (~5512-5525)",
+        "fiesta lifesteal augment arm (~5499)",
+        "multi-player fiesta meta"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/fiesta_midcast_kill.zr"
+    },
+    {
+      "index": 24,
+      "name": "multi_class_frenzy",
+      "factory": "multiClassFrenzy",
+      "source_owner": "tests/parity/scenarios.ts#multiClassFrenzy",
+      "golden": "tests/parity/golden/multi_class_frenzy.json",
+      "golden_sha256": "1d8c94acbe380cc44786ff9ad5839c72aa8df1ed7f1ba8e2333c2cc37af64ba1",
+      "coverage": [
+        "dealDamage -> maybeFrenzyOnHit rng draw (the only in-slice draw, ~5651/5702)",
+        "blood_frenzy push then refresh branches",
+        "amp stack + threat handoff + tap rights across multiple attackers",
+        "multi-class sources: warrior/mage/rogue"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/multi_class_frenzy.zr"
+    },
+    {
+      "index": 25,
+      "name": "mob_targeting",
+      "factory": "mobTargeting",
+      "source_owner": "tests/parity/scenarios.ts#mobTargeting",
+      "golden": "tests/parity/golden/mob_targeting.json",
+      "golden_sha256": "0850fe8b2d801fc438763ab149b1b6e43c4cbd7c3c2f20526b9a6cfbd9f607bb",
+      "coverage": [
+        "updateMobTarget 110% melee pull-over (MELEE_SWITCH_MULT, inMelee MELEE_RANGE*1.2)",
+        "updateMobTarget 130% ranged pull-over (RANGED_SWITCH_MULT) + strict-boundary no-switch",
+        "forced-target/taunt branch + forcedTargetTimer -= DT expiry + forcedTargetId clear",
+        "retargetMob highest-threat pick + prune-to-evade (highestThreatTarget delete-during-iterate)",
+        "nythraxisAddFallbackTarget / scheduleNythraxisAddDespawnIfBossReset seam callbacks (non-add -> no-op)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/mob_targeting.zr"
+    },
+    {
+      "index": 26,
+      "name": "delve_companion",
+      "factory": "delveCompanion",
+      "source_owner": "tests/parity/scenarios.ts#delveCompanion",
+      "golden": "tests/parity/golden/delve_companion.json",
+      "golden_sha256": "f369f7a81dbbf241017a5d0ac082042c59382126518feeb0c8b5f8a017bf5316",
+      "coverage": [
+        "updateDelveCompanion combat arm: acquire owner target -> close-to-reach -> mobSwing on cadence (~16762 rng draws)",
+        "updateDelveCompanion rank-2 heal arm: DELVE_COMPANION_HEAL_PCT[2] percent heal of the lowest-HP party member (heal + spellfx tick)",
+        "updateDelveCompanion heel arm: moveToward owner past DELVE_COMPANION_FOLLOW, then warp + rebucket past PET_TELEPORT_DISTANCE",
+        "combat_start/low_hp barks via maybeCompanionBark (stays on Sim)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/delve_companion.zr"
+    },
+    {
+      "index": 27,
+      "name": "quest_kill_credit",
+      "factory": "questKillCredit",
+      "source_owner": "tests/parity/scenarios.ts#questKillCredit",
+      "golden": "tests/parity/golden/quest_kill_credit.json",
+      "golden_sha256": "b9e00a6ba153d543b7be99ae9a99ed585e3d8178cb21cf7e2875d69bd390a87c",
+      "coverage": [
+        "onMobKilledForQuests kill credit via handleDeath party loop (~5925)",
+        "checkQuestReady promotion (active -> ready)",
+        "acceptQuest -> finalizeQuestAccept -> onInventoryChangedForQuests",
+        "turnInQuest (xp + copper reward)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/quest_kill_credit.zr"
+    },
+    {
+      "index": 28,
+      "name": "quest_collect_turnin",
+      "factory": "questCollectTurnIn",
+      "source_owner": "tests/parity/scenarios.ts#questCollectTurnIn",
+      "golden": "tests/parity/golden/quest_collect_turnin.json",
+      "golden_sha256": "c37cfd746a2a6783211b0253e4b0b5870a90f32a8dafb9c0e3da3d72b924f22c",
+      "coverage": [
+        "onInventoryChangedForQuests via addItem/removeItem inventory hub (~9782/9800)",
+        "checkQuestReady promotion AND demotion (ready <-> active)",
+        "acceptQuest -> finalizeQuestAccept -> onInventoryChangedForQuests",
+        "turnInQuest -> removeItem -> onInventoryChangedForQuests (xp + copper)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/quest_collect_turnin.zr"
+    },
+    {
+      "index": 29,
+      "name": "quest_link_abandon",
+      "factory": "questLinkAbandon",
+      "source_owner": "tests/parity/scenarios.ts#questLinkAbandon",
+      "golden": "tests/parity/golden/quest_link_abandon.json",
+      "golden_sha256": "7204833444a7eff6136915184723792426ed77d9e07df060cfb2cd8867021474",
+      "coverage": [
+        "acceptLinkedQuest party-gate: not-in-party error then in-party share",
+        "finalizeQuestAccept via the linked-share path (questLog.set + fallback re-grant + sharer notice)",
+        "abandonQuest questLog.delete + log emit, plus the not-in-log early-return guard"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/quest_link_abandon.zr"
+    },
+    {
+      "index": 30,
+      "name": "talents_progression",
+      "factory": "talentsProgression",
+      "source_owner": "tests/parity/scenarios.ts#talentsProgression",
+      "golden": "tests/parity/golden/talents_progression.json",
+      "golden_sha256": "85a3a59381d4a04fd84c9c62c5a3d7dedfad1d8edfd7be5ed6c3934f09e0da28",
+      "coverage": [
+        "applyTalents valid spec build (G1a) + recomputeTalents flat-struct bake",
+        "respec wipes ranks, keeps spec",
+        "saveLoadout (object-alloc overload) + switchLoadout (2 of 4 slots)",
+        "setSpec drops the prior spec tree points",
+        "refreshKnownAbilities(announce=false): known-ability list flips per change"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/talents_progression.zr"
+    },
+    {
+      "index": 31,
+      "name": "multi_class_heal",
+      "factory": "multiClassHeal",
+      "source_owner": "tests/parity/scenarios.ts#multiClassHeal",
+      "golden": "tests/parity/golden/multi_class_heal.json",
+      "golden_sha256": "926cee5250d4f1013f4ecc5d6e7f672abe31ca4f313511d36298a9a0eb3c7113",
+      "coverage": [
+        "applyHeal core: crit branch (rng.chance(spellCrit) draw), overheal clamp, heal2 emit",
+        "hexOutputMult outgoing cut (hex on source) + healingTakenMult Mortal-Wound cut (target)",
+        "consumeHealAbsorb soak: small shield depletes+filters, big shield survives",
+        "healingThreat even split across multiple aware mobs (entities.values insertion order)",
+        "threatEntryMatchesEntity direct-target + pet-owner branches",
+        "hot aura-tick heal path (healingTakenMult ~3089 + healingThreat ~3101)",
+        "dealDamage consumers: critVulnBonus (crit-only) + hexOutputMult on a damage hit",
+        "multi-class healers: priest/paladin/druid/shaman"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/multi_class_heal.zr"
+    },
+    {
+      "index": 32,
+      "name": "mob_locomotion",
+      "factory": "mobLocomotion",
+      "source_owner": "tests/parity/scenarios.ts#mobLocomotion",
+      "golden": "tests/parity/golden/mob_locomotion.json",
+      "golden_sha256": "234f17565138e96ce9c7ab348ea6b0f96b46e9c16d3bf624dc01ee534bfd0801",
+      "coverage": [
+        "attack arm aoePulse rng.range(pulse.min,pulse.max) + spellfx (mogger Ground Pound)",
+        "attack arm War Stomp rng.range(stomp.min,stomp.max) + stomp_stun aura (korgath)",
+        "attack arm Banshee terrify rng.range(-PI,PI) fear facing + fear_incap aura (sister_nhalia)",
+        "idle arm wander draws (range(0,2PI) heading + range(2,9) radius -> groundPos wanderTarget)",
+        "evade arm arrival -> resetEvadingMob (rng.range(2,8), full-heal, clearThreat, telegraph re-arm)",
+        "cowardly flee: maybeFlee at FLEE_HP_THRESHOLD -> flee arm (fleeMoveSpeed run-away)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/mob_locomotion.zr"
+    },
+    {
+      "index": 33,
+      "name": "delve_progression",
+      "factory": "delveProgression",
+      "source_owner": "tests/parity/scenarios.ts#delveProgression",
+      "golden": "tests/parity/golden/delve_progression.json",
+      "golden_sha256": "c894a7226a2014dd2056860723d15231b65666094e572d0b590fcfbf8aa21a19",
+      "coverage": [
+        "multi-module delve: spawnDelveModule(non-finale) -> clear -> advanceDelveModule",
+        "tickDelvePressurePlates + exit portal open + tombstone advance",
+        "Marks shop buy (delveBuyShopItem gate + addItem + vendor)",
+        "companionUpgrade rank bump + refreshDelveDaily day rollover"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/delve_progression.zr"
+    },
+    {
+      "index": 34,
+      "name": "dungeon_instances",
+      "factory": "dungeonInstances",
+      "source_owner": "tests/parity/scenarios.ts#dungeonInstances",
+      "golden": "tests/parity/golden/dungeon_instances.json",
+      "golden_sha256": "8b5ecf53eea1b135883b8a5e2e90ebd9c1d835ca665d7e0c0ecb12e16732880e",
+      "coverage": [
+        "updateDoorTriggers door-trigger enter (~14612)",
+        "enterDungeon -> claimInstance rng.int per spawn (~14774) + addEntity mobs/objects/exit",
+        "party shares ONE instance via instanceKeyFor (second member joins, no re-claim)",
+        "updateDoorTriggers exit portal -> leaveDungeon (~14620)",
+        "updateInstances empty-reset -> freeInstance despawn + partyKey null (~14841/14816)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/dungeon_instances.zr"
+    },
+    {
+      "index": 35,
+      "name": "dungeon_raid_lockout",
+      "factory": "dungeonRaidLockout",
+      "source_owner": "tests/parity/scenarios.ts#dungeonRaidLockout",
+      "golden": "tests/parity/golden/dungeon_raid_lockout.json",
+      "golden_sha256": "4c39768d1594680ef92ca0f0273f52a36952b1a289e9fce005c95b21db66af61",
+      "coverage": [
+        "enterDungeon raid gating: convertPartyToRaid + canEnterNythraxisRaid attunement (~14640)",
+        "isRaidLocked active lockout blocks entry (~14706) + locked-to-arena emit"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/dungeon_raid_lockout.zr"
+    },
+    {
+      "index": 36,
+      "name": "nythraxis_full_pull",
+      "factory": "nythraxisFullPull",
+      "source_owner": "tests/parity/scenarios.ts#nythraxisFullPull",
+      "golden": "tests/parity/golden/nythraxis_full_pull.json",
+      "golden_sha256": "b244301899d0cc136bc34d6b30f43d3ae24f662550973113dfb3bda1d1d721b8",
+      "coverage": [
+        "updateNythraxisEncounter full pull (phase 1 -> transition -> phase 2 -> final stand -> death)",
+        "Gravebreaker rng.range weapon draw + front-cone Gravebreaker damage",
+        "Raise Fallen add wave (spawnNythraxisAdds) in phase one",
+        "transition: nythraxis_transition_stun room stun + Aldric spawn/walk-in + wardstones lit",
+        "Soul Rend rng.int marks pick + mark-expiry damage",
+        "Deathless Rage interrupt via tryStartNythraxisWardChannel (object-click channel) + boss self-stun",
+        "Final Stand enrage at 5% + grantNythraxisLockout (raidLockouts) + onBossDeath death dialogue",
+        "class:warrior"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/nythraxis_full_pull.zr"
+    },
+    {
+      "index": 37,
+      "name": "c3_aura_runner",
+      "factory": "c3AuraRunner",
+      "source_owner": "tests/parity/scenarios.ts#c3AuraRunner",
+      "golden": "tests/parity/golden/c3_aura_runner.json",
+      "golden_sha256": "1b72b809f710fc1409085bad6c630989ff636ce2c07eea2153b3e5ad991793c0",
+      "coverage": [
+        "updateAuras dot-tick kills target mid-walk -> e.dead guard short-circuits (~3095)",
+        "updateAuras aura-expiry statsDirty -> recalcPlayerStats + applyNonPlayerStatAura",
+        "updateRegen eat/drink path (ctx.healingTakenMult + 'heal' emit) + out-of-combat regen",
+        "pulseGroundAoE over 2+ in-radius hostiles: rng.range per target, stable order",
+        "class:paladin"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/c3_aura_runner.zr"
+    },
+    {
+      "index": 38,
+      "name": "c4a_casting_lifecycle",
+      "factory": "c4aCastingLifecycle",
+      "source_owner": "tests/parity/scenarios.ts#c4aCastingLifecycle",
+      "golden": "tests/parity/golden/c4a_casting_lifecycle.json",
+      "golden_sha256": "a3cc55f7c20bda7f7f3e9fc6e94be3922d69ef7e46bdb7e1b633e2c31986b5a6",
+      "coverage": [
+        "castAbility timed-cast START (mage fireball) + Math.max gcd arm",
+        "updateCasting progress + finish -> applyAbility spell-hit roll (rng) -> runEffects",
+        "single-slot spell queue (#1360): tail-window press queues, fires on completion",
+        "pushbackCast timed branch (+CAST_PUSHBACK_SEC) via dealDamage mid-cast",
+        "updateCasting silence branch -> cancelCast (priest lesser_heal, holy)",
+        "castAbility channel START (warlock drain_life): spend+arm at START",
+        "applyChannelTick drainTick (rng.range draw + dealDamage + self-heal + healingThreat)",
+        "pushbackCast channel-fraction branch via dealDamage mid-channel",
+        "cancelCast fishing arm via dealDamage (FISHING_CAST_ID, not pushback)",
+        "multi-class casters: mage/priest/warlock"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/c4a_casting_lifecycle.zr"
+    },
+    {
+      "index": 39,
+      "name": "mob_lifecycle",
+      "factory": "mobLifecycle",
+      "source_owner": "tests/parity/scenarios.ts#mobLifecycle",
+      "golden": "tests/parity/golden/mob_lifecycle.json",
+      "golden_sha256": "586147acec18047bf314cc972b6272d9e07d19a9fd7610793fbf4516dd24cb2e",
+      "coverage": [
+        "death -> frenzyPackmates: a packFrenzy mob death gives same-template hostile neighbors the Pack Frenzy buff_haste aura (different-template boar unaffected; no rng)",
+        "death -> armDeathThroes: a deathThroes mob arms its detonateTimer fuse + swell telegraph (no rng)",
+        "corpse-tick -> detonateCorpse: fuse reaches 0, rng.range(dt.min,dt.max) per in-radius living player + dealDamage burst, fires once",
+        "corpse-tick -> respawnMob: a slain wild mob respawns at spawnPos (rng.range(2,8) wanderTimer) and despawnSummonedAdds drops its summoned add",
+        "corpse-tick gate: a dungeon mob (spawnPos.x > DUNGEON_X_THRESHOLD) stays dead, no respawn"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/mob_lifecycle.zr"
+    },
+    {
+      "index": 40,
+      "name": "targeting_markers",
+      "factory": "targetingMarkers",
+      "source_owner": "tests/parity/scenarios.ts#targetingMarkers",
+      "golden": "tests/parity/golden/targeting_markers.json",
+      "golden_sha256": "085cf0a2686d7079e09cb55216721ec02e622be23f2a50c8125f0d7c17f8fc95",
+      "coverage": [
+        "tabTarget cycle over visible enemies via orderTabTargets + grid order (~9690)",
+        "targetNearestEnemy / enemyCandidates grid scan, engaged vs idle (~9724/9740)",
+        "targetNearestFriendly + friendlyTabTarget wrap, autoAttack never armed (~9782/9797)",
+        "setMarker set/toggle-off/symbol-uniqueness + clearEntityMarker death-strip (~11956/12002)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/targeting_markers.zr"
+    },
+    {
+      "index": 41,
+      "name": "c4b_effect_dispatch",
+      "factory": "c4bEffectDispatch",
+      "source_owner": "tests/parity/scenarios.ts#c4bEffectDispatch",
+      "golden": "tests/parity/golden/c4b_effect_dispatch.json",
+      "golden_sha256": "533aa928e60c3724452872412aa6d216f340975deae5fe0a0da0653896b0086f",
+      "coverage": [
+        "runEffects multi-class multi-effect dispatch",
+        "directDamage/finisherDamage range-then-chance (druid moonfire, rogue eviscerate)",
+        "judgement range-then-chance (paladin seal -> judgement)",
+        "incapacitate fear-angle draw rng.range(-PI,PI) (warlock fear)",
+        "aoeDamage per-target rng.range (mage arcane_explosion, 2 mobs)",
+        "sunder miss rng.chance (warrior sunder_armor)",
+        "groundAoE on-cast pulse (paladin consecration)",
+        "summonDemon -> summonPet (warlock summon_imp) + selfBuff form switch (druid)",
+        "weaponStrike awardCombo latch + finisher combo-spend reset"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/c4b_effect_dispatch.zr"
+    },
+    {
+      "index": 42,
+      "name": "hit_rating_heroic_ungeared",
+      "factory": "hitRatingHeroic",
+      "source_owner": "tests/parity/scenarios.ts#hitRatingHeroic",
+      "golden": "tests/parity/golden/hit_rating_heroic_ungeared.json",
+      "golden_sha256": "5ea754c4c4a227d4603b3272b1b47c8126fee8055ef62f23dac986e2c9599090",
+      "coverage": [
+        "Hit rating from authored gear vs a +3 target",
+        "same shared-RNG draw count/order as the ungeared spell-resist path"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/hit_rating_heroic_ungeared.zr"
+    },
+    {
+      "index": 43,
+      "name": "hit_rating_heroic_geared",
+      "factory": "hitRatingHeroic",
+      "source_owner": "tests/parity/scenarios.ts#hitRatingHeroic",
+      "golden": "tests/parity/golden/hit_rating_heroic_geared.json",
+      "golden_sha256": "d57861c2b7afb3d3533b172ed0018dde78e014d9f908e32a75321286e9d157e2",
+      "coverage": [
+        "Hit rating from authored gear vs a +3 target",
+        "same shared-RNG draw count/order as the ungeared spell-resist path"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/hit_rating_heroic_geared.zr"
+    },
+    {
+      "index": 44,
+      "name": "c5_auto_attack",
+      "factory": "c5AutoAttack",
+      "source_owner": "tests/parity/scenarios.ts#c5AutoAttack",
+      "golden": "tests/parity/golden/c5_auto_attack.json",
+      "golden_sha256": "04a8fbe82d0c755bd87b5a81cf040c1fbb00e2814f9cabf6482d79dc867acf84",
+      "coverage": [
+        "player auto-attack driver updatePlayerAutoAttack (swingTimer cadence, facing/range gates)",
+        "meleeSwing white-hit table: single rng.next() miss/dodge + crit + armor mitigation",
+        "queuedOnSwing heroic_strike spend + bonus (warrior, cooldown 0)",
+        "queuedOnSwing raptor_strike spend + bonus + on-next-swing cooldown set (hunter, cooldown 6)",
+        "overpowerUntil window set on a melee dodge",
+        "spiked-hide reflect tail of meleeSwing (wild_boar Bristled Hide)",
+        "rangedSwing Auto Shot (hunter, physical, armor-mitigated, 8yd dead zone)",
+        "rangedSwing Wand (mage, arcane, no armor, no dead zone)",
+        "stopAutoAttack public entry"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/c5_auto_attack.zr"
+    },
+    {
+      "index": 45,
+      "name": "market_round_trip",
+      "factory": "marketRoundTrip",
+      "source_owner": "tests/parity/scenarios.ts#marketRoundTrip",
+      "golden": "tests/parity/golden/market_round_trip.json",
+      "golden_sha256": "d65185208d2340d8ea330c1b3fd9c214d1fd171c264f126a4cfef27cc4e07647",
+      "coverage": [
+        "World Market: marketList escrow (ctx.removeItem pulls the stack from bags)",
+        "marketSearch browse filter (narrow to a substring, then clear)",
+        "marketBuy cross-player sale: buyer copper - price + addItem; seller proceeds = floor(price*(1-MARKET_CUT))",
+        "marketCancel reclaim escrow to bags",
+        "updateMarket once-a-second expiry sweep (% 20): expired listing -> seller collection",
+        "marketCollect: gold + expired items move to bags, collection cleared"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/market_round_trip.zr"
+    },
+    {
+      "index": 46,
+      "name": "inventory_vendor",
+      "factory": "inventoryVendor",
+      "source_owner": "tests/parity/scenarios.ts#inventoryVendor",
+      "golden": "tests/parity/golden/inventory_vendor.json",
+      "golden_sha256": "41dc247bacb2c9f75feb2893f5c868a939c7b8dca04492911988b2443ce72fa6",
+      "coverage": [
+        "buyItem: meta.copper - buyValue*stackSize + addItem stack at trader_wilkes (vendor proximity gate)",
+        "equipItem empty-slot equip + recalcPlayerStats",
+        "equipItem same-slot SWAP: old piece returned to bags via addItemSilent + recalc",
+        "unequipItem: piece back to bags, slot emptied, recalc",
+        "useItem food/drink (sit + eating/drinking slot), potion (heal + cooldown), elixir (applyAura)",
+        "discardItem: removeItem the discarded count",
+        "sellItem: vendorInRange gate + recordVendorBuyback + meta.copper payout",
+        "sellAllJunk: bulk gray sweep, per-stack buyback record, one summary line",
+        "buyBackItem: meta.copper spend + addItemSilent + onInventoryChangedForQuests"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/inventory_vendor.zr"
+    },
+    {
+      "index": 47,
+      "name": "bank_round_trip",
+      "factory": "bankRoundTrip",
+      "source_owner": "tests/parity/scenarios.ts#bankRoundTrip",
+      "golden": "tests/parity/golden/bank_round_trip.json",
+      "golden_sha256": "5d8f24f2137de788680958080f255600dc8d8aba9ac28669428a1e99aef0a1f9",
+      "coverage": [
+        "bankDeposit partial: a fraction of a fungible stack moves bags -> bank",
+        "bankDeposit whole: the remaining stack merges into the bank slot",
+        "bankWithdraw partial then whole: bank -> bags, gated by bag capacity",
+        "bankBuySlots: meta.copper - BANK_EXPANSION_PRICES[0] + purchasedSlots + 6",
+        "banker-proximity gate (nearBanker) satisfied by standing at a bursar"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/bank_round_trip.zr"
+    },
+    {
+      "index": 48,
+      "name": "g1b_xp_prestige",
+      "factory": "g1bXpPrestige",
+      "source_owner": "tests/parity/scenarios.ts#g1bXpPrestige",
+      "golden": "tests/parity/golden/g1b_xp_prestige.json",
+      "golden_sha256": "eec0dda409e7f1bc725114e10309375160e9bad17d9fa4839973b0c40fb2de4d",
+      "coverage": [
+        "rested-XP accrual inside an inn footprint (updateRested + isResting, G1b)",
+        "rested double-up on a kill award (grantXp restedBonus consumption, C1)",
+        "a level-up ding (grantXp level loop, C1)",
+        "max-level overflow -> lifetimeXp / virtualLevelUp (accrueLifetimeXp, C1)",
+        "cosmetic prestige accept + below-threshold reject (prestige, G1b)"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/g1b_xp_prestige.zr"
+    },
+    {
+      "index": 49,
+      "name": "player_trade",
+      "factory": "playerTrade",
+      "source_owner": "tests/parity/scenarios.ts#playerTrade",
+      "golden": "tests/parity/golden/player_trade.json",
+      "golden_sha256": "5b5586daaa3b05c30ee26747a09809d804686c24ee5dedf42578899acd832dff",
+      "coverage": [
+        "tradeRequest + tradeAccept open a shared session (both pids point at it)",
+        "tradeSetOffer validates items against bags; tradeConfirm swaps items + copper atomically",
+        "tradeCancel closes an open session with both sides notified",
+        "updateTradesAndInvites drift cancel when the traders walk out of range"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/player_trade.zr"
+    },
+    {
+      "index": 50,
+      "name": "chat_social",
+      "factory": "chatSocial",
+      "source_owner": "tests/parity/scenarios.ts#chatSocial",
+      "golden": "tests/parity/golden/chat_social.json",
+      "golden_sha256": "065dfdbd2bfa843d04342e9584360a304d080e41df12c6c900c6325fa36bb2d5",
+      "coverage": [
+        "say/yell range delivery + party/general/world/lfg channel routing",
+        "whisper /w + /r round-trip via resolveWhisperTarget (exact-then-unambiguous-CI)",
+        "/me + predefined /wave emotes via broadcastEmote + findPlayerByName; playEmote bubble",
+        "handleChannelMembership /join opt-in channels; chatAllowed token-bucket throttle"
+      ],
+      "woc_owner": "scripts/woc_game/tests/parity/chat_social.zr"
+    }
+  ]
+}

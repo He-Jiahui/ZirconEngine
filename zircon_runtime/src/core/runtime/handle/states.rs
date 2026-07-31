@@ -11,17 +11,22 @@ impl CoreHandle {
     where
         T: StateSpec + Default,
     {
-        let dispatch = self.lock_states().init_state::<T>(T::default());
+        let (dispatch, entered) = {
+            let mut states = self.lock_states();
+            let dispatch = states.init_state::<T>(T::default());
+            let entered = if dispatch.is_none() {
+                states.state::<T>().map(State::into_inner)
+            } else {
+                None
+            };
+            (dispatch, entered)
+        };
         if let Some(dispatch) = dispatch {
             let event = dispatch.event().clone();
             dispatch.run();
             return event;
         }
 
-        let entered = match self.state::<T>() {
-            Some(state) => Some(state.into_inner()),
-            None => None,
-        };
         StateTransitionEvent::new(None, entered, true)
     }
 
@@ -145,5 +150,20 @@ mod tests {
 
         handle.reset_next_state::<StateFixture>();
         assert_eq!(handle.next_state::<StateFixture>(), NextState::Unchanged);
+    }
+
+    #[test]
+    fn existing_state_init_reuses_the_registry_lock() {
+        let source = include_str!("states.rs");
+        let start = source.find("pub fn init_state").expect("init state method");
+        let end = source[start..]
+            .find("pub fn insert_state")
+            .map(|offset| start + offset)
+            .expect("insert state method");
+        let implementation = &source[start..end];
+
+        assert!(implementation.contains("let mut states = self.lock_states();"));
+        assert!(implementation.contains("states.state::<T>()"));
+        assert!(!implementation.contains("self.state::<T>()"));
     }
 }

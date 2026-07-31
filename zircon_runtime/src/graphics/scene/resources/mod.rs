@@ -12,13 +12,13 @@ mod runtime;
 mod ui_texture;
 
 pub(crate) use fallback::fallback_shader_uri;
-pub(crate) use gpu_material_uniform::{GpuMaterialUniformResource, GPU_MATERIAL_UNIFORM_MIN_SIZE};
+pub(crate) use gpu_material_uniform::{GPU_MATERIAL_UNIFORM_MIN_SIZE, GpuMaterialUniformResource};
 pub(crate) use gpu_mesh::{GpuMeshResource, GpuMeshVertex};
 pub(crate) use gpu_model::GpuModelResource;
-pub(crate) use gpu_texture::{texture_upload_support_from_device, GpuTextureResource};
+pub(crate) use gpu_texture::{GpuTextureResource, texture_upload_support_from_device};
 pub(in crate::graphics::scene) use output_target_texture::OutputTargetTextureResource;
 pub(in crate::graphics::scene::resources) use output_target_texture::OutputTargetWritebackConverter;
-pub(crate) use pipeline::{default_pipeline_key, PipelineKey};
+pub(crate) use pipeline::{PipelineKey, default_pipeline_key};
 pub(in crate::graphics::scene::resources) use post_process_lut_texture::PostProcessLutTextureResource;
 pub(crate) use resource_streamer::{IrradianceVolumeTextureBinding, ResourceStreamer};
 pub(crate) use runtime::MaterialCaptureSeed;

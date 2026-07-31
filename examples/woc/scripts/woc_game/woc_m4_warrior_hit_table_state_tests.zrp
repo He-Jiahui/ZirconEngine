@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_warrior_hit_table_state_tests",
+  "source": "src",
+  "binary": "bin-m4-warrior-hit-table-state-tests",
+  "entry": "combat/warrior_hit_table_state_test_main"
+}

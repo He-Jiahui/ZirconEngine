@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_delve_source_run_layout_tests",
+  "source": "src",
+  "binary": "bin-m7-delve-source-run-layout-tests",
+  "entry": "instances/delve_source_run_layout_test_main"
+}

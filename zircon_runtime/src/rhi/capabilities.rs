@@ -35,15 +35,39 @@ impl AccelerationStructureCaps {
     }
 }
 
+/// Stable identity of the adapter that created a render device.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenderAdapterInfo {
+    pub name: String,
+    pub device_type: String,
+}
+
+/// Actual limits negotiated for the render device, rather than requested limits.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenderDeviceLimits {
+    pub max_bind_groups: u32,
+    pub max_texture_dimension_2d: u32,
+    pub max_texture_array_layers: u32,
+    pub max_sampled_textures_per_shader_stage: u32,
+    pub max_storage_buffers_per_shader_stage: u32,
+    pub max_storage_buffer_binding_size: u64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderBackendCaps {
     pub backend_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter: Option<RenderAdapterInfo>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_limits: Option<RenderDeviceLimits>,
     pub queue_classes: Vec<RenderQueueClass>,
     pub supports_surface: bool,
     pub supports_offscreen: bool,
     pub supports_async_compute: bool,
     pub supports_async_copy: bool,
     pub supports_pipeline_cache: bool,
+    #[serde(default)]
+    pub supports_gpu_timestamp: bool,
     pub supports_storage_buffers: bool,
     #[serde(default)]
     pub supports_fragment_writable_storage: bool,
@@ -71,12 +95,15 @@ impl RenderBackendCaps {
     pub fn new(backend_name: impl Into<String>) -> Self {
         Self {
             backend_name: backend_name.into(),
+            adapter: None,
+            device_limits: None,
             queue_classes: Vec::new(),
             supports_surface: false,
             supports_offscreen: true,
             supports_async_compute: false,
             supports_async_copy: false,
             supports_pipeline_cache: false,
+            supports_gpu_timestamp: false,
             supports_storage_buffers: false,
             supports_fragment_writable_storage: false,
             max_storage_buffers_per_shader_stage: 0,
@@ -96,6 +123,16 @@ impl RenderBackendCaps {
             supports_graphics_debugger_capture: false,
             acceleration_structures: AccelerationStructureCaps::disabled(),
         }
+    }
+
+    pub fn with_adapter(mut self, adapter: RenderAdapterInfo) -> Self {
+        self.adapter = Some(adapter);
+        self
+    }
+
+    pub fn with_device_limits(mut self, device_limits: RenderDeviceLimits) -> Self {
+        self.device_limits = Some(device_limits);
+        self
     }
 
     pub fn with_queue(mut self, queue: RenderQueueClass) -> Self {
@@ -131,6 +168,11 @@ impl RenderBackendCaps {
 
     pub fn with_pipeline_cache(mut self, enabled: bool) -> Self {
         self.supports_pipeline_cache = enabled;
+        self
+    }
+
+    pub fn with_gpu_timestamp(mut self, enabled: bool) -> Self {
+        self.supports_gpu_timestamp = enabled;
         self
     }
 
@@ -256,5 +298,52 @@ impl RenderDebugInstrumentationStatus {
             active_graphics_debugger_capture: false,
             last_error: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RenderBackendCaps;
+
+    #[test]
+    fn render_backend_caps_deserialize_literal_pre_device_diagnostics_payload() {
+        let legacy = r#"{
+            "backend_name": "wgpu(vulkan)",
+            "queue_classes": ["Graphics"],
+            "supports_surface": true,
+            "supports_offscreen": true,
+            "supports_async_compute": false,
+            "supports_async_copy": true,
+            "supports_pipeline_cache": true,
+            "supports_storage_buffers": true,
+            "supports_indirect_draw": true,
+            "supports_multi_draw_indirect": false,
+            "supports_indirect_first_instance": false,
+            "supports_buffer_readback": true,
+            "supports_buffer_binding_array": false,
+            "supports_texture_binding_array": false,
+            "supports_non_uniform_resource_indexing": false,
+            "supports_partially_bound_binding_array": false,
+            "supports_neural_compute": false,
+            "supports_sparse_texture": false,
+            "supports_debug_markers": true,
+            "supports_debug_groups": true,
+            "supports_graphics_debugger_capture": false,
+            "acceleration_structures": {
+                "supported": false,
+                "inline_ray_query": false,
+                "ray_tracing_pipeline": false,
+                "max_instance_count": null
+            }
+        }"#;
+
+        let decoded: RenderBackendCaps =
+            serde_json::from_str(legacy).expect("deserialize literal legacy backend caps");
+
+        assert_eq!(decoded.backend_name, "wgpu(vulkan)");
+        assert!(decoded.adapter.is_none());
+        assert!(decoded.device_limits.is_none());
+        assert!(decoded.supports_storage_buffers);
+        assert!(decoded.supports_buffer_readback);
     }
 }

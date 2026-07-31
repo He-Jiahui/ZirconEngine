@@ -1,11 +1,22 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn dialog_severity_parsing_does_not_allocate_lowercase_text() {
+    let source = include_str!("../surface/render/dialog.rs");
+
+    assert!(!source.contains("to_ascii_lowercase"));
+    assert!(source.contains("EditorDesignTokens"));
+    assert!(!source.contains("const DIALOG_SURFACE"));
+    assert!(!source.contains("const DIALOG_TITLE_FONT_SIZE"));
+}
 
 #[test]
 fn render_extract_dialog_uses_modal_panel_commands_without_owner_text_duplication() {
@@ -25,17 +36,25 @@ message = "Review scene-level settings before applying changes."
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(110.0, 70.0, 420.0, 200.0)
-            && command.style.background_color.as_deref() == Some("#171c20")
-            && command.style.border_color.as_deref() == Some("#35c7d0")
-            && command.style.corner_radius == 6.0
+            && command.style.background_color.as_deref() == Some("#141618")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
+            && command.style.corner_radius == 8.0
             && command.style.painter_family == UiPainterFamily::Alert
             && command.style.painter_state == UiPainterResolvedState::Open
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Scene Settings")
-            && command.frame == UiFrame::new(130.0, 88.0, 380.0, 18.0)
+            && command.frame
+                == UiFrame::new(
+                    130.0,
+                    88.0,
+                    380.0,
+                    EditorTypographyTokens::WORKBENCH_TITLE_SIZE
+                        * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+                )
             && command.style.foreground_color.as_deref() == Some("#e8ecee")
+            && command.style.font_size == EditorTypographyTokens::WORKBENCH_TITLE_SIZE
             && command.style.painter_family == UiPainterFamily::Alert
             && command.style.painter_state == UiPainterResolvedState::Open
     }));
@@ -45,7 +64,14 @@ message = "Review scene-level settings before applying changes."
                 .text
                 .as_deref()
                 .is_some_and(|text| text.starts_with("Review scene-level settings"))
-            && command.frame == UiFrame::new(130.0, 118.0, 380.0, 16.0)
+            && command.frame
+                == UiFrame::new(
+                    130.0,
+                    118.0,
+                    380.0,
+                    EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+                        * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+                )
             && command.style.foreground_color.as_deref() == Some("#a4aeb4")
     }));
     assert_eq!(
@@ -80,21 +106,21 @@ confirm_enabled = false
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(80.0, 48.0, 460.0, 210.0)
-            && command.style.background_color.as_deref() == Some("#171c20")
-            && command.style.border_color.as_deref() == Some("#853d3a")
+            && command.style.background_color.as_deref() == Some("#141618")
+            && command.style.border_color.as_deref() == Some("#4c2427")
             && command.style.painter_family == UiPainterFamily::Alert
             && command.style.painter_state == UiPainterResolvedState::Open
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(80.0, 48.0, 4.0, 210.0)
-            && command.style.background_color.as_deref() == Some("#ef7066")
+            && command.style.background_color.as_deref() == Some("#eb605c")
             && command.style.painter_family == UiPainterFamily::Alert
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Delete selected node?")
-            && command.style.foreground_color.as_deref() == Some("#ef7066")
+            && command.style.foreground_color.as_deref() == Some("#eb605c")
     }));
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
@@ -105,7 +131,7 @@ confirm_enabled = false
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Delete")
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
             && command.style.painter_state == UiPainterResolvedState::Disabled
     }));
 }
@@ -123,6 +149,41 @@ fn render_extract_dialog_action_width_uses_runtime_text_measurement() {
         narrow.frame,
         wide.frame
     );
+}
+
+#[test]
+fn render_extract_dialog_consumes_resolved_template_visual_tokens() {
+    let commands = commands_for_component(
+        "Dialog",
+        UiFrame::new(110.0, 70.0, 420.0, 200.0),
+        r##"
+open = true
+title = "Tokenized dialog"
+message = "Template visual values override the central defaults."
+background_color = "#010203"
+focus_border_color = "#040506"
+title_color = "#070809"
+corner_radius = 3.0
+title_font_size = 15.0
+typography_line_height_ratio = 1.2
+"##,
+        visible_state(),
+    );
+
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(110.0, 70.0, 420.0, 200.0)
+            && command.style.background_color.as_deref() == Some("#010203")
+            && command.style.border_color.as_deref() == Some("#040506")
+            && command.style.corner_radius == 3.0
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Tokenized dialog")
+            && command.style.foreground_color.as_deref() == Some("#070809")
+            && command.style.font_size == 15.0
+            && command.style.line_height == 18.0
+    }));
 }
 
 fn commands_for_component(

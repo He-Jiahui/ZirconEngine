@@ -1,0 +1,6 @@
+{
+  "name": "woc_casting_tests",
+  "source": "src",
+  "binary": "bin-casting-tests",
+  "entry": "combat/casting_test_main"
+}

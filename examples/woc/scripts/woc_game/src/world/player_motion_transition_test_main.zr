@@ -1,0 +1,72 @@
+var motion = %import("world/player_motion_transition");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) { delta = -delta; }
+    return delta < 0.00000001;
+}
+
+// Target tick prologue copies prevPos/prevFacing before player_motion applies
+// input. A resting frame therefore keeps the pose while updating its snapshot.
+var resting = new motion.PlayerMotionState();
+motion.initialize(resting, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, true, false, 1.5, true);
+motion.step(resting, false, false, false, false, false, false, false, false, false,
+    1.0, 1.0, 1000, <uint>20061, true);
+if (resting.previousX != 0.0 || resting.previousY != 1.5 || resting.previousZ != 0.0 ||
+    resting.previousFacing != 0.0 || resting.x != 0.0 || resting.y != 1.5 ||
+    resting.z != 0.0 || resting.facing != 0.0 || !resting.onGround || resting.jumping ||
+    resting.landingDamage != 0) {
+    return -1;
+}
+
+// Target applies turn-left before turn-right and only stun suppresses turning.
+var turning = new motion.PlayerMotionState();
+motion.initialize(turning, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, true, false, 1.5, true);
+motion.step(turning, true, false, false, false, false, false, false, false, false,
+    1.0, 1.0, 1000, <uint>20061, true);
+if (!closeEnough(turning.facing, 0.15707963267948966) || turning.previousFacing != 0.0) {
+    return -2;
+}
+motion.step(turning, true, true, false, false, false, false, false, false, false,
+    1.0, 1.0, 1000, <uint>20061, true);
+if (!closeEnough(turning.facing, 0.15707963267948966) ||
+    !closeEnough(turning.previousFacing, 0.15707963267948966)) {
+    return -3;
+}
+motion.step(turning, true, false, false, false, false, false, false, true, false,
+    1.0, 1.0, 1000, <uint>20061, true);
+if (!closeEnough(turning.facing, 0.15707963267948966)) {
+    return -4;
+}
+
+// Ground movement follows the normal 7 yd/s, 50 ms target vector. Root blocks
+// planar motion but does not block a non-stunned turn.
+var walking = new motion.PlayerMotionState();
+motion.initialize(walking, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, true, false, 1.5, true);
+motion.step(walking, false, false, true, false, false, false, false, false, false,
+    1.0, 1.0, 1000, <uint>20061, true);
+if (walking.x != 0.0 || !closeEnough(walking.z, 0.35) || walking.y != 1.5 ||
+    walking.previousZ != 0.0 || !walking.onGround || walking.jumping) {
+    return -5;
+}
+motion.step(walking, false, false, true, false, false, false, false, false, true,
+    1.0, 1.0, 1000, <uint>20061, true);
+if (!closeEnough(walking.z, 0.35) || !closeEnough(walking.previousZ, 0.35)) {
+    return -6;
+}
+
+// Vertical processing follows horizontal movement in the same tick. A ground
+// jump captures forward velocity, applies gravity immediately, then exposes the
+// airborne pose to the next fixed tick.
+var jumping = new motion.PlayerMotionState();
+motion.initialize(jumping, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, true, false, 1.5, true);
+motion.step(jumping, false, false, true, false, false, false, true, false, false,
+    1.0, 1.0, 1000, <uint>20061, true);
+if (jumping.x != 0.0 || !closeEnough(jumping.z, 0.35) ||
+    !closeEnough(jumping.y, 1.76) || !closeEnough(jumping.velocityY, 5.2) ||
+    !closeEnough(jumping.velocityZ, 7.0) || jumping.onGround || !jumping.jumping ||
+    jumping.landingDamage != 0 || motion.contractTest() != 1) {
+    return -7;
+}
+
+return 0;

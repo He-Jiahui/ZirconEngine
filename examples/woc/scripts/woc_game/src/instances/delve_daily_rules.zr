@@ -1,0 +1,29 @@
+// Pure projection of refreshDelveDaily. Collection clearing remains state-owned.
+var content = %import("instances/delve_daily_content");
+
+pub shouldReset(storedDay: string, utcDay: string): bool {
+    return utcDay != "" && storedDay != utcDay;
+}
+
+pub nextMarkClearCount(storedMarkClears: int, storedDay: string, utcDay: string): int {
+    if (storedMarkClears < 0) {
+        throw "woc Delve daily Mark clear count is invalid";
+    }
+    return shouldReset(storedDay, utcDay) ? 0 : storedMarkClears;
+}
+
+pub shouldClearFirstClearXp(storedDay: string, utcDay: string): bool {
+    return shouldReset(storedDay, utcDay);
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || shouldReset("2026-07-22", "") ||
+        shouldReset("2026-07-22", "2026-07-22") ||
+        !shouldReset("2026-07-22", "2026-07-23") ||
+        nextMarkClearCount(2, "2026-07-22", "") != 2 ||
+        nextMarkClearCount(2, "2026-07-22", "2026-07-23") != 0 ||
+        !shouldClearFirstClearXp("2026-07-22", "2026-07-23")) {
+        return -1;
+    }
+    return 1;
+}

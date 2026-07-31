@@ -1,0 +1,37 @@
+// Primitive-only world contract boundary. Gameplay state remains owned by ZrVM
+// modules; Rust must never implement a second world. The eventual bulk tick root
+// will coordinate those module-local SoA stores once Plugins 08 can carry their
+// byte snapshots without typed-module signature loss.
+
+pub schemaVersion(): int {
+    return 1;
+}
+
+pub simulationHz(): int {
+    return 20;
+}
+
+pub presentationHz(): int {
+    return 60;
+}
+
+pub fixedDeltaMicros(): uint {
+    return <uint>50000;
+}
+
+pub contractTest(): int {
+    if (schemaVersion() != 1) {
+        return -1;
+    }
+    if (simulationHz() != 20 || presentationHz() != 60) {
+        return -2;
+    }
+    if (fixedDeltaMicros() != <uint>50000) {
+        return -3;
+    }
+    var clock = %import("kernel/clock");
+    if (clock.fixedStepTest() != 1) {
+        return -4;
+    }
+    return 1;
+}

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var rules = %import("content/rules");
+
+console.printLine("m3-rules-test");
+var result = rules.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

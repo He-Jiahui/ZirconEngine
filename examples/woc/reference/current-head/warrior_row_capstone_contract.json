@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/warrior_row_capstone_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/warrior_rows.ts": "eb12fed341279999acc08463fc59c09bffd8ef5552ca345765e7ad36262baf6c",
+    "src/sim/content/classes.ts": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889",
+    "src/sim/combat/damage.ts": "6b4b18cd513e10f2cbcd7b5aab65e544b27c30944a0db744b37c5dc36c2dfcb4",
+    "src/sim/combat/effect_dispatch.ts": "11cb14a98dab9ba414567a194104e35473fb6feb72bd1586e39ad54e0f31550e"
+  },
+  "selections": {
+    "double_charge": "war_row_double_charge",
+    "victory_rush": "war_row_victory_rush",
+    "lingering_dread": "war_row_lingering_dread",
+    "bladestorm": "war_row_bladestorm"
+  },
+  "constants": {
+    "charge_bonus_uses": 1,
+    "charge_recharge_seconds": 15,
+    "victory_rush_window_seconds": 20,
+    "victory_rush_heal_pct_max": 0.2,
+    "lingering_dread_break_pct": 0.2,
+    "bladestorm_cost": 25,
+    "bladestorm_cooldown_seconds": 90,
+    "bladestorm_duration_seconds": 4,
+    "bladestorm_ticks": 4,
+    "bladestorm_radius": 6,
+    "bladestorm_min_damage": 16,
+    "bladestorm_max_damage": 22
+  },
+  "source_semantics": {
+    "double_charge": "each spend starts an independent fifteen-second recharge while the second stored use remains available",
+    "victory_rush": "a credited kill opens a twenty-second aura window; the successful target-required strike consumes it and heals twenty percent max health",
+    "lingering_dread": "fear break threshold is absent without the row and otherwise max(1, round(target max health * 0.2))",
+    "bladestorm": "the granted ability is an uninterruptible self-centered live-position channel; its dispatch and damage remain owned by the combat reducer"
+  }
+}

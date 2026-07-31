@@ -1,0 +1,389 @@
+// World-query portion of stepPlayerMotion's horizontal branch. It composes the
+// source's water, slope and collision ordering for the generated fixed world,
+// standard instances, arena and Yumi routes. player_motion_transition supplies
+// this pure result to the WOS13 candidate reducer for entity-state mutation.
+// Active Delve context remains a reducer-owned dependency.
+
+var playerMotion = %import("world/player_motion");
+var terrainContent = %import("world/terrain_content");
+var terrainGradient = %import("world/terrain_gradient");
+var terrainGround = %import("world/terrain_ground");
+var worldCollision = %import("world/world_collision_router");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+distance(x0: float, z0: float, x1: float, z1: float): float {
+    var math = %import("zr.zircon.math");
+    var dx = x1 - x0;
+    var dz = z1 - z0;
+    return math.sqrt(dx * dx + dz * dz);
+}
+
+pub isDeepWaterAt(x: float, z: float, seed: uint, required: bool): bool {
+    if (!required) {
+        throw "woc player deep-water query is required";
+    }
+    if (!terrainContent.hasWaterAt(x, z, true)) {
+        return false;
+    }
+    return playerMotion.isDeepWater(
+        terrainGround.builtinGroundHeight(x, z, seed, true),
+        terrainContent.waterLevel(true),
+        true
+    );
+}
+
+pub isSwimmingInBuiltinWorld(
+    x: float,
+    z: float,
+    positionY: float,
+    seed: uint,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player swimming query is required";
+    }
+    if (!terrainContent.hasWaterAt(x, z, true)) {
+        return false;
+    }
+    return playerMotion.isSwimmingAt(
+        terrainGround.builtinGroundHeight(x, z, seed, true),
+        terrainContent.waterLevel(true),
+        positionY,
+        true
+    );
+}
+
+pub isSteepGround(
+    x: float,
+    z: float,
+    onGround: bool,
+    swimming: bool,
+    seed: uint,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player steep-ground query is required";
+    }
+    return onGround && !swimming &&
+        terrainGradient.builtinTerrainSteepnessAt(x, z, seed, true) >
+            playerMotion.maxClimbSlope(true);
+}
+
+pub blocksGroundUphill(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    seed: uint,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player ground slope query is required";
+    }
+    var ground0 = terrainGround.builtinGroundHeight(fromX, fromZ, seed, true);
+    var ground1 = terrainGround.builtinGroundHeight(toX, toZ, seed, true);
+    var run = distance(fromX, fromZ, toX, toZ);
+    return ground1 > ground0 && run > 0.00001 &&
+        ((ground1 - ground0) / run > playerMotion.maxClimbSlope(true) ||
+            terrainGradient.builtinTerrainSteepnessAt(toX, toZ, seed, true) >
+                playerMotion.maxClimbSlope(true));
+}
+
+pub blocksAirborneUphill(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    positionY: float,
+    seed: uint,
+    required: bool
+): bool {
+    if (!required) {
+        throw "woc player airborne slope query is required";
+    }
+    if (terrainGround.builtinGroundHeight(toX, toZ, seed, true) <= positionY) {
+        return false;
+    }
+    return blocksGroundUphill(fromX, fromZ, toX, toZ, seed, true);
+}
+
+// The target compares collision output with this post-slope candidate before
+// rewriting airborne velocity. Keep it explicit so scalar composition can
+// preserve that ordering without leaking a mutable entity object.
+pub horizontalCandidateCoordinate(
+    positionX: float,
+    positionZ: float,
+    positionY: float,
+    facing: float,
+    velocityX: float,
+    velocityZ: float,
+    onGround: bool,
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    moveSpeedMultiplier: float,
+    rooted: bool,
+    seed: uint,
+    axis: int,
+    required: bool
+): float {
+    if (!required || moveSpeedMultiplier < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc player horizontal candidate arguments are invalid";
+    }
+    var swimming = isSwimmingInBuiltinWorld(positionX, positionZ, positionY, seed, true);
+    var steep = isSteepGround(positionX, positionZ, onGround, swimming, seed, true);
+    var hasInput = playerMotion.hasPlanarInput(forward, back, strafeLeft, strafeRight, true);
+    var moving = hasInput && !rooted && !steep;
+    var slide = steep;
+    var movingOnGround = moving && (onGround || swimming);
+    if (!slide && !movingOnGround && (onGround || (velocityX == 0.0 && velocityZ == 0.0))) {
+        return axis == 1 ? positionX : positionZ;
+    }
+    var stepX = velocityX;
+    var stepZ = velocityZ;
+    if (slide) {
+        stepX = terrainGradient.builtinTerrainDownhillCoordinate(positionX, positionZ, seed, 1, true) *
+            playerMotion.steepSlideSpeed(true);
+        stepZ = terrainGradient.builtinTerrainDownhillCoordinate(positionX, positionZ, seed, 2, true) *
+            playerMotion.steepSlideSpeed(true);
+    } else if (movingOnGround) {
+        var speed = playerMotion.wishSpeed(
+            forward,
+            back,
+            strafeLeft,
+            strafeRight,
+            moveSpeedMultiplier,
+            swimming,
+            true
+        );
+        stepX = playerMotion.wishX(facing, forward, back, strafeLeft, strafeRight, true) * speed;
+        stepZ = playerMotion.wishZ(facing, forward, back, strafeLeft, strafeRight, true) * speed;
+    }
+    var nextX = positionX + stepX * playerMotion.simulationStepSeconds(true);
+    var nextZ = positionZ + stepZ * playerMotion.simulationStepSeconds(true);
+    if (onGround && !swimming) {
+        if (blocksGroundUphill(positionX, positionZ, nextX, nextZ, seed, true)) {
+            nextX = positionX;
+            nextZ = positionZ;
+        }
+    } else if (!onGround &&
+        blocksAirborneUphill(positionX, positionZ, nextX, nextZ, positionY, seed, true)) {
+        nextX = positionX;
+        nextZ = positionZ;
+    }
+    return axis == 1 ? nextX : nextZ;
+}
+
+pub horizontalCoordinate(
+    positionX: float,
+    positionZ: float,
+    positionY: float,
+    facing: float,
+    velocityX: float,
+    velocityZ: float,
+    onGround: bool,
+    jumping: bool,
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    moveSpeedMultiplier: float,
+    rooted: bool,
+    seed: uint,
+    axis: int,
+    required: bool
+): float {
+    if (!required || moveSpeedMultiplier < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc player horizontal motion arguments are invalid";
+    }
+    var swimming = isSwimmingInBuiltinWorld(positionX, positionZ, positionY, seed, true);
+    var steep = isSteepGround(positionX, positionZ, onGround, swimming, seed, true);
+    var hasInput = playerMotion.hasPlanarInput(forward, back, strafeLeft, strafeRight, true);
+    var moving = hasInput && !rooted && !steep;
+    var slide = steep;
+    var movingOnGround = moving && (onGround || swimming);
+    if (!slide && !movingOnGround && (onGround || (velocityX == 0.0 && velocityZ == 0.0))) {
+        return axis == 1 ? positionX : positionZ;
+    }
+    var stepX = velocityX;
+    var stepZ = velocityZ;
+    if (slide) {
+        stepX = terrainGradient.builtinTerrainDownhillCoordinate(positionX, positionZ, seed, 1, true) *
+            playerMotion.steepSlideSpeed(true);
+        stepZ = terrainGradient.builtinTerrainDownhillCoordinate(positionX, positionZ, seed, 2, true) *
+            playerMotion.steepSlideSpeed(true);
+    } else if (movingOnGround) {
+        var speed = playerMotion.wishSpeed(
+            forward,
+            back,
+            strafeLeft,
+            strafeRight,
+            moveSpeedMultiplier,
+            swimming,
+            true
+        );
+        stepX = playerMotion.wishX(facing, forward, back, strafeLeft, strafeRight, true) * speed;
+        stepZ = playerMotion.wishZ(facing, forward, back, strafeLeft, strafeRight, true) * speed;
+    }
+    var nextX = positionX + stepX * playerMotion.simulationStepSeconds(true);
+    var nextZ = positionZ + stepZ * playerMotion.simulationStepSeconds(true);
+    if (onGround && !swimming) {
+        if (blocksGroundUphill(positionX, positionZ, nextX, nextZ, seed, true)) {
+            nextX = positionX;
+            nextZ = positionZ;
+        }
+    } else if (!onGround &&
+        blocksAirborneUphill(positionX, positionZ, nextX, nextZ, positionY, seed, true)) {
+        nextX = positionX;
+        nextZ = positionZ;
+    }
+    var clearFences = !onGround && jumping;
+    return worldCollision.resolveSupportedWorldMovementCoordinate(
+        positionX,
+        positionZ,
+        nextX,
+        nextZ,
+        playerMotion.playerBodyRadius(true),
+        clearFences,
+        axis,
+        true
+    );
+}
+
+// stepPlayerMotion updates vx/vz only after an airborne swept collision changes
+// its post-slope candidate. `previousX/Z` are the tick-prologue snapshots.
+pub horizontalVelocityCoordinate(
+    positionX: float,
+    positionZ: float,
+    positionY: float,
+    facing: float,
+    velocityX: float,
+    velocityZ: float,
+    previousX: float,
+    previousZ: float,
+    onGround: bool,
+    jumping: bool,
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    moveSpeedMultiplier: float,
+    rooted: bool,
+    seed: uint,
+    axis: int,
+    required: bool
+): float {
+    if (!required || (axis != 1 && axis != 2)) {
+        throw "woc player horizontal velocity arguments are invalid";
+    }
+    if (onGround) { return axis == 1 ? velocityX : velocityZ; }
+    // In the target, the airborne uphill guard runs before resolveMove and
+    // clears velocity even when the restored candidate equals the eventual
+    // swept position. Reconstruct only that pre-collision candidate here.
+    var swimming = isSwimmingInBuiltinWorld(positionX, positionZ, positionY, seed, true);
+    var hasInput = playerMotion.hasPlanarInput(forward, back, strafeLeft, strafeRight, true);
+    var moving = hasInput && !rooted;
+    var movingOnGround = moving && swimming;
+    var hasAirborneStep = movingOnGround || velocityX != 0.0 || velocityZ != 0.0;
+    var blockedAirborneUphill = false;
+    if (hasAirborneStep) {
+        var rawStepX = velocityX;
+        var rawStepZ = velocityZ;
+        if (movingOnGround) {
+            var speed = playerMotion.wishSpeed(
+                forward,
+                back,
+                strafeLeft,
+                strafeRight,
+                moveSpeedMultiplier,
+                swimming,
+                true
+            );
+            rawStepX = playerMotion.wishX(facing, forward, back, strafeLeft, strafeRight, true) * speed;
+            rawStepZ = playerMotion.wishZ(facing, forward, back, strafeLeft, strafeRight, true) * speed;
+        }
+        var rawNextX = positionX + rawStepX * playerMotion.simulationStepSeconds(true);
+        var rawNextZ = positionZ + rawStepZ * playerMotion.simulationStepSeconds(true);
+        blockedAirborneUphill = blocksAirborneUphill(
+            positionX,
+            positionZ,
+            rawNextX,
+            rawNextZ,
+            positionY,
+            seed,
+            true
+        );
+    }
+    var candidateX = horizontalCandidateCoordinate(
+        positionX, positionZ, positionY, facing, velocityX, velocityZ, onGround,
+        forward, back, strafeLeft, strafeRight, moveSpeedMultiplier, rooted, seed, 1, true
+    );
+    var candidateZ = horizontalCandidateCoordinate(
+        positionX, positionZ, positionY, facing, velocityX, velocityZ, onGround,
+        forward, back, strafeLeft, strafeRight, moveSpeedMultiplier, rooted, seed, 2, true
+    );
+    var resolvedX = horizontalCoordinate(
+        positionX, positionZ, positionY, facing, velocityX, velocityZ, onGround, jumping,
+        forward, back, strafeLeft, strafeRight, moveSpeedMultiplier, rooted, seed, 1, true
+    );
+    var resolvedZ = horizontalCoordinate(
+        positionX, positionZ, positionY, facing, velocityX, velocityZ, onGround, jumping,
+        forward, back, strafeLeft, strafeRight, moveSpeedMultiplier, rooted, seed, 2, true
+    );
+    if (resolvedX != candidateX || resolvedZ != candidateZ) {
+        return axis == 1 ?
+            (resolvedX - previousX) / playerMotion.simulationStepSeconds(true) :
+            (resolvedZ - previousZ) / playerMotion.simulationStepSeconds(true);
+    }
+    if (blockedAirborneUphill) { return 0.0; }
+    return axis == 1 ? velocityX : velocityZ;
+}
+
+pub contractTest(): int {
+    if (isDeepWaterAt(0.0, 0.0, <uint>20061, true) ||
+        isSwimmingInBuiltinWorld(0.0, 0.0, 1.5, <uint>20061, true) ||
+        isSteepGround(0.0, 0.0, true, false, <uint>20061, true) ||
+        blocksGroundUphill(0.0, 0.0, 0.0, 0.35, <uint>20061, true) ||
+        blocksAirborneUphill(0.0, 0.0, 0.0, 0.35, 99.0, <uint>20061, true)) {
+        return -1;
+    }
+    if (horizontalCoordinate(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, true, false,
+            true, false, false, false, 1.0, false, <uint>20061, 1, true) != 0.0 ||
+        !closeEnough(horizontalCoordinate(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, true, false,
+            true, false, false, false, 1.0, false, <uint>20061, 2, true), 0.35)) {
+        return -2;
+    }
+    if (!closeEnough(horizontalCoordinate(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, true, false,
+            false, true, false, false, 1.0, false, <uint>20061, 2, true), -0.2275) ||
+        horizontalCoordinate(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, true, false,
+            true, false, false, false, 1.0, true, <uint>20061, 2, true) != 0.0) {
+        return -3;
+    }
+    if (horizontalCoordinate(900.0, -1250.0, 0.0, 0.0, 0.0, 0.0, true, false,
+            true, false, false, false, 1.0, false, <uint>20061, 1, true) != 900.0 ||
+        !closeEnough(horizontalCoordinate(900.0, -1250.0, 0.0, 0.0, 0.0, 0.0, true, false,
+            true, false, false, false, 1.0, false, <uint>20061, 2, true), -1249.65) ||
+        horizontalCoordinate(8400.0, -1250.0, 0.0, 0.0, 0.0, 0.0, true, false,
+            true, false, false, false, 1.0, false, <uint>20061, 1, true) != 8400.0 ||
+        !closeEnough(horizontalCoordinate(8400.0, -1250.0, 0.0, 0.0, 0.0, 0.0, true, false,
+            true, false, false, false, 1.0, false, <uint>20061, 2, true), -1249.65)) {
+        return -4;
+    }
+    if (!closeEnough(horizontalCandidateCoordinate(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, true,
+            true, false, false, false, 1.0, false, <uint>20061, 2, true), 0.35) ||
+        horizontalVelocityCoordinate(0.0, 0.0, 1.5, 0.0, 1.0, 2.0, 0.0, 0.0, false,
+            false, false, false, false, false, 1.0, false, <uint>20061, 1, true) != 1.0 ||
+        horizontalVelocityCoordinate(0.0, 0.0, 1.5, 0.0, 1.0, 2.0, 0.0, 0.0, false,
+            false, false, false, false, false, 1.0, false, <uint>20061, 2, true) != 2.0) {
+        return -5;
+    }
+    return 1;
+}

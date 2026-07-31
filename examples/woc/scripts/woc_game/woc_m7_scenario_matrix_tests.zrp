@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_scenario_matrix_tests",
+  "source": "src",
+  "binary": "bin-m7-scenario-matrix-tests",
+  "entry": "instances/m7_scenario_matrix_test_main"
+}

@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Arc, OnceLock};
 
 use serde::{Deserialize, Serialize};
-use zircon_runtime_interface::ui::component::UiValue;
 
 use crate::core::editing::operation::{
     OperationCommandFactoryError, OperationCommandFactoryRegistration,
@@ -12,15 +12,26 @@ use crate::core::editor_operation::EditorOperationPath;
 use super::{
     defaults::default_workbench_commands, menu::menu_bar_model, menu::menu_model,
     AssetWriteTargetDescriptor, CommandEvalCtx, EditorCommandAction, EditorCommandDescriptor,
-    EditorCommandPaletteEntry,
+    EditorCommandPaletteCatalog, EditorCommandPaletteQueryWindow,
 };
 
 /// The only registry for editor command metadata, invocation, discovery, and extensions.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct EditorCommandRegistry {
     commands: BTreeMap<EditorOperationPath, EditorCommandDescriptor>,
     #[serde(skip)]
     operation_factories: BTreeMap<EditorOperationPath, OperationCommandFactoryRegistration>,
+    generation: u64,
+    #[serde(skip)]
+    palette_catalog: OnceLock<Arc<EditorCommandPaletteCatalog>>,
+}
+
+impl PartialEq for EditorCommandRegistry {
+    fn eq(&self, other: &Self) -> bool {
+        self.commands == other.commands
+            && self.operation_factories == other.operation_factories
+            && self.generation == other.generation
+    }
 }
 
 impl EditorCommandRegistry {
@@ -46,7 +57,10 @@ impl EditorCommandRegistry {
             ));
         }
         Self::validate_descriptor(&command)?;
+        self.ensure_headless_commandlet_route_available(&command)?;
+        self.ensure_headless_commandlet_name_available(&command)?;
         self.commands.insert(command.id().clone(), command);
+        self.advance_generation();
         Ok(())
     }
 
@@ -83,9 +97,12 @@ impl EditorCommandRegistry {
             ));
         }
         Self::validate_descriptor(&command)?;
+        self.ensure_headless_commandlet_route_available(&command)?;
+        self.ensure_headless_commandlet_name_available(&command)?;
         let operation = command.id().clone();
         self.commands.insert(operation.clone(), command);
         self.operation_factories.insert(operation, factory);
+        self.advance_generation();
         Ok(())
     }
 
@@ -94,6 +111,7 @@ impl EditorCommandRegistry {
     ) -> Result<(), EditorCommandRegistryError> {
         validate_menu_path(command)?;
         validate_payload_schema_id(command)?;
+        validate_headless_commandlet(command)?;
         validate_asset_write_target(command)
     }
 
@@ -102,24 +120,34 @@ impl EditorCommandRegistry {
         command_id: &EditorOperationPath,
         target: AssetWriteTargetDescriptor,
     ) -> Result<(), EditorCommandRegistryError> {
-        let command = self
-            .commands
-            .get_mut(command_id)
-            .ok_or_else(|| EditorCommandRegistryError::MissingCommand(command_id.clone()))?;
-        if let Some(existing) = command.asset_write_target() {
-            if existing != &target {
-                return Err(EditorCommandRegistryError::ConflictingAssetWriteTarget(
-                    command_id.clone(),
-                ));
+        {
+            let command = self
+                .commands
+                .get_mut(command_id)
+                .ok_or_else(|| EditorCommandRegistryError::MissingCommand(command_id.clone()))?;
+            if let Some(existing) = command.asset_write_target() {
+                if existing != &target {
+                    return Err(EditorCommandRegistryError::ConflictingAssetWriteTarget(
+                        command_id.clone(),
+                    ));
+                }
+                return Ok(());
             }
-            return Ok(());
+            let mut updated = command.clone();
+            updated.set_asset_write_target(target);
+            Self::validate_descriptor(&updated)?;
+            *command = updated;
         }
-        command.set_asset_write_target(target);
-        Self::validate_descriptor(command)
+        self.advance_generation();
+        Ok(())
     }
 
     pub fn commands(&self) -> impl Iterator<Item = &EditorCommandDescriptor> {
         self.commands.values()
+    }
+
+    pub fn generation(&self) -> u64 {
+        self.generation
     }
 
     pub fn command<Q>(&self, id: &Q) -> Option<&EditorCommandDescriptor>
@@ -128,6 +156,22 @@ impl EditorCommandRegistry {
         Q: Ord + ?Sized,
     {
         self.commands.get(id)
+    }
+
+    pub fn command_for_headless_commandlet_route(
+        &self,
+        route: &EditorOperationPath,
+    ) -> Option<&EditorCommandDescriptor> {
+        self.commands()
+            .find(|descriptor| descriptor.headless_commandlet_route() == Some(route))
+    }
+
+    pub fn command_for_headless_commandlet_name(
+        &self,
+        name: &str,
+    ) -> Option<&EditorCommandDescriptor> {
+        self.commands()
+            .find(|descriptor| descriptor.headless_commandlet_name() == Some(name))
     }
 
     pub fn operation_factory(
@@ -158,23 +202,36 @@ impl EditorCommandRegistry {
         })
     }
 
-    pub fn command_palette_entries(
-        &self,
-        context: &CommandEvalCtx,
-    ) -> Vec<EditorCommandPaletteEntry> {
-        self.commands()
-            .filter(|descriptor| descriptor.is_enabled(context))
-            .map(EditorCommandPaletteEntry::from_descriptor)
-            .collect()
+    pub fn command_palette_catalog(&self) -> Arc<EditorCommandPaletteCatalog> {
+        Arc::clone(self.palette_catalog.get_or_init(|| {
+            Arc::new(EditorCommandPaletteCatalog::from_descriptors(
+                self.generation,
+                self.commands(),
+            ))
+        }))
     }
 
-    pub fn command_palette_value(&self, context: &CommandEvalCtx) -> UiValue {
-        UiValue::Array(
-            self.command_palette_entries(context)
-                .into_iter()
-                .map(|entry| entry.to_ui_value())
-                .collect(),
-        )
+    pub fn command_palette_query_window(
+        &self,
+        context: &CommandEvalCtx,
+        query: &str,
+        offset: usize,
+        limit: usize,
+    ) -> EditorCommandPaletteQueryWindow {
+        let catalog = self.command_palette_catalog();
+        catalog.query_window(context, query, offset, limit)
+    }
+
+    pub fn command_palette_query_window_with_mru(
+        &self,
+        context: &CommandEvalCtx,
+        query: &str,
+        offset: usize,
+        limit: usize,
+        mru: &super::EditorCommandPaletteMru,
+    ) -> EditorCommandPaletteQueryWindow {
+        let catalog = self.command_palette_catalog();
+        catalog.query_window_with_mru(context, query, offset, limit, mru)
     }
 
     pub fn menu_bar_model(&self, context: &CommandEvalCtx) -> super::MenuBarModel {
@@ -220,6 +277,50 @@ impl EditorCommandRegistry {
             .filter(|id| !keymap_commands.contains(id))
             .collect()
     }
+
+    fn advance_generation(&mut self) {
+        self.generation = self
+            .generation
+            .checked_add(1)
+            .expect("editor command registry generation overflowed");
+        let _ = self.palette_catalog.take();
+    }
+
+    fn ensure_headless_commandlet_route_available(
+        &self,
+        command: &EditorCommandDescriptor,
+    ) -> Result<(), EditorCommandRegistryError> {
+        let Some(route) = command.headless_commandlet_route() else {
+            return Ok(());
+        };
+        if self
+            .commands()
+            .any(|existing| existing.headless_commandlet_route() == Some(route))
+        {
+            return Err(
+                EditorCommandRegistryError::DuplicateHeadlessCommandletRoute(route.clone()),
+            );
+        }
+        Ok(())
+    }
+
+    fn ensure_headless_commandlet_name_available(
+        &self,
+        command: &EditorCommandDescriptor,
+    ) -> Result<(), EditorCommandRegistryError> {
+        let Some(name) = command.headless_commandlet_name() else {
+            return Ok(());
+        };
+        if self
+            .commands()
+            .any(|existing| existing.headless_commandlet_name() == Some(name))
+        {
+            return Err(EditorCommandRegistryError::DuplicateHeadlessCommandletName(
+                name.to_string(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -228,6 +329,15 @@ pub enum EditorCommandRegistryError {
     OperationFactory(OperationCommandFactoryError),
     InvalidCommandMenuPath(String),
     InvalidCommandPayloadSchemaId(String),
+    HeadlessCommandletMissingRoute(EditorOperationPath),
+    HeadlessCommandletMissingName(EditorOperationPath),
+    HeadlessCommandletMissingPayloadSchema(EditorOperationPath),
+    HeadlessCommandletNotCallableFromRemote(EditorOperationPath),
+    HeadlessRouteOnNonHeadlessCommand(EditorOperationPath),
+    HeadlessNameOnNonHeadlessCommand(EditorOperationPath),
+    DuplicateHeadlessCommandletRoute(EditorOperationPath),
+    DuplicateHeadlessCommandletName(String),
+    InvalidHeadlessCommandletName(String),
     InvalidAssetWriteTargetArgument {
         command_id: EditorOperationPath,
         argument: String,
@@ -250,6 +360,42 @@ impl std::fmt::Display for EditorCommandRegistryError {
             Self::InvalidCommandPayloadSchemaId(schema_id) => write!(
                 formatter,
                 "editor command payload schema id `{schema_id}` is invalid"
+            ),
+            Self::HeadlessCommandletMissingRoute(command_id) => write!(
+                formatter,
+                "headless editor commandlet {command_id} has no typed route"
+            ),
+            Self::HeadlessCommandletMissingName(command_id) => write!(
+                formatter,
+                "headless editor commandlet {command_id} has no CLI name"
+            ),
+            Self::HeadlessCommandletMissingPayloadSchema(command_id) => write!(
+                formatter,
+                "headless editor commandlet {command_id} has no payload schema"
+            ),
+            Self::HeadlessCommandletNotCallableFromRemote(command_id) => write!(
+                formatter,
+                "headless editor commandlet {command_id} is not callable from remote control"
+            ),
+            Self::HeadlessRouteOnNonHeadlessCommand(command_id) => write!(
+                formatter,
+                "editor command {command_id} declares a headless route without a headless action"
+            ),
+            Self::HeadlessNameOnNonHeadlessCommand(command_id) => write!(
+                formatter,
+                "editor command {command_id} declares a headless CLI name without a headless action"
+            ),
+            Self::DuplicateHeadlessCommandletRoute(route) => write!(
+                formatter,
+                "headless editor commandlet route {route} is already registered"
+            ),
+            Self::DuplicateHeadlessCommandletName(name) => write!(
+                formatter,
+                "headless editor commandlet name `{name}` is already registered"
+            ),
+            Self::InvalidHeadlessCommandletName(name) => write!(
+                formatter,
+                "headless editor commandlet name `{name}` is invalid"
             ),
             Self::InvalidAssetWriteTargetArgument {
                 command_id,
@@ -355,6 +501,71 @@ fn validate_payload_schema_id(
     Ok(())
 }
 
+fn validate_headless_commandlet(
+    descriptor: &EditorCommandDescriptor,
+) -> Result<(), EditorCommandRegistryError> {
+    let headless_action = matches!(
+        descriptor.action(),
+        EditorCommandAction::HeadlessAssetMigration | EditorCommandAction::HeadlessPluginList
+    );
+    if !headless_action {
+        if descriptor.headless_commandlet_route().is_some() {
+            return Err(
+                EditorCommandRegistryError::HeadlessRouteOnNonHeadlessCommand(
+                    descriptor.id().clone(),
+                ),
+            );
+        }
+        if descriptor.headless_commandlet_name().is_some() {
+            return Err(
+                EditorCommandRegistryError::HeadlessNameOnNonHeadlessCommand(
+                    descriptor.id().clone(),
+                ),
+            );
+        }
+        return Ok(());
+    }
+    if descriptor.headless_commandlet_route().is_none() {
+        return Err(EditorCommandRegistryError::HeadlessCommandletMissingRoute(
+            descriptor.id().clone(),
+        ));
+    }
+    let Some(name) = descriptor.headless_commandlet_name() else {
+        return Err(EditorCommandRegistryError::HeadlessCommandletMissingName(
+            descriptor.id().clone(),
+        ));
+    };
+    if !valid_headless_commandlet_name(name) {
+        return Err(EditorCommandRegistryError::InvalidHeadlessCommandletName(
+            name.to_string(),
+        ));
+    }
+    if descriptor.payload_schema_id().is_none() {
+        return Err(
+            EditorCommandRegistryError::HeadlessCommandletMissingPayloadSchema(
+                descriptor.id().clone(),
+            ),
+        );
+    }
+    if !descriptor.callable_from_remote() {
+        return Err(
+            EditorCommandRegistryError::HeadlessCommandletNotCallableFromRemote(
+                descriptor.id().clone(),
+            ),
+        );
+    }
+    Ok(())
+}
+
+fn valid_headless_commandlet_name(name: &str) -> bool {
+    name.split('-').all(|segment| {
+        !segment.is_empty()
+            && segment
+                .chars()
+                .all(|value| value.is_ascii_lowercase() || value.is_ascii_digit())
+    })
+}
+
 const MIN_MENU_PATH_SEGMENTS: usize = 2;
 const MIN_PAYLOAD_SCHEMA_SEGMENTS: usize = 3;
 
@@ -383,6 +594,19 @@ fn validate_asset_write_target(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+    use std::time::Instant;
+
+    use crate::core::asset::AssetWriteAccess;
+    use crate::core::editor_event::{EditorEvent, EditorEventTransient};
+    use crate::core::editor_operation::EditorOperationPath;
+
+    use super::super::{
+        CommandEvalCtx, EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor,
+        EditorCommandPaletteMru, WhenClause,
+    };
+    use super::{EditorCommandRegistry, EditorCommandRegistryError};
+
     #[test]
     fn command_descriptor_validation_streams_path_segments() {
         let source = include_str!("registry.rs");
@@ -390,5 +614,271 @@ mod tests {
         let schema_collect = ["split('.')", ".collect::<Vec<_>>()"].concat();
         assert!(!source.contains(&menu_collect));
         assert!(!source.contains(&schema_collect));
+    }
+
+    #[test]
+    fn headless_commandlets_require_unique_typed_routes() {
+        let descriptor = EditorCommandDescriptor::new(
+            EditorOperationPath::parse("test.commandlet.plugin_list")
+                .expect("test command id should be valid"),
+            "List Plugins",
+            EditorCommandCategory::Command,
+            EditorCommandAction::HeadlessPluginList,
+        )
+        .with_payload_schema_id("editor.commandlet.plugin-list")
+        .with_required_capabilities(["plugin.catalog.read"]);
+        let mut registry = EditorCommandRegistry::default();
+
+        assert!(matches!(
+            registry.register(descriptor.clone()),
+            Err(EditorCommandRegistryError::HeadlessCommandletMissingRoute(
+                _
+            ))
+        ));
+
+        let route = EditorOperationPath::parse("commandlet.route.plugin_list")
+            .expect("test commandlet route should be valid");
+        let descriptor = descriptor.with_headless_commandlet_route(route.clone());
+        assert!(matches!(
+            registry.register(descriptor.clone()),
+            Err(EditorCommandRegistryError::HeadlessCommandletMissingName(_))
+        ));
+        let descriptor = descriptor.with_headless_commandlet_name("plugin-list");
+        registry
+            .register(descriptor.clone())
+            .expect("a routed headless commandlet should register");
+        assert_eq!(
+            registry
+                .command_for_headless_commandlet_route(&route)
+                .map(EditorCommandDescriptor::id),
+            Some(descriptor.id())
+        );
+
+        let duplicate = EditorCommandDescriptor::new(
+            EditorOperationPath::parse("test.commandlet.plugin_list_copy")
+                .expect("test command id should be valid"),
+            "List Plugins Copy",
+            EditorCommandCategory::Command,
+            EditorCommandAction::HeadlessPluginList,
+        )
+        .with_payload_schema_id("editor.commandlet.plugin-list-copy")
+        .with_required_capabilities(["plugin.catalog.read"])
+        .with_headless_commandlet_route(route.clone())
+        .with_headless_commandlet_name("plugin-list-copy");
+
+        assert!(matches!(
+            registry.register(duplicate),
+            Err(EditorCommandRegistryError::DuplicateHeadlessCommandletRoute(route_error))
+                if route_error == route
+        ));
+
+        let duplicate_name = EditorCommandDescriptor::new(
+            EditorOperationPath::parse("test.commandlet.plugin_list_name_copy")
+                .expect("test command id should be valid"),
+            "List Plugins Name Copy",
+            EditorCommandCategory::Command,
+            EditorCommandAction::HeadlessPluginList,
+        )
+        .with_payload_schema_id("editor.commandlet.plugin-list-name-copy")
+        .with_required_capabilities(["plugin.catalog.read"])
+        .with_headless_commandlet_route(
+            EditorOperationPath::parse("commandlet.route.plugin_list_name_copy")
+                .expect("test commandlet route should be valid"),
+        )
+        .with_headless_commandlet_name("plugin-list");
+
+        assert!(matches!(
+            registry.register(duplicate_name),
+            Err(EditorCommandRegistryError::DuplicateHeadlessCommandletName(name))
+                if name == "plugin-list"
+        ));
+    }
+
+    #[test]
+    fn stable_command_catalog_is_shared_until_registry_generation_changes() {
+        let mut registry = EditorCommandRegistry::default_workbench();
+
+        let first = registry.command_palette_catalog();
+        let second = registry.command_palette_catalog();
+
+        assert!(Arc::ptr_eq(&first, &second));
+        assert_eq!(first.generation(), registry.generation());
+
+        registry
+            .register(test_command(10_000))
+            .expect("new command should advance the catalog generation");
+        let next = registry.command_palette_catalog();
+
+        assert!(!Arc::ptr_eq(&first, &next));
+        assert_eq!(next.generation(), first.generation() + 1);
+        assert_eq!(next.len(), first.len() + 1);
+    }
+
+    #[test]
+    fn palette_query_retains_only_the_requested_window_without_truncating_matches() {
+        let mut registry = EditorCommandRegistry::default();
+        for index in 0..1_000 {
+            registry
+                .register(test_command(index))
+                .expect("generated command ids should be unique");
+        }
+
+        let window = registry.command_palette_query_window(
+            &CommandEvalCtx::interactive(),
+            "palette command",
+            480,
+            24,
+        );
+
+        assert_eq!(window.total_match_count(), 1_000);
+        assert_eq!(window.offset(), 480);
+        assert_eq!(window.len(), 24);
+        assert_eq!(window.metrics().retained_handles, 24);
+        assert_eq!(window.metrics().visited_entries, 1_000);
+        assert_eq!(window.metrics().enablement_evaluations, 1_000);
+        assert_eq!(window.metrics().candidate_handles, 504);
+        assert_eq!(window.metrics().owned_buffers, 3);
+        assert_eq!(
+            window.entries().next().map(|entry| entry.id.as_str()),
+            Some("test.palette.command_0480")
+        );
+        assert_eq!(
+            window.entries().last().map(|entry| entry.id.as_str()),
+            Some("test.palette.command_0503")
+        );
+    }
+
+    #[test]
+    fn palette_mru_precedes_catalog_order_and_breaks_fuzzy_score_ties() {
+        let mut registry = EditorCommandRegistry::default();
+        for index in 0..4 {
+            registry
+                .register(test_command(index))
+                .expect("generated command ids should be unique");
+        }
+        let mru = EditorCommandPaletteMru::new([
+            EditorOperationPath::parse("test.palette.command_0003")
+                .expect("the recent command id should be valid"),
+            EditorOperationPath::parse("test.palette.command_0001")
+                .expect("the recent command id should be valid"),
+        ])
+        .expect("the bounded MRU list should be valid");
+        let context = CommandEvalCtx::interactive();
+
+        let unfiltered = registry.command_palette_query_window_with_mru(&context, "", 0, 4, &mru);
+        let fuzzy =
+            registry.command_palette_query_window_with_mru(&context, "palette command", 0, 4, &mru);
+        let expected = vec![
+            "test.palette.command_0003",
+            "test.palette.command_0001",
+            "test.palette.command_0000",
+            "test.palette.command_0002",
+        ];
+
+        assert_eq!(
+            unfiltered
+                .entries()
+                .map(|entry| entry.id.as_str())
+                .collect::<Vec<_>>(),
+            expected
+        );
+        assert_eq!(
+            fuzzy
+                .entries()
+                .map(|entry| entry.id.as_str())
+                .collect::<Vec<_>>(),
+            expected
+        );
+    }
+
+    #[test]
+    fn palette_catalog_enablement_slot_preserves_descriptor_requirements() {
+        let descriptor = test_command(0)
+            .with_when(WhenClause::SelectionNonEmpty)
+            .with_required_capabilities(["palette.execute"])
+            .with_asset_write_target_arguments("asset_type", "asset_locator");
+        let registry = EditorCommandRegistry::new(vec![descriptor])
+            .expect("the descriptor should satisfy the registry contract");
+        let selected = CommandEvalCtx::interactive()
+            .with_selection_count(1)
+            .with_capabilities(["palette.execute"]);
+
+        assert!(registry
+            .command_palette_query_window(&selected, "palette", 0, 16)
+            .is_empty());
+        assert_eq!(
+            registry
+                .command_palette_query_window(
+                    &selected.with_asset_write_access(AssetWriteAccess::Writable),
+                    "palette",
+                    0,
+                    16,
+                )
+                .total_match_count(),
+            1
+        );
+    }
+
+    #[test]
+    fn one_thousand_query_updates_emit_current_source_burst_metrics() {
+        let mut registry = EditorCommandRegistry::default();
+        for index in 0..1_000 {
+            registry
+                .register(test_command(index))
+                .expect("generated command ids should be unique");
+        }
+        let context = CommandEvalCtx::interactive();
+
+        let mut elapsed_micros = Vec::with_capacity(1_000);
+        let mut maximum_visited_entries = 0;
+        let mut maximum_text_comparisons = 0;
+        let mut maximum_enablement_evaluations = 0;
+        let mut maximum_candidate_handles = 0;
+        let mut maximum_retained_handles = 0;
+        let mut maximum_owned_buffers = 0;
+        for index in 0..1_000 {
+            let query = format!("command {:02}", index % 100);
+            let started_at = Instant::now();
+            let metrics = registry
+                .command_palette_query_window(&context, &query, 0, 16)
+                .metrics();
+            elapsed_micros.push(started_at.elapsed().as_micros());
+            maximum_visited_entries = maximum_visited_entries.max(metrics.visited_entries);
+            maximum_text_comparisons = maximum_text_comparisons.max(metrics.text_comparisons);
+            maximum_enablement_evaluations =
+                maximum_enablement_evaluations.max(metrics.enablement_evaluations);
+            maximum_candidate_handles = maximum_candidate_handles.max(metrics.candidate_handles);
+            maximum_retained_handles = maximum_retained_handles.max(metrics.retained_handles);
+            maximum_owned_buffers = maximum_owned_buffers.max(metrics.owned_buffers);
+        }
+        elapsed_micros.sort_unstable();
+        let p95_index = elapsed_micros
+            .len()
+            .saturating_mul(95)
+            .div_ceil(100)
+            .saturating_sub(1);
+        let p95_micros = elapsed_micros[p95_index];
+
+        println!(
+            "EDITOR08_PALETTE_QUERY_BURST samples=1000 p95_us={p95_micros} max_visits={maximum_visited_entries} max_text_comparisons={maximum_text_comparisons} max_enablement_evaluations={maximum_enablement_evaluations} max_candidate_handles={maximum_candidate_handles} max_retained_handles={maximum_retained_handles} max_owned_buffers={maximum_owned_buffers}"
+        );
+        assert_eq!(maximum_visited_entries, 1_000);
+        assert!(maximum_text_comparisons > 0);
+        assert_eq!(maximum_enablement_evaluations, 1_000);
+        assert!(maximum_candidate_handles <= 16);
+        assert!(maximum_retained_handles <= 16);
+        assert_eq!(maximum_owned_buffers, 3);
+    }
+
+    fn test_command(index: usize) -> EditorCommandDescriptor {
+        EditorCommandDescriptor::new(
+            EditorOperationPath::parse(&format!("test.palette.command_{index:04}"))
+                .expect("generated command id should be valid"),
+            format!("Palette Command {index:04}"),
+            EditorCommandCategory::Command,
+            EditorCommandAction::Emit(EditorEvent::Transient(
+                EditorEventTransient::OpenCommandPalette,
+            )),
+        )
     }
 }

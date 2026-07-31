@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::reflect::{ReflectFieldInfo, ReflectFieldValue};
@@ -20,12 +20,7 @@ pub struct WorldInspection {
 impl WorldInspection {
     pub fn from_world(world: &World, focused: Option<EntityId>) -> Self {
         let focused_entity = focused.filter(|entity| world.contains_entity(*entity));
-        let mut hierarchy_rows = world.inspect_hierarchy();
-        if let Some(focused_entity) = focused_entity {
-            for row in &mut hierarchy_rows {
-                row.focused = row.entity == focused_entity;
-            }
-        }
+        let hierarchy_rows = build_hierarchy_rows(world, focused_entity);
         Self {
             generation: world.world_generation(),
             focused_entity,
@@ -45,7 +40,7 @@ impl World {
 
     /// Builds hierarchy rows without coupling the query to editor focus state.
     pub fn inspect_hierarchy(&self) -> Vec<WorldInspectionHierarchyRow> {
-        build_hierarchy_rows(self)
+        build_hierarchy_rows(self, None)
     }
 
     /// Builds reflected fields for one existing entity.
@@ -57,25 +52,38 @@ impl World {
     }
 }
 
-fn build_hierarchy_rows(world: &World) -> Vec<WorldInspectionHierarchyRow> {
+fn build_hierarchy_rows(
+    world: &World,
+    focused_entity: Option<EntityId>,
+) -> Vec<WorldInspectionHierarchyRow> {
     let nodes = world.node_records();
+    build_hierarchy_rows_from_nodes(world, &nodes, focused_entity)
+}
+
+pub(super) fn build_hierarchy_rows_from_nodes(
+    world: &World,
+    nodes: &[SceneNode],
+    focused_entity: Option<EntityId>,
+) -> Vec<WorldInspectionHierarchyRow> {
     let node_by_entity = nodes
         .iter()
         .map(|node| (node.id, node))
         .collect::<HashMap<_, _>>();
-    let mut children_by_parent: BTreeMap<Option<EntityId>, Vec<EntityId>> = BTreeMap::new();
-    for node in &nodes {
+    let mut children_by_parent: HashMap<Option<EntityId>, Vec<EntityId>> =
+        HashMap::with_capacity(nodes.len());
+    for node in nodes {
         children_by_parent
             .entry(node.parent)
             .or_default()
             .push(node.id);
     }
 
-    let mut rows: Vec<WorldInspectionHierarchyRow> = Vec::new();
-    let mut visited = HashSet::new();
+    let mut rows: Vec<WorldInspectionHierarchyRow> = Vec::with_capacity(nodes.len());
+    let mut visited = HashSet::with_capacity(nodes.len());
     if let Some(roots) = children_by_parent.get(&None) {
         push_hierarchy_roots(
             world,
+            focused_entity,
             &node_by_entity,
             &children_by_parent,
             roots.iter().copied(),
@@ -84,10 +92,11 @@ fn build_hierarchy_rows(world: &World) -> Vec<WorldInspectionHierarchyRow> {
         );
     }
 
-    for node in &nodes {
+    for node in nodes {
         if !visited.contains(&node.id) {
             push_hierarchy_roots(
                 world,
+                focused_entity,
                 &node_by_entity,
                 &children_by_parent,
                 std::iter::once(node.id),
@@ -111,8 +120,9 @@ struct PendingHierarchyRow {
 /// avoiding recursion for editor-scale deep hierarchy chains.
 fn push_hierarchy_roots(
     world: &World,
+    focused_entity: Option<EntityId>,
     node_by_entity: &HashMap<EntityId, &SceneNode>,
-    children_by_parent: &BTreeMap<Option<EntityId>, Vec<EntityId>>,
+    children_by_parent: &HashMap<Option<EntityId>, Vec<EntityId>>,
     roots: impl IntoIterator<Item = EntityId>,
     visited: &mut HashSet<EntityId>,
     rows: &mut Vec<WorldInspectionHierarchyRow>,
@@ -175,7 +185,7 @@ fn push_hierarchy_roots(
             display_name: node.name.clone(),
             kind: node_kind_label(&node.kind).to_string(),
             subtree_hash: 0,
-            focused: false,
+            focused: focused_entity == Some(pending.entity),
             active_in_hierarchy: world.active_in_hierarchy(pending.entity).unwrap_or(false),
             has_children: children.is_some_and(|children| !children.is_empty()),
         });
@@ -230,7 +240,10 @@ impl StableSubtreeHasher {
     }
 }
 
-fn build_inspection_fields(world: &World, entity: EntityId) -> Vec<WorldInspectionField> {
+pub(super) fn build_inspection_fields(
+    world: &World,
+    entity: EntityId,
+) -> Vec<WorldInspectionField> {
     let mut fields = Vec::new();
     for runtime in world.type_registry().iter() {
         if let Ok(component_fields) = reflected_component_fields(world, entity, runtime) {
@@ -263,10 +276,10 @@ fn reflected_component_fields(
         return Ok(Vec::new());
     }
 
-    let values = adapter
-        .read_fields(world, entity)?
-        .into_iter()
-        .map(|field| (field.field_name.clone(), field))
+    let values = adapter.read_fields(world, entity)?;
+    let values_by_name = values
+        .iter()
+        .map(|field| (field.field_name.as_str(), field))
         .collect::<HashMap<_, _>>();
 
     Ok(metadata
@@ -275,7 +288,7 @@ fn reflected_component_fields(
         .iter()
         .filter(|field| field.editor_visible)
         .filter_map(|field| {
-            values.get(&field.name).map(|value| {
+            values_by_name.get(field.name.as_str()).map(|value| {
                 inspection_field_from_reflection(runtime, field, value, metadata.plugin_owned)
             })
         })

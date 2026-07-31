@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var routing = %import("world/instance_collision_routing");
+
+console.printLine("m3-instance-collision-routing-test");
+var result = routing.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

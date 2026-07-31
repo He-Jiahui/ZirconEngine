@@ -2,10 +2,10 @@ use std::fmt;
 
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
+use crate::scene::LevelSystem;
 use crate::scene::ecs::{
     SceneSystemMetadata, SystemOrderingConstraint, SystemParamAccess, SystemSetId, SystemStage,
 };
-use crate::scene::LevelSystem;
 
 pub type BoxedRuntimeSceneSystem = Box<dyn RuntimeSceneSystem>;
 

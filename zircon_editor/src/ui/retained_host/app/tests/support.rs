@@ -12,9 +12,9 @@ pub(super) use crate::core::editor_event::{
 };
 pub(super) use crate::core::project::{RecentProjectEntry, RecentProjectValidation};
 pub(super) use crate::scene::viewport::{DisplayMode, ViewOrientation};
-pub(super) use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorHostEventController;
 pub(super) use crate::ui::host::EditorManager;
+pub(super) use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 pub(super) use crate::ui::retained_host::primitives::PhysicalSize;
 pub(super) use crate::ui::retained_host::{PaneSurfaceHostContext, UiHostContext};
 pub(super) use crate::ui::workbench::autolayout::ShellFrame;
@@ -30,7 +30,7 @@ pub(super) use winit::keyboard::{
 };
 pub(super) use zircon_runtime::core::CoreRuntime;
 pub(super) use zircon_runtime::foundation::{
-    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
 };
 pub(super) use zircon_runtime::scene::DefaultLevelManager;
 pub(super) use zircon_runtime_interface::math::UVec2;

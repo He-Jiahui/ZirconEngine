@@ -250,7 +250,7 @@ class WorkflowTopologyTests(unittest.TestCase):
         self.assertNotEqual(second.content_hash, active_version["content_hash"])
         self.assertEqual(["Base"], titles)
 
-    def test_content_only_change_creates_a_new_immutable_version(self) -> None:
+    def test_content_only_change_updates_metadata_without_splitting_topology_identity(self) -> None:
         body = (
             "```zircon-workflow\n"
             '{"schema":1,"workflow_id":"runtime-control","goal":"Runtime",'
@@ -269,13 +269,14 @@ class WorkflowTopologyTests(unittest.TestCase):
         self._write(body.replace("Implementation notes.", "Revised implementation notes."))
         second = importer.import_plan("session-a", "docs/plans/runtime/01-control.md")
 
-        self.assertEqual(2, second.version_number)
+        self.assertEqual(first.topology_version_id, second.topology_version_id)
+        self.assertEqual(1, second.version_number)
         self.assertNotEqual(first.content_hash, second.content_hash)
         with database.connect() as connection:
             count = connection.execute(
                 "SELECT COUNT(*) FROM workflow_topology_versions"
             ).fetchone()[0]
-        self.assertEqual(2, count)
+        self.assertEqual(1, count)
 
     def test_controlled_refresh_activates_content_only_candidate(self) -> None:
         body = (

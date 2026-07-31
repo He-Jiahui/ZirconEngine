@@ -13,6 +13,17 @@ const FOCUSED_INDEX: &str = "focused_index";
 const QUERY: &str = "query";
 const COMMAND_SOURCE: &str = "command_source";
 const COMMITTED_COMMAND_ID: &str = "committed_command_id";
+const CATALOG_GENERATION: &str = "catalog_generation";
+const MATCH_COUNT: &str = "match_count";
+const WINDOW_COUNT: &str = "window_count";
+const WINDOW_OFFSET: &str = "window_offset";
+const WINDOW_REQUEST_CURRENT_OFFSET: &str = "window_request_current_offset";
+const WINDOW_REQUEST_OFFSET: &str = "window_request_offset";
+const WINDOW_REQUEST_FOCUS: &str = "window_request_focus";
+const WINDOW_REQUEST_GENERATION: &str = "window_request_generation";
+
+const WINDOW_FOCUS_FIRST: &str = "first";
+const WINDOW_FOCUS_LAST: &str = "last";
 
 pub(super) fn sync_after_value_change(
     state: &mut UiComponentState,
@@ -68,7 +79,9 @@ pub(super) fn apply_keyboard_action(
         UiComponentKeyboardAction::Next
         | UiComponentKeyboardAction::Previous
         | UiComponentKeyboardAction::First
-        | UiComponentKeyboardAction::Last => {
+        | UiComponentKeyboardAction::Last
+        | UiComponentKeyboardAction::LargeIncrement
+        | UiComponentKeyboardAction::LargeDecrement => {
             navigate_filtered_commands(state, descriptor, action);
             Ok(true)
         }
@@ -180,32 +193,136 @@ fn navigate_filtered_commands(
         .unwrap_or(0)
         .clamp(0, max_index);
     let focusable = |index: i64| !disabled.iter().any(|id| id == &filtered[index as usize]);
+    let window = CommandPaletteWindow::read(state, descriptor, filtered.len());
     let next = match action {
-        UiComponentKeyboardAction::First => (0..=max_index).find(|index| focusable(*index)),
-        UiComponentKeyboardAction::Last => (0..=max_index).rev().find(|index| focusable(*index)),
-        UiComponentKeyboardAction::Previous => (0..current)
-            .rev()
-            .find(|index| focusable(*index))
-            .or_else(|| {
-                ((current + 1)..=max_index)
-                    .rev()
-                    .find(|index| focusable(*index))
-            })
-            .or_else(|| focusable(current).then_some(current)),
-        UiComponentKeyboardAction::Next => ((current + 1)..=max_index)
-            .find(|index| focusable(*index))
-            .or_else(|| (0..current).find(|index| focusable(*index)))
-            .or_else(|| focusable(current).then_some(current)),
+        UiComponentKeyboardAction::First if window.offset == 0 => {
+            (0..=max_index).find(|index| focusable(*index))
+        }
+        UiComponentKeyboardAction::Last if window.offset == window.last_offset() => {
+            (0..=max_index).rev().find(|index| focusable(*index))
+        }
+        UiComponentKeyboardAction::Previous => (0..current).rev().find(|index| focusable(*index)),
+        UiComponentKeyboardAction::Next => {
+            ((current + 1)..=max_index).find(|index| focusable(*index))
+        }
         _ => None,
     };
 
     if let Some(index) = next {
         write_selected_command(state, &filtered[index as usize], index);
         state.flags.focused = true;
-    } else {
+    } else if let Some((offset, focus)) = window.request_for(action, current, max_index) {
+        request_window(state, descriptor, offset, focus);
+    } else if !focusable(current) {
         write_selected_command(state, "", -1);
         state.flags.focused = false;
     }
+}
+
+#[derive(Clone, Copy)]
+struct CommandPaletteWindow {
+    offset: usize,
+    count: usize,
+    total_count: usize,
+}
+
+impl CommandPaletteWindow {
+    fn read(
+        state: &UiComponentState,
+        descriptor: &UiComponentDescriptor,
+        filtered_count: usize,
+    ) -> Self {
+        let offset = usize_setting(state, descriptor, WINDOW_OFFSET).unwrap_or(0);
+        let count = usize_setting(state, descriptor, WINDOW_COUNT)
+            .filter(|count| *count > 0)
+            .unwrap_or(filtered_count.max(1));
+        let total_count = usize_setting(state, descriptor, MATCH_COUNT)
+            .unwrap_or(offset.saturating_add(filtered_count))
+            .max(offset.saturating_add(filtered_count));
+        Self {
+            offset,
+            count,
+            total_count,
+        }
+    }
+
+    fn request_for(
+        self,
+        action: UiComponentKeyboardAction,
+        current: i64,
+        max_index: i64,
+    ) -> Option<(usize, &'static str)> {
+        let last_offset = self.last_offset();
+        match action {
+            UiComponentKeyboardAction::Next
+                if current == max_index && self.offset < last_offset =>
+            {
+                Some((self.next_offset(), WINDOW_FOCUS_FIRST))
+            }
+            UiComponentKeyboardAction::Previous if current == 0 && self.offset > 0 => {
+                Some((self.previous_offset(), WINDOW_FOCUS_LAST))
+            }
+            UiComponentKeyboardAction::First if self.offset > 0 => Some((0, WINDOW_FOCUS_FIRST)),
+            UiComponentKeyboardAction::Last if self.offset < last_offset => {
+                Some((last_offset, WINDOW_FOCUS_LAST))
+            }
+            UiComponentKeyboardAction::LargeDecrement if self.offset < last_offset => {
+                Some((self.next_offset(), WINDOW_FOCUS_FIRST))
+            }
+            UiComponentKeyboardAction::LargeIncrement if self.offset > 0 => {
+                Some((self.previous_offset(), WINDOW_FOCUS_LAST))
+            }
+            _ => None,
+        }
+    }
+
+    fn last_offset(self) -> usize {
+        self.total_count
+            .saturating_sub(1)
+            .checked_div(self.count)
+            .unwrap_or(0)
+            .saturating_mul(self.count)
+    }
+
+    fn next_offset(self) -> usize {
+        self.offset
+            .saturating_add(self.count)
+            .min(self.last_offset())
+    }
+
+    fn previous_offset(self) -> usize {
+        self.offset.saturating_sub(self.count)
+    }
+}
+
+fn request_window(
+    state: &mut UiComponentState,
+    descriptor: &UiComponentDescriptor,
+    offset: usize,
+    focus: &str,
+) {
+    let generation = int_setting(state, descriptor, CATALOG_GENERATION).unwrap_or(0);
+    let current_offset = int_setting(state, descriptor, WINDOW_OFFSET).unwrap_or(0);
+    super::set_value(
+        state,
+        WINDOW_REQUEST_CURRENT_OFFSET.to_string(),
+        UiValue::Int(current_offset),
+    );
+    super::set_value(
+        state,
+        WINDOW_REQUEST_OFFSET.to_string(),
+        UiValue::Int(i64::try_from(offset).unwrap_or(i64::MAX)),
+    );
+    super::set_value(
+        state,
+        WINDOW_REQUEST_FOCUS.to_string(),
+        UiValue::String(focus.to_string()),
+    );
+    super::set_value(
+        state,
+        WINDOW_REQUEST_GENERATION.to_string(),
+        UiValue::Int(generation),
+    );
 }
 
 fn select_command(
@@ -587,6 +704,14 @@ fn int_setting(
             .and_then(|schema| schema.default_value.as_ref())
             .and_then(|value| int_value(Some(value)))
     })
+}
+
+fn usize_setting(
+    state: &UiComponentState,
+    descriptor: &UiComponentDescriptor,
+    property: &str,
+) -> Option<usize> {
+    usize::try_from(int_setting(state, descriptor, property)?).ok()
 }
 
 fn string_value(value: &UiValue) -> Option<String> {

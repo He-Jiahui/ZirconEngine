@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/core/framework/events.rs
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/framework/foundation.rs
-  - zircon_runtime/src/core/runtime/events.rs
 implementation_files:
   - zircon_runtime/src/core/framework/events.rs
   - zircon_runtime/src/core/framework/mod.rs
@@ -22,15 +21,15 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_runtime::core::framework::events` owns event payload contracts that can cross framework traits, runtime handles, foundation managers, and external consumers without depending on a concrete delivery implementation.
+`zircon_runtime::core::framework::events` owns event contracts that can cross framework traits, runtime handles, foundation managers, and external consumers without depending on a concrete delivery implementation.
 
 Runtime plan 02 M2.2 split the former core-root event bus fragment into two owners: `EngineEvent` lives here as a neutral DTO, while `EventBus` delivery behavior lives under `zircon_runtime::core::runtime::events`.
 
 ## Ownership Boundary
 
-This module may define serializable event DTOs and future framework-level event protocol data. It must not own subscriber storage, delivery locks, pruning, channel fan-out, runtime lifecycle mutation, or service registration.
+This module defines the neutral event DTO, explicit delivery-policy choices, subscription receive/error contracts, and the read-only diagnostics snapshot. It must not own subscriber storage, delivery locks, channels, pruning, runtime lifecycle mutation, or service registration.
 
-`core::framework::foundation::EventManager` consumes `EngineEvent` through this namespace. Runtime callers may still use the curated root facade `core::EngineEvent`, but internal runtime code should prefer the owner path.
+`core::framework::foundation::EventManager` consumes these contracts through this namespace. Runtime callers may use the curated root exports, while internal runtime code should prefer the owner path.
 
 ## API
 
@@ -39,7 +38,17 @@ This module may define serializable event DTOs and future framework-level event 
 - `topic: String`
 - `payload: serde_json::Value`
 
-The DTO derives `Clone`, `Debug`, `PartialEq`, `Serialize`, and `Deserialize` so it stays suitable for runtime queues, tests, tooling snapshots, and future dynamic/plugin boundaries.
+The DTO derives `Clone`, `Debug`, `PartialEq`, `Serialize`, and `Deserialize` so it stays suitable for tests, tooling snapshots, and future dynamic/plugin boundaries.
+
+Every subscription must select an `EngineEventDeliveryPolicy`:
+
+- `Lossless` preserves every event and is never an implicit default.
+- `BoundedDropOldest { capacity }` bounds retained events and discards the oldest queued item under pressure.
+- `Latest` retains only the newest queued event.
+
+`EngineEventSubscription` returns `Arc<EngineEvent>` so a concrete runtime can fan one immutable event allocation out to many subscribers. `EventBusDiagnosticsMode` explicitly selects enabled collection or a disabled low-overhead path. `EventBusDiagnosticsSnapshot` exposes that mode, topic/subscriber totals, published/delivered/dropped/disconnected counts, current and peak queue depth, currently waiting receivers/publishers, queue-age samples, publish-duration samples, and a bus-wide aggregate of waits on per-topic delivery locks without exposing runtime storage.
+
+`EngineEventReceiveError`, `EngineEventTryReceiveError`, and `EngineEventReceiveTimeoutError` are framework-owned result enums. Concrete runtime/foundation adapters map their queue lifecycle into these errors at the boundary; public subscription contracts do not expose a concrete channel or queue implementation.
 
 ## Validation
 

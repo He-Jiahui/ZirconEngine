@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_chip_glyphs::{chip_has_chevron, push_chip_chevron};
-use super::geometry::pixel_aligned_rect;
+use super::geometry::{has_paintable_chip_extent, pixel_aligned_rect};
 use super::identity::is_workbench_chip;
 use super::layers::{chevron_order, label_order};
 use super::style::chip_glyph_color;
@@ -20,7 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
         return false;
     }
     let rect = pixel_aligned_rect(rect);
-    if rect.width <= 0.0 || rect.height <= 0.0 {
+    if !has_paintable_chip_extent(&rect) {
         return true;
     }
 

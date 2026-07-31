@@ -1,6 +1,7 @@
 mod build_dispatcher;
 mod frame_from_points;
 mod rebuild_surface;
+mod selectable_owners_in_rect;
 mod viewport_overlay_pointer_router;
 mod viewport_overlay_pointer_router_clone;
 mod viewport_overlay_pointer_router_debug;

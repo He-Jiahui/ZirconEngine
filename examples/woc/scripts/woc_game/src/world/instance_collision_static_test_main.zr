@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var instanceCollisionStatic = %import("world/instance_collision_static");
+
+console.printLine("m3-instance-collision-static-test");
+var result = instanceCollisionStatic.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

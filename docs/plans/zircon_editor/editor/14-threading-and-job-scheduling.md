@@ -17,11 +17,16 @@ reference_sources:
   - dev/bevy/crates/bevy_tasks/src/task_pool.rs
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/TaskGraphInterfaces.h
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
   - docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 implementation_files:
+  - zircon_editor/src/core/jobs/mod.rs
+  - zircon_editor/src/core/jobs/event_sink.rs
+  - zircon_editor/src/core/jobs/progress.rs
+  - zircon_editor/src/core/jobs/pump.rs
   - zircon_editor/src/core/jobs/system/mod.rs
   - zircon_editor/src/core/jobs/system/pending.rs
   - zircon_editor/src/core/jobs/system/state.rs
@@ -48,6 +53,7 @@ implementation_files:
 tests:
   - zircon_editor/src/core/jobs/tests/scheduling_contract.rs
   - zircon_editor/src/core/jobs/tests/pump_contract.rs
+  - zircon_editor/src/core/jobs/tests/background_storm_contract.rs
   - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
@@ -214,3 +220,25 @@ zircon_editor/src/core/jobs/
 - fixed 已修复：[component-registry-typed-contract-test](14/fixed-2026-07-12-component-registry-typed-contract-test.md)
 - fixed 已修复：[export-build-string-error-boundary](14/fixed-2026-07-12-export-build-string-error-boundary.md)
 - fixed 已修复：[animation-state-machine-infallible-conversion](14/fixed-2026-07-11-animation-state-machine-infallible-conversion.md)
+- 2026-07-30 core jobs当前源复核：`core/jobs/**` 27/27确认priority/category/dependency selection固定为每pass最多21 bucket probes，pump已有64 events/1ms且Progress按JobId latest coalesce，旧全scan/Vec移位和drain-to-empty结论已过时。剩余P0：Compile/Index/Play/Misc默认无限，`promote`持state mutex循环`Runtime schedule_after`并可整批转移ready work；Started/terminal lane无entry/bytes/age界；emit跨lifecycle/progress/queue三锁并clone稳定label、progress message双份常驻；pinned terminal history超256后锁内线性find+中段remove。Editor14按PERF-MVP-018/020做全类别entry+estimated-bytes+age reservation、bounded dispatch batch、锁外schedule和generation-safe install/rollback，label/spec/message共享owner，history用dependency refcount+evictable ordered index；accepted terminal不得丢。
+- 2026-07-30 progress/ticket补充：`primary_snapshot`已把状态栏从clone全部active jobs降为1项，但retained tick仍每帧clone label/message、format task/detail并无条件presentation refresh；按PERF-MVP-017发布primary generation，stable tick投影/刷新为0。`JobTicket::wait`/`join`保持worker/tool/shutdown-only；当前产品UI均poll，wizard `finish_job`阻塞入口无生产caller，接入前补main/retained-thread source+affinity guard。
+- 2026-07-31 close-prompt save接入：当前retained native close在UI callback逐view同步执行serialize、文件写入、asset import、workspace refresh/hydrate/sync，partial failure retry还会重复已成功I/O。Editor14按PERF-MVP-602为Editor09 canonical save batch提供显式有界interactive lane、entry/estimated-bytes/age reservation、per-resource mutex group、cooperative cancel/进度与有界completion apply；不得落入当前默认无限`Misc`整批promote，也不得把`UiHostWindow`、retained host borrow或session mutex搬到worker。UI线程的fs/import=0，completion按dirty generation一次提交，shutdown沿M3.2 deadline返回明确未完成清单。
+- 2026-07-22 Play process output补充：live poll已止损为64 lines/poll且terminal finish不持active mutex；两个reader仍为per-session手建thread，`read_until`允许单行无界，queue无bytes/time/age预算。按PERF-MVP-552与[open failure](14/failure-2026-07-22-play-process-output-byte-budget.md)接Runtime11 blocking-I/O owner，不能以1024 entries冒充内存有界。
+- 2026-07-22 asset import准入补充：Editor09同URI mutex group只串行、不合并等价generation请求；
+  watch/digest/manual storm会把重复job推入现有无entry/byte/age预算的submission/lifecycle队列。Editor14提供
+  typed single-flight admission与queue budget指标，Editor09拥有UUID/source-generation/reason语义，Runtime04
+  保持唯一import执行owner；见Editor09
+  [open failure](09/failure-2026-07-22-asset-import-duplicate-admission-backpressure.md)与PERF-MVP-555。
+- 2026-07-22 script build准入补充：Editor13已把watch unique path常驻限制为20+full-rebuild sentinel，
+  但Command/Play仍向无界request FIFO逐项提交，持续watch也可无限后推deadline。Editor14提供
+  generation-keyed shared ticket、entry/bytes/age预算、cancel/supersede与latest Play resume intent；见
+  Editor13 [open failure](13/failure-2026-07-22-script-build-debounce-admission-backpressure.md)和PERF-MVP-557。
+- 2026-07-22 Welcome probe准入补充：PERF-MVP-559要求draft input debounce同时有max feedback latency，queued stale generation在I/O前supersede，同target共享ticket；Editor14把probe计入submit entry+draft bytes+oldest-age预算，禁止取消token后仍无界排队。语义owner见Editor10 [open failure](10/failure-2026-07-22-welcome-project-probe-admission-storm.md)。
+
+## Code Review 建议 (2026-07-31)
+
+### 与代码现状不符，需修订
+
+- 「架构设计 §模块布局」列出 `core/jobs/` 为 `mod.rs / system/ / spec.rs / category.rs / cancellation_token.rs / ticket.rs / pump.rs / event.rs / progress.rs` 九项。当前实读已扩展到更细的拆分：除计划所列外还有 `context.rs`（`JobCtx` owner）、`error.rs`（`JobError`）、`id.rs`（`JobId`）、`job.rs`（`EditorJob` trait）、`limits.rs`（类别配额表，对应目标 3）、`mutex_group.rs`（`MutexGroup`，对应目标 3）、`shutdown.rs`（对应目标 5 `shutdown(deadline)`）、`event_sink.rs`、`test_support.rs`，且 `tests/` 已含 `admission_scaling_contract.rs`、`progress_contract.rs`（front-matter tests 字段只列到 `scheduling/pump/background_storm/thread_ownership` 四项）。模块布局图与 front-matter tests 清单的正文引用宜同步为当前拆分，避免读者按九项结构核对时误判 `limits.rs`/`mutex_group.rs`/`shutdown.rs` 为缺失。这些新增文件恰好证明目标 3（类别配额/互斥）与目标 5（收尾协议）已落地为独立 owner，与产出记录「M3.2 关停 deadline/未竟清单已完成」一致。（注：front-matter 本身不改，仅提示正文与之对齐。）
+
+- 2026-07-31 retained progress adapter补证：`primary_snapshot()`已把全active job clone降为一项，但stable tick仍clone label/message、format task id/detail并调用setter；setter为比较又读取owned current status。Editor14按PERF-MVP-017发布immutable primary snapshot+generation，EditorUI08只在generation变化时投影，100K stable ticks的snapshot/String/format/setter/invalidation均为0。证据见`../../performance/01/2026-07-31-editor-retained-tick-projection-adapters-current-review.md`。

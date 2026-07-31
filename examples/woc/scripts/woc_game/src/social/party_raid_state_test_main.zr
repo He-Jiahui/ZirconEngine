@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var party = %import("social/party_raid_state");
+
+console.printLine("m6-party-raid-state-test");
+var result = party.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

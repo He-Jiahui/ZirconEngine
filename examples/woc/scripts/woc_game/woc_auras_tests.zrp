@@ -1,0 +1,6 @@
+{
+  "name": "woc_auras_tests",
+  "source": "src",
+  "binary": "bin-auras-tests",
+  "entry": "combat/auras_test_main"
+}

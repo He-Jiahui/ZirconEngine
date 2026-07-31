@@ -151,7 +151,7 @@ fn sdf_upload_commands_use_full_atlas_rect_for_resize() {
         true,
     );
 
-    let commands = sdf_atlas_upload_commands(&atlas_plan(2), report, 512 * 512);
+    let commands = sdf_atlas_upload_commands(&atlas_plan(2), &report, 512 * 512);
     assert_eq!(commands.len(), 1);
     let command = commands[0];
 
@@ -188,7 +188,7 @@ fn sdf_upload_commands_use_dirty_rect_origin_and_full_atlas_stride() {
         false,
     );
 
-    let commands = sdf_atlas_upload_commands(&atlas_plan(4), report, 512 * 512);
+    let commands = sdf_atlas_upload_commands(&atlas_plan(4), &report, 512 * 512);
     assert_eq!(commands.len(), 1);
     let command = commands[0];
 
@@ -225,7 +225,7 @@ fn sdf_upload_command_is_absent_for_stable_partial_frames() {
         false,
     );
 
-    assert!(sdf_atlas_upload_commands(&atlas_plan(1), report, 512 * 512).is_empty());
+    assert!(sdf_atlas_upload_commands(&atlas_plan(1), &report, 512 * 512).is_empty());
 }
 
 #[test]
@@ -264,7 +264,7 @@ fn sdf_upload_report_emits_dirty_commands_for_pages_beyond_page_zero() {
 
     let commands = sdf_atlas_upload_commands(
         &atlas_plan_with_page_slots(vec![slot_on_page('B', 1, dirty_rect)]),
-        report,
+        &report,
         512 * 512,
     );
 
@@ -320,7 +320,7 @@ fn sdf_upload_report_emits_full_page_commands_for_all_resized_layers() {
             slot_on_page('A', 0, sdf_rect(0, 0, 64, 64)),
             slot_on_page('B', 1, sdf_rect(0, 0, 64, 64)),
         ]),
-        report,
+        &report,
         2 * 512 * 512,
     );
 
@@ -374,7 +374,7 @@ fn sdf_upload_commands_preserve_mixed_page_stride_and_source_offsets() {
     assert_eq!(report.dirty_pages[0].byte_len, page_area);
     assert_eq!(report.dirty_pages[1].byte_len, page_area * 4);
 
-    let commands = sdf_atlas_upload_commands(&plan, report, source_byte_len);
+    let commands = sdf_atlas_upload_commands(&plan, &report, source_byte_len);
     assert_eq!(commands.len(), 2);
     assert_eq!(
         commands[0].page_key,
@@ -427,7 +427,7 @@ fn sdf_upload_partial_msdf_rect_uses_rgba_row_stride() {
 
     assert_eq!(report.mode, SdfAtlasUploadMode::DirtySlots);
     assert_eq!(report.byte_len, 128 * 64 * 4);
-    let commands = sdf_atlas_upload_commands(&plan, report, source_byte_len);
+    let commands = sdf_atlas_upload_commands(&plan, &report, source_byte_len);
     assert_eq!(commands.len(), 1);
     assert_eq!(commands[0].mode, GlyphAtlasUploadMode::PartialRect);
     assert_eq!(
@@ -442,6 +442,17 @@ fn sdf_upload_partial_msdf_rect_uses_rgba_row_stride() {
     assert_eq!(commands[0].bytes_per_row, 512 * 4);
     assert_eq!(commands[0].rows_per_image, 512);
     assert_eq!(commands[0].upload_byte_len, 128 * 64 * 4);
+}
+
+#[test]
+fn sdf_upload_commands_build_page_offsets_once_and_borrow_report() {
+    let upload_source = include_str!("../sdf_upload.rs");
+    let resources_source = include_str!("../sdf_render/atlas_resources.rs");
+
+    assert!(upload_source.contains("fn sdf_atlas_source_pages("));
+    assert!(upload_source.contains("binary_search_by_key("));
+    assert!(!upload_source.contains("fn offset_upload_command_for_source_page("));
+    assert!(!resources_source.contains("upload.clone()"));
 }
 
 fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {

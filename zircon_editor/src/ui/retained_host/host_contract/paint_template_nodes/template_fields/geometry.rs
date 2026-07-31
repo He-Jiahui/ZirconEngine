@@ -1,5 +1,4 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::metrics::workbench_field_metrics;
 use super::search::search_field_paint_rect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_paint_rect(
@@ -12,14 +11,70 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_p
     search_field_paint_rect(node, rect)
 }
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_paintable_field_extent(
+    rect: &FrameRect,
+) -> bool {
+    rect.x.is_finite()
+        && rect.y.is_finite()
+        && rect.width.is_finite()
+        && rect.height.is_finite()
+        && rect.width > 0.0
+        && rect.height > 0.0
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_is_within(
+    inner: &FrameRect,
+    outer: &FrameRect,
+) -> bool {
+    if !has_paintable_field_extent(inner) || !has_paintable_field_extent(outer) {
+        return false;
+    }
+
+    let inner_right = inner.x + inner.width;
+    let inner_bottom = inner.y + inner.height;
+    let outer_right = outer.x + outer.width;
+    let outer_bottom = outer.y + outer.height;
+    inner_right.is_finite()
+        && inner_bottom.is_finite()
+        && outer_right.is_finite()
+        && outer_bottom.is_finite()
+        && inner.x >= outer.x
+        && inner.y >= outer.y
+        && inner_right <= outer_right
+        && inner_bottom <= outer_bottom
+}
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
     rect: &FrameRect,
 ) -> FrameRect {
-    let min_extent = workbench_field_metrics().min_paint_rect_extent;
+    if !has_paintable_field_extent(rect) {
+        return FrameRect {
+            x: rect.x,
+            y: rect.y,
+            width: 0.0,
+            height: 0.0,
+        };
+    }
+
+    let right = rect.x + rect.width;
+    let bottom = rect.y + rect.height;
+    if !right.is_finite() || !bottom.is_finite() {
+        return FrameRect {
+            x: rect.x,
+            y: rect.y,
+            width: 0.0,
+            height: 0.0,
+        };
+    }
+
+    let x = rect.x.ceil();
+    let y = rect.y.ceil();
+    let right = right.floor();
+    let bottom = bottom.floor();
     FrameRect {
-        x: rect.x.round(),
-        y: rect.y.round(),
-        width: rect.width.round().max(min_extent),
-        height: rect.height.max(min_extent),
+        x,
+        y,
+        width: (right - x).max(0.0),
+        height: (bottom - y).max(0.0),
     }
 }

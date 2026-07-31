@@ -1,0 +1,8 @@
+var system = %import("zr.system");
+var rng = %import("kernel/rng");
+var result = rng.knownVectorTest();
+system.console.printLine(result);
+if (result != 1) {
+    return result;
+}
+return 0;

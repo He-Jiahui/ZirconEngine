@@ -92,20 +92,10 @@ impl GlyphRasterPolicy {
             GlyphAtlasFormat::SubpixelMask | GlyphAtlasFormat::Color => {
                 return GlyphRasterPath::Bitmap;
             }
-            GlyphAtlasFormat::AlphaMask | GlyphAtlasFormat::Sdf | GlyphAtlasFormat::Msdf => {}
-        }
-
-        if request.effects.requires_true_distance() {
-            return GlyphRasterPath::Mtsdf;
-        }
-
-        match request.requested_format {
+            _ if request.effects.requires_true_distance() => return GlyphRasterPath::Mtsdf,
             GlyphAtlasFormat::Sdf => return GlyphRasterPath::Sdf,
             GlyphAtlasFormat::Msdf => return GlyphRasterPath::Msdf,
             GlyphAtlasFormat::AlphaMask => {}
-            GlyphAtlasFormat::SubpixelMask | GlyphAtlasFormat::Color => {
-                unreachable!("bitmap-only glyph formats return before distance-field selection")
-            }
         }
 
         if request.effects.requires_distance_field() {
@@ -188,6 +178,13 @@ mod tests {
         request.effects.outline = true;
 
         assert_eq!(raster_path_for_request(request), GlyphRasterPath::Bitmap);
+    }
+
+    #[test]
+    fn text_raster_policy_has_no_unreachable_format_branch() {
+        let source = include_str!("policy.rs");
+
+        assert!(!source.contains(concat!("unreachable", "!(")));
     }
 
     #[test]

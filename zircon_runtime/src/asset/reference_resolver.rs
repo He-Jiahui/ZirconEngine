@@ -29,6 +29,22 @@ pub(crate) struct ResolvedProjectReference {
     pub(crate) repair: Option<ReferenceRepair>,
 }
 
+/// Lookup boundary for the physical source projection owned by one project generation.
+///
+/// The shared reference-resolution algorithm consumes this contract so filesystem-backed runtime
+/// callers and the migration generation keep one GUID/path/repair truth.
+pub(crate) trait ProjectSourceLookup {
+    fn project_hint_for_locator(
+        &self,
+        locator: &AssetUri,
+    ) -> Result<RelPath, ReferenceResolutionError>;
+
+    fn locator_for_project_hint(
+        &self,
+        hint: &RelPath,
+    ) -> Result<Option<AssetUri>, ReferenceResolutionError>;
+}
+
 /// Maps a registry locator to its one persisted source file under an asset root.
 ///
 /// A single-file asset persists its source file directly. A compound asset persists the
@@ -100,13 +116,45 @@ fn compound_meta_path(logical_root: &Path) -> Result<PathBuf, std::io::Error> {
     Ok(logical_root.with_file_name(format!("{file_name}.zmeta")))
 }
 
+struct FilesystemProjectSourceLookup<'a> {
+    roots: &'a [(RelPath, PathBuf)],
+}
+
+impl ProjectSourceLookup for FilesystemProjectSourceLookup<'_> {
+    fn project_hint_for_locator(
+        &self,
+        locator: &AssetUri,
+    ) -> Result<RelPath, ReferenceResolutionError> {
+        filesystem_project_hint_for_locator(self.roots, locator)
+    }
+
+    fn locator_for_project_hint(
+        &self,
+        hint: &RelPath,
+    ) -> Result<Option<AssetUri>, ReferenceResolutionError> {
+        filesystem_locator_for_project_hint(self.roots, hint)
+    }
+}
+
 pub(crate) fn resolve_project_reference(
     registry: &AssetRegistryIndex,
     roots: &[(RelPath, PathBuf)],
     reference: &AssetRef,
 ) -> Result<ResolvedProjectReference, ReferenceResolutionError> {
+    resolve_project_reference_from_lookup(
+        registry,
+        &FilesystemProjectSourceLookup { roots },
+        reference,
+    )
+}
+
+pub(crate) fn resolve_project_reference_from_lookup(
+    registry: &AssetRegistryIndex,
+    sources: &impl ProjectSourceLookup,
+    reference: &AssetRef,
+) -> Result<ResolvedProjectReference, ReferenceResolutionError> {
     let entry = if let Some(entry) = registry.entry_by_uuid(reference.guid()) {
-        let resolved = project_hint_for_entry(roots, entry)?;
+        let resolved = sources.project_hint_for_locator(entry.path())?;
         let resolved = AssetRef::try_new(
             entry.uuid(),
             resolved,
@@ -119,7 +167,7 @@ pub(crate) fn resolve_project_reference(
             repair,
         });
     } else {
-        let Some(entry) = entry_by_hint(registry, roots, reference)? else {
+        let Some(entry) = entry_by_hint(registry, sources, reference)? else {
             return Err(ReferenceResolutionError::Dangling {
                 guid: reference.guid(),
                 path: reference.path_hint().to_string(),
@@ -129,7 +177,7 @@ pub(crate) fn resolve_project_reference(
     };
     let resolved_ref = AssetRef::try_new(
         entry.uuid(),
-        project_hint_for_entry(roots, entry)?,
+        sources.project_hint_for_locator(entry.path())?,
         entry.path().label().map(str::to_owned),
     )
     .map_err(|source| ReferenceResolutionError::AssetRef { source })?;
@@ -163,13 +211,34 @@ fn repair_between(stale: &AssetRef, resolved: &AssetRef) -> Option<ReferenceRepa
 
 fn entry_by_hint<'a>(
     registry: &'a AssetRegistryIndex,
-    roots: &[(RelPath, PathBuf)],
+    sources: &impl ProjectSourceLookup,
     reference: &AssetRef,
 ) -> Result<Option<&'a AssetRegistryEntry>, ReferenceResolutionError> {
-    let hint = reference.path_hint().as_str();
+    let Some(base_locator) = sources.locator_for_project_hint(reference.path_hint())? else {
+        return Ok(None);
+    };
+    let base_entry = registry.entry_by_path(&base_locator);
+    let Some(subasset) = reference.sub() else {
+        return Ok(base_entry);
+    };
+
+    let labeled_locator_text = format!("{base_locator}#{subasset}");
+    let labeled_locator = AssetUri::parse(&labeled_locator_text).map_err(|error| {
+        ReferenceResolutionError::Registry {
+            message: error.to_string(),
+        }
+    })?;
+    Ok(registry.entry_by_path(&labeled_locator).or(base_entry))
+}
+
+fn filesystem_locator_for_project_hint(
+    roots: &[(RelPath, PathBuf)],
+    hint: &RelPath,
+) -> Result<Option<AssetUri>, ReferenceResolutionError> {
     let mut candidates = Vec::new();
     for (root_rel, root) in roots {
         let Some(relative) = hint
+            .as_str()
             .strip_prefix(root_rel.as_str())
             .and_then(|relative| relative.strip_prefix('/'))
         else {
@@ -202,38 +271,24 @@ fn entry_by_hint<'a>(
             candidates.push(locator);
         }
     }
-    let base_locator = match candidates.as_slice() {
-        [] => return Ok(None),
-        [locator] => locator.clone(),
-        _ => {
-            return Err(ReferenceResolutionError::AmbiguousPath {
-                path: hint.to_owned(),
-            });
-        }
-    };
-    let base_entry = registry.entry_by_path(&base_locator);
-    let Some(subasset) = reference.sub() else {
-        return Ok(base_entry);
-    };
-
-    let labeled_locator_text = format!("{base_locator}#{subasset}");
-    let labeled_locator = AssetUri::parse(&labeled_locator_text).map_err(|error| {
-        ReferenceResolutionError::Registry {
-            message: error.to_string(),
-        }
-    })?;
-    Ok(registry.entry_by_path(&labeled_locator).or(base_entry))
+    match candidates.as_slice() {
+        [] => Ok(None),
+        [locator] => Ok(Some(locator.clone())),
+        _ => Err(ReferenceResolutionError::AmbiguousPath {
+            path: hint.to_string(),
+        }),
+    }
 }
 
-fn project_hint_for_entry(
+fn filesystem_project_hint_for_locator(
     roots: &[(RelPath, PathBuf)],
-    entry: &AssetRegistryEntry,
+    locator: &AssetUri,
 ) -> Result<RelPath, ReferenceResolutionError> {
     let mut candidates = Vec::new();
     for candidate @ (_, root) in roots {
-        let path = persisted_source_path_for_locator(root, entry.path()).map_err(|source| {
+        let path = persisted_source_path_for_locator(root, locator).map_err(|source| {
             ReferenceResolutionError::PathIo {
-                path: root.join(entry.path().path()),
+                path: root.join(locator.path()),
                 source,
             }
         })?;
@@ -245,12 +300,12 @@ fn project_hint_for_entry(
         [(candidate, path)] => (*candidate, path),
         [] => {
             return Err(ReferenceResolutionError::MissingPath {
-                path: entry.path().to_string(),
+                path: locator.to_string(),
             });
         }
         _ => {
             return Err(ReferenceResolutionError::AmbiguousPath {
-                path: entry.path().to_string(),
+                path: locator.to_string(),
             });
         }
     };
@@ -269,7 +324,7 @@ fn project_hint_for_entry(
         relative.to_string_lossy()
     ))
     .map_err(|source| ReferenceResolutionError::Path {
-        path: entry.path().to_string(),
+        path: locator.to_string(),
         source,
     })
 }

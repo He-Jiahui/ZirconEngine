@@ -1,0 +1,82 @@
+// Current-head projection of src/sim/content/graveyards.ts and the nearest
+// overworld graveyard scan in src/sim/spirit.ts. Instance graveyards remain
+// owned by the later instance-context reducer.
+
+var catalog = %import("generated/m3_spirit_healer_placement");
+
+pub count(required: bool): int {
+    if (!required) {
+        throw "woc spirit graveyard count is required";
+    }
+    return catalog.graveyardCount(true);
+}
+
+pub xAt(index: int, required: bool): float {
+    if (!required || index < 0 || index >= count(true)) {
+        throw "woc spirit graveyard x index is invalid";
+    }
+    return catalog.rawCoordinate(index, 1, true);
+}
+
+pub zAt(index: int, required: bool): float {
+    if (!required || index < 0 || index >= count(true)) {
+        throw "woc spirit graveyard z index is invalid";
+    }
+    return catalog.rawCoordinate(index, 2, true);
+}
+
+// The strict comparison intentionally preserves the first source row on an
+// exact distance tie, matching the JavaScript for-of scan.
+pub nearestIndex(x: float, z: float, required: bool): int {
+    if (!required) {
+        throw "woc nearest spirit graveyard is required";
+    }
+    var nearest = 0;
+    var nearestDx = x - xAt(0, true);
+    var nearestDz = z - zAt(0, true);
+    var nearestDistance = nearestDx * nearestDx + nearestDz * nearestDz;
+    var index = 1;
+    while (index < count(true)) {
+        var dx = x - xAt(index, true);
+        var dz = z - zAt(index, true);
+        var distance = dx * dx + dz * dz;
+        if (distance < nearestDistance) {
+            nearest = index;
+            nearestDistance = distance;
+        }
+        index = index + 1;
+    }
+    return nearest;
+}
+
+pub healerInRange(x: float, z: float, required: bool): bool {
+    if (!required) {
+        throw "woc spirit healer range query is required";
+    }
+    var index = 0;
+    while (index < count(true)) {
+        var dx = x - xAt(index, true);
+        var dz = z - zAt(index, true);
+        if (dx * dx + dz * dz <= 64.0) {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+pub contractTest(): int {
+    if (count(true) != 7 || xAt(0, true) != -14.0 || zAt(1, true) != -56.0 ||
+        xAt(6, true) != -139.0 || zAt(6, true) != 787.0) {
+        return -1;
+    }
+    if (nearestIndex(-14.0, -14.0, true) != 0 ||
+        nearestIndex(-17.0, 285.0, true) != 2 ||
+        nearestIndex(140.0, 840.0, true) != 5) {
+        return -2;
+    }
+    if (!healerInRange(-6.0, -14.0, true) || healerInRange(-5.9, -14.0, true)) {
+        return -3;
+    }
+    return 1;
+}

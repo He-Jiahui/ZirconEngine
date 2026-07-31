@@ -7,12 +7,10 @@ use zircon_runtime_interface::reflect::{
 use std::collections::BTreeMap;
 use std::sync::{Arc, Barrier};
 
-use crate::core::framework::scene::LevelManager;
+use crate::core::framework::scene::{LevelManager, SCENE_MODULE_NAME};
 use crate::core::{CoreRuntime, TasksModule, TASKS_MODULE_NAME};
 use crate::engine_module::EngineModule;
-use crate::scene::{
-    NodeKind, SceneError, VmTypeBacking, World, WorldReflection, SCENE_MODULE_NAME,
-};
+use crate::scene::{NodeKind, SceneError, VmTypeBacking, World, WorldReflection};
 use crate::script::{PluginSlotId, VmStateSchema, VmStateTypeSchema};
 
 use super::{VmReflectionCatalog, VmReflectionError, VmReflectionSchema};
@@ -34,7 +32,7 @@ fn reflection_test_runtime(catalog: &VmReflectionCatalog) -> CoreRuntime {
         .register_module(crate::scene::module_descriptor())
         .expect("reflection test scene module should register");
     runtime
-        .activate_module(crate::foundation::FOUNDATION_MODULE_NAME)
+        .activate_module(crate::core::framework::foundation::FOUNDATION_MODULE_NAME)
         .expect("reflection test foundation module should activate");
     runtime
         .activate_module(TASKS_MODULE_NAME)

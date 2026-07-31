@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var stunDr = %import("combat/stun_dr_state");
+
+console.printLine("m4-stun-dr-state-test");
+var result = stunDr.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -10,7 +10,7 @@ related_code:
   - dev/bevy/crates/bevy_text/src/lib.rs
   - dev/bevy/crates/bevy_text/src/pipeline.rs
   - dev/bevy/crates/bevy_text/src/text_edit.rs
-  - dev/bevy/crates/bevy_text/src/text_editable.rs
+  - dev/bevy/crates/bevy_text/src/editing.rs
   - dev/bevy/crates/bevy_ui_render/src/lib.rs
   - dev/bevy/crates/bevy_ui_widgets/src/lib.rs
   - dev/bevy/crates/bevy_ui_widgets/src/button.rs
@@ -84,6 +84,11 @@ This document is the M0 Evidence & Gap Audit for `.codex/plans/Bevy 对齐的 Zi
 
 M0 is documentation and acceptance evidence only. It does not change runtime/editor behavior. Later milestones may add contract DTOs, runtime behavior, editor cutover, AccessKit bridge code, or text shaping dependencies, but those changes must start from the gaps and tests recorded here.
 
+Reference-owner refresh（2026-07-18）：当前检出的 Bevy reference commit `fb89a8649d9b359e53ffb6e5492ebb7c059ac8af`
+已将 `EditableText` component/system owner 收敛到 `crates/bevy_text/src/editing.rs`；`text_edit.rs` 继续持有
+`TextEdit` actions。原 M0 的 c040d7603 baseline 只保留为历史取样版本，不再把已删除的
+`text_editable.rs` 当作 current machine path，也不添加兼容 reference path。
+
 Architecture owner split for the later milestones stays fixed:
 
 | Layer | M0 decision |
@@ -104,7 +109,7 @@ Architecture owner split for the later milestones stays fixed:
 | Tab navigation | `dev/bevy/crates/bevy_input_focus/src/tab_navigation.rs` | Bevy has tab index, tab groups, modal traps, next/previous/first/last, and pointer focus-ring hiding. | Zircon currently has tree-order next/previous navigation. M3 must add tab index, groups, modal traps, and Shift-Tab semantics, with surface/layer/z-order as a Zircon-specific extension. |
 | Directional navigation | `dev/bevy/crates/bevy_input_focus/src/directional_navigation.rs`, `dev/bevy/crates/bevy_ui/src/auto_directional_navigation.rs` | Bevy supports manual directional neighbors, blocked edges, auto-computed candidates from node bounds, and cleanup. | Zircon has nearest-focusable directional heuristics but no contract for manual override or blocked edges. M3 should add override DTOs and tests for layer-aware spatial order. |
 | Text shaping and layout | `dev/bevy/crates/bevy_text/src/lib.rs`, `dev/bevy/crates/bevy_text/src/pipeline.rs` | Bevy uses Parley/Swash-level text shaping, measurement, runs, font atlas glyphs, cursor and selection geometry. | Zircon has a grapheme-aware fixed-advance scaffold and shared shaped DTO placeholders. M6 must introduce a `UiTextShaper` abstraction and backend-gated acceptance for fallback fonts, real glyph metrics, selection/caret geometry, and layout consistency. |
-| Text editing | `dev/bevy/crates/bevy_text/src/text_edit.rs`, `dev/bevy/crates/bevy_text/src/text_editable.rs` | Bevy covers insert/copy/cut/paste, grapheme and word deletion, cursor/selection movement, point selection, filters, max chars, newline policy, and `TextEditChange`. | Zircon has byte-boundary caret edits, selection replacement, and IME preedit/commit/cancel scaffold. M6 needs word navigation, clipboard, filters, max chars, multiline policy, cursor blink, point selection, and typed edit-change events. |
+| Text editing | `dev/bevy/crates/bevy_text/src/text_edit.rs`, `dev/bevy/crates/bevy_text/src/editing.rs` | Bevy keeps edit actions in `text_edit.rs` and the current `EditableText` component, filters, queued application systems, limits, and change trigger in `editing.rs`; together they cover insert/copy/cut/paste, grapheme and word deletion, cursor/selection movement, point selection, filters, max chars, newline policy, and typed edit changes. | Zircon has byte-boundary caret edits, selection replacement, and IME preedit/commit/cancel scaffold. M6 needs word navigation, clipboard, filters, max chars, multiline policy, cursor blink, point selection, and typed edit-change events. |
 | UI render extraction | `dev/bevy/crates/bevy_ui_render/src/lib.rs`, `dev/bevy/crates/bevy_ui_render/src/text.rs` | Bevy extracts backgrounds, images, borders, viewport nodes, text, decorations, selections, cursor, queues/sorts UI nodes, and prepares batches. | Zircon interface already has paint/batch/cache/debug/parity DTOs, while runtime extract still emits legacy command lists. M8 should make all runtime/editor painters consume a single neutral extract kind and batch/debug stats path. |
 | Headless widgets | `dev/bevy/crates/bevy_ui_widgets/src/lib.rs`, `dev/bevy/crates/bevy_ui_widgets/src/button.rs` | Bevy widgets are unstyled behavior components; plugin group covers popover, button, checkbox, menu, radio, scrollbar, slider, and editable text. Button activation is keyboard/pointer unified and disabled-aware. | Zircon component events and Material roots exist, but no complete headless widget behavior layer owns button/checkbox/radio/slider/menu/popover/tooltip/text input semantics. M5 must land the behavior layer before editor styling. |
 | Styled widgets | `dev/bevy/crates/bevy_feathers/src/lib.rs`, `dev/bevy/crates/bevy_feathers/src/theme.rs` | Feathers adds styled editor controls, tokens, focus outlines, embedded fonts/icons, and tab navigation on top of headless widgets. | Zircon's Material `.ui.toml` assets and native painter state are styling progress, but M10 must sit on the shared headless widget behavior contract instead of forking behavior inside editor host glue. |

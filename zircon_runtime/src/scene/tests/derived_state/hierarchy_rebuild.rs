@@ -99,17 +99,29 @@ fn hierarchy_validity_rebuild_uses_pre_sized_parent_snapshot() {
         .nth(1)
         .and_then(|text| text.split("fn rebuild_active_in_hierarchy").next())
         .expect("read hierarchy parent snapshot body");
+    let parent_chain = source
+        .split("fn parent_chain_is_invalid(")
+        .nth(1)
+        .and_then(|text| text.split("pub(super) fn matrix_to_transform").next())
+        .expect("read parent-chain validation body");
 
     assert!(
         rebuild.contains("let parents = self.hierarchy_parent_snapshot();")
+            && rebuild.contains("let mut seen = HashSet::new();")
             && rebuild.contains("for entity_index in 0..self.entities.len()")
             && rebuild.contains("let entity = self.entities[entity_index];")
             && rebuild.contains("parents.contains_key(parent)")
-            && rebuild.contains("parent_chain_is_invalid(*parent, entity, &parents)")
+            && rebuild.contains("parent_chain_is_invalid(*parent, entity, &parents, &mut seen)")
             && !rebuild.contains("HashSet<_> = self.entities.iter().copied().collect()")
             && !rebuild.contains(".collect::<Vec<_>>()")
             && !rebuild.contains(".map(|entity|"),
         "hierarchy validity rebuild must use one pre-sized parent snapshot and an index walk instead of collect-built temporary snapshots"
+    );
+    assert!(
+        parent_chain.contains("seen.clear();")
+            && parent_chain.contains("seen.insert(entity);")
+            && !parent_chain.contains("HashSet::from([entity])"),
+        "hierarchy validation must reuse one visited-set allocation across all parent-chain checks"
     );
     assert!(
         snapshot.contains("let mut parents = HashMap::with_capacity(self.entities.len());")

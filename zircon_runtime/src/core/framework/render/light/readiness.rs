@@ -72,8 +72,8 @@ fn ready_rect_light_count(lights: &[RenderRectLightSnapshot]) -> usize {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderAmbientLightSnapshot, RenderLayerSet, RenderRectLightSnapshot,
-        DEFAULT_RENDER_LAYER_MASK,
+        DEFAULT_RENDER_LAYER_MASK, RenderAmbientLightSnapshot, RenderLayerSet,
+        RenderRectLightSnapshot,
     };
     use crate::core::math::{Vec2, Vec3};
 

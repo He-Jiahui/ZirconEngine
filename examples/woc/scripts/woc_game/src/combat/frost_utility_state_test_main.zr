@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var frost = %import("combat/frost_utility_state");
+
+console.printLine("m4-frost-utility-state-test");
+var result = frost.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

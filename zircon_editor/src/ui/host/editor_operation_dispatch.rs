@@ -20,6 +20,15 @@ impl EditorHostEventController {
         source: EditorOperationSource,
         invocation: EditorOperationInvocation,
     ) -> Result<EditorEventRecord, String> {
+        self.invoke_operation_with_binding_path(source, invocation, None)
+    }
+
+    pub(crate) fn invoke_operation_with_binding_path(
+        &self,
+        source: EditorOperationSource,
+        invocation: EditorOperationInvocation,
+        binding_path: Option<String>,
+    ) -> Result<EditorEventRecord, String> {
         let event_source = editor_event_source(source.clone());
         let (descriptor, operation_factory) = {
             let commands = self.commands().lock();
@@ -42,6 +51,7 @@ impl EditorHostEventController {
                     error,
                     invocation.arguments,
                     invocation.operation_group,
+                    binding_path,
                 );
             }
         };
@@ -57,6 +67,7 @@ impl EditorHostEventController {
                 error,
                 invocation.arguments,
                 invocation.operation_group,
+                binding_path,
             );
         }
         let mut context = self.command_eval_ctx_for_source(&source);
@@ -74,6 +85,7 @@ impl EditorHostEventController {
                         error,
                         invocation.arguments,
                         invocation.operation_group,
+                        binding_path,
                     );
                 }
             };
@@ -90,6 +102,7 @@ impl EditorHostEventController {
                     error,
                     invocation.arguments,
                     invocation.operation_group,
+                    binding_path,
                 );
             }
         }
@@ -100,6 +113,7 @@ impl EditorHostEventController {
                 error.to_string(),
                 invocation.arguments,
                 invocation.operation_group,
+                binding_path,
             );
         }
         if let Some(event) = descriptor.event().cloned() {
@@ -112,6 +126,7 @@ impl EditorHostEventController {
                     invocation.arguments,
                     invocation.operation_group,
                 )),
+                binding_path,
             );
         }
 
@@ -126,6 +141,7 @@ impl EditorHostEventController {
                 error,
                 invocation.arguments,
                 invocation.operation_group,
+                binding_path,
             );
         };
         let operation = match operation_factory.create(&invocation) {
@@ -137,6 +153,7 @@ impl EditorHostEventController {
                     error.to_string(),
                     invocation.arguments,
                     invocation.operation_group,
+                    binding_path,
                 );
             }
         };
@@ -156,6 +173,7 @@ impl EditorHostEventController {
                     error.to_string(),
                     invocation.arguments,
                     invocation.operation_group,
+                    binding_path,
                 );
             }
         };
@@ -174,6 +192,7 @@ impl EditorHostEventController {
                 invocation.arguments,
                 invocation.operation_group,
             )),
+            binding_path,
         )
     }
 
@@ -196,13 +215,13 @@ impl EditorHostEventController {
             )
         })?;
         let locator = string_argument(operation_id, arguments, target.locator_argument())?;
-        let authority =
-            AssetSourceAuthority::from_target_str(definition.source_write_policy(), locator)
-                .map_err(|error| {
-                    format!(
-                "asset operation {operation_id} has invalid source target `{locator}`: {error}"
-            )
-                })?;
+        let authority = AssetSourceAuthority::from_target_str(
+            definition.source_write_policy(),
+            locator,
+        )
+        .map_err(|error| {
+            format!("asset operation {operation_id} has invalid source target `{locator}`: {error}")
+        })?;
         Ok((authority, locator.to_owned()))
     }
 
@@ -213,6 +232,7 @@ impl EditorHostEventController {
         error: String,
         arguments: serde_json::Value,
         operation_group: Option<String>,
+        binding_path: Option<String>,
     ) -> Result<EditorEventRecord, String> {
         self.dispatch_normalized_event_with_operation(
             source,
@@ -226,6 +246,7 @@ impl EditorHostEventController {
                 arguments,
                 operation_group,
             )),
+            binding_path,
         )
     }
 
@@ -282,31 +303,37 @@ impl EditorHostEventController {
                 )
             }
             EditorOperationControlRequest::QueryOperationHistory => {
-                match self
-                    .context()
-                    .transactions()
-                    .history_snapshot(HistoryContextId::Global)
-                {
-                    Ok(history) => EditorOperationControlResponse::success(
-                        "editor.operation.history",
-                        Some(json!({
-                            "history": "global",
-                            "len": history.len,
-                            "top": history.top,
-                            "saved_top": history.saved_top,
-                            "saved_top_reachable": history.saved_top_reachable,
-                            "can_undo": history.can_undo,
-                            "can_redo": history.can_redo,
-                            "records": history.records.into_iter().map(|record| json!({
-                                "transaction_id": record.id.raw(),
-                                "label": record.label,
-                                "timestamp_frame": record.timestamp_frame,
-                                "command_count": record.command_count,
-                                "participants": record.participants.into_iter().map(|document| document.value()).collect::<Vec<_>>(),
-                                "significant": record.significant,
-                            })).collect::<Vec<_>>(),
-                        })),
-                    ),
+                match self.context().transactions().history_details(
+                    HistoryContextId::Global,
+                    None,
+                    128,
+                ) {
+                    Ok(page) => {
+                        let history = page.status();
+                        let records = page.into_records();
+                        EditorOperationControlResponse::success(
+                            "editor.operation.history",
+                            Some(json!({
+                                "history": "global",
+                                "len": history.len,
+                                "top": history.top.map(|transaction| transaction.raw()),
+                                "saved_top": history.saved_top.map(|transaction| transaction.raw()),
+                                "saved_top_reachable": history.saved_top_reachable,
+                                "can_undo": history.can_undo,
+                                "can_redo": history.can_redo,
+                                "dirty": history.dirty,
+                                "generation": history.generation,
+                                "records": records.into_iter().map(|record| json!({
+                                    "transaction_id": record.id.raw(),
+                                    "label": record.label,
+                                    "timestamp_frame": record.timestamp_frame,
+                                    "command_count": record.command_count,
+                                    "participants": record.participants.into_iter().map(|document| document.value()).collect::<Vec<_>>(),
+                                    "significant": record.significant,
+                                })).collect::<Vec<_>>(),
+                            })),
+                        )
+                    }
                     Err(error) => EditorOperationControlResponse::failure(
                         "editor.operation.history",
                         error.to_string(),

@@ -46,7 +46,6 @@ pub(super) fn build_binding_schema_items(
 
     let mut projected_payload_keys = BTreeSet::new();
     for (key, value) in super::binding_payload_entries(binding) {
-        let _ = projected_payload_keys.insert(key.clone());
         append_binding_value_projection(
             &mut items,
             document,
@@ -56,10 +55,11 @@ pub(super) fn build_binding_schema_items(
             &value,
             None,
         );
+        let _ = projected_payload_keys.insert(key);
     }
 
     for (key, value) in super::binding_schema_payload_entries(binding) {
-        if !projected_payload_keys.insert(key.clone()) {
+        if projected_payload_keys.contains(&key) {
             continue;
         }
         append_binding_value_projection(
@@ -71,6 +71,7 @@ pub(super) fn build_binding_schema_items(
             &value,
             Some("default"),
         );
+        let _ = projected_payload_keys.insert(key);
     }
 
     items
@@ -103,8 +104,9 @@ fn append_target_diagnostics(
     target_index: usize,
 ) {
     let target_suffix = format!(".targets[{target_index}]");
+    let nested_target_prefix = format!("{target_suffix}.");
     for (path, diagnostics) in diagnostics_by_path {
-        if path.ends_with(&target_suffix) || path.contains(&format!("{target_suffix}.")) {
+        if path.ends_with(&target_suffix) || path.contains(&nested_target_prefix) {
             for diagnostic in diagnostics {
                 items.push(format!(
                     "target diagnostic [{}] {}: {}",
@@ -188,12 +190,9 @@ fn append_binding_value_projection(
             }
         }
         Value::Table(entries) => {
-            let mut keys = entries.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            for key in keys {
-                let Some(entry) = entries.get(&key) else {
-                    continue;
-                };
+            let mut sorted_entries = entries.iter().collect::<Vec<_>>();
+            sorted_entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+            for (key, entry) in sorted_entries {
                 append_binding_value_projection(
                     items,
                     document,
@@ -254,12 +253,9 @@ fn append_binding_template_projection(
             }
         }
         Value::Table(entries) => {
-            let mut keys = entries.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            for key in keys {
-                let Some(entry) = entries.get(&key) else {
-                    continue;
-                };
+            let mut sorted_entries = entries.iter().collect::<Vec<_>>();
+            sorted_entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+            for (key, entry) in sorted_entries {
                 append_binding_template_projection(
                     items,
                     document,

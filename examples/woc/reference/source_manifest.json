@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "source_repository": "world-of-claudecraft",
+  "generated_by": "examples/woc/tools/reference_inventory.mjs",
+  "source_extensions": [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".svelte"
+  ],
+  "identities": {
+    "package_manifest": {
+      "path": "package.json",
+      "bytes": 9437,
+      "sha256": "7049b8506705deab3522327065321847d8e4a39740c94dadf9479c406b67d249"
+    },
+    "parity_sources": {
+      "file_count": 8,
+      "sha256": "1854b77328c5ddac9354b65706c74a2d8ae9b7703d9c0501f27ee3370f7a17aa",
+      "files": [
+        {
+          "path": "tests/parity/coverage.test.ts",
+          "bytes": 46012,
+          "sha256": "3eca35b696d9f704eac49683c54e6a64197c5d3f17e3f740e10806ec445710b1"
+        },
+        {
+          "path": "tests/parity/harness.test.ts",
+          "bytes": 8501,
+          "sha256": "dc44de2bb5f026337745a5876fb4316a10a300ec970d5354bc8531eedfafea5b"
+        },
+        {
+          "path": "tests/parity/index.ts",
+          "bytes": 157,
+          "sha256": "ee5814c48beb4fffedfcc1f189ce989200806c85a9d222a6bd6a74b427ad8c5c"
+        },
+        {
+          "path": "tests/parity/parity.test.ts",
+          "bytes": 2857,
+          "sha256": "be6963f743cb3e8dcaf2a15d37f4ee5425719e1c728bbec68cfe7a8fe246fced"
+        },
+        {
+          "path": "tests/parity/record.ts",
+          "bytes": 7936,
+          "sha256": "566a3111cdf00f2e93298dc279b5ca68fc8f824030591652b8df7578aa97c08f"
+        },
+        {
+          "path": "tests/parity/rename_state_proof.test.ts",
+          "bytes": 10146,
+          "sha256": "288b71770df733d5a7092598a5383033735473d0badd6e29cfc61bacbe1eb963"
+        },
+        {
+          "path": "tests/parity/scenarios.ts",
+          "bytes": 186297,
+          "sha256": "cf83c95265b3c323b3c780a17e2ab9a75f3eaae905759dbb8c3e9e88568b5bde"
+        },
+        {
+          "path": "tests/parity/trace.ts",
+          "bytes": 12080,
+          "sha256": "063e5eeab070bc4c172a51f3857fffda42e0e3039781bbdbe656b1836eb34da6"
+        }
+      ]
+    },
+    "golden_directory": {
+      "file_count": 51,
+      "sha256": "ec29d6116d062b18ab7aaeb6e35f7531febd38e7c6bbbd7d6b2892ef47b6d8cd",
+      "files": [
+        {
+          "path": "tests/parity/golden/affix_mob.json",
+          "bytes": 17918,
+          "sha256": "795f9b9333284afd7419461e62ac842a1f8c2fe87544cdbaee04b23f1a41a8eb"
+        },
+        {
+          "path": "tests/parity/golden/arena_1v1.json",
+          "bytes": 8078,
+          "sha256": "4c67a027cadaa582e73077156c0ad285d041956db21a3bcd97b1566903bf9ce3"
+        },
+        {
+          "path": "tests/parity/golden/arena_2v2_wipe.json",
+          "bytes": 63700,
+          "sha256": "40267ce4f8ae7ff61c437c643ac2f91b3948a3f202ae9245d621d88eecce610c"
+        },
+        {
+          "path": "tests/parity/golden/bank_round_trip.json",
+          "bytes": 23081,
+          "sha256": "5d8f24f2137de788680958080f255600dc8d8aba9ac28669428a1e99aef0a1f9"
+        },
+        {
+          "path": "tests/parity/golden/c3_aura_runner.json",
+          "bytes": 29641,
+          "sha256": "1b72b809f710fc1409085bad6c630989ff636ce2c07eea2153b3e5ad991793c0"
+        },
+        {
+          "path": "tests/parity/golden/c4a_casting_lifecycle.json",
+          "bytes": 86490,
+          "sha256": "a3cc55f7c20bda7f7f3e9fc6e94be3922d69ef7e46bdb7e1b633e2c31986b5a6"
+        },
+        {
+          "path": "tests/parity/golden/c4b_effect_dispatch.json",
+          "bytes": 226976,
+          "sha256": "533aa928e60c3724452872412aa6d216f340975deae5fe0a0da0653896b0086f"
+        },
+        {
+          "path": "tests/parity/golden/c5_auto_attack.json",
+          "bytes": 81017,
+          "sha256": "04a8fbe82d0c755bd87b5a81cf040c1fbb00e2814f9cabf6482d79dc867acf84"
+        },
+        {
+          "path": "tests/parity/golden/chat_social.json",
+          "bytes": 50694,
+          "sha256": "065dfdbd2bfa843d04342e9584360a304d080e41df12c6c900c6325fa36bb2d5"
+        },
+        {
+          "path": "tests/parity/golden/delve_companion.json",
+          "bytes": 29976,
+          "sha256": "f369f7a81dbbf241017a5d0ac082042c59382126518feeb0c8b5f8a017bf5316"
+        },
+        {
+          "path": "tests/parity/golden/delve_death.json",
+          "bytes": 12794,
+          "sha256": "09ba578026d87838c4dd0a1617b552b0bdaf042dbef3b25d8c01ff421d9df9a1"
+        },
+        {
+          "path": "tests/parity/golden/delve_lockpick.json",
+          "bytes": 19301,
+          "sha256": "63a7cec689c6ad40b20c8ca970381b824a54495a865941981794891e86ed5da7"
+        },
+        {
+          "path": "tests/parity/golden/delve_lockpick_fail.json",
+          "bytes": 14037,
+          "sha256": "d86f9a693a9f3ac9b5c2ff49a1d16ee6f6131be37b72ccc3189af87fc74d284d"
+        },
+        {
+          "path": "tests/parity/golden/delve_progression.json",
+          "bytes": 13385,
+          "sha256": "c894a7226a2014dd2056860723d15231b65666094e572d0b590fcfbf8aa21a19"
+        },
+        {
+          "path": "tests/parity/golden/drowned_litany.json",
+          "bytes": 27997,
+          "sha256": "52078ab50627bb934cd629d9868a723e173ba68f78313f90e6217afdf0941ff3"
+        },
+        {
+          "path": "tests/parity/golden/duel_to_winner.json",
+          "bytes": 19773,
+          "sha256": "6ec6b0173bba849ca472fafe9b6a6571954e2d25baea2ac6e4ee9efa50672fe7"
+        },
+        {
+          "path": "tests/parity/golden/dungeon_instances.json",
+          "bytes": 59118,
+          "sha256": "8b5ecf53eea1b135883b8a5e2e90ebd9c1d835ca665d7e0c0ecb12e16732880e"
+        },
+        {
+          "path": "tests/parity/golden/dungeon_raid_lockout.json",
+          "bytes": 44138,
+          "sha256": "4c39768d1594680ef92ca0f0273f52a36952b1a289e9fce005c95b21db66af61"
+        },
+        {
+          "path": "tests/parity/golden/entity_roster.json",
+          "bytes": 17922,
+          "sha256": "c39f888c1fd9eb53a70e9207541b32307b04c14bd89d563222a053abd0b49094"
+        },
+        {
+          "path": "tests/parity/golden/fiesta.json",
+          "bytes": 14773,
+          "sha256": "4848ff0ff5e9cb90c5f29a60ab06268e2a2a2b732323cb445e9525d524e31187"
+        },
+        {
+          "path": "tests/parity/golden/fiesta_midcast_kill.json",
+          "bytes": 53289,
+          "sha256": "b88a78ac8eee81cd0e089dd786a3b8ac915ddd1044a3b5462bdc382481fdd86a"
+        },
+        {
+          "path": "tests/parity/golden/fiesta_powerups.json",
+          "bytes": 25773,
+          "sha256": "df14331013c9fe2c1867161f0957ac6c1018c0372df8330c86c6061c314c66f1"
+        },
+        {
+          "path": "tests/parity/golden/g1b_xp_prestige.json",
+          "bytes": 26926,
+          "sha256": "eec0dda409e7f1bc725114e10309375160e9bad17d9fa4839973b0c40fb2de4d"
+        },
+        {
+          "path": "tests/parity/golden/hit_rating_heroic_geared.json",
+          "bytes": 18374,
+          "sha256": "d57861c2b7afb3d3533b172ed0018dde78e014d9f908e32a75321286e9d157e2"
+        },
+        {
+          "path": "tests/parity/golden/hit_rating_heroic_ungeared.json",
+          "bytes": 17208,
+          "sha256": "5ea754c4c4a227d4603b3272b1b47c8126fee8055ef62f23dac986e2c9599090"
+        },
+        {
+          "path": "tests/parity/golden/hunter_pet.json",
+          "bytes": 12290,
+          "sha256": "a5312baf2d9b4d275d567b4439d165f5547fdf6b7f8c7f7b1af324bc291f2c6e"
+        },
+        {
+          "path": "tests/parity/golden/inventory_vendor.json",
+          "bytes": 50879,
+          "sha256": "41dc247bacb2c9f75feb2893f5c868a939c7b8dca04492911988b2443ce72fa6"
+        },
+        {
+          "path": "tests/parity/golden/l1_loot_distribution.json",
+          "bytes": 44093,
+          "sha256": "01b818614bd70d2c223390c6698c5ab06caa6d172e6c6ed510d9e68178955f73"
+        },
+        {
+          "path": "tests/parity/golden/market_round_trip.json",
+          "bytes": 54271,
+          "sha256": "d65185208d2340d8ea330c1b3fd9c214d1fd171c264f126a4cfef27cc4e07647"
+        },
+        {
+          "path": "tests/parity/golden/mob_lifecycle.json",
+          "bytes": 68022,
+          "sha256": "586147acec18047bf314cc972b6272d9e07d19a9fd7610793fbf4516dd24cb2e"
+        },
+        {
+          "path": "tests/parity/golden/mob_locomotion.json",
+          "bytes": 67330,
+          "sha256": "234f17565138e96ce9c7ab348ea6b0f96b46e9c16d3bf624dc01ee534bfd0801"
+        },
+        {
+          "path": "tests/parity/golden/mob_swing_affixes.json",
+          "bytes": 30424,
+          "sha256": "45959e436c292efd44c9bb1e79d251aa4cff7630e8dd6152ba9d9d5a72ffbdf0"
+        },
+        {
+          "path": "tests/parity/golden/mob_targeting.json",
+          "bytes": 95096,
+          "sha256": "0850fe8b2d801fc438763ab149b1b6e43c4cbd7c3c2f20526b9a6cfbd9f607bb"
+        },
+        {
+          "path": "tests/parity/golden/multi_class_frenzy.json",
+          "bytes": 53674,
+          "sha256": "1d8c94acbe380cc44786ff9ad5839c72aa8df1ed7f1ba8e2333c2cc37af64ba1"
+        },
+        {
+          "path": "tests/parity/golden/multi_class_heal.json",
+          "bytes": 62721,
+          "sha256": "926cee5250d4f1013f4ecc5d6e7f672abe31ca4f313511d36298a9a0eb3c7113"
+        },
+        {
+          "path": "tests/parity/golden/nythraxis_full_pull.json",
+          "bytes": 290787,
+          "sha256": "b244301899d0cc136bc34d6b30f43d3ae24f662550973113dfb3bda1d1d721b8"
+        },
+        {
+          "path": "tests/parity/golden/paladin_consecration.json",
+          "bytes": 11000,
+          "sha256": "106db2f0518b98242dd1fb1876d7b7434db65b6918297e93ff802eef951edb6e"
+        },
+        {
+          "path": "tests/parity/golden/party_loot.json",
+          "bytes": 7887,
+          "sha256": "decfc4ecefc5c502631cc825f1966ac129ea3bb8851c7c9c8e5dbc517d66334b"
+        },
+        {
+          "path": "tests/parity/golden/party_raid.json",
+          "bytes": 135811,
+          "sha256": "9eee27a050c91aa9469c74226f5ed129a9bcc98a9196c845f99336e536d88b64"
+        },
+        {
+          "path": "tests/parity/golden/pet_ai.json",
+          "bytes": 23239,
+          "sha256": "2306dbda1132907a4426229b9305f4176857603899a07c0b56a7164ae9ca186d"
+        },
+        {
+          "path": "tests/parity/golden/pet_commands.json",
+          "bytes": 94329,
+          "sha256": "77ce09b7189a4a92678c7f44d97b45d594ca8260444247270a07bd6bc3477699"
+        },
+        {
+          "path": "tests/parity/golden/player_trade.json",
+          "bytes": 37069,
+          "sha256": "5b5586daaa3b05c30ee26747a09809d804686c24ee5dedf42578899acd832dff"
+        },
+        {
+          "path": "tests/parity/golden/quest_collect_turnin.json",
+          "bytes": 22732,
+          "sha256": "c37cfd746a2a6783211b0253e4b0b5870a90f32a8dafb9c0e3da3d72b924f22c"
+        },
+        {
+          "path": "tests/parity/golden/quest_kill_credit.json",
+          "bytes": 18063,
+          "sha256": "b9e00a6ba153d543b7be99ae9a99ed585e3d8178cb21cf7e2875d69bd390a87c"
+        },
+        {
+          "path": "tests/parity/golden/quest_link_abandon.json",
+          "bytes": 35339,
+          "sha256": "7204833444a7eff6136915184723792426ed77d9e07df060cfb2cd8867021474"
+        },
+        {
+          "path": "tests/parity/golden/solo_mage.json",
+          "bytes": 9432,
+          "sha256": "6e594d37f9fe3ce34b48193b244b87947159d663e08a8d0ee7a55860803197b9"
+        },
+        {
+          "path": "tests/parity/golden/solo_rogue.json",
+          "bytes": 9008,
+          "sha256": "fe2fe1a04bb32c87893a8ec9f8c5ae4a78c76f705ff294365cef3ec7bf5011fb"
+        },
+        {
+          "path": "tests/parity/golden/solo_warrior.json",
+          "bytes": 14250,
+          "sha256": "b6b1e825b303bfce47b01e0e5f2d2b03818d20fd80307ebe8ffcfa16ea4f1ac3"
+        },
+        {
+          "path": "tests/parity/golden/talents_progression.json",
+          "bytes": 23028,
+          "sha256": "85a3a59381d4a04fd84c9c62c5a3d7dedfad1d8edfd7be5ed6c3934f09e0da28"
+        },
+        {
+          "path": "tests/parity/golden/targeting_markers.json",
+          "bytes": 138704,
+          "sha256": "085cf0a2686d7079e09cb55216721ec02e622be23f2a50c8125f0d7c17f8fc95"
+        },
+        {
+          "path": "tests/parity/golden/warlock_pet.json",
+          "bytes": 18848,
+          "sha256": "8ac98b8bcc052c7f4a339cf41f1fc7da02331ec411828781338353bf5b6fdf25"
+        }
+      ]
+    }
+  },
+  "audited_totals": {
+    "source_files": 2782,
+    "source_characters": 51962733,
+    "commands": 156,
+    "dispatch_only_commands": 9,
+    "world_members": 233,
+    "world_methods": 171,
+    "world_data_members": 62,
+    "world_facets": 27,
+    "test_cases": 12842,
+    "test_files": 1133,
+    "test_case_generators": 49,
+    "parity_scenarios": 51,
+    "glbs": 938,
+    "glb_animations": 702,
+    "glb_skins": 157,
+    "ui_flow_sources": 585
+  },
+  "catalog_sha256": {
+    "command_catalog.json": "eedb1267395b3591bcdee217394dc971eb72913b47903adf5796986056950527",
+    "world_api_catalog.json": "c80691c93ff5c49fbee1434cc38428126f4fa8f7697684f0f366947a278442c1",
+    "test_catalog.json": "a36525a915c9b32a577c6b6d3cc3d46e4854491a6134fd4c8e5d6c05eeda0990",
+    "parity_scenarios.json": "7e8e0eb2702117d234148c3b2362b74cbb6fd39b6576cf398588d81a91531cf9",
+    "asset_catalog.json": "47bfb36ed8bb78386b28cec07030f44dfc24f6d9587e15eb88f4e94220497922",
+    "ui_flow_catalog.json": "5aab1c536251e71cf566fa63485536daeb13f17aef49c5c70f2263a7faf90315"
+  }
+}

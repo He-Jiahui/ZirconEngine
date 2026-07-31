@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_group_haste_state_tests",
+  "source": "src",
+  "binary": "bin-m4-group-haste-state-tests",
+  "entry": "combat/group_haste_state_test_main"
+}

@@ -1,0 +1,92 @@
+var console = %import("zr.system.console");
+var geometry = %import("world/geometry2d");
+var container = %import("zr.container");
+
+closeEnough(value: float, expected: float): bool {
+    var difference = value - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+var square = new container.Array<geometry.Point2D>();
+square.add(new geometry.Point2D(0.0, 0.0));
+square.add(new geometry.Point2D(10.0, 0.0));
+square.add(new geometry.Point2D(10.0, 10.0));
+square.add(new geometry.Point2D(0.0, 10.0));
+var squareClockwise = new container.Array<geometry.Point2D>();
+squareClockwise.add(new geometry.Point2D(0.0, 10.0));
+squareClockwise.add(new geometry.Point2D(10.0, 10.0));
+squareClockwise.add(new geometry.Point2D(10.0, 0.0));
+squareClockwise.add(new geometry.Point2D(0.0, 0.0));
+var triangle = new container.Array<geometry.Point2D>();
+triangle.add(new geometry.Point2D(0.0, 0.0));
+triangle.add(new geometry.Point2D(10.0, 0.0));
+triangle.add(new geometry.Point2D(5.0, 10.0));
+var lShape = new container.Array<geometry.Point2D>();
+lShape.add(new geometry.Point2D(0.0, 0.0));
+lShape.add(new geometry.Point2D(10.0, 0.0));
+lShape.add(new geometry.Point2D(10.0, 4.0));
+lShape.add(new geometry.Point2D(4.0, 4.0));
+lShape.add(new geometry.Point2D(4.0, 10.0));
+lShape.add(new geometry.Point2D(0.0, 10.0));
+var bowtie = new container.Array<geometry.Point2D>();
+bowtie.add(new geometry.Point2D(0.0, 0.0));
+bowtie.add(new geometry.Point2D(10.0, 10.0));
+bowtie.add(new geometry.Point2D(10.0, 0.0));
+bowtie.add(new geometry.Point2D(0.0, 10.0));
+
+var result = 1;
+if (!closeEnough(geometry.polygonSignedArea(square), 100.0) ||
+    !closeEnough(geometry.polygonSignedArea(squareClockwise), -100.0) ||
+    geometry.polygonSignedArea(triangle) <= 0.0) {
+    result = -1;
+}
+if (result == 1 && (!geometry.polygonContainsPoint(square, 5.0, 5.0) ||
+    geometry.polygonContainsPoint(square, 20.0, 20.0) ||
+    !geometry.polygonContainsPoint(squareClockwise, 5.0, 5.0) ||
+    !geometry.polygonContainsPoint(lShape, 2.0, 8.0) ||
+    geometry.polygonContainsPoint(lShape, 8.0, 8.0))) {
+    result = -2;
+}
+if (result == 1 && (!geometry.polygonIsStarShaped(square, 5.0, 5.0) ||
+    geometry.polygonIsStarShaped(square, 50.0, 50.0) ||
+    !geometry.polygonIsStarShaped(triangle, 5.0, 3.3) ||
+    !geometry.polygonIsStarShaped(lShape, 3.0, 3.0) ||
+    geometry.polygonIsStarShaped(lShape, 1.0, 9.0))) {
+    result = -3;
+}
+if (result == 1 && (geometry.polygonSelfIntersects(square) ||
+    geometry.polygonSelfIntersects(triangle) ||
+    geometry.polygonSelfIntersects(lShape) ||
+    !geometry.polygonSelfIntersects(bowtie))) {
+    result = -4;
+}
+var west = new geometry.PolygonXAtZResult();
+var east = new geometry.PolygonXAtZResult();
+geometry.polygonXAtZ(square, 5.0, -1, west);
+geometry.polygonXAtZ(square, 5.0, 1, east);
+if (result == 1 && (!west.hasValue || !east.hasValue ||
+    !closeEnough(west.value, 0.0) || !closeEnough(east.value, 10.0))) {
+    result = -5;
+}
+geometry.polygonXAtZ(square, -5.0, -1, west);
+geometry.polygonXAtZ(square, 15.0, 1, east);
+if (result == 1 && (west.hasValue || east.hasValue)) {
+    result = -6;
+}
+geometry.polygonXAtZ(triangle, 0.0, -1, west);
+geometry.polygonXAtZ(triangle, 0.0, 1, east);
+if (result == 1 && (!west.hasValue || !east.hasValue ||
+    !closeEnough(west.value, 0.0) || !closeEnough(east.value, 10.0))) {
+    result = -7;
+}
+geometry.polygonXAtZ(triangle, 5.0, -1, west);
+geometry.polygonXAtZ(triangle, 5.0, 1, east);
+if (result == 1 && (!west.hasValue || !east.hasValue ||
+    east.value - west.value >= 10.0 || east.value - west.value <= 0.0)) {
+    result = -8;
+}
+
+console.printLine("m3-geometry2d-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_vale_cup_ball_state_tests",
+  "source": "src",
+  "binary": "bin-m6-vale-cup-ball-state-tests",
+  "entry": "social/vale_cup_ball_state_test_main"
+}

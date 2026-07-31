@@ -52,10 +52,6 @@ impl TransientResourcePool {
     pub fn begin_frame(&mut self) {
         self.frame_report = RenderGraphTransientPoolReport {
             frame_index: self.frame_index,
-            texture_pool_entry_count: self.texture_entry_count(),
-            buffer_pool_entry_count: self.buffer_entry_count(),
-            texture_pool_retained_bytes: self.texture_pool_bytes(),
-            buffer_pool_retained_bytes: self.buffer_pool_bytes(),
             texture_pool_budget_bytes: self.texture_budget_bytes,
             buffer_pool_budget_bytes: self.buffer_budget_bytes,
             ..Default::default()
@@ -128,14 +124,16 @@ impl TransientResourcePool {
             self.frame_index,
             TRANSIENT_RESOURCE_POOL_KEEP_FRAMES,
         );
-        self.frame_report.budget_evicted_texture_count =
+        let (budget_evicted_texture_count, texture_pool_entry_count, texture_pool_retained_bytes) =
             evict_textures_to_budget(&mut self.textures, self.texture_budget_bytes);
-        self.frame_report.budget_evicted_buffer_count =
+        let (budget_evicted_buffer_count, buffer_pool_entry_count, buffer_pool_retained_bytes) =
             evict_buffers_to_budget(&mut self.buffers, self.buffer_budget_bytes);
-        self.frame_report.texture_pool_entry_count = self.texture_entry_count();
-        self.frame_report.buffer_pool_entry_count = self.buffer_entry_count();
-        self.frame_report.texture_pool_retained_bytes = self.texture_pool_bytes();
-        self.frame_report.buffer_pool_retained_bytes = self.buffer_pool_bytes();
+        self.frame_report.budget_evicted_texture_count = budget_evicted_texture_count;
+        self.frame_report.budget_evicted_buffer_count = budget_evicted_buffer_count;
+        self.frame_report.texture_pool_entry_count = texture_pool_entry_count;
+        self.frame_report.buffer_pool_entry_count = buffer_pool_entry_count;
+        self.frame_report.texture_pool_retained_bytes = texture_pool_retained_bytes;
+        self.frame_report.buffer_pool_retained_bytes = buffer_pool_retained_bytes;
         self.frame_report.texture_pool_budget_bytes = self.texture_budget_bytes;
         self.frame_report.buffer_pool_budget_bytes = self.buffer_budget_bytes;
         self.last_frame_report = self.frame_report;
@@ -143,22 +141,6 @@ impl TransientResourcePool {
 
     pub fn last_frame_report(&self) -> RenderGraphTransientPoolReport {
         self.last_frame_report
-    }
-
-    fn texture_entry_count(&self) -> usize {
-        self.textures.values().map(Vec::len).sum()
-    }
-
-    fn buffer_entry_count(&self) -> usize {
-        self.buffers.values().map(Vec::len).sum()
-    }
-
-    fn texture_pool_bytes(&self) -> u64 {
-        texture_pool_bytes(&self.textures)
-    }
-
-    fn buffer_pool_bytes(&self) -> u64 {
-        buffer_pool_bytes(&self.buffers)
     }
 }
 
@@ -236,109 +218,99 @@ fn evict_stale_textures(
 fn evict_textures_to_budget(
     textures: &mut BTreeMap<TransientTextureKey, Vec<PooledTexture>>,
     budget_bytes: u64,
-) -> usize {
-    let mut evicted = 0;
-    while texture_pool_bytes(textures) > budget_bytes {
-        let Some((key, index)) = oldest_texture_entry(textures) else {
-            break;
-        };
-        remove_texture_entry(textures, key, index);
-        evicted += 1;
-    }
-    evicted
+) -> (usize, usize, u64) {
+    evict_pool_to_budget(textures, budget_bytes, |entry| {
+        (entry.last_used_frame, entry.byte_size)
+    })
 }
 
 fn evict_buffers_to_budget(
     buffers: &mut BTreeMap<TransientBufferKey, Vec<PooledBuffer>>,
     budget_bytes: u64,
-) -> usize {
+) -> (usize, usize, u64) {
+    evict_pool_to_budget(buffers, budget_bytes, |entry| {
+        (entry.last_used_frame, entry.byte_size)
+    })
+}
+
+fn evict_pool_to_budget<K, V, F>(
+    pool: &mut BTreeMap<K, Vec<V>>,
+    budget_bytes: u64,
+    entry_metadata: F,
+) -> (usize, usize, u64)
+where
+    K: Copy + Ord,
+    F: Copy + Fn(&V) -> (u64, u64),
+{
+    let (mut retained_count, mut retained_bytes) = pool
+        .values()
+        .flat_map(|entries| entries.iter())
+        .fold((0_usize, 0_u128), |(count, bytes), entry| {
+            (
+                count.saturating_add(1),
+                bytes + u128::from(entry_metadata(entry).1),
+            )
+        });
+    let budget_bytes = u128::from(budget_bytes);
+    if retained_bytes <= budget_bytes {
+        return (
+            0,
+            retained_count,
+            retained_bytes
+                .try_into()
+                .expect("retained pool bytes fit within the configured u64 budget"),
+        );
+    }
+
+    let mut candidates = pool
+        .iter()
+        .flat_map(|(key, entries)| {
+            entries.iter().enumerate().map(move |(index, entry)| {
+                let (last_used_frame, byte_size) = entry_metadata(entry);
+                (last_used_frame, *key, index, byte_size)
+            })
+        })
+        .collect::<Vec<_>>();
+    candidates
+        .sort_unstable_by(|left, right| (left.0, left.1, left.2).cmp(&(right.0, right.1, right.2)));
+
     let mut evicted = 0;
-    while buffer_pool_bytes(buffers) > budget_bytes {
-        let Some((key, index)) = oldest_buffer_entry(buffers) else {
+    let mut selected_indices = BTreeMap::<K, Vec<usize>>::new();
+    let mut candidates = candidates.into_iter();
+    while retained_bytes > budget_bytes {
+        let Some((_, key, index, byte_size)) = candidates.next() else {
             break;
         };
-        remove_buffer_entry(buffers, key, index);
+        retained_bytes -= u128::from(byte_size);
+        retained_count = retained_count.saturating_sub(1);
+        selected_indices.entry(key).or_default().push(index);
         evicted += 1;
     }
-    evicted
-}
 
-fn texture_pool_bytes(textures: &BTreeMap<TransientTextureKey, Vec<PooledTexture>>) -> u64 {
-    textures
-        .values()
-        .flat_map(|entries| entries.iter())
-        .fold(0, |total, entry| total.saturating_add(entry.byte_size))
-}
-
-fn buffer_pool_bytes(buffers: &BTreeMap<TransientBufferKey, Vec<PooledBuffer>>) -> u64 {
-    buffers
-        .values()
-        .flat_map(|entries| entries.iter())
-        .fold(0, |total, entry| total.saturating_add(entry.byte_size))
-}
-
-fn oldest_texture_entry(
-    textures: &BTreeMap<TransientTextureKey, Vec<PooledTexture>>,
-) -> Option<(TransientTextureKey, usize)> {
-    textures
-        .iter()
-        .filter_map(|(key, entries)| {
-            entries
-                .iter()
-                .enumerate()
-                .min_by_key(|(_, entry)| entry.last_used_frame)
-                .map(|(index, entry)| (*key, index, entry.last_used_frame))
-        })
-        .min_by_key(|(_, _, last_used_frame)| *last_used_frame)
-        .map(|(key, index, _)| (key, index))
-}
-
-fn oldest_buffer_entry(
-    buffers: &BTreeMap<TransientBufferKey, Vec<PooledBuffer>>,
-) -> Option<(TransientBufferKey, usize)> {
-    buffers
-        .iter()
-        .filter_map(|(key, entries)| {
-            entries
-                .iter()
-                .enumerate()
-                .min_by_key(|(_, entry)| entry.last_used_frame)
-                .map(|(index, entry)| (*key, index, entry.last_used_frame))
-        })
-        .min_by_key(|(_, _, last_used_frame)| *last_used_frame)
-        .map(|(key, index, _)| (key, index))
-}
-
-fn remove_texture_entry(
-    textures: &mut BTreeMap<TransientTextureKey, Vec<PooledTexture>>,
-    key: TransientTextureKey,
-    index: usize,
-) {
-    let remove_bucket = if let Some(entries) = textures.get_mut(&key) {
-        entries.swap_remove(index);
-        entries.is_empty()
-    } else {
-        false
-    };
-    if remove_bucket {
-        textures.remove(&key);
+    for (key, mut indices) in selected_indices {
+        indices.sort_unstable_by(|left, right| right.cmp(left));
+        let remove_bucket = {
+            let Some(entries) = pool.get_mut(&key) else {
+                continue;
+            };
+            for index in indices {
+                debug_assert!(index < entries.len());
+                entries.swap_remove(index);
+            }
+            entries.is_empty()
+        };
+        if remove_bucket {
+            pool.remove(&key);
+        }
     }
-}
 
-fn remove_buffer_entry(
-    buffers: &mut BTreeMap<TransientBufferKey, Vec<PooledBuffer>>,
-    key: TransientBufferKey,
-    index: usize,
-) {
-    let remove_bucket = if let Some(entries) = buffers.get_mut(&key) {
-        entries.swap_remove(index);
-        entries.is_empty()
-    } else {
-        false
-    };
-    if remove_bucket {
-        buffers.remove(&key);
-    }
+    (
+        evicted,
+        retained_count,
+        retained_bytes
+            .try_into()
+            .expect("budget eviction bounds retained pool bytes to u64"),
+    )
 }
 
 fn texture_desc_pool_size_bytes(desc: &TextureDesc) -> u64 {
@@ -404,6 +376,104 @@ mod tests {
 
     use super::super::render_graph_execution_resources::RenderGraphExecutionResources;
     use super::*;
+
+    #[test]
+    fn transient_resource_pool_materialization_budget_eviction_orders_candidates_once() {
+        struct Candidate {
+            label: &'static str,
+            last_used_frame: u64,
+            byte_size: u64,
+        }
+
+        let mut pool = BTreeMap::from([
+            (
+                0_u8,
+                vec![
+                    Candidate {
+                        label: "newest-a",
+                        last_used_frame: 3,
+                        byte_size: 10,
+                    },
+                    Candidate {
+                        label: "oldest-a",
+                        last_used_frame: 0,
+                        byte_size: 10,
+                    },
+                    Candidate {
+                        label: "newer-a",
+                        last_used_frame: 2,
+                        byte_size: 10,
+                    },
+                    Candidate {
+                        label: "older-a",
+                        last_used_frame: 1,
+                        byte_size: 10,
+                    },
+                ],
+            ),
+            (
+                1_u8,
+                vec![Candidate {
+                    label: "oldest-b",
+                    last_used_frame: 0,
+                    byte_size: 10,
+                }],
+            ),
+        ]);
+
+        let (evicted, retained_count, retained_bytes) =
+            evict_pool_to_budget(&mut pool, 20, |entry| {
+                (entry.last_used_frame, entry.byte_size)
+            });
+
+        assert_eq!((evicted, retained_count, retained_bytes), (3, 2, 20));
+        assert!(!pool.contains_key(&1));
+        assert_eq!(
+            pool.get(&0)
+                .unwrap()
+                .iter()
+                .map(|entry| entry.label)
+                .collect::<Vec<_>>(),
+            vec!["newest-a", "newer-a"]
+        );
+
+        let (evicted, retained_count, retained_bytes) =
+            evict_pool_to_budget(&mut pool, 10, |entry| {
+                (entry.last_used_frame, entry.byte_size)
+            });
+        assert_eq!((evicted, retained_count, retained_bytes), (1, 1, 10));
+        assert_eq!(pool.get(&0).unwrap()[0].label, "newest-a");
+    }
+
+    #[test]
+    fn transient_resource_pool_budget_eviction_accounts_for_saturated_resource_sizes() {
+        struct Candidate {
+            last_used_frame: u64,
+            byte_size: u64,
+        }
+
+        let mut pool = BTreeMap::from([(
+            0_u8,
+            vec![
+                Candidate {
+                    last_used_frame: 0,
+                    byte_size: u64::MAX,
+                },
+                Candidate {
+                    last_used_frame: 1,
+                    byte_size: u64::MAX,
+                },
+            ],
+        )]);
+
+        let (evicted, retained_count, retained_bytes) =
+            evict_pool_to_budget(&mut pool, 0, |entry| {
+                (entry.last_used_frame, entry.byte_size)
+            });
+
+        assert_eq!((evicted, retained_count, retained_bytes), (2, 0, 0));
+        assert!(pool.is_empty());
+    }
 
     #[test]
     fn transient_resource_pool_reuses_entries_across_frames() {

@@ -1,0 +1,101 @@
+// Source-locked from src/sim/content/warlock_pets.ts and src/sim/pet/pet_ai.ts.
+// This leaf owns only Emberkin's scalar Firebolt profile and landing arithmetic.
+// The authoritative world retains entity lookup, projectile storage, combat state,
+// threat, and the source's still-missing path/target-selection integration.
+var math = %import("zr.zircon.math");
+
+pub fireboltRange(): float {
+    return 25.0;
+}
+
+pub leashDistance(): float {
+    return 40.0;
+}
+
+pub fireboltCritChance(): float {
+    return 0.05;
+}
+
+pub fireboltWeaponSpeed(): float {
+    return 2.0;
+}
+
+pub weaponMinimumForLevel(level: int): int {
+    var damage = 5.0 + <float>(level - 1) * 1.1;
+    return <int>math.floor(damage * 0.8 + 0.5);
+}
+
+pub weaponMaximumForLevel(level: int): int {
+    var damage = 5.0 + <float>(level - 1) * 1.1;
+    return <int>math.floor(damage * 1.25 + 0.5);
+}
+
+pub projectileProfileIsValid(level: int, minimum: float, maximum: float, speed: float): bool {
+    return level >= 1 && minimum == <float>weaponMinimumForLevel(level) &&
+        maximum == <float>weaponMaximumForLevel(level) && speed == fireboltWeaponSpeed();
+}
+
+pub targetWithinRange(distanceSquared: float): bool {
+    return distanceSquared <= fireboltRange() * fireboltRange();
+}
+
+pub targetExceedsLeash(ownerDistanceSquared: float): bool {
+    return ownerDistanceSquared > leashDistance() * leashDistance();
+}
+
+pub shouldKeepFacing(distanceSquared: float): bool {
+    return distanceSquared < 0.01;
+}
+
+pub cooldownAfterNoTarget(timer: float, tickSeconds: float): float {
+    var next = timer - tickSeconds;
+    return next > 0.0 ? next : 0.0;
+}
+
+pub swingTimerAfterFire(weaponSpeed: float): float {
+    return weaponSpeed;
+}
+
+// randomUnit is the second of the source Firebolt landing draws. The first
+// draw determines crit, so callers must preserve that order.
+pub resolveFireboltDamage(
+    crit: bool,
+    minimum: float,
+    maximum: float,
+    randomUnit: float,
+    attackPower: float,
+    weaponSpeed: float
+): int {
+    var damage = minimum + randomUnit * (maximum - minimum) +
+        (attackPower / 14.0) * weaponSpeed;
+    if (crit) {
+        damage = damage * 2.0;
+    }
+    var rounded = <int>math.floor(damage + 0.5);
+    return rounded > 0 ? rounded : 1;
+}
+
+pub contractTest(): int {
+    if (fireboltRange() != 25.0 || leashDistance() != 40.0 ||
+        fireboltCritChance() != 0.05 || fireboltWeaponSpeed() != 2.0 ||
+        weaponMinimumForLevel(1) != 4 || weaponMaximumForLevel(1) != 6 ||
+        weaponMinimumForLevel(2) != 5 || weaponMaximumForLevel(2) != 8) {
+        return -1;
+    }
+    if (!projectileProfileIsValid(1, 4.0, 6.0, 2.0) ||
+        projectileProfileIsValid(1, 4.0, 6.0, 2.1) ||
+        !targetWithinRange(625.0) || targetWithinRange(625.0001) ||
+        targetExceedsLeash(1600.0) || !targetExceedsLeash(1600.0001) ||
+        !shouldKeepFacing(0.009999) || shouldKeepFacing(0.01)) {
+        return -2;
+    }
+    if (cooldownAfterNoTarget(0.05, 0.05) != 0.0 ||
+        cooldownAfterNoTarget(2.0, 0.05) != 1.95 ||
+        swingTimerAfterFire(2.0) != 2.0 ||
+        resolveFireboltDamage(false, 4.0, 6.0, 0.0, 0.0, 2.0) != 4 ||
+        resolveFireboltDamage(false, 4.0, 6.0, 0.5, 14.0, 2.0) != 7 ||
+        resolveFireboltDamage(true, 4.0, 6.0, 0.0, 0.0, 2.0) != 8) {
+        return -3;
+    }
+    return 1;
+}

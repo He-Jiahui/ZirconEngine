@@ -32,8 +32,8 @@ pub(in crate::scene::viewport::handles) fn begin_transform_session(
         basis: build_handle_basis(node.transform, ctx.settings.transform_space, ctx.camera),
         space: ctx.settings.transform_space,
         snap_enabled: ctx.settings.grid_mode == GridMode::VisibleAndSnap,
-        translate_step: ctx.settings.translate_step,
-        rotate_step_radians: ctx.settings.rotate_step_deg.to_radians(),
-        scale_step: ctx.settings.scale_step,
+        translate_step: ctx.snap_steps.translate_step,
+        rotate_step_radians: ctx.snap_steps.rotate_step_deg.to_radians(),
+        scale_step: ctx.snap_steps.scale_step,
     })
 }

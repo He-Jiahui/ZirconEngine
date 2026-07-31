@@ -2,17 +2,17 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime_interface::project::{
     render_project_template, ProjectManifestSummary, RenderedProjectTemplate,
 };
 
 use super::filesystem::{
-    canonical_project_root, validate_creation_target, validate_existing_project_root,
+    canonical_project_root, validate_canonical_existing_project_root, validate_creation_target,
 };
 use super::{
-    CreatedProject, NewProjectDraft, OpenedProject, ProjectAuthorityError, RecentProjectEntry,
-    RecentProjectValidation, StoredRecentProjectEntry, StoredStartupSession,
+    CreatedProject, NewProjectDraft, OpenedProject, ProjectAuthorityError, ProjectProbe,
+    RecentProjectEntry, RecentProjectValidation, StoredRecentProjectEntry, StoredStartupSession,
 };
 
 const RECENT_PROJECT_LIMIT: usize = 8;
@@ -25,8 +25,9 @@ pub struct ProjectAuthority;
 impl ProjectAuthority {
     pub(crate) fn decode_startup_session(
         &self,
-        value: serde_json::Value,
+        mut value: serde_json::Value,
     ) -> Result<StoredStartupSession, ProjectAuthorityError> {
+        self.migrate_legacy_recent_project_summaries(&mut value)?;
         serde_json::from_value(value)
             .map_err(|source| ProjectAuthorityError::SessionDecode { source })
     }
@@ -75,10 +76,12 @@ impl ProjectAuthority {
             std::process::id()
         ));
 
+        let mut staging_created = false;
         let result = (|| {
             fs::create_dir(&staging).map_err(|source| {
                 ProjectAuthorityError::io("create project staging directory", &staging, source)
             })?;
+            staging_created = true;
             for entry in rendered.entries {
                 let destination = entry.path.join_to(&staging);
                 if let Some(parent) = destination.parent() {
@@ -108,14 +111,51 @@ impl ProjectAuthority {
                 replaced_empty_target,
                 |from, to| fs::rename(from, to),
             )?;
+            let root = match canonical_project_root(target) {
+                Ok(root) => root,
+                Err(error) => {
+                    rollback_committed_project(
+                        &staging,
+                        target,
+                        &backup,
+                        replaced_empty_target,
+                        |from, to| fs::rename(from, to),
+                    )?;
+                    return Err(error);
+                }
+            };
+            let project = match ProjectManager::open(&root) {
+                Ok(project) => project,
+                Err(source) => {
+                    rollback_committed_project(
+                        &staging,
+                        target,
+                        &backup,
+                        replaced_empty_target,
+                        |from, to| fs::rename(from, to),
+                    )?;
+                    return Err(source.into());
+                }
+            };
+            remove_empty_target_backup(&backup, replaced_empty_target);
+            let summary = project.manifest().summary();
             Ok(CreatedProject {
-                root: target.to_path_buf(),
-                summary: rendered.summary,
+                root,
+                summary,
+                project,
             })
         })();
 
+        let preserve_rollback_artifacts = matches!(
+            &result,
+            Err(ProjectAuthorityError::PostCommitRollbackFailed { .. })
+        );
         if result.is_err() {
-            remove_transaction_path(&staging);
+            cleanup_failed_transaction_staging(
+                &staging,
+                preserve_rollback_artifacts,
+                staging_created,
+            );
         }
         result
     }
@@ -124,36 +164,35 @@ impl ProjectAuthority {
         &self,
         path: impl AsRef<Path>,
     ) -> Result<OpenedProject, ProjectAuthorityError> {
-        let opened = self.probe_project(path)?;
-        let paths = ProjectPaths::from_root(&opened.root).map_err(|source| {
-            ProjectAuthorityError::io("resolve project paths", &opened.root, source)
-        })?;
-        paths.ensure_derived_layout().map_err(|source| {
-            ProjectAuthorityError::io("create project derived layout", &opened.root, source)
-        })?;
-        Ok(opened)
+        let root = self.resolve_existing_project_root(path)?;
+        Ok(OpenedProject::new(ProjectManager::open(root)?))
     }
 
     pub fn probe_project(
         &self,
         path: impl AsRef<Path>,
-    ) -> Result<OpenedProject, ProjectAuthorityError> {
-        let root = canonical_project_root(path.as_ref())?;
-        validate_existing_project_root(&root)?;
+    ) -> Result<ProjectProbe, ProjectAuthorityError> {
+        let root = self.resolve_existing_project_root(path)?;
         let paths = ProjectPaths::from_root(&root)
             .map_err(|source| ProjectAuthorityError::io("resolve project paths", &root, source))?;
         let manifest = ProjectManifest::load(paths.manifest_path())?;
-        Ok(OpenedProject {
-            root,
-            summary: manifest.summary(),
-        })
+        Ok(ProjectProbe::new(root, manifest.summary()))
     }
 
     pub fn probe_draft(
         &self,
         draft: &NewProjectDraft,
-    ) -> Result<OpenedProject, ProjectAuthorityError> {
+    ) -> Result<ProjectProbe, ProjectAuthorityError> {
         self.probe_project(draft.project_root()?)
+    }
+
+    pub fn resolve_existing_project_root(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<PathBuf, ProjectAuthorityError> {
+        let root = canonical_project_root(path.as_ref())?;
+        validate_canonical_existing_project_root(&root)?;
+        Ok(root)
     }
 
     pub fn validate_recent_project(&self, path: &str) -> RecentProjectValidation {
@@ -163,7 +202,7 @@ impl ProjectAuthority {
         if !root.exists() {
             return RecentProjectValidation::Missing;
         }
-        if validate_existing_project_root(&root).is_err() {
+        if validate_canonical_existing_project_root(&root).is_err() {
             return RecentProjectValidation::Missing;
         }
         let Ok(paths) = ProjectPaths::from_root(&root) else {
@@ -227,6 +266,46 @@ impl ProjectAuthority {
             })
             .collect()
     }
+
+    fn migrate_legacy_recent_project_summaries(
+        &self,
+        session: &mut serde_json::Value,
+    ) -> Result<(), ProjectAuthorityError> {
+        let Some(recent_projects) = session
+            .get_mut("recent_projects")
+            .and_then(serde_json::Value::as_array_mut)
+        else {
+            return Ok(());
+        };
+
+        let mut migrated = Vec::with_capacity(recent_projects.len());
+        for mut entry in std::mem::take(recent_projects) {
+            let Some(record) = entry.as_object_mut() else {
+                migrated.push(entry);
+                continue;
+            };
+            if record.contains_key("summary") {
+                migrated.push(entry);
+                continue;
+            }
+            let Some(path) = record
+                .get("path")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_owned)
+            else {
+                continue;
+            };
+            let Ok(project) = self.probe_project(&path) else {
+                continue;
+            };
+            let summary = serde_json::to_value(project.summary())
+                .map_err(|source| ProjectAuthorityError::SessionEncode { source })?;
+            record.insert("summary".to_string(), summary);
+            migrated.push(entry);
+        }
+        *recent_projects = migrated;
+        Ok(())
+    }
 }
 
 pub(super) fn commit_staged_directory<R>(
@@ -263,22 +342,82 @@ where
         ));
     }
 
+    Ok(())
+}
+
+pub(super) fn rollback_committed_project<R>(
+    staging: &Path,
+    target: &Path,
+    backup: &Path,
+    replace_empty_target: bool,
+    mut rename: R,
+) -> Result<(), ProjectAuthorityError>
+where
+    R: FnMut(&Path, &Path) -> std::io::Result<()>,
+{
+    // Return the newly published directory to the transaction path so the caller's ordinary
+    // error cleanup removes only this creation attempt.
+    rename(target, staging).map_err(|source| ProjectAuthorityError::PostCommitRollbackFailed {
+        from: target.to_path_buf(),
+        to: staging.to_path_buf(),
+        backup: replace_empty_target.then(|| backup.to_path_buf()),
+        source,
+    })?;
     if replace_empty_target {
-        // The backup is known to be the previously empty target. Failure to remove this empty
-        // directory does not invalidate the committed project, so preserve it for later cleanup.
-        match fs::remove_dir(backup) {
-            Ok(()) => {}
-            Err(source) if source.kind() == std::io::ErrorKind::NotFound => {}
-            Err(_cleanup_source) => {}
-        }
+        rename(backup, target).map_err(|source| {
+            ProjectAuthorityError::PostCommitRollbackFailed {
+                from: backup.to_path_buf(),
+                to: target.to_path_buf(),
+                backup: Some(backup.to_path_buf()),
+                source,
+            }
+        })?;
     }
     Ok(())
 }
 
-fn remove_transaction_path(path: &PathBuf) {
+fn remove_empty_target_backup(backup: &Path, replace_empty_target: bool) {
+    if !replace_empty_target {
+        return;
+    }
+
+    // The backup is known to be the previously empty target. Failure to remove this empty
+    // directory does not invalidate the committed and opened project, so preserve it for later
+    // cleanup.
+    match fs::remove_dir(backup) {
+        Ok(()) => {}
+        Err(source) if source.kind() == std::io::ErrorKind::NotFound => {}
+        Err(_cleanup_source) => {}
+    }
+}
+
+pub(super) fn cleanup_failed_transaction_staging(
+    staging: &Path,
+    preserve_rollback_artifacts: bool,
+    staging_created: bool,
+) {
+    // A failed staging creation has no ownership of a pre-existing path, so cleanup may only
+    // remove a directory created by this transaction and not retained for rollback recovery.
+    if staging_created && !preserve_rollback_artifacts {
+        remove_transaction_path(staging);
+    }
+}
+
+fn remove_transaction_path(path: &Path) {
     if path.is_dir() {
         let _ = fs::remove_dir_all(path);
     } else if path.exists() {
         let _ = fs::remove_file(path);
+    }
+}
+
+#[cfg(test)]
+mod performance_source_guards {
+    #[test]
+    fn canonical_project_resolution_does_not_repeat_link_component_validation() {
+        let source = include_str!("authority.rs");
+        let repeated_validation = ["validate_existing_project_root", "(&root)"].concat();
+
+        assert!(!source.contains(&repeated_validation));
     }
 }

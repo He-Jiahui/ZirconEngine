@@ -1,20 +1,19 @@
-mod state;
 mod uniqueness;
 
 use crate::plugin::PluginPackageManifest;
 
-use self::state::new_runtime_plugin_package_component_duplicate_row_state;
 use self::uniqueness::validate_runtime_plugin_package_component_type_uniqueness;
+use super::super::projection::RuntimePluginPackageValidationProjection;
 
 pub(super) fn validate_duplicate_components(
     package_manifest: &PluginPackageManifest,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
     diagnostics: &mut Vec<String>,
 ) {
-    let mut seen = new_runtime_plugin_package_component_duplicate_row_state();
-    for component in &package_manifest.components {
+    for (index, component) in package_manifest.components.iter().enumerate() {
         validate_runtime_plugin_package_component_type_uniqueness(
             component.type_id.as_str(),
-            &mut seen,
+            projection.component_type_id_is_duplicate(index),
             diagnostics,
         );
     }

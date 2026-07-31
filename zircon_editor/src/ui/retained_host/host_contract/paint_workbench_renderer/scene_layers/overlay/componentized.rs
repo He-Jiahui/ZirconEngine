@@ -6,15 +6,44 @@ use super::super::super::super::data::{
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_template_nodes::{
     draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
-    TemplateNodePaintTransform,
+    is_viewport_fallback_scene_node, TemplateNodePaintTransform,
 };
-use super::super::super::root_frames::zero_origin;
-use super::super::{dock_layer, resize};
+use super::super::super::root_frames::{resolve_root_frames, zero_origin};
+use super::super::{chrome, dock_layer, resize};
 use super::modal;
 use super::page_overflow::draw_host_page_overflow_menu;
 use super::root_template::{draw_root_template_overlay, frame_bounds};
 
 const EXTENSION_MODULE_WORKSPACES_HOST_CONTROL_ID: &str = "WorkbenchExtensionModuleWorkspacesHost";
+
+struct ComponentizedChromeFallbackTransform {
+    suppress_viewport_fallback: bool,
+}
+
+impl ComponentizedChromeFallbackTransform {
+    fn from_presentation(presentation: &HostWindowPresentationData) -> Self {
+        Self {
+            suppress_viewport_fallback: presentation
+                .viewport_image
+                .as_ref()
+                .is_some_and(|image| image.is_valid()),
+        }
+    }
+}
+
+impl TemplateNodePaintTransform for ComponentizedChromeFallbackTransform {
+    fn transform(
+        &self,
+        node: TemplatePaneNodeData,
+        clip: FrameRect,
+    ) -> Option<(TemplatePaneNodeData, FrameRect)> {
+        if self.suppress_viewport_fallback && is_viewport_fallback_scene_node(&node) {
+            None
+        } else {
+            Some((node, clip))
+        }
+    }
+}
 
 pub(in crate::ui::retained_host::host_contract) fn draws_componentized_workbench_window(
     presentation: &HostWindowPresentationData,
@@ -27,6 +56,8 @@ pub(in crate::ui::retained_host::host_contract) fn draw_componentized_workbench_
     presentation: &HostWindowPresentationData,
 ) {
     let frame_bounds = frame_bounds(frame);
+    let root = resolve_root_frames(frame.width(), frame.height(), presentation);
+    chrome::draw_top_chrome_layers(frame, &root, presentation);
     draw_componentized_workbench_chrome(frame, presentation, &frame_bounds);
     // The componentized template owns chrome and any explicitly activated extension workspace.
     // Existing host scene data remains the source of ordinary pane, viewport, splitter, and
@@ -238,12 +269,14 @@ fn draw_componentized_workbench_chrome(
     let Some((top_chrome, status_bar)) =
         componentized_chrome_clips(&presentation.host_layout, frame_bounds)
     else {
-        draw_template_nodes(
+        let transform = ComponentizedChromeFallbackTransform::from_presentation(presentation);
+        draw_template_nodes_with_transform(
             frame,
             &presentation.workbench_window_nodes,
             &zero_origin(),
             frame_bounds,
             Some(&presentation.text_input_focus),
+            Some(&transform),
         );
         return;
     };

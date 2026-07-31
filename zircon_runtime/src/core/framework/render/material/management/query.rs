@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    readiness_summary_has_issue_kind, RenderMaterialManagementIssueIndex,
-    RenderMaterialManagementIssueKind, RenderMaterialManagementOverviewRecord,
-    RenderMaterialManagementPageInfo, RenderMaterialManagementPageRequest,
-    RenderMaterialManagementRecord, RenderMaterialManagementRecordSummary,
-    RenderMaterialManagementSortOrder, RenderMaterialManagementStatusIndex,
+    RenderMaterialManagementIssueIndex, RenderMaterialManagementIssueKind,
+    RenderMaterialManagementOverviewRecord, RenderMaterialManagementPageInfo,
+    RenderMaterialManagementPageRequest, RenderMaterialManagementRecord,
+    RenderMaterialManagementRecordSummary, RenderMaterialManagementSortOrder,
+    RenderMaterialManagementStatusIndex, readiness_summary_has_issue_kind,
 };
 use crate::core::framework::render::material::readiness_report::RenderMaterialReadinessStatus;
 
@@ -151,7 +151,12 @@ fn overview_record_matches_text_filter(
 }
 
 fn text_matches_filter(value: &str, text_filter: &str) -> bool {
-    value.to_ascii_lowercase().contains(text_filter)
+    let text_filter = text_filter.as_bytes();
+    text_filter.is_empty()
+        || value
+            .as_bytes()
+            .windows(text_filter.len())
+            .any(|candidate| candidate.eq_ignore_ascii_case(text_filter))
 }
 
 fn page_overview_records(

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var modifiers = %import("progression/talent_modifier_state");
+
+console.printLine("m5-talent-modifier-state-test");
+var result = modifiers.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

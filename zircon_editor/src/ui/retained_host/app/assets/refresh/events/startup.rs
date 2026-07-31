@@ -9,16 +9,21 @@ impl RetainedEditorHost {
             "retained_host",
             "startup_drain_initial_asset_refresh_events"
         );
+        let bootstrap_asset_count = self.asset_change_events.len();
         let mut asset_count = 0usize;
-        while self.asset_change_events.try_recv().is_ok() {
+        for _ in 0..bootstrap_asset_count {
+            if self.asset_change_events.try_recv().is_err() {
+                break;
+            }
             asset_count += 1;
         }
-        let mut editor_count = 0usize;
-        while self.editor_asset_change_events.try_recv().is_ok() {
-            editor_count += 1;
-        }
+        let editor_count = self.editor_asset_change_events.discard_pending();
+        let bootstrap_resource_count = self.resource_change_events.len();
         let mut resource_count = 0usize;
-        while self.resource_change_events.try_recv().is_ok() {
+        for _ in 0..bootstrap_resource_count {
+            if self.resource_change_events.try_recv().is_err() {
+                break;
+            }
             resource_count += 1;
         }
         #[cfg(not(feature = "profiling"))]

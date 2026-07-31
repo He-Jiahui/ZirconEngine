@@ -275,7 +275,7 @@ pub(crate) fn can_prune_duplicate_local_theme_overrides(
     document: &UiAssetDocument,
     imported_styles: &BTreeMap<String, UiAssetDocument>,
 ) -> bool {
-    !build_theme_refactor_items(document, imported_styles).is_empty()
+    !theme_refactor_actions(document, imported_styles).is_empty()
 }
 
 pub(crate) fn prune_duplicate_local_theme_overrides(
@@ -406,8 +406,6 @@ pub(crate) fn theme_rule_helper_actions(
         actions.push(UiAssetThemeRuleHelperAction::ApplyAllThemeRefactors {
             count: refactor_count,
         });
-    }
-    if can_prune_duplicate_local_theme_overrides(document, imported_styles) {
         actions.push(UiAssetThemeRuleHelperAction::PruneDuplicateLocalOverrides);
     }
     actions

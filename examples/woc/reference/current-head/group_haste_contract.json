@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/group_haste_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/haste_burst.ts": "6f9e2fc89caa65703ec4b465952ee934a44b50ac4f390fe9943008c538343c54"
+  },
+  "sated": {
+    "id": "sated",
+    "name": "Temporal Exhaustion",
+    "duration_seconds": 600
+  },
+  "semantics": {
+    "skip_sated_only_when_exhausting": true,
+    "attack_haste_value": "multiplier",
+    "spell_haste_value": "multiplier_minus_one"
+  }
+}

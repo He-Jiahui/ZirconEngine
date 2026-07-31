@@ -10,10 +10,10 @@ use crate::rhi::{
     TextureUsage, VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc,
     VertexStepMode,
 };
-use crate::rhi_wgpu::{WgpuCommandList, WgpuRenderDevice};
+use crate::rhi_wgpu::{DeterministicRhiContractCommandList, DeterministicRhiContractDevice};
 
 fn create_compute_pipeline(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     shader: ShaderModuleHandle,
 ) -> PipelineHandle {
@@ -27,7 +27,7 @@ fn create_compute_pipeline(
 }
 
 fn create_compute_pipeline_with_layout(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     shader: ShaderModuleHandle,
     layout: PipelineLayoutHandle,
@@ -42,7 +42,7 @@ fn create_compute_pipeline_with_layout(
 }
 
 fn create_raster_pipeline(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     vertex_shader: ShaderModuleHandle,
     fragment_shader: ShaderModuleHandle,
@@ -57,7 +57,7 @@ fn create_raster_pipeline(
 }
 
 fn create_raster_pipeline_with_vertex_input(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     vertex_shader: ShaderModuleHandle,
     fragment_shader: ShaderModuleHandle,
@@ -80,7 +80,7 @@ fn create_raster_pipeline_with_vertex_input(
 }
 
 fn create_raster_pipeline_with_layout_and_vertex_input(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     vertex_shader: ShaderModuleHandle,
     fragment_shader: ShaderModuleHandle,
@@ -107,7 +107,7 @@ fn create_raster_pipeline_with_layout_and_vertex_input(
 }
 
 fn create_uniform_bind_group_layout(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
 ) -> BindGroupLayoutHandle {
     device
@@ -127,7 +127,7 @@ fn create_uniform_bind_group_layout(
 }
 
 fn create_uniform_bind_group(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     layout: BindGroupLayoutHandle,
 ) -> BindGroupHandle {
@@ -151,7 +151,7 @@ fn create_uniform_bind_group(
 }
 
 fn create_render_attachment(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     format: TextureFormat,
 ) -> TextureHandle {

@@ -1,0 +1,6 @@
+{
+  "name": "woc_card_duel_queue_coordinator_tests",
+  "source": "src",
+  "binary": "bin-card-duel-queue-coordinator-tests",
+  "entry": "social/card_duel_queue_coordinator_test_main"
+}

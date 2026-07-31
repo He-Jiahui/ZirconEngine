@@ -51,7 +51,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         radio_dot_size: metrics.gap_s + metrics.border_width,
         toggle_track_width: metrics.gap_l * 2.0 + metrics.gap_m + metrics.border_width * 2.0,
         toggle_track_height: mark_size + metrics.border_width * 2.0,
-        toggle_thumb_size: (mark_size - metrics.gap_s).max(1.0),
+        toggle_thumb_size: (mark_size - metrics.gap_s).max(0.0),
         toggle_right_inset: metrics.gap_m,
         toggle_thumb_inset: metrics.border_width * 2.0,
         font_size,

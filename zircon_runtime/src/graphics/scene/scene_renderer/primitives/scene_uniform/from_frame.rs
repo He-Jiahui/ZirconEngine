@@ -24,7 +24,23 @@ impl SceneUniform {
             previous_motion_view_projection(frame, &camera, view_proj_unjittered);
         let skybox = &frame.environment().skybox;
         let sky_params = skybox.procedural;
+        let authored_environment_rotation = skybox.rotation_radians();
+        let environment_rotation = if authored_environment_rotation.is_finite() {
+            authored_environment_rotation
+        } else {
+            0.0
+        };
+        let resolved_sun = sky_params.resolved_sun();
+        let scene_sun_direction =
+            resolved_sun.direction_for_sampling_rotation(environment_rotation);
         let source_cubemap_environment = skybox.source_cubemap_environment();
+        let has_ibl_source = match skybox.mode {
+            SkyboxMode::Disabled => false,
+            SkyboxMode::ProceduralGradient => true,
+            SkyboxMode::SourceCubemap => source_cubemap_environment.is_some(),
+        };
+        let has_source_cubemap_irradiance = source_cubemap_environment
+            .is_some_and(|environment| environment.irradiance_cube().is_some());
         let environment_sample_params = match skybox.mode {
             SkyboxMode::Disabled | SkyboxMode::ProceduralGradient => {
                 [skybox.mode as u32 as f32, 0.0, 0.0, 0.0]
@@ -69,32 +85,23 @@ impl SceneUniform {
                 crate::core::math::Vec4::ZERO,
             )
             .to_array(),
-            sky_sun_direction: [
-                sky_params.sun_direction.x,
-                sky_params.sun_direction.y,
-                sky_params.sun_direction.z,
-                if sky_params.sun_intensity > 0.0 {
-                    1.0
-                } else {
-                    0.0
-                },
-            ],
+            sky_sun_direction: scene_sun_direction.to_array(),
             sky_sun_color_radius: [
                 sky_params.sun_color.x,
                 sky_params.sun_color.y,
                 sky_params.sun_color.z,
                 sky_params.sun_angular_radius_radians,
             ],
-            sky_sun_params: [sky_params.sun_intensity.max(0.0), 0.0, 0.0, 0.0],
+            sky_sun_params: resolved_sun.intensity_and_cosines.to_array(),
             environment_params: [
-                if skybox.is_enabled() { 1.0 } else { 0.0 },
-                skybox.intensity().max(0.0),
-                skybox.rotation_radians(),
-                if frame.environment().ibl_bake_key().is_some() {
+                if has_source_cubemap_irradiance {
                     1.0
                 } else {
                     0.0
                 },
+                skybox.intensity().max(0.0),
+                environment_rotation,
+                if has_ibl_source { 1.0 } else { 0.0 },
             ],
             environment_sample_params,
         }
@@ -355,6 +362,14 @@ mod tests {
             empty_scene_snapshot(),
         );
         extract.environment = EnvironmentExtract::procedural_default();
+        extract.environment.skybox.procedural.sun_direction = Vec4::new(0.0, 3.0, 4.0, 0.0);
+        extract.environment.skybox.procedural.sun_intensity = 2.0;
+        extract
+            .environment
+            .skybox
+            .procedural
+            .sun_angular_radius_radians = 0.08;
+        extract.environment.skybox.procedural.rotation_radians = 0.5;
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
 
         let uniform = SceneUniform::from_frame(&frame);
@@ -362,7 +377,16 @@ mod tests {
         assert_eq!(uniform.sky_horizon_color, [0.16, 0.19, 0.24, 1.0]);
         assert_eq!(uniform.sky_zenith_color, [0.36, 0.46, 0.63, 1.0]);
         assert_eq!(uniform.sky_ground_color, [0.09, 0.11, 0.14, 1.0]);
-        assert_eq!(uniform.environment_params, [1.0, 1.0, 0.0, 1.0]);
+        let rotation = 0.5_f32;
+        let expected_sun_direction = Vec3::new(0.8 * rotation.sin(), 0.6, 0.8 * rotation.cos());
+        assert_close(uniform.sky_sun_direction[0], expected_sun_direction.x);
+        assert_close(uniform.sky_sun_direction[1], expected_sun_direction.y);
+        assert_close(uniform.sky_sun_direction[2], expected_sun_direction.z);
+        assert_eq!(uniform.sky_sun_direction[3], 1.0);
+        assert_eq!(uniform.sky_sun_params[0], 2.0);
+        assert_close(uniform.sky_sun_params[1], 0.08_f32.cos());
+        assert_close(uniform.sky_sun_params[2], (0.08_f32 * 0.72).cos());
+        assert_eq!(uniform.environment_params, [0.0, 1.0, 0.5, 1.0]);
         assert_eq!(uniform.environment_sample_params, [1.0, 0.0, 0.0, 0.0]);
     }
 
@@ -378,8 +402,36 @@ mod tests {
         let mut uniform = SceneUniform::from_frame(&frame);
         uniform.use_realtime_ibl(128, 128, 8);
 
-        assert_eq!(uniform.environment_params, [1.0, 1.0, 0.0, 1.0]);
+        assert_eq!(uniform.environment_params, [0.0, 1.0, 0.0, 1.0]);
         assert_eq!(uniform.environment_sample_params, [4.0, 128.0, 128.0, 8.0]);
+    }
+
+    #[test]
+    fn scene_uniform_ibl_availability_does_not_hash_the_bake_identity() {
+        let implementation = include_str!("from_frame.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("scene uniform implementation");
+
+        assert!(!implementation.contains("ibl_bake_key("));
+        assert!(implementation.contains("let has_ibl_source = match skybox.mode"));
+    }
+
+    #[test]
+    fn scene_uniform_sanitizes_non_finite_environment_rotation() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.environment = EnvironmentExtract::procedural_default();
+        extract.environment.skybox.procedural.sun_intensity = 1.0;
+        extract.environment.skybox.procedural.rotation_radians = f32::NAN;
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+        let uniform = SceneUniform::from_frame(&frame);
+
+        assert_eq!(uniform.environment_params[2], 0.0);
+        assert_eq!(uniform.sky_sun_direction, [0.0, 1.0, 0.0, 1.0]);
     }
 
     #[test]
@@ -403,12 +455,39 @@ mod tests {
         let uniform = SceneUniform::from_frame(&frame);
         let environment_sh9 = SceneEnvironmentSh9::from_frame(&frame);
 
-        assert_eq!(uniform.environment_params, [1.0, 1.75, 0.5, 1.0]);
+        assert_eq!(uniform.environment_params, [0.0, 1.75, 0.5, 1.0]);
         assert_eq!(uniform.environment_sample_params, [3.0, 4.0, 128.0, 8.0]);
         assert!(
             environment_sh9.coefficients()[0][0] > 0.0,
             "source cubemap should publish nonzero SH9 diffuse coefficients"
         );
+    }
+
+    #[test]
+    fn scene_uniform_marks_source_cubemap_irradiance_cube_availability() {
+        let source = crate::core::framework::render::SourceCubemapEnvironment::new(
+            crate::core::framework::render::build_source_cubemap_from_equirect(4, |_, _| {
+                [0.25, 0.5, 0.75, 1.0]
+            }),
+            9,
+            [1, 2, 3, 4],
+        )
+        .with_irradiance_cube(
+            crate::core::framework::render::SourceCubemapIrradianceCube::new(
+                1,
+                vec![[0.25, 0.5, 0.75]; 6],
+            ),
+        );
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.environment = EnvironmentExtract::source_cubemap(source);
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+        let uniform = SceneUniform::from_frame(&frame);
+
+        assert_eq!(uniform.environment_params[0], 1.0);
     }
 
     fn empty_scene_snapshot() -> RenderSceneSnapshot {

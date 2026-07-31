@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use crate::core::framework::error::{CoreError, CoreResult};
-
+use super::super::error::{CoreError, CoreResult};
 use super::ModuleDescriptor;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -11,9 +10,9 @@ enum VisitState {
 }
 
 pub fn sort_module_activation_order(descriptors: &[ModuleDescriptor]) -> CoreResult<Vec<String>> {
-    let mut by_name = HashMap::with_capacity(descriptors.len());
+    let mut by_name: HashMap<&str, usize> = HashMap::with_capacity(descriptors.len());
     for (index, descriptor) in descriptors.iter().enumerate() {
-        if by_name.insert(descriptor.name.clone(), index).is_some() {
+        if by_name.insert(descriptor.name.as_str(), index).is_some() {
             return Err(CoreError::DuplicateModule(descriptor.name.clone()));
         }
     }
@@ -60,17 +59,20 @@ pub fn sort_module_activation_order(descriptors: &[ModuleDescriptor]) -> CoreRes
 fn visit_module(
     index: usize,
     descriptors: &[ModuleDescriptor],
-    by_name: &HashMap<String, usize>,
+    by_name: &HashMap<&str, usize>,
     states: &mut [Option<VisitState>],
-    stack: &mut Vec<String>,
+    stack: &mut Vec<usize>,
     order: &mut Vec<String>,
 ) -> CoreResult<()> {
     match states[index] {
         Some(VisitState::Visited) => return Ok(()),
         Some(VisitState::Visiting) => {
             let name = &descriptors[index].name;
-            let mut path = match stack.iter().position(|candidate| candidate == name) {
-                Some(cycle_start) => stack[cycle_start..].to_vec(),
+            let mut path = match stack.iter().position(|&candidate| candidate == index) {
+                Some(cycle_start) => stack[cycle_start..]
+                    .iter()
+                    .map(|&module_index| descriptors[module_index].name.clone())
+                    .collect(),
                 None => Vec::new(),
             };
             path.push(name.clone());
@@ -80,7 +82,7 @@ fn visit_module(
     }
 
     states[index] = Some(VisitState::Visiting);
-    stack.push(descriptors[index].name.clone());
+    stack.push(index);
     for dependency in &descriptors[index].module_dependencies {
         let Some(&dependency_index) = by_name.get(dependency.module_name.as_str()) else {
             return Err(CoreError::MissingModuleDependency {
@@ -94,4 +96,21 @@ fn visit_module(
     states[index] = Some(VisitState::Visited);
     order.push(descriptors[index].name.clone());
     Ok(())
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn activation_sort_borrows_names_and_stacks_indices() {
+        let source = include_str!("module_order.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("module order implementation");
+
+        assert!(implementation.contains("HashMap<&str, usize>"));
+        assert!(implementation.contains("stack: &mut Vec<usize>"));
+        assert!(implementation.contains("stack.push(index);"));
+        assert!(!implementation.contains("descriptor.name.clone(), index"));
+    }
 }

@@ -223,8 +223,8 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
             "client",
             RuntimeTargetMode::ClientRuntime,
             ExportTargetPlatform::Windows,
+            RuntimeProfileId::Client3d,
         )
-        .with_runtime_profile_id(RuntimeProfileId::Client3d)
         .with_strategy(ExportPackagingStrategy::SourceTemplate)
         .with_strategy(ExportPackagingStrategy::LibraryEmbed),
     );
@@ -233,6 +233,7 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
             "server",
             RuntimeTargetMode::ServerRuntime,
             ExportTargetPlatform::Headless,
+            RuntimeProfileId::Server,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate),
     );
@@ -299,7 +300,7 @@ fn project_manifest_roundtrip_preserves_script_package_roots() {
 }
 
 #[test]
-fn export_profile_runtime_profile_id_is_backward_compatible() {
+fn export_profile_deserialization_preserves_missing_runtime_profile_id_for_validation() {
     let source = r#"
 name = "Sandbox"
 default_scene = "res://scenes/main.scene.toml"
@@ -318,6 +319,20 @@ output_name = "client"
     assert_eq!(manifest.export_profiles.len(), 1);
     assert_eq!(manifest.export_profiles[0].runtime_profile_id, None);
     assert!(manifest.scripts.is_empty());
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let expected = "export profile \"client\" must declare runtime_profile_id explicitly";
+
+    assert!(plan.has_fatal_diagnostics());
+    assert!(plan
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic == expected));
+    assert!(plan
+        .fatal_diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic == expected));
+    assert_eq!(plan.runtime_plugin_availability, Default::default());
 }
 
 #[test]
@@ -328,6 +343,7 @@ default_scene = "res://scenes/main.scene.toml"
 schema_version = 3
 
 [export_profiles.windows-release]
+runtime_profile_id = "client2d"
 platform = "windows-x86_64"
 path = "library_embed"
 mode = "release"
@@ -342,6 +358,7 @@ asset_filter = "shipping"
     let profile = &manifest.export_profiles[0];
     assert_eq!(profile.name, "windows-release");
     assert_eq!(profile.target_mode, RuntimeTargetMode::ClientRuntime);
+    assert_eq!(profile.runtime_profile_id, Some(RuntimeProfileId::Client2d));
     assert_eq!(profile.target_platform, ExportTargetPlatform::Windows);
     assert_eq!(
         profile.strategies,

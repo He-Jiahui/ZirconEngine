@@ -8,11 +8,11 @@ use self::{
     uniqueness::validate_runtime_plugin_module_capability_uniqueness,
 };
 
-pub(super) fn validate_runtime_plugin_module_capability_row<'a>(
+pub(super) fn validate_runtime_plugin_module_capability_row(
     manifest_label: &str,
     module: &PluginModuleManifest,
-    capability: &'a str,
-    seen: &mut Vec<&'a str>,
+    capability: &str,
+    is_duplicate: bool,
     validate_field: Option<fn(&str, &str, &mut Vec<String>)>,
     validate_namespace: fn(&str, &str, &mut Vec<String>),
     diagnostics: &mut Vec<String>,
@@ -31,7 +31,7 @@ pub(super) fn validate_runtime_plugin_module_capability_row<'a>(
         manifest_label,
         module,
         capability,
-        seen,
+        is_duplicate,
         diagnostics,
     );
 }

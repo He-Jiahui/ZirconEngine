@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::core::math::{Vec2, Vec3, Vec4};
 use crate::core::resource::ResourceId as AssetId;
 
-use super::{ShL2Rgb, RGBA16F_TEXEL_SIZE_BYTES};
+use super::{RGBA16F_TEXEL_SIZE_BYTES, ShL2Rgb};
 
 pub const LIGHTMAP_CONSUME_CONTRACT_VERSION: u32 = 1;
 pub const LIGHTMAP_SCENE_SNAPSHOT_VERSION: u32 = 1;

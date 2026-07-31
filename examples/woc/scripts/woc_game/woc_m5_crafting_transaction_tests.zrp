@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_crafting_transaction_tests",
+  "source": "src",
+  "binary": "bin-m5-crafting-transaction-tests",
+  "entry": "progression/crafting_transaction_test_main"
+}

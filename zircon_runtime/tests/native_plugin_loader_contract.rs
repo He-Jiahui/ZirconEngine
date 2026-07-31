@@ -36,8 +36,8 @@ manifest = "../{outside_name}/plugin.toml"
 
     let report = NativePluginLoader.discover_from_load_manifest(&root);
 
-    assert!(report.discovered.is_empty(), "{:?}", report.discovered);
-    assert!(report.diagnostics.iter().any(|message| message
+    assert!(report.discovered().is_empty(), "{:?}", report.discovered());
+    assert!(report.diagnostics().iter().any(|message| message
         .contains("native plugin weather load manifest manifest escapes export root")));
 
     let _ = fs::remove_dir_all(root);
@@ -123,9 +123,13 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
 
     let report = NativePluginLoader.load_discovered_all(&package_root);
 
-    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
-    assert_eq!(report.loaded.len(), 1);
-    let plugin = &report.loaded[0];
+    assert!(
+        report.diagnostics().is_empty(),
+        "{:?}",
+        report.diagnostics()
+    );
+    assert_eq!(report.loaded().len(), 1);
+    let plugin = &report.loaded()[0];
     assert_eq!(plugin.plugin_id, "native_dynamic_fixture");
     assert_eq!(plugin.descriptor.as_ref().unwrap().abi_version, 3);
     assert!(plugin
@@ -368,14 +372,14 @@ fn native_loader_rejects_unknown_abi_version_with_explicit_report() {
 
     let report = NativePluginLoader.load_discovered_runtime(&package_root);
 
-    assert!(report.diagnostics.iter().any(|message| message
+    assert!(report.diagnostics().iter().any(|message| message
         .contains("native plugin native_dynamic_fixture loaded but ABI descriptor is invalid")));
     assert!(report
-        .diagnostics
+        .diagnostics()
         .iter()
         .any(|message| message.contains("unsupported native plugin ABI version 99; expected 3")));
-    assert_eq!(report.loaded.len(), 1);
-    let plugin = &report.loaded[0];
+    assert_eq!(report.loaded().len(), 1);
+    let plugin = &report.loaded()[0];
     assert!(plugin.descriptor.is_none());
     assert!(plugin.runtime_entry_report.is_none());
     assert!(plugin.runtime_behavior_is_stateless().is_none());

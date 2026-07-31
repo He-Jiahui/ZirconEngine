@@ -92,7 +92,7 @@ fn target_module_loading_does_not_treat_selection_spelling_as_provider_identity(
     assert!(report
         .modules
         .iter()
-        .any(|module| module.module_name() == crate::ui::UI_MODULE_NAME));
+        .any(|module| { module.module_name() == crate::core::framework::ui::UI_MODULE_NAME }));
 }
 
 #[test]
@@ -251,16 +251,16 @@ fn target_runtime_modules_follow_descriptor_activation_order() {
     assert_eq!(
         module_names,
         vec![
-            crate::foundation::FOUNDATION_MODULE_NAME,
+            crate::core::framework::foundation::FOUNDATION_MODULE_NAME,
             crate::core::runtime::modules::LOG_MODULE_NAME,
             crate::core::runtime::modules::TASKS_MODULE_NAME,
             crate::core::runtime::modules::TIME_MODULE_NAME,
             crate::core::runtime::modules::FRAME_COUNT_MODULE_NAME,
             crate::core::runtime::modules::DIAGNOSTICS_CORE_MODULE_NAME,
-            crate::platform::PLATFORM_MODULE_NAME,
-            crate::input::INPUT_MODULE_NAME,
+            crate::core::framework::platform::PLATFORM_MODULE_NAME,
+            crate::core::framework::input::INPUT_MODULE_NAME,
             crate::asset::ASSET_MODULE_NAME,
-            crate::scene::SCENE_MODULE_NAME,
+            crate::core::framework::scene::SCENE_MODULE_NAME,
         ]
     );
 }

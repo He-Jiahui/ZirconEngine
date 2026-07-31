@@ -1,0 +1,566 @@
+// Source-pinned Protect Yumi! deterministic 13x13 competitive maze.
+// The layout owns only immutable instance-local geometry. It uses a local
+// Mulberry32 stream so maze construction cannot perturb an active world RNG.
+var container = %import("zr.container");
+var rng = %import("kernel/rng");
+var math = %import("zr.zircon.math");
+
+pub class YumiMazeCell {
+    pub var cx: int;
+    pub var cz: int;
+
+    pub @constructor() {
+        this.cx = 0;
+        this.cz = 0;
+    }
+}
+
+pub class YumiMazeWall {
+    pub var x: float;
+    pub var z: float;
+    pub var halfWidth: float;
+    pub var halfDepth: float;
+
+    pub @constructor() {
+        this.x = 0.0;
+        this.z = 0.0;
+        this.halfWidth = 0.0;
+        this.halfDepth = 0.0;
+    }
+}
+
+pub class YumiMazeSpawn {
+    pub var x: float;
+    pub var z: float;
+    pub var facing: float;
+
+    pub @constructor() {
+        this.x = 0.0;
+        this.z = 0.0;
+        this.facing = 0.0;
+    }
+}
+
+// vOpen is indexed vx * rows + cz and hOpen is indexed cx * (rows - 1) + hz.
+// Keeping both grids flat avoids an unproven nested-array ABI at this boundary.
+pub class YumiMazeLayout {
+    pub var seed: uint;
+    pub var cols: int;
+    pub var rows: int;
+    pub var pitch: float;
+    pub var wallHalf: float;
+    pub var halfExtent: float;
+    pub var vOpen: container.Array<bool>;
+    pub var hOpen: container.Array<bool>;
+    pub var walls: container.Array<YumiMazeWall>;
+    pub var shell: container.Array<YumiMazeWall>;
+    pub var openCells: container.Array<YumiMazeCell>;
+    pub var teleportCells: container.Array<YumiMazeCell>;
+    pub var spawnA: container.Array<YumiMazeSpawn>;
+    pub var spawnB: container.Array<YumiMazeSpawn>;
+    pub var yumiStartAX: float;
+    pub var yumiStartAZ: float;
+    pub var yumiStartBX: float;
+    pub var yumiStartBZ: float;
+
+    pub @constructor() {
+        this.seed = <uint>0;
+        this.cols = 13;
+        this.rows = 13;
+        this.pitch = 6.75;
+        this.wallHalf = 0.5;
+        this.halfExtent = 44.375;
+        this.vOpen = new container.Array<bool>();
+        this.hOpen = new container.Array<bool>();
+        this.walls = new container.Array<YumiMazeWall>();
+        this.shell = new container.Array<YumiMazeWall>();
+        this.openCells = new container.Array<YumiMazeCell>();
+        this.teleportCells = new container.Array<YumiMazeCell>();
+        this.spawnA = new container.Array<YumiMazeSpawn>();
+        this.spawnB = new container.Array<YumiMazeSpawn>();
+        this.yumiStartAX = 0.0;
+        this.yumiStartAZ = 0.0;
+        this.yumiStartBX = 0.0;
+        this.yumiStartBZ = 0.0;
+    }
+}
+
+pub yumiMazeSeed(): uint { return <uint>212332557; }
+pub yumiMazeCols(): int { return 13; }
+pub yumiMazeRows(): int { return 13; }
+pub yumiMazePitch(): float { return 6.75; }
+pub yumiMazeWallHalf(): float { return 0.5; }
+pub yumiTeleportMinimumSeparation(): int { return 5; }
+
+vIndex(layout: YumiMazeLayout, vx: int, cz: int): int {
+    return vx * layout.rows + cz;
+}
+
+hIndex(layout: YumiMazeLayout, cx: int, hz: int): int {
+    return cx * (layout.rows - 1) + hz;
+}
+
+vOpenAt(layout: YumiMazeLayout, vx: int, cz: int): bool {
+    return <bool>layout.vOpen[vIndex(layout, vx, cz)];
+}
+
+hOpenAt(layout: YumiMazeLayout, cx: int, hz: int): bool {
+    return <bool>layout.hOpen[hIndex(layout, cx, hz)];
+}
+
+setVOpen(layout: YumiMazeLayout, vx: int, cz: int, open: bool): void {
+    layout.vOpen[vIndex(layout, vx, cz)] = open;
+}
+
+setHOpen(layout: YumiMazeLayout, cx: int, hz: int, open: bool): void {
+    layout.hOpen[hIndex(layout, cx, hz)] = open;
+}
+
+visitedIndex(layout: YumiMazeLayout, cx: int, cz: int): int {
+    return cz * layout.cols + cx;
+}
+
+appendWall(target: container.Array<YumiMazeWall>, x: float, z: float, halfWidth: float, halfDepth: float): void {
+    var wall = new YumiMazeWall();
+    wall.x = x;
+    wall.z = z;
+    wall.halfWidth = halfWidth;
+    wall.halfDepth = halfDepth;
+    target.add(wall);
+}
+
+appendCell(target: container.Array<YumiMazeCell>, cx: int, cz: int): void {
+    var cell = new YumiMazeCell();
+    cell.cx = cx;
+    cell.cz = cz;
+    target.add(cell);
+}
+
+appendSpawn(target: container.Array<YumiMazeSpawn>, x: float, z: float): void {
+    var spawn = new YumiMazeSpawn();
+    spawn.x = x;
+    spawn.z = z;
+    // Source faces from the spawn point toward the maze centre.
+    spawn.facing = math.atan2(-x, -z);
+    target.add(spawn);
+}
+
+cellCenterCoordinate(layout: YumiMazeLayout, index: int): float {
+    return (<float>index - <float>(layout.cols - 1) / 2.0) * layout.pitch;
+}
+
+pub mazeCellCenterX(layout: YumiMazeLayout, cx: int): float {
+    return cellCenterCoordinate(layout, cx);
+}
+
+pub mazeCellCenterZ(layout: YumiMazeLayout, cz: int): float {
+    return cellCenterCoordinate(layout, cz);
+}
+
+pub mazeCellAtX(layout: YumiMazeLayout, x: float): int {
+    var coordinate = x / layout.pitch + <float>(layout.cols - 1) / 2.0;
+    if (coordinate < 0.0) { coordinate = 0.0; }
+    if (coordinate > <float>layout.cols - 1.0) { coordinate = <float>layout.cols - 1.0; }
+    return <int>math.floor(coordinate + 0.5);
+}
+
+pub mazeCellAtZ(layout: YumiMazeLayout, z: float): int {
+    var coordinate = z / layout.pitch + <float>(layout.rows - 1) / 2.0;
+    if (coordinate < 0.0) { coordinate = 0.0; }
+    if (coordinate > <float>layout.rows - 1.0) { coordinate = <float>layout.rows - 1.0; }
+    return <int>math.floor(coordinate + 0.5);
+}
+
+openBetween(layout: YumiMazeLayout, ax: int, az: int, bx: int, bz: int): void {
+    if (ax == bx) {
+        var lowZ = az < bz ? az : bz;
+        setHOpen(layout, ax, lowZ, true);
+    } else {
+        var lowX = ax < bx ? ax : bx;
+        setVOpen(layout, lowX, az, true);
+    }
+}
+
+// Exact source neighbour order: north, east, south, west. This preserves the
+// local Mulberry32 draw-to-maze mapping, not merely the generated shape.
+carvePerfectMaze(layout: YumiMazeLayout, localRng: rng.Mulberry32): void {
+    var visited = new container.Array<bool>();
+    var index = 0;
+    while (index < layout.cols * layout.rows) {
+        visited.add(false);
+        index = index + 1;
+    }
+    var stackX = new container.Array<int>();
+    var stackZ = new container.Array<int>();
+    stackX.add(0);
+    stackZ.add(0);
+    visited[visitedIndex(layout, 0, 0)] = true;
+    while (stackX.length > 0) {
+        var top = stackX.length - 1;
+        var cx = <int>stackX[top];
+        var cz = <int>stackZ[top];
+        var neighborX = new container.Array<int>();
+        var neighborZ = new container.Array<int>();
+        if (cz > 0 && !<bool>visited[visitedIndex(layout, cx, cz - 1)]) {
+            neighborX.add(cx); neighborZ.add(cz - 1);
+        }
+        if (cx < layout.cols - 1 && !<bool>visited[visitedIndex(layout, cx + 1, cz)]) {
+            neighborX.add(cx + 1); neighborZ.add(cz);
+        }
+        if (cz < layout.rows - 1 && !<bool>visited[visitedIndex(layout, cx, cz + 1)]) {
+            neighborX.add(cx); neighborZ.add(cz + 1);
+        }
+        if (cx > 0 && !<bool>visited[visitedIndex(layout, cx - 1, cz)]) {
+            neighborX.add(cx - 1); neighborZ.add(cz);
+        }
+        if (neighborX.length == 0) {
+            stackX.removeAt(top);
+            stackZ.removeAt(top);
+        } else {
+            var choice = localRng.int(0, neighborX.length - 1);
+            var nx = <int>neighborX[choice];
+            var nz = <int>neighborZ[choice];
+            openBetween(layout, cx, cz, nx, nz);
+            visited[visitedIndex(layout, nx, nz)] = true;
+            stackX.add(nx);
+            stackZ.add(nz);
+        }
+    }
+}
+
+// Source 180-degree symmetry is a union: it only removes walls, preserving
+// the perfect-maze connectivity already constructed above.
+symmetrizeOpenings(result: YumiMazeLayout): void {
+    var vx = 0;
+    while (vx < result.cols - 1) {
+        var cz = 0;
+        while (cz < result.rows) {
+            var mirrorX = result.cols - 2 - vx;
+            var mirrorZ = result.rows - 1 - cz;
+            if (vOpenAt(result, vx, cz) || vOpenAt(result, mirrorX, mirrorZ)) {
+                setVOpen(result, vx, cz, true);
+                setVOpen(result, mirrorX, mirrorZ, true);
+            }
+            cz = cz + 1;
+        }
+        vx = vx + 1;
+    }
+    var cx = 0;
+    while (cx < result.cols) {
+        var hz = 0;
+        while (hz < result.rows - 1) {
+            var mirrorColumn = result.cols - 1 - cx;
+            var mirrorRow = result.rows - 2 - hz;
+            if (hOpenAt(result, cx, hz) || hOpenAt(result, mirrorColumn, mirrorRow)) {
+                setHOpen(result, cx, hz, true);
+                setHOpen(result, mirrorColumn, mirrorRow, true);
+            }
+            hz = hz + 1;
+        }
+        cx = cx + 1;
+    }
+}
+
+carvePlaza(result: YumiMazeLayout, x0: int, x1: int, z0: int, z1: int): void {
+    var cx = x0;
+    while (cx <= x1) {
+        var cz = z0;
+        while (cz <= z1) {
+            if (cx + 1 <= x1) { setVOpen(result, cx, cz, true); }
+            if (cz + 1 <= z1) { setHOpen(result, cx, cz, true); }
+            cz = cz + 1;
+        }
+        cx = cx + 1;
+    }
+}
+
+carvePlazas(result: YumiMazeLayout): void {
+    carvePlaza(result, 0, 1, 0, 1);
+    carvePlaza(result, 11, 12, 11, 12);
+    carvePlaza(result, 5, 7, 5, 7);
+    carvePlaza(result, 11, 12, 0, 1);
+    carvePlaza(result, 0, 1, 11, 12);
+}
+
+openSideCount(result: YumiMazeLayout, cx: int, cz: int): int {
+    var count = 0;
+    if (cx > 0 && vOpenAt(result, cx - 1, cz)) { count = count + 1; }
+    if (cx < result.cols - 1 && vOpenAt(result, cx, cz)) { count = count + 1; }
+    if (cz > 0 && hOpenAt(result, cx, cz - 1)) { count = count + 1; }
+    if (cz < result.rows - 1 && hOpenAt(result, cx, cz)) { count = count + 1; }
+    return count;
+}
+
+// A selected closed wall and its 180-degree mirror are opened together. The
+// source's one row-major pass is intentional: opening cannot create a dead end.
+braidDeadEnds(result: YumiMazeLayout, localRng: rng.Mulberry32): void {
+    var cz = 0;
+    while (cz < result.rows) {
+        var cx = 0;
+        while (cx < result.cols) {
+            if (openSideCount(result, cx, cz) <= 1) {
+                var vertical = new container.Array<bool>();
+                var first = new container.Array<int>();
+                var second = new container.Array<int>();
+                if (cx > 0 && !vOpenAt(result, cx - 1, cz)) {
+                    vertical.add(true); first.add(cx - 1); second.add(cz);
+                }
+                if (cx < result.cols - 1 && !vOpenAt(result, cx, cz)) {
+                    vertical.add(true); first.add(cx); second.add(cz);
+                }
+                if (cz > 0 && !hOpenAt(result, cx, cz - 1)) {
+                    vertical.add(false); first.add(cx); second.add(cz - 1);
+                }
+                if (cz < result.rows - 1 && !hOpenAt(result, cx, cz)) {
+                    vertical.add(false); first.add(cx); second.add(cz);
+                }
+                if (vertical.length > 0) {
+                    var choice = localRng.int(0, vertical.length - 1);
+                    var a = <int>first[choice];
+                    var b = <int>second[choice];
+                    if (<bool>vertical[choice]) {
+                        setVOpen(result, a, b, true);
+                        setVOpen(result, result.cols - 2 - a, result.rows - 1 - b, true);
+                    } else {
+                        setHOpen(result, a, b, true);
+                        setHOpen(result, result.cols - 1 - a, result.rows - 2 - b, true);
+                    }
+                }
+            }
+            cx = cx + 1;
+        }
+        cz = cz + 1;
+    }
+}
+
+appendMergedWalls(result: YumiMazeLayout): void {
+    var vx = 0;
+    while (vx < result.cols - 1) {
+        var lineX = cellCenterCoordinate(result, vx) + result.pitch / 2.0;
+        var run = -1;
+        var cz = 0;
+        while (cz <= result.rows) {
+            var closedHere = cz < result.rows && !vOpenAt(result, vx, cz);
+            if (closedHere && run < 0) { run = cz; }
+            if (!closedHere && run >= 0) {
+                var length = cz - run;
+                appendWall(
+                    result.walls,
+                    lineX,
+                    (<float>(run + cz - 1) / 2.0 - <float>(result.cols - 1) / 2.0) * result.pitch,
+                    result.wallHalf,
+                    <float>length * result.pitch / 2.0 + result.wallHalf
+                );
+                run = -1;
+            }
+            cz = cz + 1;
+        }
+        vx = vx + 1;
+    }
+    var hz = 0;
+    while (hz < result.rows - 1) {
+        var lineZ = cellCenterCoordinate(result, hz) + result.pitch / 2.0;
+        var horizontalRun = -1;
+        var cx = 0;
+        while (cx <= result.cols) {
+            var horizontalClosed = cx < result.cols && !hOpenAt(result, cx, hz);
+            if (horizontalClosed && horizontalRun < 0) { horizontalRun = cx; }
+            if (!horizontalClosed && horizontalRun >= 0) {
+                var horizontalLength = cx - horizontalRun;
+                appendWall(
+                    result.walls,
+                    (<float>(horizontalRun + cx - 1) / 2.0 - <float>(result.cols - 1) / 2.0) * result.pitch,
+                    lineZ,
+                    <float>horizontalLength * result.pitch / 2.0 + result.wallHalf,
+                    result.wallHalf
+                );
+                horizontalRun = -1;
+            }
+            cx = cx + 1;
+        }
+        hz = hz + 1;
+    }
+    var shellCenter = <float>result.cols * result.pitch / 2.0 + result.wallHalf;
+    appendWall(result.shell, 0.0, -shellCenter, result.halfExtent, result.wallHalf);
+    appendWall(result.shell, 0.0, shellCenter, result.halfExtent, result.wallHalf);
+    appendWall(result.shell, -shellCenter, 0.0, result.wallHalf, result.halfExtent);
+    appendWall(result.shell, shellCenter, 0.0, result.wallHalf, result.halfExtent);
+}
+
+inSpawnPlaza(cx: int, cz: int): bool {
+    return (cx >= 0 && cx <= 1 && cz >= 0 && cz <= 1) ||
+        (cx >= 11 && cx <= 12 && cz >= 11 && cz <= 12);
+}
+
+plazaCenter(result: YumiMazeLayout, x0: int, x1: int, z0: int, z1: int, spawnA: bool): void {
+    var x = (<float>(x0 + x1) / 2.0 - <float>(result.cols - 1) / 2.0) * result.pitch;
+    var z = (<float>(z0 + z1) / 2.0 - <float>(result.rows - 1) / 2.0) * result.pitch;
+    if (spawnA) {
+        result.yumiStartAX = x;
+        result.yumiStartAZ = z;
+    } else {
+        result.yumiStartBX = x;
+        result.yumiStartBZ = z;
+    }
+}
+
+appendTeamSpawns(result: YumiMazeLayout, target: container.Array<YumiMazeSpawn>, baseX: float, baseZ: float): void {
+    appendSpawn(target, baseX, baseZ);
+    appendSpawn(target, baseX - 2.0, baseZ - 2.0);
+    appendSpawn(target, baseX + 2.0, baseZ - 2.0);
+    appendSpawn(target, baseX - 2.0, baseZ + 2.0);
+    appendSpawn(target, baseX + 2.0, baseZ + 2.0);
+}
+
+appendCellsAndSpawns(result: YumiMazeLayout): void {
+    var cz = 0;
+    while (cz < result.rows) {
+        var cx = 0;
+        while (cx < result.cols) {
+            appendCell(result.openCells, cx, cz);
+            if (!inSpawnPlaza(cx, cz)) { appendCell(result.teleportCells, cx, cz); }
+            cx = cx + 1;
+        }
+        cz = cz + 1;
+    }
+    var northWestX = -37.125;
+    var northWestZ = -37.125;
+    var southEastX = 37.125;
+    var southEastZ = 37.125;
+    appendTeamSpawns(result, result.spawnA, northWestX, northWestZ);
+    appendTeamSpawns(result, result.spawnB, southEastX, southEastZ);
+    // Team A Yumi starts SW; Team B starts NE, as in the source layout.
+    plazaCenter(result, 0, 1, 11, 12, true);
+    plazaCenter(result, 11, 12, 0, 1, false);
+}
+
+pub buildYumiMaze(seed: uint): YumiMazeLayout {
+    var result = new YumiMazeLayout();
+    result.seed = seed;
+    var vCount = 0;
+    while (vCount < (result.cols - 1) * result.rows) {
+        result.vOpen.add(false);
+        vCount = vCount + 1;
+    }
+    var hCount = 0;
+    while (hCount < result.cols * (result.rows - 1)) {
+        result.hOpen.add(false);
+        hCount = hCount + 1;
+    }
+    var localRng = new rng.Mulberry32(seed);
+    carvePerfectMaze(result, localRng);
+    symmetrizeOpenings(result);
+    carvePlazas(result);
+    braidDeadEnds(result, localRng);
+    appendMergedWalls(result);
+    appendCellsAndSpawns(result);
+    return result;
+}
+
+var cachedInitialized = false;
+var cachedLayout = new YumiMazeLayout();
+
+// Equivalent to source yumiMazeLayout(): the fixed map is cached by its only
+// production seed. Call buildYumiMaze for source-level custom-seed tests.
+pub yumiMazeLayout(): YumiMazeLayout {
+    if (!cachedInitialized) {
+        cachedLayout = buildYumiMaze(yumiMazeSeed());
+        cachedInitialized = true;
+    }
+    return cachedLayout;
+}
+
+pub mazeCorridorDistance(layout: YumiMazeLayout, ax: int, az: int, bx: int, bz: int): int {
+    if (ax < 0 || az < 0 || bx < 0 || bz < 0 || ax >= layout.cols || bx >= layout.cols ||
+        az >= layout.rows || bz >= layout.rows) { return -1; }
+    if (ax == bx && az == bz) { return 0; }
+    var distances = new container.Array<int>();
+    var index = 0;
+    while (index < layout.cols * layout.rows) {
+        distances.add(-1);
+        index = index + 1;
+    }
+    var queueX = new container.Array<int>();
+    var queueZ = new container.Array<int>();
+    distances[visitedIndex(layout, ax, az)] = 0;
+    queueX.add(ax);
+    queueZ.add(az);
+    var queueIndex = 0;
+    while (queueIndex < queueX.length) {
+        var cx = <int>queueX[queueIndex];
+        var cz = <int>queueZ[queueIndex];
+        var distance = <int>distances[visitedIndex(layout, cx, cz)];
+        var nextX = new container.Array<int>();
+        var nextZ = new container.Array<int>();
+        if (cx > 0 && vOpenAt(layout, cx - 1, cz)) { nextX.add(cx - 1); nextZ.add(cz); }
+        if (cx < layout.cols - 1 && vOpenAt(layout, cx, cz)) { nextX.add(cx + 1); nextZ.add(cz); }
+        if (cz > 0 && hOpenAt(layout, cx, cz - 1)) { nextX.add(cx); nextZ.add(cz - 1); }
+        if (cz < layout.rows - 1 && hOpenAt(layout, cx, cz)) { nextX.add(cx); nextZ.add(cz + 1); }
+        var nextIndex = 0;
+        while (nextIndex < nextX.length) {
+            var nx = <int>nextX[nextIndex];
+            var nz = <int>nextZ[nextIndex];
+            var key = visitedIndex(layout, nx, nz);
+            if (<int>distances[key] < 0) {
+                distances[key] = distance + 1;
+                if (nx == bx && nz == bz) { return distance + 1; }
+                queueX.add(nx);
+                queueZ.add(nz);
+            }
+            nextIndex = nextIndex + 1;
+        }
+        queueIndex = queueIndex + 1;
+    }
+    return -1;
+}
+
+allCellsHaveAtLeastTwoExits(layout: YumiMazeLayout): bool {
+    var cz = 0;
+    while (cz < layout.rows) {
+        var cx = 0;
+        while (cx < layout.cols) {
+            if (openSideCount(layout, cx, cz) < 2) { return false; }
+            cx = cx + 1;
+        }
+        cz = cz + 1;
+    }
+    return true;
+}
+
+pub contractTest(): int {
+    if (yumiMazeSeed() != <uint>212332557 || yumiMazeCols() != 13 || yumiMazeRows() != 13 ||
+        yumiMazePitch() != 6.75 || yumiMazeWallHalf() != 0.5 ||
+        yumiTeleportMinimumSeparation() != 5) { return -1; }
+    var first = buildYumiMaze(yumiMazeSeed());
+    var second = buildYumiMaze(yumiMazeSeed());
+    if (first.vOpen.length != 156 || first.hOpen.length != 156 || first.openCells.length != 169 ||
+        first.teleportCells.length != 161 || first.shell.length != 4 || first.spawnA.length != 5 ||
+        first.spawnB.length != 5 || first.walls.length == 0 || first.walls.length != second.walls.length ||
+        !allCellsHaveAtLeastTwoExits(first)) { return -2; }
+    var vx = 0;
+    while (vx < first.cols - 1) {
+        var cz = 0;
+        while (cz < first.rows) {
+            if (vOpenAt(first, vx, cz) != vOpenAt(first, first.cols - 2 - vx, first.rows - 1 - cz)) {
+                return -3;
+            }
+            cz = cz + 1;
+        }
+        vx = vx + 1;
+    }
+    var cx = 0;
+    while (cx < first.cols) {
+        var hz = 0;
+        while (hz < first.rows - 1) {
+            if (hOpenAt(first, cx, hz) != hOpenAt(first, first.cols - 1 - cx, first.rows - 2 - hz)) {
+                return -4;
+            }
+            hz = hz + 1;
+        }
+        cx = cx + 1;
+    }
+    if (mazeCorridorDistance(first, 0, 0, 12, 12) < 0 || first.yumiStartAX != -37.125 ||
+        first.yumiStartAZ != 37.125 || first.yumiStartBX != 37.125 || first.yumiStartBZ != -37.125 ||
+        first.spawnA[0].x != -37.125 || first.spawnB[0].z != 37.125) { return -5; }
+    return 1;
+}

@@ -10,6 +10,8 @@ fn binding(binding_id: &str) -> RetainedUiHostBindingProjection {
         action_id: String::new(),
         event_kind: UiEventKind::Click,
         route_id: None,
+        template_action_source: None,
+        template_action: None,
     }
 }
 

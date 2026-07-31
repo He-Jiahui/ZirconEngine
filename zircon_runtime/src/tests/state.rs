@@ -4,6 +4,8 @@ use std::sync::{Arc, Mutex};
 use crate::core::framework::state::{NextState, OnEnter, OnExit, OnTransition, StateSpec};
 use crate::core::CoreRuntime;
 
+mod hook_index;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum GameFlow {
     Loading,

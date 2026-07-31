@@ -1,0 +1,6 @@
+{
+  "name": "woc_tool_effect_tests",
+  "source": "src",
+  "binary": "bin-tool-effect-tests",
+  "entry": "progression/tool_effect_test_main"
+}

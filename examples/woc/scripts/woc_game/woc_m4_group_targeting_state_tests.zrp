@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_group_targeting_state_tests",
+  "source": "src",
+  "binary": "bin-m4-group-targeting-state-tests",
+  "entry": "combat/group_targeting_state_test_main"
+}

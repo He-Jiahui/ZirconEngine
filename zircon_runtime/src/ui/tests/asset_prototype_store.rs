@@ -726,3 +726,13 @@ node = "n0"
     }
     document
 }
+
+#[test]
+fn prototype_file_cache_moves_source_queue_entries_and_borrows_import_references() {
+    let source = include_str!("../template/asset/prototype_file_cache.rs");
+
+    assert!(source.contains("while let Some(path) = queue.pop_front()"));
+    assert!(!source.contains("let path = queue[index].clone()"));
+    assert!(source.contains("-> impl Iterator<Item = &str> + '_"));
+    assert!(!source.contains("-> Vec<String>"));
+}

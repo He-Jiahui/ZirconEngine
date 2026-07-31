@@ -1,4 +1,8 @@
+use std::sync::Arc;
+
 use zircon_runtime::core::framework::net::{NetConnectionId, NetConnectionState, NetError};
+
+use crate::poison_recovery::{lock_or_error, NetSharedState};
 
 use super::DefaultNetManager;
 
@@ -7,45 +11,44 @@ impl DefaultNetManager {
         &self,
         connection: NetConnectionId,
     ) -> Result<NetConnectionState, NetError> {
-        if let Some(state) = self
-            .state
-            .tcp_connections
-            .lock()
-            .expect("net TCP connections mutex poisoned")
-            .get(&connection)
-            .map(|entry| entry.state)
+        if let Some(state) =
+            lock_or_error(&self.state.tcp_connections, NetSharedState::TcpConnections)?
+                .get(&connection)
+                .map(|entry| entry.state)
         {
             return Ok(state);
         }
 
-        self.state
-            .websocket_connections
-            .lock()
-            .expect("net WebSocket connections mutex poisoned")
-            .get(&connection)
-            .map(|entry| entry.state())
-            .ok_or(NetError::UnknownConnection { connection })
+        let network = {
+            let websockets = lock_or_error(
+                &self.state.websocket_connections,
+                NetSharedState::WebSocketConnections,
+            )?;
+            match websockets.get(&connection) {
+                Some(crate::websocket::ManagedWebSocketConnection::Loopback(entry)) => {
+                    return Ok(entry.state);
+                }
+                Some(crate::websocket::ManagedWebSocketConnection::Network(entry)) => {
+                    Arc::clone(entry)
+                }
+                None => return Err(NetError::UnknownConnection { connection }),
+            }
+        };
+        Ok(network.state())
     }
 
     pub(in crate::service_types) fn close_connection_impl(
         &self,
         connection: NetConnectionId,
     ) -> Result<(), NetError> {
-        if self
-            .state
-            .tcp_connections
-            .lock()
-            .expect("net TCP connections mutex poisoned")
-            .contains_key(&connection)
-        {
+        let mut tcp_connections =
+            lock_or_error(&self.state.tcp_connections, NetSharedState::TcpConnections)?;
+        if tcp_connections.contains_key(&connection) {
             self.state.worker.close_tcp(connection)?;
-            self.state
-                .tcp_connections
-                .lock()
-                .expect("net TCP connections mutex poisoned")
-                .remove(&connection);
+            tcp_connections.remove(&connection);
             return Ok(());
         }
+        drop(tcp_connections);
 
         self.close_websocket_connection_impl(connection)
     }

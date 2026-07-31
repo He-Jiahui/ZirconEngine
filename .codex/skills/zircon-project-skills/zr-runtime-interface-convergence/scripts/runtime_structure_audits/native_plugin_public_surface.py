@@ -5,11 +5,16 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
-PLUGIN_NATIVE_REEXPORT_RE = re.compile(
-    r"(?ms)^pub\s+use\s+native_plugin_loader::\{(?P<body>.*?)\};"
-)
 PLUGIN_NATIVE_NAMESPACE_RE = re.compile(
     r"(?ms)^pub\s+use\s+super::native_plugin_loader::\{(?P<body>.*?)\};"
+)
+PUBLIC_USE_STATEMENT_RE = re.compile(
+    r"(?ms)^\s*pub(?:\([^)]*\))?\s+use\s+(?P<route>.*?);"
+)
+NATIVE_ROOT_ROUTE_RE = re.compile(
+    r"(?:^|[,{])\s*(?:(?:self|super|crate)::)?(?:plugin::)?"
+    r"(?:native|native_plugin_loader)"
+    r"(?:::|\s+as\b|\s*(?:,|}|$))"
 )
 
 NATIVE_PLUGIN_SYMBOL_CLASSIFICATION_ORDER = (
@@ -18,6 +23,7 @@ NATIVE_PLUGIN_SYMBOL_CLASSIFICATION_ORDER = (
     "native-live-host-runtime-public-debt",
     "native-behavior-report-public-debt",
     "native-bridge-method-public-debt",
+    "native-host-api-adapter-public-debt",
     "unclassified-native-plugin-symbol",
 )
 
@@ -75,6 +81,17 @@ NATIVE_PLUGIN_SYMBOL_CLASSIFICATION_DECISIONS = {
             "bridge-method owner"
         ),
     },
+    "native-host-api-adapter-public-debt": {
+        "target_owner": "native host-API adapter namespace",
+        "allowed_public_shape": (
+            "isolated host-API registration policy/scope used to project versioned "
+            "runtime-interface function tables, not flattened from zircon_runtime::plugin"
+        ),
+        "required_action": (
+            "keep current host-API registration policy/scope behind the explicit native "
+            "host adapter owner and retire superseded registration versions"
+        ),
+    },
     "unclassified-native-plugin-symbol": {
         "target_owner": "unknown",
         "allowed_public_shape": "none until classified",
@@ -87,7 +104,7 @@ NATIVE_PLUGIN_SYMBOL_CLASSIFICATION_DECISIONS = {
 
 NATIVE_ABI_CONTRACT_SYMBOLS = {
     "NativePluginAbiV3",
-    "NativePluginBehaviorV3",
+    "NativePluginBehaviorV4",
     "NativePluginByteSliceV2",
     "NativePluginByteSliceV3",
     "NativePluginCallbackStatusV2",
@@ -96,13 +113,18 @@ NATIVE_ABI_CONTRACT_SYMBOLS = {
     "NativePluginEntryReport",
     "NativePluginEntryReportV3",
     "NativePluginHostFunctionTableV3",
+    "NativePluginInvokeCommandFnV4",
     "NativePluginOwnedByteBufferV2",
     "NativePluginOwnedByteBufferV3",
+    "NativePluginOutputSinkV4",
+    "NativePluginOutputWriteFnV4",
     "NativePluginSchemaVersionsV3",
     "ZIRCON_NATIVE_PLUGIN_ABI_VERSION",
     "ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3",
+    "ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4",
     "ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL",
     "ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3",
+    "ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH",
     "ZIRCON_NATIVE_PLUGIN_STATUS_DENIED",
     "ZIRCON_NATIVE_PLUGIN_STATUS_ERROR",
     "ZIRCON_NATIVE_PLUGIN_STATUS_OK",
@@ -116,6 +138,7 @@ NATIVE_LOADER_DISCOVERY_SYMBOLS = {
     "NativePluginLoadManifestAbiV3Contract",
     "NativePluginLoadManifestEntry",
     "NativePluginLoadReport",
+    "NativePluginLoadProjection",
     "NativePluginLoader",
 }
 
@@ -145,6 +168,8 @@ NATIVE_BEHAVIOR_REPORT_SYMBOLS = {
     "NativePluginBehaviorCallReport",
     "NativePluginBehaviorHealth",
     "NativePluginBehaviorValidationReport",
+    "NativePluginCallbackDiagnostics",
+    "NativePluginLiveHostDiagnostics",
 }
 
 NATIVE_BRIDGE_METHOD_SYMBOLS = {
@@ -153,7 +178,6 @@ NATIVE_BRIDGE_METHOD_SYMBOLS = {
     "NativeBridgeMethodDescriptor",
     "NativeBridgeMethodFn",
     "NativeBridgeMethodManifestError",
-    "NativeHostApiV3RegistrationScope",
     "NativeHostBridgeCallScope",
     "NativePluginBridgeMethodCallV3",
     "NativePluginBridgeMethodFnV3",
@@ -162,6 +186,12 @@ NATIVE_BRIDGE_METHOD_SYMBOLS = {
     "NativePluginLiveHostBridgeLifecycleReport",
     "NativePluginLiveHostBridgeReloadReport",
     "native_bridge_method_descriptors_from_manifest",
+}
+
+NATIVE_HOST_API_ADAPTER_SYMBOLS = {
+    "NativeHostApiV3RegistrationScope",
+    "NativeHostApiV4RegistrationPolicy",
+    "NativeHostApiV4RegistrationScope",
 }
 
 
@@ -179,6 +209,38 @@ def _split_use_symbols(body: str) -> list[str]:
         for symbol in body.replace("\n", " ").split(",")
         if symbol.strip()
     )
+
+
+def _native_root_reexports(
+    root: Path,
+    plugin_root: Path,
+    source: str,
+    native_namespace_symbols: list[str],
+) -> tuple[list[str], list[dict[str, object]]]:
+    symbols: set[str] = set()
+    locations: list[dict[str, object]] = []
+    for match in PUBLIC_USE_STATEMENT_RE.finditer(source):
+        route = " ".join(match.group("route").split())
+        if not NATIVE_ROOT_ROUTE_RE.search(route):
+            continue
+
+        known_symbols = {
+            symbol
+            for symbol in native_namespace_symbols
+            if re.search(rf"\b{re.escape(symbol)}\b", route)
+        }
+        if known_symbols:
+            symbols.update(known_symbols)
+        else:
+            symbols.add(route)
+        locations.append(
+            {
+                "path": _relative(root, plugin_root),
+                "line": source.count("\n", 0, match.start()) + 1,
+                "snippet": f"pub use {route};",
+            }
+        )
+    return sorted(symbols), locations
 
 
 @dataclass
@@ -201,6 +263,8 @@ def _classify_symbol(symbol: str) -> str:
         return "native-behavior-report-public-debt"
     if symbol in NATIVE_BRIDGE_METHOD_SYMBOLS:
         return "native-bridge-method-public-debt"
+    if symbol in NATIVE_HOST_API_ADAPTER_SYMBOLS:
+        return "native-host-api-adapter-public-debt"
     return "unclassified-native-plugin-symbol"
 
 
@@ -301,20 +365,16 @@ def native_plugin_public_surface_audit(root: Path) -> dict[str, object]:
 
     source = _read_text(plugin_root)
     native_source = _read_text(native_namespace) if native_namespace.exists() else ""
-    root_reexport_symbols: list[str] = []
-    match = PLUGIN_NATIVE_REEXPORT_RE.search(source)
-    if match:
-        root_reexport_symbols = _split_use_symbols(match.group("body"))
-
     native_namespace_symbols: list[str] = []
     namespace_match = PLUGIN_NATIVE_NAMESPACE_RE.search(native_source)
     if namespace_match:
         native_namespace_symbols = _split_use_symbols(namespace_match.group("body"))
 
-    root_public_reexport_locations = _find_locations(
+    root_reexport_symbols, root_public_reexport_locations = _native_root_reexports(
         root,
-        [plugin_root],
-        re.compile(r"^pub\s+use\s+native_plugin_loader::"),
+        plugin_root,
+        source,
+        native_namespace_symbols,
     )
     public_reexport_locations = _find_locations(
         root,

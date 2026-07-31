@@ -1,0 +1,172 @@
+// Scalar projection of colliders.ts pushOut. Pair-valued source results are
+// exposed as matching X/Z accessors so a generated world collider reducer can
+// update both coordinates from the same input point without host geometry.
+
+var math = %import("zr.zircon.math");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+signedUnitOrPositive(value: float): float {
+    return value < 0.0 ? -1.0 : 1.0;
+}
+
+localX(x: float, z: float, centerX: float, centerZ: float, rotation: float): float {
+    var dx = x - centerX;
+    var dz = z - centerZ;
+    return dx * math.cos(-rotation) + dz * math.sin(-rotation);
+}
+
+localZ(x: float, z: float, centerX: float, centerZ: float, rotation: float): float {
+    var dx = x - centerX;
+    var dz = z - centerZ;
+    return -dx * math.sin(-rotation) + dz * math.cos(-rotation);
+}
+
+worldX(localXValue: float, localZValue: float, centerX: float, rotation: float): float {
+    return centerX + localXValue * math.cos(rotation) + localZValue * math.sin(rotation);
+}
+
+worldZ(localXValue: float, localZValue: float, centerZ: float, rotation: float): float {
+    return centerZ - localXValue * math.sin(rotation) + localZValue * math.cos(rotation);
+}
+
+pub circleResolvedX(
+    x: float,
+    z: float,
+    bodyRadius: float,
+    centerX: float,
+    centerZ: float,
+    colliderRadius: float,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || colliderRadius < 0.0) {
+        throw "woc circle collision arguments are invalid";
+    }
+    var dx = x - centerX;
+    var dz = z - centerZ;
+    var minimumDistance = colliderRadius + bodyRadius;
+    var distanceSquared = dx * dx + dz * dz;
+    if (distanceSquared >= minimumDistance * minimumDistance) {
+        return x;
+    }
+    var distance = math.sqrt(distanceSquared);
+    if (distance < 0.000001) {
+        return centerX + minimumDistance;
+    }
+    return centerX + dx * (minimumDistance / distance);
+}
+
+pub circleResolvedZ(
+    x: float,
+    z: float,
+    bodyRadius: float,
+    centerX: float,
+    centerZ: float,
+    colliderRadius: float,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || colliderRadius < 0.0) {
+        throw "woc circle collision arguments are invalid";
+    }
+    var dx = x - centerX;
+    var dz = z - centerZ;
+    var minimumDistance = colliderRadius + bodyRadius;
+    var distanceSquared = dx * dx + dz * dz;
+    if (distanceSquared >= minimumDistance * minimumDistance) {
+        return z;
+    }
+    var distance = math.sqrt(distanceSquared);
+    if (distance < 0.000001) {
+        return centerZ;
+    }
+    return centerZ + dz * (minimumDistance / distance);
+}
+
+pub obbResolvedX(
+    x: float,
+    z: float,
+    bodyRadius: float,
+    centerX: float,
+    centerZ: float,
+    halfWidth: float,
+    halfDepth: float,
+    rotation: float,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || halfWidth < 0.0 || halfDepth < 0.0) {
+        throw "woc OBB collision arguments are invalid";
+    }
+    var lx = localX(x, z, centerX, centerZ, rotation);
+    var lz = localZ(x, z, centerX, centerZ, rotation);
+    var extentX = halfWidth + bodyRadius;
+    var extentZ = halfDepth + bodyRadius;
+    if (absolute(lx) >= extentX || absolute(lz) >= extentZ) {
+        return x;
+    }
+    var pushX = extentX - absolute(lx);
+    var pushZ = extentZ - absolute(lz);
+    if (pushX < pushZ) {
+        return worldX(signedUnitOrPositive(lx) * extentX, lz, centerX, rotation);
+    }
+    return worldX(lx, signedUnitOrPositive(lz) * extentZ, centerX, rotation);
+}
+
+pub obbResolvedZ(
+    x: float,
+    z: float,
+    bodyRadius: float,
+    centerX: float,
+    centerZ: float,
+    halfWidth: float,
+    halfDepth: float,
+    rotation: float,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || halfWidth < 0.0 || halfDepth < 0.0) {
+        throw "woc OBB collision arguments are invalid";
+    }
+    var lx = localX(x, z, centerX, centerZ, rotation);
+    var lz = localZ(x, z, centerX, centerZ, rotation);
+    var extentX = halfWidth + bodyRadius;
+    var extentZ = halfDepth + bodyRadius;
+    if (absolute(lx) >= extentX || absolute(lz) >= extentZ) {
+        return z;
+    }
+    var pushX = extentX - absolute(lx);
+    var pushZ = extentZ - absolute(lz);
+    if (pushX < pushZ) {
+        return worldZ(signedUnitOrPositive(lx) * extentX, lz, centerZ, rotation);
+    }
+    return worldZ(lx, signedUnitOrPositive(lz) * extentZ, centerZ, rotation);
+}
+
+pub contractTest(): int {
+    if (circleResolvedX(0.0, 0.0, 0.5, 0.0, 0.0, 1.0, true) != 1.5 ||
+        circleResolvedZ(0.0, 0.0, 0.5, 0.0, 0.0, 1.0, true) != 0.0 ||
+        circleResolvedX(1.5, 0.0, 0.5, 0.0, 0.0, 1.0, true) != 1.5 ||
+        !closeEnough(circleResolvedX(0.3, 0.4, 0.5, 0.0, 0.0, 1.0, true), 0.9) ||
+        !closeEnough(circleResolvedZ(0.3, 0.4, 0.5, 0.0, 0.0, 1.0, true), 1.2)) {
+        return -1;
+    }
+    if (obbResolvedX(0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 2.0, 0.0, true) != 1.5 ||
+        obbResolvedZ(0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 2.0, 0.0, true) != 0.0 ||
+        obbResolvedX(0.0, 1.0, 0.5, 0.0, 0.0, 1.0, 2.0, 0.0, true) != 0.0 ||
+        obbResolvedZ(0.0, 1.0, 0.5, 0.0, 0.0, 1.0, 2.0, 0.0, true) != 2.5) {
+        return -2;
+    }
+    if (!closeEnough(obbResolvedX(0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 2.0, 1.5707963267948966, true), 0.0) ||
+        !closeEnough(obbResolvedZ(0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 2.0, 1.5707963267948966, true), -1.5)) {
+        return -3;
+    }
+    return 1;
+}

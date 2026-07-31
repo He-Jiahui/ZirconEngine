@@ -1,0 +1,6 @@
+{
+  "name": "woc_card_minigame_view_tests",
+  "source": "src",
+  "binary": "bin-card-minigame-view-tests",
+  "entry": "world_api/card_minigame_test_main"
+}

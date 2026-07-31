@@ -182,7 +182,7 @@ fn project_manager_registry_commit_failure_keeps_both_live_registries_unchanged(
                 uri.clone(),
                 None,
             )],
-            crate::asset::project::meta_io::AtomicWriteFault::Replace,
+            crate::foundation::persistence::atomic_file::AtomicWriteFault::Replace,
         )
         .unwrap_err();
 

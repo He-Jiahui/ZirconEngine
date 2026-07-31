@@ -1,0 +1,637 @@
+// Current-head talent proc state machine. This module owns only proc counters,
+// internal cooldown clocks and response descriptions. The WOS reducer remains
+// the single writer for auras, cooldown maps, resources, health and FX events.
+var container = %import("zr.container");
+var contract = %import("generated/talent_proc_contract");
+var catalog = %import("generated/talent_proc_catalog");
+
+pub class TalentProcDefinition {
+    pub var id: string;
+    pub var name: string;
+    pub var school: string;
+    pub var trigger: int;
+    pub var abilityIds: container.Array<string>;
+    // spellCrit's `abilities` is optional; castNth's is a required allowlist.
+    pub var matchAnyAbility: bool;
+    pub var abilityId: string;
+    pub var requiredAuraKind: string;
+    pub var nth: int;
+    pub var hasIcd: bool;
+    pub var icd: float;
+    pub var hasChance: bool;
+    pub var chance: float;
+    pub var hpFraction: float;
+
+    pub @constructor() {
+        this.id = "";
+        this.name = "";
+        this.school = "";
+        this.trigger = 0;
+        this.abilityIds = new container.Array<string>();
+        this.matchAnyAbility = false;
+        this.abilityId = "";
+        this.requiredAuraKind = "";
+        this.nth = 1;
+        this.hasIcd = false;
+        this.icd = 0.0;
+        this.hasChance = false;
+        this.chance = 0.0;
+        this.hpFraction = 0.0;
+    }
+}
+
+pub class TalentProcRuntimeState {
+    pub var ids: container.Array<string>;
+    pub var counters: container.Array<int>;
+    pub var icdRemaining: container.Array<float>;
+
+    pub @constructor() {
+        this.ids = new container.Array<string>();
+        this.counters = new container.Array<int>();
+        this.icdRemaining = new container.Array<float>();
+    }
+}
+
+// `consumesRandom` is a required draw, not a preview. The WOS caller must take
+// that draw from its shared stream only after every earlier admission gate held.
+pub class TalentProcDecision {
+    pub var matched: bool;
+    pub var fired: bool;
+    pub var consumesRandom: bool;
+    pub var counterBefore: int;
+    pub var counterAfter: int;
+    pub var icdArmed: bool;
+    pub var icdRemaining: float;
+
+    pub @constructor() {
+        this.matched = false;
+        this.fired = false;
+        this.consumesRandom = false;
+        this.counterBefore = 0;
+        this.counterAfter = 0;
+        this.icdArmed = false;
+        this.icdRemaining = 0.0;
+    }
+}
+
+pub class TalentProcResponse {
+    pub var kind: int;
+    pub var auraKind: string;
+    pub var abilityId: string;
+    pub var abilityIds: container.Array<string>;
+    pub var resourceType: string;
+    pub var amount: float;
+    pub var hasAmountPctMaxHp: bool;
+    pub var amountPctMaxHp: float;
+    pub var duration: float;
+    pub var hasCostPct: bool;
+    pub var costPct: float;
+    pub var resetCooldown: bool;
+    pub var belowFraction: float;
+    pub var window: float;
+    pub var name: string;
+    pub var value: float;
+
+    pub @constructor() {
+        this.kind = 0;
+        this.auraKind = "";
+        this.abilityId = "";
+        this.abilityIds = new container.Array<string>();
+        this.resourceType = "";
+        this.amount = 0.0;
+        this.hasAmountPctMaxHp = false;
+        this.amountPctMaxHp = 0.0;
+        this.duration = 0.0;
+        this.hasCostPct = false;
+        this.costPct = 0.0;
+        this.resetCooldown = false;
+        this.belowFraction = 0.0;
+        this.window = 0.0;
+        this.name = "";
+        this.value = 0.0;
+    }
+}
+
+// A response plan is declarative. `auraTargetId` is the source target chosen by
+// talent_procs.ts; the owner applies it in its existing authoritative transaction.
+pub class TalentProcResponsePlan {
+    pub var applies: bool;
+    pub var auraTargetId: uint;
+    pub var auraId: string;
+    pub var auraName: string;
+    pub var auraKind: string;
+    pub var auraValue: float;
+    pub var auraValue2: float;
+    pub var auraDuration: float;
+    pub var auraSourceId: uint;
+    pub var auraSchool: string;
+    pub var empowerAbilityIds: container.Array<string>;
+    pub var emitFx: bool;
+    pub var fx: string;
+    // 0 means no cooldown mutation, 1 means set remaining, 2 means clear.
+    pub var cooldownMutation: int;
+    pub var cooldownAbilityId: string;
+    pub var cooldownRemaining: float;
+    pub var resourceDelta: float;
+    pub var healAmount: int;
+
+    pub @constructor() {
+        this.applies = false;
+        this.auraTargetId = <uint>0;
+        this.auraId = "";
+        this.auraName = "";
+        this.auraKind = "";
+        this.auraValue = 0.0;
+        this.auraValue2 = 0.0;
+        this.auraDuration = 0.0;
+        this.auraSourceId = <uint>0;
+        this.auraSchool = "";
+        this.empowerAbilityIds = new container.Array<string>();
+        this.emitFx = false;
+        this.fx = "";
+        this.cooldownMutation = 0;
+        this.cooldownAbilityId = "";
+        this.cooldownRemaining = 0.0;
+        this.resourceDelta = 0.0;
+        this.healAmount = 0;
+    }
+}
+
+findRuntimeIndex(state: TalentProcRuntimeState, id: string): int {
+    var index = 0;
+    while (index < state.ids.length) {
+        if (<string>state.ids[index] == id) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+ensureRuntimeIndex(state: TalentProcRuntimeState, id: string): int {
+    var existing = findRuntimeIndex(state, id);
+    if (existing >= 0) return existing;
+    state.ids.add(id);
+    state.counters.add(0);
+    state.icdRemaining.add(0.0);
+    return state.ids.length - 1;
+}
+
+runtimeCounter(state: TalentProcRuntimeState, id: string): int {
+    var index = findRuntimeIndex(state, id);
+    return index < 0 ? 0 : <int>state.counters[index];
+}
+
+setRuntimeCounter(state: TalentProcRuntimeState, id: string, value: int): void {
+    state.counters[ensureRuntimeIndex(state, id)] = value;
+}
+
+runtimeIcdActive(state: TalentProcRuntimeState, id: string): bool {
+    var index = findRuntimeIndex(state, id);
+    return index >= 0 && <float>state.icdRemaining[index] > 0.0;
+}
+
+runtimeIcdRemaining(state: TalentProcRuntimeState, id: string): float {
+    var index = findRuntimeIndex(state, id);
+    return index < 0 ? 0.0 : <float>state.icdRemaining[index];
+}
+
+armIcd(state: TalentProcRuntimeState, definition: TalentProcDefinition, result: TalentProcDecision): void {
+    if (!definition.hasIcd) return;
+    state.icdRemaining[ensureRuntimeIndex(state, definition.id)] = definition.icd;
+    result.icdArmed = true;
+    result.icdRemaining = definition.icd;
+}
+
+matchesAnyAbility(definition: TalentProcDefinition, abilityId: string): bool {
+    if (definition.abilityIds.length == 0) return definition.matchAnyAbility;
+    var index = 0;
+    while (index < definition.abilityIds.length) {
+        if (<string>definition.abilityIds[index] == abilityId) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+chancePasses(randomUnit: float, chance: float): bool {
+    // Rng.chance uses next() < p. The caller supplies that one shared next() value.
+    return randomUnit < chance;
+}
+
+pub tickProcState(state: TalentProcRuntimeState, delta: float): void {
+    var index = 0;
+    while (index < state.icdRemaining.length) {
+        var next = <float>state.icdRemaining[index] - delta;
+        state.icdRemaining[index] = next > 0.0 ? next : 0.0;
+        index = index + 1;
+    }
+}
+
+pub resetProcState(state: TalentProcRuntimeState): void {
+    state.ids = new container.Array<string>();
+    state.counters = new container.Array<int>();
+    state.icdRemaining = new container.Array<float>();
+}
+
+// The current-content generator supplies scalar rows so no mutable catalog
+// object crosses the experimental ZrVM module boundary. A selected option/spec
+// code can be matched before hydrating its immutable definition.
+pub catalogEntryMatchesSelection(index: int, selectionCode: uint, isSpec: bool): bool {
+    return catalog.procOriginCode(index) == selectionCode &&
+        catalog.procOriginIsSpec(index) == isSpec;
+}
+
+pub definitionFromCatalog(index: int): TalentProcDefinition {
+    var result = new TalentProcDefinition();
+    result.id = catalog.procId(index);
+    result.name = catalog.procName(index);
+    result.school = catalog.procSchool(index);
+    result.trigger = catalog.procTriggerCode(index);
+    result.nth = catalog.procNth(index);
+    result.hasIcd = catalog.procHasIcd(index);
+    result.icd = catalog.procIcd(index);
+    result.hasChance = catalog.procHasChance(index);
+    result.chance = catalog.procChance(index);
+    result.hpFraction = catalog.procHpFraction(index);
+    result.abilityId = catalog.procDirectAbilityId(index);
+    result.requiredAuraKind = catalog.procRequiredAuraKind(index);
+    var abilityIndex = 0;
+    while (abilityIndex < catalog.procTriggerAbilityCount(index)) {
+        result.abilityIds.add(catalog.procTriggerAbilityId(index, abilityIndex));
+        abilityIndex = abilityIndex + 1;
+    }
+    // In source data, only spellCrit has an optional ability allowlist.
+    result.matchAnyAbility = result.trigger == contract.spellCritTriggerCode() &&
+        result.abilityIds.length == 0;
+    return result;
+}
+
+pub responseFromCatalog(index: int, responseIndex: int): TalentProcResponse {
+    var result = new TalentProcResponse();
+    result.kind = catalog.responseKind(index, responseIndex);
+    result.auraKind = catalog.responseAuraKind(index, responseIndex);
+    result.abilityId = catalog.responseAbilityId(index, responseIndex);
+    result.resourceType = catalog.responseResourceType(index, responseIndex);
+    result.amount = catalog.responseAmount(index, responseIndex);
+    result.hasAmountPctMaxHp = catalog.responseHasAmountPctMaxHp(index, responseIndex);
+    result.amountPctMaxHp = catalog.responseAmountPctMaxHp(index, responseIndex);
+    result.duration = catalog.responseDuration(index, responseIndex);
+    result.hasCostPct = catalog.responseHasCostPct(index, responseIndex);
+    result.costPct = catalog.responseCostPct(index, responseIndex);
+    result.resetCooldown = catalog.responseResetCooldown(index, responseIndex);
+    result.belowFraction = catalog.responseBelowFraction(index, responseIndex);
+    result.window = catalog.responseWindow(index, responseIndex);
+    result.name = catalog.responseName(index, responseIndex);
+    result.value = catalog.responseValue(index, responseIndex);
+    var abilityIndex = 0;
+    while (abilityIndex < catalog.responseAbilityCount(index, responseIndex)) {
+        result.abilityIds.add(catalog.responseAbilityAt(index, responseIndex, abilityIndex));
+        abilityIndex = abilityIndex + 1;
+    }
+    return result;
+}
+
+pub onCastCompleted(
+    state: TalentProcRuntimeState,
+    definition: TalentProcDefinition,
+    abilityId: string,
+    castConsumedEmpower: bool,
+    randomUnit: float
+): TalentProcDecision {
+    var result = new TalentProcDecision();
+    if (castConsumedEmpower || definition.trigger != contract.castNthTriggerCode() ||
+        !matchesAnyAbility(definition, abilityId) ||
+        (definition.hasIcd && runtimeIcdActive(state, definition.id))) {
+        return result;
+    }
+    result.matched = true;
+    result.counterBefore = runtimeCounter(state, definition.id);
+    var nextCounter = result.counterBefore + 1;
+    var nth = definition.nth < 1 ? 1 : definition.nth;
+    if (nextCounter < nth) {
+        setRuntimeCounter(state, definition.id, nextCounter);
+        result.counterAfter = nextCounter;
+        return result;
+    }
+    // Source resets before its optional chance draw. A miss therefore consumes
+    // the counted casts without granting an ICD or banking another cast.
+    setRuntimeCounter(state, definition.id, 0);
+    if (definition.hasChance) {
+        result.consumesRandom = true;
+        if (!chancePasses(randomUnit, definition.chance)) return result;
+    }
+    result.fired = true;
+    armIcd(state, definition, result);
+    return result;
+}
+
+pub onSpellCrit(
+    state: TalentProcRuntimeState,
+    definition: TalentProcDefinition,
+    abilityId: string,
+    randomUnit: float
+): TalentProcDecision {
+    var result = new TalentProcDecision();
+    if (definition.trigger != contract.spellCritTriggerCode() ||
+        !matchesAnyAbility(definition, abilityId) ||
+        (definition.hasIcd && runtimeIcdActive(state, definition.id))) {
+        return result;
+    }
+    result.matched = true;
+    if (definition.hasChance) {
+        result.consumesRandom = true;
+        if (!chancePasses(randomUnit, definition.chance)) return result;
+    }
+    result.fired = true;
+    armIcd(state, definition, result);
+    return result;
+}
+
+pub onBigHitTaken(
+    state: TalentProcRuntimeState,
+    definition: TalentProcDefinition,
+    amount: int,
+    maxHp: int
+): TalentProcDecision {
+    var result = new TalentProcDecision();
+    if (definition.trigger != contract.bigHitTakenTriggerCode() || maxHp <= 0 ||
+        <float>amount < <float>maxHp * definition.hpFraction ||
+        runtimeIcdActive(state, definition.id)) {
+        return result;
+    }
+    result.matched = true;
+    result.fired = true;
+    // Unlike optional ICDs, this trigger always has one and arms it before fire().
+    armIcd(state, definition, result);
+    return result;
+}
+
+pub onMeleeSwingWhile(
+    state: TalentProcRuntimeState,
+    definition: TalentProcDefinition,
+    requiredAuraActive: bool,
+    randomUnit: float
+): TalentProcDecision {
+    var result = new TalentProcDecision();
+    if (definition.trigger != contract.meleeSwingWhileTriggerCode() || !requiredAuraActive ||
+        (definition.hasIcd && runtimeIcdActive(state, definition.id))) {
+        return result;
+    }
+    result.matched = true;
+    if (definition.hasChance) {
+        result.consumesRandom = true;
+        if (!chancePasses(randomUnit, definition.chance)) return result;
+    }
+    result.fired = true;
+    armIcd(state, definition, result);
+    return result;
+}
+
+pub onDirectTrigger(definition: TalentProcDefinition, trigger: int, abilityId: string): TalentProcDecision {
+    var result = new TalentProcDecision();
+    if (definition.trigger != trigger || definition.abilityId != abilityId) return result;
+    result.matched = true;
+    result.fired = true;
+    return result;
+}
+
+// `personal_barrier` is a source slot sentinel: it matches either concrete
+// personal barrier after the WOS has resolved the caster's selected spec.
+pub onShieldConsumed(
+    definition: TalentProcDefinition,
+    shieldAbilityId: string,
+    isResolvedPersonalBarrier: bool
+): TalentProcDecision {
+    var result = new TalentProcDecision();
+    if (definition.trigger != contract.shieldConsumedTriggerCode()) return result;
+    var matches = definition.abilityId == contract.personalBarrierSentinel() ?
+        isResolvedPersonalBarrier : definition.abilityId == shieldAbilityId;
+    if (!matches) return result;
+    result.matched = true;
+    result.fired = true;
+    return result;
+}
+
+pub onHotExpired(definition: TalentProcDefinition, hotAbilityId: string): TalentProcDecision {
+    return onDirectTrigger(definition, contract.hotExpiredTriggerCode(), hotAbilityId);
+}
+
+pub onThornsReflect(definition: TalentProcDefinition, abilityId: string): TalentProcDecision {
+    return onDirectTrigger(definition, contract.thornsReflectTriggerCode(), abilityId);
+}
+
+positiveRound(value: float): int {
+    return value <= 0.0 ? 0 : <int>(value + 0.5);
+}
+
+copyAbilityIds(source: container.Array<string>, destination: container.Array<string>): void {
+    var index = 0;
+    while (index < source.length) {
+        destination.add(<string>source[index]);
+        index = index + 1;
+    }
+}
+
+resolvedSchool(definition: TalentProcDefinition): string {
+    return definition.school == "" ? contract.defaultSchool() : definition.school;
+}
+
+// Builds the same response objects as `fireOne`. Call only after a trigger's
+// decision fired; `ownerResourceMatches` represents the source resource-type gate.
+pub planResponse(
+    definition: TalentProcDefinition,
+    response: TalentProcResponse,
+    ownerId: uint,
+    subjectId: uint,
+    subjectMaxHp: int,
+    ownerResourceMatches: bool,
+    hasCooldown: bool,
+    currentCooldown: float
+): TalentProcResponsePlan {
+    var result = new TalentProcResponsePlan();
+    var school = resolvedSchool(definition);
+    if (response.kind == contract.empowerNextResponseCode()) {
+        result.applies = true;
+        result.auraTargetId = ownerId;
+        result.auraId = definition.id;
+        result.auraName = definition.name;
+        result.auraKind = response.auraKind;
+        result.auraValue = response.hasCostPct ? 1.0 - response.costPct : 0.0;
+        result.auraDuration = response.duration;
+        result.auraSourceId = ownerId;
+        result.auraSchool = school;
+        copyAbilityIds(response.abilityIds, result.empowerAbilityIds);
+        result.emitFx = true;
+        result.fx = contract.procFx();
+    } else if (response.kind == contract.cooldownRefundResponseCode()) {
+        if (!hasCooldown) return result;
+        result.applies = true;
+        result.cooldownAbilityId = response.abilityId;
+        if (response.resetCooldown || currentCooldown - response.amount <= 0.0) {
+            result.cooldownMutation = 2;
+        } else {
+            result.cooldownMutation = 1;
+            result.cooldownRemaining = currentCooldown - response.amount;
+        }
+    } else if (response.kind == contract.resourceResponseCode()) {
+        if (response.resourceType != "" && !ownerResourceMatches) return result;
+        result.applies = true;
+        // resource responses are not rounded in the source; the WOS resource
+        // owner performs its normal max-resource clamp after adding this value.
+        result.resourceDelta = response.amount;
+    } else if (response.kind == contract.healResponseCode()) {
+        result.applies = true;
+        result.healAmount = response.hasAmountPctMaxHp ?
+            positiveRound(<float>subjectMaxHp * response.amountPctMaxHp) : positiveRound(response.amount);
+    } else if (response.kind == contract.absorbResponseCode()) {
+        result.applies = true;
+        result.auraTargetId = subjectId;
+        result.auraId = definition.id;
+        result.auraName = definition.name;
+        result.auraKind = "absorb";
+        result.auraValue = response.hasAmountPctMaxHp ?
+            <float>positiveRound(<float>subjectMaxHp * response.amountPctMaxHp) : response.amount;
+        result.auraDuration = response.duration;
+        result.auraSourceId = ownerId;
+        result.auraSchool = school;
+        result.emitFx = true;
+        result.fx = contract.wardFx();
+    } else if (response.kind == contract.auraResponseCode()) {
+        result.applies = true;
+        result.auraTargetId = ownerId;
+        result.auraId = definition.id;
+        result.auraName = response.name;
+        result.auraKind = response.auraKind;
+        result.auraValue = response.value;
+        result.auraDuration = response.duration;
+        result.auraSourceId = ownerId;
+        result.auraSchool = school;
+    } else if (response.kind == contract.echoResponseCode()) {
+        result.applies = true;
+        result.auraTargetId = subjectId;
+        result.auraId = definition.id;
+        result.auraName = definition.name;
+        result.auraKind = "heal_echo";
+        result.auraValue = response.hasAmountPctMaxHp ?
+            <float>positiveRound(<float>subjectMaxHp * response.amountPctMaxHp) : response.amount;
+        result.auraValue2 = response.belowFraction;
+        result.auraDuration = response.window;
+        result.auraSourceId = ownerId;
+        result.auraSchool = contract.defaultSchool();
+    }
+    return result;
+}
+
+pub contractTest(): int {
+    if (contract.castNthTriggerCode() != 1 || contract.spellCritTriggerCode() != 2 ||
+        contract.bigHitTakenTriggerCode() != 5 || contract.echoResponseCode() != 7 ||
+        contract.personalBarrierSentinel() != "personal_barrier") return -1;
+    var catalogDefinition = definitionFromCatalog(0);
+    var catalogResponse = responseFromCatalog(0, 0);
+    if (catalog.procCount() != 55 || catalogDefinition.id != "pal_oath_returned" ||
+        catalogDefinition.trigger != contract.castNthTriggerCode() ||
+        catalogDefinition.abilityIds.length != 1 ||
+        catalogResponse.kind != contract.resourceResponseCode() || catalogResponse.amount != 25.0 ||
+        catalogResponse.resourceType != "mana" ||
+        !catalogEntryMatchesSelection(0, catalog.procOriginCode(0), false) ||
+        catalogEntryMatchesSelection(0, catalog.procOriginCode(0), true)) return -2;
+
+    var cast = new TalentProcDefinition();
+    cast.id = "clearcast";
+    cast.trigger = contract.castNthTriggerCode();
+    cast.nth = 2;
+    cast.hasIcd = true;
+    cast.icd = 3.0;
+    cast.hasChance = true;
+    cast.chance = 0.5;
+    cast.abilityIds.add("fireball");
+    var state = new TalentProcRuntimeState();
+    var first = onCastCompleted(state, cast, "fireball", false, 0.0);
+    if (!first.matched || first.fired || first.consumesRandom || first.counterBefore != 0 ||
+        first.counterAfter != 1 || runtimeCounter(state, "clearcast") != 1) return -3;
+    var second = onCastCompleted(state, cast, "fireball", false, 0.4);
+    if (!second.matched || !second.fired || !second.consumesRandom || !second.icdArmed ||
+        runtimeCounter(state, "clearcast") != 0 || runtimeIcdRemaining(state, "clearcast") != 3.0) return -4;
+    var blocked = onCastCompleted(state, cast, "fireball", false, 0.0);
+    if (blocked.matched || blocked.consumesRandom || runtimeCounter(state, "clearcast") != 0) return -5;
+    tickProcState(state, 3.0);
+    var rebanked = onCastCompleted(state, cast, "fireball", false, 0.0);
+    if (!rebanked.matched || rebanked.consumesRandom || runtimeCounter(state, "clearcast") != 1) return -6;
+    var missed = onCastCompleted(state, cast, "fireball", false, 0.9);
+    if (!missed.matched || missed.fired || !missed.consumesRandom ||
+        runtimeIcdActive(state, "clearcast") || runtimeCounter(state, "clearcast") != 0) return -7;
+    var empowered = onCastCompleted(state, cast, "fireball", true, 0.0);
+    if (empowered.matched || runtimeCounter(state, "clearcast") != 0) return -8;
+
+    var crit = new TalentProcDefinition();
+    crit.id = "crit_proc";
+    crit.trigger = contract.spellCritTriggerCode();
+    crit.matchAnyAbility = true;
+    crit.hasChance = true;
+    crit.chance = 0.2;
+    var failedCrit = onSpellCrit(state, crit, "anything", 0.2);
+    var firedCrit = onSpellCrit(state, crit, "anything", 0.199);
+    if (!failedCrit.matched || failedCrit.fired || !failedCrit.consumesRandom ||
+        !firedCrit.fired || !firedCrit.consumesRandom) return -9;
+
+    var big = new TalentProcDefinition();
+    big.id = "last_stand";
+    big.trigger = contract.bigHitTakenTriggerCode();
+    big.hasIcd = true;
+    big.icd = 20.0;
+    big.hpFraction = 0.15;
+    if (onBigHitTaken(state, big, 14, 100).matched || !onBigHitTaken(state, big, 15, 100).fired ||
+        onBigHitTaken(state, big, 100, 100).matched) return -10;
+    tickProcState(state, 20.1);
+    if (!onBigHitTaken(state, big, 16, 100).fired) return -11;
+
+    var melee = new TalentProcDefinition();
+    melee.id = "imbue_proc";
+    melee.trigger = contract.meleeSwingWhileTriggerCode();
+    melee.hasChance = true;
+    melee.chance = 1.0;
+    melee.hasIcd = true;
+    melee.icd = 2.0;
+    if (onMeleeSwingWhile(state, melee, false, 0.0).matched ||
+        !onMeleeSwingWhile(state, melee, true, 0.9).fired ||
+        onMeleeSwingWhile(state, melee, true, 0.0).matched) return -12;
+
+    var shield = new TalentProcDefinition();
+    shield.trigger = contract.shieldConsumedTriggerCode();
+    shield.abilityId = contract.personalBarrierSentinel();
+    if (onShieldConsumed(shield, "frostveil", false).matched ||
+        !onShieldConsumed(shield, "frostveil", true).fired) return -13;
+
+    var definition = new TalentProcDefinition();
+    definition.id = "surge";
+    definition.name = "Surge";
+    var empower = new TalentProcResponse();
+    empower.kind = contract.empowerNextResponseCode();
+    empower.auraKind = "next_cast_free";
+    empower.hasCostPct = true;
+    empower.costPct = 0.25;
+    empower.duration = 9.0;
+    empower.abilityIds.add("fireball");
+    var empowerPlan = planResponse(definition, empower, <uint>3, <uint>8, 100, true, false, 0.0);
+    if (!empowerPlan.applies || empowerPlan.auraTargetId != <uint>3 ||
+        empowerPlan.auraValue != 0.75 || empowerPlan.empowerAbilityIds.length != 1 ||
+        !empowerPlan.emitFx || empowerPlan.fx != "procSurge") return -14;
+
+    var absorb = new TalentProcResponse();
+    absorb.kind = contract.absorbResponseCode();
+    absorb.hasAmountPctMaxHp = true;
+    absorb.amountPctMaxHp = 0.125;
+    absorb.duration = 4.0;
+    var absorbPlan = planResponse(definition, absorb, <uint>3, <uint>8, 101, true, false, 0.0);
+    if (!absorbPlan.applies || absorbPlan.auraTargetId != <uint>8 ||
+        absorbPlan.auraValue != 13.0 || absorbPlan.auraSchool != "holy" ||
+        absorbPlan.fx != "wardBloom") return -15;
+
+    var refund = new TalentProcResponse();
+    refund.kind = contract.cooldownRefundResponseCode();
+    refund.abilityId = "fireball";
+    refund.amount = 3.0;
+    var refundPlan = planResponse(definition, refund, <uint>3, <uint>8, 0, true, true, 2.0);
+    if (!refundPlan.applies || refundPlan.cooldownMutation != 2 || refundPlan.cooldownAbilityId != "fireball") return -16;
+    resetProcState(state);
+    if (state.ids.length != 0 || state.counters.length != 0 || state.icdRemaining.length != 0) return -17;
+    return 1;
+}

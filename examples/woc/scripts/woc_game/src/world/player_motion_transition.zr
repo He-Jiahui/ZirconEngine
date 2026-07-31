@@ -1,0 +1,292 @@
+// One source-ordered scalar transition for player_motion.ts. It joins the
+// existing horizontal, vertical and wall-standoff ports. The WOS13 fixed-tick
+// reducer supplies held input and commits its scalar result; broader combat
+// side effects remain with their authoritative M4/M5 owners.
+var playerMotion = %import("world/player_motion");
+var motionWorld = %import("world/player_motion_world");
+var verticalWorld = %import("world/player_motion_vertical_world");
+var wallStandoff = %import("world/player_motion_wall_standoff");
+
+pub class PlayerMotionState {
+    pub var initialized: bool;
+    pub var x: float;
+    pub var y: float;
+    pub var z: float;
+    pub var previousX: float;
+    pub var previousY: float;
+    pub var previousZ: float;
+    pub var facing: float;
+    pub var previousFacing: float;
+    pub var velocityX: float;
+    pub var velocityY: float;
+    pub var velocityZ: float;
+    pub var fallStartY: float;
+    pub var onGround: bool;
+    pub var jumping: bool;
+    // The target delegates this damage to dealDamage. Keeping it scalar makes
+    // that later combat write explicit instead of introducing a parallel path.
+    pub var landingDamage: int;
+
+    pub @constructor() {
+        this.initialized = false;
+        this.x = 0.0;
+        this.y = 0.0;
+        this.z = 0.0;
+        this.previousX = 0.0;
+        this.previousY = 0.0;
+        this.previousZ = 0.0;
+        this.facing = 0.0;
+        this.previousFacing = 0.0;
+        this.velocityX = 0.0;
+        this.velocityY = 0.0;
+        this.velocityZ = 0.0;
+        this.fallStartY = 0.0;
+        this.onGround = true;
+        this.jumping = false;
+        this.landingDamage = 0;
+    }
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) { delta = -delta; }
+    return delta < 0.00000001;
+}
+
+requireState(state: PlayerMotionState, required: bool): void {
+    if (!required || !state.initialized) {
+        throw "woc player motion transition is not initialized";
+    }
+}
+
+pub initialize(
+    state: PlayerMotionState,
+    x: float,
+    y: float,
+    z: float,
+    facing: float,
+    velocityX: float,
+    velocityY: float,
+    velocityZ: float,
+    onGround: bool,
+    jumping: bool,
+    fallStartY: float,
+    required: bool
+): void {
+    if (!required) { throw "woc player motion transition initialization is invalid"; }
+    state.initialized = true;
+    state.x = x;
+    state.y = y;
+    state.z = z;
+    state.previousX = x;
+    state.previousY = y;
+    state.previousZ = z;
+    state.facing = playerMotion.normalizeFacing(facing, true);
+    state.previousFacing = state.facing;
+    state.velocityX = velocityX;
+    state.velocityY = velocityY;
+    state.velocityZ = velocityZ;
+    state.onGround = onGround;
+    state.jumping = jumping;
+    state.fallStartY = fallStartY;
+    state.landingDamage = 0;
+}
+
+// Mirrors Sim's tick prologue, then the order of stepPlayerMotion:
+// turn -> horizontal slope/collision -> vertical -> terrain-wall standoff.
+// `stunned` and `rooted` carry the cc predicates at this pure boundary. Cast
+// cancellation, stand-up and damage application stay with their owning systems.
+pub step(
+    state: PlayerMotionState,
+    turnLeft: bool,
+    turnRight: bool,
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    jumpInput: bool,
+    stunned: bool,
+    rooted: bool,
+    moveSpeedMultiplier: float,
+    jumpMultiplier: float,
+    maximumHealth: int,
+    seed: uint,
+    required: bool
+): void {
+    requireState(state, required);
+    if (moveSpeedMultiplier < 0.0 || jumpMultiplier <= 0.0 || maximumHealth < 0) {
+        throw "woc player motion transition arguments are invalid";
+    }
+
+    // Sim.runDespawnDecay copies these before any movement calculation.
+    state.previousX = state.x;
+    state.previousY = state.y;
+    state.previousZ = state.z;
+    state.previousFacing = state.facing;
+    state.landingDamage = 0;
+
+    state.facing = playerMotion.turnFacing(
+        state.facing,
+        turnLeft,
+        turnRight,
+        stunned,
+        true
+    );
+
+    var wasOnGround = state.onGround;
+    var wasJumping = state.jumping;
+    var swimming = motionWorld.isSwimmingInBuiltinWorld(state.x, state.z, state.y, seed, true);
+    var steep = motionWorld.isSteepGround(state.x, state.z, wasOnGround, swimming, seed, true);
+    var hasPlanarInput = playerMotion.hasPlanarInput(
+        forward,
+        back,
+        strafeLeft,
+        strafeRight,
+        true
+    );
+    var moving = hasPlanarInput && !rooted && !steep;
+    var movingOnGround = moving && (wasOnGround || swimming);
+    var wishX = 0.0;
+    var wishZ = 0.0;
+    var wishSpeed = 0.0;
+    if (moving) {
+        wishX = playerMotion.wishX(state.facing, forward, back, strafeLeft, strafeRight, true);
+        wishZ = playerMotion.wishZ(state.facing, forward, back, strafeLeft, strafeRight, true);
+        wishSpeed = playerMotion.wishSpeed(
+            forward,
+            back,
+            strafeLeft,
+            strafeRight,
+            moveSpeedMultiplier,
+            swimming,
+            true
+        );
+    }
+
+    // Horizontal uses the pre-vertical onGround/jumping state, exactly as the
+    // target does when deciding slopes and airborne fence clearance.
+    var nextX = motionWorld.horizontalCoordinate(
+        state.x, state.z, state.y, state.facing, state.velocityX, state.velocityZ,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        moveSpeedMultiplier, rooted, seed, 1, true
+    );
+    var nextZ = motionWorld.horizontalCoordinate(
+        state.x, state.z, state.y, state.facing, state.velocityX, state.velocityZ,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        moveSpeedMultiplier, rooted, seed, 2, true
+    );
+    var horizontalVelocityX = motionWorld.horizontalVelocityCoordinate(
+        state.x, state.z, state.y, state.facing, state.velocityX, state.velocityZ,
+        state.previousX, state.previousZ, wasOnGround, wasJumping,
+        forward, back, strafeLeft, strafeRight, moveSpeedMultiplier, rooted, seed, 1, true
+    );
+    var horizontalVelocityZ = motionWorld.horizontalVelocityCoordinate(
+        state.x, state.z, state.y, state.facing, state.velocityX, state.velocityZ,
+        state.previousX, state.previousZ, wasOnGround, wasJumping,
+        forward, back, strafeLeft, strafeRight, moveSpeedMultiplier, rooted, seed, 2, true
+    );
+
+    var nextY = verticalWorld.verticalField(
+        nextX, nextZ, state.y, state.previousX, state.previousZ,
+        horizontalVelocityX, state.velocityY, horizontalVelocityZ, state.fallStartY,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        state.facing, moveSpeedMultiplier, rooted, jumpInput, jumpMultiplier,
+        maximumHealth, seed, 1, true
+    );
+    var nextVelocityX = verticalWorld.verticalField(
+        nextX, nextZ, state.y, state.previousX, state.previousZ,
+        horizontalVelocityX, state.velocityY, horizontalVelocityZ, state.fallStartY,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        state.facing, moveSpeedMultiplier, rooted, jumpInput, jumpMultiplier,
+        maximumHealth, seed, 2, true
+    );
+    var nextVelocityY = verticalWorld.verticalField(
+        nextX, nextZ, state.y, state.previousX, state.previousZ,
+        horizontalVelocityX, state.velocityY, horizontalVelocityZ, state.fallStartY,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        state.facing, moveSpeedMultiplier, rooted, jumpInput, jumpMultiplier,
+        maximumHealth, seed, 3, true
+    );
+    var nextVelocityZ = verticalWorld.verticalField(
+        nextX, nextZ, state.y, state.previousX, state.previousZ,
+        horizontalVelocityX, state.velocityY, horizontalVelocityZ, state.fallStartY,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        state.facing, moveSpeedMultiplier, rooted, jumpInput, jumpMultiplier,
+        maximumHealth, seed, 4, true
+    );
+    var nextFallStartY = verticalWorld.verticalField(
+        nextX, nextZ, state.y, state.previousX, state.previousZ,
+        horizontalVelocityX, state.velocityY, horizontalVelocityZ, state.fallStartY,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        state.facing, moveSpeedMultiplier, rooted, jumpInput, jumpMultiplier,
+        maximumHealth, seed, 5, true
+    );
+    var nextOnGround = verticalWorld.verticalField(
+        nextX, nextZ, state.y, state.previousX, state.previousZ,
+        horizontalVelocityX, state.velocityY, horizontalVelocityZ, state.fallStartY,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        state.facing, moveSpeedMultiplier, rooted, jumpInput, jumpMultiplier,
+        maximumHealth, seed, 6, true
+    ) != 0.0;
+    var nextJumping = verticalWorld.verticalField(
+        nextX, nextZ, state.y, state.previousX, state.previousZ,
+        horizontalVelocityX, state.velocityY, horizontalVelocityZ, state.fallStartY,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        state.facing, moveSpeedMultiplier, rooted, jumpInput, jumpMultiplier,
+        maximumHealth, seed, 7, true
+    ) != 0.0;
+    var landingDamage = <int>verticalWorld.verticalField(
+        nextX, nextZ, state.y, state.previousX, state.previousZ,
+        horizontalVelocityX, state.velocityY, horizontalVelocityZ, state.fallStartY,
+        wasOnGround, wasJumping, forward, back, strafeLeft, strafeRight,
+        state.facing, moveSpeedMultiplier, rooted, jumpInput, jumpMultiplier,
+        maximumHealth, seed, 8, true
+    );
+
+    // The target wall-standoff is post-vertical and may only adjust settled
+    // position. It deliberately leaves fallStartY and velocity untouched.
+    var finalX = wallStandoff.coordinate(
+        state.previousX, state.previousZ, nextX, nextZ, nextY, nextOnGround,
+        movingOnGround, wishX, wishZ, wishSpeed, seed, 1, true
+    );
+    var finalZ = wallStandoff.coordinate(
+        state.previousX, state.previousZ, nextX, nextZ, nextY, nextOnGround,
+        movingOnGround, wishX, wishZ, wishSpeed, seed, 2, true
+    );
+    var finalY = wallStandoff.coordinate(
+        state.previousX, state.previousZ, nextX, nextZ, nextY, nextOnGround,
+        movingOnGround, wishX, wishZ, wishSpeed, seed, 3, true
+    );
+
+    state.x = finalX;
+    state.y = finalY;
+    state.z = finalZ;
+    state.velocityX = nextVelocityX;
+    state.velocityY = nextVelocityY;
+    state.velocityZ = nextVelocityZ;
+    state.fallStartY = nextFallStartY;
+    state.onGround = nextOnGround;
+    state.jumping = nextJumping;
+    state.landingDamage = landingDamage;
+}
+
+pub contractTest(): int {
+    var state = new PlayerMotionState();
+    initialize(state, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, true, false, 1.5, true);
+    step(state, false, false, true, false, false, false, false, false, false,
+        1.0, 1.0, 1000, <uint>20061, true);
+    if (state.previousZ != 0.0 || state.x != 0.0 || !closeEnough(state.z, 0.35) ||
+        state.y != 1.5 || !state.onGround || state.jumping) {
+        return -1;
+    }
+    var jumping = new PlayerMotionState();
+    initialize(jumping, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, true, false, 1.5, true);
+    step(jumping, false, false, true, false, false, false, true, false, false,
+        1.0, 1.0, 1000, <uint>20061, true);
+    if (!closeEnough(jumping.z, 0.35) || !closeEnough(jumping.y, 1.76) ||
+        !closeEnough(jumping.velocityY, 5.2) || !closeEnough(jumping.velocityZ, 7.0) ||
+        jumping.onGround || !jumping.jumping || jumping.landingDamage != 0) {
+        return -2;
+    }
+    return 1;
+}

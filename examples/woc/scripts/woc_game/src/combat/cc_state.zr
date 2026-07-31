@@ -1,0 +1,117 @@
+// Pure crowd-control predicates over WOS-provided active aura snapshots.
+var container = %import("zr.container");
+var contract = %import("generated/cc_contract");
+
+pub class CcAuraState {
+    pub var kind: string;
+    pub var school: string;
+    pub var value: float;
+    pub @constructor(kind: string, school: string, value: float) {
+        this.kind = kind;
+        this.school = school;
+        this.value = value;
+    }
+}
+
+pub isStunned(auras: container.Array<CcAuraState>): bool {
+    var i = 0;
+    while (i < auras.length) {
+        if (contract.isStunnedKind((<CcAuraState>auras[i]).kind)) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub isInStasis(auras: container.Array<CcAuraState>): bool {
+    var i = 0;
+    while (i < auras.length) {
+        if ((<CcAuraState>auras[i]).kind == "stasis") return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub isRooted(auras: container.Array<CcAuraState>): bool {
+    if (isStunned(auras)) return true;
+    var i = 0;
+    while (i < auras.length) {
+        if (contract.isRootKind((<CcAuraState>auras[i]).kind)) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub isRootedOrChilled(auras: container.Array<CcAuraState>): bool {
+    if (isRooted(auras)) return true;
+    var i = 0;
+    while (i < auras.length) {
+        if (contract.isSlowKind((<CcAuraState>auras[i]).kind)) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub isSilenced(auras: container.Array<CcAuraState>): bool {
+    var i = 0;
+    while (i < auras.length) {
+        if (contract.isSilenceKind((<CcAuraState>auras[i]).kind)) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub isDisarmed(auras: container.Array<CcAuraState>): bool {
+    var i = 0;
+    while (i < auras.length) {
+        if (contract.isDisarmKind((<CcAuraState>auras[i]).kind)) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub blindMissBonus(auras: container.Array<CcAuraState>): float {
+    var bonus = 0.0, i = 0;
+    while (i < auras.length) {
+        var aura = <CcAuraState>auras[i];
+        if (contract.isBlindKind(aura.kind) && aura.value > bonus) bonus = aura.value;
+        i = i + 1;
+    }
+    return bonus;
+}
+
+pub isLockedOut(auras: container.Array<CcAuraState>, school: string): bool {
+    var i = 0;
+    while (i < auras.length) {
+        var aura = <CcAuraState>auras[i];
+        if (contract.isLockoutKind(aura.kind) && aura.school == school) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub tonguesMult(auras: container.Array<CcAuraState>): float {
+    var mult = 1.0, i = 0;
+    while (i < auras.length) {
+        var aura = <CcAuraState>auras[i];
+        if (contract.isTonguesKind(aura.kind) && aura.value > mult) mult = aura.value;
+        i = i + 1;
+    }
+    return mult;
+}
+
+pub contractTest(): int {
+    var auras = new container.Array<CcAuraState>();
+    auras.add(new CcAuraState("blind", "arcane", 0.2));
+    auras.add(new CcAuraState("blind", "arcane", 0.4));
+    auras.add(new CcAuraState("tongues", "shadow", 1.25));
+    auras.add(new CcAuraState("lockout", "frost", 0.0));
+    auras.add(new CcAuraState("slow", "frost", 0.0));
+    if (isStunned(auras) || isRooted(auras) || !isRootedOrChilled(auras)) return -1;
+    if (blindMissBonus(auras) != 0.4 || tonguesMult(auras) != 1.25) return -2;
+    if (!isLockedOut(auras, "frost") || isLockedOut(auras, "fire")) return -3;
+    auras.add(new CcAuraState("stasis", "arcane", 0.0));
+    auras.add(new CcAuraState("silence", "shadow", 0.0));
+    auras.add(new CcAuraState("disarm", "physical", 0.0));
+    if (!isStunned(auras) || !isInStasis(auras) || !isRooted(auras) || !isSilenced(auras) || !isDisarmed(auras)) return -4;
+    return 1;
+}

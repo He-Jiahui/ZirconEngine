@@ -55,6 +55,7 @@ impl UiHostWindow {
             self,
             NativePointerButtonState::Pressed,
             Some(UiPointerButton::Primary),
+            Default::default(),
             x,
             y,
         )
@@ -69,6 +70,7 @@ impl UiHostWindow {
             self,
             NativePointerButtonState::Released,
             Some(UiPointerButton::Primary),
+            Default::default(),
             x,
             y,
         )
@@ -83,6 +85,7 @@ impl UiHostWindow {
             self,
             NativePointerButtonState::Pressed,
             Some(UiPointerButton::Secondary),
+            Default::default(),
             x,
             y,
         )
@@ -97,6 +100,7 @@ impl UiHostWindow {
             self,
             NativePointerButtonState::Pressed,
             Some(UiPointerButton::Middle),
+            Default::default(),
             x,
             y,
         )

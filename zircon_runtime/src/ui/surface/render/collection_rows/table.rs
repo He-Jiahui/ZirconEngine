@@ -1,25 +1,15 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{
-    component::UiValue, event_ui::UiNodeId, layout::UiFrame, surface::UiRenderCommand,
-    tree::UiTemplateNodeMetadata,
+    component::UiValue, event_ui::UiNodeId, layout::UiFrame, style::UiRgbaColor,
+    surface::UiRenderCommand, tree::UiTemplateNodeMetadata,
 };
 
 use super::shared::{
-    bool_attribute, color_attribute, icon_command, quad_command, row_label, text_command,
-    RowRenderState, ACCENT, SURFACE_DISABLED, SURFACE_HOVER, SURFACE_PRESSED, SURFACE_SELECTED,
-    TABLE_FONT_SIZE, TEXT, TEXT_DISABLED, TEXT_MUTED,
+    bool_attribute, icon_command, quad_command, row_label, text_command, CollectionRowVisual,
+    RowRenderState,
 };
 
-const TEXT_INSET_X: f32 = 9.0;
-const TEXT_INSET_Y: f32 = 4.0;
-const ACTION_WIDTH: f32 = 24.0;
-const ACTION_SIZE: f32 = 14.0;
-const RADIUS: f32 = 3.0;
 const COLUMN_RATIOS: [f32; 4] = [0.36, 0.27, 0.19, 0.18];
-const ROW_BG: &str = "#0d1114";
-const HEADER_BG: &str = "#0c1013";
-const TAIL_BG: &str = "#0e1215";
-const SEPARATOR: &str = "#1c2429";
 
 pub(super) fn table_row_commands(
     node_id: UiNodeId,
@@ -34,15 +24,16 @@ pub(super) fn table_row_commands(
     if cells.is_empty() {
         return Vec::new();
     }
+    let visual = CollectionRowVisual::resolve(metadata);
     let mut commands = vec![quad_command(
         node_id,
         frame,
         clip_frame,
         z_index.saturating_add(1),
-        background(metadata, state),
-        border(state),
-        border_width(state),
-        RADIUS,
+        background(&visual, metadata, state),
+        border(&visual, state),
+        border_width(&visual, state),
+        visual.corner_radius,
         state,
         opacity,
     )];
@@ -50,28 +41,30 @@ pub(super) fn table_row_commands(
         node_id,
         UiFrame::new(
             frame.x,
-            frame.y + (frame.height - 1.0).max(0.0),
+            frame.y + (frame.height - visual.border_width).max(0.0),
             frame.width,
-            1.0,
+            visual.border_width.max(f32::EPSILON),
         ),
         clip_frame,
         z_index.saturating_add(2),
-        SEPARATOR,
+        visual.separator,
         None,
         0.0,
         0.0,
         state,
         opacity,
     ));
-    for (index, cell) in cells.iter().take(COLUMN_RATIOS.len()).enumerate() {
+    let text_line_height = visual.line_height(visual.caption_font_size);
+    for (index, cell) in cells.into_iter().take(COLUMN_RATIOS.len()).enumerate() {
         commands.push(text_command(
             node_id,
-            cell_rect(frame, index),
+            cell_rect(frame, index, &visual, text_line_height),
             clip_frame,
             z_index.saturating_add(4),
-            cell.clone(),
-            text(metadata, state, index),
-            TABLE_FONT_SIZE,
+            cell,
+            text(&visual, metadata, state, index),
+            visual.caption_font_size,
+            text_line_height,
             state,
             opacity,
         ));
@@ -79,10 +72,10 @@ pub(super) fn table_row_commands(
     commands.push(icon_command(
         node_id,
         UiFrame::new(
-            frame.x + frame.width - ACTION_WIDTH + 7.0,
-            frame.y + (frame.height - ACTION_SIZE).max(0.0) * 0.5,
-            ACTION_SIZE,
-            ACTION_SIZE,
+            frame.x + frame.width - visual.inline_inset - visual.action_size,
+            frame.y + (frame.height - visual.action_size).max(0.0) * 0.5,
+            visual.action_size,
+            visual.action_size,
         ),
         clip_frame,
         z_index.saturating_add(5),
@@ -91,62 +84,73 @@ pub(super) fn table_row_commands(
         } else {
             "more-horizontal"
         },
-        action(state),
+        action(&visual, state),
         state,
         opacity,
     ));
     commands
 }
 
-fn background<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> &'a str {
+fn background(
+    visual: &CollectionRowVisual,
+    metadata: &UiTemplateNodeMetadata,
+    state: &RowRenderState,
+) -> UiRgbaColor {
     if state.unavailable() {
-        SURFACE_DISABLED
+        visual.disabled_surface
+    } else if state.marked() && state.hot() {
+        visual.selected_hover_surface
     } else if state.marked() {
-        color_attribute(metadata, "background_color").unwrap_or(SURFACE_SELECTED)
+        visual.selected_surface
     } else if state.pressed() {
-        SURFACE_PRESSED
+        visual.pressed_surface
     } else if state.hot() {
-        SURFACE_HOVER
+        visual.hover_surface
     } else if is_header(metadata) {
-        HEADER_BG
+        visual.table_header_surface
     } else if is_tail(metadata) {
-        TAIL_BG
+        visual.table_tail_surface
     } else {
-        color_attribute(metadata, "background_color").unwrap_or(ROW_BG)
+        visual.table_surface
     }
 }
 
-fn border(state: &RowRenderState) -> Option<&'static str> {
-    (!state.unavailable() && state.focus_or_press()).then_some(ACCENT)
+fn border(visual: &CollectionRowVisual, state: &RowRenderState) -> Option<UiRgbaColor> {
+    (!state.unavailable() && state.focus_or_press()).then_some(visual.focus_border)
 }
 
-fn border_width(state: &RowRenderState) -> f32 {
-    if border(state).is_some() {
-        1.0
+fn border_width(visual: &CollectionRowVisual, state: &RowRenderState) -> f32 {
+    if border(visual, state).is_some() {
+        visual.border_width
     } else {
         0.0
     }
 }
 
-fn text<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState, index: usize) -> &'a str {
+fn text(
+    visual: &CollectionRowVisual,
+    metadata: &UiTemplateNodeMetadata,
+    state: &RowRenderState,
+    index: usize,
+) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
-    } else if is_header(metadata) {
-        "#aab5ba"
-    } else if is_tail(metadata) && index == 3 {
-        color_attribute(metadata, "value_color").unwrap_or("#aab5ba")
-    } else if index >= 2 {
-        TEXT_MUTED
+        visual.text_disabled
+    } else if state.marked() {
+        visual.text_selected
+    } else if is_header(metadata) || (is_tail(metadata) && index == 3) || index >= 2 {
+        visual.text_secondary
     } else {
-        color_attribute(metadata, "foreground_color").unwrap_or(TEXT)
+        visual.text_primary
     }
 }
 
-fn action(state: &RowRenderState) -> &'static str {
+fn action(visual: &CollectionRowVisual, state: &RowRenderState) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
+    } else if state.marked() {
+        visual.icon_selected
     } else {
-        TEXT_MUTED
+        visual.icon_secondary
     }
 }
 
@@ -162,7 +166,7 @@ fn table_cells(metadata: &UiTemplateNodeMetadata) -> Vec<String> {
                 .collect::<Vec<_>>()
         })
         .filter(|cells| !cells.is_empty())
-        .or_else(|| row_label(metadata).map(|label| split_row_label_table_text(label.as_str())))
+        .or_else(|| row_label(metadata).map(split_row_label_table_text))
         .unwrap_or_default()
 }
 
@@ -197,21 +201,27 @@ fn split_row_label_table_text(text: &str) -> Vec<String> {
     }
 }
 
-fn cell_rect(frame: UiFrame, index: usize) -> UiFrame {
-    let mut x = frame.x + TEXT_INSET_X;
-    let available_width = (frame.width - TEXT_INSET_X * 2.0 - ACTION_WIDTH).max(1.0);
+fn cell_rect(
+    frame: UiFrame,
+    index: usize,
+    visual: &CollectionRowVisual,
+    text_line_height: f32,
+) -> UiFrame {
+    let mut x = frame.x + visual.inline_inset;
+    let action_reserve = visual.inline_inset + visual.action_size + visual.compact_inset;
+    let available_width = (frame.width - visual.inline_inset - action_reserve).max(1.0);
     for ratio in COLUMN_RATIOS.iter().take(index) {
         x += available_width * ratio;
     }
     UiFrame::new(
         x,
-        frame.y + TEXT_INSET_Y,
+        frame.y + (frame.height - text_line_height).max(0.0) * 0.5,
         COLUMN_RATIOS
             .get(index)
             .map(|ratio| available_width * ratio)
             .unwrap_or(available_width)
             .max(1.0),
-        (frame.height - TEXT_INSET_Y * 2.0).max(1.0),
+        text_line_height.min(frame.height).max(1.0),
     )
 }
 

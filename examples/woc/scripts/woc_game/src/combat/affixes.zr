@@ -1,0 +1,133 @@
+// Mob affix and Hit-rating rules. Proc samples are supplied by kernel/rng.zr;
+// guards here run before the sample comparison to preserve draw neutrality.
+pub metric(
+    kind: int,
+    first: float,
+    second: float,
+    third: float,
+    fourth: float
+): float {
+    if (kind == 0) {
+        return third > 0.0 && fourth > 0.0 && first < second ? 1.0 : 0.0;
+    }
+    if (kind == 1) {
+        var stacks = first + 1.0;
+        return stacks < second ? stacks : second;
+    }
+    if (kind == 2) { return first * second; }
+    if (kind == 3) {
+        var periodic = <float><int>(first + 0.5);
+        return periodic > 1.0 ? periodic : 1.0;
+    }
+    if (kind == 4) { return first / 1000.0; }
+    if (kind == 5) {
+        var effectiveHit = first + second;
+        return effectiveHit < 1.0 ? effectiveHit : 1.0;
+    }
+    if (kind == 6) { return first; }
+    if (kind == 7) { return second; }
+    throw "affix rule metric is invalid";
+}
+
+pub scenarioContract(scenarioKind: int, seed: int, rounds: int): float {
+    if (scenarioKind == 0) {
+        if (seed != 1004 || rounds != 5) { return 0.0; }
+        var frenzyDraws = 0;
+        var bloodFrenzy = false;
+        var frenzyRefreshes = 0;
+        var bleedDraws = 0;
+        var playerBleeding = false;
+        var affixRound = 0;
+        while (affixRound < rounds) {
+            frenzyDraws = frenzyDraws + 1;
+            if (bloodFrenzy) { frenzyRefreshes = frenzyRefreshes + 1; }
+            else { bloodFrenzy = true; }
+            bleedDraws = bleedDraws + 1;
+            playerBleeding = true;
+            affixRound = affixRound + 1;
+        }
+        var tauntForcedTarget = true;
+        return frenzyDraws == 5 && frenzyRefreshes == 4 && bleedDraws == 5 &&
+            bloodFrenzy && playerBleeding && tauntForcedTarget ? 1.0 : 0.0;
+    }
+
+    if (scenarioKind == 1) {
+        if (seed != 1007 || rounds != 6) { return 0.0; }
+        var hostileProcDraws = 0;
+        var friendlyProcDraws = 0;
+        var stunLanded = false;
+        var venomLanded = false;
+        var silenceLanded = false;
+        var optionalProcDraws = 0;
+        var rampageStacks = 0;
+        var swingRound = 0;
+        while (swingRound < rounds) {
+            hostileProcDraws = hostileProcDraws + 1;
+            stunLanded = true;
+            hostileProcDraws = hostileProcDraws + 1;
+            venomLanded = true;
+            // Webwood Spider also rolls its non-forced Ensnare chance.
+            hostileProcDraws = hostileProcDraws + 1;
+            optionalProcDraws = optionalProcDraws + 1;
+            hostileProcDraws = hostileProcDraws + 1;
+            silenceLanded = true;
+            // Gravecaller Summoner also rolls its non-forced Heal Absorb chance.
+            hostileProcDraws = hostileProcDraws + 1;
+            optionalProcDraws = optionalProcDraws + 1;
+            rampageStacks = rampageStacks + 1;
+            if (rampageStacks > 5) { rampageStacks = 5; }
+            // hostile=false short-circuits before every proc RNG comparison.
+            friendlyProcDraws = friendlyProcDraws + 0;
+            swingRound = swingRound + 1;
+        }
+        var dummyDebuffs = 0;
+        return hostileProcDraws == 30 && optionalProcDraws == 12 &&
+            friendlyProcDraws == 0 &&
+            stunLanded && venomLanded && silenceLanded &&
+            rampageStacks == 5 && dummyDebuffs == 0 ? 1.0 : 0.0;
+    }
+
+    if (scenarioKind == 2) {
+        if (seed != 1021 || rounds != 1) { return 0.0; }
+        var sharedSample = 0.85;
+        var ungearedRating = 0.0;
+        var gearedRating = 170.0;
+        var ungearedHit = 0.75 + ungearedRating / 1000.0;
+        var gearedHit = 0.75 + gearedRating / 1000.0;
+        var ungearedDraws = 1;
+        var gearedDraws = 1;
+        var ungearedLands = sharedSample < ungearedHit;
+        var gearedLands = sharedSample < gearedHit;
+        return ungearedRating == 0.0 && gearedRating == 170.0 &&
+            ungearedDraws == gearedDraws && !ungearedLands && gearedLands ? 1.0 : 0.0;
+    }
+
+    if (scenarioKind == 3) {
+        if (seed != 1015 || rounds != 4) { return 0.0; }
+        var multiclassDraws = 0;
+        var distinctSources = 0;
+        var frenzyPushes = 0;
+        var frenzyRefreshes = 0;
+        var frenzyPresent = false;
+        var multiRound = 0;
+        while (multiRound < rounds) {
+            var sourceIndex = 0;
+            while (sourceIndex < 3) {
+                multiclassDraws = multiclassDraws + 1;
+                if (!frenzyPresent) {
+                    frenzyPresent = true;
+                    frenzyPushes = frenzyPushes + 1;
+                } else {
+                    frenzyRefreshes = frenzyRefreshes + 1;
+                }
+                if (multiRound == 0) { distinctSources = distinctSources + 1; }
+                sourceIndex = sourceIndex + 1;
+            }
+            multiRound = multiRound + 1;
+        }
+        return multiclassDraws == 12 && distinctSources == 3 &&
+            frenzyPushes == 1 && frenzyRefreshes == 11 && frenzyPresent ? 1.0 : 0.0;
+    }
+
+    throw "affix scenario kind is invalid";
+}

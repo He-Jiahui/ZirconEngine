@@ -252,19 +252,17 @@ impl RenderLayerSet {
     }
 
     pub fn from_scene_schema_v1_mask(mask: u32) -> Self {
-        let mut layers = Self::none();
-        for layer in 0..u32::BITS {
-            if (mask & (1u32 << layer)) != 0 {
-                layers = layers.with(layer);
+        if mask == 0 {
+            Self::none()
+        } else {
+            Self {
+                blocks: vec![u64::from(mask)],
             }
         }
-        layers
     }
 
     pub fn to_scene_schema_v1_mask_lossy(&self) -> u32 {
-        self.iter()
-            .filter(|layer| *layer < u32::BITS)
-            .fold(0u32, |mask, layer| mask | (1u32 << layer))
+        self.blocks.first().copied().unwrap_or_default() as u32
     }
 
     pub fn with(mut self, layer: RenderLayer) -> Self {
@@ -316,7 +314,7 @@ impl RenderLayerSet {
     }
 
     pub fn intersects_scene_schema_v1_mask(&self, mask: u32) -> bool {
-        self.intersects(&Self::from_scene_schema_v1_mask(mask))
+        (self.blocks.first().copied().unwrap_or_default() & u64::from(mask)) != 0
     }
 
     pub fn iter(&self) -> impl Iterator<Item = RenderLayer> + '_ {
@@ -456,5 +454,31 @@ fn clamp_viewport_axis_position(position: u32, target: u32) -> u32 {
         0
     } else {
         position.min(target - 1)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RenderLayerSet;
+
+    #[test]
+    fn render_layer_schema_v1_uses_single_block_fast_paths() {
+        let source = include_str!("camera.rs");
+        assert!(!source.contains(concat!("for layer in 0..", "u32::BITS")));
+        assert!(!source.contains(concat!(
+            "self.intersects(&Self::from_scene_",
+            "schema_v1_mask(mask))"
+        )));
+
+        let layers = RenderLayerSet::from_scene_schema_v1_mask(0b1010);
+        assert_eq!(layers.iter().collect::<Vec<_>>(), vec![1, 3]);
+        assert_eq!(layers.to_scene_schema_v1_mask_lossy(), 0b1010);
+        assert!(layers.intersects_scene_schema_v1_mask(0b1000));
+        assert!(!layers.intersects_scene_schema_v1_mask(0b0100));
+        assert!(RenderLayerSet::from_scene_schema_v1_mask(0).is_empty());
+
+        let wide = RenderLayerSet::layer(70).with(3);
+        assert!(wide.intersects_scene_schema_v1_mask(0b1000));
+        assert!(!wide.intersects_scene_schema_v1_mask(0b0100));
     }
 }

@@ -28,6 +28,7 @@ struct UiDefaultTableRowSelection {
     owner_id: UiNodeId,
     property: &'static str,
     row_id: String,
+    row_identity: UiValue,
     row_index: usize,
     write_value: bool,
 }
@@ -35,6 +36,7 @@ struct UiDefaultTableRowSelection {
 struct TableRowHit {
     owner_id: UiNodeId,
     row_id: String,
+    row_identity: UiValue,
     row_index: usize,
 }
 
@@ -87,6 +89,7 @@ impl UiSurface {
             owner_id: hit.owner_id,
             property,
             row_id: hit.row_id,
+            row_identity: hit.row_identity,
             row_index: hit.row_index,
             write_value: !super::is_data_grid_owner(owner_metadata),
         }))
@@ -95,6 +98,7 @@ impl UiSurface {
     fn table_row_hit(&self, route: &UiPointerRoute) -> Result<Option<TableRowHit>, UiTreeError> {
         let mut row_seen = false;
         let mut row_id = None;
+        let mut row_node_id = None;
         let mut row_index = None;
         let mut blocked = false;
         let hit_route = if route.stacked.is_empty() {
@@ -117,6 +121,7 @@ impl UiSurface {
             if is_table_row(metadata) {
                 row_seen = true;
                 row_id = row_id.or_else(|| table_row_id(metadata));
+                row_node_id.get_or_insert(*node_id);
                 row_index = row_index.or_else(|| table_row_index(metadata));
                 blocked |= table_row_disabled(metadata);
             }
@@ -132,9 +137,19 @@ impl UiSurface {
                 let row_index = row_index
                     .or_else(|| table_row_index_from_owner(metadata, &row_id))
                     .unwrap_or_default();
+                let identity_field = table_row_identity_field(metadata);
+                let row_identity = row_node_id
+                    .and_then(|row_node_id| self.tree.node(row_node_id))
+                    .and_then(|row_node| row_node.template_metadata.as_ref())
+                    .and_then(|row_metadata| table_row_identity(row_metadata, identity_field))
+                    .or_else(|| table_row_identity_from_owner(metadata, row_index, identity_field));
+                let Some(row_identity) = row_identity else {
+                    return Ok(None);
+                };
                 return Ok(Some(TableRowHit {
                     owner_id: *node_id,
                     row_id,
+                    row_identity,
                     row_index,
                 }));
             }
@@ -165,6 +180,12 @@ impl UiSurface {
             selection.owner_id,
             "selected_index",
             UiValue::Int(selection.row_index as i64),
+            binding_reports,
+        )?;
+        changed |= self.apply_table_mutation(
+            selection.owner_id,
+            "selected_row_identity",
+            selection.row_identity.clone(),
             binding_reports,
         )?;
         if selection.write_value {
@@ -208,6 +229,15 @@ fn table_row_selection_property(metadata: &UiTemplateNodeMetadata) -> &'static s
     } else {
         "selected_rows"
     }
+}
+
+fn table_row_identity_field(metadata: &UiTemplateNodeMetadata) -> &str {
+    metadata
+        .attributes
+        .get("row_identity_field")
+        .and_then(toml::Value::as_str)
+        .filter(|field| !field.is_empty())
+        .unwrap_or("id")
 }
 
 fn table_row_selection_disabled(metadata: &UiTemplateNodeMetadata) -> bool {
@@ -254,6 +284,39 @@ fn table_row_id_from_owner(metadata: &UiTemplateNodeMetadata, index: usize) -> O
         .and_then(toml::Value::as_array)
         .and_then(|rows| rows.get(index))
         .and_then(toml_row_id)
+}
+
+fn table_row_identity(metadata: &UiTemplateNodeMetadata, identity_field: &str) -> Option<UiValue> {
+    metadata
+        .attributes
+        .get(identity_field)
+        .or_else(|| {
+            if identity_field == "id" {
+                TABLE_ROW_ID_PROPERTIES
+                    .iter()
+                    .find_map(|property| metadata.attributes.get(*property))
+            } else {
+                None
+            }
+        })
+        .map(UiValue::from_toml)
+        .filter(|value| !matches!(value, UiValue::Null))
+}
+
+fn table_row_identity_from_owner(
+    metadata: &UiTemplateNodeMetadata,
+    index: usize,
+    identity_field: &str,
+) -> Option<UiValue> {
+    metadata
+        .attributes
+        .get("rows")
+        .and_then(toml::Value::as_array)
+        .and_then(|rows| rows.get(index))
+        .and_then(toml::Value::as_table)
+        .and_then(|row| row.get(identity_field))
+        .map(UiValue::from_toml)
+        .filter(|value| !matches!(value, UiValue::Null))
 }
 
 fn table_row_index_from_owner(metadata: &UiTemplateNodeMetadata, row_id: &str) -> Option<usize> {

@@ -7,6 +7,7 @@ related_code:
   - zircon_plugins/net/runtime/src/http.rs
   - zircon_plugins/net/runtime/src/module.rs
   - zircon_plugins/net/runtime/src/package.rs
+  - zircon_plugins/net/runtime/src/poison_recovery.rs
   - zircon_plugins/net/runtime/src/runtime_state.rs
   - zircon_plugins/net/runtime/src/runtime_system.rs
   - zircon_plugins/net/runtime/src/transport/mod.rs
@@ -31,12 +32,16 @@ related_code:
   - zircon_plugins/net/runtime/src/worker/mod.rs
   - zircon_plugins/net/runtime/src/worker/egress.rs
   - zircon_plugins/net/runtime/src/worker/ingress.rs
+  - zircon_plugins/net/runtime/src/worker/net_worker.rs
   - zircon_plugins/net/runtime/src/worker/shutdown.rs
+  - zircon_plugins/net/runtime/src/worker/transport_runtime.rs
+  - zircon_plugins/net/runtime/src/worker/transport_runtime/dispatch.rs
   - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/runtime/src/tests/diagnostics.rs
   - zircon_plugins/net/runtime/src/tests/feature_registration.rs
   - zircon_plugins/net/runtime/src/tests/http_routes.rs
   - zircon_plugins/net/runtime/src/tests/manifest.rs
+  - zircon_plugins/net/runtime/src/tests/poison_recovery.rs
   - zircon_plugins/net/runtime/src/tests/rpc_descriptor.rs
   - zircon_plugins/net/runtime/src/tests/support.rs
   - zircon_plugins/net/runtime/src/tests/tcp.rs
@@ -178,6 +183,7 @@ implementation_files:
   - zircon_plugins/net/runtime/src/http.rs
   - zircon_plugins/net/runtime/src/module.rs
   - zircon_plugins/net/runtime/src/package.rs
+  - zircon_plugins/net/runtime/src/poison_recovery.rs
   - zircon_plugins/net/runtime/src/runtime_state.rs
   - zircon_plugins/net/runtime/src/runtime_system.rs
   - zircon_plugins/net/editor/Cargo.toml
@@ -205,12 +211,16 @@ implementation_files:
   - zircon_plugins/net/runtime/src/worker/mod.rs
   - zircon_plugins/net/runtime/src/worker/egress.rs
   - zircon_plugins/net/runtime/src/worker/ingress.rs
+  - zircon_plugins/net/runtime/src/worker/net_worker.rs
   - zircon_plugins/net/runtime/src/worker/shutdown.rs
+  - zircon_plugins/net/runtime/src/worker/transport_runtime.rs
+  - zircon_plugins/net/runtime/src/worker/transport_runtime/dispatch.rs
   - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/runtime/src/tests/diagnostics.rs
   - zircon_plugins/net/runtime/src/tests/feature_registration.rs
   - zircon_plugins/net/runtime/src/tests/http_routes.rs
   - zircon_plugins/net/runtime/src/tests/manifest.rs
+  - zircon_plugins/net/runtime/src/tests/poison_recovery.rs
   - zircon_plugins/net/runtime/src/tests/rpc_descriptor.rs
   - zircon_plugins/net/runtime/src/tests/support.rs
   - zircon_plugins/net/runtime/src/tests/tcp.rs
@@ -638,3 +648,37 @@ Focused validation after splitting `features/http/runtime/src/backend.rs` into `
 Focused validation after splitting `features/replication/runtime/src/manager.rs` into `manager/{state,registry,interest,snapshot,schedule,budget,lifecycle}.rs` and replacing the monolithic replication `tests.rs` with `tests/{mod,feature_registration,delta_interest,lifecycle,schedule,budget}.rs` ran on 2026-06-04. `rustfmt --edition 2021 --check` passed over the facade, manager child files, and test tree. `git diff --check` passed for tracked Replication changes with only the expected LF-to-CRLF warning on the tracked manager facade, and explicit trailing-whitespace and conflict-marker scans over the manager/test facade files, child files, this doc, and the active session note returned empty. Focused Cargo validation is pending while other editor/Hub/runtime Cargo lanes are active.
 
 The 2026-07-04 full plugin workspace execution closeout is tracked as `plugins_13_m5_t1_plugin_workspace_locked_all_targets_test_execution_passed`. The Net-specific fix stayed in `zircon_plugins/net/runtime/src/tests/worker.rs`: the TCP/UDP source-structure guard now resolves source files from `env!("CARGO_MANIFEST_DIR")` instead of relying on the test process CWD, so the guard still rejects direct Tokio `.block_on(` in service facades while running under the plugin workspace test harness. Focused validation passed `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_net_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-net-runtime-worker-rerun-0703 --message-format short --color never -- --nocapture --test-threads=1` with 21/21 before the final workspace rerun; `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun13-final.status.json` then recorded full workspace `ExitCode=0`.
+
+## Poison recovery ownership
+
+The base Net runtime owns mutex-poison policy once in `src/poison_recovery.rs`. Infallible owner
+operations recover the last valid guard through `lock_recover(...)`; fallible manager and worker
+operations use `lock_or_error(...)` and return `NetError::SharedStatePoisoned { resource }`.
+`NetSharedState` owns the stable resource identities, while protocol and IO failures continue to use
+their existing typed variants. A worker panic therefore cannot trigger a second panic or be
+misreported as successful lifecycle work.
+
+The 2026-07-17 M1 E9 hard cut removed all 52 production `Mutex::lock().expect(...)` sites from the
+base runtime. The 16 infallible sites recover; the initial replacement collapsed the original 36
+fallible sites to 33 typed calls because check-and-mutate pairs retained one guard. Seven explicit
+send/poll preflight and post-callback commit guards bring the current `lock_or_error` total to 40.
+`tests/poison_recovery.rs` poisons the real event queue, UDP/TCP tables, and worker lifecycle, then
+proves public manager boundaries, send/poll preflight, and post-submit shutdown retry. HTTP and
+WebSocket tests additionally poison listener/connection registries inside backend callbacks and
+prove abort, Close/Drop, zero registration, zero orphan events, and all-or-nothing staged accept.
+Fallible operations acquire the corresponding state guard before starting worker or backend IO, so
+a poison error cannot leak an unregistered socket, listener, or connection.
+
+The worker implementation is folder-backed: `worker/mod.rs` mounts the five named children
+`egress`, `ingress`, `net_worker`, `shutdown`, and `transport_runtime`; `net_worker.rs` owns the
+command client and shutdown lifecycle; `transport_runtime.rs` owns Tokio resources; and
+`transport_runtime/dispatch.rs` owns command dispatch with visibility restricted to
+`crate::worker`. Source formatting and the zero-match production scan are complete.
+
+Fallible worker transport operations retain internal registry guards across worker requests because
+the worker cannot call back into the manager. Pluggable HTTP and WebSocket boundaries instead clone
+an `Arc` snapshot while guarded, release the registry, and only then invoke the handler, backend,
+listener, or connection. Creation paths perform a typed poison preflight and close or drop a newly
+created external resource if the post-callback registry commit fails. Current-source focused and
+broad Cargo acceptance remains queued in the shared coordinator FIFO and is not claimed by static
+evidence.

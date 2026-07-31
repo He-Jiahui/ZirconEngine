@@ -1,0 +1,756 @@
+// Stateful M4 projection of the normal-mode Nythraxis full-pull parity path.
+// Timers advance at the authoritative 20 Hz simulation rate. Random samples are
+// supplied by the host-owned stream so draw count and order stay observable.
+var container = %import("zr.container");
+
+class NythraxisState {
+    pub var combatData: container.Array<float>;
+    // Phase ids: 1 phase one, 0 transition, 2 phase two, 3 dead.
+    pub var phase: int;
+    pub var bossHp: int;
+    pub var bossMaxHp: int;
+    pub var bossEnraged: bool;
+    pub var heroic: bool;
+    // The encounter distinguishes the boss's live position from its immutable
+    // spawn anchor. Add waves may erupt around one while all adds leash to the
+    // other, preventing a kited boss from moving their reset/home point.
+    pub var bossPositionX: float;
+    pub var bossPositionZ: float;
+    pub var bossSpawnX: float;
+    pub var bossSpawnZ: float;
+    // Sequential x/z pairs for the most recently raised normal and heroic add
+    // waves, plus the corresponding spawn-anchor pairs.
+    pub var normalAddPositions: container.Array<float>;
+    pub var normalAddAnchors: container.Array<float>;
+    pub var heroicAddPositions: container.Array<float>;
+    pub var heroicAddAnchors: container.Array<float>;
+    pub var bossWeaponMin: float;
+    pub var bossWeaponMax: float;
+    pub var bossAttackPower: float;
+    pub var bossWeaponSpeed: float;
+    pub var bossEnrageDamageMultiplier: float;
+    pub var aggroTargetId: int;
+    // combatData layout: 40 players x 7 slots [0, 280), six Soul Rend ids
+    // [280, 286), six remaining timers [286, 292), three ward players
+    // [292, 295), three ward timers [295, 298), three completion flags
+    // [298, 301).
+    pub var playerCount: int;
+    pub var soulRendCount: int;
+    pub var wardCount: int;
+    pub var gravebreakerTimer: float;
+    pub var gravebreakerCasts: int;
+    pub var raiseFallenTimer: float;
+    pub var soulRendTimer: float;
+    pub var soulRendLockout: float;
+    pub var deathlessTimer: float;
+    pub var deathlessCastRemaining: float;
+    pub var deathlessStunRemaining: float;
+    pub var transitionTimer: float;
+    pub var finalStand: bool;
+    pub var deathSpoken: bool;
+    pub var aldricPresent: bool;
+    pub var wardstonesLit: int;
+    pub var raisedAdds: int;
+    pub var randomUnits: container.Array<float>;
+    pub var randomIndex: int;
+    pub var eventOrder: container.Array<string>;
+    pub var raidLockoutGranted: bool;
+
+    pub @constructor() {
+        this.phase = 1;
+        this.bossHp = 60000;
+        this.bossMaxHp = 60000;
+        this.bossEnraged = false;
+        this.heroic = false;
+        this.bossPositionX = 0.0;
+        this.bossPositionZ = 0.0;
+        this.bossSpawnX = 0.0;
+        this.bossSpawnZ = 0.0;
+        this.normalAddPositions = new container.Array<float>();
+        this.normalAddAnchors = new container.Array<float>();
+        this.heroicAddPositions = new container.Array<float>();
+        this.heroicAddAnchors = new container.Array<float>();
+        this.bossWeaponMin = 325.0;
+        this.bossWeaponMax = 507.0;
+        this.bossAttackPower = 0.0;
+        this.bossWeaponSpeed = 2.6;
+        this.bossEnrageDamageMultiplier = 1.0;
+        this.aggroTargetId = 0;
+        this.playerCount = 0;
+        this.soulRendCount = 0;
+        this.wardCount = 0;
+        this.combatData = new container.Array<float>();
+        var dataIndex = 0;
+        while (dataIndex < 301) {
+            this.combatData.add(0.0);
+            dataIndex = dataIndex + 1;
+        }
+        this.gravebreakerTimer = 1.5;
+        this.gravebreakerCasts = 0;
+        this.raiseFallenTimer = 30.0;
+        this.soulRendTimer = 30.0;
+        this.soulRendLockout = 0.0;
+        this.deathlessTimer = 45.0;
+        this.deathlessCastRemaining = 0.0;
+        this.deathlessStunRemaining = 0.0;
+        this.transitionTimer = 0.0;
+        this.finalStand = false;
+        this.deathSpoken = false;
+        this.aldricPresent = false;
+        this.wardstonesLit = 0;
+        this.raisedAdds = 0;
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.eventOrder = new container.Array<string>();
+        this.raidLockoutGranted = false;
+    }
+}
+
+takeRandomUnit(state: NythraxisState, label: string): float {
+    if (state.randomIndex < 0 || state.randomIndex >= state.randomUnits.length) {
+        throw "Nythraxis random stream is exhausted";
+    }
+    var result = <float>state.randomUnits[state.randomIndex];
+    state.randomIndex = state.randomIndex + 1;
+    state.eventOrder.add(label);
+    return result;
+}
+
+findPlayerIndex(state: NythraxisState, playerId: int): int {
+    var index = 0;
+    while (index < state.playerCount) {
+        if (<int><float>state.combatData[index * 7] == playerId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+distanceSquared(ax: float, az: float, bx: float, bz: float): float {
+    var dx = ax - bx;
+    var dz = az - bz;
+    return dx * dx + dz * dz;
+}
+
+pub addRaidPlayer(
+    state: NythraxisState,
+    playerId: int,
+    maximumHealth: int,
+    x: float,
+    z: float,
+    armorReduction: float,
+    inGravebreakerArc: bool
+): void {
+    if (state.playerCount >= 40) { throw "Nythraxis raid player capacity exceeded"; }
+    var playerBase = state.playerCount * 7;
+    state.combatData[playerBase] = <float>playerId;
+    state.combatData[playerBase + 1] = <float>maximumHealth;
+    state.combatData[playerBase + 2] = <float>maximumHealth;
+    state.combatData[playerBase + 3] = x;
+    state.combatData[playerBase + 4] = z;
+    state.combatData[playerBase + 5] = armorReduction;
+    state.combatData[playerBase + 6] =
+        <float>(1 + (inGravebreakerArc ? 4 : 0));
+    state.playerCount = state.playerCount + 1;
+}
+
+pub setPlayerPosition(
+    state: NythraxisState,
+    playerId: int,
+    x: float,
+    z: float
+): bool {
+    var index = findPlayerIndex(state, playerId);
+    if (index < 0) { return false; }
+    state.combatData[index * 7 + 3] = x;
+    state.combatData[index * 7 + 4] = z;
+    return true;
+}
+
+pub setBossPosition(state: NythraxisState, x: float, z: float): void {
+    state.bossPositionX = x;
+    state.bossPositionZ = z;
+}
+
+pub setBossSpawnAnchor(state: NythraxisState, x: float, z: float): void {
+    state.bossSpawnX = x;
+    state.bossSpawnZ = z;
+}
+
+clearFloatArray(values: container.Array<float>): void {
+    while (values.length > 0) { values.removeAt(values.length - 1); }
+}
+
+appendAdd(statePositions: container.Array<float>, anchors: container.Array<float>,
+    x: float, z: float, anchorX: float, anchorZ: float): void {
+    statePositions.add(x);
+    statePositions.add(z);
+    anchors.add(anchorX);
+    anchors.add(anchorZ);
+}
+
+// Normal Raise Fallen guards erupt behind the boss's original anchor. The
+// source writes every guard's spawnPos back to that anchor after construction.
+recordNormalRaisedAddPositions(state: NythraxisState): void {
+    clearFloatArray(state.normalAddPositions);
+    clearFloatArray(state.normalAddAnchors);
+    var back = state.bossSpawnZ + 16.0;
+    appendAdd(state.normalAddPositions, state.normalAddAnchors,
+        state.bossSpawnX - 12.0, back, state.bossSpawnX, state.bossSpawnZ);
+    appendAdd(state.normalAddPositions, state.normalAddAnchors,
+        state.bossSpawnX + 12.0, back, state.bossSpawnX, state.bossSpawnZ);
+}
+
+// Heroic court guards erupt around the boss's live cast position, yet retain
+// the original boss anchor for their own leash/reset behavior.
+pub recordHeroicCourtAddPositions(state: NythraxisState): void {
+    clearFloatArray(state.heroicAddPositions);
+    clearFloatArray(state.heroicAddAnchors);
+    appendAdd(state.heroicAddPositions, state.heroicAddAnchors,
+        state.bossPositionX - 8.0, state.bossPositionZ + 8.0,
+        state.bossSpawnX, state.bossSpawnZ);
+    appendAdd(state.heroicAddPositions, state.heroicAddAnchors,
+        state.bossPositionX, state.bossPositionZ + 10.0,
+        state.bossSpawnX, state.bossSpawnZ);
+    appendAdd(state.heroicAddPositions, state.heroicAddAnchors,
+        state.bossPositionX + 8.0, state.bossPositionZ + 8.0,
+        state.bossSpawnX, state.bossSpawnZ);
+}
+
+applyPlayerDamage(state: NythraxisState, playerIndex: int, damage: int): void {
+    var healthSlot = playerIndex * 7 + 2;
+    var flagsSlot = playerIndex * 7 + 6;
+    var nextHealth = <int><float>state.combatData[healthSlot] - damage;
+    if (nextHealth <= 0) {
+        state.combatData[healthSlot] = 0.0;
+        state.combatData[flagsSlot] =
+            <float>(<int><float>state.combatData[flagsSlot] & -2);
+    } else {
+        state.combatData[healthSlot] = <float>nextHealth;
+    }
+}
+
+tickGravebreaker(state: NythraxisState): void {
+    state.gravebreakerTimer = state.gravebreakerTimer - 0.05;
+    if (state.gravebreakerTimer > 0.000000001) { return; }
+    state.gravebreakerTimer = 12.0;
+    state.gravebreakerCasts = state.gravebreakerCasts + 1;
+    var sample = takeRandomUnit(state, "gravebreakerDraw");
+    var rawDamage = state.bossWeaponMin +
+        (state.bossWeaponMax - state.bossWeaponMin) * sample +
+        (state.bossAttackPower / 14.0) * state.bossWeaponSpeed;
+    if (state.bossEnraged) {
+        rawDamage = rawDamage * state.bossEnrageDamageMultiplier;
+    }
+    var index = 0;
+    while (index < state.playerCount) {
+        var playerBase = index * 7;
+        var flags = <int><float>state.combatData[playerBase + 6];
+        if ((flags & 1) != 0 && (flags & 4) != 0) {
+            var offTarget =
+                <int><float>state.combatData[playerBase] != state.aggroTargetId;
+            var multiplier = offTarget ? 1.5 : 1.0;
+            var mitigated = rawDamage * multiplier *
+                (1.0 - <float>state.combatData[playerBase + 5]);
+            var damage = <int>(mitigated + 0.5);
+            if (damage < 1) { damage = 1; }
+            applyPlayerDamage(state, index, damage);
+        }
+        index = index + 1;
+    }
+    state.eventOrder.add("gravebreaker");
+}
+
+tickRaiseFallen(state: NythraxisState): void {
+    state.raiseFallenTimer = state.raiseFallenTimer - 0.05;
+    if (state.raiseFallenTimer > 0.000000001) { return; }
+    state.raiseFallenTimer = 30.0;
+    recordNormalRaisedAddPositions(state);
+    state.raisedAdds = state.raisedAdds + 2;
+    state.eventOrder.add("raiseFallen");
+}
+
+tickTransition(state: NythraxisState): void {
+    state.transitionTimer = state.transitionTimer - 0.05;
+    if (state.transitionTimer > 0.000000001) { return; }
+    state.phase = 2;
+    state.gravebreakerTimer = 3.0;
+    state.soulRendTimer = 5.0;
+    state.deathlessTimer = 20.0;
+    var index = 0;
+    while (index < state.playerCount) {
+        var flagsSlot = index * 7 + 6;
+        state.combatData[flagsSlot] =
+            <float>(<int><float>state.combatData[flagsSlot] & -3);
+        index = index + 1;
+    }
+    state.eventOrder.add("phase2");
+}
+
+pub castSoulRend(
+    state: NythraxisState
+): void {
+    var candidates = new container.Array<int>();
+    var selected = new container.Array<bool>();
+    var index = 0;
+    while (index < state.playerCount) {
+        var playerBase = index * 7;
+        if ((<int><float>state.combatData[playerBase + 6] & 1) != 0 &&
+            <int><float>state.combatData[playerBase] != state.aggroTargetId) {
+            candidates.add(<int><float>state.combatData[playerBase]);
+            selected.add(false);
+        }
+        index = index + 1;
+    }
+    if (candidates.length == 0) {
+        state.soulRendTimer = 3.0;
+        return;
+    }
+    var markCount = state.heroic ? 6 : 3;
+    var remainingCandidates = candidates.length;
+    var picked = 0;
+    state.soulRendCount = 0;
+    while (picked < markCount && remainingCandidates > 0) {
+        var sample = takeRandomUnit(state, "soulRendPickDraw");
+        var ordinal = <int>(sample * <float>remainingCandidates);
+        if (ordinal < 0) { ordinal = 0; }
+        if (ordinal >= remainingCandidates) { ordinal = remainingCandidates - 1; }
+        var candidateIndex = 0;
+        var seen = 0;
+        var chosenIndex = -1;
+        while (candidateIndex < candidates.length) {
+            if ((<bool>selected[candidateIndex]) == false) {
+                if (seen == ordinal) {
+                    chosenIndex = candidateIndex;
+                    candidateIndex = candidates.length;
+                } else {
+                    seen = seen + 1;
+                    candidateIndex = candidateIndex + 1;
+                }
+            } else {
+                candidateIndex = candidateIndex + 1;
+            }
+        }
+        if (chosenIndex < 0) { throw "Nythraxis Soul Rend selection failed"; }
+        selected[chosenIndex] = true;
+        state.combatData[280 + state.soulRendCount] =
+            <float><int>candidates[chosenIndex];
+        state.combatData[286 + state.soulRendCount] = 8.0;
+        state.soulRendCount = state.soulRendCount + 1;
+        remainingCandidates = remainingCandidates - 1;
+        picked = picked + 1;
+    }
+    state.soulRendTimer = 30.0;
+    state.eventOrder.add("soulRendCast");
+}
+
+tickSoulRend(
+    state: NythraxisState
+): void {
+    if (state.soulRendCount == 0) { return; }
+    var index = 0;
+    var anyRemaining = false;
+    while (index < state.soulRendCount) {
+        var remaining = <float>state.combatData[286 + index] - 0.05;
+        state.combatData[286 + index] = remaining;
+        if (remaining > 0.000000001) { anyRemaining = true; }
+        index = index + 1;
+    }
+    if (anyRemaining) { return; }
+    index = 0;
+    while (index < state.soulRendCount) {
+        var playerIndex = findPlayerIndex(
+            state,
+            <int><float>state.combatData[280 + index]
+        );
+        if (playerIndex >= 0 &&
+            (<int><float>state.combatData[playerIndex * 7 + 6] & 1) != 0) {
+            var stacked = 0;
+            var otherIndex = 0;
+            while (otherIndex < state.soulRendCount) {
+                var otherPlayerIndex = findPlayerIndex(
+                    state,
+                    <int><float>state.combatData[280 + otherIndex]
+                );
+                if (otherPlayerIndex >= 0 &&
+                    (<int><float>state.combatData[otherPlayerIndex * 7 + 6] & 1) != 0 &&
+                    distanceSquared(
+                        <float>state.combatData[playerIndex * 7 + 3],
+                        <float>state.combatData[playerIndex * 7 + 4],
+                        <float>state.combatData[otherPlayerIndex * 7 + 3],
+                        <float>state.combatData[otherPlayerIndex * 7 + 4]
+                    ) <= 25.0) {
+                    stacked = stacked + 1;
+                }
+                otherIndex = otherIndex + 1;
+            }
+            if (stacked < 1) { stacked = 1; }
+            var multiplier = state.heroic ? 1.5 : 1.0;
+            var exactDamage =
+                (<float>state.combatData[playerIndex * 7 + 1] * multiplier) /
+                    <float>stacked;
+            var damage = <int>exactDamage;
+            if (<float>damage < exactDamage) { damage = damage + 1; }
+            applyPlayerDamage(state, playerIndex, damage);
+        }
+        index = index + 1;
+    }
+    state.soulRendCount = 0;
+    state.eventOrder.add("soulRendResolve");
+}
+
+pub startDeathlessRage(state: NythraxisState): void {
+    state.deathlessTimer = 45.0;
+    state.deathlessCastRemaining = 10.0;
+    state.soulRendLockout = 15.0;
+    state.wardCount = state.wardstonesLit;
+    var index = 0;
+    while (index < state.wardCount) {
+        state.combatData[292 + index] = 0.0;
+        state.combatData[295 + index] = 5.0;
+        state.combatData[298 + index] = 0.0;
+        index = index + 1;
+    }
+    state.eventOrder.add("deathlessStart");
+}
+
+pub tryStartWardChannel(
+    state: NythraxisState,
+    wardIndex: int,
+    playerId: int
+): bool {
+    if (state.deathlessCastRemaining <= 0.0) { return false; }
+    if (wardIndex < 0 || wardIndex >= state.wardCount) { return false; }
+    if (<float>state.combatData[298 + wardIndex] != 0.0) { return false; }
+    var currentPlayerId = <int><float>state.combatData[292 + wardIndex];
+    if (currentPlayerId != 0 && currentPlayerId != playerId) { return false; }
+    if (findPlayerIndex(state, playerId) < 0) { return false; }
+    state.combatData[292 + wardIndex] = <float>playerId;
+    state.combatData[295 + wardIndex] = 5.0;
+    state.eventOrder.add("wardChannelStart");
+    return true;
+}
+
+wardInterruptReady(state: NythraxisState): bool {
+    if (state.wardCount == 0) { return false; }
+    var index = 0;
+    while (index < state.wardCount) {
+        if (<float>state.combatData[298 + index] == 0.0 ||
+            <int><float>state.combatData[292 + index] == 0) {
+            return false;
+        }
+        var otherIndex = index + 1;
+        while (otherIndex < state.wardCount) {
+            if (<int><float>state.combatData[292 + index] ==
+                <int><float>state.combatData[292 + otherIndex]) {
+                return false;
+            }
+            otherIndex = otherIndex + 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+tickWardChannels(
+    state: NythraxisState
+): void {
+    var index = 0;
+    while (index < state.wardCount) {
+        var playerId = <int><float>state.combatData[292 + index];
+        if (<float>state.combatData[298 + index] == 0.0 && playerId != 0) {
+            var playerIndex = findPlayerIndex(state, playerId);
+            var invalid = playerIndex < 0;
+            if (!invalid) {
+                var expectedWardX = index == 0 ? -40.0 : (index == 1 ? 40.0 : 0.0);
+                var expectedWardZ = index == 2 ? -33.0 : -17.0;
+                invalid =
+                    (<int><float>state.combatData[playerIndex * 7 + 6] & 1) == 0 ||
+                    (<int><float>state.combatData[playerIndex * 7 + 6] & 2) != 0 ||
+                    distanceSquared(
+                        <float>state.combatData[playerIndex * 7 + 3],
+                        <float>state.combatData[playerIndex * 7 + 4],
+                        expectedWardX,
+                        expectedWardZ
+                    ) > 36.0;
+            }
+            if (invalid) {
+                state.combatData[292 + index] = 0.0;
+                state.combatData[295 + index] = 5.0;
+            } else {
+                var remaining = <float>state.combatData[295 + index] - 0.05;
+                state.combatData[295 + index] = remaining;
+                if (remaining <= 0.000000001) {
+                    state.combatData[298 + index] = 1.0;
+                    state.eventOrder.add("wardChannelComplete");
+                }
+            }
+        }
+        index = index + 1;
+    }
+}
+
+resolveDeathlessRage(state: NythraxisState): void {
+    state.deathlessCastRemaining = 0.0;
+    var multiplier = state.heroic ? 1.15 : 0.82;
+    var index = 0;
+    while (index < state.playerCount) {
+        if ((<int><float>state.combatData[index * 7 + 6] & 1) != 0) {
+            var exactDamage = <float>state.combatData[index * 7 + 1] * multiplier;
+            var damage = <int>exactDamage;
+            if (<float>damage < exactDamage) { damage = damage + 1; }
+            applyPlayerDamage(state, index, damage);
+        }
+        index = index + 1;
+    }
+    state.eventOrder.add("deathlessResolve");
+}
+
+tickDeathlessRage(
+    state: NythraxisState
+): void {
+    state.deathlessCastRemaining = state.deathlessCastRemaining - 0.05;
+    if (state.deathlessCastRemaining < 0.0) { state.deathlessCastRemaining = 0.0; }
+    tickWardChannels(state);
+    if (wardInterruptReady(state)) {
+        state.deathlessCastRemaining = 0.0;
+        state.deathlessStunRemaining = 5.0;
+        state.eventOrder.add("deathlessInterrupt");
+        return;
+    }
+    if (state.deathlessCastRemaining <= 0.000000001) {
+        resolveDeathlessRage(state);
+    }
+}
+
+startFinalStand(state: NythraxisState): void {
+    state.finalStand = true;
+    state.bossEnraged = true;
+    state.eventOrder.add("finalStand");
+}
+
+pub tickEncounter(
+    state: NythraxisState
+): void {
+    if (state.soulRendLockout > 0.0) {
+        state.soulRendLockout = state.soulRendLockout - 0.05;
+        if (state.soulRendLockout < 0.0) { state.soulRendLockout = 0.0; }
+    }
+    tickSoulRend(state);
+    if (state.phase == 0) {
+        tickTransition(state);
+        return;
+    }
+    if (state.phase == 3) { return; }
+    var maximumHealth = state.bossMaxHp > 0 ? state.bossMaxHp : 1;
+    var healthFraction = <float>state.bossHp / <float>maximumHealth;
+    if (state.phase == 1 && healthFraction <= 0.70) {
+        state.phase = 0;
+        state.transitionTimer = 21.0;
+        state.deathlessCastRemaining = 0.0;
+        state.aldricPresent = true;
+        state.wardstonesLit = 3;
+        var playerIndex = 0;
+        while (playerIndex < state.playerCount) {
+            var flagsSlot = playerIndex * 7 + 6;
+            if ((<int><float>state.combatData[flagsSlot] & 1) != 0) {
+                state.combatData[flagsSlot] =
+                    <float>(<int><float>state.combatData[flagsSlot] | 2);
+            }
+            playerIndex = playerIndex + 1;
+        }
+        state.eventOrder.add("transition");
+        return;
+    }
+    if (state.phase == 2 && !state.finalStand && healthFraction <= 0.05) {
+        startFinalStand(state);
+    }
+    if (state.deathlessStunRemaining > 0.0) {
+        state.deathlessStunRemaining = state.deathlessStunRemaining - 0.05;
+        if (state.deathlessStunRemaining < 0.0) {
+            state.deathlessStunRemaining = 0.0;
+        }
+        return;
+    }
+    if (state.deathlessCastRemaining > 0.0) {
+        tickDeathlessRage(state);
+        return;
+    }
+    tickGravebreaker(state);
+    if (state.phase == 1) {
+        tickRaiseFallen(state);
+        return;
+    }
+    if (state.phase == 2) {
+        state.soulRendTimer = state.soulRendTimer - 0.05;
+        if (state.soulRendTimer <= 0.000000001) {
+            castSoulRend(state);
+        }
+        state.deathlessTimer = state.deathlessTimer - 0.05;
+        if (state.deathlessTimer <= 0.000000001) {
+            if (state.soulRendCount == 0 && state.soulRendLockout <= 0.0) {
+                startDeathlessRage(state);
+            } else {
+                state.deathlessTimer = 1.0;
+            }
+        }
+    }
+}
+
+pub killBoss(state: NythraxisState): void {
+    if (state.phase == 3) { return; }
+    state.bossHp = 0;
+    state.phase = 3;
+    state.deathSpoken = true;
+    state.raidLockoutGranted = true;
+    state.eventOrder.add("raidLockout");
+    state.eventOrder.add("deathDialogue");
+    state.eventOrder.add("deathDialogue");
+}
+
+pub contractTest(): int {
+    var state = new NythraxisState();
+    state.bossMaxHp = 1000;
+    state.bossHp = 1000;
+    state.bossWeaponMin = 100.0;
+    state.bossWeaponMax = 120.0;
+    state.bossAttackPower = 140.0;
+    state.bossWeaponSpeed = 2.0;
+    state.aggroTargetId = 1;
+    addRaidPlayer(state, 1, 900, 0.0, -6.0, 0.25, true);
+    addRaidPlayer(state, 2, 900, -1.5, -20.0, 0.0, false);
+    addRaidPlayer(state, 3, 900, -0.5, -20.0, 0.0, false);
+    addRaidPlayer(state, 4, 900, 0.5, -20.0, 0.0, false);
+    addRaidPlayer(state, 5, 900, 1.5, -20.0, 0.0, false);
+    state.randomUnits.add(0.5);
+    state.randomUnits.add(0.0);
+    state.randomUnits.add(0.0);
+    state.randomUnits.add(0.0);
+    state.gravebreakerTimer = 0.05;
+    state.raiseFallenTimer = 0.05;
+    tickEncounter(state);
+    if (state.randomIndex != 1 || state.gravebreakerCasts != 1 ||
+        <int><float>state.combatData[2] != 802 ||
+        state.raisedAdds != 2 || state.eventOrder.length < 3 ||
+        state.normalAddPositions.length != 4 || state.normalAddAnchors.length != 4 ||
+        <float>state.normalAddPositions[0] != -12.0 ||
+        <float>state.normalAddPositions[1] != 16.0 ||
+        <float>state.normalAddPositions[2] != 12.0 ||
+        <float>state.normalAddAnchors[0] != 0.0 ||
+        <float>state.normalAddAnchors[1] != 0.0 ||
+        <string>state.eventOrder[0] != "gravebreakerDraw" ||
+        <string>state.eventOrder[1] != "gravebreaker" ||
+        <string>state.eventOrder[2] != "raiseFallen") {
+        return -1;
+    }
+
+    state.bossHp = 690;
+    tickEncounter(state);
+    var stunnedPlayers = 0;
+    var playerIndex = 0;
+    while (playerIndex < state.playerCount) {
+        if ((<int><float>state.combatData[playerIndex * 7 + 6] & 2) != 0) {
+            stunnedPlayers = stunnedPlayers + 1;
+        }
+        playerIndex = playerIndex + 1;
+    }
+    if (state.phase != 0 || stunnedPlayers != 5 || !state.aldricPresent ||
+        state.wardstonesLit != 3) {
+        return -2;
+    }
+    state.transitionTimer = 0.05;
+    tickEncounter(state);
+    if (state.phase != 2) { return -3; }
+
+    state.gravebreakerTimer = 999.0;
+    state.deathlessTimer = 999.0;
+    state.soulRendTimer = 0.05;
+    tickEncounter(state);
+    if (state.soulRendCount != 3 || state.randomIndex != 4 ||
+        <int><float>state.combatData[280] != 2 ||
+        <int><float>state.combatData[281] != 3 ||
+        <int><float>state.combatData[282] != 4) {
+        return -4;
+    }
+    var ticks = 0;
+    while (ticks < 161) {
+        tickEncounter(state);
+        ticks = ticks + 1;
+    }
+    if (state.soulRendCount != 0 ||
+        <int><float>state.combatData[9] != 600 ||
+        <int><float>state.combatData[16] != 600 ||
+        <int><float>state.combatData[23] != 600 ||
+        <int><float>state.combatData[30] != 900) {
+        return -5;
+    }
+
+    state.deathlessTimer = 0.05;
+    state.soulRendLockout = 0.0;
+    tickEncounter(state);
+    if (state.deathlessCastRemaining != 10.0 || state.wardCount != 3) {
+        return -6;
+    }
+    setPlayerPosition(state, 2, -40.0, -17.0);
+    setPlayerPosition(state, 3, 40.0, -17.0);
+    setPlayerPosition(state, 4, 0.0, -33.0);
+    if (!tryStartWardChannel(state, 0, 2) ||
+        !tryStartWardChannel(state, 1, 3) ||
+        !tryStartWardChannel(state, 2, 4)) {
+        return -7;
+    }
+    ticks = 0;
+    while (ticks < 101) {
+        tickEncounter(state);
+        ticks = ticks + 1;
+    }
+    if (state.deathlessCastRemaining != 0.0 || state.deathlessStunRemaining <= 0.0 ||
+        <float>state.combatData[298] == 0.0 ||
+        <float>state.combatData[299] == 0.0 ||
+        <float>state.combatData[300] == 0.0) {
+        return -8;
+    }
+
+    state.bossHp = 40;
+    tickEncounter(state);
+    if (!state.finalStand || !state.bossEnraged) {
+        return -9;
+    }
+    killBoss(state);
+    if (state.phase != 3 || !state.deathSpoken || !state.raidLockoutGranted ||
+        state.randomIndex != 4) {
+        return -10;
+    }
+    var eventCount = state.eventOrder.length;
+    if (eventCount < 3 ||
+        <string>state.eventOrder[eventCount - 3] != "raidLockout" ||
+        <string>state.eventOrder[eventCount - 2] != "deathDialogue" ||
+        <string>state.eventOrder[eventCount - 1] != "deathDialogue") {
+        return -11;
+    }
+
+    var noCandidates = new NythraxisState();
+    noCandidates.aggroTargetId = 10;
+    addRaidPlayer(noCandidates, 10, 1000, 0.0, 0.0, 0.0, true);
+    castSoulRend(noCandidates);
+    if (noCandidates.randomIndex != 0 || noCandidates.soulRendTimer != 3.0 ||
+        noCandidates.soulRendCount != 0) {
+        return -12;
+    }
+    setBossPosition(noCandidates, 30.0, -40.0);
+    setBossSpawnAnchor(noCandidates, 100.0, 200.0);
+    recordHeroicCourtAddPositions(noCandidates);
+    if (noCandidates.heroicAddPositions.length != 6 || noCandidates.heroicAddAnchors.length != 6 ||
+        <float>noCandidates.heroicAddPositions[0] != 22.0 ||
+        <float>noCandidates.heroicAddPositions[1] != -32.0 ||
+        <float>noCandidates.heroicAddPositions[2] != 30.0 ||
+        <float>noCandidates.heroicAddPositions[3] != -30.0 ||
+        <float>noCandidates.heroicAddPositions[4] != 38.0 ||
+        <float>noCandidates.heroicAddPositions[5] != -32.0 ||
+        <float>noCandidates.heroicAddAnchors[0] != 100.0 ||
+        <float>noCandidates.heroicAddAnchors[1] != 200.0 ||
+        <float>noCandidates.heroicAddAnchors[4] != 100.0 ||
+        <float>noCandidates.heroicAddAnchors[5] != 200.0) {
+        return -13;
+    }
+    return 1;
+}

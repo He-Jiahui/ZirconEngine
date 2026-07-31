@@ -1,0 +1,46 @@
+// Ordered pending-spawn projection for the source restless_graves death hook and tick consumer.
+var container = %import("zr.container");
+var content = %import("instances/delve_restless_graves_content");
+
+class RestlessGravesState {
+    pub var dueAt: container.Array<float>;
+    pub var xs: container.Array<float>;
+    pub var zs: container.Array<float>;
+    pub var spawned: int;
+    pub var lastSpawnX: float;
+    pub var lastSpawnZ: float;
+    pub @constructor() {
+        this.dueAt = new container.Array<float>(); this.xs = new container.Array<float>(); this.zs = new container.Array<float>();
+        this.spawned = 0; this.lastSpawnX = 0.0; this.lastSpawnZ = 0.0;
+    }
+}
+
+pub shouldQueue(affixActive: bool, templateExists: bool, boss: bool, elite: bool, affixSpawned: bool): bool {
+    return affixActive && templateExists && !boss && !elite && !affixSpawned;
+}
+
+pub enqueue(state: RestlessGravesState, now: float, x: float, z: float, eligible: bool): bool {
+    if (!eligible) { return false; }
+    state.dueAt.add(now + content.delaySeconds(true)); state.xs.add(x); state.zs.add(z); return true;
+}
+
+pub tick(state: RestlessGravesState, now: float): int {
+    var index = 0; var ready = 0;
+    while (index < state.dueAt.length) {
+        if (content.isReady(<float>state.dueAt[index], now)) {
+            state.lastSpawnX = <float>state.xs[index]; state.lastSpawnZ = <float>state.zs[index];
+            state.dueAt.removeAt(index); state.xs.removeAt(index); state.zs.removeAt(index);
+            state.spawned = state.spawned + 1; ready = ready + 1;
+        } else { index = index + 1; }
+    }
+    return ready;
+}
+
+pub contractTest(): int {
+    if (!shouldQueue(true, true, false, false, false) || shouldQueue(false, true, false, false, false) || shouldQueue(true, true, true, false, false) || shouldQueue(true, true, false, true, false) || shouldQueue(true, true, false, false, true)) { return -1; }
+    var state = new RestlessGravesState();
+    if (!enqueue(state, 10.0, 1.0, 2.0, true) || !enqueue(state, 11.0, 3.0, 4.0, true) || tick(state, 12.9) != 0 || state.dueAt.length != 2) { return -2; }
+    if (tick(state, 13.0) != 1 || state.spawned != 1 || state.lastSpawnX != 1.0 || state.lastSpawnZ != 2.0 || state.dueAt.length != 1) { return -3; }
+    if (tick(state, 14.0) != 1 || state.spawned != 2 || state.lastSpawnX != 3.0 || state.lastSpawnZ != 4.0 || state.dueAt.length != 0) { return -4; }
+    return 1;
+}

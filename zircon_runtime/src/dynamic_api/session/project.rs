@@ -5,12 +5,12 @@ use zircon_runtime_interface::ZrByteSlice;
 
 use crate::asset::project::ProjectManifest;
 use crate::asset::project::{ProjectManager, ProjectScriptManifest};
-use crate::asset::{asset_manager_handle, project_asset_manager_handle};
+use crate::asset::{asset_manager_handle, project_asset_manager_handle, ProjectInfo};
 use crate::core::framework::navigation::NavMeshAsset;
 use crate::core::framework::project::ProjectPluginManifest;
 use crate::core::manager::{navigation_manager_handle, resolve_manager_service};
 use crate::core::CoreHandle;
-use crate::diagnostic_log::write_log;
+use crate::diagnostic_log::{write_log, write_log_lazy};
 use crate::scene::{DynamicSceneAssetReloadQueue, LevelSystem};
 use crate::script::{VmPluginManager, VM_PLUGIN_MANAGER_NAME};
 
@@ -70,6 +70,20 @@ pub(super) struct RuntimePreparedProject {
     project: Option<ProjectManager>,
 }
 
+pub(super) fn project_opened_log(info: &ProjectInfo) -> String {
+    format!(
+        "runtime_project_opened root={} name={} default_scene={} library_version={} assets={} ready_assets={} failed_assets={} registry_diagnostics={}",
+        info.root_path,
+        info.name,
+        info.default_scene_uri,
+        info.library_version,
+        info.asset_count,
+        info.ready_asset_count,
+        info.failed_asset_count,
+        info.registry_diagnostic_count,
+    )
+}
+
 impl RuntimePreparedProject {
     pub(super) fn root_display(&self) -> String {
         self.root.to_string_lossy().into_owned()
@@ -79,7 +93,10 @@ impl RuntimePreparedProject {
         &self.manifest.plugins
     }
 
-    pub(super) fn open_project_assets(&mut self, core: &CoreHandle) -> RuntimeProjectResult<()> {
+    pub(super) fn open_project_assets(
+        &mut self,
+        core: &CoreHandle,
+    ) -> RuntimeProjectResult<ProjectInfo> {
         let asset_manager = asset_manager_handle(core)
             .and_then(|handle| resolve_manager_service(core, handle))
             .map_err(|source| RuntimeProjectError::ResolveAssetManager {
@@ -93,7 +110,6 @@ impl RuntimePreparedProject {
         })?;
         asset_manager
             .open_prepared_project(project)
-            .map(|_| ())
             .map_err(|source| RuntimeProjectError::OpenProjectAssets {
                 root: self.root.clone(),
                 source,
@@ -189,49 +205,45 @@ impl RuntimePreparedProject {
             })?;
         let mut packages = Vec::new();
         for root in self.manifest.script_package_roots(&self.root) {
-            write_log(
-                "runtime_session",
+            write_log_lazy("runtime_session", || {
                 format!(
                     "runtime_project_script_discover_start root={}",
                     root.display()
-                ),
-            );
+                )
+            });
             packages.extend(manager.discover_packages(&root).map_err(|source| {
                 RuntimeProjectError::DiscoverScriptPackages {
                     root: root.clone(),
                     source,
                 }
             })?);
-            write_log(
-                "runtime_session",
+            write_log_lazy("runtime_session", || {
                 format!(
                     "runtime_project_script_discover_done root={} packages={}",
                     root.display(),
                     packages.len()
-                ),
-            );
+                )
+            });
         }
         for package in self.manifest.filter_startup_packages(packages)? {
-            write_log(
-                "runtime_session",
+            write_log_lazy("runtime_session", || {
                 format!(
                     "runtime_project_script_load_start package={} backend={}",
                     package.package.manifest.name, package.backend_name
-                ),
-            );
+                )
+            });
             manager
                 .load_discovered_package(&package)
                 .map_err(|source| RuntimeProjectError::LoadScriptPackage {
                     package: package.package.manifest.name.clone(),
                     source,
                 })?;
-            write_log(
-                "runtime_session",
+            write_log_lazy("runtime_session", || {
                 format!(
                     "runtime_project_script_load_done package={}",
                     package.package.manifest.name
-                ),
-            );
+                )
+            });
         }
         Ok(())
     }
@@ -300,7 +312,7 @@ mod tests {
 
     use crate::asset::project::ProjectManifest;
     use crate::asset::project::ProjectScriptManifest;
-    use crate::asset::AssetUri;
+    use crate::asset::{AssetUri, ProjectInfo};
     use crate::core::framework::project::ProjectPluginManifest;
     use crate::script::{
         CapabilitySet, DiscoveredVmPluginPackage, VmPluginManagementPolicy, VmPluginManifest,
@@ -308,7 +320,26 @@ mod tests {
     };
     use zircon_runtime_interface::ZrByteSlice;
 
-    use super::{RuntimeLoadedProjectManifest, RuntimeProjectConfig};
+    use super::{project_opened_log, RuntimeLoadedProjectManifest, RuntimeProjectConfig};
+
+    #[test]
+    fn project_opened_log_reports_the_activated_project_snapshot() {
+        let log = project_opened_log(&ProjectInfo {
+            root_path: "C:\\projects\\renderable-empty".to_string(),
+            name: "Renderable Empty".to_string(),
+            default_scene_uri: "res://scenes/main.scene.toml".to_string(),
+            library_version: 1,
+            asset_count: 8,
+            ready_asset_count: 7,
+            failed_asset_count: 1,
+            registry_diagnostic_count: 2,
+        });
+
+        assert_eq!(
+            log,
+            "runtime_project_opened root=C:\\projects\\renderable-empty name=Renderable Empty default_scene=res://scenes/main.scene.toml library_version=1 assets=8 ready_assets=7 failed_assets=1 registry_diagnostics=2"
+        );
+    }
 
     #[test]
     fn project_config_omits_empty_abi_slice() {

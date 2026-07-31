@@ -15,7 +15,7 @@ impl ResourceManager {
         records.sort_by(|left, right| {
             left.primary_locator
                 .cmp(&right.primary_locator)
-                .then_with(|| left.id.to_string().cmp(&right.id.to_string()))
+                .then_with(|| left.id.cmp(&right.id))
         });
         records
     }

@@ -1,5 +1,7 @@
 use zircon_runtime_interface::ui::design_tokens::EditorDensityTokens;
 
+use super::ResolutionContext;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WorkbenchLayoutTier {
     Ultra,
@@ -97,16 +99,8 @@ pub(crate) fn workbench_layout_defaults() -> WorkbenchLayoutDefaults {
     WorkbenchLayoutDefaults::from_density_tokens(EditorDensityTokens::workbench_dense())
 }
 
-fn effective_layout_scale_factor(scale_factor: f32) -> f32 {
-    if scale_factor.is_finite() && scale_factor > 0.0 {
-        scale_factor
-    } else {
-        1.0
-    }
-}
-
 pub(crate) fn workbench_logical_width_for_scale(physical_width: f32, scale_factor: f32) -> f32 {
-    physical_width.max(0.0) / effective_layout_scale_factor(scale_factor)
+    ResolutionContext::logical_extent(physical_width, scale_factor)
 }
 
 pub(crate) fn workbench_layout_tier_for_logical_width(logical_width: f32) -> WorkbenchLayoutTier {

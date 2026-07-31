@@ -8,7 +8,10 @@ use crate::ui::layout::{
 };
 use crate::ui::navigation::UiNavigationContract;
 
-use super::{UiDirtyFlags, UiInputPolicy, UiLayoutCache, UiTemplateNodeMetadata, UiVisibility};
+use super::{
+    UiCursor, UiDirtyFlags, UiInputPolicy, UiLayoutCache, UiPointerEvents, UiTemplateNodeMetadata,
+    UiVisibility,
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiTreeNode {
@@ -42,6 +45,11 @@ pub struct UiTreeNode {
     #[serde(default)]
     pub navigation: UiNavigationContract,
     pub input_policy: UiInputPolicy,
+    #[serde(default)]
+    pub pointer_events: UiPointerEvents,
+    /// `None` allows cursor resolution to continue through the hit path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<UiCursor>,
     pub clip_to_bounds: bool,
     pub layout_boundary: LayoutBoundary,
     pub z_index: i32,
@@ -81,6 +89,8 @@ impl UiTreeNode {
             focus: UiFocusContract::default(),
             navigation: UiNavigationContract::default(),
             input_policy: UiInputPolicy::Inherit,
+            pointer_events: UiPointerEvents::Auto,
+            cursor: None,
             clip_to_bounds: false,
             layout_boundary: LayoutBoundary::ContentDriven,
             z_index: 0,
@@ -122,6 +132,18 @@ impl UiTreeNode {
         self.effective_visibility().allows_child_hit_test()
     }
 
+    pub fn allows_self_pointer_hit_test(&self) -> bool {
+        self.is_self_hit_test_visible() && self.pointer_events.allows_self_hit_test()
+    }
+
+    pub fn allows_child_pointer_hit_test(&self) -> bool {
+        self.allows_child_hit_test() && self.pointer_events.allows_child_hit_test()
+    }
+
+    pub fn is_pointer_passthrough(&self) -> bool {
+        self.pointer_events.is_passthrough()
+    }
+
     pub fn is_focus_candidate(&self) -> bool {
         self.state_flags.enabled
             && (self.state_flags.focusable || self.focus.focusable)
@@ -130,7 +152,7 @@ impl UiTreeNode {
 
     pub fn supports_pointer(&self) -> bool {
         self.state_flags.enabled
-            && self.is_self_hit_test_visible()
+            && self.allows_self_pointer_hit_test()
             && (self.state_flags.clickable
                 || self.state_flags.hoverable
                 || self.state_flags.focusable
@@ -185,6 +207,16 @@ impl UiTreeNode {
 
     pub fn with_input_policy(mut self, input_policy: UiInputPolicy) -> Self {
         self.input_policy = input_policy;
+        self
+    }
+
+    pub fn with_pointer_events(mut self, pointer_events: UiPointerEvents) -> Self {
+        self.pointer_events = pointer_events;
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: UiCursor) -> Self {
+        self.cursor = Some(cursor);
         self
     }
 

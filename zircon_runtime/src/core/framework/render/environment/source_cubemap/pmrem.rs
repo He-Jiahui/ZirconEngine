@@ -4,12 +4,55 @@ use super::{
     SourceCubemapPrefilterQuality,
 };
 use crate::core::framework::render::environment::{cubemap_texel_direction, CubemapFace};
+use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;
 
 const FULL_ROUGHNESS_COSINE_THRESHOLD: Real = 0.99;
 const FIS_SOLID_ANGLE_TEXEL_SCALE: Real = 2.0;
 const PMREM_LOW_ROUGHNESS_THRESHOLD: Real = 0.1;
 const PMREM_HIGH_ROUGHNESS_THRESHOLD: Real = 0.75;
+
+struct FilteredPmremFace {
+    face: CubemapFace,
+    texels: Vec<[Real; 4]>,
+}
+
+trait PmremFaceExecutor {
+    fn filter_faces<F>(&self, faces: &mut [FilteredPmremFace], filter_face: &F)
+    where
+        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync;
+}
+
+struct SerialPmremFaceExecutor;
+
+impl PmremFaceExecutor for SerialPmremFaceExecutor {
+    fn filter_faces<F>(&self, faces: &mut [FilteredPmremFace], filter_face: &F)
+    where
+        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync,
+    {
+        for filtered_face in faces {
+            filtered_face.texels = filter_face(filtered_face.face);
+        }
+    }
+}
+
+struct ParallelPmremFaceExecutor<'a, E>(&'a E);
+
+impl<E> PmremFaceExecutor for ParallelPmremFaceExecutor<'_, E>
+where
+    E: ParallelSliceExecutor,
+{
+    fn filter_faces<F>(&self, faces: &mut [FilteredPmremFace], filter_face: &F)
+    where
+        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync,
+    {
+        self.0.parallel_for(faces, 1, |chunk| {
+            for filtered_face in chunk {
+                filtered_face.texels = filter_face(filtered_face.face);
+            }
+        });
+    }
+}
 
 pub(super) fn prefilter_pmrem_mips_from_source(
     pmrem_texels: &mut [[Real; 4]],
@@ -20,16 +63,61 @@ pub(super) fn prefilter_pmrem_mips_from_source(
     source_mip_count: u32,
     quality: SourceCubemapPrefilterQuality,
 ) {
+    prefilter_pmrem_mips_from_source_with_face_executor(
+        pmrem_texels,
+        pmrem_face_size,
+        pmrem_mip_count,
+        source_mips,
+        source_face_size,
+        source_mip_count,
+        quality,
+        &SerialPmremFaceExecutor,
+    );
+}
+
+pub(super) fn prefilter_pmrem_mips_from_source_with_parallel_executor<E>(
+    pmrem_texels: &mut [[Real; 4]],
+    pmrem_face_size: u32,
+    pmrem_mip_count: u32,
+    source_mips: &[[Real; 4]],
+    source_face_size: u32,
+    source_mip_count: u32,
+    quality: SourceCubemapPrefilterQuality,
+    parallel_executor: &E,
+) where
+    E: ParallelSliceExecutor,
+{
+    prefilter_pmrem_mips_from_source_with_face_executor(
+        pmrem_texels,
+        pmrem_face_size,
+        pmrem_mip_count,
+        source_mips,
+        source_face_size,
+        source_mip_count,
+        quality,
+        &ParallelPmremFaceExecutor(parallel_executor),
+    );
+}
+
+fn prefilter_pmrem_mips_from_source_with_face_executor(
+    pmrem_texels: &mut [[Real; 4]],
+    pmrem_face_size: u32,
+    pmrem_mip_count: u32,
+    source_mips: &[[Real; 4]],
+    source_face_size: u32,
+    source_mip_count: u32,
+    quality: SourceCubemapPrefilterQuality,
+    face_executor: &impl PmremFaceExecutor,
+) {
     for mip in 0..pmrem_mip_count.max(1) {
         let mip_size = source_cubemap_mip_size(pmrem_face_size, mip);
         let filter = GgxRadianceFilter::new(mip, pmrem_mip_count, mip_size, quality);
-        for face in CubemapFace::ALL {
-            let dest_offset =
-                source_cubemap_face_mip_offset(pmrem_face_size, pmrem_mip_count, face, mip);
+        let filter_face = |face| {
+            let mut face_texels = vec![[0.0; 4]; mip_size as usize * mip_size as usize];
             for y in 0..mip_size {
                 for x in 0..mip_size {
                     let direction = cubemap_texel_direction(face, x, y, mip_size);
-                    pmrem_texels[dest_offset + y as usize * mip_size as usize + x as usize] =
+                    face_texels[y as usize * mip_size as usize + x as usize] =
                         ggx_prefilter_direction(
                             source_mips,
                             source_face_size,
@@ -39,6 +127,25 @@ pub(super) fn prefilter_pmrem_mips_from_source(
                         );
                 }
             }
+            face_texels
+        };
+        let mut filtered_faces = CubemapFace::ALL
+            .into_iter()
+            .map(|face| FilteredPmremFace {
+                face,
+                texels: Vec::new(),
+            })
+            .collect::<Vec<_>>();
+        face_executor.filter_faces(&mut filtered_faces, &filter_face);
+        for filtered_face in filtered_faces {
+            let dest_offset = source_cubemap_face_mip_offset(
+                pmrem_face_size,
+                pmrem_mip_count,
+                filtered_face.face,
+                mip,
+            );
+            pmrem_texels[dest_offset..dest_offset + filtered_face.texels.len()]
+                .copy_from_slice(&filtered_face.texels);
         }
     }
 }
@@ -314,9 +421,28 @@ fn cross3(a: [Real; 3], b: [Real; 3]) -> [Real; 3] {
 #[cfg(test)]
 mod tests {
     use super::{
-        distribution_ggx, ggx_light_direction_pdf, ggx_sample_count_for_mip, source_lod_for_pdf,
-        SourceCubemapPrefilterQuality,
+        distribution_ggx, ggx_light_direction_pdf, ggx_sample_count_for_mip,
+        prefilter_pmrem_mips_from_source, prefilter_pmrem_mips_from_source_with_parallel_executor,
+        source_lod_for_pdf, SourceCubemapPrefilterQuality,
     };
+    use crate::core::framework::tasks::ParallelSliceExecutor;
+    use crate::core::math::Real;
+
+    #[derive(Default)]
+    struct CountingParallelSliceExecutor(std::sync::atomic::AtomicUsize);
+
+    impl ParallelSliceExecutor for CountingParallelSliceExecutor {
+        fn parallel_for<T, F>(&self, items: &mut [T], chunk_size: usize, task: F)
+        where
+            T: Send,
+            F: Fn(&mut [T]) + Send + Sync,
+        {
+            self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            for chunk in items.chunks_mut(chunk_size.max(1)) {
+                task(chunk);
+            }
+        }
+    }
 
     #[test]
     fn ggx_light_direction_pdf_matches_unreal_v_equals_n_reduction() {
@@ -362,6 +488,47 @@ mod tests {
         assert_eq!(
             ggx_sample_count_for_mip(7, 8, SourceCubemapPrefilterQuality::High),
             256
+        );
+    }
+
+    #[test]
+    fn parallel_pmrem_prefilter_dispatches_each_mip_and_matches_serial_output() {
+        let face_size = 8;
+        let mip_count = super::super::source_cubemap_mip_count(face_size);
+        let source_texels = vec![
+            [0.25 as Real, 0.5 as Real, 0.75 as Real, 1.0 as Real];
+            super::super::source_cubemap_sample_count(face_size, mip_count)
+        ];
+        let mut serial =
+            vec![[0.0; 4]; super::super::source_cubemap_sample_count(face_size, mip_count)];
+        let mut parallel = serial.clone();
+        prefilter_pmrem_mips_from_source(
+            &mut serial,
+            face_size,
+            mip_count,
+            &source_texels,
+            face_size,
+            mip_count,
+            SourceCubemapPrefilterQuality::Fast,
+        );
+
+        let executor = CountingParallelSliceExecutor::default();
+        prefilter_pmrem_mips_from_source_with_parallel_executor(
+            &mut parallel,
+            face_size,
+            mip_count,
+            &source_texels,
+            face_size,
+            mip_count,
+            SourceCubemapPrefilterQuality::Fast,
+            &executor,
+        );
+
+        assert_eq!(parallel, serial);
+        assert_eq!(
+            executor.0.load(std::sync::atomic::Ordering::Relaxed),
+            mip_count as usize,
+            "each PMREM mip must dispatch its independent faces through the supplied executor"
         );
     }
 }

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/ring_of_frost_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/ring_of_frost.ts": "0a614c82737982bed60b84bb8df8f99b42f9ffb075855d4cdb014b9e01544166"
+  },
+  "annulus": {
+    "projection": "clamped_segment",
+    "inner_boundary": "strictly_outside_inner",
+    "outer_boundary": "inclusive",
+    "zero_length_projection_t": 0
+  },
+  "sweep_query_padding": 30
+}

@@ -1,8 +1,59 @@
+use zircon_runtime::core::framework::animation::{
+    AnimationIkCommand, AnimationIkCommandError, AnimationLookAtCommand, AnimationManager,
+    AnimationTargetId,
+};
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime::core::framework::scene::WorldHandle;
+use zircon_runtime::core::math::Vec3;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::plugin::PluginModuleKind;
 
 use super::*;
+
+#[test]
+fn plugin_default_animation_manager_is_not_runtime_fallback_type() {
+    assert_ne!(
+        std::any::TypeId::of::<DefaultAnimationManager>(),
+        std::any::TypeId::of::<zircon_runtime::animation::DefaultAnimationManager>(),
+    );
+}
+
+#[test]
+fn plugin_manager_validates_and_drains_ik_commands_per_world() {
+    let manager = DefaultAnimationManager::default();
+    let world = WorldHandle::new(7);
+    let other_world = WorldHandle::new(8);
+    let bone = AnimationTargetId::from_segments(["Root", "Head"]);
+    let command = AnimationIkCommand::LookAt(AnimationLookAtCommand {
+        world,
+        entity: 41,
+        bone,
+        target: Vec3::Y,
+        axis: Vec3::X,
+        clamp_degrees: 35.0,
+        weight: 0.75,
+    });
+
+    manager.queue_ik_command(command.clone()).unwrap();
+
+    assert!(manager.drain_ik_commands(other_world).is_empty());
+    assert_eq!(manager.drain_ik_commands(world), vec![command]);
+    assert!(manager.drain_ik_commands(world).is_empty());
+
+    let invalid = AnimationIkCommand::LookAt(AnimationLookAtCommand {
+        world,
+        entity: 41,
+        bone,
+        target: Vec3::Y,
+        axis: Vec3::ZERO,
+        clamp_degrees: 35.0,
+        weight: 1.0,
+    });
+    assert_eq!(
+        manager.queue_ik_command(invalid),
+        Err(AnimationIkCommandError::DegenerateAxis { world, entity: 41 })
+    );
+}
 
 #[test]
 fn animation_registration_contributes_runtime_module() {
@@ -93,6 +144,29 @@ fn animation_registration_contributes_runtime_module() {
             status.capability == ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY
                 && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
         }));
+}
+
+#[test]
+fn animation_evaluate_runs_after_physics_sync() {
+    let report = plugin_registration();
+    let animation_stage = report
+        .extensions
+        .plugin_runtime_systems()
+        .find_map(|(owner, system)| {
+            (report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                && system.id == ANIMATION_EVALUATE_SYSTEM)
+                .then_some(system.stage)
+        })
+        .expect("animation evaluate system should be registered");
+
+    assert_eq!(
+        animation_stage,
+        zircon_runtime::scene::SystemStage::PostUpdate
+    );
+    assert!(
+        animation_stage.rank() > zircon_runtime::scene::SystemStage::FixedPostUpdate.rank(),
+        "animation evaluation must run after physics sync in FixedPostUpdate"
+    );
 }
 
 #[test]

@@ -1,0 +1,52 @@
+// Pure Ring of Frost annulus sweep geometry. The WOS ground-AoE owner handles
+// entity queries, per-ring trigger history, combat entry and root aura mutation.
+var contract = %import("generated/ring_of_frost_contract");
+
+pub class PointXZ {
+    pub var x: float;
+    pub var z: float;
+    pub @constructor(x: float, z: float) {
+        this.x = x;
+        this.z = z;
+    }
+}
+
+minimum(value: float, upper: float): float { return value < upper ? value : upper; }
+maximum(value: float, lower: float): float { return value > lower ? value : lower; }
+
+// Exact projection test from segmentTouchesAnnulus. A segment that remains
+// entirely inside the inner radius cannot trigger the annular trap.
+pub segmentTouchesAnnulus(
+    start: PointXZ,
+    end: PointXZ,
+    center: PointXZ,
+    innerRadius: float,
+    outerRadius: float
+): bool {
+    var startX = start.x - center.x;
+    var startZ = start.z - center.z;
+    var endX = end.x - center.x;
+    var endZ = end.z - center.z;
+    var startDistanceSq = startX * startX + startZ * startZ;
+    var endDistanceSq = endX * endX + endZ * endZ;
+    var maxDistanceSq = maximum(startDistanceSq, endDistanceSq);
+    if (maxDistanceSq < innerRadius * innerRadius) return false;
+    var dx = endX - startX;
+    var dz = endZ - startZ;
+    var lengthSq = dx * dx + dz * dz;
+    var closestT = lengthSq > 0.0 ? maximum(0.0, minimum(1.0, -(startX * dx + startZ * dz) / lengthSq)) : contract.zeroLengthProjectionT(true);
+    var closestX = startX + dx * closestT;
+    var closestZ = startZ + dz * closestT;
+    return closestX * closestX + closestZ * closestZ <= outerRadius * outerRadius;
+}
+
+pub contractTest(): int {
+    if (!contract.outerBoundaryInclusive(true) || contract.sweepQueryPadding(true) != 30.0) return -1;
+    var center = new PointXZ(0.0, 0.0);
+    if (segmentTouchesAnnulus(new PointXZ(0.0, 0.0), new PointXZ(1.0, 0.0), center, 2.0, 5.0)) return -2;
+    if (!segmentTouchesAnnulus(new PointXZ(-6.0, 0.0), new PointXZ(6.0, 0.0), center, 2.0, 5.0)) return -3;
+    if (segmentTouchesAnnulus(new PointXZ(6.0, 6.0), new PointXZ(8.0, 6.0), center, 2.0, 5.0)) return -4;
+    if (!segmentTouchesAnnulus(new PointXZ(-6.0, 5.0), new PointXZ(6.0, 5.0), center, 2.0, 5.0)) return -5;
+    if (!segmentTouchesAnnulus(new PointXZ(5.0, 0.0), new PointXZ(5.0, 0.0), center, 2.0, 5.0)) return -6;
+    return 1;
+}

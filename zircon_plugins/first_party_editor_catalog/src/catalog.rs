@@ -13,21 +13,29 @@ pub fn first_party_editor_plugin_registrations_for_manifest(
         return Vec::new();
     }
 
-    let mut seen = HashSet::new();
-    manifest
-        .enabled_for_target(target_mode)
-        .filter_map(|selection| RuntimePluginId::parse_key(&selection.id))
-        .filter(|plugin_id| seen.insert(*plugin_id))
-        .filter_map(first_party_registration_for_editor_plugin)
-        .collect()
+    let mut seen = HashSet::with_capacity(manifest.selections.len());
+    let mut registrations = Vec::with_capacity(manifest.selections.len());
+    for selection in manifest.enabled_for_target(target_mode) {
+        let Some(plugin_id) = RuntimePluginId::parse_key(&selection.id) else {
+            continue;
+        };
+        if !seen.insert(plugin_id.clone()) {
+            continue;
+        }
+        let Some(registration) = first_party_registration_for_editor_plugin(plugin_id) else {
+            continue;
+        };
+        registrations.push(registration);
+    }
+    registrations
 }
 
 pub fn first_party_registration_for_editor_plugin(
-    plugin_id: RuntimePluginId,
+    _plugin_id: RuntimePluginId,
 ) -> Option<EditorPluginRegistrationReport> {
-    match plugin_id {
-        #[cfg(feature = "navigation-editor-plugin")]
-        RuntimePluginId::Navigation => Some(zircon_plugin_navigation_editor::plugin_registration()),
-        _ => None,
+    #[cfg(feature = "navigation-editor-plugin")]
+    if _plugin_id == RuntimePluginId::Navigation {
+        return Some(zircon_plugin_navigation_editor::plugin_registration());
     }
+    None
 }

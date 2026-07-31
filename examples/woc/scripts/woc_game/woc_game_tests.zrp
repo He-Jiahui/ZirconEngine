@@ -1,0 +1,6 @@
+{
+  "name": "woc_game_tests",
+  "source": "src",
+  "binary": "bin-tests",
+  "entry": "world/m3_foundation_test_main"
+}

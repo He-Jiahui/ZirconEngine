@@ -24,6 +24,7 @@ mod execute_ssao;
 mod execute_upscale;
 mod render_region;
 pub(in crate::graphics::scene::scene_renderer::post_process) mod shader_sources;
+pub(in crate::graphics::scene::scene_renderer::post_process) mod terminal_resource_cache;
 
 pub(in crate::graphics::scene::scene_renderer) use execute_color_lut_bake::{
     color_lut_bake_dispatch_groups, color_lut_bake_workgroup_size,

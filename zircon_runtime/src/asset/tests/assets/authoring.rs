@@ -6,6 +6,28 @@ use crate::asset::{
 };
 
 #[test]
+fn project_document_type_projection_does_not_serialize_and_reparse_toml_text() {
+    let codec = include_str!("../../assets/project_document/codec.rs");
+    assert!(codec.contains("toml::Value::try_from"));
+    assert!(codec.contains("encoded.try_into()"));
+    assert!(!codec.contains("toml::to_string(value)?"));
+    assert!(!codec.contains("toml::from_str(&encoded)?"));
+}
+
+#[test]
+fn project_document_entry_points_parse_or_serialize_only_once() {
+    for source in [
+        include_str!("../../assets/material/zmaterial.rs"),
+        include_str!("../../assets/model/model_asset.rs"),
+        include_str!("../../assets/scene/asset.rs"),
+    ] {
+        assert!(!source.contains("project_document::validate_"));
+    }
+    let material = include_str!("../../assets/project_document/material.rs");
+    assert!(material.contains("validate_material_version(&document)?"));
+}
+
+#[test]
 fn authoring_assets_roundtrip_and_collect_references() {
     let material = reference("res://materials/terrain.zmaterial");
     let weightmap = reference("res://terrain/grass.png");

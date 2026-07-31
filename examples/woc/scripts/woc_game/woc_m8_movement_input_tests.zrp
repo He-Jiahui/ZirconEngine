@@ -1,0 +1,6 @@
+{
+  "name": "woc_m8_movement_input_tests",
+  "source": "src",
+  "binary": "bin-m8-movement-input-tests",
+  "entry": "protocol/movement_input_test_main"
+}

@@ -1,0 +1,7 @@
+// Generated Restless Graves source contract.
+pub delaySeconds(required: bool): float { if (!required) { throw "woc Restless Graves delay is required"; } return 3.0; }
+pub spawnMobId(required: bool): string { if (!required) { throw "woc Restless Graves mob id is required"; } return "reliquary_bonewalker"; }
+pub isReady(dueAt: float, now: float): bool { return dueAt <= now; }
+pub preservesSourceOrder(required: bool): bool { if (!required) { throw "woc Restless Graves order is required"; } return true; }
+pub spawnedMobIsAffixBorn(required: bool): bool { if (!required) { throw "woc Restless Graves affix marker is required"; } return true; }
+pub contractTest(): int { return delaySeconds(true) == 3.0 && spawnMobId(true) == "reliquary_bonewalker" && !isReady(3.0, 2.9) && isReady(3.0, 3.0) && preservesSourceOrder(true) && spawnedMobIsAffixBorn(true) ? 1 : -1; }

@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var yumi = %import("social/yumi_match_rules");
+
+var result = yumi.contractTest();
+
+console.printLine("m6-yumi-match-rules-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

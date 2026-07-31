@@ -6,18 +6,18 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassMeshCommandLists,
 };
 use crate::graphics::scene::scene_renderer::hzb::{
-    HzbOcclusionCuller, HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE,
-    HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE, HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
-    HZB_OCCLUSION_DRAW_COUNT_RESOURCE, HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE,
-    HZB_OCCLUSION_STATS_RESOURCE, HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
+    HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE, HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE,
+    HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE, HZB_OCCLUSION_DRAW_COUNT_RESOURCE,
+    HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE, HZB_OCCLUSION_STATS_RESOURCE,
+    HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE, HzbOcclusionCuller,
 };
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
-    LightGridParams, LIGHT_GRID_EMPTY_ZBIN_HEADER,
+    LIGHT_GRID_EMPTY_ZBIN_HEADER, LightGridParams,
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-    MeshIndirectDrawExecution, INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
-    INDIRECT_COMPACTION_METADATA_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
-    INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
+    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_COMPACTION_METADATA_STRIDE_BYTES,
+    INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES, INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
+    MeshIndirectDrawExecution,
 };
 use crate::render_graph::CompiledRenderGraph;
 
@@ -38,17 +38,17 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     mesh_draw_lists: RenderPassMeshCommandLists<'_>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
 ) {
-    let hzb_executions = mesh_draw_lists
+    let first_hzb_execution = mesh_draw_lists
         .hzb_occlusion_indirect_executions()
         .into_iter()
         .flatten()
-        .collect::<Vec<_>>();
+        .next();
     bind_light_grid_external_buffers(device, graph, resources);
     bind_hzb_occlusion_external_buffers(
         device,
         graph,
         resources,
-        &hzb_executions,
+        first_hzb_execution,
         hzb_occlusion_culler,
     );
 }
@@ -158,14 +158,13 @@ fn bind_hzb_occlusion_external_buffers(
     device: &wgpu::Device,
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
-    executions: &[&MeshIndirectDrawExecution],
+    first_execution: Option<&MeshIndirectDrawExecution>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
 ) {
     if !graph_declares_any_hzb_occlusion_external(graph) {
         return;
     }
 
-    let first_execution = executions.first().copied();
     bind_hzb_execution_buffer(
         device,
         graph,
@@ -316,7 +315,7 @@ mod tests {
         let graph = hzb_external_graph();
         let mut resources = RenderGraphExecutionResources::new();
 
-        bind_hzb_occlusion_external_buffers(&backend.device, &graph, &mut resources, &[], None);
+        bind_hzb_occlusion_external_buffers(&backend.device, &graph, &mut resources, None, None);
 
         let report = resources
             .validate_materialized_graph_resources(&graph)
@@ -334,6 +333,19 @@ mod tests {
             alias.logical_name == HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE
                 && alias.backing_name.ends_with(":hzb-execution-fallback")
         }));
+    }
+
+    #[test]
+    fn execution_owned_resource_binding_selects_the_first_hzb_execution_without_collecting() {
+        let source = include_str!("bind_execution_owned_graph_resources.rs");
+        let product = source
+            .split_once("#[cfg(test)]")
+            .expect("execution-owned binder should keep tests below product code")
+            .0;
+        assert!(!product.contains(".collect::<Vec<_>>()"));
+        assert!(product.contains("let first_hzb_execution ="));
+        assert!(product.contains(".flatten()"));
+        assert!(product.contains(".next();"));
     }
 
     #[test]

@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_affix_selection_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff",
+    "src/sim/rng.ts": "d516034919a56ce15f3a893cfd07345b851a2eb833704009fbfbace24c446713",
+    "src/sim/content/delves/affixes.ts": "9ea53c2bbc4b99e7f162460674757d1a3df01f4dcc4290f1885ca73c243f7b9e",
+    "src/sim/content/delves/collapsed_reliquary.ts": "f12a3538da887f8e7dd2fcf804287df7609f0c706284be51a377e70ea5e1b00d",
+    "src/sim/content/delves/drowned_litany.ts": "8f747166e6a63d36b8c20bae0d4feb43ba592376d2df0eb6139f4489aab1acb3"
+  },
+  "seed_xor": 1511112926,
+  "delves": [
+    {
+      "id": "collapsed_reliquary",
+      "index": 0,
+      "theme": "crypt",
+      "tiers": [
+        {
+          "id": "normal",
+          "affix_count": 0
+        },
+        {
+          "id": "heroic",
+          "affix_count": 1
+        }
+      ],
+      "pool": [
+        "restless_graves",
+        "bad_air",
+        "candleblind"
+      ]
+    },
+    {
+      "id": "drowned_litany",
+      "index": 1,
+      "theme": "ruin",
+      "tiers": [
+        {
+          "id": "normal",
+          "affix_count": 0
+        },
+        {
+          "id": "heroic",
+          "affix_count": 1
+        }
+      ],
+      "pool": [
+        "high_water",
+        "lively_choir",
+        "belligerent_dead"
+      ]
+    }
+  ],
+  "vectors": [
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 0,
+      "affixes": []
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 1,
+      "affixes": []
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 2,
+      "affixes": []
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 5,
+      "affixes": []
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 42,
+      "affixes": []
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 20061,
+      "affixes": []
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 2147483647,
+      "affixes": []
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "normal",
+      "seed": 1511112926,
+      "affixes": []
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 0,
+      "affixes": [
+        "restless_graves"
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 1,
+      "affixes": [
+        "restless_graves"
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 2,
+      "affixes": [
+        "restless_graves"
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 5,
+      "affixes": [
+        "candleblind"
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 42,
+      "affixes": [
+        "candleblind"
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 20061,
+      "affixes": [
+        "restless_graves"
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 2147483647,
+      "affixes": [
+        "bad_air"
+      ]
+    },
+    {
+      "delve_index": 0,
+      "tier_id": "heroic",
+      "seed": 1511112926,
+      "affixes": [
+        "candleblind"
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 0,
+      "affixes": []
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 1,
+      "affixes": []
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 2,
+      "affixes": []
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 5,
+      "affixes": []
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 42,
+      "affixes": []
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 20061,
+      "affixes": []
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 2147483647,
+      "affixes": []
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "normal",
+      "seed": 1511112926,
+      "affixes": []
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 0,
+      "affixes": [
+        "high_water"
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 1,
+      "affixes": [
+        "high_water"
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 2,
+      "affixes": [
+        "high_water"
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 5,
+      "affixes": [
+        "belligerent_dead"
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 42,
+      "affixes": [
+        "belligerent_dead"
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 20061,
+      "affixes": [
+        "high_water"
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 2147483647,
+      "affixes": [
+        "lively_choir"
+      ]
+    },
+    {
+      "delve_index": 1,
+      "tier_id": "heroic",
+      "seed": 1511112926,
+      "affixes": [
+        "belligerent_dead"
+      ]
+    }
+  ],
+  "catalog_sha256": "707a287d674779984109a9ba0d09058ad331d6350dd48a2b192c39feb4284131"
+}

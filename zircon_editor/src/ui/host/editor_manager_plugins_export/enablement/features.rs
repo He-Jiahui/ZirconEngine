@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
@@ -39,15 +39,21 @@ impl EditorManager {
         feature_id: &str,
         enabled: bool,
     ) -> Result<EditorPluginFeatureSelectionUpdateReport, String> {
-        let catalog = self.native_aware_runtime_plugin_catalog(project_root);
-        set_project_plugin_feature_enabled_with_catalog(
+        let native_report =
+            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let catalog = self.native_aware_runtime_plugin_catalog_from_load_report(&native_report);
+        let report = set_project_plugin_feature_enabled_with_catalog(
             &catalog,
             manifest,
             plugin_id,
             feature_id,
             enabled,
             "builtin or native plugin catalogs",
-        )
+        )?;
+        let completed =
+            self.complete_project_plugin_manifest_with_native_report(manifest, &native_report);
+        self.publish_project_plugin_status_from_load_report(&completed, &native_report);
+        Ok(report)
     }
 
     pub fn enable_project_plugin_feature_dependencies(
@@ -73,34 +79,39 @@ impl EditorManager {
         plugin_id: &str,
         feature_id: &str,
     ) -> Result<EditorPluginFeatureSelectionUpdateReport, String> {
-        let catalog = self.native_aware_runtime_plugin_catalog(project_root);
-        enable_project_plugin_feature_dependencies_with_catalog(
+        let native_report =
+            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let catalog = self.native_aware_runtime_plugin_catalog_from_load_report(&native_report);
+        let report = enable_project_plugin_feature_dependencies_with_catalog(
             &catalog,
             manifest,
             plugin_id,
             feature_id,
             "builtin or native plugin catalogs",
-        )
+        )?;
+        let completed =
+            self.complete_project_plugin_manifest_with_native_report(manifest, &native_report);
+        self.publish_project_plugin_status_from_load_report(&completed, &native_report);
+        Ok(report)
     }
 
-    fn native_aware_runtime_plugin_catalog(
+    fn native_aware_runtime_plugin_catalog_from_load_report(
         &self,
-        project_root: impl AsRef<Path>,
+        native_report: &zircon_runtime::plugin::native::NativePluginLoadReport,
     ) -> RuntimePluginCatalog {
         let builtin = self.runtime_plugin_catalog();
-        let native_report =
-            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let native_projection = native_report.projection();
         RuntimePluginCatalog::from_registration_reports(
             builtin
                 .registrations()
                 .iter()
                 .cloned()
-                .chain(native_report.runtime_plugin_registration_reports()),
+                .chain(native_projection.runtime_plugin_registration_reports()),
             builtin
                 .feature_registrations()
                 .iter()
                 .cloned()
-                .chain(native_report.runtime_plugin_feature_registration_reports()),
+                .chain(native_projection.runtime_plugin_feature_registration_reports()),
         )
     }
 }
@@ -113,7 +124,9 @@ fn set_project_plugin_feature_enabled_with_catalog(
     enabled: bool,
     catalog_label: &str,
 ) -> Result<EditorPluginFeatureSelectionUpdateReport, String> {
-    let mut candidate = catalog.complete_project_manifest(&manifest.plugins);
+    let mut candidate = Arc::unwrap_or_clone(
+        catalog.complete_project_manifest(&manifest.plugins, RuntimeTargetMode::EditorHost),
+    );
     let owner_selection = project_selection_mut(&mut candidate, plugin_id, catalog_label)?;
     let feature_selection = owner_selection
         .features
@@ -155,7 +168,9 @@ fn enable_project_plugin_feature_dependencies_with_catalog(
     catalog_label: &str,
 ) -> Result<EditorPluginFeatureSelectionUpdateReport, String> {
     let packages = catalog.package_manifests();
-    let mut candidate = catalog.complete_project_manifest(&manifest.plugins);
+    let mut candidate = Arc::unwrap_or_clone(
+        catalog.complete_project_manifest(&manifest.plugins, RuntimeTargetMode::EditorHost),
+    );
     let feature = feature_manifest(catalog, &candidate, plugin_id, feature_id, catalog_label)?;
     let mut enabled_dependency_plugins = Vec::new();
     let mut enabled_dependency_features = Vec::new();

@@ -14,7 +14,7 @@ impl EditorUiHost {
         drop(sessions);
         if replay.changed {
             if !replay.external_effects.is_empty() {
-                let project_root = self.current_project_root()?.ok_or_else(|| {
+                let project = self.current_project_snapshot()?.ok_or_else(|| {
                     EditorError::UiAsset(
                         "cannot apply ui asset undo side effects without an open project"
                             .to_string(),
@@ -23,7 +23,7 @@ impl EditorUiHost {
                 let mut affected_asset_ids = Vec::new();
                 for effect in &replay.external_effects {
                     affected_asset_ids
-                        .push(self.apply_ui_asset_editor_external_effect(&project_root, effect)?);
+                        .push(self.apply_ui_asset_editor_external_effect(&project, effect)?);
                 }
                 self.refresh_ui_asset_workspace_for_changes(affected_asset_ids)?;
             }
@@ -46,7 +46,7 @@ impl EditorUiHost {
         drop(sessions);
         if replay.changed {
             if !replay.external_effects.is_empty() {
-                let project_root = self.current_project_root()?.ok_or_else(|| {
+                let project = self.current_project_snapshot()?.ok_or_else(|| {
                     EditorError::UiAsset(
                         "cannot apply ui asset redo side effects without an open project"
                             .to_string(),
@@ -55,7 +55,7 @@ impl EditorUiHost {
                 let mut affected_asset_ids = Vec::new();
                 for effect in &replay.external_effects {
                     affected_asset_ids
-                        .push(self.apply_ui_asset_editor_external_effect(&project_root, effect)?);
+                        .push(self.apply_ui_asset_editor_external_effect(&project, effect)?);
                 }
                 self.refresh_ui_asset_workspace_for_changes(affected_asset_ids)?;
             }

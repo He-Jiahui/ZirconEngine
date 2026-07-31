@@ -103,29 +103,64 @@ impl NavigationOperationHandler {
 }
 
 impl RuntimeOperationHandler for NavigationOperationHandler {
-    fn execute(
+    fn prepare(
+        &self,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, RuntimeOperationHandlerError> {
+        match self.kind {
+            NavigationOperationKind::BakeScene => {
+                let mut request: NavMeshBakeRequest =
+                    decode_payload(payload, "navigation scene bake")?;
+                request.surface_entity = None;
+                encode_payload(request, "navigation scene bake")
+            }
+            NavigationOperationKind::BakeSurface => {
+                let request: NavMeshBakeRequest =
+                    decode_payload(payload, "navigation surface bake")?;
+                if request.surface_entity.is_none() {
+                    return Err(RuntimeOperationHandlerError::new(
+                        "navigation surface bake requires surface_entity",
+                    ));
+                }
+                encode_payload(request, "navigation surface bake")
+            }
+            NavigationOperationKind::ClearSurface => encode_payload(
+                decode_payload::<NavigationClearBakeRequest>(payload, "navigation surface clear")?,
+                "navigation surface clear",
+            ),
+            NavigationOperationKind::RestoreSnapshot => encode_payload(
+                decode_payload::<NavigationGeneratedBakeSnapshot>(
+                    payload,
+                    "navigation bake snapshot restore",
+                )?,
+                "navigation bake snapshot restore",
+            ),
+        }
+    }
+
+    fn apply(
         &self,
         context: RuntimeOperationContext<'_>,
-        payload: serde_json::Value,
+        prepared: serde_json::Value,
     ) -> Result<serde_json::Value, RuntimeOperationHandlerError> {
         match self.kind {
             NavigationOperationKind::BakeScene => Self::bake(
                 context,
-                decode_payload(payload, "navigation scene bake")?,
+                decode_payload(prepared, "navigation scene bake")?,
                 false,
             ),
             NavigationOperationKind::BakeSurface => Self::bake(
                 context,
-                decode_payload(payload, "navigation surface bake")?,
+                decode_payload(prepared, "navigation surface bake")?,
                 true,
             ),
             NavigationOperationKind::ClearSurface => Self::clear(
                 context,
-                decode_payload(payload, "navigation surface clear")?,
+                decode_payload(prepared, "navigation surface clear")?,
             ),
             NavigationOperationKind::RestoreSnapshot => Self::restore(
                 context,
-                decode_payload(payload, "navigation bake snapshot restore")?,
+                decode_payload(prepared, "navigation bake snapshot restore")?,
             ),
         }
     }
@@ -147,5 +182,14 @@ fn encode_change(
         RuntimeOperationHandlerError::new(format!(
             "encode navigation generated bake change: {error}"
         ))
+    })
+}
+
+fn encode_payload<T: serde::Serialize>(
+    payload: T,
+    operation: &str,
+) -> Result<serde_json::Value, RuntimeOperationHandlerError> {
+    serde_json::to_value(payload).map_err(|error| {
+        RuntimeOperationHandlerError::new(format!("encode {operation} payload: {error}"))
     })
 }

@@ -1,10 +1,16 @@
-use super::asset::{asset_primary_activation, AssetPrimaryActivationKind};
-use super::route::{primary_activation_route, TemplatePrimaryActivationRoute};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use super::asset::{AssetPrimaryActivationKind, asset_primary_activation};
+use super::dispatch::dispatch_template_node_primary_press;
+use super::route::{TemplatePrimaryActivationRoute, primary_activation_route};
+use crate::ui::retained_host::PaneSurfaceHostContext;
 use crate::ui::retained_host::callback_dispatch::WORKBENCH_COMMAND_PALETTE_CONTROL_ID;
 use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::globals::{HostContractGlobal, HostContractState};
 use crate::ui::retained_host::host_contract::surface_hit_test::TemplateNodePointerHit;
 use crate::ui::retained_host::host_contract::template_component_family::TemplateComponentFamily;
-use crate::ui::retained_host::primitives::SharedString;
+use crate::ui::retained_host::primitives::{PhysicalSize, SharedString};
 
 #[test]
 fn text_input_family_routes_to_focus_only_activation() {
@@ -89,8 +95,69 @@ fn asset_dispatch_uses_control_id_when_action_is_empty() {
     assert_eq!(activation.kind, AssetPrimaryActivationKind::Click);
 }
 
+#[test]
+fn table_row_primary_press_emits_the_current_typed_selection() {
+    let state = Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
+        640, 420,
+    ))));
+    let context = PaneSurfaceHostContext::from_state(state);
+    let selection = Rc::new(RefCell::new(None));
+    let observed_selection = Rc::clone(&selection);
+    context.on_template_table_row_selected(
+        move |pane_id, control_id, source_index, identity_kind, identity_text| {
+            *observed_selection.borrow_mut() = Some((
+                pane_id.to_string(),
+                control_id.to_string(),
+                source_index,
+                identity_kind.to_string(),
+                identity_text.to_string(),
+            ));
+        },
+    );
+    let mut hit = hit_with_kind("");
+    hit.pane_id = "plugin.rows".into();
+    hit.table_row_source_index = Some(9);
+    hit.table_row_identity_kind = "integer".into();
+    hit.table_row_identity_text = "73".into();
+
+    dispatch_template_node_primary_press(&context, hit);
+
+    assert_eq!(
+        *selection.borrow(),
+        Some((
+            "plugin.rows".to_string(),
+            "Control".to_string(),
+            9,
+            "integer".to_string(),
+            "73".to_string(),
+        ))
+    );
+}
+
+#[test]
+fn disabled_table_row_primary_press_does_not_emit_selection() {
+    let state = Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
+        640, 420,
+    ))));
+    let context = PaneSurfaceHostContext::from_state(state);
+    let invocation_count = Rc::new(RefCell::new(0));
+    let observed_count = Rc::clone(&invocation_count);
+    context.on_template_table_row_selected(move |_, _, _, _, _| *observed_count.borrow_mut() += 1);
+    let mut hit = hit_with_kind("");
+    hit.pane_id = "plugin.rows".into();
+    hit.table_row_source_index = Some(9);
+    hit.table_row_identity_kind = "integer".into();
+    hit.table_row_identity_text = "73".into();
+    hit.disabled = true;
+
+    dispatch_template_node_primary_press(&context, hit);
+
+    assert_eq!(*invocation_count.borrow(), 0);
+}
+
 fn hit_with_kind(dispatch_kind: &str) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        pane_id: SharedString::new(),
         control_id: "Control".into(),
         action_id: SharedString::new(),
         binding_id: SharedString::new(),
@@ -100,6 +167,10 @@ fn hit_with_kind(dispatch_kind: &str) -> TemplateNodePointerHit {
         value_text: SharedString::new(),
         edit_action_id: SharedString::new(),
         commit_action_id: SharedString::new(),
+        disabled: false,
         frame: FrameRect::default(),
+        table_row_source_index: None,
+        table_row_identity_kind: SharedString::new(),
+        table_row_identity_text: SharedString::new(),
     }
 }

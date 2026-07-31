@@ -1,5 +1,6 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
@@ -7,6 +8,35 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeNode},
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
+
+#[test]
+fn text_field_rendering_uses_central_tokens_and_validated_overrides() {
+    let source = include_str!("../surface/render/text_fields.rs");
+
+    for needle in [
+        "EditorDesignTokens",
+        "EditorTypographyTokens",
+        "TextFieldVisual",
+        "style_overrides",
+        "parse_css_color",
+        "value_as_f32",
+    ] {
+        assert!(
+            source.contains(needle),
+            "missing token renderer feature: {needle}"
+        );
+    }
+    for legacy in [
+        "const DEFAULT_FONT_SIZE",
+        "const SURFACE_IDLE",
+        "const BORDER_FOCUS",
+    ] {
+        assert!(
+            !source.contains(legacy),
+            "text field renderer must not retain local palette constant: {legacy}"
+        );
+    }
+}
 
 #[test]
 fn render_extract_expands_text_field_primitives() {
@@ -227,7 +257,7 @@ layout_padding_bottom = 4.0
             && command.style.painter_family == UiPainterFamily::TextField
             && command.style.painter_state == UiPainterResolvedState::Focused
             && command.style.background_color.as_deref() == Some("#0f1316")
-            && command.style.border_color.as_deref() == Some("#2aa6b8")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
     }));
 
     let text = commands
@@ -304,7 +334,7 @@ hover_border_color = "#323a41"
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_state == UiPainterResolvedState::Hovered
-            && command.style.background_color.as_deref() == Some("#1b1f23")
+            && command.style.background_color.as_deref() == Some("#22272b")
             && command.style.border_color.as_deref() == Some("#323a41")
     }));
 }
@@ -389,11 +419,127 @@ foreground_color = "#c5d0d5"
     );
 }
 
+#[test]
+fn render_extract_text_fields_prioritize_valid_style_overrides_and_reject_invalid_values() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.text_fields.overrides"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_text_field_with_style_overrides(
+        &mut surface,
+        UiNodeId::new(2),
+        UiFrame::new(12.0, 12.0, 128.0, 32.0),
+        r##"
+content = "Override"
+background_color = "#10161a"
+border_color = "#243238"
+foreground_color = "#d6e2e5"
+"##,
+        r##"
+background_color = "#254c5a"
+border_color = "#4c9dab"
+foreground_color = "#eef8fa"
+layout_padding_left = 16.0
+font_size = 12.0
+line_height_ratio = 1.5
+"##,
+        focusable_state(),
+    );
+    insert_text_field_with_style_overrides(
+        &mut surface,
+        UiNodeId::new(3),
+        UiFrame::new(156.0, 12.0, 128.0, 32.0),
+        r##"
+content = "Fallback"
+"##,
+        r##"
+background_color = "not-a-color"
+border_width = -1.0
+layout_padding_left = -4.0
+font_size = 0.0
+line_height_ratio = 0.0
+"##,
+        focusable_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let overridden_surface = commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.kind == UiRenderCommandKind::Quad
+        })
+        .expect("overridden input should render a surface");
+    assert_eq!(
+        overridden_surface.style.background_color.as_deref(),
+        Some("#254c5a")
+    );
+    assert_eq!(
+        overridden_surface.style.border_color.as_deref(),
+        Some("#4c9dab")
+    );
+    let overridden_text = commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2) && command.text.is_some())
+        .expect("overridden input should render text");
+    assert_eq!(overridden_text.frame.x, 28.0);
+    assert_eq!(
+        overridden_text.style.foreground_color.as_deref(),
+        Some("#eef8fa")
+    );
+    assert_eq!(overridden_text.style.font_size, 12.0);
+    assert_eq!(overridden_text.style.line_height, 18.0);
+
+    let fallback_surface = commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(3) && command.kind == UiRenderCommandKind::Quad
+        })
+        .expect("fallback input should render a surface");
+    assert_eq!(
+        fallback_surface.style.background_color.as_deref(),
+        Some("#0f1316")
+    );
+    assert_eq!(
+        fallback_surface.style.border_color.as_deref(),
+        Some("#262d33")
+    );
+    assert_eq!(fallback_surface.style.border_width, 1.0);
+    let fallback_text = commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(3) && command.text.is_some())
+        .expect("fallback input should render text");
+    assert_eq!(fallback_text.frame.x, 164.0);
+    assert_eq!(
+        fallback_text.style.font_size,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    );
+    assert_eq!(
+        fallback_text.style.line_height,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+            * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO
+    );
+}
+
 fn insert_text_field(
     surface: &mut UiSurface,
     node_id: UiNodeId,
     frame: UiFrame,
     attributes: &str,
+    state_flags: UiStateFlags,
+) {
+    insert_text_field_with_style_overrides(surface, node_id, frame, attributes, "", state_flags);
+}
+
+fn insert_text_field_with_style_overrides(
+    surface: &mut UiSurface,
+    node_id: UiNodeId,
+    frame: UiFrame,
+    attributes: &str,
+    style_overrides: &str,
     state_flags: UiStateFlags,
 ) {
     surface
@@ -406,6 +552,7 @@ fn insert_text_field(
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: "InputField".to_string(),
                     attributes: toml::from_str(attributes).unwrap(),
+                    style_overrides: toml::from_str(style_overrides).unwrap(),
                     widget: UiWidgetContract {
                         behavior: UiWidgetBehavior::TextInput,
                         value_property: Some("content".to_string()),

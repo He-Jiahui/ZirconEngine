@@ -1,11 +1,15 @@
+use crate::scene::modes::SceneModeActivation;
+use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, ProjectionMode, TransformSpace, ViewOrientation,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use zircon_runtime::core::framework::animation::AnimationTrackPath;
 
-use super::{InspectorFieldChange, LayoutCommand, MenuAction, SelectionHostEvent};
+use super::{
+    EditorHierarchyEvent, InspectorFieldChange, LayoutCommand, MenuAction, SelectionHostEvent,
+};
 
 macro_rules! define_id {
     ($name:ident) => {
@@ -226,7 +230,11 @@ pub enum EditorAnimationEvent {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum EditorViewportEvent {
     PointerMoved { x: f32, y: f32 },
-    LeftPressed { x: f32, y: f32 },
+    LeftPressed {
+        x: f32,
+        y: f32,
+        selection_mutation: SelectionMutation,
+    },
     LeftReleased,
     RightPressed { x: f32, y: f32 },
     RightReleased,
@@ -234,7 +242,7 @@ pub enum EditorViewportEvent {
     MiddleReleased,
     Scrolled { delta: f32 },
     Resized { width: u32, height: u32 },
-    SetTool { tool: SceneViewportTool },
+    ActivateSceneMode { mode: SceneModeActivation },
     SetTransformSpace { space: TransformSpace },
     SetProjectionMode { mode: ProjectionMode },
     AlignView { orientation: ViewOrientation },
@@ -246,6 +254,7 @@ pub enum EditorViewportEvent {
     SetPreviewLighting { enabled: bool },
     SetPreviewSkybox { enabled: bool },
     SetGizmosEnabled { enabled: bool },
+    ToggleOverlayProvider { provider_id: String },
     FrameSelection,
 }
 
@@ -265,6 +274,7 @@ pub enum EditorEvent {
     WorkbenchMenu(MenuAction),
     Layout(LayoutCommand),
     Selection(SelectionHostEvent),
+    Hierarchy(EditorHierarchyEvent),
     Asset(EditorAssetEvent),
     Draft(EditorDraftEvent),
     Animation(EditorAnimationEvent),
@@ -295,6 +305,7 @@ pub enum EditorEventEffect {
     PresentWelcomeRequested,
     ProjectOpenRequested,
     ProjectSaveRequested,
+    ProjectCloseRequested,
     AssetDetailsRefreshRequested,
     AssetPreviewRefreshRequested,
     ImportModelRequested,
@@ -326,7 +337,7 @@ impl EditorEventResult {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EditorEventUndoPolicy {
     NonUndoable,
-    DelegatedToEditorHistory,
+    DelegatedToTransactionEngine,
     FutureInverseEvent,
 }
 
@@ -336,6 +347,9 @@ pub struct EditorEventRecord {
     pub sequence: EditorEventSequence,
     pub source: EditorEventSource,
     pub event: EditorEvent,
+    /// Stable UI event path only when normal binding dispatch originated this record.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub binding_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub operation_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -344,6 +358,12 @@ pub struct EditorEventRecord {
     pub operation_arguments: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub operation_group: Option<String>,
+    /// Transaction committed by an authoring event, when that event creates one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transaction_id: Option<u64>,
+    /// Generation captured by a successful project save after persistence completes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub save_generation: Option<u64>,
     pub effects: Vec<EditorEventEffect>,
     pub undo_policy: EditorEventUndoPolicy,
     pub before_revision: u64,

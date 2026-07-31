@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_fiesta_tests",
+  "source": "src",
+  "binary": "bin-m6-fiesta-tests",
+  "entry": "social/fiesta_state_test_main"
+}

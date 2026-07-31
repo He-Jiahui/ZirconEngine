@@ -166,7 +166,7 @@ ECS 组件与编辑器面板字段(RF-M1 切片 1 的"对接"部分)由 extract 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RendererCommon {
     pub enabled: bool,
-    pub layer_mask: RenderLayer,                      // 计划 09 类型,相机/灯光/volume 共用
+    pub layer_mask: RenderLayerSet,                   // 计划 09 位集合类型,相机/灯光/volume 共用
     pub queue_override: Option<RenderQueueValue>,     // None = 取材质默认;覆写受 ±100 偏移约束(index.md §8 第 4 条)
     pub cast_shadows: CastShadowsMode,
     pub receive_shadows: bool,
@@ -184,8 +184,11 @@ pub enum MotionVectorMode { Auto, ForceOn, ForceOff }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MaterialOverrideSet {
-    pub slots: Vec<(u32 /* material slot index */, ResourceHandle<MaterialMarker>)>,
+    slots: Vec<(u32 /* material slot index */, ResourceHandle<MaterialMarker>)>,
 }
+
+// slots 存储保持私有;构造与反序列化统一执行升序去重,last-authored slot wins;
+// 消费方只通过只读 slots() 访问规范化结果。
 ```
 
 消费方约定(本计划只产字段,语义落点在各消费计划):
@@ -389,3 +392,4 @@ pub(crate) enum BatchRejectReason {
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`10/2026-07-09-renderer-family-output-records.md`](10/2026-07-09-renderer-family-output-records.md)
+- 2026-07-18 frame-extract所有权交接：owned snapshot adapter内camera/mesh/lights/environment/preview深clone和effective-size无用camera复制已直接止损；RF-M1/M3仍须让generation-owned extract artifact成为scene/renderer唯一权威，compat `ViewportRenderFrame::from_snapshot`与插件adapter不得稳定帧并存完整scene+extract双副本。以meshes/lights 0/1/1k/100k、cameras 1/8验收payload clone bytes=0、stable extract rebuild=0；见PERF-MVP-342及`docs/plans/performance/01/2026-07-18-runtime-core-framework-render-backend-frame-static-review.md`。

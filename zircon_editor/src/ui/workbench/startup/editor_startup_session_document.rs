@@ -9,5 +9,7 @@ pub struct EditorStartupSessionDocument {
     pub open_builtin_view: Option<String>,
     pub recent_projects: Vec<RecentProjectEntry>,
     pub draft: NewProjectDraft,
+    pub creation_validation: String,
+    pub can_open_existing: bool,
     pub status_message: String,
 }

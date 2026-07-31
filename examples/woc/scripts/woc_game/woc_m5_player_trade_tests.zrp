@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_player_trade_tests",
+  "source": "src",
+  "binary": "bin-m5-player-trade-tests",
+  "entry": "progression/trade_state_test_main"
+}

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var state = %import("world/state");
+
+console.printLine("card-duel-world-state-test");
+var result = state.cardDuelWorldStateTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

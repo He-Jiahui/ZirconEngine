@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_ability_charge_state_tests",
+  "source": "src",
+  "binary": "bin-m4-ability-charge-state-tests",
+  "entry": "combat/ability_charge_state_test_main"
+}

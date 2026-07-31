@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/master_loot_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/loot_master.ts": "b384c2adb4eaf3e059b8dd24f8e904f93fc6fef58519b39db398d68b713f5936"
+  },
+  "quality_ranks": {
+    "poor": 0,
+    "common": 1,
+    "uncommon": 2,
+    "rare": 3,
+    "epic": 4,
+    "legendary": 5
+  },
+  "semantics": {
+    "missing_quality": "common",
+    "disabled_master_loot": "no_looter",
+    "configured_looter_zero": "leader",
+    "departed_configured_looter": "leader"
+  }
+}

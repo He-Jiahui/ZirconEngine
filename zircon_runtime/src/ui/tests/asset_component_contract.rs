@@ -639,3 +639,21 @@ fn component_contract_rejects_private_focus_targets_inside_component_contract() 
         "unexpected error: {error:?}"
     );
 }
+
+#[test]
+fn component_contract_reuses_import_validation_and_privacy_index_per_reference() {
+    let source = include_str!("../template/asset/component_contract/validation.rs");
+    let privacy_validation = source
+        .split_once("fn validate_reference_privacy(")
+        .expect("reference privacy validation must remain available")
+        .1;
+
+    assert!(
+        privacy_validation.contains("validated_references.insert(reference.reference.as_str())"),
+        "a repeated imported component must validate its static contract only once"
+    );
+    assert!(
+        privacy_validation.contains("privacy_by_reference.entry(reference.reference.as_str())"),
+        "a repeated imported component must reuse its privacy tree index"
+    );
+}

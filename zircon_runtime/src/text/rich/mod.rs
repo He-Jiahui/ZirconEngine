@@ -1,4 +1,5 @@
 use crate::text::{RichParseResult, RichTextFormat};
+use std::sync::OnceLock;
 
 mod bbcode;
 mod bbcode_blocks;
@@ -52,7 +53,12 @@ impl RichTextParser {
 }
 
 pub(crate) fn parse_rich_text(markup: &str, format: RichTextFormat) -> RichParseResult {
-    RichTextParser::default().parse(markup, format)
+    shared_builtin_parser().parse(markup, format)
+}
+
+fn shared_builtin_parser() -> &'static RichTextParser {
+    static PARSER: OnceLock<RichTextParser> = OnceLock::new();
+    PARSER.get_or_init(RichTextParser::default)
 }
 
 #[cfg(test)]

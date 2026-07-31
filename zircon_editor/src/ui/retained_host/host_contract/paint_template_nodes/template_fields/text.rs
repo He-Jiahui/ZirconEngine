@@ -3,6 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchTextFieldStyle;
 use super::super::template_field_stepper::workbench_field_stepper_metrics;
 use super::super::template_node_labels::template_node_label;
+use super::geometry::frame_is_within;
 use super::metrics::workbench_field_metrics;
 use super::search::{search_field_label_is_placeholder, search_field_text_left};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -13,7 +14,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
-    stepper: bool,
+    stepper_painted: bool,
     opacity: f32,
     style: &WorkbenchTextFieldStyle,
 ) {
@@ -22,19 +23,23 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         return;
     }
     let metrics = workbench_field_metrics();
-    let right_reserve = if stepper {
+    let right_reserve = if stepper_painted {
         workbench_field_stepper_metrics().width + metrics.input_pad_right
     } else {
         metrics.input_pad_right
     };
     let text_left = search_field_text_left(node);
+    let text_rect = FrameRect {
+        x: rect.x + text_left,
+        y: rect.y + (rect.height - metrics.line_height).max(0.0) * 0.5,
+        width: (rect.width - text_left - right_reserve).max(0.0),
+        height: metrics.line_height,
+    };
+    if !frame_is_within(&text_rect, rect) {
+        return;
+    }
     commands.push(HostPaintCommand::text(
-        FrameRect {
-            x: rect.x + text_left,
-            y: rect.y + (rect.height - metrics.line_height).max(0.0) * 0.5,
-            width: (rect.width - text_left - right_reserve).max(metrics.min_text_rect_width),
-            height: metrics.line_height,
-        },
+        text_rect,
         Some(clip.clone()),
         order,
         label,

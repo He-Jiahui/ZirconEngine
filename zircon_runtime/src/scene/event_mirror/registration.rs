@@ -11,6 +11,7 @@ use crate::scene::{SceneResult, World};
 use super::{RuntimeEventMirrorError, RuntimeEventMirrorSubscription};
 
 type ReaderCountCallback = dyn Fn(&mut World, u32) -> SceneResult<()> + Send + Sync;
+const RUNTIME_EVENT_MIRROR_DESCRIPTOR_MAX_BYTES: usize = 128;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeEventMirrorDescriptor {
@@ -48,8 +49,8 @@ where
         world.register_event::<E>();
     }
 
-    fn create_subscription(&self, world: &mut World) -> RuntimeEventMirrorSubscription {
-        RuntimeEventMirrorSubscription::typed(world.register_dormant_event_subscription::<E>())
+    fn create_subscription(&self, _world: &mut World) -> RuntimeEventMirrorSubscription {
+        RuntimeEventMirrorSubscription::typed::<E>()
     }
 }
 
@@ -143,6 +144,19 @@ impl RuntimeEventMirrorRegistry {
             return Err(RuntimeEventMirrorError::EmptyPayloadSchema {
                 event_id: descriptor.event_id.clone(),
             });
+        }
+        for (field, value) in [
+            ("event id", descriptor.event_id.as_str()),
+            ("payload schema", descriptor.payload_schema.as_str()),
+        ] {
+            if value.len() > RUNTIME_EVENT_MIRROR_DESCRIPTOR_MAX_BYTES {
+                return Err(RuntimeEventMirrorError::DescriptorTooLarge {
+                    event_id: descriptor.event_id.clone(),
+                    field,
+                    actual_bytes: value.len(),
+                    max_bytes: RUNTIME_EVENT_MIRROR_DESCRIPTOR_MAX_BYTES,
+                });
+            }
         }
         if self.registrations.contains_key(&descriptor.event_id) {
             return Err(RuntimeEventMirrorError::DuplicateEventId {

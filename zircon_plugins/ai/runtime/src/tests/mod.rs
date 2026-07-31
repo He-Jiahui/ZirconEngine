@@ -3,6 +3,7 @@ mod behavior_tree_execution;
 mod behavior_tree_node_catalog;
 mod blackboard_condition_abort;
 mod blackboard_store;
+mod editor_debug_frame;
 mod integration_tasks;
 mod manager_validation;
 mod module;

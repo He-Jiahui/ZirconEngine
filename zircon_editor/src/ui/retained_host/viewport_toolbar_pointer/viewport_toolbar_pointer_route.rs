@@ -1,8 +1,8 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ViewportToolbarPointerRoute {
-    SetTool {
+    ActivateSceneMode {
         surface_key: String,
-        tool: String,
+        mode: String,
     },
     SetTransformSpace {
         surface_key: String,

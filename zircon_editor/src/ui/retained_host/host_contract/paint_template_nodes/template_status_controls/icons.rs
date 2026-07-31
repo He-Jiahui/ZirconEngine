@@ -2,8 +2,8 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_status_icon_button_style;
 use super::super::template_status_control_geometry::{
-    status_control_offset_rect, status_icon_button_glyph_rect, status_icon_button_radius,
-    workbench_status_metrics,
+    frame_is_within, status_control_offset_rect, status_icon_button_glyph_rect,
+    status_icon_button_radius, workbench_status_metrics,
 };
 use super::super::template_status_glyphs::{push_status_icon_glyph, StatusIconKind};
 
@@ -16,18 +16,25 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
     kind: StatusIconKind,
     opacity: f32,
 ) {
-    let rect = status_control_offset_rect(node, rect);
+    let parent_rect = rect;
+    let control_rect = status_control_offset_rect(node, parent_rect);
+    if !frame_is_within(parent_rect, &control_rect) {
+        return;
+    }
     let style = select_workbench_status_icon_button_style(node);
     push_status_icon_surface(
         commands,
-        &rect,
+        &control_rect,
         clip,
         order,
         style.background,
         style.border,
         opacity,
     );
-    let glyph = status_icon_button_glyph_rect(&rect);
+    let glyph = status_icon_button_glyph_rect(&control_rect);
+    if !frame_is_within(&control_rect, &glyph) {
+        return;
+    }
     push_status_icon_glyph(
         commands,
         &glyph,

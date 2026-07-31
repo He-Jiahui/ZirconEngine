@@ -1,12 +1,12 @@
 use super::super::{for_each_static_plugin_manifest, optional_table_array};
 use super::assertions::{
-    assert_known_component_fields, assert_known_feature_bundle_fields, assert_known_row_fields,
-    assert_known_table_fields,
+    assert_known_component_fields, assert_known_feature_bundle_fields, assert_known_module_fields,
+    assert_known_row_fields, assert_known_table_fields,
 };
 use super::field_sets::{
     KNOWN_ASSET_IMPORTER_FIELDS, KNOWN_CAPABILITY_STATUS_FIELDS, KNOWN_DEPENDENCY_FIELDS,
     KNOWN_EVENT_CATALOG_FIELDS, KNOWN_EVENT_FIELDS, KNOWN_GEOMETRY_SOURCE_FIELDS,
-    KNOWN_INTERFACE_FIELDS, KNOWN_MODULE_FIELDS, KNOWN_OPTION_FIELDS, KNOWN_SHADING_MODEL_FIELDS,
+    KNOWN_INTERFACE_FIELDS, KNOWN_OPTION_FIELDS, KNOWN_SHADING_MODEL_FIELDS,
     KNOWN_UI_COMPONENT_FIELDS,
 };
 
@@ -42,13 +42,7 @@ fn plugin_tomls_declare_known_nested_fields() {
             "provided interface",
             &KNOWN_INTERFACE_FIELDS,
         );
-        assert_known_row_fields(
-            table,
-            relative_path,
-            "modules",
-            "package module",
-            &KNOWN_MODULE_FIELDS,
-        );
+        assert_known_module_fields(table, relative_path, "package");
         assert_known_row_fields(
             table,
             relative_path,

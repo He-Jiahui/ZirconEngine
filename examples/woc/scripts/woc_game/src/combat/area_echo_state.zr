@@ -1,0 +1,111 @@
+// Pure Area Echo/Sweeping Strikes qualification, replay magnitude and charge state.
+// WOS owns hostile radius ordering, line of sight, damage and aura-loss events.
+var container = %import("zr.container");
+var contract = %import("generated/area_echo_contract");
+
+pub class AreaEchoAura {
+    pub var kind: string;
+    pub var hasCharges: bool;
+    pub var charges: int;
+    pub @constructor(kind: string, hasCharges: bool, charges: int) {
+        this.kind = kind;
+        this.hasCharges = hasCharges;
+        this.charges = charges;
+    }
+}
+
+pub class AreaEchoChargeResult {
+    pub var found: bool;
+    pub var removed: bool;
+    pub @constructor() {
+        this.found = false;
+        this.removed = false;
+    }
+}
+
+pub abilityQualifiesForAreaEcho(effectKinds: container.Array<string>): bool {
+    var singleTarget = false, i = 0;
+    while (i < effectKinds.length) {
+        if (contract.isSingleTargetEffect(<string>effectKinds[i])) { singleTarget = true; break; }
+        i = i + 1;
+    }
+    if (!singleTarget) return false;
+    i = 0;
+    while (i < effectKinds.length) {
+        if (contract.isAreaEffect(<string>effectKinds[i])) return false;
+        i = i + 1;
+    }
+    return true;
+}
+
+pub hasAreaEchoAura(auras: container.Array<AreaEchoAura>): bool {
+    var i = 0;
+    while (i < auras.length) {
+        if (contract.isEchoAura((<AreaEchoAura>auras[i]).kind)) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub hasSweepingStrikes(auras: container.Array<AreaEchoAura>): bool {
+    var i = 0;
+    while (i < auras.length) {
+        if (contract.isSweepAura((<AreaEchoAura>auras[i]).kind)) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub echoReplayDamage(amount: float): int { return replayDamage(amount, contract.echoMultiplier()); }
+pub sweepReplayDamage(amount: float): int { return replayDamage(amount, contract.sweepMultiplier()); }
+
+// Mutates exactly the first matching echo aura, mirroring Array.findIndex.
+pub consumeAreaEchoCharge(auras: container.Array<AreaEchoAura>): AreaEchoChargeResult {
+    var result = new AreaEchoChargeResult(), i = 0;
+    while (i < auras.length) {
+        var aura = <AreaEchoAura>auras[i];
+        if (contract.isEchoAura(aura.kind)) {
+            result.found = true;
+            var remaining = (aura.hasCharges ? aura.charges : 1) - 1;
+            if (remaining <= 0) {
+                auras.removeAt(i);
+                result.removed = true;
+            } else {
+                aura.hasCharges = true;
+                aura.charges = remaining;
+            }
+            return result;
+        }
+        i = i + 1;
+    }
+    return result;
+}
+
+pub contractTest(): int {
+    var single = new container.Array<string>();
+    single.add("weaponStrike");
+    if (!abilityQualifiesForAreaEcho(single)) return -1;
+    single.add("aoeDamage");
+    if (abilityQualifiesForAreaEcho(single)) return -2;
+    var noDirect = new container.Array<string>();
+    noDirect.add("slow");
+    if (abilityQualifiesForAreaEcho(noDirect)) return -3;
+    if (echoReplayDamage(10.0) != 4 || echoReplayDamage(1.0) != 1 || sweepReplayDamage(3.0) != 3) return -4;
+    var auras = new container.Array<AreaEchoAura>();
+    auras.add(new AreaEchoAura("other", false, 0));
+    auras.add(new AreaEchoAura("aoe_echo", true, 2));
+    auras.add(new AreaEchoAura("sweeping_strikes", false, 0));
+    if (!hasAreaEchoAura(auras) || !hasSweepingStrikes(auras)) return -5;
+    var first = consumeAreaEchoCharge(auras);
+    if (!first.found || first.removed || (<AreaEchoAura>auras[1]).charges != 1) return -6;
+    var second = consumeAreaEchoCharge(auras);
+    if (!second.removed || auras.length != 2 || !hasSweepingStrikes(auras)) return -7;
+    return 1;
+}
+
+pub replayDamage(amount: float, multiplier: float): int {
+    // Current source only reaches this with damage amounts. The Zr int cast is
+    // truncation toward zero, so value + 0.5 matches Math.round for that domain.
+    var rounded = <int>(amount * multiplier + 0.5);
+    return rounded < 1 ? 1 : rounded;
+}

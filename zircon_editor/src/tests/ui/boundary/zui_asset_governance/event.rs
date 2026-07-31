@@ -1,7 +1,4 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::binding::UiEventKind;
 
 use super::metadata::{
@@ -69,10 +66,7 @@ fn production_zui_event_bindings_are_authorable_and_unique() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
             let mut binding_ids = BTreeMap::<String, Vec<String>>::new();
 
             for (node_id, node) in &document.nodes {
@@ -181,10 +175,7 @@ fn production_zui_event_binding_ids_are_globally_unique() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 for (binding_index, binding) in node.events.iter().enumerate() {
@@ -241,10 +232,7 @@ fn production_zui_event_binding_routes_share_id_namespaces() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 for (binding_index, binding) in node.events.iter().enumerate() {
@@ -306,10 +294,7 @@ fn production_zui_event_binding_routes_are_globally_unique() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 for (binding_index, binding) in node.events.iter().enumerate() {

@@ -1,0 +1,19 @@
+var console = %import("zr.system.console");
+var wire = %import("parity/wire");
+
+console.printLine("trace-wire-test");
+var stage = 1;
+while (stage <= 5) {
+    var stageResult = wire.stageTest(stage);
+    console.printLine(stageResult);
+    if (stageResult != 1) {
+        return stageResult;
+    }
+    stage = stage + 1;
+}
+var result = wire.selfTest();
+console.printLine(result);
+if (result != 1) {
+    return result;
+}
+return 0;

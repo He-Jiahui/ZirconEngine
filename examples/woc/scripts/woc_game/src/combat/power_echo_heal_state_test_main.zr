@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var echo = %import("combat/power_echo_heal_state");
+
+console.printLine("m4-power-echo-heal-state-test");
+var result = echo.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

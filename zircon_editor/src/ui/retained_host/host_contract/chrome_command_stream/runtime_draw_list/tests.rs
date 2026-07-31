@@ -4,7 +4,7 @@ use crate::ui::retained_host::host_contract::chrome_command_stream::{
 };
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_text::{
-    font_request_for_face, HostTextFontFace,
+    HostTextFontFace, font_request_for_face,
 };
 use zircon_runtime::rhi::{UiSurfaceCommandKind, UiSurfaceImageUvRect, UiSurfaceTextStyle};
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRunPaintStyle};
@@ -252,4 +252,14 @@ fn owned_runtime_draw_list_moves_text_and_image_allocations() {
         payload.rgba.as_ref().expect("image bytes").as_ptr(),
         rgba_ptr
     );
+}
+
+#[test]
+fn versioned_owned_runtime_draw_list_preserves_producer_generation() {
+    let draw_list = ui_surface_draw_list_from_owned_stream_with_generation(
+        ChromeCommandStream::full_rebuild((64, 64)),
+        17,
+    );
+
+    assert_eq!(draw_list.generation(), Some(17));
 }

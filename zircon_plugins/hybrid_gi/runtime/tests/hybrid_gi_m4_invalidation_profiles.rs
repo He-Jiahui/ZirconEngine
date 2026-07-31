@@ -4,7 +4,8 @@ use zircon_runtime::core::framework::render::{
     LightmapAtlasFormat, LightmapConsumeContract, LightmapInstanceSlot,
     RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderHybridGiFallbackReason,
     RenderHybridGiMode, RenderHybridGiProfile, RenderLayerSet, RenderMeshSnapshot,
-    RenderMeshStaticState, HYBRID_GI_SOURCE_BAKED_BASELINE, HYBRID_GI_SOURCE_DYNAMIC_DELTA,
+    RenderMeshStaticState, RendererCommon, HYBRID_GI_SOURCE_BAKED_BASELINE,
+    HYBRID_GI_SOURCE_DYNAMIC_DELTA,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
@@ -58,6 +59,7 @@ fn provider_invalidates_epoch_for_scene_light_generation_and_mobility_round_trip
 
     mesh.mobility = Mobility::Dynamic;
     mesh.static_state.transform_static = false;
+    mesh.common.is_static = false;
     meshes[0] = mesh.clone();
     let (dynamic_epoch, dynamic_mask) =
         prepare_epoch_and_mask(state.as_mut(), &extract, &meshes, &lights, Some(&baked_v1));
@@ -66,6 +68,7 @@ fn provider_invalidates_epoch_for_scene_light_generation_and_mobility_round_trip
 
     mesh.mobility = Mobility::Static;
     mesh.static_state.transform_static = true;
+    mesh.common.is_static = true;
     meshes[0] = mesh.clone();
     let (restored_epoch, restored_mask) =
         prepare_epoch_and_mask(state.as_mut(), &extract, &meshes, &lights, Some(&baked_v1));
@@ -279,7 +282,11 @@ fn test_mesh(node_id: u64, mobility: Mobility) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility,
         static_state: RenderMeshStaticState::new(mobility == Mobility::Static, 1, 1),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: mobility == Mobility::Static,
+            ..RendererCommon::default()
+        },
     }
 }
 

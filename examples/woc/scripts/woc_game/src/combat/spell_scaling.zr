@@ -1,0 +1,148 @@
+// Pinned from src/sim/spell_scaling.ts at the WOC reference commit.
+clampCast(seconds: float): float {
+    var value = seconds <= 0.0 ? 1.5 : seconds;
+    if (value < 1.5) { value = 1.5; }
+    return value > 3.5 ? 3.5 : value;
+}
+
+powerScale(school: string, scalesWithRanged: bool): float {
+    if (scalesWithRanged || school == "physical") { return 0.15; }
+    return 1.0;
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub directSpellCoeff(castTime: float): float {
+    return clampCast(castTime) / 3.5;
+}
+
+pub channelSpellCoeff(duration: float): float {
+    return clampCast(duration) / 3.5;
+}
+
+pub dotTotalCoeff(duration: float): float {
+    return duration / 15.0;
+}
+
+pub abilityScalingPower(
+    spellPower: float,
+    rangedPower: float,
+    attackPower: float,
+    school: string,
+    scalesWithRanged: bool
+): float {
+    if (scalesWithRanged) { return rangedPower; }
+    return school == "physical" ? attackPower : spellPower;
+}
+
+pub directHitBonus(
+    power: float,
+    school: string,
+    scalesWithRanged: bool,
+    castTime: float,
+    area: bool
+): int {
+    var coefficient = directSpellCoeff(castTime);
+    if (area) { coefficient = coefficient * 0.333; }
+    return roundPositive(power * coefficient * powerScale(school, scalesWithRanged));
+}
+
+pub directHealBonus(spellPower: float, castTime: float): int {
+    return roundPositive(spellPower * directSpellCoeff(castTime));
+}
+
+pub hotTickBonus(spellPower: float, duration: float, interval: float): int {
+    var ticks = interval > 0.0 ? duration / interval : 1.0;
+    if (ticks < 1.0) { ticks = 1.0; }
+    var coefficient = dotTotalCoeff(duration) / ticks;
+    return roundPositive(spellPower * coefficient);
+}
+
+pub channelTickBonus(
+    power: float,
+    school: string,
+    scalesWithRanged: bool,
+    duration: float,
+    ticks: int
+): int {
+    if (ticks <= 0) { return 0; }
+    var coefficient = channelSpellCoeff(duration) / <float>ticks;
+    return roundPositive(power * coefficient * powerScale(school, scalesWithRanged));
+}
+
+pub dotTickBonus(
+    power: float,
+    school: string,
+    scalesWithRanged: bool,
+    duration: float,
+    interval: float
+): int {
+    var ticks = interval > 0.0 ? duration / interval : 1.0;
+    if (ticks < 1.0) { ticks = 1.0; }
+    var coefficient = dotTotalCoeff(duration) / ticks;
+    return roundPositive(power * coefficient * powerScale(school, scalesWithRanged));
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    if (!closeEnough(directSpellCoeff(0.0), 1.5 / 3.5) ||
+        !closeEnough(directSpellCoeff(1.5), 1.5 / 3.5) ||
+        !closeEnough(directSpellCoeff(3.0), 3.0 / 3.5) ||
+        !closeEnough(directSpellCoeff(3.5), 1.0) ||
+        !closeEnough(directSpellCoeff(6.0), 1.0) ||
+        !closeEnough(directSpellCoeff(0.5), 1.5 / 3.5) ||
+        !closeEnough(directSpellCoeff(99.0), 1.0)) {
+        return -1;
+    }
+    if (!closeEnough(channelSpellCoeff(3.0), 3.0 / 3.5) ||
+        !closeEnough(channelSpellCoeff(5.0), 1.0) ||
+        !closeEnough(dotTotalCoeff(15.0), 1.0) ||
+        !closeEnough(dotTotalCoeff(18.0), 18.0 / 15.0) ||
+        !closeEnough(dotTotalCoeff(12.0), 12.0 / 15.0)) {
+        return -2;
+    }
+    if (directHitBonus(200.0, "fire", false, 1.5, false) != 86 ||
+        directHitBonus(200.0, "fire", false, 3.0, false) != 171 ||
+        directHitBonus(300.0, "fire", false, 0.0, true) != 43 ||
+        directHitBonus(400.0, "physical", true, 3.0, false) != 51) {
+        return -3;
+    }
+    if (channelTickBonus(210.0, "shadow", false, 3.0, 3) != 60 ||
+        channelTickBonus(500.0, "shadow", false, 0.0, 0) != 0) {
+        return -4;
+    }
+    if (dotTickBonus(150.0, "shadow", false, 18.0, 3.0) != 30 ||
+        dotTickBonus(300.0, "nature", true, 15.0, 3.0) != 9) {
+        return -5;
+    }
+    if (directHealBonus(200.0, 0.0) != 86 ||
+        directHealBonus(200.0, 3.0) != 171 ||
+        directHealBonus(200.0, 3.5) != 200 ||
+        directHealBonus(300.0, 3.5) !=
+            directHitBonus(300.0, "holy", false, 3.5, false)) {
+        return -6;
+    }
+    if (hotTickBonus(150.0, 12.0, 3.0) != 30 ||
+        hotTickBonus(210.0, 15.0, 3.0) !=
+            dotTickBonus(210.0, "nature", false, 15.0, 3.0)) {
+        return -7;
+    }
+    if (abilityScalingPower(120.0, 350.0, 500.0, "fire", false) != 120.0 ||
+        abilityScalingPower(120.0, 350.0, 500.0, "fire", true) != 350.0 ||
+        abilityScalingPower(120.0, 350.0, 500.0, "physical", false) != 500.0 ||
+        abilityScalingPower(120.0, 350.0, 500.0, "physical", true) != 350.0) {
+        return -8;
+    }
+    if (directHitBonus(500.0, "physical", false, 0.0, false) != 32 ||
+        dotTickBonus(500.0, "physical", false, 12.0, 2.0) != 10) {
+        return -9;
+    }
+    return 1;
+}

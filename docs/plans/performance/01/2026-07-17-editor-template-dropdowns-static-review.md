@@ -30,9 +30,11 @@ The option list is not painted here; open popup rows are owned by the already re
 
 Zircon should first pass one label and one metrics snapshot through the three layers. The final `DropdownPaintSpec` belongs to the shared changed-generation compilation path, while popup row virtualization remains a separate owner.
 
+The current-source direct fix now resolves `(label, placeholder)` and `WorkbenchDropdownMetrics` exactly once in `commands.rs`, then lends the metrics snapshot through surface, text, and chevron layers. The former glyph metrics forwarding module was deleted, and no child layer retains a `workbench_dropdown_metrics()` call. A focused source guard fixes the one-label/one-metrics budget and a behavioral regression test preserves the first-option fallback. Dynamic acceptance is still pending.
+
 ## Dynamic acceptance still required
 
-- Add focused counters/tests for one label build and one metrics projection per changed dropdown, then zero stable-generation builds.
+- Run current-source tests for the landed one-label/one-metrics source guard and first-option fallback regression; add runtime counters for zero stable-generation builds.
 - Re-run current-source `zircon_editor --lib performance_tests` and the dropdown pixel suite after the local consolidation.
 - Measure 1/100/10,000 dropdowns and 300 stable frames: label bytes, theme/metrics reads, resource resolves, host commands, CPU p50/p95/p99.
 - Preserve placeholder/fallback-option behavior, disabled/hover/focus/open state priority, declared style, offsets, brightness, asset fallback, z-order, clip, and pixels.

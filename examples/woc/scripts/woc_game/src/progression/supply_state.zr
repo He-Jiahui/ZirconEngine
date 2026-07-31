@@ -1,0 +1,191 @@
+// Source-compatible public supply observation from sim/supply.ts. This is an
+// independent projection over inventory rows and does not mutate items, bags,
+// currency, or vendor state.
+var container = %import("zr.container");
+var catalog = %import("generated/m5_content_catalog");
+
+pub class SupplyState {
+    pub var copper: int;
+    pub var bagCapacity: int;
+    pub var potionCooldownRemaining: float;
+    pub var inventoryIds: container.Array<string>;
+    pub var inventoryCounts: container.Array<int>;
+
+    pub @constructor() {
+        this.copper = 0;
+        this.bagCapacity = 16;
+        this.potionCooldownRemaining = 0.0;
+        this.inventoryIds = new container.Array<string>();
+        this.inventoryCounts = new container.Array<int>();
+    }
+
+    pub addInventory(itemId: string, count: int): void {
+        if (itemId == "" || count <= 0) { throw "supply inventory row is invalid"; }
+        this.inventoryIds.add(itemId);
+        this.inventoryCounts.add(count);
+    }
+}
+
+pub class SupplyStatus {
+    pub var foodCount: int;
+    pub var drinkCount: int;
+    pub var healingPotionCount: int;
+    pub var manaPotionCount: int;
+    pub var potionReady: bool;
+    pub var copper: int;
+    pub var bagCapacity: int;
+    pub var usedBagSlots: int;
+    pub var freeBagSlots: int;
+    pub var foodRestockFeasible: bool;
+    pub var drinkRestockFeasible: bool;
+    pub var healingPotionRestockFeasible: bool;
+    pub var manaPotionRestockFeasible: bool;
+
+    pub @constructor() {
+        this.foodCount = 0;
+        this.drinkCount = 0;
+        this.healingPotionCount = 0;
+        this.manaPotionCount = 0;
+        this.potionReady = true;
+        this.copper = 0;
+        this.bagCapacity = 0;
+        this.usedBagSlots = 0;
+        this.freeBagSlots = 0;
+        this.foodRestockFeasible = false;
+        this.drinkRestockFeasible = false;
+        this.healingPotionRestockFeasible = false;
+        this.manaPotionRestockFeasible = false;
+    }
+}
+
+pub class SupplyObservation {
+    pub var values: container.Array<float>;
+
+    pub @constructor() {
+        this.values = new container.Array<float>();
+    }
+}
+
+pub supplyObservationWidth(): int { return 15; }
+pub supplyObservationCountCap(): int { return 16; }
+pub supplyCopperCap(): int { return 1000; }
+
+itemIndex(itemId: string): int {
+    return catalog.indexOf("item", itemId);
+}
+
+itemKind(itemId: string): string {
+    var index = itemIndex(itemId);
+    return index >= 0 ? catalog.text("item", index, "kind") : "";
+}
+
+itemMetric(itemId: string, field: string): float {
+    var index = itemIndex(itemId);
+    return index >= 0 ? catalog.metric("item", index, field) : 0.0;
+}
+
+minimum(left: int, right: int): int {
+    return left < right ? left : right;
+}
+
+freeBagSlots(state: SupplyState): int {
+    var free = state.bagCapacity - state.inventoryIds.length;
+    return free > 0 ? free : 0;
+}
+
+// All four source restock items are stackable consumables with the source's
+// default 20-count cap. Other inventory rows still consume a full bag slot.
+canAddRestock(state: SupplyState, itemId: string, requestedCount: int): bool {
+    if (requestedCount <= 0 || itemIndex(itemId) < 0) { return false; }
+    var room = 0;
+    var index = 0;
+    while (index < state.inventoryIds.length) {
+        if (<string>state.inventoryIds[index] == itemId &&
+            <int>state.inventoryCounts[index] < 20) {
+            room = room + 20 - <int>state.inventoryCounts[index];
+        }
+        index = index + 1;
+    }
+    room = room + freeBagSlots(state) * 20;
+    return room >= requestedCount;
+}
+
+restockFeasible(state: SupplyState, itemId: string, count: int): bool {
+    var index = itemIndex(itemId);
+    if (index < 0) { return false; }
+    var price = catalog.metric("item", index, "buyValue");
+    return <float>state.copper >= price * <float>count &&
+        canAddRestock(state, itemId, count);
+}
+
+pub supplyStatus(state: SupplyState, output: SupplyStatus): void {
+    output.foodCount = 0;
+    output.drinkCount = 0;
+    output.healingPotionCount = 0;
+    output.manaPotionCount = 0;
+    var row = 0;
+    while (row < state.inventoryIds.length) {
+        var itemId = <string>state.inventoryIds[row];
+        var count = <int>state.inventoryCounts[row];
+        var kind = itemKind(itemId);
+        if (kind == "food") { output.foodCount = output.foodCount + count; }
+        if (kind == "drink") { output.drinkCount = output.drinkCount + count; }
+        if (kind == "potion" && itemMetric(itemId, "potionHp") > 0.0) {
+            output.healingPotionCount = output.healingPotionCount + count;
+        }
+        if (kind == "potion" && itemMetric(itemId, "potionMana") > 0.0) {
+            output.manaPotionCount = output.manaPotionCount + count;
+        }
+        row = row + 1;
+    }
+    output.potionReady = state.potionCooldownRemaining <= 0.0;
+    output.copper = state.copper;
+    output.bagCapacity = state.bagCapacity;
+    output.usedBagSlots = state.inventoryIds.length;
+    output.freeBagSlots = freeBagSlots(state);
+    output.foodRestockFeasible = restockFeasible(state, "baked_bread", 5);
+    output.drinkRestockFeasible = restockFeasible(state, "spring_water", 5);
+    output.healingPotionRestockFeasible =
+        restockFeasible(state, "minor_healing_potion", 1);
+    output.manaPotionRestockFeasible = restockFeasible(state, "minor_mana_potion", 1);
+}
+
+clearObservation(observation: SupplyObservation): void {
+    while (observation.values.length > 0) { observation.values.removeAt(0); }
+}
+
+appendBoolean(observation: SupplyObservation, value: bool): void {
+    observation.values.add(value ? 1.0 : 0.0);
+}
+
+appendCappedCount(observation: SupplyObservation, count: int): void {
+    observation.values.add(<float>minimum(count, supplyObservationCountCap()) /
+        <float>supplyObservationCountCap());
+}
+
+pub encodeSupplyObservation(state: SupplyState, observation: SupplyObservation): void {
+    var status = new SupplyStatus();
+    supplyStatus(state, status);
+    clearObservation(observation);
+    appendBoolean(observation, status.foodCount > 0);
+    appendCappedCount(observation, status.foodCount);
+    appendBoolean(observation, status.drinkCount > 0);
+    appendCappedCount(observation, status.drinkCount);
+    appendBoolean(observation, status.healingPotionCount > 0);
+    appendCappedCount(observation, status.healingPotionCount);
+    appendBoolean(observation, status.manaPotionCount > 0);
+    appendCappedCount(observation, status.manaPotionCount);
+    appendBoolean(observation, status.potionReady);
+    observation.values.add(<float>minimum(status.copper, supplyCopperCap()) /
+        <float>supplyCopperCap());
+    if (status.bagCapacity > 0) {
+        observation.values.add(<float>minimum(status.freeBagSlots, status.bagCapacity) /
+            <float>status.bagCapacity);
+    } else {
+        observation.values.add(0.0);
+    }
+    appendBoolean(observation, status.foodRestockFeasible);
+    appendBoolean(observation, status.drinkRestockFeasible);
+    appendBoolean(observation, status.healingPotionRestockFeasible);
+    appendBoolean(observation, status.manaPotionRestockFeasible);
+}

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var talents = %import("progression/talent_allocation_commit_state");
+
+console.printLine("m5-talent-allocation-commit-state-test");
+var result = talents.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

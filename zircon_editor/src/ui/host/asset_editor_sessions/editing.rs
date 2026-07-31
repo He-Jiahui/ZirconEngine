@@ -7,7 +7,9 @@ mod source;
 mod style;
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+
+use zircon_runtime::asset::project::ProjectManager;
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
@@ -24,9 +26,7 @@ use crate::ui::workbench::view::{
 };
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use super::super::project_access::{
-    normalize_ui_asset_asset_id, open_project_manager_for_paths, resolve_project_asset_write_path,
-};
+use super::super::project_access::{normalize_ui_asset_asset_id, resolve_project_asset_write_path};
 use super::super::ui_asset_promotion::{
     resolve_external_style_target, resolve_external_widget_target,
 };
@@ -34,11 +34,10 @@ use super::super::ui_asset_promotion::{
 pub(crate) const UI_ASSET_EDITOR_DESCRIPTOR_ID: &str = "editor.ui_asset";
 
 fn ui_asset_effect_source_path(
-    project_root: &Path,
+    project: &ProjectManager,
     asset_id: &str,
 ) -> Result<PathBuf, EditorError> {
-    let project = open_project_manager_for_paths(project_root)?;
-    resolve_project_asset_write_path(&project, asset_id)
+    resolve_project_asset_write_path(project, asset_id)
 }
 
 pub(crate) fn ui_asset_editor_view_descriptor() -> ViewDescriptor {
@@ -62,13 +61,13 @@ pub(crate) fn ui_asset_editor_view_descriptor() -> ViewDescriptor {
 impl EditorUiHost {
     fn apply_ui_asset_editor_external_effect(
         &self,
-        project_root: &Path,
+        project: &ProjectManager,
         effect: &UiAssetEditorExternalEffect,
     ) -> Result<String, EditorError> {
         match effect {
             UiAssetEditorExternalEffect::UpsertAssetSource { asset_id, source }
             | UiAssetEditorExternalEffect::RestoreAssetSource { asset_id, source } => {
-                let source_path = ui_asset_effect_source_path(project_root, asset_id)?;
+                let source_path = ui_asset_effect_source_path(project, asset_id)?;
                 if let Some(parent) = source_path.parent() {
                     fs::create_dir_all(parent)
                         .map_err(|error| EditorError::UiAsset(error.to_string()))?;
@@ -80,7 +79,7 @@ impl EditorUiHost {
                 Ok(normalized)
             }
             UiAssetEditorExternalEffect::RemoveAssetSource { asset_id } => {
-                let source_path = ui_asset_effect_source_path(project_root, asset_id)?;
+                let source_path = ui_asset_effect_source_path(project, asset_id)?;
                 if source_path.exists() {
                     fs::remove_file(&source_path)
                         .map_err(|error| EditorError::UiAsset(error.to_string()))?;

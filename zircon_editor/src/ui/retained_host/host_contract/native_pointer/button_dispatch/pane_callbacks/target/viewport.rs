@@ -5,6 +5,7 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresent
 use crate::ui::retained_host::host_contract::globals::PaneSurfaceHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
+use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
 
 use self::body::dispatch_viewport_body_target_button;
 use self::toolbar::dispatch_viewport_toolbar_target_button;
@@ -19,6 +20,7 @@ pub(super) fn dispatch_viewport_pane_target_button(
     state: NativePointerButtonState,
     button: UiPointerButton,
     button_id: i32,
+    modifiers: UiInputModifiers,
     cleared_text_input_frame: Option<FrameRect>,
 ) -> Option<NativePointerDispatchResult> {
     match &pointer.target {
@@ -40,6 +42,7 @@ pub(super) fn dispatch_viewport_pane_target_button(
             pointer,
             kind,
             button_id,
+            modifiers,
             cleared_text_input_frame,
         )),
         _ => None,

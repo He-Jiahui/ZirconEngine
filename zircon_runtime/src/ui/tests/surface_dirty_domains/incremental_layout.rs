@@ -1,6 +1,15 @@
 use super::*;
 
 #[test]
+fn incremental_layout_snapshots_only_visited_geometry() {
+    let source = include_str!("../../layout/pass/incremental.rs");
+
+    assert!(source.contains("let previous = snapshot_geometry(tree, &visited);"));
+    assert!(source.contains("visited: &BTreeSet<UiNodeId>"));
+    assert!(!source.contains("let previous = snapshot_geometry(tree);"));
+}
+
+#[test]
 fn surface_dirty_layout_skips_siblings_under_non_auto_parent() {
     let mut surface = sibling_surface(UiContainerKind::Free, LayoutBoundary::ParentDirected);
     let sibling_frame = surface

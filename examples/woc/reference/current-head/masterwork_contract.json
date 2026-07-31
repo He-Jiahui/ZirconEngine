@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/masterwork_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/masterwork.ts": "0f1293563d04cb653b28c1826b516bb50f4d98ee8d66b0243a3554afa0439843"
+  },
+  "chance": {
+    "base": 0.03,
+    "per_tier_above": 0.01,
+    "signed_reagent": 0.02,
+    "specialization": 0.03,
+    "cap": 0.15
+  },
+  "quality_ladder": [
+    "common",
+    "uncommon",
+    "rare",
+    "epic",
+    "legendary"
+  ],
+  "source_semantics": {
+    "draw_ownership": "crafting.ts owns exactly one successful-craft proc draw; this pure module never draws RNG",
+    "quality": "poor, legendary and unknown qualities cannot bump; absent quality normalizes to common",
+    "stats": "baked primary-stat tier delta remains owned by masterworkBonusStats and item_budget integration"
+  }
+}

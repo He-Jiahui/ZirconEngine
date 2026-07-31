@@ -10,8 +10,8 @@ use zircon_runtime_interface::ui::{
 use crate::ui::workbench::autolayout::{
     balanced_side_widths_for_budget, compact_bottom_height_limit, compact_side_width_limit,
     minimum_document_width_fraction, right_drawer_should_collapse_for_physical_width,
-    workbench_layout_tier_for_physical_width, ShellRegionId, WorkbenchChromeMetrics,
-    WorkbenchLayoutTier,
+    workbench_layout_tier_for_physical_width, workbench_logical_width_for_scale, ShellRegionId,
+    WorkbenchChromeMetrics, WorkbenchLayoutTier,
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -102,7 +102,30 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         model: &WorkbenchViewModel,
         metrics: &WorkbenchChromeMetrics,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.recompute_layout(shell_size)?;
+        self.recompute_mounted_layout_with_workbench_model_at_scale(
+            UiFrame::new(0.0, 0.0, shell_size.width, shell_size.height),
+            scale_factor,
+            model,
+            metrics,
+        )
+    }
+
+    pub(crate) fn recompute_mounted_layout_with_workbench_model_at_scale(
+        &mut self,
+        mount_frame: UiFrame,
+        scale_factor: f32,
+        model: &WorkbenchViewModel,
+        metrics: &WorkbenchChromeMetrics,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let shell_size = self.recompute_layout_at_mount(mount_frame)?;
+        let logical_toolbar_width =
+            workbench_logical_width_for_scale(shell_size.width, scale_factor);
+        self.apply_toolbar_run_state(model)?;
+        self.apply_asset_creation_menu_state(model, shell_size)?;
+        self.apply_responsive_toolbar_layout(UiSize::new(
+            logical_toolbar_width,
+            shell_size.height,
+        ))?;
         let anchors = self.componentized_drawer_layout_anchors(shell_size);
         apply_workbench_drawer_layout_to_surface(
             &mut self.template_surface.surface,

@@ -13,10 +13,10 @@ use crate::scene::components::{default_render_layer_mask, Mobility};
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::core::framework::render::{
     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
-    RenderFramework, RenderMeshSnapshot, RenderOverlayExtract, RenderQualityProfile,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract,
+    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryPage, RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
 };
 
 use crate::{
@@ -358,6 +358,8 @@ fn build_dual_entity_extract(
             meshes: vec![
                 RenderMeshSnapshot {
                     node_id: 2,
+                    stable_instance_key: 2 << 16,
+                    transform_revision: 0,
                     transform: Transform {
                         translation: Vec3::new(-0.35, 0.0, 0.0),
                         scale: Vec3::new(0.6, 0.6, 1.0),
@@ -366,12 +368,23 @@ fn build_dual_entity_extract(
                     model: model.clone(),
                     mesh: None,
                     material: material.clone(),
+                    mesh_lod: None,
+                    morph_weights: Vec::new(),
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
-                    render_layer_mask: default_render_layer_mask(),
+                    static_state: Default::default(),
+                    common: RendererCommon {
+                        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                            default_render_layer_mask(),
+                        ),
+                        is_static: false,
+                        ..RendererCommon::default()
+                    },
                 },
                 RenderMeshSnapshot {
                     node_id: 3,
+                    stable_instance_key: 3 << 16,
+                    transform_revision: 0,
                     transform: Transform {
                         translation: Vec3::new(0.35, 0.0, 0.0),
                         scale: Vec3::new(0.6, 0.6, 1.0),
@@ -380,9 +393,18 @@ fn build_dual_entity_extract(
                     model,
                     mesh: None,
                     material,
+                    mesh_lod: None,
+                    morph_weights: Vec::new(),
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
-                    render_layer_mask: default_render_layer_mask(),
+                    static_state: Default::default(),
+                    common: RendererCommon {
+                        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                            default_render_layer_mask(),
+                        ),
+                        is_static: false,
+                        ..RendererCommon::default()
+                    },
                 },
             ],
             directional_lights: Vec::new(),
@@ -439,6 +461,8 @@ fn build_single_entity_extract(
             camera,
             meshes: vec![RenderMeshSnapshot {
                 node_id: 2,
+                stable_instance_key: 2 << 16,
+                transform_revision: 0,
                 transform: Transform {
                     translation: Vec3::ZERO,
                     scale: Vec3::new(0.8, 0.8, 1.0),
@@ -447,9 +471,18 @@ fn build_single_entity_extract(
                 model,
                 mesh: None,
                 material,
+                mesh_lod: None,
+                morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
-                render_layer_mask: default_render_layer_mask(),
+                static_state: Default::default(),
+                common: RendererCommon {
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                        default_render_layer_mask(),
+                    ),
+                    is_static: false,
+                    ..RendererCommon::default()
+                },
             }],
             directional_lights: Vec::new(),
             point_lights: Vec::new(),

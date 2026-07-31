@@ -1,7 +1,7 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchDropdownStyle;
-use super::super::template_dropdown_metrics::workbench_dropdown_metrics;
+use super::super::template_dropdown_metrics::WorkbenchDropdownMetrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dropdown_surface(
     commands: &mut Vec<HostPaintCommand>,
@@ -10,8 +10,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
     order: i32,
     opacity: f32,
     style: &WorkbenchDropdownStyle,
+    metrics: &WorkbenchDropdownMetrics,
 ) {
-    let metrics = workbench_dropdown_metrics();
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),

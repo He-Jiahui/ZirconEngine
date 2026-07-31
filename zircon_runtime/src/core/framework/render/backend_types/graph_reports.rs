@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use crate::core::framework::render::RenderBudgetKey;
 use crate::core::math::UVec2;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -255,11 +256,34 @@ fn backing_count(records: &[RenderGraphExecutionAliasRecord]) -> usize {
         .len()
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphPassProfileMetrics {
+    pub draw_count: u32,
+    pub instance_count: u32,
+    pub state_change_count: u32,
+}
+
+impl RenderGraphPassProfileMetrics {
+    pub const fn new(draw_count: u32, instance_count: u32, state_change_count: u32) -> Self {
+        Self {
+            draw_count,
+            instance_count,
+            state_change_count,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderGraphPassProfileRecord {
     pub pass_name: String,
     pub executor_id: String,
+    pub budget_key: RenderBudgetKey,
     pub cpu_elapsed_micros: u64,
+    pub draw_count: u32,
+    pub instance_count: u32,
+    pub state_change_count: u32,
+    pub dispatch_count: u32,
+    pub upload_bytes: u64,
 }
 
 impl RenderGraphPassProfileRecord {
@@ -271,8 +295,32 @@ impl RenderGraphPassProfileRecord {
         Self {
             pass_name: pass_name.into(),
             executor_id: executor_id.into(),
+            budget_key: RenderBudgetKey::Other,
             cpu_elapsed_micros,
+            draw_count: 0,
+            instance_count: 0,
+            state_change_count: 0,
+            dispatch_count: 0,
+            upload_bytes: 0,
         }
+    }
+
+    pub fn with_budget_key(mut self, budget_key: RenderBudgetKey) -> Self {
+        self.budget_key = budget_key;
+        self
+    }
+
+    pub fn with_compute_metrics(mut self, dispatch_count: u32, upload_bytes: u64) -> Self {
+        self.dispatch_count = dispatch_count;
+        self.upload_bytes = upload_bytes;
+        self
+    }
+
+    pub fn with_render_metrics(mut self, metrics: RenderGraphPassProfileMetrics) -> Self {
+        self.draw_count = metrics.draw_count;
+        self.instance_count = metrics.instance_count;
+        self.state_change_count = metrics.state_change_count;
+        self
     }
 }
 
@@ -408,5 +456,19 @@ impl MotionVectorCameraStatus {
             Self::CameraCutOrInvalid => "camera_cut_or_invalid",
             Self::Ready => "ready",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::RenderGraphPassProfileMetrics;
+
+    #[test]
+    fn pass_profile_metrics_are_available_from_the_framework_render_root() {
+        let metrics = RenderGraphPassProfileMetrics::new(3, 5, 7);
+
+        assert_eq!(metrics.draw_count, 3);
+        assert_eq!(metrics.instance_count, 5);
+        assert_eq!(metrics.state_change_count, 7);
     }
 }

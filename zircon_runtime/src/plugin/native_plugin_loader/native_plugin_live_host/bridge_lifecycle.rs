@@ -208,11 +208,11 @@ impl NativePluginLiveHostLoadReport {
             return;
         }
 
-        for plugin_id in self.loaded_plugin_ids.clone() {
+        for plugin_id in &self.loaded_plugin_ids {
             let report = runtime_bridge_lifecycle_report(
-                &plugin_id,
+                plugin_id,
                 NativePluginLiveHostCommand::Load,
-                RuntimePluginBridgeLifecycleEvent::activate_provider(plugin_id.clone()),
+                RuntimePluginBridgeLifecycleEvent::activate_provider(plugin_id.as_str()),
                 lifecycle,
             );
             self.diagnostics.push(report.diagnostic());

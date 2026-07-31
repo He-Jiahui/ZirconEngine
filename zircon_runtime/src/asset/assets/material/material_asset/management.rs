@@ -48,46 +48,25 @@ pub struct MaterialAssetManagementRecordSet {
 
 impl MaterialAssetManagementRecordSetSummary {
     pub fn from_records(records: &[MaterialAssetManagementRecord]) -> Self {
-        let issue_material_count = records
-            .iter()
-            .filter(|record| {
-                record.overview.validation_error_count + record.overview.validation_diagnostic_count
-                    > 0
-            })
-            .count();
-        Self {
+        let mut summary = Self {
             material_count: records.len(),
-            ready_count: records.len() - issue_material_count,
-            issue_material_count,
-            property_override_count: records
-                .iter()
-                .map(|record| record.overview.property_override_count)
-                .sum(),
-            texture_slot_count: records
-                .iter()
-                .map(|record| record.overview.texture_slot_count)
-                .sum(),
-            texture_reference_count: records
-                .iter()
-                .map(|record| record.overview.texture_reference_count)
-                .sum(),
-            fallback_texture_slot_count: records
-                .iter()
-                .map(|record| record.overview.fallback_texture_slot_count)
-                .sum(),
-            validation_error_count: records
-                .iter()
-                .map(|record| record.overview.validation_error_count)
-                .sum(),
-            validation_diagnostic_count: records
-                .iter()
-                .map(|record| record.overview.validation_diagnostic_count)
-                .sum(),
-            direct_reference_count: records
-                .iter()
-                .map(|record| record.overview.direct_reference_count)
-                .sum(),
+            ..Self::default()
+        };
+        for record in records {
+            let overview = &record.overview;
+            summary.issue_material_count += usize::from(
+                overview.validation_error_count + overview.validation_diagnostic_count > 0,
+            );
+            summary.property_override_count += overview.property_override_count;
+            summary.texture_slot_count += overview.texture_slot_count;
+            summary.texture_reference_count += overview.texture_reference_count;
+            summary.fallback_texture_slot_count += overview.fallback_texture_slot_count;
+            summary.validation_error_count += overview.validation_error_count;
+            summary.validation_diagnostic_count += overview.validation_diagnostic_count;
+            summary.direct_reference_count += overview.direct_reference_count;
         }
+        summary.ready_count = summary.material_count - summary.issue_material_count;
+        summary
     }
 
     pub fn degraded_count(&self) -> usize {

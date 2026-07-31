@@ -1,0 +1,443 @@
+// Current-head projection of standard-dungeon Reset All. World position,
+// corpse ownership, loot entities, and party mutation stay in WOS; this module
+// retains the atomic claim replacement and durable owner-lock decisions.
+var container = %import("zr.container");
+
+var NORMAL = 0;
+var HEROIC = 1;
+var RESET_COOLDOWN_SECONDS = 300;
+
+pub class DungeonResetOwner {
+    pub var id: int;
+    pub var durableId: int;
+    pub var partyMember: bool;
+
+    pub @constructor(id: int, durableId: int, partyMember: bool) {
+        this.id = id;
+        this.durableId = durableId;
+        this.partyMember = partyMember;
+    }
+}
+
+pub class DungeonResetClaim {
+    pub var claimId: int;
+    pub var dungeonId: string;
+    pub var partyKey: int;
+    pub var difficulty: int;
+    pub var supportsHeroic: bool;
+    pub var raidAllowed: bool;
+    pub var active: bool;
+    pub var someoneInside: bool;
+    pub var corpseInside: bool;
+    pub var lootRemaining: bool;
+    pub var heroicLocked: bool;
+    pub var resetAvailableAt: int;
+
+    pub @constructor(
+        claimId: int,
+        dungeonId: string,
+        partyKey: int,
+        difficulty: int,
+        supportsHeroic: bool
+    ) {
+        this.claimId = claimId;
+        this.dungeonId = dungeonId;
+        this.partyKey = partyKey;
+        this.difficulty = difficulty;
+        this.supportsHeroic = supportsHeroic;
+        this.raidAllowed = false;
+        this.active = true;
+        this.someoneInside = false;
+        this.corpseInside = false;
+        this.lootRemaining = false;
+        this.heroicLocked = false;
+        this.resetAvailableAt = 0;
+    }
+}
+
+pub class DungeonResetState {
+    pub var now: int;
+    pub var actorId: int;
+    pub var partyLeaderId: int;
+    pub var partyKey: int;
+    pub var selectedDifficulty: int;
+    pub var owners: container.Array<DungeonResetOwner>;
+    pub var claims: container.Array<DungeonResetClaim>;
+    pub var lockOwnerKeys: container.Array<int>;
+    pub var lockDungeonIds: container.Array<string>;
+    pub var lockAvailableAt: container.Array<int>;
+    pub var lockClaimIds: container.Array<int>;
+    pub var nextClaimId: int;
+    pub var lastError: int;
+    pub var replacements: int;
+
+    pub @constructor() {
+        this.now = 0;
+        this.actorId = 1;
+        this.partyLeaderId = 1;
+        this.partyKey = 1;
+        this.selectedDifficulty = NORMAL;
+        this.owners = new container.Array<DungeonResetOwner>();
+        this.claims = new container.Array<DungeonResetClaim>();
+        this.lockOwnerKeys = new container.Array<int>();
+        this.lockDungeonIds = new container.Array<string>();
+        this.lockAvailableAt = new container.Array<int>();
+        this.lockClaimIds = new container.Array<int>();
+        this.nextClaimId = 1000;
+        this.lastError = 0;
+        this.replacements = 0;
+    }
+}
+
+pub addResetOwner(state: DungeonResetState, owner: DungeonResetOwner): void {
+    state.owners.add(owner);
+}
+
+pub addResetClaim(state: DungeonResetState, claim: DungeonResetClaim): void {
+    if (claim.claimId <= 0) {
+        claim.claimId = state.nextClaimId;
+        state.nextClaimId = state.nextClaimId + 1;
+    }
+    if (claim.claimId >= state.nextClaimId) { state.nextClaimId = claim.claimId + 1; }
+    state.claims.add(claim);
+}
+
+findOwnerIndex(state: DungeonResetState, ownerId: int): int {
+    var index = 0;
+    while (index < state.owners.length) {
+        if ((<DungeonResetOwner>state.owners[index]).id == ownerId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+ownerKey(owner: DungeonResetOwner): int {
+    return owner.durableId > 0 ? owner.durableId : owner.id;
+}
+
+pub setResetOwnerPartyMember(state: DungeonResetState, ownerId: int, value: bool): bool {
+    var index = findOwnerIndex(state, ownerId);
+    if (index < 0) { return false; }
+    (<DungeonResetOwner>state.owners[index]).partyMember = value;
+    return true;
+}
+
+ownerIdsForReset(state: DungeonResetState): container.Array<int> {
+    var ids = new container.Array<int>();
+    var index = 0;
+    while (index < state.owners.length) {
+        var owner = <DungeonResetOwner>state.owners[index];
+        if (owner.partyMember) { ids.add(owner.id); }
+        index = index + 1;
+    }
+    if (ids.length == 0) { ids.add(state.actorId); }
+    return ids;
+}
+
+findClaimIndex(state: DungeonResetState, claimId: int): int {
+    var index = 0;
+    while (index < state.claims.length) {
+        if ((<DungeonResetClaim>state.claims[index]).claimId == claimId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub effectiveClaimDifficulty(state: DungeonResetState, claim: DungeonResetClaim): int {
+    return state.selectedDifficulty == HEROIC && claim.supportsHeroic ? HEROIC : NORMAL;
+}
+
+removeResetLockAt(state: DungeonResetState, index: int): void {
+    state.lockOwnerKeys.removeAt(index);
+    state.lockDungeonIds.removeAt(index);
+    state.lockAvailableAt.removeAt(index);
+    state.lockClaimIds.removeAt(index);
+}
+
+activeResetLockIndex(state: DungeonResetState, ownerKeyValue: int, dungeonId: string): int {
+    var index = 0;
+    while (index < state.lockOwnerKeys.length) {
+        if (<int>state.lockOwnerKeys[index] == ownerKeyValue &&
+            <string>state.lockDungeonIds[index] == dungeonId) {
+            if (<int>state.lockAvailableAt[index] <= state.now) {
+                removeResetLockAt(state, index);
+                return -1;
+            }
+            return index;
+        }
+        index = index + 1;
+    }
+    return -1;
+}
+
+setResetLock(
+    state: DungeonResetState,
+    ownerKeyValue: int,
+    dungeonId: string,
+    availableAt: int,
+    claimId: int
+): void {
+    var index = activeResetLockIndex(state, ownerKeyValue, dungeonId);
+    if (index >= 0) {
+        state.lockAvailableAt[index] = availableAt;
+        state.lockClaimIds[index] = claimId;
+        return;
+    }
+    state.lockOwnerKeys.add(ownerKeyValue);
+    state.lockDungeonIds.add(dungeonId);
+    state.lockAvailableAt.add(availableAt);
+    state.lockClaimIds.add(claimId);
+}
+
+pub resetLockClaimId(state: DungeonResetState, ownerId: int, dungeonId: string): int {
+    var ownerIndex = findOwnerIndex(state, ownerId);
+    if (ownerIndex < 0) { return 0; }
+    var index = activeResetLockIndex(
+        state,
+        ownerKey(<DungeonResetOwner>state.owners[ownerIndex]),
+        dungeonId
+    );
+    return index < 0 ? 0 : <int>state.lockClaimIds[index];
+}
+
+pub inheritResetLocks(state: DungeonResetState, joiningOwnerId: int): void {
+    var joiningIndex = findOwnerIndex(state, joiningOwnerId);
+    if (joiningIndex < 0 || !(<DungeonResetOwner>state.owners[joiningIndex]).partyMember) { return; }
+    var joiningKey = ownerKey(<DungeonResetOwner>state.owners[joiningIndex]);
+    var claimIndex = 0;
+    while (claimIndex < state.claims.length) {
+        var claim = <DungeonResetClaim>state.claims[claimIndex];
+        if (claim.active && !claim.raidAllowed && claim.partyKey == state.partyKey) {
+            var candidateAt = claim.resetAvailableAt > state.now ? claim.resetAvailableAt : 0;
+            var candidateClaimId = candidateAt > 0 ? claim.claimId : 0;
+            var ownerIndex = 0;
+            while (ownerIndex < state.owners.length) {
+                var owner = <DungeonResetOwner>state.owners[ownerIndex];
+                if (owner.partyMember && owner.id != joiningOwnerId) {
+                    var otherLock = activeResetLockIndex(state, ownerKey(owner), claim.dungeonId);
+                    if (otherLock >= 0 && <int>state.lockAvailableAt[otherLock] > candidateAt) {
+                        candidateAt = <int>state.lockAvailableAt[otherLock];
+                        candidateClaimId = <int>state.lockClaimIds[otherLock];
+                    }
+                }
+                ownerIndex = ownerIndex + 1;
+            }
+            var existing = activeResetLockIndex(state, joiningKey, claim.dungeonId);
+            var existingAt = existing < 0 ? 0 : <int>state.lockAvailableAt[existing];
+            if (candidateAt > existingAt) {
+                setResetLock(state, joiningKey, claim.dungeonId, candidateAt, candidateClaimId);
+            }
+        }
+        claimIndex = claimIndex + 1;
+    }
+}
+
+// Returns the number of replacement claims or a stable negative rejection code.
+// Every resettable claim is validated before any claim id/difficulty changes.
+pub resetOwnedInstances(state: DungeonResetState): int {
+    state.lastError = 0;
+    if (findOwnerIndex(state, state.actorId) < 0 || state.actorId != state.partyLeaderId) {
+        state.lastError = -1;
+        return -1;
+    }
+
+    var owned = 0;
+    var resettable = 0;
+    var index = 0;
+    while (index < state.claims.length) {
+        var claim = <DungeonResetClaim>state.claims[index];
+        if (claim.active && !claim.raidAllowed && claim.partyKey == state.partyKey) {
+            owned = owned + 1;
+            if (claim.difficulty != effectiveClaimDifficulty(state, claim)) {
+                resettable = resettable + 1;
+            }
+        }
+        index = index + 1;
+    }
+    if (owned == 0) { state.lastError = -2; return -2; }
+    if (resettable == 0) { state.lastError = -3; return -3; }
+
+    var ownerIds = ownerIdsForReset(state);
+    index = 0;
+    while (index < state.claims.length) {
+        var candidate = <DungeonResetClaim>state.claims[index];
+        if (!candidate.active || candidate.raidAllowed || candidate.partyKey != state.partyKey ||
+            candidate.difficulty == effectiveClaimDifficulty(state, candidate)) {
+            index = index + 1;
+            continue;
+        }
+        var ownerIndex = 0;
+        while (ownerIndex < ownerIds.length) {
+            var id = <int>ownerIds[ownerIndex];
+            var foundOwner = findOwnerIndex(state, id);
+            if (foundOwner >= 0 && activeResetLockIndex(
+                state,
+                ownerKey(<DungeonResetOwner>state.owners[foundOwner]),
+                candidate.dungeonId
+            ) >= 0) {
+                state.lastError = -4;
+                return -4;
+            }
+            ownerIndex = ownerIndex + 1;
+        }
+        if (candidate.resetAvailableAt > state.now) {
+            state.lastError = -4;
+            return -4;
+        }
+        if (state.selectedDifficulty == HEROIC && candidate.heroicLocked) {
+            state.lastError = -7;
+            return -7;
+        }
+        if (candidate.someoneInside || candidate.corpseInside) {
+            state.lastError = -5;
+            return -5;
+        }
+        if (candidate.lootRemaining) {
+            state.lastError = -6;
+            return -6;
+        }
+        index = index + 1;
+    }
+
+    var replaced = 0;
+    index = 0;
+    while (index < state.claims.length) {
+        var replacement = <DungeonResetClaim>state.claims[index];
+        if (replacement.active && !replacement.raidAllowed && replacement.partyKey == state.partyKey &&
+            replacement.difficulty != effectiveClaimDifficulty(state, replacement)) {
+            replacement.difficulty = effectiveClaimDifficulty(state, replacement);
+            replacement.claimId = state.nextClaimId;
+            state.nextClaimId = state.nextClaimId + 1;
+            replacement.resetAvailableAt = state.now + RESET_COOLDOWN_SECONDS;
+            var ownerIndex = 0;
+            while (ownerIndex < ownerIds.length) {
+                var id = <int>ownerIds[ownerIndex];
+                var foundOwner = findOwnerIndex(state, id);
+                if (foundOwner >= 0) {
+                    setResetLock(
+                        state,
+                        ownerKey(<DungeonResetOwner>state.owners[foundOwner]),
+                        replacement.dungeonId,
+                        replacement.resetAvailableAt,
+                        replacement.claimId
+                    );
+                }
+                ownerIndex = ownerIndex + 1;
+            }
+            replaced = replaced + 1;
+        }
+        index = index + 1;
+    }
+    state.replacements = state.replacements + replaced;
+    return replaced;
+}
+
+// Returns one on entry to the exact live replacement claim, otherwise a stable
+// error. Lock identity, rather than the ephemeral party key, closes party-reform
+// and friend-claim bypasses during the cooldown.
+pub enterResetClaim(state: DungeonResetState, dungeonId: string, claimId: int): int {
+    var claimIndex = findClaimIndex(state, claimId);
+    if (claimIndex < 0 || !(<DungeonResetClaim>state.claims[claimIndex]).active ||
+        (<DungeonResetClaim>state.claims[claimIndex]).dungeonId != dungeonId) {
+        return -10;
+    }
+    var ownerIds = ownerIdsForReset(state);
+    var index = 0;
+    while (index < ownerIds.length) {
+        var ownerIndex = findOwnerIndex(state, <int>ownerIds[index]);
+        if (ownerIndex >= 0) {
+            var lockIndex = activeResetLockIndex(
+                state,
+                ownerKey(<DungeonResetOwner>state.owners[ownerIndex]),
+                dungeonId
+            );
+            if (lockIndex >= 0) {
+                var lockedClaimId = <int>state.lockClaimIds[lockIndex];
+                if (lockedClaimId != claimId) { return -11; }
+            }
+        }
+        index = index + 1;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var transition = new DungeonResetState();
+    transition.actorId = 1;
+    transition.partyLeaderId = 1;
+    transition.partyKey = 42;
+    transition.selectedDifficulty = HEROIC;
+    addResetOwner(transition, new DungeonResetOwner(1, 101, true));
+    addResetOwner(transition, new DungeonResetOwner(2, 202, true));
+    var normal = new DungeonResetClaim(10, "hollow_crypt", 42, NORMAL, true);
+    addResetClaim(transition, normal);
+    if (resetOwnedInstances(transition) != 1 || normal.difficulty != HEROIC ||
+        normal.claimId != 1000 || normal.resetAvailableAt != RESET_COOLDOWN_SECONDS ||
+        resetLockClaimId(transition, 1, "hollow_crypt") != 1000 ||
+        resetLockClaimId(transition, 2, "hollow_crypt") != 1000 ||
+        enterResetClaim(transition, "hollow_crypt", 1000) != 1) {
+        return -1;
+    }
+    addResetClaim(transition, new DungeonResetClaim(11, "hollow_crypt", 99, HEROIC, true));
+    if (enterResetClaim(transition, "hollow_crypt", 11) != -11) { return -12; }
+    transition.selectedDifficulty = NORMAL;
+    if (resetOwnedInstances(transition) != -4 || normal.difficulty != HEROIC) { return -2; }
+    transition.now = RESET_COOLDOWN_SECONDS;
+    if (resetOwnedInstances(transition) != 1 || normal.difficulty != NORMAL ||
+        normal.claimId != 1001 || resetLockClaimId(transition, 1, "hollow_crypt") != 1001) {
+        return -3;
+    }
+
+    var same = new DungeonResetState();
+    addResetOwner(same, new DungeonResetOwner(1, 1, true));
+    addResetClaim(same, new DungeonResetClaim(20, "hollow_crypt", 1, NORMAL, true));
+    if (resetOwnedInstances(same) != -3) { return -4; }
+
+    var inside = new DungeonResetState();
+    inside.selectedDifficulty = HEROIC;
+    addResetOwner(inside, new DungeonResetOwner(1, 1, true));
+    var occupied = new DungeonResetClaim(30, "hollow_crypt", 1, NORMAL, true);
+    occupied.someoneInside = true;
+    addResetClaim(inside, occupied);
+    if (resetOwnedInstances(inside) != -5 || occupied.difficulty != NORMAL) { return -5; }
+    occupied.someoneInside = false;
+    occupied.corpseInside = true;
+    if (resetOwnedInstances(inside) != -5 || occupied.difficulty != NORMAL) { return -6; }
+    occupied.corpseInside = false;
+    occupied.lootRemaining = true;
+    if (resetOwnedInstances(inside) != -6 || occupied.difficulty != NORMAL) { return -7; }
+
+    var unavailable = new DungeonResetState();
+    unavailable.selectedDifficulty = HEROIC;
+    addResetOwner(unavailable, new DungeonResetOwner(1, 1, true));
+    var normalOnly = new DungeonResetClaim(40, "nythraxis_crypt", 1, NORMAL, false);
+    addResetClaim(unavailable, normalOnly);
+    if (resetOwnedInstances(unavailable) != -3) { return -8; }
+
+    var inherit = new DungeonResetState();
+    inherit.partyKey = 50;
+    inherit.selectedDifficulty = HEROIC;
+    addResetOwner(inherit, new DungeonResetOwner(1, 11, true));
+    addResetOwner(inherit, new DungeonResetOwner(2, 22, true));
+    addResetOwner(inherit, new DungeonResetOwner(3, 33, false));
+    var inheritedClaim = new DungeonResetClaim(50, "hollow_crypt", 50, NORMAL, true);
+    addResetClaim(inherit, inheritedClaim);
+    if (resetOwnedInstances(inherit) != 1 || !setResetOwnerPartyMember(inherit, 3, true)) {
+        return -9;
+    }
+    inheritResetLocks(inherit, 3);
+    if (resetLockClaimId(inherit, 3, "hollow_crypt") != inheritedClaim.claimId ||
+        enterResetClaim(inherit, "hollow_crypt", inheritedClaim.claimId) != 1) {
+        return -10;
+    }
+
+    var follower = new DungeonResetState();
+    follower.actorId = 2;
+    follower.partyLeaderId = 1;
+    follower.selectedDifficulty = HEROIC;
+    addResetOwner(follower, new DungeonResetOwner(1, 1, true));
+    addResetOwner(follower, new DungeonResetOwner(2, 2, true));
+    addResetClaim(follower, new DungeonResetClaim(60, "hollow_crypt", 1, NORMAL, true));
+    if (resetOwnedInstances(follower) != -1) { return -11; }
+    return 1;
+}

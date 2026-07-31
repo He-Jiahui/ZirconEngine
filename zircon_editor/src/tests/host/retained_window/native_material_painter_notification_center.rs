@@ -24,6 +24,7 @@ fn native_template_painter_draws_notification_center_panel_and_rows() {
         component_role: "notification-center".into(),
         popup_open: true,
         text: "Notifications".into(),
+        notification_unread_count: 2,
         structured_options: model_rc(vec![
             notification(
                 "build",

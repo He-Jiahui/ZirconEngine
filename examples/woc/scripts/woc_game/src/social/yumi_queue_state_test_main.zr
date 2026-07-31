@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var yumiQueue = %import("social/yumi_queue_state");
+
+var result = yumiQueue.contractTest();
+
+console.printLine("m6-yumi-queue-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

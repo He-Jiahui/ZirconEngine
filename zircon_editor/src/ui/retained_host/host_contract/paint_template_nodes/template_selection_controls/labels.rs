@@ -14,10 +14,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     opacity: f32,
 ) {
     let label = template_node_label(node, None);
-    if label.trim().is_empty() || rect.width <= 0.5 || rect.height <= 0.5 {
+    let metrics = workbench_selection_control_metrics();
+    if label.trim().is_empty()
+        || !rect.width.is_finite()
+        || !rect.height.is_finite()
+        || rect.width <= 0.0
+        || rect.height < metrics.line_height
+    {
         return;
     }
-    let metrics = workbench_selection_control_metrics();
     commands.push(HostPaintCommand::text(
         rect,
         Some(clip.clone()),

@@ -337,9 +337,11 @@ mod tests {
         let vertices = build_particle_velocity_vertices(&frame);
 
         assert_eq!(vertices.len(), 6);
-        assert!(vertices
-            .iter()
-            .all(|vertex| vertex.current_position[0] > -0.5));
+        assert!(
+            vertices
+                .iter()
+                .all(|vertex| vertex.current_position[0] > -0.5)
+        );
     }
 
     fn particle_frame(

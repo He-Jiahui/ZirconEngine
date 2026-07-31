@@ -111,8 +111,7 @@ fn runtime_15_extend_pending_draws_tests_are_child_owner() {
     );
     for moved_material_anchor in [
         "pub(super) fn material_tinted(",
-        "pub(super) fn material_receive_shadows(",
-        "pub(super) fn material_cast_shadows(",
+        "pub(super) fn renderer_common_for_material(",
         "pub(super) fn material_taa_reactive_mask_strength(",
         "pub(super) fn material_disabled_passes(",
         "pub(super) fn material_texture_set(",

@@ -9,7 +9,7 @@ use crate::ui::template::{
     UiNamedSlotSchema, UiStyleScope,
 };
 
-use super::{UiV2Repeat, UiV2StyleDeclarationBlock, UiV2StyleSheet};
+use super::{UiV2Repeat, UiV2RepeatValidationError, UiV2StyleDeclarationBlock, UiV2StyleSheet};
 
 pub const UI_V2_ASSET_SCHEMA_VERSION: u32 = 2;
 
@@ -128,6 +128,19 @@ pub enum UiV2AssetError {
     },
     #[error("ui v2 asset {asset_id} is invalid: {detail}")]
     InvalidDocument { asset_id: String, detail: String },
+    #[error("ui v2 asset {asset_id} is invalid: {source}")]
+    InvalidRepeat {
+        asset_id: String,
+        #[source]
+        source: UiV2RepeatValidationError,
+    },
+    #[error("ui v2 asset {asset_id} is invalid: component {component}: {source}")]
+    InvalidRepeatInComponent {
+        asset_id: String,
+        component: String,
+        #[source]
+        source: UiV2RepeatValidationError,
+    },
     #[error("ui v2 asset {asset_id} references missing node {node_id}")]
     MissingNode { asset_id: String, node_id: String },
     #[error("ui v2 asset {asset_id} references unknown component {component}")]

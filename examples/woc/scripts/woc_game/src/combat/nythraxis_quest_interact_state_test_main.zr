@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var questInteract = %import("combat/nythraxis_quest_interact_state");
+
+console.printLine("m4-nythraxis-quest-interact-state-test");
+var result = questInteract.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

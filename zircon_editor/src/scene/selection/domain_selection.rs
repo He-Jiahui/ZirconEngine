@@ -40,33 +40,40 @@ impl DomainSelection {
     where
         I: IntoIterator<Item = EntityId>,
     {
-        let mut next = self.items.clone();
-        let mut primary = self.primary;
+        let mut changed = false;
         for entity in items {
-            if next.insert(entity) {
-                primary = Some(entity);
+            if self.items.insert(entity) {
+                self.primary = Some(entity);
+                changed = true;
             }
         }
-        self.apply(next, primary)
+        if changed {
+            self.bump_generation();
+        }
+        changed
     }
 
     pub(super) fn toggle(&mut self, entity: EntityId) -> bool {
-        let mut next = self.items.clone();
-        let primary = if next.shift_remove(&entity) {
+        if self.items.shift_remove(&entity) {
             if self.primary == Some(entity) {
-                next.last().copied()
-            } else {
-                self.primary
+                self.primary = self.items.last().copied();
             }
         } else {
-            next.insert(entity);
-            Some(entity)
-        };
-        self.apply(next, primary)
+            self.items.insert(entity);
+            self.primary = Some(entity);
+        }
+        self.bump_generation();
+        true
     }
 
     pub(super) fn clear(&mut self) -> bool {
-        self.apply(IndexSet::new(), None)
+        if self.items.is_empty() && self.primary.is_none() {
+            return false;
+        }
+        self.items.clear();
+        self.primary = None;
+        self.bump_generation();
+        true
     }
 
     fn apply(&mut self, items: IndexSet<EntityId>, primary: Option<EntityId>) -> bool {
@@ -75,7 +82,11 @@ impl DomainSelection {
         }
         self.items = items;
         self.primary = primary;
-        self.generation = self.generation.wrapping_add(1);
+        self.bump_generation();
         true
+    }
+
+    fn bump_generation(&mut self) {
+        self.generation = self.generation.wrapping_add(1);
     }
 }

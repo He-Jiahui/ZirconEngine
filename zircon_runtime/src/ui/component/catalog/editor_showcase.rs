@@ -26,9 +26,12 @@ static EDITOR_SHOWCASE_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceL
 impl UiComponentDescriptorRegistry {
     /// Builds the Runtime UI component catalog used by the editor showcase.
     pub fn editor_showcase() -> Self {
-        EDITOR_SHOWCASE_REGISTRY
-            .get_or_init(build_editor_showcase_registry)
-            .clone()
+        Self::editor_showcase_shared().clone()
+    }
+
+    /// Returns the process-wide read-only editor showcase catalog.
+    pub fn editor_showcase_shared() -> &'static Self {
+        EDITOR_SHOWCASE_REGISTRY.get_or_init(build_editor_showcase_registry)
     }
 }
 

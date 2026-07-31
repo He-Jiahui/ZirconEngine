@@ -4,11 +4,11 @@ use crate::rhi::{
     PipelineKind, PipelineLayoutDesc, RenderDevice, RenderQueueClass, RhiError, ShaderModuleDesc,
     ShaderStage, TextureDesc, TextureFormat, TextureUsage, TransientAllocatorStats,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
 #[test]
-fn wgpu_rhi_reports_live_transient_allocator_stats_for_buffers_and_textures() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_reports_live_transient_allocator_stats_for_buffers_and_textures() {
+    let device = DeterministicRhiContractDevice::new_headless();
 
     assert_eq!(
         device.transient_allocator_stats(),
@@ -61,8 +61,9 @@ fn wgpu_rhi_reports_live_transient_allocator_stats_for_buffers_and_textures() {
 }
 
 #[test]
-fn wgpu_rhi_destroying_bound_resources_updates_stats_without_releasing_descriptors() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_destroying_bound_resources_updates_stats_without_releasing_descriptors(
+) {
+    let device = DeterministicRhiContractDevice::new_headless();
     let uniform = device
         .create_buffer(&BufferDesc::new("uniform", 64, BufferUsage::UNIFORM))
         .unwrap();
@@ -107,8 +108,8 @@ fn wgpu_rhi_destroying_bound_resources_updates_stats_without_releasing_descripto
 }
 
 #[test]
-fn wgpu_rhi_submit_rejects_bind_group_with_destroyed_resource() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_submit_rejects_bind_group_with_destroyed_resource() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let shader = device
         .create_shader_module(&ShaderModuleDesc::new(
             "stale-bind-group-compute",

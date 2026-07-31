@@ -10,7 +10,7 @@ use zircon_runtime::core::framework::render::{
     RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
     RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPage,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
@@ -497,7 +497,11 @@ fn mesh_snapshot(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::from_transform_static(false),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+        common: RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+            is_static: false,
+            ..RendererCommon::default()
+        },
     }
 }
 

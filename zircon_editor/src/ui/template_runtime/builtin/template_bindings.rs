@@ -4,8 +4,9 @@ use super::material_lab_template_bindings::material_lab_template_bindings;
 use super::showcase_template_bindings::showcase_template_bindings;
 use super::workbench_window_template_bindings::workbench_window_template_bindings;
 use crate::core::editor_event::InspectorFieldChange;
+use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, ProjectionMode, TransformSpace, ViewOrientation,
 };
 use crate::ui::binding::{
     AnimationCommand, AssetCommand, DockCommand, DraftCommand, EditorUiBinding,
@@ -121,13 +122,13 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
-            "ViewportToolbar/SetTool".to_string(),
+            "ViewportToolbar/ActivateSceneMode".to_string(),
             EditorUiBinding::new(
                 "ViewportToolbar",
-                "SetTool",
+                "ActivateSceneMode",
                 EditorUiEventKind::Change,
-                EditorUiBindingPayload::viewport_command(ViewportCommand::SetTool(
-                    SceneViewportTool::Drag,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::ActivateSceneMode(
+                    SceneModeActivation::Select,
                 )),
             ),
         ),

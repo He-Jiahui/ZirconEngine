@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 
 use crate::ui::surface::{UiSurface, UiSurfaceRebuildReport};
@@ -333,13 +334,17 @@ fn mark_font_resource_dirty(dirty: &mut UiDirtyFlags) {
     dirty.render = true;
 }
 
-fn normalized_asset_path(asset_id: &str) -> String {
-    asset_id
+fn normalized_asset_path(asset_id: &str) -> Cow<'_, str> {
+    let path = asset_id
         .split_once('#')
         .map(|(path, _)| path)
         .unwrap_or(asset_id)
-        .trim()
-        .to_ascii_lowercase()
+        .trim();
+    if path.bytes().any(|byte| byte.is_ascii_uppercase()) {
+        Cow::Owned(path.to_ascii_lowercase())
+    } else {
+        Cow::Borrowed(path)
+    }
 }
 
 fn has_any_suffix(path: &str, suffixes: &[&str]) -> bool {

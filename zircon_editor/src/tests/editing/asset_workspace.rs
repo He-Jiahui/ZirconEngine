@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
-    EditorAssetFolderRecord, EditorAssetReferenceRecord,
+    EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
+    EditorAssetDetailsGeneration, EditorAssetDetailsRecord, EditorAssetFolderRecord,
+    EditorAssetReferenceRecord,
 };
 use zircon_runtime::asset::project::AssetSourceUnit;
 use zircon_runtime::asset::project::PreviewState;
@@ -14,10 +17,10 @@ use crate::ui::workbench::snapshot::{AssetSurfaceMode, AssetUtilityTab, AssetVie
 #[test]
 fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {
     let mut workspace = AssetWorkspaceState::default();
-    workspace.sync_catalog(sample_catalog());
+    workspace.sync_catalog(sample_catalog_generation());
     workspace.select_folder("res://materials");
     workspace.select_asset(Some("11111111-1111-1111-1111-111111111111".to_string()));
-    workspace.sync_selected_details(Some(sample_material_details()));
+    workspace.sync_selected_details(Some(sample_material_details_generation()));
     workspace.sync_resources(vec![sample_resource_status(
         "res://materials/grid.zmaterial",
         ResourceKind::Material,
@@ -51,7 +54,7 @@ fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {
 #[test]
 fn asset_workspace_shares_selection_but_keeps_surface_preferences_separate() {
     let mut workspace = AssetWorkspaceState::default();
-    workspace.sync_catalog(sample_catalog());
+    workspace.sync_catalog(sample_catalog_generation());
     workspace.select_folder("res://scenes");
     workspace.select_asset(Some("22222222-2222-2222-2222-222222222222".to_string()));
     workspace.set_activity_view_mode(AssetViewMode::List);
@@ -72,7 +75,7 @@ fn asset_workspace_shares_selection_but_keeps_surface_preferences_separate() {
 #[test]
 fn asset_workspace_reference_navigation_relocates_selection() {
     let mut workspace = AssetWorkspaceState::default();
-    workspace.sync_catalog(sample_catalog());
+    workspace.sync_catalog(sample_catalog_generation());
 
     workspace.navigate_to_asset("11111111-1111-1111-1111-111111111111");
 
@@ -86,7 +89,7 @@ fn asset_workspace_reference_navigation_relocates_selection() {
 #[test]
 fn asset_workspace_filters_physics_and_animation_asset_kinds() {
     let mut workspace = AssetWorkspaceState::default();
-    workspace.sync_catalog(sample_catalog());
+    workspace.sync_catalog(sample_catalog_generation());
 
     workspace.select_folder("res://animation");
     workspace.set_kind_filter(Some(ResourceKind::AnimationSequence));
@@ -293,6 +296,13 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
     }
 }
 
+fn sample_catalog_generation() -> Arc<EditorAssetCatalogGeneration> {
+    Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
+        sample_catalog(),
+        0,
+    ))
+}
+
 pub(super) fn sample_material_details() -> EditorAssetDetailsRecord {
     EditorAssetDetailsRecord {
         asset: sample_catalog().assets[0].clone(),
@@ -315,6 +325,10 @@ pub(super) fn sample_material_details() -> EditorAssetDetailsRecord {
         included_files: Vec::new(),
         subassets: Vec::new(),
     }
+}
+
+fn sample_material_details_generation() -> Arc<EditorAssetDetailsGeneration> {
+    Arc::new(EditorAssetDetailsGeneration::from(sample_material_details()))
 }
 
 pub(super) fn sample_resource_status(

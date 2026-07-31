@@ -1,0 +1,308 @@
+// Current-head Talents V2 modifier reducer. It accepts canonical selection
+// codes and keeps scalar modifier state inside ZrVM; WOS remains responsible
+// for applying those scalar results to entities and for nested AbilityEffect
+// dispatch. The source JSON catalog retains those nested effects losslessly.
+var container = %import("zr.container");
+var catalog = %import("generated/talent_modifier_catalog");
+var selections = %import("generated/current_talent_selection_catalog");
+var abilities = %import("generated/current_known_ability_catalog");
+
+pub class TalentModifierState {
+    pub var playerLevel: int;
+    pub var stats: container.Array<float>;
+    pub var globals: container.Array<float>;
+    pub var abilityIds: container.Array<string>;
+    // Flat ability-number rows, each exactly catalog.abilityNumberFieldCount().
+    pub var abilityNumbers: container.Array<float>;
+    pub var abilityDottedIds: container.Array<string>;
+    pub var abilityCastWhileMoving: container.Array<bool>;
+    pub var abilityPushbackImmune: container.Array<bool>;
+    pub var abilityNestedEffectCounts: container.Array<int>;
+    // Flattened source AbilityEffect DTOs for the selected talent modifiers.
+    pub var nestedEffectAbilityIds: container.Array<string>;
+    pub var nestedEffectTypes: container.Array<int>;
+    pub var nestedEffectNumbers: container.Array<float>;
+    pub var nestedEffectStrings: container.Array<string>;
+    pub var grantAbilityIds: container.Array<string>;
+    pub var grantRanks: container.Array<int>;
+    pub var procIds: container.Array<string>;
+
+    pub @constructor() {
+        this.playerLevel = 20;
+        this.stats = new container.Array<float>();
+        this.globals = new container.Array<float>();
+        this.abilityIds = new container.Array<string>();
+        this.abilityNumbers = new container.Array<float>();
+        this.abilityDottedIds = new container.Array<string>();
+        this.abilityCastWhileMoving = new container.Array<bool>();
+        this.abilityPushbackImmune = new container.Array<bool>();
+        this.abilityNestedEffectCounts = new container.Array<int>();
+        this.nestedEffectAbilityIds = new container.Array<string>();
+        this.nestedEffectTypes = new container.Array<int>();
+        this.nestedEffectNumbers = new container.Array<float>();
+        this.nestedEffectStrings = new container.Array<string>();
+        this.grantAbilityIds = new container.Array<string>();
+        this.grantRanks = new container.Array<int>();
+        this.procIds = new container.Array<string>();
+        reset(this);
+    }
+}
+
+initializeZeros(values: container.Array<float>, count: int): void {
+    values.clear();
+    var index = 0;
+    while (index < count) {
+        values.add(0.0);
+        index = index + 1;
+    }
+}
+
+pub reset(state: TalentModifierState): void {
+    initializeZeros(state.stats, catalog.statFieldCount());
+    initializeZeros(state.globals, catalog.globalFieldCount());
+    state.abilityIds.clear();
+    state.abilityNumbers.clear();
+    state.abilityDottedIds.clear();
+    state.abilityCastWhileMoving.clear();
+    state.abilityPushbackImmune.clear();
+    state.abilityNestedEffectCounts.clear();
+    state.nestedEffectAbilityIds.clear();
+    state.nestedEffectTypes.clear();
+    state.nestedEffectNumbers.clear();
+    state.nestedEffectStrings.clear();
+    state.grantAbilityIds.clear();
+    state.grantRanks.clear();
+    state.procIds.clear();
+}
+
+pub statField(state: TalentModifierState, name: string): float {
+    var index = 0;
+    while (index < state.stats.length) {
+        if (catalog.statFieldName(index) == name) return <float>state.stats[index];
+        index = index + 1;
+    }
+    return 0.0;
+}
+
+pub globalField(state: TalentModifierState, name: string): float {
+    var index = 0;
+    while (index < state.globals.length) {
+        if (catalog.globalFieldName(index) == name) return <float>state.globals[index];
+        index = index + 1;
+    }
+    return 0.0;
+}
+
+findAbility(state: TalentModifierState, abilityId: string): int {
+    var index = 0;
+    while (index < state.abilityIds.length) {
+        if (<string>state.abilityIds[index] == abilityId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+ensureAbility(state: TalentModifierState, abilityId: string): int {
+    var index = findAbility(state, abilityId);
+    if (index >= 0) return index;
+    state.abilityIds.add(abilityId);
+    state.abilityDottedIds.add("");
+    state.abilityCastWhileMoving.add(false);
+    state.abilityPushbackImmune.add(false);
+    state.abilityNestedEffectCounts.add(0);
+    var field = 0;
+    while (field < catalog.abilityNumberFieldCount()) {
+        state.abilityNumbers.add(0.0);
+        field = field + 1;
+    }
+    return state.abilityIds.length - 1;
+}
+
+pub abilityField(state: TalentModifierState, abilityId: string, name: string): float {
+    var ability = findAbility(state, abilityId);
+    if (ability < 0) return 0.0;
+    var field = 0;
+    while (field < catalog.abilityNumberFieldCount()) {
+        if (catalog.abilityNumberFieldName(field) == name) {
+            return <float>state.abilityNumbers[ability * catalog.abilityNumberFieldCount() + field];
+        }
+        field = field + 1;
+    }
+    return 0.0;
+}
+
+// The world reducer addresses abilities by their stable catalog code. Keep the
+// talent overlay behind that same numeric boundary instead of teaching WOS to
+// persist a second per-ability mobility flag.
+pub abilityCastWhileMoving(state: TalentModifierState, abilityCode: uint): bool {
+    if (!abilities.abilityExists(<int>abilityCode)) return false;
+    if (abilities.baseCastWhileMoving(<int>abilityCode)) return true;
+    var abilityId = abilities.abilityId(<int>abilityCode);
+    var index = findAbility(state, abilityId);
+    return index >= 0 && <bool>state.abilityCastWhileMoving[index];
+}
+
+appendGrant(state: TalentModifierState, abilityId: string, rank: int): void {
+    if (abilityId == "" || rank <= 0) return;
+    state.grantAbilityIds.add(abilityId);
+    state.grantRanks.add(rank);
+}
+
+appendNestedEffect(
+    state: TalentModifierState,
+    entry: int,
+    abilityIndex: int,
+    effectIndex: int
+): void {
+    state.nestedEffectAbilityIds.add(catalog.abilityId(entry, abilityIndex));
+    state.nestedEffectTypes.add(catalog.nestedEffectType(entry, abilityIndex, effectIndex));
+    var field = 0;
+    while (field < catalog.nestedEffectNumberFieldCount()) {
+        state.nestedEffectNumbers.add(catalog.nestedEffectNumber(entry, abilityIndex, effectIndex, field));
+        field = field + 1;
+    }
+    field = 0;
+    while (field < catalog.nestedEffectStringFieldCount()) {
+        state.nestedEffectStrings.add(catalog.nestedEffectString(entry, abilityIndex, effectIndex, field));
+        field = field + 1;
+    }
+}
+
+pub nestedEffectNumber(state: TalentModifierState, effectIndex: int, field: int): float {
+    if (effectIndex < 0 || field < 0 || field >= catalog.nestedEffectNumberFieldCount()) return 0.0;
+    var offset = effectIndex * catalog.nestedEffectNumberFieldCount() + field;
+    return offset < state.nestedEffectNumbers.length ? <float>state.nestedEffectNumbers[offset] : 0.0;
+}
+
+pub nestedEffectString(state: TalentModifierState, effectIndex: int, field: int): string {
+    if (effectIndex < 0 || field < 0 || field >= catalog.nestedEffectStringFieldCount()) return "";
+    var offset = effectIndex * catalog.nestedEffectStringFieldCount() + field;
+    return offset < state.nestedEffectStrings.length ? <string>state.nestedEffectStrings[offset] : "";
+}
+
+applyEntry(state: TalentModifierState, entry: int, multiplier: float): void {
+    var field = 0;
+    while (field < catalog.statFieldCount()) {
+        state.stats[field] = <float>state.stats[field] + catalog.entryStat(entry, field) * multiplier;
+        field = field + 1;
+    }
+    field = 0;
+    while (field < catalog.globalFieldCount()) {
+        var value = catalog.entryGlobal(entry, field);
+        if (catalog.globalUsesMax(field)) {
+            if (value > <float>state.globals[field]) state.globals[field] = value;
+        } else {
+            state.globals[field] = <float>state.globals[field] + value * multiplier;
+        }
+        field = field + 1;
+    }
+    var abilityIndex = 0;
+    while (abilityIndex < catalog.entryAbilityCount(entry)) {
+        var target = ensureAbility(state, catalog.abilityId(entry, abilityIndex));
+        field = 0;
+        while (field < catalog.abilityNumberFieldCount()) {
+            var offset = target * catalog.abilityNumberFieldCount() + field;
+            state.abilityNumbers[offset] = <float>state.abilityNumbers[offset] +
+                catalog.abilityNumber(entry, abilityIndex, field) * multiplier;
+            field = field + 1;
+        }
+        var dotted = catalog.abilityDottedAbilityId(entry, abilityIndex);
+        if (dotted != "") state.abilityDottedIds[target] = dotted;
+        if (catalog.abilityCastWhileMoving(entry, abilityIndex)) state.abilityCastWhileMoving[target] = true;
+        if (catalog.abilityDamagePushbackImmune(entry, abilityIndex)) state.abilityPushbackImmune[target] = true;
+        var nested = 0;
+        while (nested < catalog.abilityAddEffectCount(entry, abilityIndex)) {
+            appendNestedEffect(state, entry, abilityIndex, nested);
+            nested = nested + 1;
+        }
+        state.abilityNestedEffectCounts[target] = <int>state.abilityNestedEffectCounts[target] + nested;
+        abilityIndex = abilityIndex + 1;
+    }
+    appendGrant(state, catalog.entryGrantAbilityId(entry), catalog.entryGrantRank(entry));
+    var proc = catalog.entryProcId(entry);
+    if (proc != "") state.procIds.add(proc);
+}
+
+findEntry(originCode: uint, spec: bool): int {
+    var index = 0;
+    while (index < catalog.entryCount()) {
+        if (catalog.entryOriginCode(index) == originCode && catalog.entryIsSpec(index) == spec) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+masteryMultiplier(level: int): float {
+    if (level <= 0) return 0.0;
+    if (level >= 20) return 1.0;
+    return <float>level / 20.0;
+}
+
+applySelection(state: TalentModifierState, code: uint, spec: bool, multiplier: float): void {
+    if (code == <uint>0) return;
+    var entry = findEntry(code, spec);
+    if (entry >= 0) applyEntry(state, entry, multiplier);
+}
+
+// Mirrors computeTalentModifiers after allocation repair: signature first,
+// scaled mastery second, then the six selected rows in source tree order.
+pub recompute(
+    state: TalentModifierState,
+    specCode: uint,
+    row5: uint,
+    row8: uint,
+    row11: uint,
+    row14: uint,
+    row17: uint,
+    row20: uint
+): void {
+    reset(state);
+    if (specCode != <uint>0) {
+        appendGrant(state, abilities.abilityId(<int>selections.specSignatureAbilityCode(specCode)), 1);
+        applySelection(state, specCode, true, masteryMultiplier(state.playerLevel));
+    }
+    applySelection(state, row5, false, 1.0);
+    applySelection(state, row8, false, 1.0);
+    applySelection(state, row11, false, 1.0);
+    applySelection(state, row14, false, 1.0);
+    applySelection(state, row17, false, 1.0);
+    applySelection(state, row20, false, 1.0);
+}
+
+pub contractTest(): int {
+    if (catalog.entryCount() != 189 || catalog.statFieldCount() != 18 ||
+        catalog.globalFieldCount() != 39 || catalog.abilityNumberFieldCount() != 10 ||
+        catalog.statFieldName(7) != "crit" || catalog.globalFieldName(32) != "cheatDeathIcd" ||
+        !catalog.globalUsesMax(32) || catalog.globalUsesMax(31)) return -1;
+    var fire = new TalentModifierState();
+    fire.playerLevel = 10;
+    recompute(fire, <uint>20, <uint>0, <uint>0, <uint>0, <uint>0, <uint>0, <uint>0);
+    if (statField(fire, "crit") != 0.01 || globalField(fire, "ignitionPct") != 0.2 ||
+        fire.grantAbilityIds.length != 1 || <string>fire.grantAbilityIds[0] == "") return -2;
+
+    var warrior = new TalentModifierState();
+    recompute(warrior, <uint>1, <uint>1, <uint>0, <uint>0, <uint>0, <uint>0, <uint>0);
+    if (globalField(warrior, "masteryTwoHandDmgPct") != 0.1 ||
+        abilityField(warrior, "charge", "bonusCharges") != 1.0) return -3;
+
+    var mage = new TalentModifierState();
+    recompute(mage, <uint>0, <uint>109, <uint>0, <uint>0, <uint>0, <uint>0, <uint>0);
+    if (mage.grantAbilityIds.length != 1 || <string>mage.grantAbilityIds[0] != "ice_floes" ||
+        <int>mage.grantRanks[0] != 1) return -4;
+
+    var procs = new TalentModifierState();
+    recompute(procs, <uint>0, <uint>19, <uint>0, <uint>0, <uint>0, <uint>0, <uint>0);
+    if (procs.procIds.length != 1 || <string>procs.procIds[0] != "pal_oath_returned") return -5;
+
+    var max = new TalentModifierState();
+    applySelection(max, <uint>33, false, 1.0);
+    applySelection(max, <uint>69, false, 1.0);
+    if (globalField(max, "cheatDeathIcd") != 180.0) return -6;
+    var nested = new TalentModifierState();
+    recompute(nested, <uint>0, <uint>3, <uint>0, <uint>0, <uint>0, <uint>0, <uint>0);
+    if (nested.nestedEffectTypes.length != 2 || <string>nested.nestedEffectAbilityIds[0] != "charge" ||
+        <int>nested.nestedEffectTypes[0] != 1 || <int>nested.nestedEffectTypes[1] != 2 ||
+        nestedEffectNumber(nested, 0, 1) != 4.0 || nestedEffectNumber(nested, 1, 1) != 15.0 ||
+        nestedEffectNumber(nested, 1, 2) != 0.5) return -7;
+    return 1;
+}

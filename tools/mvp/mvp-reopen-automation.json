@@ -1,0 +1,18 @@
+{
+  "bindings": [
+    {
+      "path": {
+        "view_id": "Hierarchy",
+        "control_id": "SelectCube",
+        "event_kind": "Click"
+      },
+      "payload": {
+        "SelectionCommand": {
+          "SelectSceneNode": {
+            "node_id": 3
+          }
+        }
+      }
+    }
+  ]
+}

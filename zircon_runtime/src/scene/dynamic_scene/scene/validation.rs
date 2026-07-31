@@ -43,7 +43,7 @@ fn ensure_unique_sources(scene: &DynamicScene) -> Result<(), DynamicSceneError> 
 fn ensure_component_type_descriptors(scene: &DynamicScene) -> Result<(), DynamicSceneError> {
     let mut seen = BTreeSet::new();
     for descriptor in &scene.component_types {
-        if !seen.insert(descriptor.type_id.clone()) {
+        if !seen.insert(descriptor.type_id.as_str()) {
             return Err(DynamicSceneError::DuplicateComponentTypeDescriptor {
                 type_id: descriptor.type_id.clone(),
             });
@@ -79,4 +79,23 @@ fn component_type_belongs_to_plugin(type_id: &str, plugin_id: &str) -> bool {
         return false;
     };
     suffix.starts_with('.')
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn component_descriptor_uniqueness_borrows_type_ids() {
+        let source = include_str!("validation.rs");
+        let validation = source
+            .split("fn ensure_component_type_descriptors")
+            .nth(1)
+            .and_then(|source| source.split("fn validate_component_type_descriptor").next())
+            .expect("read component descriptor validation body");
+
+        assert!(validation.contains("seen.insert(descriptor.type_id.as_str())"));
+        assert!(
+            !validation.contains("seen.insert(descriptor.type_id.clone())"),
+            "descriptor uniqueness validation must not clone type-id strings"
+        );
+    }
 }

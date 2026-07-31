@@ -55,4 +55,43 @@ manifest validation 没有一次性的、保序的 identity/membership/owner/tar
 
 ## 修复结果与回传
 
-Open state: `待 Plugins01 建立单 generation 有序 validation projection，并回传规模 benchmark、diagnostic parity 与 build-count 证据`。
+当前状态：`implementation_complete / current_source_validation_queued`。
+
+已完成：
+
+- 单次 borrowed package projection 已覆盖无界字符串 identity、duplicate ordinal 与 capability/interface/module/system membership；package、embedded feature、module validator 和 registration report 共享该 generation projection。
+- diagnostics 仍由原 manifest Vec validation loop 发出；duplicate projection 只回答 ordinal lookup，不参与迭代，因此保留第二次及以后报告、原文本和原顺序。
+- 1/100/1000 完整 fixture 每行覆盖 root、importer、dependency/interface/method、四类 contribution、embedded provider/feature/module、status/reference 和 package module/system；断言 `26*N` identity rows、`27*N` probes、package build `1`、standalone build `0`、embedded views `N`。
+- standalone feature 回归独立断言 local projection build `1`、embedded view `0`；duplicate diagnostic bytes/order 另有精确断言。
+- builder 已按 contributions、embedded features、interfaces、modules 拆成 folder-backed owners；主 orchestration 文件低于 300 行混域阈值。
+- focused `rustfmt --check`、scoped `git diff --check` 和 conflict-marker scan 已通过；独立只读复审为 Critical `0` / Important `0` / Minor `0`。
+
+未完成：
+
+- canonical Rust 1.94.1 focused Cargo gate、Runtime broad/upward gate、failure audit、milestone review 登记与 coordinator atomic commit 尚未完成。
+- coordinator 已恢复 healthy；旧 reservation `4041d5e7f66f4ff6877e609826b0392e` 因共享 `zircon_runtime/Cargo.toml` 合法接线 `arc-swap` 后 source-bound stale，随后 `1118a15edaae487087c611724f6e5010` 又因共享格式化改写 `package_validation.rs` 而 stale；两者均已由 owner 释放。相同 111-path scope 已重绑合并后的 current-source fingerprint `00f71a063615542ca52754c1c6eaf7928ea92465368cad8717724392ec834d29`，fresh reservation 为 `7d29e2e8d62a4c6795c24e6af12336cb`。
+- 该 fresh reservation 后续未绑定 job 并已 expired；下述更新的 managed binary 证据取代它，
+  不把 expired reservation 写成验收。
+
+### 2026-07-22 current-source focused 证据
+
+managed job `93f88e221e244b93b176afa90a07cdff` 保留的 `zircon_runtime` test binary（SHA-256
+`0EAD8F289E845A8730E84EAEB51D7A97C545C306421BF2D623EAC0BCFB12B5A7`）执行完整
+`package_validation` 过滤组为 `13 passed / 0 failed / 4297 filtered`；追加精确执行
+`complete_package_validation_builds_one_linear_projection` 为 `1 passed / 0 failed / 4309 filtered`。
+这补齐了 projection-local 与完整 registration-report fixture 的 current-source 线性验证。
+Runtime/plugin broad gate、failure return 与 milestone
+review 仍待完成，因此保持 `open`。
+
+### 2026-07-30 current-source 恢复状态
+
+- `plugins01-package-validation-current-source-r1-20260730` 已取得 package validation、module
+  validation、registration report 与本 handoff 的四个目录级 lease；未与 bridge、native-host 或 discovery
+  当前 owner 重叠。
+- 当前 209 个 Rust 文件通过 Rust `1.94.1` scoped `rustfmt --check` 与 `git diff --check`。projection
+  静态 contract 确认 duplicate identity `HashSet`、保序 identity Vec、membership probe 计数和 package
+  projection build observation 均由同一 generation 提供。
+- 上述静态检查不构成 current-source Cargo GREEN。历史 job
+  `93f88e221e244b93b176afa90a07cdff` 的 binary 仅保留诊断背景；新的 focused linear fixture、scale
+  benchmark 和 runtime/plugin broad gate 必须经 coordinator-managed Windows validator 按 FIFO 产生终态
+  证据。该 failure 继续保持 `open`。

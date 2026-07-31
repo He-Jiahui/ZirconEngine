@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_resurrection_sickness_state_tests",
+  "source": "src",
+  "binary": "bin-m4-resurrection-sickness-state-tests",
+  "entry": "combat/resurrection_sickness_state_test_main"
+}

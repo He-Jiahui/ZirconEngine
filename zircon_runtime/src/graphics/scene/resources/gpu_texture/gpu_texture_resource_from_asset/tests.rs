@@ -23,7 +23,7 @@ fn rgba8_wgpu_format_uses_upload_plan_format() {
 #[test]
 fn rgba8_mip_uploads_pack_levels_and_layers_in_payload_order() {
     assert_eq!(
-        rgba8_mip_uploads(4, 2, 4, 1),
+        rgba8_mip_uploads(4, 2, 4, 1).collect::<Vec<_>>(),
         vec![
             Rgba8MipUpload {
                 level: 0,
@@ -60,7 +60,7 @@ fn rgba8_mip_uploads_pack_levels_and_layers_in_payload_order() {
 #[test]
 fn rgba8_mip_uploads_pack_layers_inside_each_mip_level() {
     assert_eq!(
-        rgba8_mip_uploads(4, 2, 2, 2),
+        rgba8_mip_uploads(4, 2, 2, 2).collect::<Vec<_>>(),
         vec![
             Rgba8MipUpload {
                 level: 0,

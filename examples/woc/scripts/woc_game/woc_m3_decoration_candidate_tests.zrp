@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_decoration_candidate_tests",
+  "source": "src",
+  "binary": "bin-m3-decoration-candidate-tests",
+  "entry": "world/decoration_candidate_test_main"
+}

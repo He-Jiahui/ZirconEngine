@@ -1,30 +1,24 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use crate::core::framework::text::{
-    TextDirection, TextFontRequest, TextGlyphFlags, TextGlyphRotation, TextLayoutError,
-    TextRenderMode, TextShapeRequest, TextShapeResult, TextWritingMode,
-};
+use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::core::runtime::tasks::TaskPool;
 
 use super::cache::{
-    ShapedRunCache, ShapedRunCacheKey, ShapedRunCacheReport, DEFAULT_SHAPED_RUN_CACHE_CAPACITY,
-    DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES,
+    ShapedRunCache, ShapedRunCacheLookupKey, ShapedRunCacheReport,
+    DEFAULT_SHAPED_RUN_CACHE_CAPACITY, DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES,
 };
-use super::font::{resolve_font_face_handle, resolve_font_instance_handle};
 use super::parallel::shape_pool::{
     shape_paragraphs_with_cache, TextParallelShapeBatchReport, TextShapeParagraph,
 };
+use super::service::shape_backend_request_at_stable_generation;
 use super::shaping::TextShapeRunProvider;
-use super::{
-    shared_text_layout_service, BackendShapeRequest, ShapedGlyph, ShapedGlyphClusterFlags,
-    ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript, ShapedTextLine, TextOrientation,
-    TextRange, TextStyle, VerticalMode,
-};
+use super::{BackendShapeRequest, ShapedGlyphRun, TextRange, TextStyle, VerticalMode};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct TextLayoutFallbackReport {
     pub fallback_count: u64,
+    pub generation_deferred_count: u64,
     pub invalid_font_size_count: u64,
     pub invalid_language_count: u64,
     pub other_error_count: u64,
@@ -32,6 +26,10 @@ pub struct TextLayoutFallbackReport {
 
 impl TextLayoutFallbackReport {
     pub(crate) fn record(&mut self, error: &TextLayoutError) {
+        if matches!(error, TextLayoutError::FontGenerationChanged) {
+            self.record_generation_deferred();
+            return;
+        }
         self.fallback_count = self.fallback_count.saturating_add(1);
         match error {
             TextLayoutError::InvalidFontSize => {
@@ -44,6 +42,10 @@ impl TextLayoutFallbackReport {
                 self.other_error_count = self.other_error_count.saturating_add(1);
             }
         }
+    }
+
+    pub(crate) fn record_generation_deferred(&mut self) {
+        self.generation_deferred_count = self.generation_deferred_count.saturating_add(1);
     }
 }
 
@@ -63,6 +65,13 @@ fn record_text_layout_fallback(error: &TextLayoutError) {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
         .record(error);
+}
+
+fn record_text_layout_generation_deferred() {
+    shared_fallback_report()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .record_generation_deferred();
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -140,61 +149,53 @@ impl SharedTextLayoutSession {
     }
 
     fn resolve_or_shape(&mut self, request: BackendShapeRequest<'_>) -> Arc<ShapedGlyphRun> {
-        let key = ShapedRunCacheKey::from_request(&request);
-        if let Some(run) = self.shaped_runs.get(&key, request.text) {
+        let lookup = ShapedRunCacheLookupKey::from_request(&request);
+        if let Some(run) = self.shaped_runs.get_with_lookup(&lookup, request.text) {
             return run;
         }
-        let shaped = shape_request_through_canonical_service(request);
-        self.shaped_runs.insert(key, request.text, shaped)
+        let key = self.shaped_runs.own_lookup_key(&lookup);
+        match try_shape_request_through_canonical_service(request) {
+            Ok(shaped) => self.shaped_runs.insert(key, request.text, shaped),
+            Err(error @ TextLayoutError::FontGenerationChanged) => {
+                Arc::new(shape_fallback_for_error(request, &error))
+            }
+            Err(error) => self.shaped_runs.insert(
+                key,
+                request.text,
+                shape_fallback_for_error(request, &error),
+            ),
+        }
     }
 }
 
 pub(super) fn shape_request_through_canonical_service(
     request: BackendShapeRequest<'_>,
 ) -> ShapedGlyphRun {
-    match shape_canonical(request) {
+    match try_shape_request_through_canonical_service(request) {
         Ok(shaped) => shaped,
-        Err(error) => {
-            record_text_layout_fallback(&error);
-            explicit_empty_fallback(request)
-        }
+        Err(error) => shape_fallback_for_error(request, &error),
     }
 }
 
+pub(super) fn try_shape_request_through_canonical_service(
+    request: BackendShapeRequest<'_>,
+) -> Result<ShapedGlyphRun, TextLayoutError> {
+    shape_canonical(request)
+}
+
+pub(super) fn shape_fallback_for_error(
+    request: BackendShapeRequest<'_>,
+    error: &TextLayoutError,
+) -> ShapedGlyphRun {
+    match error {
+        TextLayoutError::FontGenerationChanged => record_text_layout_generation_deferred(),
+        _ => record_text_layout_fallback(error),
+    }
+    explicit_empty_fallback(request)
+}
+
 fn shape_canonical(request: BackendShapeRequest<'_>) -> Result<ShapedGlyphRun, TextLayoutError> {
-    let family_storage = request.style.font_family.as_deref().map(|family| [family]);
-    let families = family_storage
-        .as_ref()
-        .map_or(&[][..], |families| &families[..]);
-    let font = TextFontRequest {
-        families,
-        asset: request.style.font.as_deref(),
-        size: request.style.font_size,
-        weight: request.style.font_weight,
-        stretch: 100,
-        italic: false,
-        render_mode: TextRenderMode::Auto,
-    };
-    let mut canonical_request = TextShapeRequest::new(request.text, font);
-    canonical_request.language = request.language;
-    canonical_request.direction = request.base_direction;
-    canonical_request.writing_mode = match request.orientation {
-        TextOrientation::Horizontal => TextWritingMode::HorizontalTopToBottom,
-        TextOrientation::Vertical => TextWritingMode::VerticalRightToLeft,
-    };
-    canonical_request.line_height = request.style.line_height;
-    canonical_request.tab_size = request.style.tab_size;
-    canonical_request.include_kerning = request.include_kerning;
-    let result = shared_text_layout_service().shape(canonical_request)?;
-    Ok(detailed_run(
-        request.text,
-        request.style,
-        request.source_range,
-        request.orientation,
-        request.vertical_mode,
-        request.include_kerning,
-        result,
-    ))
+    shape_backend_request_at_stable_generation(request, |shaped, _| shaped)
 }
 
 impl TextShapeRunProvider for SharedTextLayoutSession {
@@ -272,108 +273,6 @@ impl Drop for VerticalTextLayoutScope<'_> {
     }
 }
 
-fn detailed_run(
-    text: &str,
-    style: &TextStyle,
-    source_range: TextRange,
-    orientation: TextOrientation,
-    vertical_mode: VerticalMode,
-    include_kerning: bool,
-    shaped: TextShapeResult,
-) -> ShapedGlyphRun {
-    let lines = shaped
-        .runs
-        .into_iter()
-        .enumerate()
-        .map(|(line_index, run)| {
-            let local_start = run.source_range.start.min(text.len());
-            let local_end = run.source_range.end.min(text.len()).max(local_start);
-            let line_text = text
-                .get(local_start..local_end)
-                .unwrap_or_default()
-                .to_string();
-            let glyphs = run
-                .glyphs
-                .into_iter()
-                .map(|glyph| detailed_glyph(glyph, run.direction, source_range.start))
-                .collect::<Vec<_>>();
-            ShapedTextLine {
-                line_index,
-                text: line_text.clone(),
-                source_range: TextRange {
-                    start: source_range.start + local_start,
-                    end: source_range.start + local_end,
-                },
-                visual_range: TextRange {
-                    start: 0,
-                    end: line_text.len(),
-                },
-                measured_width: glyphs.iter().map(|glyph| glyph.advance).sum(),
-                baseline: shaped.metrics.baseline,
-                line_height: style.line_height,
-                glyphs,
-            }
-        })
-        .collect();
-    ShapedGlyphRun {
-        source_text: text.to_string(),
-        source_range,
-        direction: shaped.resolved_direction,
-        orientation,
-        vertical_mode,
-        include_kerning,
-        measured_width: shaped.metrics.width,
-        measured_height: shaped.metrics.height,
-        lines,
-    }
-}
-
-fn detailed_glyph(
-    glyph: crate::core::framework::text::TextGlyph,
-    direction: TextDirection,
-    source_offset: usize,
-) -> ShapedGlyph {
-    ShapedGlyph {
-        glyph_id: glyph.glyph_id,
-        font_id: glyph.font_face.and_then(resolve_font_face_handle),
-        font_instance_id: glyph.font_instance.and_then(resolve_font_instance_handle),
-        source_range: TextRange {
-            start: source_offset + glyph.source_range.start,
-            end: source_offset + glyph.source_range.end,
-        },
-        visual_range: TextRange {
-            start: glyph.visual_range.start,
-            end: glyph.visual_range.end,
-        },
-        advance: glyph.advance,
-        x: glyph.position[0],
-        y: glyph.position[1],
-        offset_x: glyph.offset[0],
-        offset_y: glyph.offset[1],
-        direction,
-        bidi_level: glyph.bidi_level,
-        cluster_flags: detailed_flags(glyph.flags),
-        rotation: match glyph.rotation {
-            TextGlyphRotation::None => ShapedGlyphRotation::None,
-            TextGlyphRotation::Clockwise90 => ShapedGlyphRotation::Cw90,
-        },
-        script: ShapedGlyphScript::default(),
-    }
-}
-
-fn detailed_flags(flags: TextGlyphFlags) -> ShapedGlyphClusterFlags {
-    ShapedGlyphClusterFlags {
-        cluster_start: flags.cluster_start,
-        rtl: flags.right_to_left,
-        whitespace: flags.whitespace,
-        space: flags.space,
-        tab: flags.tab,
-        mandatory_break: flags.mandatory_break,
-        soft_break: flags.soft_break,
-        virtual_glyph: flags.virtual_glyph,
-    }
-}
-
 fn explicit_empty_fallback(request: BackendShapeRequest<'_>) -> ShapedGlyphRun {
     ShapedGlyphRun {
         source_text: request.text.to_string(),
@@ -391,6 +290,7 @@ fn explicit_empty_fallback(request: BackendShapeRequest<'_>) -> ShapedGlyphRun {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::text::font::{font_handle_registry_report, shared_font_database_test_serial_guard};
 
     #[test]
     fn session_routes_detailed_runs_through_canonical_service() {
@@ -412,6 +312,38 @@ mod tests {
             .iter()
             .flat_map(|line| &line.glyphs)
             .all(|glyph| { glyph.source_range.start >= 11 && glyph.source_range.end <= 20 }));
+    }
+
+    #[test]
+    fn font_handle_batch_session_keeps_canonical_run_without_framework_roundtrip() {
+        let _shared_font_database = shared_font_database_test_serial_guard();
+        let before = font_handle_registry_report();
+        let mut session = SharedTextLayoutSession::new();
+        let style = TextStyle::default();
+
+        let run = session.shape_horizontal_line_with_kerning(
+            "Batch resolution",
+            &style,
+            TextDirection::LeftToRight,
+            TextRange { start: 0, end: 16 },
+            true,
+        );
+        let after = font_handle_registry_report();
+        let glyph_count = run
+            .lines
+            .iter()
+            .map(|line| line.glyphs.len())
+            .sum::<usize>();
+
+        assert!(glyph_count > 1);
+        assert_eq!(
+            after.registration_batch_count, before.registration_batch_count,
+            "the internal session must not project backend identities into framework handles"
+        );
+        assert_eq!(
+            after.resolution_batch_count, before.resolution_batch_count,
+            "the internal session must not resolve framework handles back into backend identities"
+        );
     }
 
     #[test]
@@ -466,5 +398,24 @@ mod tests {
         assert_eq!(report.shaped_count, 1);
         assert!(cached.lines.is_empty());
         assert!(after.invalid_font_size_count > before.invalid_font_size_count);
+    }
+
+    #[test]
+    fn session_source_uses_canonical_runs_without_framework_roundtrip() {
+        let source = include_str!("layout_session.rs");
+
+        assert!(!source.contains(concat!("TextShape", "Result")));
+        assert!(!source.contains(concat!("resolve_font_handle", "_batch")));
+        assert!(source.contains("shape_backend_request_at_stable_generation"));
+    }
+
+    #[test]
+    fn fallback_report_tracks_generation_defer_without_counting_a_fallback() {
+        let mut report = TextLayoutFallbackReport::default();
+
+        report.record(&TextLayoutError::FontGenerationChanged);
+
+        assert_eq!(report.generation_deferred_count, 1);
+        assert_eq!(report.fallback_count, 0);
     }
 }

@@ -23,6 +23,7 @@ pub(super) fn extend_world_space_pane_submissions(
         &pane.asset_browser.nodes,
         &pane.welcome.nodes,
         &pane.project_overview.nodes,
+        &pane.template_v2.nodes,
         &pane.ui_asset.nodes,
         &pane.animation.nodes,
     ] {

@@ -1,0 +1,79 @@
+var console = %import("zr.system.console");
+var container = %import("zr.container");
+var card = %import("world_api/card_minigame");
+var service = %import("social/card_duel_service");
+
+hand(a: uint, b: uint, c: uint, d: uint): container.Array<uint> {
+    var result = new container.Array<uint>();
+    result.add(a);
+    result.add(b);
+    result.add(c);
+    result.add(d);
+    return result;
+}
+
+contractTest(): int {
+    var idle = card.idleInfo(false, true);
+    if (card.viewState(idle) != 1 || idle.matchPresent || idle.hand.length != 0) return -1;
+    var unavailable = card.idleInfo(false, false);
+    if (card.viewState(unavailable) != 2) return -2;
+    // The target view chooses queued ahead of unavailable for an inconsistent
+    // snapshot, so a stale availability update cannot hide the leave action.
+    var queued = card.idleInfo(true, false);
+    if (card.viewState(queued) != 3) return -3;
+
+    var live = card.matchInfo(<uint>7, "Aki", hand(<uint>3, <uint>8, <uint>1, <uint>5),
+        12, 2, 1, 0, false);
+    if (!live.matchPresent || !live.available || live.queued || card.viewState(live) != 4 ||
+        live.opponentId != <uint>7 || live.opponentName != "Aki" || live.hand.length != 4 ||
+        live.deckCount != 12 || live.discardCount != 2 || live.myRounds != 1 ||
+        live.opponentRounds != 0 || live.waitingOnOpponent) {
+        return -4;
+    }
+    var view = card.buildView(live);
+    if (view.state != 4 || view.hand.length != 4 || !view.hand[0].playable ||
+        <uint>view.hand[0].value != <uint>3 || view.opponentName != "Aki") {
+        return -5;
+    }
+    var waiting = card.matchInfo(<uint>8, "Bo", hand(<uint>4, <uint>9, <uint>2, <uint>6),
+        10, 4, 0, 1, true);
+    var waitingView = card.buildView(waiting);
+    var index = 0;
+    while (index < waitingView.hand.length) {
+        if (waitingView.hand[index].playable) return -6;
+        index = index + 1;
+    }
+
+    var state = new service.CardDuelService(<uint>1010);
+    service.upsertPlayer(state, <uint>1, true, true);
+    var serviceIdle = card.infoFromService(state, <uint>1, "");
+    if (serviceIdle.queued || serviceIdle.available || serviceIdle.matchPresent ||
+        card.viewState(serviceIdle) != 2) {
+        return -7;
+    }
+    service.upsertPlayer(state, <uint>2, true, true);
+    if (service.joinQueue(state, <uint>1) != 1 || service.joinQueue(state, <uint>2) != 1) {
+        return -8;
+    }
+    service.update(state, 0.0);
+    var projected = card.infoFromService(state, <uint>1, "Aki");
+    if (!projected.matchPresent || projected.queued || !projected.available ||
+        projected.opponentId != <uint>2 || projected.opponentName != "Aki" ||
+        projected.hand.length != service.handCount(state, <uint>1) ||
+        <uint>projected.hand[0] != service.heldCardAt(state, <uint>1, 0) ||
+        projected.deckCount != service.deckCount(state, <uint>1) ||
+        projected.discardCount != service.discardCount(state, <uint>1)) {
+        return -9;
+    }
+    if (service.play(state, <uint>1, <uint>projected.hand[0], 0.0) != 1) return -10;
+    var waitingProjected = card.infoFromService(state, <uint>1, "Aki");
+    if (!waitingProjected.waitingOnOpponent || card.buildView(waitingProjected).hand[0].playable) {
+        return -11;
+    }
+    return 1;
+}
+
+console.printLine("card-minigame-view-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

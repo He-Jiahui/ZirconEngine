@@ -1,8 +1,8 @@
 use thiserror::Error;
 
 use crate::asset::{
-    decode_ibl_pmrem_rgba16f_texture, is_zcube_source_cubemap_texture, IblPmremTextureError,
-    TextureAsset,
+    IblPmremTextureError, TextureAsset, decode_ibl_pmrem_rgba16f_texture,
+    is_zcube_source_cubemap_texture,
 };
 use crate::core::framework::render::RenderImageDimension;
 use crate::core::resource::ResourceId;
@@ -38,7 +38,9 @@ pub(super) enum ReflectionProbeAssetError {
         #[source]
         source: crate::core::CoreError,
     },
-    #[error("reflection probe cubemap {cubemap} contains source mips and must be prefiltered before sampling")]
+    #[error(
+        "reflection probe cubemap {cubemap} contains source mips and must be prefiltered before sampling"
+    )]
     SourceCubemapRequiresPrefiltering { cubemap: ResourceId },
     #[error("reflection probe cubemap {cubemap} must use the Cube dimension, found {actual:?}")]
     Dimension {
@@ -66,7 +68,9 @@ pub(super) enum ReflectionProbeAssetError {
     },
     #[error("reflection probe cubemap {cubemap} must use the current RGBA16F PMREM payload")]
     Payload { cubemap: ResourceId },
-    #[error("reflection probe cubemap {cubemap} rgba8 payload length mismatch: expected {expected}, found {actual}")]
+    #[error(
+        "reflection probe cubemap {cubemap} rgba8 payload length mismatch: expected {expected}, found {actual}"
+    )]
     PayloadLength {
         cubemap: ResourceId,
         expected: usize,

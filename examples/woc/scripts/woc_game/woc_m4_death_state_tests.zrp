@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_death_state_tests",
+  "source": "src",
+  "binary": "bin-m4-death-state-tests",
+  "entry": "combat/death_state_test_main"
+}

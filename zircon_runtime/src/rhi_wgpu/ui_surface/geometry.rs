@@ -2,8 +2,13 @@ use bytemuck::{Pod, Zeroable};
 use glyphon::TextBounds;
 
 use crate::rhi::{
-    UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImageUvRect, UiSurfaceRect,
+    UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImageUvRect,
+    UiSurfacePresentStats, UiSurfacePresentStatsAccumulator, UiSurfaceRect,
 };
+
+mod clipping;
+
+use clipping::clip_solid_triangles_to_rect;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
@@ -74,8 +79,55 @@ impl DrawItem {
 }
 
 pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
+    draw_items_with_damage(draw_list, draw_list.damage, None, None)
+}
+
+pub(super) fn draw_items_with_stats(
+    draw_list: &UiSurfaceDrawList,
+) -> (Vec<DrawItem>, UiSurfacePresentStats) {
+    let mut stats = UiSurfacePresentStatsAccumulator::new(draw_list.surface_size);
+    let items = draw_items_with_damage(draw_list, draw_list.damage, Some(&mut stats), None);
+    (items, stats.finish())
+}
+
+pub(super) fn full_projection_draw_items_with_stats(
+    draw_list: &UiSurfaceDrawList,
+) -> (
+    Vec<DrawItem>,
+    UiSurfacePresentStats,
+    Option<UiSurfacePresentStats>,
+) {
+    let mut full_stats = UiSurfacePresentStatsAccumulator::new(draw_list.surface_size);
+    let mut damage_stats = draw_list
+        .damage
+        .map(|_| UiSurfacePresentStatsAccumulator::new(draw_list.surface_size));
+    let damage_projection = draw_list.damage.zip(damage_stats.as_mut());
+    let items = draw_items_with_damage(draw_list, None, Some(&mut full_stats), damage_projection);
+    (
+        items,
+        full_stats.finish(),
+        damage_stats.map(UiSurfacePresentStatsAccumulator::finish),
+    )
+}
+
+fn draw_items_with_damage<'a>(
+    draw_list: &'a UiSurfaceDrawList,
+    damage: Option<UiSurfaceRect>,
+    mut stats: Option<&mut UiSurfacePresentStatsAccumulator<'a>>,
+    mut secondary_stats: Option<(UiSurfaceRect, &mut UiSurfacePresentStatsAccumulator<'a>)>,
+) -> Vec<DrawItem> {
     let mut items = Vec::new();
     for (command_index, command) in ordered_commands(draw_list) {
+        if let Some(stats) = stats.as_deref_mut() {
+            if draw_list.command_visible_with_damage(command, damage) {
+                stats.record_visible(command);
+            }
+        }
+        if let Some((secondary_damage, secondary_stats)) = secondary_stats.as_mut() {
+            if draw_list.command_visible_with_damage(command, Some(*secondary_damage)) {
+                secondary_stats.record_visible(command);
+            }
+        }
         match &command.kind {
             UiSurfaceCommandKind::Quad {
                 color,
@@ -93,6 +145,7 @@ pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
                     *corner_radius,
                     command,
                     draw_list,
+                    damage,
                 );
             }
             UiSurfaceCommandKind::Border {
@@ -113,6 +166,7 @@ pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
                         *corner_radius,
                         command,
                         draw_list,
+                        damage,
                     );
                 } else {
                     for (sub_index, rect) in
@@ -130,12 +184,18 @@ pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
                             0.0,
                             command,
                             draw_list,
+                            damage,
                         );
                     }
                 }
             }
             UiSurfaceCommandKind::Image { payload } => {
-                let Some(rect) = primitive_effective_rect(command, command.frame, draw_list) else {
+                let Some(rect) = primitive_effective_rect(
+                    command,
+                    command.frame,
+                    draw_list.surface_size,
+                    damage,
+                ) else {
                     continue;
                 };
                 if payload
@@ -162,7 +222,9 @@ pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
                 }));
             }
             UiSurfaceCommandKind::Text { .. } => {
-                let Some(rect) = command_effective_rect(command, draw_list) else {
+                let Some(rect) =
+                    effective_rect(command, command.frame, draw_list.surface_size, damage)
+                else {
                     continue;
                 };
                 items.push(DrawItem::Text(TextItem {
@@ -195,14 +257,28 @@ fn push_solid_item(
     corner_radius: f32,
     command: &UiSurfaceCommand,
     draw_list: &UiSurfaceDrawList,
+    damage: Option<UiSurfaceRect>,
 ) {
-    let Some(rect) = primitive_effective_rect(command, frame, draw_list) else {
+    let Some(effective) =
+        effective_rect_with_clip_status(command, frame, draw_list.surface_size, damage)
+    else {
         return;
+    };
+    let rect = effective.rect;
+    let vertices = if corner_radius.is_finite() && corner_radius > 0.0 {
+        let vertices = solid_vertices(frame, color, draw_list.surface_size, corner_radius);
+        if effective.clipped {
+            clip_solid_triangles_to_rect(vertices, rect, draw_list.surface_size)
+        } else {
+            vertices
+        }
+    } else {
+        solid_vertices(rect, color, draw_list.surface_size, corner_radius)
     };
     items.push(DrawItem::Solid(SolidItem {
         order,
         rect,
-        vertices: solid_vertices(rect, color, draw_list.surface_size, corner_radius),
+        vertices,
     }));
 }
 
@@ -214,20 +290,30 @@ fn push_rounded_border_item(
     corner_radius: f32,
     command: &UiSurfaceCommand,
     draw_list: &UiSurfaceDrawList,
+    damage: Option<UiSurfaceRect>,
 ) {
-    let Some(rect) = primitive_effective_rect(command, command.frame, draw_list) else {
+    let Some(effective) =
+        effective_rect_with_clip_status(command, command.frame, draw_list.surface_size, damage)
+    else {
         return;
+    };
+    let rect = effective.rect;
+    let vertices = rounded_border_vertices(
+        command.frame,
+        color,
+        draw_list.surface_size,
+        width,
+        corner_radius,
+    );
+    let vertices = if effective.clipped {
+        clip_solid_triangles_to_rect(vertices, rect, draw_list.surface_size)
+    } else {
+        vertices
     };
     items.push(DrawItem::Solid(SolidItem {
         order,
         rect,
-        vertices: rounded_border_vertices(
-            rect,
-            color,
-            draw_list.surface_size,
-            width,
-            corner_radius,
-        ),
+        vertices,
     }));
 }
 
@@ -418,12 +504,13 @@ fn image_vertices(
     atlas_uv: Option<UiSurfaceImageUvRect>,
 ) -> [ImageVertex; 6] {
     let positions = quad_positions(visible_rect, size);
-    let local_u0 = ((visible_rect.x - frame.x) / frame.width.max(1.0)).clamp(0.0, 1.0);
-    let local_v0 = ((visible_rect.y - frame.y) / frame.height.max(1.0)).clamp(0.0, 1.0);
-    let local_u1 =
-        ((visible_rect.x + visible_rect.width - frame.x) / frame.width.max(1.0)).clamp(0.0, 1.0);
+    let frame_width = positive_finite_extent(frame.width);
+    let frame_height = positive_finite_extent(frame.height);
+    let local_u0 = ((visible_rect.x - frame.x) / frame_width).clamp(0.0, 1.0);
+    let local_v0 = ((visible_rect.y - frame.y) / frame_height).clamp(0.0, 1.0);
+    let local_u1 = ((visible_rect.x + visible_rect.width - frame.x) / frame_width).clamp(0.0, 1.0);
     let local_v1 =
-        ((visible_rect.y + visible_rect.height - frame.y) / frame.height.max(1.0)).clamp(0.0, 1.0);
+        ((visible_rect.y + visible_rect.height - frame.y) / frame_height).clamp(0.0, 1.0);
     let (u0, v0, u1, v1) = image_uv_bounds(local_u0, local_v0, local_u1, local_v1, atlas_uv);
     [
         ImageVertex {
@@ -451,6 +538,14 @@ fn image_vertices(
             uv: [u1, v1],
         },
     ]
+}
+
+fn positive_finite_extent(extent: f32) -> f32 {
+    if extent.is_finite() && extent > 0.0 {
+        extent
+    } else {
+        1.0
+    }
 }
 
 fn image_uv_bounds(
@@ -507,42 +602,91 @@ pub(super) fn command_effective_rect(
     command: &UiSurfaceCommand,
     draw_list: &UiSurfaceDrawList,
 ) -> Option<UiSurfaceRect> {
-    primitive_effective_rect(command, command.frame, draw_list)
+    effective_rect(
+        command,
+        command.frame,
+        draw_list.surface_size,
+        draw_list.damage,
+    )
+}
+
+pub(super) fn full_projection_effective_rect(
+    command: &UiSurfaceCommand,
+    draw_list: &UiSurfaceDrawList,
+) -> Option<UiSurfaceRect> {
+    effective_rect(command, command.frame, draw_list.surface_size, None)
 }
 
 fn primitive_effective_rect(
     command: &UiSurfaceCommand,
     primitive_frame: UiSurfaceRect,
-    draw_list: &UiSurfaceDrawList,
+    surface_size: (u32, u32),
+    damage: Option<UiSurfaceRect>,
 ) -> Option<UiSurfaceRect> {
-    let surface = UiSurfaceRect::new(
-        0.0,
-        0.0,
-        draw_list.surface_size.0 as f32,
-        draw_list.surface_size.1 as f32,
-    );
+    effective_rect(command, primitive_frame, surface_size, damage)
+}
+
+fn effective_rect(
+    command: &UiSurfaceCommand,
+    primitive_frame: UiSurfaceRect,
+    surface_size: (u32, u32),
+    damage: Option<UiSurfaceRect>,
+) -> Option<UiSurfaceRect> {
+    effective_rect_with_clip_status(command, primitive_frame, surface_size, damage)
+        .map(|effective| effective.rect)
+}
+
+#[derive(Clone, Copy)]
+struct EffectiveRect {
+    rect: UiSurfaceRect,
+    clipped: bool,
+}
+
+fn effective_rect_with_clip_status(
+    command: &UiSurfaceCommand,
+    primitive_frame: UiSurfaceRect,
+    surface_size: (u32, u32),
+    damage: Option<UiSurfaceRect>,
+) -> Option<EffectiveRect> {
+    let surface = UiSurfaceRect::new(0.0, 0.0, surface_size.0 as f32, surface_size.1 as f32);
+    let mut clipped = !surface.contains_rect(primitive_frame);
     let mut rect = primitive_frame.intersection(surface)?;
     if let Some(clip) = command.clip {
+        clipped |= !clip.contains_rect(primitive_frame);
         rect = rect.intersection(clip)?;
     }
-    if let Some(damage) = draw_list.damage {
+    if let Some(damage) = damage {
+        clipped |= !damage.contains_rect(primitive_frame);
         rect = rect.intersection(damage)?;
     }
-    Some(rect)
+    Some(EffectiveRect { rect, clipped })
 }
 
 trait RectExt {
     fn intersection(self, other: UiSurfaceRect) -> Option<UiSurfaceRect>;
+    fn contains_rect(self, other: UiSurfaceRect) -> bool;
 }
 
 impl RectExt for UiSurfaceRect {
     fn intersection(self, other: UiSurfaceRect) -> Option<UiSurfaceRect> {
+        if !self.has_finite_positive_area() || !other.has_finite_positive_area() {
+            return None;
+        }
         let left = self.x.max(other.x);
         let top = self.y.max(other.y);
         let right = (self.x + self.width).min(other.x + other.width);
         let bottom = (self.y + self.height).min(other.y + other.height);
         (right > left && bottom > top)
             .then(|| UiSurfaceRect::new(left, top, right - left, bottom - top))
+    }
+
+    fn contains_rect(self, other: UiSurfaceRect) -> bool {
+        self.has_finite_positive_area()
+            && other.has_finite_positive_area()
+            && self.x <= other.x
+            && self.y <= other.y
+            && self.x + self.width >= other.x + other.width
+            && self.y + self.height >= other.y + other.height
     }
 }
 

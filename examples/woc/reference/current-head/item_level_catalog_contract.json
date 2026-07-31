@@ -1,0 +1,3507 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/item_level_catalog_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/item_level.ts": "30d67df65aff6e35c48c07f9647fa92b3aacf7d055ff80e3e1f1c39abd29804c"
+  },
+  "source_evaluation": "typescript_git_loader executes the pinned item_level.ts graph against pinned content",
+  "item_count": 580,
+  "source_item_count": 395,
+  "item_level_count": 331,
+  "raid_item_count": 14,
+  "item_entries_sha256": "f038ef588dade2203020fbac456681d80f0758fcc50194b89eac1eb07062346e",
+  "fixtures": {
+    "source_item_id": "alien_armor_plate",
+    "source_item_level": 5,
+    "no_source_item_id": "acolytes_circlet",
+    "raid_item_id": "bonewrought_bulwark",
+    "raid_item_source_level": 20,
+    "item_level_item_id": "apprentice_staff",
+    "item_level": 6,
+    "rare_source_item_id": "alien_armor_plate",
+    "rare_source_level": 5
+  },
+  "items": [
+    {
+      "id": "acolytes_circlet",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "alien_armor_plate",
+      "source_level": 5,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "amber_crimson_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "amber_hide",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "amethyst_silver_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "ancient_crypt_door",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "apprentice_robe",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "apprentice_staff",
+      "source_level": 5,
+      "from_raid": false,
+      "item_level": 6
+    },
+    {
+      "id": "arcane_dust",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "arcane_essence",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "arcane_shard",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "arcanite_bar",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "arcanite_mining_pick",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "architects_cornerstone",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "ashen_focus_ring",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "ashstalker_cowl",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "ashstalker_grips",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "ashstalker_harness",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "ashstalker_legguards",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "ashstalker_shoulderguards",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "ashstalker_treads",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "ashstalker_waistband",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "ashwood_axe",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "ashwood_log",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "baked_bread",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bandit_bandana",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bastion_ward_stone",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "blackwater_vanguard_chest",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "blessed_embers",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "blessed_wax",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "boar_hide",
+      "source_level": 3,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bogiron_hauberk",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bogiron_mace",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bogiron_nugget",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bone_fragments",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bonechill_cord",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "bonechill_striders",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "boneguard_breastplate",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "boneplate_vest",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "bonewrought_bulwark",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "bonewrought_greatsword",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "boundstone_girdle",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "boundstone_helm",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "bramblehide_jerkin",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "brightwood_venison",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "briny_idol",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bristleback_maul",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 7
+    },
+    {
+      "id": "bristlehide_spaulders",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bronze_sickle",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "bronzework_mace",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "broodmother_silk_robe",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "brutoks_maul",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": 20
+    },
+    {
+      "id": "bulwark_rusted_pauldrons",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "cantors_drowned_sash",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "captains_crest",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "caravan_quilted_vest",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "caravan_warden_dirk",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "chipped_tusk",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "choir_blessed_spaulders",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "choirmothers_casque",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "chunk_of_ore",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "cinder_sigil_pendant",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "cinderweave_cord",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "cinderweave_cowl",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "cinderweave_handwraps",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "cinderweave_legwraps",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "cinderweave_mantle",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "cinderweave_raiment",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "cinderweave_slippers",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "conjured_bread",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "conjured_bread2",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "conjured_bread3",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "conjured_bread4",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "conjured_water",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "conjured_water2",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "conjured_water3",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "conjured_water4",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "copper_mining_pick",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "corpse_candle_focus",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "cracked_fetish",
+      "source_level": 11,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "cracked_ogre_tusk",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "cracked_wyrm_scale",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "crag_warden_cudgel",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": 20
+    },
+    {
+      "id": "craghorn_staff",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "cragmaw_huntcord",
+      "source_level": 14,
+      "from_raid": false,
+      "item_level": 17
+    },
+    {
+      "id": "cragmaw_prowlboots",
+      "source_level": 14,
+      "from_raid": false,
+      "item_level": 17
+    },
+    {
+      "id": "cragwalker_boots",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "crimson_amber_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "crossroads_saber",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "crownforged_dreadhelm",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "crownforged_gauntlets",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "crownforged_girdle",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "crownforged_warspaulders",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "crypt_keystone",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "crypt_ritual_circle",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "cryptbone_greaves",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "cryptbone_helm",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "cryptbone_pauldrons",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "cryptplate_helm",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "cryptstalker_jerkin",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "cult_cipher",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "cultist_flayer",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "cyan_magenta_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "deacon_reliquary_helm",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "deacons_cleaver",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "deathless_greatblade",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "deathless_heartwood",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 33
+    },
+    {
+      "id": "deathless_warguard_legmail",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "deathlord_legguards",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "deathlord_sabatons",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": 22
+    },
+    {
+      "id": "deathlord_warplate",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "deathlords_dread_visage",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "deepfen_pearl",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "direfang_greatblade",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "drogmar_warboots",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": 18
+    },
+    {
+      "id": "drogmars_skullcleaver",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": 20
+    },
+    {
+      "id": "drovers_staff",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "drowned_choir_fang",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "drowned_offering",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "drowned_prayer_leggings",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "drowned_prayer_sandals",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "drowned_tide_scepter",
+      "source_level": 11,
+      "from_raid": false,
+      "item_level": 14
+    },
+    {
+      "id": "drownedguard_breastplate",
+      "source_level": 11,
+      "from_raid": false,
+      "item_level": 12
+    },
+    {
+      "id": "drownedmoon_kris",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "drownedmoon_maul",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "drownedmoon_scepter",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "drownstep_sabatons",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "drownstep_slippers",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "drownstep_treads",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "duskhide_wraps",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "eastbrook_arming_sword",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "eastbrook_buckler",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "eastbrook_chain_vest",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "eastbrook_druids_hide",
+      "source_level": 9,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "eastbrook_greatsword",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "eastbrook_ritual_vestments",
+      "source_level": 9,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "eastbrook_warded_leggings",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "eastbrook_wool_trousers",
+      "source_level": 8,
+      "from_raid": false,
+      "item_level": 8
+    },
+    {
+      "id": "eelscale_leggings",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "eelscale_treads",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "eelskin_tunic",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 14
+    },
+    {
+      "id": "elderwood_axe",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "elderwood_log",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "elixir_of_the_bear",
+      "source_level": 15,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "emberfang_warblade",
+      "source_level": 19,
+      "from_raid": false,
+      "item_level": 22
+    },
+    {
+      "id": "emberglass_warstaff",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "emberwing_cinderscale",
+      "source_level": 19,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "emberwing_legguards",
+      "source_level": 19,
+      "from_raid": false,
+      "item_level": 22
+    },
+    {
+      "id": "emberwood_staff",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "embroidered_mantle",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "event_skin_token",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "fang_of_korzul",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "felling_axe",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "fen_muster_order",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "fen_reaver_glaive",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "fenbridge_rye",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "fenmist_robe",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 14
+    },
+    {
+      "id": "fenreed_staff",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "fenwalker_boots",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "final_argument_greatblade",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "final_oath_medallion",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "first_blood_razor",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "fleetblood_band",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "footpad_jerkin",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "forest_pink_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "frayed_prayer_beads",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "furyforged_gauntlets",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "furyforged_girdle",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "furyforged_legguards",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "furyforged_sabatons",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "furyforged_warhelm",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "furyforged_warplate",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "furyforged_warspaulders",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "gathering_sickle",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "ghostly_essence",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "glacier_melt",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "glimmerfin_koi",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "glowing_wax",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "gnarled_staff",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "goldleaf_herb",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "goldleaf_sickle",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "gorraks_cleaver",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 7
+    },
+    {
+      "id": "gorraks_cruel_chopper",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 7
+    },
+    {
+      "id": "grave_captain_voss",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "grave_high_priest_malric",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "grave_sir_aldren",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "gravecaller_blade",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "gravecaller_sigil",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "gravecaller_staff",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "gravepath_treads",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "gravescale_girdle",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "gravewalker_softboots",
+      "source_level": 9,
+      "from_raid": false,
+      "item_level": 12
+    },
+    {
+      "id": "gravewardens_shiv",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "gravewoven_bag",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "gravewoven_raiment",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "gravewyrm_claws",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "gravewyrm_cleaver",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "gravewyrm_gauntlets",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "gravewyrm_mantle",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "gravewyrm_sabatons",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "gravewyrm_scale_hauberk",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "gravewyrm_sigil",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "gravewyrm_stalkers_treads",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "greyjaw_fang",
+      "source_level": 4,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "greyjaw_hide_boots",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "greyjaw_pelt_cloak",
+      "source_level": 4,
+      "from_raid": false,
+      "item_level": 5
+    },
+    {
+      "id": "grubjaw_tusk",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "gutripper_shiv",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": 20
+    },
+    {
+      "id": "handaxe",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "healing_potion",
+      "source_level": 15,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "heroic_boneguard_breastplate",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_bonewrought_bulwark",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_bonewrought_greatsword",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_boundstone_girdle",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_boundstone_helm",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_brutoks_maul",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_crag_warden_cudgel",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_cragmaw_huntcord",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_cragmaw_prowlboots",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_crownforged_dreadhelm",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_crownforged_gauntlets",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_crownforged_girdle",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_crownforged_warspaulders",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_cryptstalker_jerkin",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_deathless_heartwood",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 37
+    },
+    {
+      "id": "heroic_deathlord_legguards",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_deathlord_sabatons",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_deathlord_warplate",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_deathlords_dread_visage",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_direfang_greatblade",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_drogmars_skullcleaver",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_drowned_prayer_leggings",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_drowned_prayer_sandals",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_drowned_tide_scepter",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_eelscale_leggings",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_eelscale_treads",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_emberfang_warblade",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_emberwing_legguards",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_fang_of_korzul",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_fen_reaver_glaive",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_gravewardens_shiv",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_gravewoven_raiment",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_gravewyrm_gauntlets",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_gravewyrm_mantle",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_gravewyrm_sabatons",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_gravewyrm_stalkers_treads",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_gutripper_shiv",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_hollow_vigil_staff",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_hollowbone_hauberk",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_kingsbane_last_oath",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 37
+    },
+    {
+      "id": "heroic_korgaths_chainwraps",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_maldrecs_soulbinder",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_mark",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "heroic_mirejaw_oracle_staff",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_moggers_copper_cudgel",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_moggers_shiv",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_moonshroud_breastplate",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_moonshroud_robe",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_moonshroud_tunic",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_necromancers_legwraps",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_necromancers_soulspire_mantle",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_necromancers_soulsteps",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_necromancers_starshroud",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_nhalias_dirgeblade",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_nighttalon_crown",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_nighttalon_grips",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_nighttalon_shoulderguards",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_nighttalon_waistband",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_selthes_seastriders",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_shadowmeld_tunic",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_skullsplitter_dirk",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_sloomtooth_tidefang",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_soulflame_cord",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_soulflame_cowl",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_soulflame_gloves",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_soulflame_mantle",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_staff_of_the_gravewyrm",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_staff_of_velkhar",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_stormcallers_crown",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_stormcallers_handguards",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_stormcallers_spaulders",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_stormcallers_waistguard",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_tideguard_greaves",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_tideguard_sabatons",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_tidereaver_gaff",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_tidescale_vest",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_verlans_oathblade",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_wraithfire_orb",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "heroic_wyrmcult_grand_robe",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_wyrmcult_soulsteps",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "heroic_wyrmfang_greatblade",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_wyrmshadow_harness",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_wyrmshadow_legguards",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_wyrmshadow_talongrips",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_wyrmshadow_treads",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "heroic_ysols_pearl_greaves",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "hickory_shortstaff",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "highwatch_breastplate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "highwatch_greatsword",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "highwatch_summons",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "highwatch_wallshield",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "highwatch_warblade",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "hobnail_boots",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "hollow_vigil_staff",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "hollowbone_hauberk",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "hollowbound_legguards",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "icevein_dirk",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "imperial_crimson_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "imperial_gold_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "inert_storm_shard",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "iron_mining_pick",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "iron_vow_band",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "ironbark_axe",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "ironvein_lantern_staff",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": 17
+    },
+    {
+      "id": "ironvein_pickblade",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": 17
+    },
+    {
+      "id": "ivory_copper_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "kazzix_heartshard",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "keen_dirk",
+      "source_level": 5,
+      "from_raid": false,
+      "item_level": 6
+    },
+    {
+      "id": "kings_signet",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "kingsbane_last_oath",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 33
+    },
+    {
+      "id": "knight_commanders_greaves",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "korgaths_chainwraps",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "last_step_signet",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "lesser_healing_potion",
+      "source_level": 8,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "lesser_mana_potion",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "linen_pouch",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "linen_scrap",
+      "source_level": 19,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "litany_cloth_chest",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "litany_gloves_rog",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "litany_helm",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "litany_leather_chest",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "litany_legs",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "litany_plate_chest",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "litany_shoulder",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "lost_caravan_goods",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "lunar_choir_leggings",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "lunar_tide_greatstaff",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "magenta_cyan_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "maldrecs_soulbinder",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "mana_potion",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "marrowlord_boneboots",
+      "source_level": 19,
+      "from_raid": false,
+      "item_level": 20
+    },
+    {
+      "id": "marrowtread_boots",
+      "source_level": 9,
+      "from_raid": false,
+      "item_level": 12
+    },
+    {
+      "id": "marsh_mint_tea",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "marshcloth_robe",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "marshstrider_boots",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 14
+    },
+    {
+      "id": "medallion_of_endless_profit",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "meltwater_flask",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "milepost_boots",
+      "source_level": 2,
+      "from_raid": false,
+      "item_level": 3
+    },
+    {
+      "id": "militia_vest",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 7
+    },
+    {
+      "id": "minor_healing_potion",
+      "source_level": 1,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "minor_mana_potion",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "mire_prowler_pelt",
+      "source_level": 8,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "mirefen_skinner",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "mirejaw_biteblade",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "mirejaw_fang_knife",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "mirejaw_oracle_staff",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "mirejaw_scale_vest",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "mistbinder_kris",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "mistcallers_duffel",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "mistcallers_edge",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "mistcallers_fang",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "mistforged_pauldrons",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "mistveil_cord",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 14
+    },
+    {
+      "id": "mistveil_grips",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 14
+    },
+    {
+      "id": "mithril_mining_pick",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "moggers_copper_cudgel",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "moggers_shiv",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 9
+    },
+    {
+      "id": "moggers_stomper_boots",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 7
+    },
+    {
+      "id": "monarch_crown_helm",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "moongate_rubbing",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "moonpale_scale",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "moonscale_saber",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": 17
+    },
+    {
+      "id": "moonshroud_breastplate",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "moonshroud_robe",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "moonshroud_tunic",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "morthen_grimoire",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "morthens_cryptforged_hauberk",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "mossy_handwraps",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 7
+    },
+    {
+      "id": "mudfin_scale",
+      "source_level": 11,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "necromancers_legwraps",
+      "source_level": 19,
+      "from_raid": false,
+      "item_level": 25
+    },
+    {
+      "id": "necromancers_soulspire_mantle",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "necromancers_soulsteps",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "necromancers_starshroud",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "nhalias_bell_maul",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "nhalias_dirgeblade",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": 15
+    },
+    {
+      "id": "nhalias_funeral_wraps",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "nhalias_litany_rod",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "nielas_coldlight_band",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "nighttalon_crown",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "nighttalon_grips",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "nighttalon_shoulderguards",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "nighttalon_waistband",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "nightwalk_jerkin",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "oath_of_the_round_table",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "oathbound_greaves",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 8
+    },
+    {
+      "id": "ogre_bonecharm_staff",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": 20
+    },
+    {
+      "id": "ogre_toe_ring",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "ogre_war_totem",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "oiled_boots",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "old_cragmaws_pelt",
+      "source_level": 14,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "onyx_gold_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "orange_steel_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "outrider_brigandine",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "outrider_legguards",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "outrider_sabatons",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "pale_pearl",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "palecoil_heartscale",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "palecoil_rod",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": 17
+    },
+    {
+      "id": "peakwool_robe",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "pilgrims_leggings",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "pink_forest_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "priests_sigil",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "quilted_trousers",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 11
+    },
+    {
+      "id": "raw_bog_eel",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "raw_frostgill_trout",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "raw_marsh_pike",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "raw_mirror_trout",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "raw_river_perch",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "raw_stonescale_carp",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "razorwind_torque",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "recruit_tunic",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "redbrook_blade",
+      "source_level": 5,
+      "from_raid": false,
+      "item_level": 6
+    },
+    {
+      "id": "reedstalker_jerkin",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reedwoven_jerkin",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reedwoven_trousers",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reinforced_pauldrons",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reliquary_cloth_chest",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reliquary_gloves_rog",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reliquary_helm",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reliquary_leather_chest",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reliquary_legs",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reliquary_plate_chest",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "reliquary_shoulder",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "revenant_silk_robe",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "ridge_stalker_pelt",
+      "source_level": 14,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "ridgestalker_treads",
+      "source_level": 14,
+      "from_raid": false,
+      "item_level": 15
+    },
+    {
+      "id": "riptide_dirk",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "ritual_phylactery",
+      "source_level": 19,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "roadwardens_helm",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "roast_mountain_goat",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "roasted_boar",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "roughspun_gloves",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "royal_seal",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "runed_bone_shard",
+      "source_level": 19,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "rusted_censer",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "rusty_dagger",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "rusty_hatchet",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "sableweb_cord",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "sableweb_slippers",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 7
+    },
+    {
+      "id": "sanctum_key_shard",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "sanctum_prowlers_grips",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "sash_of_the_sunken_court",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "scepter_of_the_deathless_court",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "scourgehide_carapace",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "seal_of_the_nine_oaths",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "selthes_seastriders",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "sextons_slippers",
+      "source_level": 9,
+      "from_raid": false,
+      "item_level": 12
+    },
+    {
+      "id": "shadow_jerkin",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 7
+    },
+    {
+      "id": "shadowmeld_tunic",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "shadowpulse_handwraps",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "shadowpulse_slippers",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "shroud_of_the_gravewyrm",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "silk_sash",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "siltguard_helm",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "siltstep_leggings",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "silverleaf_sickle",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "silvermist_cordial",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "simple_fishing_pole",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "sister_nhalia_choir_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "skullsmasher_warbelt",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": 18
+    },
+    {
+      "id": "skullsplitter_dirk",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": 20
+    },
+    {
+      "id": "sloomtooth_tidefang",
+      "source_level": 11,
+      "from_raid": false,
+      "item_level": 14
+    },
+    {
+      "id": "smoked_eel",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "soft_down",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "soggy_boot",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "soggy_moccasin",
+      "source_level": 8,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "sootscale_mantle",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "soulflame_cord",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "soulflame_cowl",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "soulflame_gloves",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "soulflame_mantle",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "soulforged_warplate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "soulrend_diadem",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "spellbreakers_seal",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "spider_leg",
+      "source_level": 17,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "spring_water",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "staff_of_drowned_prayers",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "staff_of_the_gravewyrm",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "staff_of_velkhar",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "stag_antler",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "stalkerhide_jerkin",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "steel_orange_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "storm_core",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "stormbound_crown",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "stormbound_greaves",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "stormbound_handguards",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "stormbound_hauberk",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "stormbound_legmail",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "stormbound_spaulders",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "stormbound_waistguard",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "stormcallers_crown",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "stormcallers_focus",
+      "source_level": 27,
+      "from_raid": false,
+      "item_level": 33
+    },
+    {
+      "id": "stormcallers_handguards",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "stormcallers_spaulders",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "stormcallers_waistguard",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "stormshard_leggings",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "sturdy_belt",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "sunken_court_mantle",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "sunken_reliquary_hood",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "sunpetal_herb",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "sunpetal_sickle",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "supply_crate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "sutils_gambit",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "swiftfang_talisman",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "tallow_candle",
+      "source_level": 15,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "tangled_weed",
+      "source_level": 11,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "tanned_leather_jerkin",
+      "source_level": 9,
+      "from_raid": false,
+      "item_level": 9
+    },
+    {
+      "id": "the_codfather",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "thorium_mining_pick",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "thorium_ore",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "tidebound_spaulders",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "tideglass_dirk",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": 17
+    },
+    {
+      "id": "tideguard_faceguard",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "tideguard_greaves",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "tideguard_sabatons",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "tidereaver_gaff",
+      "source_level": 11,
+      "from_raid": false,
+      "item_level": 14
+    },
+    {
+      "id": "tidescale_vest",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "tidewatchers_wraps",
+      "source_level": 16,
+      "from_raid": false,
+      "item_level": 17
+    },
+    {
+      "id": "tideworn_warboots",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "tidewoven_trousers",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "tough_jerky",
+      "source_level": 3,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "tradesman_hatchet",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "trail_hardtack",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "trail_leggings",
+      "source_level": 3,
+      "from_raid": false,
+      "item_level": 4
+    },
+    {
+      "id": "training_mace",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "travelers_knapsack",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "troll_fetish",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "trollhide_leggings",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 14
+    },
+    {
+      "id": "tunnelkings_spade",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 8
+    },
+    {
+      "id": "unbroken_circle",
+      "source_level": 22,
+      "from_raid": false,
+      "item_level": 28
+    },
+    {
+      "id": "unknown_alien_weaponry",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "vaels_mist_staff",
+      "source_level": 13,
+      "from_raid": false,
+      "item_level": 16
+    },
+    {
+      "id": "vale_carving_knife",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "valeborn_spellblade",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "valespun_robe",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "vanguard_azure_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "vanguard_chrome_armor_plate",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "varric_shadow_cowl",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "verlans_oathblade",
+      "source_level": 7,
+      "from_raid": false,
+      "item_level": 10
+    },
+    {
+      "id": "voss_sanctified_mace",
+      "source_level": 12,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "wanderers_chestguard",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "wardweave_cowl",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "waterlogged_idol",
+      "source_level": 9,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "wayfarers_hood",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "weathered_ledger_page",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "webwood_silk",
+      "source_level": 4,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "widow_silk_hood",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "widow_venom_sac",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "widowfang_dirk",
+      "source_level": 10,
+      "from_raid": false,
+      "item_level": 13
+    },
+    {
+      "id": "windguard_leggings",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "wolf_fang",
+      "source_level": 4,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "wolfhide_satchel",
+      "source_level": 4,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "worn_sword",
+      "source_level": null,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "woven_robe",
+      "source_level": 6,
+      "from_raid": false,
+      "item_level": 7
+    },
+    {
+      "id": "wraithfire_orb",
+      "source_level": 20,
+      "from_raid": true,
+      "item_level": 29
+    },
+    {
+      "id": "wyrmchoir_handwraps",
+      "source_level": 25,
+      "from_raid": false,
+      "item_level": 31
+    },
+    {
+      "id": "wyrmcult_grand_robe",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "wyrmcult_orders",
+      "source_level": 19,
+      "from_raid": false,
+      "item_level": null
+    },
+    {
+      "id": "wyrmcult_soulsteps",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "wyrmfang_greatblade",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "wyrmscale_jerkin",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 23
+    },
+    {
+      "id": "wyrmshadow_harness",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "wyrmshadow_legguards",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "wyrmshadow_talongrips",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "wyrmshadow_treads",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "ysols_pearl_greaves",
+      "source_level": 18,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "yumis_keepsake_locket",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "zealotsbane_blade",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 21
+    },
+    {
+      "id": "zense_meridian",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    },
+    {
+      "id": "zyzzs_deathless_signet",
+      "source_level": 20,
+      "from_raid": false,
+      "item_level": 26
+    }
+  ]
+}

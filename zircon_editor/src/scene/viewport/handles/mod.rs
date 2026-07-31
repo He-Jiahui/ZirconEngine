@@ -18,6 +18,8 @@ mod rotate_handle_tool_behavior;
 mod scale_handle_tool;
 mod scale_handle_tool_behavior;
 mod transform_handle_drag_session;
+mod transform_handle_kind;
 
 pub(crate) use handle_drag_session::HandleDragSession;
 pub(crate) use handle_tool_registry::HandleToolRegistry;
+pub use transform_handle_kind::TransformHandleKind;

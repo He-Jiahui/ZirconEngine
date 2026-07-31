@@ -1,6 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
+use super::super::geometry::{frame_is_within, has_paintable_field_extent};
 use super::super::metrics::workbench_field_metrics;
 
 const SEARCH_FIELD_ICON: &str = "search";
@@ -21,7 +22,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
         return;
     }
 
-    let icon = search_icon_rect(rect);
+    let Some(icon) = search_icon_rect(rect) else {
+        return;
+    };
     if push_icon_asset_pixels(
         commands,
         SEARCH_FIELD_ICON,
@@ -36,41 +39,49 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
 
     let metrics = workbench_field_metrics();
     let ring = search_icon_ring_rect(&icon, metrics.search_fallback_ring_size);
-    commands.push(HostPaintCommand::quad(
-        ring.clone(),
-        Some(clip.clone()),
-        order,
-        None,
-        Some(color),
-        metrics.border_width,
-        metrics.search_fallback_radius,
-        opacity,
-    ));
-
-    for segment in search_handle_segments(&ring, metrics.border_width) {
+    if frame_is_within(&ring, rect) {
         commands.push(HostPaintCommand::quad(
-            segment,
+            ring.clone(),
             Some(clip.clone()),
             order,
-            Some(color),
             None,
-            0.0,
-            0.0,
+            Some(color),
+            metrics.border_width,
+            metrics.search_fallback_radius,
             opacity,
         ));
     }
+
+    for segment in search_handle_segments(&ring, metrics.border_width) {
+        if frame_is_within(&segment, rect) {
+            commands.push(HostPaintCommand::quad(
+                segment,
+                Some(clip.clone()),
+                order,
+                Some(color),
+                None,
+                0.0,
+                0.0,
+                opacity,
+            ));
+        }
+    }
 }
 
-fn search_icon_rect(rect: &FrameRect) -> FrameRect {
+fn search_icon_rect(rect: &FrameRect) -> Option<FrameRect> {
+    if !has_paintable_field_extent(rect) {
+        return None;
+    }
     let metrics = workbench_field_metrics();
     let icon_left = (rect.x + metrics.input_pad_left).round();
     let icon_top = (rect.y + (rect.height - metrics.search_icon_size).max(0.0) * 0.5).round();
-    FrameRect {
+    let icon = FrameRect {
         x: icon_left,
         y: icon_top,
         width: metrics.search_icon_size,
         height: metrics.search_icon_size,
-    }
+    };
+    frame_is_within(&icon, rect).then_some(icon)
 }
 
 fn search_icon_ring_rect(icon: &FrameRect, ring_size: f32) -> FrameRect {

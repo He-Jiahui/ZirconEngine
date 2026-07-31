@@ -1,4 +1,4 @@
-use crate::scene::viewport::{GridMode, SceneViewportSettings};
+use crate::scene::viewport::{GridMode, SceneViewportChromeSettings};
 use crate::ui::workbench::snapshot::{EditorChromeSnapshot, StatusTaskProgressSnapshot};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -57,7 +57,7 @@ impl StatusBarModel {
     }
 }
 
-fn status_grid_text(settings: &SceneViewportSettings) -> String {
+fn status_grid_text(settings: &SceneViewportChromeSettings) -> String {
     match settings.grid_mode {
         GridMode::Hidden => "Grid: Off".to_string(),
         GridMode::VisibleNoSnap | GridMode::VisibleAndSnap => {
@@ -66,7 +66,7 @@ fn status_grid_text(settings: &SceneViewportSettings) -> String {
     }
 }
 
-fn status_snap_text(settings: &SceneViewportSettings) -> String {
+fn status_snap_text(settings: &SceneViewportChromeSettings) -> String {
     match settings.grid_mode {
         GridMode::VisibleAndSnap => "Snap: On".to_string(),
         GridMode::Hidden | GridMode::VisibleNoSnap => "Snap: Off".to_string(),

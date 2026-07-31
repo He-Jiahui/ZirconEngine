@@ -1,7 +1,7 @@
 use super::support::*;
 use zircon_runtime_interface::{
-    ZrRuntimeOperationHandle, ZrRuntimeOperationPhase, ZrRuntimeOperationProgressV1,
-    ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimeFrameDemandV1, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
 };
 
 #[test]
@@ -11,6 +11,7 @@ fn dynamic_api_submits_polls_and_harvests_runtime_operation() {
     let submit = api.submit_operation.expect("submit_operation");
     let poll = api.poll_operation.expect("poll_operation");
     let harvest = api.harvest_operation.expect("harvest_operation");
+    let tick_frame = api.tick_frame.expect("tick_frame");
     let request = serde_json::to_vec(&ZrRuntimeOperationSubmitRequestV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         zircon_runtime::core::framework::navigation::NAVIGATION_CLEAR_SURFACE_OPERATION,
@@ -32,11 +33,25 @@ fn dynamic_api_submits_polls_and_harvests_runtime_operation() {
     assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
     assert!(handle.is_valid());
 
-    let running: ZrRuntimeOperationProgressV1 =
+    let queued: ZrRuntimeOperationProgressV1 =
         decode_operation_output(call_operation_output(poll, session, handle));
-    assert_eq!(running.phase, ZrRuntimeOperationPhase::Running);
-    let completed: ZrRuntimeOperationProgressV1 =
-        decode_operation_output(call_operation_output(poll, session, handle));
+    assert_eq!(queued.phase, ZrRuntimeOperationPhase::Queued);
+
+    let mut demand = ZrRuntimeFrameDemandV1::idle();
+    let completed = (0..256)
+        .find_map(|_| {
+            let status = unsafe { tick_frame(session, &mut demand) };
+            assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
+            let progress: ZrRuntimeOperationProgressV1 =
+                decode_operation_output(call_operation_output(poll, session, handle));
+            if progress.phase.is_terminal() {
+                Some(progress)
+            } else {
+                std::thread::yield_now();
+                None
+            }
+        })
+        .expect("runtime operation must complete after bounded owner ticks");
     assert_eq!(completed.phase, ZrRuntimeOperationPhase::Completed);
     let result: ZrRuntimeOperationResultV1 =
         decode_operation_output(call_operation_output(harvest, session, handle));

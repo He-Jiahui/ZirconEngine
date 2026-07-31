@@ -15,7 +15,7 @@ and generic editor extension registry contracts.
 The runtime side contributes the terrain component descriptor, importers, and
 runtime package manifest projection. The editor side registers the terrain
 authoring view, component drawer, asset creation template, heightfield and
-weightmap importers, terrain viewport tool mode, menu-backed operations, and
+weightmap importers, terrain scene mode, menu-backed operations, and
 payload schema ids.
 
 Default import extensions are `raw`, `r16`, and `png`. Runtime export should

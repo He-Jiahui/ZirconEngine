@@ -1,0 +1,6 @@
+{
+  "name": "woc_m7_pet_water_jet_state_tests",
+  "source": "src",
+  "binary": "bin-m7-pet-water-jet-state-tests",
+  "entry": "instances/pet_water_jet_state_test_main"
+}

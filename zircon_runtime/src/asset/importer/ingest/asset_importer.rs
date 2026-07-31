@@ -4,13 +4,13 @@ use super::import_font_asset;
 use super::import_shader;
 #[cfg(any(feature = "graphics", feature = "target-server"))]
 use super::import_shader_package;
+#[cfg(test)]
+use super::import_sound;
 use super::{
     import_animation_asset, import_authoring_asset, import_cube_lut, import_data_asset,
-    import_gltf, import_material, import_mesh, import_model, import_physics_material, import_scene,
-    import_texture, import_ui_icon_asset, import_ui_theme_asset,
+    import_gltf, import_material, import_mesh, import_model, import_obj, import_physics_material,
+    import_scene, import_texture, import_ui_icon_asset, import_ui_theme_asset,
 };
-#[cfg(test)]
-use super::{import_obj, import_sound};
 use crate::asset::{
     AssetImportError, AssetImporterDescriptor, AssetImporterRegistry, AssetKind,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter,
@@ -317,12 +317,11 @@ impl AssetImporter {
             "hlsl/cg shader importer requires a NativeDynamic shader toolchain backend",
         )?;
 
-        self.register_optional(
-            plugin_required_descriptor("zircon.plugin_required.model.obj", AssetKind::Model, 1)
+        self.register_function(
+            descriptor("zircon.builtin.model.obj", AssetKind::Model, 1)
                 .with_source_extensions(["obj"])
-                .with_additional_output_kinds([AssetKind::Mesh])
-                .with_required_capabilities(["runtime.asset.importer.model.obj"]),
-            "obj model importer plugin is not installed",
+                .with_additional_output_kinds([AssetKind::Mesh]),
+            import_obj::import_obj,
         )?;
         self.register_function(
             descriptor("zircon.builtin.model.gltf", AssetKind::Model, 2)
@@ -442,13 +441,6 @@ impl AssetImporter {
                 .with_source_extensions(["wgsl"])
                 .with_required_capabilities(["runtime.asset.importer.shader.wgsl"]),
                 import_shader::import_shader,
-            ),
-            FunctionAssetImporter::new(
-                plugin_fixture_descriptor("obj_importer.obj", "obj_importer", AssetKind::Model)
-                    .with_source_extensions(["obj"])
-                    .with_additional_output_kinds([AssetKind::Mesh])
-                    .with_required_capabilities(["runtime.asset.importer.model.obj"]),
-                import_obj::import_obj,
             ),
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor_versioned(

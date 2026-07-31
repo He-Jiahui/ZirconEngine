@@ -3,7 +3,8 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/frame_diagnostics.rs
   - zircon_runtime/src/core/runtime/diagnostics/store.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/mod.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
@@ -74,7 +75,8 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/frame_diagnostics.rs
   - zircon_runtime/src/core/runtime/diagnostics/store.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/mod.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
@@ -236,13 +238,13 @@ doc_type: module-detail
 
 # Core Runtime Diagnostics
 
-`zircon_runtime::core::diagnostics` remains the curated public facade for the read-only diagnostic snapshot surface. The physical owner is now `zircon_runtime::core::runtime::diagnostics`, because the store, devtools projection, profiling controls, and render-stat projection are runtime observability behavior. The store contracts already existed as plain data structures; the current Bevy-parity slice makes `CoreRuntime` own one `DiagnosticStore` so frame and system metrics can accumulate in the same runtime instance that owns lifecycle, time, task pools, and services.
+`zircon_runtime::core::diagnostics` is the curated public contract surface for read-only diagnostic DTOs, stores, profiling controls, and pure projections. Manager-resolving collection is intentionally not part of that core surface: its physical and public owner is `zircon_runtime::runtime_diagnostics`. `CoreRuntime` still owns one `DiagnosticStore` so frame and system metrics accumulate in the runtime instance that owns lifecycle, time, task pools, and services.
 
 ## Reference Evidence
 
 Bevy's `FrameTimeDiagnosticsPlugin` in `dev/bevy/crates/bevy_diagnostic/src/frame_time_diagnostics_plugin.rs` registers `frame_time`, `fps`, and `frame_count` diagnostics from `Time<Real>` plus `FrameCount`. Bevy's `LogDiagnosticsPlugin` in `dev/bevy/crates/bevy_diagnostic/src/log_diagnostics_plugin.rs` consumes the diagnostics store as a reporting layer rather than owning frame timing itself.
 
-Zircon mirrors the ownership split: `CoreRuntime` records diagnostic measurements, while log/dev tooling can read snapshots later through `collect_runtime_diagnostics`.
+Zircon mirrors the ownership split: `CoreRuntime` records diagnostic measurements, while log/dev tooling reads collected snapshots through `runtime_diagnostics::collect_runtime_diagnostics`.
 
 ## Ownership Boundary
 
@@ -250,9 +252,9 @@ Zircon mirrors the ownership split: `CoreRuntime` records diagnostic measurement
 - `CoreRuntimeInner` owns one `DiagnosticStore` per runtime instance.
 - `CoreRuntime` and `CoreHandle` expose `record_diagnostic`, `diagnostic_store`, and `diagnostic_store_snapshot`.
 - `CoreHandle::advance_time_by(...)` records Bevy-style time measurements after advancing runtime clocks.
-- `collect_runtime_diagnostics` starts with the runtime-owned store and then overlays derived render, physics, animation, and profiling diagnostics.
+- `runtime_diagnostics::collect_runtime_diagnostics` starts with the runtime-owned store and overlays derived render, physics, animation, and profiling diagnostics after resolving facade-owned manager handles.
 - Runtime subsystem producers may write namespaced count rows through `CoreHandle::record_diagnostic(...)`; Runtime 07's animation scene hook uses this for `animation.scene.*` rows, and the dynamic session scene-asset reload integration uses this for `scene.asset_reload.*` rows, without making `core::diagnostics` own either subsystem's semantics.
-- `collect_runtime_devtools_snapshot` projects runtime services and dependencies as copied values; service names come from the runtime registry map key, and service dependencies come from runtime-internal canonical registry names. Both remain copied strings in the tooling snapshot so the devtools DTO does not depend on the internal entry storage shape.
+- `core/runtime/diagnostics/devtools.rs` projects runtime services and dependencies from an already-collected diagnostic snapshot; `runtime_diagnostics::collect_runtime_devtools_snapshot` is the facade orchestration owner. Service names and dependencies remain copied strings so the DTO does not depend on internal entry storage.
 - `diagnostic_log::format_diagnostic_store_snapshot(...)` and `write_diagnostic_store_snapshot(...)` turn store snapshots into process-log lines for dev-profile diagnostics.
 
 The diagnostics store is not a global singleton. This keeps tests, runtime preview sessions, editor-host runtimes, and future export hosts isolated from each other.

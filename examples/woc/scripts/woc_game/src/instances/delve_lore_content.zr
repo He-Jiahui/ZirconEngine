@@ -1,0 +1,20 @@
+// Generated Delve lore unlock order.
+pub loreCount(required: bool): int {
+    if (!required) { throw "woc Delve lore catalog is required"; }
+    return 5;
+}
+
+pub loreId(index: int, required: bool): string {
+    if (!required) { throw "woc Delve lore catalog is required"; }
+    if (index == 0) { return "eastbrook_ledger"; }
+    if (index == 1) { return "first_collapse"; }
+    if (index == 2) { return "gravecaller_mark"; }
+    if (index == 3) { return "bell_below"; }
+    if (index == 4) { return "tessa_note"; }
+    return "";
+}
+
+pub contractTest(): int {
+    return loreCount(true) == 5 && loreId(0, true) == "eastbrook_ledger" &&
+        loreId(4, true) == "tessa_note" && loreId(5, true) == "" ? 1 : -1;
+}

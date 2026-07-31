@@ -1,5 +1,62 @@
+use std::time::Duration;
+
 use super::level::{DiagnosticLogFilter, DiagnosticLogFilterConfig};
 use super::platform::DiagnosticLogLocation;
+
+pub const DEFAULT_DIAGNOSTIC_LOG_QUEUE_CAPACITY: usize = 4_096;
+pub const DEFAULT_DIAGNOSTIC_LOG_BATCH_RECORDS: usize = 256;
+pub const DEFAULT_DIAGNOSTIC_LOG_BATCH_BYTES: usize = 256 * 1_024;
+pub const DEFAULT_DIAGNOSTIC_LOG_FLUSH_INTERVAL: Duration = Duration::from_millis(50);
+pub const DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT: Duration = Duration::from_millis(250);
+pub const DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticLogSinkSettings {
+    pub queue_capacity: usize,
+    pub max_batch_records: usize,
+    pub max_batch_bytes: usize,
+    pub flush_interval: Duration,
+}
+
+impl DiagnosticLogSinkSettings {
+    pub fn with_queue_capacity(mut self, capacity: usize) -> Self {
+        self.queue_capacity = capacity.max(1);
+        self
+    }
+
+    pub fn with_max_batch_records(mut self, records: usize) -> Self {
+        self.max_batch_records = records.max(1);
+        self
+    }
+
+    pub fn with_max_batch_bytes(mut self, bytes: usize) -> Self {
+        self.max_batch_bytes = bytes.max(1);
+        self
+    }
+
+    pub fn with_flush_interval(mut self, interval: Duration) -> Self {
+        self.flush_interval = interval;
+        self
+    }
+
+    pub(crate) fn normalized(mut self) -> Self {
+        self.queue_capacity = self.queue_capacity.max(1);
+        self.max_batch_records = self.max_batch_records.max(1);
+        self.max_batch_bytes = self.max_batch_bytes.max(1);
+        self
+    }
+}
+
+impl Default for DiagnosticLogSinkSettings {
+    fn default() -> Self {
+        Self {
+            queue_capacity: DEFAULT_DIAGNOSTIC_LOG_QUEUE_CAPACITY,
+            max_batch_records: DEFAULT_DIAGNOSTIC_LOG_BATCH_RECORDS,
+            max_batch_bytes: DEFAULT_DIAGNOSTIC_LOG_BATCH_BYTES,
+            flush_interval: DEFAULT_DIAGNOSTIC_LOG_FLUSH_INTERVAL,
+        }
+    }
+}
 
 /// Runtime-facing log configuration, mirroring Bevy's configurable log plugin surface.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -9,6 +66,7 @@ pub struct DiagnosticLogSettings {
     pub location: DiagnosticLogLocation,
     pub console_enabled: bool,
     pub file_enabled: bool,
+    pub sink: DiagnosticLogSinkSettings,
 }
 
 pub type LogSettings = DiagnosticLogSettings;
@@ -21,6 +79,7 @@ impl DiagnosticLogSettings {
             location: DiagnosticLogLocation::LocalFirst,
             console_enabled: true,
             file_enabled: true,
+            sink: DiagnosticLogSinkSettings::default(),
         }
     }
 
@@ -48,6 +107,11 @@ impl DiagnosticLogSettings {
         self
     }
 
+    pub fn with_sink_settings(mut self, settings: DiagnosticLogSinkSettings) -> Self {
+        self.sink = settings.normalized();
+        self
+    }
+
     pub fn diagnostic_lines(&self) -> Vec<String> {
         let module_filters = if self.filter.module_filters.is_empty() {
             "none".to_string()
@@ -68,6 +132,19 @@ impl DiagnosticLogSettings {
             format!("diagnostic_log.location={:?}", self.location),
             format!("diagnostic_log.console_enabled={}", self.console_enabled),
             format!("diagnostic_log.file_enabled={}", self.file_enabled),
+            format!("diagnostic_log.queue_capacity={}", self.sink.queue_capacity),
+            format!(
+                "diagnostic_log.max_batch_records={}",
+                self.sink.max_batch_records
+            ),
+            format!(
+                "diagnostic_log.max_batch_bytes={}",
+                self.sink.max_batch_bytes
+            ),
+            format!(
+                "diagnostic_log.flush_interval_ms={}",
+                self.sink.flush_interval.as_millis()
+            ),
         ]
     }
 
@@ -123,5 +200,9 @@ mod tests {
         assert!(diagnostics.contains("diagnostic_log.location=UnityCompatibleFirst"));
         assert!(diagnostics.contains("diagnostic_log.console_enabled=false"));
         assert!(diagnostics.contains("diagnostic_log.file_enabled=true"));
+        assert!(diagnostics.contains("diagnostic_log.queue_capacity=4096"));
+        assert!(diagnostics.contains("diagnostic_log.max_batch_records=256"));
+        assert!(diagnostics.contains("diagnostic_log.max_batch_bytes=262144"));
+        assert!(diagnostics.contains("diagnostic_log.flush_interval_ms=50"));
     }
 }

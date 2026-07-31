@@ -1,7 +1,7 @@
 use super::{
-    select_ibl_bake_artifact, IblBakeArtifactBlob, IblBakeArtifactCandidate,
-    IblBakeArtifactDescriptor, IblBakeArtifactPayload, IblBakeArtifactRequest,
-    IblBakeArtifactSelection, IblBakeArtifactSource,
+    IblBakeArtifactBlob, IblBakeArtifactCandidate, IblBakeArtifactDescriptor,
+    IblBakeArtifactPayload, IblBakeArtifactRequest, IblBakeArtifactSelection,
+    IblBakeArtifactSource, select_ibl_bake_artifact,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

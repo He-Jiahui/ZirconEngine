@@ -283,7 +283,9 @@ fn validate_reference_privacy(
         .collect();
     let selector_targets =
         collect_document_selector_targets(document, style_imports, &referenced_component_names)?;
-    for reference in referenced {
+    let mut validated_references = BTreeSet::new();
+    let mut privacy_by_reference = BTreeMap::new();
+    for reference in &referenced {
         let imported = widget_imports.get(&reference.reference).ok_or_else(|| {
             UiAssetError::UnknownImport {
                 reference: reference.reference.clone(),
@@ -296,9 +298,12 @@ fn validate_reference_privacy(
                 asset_id: imported.asset.id.clone(),
                 component: reference.component_name.clone(),
             })?;
-        if let Some(diagnostic) = validate_component_contract(&reference.component_name, component)
-        {
-            return Ok(Some(diagnostic));
+        if validated_references.insert(reference.reference.as_str()) {
+            if let Some(diagnostic) =
+                validate_component_contract(&reference.component_name, component)
+            {
+                return Ok(Some(diagnostic));
+            }
         }
         if let Some(required) = reference.required_api_version {
             let actual = component.contract.api_version;
@@ -317,7 +322,8 @@ fn validate_reference_privacy(
             }
         }
 
-        let privacy = ComponentPrivacyIndex::new(component);
+        let privacy_entry = privacy_by_reference.entry(reference.reference.as_str());
+        let privacy = privacy_entry.or_insert_with(|| ComponentPrivacyIndex::new(component));
         for id in &selector_targets.ids {
             if id.applies_to(&reference.component_name)
                 && privacy.private_targets.contains(id.name.as_str())

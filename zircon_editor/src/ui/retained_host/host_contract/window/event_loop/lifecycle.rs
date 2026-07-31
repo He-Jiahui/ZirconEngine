@@ -1,11 +1,13 @@
 mod native_window;
 mod presenter;
 
+use std::time::Instant;
+
 use crate::ui::retained_host::primitives::{PhysicalPosition, PhysicalSize};
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::Window;
 use zircon_runtime::diagnostic_log::{
-    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
+    DiagnosticLogLevel, diagnostic_log_allows, write_diagnostic_log,
 };
 
 use super::UiHostWindowEventLoop;
@@ -61,6 +63,15 @@ impl UiHostWindowEventLoop {
             self.sync_host_window_state(window.as_ref());
         }
         self.drain_external_redraw_request();
+        if self.host.take_due_runtime_frame_wake(Instant::now()) {
+            // Materialize the wake through the regular external-redraw bridge so
+            // redraw_requested_impl observes a pending frame update.
+            self.drain_external_redraw_request();
+        }
+        match self.host.runtime_frame_wake_deadline() {
+            Some(deadline) => event_loop.set_control_flow(ControlFlow::WaitUntil(deadline)),
+            None => event_loop.set_control_flow(ControlFlow::Wait),
+        }
     }
 
     pub(in crate::ui::retained_host::host_contract) fn sync_host_window_state(
@@ -76,5 +87,14 @@ impl UiHostWindowEventLoop {
         if let Ok(position) = window.outer_position() {
             state.window_position = PhysicalPosition::new(position.x, position.y);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn no_runtime_deadline_resets_the_native_wait_policy() {
+        let source = include_str!("lifecycle.rs");
+        assert!(source.contains("None => event_loop.set_control_flow(ControlFlow::Wait)"));
     }
 }

@@ -9,7 +9,7 @@ related_code:
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_interfaces.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/extension_host.rs
   - zircon_runtime/src/core/framework/net/rpc.rs
 implementation_files:
   - zircon_runtime/src/script/vm/host_interface/mod.rs
@@ -21,7 +21,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_interfaces.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/extension_host.rs
 plan_sources:
   - user: 2026-07-13 implement the complete engine plugin architecture plan
   - docs/plans/zircon_plugins/08-zr-vm.md

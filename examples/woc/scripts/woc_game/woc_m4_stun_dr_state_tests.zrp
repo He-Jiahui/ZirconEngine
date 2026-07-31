@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_stun_dr_state_tests",
+  "source": "src",
+  "binary": "bin-m4-stun-dr-state-tests",
+  "entry": "combat/stun_dr_state_test_main"
+}

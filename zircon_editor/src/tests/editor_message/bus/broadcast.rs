@@ -5,8 +5,8 @@ use super::fixture::{topic, typed_messages};
 #[test]
 fn broadcast_reaches_all_subscribers_without_topic_filtering() {
     let mut bus = EditorMessageBus::default();
-    let scene = bus.register_subscriber([topic("editor.focus")]);
-    let console = bus.register_subscriber([topic("editor.document")]);
+    let scene = bus.register_subscriber([topic("editor.focus")]).unwrap();
+    let console = bus.register_subscriber([topic("editor.document")]).unwrap();
     let (_, message) = typed_messages().pop().unwrap();
 
     let report = bus.broadcast(topic("editor.mode"), message);

@@ -1,4 +1,6 @@
 use std::collections::{BTreeSet, VecDeque};
+use std::fmt;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +8,7 @@ use crate::core::editor_message::DocumentId;
 
 use super::{
     CommandBox, CommandEffect, CommandExecutionError, EditCommandError, EditContext,
-    SelectionSnapshot,
+    SelectionSnapshot, TransactionJournal, TransactionJournalError,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -28,6 +30,63 @@ impl TransactionId {
     }
 }
 
+#[derive(Clone)]
+pub struct HistorySaveToken {
+    lineage: Arc<()>,
+    history: HistoryContextId,
+    transaction: Option<TransactionId>,
+    generation: u64,
+}
+
+impl HistorySaveToken {
+    pub(crate) fn new(
+        lineage: Arc<()>,
+        history: HistoryContextId,
+        transaction: Option<TransactionId>,
+        generation: u64,
+    ) -> Self {
+        Self {
+            lineage,
+            history,
+            transaction,
+            generation,
+        }
+    }
+
+    pub(crate) fn belongs_to(&self, lineage: &Arc<()>) -> bool {
+        Arc::ptr_eq(&self.lineage, lineage)
+    }
+
+    pub(crate) const fn history(&self) -> HistoryContextId {
+        self.history
+    }
+
+    pub(crate) const fn transaction(&self) -> Option<TransactionId> {
+        self.transaction
+    }
+
+    pub(crate) const fn generation(&self) -> u64 {
+        self.generation
+    }
+}
+
+impl fmt::Debug for HistorySaveToken {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("HistorySaveToken")
+            .field("history", &self.history)
+            .field("transaction", &self.transaction)
+            .field("generation", &self.generation)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HistorySaveMarkOutcome {
+    Marked,
+    AlreadyMarked,
+}
+
 pub struct TransactionRecord {
     pub id: TransactionId,
     pub label: String,
@@ -40,8 +99,15 @@ pub struct TransactionRecord {
 }
 
 impl TransactionRecord {
-    pub(crate) fn snapshot(&self) -> TransactionRecordSnapshot {
-        TransactionRecordSnapshot {
+    pub(crate) fn journal(
+        &self,
+        history: HistoryContextId,
+    ) -> Result<TransactionJournal, TransactionJournalError> {
+        TransactionJournal::from_record(history, self)
+    }
+
+    pub(crate) fn detail(&self) -> HistoryRecordDetail {
+        HistoryRecordDetail {
             id: self.id,
             label: self.label.clone(),
             timestamp_frame: self.timestamp_frame,
@@ -193,7 +259,7 @@ impl TransactionRecord {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TransactionRecordSnapshot {
+pub struct HistoryRecordDetail {
     pub id: TransactionId,
     pub label: String,
     pub timestamp_frame: u64,
@@ -204,19 +270,20 @@ pub struct TransactionRecordSnapshot {
     pub significant: bool,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct HistorySnapshot {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HistoryStatus {
     pub len: usize,
-    pub top: Option<usize>,
-    pub saved_top: Option<usize>,
+    pub top: Option<TransactionId>,
+    pub saved_top: Option<TransactionId>,
     pub saved_top_reachable: bool,
     pub can_undo: bool,
     pub can_redo: bool,
-    pub records: Vec<TransactionRecordSnapshot>,
+    pub dirty: bool,
+    pub generation: u64,
 }
 
-impl HistorySnapshot {
-    pub(crate) fn empty() -> Self {
+impl HistoryStatus {
+    pub(crate) fn empty(generation: u64) -> Self {
         Self {
             len: 0,
             top: None,
@@ -224,8 +291,97 @@ impl HistorySnapshot {
             saved_top_reachable: true,
             can_undo: false,
             can_redo: false,
-            records: Vec::new(),
+            dirty: false,
+            generation,
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct HistoryPageCursor {
+    lineage: Arc<()>,
+    history: HistoryContextId,
+    generation: u64,
+    offset: usize,
+}
+
+impl HistoryPageCursor {
+    pub(crate) fn new(
+        lineage: Arc<()>,
+        history: HistoryContextId,
+        generation: u64,
+        offset: usize,
+    ) -> Self {
+        Self {
+            lineage,
+            history,
+            generation,
+            offset,
+        }
+    }
+
+    pub(crate) fn belongs_to(&self, lineage: &Arc<()>) -> bool {
+        Arc::ptr_eq(&self.lineage, lineage)
+    }
+
+    pub const fn history(&self) -> HistoryContextId {
+        self.history
+    }
+
+    pub const fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub(crate) const fn offset(&self) -> usize {
+        self.offset
+    }
+}
+
+impl fmt::Debug for HistoryPageCursor {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("HistoryPageCursor")
+            .field("history", &self.history)
+            .field("generation", &self.generation)
+            .field("offset", &self.offset)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct HistoryDetailPage {
+    status: HistoryStatus,
+    records: Vec<HistoryRecordDetail>,
+    next_cursor: Option<HistoryPageCursor>,
+}
+
+impl HistoryDetailPage {
+    pub(crate) fn new(
+        status: HistoryStatus,
+        records: Vec<HistoryRecordDetail>,
+        next_cursor: Option<HistoryPageCursor>,
+    ) -> Self {
+        Self {
+            status,
+            records,
+            next_cursor,
+        }
+    }
+
+    pub const fn status(&self) -> HistoryStatus {
+        self.status
+    }
+
+    pub fn records(&self) -> &[HistoryRecordDetail] {
+        &self.records
+    }
+
+    pub fn into_records(self) -> Vec<HistoryRecordDetail> {
+        self.records
+    }
+
+    pub fn next_cursor(&self) -> Option<&HistoryPageCursor> {
+        self.next_cursor.as_ref()
     }
 }
 
@@ -282,7 +438,7 @@ impl HistoryStore {
     pub(crate) fn undo(
         &mut self,
         context: &mut dyn EditContext,
-    ) -> Result<Option<TransactionRecordSnapshot>, EditCommandError> {
+    ) -> Result<Option<(TransactionId, String)>, EditCommandError> {
         let Some(top) = self.top else {
             return Ok(None);
         };
@@ -292,49 +448,123 @@ impl HistoryStore {
             });
         };
         record.undo(context)?;
-        let snapshot = record.snapshot();
+        let event_metadata = (record.id, record.label.clone());
         self.top = top.checked_sub(1);
-        Ok(Some(snapshot))
+        Ok(Some(event_metadata))
     }
 
     pub(crate) fn redo(
         &mut self,
         context: &mut dyn EditContext,
-    ) -> Result<Option<TransactionRecordSnapshot>, EditCommandError> {
+    ) -> Result<Option<(TransactionId, String)>, EditCommandError> {
         let next = self.top.map_or(0, |top| top + 1);
         let Some(record) = self.entries.get_mut(next) else {
             return Ok(None);
         };
         record.redo(context)?;
-        let snapshot = record.snapshot();
+        let event_metadata = (record.id, record.label.clone());
         self.top = Some(next);
-        Ok(Some(snapshot))
+        Ok(Some(event_metadata))
     }
 
-    pub fn mark_saved(&mut self) {
+    pub(crate) fn journal(
+        &self,
+        history: HistoryContextId,
+        transaction: TransactionId,
+    ) -> Result<TransactionJournal, TransactionJournalError> {
+        let Some(record) = self.entries.iter().find(|record| record.id == transaction) else {
+            return Err(TransactionJournalError::TransactionNotFound {
+                history,
+                transaction,
+            });
+        };
+        record.journal(history)
+    }
+
+    pub(crate) fn mark_saved_current(&mut self) {
         self.saved_top = self.top;
         self.saved_top_reachable = true;
+    }
+
+    pub(crate) fn current_transaction(&self) -> Option<TransactionId> {
+        self.top
+            .and_then(|top| self.entries.get(top))
+            .map(|record| record.id)
+    }
+
+    pub(crate) fn can_undo(&self) -> bool {
+        self.top.is_some()
+    }
+
+    pub(crate) fn can_redo(&self) -> bool {
+        self.top
+            .map_or(!self.entries.is_empty(), |top| top + 1 < self.entries.len())
     }
 
     pub fn is_dirty(&self) -> bool {
         !self.saved_top_reachable || self.top != self.saved_top
     }
 
-    pub fn snapshot(&self) -> HistorySnapshot {
-        HistorySnapshot {
+    pub(crate) fn status(&self, generation: u64) -> HistoryStatus {
+        HistoryStatus {
             len: self.entries.len(),
-            top: self.top,
-            saved_top: self.saved_top,
+            top: self.top.and_then(|top| self.record_identity_at(top)),
+            saved_top: self
+                .saved_top
+                .filter(|_| self.saved_top_reachable)
+                .and_then(|saved_top| self.record_identity_at(saved_top)),
             saved_top_reachable: self.saved_top_reachable,
-            can_undo: self.top.is_some(),
-            can_redo: self
-                .top
-                .map_or(!self.entries.is_empty(), |top| top + 1 < self.entries.len()),
-            records: self
-                .entries
-                .iter()
-                .map(TransactionRecord::snapshot)
-                .collect(),
+            can_undo: self.can_undo(),
+            can_redo: self.can_redo(),
+            dirty: self.is_dirty(),
+            generation,
         }
+    }
+
+    pub(crate) fn detail_window(
+        &self,
+        offset: usize,
+        page_size: usize,
+    ) -> (Vec<HistoryRecordDetail>, bool) {
+        let end = offset.saturating_add(page_size).min(self.entries.len());
+        let records = self
+            .entries
+            .range(offset.min(self.entries.len())..end)
+            .map(TransactionRecord::detail)
+            .collect();
+        (records, end < self.entries.len())
+    }
+
+    fn record_identity_at(&self, index: usize) -> Option<TransactionId> {
+        self.entries.get(index).map(|record| record.id)
+    }
+
+    pub(crate) fn clear(&mut self) -> Vec<TransactionRecord> {
+        self.top = None;
+        self.saved_top = None;
+        self.saved_top_reachable = true;
+        self.entries.drain(..).collect()
+    }
+}
+
+#[cfg(test)]
+mod performance_source_guards {
+    #[test]
+    fn undo_and_redo_return_compact_event_metadata_without_copying_detail_records() {
+        let source = include_str!("history.rs");
+        let undo_body = source
+            .split("pub(crate) fn undo")
+            .nth(1)
+            .and_then(|body| body.split("pub(crate) fn redo").next())
+            .expect("undo body should remain available");
+        let redo_body = source
+            .split("pub(crate) fn redo")
+            .nth(1)
+            .and_then(|body| body.split("pub(crate) fn mark_saved_current").next())
+            .expect("redo body should remain available");
+        let full_detail = ["record", ".detail()"].concat();
+
+        assert!(!undo_body.contains(&full_detail));
+        assert!(!redo_body.contains(&full_detail));
     }
 }

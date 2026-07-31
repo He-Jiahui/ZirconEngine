@@ -15,10 +15,14 @@ impl RetainedEditorHost {
                 let message = summary.status_message();
                 self.desktop_export_reports
                     .insert(summary.profile_name.clone(), summary);
+                self.desktop_export_wizard_sessions
+                    .invalidate_projection_overlay();
                 self.mark_layout_dirty();
                 self.set_status_line(message);
             }
             DesktopExportCancellation::ActiveCancelRequested(snapshot) => {
+                self.desktop_export_wizard_sessions
+                    .invalidate_projection_overlay();
                 self.mark_layout_dirty();
                 self.set_status_line(format!(
                     "Cancel requested for desktop export {}",

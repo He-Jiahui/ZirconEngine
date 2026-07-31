@@ -1,0 +1,30 @@
+[asset]
+kind = "view"
+id = "ai.perception.debug"
+version = 2
+display_name = "AI Perception Debug"
+
+[imports]
+styles = ["res://ui/theme/editor_base.zui"]
+
+[root]
+node = "perception_debug_root"
+
+[nodes.perception_debug_title]
+component = "Label"
+control_id = "AiPerceptionDebugTitle"
+props = { text = "PERCEPTION" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.perception_debug_agents]
+component = "Table"
+control_id = "AiPerceptionDebugAgents"
+props = { selected_index = -1, row_identity_field = "entity" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.perception_debug_root]
+component = "VerticalGroup"
+control_id = "AiPerceptionDebugRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "perception_debug_title" }, { node = "perception_debug_agents" }]

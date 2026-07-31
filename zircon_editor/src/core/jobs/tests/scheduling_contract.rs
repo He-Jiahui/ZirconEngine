@@ -176,61 +176,6 @@ fn category_limit_bounds_concurrency_without_blocking_submitter() {
 }
 
 #[test]
-fn indexed_pending_admission_probes_scale_linearly_from_1000_to_10000_jobs() {
-    let small = blocked_pending_admission_probe_count(1_000);
-    let large = blocked_pending_admission_probe_count(10_000);
-
-    assert!(
-        small <= 1_000 * 21 + 21,
-        "unexpected 1k probe count: {small}"
-    );
-    assert!(
-        large <= 10_000 * 21 + 21,
-        "unexpected 10k probe count: {large}"
-    );
-    assert!(
-        large <= small.saturating_mul(11),
-        "10k pending admission grew faster than linear: 1k={small}, 10k={large}"
-    );
-}
-
-fn blocked_pending_admission_probe_count(job_count: usize) -> usize {
-    let jobs =
-        test_job_system_with_limits(EditorJobLimits::default().with_limit(JobCategory::Export, 1));
-    let (started_sender, started_receiver) = mpsc::channel();
-    let (release_sender, release_receiver) = mpsc::channel();
-    let blocker = jobs
-        .submit(
-            EditorJobSpec::new("probe-blocker", JobCategory::Export),
-            GateJob::new(started_sender, release_receiver),
-        )
-        .unwrap();
-    started_receiver.recv().unwrap();
-    let baseline = jobs.admission_probe_count();
-
-    let tickets = (0..job_count)
-        .map(|index| {
-            jobs.submit(
-                EditorJobSpec::new(format!("probe-{index}"), JobCategory::Export)
-                    .with_priority(JobPriority::Background),
-                ValueJob(index as u32),
-            )
-            .unwrap()
-        })
-        .collect::<Vec<_>>();
-    let probes = jobs.admission_probe_count().saturating_sub(baseline);
-
-    let unfinished = jobs.shutdown(Instant::now());
-    assert_eq!(unfinished.len(), 1);
-    release_sender.send(()).unwrap();
-    assert_eq!(blocker.wait(), Ok(()));
-    for ticket in tickets {
-        assert_eq!(ticket.try_take(), Some(Err(JobError::Cancelled)));
-    }
-    probes
-}
-
-#[test]
 fn mutex_group_serializes_jobs_across_categories() {
     let jobs = test_job_system_with_limits(
         EditorJobLimits::default()

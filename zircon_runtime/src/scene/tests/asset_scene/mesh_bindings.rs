@@ -1,6 +1,43 @@
 use super::*;
 
 #[test]
+fn scene_asset_save_reopens_with_exact_transform_and_asset_references() {
+    let root = unique_temp_project_root("scene_asset_save_reopen");
+    let project = create_test_project(&root);
+    let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+    let mut world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
+    let expected_transform = Transform::from_translation(Vec3::new(3.5, 0.0, -1.25));
+
+    assert!(world.update_transform(2, expected_transform).unwrap());
+    let expected_scene = world.to_scene_asset(&project).unwrap();
+
+    world.save_scene_to_project(&project, &scene_uri).unwrap();
+    let scene_path = project
+        .existing_or_primary_project_source_path_for_uri(&scene_uri)
+        .unwrap();
+    let first_save = fs::read_to_string(&scene_path).unwrap();
+    world.save_scene_to_project(&project, &scene_uri).unwrap();
+    assert_eq!(fs::read_to_string(&scene_path).unwrap(), first_save);
+
+    drop(project);
+
+    let mut reopened_project = crate::asset::project::ProjectManager::open(&root).unwrap();
+    reopened_project
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
+    reopened_project.scan_and_import().unwrap();
+    let reopened_world = World::load_scene_from_uri(&reopened_project, &scene_uri).unwrap();
+
+    assert_eq!(reopened_world.to_scene_asset(&reopened_project).unwrap(), expected_scene);
+    assert_eq!(
+        reopened_world.find_node(2).unwrap().transform,
+        expected_transform
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn unresolved_scene_reference_returns_typed_dangling_error() {
     let root = unique_temp_project_root("scene_dangling_reference");
     let project = create_test_project(&root);

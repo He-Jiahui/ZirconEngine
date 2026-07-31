@@ -1,12 +1,9 @@
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::asset_content_layout::{
-    ACTIVITY_CONTENT_PANEL_CONTROL_ID, BROWSER_CONTENT_PREVIEW_CONTROL_ID,
-    BROWSER_CONTENT_TABLE_CONTROL_ID, BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
-    BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
+    AssetContentPaintMetadata, AssetContentRect, AssetContentSurface,
 };
 
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_geometry::{frame_from_template, translated};
 
 pub(super) fn asset_tree_viewport_frame(body: &FrameRect) -> FrameRect {
     let viewport_y = crate::ui::retained_host::asset_pointer::asset_tree_viewport_y();
@@ -22,8 +19,8 @@ pub(super) fn asset_tree_row_count(
     nodes: &ModelRc<TemplatePaneNodeData>,
     row_control_id: &str,
 ) -> usize {
-    (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
+    nodes
+        .iter()
         .filter(|node| matches_asset_tree_row(node.control_id.as_str(), row_control_id))
         .count()
 }
@@ -32,63 +29,36 @@ pub(super) fn activity_asset_content_viewport_and_extent(
     nodes: &ModelRc<TemplatePaneNodeData>,
     body: &FrameRect,
 ) -> Option<(FrameRect, f32)> {
-    let panel = (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
-        .find(|node| {
-            node.control_id.rsplit('/').next() == Some(ACTIVITY_CONTENT_PANEL_CONTROL_ID)
-        })?;
-    let viewport = translated(&frame_from_template(&panel.frame), body.x, body.y);
-    let extent = if panel.value_number.is_finite() {
-        panel.value_number.max(0.0)
-    } else {
-        0.0
-    };
-    Some((viewport, extent))
+    asset_content_viewport_and_extent(nodes, body, AssetContentSurface::Activity)
 }
 
 pub(super) fn browser_asset_content_viewport_and_extent(
     nodes: &ModelRc<TemplatePaneNodeData>,
     body: &FrameRect,
 ) -> Option<(FrameRect, f32)> {
-    if let Some(grid) = find_node(nodes, BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID) {
-        let viewport = translated(&frame_from_template(&grid.frame), body.x, body.y);
-        let extent = if grid.value_number.is_finite() {
-            grid.value_number.max(0.0)
-        } else {
-            0.0
-        };
-        return Some((viewport, extent));
-    }
-
-    let table = find_node(nodes, BROWSER_CONTENT_TABLE_CONTROL_ID)?;
-    let header = find_node(nodes, BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID)?;
-    let table_frame = translated(&frame_from_template(&table.frame), body.x, body.y);
-    let header_bottom = body.y + header.frame.y + header.frame.height;
-    let rows_bottom = find_node(nodes, BROWSER_CONTENT_PREVIEW_CONTROL_ID)
-        .map(|preview| body.y + preview.frame.y)
-        .unwrap_or(table_frame.y + table_frame.height)
-        .min(table_frame.y + table_frame.height);
-    let viewport = FrameRect {
-        x: table_frame.x,
-        y: header_bottom,
-        width: table_frame.width,
-        height: (rows_bottom - header_bottom).max(0.0),
-    };
-    let extent = if table.value_number.is_finite() {
-        table.value_number.max(0.0)
-    } else {
-        0.0
-    };
-    Some((viewport, extent))
+    asset_content_viewport_and_extent(nodes, body, AssetContentSurface::Browser)
 }
 
-fn find_node(
+fn asset_content_viewport_and_extent(
     nodes: &ModelRc<TemplatePaneNodeData>,
-    control_id: &str,
-) -> Option<TemplatePaneNodeData> {
-    (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
-        .find(|node| node.control_id.rsplit('/').next() == Some(control_id))
+    body: &FrameRect,
+    surface: AssetContentSurface,
+) -> Option<(FrameRect, f32)> {
+    let metadata = nodes.metadata::<AssetContentPaintMetadata>()?;
+    if metadata.surface() != surface {
+        return None;
+    }
+    let viewport = translated_asset_content_rect(metadata.viewport()?, body);
+    Some((viewport, metadata.content_extent()))
+}
+
+fn translated_asset_content_rect(rect: AssetContentRect, body: &FrameRect) -> FrameRect {
+    FrameRect {
+        x: body.x + rect.x,
+        y: body.y + rect.y,
+        width: rect.width,
+        height: rect.height,
+    }
 }
 
 fn matches_asset_tree_row(control_id: &str, row_control_id: &str) -> bool {
@@ -101,14 +71,32 @@ fn matches_asset_tree_row(control_id: &str, row_control_id: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ui::layouts::common::model_rc;
+    use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
     use crate::ui::retained_host::host_contract::data::TemplateNodeFrameData;
+    use crate::ui::workbench::asset_content_layout::{
+        asset_content_paint_metadata, AssetContentPaintNodeInput,
+        BROWSER_CONTENT_PREVIEW_CONTROL_ID, BROWSER_CONTENT_TABLE_CONTROL_ID,
+        BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
+    };
+
+    #[test]
+    fn browser_content_scrollbar_geometry_uses_generation_metadata_without_model_scans() {
+        let source = include_str!("asset.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source before tests");
+
+        assert!(!production.contains("row_data("));
+        assert!(!production.contains("for row in 0..nodes.row_count()"));
+        assert!(production.contains("metadata::<AssetContentPaintMetadata>"));
+    }
 
     #[test]
     fn browser_viewport_stops_at_preview_when_table_frame_overlaps_it() {
         let mut table = node(BROWSER_CONTENT_TABLE_CONTROL_ID, 10.0, 20.0, 120.0, 80.0);
         table.value_number = 280.0;
-        let nodes = model_rc(vec![
+        let nodes = browser_nodes(vec![
             table,
             node(
                 BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
@@ -147,7 +135,7 @@ mod tests {
     fn browser_thumbnail_viewport_uses_grid_frame_and_full_content_extent() {
         let mut grid = node("AssetBrowserThumbGridPanel", 10.0, 20.0, 320.0, 180.0);
         grid.value_number = 620.0;
-        let nodes = model_rc(vec![grid]);
+        let nodes = browser_nodes(vec![grid]);
 
         let (viewport, extent) = browser_asset_content_viewport_and_extent(
             &nodes,
@@ -172,16 +160,52 @@ mod tests {
         assert_eq!(extent, 620.0);
     }
 
-    fn node(control_id: &str, x: f32, y: f32, width: f32, height: f32) -> TemplatePaneNodeData {
-        TemplatePaneNodeData {
+    fn browser_nodes(nodes: Vec<ViewTemplateNodeData>) -> ModelRc<TemplatePaneNodeData> {
+        view_asset_content_model(nodes, AssetContentSurface::Browser).map_preserving_metadata(
+            |node| TemplatePaneNodeData {
+                control_id: node.control_id.clone(),
+                value_number: node.value_number,
+                frame: TemplateNodeFrameData {
+                    x: node.frame.x,
+                    y: node.frame.y,
+                    width: node.frame.width,
+                    height: node.frame.height,
+                },
+                ..TemplatePaneNodeData::default()
+            },
+        )
+    }
+
+    fn view_asset_content_model(
+        nodes: Vec<ViewTemplateNodeData>,
+        surface: AssetContentSurface,
+    ) -> ModelRc<ViewTemplateNodeData> {
+        let metadata = asset_content_paint_metadata(
+            nodes.iter().map(|node| {
+                AssetContentPaintNodeInput::new(
+                    node.control_id.as_str(),
+                    node.frame.x,
+                    node.frame.y,
+                    node.frame.width,
+                    node.frame.height,
+                    node.value_number,
+                )
+            }),
+            surface,
+        );
+        ModelRc::with_metadata(nodes, metadata)
+    }
+
+    fn node(control_id: &str, x: f32, y: f32, width: f32, height: f32) -> ViewTemplateNodeData {
+        ViewTemplateNodeData {
             control_id: control_id.into(),
-            frame: TemplateNodeFrameData {
+            frame: ViewTemplateFrameData {
                 x,
                 y,
                 width,
                 height,
             },
-            ..TemplatePaneNodeData::default()
+            ..ViewTemplateNodeData::default()
         }
     }
 }

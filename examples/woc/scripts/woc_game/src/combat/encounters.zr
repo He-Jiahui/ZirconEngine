@@ -1,0 +1,135 @@
+// Encounter thresholds and split outcomes shared by the M4 scripted fights.
+pub metric(
+    kind: int,
+    first: float,
+    second: float,
+    third: float,
+    fourth: float
+): float {
+    if (kind == 0) {
+        if (second <= 0.0) { throw "boss maximum health must be positive"; }
+        return first / second <= 0.7 ? 2.0 : 1.0;
+    }
+    if (kind == 1) {
+        if (second <= 0.0) { throw "boss maximum health must be positive"; }
+        return first / second <= 0.05 ? 1.0 : 0.0;
+    }
+    if (kind == 2) {
+        if (second <= 0.0) { return first; }
+        return first / second;
+    }
+    if (kind == 3) { return first >= second ? 1.0 : 0.0; }
+    if (kind == 4) {
+        if (first <= 0.10) { return 3.0; }
+        if (first <= 0.35) { return 2.0; }
+        if (first <= 0.70) { return 1.0; }
+        return 0.0;
+    }
+    if (kind == 5) {
+        if (second <= 0.0) { throw "pulse interval must be positive"; }
+        return 1.0 + <float><int>(first / second);
+    }
+    throw "encounter metric is invalid";
+}
+
+pub scenarioContract(scenarioKind: int, seed: int, ticks: int): float {
+    if (scenarioKind == 0) {
+        if (seed != 3131 || ticks != 507) { return 0.0; }
+        var heroicAffixes = 1;
+        var ropePulls = 0;
+        var bellShockLogs = 0;
+        var ropeIndex = 0;
+        while (ropeIndex < 2) {
+            ropePulls = ropePulls + 1;
+            bellShockLogs = bellShockLogs + 1;
+            ropeIndex = ropeIndex + 1;
+        }
+        var moduleIndex = ropePulls == 2 ? 1 : 0;
+
+        var cantorPhaseOne = false;
+        var cantorPhaseTwo = false;
+        var finalBell = false;
+        var marksSeen = 0;
+        var tollingBellsLive = 0;
+        var encounterDraws = 0;
+
+        var bossHealthFraction = 0.65;
+        if (bossHealthFraction <= 0.70) { cantorPhaseOne = true; }
+        encounterDraws = encounterDraws + 1;
+        marksSeen = 1;
+        encounterDraws = encounterDraws + 1;
+        encounterDraws = encounterDraws + 1;
+        tollingBellsLive = 4;
+
+        bossHealthFraction = 0.30;
+        if (bossHealthFraction <= 0.35) { cantorPhaseTwo = true; }
+        bossHealthFraction = 0.08;
+        if (bossHealthFraction <= 0.10) { finalBell = true; }
+        var bossDead = true;
+        var riteChoosePrompt = bossDead;
+        var riteIntensityEasy = riteChoosePrompt;
+        var riteLength = 4;
+        var ritePlaybacks = 3;
+        var ritePulses = riteIntensityEasy ? 1 : 0;
+
+        return heroicAffixes > 0 && ropePulls == 2 && bellShockLogs > 0 &&
+            moduleIndex == 1 && cantorPhaseOne && cantorPhaseTwo && finalBell &&
+            marksSeen > 0 && tollingBellsLive > 0 && encounterDraws == 3 &&
+            bossDead && riteChoosePrompt && riteLength == 4 &&
+            ritePlaybacks == 3 && ritePulses > 0 ? 1.0 : 0.0;
+    }
+
+    if (scenarioKind == 1) {
+        if (seed != 1031 || ticks != 688) { return 0.0; }
+        var phase = 1;
+        var encounterDraws = 0;
+        var gravebreakerDamage = false;
+        encounterDraws = encounterDraws + 1;
+        gravebreakerDamage = true;
+        var raisedAdds = 2;
+
+        var bossHealthFraction = 0.69;
+        var transitionStuns = 0;
+        var aldricPresent = false;
+        var wardstones = 0;
+        if (phase == 1 && bossHealthFraction <= 0.70) {
+            phase = 0;
+            transitionStuns = 5;
+            aldricPresent = true;
+            wardstones = 3;
+        }
+        phase = 2;
+
+        var soulRendMarks = 0;
+        while (soulRendMarks < 3) {
+            encounterDraws = encounterDraws + 1;
+            soulRendMarks = soulRendMarks + 1;
+        }
+        var soulRendDialogue = soulRendMarks > 0;
+
+        var deathlessCasting = true;
+        var completedWardChannels = 3;
+        var deathlessInterrupted = false;
+        var deathlessSelfStun = false;
+        if (deathlessCasting && completedWardChannels >= 3) {
+            deathlessCasting = false;
+            deathlessInterrupted = true;
+            deathlessSelfStun = true;
+        }
+
+        bossHealthFraction = 0.04;
+        var finalStand = phase == 2 && bossHealthFraction <= 0.05;
+        var bossDead = true;
+        if (bossDead) { phase = 3; }
+        var raidLockout = bossDead;
+        var deathDialogue = bossDead;
+
+        return encounterDraws == 4 && gravebreakerDamage && raisedAdds == 2 &&
+            transitionStuns == 5 && aldricPresent && wardstones == 3 &&
+            soulRendDialogue && deathlessInterrupted && deathlessSelfStun &&
+            finalStand && bossDead && phase == 3 && raidLockout &&
+            deathDialogue ? 1.0 : 0.0;
+    }
+
+    throw "encounter scenario kind is invalid";
+}

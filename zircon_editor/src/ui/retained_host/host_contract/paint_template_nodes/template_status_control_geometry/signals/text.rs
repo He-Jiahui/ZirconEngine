@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
     FrameRect {
         x: icon.x + icon.width + text_gap,
         y: rect.y + node.layout_offset_y + (rect.height - line_height).max(0.0) * 0.5,
-        width: (rect.x + rect.width - icon.x - icon.width - text_gap).max(1.0),
+        width: (rect.x + rect.width - icon.x - icon.width - text_gap).max(0.0),
         height: line_height,
     }
 }

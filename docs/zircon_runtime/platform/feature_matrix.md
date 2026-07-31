@@ -14,9 +14,11 @@ related_code:
   - zircon_runtime/src/platform/capability/matrix/gamepad.rs
   - zircon_runtime/src/platform/feature_selection.rs
   - zircon_runtime/src/platform/target.rs
-  - zircon_runtime/src/platform/service_types.rs
+  - zircon_runtime/src/platform/service_types/mod.rs
+  - zircon_runtime/src/platform/preferences/mod.rs
   - zircon_runtime/src/core/framework/platform/mod.rs
   - zircon_runtime/src/core/framework/platform/runtime_target_mode.rs
+  - zircon_runtime/src/core/framework/platform/preferences/mod.rs
   - zircon_runtime/src/core/framework/window/mod.rs
   - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
@@ -32,6 +34,7 @@ related_code:
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/platform_preferences.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
@@ -68,7 +71,13 @@ implementation_files:
   - zircon_runtime/src/platform/feature_selection.rs
   - zircon_runtime/src/platform/target.rs
   - zircon_runtime/src/platform/config.rs
-  - zircon_runtime/src/platform/service_types.rs
+  - zircon_runtime/src/platform/service_types/mod.rs
+  - zircon_runtime/src/platform/service_types/driver.rs
+  - zircon_runtime/src/platform/service_types/manager.rs
+  - zircon_runtime/src/platform/preferences/mod.rs
+  - zircon_runtime/src/platform/preferences/atomic_file.rs
+  - zircon_runtime/src/platform/preferences/unavailable.rs
+  - zircon_runtime/src/core/framework/platform/preferences/mod.rs
   - zircon_runtime/src/core/framework/window/mod.rs
   - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
@@ -79,6 +88,7 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/platform_preferences.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
@@ -142,6 +152,7 @@ tests:
   - zircon_runtime/src/platform/tests/target_modes.rs
   - zircon_runtime/src/platform/tests/diagnostic_keys.rs
   - zircon_runtime/src/platform/tests/diagnostics.rs
+  - zircon_runtime/src/platform/tests/preferences.rs
   - zircon_runtime/src/platform/tests/cross_target.rs
   - zircon_runtime/src/platform/tests/gestures.rs
   - zircon_runtime/src/platform/tests/gamepad.rs
@@ -205,6 +216,7 @@ The matrix follows the same split Bevy uses:
 - gamepad event backend declaration: desktop `GilrsEventPolling`, browser `BrowserGamepadApiPolling`, feature-disabled, or unavailable;
 - gamepad rumble backend declaration: desktop gilrs force-feedback, future browser haptics, feature-disabled, or unavailable;
 - file drag/drop backend declaration: desktop `WinitWindowEvents`, future `BrowserDragEvents`, or unavailable;
+- persistent preference storage declaration: a host-injected atomic-file or platform backend, otherwise an explicit unavailable status with no process-memory fallback;
 - Linux protocol declarations for X11 and Wayland.
 
 The capability implementation is folder-backed so the platform root stays structural and each declaration family has one owner. `capability/mod.rs` only wires child modules and curated exports; `status.rs` owns `CapabilityStatus`; `backends.rs` owns backend enum declarations and diagnostic keys; `report.rs` owns `PlatformCapabilityReport` diagnostic formatting; and `capability/matrix/` owns report construction split by policy, Linux protocols, input event families, window host families, and gamepad host families.
@@ -213,7 +225,7 @@ The capability implementation is folder-backed so the platform root stays struct
 
 `RuntimeTargetMode` remains visible through the same diagnostics as `platform.target_mode=client_runtime`, `server_runtime`, or `editor_host`. Client/editor modes may select windowed Bevy-style policies (`Game`, `DesktopApp`, `Mobile`, or explicit `Continuous`) when the target has a window backend. Server runtime is topology-authoritative and stays headless across host targets.
 
-`PlatformConfig` keeps the existing `enabled` flag and adds target, runtime mode, and feature snapshot fields. `PLATFORM_CONFIG_KEY` is the runtime config-store key used by `zircon_app` bootstrap. `PlatformManager::capability_report()` is a thin access surface over that config. The primary window descriptor is stored separately under `PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY` by the app entry layer, so capability diagnostics can say which backend is available while window diagnostics say which primary-window policy was selected.
+`PlatformConfig` keeps the existing `enabled` flag and adds target, runtime mode, and feature snapshot fields. `PLATFORM_CONFIG_KEY` is the runtime config-store key used by `zircon_app` bootstrap. `PlatformManager::capability_report()` projects the static matrix and then reports the injected preference backend. The neutral `PreferenceStorage` manager contract uses namespace/key pairs plus typed unavailable, denied, capacity, corrupt-backend, and transient-I/O errors. A process host installs a `PreferenceStorageBackend` into `PlatformDriver`; desktop hosts can use `AtomicFilePreferenceStorageBackend` with an approved user-data root, while mobile/browser hosts provide sandbox-specific backends through the same contract. The default and headless paths stay explicitly unavailable and never pretend that process memory is persistent. Callers resolve the contract through `ManagerServiceHandle<dyn PreferenceStorage>` rather than importing the concrete manager. The primary window descriptor is stored separately under `PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY` by the app entry layer, so capability diagnostics can say which backend is available while window diagnostics say which primary-window policy was selected.
 
 `BuiltinEngineEntry` stores a serialized `PlatformConfig` before module activation. Runtime/editor entries use the current host target and compiled feature snapshot; headless entries use `PlatformTarget::Headless` plus `PlatformFeatureSelection::headless()`. `RuntimeProfileId::Minimal` still stores the config for diagnostics, but marks it disabled because `MinimalPlugins` does not install `PlatformModule`.
 

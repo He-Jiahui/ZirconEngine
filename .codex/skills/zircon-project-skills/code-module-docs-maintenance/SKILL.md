@@ -1,13 +1,13 @@
 ---
 name: code-module-docs-maintenance
-description: Generate and maintain detailed `zirconEngine` module documentation whenever code is created, changed, or reorganized. Use when shared runtime, module/plugin wiring, scripting, editor/graphics, asset, networking, or other cross-crate work must also emit or update detailed docs under `docs/`, organize docs by subsystem, include machine-readable related-code headers for script lookup, and record plan sources, tests, and implementation files in every affected document.
+description: Use when ZirconEngine code changes a public or cross-module contract, operator workflow, architectural boundary, or existing documentation may become materially false.
 ---
 
 # Code Module Docs Maintenance
 
 ## Overview
 
-Use this skill to make code generation and code documentation move together in `zirconEngine`, with subsystem-oriented `docs/` categorization, machine-readable headers, and mandatory maintenance whenever code changes.
+Use this skill only when durable documentation is necessary to keep a public/cross-module fact true. Source and tests are the default facts; concise comments explain non-obvious invariants, and the numbered plan records completion state. Documentation must not become a second, drifting implementation.
 
 ## Progressive Disclosure Index
 
@@ -21,11 +21,10 @@ Use this skill to make code generation and code documentation move together in `
 
 ## Non-Negotiable Rules
 
-- When you generate or materially change code, also generate or update the corresponding docs under `docs/` before calling the work complete.
-- Use `docs/` paths that mirror the source module path when creating new module-level documents, unless an existing functional document already owns that module.
-- Organize higher-level docs by functional areas, not by random dates or vague buckets.
-- Put all related code files at the top of every documentation file in a machine-readable header so scripts can map code files back to docs.
-- Document plan source, test coverage, and implementation files in every affected document.
-- Keep docs detailed. Do not reduce them to changelog fragments or short summaries when design and behavior need explanation.
-- If code changes invalidate a document, update that document in the same task. Do not defer doc maintenance silently.
-- Key data structures and non-obvious logic in the code must have concise comments before the docs call the module understandable.
+- Do not create or expand `docs/` for ordinary slices, private refactors, test-only changes, or facts already clear in source and tests.
+- Do not create a document merely to report work performed, a command result, a review, or a plan update. Those belong respectively in source/tests, the coordinator, or the single milestone status row.
+- Update an existing document in the same task only when it would otherwise make a materially false claim about a public contract, cross-module boundary, operator workflow, or durable design decision.
+- Create a source-mirrored document only when a new public/cross-module interface or operational workflow has no concise existing owner. Prefer an existing functional document when it owns the behavior.
+- Keep retained documents compact and factual: the owner modules, the changed contract/decision, and the relevant validation suite or plan milestone. Remove stale text; never append a per-slice changelog.
+- Keep a machine-readable header only on retained documents, and list the owner modules/test suites rather than every touched implementation file.
+- Put concise comments in code for non-obvious invariants and transitions; do not use documentation as a substitute for code clarity.

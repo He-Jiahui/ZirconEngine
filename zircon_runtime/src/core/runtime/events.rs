@@ -1,41 +1,43 @@
-//! Topic-based event distribution.
+//! Topic-based event distribution with explicit delivery policy.
 
-mod failure;
+mod diagnostics;
 mod prune;
 mod publish;
 mod subscribe;
+mod subscriber;
+mod topic;
 
-use std::collections::HashMap;
 use std::fmt;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
 
-use crate::core::framework::channel::ChannelSender;
-use crate::core::framework::events::EngineEvent;
+use crate::core::framework::events::EventBusDiagnosticsMode;
 
-type EventSubscriberMap = HashMap<String, Arc<[ChannelSender<EngineEvent>]>>;
+use topic::EventBusState;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct EventBus {
-    subscribers: Arc<Mutex<EventSubscriberMap>>,
-    delivery_lock: Arc<Mutex<()>>,
+    state: Arc<EventBusState>,
+}
+
+impl Default for EventBus {
+    fn default() -> Self {
+        Self::new(EventBusDiagnosticsMode::Enabled)
+    }
 }
 
 impl EventBus {
-    fn lock_subscribers(&self) -> MutexGuard<'_, EventSubscriberMap> {
-        self.subscribers
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-
-    fn lock_delivery(&self) -> MutexGuard<'_, ()> {
-        self.delivery_lock
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    pub fn new(diagnostics_mode: EventBusDiagnosticsMode) -> Self {
+        Self {
+            state: Arc::new(EventBusState::new(diagnostics_mode)),
+        }
     }
 }
 
 impl fmt::Debug for EventBus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EventBus").finish()
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EventBus")
+            .field("diagnostics", &self.diagnostic_report())
+            .finish()
     }
 }

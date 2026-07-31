@@ -1,7 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::segments::{push_segments, AlertGlyphSegmentSpec};
-use super::palette::ALERT_GLYPH_DARK;
 
 pub(super) fn push_round_mark(
     commands: &mut Vec<HostPaintCommand>,
@@ -11,6 +10,7 @@ pub(super) fn push_round_mark(
     color: [u8; 4],
     opacity: f32,
     segments: &[AlertGlyphSegmentSpec],
+    glyph_dark: [u8; 4],
 ) {
     push_round_surface(commands, rect, clip, order, color, opacity);
     push_segments(
@@ -18,7 +18,7 @@ pub(super) fn push_round_mark(
         rect,
         clip,
         order + 1,
-        ALERT_GLYPH_DARK,
+        glyph_dark,
         opacity,
         segments,
     );

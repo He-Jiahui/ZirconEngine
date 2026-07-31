@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var affixState = %import("combat/mob_swing_affix_state");
+
+console.printLine("m4-mob-swing-affix-state-test");
+var result = affixState.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

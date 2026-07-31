@@ -577,3 +577,18 @@ last_refined: 2026-07-13
 - 迁入记录：[`../../_archive/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md`](../../_archive/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md)
 - fixed 已修复：[dynamic-scene-version-validation](02/fixed-2026-07-12-dynamic-scene-version-validation.md)
 - fixed 已修复：[scene-test-support-file-budget](../frameworks/06/fixed-2026-07-13-scene-test-support-file-budget.md)
+- 2026-07-18 post-completion性能复核：scene framework 24/24确认`EntityPath`与`ComponentPropertyPath`同时拥有raw及逐段String，路径clone/resolve会随animation/property/editor payload放大。Runtime05既有closeout不重开；interned PathId/Arc storage与scene-generation dense resolve由Runtime08联动性能计划承接，见PERF-MVP-329。
+- 2026-07-22 post-completion dynamic scene复核：非session基础35/35已静态覆盖并完成owned JSON/capture sort/descriptor key三组止损（PERF-MVP-470）。asset reload有界single-flight归Runtime04/11 PERF-MVP-471，target-world compiled spawn transaction归Runtime08 PERF-MVP-472；Runtime05 closeout不重开，只共同验收scene格式、preview/apply与editor边界语义。
+- 2026-07-27 post-completion 动态组件属性 generation 复核：reflection 直达动态属性写入未统一发布 inspection/world generation；Runtime05 closeout 不重开，交给 Runtime08 的 [dynamic-component-property-world-generation](08/failure-2026-07-27-dynamic-component-property-world-generation.md) 统一修复并回跑 Navigation projection gate。
+
+## Code Review 建议 (2026-07-31)
+
+### 与代码现状不符，需修订
+
+- 「现状与证据」§「inspection 公共面」条称「`scene/inspection/mod.rs` 仅导出 `WorldInspectionField` / `WorldInspectionHierarchyRow` / `WorldInspection` 三类型（field/hierarchy/snapshot 三文件）」已不成立。当前 `zircon_runtime/src/scene/inspection/mod.rs:3-21` 声明 `artifact/field/hierarchy/snapshot/subscription` 五个子模块，公共面已扩展到 artifact 缓存/增量族（`WorldInspectionArtifact`、`WorldInspectionArtifactDiagnostics`、`WorldInspectionDelta`、`WorldInspectionFieldDelta`、`WorldInspectionFieldPath`、`WorldInspectionFieldsArtifact`、`WorldInspectionSummary`，:13-17）与订阅表族（`SubscriptionTable`、`SubscriptionTableDiagnostics`、`SubscriptionTableLimits`，:21）。建议把该条更新为当前五文件/多导出形态，并复核这些新增 artifact/subscription 类型是否已纳入 M2 覆盖矩阵与 authoring-token 守卫的核对范围（非目标声明「不改 inspection 三类型数据形状」的前提已随扩面失效）。
+
+### 验证缺口
+
+- M2 切片 2.1 覆盖矩阵以「四个出口（world 序列化、dynamic scene、asset scene、inspection 快照）」为行，但当前 `scene/tests/authoring_boundary.rs:53-54` 的 `SERIALIZED_AUTHORING_SURFACES` 只固定两条序列化出口（`"versioned dynamic scene JSON"`、`"versioned reflected JSON"`）。inspection artifact/delta（新增 :13-17 导出）与 asset scene 出口是否有等价的 authoring-token 断言未在该常量中体现，建议在覆盖矩阵补 inspection artifact/subscription 出口行，或说明其复用哪条既有断言，避免扩面后的 authoring 泄漏无守卫。
+
+（注：M2 切片 2.2 的 `authoring_token_tables_stay_sorted_and_deduplicated` 已落地于 `authoring_boundary.rs:77-82`，SERIALIZED/SOURCE token 表当前为 19/25 词，与计划描述一致，无需修订。）

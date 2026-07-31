@@ -6,6 +6,14 @@ use serde::{Deserialize, Serialize};
 pub struct EditorTopic(String);
 
 impl EditorTopic {
+    pub(crate) fn document() -> Self {
+        Self(super::topics::TOPIC_DOCUMENT.to_owned())
+    }
+
+    pub(crate) fn transaction() -> Self {
+        Self(super::topics::TOPIC_TRANSACTION.to_owned())
+    }
+
     pub fn parse(value: impl Into<String>) -> Result<Self, EditorTopicError> {
         let value = value.into();
         if value.is_empty() {
@@ -72,4 +80,19 @@ fn segment_is_valid(segment: &str) -> bool {
     segment.bytes().all(|byte| {
         byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-')
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::EditorTopic;
+
+    #[test]
+    fn built_in_transaction_topic_is_canonical_and_valid() {
+        assert_eq!(EditorTopic::transaction().as_str(), "editor.transaction");
+    }
+
+    #[test]
+    fn built_in_document_topic_is_canonical_and_valid() {
+        assert_eq!(EditorTopic::document().as_str(), "editor.document");
+    }
 }

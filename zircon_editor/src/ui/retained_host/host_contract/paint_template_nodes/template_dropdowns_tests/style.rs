@@ -92,21 +92,21 @@ fn focused_open_workbench_dropdown_keeps_open_surface_and_active_chevron() {
 }
 
 fn dropdown_surface(node: &TemplatePaneNodeData) -> [u8; 4] {
-    dropdown_style(node).surface
+    dropdown_style(node, false).surface
 }
 
 fn dropdown_border(node: &TemplatePaneNodeData) -> [u8; 4] {
-    dropdown_style(node).border
+    dropdown_style(node, false).border
 }
 
 fn dropdown_chevron_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    dropdown_style(node).chevron
+    dropdown_style(node, false).chevron
 }
 
 fn dropdown_text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    dropdown_style(node).text
+    dropdown_style(node, false).text
 }
 
 fn dropdown_visual_state(node: &TemplatePaneNodeData) -> UiPainterResolvedState {
-    dropdown_style(node).state
+    dropdown_style(node, false).state
 }

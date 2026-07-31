@@ -1,8 +1,9 @@
 use crate::graphics::scene::scene_renderer::{
-    post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT, SCENE_COLOR_HDR_FORMAT,
+    SCENE_COLOR_HDR_FORMAT, post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
 };
 
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
+use super::super::super::shader_sources::POST_PROCESS_SHADER;
 use super::super::pipeline_bundle::PipelineBundle;
 use super::bloom_pipeline::bloom_pipeline;
 use super::blur_pipeline::blur_pipeline;
@@ -52,6 +53,18 @@ pub(crate) fn create_pipeline_bundle(
 ) -> PipelineBundle {
     let smaa_pipeline_bundle =
         smaa_pipeline_bundle(device, final_color_format, smaa_bind_group_layout);
+    let post_process_shader_source =
+        depth_sampling_mode.post_process_shader_source(POST_PROCESS_SHADER);
+    let post_process_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("zircon-post-process-shared-shader"),
+        source: wgpu::ShaderSource::Wgsl(post_process_shader_source),
+    });
+    let post_process_pipeline_layout =
+        device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("zircon-post-process-shared-pipeline-layout"),
+            bind_group_layouts: &[Some(post_process_bind_group_layout)],
+            immediate_size: 0,
+        });
     PipelineBundle {
         bloom_pipeline: bloom_pipeline(device, bloom_target_format(), bloom_bind_group_layout),
         cluster_pipeline: cluster_pipeline(device, cluster_bind_group_layout),
@@ -75,8 +88,8 @@ pub(crate) fn create_pipeline_bundle(
         depth_of_field_pipeline: depth_of_field_pipeline(
             device,
             POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
-            post_process_bind_group_layout,
-            depth_sampling_mode,
+            &post_process_pipeline_layout,
+            &post_process_shader,
         ),
         taa_resolve_pipeline: taa_resolve_pipeline(
             device,
@@ -99,50 +112,50 @@ pub(crate) fn create_pipeline_bundle(
         motion_blur_pipeline: motion_blur_pipeline(
             device,
             POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
-            post_process_bind_group_layout,
-            depth_sampling_mode,
+            &post_process_pipeline_layout,
+            &post_process_shader,
         ),
         blur_pipeline: blur_pipeline(
             device,
             POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
-            post_process_bind_group_layout,
-            depth_sampling_mode,
+            &post_process_pipeline_layout,
+            &post_process_shader,
         ),
         scene_composite_pipeline: scene_composite_pipeline(
             device,
             POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
-            post_process_bind_group_layout,
-            depth_sampling_mode,
+            &post_process_pipeline_layout,
+            &post_process_shader,
         ),
         screen_space_reflection_reflection_pyramid_pipeline:
             screen_space_reflection_reflection_pyramid_pipeline(
                 device,
-                post_process_bind_group_layout,
-                depth_sampling_mode,
+                &post_process_pipeline_layout,
+                &post_process_shader,
             ),
         screen_space_reflection_reflection_pyramid_coarse_pipeline:
             screen_space_reflection_reflection_pyramid_coarse_pipeline(
                 device,
-                post_process_bind_group_layout,
-                depth_sampling_mode,
+                &post_process_pipeline_layout,
+                &post_process_shader,
             ),
         screen_space_reflection_resolve_pipeline: screen_space_reflection_resolve_pipeline(
             device,
             SCENE_COLOR_HDR_FORMAT,
-            post_process_bind_group_layout,
-            depth_sampling_mode,
+            &post_process_pipeline_layout,
+            &post_process_shader,
         ),
         screen_space_reflection_specular_occlusion_pipeline:
             screen_space_reflection_specular_occlusion_pipeline(
                 device,
-                post_process_bind_group_layout,
-                depth_sampling_mode,
+                &post_process_pipeline_layout,
+                &post_process_shader,
             ),
         post_process_pipeline: post_process_pipeline(
             device,
             SCENE_COLOR_HDR_FORMAT,
-            post_process_bind_group_layout,
-            depth_sampling_mode,
+            &post_process_pipeline_layout,
+            &post_process_shader,
         ),
         upscale_pipeline: upscale_pipeline(device, upscale_bind_group_layout),
         output_transfer_pipeline: output_transfer_pipeline(
@@ -167,11 +180,47 @@ const fn bloom_target_format() -> wgpu::TextureFormat {
 
 #[cfg(test)]
 mod tests {
-    use super::{bloom_target_format, POST_PROCESS_INTERMEDIATE_HDR_FORMAT};
+    use super::{POST_PROCESS_INTERMEDIATE_HDR_FORMAT, bloom_target_format};
 
     #[test]
     fn bloom_pipeline_targets_intermediate_hdr_resource_format() {
         assert_eq!(bloom_target_format(), POST_PROCESS_INTERMEDIATE_HDR_FORMAT);
         assert_ne!(bloom_target_format(), wgpu::TextureFormat::Rgba8UnormSrgb);
+    }
+
+    #[test]
+    fn split_post_pipelines_share_one_shader_module() {
+        let build_source = include_str!("build.rs");
+        let split_pipeline_sources = [
+            include_str!("blur_pipeline.rs"),
+            include_str!("depth_of_field_pipeline.rs"),
+            include_str!("motion_blur_pipeline.rs"),
+            include_str!("post_process_pipeline.rs"),
+            include_str!("scene_composite_pipeline.rs"),
+            include_str!("screen_space_reflection_reflection_pyramid_pipeline.rs"),
+            include_str!("screen_space_reflection_reflection_pyramid_coarse_pipeline.rs"),
+            include_str!("screen_space_reflection_resolve_pipeline.rs"),
+            include_str!("screen_space_reflection_specular_occlusion_pipeline.rs"),
+        ];
+        let module_creation = ["device.create_shader_", "module"].concat();
+        let layout_creation = ["device.create_pipeline_", "layout"].concat();
+        let shared_module_binding =
+            ["let post_process_shader = device.create_shader_", "module"].concat();
+        let shared_layout_binding = [
+            "let post_process_pipeline_layout = device.create_pipeline_",
+            "layout",
+        ]
+        .concat();
+
+        assert!(build_source.contains(&shared_module_binding));
+        assert!(build_source.contains("&post_process_shader"));
+        assert!(build_source.contains(&shared_layout_binding));
+        assert!(build_source.contains("&post_process_pipeline_layout"));
+        for source in split_pipeline_sources {
+            assert!(source.contains("shader: &wgpu::ShaderModule"));
+            assert!(!source.contains(&module_creation));
+            assert!(source.contains("pipeline_layout: &wgpu::PipelineLayout"));
+            assert!(!source.contains(&layout_creation));
+        }
     }
 }

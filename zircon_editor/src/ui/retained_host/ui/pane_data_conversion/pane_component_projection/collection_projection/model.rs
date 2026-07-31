@@ -2,6 +2,7 @@ use crate::ui::retained_host as host_contract;
 
 pub(in super::super) struct ProjectedCollection {
     pub(in super::super) items: Vec<String>,
+    pub(in super::super) rows: Vec<host_contract::TemplatePaneCollectionRowData>,
     pub(in super::super) fields: Vec<host_contract::TemplatePaneCollectionFieldData>,
     pub(in super::super) virtualization_enabled: bool,
     pub(in super::super) virtualization_item_extent: f32,

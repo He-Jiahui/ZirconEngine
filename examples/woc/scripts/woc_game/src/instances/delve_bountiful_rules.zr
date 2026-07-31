@@ -1,0 +1,40 @@
+// Deterministic claimDelveRun Bountiful roll. It deliberately uses a local
+// stream derived from run.seed, so chest/shared-combat RNG order is unchanged.
+var rngModule = %import("kernel/rng");
+
+pub seedXor(required: bool): uint {
+    if (!required) { throw "woc Bountiful seed xor is required"; }
+    return <uint>1611514111;
+}
+
+pub bountifulChance(tierId: string, required: bool): float {
+    if (!required) { throw "woc Bountiful tier is required"; }
+    return tierId == "heroic" ? 0.05 : 0.02;
+}
+
+pub bountifulDraw(runSeed: uint, required: bool): float {
+    if (!required) { throw "woc Bountiful run seed is required"; }
+    var rng = new rngModule.Mulberry32(runSeed ^ seedXor(true));
+    return rng.next();
+}
+
+pub isBountiful(runSeed: uint, tierId: string, required: bool): bool {
+    return bountifulDraw(runSeed, required) < bountifulChance(tierId, true);
+}
+
+pub contractTest(): int {
+    // runSeed equal to seedXor produces local seed zero. Mulberry32 must take
+    // the same 0x9e3779b9 fallback as the source Rng before its first draw.
+    var zeroDerivedDraw = bountifulDraw(seedXor(true), true);
+    if (seedXor(true) != <uint>1611514111 || bountifulChance("normal", true) != 0.02 ||
+        bountifulChance("heroic", true) != 0.05 || !isBountiful(<uint>71, "normal", true) ||
+        isBountiful(<uint>2147483647, "normal", true) ||
+        !isBountiful(<uint>2147483647, "heroic", true) || isBountiful(<uint>0, "heroic", true)) {
+        return -1;
+    }
+    if (zeroDerivedDraw <= 0.35888 || zeroDerivedDraw >= 0.35890 ||
+        isBountiful(seedXor(true), "normal", true) || isBountiful(seedXor(true), "heroic", true)) {
+        return -2;
+    }
+    return 1;
+}

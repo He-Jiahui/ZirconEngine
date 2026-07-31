@@ -24,6 +24,10 @@ use super::dialog::{
     dialog_render_commands, dialog_suppresses_owner_image, dialog_suppresses_owner_surface,
     dialog_suppresses_owner_text,
 };
+use super::divider::{
+    divider_render_commands, divider_suppresses_owner_image, divider_suppresses_owner_surface,
+    divider_suppresses_owner_text,
+};
 use super::drag_overlay::{
     drag_overlay_render_commands, drag_overlay_suppresses_owner_image,
     drag_overlay_suppresses_owner_surface, drag_overlay_suppresses_owner_text,
@@ -40,12 +44,20 @@ use super::notification_center::{
 };
 use super::popup_menu::popup_menu_render_commands;
 use super::popup_options::popup_option_render_commands;
+use super::progress::{
+    progress_render_commands, progress_suppresses_owner_image, progress_suppresses_owner_surface,
+    progress_suppresses_owner_text,
+};
 use super::resolve::resolve_command_kind;
 use super::segmented_controls::{
     segmented_control_render_commands, segmented_control_suppresses_owner_text,
 };
 use super::selection_controls::{
     selection_control_render_commands, selection_control_suppresses_owner_text,
+};
+use super::skeleton::{
+    skeleton_render_commands, skeleton_suppresses_owner_image, skeleton_suppresses_owner_surface,
+    skeleton_suppresses_owner_text,
 };
 use super::sliders::{slider_render_commands, slider_suppresses_owner_text};
 use super::text_fields::{text_field_render_commands, text_field_suppresses_owner_text};
@@ -104,15 +116,15 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
             let Some(arranged_node) = arranged_tree.get(node_id) else {
                 return Vec::new();
             };
+            if !is_arranged_render_visible(arranged_tree, node_id).unwrap_or(false) {
+                return Vec::new();
+            }
             let component_state = component_states.and_then(|states| states.get(node_id));
             let visual = UiNodeVisualData::resolve(
                 node.template_metadata.as_ref(),
                 &node.state_flags,
                 component_state,
             );
-            if !is_arranged_render_visible(arranged_tree, node_id).unwrap_or(false) {
-                return Vec::new();
-            }
             let owner_text =
                 if selection_control_suppresses_owner_text(node.template_metadata.as_ref())
                     || slider_suppresses_owner_text(node.template_metadata.as_ref())
@@ -120,6 +132,9 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
                     || text_field_suppresses_owner_text(node.template_metadata.as_ref())
                     || button_suppresses_owner_text(node.template_metadata.as_ref())
                     || segmented_control_suppresses_owner_text(node.template_metadata.as_ref())
+                    || progress_suppresses_owner_text(node.template_metadata.as_ref())
+                    || divider_suppresses_owner_text(node.template_metadata.as_ref())
+                    || skeleton_suppresses_owner_text(node.template_metadata.as_ref())
                     || collection_row_suppresses_owner_text(node.template_metadata.as_ref())
                     || feedback_suppresses_owner_text(node.template_metadata.as_ref())
                     || dialog_suppresses_owner_text(node.template_metadata.as_ref())
@@ -134,6 +149,9 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
                 };
             let owner_image = if button_suppresses_owner_image(node.template_metadata.as_ref())
                 || collection_row_suppresses_owner_image(node.template_metadata.as_ref())
+                || progress_suppresses_owner_image(node.template_metadata.as_ref())
+                || divider_suppresses_owner_image(node.template_metadata.as_ref())
+                || skeleton_suppresses_owner_image(node.template_metadata.as_ref())
                 || feedback_suppresses_owner_image(node.template_metadata.as_ref())
                 || dialog_suppresses_owner_image(node.template_metadata.as_ref())
                 || command_palette_suppresses_owner_image(node.template_metadata.as_ref())
@@ -147,6 +165,9 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
             };
             let owner_style =
                 if collection_row_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || progress_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || divider_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || skeleton_suppresses_owner_surface(node.template_metadata.as_ref())
                     || feedback_suppresses_owner_surface(node.template_metadata.as_ref())
                     || dialog_suppresses_owner_surface(node.template_metadata.as_ref())
                     || command_palette_suppresses_owner_surface(node.template_metadata.as_ref())
@@ -265,6 +286,36 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
                 visual.opacity,
             ));
             commands.extend(feedback_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                &node.state_flags,
+                component_state,
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+            ));
+            commands.extend(progress_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                &node.state_flags,
+                component_state,
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+            ));
+            commands.extend(divider_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                &node.state_flags,
+                component_state,
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+            ));
+            commands.extend(skeleton_render_commands(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,

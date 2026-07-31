@@ -119,9 +119,9 @@ fn resource(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        ShaderDispatchExtent, ShaderResourceAccess, ShaderResourceKind,
         COMPUTE_SHADER_PARAMS_BINDING, FULLSCREEN_PASS_INPUT_GROUP,
-        FULLSCREEN_TRIANGLE_VERTEX_ENTRY,
+        FULLSCREEN_TRIANGLE_VERTEX_ENTRY, ShaderDispatchExtent, ShaderResourceAccess,
+        ShaderResourceKind,
     };
 
     use super::*;

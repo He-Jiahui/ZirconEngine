@@ -1,7 +1,7 @@
 use super::super::super::RetainedEditorHost;
 use crate::ui::retained_host::{
-    callback_dispatch, viewport_toolbar_pointer::build_viewport_toolbar_pointer_layout_with_size,
-    HostWindowPresentationData,
+    HostWindowPresentationData, callback_dispatch,
+    viewport_toolbar_pointer::build_viewport_toolbar_pointer_layout_with_size,
 };
 use zircon_runtime_interface::ui::{layout::UiPoint, layout::UiSize, surface::UiSurfaceFrame};
 

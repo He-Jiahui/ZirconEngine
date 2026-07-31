@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var auraState = %import("combat/aura_state");
+
+console.printLine("m4-aura-state-test");
+var result = auraState.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

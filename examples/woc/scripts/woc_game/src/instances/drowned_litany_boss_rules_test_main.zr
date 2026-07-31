@@ -1,0 +1,77 @@
+var rules = %import("instances/drowned_litany_boss_rules");
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+if (rules.cantorPhaseCount(true) != 2 || rules.cantorThreshold(0, true) != 0.7 ||
+    rules.cantorThreshold(1, true) != 0.35 ||
+    !rules.cantorPhaseDue(0, 700, 1000, true) ||
+    rules.cantorPhaseDue(0, 701, 1000, true) ||
+    !rules.cantorPhaseDue(0, 350, 1000, true) ||
+    !rules.cantorPhaseDue(1, 350, 1000, true) ||
+    rules.cantorPhaseDue(2, 1, 1000, true) ||
+    rules.cantorDrownedCount(true) != 2 ||
+    rules.livelyChoirExtraThrallCount(false, true) != 0 ||
+    rules.livelyChoirExtraThrallCount(true, true) != 2 ||
+    rules.cantorAddCount(false, true) != 2 || rules.cantorAddCount(true, true) != 4 ||
+    rules.shouldRemoveCantorShield(0, 0, true) ||
+    rules.shouldRemoveCantorShield(4, 1, true) ||
+    !rules.shouldRemoveCantorShield(4, 0, true)) {
+    return -1;
+}
+
+if (rules.blackwaterMarkCastInterval(true) != 14.0 || rules.blackwaterMarkRadius(true) != 4.0 ||
+    rules.blackwaterMarkDuration(true) != 8.0 || rules.blackwaterMarkTickInterval(true) != 1.0 ||
+    !rules.blackwaterMarkCastDue(0.05, 0.05, true) ||
+    rules.blackwaterMarkCastDue(0.10, 0.05, true) ||
+    rules.nextBlackwaterMarkCastTimer(0.10, 0.05, true) != 0.05 ||
+    rules.nextBlackwaterMarkCastTimer(0.05, 0.05, true) != 14.0 ||
+    !rules.blackwaterMarkSurvives(0.10, 0.05, true) ||
+    rules.blackwaterMarkSurvives(0.05, 0.05, true) ||
+    rules.nextBlackwaterMarkTickTimer(0.10, 0.05, true) != 0.05 ||
+    rules.nextBlackwaterMarkTickTimer(0.05, 0.05, true) != 1.0 ||
+    rules.blackwaterMarkDamage(1000, false, false, true) != 50 ||
+    rules.blackwaterMarkDamage(1000, true, false, true) != 80 ||
+    rules.blackwaterMarkDamage(1000, true, true, true) != 108) {
+    return -2;
+}
+
+if (!rules.finalBellDue(false, 100, 1000, true) || rules.finalBellDue(false, 101, 1000, true) ||
+    rules.finalBellDue(true, 1, 1000, true) || rules.finalBellThrallCount(false, true) != 4 ||
+    rules.finalBellThrallCount(true, true) != 6 || rules.finalBellDamage(1000, true) != 220 ||
+    rules.finalBellDamage(1, true) != 1 || rules.finalBellStunDuration(true) != 1.5) {
+    return -3;
+}
+
+if (rules.initialBellVolleyTimer(true) != 12.0 || rules.bellCount(true) != 4 ||
+    rules.tollingBellLifetime(true) != 12.0 || rules.tollingBellSpeed(true) != 8.0 ||
+    rules.tollingBellHitRadius(true) != 2.0 || rules.bellSpawnCoordinate(1, true) != 0.0 ||
+    rules.bellSpawnCoordinate(2, true) != 72.0 ||
+    !rules.bellVolleyDue(0.05, 0.05, true) || rules.bellVolleyDue(0.10, 0.05, true) ||
+    rules.nextBellVolleyTimer(0.0, true) != 10.0 ||
+    rules.nextBellVolleyTimer(0.5, true) != 11.0 ||
+    rules.bellMoveDistance(0.05, true) != 0.4 ||
+    rules.advanceBellCoordinate(1.0, -1.0, 0.05, true) != 0.6 ||
+    rules.bellOutsideApse(28.0, -19.0, true) || rules.bellOutsideApse(28.001, 0.0, true) ||
+    rules.bellOutsideApse(0.0, 95.001, true) || !rules.bellOutsideApse(0.0, -19.001, true) ||
+    !rules.bellHitsTarget(2.0, 0.0, true) || rules.bellHitsTarget(2.001, 0.0, true) ||
+    rules.tollingBellDamage(1000, true) != 120 || rules.tollingBellDamage(1, true) != 1 ||
+    rules.contractTest() != 1) {
+    return -4;
+}
+
+if (absolute(rules.bellVolleyRotationSpan(4, true) - 1.5707963267948966) > 0.000001 ||
+    rules.bellVolleyRotationOffset(0.0, 4, true) != 0.0 ||
+    absolute(rules.bellVolleyRotationOffset(0.5, 4, true) - 0.7853981633974483) > 0.000001 ||
+    absolute(rules.bellVelocityCoordinate(0.0, 4, 0, 1, true)) > 0.000001 ||
+    rules.bellVelocityCoordinate(0.0, 4, 0, 2, true) != -1.0 ||
+    absolute(rules.bellVelocityCoordinate(0.0, 4, 1, 1, true) - 1.0) > 0.000001 ||
+    absolute(rules.bellVelocityCoordinate(0.0, 4, 1, 2, true)) > 0.000001 ||
+    absolute(rules.bellVelocityCoordinate(0.5, 4, 0, 1, true) - 0.7071067811865475) > 0.000001 ||
+    absolute(rules.bellVelocityCoordinate(0.5, 4, 0, 2, true) + 0.7071067811865476) > 0.000001 ||
+    !rules.bellSurvives(0.10, 0.05, true) || rules.bellSurvives(0.05, 0.05, true)) {
+    return -5;
+}
+
+return 0;

@@ -1,6 +1,6 @@
 use zircon_runtime::ui::dispatch::UiPointerDispatcher;
 use zircon_runtime_interface::ui::{
-    dispatch::{UiPointerDispatchEffect, UiPointerEvent},
+    dispatch::{UiInputModifiers, UiPointerDispatchEffect, UiPointerEvent},
     surface::{UiPointerButton, UiPointerEventKind, UiPointerRoute},
 };
 
@@ -9,12 +9,13 @@ use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::super::constants::VIEWPORT_SURFACE_NODE_ID;
-use super::{dispatch_viewport_event, SharedViewportPointerBridge};
+use super::{SharedViewportPointerBridge, dispatch_viewport_event};
 
 pub(crate) fn dispatch_viewport_pointer_event(
     runtime: &EditorHostEventController,
     bridge: &mut SharedViewportPointerBridge,
     event: UiPointerEvent,
+    modifiers: UiInputModifiers,
 ) -> Result<UiHostEventEffects, String> {
     let dispatch = bridge
         .surface
@@ -27,7 +28,8 @@ pub(crate) fn dispatch_viewport_pointer_event(
         return Ok(UiHostEventEffects::default());
     }
 
-    let Some(viewport_event) = map_pointer_route_to_viewport_event(&dispatch.route) else {
+    let Some(viewport_event) = map_pointer_route_to_viewport_event(&dispatch.route, modifiers)
+    else {
         return Ok(UiHostEventEffects::default());
     };
 
@@ -64,12 +66,19 @@ pub(super) fn viewport_pointer_dispatcher() -> UiPointerDispatcher {
     dispatcher
 }
 
-fn map_pointer_route_to_viewport_event(route: &UiPointerRoute) -> Option<EditorViewportEvent> {
+fn map_pointer_route_to_viewport_event(
+    route: &UiPointerRoute,
+    modifiers: UiInputModifiers,
+) -> Option<EditorViewportEvent> {
     match route.kind {
         UiPointerEventKind::Down => match route.button? {
             UiPointerButton::Primary => Some(EditorViewportEvent::LeftPressed {
                 x: route.point.x,
                 y: route.point.y,
+                selection_mutation: crate::scene::selection::SelectionMutation::from_modifier_flags(
+                    modifiers.shift,
+                    modifiers.control,
+                ),
             }),
             UiPointerButton::Secondary => Some(EditorViewportEvent::RightPressed {
                 x: route.point.x,

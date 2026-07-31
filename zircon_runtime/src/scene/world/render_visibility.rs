@@ -17,12 +17,16 @@ pub(super) fn build_visibility_input(
         .map(|mesh| VisibilityRenderableInput {
             entity: mesh.node_id,
             mobility: mesh.mobility,
-            render_layer_mask: mesh.render_layer_mask.clone(),
+            render_layer_mask: mesh.common.layer_mask.clone(),
         })
         .chain(sprites.iter().map(|sprite| VisibilityRenderableInput {
             entity: sprite.entity,
-            mobility: Mobility::Dynamic,
-            render_layer_mask: sprite.render_layer_mask.clone(),
+            mobility: if sprite.common.is_static {
+                Mobility::Static
+            } else {
+                Mobility::Dynamic
+            },
+            render_layer_mask: sprite.common.layer_mask.clone(),
         }))
         .chain(particles.emitters.iter().map(|entity| {
             VisibilityRenderableInput {

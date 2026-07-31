@@ -1,0 +1,26 @@
+var effects = %import("world/player_motion_effects");
+
+// Source order keeps standing up and cast cancellation as distinct effects:
+// jump-only stands a sitting actor but does not itself interrupt a cast.
+if (!effects.standUpRequested(false, false, false, false, true, true, true) ||
+    !effects.standUpRequested(true, false, false, false, false, true, true) ||
+    effects.standUpRequested(false, false, false, false, false, true, true) ||
+    effects.standUpRequested(true, false, false, false, false, false, true)) {
+    return -1;
+}
+
+// A walking non-mobile cast breaks, while mobile casts survive ordinary
+// movement. Root prevents the ordinary movement cancellation. `slideActive`
+// is separate from cached steepness because the source samples them differently.
+if (!effects.cancelCastRequested(true, false, false, false, false, false, false, true, false, true) ||
+    effects.cancelCastRequested(true, false, false, false, false, false, false, true, true, true) ||
+    effects.cancelCastRequested(true, false, false, false, true, false, false, true, false, true) ||
+    effects.cancelCastRequested(false, false, false, false, true, true, false, true, true, true) ||
+    !effects.cancelCastRequested(false, false, false, false, true, true, true, true, true, true) ||
+    effects.cancelCastRequested(false, false, false, false, false, false, false, true, false, true) ||
+    effects.cancelCastRequested(false, false, false, false, false, false, false, false, false, true) ||
+    effects.contractTest() != 1) {
+    return -2;
+}
+
+return 0;

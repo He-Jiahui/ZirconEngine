@@ -8,7 +8,6 @@ pub mod audio;
 pub mod bridge;
 pub mod camera_controller;
 pub mod channel;
-pub mod error;
 pub mod events;
 pub mod foundation;
 pub mod gizmos;

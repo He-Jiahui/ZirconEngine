@@ -1,0 +1,119 @@
+// Source-order three-pass resolver over the generated non-procedural builtin
+// static world collider set. Procedural tree/rock colliders are intentionally
+// not admitted here yet, so this module is not movement-acceptance evidence.
+
+var collisionContent = %import("world/collision_content");
+var collisionGeometry = %import("world/collision_geometry");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub resolveBuiltinStaticCoordinate(
+    x: float,
+    z: float,
+    bodyRadius: float,
+    ignoreFences: bool,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc static collision arguments are invalid";
+    }
+    var positionX = x;
+    var positionZ = z;
+    var iteration = 0;
+    while (iteration < 3) {
+        var moved = false;
+        var index = 0;
+        while (index < collisionContent.colliderCount(true)) {
+            if (!(ignoreFences && collisionContent.colliderIsFence(index, true))) {
+                var kind = collisionContent.colliderKind(index, true);
+                var centerX = collisionContent.colliderFloat(index, 1, true);
+                var centerZ = collisionContent.colliderFloat(index, 2, true);
+                var resolvedX = positionX;
+                var resolvedZ = positionZ;
+                if (kind == 1) {
+                    var radius = collisionContent.colliderFloat(index, 3, true);
+                    resolvedX = collisionGeometry.circleResolvedX(
+                        positionX,
+                        positionZ,
+                        bodyRadius,
+                        centerX,
+                        centerZ,
+                        radius,
+                        true
+                    );
+                    resolvedZ = collisionGeometry.circleResolvedZ(
+                        positionX,
+                        positionZ,
+                        bodyRadius,
+                        centerX,
+                        centerZ,
+                        radius,
+                        true
+                    );
+                } else {
+                    resolvedX = collisionGeometry.obbResolvedX(
+                        positionX,
+                        positionZ,
+                        bodyRadius,
+                        centerX,
+                        centerZ,
+                        collisionContent.colliderFloat(index, 4, true),
+                        collisionContent.colliderFloat(index, 5, true),
+                        collisionContent.colliderFloat(index, 6, true),
+                        true
+                    );
+                    resolvedZ = collisionGeometry.obbResolvedZ(
+                        positionX,
+                        positionZ,
+                        bodyRadius,
+                        centerX,
+                        centerZ,
+                        collisionContent.colliderFloat(index, 4, true),
+                        collisionContent.colliderFloat(index, 5, true),
+                        collisionContent.colliderFloat(index, 6, true),
+                        true
+                    );
+                }
+                if (resolvedX != positionX || resolvedZ != positionZ) {
+                    moved = true;
+                    positionX = resolvedX;
+                    positionZ = resolvedZ;
+                }
+            }
+            index = index + 1;
+        }
+        if (!moved) {
+            iteration = 3;
+        } else {
+            iteration = iteration + 1;
+        }
+    }
+    return axis == 1 ? positionX : positionZ;
+}
+
+pub contractTest(): int {
+    if (!closeEnough(resolveBuiltinStaticCoordinate(10.0, 12.0, 0.5, false, 1, true), 8.637035801919723) ||
+        !closeEnough(resolveBuiltinStaticCoordinate(10.0, 12.0, 0.5, false, 2, true), 15.223713479010097) ||
+        resolveBuiltinStaticCoordinate(-16.0, -82.0, 0.5, false, 1, true) != -14.6 ||
+        resolveBuiltinStaticCoordinate(-16.0, -82.0, 0.5, false, 2, true) != -82.0) {
+        return -1;
+    }
+    if (!closeEnough(resolveBuiltinStaticCoordinate(19.0, 10.0, 0.5, false, 1, true), 19.76026311234993) ||
+        !closeEnough(resolveBuiltinStaticCoordinate(19.0, 10.0, 0.5, false, 2, true), 10.380131556174964) ||
+        resolveBuiltinStaticCoordinate(19.0, 10.0, 0.5, true, 1, true) != 19.0 ||
+        resolveBuiltinStaticCoordinate(19.0, 10.0, 0.5, true, 2, true) != 10.0) {
+        return -2;
+    }
+    if (resolveBuiltinStaticCoordinate(123.0, 456.0, 0.5, false, 1, true) != 123.0 ||
+        resolveBuiltinStaticCoordinate(123.0, 456.0, 0.5, false, 2, true) != 456.0) {
+        return -3;
+    }
+    return 1;
+}

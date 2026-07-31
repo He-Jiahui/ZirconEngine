@@ -1,0 +1,137 @@
+// Pure spell-combat aura reads. Fire Mage proc notification remains a WOS reducer call.
+var container = %import("zr.container");
+var contract = %import("generated/spell_combat_contract");
+
+pub class SpellCombatAura {
+    pub var kind: string;
+    pub var value: float;
+    pub @constructor(kind: string, value: float) {
+        this.kind = kind;
+        this.value = value;
+    }
+}
+
+pub spellCritBonusFromAuras(auras: container.Array<SpellCombatAura>): float {
+    var bonus = 0.0, i = 0;
+    while (i < auras.length) {
+        var aura = <SpellCombatAura>auras[i];
+        if (contract.isSpellCrit(aura.kind)) bonus = bonus + aura.value;
+        i = i + 1;
+    }
+    return bonus;
+}
+
+// The entity stat rebuild snapshots these shared sources. `buff_spellcrit`
+// deliberately stays outside this total because its spell-only contribution is
+// read live at the hit table.
+pub flatCritBonusFromAuras(auras: container.Array<SpellCombatAura>): float {
+    var bonus = 0.0, i = 0;
+    while (i < auras.length) {
+        var aura = <SpellCombatAura>auras[i];
+        if (aura.kind == "buff_crit" || aura.kind == "buff_reckless" || aura.kind == "bloodbath") {
+            bonus = bonus + aura.value;
+        }
+        i = i + 1;
+    }
+    return bonus;
+}
+
+pub critFractionFromRating(critRating: float): float {
+    return critRating / 1000.0;
+}
+
+pub sharedCritBonus(
+    critRating: float,
+    talentCrit: float,
+    setCrit: float,
+    aurasAtStatRebuild: container.Array<SpellCombatAura>
+): float {
+    return flatCritBonusFromAuras(aurasAtStatRebuild) + talentCrit + setCrit +
+        critFractionFromRating(critRating);
+}
+
+pub spellCritChance(
+    intellect: float,
+    sharedBonus: float,
+    liveAuras: container.Array<SpellCombatAura>
+): float {
+    return 0.05 + intellect * 0.0008 + sharedBonus + spellCritBonusFromAuras(liveAuras);
+}
+
+pub meleeCritChance(
+    agility: float,
+    sharedBonus: float,
+    aurasAtHit: container.Array<SpellCombatAura>
+): float {
+    var berserkerBonus = 0.0, i = 0;
+    while (i < aurasAtHit.length) {
+        if ((<SpellCombatAura>aurasAtHit[i]).kind == "berserker_stance") {
+            berserkerBonus = 0.03;
+        }
+        i = i + 1;
+    }
+    return 0.05 + agility * 0.0005 + sharedBonus + berserkerBonus;
+}
+
+pub spellDamageMultFromAuras(auras: container.Array<SpellCombatAura>): float {
+    var bonus = 0.0, i = 0;
+    while (i < auras.length) {
+        var aura = <SpellCombatAura>auras[i];
+        if (contract.isSpellDamage(aura.kind)) bonus = bonus + aura.value;
+        else if (contract.isMoonkin(aura.kind)) bonus = bonus + contract.moonkinSpellDamageBonus();
+        i = i + 1;
+    }
+    return 1.0 + bonus;
+}
+
+pub spellHasteMult(resolvedSpellHaste: float, auras: container.Array<SpellCombatAura>): float {
+    var bonus = resolvedSpellHaste, i = 0;
+    while (i < auras.length) {
+        var aura = <SpellCombatAura>auras[i];
+        if (contract.isSpellHaste(aura.kind)) bonus = bonus + aura.value;
+        i = i + 1;
+    }
+    return 1.0 + (bonus < 0.0 ? 0.0 : bonus);
+}
+
+pub hasCastShield(auras: container.Array<SpellCombatAura>): bool {
+    var i = 0;
+    while (i < auras.length) {
+        if (contract.isCastShield((<SpellCombatAura>auras[i]).kind)) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub contractTest(): int {
+    var auras = new container.Array<SpellCombatAura>();
+    auras.add(new SpellCombatAura("buff_spellcrit", 0.1));
+    auras.add(new SpellCombatAura("buff_spellcrit", 0.2));
+    auras.add(new SpellCombatAura("buff_spelldmg", 0.15));
+    auras.add(new SpellCombatAura("form_moonkin", 0.0));
+    auras.add(new SpellCombatAura("buff_spellhaste", 0.25));
+    auras.add(new SpellCombatAura("cast_shield", 0.0));
+    if (!closeEnough(spellCritBonusFromAuras(auras), 0.3)) return -1;
+    if (!closeEnough(spellDamageMultFromAuras(auras), 1.35)) return -2;
+    if (!closeEnough(spellHasteMult(0.1, auras), 1.35) || !closeEnough(spellHasteMult(-2.0, new container.Array<SpellCombatAura>()), 1.0)) return -3;
+    if (!hasCastShield(auras)) return -4;
+
+    var critAuras = new container.Array<SpellCombatAura>();
+    critAuras.add(new SpellCombatAura("buff_crit", 0.04));
+    critAuras.add(new SpellCombatAura("buff_reckless", 0.1));
+    critAuras.add(new SpellCombatAura("bloodbath", 0.2));
+    critAuras.add(new SpellCombatAura("buff_spellcrit", 0.03));
+    critAuras.add(new SpellCombatAura("berserker_stance", 0.0));
+    var shared = sharedCritBonus(20.0, 0.05, 0.01, critAuras);
+    if (!closeEnough(flatCritBonusFromAuras(critAuras), 0.34) || !closeEnough(shared, 0.42)) return -5;
+    if (!closeEnough(spellCritChance(100.0, shared, critAuras), 0.58)) return -6;
+    if (!closeEnough(meleeCritChance(40.0, shared, critAuras), 0.52)) return -7;
+    if (!closeEnough(spellCritChance(100.0, shared, new container.Array<SpellCombatAura>()), 0.55)) return -8;
+    return 1;
+}
+
+pub closeEnough(actual: float, expected: float): bool {
+    var delta = actual - expected;
+    if (delta < 0.0) delta = -delta;
+    return delta <= 0.000001;
+}

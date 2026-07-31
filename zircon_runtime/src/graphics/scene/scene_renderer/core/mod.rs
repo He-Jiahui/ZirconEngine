@@ -20,7 +20,11 @@ mod scene_renderer_surface;
 mod scene_renderer_target;
 mod target_extent;
 
-pub use scene_renderer::SceneRenderer;
+pub use scene_renderer::{
+    SceneRenderer, SceneRendererCoreStartupReport, SceneRendererDeferredLightingProfile,
+    SceneRendererFrameTimingReport, SceneRendererStartupOptions, SceneRendererStartupReport,
+};
+pub use scene_renderer_surface::SceneViewportSurface;
 
 pub(crate) use constants::{DEPTH_FORMAT, FINAL_COLOR_FORMAT, SCENE_COLOR_HDR_FORMAT};
 pub(crate) use create_depth_texture::create_depth_texture;

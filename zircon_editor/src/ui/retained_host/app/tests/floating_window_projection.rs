@@ -24,8 +24,8 @@ fn floating_window_drag_surface_drops_geometry_outer_frame_fallback() {
 }
 
 #[test]
-fn child_window_hierarchy_pointer_move_prefers_projected_floating_window_content_frame_over_outer_window_frame(
-) {
+fn child_window_hierarchy_pointer_move_prefers_projected_floating_window_content_frame_over_outer_window_frame()
+ {
     let _guard = lock_env();
 
     let harness =
@@ -77,8 +77,8 @@ fn child_window_hierarchy_pointer_move_prefers_projected_floating_window_content
 }
 
 #[test]
-fn child_window_hierarchy_pointer_falls_back_to_native_window_bounds_when_projection_bundle_is_missing(
-) {
+fn child_window_hierarchy_pointer_falls_back_to_native_window_bounds_when_projection_bundle_is_missing()
+ {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new(

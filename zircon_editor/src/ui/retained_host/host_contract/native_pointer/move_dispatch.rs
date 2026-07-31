@@ -1,6 +1,7 @@
 mod clear;
 mod entry;
 mod menu;
+mod page_overflow;
 mod pane;
 mod workbench;
 

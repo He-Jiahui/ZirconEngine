@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::PathBuf,
+};
 
 use toml::Value;
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
@@ -268,12 +271,11 @@ fn import_graph(
 
 fn imports_material_theme(relative: &str, graph: &BTreeMap<String, Vec<String>>) -> bool {
     let mut pending = vec![relative.to_string()];
-    let mut visited = Vec::new();
+    let mut visited = BTreeSet::new();
     while let Some(current) = pending.pop() {
-        if visited.contains(&current) {
+        if !visited.insert(current.clone()) {
             continue;
         }
-        visited.push(current.clone());
         for import in graph.get(&current).into_iter().flatten() {
             if import == MATERIAL_THEME_ZUI {
                 return true;

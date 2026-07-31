@@ -1,0 +1,6 @@
+var console = %import("zr.system.console");
+var leap = %import("combat/heroic_leap_state");
+console.printLine("m4-heroic-leap-state-test");
+var result = leap.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

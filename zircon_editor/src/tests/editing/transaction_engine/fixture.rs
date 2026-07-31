@@ -34,17 +34,11 @@ impl EditContext for FixtureContext {
     }
 
     fn selection_snapshot(&self) -> SelectionSnapshot {
-        SelectionSnapshot::from_json(serde_json::json!(self.selection))
+        SelectionSnapshot::fixture_value(self.selection, self.selection)
     }
 
     fn restore_selection(&mut self, snapshot: &SelectionSnapshot) -> Result<(), EditCommandError> {
-        let selection =
-            snapshot
-                .as_json()
-                .as_u64()
-                .ok_or(EditCommandError::InvariantViolation {
-                    invariant: "fixture selection snapshots contain an unsigned integer",
-                })?;
+        let selection = snapshot.fixture_value_ref()?;
         if self.fail_selection_restore == Some(selection) {
             return Err(EditCommandError::InvariantViolation {
                 invariant: "fixture selection restore failure",

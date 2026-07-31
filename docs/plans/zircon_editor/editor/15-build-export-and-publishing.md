@@ -171,6 +171,14 @@ zircon_runtime/src/asset/pack/          # 既有模块扩：zrpack 写入器（�
 
 当前状态：M1 正在执行。M1.1 shared export DTO、core pipeline、八阶段 interface hard-cut 与 focused tests 已完成；M1.2 preset/生产向导/core stage executor 已完成实现、整改并获得 `SPEC APPROVED` 与 `QUALITY APPROVED`。Editor15 自有 current-binary focused 矩阵 36/36，Windows 平台策略当前二进制 1/1，Layout15 已回传 `paint_template_nodes` 696/696 与 `ui::layouts` 76/76；Render11 E0425/E0716 编译阻断也已修复并回传 fixed。当前源码 full gate 的最低执行阻塞已继续下沉为 Runtime02 service registry 与 `EditorUiHost.core` 的强 `CoreHandle` 自拥有环；Runtime11 的 task-pool/asset-worker 双预算改为该生命周期修复后的独立复测项。UI03/UI06/UI08 的既有产品失败仍由各自功能计划处理。M1 未取得全量自然 summary，因此不关闭；M2 与 M3 未开始。
 
+2026-07-19 性能 failure 子修复：`ExportGenerationInventory` 已升级为 generation + persistent file/directory/tool identity 唯一 owner，并完成流式完整日志/有界 tail、wizard typed delta/backpressure、native staging delta、Build/Export pane source/overlay cache 与 structured report parse-once。静态合同 9/9、snapshot 556、精确 rustfmt 40/40 通过。首次受管 Rust gate 因外部 Runtime 源竞态及 Editor05/Layout15 编译漂移 exit 101/tests 0；其中 Editor15 自有 E0509 和 overlay 可见性已修复，原 performance failure 继续 open，待外部 fixed-return 后运行 fresh focused/p95/review/managed commit。详见 [子计划记录](15/2026-07-18-export-generation-inventory.md) 与 [open failure](15/failure-2026-07-17-export-overlapping-recursive-digests.md)。
+
+- open / Coordinator01 待修复：failure-priority burst-eligible consume 在 concurrent warm job 下泄漏 SQLite UNIQUE internal error，详见 [burst-eligible-consume-warm-lane-unique-constraint](../../zircon_tooling/session_coordinator/01/failure-2026-07-18-burst-eligible-consume-warm-lane-unique-constraint.md)。
+
+- open / Editor05 待修复：shared viewport extract 的 `Arc<[T]>` consumer 仍按旧容器引用迭代，详见 [viewport-shared-extract-arc-slice-iteration-compile-regression](05/failure-2026-07-19-viewport-shared-extract-arc-slice-iteration-compile-regression.md)。
+
+- open / Layout15 待修复：native keyboard window target 的窄导出、producer 字段与 move 顺序未原子迁移，详见 [native-keyboard-window-contract-compile-regression](../editor_layout/15/failure-2026-07-19-native-keyboard-window-contract-compile-regression.md)。
+
 fixed 已修复：[export-build-string-error-boundary](14/fixed-2026-07-12-export-build-string-error-boundary.md)
 
 本次 owner 产出记录：[2026-07-12-typed-export-error-hard-cutover.md](15/2026-07-12-typed-export-error-hard-cutover.md)
@@ -202,3 +210,16 @@ fixed 已修复：[navigation-query-filter-serde-array](15/fixed-2026-07-12-navi
 fixed 已修复：[rich-table-layout-provider-visibility](15/fixed-2026-07-12-rich-table-layout-provider-visibility.md)
 
 fixed 已修复：[subsurface-profile-mask-test-inference](15/fixed-2026-07-13-subsurface-profile-mask-test-inference.md)
+
+- 2026-07-22 export pack性能交接：`src/bin`逐文件审查确认当前writer前串行读取全部asset bytes并复制完整input，determinism和delta又复制/重建整包；本轮仅把included path从O(A²)线性find改为first-wins HashMap。Editor15联动Runtime04/11以content-addressed staged chunks、streaming pack/delta writer、有界I/O和hash-based determinism/resume收口PERF-MVP-449；见`15/failure-2026-07-22-export-pack-byte-clone-pipeline.md`。
+- 2026-07-22 artifact inventory复用交接：Editor15的export/prewarm/pack按PERF-MVP-506直接消费Runtime04 content-addressed manifest/chunks，不得重读、解压并复制完整`.zasset`/IBL payload建立第二套inventory。unchanged export payload read/decode/hash=0，delta只流式读取changed chunks；determinism digest、resume与atomic publish继续归PERF-MVP-449。
+- 2026-07-22 zrpack底层补证：`asset/pack` 17/17确认writer/delta/install/promotion仍整包多owner；PERF-MVP-513已完成sorted binary lookup、borrowed unique-chunk validation与target/path clone止损。Editor15按449 failure验收reader manifest-first/stream chunks、delta直接重用unchanged chunk和rename成功零整包promotion read，不能以后台线程保留全Vec实现。
+- 2026-07-22 export-build-plan性能交接：`plugin/export_build_plan` 40/40生产文件已静态读完，PERF-MVP-546..548完成cached catalog/manifest复用、package inventory早停、ZIP单scan、borrowed export index与template rescan止损。Editor15的八阶段pipeline必须消费Plugins09同一`CompiledProjectPluginPlan`和package/file fingerprint generation，不得在Validate/NativeDynamic/PlatformBundle/Report各重建inventory；unchanged阶段`Skipped(fingerprint)`的实际read/write/copy应为0，I/O归Runtime11有界lane。对应Plugins09 PF-M1/PF-M2、PERF-MVP-051/054/055和现有generation inventory failure保持open。
+- 2026-07-22 core export复核：inventory cache miss已从whole-file `fs::read`改为64KiB streaming
+  BLAKE3，pipeline prepare/execute failure直接move authoritative partial report；Editor15静态合同9/9通过。
+  stable prepare仍递归walk/canonicalize/stat，inventory Drop仍clone全cache、pretty JSON、write+fsync；继续归
+  PERF-MVP-071与现有generation inventory failure，cache persistence必须迁Runtime11显式有界job，Drop I/O=0。
+- 2026-07-22 export output增量复核：PERF-MVP-558已用suffix scan cursor删除1-byte chunk下16KiB partial line近O(line²)重扫，Editor15静态合同10/10。剩余512行tail满后每行Vec搬移、line向tail/event双owner以及stdout/stderr/manifest顺序fsync已登记[open failure](15/failure-2026-07-22-export-output-tail-durability-backpressure.md)；必须用O(1) ring/shared line与Runtime11有界持久化ticket收敛。
+- 2026-07-22 Build/Export pane cache补充：PERF-MVP-107已有source/overlay cache且stable hit不再read_dir，但仍逐preset stat identity并clone完整base/pane DTO。Editor15改用source generation/delta与Arc snapshot；unchanged visible pane metadata calls/clone bytes=0，不能以“无read_dir”冒充idle O(1)。
+- 2026-07-23 interface export合同补充：`zircon_runtime_interface/src/export/**` 6/6确认stage universe固定8项、report只持artifact key/locator/digest而不持正文，这是必须保持的有界正向基线。Editor15在既有generation inventory/fingerprint resume门禁补report diagnostic/string/total bytes硬限及1/8-stage计数；unchanged `Skipped(fingerprint)`实际artifact read/write/copy=0，不得把PERF-MVP-055/449的generated contents或pack bytes吸入report DTO。preset双parse由Editor11/PERF-MVP-570处理。
+- 2026-07-30 current-source性能复核：`zircon_editor/src/core/export/**` 9/9（3,061行、24 tests，指纹`361a4a15d3a4254ddbe2c7f5518320d5242091791bbf6843641ed1cc519ac4c0`）已逐文件读完，证据见`../../performance/01/2026-07-30-editor-core-export-current-review.md`。共享Export job已隔离UI，generation内重叠digest/强identity/64KiB hash成立；Editor15仍须按PERF-MVP-071收敛stable全树walk、逐generation tool probe、fingerprint cancellation和Drop durable I/O。Build/Export pane稳定metadata归107，向导output tail/backpressure归558，不建立第二套cache、线程池或重复任务。current-source rustfmt/diff gate通过；Cargo、1/1K/100K cold/warm/1% counter及F4未验收，保持M1 `in_progress`。

@@ -1,0 +1,102 @@
+// Current-head professions/battlefield_xp.ts projection. Item-definition and
+// recipe catalog lookup remain at the WOS content boundary; this reducer gets
+// the resolved facts and composes the existing crafting skill transaction.
+var crafting = %import("progression/crafting_transaction");
+var contract = %import("generated/battlefield_xp_contract");
+
+pub class BattlefieldXpObservation {
+    pub var itemId: string;
+    // This carries the source optional instance boundary. A static rare item
+    // still fails without an instance after the source's rarity-first gate.
+    pub var hasInstance: bool;
+    pub var signer: string;
+    pub var rolledQuality: string;
+    pub var staticQuality: string;
+    pub var observerName: string;
+    pub var recipeProfession: string;
+    pub var observerActiveArchetype: string;
+    pub var observerPairedMajor: string;
+
+    pub @constructor() {
+        this.itemId = "";
+        this.hasInstance = false;
+        this.signer = "";
+        this.rolledQuality = "";
+        this.staticQuality = "";
+        this.observerName = "";
+        this.recipeProfession = "";
+        this.observerActiveArchetype = "";
+        this.observerPairedMajor = "";
+    }
+}
+
+// Applies the self-observation-only path. The caller resolves the target's
+// ITEMS and recipeForResultItem lookups into staticQuality and recipeProfession.
+pub battlefieldExperienceTrickle(
+    state: crafting.CraftingTransactionState,
+    observation: BattlefieldXpObservation
+): float {
+    var rarity = observation.rolledQuality == ""
+        ? observation.staticQuality : observation.rolledQuality;
+    if (!contract.isSignableMaterialRarity(rarity)) return 0.0;
+    if (!observation.hasInstance || observation.signer == "" ||
+        observation.signer != observation.observerName) return 0.0;
+    if (observation.recipeProfession == "") return 0.0;
+    var isActiveSpecialty = observation.recipeProfession == observation.observerActiveArchetype ||
+        observation.recipeProfession == observation.observerPairedMajor;
+    if (!isActiveSpecialty) return 0.0;
+    var amount = contract.battlefieldXpTrickle();
+    crafting.setCraftSkill(
+        state,
+        observation.recipeProfession,
+        crafting.craftSkillFor(state, observation.recipeProfession) + amount
+    );
+    return amount;
+}
+
+near(left: float, right: float): bool {
+    var difference = left - right;
+    if (difference < 0.0) difference = 0.0 - difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var state = new crafting.CraftingTransactionState();
+    crafting.setCraftSkill(state, "alchemy", 10.0);
+    var observation = new BattlefieldXpObservation();
+    observation.itemId = "rare_potion";
+    observation.hasInstance = true;
+    observation.signer = "Ada";
+    observation.rolledQuality = "common";
+    observation.staticQuality = "rare";
+    observation.observerName = "Ada";
+    observation.recipeProfession = "alchemy";
+    observation.observerActiveArchetype = "alchemy";
+
+    // Legacy rolled quality wins over a rare static item and rejects before
+    // attribution, just like the source's nullish fallback.
+    if (battlefieldExperienceTrickle(state, observation) != 0.0 ||
+        !near(crafting.craftSkillFor(state, "alchemy"), 10.0)) return -1;
+    observation.rolledQuality = "";
+    if (!near(battlefieldExperienceTrickle(state, observation), 0.25) ||
+        !near(crafting.craftSkillFor(state, "alchemy"), 10.25)) return -2;
+    observation.signer = "Bryn";
+    if (battlefieldExperienceTrickle(state, observation) != 0.0 ||
+        !near(crafting.craftSkillFor(state, "alchemy"), 10.25)) return -3;
+    observation.signer = "Ada";
+    observation.hasInstance = false;
+    if (battlefieldExperienceTrickle(state, observation) != 0.0 ||
+        !near(crafting.craftSkillFor(state, "alchemy"), 10.25)) return -4;
+    observation.hasInstance = true;
+    observation.recipeProfession = "";
+    if (battlefieldExperienceTrickle(state, observation) != 0.0 ||
+        !near(crafting.craftSkillFor(state, "alchemy"), 10.25)) return -5;
+    observation.recipeProfession = "alchemy";
+    observation.observerActiveArchetype = "tailoring";
+    if (battlefieldExperienceTrickle(state, observation) != 0.0 ||
+        !near(crafting.craftSkillFor(state, "alchemy"), 10.25)) return -6;
+    observation.observerPairedMajor = "alchemy";
+    if (!near(battlefieldExperienceTrickle(state, observation), 0.25) ||
+        !near(crafting.craftSkillFor(state, "alchemy"), 10.5)) return -7;
+    return 1;
+}

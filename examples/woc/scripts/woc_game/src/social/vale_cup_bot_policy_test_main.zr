@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var policy = %import("social/vale_cup_bot_policy");
+
+console.printLine("m6-vale-cup-bot-policy-test");
+var result = policy.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

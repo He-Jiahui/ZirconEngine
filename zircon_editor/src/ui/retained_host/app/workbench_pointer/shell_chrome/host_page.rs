@@ -1,7 +1,7 @@
-use super::super::super::{callback_dispatch, RetainedEditorHost};
+use super::super::super::{RetainedEditorHost, callback_dispatch};
 use crate::ui::retained_host::{
-    host_page_pointer::HOST_PAGE_OVERFLOW_POINTER_INDEX, HostPageOverflowMenuStateData,
-    UiHostContext,
+    HostPageOverflowMenuStateData, UiHostContext,
+    host_page_pointer::HOST_PAGE_OVERFLOW_POINTER_INDEX,
 };
 use zircon_runtime_interface::ui::layout::UiPoint;
 
@@ -72,6 +72,7 @@ impl RetainedEditorHost {
             .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData {
                 open,
                 hovered_page_index: -1,
+                scroll_offset: 0.0,
             });
     }
 }

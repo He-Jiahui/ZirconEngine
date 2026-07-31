@@ -23,8 +23,8 @@ impl EditorUiHost {
     }
 
     pub fn update_recent_project(&self, path: impl AsRef<Path>) -> Result<(), EditorError> {
-        let opened = ProjectAuthority::default().open_project(path)?;
-        self.remember_opened_project(&opened.root, opened.summary)
+        let opened = ProjectAuthority::default().probe_project(path)?;
+        self.remember_opened_project(opened.root(), opened.summary().clone())
     }
 
     pub(super) fn remember_opened_project(

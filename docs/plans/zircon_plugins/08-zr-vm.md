@@ -181,6 +181,7 @@ zircon_plugins/zr_vm_language/runtime/src/
 - fixed 已修复：[dynamic-reflection-json-projection-regression](../zircon_editor/editor/02/fixed-2026-07-14-dynamic-reflection-json-projection-regression.md)
 - fixed 已修复：[vm-dynamic-property-write-structure-regression](../zircon_editor/editor/02/fixed-2026-07-14-vm-dynamic-property-write-structure-regression.md)
 - 2026-07-14 回传后 owner 清单复验：插件受管测试 18/18；Runtime core-min lib-test 早期 scene filter 为 595/596，独立复核确认唯一 `JsonNumber` 失败属于本 M1 的 legacy descriptor 回归而非其他 owner。最终 VM owner 标记与声明类型双向转换修复后，受管旧 ECS 路径为 14/14、反射目录为 16/16；Runtime04 migration-journal 精确回归 1/1。Runtime13/Runtime06 定向结构审计分别为 18/14 sources，均 `missing_source_files = []`、`risks = []`。
+- 2026-07-22 performance follow-up：Runtime `script/**` 96/96静态审查确认M2/M3现有功能契约仍缺steady-state artifact与真实预算闭环。PERF-MVP-444要求load/reload时发布active callback/system/package索引，445要求host实测GC deadline、next-due结构与memory policy执行，446要求prepared reflection artifact只验证一次并缓存revision snapshot，447要求bounded worker discovery与lazy bytecode。当前已直接删除callback wide slot record clone、owned systems二次clone及GC pending FIFO线性membership；其余见`08/failure-2026-07-22-runtime-script-vm-hotpath.md`，不得以既有M2/M3“完成”状态代替性能验收。
 
 ## 6. 验收命令
 
@@ -195,6 +196,7 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_lang
 - derive 宏是跨插件收益最大的单项投资，也是 10-E1（反射默认 drawer）与 07-M4（replication schema）的硬前置；M1-T1 排最高优先。
 - VM 系统 dynamic access 使调度器对其保守串行；文档明确 VM 系统性能定位（gameplay 逻辑而非引擎 hot path）。
 - real-zr-vm 的 CI 依赖外部构建产物：CI 用预编译缓存或专用 runner，default 构建绝不依赖。
+- 2026-07-22 World dynamic component性能同步：retained payload的registrations×entities扫描已改为单遍type index；prepare/sync仍复制registry并全payload验证，单字段VM JSON写仍clone整component且O(F²) schema probes。Plugins08与Runtime13按PERF-MVP-446/443发布prepared immutable registry generation、World type delta和dense field validator，stable field access禁止整JSON clone；局部止损见PERF-MVP-461及performance dynamic-components证据。
 - proc-macro crate 进根工作区会增加全量构建时间；保持宏实现最小化（syn features 收紧）。
 
 ## 8. 附录 · dev 参考源码对位

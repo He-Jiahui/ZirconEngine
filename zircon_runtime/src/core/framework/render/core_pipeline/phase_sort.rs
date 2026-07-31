@@ -131,7 +131,7 @@ fn default_queue_for_phase(phase: RenderPhase) -> RenderQueueValue {
 
 #[cfg(test)]
 mod tests {
-    use super::{packed_sort_key_u64, RenderPhaseSortComponents};
+    use super::{RenderPhaseSortComponents, packed_sort_key_u64};
     use crate::core::framework::render::{RenderPhase, RenderQueueValue};
 
     #[test]

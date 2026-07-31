@@ -8,6 +8,7 @@ use super::super::options::{option_is_selected, selected_segment_value};
 use super::super::style::segmented_control_style;
 use super::divider::push_segment_divider;
 use super::selected::push_selected_segment;
+use crate::ui::retained_host::primitives::SharedString;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_segmented_control(
     commands: &mut Vec<HostPaintCommand>,
@@ -16,7 +17,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     clip: &FrameRect,
     order: i32,
     opacity: f32,
-    options: &[String],
+    options: &[SharedString],
 ) {
     push_segmented_group_label(commands, node, rect, clip, order + 3, opacity);
     let body_rect = segmented_body_rect(node, rect);
@@ -38,7 +39,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
         if index > 0 {
             push_segment_divider(commands, &segment, clip, order + 1, opacity);
         }
-        let is_selected = option_is_selected(option, selected.as_deref());
+        let is_selected = option_is_selected(option.as_str(), selected);
         if is_selected {
             push_selected_segment(commands, node, &segment, clip, order + 2, opacity);
         }

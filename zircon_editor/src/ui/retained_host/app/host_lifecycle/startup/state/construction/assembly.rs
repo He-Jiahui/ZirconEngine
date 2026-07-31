@@ -37,11 +37,12 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
     let editor_jobs = editor_manager.context().jobs().clone();
     viewport.bind_jobs(editor_jobs.clone());
 
-    RetainedEditorHost {
+    let mut host = RetainedEditorHost {
         ui,
         self_handle: None,
         runtime,
         editor_manager,
+        module_plugin_projection_cache: Default::default(),
         #[cfg(feature = "profiling")]
         runtime_gateway,
         module_plugin_live_host_backend: Box::new(native_plugin_live_host),
@@ -58,10 +59,14 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         asset_change_events,
         editor_asset_change_events,
         resource_change_events,
+        asset_refresh_queue_age: Default::default(),
         startup_session,
+        welcome_project_probe: welcome_session::WelcomeProjectProbeState::default(),
         viewport_size,
         viewport_pointer_bridge: interaction.viewport_pointer_bridge,
         builtin_template_runtime: template_bridges.builtin_template_runtime,
+        plugin_template_generation: 0,
+        plugin_template_capabilities: Vec::new(),
         template_bridge: template_bridges.template_bridge,
         workbench_window_bridge: template_bridges.workbench_window_bridge,
         floating_window_source_bridge: template_bridges.floating_window_source_bridge,
@@ -88,6 +93,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         hierarchy_pointer_state: interaction.hierarchy_pointer_state,
         hierarchy_pointer_size: interaction.hierarchy_pointer_size,
         hierarchy_scene_entries: interaction.hierarchy_scene_entries,
+        hierarchy_filter_query: String::new(),
         console_scroll_surface: interaction.console_scroll_surface,
         inspector_scroll_surface: interaction.inspector_scroll_surface,
         browser_asset_details_scroll_surface: interaction.browser_asset_details_scroll_surface,
@@ -95,6 +101,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         browser_asset_pointer: interaction.browser_asset_pointer,
         active_asset_drag_payload: None,
         active_scene_drag_payload: None,
+        active_hierarchy_drag_node_ids: Vec::new(),
+        last_hierarchy_rename_click: None,
         active_object_drag_payload: None,
         native_window_presenters: NativeWindowPresenterStore::default(),
         floating_window_projection_bundle: FloatingWindowProjectionBundle::default(),
@@ -114,5 +122,9 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         layout_dirty: true,
         window_metrics_dirty: true,
         render_dirty: true,
+    };
+    if host.startup_session.mode == EditorSessionMode::Welcome {
+        host.schedule_welcome_project_probe();
     }
+    host
 }

@@ -39,6 +39,7 @@ fn export_plan_rejects_malformed_native_dynamic_project_plugin_id_before_package
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 
@@ -85,9 +86,9 @@ fn native_dynamic_generates_loader_manifest_without_source_template() {
     );
     assert!(native_manifest.contains("host_function_table = \"NativePluginHostFunctionTableV3\""));
     assert!(native_manifest.contains("entry_report_contract = \"NativePluginEntryReportV3\""));
-    assert!(native_manifest.contains("behavior_contract = \"NativePluginBehaviorV3\""));
+    assert!(native_manifest.contains("behavior_contract = \"NativePluginBehaviorV4\""));
     assert!(native_manifest
-        .contains("state_snapshot_contract = \"NativePluginBehaviorV3.save_state/restore_state\""));
+        .contains("state_snapshot_contract = \"NativePluginBehaviorV4.save_state/restore_state\""));
     assert!(native_manifest.contains("bridge_method_table = \"NativePluginBridgeMethodTableV3\""));
     assert_eq!(plan.native_dynamic_package_exports.len(), 1);
     assert_eq!(plan.native_dynamic_package_exports[0].package_id, "sound");
@@ -194,10 +195,10 @@ fn loader_manifest_deserializes_abi_v3_contract_fields() {
     );
     assert_eq!(abi.host_function_table, "NativePluginHostFunctionTableV3");
     assert_eq!(abi.entry_report_contract, "NativePluginEntryReportV3");
-    assert_eq!(abi.behavior_contract, "NativePluginBehaviorV3");
+    assert_eq!(abi.behavior_contract, "NativePluginBehaviorV4");
     assert_eq!(
         abi.state_snapshot_contract,
-        "NativePluginBehaviorV3.save_state/restore_state"
+        "NativePluginBehaviorV4.save_state/restore_state"
     );
     assert_eq!(abi.bridge_method_table, "NativePluginBridgeMethodTableV3");
 }
@@ -540,8 +541,8 @@ fn native_dynamic_plan() -> ExportBuildPlan {
         "client",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Minimal,
     )
-    .with_runtime_profile_id(RuntimeProfileId::Minimal)
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
     ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap()
 }

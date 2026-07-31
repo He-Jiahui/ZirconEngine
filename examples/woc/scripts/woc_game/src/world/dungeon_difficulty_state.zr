@@ -1,0 +1,100 @@
+// Source-compatible projection of src/sim/sim.ts setDungeonDifficulty and
+// dungeonDifficultyForPid. A normal selection is represented by an unset
+// heroic flag, matching the target's omitted `dungeonDifficulty` fields.
+
+var NORMAL: uint = <uint>0;
+var HEROIC: uint = <uint>1;
+var APPLIED: int = 0;
+var INVALID_DIFFICULTY: int = 1;
+var NOT_PARTY_LEADER: int = 2;
+
+pub class DungeonDifficultyState {
+    // `false` means the source property is absent and therefore normal.
+    pub var personalHeroic: bool;
+    pub var partyActive: bool;
+    pub var partyHeroic: bool;
+
+    pub @constructor() {
+        this.personalHeroic = false;
+        this.partyActive = false;
+        this.partyHeroic = false;
+    }
+}
+
+pub isDifficulty(value: uint): bool {
+    return value == NORMAL || value == HEROIC;
+}
+
+// A party member resolves through the party selection. A solo player resolves
+// through its own optional preference. This deliberately does not mirror a
+// party selection into every member's personal state.
+pub effectiveDifficulty(state: DungeonDifficultyState): uint {
+    if (state.partyActive) {
+        return state.partyHeroic ? HEROIC : NORMAL;
+    }
+    return state.personalHeroic ? HEROIC : NORMAL;
+}
+
+// `normal` clears the optional target fields. Only a party leader may modify
+// an active party's selection; a rejected request leaves both fields unchanged.
+pub setDifficulty(
+    state: DungeonDifficultyState,
+    requested: uint,
+    isPartyLeader: bool
+): int {
+    if (!isDifficulty(requested)) {
+        return INVALID_DIFFICULTY;
+    }
+    if (state.partyActive && !isPartyLeader) {
+        return NOT_PARTY_LEADER;
+    }
+    var heroic = requested == HEROIC;
+    state.personalHeroic = heroic;
+    if (state.partyActive) {
+        state.partyHeroic = heroic;
+    }
+    return APPLIED;
+}
+
+pub contractTest(): int {
+    var solo = new DungeonDifficultyState();
+    if (effectiveDifficulty(solo) != NORMAL ||
+        setDifficulty(solo, HEROIC, true) != APPLIED ||
+        !solo.personalHeroic || effectiveDifficulty(solo) != HEROIC) {
+        return -1;
+    }
+    if (setDifficulty(solo, <uint>2, true) != INVALID_DIFFICULTY ||
+        effectiveDifficulty(solo) != HEROIC) {
+        return -2;
+    }
+
+    // A party setting overrides a member's personal preference only while the
+    // member remains grouped, exactly as dungeonDifficultyForPid does.
+    solo.partyActive = true;
+    solo.partyHeroic = false;
+    if (effectiveDifficulty(solo) != NORMAL ||
+        setDifficulty(solo, HEROIC, false) != NOT_PARTY_LEADER ||
+        solo.partyHeroic || !solo.personalHeroic) {
+        return -3;
+    }
+    if (setDifficulty(solo, HEROIC, true) != APPLIED || !solo.partyHeroic ||
+        effectiveDifficulty(solo) != HEROIC) {
+        return -4;
+    }
+    if (setDifficulty(solo, NORMAL, true) != APPLIED || solo.personalHeroic ||
+        solo.partyHeroic || effectiveDifficulty(solo) != NORMAL) {
+        return -5;
+    }
+
+    solo.personalHeroic = true;
+    solo.partyActive = true;
+    solo.partyHeroic = false;
+    if (effectiveDifficulty(solo) != NORMAL) {
+        return -6;
+    }
+    solo.partyActive = false;
+    if (effectiveDifficulty(solo) != HEROIC) {
+        return -7;
+    }
+    return 1;
+}

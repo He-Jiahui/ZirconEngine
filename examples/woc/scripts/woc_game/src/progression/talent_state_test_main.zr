@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var talents = %import("progression/talent_state");
+
+console.printLine("m5-talent-progression-state-test");
+var result = talents.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

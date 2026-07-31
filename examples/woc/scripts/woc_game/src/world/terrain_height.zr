@@ -1,0 +1,106 @@
+// Builtin terrainHeight projection from src/sim/world.ts. This module covers
+// the source's terrain-only layers; groundHeight's docks, stands, interiors,
+// custom maps, and collision/movement queries remain separate contracts.
+
+var math = %import("zr.zircon.math");
+var terrainContent = %import("world/terrain_content");
+var terrainMountains = %import("world/terrain_mountains");
+var terrainShape = %import("world/terrain_shape");
+var terrainSowfield = %import("world/terrain_sowfield");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub applyBuiltinTerrainEdits(
+    x: float,
+    z: float,
+    initialHeight: float,
+    required: bool
+): float {
+    if (!required) {
+        throw "woc builtin terrain edit query is required";
+    }
+    var height = initialHeight;
+    var index = 0;
+    while (index < terrainContent.terrainEditCount(true)) {
+        var radius = terrainContent.terrainEditRadius(index, true);
+        if (radius > 0.0) {
+            var dx = x - terrainContent.terrainEditX(index, true);
+            var dz = z - terrainContent.terrainEditZ(index, true);
+            var distance = math.sqrt(dx * dx + dz * dz);
+            if (distance < radius) {
+                var weight = 1.0;
+                if (terrainContent.terrainEditFalloffCode(index, true) == 2) {
+                    weight = 1.0 - terrainShape.smoothstep(
+                        0.0,
+                        1.0,
+                        distance / radius,
+                        true
+                    );
+                }
+                if (terrainContent.terrainEditModeCode(index, true) == 1) {
+                    height = terrainShape.lerp(
+                        height,
+                        terrainContent.terrainEditDelta(index, true),
+                        weight,
+                        true
+                    );
+                } else {
+                    height = height + terrainContent.terrainEditDelta(index, true) * weight;
+                }
+            }
+        }
+        index = index + 1;
+    }
+    return height;
+}
+
+pub builtinTerrainHeight(x: float, z: float, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc builtin terrain height is required";
+    }
+    var height = terrainShape.builtinCampFlattenedHeight(x, z, seed, true);
+    var sowfieldWeight = terrainSowfield.flattenWeight(x, z, true);
+    if (sowfieldWeight > 0.0) {
+        height = terrainShape.lerp(
+            height,
+            terrainContent.sowfieldHeight(true),
+            sowfieldWeight,
+            true
+        );
+    }
+    height = height + terrainMountains.mountainContribution(x, z, seed, true);
+    height = height + terrainShape.mirefenImpactCraterOffset(x, z, true);
+    return applyBuiltinTerrainEdits(x, z, height, true);
+}
+
+pub contractTest(): int {
+    if (applyBuiltinTerrainEdits(-12000.0, -12000.0, 77.0, true) != 0.0 ||
+        applyBuiltinTerrainEdits(-11952.0, -12000.0, 77.0, true) != 77.0) {
+        return -1;
+    }
+    if (!closeEnough(builtinTerrainHeight(-11.0, -112.0, <uint>20061, true), -2.6) ||
+        !closeEnough(builtinTerrainHeight(-56.0, -141.0, <uint>20061, true), -2.6) ||
+        !closeEnough(builtinTerrainHeight(35.0, -83.0, <uint>20061, true), -2.5987723143317445) ||
+        builtinTerrainHeight(-12000.0, -12000.0, <uint>20061, true) != 0.0) {
+        return -2;
+    }
+    if (!closeEnough(builtinTerrainHeight(149.5, 295.0, <uint>20061, true), -4.095962858864524) ||
+        !closeEnough(builtinTerrainHeight(169.5, 295.0, <uint>20061, true), 40.631616432617356) ||
+        builtinTerrainHeight(0.0, 0.0, <uint>20061, true) != 1.5) {
+        return -3;
+    }
+    if (!closeEnough(builtinTerrainHeight(60.0, 180.0, <uint>20061, true), 39.47121021515609) ||
+        !closeEnough(builtinTerrainHeight(120.0, 180.0, <uint>20061, true), 35.76280143468256) ||
+        !closeEnough(builtinTerrainHeight(-160.0, 300.0, <uint>20061, true), 16.353280428036484) ||
+        !closeEnough(builtinTerrainHeight(170.0, 180.0, <uint>20061, true), 84.46318733965708) ||
+        !closeEnough(builtinTerrainHeight(120.0, 540.0, <uint>20061, true), 42.49238212503291)) {
+        return -4;
+    }
+    return 1;
+}

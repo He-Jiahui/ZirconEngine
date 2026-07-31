@@ -1,0 +1,28 @@
+// Pure projection of companionUpgrade's rank and balance gate.
+var content = %import("instances/delve_companion_content");
+
+pub canUpgrade(rank: int): bool {
+    return rank >= 1 && rank < content.maxRank(true);
+}
+
+pub upgradeMarks(rank: int): int {
+    return canUpgrade(rank) ? content.upgradeMarks(rank + 1, true) : 0;
+}
+
+pub upgradeCopper(rank: int): int {
+    return canUpgrade(rank) ? content.upgradeCopper(rank + 1, true) : 0;
+}
+
+pub canAfford(rank: int, marks: int, copper: int): bool {
+    return marks >= upgradeMarks(rank) && copper >= upgradeCopper(rank);
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1 || !canUpgrade(1) || !canUpgrade(2) ||
+        canUpgrade(3) || upgradeMarks(1) != 3 || upgradeMarks(2) != 5 ||
+        upgradeCopper(1) != 0 || !canAfford(1, 3, 0) ||
+        canAfford(1, 2, 100)) {
+        return -1;
+    }
+    return 1;
+}

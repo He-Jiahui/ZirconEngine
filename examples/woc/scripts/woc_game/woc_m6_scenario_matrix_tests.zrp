@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_scenario_matrix_tests",
+  "source": "src",
+  "binary": "bin-m6-scenario-matrix-tests",
+  "entry": "social/m6_scenario_matrix_test_main"
+}

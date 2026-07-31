@@ -1,0 +1,6 @@
+{
+  "name": "woc_effects_tests",
+  "source": "src",
+  "binary": "bin-effects-tests",
+  "entry": "combat/effects_test_main"
+}

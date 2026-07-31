@@ -1,6 +1,6 @@
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::core::framework::render::PlanarReflectionUpdateState;
+use crate::core::framework::render::{PlanarReflectionUpdateState, RenderSubmissionConfig};
 #[cfg(test)]
 use crate::core::framework::render::{RenderCapabilitySummary, RenderFrameworkError};
 use crate::core::TaskPool;
@@ -9,11 +9,12 @@ use crate::core::{math::UVec2, resource::ResourceId};
 #[cfg(test)]
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
+use super::super::pipelined::{RenderSubmissionScheduler, RuntimeFrameSubmissionExecutor};
 #[cfg(test)]
 use super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::render_framework_state::RenderFrameworkState;
 
-pub struct WgpuRenderFramework {
+pub(in crate::graphics::runtime::render_framework) struct WgpuRenderFrameworkCore {
     pub(in crate::graphics::runtime::render_framework) state: Mutex<RenderFrameworkState>,
     pub(in crate::graphics::runtime::render_framework) operation_lock: Mutex<()>,
     pub(in crate::graphics::runtime::render_framework) compute_task_pool: TaskPool,
@@ -21,7 +22,22 @@ pub struct WgpuRenderFramework {
         Mutex<PlanarReflectionUpdateState>,
 }
 
-impl WgpuRenderFramework {
+pub struct WgpuRenderFramework {
+    // Drop the scheduler before the shared WGPU state so its worker can finish on
+    // the owning thread without retaining the framework indefinitely.
+    pub(in crate::graphics::runtime::render_framework) submission_scheduler:
+        Mutex<RenderSubmissionScheduler>,
+    pub(in crate::graphics::runtime::render_framework) core: Arc<WgpuRenderFrameworkCore>,
+}
+
+pub(in crate::graphics::runtime::render_framework) trait WgpuRenderFrameworkAccess {
+    fn lock_operation(&self) -> MutexGuard<'_, ()>;
+    fn lock_state(&self) -> MutexGuard<'_, RenderFrameworkState>;
+    fn lock_planar_reflection_updates(&self) -> MutexGuard<'_, PlanarReflectionUpdateState>;
+    fn compute_task_pool(&self) -> &TaskPool;
+}
+
+impl WgpuRenderFrameworkCore {
     pub(in crate::graphics::runtime::render_framework) fn lock_operation(
         &self,
     ) -> MutexGuard<'_, ()> {
@@ -49,6 +65,118 @@ impl WgpuRenderFramework {
             Ok(updates) => updates,
             Err(poisoned) => poisoned.into_inner(),
         }
+    }
+}
+
+impl WgpuRenderFrameworkAccess for WgpuRenderFrameworkCore {
+    fn lock_operation(&self) -> MutexGuard<'_, ()> {
+        WgpuRenderFrameworkCore::lock_operation(self)
+    }
+
+    fn lock_state(&self) -> MutexGuard<'_, RenderFrameworkState> {
+        WgpuRenderFrameworkCore::lock_state(self)
+    }
+
+    fn lock_planar_reflection_updates(&self) -> MutexGuard<'_, PlanarReflectionUpdateState> {
+        WgpuRenderFrameworkCore::lock_planar_reflection_updates(self)
+    }
+
+    fn compute_task_pool(&self) -> &TaskPool {
+        &self.compute_task_pool
+    }
+}
+
+impl WgpuRenderFrameworkAccess for WgpuRenderFramework {
+    fn lock_operation(&self) -> MutexGuard<'_, ()> {
+        self.core.lock_operation()
+    }
+
+    fn lock_state(&self) -> MutexGuard<'_, RenderFrameworkState> {
+        self.core.lock_state()
+    }
+
+    fn lock_planar_reflection_updates(&self) -> MutexGuard<'_, PlanarReflectionUpdateState> {
+        self.core.lock_planar_reflection_updates()
+    }
+
+    fn compute_task_pool(&self) -> &TaskPool {
+        &self.core.compute_task_pool
+    }
+}
+
+impl WgpuRenderFramework {
+    pub(in crate::graphics::runtime::render_framework) fn lock_operation(
+        &self,
+    ) -> MutexGuard<'_, ()> {
+        self.core.lock_operation()
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn lock_state(
+        &self,
+    ) -> MutexGuard<'_, RenderFrameworkState> {
+        self.core.lock_state()
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn lock_planar_reflection_updates(
+        &self,
+    ) -> MutexGuard<'_, PlanarReflectionUpdateState> {
+        self.core.lock_planar_reflection_updates()
+    }
+
+    pub fn set_submission_config(
+        &self,
+        config: RenderSubmissionConfig,
+    ) -> Result<(), crate::core::framework::render::RenderFrameworkError> {
+        self.submission_scheduler
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .set_config(Arc::clone(&self.core), config)
+    }
+
+    pub fn submission_config(&self) -> RenderSubmissionConfig {
+        self.submission_scheduler
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .config()
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn dispatch_submission(
+        &self,
+        execute: fn(
+            &WgpuRenderFrameworkCore,
+            crate::core::framework::render::RenderViewportHandle,
+            crate::core::framework::render::RenderFrameExtract,
+            Option<zircon_runtime_interface::ui::surface::UiRenderExtract>,
+        ) -> Result<(), crate::core::framework::render::RenderFrameworkError>,
+        viewport: crate::core::framework::render::RenderViewportHandle,
+        extract: crate::core::framework::render::RenderFrameExtract,
+        ui: Option<zircon_runtime_interface::ui::surface::UiRenderExtract>,
+    ) -> Result<(), crate::core::framework::render::RenderFrameworkError> {
+        self.submission_scheduler
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .submit(Arc::clone(&self.core), execute, viewport, extract, ui)
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn dispatch_runtime_frame_submission(
+        &self,
+        execute: RuntimeFrameSubmissionExecutor,
+        viewport: crate::core::framework::render::RenderViewportHandle,
+        frame: crate::graphics::types::ViewportRenderFrame,
+    ) -> Result<(), crate::core::framework::render::RenderFrameworkError> {
+        self.submission_scheduler
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .submit_runtime_frame(Arc::clone(&self.core), execute, viewport, frame)
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn finish_submission(
+        &self,
+    ) -> Result<(), crate::core::framework::render::RenderFrameworkError> {
+        self.submission_scheduler
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .finish_pending()
     }
 
     /// Invalidates one on-demand planar probe so the next camera loop submits
@@ -130,6 +258,7 @@ mod tests {
     use std::sync::Arc;
 
     use crate::asset::pipeline::manager::ProjectAssetManager;
+    use crate::core::framework::render::RenderSubmissionConfig;
 
     use super::*;
 
@@ -139,15 +268,36 @@ mod tests {
             .expect("framework should initialize for lock recovery test");
 
         let _ = catch_unwind(AssertUnwindSafe(|| {
-            let _guard = framework.operation_lock.lock().unwrap();
+            let _guard = framework.core.operation_lock.lock().unwrap();
             panic!("poison operation lock");
         }));
         let _ = catch_unwind(AssertUnwindSafe(|| {
-            let _guard = framework.state.lock().unwrap();
+            let _guard = framework.core.state.lock().unwrap();
             panic!("poison render framework state lock");
         }));
 
         drop(framework.lock_operation());
         assert!(framework.lock_state().viewports.is_empty());
+    }
+
+    #[test]
+    fn submission_config_switches_between_sync_and_pipelined_execution() {
+        let framework = WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default()))
+            .expect("framework should initialize for submission configuration test");
+
+        assert_eq!(
+            framework.submission_config(),
+            RenderSubmissionConfig::synchronous()
+        );
+        framework
+            .set_submission_config(RenderSubmissionConfig::pipelined())
+            .expect("pipelined configuration should initialize the worker");
+        assert_eq!(
+            framework.submission_config(),
+            RenderSubmissionConfig::pipelined()
+        );
+        framework
+            .set_submission_config(RenderSubmissionConfig::synchronous())
+            .expect("synchronous configuration should drain and close the worker");
     }
 }

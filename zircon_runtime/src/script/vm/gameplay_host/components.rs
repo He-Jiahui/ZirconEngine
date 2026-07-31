@@ -76,12 +76,9 @@ pub(super) fn entity_exists(
     let entity = expect_entity(context, 0)?;
     let runtime = current_script_runtime_call_context()?;
     let exists = entity != 0
-        && runtime.level.with_world(|world| {
-            world
-                .node_records()
-                .into_iter()
-                .any(|node| node.id == entity)
-        });
+        && runtime
+            .level
+            .with_world(|world| world.contains_entity(entity));
     Ok(ScriptHostValue::Bool(exists))
 }
 
@@ -204,4 +201,20 @@ pub(super) fn script_number_at_most(
         value <= f64::from(threshold)
     });
     Ok(ScriptHostValue::Bool(matches))
+}
+
+#[cfg(test)]
+mod performance_contract_tests {
+    #[test]
+    fn entity_exists_uses_the_world_entity_index() {
+        let source = include_str!("components.rs")
+            .split_once("#[cfg(test)]")
+            .unwrap()
+            .0;
+        let function = source.split("pub(super) fn entity_exists").nth(1).unwrap();
+        let function = function.split("pub(super) fn").next().unwrap();
+
+        assert!(function.contains("world.contains_entity(entity)"));
+        assert!(!function.contains("node_records()"));
+    }
 }

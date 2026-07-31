@@ -1,7 +1,3 @@
-use std::fs;
-
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
-
 use super::support::{collect_zui_files, editor_asset_root, resource_locator_for_path};
 
 const L4_SHELL_STRUCTURAL_COMPONENTS: &[&str] = &[
@@ -180,10 +176,7 @@ fn l4_surfaces_contain_no_inline_primitive_structures() {
     for path in collect_zui_files(&shell_root) {
         checked_assets += 1;
         let locator = resource_locator_for_path(&editor_root, &path);
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        let document = super::support::load_zui_document(&path);
 
         for (node_id, node) in &document.nodes {
             checked_nodes += 1;
@@ -236,10 +229,7 @@ fn l4_surfaces_keep_runtime_region_topology_snapshot() {
         checked_assets += 1;
         let path = shell_root.join(snapshot.file_name);
         let locator = resource_locator_for_path(&editor_root, &path);
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        let document = super::support::load_zui_document(&path);
 
         let Some(component) = document.components.get(snapshot.component_name) else {
             offenders.push(format!(

@@ -5,8 +5,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::{
-    asset_change::AssetChange, asset_watch_error::AssetWatchError, asset_watcher::AssetWatcher,
-    asset_watcher::AssetWatcherOptions, map_notify_event::map_notify_event,
+    asset_change::AssetChange,
+    asset_watch_error::AssetWatchError,
+    asset_watcher::AssetWatcherOptions,
+    fold_events::{finish_folded_events, fold_event, FoldedAssetChangeMap},
+    map_notify_event::map_notify_event,
 };
 
 pub(super) fn watch_loop(
@@ -59,7 +62,10 @@ fn watch_loop_inner(
             recv(stop_rx) -> _ => break,
             recv(event_rx) -> message => match message {
                 Ok(Ok(event)) => {
-                    let mut pending = map_notify_event(&assets_root, event);
+                    let mut pending = FoldedAssetChangeMap::new();
+                    for event in map_notify_event(&assets_root, event) {
+                        fold_event(&mut pending, event);
+                    }
                     if pending.is_empty() {
                         continue;
                     }
@@ -67,14 +73,18 @@ fn watch_loop_inner(
                         select! {
                             recv(stop_rx) -> _ => return,
                             recv(event_rx) -> next => match next {
-                                Ok(Ok(event)) => pending.extend(map_notify_event(&assets_root, event)),
+                                Ok(Ok(event)) => {
+                                    for event in map_notify_event(&assets_root, event) {
+                                        fold_event(&mut pending, event);
+                                    }
+                                }
                                 Ok(Err(error)) => on_error(AssetWatchError::from_notify_error(assets_root.clone(), error)),
                                 Err(_) => return,
                             },
                             recv(after(debounce)) -> _ => break,
                         }
                     }
-                    let folded = AssetWatcher::fold_events(&pending);
+                    let folded = finish_folded_events(pending);
                     if !folded.is_empty() {
                         on_changes(folded);
                     }

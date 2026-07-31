@@ -10,6 +10,7 @@ mod scope;
 mod tracy;
 mod ui_hotspot;
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 #[cfg(feature = "profiling")]
 use std::{env, path::PathBuf};
@@ -36,6 +37,7 @@ pub use zircon_runtime_interface::{
 pub use crate::{profile_counter, profile_dynamic_scope, profile_frame, profile_scope};
 
 static GLOBAL_RECORDER: OnceLock<Mutex<ProfileRecorder>> = OnceLock::new();
+static CAPTURE_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 pub fn feature_enabled() -> bool {
     cfg!(feature = "profiling")
@@ -45,21 +47,33 @@ pub fn start_capture(config: ProfileCaptureConfig) -> ProfileRecorderStatus {
     if !feature_enabled() {
         return ProfileRecorderStatus::disabled();
     }
-    lock_recorder().start_capture(config)
+    let status = lock_recorder().start_capture(config);
+    CAPTURE_ACTIVE.store(status.active, Ordering::Release);
+    status
 }
 
 pub fn stop_capture() -> ProfileRecorderStatus {
     if !feature_enabled() {
         return ProfileRecorderStatus::disabled();
     }
-    lock_recorder().stop_capture()
+    let status = lock_recorder().stop_capture();
+    CAPTURE_ACTIVE.store(false, Ordering::Release);
+    status
 }
 
 pub fn reset_capture() -> ProfileRecorderStatus {
     if !feature_enabled() {
         return ProfileRecorderStatus::disabled();
     }
-    lock_recorder().reset()
+    let status = lock_recorder().reset();
+    CAPTURE_ACTIVE.store(false, Ordering::Release);
+    status
+}
+
+/// Cheap macro-facing hint that avoids touching the global recorder while idle.
+#[doc(hidden)]
+pub fn capture_active() -> bool {
+    feature_enabled() && CAPTURE_ACTIVE.load(Ordering::Acquire)
 }
 
 pub fn snapshot() -> ProfileSnapshot {
@@ -198,6 +212,9 @@ pub(crate) fn begin_scope(
     category: &'static str,
     name: &'static str,
 ) -> Option<scope::ProfileScopeToken> {
+    if !capture_active() {
+        return None;
+    }
     begin_scope_named(stream, category, name.to_string())
 }
 
@@ -206,7 +223,7 @@ pub(crate) fn begin_scope_named(
     category: &'static str,
     name: String,
 ) -> Option<scope::ProfileScopeToken> {
-    if !feature_enabled() {
+    if !capture_active() {
         return None;
     }
     scope::begin_scope_named(stream, category, name)
@@ -222,7 +239,7 @@ pub(crate) fn begin_frame(
     stream: &'static str,
     name: &'static str,
 ) -> Option<scope::ProfileFrameToken> {
-    if !feature_enabled() {
+    if !capture_active() {
         return None;
     }
     scope::begin_frame(stream, name)
@@ -235,7 +252,7 @@ pub(crate) fn finish_frame(token: scope::ProfileFrameToken) {
 }
 
 pub fn record_counter(stream: &'static str, name: &'static str, value: f64) {
-    if !feature_enabled() {
+    if !capture_active() {
         return;
     }
     scope::record_counter(stream, name, value);
@@ -381,6 +398,26 @@ mod tests {
             .expect("dynamic macro render graph stage span");
         assert_eq!(span.name, "PostProcess");
         assert_eq!(span.path, "runtime/render_graph.stage:PostProcess");
+    }
+
+    #[cfg(all(feature = "profiling", not(feature = "profiling-tracy")))]
+    #[test]
+    fn inactive_profile_macros_skip_dynamic_payload_evaluation() {
+        let _guard = test_capture_lock();
+        reset_capture();
+
+        crate::profile_dynamic_scope!(
+            "runtime",
+            "test",
+            panic!("inactive dynamic scope payload was evaluated"),
+        );
+        crate::profile_counter!(
+            "runtime",
+            "inactive.counter",
+            panic!("inactive counter payload was evaluated"),
+        );
+
+        assert!(!super::capture_active());
     }
 
     #[cfg(not(feature = "profiling"))]

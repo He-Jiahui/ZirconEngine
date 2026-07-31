@@ -1,0 +1,48 @@
+// Pure mob-AI observability. These counters must not participate in gameplay
+// decisions or RNG consumption; a host resets them at each simulation tick.
+pub class MobScanCounters {
+    pub var aggroScanPlayerVisits: int;
+    pub var threatEntryVisits: int;
+
+    pub @constructor() {
+        this.aggroScanPlayerVisits = 0;
+        this.threatEntryVisits = 0;
+    }
+}
+
+pub createMobScanCounters(): MobScanCounters {
+    return new MobScanCounters();
+}
+
+pub resetMobScanCounters(counters: MobScanCounters): void {
+    counters.aggroScanPlayerVisits = 0;
+    counters.threatEntryVisits = 0;
+}
+
+// These name the reference's two inline increments so future WOC AI loops can
+// account for a visit without introducing a gameplay dependency on the value.
+pub recordAggroScanPlayerVisit(counters: MobScanCounters): void {
+    counters.aggroScanPlayerVisits = counters.aggroScanPlayerVisits + 1;
+}
+
+pub recordThreatEntryVisit(counters: MobScanCounters): void {
+    counters.threatEntryVisits = counters.threatEntryVisits + 1;
+}
+
+pub contractTest(): int {
+    var counters = createMobScanCounters();
+    if (counters.aggroScanPlayerVisits != 0 || counters.threatEntryVisits != 0) {
+        return -1;
+    }
+    recordAggroScanPlayerVisit(counters);
+    recordAggroScanPlayerVisit(counters);
+    recordThreatEntryVisit(counters);
+    if (counters.aggroScanPlayerVisits != 2 || counters.threatEntryVisits != 1) {
+        return -2;
+    }
+    resetMobScanCounters(counters);
+    if (counters.aggroScanPlayerVisits != 0 || counters.threatEntryVisits != 0) {
+        return -3;
+    }
+    return 1;
+}

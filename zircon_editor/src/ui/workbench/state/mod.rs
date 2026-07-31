@@ -5,7 +5,6 @@ mod editor_state_play_mode;
 mod editor_state_render;
 mod editor_state_selection;
 mod editor_state_viewport;
-pub(crate) mod editor_world_slot;
 mod no_project_open;
 mod parse_parent_field;
 

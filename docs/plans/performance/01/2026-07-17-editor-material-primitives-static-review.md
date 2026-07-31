@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
@@ -21,7 +21,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与覆盖
 
-`material_primitives.rs`与`material_primitives/**`共 **150/150** 个Rust文件、**6,496** 行已逐文件阅读。覆盖alert、avatar、badge、chip、divider、paper、skeleton、text field、timeline的dispatch、identity、geometry、style、text/image和tests。当前源Cargo、产品计数、规模trace与像素验收未完成，因此仍留在`pending.md`。
+`material_primitives.rs`与`material_primitives/` directory tree 共 **150/150** 个Rust文件、**6,496** 行已逐文件阅读。覆盖alert、avatar、badge、chip、divider、paper、skeleton、text field、timeline的dispatch、identity、geometry、style、text/image和tests。当前源Cargo、产品计数、规模trace与像素验收未完成，因此仍留在`pending.md`。
 
 ## P0：稳定节点重复重建primitive spec
 

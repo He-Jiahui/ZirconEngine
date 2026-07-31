@@ -5,14 +5,14 @@ use crate::rhi::{
 };
 
 #[derive(Clone, Debug)]
-pub struct WgpuCommandList {
+pub(crate) struct DeterministicRhiContractCommandList {
     queue_class: RenderQueueClass,
     label: Option<String>,
     commands: Vec<CommandListCommand>,
 }
 
-impl WgpuCommandList {
-    pub fn new(queue_class: RenderQueueClass, label: impl Into<String>) -> Self {
+impl DeterministicRhiContractCommandList {
+    pub(crate) fn new(queue_class: RenderQueueClass, label: impl Into<String>) -> Self {
         Self {
             queue_class,
             label: Some(label.into()),
@@ -21,7 +21,7 @@ impl WgpuCommandList {
     }
 }
 
-impl CommandList for WgpuCommandList {
+impl CommandList for DeterministicRhiContractCommandList {
     fn queue_class(&self) -> RenderQueueClass {
         self.queue_class
     }

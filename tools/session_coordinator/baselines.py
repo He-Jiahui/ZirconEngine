@@ -14,6 +14,9 @@ from .event_payloads import baseline_degraded_payload
 from .models import CoordinatorError, utc_text
 
 
+_COMMIT_DELTA_REBUILD_THRESHOLD = 256
+
+
 class BaselineHealth(StrEnum):
     HEALTHY = "healthy"
     DEGRADED = "degraded"
@@ -599,8 +602,11 @@ class BaselineService:
             for _status, paths in changes
             for path in paths
         )
-        if new_head == baseline.head_commit or filters_changed or any(
-            path not in baseline.manifest for path in old_tracked
+        if (
+            new_head == baseline.head_commit
+            or filters_changed
+            or len(changes) >= _COMMIT_DELTA_REBUILD_THRESHOLD
+            or any(path not in baseline.manifest for path in old_tracked)
         ):
             # Historical partial baselines cannot be advanced from a delta without
             # falsely treating an unchanged tracked path as absent. A non-workspace

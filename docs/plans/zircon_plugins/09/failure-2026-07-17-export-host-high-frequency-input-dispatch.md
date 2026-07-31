@@ -11,7 +11,9 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/browser.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/mobile.rs
-  - zircon_runtime/src/input/input_manager.rs
+  - zircon_runtime/src/core/framework/input/input_manager.rs
+  - zircon_runtime/src/input/runtime/default_input_manager.rs
+  - zircon_runtime/src/input/runtime/event_buffer/frame.rs
 tests:
   - browser 125/500/1000 Hz pointer event coalescing benchmark
   - Android multi-pointer move dispatch-count test
@@ -44,6 +46,13 @@ Export host templates 各自直接绑定平台事件到 ABI，没有复用 Runti
 coalesced count、queue age 或 dropped/latest-value 指标。
 Runtime12 共同负责定义 frame coalescing、raw delta 和边沿事件的跨平台输入语义。
 
+Current owner note（2026-07-18）：中立 `InputManager` trait 与 frame snapshot/queue status surface 位于
+`core/framework/input/input_manager.rs`；`DefaultInputManager` 的生产 `submit_event(...)` 实现在
+`input/runtime/default_input_manager.rs`，其 `FrameEventBuffer` 已在 `input/runtime/event_buffer/frame.rs`
+对相邻 `CursorMoved` 做 latest-position 合并、对相邻 `MouseMotion` 做 raw-delta 累加。该 Runtime 内部合并
+不能消除 browser/JNI/Swift host 在 ABI 前的逐事件跨语言调用，因此本 failure 仍保持 `open`，修复责任仍归
+Plugins09/Runtime12，不恢复已删除的 flat input-manager owner。
+
 ## 架构修复验收
 
 - browser/mobile host 对 pointer/touch move 使用帧级 latest-position + raw-delta 累加；begin/end/cancel、按键边沿严格保序不丢。
@@ -59,5 +68,7 @@ Runtime12 共同负责定义 frame coalescing、raw delta 和边沿事件的跨�
 - 不得让三个平台各自发明不同的 move 合并语义；Runtime12 定义公共契约，Plugins09 负责模板落地。
 
 ## 修复结果与回传
+
+Current owner note（2026-07-22）：本轮重新逐文件核对40个`export_build_plan`生产文件，browser仍为每个`pointermove`直接JS→WASM，`resize`直接读取layout并跨ABI；Android/iOS仍逐active pointer/touch同步调用。由于公共edge/move/raw-delta/metrics语义尚未由Runtime12落地，本轮没有做单平台局部throttle，PERF-MVP-052与本failure保持open。
 
 Open state: `待 Plugins09/Runtime12 实现 export-host frame input coalescing 与跨平台 parity 压测`。

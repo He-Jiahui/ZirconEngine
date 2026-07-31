@@ -119,6 +119,14 @@ fn finalize_palette_insert_plan(
     palette_entry: &UiAssetPaletteEntry,
     plan: UiAssetPaletteInsertPlan,
 ) -> Option<UiAssetPaletteInsertPlan> {
+    palette_insert_plan_is_valid(document, palette_entry, &plan).then_some(plan)
+}
+
+fn palette_insert_plan_is_valid(
+    document: &UiAssetDocument,
+    palette_entry: &UiAssetPaletteEntry,
+    plan: &UiAssetPaletteInsertPlan,
+) -> bool {
     let mut candidate = document.clone();
     insert_palette_item_with_placement(
         &mut candidate,
@@ -127,7 +135,7 @@ fn finalize_palette_insert_plan(
         plan.mode,
         &plan.placement,
     )
-    .map(|_| plan)
+    .is_some()
 }
 
 pub(crate) fn resolve_palette_drag_target(
@@ -294,6 +302,10 @@ fn build_component_palette_drag_resolution(
         return None;
     }
 
+    let selected_index = targets
+        .iter()
+        .position(|target| point_within_overlay(hover.surface_x, hover.surface_y, &target.overlay))
+        .unwrap_or(0);
     let available = targets
         .iter()
         .map(|target| target.mount.clone())
@@ -301,19 +313,15 @@ fn build_component_palette_drag_resolution(
     let requires_confirmation = component_slots_require_confirmation(&available);
     let mut candidates = Vec::new();
     for target in targets {
-        let plan = finalize_palette_insert_plan(
-            document,
-            palette_entry,
-            UiAssetPaletteInsertPlan {
-                node_id: node_id.to_string(),
-                mode: PaletteInsertMode::Child,
-                label: format!("Insert {} Slot", title_case_identifier(&target.mount)),
-                placement: UiAssetPaletteInsertionPlacement {
-                    mount: Some(target.mount.clone()),
-                    slot: BTreeMap::new(),
-                },
+        let plan = UiAssetPaletteInsertPlan {
+            node_id: node_id.to_string(),
+            mode: PaletteInsertMode::Child,
+            label: format!("Insert {} Slot", title_case_identifier(&target.mount)),
+            placement: UiAssetPaletteInsertionPlacement {
+                mount: Some(target.mount),
+                slot: BTreeMap::new(),
             },
-        )?;
+        };
         candidates.push(UiAssetPaletteDragTarget {
             preview_index,
             key: target.overlay.label,
@@ -322,15 +330,13 @@ fn build_component_palette_drag_resolution(
         });
     }
 
-    let selected_mount = component_mount_for_node(document, node, widget_imports, Some(hover));
-    let selected_index = selected_mount
-        .as_deref()
-        .and_then(|mount| {
-            candidates
-                .iter()
-                .position(|candidate| candidate.plan.placement.mount.as_deref() == Some(mount))
-        })
-        .unwrap_or(0);
+    if !palette_insert_plan_is_valid(
+        document,
+        palette_entry,
+        &candidates.get(selected_index)?.plan,
+    ) {
+        return None;
+    }
 
     Some(UiAssetPaletteDragResolution {
         candidates,
@@ -361,19 +367,15 @@ fn build_native_palette_drag_resolution(
     let default_slot = native_child_placement(node, Some(hover)).slot;
     let mut candidates = Vec::new();
     for target in targets {
-        let plan = finalize_palette_insert_plan(
-            document,
-            palette_entry,
-            UiAssetPaletteInsertPlan {
-                node_id: node_id.to_string(),
-                mode: PaletteInsertMode::Child,
-                label: label.clone(),
-                placement: UiAssetPaletteInsertionPlacement {
-                    mount: None,
-                    slot: target.slot.clone(),
-                },
+        let plan = UiAssetPaletteInsertPlan {
+            node_id: node_id.to_string(),
+            mode: PaletteInsertMode::Child,
+            label: label.clone(),
+            placement: UiAssetPaletteInsertionPlacement {
+                mount: None,
+                slot: target.slot,
             },
-        )?;
+        };
         candidates.push(UiAssetPaletteDragTarget {
             preview_index,
             key: target.label,
@@ -386,6 +388,13 @@ fn build_native_palette_drag_resolution(
         .iter()
         .position(|candidate| candidate.plan.placement.slot == default_slot)
         .unwrap_or(0);
+    if !palette_insert_plan_is_valid(
+        document,
+        palette_entry,
+        &candidates.get(selected_index)?.plan,
+    ) {
+        return None;
+    }
     Some(UiAssetPaletteDragResolution {
         candidates,
         selected_index,
@@ -732,22 +741,19 @@ fn component_definition_for_node<'a>(
     }
     let reference = node.component_ref.as_deref()?;
     let (asset_id, component_name) = reference.split_once('#')?;
-    widget_imports
+    let imported = widget_imports
         .get(reference)
         .or_else(|| widget_imports.get(asset_id))?;
-    widget_imports
-        .get(reference)
-        .or_else(|| widget_imports.get(asset_id))
-        .and_then(|document| document.components.get(component_name))
+    imported.components.get(component_name)
 }
 
 fn available_component_slots(
     component: &UiComponentDefinition,
     children: &[UiChildMount],
 ) -> Vec<String> {
-    let mut counts = BTreeMap::<String, usize>::new();
+    let mut counts = BTreeMap::<&str, usize>::new();
     for child in children {
-        let slot_name = child.mount.clone().unwrap_or_default();
+        let slot_name = child.mount.as_deref().unwrap_or_default();
         let entry = counts.entry(slot_name).or_insert(0);
         *entry += 1;
     }
@@ -756,7 +762,7 @@ fn available_component_slots(
         .slots
         .iter()
         .filter_map(|(slot_name, slot)| {
-            let occupied = counts.get(slot_name).copied().unwrap_or_default();
+            let occupied = counts.get(slot_name.as_str()).copied().unwrap_or_default();
             (slot.multiple || occupied == 0).then(|| slot_name.clone())
         })
         .collect()

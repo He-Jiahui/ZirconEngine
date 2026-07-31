@@ -6,7 +6,9 @@ use super::super::template_tooltip_glyphs::{
 };
 use super::identity::is_workbench_tooltip;
 use super::layers::{arrow_order, icon_order, text_order};
-use super::layout::{pixel_aligned_rect, tooltip_bubble_rect};
+use super::layout::{
+    frame_is_within, has_paintable_tooltip_extent, pixel_aligned_rect, tooltip_bubble_rect,
+};
 use super::surface::push_tooltip_surface;
 use super::text::push_tooltip_text;
 
@@ -23,17 +25,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     }
 
     let rect = pixel_aligned_rect(rect);
-    if rect.width <= 0.0 || rect.height <= 0.0 {
+    if !has_paintable_tooltip_extent(&rect) {
         return true;
     }
 
     let style = select_workbench_tooltip_style(node);
     let bubble = tooltip_bubble_rect(node, &rect);
+    if !frame_is_within(&rect, &bubble) {
+        return true;
+    }
     let arrow_size = tooltip_arrow_size(node);
     let icon_size = tooltip_icon_size(node);
 
     push_tooltip_surface(
         commands,
+        &rect,
         &bubble,
         clip,
         order,
@@ -54,6 +60,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     );
     push_tooltip_arrow(
         commands,
+        &rect,
         &bubble,
         clip,
         arrow_order(order),

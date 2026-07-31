@@ -11,11 +11,11 @@ use crate::core::resource::ResourceId;
 
 use super::super::model::{ModelPrimitiveAsset, VirtualGeometryAsset};
 use super::{
-    MeshAssetUsage, MeshAttributeSummary, MeshAttributeValues, MeshIndexFormat, MeshIndices,
-    MeshMorphTargetAsset, MeshMorphTargetAttributeSummary, MeshSkinAsset, MeshValidationError,
     MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
     MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
-    MESH_ATTRIBUTE_UV1,
+    MESH_ATTRIBUTE_UV1, MeshAssetUsage, MeshAttributeSummary, MeshAttributeValues, MeshIndexFormat,
+    MeshIndices, MeshMorphTargetAsset, MeshMorphTargetAttributeSummary, MeshSkinAsset,
+    MeshValidationError,
 };
 
 mod management;
@@ -81,8 +81,8 @@ impl MeshAsset {
     }
 
     pub fn from_model_primitive(uri: AssetUri, primitive: &ModelPrimitiveAsset) -> Self {
-        let mut primitive = primitive.clone();
-        primitive.assign_virtual_geometry_vertex_ordinals();
+        let assign_virtual_geometry_ordinals =
+            primitive.virtual_geometry.is_some() && !primitive.uses_skinning_channels();
         let mut attributes = BTreeMap::new();
         attributes.insert(
             MESH_ATTRIBUTE_POSITION.to_string(),
@@ -147,7 +147,18 @@ impl MeshAsset {
                 primitive
                     .vertices
                     .iter()
-                    .map(|vertex| vertex.joint_indices)
+                    .enumerate()
+                    .map(|(ordinal, vertex)| {
+                        let mut joint_indices = vertex.joint_indices;
+                        if assign_virtual_geometry_ordinals {
+                            let [low, high] = ModelPrimitiveAsset::encode_virtual_geometry_vertex_ordinal(
+                                ordinal.try_into().unwrap_or(u32::MAX),
+                            );
+                            joint_indices[super::super::model::VIRTUAL_GEOMETRY_VERTEX_ORDINAL_LOW_JOINT_SLOT] = low;
+                            joint_indices[super::super::model::VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_JOINT_SLOT] = high;
+                        }
+                        joint_indices
+                    })
                     .collect(),
             ),
         );

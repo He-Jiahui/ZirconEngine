@@ -1,0 +1,10 @@
+// Source-compatible vendor_stack.ts leaf. The source ItemDef is projected to
+// its only observed field, `kind`, so all vendor/UI callers share one rule.
+
+pub vendorStackSize(): int {
+    return 5;
+}
+
+pub vendorPurchaseQuantity(itemKind: string): int {
+    return itemKind == "food" || itemKind == "drink" ? vendorStackSize() : 1;
+}

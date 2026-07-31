@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use zircon_runtime::asset::project::AssetMetaDocument;
 use zircon_runtime::asset::{AssetKind, AssetUri, AssetUuid};
@@ -9,7 +10,8 @@ use super::{
     parse_commandlet_args, run_commandlet, run_commandlet_with_capabilities, CommandletExitCode,
     CommandletStatus,
 };
-use crate::core::commands::EditorCommandRegistry;
+use crate::core::commands::{EditorCommandAction, EditorCommandRegistry};
+use crate::core::plugin::EditorPluginManager;
 
 static NEXT_ROOT: AtomicU64 = AtomicU64::new(1);
 
@@ -29,6 +31,120 @@ fn migrate_assets_is_registered_once_as_a_remote_callable_commandlet() {
         descriptor.required_capabilities(),
         &["asset.migration".to_owned()]
     );
+    assert_eq!(
+        descriptor
+            .headless_commandlet_route()
+            .map(crate::core::editor_operation::EditorOperationPath::as_str),
+        Some("commandlet.route.migrate_assets")
+    );
+    assert_eq!(
+        descriptor.headless_commandlet_name(),
+        Some("migrate-assets")
+    );
+    assert_eq!(
+        registry
+            .command_for_headless_commandlet_name("migrate-assets")
+            .map(crate::core::commands::EditorCommandDescriptor::id),
+        Some(descriptor.id())
+    );
+    assert_eq!(
+        descriptor.action(),
+        &EditorCommandAction::HeadlessAssetMigration
+    );
+}
+
+#[test]
+fn plugin_list_is_registered_once_as_a_remote_callable_commandlet() {
+    let registry = EditorCommandRegistry::default_workbench();
+    let descriptor = registry
+        .command("plugin.catalog.list")
+        .expect("plugin-list commandlet should be registered in the editor command registry");
+
+    assert!(descriptor.callable_from_remote());
+    assert_eq!(
+        descriptor.payload_schema_id(),
+        Some("editor.commandlet.plugin-list")
+    );
+    assert_eq!(
+        descriptor.required_capabilities(),
+        &["plugin.catalog.read".to_owned()]
+    );
+    assert_eq!(
+        descriptor
+            .headless_commandlet_route()
+            .map(crate::core::editor_operation::EditorOperationPath::as_str),
+        Some("commandlet.route.plugin_list")
+    );
+    assert_eq!(descriptor.headless_commandlet_name(), Some("plugin-list"));
+    assert_eq!(
+        registry
+            .command_for_headless_commandlet_name("plugin-list")
+            .map(crate::core::commands::EditorCommandDescriptor::id),
+        Some(descriptor.id())
+    );
+    assert_eq!(
+        descriptor.action(),
+        &EditorCommandAction::HeadlessPluginList
+    );
+}
+
+#[test]
+fn plugin_list_projects_the_existing_catalog_with_stable_json() {
+    let first = run_commandlet(parse_request(["--run", "plugin-list"]));
+    let second = run_commandlet(parse_request(["--run", "plugin-list"]));
+
+    assert_eq!(first.exit_code(), CommandletExitCode::Success);
+    assert_eq!(first.status(), CommandletStatus::Succeeded);
+    assert_eq!(
+        serde_json::to_value(&first).unwrap(),
+        serde_json::to_value(&second).unwrap()
+    );
+    let plugins = first
+        .plugins()
+        .expect("plugin-list should return the canonical editor plugin catalog");
+    assert!(!plugins.entries().is_empty());
+    assert!(plugins
+        .entries()
+        .windows(2)
+        .all(|pair| pair[0].package_id <= pair[1].package_id));
+}
+
+#[test]
+fn plugin_list_reuses_the_canonical_catalog_projection_without_rebuild() {
+    let catalog = EditorPluginManager::builtin_shared()
+        .expect("builtin editor plugin catalog should be admissible")
+        .catalog_snapshot();
+    let first = run_commandlet(parse_request(["--run", "plugin-list"]));
+    let second = run_commandlet(parse_request(["--run", "plugin-list"]));
+
+    assert!(Arc::ptr_eq(
+        first
+            .plugin_catalog_projection()
+            .expect("first plugin-list report should retain the canonical projection"),
+        second
+            .plugin_catalog_projection()
+            .expect("second plugin-list report should retain the canonical projection"),
+    ));
+    assert!(Arc::ptr_eq(
+        first
+            .plugin_catalog_projection()
+            .expect("plugin-list should retain the shared catalog projection"),
+        catalog.projection(),
+    ));
+}
+
+#[test]
+fn plugin_list_reports_missing_catalog_capability() {
+    let report = run_commandlet_with_capabilities(
+        parse_request(["--run", "plugin-list"]),
+        std::iter::empty::<String>(),
+    );
+
+    assert_eq!(report.exit_code(), CommandletExitCode::MissingCapability);
+    assert_eq!(report.status(), CommandletStatus::MissingCapabilities);
+    assert!(report
+        .error()
+        .is_some_and(|error| error.contains("plugin.catalog.read")));
 }
 
 #[test]

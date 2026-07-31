@@ -14,17 +14,17 @@ pub(in crate::graphics::runtime::render_framework) fn set_pipeline_asset(
     pipeline: RenderPipelineHandle,
 ) -> Result<(), RenderFrameworkError> {
     let _operation_guard = framework.lock_operation();
-    let mut state = framework.lock_state();
-    let pipeline_asset =
-        state
-            .pipelines
-            .get(&pipeline)
-            .cloned()
-            .ok_or(RenderFrameworkError::UnknownPipeline {
+    let (pipeline_asset, capabilities) = {
+        let state = framework.lock_state();
+        let pipeline_asset = state.pipelines.get(&pipeline).cloned().ok_or(
+            RenderFrameworkError::UnknownPipeline {
                 pipeline: pipeline.raw(),
-            })?;
-    let capabilities = state.stats.capabilities.clone();
+            },
+        )?;
+        (pipeline_asset, state.stats.capabilities.clone())
+    };
     let compiled = compile_pipeline_for_validation(&pipeline_asset)?;
+    let mut state = framework.lock_state();
     state
         .renderer
         .validate_compiled_pipeline_executors(&compiled)
@@ -66,6 +66,26 @@ mod tests {
     use super::set_pipeline_asset;
 
     #[test]
+    fn set_pipeline_asset_compiles_outside_framework_state_lock() {
+        let source = include_str!("set_pipeline_asset.rs");
+        let compile = source
+            .find(concat!(
+                "let compiled = compile_",
+                "pipeline_for_validation"
+            ))
+            .expect("pipeline selection should compile the validation graph");
+        let snapshot = source[..compile]
+            .rfind(concat!("let (pipeline_asset, capabilities) = ", "{"))
+            .expect("pipeline asset should be snapshotted in a short lock scope");
+        let relock = compile
+            + source[compile..]
+                .find(concat!("let mut state = framework.", "lock_state();"))
+                .expect("framework state should be reacquired after compilation");
+
+        assert!(snapshot < compile && compile < relock);
+    }
+
+    #[test]
     fn set_pipeline_asset_revalidates_stale_graph_executor_contract() {
         let framework =
             WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
@@ -87,13 +107,15 @@ mod tests {
                 "stale-invalid-executor-feature",
                 Vec::new(),
                 Vec::new(),
-                vec![RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "stale-invalid-executor-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("custom.stale-missing-executor")
-                .with_side_effects()],
+                vec![
+                    RenderFeaturePassDescriptor::new(
+                        RenderPassStage::PostProcess,
+                        "stale-invalid-executor-pass",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("custom.stale-missing-executor")
+                    .with_side_effects(),
+                ],
             ));
         framework
             .state

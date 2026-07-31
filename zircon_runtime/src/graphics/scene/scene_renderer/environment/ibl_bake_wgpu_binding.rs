@@ -1,9 +1,9 @@
 use wgpu::util::DeviceExt;
 
 use super::ibl_bake_wgpu_command_plan::{
-    ibl_bake_wgpu_bind_group_layout_entries, IblBakeWgpuCommandPlan, IblBakeWgpuOutputBindingKind,
-    IblBakeWgpuOutputPlan, IBL_BAKE_BINDING_OUTPUT, IBL_BAKE_BINDING_PARAMS,
-    IBL_BAKE_BINDING_SOURCE_CUBEMAP, IBL_BAKE_BINDING_SOURCE_SAMPLER,
+    IBL_BAKE_BINDING_OUTPUT, IBL_BAKE_BINDING_PARAMS, IBL_BAKE_BINDING_SOURCE_CUBEMAP,
+    IBL_BAKE_BINDING_SOURCE_SAMPLER, IblBakeWgpuCommandPlan, IblBakeWgpuOutputBindingKind,
+    IblBakeWgpuOutputPlan, ibl_bake_wgpu_bind_group_layout_entries,
 };
 
 pub(in crate::graphics::scene::scene_renderer) struct IblBakeWgpuBindGroupLayouts {
@@ -175,14 +175,14 @@ fn output_kind_from_plan(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        IblBakeArtifactContents, IblBakeArtifactRequest, ProceduralSkyParams,
-        IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
+        IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactContents, IblBakeArtifactRequest,
+        ProceduralSkyParams,
     };
     use crate::graphics::backend::RenderBackend;
 
     use super::super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
     use super::super::ibl_bake_wgpu_command_plan::{
-        ibl_bake_wgpu_command_plan_for_request, IblBakeWgpuOutputPlan,
+        IblBakeWgpuOutputPlan, ibl_bake_wgpu_command_plan_for_request,
     };
     use super::*;
 
@@ -264,10 +264,12 @@ mod tests {
         );
 
         assert!(result.is_err());
-        assert!(result
-            .err()
-            .unwrap()
-            .contains("expects StorageTexture2DArray output binding"));
+        assert!(
+            result
+                .err()
+                .unwrap()
+                .contains("expects StorageTexture2DArray output binding")
+        );
     }
 
     fn request(

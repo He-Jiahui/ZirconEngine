@@ -177,6 +177,23 @@ fn gizmo_overlay_extract_appends_retained_after_immediate_buffers() {
     assert_eq!(overlay.lines[1].end, Vec3::Y + Vec3::Z);
 }
 
+#[test]
+fn gizmo_extract_reuses_transform_matrices_and_streams_circle_segments() {
+    let source = include_str!("../../core/framework/gizmos/extract.rs");
+    assert!(
+        !source.contains("transform.matrix().transform_point3"),
+        "gizmo extraction must not rebuild a transform matrix per point"
+    );
+    assert!(
+        !source.contains("transform.matrix().transform_vector3"),
+        "gizmo extraction must not rebuild a transform matrix per vector"
+    );
+    assert!(
+        !source.contains("Vec::with_capacity(segments)"),
+        "circle extraction must stream segments without a temporary point allocation"
+    );
+}
+
 fn red() -> Vec4 {
     Vec4::new(1.0, 0.0, 0.0, 1.0)
 }

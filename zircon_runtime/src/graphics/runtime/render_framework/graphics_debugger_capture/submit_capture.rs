@@ -4,7 +4,7 @@ use crate::core::framework::render::RenderViewportHandle;
 use crate::graphics::backend::GraphicsDebuggerCaptureStop;
 
 use super::super::render_framework_state::RenderFrameworkState;
-use super::super::wgpu_render_framework::WgpuRenderFramework;
+use super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 
 pub(in crate::graphics::runtime::render_framework) fn begin_graphics_debugger_capture(
     state: &mut RenderFrameworkState,
@@ -49,7 +49,7 @@ pub(in crate::graphics::runtime::render_framework) fn record_graphics_debugger_c
 }
 
 pub(in crate::graphics::runtime::render_framework) fn finish_active_capture_and_relock<'a>(
-    framework: &'a WgpuRenderFramework,
+    framework: &'a dyn WgpuRenderFrameworkAccess,
     mut state: MutexGuard<'a, RenderFrameworkState>,
     active_capture: bool,
     frame_generation: Option<u64>,

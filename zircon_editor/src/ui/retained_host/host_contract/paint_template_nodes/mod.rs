@@ -85,6 +85,7 @@ pub(super) use template_node_pipeline::{
     draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
     TemplateNodePaintTransform,
 };
+pub(super) use template_viewport_scene::is_viewport_fallback_scene_node;
 
 #[cfg(test)]
 pub(crate) use render_commands::paint_runtime_render_commands_for_test;

@@ -271,6 +271,69 @@ fn execution_record_audits_planned_compute_workloads_against_dispatches() {
 }
 
 #[test]
+fn compute_workload_audit_preserves_matching_then_unexpected_dispatch_order() {
+    let mut record = RenderGraphExecutionRecord::default();
+    let planned = RenderGraphComputeWorkload::fixed("target-pipeline", [4, 4, 1], [1, 1, 1]);
+    let dispatch = |pass_name: &str, executor_id: &str, pipeline_label: &str| {
+        RenderGraphComputeDispatchRecord::new(
+            pass_name,
+            executor_id,
+            pipeline_label,
+            [4, 4, 1],
+            [1, 1, 1],
+            Vec::new(),
+        )
+    };
+    let dispatches = [
+        dispatch("foreign-before", "foreign.before", "foreign-pipeline"),
+        dispatch("target", "target.executor", "target-pipeline"),
+        dispatch("foreign-middle", "foreign.middle", "foreign-pipeline"),
+        dispatch("target", "target.executor", "duplicate-a"),
+        dispatch("target", "target.executor", "duplicate-b"),
+        dispatch("foreign-after", "foreign.after", "foreign-pipeline"),
+    ];
+
+    record.audit_compute_workload(
+        "target",
+        "target.executor",
+        Some(&planned),
+        dispatch_context(),
+        &dispatches,
+    );
+
+    assert_eq!(
+        record
+            .compute_workload_audit()
+            .iter()
+            .map(|audit| (audit.status, audit.pass_name.as_str()))
+            .collect::<Vec<_>>(),
+        vec![
+            (RenderGraphComputeWorkloadAuditStatus::Matched, "target"),
+            (
+                RenderGraphComputeWorkloadAuditStatus::UnexpectedDispatch,
+                "target"
+            ),
+            (
+                RenderGraphComputeWorkloadAuditStatus::UnexpectedDispatch,
+                "target"
+            ),
+            (
+                RenderGraphComputeWorkloadAuditStatus::UnexpectedDispatch,
+                "foreign-before"
+            ),
+            (
+                RenderGraphComputeWorkloadAuditStatus::UnexpectedDispatch,
+                "foreign-middle"
+            ),
+            (
+                RenderGraphComputeWorkloadAuditStatus::UnexpectedDispatch,
+                "foreign-after"
+            ),
+        ]
+    );
+}
+
+#[test]
 fn execution_record_audits_zero_indirect_arg_workload_as_zero_groups() {
     let mut record = RenderGraphExecutionRecord::default();
     let context =

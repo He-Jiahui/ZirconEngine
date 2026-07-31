@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
-use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::project::PersistedAssetReference;
 
 use crate::asset::{AssetReference, ReferenceResolutionError, ZMaterialDocument};
 
-use super::codec::{decode_document, encode_document};
+use super::codec::{ProjectDocumentArtifact, decode_document, encode_document};
 use crate::asset::assets::ProjectDocumentError;
+use crate::asset::assets::material::validate_zmaterial_version;
 
 #[derive(Deserialize, Serialize)]
 #[serde(bound(serialize = "R: Serialize", deserialize = "R: Deserialize<'de>"))]
@@ -31,27 +31,25 @@ struct MaterialTextureDocument<R> {
     _rest: toml::Table,
 }
 
-pub(in crate::asset::assets) fn validate_material(document: &str) -> Result<(), toml::de::Error> {
-    let document = toml::from_str::<MaterialAuthoringDocument<PersistedAssetReference>>(document)?;
-    if document.version != 2 {
-        return Err(toml::de::Error::custom(format!(
-            "zmaterial v2 document version `{}` is unsupported",
-            document.version
-        )));
-    }
-    let _ = (&document.shader, document.parent.as_ref());
-    Ok(())
-}
-
 pub(in crate::asset::assets) fn deserialize_material(
     document: &str,
+    resolver: impl FnMut(&PersistedAssetReference) -> Result<AssetReference, ReferenceResolutionError>,
+) -> Result<ZMaterialDocument, ProjectDocumentError> {
+    deserialize_material_artifact(ProjectDocumentArtifact::parse(document)?, resolver)
+}
+
+pub(in crate::asset) fn deserialize_material_artifact(
+    document: ProjectDocumentArtifact,
     mut resolver: impl FnMut(
         &PersistedAssetReference,
     ) -> Result<AssetReference, ReferenceResolutionError>,
 ) -> Result<ZMaterialDocument, ProjectDocumentError> {
-    let document = toml::from_str::<MaterialAuthoringDocument<PersistedAssetReference>>(document)?;
+    let document =
+        document.into_document::<MaterialAuthoringDocument<PersistedAssetReference>>()?;
     let document = map_references(document, |reference| resolver(&reference))?;
-    decode_document(document)
+    let material: ZMaterialDocument = decode_document(document)?;
+    validate_zmaterial_version(material.version)?;
+    Ok(material)
 }
 
 pub(in crate::asset::assets) fn serialize_material(
@@ -60,6 +58,7 @@ pub(in crate::asset::assets) fn serialize_material(
         &AssetReference,
     ) -> Result<PersistedAssetReference, ReferenceResolutionError>,
 ) -> Result<String, ProjectDocumentError> {
+    validate_zmaterial_version(value.version)?;
     let document = encode_document::<_, MaterialAuthoringDocument<AssetReference>>(value)?;
     let document = map_references(document, |reference| resolver(&reference))?;
     Ok(toml::to_string_pretty(&document)?)
@@ -92,6 +91,7 @@ fn map_references<A, B>(
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
     use std::collections::BTreeMap;
 
     use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
@@ -100,6 +100,36 @@ mod tests {
     use super::*;
     use crate::asset::assets::{MaterialTextureSlotValue, ZMaterialQueueOverride};
     use crate::asset::{AssetUri, AssetUuid};
+
+    #[test]
+    fn public_serializer_rejects_unsupported_material_version_before_resolution() {
+        let material = ZMaterialDocument {
+            version: 1,
+            name: None,
+            shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr").unwrap()),
+            parent: None,
+            options: BTreeMap::new(),
+            overrides: BTreeMap::new(),
+            textures: BTreeMap::new(),
+            queue: None,
+            editor: toml::Table::new(),
+            validation_diagnostics: Vec::new(),
+        };
+        let resolver_called = Cell::new(false);
+
+        let error = material
+            .to_project_toml_string(|reference| {
+                resolver_called.set(true);
+                Ok(PersistedAssetReference::builtin(reference.locator.clone()))
+            })
+            .unwrap_err();
+
+        assert!(!resolver_called.get());
+        assert!(matches!(error, ProjectDocumentError::Deserialize { .. }));
+        assert!(error.to_string().contains(
+            "zmaterial v2 document version `1` is unsupported; migrate material files to version = 2"
+        ));
+    }
 
     #[test]
     fn builtin_and_project_references_round_trip_across_every_material_reference_field() {

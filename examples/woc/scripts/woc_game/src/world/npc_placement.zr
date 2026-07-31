@@ -1,0 +1,80 @@
+// Static built-in NPC placement from the Sim constructor. Dynamic NPCs remain
+// system-owned and are deliberately not surface-placed through this owner.
+
+var catalog = %import("generated/m3_npc_placement");
+var safePosition = %import("world/safe_position");
+var terrainContent = %import("world/terrain_content");
+var terrainGround = %import("world/terrain_ground");
+
+staticNpcMinimumHeight(required: bool): float {
+    if (!required) {
+        throw "woc static NPC minimum height is required";
+    }
+    return terrainContent.waterLevel(true) + 0.6;
+}
+
+pub staticNpcCount(required: bool): int {
+    return catalog.staticNpcCount(required);
+}
+
+pub staticNpcId(index: int, required: bool): string {
+    return catalog.staticNpcId(index, required);
+}
+
+pub staticNpcFacing(index: int, required: bool): float {
+    return catalog.facing(index, required);
+}
+
+pub finalStaticNpcCoordinate(seed: uint, index: int, axis: int, required: bool): float {
+    if (!required || (axis != 1 && axis != 2)) {
+        throw "woc final static NPC coordinate is invalid";
+    }
+    var rawX = catalog.rawCoordinate(index, 1, true);
+    var rawZ = catalog.rawCoordinate(index, 2, true);
+    return safePosition.findBuiltinSafePositionCoordinate(
+        seed, rawX, rawZ, staticNpcMinimumHeight(true), axis, true
+    );
+}
+
+pub finalStaticNpcGroundY(seed: uint, index: int, required: bool): float {
+    if (!required) {
+        throw "woc final static NPC ground height is required";
+    }
+    var x = finalStaticNpcCoordinate(seed, index, 1, true);
+    var z = finalStaticNpcCoordinate(seed, index, 2, true);
+    return terrainGround.builtinGroundHeight(x, z, seed, true);
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub contractTest(): int {
+    var seed = <uint>20061;
+    if (catalog.contractTest() != 1 || staticNpcCount(true) != 31 ||
+        staticNpcId(0, true) != "the_merchant" ||
+        staticNpcId(30, true) != "brother_halven_marsh") {
+        return -1;
+    }
+    if (!closeEnough(finalStaticNpcCoordinate(seed, 0, 1, true), 1.3374754980036003) ||
+        !closeEnough(finalStaticNpcCoordinate(seed, 0, 2, true), 8.04001394108025) ||
+        !closeEnough(finalStaticNpcGroundY(seed, 0, true), 1.5)) {
+        return -2;
+    }
+    if (finalStaticNpcCoordinate(seed, 1, 1, true) != 4.0 ||
+        finalStaticNpcCoordinate(seed, 1, 2, true) != 6.0 ||
+        finalStaticNpcGroundY(seed, 1, true) != 1.5) {
+        return -3;
+    }
+    if (!closeEnough(finalStaticNpcCoordinate(seed, 2, 1, true), -5.6625245019963995) ||
+        !closeEnough(finalStaticNpcCoordinate(seed, 2, 2, true), 1.540013941080251) ||
+        !closeEnough(finalStaticNpcGroundY(seed, 2, true), 1.5) ||
+        !closeEnough(staticNpcFacing(2, true), 1.5707963267948966)) {
+        return -4;
+    }
+    return 1;
+}

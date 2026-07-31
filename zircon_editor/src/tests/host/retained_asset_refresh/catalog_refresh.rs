@@ -20,6 +20,7 @@ fn preview_change_only_syncs_catalog_without_touching_runtime_resources() {
         plan,
         AssetBackendRefreshPlan {
             sync_catalog: true,
+            refresh_visible_asset_previews: true,
             mark_paint_only_dirty: true,
             ..AssetBackendRefreshPlan::default()
         }

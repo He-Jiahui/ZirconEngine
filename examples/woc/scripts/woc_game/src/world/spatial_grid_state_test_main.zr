@@ -1,0 +1,78 @@
+var console = %import("zr.system.console");
+var container = %import("zr.system.container");
+var spatial = %import("world/spatial_grid_state");
+
+contains(result: spatial.SpatialQueryResult, id: uint): bool {
+    var index = 0;
+    while (index < result.ids.length) {
+        if (<uint>result.ids[index] == id) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+closeEnough(value: float, expected: float): bool {
+    var difference = value - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+var result = 1;
+var grid = new spatial.SpatialGridState(32.0);
+var origin = new spatial.SpatialEntity(<uint>1, 0.0, 0.0);
+var negative = new spatial.SpatialEntity(<uint>2, -33.0, 0.0);
+var far = new spatial.SpatialEntity(<uint>3, 100.0, 0.0);
+spatial.insert(grid, origin);
+spatial.insert(grid, negative);
+spatial.insert(grid, far);
+var nearby = new spatial.SpatialQueryResult();
+spatial.queryInRadius(grid, 0.0, 0.0, 10.0, nearby);
+if (nearby.ids.length != 1 || !contains(nearby, <uint>1) ||
+    !closeEnough(<float>nearby.distanceSquares[0], 0.0)) {
+    result = -1;
+}
+spatial.queryInRadius(grid, -32.0, 0.0, 2.0, nearby);
+if (result == 1 && (nearby.ids.length != 1 || !contains(nearby, <uint>2) ||
+    !closeEnough(<float>nearby.distanceSquares[0], 1.0))) {
+    result = -2;
+}
+
+origin.x = 500.0;
+origin.z = -700.0;
+spatial.update(grid, origin);
+spatial.queryInRadius(grid, 500.0, -700.0, 2.0, nearby);
+if (result == 1 && (nearby.ids.length != 1 || !contains(nearby, <uint>1))) {
+    result = -3;
+}
+spatial.queryInRadius(grid, 0.0, 0.0, 2.0, nearby);
+if (result == 1 && contains(nearby, <uint>1)) {
+    result = -4;
+}
+spatial.remove(grid, origin);
+spatial.queryInRadius(grid, 500.0, -700.0, 2.0, nearby);
+if (result == 1 && nearby.ids.length != 0) {
+    result = -5;
+}
+
+var refreshed = new spatial.SpatialEntity(<uint>4, 0.0, 0.0);
+spatial.insert(grid, refreshed);
+refreshed.x = 40.0;
+var refreshItems = new container.Array<spatial.SpatialEntity>();
+refreshItems.add(refreshed);
+spatial.refresh(grid, refreshItems);
+spatial.queryInRadius(grid, 40.0, 0.0, 2.0, nearby);
+if (result == 1 && (nearby.ids.length != 1 || !contains(nearby, <uint>4))) {
+    result = -6;
+}
+
+var drifted = new spatial.SpatialEntity(<uint>5, 32.5, 0.0);
+spatial.insert(grid, drifted);
+drifted.x = 31.5;
+spatial.queryInRadius(grid, 0.0, 0.0, 32.0, nearby);
+if (result == 1 && !contains(nearby, <uint>5)) {
+    result = -7;
+}
+
+console.printLine("m3-spatial-grid-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

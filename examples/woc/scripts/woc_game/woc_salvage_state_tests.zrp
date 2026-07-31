@@ -1,0 +1,6 @@
+{
+  "name": "woc_salvage_state_tests",
+  "source": "src",
+  "binary": "bin-salvage-state-tests",
+  "entry": "progression/salvage_state_test_main"
+}

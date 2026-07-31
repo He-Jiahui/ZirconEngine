@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var itemLevelCatalog = %import("progression/item_level_catalog_state");
+
+console.printLine("m5-item-level-catalog-state-test");
+var result = itemLevelCatalog.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

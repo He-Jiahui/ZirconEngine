@@ -48,6 +48,23 @@ fn spawn_node_assigns_one_based_kind_ordinals() {
 }
 
 #[test]
+fn spawn_node_kind_ordinals_survive_removal_and_world_deserialization() {
+    let mut world = World::empty();
+    let first = world.spawn_node(NodeKind::Mesh);
+    let removed = world.spawn_node(NodeKind::Mesh);
+    assert!(world.remove_entity(removed));
+    let replacement = world.spawn_node(NodeKind::Mesh);
+    assert_eq!(world.get::<Name>(replacement).unwrap().0, "Mesh 2");
+
+    let encoded = serde_json::to_string(&world).unwrap();
+    let mut restored: World = serde_json::from_str(&encoded).unwrap();
+    let after_restore = restored.spawn_node(NodeKind::Mesh);
+
+    assert_eq!(world.get::<Name>(first).unwrap().0, "Mesh 1");
+    assert_eq!(restored.get::<Name>(after_restore).unwrap().0, "Mesh 3");
+}
+
+#[test]
 fn hierarchy_updates_world_transform() {
     let mut world = World::new();
     let parent = world.spawn_node(NodeKind::Cube);
@@ -63,6 +80,24 @@ fn hierarchy_updates_world_transform() {
         .unwrap();
     world.set_parent_checked(child, Some(parent)).unwrap();
 
+    assert_eq!(
+        world.world_transform(child).unwrap().translation,
+        Vec3::new(7.0, 0.0, 0.0)
+    );
+}
+
+#[test]
+fn local_transform_reads_one_component_without_projecting_a_scene_node() {
+    let mut world = World::new();
+    let parent = world.spawn_node(NodeKind::Cube);
+    let child = world.spawn_node(NodeKind::Mesh);
+    let parent_transform = Transform::from_translation(Vec3::new(5.0, 0.0, 0.0));
+    let child_transform = Transform::from_translation(Vec3::new(2.0, 0.0, 0.0));
+    world.update_transform(parent, parent_transform).unwrap();
+    world.update_transform(child, child_transform).unwrap();
+    world.set_parent_checked(child, Some(parent)).unwrap();
+
+    assert_eq!(world.local_transform(child), Some(child_transform));
     assert_eq!(
         world.world_transform(child).unwrap().translation,
         Vec3::new(7.0, 0.0, 0.0)

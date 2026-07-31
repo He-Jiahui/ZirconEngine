@@ -22,6 +22,7 @@ status: planned
 # 16 控制台入口参数与 zircon_hub 交互
 
 - 失败交接（`open / 待 M2 统一命令框架修复`）：[`16/failure-2026-07-11-migrate-assets-commandlet-registry.md`](16/failure-2026-07-11-migrate-assets-commandlet-registry.md)
+- Editor04 P1 联合参数失败交接（`open / 待修复：runtime_preview 尚未消费`）：[`16/failure-2026-07-18-runtime-preview-play-scene-report-args.md`](16/failure-2026-07-18-runtime-preview-play-scene-report-args.md)
 - fixed 已修复：[command-registry-hard-cut-cli](08/fixed-2026-07-12-command-registry-hard-cut-cli.md)
 
 ## 参照证据（dev/）
@@ -127,6 +128,10 @@ zircon_runtime_interface/src/hub_protocol/   # 信箱 JSON DTO（11 壳，双端
 ## 风险与开放问题
 
 - headless 下编辑器模块链的 Graphics/UI 依赖是最大不确定项——M2 前置会签；最坏情形 commandlet 走 runtime `Headless` profile + 编辑器核心服务子集（context/commands/jobs/asset），工作台族模块不激活，能力缺失的命令退出码 3 诚实拒绝。
+
+## 2026-07-30 Performance01 current-source handoff
+
+`zircon_editor/src/core/commandlet/**`当前3/3、829行、10 tests已按稳定SHA逐文件复读，headless在GUI host前早退且plugin-list共享canonical projection。PERF-MVP-598要求统一launch parser只保留一个args owner，并让parse/run消费同一immutable command registry generation与typed token，消除两次registry build和线性name/route scan；PERF-MVP-599要求migrate-assets复用shared runtime report并向locked stdout流式序列化，消除逐row第二owner与完整JSON String。同步task wall在headless进程合理，不写成GUI帧卡顿。rustfmt/diff GREEN，managed Cargo、subprocess及1M-row RSS/first-byte门仍待；证据见`../../performance/01/2026-07-30-editor-core-commandlet-current-review.md`。
 - 文件信箱协议的实时性（hub 等待轮询间隔）与锁心跳的进程崩溃窗口：轮询 250ms/心跳 2s/判死 6s 初值，实测调参记状态节。
 - `--operation` 族与 `--run` 并存的退役时点：M2 记债，待外部脚本迁移证据（hub/CI 无引用）后删除——硬切换纪律，不长期双轨。
 
@@ -135,3 +140,17 @@ zircon_runtime_interface/src/hub_protocol/   # 信箱 JSON DTO（11 壳，双端
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
 | M1/M2 | 命令注册表硬切后的 CLI 宿主与历史请求迁移 | `已修复-目标行为门通过` | 2026-07-12 | [`08/fixed-2026-07-12-command-registry-hard-cut-cli.md`](08/fixed-2026-07-12-command-registry-hard-cut-cli.md)：入口已迁到 `EditorHostEventController` 和 Context 唯一 registry，旧 `--operation-stack`/`QueryOperationStack` 零残留；`--operation-history` 在 history factory 未安装时诚实透传 `OperationHistoryPendingFactory`。目标测试 14/14 通过；聚合 profile 门剩余 `RichTable*` E0432 属于并发 Runtime Text。 |
+| M1 | runtime_preview `--play-scene/--play-report-pipe` 联合参数 | `open / 失败已接收` | 2026-07-18 | Editor04 P1 已生成版本化 DynamicScene 快照与 exact 参数，但当前 `RuntimeSessionStartupArgs` 将两 flag 留在 `remaining_args`，`runtime.rs` 随即按 unknown argument 拒绝，故 Process backend 尚不能装配为默认后端。根因与验收见 [`16/failure-2026-07-18-runtime-preview-play-scene-report-args.md`](16/failure-2026-07-18-runtime-preview-play-scene-report-args.md)。 |
+| M2 | CLI operation 的 EditorState Context 构造硬切 | `实现完成-静态门通过-Cargo待协调器解阻` | 2026-07-18 | [`16/failure-2026-07-18-editor-state-context-constructor-hardcut.md`](16/failure-2026-07-18-editor-state-context-constructor-hardcut.md)：`run_editor_operation` 先解析唯一 `EditorManager`，再把其 `Arc<EditorContext>` 注入 `EditorState::with_default_selection_with_context`；未恢复隐式 Context 构造兼容入口。 |
+| M1.2 | runtime_preview Play startup 单一动态入口复核 | `依赖阻塞 / 禁止 parser-only 静默消费` | 2026-07-19 | 当前未提交的 Runtime10 reactive-wake V3 原子范围冻结 `ZrRuntimeApiV3` 与 `ZrRuntimeSessionConfigV2`；Editor16 不吸收该外部范围。静态 TDD 尝试证明仅加 typed fields 会使现有 `runtime.rs` 静默忽略 override，已撤回且 `runtime_session_args.rs` 恢复零 diff。完整 consumer 待 Runtime10 原子 SHA 与 Coordinator01 节点 `516615` 解阻后一次落地，详见对应 failure 的 2026-07-19 记录。 |
+
+## Code Review 建议 (2026-07-31)
+
+### 与代码现状不符，需修订
+
+- 架构设计「模块布局」把 `zircon_app/src/entry/cli/` 列为四文件 `mod.rs / launch_args.rs / parser.rs / subprocess.rs`。当前该目录实读只有 `launch_args.rs` 与 `mod.rs` 两个文件，`parser.rs` 与 `subprocess.rs` 尚未拆出。M1 切片 1.1「三段解析迁入合一」与切片 1.2「`subprocess_args` 透传」应据此标注为「解析与子进程逻辑当前仍并在 `launch_args.rs`（或 `entry_runner/editor.rs`），parser/subprocess 独立文件待拆分」，避免读者以为四文件已成型。
+- 架构设计「模块布局」列出的 `zircon_editor/src/core/hub_link/`（`mod.rs / handshake.rs / instance_lock.rs / recent_writeback.rs`）与 `zircon_runtime_interface/src/hub_protocol/`（信箱 JSON DTO）两处目前均不存在。M3「hub 协议 v1」整段仍属未落地，产出记录也无 M3 条目——与 status `planned` 一致，无需改叙述，但建议在 M3 里程碑前显式标注「hub_link/hub_protocol 尚未创建，为 M3 首个交付」，与已落地的 `core/commandlet/`（M2 相关）形成对照。
+
+### 设计优化建议
+
+- `core/commandlet/` 已落地（产出记录与 2026-07-30 性能复核均确认 `core/commandlet/** 3/3`、plugin-list 共享 canonical projection），说明 M2 Commandlet 框架的骨架已存在于 owner 目录，而 CLI 侧 `entry/cli/` 仍是两文件雏形。建议 M1/M2 里程碑顺序在文档中互相引用当前落点：M2 的 `--run` 分派已有 commandlet runner 承载，M1 的 `EditorLaunchArgs` 统一事实源反而是当前更薄弱的一环，可提示执行者优先补齐 `entry/cli/` 的 parser 拆分与参数矩阵文档 `docs/zircon_app/cli.md`。

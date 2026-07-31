@@ -1,0 +1,76 @@
+var rules = %import("instances/drowned_litany_rite_rules");
+
+if (rules.intensityIndex("easy", true) != 0 || rules.intensityIndex("medium", true) != 1 ||
+    rules.intensityIndex("hard", true) != 2 || rules.intensityIndex("unknown", true) != -1 ||
+    rules.intensityLength(0, true) != 4 || rules.intensityLength(1, true) != 5 ||
+    rules.intensityLength(2, true) != 6 || rules.intensityTries(0, true) != 3 ||
+    rules.intensityTries(1, true) != 2 || rules.intensityTries(2, true) != 1 ||
+    rules.intensityPlaybacks(0, true) != 3 || rules.intensityPlaybacks(1, true) != 2 ||
+    rules.intensityPlaybacks(2, true) != 1 || rules.intensityCeilingTier(0, true) != 0 ||
+    rules.intensityCeilingTier(1, true) != 1 || rules.intensityCeilingTier(2, true) != 2 ||
+    rules.mistakesAllowedForIntensity(0, true) != 2 ||
+    rules.mistakesAllowedForIntensity(1, true) != 1 ||
+    rules.mistakesAllowedForIntensity(2, true) != 0) {
+    return -1;
+}
+
+if (rules.shrineKind(0, true) != "rite_shrine_bell" ||
+    rules.shrineKind(1, true) != "rite_shrine_candle" ||
+    rules.shrineKind(2, true) != "rite_shrine_reed" ||
+    rules.shrineKind(3, true) != "rite_shrine_skull" ||
+    rules.sequenceShrineKind(<uint>0, 0, true) != "rite_shrine_skull" ||
+    rules.sequenceShrineKind(<uint>0, 3, true) != "rite_shrine_reed" ||
+    rules.sequenceShrineKind(<uint>1, 0, true) != "rite_shrine_bell" ||
+    rules.sequenceShrineKind(<uint>1, 2, true) != "rite_shrine_skull" ||
+    rules.sequenceShrineKind(<uint>20061, 0, true) != "rite_shrine_candle" ||
+    rules.sequenceShrineKind(<uint>20061, 1, true) != "rite_shrine_bell" ||
+    rules.sequenceShrineKind(<uint>20061, 4, true) != "rite_shrine_skull") {
+    return -2;
+}
+
+if (rules.playbackStepSeconds(true) != 0.6 || rules.playbackRepeatGapSeconds(true) != 1.2 ||
+    !rules.playbackTimerDue(0.05, 0.05, true) ||
+    rules.playbackTimerDue(0.10, 0.05, true) ||
+    rules.nextPlaybackIndex(2, 4, true) != 3 || rules.nextPlaybackIndex(3, 4, true) != 0 ||
+    rules.nextPlaybackLoop(2, 3, 4, true) != 3 ||
+    rules.nextPlaybackLoop(3, 1, 4, true) != 2 ||
+    !rules.playbackContinues(2, 3, true) || rules.playbackContinues(3, 3, true) ||
+    rules.nextPlaybackTimerAfterPulse(2, 3, 4, 3, true) != 0.6 ||
+    rules.nextPlaybackTimerAfterPulse(3, 1, 4, 3, true) != 1.2 ||
+    rules.nextPlaybackTimerAfterPulse(3, 2, 4, 3, true) != 0.6 ||
+    rules.retryPlaybackLoop(3, true) != 2 || rules.retryPlaybackLoop(1, true) != 0 ||
+    rules.retryPlaybackTimer(true) != 1.2) {
+    return -3;
+}
+
+if (rules.baseTierForMistakes(0, 2, true) != 2 ||
+    rules.baseTierForMistakes(1, 2, true) != 1 ||
+    rules.baseTierForMistakes(3, 2, true) != 0 ||
+    rules.completionTier(0, 2, 0, true) != 0 ||
+    rules.completionTier(0, 1, 1, true) != 1 ||
+    rules.completionTier(0, 0, 2, true) != 2 ||
+    rules.completionTier(1, 1, 2, true) != 1 ||
+    !rules.mistakeExhaustsAttempts(2, 1, true) ||
+    rules.mistakeExhaustsAttempts(1, 1, true) ||
+    rules.wrongTouchDamage(1000, true) != 30 || rules.wrongTouchDamage(1, true) != 1) {
+    return -4;
+}
+
+if (rules.baseCopper(18, 30, true) != 24 || rules.baseCopper(32, 48, true) != 40 ||
+    rules.riteBonusCopper(24, 0, true) != 0 || rules.riteBonusCopper(24, 1, true) != 12 ||
+    rules.riteBonusCopper(24, 2, true) != 24 || rules.riteBonusMarks(0, true) != 0 ||
+    rules.riteBonusMarks(1, true) != 2 || rules.riteBonusMarks(2, true) != 4) {
+    return -5;
+}
+
+if (rules.riteSiteCoordinate(0.0, 52.0, 0, 1, true) != 0.0 ||
+    rules.riteSiteCoordinate(0.0, 52.0, 0, 2, true) != 40.0 ||
+    rules.riteSiteCoordinate(0.0, 52.0, 1, 2, true) != 32.0 ||
+    rules.riteSiteCoordinate(0.0, 52.0, 2, 2, true) != 48.0 ||
+    rules.riteSiteCoordinate(0.0, 52.0, 3, 1, true) != -8.0 ||
+    rules.riteSiteCoordinate(0.0, 52.0, 4, 1, true) != 8.0 ||
+    rules.contractTest() != 1) {
+    return -6;
+}
+
+return 0;

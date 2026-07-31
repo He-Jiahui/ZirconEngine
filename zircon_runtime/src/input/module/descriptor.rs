@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
+use crate::core::framework::input::INPUT_MODULE_NAME;
 use crate::core::framework::input::{InputActionManager, InputManager};
+use crate::core::framework::platform::PLATFORM_MODULE_NAME;
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
@@ -8,12 +10,10 @@ use crate::core::{
     ServiceKind, StartupMode,
 };
 use crate::engine_module::{factory, qualified_name};
-use crate::platform::PLATFORM_MODULE_NAME;
 
 use super::super::runtime::{DefaultInputManager, InputDriver};
 use super::InputConfig;
 
-pub const INPUT_MODULE_NAME: &str = "InputModule";
 pub const INPUT_DRIVER_NAME: &str = "InputModule.Driver.InputDriver";
 pub const INPUT_MANAGER_NAME: &str = crate::core::manager::INPUT_MANAGER_NAME;
 pub const INPUT_ACTION_MANAGER_NAME: &str = crate::core::manager::INPUT_ACTION_MANAGER_NAME;
@@ -23,7 +23,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
 }
 
 pub fn module_descriptor_with_config(config: InputConfig) -> ModuleDescriptor {
-    let action_config = config.clone();
+    let action_config = config;
     ModuleDescriptor::new(
         INPUT_MODULE_NAME,
         "High-level input routing and action maps",

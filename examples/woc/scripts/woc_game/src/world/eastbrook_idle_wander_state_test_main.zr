@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var wander = %import("world/eastbrook_idle_wander_state");
+
+var result = wander.contractTest();
+console.printLine("m8-eastbrook-idle-wander-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

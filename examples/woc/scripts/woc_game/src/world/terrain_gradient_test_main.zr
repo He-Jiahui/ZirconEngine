@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var terrainGradient = %import("world/terrain_gradient");
+
+console.printLine("m3-terrain-gradient-test");
+var result = terrainGradient.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

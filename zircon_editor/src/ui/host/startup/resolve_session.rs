@@ -6,6 +6,7 @@ use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocum
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
+use super::create_or_open::restored_project_status_message;
 
 impl EditorUiHost {
     pub fn resolve_startup_session(&self) -> Result<EditorStartupSessionDocument, EditorError> {
@@ -68,6 +69,8 @@ impl EditorUiHost {
             open_builtin_view: None,
             recent_projects,
             draft: NewProjectDraft::renderable_empty_default(),
+            creation_validation: String::new(),
+            can_open_existing: false,
             status_message,
         })
     }
@@ -86,6 +89,8 @@ fn component_showcase_startup_session(
             zircon_runtime::profile_scope!("editor", "startup_session", "build_default_draft");
             NewProjectDraft::renderable_empty_default()
         },
+        creation_validation: "Checking project location…".to_string(),
+        can_open_existing: false,
         status_message,
     }
 }
@@ -107,15 +112,4 @@ fn recent_project_validation_message(validation: RecentProjectValidation) -> &'s
         RecentProjectValidation::InvalidManifest => "project manifest is invalid",
         RecentProjectValidation::InvalidProject => "project is invalid",
     }
-}
-
-fn restored_project_status_message(document: &EditorProjectDocument) -> String {
-    let Some(diagnostic) = document.workspace_restore_diagnostics.first() else {
-        return "Restored recent project".to_string();
-    };
-    format!(
-        "Restored recent project with default layout; failed to restore workspace layout from {}: {}",
-        diagnostic.path.display(),
-        diagnostic.message
-    )
 }

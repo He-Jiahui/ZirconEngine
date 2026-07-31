@@ -14,7 +14,7 @@ fn shared_viewport_toolbar_surface_uses_toml_controls_and_rust_callbacks() {
     assert!(wiring.contains("pane_surface_host.on_viewport_toolbar_pointer_clicked("));
     assert!(viewport.contains("viewport_toolbar_pointer_clicked"));
     for required in [
-        "SetTool",
+        "ActivateSceneMode",
         "SetTransformSpace",
         "SetDisplayMode",
         "SetGridMode",

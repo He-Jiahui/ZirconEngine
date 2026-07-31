@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var itemLevelRequirement = %import("progression/item_level_requirement_state");
+
+console.printLine("m5-item-level-requirement-state-test");
+var result = itemLevelRequirement.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

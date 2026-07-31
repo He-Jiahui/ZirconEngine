@@ -50,7 +50,7 @@ fn review_f5_native_plugin_behavior_abi_uses_typed_error() {
         .next()
         .expect("native plugin behavior production source");
     for forbidden in [
-        "from_abi_v3(abi: &NativePluginBehaviorV3) -> Result<Self, String>",
+        "from_abi_v4(abi: &NativePluginBehaviorV4) -> Result<Self, String>",
         "Err(format!(\n                \"unsupported native plugin behavior ABI version",
     ] {
         assert!(
@@ -60,10 +60,11 @@ fn review_f5_native_plugin_behavior_abi_uses_typed_error() {
     }
 
     assert!(
-        native_plugin_abi.contains("NativePluginBehavior::from_abi_v3(&*abi.behavior)")
-            && native_plugin_abi
-                .contains("NativePluginEntryAbiError::InvalidBehavior { source }"),
-        "native plugin ABI entry report should preserve behavior errors inside the entry ABI typed error"
+        native_plugin_abi.contains("NativePluginBehavior::from_abi_v4(&*abi.behavior)")
+            && native_plugin_abi.contains("PluginLoadError::invalid_payload(")
+            && native_plugin_abi.contains("\"behavior\"")
+            && native_plugin_abi.contains("source"),
+        "native plugin ABI entry report should preserve behavior errors inside the unified loader error"
     );
 
     for doc_anchor in [
@@ -159,9 +160,10 @@ fn review_f5_native_bridge_method_abi_uses_typed_error() {
 
     assert!(
         native_plugin_abi.contains("bridge_method_bindings_from_abi_v3(abi.bridge_methods)")
-            && native_plugin_abi
-                .contains("NativePluginEntryAbiError::InvalidBridgeMethods { source }"),
-        "native plugin ABI entry report should preserve bridge method errors inside the entry ABI typed error"
+            && native_plugin_abi.contains("PluginLoadError::invalid_payload(")
+            && native_plugin_abi.contains("\"bridge_methods\"")
+            && native_plugin_abi.contains("source"),
+        "native plugin ABI entry report should preserve bridge method errors inside the unified loader error"
     );
 
     for doc_anchor in [

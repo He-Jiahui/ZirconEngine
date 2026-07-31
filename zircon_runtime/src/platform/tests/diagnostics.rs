@@ -39,6 +39,7 @@ fn capability_reports_format_stable_diagnostic_lines() {
             "platform.gamepad_events=supported:gilrs_event_polling",
             "platform.gamepad_rumble=supported:gilrs_force_feedback",
             "platform.file_drag_drop=supported:winit_window_events",
+            "platform.persistent_preferences=unavailable:host persistent preference backend is not installed",
             "platform.linux_x11=supported:x11",
             "platform.linux_wayland=feature_disabled:platform-wayland",
         ]

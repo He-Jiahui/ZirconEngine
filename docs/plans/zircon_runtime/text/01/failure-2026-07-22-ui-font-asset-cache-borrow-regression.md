@@ -11,6 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/font_assets.rs
 tests:
   - python -m unittest -v tools.tests.test_text_01_composite_activation.Text01CompositeActivationTests.test_renderer_invalidation_consumes_semantic_font_asset_changes
   - cargo +1.94.1 test -p zircon_runtime --lib text_font_database_shared_face_tracks_owner_mapping_without_render_input_change --locked --jobs 1 -- --exact --test-threads=1
@@ -145,3 +146,11 @@ moved-value 外部错误；另外 2 条是本 Text owner 的 `text/tests/prepare
 `resolved_texts.font_faces_changed()` 的语义信号取代，因此测试 fixture 已删除两处过期字段初始化。
 Rust 1.94.1 scoped `rustfmt --check`、`git diff --check` 均通过，fixture 中该旧字段命中为 0；本轮仍是
 编译 RED 诊断与静态修复证据，必须由后续 fresh managed gate 复验，不能据此声明 fixed。
+
+2026-07-28 的最新 current-source `text_font_asset` 门 `6ff285ea3dd0433ea8769c2cc7983a9d` /
+`eecab6d27cba42919ecdad6f8685bef3` 以 exit `101` 结束，唯一 Text01 诊断来自本次 test-owner 硬切：
+`tests/font_assets.rs` 的 `include_str!` 未从 child 目录回退两层，`tests/rendering.rs` 则错误导入了
+不存在的 `crate::text::FontDatabase` re-export。两个迁移错误已在最低测试 owner 修正为
+`../../text.rs` 和父模块 test-only 窄导入；格式、路径与 scoped diff guard 已通过。旧 job 已释放，新的
+current-source reservation `e0b643eb6f8542cd8d0497fcb575f5e5` 正在 CPU FIFO 等待重跑；此前 8/0
+结果不能替代该最新快照的 acceptance，故本 failure 继续保持 `open / managed_validation_pending`。

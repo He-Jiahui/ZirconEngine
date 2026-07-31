@@ -40,14 +40,99 @@ fn graph_builds_transient_aliasing_plan_for_non_overlapping_lifetimes() {
     builder.write_external(present, output).unwrap();
 
     let graph = builder.compile().unwrap();
-    let plan = graph.transient_allocation_plan();
+    let plan: &crate::render_graph::CompiledRenderGraphTransientAllocationPlan =
+        graph.transient_allocation_plan();
+    let same_plan: &crate::render_graph::CompiledRenderGraphTransientAllocationPlan =
+        graph.transient_allocation_plan();
 
+    assert!(std::ptr::eq(plan, same_plan));
     assert_eq!(plan.texture_slot_count, 2);
     assert_eq!(plan.buffer_slot_count, 0);
     assert_eq!(plan.slot_for("history"), Some(0));
     assert_eq!(plan.slot_for("lighting"), Some(1));
     assert_eq!(plan.slot_for("resolved"), Some(0));
     assert_eq!(plan.slot_for("viewport-output"), None);
+    for allocation in &plan.allocations {
+        assert_eq!(
+            graph
+                .resource_lifetime(allocation.resource)
+                .map(|lifetime| lifetime.name.as_str()),
+            Some(allocation.resource_name.as_str())
+        );
+    }
+}
+
+#[test]
+fn graph_transient_allocation_plan_bypasses_persistent_textures() {
+    let mut builder = RenderGraphBuilder::new("persistent-bypass");
+    let history = builder.create_texture(TextureDesc::new(
+        "history.current.scene-color",
+        16,
+        16,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    builder.mark_persistent(history).unwrap();
+
+    let write_history = builder.add_pass("write-history", QueueLane::Graphics);
+    builder.write_texture(write_history, history).unwrap();
+
+    let graph = builder.compile().unwrap();
+    let plan = graph.transient_allocation_plan();
+
+    assert_eq!(plan.slot_for("history.current.scene-color"), None);
+    assert_eq!(plan.texture_slot_count, 0);
+    assert!(
+        graph
+            .resource_lifetime_by_name("history.current.scene-color")
+            .unwrap()
+            .usage
+            .persistent
+    );
+}
+
+#[test]
+fn graph_readback_lifetimes_extend_to_graph_end_and_do_not_alias() {
+    let mut builder = RenderGraphBuilder::new("readback-lifetime");
+    let first = builder.create_buffer(BufferDesc::new("readback.first", 64, BufferUsage::STORAGE));
+    let second =
+        builder.create_buffer(BufferDesc::new("readback.second", 64, BufferUsage::STORAGE));
+    builder
+        .mark_readback(RenderGraphResource::TransientBuffer(first))
+        .unwrap();
+    builder
+        .mark_readback(RenderGraphResource::TransientBuffer(second))
+        .unwrap();
+
+    let write_first = builder.add_pass("write-first", QueueLane::AsyncCompute);
+    let write_second = builder.add_pass("write-second", QueueLane::AsyncCompute);
+    builder.write_buffer(write_first, first).unwrap();
+    builder.write_buffer(write_second, second).unwrap();
+    builder.add_dependency(write_second, write_first).unwrap();
+
+    let graph = builder.compile().unwrap();
+    let plan = graph.transient_allocation_plan();
+    let graph_last_pass = graph.passes().len() - 1;
+
+    assert_eq!(
+        graph
+            .resource_lifetime_by_name("readback.first")
+            .unwrap()
+            .last_pass,
+        graph_last_pass,
+    );
+    assert_eq!(
+        graph
+            .resource_lifetime_by_name("readback.second")
+            .unwrap()
+            .last_pass,
+        graph_last_pass,
+    );
+    assert_ne!(
+        plan.slot_for("readback.first"),
+        plan.slot_for("readback.second"),
+    );
+    assert_eq!(plan.buffer_slot_count, 2);
 }
 
 #[test]

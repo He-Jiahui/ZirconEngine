@@ -1,6 +1,13 @@
 use super::*;
 
 #[test]
+fn material_management_summary_accumulates_records_in_one_pass() {
+    let source = include_str!("../../../assets/material/material_asset/management.rs");
+    assert!(source.contains("for record in records"));
+    assert!(!source.contains("records\n            .iter()\n            .map(|record|"));
+}
+
+#[test]
 fn material_asset_management_record_set_sorts_and_summarizes_records() {
     let shader = asset_reference("management-shader", "res://shaders/managed.zshader");
     let albedo = asset_reference("management-albedo", "res://textures/albedo.png");

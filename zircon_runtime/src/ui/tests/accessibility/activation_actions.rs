@@ -1,6 +1,14 @@
 use super::*;
 
 #[test]
+fn accessibility_action_borrows_target_from_snapshot() {
+    let source = include_str!("../../accessibility/action.rs");
+
+    assert!(source.contains("let Some(snapshot_node) = snapshot.node(target) else"));
+    assert!(!source.contains("snapshot.node(target).cloned()"));
+}
+
+#[test]
 fn accessibility_focus_action_changes_runtime_focus() {
     let mut surface = root_surface();
     surface
@@ -114,6 +122,7 @@ fn accessibility_activate_emits_default_commit_component_event() {
                 },
                 delivered: true,
                 drag: None,
+                template_action: None,
             }
         ]
     );

@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use super::super::{load_versioned, Format, LoadError};
+use super::super::{Format, LoadError, load_versioned};
 use super::FixtureDocument;
 
 #[test]
@@ -67,6 +67,28 @@ fn envelope_header_rejects_unknown_fields() {
                 "count": 7
             }
         }
+    }))
+    .unwrap();
+
+    let error = load_versioned::<FixtureDocument>(&bytes, Format::Text).unwrap_err();
+
+    assert!(matches!(error, LoadError::InvalidEnvelope { .. }));
+}
+
+#[test]
+fn envelope_rejects_outer_fields_without_reclassifying_it_as_legacy() {
+    let bytes = serde_json::to_vec(&json!({
+        "$zircon": {
+            "header": {
+                "schema_id": "zircon.tests.fixture-document",
+                "schema_version": 2
+            },
+            "payload": {
+                "label": "current",
+                "count": 7
+            }
+        },
+        "domain_owned": true
     }))
     .unwrap();
 

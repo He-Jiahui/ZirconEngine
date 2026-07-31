@@ -2,7 +2,7 @@ use crate::core::asset::{AssetCreationTemplateDescriptor, AssetTypeContribution,
 use crate::core::commands::EditorCommandDescriptor;
 use crate::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
-    TimelineEditorDescriptor, TimelineTrackDescriptor, ViewportToolModeDescriptor,
+    SceneModeDescriptor, TimelineEditorDescriptor, TimelineTrackDescriptor,
 };
 use crate::core::editor_extension::{
     ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
@@ -49,15 +49,15 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
         )
         .unwrap();
     registry
-        .register_viewport_tool_mode(
-            ViewportToolModeDescriptor::new(
+        .register_scene_mode(crate::tests::support::pass_through_scene_mode_registration(
+            SceneModeDescriptor::new(
                 "terrain.tool.sculpt",
                 "Sculpt Terrain",
                 "terrain.authoring",
                 tool,
             )
             .with_required_capabilities(["editor.extension.terrain_authoring"]),
-        )
+        ))
         .unwrap();
     registry
         .register_graph_editor(
@@ -115,7 +115,7 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
         .unwrap();
 
     assert_eq!(registry.asset_type_contributions().len(), 1);
-    assert_eq!(registry.viewport_tool_modes().len(), 1);
+    assert_eq!(registry.scene_mode_descriptors().len(), 1);
     assert_eq!(
         registry.graph_editors()[0].asset_type().as_str(),
         "material.graph"
@@ -167,9 +167,11 @@ fn authoring_registry_rejects_duplicate_graph_node_ids() {
         )
         .unwrap_err();
 
-    assert!(error
-        .to_string()
-        .contains("graph node output already registered"));
+    assert!(
+        error
+            .to_string()
+            .contains("graph node output already registered")
+    );
 }
 
 #[test]
@@ -183,9 +185,11 @@ fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
         )
         .unwrap_err();
 
-    assert!(error
-        .to_string()
-        .contains("editor command payload schema id `material_editor. compile.v1` is invalid"));
+    assert!(
+        error
+            .to_string()
+            .contains("editor command payload schema id `material_editor. compile.v1` is invalid")
+    );
 }
 
 #[test]

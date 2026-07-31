@@ -49,4 +49,8 @@ Domain projection没有发布immutable sample-grid generation、预格式化tick
 
 ## 修复结果与回传
 
-Open state: `待 Editor07 回传sample-grid generation、static/dynamic invalidation与scale counters，并由EditorUI08/Render13回传batch primitive证据`。
+Open state: `Editor07 typed generation 与 static/dynamic identity 已于 2026-07-18 实现，静态合同 5/5；仍待受管 Rust 验证、EditorUI08 generation cache/scale counters、Render13 bounded dashed-line/marker batch 及完整规模证据，当前不得 fixed return`。
+
+- 已完成的最低层修复：template attribute projection 构造唯一 `SampleGridGeneration`；tick label 只在 generation 构造时格式化；axis labels/ticks 进入 static content token，point position/label/selection 进入 dynamic content token；range 因同时影响 grid 与 point projection 而进入两个 token。
+- 已完成的 hard cut：`TemplatePaneSampleGridData` 删除原始 axis/range/`ModelRc` tick/point 平行字段，host painter 与既有投影/视觉测试只消费 typed generation slices，不保留兼容 accessor。
+- 尚未关闭：host 仍以多个 quad 展开 dashed line 和 diamond scanline；generation-aware compiled command cache、batch primitive、300 stable frames/1,000 drags 和 1/100/10,000 规模报告归下游验收，不能用本次静态门替代。

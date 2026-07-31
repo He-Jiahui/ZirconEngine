@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_temporal_echo_state_tests",
+  "source": "src",
+  "binary": "bin-m4-temporal-echo-state-tests",
+  "entry": "combat/temporal_echo_state_test_main"
+}

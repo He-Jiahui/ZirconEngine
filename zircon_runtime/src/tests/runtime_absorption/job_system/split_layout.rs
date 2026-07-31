@@ -1,5 +1,8 @@
 const PARENT_SOURCE: &str = include_str!("../job_system.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
+const INVENTORY_AUDIT_SOURCE: &str = include_str!("inventory/audit.rs");
+const INVENTORY_BEHAVIOR_SOURCE: &str = include_str!("inventory/behavior.rs");
+const INVENTORY_TASK_MODEL_SOURCE: &str = include_str!("inventory/task_model.rs");
 const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
 const SOURCE_HELPERS_SOURCE: &str = include_str!("source_helpers.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
@@ -17,8 +20,9 @@ const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
-const FRAMEWORKS_02_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md");
+const FRAMEWORKS_02_PLAN: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
+);
 const STATUS_ROW_DATA: &str = include_str!(
     "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/runtime_absorption_core_rows.rs"
 );
@@ -85,7 +89,23 @@ fn assert_child_owners_are_focused() {
             "TASKS_MOD_DECLARATIONS",
             "BEHAVIOR_TEST_ANCHORS",
             "MIRROR_DOC_ANCHORS",
+            "task_model",
         ],
+    );
+    assert_contains_all(
+        "inventory task model child",
+        INVENTORY_TASK_MODEL_SOURCE,
+        &["EXPECTED_JOB_SYSTEM_MODULES", "TIMER_ANCHORS", "mod timer;"],
+    );
+    assert_contains_all(
+        "inventory audit child",
+        INVENTORY_AUDIT_SOURCE,
+        &["EXPECTED_DIRECT_RAYON_PATHS", "MIRROR_DOC_ANCHORS"],
+    );
+    assert_contains_all(
+        "inventory behavior child",
+        INVENTORY_BEHAVIOR_SOURCE,
+        &["BEHAVIOR_TEST_ANCHORS"],
     );
     assert_contains_all(
         "mirror docs child",
@@ -111,7 +131,14 @@ fn assert_child_owners_are_focused() {
 fn assert_line_budget() {
     for (label, source, max_lines) in [
         ("parent route owner", PARENT_SOURCE, 16),
-        ("inventory child", INVENTORY_SOURCE, 140),
+        ("inventory route child", INVENTORY_SOURCE, 32),
+        (
+            "inventory task model child",
+            INVENTORY_TASK_MODEL_SOURCE,
+            140,
+        ),
+        ("inventory audit child", INVENTORY_AUDIT_SOURCE, 80),
+        ("inventory behavior child", INVENTORY_BEHAVIOR_SOURCE, 80),
         ("mirror docs child", MIRROR_DOCS_SOURCE, 170),
         ("source helpers child", SOURCE_HELPERS_SOURCE, 80),
         ("split layout guard", SPLIT_LAYOUT_SOURCE, 220),

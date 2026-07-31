@@ -51,9 +51,9 @@ impl ExportPipelinePlan {
     {
         let mut report = ExportPipelineReport::default();
         for node in &self.ordered_nodes {
-            let preparation = executor
-                .prepare(node.stage, &report.stages)
-                .map_err(|source| {
+            let preparation = match executor.prepare(node.stage, &report.stages) {
+                Ok(preparation) => preparation,
+                Err(source) => {
                     report.stages.push(ExportStageRecord {
                         stage: node.stage,
                         io: ExportStageIo {
@@ -64,8 +64,9 @@ impl ExportPipelinePlan {
                         status: ExportStageStatus::Failed,
                         diagnostics: vec![source.to_string()],
                     });
-                    ExportPipelineRunError::prepared(node.stage, &report, source)
-                })?;
+                    return Err(ExportPipelineRunError::prepared(node.stage, report, source));
+                }
+            };
             let fingerprint = stage_fingerprint(node.stage, &preparation);
 
             if let Some(previous) = reusable_record(resume, node.stage, fingerprint)
@@ -107,9 +108,7 @@ impl ExportPipelinePlan {
                         status: ExportStageStatus::Failed,
                         diagnostics,
                     });
-                    return Err(ExportPipelineRunError::executed(
-                        node.stage, &report, source,
-                    ));
+                    return Err(ExportPipelineRunError::executed(node.stage, report, source));
                 }
             }
         }
@@ -211,20 +210,20 @@ pub struct ExportPipelineRunError<E> {
 }
 
 impl<E> ExportPipelineRunError<E> {
-    fn prepared(stage: ExportStage, report: &ExportPipelineReport, source: E) -> Self {
+    fn prepared(stage: ExportStage, report: ExportPipelineReport, source: E) -> Self {
         Self {
             stage,
             phase: ExportPipelineFailurePhase::Prepare,
-            report: report.clone(),
+            report,
             source,
         }
     }
 
-    fn executed(stage: ExportStage, report: &ExportPipelineReport, source: E) -> Self {
+    fn executed(stage: ExportStage, report: ExportPipelineReport, source: E) -> Self {
         Self {
             stage,
             phase: ExportPipelineFailurePhase::Execute,
-            report: report.clone(),
+            report,
             source,
         }
     }

@@ -23,7 +23,46 @@ from runtime_structure_audits.plugin_surface_lifecycle_boundary import (  # noqa
 )
 
 
+def _assert_canonical_zr_vm_command(command: str) -> None:
+    feature_prefix = '--features "'
+    assert feature_prefix in command, "ZrVM launch command must declare Cargo features"
+    feature_list = command.split(feature_prefix, 1)[1].split('"', 1)[0]
+    features = {feature.strip() for feature in feature_list.split(",")}
+
+    assert "backend-zr-vm" in features, "canonical ZrVM backend feature is missing"
+    assert "first-party-zr-vm-language-runtime-plugin" in features, (
+        "canonical ZrVM language provider feature is missing"
+    )
+    assert "first-party-zr-vm-real-backend" not in features, (
+        "retired ZrVM backend feature must not return"
+    )
+
+
 class RuntimeTechStackBoundaryTests(unittest.TestCase):
+    def test_vampire_executable_commands_use_canonical_zr_vm_backend_feature(
+        self,
+    ) -> None:
+        command_owners = (
+            REPO_ROOT / "examples/vampire/README.md",
+            REPO_ROOT
+            / "docs/superpowers/plans/2026-06-09-vampire-dark-content-upgrade.md",
+        )
+
+        for owner in command_owners:
+            with self.subTest(owner=owner.relative_to(REPO_ROOT)):
+                source = owner.read_text(encoding="utf-8")
+                command = next(
+                    line.strip()
+                    for line in source.splitlines()
+                    if "cargo run -p zircon_app" in line
+                )
+                _assert_canonical_zr_vm_command(command)
+
+        with self.assertRaises(AssertionError):
+            _assert_canonical_zr_vm_command(
+                'cargo run -p zircon_app --features "first-party-zr-vm-real-backend"'
+            )
+
     def test_folder_backed_mirror_guard_is_discovered(self) -> None:
         report = tech_stack_boundary_audit(REPO_ROOT)
 

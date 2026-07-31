@@ -1,8 +1,8 @@
 use crate::text::layout::{
-    line_break_chunks_with_provider,
+    corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
     line_text_fits_with_provider as shared_line_text_fits_with_provider,
-    should_wrap_before_chunk_with_provider, trim_leading_wrap_spaces,
-    word_smart_line_break_chunks_with_provider,
+    should_wrap_before_accumulated, trim_leading_wrap_spaces,
+    word_smart_line_break_chunks_with_provider, GraphemeAdvanceIndex,
 };
 use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::surface::{
@@ -10,12 +10,13 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use super::super::adapter::text_style;
-use super::super::grapheme::{grapheme_indices, leading_grapheme_continuation_len};
+use super::super::grapheme::leading_grapheme_continuation_len;
 use super::super::rich_text::UiTextSourceRun;
 use super::candidate_line::{
     append_segment, push_current_line, push_wrapped_line, trim_word_break_trailing_spaces,
     CandidateLine, PendingBreakSuffix,
 };
+use super::direction::resolve_direction;
 
 pub(super) fn wrap_source_runs_with_provider(
     runs: &[UiTextSourceRun],
@@ -37,11 +38,13 @@ pub(super) fn wrap_source_runs_with_line_widths_provider(
 ) -> Vec<CandidateLine> {
     let mut lines = Vec::new();
     let mut current = CandidateLine::empty();
+    let mut current_advance = 0.0_f32;
 
     for run in runs {
         for segment in split_preserving_newline(&run.text, run.source_range.start) {
             if segment.text == "\n" {
                 push_current_line(&mut lines, &mut current);
+                current_advance = 0.0;
                 continue;
             }
             match wrap {
@@ -58,6 +61,7 @@ pub(super) fn wrap_source_runs_with_line_widths_provider(
                     continuation_width,
                     style,
                     provider,
+                    &mut current_advance,
                     false,
                 ),
                 UiTextWrap::WordSmart => append_word_wrapped_segment(
@@ -70,6 +74,7 @@ pub(super) fn wrap_source_runs_with_line_widths_provider(
                     continuation_width,
                     style,
                     provider,
+                    &mut current_advance,
                     true,
                 ),
                 UiTextWrap::Glyph => append_glyph_wrapped_segment(
@@ -82,6 +87,7 @@ pub(super) fn wrap_source_runs_with_line_widths_provider(
                     continuation_width,
                     style,
                     provider,
+                    &mut current_advance,
                 ),
             }
         }
@@ -95,19 +101,19 @@ pub(super) fn wrap_source_runs_with_line_widths_provider(
 }
 
 #[derive(Clone)]
-struct TextSegment {
-    text: String,
+struct TextSegment<'a> {
+    text: &'a str,
     range: UiTextRange,
 }
 
-fn split_preserving_newline(text: &str, source_start: usize) -> Vec<TextSegment> {
+fn split_preserving_newline(text: &str, source_start: usize) -> Vec<TextSegment<'_>> {
     let mut segments = Vec::new();
     let mut start = 0;
     for (index, ch) in text.char_indices() {
         if ch == '\n' {
             if start < index {
                 segments.push(TextSegment {
-                    text: text[start..index].to_string(),
+                    text: &text[start..index],
                     range: UiTextRange {
                         start: source_start + start,
                         end: source_start + index,
@@ -115,7 +121,7 @@ fn split_preserving_newline(text: &str, source_start: usize) -> Vec<TextSegment>
                 });
             }
             segments.push(TextSegment {
-                text: "\n".to_string(),
+                text: &text[index..index + ch.len_utf8()],
                 range: UiTextRange {
                     start: source_start + index,
                     end: source_start + index + ch.len_utf8(),
@@ -126,7 +132,7 @@ fn split_preserving_newline(text: &str, source_start: usize) -> Vec<TextSegment>
     }
     if start < text.len() || segments.is_empty() {
         segments.push(TextSegment {
-            text: text[start..].to_string(),
+            text: &text[start..],
             range: UiTextRange {
                 start: source_start + start,
                 end: source_start + text.len(),
@@ -146,6 +152,7 @@ fn append_word_wrapped_segment(
     continuation_width: f32,
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
+    current_advance: &mut f32,
     word_smart: bool,
 ) {
     let neutral_style = text_style(style);
@@ -154,6 +161,10 @@ fn append_word_wrapped_segment(
     } else {
         line_break_chunks_with_provider(text, &neutral_style, provider)
     };
+    let advance_index =
+        GraphemeAdvanceIndex::measured_with_provider(text, &neutral_style, provider);
+    let direction = resolve_direction(text, style.text_direction).into();
+    let mut segment_line_start = None;
     for chunk in chunks {
         let max_width = current_line_width(lines, first_line_width, continuation_width);
         let mut word_text = chunk.text;
@@ -164,37 +175,83 @@ fn append_word_wrapped_segment(
         if current.text.is_empty() {
             (word_text, word_source_range.start) =
                 trim_leading_wrap_spaces(word_text, word_source_range.start);
+            segment_line_start = Some(word_source_range.start.saturating_sub(range.start));
         }
+        let continuation_start = word_source_range.start.saturating_sub(range.start);
         let continuation_len =
             append_leading_grapheme_continuation(current, kind, word_text, word_source_range);
         if continuation_len > 0 {
+            *current_advance += advance_index.advance(
+                continuation_start,
+                continuation_start.saturating_add(continuation_len),
+            );
             word_text = &word_text[continuation_len..];
             word_source_range.start += continuation_len;
         }
         if word_text.is_empty() {
             continue;
         }
-        if should_wrap_before_chunk_with_provider(
-            &current.text,
-            word_text,
+        let mut word_advance = advance_index.advance(
+            word_source_range.start.saturating_sub(range.start),
+            word_source_range.end.saturating_sub(range.start),
+        );
+        let break_suffix = chunk.break_suffix.map(|suffix| suffix.text);
+        let candidate_advance = segment_line_start.map_or(
+            finite_non_negative(*current_advance) + finite_non_negative(word_advance),
+            |line_start| {
+                advance_index.corrected_advance_with_provider(
+                    text,
+                    line_start,
+                    word_source_range.end.saturating_sub(range.start),
+                    &neutral_style,
+                    direction,
+                    break_suffix,
+                    provider,
+                )
+            },
+        );
+        let should_wrap = should_wrap_before_accumulated(
+            current.text.is_empty(),
+            0.0,
+            candidate_advance,
             max_width,
-            &neutral_style,
-            provider,
-        ) {
+        );
+        let mut line_advance = segment_line_start.map(|_| candidate_advance);
+        if should_wrap {
             trim_word_break_trailing_spaces(current);
             push_wrapped_line(lines, current);
+            *current_advance = 0.0;
+            segment_line_start = None;
             (word_text, word_source_range.start) =
                 trim_leading_wrap_spaces(word_text, word_source_range.start);
             if word_text.is_empty() {
                 continue;
             }
+            segment_line_start = Some(word_source_range.start.saturating_sub(range.start));
+            word_advance = advance_index.advance(
+                word_source_range.start.saturating_sub(range.start),
+                word_source_range.end.saturating_sub(range.start),
+            );
+            line_advance = None;
+        }
+        if line_advance.is_none() {
+            line_advance = segment_line_start.map(|line_start| {
+                advance_index.corrected_advance_with_provider(
+                    text,
+                    line_start,
+                    word_source_range.end.saturating_sub(range.start),
+                    &neutral_style,
+                    direction,
+                    break_suffix,
+                    provider,
+                )
+            });
         }
         let max_width = current_line_width(lines, first_line_width, continuation_width);
-        if chunk.should_fallback_to_glyph_wrap_with_provider(
+        if chunk.should_fallback_to_glyph_wrap_with_advance(
             word_text,
+            line_advance.unwrap_or(word_advance),
             max_width,
-            &neutral_style,
-            provider,
         ) {
             append_glyph_wrapped_segment(
                 lines,
@@ -206,9 +263,14 @@ fn append_word_wrapped_segment(
                 continuation_width,
                 style,
                 provider,
+                current_advance,
             );
+            segment_line_start = None;
         } else {
             append_segment(current, kind, word_text, word_source_range);
+            *current_advance = line_advance.unwrap_or_else(|| {
+                finite_non_negative(*current_advance) + finite_non_negative(word_advance)
+            });
             current.pending_break_suffix = chunk.break_suffix.map(|suffix| PendingBreakSuffix {
                 kind,
                 text: suffix.text,
@@ -218,6 +280,14 @@ fn append_word_wrapped_segment(
                 },
             });
         }
+    }
+}
+
+fn finite_non_negative(value: f32) -> f32 {
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
     }
 }
 
@@ -231,29 +301,71 @@ fn append_glyph_wrapped_segment(
     continuation_width: f32,
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
+    current_advance: &mut f32,
 ) {
+    let neutral_style = text_style(style);
+    let advance_index =
+        GraphemeAdvanceIndex::measured_with_provider(text, &neutral_style, provider);
     let continuation_len = append_leading_grapheme_continuation(current, kind, text, range);
-    for (offset, grapheme) in grapheme_indices(&text[continuation_len..]) {
-        let offset = continuation_len + offset;
-        let max_width = current_line_width(lines, first_line_width, continuation_width);
-        if should_wrap_before_chunk_with_provider(
-            &current.text,
-            grapheme,
-            max_width,
-            &text_style(style),
+    *current_advance += advance_index.advance(0, continuation_len);
+    if current.text.is_empty() && continuation_len == 0 {
+        let first_max_width = current_line_width(lines, first_line_width, continuation_width);
+        let direction = resolve_direction(text, style.text_direction).into();
+        let ranges = corrected_glyph_ranges_with_provider(
+            text,
+            &advance_index,
+            &neutral_style,
+            direction,
+            first_max_width,
+            continuation_width,
             provider,
+        );
+        for (index, (start, end)) in ranges.into_iter().enumerate() {
+            if index > 0 {
+                push_wrapped_line(lines, current);
+            }
+            for metric in advance_index.metrics_in_range(start, end) {
+                let Some(grapheme) = text.get(metric.source_start..metric.source_end) else {
+                    continue;
+                };
+                append_segment(
+                    current,
+                    kind,
+                    grapheme,
+                    UiTextRange {
+                        start: range.start + metric.source_start,
+                        end: range.start + metric.source_end,
+                    },
+                );
+            }
+            *current_advance = advance_index.advance(start, end);
+        }
+        return;
+    }
+    for metric in advance_index.metrics_in_range(continuation_len, text.len()) {
+        let Some(grapheme) = text.get(metric.source_start..metric.source_end) else {
+            continue;
+        };
+        let max_width = current_line_width(lines, first_line_width, continuation_width);
+        if should_wrap_before_accumulated(
+            current.text.is_empty(),
+            *current_advance,
+            metric.advance,
+            max_width,
         ) {
             push_wrapped_line(lines, current);
+            *current_advance = 0.0;
         }
         append_segment(
             current,
             kind,
             grapheme,
             UiTextRange {
-                start: range.start + offset,
-                end: range.start + offset + grapheme.len(),
+                start: range.start + metric.source_start,
+                end: range.start + metric.source_end,
             },
         );
+        *current_advance += metric.advance;
     }
 }
 
@@ -300,3 +412,6 @@ pub(super) fn line_text_fits_with_provider(
 ) -> bool {
     shared_line_text_fits_with_provider(text, max_width, &text_style(style), provider)
 }
+
+#[cfg(test)]
+mod tests;

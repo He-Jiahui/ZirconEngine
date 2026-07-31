@@ -179,6 +179,23 @@ class CodexDiscoveryTests(unittest.TestCase):
         self.assertIsNone(session.thread_source)
         self.assertNotIn(secret, repr(session))
 
+    def test_desktop_subagent_uses_own_id_instead_of_parent_session_id(self) -> None:
+        rollout = write_rollout(
+            self.codex_home,
+            thread_id="reviewer-thread",
+            cwd=self.repo,
+        )
+        records = rollout.read_text(encoding="utf-8").splitlines()
+        first = json.loads(records[0])
+        first["payload"]["session_id"] = "parent-thread"
+        first["payload"]["id"] = "reviewer-thread"
+        records[0] = json.dumps(first, separators=(",", ":"))
+        rollout.write_text("\n".join(records) + "\n", encoding="utf-8")
+
+        session = CodexSessionDiscovery(self.codex_home, self.repo).discover().sessions[0]
+
+        self.assertEqual("reviewer-thread", session.thread_id)
+
     def test_incremental_scan_reuses_unchanged_parse_and_full_scan_refreshes(self) -> None:
         rollout = write_rollout(
             self.codex_home,

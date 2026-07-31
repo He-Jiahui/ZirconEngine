@@ -1,3 +1,7 @@
+const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;
+const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;
+const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;
+
 struct ZrVertexInput {
     @location(0) position: vec3<f32>,
     @location(1) normal: vec3<f32>,
@@ -50,6 +54,10 @@ struct ZrSurfaceOutput {
     attenuation_distance: f32,
     custom0: vec4<f32>,
 };
+
+fn zr_surface_metallic_diffuse_energy_scale(metallic: f32) -> f32 {
+    return 1.0 - clamp(metallic, 0.0, 1.0);
+}
 
 alias ZrSurfaceInput = ZrVertexOutput;
 

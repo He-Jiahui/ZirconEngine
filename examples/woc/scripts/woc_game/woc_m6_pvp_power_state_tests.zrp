@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_pvp_power_state_tests",
+  "source": "src",
+  "binary": "bin-m6-pvp-power-state-tests",
+  "entry": "combat/pvp_power_state_test_main"
+}

@@ -7,9 +7,13 @@ impl RetainedEditorHost {
         surface_mode: &str,
         state: AssetListPointerState,
     ) {
-        if let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) {
-            surface.content_state = state;
+        let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
+            return;
+        };
+        if surface.content_state == state {
+            return;
         }
+        surface.content_state = state;
         self.apply_asset_pointer_state_to_ui(surface_mode);
     }
 }

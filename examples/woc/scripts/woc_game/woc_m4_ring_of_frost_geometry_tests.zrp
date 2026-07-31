@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_ring_of_frost_geometry_tests",
+  "source": "src",
+  "binary": "bin-m4-ring-of-frost-geometry-tests",
+  "entry": "combat/ring_of_frost_geometry_test_main"
+}

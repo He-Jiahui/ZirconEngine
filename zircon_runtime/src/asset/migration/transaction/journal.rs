@@ -1,17 +1,21 @@
-//! Durable intent creation and synchronized journal state transitions.
+//! Immutable migration intent plus fsync'd append-only transition records.
 
-use std::io;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+
+use serde::Serialize;
 
 use super::journal_owner;
 use super::schema::{
-    JournalDocument, JournalPhase, JournalState, TransactionJournal, JOURNAL_VERSION,
+    JOURNAL_VERSION, JournalIntent, JournalPhase, JournalState, JournalTransition,
+    TransactionJournal,
 };
 use super::stage::StagedDocument;
-use super::{digest_bytes, digest_file, transaction_error, transaction_sibling};
+use super::{transaction_error, transaction_sibling};
 use crate::asset::migration::document::PendingDocument;
 use crate::asset::migration::{AssetMigrationError, AssetMigrationTransactionPhase};
-use crate::asset::project::meta_io::atomic_write;
+use crate::foundation::persistence::atomic_file::atomic_write;
 
 pub(super) fn create_intent_journal(
     project_root: &Path,
@@ -32,35 +36,7 @@ pub(super) fn create_intent_journal(
         .iter()
         .map(|document| {
             let document_parent = document.path.parent().unwrap_or_else(|| Path::new("."));
-            let target_existed = document.path.exists();
-            let original_digest = target_existed
-                .then(|| digest_file(&document.path))
-                .transpose()
-                .map_err(|source| {
-                    transaction_error(
-                        AssetMigrationTransactionPhase::Stage,
-                        document.path.clone(),
-                        source,
-                    )
-                })?;
-            let retired_digest = document
-                .retired_path
-                .as_ref()
-                .map(|retired| digest_file(retired))
-                .transpose()
-                .map_err(|source| {
-                    transaction_error(
-                        AssetMigrationTransactionPhase::Stage,
-                        document.path.clone(),
-                        source,
-                    )
-                })?;
-            Ok(JournalDocument {
-                state: JournalState::Prepared,
-                target_existed,
-                original_digest,
-                new_digest: digest_bytes(&document.bytes),
-                retired_digest,
+            JournalIntent {
                 target: document.path.clone(),
                 staging: transaction_sibling(
                     document_parent,
@@ -68,7 +44,7 @@ pub(super) fn create_intent_journal(
                     "stage",
                     transaction_id,
                 ),
-                backup: target_existed.then(|| {
+                backup: document.path.exists().then(|| {
                     transaction_sibling(document_parent, &document.path, "backup", transaction_id)
                 }),
                 retired_path: document.retired_path.clone(),
@@ -80,62 +56,103 @@ pub(super) fn create_intent_journal(
                         transaction_id,
                     )
                 }),
-            })
+            }
         })
-        .collect::<Result<Vec<_>, AssetMigrationError>>()?;
-    persist_journal(
+        .collect();
+    persist_intent(
         &path,
         &TransactionJournal {
             version: JOURNAL_VERSION,
             transaction_id: transaction_id.to_owned(),
-            phase: JournalPhase::Intent,
             documents,
+            transitions: Vec::new(),
         },
     )?;
     Ok(path)
 }
 
-pub(super) fn sync_journal(
+pub(super) fn record_document_prepared(
     path: &Path,
-    staged: &[StagedDocument],
-    phase: JournalPhase,
+    document_index: usize,
+    document: &StagedDocument,
 ) -> Result<(), AssetMigrationError> {
-    let journal = TransactionJournal {
-        version: JOURNAL_VERSION,
-        transaction_id: staged
-            .first()
-            .map(|document| document.transaction_id.clone())
-            .unwrap_or_default(),
-        phase,
-        documents: staged
-            .iter()
-            .map(|document| JournalDocument {
-                state: if document.committed {
-                    JournalState::Committed
-                } else if document.committing {
-                    JournalState::Committing
-                } else {
-                    JournalState::Prepared
-                },
-                target_existed: document.target_existed,
-                original_digest: document.original_digest.clone(),
-                new_digest: document.new_digest.clone(),
-                retired_digest: document.retired_digest.clone(),
-                target: document.target.clone(),
-                staging: document.staging.clone(),
-                backup: document.backup.clone(),
-                retired_path: document.retired_path.clone(),
-                retired_backup: document.retired_backup.clone(),
-            })
-            .collect(),
-    };
-    persist_journal(path, &journal)
+    append_transition(
+        path,
+        JournalTransition {
+            phase: JournalPhase::Intent,
+            document_index: Some(document_index),
+            state: Some(JournalState::Prepared),
+            target_existed: Some(document.target_existed),
+            original_digest: document.original_digest.clone(),
+            new_digest: Some(document.new_digest.clone()),
+            retired_digest: document.retired_digest.clone(),
+        },
+        AssetMigrationTransactionPhase::Stage,
+    )
 }
 
-pub(super) fn persist_journal(
+pub(super) fn activate_journal(path: &Path) -> Result<(), AssetMigrationError> {
+    append_transition(
+        path,
+        JournalTransition {
+            phase: JournalPhase::Active,
+            document_index: None,
+            state: None,
+            target_existed: None,
+            original_digest: None,
+            new_digest: None,
+            retired_digest: None,
+        },
+        AssetMigrationTransactionPhase::Stage,
+    )
+}
+
+pub(super) fn record_document_state(
     path: &Path,
-    journal: &TransactionJournal,
+    document_index: usize,
+    state: JournalState,
 ) -> Result<(), AssetMigrationError> {
+    append_transition(
+        path,
+        JournalTransition {
+            phase: JournalPhase::Active,
+            document_index: Some(document_index),
+            state: Some(state),
+            target_existed: None,
+            original_digest: None,
+            new_digest: None,
+            retired_digest: None,
+        },
+        AssetMigrationTransactionPhase::Commit,
+    )
+}
+
+pub(super) fn record_phase(path: &Path, phase: JournalPhase) -> Result<(), AssetMigrationError> {
+    let transaction_phase = match phase {
+        JournalPhase::RollbackCompleted | JournalPhase::CleanupRollback => {
+            AssetMigrationTransactionPhase::Rollback
+        }
+        JournalPhase::Intent
+        | JournalPhase::Active
+        | JournalPhase::AllCommitted
+        | JournalPhase::Cleanup => AssetMigrationTransactionPhase::Commit,
+    };
+    append_transition(
+        path,
+        JournalTransition {
+            phase,
+            document_index: None,
+            state: None,
+            target_existed: None,
+            original_digest: None,
+            new_digest: None,
+            retired_digest: None,
+        },
+        transaction_phase,
+    )
+}
+
+fn persist_intent(path: &Path, journal: &TransactionJournal) -> Result<(), AssetMigrationError> {
     let bytes = toml::to_string_pretty(journal).map_err(|error| {
         transaction_error(
             AssetMigrationTransactionPhase::Stage,
@@ -143,11 +160,63 @@ pub(super) fn persist_journal(
             io::Error::new(io::ErrorKind::InvalidData, error.to_string()),
         )
     })?;
-    atomic_write(path, bytes.as_bytes()).map_err(|source| {
-        transaction_error(
-            AssetMigrationTransactionPhase::Stage,
-            path.to_path_buf(),
-            source,
-        )
+    atomic_write(path, bytes.as_bytes())
+        .and_then(|()| sync_committed_journal(path))
+        .map_err(|source| {
+            transaction_error(
+                AssetMigrationTransactionPhase::Stage,
+                path.to_path_buf(),
+                source,
+            )
+        })
+}
+
+fn sync_committed_journal(path: &Path) -> io::Result<()> {
+    OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)?
+        .sync_all()?;
+    sync_parent_directory(path)
+}
+
+#[cfg(unix)]
+fn sync_parent_directory(path: &Path) -> io::Result<()> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    fs::File::open(parent)?.sync_all()
+}
+
+#[cfg(not(unix))]
+fn sync_parent_directory(_path: &Path) -> io::Result<()> {
+    Ok(())
+}
+
+fn append_transition(
+    path: &Path,
+    transition: JournalTransition,
+    phase: AssetMigrationTransactionPhase,
+) -> Result<(), AssetMigrationError> {
+    let bytes = toml::to_string_pretty(&TransitionAppend {
+        transitions: vec![transition],
     })
+    .map_err(|error| {
+        transaction_error(
+            phase,
+            path.to_path_buf(),
+            io::Error::new(io::ErrorKind::InvalidData, error.to_string()),
+        )
+    })?;
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(path)
+        .map_err(|source| transaction_error(phase, path.to_path_buf(), source))?;
+    file.write_all(bytes.as_bytes())
+        .and_then(|()| file.flush())
+        .and_then(|()| file.sync_all())
+        .map_err(|source| transaction_error(phase, path.to_path_buf(), source))
+}
+
+#[derive(Serialize)]
+struct TransitionAppend {
+    transitions: Vec<JournalTransition>,
 }

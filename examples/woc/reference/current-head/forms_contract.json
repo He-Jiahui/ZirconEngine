@@ -1,0 +1,113 @@
+{
+  "schema_version": 4,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/forms_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/forms.ts": "acc80526bb4c99573349bb5dc2be134d7c7b0c0da3b4ab9c8d30725671c15dae",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90",
+    "src/sim/content/classes.ts": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889",
+    "src/sim/entity.ts": "e5906007bc4a34cd019bcfb980520e34dc646ed7bc71a3b7f6ec69e8cdc7da11",
+    "src/sim/player_motion.ts": "4079efe3b86687f5334576f9c6c0fba5f1904619cb0682ee23db956b87fe17d8",
+    "src/sim/threat.ts": "b510271553ddb50a4bd6dc38bd39d6e1509fdd31af2bd83b61cf8d7fe03120a2",
+    "src/sim/combat/spell_combat.ts": "44dda467c57dd6488d9deaad55e5bbf2e24335cefe344984578fb9465874f0f9",
+    "src/sim/combat/damage.ts": "6b4b18cd513e10f2cbcd7b5aab65e544b27c30944a0db744b37c5dc36c2dfcb4",
+    "src/sim/combat/form_swing.ts": "8d8121dd5ff74a9ef050662331454dd0c04245992def59905e97f6727e6d2186"
+  },
+  "all": [
+    "form_bear",
+    "form_cat",
+    "form_travel",
+    "form_fireball",
+    "form_moonkin",
+    "form_shadow"
+  ],
+  "resource_shift": [
+    "form_bear",
+    "form_cat",
+    "form_travel"
+  ],
+  "resource_bar_shift": [
+    "form_bear",
+    "form_cat"
+  ],
+  "action_locking": [
+    "form_bear",
+    "form_cat",
+    "form_travel",
+    "form_fireball"
+  ],
+  "travel": [
+    "form_travel",
+    "form_fireball"
+  ],
+  "form_abilities": [
+    {
+      "kind": "form_bear",
+      "id": "bear_form",
+      "code": 23,
+      "base_cost": 30,
+      "base_cast_time": 0,
+      "base_cooldown": 0,
+      "aura_value": 0.65
+    },
+    {
+      "kind": "form_cat",
+      "id": "cat_form",
+      "code": 40,
+      "base_cost": 30,
+      "base_cast_time": 0,
+      "base_cooldown": 0,
+      "aura_value": 0.71
+    },
+    {
+      "kind": "form_travel",
+      "id": "travel_form",
+      "code": 298,
+      "base_cost": 30,
+      "base_cast_time": 0,
+      "base_cooldown": 0,
+      "aura_value": 1.4
+    },
+    {
+      "kind": "form_fireball",
+      "id": "fireball_form",
+      "code": 110,
+      "base_cost": 50,
+      "base_cast_time": 2,
+      "base_cooldown": 10,
+      "aura_value": 1.4
+    },
+    {
+      "kind": "form_moonkin",
+      "id": "moonkin_form",
+      "code": 187,
+      "base_cost": 55,
+      "base_cast_time": 0,
+      "base_cooldown": 0,
+      "aura_value": 0
+    },
+    {
+      "kind": "form_shadow",
+      "id": "shadowform",
+      "code": 241,
+      "base_cost": 60,
+      "base_cast_time": 0,
+      "base_cooldown": 0,
+      "aura_value": 15
+    }
+  ],
+  "derived_form_rules": {
+    "bear_armor_multiplier": 1.9,
+    "bear_bonus_attack_power_flat": 15,
+    "bear_bonus_attack_power_per_agility": 1.5,
+    "bear_max_hp_multiplier": 1.15,
+    "cat_bonus_attack_power_flat": 8,
+    "cat_bonus_attack_power_per_level": 2,
+    "cat_agility_minimum": 2,
+    "cat_agility_level_divisor": 2,
+    "moonkin_armor_multiplier": 1.5,
+    "bear_threat_multiplier": 1.3,
+    "cat_threat_multiplier": 0.71,
+    "moonkin_spell_damage_bonus": 0.2
+  }
+}

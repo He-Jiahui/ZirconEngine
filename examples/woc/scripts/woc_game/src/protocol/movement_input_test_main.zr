@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var movement = %import("protocol/movement_input");
+
+console.printLine("m8-movement-input-test");
+var result = movement.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

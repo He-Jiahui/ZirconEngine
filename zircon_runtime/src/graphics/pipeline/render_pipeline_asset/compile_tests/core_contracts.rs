@@ -71,18 +71,20 @@ fn compile_preserves_compute_workload_from_feature_descriptor() {
                     "compute-workload-feature",
                     Vec::new(),
                     Vec::new(),
-                    vec![RenderFeaturePassDescriptor::new(
-                        RenderPassStage::AmbientOcclusion,
-                        "ssao-evaluate",
-                        QueueLane::AsyncCompute,
-                    )
-                    .with_executor_id("ao.ssao-evaluate")
-                    .with_compute_workload(RenderGraphComputeWorkload::viewport(
-                        "zircon-ssao-pipeline",
-                        [8, 8, 1],
-                    ))
-                    .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-                    .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
+                    vec![
+                        RenderFeaturePassDescriptor::new(
+                            RenderPassStage::AmbientOcclusion,
+                            "ssao-evaluate",
+                            QueueLane::AsyncCompute,
+                        )
+                        .with_executor_id("ao.ssao-evaluate")
+                        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+                            "zircon-ssao-pipeline",
+                            [8, 8, 1],
+                        ))
+                        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+                        .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION),
+                    ],
                 ),
             )],
         },

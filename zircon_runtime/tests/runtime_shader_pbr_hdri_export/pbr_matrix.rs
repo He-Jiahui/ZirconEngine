@@ -1,17 +1,15 @@
 use super::*;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
+use zircon_runtime::core::framework::render::IBL_BAKE_ALGORITHM_VERSION;
 
 const PBR_MATRIX_HDRI_OUTPUT_NAME: &str =
     "runtime_shader_pbr_real_hdri_lakes_8x8_cmft_pmrem_reflection_20260710.png";
 const PBR_MATRIX_HDRI_2K_OUTPUT_NAME: &str =
     "runtime_shader_pbr_real_hdri_lakes_2k_8x8_cmft_pmrem_reflection_20260710.png";
-const PBR_MATRIX_QUANTITATIVE_OUTPUT_NAME: &str =
-    "runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260716.png";
-const PBR_MATRIX_QUANTITATIVE_REPORT_NAME: &str =
-    "runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260716.txt";
 const GRAZING_SYMMETRY_MAX_MEAN_RELATIVE_DELTA: f32 = 0.05;
 const GRAZING_SYMMETRY_MAX_PER_RADIUS_RELATIVE_DELTA: f32 = 0.10;
 const GRAZING_SYMMETRY_RADII: [f32; 5] = [0.65, 0.75, 0.83, 0.89, 0.93];
+const PBR_MATRIX_EVIDENCE_FINGERPRINT_BUFFER_BYTES: usize = 64 * 1024;
 
 #[test]
 fn runtime_shader_pbr_matrix_contract_uses_requested_eight_by_eight_grid() {
@@ -22,11 +20,139 @@ fn runtime_shader_pbr_matrix_contract_uses_requested_eight_by_eight_grid() {
 }
 
 #[test]
+fn runtime_shader_pbr_quantitative_evidence_names_include_the_current_bake_version() {
+    let (screenshot_name, report_name) =
+        pbr_matrix_quantitative_evidence_names_for_provenance("test-executable", "test-input");
+    let version = format!("v{IBL_BAKE_ALGORITHM_VERSION}");
+
+    assert!(screenshot_name.contains(&version));
+    assert!(report_name.contains(&version));
+    assert!(screenshot_name.ends_with(".png"));
+    assert!(report_name.ends_with(".txt"));
+    assert!(!screenshot_name.contains("angular0003"));
+    assert!(!report_name.contains("angular0003"));
+}
+
+#[test]
+fn runtime_shader_pbr_quantitative_evidence_names_distinguish_executables_and_inputs() {
+    let (first_screenshot, first_report) =
+        pbr_matrix_quantitative_evidence_names_for_provenance("executable-a", "input-a");
+    let (second_screenshot, second_report) =
+        pbr_matrix_quantitative_evidence_names_for_provenance("executable-b", "input-b");
+
+    assert_ne!(first_screenshot, second_screenshot);
+    assert_ne!(first_report, second_report);
+    assert!(first_screenshot.contains("executable-a"));
+    assert!(second_report.contains("input-b"));
+}
+
+#[test]
+fn runtime_shader_pbr_quantitative_evidence_rejects_a_runtime_input_change_before_commit() {
+    let error = pbr_matrix_require_matching_runtime_input_fingerprint("before", "after")
+        .expect_err("a changed HDR input fingerprint must reject the evidence commit");
+
+    assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+}
+
+#[test]
+fn runtime_shader_pbr_quantitative_evidence_fingerprint_changes_with_hdr_input_bytes() {
+    let root = unique_temp_project_root("shader06_quantitative_evidence_hdr_fingerprint");
+    fs::create_dir_all(&root).expect("create HDR fingerprint test directory");
+    let input = root.join("environment.hdr");
+    fs::write(&input, b"first HDR input").expect("write first HDR fingerprint input");
+    let first = pbr_matrix_fingerprint_file(&input).expect("hash first HDR fingerprint input");
+
+    fs::write(&input, b"second HDR input").expect("write second HDR fingerprint input");
+    let second = pbr_matrix_fingerprint_file(&input).expect("hash second HDR fingerprint input");
+
+    assert_ne!(first, second);
+    fs::remove_dir_all(root).expect("remove HDR fingerprint test directory");
+}
+
+#[test]
+fn runtime_shader_pbr_quantitative_evidence_identity_includes_bake_executable_and_input() {
+    let identity = pbr_matrix_quantitative_evidence_identity("executable-a", "input-a");
+
+    assert!(identity.contains(&format!("v{IBL_BAKE_ALGORITHM_VERSION}")));
+    assert!(identity.ends_with("_eexecutable-a_iinput-a"));
+}
+
+#[test]
 fn runtime_shader_pbr_real_hdri_2k_reflection_png_matches_plan06_metrics() {
     let output = runtime_shader_pbr_real_hdri_output_path(PBR_MATRIX_HDRI_2K_OUTPUT_NAME);
 
     assert_shader_test_output_path(&output);
     hdri_metrics::assert_saved_real_hdri_reflection_response(&output);
+}
+
+fn pbr_matrix_quantitative_evidence_names_for_provenance(
+    executable_fingerprint: &str,
+    runtime_input_fingerprint: &str,
+) -> (String, String) {
+    let evidence_identity = pbr_matrix_quantitative_evidence_identity(
+        executable_fingerprint,
+        runtime_input_fingerprint,
+    );
+    let stem = format!("runtime_shader_pbr_ibl_metallic_smoothness_matrix_{evidence_identity}");
+    (format!("{stem}.png"), format!("{stem}.txt"))
+}
+
+fn pbr_matrix_quantitative_evidence_identity(
+    executable_fingerprint: &str,
+    runtime_input_fingerprint: &str,
+) -> String {
+    format!("v{IBL_BAKE_ALGORITHM_VERSION}_e{executable_fingerprint}_i{runtime_input_fingerprint}")
+}
+
+#[derive(Debug)]
+struct PbrMatrixQuantitativeEvidenceProvenance {
+    executable_fingerprint: String,
+    runtime_input_fingerprint: String,
+}
+
+fn pbr_matrix_capture_quantitative_evidence_provenance(
+) -> io::Result<PbrMatrixQuantitativeEvidenceProvenance> {
+    Ok(PbrMatrixQuantitativeEvidenceProvenance {
+        executable_fingerprint: pbr_matrix_fingerprint_file(&std::env::current_exe()?)?,
+        runtime_input_fingerprint: pbr_matrix_quantitative_runtime_input_fingerprint()?,
+    })
+}
+
+fn pbr_matrix_quantitative_runtime_input_fingerprint() -> io::Result<String> {
+    pbr_matrix_fingerprint_file(&shader_test_asset_dir().join(POLYHAVEN_LAKES_2K_HDRI_ASSET))
+}
+
+fn pbr_matrix_fingerprint_file(path: &Path) -> io::Result<String> {
+    let mut file = fs::File::open(path)?;
+    let mut hasher = blake3::Hasher::new();
+    let mut buffer = [0_u8; PBR_MATRIX_EVIDENCE_FINGERPRINT_BUFFER_BYTES];
+    loop {
+        let bytes_read = file.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+    Ok(hasher.finalize().to_hex().to_string())
+}
+
+fn pbr_matrix_require_matching_runtime_input_fingerprint(
+    expected: &str,
+    actual: &str,
+) -> io::Result<()> {
+    if expected == actual {
+        Ok(())
+    } else {
+        Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "quantitative PBR HDR input changed while rendering evidence",
+        ))
+    }
+}
+
+fn pbr_matrix_verify_quantitative_evidence_runtime_input(expected: &str) -> io::Result<()> {
+    let actual = pbr_matrix_quantitative_runtime_input_fingerprint()?;
+    pbr_matrix_require_matching_runtime_input_fingerprint(expected, &actual)
 }
 
 #[test]
@@ -51,6 +177,14 @@ fn run_render_product_environment_pbr_matrix_quantitative(write_evidence: bool) 
 }
 
 fn render_product_environment_pbr_matrix_quantitative_inner(write_evidence: bool) {
+    let evidence_provenance = if write_evidence {
+        Some(
+            pbr_matrix_capture_quantitative_evidence_provenance()
+                .expect("freeze quantitative PBR executable and HDR input before rendering"),
+        )
+    } else {
+        None
+    };
     let mut source_environment =
         polyhaven_lakes_source_cubemap_environment(POLYHAVEN_LAKES_2K_HDRI_ASSET, 11);
     source_environment.irradiance_cube = None;
@@ -77,10 +211,17 @@ fn render_product_environment_pbr_matrix_quantitative_inner(write_evidence: bool
         grazing_symmetry_delta,
         grazing_max_per_radius_delta,
     );
-    if write_evidence {
-        let output = runtime_shader_pbr_real_hdri_output_path(PBR_MATRIX_QUANTITATIVE_OUTPUT_NAME);
-        let report_output =
-            runtime_shader_pbr_real_hdri_output_path(PBR_MATRIX_QUANTITATIVE_REPORT_NAME);
+    if let Some(evidence_provenance) = evidence_provenance {
+        let evidence_identity = pbr_matrix_quantitative_evidence_identity(
+            &evidence_provenance.executable_fingerprint,
+            &evidence_provenance.runtime_input_fingerprint,
+        );
+        let (output_name, report_name) = pbr_matrix_quantitative_evidence_names_for_provenance(
+            &evidence_provenance.executable_fingerprint,
+            &evidence_provenance.runtime_input_fingerprint,
+        );
+        let output = runtime_shader_pbr_real_hdri_output_path(&output_name);
+        let report_output = runtime_shader_pbr_real_hdri_output_path(&report_name);
         let mut evidence = DatedEvidenceFiles::create(&output, &report_output)
             .unwrap_or_else(|error| panic!("claim immutable Shader 06 evidence paths: {error}"));
         write_viewport_frame_png_to_file(
@@ -88,10 +229,28 @@ fn render_product_environment_pbr_matrix_quantitative_inner(write_evidence: bool
             &mut evidence.screenshot,
             "Shader 06 quantitative PBR matrix screenshot",
         );
+        writeln!(evidence.report, "evidence_identity={evidence_identity}")
+            .expect("write Shader 06 quantitative evidence identity");
+        writeln!(
+            evidence.report,
+            "executable_fingerprint={}",
+            evidence_provenance.executable_fingerprint
+        )
+        .expect("write Shader 06 quantitative executable fingerprint");
+        writeln!(
+            evidence.report,
+            "runtime_input_fingerprint={}",
+            evidence_provenance.runtime_input_fingerprint
+        )
+        .expect("write Shader 06 quantitative HDR input fingerprint");
         evidence
             .report
             .write_all(report.to_text().as_bytes())
             .expect("write Shader 06 PBR matrix metric report");
+        pbr_matrix_verify_quantitative_evidence_runtime_input(
+            &evidence_provenance.runtime_input_fingerprint,
+        )
+        .expect("quantitative PBR HDR input must remain unchanged before evidence commit");
         evidence
             .commit()
             .expect("commit immutable Shader 06 evidence pair");

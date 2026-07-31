@@ -13,6 +13,13 @@ except ModuleNotFoundError:  # pragma: no cover - Python < 3.11 fallback.
 GENERATED_MANIFEST_HEADER = (
     "# @generated from Rust descriptor package_manifest(); do not edit by hand."
 )
+NATIVE_GENERATED_MANIFEST_HEADER = (
+    "# @generated from zircon_plugin_sdk::native_plugin_manifest_v3!; do not edit by hand."
+)
+GENERATED_MANIFEST_HEADERS = (
+    GENERATED_MANIFEST_HEADER,
+    NATIVE_GENERATED_MANIFEST_HEADER,
+)
 SKIPPED_WORKSPACE_ROOTS = {
     "editor_support",
     "first_party_editor_catalog",
@@ -159,7 +166,7 @@ class PluginManifestSchemaAudit:
 
     @property
     def hand_written_native_manifest_count(self) -> int:
-        return 1 if "native_dynamic_fixture" in self.expected_manifest_roots else 0
+        return 0
 
 
 def audit_plugin_manifest_schema(repo_root: Path) -> PluginManifestSchemaAudit:
@@ -177,10 +184,7 @@ def audit_plugin_manifest_schema(repo_root: Path) -> PluginManifestSchemaAudit:
             missing_paths.append(display_path)
             continue
         manifest_text = manifest_path.read_text(encoding="utf-8")
-        if (
-            plugin_root != "native_dynamic_fixture"
-            and not manifest_text.startswith(GENERATED_MANIFEST_HEADER)
-        ):
+        if not manifest_text.startswith(GENERATED_MANIFEST_HEADERS):
             generated_header_violations.append(display_path)
             violations.append(f"{display_path}: missing generated manifest header")
         try:

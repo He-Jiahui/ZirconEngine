@@ -10,7 +10,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/animation_resource.rs",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs",
             "review_f5_world_spawn_bundle_surface_uses_scene_error",
-            "review_f6_core_resource_registry_rename_uses_core_error",
+            "review_f6_core_resource_registry_rename_uses_resource_error",
             "review_f7_asset_artifact_errors_use_asset_import_error_sources",
             "| Runtime 08 + Runtime 15 / review closed |",
             "| Runtime 02 / review closed |",

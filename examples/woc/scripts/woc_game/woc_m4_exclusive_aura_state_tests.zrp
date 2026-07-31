@@ -1,0 +1,1 @@
+{ "name":"woc_m4_exclusive_aura_state_tests", "source":"src", "binary":"bin-m4-exclusive-aura-state-tests", "entry":"combat/exclusive_aura_state_test_main" }

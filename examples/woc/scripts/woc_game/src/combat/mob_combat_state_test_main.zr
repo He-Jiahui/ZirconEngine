@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var mobCombat = %import("combat/mob_combat_state");
+
+console.printLine("m4-mob-combat-state-test");
+var result = mobCombat.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

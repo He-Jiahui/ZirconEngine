@@ -122,39 +122,30 @@ fn is_vampire_combat_hud_text(text: &str) -> bool {
     let mut has_weapons = false;
 
     for line in text.lines().map(str::trim).filter(|line| !line.is_empty()) {
-        let tokens = line
+        let mut previous = None;
+        for token in line
             .split_whitespace()
             .map(|token| token.trim_end_matches(':'))
-            .collect::<Vec<_>>();
-        has_hp |= token_pair_f32_after(&tokens, "HP").is_some();
-        has_xp |= token_pair_i64_after(&tokens, "XP").is_some();
-        has_weapons |= token_i64_after(&tokens, "Orbit").is_some()
-            || token_i64_after(&tokens, "Lance").is_some()
-            || token_i64_after(&tokens, "Pulse").is_some();
+        {
+            match previous {
+                Some("HP") => has_hp |= parse_f32_pair(token).is_some(),
+                Some("XP") => has_xp |= parse_i64_pair(token).is_some(),
+                Some("Orbit" | "Lance" | "Pulse") => has_weapons |= token.parse::<i64>().is_ok(),
+                _ => {}
+            }
+            previous = Some(token);
+        }
     }
 
     has_hp && has_xp && has_weapons
 }
 
-fn token_str_after<'a>(tokens: &'a [&str], label: &str) -> Option<&'a str> {
-    tokens
-        .windows(2)
-        .find(|pair| pair[0] == label)
-        .map(|pair| pair[1])
-}
-
-fn token_i64_after(tokens: &[&str], label: &str) -> Option<i64> {
-    token_str_after(tokens, label)?.parse().ok()
-}
-
-fn token_pair_i64_after(tokens: &[&str], label: &str) -> Option<(i64, i64)> {
-    let value = token_str_after(tokens, label)?;
+fn parse_i64_pair(value: &str) -> Option<(i64, i64)> {
     let (left, right) = value.split_once('/')?;
     Some((left.parse().ok()?, right.parse().ok()?))
 }
 
-fn token_pair_f32_after(tokens: &[&str], label: &str) -> Option<(f32, f32)> {
-    let value = token_str_after(tokens, label)?;
+fn parse_f32_pair(value: &str) -> Option<(f32, f32)> {
     let (left, right) = value.split_once('/')?;
     Some((left.parse().ok()?, right.parse().ok()?))
 }
@@ -202,6 +193,24 @@ mod tests {
         assert!(
             runtime_session_hud_extract(&world, UVec2::new(1280, 720)).is_none(),
             "vampire health must render through scene-following world HUD bars, not a screen-space panel"
+        );
+    }
+
+    #[test]
+    fn vampire_combat_hud_detection_streams_tokens_without_collecting() {
+        let source = include_str!("hud.rs");
+        let start = source
+            .find("fn is_vampire_combat_hud_text(")
+            .expect("vampire combat HUD detector");
+        let end = source[start..]
+            .find("#[cfg(test)]")
+            .map(|offset| start + offset)
+            .expect("vampire combat HUD detector end");
+        let detector_source = &source[start..end];
+
+        assert!(
+            !detector_source.contains("collect::<Vec<_>>()"),
+            "per-frame HUD classification must stream borrowed tokens without a temporary Vec"
         );
     }
 }

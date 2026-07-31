@@ -28,7 +28,7 @@ pub struct EditorJobSystem {
 struct EditorJobSystemInner {
     scheduler: JobScheduler,
     limits: EditorJobLimits,
-    event_sender: mpsc::Sender<super::JobEvent>,
+    event_queue: super::pump::JobEventQueue,
     event_pump: JobEventPump,
     state: Mutex<EditorJobSystemState>,
     state_changed: Condvar,
@@ -46,13 +46,13 @@ impl EditorJobSystem {
         limits: EditorJobLimits,
     ) -> Self {
         let limits = limits.with_runtime_defaults(scheduler.parallelism());
-        let (event_sender, event_receiver) = mpsc::channel();
+        let event_queue = super::pump::JobEventQueue::default();
         Self {
             inner: Arc::new(EditorJobSystemInner {
                 scheduler,
                 limits,
-                event_sender,
-                event_pump: JobEventPump::new(bus, event_receiver),
+                event_queue: event_queue.clone(),
+                event_pump: JobEventPump::new(bus, event_queue),
                 state: Mutex::new(EditorJobSystemState::default()),
                 state_changed: Condvar::new(),
                 progress: EditorJobProgressSource::default(),
@@ -105,9 +105,7 @@ impl EditorJobSystem {
             let id = state.allocate_id();
             state.register(id);
             self.inner.progress.register(id, &spec);
-            state
-                .pending
-                .push(PendingJob::new(id, spec, task, cancel_task));
+            state.enqueue_pending(PendingJob::new(id, spec, task, cancel_task));
             id
         };
         self.inner.promote();
@@ -115,7 +113,20 @@ impl EditorJobSystem {
     }
 
     pub fn pump_events(&self) -> usize {
-        self.inner.event_pump.pump()
+        self.pump_events_with_budget(super::DEFAULT_JOB_EVENT_PUMP_BUDGET)
+    }
+
+    pub fn pump_events_with_budget(&self, budget: super::JobEventPumpBudget) -> usize {
+        self.inner.event_pump.pump(budget)
+    }
+
+    #[cfg(test)]
+    pub(super) fn pump_events_with_elapsed(
+        &self,
+        budget: super::JobEventPumpBudget,
+        elapsed: impl FnMut() -> std::time::Duration,
+    ) -> usize {
+        self.inner.event_pump.pump_with_elapsed(budget, elapsed)
     }
 
     pub fn progress(&self) -> EditorJobProgressSource {
@@ -136,10 +147,9 @@ impl EditorJobSystem {
     /// Cancels a pending job synchronously or requests cooperative cancellation from active work.
     pub fn cancel(&self, id: JobId) -> bool {
         let mut state = self.inner.lock_state();
-        let Some(index) = state.pending.iter().position(|pending| pending.id == id) else {
+        let Some(pending) = state.remove_pending(id) else {
             return self.inner.progress.request_cancel(id);
         };
-        let pending = state.pending.remove(index);
         pending.spec.cancel.cancel();
         let label = pending.spec.label.clone();
         let category = pending.spec.category;
@@ -150,7 +160,7 @@ impl EditorJobSystem {
             id,
             label,
             category,
-            self.inner.event_sender.clone(),
+            self.inner.event_queue.clone(),
             self.inner.progress.clone(),
         );
         cancel_task(JobContext::new(cancel, events));
@@ -209,7 +219,7 @@ impl EditorJobSystem {
 
     #[cfg(test)]
     pub(super) fn pending_job_count(&self) -> usize {
-        self.inner.lock_state().pending.len()
+        self.inner.lock_state().pending_len()
     }
 
     #[cfg(test)]
@@ -220,6 +230,11 @@ impl EditorJobSystem {
     #[cfg(test)]
     pub(super) fn mutex_group_tail_count(&self) -> usize {
         self.inner.lock_state().mutex_group_tail_count()
+    }
+
+    #[cfg(test)]
+    pub(super) fn admission_probe_count(&self) -> usize {
+        self.inner.lock_state().admission_probe_count()
     }
 
     #[cfg(test)]
@@ -241,7 +256,7 @@ impl EditorJobSystemInner {
                 id,
                 pending.spec.label,
                 pending.spec.category,
-                self.event_sender.clone(),
+                self.event_queue.clone(),
                 self.progress.clone(),
             );
             (pending.cancel_task)(JobContext::new(pending.spec.cancel, events));
@@ -259,20 +274,19 @@ impl EditorJobSystemInner {
     fn promote(self: &Arc<Self>) {
         let mut state = self.lock_state();
         loop {
-            let Some(index) = state.next_admissible_index(&self.limits) else {
+            let Some(pending) = state.take_next_admissible(&self.limits) else {
                 break;
             };
-            let pending = state.pending.remove(index);
-            let explicit_dependencies = pending
+            let mut dependencies = pending
                 .spec
                 .after
                 .iter()
-                .map(|id| state.dependency_handle(*id))
-                .collect::<Option<Vec<_>>>();
-            let Some(mut dependencies) = explicit_dependencies else {
-                state.pending.push(pending);
-                break;
-            };
+                .map(|id| {
+                    state
+                        .dependency_handle(*id)
+                        .expect("pending dependency records stay pinned until scheduling")
+                })
+                .collect::<Vec<_>>();
             if let Some(group) = pending.spec.mutex_group.as_ref() {
                 if let Some(group_tail) = state.mutex_group_tail(group) {
                     dependencies.push(group_tail);
@@ -286,7 +300,7 @@ impl EditorJobSystemInner {
                 id,
                 pending.spec.label.clone(),
                 category,
-                self.event_sender.clone(),
+                self.event_queue.clone(),
                 self.progress.clone(),
             );
             let context = JobContext::new(pending.spec.cancel.clone(), events.clone());

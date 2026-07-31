@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::{
@@ -113,14 +113,16 @@ pub(crate) fn detach_subtree_to_pool(
     collect_subtree_node_ids(tree, node_id, &mut detached)?;
     detach_from_parent(tree, node_id)?;
     tree.roots.retain(|root_id| *root_id != node_id);
+    let detached_set = detached.iter().copied().collect::<BTreeSet<_>>();
+    tree.slots.retain(|slot| {
+        !detached_set.contains(&slot.parent_id) && !detached_set.contains(&slot.child_id)
+    });
 
     let mut report = UiSurfaceNodePoolReport::default();
     for node_id in detached.iter().copied().rev() {
         let Some(mut node) = tree.nodes.remove(&node_id) else {
             continue;
         };
-        tree.slots
-            .retain(|slot| slot.parent_id != node_id && slot.child_id != node_id);
         node.parent = None;
         node.children.clear();
         reset_recycled_node(&mut node);

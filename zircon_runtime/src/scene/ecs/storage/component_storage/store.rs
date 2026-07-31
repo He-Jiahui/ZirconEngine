@@ -367,6 +367,19 @@ impl ComponentStorage {
         }
     }
 
+    pub(crate) fn for_each_sparse_entity(
+        &self,
+        component_id: ComponentId,
+        visit: impl FnMut(InternalEntity),
+    ) {
+        if self.storage_types.get(&component_id) != Some(&StorageType::SparseSet) {
+            return;
+        }
+        if let Some(storage) = self.sparse_components.get(&component_id) {
+            storage.for_each_entity(visit);
+        }
+    }
+
     fn ensure_storage_type(
         &mut self,
         component_id: ComponentId,

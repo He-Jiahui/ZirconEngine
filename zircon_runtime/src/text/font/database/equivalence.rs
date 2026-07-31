@@ -24,7 +24,8 @@ impl FontDatabase {
 }
 
 fn stored_face_render_inputs_equal(left: &StoredFontFace, right: &StoredFontFace) -> bool {
-    left.descriptor == right.descriptor
+    left.active == right.active
+        && left.descriptor == right.descriptor
         && stored_source_render_inputs_equal(
             &left.source,
             &right.source,

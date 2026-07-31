@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 
-EXPECTED_SOURCE_FILE_COUNT = 22
-EXPECTED_GUARD_FILE_COUNT = 17
+EXPECTED_SOURCE_FILE_COUNT = 24
+EXPECTED_GUARD_FILE_COUNT = 20
 EXPECTED_WORKER_DIAGNOSTIC_COUNT = 7
 EXPECTED_ARTIFACT_STORE_ROUNDTRIP_COUNT = 4
 EXPECTED_WATCHER_TEST_COUNT = 7
@@ -14,6 +14,8 @@ RUNTIME_04_SOURCE_FILES = (
     "zircon_runtime/src/asset/facade/manager.rs",
     "zircon_runtime/src/asset/facade/event.rs",
     "zircon_runtime/src/asset/pipeline/worker_pool.rs",
+    "zircon_runtime/src/asset/pipeline/worker_pool/options.rs",
+    "zircon_runtime/src/asset/pipeline/worker_pool/completion.rs",
     "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs",
     "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs",
     "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs",
@@ -37,6 +39,9 @@ RUNTIME_04_GUARD_FILES = (
     "zircon_runtime/src/asset/tests/facade/failure_reason.rs",
     "zircon_runtime/src/asset/tests/facade/hot_reload.rs",
     "zircon_runtime/src/asset/tests/pipeline/worker_pool.rs",
+    "zircon_runtime/src/asset/tests/pipeline/worker_pool/diagnostics.rs",
+    "zircon_runtime/src/asset/tests/pipeline/worker_pool/single_flight.rs",
+    "zircon_runtime/src/asset/tests/pipeline/worker_pool/task_pool.rs",
     "zircon_runtime/src/asset/tests/watcher.rs",
     "zircon_runtime/src/asset/tests/assets/artifact_store.rs",
     "zircon_runtime/src/asset/tests/assets/artifact_store/scene_components.rs",

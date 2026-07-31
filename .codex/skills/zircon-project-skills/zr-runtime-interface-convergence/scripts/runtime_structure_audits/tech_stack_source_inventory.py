@@ -2,9 +2,12 @@ from __future__ import annotations
 
 
 EXPECTED_MANIFEST_COUNT = 5
-EXPECTED_NON_DEPENDENCY_COUNT = 5
+EXPECTED_NON_DEPENDENCY_COUNT = 4
 EXPECTED_ZIP_DEPENDENCY_COUNT = 1
 EXPECTED_EDITOR_ONLY_CANDIDATE_COUNT = 3
+KIRA_OWNER_MANIFEST = "zircon_plugins/sound/runtime/Cargo.toml"
+KIRA_DEPENDENCY_VERSION = "0.12.2"
+KIRA_DEPENDENCY_LINE = 'kira = "0.12.2"'
 ZR_VM_PLUGIN_MANIFEST = "zircon_plugins/zr_vm_language/runtime/Cargo.toml"
 ZR_VM_BACKEND_FEATURE = "backend-zr-vm"
 ZR_VM_BINDING_DEPENDENCY_PREFIX = "zr_vm_rust_binding"
@@ -34,7 +37,6 @@ REQUIRED_VERSION_ANCHORS = (
 )
 NON_DEPENDENCIES = (
     "cosmic-text",
-    "kira",
     "rfd",
     "arboard",
     "tar",

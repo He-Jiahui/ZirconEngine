@@ -1,4 +1,3 @@
-use zircon_runtime::scene::LevelSystem;
 use zircon_runtime_interface::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord,
 };
@@ -7,12 +6,14 @@ use crate::core::asset::{
     AssetContextCommandDescriptor, AssetCreationTemplateDescriptor, AssetTypeDefinition,
     AssetTypeId, AssetTypeRegistry,
 };
+use crate::core::editing::authoring_world::AuthoringWorldSeed;
 use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEnvelope, EditorEventJournal, EditorEventRecord,
     EditorEventSource,
 };
 use crate::core::editor_extension::{
     AssetImporterDescriptor, ComponentDrawerDescriptor, EditorUiTemplateDescriptor,
+    EditorUiTemplatePaneDataSnapshot,
 };
 use crate::core::editor_message::EditorViewInvalidationMask;
 use crate::core::editor_operation::{EditorOperationInvocation, EditorOperationSource};
@@ -20,9 +21,9 @@ use crate::core::jobs::EditorJobProgressSnapshot;
 use crate::scene::viewport::{RenderFrameExtract, RenderSceneSnapshot};
 use crate::ui::activity::ActivityViewDescriptor;
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
+    EditorAssetCatalogGeneration, EditorAssetDetailsGeneration,
 };
-use crate::ui::host::editor_extension_registration::materialize_enabled_asset_types;
+use crate::ui::host::editor_extension_registration::enabled_asset_types_for_shell;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::snapshot::{
@@ -32,6 +33,8 @@ use crate::ui::workbench::snapshot::{
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::state::EditorRenderFrameSubmission;
 use crate::ui::workbench::view::{ViewDescriptor, ViewInstance};
+use std::collections::BTreeMap;
+use std::sync::Arc;
 use zircon_runtime_interface::ui::component::{
     UiComponentAdapterError, UiComponentAdapterResult, UiComponentEventEnvelope,
 };
@@ -41,12 +44,12 @@ use zircon_runtime_interface::ui::dispatch::{
 
 impl EditorHostEventController {
     pub fn editor_snapshot(&self) -> EditorDataSnapshot {
-        let inner = self.shell().lock();
+        let mut inner = self.shell().lock();
         let component_drawers = Self::active_component_drawers_for_shell(&inner);
         let mut snapshot = inner
             .state
             .snapshot_with_component_drawers(&component_drawers);
-        Self::project_asset_type_registry_for_shell(&inner, &mut snapshot);
+        Self::project_asset_type_registry_for_shell(&mut inner, &mut snapshot);
         snapshot
     }
 
@@ -63,9 +66,9 @@ impl EditorHostEventController {
     }
 
     pub fn chrome_snapshot(&self) -> EditorChromeSnapshot {
-        let inner = self.shell().lock();
+        let mut inner = self.shell().lock();
         let descriptors = inner.manager.descriptors();
-        Self::build_chrome_for_shell(&inner, descriptors)
+        Self::build_chrome_for_shell(&mut inner, descriptors)
     }
 
     pub fn preset_names(&self) -> Vec<String> {
@@ -262,7 +265,7 @@ impl EditorHostEventController {
         self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
-    pub fn sync_asset_catalog(&self, catalog: EditorAssetCatalogSnapshotRecord) {
+    pub fn sync_asset_catalog(&self, catalog: Arc<EditorAssetCatalogGeneration>) {
         self.shell().lock().state.sync_asset_catalog(catalog);
         self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
@@ -272,17 +275,34 @@ impl EditorHostEventController {
         self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
-    pub fn sync_asset_details(&self, details: Option<EditorAssetDetailsRecord>) {
+    pub fn sync_asset_details(&self, details: Option<Arc<EditorAssetDetailsGeneration>>) {
         self.shell().lock().state.sync_asset_details(details);
         self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
-    pub fn replace_world(&self, world: LevelSystem, project_path: impl Into<String>) {
-        self.shell().lock().state.replace_world(world, project_path);
-        self.gizmo_drag().clear();
+    pub fn replace_world(
+        &self,
+        world: impl Into<AuthoringWorldSeed>,
+        project_path: impl Into<String>,
+    ) -> Result<(), String> {
+        self.shell()
+            .lock()
+            .state
+            .replace_world(world, project_path)?;
+        self.publish_scene_inspection_resync();
         self.refresh_workbench(
             EditorViewInvalidationMask::RENDER.union(EditorViewInvalidationMask::PRESENTATION_DATA),
         );
+        Ok(())
+    }
+
+    pub fn clear_project(&self, welcome: WelcomePaneSnapshot) -> Result<(), String> {
+        self.shell().lock().state.clear_project(welcome)?;
+        self.publish_scene_inspection_resync();
+        self.refresh_workbench(
+            EditorViewInvalidationMask::RENDER.union(EditorViewInvalidationMask::PRESENTATION_DATA),
+        );
+        Ok(())
     }
 
     pub fn import_mesh_asset(
@@ -349,6 +369,71 @@ impl EditorHostEventController {
             .cloned()
     }
 
+    pub(crate) fn plugin_template_revision(&self) -> (u64, Vec<String>) {
+        let inner = self.shell().lock();
+        let enabled_capabilities = inner
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .to_vec();
+        (inner.editor_template_generation, enabled_capabilities)
+    }
+
+    pub(crate) fn enabled_plugin_template_descriptors(
+        &self,
+    ) -> (
+        u64,
+        Vec<String>,
+        BTreeMap<String, Vec<EditorUiTemplateDescriptor>>,
+    ) {
+        let inner = self.shell().lock();
+        let enabled_capabilities = inner
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .to_vec();
+        let templates_by_owner = inner
+            .editor_extensions
+            .iter()
+            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
+            .fold(BTreeMap::new(), |mut templates_by_owner, registration| {
+                templates_by_owner
+                    .entry(registration.owner_id().to_owned())
+                    .or_default()
+                    .extend(registration.registry().ui_templates().into_iter().cloned());
+                templates_by_owner
+            });
+        (
+            inner.editor_template_generation,
+            enabled_capabilities,
+            templates_by_owner,
+        )
+    }
+
+    pub(crate) fn ui_template_pane_data_snapshots(
+        &self,
+    ) -> BTreeMap<String, EditorUiTemplatePaneDataSnapshot> {
+        let sources = {
+            let inner = self.shell().lock();
+            let enabled_capabilities = inner
+                .manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .to_vec();
+            inner
+                .editor_extensions
+                .iter()
+                .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
+                .flat_map(|registration| registration.registry().ui_template_pane_data_sources())
+                .collect::<BTreeMap<_, _>>()
+        };
+
+        sources
+            .into_iter()
+            .map(|(template_id, source)| (template_id, source.snapshot()))
+            .collect()
+    }
+
     pub fn asset_importers_for_extension(&self, extension: &str) -> Vec<AssetImporterDescriptor> {
         let normalized = extension
             .trim()
@@ -376,34 +461,27 @@ impl EditorHostEventController {
     }
 
     pub fn asset_type_definition(&self, asset_type: &AssetTypeId) -> Option<AssetTypeDefinition> {
-        let inner = self.shell().lock();
-        let enabled_capabilities = inner
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .to_vec();
-        materialize_enabled_asset_types(&inner.editor_extensions, &enabled_capabilities)
+        let mut inner = self.shell().lock();
+        enabled_asset_types_for_shell(&mut inner)
             .ok()?
             .get(asset_type)
             .cloned()
     }
 
     pub(crate) fn project_asset_type_registry_for_shell(
-        shell: &crate::ui::workbench::shell_state::WorkbenchShellStateData,
+        shell: &mut crate::ui::workbench::shell_state::WorkbenchShellStateData,
         snapshot: &mut EditorDataSnapshot,
     ) {
-        let enabled_capabilities = shell
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .to_vec();
-        let Ok(registry) =
-            materialize_enabled_asset_types(&shell.editor_extensions, &enabled_capabilities)
-        else {
+        let Ok(registry) = enabled_asset_types_for_shell(shell) else {
             return;
         };
         project_asset_workspace(&mut snapshot.asset_activity, &registry);
         project_asset_workspace(&mut snapshot.asset_browser, &registry);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn asset_type_registry_cache_counts(&self) -> (u64, u64) {
+        self.shell().lock().asset_type_registry_cache.counts()
     }
 
     pub fn asset_creation_templates(

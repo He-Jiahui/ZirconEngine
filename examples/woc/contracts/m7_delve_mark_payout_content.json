@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_mark_payout_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff"
+  },
+  "content": {
+    "first_full_clear_limit": 3,
+    "first_normal_marks": 1,
+    "first_heroic_marks": 2,
+    "repeat_heroic_marks": 1,
+    "repeat_normal_probability": 0.5
+  },
+  "catalog_sha256": "9b022fbddfbf870db2ed25971badb7392c1f4cc219e978cdfa4a1ebc2c2b282b"
+}

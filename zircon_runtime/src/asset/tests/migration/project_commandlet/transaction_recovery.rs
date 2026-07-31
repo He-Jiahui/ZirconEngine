@@ -85,10 +85,12 @@ fn dry_run_reports_pending_recovery_and_apply_converges_forward_without_backup_r
     ))
     .unwrap();
     assert!(!dry_run.succeeded());
-    assert!(dry_run
-        .issues()
-        .iter()
-        .any(|issue| issue.kind() == AssetMigrationIssueKind::PendingRecovery));
+    assert!(
+        dry_run
+            .issues()
+            .iter()
+            .any(|issue| issue.kind() == AssetMigrationIssueKind::PendingRecovery)
+    );
     assert_eq!(
         fs::read_to_string(&first).unwrap(),
         first_after_interruption
@@ -110,10 +112,12 @@ fn dry_run_reports_pending_recovery_and_apply_converges_forward_without_backup_r
     );
     assert_ne!(fs::read_to_string(&second).unwrap(), original);
     assert_eq!(fs::read_dir(&journal_directory).unwrap().count(), 0);
-    assert!(!fs::read_dir(&materials)
-        .unwrap()
-        .filter_map(Result::ok)
-        .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
+    assert!(
+        !fs::read_dir(&materials)
+            .unwrap()
+            .filter_map(Result::ok)
+            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
+    );
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -344,10 +348,12 @@ fn stage_write_and_backup_copy_failures_leave_no_local_artifacts() {
         )
         .expect_err("injected stage failure must remain typed");
         assert_eq!(fs::read_to_string(&material).unwrap(), original);
-        assert!(!fs::read_dir(material.parent().unwrap())
-            .unwrap()
-            .filter_map(Result::ok)
-            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
+        assert!(
+            !fs::read_dir(material.parent().unwrap())
+                .unwrap()
+                .filter_map(Result::ok)
+                .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
+        );
         fs::remove_dir_all(root).unwrap();
     }
 }
@@ -374,10 +380,12 @@ fn retired_backup_sync_failure_leaves_no_local_artifacts() {
     .expect_err("retired backup sync failure must remain typed");
     assert!(retired.is_file());
     assert!(!root.join("assets/shaders/legacy.zshader.zmeta").exists());
-    assert!(!fs::read_dir(retired.parent().unwrap())
-        .unwrap()
-        .filter_map(Result::ok)
-        .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
+    assert!(
+        !fs::read_dir(retired.parent().unwrap())
+            .unwrap()
+            .filter_map(Result::ok)
+            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
+    );
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -553,14 +561,18 @@ fn restore_failure_is_typed_and_retains_a_recovery_backup() {
             .unwrap();
     assert!(report.succeeded());
     for name in ["first.zmaterial", "second.zmaterial"] {
-        assert!(fs::read_to_string(materials.join(name))
-            .unwrap()
-            .contains("kind = \"project\""));
+        assert!(
+            fs::read_to_string(materials.join(name))
+                .unwrap()
+                .contains("kind = \"project\"")
+        );
     }
-    assert!(!fs::read_dir(&materials)
-        .unwrap()
-        .filter_map(Result::ok)
-        .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
+    assert!(
+        !fs::read_dir(&materials)
+            .unwrap()
+            .filter_map(Result::ok)
+            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
+    );
     assert_eq!(
         fs::read_dir(root.join(".zircon/asset-migration"))
             .unwrap()

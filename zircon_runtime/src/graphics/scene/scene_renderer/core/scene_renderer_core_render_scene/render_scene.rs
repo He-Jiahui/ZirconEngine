@@ -1,4 +1,4 @@
-use crate::core::framework::render::{PostProcessGraphResourceNames, SkyboxMode};
+use crate::core::framework::render::SkyboxMode;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -22,7 +22,7 @@ impl SceneRendererCore {
         )
         .then_some(frame.environment().skybox.procedural)
         .filter(|sky| sky.intensity > 0.0)
-        .map(|sky| self.realtime_ibl.prepare_frame(sky));
+        .map(|sky| self.realtime_ibl.prepare_frame(device, sky));
         self.write_scene_uniform(
             device,
             queue,
@@ -102,7 +102,6 @@ impl SceneRendererCore {
             &mut encoder,
             scene_color_view,
             final_color_view,
-            PostProcessGraphResourceNames::FINAL_COMPOSITED,
             RenderGraphAttachmentOps::clear_store(),
             frame.render_region(),
         );

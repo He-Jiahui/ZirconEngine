@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param()
 
 Set-StrictMode -Version Latest
@@ -7,9 +7,61 @@ $ErrorActionPreference = "Stop"
 $checker = Join-Path $PSScriptRoot "check-closeout.ps1"
 $seed = Join-Path $PSScriptRoot "seed-closeout-test-state.py"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../../../../../")).Path
-$coordinator = Join-Path $projectRoot "tools/zircon-session.ps1"
 $env:ZIRCON_CLOSEOUT_TEST_FIXTURE = "1"
 $env:PYTHONPATH = $projectRoot
+
+function Get-FixturePython {
+    $candidate = Get-Command python -All | Where-Object {
+        $_.CommandType -eq 'Application' -and $_.Source -notmatch '\\WindowsApps\\'
+    } | Select-Object -First 1
+    if ($null -eq $candidate) {
+        $candidate = Get-Command python -ErrorAction Stop
+    }
+    return $candidate.Source
+}
+
+function Start-FixtureCoordinator {
+    param([string]$Root)
+
+    $python = Get-FixturePython
+    $process = Start-Process -FilePath $python `
+        -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $Root, "--port", "0", "serve") `
+        -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru
+    $runtimePath = Join-Path $Root '.codex\state\session-coordinator\runtime.json'
+    try {
+        for ($attempt = 0; $attempt -lt 300; $attempt++) {
+            if (Test-Path -LiteralPath $runtimePath -PathType Leaf) {
+                try {
+                    $runtime = Get-Content -LiteralPath $runtimePath -Raw -Encoding UTF8 |
+                        ConvertFrom-Json -ErrorAction Stop
+                    $listenerHost = [string]$runtime.host
+                    $listenerPort = [int]$runtime.port
+                    if (-not [string]::IsNullOrWhiteSpace($listenerHost) -and $listenerPort -gt 0) {
+                        $health = Invoke-RestMethod -Uri "http://${listenerHost}:$listenerPort/health" -TimeoutSec 1
+                        if ($health.status -eq 'ok' -and $health.repo_root -eq $Root) {
+                            return $runtime
+                        }
+                    }
+                }
+                catch {
+                    # The descriptor may have been published before the HTTP
+                    # listener accepts its first request.
+                }
+            }
+            if ($process.HasExited) {
+                throw "Fixture coordinator exited before becoming healthy: $($process.ExitCode)"
+            }
+            Start-Sleep -Milliseconds 100
+        }
+        throw "Fixture coordinator did not become healthy within 30 seconds using $python."
+    }
+    catch {
+        if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -ErrorAction SilentlyContinue
+        }
+        throw
+    }
+}
 
 function Write-JsonFile {
     param([string]$Path, [object]$Value)
@@ -45,7 +97,9 @@ function New-CloseoutFixture {
         [switch]$StageMaintenanceToken,
         [switch]$StageCredential,
         [switch]$StageWeComKey,
-        [switch]$AddMissingManifestPath
+        [switch]$AddMissingManifestPath,
+        [switch]$NativeSlice,
+        [switch]$KeepIndexEmpty
     )
 
     $root = Join-Path ([IO.Path]::GetTempPath()) ("zircon-closeout-" + [guid]::NewGuid().ToString("N"))
@@ -110,7 +164,7 @@ function New-CloseoutFixture {
     $manifest = [ordered]@{
         session_id = "session-m2"
         mode = $Mode
-        milestone_id = "M2"
+        milestone_id = if ($NativeSlice) { "M2.1" } else { "M2" }
         owned_dirty_paths = @(
             "src/feature.py",
             "docs/feature.md",
@@ -136,6 +190,7 @@ function New-CloseoutFixture {
     New-Item -ItemType Directory -Path (Split-Path -Parent $planPath) -Force | Out-Null
     $testingStatus = if ($IncompleteTesting) { "待验收" } elseif ($CompletedTestingStatus) { "完成" } else { "通过" }
     $remaining = if ($IncompleteGoal -and -not $PendingTableOnly -and -not $BlockedTableOnly) { "- [ ] M3 remaining`n" } else { "" }
+    $milestoneId = if ($NativeSlice) { "M2.1" } else { "M2" }
     $pendingRow = if ($PendingTableOnly) {
         "| M3 | M3.1 implementation | 进行中 |`n"
     } elseif ($BlockedTableOnly) {
@@ -150,7 +205,7 @@ function New-CloseoutFixture {
 $remaining
 | 里程碑 | 切片 | 状态 |
 |---|---|---|
-| M2 | M2-T acceptance | $testingStatus |
+| $milestoneId | $milestoneId-T acceptance | $testingStatus |
 $pendingRow
 "@
     Set-Content -LiteralPath $planPath -Value $plan -Encoding UTF8
@@ -173,7 +228,8 @@ $pendingRow
     }
     if ($StageWeComKey) {
         if ($DeleteOwnedCode) { throw "Secret fixture cannot also delete the code file" }
-        Set-Content -LiteralPath (Join-Path $root "src/feature.py") -Value "WECOM_WEBHOOK_KEY=fake" -Encoding UTF8
+        $name = @("WECOM", "WEBHOOK", "KEY") -join "_"
+        Set-Content -LiteralPath (Join-Path $root "src/feature.py") -Value ($name + "=fake") -Encoding UTF8
     }
 
     $attributedPaths = @(
@@ -196,6 +252,9 @@ $pendingRow
     }
     if (-not $OmitOwnedUntracked) { $stage += "tests/test_feature.py" }
     & git -C $root add -- $stage
+    if ($KeepIndexEmpty) {
+        & git -C $root reset --mixed HEAD | Out-Null
+    }
     if ($DivergeAfterStage) {
         if ($DeleteOwnedCode) { throw "Divergence fixture cannot also delete the code file" }
         Set-Content -LiteralPath (Join-Path $root "src/feature.py") -Value "newer worktree content" -Encoding UTF8
@@ -231,20 +290,30 @@ $pendingRow
         & python -B $seed --repo-root $root --action release --path "src/feature.py"
         if ($LASTEXITCODE -ne 0) { throw "Failed to release fixture lease" }
     }
-    & $coordinator start -RepoRoot $root -Json *> $null
-    if ($LASTEXITCODE -ne 0) { throw "Failed to start real coordinator fixture" }
+    # Port 0 makes the fixture independent of the production coordinator that
+    # may be running on the shared default listener.
+    try {
+        $runtime = Start-FixtureCoordinator -Root $root
+    }
+    catch {
+        if (Test-Path -LiteralPath $root) {
+            Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        throw
+    }
 
     return [pscustomobject]@{
         Root = $root
         Mode = $Mode
         Manifest = $manifestPath
         CommitMessage = $CommitMessage
+        RuntimeProcessId = [int]$runtime.pid
     }
 }
 
 function Invoke-CloseoutCheck {
     param([object]$Fixture)
-    $output = & $checker `
+    $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $checker `
         -RepoRoot $Fixture.Root `
         -Mode $Fixture.Mode `
         -SessionId "session-m2" `
@@ -262,17 +331,50 @@ function Assert-ErrorCode {
     ($codes -contains $Code) | Should Be $true
 }
 
+function Stop-CloseoutFixtureProcess {
+    param([object]$Fixture)
+    if ($null -eq $Fixture -or -not (Test-Path -LiteralPath $Fixture.Root)) { return }
+    $resolvedRoot = (Resolve-Path -LiteralPath $Fixture.Root).ProviderPath
+    $fixturePid = [int]$Fixture.RuntimeProcessId
+    if ($fixturePid -gt 0) {
+        $process = Get-Process -Id $fixturePid -ErrorAction SilentlyContinue
+        if ($null -ne $process) {
+            $commandLine = (Get-CimInstance Win32_Process -Filter "ProcessId = $fixturePid").CommandLine
+            if ([string]::IsNullOrWhiteSpace($commandLine) -or
+                $commandLine.IndexOf($resolvedRoot, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+                throw "Refusing to stop a process outside the owned closeout fixture: $fixturePid"
+            }
+            Stop-Process -Id $fixturePid -ErrorAction Stop
+            for ($attempt = 0; $attempt -lt 20; $attempt++) {
+                if ($null -eq (Get-Process -Id $fixturePid -ErrorAction SilentlyContinue)) { break }
+                Start-Sleep -Milliseconds 100
+            }
+            if ($null -ne (Get-Process -Id $fixturePid -ErrorAction SilentlyContinue)) {
+                throw "Owned closeout fixture process did not stop: $fixturePid"
+            }
+        }
+    }
+}
+
 function Remove-CloseoutFixture {
     param([object]$Fixture)
     if ($null -eq $Fixture -or -not (Test-Path -LiteralPath $Fixture.Root)) { return }
-    & $coordinator stop -RepoRoot $Fixture.Root -Json *> $null
-    Remove-Item -LiteralPath $Fixture.Root -Recurse -Force
+    Stop-CloseoutFixtureProcess $Fixture
+    $resolvedRoot = (Resolve-Path -LiteralPath $Fixture.Root).ProviderPath
+    $tempRoot = ([IO.Path]::GetTempPath()).TrimEnd([char]'\', [char]'/')
+    if (-not $resolvedRoot.StartsWith($tempRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to remove a closeout fixture outside the temporary root: $resolvedRoot"
+    }
+    Remove-Item -LiteralPath $resolvedRoot -Recurse -Force
 }
 
 Describe "Session Goal milestone closeout checker" {
     AfterEach {
-        if ($null -ne $script:fixture -and (Test-Path -LiteralPath $script:fixture.Root)) {
-            Remove-CloseoutFixture $script:fixture
+        $fixtureForCleanup = @($script:fixture) | Where-Object {
+            $null -ne $_ -and $null -ne $_.PSObject.Properties['Root']
+        } | Select-Object -Last 1
+        if ($null -ne $fixtureForCleanup -and (Test-Path -LiteralPath $fixtureForCleanup.Root)) {
+            Remove-CloseoutFixture $fixtureForCleanup
         }
         $script:fixture = $null
     }
@@ -290,6 +392,15 @@ Describe "Session Goal milestone closeout checker" {
         ((& git -C $script:fixture.Root rev-parse HEAD).Trim()) | Should Be $beforeHead
         ((& git -C $script:fixture.Root status --porcelain=v1) -join "`n") | Should Be $beforeStatus
         ((& git -C $script:fixture.Root diff --cached --binary) -join "`n") | Should Be $beforeIndex
+    }
+
+    It "accepts an attributed native slice while the shared index is empty" {
+        $script:fixture = New-CloseoutFixture -Mode Milestone -NativeSlice -KeepIndexEmpty
+        $result = Invoke-CloseoutCheck $script:fixture
+
+        $result.ExitCode | Should Be 0
+        $result.Json.status | Should Be "ok"
+        @($result.Json.staged_paths).Count | Should Be 0
     }
 
     It "accepts a terminal Goal" {
@@ -385,17 +496,37 @@ Describe "Session Goal milestone closeout checker" {
         }
     }
 
-    It "rejects staged webhook, maintenance capability, and credential material" {
-        foreach ($switchName in @("StageWebhook", "StageMaintenanceToken", "StageCredential", "StageWeComKey")) {
+    It "allows staged enterprise-WeChat webhook configuration" {
+        foreach ($switchName in @("StageWebhook", "StageWeComKey")) {
             $arguments = @{}
             $arguments[$switchName] = $true
             $script:fixture = New-CloseoutFixture @arguments
             $result = Invoke-CloseoutCheck $script:fixture
-            $result.ExitCode | Should Not Be 0
-            Assert-ErrorCode $result "sensitive_staged_content"
+            $result.ExitCode | Should Be 0
             Remove-CloseoutFixture $script:fixture
             $script:fixture = $null
         }
+    }
+
+    It "rejects a staged maintenance capability" {
+        $script:fixture = New-CloseoutFixture -StageMaintenanceToken
+        $capability = (@("ZIRCON", "COORDINATOR", "MAINTENANCE", "TOKEN") -join "_") + '=fake'
+        ((Get-Content -LiteralPath (Join-Path $script:fixture.Root 'src/feature.py') -Raw).Trim()) |
+            Should Be $capability
+        ((& git -C $script:fixture.Root diff --cached -- src/feature.py) -join "`n") |
+            Should Match ([Regex]::Escape($capability))
+        $result = Invoke-CloseoutCheck $script:fixture
+
+        $result.ExitCode | Should Not Be 0
+        Assert-ErrorCode $result "sensitive_staged_content"
+    }
+
+    It "rejects a staged generic credential" {
+        $script:fixture = New-CloseoutFixture -StageCredential
+        $result = Invoke-CloseoutCheck $script:fixture
+
+        $result.ExitCode | Should Not Be 0
+        Assert-ErrorCode $result "sensitive_staged_content"
     }
 
     It "rejects terminal Goal closeout without aggregate completion" {
@@ -495,7 +626,7 @@ Describe "Session Goal milestone closeout checker" {
 
     It "rejects closeout when the real coordinator is offline" {
         $script:fixture = New-CloseoutFixture -Mode Milestone
-        & $coordinator stop -RepoRoot $script:fixture.Root -Json *> $null
+        Stop-CloseoutFixtureProcess $script:fixture
         $result = Invoke-CloseoutCheck $script:fixture
 
         $result.ExitCode | Should Not Be 0

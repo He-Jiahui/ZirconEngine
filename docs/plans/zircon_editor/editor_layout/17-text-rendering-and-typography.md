@@ -9,7 +9,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Fonts/FontCache.h
@@ -42,7 +42,11 @@ status: in_progress
 文本这条线的**实现权威 = `docs/plans/zircon_runtime/text/`(index + 01-09 九个子计划)**;本文降级为**编辑器侧排版验收规范 / 消费方**,不再持有 runtime 文本文件的实施指令。分工如下:
 
 - **本文保留**:度量=绘制四规则(§1)、DPI 重栅格**验收契约**(§3.2 的断言,不含实现)、编辑器默认排版参数(默认 Word 换行、省略特例、字号/行高 token 消费)、换行自适应决策树(§3.5)、shrink-to-fit 收敛协议。
-- **让渡给 runtime text**:`layout_engine.rs` / `sdf_font_bake.rs` 等 runtime 文件的实施指令——整形/度量归 `text/02`/`text/03`,栅格/atlas key 归 `text/04`,SDF 管线归 `text/05`。本文 §5 的落点表自此仅作历史定位参考,以 text 子计划为准。
+- **让渡给 runtime text**:`ui/text/layout_engine.rs` / `text/sdf/font_bake.rs` 等 runtime 文件的实施指令——整形/度量归 `text/02`/`text/03`,栅格/atlas key 归 `text/04`,SDF 管线归 `text/05`。本文 §5 的落点表自此仅作历史定位参考,以 text 子计划为准。
+
+Current owner note（2026-07-18）：本文中作为历史短名出现的 `sdf_font_bake.rs` 统一指向 current
+`zircon_runtime/src/text/sdf/font_bake.rs`；已删除的 scene-renderer flat owner 不再是实现入口，也不保留
+forwarding module、alias、shim 或兼容重导出。EditorLayout17 继续只持有编辑器侧排版验收契约。
 
 把"字符错位/溢出、字体像素化、换行与文本大小自适应"从缺陷收敛为规范。四条根规则:
 
@@ -293,6 +297,8 @@ pub enum FitPolicy { ShrinkToFit { min_px: f32 }, ClampFontSize { min_px: f32, m
 ## 12. 状态与产出记录
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+- 2026-07-18 current-owner 文档硬切：front matter 已从删除的 scene-renderer `sdf_font_bake.rs` 升级为 Runtime Text `text/sdf/font_bake.rs`；focused G7 由 `1` 条 missing-path 收敛为 `0`，本计划仍保持 `in_progress` 且不收回 Runtime Text 实现权。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 

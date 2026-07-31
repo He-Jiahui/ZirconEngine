@@ -33,11 +33,18 @@ implementation_files:
   - zircon_editor/src/ui/host/command_eval_projection.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
+  - zircon_editor/src/ui/layouts/views/assets_activity.rs
+  - zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_node_projection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs
   - zircon_editor/src/ui/layouts/views/assets_activity/
   - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/09/failure-2026-07-17-asset-type-registry-clone-on-augment.md
+  - docs/plans/zircon_editor/editor/09/failure-2026-07-17-asset-pane-projector-repeated-model-scans.md
+  - docs/plans/zircon_editor/editor/09/2026-07-19-asset-content-generation-projection.md
   - docs/plans/zircon_editor/editor/09-editor-asset-management.md
   - docs/plans/zircon_editor/editor/09/2026-07-13-m1-current-state-and-hard-cutover-audit.md
   - docs/plans/zircon_editor/editor/09/2026-07-13-m1-approved-asset-type-registry-design.md
@@ -61,6 +68,9 @@ tests:
   - zircon_editor/src/tests/editor_asset_type_registry/typed_authoring_descriptors.rs
   - zircon_editor/src/tests/editor_event/runtime/integration.rs
   - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
+  - tools/tests/test_editor09_asset_content_generation_projection.py
+  - zircon_editor/src/ui/workbench/asset_content_layout/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/tests.rs
 doc_type: module-detail
 ---
 
@@ -157,6 +167,12 @@ Missing or malformed arguments, an unknown type, or an unsupported scheme all fa
 is no suffix inference, URI string prefix exception, compatibility alias or second writable-state
 truth.
 
+## Project generation consumption
+
+Editor asset consumers resolve paths and reference views against the Runtime asset manager's active project generation. Project open transfers the `ProjectAuthority`-validated manager through `open_prepared_project`; document load/save, workspace watcher, UI asset external promotion and undo/redo side effects use an explicit generation snapshot. Hot locator resolution instead calls manager-owned `current_project_source_path`, which resolves under the authoritative project read lock from the Runtime manager's `(scheme, path)` source index without cloning the complete `ProjectManager` or probing project roots for every asset. The retired root-path helpers that reopened or cloned a manager only to recover its root are deleted.
+
+Layout preset names are derived from `current_project_asset_uris`, a lightweight locator projection of the same authoritative registry, and never enumerate or parse preset files during normal projection. Explicit preset save writes once and requests a Runtime import refresh. That refresh is currently full-project; the transactional targeted form remains open in Runtime04 and must preserve atomic sidecar/artifact/registry publication, dependency edges, duplicate GUID ownership and compound topology. Preset save/load errors retain `SceneProjectError` as the typed `EditorError` source. Editor does not add a second path cache to hide the Runtime gap.
+
 ## Hard-cut boundary
 
 `EditorExtensionRegistry` and first-party editor plugins now publish only
@@ -209,3 +225,21 @@ Cargo remains pending.
 `apply_contribution` still clones the complete materialized entry before every augmentation and
 sorts growing descriptor vectors after each delta. The validate-then-commit/generation-finalize
 repair is owned by Editor09's linked failure record; this module is not performance-accepted yet.
+
+## Asset content generation projection
+
+Assets Activity and Asset Browser publish one `AssetContentPaintMetadata` with their final
+`ModelRc<ViewTemplateNodeData>`. The metadata owns parsed control identity, content viewport and
+extent, Activity folder count, fixed node rows and vertically ordered scroll groups. It is built
+after layout completes, so the retained painter never reconstructs stable asset structure.
+
+`ModelRc` carries clone-shared typed metadata and `project_nodes` preserves that same allocation
+while converting view nodes into host nodes. Activity/Browser projectors use the metadata for
+scroll, hover, clip and exact row visitation; the scrollbar reads the same viewport/extent. The
+retired painter-local identity module is deleted. Stable paint therefore performs no model-wide
+`row_data` loop and no identity parsing, while damage/scroll work is bounded by fixed nodes plus
+visible scroll groups rather than total asset count.
+
+Static contracts, shared-metadata tests and a 10,000-thumbnail visible-group boundary are present.
+Managed Cargo, product pixel equivalence, allocation/CPU p95 evidence and independent review remain
+pending, so the linked performance handoff is still open and this section does not claim acceptance.

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/salvage_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/salvage.ts": "d0eaec562deacc85783406c81c435f2e833ea39f9e32c0f7982bc87b1a764a32"
+  },
+  "quality_order": [
+    "poor",
+    "common",
+    "uncommon",
+    "rare",
+    "epic",
+    "legendary"
+  ],
+  "material_by_quality": {
+    "common": "bone_fragments",
+    "uncommon": "linen_scrap",
+    "rare": "spider_leg",
+    "epic": "spider_leg",
+    "legendary": "spider_leg"
+  },
+  "material_fallback": "bone_fragments",
+  "tier_levels_per_bonus": 10,
+  "roll_threshold": 0.5,
+  "semantics": {
+    "eligibility": "only weapon or armor definitions with a non-poor quality are salvageable",
+    "yield": "quality index plus floor(required level / 10) plus one and one bonus when RNG is at least 0.5",
+    "mutation": "unknown, ineligible and missing-held-item outcomes consume no item or RNG; success removes one fungible item before granting material"
+  }
+}

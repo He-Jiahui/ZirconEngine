@@ -2,7 +2,8 @@
 fn review_f5_native_plugin_manifest_collection_uses_typed_error() {
     let collect_manifests =
         include_str!("../../../../../../plugin/native_plugin_loader/collect_manifests.rs");
-    let discover = include_str!("../../../../../../plugin/native_plugin_loader/discover.rs");
+    let discovery_authority =
+        include_str!("../../../../../../plugin/native_plugin_loader/discover/authority.rs");
     let native_boundary =
         include_str!("../../../../../../../../docs/engine-architecture/native-plugin-boundary.md");
     let review_findings =
@@ -34,7 +35,7 @@ fn review_f5_native_plugin_manifest_collection_uses_typed_error() {
         "InspectEntry",
         "impl std::fmt::Display for NativePluginManifestCollectionError",
         "impl std::error::Error for NativePluginManifestCollectionError",
-        ") -> NativePluginManifestCollectionResult<()>",
+        ") -> NativePluginManifestCollectionResult<NativePluginManifestCollection>",
         "NativePluginManifestCollectionError::EnumerateRoot",
         "NativePluginManifestCollectionError::InspectEntry",
         "collect_plugin_manifests_reports_enumerate_root_with_typed_error",
@@ -63,9 +64,9 @@ fn review_f5_native_plugin_manifest_collection_uses_typed_error() {
     }
 
     assert!(
-        discover.contains("collect_plugin_manifests(root, &mut manifest_paths)")
-            && discover.contains("report.diagnostics.push(error.to_string())"),
-        "native plugin discover should keep manifest collection string formatting at the load-report boundary"
+        discovery_authority.contains("collect_plugin_manifests(&self.root)")
+            && discovery_authority.contains("snapshot.diagnostics.push(error.to_string())"),
+        "native plugin discovery authority should keep manifest collection string formatting at the load-report boundary"
     );
 
     for doc_anchor in [

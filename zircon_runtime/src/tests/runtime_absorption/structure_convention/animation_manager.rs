@@ -1,3 +1,4 @@
+use super::support::assert_contains_all_exact;
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
 fn read_runtime_src(relative: &str) -> String {
@@ -20,11 +21,18 @@ fn runtime_15_animation_manager_is_folder_backed() {
     let pose = read_runtime_src("animation/manager/pose.rs");
     let sampling = read_runtime_src("animation/manager/sampling.rs");
     let state_machine = read_runtime_src("animation/manager/state_machine.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_plan_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let animation_doc = read_repo("docs/zircon_runtime/animation/runtime.md");
     let status_rows = read_runtime_src(
@@ -83,15 +91,27 @@ fn runtime_15_animation_manager_is_folder_backed() {
     }
 
     for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
+        (
+            "Runtime 15 archived output",
+            runtime_15_plan_output.as_str(),
+        ),
+        (
+            "runtime index archived output",
+            runtime_index_output.as_str(),
+        ),
+        (
+            "review findings archived output",
+            review_findings_output.as_str(),
+        ),
+        (
+            "structure convention archived output",
+            structure_convention_output.as_str(),
+        ),
         ("module convention doc", module_doc.as_str()),
         ("animation runtime doc", animation_doc.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
-        assert_contains_all(
+        assert_contains_all_exact(
             label,
             source,
             &[

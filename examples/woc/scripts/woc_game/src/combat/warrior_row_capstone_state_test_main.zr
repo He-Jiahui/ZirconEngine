@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var warriorRows = %import("combat/warrior_row_capstone_state");
+
+console.printLine("m4-warrior-row-capstone-test");
+var result = warriorRows.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

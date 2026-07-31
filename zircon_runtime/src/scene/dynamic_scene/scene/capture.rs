@@ -12,12 +12,11 @@ use crate::scene::dynamic_scene::{
 };
 
 pub(super) fn dynamic_scene_from_world(world: &World) -> Result<DynamicScene, DynamicSceneError> {
-    let mut entities = world
+    let entities = world
         .node_records()
         .into_iter()
         .map(|node| dynamic_entity_from_node(world, node))
         .collect::<Result<Vec<_>, _>>()?;
-    entities.sort_by_key(|entity| entity.source_entity);
 
     let component_types = component_type_descriptors_from_world(world, &entities);
     let mut resources = reflected_resources_from_world(world)?;
@@ -160,4 +159,23 @@ fn serializable_fields(
                 .any(|info| info.name == field.field_name && info.serializable)
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn capture_reuses_node_record_order_without_resorting_entities() {
+        let source = include_str!("capture.rs");
+        let capture = source
+            .split("pub(super) fn dynamic_scene_from_world")
+            .nth(1)
+            .and_then(|source| source.split("fn dynamic_entity_from_node").next())
+            .expect("read dynamic scene capture body");
+
+        assert!(capture.contains(".node_records()"));
+        assert!(
+            !capture.contains("entities.sort_by_key"),
+            "World::node_records already publishes entity-id order; capture must not sort it again"
+        );
+    }
 }

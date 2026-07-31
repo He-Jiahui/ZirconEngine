@@ -5,10 +5,10 @@ use crate::rhi::{
     ShaderModuleHandle, ShaderStage, TextureDesc, TextureDimension, TextureFormat, TextureHandle,
     TextureUsage,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
 fn create_shader(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     stage: ShaderStage,
     entry_point: &str,
@@ -20,7 +20,7 @@ fn create_shader(
 }
 
 fn create_raster_pipeline(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     color_format: TextureFormat,
 ) -> PipelineHandle {
@@ -55,7 +55,10 @@ fn create_raster_pipeline(
         .unwrap()
 }
 
-fn create_render_texture(device: &WgpuRenderDevice, desc: TextureDesc) -> TextureHandle {
+fn create_render_texture(
+    device: &DeterministicRhiContractDevice,
+    desc: TextureDesc,
+) -> TextureHandle {
     device.create_texture(&desc).unwrap()
 }
 
@@ -69,7 +72,7 @@ fn color_attachment(texture: TextureHandle) -> RenderPassColorAttachmentDesc {
 
 #[test]
 fn command_list_records_render_pass_texture_views() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_texture(
         &device,
         TextureDesc::new(
@@ -110,7 +113,7 @@ fn command_list_records_render_pass_texture_views() {
 
 #[test]
 fn command_list_render_pass_submit_uses_mip_extent_for_view_compatibility() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let base = create_render_texture(
         &device,
         TextureDesc::new(
@@ -187,7 +190,7 @@ fn command_list_render_pass_submit_uses_mip_extent_for_view_compatibility() {
 
 #[test]
 fn command_list_render_pass_submit_validates_view_mip_and_array_layer_bounds() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let color = create_render_texture(
         &device,
         TextureDesc::new(
@@ -247,7 +250,7 @@ fn command_list_render_pass_submit_validates_view_mip_and_array_layer_bounds() {
 
 #[test]
 fn command_list_render_pass_submit_allows_distinct_array_layer_attachments() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let array = create_render_texture(
         &device,
         TextureDesc::new(
@@ -291,7 +294,7 @@ fn command_list_render_pass_submit_allows_distinct_array_layer_attachments() {
 
 #[test]
 fn command_list_render_pass_submit_validates_resolve_target_view_shape() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let msaa_color = create_render_texture(
         &device,
         TextureDesc::new(

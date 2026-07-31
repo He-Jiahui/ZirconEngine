@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/card_duel_command_codegen.mjs",
+  "source_blobs": {
+    "src/net/online.ts": "9399fac7e5dc49883cf04e772475b73893a0f06c9c65ae4ee5a22944cd3d4ff0",
+    "server/game.ts": "d5f0d0f715037ef4b79594925c64b1d0e676ed5ccebe24605f6ed16bcfc41556"
+  },
+  "commands": [
+    {
+      "id": 90,
+      "name": "card_queue_join",
+      "source_shape": {
+        "method": "joinCardDuelQueue",
+        "fields": []
+      },
+      "kind": "empty",
+      "min_byte_length": 0,
+      "max_byte_length": 0
+    },
+    {
+      "id": 91,
+      "name": "card_queue_leave",
+      "source_shape": {
+        "method": "leaveCardDuelQueue",
+        "fields": []
+      },
+      "kind": "empty",
+      "min_byte_length": 0,
+      "max_byte_length": 0
+    },
+    {
+      "id": 92,
+      "name": "play_card",
+      "source_shape": {
+        "method": "playCardInDuel",
+        "fields": [
+          "value"
+        ]
+      },
+      "kind": "i32_le",
+      "min_byte_length": 4,
+      "max_byte_length": 4
+    },
+    {
+      "id": 93,
+      "name": "card_forfeit",
+      "source_shape": {
+        "method": "forfeitCardDuel",
+        "fields": []
+      },
+      "kind": "empty",
+      "min_byte_length": 0,
+      "max_byte_length": 0
+    }
+  ],
+  "payload_encoding": {
+    "empty": "empty",
+    "i32_le": "i32_le"
+  },
+  "source_semantics": {
+    "play_card": "server accepts any JavaScript integer and lets the simulation decide whether the player holds that card"
+  }
+}

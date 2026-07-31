@@ -836,3 +836,12 @@ fn payload_carrying_actions_keep_typed_entries_in_react_payload_map() {
 - 【2026-06-12 核实补充】`update-new-project-draft` 是 Rust 可分发但前端无类型定义的 id（`hub.ts` 的 `HUB_ACTION` 仅 28 个，Rust canonical 29 个）。M3 双向守卫落地前必须先补齐前端常量与 `NewProjectDraftPayload`（M3 步骤 1），否则守卫首跑即红；若评审认为不应在前端暴露未使用的 action，可改为在守卫测试中维护显式 Rust-only 豁免集合——本计划默认选补齐，保持守卫零豁免。【落地状态终核（2026-06-12）】已按「补齐」路线落地：前端常量与 `NewProjectDraftPayload` 均已存在，并行变更另在两侧同步新增了 `discard-settings-draft`/`restore-default-settings`，现 Rust 与前端各 31 个 id，守卫零豁免绿灯。
 - 守卫测试以文本标记提取 id 集合（`quoted_values_between`），对 `action_id.rs` 的函数排列顺序（`ALL` → `as_str` → `from_str`）与 `hub.ts` 的 `} as const;` 写法有结构依赖；任何重排这两个区块的重构必须连带跑 `ui_input_navigation_api_contract`，标记缺失会直接 panic 并指明丢失的 marker。
 - M2 把 payload 校验失败从「IPC Err → 前端通用 `actionFailed` 文案」改为「`Ok(view_model)` + 可恢复 `TaskStatus`」：`app_error_recovery_contract.rs` 锁定的前端 catch 路径仍保留（传输层错误仍走它），但任何依赖「非法 payload 必然 reject promise」的调用方行为会变；已核实仓内无此类调用方（`App.tsx` 的 catch 只写日志与 snackbar）。
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- front-matter `status: planned` 与实仓不符：M1/M2/M3 全部落地（文档正文各里程碑「终核」注记已如实反映）。核对 `zircon_hub/src/tauri_app/action_id.rs:2-124`（`HubActionId` 31 变体 + `ALL` + `as_str`/`from_str` + round-trip 单测）、`commands.rs:48-79`（`spawn_background_action` 已收敛为 `run_background_worker_loop`，无字符串比对）。建议把状态改为 `completed`，否则会继续以 planned 调度已完成计划。
+- M2「目标代码形状」的 `parse_payload` 签名（第 425-443 行）写为 `parse_payload<T>(action: HubActionId, payload: Option<&Value>)`，但正文 M2 终核注记（第 402 行）已说明实仓落地为「自由函数 + 共享 `deserialize_payload`」。文档的两份签名并存易误导实施者；建议在目标代码形状块顶部直接标注「以实仓 `action_request.rs` 为准」并删除或明确降级过时代码块。
+- M2「宽松校验（仅形状）」代码块（第 505-511 行）把 `ProjectTargetActionPayload`/`OpenResourcePayload` 等写成 `validate` 返回 `Ok(())`，但正文终核注记（第 403 行）已指出实仓对这些类型也做了绝对路径校验、`NewProjectDraftActionPayload` 复用完整校验。目标代码形状与实仓相反，属可执行文档里的错误示范，建议整块替换为实仓形态或删除。
+- M2 关于 `localized.rs` strip_prefix 词条的目标形状（第 596-616 行）整段已被 07 的 `HubMessage` schema 取代——`localized.rs` 现无 `status_detail`/`strip_prefix`（`grep` 零命中），payload 校验错误改由 `state/hub_message/shell.rs`（`PayloadRequiredForAction`/`InvalidPayloadForAction`）承载。该节应标注「已被 07 计划整体重构，词条落点迁移至 `hub_message` 域文件」。

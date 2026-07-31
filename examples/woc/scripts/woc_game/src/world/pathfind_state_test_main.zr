@@ -1,0 +1,108 @@
+var console = %import("zr.system.console");
+var collisionSweep = %import("world/collision_sweep");
+var pathfind = %import("world/pathfind_state");
+var terrainContent = %import("world/terrain_content");
+var terrainGround = %import("world/terrain_ground");
+
+closeEnough(value: float, expected: float): bool {
+    var difference = value - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+endsAt(route: pathfind.PathfindRoute, x: float, z: float): bool {
+    if (route.points.length == 0) { return false; }
+    var last = <pathfind.PathfindPoint>route.points[route.points.length - 1];
+    return closeEnough(last.x, x) && closeEnough(last.z, z);
+}
+
+distanceSquared(x0: float, z0: float, x1: float, z1: float): float {
+    var dx = x1 - x0;
+    var dz = z1 - z0;
+    return dx * dx + dz * dz;
+}
+
+routeLeavesZ(route: pathfind.PathfindRoute, z: float): bool {
+    var index = 0;
+    while (index < route.points.length) {
+        if (!closeEnough((<pathfind.PathfindPoint>route.points[index]).z, z)) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+routeCrossesFence(
+    route: pathfind.PathfindRoute,
+    fromX: float,
+    fromZ: float
+): bool {
+    var previousX = fromX;
+    var previousZ = fromZ;
+    var index = 0;
+    while (index < route.points.length) {
+        var point = <pathfind.PathfindPoint>route.points[index];
+        if (collisionSweep.crossesBuiltinFence(previousX, previousZ, point.x, point.z, 0.5, true)) {
+            return true;
+        }
+        previousX = point.x;
+        previousZ = point.z;
+        index = index + 1;
+    }
+    return false;
+}
+
+var result = 1;
+var seed = <uint>20061;
+var route = new pathfind.PathfindRoute();
+
+// Reference: pathfind.test.ts smooths an unobstructed local A* route to one leg.
+var openOptions = new pathfind.PathfindOptions(
+    seed, 0.0, 1000000.0, 128, true, false, false, pathfind.PLAYER_SWIM_DEPTH
+);
+pathfind.findBuiltinPath(1000.0, 1000.0, 1008.0, 1005.0, openOptions, route);
+if (route.points.length != 1 || !endsAt(route, 1008.0, 1005.0)) {
+    result = -1;
+}
+
+// Reference: static blockers cause an A* detour while retaining the raw goal.
+pathfind.findBuiltinPlayerPath(seed, -4.0, 2.0, 4.0, 2.0, 128, false, false, route);
+if (result == 1 && (route.points.length <= 1 || !routeLeavesZ(route, 2.0) ||
+    !endsAt(route, 4.0, 2.0))) {
+    result = -2;
+}
+
+// Reference: walkers are pushed to shore, while swimmers retain deep-water clicks.
+var walked = new pathfind.PathfindPoint(0.0, 0.0);
+pathfind.resolveBuiltinPlayerDestination(seed, -108.0, 84.0, false, walked);
+var walkedGround = terrainGround.builtinGroundHeight(walked.x, walked.z, seed, true);
+var waterLimit = terrainContent.waterLevel(true) - pathfind.PLAYER_SWIM_DEPTH;
+var walkedDistanceSquared = distanceSquared(walked.x, walked.z, -108.0, 84.0);
+if (result == 1 && (walkedGround < waterLimit || walkedDistanceSquared <= 0.25 ||
+    walkedDistanceSquared >= 36.0)) {
+    result = -3;
+}
+var swum = new pathfind.PathfindPoint(0.0, 0.0);
+pathfind.resolveBuiltinPlayerDestination(seed, -108.0, 84.0, true, swum);
+if (result == 1 && distanceSquared(swum.x, swum.z, -108.0, 84.0) >= 0.25) {
+    result = -4;
+}
+
+// Reference: a fence forces a detour unless this mover can clear it.
+pathfind.findBuiltinPlayerPath(seed, 13.0, 7.0, 25.0, 13.0, 128, false, false, route);
+if (result == 1 && (routeCrossesFence(route, 13.0, 7.0) || !endsAt(route, 25.0, 13.0))) {
+    result = -5;
+}
+pathfind.findBuiltinPlayerPath(seed, 13.0, 7.0, 25.0, 13.0, 128, true, false, route);
+if (result == 1 && (!routeCrossesFence(route, 13.0, 7.0) || !endsAt(route, 25.0, 13.0))) {
+    result = -6;
+}
+
+// Reference: an oversized search window falls back to a direct one-leg route.
+pathfind.findBuiltinPlayerPath(seed, 0.0, 0.0, 200.0, 0.0, 64, false, false, route);
+if (result == 1 && (route.points.length != 1 || !endsAt(route, 200.0, 0.0))) {
+    result = -7;
+}
+
+console.printLine("m3-pathfind-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

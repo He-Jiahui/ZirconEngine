@@ -2,14 +2,15 @@ use crate::core::math::UVec2;
 
 use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{
-    glyph_atlas_bitmap_retry_frame_input_with_backpressure, glyph_atlas_bitmap_retry_frame_outcome,
-    GlyphAtlasBitmapQueuedGlyph, GlyphAtlasBitmapRetryBackpressurePolicy,
-    GlyphAtlasBitmapRetryFrameInput, GlyphAtlasBitmapRetryFrameOutcome, GlyphAtlasBitmapSource,
-    GlyphAtlasSet, GLYPH_BITMAP_ATLAS_PADDING_PX,
+    GLYPH_BITMAP_ATLAS_PADDING_PX, GlyphAtlasBitmapQueuedGlyph,
+    GlyphAtlasBitmapRetryBackpressurePolicy, GlyphAtlasBitmapRetryFrameInput,
+    GlyphAtlasBitmapRetryFrameOutcome, GlyphAtlasBitmapSource, GlyphAtlasSet,
+    glyph_atlas_bitmap_retry_frame_input_with_backpressure_and_new_source_budget_predicate,
+    glyph_atlas_bitmap_retry_frame_outcome,
 };
 use super::plan::{
-    glyph_atlas_bitmap_render_submission_plan_with_atlas_and_padding,
     GlyphAtlasBitmapRenderSubmissionPlan,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas_and_padding,
 };
 use super::report::GlyphAtlasBitmapRenderSubmissionReport;
 
@@ -26,11 +27,23 @@ pub(crate) struct GlyphAtlasBitmapRetryFrameSubmissionPlan {
 pub(crate) struct GlyphAtlasBitmapRetryFrameSubmissionReport {
     pub(crate) input_source_count: usize,
     pub(crate) retried_source_count: usize,
+    pub(crate) retried_source_byte_count: usize,
     pub(crate) new_source_count: usize,
+    pub(crate) new_source_byte_count: usize,
+    pub(crate) budgeted_new_source_count: usize,
+    pub(crate) budgeted_new_source_byte_count: usize,
     pub(crate) deferred_retry_count: usize,
+    pub(crate) deferred_retry_source_byte_count: usize,
     pub(crate) backpressured_retry_count: usize,
+    pub(crate) backpressured_retry_source_byte_count: usize,
+    pub(crate) rejected_retry_source_count: usize,
+    pub(crate) rejected_retry_source_byte_count: usize,
     pub(crate) deferred_new_source_count: usize,
+    pub(crate) deferred_new_source_byte_count: usize,
     pub(crate) backpressured_new_source_count: usize,
+    pub(crate) backpressured_new_source_byte_count: usize,
+    pub(crate) rejected_new_source_count: usize,
+    pub(crate) rejected_new_source_byte_count: usize,
     pub(crate) submission_report: GlyphAtlasBitmapRenderSubmissionReport,
     pub(crate) completed_retried_source_count: usize,
     pub(crate) completed_new_source_count: usize,
@@ -71,6 +84,10 @@ impl GlyphAtlasBitmapRetryFrameSubmissionReport {
 
     pub(crate) fn has_unmapped_blocked_sources(self) -> bool {
         self.unmapped_blocked_source_count > 0
+    }
+
+    pub(crate) fn has_byte_budget_rejections(self) -> bool {
+        self.rejected_retry_source_count > 0 || self.rejected_new_source_count > 0
     }
 }
 
@@ -202,12 +219,27 @@ where
     R: IntoIterator<Item = GlyphAtlasBitmapQueuedGlyph>,
     S: IntoIterator<Item = GlyphAtlasBitmapSource>,
 {
-    let frame_input = glyph_atlas_bitmap_retry_frame_input_with_backpressure(
-        blocked_glyphs,
-        frame_sources,
-        frame_index,
-        backpressure_policy,
-    );
+    let mut atlas = atlas;
+    let frame_input =
+        glyph_atlas_bitmap_retry_frame_input_with_backpressure_and_new_source_budget_predicate(
+            blocked_glyphs,
+            frame_sources,
+            frame_index,
+            backpressure_policy,
+            |source| {
+                max_pages_per_format == 0
+                    || source.raster_key.is_none_or(|key| {
+                        atlas
+                            .persistent_bitmap_slot(
+                                key,
+                                source.content_size,
+                                page_size,
+                                frame_index,
+                            )
+                            .is_none()
+                    })
+            },
+        );
     let submission = glyph_atlas_bitmap_render_submission_plan_with_atlas_and_padding(
         atlas,
         frame_input.sources.iter().copied(),
@@ -233,11 +265,25 @@ pub(crate) fn glyph_atlas_bitmap_retry_frame_submission_report(
     GlyphAtlasBitmapRetryFrameSubmissionReport {
         input_source_count: plan.frame_input.sources.len(),
         retried_source_count: plan.frame_input.retried_source_count,
+        retried_source_byte_count: plan.frame_input.retried_source_byte_count,
         new_source_count: plan.frame_input.new_source_count,
+        new_source_byte_count: plan.frame_input.new_source_byte_count,
+        budgeted_new_source_count: plan.frame_input.budgeted_new_source_count,
+        budgeted_new_source_byte_count: plan.frame_input.budgeted_new_source_byte_count,
         deferred_retry_count: plan.frame_input.deferred_retry_count,
+        deferred_retry_source_byte_count: plan.frame_input.deferred_retry_source_byte_count,
         backpressured_retry_count: plan.frame_input.backpressured_retry_count,
+        backpressured_retry_source_byte_count: plan
+            .frame_input
+            .backpressured_retry_source_byte_count,
+        rejected_retry_source_count: plan.frame_input.rejected_retry_source_count,
+        rejected_retry_source_byte_count: plan.frame_input.rejected_retry_source_byte_count,
         deferred_new_source_count: plan.frame_input.deferred_new_source_count,
+        deferred_new_source_byte_count: plan.frame_input.deferred_new_source_byte_count,
         backpressured_new_source_count: plan.frame_input.backpressured_new_source_count,
+        backpressured_new_source_byte_count: plan.frame_input.backpressured_new_source_byte_count,
+        rejected_new_source_count: plan.frame_input.rejected_new_source_count,
+        rejected_new_source_byte_count: plan.frame_input.rejected_new_source_byte_count,
         submission_report: plan.submission.submission_report(),
         completed_retried_source_count: plan.frame_outcome.completed_retried_source_count,
         completed_new_source_count: plan.frame_outcome.completed_new_source_count,

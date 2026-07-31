@@ -1,0 +1,29 @@
+// Pure current-head mob flee speed rule. The final movement multiplier is
+// capped, rather than applying the cap before slows or speed buffs.
+pub playerRunSpeed(): float { return 7.0; }
+pub fleeSpeedMultiplier(): float { return 1.4; }
+pub fleeMaximumSpeed(): float { return playerRunSpeed() * 0.65; }
+
+pub fleeSpeed(baseMoveSpeed: float, moveSpeedMultiplier: float): float {
+    var result = baseMoveSpeed * fleeSpeedMultiplier() * moveSpeedMultiplier;
+    return result < fleeMaximumSpeed() ? result : fleeMaximumSpeed();
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    if (!closeEnough(fleeMaximumSpeed(), playerRunSpeed() * 0.65) ||
+        fleeMaximumSpeed() >= playerRunSpeed() ||
+        !closeEnough(fleeSpeed(2.0, 1.0), 2.0 * fleeSpeedMultiplier()) ||
+        !closeEnough(fleeSpeed(6.0, 1.0), fleeMaximumSpeed())) return -1;
+    if (fleeSpeed(5.0, 1.4) > fleeMaximumSpeed() ||
+        !closeEnough(fleeSpeed(7.0, 1.4), fleeMaximumSpeed()) ||
+        !closeEnough(fleeSpeed(7.0, 2.0), fleeMaximumSpeed())) return -2;
+    if (!closeEnough(fleeSpeed(2.0, 0.5), 2.0 * fleeSpeedMultiplier() * 0.5) ||
+        fleeSpeed(2.0, 0.5) >= fleeMaximumSpeed()) return -3;
+    return closeEnough(fleeSpeed(5.0, 1.4), fleeSpeed(5.0, 1.4)) ? 1 : -4;
+}

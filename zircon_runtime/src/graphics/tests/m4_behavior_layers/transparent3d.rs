@@ -1,4 +1,4 @@
-use super::{average_channel_in_region, centered_quad_transform, resource_handle, RenderFixture};
+use super::{RenderFixture, average_channel_in_region, centered_quad_transform, resource_handle};
 use crate::asset::assets::AlphaMode;
 use crate::core::framework::render::{
     CorePipelineKind, GeometryExtract, GeometryPhaseInput, RenderFramework, RenderLayerSet,
@@ -8,7 +8,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec4};
 use crate::core::resource::TextureMarker;
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 #[test]
 fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() {
@@ -30,7 +30,10 @@ fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() 
         tint: Vec4::new(1.0, 1.0, 1.0, 0.5),
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+            ..Default::default()
+        },
     };
     let sprite = RenderSpriteSnapshot {
         entity: 301,
@@ -46,7 +49,10 @@ fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() 
         image_mode: RenderSpriteImageMode::Stretch,
         color: Vec4::new(0.0, 1.0, 0.0, 1.0),
         z_order: 0,
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+            ..crate::core::framework::render::RendererCommon::default()
+        },
         material_alpha_mode: RenderMaterialAlphaMode::Blend,
     };
     let mut extract = fixture.frame_extract(Vec::new(), Vec::new(), |_| {});
@@ -102,9 +108,11 @@ fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() 
             .with_anti_alias(false),
     );
     let stats = server.query_stats().unwrap();
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"mesh.transparent".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"mesh.transparent".to_string())
+    );
 
     let sample_origin = UVec2::new(
         fixture.viewport_size.x / 2 - 12,
@@ -141,7 +149,10 @@ fn transparent3d_product_treats_world_space_ui_sprite_as_transparent_member() {
         tint: Vec4::new(1.0, 1.0, 1.0, 0.5),
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+            ..Default::default()
+        },
     };
     let world_space_ui_panel = RenderSpriteSnapshot {
         entity: 311,
@@ -157,7 +168,10 @@ fn transparent3d_product_treats_world_space_ui_sprite_as_transparent_member() {
         image_mode: RenderSpriteImageMode::Stretch,
         color: Vec4::new(0.0, 1.0, 1.0, 1.0),
         z_order: 0,
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+            ..crate::core::framework::render::RendererCommon::default()
+        },
         material_alpha_mode: RenderMaterialAlphaMode::Blend,
     };
     let mut extract = fixture.frame_extract(Vec::new(), Vec::new(), |_| {});
@@ -215,9 +229,11 @@ fn transparent3d_product_treats_world_space_ui_sprite_as_transparent_member() {
             .with_anti_alias(false),
     );
     let stats = server.query_stats().unwrap();
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"mesh.transparent".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"mesh.transparent".to_string())
+    );
 
     let sample_origin = UVec2::new(
         fixture.viewport_size.x / 2 - 12,

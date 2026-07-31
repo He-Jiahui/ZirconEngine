@@ -104,10 +104,11 @@ impl ScriptBehaviorBridge for VmScriptBehaviorBridge {
     ) -> Result<Option<ScriptHostValue>, ScriptHostError> {
         let manager = self.manager()?;
         let mut handle = self.resolve_callback(&manager, callback)?;
+        let resolved_handle = handle;
         let result = manager
             .invoke_callback(&mut handle, arguments)
             .map_err(|error| ScriptHostError::new(error.to_string()));
-        if result.is_ok() {
+        if result.is_ok() && handle != resolved_handle {
             self.lock_callbacks().insert(callback.clone(), handle);
         }
         result
@@ -121,6 +122,17 @@ mod tests {
         CapabilitySet, VmInterfaceCaller, VmPluginManagementPolicy, VmPluginManifest,
         VmPluginPackage, VM_BT_NODE_CAPABILITY,
     };
+
+    #[test]
+    fn successful_callback_only_rewrites_cache_when_the_handle_changes() {
+        let source = include_str!("behavior_bridge.rs")
+            .split_once("#[cfg(test)]")
+            .unwrap()
+            .0;
+
+        assert!(source.contains("let resolved_handle = handle;"));
+        assert!(source.contains("if result.is_ok() && handle != resolved_handle"));
+    }
 
     #[test]
     fn provider_qualified_callback_selects_slot_and_refreshes_generation() {

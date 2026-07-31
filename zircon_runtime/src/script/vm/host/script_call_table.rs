@@ -99,28 +99,29 @@ impl fmt::Debug for ScriptCallSite {
 
 #[derive(Clone, Debug, Default)]
 pub struct ScriptCallTable {
+    generation: u64,
     entries: Arc<Vec<ScriptCallSite>>,
-    by_name: Arc<HashMap<(String, String), ScriptCallSiteId>>,
+    by_name: Arc<HashMap<Arc<str>, HashMap<Arc<str>, ScriptCallSiteId>>>,
 }
 
 impl ScriptCallTable {
-    pub(crate) fn from_entries(entries: Vec<ScriptCallSite>) -> Self {
-        let by_name = entries
-            .iter()
-            .map(|entry| {
-                (
-                    (
-                        entry.module_name().to_string(),
-                        entry.function_name().to_string(),
-                    ),
-                    entry.id(),
-                )
-            })
-            .collect();
+    pub(crate) fn from_entries(generation: u64, entries: Vec<ScriptCallSite>) -> Self {
+        let mut by_name = HashMap::<Arc<str>, HashMap<Arc<str>, ScriptCallSiteId>>::new();
+        for entry in &entries {
+            by_name
+                .entry(Arc::clone(&entry.module_name))
+                .or_default()
+                .insert(Arc::clone(&entry.function_name), entry.id());
+        }
         Self {
+            generation,
             entries: Arc::new(entries),
             by_name: Arc::new(by_name),
         }
+    }
+
+    pub const fn generation(&self) -> u64 {
+        self.generation
     }
 
     pub fn len(&self) -> usize {
@@ -131,14 +132,12 @@ impl ScriptCallTable {
         self.entries.is_empty()
     }
 
-    pub fn get(&self, id: ScriptCallSiteId) -> Option<ScriptCallSite> {
-        self.entries.get(id.raw() as usize).cloned()
+    pub fn get(&self, id: ScriptCallSiteId) -> Option<&ScriptCallSite> {
+        self.entries.get(id.raw() as usize)
     }
 
-    pub fn resolve(&self, module_name: &str, function_name: &str) -> Option<ScriptCallSite> {
-        let id = self
-            .by_name
-            .get(&(module_name.to_string(), function_name.to_string()))?;
+    pub fn resolve(&self, module_name: &str, function_name: &str) -> Option<&ScriptCallSite> {
+        let id = self.by_name.get(module_name)?.get(function_name)?;
         self.get(*id)
     }
 
@@ -159,12 +158,14 @@ impl ScriptCallTable {
 }
 
 pub(crate) struct ScriptCallTableBuilder {
+    generation: u64,
     entries: Vec<ScriptCallSite>,
 }
 
 impl ScriptCallTableBuilder {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(generation: u64) -> Self {
         Self {
+            generation,
             entries: Vec::new(),
         }
     }
@@ -181,7 +182,7 @@ impl ScriptCallTableBuilder {
     }
 
     pub(crate) fn build(self) -> ScriptCallTable {
-        ScriptCallTable::from_entries(self.entries)
+        ScriptCallTable::from_entries(self.generation, self.entries)
     }
 }
 

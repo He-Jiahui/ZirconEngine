@@ -1,0 +1,99 @@
+// Full built-in camp construction position after the RNG-owned scatter step.
+// This stays a scalar projection: roster allocation and entity materialization
+// must consume these results atomically in their eventual WorldState owner.
+
+var mobSpec = %import("content/camp_mob_spec");
+var layout = %import("world/camp_spawn_layout");
+var clearance = %import("world/dungeon_door_clearance");
+var safePosition = %import("world/safe_position");
+var terrainContent = %import("world/terrain_content");
+var terrainGround = %import("world/terrain_ground");
+
+minimumSpawnHeight(campIndex: int, required: bool): float {
+    var mobId = terrainContent.campMobId(campIndex, required);
+    return terrainContent.waterLevel(true) +
+        (mobSpec.canSpawnInWater(mobId, true) ? -0.5 : 0.4);
+}
+
+pub canCampMobSpawnInWater(campIndex: int, required: bool): bool {
+    return mobSpec.canSpawnInWater(terrainContent.campMobId(campIndex, required), true);
+}
+
+pub finalSpawnCoordinate(
+    seed: uint,
+    campIndex: int,
+    spawnIndex: int,
+    axis: int,
+    required: bool
+): float {
+    if (!required || (axis != 1 && axis != 2)) {
+        throw "woc final camp spawn coordinate is invalid";
+    }
+    // The layout accessor validates camp/spawn bounds and preserves the dummy's
+    // zero-draw centre coordinate, so this owner never replays construction RNG.
+    var rawX = layout.rawCampSpawnX(seed, campIndex, spawnIndex, true);
+    var rawZ = layout.rawCampSpawnZ(seed, campIndex, spawnIndex, true);
+    var minimumHeight = minimumSpawnHeight(campIndex, true);
+    if (layout.campSpawnIsFixedDummy(campIndex, spawnIndex, true)) {
+        var safeX = safePosition.findBuiltinSafePositionCoordinate(
+            seed, rawX, rawZ, minimumHeight, 1, true
+        );
+        var safeZ = safePosition.findBuiltinSafePositionCoordinate(
+            seed, rawX, rawZ, minimumHeight, 2, true
+        );
+        return axis == 1 ? safeX : safeZ;
+    }
+    var clearedX = clearance.projectOutsideDungeonDoorsX(rawX, rawZ, true);
+    var clearedZ = clearance.projectOutsideDungeonDoorsZ(rawX, rawZ, true);
+    var groundedX = safePosition.findBuiltinSafePositionCoordinate(
+        seed, clearedX, clearedZ, minimumHeight, 1, true
+    );
+    var groundedZ = safePosition.findBuiltinSafePositionCoordinate(
+        seed, clearedX, clearedZ, minimumHeight, 2, true
+    );
+    // Safe-position's spiral can return toward a ring edge; the source always
+    // repeats the door projection after it, without consuming construction RNG.
+    var safeX = clearance.projectOutsideDungeonDoorsX(groundedX, groundedZ, true);
+    var safeZ = clearance.projectOutsideDungeonDoorsZ(groundedX, groundedZ, true);
+    return axis == 1 ? safeX : safeZ;
+}
+
+pub finalSpawnGroundY(seed: uint, campIndex: int, spawnIndex: int, required: bool): float {
+    if (!required) {
+        throw "woc final camp spawn ground height is required";
+    }
+    var x = finalSpawnCoordinate(seed, campIndex, spawnIndex, 1, true);
+    var z = finalSpawnCoordinate(seed, campIndex, spawnIndex, 2, true);
+    return terrainGround.builtinGroundHeight(x, z, seed, true);
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub contractTest(): int {
+    var seed = <uint>20061;
+    if (canCampMobSpawnInWater(0, true) || !canCampMobSpawnInWater(16, true)) {
+        return -1;
+    }
+    if (!closeEnough(finalSpawnCoordinate(seed, 10, 4, 1, true), 86.27845763346977) ||
+        !closeEnough(finalSpawnCoordinate(seed, 10, 4, 2, true), -89.32902667223296) ||
+        !closeEnough(finalSpawnGroundY(seed, 10, 4, true), -2.1419971486531444)) {
+        return -2;
+    }
+    if (!closeEnough(finalSpawnCoordinate(seed, 12, 1, 1, true), 92.82814355005756) ||
+        !closeEnough(finalSpawnCoordinate(seed, 12, 1, 2, true), 105.34401293857368) ||
+        !closeEnough(finalSpawnGroundY(seed, 12, 1, true), 2.12324996807026)) {
+        return -3;
+    }
+    if (finalSpawnCoordinate(seed, 36, 0, 1, true) != -40.0 ||
+        finalSpawnCoordinate(seed, 36, 0, 2, true) != 648.0 ||
+        !closeEnough(finalSpawnGroundY(seed, 36, 0, true), 17.596418813637257)) {
+        return -4;
+    }
+    return 1;
+}

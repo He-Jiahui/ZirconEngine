@@ -48,6 +48,7 @@ fn render_text_atlas_bitmap_retry_plan_backpressures_due_retries_over_budget() {
             max_due_retry_sources_per_frame: Some(1),
             max_new_sources_per_frame: None,
             defer_excess_by_frames: 2,
+            ..GlyphAtlasBitmapRetryBackpressurePolicy::unlimited()
         },
     );
 
@@ -121,6 +122,7 @@ fn render_text_atlas_bitmap_retry_frame_input_applies_backpressure_before_new_so
             max_due_retry_sources_per_frame: Some(1),
             max_new_sources_per_frame: None,
             defer_excess_by_frames: 1,
+            ..GlyphAtlasBitmapRetryBackpressurePolicy::unlimited()
         },
     );
 
@@ -160,6 +162,7 @@ fn render_text_atlas_bitmap_retry_frame_input_backpressures_new_sources_over_bud
             max_due_retry_sources_per_frame: None,
             max_new_sources_per_frame: Some(2),
             defer_excess_by_frames: 3,
+            ..GlyphAtlasBitmapRetryBackpressurePolicy::unlimited()
         },
     );
 
@@ -179,6 +182,66 @@ fn render_text_atlas_bitmap_retry_frame_input_backpressures_new_sources_over_bud
             GlyphAtlasBitmapRetrySourceOrigin::New { source_index: 1 },
         ]
     );
+}
+
+#[test]
+fn render_text_atlas_bitmap_retry_frame_input_backpressures_each_source_class_by_byte_budget() {
+    let first_retry = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 8), 8.0, 64);
+    let deferred_retry = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 8), 24.0, 64);
+    let first_new = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 8), 40.0, 64);
+    let deferred_new = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 8), 56.0, 64);
+
+    let frame_input = glyph_atlas_bitmap_retry_frame_input_with_backpressure(
+        [
+            queued_glyph(2, first_retry, 181),
+            queued_glyph(3, deferred_retry, 181),
+        ],
+        [first_new, deferred_new],
+        181,
+        GlyphAtlasBitmapRetryBackpressurePolicy {
+            max_due_retry_source_bytes_per_frame: Some(96),
+            max_new_source_bytes_per_frame: Some(96),
+            defer_excess_by_frames: 2,
+            ..GlyphAtlasBitmapRetryBackpressurePolicy::unlimited()
+        },
+    );
+
+    assert_eq!(frame_input.sources, vec![first_retry, first_new]);
+    assert_eq!(frame_input.retried_source_count, 1);
+    assert_eq!(frame_input.retried_source_byte_count, 64);
+    assert_eq!(frame_input.backpressured_retry_count, 1);
+    assert_eq!(frame_input.backpressured_retry_source_byte_count, 64);
+    assert_eq!(frame_input.new_source_count, 1);
+    assert_eq!(frame_input.new_source_byte_count, 64);
+    assert_eq!(frame_input.backpressured_new_source_count, 1);
+    assert_eq!(frame_input.backpressured_new_source_byte_count, 64);
+    assert_eq!(frame_input.next_retry_frame_index, Some(183));
+}
+
+#[test]
+fn render_text_atlas_bitmap_retry_frame_input_rejects_sources_that_cannot_fit_byte_budget() {
+    let retry_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 8), 8.0, 97);
+    let new_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 8), 24.0, 97);
+
+    let frame_input = glyph_atlas_bitmap_retry_frame_input_with_backpressure(
+        [queued_glyph(4, retry_source, 191)],
+        [new_source],
+        191,
+        GlyphAtlasBitmapRetryBackpressurePolicy {
+            max_due_retry_source_bytes_per_frame: Some(96),
+            max_new_source_bytes_per_frame: Some(96),
+            ..GlyphAtlasBitmapRetryBackpressurePolicy::unlimited()
+        },
+    );
+
+    assert!(frame_input.sources.is_empty());
+    assert_eq!(frame_input.rejected_retry_source_count, 1);
+    assert_eq!(frame_input.rejected_retry_source_byte_count, 97);
+    assert_eq!(frame_input.rejected_new_source_count, 1);
+    assert_eq!(frame_input.rejected_new_source_byte_count, 97);
+    assert!(frame_input.deferred_glyphs.is_empty());
+    assert!(frame_input.deferred_new_glyphs.is_empty());
+    assert_eq!(frame_input.next_retry_frame_index, None);
 }
 
 #[test]

@@ -18,6 +18,48 @@ use zircon_runtime_interface::ui::template::{
 };
 use zircon_runtime_interface::ui::widget::UiWidgetContract;
 
+use crate::core::editor_authoring_extension::SceneModeDescriptor;
+use crate::core::editor_message::SceneModeId;
+use crate::scene::modes::{
+    EditorSceneMode, InputOutcome, SceneModeCtx, SceneModeRegistration, ViewportOverlayBuilder,
+};
+use crate::scene::viewport::ViewportInput;
+
+struct PassThroughTestSceneMode {
+    id: SceneModeId,
+}
+
+impl EditorSceneMode for PassThroughTestSceneMode {
+    fn id(&self) -> &SceneModeId {
+        &self.id
+    }
+
+    fn enter(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
+
+    fn exit(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
+
+    fn handle_input(
+        &mut self,
+        _input: &ViewportInput,
+        _ctx: &mut SceneModeCtx<'_>,
+    ) -> InputOutcome {
+        InputOutcome::PassThrough
+    }
+
+    fn build_overlay(&self, _out: &mut ViewportOverlayBuilder) {}
+}
+
+pub(crate) fn pass_through_scene_mode_registration(
+    descriptor: SceneModeDescriptor,
+) -> SceneModeRegistration {
+    let mode_id = SceneModeId::new(descriptor.id());
+    SceneModeRegistration::new(descriptor, move || pass_through_scene_mode(mode_id.clone()))
+}
+
+pub(crate) fn pass_through_scene_mode(mode_id: SceneModeId) -> Box<dyn EditorSceneMode> {
+    Box::new(PassThroughTestSceneMode { id: mode_id })
+}
+
 /// Serializes process-global test configuration without cascading mutex poison.
 pub(crate) struct TestEnvironmentLock {
     inner: Mutex<()>,

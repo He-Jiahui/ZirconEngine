@@ -325,9 +325,11 @@ mod tests {
             .find(|entry| entry.binding == 28)
             .expect("post-process layout should bind resolved exposure");
 
-        assert!(exposure_entry
-            .visibility
-            .contains(wgpu::ShaderStages::FRAGMENT));
+        assert!(
+            exposure_entry
+                .visibility
+                .contains(wgpu::ShaderStages::FRAGMENT)
+        );
         assert!(matches!(
             exposure_entry.ty,
             wgpu::BindingType::Buffer {

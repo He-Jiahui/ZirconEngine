@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "timeline_sequence"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Timeline Sequence"
 category = "authoring"
 description = "Optional editor-only timeline authoring package for animation sequences."

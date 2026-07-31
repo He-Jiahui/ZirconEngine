@@ -11,8 +11,8 @@ use super::compute_workload::{
     EXPOSURE_RESOLVE_PIPELINE_LABEL, EXPOSURE_RESOLVE_WORKGROUP_SIZE,
 };
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
-) -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
+-> RenderFeatureDescriptor {
     let motion_vector_tile_max_plan = motion_vector_tile_max_pass_plan();
 
     RenderFeatureDescriptor::new(
@@ -27,6 +27,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("post.motion-vector-tile-max")
             .with_fullscreen_pass_plan(motion_vector_tile_max_plan)
+            .read_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
                 RenderGraphAttachmentOps::clear_store(),

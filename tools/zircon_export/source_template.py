@@ -9,7 +9,12 @@ import subprocess
 from typing import Any
 
 from .report_io import write_report_targets
+from .pipeline_report_stage_schema import stage_report_schema_diagnostics
+from .source_template_contents_artifact import (
+    load_source_template_contents_artifact,
+)
 from .source_template_generated_project import (
+    generated_file_path_safety_diagnostics,
     generated_file_summaries,
     materialize_generated_files,
     reset_generated_project_dir,
@@ -66,6 +71,14 @@ def run_source_template(args: argparse.Namespace) -> int:
         if validate_report is not None
         else None
     )
+    if validate_payload is not None:
+        validate_schema_diagnostics = stage_report_schema_diagnostics(
+            "validate",
+            validate_payload,
+        )
+        if validate_schema_diagnostics:
+            diagnostics.extend(validate_schema_diagnostics)
+            validate_payload = None
     source_plan = source_template_plan(validate_payload, diagnostics)
     generated_files = generated_file_summaries(validate_payload)
     if source_plan is None:
@@ -76,6 +89,27 @@ def run_source_template(args: argparse.Namespace) -> int:
     if generated_file_plan_diagnostics:
         diagnostics.extend(generated_file_plan_diagnostics)
         generated_files = []
+    artifact_files = None
+    if (
+        validate_payload is not None
+        and source_plan is not None
+        and not generated_file_plan_diagnostics
+    ):
+        path_diagnostics = generated_file_path_safety_diagnostics(
+            project_dir,
+            validate_payload,
+        )
+        if path_diagnostics:
+            diagnostics.extend(path_diagnostics)
+            generated_files = []
+        else:
+            artifact_files = load_source_template_contents_artifact(
+                validate_report,
+                validate_payload,
+                diagnostics,
+            )
+            if artifact_files is None:
+                generated_files = []
     command: list[str] = []
     build_validation: dict[str, Any] = {
         "requested": bool(getattr(args, "source_template_build", False)),
@@ -94,6 +128,7 @@ def run_source_template(args: argparse.Namespace) -> int:
         or validate_payload is None
         or source_plan is None
         or generated_file_plan_diagnostics
+        or artifact_files is None
     ):
         fatal = True
     else:
@@ -144,7 +179,7 @@ def run_source_template(args: argparse.Namespace) -> int:
         if not fatal:
             materialized = materialize_generated_files(
                 project_dir,
-                validate_payload,
+                artifact_files,
                 diagnostics,
             )
             if not materialized:

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use zircon_runtime::core::framework::net::{
@@ -5,6 +6,7 @@ use zircon_runtime::core::framework::net::{
     NetWebSocketListenerDescriptor,
 };
 
+use crate::poison_recovery::{lock_or_error, NetSharedState};
 use crate::websocket::ManagedWebSocketConnection;
 
 use super::super::DefaultNetManager;
@@ -16,16 +18,20 @@ impl DefaultNetManager {
         &self,
         descriptor: NetWebSocketListenerDescriptor,
     ) -> Result<NetListenerId, NetError> {
-        let listener = self
-            .websocket_backend()?
-            .listen_websocket(&self.state.runtime, descriptor)?;
+        let backend = self.websocket_backend()?;
+        drop(lock_or_error(
+            &self.state.websocket_listeners,
+            NetSharedState::WebSocketListeners,
+        )?);
+        let listener: Arc<dyn crate::websocket::WebSocketRuntimeListener> =
+            Arc::from(backend.listen_websocket(&self.state.runtime, descriptor)?);
         let local_endpoint = listener.local_endpoint();
         let listener_id = self.next_listener_id();
-        self.state
-            .websocket_listeners
-            .lock()
-            .expect("net WebSocket listeners mutex poisoned")
-            .insert(listener_id, listener);
+        let mut listeners = lock_or_error(
+            &self.state.websocket_listeners,
+            NetSharedState::WebSocketListeners,
+        )?;
+        listeners.insert(listener_id, listener);
         self.state.push_event(NetEvent::ListenerStarted {
             listener: listener_id,
             transport: NetTransportKind::WebSocket,
@@ -42,31 +48,60 @@ impl DefaultNetManager {
         if max_connections == 0 {
             return Ok(Vec::new());
         }
-        let listeners = self
-            .state
-            .websocket_listeners
-            .lock()
-            .expect("net WebSocket listeners mutex poisoned");
-        let listener_entry = listeners
-            .get(&listener)
-            .ok_or(NetError::UnknownListener { listener })?;
-        let mut accepted = Vec::new();
-        while accepted.len() < max_connections {
+        let listener_entry = {
+            let listeners = lock_or_error(
+                &self.state.websocket_listeners,
+                NetSharedState::WebSocketListeners,
+            )?;
+            Arc::clone(
+                listeners
+                    .get(&listener)
+                    .ok_or(NetError::UnknownListener { listener })?,
+            )
+        };
+        drop(lock_or_error(
+            &self.state.websocket_connections,
+            NetSharedState::WebSocketConnections,
+        )?);
+        let mut staged = Vec::new();
+        while staged.len() < max_connections {
             let connection = self.next_connection_id();
-            let Some((remote_endpoint, network)) = listener_entry.accept_websocket(
+            let accepted = listener_entry.accept_websocket(
                 &self.state.runtime,
                 connection,
                 self.state.events.clone(),
                 WEBSOCKET_ACCEPT_POLL_TIMEOUT,
-            )?
-            else {
-                break;
+            );
+            let (remote_endpoint, network) = match accepted {
+                Ok(Some(accepted)) => accepted,
+                Ok(None) => break,
+                Err(error) => {
+                    close_staged_connections(&staged);
+                    return Err(error);
+                }
             };
-            self.state
-                .websocket_connections
-                .lock()
-                .expect("net WebSocket connections mutex poisoned")
-                .insert(connection, ManagedWebSocketConnection::Network(network));
+            let network: Arc<dyn crate::websocket::WebSocketRuntimeConnection> = Arc::from(network);
+            staged.push((connection, remote_endpoint, network));
+        }
+        let mut connections = match lock_or_error(
+            &self.state.websocket_connections,
+            NetSharedState::WebSocketConnections,
+        ) {
+            Ok(connections) => connections,
+            Err(error) => {
+                close_staged_connections(&staged);
+                return Err(error);
+            }
+        };
+        for (connection, _, network) in &staged {
+            connections.insert(
+                *connection,
+                ManagedWebSocketConnection::Network(Arc::clone(network)),
+            );
+        }
+        drop(connections);
+        let mut accepted = Vec::with_capacity(staged.len());
+        for (connection, remote_endpoint, _) in staged {
             self.state.push_event(NetEvent::ConnectionAccepted {
                 listener,
                 connection,
@@ -81,5 +116,17 @@ impl DefaultNetManager {
             accepted.push(connection);
         }
         Ok(accepted)
+    }
+}
+
+fn close_staged_connections(
+    staged: &[(
+        NetConnectionId,
+        zircon_runtime::core::framework::net::NetEndpoint,
+        Arc<dyn crate::websocket::WebSocketRuntimeConnection>,
+    )],
+) {
+    for (_, _, connection) in staged {
+        connection.set_state(NetConnectionState::Closed);
     }
 }

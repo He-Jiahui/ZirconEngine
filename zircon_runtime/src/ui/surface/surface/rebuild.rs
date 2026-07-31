@@ -352,8 +352,7 @@ impl UiSurface {
     }
 
     pub fn rebuild(&mut self) {
-        let dirty_flags = self.dirty_flags();
-        let dirty_node_count = dirty_node_count(&self.tree);
+        let (dirty_flags, dirty_node_count) = dirty_summary(&self.tree);
         let arranged_start = Instant::now();
         self.arranged_tree = build_arranged_tree(&self.tree);
         let arranged_elapsed_micros = elapsed_micros(arranged_start);
@@ -384,10 +383,7 @@ impl UiSurface {
     }
 
     pub fn dirty_flags(&self) -> UiDirtyFlags {
-        self.tree
-            .nodes
-            .values()
-            .fold(UiDirtyFlags::default(), merge_dirty_flags)
+        dirty_summary(&self.tree).0
     }
 
     pub fn clear_dirty_flags(&mut self) {
@@ -443,8 +439,7 @@ impl UiSurface {
         &mut self,
         root_size: UiSize,
     ) -> Result<UiSurfaceRebuildReport, UiTreeError> {
-        let dirty = self.dirty_flags();
-        let dirty_node_count = dirty_node_count(&self.tree);
+        let (dirty, dirty_node_count) = dirty_summary(&self.tree);
         if !dirty.any() {
             self.last_rebuild_report =
                 UiSurfaceRebuildReport::default().with_counts(self.rebuild_counts());
@@ -535,8 +530,7 @@ impl UiSurface {
     }
 
     pub fn compute_layout(&mut self, root_size: UiSize) -> Result<(), UiTreeError> {
-        let dirty_flags = self.dirty_flags();
-        let dirty_node_count = dirty_node_count(&self.tree);
+        let (dirty_flags, dirty_node_count) = dirty_summary(&self.tree);
         self.text_measure_cache.begin_frame();
         let layout_start = Instant::now();
         self.layout_engine_report = compute_layout_tree_with_text_measure_cache(
@@ -601,11 +595,16 @@ fn merge_dirty_flags_into(target: &mut UiDirtyFlags, dirty: UiDirtyFlags) {
     target.visible_range |= dirty.visible_range;
 }
 
-fn dirty_node_count(tree: &UiTree) -> usize {
-    tree.nodes
-        .values()
-        .filter(|node| node.dirty.any() || node.state_flags.dirty)
-        .count()
+fn dirty_summary(tree: &UiTree) -> (UiDirtyFlags, usize) {
+    tree.nodes.values().fold(
+        (UiDirtyFlags::default(), 0),
+        |(dirty, dirty_node_count), node| {
+            (
+                merge_dirty_flags(dirty, node),
+                dirty_node_count + usize::from(node.dirty.any() || node.state_flags.dirty),
+            )
+        },
+    )
 }
 
 // Incremental layout visits only dirty subtrees, while diagnostics expose a surface-level route map.

@@ -1,0 +1,552 @@
+// M6 ranked arena lifecycle projected from the historical source slice at
+// 7c10f280eec380e9877e66ce16333089e171fe42. The current-head
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a reset carryover fields below are
+// also projected at the fixed 20 Hz tick rate.
+var container = %import("zr.container");
+
+class ArenaState {
+    pub var tick: int;
+    pub var queuedFormats: container.Array<int>;
+    pub var dead: container.Array<bool>;
+    pub var rating1v1: container.Array<int>;
+    pub var wins1v1: container.Array<int>;
+    pub var losses1v1: container.Array<int>;
+    pub var rating2v2: container.Array<int>;
+    pub var wins2v2: container.Array<int>;
+    pub var losses2v2: container.Array<int>;
+    pub var defeated: container.Array<bool>;
+    // Compact marker projection for current-head resetForArena transient fields.
+    // false represents an absent pool/modifier or an inactive leap, so the
+    // authoritative combat owner can rebuild its normal defaults lazily.
+    pub var chargePoolPresent: container.Array<bool>;
+    pub var queuedSwingCostMultiplierPresent: container.Array<bool>;
+    pub var leapActive: container.Array<bool>;
+    pub var matchExists: bool;
+    pub var matchFormat: int;
+    pub var matchPhase: int;
+    pub var matchTimerTicks: int;
+    pub var resultRecorded: bool;
+    pub var teamA: container.Array<int>;
+    pub var teamB: container.Array<int>;
+    pub var returned: bool;
+    pub var actionEvents: container.Array<int>;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.tick = 0;
+        this.queuedFormats = new container.Array<int>();
+        this.dead = new container.Array<bool>();
+        this.rating1v1 = new container.Array<int>();
+        this.wins1v1 = new container.Array<int>();
+        this.losses1v1 = new container.Array<int>();
+        this.rating2v2 = new container.Array<int>();
+        this.wins2v2 = new container.Array<int>();
+        this.losses2v2 = new container.Array<int>();
+        this.defeated = new container.Array<bool>();
+        this.chargePoolPresent = new container.Array<bool>();
+        this.queuedSwingCostMultiplierPresent = new container.Array<bool>();
+        this.leapActive = new container.Array<bool>();
+        this.teamA = new container.Array<int>();
+        this.teamB = new container.Array<int>();
+        var player = 0;
+        while (player < 4) {
+            this.queuedFormats.add(0);
+            this.dead.add(false);
+            this.rating1v1.add(1500);
+            this.wins1v1.add(0);
+            this.losses1v1.add(0);
+            this.rating2v2.add(1500);
+            this.wins2v2.add(0);
+            this.losses2v2.add(0);
+            this.defeated.add(false);
+            this.chargePoolPresent.add(false);
+            this.queuedSwingCostMultiplierPresent.add(false);
+            this.leapActive.add(false);
+            player = player + 1;
+        }
+        this.matchExists = false;
+        this.matchFormat = 0;
+        this.matchPhase = 0;
+        this.matchTimerTicks = 0;
+        this.resultRecorded = false;
+        this.returned = false;
+        this.actionEvents = new container.Array<int>();
+        this.lastError = 0;
+    }
+}
+
+validPlayer(player: int): bool {
+    return player >= 1 && player <= 4;
+}
+
+recordEvent(state: ArenaState, code: int): void {
+    var events = state.actionEvents;
+    events.add(code);
+}
+
+pow10(value: float): float {
+    var x = value * 2.302585092994046;
+    var negative = x < 0.0;
+    if (negative) { x = -x; }
+    var doubles = 0;
+    while (x > 0.5) {
+        x = x / 2.0;
+        doubles = doubles + 1;
+    }
+    var sum = 1.0;
+    var term = 1.0;
+    var index = 1;
+    while (index <= 18) {
+        term = term * x / <float>index;
+        sum = sum + term;
+        index = index + 1;
+    }
+    while (doubles > 0) {
+        sum = sum * sum;
+        doubles = doubles - 1;
+    }
+    return negative ? 1.0 / sum : sum;
+}
+
+roundInt(value: float): int {
+    return value >= 0.0 ? <int>(value + 0.5) : <int>(value - 0.5);
+}
+
+pub eloDelta(winnerRating: float, loserRating: float, score: float): int {
+    var exponent = (loserRating - winnerRating) / 400.0;
+    var expected = 1.0 / (1.0 + pow10(exponent));
+    return roundInt(32.0 * (score - expected));
+}
+
+pub setDead(state: ArenaState, player: int, value: bool): void {
+    if (!validPlayer(player)) { return; }
+    var deadFlags = state.dead;
+    deadFlags[player - 1] = value;
+}
+
+queuedFormat(state: ArenaState, player: int): int {
+    var queued = state.queuedFormats;
+    return <int>queued[player - 1];
+}
+
+playerInMatch(state: ArenaState, player: int): bool {
+    var index = 0;
+    while (index < state.teamA.length) {
+        if (<int>state.teamA[index] == player) { return true; }
+        index = index + 1;
+    }
+    index = 0;
+    while (index < state.teamB.length) {
+        if (<int>state.teamB[index] == player) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+pub joinQueue(state: ArenaState, player: int, format: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(player) || (format != 1 && format != 2)) {
+        state.lastError = -1;
+        return false;
+    }
+    var deadFlags = state.dead;
+    if (<bool>deadFlags[player - 1]) { state.lastError = -2; return false; }
+    if (state.matchExists && playerInMatch(state, player)) {
+        state.lastError = -3;
+        return false;
+    }
+    var currentFormat = queuedFormat(state, player);
+    if (currentFormat != 0) {
+        if (currentFormat == format) { recordEvent(state, 1); return true; }
+        state.lastError = -4;
+        return false;
+    }
+    var queued = state.queuedFormats;
+    queued[player - 1] = format;
+    recordEvent(state, 1);
+    return true;
+}
+
+ratingFor(state: ArenaState, player: int, format: int): int {
+    var ratings = format == 2 ? state.rating2v2 : state.rating1v1;
+    return <int>ratings[player - 1];
+}
+
+queuedPlayers(state: ArenaState, format: int): container.Array<int> {
+    var players = new container.Array<int>();
+    var player = 1;
+    while (player <= 4) {
+        if (queuedFormat(state, player) == format) { players.add(player); }
+        player = player + 1;
+    }
+    return players;
+}
+
+clearArray(values: container.Array<int>): void {
+    while (values.length > 0) { values.removeAt(values.length - 1); }
+}
+
+clearArenaCombatCarryover(state: ArenaState, player: int): void {
+    if (!validPlayer(player)) { return; }
+    state.chargePoolPresent[player - 1] = false;
+    state.queuedSwingCostMultiplierPresent[player - 1] = false;
+    state.leapActive[player - 1] = false;
+}
+
+seedCombatCarryover(
+    state: ArenaState,
+    player: int,
+    hasChargePool: bool,
+    hasQueuedSwingCostMultiplier: bool,
+    hasLeap: bool
+): void {
+    if (!validPlayer(player)) { return; }
+    state.chargePoolPresent[player - 1] = hasChargePool;
+    state.queuedSwingCostMultiplierPresent[player - 1] = hasQueuedSwingCostMultiplier;
+    state.leapActive[player - 1] = hasLeap;
+}
+
+startMatch(
+    state: ArenaState,
+    format: int,
+    a1: int,
+    a2: int,
+    b1: int,
+    b2: int
+): void {
+    var teamA = state.teamA;
+    var teamB = state.teamB;
+    clearArray(teamA);
+    clearArray(teamB);
+    teamA.add(a1);
+    teamB.add(b1);
+    if (a2 != 0) { teamA.add(a2); }
+    if (b2 != 0) { teamB.add(b2); }
+    var queued = state.queuedFormats;
+    queued[a1 - 1] = 0;
+    queued[b1 - 1] = 0;
+    if (a2 != 0) { queued[a2 - 1] = 0; }
+    if (b2 != 0) { queued[b2 - 1] = 0; }
+    // Current source clears recharge, queued-cost and leap carryover when a
+    // ranked bout begins; the compact projection retains only their presence.
+    clearArenaCombatCarryover(state, a1);
+    clearArenaCombatCarryover(state, b1);
+    if (a2 != 0) { clearArenaCombatCarryover(state, a2); }
+    if (b2 != 0) { clearArenaCombatCarryover(state, b2); }
+    var defeatedFlags = state.defeated;
+    var player = 0;
+    while (player < 4) { defeatedFlags[player] = false; player = player + 1; }
+    state.matchExists = true;
+    state.matchFormat = format;
+    state.matchPhase = 1;
+    state.matchTimerTicks = 100;
+    state.resultRecorded = false;
+    state.returned = false;
+    recordEvent(state, 2);
+}
+
+matchmake(state: ArenaState): void {
+    if (state.matchExists) { return; }
+    var ones = queuedPlayers(state, 1);
+    if (ones.length >= 2) {
+        var anchor = <int>ones[0];
+        var partner = <int>ones[1];
+        var bestGap = ratingFor(state, partner, 1) - ratingFor(state, anchor, 1);
+        if (bestGap < 0) { bestGap = -bestGap; }
+        var index = 2;
+        while (index < ones.length) {
+            var candidate = <int>ones[index];
+            var gap = ratingFor(state, candidate, 1) - ratingFor(state, anchor, 1);
+            if (gap < 0) { gap = -gap; }
+            if (gap < bestGap) { bestGap = gap; partner = candidate; }
+            index = index + 1;
+        }
+        startMatch(state, 1, anchor, 0, partner, 0);
+        return;
+    }
+    var twos = queuedPlayers(state, 2);
+    if (twos.length >= 4) {
+        var anchor2 = <int>twos[0];
+        var partner2 = <int>twos[1];
+        var bestGap2 = ratingFor(state, partner2, 2) - ratingFor(state, anchor2, 2);
+        if (bestGap2 < 0) { bestGap2 = -bestGap2; }
+        var cursor = 2;
+        while (cursor < twos.length) {
+            var candidate2 = <int>twos[cursor];
+            var gap2 = ratingFor(state, candidate2, 2) - ratingFor(state, anchor2, 2);
+            if (gap2 < 0) { gap2 = -gap2; }
+            if (gap2 < bestGap2) { bestGap2 = gap2; partner2 = candidate2; }
+            cursor = cursor + 1;
+        }
+        var rest = new container.Array<int>();
+        cursor = 0;
+        while (cursor < twos.length) {
+            var value = <int>twos[cursor];
+            if (value != anchor2 && value != partner2) { rest.add(value); }
+            cursor = cursor + 1;
+        }
+        startMatch(state, 2, anchor2, partner2, <int>rest[0], <int>rest[1]);
+    }
+}
+
+pub teamFor(state: ArenaState, player: int): int {
+    var index = 0;
+    while (index < state.teamA.length) {
+        if (<int>state.teamA[index] == player) { return 1; }
+        index = index + 1;
+    }
+    index = 0;
+    while (index < state.teamB.length) {
+        if (<int>state.teamB[index] == player) { return 2; }
+        index = index + 1;
+    }
+    return 0;
+}
+
+teamWiped(state: ArenaState, team: int): bool {
+    var members = team == 1 ? state.teamA : state.teamB;
+    var defeatedFlags = state.defeated;
+    var index = 0;
+    while (index < members.length) {
+        var player = <int>members[index];
+        if (!<bool>defeatedFlags[player - 1]) { return false; }
+        index = index + 1;
+    }
+    return members.length > 0;
+}
+
+teamRating(state: ArenaState, team: int): float {
+    var members = team == 1 ? state.teamA : state.teamB;
+    var total = 0.0;
+    var index = 0;
+    while (index < members.length) {
+        total = total + <float>ratingFor(state, <int>members[index], state.matchFormat);
+        index = index + 1;
+    }
+    return total / <float>members.length;
+}
+
+applyResult(state: ArenaState, team: int, delta: int, won: int): void {
+    var members = team == 1 ? state.teamA : state.teamB;
+    var ratings = state.matchFormat == 2 ? state.rating2v2 : state.rating1v1;
+    var wins = state.matchFormat == 2 ? state.wins2v2 : state.wins1v1;
+    var losses = state.matchFormat == 2 ? state.losses2v2 : state.losses1v1;
+    var index = 0;
+    while (index < members.length) {
+        var player = <int>members[index];
+        var next = <int>ratings[player - 1] + delta;
+        if (next < 100) { next = 100; }
+        ratings[player - 1] = next;
+        if (won == 1) { wins[player - 1] = <int>wins[player - 1] + 1; }
+        if (won == 0) { losses[player - 1] = <int>losses[player - 1] + 1; }
+        index = index + 1;
+    }
+}
+
+endMatch(state: ArenaState, winner: int): bool {
+    if (!state.matchExists || state.resultRecorded) { return false; }
+    state.resultRecorded = true;
+    var ratingA = teamRating(state, 1);
+    var ratingB = teamRating(state, 2);
+    var deltaA = 0;
+    if (winner == 0) { deltaA = eloDelta(ratingA, ratingB, 0.5); }
+    if (winner == 1) { deltaA = eloDelta(ratingA, ratingB, 1.0); }
+    if (winner == 2) { deltaA = -eloDelta(ratingB, ratingA, 1.0); }
+    applyResult(state, 1, deltaA, winner == 0 ? -1 : (winner == 1 ? 1 : 0));
+    applyResult(state, 2, -deltaA, winner == 0 ? -1 : (winner == 2 ? 1 : 0));
+    state.matchPhase = 3;
+    state.matchTimerTicks = 100;
+    recordEvent(state, 4);
+    return true;
+}
+
+pub markDefeated(state: ArenaState, player: int): bool {
+    if (!state.matchExists || state.matchPhase != 2 || teamFor(state, player) == 0) {
+        state.lastError = -5;
+        return false;
+    }
+    var defeatedFlags = state.defeated;
+    if (<bool>defeatedFlags[player - 1]) { state.lastError = -6; return false; }
+    defeatedFlags[player - 1] = true;
+    recordEvent(state, 3);
+    return true;
+}
+
+pub resolveWipes(state: ArenaState): bool {
+    if (!state.matchExists || state.matchPhase != 2) { return false; }
+    var wipedA = teamWiped(state, 1);
+    var wipedB = teamWiped(state, 2);
+    if (!wipedA && !wipedB) { return false; }
+    if (wipedA && wipedB) { return endMatch(state, 0); }
+    return endMatch(state, wipedA ? 2 : 1);
+}
+
+pub defeat(state: ArenaState, player: int): bool {
+    if (!markDefeated(state, player)) { return false; }
+    resolveWipes(state);
+    return true;
+}
+
+returnFromArena(state: ArenaState): void {
+    state.matchExists = false;
+    state.matchFormat = 0;
+    state.matchPhase = 0;
+    state.matchTimerTicks = 0;
+    clearArray(state.teamA);
+    clearArray(state.teamB);
+    var defeatedFlags = state.defeated;
+    var player = 0;
+    while (player < defeatedFlags.length) {
+        defeatedFlags[player] = false;
+        player = player + 1;
+    }
+    state.returned = true;
+    recordEvent(state, 5);
+}
+
+pub tickOnce(state: ArenaState): void {
+    state.tick = state.tick + 1;
+    if (!state.matchExists) { matchmake(state); }
+    if (!state.matchExists) { return; }
+    if (state.matchPhase == 1) {
+        state.matchTimerTicks = state.matchTimerTicks - 1;
+        if (state.matchTimerTicks <= 0) {
+            state.matchPhase = 2;
+            state.matchTimerTicks = 0;
+        }
+        return;
+    }
+    if (state.matchPhase == 3) {
+        state.matchTimerTicks = state.matchTimerTicks - 1;
+        if (state.matchTimerTicks <= 0) { returnFromArena(state); }
+        return;
+    }
+    state.matchTimerTicks = state.matchTimerTicks + 1;
+    if (state.matchTimerTicks >= 3000) { endMatch(state, 0); }
+}
+
+pub tickMany(state: ArenaState, count: int): void {
+    var index = 0;
+    while (index < count) { tickOnce(state); index = index + 1; }
+}
+
+pub rating(state: ArenaState, player: int, format: int): int {
+    return ratingFor(state, player, format);
+}
+
+pub wins(state: ArenaState, player: int, format: int): int {
+    var values = format == 2 ? state.wins2v2 : state.wins1v1;
+    return <int>values[player - 1];
+}
+
+pub losses(state: ArenaState, player: int, format: int): int {
+    var values = format == 2 ? state.losses2v2 : state.losses1v1;
+    return <int>values[player - 1];
+}
+
+pub arena1v1ScenarioTest(): int {
+    var state = new ArenaState();
+    if (!joinQueue(state, 1, 1) || !joinQueue(state, 2, 1)) { return -1; }
+    tickMany(state, 100);
+    if (!state.matchExists || state.matchPhase != 2 || teamFor(state, 1) != 1 ||
+        teamFor(state, 2) != 2 || !defeat(state, 2) || state.matchPhase != 3 ||
+        rating(state, 1, 1) != 1516 || rating(state, 2, 1) != 1484 ||
+        wins(state, 1, 1) != 1 || losses(state, 2, 1) != 1) {
+        return -2;
+    }
+    var beforeA = rating(state, 1, 1);
+    var beforeB = rating(state, 2, 1);
+    if (defeat(state, 2) || rating(state, 1, 1) != beforeA || rating(state, 2, 1) != beforeB) {
+        return -3;
+    }
+    return 1;
+}
+
+pub arena2v2WipeScenarioTest(): int {
+    var state = new ArenaState();
+    var player = 1;
+    while (player <= 4) {
+        if (!joinQueue(state, player, 2)) { return -1; }
+        player = player + 1;
+    }
+    tickMany(state, 100);
+    if (state.matchPhase != 2 || teamFor(state, 1) != 1 || teamFor(state, 2) != 1 ||
+        teamFor(state, 3) != 2 || teamFor(state, 4) != 2 || !defeat(state, 3) ||
+        state.matchPhase != 2 || state.resultRecorded) {
+        return -2;
+    }
+    if (!defeat(state, 4) || state.matchPhase != 3 || !state.resultRecorded) { return -3; }
+    player = 1;
+    while (player <= 2) {
+        if (rating(state, player, 2) != 1516 || wins(state, player, 2) != 1 ||
+            losses(state, player, 2) != 0) { return -4; }
+        player = player + 1;
+    }
+    while (player <= 4) {
+        if (rating(state, player, 2) != 1484 || wins(state, player, 2) != 0 ||
+            losses(state, player, 2) != 1) { return -5; }
+        player = player + 1;
+    }
+    tickMany(state, 100);
+    if (state.matchExists || !state.returned || state.teamA.length != 0 ||
+        state.teamB.length != 0) {
+        return -6;
+    }
+    return 1;
+}
+
+arenaInvariantTest(): int {
+    if (eloDelta(1500.0, 1500.0, 1.0) != 16 ||
+        eloDelta(1800.0, 1500.0, 1.0) != 5 ||
+        eloDelta(1500.0, 1800.0, 1.0) != 27 ||
+        eloDelta(1800.0, 1500.0, 0.5) != -11 ||
+        eloDelta(1500.0, 1800.0, 0.5) != 11) {
+        return -1;
+    }
+    var rejected = new ArenaState();
+    setDead(rejected, 1, true);
+    if (joinQueue(rejected, 1, 1) || rejected.lastError != -2 ||
+        joinQueue(rejected, 2, 3) || rejected.lastError != -1) {
+        return -2;
+    }
+
+    var draw = new ArenaState();
+    var player = 1;
+    while (player <= 4) { joinQueue(draw, player, 2); player = player + 1; }
+    tickMany(draw, 100);
+    var defeatedFlags = draw.defeated;
+    player = 0;
+    while (player < 4) { defeatedFlags[player] = true; player = player + 1; }
+    if (!resolveWipes(draw) || draw.matchPhase != 3) { return -3; }
+    player = 1;
+    while (player <= 4) {
+        if (rating(draw, player, 2) != 1500 || wins(draw, player, 2) != 0 ||
+            losses(draw, player, 2) != 0) { return -4; }
+        player = player + 1;
+    }
+    return 1;
+}
+
+arenaCurrentHeadCombatResetTest(): int {
+    var state = new ArenaState();
+    seedCombatCarryover(state, 1, true, true, true);
+    if (!joinQueue(state, 1, 1) || !joinQueue(state, 2, 1)) { return -1; }
+    tickOnce(state);
+    if (!state.matchExists || <bool>state.chargePoolPresent[0] ||
+        <bool>state.queuedSwingCostMultiplierPresent[0] || <bool>state.leapActive[0]) {
+        return -2;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = arena1v1ScenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = arena2v2WipeScenarioTest();
+    if (result != 1) { return -200 + result; }
+    result = arenaInvariantTest();
+    if (result != 1) { return -300 + result; }
+    result = arenaCurrentHeadCombatResetTest();
+    if (result != 1) { return -400 + result; }
+    return 1;
+}

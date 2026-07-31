@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var quests = %import("progression/quest_state");
+
+console.printLine("m5-quest-state-test");
+var result = quests.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

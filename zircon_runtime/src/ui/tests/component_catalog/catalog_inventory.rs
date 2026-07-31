@@ -1,6 +1,18 @@
 use super::*;
 
 #[test]
+fn shared_component_catalog_views_reuse_process_registries() {
+    assert!(std::ptr::eq(
+        UiComponentDescriptorRegistry::editor_showcase_shared(),
+        UiComponentDescriptorRegistry::editor_showcase_shared(),
+    ));
+    assert!(std::ptr::eq(
+        UiComponentDescriptorRegistry::material_editor_foundation_shared(),
+        UiComponentDescriptorRegistry::material_editor_foundation_shared(),
+    ));
+}
+
+#[test]
 fn runtime_component_catalog_contains_showcase_v1_controls() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
 

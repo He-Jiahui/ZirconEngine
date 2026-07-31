@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/item_budget_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/item_budget.ts": "3a77a3ef552472c80b493b3c768d293c39172523d80806a1a778a3ca63e437a3"
+  },
+  "primary_stats": [
+    "str",
+    "agi",
+    "sta",
+    "int",
+    "spi"
+  ],
+  "quality_stat_mult": {
+    "poor": 0,
+    "common": 0,
+    "uncommon": 0.55,
+    "rare": 0.8,
+    "epic": 1,
+    "legendary": 1.9
+  },
+  "slot_stat_mult": {
+    "mainhand": 1,
+    "offhand": 0.75,
+    "chest": 1,
+    "legs": 0.9,
+    "helmet": 0.85,
+    "shoulder": 0.75,
+    "waist": 0.7,
+    "gloves": 0.7,
+    "feet": 0.65,
+    "neck": 0.65,
+    "ring": 0.6,
+    "ring1": 0.6,
+    "ring2": 0.6
+  },
+  "unknown_slot_stat_mult": 0.7,
+  "stat_per_ilvl": 0.7,
+  "source_semantics": {
+    "budget": "absent slot returns zero; unknown present slot uses 0.7; unknown quality uses zero; positive budget rounds to nearest integer",
+    "normalize": "armor is excluded from masterwork primary-profile redistribution; equal fractional ties preserve primary stat order"
+  }
+}

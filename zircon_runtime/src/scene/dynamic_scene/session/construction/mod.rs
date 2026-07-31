@@ -7,5 +7,5 @@ pub(in crate::scene::dynamic_scene::session) use capture::{
     from_level, from_world, from_world_with_metadata,
 };
 pub(in crate::scene::dynamic_scene::session) use serialization::{
-    from_versioned_json, to_versioned_json_pretty,
+    from_versioned_json, to_versioned_json_pretty, to_versioned_json_pretty_to,
 };

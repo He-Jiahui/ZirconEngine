@@ -257,6 +257,7 @@ fn accessibility_set_value_uses_widget_value_property_alias() {
                 },
                 delivered: true,
                 drag: None,
+                template_action: None,
             }
         ]
     );
@@ -486,6 +487,7 @@ fn accessibility_set_value_updates_editable_text_property() {
                 },
                 delivered: true,
                 drag: None,
+                template_action: None,
             }
         ]
     );

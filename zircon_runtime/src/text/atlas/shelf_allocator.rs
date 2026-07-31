@@ -35,35 +35,46 @@ impl GlyphAtlasShelfAllocator {
             return None;
         }
 
-        if self.cursor_x > 0 && self.cursor_x.saturating_add(size.x) > self.page_size.x {
-            self.cursor_x = 0;
-            self.cursor_y = self
-                .cursor_y
+        let mut cursor_x = self.cursor_x;
+        let mut cursor_y = self.cursor_y;
+        let mut shelf_height = self.shelf_height;
+        if cursor_x > 0 && cursor_x.saturating_add(size.x) > self.page_size.x {
+            cursor_x = 0;
+            cursor_y = cursor_y
                 .saturating_add(self.shelf_height)
                 .saturating_add(self.padding_px);
-            self.shelf_height = 0;
+            shelf_height = 0;
         }
 
-        if self.cursor_y.saturating_add(size.y) > self.page_size.y {
+        if cursor_y.saturating_add(size.y) > self.page_size.y {
             return None;
         }
 
         let rect = GlyphAtlasRect {
-            x: self.cursor_x,
-            y: self.cursor_y,
+            x: cursor_x,
+            y: cursor_y,
             width: size.x,
             height: size.y,
         };
-        self.cursor_x = self
-            .cursor_x
+        self.cursor_x = cursor_x
             .saturating_add(size.x)
             .saturating_add(self.padding_px);
-        self.shelf_height = self.shelf_height.max(size.y);
+        self.cursor_y = cursor_y;
+        self.shelf_height = shelf_height.max(size.y);
 
         Some(GlyphAtlasAllocation {
             page_key: self.page_key,
             rect,
         })
+    }
+
+    pub(super) fn matches_configuration(
+        &self,
+        page_key: GlyphAtlasPageKey,
+        page_size: UVec2,
+        padding_px: u32,
+    ) -> bool {
+        self.page_key == page_key && self.page_size == page_size && self.padding_px == padding_px
     }
 }
 
@@ -99,6 +110,18 @@ mod tests {
         assert_eq!(first.rect, atlas_rect(0, 0, 32, 16));
         assert_eq!(second.rect, atlas_rect(0, 18, 32, 24));
         assert_eq!(third.rect, atlas_rect(0, 44, 32, 16));
+    }
+
+    #[test]
+    fn render_text_atlas_failed_allocation_preserves_current_shelf() {
+        let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 0);
+        let mut allocator = GlyphAtlasShelfAllocator::new(page_key, UVec2::new(64, 64), 2);
+
+        allocator.allocate(UVec2::new(32, 16)).unwrap();
+        assert_eq!(allocator.allocate(UVec2::new(40, 60)), None);
+        let after_failure = allocator.allocate(UVec2::new(20, 16)).unwrap();
+
+        assert_eq!(after_failure.rect, atlas_rect(34, 0, 20, 16));
     }
 
     fn atlas_rect(x: u32, y: u32, width: u32, height: u32) -> GlyphAtlasRect {

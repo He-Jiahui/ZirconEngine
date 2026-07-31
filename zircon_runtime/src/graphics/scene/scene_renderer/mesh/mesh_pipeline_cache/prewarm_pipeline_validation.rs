@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::core::framework::render::{
     ShaderFeatureBits, ShaderPassType, ShaderVariantPrewarmRequest,
 };
-use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
+use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
 use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
 
 use super::super::mesh_pass::MeshPassPipelineKind;
@@ -222,7 +222,7 @@ fn material_sampler_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
 #[cfg(all(test, feature = "dynamic-api"))]
 mod tests {
     use crate::core::framework::render::{
-        ShaderFeatureBits, ShaderQualityTier, SHADING_MODEL_ID_BLINN_PHONG,
+        SHADING_MODEL_ID_BLINN_PHONG, ShaderFeatureBits, ShaderQualityTier,
     };
     use crate::dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry;
     use crate::graphics::backend::RenderBackend;

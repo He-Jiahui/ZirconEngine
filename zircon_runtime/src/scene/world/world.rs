@@ -1,6 +1,12 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeSet, HashMap};
 
+use super::{
+    ComponentTypeRegistry, compiled_binding::SceneBindingGenerations,
+    derived_state::NODE_KIND_ORDINAL_COUNT, dirty_state::DerivedStateDirty,
+    generation::WorldGeneration,
+};
+use crate::scene::EntityId;
 use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
     AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
@@ -15,11 +21,8 @@ use crate::scene::ecs::{
     ObserverStore, RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
 };
 use crate::scene::event_mirror::RuntimeEventMirrorRegistry;
+use crate::scene::inspection::WorldInspectionArtifactCache;
 use crate::scene::reflect::TypeRegistry;
-use crate::scene::EntityId;
-
-use super::{dirty_state::DerivedStateDirty, generation::WorldGeneration, ComponentTypeRegistry};
-
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct QueryCacheRevision(u64);
 
@@ -44,6 +47,8 @@ pub struct World {
     pub(super) entities: Vec<EntityId>,
     #[serde(default)]
     pub(super) kinds: HashMap<EntityId, NodeKind>,
+    #[serde(skip, default)]
+    pub(super) node_kind_ordinals: [usize; NODE_KIND_ORDINAL_COUNT],
     pub(super) names: HashMap<EntityId, Name>,
     pub(super) hierarchy: HashMap<EntityId, Hierarchy>,
     pub(super) local_transforms: HashMap<EntityId, LocalTransform>,
@@ -139,6 +144,8 @@ pub struct World {
     pub(super) query_cache_revision: QueryCacheRevision,
     #[serde(skip, default)]
     pub(super) world_generation: WorldGeneration,
+    #[serde(skip, default)]
+    pub(super) scene_binding_generations: SceneBindingGenerations,
     #[serde(skip, default = "default_change_tick")]
     pub(super) change_tick: ChangeTick,
     #[serde(skip, default)]
@@ -147,6 +154,8 @@ pub struct World {
     pub(super) active_change_tick: Option<ChangeTick>,
     #[serde(skip, default)]
     pub(super) node_cache: Vec<SceneNode>,
+    #[serde(skip, default)]
+    pub(in crate::scene) inspection_artifact_cache: WorldInspectionArtifactCache,
     #[serde(skip, default)]
     pub(super) derived_state_dirty: DerivedStateDirty,
 }
@@ -211,6 +220,7 @@ impl<'de> Deserialize<'de> for World {
         let mut world = Self {
             entities: state.entities,
             kinds: state.kinds,
+            node_kind_ordinals: Default::default(),
             names: state.names,
             hierarchy: state.hierarchy,
             local_transforms: state.local_transforms,
@@ -262,15 +272,18 @@ impl<'de> Deserialize<'de> for World {
             ecs_frame_performance_diagnostics: Default::default(),
             query_cache_revision: QueryCacheRevision::default(),
             world_generation: WorldGeneration::default(),
+            scene_binding_generations: SceneBindingGenerations::default(),
             change_tick: default_change_tick(),
             last_change_tick: ChangeTick::ZERO,
             active_change_tick: None,
             node_cache: Vec::new(),
+            inspection_artifact_cache: Default::default(),
             derived_state_dirty: Default::default(),
         };
         crate::scene::reflect::register_builtin_reflection(&mut world);
         world.rebuild_entity_registry();
         world.rebuild_typed_component_presence();
+        world.rebuild_node_kind_ordinals();
         Ok(world)
     }
 }

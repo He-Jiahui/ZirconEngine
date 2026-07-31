@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var terrainShape = %import("world/terrain_shape");
+
+console.printLine("m3-terrain-shape-test");
+var result = terrainShape.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

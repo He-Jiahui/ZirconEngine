@@ -1,0 +1,207 @@
+// Source-pinned idle branch of sim/mob/locomotion.ts for the offline Eastbrook
+// camp mobs. The WOS owns the actual RNG stream and terrain height; this reducer
+// accepts its already-drawn [0,1) values so it cannot create a second stream.
+var math = %import("zr.zircon.math");
+var mobMotion = %import("world/mob_motion_world");
+
+pub class EastbrookIdleWanderState {
+    pub var x: float;
+    pub var y: float;
+    pub var z: float;
+    pub var facing: float;
+    pub var spawnX: float;
+    pub var spawnZ: float;
+    pub var moveSpeed: float;
+    pub var templateKnown: bool;
+    pub var phasesThroughObstacles: bool;
+    pub var wanderTimer: float;
+    pub var hasWanderTarget: bool;
+    pub var wanderTargetX: float;
+    pub var wanderTargetZ: float;
+
+    pub @constructor() {
+        this.x = 0.0;
+        this.y = 0.0;
+        this.z = 0.0;
+        this.facing = 0.0;
+        this.spawnX = 0.0;
+        this.spawnZ = 0.0;
+        this.moveSpeed = 0.0;
+        this.templateKnown = false;
+        this.phasesThroughObstacles = false;
+        this.wanderTimer = 0.0;
+        this.hasWanderTarget = false;
+        this.wanderTargetX = 0.0;
+        this.wanderTargetZ = 0.0;
+    }
+}
+
+// Source Rng.range(min, max) expressed from an already consumed unit draw.
+pub wanderRange(minimum: float, maximum: float, unit: float): float {
+    return minimum + (maximum - minimum) * unit;
+}
+
+// Source order before calling moveToward. The caller supplies only the units
+// that this phase can consume: zero, one for an expired existing target, or
+// two for a newly-created target.
+pub selectEastbrookIdleWanderTarget(
+    state: EastbrookIdleWanderState,
+    firstUnit: float,
+    secondUnit: float
+): int {
+    state.wanderTimer = state.wanderTimer - 0.05;
+    if (state.wanderTimer > 0.0) {
+        return 0;
+    }
+    if (state.hasWanderTarget) {
+        state.hasWanderTarget = false;
+        state.wanderTimer = wanderRange(3.0, 10.0, firstUnit);
+        return 1;
+    }
+    var angle = wanderRange(0.0, 6.283185307179586, firstUnit);
+    var radius = wanderRange(2.0, 9.0, secondUnit);
+    state.wanderTargetX = state.spawnX + math.sin(angle) * radius;
+    state.wanderTargetZ = state.spawnZ + math.cos(angle) * radius;
+    state.hasWanderTarget = true;
+    state.wanderTimer = 30.0;
+    return 2;
+}
+
+// Runs only after the source moveToward result is known, so an arrival consumes
+// exactly one further draw and never forces WOS to prefetch from its RNG stream.
+pub finishEastbrookIdleWanderArrival(
+    state: EastbrookIdleWanderState,
+    arrived: bool,
+    arrivalUnit: float
+): int {
+    if (!state.hasWanderTarget || !arrived) {
+        return 0;
+    }
+    state.hasWanderTarget = false;
+    state.wanderTimer = wanderRange(3.0, 10.0, arrivalUnit);
+    return 1;
+}
+
+// Applies the source idle wander branch's timer/target/movement behavior. The
+// result is the number of caller-owned RNG draws consumed: 0, 1 or 2.
+pub stepEastbrookIdleWander(
+    state: EastbrookIdleWanderState,
+    firstUnit: float,
+    secondUnit: float,
+    thirdUnit: float
+): int {
+    var draws = selectEastbrookIdleWanderTarget(state, firstUnit, secondUnit);
+    if (!state.hasWanderTarget) { return draws; }
+    var dx = state.wanderTargetX - state.x;
+    var dz = state.wanderTargetZ - state.z;
+    var distance = math.sqrt(dx * dx + dz * dz);
+    var step = state.moveSpeed * 0.35 * 0.05;
+    if (distance <= step) {
+        state.x = state.wanderTargetX;
+        state.z = state.wanderTargetZ;
+        var arrivalUnit = draws == 2 ? thirdUnit : firstUnit;
+        return draws + finishEastbrookIdleWanderArrival(state, true, arrivalUnit);
+    }
+    if (distance > 0.0) {
+        state.x = state.x + dx / distance * step;
+        state.z = state.z + dz / distance * step;
+    }
+    return draws;
+}
+
+// The WOS calls this only after source-order target selection. It delegates the
+// candidate fan/collision/height decision to the shared mobile-mob primitive.
+pub moveEastbrookIdleWanderTargetWithWorldMotion(
+    state: EastbrookIdleWanderState,
+    seed: uint
+): bool {
+    if (!state.hasWanderTarget) {
+        return false;
+    }
+    var motion = new mobMotion.MobMotionState();
+    mobMotion.initializeMobMotion(
+        motion,
+        state.x,
+        state.y,
+        state.z,
+        state.facing,
+        state.templateKnown,
+        state.phasesThroughObstacles,
+        true
+    );
+    var arrived = mobMotion.stepMobToward(
+        motion,
+        state.wanderTargetX,
+        state.wanderTargetZ,
+        state.moveSpeed * 0.35,
+        false,
+        seed,
+        true
+    );
+    state.x = motion.x;
+    state.y = motion.y;
+    state.z = motion.z;
+    state.facing = motion.facing;
+    return arrived;
+}
+
+// Standalone composition for the existing leaf test project. WOS uses the
+// public select/move/finish stages directly so it never prefetches draw three.
+pub stepEastbrookIdleWanderWithWorldMotion(
+    state: EastbrookIdleWanderState,
+    firstUnit: float,
+    secondUnit: float,
+    thirdUnit: float,
+    seed: uint
+): int {
+    var draws = selectEastbrookIdleWanderTarget(state, firstUnit, secondUnit);
+    if (!state.hasWanderTarget) {
+        return draws;
+    }
+    var arrived = moveEastbrookIdleWanderTargetWithWorldMotion(state, seed);
+    if (arrived) {
+        var arrivalUnit = draws == 2 ? thirdUnit : firstUnit;
+        return draws + finishEastbrookIdleWanderArrival(state, true, arrivalUnit);
+    }
+    return draws;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var delta = actual - expected;
+    if (delta < 0.0) { delta = -delta; }
+    return delta < 0.00001;
+}
+
+pub contractTest(): int {
+    var state = new EastbrookIdleWanderState();
+    state.spawnX = 10.0;
+    state.spawnZ = 20.0;
+    state.x = 10.0;
+    state.z = 20.0;
+    state.moveSpeed = 0.0;
+    state.wanderTimer = 0.05;
+    if (stepEastbrookIdleWander(state, 0.25, 0.5, 0.0) != 2 || !state.hasWanderTarget ||
+        !closeEnough(state.wanderTargetX, 15.5) || !closeEnough(state.wanderTargetZ, 20.0) ||
+        !closeEnough(state.wanderTimer, 30.0)) { return -1; }
+    state.hasWanderTarget = true;
+    state.wanderTimer = 0.01;
+    if (stepEastbrookIdleWander(state, 0.5, 0.0, 0.0) != 1 || state.hasWanderTarget ||
+        !closeEnough(state.wanderTimer, 6.5)) { return -2; }
+    state.x = 0.0;
+    state.z = 0.0;
+    state.wanderTargetX = 0.1;
+    state.wanderTargetZ = 0.0;
+    state.hasWanderTarget = true;
+    state.moveSpeed = 10.0;
+    state.wanderTimer = 10.0;
+    if (stepEastbrookIdleWander(state, 0.0, 0.0, 0.0) != 1 || state.hasWanderTarget ||
+        !closeEnough(state.x, 0.1) || !closeEnough(state.wanderTimer, 3.0)) { return -3; }
+    state.x = 10.0;
+    state.z = 20.0;
+    state.moveSpeed = 1000.0;
+    state.wanderTimer = 0.05;
+    state.hasWanderTarget = false;
+    if (stepEastbrookIdleWander(state, 0.25, 0.5, 0.75) != 3 || state.hasWanderTarget ||
+        !closeEnough(state.wanderTimer, 8.25)) { return -4; }
+    return 1;
+}

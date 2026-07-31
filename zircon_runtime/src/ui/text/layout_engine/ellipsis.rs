@@ -1,5 +1,6 @@
 use crate::text::layout::{
-    ellipsize_text, measure_line_width_with_provider, EllipsisPlacement, EllipsisSegment, ELLIPSIS,
+    measure_line_width_with_provider, measured_grapheme_widths_with_provider,
+    retained_grapheme_counts, trim_end_ellipsis_trailing_graphemes, EllipsisPlacement, ELLIPSIS,
 };
 use crate::text::SharedTextLayoutSession;
 use unicode_segmentation::UnicodeSegmentation;
@@ -12,6 +13,8 @@ use super::candidate_line::{append_segment, CandidateLine};
 use super::direction::resolve_direction;
 use super::range_mapping::source_subrange;
 use super::wrapping::line_text_fits_with_provider;
+
+const ELLIPSIS_FIT_EPSILON: f32 = 0.01;
 
 pub(super) fn merge_clipped_lines_for_tail_preserving_ellipsis(
     lines: &mut Vec<CandidateLine>,
@@ -40,46 +43,10 @@ pub(super) fn ellipsize_line_with_provider(
     overflow: UiTextOverflow,
     provider: &mut SharedTextLayoutSession,
 ) {
-    let mut text = String::new();
-    let mut runs = Vec::new();
-    let placement = match overflow {
-        UiTextOverflow::EllipsisWord => EllipsisPlacement::EndWord,
-        UiTextOverflow::EllipsisStart => EllipsisPlacement::Start,
-        UiTextOverflow::EllipsisMiddle => EllipsisPlacement::Middle,
-        _ => EllipsisPlacement::End,
-    };
-    let segments = ellipsize_text(&line.text, max_width, placement, |candidate| {
-        measure_line_width_with_provider(candidate, &text_style(style), provider)
-    });
-
-    for (index, segment) in segments.iter().enumerate() {
-        match segment {
-            EllipsisSegment::Text { start, end } => {
-                let (start, end) = trim_end_ellipsis_trailing_whitespace(
-                    &line.text,
-                    *start,
-                    *end,
-                    matches!(
-                        placement,
-                        EllipsisPlacement::End | EllipsisPlacement::EndWord
-                    ) && index + 1 < segments.len()
-                        && matches!(segments.get(index + 1), Some(EllipsisSegment::Ellipsis)),
-                );
-                push_ellipsis_range(&mut text, &mut runs, line, start, end);
-            }
-            EllipsisSegment::Ellipsis => {
-                push_ellipsis_run(
-                    &mut text,
-                    &mut runs,
-                    ellipsis_source_offset(line, placement),
-                );
-            }
-        }
-    }
-
-    line.text = text;
-    line.runs = runs;
-    line.ellipsized = true;
+    let neutral_style = text_style(style);
+    let mut advances = measured_grapheme_widths_with_provider(&line.text, &neutral_style, provider);
+    let ellipsis_advance = measure_line_width_with_provider(ELLIPSIS, &neutral_style, provider);
+    force_ellipsize_line_with_advances(line, &mut advances, max_width, ellipsis_advance, overflow);
 }
 
 pub(super) fn ellipsize_line_with_advances(
@@ -123,20 +90,18 @@ fn ellipsize_line_with_advances_inner(
         .map(|(start, grapheme)| (start, start + grapheme.len()))
         .collect::<Vec<_>>();
     if graphemes.len() != advances.len()
-        || (!force && advances.iter().copied().sum::<f32>() <= max_width.max(0.0))
+        || (!force
+            && advances.iter().copied().sum::<f32>() <= max_width.max(0.0) + ELLIPSIS_FIT_EPSILON)
     {
         return;
     }
 
-    let available = (max_width.max(0.0) - ellipsis_advance.max(0.0)).max(0.0);
+    let available =
+        (max_width.max(0.0) + ELLIPSIS_FIT_EPSILON - ellipsis_advance.max(0.0)).max(0.0);
+    let placement = ellipsis_placement(overflow);
     let (mut prefix_count, suffix_count) =
-        retained_grapheme_counts(&line.text, &graphemes, advances, available, overflow);
-    trim_end_ellipsis_trailing_graphemes(
-        &line.text,
-        &graphemes,
-        &mut prefix_count,
-        ellipsis_placement(overflow),
-    );
+        retained_grapheme_counts(&line.text, &graphemes, advances, available, placement);
+    trim_end_ellipsis_trailing_graphemes(&line.text, &graphemes, &mut prefix_count, placement);
     let prefix_end = if prefix_count == 0 {
         0
     } else {
@@ -149,7 +114,6 @@ fn ellipsize_line_with_advances_inner(
 
     let mut text = String::new();
     let mut runs = Vec::new();
-    let placement = ellipsis_placement(overflow);
     if prefix_end > 0 {
         push_ellipsis_range(&mut text, &mut runs, line, 0, prefix_end);
     }
@@ -172,113 +136,6 @@ fn ellipsize_line_with_advances_inner(
     line.runs = runs;
     line.ellipsized = true;
     *advances = retained_advances;
-}
-
-fn retained_grapheme_counts(
-    text: &str,
-    graphemes: &[(usize, usize)],
-    advances: &[f32],
-    available: f32,
-    overflow: UiTextOverflow,
-) -> (usize, usize) {
-    match ellipsis_placement(overflow) {
-        EllipsisPlacement::Start => (0, fitting_suffix_count(advances, available)),
-        EllipsisPlacement::Middle => {
-            let prefix_budget = available * 0.5;
-            let prefix = fitting_prefix_count(advances, prefix_budget);
-            let prefix_width = advances[..prefix].iter().copied().sum::<f32>();
-            let suffix =
-                fitting_suffix_count(&advances[prefix..], (available - prefix_width).max(0.0))
-                    .min(advances.len().saturating_sub(prefix));
-            (prefix, suffix)
-        }
-        EllipsisPlacement::EndWord => {
-            let fitted = fitting_prefix_count(advances, available);
-            let fitted_end = graphemes
-                .get(fitted.saturating_sub(1))
-                .map(|(_, end)| *end)
-                .unwrap_or_default();
-            let word_end = text
-                .split_word_bound_indices()
-                .filter_map(|(start, word)| {
-                    let end = start + word.len();
-                    (!word.trim().is_empty() && end <= fitted_end).then_some(end)
-                })
-                .last()
-                .unwrap_or(fitted_end);
-            (
-                graphemes
-                    .iter()
-                    .take(fitted)
-                    .take_while(|(_, end)| *end <= word_end)
-                    .count(),
-                0,
-            )
-        }
-        EllipsisPlacement::End => (fitting_prefix_count(advances, available), 0),
-    }
-}
-
-fn fitting_prefix_count(advances: &[f32], available: f32) -> usize {
-    let mut width = 0.0;
-    advances
-        .iter()
-        .take_while(|advance| {
-            let fits = width + **advance <= available;
-            if fits {
-                width += **advance;
-            }
-            fits
-        })
-        .count()
-}
-
-fn fitting_suffix_count(advances: &[f32], available: f32) -> usize {
-    let mut width = 0.0;
-    advances
-        .iter()
-        .rev()
-        .take_while(|advance| {
-            let fits = width + **advance <= available;
-            if fits {
-                width += **advance;
-            }
-            fits
-        })
-        .count()
-}
-
-fn trim_end_ellipsis_trailing_graphemes(
-    text: &str,
-    graphemes: &[(usize, usize)],
-    prefix_count: &mut usize,
-    placement: EllipsisPlacement,
-) {
-    if !matches!(
-        placement,
-        EllipsisPlacement::End | EllipsisPlacement::EndWord
-    ) {
-        return;
-    }
-    while *prefix_count > 0 {
-        let (start, end) = graphemes[*prefix_count - 1];
-        if !text[start..end].chars().all(char::is_whitespace) {
-            break;
-        }
-        *prefix_count -= 1;
-    }
-}
-
-fn trim_end_ellipsis_trailing_whitespace(
-    text: &str,
-    start: usize,
-    end: usize,
-    trim: bool,
-) -> (usize, usize) {
-    let trimmed_end = trim
-        .then(|| start + text[start..end].trim_end_matches(char::is_whitespace).len())
-        .unwrap_or(end);
-    (start.min(trimmed_end), trimmed_end)
 }
 
 fn ellipsis_placement(overflow: UiTextOverflow) -> EllipsisPlacement {

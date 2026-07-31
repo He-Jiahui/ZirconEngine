@@ -1,0 +1,212 @@
+// Current-head projection for the four warrior row mechanics exercised by the
+// warrior_row_capstones parity trace. Target selection stays in progression,
+// while the authoritative damage/position/channel dispatch remains in WOS.
+var container = %import("zr.container");
+var contract = %import("generated/warrior_row_capstone_contract");
+
+pub class WarriorRowCapstoneState {
+    pub var doubleCharge: bool;
+    pub var victoryRush: bool;
+    pub var lingeringDread: bool;
+    pub var bladestorm: bool;
+
+    pub var baseChargeUses: int;
+    pub var chargeUses: int;
+    pub var chargeRecharges: container.Array<float>;
+    pub var victoryRushRemaining: float;
+    pub var hp: int;
+    pub var maxHp: int;
+    pub var victoryRushHeals: int;
+
+    pub @constructor() {
+        this.doubleCharge = false;
+        this.victoryRush = false;
+        this.lingeringDread = false;
+        this.bladestorm = false;
+        this.baseChargeUses = 1;
+        this.chargeUses = 1;
+        this.chargeRecharges = new container.Array<float>();
+        this.victoryRushRemaining = 0.0;
+        this.hp = 100;
+        this.maxHp = 100;
+        this.victoryRushHeals = 0;
+    }
+}
+
+pub class BladestormSpec {
+    pub var granted: bool;
+    pub var cost: int;
+    pub var cooldown: float;
+    pub var duration: float;
+    pub var ticks: int;
+    pub var radius: float;
+    pub var minDamage: int;
+    pub var maxDamage: int;
+
+    pub @constructor() {
+        this.granted = false;
+        this.cost = 0;
+        this.cooldown = 0.0;
+        this.duration = 0.0;
+        this.ticks = 0;
+        this.radius = 0.0;
+        this.minDamage = 0;
+        this.maxDamage = 0;
+    }
+}
+
+chargeMax(state: WarriorRowCapstoneState): int {
+    return state.baseChargeUses + (state.doubleCharge ? contract.chargeBonusUses(true) : 0);
+}
+
+// Selection has already been validated by talent_row_selection. Reapplying a
+// selection recomputes this derived charge pool just like a live allocation
+// recalculation; it does not invent a recharge timer.
+pub configureWarriorRowCapstones(
+    state: WarriorRowCapstoneState,
+    row5: string,
+    row8: string,
+    row11: string,
+    row20: string
+): void {
+    state.doubleCharge = contract.isDoubleCharge(row5);
+    state.victoryRush = contract.isVictoryRush(row8);
+    state.lingeringDread = contract.isLingeringDread(row11);
+    state.bladestorm = contract.isBladestorm(row20);
+    var maximum = chargeMax(state);
+    if (state.chargeUses > maximum) state.chargeUses = maximum;
+    if (state.chargeUses < 0) state.chargeUses = 0;
+}
+
+pub resetChargeUses(state: WarriorRowCapstoneState): void {
+    state.chargeUses = chargeMax(state);
+    state.chargeRecharges.clear();
+}
+
+// Stored charge uses each start an independent recharge. This is the only
+// ownership needed by the Double Charge row; movement and stun are base Charge.
+pub spendCharge(state: WarriorRowCapstoneState): bool {
+    if (state.chargeUses <= 0) return false;
+    state.chargeUses = state.chargeUses - 1;
+    state.chargeRecharges.add(contract.chargeRechargeSeconds(true));
+    return true;
+}
+
+pub onCreditedKill(state: WarriorRowCapstoneState): void {
+    if (state.victoryRush) {
+        state.victoryRushRemaining = contract.victoryRushWindowSeconds(true);
+    }
+}
+
+pub canUseVictoryRush(state: WarriorRowCapstoneState, hasLiveTarget: bool): bool {
+    return state.victoryRush && hasLiveTarget && state.victoryRushRemaining > 0.0;
+}
+
+// The weapon strike is owned by the normal effect dispatcher. This reducer
+// preserves the linked aura-consume and selfHealPctMax half of the cast.
+pub consumeVictoryRush(state: WarriorRowCapstoneState, hasLiveTarget: bool): bool {
+    if (!canUseVictoryRush(state, hasLiveTarget)) return false;
+    var healing = <int>(<float>state.maxHp * contract.victoryRushHealPctMax(true) + 0.5);
+    state.hp = state.hp + healing;
+    if (state.hp > state.maxHp) state.hp = state.maxHp;
+    state.victoryRushRemaining = 0.0;
+    state.victoryRushHeals = state.victoryRushHeals + 1;
+    return true;
+}
+
+// Zero represents the source's undefined threshold. A present threshold is
+// rounded and floored to one before the generic damage-break path consumes it.
+pub fearBreakThreshold(state: WarriorRowCapstoneState, targetMaxHp: int): int {
+    if (!state.lingeringDread || targetMaxHp <= 0) return 0;
+    var threshold = <int>(<float>targetMaxHp * contract.lingeringDreadBreakPct(true) + 0.5);
+    return threshold < 1 ? 1 : threshold;
+}
+
+pub bladestormSpec(state: WarriorRowCapstoneState): BladestormSpec {
+    var result = new BladestormSpec();
+    if (!state.bladestorm) return result;
+    result.granted = true;
+    result.cost = contract.bladestormCost(true);
+    result.cooldown = contract.bladestormCooldownSeconds(true);
+    result.duration = contract.bladestormDurationSeconds(true);
+    result.ticks = contract.bladestormTicks(true);
+    result.radius = contract.bladestormRadius(true);
+    result.minDamage = contract.bladestormMinDamage(true);
+    result.maxDamage = contract.bladestormMaxDamage(true);
+    return result;
+}
+
+// The fixed combat tick updates stored charges and the kill-window aura; no
+// random value is consumed by either timer path.
+pub advanceFixedTick(state: WarriorRowCapstoneState): void {
+    var index = state.chargeRecharges.length - 1;
+    while (index >= 0) {
+        var remaining = <float>state.chargeRecharges[index] - 0.05;
+        if (remaining <= 0.000000001) {
+            state.chargeRecharges.removeAt(index);
+            if (state.chargeUses < chargeMax(state)) state.chargeUses = state.chargeUses + 1;
+        } else {
+            state.chargeRecharges[index] = remaining;
+        }
+        index = index - 1;
+    }
+    state.victoryRushRemaining = state.victoryRushRemaining - 0.05;
+    if (state.victoryRushRemaining < 0.0) state.victoryRushRemaining = 0.0;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var state = new WarriorRowCapstoneState();
+    configureWarriorRowCapstones(
+        state,
+        "war_row_double_charge",
+        "war_row_victory_rush",
+        "war_row_lingering_dread",
+        "war_row_bladestorm"
+    );
+    resetChargeUses(state);
+    if (state.chargeUses != 2 || !spendCharge(state)) return -1;
+    var tick = 0;
+    while (tick < 8) {
+        advanceFixedTick(state);
+        tick = tick + 1;
+    }
+    if (!spendCharge(state) || spendCharge(state) || state.chargeRecharges.length != 2) return -2;
+    tick = 0;
+    while (tick < 292) {
+        advanceFixedTick(state);
+        tick = tick + 1;
+    }
+    if (state.chargeUses != 1 || state.chargeRecharges.length != 1) return -3;
+    tick = 0;
+    while (tick < 8) {
+        advanceFixedTick(state);
+        tick = tick + 1;
+    }
+    if (state.chargeUses != 2 || state.chargeRecharges.length != 0) return -4;
+
+    state.maxHp = 501;
+    state.hp = 100;
+    onCreditedKill(state);
+    if (!closeEnough(state.victoryRushRemaining, 20.0) ||
+        !consumeVictoryRush(state, true) || state.hp != 200 ||
+        state.victoryRushHeals != 1 || state.victoryRushRemaining != 0.0 ||
+        consumeVictoryRush(state, true)) return -5;
+    if (fearBreakThreshold(state, 8000) != 1600 || fearBreakThreshold(state, 1) != 1) return -6;
+
+    var storm = bladestormSpec(state);
+    if (!storm.granted || storm.cost != 25 || !closeEnough(storm.cooldown, 90.0) ||
+        !closeEnough(storm.duration, 4.0) || storm.ticks != 4 || !closeEnough(storm.radius, 6.0) ||
+        storm.minDamage != 16 || storm.maxDamage != 22) return -7;
+
+    configureWarriorRowCapstones(state, "", "", "", "");
+    resetChargeUses(state);
+    if (state.chargeUses != 1 || fearBreakThreshold(state, 100) != 0 ||
+        bladestormSpec(state).granted || canUseVictoryRush(state, true)) return -8;
+    return 1;
+}

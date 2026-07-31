@@ -222,6 +222,65 @@ fn runtime_plugin_catalog_reports_target_mismatch_for_optional_feature() {
 }
 
 #[test]
+fn earlier_provider_capability_is_visible_to_later_immediate_blocker() {
+    let catalog = declaration_order_catalog();
+    let manifest =
+        declaration_order_manifest(&["rendering.ordered_provider", "rendering.immediate_blocker"]);
+
+    let report = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::EditorHost);
+
+    assert_eq!(
+        report.available_features,
+        ["rendering.ordered_provider".to_string()]
+    );
+    let blocked = &report.blocked_features[0];
+    assert_eq!(blocked.feature_id, "rendering.immediate_blocker");
+    assert_eq!(blocked.missing_plugins, ["missing.provider".to_string()]);
+    assert!(blocked.missing_capabilities.is_empty());
+}
+
+#[test]
+fn later_provider_does_not_rewrite_an_immediate_blocker() {
+    let catalog = declaration_order_catalog();
+    let manifest =
+        declaration_order_manifest(&["rendering.immediate_blocker", "rendering.ordered_provider"]);
+
+    let report = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::EditorHost);
+
+    assert_eq!(
+        report.available_features,
+        ["rendering.ordered_provider".to_string()]
+    );
+    let blocked = &report.blocked_features[0];
+    assert_eq!(blocked.feature_id, "rendering.immediate_blocker");
+    assert!(blocked
+        .missing_capabilities
+        .contains(&"runtime.feature.rendering.ordered_provider".to_string()));
+}
+
+#[test]
+fn immediate_blocker_is_not_an_unresolved_cycle_provider() {
+    let catalog = declaration_order_catalog();
+    let manifest =
+        declaration_order_manifest(&["rendering.immediate_blocker", "rendering.blocked_consumer"]);
+
+    let report = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::EditorHost);
+
+    assert_eq!(
+        report
+            .blocked_features
+            .iter()
+            .map(|blocked| blocked.feature_id.as_str())
+            .collect::<Vec<_>>(),
+        ["rendering.immediate_blocker", "rendering.blocked_consumer"]
+    );
+    assert!(report.blocked_features.iter().all(|blocked| !blocked.cycle));
+    assert!(report.blocked_features[1]
+        .missing_capabilities
+        .contains(&"runtime.feature.rendering.immediate_blocker".to_string()));
+}
+
+#[test]
 fn runtime_plugin_catalog_reports_feature_capability_cycles() {
     let feature_a =
         PluginFeatureBundleManifest::new("rendering.feature_a", "Feature A", "rendering")
@@ -419,4 +478,69 @@ fn runtime_plugin_catalog_reports_self_feature_capability_cycle() {
     assert!(blocked.blocked_features[0]
         .to_diagnostic()
         .contains("feature capability dependencies form a cycle"));
+}
+
+fn declaration_order_catalog() -> RuntimePluginCatalog {
+    let immediate_blocker = PluginFeatureBundleManifest::new(
+        "rendering.immediate_blocker",
+        "Immediate Blocker",
+        "rendering",
+    )
+    .with_dependency(PluginFeatureDependency::primary(
+        "rendering",
+        "runtime.plugin.rendering",
+    ))
+    .with_dependency(PluginFeatureDependency::required(
+        "missing.provider",
+        "runtime.feature.rendering.ordered_provider",
+    ))
+    .with_capability("runtime.feature.rendering.immediate_blocker");
+    let ordered_provider = PluginFeatureBundleManifest::new(
+        "rendering.ordered_provider",
+        "Ordered Provider",
+        "rendering",
+    )
+    .with_dependency(PluginFeatureDependency::primary(
+        "rendering",
+        "runtime.plugin.rendering",
+    ))
+    .with_capability("runtime.feature.rendering.ordered_provider");
+    let blocked_consumer = PluginFeatureBundleManifest::new(
+        "rendering.blocked_consumer",
+        "Blocked Consumer",
+        "rendering",
+    )
+    .with_dependency(PluginFeatureDependency::primary(
+        "rendering",
+        "runtime.plugin.rendering",
+    ))
+    .with_dependency(PluginFeatureDependency::required(
+        "rendering",
+        "runtime.feature.rendering.immediate_blocker",
+    ));
+
+    RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
+        "rendering",
+        "Rendering",
+        RuntimePluginId::Rendering,
+        "zircon_plugin_rendering_runtime",
+    )
+    .with_target_modes([RuntimeTargetMode::EditorHost])
+    .with_capability("runtime.plugin.rendering")
+    .with_optional_feature(immediate_blocker)
+    .with_optional_feature(ordered_provider)
+    .with_optional_feature(blocked_consumer)
+    .build()])
+}
+
+fn declaration_order_manifest(feature_ids: &[&str]) -> ProjectPluginManifest {
+    let mut selection =
+        ProjectPluginSelection::runtime_plugin(RuntimePluginId::Rendering, true, false);
+    selection.features = feature_ids
+        .iter()
+        .map(|feature_id| ProjectPluginFeatureSelection::new(*feature_id).enabled(true))
+        .collect();
+    ProjectPluginManifest {
+        selections: vec![selection],
+    }
 }

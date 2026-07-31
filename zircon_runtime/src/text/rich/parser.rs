@@ -122,7 +122,7 @@ fn append_html_text(
 ) {
     append_text_with_metadata(
         result,
-        &html_subset::decode_entities(text),
+        html_subset::decode_entities(text).as_ref(),
         style,
         None,
         link,
@@ -408,7 +408,7 @@ fn append_bbcode_text(
         return;
     }
     ensure_pending_block_break(result, pending_block_break, style.clone(), link.clone());
-    append_text_with_metadata(result, &text, style, None, link);
+    append_text_with_metadata(result, text.as_ref(), style, None, link);
 }
 
 fn ensure_block_boundary(
@@ -582,11 +582,17 @@ fn append_inline_object(
 
 fn align_runs_to_graphemes(text: &str, runs: &[StyledRun]) -> Vec<StyledRun> {
     let mut aligned = Vec::new();
+    let mut run_index = 0;
     for (start, grapheme) in text.grapheme_indices(true) {
         let end = start + grapheme.len();
+        while run_index < runs.len()
+            && usize::try_from(runs[run_index].byte_range.1).unwrap_or(0) <= start
+        {
+            run_index += 1;
+        }
         let source = runs
-            .iter()
-            .find(|run| range_contains(run.byte_range, start))
+            .get(run_index)
+            .filter(|run| range_contains(run.byte_range, start))
             .cloned()
             .unwrap_or_default();
         let mut run = styled_run(start, end, source.style);

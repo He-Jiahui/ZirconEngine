@@ -1,0 +1,12 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+// Kind 1 is a CommandValue string; kind 2 is a CommandValue boolean.
+// Neither payload is byte-encoded here: Plugin08 owns lossless transport.
+pub releaseEmpoweredCommandId(required: bool): uint { return required ? <uint>149 : <uint>0; }
+pub resurrectRespondCommandId(required: bool): uint { return required ? <uint>164 : <uint>0; }
+pub payloadKind(id: uint, required: bool): int {
+    if (!required) return 0;
+    if (id == <uint>149) return 1;
+    if (id == <uint>164) return 2;
+    return 0;
+}
+pub requiresLosslessCommandValue(required: bool): bool { return required; }

@@ -6,7 +6,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::CachedMeshDrawCommands;
 
 use super::super::pending_command_cache_plan::PendingMeshCommandCacheVisibility;
-use super::{commands_for_extract_item, PendingMeshCommandCacheExtractItem};
+use super::{PendingMeshCommandCacheExtractItem, commands_for_extract_item};
 
 #[test]
 fn pending_command_cache_extract_marks_visibility_pruned_static_draw() {

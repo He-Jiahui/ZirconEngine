@@ -59,6 +59,7 @@ fn entry_subsystem_is_split_into_builtin_modules_run_modes_and_runtime_app_tree(
         "runtime_entry_app/pointer_input/device.rs",
         "runtime_entry_app/pointer_input/motion.rs",
         "runtime_entry_app/pointer_input/wheel.rs",
+        "runtime_entry_app/runtime_product_diagnostics.rs",
         "runtime_entry_app/surface_present/mod.rs",
         "runtime_entry_app/surface_present/binding.rs",
         "runtime_entry_app/surface_present/fallback.rs",
@@ -132,8 +133,7 @@ fn entry_subsystem_is_split_into_builtin_modules_run_modes_and_runtime_app_tree(
         );
     }
     assert!(
-        !root.join("tests/runtime_entry_device_guards.rs")
-            .exists(),
+        !root.join("tests/runtime_entry_device_guards.rs").exists(),
         "runtime entry device-event guards should stay folder-backed instead of returning to an umbrella runtime_entry_device_guards.rs file"
     );
     assert!(
@@ -145,12 +145,14 @@ fn entry_subsystem_is_split_into_builtin_modules_run_modes_and_runtime_app_tree(
         "runtime entry input guards should stay folder-backed instead of returning to an umbrella runtime_entry_input_guards.rs file"
     );
     assert!(
-        !root.join("tests/runtime_entry_surface_present_guards.rs")
+        !root
+            .join("tests/runtime_entry_surface_present_guards.rs")
             .exists(),
         "runtime entry surface-present guards should stay folder-backed instead of returning to an umbrella runtime_entry_surface_present_guards.rs file"
     );
     assert!(
-        !root.join("tests/runtime_entry_window_lifecycle_guards.rs")
+        !root
+            .join("tests/runtime_entry_window_lifecycle_guards.rs")
             .exists(),
         "runtime entry window-lifecycle guards should stay folder-backed instead of returning to an umbrella runtime_entry_window_lifecycle_guards.rs file"
     );

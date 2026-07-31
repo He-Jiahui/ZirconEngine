@@ -1,14 +1,15 @@
 use crate::core::framework::render::RenderVirtualGeometryDebugSnapshot;
 use crate::graphics::scene::RenderGraphLightGridReport;
+use std::sync::Arc;
 
-use super::{viewport_record::ViewportRecord, ViewportCameraHistoryKey};
+use super::{ViewportCameraHistoryKey, viewport_record::ViewportRecord};
 
 impl ViewportRecord {
     pub(in crate::graphics::runtime::render_framework) fn record_camera_product_reports(
         &mut self,
         key: &ViewportCameraHistoryKey,
         light_grid_report: Option<RenderGraphLightGridReport>,
-        virtual_geometry_debug_snapshot: Option<&RenderVirtualGeometryDebugSnapshot>,
+        virtual_geometry_debug_snapshot: Option<&Arc<RenderVirtualGeometryDebugSnapshot>>,
     ) {
         if let Some(report) = light_grid_report {
             self.light_grid_reports.insert(key.clone(), report);
@@ -37,12 +38,16 @@ impl ViewportRecord {
         &self,
         key: &ViewportCameraHistoryKey,
     ) -> Option<&RenderVirtualGeometryDebugSnapshot> {
-        self.virtual_geometry_debug_snapshots.get(key)
+        self.virtual_geometry_debug_snapshots
+            .get(key)
+            .map(Arc::as_ref)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::core::framework::render::{
         CameraRenderDescriptor, RenderCameraTarget, RenderViewportDescriptor, RenderViewportRect,
         RenderVirtualGeometryDebugSnapshot, ViewportCameraSnapshot,
@@ -60,8 +65,8 @@ mod tests {
         let right_key = camera_key(1, UVec2::new(32, 0));
         let left_light = light_report(3);
         let right_light = light_report(9);
-        let left_debug = virtual_geometry_debug_snapshot(7);
-        let right_debug = virtual_geometry_debug_snapshot(13);
+        let left_debug = Arc::new(virtual_geometry_debug_snapshot(7));
+        let right_debug = Arc::new(virtual_geometry_debug_snapshot(13));
 
         record.record_camera_product_reports(&left_key, Some(left_light), Some(&left_debug));
         record.record_camera_product_reports(&right_key, Some(right_light), Some(&right_debug));
@@ -73,11 +78,11 @@ mod tests {
         );
         assert_eq!(
             record.camera_virtual_geometry_debug_snapshot(&left_key),
-            Some(&left_debug)
+            Some(left_debug.as_ref())
         );
         assert_eq!(
             record.camera_virtual_geometry_debug_snapshot(&right_key),
-            Some(&right_debug)
+            Some(right_debug.as_ref())
         );
 
         record.record_camera_product_reports(&left_key, None, None);
@@ -93,8 +98,25 @@ mod tests {
         );
         assert_eq!(
             record.camera_virtual_geometry_debug_snapshot(&right_key),
-            Some(&right_debug)
+            Some(right_debug.as_ref())
         );
+    }
+
+    #[test]
+    fn viewport_record_shares_virtual_geometry_debug_snapshots() {
+        let mut record = ViewportRecord::new(RenderViewportDescriptor::new(UVec2::new(64, 64)));
+        let key = camera_key(1, UVec2::ZERO);
+        let snapshot = Arc::new(virtual_geometry_debug_snapshot(7));
+
+        record.record_camera_product_reports(&key, None, Some(&snapshot));
+
+        assert!(Arc::ptr_eq(
+            record
+                .virtual_geometry_debug_snapshots
+                .get(&key)
+                .expect("camera snapshot should be retained"),
+            &snapshot,
+        ));
     }
 
     fn camera_key(entity: u64, position: UVec2) -> ViewportCameraHistoryKey {

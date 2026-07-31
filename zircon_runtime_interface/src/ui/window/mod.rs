@@ -18,6 +18,6 @@ pub use metadata::UiWindowEventMetadata;
 pub use metrics::{UiWindowMetrics, UiWindowPixelPosition, UiWindowPixelSize};
 pub use pump::{UiWindowInputPumpBatch, UiWindowInputPumpEvent};
 pub use runtime_event_adapter::{
-    runtime_event_to_window_input_pump_event, runtime_events_to_window_input_pump_batch,
     UiRuntimeEventAdapterContext, UiRuntimeEventAdapterError, UiRuntimeEventAdapterResult,
+    runtime_event_to_window_input_pump_event, runtime_events_to_window_input_pump_batch,
 };

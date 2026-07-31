@@ -34,11 +34,11 @@ impl Fixed {
         self.overstep = self.overstep.saturating_add(delta);
     }
 
-    pub(crate) fn take_step(&mut self) -> bool {
-        let Some(remaining) = self.overstep.checked_sub(self.timestep) else {
-            return false;
-        };
-        self.overstep = remaining;
-        true
+    pub(crate) fn take_steps(&mut self, max_steps: u32) -> u32 {
+        let available_steps =
+            (self.overstep.as_nanos() / self.timestep.as_nanos()).min(u128::from(max_steps)) as u32;
+        let consumed = self.timestep.saturating_mul(available_steps);
+        self.overstep = self.overstep.saturating_sub(consumed);
+        available_steps
     }
 }

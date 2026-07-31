@@ -7,7 +7,13 @@ fn runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow() {
         include_str!("../../runtime_entry_app/event_loop_policy/mod.rs");
     let event_loop_policy_control_flow_source =
         include_str!("../../runtime_entry_app/event_loop_policy/control_flow.rs");
-    let event_loop_policy_source = runtime_event_loop_policy_source();
+    let frame_cadence_source =
+        include_str!("../../runtime_entry_app/event_loop_policy/frame_cadence.rs");
+    let event_loop_policy_source = format!(
+        "{}\n{}",
+        runtime_event_loop_policy_source(),
+        frame_cadence_source
+    );
     let runtime_app_source = include_str!("../../runtime_entry_app/mod.rs");
     let root = entry_root();
 
@@ -18,7 +24,8 @@ fn runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow() {
         "EventLoopPolicy::Mobile",
         "EventLoopPolicy::Headless",
         "ControlFlow::Poll",
-        "ControlFlow::Wait",
+        "ControlFlow::Wait,",
+        "ControlFlow::WaitUntil",
         "event_loop.set_control_flow",
         "pub(in crate::entry::runtime_entry_app) fn apply_event_loop_policy",
     ] {
@@ -32,8 +39,12 @@ fn runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow() {
         "runtime entry app should keep event-loop policy mapping in a child module"
     );
     assert!(
-        event_loop_policy_root_source.contains("mod control_flow;"),
-        "runtime event-loop policy root should stay structural and delegate control-flow behavior"
+        event_loop_policy_root_source.contains("mod control_flow;")
+            && event_loop_policy_root_source.contains("mod frame_cadence;")
+            && event_loop_policy_root_source.contains(
+                "pub(in crate::entry::runtime_entry_app) use frame_cadence::RuntimeFrameCadence;"
+            ),
+        "runtime event-loop policy root should delegate control-flow and cadence behavior"
     );
     assert!(
         !root.join("runtime_entry_app/event_loop_policy.rs").exists(),
@@ -43,13 +54,31 @@ fn runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow() {
         event_loop_policy_control_flow_source,
         &[
             "fn apply_event_loop_policy",
-            "event_loop.set_control_flow(winit_control_flow(self.event_loop_policy));",
-            "fn winit_control_flow",
-            "EventLoopPolicy::Game | EventLoopPolicy::Continuous",
-            "ControlFlow::Poll",
-            "EventLoopPolicy::DesktopApp | EventLoopPolicy::Mobile | EventLoopPolicy::Headless",
-            "ControlFlow::Wait",
+            "self.frame_cadence.control_flow",
+            "event_loop.set_control_flow",
         ],
-        "event-loop policy control-flow helper should keep the runtime profile to winit ControlFlow mapping source-visible",
+        "event-loop policy control-flow helper should delegate to the cadence owner",
     );
+    for required in [
+        "HEADLESS_FRAME_INTERVAL",
+        "RuntimeFrameCadenceMode::Continuous",
+        "RuntimeFrameCadenceMode::Reactive",
+        "RuntimeFrameCadenceMode::FixedInterval",
+        "fn request_frame",
+        "fn apply_runtime_demand",
+        "fn take_frame_request",
+        "fn control_flow",
+        "reactive_cadence_coalesces_requests_and_suppresses_idle_frames",
+        "continuous_cadence_never_suppresses_frame_pumps",
+        "headless_cadence_uses_fixed_wait_deadlines",
+        "headless_early_wake_does_not_pump_or_move_fixed_deadline",
+        "reactive_runtime_immediate_demand_coalesces_one_host_wake",
+        "reactive_runtime_after_replaces_and_idle_cancels_previous_deadline",
+        "continuous_cadence_does_not_schedule_extra_wakes_from_runtime_demand",
+    ] {
+        assert!(
+            frame_cadence_source.contains(required),
+            "runtime frame-cadence owner should preserve `{required}`"
+        );
+    }
 }

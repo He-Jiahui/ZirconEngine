@@ -1,4 +1,8 @@
 use super::support::*;
+use crate::ui::retained_host::welcome_recent_geometry::{
+    welcome_recent_row_geometry, welcome_recent_viewport,
+};
+use zircon_runtime_interface::ui::layout::UiSize;
 
 #[test]
 fn root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host() {
@@ -7,20 +11,40 @@ fn root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host() {
     let harness = ChildWindowHostHarness::new("zircon_retained_root_welcome_recent_projection");
     harness.stage_missing_recent_project("E:/Missing/RecentProject", "RecentProject");
 
+    let remove = {
+        let host = harness.host.borrow();
+        let pane = host
+            .template_bridge
+            .control_frame(callback_dispatch::PANE_SURFACE_CONTROL_ID)
+            .expect("root projection should expose the Welcome pane surface frame");
+        welcome_recent_row_geometry(
+            welcome_recent_viewport(UiSize::new(pane.width, pane.height)),
+            0,
+            0.0,
+        )
+        .remove
+    };
+
     harness
         .root_ui
         .global::<PaneSurfaceHostContext>()
-        .invoke_welcome_recent_pointer_clicked(160.0, 204.0, 0.0, 0.0);
+        .invoke_welcome_recent_pointer_clicked(
+            remove.x + remove.width * 0.5,
+            remove.y + remove.height * 0.5,
+            0.0,
+            0.0,
+        );
 
     let host = harness.host.borrow();
     assert!(host.welcome_recent_pointer_size.width > 0.0);
     assert!(host.welcome_recent_pointer_size.height > 0.0);
-    assert!(host
-        .runtime
-        .chrome_snapshot()
-        .welcome
-        .recent_projects
-        .is_empty());
+    assert!(
+        host.runtime
+            .chrome_snapshot()
+            .welcome
+            .recent_projects
+            .is_empty()
+    );
     assert_eq!(
         host.runtime.editor_snapshot().status_line,
         "Removed recent project E:/Missing/RecentProject"
@@ -87,8 +111,8 @@ fn root_hierarchy_pointer_move_uses_region_frame_fallback_in_real_host() {
 }
 
 #[test]
-fn root_hierarchy_pointer_move_prefers_shared_drawer_content_projection_over_stale_left_region_geometry(
-) {
+fn root_hierarchy_pointer_move_prefers_shared_drawer_content_projection_over_stale_left_region_geometry()
+ {
     let _guard = lock_env();
 
     let harness =
@@ -149,8 +173,8 @@ fn root_console_pointer_scroll_uses_region_frame_fallback_in_real_host() {
 }
 
 #[test]
-fn root_console_pointer_scroll_prefers_shared_drawer_content_projection_over_stale_bottom_region_geometry(
-) {
+fn root_console_pointer_scroll_prefers_shared_drawer_content_projection_over_stale_bottom_region_geometry()
+ {
     let _guard = lock_env();
 
     let harness =

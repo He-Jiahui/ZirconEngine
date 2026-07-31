@@ -44,12 +44,10 @@ pub(in crate::virtual_geometry::renderer) fn plugin_renderer_outputs_from_virtua
 pub(crate) fn runtime_prepare_renderer_outputs(
     context: &mut RuntimePrepareCollectorContext<'_>,
 ) -> RenderPluginRendererOutputs {
-    // The collector mirrors only neutral sidebands prepared by runtime providers;
-    // it does not synthesize GPU/readback feedback from CPU prepare heuristics.
+    // The frame sideband remains the feedback owner and is moved into runtime feedback after
+    // rendering. Mirroring it here would deep-clone large readback vectors and merge them twice.
     register_prepared_virtual_geometry_feedback_buffer(context);
-    plugin_renderer_outputs_from_virtual_geometry_readback(
-        context.prepared_virtual_geometry_readback_outputs().clone(),
-    )
+    RenderPluginRendererOutputs::default()
 }
 
 fn register_prepared_virtual_geometry_feedback_buffer(
@@ -82,6 +80,20 @@ fn register_prepared_virtual_geometry_feedback_buffer(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn runtime_prepare_keeps_frame_sideband_as_the_feedback_owner() {
+        let source = include_str!("virtual_geometry_plugin_renderer_outputs.rs");
+
+        assert!(!source.contains(concat!(
+            "prepared_virtual_geometry_readback_outputs().",
+            "clone()"
+        )));
+        assert!(source.contains(concat!(
+            "register_prepared_virtual_geometry_feedback_buffer(context);",
+            "\n    RenderPluginRendererOutputs::default()"
+        )));
+    }
 
     #[test]
     fn plugin_renderer_outputs_package_node_cluster_cull_readback_under_virtual_geometry() {

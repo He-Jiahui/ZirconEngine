@@ -231,8 +231,11 @@ for batch in batches {
 
 M1.1、M1.2 已完成实现；M1.3 的深层 hierarchy/cycle-edge/compile-sync 硬化也已完成并通过 fresh 定向证据。接口与 core-min 门禁全绿。Shader04/Plugins08 原 Failure 已 fixed 回传后，fresh 默认 scene 门禁为 1700 passed / 3 failed / 6 ignored，全部 Editor02 generation、inspection、5k 深链与 cycle-edge 合同通过；三条新失败已分别路由到 Runtime15、Text05、Plugins08。父 M1 保持 pending；M1.3 先按六文件 exact manifest 独立提交，M1 整体仍等待其余 lifecycle 和 fresh 整门禁；完整证据已迁入编号归档。
 
+2026-07-18：Performance01 回传的 editor-event journal/listener 无界保留失败已完成源码硬切：统一 retention store、durable/frame-local/latest-state 独立预算、共享 Arc payload、per-listener inbox 和 sequence/journal/listener 分锁均已落地；1k/10k、字节预算、逆序 fanout 与 lag/coalesce 测试已加入。当前仅有静态 gate，受 Coordinator01 immutable full-input snapshot barrier 阻塞，尚未执行 source-bound Cargo、独立 review、failure return 或 managed commit，因此 Failure 保持 open，且不据此勾选 M2。
+
 - 迁入记录：[`02/2026-07-14-world-sync-m1-output-records.md`](02/2026-07-14-world-sync-m1-output-records.md)
 - 当前源状态收束：[`02/2026-07-17-m1-current-source-status-reconciliation.md`](02/2026-07-17-m1-current-source-status-reconciliation.md)
+- editor-event retention/lock split：[`02/2026-07-18-editor-event-retention-and-lock-split.md`](02/2026-07-18-editor-event-retention-and-lock-split.md)
 
 ## Failure 生命周期
 
@@ -260,3 +263,47 @@ M1.1、M1.2 已完成实现；M1.3 的深层 hierarchy/cycle-edge/compile-sync �
 - fixed 已修复：[vm-dynamic-property-write-structure-regression](02/fixed-2026-07-14-vm-dynamic-property-write-structure-regression.md)
 - fixed 已修复：[support-slice-exact-finalize-plan-output-conflict](02/fixed-2026-07-16-support-slice-exact-finalize-plan-output-conflict.md)
 - open / Coordinator01 native slice closeout checker 仍依赖共享暂存区：[native-slice-closeout-checker-staged-index-contract-drift](../../zircon_tooling/session_coordinator/01/failure-2026-07-16-native-slice-closeout-checker-staged-index-contract-drift.md)
+- open / editor-event retention 源码已落地但 source-bound Cargo/review/fixed return 仍被 Coordinator01 immutable full-input barrier 阻塞：[editor-event-journal-listener-unbounded-retention](02/failure-2026-07-17-editor-event-journal-listener-unbounded-retention.md)
+- open / World sync subscription基础源码已落地但subtree触发按watch重复祖先遍历/visited分配，asset/component/fact burst仍有全扫、分配与无界风险；按variant/root direct index和bounded coalesce归PERF-MVP-468：[world-sync-subscription-invalidation-scaling](02/failure-2026-07-22-world-sync-subscription-invalidation-scaling.md)
+- 2026-07-22 message/event当前源码复核：inbox已分lossless/bounded/latest且event retention已分级有界/shared payload；本轮补O(1) message depth、ack removed-byte单遍、首末sequence O(1)并删除listener status的records clone+merge+sort。剩余PERF-MVP-019/067要求per-owner inbox/listener queue、immutable route generation、latest key index、锁外fanout，以及payload size不在每事件热路重复serde traversal。
+- 2026-07-30 current-source校正：`src/tests/editor_event`现为22/22文件、117 tests；retention已有10k paused-event、1k latest-state、byte/age/lag/Arc共享覆盖，但没有listener-count、锁等待/持有、clone bytes或cursor分页成本门。PERF-MVP-067验收必须增加polling/stalled listener storm，记录payload/delivery/JSON clone bytes、global/per-owner lock wait、queue age与p95；保留现有sequence/lag/ack语义。
+- 2026-07-22 runtime event consumer复核：lock-out callback、generation commit和256 events/4ms公平预算已成立，但gateway仍在预算前无上限drain成完整Vec并append无界pending，每delivery还双锁active map。PERF-MVP-069必须把`max_events/max_bytes/deadline`推进到Runtime10 ABI/typed producer，返回remaining/oldest age，editor只拉本帧额度；不得只在ABI尾端截断。
+- 2026-07-23 runtime event capability reconcile补充：`tick_runtime_event_consumers`当前每active play tick先clone完整`EditorCapabilitySnapshot`与enabled Vec，再让host全量clone registrations、构建desired BTreeMap/active BTreeSet与delta Vec；stable capability仍持续主线程O(C+R logR)。Editor02按PERF-MVP-565保存Editor12发布的capability generation和自身registration generation，只在begin/change时更新affected subscriptions；稳定tick只执行runtime demand与PERF-MVP-069有界pump，capability/registry/active锁、Map/Set/Vec build和subscribe/unsubscribe均为0。
+- 2026-07-22 world watch-map复核：同view多token合并已改borrowed mark，ViewInstanceId只在首次
+  dirty insert clone；Editor02静态合同7/7。runtime typed direct index/bounded fact coalesce已有源码，但editor
+  每batch仍建seen/duplicate/unknown三套BTreeSet且transport dirty Vec无count/bytes/canonical标志；按更新后
+  PERF-MVP-468要求canonical bounded batch正常快路，malformed diagnostics另走慢路，Cargo/100k/F4待验收。
+- 2026-07-23 `zircon_runtime_interface/src/world_sync/**` 4/4性能复核：M1.1 DTO当前仍只有contract-test caller；
+  `WorldQuery::result_for_generation`在接收已完整物化的`Vec<EntityRow>`后才判断`generation_hint`，因此
+  `NotModified`无法跳过producer hierarchy/component访问、JSON/String/BTreeMap分配与row构造。按
+  PERF-MVP-563增加generation-first lazy builder并让runtime producer在投影前短路；完整inspection generation
+  与watch/fact budget继续分别归PERF-MVP-456/468，未完成current-source Cargo、规模counter与F4接线前保持pending。
+- 2026-07-23 reflection transport补充：schema/fields DTO无generation/NotModified/page/bytes/depth，Editor动态Inspector snapshot按component深clone schema与全部values。Editor02按PERF-MVP-567让runtime query携带catalog/object generation与有界cursor，stable generation直接NotModified；进程内只转发Runtime13共享catalog/field-delta handle，不把owned JSON page缓存成第二authority。与PERF-MVP-456的world inspection generation同源验收。
+
+## 2026-07-30 Performance01 editor_message current-source supplement
+
+- 当前`zircon_editor/src/core/editor_message/**` 29/29源文件已静态复读。旧“latest在混合Vec线性找key”结论不再成立：当前已有lossless/bounded/latest独立lane、`latest_by_key`索引、O(1) depth、shared payload与4096/256/256 entries、16MiB inbox硬界。
+- PERF-MVP-019仍由Editor02负责总线/队列根因：一个全局mutex持有subscription、全部inbox、dirty与fanout；lossless预检和enqueue重复构造/计量，零target与不读细节report的caller仍物化delivery/Vec，`drain_deliveries`锁内整箱搬空。计划是immutable route generation、per-owner inbox、prepared shared delivery和count+bytes+deadline page，返回remaining与oldest wall age；不得破坏lossless atomic fanout、request revalidation、ordering与dirty语义。
+- PERF-MVP-594由Editor12/Plugins01主责、Editor02提供page drain合同、Runtime11只提供显式affinity的bounded ticket：当前lifecycle bridge把整箱delivery复制到第二pending，并在持pending mutex时于UI tick无预算执行全部active-plugin callback。验收要求单一bounded owner、callback-in-lock=0、每tick entry/bytes/time硬预算、slow/error/reload/unload generation安全与无loss/dup/reorder；不创建私有线程池。
+- 2026-07-30 Performance01 topic增量：document与transaction publisher已使用canonical `EditorTopic` constructor，去掉静态topic的重复validation scan；constructor仍逐调用拥有String，scene/tool路径仍parse。Editor02把topic String allocation纳入PERF-MVP-019的1/100/10K publish counter，但不为低频document cadence另建任务；优先级仍是全局bus锁、单次shared delivery和bounded page drain。current 29-file指纹与证据见`../../performance/01/2026-07-30-editor-core-editor-message-current-review.md`。
+- `SceneInspection`以一个latest key承载incremental generation delta，Editor02必须把gap检测和full-resync定义为协议验收项，不能以coalesce后“最终generation更新”代替artifact可重建证明。当前managed Cargo、contention/backpressure counter和F4 retained-host WPR仍pending，本补充不勾选M2。
+
+## 2026-07-30 Performance01 editor_event current-source supplement
+
+- 当前`zircon_editor/src/core/editor_event/**` 32/32生产文件及`src/tests/editor_event/**` 22/22测试文件已逐文件静态复读。旧“journal/listener无界且fanout逐listener深clone payload”根因已被三类硬预算retention与共享`Arc<SharedEditorEventRecord>`替代；filter预规范化、ack单遍removed-byte与status首尾O(1)也已成立。
+- PERF-MVP-067仍由Editor02负责：`SharedEditorEventRecord::new`每event完整serde counting traversal，成功dispatch先clone完整record；LatestState每inbox线性找key并中段remove；全局listener mutex跨全listener filter/prune/coalesce/enqueue。查询先clone三队列Arc并全sort，cursor过滤在后，再转owned delivery与JSON。
+- 修复合同是shared encoded owner/构造期一次accounting、immutable route/filter generation与锁外per-owner enqueue、latest key index、cursor-first count+bytes+deadline k-way page及仅ABI边界owned JSON；不得退回无界channel、不得在锁内调用foreign callback、不得用私有线程池掩盖主线程工作。
+- 验收矩阵覆盖0/1/1k/10k listeners/events、64B/2MiB/64MiB payload、0/50/100% filter、0/1/99% cursor与1/16 threads；记录serde traversals、record/delivery/JSON clone bytes、coalesce visits/shifts、merge/sort、visited/returned rows、global/per-owner lock、queue bytes/age、p95/RSS，并复跑117 tests及F4 retained-host WPR。
+- 当前两个`EditorEventRecord`测试literal静态缺`binding_path`、`transaction_id`、`save_generation`，因此尚无current-source managed Cargo证据；Performance01未改这些foreign dirty文件，也不据此宣称RED或勾选M2。
+
+## Code Review 建议 (2026-07-30)
+
+### 与代码现状不符，需修订
+
+- §现状与证据仍以现在时把「无 `generation` / 无 `subtree_hash` / `from_world` 把 hierarchy 与 fields 耦合」列为「真实缺口 (a)(b)(c)」，但这些在 M1（已勾选 [x]）中均已落地并可核：`zircon_runtime/src/scene/inspection/hierarchy.rs:12` 已有 `subtree_hash: u64`；`snapshot.rs:14` 的 `WorldInspection` 已有 `generation: u64`，且 `from_world`（`snapshot.rs:21-32`）已改为组合调用 `build_hierarchy_rows` + `inspect_fields`，另暴露解耦入口 `World::inspect_hierarchy()`（`snapshot.rs:42-44`，focus 无关）与 `World::inspect_fields(entity)`（`snapshot.rs:47-49`）。建议把 §现状证据的 (a)(b)(c) 标注为「M1 已收敛」，与已勾选的 M1.1/M1.2/M1.3 保持一致，避免读者按「缺口仍在」重复实现。
+- §现状证据 (d)「`focused` 入参耦合选中态，01 迁出 `selected_node` 后由编辑器 SelectionModel 供值」：`inspect_hierarchy()` 已不接 focus 参数（`snapshot.rs:42`），`from_world` 的 `focused` 仅用于筛 fields 与 `focused_entity` 标记。结合 01 M2.3 已删除 `RuntimeDynamicSession.selected_node`，此项也应更新为「hierarchy 查询已与 focus 解耦；fields 查询的 focus 由编辑器侧供值」。
+- §迁移映射表首行「`WorldInspection::from_world` 全量重建 → 保留为组合门面；新增 `inspect_hierarchy/inspect_fields` 拆分入口」已完成（`snapshot.rs:37-49`），建议标记为已落地，与 §里程碑 M1.2 的 [x] 呼应。
+
+### 验证缺口
+
+- §现状证据把 `subscription.rs` 列为「新建」待办，但 `zircon_runtime/src/scene/inspection/subscription.rs` 与 `subscription/tests.rs` 已存在且 `flush(world.world_generation())` 已被测试覆盖（`subscription/tests.rs:75-123`），另有 `artifact.rs` 的 generation-bound `Arc` 复用测试（`tests.rs:60-74`）。这与 §里程碑 M2.1「[ ] 未勾选」存在张力——订阅表基础源码已落地但 M2.1 仍标未完成。建议在状态节明确 M2.1 的「已落地部分（SubscriptionTable/flush/artifact Arc 复用）」与「仍缺部分（gateway 四方法 InProcess 实现、`core/sync/watch_map.rs` 编辑器泵）」，避免 checkbox 与代码现状读起来矛盾（open failure `world-sync-subscription-invalidation-scaling` 已记录 runtime 侧扩展性债，可交叉引用）。

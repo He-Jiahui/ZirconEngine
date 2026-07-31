@@ -72,6 +72,17 @@ impl ViewDirtySet {
             .or_insert(mask);
     }
 
+    pub(crate) fn mark_ref(&mut self, view: &ViewInstanceId, mask: EditorViewInvalidationMask) {
+        if mask.is_empty() {
+            return;
+        }
+        if let Some(existing) = self.views.get_mut(view) {
+            existing.insert(mask);
+        } else {
+            self.views.insert(view.clone(), mask);
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         self.views.is_empty()
     }

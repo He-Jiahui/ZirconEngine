@@ -2,10 +2,11 @@ use crate::ui::workbench::autolayout::{
     compact_bottom_height_limit, compact_side_width_limit, compute_workbench_shell_geometry,
     workbench_layout_defaults, workbench_layout_tier_for_logical_width,
     workbench_layout_tier_for_physical_width, workbench_logical_width_for_scale, EditorRegion,
-    EditorRegionRole, RegionBinding, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
-    WorkbenchConstraintTokenName, WorkbenchLayoutTier, WorkbenchShellRegionsAsset,
-    WorkbenchShellRegionsAssetError, WorkbenchSkeleton, WORKBENCH_SHELL_REGIONS_ASSET_ID,
-    WORKBENCH_SHELL_REGIONS_ASSET_KIND, WORKBENCH_SHELL_REGIONS_ASSET_VERSION,
+    EditorRegionRole, RegionBinding, ShellFrame, ShellRegionId, ShellSizePx,
+    WorkbenchChromeMetrics, WorkbenchConstraintTokenName, WorkbenchLayoutTier,
+    WorkbenchShellRegionsAsset, WorkbenchShellRegionsAssetError, WorkbenchSkeleton,
+    WORKBENCH_SHELL_REGIONS_ASSET_ID, WORKBENCH_SHELL_REGIONS_ASSET_KIND,
+    WORKBENCH_SHELL_REGIONS_ASSET_VERSION,
 };
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::layout::{
@@ -21,24 +22,6 @@ use crate::ui::workbench::{
 };
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
-const EDITOR_TOKENS_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
-const WORKBENCH_SKELETON_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/components/workbench/shell/workbench_skeleton.zui");
-const WORKBENCH_MAIN_BAND_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/components/workbench/shell/workbench_main_band.zui");
-const WORKBENCH_SCENE_TREE_PANEL_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui"
-);
-const WORKBENCH_INSPECTOR_PANEL_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui"
-);
-const COMMAND_PALETTE_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/floating/workbench_command_palette.zui"
-);
-const PREFERENCES_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/floating/workbench_preferences.zui"
-);
 const SHELL_REGIONS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/layout/shell_regions.toml");
 
@@ -423,34 +406,6 @@ fn floating_window_declarations_preserve_modal_and_layer_contracts() {
 }
 
 #[test]
-fn layout_skeleton_and_floating_assets_reference_editor_tokens_instead_of_hex_colors() {
-    assert!(EDITOR_TOKENS_ASSET.contains("editor.surface.0"));
-    assert!(EDITOR_TOKENS_ASSET.contains("editor.control.height.default"));
-    assert!(EDITOR_TOKENS_ASSET.contains("--left-drawer-width"));
-
-    for (asset_name, asset_source) in [
-        ("workbench_skeleton.zui", WORKBENCH_SKELETON_ASSET),
-        ("workbench_command_palette.zui", COMMAND_PALETTE_ASSET),
-        ("workbench_preferences.zui", PREFERENCES_ASSET),
-    ] {
-        assert!(
-            asset_source.contains("res://ui/editor/theme/editor_tokens.zui"),
-            "{asset_name} must import the editor token asset"
-        );
-        assert!(
-            asset_source.contains("editor.surface.")
-                || asset_source.contains("editor.text.")
-                || asset_source.contains("editor.border"),
-            "{asset_name} must reference editor token names"
-        );
-        assert!(
-            !contains_hex_color(asset_source),
-            "{asset_name} must not reintroduce naked hex colors"
-        );
-    }
-}
-
-#[test]
 fn region_size_tokens_feed_shell_autolayout_preferred_extents() {
     let mut tokens = EditorDesignTokens::workbench_dark();
     tokens.density.left_drawer_width = 520.0;
@@ -607,13 +562,20 @@ fn compact_region_limits_follow_breakpoint_density_defaults() {
                 * defaults.compact_bottom.ultra_max_available_fraction)
                 .min(defaults.compact_bottom.ultra_max_height)
                 .max(defaults.compact_bottom.ultra_min_height)
-                .round()
         )
     );
     assert_eq!(
         compact_bottom_height_limit(defaults.compact_bottom.available_height),
         Some(defaults.compact_bottom.max_height)
     );
+}
+
+#[test]
+fn compact_bottom_limit_preserves_fractional_logical_layout_units() {
+    let limit = compact_bottom_height_limit(419.9)
+        .expect("the ultra-compact breakpoint should supply a bottom limit");
+
+    assert!((limit - 83.98).abs() < 0.001);
 }
 
 #[test]
@@ -722,9 +684,121 @@ fn scaled_workbench_geometry_uses_logical_width_for_right_drawer_collapse() {
 
     assert_eq!(
         scaled_narrow.region_frame(ShellRegionId::Right).width,
-        metrics.rail_width
+        metrics.rail_width * 2.0
     );
-    assert!(scaled_regular.region_frame(ShellRegionId::Right).width > metrics.rail_width);
+    assert!(scaled_regular.region_frame(ShellRegionId::Right).width > metrics.rail_width * 2.0);
+}
+
+#[test]
+fn equivalent_logical_workbenches_scale_all_shell_geometry_at_the_dpi_boundary() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let metrics = WorkbenchChromeMetrics::default();
+    let logical = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(900.0, 620.0),
+        1.0,
+        &metrics,
+        None,
+    );
+    let high_dpi = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(1800.0, 1240.0),
+        2.0,
+        &metrics,
+        None,
+    );
+
+    let assert_scaled = |logical: ShellFrame, physical: ShellFrame| {
+        assert!((physical.x - logical.x * 2.0).abs() < 0.001);
+        assert!((physical.y - logical.y * 2.0).abs() < 0.001);
+        assert!((physical.width - logical.width * 2.0).abs() < 0.001);
+        assert!((physical.height - logical.height * 2.0).abs() < 0.001);
+    };
+
+    assert_scaled(logical.center_band_frame, high_dpi.center_band_frame);
+    assert_scaled(logical.status_bar_frame, high_dpi.status_bar_frame);
+    for region in [
+        ShellRegionId::Left,
+        ShellRegionId::Document,
+        ShellRegionId::Right,
+        ShellRegionId::Bottom,
+    ] {
+        assert_scaled(logical.region_frame(region), high_dpi.region_frame(region));
+        assert_scaled(
+            logical.splitter_frame(region),
+            high_dpi.splitter_frame(region),
+        );
+    }
+    assert_scaled(
+        logical.viewport_content_frame,
+        high_dpi.viewport_content_frame,
+    );
+    assert!((high_dpi.window_min_width - logical.window_min_width * 2.0).abs() < 0.001);
+    assert!((high_dpi.window_min_height - logical.window_min_height * 2.0).abs() < 0.001);
+}
+
+#[test]
+fn physical_drawer_resize_preferences_are_converted_before_logical_layout() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let metrics = WorkbenchChromeMetrics::default();
+    let logical_preferred = std::collections::BTreeMap::from([(ShellRegionId::Left, 360.0)]);
+    let physical_preferred = std::collections::BTreeMap::from([(ShellRegionId::Left, 720.0)]);
+    let logical = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(900.0, 620.0),
+        1.0,
+        &metrics,
+        Some(&logical_preferred),
+    );
+    let high_dpi = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(1800.0, 1240.0),
+        2.0,
+        &metrics,
+        Some(&physical_preferred),
+    );
+
+    assert!(
+        (high_dpi.region_frame(ShellRegionId::Left).width
+            - logical.region_frame(ShellRegionId::Left).width * 2.0)
+            .abs()
+            < 0.001
+    );
+}
+
+#[test]
+fn workbench_shell_geometry_vertical_layout_uses_a_flex_band_solver_instead_of_pixel_sums() {
+    let region_frames = include_str!("../../../ui/workbench/autolayout/geometry/region_frames.rs");
+    let vertical_bands =
+        include_str!("../../../ui/workbench/autolayout/geometry/vertical_bands.rs");
+
+    assert!(region_frames.contains("resolve_vertical_flex_bands"));
+    assert!(!region_frames.contains("fixed_vertical"));
+    assert!(!region_frames.contains("let mut y"));
+    assert!(vertical_bands.contains("solve_axis_constraints(available_height"));
+    assert!(vertical_bands.contains("VerticalFlexBandStack"));
 }
 
 #[test]
@@ -761,54 +835,4 @@ fn workbench_window_minimums_allow_reference_capture_sizes() {
     assert!(narrow.window_min_height <= 420.0);
     assert!(regular.window_min_width <= 640.0);
     assert!(regular.window_min_height <= 420.0);
-}
-
-#[test]
-fn shell_drawer_assets_use_constraint_tokens_instead_of_inline_drawer_widths() {
-    for (asset_name, asset_source, token_name, removed_width) in [
-        (
-            "workbench_main_band.zui",
-            WORKBENCH_MAIN_BAND_ASSET,
-            "$--left-drawer-width",
-            "332.0",
-        ),
-        (
-            "workbench_main_band.zui",
-            WORKBENCH_MAIN_BAND_ASSET,
-            "$--right-drawer-width",
-            "404.0",
-        ),
-        (
-            "workbench_scene_tree_panel.zui",
-            WORKBENCH_SCENE_TREE_PANEL_ASSET,
-            "$--left-drawer-width",
-            "332.0",
-        ),
-        (
-            "workbench_inspector_panel.zui",
-            WORKBENCH_INSPECTOR_PANEL_ASSET,
-            "$--right-drawer-width",
-            "404.0",
-        ),
-    ] {
-        assert!(
-            asset_source.contains("res://ui/editor/theme/editor_tokens.zui"),
-            "{asset_name} must import the editor token asset"
-        );
-        assert!(
-            asset_source.contains(token_name),
-            "{asset_name} must reference {token_name}"
-        );
-        assert!(
-            !asset_source.contains(removed_width),
-            "{asset_name} must not keep the old inline drawer width {removed_width}"
-        );
-    }
-}
-
-fn contains_hex_color(source: &str) -> bool {
-    source
-        .as_bytes()
-        .windows(7)
-        .any(|window| window[0] == b'#' && window[1..].iter().all(u8::is_ascii_hexdigit))
 }

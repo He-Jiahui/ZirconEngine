@@ -26,6 +26,12 @@ pub enum AssetImportError {
     Io(#[from] std::io::Error),
     #[error("asset uri error: {0}")]
     Uri(#[from] ResourceLocatorError),
+    #[error("asset source {path} is not valid UTF-8: {source}")]
+    SourceTextDecode {
+        path: std::path::PathBuf,
+        #[source]
+        source: std::string::FromUtf8Error,
+    },
     #[error("asset parse failed: {0}")]
     Parse(String),
     #[error("authoring asset {path} requires an explicit project registry resolver")]
@@ -68,6 +74,11 @@ pub enum AssetImportError {
     AmbiguousProjectAssetUri {
         uri: ResourceLocator,
         paths: Vec<std::path::PathBuf>,
+    },
+    #[error("targeted import for {uri} requires a full generation scan: {reason}")]
+    TargetedImportRequiresFullScan {
+        uri: ResourceLocator,
+        reason: String,
     },
     #[error("source path {path} is outside all registered manifest asset roots")]
     SourceOutsideProjectAssetRoots { path: std::path::PathBuf },
@@ -138,6 +149,12 @@ pub enum AssetImportError {
         context: &'static str,
         #[source]
         source: toml::de::Error,
+    },
+    #[error("asset JSON deserialization failed while {context}: {source}")]
+    JsonDeserialize {
+        context: &'static str,
+        #[source]
+        source: serde_json::Error,
     },
     #[error("cached TOML datetime `{value}` is invalid: {source}")]
     CachedTomlDatetime {

@@ -8,6 +8,15 @@ use super::{
 use crate::core::framework::render::TaaQualityPreset;
 
 #[test]
+fn render_contract_root_exposes_graph_pass_profile_metrics() {
+    let metrics = crate::core::framework::render::RenderGraphPassProfileMetrics::new(3, 5, 7);
+
+    assert_eq!(metrics.draw_count, 3);
+    assert_eq!(metrics.instance_count, 5);
+    assert_eq!(metrics.state_change_count, 7);
+}
+
+#[test]
 fn history_copy_report_counts_copied_slots_from_slot_flags() {
     let report = RenderHistoryCopyReport::new(
         true,

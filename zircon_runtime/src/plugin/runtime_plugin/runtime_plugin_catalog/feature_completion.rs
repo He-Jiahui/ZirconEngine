@@ -1,31 +1,38 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::core::framework::project::ProjectPluginManifest;
 
 mod owner_selection;
 
-use super::feature_definition_collection::feature_definition_map;
-use super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
+use super::derived_projection::RuntimePluginCatalogProjection;
 use owner_selection::{complete_external_provider_selection, complete_owner_feature_selection};
 
 pub(super) fn complete_project_feature_selections(
-    registrations: &[RuntimePluginRegistrationReport],
-    feature_registrations: &[RuntimePluginFeatureRegistrationReport],
+    projection: &RuntimePluginCatalogProjection,
     completed: &mut ProjectPluginManifest,
 ) {
-    let feature_definitions = feature_definition_map(registrations, feature_registrations);
+    let feature_definitions = projection.feature_definitions();
+    let mut selected_package_ids = completed
+        .selections
+        .iter()
+        .map(|selection| selection.id.clone())
+        .collect::<HashSet<_>>();
     for selection in &mut completed.selections {
         let owner_id = selection.id.clone();
-        for feature_key in &feature_definitions.definition_order {
+        let mut feature_indices = HashMap::new();
+        for (index, feature) in selection.features.iter().enumerate() {
+            feature_indices.entry(feature.id.clone()).or_insert(index);
+        }
+        for feature_key in projection.definition_keys_for_owner(&owner_id) {
             let Some(feature_definition) = feature_definitions.definitions.get(feature_key) else {
                 continue;
             };
             let feature = &feature_definition.manifest;
-            if feature.owner_plugin_id != owner_id {
-                continue;
-            }
             complete_owner_feature_selection(
                 selection,
                 feature,
                 feature_definition.external_provider_for_owner(),
+                &mut feature_indices,
             );
         }
     }
@@ -33,6 +40,10 @@ pub(super) fn complete_project_feature_selections(
         let Some(feature_definition) = feature_definitions.definitions.get(feature_key) else {
             continue;
         };
-        complete_external_provider_selection(completed, feature_definition);
+        complete_external_provider_selection(
+            completed,
+            feature_definition,
+            &mut selected_package_ids,
+        );
     }
 }

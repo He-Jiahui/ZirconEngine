@@ -4,29 +4,23 @@ use crate::rhi::{
 };
 
 use super::{
-    render_graph_execution_resources::RenderGraphExecutionResources, TransientResourcePool,
+    TransientResourcePool, render_graph_execution_resources::RenderGraphExecutionResources,
 };
 
 pub(super) fn materialize_transient_resources(
     resources: &mut RenderGraphExecutionResources,
     device: &wgpu::Device,
     graph: &CompiledRenderGraph,
-    mut pool: Option<&mut TransientResourcePool>,
+    pool: &mut TransientResourcePool,
 ) -> Result<(), String> {
     // Compiled lifetimes only include live passes, so culled scratch writers
     // never receive concrete WGPU backing.
     let lifetimes = graph.resource_lifetimes();
     super::transient_materialization::materialize_transient_texture_slots(
-        resources,
-        device,
-        graph,
-        pool.as_deref_mut(),
+        resources, device, graph, &mut *pool,
     )?;
     super::transient_materialization::materialize_transient_buffer_slots(
-        resources,
-        device,
-        graph,
-        pool.as_deref_mut(),
+        resources, device, graph, pool,
     )?;
     for lifetime in lifetimes {
         if lifetime.imported {

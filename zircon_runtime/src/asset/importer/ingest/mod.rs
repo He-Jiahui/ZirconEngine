@@ -1,7 +1,9 @@
 mod asset_importer;
 mod generate_normals;
 mod gltf_animation_subassets;
+mod gltf_decode;
 mod gltf_labeled_subassets;
+mod gltf_meshopt;
 mod import_animation_asset;
 mod import_authoring_asset;
 mod import_cube_lut;
@@ -13,7 +15,6 @@ mod import_gltf;
 mod import_material;
 mod import_mesh;
 mod import_model;
-#[cfg(test)]
 mod import_obj;
 mod import_physics_material;
 mod import_scene;

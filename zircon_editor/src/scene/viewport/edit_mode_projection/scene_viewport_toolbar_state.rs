@@ -1,10 +1,11 @@
+use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, ProjectionMode, TransformSpace, ViewOrientation,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct SceneViewportToolbarState {
-    pub(crate) tool: SceneViewportTool,
+    pub(crate) mode: SceneModeActivation,
     pub(crate) transform_space: TransformSpace,
     pub(crate) projection_mode: ProjectionMode,
     pub(crate) view_orientation: ViewOrientation,

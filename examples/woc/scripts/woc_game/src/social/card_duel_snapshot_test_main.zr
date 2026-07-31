@@ -1,0 +1,63 @@
+var console = %import("zr.system.console");
+var service = %import("social/card_duel_service");
+var snapshot = %import("social/card_duel_snapshot");
+
+contractTest(): int {
+    var original = new service.CardDuelService(<uint>1010);
+    service.upsertPlayer(original, <uint>1, true, true);
+    service.upsertPlayer(original, <uint>2, true, true);
+    service.upsertPlayer(original, <uint>3, true, true);
+    if (service.joinQueue(original, <uint>1) != 1 ||
+        service.joinQueue(original, <uint>2) != 1 ||
+        service.joinQueue(original, <uint>3) != 1) {
+        return -1;
+    }
+    service.update(original, 0.0);
+    if (!service.inMatch(original, <uint>1) || !service.inMatch(original, <uint>2) ||
+        !service.queued(original, <uint>3)) {
+        return -2;
+    }
+    var freshMatch = service.matchFor(original, <uint>1);
+    if (freshMatch == null || freshMatch.playedA != 0 || freshMatch.playedB != 0) {
+        return -3;
+    }
+    var unplayed = snapshot.decode(snapshot.encode(original), <uint>1010);
+    if (!service.inMatch(unplayed, <uint>1) || !service.inMatch(unplayed, <uint>2) ||
+        service.waitingOnOpponent(unplayed, <uint>1) ||
+        service.waitingOnOpponent(unplayed, <uint>2)) {
+        return -4;
+    }
+    var card = service.heldCardAt(original, <uint>1, 0);
+    if (card == <uint>0 || service.play(original, <uint>1, card, 7.5) != 1 ||
+        !service.waitingOnOpponent(original, <uint>1)) {
+        return -5;
+    }
+
+    var bytes = snapshot.encode(original);
+    var restored = snapshot.decode(bytes, <uint>1010);
+    if (bytes.length == 0 || !service.inMatch(restored, <uint>1) ||
+        !service.inMatch(restored, <uint>2) || !service.queued(restored, <uint>3) ||
+        !service.waitingOnOpponent(restored, <uint>1) ||
+        service.handCount(restored, <uint>1) != service.handCount(original, <uint>1) ||
+        service.deckCount(restored, <uint>2) != service.deckCount(original, <uint>2) ||
+        restored.rng.state != original.rng.state || restored.rng.draws != original.rng.draws ||
+        restored.rng.drawDigest != original.rng.drawDigest) {
+        return -6;
+    }
+
+    var reply = service.heldCardAt(original, <uint>2, 0);
+    if (reply == <uint>0 || service.play(original, <uint>2, reply, 7.5) != 1 ||
+        service.play(restored, <uint>2, reply, 7.5) != 1 ||
+        service.myRounds(restored, <uint>1) != service.myRounds(original, <uint>1) ||
+        service.myRounds(restored, <uint>2) != service.myRounds(original, <uint>2) ||
+        restored.rng.state != original.rng.state || restored.rng.draws != original.rng.draws ||
+        restored.rng.drawDigest != original.rng.drawDigest) {
+        return -7;
+    }
+    return 1;
+}
+
+console.printLine("card-duel-snapshot-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

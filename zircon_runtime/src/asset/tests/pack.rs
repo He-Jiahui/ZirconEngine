@@ -20,6 +20,29 @@ mod delta_reader_validation;
 mod reader_validation;
 mod trim;
 
+#[test]
+fn pack_manifest_queries_and_validation_use_sorted_borrowed_chunks() {
+    let manifest = include_str!("../pack/manifest.rs");
+    assert!(manifest.contains("binary_search_by"));
+    assert!(!manifest.contains("sorted_asset_paths"));
+    assert!(!manifest.contains("sorted_chunk_hashes"));
+
+    let reader = include_str!("../pack/reader.rs");
+    assert!(reader.contains("for chunk in &manifest.pack.chunks"));
+    assert!(reader.contains("binary_search_by_key"));
+    assert!(!reader.contains("let _ = read_chunk_bytes"));
+
+    let delta = include_str!("../pack/delta.rs");
+    assert!(delta.contains("for chunk in &manifest.chunks"));
+    assert!(delta.contains("binary_search_by_key"));
+    assert!(!delta.contains("let _ = read_delta_chunk_bytes"));
+    assert!(!delta.contains("target.manifest().assets.clone()"));
+
+    let writer = include_str!("../pack/writer.rs");
+    assert!(writer.contains(".windows(2)"));
+    assert!(!writer.contains("let mut paths = BTreeSet::new()"));
+}
+
 fn pack_asset_entry(path: impl Into<String>) -> ZrPackAssetEntry {
     pack_asset_entry_with_payload(path, b"data")
 }

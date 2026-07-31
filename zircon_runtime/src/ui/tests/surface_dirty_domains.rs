@@ -25,6 +25,24 @@ mod mutation_state;
 mod rebuild_domains;
 mod render_domains;
 
+#[test]
+fn surface_rebuild_collects_dirty_flags_and_node_count_in_one_tree_pass() {
+    let source = include_str!("../surface/surface/rebuild.rs");
+
+    assert!(
+        !source.contains(
+            "let dirty_flags = self.dirty_flags();\n        let dirty_node_count = dirty_node_count"
+        ),
+        "surface rebuild must not scan the full tree separately for dirty flags and node count"
+    );
+    assert!(
+        !source.contains(
+            "let dirty = self.dirty_flags();\n        let dirty_node_count = dirty_node_count"
+        ),
+        "incremental rebuild must collect both dirty summaries in one pass"
+    );
+}
+
 fn test_surface() -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.dirty_domains"));
     surface.tree.insert_root(

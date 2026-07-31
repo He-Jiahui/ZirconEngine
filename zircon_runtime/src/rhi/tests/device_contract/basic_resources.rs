@@ -29,8 +29,8 @@ fn buffer_and_texture_usage_flags_are_composable() {
 }
 
 #[test]
-fn wgpu_rhi_device_allocates_stable_resource_handles_and_fences() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_device_allocates_stable_resource_handles_and_fences() {
+    let device = DeterministicRhiContractDevice::new_headless();
 
     let buffer = device
         .create_buffer(&BufferDesc::new(

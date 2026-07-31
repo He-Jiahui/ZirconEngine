@@ -1,0 +1,4 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub sourceIndependent(id:string):bool{
+ if(id=="arcane_intellect")return true; if(id=="battle_shout")return true; if(id=="blessing_of_might")return true; if(id=="devotion_aura")return true; if(id=="mark_of_the_wild")return true; if(id=="power_word_fortitude")return true; if(id=="rallying_cry_dr")return true; if(id=="rallying_cry_hp")return true; if(id=="rune_of_power")return true; if(id=="sanguine_aura")return true; if(id=="trueshot_aura_ap")return true; if(id=="temporal_hourglass")return true; return false;
+}

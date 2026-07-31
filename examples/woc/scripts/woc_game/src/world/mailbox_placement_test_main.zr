@@ -1,0 +1,34 @@
+// Current-source Ravenpost mailbox construction vectors after safe placement.
+
+var placement = %import("world/mailbox_placement");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+var seed = <uint>20061;
+
+if (placement.mailboxCount(true) != 3 ||
+    placement.finalCoordinate(seed, 0, 1, true) != 7.0 ||
+    placement.finalCoordinate(seed, 0, 2, true) != -8.0 ||
+    placement.finalGroundY(seed, 0, true) != 1.5) {
+    throw "woc Eastbrook mailbox construction vector failed";
+}
+
+if (placement.finalCoordinate(seed, 1, 1, true) != 6.0 ||
+    placement.finalCoordinate(seed, 1, 2, true) != 294.0 ||
+    placement.finalGroundY(seed, 1, true) != 1.2) {
+    throw "woc Fenbridge mailbox construction vector failed";
+}
+
+if (!closeEnough(placement.finalCoordinate(seed, 2, 1, true), 3.210577197813822) ||
+    !closeEnough(placement.finalCoordinate(seed, 2, 2, true), 654.2447865001258) ||
+    placement.finalGroundY(seed, 2, true) != 9.0) {
+    throw "woc Highwatch mailbox safe-position vector failed";
+}
+
+return 0;

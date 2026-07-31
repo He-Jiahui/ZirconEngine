@@ -22,7 +22,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_po
     if intersect(row_rect, clip).is_none() {
         return;
     }
-    let rect = popup_row_adornment_rect(row_rect);
+    let Some(rect) = popup_row_adornment_rect(row_rect, clip) else {
+        return;
+    };
     match kind {
         PopupRowAdornmentKind::Check => {
             push_check_adornment(commands, &rect, clip, order, color, opacity);

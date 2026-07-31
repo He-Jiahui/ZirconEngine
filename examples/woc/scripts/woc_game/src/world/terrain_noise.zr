@@ -1,0 +1,110 @@
+// Source-aligned scalar terrain noise from src/sim/rng.ts. The source applies
+// JavaScript bitwise coercion to signed grid coordinates; this module makes the
+// same two's-complement conversion explicit before every uint hash operation.
+// Pinned source: 7c10f280eec380e9877e66ce16333089e171fe42
+// src/sim/rng.ts blob 2d9015bb82c901b8c6aba67b60abc9455b29a786.
+
+uintMask(): uint {
+    return <uint>4294967295;
+}
+
+floorToInt(value: float): int {
+    var truncated = <int>value;
+    if (value < 0.0 && <float>truncated != value) {
+        return truncated - 1;
+    }
+    return truncated;
+}
+
+signedToU32(value: int): uint {
+    if (value >= 0) {
+        return <uint>value & uintMask();
+    }
+    var magnitude = <uint>(-value);
+    return ((<uint>4294967295 - magnitude) + <uint>1) & uintMask();
+}
+
+smooth(value: float): float {
+    return value * value * (3.0 - 2.0 * value);
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.000000001;
+}
+
+pub hash2(x: int, y: int, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc terrain hash is required";
+    }
+    var hash = seed & uintMask();
+    hash = ((hash ^ (signedToU32(x) * <uint>374761393)) * <uint>668265263) & uintMask();
+    hash = ((hash ^ (signedToU32(y) * <uint>1274126177)) * <uint>461845907) & uintMask();
+    hash = (hash ^ (hash >> 13)) & uintMask();
+    hash = (hash * <uint>1274126177) & uintMask();
+    hash = (hash ^ (hash >> 16)) & uintMask();
+    return <float>hash / 4294967296.0;
+}
+
+pub noise2(x: float, y: float, seed: uint, required: bool): float {
+    if (!required) {
+        throw "woc terrain noise is required";
+    }
+    var xi = floorToInt(x);
+    var yi = floorToInt(y);
+    var xf = x - <float>xi;
+    var yf = y - <float>yi;
+    var a = hash2(xi, yi, seed, true);
+    var b = hash2(xi + 1, yi, seed, true);
+    var c = hash2(xi, yi + 1, seed, true);
+    var d = hash2(xi + 1, yi + 1, seed, true);
+    var u = smooth(xf);
+    var v = smooth(yf);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+
+pub fbm2(x: float, y: float, seed: uint, octaves: int, required: bool): float {
+    if (!required || octaves < 1 || octaves > 16) {
+        throw "woc terrain fbm octaves are invalid";
+    }
+    var sum = 0.0;
+    var amplitude = 0.5;
+    var frequency = 1.0;
+    var total = 0.0;
+    var index = 0;
+    while (index < octaves) {
+        sum = sum + noise2(
+            x * frequency,
+            y * frequency,
+            seed + <uint>(index * 1013),
+            true
+        ) * amplitude;
+        total = total + amplitude;
+        amplitude = amplitude * 0.5;
+        frequency = frequency * 2.0;
+        index = index + 1;
+    }
+    return sum / total;
+}
+
+pub contractTest(): int {
+    if (!closeEnough(hash2(0, 0, <uint>1, true), 0.5577266803011298) ||
+        !closeEnough(hash2(-3, 7, <uint>42, true), 0.35445688804611564) ||
+        !closeEnough(hash2(19, -11, <uint>20061, true), 0.9473900634329766)) {
+        return -1;
+    }
+    if (!closeEnough(noise2(0.0, 0.0, <uint>1, true), 0.5577266803011298) ||
+        !closeEnough(noise2(-0.25, 1.75, <uint>42, true), 0.4675011086201266) ||
+        !closeEnough(noise2(2.346, -1.754, <uint>20061, true), 0.49286141846259524)) {
+        return -2;
+    }
+    if (!closeEnough(fbm2(0.0, 0.0, <uint>1, 4, true), 0.6427398893671731) ||
+        !closeEnough(fbm2(-0.25, 1.75, <uint>42, 4, true), 0.4710337535623694) ||
+        !closeEnough(fbm2(2.346, -1.754, <uint>20061, 3, true), 0.5160021269825623)) {
+        return -3;
+    }
+    return 1;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_ability_catalog_tests",
+  "source": "src",
+  "binary": "bin-m4-ability-catalog-tests",
+  "entry": "content/m4_ability_catalog_test_main"
+}

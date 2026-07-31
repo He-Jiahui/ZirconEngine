@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var sequenceState = %import("combat/effect_sequence_state");
+
+console.printLine("m4-effect-sequence-state-test");
+var result = sequenceState.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

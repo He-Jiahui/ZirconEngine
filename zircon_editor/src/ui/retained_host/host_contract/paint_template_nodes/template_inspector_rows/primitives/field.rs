@@ -1,7 +1,11 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_theme::{METRICS, PALETTE};
+use super::super::super::super::paint_theme::current_host_metrics;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::style::{resource_field_background, resource_field_border};
+use super::super::super::template_inspector_row_geometry::is_paintable_rect;
+use super::super::style::{
+    inspector_row_palette, resource_field_background_from_palette,
+    resource_field_border_from_palette,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field(
     commands: &mut Vec<HostPaintCommand>,
@@ -11,18 +15,23 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     order: i32,
     opacity: f32,
 ) {
+    if !is_paintable_rect(rect) {
+        return;
+    }
+    let palette = inspector_row_palette();
+    let metrics = current_host_metrics();
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
         order,
-        Some(resource_field_background(node)),
+        Some(resource_field_background_from_palette(node, palette)),
         Some(if node.focused {
-            PALETTE.focus_ring
+            palette.focus_border
         } else {
-            resource_field_border(node)
+            resource_field_border_from_palette(node, palette)
         }),
-        METRICS.border_width,
-        METRICS.radius_control,
+        metrics.border_width,
+        metrics.radius_control,
         opacity,
     ));
 }

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/empower_next_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/empower_next.ts": "a3c142deb6d3a28451171db6c6eff400f4c7b4f64cb46f7a5b0b21e999b15bd3"
+  },
+  "battle_trance": [
+    "heroic_strike",
+    "mortal_strike"
+  ],
+  "revenge_free": "revenge",
+  "execute": "execute"
+}

@@ -1,17 +1,16 @@
 use crate::core::framework::render::{
-    strip_wgsl_include_directives, GeometrySourceDescriptor, RenderShaderDefinitionValue,
-    ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor,
-    GENERATED_MATERIAL_MODULE_IMPORT_PATH,
+    GENERATED_MATERIAL_MODULE_IMPORT_PATH, GeometrySourceDescriptor, RenderShaderDefinitionValue,
+    ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor, strip_wgsl_include_directives,
 };
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 
 use super::module_registry::{
-    geometry_source_include_for, gpu_scene_include, scene_runtime_include,
-    shading_model_forward_include_for, shading_model_forward_include_token, surface_types_include,
     ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
-    ShaderTemplateIncludeRegistry,
+    ShaderTemplateIncludeRegistry, geometry_source_include_for, gpu_scene_include,
+    scene_runtime_include, shading_model_forward_include_for, shading_model_forward_include_token,
+    surface_types_include,
 };
-use super::pass_specialization::{pass_template_for, MATERIAL_SHADER_TEMPLATE_REVISION};
+use super::pass_specialization::{MATERIAL_SHADER_TEMPLATE_REVISION, pass_template_for};
 
 const MATERIAL_SURFACE_ENTRY_POINT: &str = "zr_material_surface";
 const MATERIAL_DEFINES_MODULE_ID: &str = "zircon::template::defines";
@@ -324,11 +323,12 @@ pub(crate) fn assemble_material_shader_template(
 
     push_include_chunk(&mut registry, &mut builder, pass_template.include);
     let (wgsl_source, segments) = builder.finish();
+    let (include_tokens, include_content_hashes) = registry.into_manifest();
 
     Ok(MaterialShaderTemplateAssembly {
         wgsl_source,
-        include_tokens: registry.include_tokens(),
-        include_content_hashes: registry.content_hashes(),
+        include_tokens,
+        include_content_hashes,
         template_revision: MATERIAL_SHADER_TEMPLATE_REVISION.to_string(),
         segments,
     })
@@ -531,13 +531,13 @@ fn declared_functions(source: &str) -> impl Iterator<Item = &str> {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        builtin_geometry_source_descriptor, ShaderPassType, GENERATED_MATERIAL_MODULE_IMPORT_PATH,
-        GEOMETRY_SOURCE_ID_STATIC_MESH,
+        GENERATED_MATERIAL_MODULE_IMPORT_PATH, GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderPassType,
+        builtin_geometry_source_descriptor,
     };
 
     use super::{
+        MATERIAL_SURFACE_ENTRY_POINT, MaterialShaderTemplateRequest, ShaderAssemblySegmentKind,
         assemble_material_shader_template, shader_assembly_source_location_for_line,
-        MaterialShaderTemplateRequest, ShaderAssemblySegmentKind, MATERIAL_SURFACE_ENTRY_POINT,
     };
 
     const GENERATED_MATERIAL: &str = r#"

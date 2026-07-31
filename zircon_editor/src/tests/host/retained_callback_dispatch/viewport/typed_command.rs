@@ -23,7 +23,9 @@ fn typed_viewport_command_dispatch_updates_render_packet_without_pointer_bridge(
     .unwrap();
     dispatch_viewport_command(
         &harness.runtime,
-        ViewportCommand::SetTool(SceneViewportTool::Rotate),
+        ViewportCommand::ActivateSceneMode(SceneModeActivation::Transform(
+            TransformHandleKind::Rotate,
+        )),
     )
     .unwrap();
     dispatch_viewport_command(
@@ -48,8 +50,8 @@ fn typed_viewport_command_dispatch_updates_render_packet_without_pointer_bridge(
         ProjectionMode::Orthographic
     );
     assert_eq!(
-        snapshot.scene_viewport_settings.tool,
-        SceneViewportTool::Rotate
+        snapshot.scene_viewport_settings.mode,
+        SceneModeActivation::Transform(TransformHandleKind::Rotate)
     );
     assert_eq!(
         snapshot.scene_viewport_settings.view_orientation,

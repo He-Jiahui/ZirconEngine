@@ -4,10 +4,10 @@ use crate::rhi::{
     RenderPassStoreOp, RenderQueueClass, RhiError, ShaderModuleDesc, ShaderModuleHandle,
     ShaderStage, TextureDesc, TextureFormat, TextureHandle, TextureUsage,
 };
-use crate::rhi_wgpu::WgpuRenderDevice;
+use crate::rhi_wgpu::DeterministicRhiContractDevice;
 
 fn create_shader(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     stage: ShaderStage,
     entry_point: &str,
@@ -19,7 +19,7 @@ fn create_shader(
 }
 
 fn create_raster_pipeline(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     color_format: TextureFormat,
     sample_count: u32,
@@ -59,7 +59,7 @@ fn create_raster_pipeline(
 }
 
 fn create_render_attachment(
-    device: &WgpuRenderDevice,
+    device: &DeterministicRhiContractDevice,
     label: &str,
     width: u32,
     height: u32,
@@ -90,7 +90,7 @@ fn color_attachment(texture: TextureHandle) -> RenderPassColorAttachmentDesc {
 
 #[test]
 fn command_list_records_msaa_resolve_target_and_validates_pipeline_sample_count() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let msaa_color = create_render_attachment(
         &device,
         "msaa-color",
@@ -144,7 +144,7 @@ fn command_list_records_msaa_resolve_target_and_validates_pipeline_sample_count(
 
 #[test]
 fn command_list_render_pass_submit_validates_resolve_source_and_target_sample_counts() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let single_sample_color = create_render_attachment(
         &device,
         "single-sample-color",
@@ -212,7 +212,7 @@ fn command_list_render_pass_submit_validates_resolve_source_and_target_sample_co
 
 #[test]
 fn command_list_render_pass_submit_validates_resolve_target_format_extent_and_usage() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let msaa_color = create_render_attachment(
         &device,
         "msaa-color",
@@ -301,7 +301,7 @@ fn command_list_render_pass_submit_validates_resolve_target_format_extent_and_us
 
 #[test]
 fn command_list_render_pass_submit_rejects_duplicate_resolve_bindings() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let msaa_color = create_render_attachment(
         &device,
         "msaa-color",
@@ -332,7 +332,7 @@ fn command_list_render_pass_submit_rejects_duplicate_resolve_bindings() {
 
 #[test]
 fn command_list_render_pass_submit_validates_pipeline_sample_count() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let msaa_color = create_render_attachment(
         &device,
         "msaa-color",

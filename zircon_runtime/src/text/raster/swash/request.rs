@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::error::SwashRasterError;
 use crate::core::math::Vec2;
 use glyphon::cosmic_text::{CacheKey as GlyphonCacheKey, CacheKeyFlags as GlyphonCacheKeyFlags};
@@ -12,13 +14,15 @@ const FAKE_ITALIC_SKEW_DEGREES: f32 = 14.0;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct SwashRasterRequest {
     pub(crate) face_index: usize,
+    /// Stable identity for ScaleContext cache reuse when a worker owns the font bytes.
+    pub(crate) font_identity: Option<[u64; 2]>,
     pub(crate) glyph_id: u16,
     pub(crate) px_size: f32,
     pub(crate) hint: bool,
     pub(crate) offset: Vec2,
     pub(crate) render_format: SwashRenderFormat,
     pub(crate) fake_italic: bool,
-    pub(crate) variations: VariationCoords,
+    pub(crate) variations: Arc<VariationCoords>,
     sources: [SwashRasterSource; SWASH_RASTER_SOURCE_CAPACITY],
     source_count: usize,
 }
@@ -32,13 +36,14 @@ impl SwashRasterRequest {
     ) -> Self {
         Self {
             face_index,
+            font_identity: None,
             glyph_id,
             px_size,
             hint,
             offset: Vec2::ZERO,
             render_format: SwashRenderFormat::Alpha,
             fake_italic: false,
-            variations: VariationCoords::default(),
+            variations: Arc::new(VariationCoords::default()),
             sources: [SwashRasterSource::AlphaOutline; SWASH_RASTER_SOURCE_CAPACITY],
             source_count: 1,
         }
@@ -52,13 +57,14 @@ impl SwashRasterRequest {
     ) -> Self {
         Self {
             face_index,
+            font_identity: None,
             glyph_id,
             px_size,
             hint,
             offset: Vec2::ZERO,
             render_format: SwashRenderFormat::Subpixel,
             fake_italic: false,
-            variations: VariationCoords::default(),
+            variations: Arc::new(VariationCoords::default()),
             sources: [SwashRasterSource::SubpixelOutline; SWASH_RASTER_SOURCE_CAPACITY],
             source_count: 1,
         }
@@ -67,6 +73,7 @@ impl SwashRasterRequest {
     pub(crate) fn glyphon_cache_key(face_index: usize, cache_key: GlyphonCacheKey) -> Self {
         Self {
             face_index,
+            font_identity: None,
             glyph_id: cache_key.glyph_id,
             px_size: f32::from_bits(cache_key.font_size_bits),
             hint: !cache_key
@@ -75,10 +82,10 @@ impl SwashRasterRequest {
             offset: glyphon_cache_key_offset(cache_key),
             render_format: SwashRenderFormat::Alpha,
             fake_italic: cache_key.flags.contains(GlyphonCacheKeyFlags::FAKE_ITALIC),
-            variations: VariationCoords(vec![(
+            variations: Arc::new(VariationCoords(vec![(
                 u32::from_be_bytes(*b"wght"),
                 f32::from(cache_key.font_weight.0),
-            )]),
+            )])),
             sources: [
                 SwashRasterSource::ColorOutline { palette_index: 0 },
                 SwashRasterSource::ColorBitmap(SwashBitmapStrike::BestFit),
@@ -92,9 +99,22 @@ impl SwashRasterRequest {
         &self.sources[..self.source_count]
     }
 
-    pub(crate) fn with_variations(mut self, variations: VariationCoords) -> Self {
+    pub(crate) fn with_variations(mut self, variations: Arc<VariationCoords>) -> Self {
         self.variations = variations;
         self
+    }
+
+    pub(crate) fn with_font_identity(mut self, font_identity: [u64; 2]) -> Self {
+        self.font_identity = Some(font_identity);
+        self
+    }
+
+    pub(crate) fn shares_scaler_configuration_with(&self, other: &Self) -> bool {
+        self.face_index == other.face_index
+            && self.font_identity == other.font_identity
+            && self.px_size.to_bits() == other.px_size.to_bits()
+            && self.hint == other.hint
+            && self.variations == other.variations
     }
 
     pub(super) fn swash_sources(&self) -> [SwashSource; SWASH_RASTER_SOURCE_CAPACITY] {

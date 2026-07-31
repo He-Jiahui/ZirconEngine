@@ -1,0 +1,317 @@
+// M5's bounded equipment identity projection. Item indexes are the stable
+// generated M5 content indexes; -1 means that the source starting mainhand
+// remains equipped and -2 means that the mainhand is explicitly empty. This
+// module deliberately owns no inventory instances.
+var baseline = %import("generated/m5_class_baseline_stats");
+var catalog = %import("generated/m5_content_catalog");
+var formDerived = %import("combat/form_derived_stats");
+var itemLevelRequirement = %import("progression/item_level_requirement_state");
+
+pub class M5EquipmentState {
+    pub var helmetItemIndex: int;
+    pub var feetItemIndex: int;
+    pub var mainhandItemIndex: int;
+
+    pub @constructor() {
+        this.helmetItemIndex = -1;
+        this.feetItemIndex = -1;
+        this.mainhandItemIndex = -1;
+    }
+}
+
+pub storedItemCodeIsValidForSlot(slot: string, code: uint): bool {
+    if (code == <uint>0) { return true; }
+    if (slot == "mainhand" && code == emptyMainhandStoredCode()) { return true; }
+    var index = <int>code - 1;
+    return catalogItemIndexIsValidForSlot(slot, index);
+}
+
+pub storedItemCodeToIndex(slot: string, code: uint): int {
+    if (!storedItemCodeIsValidForSlot(slot, code)) {
+        throw "WOC M5 equipment item code is invalid";
+    }
+    if (code == <uint>0) { return -1; }
+    if (slot == "mainhand" && code == emptyMainhandStoredCode()) { return -2; }
+    return <int>code - 1;
+}
+
+pub itemIndexToStoredCode(slot: string, itemIndex: int): uint {
+    if (itemIndex == -1) { return <uint>0; }
+    if (slot == "mainhand" && itemIndex == -2) { return emptyMainhandStoredCode(); }
+    if (!catalogItemIndexIsValidForSlot(slot, itemIndex)) {
+        throw "WOC M5 equipment item index is invalid";
+    }
+    return <uint>(itemIndex + 1);
+}
+
+pub emptyMainhandStoredCode(): uint {
+    return <uint>255;
+}
+
+pub slotForItemIndex(itemIndex: int): string {
+    if (itemIndex < 0 || itemIndex >= catalog.count("item")) { return ""; }
+    var kind = catalog.text("item", itemIndex, "kind");
+    var slot = catalog.text("item", itemIndex, "slot");
+    if ((kind == "armor" || kind == "weapon") &&
+        (slot == "helmet" || slot == "feet" || slot == "mainhand")) {
+        return slot;
+    }
+    return "";
+}
+
+pub catalogItemIndexIsValidForSlot(slot: string, itemIndex: int): bool {
+    return slotForItemIndex(itemIndex) == slot;
+}
+
+pub itemIndexForId(itemId: string): int {
+    return catalog.indexOf("item", itemId);
+}
+
+pub startingMainhandStoredCode(classIndex: int): uint {
+    if (classIndex < 0 || classIndex >= baseline.classCount()) {
+        throw "WOC M5 equipment class is invalid";
+    }
+    var itemIndex = catalog.indexOf(
+        "item", baseline.startingEquipmentText(classIndex, "mainhand")
+    );
+    if (!catalogItemIndexIsValidForSlot("mainhand", itemIndex)) {
+        throw "WOC M5 starting mainhand is missing from the catalog";
+    }
+    return <uint>(itemIndex + 1);
+}
+
+pub stateIsValid(state: M5EquipmentState): bool {
+    return (state.helmetItemIndex == -1 ||
+            catalogItemIndexIsValidForSlot("helmet", state.helmetItemIndex)) &&
+        (state.feetItemIndex == -1 ||
+            catalogItemIndexIsValidForSlot("feet", state.feetItemIndex)) &&
+        (state.mainhandItemIndex == -2 || state.mainhandItemIndex == -1 ||
+            catalogItemIndexIsValidForSlot("mainhand", state.mainhandItemIndex));
+}
+
+pub canEquipForClass(classIndex: int, itemIndex: int): bool {
+    if (classIndex < 0 || classIndex >= baseline.classCount() || itemIndex < 0 ||
+        itemIndex >= catalog.count("item")) {
+        return false;
+    }
+    var playerClass = baseline.classId(classIndex);
+    var kind = catalog.text("item", itemIndex, "kind");
+    var armorType = catalog.text("item", itemIndex, "armorType");
+    if (kind == "armor" && armorType != "" && armorRank(armorType) >
+        maxArmorRankForClass(playerClass)) {
+        return false;
+    }
+    if (playerClass == "rogue" && kind == "weapon" &&
+        catalog.text("item", itemIndex, "weaponHand") == "twohand") {
+        return false;
+    }
+    return catalog.itemAllowsClass(itemIndex, playerClass);
+}
+
+pub itemContributesAtLevel(level: int, itemIndex: int): bool {
+    if (level < 1 || itemIndex < 0 || itemIndex >= catalog.count("item")) {
+        return false;
+    }
+    return level >= itemLevelRequirement.requiredLevelForCatalogItem(
+        catalog.text("item", itemIndex, "id"),
+        catalog.text("item", itemIndex, "quality"),
+        catalog.flag("item", itemIndex, "requiredLevelPresent"),
+        <int>catalog.metric("item", itemIndex, "requiredLevel")
+    );
+}
+
+maxArmorRankForClass(playerClass: string): int {
+    if (playerClass == "warrior" || playerClass == "paladin" ||
+        playerClass == "shaman") {
+        return 2;
+    }
+    if (playerClass == "druid" || playerClass == "rogue" ||
+        playerClass == "hunter") {
+        return 1;
+    }
+    return 0;
+}
+
+armorRank(armorType: string): int {
+    if (armorType == "cloth") { return 0; }
+    if (armorType == "leather") { return 1; }
+    if (armorType == "mail") { return 2; }
+    return 3;
+}
+
+// The baseline contains the source start weapon plus chest. Only a mainhand
+// override removes its corresponding starting contribution; the chest stays
+// part of the M5 baseline until its full source identity is materialized.
+pub applyToBaselineInput(
+    input: formDerived.FormDerivedInput, classIndex: int, state: M5EquipmentState
+): void {
+    if (classIndex < 0 || classIndex >= baseline.classCount() || !stateIsValid(state)) {
+        throw "WOC M5 equipment state is invalid";
+    }
+    if (state.mainhandItemIndex != -1) {
+        applyStartingEquipmentContribution(input, classIndex, "mainhand", -1);
+        if (state.mainhandItemIndex >= 0 &&
+            itemContributesAtLevel(input.level, state.mainhandItemIndex)) {
+            applyCatalogEquipmentContribution(input, state.mainhandItemIndex, 1);
+        }
+    }
+    if (state.helmetItemIndex >= 0 && itemContributesAtLevel(input.level, state.helmetItemIndex)) {
+        applyCatalogEquipmentContribution(input, state.helmetItemIndex, 1);
+    }
+    if (state.feetItemIndex >= 0 && itemContributesAtLevel(input.level, state.feetItemIndex)) {
+        applyCatalogEquipmentContribution(input, state.feetItemIndex, 1);
+    }
+}
+
+pub weaponMinimum(classIndex: int, level: int, state: M5EquipmentState): int {
+    if (classIndex < 0 || classIndex >= baseline.classCount() || !stateIsValid(state)) {
+        throw "WOC M5 equipment weapon state is invalid";
+    }
+    if (state.mainhandItemIndex == -2 ||
+        (state.mainhandItemIndex >= 0 &&
+            !itemContributesAtLevel(level, state.mainhandItemIndex))) {
+        return 1;
+    }
+    return state.mainhandItemIndex >= 0 ?
+        <int>catalog.metric("item", state.mainhandItemIndex, "weaponMin") :
+        baseline.startingEquipmentInteger(classIndex, "mainhand", "weaponMin");
+}
+
+pub weaponMaximum(classIndex: int, level: int, state: M5EquipmentState): int {
+    if (classIndex < 0 || classIndex >= baseline.classCount() || !stateIsValid(state)) {
+        throw "WOC M5 equipment weapon state is invalid";
+    }
+    if (state.mainhandItemIndex == -2 ||
+        (state.mainhandItemIndex >= 0 &&
+            !itemContributesAtLevel(level, state.mainhandItemIndex))) {
+        return 2;
+    }
+    return state.mainhandItemIndex >= 0 ?
+        <int>catalog.metric("item", state.mainhandItemIndex, "weaponMax") :
+        baseline.startingEquipmentInteger(classIndex, "mainhand", "weaponMax");
+}
+
+pub weaponSpeed(classIndex: int, level: int, state: M5EquipmentState): float {
+    if (classIndex < 0 || classIndex >= baseline.classCount() || !stateIsValid(state)) {
+        throw "WOC M5 equipment weapon state is invalid";
+    }
+    if (state.mainhandItemIndex == -2 ||
+        (state.mainhandItemIndex >= 0 &&
+            !itemContributesAtLevel(level, state.mainhandItemIndex))) {
+        return 2.0;
+    }
+    return state.mainhandItemIndex >= 0 ?
+        catalog.metric("item", state.mainhandItemIndex, "weaponSpeed") :
+        baseline.startingEquipmentDecimal(classIndex, "mainhand", "weaponSpeed");
+}
+
+// Backstab-like source gates ask about the actual equipped mainhand, including
+// the class start weapon represented by -1. An explicitly empty or level-gated
+// mainhand behaves as the source's unarmed fallback and therefore is not a dagger.
+pub mainhandIsDagger(classIndex: int, level: int, state: M5EquipmentState): bool {
+    if (classIndex < 0 || classIndex >= baseline.classCount() || level < 1 ||
+        !stateIsValid(state)) {
+        throw "WOC M5 equipment dagger state is invalid";
+    }
+    var itemIndex = state.mainhandItemIndex;
+    if (itemIndex == -2 || (itemIndex >= 0 && !itemContributesAtLevel(level, itemIndex))) {
+        return false;
+    }
+    if (itemIndex == -1) {
+        itemIndex = catalog.indexOf(
+            "item", baseline.startingEquipmentText(classIndex, "mainhand")
+        );
+    }
+    return itemIndex >= 0 && catalog.flag("item", itemIndex, "weaponDagger");
+}
+
+applyStartingEquipmentContribution(
+    input: formDerived.FormDerivedInput, classIndex: int, slot: string, sign: int
+): void {
+    input.strength = input.strength + sign *
+        baseline.startingEquipmentInteger(classIndex, slot, "statStr");
+    input.agility = input.agility + sign *
+        baseline.startingEquipmentInteger(classIndex, slot, "statAgi");
+    input.stamina = input.stamina + sign *
+        baseline.startingEquipmentInteger(classIndex, slot, "statSta");
+    input.intellect = input.intellect + sign *
+        baseline.startingEquipmentInteger(classIndex, slot, "statInt");
+    input.armorBeforeAgility = input.armorBeforeAgility + sign *
+        baseline.startingEquipmentInteger(classIndex, slot, "statArmor");
+    input.bonusSpellPower = input.bonusSpellPower + sign *
+        baseline.startingEquipmentInteger(classIndex, slot, "spellPower");
+    input.critRating = input.critRating + sign *
+        baseline.startingEquipmentInteger(classIndex, slot, "critRating");
+    input.hasteRating = input.hasteRating + sign *
+        baseline.startingEquipmentInteger(classIndex, slot, "hasteRating");
+    input.hitRating = input.hitRating + sign *
+        baseline.startingEquipmentInteger(classIndex, slot, "hitRating");
+}
+
+applyCatalogEquipmentContribution(
+    input: formDerived.FormDerivedInput, itemIndex: int, sign: int
+): void {
+    input.strength = input.strength + sign * <int>catalog.metric("item", itemIndex, "statStr");
+    input.agility = input.agility + sign * <int>catalog.metric("item", itemIndex, "statAgi");
+    input.stamina = input.stamina + sign * <int>catalog.metric("item", itemIndex, "statSta");
+    input.intellect = input.intellect + sign * <int>catalog.metric("item", itemIndex, "statInt");
+    input.armorBeforeAgility = input.armorBeforeAgility + sign *
+        <int>catalog.metric("item", itemIndex, "statArmor");
+    input.bonusSpellPower = input.bonusSpellPower + sign *
+        <int>catalog.metric("item", itemIndex, "spellPower");
+    input.critRating = input.critRating + sign *
+        <int>catalog.metric("item", itemIndex, "critRating");
+    input.hasteRating = input.hasteRating + sign *
+        <int>catalog.metric("item", itemIndex, "hasteRating");
+    input.hitRating = input.hitRating + sign *
+        <int>catalog.metric("item", itemIndex, "hitRating");
+}
+
+pub contractTest(): int {
+    var defaultState = new M5EquipmentState();
+    var mageIndex = baseline.classIndex("mage");
+    var warriorIndex = baseline.classIndex("warrior");
+    var staffIndex = catalog.indexOf("item", "gnarled_staff");
+    if (!stateIsValid(defaultState) || mageIndex != 1 || warriorIndex != 0 ||
+        staffIndex < 0 || !canEquipForClass(mageIndex, staffIndex) ||
+        weaponMinimum(mageIndex, 1, defaultState) != 3 ||
+        weaponMaximum(mageIndex, 1, defaultState) != 6 ||
+        weaponSpeed(mageIndex, 1, defaultState) != 2.9) {
+        return -1;
+    }
+    var staffState = new M5EquipmentState();
+    staffState.mainhandItemIndex = staffIndex;
+    if (!stateIsValid(staffState) || itemIndexToStoredCode("mainhand", staffIndex) !=
+        <uint>(staffIndex + 1) || storedItemCodeToIndex(
+            "mainhand", <uint>(staffIndex + 1)) != staffIndex ||
+        weaponMinimum(warriorIndex, 1, staffState) != 3 ||
+        weaponMaximum(warriorIndex, 1, staffState) != 6 ||
+        weaponSpeed(warriorIndex, 1, staffState) != 2.9) {
+        return -2;
+    }
+    var helmIndex = catalog.indexOf("item", "cryptbone_helm");
+    staffState.mainhandItemIndex = helmIndex;
+    if (helmIndex < 0 || stateIsValid(staffState) || storedItemCodeIsValidForSlot(
+            "mainhand", <uint>(helmIndex + 1))) {
+        return -3;
+    }
+    var rogueIndex = baseline.classIndex("rogue");
+    var daggerIndex = catalog.indexOf("item", "rusty_dagger");
+    var unarmedState = new M5EquipmentState();
+    unarmedState.mainhandItemIndex = -2;
+    if (rogueIndex < 0 || daggerIndex < 0 ||
+        startingMainhandStoredCode(rogueIndex) != <uint>(daggerIndex + 1) ||
+        !mainhandIsDagger(rogueIndex, 1, new M5EquipmentState()) ||
+        mainhandIsDagger(warriorIndex, 1, new M5EquipmentState()) ||
+        !stateIsValid(unarmedState) ||
+        !storedItemCodeIsValidForSlot("mainhand", emptyMainhandStoredCode()) ||
+        storedItemCodeToIndex("mainhand", emptyMainhandStoredCode()) != -2 ||
+        itemIndexToStoredCode("mainhand", -2) != emptyMainhandStoredCode() ||
+        weaponMinimum(rogueIndex, 1, unarmedState) != 1 ||
+        weaponMaximum(rogueIndex, 1, unarmedState) != 2 ||
+        weaponSpeed(rogueIndex, 1, unarmedState) != 2.0 ||
+        mainhandIsDagger(rogueIndex, 1, unarmedState)) {
+        return -4;
+    }
+    return 1;
+}

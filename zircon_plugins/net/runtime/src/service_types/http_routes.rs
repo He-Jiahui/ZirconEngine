@@ -7,6 +7,7 @@ use zircon_runtime::core::framework::net::{
 };
 
 use crate::http::{HttpRouteHandler, ManagedHttpRoute};
+use crate::poison_recovery::{lock_or_error, NetSharedState};
 use crate::HttpRuntimeBackend;
 
 use super::DefaultNetManager;
@@ -18,18 +19,14 @@ impl DefaultNetManager {
         handler: impl Fn(NetHttpRequestDescriptor) -> NetHttpResponseDescriptor + Send + Sync + 'static,
     ) -> Result<NetRouteId, NetError> {
         let route_id = self.next_route_id();
-        self.state
-            .http_routes
-            .lock()
-            .expect("net HTTP routes mutex poisoned")
-            .insert(
-                route_id,
-                ManagedHttpRoute {
-                    route: route.clone(),
-                    response: NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, Vec::new()),
-                    handler: Some(Arc::new(handler) as HttpRouteHandler),
-                },
-            );
+        lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?.insert(
+            route_id,
+            ManagedHttpRoute {
+                route: route.clone(),
+                response: NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, Vec::new()),
+                handler: Some(Arc::new(handler) as HttpRouteHandler),
+            },
+        );
         self.state.push_event(NetEvent::HttpRouteRegistered {
             route: route_id,
             path: route.path,
@@ -41,10 +38,7 @@ impl DefaultNetManager {
     pub(in crate::service_types) fn http_backend(
         &self,
     ) -> Result<Arc<dyn HttpRuntimeBackend>, NetError> {
-        self.state
-            .http_backend
-            .lock()
-            .expect("net HTTP backend mutex poisoned")
+        lock_or_error(&self.state.http_backend, NetSharedState::HttpBackend)?
             .clone()
             .ok_or_else(|| NetError::ProtocolUnavailable {
                 capability: "runtime.feature.net.http".to_string(),
@@ -57,18 +51,14 @@ impl DefaultNetManager {
         response: NetHttpResponseDescriptor,
     ) -> Result<NetRouteId, NetError> {
         let route_id = self.next_route_id();
-        self.state
-            .http_routes
-            .lock()
-            .expect("net HTTP routes mutex poisoned")
-            .insert(
-                route_id,
-                ManagedHttpRoute {
-                    response,
-                    route: route.clone(),
-                    handler: None,
-                },
-            );
+        lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?.insert(
+            route_id,
+            ManagedHttpRoute {
+                response,
+                route: route.clone(),
+                handler: None,
+            },
+        );
         self.state.push_event(NetEvent::HttpRouteRegistered {
             route: route_id,
             path: route.path,
@@ -81,16 +71,12 @@ impl DefaultNetManager {
         &self,
         route: NetRouteId,
     ) -> Result<(), NetError> {
-        let removed = self
-            .state
-            .http_routes
-            .lock()
-            .expect("net HTTP routes mutex poisoned")
-            .remove(&route)
-            .is_some();
-        if !removed {
-            return Err(NetError::UnknownRoute { route });
+        let removed = {
+            let mut routes = lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?;
+            routes.remove(&route)
         }
+        .ok_or(NetError::UnknownRoute { route })?;
+        drop(removed);
 
         self.state
             .push_event(NetEvent::HttpRouteUnregistered { route });
@@ -103,6 +89,10 @@ impl DefaultNetManager {
     ) -> Result<NetListenerId, NetError> {
         let bind_addr = bind.to_socket_addr()?;
         let backend = self.http_backend()?;
+        drop(lock_or_error(
+            &self.state.http_listeners,
+            NetSharedState::HttpListeners,
+        )?);
         let listener = backend.listen_http(
             &self.state.runtime,
             bind_addr,
@@ -110,11 +100,17 @@ impl DefaultNetManager {
         )?;
         let local_endpoint = listener.local_endpoint.clone();
         let listener_id = self.next_listener_id();
-        self.state
-            .http_listeners
-            .lock()
-            .expect("net HTTP listeners mutex poisoned")
-            .insert(listener_id, listener);
+        let mut listeners =
+            match lock_or_error(&self.state.http_listeners, NetSharedState::HttpListeners) {
+                Ok(listeners) => listeners,
+                Err(error) => {
+                    if let Some(abort_handle) = &listener.abort_handle {
+                        abort_handle.abort();
+                    }
+                    return Err(error);
+                }
+            };
+        listeners.insert(listener_id, listener);
         self.state.push_event(NetEvent::ListenerStarted {
             listener: listener_id,
             transport: NetTransportKind::Http,
@@ -129,32 +125,25 @@ impl DefaultNetManager {
     ) -> Result<NetHttpResponseDescriptor, NetError> {
         let outbound_bytes = request.body.len();
         let path = crate::http::path_from_http_url(&request.url);
-        let routes = self
-            .state
-            .http_routes
-            .lock()
-            .expect("net HTTP routes mutex poisoned");
-        if !crate::http::url_has_explicit_port(&request.url) {
-            if let Some(response) = routes
+        let local_route = if !crate::http::url_has_explicit_port(&request.url) {
+            lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?
                 .values()
                 .find(|entry| {
                     entry.route.path == path && entry.route.methods.contains(&request.method)
                 })
-                .map(|entry| {
-                    entry
-                        .handler
-                        .as_ref()
-                        .map(|handler| handler(request.clone()))
-                        .unwrap_or_else(|| entry.response.clone().for_request(request.request))
-                })
-            {
-                self.state.record_outbound_bytes(outbound_bytes);
-                self.state.record_inbound_bytes(response.body_bytes);
-                self.state.record_latency_ms(0);
-                return Ok(response);
-            }
+                .map(|entry| (entry.handler.clone(), entry.response.clone()))
+        } else {
+            None
+        };
+        if let Some((handler, response)) = local_route {
+            let response = handler
+                .map(|handler| handler(request.clone()))
+                .unwrap_or_else(|| response.for_request(request.request));
+            self.state.record_outbound_bytes(outbound_bytes);
+            self.state.record_inbound_bytes(response.body_bytes);
+            self.state.record_latency_ms(0);
+            return Ok(response);
         }
-        drop(routes);
         let started_at = Instant::now();
         let response = self
             .http_backend()?

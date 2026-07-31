@@ -1,0 +1,209 @@
+// Current-head source port of the Water Elemental portions of
+// pet_commands.ts and pet_ai.ts at 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a.
+// This module owns the command/channel transition. Aura damage resolution,
+// hostility lookup and visual event publication remain WOS reducer inputs.
+var contract = %import("generated/pet_water_jet_contract");
+
+pub class PetWaterJetState {
+    // Authoritative predicates normally read from the world reducer.
+    pub var ownerIsPetClass: bool;
+    pub var petExists: bool;
+    pub var petHasJet: bool;
+    pub var petDead: bool;
+    pub var petStunned: bool;
+    pub var petOtherCasting: bool;
+    pub var targetExists: bool;
+    pub var targetDead: bool;
+    pub var targetHostile: bool;
+    pub var targetInRange: bool;
+    pub var targetId: uint;
+
+    pub var autoWaterJet: bool;
+    pub var petInCombat: bool;
+    pub var petTargetId: uint;
+    pub var petCastingWaterJet: bool;
+    pub var channelRemaining: float;
+    pub var petTauntCooldown: float;
+    pub var attachedWaterJetDot: bool;
+    pub var attachedWaterJetSlow: bool;
+    pub var dotDamagePerTick: int;
+    pub var dotInterval: float;
+    pub var slowMultiplier: float;
+    pub var startEffects: int;
+    pub var cancelEffects: int;
+    pub var silentManualNoops: int;
+
+    pub @constructor() {
+        this.ownerIsPetClass = true;
+        this.petExists = true;
+        this.petHasJet = true;
+        this.petDead = false;
+        this.petStunned = false;
+        this.petOtherCasting = false;
+        this.targetExists = true;
+        this.targetDead = false;
+        this.targetHostile = true;
+        this.targetInRange = true;
+        this.targetId = <uint>1;
+        this.autoWaterJet = false;
+        this.petInCombat = false;
+        this.petTargetId = <uint>0;
+        this.petCastingWaterJet = false;
+        this.channelRemaining = 0.0;
+        this.petTauntCooldown = 0.0;
+        this.attachedWaterJetDot = false;
+        this.attachedWaterJetSlow = false;
+        this.dotDamagePerTick = 0;
+        this.dotInterval = 0.0;
+        this.slowMultiplier = 0.0;
+        this.startEffects = 0;
+        this.cancelEffects = 0;
+        this.silentManualNoops = 0;
+    }
+}
+
+validTarget(state: PetWaterJetState): bool {
+    return state.targetExists && !state.targetDead && state.targetHostile &&
+        state.targetInRange && state.targetId != <uint>0;
+}
+
+startWaterJet(state: PetWaterJetState): void {
+    state.petInCombat = true;
+    state.petTargetId = state.targetId;
+    state.petCastingWaterJet = true;
+    state.channelRemaining = contract.durationSeconds(true);
+    state.petTauntCooldown = contract.cooldownSeconds(true);
+    state.attachedWaterJetDot = true;
+    state.attachedWaterJetSlow = true;
+    state.dotDamagePerTick = contract.perTickDamage(true);
+    state.dotInterval = contract.intervalSeconds(true);
+    state.slowMultiplier = contract.slowMultiplier(true);
+    state.startEffects = state.startEffects + 1;
+}
+
+clearWaterJetChannel(state: PetWaterJetState, canceled: bool): void {
+    if (canceled && (state.attachedWaterJetDot || state.attachedWaterJetSlow)) {
+        // This mirrors the source's sourceId-scoped removal of water_jet and
+        // water_jet_slow. Other auras are owned by the outer world reducer.
+        state.attachedWaterJetDot = false;
+        state.attachedWaterJetSlow = false;
+        state.cancelEffects = state.cancelEffects + 1;
+    }
+    state.petCastingWaterJet = false;
+    state.channelRemaining = 0.0;
+    state.petTargetId = <uint>0;
+}
+
+// The manual command has no error event in the source: all rejected states
+// are intentionally silent and must not alter cooldown, target or auras.
+pub petWaterJet(state: PetWaterJetState): void {
+    if (!state.petExists || !state.petHasJet || state.petDead ||
+        state.petCastingWaterJet || state.petOtherCasting ||
+        state.petTauntCooldown > 0.0 || !validTarget(state)) {
+        state.silentManualNoops = state.silentManualNoops + 1;
+        return;
+    }
+    startWaterJet(state);
+}
+
+// `petOf(..., true)` accepts a dead controlled pet for the toggle. A pet
+// without an actual jet always clears the flag, as source data may change.
+pub setPetAutoWaterJet(state: PetWaterJetState, enabled: bool): void {
+    if (!state.ownerIsPetClass || !state.petExists) return;
+    if (!state.petHasJet) {
+        state.autoWaterJet = false;
+        return;
+    }
+    state.autoWaterJet = enabled;
+}
+
+// Top-of-pet-AI channel ownership: a live channel consumes the tick before
+// cooldown decay or normal pet target selection. Completion leaves the normal
+// duration-owned auras alone; only a broken connection removes them early.
+pub updateWaterJetChannel(state: PetWaterJetState, dt: float): bool {
+    if (!state.petCastingWaterJet) return false;
+    if (dt < 0.0) throw "Pet Water Jet tick must be non-negative";
+    if (state.petStunned || !validTarget(state)) {
+        clearWaterJetChannel(state, true);
+        return true;
+    }
+    state.channelRemaining = state.channelRemaining - dt;
+    if (state.channelRemaining < 0.0) state.channelRemaining = 0.0;
+    if (state.channelRemaining <= 0.0) clearWaterJetChannel(state, false);
+    return true;
+}
+
+// The caller has already run the current source's target acquisition and
+// reach test. If a channel is active, it owns this tick and the shared cooldown
+// does not decay until the following tick.
+pub updatePetWaterJet(state: PetWaterJetState, dt: float): void {
+    if (updateWaterJetChannel(state, dt)) return;
+    if (dt < 0.0) throw "Pet Water Jet tick must be non-negative";
+    if (state.petStunned) return;
+    state.petTauntCooldown = state.petTauntCooldown - dt;
+    if (state.petTauntCooldown < 0.0) state.petTauntCooldown = 0.0;
+    if (state.petHasJet && state.autoWaterJet && state.petTauntCooldown <= 0.0 &&
+        !state.petCastingWaterJet && !state.petOtherCasting && validTarget(state)) {
+        startWaterJet(state);
+    }
+}
+
+pub contractTest(): int {
+    var state = new PetWaterJetState();
+    petWaterJet(state);
+    if (!state.petCastingWaterJet || state.petTargetId != <uint>1 ||
+        !state.petInCombat || state.channelRemaining != contract.durationSeconds(true) ||
+        state.petTauntCooldown != contract.cooldownSeconds(true) ||
+        !state.attachedWaterJetDot || !state.attachedWaterJetSlow ||
+        state.dotDamagePerTick != 10 || state.dotInterval != 1.0 ||
+        state.slowMultiplier != 0.6 || state.startEffects != 1) {
+        return -1;
+    }
+    updatePetWaterJet(state, 1.0);
+    if (state.channelRemaining != 2.0 || state.petTauntCooldown != 8.0) return -2;
+    state.targetInRange = false;
+    updatePetWaterJet(state, 0.05);
+    if (state.petCastingWaterJet || state.petTargetId != <uint>0 ||
+        state.attachedWaterJetDot || state.attachedWaterJetSlow || state.cancelEffects != 1 ||
+        state.petTauntCooldown != 8.0) {
+        return -3;
+    }
+
+    state.targetInRange = true;
+    petWaterJet(state);
+    if (state.silentManualNoops != 1 || state.startEffects != 1) return -4;
+    updatePetWaterJet(state, 8.0);
+    if (state.petTauntCooldown != 0.0) return -5;
+    setPetAutoWaterJet(state, true);
+    updatePetWaterJet(state, 0.05);
+    if (!state.petCastingWaterJet || state.startEffects != 2 || !state.autoWaterJet) return -6;
+
+    var noJet = new PetWaterJetState();
+    noJet.petHasJet = false;
+    noJet.autoWaterJet = true;
+    setPetAutoWaterJet(noJet, true);
+    petWaterJet(noJet);
+    if (noJet.autoWaterJet || noJet.startEffects != 0 || noJet.silentManualNoops != 1) return -7;
+
+    var busy = new PetWaterJetState();
+    busy.petOtherCasting = true;
+    petWaterJet(busy);
+    busy.autoWaterJet = true;
+    updatePetWaterJet(busy, 0.05);
+    if (busy.startEffects != 0 || busy.silentManualNoops != 1) return -8;
+    busy.petOtherCasting = false;
+    busy.petStunned = true;
+    updatePetWaterJet(busy, 1.0);
+    if (busy.petTauntCooldown != 0.0 || busy.startEffects != 0) return -9;
+
+    var expired = new PetWaterJetState();
+    expired.autoWaterJet = true;
+    updatePetWaterJet(expired, 0.0);
+    updatePetWaterJet(expired, 3.0);
+    if (expired.petCastingWaterJet || !expired.attachedWaterJetDot ||
+        !expired.attachedWaterJetSlow || expired.cancelEffects != 0 ||
+        expired.petTauntCooldown != 8.0) {
+        return -10;
+    }
+    return 1;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_weapon_stow_state_tests",
+  "source": "src",
+  "binary": "bin-m4-weapon-stow-state-tests",
+  "entry": "combat/weapon_stow_state_test_main"
+}

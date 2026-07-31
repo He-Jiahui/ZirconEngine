@@ -1,18 +1,33 @@
-use std::ffi::CString;
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
+use serde::Deserialize;
 
 use super::abi_declarations::{
-    NativePluginBehaviorV3, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
-    NativePluginInvokeCommandFnV2, NativePluginOwnedByteBufferV2, NativePluginRestoreStateFnV2,
-    NativePluginSaveStateFnV2, NativePluginUnloadFnV2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    NativePluginBehaviorV4, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
+    NativePluginInvokeCommandFnV4, NativePluginOutputSinkV4, NativePluginOwnedByteBufferV2,
+    NativePluginRestoreStateFnV2, NativePluginSaveStateFnV2, NativePluginUnloadFnV2,
+    ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
+use super::behavior_validation::ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4;
 use super::native_strings::read_optional_c_string;
+
+pub(super) const NATIVE_COMMAND_MAX_OUTPUT_BYTES_V4: usize = 256 * 1024 * 1024;
+
+const COMMAND_OUTPUT_LIMIT_DIAGNOSTICS: &[u8] =
+    b"native plugin command output exceeds its declared host-owned limit\0";
+const COMMAND_OUTPUT_INVALID_SLICE_DIAGNOSTICS: &[u8] =
+    b"native plugin command output sink received a null byte slice\0";
+const COMMAND_OUTPUT_ALLOCATION_DIAGNOSTICS: &[u8] =
+    b"native plugin command output host sink could not reserve capacity\0";
 
 pub(super) type NativePluginBehaviorResult<T> = std::result::Result<T, NativePluginBehaviorError>;
 
 #[derive(Debug)]
 pub(super) enum NativePluginBehaviorError {
     UnsupportedAbiVersion { actual: u32, expected: u32 },
+    InvalidCommandManifest { reason: String },
 }
 
 impl std::fmt::Display for NativePluginBehaviorError {
@@ -22,13 +37,19 @@ impl std::fmt::Display for NativePluginBehaviorError {
                 formatter,
                 "unsupported native plugin behavior ABI version {actual}; expected {expected}"
             ),
+            Self::InvalidCommandManifest { reason } => {
+                write!(
+                    formatter,
+                    "invalid native plugin command manifest v4: {reason}"
+                )
+            }
         }
     }
 }
 
 impl std::error::Error for NativePluginBehaviorError {}
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(super) struct NativePluginBehavior {
     pub(super) is_stateless: bool,
     pub(super) state_schema_version: u32,
@@ -38,10 +59,22 @@ pub(super) struct NativePluginBehavior {
     pub(super) command_manifest: Option<String>,
     pub(super) event_manifest: Option<String>,
     pub(super) registration_manifest: Option<String>,
-    pub(super) invoke_command: Option<NativePluginInvokeCommandFnV2>,
+    pub(super) command_table: Option<Arc<NativePluginCommandTable>>,
+    pub(super) invoke_command: Option<NativePluginInvokeCommandFnV4>,
     pub(super) save_state: Option<NativePluginSaveStateFnV2>,
     pub(super) restore_state: Option<NativePluginRestoreStateFnV2>,
     pub(super) unload: Option<NativePluginUnloadFnV2>,
+}
+
+/// The callback snapshot remains tied to the stable library callback lease. The table is shared
+/// immutable host metadata, so command lookup does not require a plugin or host mutex.
+#[derive(Clone, Debug)]
+pub(super) struct NativePluginBehaviorCallbacks {
+    command_table: Option<Arc<NativePluginCommandTable>>,
+    invoke_command: Option<NativePluginInvokeCommandFnV4>,
+    save_state: Option<NativePluginSaveStateFnV2>,
+    restore_state: Option<NativePluginRestoreStateFnV2>,
+    unload: Option<NativePluginUnloadFnV2>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -51,16 +84,123 @@ pub struct NativePluginBehaviorCallReport {
     pub payload: Option<Vec<u8>>,
 }
 
-impl NativePluginBehavior {
-    pub(super) unsafe fn from_abi_v3(
-        abi: &NativePluginBehaviorV3,
-    ) -> NativePluginBehaviorResult<Self> {
-        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 {
-            return Err(NativePluginBehaviorError::UnsupportedAbiVersion {
-                actual: abi.abi_version,
-                expected: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+#[derive(Clone, Debug)]
+pub(super) struct NativePluginCommandTable {
+    commands: BTreeMap<String, NativePluginCommandBinding>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct NativePluginCommandBinding {
+    slot: u32,
+    max_output_bytes: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NativePluginCommandManifestV4 {
+    schema: String,
+    #[serde(default)]
+    commands: Vec<NativePluginCommandV4>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NativePluginCommandV4 {
+    name: String,
+    slot: u32,
+    payload_schema: String,
+    max_output_bytes: usize,
+}
+
+impl NativePluginCommandTable {
+    pub(super) fn from_manifest_v4(manifest: &str) -> NativePluginBehaviorResult<Self> {
+        let manifest =
+            toml::from_str::<NativePluginCommandManifestV4>(manifest).map_err(|error| {
+                NativePluginBehaviorError::InvalidCommandManifest {
+                    reason: error.to_string(),
+                }
+            })?;
+        if manifest.schema.trim() != ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4 {
+            return Err(NativePluginBehaviorError::InvalidCommandManifest {
+                reason: format!(
+                    "schema is {}; expected {ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4}",
+                    manifest.schema.trim()
+                ),
             });
         }
+
+        let mut commands = BTreeMap::new();
+        for (index, command) in manifest.commands.into_iter().enumerate() {
+            let expected_slot = u32::try_from(index).map_err(|_| {
+                NativePluginBehaviorError::InvalidCommandManifest {
+                    reason: "contains more commands than the v4 slot address space".to_string(),
+                }
+            })?;
+            if command.slot != expected_slot {
+                return Err(NativePluginBehaviorError::InvalidCommandManifest {
+                    reason: format!(
+                        "command {} uses slot {}; expected dense slot {expected_slot}",
+                        command.name, command.slot
+                    ),
+                });
+            }
+            if command.name.is_empty() {
+                return Err(NativePluginBehaviorError::InvalidCommandManifest {
+                    reason: format!("command slot {expected_slot} has an empty name"),
+                });
+            }
+            if command.payload_schema.trim().is_empty() {
+                return Err(NativePluginBehaviorError::InvalidCommandManifest {
+                    reason: format!("command {} has an empty payload schema", command.name),
+                });
+            }
+            if command.max_output_bytes > NATIVE_COMMAND_MAX_OUTPUT_BYTES_V4 {
+                return Err(NativePluginBehaviorError::InvalidCommandManifest {
+                    reason: format!(
+                        "command {} declares {} output bytes; maximum is {NATIVE_COMMAND_MAX_OUTPUT_BYTES_V4}",
+                        command.name, command.max_output_bytes
+                    ),
+                });
+            }
+            if commands
+                .insert(
+                    command.name.clone(),
+                    NativePluginCommandBinding {
+                        slot: command.slot,
+                        max_output_bytes: command.max_output_bytes,
+                    },
+                )
+                .is_some()
+            {
+                return Err(NativePluginBehaviorError::InvalidCommandManifest {
+                    reason: format!("command name {} is declared more than once", command.name),
+                });
+            }
+        }
+        Ok(Self { commands })
+    }
+
+    fn resolve(&self, name: &str) -> Option<NativePluginCommandBinding> {
+        self.commands.get(name).copied()
+    }
+}
+
+impl NativePluginBehavior {
+    pub(super) unsafe fn from_abi_v4(
+        abi: &NativePluginBehaviorV4,
+    ) -> NativePluginBehaviorResult<Self> {
+        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4 {
+            return Err(NativePluginBehaviorError::UnsupportedAbiVersion {
+                actual: abi.abi_version,
+                expected: ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4,
+            });
+        }
+        let command_manifest = read_optional_c_string(abi.command_manifest);
+        let command_table = command_manifest
+            .as_deref()
+            .map(NativePluginCommandTable::from_manifest_v4)
+            .transpose()?
+            .map(Arc::new);
         Ok(Self {
             is_stateless: abi.is_stateless != 0,
             state_schema_version: abi.schema_versions.state_schema_version,
@@ -73,9 +213,10 @@ impl NativePluginBehavior {
             registration_manifest_schema: read_optional_c_string(
                 abi.schema_versions.registration_manifest_schema,
             ),
-            command_manifest: read_optional_c_string(abi.command_manifest),
+            command_manifest,
             event_manifest: read_optional_c_string(abi.event_manifest),
             registration_manifest: read_optional_c_string(abi.registration_manifest),
+            command_table,
             invoke_command: abi.invoke_command,
             save_state: abi.save_state,
             restore_state: abi.restore_state,
@@ -83,6 +224,46 @@ impl NativePluginBehavior {
         })
     }
 
+    pub(super) fn save_state(&self) -> NativePluginBehaviorCallReport {
+        self.callback_snapshot().save_state()
+    }
+
+    pub(super) fn restore_state(&self, state: &[u8]) -> NativePluginBehaviorCallReport {
+        self.callback_snapshot().restore_state(state)
+    }
+
+    pub(super) fn unload(&self) -> NativePluginBehaviorCallReport {
+        self.callback_snapshot().unload()
+    }
+
+    pub(super) fn callback_snapshot(&self) -> NativePluginBehaviorCallbacks {
+        NativePluginBehaviorCallbacks {
+            command_table: self.command_table.clone(),
+            invoke_command: self.invoke_command,
+            save_state: self.save_state,
+            restore_state: self.restore_state,
+            unload: self.unload,
+        }
+    }
+
+    pub(super) fn has_invoke_command(&self) -> bool {
+        self.invoke_command.is_some()
+    }
+
+    pub(super) fn has_save_state(&self) -> bool {
+        self.save_state.is_some()
+    }
+
+    pub(super) fn has_restore_state(&self) -> bool {
+        self.restore_state.is_some()
+    }
+
+    pub(super) fn has_unload(&self) -> bool {
+        self.unload.is_some()
+    }
+}
+
+impl NativePluginBehaviorCallbacks {
     pub(super) fn invoke_command(
         &self,
         name: &str,
@@ -91,22 +272,43 @@ impl NativePluginBehavior {
         let Some(invoke_command) = self.invoke_command else {
             return missing_callback_report("invoke_command");
         };
-        let Ok(name) = CString::new(name) else {
-            return error_report("native plugin command name contained an interior NUL");
+        let Some(command_table) = &self.command_table else {
+            return error_report("native plugin behavior has no v4 command manifest table");
         };
-        let mut output = NativePluginOwnedByteBufferV2::empty();
+        let Some(command) = command_table.resolve(name) else {
+            return NativePluginBehaviorCallReport {
+                status_code: ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+                diagnostics: vec![format!(
+                    "native plugin command {name} is not declared in its v4 manifest"
+                )],
+                payload: None,
+            };
+        };
+
+        let mut output = NativePluginHostOutput::new(command.max_output_bytes);
         let status = unsafe {
             invoke_command(
-                name.as_ptr(),
+                command.slot,
                 NativePluginByteSliceV2 {
                     data: payload.as_ptr(),
                     len: payload.len(),
                 },
-                &mut output,
+                NativePluginOutputSinkV4 {
+                    context: (&mut output as *mut NativePluginHostOutput).cast(),
+                    max_output_bytes: command.max_output_bytes,
+                    write: Some(write_host_output_v4),
+                },
             )
         };
         let mut report = NativePluginBehaviorCallReport::from_status(status);
-        report.payload = take_owned_bytes(output, &mut report.diagnostics);
+        report.diagnostics.append(&mut output.diagnostics);
+        // The callback controls its own status, but cannot turn a host-owned sink rejection into
+        // a successful command result or expose output that was only partially written.
+        if output.sink_failed {
+            report.status_code = ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
+        } else if !output.bytes.is_empty() {
+            report.payload = Some(output.bytes);
+        }
         report
     }
 
@@ -140,78 +342,79 @@ impl NativePluginBehavior {
         };
         NativePluginBehaviorCallReport::from_status(unsafe { unload() })
     }
+}
 
-    pub(super) fn has_invoke_command(&self) -> bool {
-        self.invoke_command.is_some()
-    }
+#[derive(Debug)]
+struct NativePluginHostOutput {
+    max_output_bytes: usize,
+    bytes: Vec<u8>,
+    diagnostics: Vec<String>,
+    sink_failed: bool,
+}
 
-    pub(super) fn has_save_state(&self) -> bool {
-        self.save_state.is_some()
-    }
-
-    pub(super) fn has_restore_state(&self) -> bool {
-        self.restore_state.is_some()
-    }
-
-    pub(super) fn has_unload(&self) -> bool {
-        self.unload.is_some()
+impl NativePluginHostOutput {
+    fn new(max_output_bytes: usize) -> Self {
+        Self {
+            max_output_bytes,
+            bytes: Vec::new(),
+            diagnostics: Vec::new(),
+            sink_failed: false,
+        }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::super::abi_declarations::NativePluginSchemaVersionsV3;
-    use super::*;
-
-    fn minimal_behavior(abi_version: u32) -> NativePluginBehaviorV3 {
-        NativePluginBehaviorV3 {
-            abi_version,
-            is_stateless: 1,
-            schema_versions: NativePluginSchemaVersionsV3 {
-                state_schema_version: 0,
-                command_manifest_schema: std::ptr::null(),
-                event_manifest_schema: std::ptr::null(),
-                registration_manifest_schema: std::ptr::null(),
-            },
-            command_manifest: std::ptr::null(),
-            event_manifest: std::ptr::null(),
-            registration_manifest: std::ptr::null(),
-            invoke_command: None,
-            save_state: None,
-            restore_state: None,
-            unload: None,
-        }
+unsafe extern "C" fn write_host_output_v4(
+    context: *mut std::ffi::c_void,
+    chunk: NativePluginByteSliceV2,
+) -> NativePluginCallbackStatusV2 {
+    if context.is_null() {
+        return callback_status_error(COMMAND_OUTPUT_INVALID_SLICE_DIAGNOSTICS);
     }
-
-    #[test]
-    fn native_behavior_reports_unsupported_abi_version_with_typed_error() {
-        let behavior = minimal_behavior(ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 + 1);
-        let error = unsafe { NativePluginBehavior::from_abi_v3(&behavior) }
-            .expect_err("unsupported behavior ABI should report typed error");
-
-        assert!(matches!(
-            error,
-            NativePluginBehaviorError::UnsupportedAbiVersion { actual, expected }
-                if actual == ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 + 1
-                    && expected == ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
+    let output = unsafe { &mut *context.cast::<NativePluginHostOutput>() };
+    if chunk.data.is_null() && chunk.len != 0 {
+        output.sink_failed = true;
+        output
+            .diagnostics
+            .push("native plugin command output sink received a null byte slice".to_string());
+        return callback_status_error(COMMAND_OUTPUT_INVALID_SLICE_DIAGNOSTICS);
+    }
+    let Some(next_len) = output.bytes.len().checked_add(chunk.len) else {
+        output.sink_failed = true;
+        output
+            .diagnostics
+            .push("native plugin command output length overflowed the host sink".to_string());
+        return callback_status_error(COMMAND_OUTPUT_LIMIT_DIAGNOSTICS);
+    };
+    if next_len > output.max_output_bytes {
+        output.sink_failed = true;
+        output.diagnostics.push(format!(
+            "native plugin command output exceeded its declared {} byte limit",
+            output.max_output_bytes
         ));
+        return callback_status_error(COMMAND_OUTPUT_LIMIT_DIAGNOSTICS);
     }
+    if chunk.len != 0 {
+        if let Err(error) = output.bytes.try_reserve(chunk.len) {
+            output.sink_failed = true;
+            output.diagnostics.push(format!(
+                "native plugin command output host sink could not reserve {} bytes: {error}",
+                chunk.len
+            ));
+            return callback_status_error(COMMAND_OUTPUT_ALLOCATION_DIAGNOSTICS);
+        }
+        let bytes = unsafe { std::slice::from_raw_parts(chunk.data, chunk.len) };
+        output.bytes.extend_from_slice(bytes);
+    }
+    NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        diagnostics: std::ptr::null(),
+    }
+}
 
-    #[test]
-    fn native_behavior_typed_error_preserves_unsupported_abi_message() {
-        let error = NativePluginBehaviorError::UnsupportedAbiVersion {
-            actual: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 + 2,
-            expected: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
-        };
-
-        assert_eq!(
-            error.to_string(),
-            format!(
-                "unsupported native plugin behavior ABI version {}; expected {}",
-                ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 + 2,
-                ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
-            )
-        );
+fn callback_status_error(diagnostics: &'static [u8]) -> NativePluginCallbackStatusV2 {
+    NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+        diagnostics: diagnostics.as_ptr().cast(),
     }
 }
 
@@ -267,6 +470,9 @@ fn take_owned_bytes(
             "native plugin owned buffer was malformed: len {} exceeds capacity {}",
             output.len, output.capacity
         ));
+        // Both fields are foreign ABI input. Do not read through the pointer or hand this
+        // malformed descriptor back to a plugin free callback.
+        return None;
     }
     let bytes =
         unsafe { std::slice::from_raw_parts(output.data.cast_const(), output.len) }.to_vec();
@@ -283,4 +489,264 @@ fn take_owned_bytes(
         );
     }
     Some(bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::abi_declarations::NativePluginSchemaVersionsV3;
+    use super::*;
+
+    fn minimal_behavior(abi_version: u32) -> NativePluginBehaviorV4 {
+        NativePluginBehaviorV4 {
+            abi_version,
+            is_stateless: 1,
+            schema_versions: NativePluginSchemaVersionsV3 {
+                state_schema_version: 0,
+                command_manifest_schema: std::ptr::null(),
+                event_manifest_schema: std::ptr::null(),
+                registration_manifest_schema: std::ptr::null(),
+            },
+            command_manifest: std::ptr::null(),
+            event_manifest: std::ptr::null(),
+            registration_manifest: std::ptr::null(),
+            invoke_command: None,
+            save_state: None,
+            restore_state: None,
+            unload: None,
+        }
+    }
+
+    #[test]
+    fn native_behavior_reports_unsupported_abi_version_with_typed_error() {
+        let behavior = minimal_behavior(ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4 + 1);
+        let error = unsafe { NativePluginBehavior::from_abi_v4(&behavior) }
+            .expect_err("unsupported behavior ABI should report typed error");
+
+        assert!(matches!(
+            error,
+            NativePluginBehaviorError::UnsupportedAbiVersion { actual, expected }
+                if actual == ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4 + 1
+                    && expected == ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4
+        ));
+    }
+
+    #[test]
+    fn native_behavior_v4_resolves_dense_slot_without_c_string_or_plugin_owned_buffer() {
+        unsafe extern "C" fn write_echo(
+            slot: u32,
+            _payload: NativePluginByteSliceV2,
+            output: NativePluginOutputSinkV4,
+        ) -> NativePluginCallbackStatusV2 {
+            assert_eq!(slot, 0);
+            let bytes = b"host-owned";
+            unsafe {
+                output.write.expect("host writer")(
+                    output.context,
+                    NativePluginByteSliceV2 {
+                        data: bytes.as_ptr(),
+                        len: bytes.len(),
+                    },
+                )
+            }
+        }
+
+        let command_manifest = r#"
+            schema = "zircon.native.command-manifest/4"
+            [[commands]]
+            name = "nul\u0000safe"
+            slot = 0
+            payload_schema = "bytes"
+            max_output_bytes = 32
+        "#;
+        let behavior = NativePluginBehavior {
+            is_stateless: true,
+            state_schema_version: 0,
+            command_manifest_schema: Some(ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4.to_string()),
+            event_manifest_schema: None,
+            registration_manifest_schema: None,
+            command_manifest: Some(command_manifest.to_string()),
+            event_manifest: None,
+            registration_manifest: None,
+            command_table: Some(Arc::new(
+                NativePluginCommandTable::from_manifest_v4(command_manifest).unwrap(),
+            )),
+            invoke_command: Some(write_echo),
+            save_state: None,
+            restore_state: None,
+            unload: None,
+        };
+
+        let report = behavior
+            .callback_snapshot()
+            .invoke_command("nul\0safe", b"ignored");
+        assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(report.payload.as_deref(), Some(&b"host-owned"[..]));
+    }
+
+    #[test]
+    fn native_behavior_v4_rejects_callback_that_ignores_host_sink_failure() {
+        unsafe extern "C" fn ignore_sink_failure(
+            _slot: u32,
+            _payload: NativePluginByteSliceV2,
+            output: NativePluginOutputSinkV4,
+        ) -> NativePluginCallbackStatusV2 {
+            let bytes = b"exceeds-limit";
+            let _ = unsafe {
+                output.write.expect("host writer")(
+                    output.context,
+                    NativePluginByteSliceV2 {
+                        data: bytes.as_ptr(),
+                        len: bytes.len(),
+                    },
+                )
+            };
+            NativePluginCallbackStatusV2 {
+                code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+                diagnostics: std::ptr::null(),
+            }
+        }
+
+        let command_manifest = r#"
+            schema = "zircon.native.command-manifest/4"
+            [[commands]]
+            name = "bounded"
+            slot = 0
+            payload_schema = "bytes"
+            max_output_bytes = 4
+        "#;
+        let behavior = NativePluginBehavior {
+            is_stateless: true,
+            state_schema_version: 0,
+            command_manifest_schema: Some(ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4.to_string()),
+            event_manifest_schema: None,
+            registration_manifest_schema: None,
+            command_manifest: Some(command_manifest.to_string()),
+            event_manifest: None,
+            registration_manifest: None,
+            command_table: Some(Arc::new(
+                NativePluginCommandTable::from_manifest_v4(command_manifest).unwrap(),
+            )),
+            invoke_command: Some(ignore_sink_failure),
+            save_state: None,
+            restore_state: None,
+            unload: None,
+        };
+
+        let report = behavior.callback_snapshot().invoke_command("bounded", b"");
+
+        assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert!(report.payload.is_none());
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("exceeded its declared 4 byte limit")));
+    }
+
+    #[test]
+    fn native_behavior_v4_rejects_non_dense_duplicate_and_oversized_command_metadata() {
+        for manifest in [
+            r#"schema = "zircon.native.command-manifest/4"
+[[commands]]
+name = "first"
+slot = 1
+payload_schema = "bytes"
+max_output_bytes = 1"#,
+            r#"schema = "zircon.native.command-manifest/4"
+[[commands]]
+name = "first"
+slot = 0
+payload_schema = "bytes"
+max_output_bytes = 1
+[[commands]]
+name = "first"
+slot = 1
+payload_schema = "bytes"
+max_output_bytes = 1"#,
+            r#"schema = "zircon.native.command-manifest/4"
+[[commands]]
+name = "first"
+slot = 0
+payload_schema = "bytes"
+max_output_bytes = 268435457"#,
+        ] {
+            assert!(NativePluginCommandTable::from_manifest_v4(manifest).is_err());
+        }
+    }
+
+    #[test]
+    fn native_behavior_v4_rejects_unknown_command_manifest_fields() {
+        for manifest in [
+            r#"schema = "zircon.native.command-manifest/4"
+unexpected_root_field = true"#,
+            r#"schema = "zircon.native.command-manifest/4"
+[[commands]]
+name = "first"
+slot = 0
+payload_schema = "bytes"
+max_output_bytes = 1
+unexpected_command_field = true"#,
+        ] {
+            assert!(NativePluginCommandTable::from_manifest_v4(manifest).is_err());
+        }
+    }
+
+    #[test]
+    fn native_behavior_rejects_malformed_owned_buffer_before_copying_or_freeing() {
+        let backing = *b"ok";
+        let buffer = NativePluginOwnedByteBufferV2 {
+            data: backing.as_ptr() as *mut u8,
+            len: backing.len(),
+            capacity: backing.len() - 1,
+            owner_token: 0,
+            free: None,
+        };
+        let mut diagnostics = Vec::new();
+
+        let payload = take_owned_bytes(buffer, &mut diagnostics);
+
+        assert!(payload.is_none());
+        assert_eq!(
+            diagnostics,
+            vec!["native plugin owned buffer was malformed: len 2 exceeds capacity 1"]
+        );
+    }
+
+    #[test]
+    fn native_behavior_host_output_rejects_unallocatable_chunk_before_reading_it() {
+        let mut output = NativePluginHostOutput::new(usize::MAX);
+
+        let status = unsafe {
+            write_host_output_v4(
+                (&mut output as *mut NativePluginHostOutput).cast(),
+                NativePluginByteSliceV2 {
+                    data: std::ptr::NonNull::<u8>::dangling().as_ptr(),
+                    len: usize::MAX,
+                },
+            )
+        };
+
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert!(output.bytes.is_empty());
+        assert!(output
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("could not reserve")));
+    }
+
+    #[test]
+    fn native_behavior_typed_error_preserves_unsupported_abi_message() {
+        let error = NativePluginBehaviorError::UnsupportedAbiVersion {
+            actual: ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4 + 2,
+            expected: ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4,
+        };
+
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "unsupported native plugin behavior ABI version {}; expected {}",
+                ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4 + 2,
+                ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4
+            )
+        );
+    }
 }

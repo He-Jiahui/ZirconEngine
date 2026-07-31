@@ -157,10 +157,27 @@ pub(super) fn compare_table_row_value(left: &UiValue, right: &UiValue, field: &s
         right.and_then(UiValue::as_f64),
     ) {
         (Some(left), Some(right)) => left.partial_cmp(&right).unwrap_or(Ordering::Equal),
-        _ => left
-            .map(UiValue::display_text)
-            .unwrap_or_default()
-            .cmp(&right.map(UiValue::display_text).unwrap_or_default()),
+        _ => match (
+            left.and_then(borrowed_sort_text),
+            right.and_then(borrowed_sort_text),
+        ) {
+            (Some(left), Some(right)) => left.cmp(right),
+            _ => left
+                .map(UiValue::display_text)
+                .unwrap_or_default()
+                .cmp(&right.map(UiValue::display_text).unwrap_or_default()),
+        },
+    }
+}
+
+fn borrowed_sort_text(value: &UiValue) -> Option<&str> {
+    match value {
+        UiValue::String(value)
+        | UiValue::Color(value)
+        | UiValue::AssetRef(value)
+        | UiValue::InstanceRef(value)
+        | UiValue::Enum(value) => Some(value),
+        _ => None,
     }
 }
 

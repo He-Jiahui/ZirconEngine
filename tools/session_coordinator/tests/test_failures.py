@@ -45,6 +45,76 @@ class FailureGraphTests(unittest.TestCase):
         self.assertEqual([], [item for item in audit.diagnostics if item.code != "duplicate_plan_edge"])
         self.assertEqual(["first", "second"], [node.summary_slug for node in open_nodes])
 
+    def test_import_accepts_explicit_local_failure_scope_without_a_dependency_self_edge(self) -> None:
+        plan = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
+        failure = self.fixture.add_handoff(plan, plan, "validation-repair")
+        failure.write_text(
+            failure.read_text(encoding="utf-8").replace(
+                "summary_slug:",
+                "failure_scope: local\nplan_link_mode: child_record_only\nsummary_slug:",
+            ),
+            encoding="utf-8",
+        )
+
+        audit = self.service.import_repository()
+
+        self.assertEqual((), audit.diagnostics)
+        self.assertEqual(
+            ["validation-repair"],
+            [node.summary_slug for node in self.service.open_for_plan(plan.path)],
+        )
+
+    def test_materialize_local_validation_failure_creates_a_child_only_repair_record(self) -> None:
+        plan = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
+
+        artifact = self.service.materialize_local_validation_failure(
+            origin_plan=plan.path,
+            summary_slug="validation-repair",
+            source_slice="M2 validation ticket 41",
+            reproduction="python -m unittest tools.session_coordinator.tests.test_governance",
+            lowest_known_cause="The coordinator did not preserve the observed validation failure.",
+            acceptance_criteria=(
+                "The focused validation passes after the forward repair.",
+                "The returned fixed record preserves the original validation ticket.",
+            ),
+            related_code=("tools/session_coordinator/governance.py",),
+            created_at=date(2026, 7, 31),
+        )
+
+        audit = self.service.audit()
+
+        self.assertEqual(plan.child / "failure-2026-07-31-validation-repair.md", artifact)
+        content = artifact.read_text(encoding="utf-8")
+        self.assertIn("failure_scope: local", content)
+        self.assertIn("plan_link_mode: child_record_only", content)
+        self.assertIn("M2 validation ticket 41", content)
+        self.assertEqual((), audit.diagnostics)
+        self.assertEqual(
+            ["validation-repair"],
+            [node.summary_slug for node in self.service.open_for_plan(plan.path)],
+        )
+
+    def test_materialize_local_validation_failure_avoids_a_global_graph_rescan(self) -> None:
+        plan = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
+        self.service.import_repository = mock.Mock()
+
+        artifact = self.service.materialize_local_validation_failure(
+            origin_plan=plan.path,
+            summary_slug="fast-validation-repair",
+            source_slice="M2 ticket 42",
+            reproduction="focused test failed",
+            lowest_known_cause="The test result needs an owned forward repair.",
+            acceptance_criteria=("The focused test passes after repair.",),
+            related_code=("tools/session_coordinator/failures.py",),
+            created_at=date(2026, 7, 31),
+        )
+
+        self.service.import_repository.assert_not_called()
+        self.assertEqual(
+            artifact.relative_to(self.root).as_posix(),
+            self.service.open_for_plan(plan.path)[0].artifact_path,
+        )
+
     def test_workflow_node_filter_is_exact_for_origin_and_plan_wide_for_fixer(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
         fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")

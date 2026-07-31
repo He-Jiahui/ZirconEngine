@@ -21,7 +21,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/asset/assets/material/validation.rs
   - zircon_runtime/src/core/framework/render/camera.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
   - zircon_runtime/src/asset/assets/scene/camera.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
   - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
@@ -79,7 +79,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/asset/assets/material/validation.rs
   - zircon_runtime/src/core/framework/render/camera.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
   - zircon_runtime/src/asset/assets/scene/camera.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs

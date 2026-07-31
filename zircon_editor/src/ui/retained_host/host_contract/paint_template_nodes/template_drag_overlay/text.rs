@@ -10,18 +10,24 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pr
     clip: &FrameRect,
     order: i32,
     opacity: f32,
+    palette: style::DragOverlayPalette,
+    metrics: &layout::DragOverlayMetrics,
 ) {
     let Some(label) = preview_label(node) else {
         return;
     };
+    let text_rect = layout::preview_text_frame(preview_rect, metrics);
+    if text_rect.width <= 0.0 || text_rect.height <= 0.0 {
+        return;
+    }
     commands.push(HostPaintCommand::text(
-        layout::preview_text_frame(preview_rect),
+        text_rect,
         Some(clip.clone()),
         order,
         label,
-        style::preview_text_color(),
-        layout::FONT_SIZE,
-        layout::LINE_HEIGHT,
+        palette.preview_text,
+        metrics.font_size,
+        metrics.line_height,
         UiTextRunPaintStyle::default(),
         opacity,
     ));

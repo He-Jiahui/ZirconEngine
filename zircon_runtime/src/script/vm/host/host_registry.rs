@@ -193,7 +193,11 @@ impl HostRegistry {
     }
 
     pub fn is_valid(&self, handle: HostHandle) -> bool {
-        self.resolve(handle).is_ok()
+        let state = self.lock_state();
+        let Some(slot) = state.slots.get(handle.index() as usize) else {
+            return false;
+        };
+        slot.generation == handle.generation() && slot.record.is_some()
     }
 }
 
@@ -216,6 +220,19 @@ mod tests {
     use std::panic::{catch_unwind, AssertUnwindSafe};
 
     use super::*;
+
+    #[test]
+    fn validity_check_does_not_clone_the_capability_record() {
+        let source = include_str!("host_registry.rs")
+            .split_once("#[cfg(test)]")
+            .unwrap()
+            .0;
+        let function = source.split("pub fn is_valid").nth(1).unwrap();
+        let function = function.split("\n    }").next().unwrap();
+
+        assert!(function.contains("slot.record.is_some()"));
+        assert!(!function.contains("self.resolve(handle)"));
+    }
 
     struct PanickingLabel;
 

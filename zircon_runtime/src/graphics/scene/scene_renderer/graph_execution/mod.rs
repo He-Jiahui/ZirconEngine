@@ -2,6 +2,7 @@ mod builtin_postprocess_executors;
 mod builtin_scene_executors;
 mod materialization;
 mod materialization_validation;
+pub(crate) mod parallel_encoder_set;
 mod preview_sky_executor;
 mod render_graph_execution_record;
 mod render_graph_execution_resources;

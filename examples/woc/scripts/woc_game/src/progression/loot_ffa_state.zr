@@ -1,0 +1,49 @@
+// Current-head shared-loot FFA rule from sim/loot/loot_ffa.ts. Corpse countdown,
+// personal loot, rolls, events and inventory transfers stay with their owning
+// transactional systems; this leaf only answers the source rights predicate.
+var container = %import("zr.container");
+var contract = %import("generated/loot_ffa_contract");
+
+containsMember(members: container.Array<uint>, pid: uint): bool {
+    for (var member in members) {
+        if (member == pid) return true;
+    }
+    return false;
+}
+
+pub lootHasGoneFfa(lootFfaTimer: float): bool {
+    return lootFfaTimer <= 0.0;
+}
+
+// tappedPresent represents source tappedById !== null. An empty members array
+// has the same membership result as the source null party value.
+pub hasSharedLootRights(
+    pid: uint,
+    tappedPresent: bool,
+    tappedBy: uint,
+    tapperPartyMembers: container.Array<uint>,
+    ffaUnlocked: bool
+): bool {
+    return ffaUnlocked ||
+        !tappedPresent ||
+        tappedBy == pid ||
+        containsMember(tapperPartyMembers, pid);
+}
+
+pub contractTest(): int {
+    if (contract.lootFfaDelaySeconds() != 60 ||
+        !lootHasGoneFfa(0.0) ||
+        !lootHasGoneFfa(-0.1) ||
+        lootHasGoneFfa(0.1)) return -1;
+
+    var members = new container.Array<uint>();
+    members.add(<uint>7);
+    members.add(<uint>11);
+    var emptyMembers = new container.Array<uint>();
+    if (!hasSharedLootRights(<uint>4, true, <uint>9, emptyMembers, true) ||
+        !hasSharedLootRights(<uint>4, false, <uint>9, emptyMembers, false) ||
+        !hasSharedLootRights(<uint>9, true, <uint>9, emptyMembers, false) ||
+        !hasSharedLootRights(<uint>11, true, <uint>9, members, false) ||
+        hasSharedLootRights(<uint>4, true, <uint>9, members, false)) return -2;
+    return 1;
+}

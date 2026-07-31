@@ -1,4 +1,6 @@
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
+
+use super::index::{IndexedTextCache, IndexedTextCacheEntry, TextCacheSlot};
 
 pub(crate) const DEFAULT_TEXT_MEASURE_CACHE_CAPACITY: usize = 4096;
 
@@ -10,6 +12,9 @@ pub(crate) struct TextMeasureCacheReport {
     pub(crate) hit_count: u64,
     pub(crate) miss_count: u64,
     pub(crate) collision_miss_count: u64,
+    pub(crate) lookup_candidate_count: u64,
+    pub(crate) eviction_scan_count: u64,
+    pub(crate) entry_move_count: u64,
     pub(crate) insert_count: u64,
     pub(crate) update_count: u64,
     pub(crate) evicted_count: u64,
@@ -22,22 +27,24 @@ struct TextMeasureCacheEntry<K, V> {
     key: K,
     text: Arc<str>,
     value: V,
-    last_used_frame: u64,
-    touch_order: u64,
+}
+
+impl<K, V> IndexedTextCacheEntry<K> for TextMeasureCacheEntry<K, V> {
+    fn cache_key(&self) -> &K {
+        &self.key
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct TextMeasureCache<K, V> {
-    entries: Vec<TextMeasureCacheEntry<K, V>>,
+pub(crate) struct TextMeasureCache<K: Eq + Hash, V> {
+    index: IndexedTextCache<K, TextMeasureCacheEntry<K, V>>,
     capacity: usize,
-    current_frame: u64,
-    touch_order: u64,
     frame_report: TextMeasureCacheReport,
 }
 
 impl<K, V> Default for TextMeasureCache<K, V>
 where
-    K: Eq,
+    K: Clone + Eq + Hash,
 {
     fn default() -> Self {
         Self::new()
@@ -46,7 +53,7 @@ where
 
 impl<K, V> TextMeasureCache<K, V>
 where
-    K: Eq,
+    K: Clone + Eq + Hash,
 {
     pub(crate) fn new() -> Self {
         Self::with_capacity(DEFAULT_TEXT_MEASURE_CACHE_CAPACITY)
@@ -55,10 +62,8 @@ where
     pub(crate) fn with_capacity(capacity: usize) -> Self {
         let capacity = capacity.max(1);
         let mut cache = Self {
-            entries: Vec::new(),
+            index: IndexedTextCache::new(),
             capacity,
-            current_frame: 0,
-            touch_order: 0,
             frame_report: TextMeasureCacheReport::default(),
         };
         cache.frame_report.capacity = capacity;
@@ -66,11 +71,10 @@ where
     }
 
     pub(crate) fn begin_frame(&mut self, frame_index: u64) {
-        self.current_frame = frame_index;
         self.frame_report = TextMeasureCacheReport {
             frame_index,
             capacity: self.capacity,
-            entry_count: self.entries.len(),
+            entry_count: self.index.len(),
             ..TextMeasureCacheReport::default()
         };
     }
@@ -83,86 +87,61 @@ where
         self.frame_report.evicted_count = self
             .frame_report
             .evicted_count
-            .saturating_add(self.entries.len() as u64);
+            .saturating_add(self.index.len() as u64);
         self.frame_report.clear_count = self.frame_report.clear_count.saturating_add(1);
-        self.entries.clear();
+        self.index.clear();
         self.refresh_report_size();
     }
 
     pub(crate) fn len(&self) -> usize {
-        self.entries.len()
+        self.index.len()
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        self.entries.is_empty()
+        self.index.is_empty()
     }
 
     pub(crate) fn report(&self) -> TextMeasureCacheReport {
         let mut report = self.frame_report;
-        report.entry_count = self.entries.len();
+        report.entry_count = self.index.len();
         report
     }
 
     pub(crate) fn contains_exact(&self, key: &K, text: &str) -> bool {
-        self.entries
-            .iter()
-            .any(|entry| &entry.key == key && entry.text.as_ref() == text)
+        self.index
+            .find_slot(key, |entry| entry.text.as_ref() == text)
+            .slot
+            .is_some()
     }
 
     pub(crate) fn get(&mut self, key: &K, text: &str) -> Option<&V> {
-        let mut collision_seen = false;
-        let mut hit_index = None;
-
-        for (index, entry) in self.entries.iter().enumerate() {
-            if &entry.key != key {
-                continue;
-            }
-            if entry.text.as_ref() == text {
-                hit_index = Some(index);
-                break;
-            }
-            collision_seen = true;
-        }
-
-        let Some(index) = hit_index else {
-            self.frame_report.miss_count = self.frame_report.miss_count.saturating_add(1);
-            if collision_seen {
-                self.frame_report.collision_miss_count =
-                    self.frame_report.collision_miss_count.saturating_add(1);
-            }
-            return None;
-        };
-
-        self.touch_entry(index);
-        self.frame_report.hit_count = self.frame_report.hit_count.saturating_add(1);
-        Some(&self.entries[index].value)
+        let slot = self.find_slot(key, text)?;
+        self.index.entry(slot).map(|entry| &entry.value)
     }
 
     pub(crate) fn insert(&mut self, key: K, text: impl Into<Arc<str>>, value: V) -> &V {
         let text = text.into();
-        if let Some(index) = self
-            .entries
-            .iter()
-            .position(|entry| &entry.key == &key && entry.text.as_ref() == text.as_ref())
-        {
-            self.entries[index].value = value;
-            self.touch_entry(index);
-            self.frame_report.update_count = self.frame_report.update_count.saturating_add(1);
-            return &self.entries[index].value;
+        let lookup = self
+            .index
+            .find_slot(&key, |entry| entry.text.as_ref() == text.as_ref());
+        self.record_lookup(lookup.candidate_count);
+        let slot = lookup.slot.filter(|slot| self.index.entry(*slot).is_some());
+        if slot.is_none() {
+            self.trim_before_insert();
         }
-
-        self.trim_before_insert();
-        let touch_order = self.next_touch_order();
-        self.entries.push(TextMeasureCacheEntry {
-            key,
-            text,
+        let (_, entry, inserted) = self.index.update_or_insert_with(
+            slot,
             value,
-            last_used_frame: self.current_frame,
-            touch_order,
-        });
-        self.frame_report.insert_count = self.frame_report.insert_count.saturating_add(1);
-        self.refresh_report_size();
-        &self.entries.last().expect("entry was just pushed").value
+            true,
+            |entry, value| entry.value = value,
+            |value| TextMeasureCacheEntry { key, text, value },
+        );
+        if inserted {
+            self.frame_report.insert_count = self.frame_report.insert_count.saturating_add(1);
+        } else {
+            self.frame_report.update_count = self.frame_report.update_count.saturating_add(1);
+        }
+        &entry.value
     }
 
     pub(crate) fn get_or_insert_with(
@@ -172,67 +151,60 @@ where
         measure: impl FnOnce() -> V,
     ) -> (&V, bool) {
         let text = text.into();
+        let slot = self
+            .find_slot(&key, text.as_ref())
+            .filter(|slot| self.index.entry(*slot).is_some());
+        if slot.is_none() {
+            self.trim_before_insert();
+        }
+        let (_, entry, inserted) = self.index.update_or_insert_with(
+            slot,
+            (),
+            false,
+            |_, ()| {},
+            |()| TextMeasureCacheEntry {
+                key,
+                text,
+                value: measure(),
+            },
+        );
+        if inserted {
+            self.frame_report.insert_count = self.frame_report.insert_count.saturating_add(1);
+        }
+        (&entry.value, inserted)
+    }
+
+    fn find_slot(&mut self, key: &K, text: &str) -> Option<TextCacheSlot> {
         let mut collision_seen = false;
-        let mut hit_index = None;
-
-        for (index, entry) in self.entries.iter().enumerate() {
-            if &entry.key != &key {
-                continue;
+        let lookup = self.index.find_slot(key, |entry| {
+            if entry.text.as_ref() == text {
+                true
+            } else {
+                collision_seen = true;
+                false
             }
-            if entry.text.as_ref() == text.as_ref() {
-                hit_index = Some(index);
-                break;
-            }
-            collision_seen = true;
-        }
-
-        if let Some(index) = hit_index {
-            self.touch_entry(index);
-            self.frame_report.hit_count = self.frame_report.hit_count.saturating_add(1);
-            return (&self.entries[index].value, false);
-        }
-
-        self.frame_report.miss_count = self.frame_report.miss_count.saturating_add(1);
-        if collision_seen {
-            self.frame_report.collision_miss_count =
-                self.frame_report.collision_miss_count.saturating_add(1);
-        }
-        self.trim_before_insert();
-        let touch_order = self.next_touch_order();
-        self.entries.push(TextMeasureCacheEntry {
-            key,
-            text,
-            value: measure(),
-            last_used_frame: self.current_frame,
-            touch_order,
         });
-        self.frame_report.insert_count = self.frame_report.insert_count.saturating_add(1);
-        self.refresh_report_size();
-        (
-            &self.entries.last().expect("entry was just pushed").value,
-            true,
-        )
-    }
+        self.record_lookup(lookup.candidate_count);
+        let Some(slot) = lookup.slot else {
+            self.frame_report.miss_count = self.frame_report.miss_count.saturating_add(1);
+            if collision_seen {
+                self.frame_report.collision_miss_count =
+                    self.frame_report.collision_miss_count.saturating_add(1);
+            }
+            return None;
+        };
 
-    fn touch_entry(&mut self, index: usize) {
-        let touch_order = self.next_touch_order();
-        let entry = &mut self.entries[index];
-        entry.last_used_frame = self.current_frame;
-        entry.touch_order = touch_order;
-    }
-
-    fn next_touch_order(&mut self) -> u64 {
-        self.touch_order = self.touch_order.saturating_add(1);
-        self.touch_order
+        self.index.touch(slot);
+        self.frame_report.hit_count = self.frame_report.hit_count.saturating_add(1);
+        Some(slot)
     }
 
     fn trim_before_insert(&mut self) {
         let mut evicted = 0_u64;
-        while self.entries.len() >= self.capacity {
-            let Some(index) = self.oldest_entry_index() else {
+        while self.index.len() >= self.capacity {
+            if self.index.pop_oldest().is_none() {
                 break;
-            };
-            self.entries.remove(index);
+            }
             evicted = evicted.saturating_add(1);
         }
         self.record_evictions(evicted);
@@ -240,14 +212,20 @@ where
 
     fn trim_to_capacity(&mut self) {
         let mut evicted = 0_u64;
-        while self.entries.len() > self.capacity {
-            let Some(index) = self.oldest_entry_index() else {
+        while self.index.len() > self.capacity {
+            if self.index.pop_oldest().is_none() {
                 break;
-            };
-            self.entries.remove(index);
+            }
             evicted = evicted.saturating_add(1);
         }
         self.record_evictions(evicted);
+    }
+
+    fn record_lookup(&mut self, candidate_count: usize) {
+        self.frame_report.lookup_candidate_count = self
+            .frame_report
+            .lookup_candidate_count
+            .saturating_add(candidate_count as u64);
     }
 
     fn record_evictions(&mut self, evicted: u64) {
@@ -259,15 +237,7 @@ where
         self.refresh_report_size();
     }
 
-    fn oldest_entry_index(&self) -> Option<usize> {
-        self.entries
-            .iter()
-            .enumerate()
-            .min_by_key(|(_, entry)| (entry.last_used_frame, entry.touch_order))
-            .map(|(index, _)| index)
-    }
-
     fn refresh_report_size(&mut self) {
-        self.frame_report.entry_count = self.entries.len();
+        self.frame_report.entry_count = self.index.len();
     }
 }

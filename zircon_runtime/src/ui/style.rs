@@ -13,6 +13,15 @@ pub trait StyleProperty {
     type Value: Clone;
 
     fn default_value() -> Self::Value;
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        let sheet = UiV2ResolvedStyle {
+            self_values: values.clone(),
+            slot: BTreeMap::new(),
+            style_tokens: BTreeMap::new(),
+        };
+        Self::extract(&sheet)
+    }
+
     fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value>;
 }
 
@@ -137,12 +146,39 @@ impl ButtonStyleFields {
 pub type SharedStyleSheetScope = Arc<StyleSheetScope>;
 
 pub fn resolve_button_style_from_values(values: &BTreeMap<String, Value>) -> ResolvedButtonStyle {
-    let scope = Arc::new(StyleSheetScope::new(UiV2ResolvedStyle {
-        self_values: values.clone(),
-        slot: BTreeMap::new(),
-        style_tokens: BTreeMap::new(),
-    }));
-    ButtonStyleFields::default().resolve(&[Arc::downgrade(&scope)])
+    ResolvedButtonStyle {
+        variant: value_or_default::<ButtonVariantProperty>(values).normalized(),
+        color: value_or_default::<ButtonColorProperty>(values),
+        size: value_or_default::<ButtonSizeProperty>(values),
+        width: value_or_default::<WidthProperty>(values),
+        height: value_or_default::<HeightProperty>(values),
+        icon_placement: value_or_default::<ButtonIconPlacementProperty>(values),
+        interaction_state: value_or_default::<ButtonInteractionStateProperty>(values),
+        loading: value_or_default::<ButtonLoadingProperty>(values),
+        disabled: value_or_default::<ButtonDisabledProperty>(values),
+        element: UiResolvedElementStyle {
+            background_color: value_or_default::<BackgroundColorProperty>(values),
+            foreground_color: value_or_default::<ForegroundColorProperty>(values),
+            border_color: value_or_default::<BorderColorProperty>(values),
+            border_width: value_or_default::<BorderWidthProperty>(values),
+            corner_radius: value_or_default::<CornerRadiusProperty>(values),
+            width: value_or_default::<WidthProperty>(values),
+            height: value_or_default::<HeightProperty>(values),
+            opacity: value_or_default::<OpacityProperty>(values).clamp(0.0, 1.0),
+        },
+    }
+}
+
+fn value_or_default<P: StyleProperty>(values: &BTreeMap<String, Value>) -> P::Value {
+    P::extract_values(values).unwrap_or_else(P::default_value)
+}
+
+macro_rules! forward_extract_to_values {
+    () => {
+        fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
+            Self::extract_values(&sheet.self_values)
+        }
+    };
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -183,11 +219,13 @@ impl StyleProperty for BackgroundColorProperty {
         None
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        color_value(sheet, "background")
-            .or_else(|| color_value(sheet, "background_color"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        color_value(values, "background")
+            .or_else(|| color_value(values, "background_color"))
             .map(Some)
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for ForegroundColorProperty {
@@ -197,13 +235,15 @@ impl StyleProperty for ForegroundColorProperty {
         None
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        color_value(sheet, "foreground")
-            .or_else(|| color_value(sheet, "foreground_color"))
-            .or_else(|| color_value(sheet, "fg"))
-            .or_else(|| color_value(sheet, "color"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        color_value(values, "foreground")
+            .or_else(|| color_value(values, "foreground_color"))
+            .or_else(|| color_value(values, "fg"))
+            .or_else(|| color_value(values, "color"))
             .map(Some)
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for BorderColorProperty {
@@ -213,12 +253,14 @@ impl StyleProperty for BorderColorProperty {
         None
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        color_value(sheet, "border")
-            .or_else(|| color_value(sheet, "border_color"))
-            .or_else(|| color_value(sheet, "outline"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        color_value(values, "border")
+            .or_else(|| color_value(values, "border_color"))
+            .or_else(|| color_value(values, "outline"))
             .map(Some)
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for BorderWidthProperty {
@@ -228,9 +270,11 @@ impl StyleProperty for BorderWidthProperty {
         0.0
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        table_number(sheet, "border", "width").or_else(|| number_value(sheet, "border_width"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        table_number(values, "border", "width").or_else(|| number_value(values, "border_width"))
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for CornerRadiusProperty {
@@ -240,11 +284,13 @@ impl StyleProperty for CornerRadiusProperty {
         0.0
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        table_number(sheet, "border", "radius")
-            .or_else(|| number_value(sheet, "corner_radius"))
-            .or_else(|| number_value(sheet, "radius"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        table_number(values, "border", "radius")
+            .or_else(|| number_value(values, "corner_radius"))
+            .or_else(|| number_value(values, "radius"))
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for WidthProperty {
@@ -254,9 +300,11 @@ impl StyleProperty for WidthProperty {
         StyleDimension::Auto
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        dimension_value(sheet, "width")
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        dimension_value(values, "width")
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for HeightProperty {
@@ -266,9 +314,11 @@ impl StyleProperty for HeightProperty {
         StyleDimension::Auto
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        dimension_value(sheet, "height")
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        dimension_value(values, "height")
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for OpacityProperty {
@@ -278,9 +328,11 @@ impl StyleProperty for OpacityProperty {
         1.0
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        number_value(sheet, "opacity")
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        number_value(values, "opacity")
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for ButtonVariantProperty {
@@ -290,11 +342,13 @@ impl StyleProperty for ButtonVariantProperty {
         ButtonVariant::Text
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        string_value(sheet, "button_variant")
-            .or_else(|| string_value(sheet, "variant"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        string_value(values, "button_variant")
+            .or_else(|| string_value(values, "variant"))
             .and_then(parse_button_variant)
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for ButtonColorProperty {
@@ -304,11 +358,13 @@ impl StyleProperty for ButtonColorProperty {
         ButtonColor::Primary
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        string_value(sheet, "button_color")
-            .or_else(|| string_value(sheet, "color"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        string_value(values, "button_color")
+            .or_else(|| string_value(values, "color"))
             .and_then(parse_button_color)
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for ButtonSizeProperty {
@@ -318,12 +374,14 @@ impl StyleProperty for ButtonSizeProperty {
         ButtonSize::Medium
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        string_value(sheet, "button_size")
-            .or_else(|| string_value(sheet, "size"))
-            .or_else(|| string_value(sheet, "density"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        string_value(values, "button_size")
+            .or_else(|| string_value(values, "size"))
+            .or_else(|| string_value(values, "density"))
             .and_then(parse_button_size)
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for ButtonIconPlacementProperty {
@@ -333,11 +391,13 @@ impl StyleProperty for ButtonIconPlacementProperty {
         ButtonIconPlacement::None
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        string_value(sheet, "icon_placement")
-            .or_else(|| string_value(sheet, "button_icon_placement"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        string_value(values, "icon_placement")
+            .or_else(|| string_value(values, "button_icon_placement"))
             .and_then(parse_icon_placement)
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for ButtonInteractionStateProperty {
@@ -347,41 +407,43 @@ impl StyleProperty for ButtonInteractionStateProperty {
         ButtonInteractionState::Normal
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        string_value(sheet, "button_interaction_state")
-            .or_else(|| string_value(sheet, "interaction_state"))
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        string_value(values, "button_interaction_state")
+            .or_else(|| string_value(values, "interaction_state"))
             .and_then(parse_interaction_state)
             .or_else(|| {
-                bool_value(sheet, "loading")
+                bool_value(values, "loading")
                     .filter(|value| *value)
                     .map(|_| ButtonInteractionState::Loading)
             })
             .or_else(|| {
-                bool_value(sheet, "disabled")
+                bool_value(values, "disabled")
                     .filter(|value| *value)
                     .map(|_| ButtonInteractionState::Disabled)
             })
             .or_else(|| {
-                bool_value(sheet, "pressed")
+                bool_value(values, "pressed")
                     .filter(|value| *value)
                     .map(|_| ButtonInteractionState::Pressed)
             })
             .or_else(|| {
-                bool_value(sheet, "dragging")
+                bool_value(values, "dragging")
                     .filter(|value| *value)
                     .map(|_| ButtonInteractionState::Hover)
             })
             .or_else(|| {
-                bool_value(sheet, "focused")
+                bool_value(values, "focused")
                     .filter(|value| *value)
                     .map(|_| ButtonInteractionState::Focused)
             })
             .or_else(|| {
-                bool_value(sheet, "hovered")
+                bool_value(values, "hovered")
                     .filter(|value| *value)
                     .map(|_| ButtonInteractionState::Hover)
             })
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for ButtonLoadingProperty {
@@ -391,9 +453,11 @@ impl StyleProperty for ButtonLoadingProperty {
         false
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        bool_value(sheet, "loading")
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        bool_value(values, "loading")
     }
+
+    forward_extract_to_values!();
 }
 
 impl StyleProperty for ButtonDisabledProperty {
@@ -403,31 +467,31 @@ impl StyleProperty for ButtonDisabledProperty {
         false
     }
 
-    fn extract(sheet: &UiV2ResolvedStyle) -> Option<Self::Value> {
-        bool_value(sheet, "disabled")
+    fn extract_values(values: &BTreeMap<String, Value>) -> Option<Self::Value> {
+        bool_value(values, "disabled")
     }
+
+    forward_extract_to_values!();
 }
 
-fn value<'a>(sheet: &'a UiV2ResolvedStyle, key: &str) -> Option<&'a Value> {
-    sheet.self_values.get(key)
+fn value<'a>(values: &'a BTreeMap<String, Value>, key: &str) -> Option<&'a Value> {
+    values.get(key)
 }
 
-fn string_value(sheet: &UiV2ResolvedStyle, key: &str) -> Option<String> {
-    value(sheet, key)
-        .and_then(Value::as_str)
-        .map(str::to_string)
+fn string_value<'a>(values: &'a BTreeMap<String, Value>, key: &str) -> Option<&'a str> {
+    value(values, key).and_then(Value::as_str)
 }
 
-fn bool_value(sheet: &UiV2ResolvedStyle, key: &str) -> Option<bool> {
-    value(sheet, key).and_then(Value::as_bool)
+fn bool_value(values: &BTreeMap<String, Value>, key: &str) -> Option<bool> {
+    value(values, key).and_then(Value::as_bool)
 }
 
-fn number_value(sheet: &UiV2ResolvedStyle, key: &str) -> Option<f32> {
-    number_from_value(value(sheet, key)?)
+fn number_value(values: &BTreeMap<String, Value>, key: &str) -> Option<f32> {
+    number_from_value(value(values, key)?)
 }
 
-fn table_number(sheet: &UiV2ResolvedStyle, table: &str, key: &str) -> Option<f32> {
-    value(sheet, table)
+fn table_number(values: &BTreeMap<String, Value>, table: &str, key: &str) -> Option<f32> {
+    value(values, table)
         .and_then(Value::as_table)
         .and_then(|table| table.get(key))
         .and_then(number_from_value)
@@ -441,8 +505,8 @@ fn number_from_value(value: &Value) -> Option<f32> {
     }
 }
 
-fn color_value(sheet: &UiV2ResolvedStyle, key: &str) -> Option<UiStyleColor> {
-    let value = value(sheet, key)?;
+fn color_value(values: &BTreeMap<String, Value>, key: &str) -> Option<UiStyleColor> {
+    let value = value(values, key)?;
     match value {
         Value::String(raw) => parse_style_color(raw),
         Value::Array(values) if values.len() == 4 => {
@@ -502,8 +566,8 @@ fn parse_hex_color(raw: &str) -> Option<UiRgbaColor> {
     }
 }
 
-fn dimension_value(sheet: &UiV2ResolvedStyle, key: &str) -> Option<StyleDimension> {
-    let value = value(sheet, key)?;
+fn dimension_value(values: &BTreeMap<String, Value>, key: &str) -> Option<StyleDimension> {
+    let value = value(values, key)?;
     match value {
         Value::Integer(value) => Some(StyleDimension::Fixed(*value as f32)),
         Value::Float(value) => Some(StyleDimension::Fixed(*value as f32)),
@@ -527,65 +591,115 @@ fn parse_dimension(raw: &str) -> Option<StyleDimension> {
     }
 }
 
-fn parse_button_variant(raw: String) -> Option<ButtonVariant> {
-    let value = raw.trim().to_ascii_lowercase();
-    match value.as_str() {
-        "default" => Some(ButtonVariant::Default),
-        "text" => Some(ButtonVariant::Text),
-        "contained" | "primary" | "filled" => Some(ButtonVariant::Contained),
-        "outlined" | "outline" => Some(ButtonVariant::Outlined),
-        _ => None,
-    }
-}
-
-fn parse_button_color(raw: String) -> Option<ButtonColor> {
+fn parse_button_variant(raw: &str) -> Option<ButtonVariant> {
     let value = raw.trim();
-    let normalized = value.to_ascii_lowercase();
-    match normalized.as_str() {
-        "default" => Some(ButtonColor::Default),
-        "inherit" => Some(ButtonColor::Inherit),
-        "primary" | "accent" => Some(ButtonColor::Primary),
-        "secondary" => Some(ButtonColor::Secondary),
-        "success" => Some(ButtonColor::Success),
-        "error" | "danger" => Some(ButtonColor::Error),
-        "info" => Some(ButtonColor::Info),
-        "warning" => Some(ButtonColor::Warning),
-        _ if value.starts_with('#') => parse_hex_color(value).map(ButtonColor::Custom),
-        _ if !value.is_empty() => Some(ButtonColor::Style(value.to_string())),
-        _ => None,
+    if value.eq_ignore_ascii_case("default") {
+        Some(ButtonVariant::Default)
+    } else if value.eq_ignore_ascii_case("text") {
+        Some(ButtonVariant::Text)
+    } else if ["contained", "primary", "filled"]
+        .iter()
+        .any(|candidate| value.eq_ignore_ascii_case(candidate))
+    {
+        Some(ButtonVariant::Contained)
+    } else if ["outlined", "outline"]
+        .iter()
+        .any(|candidate| value.eq_ignore_ascii_case(candidate))
+    {
+        Some(ButtonVariant::Outlined)
+    } else {
+        None
     }
 }
 
-fn parse_button_size(raw: String) -> Option<ButtonSize> {
-    let value = raw.trim().to_ascii_lowercase();
-    match value.as_str() {
-        "small" | "compact" => Some(ButtonSize::Small),
-        "medium" | "default" => Some(ButtonSize::Medium),
-        "large" | "prominent" => Some(ButtonSize::Large),
-        _ => None,
+fn parse_button_color(raw: &str) -> Option<ButtonColor> {
+    let value = raw.trim();
+    for (names, color) in [
+        (&["default"][..], ButtonColor::Default),
+        (&["inherit"][..], ButtonColor::Inherit),
+        (&["primary", "accent"][..], ButtonColor::Primary),
+        (&["secondary"][..], ButtonColor::Secondary),
+        (&["success"][..], ButtonColor::Success),
+        (&["error", "danger"][..], ButtonColor::Error),
+        (&["info"][..], ButtonColor::Info),
+        (&["warning"][..], ButtonColor::Warning),
+    ] {
+        if names
+            .iter()
+            .any(|candidate| value.eq_ignore_ascii_case(candidate))
+        {
+            return Some(color);
+        }
+    }
+    if value.starts_with('#') {
+        parse_hex_color(value).map(ButtonColor::Custom)
+    } else if value.is_empty() {
+        None
+    } else {
+        Some(ButtonColor::Style(value.to_string()))
     }
 }
 
-fn parse_icon_placement(raw: String) -> Option<ButtonIconPlacement> {
-    let value = raw.trim().to_ascii_lowercase();
-    match value.as_str() {
-        "none" => Some(ButtonIconPlacement::None),
-        "start" | "before" | "leading" => Some(ButtonIconPlacement::Start),
-        "end" | "after" | "trailing" => Some(ButtonIconPlacement::End),
-        "icon_only" | "icon-only" | "only" => Some(ButtonIconPlacement::IconOnly),
-        _ => None,
+fn parse_button_size(raw: &str) -> Option<ButtonSize> {
+    let value = raw.trim();
+    for (names, size) in [
+        (&["small", "compact"][..], ButtonSize::Small),
+        (&["medium", "default"][..], ButtonSize::Medium),
+        (&["large", "prominent"][..], ButtonSize::Large),
+    ] {
+        if names
+            .iter()
+            .any(|candidate| value.eq_ignore_ascii_case(candidate))
+        {
+            return Some(size);
+        }
     }
+    None
 }
 
-fn parse_interaction_state(raw: String) -> Option<ButtonInteractionState> {
-    let value = raw.trim().to_ascii_lowercase();
-    match value.as_str() {
-        "normal" | "default" => Some(ButtonInteractionState::Normal),
-        "hover" | "hovered" => Some(ButtonInteractionState::Hover),
-        "pressed" | "press" | "active" => Some(ButtonInteractionState::Pressed),
-        "focused" | "focus" => Some(ButtonInteractionState::Focused),
-        "disabled" => Some(ButtonInteractionState::Disabled),
-        "loading" => Some(ButtonInteractionState::Loading),
-        _ => None,
+fn parse_icon_placement(raw: &str) -> Option<ButtonIconPlacement> {
+    let value = raw.trim();
+    for (names, placement) in [
+        (&["none"][..], ButtonIconPlacement::None),
+        (
+            &["start", "before", "leading"][..],
+            ButtonIconPlacement::Start,
+        ),
+        (&["end", "after", "trailing"][..], ButtonIconPlacement::End),
+        (
+            &["icon_only", "icon-only", "only"][..],
+            ButtonIconPlacement::IconOnly,
+        ),
+    ] {
+        if names
+            .iter()
+            .any(|candidate| value.eq_ignore_ascii_case(candidate))
+        {
+            return Some(placement);
+        }
     }
+    None
+}
+
+fn parse_interaction_state(raw: &str) -> Option<ButtonInteractionState> {
+    let value = raw.trim();
+    for (names, state) in [
+        (&["normal", "default"][..], ButtonInteractionState::Normal),
+        (&["hover", "hovered"][..], ButtonInteractionState::Hover),
+        (
+            &["pressed", "press", "active"][..],
+            ButtonInteractionState::Pressed,
+        ),
+        (&["focused", "focus"][..], ButtonInteractionState::Focused),
+        (&["disabled"][..], ButtonInteractionState::Disabled),
+        (&["loading"][..], ButtonInteractionState::Loading),
+    ] {
+        if names
+            .iter()
+            .any(|candidate| value.eq_ignore_ascii_case(candidate))
+        {
+            return Some(state);
+        }
+    }
+    None
 }

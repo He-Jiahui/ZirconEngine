@@ -1,0 +1,1295 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/talent_selection_catalog_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/talents.ts": "3fa9483cc9c60ef5578d6aa41f3a2e8f7110232b4add4f6a6bafbb23a7346b03",
+    "src/sim/content/talent_rows.ts": "7bd779ab5c21dd2a949e016f834843c5adbb95a2de02adf3f458447555ee8392",
+    "src/sim/content/talents_warrior.ts": "f889aca8ede925ae36847679692bcee30575b986de915e5481c3a5e6df2d2c07",
+    "src/sim/content/talents_classic.ts": "e748885abd8f2d0cc0e559ada8695abcd0029eb41aaa0b2390023d4d55d6156f",
+    "src/sim/content/warrior_rows.ts": "eb12fed341279999acc08463fc59c09bffd8ef5552ca345765e7ad36262baf6c",
+    "src/sim/content/choice_rows_classic.ts": "2aa7f0d7372d51e326446c910b0a2980f18b49de77e233c0bf5a28ec421d060e"
+  },
+  "known_ability_catalog_sha256": "d5003302ee72419ae62526137e532d3c29f4d4cce3d63acc360809b1b005b710",
+  "catalog_sha256": "412fcadf2705a9eb973237fdeaa44e7188a47f1f491558ea01124cb024f47c9a",
+  "classes": [
+    {
+      "id": "warrior",
+      "specs": [
+        {
+          "code": 1,
+          "id": "arms",
+          "signature_ability_code": 188
+        },
+        {
+          "code": 2,
+          "id": "fury",
+          "signature_ability_code": 37
+        },
+        {
+          "code": 3,
+          "id": "prot",
+          "signature_ability_code": 244
+        }
+      ],
+      "rows": [
+        {
+          "level": 5,
+          "options": [
+            {
+              "code": 1,
+              "id": "war_row_double_charge",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 2,
+              "id": "war_row_pursuit",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 3,
+              "id": "war_row_crushing_charge",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "options": [
+            {
+              "code": 4,
+              "id": "war_row_second_wind",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 5,
+              "id": "war_row_die_by_the_sword",
+              "grant_ability_code": 82
+            },
+            {
+              "code": 6,
+              "id": "war_row_victory_rush",
+              "grant_ability_code": 302
+            }
+          ]
+        },
+        {
+          "level": 11,
+          "options": [
+            {
+              "code": 7,
+              "id": "war_row_piercing_howl",
+              "grant_ability_code": 193
+            },
+            {
+              "code": 8,
+              "id": "war_row_storm_bolt",
+              "grant_ability_code": 269
+            },
+            {
+              "code": 9,
+              "id": "war_row_lingering_dread",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "options": [
+            {
+              "code": 10,
+              "id": "war_row_anger_management",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 11,
+              "id": "war_row_blood_offering",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 12,
+              "id": "war_row_battle_rhythm",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 17,
+          "options": [
+            {
+              "code": 13,
+              "id": "war_row_recklessness",
+              "grant_ability_code": 216
+            },
+            {
+              "code": 14,
+              "id": "war_row_avatar",
+              "grant_ability_code": 15
+            },
+            {
+              "code": 15,
+              "id": "war_row_bloodbath",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "options": [
+            {
+              "code": 16,
+              "id": "war_row_colossal_might",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 17,
+              "id": "war_row_bladestorm",
+              "grant_ability_code": 29
+            },
+            {
+              "code": 18,
+              "id": "war_row_sanguine_aura",
+              "grant_ability_code": 231
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paladin",
+      "specs": [
+        {
+          "code": 4,
+          "id": "holy",
+          "signature_ability_code": 148
+        },
+        {
+          "code": 5,
+          "id": "protection",
+          "signature_ability_code": 147
+        },
+        {
+          "code": 6,
+          "id": "retribution",
+          "signature_ability_code": 65
+        }
+      ],
+      "rows": [
+        {
+          "level": 5,
+          "options": [
+            {
+              "code": 19,
+              "id": "pal_r5_crusaders_zeal",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 20,
+              "id": "pal_r5_blessed_momentum",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 21,
+              "id": "pal_r5_vengeful_exorcism",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "options": [
+            {
+              "code": 22,
+              "id": "pal_r8_cleansing_verdict",
+              "grant_ability_code": 47
+            },
+            {
+              "code": 23,
+              "id": "pal_r8_fist_of_justice",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 24,
+              "id": "pal_r8_consecrated_ground",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 11,
+          "options": [
+            {
+              "code": 25,
+              "id": "pal_r11_divine_wisdom",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 26,
+              "id": "pal_r11_guardians_favor",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 27,
+              "id": "pal_r11_greater_blessing",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "options": [
+            {
+              "code": 28,
+              "id": "pal_r14_swift_verdicts",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 29,
+              "id": "pal_r14_holy_wrath",
+              "grant_ability_code": 150
+            },
+            {
+              "code": 30,
+              "id": "pal_r14_righteous_cause",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 17,
+          "options": [
+            {
+              "code": 31,
+              "id": "pal_r17_divine_shield",
+              "grant_ability_code": 85
+            },
+            {
+              "code": 32,
+              "id": "pal_r17_sacred_ward",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 33,
+              "id": "pal_r17_ardent_defender",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "options": [
+            {
+              "code": 34,
+              "id": "pal_r20_avenging_wrath",
+              "grant_ability_code": 16
+            },
+            {
+              "code": 35,
+              "id": "pal_r20_hammer_of_wrath",
+              "grant_ability_code": 135
+            },
+            {
+              "code": 36,
+              "id": "pal_r20_aura_mastery",
+              "grant_ability_code": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hunter",
+      "specs": [
+        {
+          "code": 7,
+          "id": "beast_mastery",
+          "signature_ability_code": 27
+        },
+        {
+          "code": 8,
+          "id": "marksmanship",
+          "signature_ability_code": 299
+        },
+        {
+          "code": 9,
+          "id": "survival",
+          "signature_ability_code": 308
+        }
+      ],
+      "rows": [
+        {
+          "level": 5,
+          "options": [
+            {
+              "code": 37,
+              "id": "hun_r5_improved_serpent_sting",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 38,
+              "id": "hun_r5_quick_shots",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 39,
+              "id": "hun_r5_aspect_mastery",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "options": [
+            {
+              "code": 40,
+              "id": "hun_r8_startle_shot",
+              "grant_ability_code": 267
+            },
+            {
+              "code": 41,
+              "id": "hun_r8_frost_trap",
+              "grant_ability_code": 121
+            },
+            {
+              "code": 42,
+              "id": "hun_r8_improved_concussive",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 11,
+          "options": [
+            {
+              "code": 43,
+              "id": "hun_r11_mend_pet",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 44,
+              "id": "hun_r11_efficiency",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 45,
+              "id": "hun_r11_survival_instincts",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "options": [
+            {
+              "code": 46,
+              "id": "hun_r14_multi_shot",
+              "grant_ability_code": 189
+            },
+            {
+              "code": 47,
+              "id": "hun_r14_sniper_training",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 48,
+              "id": "hun_r14_serpents_venom",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 17,
+          "options": [
+            {
+              "code": 49,
+              "id": "hun_r17_deterrence",
+              "grant_ability_code": 79
+            },
+            {
+              "code": 50,
+              "id": "hun_r17_master_tamer",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 51,
+              "id": "hun_r17_thick_hide",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "options": [
+            {
+              "code": 52,
+              "id": "hun_r20_improved_volley",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 53,
+              "id": "hun_r20_rapid_killing",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 54,
+              "id": "hun_r20_aspect_of_the_wild",
+              "grant_ability_code": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rogue",
+      "specs": [
+        {
+          "code": 10,
+          "id": "assassination",
+          "signature_ability_code": 51
+        },
+        {
+          "code": 11,
+          "id": "combat",
+          "signature_ability_code": 28
+        },
+        {
+          "code": 12,
+          "id": "subtlety",
+          "signature_ability_code": 141
+        }
+      ],
+      "rows": [
+        {
+          "level": 5,
+          "options": [
+            {
+              "code": 55,
+              "id": "rog_r5_relentless_strikes",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 56,
+              "id": "rog_r5_improved_backstab",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 57,
+              "id": "rog_r5_opportunist",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "options": [
+            {
+              "code": 58,
+              "id": "rog_r8_smoke_screen",
+              "grant_ability_code": 252
+            },
+            {
+              "code": 59,
+              "id": "rog_r8_improved_gouge",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 60,
+              "id": "rog_r8_improved_kidney_shot",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 11,
+          "options": [
+            {
+              "code": 61,
+              "id": "rog_r11_preparation",
+              "grant_ability_code": 201
+            },
+            {
+              "code": 62,
+              "id": "rog_r11_endurance",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 63,
+              "id": "rog_r11_improved_slice_and_dice",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "options": [
+            {
+              "code": 64,
+              "id": "rog_r14_seal_fate",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 65,
+              "id": "rog_r14_ghostly_strike",
+              "grant_ability_code": 128
+            },
+            {
+              "code": 66,
+              "id": "rog_r14_deadly_brew",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 17,
+          "options": [
+            {
+              "code": 67,
+              "id": "rog_r17_cloak_of_shadows",
+              "grant_ability_code": 50
+            },
+            {
+              "code": 68,
+              "id": "rog_r17_improved_evasion",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 69,
+              "id": "rog_r17_cheat_death",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "options": [
+            {
+              "code": 70,
+              "id": "rog_r20_shadowstep",
+              "grant_ability_code": 242
+            },
+            {
+              "code": 71,
+              "id": "rog_r20_adrenaline_junkie",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 72,
+              "id": "rog_r20_master_assassin",
+              "grant_ability_code": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "priest",
+      "specs": [
+        {
+          "code": 13,
+          "id": "discipline",
+          "signature_ability_code": 197
+        },
+        {
+          "code": 14,
+          "id": "holy",
+          "signature_ability_code": 146
+        },
+        {
+          "code": 15,
+          "id": "shadow",
+          "signature_ability_code": 241
+        }
+      ],
+      "rows": [
+        {
+          "level": 5,
+          "options": [
+            {
+              "code": 73,
+              "id": "pri_r5_improved_renew",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 74,
+              "id": "pri_r5_searing_light",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 75,
+              "id": "pri_r5_twisted_faith",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "options": [
+            {
+              "code": 76,
+              "id": "pri_r8_improved_shield",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 77,
+              "id": "pri_r8_silence",
+              "grant_ability_code": 245
+            },
+            {
+              "code": 78,
+              "id": "pri_r8_psychic_scream",
+              "grant_ability_code": 205
+            }
+          ]
+        },
+        {
+          "level": 11,
+          "options": [
+            {
+              "code": 79,
+              "id": "pri_r11_inner_focus",
+              "grant_ability_code": 161
+            },
+            {
+              "code": 80,
+              "id": "pri_r11_meditation",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 81,
+              "id": "pri_r11_vampiric_embrace",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "options": [
+            {
+              "code": 82,
+              "id": "pri_r14_mind_melt",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 83,
+              "id": "pri_r14_greater_heal",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 84,
+              "id": "pri_r14_pain_and_suffering",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 17,
+          "options": [
+            {
+              "code": 85,
+              "id": "pri_r17_desperate_prayer",
+              "grant_ability_code": 78
+            },
+            {
+              "code": 86,
+              "id": "pri_r17_improved_fortitude",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 87,
+              "id": "pri_r17_inner_fire",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "options": [
+            {
+              "code": 88,
+              "id": "pri_r20_prayer_of_healing",
+              "grant_ability_code": 200
+            },
+            {
+              "code": 89,
+              "id": "pri_r20_mind_sear",
+              "grant_ability_code": 184
+            },
+            {
+              "code": 90,
+              "id": "pri_r20_blessed_recovery",
+              "grant_ability_code": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shaman",
+      "specs": [
+        {
+          "code": 16,
+          "id": "elemental",
+          "signature_ability_code": 91
+        },
+        {
+          "code": 17,
+          "id": "enhancement",
+          "signature_ability_code": 270
+        },
+        {
+          "code": 18,
+          "id": "restoration",
+          "signature_ability_code": 41
+        }
+      ],
+      "rows": [
+        {
+          "level": 5,
+          "options": [
+            {
+              "code": 91,
+              "id": "sha_r5_concussion",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 92,
+              "id": "sha_r5_improved_lightning_shield",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 93,
+              "id": "sha_r5_imbue_mastery",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "options": [
+            {
+              "code": 94,
+              "id": "sha_r8_improved_earth_shock",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 95,
+              "id": "sha_r8_frost_bind",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 96,
+              "id": "sha_r8_shock_efficiency",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 11,
+          "options": [
+            {
+              "code": 97,
+              "id": "sha_r11_ancestral_guidance",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 98,
+              "id": "sha_r11_elemental_attunement",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 99,
+              "id": "sha_r11_healing_stream",
+              "grant_ability_code": 138
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "options": [
+            {
+              "code": 100,
+              "id": "sha_r14_chain_lightning",
+              "grant_ability_code": 42
+            },
+            {
+              "code": 101,
+              "id": "sha_r14_improved_flame_shock",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 102,
+              "id": "sha_r14_weapon_fury",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 17,
+          "options": [
+            {
+              "code": 103,
+              "id": "sha_r17_earthbind",
+              "grant_ability_code": 89
+            },
+            {
+              "code": 104,
+              "id": "sha_r17_improved_ghost_wolf",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 105,
+              "id": "sha_r17_elemental_warding",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "options": [
+            {
+              "code": 106,
+              "id": "sha_r20_bloodlust",
+              "grant_ability_code": 35
+            },
+            {
+              "code": 107,
+              "id": "sha_r20_elemental_fury",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 108,
+              "id": "sha_r20_tidal_waves",
+              "grant_ability_code": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mage",
+      "specs": [
+        {
+          "code": 19,
+          "id": "arcane",
+          "signature_ability_code": 291
+        },
+        {
+          "code": 20,
+          "id": "fire",
+          "signature_ability_code": 207
+        },
+        {
+          "code": 21,
+          "id": "frost",
+          "signature_ability_code": 157
+        }
+      ],
+      "rows": [
+        {
+          "level": 5,
+          "options": [
+            {
+              "code": 109,
+              "id": "mag_r5_ice_floes",
+              "grant_ability_code": 156
+            },
+            {
+              "code": 110,
+              "id": "mag_r5_double_blink",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 111,
+              "id": "mag_r5_blink_cast",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "options": [
+            {
+              "code": 112,
+              "id": "mag_r8_warded",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 113,
+              "id": "mag_r8_temporal_rift",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 114,
+              "id": "mag_r8_greater_invis",
+              "grant_ability_code": 132
+            }
+          ]
+        },
+        {
+          "level": 11,
+          "options": [
+            {
+              "code": 115,
+              "id": "mag_r11_rings_of_frost",
+              "grant_ability_code": 225
+            },
+            {
+              "code": 116,
+              "id": "mag_r11_snap_polymorph",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 117,
+              "id": "mag_r11_twin_nova",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "options": [
+            {
+              "code": 118,
+              "id": "mag_r14_power_echo",
+              "grant_ability_code": 196
+            },
+            {
+              "code": 119,
+              "id": "mag_r14_overload",
+              "grant_ability_code": 190
+            },
+            {
+              "code": 120,
+              "id": "mag_r14_presence_of_mind",
+              "grant_ability_code": 202
+            }
+          ]
+        },
+        {
+          "level": 17,
+          "options": [
+            {
+              "code": 121,
+              "id": "mag_r17_convergence",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 122,
+              "id": "mag_r17_cold_snap",
+              "grant_ability_code": 52
+            },
+            {
+              "code": 123,
+              "id": "mag_r17_mass_barrier",
+              "grant_ability_code": 176
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "options": [
+            {
+              "code": 124,
+              "id": "mag_r20_rune_of_power",
+              "grant_ability_code": 228
+            },
+            {
+              "code": 125,
+              "id": "mag_r20_overflowing_power",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 126,
+              "id": "mag_r20_evocation",
+              "grant_ability_code": 98
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "warlock",
+      "specs": [
+        {
+          "code": 22,
+          "id": "affliction",
+          "signature_ability_code": 247
+        },
+        {
+          "code": 23,
+          "id": "demonology",
+          "signature_ability_code": 180
+        },
+        {
+          "code": 24,
+          "id": "destruction",
+          "signature_ability_code": 57
+        }
+      ],
+      "rows": [
+        {
+          "level": 5,
+          "options": [
+            {
+              "code": 127,
+              "id": "wlk_r5_bane",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 128,
+              "id": "wlk_r5_improved_corruption",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 129,
+              "id": "wlk_r5_improved_immolate",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "options": [
+            {
+              "code": 130,
+              "id": "wlk_r8_voidfeast",
+              "grant_ability_code": 303
+            },
+            {
+              "code": 131,
+              "id": "wlk_r8_howl_of_terror",
+              "grant_ability_code": 152
+            },
+            {
+              "code": 132,
+              "id": "wlk_r8_curse_of_exhaustion",
+              "grant_ability_code": 67
+            }
+          ]
+        },
+        {
+          "level": 11,
+          "options": [
+            {
+              "code": 133,
+              "id": "wlk_r11_improved_life_tap",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 134,
+              "id": "wlk_r11_fel_concentration",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 135,
+              "id": "wlk_r11_demon_armor",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "options": [
+            {
+              "code": 136,
+              "id": "wlk_r14_amplify_curse",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 137,
+              "id": "wlk_r14_ruin",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 138,
+              "id": "wlk_r14_shadow_mastery",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 17,
+          "options": [
+            {
+              "code": 139,
+              "id": "wlk_r17_death_coil",
+              "grant_ability_code": 70
+            },
+            {
+              "code": 140,
+              "id": "wlk_r17_improved_fear",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 141,
+              "id": "wlk_r17_demonic_resilience",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "options": [
+            {
+              "code": 142,
+              "id": "wlk_r20_chaos_bolt",
+              "grant_ability_code": 43
+            },
+            {
+              "code": 143,
+              "id": "wlk_r20_grimoire_of_haste",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 144,
+              "id": "wlk_r20_curse_mastery",
+              "grant_ability_code": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "druid",
+      "specs": [
+        {
+          "code": 25,
+          "id": "balance",
+          "signature_ability_code": 187
+        },
+        {
+          "code": 26,
+          "id": "feral",
+          "signature_ability_code": 105
+        },
+        {
+          "code": 27,
+          "id": "restoration",
+          "signature_ability_code": 282
+        }
+      ],
+      "rows": [
+        {
+          "level": 5,
+          "options": [
+            {
+              "code": 145,
+              "id": "dru_r5_improved_wrath",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 146,
+              "id": "dru_r5_ferocity",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 147,
+              "id": "dru_r5_natures_bounty",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "options": [
+            {
+              "code": 148,
+              "id": "dru_r8_typhoon",
+              "grant_ability_code": 300
+            },
+            {
+              "code": 149,
+              "id": "dru_r8_improved_roots",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 150,
+              "id": "dru_r8_brutal_bash",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 11,
+          "options": [
+            {
+              "code": 151,
+              "id": "dru_r11_innervate",
+              "grant_ability_code": 162
+            },
+            {
+              "code": 152,
+              "id": "dru_r11_furor",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 153,
+              "id": "dru_r11_improved_mark",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "options": [
+            {
+              "code": 154,
+              "id": "dru_r14_savage_fury",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 155,
+              "id": "dru_r14_moonfury",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 156,
+              "id": "dru_r14_empowered_touch",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 17,
+          "options": [
+            {
+              "code": 157,
+              "id": "dru_r17_improved_barkskin",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 158,
+              "id": "dru_r17_frenzied_regeneration",
+              "grant_ability_code": 117
+            },
+            {
+              "code": 159,
+              "id": "dru_r17_survival_of_the_fittest",
+              "grant_ability_code": 0
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "options": [
+            {
+              "code": 160,
+              "id": "dru_r20_improved_hurricane",
+              "grant_ability_code": 0
+            },
+            {
+              "code": 161,
+              "id": "dru_r20_berserk",
+              "grant_ability_code": 24
+            },
+            {
+              "code": 162,
+              "id": "dru_r20_tranquility",
+              "grant_ability_code": 297
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

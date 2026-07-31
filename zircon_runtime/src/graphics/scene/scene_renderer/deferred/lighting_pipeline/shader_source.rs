@@ -1,5 +1,6 @@
 use crate::core::framework::render::ShadingModelDescriptor;
 use crate::graphics::material::ShadingModelIncludeSourceSet;
+use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::shader::template::{
     ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
 };
@@ -26,6 +27,8 @@ const DEFERRED_UNLIT_INCLUDE: &str =
 const DEFERRED_SUBSURFACE_INCLUDE: &str =
     include_str!("../../../../shader/wgsl/zr_shade_deferred_subsurface.wgsl");
 const DEFERRED_LIGHTING_TEMPLATE: &str = include_str!("../shaders/deferred_lighting.wgsl");
+const DEFERRED_ENVIRONMENT_ONLY_PBR_TEMPLATE: &str =
+    include_str!("../shaders/deferred_environment_only_pbr.wgsl");
 const VOLUMETRIC_DISABLED_INCLUDE: &str = r#"
 fn zr_volumetric_transmittance(_fragment_position: vec2<f32>, _device_depth: f32) -> f32 {
     return 1.0;
@@ -35,6 +38,59 @@ fn zr_volumetric_scattering(_fragment_position: vec2<f32>, _device_depth: f32) -
 }
 fn zr_volumetric_apply(color: vec3<f32>, _fragment_position: vec2<f32>, _device_depth: f32) -> vec3<f32> {
     return color;
+}
+"#;
+const FULL_LIGHT_VECTOR_DISPATCH: &str = r#"fn shade_light_vector_normalized(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, roughness: f32, diffuse_color: vec3<f32>, direct_f0: vec3<f32>, direct_diffuse_brdf: vec3<f32>, world_view: vec3<f32>, shading_model_id: u32) -> vec3<f32> {
+    if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
+        return shade_blinn_phong_light_vector_normalized(light_vector, radiance, world_normal, roughness, diffuse_color, world_view);
+    }
+    return shade_standard_pbr_light_vector_normalized(light_vector, radiance, world_normal, roughness, direct_f0, direct_diffuse_brdf, world_view);
+}
+"#;
+const STANDARD_PBR_LIGHT_VECTOR_DISPATCH: &str = r#"
+fn shade_light_vector_normalized(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, roughness: f32, _diffuse_color: vec3<f32>, direct_f0: vec3<f32>, direct_diffuse_brdf: vec3<f32>, world_view: vec3<f32>, _shading_model_id: u32) -> vec3<f32> {
+    return shade_standard_pbr_light_vector_normalized(light_vector, radiance, world_normal, roughness, direct_f0, direct_diffuse_brdf, world_view);
+}
+"#;
+const FULL_PIXEL_DISPATCH: &str = r#"fn shade_deferred_pixel(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>, emissive: vec3<f32>, depth: f32, shading_model_id: u32) -> vec4<f32> {
+    if (shading_model_id == ZR_SHADING_MODEL_UNLIT_ID) {
+        return apply_deferred_volumetric(
+            add_deferred_emissive(shade_deferred_unlit(albedo), emissive),
+            position,
+            depth,
+        );
+    }
+    if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
+        return apply_deferred_volumetric(
+            add_deferred_emissive(
+                shade_deferred_blinn_phong(position, coord, albedo, material, normal),
+                emissive,
+            ),
+            position,
+            depth,
+        );
+    }
+    // zr-deferred-lighting-custom-shading-model-dispatch
+    return apply_deferred_volumetric(
+        add_deferred_emissive(
+            shade_deferred_standard_pbr(position, coord, albedo, material, normal),
+            emissive,
+        ),
+        position,
+        depth,
+    );
+}
+"#;
+const STANDARD_PBR_PIXEL_DISPATCH: &str = r#"
+fn shade_deferred_pixel(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>, emissive: vec3<f32>, depth: f32, _shading_model_id: u32) -> vec4<f32> {
+    return apply_deferred_volumetric(
+        add_deferred_emissive(
+            shade_deferred_standard_pbr(position, coord, albedo, material, normal),
+            emissive,
+        ),
+        position,
+        depth,
+    );
 }
 "#;
 
@@ -67,9 +123,18 @@ pub(in crate::graphics::scene::scene_renderer::deferred) const DEFERRED_LIGHTING
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::graphics::scene::scene_renderer::deferred) enum DeferredLightingShaderSourceError {
-    UnknownDeferredInclude { token: String },
-    UnknownShaderModule { token: String },
-    CircularShaderModuleDependency { cycle: Vec<String> },
+    CustomShadingModelsUnsupportedByProfile {
+        profile: SceneRendererDeferredLightingProfile,
+    },
+    UnknownDeferredInclude {
+        token: String,
+    },
+    UnknownShaderModule {
+        token: String,
+    },
+    CircularShaderModuleDependency {
+        cycle: Vec<String>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -92,6 +157,7 @@ impl DeferredLightingShaderIncludeSource {
 pub(in crate::graphics::scene::scene_renderer::deferred) struct DeferredLightingShaderSourceRequest
 {
     volumetric_enabled: bool,
+    deferred_lighting_profile: SceneRendererDeferredLightingProfile,
     shading_model_descriptors: Vec<ShadingModelDescriptor>,
     shading_model_deferred_include_sources: Vec<DeferredLightingShaderIncludeSource>,
 }
@@ -106,6 +172,14 @@ impl DeferredLightingShaderSourceRequest {
         enabled: bool,
     ) -> Self {
         self.volumetric_enabled = enabled;
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::deferred) fn with_deferred_lighting_profile(
+        mut self,
+        profile: SceneRendererDeferredLightingProfile,
+    ) -> Self {
+        self.deferred_lighting_profile = profile;
         self
     }
 
@@ -146,19 +220,50 @@ impl DeferredLightingShaderSourceRequest {
 pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_lighting_shader_source(
     request: DeferredLightingShaderSourceRequest,
 ) -> Result<String, DeferredLightingShaderSourceError> {
+    if request.deferred_lighting_profile != SceneRendererDeferredLightingProfile::FullScene
+        && !request.shading_model_descriptors.is_empty()
+    {
+        return Err(
+            DeferredLightingShaderSourceError::CustomShadingModelsUnsupportedByProfile {
+                profile: request.deferred_lighting_profile,
+            },
+        );
+    }
     let custom_dispatch = custom_deferred_dispatch(&request)?;
-    let mut roots = vec![
-        GPU_SCENE_INCLUDE_TOKEN.to_string(),
-        LIGHT_COOKIE_INCLUDE_TOKEN.to_string(),
-        LIGHTMAP_INCLUDE_TOKEN.to_string(),
-        LIGHT_GRID_INCLUDE_TOKEN.to_string(),
-        SHADOW_INCLUDE_TOKEN.to_string(),
-        VOLUMETRIC_INCLUDE_TOKEN.to_string(),
-        DEFERRED_STANDARD_PBR_INCLUDE_TOKEN.to_string(),
-        DEFERRED_BLINN_PHONG_INCLUDE_TOKEN.to_string(),
-        DEFERRED_UNLIT_INCLUDE_TOKEN.to_string(),
-        DEFERRED_SUBSURFACE_INCLUDE_TOKEN.to_string(),
-    ];
+    let (builtin_roots, light_vector_dispatch, pixel_dispatch): (&[&str], &str, &str) =
+        match request.deferred_lighting_profile {
+            SceneRendererDeferredLightingProfile::FullScene => (
+                &[
+                    DEFERRED_STANDARD_PBR_INCLUDE_TOKEN,
+                    DEFERRED_BLINN_PHONG_INCLUDE_TOKEN,
+                    DEFERRED_UNLIT_INCLUDE_TOKEN,
+                    DEFERRED_SUBSURFACE_INCLUDE_TOKEN,
+                ],
+                FULL_LIGHT_VECTOR_DISPATCH,
+                FULL_PIXEL_DISPATCH,
+            ),
+            SceneRendererDeferredLightingProfile::StandardPbrPreview => (
+                &[DEFERRED_STANDARD_PBR_INCLUDE_TOKEN],
+                STANDARD_PBR_LIGHT_VECTOR_DISPATCH,
+                STANDARD_PBR_PIXEL_DISPATCH,
+            ),
+            SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview => (&[], "", ""),
+        };
+    let mut roots = if request.deferred_lighting_profile
+        == SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+    {
+        Vec::new()
+    } else {
+        vec![
+            GPU_SCENE_INCLUDE_TOKEN.to_string(),
+            LIGHT_COOKIE_INCLUDE_TOKEN.to_string(),
+            LIGHTMAP_INCLUDE_TOKEN.to_string(),
+            LIGHT_GRID_INCLUDE_TOKEN.to_string(),
+            SHADOW_INCLUDE_TOKEN.to_string(),
+            VOLUMETRIC_INCLUDE_TOKEN.to_string(),
+        ]
+    };
+    roots.extend(builtin_roots.iter().map(|token| (*token).to_string()));
     let mut module_registry = ShaderModuleRegistry::with_builtin_modules();
     if !request.volumetric_enabled {
         module_registry.register(ShaderTemplateInclude::new(
@@ -202,10 +307,19 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
         roots.push(include.token.clone());
     }
 
-    let template = DEFERRED_LIGHTING_TEMPLATE.replace(
-        CUSTOM_DISPATCH_MARKER,
-        &format!("{CUSTOM_DISPATCH_MARKER}\n{custom_dispatch}"),
-    );
+    let template = if request.deferred_lighting_profile
+        == SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+    {
+        DEFERRED_ENVIRONMENT_ONLY_PBR_TEMPLATE.to_string()
+    } else {
+        DEFERRED_LIGHTING_TEMPLATE
+            .replace(FULL_LIGHT_VECTOR_DISPATCH, light_vector_dispatch)
+            .replace(FULL_PIXEL_DISPATCH, pixel_dispatch)
+            .replace(
+                CUSTOM_DISPATCH_MARKER,
+                &format!("{CUSTOM_DISPATCH_MARKER}\n{custom_dispatch}"),
+            )
+    };
     module_registry.register(ShaderTemplateInclude::new(
         "deferred_lighting.wgsl",
         template,
@@ -298,8 +412,10 @@ fn deferred_shading_function_name(token: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR, SHADING_MODEL_ID_UNLIT,
+        GBufferChannelMask, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
+        SHADING_MODEL_ID_UNLIT, ShadingModelDescriptor, ShadingModelId,
     };
+    use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 
     use super::*;
 
@@ -328,5 +444,82 @@ mod tests {
         assert_eq!(SHADING_MODEL_ID_UNLIT.value(), 0);
         assert_eq!(SHADING_MODEL_ID_BLINN_PHONG.value(), 1);
         assert_eq!(SHADING_MODEL_ID_STANDARD_PBR.value(), 2);
+    }
+
+    #[test]
+    fn fragment_template_keeps_the_fullscreen_vertex_entry_in_its_dedicated_module() {
+        assert!(
+            !DEFERRED_LIGHTING_TEMPLATE.contains("@vertex"),
+            "the deferred fragment module must not retain the separately compiled fullscreen vertex entry"
+        );
+        assert!(!DEFERRED_LIGHTING_TEMPLATE.contains("fn vs_main("));
+    }
+
+    #[test]
+    fn standard_pbr_preview_assembles_only_the_standard_builtin_material_variant() {
+        let source = assemble_deferred_lighting_shader_source(
+            DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
+                SceneRendererDeferredLightingProfile::StandardPbrPreview,
+            ),
+        )
+        .expect("standard PBR preview source should assemble");
+
+        assert!(source.contains("// include: zr_shade_deferred_standard_pbr.wgsl"));
+        assert!(!source.contains("// include: zr_shade_deferred_blinn_phong.wgsl"));
+        assert!(!source.contains("// include: zr_shade_deferred_unlit.wgsl"));
+        assert!(!source.contains("// include: zr_shade_deferred_subsurface.wgsl"));
+        assert!(!source.contains("shade_deferred_blinn_phong("));
+        assert!(!source.contains("shade_deferred_unlit("));
+    }
+
+    #[test]
+    fn preview_profiles_reject_custom_shading_models_before_source_export() {
+        let descriptor = ShadingModelDescriptor::new(
+            ShadingModelId::new(128),
+            "toon",
+            "package://toon/forward.wgsl",
+            "package://toon/gbuffer.wgsl",
+            "package://toon/deferred.wgsl",
+            GBufferChannelMask::standard_deferred_v1(),
+        );
+
+        for profile in [
+            SceneRendererDeferredLightingProfile::StandardPbrPreview,
+            SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+        ] {
+            let error = assemble_deferred_lighting_shader_source(
+                DeferredLightingShaderSourceRequest::new()
+                    .with_deferred_lighting_profile(profile)
+                    .with_shading_model_descriptor(descriptor.clone()),
+            )
+            .expect_err("preview profiles must reject custom shading models");
+
+            assert_eq!(
+                error,
+                DeferredLightingShaderSourceError::CustomShadingModelsUnsupportedByProfile {
+                    profile,
+                }
+            );
+        }
+    }
+
+    #[test]
+    fn environment_only_pbr_preview_assembles_ibl_without_direct_lighting_dependencies() {
+        let source = assemble_deferred_lighting_shader_source(
+            DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
+                SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+            ),
+        )
+        .expect("environment-only PBR preview source should assemble");
+
+        assert!(source.contains("// include: zr_environment.wgsl"));
+        assert!(source.contains("zr_environment_pbr_indirect("));
+        assert!(!source.contains("// include: zr_gpu_scene.wgsl"));
+        assert!(!source.contains("// include: zr_light_grid.wgsl"));
+        assert!(!source.contains("// include: zr_light_cookie.wgsl"));
+        assert!(!source.contains("// include: zr_lightmap.wgsl"));
+        assert!(!source.contains("// include: zr_shadow.wgsl"));
+        assert!(!source.contains("// include: zr_volumetric.wgsl"));
+        assert!(!source.contains("fn fs_main_sss("));
     }
 }

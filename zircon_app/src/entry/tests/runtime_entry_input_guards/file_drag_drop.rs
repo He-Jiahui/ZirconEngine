@@ -47,14 +47,18 @@ fn runtime_entry_keeps_file_drag_drop_source_visible() {
         "ZrRuntimeEventV1::file_dropped",
         "pub(in crate::entry::runtime_entry_app) fn handle_file_drag_cancelled",
         "ZrRuntimeEventV1::file_drag_cancelled",
-        "path.to_string_lossy().to_string()",
-        "byte_slice(path_text.as_str())",
+        "let path_text = path.to_string_lossy();",
+        "byte_slice(path_text.as_ref())",
     ] {
         assert!(
             runtime_file_drag_drop_source.contains(required),
             "runtime file drag/drop module should preserve `{required}`"
         );
     }
+    assert!(
+        !runtime_file_drag_drop_source.contains("to_string_lossy().to_string()"),
+        "runtime file drag/drop should borrow valid UTF-8 paths instead of allocating an owned String",
+    );
     for required in ["mod cancelled;", "mod dropped;", "mod hovered;"] {
         assert!(
             runtime_file_drag_drop_root_source.contains(required),

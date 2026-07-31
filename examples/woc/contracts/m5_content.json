@@ -1,0 +1,1345 @@
+{
+  "schema_version": 2,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m5_content_codegen.mjs",
+  "scenarios": [
+    "bank_round_trip",
+    "g1b_xp_prestige",
+    "inventory_vendor",
+    "l1_loot_distribution",
+    "market_round_trip",
+    "party_loot",
+    "player_trade",
+    "quest_collect_turnin",
+    "quest_kill_credit",
+    "quest_link_abandon",
+    "talents_progression"
+  ],
+  "source_identities": {
+    "representation": "git_blob_lf",
+    "files": [
+      {
+        "path": "tests/parity/scenarios.ts",
+        "bytes": 194197,
+        "sha256": "626beaaa2585ac56814cf47509572e0902f7fb1e85bb2ef169443e0059121c97"
+      },
+      {
+        "path": "src/sim/data.ts",
+        "bytes": 25410,
+        "sha256": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431"
+      },
+      {
+        "path": "src/sim/content/classes.ts",
+        "bytes": 200029,
+        "sha256": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889"
+      },
+      {
+        "path": "src/sim/content/items.ts",
+        "bytes": 47704,
+        "sha256": "d3c5791f88973956b651eeab71d4020d9e3697803cddc007ccae214f6738d37b"
+      },
+      {
+        "path": "src/sim/content/talents.ts",
+        "bytes": 25403,
+        "sha256": "3fa9483cc9c60ef5578d6aa41f3a2e8f7110232b4add4f6a6bafbb23a7346b03"
+      },
+      {
+        "path": "src/sim/content/talent_rows.ts",
+        "bytes": 3258,
+        "sha256": "7bd779ab5c21dd2a949e016f834843c5adbb95a2de02adf3f458447555ee8392"
+      },
+      {
+        "path": "src/sim/content/talents_warrior.ts",
+        "bytes": 2457,
+        "sha256": "f889aca8ede925ae36847679692bcee30575b986de915e5481c3a5e6df2d2c07"
+      },
+      {
+        "path": "src/sim/content/warrior_rows.ts",
+        "bytes": 8240,
+        "sha256": "eb12fed341279999acc08463fc59c09bffd8ef5552ca345765e7ad36262baf6c"
+      },
+      {
+        "path": "src/sim/content/zone1.ts",
+        "bytes": 44981,
+        "sha256": "ba684edd445b581cf2d03e9b34c0f14d8b73da9a623df425e94262d3f6010d2a"
+      },
+      {
+        "path": "src/sim/content/zone2.ts",
+        "bytes": 65024,
+        "sha256": "169c8bc8cd98a535ad60ac0f2159cd94e5e0685d231bf78e0328df7157a1dd6b"
+      },
+      {
+        "path": "src/sim/content/zone3.ts",
+        "bytes": 115374,
+        "sha256": "8361952b8878ae4d0a17513ccb27ad09e48f4469eddcea93633455fc45743579"
+      },
+      {
+        "path": "src/sim/bank.ts",
+        "bytes": 14542,
+        "sha256": "97bfdb2176cf3deeaec18da79d5b551f224b6761037fe390c4d73e0f16989cb0"
+      },
+      {
+        "path": "src/sim/market.ts",
+        "bytes": 24848,
+        "sha256": "cd5d72162d5a34166b5be542523af96c535cbdacbc68cb96c8d1bb8aaf7fd60d"
+      },
+      {
+        "path": "src/sim/types.ts",
+        "bytes": 204442,
+        "sha256": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+      }
+    ]
+  },
+  "reference_manifest_identity": {
+    "representation": "git_blob_lf",
+    "path": "tests/parity/scenarios.ts",
+    "bytes": 194197,
+    "sha256": "626beaaa2585ac56814cf47509572e0902f7fb1e85bb2ef169443e0059121c97"
+  },
+  "market_cut": 0.05,
+  "constants": {
+    "max_level": 20,
+    "prestige_xp_per_rank": 23200,
+    "bank_expansion_prices": [
+      500,
+      1000,
+      2500,
+      5000,
+      10000,
+      20000,
+      40000,
+      80000,
+      150000,
+      300000,
+      600000,
+      1200000
+    ],
+    "xp_for_level": [
+      400,
+      900,
+      1400,
+      2100,
+      2800,
+      3600,
+      4500,
+      5400,
+      6500,
+      7600,
+      8800,
+      10100,
+      11400,
+      12900,
+      14400,
+      16000,
+      17700,
+      19400,
+      21300,
+      23200
+    ]
+  },
+  "specs": [
+    {
+      "id": "arms",
+      "scenarios": [
+        "talents_progression"
+      ],
+      "source_owner": "src/sim/content/talents_warrior.ts#warriorTalents.specs.arms",
+      "definition": {
+        "id": "arms",
+        "class": "warrior",
+        "name": "Battlecraft",
+        "role": "dps",
+        "icon": "x",
+        "description": "A master of arms who turns discipline and technique into his greatest strength. Every blow is calculated to break the enemy defense, exploit their weak points, and set up a devastating finisher. His combat is precise, methodical, and lethal, rewarding those who master the rhythm of battle.",
+        "signature": "mortal_strike",
+        "mastery": {
+          "name": "Master Armorer",
+          "description": "While wielding a two-handed weapon, all damage you deal is increased by 10%.",
+          "effect": {
+            "global": {
+              "masteryTwoHandDmgPct": 0.1
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fury",
+      "scenarios": [
+        "talents_progression"
+      ],
+      "source_owner": "src/sim/content/talents_warrior.ts#warriorTalents.specs.fury",
+      "definition": {
+        "id": "fury",
+        "class": "warrior",
+        "name": "Bloodrush",
+        "role": "dps",
+        "icon": "x",
+        "description": "A berserker who fights with a weapon in each hand and lets rage drive his every move. The longer he fights, the greater his Enrage, unleashing a relentless storm of attacks that gives his enemies no respite. A frenzied, savage, aggressive style where the offensive never stops. Committing to Bloodrush unlocks dual wielding, and through Titan's Grip even a two-handed weapon in each hand.",
+        "signature": "bloodthirst",
+        "mastery": {
+          "name": "Bloodletter",
+          "description": "Increases your critical strike chance by 5% and attack power by 10.",
+          "effect": {
+            "stats": {
+              "crit": 0.05,
+              "ap": 10
+            }
+          }
+        }
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "baked_bread",
+      "scenarios": [
+        "inventory_vendor",
+        "player_trade"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.baked_bread",
+      "definition": {
+        "id": "baked_bread",
+        "name": "Cottage Loaf",
+        "kind": "food",
+        "quality": "common",
+        "foodHp": 61,
+        "sellValue": 6,
+        "buyValue": 25
+      }
+    },
+    {
+      "id": "bandit_bandana",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.bandit_bandana",
+      "definition": {
+        "id": "bandit_bandana",
+        "name": "Red Bandana",
+        "kind": "junk",
+        "quality": "poor",
+        "sellValue": 6
+      }
+    },
+    {
+      "id": "boar_hide",
+      "scenarios": [
+        "quest_collect_turnin"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.boar_hide",
+      "definition": {
+        "id": "boar_hide",
+        "name": "Bristly Boar Hide",
+        "kind": "quest",
+        "sellValue": 0,
+        "questId": "q_boars"
+      }
+    },
+    {
+      "id": "cryptbone_helm",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.cryptbone_helm",
+      "definition": {
+        "id": "cryptbone_helm",
+        "name": "Cryptbone Helm",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "helmet",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 48,
+          "sta": 3
+        },
+        "sellValue": 185
+      }
+    },
+    {
+      "id": "elixir_of_the_bear",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.elixir_of_the_bear",
+      "definition": {
+        "id": "elixir_of_the_bear",
+        "name": "Elixir of the Bear",
+        "kind": "elixir",
+        "quality": "uncommon",
+        "elixir": {
+          "aura": "Might of the Bear",
+          "kind": "buff_sta",
+          "value": 12,
+          "duration": 900
+        },
+        "sellValue": 20,
+        "buyValue": 100
+      }
+    },
+    {
+      "id": "gnarled_staff",
+      "scenarios": [
+        "class_starting_equipment",
+        "l1_loot_distribution"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.gnarled_staff",
+      "definition": {
+        "id": "gnarled_staff",
+        "name": "Bogoak Staff",
+        "kind": "weapon",
+        "slot": "mainhand",
+        "quality": "common",
+        "weapon": {
+          "min": 3,
+          "max": 6,
+          "speed": 2.9
+        },
+        "stats": {
+          "int": 1
+        },
+        "sellValue": 12
+      }
+    },
+    {
+      "id": "greyjaw_hide_boots",
+      "scenarios": [
+        "l1_loot_distribution",
+        "party_loot"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.greyjaw_hide_boots",
+      "definition": {
+        "id": "greyjaw_hide_boots",
+        "set": "greyjaw_stalker",
+        "name": "Greyjaw Hide Boots",
+        "kind": "armor",
+        "armorType": "leather",
+        "slot": "feet",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 28,
+          "agi": 1,
+          "sta": 1
+        },
+        "sellValue": 130
+      }
+    },
+    {
+      "id": "milepost_boots",
+      "scenarios": [
+        "l1_loot_distribution",
+        "party_loot",
+        "quest_kill_credit",
+        "quest_link_abandon"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.milepost_boots",
+      "definition": {
+        "id": "milepost_boots",
+        "name": "Milepost Boots",
+        "kind": "armor",
+        "armorType": "leather",
+        "slot": "feet",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 30,
+          "agi": 1,
+          "sta": 1
+        },
+        "sellValue": 110
+      }
+    },
+    {
+      "id": "minor_healing_potion",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.minor_healing_potion",
+      "definition": {
+        "id": "minor_healing_potion",
+        "name": "Minor Healing Potion",
+        "kind": "potion",
+        "quality": "common",
+        "potionHp": 90,
+        "sellValue": 8,
+        "buyValue": 40
+      }
+    },
+    {
+      "id": "roadwardens_helm",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.roadwardens_helm",
+      "definition": {
+        "id": "roadwardens_helm",
+        "name": "Roadwarden's Helm",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "helmet",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 45,
+          "sta": 2
+        },
+        "sellValue": 130,
+        "requiredClass": [
+          "warrior",
+          "paladin",
+          "shaman"
+        ]
+      }
+    },
+    {
+      "id": "spring_water",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.spring_water",
+      "definition": {
+        "id": "spring_water",
+        "name": "Cold Well Water",
+        "kind": "drink",
+        "quality": "common",
+        "drinkMana": 76,
+        "sellValue": 6,
+        "buyValue": 25
+      }
+    },
+    {
+      "id": "wolf_fang",
+      "scenarios": [
+        "bank_round_trip",
+        "inventory_vendor",
+        "l1_loot_distribution",
+        "market_round_trip",
+        "party_loot",
+        "player_trade",
+        "quest_kill_credit",
+        "quest_link_abandon"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.wolf_fang",
+      "definition": {
+        "id": "wolf_fang",
+        "name": "Cracked Wolf Fang",
+        "kind": "junk",
+        "quality": "poor",
+        "sellValue": 4
+      }
+    },
+    {
+      "id": "wolfhide_satchel",
+      "scenarios": [
+        "l1_loot_distribution",
+        "party_loot",
+        "quest_kill_credit",
+        "quest_link_abandon"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.wolfhide_satchel",
+      "definition": {
+        "id": "wolfhide_satchel",
+        "name": "Wolfhide Satchel",
+        "kind": "bag",
+        "quality": "uncommon",
+        "bagSlots": 10,
+        "sellValue": 1200
+      }
+    },
+    {
+      "id": "worn_sword",
+      "scenarios": [
+        "class_starting_equipment",
+        "l1_loot_distribution"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.worn_sword",
+      "definition": {
+        "id": "worn_sword",
+        "name": "Pitted Shortsword",
+        "kind": "weapon",
+        "slot": "mainhand",
+        "quality": "common",
+        "weapon": {
+          "min": 2,
+          "max": 5,
+          "speed": 2
+        },
+        "sellValue": 10
+      }
+    },
+    {
+      "id": "apprentice_robe",
+      "scenarios": [
+        "class_starting_equipment"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.apprentice_robe",
+      "definition": {
+        "id": "apprentice_robe",
+        "name": "Threadbare Robe",
+        "kind": "armor",
+        "armorType": "cloth",
+        "slot": "chest",
+        "quality": "common",
+        "stats": {
+          "armor": 8
+        },
+        "sellValue": 5
+      }
+    },
+    {
+      "id": "eastbrook_buckler",
+      "scenarios": [
+        "class_starting_equipment"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.eastbrook_buckler",
+      "definition": {
+        "id": "eastbrook_buckler",
+        "name": "Eastbrook Buckler",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "offhand",
+        "shield": true,
+        "blockValue": 6,
+        "quality": "common",
+        "stats": {
+          "armor": 34,
+          "sta": 1
+        },
+        "sellValue": 130,
+        "buyValue": 1300,
+        "requiredClass": [
+          "warrior",
+          "paladin",
+          "shaman"
+        ]
+      }
+    },
+    {
+      "id": "footpad_jerkin",
+      "scenarios": [
+        "class_starting_equipment"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.footpad_jerkin",
+      "definition": {
+        "id": "footpad_jerkin",
+        "name": "Cutpurse Jerkin",
+        "kind": "armor",
+        "armorType": "leather",
+        "slot": "chest",
+        "quality": "common",
+        "stats": {
+          "armor": 14
+        },
+        "sellValue": 5
+      }
+    },
+    {
+      "id": "recruit_tunic",
+      "scenarios": [
+        "class_starting_equipment"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.recruit_tunic",
+      "definition": {
+        "id": "recruit_tunic",
+        "name": "Levyman's Tunic",
+        "kind": "armor",
+        "armorType": "leather",
+        "slot": "chest",
+        "quality": "common",
+        "stats": {
+          "armor": 20
+        },
+        "sellValue": 5
+      }
+    },
+    {
+      "id": "rusty_dagger",
+      "scenarios": [
+        "class_starting_equipment"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.rusty_dagger",
+      "definition": {
+        "id": "rusty_dagger",
+        "name": "Rusty Dagger",
+        "kind": "weapon",
+        "slot": "mainhand",
+        "quality": "common",
+        "weapon": {
+          "min": 2,
+          "max": 4,
+          "speed": 1.8,
+          "dagger": true
+        },
+        "sellValue": 10
+      }
+    },
+    {
+      "id": "rusty_hatchet",
+      "scenarios": [
+        "class_starting_equipment"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.rusty_hatchet",
+      "definition": {
+        "id": "rusty_hatchet",
+        "name": "Rusty Hatchet",
+        "kind": "weapon",
+        "slot": "mainhand",
+        "quality": "common",
+        "weapon": {
+          "min": 2,
+          "max": 5,
+          "speed": 2.2
+        },
+        "sellValue": 10
+      }
+    },
+    {
+      "id": "training_mace",
+      "scenarios": [
+        "class_starting_equipment"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.training_mace",
+      "definition": {
+        "id": "training_mace",
+        "name": "Training Mace",
+        "kind": "weapon",
+        "slot": "mainhand",
+        "quality": "common",
+        "weapon": {
+          "min": 2,
+          "max": 5,
+          "speed": 2.6
+        },
+        "sellValue": 10
+      }
+    },
+    {
+      "id": "roasted_boar",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.roasted_boar",
+      "definition": {
+        "id": "roasted_boar",
+        "name": "Spitted Boar Haunch",
+        "kind": "food",
+        "quality": "common",
+        "foodHp": 117,
+        "sellValue": 12,
+        "buyValue": 100
+      }
+    },
+    {
+      "id": "tough_jerky",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.tough_jerky",
+      "definition": {
+        "id": "tough_jerky",
+        "name": "Salted Jerky",
+        "kind": "food",
+        "quality": "common",
+        "foodHp": 61,
+        "sellValue": 2,
+        "buyValue": 25
+      }
+    },
+    {
+      "id": "minor_mana_potion",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.minor_mana_potion",
+      "definition": {
+        "id": "minor_mana_potion",
+        "name": "Minor Mana Potion",
+        "kind": "potion",
+        "quality": "common",
+        "potionMana": 120,
+        "sellValue": 8,
+        "buyValue": 40
+      }
+    },
+    {
+      "id": "linen_pouch",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.linen_pouch",
+      "definition": {
+        "id": "linen_pouch",
+        "name": "Linen Pouch",
+        "kind": "bag",
+        "quality": "common",
+        "bagSlots": 6,
+        "sellValue": 60,
+        "buyValue": 250
+      }
+    },
+    {
+      "id": "travelers_knapsack",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.travelers_knapsack",
+      "definition": {
+        "id": "travelers_knapsack",
+        "name": "Traveler's Knapsack",
+        "kind": "bag",
+        "quality": "common",
+        "bagSlots": 8,
+        "sellValue": 500,
+        "buyValue": 2000
+      }
+    },
+    {
+      "id": "copper_mining_pick",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.copper_mining_pick",
+      "definition": {
+        "id": "copper_mining_pick",
+        "name": "Copper Mining Pick",
+        "kind": "tool",
+        "quality": "common",
+        "use": {
+          "type": "gatherTool",
+          "professionId": "mining",
+          "tier": 1
+        },
+        "sellValue": 4,
+        "buyValue": 20
+      }
+    },
+    {
+      "id": "iron_mining_pick",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.iron_mining_pick",
+      "definition": {
+        "id": "iron_mining_pick",
+        "name": "Iron Mining Pick",
+        "kind": "tool",
+        "quality": "common",
+        "use": {
+          "type": "gatherTool",
+          "professionId": "mining",
+          "tier": 2
+        },
+        "sellValue": 10,
+        "buyValue": 60
+      }
+    },
+    {
+      "id": "mithril_mining_pick",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.mithril_mining_pick",
+      "definition": {
+        "id": "mithril_mining_pick",
+        "name": "Mithril Mining Pick",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "gatherTool",
+          "professionId": "mining",
+          "tier": 3
+        },
+        "sellValue": 25,
+        "buyValue": 150
+      }
+    },
+    {
+      "id": "handaxe",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.handaxe",
+      "definition": {
+        "id": "handaxe",
+        "name": "Handaxe",
+        "kind": "tool",
+        "quality": "common",
+        "use": {
+          "type": "gatherTool",
+          "professionId": "logging",
+          "tier": 1
+        },
+        "sellValue": 4,
+        "buyValue": 20
+      }
+    },
+    {
+      "id": "felling_axe",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.felling_axe",
+      "definition": {
+        "id": "felling_axe",
+        "name": "Felling Axe",
+        "kind": "tool",
+        "quality": "common",
+        "use": {
+          "type": "gatherTool",
+          "professionId": "logging",
+          "tier": 2
+        },
+        "sellValue": 10,
+        "buyValue": 60
+      }
+    },
+    {
+      "id": "ironbark_axe",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.ironbark_axe",
+      "definition": {
+        "id": "ironbark_axe",
+        "name": "Ironbark Axe",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "gatherTool",
+          "professionId": "logging",
+          "tier": 3
+        },
+        "sellValue": 25,
+        "buyValue": 150
+      }
+    },
+    {
+      "id": "gathering_sickle",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.gathering_sickle",
+      "definition": {
+        "id": "gathering_sickle",
+        "name": "Gathering Sickle",
+        "kind": "tool",
+        "quality": "common",
+        "use": {
+          "type": "gatherTool",
+          "professionId": "herbalism",
+          "tier": 1
+        },
+        "sellValue": 4,
+        "buyValue": 20
+      }
+    },
+    {
+      "id": "bronze_sickle",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.bronze_sickle",
+      "definition": {
+        "id": "bronze_sickle",
+        "name": "Bronze Sickle",
+        "kind": "tool",
+        "quality": "common",
+        "use": {
+          "type": "gatherTool",
+          "professionId": "herbalism",
+          "tier": 2
+        },
+        "sellValue": 10,
+        "buyValue": 60
+      }
+    },
+    {
+      "id": "silverleaf_sickle",
+      "scenarios": [
+        "inventory_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.silverleaf_sickle",
+      "definition": {
+        "id": "silverleaf_sickle",
+        "name": "Silverleaf Sickle",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "gatherTool",
+          "professionId": "herbalism",
+          "tier": 3
+        },
+        "sellValue": 25,
+        "buyValue": 150
+      }
+    }
+  ],
+  "quests": [
+    {
+      "id": "q_boars",
+      "scenarios": [
+        "quest_collect_turnin"
+      ],
+      "source_owner": "src/sim/data.ts#QUESTS.q_boars",
+      "definition": {
+        "id": "q_boars",
+        "name": "Bristly Boar Hides",
+        "giverNpcId": "trader_wilkes",
+        "turnInNpcId": "trader_wilkes",
+        "text": "Boar hide makes the finest travel packs, and the meadows west of town are crawling with the beasts. Bring me 5 Bristly Boar Hides and I will make it worth your time.",
+        "completionText": "Ah, fine bristly hides! These will fetch a good price.",
+        "objectives": [
+          {
+            "type": "collect",
+            "itemId": "boar_hide",
+            "count": 5,
+            "label": "Bristly Boar Hide"
+          }
+        ],
+        "xpReward": 350,
+        "copperReward": 120,
+        "itemRewards": {}
+      }
+    },
+    {
+      "id": "q_wolves",
+      "scenarios": [
+        "quest_kill_credit",
+        "quest_link_abandon"
+      ],
+      "source_owner": "src/sim/data.ts#QUESTS.q_wolves",
+      "definition": {
+        "id": "q_wolves",
+        "name": "Wolves at the Door",
+        "giverNpcId": "marshal_redbrook",
+        "turnInNpcId": "marshal_redbrook",
+        "text": "The forest wolves grow bold, snapping at travelers on the north road. Thin their numbers, $N. Slay 8 Forest Wolves and Eastbrook will breathe easier.",
+        "completionText": "Fine work. The road feels safer already.",
+        "objectives": [
+          {
+            "type": "kill",
+            "targetMobId": "forest_wolf",
+            "count": 8,
+            "label": "Forest Wolf slain"
+          }
+        ],
+        "xpReward": 250,
+        "copperReward": 75,
+        "itemRewards": {}
+      }
+    }
+  ],
+  "mobs": [
+    {
+      "id": "forest_wolf",
+      "scenarios": [
+        "l1_loot_distribution",
+        "party_loot",
+        "quest_kill_credit",
+        "quest_link_abandon"
+      ],
+      "source_owner": "src/sim/data.ts#MOBS.forest_wolf",
+      "definition": {
+        "id": "forest_wolf",
+        "name": "Forest Wolf",
+        "minLevel": 1,
+        "maxLevel": 2,
+        "family": "beast",
+        "hpBase": 40,
+        "hpPerLevel": 14,
+        "dmgBase": 3,
+        "dmgPerLevel": 1.6,
+        "attackSpeed": 2,
+        "armorPerLevel": 10,
+        "moveSpeed": 8,
+        "aggroRadius": 10,
+        "loot": [
+          {
+            "copper": 8,
+            "chance": 1
+          },
+          {
+            "itemId": "wolf_fang",
+            "chance": 0.45
+          },
+          {
+            "itemId": "milepost_boots",
+            "chance": 0.1
+          },
+          {
+            "itemId": "wolfhide_satchel",
+            "chance": 0.02
+          }
+        ],
+        "scale": 0.9,
+        "color": 8359053,
+        "packFrenzy": {
+          "radius": 12,
+          "hasteMult": 1.3,
+          "duration": 8
+        },
+        "componentTags": [
+          "hide",
+          "fang"
+        ]
+      }
+    }
+  ],
+  "npcs": [
+    {
+      "id": "bursar_aldous_crane",
+      "scenarios": [
+        "bank_round_trip"
+      ],
+      "source_owner": "src/sim/data.ts#NPCS.bursar_aldous_crane",
+      "definition": {
+        "id": "bursar_aldous_crane",
+        "name": "Bursar Aldous Crane",
+        "title": "The Gilded Strongbox",
+        "pos": {
+          "x": -12,
+          "z": 663
+        },
+        "facing": 1.5707963267948966,
+        "color": 13214247,
+        "questIds": [],
+        "banker": true,
+        "greeting": "Every crate, coffer, and trinket is safe with the Gilded Strongbox."
+      }
+    },
+    {
+      "id": "bursar_fernando",
+      "scenarios": [
+        "bank_round_trip"
+      ],
+      "source_owner": "src/sim/data.ts#NPCS.bursar_fernando",
+      "definition": {
+        "id": "bursar_fernando",
+        "name": "Bursar Fernando",
+        "title": "The Gilded Strongbox",
+        "pos": {
+          "x": 13,
+          "z": 8
+        },
+        "facing": -1.5707963267948966,
+        "color": 13214247,
+        "questIds": [],
+        "banker": true,
+        "greeting": "Welcome to the Gilded Strongbox. Your goods rest safe behind our locks."
+      }
+    },
+    {
+      "id": "bursar_petra_vell",
+      "scenarios": [
+        "bank_round_trip"
+      ],
+      "source_owner": "src/sim/data.ts#NPCS.bursar_petra_vell",
+      "definition": {
+        "id": "bursar_petra_vell",
+        "name": "Bursar Petra Vell",
+        "title": "The Gilded Strongbox",
+        "pos": {
+          "x": 9,
+          "z": 303
+        },
+        "facing": -1.5707963267948966,
+        "color": 13214247,
+        "questIds": [],
+        "banker": true,
+        "greeting": "The Gilded Strongbox keeps clean ledgers and cleaner vaults. What shall we stow for you?"
+      }
+    },
+    {
+      "id": "marshal_redbrook",
+      "scenarios": [
+        "quest_kill_credit",
+        "quest_link_abandon"
+      ],
+      "source_owner": "src/sim/data.ts#NPCS.marshal_redbrook",
+      "definition": {
+        "id": "marshal_redbrook",
+        "name": "Marshal Redbrook",
+        "title": "Town Marshal",
+        "pos": {
+          "x": 4,
+          "z": 6
+        },
+        "facing": 3.141592653589793,
+        "color": 12031243,
+        "questIds": [
+          "q_wolves",
+          "q_greyjaw",
+          "q_bandits",
+          "q_ringleader",
+          "q_mogger"
+        ],
+        "greeting": "Keep your blade close, $C. The Vale is not what it was."
+      }
+    },
+    {
+      "id": "the_merchant",
+      "scenarios": [
+        "market_round_trip"
+      ],
+      "source_owner": "src/sim/data.ts#NPCS.the_merchant",
+      "definition": {
+        "id": "the_merchant",
+        "name": "The Merchant",
+        "title": "Keeper of the World Market",
+        "pos": {
+          "x": 0,
+          "z": 9.5
+        },
+        "facing": 3.141592653589793,
+        "color": 13938487,
+        "questIds": [],
+        "market": true,
+        "greeting": "Welcome to the World Market, $C. Buy from every adventurer in the realm — or set out your own wares and let coin find you."
+      }
+    },
+    {
+      "id": "trader_wilkes",
+      "scenarios": [
+        "inventory_vendor",
+        "quest_collect_turnin"
+      ],
+      "source_owner": "src/sim/data.ts#NPCS.trader_wilkes",
+      "definition": {
+        "id": "trader_wilkes",
+        "name": "Trader Wilkes",
+        "title": "Provisioner",
+        "pos": {
+          "x": -7,
+          "z": 3
+        },
+        "facing": 1.5707963267948966,
+        "color": 1999945,
+        "questIds": [
+          "q_boars",
+          "q_supplies"
+        ],
+        "vendorItems": [
+          "baked_bread",
+          "spring_water",
+          "roasted_boar",
+          "tough_jerky",
+          "minor_healing_potion",
+          "minor_mana_potion",
+          "linen_pouch",
+          "travelers_knapsack",
+          "copper_mining_pick",
+          "iron_mining_pick",
+          "mithril_mining_pick",
+          "handaxe",
+          "felling_axe",
+          "ironbark_axe",
+          "gathering_sickle",
+          "bronze_sickle",
+          "silverleaf_sickle"
+        ],
+        "greeting": "Fresh bread, clean water, fair prices. What can I get you?"
+      }
+    }
+  ],
+  "talent_options": [
+    {
+      "id": "war_row_die_by_the_sword",
+      "scenarios": [
+        "talents_progression"
+      ],
+      "source_owner": "src/sim/content/talent_rows.ts#ROW_TREES.warrior.war_row_die_by_the_sword",
+      "definition": {
+        "id": "war_row_die_by_the_sword",
+        "name": "Die by the Sword",
+        "description": "Defensive cooldown: for 8 sec you take 30% less damage and dodge far more attacks.",
+        "effect": {
+          "grant": {
+            "ability": "die_by_sword"
+          }
+        },
+        "row_level": 8
+      }
+    },
+    {
+      "id": "war_row_double_charge",
+      "scenarios": [
+        "talents_progression"
+      ],
+      "source_owner": "src/sim/content/talent_rows.ts#ROW_TREES.warrior.war_row_double_charge",
+      "definition": {
+        "id": "war_row_double_charge",
+        "name": "Double Charge",
+        "description": "Your Charge stores 2 uses, so you can charge twice in a row.",
+        "effect": {
+          "ability": [
+            {
+              "ability": "charge",
+              "bonusCharges": 1
+            }
+          ]
+        },
+        "row_level": 5
+      }
+    },
+    {
+      "id": "war_row_victory_rush",
+      "scenarios": [
+        "talents_progression"
+      ],
+      "source_owner": "src/sim/content/talent_rows.ts#ROW_TREES.warrior.war_row_victory_rush",
+      "definition": {
+        "id": "war_row_victory_rush",
+        "name": "Victory Rush",
+        "description": "Grants Victory Rush: after killing an enemy, your next strike heals you for 20% of your maximum health.",
+        "effect": {
+          "grant": {
+            "ability": "victory_rush"
+          }
+        },
+        "row_level": 8
+      }
+    }
+  ],
+  "abilities": [
+    {
+      "id": "bloodthirst",
+      "scenarios": [
+        "talents_progression"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.bloodthirst",
+      "definition": {
+        "id": "bloodthirst",
+        "name": "Bloodletting",
+        "class": "warrior",
+        "learnLevel": 5,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 6,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "weaponStrike",
+            "bonus": 30,
+            "weaponMult": 0.5
+          },
+          {
+            "type": "selfHealPctMax",
+            "pct": 0.03
+          },
+          {
+            "type": "gainResource",
+            "amount": 12
+          },
+          {
+            "type": "enrageChance",
+            "chance": 0.3,
+            "duration": 4
+          }
+        ],
+        "description": "Instantly attack in a blood frenzy for $d, healing you for 3% of your maximum health and generating 12 rage. Has a 30% chance to Enrage you. (Fury signature)"
+      }
+    },
+    {
+      "id": "mortal_strike",
+      "scenarios": [
+        "talents_progression"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.mortal_strike",
+      "definition": {
+        "id": "mortal_strike",
+        "name": "Maiming Strike",
+        "class": "warrior",
+        "learnLevel": 5,
+        "cost": 30,
+        "castTime": 0,
+        "cooldown": 6,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "threat": {
+          "mult": 1.2
+        },
+        "effects": [
+          {
+            "type": "weaponStrike",
+            "bonus": 50
+          },
+          {
+            "type": "buffTarget",
+            "kind": "mortal_wound",
+            "value": 0.5,
+            "duration": 10
+          },
+          {
+            "type": "dot",
+            "total": 30,
+            "duration": 6,
+            "interval": 3,
+            "auraId": "deep_wounds"
+          }
+        ],
+        "description": "A vicious strike dealing weapon damage plus $d and reducing healing the target receives by 50% for 10 sec. Applies Gaping Wounds (bleed). (Arms signature)"
+      }
+    },
+    {
+      "id": "overpower",
+      "scenarios": [
+        "talents_progression"
+      ],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.overpower",
+      "definition": {
+        "id": "overpower",
+        "name": "Redhand",
+        "class": "warrior",
+        "learnLevel": 2,
+        "cost": 15,
+        "castTime": 0,
+        "cooldown": 5,
+        "maxCharges": 2,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "excludeSpecs": [
+          "fury",
+          "prot"
+        ],
+        "excludeSpecsAtLevel": 10,
+        "effects": [
+          {
+            "type": "weaponStrike",
+            "bonus": 5,
+            "cannotBeDodged": true
+          },
+          {
+            "type": "selfBuff",
+            "kind": "overpower_charge",
+            "value": 0.2,
+            "duration": 15
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 16,
+            "cost": 15,
+            "effects": [
+              {
+                "type": "weaponStrike",
+                "bonus": 15,
+                "cannotBeDodged": true
+              },
+              {
+                "type": "selfBuff",
+                "kind": "overpower_charge",
+                "value": 0.2,
+                "duration": 15
+              }
+            ]
+          }
+        ],
+        "description": "Instant attack (2 charges) for weapon damage plus $d that empowers your next Maiming Strike by 20% (stacks twice). Cannot be dodged."
+      }
+    }
+  ],
+  "catalog_sha256": "3f4443c0e11ec3546fe6c70019cb45a016d6c025faec7b9ba0a54d290f13925a"
+}

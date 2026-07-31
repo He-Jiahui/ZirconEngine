@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_camp_mob_loot_tests",
+  "source": "src",
+  "binary": "bin-m5-camp-mob-loot-tests",
+  "entry": "content/m5_camp_mob_loot_test_main"
+}

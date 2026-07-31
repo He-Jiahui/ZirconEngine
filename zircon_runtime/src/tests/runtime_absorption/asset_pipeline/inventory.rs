@@ -51,12 +51,12 @@ pub(super) const EXPECTED_RUNTIME_04_GUARD_ANCHORS: &[&str] = &[
     "resource_state_recovers_from_error_only_through_reloading",
     "resource_state_rejects_reload_failure_without_reload_boundary",
     "asset_load_state_projection_matches_resource_record_matrix",
-    "worker_pool_unbounded_mode_is_explicit_opt_in",
+    "worker_pool_default_budgets_are_hard_limits",
     "worker_pool_bounded_queue_rejects_overflow_with_explicit_error",
-    "concurrent_requests_for_same_asset_decode_once_and_notify_all",
+    "concurrent_requests_for_same_asset_share_one_immutable_payload_owner",
     "worker_pool_diagnostics_track_in_flight_and_failure_counts",
-    "worker_pool_frame_sampler_records_per_frame_completion_deltas",
-    "project_asset_manager_spawns_worker_pool_with_frame_sampler",
+    "worker_pool_frame_sampler_records_per_job_completion_deltas",
+    "project_asset_manager_uses_the_injected_runtime_io_pool",
     "rapid_successive_writes_within_debounce_window_emit_single_reload",
     "watcher_failure_on_removed_directory_surfaces_observable_error",
     "hot_reload_transitions_through_reloading_state_and_emits_modified_event",
@@ -77,12 +77,12 @@ pub(super) const EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "resource_state_recovers_from_error_only_through_reloading",
     "resource_state_rejects_reload_failure_without_reload_boundary",
     "asset_load_state_projection_matches_resource_record_matrix",
-    "worker_pool_unbounded_mode_is_explicit_opt_in",
+    "worker_pool_default_budgets_are_hard_limits",
     "worker_pool_bounded_queue_rejects_overflow_with_explicit_error",
-    "concurrent_requests_for_same_asset_decode_once_and_notify_all",
+    "concurrent_requests_for_same_asset_share_one_immutable_payload_owner",
     "worker_pool_diagnostics_track_in_flight_and_failure_counts",
-    "worker_pool_frame_sampler_records_per_frame_completion_deltas",
-    "project_asset_manager_spawns_worker_pool_with_frame_sampler",
+    "worker_pool_frame_sampler_records_per_job_completion_deltas",
+    "project_asset_manager_uses_the_injected_runtime_io_pool",
     "rapid_successive_writes_within_debounce_window_emit_single_reload",
     "watcher_failure_on_removed_directory_surfaces_observable_error",
     "hot_reload_transitions_through_reloading_state_and_emits_modified_event",
@@ -92,6 +92,12 @@ pub(super) const EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "artifact_store_roundtrips_scene_assets_with_physics_components",
     "artifact_store_roundtrips_scene_assets_with_script_binding_json_values",
 ];
+
+pub(super) const RUNTIME_11_WORKER_TIMER_TEST_ANCHORS: &[&str] =
+    &["completion_deadline_transition_reuses_a_full_timer_slot"];
+
+pub(super) const RUNTIME_11_SHARED_COMPLETION_TEST_ANCHORS: &[&str] =
+    &["payload_size_matrix_keeps_one_owner_and_rejects_oversize_retention"];
 
 pub(super) const ASSET_PIPELINE_MIRROR_DOC_ANCHORS: &[&str] = &[
     "asset_pipeline_boundary",

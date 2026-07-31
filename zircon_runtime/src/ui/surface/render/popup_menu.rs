@@ -53,7 +53,7 @@ pub(super) fn popup_menu_render_commands(
         opacity,
     );
 
-    for (row, item) in items.iter().enumerate() {
+    for (row, item) in items.into_iter().enumerate() {
         let row_frame = UiFrame::new(
             popup_frame.x,
             popup_frame.y + row as f32 * row_height,
@@ -73,6 +73,7 @@ pub(super) fn popup_menu_render_commands(
             continue;
         }
         let row_state = item.paint_state();
+        let text_color = item.text_color(row_state);
         push_popup_row_surface(
             &mut commands,
             node_id,
@@ -88,8 +89,8 @@ pub(super) fn popup_menu_render_commands(
             row_frame,
             render_clip,
             row_z.saturating_add(2),
-            item.label.clone(),
-            item.text_color(row_state),
+            item.label,
+            text_color,
             row_state,
             opacity,
         );
@@ -310,26 +311,28 @@ impl RuntimePopupMenuItem {
         if self.separator {
             return;
         }
-        if checked.iter().any(|value| self.matches_id(value)) {
+        if self.matches_set(checked) {
             self.checked = true;
         }
-        if disabled.iter().any(|value| self.matches_id(value)) {
+        if self.matches_set(disabled) {
             self.disabled = true;
         }
-        if focused.iter().any(|value| self.matches_id(value)) || focused_index == Some(row) {
+        if self.matches_set(focused) || focused_index == Some(row) {
             self.focused = true;
         }
-        if hovered.iter().any(|value| self.matches_id(value))
-            || hovered_id.is_some_and(|value| self.matches_id(value))
-        {
+        if self.matches_set(hovered) || hovered_id.is_some_and(|value| self.matches_id(value)) {
             self.hovered = true;
         }
-        if pressed.iter().any(|value| self.matches_id(value)) {
+        if self.matches_set(pressed) {
             self.pressed = true;
         }
-        if loading.iter().any(|value| self.matches_id(value)) {
+        if self.matches_set(loading) {
             self.loading = true;
         }
+    }
+
+    fn matches_set(&self, values: &BTreeSet<String>) -> bool {
+        values.contains(&self.id) || values.contains(&self.label)
     }
 
     fn matches_id(&self, value: &str) -> bool {

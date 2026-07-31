@@ -1,6 +1,9 @@
-use zircon_runtime::scene::{EntityId, Scene, WorldInspectionField, WorldInspectionHierarchyRow};
+use zircon_runtime::scene::{
+    EntityId, Scene, WorldInspectionField, WorldInspectionHierarchyRow, WorldInspectionSummary,
+};
 use zircon_runtime_interface::reflect::ReflectedValue;
 
+use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::SceneViewportSettings;
 
 use super::{
@@ -28,39 +31,45 @@ const RIGID_BODY_COMPONENT_TYPE_PATH: &str =
 pub(crate) fn build_scene_edit_mode_projection(
     scene: &Scene,
     settings: &SceneViewportSettings,
+    mode: SceneModeActivation,
     selected: Option<EntityId>,
     handle_drag_active: bool,
 ) -> SceneEditModeProjection {
-    let selected_entity = selected.filter(|entity| scene.contains_entity(*entity));
+    let inspection = scene.inspection_artifact();
+    let selected_entity = selected.filter(|entity| inspection.hierarchy_row(*entity).is_some());
 
     SceneEditModeProjection {
         selected_entity,
-        hierarchy_rows: scene
-            .inspect_hierarchy()
-            .into_iter()
+        hierarchy_rows: inspection
+            .hierarchy_rows()
+            .iter()
             .map(|row| scene_hierarchy_row_from_runtime(row, selected_entity))
             .collect(),
         inspector_fields: selected_entity
-            .map(|entity| scene.inspect_fields(entity))
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(scene_inspector_field_from_runtime)
-            .collect(),
-        toolbar: build_toolbar_state(settings, selected_entity, handle_drag_active),
-        stats: build_stats(scene, selected_entity),
+            .and_then(|entity| scene.inspection_fields_artifact(entity))
+            .map(|artifact| {
+                artifact
+                    .fields()
+                    .iter()
+                    .filter_map(scene_inspector_field_from_runtime)
+                    .collect()
+            })
+            .unwrap_or_default(),
+        toolbar: build_toolbar_state(settings, mode, selected_entity, handle_drag_active),
+        stats: build_stats(inspection.summary(), selected_entity),
     }
 }
 
 fn scene_hierarchy_row_from_runtime(
-    row: WorldInspectionHierarchyRow,
+    row: &WorldInspectionHierarchyRow,
     selected: Option<EntityId>,
 ) -> SceneHierarchyRow {
     SceneHierarchyRow {
         entity: row.entity,
         parent: row.parent,
         depth: row.depth,
-        display_name: row.display_name,
-        kind: row.kind,
+        display_name: row.display_name.clone(),
+        kind: row.kind.clone(),
         subtree_hash: row.subtree_hash,
         selected: selected == Some(row.entity),
         active_in_hierarchy: row.active_in_hierarchy,
@@ -68,9 +77,9 @@ fn scene_hierarchy_row_from_runtime(
     }
 }
 
-fn scene_inspector_field_from_runtime(field: WorldInspectionField) -> Option<SceneInspectorField> {
-    let property_path = property_path_for_field(&field);
-    let value = scene_inspector_value_from_reflected(&field)?;
+fn scene_inspector_field_from_runtime(field: &WorldInspectionField) -> Option<SceneInspectorField> {
+    let property_path = property_path_for_field(field);
+    let value = scene_inspector_value_from_reflected(field)?;
     let editable = field.writable && property_path.is_some();
     Some(SceneInspectorField {
         component: component_label(&field).to_string(),
@@ -205,11 +214,12 @@ fn title_case_identifier(value: &str) -> String {
 
 fn build_toolbar_state(
     settings: &SceneViewportSettings,
+    mode: SceneModeActivation,
     selected: Option<EntityId>,
     handle_drag_active: bool,
 ) -> SceneViewportToolbarState {
     SceneViewportToolbarState {
-        tool: settings.tool,
+        mode,
         transform_space: settings.transform_space,
         projection_mode: settings.projection_mode,
         view_orientation: settings.view_orientation,
@@ -224,30 +234,13 @@ fn build_toolbar_state(
     }
 }
 
-fn build_stats(scene: &Scene, selected: Option<EntityId>) -> SceneViewportStats {
-    let mut stats = SceneViewportStats {
+fn build_stats(summary: WorldInspectionSummary, selected: Option<EntityId>) -> SceneViewportStats {
+    SceneViewportStats {
         selected_entity: selected,
-        ..SceneViewportStats::default()
-    };
-    for node in scene.node_records() {
-        stats.node_count += 1;
-        if scene.active_in_hierarchy(node.id) == Some(true) {
-            stats.visible_node_count += 1;
-        }
-        if node.camera.is_some() {
-            stats.camera_count += 1;
-        }
-        if node.mesh.is_some() {
-            stats.mesh_count += 1;
-        }
-        if node.directional_light.is_some()
-            || node.ambient_light.is_some()
-            || node.point_light.is_some()
-            || node.rect_light.is_some()
-            || node.spot_light.is_some()
-        {
-            stats.light_count += 1;
-        }
+        node_count: summary.node_count(),
+        visible_node_count: summary.visible_node_count(),
+        camera_count: summary.camera_count(),
+        mesh_count: summary.mesh_count(),
+        light_count: summary.light_count(),
     }
-    stats
 }

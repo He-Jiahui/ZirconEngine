@@ -1,0 +1,252 @@
+// Current-head professions/tools.ts projection. The caller owns the actual
+// gathering target and inventory material deduction; this module preserves the
+// pure tool gate, effect slot, deterministic use and recharge policies.
+var crafting = %import("progression/crafting_transaction");
+var rng = %import("kernel/rng");
+var contract = %import("generated/tool_effect_contract");
+
+pub class ToolEffectSlot {
+    pub var effectId: string;
+    pub var durability: int;
+    // Empty represents source optional craftedBy being absent.
+    pub var craftedBy: string;
+    // 0 always, 1 prompt.
+    pub var confirmMode: int;
+
+    pub @constructor() {
+        this.effectId = "";
+        this.durability = 0;
+        this.craftedBy = "";
+        this.confirmMode = 0;
+    }
+}
+
+pub class HarvestOutcome {
+    pub var quantity: int;
+    pub var quality: int;
+    pub var respawnTicks: int;
+
+    pub @constructor() {
+        this.quantity = 0;
+        this.quality = 0;
+        this.respawnTicks = 0;
+    }
+}
+
+pub class RechargeCost {
+    pub var materials: int;
+    pub var ticks: int;
+
+    pub @constructor() {
+        this.materials = 0;
+        this.ticks = 0;
+    }
+}
+
+pub class RechargeResult {
+    pub var success: bool;
+    pub var cost: RechargeCost;
+
+    pub @constructor() {
+        this.success = false;
+        this.cost = new RechargeCost();
+    }
+}
+
+pub class ToolEffectUseResult {
+    pub var outcome: HarvestOutcome;
+    pub var depleted: bool;
+    pub var applied: bool;
+
+    pub @constructor() {
+        this.outcome = new HarvestOutcome();
+        this.depleted = false;
+        this.applied = false;
+    }
+}
+
+effectIndex(effectId: string): int {
+    var index = 0;
+    while (index < contract.effectCount()) {
+        if (contract.effectIdAt(index) == effectId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+copyOutcome(source: HarvestOutcome): HarvestOutcome {
+    var copied = new HarvestOutcome();
+    copied.quantity = source.quantity;
+    copied.quality = source.quality;
+    copied.respawnTicks = source.respawnTicks;
+    return copied;
+}
+
+ceilNonNegative(value: float): int {
+    var whole = <int>value;
+    return <float>whole < value ? whole + 1 : whole;
+}
+
+pub canGatherTier(playerToolTier: int, nodeTier: int): bool {
+    return playerToolTier >= nodeTier;
+}
+
+pub canHarvestMonsterMaterial(toolTier: int, materialTier: int): bool {
+    return toolTier >= materialTier;
+}
+
+// Valid current-head effect ids create a full-durability slot. The typed
+// source only permits catalog ids; invalid ids return an inert empty slot.
+pub slotEffect(effectId: string, craftedBy: string, confirmMode: int): ToolEffectSlot {
+    var slot = new ToolEffectSlot();
+    var index = effectIndex(effectId);
+    if (index < 0) return slot;
+    slot.effectId = effectId;
+    slot.durability = contract.effectStartingDurabilityAt(index);
+    slot.craftedBy = craftedBy;
+    slot.confirmMode = confirmMode == 1 ? 1 : 0;
+    return slot;
+}
+
+pub applyEffectBonus(slot: ToolEffectSlot, outcome: HarvestOutcome): HarvestOutcome {
+    var result = copyOutcome(outcome);
+    if (slot.durability <= 0) return result;
+    var index = effectIndex(slot.effectId);
+    if (index < 0) return result;
+    var bonus = contract.effectBonusAt(index);
+    var kind = contract.effectKindAt(index);
+    if (kind == "quantity") result.quantity = result.quantity + bonus;
+    else if (kind == "quality") result.quality = result.quality + bonus;
+    else if (kind == "respawnSpeed") {
+        result.respawnTicks = result.respawnTicks - bonus;
+        if (result.respawnTicks < 1) result.respawnTicks = 1;
+    }
+    return result;
+}
+
+pub effectConsumptionChance(toolRarity: string, targetRarity: string): float {
+    var tierGap = contract.rarityIndex(toolRarity) - contract.rarityIndex(targetRarity);
+    if (tierGap <= 0) return 1.0;
+    var chance = 1.0 - contract.consumptionChanceStep() * <float>tierGap;
+    return chance < contract.consumptionChanceFloor() ? contract.consumptionChanceFloor() : chance;
+}
+
+// A present slot always consumes one RNG draw, even after durability reaches
+// zero. This preserves the source stream-position invariant.
+pub depleteEffect(
+    slot: ToolEffectSlot, toolRarity: string, targetRarity: string, stream: rng.Mulberry32
+): bool {
+    var rolled = stream.chance(effectConsumptionChance(toolRarity, targetRarity));
+    if (rolled && slot.durability > 0) {
+        slot.durability = slot.durability - 1;
+        return true;
+    }
+    return false;
+}
+
+pub isOriginalCrafter(slot: ToolEffectSlot, rechargerId: string): bool {
+    return slot.craftedBy != "" && slot.craftedBy == rechargerId;
+}
+
+pub rechargeCost(
+    slot: ToolEffectSlot, rechargerId: string, skills: crafting.CraftingTransactionState
+): RechargeCost {
+    var cost = new RechargeCost();
+    var discount = isOriginalCrafter(slot, rechargerId) ? contract.originalCrafterDiscount() : 1.0;
+    if (isOriginalCrafter(slot, rechargerId)) {
+        var index = effectIndex(slot.effectId);
+        var craftId = index < 0 ? "" : contract.effectCraftIdAt(index);
+        if (craftId != "" && crafting.craftSkillFor(skills, craftId) >= contract.specializedSkillThreshold()) {
+            discount = discount * (1.0 - contract.rechargeDiscountPct());
+        }
+    }
+    cost.materials = ceilNonNegative(<float>contract.rechargeBaseMaterials() * discount);
+    cost.ticks = ceilNonNegative(<float>contract.rechargeBaseTicks() * discount);
+    return cost;
+}
+
+pub rechargeEffect(
+    slot: ToolEffectSlot,
+    rechargerId: string,
+    materialsProvided: int,
+    skills: crafting.CraftingTransactionState
+): RechargeResult {
+    var result = new RechargeResult();
+    result.cost = rechargeCost(slot, rechargerId, skills);
+    if (materialsProvided < result.cost.materials) return result;
+    var index = effectIndex(slot.effectId);
+    if (index < 0) return result;
+    slot.durability = contract.effectStartingDurabilityAt(index);
+    result.success = true;
+    return result;
+}
+
+pub resolveToolEffectUse(
+    hasSlot: bool,
+    slot: ToolEffectSlot,
+    outcome: HarvestOutcome,
+    toolRarity: string,
+    targetRarity: string,
+    stream: rng.Mulberry32,
+    confirmed: bool
+): ToolEffectUseResult {
+    var result = new ToolEffectUseResult();
+    result.outcome = copyOutcome(outcome);
+    if (!hasSlot) return result;
+    if (slot.confirmMode == 1 && !confirmed) return result;
+    result.outcome = applyEffectBonus(slot, outcome);
+    result.depleted = depleteEffect(slot, toolRarity, targetRarity, stream);
+    result.applied = true;
+    return result;
+}
+
+makeOutcome(quantity: int, quality: int, respawnTicks: int): HarvestOutcome {
+    var outcome = new HarvestOutcome();
+    outcome.quantity = quantity;
+    outcome.quality = quality;
+    outcome.respawnTicks = respawnTicks;
+    return outcome;
+}
+
+pub contractTest(): int {
+    if (!canGatherTier(2, 1) || !canGatherTier(2, 2) || canGatherTier(1, 2) ||
+        !canHarvestMonsterMaterial(3, 2) || canHarvestMonsterMaterial(1, 2)) return -1;
+    if (effectConsumptionChance("epic", "epic") != 1.0 ||
+        effectConsumptionChance("epic", "rare") != 0.6 ||
+        effectConsumptionChance("epic", "uncommon") != 0.2 ||
+        effectConsumptionChance("epic", "common") != 0.1) return -2;
+
+    var source = makeOutcome(2, 3, 1);
+    var quantitySlot = slotEffect("gatherers_cache", "Ada", 0);
+    var quantity = applyEffectBonus(quantitySlot, source);
+    if (quantity.quantity != 3 || quantity.quality != 3 || quantity.respawnTicks != 1) return -3;
+    var qualitySlot = slotEffect("artisans_eye", "", 0);
+    if (applyEffectBonus(qualitySlot, source).quality != 4) return -4;
+    var speedSlot = slotEffect("quickening_charm", "", 0);
+    if (applyEffectBonus(speedSlot, source).respawnTicks != 1) return -5;
+
+    var promptSlot = slotEffect("gatherers_cache", "Ada", 1);
+    var stream = new rng.Mulberry32(<uint>1);
+    var skipped = resolveToolEffectUse(true, promptSlot, source, "epic", "common", stream, false);
+    if (skipped.applied || skipped.depleted || skipped.outcome.quantity != 2 || stream.draws != <uint>0) return -6;
+    var accepted = resolveToolEffectUse(true, promptSlot, source, "epic", "common", stream, true);
+    if (!accepted.applied || accepted.depleted || accepted.outcome.quantity != 3 ||
+        promptSlot.durability != 20 || stream.draws != <uint>1) return -7;
+    promptSlot.durability = 1;
+    if (!depleteEffect(promptSlot, "epic", "epic", stream) || promptSlot.durability != 0 ||
+        stream.draws != <uint>2) return -8;
+    var exhausted = resolveToolEffectUse(true, promptSlot, source, "epic", "common", stream, true);
+    if (!exhausted.applied || exhausted.depleted || exhausted.outcome.quantity != 2 ||
+        stream.draws != <uint>3) return -9;
+
+    var skills = new crafting.CraftingTransactionState();
+    var generic = rechargeCost(promptSlot, "Bryn", skills);
+    var original = rechargeCost(promptSlot, "Ada", skills);
+    if (generic.materials != 4 || generic.ticks != 600 || original.materials != 2 || original.ticks != 300) return -10;
+    crafting.setCraftSkill(skills, "enchanting", 75.0);
+    var specialized = rechargeCost(promptSlot, "Ada", skills);
+    if (specialized.materials != 2 || specialized.ticks != 225) return -11;
+    if (rechargeEffect(promptSlot, "Ada", 1, skills).success || promptSlot.durability != 0) return -12;
+    if (!rechargeEffect(promptSlot, "Ada", 2, skills).success || promptSlot.durability != 20) return -13;
+    return 1;
+}

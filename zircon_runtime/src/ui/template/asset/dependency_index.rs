@@ -70,23 +70,24 @@ impl UiAssetDependencyIndex {
     }
 
     pub fn cascade_invalidation_targets(&self, changed: &str) -> Vec<String> {
-        let mut seen = BTreeSet::new();
-        let mut queue = VecDeque::new();
+        let mut seen: BTreeSet<&str> = BTreeSet::new();
+        let mut queue: VecDeque<&str> = VecDeque::new();
         let mut targets = Vec::new();
 
         // The changed asset seeds traversal but is not returned as its own
         // dependent, which keeps self-cycles from scheduling duplicate rebuilds.
-        seen.insert(changed.to_string());
-        queue.push_back(changed.to_string());
+        seen.insert(changed);
+        queue.push_back(changed);
 
         while let Some(asset_id) = queue.pop_front() {
-            let Some(dependents) = self.dependents_by_asset.get(&asset_id) else {
+            let Some(dependents) = self.dependents_by_asset.get(asset_id) else {
                 continue;
             };
             for dependent in dependents {
-                if seen.insert(dependent.clone()) {
-                    targets.push(dependent.clone());
-                    queue.push_back(dependent.clone());
+                let dependent = dependent.as_str();
+                if seen.insert(dependent) {
+                    targets.push(dependent.to_string());
+                    queue.push_back(dependent);
                 }
             }
         }

@@ -147,10 +147,14 @@ impl ViewportRenderOutputTarget {
 pub(crate) struct ViewportTextureWritebackPlan {
     target_kind: RenderCameraTargetKind,
     status: ViewportTextureWritebackStatus,
+    #[cfg(test)]
     texture: Option<ResourceHandle<TextureMarker>>,
     size: Option<UVec2>,
+    #[cfg(test)]
     target_format: Option<String>,
+    #[cfg(test)]
     expected_target_format: Option<String>,
+    #[cfg(test)]
     source_format: Option<String>,
 }
 
@@ -159,85 +163,109 @@ impl ViewportTextureWritebackPlan {
         Self {
             target_kind,
             status: ViewportTextureWritebackStatus::NotRequested,
+            #[cfg(test)]
             texture: None,
             size: None,
+            #[cfg(test)]
             target_format: None,
+            #[cfg(test)]
             expected_target_format: None,
+            #[cfg(test)]
             source_format: None,
         }
     }
 
     fn pending_descriptor(
-        texture: ResourceHandle<TextureMarker>,
+        _texture: ResourceHandle<TextureMarker>,
         size: UVec2,
-        target_format: &'static str,
+        _target_format: &'static str,
     ) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureWritebackStatus::PendingTargetDescriptor,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
-            target_format: Some(target_format.to_string()),
-            expected_target_format: Some(target_format.to_string()),
+            #[cfg(test)]
+            target_format: Some(_target_format.to_string()),
+            #[cfg(test)]
+            expected_target_format: Some(_target_format.to_string()),
+            #[cfg(test)]
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
 
-    fn ready(texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
+    fn ready(_texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureWritebackStatus::ReadyForSrgbCopy,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
+            #[cfg(test)]
             target_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
+            #[cfg(test)]
             expected_target_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
+            #[cfg(test)]
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
 
-    fn ready_for_conversion(texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
+    fn ready_for_conversion(_texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureWritebackStatus::ReadyForConversion,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
+            #[cfg(test)]
             target_format: Some(LINEAR_OUTPUT_FORMAT_LABEL.to_string()),
+            #[cfg(test)]
             expected_target_format: Some(LINEAR_OUTPUT_FORMAT_LABEL.to_string()),
+            #[cfg(test)]
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
 
     fn blocked_prepared_format_mismatch(
-        texture: ResourceHandle<TextureMarker>,
+        _texture: ResourceHandle<TextureMarker>,
         size: UVec2,
-        target_format: &str,
-        expected_target_format: &'static str,
+        _target_format: &str,
+        _expected_target_format: &'static str,
     ) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureWritebackStatus::BlockedPreparedFormatMismatch,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
-            target_format: Some(target_format.trim().to_string()),
-            expected_target_format: Some(expected_target_format.to_string()),
+            #[cfg(test)]
+            target_format: Some(_target_format.trim().to_string()),
+            #[cfg(test)]
+            expected_target_format: Some(_expected_target_format.to_string()),
+            #[cfg(test)]
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
 
     fn blocked_format(
-        texture: ResourceHandle<TextureMarker>,
+        _texture: ResourceHandle<TextureMarker>,
         size: UVec2,
-        target_format: &str,
-        source_format: &str,
+        _target_format: &str,
+        _source_format: &str,
     ) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureWritebackStatus::BlockedFormatMismatch,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
-            target_format: Some(target_format.to_string()),
-            expected_target_format: Some(target_format.to_string()),
-            source_format: Some(source_format.to_string()),
+            #[cfg(test)]
+            target_format: Some(_target_format.to_string()),
+            #[cfg(test)]
+            expected_target_format: Some(_target_format.to_string()),
+            #[cfg(test)]
+            source_format: Some(_source_format.to_string()),
         }
     }
 
@@ -289,10 +317,14 @@ pub(crate) enum ViewportTextureWritebackStatus {
 pub(crate) struct ViewportTextureGraphImportPlan {
     target_kind: RenderCameraTargetKind,
     status: ViewportTextureGraphImportStatus,
+    #[cfg(test)]
     texture: Option<ResourceHandle<TextureMarker>>,
     size: Option<UVec2>,
+    #[cfg(test)]
     target_format: Option<String>,
+    #[cfg(test)]
     expected_target_format: Option<String>,
+    #[cfg(test)]
     source_format: Option<String>,
 }
 
@@ -301,85 +333,109 @@ impl ViewportTextureGraphImportPlan {
         Self {
             target_kind,
             status: ViewportTextureGraphImportStatus::NotRequested,
+            #[cfg(test)]
             texture: None,
             size: None,
+            #[cfg(test)]
             target_format: None,
+            #[cfg(test)]
             expected_target_format: None,
+            #[cfg(test)]
             source_format: None,
         }
     }
 
     fn pending_descriptor(
-        texture: ResourceHandle<TextureMarker>,
+        _texture: ResourceHandle<TextureMarker>,
         size: UVec2,
-        target_format: &'static str,
+        _target_format: &'static str,
     ) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureGraphImportStatus::PendingTargetDescriptor,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
-            target_format: Some(target_format.to_string()),
-            expected_target_format: Some(target_format.to_string()),
+            #[cfg(test)]
+            target_format: Some(_target_format.to_string()),
+            #[cfg(test)]
+            expected_target_format: Some(_target_format.to_string()),
+            #[cfg(test)]
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
 
-    fn ready_for_direct_import(texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
+    fn ready_for_direct_import(_texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureGraphImportStatus::ReadyForDirectImport,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
+            #[cfg(test)]
             target_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
+            #[cfg(test)]
             expected_target_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
+            #[cfg(test)]
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
 
-    fn requires_conversion_writeback(texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
+    fn requires_conversion_writeback(_texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureGraphImportStatus::RequiresConversionWriteback,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
+            #[cfg(test)]
             target_format: Some(LINEAR_OUTPUT_FORMAT_LABEL.to_string()),
+            #[cfg(test)]
             expected_target_format: Some(LINEAR_OUTPUT_FORMAT_LABEL.to_string()),
+            #[cfg(test)]
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
 
     fn blocked_prepared_format_mismatch(
-        texture: ResourceHandle<TextureMarker>,
+        _texture: ResourceHandle<TextureMarker>,
         size: UVec2,
-        target_format: &str,
-        expected_target_format: &'static str,
+        _target_format: &str,
+        _expected_target_format: &'static str,
     ) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureGraphImportStatus::BlockedPreparedFormatMismatch,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
-            target_format: Some(target_format.trim().to_string()),
-            expected_target_format: Some(expected_target_format.to_string()),
+            #[cfg(test)]
+            target_format: Some(_target_format.trim().to_string()),
+            #[cfg(test)]
+            expected_target_format: Some(_expected_target_format.to_string()),
+            #[cfg(test)]
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
 
     fn blocked_format(
-        texture: ResourceHandle<TextureMarker>,
+        _texture: ResourceHandle<TextureMarker>,
         size: UVec2,
-        target_format: &str,
-        source_format: &str,
+        _target_format: &str,
+        _source_format: &str,
     ) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureGraphImportStatus::BlockedFormatMismatch,
-            texture: Some(texture),
+            #[cfg(test)]
+            texture: Some(_texture),
             size: Some(size),
-            target_format: Some(target_format.to_string()),
-            expected_target_format: Some(target_format.to_string()),
-            source_format: Some(source_format.to_string()),
+            #[cfg(test)]
+            target_format: Some(_target_format.to_string()),
+            #[cfg(test)]
+            expected_target_format: Some(_target_format.to_string()),
+            #[cfg(test)]
+            source_format: Some(_source_format.to_string()),
         }
     }
 
@@ -435,6 +491,26 @@ fn format_label_matches(actual: &str, expected: &str) -> bool {
 mod tests {
     use super::*;
     use crate::core::resource::ResourceId;
+
+    #[test]
+    fn output_target_plans_keep_diagnostic_payloads_out_of_production_builds() {
+        let source = include_str!("viewport_render_output_target.rs");
+
+        for field in [
+            "texture: Option<ResourceHandle<TextureMarker>>",
+            "target_format: Option<String>",
+            "expected_target_format: Option<String>",
+            "source_format: Option<String>",
+        ] {
+            assert_eq!(
+                source
+                    .matches(&format!("#[cfg(test)]\n    {field}"))
+                    .count(),
+                2,
+                "both plan types must compile {field} only for tests",
+            );
+        }
+    }
 
     #[test]
     fn output_target_writeback_plan_ignores_non_texture_targets() {

@@ -1,3 +1,5 @@
+use std::sync::{Arc, OnceLock};
+
 use zircon_runtime::plugin::{EditorCoreProfile, RuntimePluginRegistrationReport};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -149,9 +151,16 @@ impl RuntimeCapabilities {
         &self.plugin_summary
     }
 
-    pub(crate) fn unavailable() -> &'static Self {
-        static CAPABILITIES: std::sync::OnceLock<RuntimeCapabilities> = std::sync::OnceLock::new();
+    pub(crate) fn unavailable() -> Arc<Self> {
+        static CAPABILITIES: OnceLock<Arc<RuntimeCapabilities>> = OnceLock::new();
         CAPABILITIES
-            .get_or_init(|| Self::new(SessionProfileKind::Minimal, Vec::<String>::new(), []))
+            .get_or_init(|| {
+                Arc::new(Self::new(
+                    SessionProfileKind::Minimal,
+                    Vec::<String>::new(),
+                    [],
+                ))
+            })
+            .clone()
     }
 }

@@ -1,8 +1,9 @@
 use std::fs;
 
 use crate::asset::tests::project::unique_temp_project_root;
-use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;
-use crate::asset::{AssetImportOutcome, AssetUri, ImportedAsset, ImportedAssetEntry};
+use crate::asset::{
+    AssetImportOutcome, AssetImporter, AssetUri, ImportedAsset, ImportedAssetEntry,
+};
 
 #[test]
 fn importer_emits_obj_multi_mesh_subassets() {
@@ -12,7 +13,7 @@ fn importer_emits_obj_multi_mesh_subassets() {
     fs::write(&obj_path, two_object_obj_source()).unwrap();
     let root_uri = AssetUri::parse("res://models/two_objects.obj").unwrap();
 
-    let outcome = importer_with_first_wave_plugin_fixtures()
+    let outcome = AssetImporter::default()
         .import_with_settings(&obj_path, &root_uri, Default::default())
         .unwrap();
     let root_entry = outcome.root_entry().expect("root obj entry");

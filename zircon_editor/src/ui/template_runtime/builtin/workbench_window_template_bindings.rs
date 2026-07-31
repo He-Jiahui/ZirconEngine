@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::scene::viewport::{GridMode, SceneViewportTool};
+use crate::scene::modes::SceneModeActivation;
+use crate::scene::viewport::{GridMode, TransformHandleKind};
 use crate::ui::binding::{
     DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, SelectionCommand,
     ViewportCommand,
@@ -38,33 +39,49 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         "Commit",
         EditorUiBindingPayload::editor_command("editor.command.palette"),
     );
+    insert_change(
+        &mut bindings,
+        "CommandPalette",
+        "QueryChanged",
+        EditorUiBindingPayload::menu_action("editor.command_palette.query_changed"),
+    );
+    insert_change(
+        &mut bindings,
+        "CommandPalette",
+        "WindowRequested",
+        EditorUiBindingPayload::menu_action("editor.command_palette.window_requested"),
+    );
 
     insert_click(
         &mut bindings,
         "Tool",
         "Select",
-        EditorUiBindingPayload::viewport_command(ViewportCommand::SetTool(SceneViewportTool::Drag)),
+        EditorUiBindingPayload::viewport_command(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Select,
+        )),
     );
     insert_click(
         &mut bindings,
         "Tool",
         "Move",
-        EditorUiBindingPayload::viewport_command(ViewportCommand::SetTool(SceneViewportTool::Move)),
+        EditorUiBindingPayload::viewport_command(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Transform(TransformHandleKind::Move),
+        )),
     );
     insert_click(
         &mut bindings,
         "Tool",
         "Rotate",
-        EditorUiBindingPayload::viewport_command(ViewportCommand::SetTool(
-            SceneViewportTool::Rotate,
+        EditorUiBindingPayload::viewport_command(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Transform(TransformHandleKind::Rotate),
         )),
     );
     insert_click(
         &mut bindings,
         "Tool",
         "Scale",
-        EditorUiBindingPayload::viewport_command(ViewportCommand::SetTool(
-            SceneViewportTool::Scale,
+        EditorUiBindingPayload::viewport_command(ViewportCommand::ActivateSceneMode(
+            SceneModeActivation::Transform(TransformHandleKind::Scale),
         )),
     );
     insert_click(
@@ -531,6 +548,24 @@ mod tests {
         assert_eq!(
             binding.payload(),
             &EditorUiBindingPayload::editor_command("editor.command.palette")
+        );
+
+        let query_binding = bindings
+            .get("CommandPalette/QueryChanged")
+            .expect("command palette query binding should be registered");
+        assert_eq!(query_binding.path().event_kind, EditorUiEventKind::Change);
+        assert_eq!(
+            query_binding.payload(),
+            &EditorUiBindingPayload::menu_action("editor.command_palette.query_changed")
+        );
+
+        let window_binding = bindings
+            .get("CommandPalette/WindowRequested")
+            .expect("command palette window request binding should be registered");
+        assert_eq!(window_binding.path().event_kind, EditorUiEventKind::Change);
+        assert_eq!(
+            window_binding.payload(),
+            &EditorUiBindingPayload::menu_action("editor.command_palette.window_requested")
         );
     }
 

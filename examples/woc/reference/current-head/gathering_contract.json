@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/gathering_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/gathering.ts": "e25b174f9b9d1b7e5e223795fbe345b20ccf6f56b34d2fdd2f2e5e04da62f67c",
+    "src/sim/content/gather_nodes.ts": "f6d5969b2d489847dacab6645df315b198744e5e2f7d86c3b86c8c0a000dd89b",
+    "src/sim/content/professions.ts": "d2d8567ab607693ab59a19d145187d0bad8b153c209c85b8f3cce5eed6277c3b"
+  },
+  "profession_ids": [
+    "mining",
+    "logging",
+    "herbalism"
+  ],
+  "profession_max_skill": {
+    "mining": 300,
+    "logging": 300,
+    "herbalism": 300
+  },
+  "node_harvest_table": [
+    {
+      "type": "ore",
+      "profession_id": "mining",
+      "item_id": "bone_fragments",
+      "respawn_seconds": 120
+    },
+    {
+      "type": "wood",
+      "profession_id": "logging",
+      "item_id": "linen_scrap",
+      "respawn_seconds": 120
+    },
+    {
+      "type": "herb",
+      "profession_id": "herbalism",
+      "item_id": "spider_leg",
+      "respawn_seconds": 120
+    }
+  ],
+  "nodes": [
+    {
+      "id": "ore_eastbrook_1",
+      "zone_id": "eastbrook_vale",
+      "type": "ore",
+      "x": -70,
+      "z": -53,
+      "level": 4
+    },
+    {
+      "id": "ore_eastbrook_2",
+      "zone_id": "eastbrook_vale",
+      "type": "ore",
+      "x": -73,
+      "z": -49,
+      "level": 4
+    },
+    {
+      "id": "ore_eastbrook_3",
+      "zone_id": "eastbrook_vale",
+      "type": "ore",
+      "x": -67,
+      "z": -57,
+      "level": 4
+    },
+    {
+      "id": "wood_eastbrook_1",
+      "zone_id": "eastbrook_vale",
+      "type": "wood",
+      "x": -62,
+      "z": 8,
+      "level": 4
+    },
+    {
+      "id": "wood_eastbrook_2",
+      "zone_id": "eastbrook_vale",
+      "type": "wood",
+      "x": -57,
+      "z": -6,
+      "level": 4
+    },
+    {
+      "id": "wood_eastbrook_3",
+      "zone_id": "eastbrook_vale",
+      "type": "wood",
+      "x": -68,
+      "z": 18,
+      "level": 4
+    },
+    {
+      "id": "herb_eastbrook_1",
+      "zone_id": "eastbrook_vale",
+      "type": "herb",
+      "x": -86,
+      "z": 90,
+      "level": 4
+    },
+    {
+      "id": "herb_eastbrook_2",
+      "zone_id": "eastbrook_vale",
+      "type": "herb",
+      "x": -92,
+      "z": 80,
+      "level": 4
+    },
+    {
+      "id": "herb_eastbrook_3",
+      "zone_id": "eastbrook_vale",
+      "type": "herb",
+      "x": -80,
+      "z": 95,
+      "level": 4
+    },
+    {
+      "id": "ore_mirefen_1",
+      "zone_id": "mirefen_marsh",
+      "type": "ore",
+      "x": 40,
+      "z": 340,
+      "level": 10
+    },
+    {
+      "id": "ore_mirefen_2",
+      "zone_id": "mirefen_marsh",
+      "type": "ore",
+      "x": -30,
+      "z": 360,
+      "level": 10
+    },
+    {
+      "id": "ore_mirefen_3",
+      "zone_id": "mirefen_marsh",
+      "type": "ore",
+      "x": 35,
+      "z": 345,
+      "level": 10
+    },
+    {
+      "id": "wood_mirefen_1",
+      "zone_id": "mirefen_marsh",
+      "type": "wood",
+      "x": 10,
+      "z": 330,
+      "level": 10
+    },
+    {
+      "id": "wood_mirefen_2",
+      "zone_id": "mirefen_marsh",
+      "type": "wood",
+      "x": -15,
+      "z": 355,
+      "level": 10
+    },
+    {
+      "id": "wood_mirefen_3",
+      "zone_id": "mirefen_marsh",
+      "type": "wood",
+      "x": -20,
+      "z": 315,
+      "level": 10
+    },
+    {
+      "id": "herb_mirefen_1",
+      "zone_id": "mirefen_marsh",
+      "type": "herb",
+      "x": 60,
+      "z": 385,
+      "level": 10
+    },
+    {
+      "id": "herb_mirefen_2",
+      "zone_id": "mirefen_marsh",
+      "type": "herb",
+      "x": -45,
+      "z": 452,
+      "level": 10
+    },
+    {
+      "id": "herb_mirefen_3",
+      "zone_id": "mirefen_marsh",
+      "type": "herb",
+      "x": 30,
+      "z": 355,
+      "level": 10
+    },
+    {
+      "id": "ore_thornpeak_1",
+      "zone_id": "thornpeak_heights",
+      "type": "ore",
+      "x": 90,
+      "z": 608,
+      "level": 17
+    },
+    {
+      "id": "ore_thornpeak_2",
+      "zone_id": "thornpeak_heights",
+      "type": "ore",
+      "x": 78,
+      "z": 630,
+      "level": 17
+    },
+    {
+      "id": "wood_thornpeak_1",
+      "zone_id": "thornpeak_heights",
+      "type": "wood",
+      "x": -55,
+      "z": 765,
+      "level": 17
+    },
+    {
+      "id": "wood_thornpeak_2",
+      "zone_id": "thornpeak_heights",
+      "type": "wood",
+      "x": -82,
+      "z": 782,
+      "level": 17
+    },
+    {
+      "id": "herb_thornpeak_1",
+      "zone_id": "thornpeak_heights",
+      "type": "herb",
+      "x": 18,
+      "z": 648,
+      "level": 17
+    },
+    {
+      "id": "herb_thornpeak_2",
+      "zone_id": "thornpeak_heights",
+      "type": "herb",
+      "x": -18,
+      "z": 678,
+      "level": 17
+    }
+  ],
+  "material_rarity": {
+    "tiers": [
+      "common",
+      "uncommon",
+      "rare",
+      "epic",
+      "legendary"
+    ],
+    "max_proficiency": 100,
+    "shares": {
+      "uncommon": 0.6,
+      "rare": 0.3,
+      "epic": 0.08,
+      "legendary": 0.02
+    }
+  },
+  "harvest_components": {
+    "hide": "boar_hide",
+    "fang": "wolf_fang",
+    "silk": "webwood_silk",
+    "venomSac": "widow_venom_sac"
+  },
+  "harvest_tiers": [
+    "poor",
+    "common",
+    "uncommon",
+    "rare",
+    "epic",
+    "legendary"
+  ],
+  "focus_tier_weights": [
+    40,
+    30,
+    15,
+    10,
+    4,
+    1
+  ],
+  "corpse_harvest_rarity_baseline": 40,
+  "semantics": {
+    "node": "a ready node first records the player-local respawn time, then consumes exactly one material-rarity RNG draw and queues one matching proficiency grant",
+    "proficiency": "mining, logging and herbalism are independent additive counters; non-positive queued grants are ignored and queued grants settle on drain",
+    "corpse_claim": "the first claimant succeeds and retains its player id; every later claimant observes that existing id",
+    "focus": "empty or full selections spread all tags, otherwise valid selected tags retain selection order; every yielded component consumes one tier RNG draw and concentration shifts its tier upward",
+    "signing": "corpse material rarity uses the fixed baseline and only rare, epic and legendary material is signable"
+  }
+}

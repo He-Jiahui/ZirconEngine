@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_template_nodes::material_primitives::resolved_style_color;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, HostMaterialPalette,
+    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paper_background_color(
@@ -38,12 +38,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paper_b
     node: &TemplatePaneNodeData,
     outlined: bool,
 ) -> f32 {
+    paper_border_width_from_host(node, outlined, current_host_metrics())
+}
+
+fn paper_border_width_from_host(
+    node: &TemplatePaneNodeData,
+    outlined: bool,
+    metrics: HostControlMetrics,
+) -> f32 {
     let configured = node
         .border_width
         .max(node.button_style.element.border_width)
         .max(0.0);
     if outlined {
-        configured.max(1.0)
+        configured.max(metrics.border_width)
     } else {
         configured
     }
@@ -52,7 +60,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paper_b
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+    use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
     use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
 
     #[test]
@@ -92,5 +100,37 @@ mod tests {
             paper_border_color_from_host(&node, true, palette),
             Some([40, 41, 42, 255])
         );
+    }
+
+    #[test]
+    fn paper_outlined_border_width_projects_from_shared_host_metrics() {
+        let metrics = HostControlMetrics {
+            border_width: 1.5,
+            ..METRICS
+        };
+
+        assert_eq!(
+            paper_border_width_from_host(&TemplatePaneNodeData::default(), true, metrics),
+            1.5
+        );
+        assert_eq!(
+            paper_border_width_from_host(&TemplatePaneNodeData::default(), false, metrics),
+            0.0
+        );
+    }
+
+    #[test]
+    fn paper_declared_border_width_remains_authoritative() {
+        let metrics = HostControlMetrics {
+            border_width: 1.5,
+            ..METRICS
+        };
+        let node = TemplatePaneNodeData {
+            border_width: 2.5,
+            ..TemplatePaneNodeData::default()
+        };
+
+        assert_eq!(paper_border_width_from_host(&node, true, metrics), 2.5);
+        assert_eq!(paper_border_width_from_host(&node, false, metrics), 2.5);
     }
 }

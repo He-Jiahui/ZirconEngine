@@ -3,7 +3,7 @@ use zircon_runtime_interface::math::Vec3;
 
 use crate::scene::viewport::pointer::ViewportOverlayPointerRouter;
 
-use super::{viewport_hover_state::ViewportHoverState, SceneViewportController};
+use super::{SceneViewportController, viewport_hover_state::ViewportHoverState};
 
 impl SceneViewportController {
     pub(crate) fn reset_from_scene(&mut self, scene: Option<&Scene>) {

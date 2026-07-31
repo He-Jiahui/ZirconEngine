@@ -1,0 +1,105 @@
+var console = %import("zr.system.console");
+var boss = %import("world/world_boss_participation_state");
+
+closeEnough(value: float, expected: float): bool {
+    var difference = value - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+var result = 1;
+if (boss.worldBossIntervalSeconds() != 3600 || boss.worldBossCorpseSeconds() != 900 ||
+    boss.worldBossTemplateId() != "thunzharr_waking_peak" ||
+    !closeEnough(boss.worldBossSpawnX(), 110.0) || !closeEnough(boss.worldBossSpawnZ(), 760.0) ||
+    boss.worldBossBaseHp() != 40000 || boss.worldBossPerParticipantHp() != 5000 ||
+    boss.worldBossMaximumHp() != 1000000 ||
+    boss.worldBossLockoutId(boss.worldBossTemplateId()) != "worldboss:thunzharr_waking_peak") {
+    result = -1;
+}
+
+var state = new boss.WorldBossParticipationState();
+state.addParticipant(<uint>5, false);
+state.addParticipant(<uint>2, false);
+state.addParticipant(<uint>9, true);
+state.addThreat(<uint>50, <uint>2);
+state.addThreat(<uint>5, <uint>0);
+state.addThreat(<uint>9, <uint>0);
+state.addDamager(<uint>9);
+state.addDamager(<uint>5);
+var contributors = new boss.WorldBossContributorIds();
+boss.worldBossContributors(state, contributors);
+if (contributors.ids.length != 2 || <uint>contributors.ids[0] != <uint>2 ||
+    <uint>contributors.ids[1] != <uint>5) {
+    result = -2;
+}
+
+var hp = new boss.WorldBossHp();
+hp.hp = 20000;
+hp.maxHp = boss.worldBossBaseHp();
+boss.scaleWorldBossHp(state, hp);
+if (result == 1 && (hp.maxHp != 45000 || hp.hp != 25000 ||
+    boss.scaledWorldBossMaximumForParticipants(1) != 40000 ||
+    boss.scaledWorldBossMaximumForParticipants(201) != boss.worldBossMaximumHp())) {
+    result = -3;
+}
+
+state.clearThreat();
+boss.scaleWorldBossHp(state, hp);
+if (result == 1 && (hp.maxHp != 45000 || hp.hp != 25000)) { result = -4; }
+
+state.setParticipantLeaving(<uint>9, false);
+boss.worldBossLootContributors(state, contributors);
+if (result == 1 && (contributors.ids.length != 2 || <uint>contributors.ids[0] != <uint>5 ||
+    <uint>contributors.ids[1] != <uint>9)) {
+    result = -5;
+}
+
+if (result == 1 && (!boss.isWorldBossLootEligible(state, <uint>5, 1000000) ||
+    !boss.markWorldBossLooted(state, <uint>5, 9999999999) ||
+    boss.isWorldBossLootEligible(state, <uint>5, 9999999998) ||
+    !boss.isWorldBossLootEligible(state, <uint>5, 9999999999) ||
+    boss.markWorldBossLooted(state, <uint>5, 0))) {
+    result = -6;
+}
+
+boss.resetWorldBossPull(state);
+boss.worldBossLootContributors(state, contributors);
+if (result == 1 && (contributors.ids.length != 0 || state.threatAttackerIds.length != 0 ||
+    state.bossDamagerIds.length != 0)) {
+    result = -7;
+}
+
+var schedule = new boss.WorldBossScheduleState();
+boss.updateWorldBossSchedule(schedule, 3599.0, true);
+if (result == 1 && (schedule.bossPresent || schedule.spawnEvents != 0 ||
+    !closeEnough(schedule.nextAt, 3600.0))) {
+    result = -8;
+}
+boss.updateWorldBossSchedule(schedule, 3600.0, true);
+if (result == 1 && (!schedule.bossPresent || schedule.spawnEvents != 1 ||
+    !closeEnough(schedule.nextAt, 7200.0))) {
+    result = -9;
+}
+boss.updateWorldBossSchedule(schedule, 3600.0, true);
+if (result == 1 && (schedule.spawnEvents != 1 || !closeEnough(schedule.nextAt, 7200.0))) {
+    result = -10;
+}
+schedule.bossDead = true;
+schedule.corpseTimer = 0.0;
+boss.updateWorldBossSchedule(schedule, 7200.0, true);
+if (result == 1 && (schedule.corpseRemovalRequests != 1 || !schedule.bossPresent ||
+    schedule.spawnEvents != 2 || !closeEnough(schedule.nextAt, 10800.0))) {
+    result = -11;
+}
+
+var atBoot = new boss.WorldBossScheduleState();
+boss.initializeWorldBossSchedule(atBoot, true);
+boss.updateWorldBossSchedule(atBoot, 0.0, true);
+if (result == 1 && (!atBoot.bossPresent || atBoot.spawnEvents != 1 ||
+    !closeEnough(atBoot.nextAt, 3600.0))) {
+    result = -12;
+}
+
+console.printLine("m4-world-boss-participation-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

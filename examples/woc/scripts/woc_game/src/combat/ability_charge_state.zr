@@ -1,0 +1,234 @@
+// Pure current-head projection of the abilityCharges model in
+// src/sim/combat/casting_lifecycle.ts, combat/auras.ts, and
+// combat/effect_dispatch.ts at 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a.
+// Entity ownership, generic cooldown maps, save JSON, and cast resolution stay
+// in WOS. This module retains the per-ability state and the visible empty-pool
+// cooldown mirror that those integration layers consume.
+var container = %import("zr.container");
+
+pub class AbilityChargeState {
+    pub var charges: int;
+    pub var maxCharges: int;
+    pub var recharge: float;
+    pub var rechargeLength: float;
+    // Source recharges is optional for legacy sequential saves. The flag keeps
+    // that distinction even though Zr arrays themselves are always allocated.
+    pub var rechargesMaterialized: bool;
+    pub var recharges: container.Array<float>;
+    pub var hasCooldownMirror: bool;
+    pub var cooldownMirror: float;
+
+    pub @constructor(maxCharges: int, rechargeLength: float) {
+        if (maxCharges <= 1 || rechargeLength <= 0.0) {
+            throw "ability charge state requires a positive bonus-charge cooldown";
+        }
+        this.charges = maxCharges;
+        this.maxCharges = maxCharges;
+        this.recharge = 0.0;
+        this.rechargeLength = rechargeLength;
+        this.rechargesMaterialized = false;
+        this.recharges = new container.Array<float>();
+        this.hasCooldownMirror = false;
+        this.cooldownMirror = 0.0;
+    }
+}
+
+pub abilityReady(state: AbilityChargeState): bool {
+    return state.charges > 0;
+}
+
+clearRecharges(state: AbilityChargeState): void {
+    while (state.recharges.length > 0) {
+        state.recharges.removeAt(state.recharges.length - 1);
+    }
+}
+
+syncCooldownMirror(state: AbilityChargeState): void {
+    if (state.charges <= 0 && state.recharges.length > 0) {
+        state.hasCooldownMirror = true;
+        state.cooldownMirror = state.recharge;
+        return;
+    }
+    state.hasCooldownMirror = false;
+    state.cooldownMirror = 0.0;
+}
+
+appendRechargeSorted(state: AbilityChargeState, value: float): void {
+    state.recharges.add(value);
+    var index = state.recharges.length - 1;
+    while (index > 0 && <float>state.recharges[index] < <float>state.recharges[index - 1]) {
+        var previous = <float>state.recharges[index - 1];
+        state.recharges[index - 1] = <float>state.recharges[index];
+        state.recharges[index] = previous;
+        index = index - 1;
+    }
+}
+
+// Models armAbilityCooldown after the cast gate has admitted the ability. A
+// nonempty pool ignores its generic cooldown mirror; only an empty pool exposes
+// the earliest recharging use through that mirror.
+pub spendAbilityCharge(state: AbilityChargeState): bool {
+    if (!abilityReady(state)) { return false; }
+    state.charges = state.charges - 1;
+    if (!state.rechargesMaterialized) {
+        state.rechargesMaterialized = true;
+        if (state.recharge > 0.0) { appendRechargeSorted(state, state.recharge); }
+    }
+    appendRechargeSorted(state, state.rechargeLength);
+    state.recharge = <float>state.recharges[0];
+    syncCooldownMirror(state);
+    return true;
+}
+
+// Represents a loaded pre-parallel-recharge save: the old scalar timer is
+// retained until the next timer tick converts its missing uses into staggered
+// per-charge timers.
+pub seedLegacySequentialRecharge(
+    state: AbilityChargeState,
+    storedCharges: int,
+    remainingRecharge: float
+): void {
+    if (storedCharges < 0 || storedCharges >= state.maxCharges || remainingRecharge <= 0.0) {
+        throw "legacy ability charge state is invalid";
+    }
+    state.charges = storedCharges;
+    state.recharge = remainingRecharge;
+    state.rechargesMaterialized = false;
+    clearRecharges(state);
+    state.hasCooldownMirror = storedCharges <= 0;
+    state.cooldownMirror = state.hasCooldownMirror ? remainingRecharge : 0.0;
+}
+
+materializeLegacyRecharges(state: AbilityChargeState): void {
+    if (state.rechargesMaterialized) { return; }
+    var missing = state.maxCharges - state.charges;
+    if (missing < 1) { missing = 1; }
+    var index = 0;
+    while (index < missing) {
+        appendRechargeSorted(state, state.recharge + <float>index * state.rechargeLength);
+        index = index + 1;
+    }
+    state.rechargesMaterialized = true;
+}
+
+// Models updateTimers: every in-flight per-charge timer ages together. When
+// the first timer expires it returns exactly one use; a full pool drops all
+// remaining timers and clears the generic cooldown mirror.
+pub tickAbilityCharges(state: AbilityChargeState, delta: float): void {
+    if (delta <= 0.0 || state.charges >= state.maxCharges) { return; }
+    materializeLegacyRecharges(state);
+    var index = 0;
+    while (index < state.recharges.length) {
+        state.recharges[index] = <float>state.recharges[index] - delta;
+        index = index + 1;
+    }
+    while (state.recharges.length > 0 && <float>state.recharges[0] <= 0.0) {
+        state.recharges.removeAt(0);
+        if (state.charges < state.maxCharges) { state.charges = state.charges + 1; }
+    }
+    if (state.charges >= state.maxCharges || state.recharges.length == 0) {
+        clearRecharges(state);
+        state.recharge = 0.0;
+        syncCooldownMirror(state);
+        return;
+    }
+    state.recharge = <float>state.recharges[0];
+    syncCooldownMirror(state);
+}
+
+// Cleaving Blows refunds the newest (longest) in-flight timer. A partial refund
+// reopens the pool immediately but leaves older timers running for later uses.
+pub refundNewestAbilityCharge(state: AbilityChargeState): bool {
+    if (state.charges >= state.maxCharges) { return false; }
+    state.charges = state.charges + 1;
+    if (state.rechargesMaterialized) {
+        if (state.recharges.length > 0) { state.recharges.removeAt(state.recharges.length - 1); }
+        state.recharge = state.recharges.length > 0 ? <float>state.recharges[0] : 0.0;
+    } else if (state.charges >= state.maxCharges) {
+        state.recharge = 0.0;
+    }
+    // The source always deletes the generic cooldown after a refund.
+    state.hasCooldownMirror = false;
+    state.cooldownMirror = 0.0;
+    return true;
+}
+
+// clearCooldowns / Preparation restores the stored uses and scalar timer. The
+// current source deliberately does not erase an already materialized recharges
+// array here, so the next spend observes the same compatibility behavior.
+pub resetFullAbilityCharges(state: AbilityChargeState): void {
+    state.charges = state.maxCharges;
+    state.recharge = 0.0;
+    state.hasCooldownMirror = false;
+    state.cooldownMirror = 0.0;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var parallel = new AbilityChargeState(2, 10.0);
+    if (!spendAbilityCharge(parallel) || parallel.charges != 1 ||
+        parallel.hasCooldownMirror || !closeEnough(parallel.recharge, 10.0)) {
+        return -1;
+    }
+    tickAbilityCharges(parallel, 4.0);
+    if (!closeEnough(parallel.recharge, 6.0) || !spendAbilityCharge(parallel) ||
+        parallel.charges != 0 || !parallel.hasCooldownMirror ||
+        !closeEnough(parallel.cooldownMirror, 6.0) || parallel.recharges.length != 2) {
+        return -2;
+    }
+    tickAbilityCharges(parallel, 6.0);
+    if (parallel.charges != 1 || parallel.hasCooldownMirror || parallel.recharges.length != 1 ||
+        !closeEnough(parallel.recharge, 4.0)) {
+        return -3;
+    }
+    tickAbilityCharges(parallel, 4.0);
+    if (parallel.charges != 2 || parallel.recharges.length != 0 ||
+        parallel.hasCooldownMirror || !closeEnough(parallel.recharge, 0.0)) {
+        return -4;
+    }
+
+    var legacy = new AbilityChargeState(2, 10.0);
+    seedLegacySequentialRecharge(legacy, 0, 4.0);
+    tickAbilityCharges(legacy, 1.0);
+    if (!legacy.rechargesMaterialized || legacy.recharges.length != 2 ||
+        !closeEnough(<float>legacy.recharges[0], 3.0) ||
+        !closeEnough(<float>legacy.recharges[1], 13.0) ||
+        !legacy.hasCooldownMirror || !closeEnough(legacy.cooldownMirror, 3.0)) {
+        return -5;
+    }
+    tickAbilityCharges(legacy, 3.0);
+    if (legacy.charges != 1 || legacy.hasCooldownMirror || legacy.recharges.length != 1 ||
+        !closeEnough(legacy.recharge, 10.0)) {
+        return -6;
+    }
+
+    var refunded = new AbilityChargeState(2, 10.0);
+    spendAbilityCharge(refunded);
+    tickAbilityCharges(refunded, 3.0);
+    spendAbilityCharge(refunded);
+    if (!refundNewestAbilityCharge(refunded) || refunded.charges != 1 ||
+        refunded.hasCooldownMirror || refunded.recharges.length != 1 ||
+        !closeEnough(refunded.recharge, 7.0)) {
+        return -7;
+    }
+    tickAbilityCharges(refunded, 7.0);
+    if (refunded.charges != 2 || refunded.recharges.length != 0) { return -8; }
+
+    var prepared = new AbilityChargeState(2, 10.0);
+    spendAbilityCharge(prepared);
+    tickAbilityCharges(prepared, 3.0);
+    resetFullAbilityCharges(prepared);
+    if (prepared.charges != 2 || prepared.recharges.length != 1 ||
+        !closeEnough(prepared.recharge, 0.0)) {
+        return -9;
+    }
+    spendAbilityCharge(prepared);
+    tickAbilityCharges(prepared, 7.0);
+    if (prepared.charges != 2 || prepared.recharges.length != 0) { return -10; }
+    return 1;
+}

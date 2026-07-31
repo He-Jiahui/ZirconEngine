@@ -49,24 +49,28 @@ impl LineBreakOpportunityMap {
         visual_start: usize,
         visual_end: usize,
     ) -> ClusterLineBreakFlags {
-        self.opportunities.iter().fold(
-            ClusterLineBreakFlags::default(),
-            |mut flags, opportunity| {
-                match opportunity.kind {
-                    LineBreakKind::Soft if opportunity.byte_index == visual_end => {
-                        flags.soft_break = true;
-                    }
-                    LineBreakKind::Mandatory
-                        if opportunity.byte_index > visual_start
-                            && opportunity.byte_index <= visual_end =>
-                    {
-                        flags.mandatory_break = true;
-                    }
-                    _ => {}
+        if visual_start > visual_end {
+            return ClusterLineBreakFlags::default();
+        }
+        let first = self
+            .opportunities
+            .partition_point(|opportunity| opportunity.byte_index < visual_start);
+        let end = self
+            .opportunities
+            .partition_point(|opportunity| opportunity.byte_index <= visual_end);
+        let mut flags = ClusterLineBreakFlags::default();
+        for opportunity in &self.opportunities[first..end] {
+            match opportunity.kind {
+                LineBreakKind::Soft if opportunity.byte_index == visual_end => {
+                    flags.soft_break = true;
                 }
-                flags
-            },
-        )
+                LineBreakKind::Mandatory if opportunity.byte_index > visual_start => {
+                    flags.mandatory_break = true;
+                }
+                _ => {}
+            }
+        }
+        flags
     }
 }
 
@@ -79,4 +83,64 @@ fn is_content_mandatory_break(text: &str, byte_index: usize) -> bool {
         || preceding_text.ends_with('\u{0085}')
         || preceding_text.ends_with('\u{2028}')
         || preceding_text.ends_with('\u{2029}')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        ClusterLineBreakFlags, LineBreakKind, LineBreakOpportunity, LineBreakOpportunityMap,
+    };
+
+    #[test]
+    fn cluster_flags_only_visit_the_cluster_opportunity_window() {
+        let map = LineBreakOpportunityMap {
+            opportunities: vec![
+                LineBreakOpportunity {
+                    byte_index: 2,
+                    kind: LineBreakKind::Soft,
+                },
+                LineBreakOpportunity {
+                    byte_index: 4,
+                    kind: LineBreakKind::Mandatory,
+                },
+                LineBreakOpportunity {
+                    byte_index: 8,
+                    kind: LineBreakKind::Soft,
+                },
+            ],
+        };
+
+        assert_eq!(
+            map.flags_for_cluster(0, 2),
+            ClusterLineBreakFlags {
+                soft_break: true,
+                mandatory_break: false,
+            }
+        );
+        assert_eq!(
+            map.flags_for_cluster(2, 4),
+            ClusterLineBreakFlags {
+                soft_break: false,
+                mandatory_break: true,
+            }
+        );
+        assert_eq!(
+            map.flags_for_cluster(5, 8),
+            ClusterLineBreakFlags {
+                soft_break: true,
+                mandatory_break: false,
+            }
+        );
+    }
+
+    #[test]
+    fn cluster_flags_do_not_restore_a_full_opportunity_fold() {
+        let source = include_str!("line_break.rs");
+        let compact = source
+            .chars()
+            .filter(|character| !character.is_whitespace())
+            .collect::<String>();
+
+        assert!(!compact.contains(concat!("self.opportunities.iter()", ".fold")));
+    }
 }

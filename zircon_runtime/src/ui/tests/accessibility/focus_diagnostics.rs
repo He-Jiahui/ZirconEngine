@@ -1,6 +1,14 @@
 use super::*;
 
 #[test]
+fn accessibility_validation_indexes_snapshot_nodes_without_deep_cloning() {
+    let source = include_str!("../../accessibility/diagnostics.rs");
+
+    assert!(source.contains("BTreeMap<UiNodeId, usize>"));
+    assert!(!source.contains("Some((node.node_id, node.clone()))"));
+}
+
+#[test]
 fn focus_inside_hidden_subtree_falls_back_and_reports_excluded_focus() {
     let mut surface = root_surface();
     surface

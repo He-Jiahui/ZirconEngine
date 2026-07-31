@@ -12,6 +12,7 @@ impl HostPaintCommand {
         corner_radius: f32,
         opacity: f32,
     ) -> Self {
+        let (font_size, line_height) = Self::fallback_text_metrics();
         Self {
             kind: HostPaintCommandKind::Quad,
             frame,
@@ -23,8 +24,8 @@ impl HostPaintCommand {
             border_width,
             corner_radius,
             text: None,
-            font_size: 12.0,
-            line_height: 14.0,
+            font_size,
+            line_height,
             text_style: Default::default(),
             image_key: None,
             image_pixels: None,

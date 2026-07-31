@@ -1,0 +1,35 @@
+// Exact rollDelveAffixes scalar projection for the pinned two Delve definitions.
+var content = %import("instances/delve_affix_selection_content");
+var rngModule = %import("kernel/rng");
+
+pub affixCount(delveIndex: int, tierIndex: int, required: bool): int { return content.tierAffixCount(delveIndex,tierIndex,required); }
+
+pub affixId(delveIndex: int, tierIndex: int, seed: int, affixOffset: int, required: bool): string {
+    var count = affixCount(delveIndex,tierIndex,required);
+    if (affixOffset < 0 || affixOffset >= count) { throw "woc Delve affix offset is invalid"; }
+    var entry0 = content.poolId(delveIndex,0,true); var entry1 = content.poolId(delveIndex,1,true); var entry2 = content.poolId(delveIndex,2,true);
+    var rng = new rngModule.Mulberry32(<uint>(seed ^ content.seedXor(true)));
+    var selected = <int>(rng.next() * 3.0); var swap2 = entry2; if (selected == 0) { entry2 = entry0; entry0 = swap2; } else if (selected == 1) { entry2 = entry1; entry1 = swap2; }
+    selected = <int>(rng.next() * 2.0); var swap1 = entry1; if (selected == 0) { entry1 = entry0; entry0 = swap1; }
+    return entry0;
+}
+
+pub contractTest(): int { if (content.contractTest() != 1) { return -1; }
+    if (affixId(0, 1, 0, 0, true) != "restless_graves") { return -2; }
+    if (affixId(0, 1, 1, 0, true) != "restless_graves") { return -3; }
+    if (affixId(0, 1, 2, 0, true) != "restless_graves") { return -4; }
+    if (affixId(0, 1, 5, 0, true) != "candleblind") { return -5; }
+    if (affixId(0, 1, 42, 0, true) != "candleblind") { return -6; }
+    if (affixId(0, 1, 20061, 0, true) != "restless_graves") { return -7; }
+    if (affixId(0, 1, 2147483647, 0, true) != "bad_air") { return -8; }
+    if (affixId(0, 1, 1511112926, 0, true) != "candleblind") { return -9; }
+    if (affixId(1, 1, 0, 0, true) != "high_water") { return -10; }
+    if (affixId(1, 1, 1, 0, true) != "high_water") { return -11; }
+    if (affixId(1, 1, 2, 0, true) != "high_water") { return -12; }
+    if (affixId(1, 1, 5, 0, true) != "belligerent_dead") { return -13; }
+    if (affixId(1, 1, 42, 0, true) != "belligerent_dead") { return -14; }
+    if (affixId(1, 1, 20061, 0, true) != "high_water") { return -15; }
+    if (affixId(1, 1, 2147483647, 0, true) != "lively_choir") { return -16; }
+    if (affixId(1, 1, 1511112926, 0, true) != "belligerent_dead") { return -17; }
+    return 1;
+}

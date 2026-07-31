@@ -1,0 +1,47 @@
+var console = %import("zr.system.console");
+var container = %import("zr.system.container");
+var fallback = %import("progression/quest_fallback_state");
+
+itemAt(items: container.Array<string>, index: int): string {
+    return <string>items[index];
+}
+
+var result = 1;
+var required = new container.Array<string>();
+var owned = new container.Array<string>();
+var grants = fallback.questFallbackGrants(required, owned);
+if (grants.length != 0) {
+    result = -1;
+}
+required.add("crypt_keystone");
+grants = fallback.questFallbackGrants(required, owned);
+if (result == 1 && (grants.length != 1 || itemAt(grants, 0) != "crypt_keystone")) {
+    result = -2;
+}
+owned.add("crypt_keystone");
+grants = fallback.questFallbackGrants(required, owned);
+if (result == 1 && grants.length != 0) {
+    result = -3;
+}
+
+required = new container.Array<string>();
+required.add("a");
+required.add("b");
+required.add("c");
+required.add("a");
+owned = new container.Array<string>();
+owned.add("b");
+grants = fallback.questFallbackGrants(required, owned);
+if (result == 1 && (grants.length != 2 || itemAt(grants, 0) != "a" ||
+    itemAt(grants, 1) != "c")) {
+    result = -4;
+}
+var repeat = fallback.questFallbackGrants(required, owned);
+if (result == 1 && (repeat.length != grants.length || itemAt(repeat, 0) != itemAt(grants, 0) ||
+    itemAt(repeat, 1) != itemAt(grants, 1))) {
+    result = -5;
+}
+
+console.printLine("m5-quest-fallback-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

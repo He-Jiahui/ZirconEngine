@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var addedEffects = %import("combat/talent_added_effect_state");
+
+console.printLine("m4-talent-added-effect-state-test");
+var result = addedEffects.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

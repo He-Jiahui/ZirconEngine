@@ -1,0 +1,6 @@
+{
+  "name": "woc_roster_trace_tests",
+  "source": "src",
+  "binary": "bin-roster-trace-tests",
+  "entry": "parity/m3_roster_trace_test_main"
+}

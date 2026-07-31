@@ -1,9 +1,14 @@
 //! Headless export-pipeline orchestration owned by the editor core.
 
+mod inventory;
 mod pipeline;
 mod preset;
 mod stages;
 
+pub(crate) use inventory::{
+    file_metadata_identity, persist_bytes_atomically, ExportGenerationInventory,
+    FileMetadataIdentity,
+};
 pub use pipeline::{
     ExportPipelinePlan, ExportPipelinePlanError, ExportPipelineRunError, ExportStageExecutor,
     ExportStageNode, ExportStageOutput, ExportStagePreparation,

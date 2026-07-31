@@ -163,13 +163,62 @@ fn render_product_sprite_world_frame_extract_filters_by_camera_layers() {
         .iter()
         .all(|sprite| sprite.entity != hidden_sprite));
     assert!(extract.sprites.sprites.iter().all(|sprite| sprite
-        .render_layer_mask
+        .common
+        .layer_mask
         .intersects_scene_schema_v1_mask(0b0010)));
     assert!(extract
         .visibility
         .dynamic_entities
         .contains(&visible_sprite));
     assert!(!extract.visibility.dynamic_entities.contains(&hidden_sprite));
+}
+
+#[test]
+fn render_product_sprite_world_frame_extract_projects_static_mobility_into_common() {
+    let mut world = World::empty();
+    let camera = world.spawn_node(NodeKind::Camera);
+    world
+        .insert(
+            camera,
+            CameraComponent {
+                core_pipeline: CorePipelineKind::Core2d,
+                projection_mode: ProjectionMode::Orthographic,
+                ..CameraComponent::default()
+            },
+        )
+        .unwrap();
+
+    let sprite_entity = world.spawn_node(NodeKind::Mesh);
+    world
+        .remove::<crate::scene::components::MeshRenderer>(sprite_entity)
+        .unwrap();
+    world
+        .insert(
+            sprite_entity,
+            Sprite2dComponent {
+                image: texture_handle("res://textures/static.png"),
+                ..Sprite2dComponent::default()
+            },
+        )
+        .unwrap();
+    world
+        .set_mobility(
+            sprite_entity,
+            crate::core::framework::scene::Mobility::Static,
+        )
+        .unwrap();
+
+    let extract = world.to_render_frame_extract();
+    let sprite = extract
+        .sprites
+        .sprites
+        .iter()
+        .find(|sprite| sprite.entity == sprite_entity)
+        .expect("static sprite should be extracted");
+
+    assert!(sprite.common.is_static);
+    assert!(extract.visibility.static_entities.contains(&sprite_entity));
+    assert!(!extract.visibility.dynamic_entities.contains(&sprite_entity));
 }
 
 #[test]

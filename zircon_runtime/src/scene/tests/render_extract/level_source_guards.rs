@@ -25,11 +25,14 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
         });
     let missing_entity = 99_999;
     let pose = test_pose("hip");
-    level.record_animation_poses(BTreeMap::from([
-        (mesh_with_skeleton, pose.clone()),
-        (mesh_without_skeleton, test_pose("filtered-no-skeleton")),
-        (missing_entity, test_pose("filtered-missing")),
-    ]));
+    assert!(level.record_animation_poses(
+        level.world_generation(),
+        BTreeMap::from([
+            (mesh_with_skeleton, pose.clone()),
+            (mesh_without_skeleton, test_pose("filtered-no-skeleton")),
+            (missing_entity, test_pose("filtered-missing")),
+        ])
+    ));
 
     let extract = RenderExtractProducer::build_render_frame_extract(
         &level,
@@ -53,7 +56,57 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
 }
 
 #[test]
-fn level_system_render_extract_does_not_resort_the_ordered_animation_pose_cache() {
+fn level_frame_snapshot_publishes_a_new_animation_generation_without_retiring_the_old_handle() {
+    let level = DefaultLevelManager::default().create_default_level();
+    let entity = level.with_world_mut(|world| world.spawn_node(NodeKind::Mesh));
+    let pose = test_pose("frame-snapshot");
+    let initial = level.frame_state_snapshot();
+
+    assert!(level.record_animation_poses(
+        level.world_generation(),
+        BTreeMap::from([(entity, pose.clone())]),
+    ));
+    let published = level.frame_state_snapshot();
+
+    assert_eq!(initial.animation_generation(), 0);
+    assert!(initial.animation_poses().is_empty());
+    assert_eq!(published.animation_generation(), 1);
+    assert_eq!(published.animation_poses().get(&entity), Some(&pose));
+    assert!(
+        !std::sync::Arc::ptr_eq(initial.animation_poses(), published.animation_poses()),
+        "a new animation publication must not mutate an earlier frame handle"
+    );
+
+    assert!(level.record_animation_poses(
+        level.world_generation(),
+        BTreeMap::from([(entity, pose.clone())]),
+    ));
+    let unchanged = level.frame_state_snapshot();
+    assert_eq!(
+        unchanged.animation_generation(),
+        published.animation_generation()
+    );
+    assert!(
+        std::sync::Arc::ptr_eq(unchanged.animation_poses(), published.animation_poses()),
+        "an unchanged pose payload must retain its sealed frame handle"
+    );
+
+    assert!(level.record_animation_poses(level.world_generation(), BTreeMap::new()));
+    let cleared = level.frame_state_snapshot();
+    assert_eq!(cleared.animation_generation(), 2);
+    assert!(cleared.animation_poses().is_empty());
+    assert_eq!(published.animation_poses().get(&entity), Some(&pose));
+
+    let published_world_generation = published.world_generation();
+    level.replace_world_and_reset_runtime_state(World::empty());
+    let replaced = level.frame_state_snapshot();
+    assert_ne!(replaced.world_generation(), published_world_generation);
+    assert!(replaced.animation_poses().is_empty());
+    assert_eq!(published.animation_poses().get(&entity), Some(&pose));
+}
+
+#[test]
+fn level_system_render_extract_consumes_the_sealed_animation_frame_handle_without_resorting() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src")
@@ -63,10 +116,12 @@ fn level_system_render_extract_does_not_resort_the_ordered_animation_pose_cache(
     .unwrap();
 
     assert!(
-        source.contains("animation_pose_entries")
-            && source.contains("cached_poses")
-            && source.contains(".into_iter()"),
-        "scene render extraction must consume one ordered Vec snapshot instead of cloning the BTreeMap before collecting another Vec"
+        source.contains("let frame_state = self.frame_state_snapshot();")
+            && source.contains("frame_state.animation_poses()")
+            && source.contains("frame_state.world_generation() != world.world_generation()")
+            && source.contains(".iter()")
+            && !source.contains("animation_pose_entries"),
+        "scene render extraction must consume the sealed Arc-backed BTreeMap handle instead of cloning poses before filtering"
     );
     assert!(
         !source.contains("animation_poses.sort") && !source.contains("sort_by_key"),

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/heroic_leap_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/heroic_leap.ts": "add8886d7fc675266cf0da1f2520324297a5691e0779e765740786a4c01e04ac",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+  },
+  "flight": {
+    "duration_seconds": 0.6,
+    "apex": 3.2,
+    "external_relocation_epsilon": 0.05,
+    "dt": 0.05,
+    "landing_after_elapsed_reaches_duration": true
+  }
+}

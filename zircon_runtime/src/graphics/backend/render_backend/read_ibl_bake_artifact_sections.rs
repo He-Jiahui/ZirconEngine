@@ -1,13 +1,16 @@
 // Staged Plan 11 acquisition helpers land before the runtime bake scheduler consumes them.
 
+use std::sync::mpsc;
+
 use crate::core::framework::render::{
-    IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections,
+    source_cubemap_mip_size, IblBakeArtifactContents, IblBakeArtifactDescriptor,
+    IblBakeArtifactReadbackSections, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, SOURCE_CUBEMAP_FACE_COUNT,
     SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
-use crate::graphics::backend::render_backend::{
-    read_buffer_sh9_f32x4_bytes, read_texture_rgba16float_cube_mip_chain,
-};
+use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_READBACK};
 use crate::graphics::types::GraphicsError;
+
+const RGBA16FLOAT_BYTES_PER_TEXEL: u32 = 8;
 
 #[derive(Clone, Copy)]
 pub(crate) struct IblBakeArtifactWgpuReadbackResources<'a> {
@@ -71,24 +74,22 @@ pub(crate) fn read_ibl_bake_artifact_wgpu_sections(
     resources: IblBakeArtifactWgpuReadbackResources<'_>,
 ) -> Result<IblBakeArtifactReadbackSections, GraphicsError> {
     let descriptor = resources.descriptor;
-    let mut sections = IblBakeArtifactReadbackSections::new(descriptor);
+    let mut batch = IblBakeArtifactWgpuReadbackBatch::new(device);
 
     if resources.requires_pmrem_texture() {
         let texture = required_wgpu_readback_resource(resources.pmrem_texture, "PMREM texture")?;
-        sections = sections.with_pmrem_rgba16f_bytes(read_texture_rgba16float_cube_mip_chain(
+        batch.add_pmrem(
             device,
-            queue,
             texture,
             descriptor.face_size(),
             descriptor.mip_count(),
-        )?);
+        );
     }
 
     if resources.requires_irradiance_sh9_buffer() {
         let buffer =
             required_wgpu_readback_resource(resources.irradiance_sh9_buffer, "SH9 buffer")?;
-        sections =
-            sections.with_irradiance_sh9_bytes(read_buffer_sh9_f32x4_bytes(device, queue, buffer)?);
+        batch.add_sh9(device, buffer);
     }
 
     if resources.requires_irradiance_cube_texture() {
@@ -96,17 +97,323 @@ pub(crate) fn read_ibl_bake_artifact_wgpu_sections(
             resources.irradiance_cube_texture,
             "irradiance cube texture",
         )?;
-        sections =
-            sections.with_irradiance_cube_rgba16f_bytes(read_texture_rgba16float_cube_mip_chain(
-                device,
-                queue,
-                texture,
-                SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
-                1,
-            )?);
+        batch.add_irradiance_cube(device, texture);
     }
 
-    Ok(sections)
+    batch.finish(device, queue, descriptor)
+}
+
+/// Keeps a cache-miss artifact readback behind one GPU submission and one device wait.
+/// The artifact payload remains sectioned so its on-disk format and cache contract do not change.
+struct IblBakeArtifactWgpuReadbackBatch {
+    encoder: wgpu::CommandEncoder,
+    pmrem: Option<CubeMipChainReadback>,
+    sh9: Option<BufferReadback>,
+    irradiance_cube: Option<CubeMipChainReadback>,
+}
+
+impl IblBakeArtifactWgpuReadbackBatch {
+    fn new(device: &wgpu::Device) -> Self {
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("zircon-readback-ibl-artifact-encoder"),
+        });
+        insert_marker(&mut encoder, RENDERDOC_MARKER_READBACK);
+        Self {
+            encoder,
+            pmrem: None,
+            sh9: None,
+            irradiance_cube: None,
+        }
+    }
+
+    fn add_pmrem(
+        &mut self,
+        device: &wgpu::Device,
+        texture: &wgpu::Texture,
+        face_size: u32,
+        mip_count: u32,
+    ) {
+        self.pmrem = Some(CubeMipChainReadback::encode(
+            device,
+            &mut self.encoder,
+            texture,
+            face_size,
+            mip_count,
+            "zircon-readback-ibl-pmrem",
+        ));
+    }
+
+    fn add_sh9(&mut self, device: &wgpu::Device, source: &wgpu::Buffer) {
+        self.sh9 = Some(BufferReadback::encode(
+            device,
+            &mut self.encoder,
+            source,
+            IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES as u64,
+            "zircon-readback-ibl-sh9",
+        ));
+    }
+
+    fn add_irradiance_cube(&mut self, device: &wgpu::Device, texture: &wgpu::Texture) {
+        self.irradiance_cube = Some(CubeMipChainReadback::encode(
+            device,
+            &mut self.encoder,
+            texture,
+            SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+            1,
+            "zircon-readback-ibl-irradiance-cube",
+        ));
+    }
+
+    fn finish(
+        self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        descriptor: IblBakeArtifactDescriptor,
+    ) -> Result<IblBakeArtifactReadbackSections, GraphicsError> {
+        let readback_count = self.pmrem.is_some() as usize
+            + self.sh9.is_some() as usize
+            + self.irradiance_cube.is_some() as usize;
+        if readback_count == 0 {
+            return Ok(IblBakeArtifactReadbackSections::new(descriptor));
+        }
+
+        queue.submit([self.encoder.finish()]);
+        let (sender, receiver) = mpsc::channel();
+        if let Some(readback) = self.pmrem.as_ref() {
+            readback.map_async(sender.clone());
+        }
+        if let Some(readback) = self.sh9.as_ref() {
+            readback.map_async(sender.clone());
+        }
+        if let Some(readback) = self.irradiance_cube.as_ref() {
+            readback.map_async(sender.clone());
+        }
+        drop(sender);
+        if let Err(error) = device.poll(wgpu::PollType::wait_indefinitely()) {
+            self.unmap_all();
+            return Err(GraphicsError::BufferMap(error.to_string()));
+        }
+        let mut mapping_error = None;
+        for _ in 0..readback_count {
+            match receiver.recv() {
+                Ok(Ok(())) => {}
+                Ok(Err(error)) => {
+                    mapping_error.get_or_insert(GraphicsError::BufferMap(error));
+                }
+                Err(error) => {
+                    mapping_error.get_or_insert(GraphicsError::BufferMap(error.to_string()));
+                }
+            }
+        }
+        if let Some(error) = mapping_error {
+            self.unmap_all();
+            return Err(error);
+        }
+
+        let mut sections = IblBakeArtifactReadbackSections::new(descriptor);
+        if let Some(readback) = self.pmrem {
+            sections = sections.with_pmrem_rgba16f_bytes(readback.into_bytes());
+        }
+        if let Some(readback) = self.sh9 {
+            sections = sections.with_irradiance_sh9_bytes(readback.into_bytes());
+        }
+        if let Some(readback) = self.irradiance_cube {
+            sections = sections.with_irradiance_cube_rgba16f_bytes(readback.into_bytes());
+        }
+        Ok(sections)
+    }
+
+    fn unmap_all(&self) {
+        if let Some(readback) = self.pmrem.as_ref() {
+            readback.unmap();
+        }
+        if let Some(readback) = self.sh9.as_ref() {
+            readback.unmap();
+        }
+        if let Some(readback) = self.irradiance_cube.as_ref() {
+            readback.unmap();
+        }
+    }
+}
+
+struct BufferReadback {
+    buffer: wgpu::Buffer,
+}
+
+impl BufferReadback {
+    fn encode(
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        source: &wgpu::Buffer,
+        byte_len: u64,
+        label: &'static str,
+    ) -> Self {
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some(label),
+            size: byte_len,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        encoder.copy_buffer_to_buffer(source, 0, &buffer, 0, byte_len);
+        Self { buffer }
+    }
+
+    fn map_async(&self, sender: mpsc::Sender<Result<(), String>>) {
+        self.buffer
+            .slice(..)
+            .map_async(wgpu::MapMode::Read, move |result| {
+                let _ = sender.send(result.map_err(|error| error.to_string()));
+            });
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        let slice = self.buffer.slice(..);
+        let mapped = slice.get_mapped_range();
+        let bytes = mapped.to_vec();
+        drop(mapped);
+        self.buffer.unmap();
+        bytes
+    }
+
+    fn unmap(&self) {
+        self.buffer.unmap();
+    }
+}
+
+struct CubeMipChainReadback {
+    buffer: wgpu::Buffer,
+    face_size: u32,
+    mip_count: u32,
+}
+
+impl CubeMipChainReadback {
+    fn encode(
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        texture: &wgpu::Texture,
+        face_size: u32,
+        mip_count: u32,
+        label: &'static str,
+    ) -> Self {
+        let face_size = face_size.max(1);
+        let mip_count = mip_count.max(1);
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some(label),
+            size: cube_mip_staging_size_bytes(face_size, mip_count),
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut staging_offset = 0;
+        for face in 0..SOURCE_CUBEMAP_FACE_COUNT as u32 {
+            for mip_level in 0..mip_count {
+                let mip_size = source_cubemap_mip_size(face_size, mip_level);
+                let unpadded_bytes_per_row = mip_size * RGBA16FLOAT_BYTES_PER_TEXEL;
+                let padded_bytes_per_row = unpadded_bytes_per_row
+                    .div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
+                    * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+                encoder.copy_texture_to_buffer(
+                    wgpu::TexelCopyTextureInfo {
+                        texture,
+                        mip_level,
+                        origin: wgpu::Origin3d {
+                            x: 0,
+                            y: 0,
+                            z: face,
+                        },
+                        aspect: wgpu::TextureAspect::All,
+                    },
+                    wgpu::TexelCopyBufferInfo {
+                        buffer: &buffer,
+                        layout: wgpu::TexelCopyBufferLayout {
+                            offset: staging_offset,
+                            bytes_per_row: Some(padded_bytes_per_row),
+                            rows_per_image: Some(mip_size),
+                        },
+                    },
+                    wgpu::Extent3d {
+                        width: mip_size,
+                        height: mip_size,
+                        depth_or_array_layers: 1,
+                    },
+                );
+                staging_offset += padded_bytes_per_row as u64 * mip_size as u64;
+            }
+        }
+        Self {
+            buffer,
+            face_size,
+            mip_count,
+        }
+    }
+
+    fn map_async(&self, sender: mpsc::Sender<Result<(), String>>) {
+        self.buffer
+            .slice(..)
+            .map_async(wgpu::MapMode::Read, move |result| {
+                let _ = sender.send(result.map_err(|error| error.to_string()));
+            });
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        let slice = self.buffer.slice(..);
+        let mapped = slice.get_mapped_range();
+        let bytes = strip_padded_cube_mip_chain(&mapped, self.face_size, self.mip_count);
+        drop(mapped);
+        self.buffer.unmap();
+        bytes
+    }
+
+    fn unmap(&self) {
+        self.buffer.unmap();
+    }
+}
+
+fn cube_mip_staging_size_bytes(face_size: u32, mip_count: u32) -> u64 {
+    let mut total = 0;
+    for _face in 0..SOURCE_CUBEMAP_FACE_COUNT {
+        for mip_level in 0..mip_count {
+            let mip_size = source_cubemap_mip_size(face_size, mip_level);
+            let unpadded_bytes_per_row = mip_size * RGBA16FLOAT_BYTES_PER_TEXEL;
+            let padded_bytes_per_row = unpadded_bytes_per_row
+                .div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
+                * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+            total += padded_bytes_per_row as u64 * mip_size as u64;
+        }
+    }
+    total
+}
+
+fn strip_padded_cube_mip_chain(mapped: &[u8], face_size: u32, mip_count: u32) -> Vec<u8> {
+    let byte_len = (0..SOURCE_CUBEMAP_FACE_COUNT)
+        .flat_map(|_| 0..mip_count)
+        .map(|mip_level| {
+            let mip_size = source_cubemap_mip_size(face_size, mip_level) as usize;
+            mip_size * mip_size * RGBA16FLOAT_BYTES_PER_TEXEL as usize
+        })
+        .sum();
+    let mut bytes = vec![0; byte_len];
+    let mut staging_offset = 0;
+    let mut output_offset = 0;
+    for _face in 0..SOURCE_CUBEMAP_FACE_COUNT {
+        for mip_level in 0..mip_count {
+            let mip_size = source_cubemap_mip_size(face_size, mip_level);
+            let unpadded_bytes_per_row = mip_size * RGBA16FLOAT_BYTES_PER_TEXEL;
+            let padded_bytes_per_row = unpadded_bytes_per_row
+                .div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
+                * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+            for row in 0..mip_size as usize {
+                let source_offset = staging_offset + row * padded_bytes_per_row as usize;
+                let target_offset = output_offset + row * unpadded_bytes_per_row as usize;
+                bytes[target_offset..target_offset + unpadded_bytes_per_row as usize]
+                    .copy_from_slice(
+                        &mapped[source_offset..source_offset + unpadded_bytes_per_row as usize],
+                    );
+            }
+            staging_offset += padded_bytes_per_row as usize * mip_size as usize;
+            output_offset += unpadded_bytes_per_row as usize * mip_size as usize;
+        }
+    }
+    bytes
 }
 
 fn required_wgpu_readback_resource<'a, T>(
@@ -122,14 +429,17 @@ fn required_wgpu_readback_resource<'a, T>(
 
 #[cfg(test)]
 mod tests {
-    use super::required_wgpu_readback_resource;
+    use super::{
+        required_wgpu_readback_resource, strip_padded_cube_mip_chain, SOURCE_CUBEMAP_FACE_COUNT,
+    };
     use crate::core::framework::render::{
+        CubemapFace, IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactPayload,
+        IblBakeArtifactRequest, ProceduralSkyParams, SourceCubemapIrradianceCube,
+        SourceCubemapMipChain, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
         build_source_cubemap_from_equirect, cubemap_direction_from_scaled_uv,
         cubemap_face_scaled_uv_from_direction, cubemap_scaled_uv_for_texel,
         source_cubemap_face_mip_offset, source_cubemap_mip_chain_with_bake_artifact,
-        source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness, CubemapFace,
-        IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactPayload,
-        IblBakeArtifactRequest, ProceduralSkyParams, SourceCubemapMipChain,
+        source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness,
     };
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::types::GraphicsError;
@@ -181,7 +491,33 @@ mod tests {
     }
 
     #[test]
-    fn readback_sections_preserve_pmrem_seams_after_wgpu_texture_roundtrip() {
+    fn batched_cube_readback_strips_padding_in_face_then_mip_order() {
+        let bytes_per_face = 768;
+        let mut mapped = vec![0_u8; bytes_per_face * SOURCE_CUBEMAP_FACE_COUNT as usize];
+        let mut staging_offset = 0;
+        let mut value = 1_u8;
+        for _face in 0..SOURCE_CUBEMAP_FACE_COUNT {
+            for mip_size in [2_usize, 1] {
+                for row in 0..mip_size {
+                    let row_offset = staging_offset + row * 256;
+                    mapped[row_offset..row_offset + mip_size * 8].fill(value);
+                }
+                staging_offset += mip_size * 256;
+                value = value.wrapping_add(1);
+            }
+        }
+
+        let bytes = strip_padded_cube_mip_chain(&mapped, 2, 2);
+
+        assert_eq!(bytes.len(), 240);
+        assert_eq!(&bytes[..32], &[1_u8; 32]);
+        assert_eq!(&bytes[32..40], &[2_u8; 8]);
+        assert_eq!(&bytes[200..232], &[11_u8; 32]);
+        assert_eq!(&bytes[232..], &[12_u8; 8]);
+    }
+
+    #[test]
+    fn batched_readback_preserves_pmrem_sh9_and_iem_payload_bytes() {
         let Ok(backend) = RenderBackend::new_offscreen() else {
             return;
         };
@@ -189,18 +525,45 @@ mod tests {
         let pmrem = build_source_cubemap_from_equirect(32, synthetic_seam_stress_environment);
         let request =
             IblBakeArtifactRequest::new(key, pmrem.source_face_size(), pmrem.source_mip_count())
-                .with_required_contents(IblBakeArtifactContents::PMREM_SH9);
+                .with_required_contents(IblBakeArtifactContents::PMREM_SH9_IEM);
         let descriptor = IblBakeArtifactDescriptor::current_for_request(&request);
-        let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, &pmrem, None)
-            .expect("PMREM/SH9 payload should encode");
+        let irradiance_cube = SourceCubemapIrradianceCube::new(
+            SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+            vec![
+                [0.125, 0.25, 0.5];
+                CubemapFace::ALL.len()
+                    * SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE as usize
+                    * SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE as usize
+            ],
+        );
+        let payload =
+            IblBakeArtifactPayload::from_source_cubemap(descriptor, &pmrem, Some(&irradiance_cube))
+                .expect("PMREM/SH9/IEM payload should encode");
         let pmrem_range = payload.pmrem_rgba16f_byte_range().expect("pmrem range");
         let sh9_range = payload.irradiance_sh9_byte_range().expect("sh9 range");
+        let iem_range = payload
+            .irradiance_cube_rgba16f_byte_range()
+            .expect("irradiance cube range");
         let pmrem_texture = create_pmrem_texture(&backend.device, descriptor);
-        upload_pmrem_payload_to_texture(
+        upload_cube_payload_to_texture(
             &backend.queue,
             &pmrem_texture,
-            descriptor,
+            descriptor.face_size(),
+            descriptor.mip_count(),
             &payload.bytes()[pmrem_range],
+        );
+        let irradiance_cube_texture = create_cube_texture(
+            &backend.device,
+            "ibl-readback-irradiance-cube-texture",
+            SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+            1,
+        );
+        upload_cube_payload_to_texture(
+            &backend.queue,
+            &irradiance_cube_texture,
+            SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+            1,
+            &payload.bytes()[iem_range],
         );
         let sh9_buffer = backend
             .device
@@ -215,9 +578,10 @@ mod tests {
             &backend.queue,
             super::IblBakeArtifactWgpuReadbackResources::new(descriptor)
                 .with_pmrem_texture(&pmrem_texture)
-                .with_irradiance_sh9_buffer(&sh9_buffer),
+                .with_irradiance_sh9_buffer(&sh9_buffer)
+                .with_irradiance_cube_texture(&irradiance_cube_texture),
         )
-        .expect("WGPU PMREM/SH9 readback should produce artifact sections");
+        .expect("WGPU PMREM/SH9/IEM batch readback should produce artifact sections");
         let readback_payload = sections
             .into_payload()
             .expect("readback sections should assemble into a current payload");
@@ -251,14 +615,28 @@ mod tests {
         device: &wgpu::Device,
         descriptor: IblBakeArtifactDescriptor,
     ) -> wgpu::Texture {
+        create_cube_texture(
+            device,
+            "ibl-readback-seam-pmrem-texture",
+            descriptor.face_size(),
+            descriptor.mip_count(),
+        )
+    }
+
+    fn create_cube_texture(
+        device: &wgpu::Device,
+        label: &'static str,
+        face_size: u32,
+        mip_count: u32,
+    ) -> wgpu::Texture {
         device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("ibl-readback-seam-pmrem-texture"),
+            label: Some(label),
             size: wgpu::Extent3d {
-                width: descriptor.face_size(),
-                height: descriptor.face_size(),
+                width: face_size,
+                height: face_size,
                 depth_or_array_layers: 6,
             },
-            mip_level_count: descriptor.mip_count(),
+            mip_level_count: mip_count,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba16Float,
@@ -267,31 +645,29 @@ mod tests {
         })
     }
 
-    fn upload_pmrem_payload_to_texture(
+    fn upload_cube_payload_to_texture(
         queue: &wgpu::Queue,
         texture: &wgpu::Texture,
-        descriptor: IblBakeArtifactDescriptor,
-        pmrem_bytes: &[u8],
+        face_size: u32,
+        mip_count: u32,
+        cube_bytes: &[u8],
     ) {
         for face in CubemapFace::ALL {
-            for mip_level in 0..descriptor.mip_count() {
-                let mip_size = source_cubemap_mip_size(descriptor.face_size(), mip_level);
+            for mip_level in 0..mip_count {
+                let mip_size = source_cubemap_mip_size(face_size, mip_level);
                 let unpadded_bytes_per_row = mip_size as usize * RGBA16F_BYTES_PER_TEXEL;
                 let padded_bytes_per_row = unpadded_bytes_per_row
                     .next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize);
                 let mut padded = vec![0; padded_bytes_per_row * mip_size as usize];
-                let source_offset = source_cubemap_face_mip_offset(
-                    descriptor.face_size(),
-                    descriptor.mip_count(),
-                    face,
-                    mip_level,
-                ) * RGBA16F_BYTES_PER_TEXEL;
+                let source_offset =
+                    source_cubemap_face_mip_offset(face_size, mip_count, face, mip_level)
+                        * RGBA16F_BYTES_PER_TEXEL;
                 for row in 0..mip_size as usize {
                     let source_row =
                         source_offset + row * mip_size as usize * RGBA16F_BYTES_PER_TEXEL;
                     let target_row = row * padded_bytes_per_row;
                     padded[target_row..target_row + unpadded_bytes_per_row].copy_from_slice(
-                        &pmrem_bytes[source_row..source_row + unpadded_bytes_per_row],
+                        &cube_bytes[source_row..source_row + unpadded_bytes_per_row],
                     );
                 }
                 queue.write_texture(

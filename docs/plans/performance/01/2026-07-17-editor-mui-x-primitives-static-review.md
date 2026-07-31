@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/06-component-library-mui.md
@@ -22,7 +22,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与覆盖
 
-`mui_x_primitives.rs`与`mui_x_primitives/**`共 **53/53** 个Rust文件、**2,050** 行已逐文件阅读。覆盖TreeView、DataGrid、date/time pickers、line/bar/pie/sparkline/gauge charts、agent chat/composer及shared dispatch/tests。当前源Cargo、产品trace、规模计数与像素验收未完成，因此仍留在`pending.md`。
+`mui_x_primitives.rs`与`mui_x_primitives/` directory tree 共 **53/53** 个Rust文件、**2,050** 行已逐文件阅读。覆盖TreeView、DataGrid、date/time pickers、line/bar/pie/sparkline/gauge charts、agent chat/composer及shared dispatch/tests。当前源Cargo、产品trace、规模计数与像素验收未完成，因此仍留在`pending.md`。
 
 ## P0：图表在paint线程逐帧软件栅格
 

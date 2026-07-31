@@ -1,0 +1,344 @@
+// Numeric projection of Dungeon Finder's pure role allocator. It preserves the
+// source Kuhn augmenting-path order while leaving class/spec eligibility,
+// activity strings, queue proposals and PartyMachine formation to their future
+// world transaction owner.
+var container = %import("zr.container");
+var contract = %import("generated/dungeon_finder_role_contract");
+
+// A member's role set has already been reduced by the source-compatible class,
+// level, specification and role-selection gates. Player ids must be nonzero
+// and unique, matching the source Map keyed by pid.
+pub class FinderRoleMember {
+    pub var pid: uint;
+    pub var tank: bool;
+    pub var healer: bool;
+    pub var dps: bool;
+
+    pub @constructor(pid: uint, tank: bool, healer: bool, dps: bool) {
+        this.pid = pid;
+        this.tank = tank;
+        this.healer = healer;
+        this.dps = dps;
+    }
+}
+
+// Source Map<number, Role> output is represented as aligned pid/role arrays.
+// A role code of zero means the member remained unseated.
+pub class FinderRoleMatch {
+    pub var valid: bool;
+    pub var exact: bool;
+    pub var pids: container.Array<uint>;
+    pub var roles: container.Array<int>;
+    pub var assignedCount: int;
+    pub var openTank: int;
+    pub var openHealer: int;
+    pub var openDps: int;
+
+    pub @constructor() {
+        this.valid = false;
+        this.exact = false;
+        this.pids = new container.Array<uint>();
+        this.roles = new container.Array<int>();
+        this.assignedCount = 0;
+        this.openTank = 0;
+        this.openHealer = 0;
+        this.openDps = 0;
+    }
+}
+
+class FinderRoleVisited {
+    pub var tank: bool;
+    pub var healer: bool;
+    pub var dps: bool;
+
+    pub @constructor() {
+        this.tank = false;
+        this.healer = false;
+        this.dps = false;
+    }
+}
+
+class FinderRoleWork {
+    pub var members: container.Array<FinderRoleMember>;
+    pub var result: FinderRoleMatch;
+    pub var capTank: int;
+    pub var capHealer: int;
+    pub var capDps: int;
+    pub var holdersTank: container.Array<int>;
+    pub var holdersHealer: container.Array<int>;
+    pub var holdersDps: container.Array<int>;
+
+    pub @constructor(
+        members: container.Array<FinderRoleMember>,
+        result: FinderRoleMatch,
+        capTank: int,
+        capHealer: int,
+        capDps: int
+    ) {
+        this.members = members;
+        this.result = result;
+        this.capTank = capTank;
+        this.capHealer = capHealer;
+        this.capDps = capDps;
+        this.holdersTank = new container.Array<int>();
+        this.holdersHealer = new container.Array<int>();
+        this.holdersDps = new container.Array<int>();
+    }
+}
+
+roleAllowed(member: FinderRoleMember, role: int): bool {
+    if (role == contract.roleTank(true)) return member.tank;
+    if (role == contract.roleHealer(true)) return member.healer;
+    if (role == contract.roleDps(true)) return member.dps;
+    return false;
+}
+
+isValidInput(members: container.Array<FinderRoleMember>, tank: int, healer: int, dps: int): bool {
+    if (tank < 0 || healer < 0 || dps < 0) return false;
+    for (var member in members) {
+        if (member.pid == <uint>0) return false;
+    }
+    var left = 0;
+    while (left < members.length) {
+        var right = left + 1;
+        while (right < members.length) {
+            if (members[left].pid == members[right].pid) return false;
+            right = right + 1;
+        }
+        left = left + 1;
+    }
+    return true;
+}
+
+holderCount(work: FinderRoleWork, role: int): int {
+    if (role == contract.roleTank(true)) return work.holdersTank.length;
+    if (role == contract.roleHealer(true)) return work.holdersHealer.length;
+    return role == contract.roleDps(true) ? work.holdersDps.length : 0;
+}
+
+capacity(work: FinderRoleWork, role: int): int {
+    if (role == contract.roleTank(true)) return work.capTank;
+    if (role == contract.roleHealer(true)) return work.capHealer;
+    return role == contract.roleDps(true) ? work.capDps : 0;
+}
+
+holderAt(work: FinderRoleWork, role: int, index: int): int {
+    if (role == contract.roleTank(true)) return <int>work.holdersTank[index];
+    if (role == contract.roleHealer(true)) return <int>work.holdersHealer[index];
+    return <int>work.holdersDps[index];
+}
+
+appendHolder(work: FinderRoleWork, role: int, index: int): void {
+    if (role == contract.roleTank(true)) work.holdersTank.add(index);
+    else if (role == contract.roleHealer(true)) work.holdersHealer.add(index);
+    else if (role == contract.roleDps(true)) work.holdersDps.add(index);
+}
+
+replaceHolder(work: FinderRoleWork, role: int, holderIndex: int, memberIndex: int): void {
+    if (role == contract.roleTank(true)) work.holdersTank[holderIndex] = memberIndex;
+    else if (role == contract.roleHealer(true)) work.holdersHealer[holderIndex] = memberIndex;
+    else if (role == contract.roleDps(true)) work.holdersDps[holderIndex] = memberIndex;
+}
+
+wasVisited(visited: FinderRoleVisited, role: int): bool {
+    if (role == contract.roleTank(true)) return visited.tank;
+    if (role == contract.roleHealer(true)) return visited.healer;
+    return role == contract.roleDps(true) ? visited.dps : true;
+}
+
+markVisited(visited: FinderRoleVisited, role: int): void {
+    if (role == contract.roleTank(true)) visited.tank = true;
+    else if (role == contract.roleHealer(true)) visited.healer = true;
+    else if (role == contract.roleDps(true)) visited.dps = true;
+}
+
+trySeatRole(
+    work: FinderRoleWork,
+    memberIndex: int,
+    role: int,
+    visited: FinderRoleVisited,
+    except: int
+): bool {
+    if (role == except || wasVisited(visited, role) ||
+        !roleAllowed(work.members[memberIndex], role)) return false;
+    markVisited(visited, role);
+    if (holderCount(work, role) < capacity(work, role)) {
+        appendHolder(work, role, memberIndex);
+        work.result.roles[memberIndex] = role;
+        return true;
+    }
+
+    var holderIndex = 0;
+    while (holderIndex < holderCount(work, role)) {
+        var otherMemberIndex = holderAt(work, role, holderIndex);
+        if (seatMember(work, otherMemberIndex, visited, role)) {
+            replaceHolder(work, role, holderIndex, memberIndex);
+            work.result.roles[memberIndex] = role;
+            return true;
+        }
+        holderIndex = holderIndex + 1;
+    }
+    return false;
+}
+
+// FINDER_ROLE_ORDER is tank, healer, dps. The same visited object flows down
+// one recursive augmenting path, exactly like the source Set<Role>.
+seatMember(
+    work: FinderRoleWork,
+    memberIndex: int,
+    visited: FinderRoleVisited,
+    except: int
+): bool {
+    if (trySeatRole(work, memberIndex, contract.roleTank(true), visited, except)) return true;
+    if (trySeatRole(work, memberIndex, contract.roleHealer(true), visited, except)) return true;
+    return trySeatRole(work, memberIndex, contract.roleDps(true), visited, except);
+}
+
+pub matchFinderRoles(
+    members: container.Array<FinderRoleMember>,
+    tank: int,
+    healer: int,
+    dps: int
+): FinderRoleMatch {
+    var result = new FinderRoleMatch();
+    result.valid = isValidInput(members, tank, healer, dps);
+    if (!result.valid) return result;
+    for (var member in members) {
+        result.pids.add(member.pid);
+        result.roles.add(contract.roleNone(true));
+    }
+
+    var work = new FinderRoleWork(members, result, tank, healer, dps);
+    var index = 0;
+    while (index < members.length) {
+        if (<int>result.roles[index] == contract.roleNone(true)) {
+            seatMember(work, index, new FinderRoleVisited(), contract.roleNone(true));
+        }
+        index = index + 1;
+    }
+
+    var assigned = 0;
+    for (var role in result.roles) {
+        if (role != contract.roleNone(true)) assigned = assigned + 1;
+    }
+    result.assignedCount = assigned;
+    result.openTank = tank - work.holdersTank.length;
+    result.openHealer = healer - work.holdersHealer.length;
+    result.openDps = dps - work.holdersDps.length;
+    result.exact = members.length == tank + healer + dps && assigned == members.length;
+    return result;
+}
+
+pub assignedRoleForPid(result: FinderRoleMatch, pid: uint): int {
+    var index = 0;
+    while (index < result.pids.length) {
+        if (<uint>result.pids[index] == pid) return <int>result.roles[index];
+        index = index + 1;
+    }
+    return contract.roleNone(true);
+}
+
+pub countRole(result: FinderRoleMatch, role: int): int {
+    var count = 0;
+    for (var assigned in result.roles) {
+        if (assigned == role) count = count + 1;
+    }
+    return count;
+}
+
+addMember(
+    members: container.Array<FinderRoleMember>,
+    pid: uint,
+    tank: bool,
+    healer: bool,
+    dps: bool
+): void {
+    members.add(new FinderRoleMember(pid, tank, healer, dps));
+}
+
+pub contractTest(): int {
+    var five = new container.Array<FinderRoleMember>();
+    addMember(five, <uint>1, true, false, false);
+    addMember(five, <uint>2, false, true, false);
+    addMember(five, <uint>3, false, false, true);
+    addMember(five, <uint>4, false, false, true);
+    addMember(five, <uint>5, false, false, true);
+    var exactFive = matchFinderRoles(
+        five,
+        contract.fiveTank(true),
+        contract.fiveHealer(true),
+        contract.fiveDps(true)
+    );
+    if (!exactFive.valid || !exactFive.exact || exactFive.assignedCount != 5 ||
+        assignedRoleForPid(exactFive, <uint>1) != contract.roleTank(true) ||
+        assignedRoleForPid(exactFive, <uint>2) != contract.roleHealer(true) ||
+        countRole(exactFive, contract.roleDps(true)) != 3) return -1;
+
+    var flexible = new container.Array<FinderRoleMember>();
+    addMember(flexible, <uint>1, true, true, false);
+    addMember(flexible, <uint>2, true, false, false);
+    addMember(flexible, <uint>3, false, false, true);
+    addMember(flexible, <uint>4, false, false, true);
+    addMember(flexible, <uint>5, false, false, true);
+    var reseated = matchFinderRoles(
+        flexible,
+        contract.fiveTank(true),
+        contract.fiveHealer(true),
+        contract.fiveDps(true)
+    );
+    if (!reseated.exact ||
+        assignedRoleForPid(reseated, <uint>1) != contract.roleHealer(true) ||
+        assignedRoleForPid(reseated, <uint>2) != contract.roleTank(true)) return -2;
+
+    var impossible = new container.Array<FinderRoleMember>();
+    addMember(impossible, <uint>1, true, false, false);
+    addMember(impossible, <uint>2, true, false, false);
+    addMember(impossible, <uint>3, false, false, true);
+    addMember(impossible, <uint>4, false, false, true);
+    addMember(impossible, <uint>5, false, false, true);
+    var partial = matchFinderRoles(
+        impossible,
+        contract.fiveTank(true),
+        contract.fiveHealer(true),
+        contract.fiveDps(true)
+    );
+    if (partial.exact || partial.assignedCount != 4 || partial.openHealer != 1) return -3;
+
+    var raid = new container.Array<FinderRoleMember>();
+    addMember(raid, <uint>1, true, false, false);
+    addMember(raid, <uint>2, true, false, true);
+    addMember(raid, <uint>3, false, true, false);
+    addMember(raid, <uint>4, false, true, true);
+    var pid = 5;
+    while (pid <= 10) {
+        addMember(raid, <uint>pid, false, false, true);
+        pid = pid + 1;
+    }
+    var exactRaid = matchFinderRoles(
+        raid,
+        contract.tenTank(true),
+        contract.tenHealer(true),
+        contract.tenDps(true)
+    );
+    if (!exactRaid.exact || countRole(exactRaid, contract.roleTank(true)) != 2 ||
+        countRole(exactRaid, contract.roleHealer(true)) != 2 ||
+        countRole(exactRaid, contract.roleDps(true)) != 6) return -4;
+
+    var two = new container.Array<FinderRoleMember>();
+    addMember(two, <uint>1, true, false, false);
+    addMember(two, <uint>2, false, false, true);
+    var partialFive = matchFinderRoles(
+        two,
+        contract.fiveTank(true),
+        contract.fiveHealer(true),
+        contract.fiveDps(true)
+    );
+    if (partialFive.exact || partialFive.openTank != 0 ||
+        partialFive.openHealer != 1 || partialFive.openDps != 2) return -5;
+
+    var invalid = new container.Array<FinderRoleMember>();
+    addMember(invalid, <uint>9, true, false, false);
+    addMember(invalid, <uint>9, false, true, false);
+    if (matchFinderRoles(invalid, 1, 1, 0).valid) return -6;
+    return 1;
+}

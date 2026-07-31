@@ -1,10 +1,13 @@
-use std::any::{type_name, Any, TypeId};
-use std::collections::HashMap;
+use std::any::{Any, TypeId, type_name};
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 
 use crate::scene::ecs::events::{
-    Event, EventCapacityMetrics, EventPayloadProfile, EventTypeId, Events,
+    Event, EventCapacityMetrics, EventObserverHandle, EventObserverId, EventPayloadProfile,
+    EventTypeId, Events,
 };
+
+use super::observer::{ErasedEventObserver, TypedEventObserver};
 
 trait ErasedEventQueue: Any + Send + Sync {
     fn as_any(&self) -> &dyn Any;
@@ -40,6 +43,7 @@ struct EventChannel {
     payload_profile: EventPayloadProfile,
     events: Box<dyn ErasedEventQueue>,
     reader_count: u32,
+    observers: BTreeMap<EventObserverId, Box<dyn ErasedEventObserver>>,
 }
 
 impl EventChannel {
@@ -52,6 +56,7 @@ impl EventChannel {
 pub struct EventStore {
     channels: Vec<EventChannel>,
     type_ids: HashMap<TypeId, EventTypeId>,
+    next_observer_id: u64,
 }
 
 impl EventStore {
@@ -68,6 +73,7 @@ impl EventStore {
             payload_profile: EventPayloadProfile::of::<T>(),
             events: Box::<Events<T>>::default(),
             reader_count: 0,
+            observers: BTreeMap::new(),
         });
         self.type_ids.insert(type_id, event_type_id);
         event_type_id
@@ -94,6 +100,37 @@ impl EventStore {
         if channel.reader_count == 0 {
             return false;
         }
+        channel.reader_count -= 1;
+        true
+    }
+
+    pub(crate) fn observe<T, F>(&mut self, callback: F) -> Option<EventObserverHandle>
+    where
+        T: Event,
+        F: Fn(&T) -> bool + Send + Sync + 'static,
+    {
+        let event_type_id = self.register::<T>();
+        let observer_raw = self.next_observer_id.max(1);
+        let next_observer_id = observer_raw.checked_add(1)?;
+        let channel = self.channel_mut(event_type_id)?;
+        channel.reader_count = channel.reader_count.checked_add(1)?;
+        let observer_id = EventObserverId::new(observer_raw);
+        channel.observers.insert(
+            observer_id,
+            Box::new(TypedEventObserver::<T, F>::new(callback)),
+        );
+        self.next_observer_id = next_observer_id;
+        Some(EventObserverHandle::new(event_type_id, observer_id))
+    }
+
+    pub(crate) fn unobserve(&mut self, handle: EventObserverHandle) -> bool {
+        let Some(channel) = self.channel_mut(handle.event_type_id()) else {
+            return false;
+        };
+        if channel.reader_count == 0 || !channel.observers.contains_key(&handle.observer_id()) {
+            return false;
+        }
+        channel.observers.remove(&handle.observer_id());
         channel.reader_count -= 1;
         true
     }
@@ -169,8 +206,9 @@ impl EventStore {
         if self.channel(event_type_id).is_none() {
             return false;
         }
+        let observers_accepted = self.notify_event_observers(event_type_id, &event);
         self.events_mut_by_id::<T>(event_type_id).send(event);
-        true
+        observers_accepted
     }
 
     pub fn send_batch<T, I>(&mut self, events: I) -> usize
@@ -190,7 +228,25 @@ impl EventStore {
         if self.channel(event_type_id).is_none() {
             return 0;
         }
-        self.events_mut_by_id::<T>(event_type_id).send_batch(events)
+        let channel = self
+            .channel_mut(event_type_id)
+            .expect("registered event type id must resolve to a channel");
+        assert_eq!(
+            channel.type_id,
+            TypeId::of::<T>(),
+            "event type id must match event queue type"
+        );
+        let observers = &channel.observers;
+        let event_queue = channel
+            .events
+            .as_any_mut()
+            .downcast_mut::<Events<T>>()
+            .expect("event store type id must match event queue type");
+        event_queue.send_batch(events.into_iter().inspect(|event| {
+            for observer in observers.values() {
+                let _ = observer.notify(event);
+            }
+        }))
     }
 
     pub fn update<T: Event>(&mut self) {
@@ -226,6 +282,17 @@ impl EventStore {
 
     fn channel_mut(&mut self, event_type_id: EventTypeId) -> Option<&mut EventChannel> {
         self.channels.get_mut(event_type_id.index())
+    }
+
+    fn notify_event_observers<T: Event>(&self, event_type_id: EventTypeId, event: &T) -> bool {
+        let Some(channel) = self.channel(event_type_id) else {
+            return false;
+        };
+        let mut accepted = true;
+        for observer in channel.observers.values() {
+            accepted &= observer.notify(event);
+        }
+        accepted
     }
 }
 

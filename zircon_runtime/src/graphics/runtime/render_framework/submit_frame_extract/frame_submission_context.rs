@@ -46,7 +46,7 @@ pub(super) struct FrameSubmissionContext {
     visibility_context: VisibilityContext,
     previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     camera_history_key: ViewportCameraHistoryKey,
-    history_validation_key: FrameHistoryValidationKey,
+    history_validation_key: Arc<FrameHistoryValidationKey>,
     history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
     output_target: ViewportRenderOutputTarget,
     camera_target_resolution: RenderCameraTargetResolutionReport,
@@ -176,7 +176,7 @@ impl FrameSubmissionContext {
             visibility_context,
             previous_motion_vector_camera,
             camera_history_key,
-            history_validation_key,
+            history_validation_key: Arc::new(history_validation_key),
             history_invalidation_reason,
             output_target,
             camera_target_resolution,
@@ -236,6 +236,10 @@ impl FrameSubmissionContext {
         &self.compiled_pipeline
     }
 
+    pub(super) fn compiled_pipeline_shared(&self) -> Arc<CompiledRenderPipeline> {
+        Arc::clone(&self.compiled_pipeline)
+    }
+
     pub(super) fn capabilities(&self) -> &RenderCapabilitySummary {
         &self.capabilities
     }
@@ -263,8 +267,8 @@ impl FrameSubmissionContext {
         &self.camera_history_key
     }
 
-    pub(super) fn history_validation_key(&self) -> &FrameHistoryValidationKey {
-        &self.history_validation_key
+    pub(super) fn history_validation_key_shared(&self) -> Arc<FrameHistoryValidationKey> {
+        Arc::clone(&self.history_validation_key)
     }
 
     pub(super) fn history_invalidation_reason(&self) -> Option<FrameHistoryInvalidationReason> {

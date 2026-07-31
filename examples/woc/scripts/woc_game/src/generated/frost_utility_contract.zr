@@ -1,0 +1,11 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub iceLanceId(): string { return "ice_lance"; }
+pub flurryId(): string { return "flurry"; }
+pub blizzardId(): string { return "blizzard"; }
+pub frozenOrbId(): string { return "frozen_orb"; }
+pub fingersKind(): string { return "fingers_of_frost"; }
+pub brainFreezeKind(): string { return "brain_freeze"; }
+pub iciclesKind(): string { return "icicles"; }
+pub blizzardOrbCdrPerEnemy(): float { return 0.5; }
+pub blizzardOrbCdrCap(): float { return 3.0; }
+pub icicleMax(): int { return 5; }

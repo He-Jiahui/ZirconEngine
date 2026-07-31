@@ -17,7 +17,7 @@ use crate::core::resource::{
 };
 use crate::graphics::WgpuRenderFramework;
 
-use super::{render_product_output_dir, write_side_by_side_png, ProductRender};
+use super::{ProductRender, render_product_output_dir, write_side_by_side_png};
 
 pub(super) const PRODUCT_SIZE: UVec2 = UVec2::new(640, 360);
 const ADVANCED_PBR_OPAQUE_PASS_NAME: &str = "advanced-pbr-opaque";
@@ -387,7 +387,10 @@ fn product_mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            ..Default::default()
+        },
     }
 }
 

@@ -3,3 +3,6 @@
 mod channel_layout;
 
 pub use channel_layout::{AudioChannelLayout, AudioSpeakerChannel};
+
+#[cfg(test)]
+mod tests;

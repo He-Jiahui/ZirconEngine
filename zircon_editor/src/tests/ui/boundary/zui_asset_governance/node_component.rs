@@ -1,8 +1,6 @@
 use std::collections::BTreeSet;
-use std::fs;
 
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 use super::support::{
     collect_zui_files, editor_asset_root, runtime_asset_root, split_widget_component_import,
@@ -46,10 +44,7 @@ fn production_zui_node_component_names_are_non_empty_and_trimmed() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
 
             for (node_id, node) in &document.nodes {
                 checked_node_components += 1;
@@ -100,10 +95,7 @@ fn production_zui_node_components_resolve_to_known_descriptors_or_imported_compo
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = super::support::load_zui_document(&path);
             let local_component_names =
                 document.components.keys().cloned().collect::<BTreeSet<_>>();
             let imported_component_names =

@@ -3,33 +3,31 @@ use crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewDat
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::super::RetainedEditorHost;
+use super::cache::BuildExportBaseProjection;
 
 mod diagnostics;
 mod project;
 mod rows;
 
-pub(super) fn build_export_targets(
+pub(super) fn rebuild_export_targets(
     host: &RetainedEditorHost,
     chrome: &EditorChromeSnapshot,
-    diagnostics: &mut Vec<String>,
-) -> Vec<BuildExportTargetViewData> {
+) -> BuildExportBaseProjection {
     let (project_root, manifest) = match project::load_active_project_manifest(&chrome.project_path)
     {
         Ok(project) => project,
-        Err(error) => {
-            diagnostics.push(error);
-            return Vec::new();
-        }
+        Err(error) => return BuildExportBaseProjection::uncacheable(error),
     };
 
     let export_dir = project_root.join("export");
-    let mut preset_names = match std::fs::read_dir(&export_dir) {
+    let mut diagnostics = Vec::new();
+    let mut preset_entries = match std::fs::read_dir(&export_dir) {
         Ok(entries) => entries
             .filter_map(Result::ok)
             .filter_map(|entry| {
                 let path = entry.path();
                 (path.extension().and_then(|value| value.to_str()) == Some("zpreset"))
-                    .then(|| path.file_stem()?.to_str().map(str::to_owned))
+                    .then(|| Some((path.file_stem()?.to_str()?.to_owned(), path)))
                     .flatten()
             })
             .collect::<Vec<_>>(),
@@ -39,12 +37,15 @@ pub(super) fn build_export_targets(
             Vec::new()
         }
     };
-    preset_names.sort();
+    preset_entries.sort_by(|left, right| left.0.cmp(&right.0));
+    let preset_paths = preset_entries
+        .iter()
+        .map(|(_, path)| path.clone())
+        .collect::<Vec<_>>();
     let store = ExportPresetStore::new(&project_root);
-    let job_snapshots = host.desktop_export_jobs.snapshots();
-    preset_names
+    let targets = preset_entries
         .into_iter()
-        .filter_map(|preset_name| {
+        .filter_map(|(preset_name, _)| {
             let preset = match store.load(&preset_name) {
                 Ok(preset) => preset,
                 Err(error) => {
@@ -70,8 +71,26 @@ pub(super) fn build_export_targets(
                 &manifest,
                 &preset_name,
                 profile,
-                job_snapshots.as_slice(),
             ))
         })
-        .collect()
+        .collect();
+    BuildExportBaseProjection {
+        project_root,
+        targets,
+        diagnostics,
+        preset_paths,
+        cacheable: true,
+    }
+}
+
+pub(super) fn apply_export_target_overlays(
+    host: &RetainedEditorHost,
+    base: &BuildExportBaseProjection,
+) -> Vec<BuildExportTargetViewData> {
+    let job_snapshots = host.desktop_export_jobs.snapshots();
+    let mut targets = base.targets.clone();
+    for target in &mut targets {
+        rows::apply_target_overlays(host, &base.project_root, &job_snapshots, target);
+    }
+    targets
 }

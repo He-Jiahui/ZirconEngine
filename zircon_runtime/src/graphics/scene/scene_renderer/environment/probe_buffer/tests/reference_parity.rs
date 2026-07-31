@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    reflection_probe_box_project_direction, reflection_probe_influence_weight, ProbeInfluenceShape,
-    ReflectionProbeData,
+    ProbeInfluenceShape, ReflectionProbeData, reflection_probe_box_project_direction,
+    reflection_probe_influence_weight,
 };
 use crate::core::math::{Quat, Vec3};
 

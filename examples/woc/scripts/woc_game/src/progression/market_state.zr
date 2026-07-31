@@ -1,0 +1,492 @@
+// Authoritative M5 World Market state projected from source commit
+// 7c10f280eec380e9877e66ce16333089e171fe42. Listings escrow fungible items,
+// settle through per-seller collections and expire only on the 20 Hz second edge.
+var container = %import("zr.container");
+var catalog = %import("generated/m5_content_catalog");
+
+var LISTING_STRIDE = 6;
+
+class MarketState {
+    pub var sellerCopper: int;
+    pub var buyerCopper: int;
+    pub var sellerNear: bool;
+    pub var buyerNear: bool;
+    pub var sellerDead: bool;
+    pub var buyerDead: bool;
+    pub var sellerIds: container.Array<string>;
+    pub var sellerCounts: container.Array<int>;
+    pub var buyerIds: container.Array<string>;
+    pub var buyerCounts: container.Array<int>;
+    // Per listing: id, seller code, count, price, expires tick, house flag.
+    pub var listingItems: container.Array<string>;
+    pub var listingData: container.Array<int>;
+    // Per collected item: owner code, count.
+    pub var collectionItems: container.Array<string>;
+    pub var collectionData: container.Array<int>;
+    pub var sellerCollectionCopper: int;
+    pub var buyerCollectionCopper: int;
+    pub var nextListingId: int;
+    pub var tickCount: int;
+    pub var searchText: string;
+    pub var marketEvents: int;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.sellerCopper = 0;
+        this.buyerCopper = 0;
+        this.sellerNear = false;
+        this.buyerNear = false;
+        this.sellerDead = false;
+        this.buyerDead = false;
+        this.sellerIds = new container.Array<string>();
+        this.sellerCounts = new container.Array<int>();
+        this.buyerIds = new container.Array<string>();
+        this.buyerCounts = new container.Array<int>();
+        this.listingItems = new container.Array<string>();
+        this.listingData = new container.Array<int>();
+        this.collectionItems = new container.Array<string>();
+        this.collectionData = new container.Array<int>();
+        this.sellerCollectionCopper = 0;
+        this.buyerCollectionCopper = 0;
+        this.nextListingId = 1;
+        this.tickCount = 0;
+        this.searchText = "";
+        this.marketEvents = 0;
+        this.lastError = 0;
+    }
+}
+
+stackSize(itemId: string): int {
+    var index = catalog.indexOf("item", itemId);
+    if (index < 0) { return 20; }
+    var kind = catalog.text("item", index, "kind");
+    if (kind == "weapon" || kind == "armor" || kind == "bag" || kind == "tool") {
+        return 1;
+    }
+    return 20;
+}
+
+countIn(ids: container.Array<string>, counts: container.Array<int>, itemId: string): int {
+    var total = 0;
+    var index = 0;
+    while (index < ids.length) {
+        if (<string>ids[index] == itemId) { total = total + <int>counts[index]; }
+        index = index + 1;
+    }
+    return total;
+}
+
+addStacked(
+    ids: container.Array<string>,
+    counts: container.Array<int>,
+    itemId: string,
+    requestedCount: int
+): void {
+    var maximum = stackSize(itemId);
+    var remaining = requestedCount;
+    var index = 0;
+    while (index < ids.length && remaining > 0) {
+        if (<string>ids[index] == itemId && <int>counts[index] < maximum) {
+            var room = maximum - <int>counts[index];
+            var take = remaining < room ? remaining : room;
+            counts[index] = <int>counts[index] + take;
+            remaining = remaining - take;
+        }
+        index = index + 1;
+    }
+    while (remaining > 0) {
+        var fresh = remaining < maximum ? remaining : maximum;
+        ids.add(itemId);
+        counts.add(fresh);
+        remaining = remaining - fresh;
+    }
+}
+
+removeStacked(
+    ids: container.Array<string>,
+    counts: container.Array<int>,
+    itemId: string,
+    requestedCount: int
+): int {
+    var remaining = requestedCount;
+    var index = ids.length - 1;
+    while (index >= 0 && remaining > 0) {
+        if (<string>ids[index] == itemId) {
+            var available = <int>counts[index];
+            var take = remaining < available ? remaining : available;
+            available = available - take;
+            remaining = remaining - take;
+            if (available <= 0) {
+                ids.removeAt(index);
+                counts.removeAt(index);
+            } else {
+                counts[index] = available;
+            }
+        }
+        index = index - 1;
+    }
+    return requestedCount - remaining;
+}
+
+canAdd(ids: container.Array<string>, counts: container.Array<int>, itemId: string, count: int): bool {
+    var maximum = stackSize(itemId);
+    var room = 0;
+    var index = 0;
+    while (index < ids.length) {
+        if (<string>ids[index] == itemId && <int>counts[index] < maximum) {
+            room = room + maximum - <int>counts[index];
+        }
+        index = index + 1;
+    }
+    var free = 16 - ids.length;
+    if (free > 0) { room = room + free * maximum; }
+    return room >= count;
+}
+
+pub addPlayerItem(state: MarketState, player: int, itemId: string, count: int): void {
+    if (player == 1) { addStacked(state.sellerIds, state.sellerCounts, itemId, count); }
+    if (player == 2) { addStacked(state.buyerIds, state.buyerCounts, itemId, count); }
+}
+
+pub playerItemCount(state: MarketState, player: int, itemId: string): int {
+    if (player == 1) { return countIn(state.sellerIds, state.sellerCounts, itemId); }
+    if (player == 2) { return countIn(state.buyerIds, state.buyerCounts, itemId); }
+    return 0;
+}
+
+playerNear(state: MarketState, player: int): bool {
+    return player == 1 ? state.sellerNear : state.buyerNear;
+}
+
+playerDead(state: MarketState, player: int): bool {
+    return player == 1 ? state.sellerDead : state.buyerDead;
+}
+
+playerCopper(state: MarketState, player: int): int {
+    return player == 1 ? state.sellerCopper : state.buyerCopper;
+}
+
+setPlayerCopper(state: MarketState, player: int, value: int): void {
+    if (player == 1) { state.sellerCopper = value; }
+    if (player == 2) { state.buyerCopper = value; }
+}
+
+removePlayerItem(state: MarketState, player: int, itemId: string, count: int): int {
+    if (player == 1) {
+        return removeStacked(state.sellerIds, state.sellerCounts, itemId, count);
+    }
+    if (player == 2) {
+        return removeStacked(state.buyerIds, state.buyerCounts, itemId, count);
+    }
+    return 0;
+}
+
+canAddPlayerItem(state: MarketState, player: int, itemId: string, count: int): bool {
+    if (player == 1) { return canAdd(state.sellerIds, state.sellerCounts, itemId, count); }
+    if (player == 2) { return canAdd(state.buyerIds, state.buyerCounts, itemId, count); }
+    return false;
+}
+
+listingBase(index: int): int {
+    return index * LISTING_STRIDE;
+}
+
+listingIdAt(state: MarketState, index: int): int {
+    var data = state.listingData;
+    return <int>data[listingBase(index)];
+}
+
+listingSellerAt(state: MarketState, index: int): int {
+    var data = state.listingData;
+    return <int>data[listingBase(index) + 1];
+}
+
+listingCountAt(state: MarketState, index: int): int {
+    var data = state.listingData;
+    return <int>data[listingBase(index) + 2];
+}
+
+listingPriceAt(state: MarketState, index: int): int {
+    var data = state.listingData;
+    return <int>data[listingBase(index) + 3];
+}
+
+listingExpiresAt(state: MarketState, index: int): int {
+    var data = state.listingData;
+    return <int>data[listingBase(index) + 4];
+}
+
+findListing(state: MarketState, listingId: int): int {
+    var index = 0;
+    while (index < state.listingItems.length) {
+        if (listingIdAt(state, index) == listingId) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+removeListing(state: MarketState, index: int): void {
+    var data = state.listingData;
+    var base = listingBase(index);
+    state.listingItems.removeAt(index);
+    var field = 0;
+    while (field < LISTING_STRIDE) {
+        data.removeAt(base);
+        field = field + 1;
+    }
+}
+
+activeListingsFor(state: MarketState, player: int): int {
+    var count = 0;
+    var index = 0;
+    while (index < state.listingItems.length) {
+        if (listingSellerAt(state, index) == player) { count = count + 1; }
+        index = index + 1;
+    }
+    return count;
+}
+
+pub listItem(
+    state: MarketState,
+    player: int,
+    itemId: string,
+    requestedCount: int,
+    price: int
+): int {
+    state.lastError = 0;
+    if (playerDead(state, player) || !playerNear(state, player)) {
+        state.lastError = -1;
+        return 0;
+    }
+    var item = catalog.indexOf("item", itemId);
+    if (item < 0 || catalog.text("item", item, "kind") == "quest") {
+        state.lastError = -2;
+        return 0;
+    }
+    var count = requestedCount > 0 ? requestedCount : 1;
+    if (playerItemCount(state, player, itemId) < count) { state.lastError = -3; return 0; }
+    if (price < 1 || price > 5000000) { state.lastError = -4; return 0; }
+    if (activeListingsFor(state, player) >= 12) { state.lastError = -5; return 0; }
+    removePlayerItem(state, player, itemId, count);
+    var id = state.nextListingId;
+    state.nextListingId = state.nextListingId + 1;
+    state.listingItems.add(itemId);
+    state.listingData.add(id);
+    state.listingData.add(player);
+    state.listingData.add(count);
+    state.listingData.add(price);
+    state.listingData.add(state.tickCount + 3456000);
+    state.listingData.add(0);
+    state.marketEvents = state.marketEvents + 1;
+    return id;
+}
+
+pub marketSearch(state: MarketState, search: string): void {
+    state.searchText = search;
+}
+
+pub visibleListingCount(state: MarketState): int {
+    var count = 0;
+    var index = 0;
+    while (index < state.listingItems.length) {
+        var itemId = <string>state.listingItems[index];
+        if (state.searchText == "" || (state.searchText == "wolf" && itemId == "wolf_fang")) {
+            count = count + 1;
+        }
+        index = index + 1;
+    }
+    return count;
+}
+
+addCollectionItem(state: MarketState, owner: int, itemId: string, count: int): void {
+    state.collectionItems.add(itemId);
+    state.collectionData.add(owner);
+    state.collectionData.add(count);
+}
+
+collectionCount(state: MarketState, owner: int, itemId: string): int {
+    var total = 0;
+    var index = 0;
+    while (index < state.collectionItems.length) {
+        var base = index * 2;
+        if (<int>state.collectionData[base] == owner &&
+            <string>state.collectionItems[index] == itemId) {
+            total = total + <int>state.collectionData[base + 1];
+        }
+        index = index + 1;
+    }
+    return total;
+}
+
+pub collectedItemCount(state: MarketState, owner: int, itemId: string): int {
+    return collectionCount(state, owner, itemId);
+}
+
+pub buy(state: MarketState, player: int, listingId: int): bool {
+    state.lastError = 0;
+    if (playerDead(state, player) || !playerNear(state, player)) {
+        state.lastError = -1;
+        return false;
+    }
+    var index = findListing(state, listingId);
+    if (index < 0) { state.lastError = -6; return false; }
+    var seller = listingSellerAt(state, index);
+    if (seller == player) { state.lastError = -7; return false; }
+    var itemId = <string>state.listingItems[index];
+    var count = listingCountAt(state, index);
+    var price = listingPriceAt(state, index);
+    if (playerCopper(state, player) < price) { state.lastError = -8; return false; }
+    if (!canAddPlayerItem(state, player, itemId, count)) { state.lastError = -9; return false; }
+    setPlayerCopper(state, player, playerCopper(state, player) - price);
+    addPlayerItem(state, player, itemId, count);
+    var proceeds = <int>(<float>price * (1.0 - catalog.marketCut()));
+    if (seller == 1) { state.sellerCollectionCopper = state.sellerCollectionCopper + proceeds; }
+    if (seller == 2) { state.buyerCollectionCopper = state.buyerCollectionCopper + proceeds; }
+    removeListing(state, index);
+    state.marketEvents = state.marketEvents + 1;
+    return true;
+}
+
+pub cancel(state: MarketState, player: int, listingId: int): bool {
+    state.lastError = 0;
+    if (!playerNear(state, player)) { state.lastError = -1; return false; }
+    var index = findListing(state, listingId);
+    if (index < 0 || listingSellerAt(state, index) != player) {
+        state.lastError = -7;
+        return false;
+    }
+    var itemId = <string>state.listingItems[index];
+    var count = listingCountAt(state, index);
+    if (!canAddPlayerItem(state, player, itemId, count)) { state.lastError = -9; return false; }
+    removeListing(state, index);
+    addPlayerItem(state, player, itemId, count);
+    state.marketEvents = state.marketEvents + 1;
+    return true;
+}
+
+pub forceExpired(state: MarketState, listingId: int): bool {
+    var index = findListing(state, listingId);
+    if (index < 0) { return false; }
+    var data = state.listingData;
+    data[listingBase(index) + 4] = state.tickCount - 1;
+    return true;
+}
+
+expireListings(state: MarketState): void {
+    var index = state.listingItems.length - 1;
+    while (index >= 0) {
+        if (state.tickCount >= listingExpiresAt(state, index)) {
+            var itemId = <string>state.listingItems[index];
+            var owner = listingSellerAt(state, index);
+            var count = listingCountAt(state, index);
+            removeListing(state, index);
+            addCollectionItem(state, owner, itemId, count);
+        }
+        index = index - 1;
+    }
+}
+
+pub advanceTick(state: MarketState): void {
+    state.tickCount = state.tickCount + 1;
+    var seconds = state.tickCount;
+    while (seconds >= 20) { seconds = seconds - 20; }
+    if (seconds == 0) { expireListings(state); }
+}
+
+pub collect(state: MarketState, player: int): bool {
+    state.lastError = 0;
+    if (!playerNear(state, player)) { state.lastError = -1; return false; }
+    var copper = player == 1 ? state.sellerCollectionCopper : state.buyerCollectionCopper;
+    if (copper > 0) {
+        setPlayerCopper(state, player, playerCopper(state, player) + copper);
+        if (player == 1) { state.sellerCollectionCopper = 0; }
+        if (player == 2) { state.buyerCollectionCopper = 0; }
+    }
+    var movedAny = copper > 0;
+    var index = 0;
+    while (index < state.collectionItems.length) {
+        var base = index * 2;
+        var owner = <int>state.collectionData[base];
+        var count = <int>state.collectionData[base + 1];
+        var itemId = <string>state.collectionItems[index];
+        if (owner == player && canAddPlayerItem(state, player, itemId, count)) {
+            addPlayerItem(state, player, itemId, count);
+            state.collectionItems.removeAt(index);
+            state.collectionData.removeAt(base);
+            state.collectionData.removeAt(base);
+            movedAny = true;
+        } else {
+            index = index + 1;
+        }
+    }
+    if (!movedAny) { state.lastError = -10; return false; }
+    state.marketEvents = state.marketEvents + 1;
+    return true;
+}
+
+pub contractTest(): int {
+    var scenario = new MarketState();
+    scenario.sellerNear = true;
+    scenario.buyerNear = true;
+    scenario.buyerCopper = 5000;
+    addPlayerItem(scenario, 1, "baked_bread", 5);
+    addPlayerItem(scenario, 1, "wolf_fang", 4);
+    addPlayerItem(scenario, 2, "baked_bread", 5);
+    addPlayerItem(scenario, 2, "spring_water", 5);
+
+    var sale = listItem(scenario, 1, "wolf_fang", 2, 300);
+    if (sale != 1 || playerItemCount(scenario, 1, "wolf_fang") != 2 ||
+        scenario.listingItems.length != 1) {
+        return -1;
+    }
+    marketSearch(scenario, "wolf");
+    if (visibleListingCount(scenario) != 1) { return -2; }
+    marketSearch(scenario, "");
+    if (visibleListingCount(scenario) != 1) { return -3; }
+    if (!buy(scenario, 2, sale) || scenario.buyerCopper != 4700 ||
+        playerItemCount(scenario, 2, "wolf_fang") != 2 ||
+        scenario.sellerCollectionCopper != 285 || scenario.listingItems.length != 0) {
+        return -4;
+    }
+
+    var reclaim = listItem(scenario, 1, "wolf_fang", 1, 150);
+    if (reclaim != 2 || !cancel(scenario, 1, reclaim) ||
+        playerItemCount(scenario, 1, "wolf_fang") != 2 ||
+        scenario.listingItems.length != 0) {
+        return -5;
+    }
+    var expiring = listItem(scenario, 1, "wolf_fang", 1, 200);
+    if (expiring != 3 || !forceExpired(scenario, expiring)) { return -6; }
+    var tick = 0;
+    while (tick < 20) {
+        advanceTick(scenario);
+        tick = tick + 1;
+    }
+    if (scenario.listingItems.length != 0 ||
+        collectedItemCount(scenario, 1, "wolf_fang") != 1 ||
+        playerItemCount(scenario, 1, "wolf_fang") != 1) {
+        return -7;
+    }
+    if (!collect(scenario, 1) || scenario.sellerCopper != 285 ||
+        scenario.sellerCollectionCopper != 0 ||
+        playerItemCount(scenario, 1, "wolf_fang") != 2 ||
+        collectedItemCount(scenario, 1, "wolf_fang") != 0) {
+        return -8;
+    }
+
+    var rejected = new MarketState();
+    rejected.sellerNear = true;
+    addPlayerItem(rejected, 1, "wolf_fang", 2);
+    var before = playerItemCount(rejected, 1, "wolf_fang");
+    if (listItem(rejected, 1, "wolf_fang", 3, 100) != 0 ||
+        playerItemCount(rejected, 1, "wolf_fang") != before ||
+        rejected.listingItems.length != 0) {
+        return -9;
+    }
+    var own = listItem(rejected, 1, "wolf_fang", 1, 100);
+    if (buy(rejected, 1, own) || rejected.lastError != -7 ||
+        rejected.listingItems.length != 1 || rejected.sellerCopper != 0) {
+        return -10;
+    }
+    return 1;
+}

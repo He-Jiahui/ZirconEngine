@@ -1,12 +1,13 @@
 use crate::core::framework::render::{
     CapturedFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFramework,
     RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
+    RenderSubmissionConfig,
     RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
     RenderVirtualGeometryDebugSnapshot,
 };
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
-use super::super::capture_frame::capture_frame;
+use super::super::capture_frame::{capture_frame, capture_frame_if_newer};
 use super::super::create_viewport::create_viewport;
 use super::super::destroy_viewport::destroy_viewport;
 use super::super::graphics_debugger_capture::{
@@ -49,6 +50,17 @@ impl RenderFramework for WgpuRenderFramework {
         ui: Option<UiRenderExtract>,
     ) -> Result<(), RenderFrameworkError> {
         submit_frame_extract_with_ui(self, viewport, extract, ui)
+    }
+
+    fn set_submission_config(
+        &self,
+        config: RenderSubmissionConfig,
+    ) -> Result<(), RenderFrameworkError> {
+        WgpuRenderFramework::set_submission_config(self, config)
+    }
+
+    fn submission_config(&self) -> RenderSubmissionConfig {
+        WgpuRenderFramework::submission_config(self)
     }
 
     fn bind_viewport_surface(
@@ -123,6 +135,14 @@ impl RenderFramework for WgpuRenderFramework {
         viewport: RenderViewportHandle,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         capture_frame(self, viewport)
+    }
+
+    fn capture_frame_if_newer(
+        &self,
+        viewport: RenderViewportHandle,
+        last_generation: Option<u64>,
+    ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
+        capture_frame_if_newer(self, viewport, last_generation)
     }
 
     fn set_quality_profile(

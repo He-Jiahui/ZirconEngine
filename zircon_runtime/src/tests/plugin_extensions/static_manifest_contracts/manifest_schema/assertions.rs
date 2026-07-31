@@ -2,8 +2,8 @@ use std::path::Path;
 
 use super::super::optional_table_array;
 use super::field_sets::{
-    KNOWN_COMPONENT_FIELDS, KNOWN_COMPONENT_PROPERTY_FIELDS, KNOWN_MODULE_FIELDS,
-    KNOWN_OPTIONAL_FEATURE_DEPENDENCY_FIELDS, KNOWN_OPTIONAL_FEATURE_FIELDS,
+    KNOWN_COMPONENT_FIELDS, KNOWN_COMPONENT_PROPERTY_FIELDS, KNOWN_MODULE_EVENT_CONSUMER_FIELDS,
+    KNOWN_MODULE_FIELDS, KNOWN_OPTIONAL_FEATURE_DEPENDENCY_FIELDS, KNOWN_OPTIONAL_FEATURE_FIELDS,
 };
 
 pub(super) fn assert_known_component_fields(table: &toml::Table, relative_path: &Path) {
@@ -58,12 +58,30 @@ pub(super) fn assert_known_feature_bundle_fields(
             &format!("{feature_context} dependency"),
             &KNOWN_OPTIONAL_FEATURE_DEPENDENCY_FIELDS,
         );
+        assert_known_module_fields(feature, relative_path, &feature_context);
+    }
+}
+
+pub(super) fn assert_known_module_fields(
+    table: &toml::Table,
+    relative_path: &Path,
+    owner_context: &str,
+) {
+    for module in
+        optional_table_array(table, relative_path, owner_context, "modules").unwrap_or_default()
+    {
+        let module_name = module
+            .get("name")
+            .and_then(toml::Value::as_str)
+            .unwrap_or("<unknown>");
+        let module_context = format!("{owner_context} module `{module_name}`");
+        assert_known_table_fields(relative_path, &module_context, module, &KNOWN_MODULE_FIELDS);
         assert_known_row_fields(
-            feature,
+            module,
             relative_path,
-            "modules",
-            &format!("{feature_context} module"),
-            &KNOWN_MODULE_FIELDS,
+            "event_consumers",
+            &format!("{module_context} event consumer"),
+            &KNOWN_MODULE_EVENT_CONSUMER_FIELDS,
         );
     }
 }

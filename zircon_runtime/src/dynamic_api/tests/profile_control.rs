@@ -1,15 +1,16 @@
 use super::support::*;
 
 #[test]
-fn profile_control_rejects_invalid_json_before_session_lookup() {
+fn profile_control_rejects_invalid_json_after_session_action_admission() {
     let api = runtime_api();
     let profile_control = api.profile_control.expect("profile_control");
     let bytes = b"not-json";
     let mut output = ZrOwnedByteBuffer::empty();
+    let session = create_test_session(api);
 
     let status = unsafe {
         profile_control(
-            ZrRuntimeSessionHandle::new(99_999),
+            session,
             ZrByteSlice {
                 data: bytes.as_ptr(),
                 len: bytes.len(),
@@ -18,6 +19,7 @@ fn profile_control_rejects_invalid_json_before_session_lookup() {
         )
     };
 
+    destroy_test_session(api, session);
     assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
     assert_eq!(status_message(status), "invalid profile control request");
     assert!(output.is_empty());

@@ -2,6 +2,7 @@ use super::*;
 
 use std::path::Path;
 
+use crate::text::font::face_metadata::FontFaceMetadata;
 use crate::text::{FontFaceId, VariationCoords};
 
 const WGHT: u32 = u32::from_be_bytes(*b"wght");
@@ -69,11 +70,10 @@ fn text_font_instance_identity_separates_faces_and_coordinates() {
 fn text_font_effective_variations_drop_axes_not_exposed_by_static_face() {
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
     let bytes = std::fs::read(source).expect("tracked static font fixture");
-    let variations = variations_with_font_weight(
-        &bytes,
-        0,
+    let metadata = FontFaceMetadata::from_sfnt_bytes(&bytes, 0);
+    let variations = metadata.effective_variations(
         &VariationCoords(vec![(WDTH, 90.0), (WGHT, 650.0)]),
-        700,
+        Some(700),
     );
 
     assert_eq!(variations, VariationCoords::default());
@@ -95,14 +95,13 @@ fn text_font_effective_variations_clamp_axes_and_drop_default_coordinates() {
         .into_iter()
         .find(|axis| axis.tag == ttf_parser::Tag::from_bytes(b"wght"))
         .expect("Bahnschrift weight axis");
-    let variations = variations_with_font_weight(
-        &bytes,
-        0,
+    let metadata = FontFaceMetadata::from_sfnt_bytes(&bytes, 0);
+    let variations = metadata.effective_variations(
         &VariationCoords(vec![(
             u32::from_be_bytes(width.tag.to_bytes()),
             width.min_value - 100.0,
         )]),
-        weight.def_value as u16,
+        Some(weight.def_value as u16),
     );
 
     assert_eq!(

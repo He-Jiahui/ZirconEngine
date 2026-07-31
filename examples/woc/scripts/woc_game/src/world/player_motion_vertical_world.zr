@@ -1,0 +1,189 @@
+// Pure vertical state transition from stepPlayerMotion for the fixed builtin
+// world. Field codes: 1=y, 2=vx, 3=vy, 4=vz, 5=fallStartY, 6=onGround,
+// 7=jumping, 8=landingDamage. It does not write WOS4 state itself.
+
+var playerMotion = %import("world/player_motion");
+var motionWorld = %import("world/player_motion_world");
+var terrainContent = %import("world/terrain_content");
+var terrainGround = %import("world/terrain_ground");
+
+maximum(first: float, second: float): float {
+    return first > second ? first : second;
+}
+
+distance(x0: float, z0: float, x1: float, z1: float): float {
+    var math = %import("zr.zircon.math");
+    var dx = x1 - x0;
+    var dz = z1 - z0;
+    return math.sqrt(dx * dx + dz * dz);
+}
+
+pub verticalField(
+    positionX: float,
+    positionZ: float,
+    positionY: float,
+    previousX: float,
+    previousZ: float,
+    velocityX: float,
+    velocityY: float,
+    velocityZ: float,
+    fallStartY: float,
+    onGround: bool,
+    jumping: bool,
+    forward: bool,
+    back: bool,
+    strafeLeft: bool,
+    strafeRight: bool,
+    facing: float,
+    moveSpeedMultiplier: float,
+    rooted: bool,
+    jumpInput: bool,
+    jumpMultiplier: float,
+    maximumHealth: int,
+    seed: uint,
+    field: int,
+    required: bool
+): float {
+    if (!required || moveSpeedMultiplier < 0.0 || jumpMultiplier <= 0.0 || maximumHealth < 0 ||
+        field < 1 || field > 8) {
+        throw "woc player vertical motion arguments are invalid";
+    }
+    var swimming = motionWorld.isSwimmingInBuiltinWorld(
+        positionX,
+        positionZ,
+        positionY,
+        seed,
+        true
+    );
+    var steep = motionWorld.isSteepGround(positionX, positionZ, onGround, swimming, seed, true);
+    var moving = playerMotion.hasPlanarInput(forward, back, strafeLeft, strafeRight, true) &&
+        !rooted && !steep;
+    var wishX = 0.0;
+    var wishZ = 0.0;
+    var wishSpeed = 0.0;
+    if (moving) {
+        wishSpeed = playerMotion.wishSpeed(
+            forward,
+            back,
+            strafeLeft,
+            strafeRight,
+            moveSpeedMultiplier,
+            swimming,
+            true
+        );
+        wishX = playerMotion.wishX(facing, forward, back, strafeLeft, strafeRight, true);
+        wishZ = playerMotion.wishZ(facing, forward, back, strafeLeft, strafeRight, true);
+    }
+    var ground = terrainGround.builtinGroundHeight(positionX, positionZ, seed, true);
+    var deepWater = motionWorld.isDeepWaterAt(positionX, positionZ, seed, true);
+    var waterSurface = terrainContent.waterLevel(true) - 0.75;
+    var landingDamage = 0;
+    if (deepWater && positionY <= waterSurface + 0.05) {
+        positionY = waterSurface;
+        velocityY = 0.0;
+        velocityX = 0.0;
+        velocityZ = 0.0;
+        onGround = true;
+        jumping = false;
+        fallStartY = positionY;
+        if (jumpInput && !rooted) {
+            velocityY = playerMotion.jumpStartVelocity(jumpMultiplier, true, true);
+            velocityX = wishX * wishSpeed;
+            velocityZ = wishZ * wishSpeed;
+            onGround = false;
+            jumping = true;
+        }
+    } else {
+        if (jumpInput && onGround && !rooted && !steep) {
+            velocityY = playerMotion.jumpStartVelocity(jumpMultiplier, false, true);
+            velocityX = wishX * wishSpeed;
+            velocityZ = wishZ * wishSpeed;
+            onGround = false;
+            jumping = true;
+            fallStartY = positionY;
+        }
+        if (!onGround) {
+            velocityY = playerMotion.nextAirborneVelocity(velocityY, true);
+            positionY = positionY + playerMotion.airborneStepDistance(velocityY, true);
+            fallStartY = maximum(fallStartY, positionY);
+            if (deepWater && positionY <= waterSurface) {
+                positionY = waterSurface;
+                velocityY = 0.0;
+                velocityX = 0.0;
+                velocityZ = 0.0;
+                onGround = true;
+                jumping = false;
+                fallStartY = positionY;
+            } else if (positionY <= ground) {
+                positionY = ground;
+                velocityY = 0.0;
+                velocityX = 0.0;
+                velocityZ = 0.0;
+                onGround = true;
+                jumping = false;
+                landingDamage = playerMotion.fallDamage(maximumHealth, fallStartY, ground, true);
+                fallStartY = ground;
+            }
+        } else {
+            var run = distance(previousX, previousZ, positionX, positionZ);
+            var maxStepDown = playerMotion.maxWalkableStepDown(run, true);
+            if (ground < positionY - maxStepDown) {
+                onGround = false;
+                jumping = false;
+                velocityX = 0.0;
+                velocityY = 0.0;
+                velocityZ = 0.0;
+                fallStartY = positionY;
+            } else {
+                positionY = ground;
+                fallStartY = ground;
+            }
+        }
+    }
+    if (field == 1) { return positionY; }
+    if (field == 2) { return velocityX; }
+    if (field == 3) { return velocityY; }
+    if (field == 4) { return velocityZ; }
+    if (field == 5) { return fallStartY; }
+    if (field == 6) { return onGround ? 1.0 : 0.0; }
+    if (field == 7) { return jumping ? 1.0 : 0.0; }
+    return <float>landingDamage;
+}
+
+pub contractTest(): int {
+    if (verticalField(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, true, false,
+            false, false, false, false, 0.0, 1.0, false, false, 1.0, 1000, <uint>20061, 1, true) != 1.5 ||
+        verticalField(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, true, false,
+            false, false, false, false, 0.0, 1.0, false, false, 1.0, 1000, <uint>20061, 6, true) != 1.0) {
+        return -1;
+    }
+    if (verticalField(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, true, false,
+            true, false, false, false, 0.0, 1.0, false, true, 1.0, 1000, <uint>20061, 1, true) != 1.76 ||
+        verticalField(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, true, false,
+            true, false, false, false, 0.0, 1.0, false, true, 1.0, 1000, <uint>20061, 3, true) != 5.2 ||
+        verticalField(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, true, false,
+            true, false, false, false, 0.0, 1.0, false, true, 1.0, 1000, <uint>20061, 4, true) != 7.0 ||
+        verticalField(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, true, false,
+            true, false, false, false, 0.0, 1.0, false, true, 1.0, 1000, <uint>20061, 6, true) != 0.0 ||
+        verticalField(0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, true, false,
+            true, false, false, false, 0.0, 1.0, false, true, 1.0, 1000, <uint>20061, 7, true) != 1.0) {
+        return -2;
+    }
+    if (verticalField(0.0, 0.0, 1.4, 0.0, 0.0, 1.0, -1.0, 1.0, 14.0, false, true,
+            false, false, false, false, 0.0, 1.0, false, false, 1.0, 1000, <uint>20061, 1, true) != 1.5 ||
+        verticalField(0.0, 0.0, 1.4, 0.0, 0.0, 1.0, -1.0, 1.0, 14.0, false, true,
+            false, false, false, false, 0.0, 1.0, false, false, 1.0, 1000, <uint>20061, 8, true) != 35.0 ||
+        verticalField(0.0, 0.0, 1.4, 0.0, 0.0, 1.0, -1.0, 1.0, 14.0, false, true,
+            false, false, false, false, 0.0, 1.0, false, false, 1.0, 1000, <uint>20061, 6, true) != 1.0) {
+        return -3;
+    }
+    if (verticalField(0.0, 0.0, 3.0, 0.0, 0.0, 1.0, 2.0, 1.0, 3.0, true, false,
+            false, false, false, false, 0.0, 1.0, false, false, 1.0, 1000, <uint>20061, 1, true) != 3.0 ||
+        verticalField(0.0, 0.0, 3.0, 0.0, 0.0, 1.0, 2.0, 1.0, 3.0, true, false,
+            false, false, false, false, 0.0, 1.0, false, false, 1.0, 1000, <uint>20061, 6, true) != 0.0 ||
+        verticalField(0.0, 0.0, 3.0, 0.0, 0.0, 1.0, 2.0, 1.0, 3.0, true, false,
+            false, false, false, false, 0.0, 1.0, false, false, 1.0, 1000, <uint>20061, 5, true) != 3.0) {
+        return -4;
+    }
+    return 1;
+}

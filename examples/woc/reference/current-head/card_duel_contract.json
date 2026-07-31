@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/card_duel_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/minigames/card_hand.ts": "f6674f7b2fa58d6edaf7d6c4c279a5eae3150f57d23fef866aed2d3c9c6b1c04",
+    "src/sim/social/card_duel.ts": "fca11af030673ba92385d305f7592326fc817d19f29c405d3085b92516384749"
+  },
+  "constants": {
+    "deck_size": 20,
+    "card_max_value": 10,
+    "starting_hand_size": 4,
+    "rounds_to_win": 2,
+    "round_deadline_seconds": 90
+  }
+}

@@ -448,6 +448,29 @@ fn replacing_an_action_map_rebuilds_the_binding_index() {
     assert_eq!(evaluator.indexed_binding_candidate_count(), 3);
 }
 
+#[test]
+fn action_evaluator_hot_path_uses_compiled_contexts_and_one_axis_pass() {
+    let evaluator_source = include_str!("../runtime/action_evaluator.rs");
+    assert!(
+        !evaluator_source.contains("self.action_map.context_enabled(context)"),
+        "context enabled-state must come from the compiled evaluator index"
+    );
+    assert!(
+        evaluator_source.contains("evaluate_binding_axes("),
+        "axis value and transition state must be evaluated in one pass"
+    );
+    assert!(
+        !evaluator_source.contains("binding_axis_value(&frame_axes"),
+        "axis value must not trigger a second binding-axis traversal"
+    );
+
+    let descriptor_source = include_str!("../module/descriptor.rs");
+    assert!(
+        !descriptor_source.contains("let action_config = config.clone();"),
+        "input module descriptor must move its owned config into the manager factory"
+    );
+}
+
 fn action_map_with_unique_bindings(binding_count: usize) -> InputActionMap {
     let mut map = InputActionMap::new();
     for index in 0..binding_count {

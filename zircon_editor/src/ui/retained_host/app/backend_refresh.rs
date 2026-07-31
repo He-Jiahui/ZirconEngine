@@ -34,7 +34,11 @@ pub(crate) fn plan_asset_backend_refresh(
             }
             EditorAssetChangeKind::PreviewChanged => {
                 plan.sync_catalog = true;
+                plan.refresh_visible_asset_previews = true;
                 plan.mark_paint_only_dirty = true;
+            }
+            EditorAssetChangeKind::PreviewAdmissionAvailable => {
+                plan.refresh_visible_asset_previews = true;
             }
             EditorAssetChangeKind::ReferenceChanged => {
                 plan.sync_catalog = true;
@@ -86,6 +90,10 @@ pub(crate) fn plan_asset_backend_refresh(
 
 #[cfg(test)]
 mod performance_tests {
+    use crate::ui::host::editor_asset_manager::{EditorAssetChangeKind, EditorAssetChangeRecord};
+
+    use super::plan_asset_backend_refresh;
+
     #[test]
     fn default_scene_refresh_parses_the_locator_once() {
         let source = include_str!("backend_refresh.rs");
@@ -99,5 +107,47 @@ mod performance_tests {
                 .count(),
             1
         );
+    }
+
+    #[test]
+    fn preview_completion_refills_bounded_visible_preview_admission() {
+        let plan = plan_asset_backend_refresh(
+            None,
+            None,
+            &[],
+            &[EditorAssetChangeRecord {
+                kind: EditorAssetChangeKind::PreviewChanged,
+                catalog_revision: 7,
+                uuid: Some("asset-a".to_string()),
+                locator: Some("res://asset-a.png".to_string()),
+            }],
+            &[],
+        );
+
+        assert!(plan.sync_catalog);
+        assert!(plan.refresh_visible_asset_previews);
+        assert!(plan.mark_paint_only_dirty);
+        assert!(!plan.mark_presentation_dirty);
+    }
+
+    #[test]
+    fn retry_or_cancel_admission_release_refills_without_catalog_sync() {
+        let plan = plan_asset_backend_refresh(
+            None,
+            None,
+            &[],
+            &[EditorAssetChangeRecord {
+                kind: EditorAssetChangeKind::PreviewAdmissionAvailable,
+                catalog_revision: 7,
+                uuid: Some("asset-a".to_string()),
+                locator: Some("res://asset-a.png".to_string()),
+            }],
+            &[],
+        );
+
+        assert!(plan.refresh_visible_asset_previews);
+        assert!(!plan.sync_catalog);
+        assert!(!plan.mark_paint_only_dirty);
+        assert!(!plan.mark_presentation_dirty);
     }
 }

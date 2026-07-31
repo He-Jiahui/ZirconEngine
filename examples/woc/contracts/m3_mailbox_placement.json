@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_mailbox_placement_codegen.mjs",
+  "source_identity": {
+    "source_path": "src/sim/content/mailboxes.ts",
+    "git_blob": "4f5b4028d74fe295ad577e6123b97d3a9ad977ab",
+    "sha256": "ac06759b609fc52c2928b0b0eaaefb8effe26ff4a7be6a5d820c5aba98c76d5f"
+  },
+  "mailboxes": [
+    {
+      "x": 7,
+      "z": -8
+    },
+    {
+      "x": 6,
+      "z": 294
+    },
+    {
+      "x": 6,
+      "z": 654
+    }
+  ],
+  "catalog_sha256": "dcb26960c60d8c4291b31928d1650183fa3b6224b496069f6b8ee5ad54f8c24a"
+}

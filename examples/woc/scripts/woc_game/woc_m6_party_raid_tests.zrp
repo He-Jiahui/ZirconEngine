@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_party_raid_tests",
+  "source": "src",
+  "binary": "bin-m6-party-raid-tests",
+  "entry": "social/party_raid_state_test_main"
+}

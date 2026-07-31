@@ -33,6 +33,7 @@ pub(super) fn product_fixture_asset_manager() -> (Arc<ProjectAssetManager>, Path
     let asset_root =
         paths.asset_root(&zircon_runtime_interface::project::RelPath::project_assets());
     write_checker_texture(&asset_root);
+    copy_checked_in_default_composite_font_package(&asset_root);
     #[cfg(target_os = "windows")]
     write_variable_font_asset(&asset_root);
 
@@ -46,6 +47,16 @@ pub(super) fn product_fixture_asset_manager() -> (Arc<ProjectAssetManager>, Path
     manager
         .load_texture_asset(texture_id)
         .expect("load imported rich inline texture");
+    let default_font_uri = AssetUri::parse("res://fonts/default.font.toml")
+        .expect("default font product asset locator");
+    let default_font_id = manager
+        .resolve_asset_id(&default_font_uri)
+        .expect("imported default CompositeFont asset id");
+    let default_font = manager
+        .load_font_asset(default_font_id)
+        .expect("load imported default CompositeFont asset");
+    assert_eq!(default_font.face_index, 0);
+    assert!(default_font.composite_font.is_some());
     #[cfg(target_os = "windows")]
     {
         let font_uri =
@@ -80,6 +91,16 @@ fn assert_checked_in_default_composite_package() {
     assert!("中文排版引擎文本与布局竖排标点验证"
         .chars()
         .all(|character| face.glyph_index(character).is_some()));
+}
+
+fn copy_checked_in_default_composite_font_package(asset_root: &std::path::Path) {
+    let source_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/fonts");
+    let destination_dir = asset_root.join("fonts");
+    std::fs::create_dir_all(&destination_dir).expect("default CompositeFont asset directory");
+    for file_name in ["default.font.toml", "ZirconDefaultComposite-subset.ttc"] {
+        std::fs::copy(source_dir.join(file_name), destination_dir.join(file_name))
+            .expect("copy checked-in default CompositeFont package into product fixture");
+    }
 }
 
 fn write_checker_texture(asset_root: &std::path::Path) {

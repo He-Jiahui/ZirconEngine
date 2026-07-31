@@ -218,6 +218,7 @@ class ActionExecutor:
                 activate_candidate=value.run_id is None,
             )
             review = None
+            prepared = None
             if value.run_id is not None:
                 if self.milestones is None:
                     raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
@@ -230,6 +231,16 @@ class ActionExecutor:
                     critical_count=value.critical_count or 0,
                     important_count=value.important_count or 0,
                     summary=value.summary or "",
+                    action_id=action_id,
+                )
+            elif value.milestone_id is not None:
+                if self.milestones is None:
+                    raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
+                prepared = self.milestones.prepare_milestone(
+                    session_id=executor_session_id,
+                    run_id=imported.run_id,
+                    milestone_key=value.milestone_id,
+                    actor=actor or "controlled-action",
                     action_id=action_id,
                 )
             gates = self.milestones.refresh_gates(
@@ -246,6 +257,7 @@ class ActionExecutor:
                 "versionNumber": imported.version_number,
                 "activated": imported.activated,
                 "review": review,
+                "prepared": prepared,
                 "gates": gates,
             }
         if kind in {
@@ -398,11 +410,20 @@ class ActionExecutor:
     ) -> dict[str, object]:
         if self.workspace_copy is None or self.milestones is None:
             raise CoordinatorError("action_unavailable", "Validation services are unavailable")
-        record = self.workspace_copy.materialize_validation(
-            value.session_id,
-            dependency_roots=self._validation_dependency_roots(value.template),
-            overlay_paths=paths,
-        )
+        command = self._validation_command(value.template)
+        if value.template is ValidationTemplate.RUNTIME14_RUST_FOCUSED:
+            record = self.workspace_copy.materialize_cargo(
+                value.session_id,
+                command=command,
+                overlay_paths=paths,
+                discover_external_sources=True,
+            )
+        else:
+            record = self.workspace_copy.materialize_validation(
+                value.session_id,
+                dependency_roots=self._validation_dependency_roots(value.template),
+                overlay_paths=paths,
+            )
         validation_run_id = uuid.uuid4().hex
         source_manifest_hash = self.workspace_copy.scoped_manifest_hash(record.job_id, paths)
         self.milestones.bind_validation(
@@ -419,7 +440,7 @@ class ActionExecutor:
         started = self.workspace_copy.start(
             value.session_id,
             record.job_id,
-            command=self._validation_command(value.template),
+            command=command,
             run_id=validation_run_id,
         )
         return {"copy": record.to_dict(), "validation": started}
@@ -479,6 +500,22 @@ class ActionExecutor:
         if template is ValidationTemplate.WEB_CHECK:
             npm = "npm.cmd" if os.name == "nt" else "npm"
             return (npm, "--prefix", "tools/session_coordinator/web", "run", "check")
+        if template is ValidationTemplate.RUNTIME14_RUST_FOCUSED:
+            return (
+                "cargo",
+                "+1.94.1",
+                "test",
+                "-p",
+                "zircon_runtime",
+                "--lib",
+                "runtime_14_module_family_mirror_docs_match_structure_audit_counts",
+                "--locked",
+                "--jobs",
+                "1",
+                "--",
+                "--nocapture",
+                "--test-threads=1",
+            )
         raise CoordinatorError("action_validation_template_unknown", "Unknown validation template")
 
     @staticmethod

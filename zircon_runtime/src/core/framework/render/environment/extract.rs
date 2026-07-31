@@ -1,7 +1,8 @@
 use super::{
     IblBakeArtifactContents, IblBakeArtifactRequest, IblBakeKey, LightProbeGridData,
-    LightmapConsumeContract, LightmapContractValidationError, ReflectionProbeData, SkyboxSettings,
-    SourceCubemapEnvironment, SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    LightmapConsumeContract, LightmapContractValidationError, ReflectionProbeData,
+    SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT, SkyboxSettings,
+    SourceCubemapEnvironment,
 };
 
 #[derive(Clone, Debug, PartialEq)]

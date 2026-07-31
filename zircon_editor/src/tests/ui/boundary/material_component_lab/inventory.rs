@@ -51,6 +51,8 @@ fn material_component_prototypes_are_grouped_by_functional_domain_folder() {
 #[test]
 fn material_component_lab_view_loads_and_imports_every_component_prototype() {
     let lab_path = editor_asset("assets/ui/editor/material_component_lab.zui");
+    let lab_source = fs::read_to_string(&lab_path)
+        .unwrap_or_else(|error| panic!("{} should be readable: {error}", lab_path.display()));
     let lab = UiZuiAssetLoader::load_zui_file(&lab_path).unwrap_or_else(|error| {
         panic!(
             "Material Component Lab should load as runtime UI v2 from {}: {error}",
@@ -66,23 +68,20 @@ fn material_component_lab_view_loads_and_imports_every_component_prototype() {
         .iter()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
-    let prototype_files = material_prototype_files();
+    let prototype_fixtures = material_prototype_fixtures();
     assert_eq!(
         imports.len(),
-        prototype_files.len(),
+        prototype_fixtures.len(),
         "lab should import every material_*.zui prototype exactly once"
     );
-    for path in &prototype_files {
-        let source = fs::read_to_string(path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
-        let component_name = document
+    for fixture in prototype_fixtures.values() {
+        let component_name = fixture
+            .document
             .components
             .keys()
             .next()
             .expect("prototype declares one component");
-        let import = material_prototype_res_path(path, component_name);
+        let import = material_prototype_res_path(&fixture.path, component_name);
         assert!(
             imports.contains(import.as_str()),
             "lab should import `{import}`"
@@ -100,7 +99,7 @@ fn material_component_lab_view_loads_and_imports_every_component_prototype() {
         "Interaction Feedback",
     ] {
         assert!(
-            source_contains(&lab_path, label),
+            lab_source.contains(label),
             "lab view should expose the `{label}` section"
         );
     }
@@ -224,11 +223,10 @@ fn material_component_prototypes_are_single_component_zui_with_state_and_routes(
         .iter()
         .copied()
         .collect::<BTreeSet<_>>();
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+    for (key, fixture) in material_prototype_fixtures() {
+        let path = &fixture.path;
+        let source = &fixture.source;
+        let document = &fixture.document;
         assert_eq!(
             document.components.len(),
             1,
@@ -264,13 +262,7 @@ fn material_component_prototypes_are_single_component_zui_with_state_and_routes(
             );
         }
 
-        let key = path
-            .file_stem()
-            .and_then(|name| name.to_str())
-            .expect("prototype file stem is UTF-8")
-            .strip_prefix("material_")
-            .expect("prototype files use material_ prefix");
-        if interactive.contains(key) {
+        if interactive.contains(key.as_str()) {
             assert!(
                 document.nodes.values().any(|node| {
                     node.events.iter().any(|event| {
@@ -289,11 +281,9 @@ fn material_component_prototypes_are_single_component_zui_with_state_and_routes(
 
 #[test]
 fn material_component_prototype_sample_nodes_carry_typed_material_props() {
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+    for (key, fixture) in material_prototype_fixtures() {
+        let path = &fixture.path;
+        let document = &fixture.document;
         let sample_nodes = document
             .nodes
             .iter()
@@ -319,12 +309,6 @@ fn material_component_prototype_sample_nodes_carry_typed_material_props() {
             "{} node `{sample_id}` should keep the shared material-control class",
             path.display()
         );
-        let key = path
-            .file_stem()
-            .and_then(|name| name.to_str())
-            .expect("prototype file stem is UTF-8")
-            .strip_prefix("material_")
-            .expect("prototype files use material_ prefix");
         for (prop, expected) in [
             ("surface_variant", "elevated"),
             ("button_variant", "contained"),
@@ -381,11 +365,9 @@ fn material_component_prototype_sample_nodes_carry_typed_material_props() {
 
 #[test]
 fn material_component_prototype_roots_keep_card_layout_contract() {
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+    for (key, fixture) in material_prototype_fixtures() {
+        let path = &fixture.path;
+        let document = &fixture.document;
         let component = document
             .components
             .values()
@@ -395,13 +377,6 @@ fn material_component_prototype_roots_keep_card_layout_contract() {
             .nodes
             .get(&component.root)
             .unwrap_or_else(|| panic!("{} root node should exist", path.display()));
-        let key = path
-            .file_stem()
-            .and_then(|name| name.to_str())
-            .expect("prototype file stem is UTF-8")
-            .strip_prefix("material_")
-            .expect("prototype files use material_ prefix");
-
         assert_eq!(
             component
                 .default_classes
@@ -475,7 +450,7 @@ fn material_component_prototype_roots_keep_card_layout_contract() {
         );
         let height = table_prop(layout, "height")
             .unwrap_or_else(|| panic!("{} root should define height layout", path.display()));
-        let expected_height = match key {
+        let expected_height = match key.as_str() {
             "image_list" => [("min", 114.0), ("preferred", 128.0), ("max", 150.0)],
             "masonry" => [("min", 260.0), ("preferred", 268.0), ("max", 292.0)],
             _ => [("min", 104.0), ("preferred", 120.0), ("max", 140.0)],
@@ -541,17 +516,9 @@ fn material_component_prototype_meta_strips_cover_variants_and_layout_modes() {
     .into_iter()
     .collect::<BTreeMap<_, _>>();
 
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
-        let key = path
-            .file_stem()
-            .and_then(|name| name.to_str())
-            .expect("prototype file stem is UTF-8")
-            .strip_prefix("material_")
-            .expect("prototype files use material_ prefix");
+    for (key, fixture) in material_prototype_fixtures() {
+        let path = &fixture.path;
+        let document = &fixture.document;
         let meta = document
             .nodes
             .get("meta")
@@ -635,7 +602,7 @@ fn material_component_prototype_meta_strips_cover_variants_and_layout_modes() {
             "{} meta layout should name the layout mode",
             path.display()
         );
-        if let Some(expected_variant) = required_variant_examples.get(key) {
+        if let Some(expected_variant) = required_variant_examples.get(key.as_str()) {
             assert_eq!(
                 variant,
                 *expected_variant,
@@ -643,7 +610,7 @@ fn material_component_prototype_meta_strips_cover_variants_and_layout_modes() {
                 path.display()
             );
         }
-        if let Some(expected_response) = required_response_examples().get(key) {
+        if let Some(expected_response) = required_response_examples().get(key.as_str()) {
             assert_eq!(
                 response,
                 *expected_response,
@@ -723,11 +690,9 @@ fn material_component_prototype_state_strips_cover_core_feedback_examples() {
         ),
     ];
 
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
+    for fixture in material_prototype_fixtures().values() {
+        let path = &fixture.path;
+        let document = &fixture.document;
         let state_strip = document
             .nodes
             .get("state_strip")

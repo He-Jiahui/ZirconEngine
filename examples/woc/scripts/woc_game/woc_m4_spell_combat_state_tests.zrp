@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_spell_combat_state_tests",
+  "source": "src",
+  "binary": "bin-m4-spell-combat-state-tests",
+  "entry": "combat/spell_combat_state_test_main"
+}

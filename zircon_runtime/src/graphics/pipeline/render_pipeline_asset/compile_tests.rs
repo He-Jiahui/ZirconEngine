@@ -25,6 +25,38 @@ mod core_contracts;
 mod external_compute_guards;
 mod postprocess_routes;
 
+#[test]
+fn descriptor_filtering_builds_active_resources_once_per_descriptor() {
+    let source = include_str!("descriptor_filtering.rs");
+    let pass_start = source
+        .find("fn filter_post_process_pass(")
+        .expect("post-process pass filter");
+    let pass_end = pass_start
+        + source[pass_start..]
+            .find("fn post_process_pass_can_be_filtered")
+            .expect("next post-process helper");
+
+    assert!(!source[pass_start..pass_end].contains("active_post_process_graph_resources(stack)"));
+    assert_eq!(
+        source
+            .matches(concat!("active_", "post_process_graph_resources(stack)"))
+            .count(),
+        2
+    );
+    assert!(source.contains("let active_resources = OnceCell::new();"));
+}
+
+#[test]
+fn graph_resource_authoring_moves_the_compiled_plan_without_cloning_it() {
+    let source = include_str!("pass_authoring.rs");
+
+    assert!(!source.contains(concat!("graph_resources: graph_resources", ".clone()")));
+    assert!(source.contains(concat!(
+        "graph_resources: BTreeMap<String, ",
+        "PipelineGraphResourcePlan>"
+    )));
+}
+
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),

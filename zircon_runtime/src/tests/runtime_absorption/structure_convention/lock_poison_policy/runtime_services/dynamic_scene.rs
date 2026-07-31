@@ -4,13 +4,13 @@ use super::*;
 fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry() {
     let dynamic_session = read_runtime_src("dynamic_api/session.rs");
     let dynamic_session_ffi = read_runtime_src("dynamic_api/session/ffi.rs");
-    let dynamic_session_registry = read_runtime_src("dynamic_api/session/registry.rs");
+    let dynamic_session_registry_facade = read_runtime_src("dynamic_api/session/registry/mod.rs");
+    let dynamic_session_store = read_runtime_src("dynamic_api/session/registry/session_store.rs");
+    let dynamic_session_slot = read_runtime_src("dynamic_api/session/registry/session_slot.rs");
     let dynamic_session_tests = read_runtime_src("dynamic_api/session/tests/lock_poison.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let current_anchor_owner = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let dynamic_session_doc = read_repo("docs/zircon_runtime/dynamic_api/session.md");
     let status_rows = read_runtime_src(
@@ -26,62 +26,81 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
         "dynamic API session FFI registry consumer",
         &dynamic_session_ffi,
         &[
-            "use super::registry::{insert_session, lock_registry, with_session};",
-            "let mut registry = lock_registry();",
+            "destroy_session_slot, insert_session_with_wake, with_session, with_session_activity,",
+            "let handle = insert_session_with_wake(session, wake);",
+            "destroy_session_slot(handle)",
             "with_session(handle, |session|",
         ],
     );
     assert_contains_all(
-        "dynamic API session registry poison recovery helpers",
-        &dynamic_session_registry,
+        "dynamic API session registry facade",
+        &dynamic_session_registry_facade,
+        &["mod session_store;", "pub(super) use session_store::{"],
+    );
+    assert!(
+        !dynamic_session_registry_facade.contains("fn lock_session(")
+            && !dynamic_session_registry_facade.contains("static SESSION_REGISTRY"),
+        "dynamic API session registry facade must not retain state or forwarding helpers"
+    );
+    assert_contains_all(
+        "dynamic API session store poison recovery helpers",
+        &dynamic_session_store,
         &[
             "use std::sync::{Arc, Mutex, MutexGuard, OnceLock};",
-            "pub(super) fn lock_registry() -> MutexGuard<'static, SessionRegistry>",
-            "pub(super) fn lock_session(",
-            "session: &Mutex<RuntimeDynamicSession>,",
-            ") -> MutexGuard<'_, RuntimeDynamicSession> {",
+            "fn lock_registry() -> MutexGuard<'static, SessionRegistry>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "let registry = lock_registry();",
-            "let mut session = lock_session(session.as_ref());",
+            "let mut session = slot.lock_session();",
         ],
     );
-    assert!(
-        !dynamic_session.contains("registry().lock().unwrap()"),
-        "dynamic API session registry should use lock_registry() instead of direct lock unwrap"
+    assert_contains_all(
+        "dynamic API session slot poison recovery helper",
+        &dynamic_session_slot,
+        &[
+            "session: Mutex<Option<RuntimeDynamicSession>>",
+            "pub(super) fn lock_session(&self) -> MutexGuard<'_, Option<RuntimeDynamicSession>>",
+            ".unwrap_or_else(|poisoned| poisoned.into_inner())",
+        ],
     );
-    assert!(
-        !dynamic_session.contains("session.lock().unwrap()"),
-        "dynamic API session execution should use lock_session() instead of direct lock unwrap"
-    );
-    assert!(
-        !dynamic_session_ffi.contains("session.lock().unwrap()"),
-        "dynamic API session FFI execution should route through registry helpers"
-    );
-    assert!(
-        !dynamic_session_registry.contains("registry().lock().unwrap()"),
-        "dynamic API session registry should recover poisoned registry locks"
-    );
-    assert!(
-        !dynamic_session_registry.contains("session.lock().unwrap()"),
-        "dynamic API session registry should recover poisoned session locks"
-    );
+    for (label, source) in [
+        ("dynamic API session owner", dynamic_session.as_str()),
+        ("dynamic API session FFI", dynamic_session_ffi.as_str()),
+        ("dynamic API session store", dynamic_session_store.as_str()),
+        ("dynamic API session slot", dynamic_session_slot.as_str()),
+    ] {
+        let compact: String = source
+            .chars()
+            .filter(|char| !char.is_whitespace())
+            .collect();
+        assert!(
+            !compact.contains(LOCK_UNWRAP_CALL),
+            "{label} should recover poisoned locks instead of directly unwrapping them"
+        );
+    }
     assert_contains_all(
         "dynamic API session poison recovery test",
         &dynamic_session_tests,
         &[
             "dynamic_api_session_registry_accessors_recover_poisoned_locks",
-            "let _registry = lock_registry();",
-            "let _session = lock_session(stored_session.as_ref());",
+            "poison_registry_lock_for_test();",
+            "with_session(handle, |_| panic!(\"poison dynamic API session lock\"))",
             "with_session(handle, |_| ZrStatus::ok())",
             "unsafe { destroy_session(handle) }",
         ],
     );
 
+    assert_contains_all_exact(
+        "Runtime 15 dynamic-API filter current child owner",
+        &current_anchor_owner,
+        &[
+            "Runtime 15 M3 dynamic API session lock poison recovery",
+            "runtime_15_dynamic_api_session_lock_poison_recovery_static_passed_cargo_deferred",
+            "dynamic_api/session.rs",
+            "dynamic_api/session/tests/lock_poison.rs",
+            "runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry",
+        ],
+    );
     for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("dynamic API session doc", dynamic_session_doc.as_str()),
         (

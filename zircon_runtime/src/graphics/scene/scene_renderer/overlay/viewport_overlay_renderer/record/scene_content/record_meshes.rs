@@ -3,7 +3,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandStream, MeshSceneDataBindHandle,
 };
 use crate::graphics::scene::scene_renderer::mesh::{
-    build_mesh_pass_command_buffers, MeshDraw, MeshPipelineCache,
+    MeshDraw, MeshPipelineCache, build_mesh_pass_command_buffers,
 };
 use crate::graphics::scene::scene_renderer::overlay::ViewportOverlayRenderer;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;

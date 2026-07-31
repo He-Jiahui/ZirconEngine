@@ -459,7 +459,8 @@ Manager façade 已硬切到 runtime 内部的 versioned service identity，不�
 
 同一轮 runtime absorption 又继续推进了 scene/asset module-registration owner：
 
-- [zircon_runtime/src/scene/mod.rs](../../zircon_runtime/src/scene/mod.rs) 与 [zircon_runtime/src/scene/module/mod.rs](../../zircon_runtime/src/scene/module/mod.rs) 现在持有 `SceneModule`、`SCENE_MODULE_NAME`、`DEFAULT_LEVEL_MANAGER_NAME`、`LEVEL_MANAGER_NAME`、`create_default_level()` 与 `load_level_asset()`
+- [zircon_runtime/src/core/framework/scene/module_identity.rs](../../zircon_runtime/src/core/framework/scene/module_identity.rs) 是 `SCENE_MODULE_NAME` 的唯一中立协议 owner；[zircon_runtime/src/scene/mod.rs](../../zircon_runtime/src/scene/mod.rs) 不再转发该身份常量
+- [zircon_runtime/src/scene/module/mod.rs](../../zircon_runtime/src/scene/module/mod.rs) 继续持有 `SceneModule`、`DEFAULT_LEVEL_MANAGER_NAME`、`create_default_level()` 与 `load_level_asset()` 等具体 Scene 实现和服务入口；通用 `LEVEL_MANAGER_NAME` 的唯一 owner 是 [zircon_runtime/src/core/manager/service_names.rs](../../zircon_runtime/src/core/manager/service_names.rs)
 - [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 与 [zircon_runtime/src/asset/module.rs](../../zircon_runtime/src/asset/module.rs) 现在持有 `AssetModule`、`module_descriptor()` 与整组 asset/resource manager service names
 - [zircon_runtime/src/scene/mod.rs](../../zircon_runtime/src/scene/mod.rs) 与 [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 则继续收窄到 world authority / asset API 本体，不再把 module owner、service-name 和 bootstrap helper 混在领域 root surface
 

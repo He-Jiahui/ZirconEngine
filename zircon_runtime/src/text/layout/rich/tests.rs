@@ -1,7 +1,12 @@
+use std::sync::Arc;
+
+use unicode_segmentation::UnicodeSegmentation;
+
+use crate::core::framework::text::TextDirection;
 use crate::text::rich::parse_rich_text;
-use crate::text::shaping::DirectTextShapeRunProvider;
-use crate::text::TextStyle;
+use crate::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
 use crate::text::{InlineBaseline, LayoutItem, RichTextFormat};
+use crate::text::{ShapedGlyphRun, TextRange, TextStyle};
 
 use super::*;
 
@@ -148,11 +153,83 @@ fn text_rich_forced_lines_preserve_inline_metrics_and_original_run_indices() {
     ));
 }
 
+#[test]
+fn text_rich_glyph_wrap_keeps_boundary_shaping_context_bounded() {
+    let source = format!("A{}Z", "x".repeat(38));
+    let parsed = parse_rich_text(&source, RichTextFormat::Plain);
+    let style = TextStyle {
+        font_size: 10.0,
+        line_height: 12.0,
+        ..TextStyle::default()
+    };
+    let mut provider = CountingShapeRunProvider::default();
+
+    let layout = layout_rich_text_glyph_wrapped_with_provider(&parsed, &style, 12.0, &mut provider);
+
+    assert!(
+        layout.lines.len() > 1,
+        "the fixture must exercise glyph wrapping"
+    );
+    let long_requests = provider
+        .shaped_grapheme_counts
+        .iter()
+        .filter(|count| **count > 2 * super::super::line_break::BOUNDARY_SHAPING_CONTEXT_GRAPHEMES)
+        .count();
+    assert_eq!(
+        long_requests, 1,
+        "only the canonical continuous style span may exceed the boundary context"
+    );
+    assert!(
+        provider.shaped_grapheme_counts.len()
+            <= 2 + layout.lines.len()
+                * (2 * super::super::line_break::BOUNDARY_SHAPING_CONTEXT_GRAPHEMES + 1),
+        "boundary correction calls must remain linear in the produced line count"
+    );
+}
+
+#[test]
+fn text_rich_line_materialization_borrows_source_and_uses_a_run_cursor() {
+    let source = include_str!("materialize.rs");
+
+    assert!(!source.contains("parsed.text.clone()"));
+    assert!(!source.contains("measure_text_source_range_width_with_provider"));
+    assert!(!source
+        .contains(".runs\n            .iter()\n            .enumerate()\n            .filter_map"));
+    assert!(source.contains("run_cursor"));
+}
+
 fn baseline_name(baseline: InlineBaseline) -> &'static str {
     match baseline {
         InlineBaseline::Baseline => "baseline",
         InlineBaseline::Center => "center",
         InlineBaseline::Top => "top",
         InlineBaseline::Bottom => "bottom",
+    }
+}
+
+#[derive(Default)]
+struct CountingShapeRunProvider {
+    direct: DirectTextShapeRunProvider,
+    shaped_grapheme_counts: Vec<usize>,
+}
+
+impl TextShapeRunProvider for CountingShapeRunProvider {
+    fn shape_horizontal_line_with_kerning(
+        &mut self,
+        text: &str,
+        style: &TextStyle,
+        direction: TextDirection,
+        source_range: TextRange,
+        include_kerning: bool,
+    ) -> Arc<ShapedGlyphRun> {
+        self.shaped_grapheme_counts
+            .push(text.graphemes(true).count());
+        self.direct.shape_horizontal_line_with_kerning(
+            text,
+            style,
+            direction,
+            source_range,
+            include_kerning,
+        )
     }
 }

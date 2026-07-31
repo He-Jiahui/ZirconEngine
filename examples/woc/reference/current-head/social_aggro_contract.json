@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/social_aggro_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/mob/social_aggro.ts": "a1806113905556680db2b44e01ba632558b0f294b6fe4a3d9132932ab323b2ed"
+  },
+  "flee_help_radius": 5,
+  "semantics": {
+    "candidate": "same-family, living, hostile, idle and ownerless mobs only",
+    "distance": "candidate distance is strictly less than the squared flee-help radius",
+    "mutation": "qualifying allies chase the target, enter combat, copy the fleeing position as leash anchor and gain one threat",
+    "scope": "the caller owns flee termination after a non-zero rally and spatial-grid discovery"
+  }
+}

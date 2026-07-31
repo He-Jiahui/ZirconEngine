@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var market = %import("progression/market_state");
+
+console.printLine("m5-market-round-trip-state-test");
+var result = market.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

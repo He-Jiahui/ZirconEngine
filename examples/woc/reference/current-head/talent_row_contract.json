@@ -1,0 +1,494 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/talent_row_contract_codegen.mjs",
+  "source_blobs": {
+    "src/net/online.ts": "9399fac7e5dc49883cf04e772475b73893a0f06c9c65ae4ee5a22944cd3d4ff0",
+    "server/game.ts": "d5f0d0f715037ef4b79594925c64b1d0e676ed5ccebe24605f6ed16bcfc41556",
+    "src/sim/content/talent_rows.ts": "7bd779ab5c21dd2a949e016f834843c5adbb95a2de02adf3f458447555ee8392",
+    "src/sim/content/warrior_rows.ts": "eb12fed341279999acc08463fc59c09bffd8ef5552ca345765e7ad36262baf6c",
+    "src/sim/content/choice_rows_classic.ts": "2aa7f0d7372d51e326446c910b0a2980f18b49de77e233c0bf5a28ec421d060e",
+    "src/sim/progression/talents.ts": "cf5969ef559807c03604b3800ff1b3989ca9d53d198d4b347d1fac17fed6b8d5"
+  },
+  "command": {
+    "id": 163,
+    "name": "selectTalentRow",
+    "source_shape": {
+      "method": "selectTalentRow",
+      "fields": [
+        "level:number",
+        "optionId:string|null"
+      ]
+    }
+  },
+  "row_levels": [
+    5,
+    8,
+    11,
+    14,
+    17,
+    20
+  ],
+  "options_per_row": 3,
+  "rows": {
+    "warrior": [
+      {
+        "level": 5,
+        "options": [
+          "war_row_double_charge",
+          "war_row_pursuit",
+          "war_row_crushing_charge"
+        ]
+      },
+      {
+        "level": 8,
+        "options": [
+          "war_row_second_wind",
+          "war_row_die_by_the_sword",
+          "war_row_victory_rush"
+        ]
+      },
+      {
+        "level": 11,
+        "options": [
+          "war_row_piercing_howl",
+          "war_row_storm_bolt",
+          "war_row_lingering_dread"
+        ]
+      },
+      {
+        "level": 14,
+        "options": [
+          "war_row_anger_management",
+          "war_row_blood_offering",
+          "war_row_battle_rhythm"
+        ]
+      },
+      {
+        "level": 17,
+        "options": [
+          "war_row_recklessness",
+          "war_row_avatar",
+          "war_row_bloodbath"
+        ]
+      },
+      {
+        "level": 20,
+        "options": [
+          "war_row_colossal_might",
+          "war_row_bladestorm",
+          "war_row_sanguine_aura"
+        ]
+      }
+    ],
+    "paladin": [
+      {
+        "level": 5,
+        "options": [
+          "pal_r5_crusaders_zeal",
+          "pal_r5_blessed_momentum",
+          "pal_r5_vengeful_exorcism"
+        ]
+      },
+      {
+        "level": 8,
+        "options": [
+          "pal_r8_cleansing_verdict",
+          "pal_r8_fist_of_justice",
+          "pal_r8_consecrated_ground"
+        ]
+      },
+      {
+        "level": 11,
+        "options": [
+          "pal_r11_divine_wisdom",
+          "pal_r11_guardians_favor",
+          "pal_r11_greater_blessing"
+        ]
+      },
+      {
+        "level": 14,
+        "options": [
+          "pal_r14_swift_verdicts",
+          "pal_r14_holy_wrath",
+          "pal_r14_righteous_cause"
+        ]
+      },
+      {
+        "level": 17,
+        "options": [
+          "pal_r17_divine_shield",
+          "pal_r17_sacred_ward",
+          "pal_r17_ardent_defender"
+        ]
+      },
+      {
+        "level": 20,
+        "options": [
+          "pal_r20_avenging_wrath",
+          "pal_r20_hammer_of_wrath",
+          "pal_r20_aura_mastery"
+        ]
+      }
+    ],
+    "hunter": [
+      {
+        "level": 5,
+        "options": [
+          "hun_r5_improved_serpent_sting",
+          "hun_r5_quick_shots",
+          "hun_r5_aspect_mastery"
+        ]
+      },
+      {
+        "level": 8,
+        "options": [
+          "hun_r8_startle_shot",
+          "hun_r8_frost_trap",
+          "hun_r8_improved_concussive"
+        ]
+      },
+      {
+        "level": 11,
+        "options": [
+          "hun_r11_mend_pet",
+          "hun_r11_efficiency",
+          "hun_r11_survival_instincts"
+        ]
+      },
+      {
+        "level": 14,
+        "options": [
+          "hun_r14_multi_shot",
+          "hun_r14_sniper_training",
+          "hun_r14_serpents_venom"
+        ]
+      },
+      {
+        "level": 17,
+        "options": [
+          "hun_r17_deterrence",
+          "hun_r17_master_tamer",
+          "hun_r17_thick_hide"
+        ]
+      },
+      {
+        "level": 20,
+        "options": [
+          "hun_r20_improved_volley",
+          "hun_r20_rapid_killing",
+          "hun_r20_aspect_of_the_wild"
+        ]
+      }
+    ],
+    "rogue": [
+      {
+        "level": 5,
+        "options": [
+          "rog_r5_relentless_strikes",
+          "rog_r5_improved_backstab",
+          "rog_r5_opportunist"
+        ]
+      },
+      {
+        "level": 8,
+        "options": [
+          "rog_r8_smoke_screen",
+          "rog_r8_improved_gouge",
+          "rog_r8_improved_kidney_shot"
+        ]
+      },
+      {
+        "level": 11,
+        "options": [
+          "rog_r11_preparation",
+          "rog_r11_endurance",
+          "rog_r11_improved_slice_and_dice"
+        ]
+      },
+      {
+        "level": 14,
+        "options": [
+          "rog_r14_seal_fate",
+          "rog_r14_ghostly_strike",
+          "rog_r14_deadly_brew"
+        ]
+      },
+      {
+        "level": 17,
+        "options": [
+          "rog_r17_cloak_of_shadows",
+          "rog_r17_improved_evasion",
+          "rog_r17_cheat_death"
+        ]
+      },
+      {
+        "level": 20,
+        "options": [
+          "rog_r20_shadowstep",
+          "rog_r20_adrenaline_junkie",
+          "rog_r20_master_assassin"
+        ]
+      }
+    ],
+    "priest": [
+      {
+        "level": 5,
+        "options": [
+          "pri_r5_improved_renew",
+          "pri_r5_searing_light",
+          "pri_r5_twisted_faith"
+        ]
+      },
+      {
+        "level": 8,
+        "options": [
+          "pri_r8_improved_shield",
+          "pri_r8_silence",
+          "pri_r8_psychic_scream"
+        ]
+      },
+      {
+        "level": 11,
+        "options": [
+          "pri_r11_inner_focus",
+          "pri_r11_meditation",
+          "pri_r11_vampiric_embrace"
+        ]
+      },
+      {
+        "level": 14,
+        "options": [
+          "pri_r14_mind_melt",
+          "pri_r14_greater_heal",
+          "pri_r14_pain_and_suffering"
+        ]
+      },
+      {
+        "level": 17,
+        "options": [
+          "pri_r17_desperate_prayer",
+          "pri_r17_improved_fortitude",
+          "pri_r17_inner_fire"
+        ]
+      },
+      {
+        "level": 20,
+        "options": [
+          "pri_r20_prayer_of_healing",
+          "pri_r20_mind_sear",
+          "pri_r20_blessed_recovery"
+        ]
+      }
+    ],
+    "shaman": [
+      {
+        "level": 5,
+        "options": [
+          "sha_r5_concussion",
+          "sha_r5_improved_lightning_shield",
+          "sha_r5_imbue_mastery"
+        ]
+      },
+      {
+        "level": 8,
+        "options": [
+          "sha_r8_improved_earth_shock",
+          "sha_r8_frost_bind",
+          "sha_r8_shock_efficiency"
+        ]
+      },
+      {
+        "level": 11,
+        "options": [
+          "sha_r11_ancestral_guidance",
+          "sha_r11_elemental_attunement",
+          "sha_r11_healing_stream"
+        ]
+      },
+      {
+        "level": 14,
+        "options": [
+          "sha_r14_chain_lightning",
+          "sha_r14_improved_flame_shock",
+          "sha_r14_weapon_fury"
+        ]
+      },
+      {
+        "level": 17,
+        "options": [
+          "sha_r17_earthbind",
+          "sha_r17_improved_ghost_wolf",
+          "sha_r17_elemental_warding"
+        ]
+      },
+      {
+        "level": 20,
+        "options": [
+          "sha_r20_bloodlust",
+          "sha_r20_elemental_fury",
+          "sha_r20_tidal_waves"
+        ]
+      }
+    ],
+    "mage": [
+      {
+        "level": 5,
+        "options": [
+          "mag_r5_ice_floes",
+          "mag_r5_double_blink",
+          "mag_r5_blink_cast"
+        ]
+      },
+      {
+        "level": 8,
+        "options": [
+          "mag_r8_warded",
+          "mag_r8_temporal_rift",
+          "mag_r8_greater_invis"
+        ]
+      },
+      {
+        "level": 11,
+        "options": [
+          "mag_r11_rings_of_frost",
+          "mag_r11_snap_polymorph",
+          "mag_r11_twin_nova"
+        ]
+      },
+      {
+        "level": 14,
+        "options": [
+          "mag_r14_power_echo",
+          "mag_r14_overload",
+          "mag_r14_presence_of_mind"
+        ]
+      },
+      {
+        "level": 17,
+        "options": [
+          "mag_r17_convergence",
+          "mag_r17_cold_snap",
+          "mag_r17_mass_barrier"
+        ]
+      },
+      {
+        "level": 20,
+        "options": [
+          "mag_r20_rune_of_power",
+          "mag_r20_overflowing_power",
+          "mag_r20_evocation"
+        ]
+      }
+    ],
+    "warlock": [
+      {
+        "level": 5,
+        "options": [
+          "wlk_r5_bane",
+          "wlk_r5_improved_corruption",
+          "wlk_r5_improved_immolate"
+        ]
+      },
+      {
+        "level": 8,
+        "options": [
+          "wlk_r8_voidfeast",
+          "wlk_r8_howl_of_terror",
+          "wlk_r8_curse_of_exhaustion"
+        ]
+      },
+      {
+        "level": 11,
+        "options": [
+          "wlk_r11_improved_life_tap",
+          "wlk_r11_fel_concentration",
+          "wlk_r11_demon_armor"
+        ]
+      },
+      {
+        "level": 14,
+        "options": [
+          "wlk_r14_amplify_curse",
+          "wlk_r14_ruin",
+          "wlk_r14_shadow_mastery"
+        ]
+      },
+      {
+        "level": 17,
+        "options": [
+          "wlk_r17_death_coil",
+          "wlk_r17_improved_fear",
+          "wlk_r17_demonic_resilience"
+        ]
+      },
+      {
+        "level": 20,
+        "options": [
+          "wlk_r20_chaos_bolt",
+          "wlk_r20_grimoire_of_haste",
+          "wlk_r20_curse_mastery"
+        ]
+      }
+    ],
+    "druid": [
+      {
+        "level": 5,
+        "options": [
+          "dru_r5_improved_wrath",
+          "dru_r5_ferocity",
+          "dru_r5_natures_bounty"
+        ]
+      },
+      {
+        "level": 8,
+        "options": [
+          "dru_r8_typhoon",
+          "dru_r8_improved_roots",
+          "dru_r8_brutal_bash"
+        ]
+      },
+      {
+        "level": 11,
+        "options": [
+          "dru_r11_innervate",
+          "dru_r11_furor",
+          "dru_r11_improved_mark"
+        ]
+      },
+      {
+        "level": 14,
+        "options": [
+          "dru_r14_savage_fury",
+          "dru_r14_moonfury",
+          "dru_r14_empowered_touch"
+        ]
+      },
+      {
+        "level": 17,
+        "options": [
+          "dru_r17_improved_barkskin",
+          "dru_r17_frenzied_regeneration",
+          "dru_r17_survival_of_the_fittest"
+        ]
+      },
+      {
+        "level": 20,
+        "options": [
+          "dru_r20_improved_hurricane",
+          "dru_r20_berserk",
+          "dru_r20_tranquility"
+        ]
+      }
+    ]
+  },
+  "source_semantics": {
+    "transaction": "select validates class row, player level and option id before cloning allocation and entering the shared applyTalentAllocation choke point",
+    "clearing": "null option removes only the selected row and preserves specialization and other rows",
+    "locking": "combat and arena locks are enforced by the shared allocation commit after row validation"
+  },
+  "zrvm_backend_status": {
+    "state": "blocked",
+    "reason": "The number plus string-or-null CommandValue envelope needs Plugin08 lossless transactional transport for dynamic ZrVM dispatch"
+  }
+}

@@ -80,7 +80,7 @@ fn write_editor_plugin_catalog_manifest() -> Result<(), Box<dyn std::error::Erro
     entries.sort_by(|left, right| left.package_id.cmp(&right.package_id));
 
     let out_dir = PathBuf::from(env::var("OUT_DIR")?);
-    let manifest_path = out_dir.join("editor_plugin_catalog_gen.rs");
+    let manifest_path = out_dir.join("plugin_catalog_generated.rs");
     let mut generated = String::from(
         "pub(crate) const GENERATED_EDITOR_PLUGIN_CATALOG: &[GeneratedEditorPluginCatalogEntry] = &[\n",
     );

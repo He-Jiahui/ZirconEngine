@@ -1,33 +1,31 @@
-use crate::scene::viewport::{OverlayPickShape, ViewportCameraSnapshot};
-use zircon_runtime_interface::math::UVec2;
+use crate::scene::viewport::OverlayPickShape;
 
 use crate::scene::viewport::pointer::constants::{GIZMO_PICK_THRESHOLD_PX, GIZMO_PRIORITY};
 use crate::scene::viewport::pointer::precision::{PrecisionCandidate, PrecisionShape};
 use crate::scene::viewport::pointer::viewport_pointer_route::ViewportPointerRoute;
-use crate::scene::viewport::projection::{projected_point, world_units_per_pixel};
+use crate::scene::viewport::projection::ViewportProjectionContext;
 
 use super::projected_ring_segments;
 
 pub(in crate::scene::viewport::pointer) fn scene_gizmo_candidate(
     owner: u64,
     shape: &OverlayPickShape,
-    camera: &ViewportCameraSnapshot,
-    viewport: UVec2,
+    projection: &ViewportProjectionContext<'_>,
 ) -> Option<PrecisionCandidate> {
     match shape {
         OverlayPickShape::Sphere { center, radius } => {
-            let projection = projected_point(*center, camera, viewport)?;
-            let radius_px = (*radius / world_units_per_pixel(camera, *center, viewport))
+            let projected = projection.projected_point(*center)?;
+            let radius_px = (*radius / projection.world_units_per_pixel(*center))
                 .abs()
                 .clamp(10.0, 44.0);
             Some(PrecisionCandidate {
                 route: ViewportPointerRoute::SceneGizmo { owner },
                 priority: GIZMO_PRIORITY,
                 shape: PrecisionShape::Circle {
-                    center: projection.position,
+                    center: projected.position,
                     radius_px,
                     threshold_px: GIZMO_PICK_THRESHOLD_PX,
-                    depth: projection.depth,
+                    depth: projected.depth,
                 },
             })
         }
@@ -36,10 +34,10 @@ pub(in crate::scene::viewport::pointer) fn scene_gizmo_candidate(
             end,
             thickness,
         } => {
-            let start_projection = projected_point(*start, camera, viewport)?;
-            let end_projection = projected_point(*end, camera, viewport)?;
+            let start_projection = projection.projected_point(*start)?;
+            let end_projection = projection.projected_point(*end)?;
             let mid = (*start + *end) * 0.5;
-            let thickness_px = (*thickness / world_units_per_pixel(camera, mid, viewport))
+            let thickness_px = (*thickness / projection.world_units_per_pixel(mid))
                 .abs()
                 .clamp(6.0, 20.0);
             Some(PrecisionCandidate {
@@ -60,16 +58,15 @@ pub(in crate::scene::viewport::pointer) fn scene_gizmo_candidate(
             radius,
             thickness,
         } => {
-            let projection = projected_point(*center, camera, viewport)?;
-            let ring_segments =
-                projected_ring_segments(*center, *normal, *radius, camera, viewport);
+            let projected = projection.projected_point(*center)?;
+            let ring_segments = projected_ring_segments(*center, *normal, *radius, projection);
             if ring_segments.is_empty() {
                 return None;
             }
-            let radius_px = (*radius / world_units_per_pixel(camera, *center, viewport))
+            let radius_px = (*radius / projection.world_units_per_pixel(*center))
                 .abs()
                 .max(1.0);
-            let thickness_px = (*thickness / world_units_per_pixel(camera, *center, viewport))
+            let thickness_px = (*thickness / projection.world_units_per_pixel(*center))
                 .abs()
                 .clamp(6.0, 20.0);
             Some(PrecisionCandidate {
@@ -80,7 +77,7 @@ pub(in crate::scene::viewport::pointer) fn scene_gizmo_candidate(
                     radius_px,
                     thickness_px,
                     threshold_px: GIZMO_PICK_THRESHOLD_PX,
-                    depth: projection.depth,
+                    depth: projected.depth,
                 },
             })
         }

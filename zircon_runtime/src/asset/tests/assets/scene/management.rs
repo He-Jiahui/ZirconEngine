@@ -10,6 +10,17 @@ use crate::asset::{
 use crate::core::resource::ResourceId;
 
 #[test]
+fn scene_management_summaries_accumulate_each_record_and_entity_once() {
+    let management = include_str!("../../../assets/scene/management.rs");
+    assert!(management.matches("for record in records").count() >= 2);
+    assert!(!management.contains("records\n                .iter()"));
+
+    let asset = include_str!("../../../assets/scene/asset.rs");
+    assert!(asset.contains("for entity in &overview.entities"));
+    assert!(!asset.contains("self.management_record(scene_id).entity_management_records()"));
+}
+
+#[test]
 fn scene_asset_overview_reports_entity_component_and_reference_counts() {
     let camera_target = asset_ref(
         "camera-target-overview",

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use zircon_runtime_interface::math::UVec2;
 
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
     MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
@@ -73,7 +73,7 @@ fn chrome_builder_keeps_placeholder_tabs_for_missing_view_instances() {
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),
-            scene_viewport_settings: SceneViewportSettings::default(),
+            scene_viewport_settings: SceneViewportChromeSettings::default(),
             mesh_import_path: String::new(),
             project_overview: ProjectOverviewSnapshot::default(),
             asset_activity: AssetWorkspaceSnapshot::default(),

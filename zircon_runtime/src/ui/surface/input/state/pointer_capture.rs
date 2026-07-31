@@ -58,14 +58,8 @@ impl UiSurfaceInputState {
     }
 
     pub fn clear_pointer_captures_for_owner(&mut self, owner: UiNodeId) {
-        let pointer_ids = self
-            .pointer_captures
-            .iter()
-            .filter_map(|(pointer_id, capture)| (capture.owner == owner).then_some(*pointer_id))
-            .collect::<Vec<_>>();
-        for pointer_id in pointer_ids {
-            self.pointer_captures.remove(&pointer_id);
-        }
+        self.pointer_captures
+            .retain(|_, capture| capture.owner != owner);
         self.clear_high_precision_for(owner);
     }
 

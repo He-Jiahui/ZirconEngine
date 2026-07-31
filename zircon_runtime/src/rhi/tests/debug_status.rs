@@ -1,18 +1,24 @@
 use crate::rhi::{RenderDevice, RenderQueueClass};
-use crate::rhi_wgpu::{wgpu_backend_caps, WgpuRenderDevice};
+use crate::rhi_wgpu::{wgpu_backend_caps, DeterministicRhiContractDevice};
 
 #[test]
-fn wgpu_rhi_reports_debug_instrumentation_status_at_device_boundary() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_device_reports_only_implemented_test_capabilities() {
+    let device = DeterministicRhiContractDevice::new_headless();
 
     let status = device.debug_instrumentation_status();
+    let caps = device.caps();
 
-    assert_eq!(status.backend_name, "wgpu");
+    assert_eq!(status.backend_name, "deterministic-rhi-contract-test");
     assert!(status.debug_markers_supported);
     assert!(status.debug_groups_supported);
-    assert!(status.graphics_debugger_capture_supported);
+    assert!(!status.graphics_debugger_capture_supported);
     assert!(!status.active_graphics_debugger_capture);
     assert_eq!(status.last_error, None);
+    assert!(!caps.supports_surface);
+    assert!(!caps.supports_async_compute);
+    assert!(!caps.supports_async_copy);
+    assert!(!caps.supports_indirect_draw);
+    assert!(!caps.supports_graphics_debugger_capture);
 }
 
 #[test]

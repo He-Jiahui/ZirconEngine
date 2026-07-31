@@ -1,7 +1,7 @@
 mod mapping;
 mod world_space;
 
-use super::super::{callback_dispatch, RetainedEditorHost};
+use super::super::{RetainedEditorHost, callback_dispatch};
 use mapping::map_viewport_pointer_event;
 use world_space::world_space_ui_pointer_status;
 use zircon_runtime_interface::ui::surface::UiPointerEventKind;
@@ -14,6 +14,8 @@ impl RetainedEditorHost {
         x: f32,
         y: f32,
         delta: f32,
+        shift: bool,
+        control: bool,
     ) {
         self.use_committed_pointer_layout();
         let event = match map_viewport_pointer_event(kind, button, x, y, delta) {
@@ -42,6 +44,11 @@ impl RetainedEditorHost {
             &self.runtime,
             &mut self.viewport_pointer_bridge,
             event,
+            zircon_runtime_interface::ui::dispatch::UiInputModifiers {
+                shift,
+                control,
+                ..Default::default()
+            },
         ) {
             Ok(effects) => self.apply_dispatch_effects(effects),
             Err(error) => self.set_status_line(error),

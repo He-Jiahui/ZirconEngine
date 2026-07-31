@@ -1,0 +1,88 @@
+var console = %import("zr.system.console");
+var catalog = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+
+contractTest(): int {
+    if (catalog.catalogSha() !=
+        "1790ccf62fec4666957db622cc96d0077a18ca0bb1c9cb8b0bef821f886bb3cd") {
+        return -1;
+    }
+    if (catalog.count() != 21 || catalog.indexOf("missing") != -1) { return -2; }
+
+    var index = 0;
+    while (index < catalog.count()) {
+        var id = catalog.text(index, "id");
+        if (catalog.indexOf(id) != index) { return -3; }
+        var rank = catalog.rankAtLevel(index, 20);
+        if (rank <= 0 || effects.count(index, rank) <= 0) { return -4; }
+        index = index + 1;
+    }
+
+    var heroic = catalog.indexOf("heroic_strike");
+    if (catalog.rankAtLevel(heroic, 0) != 0 || catalog.rankAtLevel(heroic, 1) != 1 ||
+        catalog.rankAtLevel(heroic, 20) != 4 ||
+        catalog.metric(heroic, 20, "cost") != 15.0 ||
+        catalog.metric(heroic, 20, "threatFlat") != 78.0 ||
+        !catalog.flag(heroic, "onNextSwing") || !catalog.flag(heroic, "offGcd") ||
+        effects.typeAt(heroic, 4, 0) != "weaponDamage" ||
+        effects.metric(heroic, 4, 0, "bonus") != 44.0) {
+        return -5;
+    }
+
+    var fireball = catalog.indexOf("fireball");
+    if (catalog.rankAtLevel(fireball, 18) != 4 ||
+        catalog.metric(fireball, 18, "castTime") != 3.0 ||
+        effects.count(fireball, 4) != 2 ||
+        effects.typeAt(fireball, 4, 0) != "directDamage" ||
+        effects.metric(fireball, 4, 0, "min") != 58.0 ||
+        effects.metric(fireball, 4, 0, "max") != 78.0 ||
+        effects.typeAt(fireball, 4, 1) != "dot" ||
+        effects.metric(fireball, 4, 1, "total") != 12.0 ||
+        effects.metric(fireball, 4, 1, "duration") != 8.0 ||
+        effects.metric(fireball, 4, 1, "interval") != 2.0) {
+        return -6;
+    }
+
+    var heal = catalog.indexOf("lesser_heal");
+    if (catalog.text(heal, "targetType") != "friendly" ||
+        catalog.rankAtLevel(heal, 12) != 3 ||
+        effects.metric(heal, 3, 0, "min") != 110.0 ||
+        effects.metric(heal, 3, 0, "max") != 132.0) {
+        return -7;
+    }
+
+    var drain = catalog.indexOf("drain_life");
+    if (catalog.rankAtLevel(drain, 20) != 3 ||
+        catalog.metric(drain, 20, "channelDuration") != 5.0 ||
+        catalog.metric(drain, 20, "channelTicks") != 5.0 ||
+        effects.typeAt(drain, 3, 0) != "drainTick" ||
+        effects.metric(drain, 3, 0, "min") != 17.0 ||
+        effects.metric(drain, 3, 0, "healFrac") != 1.0) {
+        return -8;
+    }
+
+    var summon = catalog.indexOf("summon_imp");
+    if (effects.typeAt(summon, 1, 0) != "summonDemon" ||
+        effects.text(summon, 1, 0, "mobId") != "emberkin") {
+        return -9;
+    }
+    var bear = catalog.indexOf("bear_form");
+    if (effects.typeAt(bear, 1, 0) != "selfBuff" ||
+        effects.text(bear, 1, 0, "kind") != "form_bear" ||
+        effects.metric(bear, 1, 0, "value") != 0.65 ||
+        effects.metric(bear, 1, 0, "duration") != 3600.0) {
+        return -10;
+    }
+    var raptor = catalog.indexOf("raptor_strike");
+    if (catalog.rankAtLevel(raptor, 20) != 4 ||
+        catalog.metric(raptor, 20, "cooldown") != 6.0 ||
+        effects.metric(raptor, 4, 0, "bonus") != 27.0) {
+        return -11;
+    }
+    return 1;
+}
+
+console.printLine("m4-ability-catalog-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

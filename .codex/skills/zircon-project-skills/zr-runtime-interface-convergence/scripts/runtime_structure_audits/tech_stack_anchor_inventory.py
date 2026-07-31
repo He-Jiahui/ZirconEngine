@@ -3,6 +3,14 @@ from __future__ import annotations
 
 EXPECTED_TECH_STACK_GUARD_COUNT = 12
 
+KIRA_TECH_STACK_DOC_ANCHORS = (
+    "`kira` | `0.12.2`",
+    "`zircon_plugins/sound/runtime/Cargo.toml`",
+    "Kira-owned CPAL backend",
+    "must not enter `zircon_runtime`, `zircon_runtime_interface`, or `zircon_editor`",
+    "Runtime 01 is reopened",
+)
+
 TEXT_STACK_DOC_ANCHORS = (
     "## Backend Responsibility Matrix",
     "Shaping, segmentation, layout, and measurement",

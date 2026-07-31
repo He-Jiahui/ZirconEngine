@@ -10,7 +10,7 @@ pub use array::import_texture_array_manifest;
 pub use capability::{
     ARRAY_IMPORTER_CAPABILITY, CONTAINER_IMPORTER_CAPABILITY, CUBEMAP_IMPORTER_CAPABILITY,
     IMAGE_IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, PSD_IMPORTER_CAPABILITY, RUNTIME_CAPABILITY,
-    RUNTIME_CRATE_NAME,
+    RUNTIME_CRATE_NAME, TEXTURE_IMPORTER_DECLARATION,
 };
 pub use cubemap::import_cubemap_manifest;
 pub use importers::{import_image, import_psd, import_texture_container};

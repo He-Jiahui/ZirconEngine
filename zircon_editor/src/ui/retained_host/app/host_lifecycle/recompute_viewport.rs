@@ -1,6 +1,6 @@
 use super::super::*;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
-use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
 
 impl RetainedEditorHost {
     pub(super) fn sync_recompute_viewport_and_pointer_layouts(

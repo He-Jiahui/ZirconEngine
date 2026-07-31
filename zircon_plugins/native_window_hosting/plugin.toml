@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "native_window_hosting"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Native Window Hosting"
 description = "Optional editor integration for native floating window surfaces."
 category = "platform"

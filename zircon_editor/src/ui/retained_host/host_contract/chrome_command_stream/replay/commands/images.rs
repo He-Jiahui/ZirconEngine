@@ -1,5 +1,5 @@
 use super::super::super::{
-    atlas::atlas_subimage_rgba, ChromeCommand, ChromeImagePayload, ChromeImageUvRect,
+    ChromeCommand, ChromeImagePayload, ChromeImageUvRect, atlas::atlas_subimage_rgba,
 };
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_primitives::{

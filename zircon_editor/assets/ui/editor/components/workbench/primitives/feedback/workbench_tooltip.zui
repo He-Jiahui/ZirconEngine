@@ -6,7 +6,7 @@ display_name = "Workbench Tooltip"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchTooltip]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-tooltip", "workbench-primitive"]
 component = "Tooltip"
 control_id = "WorkbenchTooltipRoot"
 classes = ["workbench-tooltip"]
-props = { text = "Tooltip", label_text = "This is a tooltip", icon = "info", show_icon = true, surface_variant = "workbench-tooltip", background_color = "#171c20", border_color = "#252d32", text_color = "#d0d9dd", label_color = "#a8b3b8", icon_color = "#259ca7", layout_icon_size = 18.0, layout_content_offset_y = 56.0, arrow_size = 8.0, arrow_color = "#171c20" }
+props = { text = "Tooltip", label_text = "This is a tooltip", icon = "info", show_icon = true, surface_variant = "workbench-tooltip", background_color = "$editor.popup", border_color = "$editor.separator.soft", focus_border_color = "$editor.accent", foreground_color = "$editor.text.primary", text_color = "$editor.text.primary", label_color = "$editor.text.secondary", icon_color = "$editor.accent", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.small", layout_icon_size = 18.0, layout_content_offset_y = 56.0, arrow_size = 8.0, arrow_color = "$editor.popup" }
 layout = { width = { min = 110.0, preferred = 110.0, max = 120.0, stretch = "Fixed" }, height = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" } }

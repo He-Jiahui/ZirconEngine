@@ -485,3 +485,11 @@ fn shader_{name}_value() -> f32 {{
     .unwrap();
     shader_uri
 }
+
+#[test]
+fn shader_package_reuses_first_pass_wgsl_file_contents_for_data_entries() {
+    let source = include_str!("../../../importer/ingest/import_shader_package.rs");
+
+    assert!(source.contains("for (path, source) in wgsl_data_sources"));
+    assert!(!source.contains("let source = fs::read_to_string(&path)?;"));
+}

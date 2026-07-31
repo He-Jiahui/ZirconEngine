@@ -20,7 +20,6 @@ mod runtime_obstacles;
 mod settings_hash;
 mod settings_validation;
 
-pub use agent::NavRepathBudget;
 pub use capability::{
     NAVIGATION_RECAST_CAPABILITY, NAVIGATION_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
 };

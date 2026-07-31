@@ -9,6 +9,7 @@ fn runtime_04_asset_facade_query_surface_stays_manager_owned_and_server_free() {
     let facade_manager_source = read_runtime_file("src/asset/facade/manager.rs");
     let readiness_source = read_runtime_file("src/asset/facade/readiness.rs");
     let assets_source = read_runtime_file("src/asset/facade/assets.rs");
+    let event_source = read_runtime_file("src/asset/facade/event.rs");
     let service_contract_source =
         read_runtime_file("src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs");
 
@@ -114,4 +115,20 @@ fn runtime_04_asset_facade_query_surface_stays_manager_owned_and_server_free() {
             "Runtime 04 asset query surface must not introduce `{forbidden_source_anchor}`"
         );
     }
+
+    for forbidden_event_bridge_anchor in [
+        "spawn_named_thread",
+        "asset-event-filter-",
+        "let (sender, receiver) = unbounded()",
+        "let (shutdown_sender, shutdown_receiver) = bounded::<()>(0)",
+    ] {
+        assert!(
+            !event_source.contains(forbidden_event_bridge_anchor),
+            "typed asset event subscription must not create a dedicated thread or second unbounded queue: `{forbidden_event_bridge_anchor}`"
+        );
+    }
+    assert!(
+        event_source.contains("receiver: ChannelReceiver<ResourceEvent>"),
+        "typed asset event receiver must filter the shared resource subscription lazily"
+    );
 }

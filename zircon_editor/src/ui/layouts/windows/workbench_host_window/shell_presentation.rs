@@ -43,6 +43,46 @@ impl ShellPresentation {
         build_export: &BuildExportPaneViewData,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) -> Self {
+        let template_v2_data = std::collections::BTreeMap::new();
+        Self::from_state_with_template_v2_data(
+            model,
+            chrome,
+            geometry,
+            preset_names,
+            active_preset_name,
+            ui_asset_panes,
+            animation_panes,
+            runtime_diagnostics,
+            module_plugins,
+            build_export,
+            &template_v2_data,
+            floating_window_projection_bundle,
+        )
+    }
+
+    pub(crate) fn from_state_with_template_v2_data(
+        model: &WorkbenchViewModel,
+        chrome: &EditorChromeSnapshot,
+        geometry: &WorkbenchShellGeometry,
+        preset_names: &[String],
+        active_preset_name: Option<&str>,
+        ui_asset_panes: &std::collections::BTreeMap<
+            String,
+            crate::ui::asset_editor::UiAssetEditorPanePresentation,
+        >,
+        animation_panes: &std::collections::BTreeMap<
+            String,
+            crate::ui::animation_editor::AnimationEditorPanePresentation,
+        >,
+        runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+        module_plugins: &ModulePluginsPaneViewData,
+        build_export: &BuildExportPaneViewData,
+        template_v2_data: &std::collections::BTreeMap<
+            String,
+            crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+        >,
+        floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+    ) -> Self {
         let left_tabs = collect_tabs(
             model,
             &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
@@ -98,7 +138,7 @@ impl ShellPresentation {
                 document_tabs: model_rc(
                     model.document_tabs.iter().map(document_tab_data).collect(),
                 ),
-                floating_windows: model_rc(collect_floating_windows(
+                floating_windows: model_rc(collect_floating_windows_with_template_v2_data(
                     model,
                     chrome,
                     geometry,
@@ -107,9 +147,10 @@ impl ShellPresentation {
                     runtime_diagnostics,
                     module_plugins,
                     build_export,
+                    template_v2_data,
                     floating_window_projection_bundle,
                 )),
-                left_pane: side_pane(
+                left_pane: side_pane_with_template_v2_data(
                     model,
                     chrome,
                     &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
@@ -118,8 +159,9 @@ impl ShellPresentation {
                     runtime_diagnostics,
                     module_plugins,
                     build_export,
+                    template_v2_data,
                 ),
-                right_pane: side_pane(
+                right_pane: side_pane_with_template_v2_data(
                     model,
                     chrome,
                     &[
@@ -131,8 +173,9 @@ impl ShellPresentation {
                     runtime_diagnostics,
                     module_plugins,
                     build_export,
+                    template_v2_data,
                 ),
-                bottom_pane: side_pane(
+                bottom_pane: side_pane_with_template_v2_data(
                     model,
                     chrome,
                     &[ActivityDrawerSlot::Bottom],
@@ -141,8 +184,9 @@ impl ShellPresentation {
                     runtime_diagnostics,
                     module_plugins,
                     build_export,
+                    template_v2_data,
                 ),
-                document_pane: document_pane(
+                document_pane: document_pane_with_template_v2_data(
                     model,
                     chrome,
                     ui_asset_panes,
@@ -150,6 +194,7 @@ impl ShellPresentation {
                     runtime_diagnostics,
                     module_plugins,
                     build_export,
+                    template_v2_data,
                 ),
             },
             welcome,

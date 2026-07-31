@@ -106,3 +106,15 @@ fn resource_value(kind: &str, uri: &str, fallback: Option<(&str, &str)>) -> Valu
     }
     Value::Table(table)
 }
+
+#[test]
+fn surface_index_target_dedupe_borrows_index_entries_and_counts_in_one_pass() {
+    let source = include_str!("../template/asset/surface_index.rs");
+
+    assert!(source.contains("seen: &mut BTreeSet<&'a UiTreeId>"));
+    assert!(source.contains("seen: &mut BTreeSet<&'a UiAssetNodeTarget>"));
+    assert!(!source.contains("seen.insert(surface.clone())"));
+    assert!(!source.contains("seen.insert(target.clone())"));
+    assert!(source.contains("expected_target_count += push_nodes_for_surface("));
+    assert!(!source.contains("fn target_surface_count("));
+}

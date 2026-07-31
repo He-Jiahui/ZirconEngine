@@ -2,14 +2,13 @@ use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
 };
 use zircon_editor::core::commands::EditorCommandDescriptor;
-use zircon_editor::core::editor_authoring_extension::ViewportToolModeDescriptor;
 use zircon_editor::core::editor_extension::{
     AssetImporterDescriptor, ComponentDrawerDescriptor, EditorMenuItemDescriptor,
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
-    register_authoring_contribution_batch, register_authoring_extensions,
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
+    register_authoring_contribution_batch, register_authoring_extensions,
 };
 use zircon_runtime_interface::resource::ResourceKind;
 
@@ -125,14 +124,16 @@ fn tilemap_authoring_batch() -> EditorAuthoringContributionBatch {
             menu_item("Plugins/Tilemap 2D/Open Tilemap Asset", &open),
             menu_item("Plugins/Tilemap 2D/Paint", &paint),
         ],
-        asset_importers: vec![AssetImporterDescriptor::new(
-            "tilemap_2d.tiled.importer",
-            "Tiled Tilemap",
-            import_tiled,
-        )
-        .with_source_extensions(["tmx", "tsx", "json"])
-        .with_output_type(AssetTypeId::from_resource_kind(ResourceKind::TileMap))
-        .with_required_capabilities([CAPABILITY])],
+        asset_importers: vec![
+            AssetImporterDescriptor::new(
+                "tilemap_2d.tiled.importer",
+                "Tiled Tilemap",
+                import_tiled,
+            )
+            .with_source_extensions(["tmx", "tsx", "json"])
+            .with_output_type(AssetTypeId::from_resource_kind(ResourceKind::TileMap))
+            .with_required_capabilities([CAPABILITY]),
+        ],
         asset_type_contributions: vec![
             AssetTypeContribution::augment(AssetTypeId::from_resource_kind(ResourceKind::TileMap))
                 .with_toolkit(
@@ -162,13 +163,6 @@ fn tilemap_authoring_batch() -> EditorAuthoringContributionBatch {
             "plugins://tilemap_2d/editor/tilemap_component.zui",
             "tilemap_2d.editor.component",
         )],
-        viewport_tool_modes: vec![ViewportToolModeDescriptor::new(
-            "tilemap_2d.tool.paint",
-            "Paint Tiles",
-            TILEMAP_AUTHORING_VIEW_ID,
-            paint,
-        )
-        .with_required_capabilities([CAPABILITY])],
         ..Default::default()
     }
 }

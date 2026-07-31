@@ -149,6 +149,14 @@ fn failed_stage_is_recorded_and_resume_restarts_from_that_stage() {
 }
 
 #[test]
+fn pipeline_failure_moves_the_authoritative_partial_report() {
+    let source = include_str!("pipeline.rs");
+
+    assert!(!source.contains("report: report.clone()"));
+    assert!(source.contains("ExportPipelineRunError::executed(node.stage, report, source)"));
+}
+
+#[test]
 fn preset_store_round_trips_and_replaces_versioned_zpreset_files() {
     let fixture = PresetStoreFixture::new();
     let store = ExportPresetStore::new(&fixture.root);

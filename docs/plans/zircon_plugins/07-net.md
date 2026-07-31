@@ -1,5 +1,24 @@
 # 07 · Net 插件完善计划（TCP / UDP / WebSocket / HTTP / RPC / Replication）
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-plugins-net",
+  "goal": "完成独立 NetWorker、传输与协议栈、会话 RPC、状态复制、可靠 UDP、内容下载及 Editor 发行闭环",
+  "milestones": [
+    {"id": "M1", "title": "NetWorker 基线", "depends_on": []},
+    {"id": "M2", "title": "HTTP、WebSocket 与 TLS", "depends_on": ["M1"]},
+    {"id": "M3", "title": "Session 与 RPC", "depends_on": ["M1"]},
+    {"id": "M4", "title": "Replication", "depends_on": ["M1", "M3"]},
+    {"id": "M5", "title": "Reliable UDP", "depends_on": ["M1"]},
+    {"id": "M6", "title": "Content Download", "depends_on": ["M1", "M2", "M5"]},
+    {"id": "M7", "title": "Editor 与发行接入", "depends_on": ["M2", "M3", "M4", "M5", "M6"]}
+  ]
+}
+```
+
+<!-- Workflow topology is maintained independently from milestone output records. -->
+
 > 状态：工程化细化版 v2 · 优先级：P2 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1–M3
 > 关联计划：`.codex/plans/ZirconEngine Net 插件完善计划.md`（M0–M7 分层路线维持有效） · 现状文档：`docs/zircon_plugins/net/{runtime,editor}.md`
 
@@ -213,4 +232,19 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtim
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 - 当前实现与历史验证记录：[`07/2026-07-09-net-output-records.md`](07/2026-07-09-net-output-records.md)。
+- M1 E9 poison-lock hard cut（`implementation_complete / broad_green / focused_review_commit_pending_fifo`；current-source broad `34 passed / 0 failed`）：[`07/2026-07-17-m1-poison-recovery-hard-cut.md`](07/2026-07-17-m1-poison-recovery-hard-cut.md)。
 - fixed 已修复：[zrpack-blake3-contract-drift](07/fixed-2026-07-14-zrpack-blake3-contract-drift.md)
+
+## 10. Performance01 current-source静态审查回传（2026-07-30）
+
+Performance01已逐文件读取`core/framework/net`、net runtime、HTTP runtime与WebSocket runtime，共101/101个Rust文件。动态门尚未完成，因此本节是M1/M2的强制性能验收补充，不是完成声明；详细证据见[`performance/01/2026-07-30-net-runtime-http-websocket-static-review.md`](../performance/01/2026-07-30-net-runtime-http-websocket-static-review.md)。
+
+- `PERF-MVP-575`归M1：删除`runtime_state`与`transport_runtime`的重复默认multi-thread executor，形成唯一network execution authority；外部API改为ticket/event或budgeted drain，主线程不得`block_on`/`recv_timeout`，registry锁不得跨网络等待，deadline必须取消或终结对应命令。
+- `PERF-MVP-576`归M1/M2：worker ingress、main events、HTTP body、WebSocket inbound/outbound与server concurrency必须同时按entry、bytes、oldest age硬限额；配置中的TCP/UDP/WS预算必须接入产品。HTTP/TLS client按配置generation复用，no-data poll零分配，route近O(1)，大payload只有一个immutable owner，任何drop必须可见且不能静默丢生命周期事件。
+- `PERF-MVP-577`归M4：replication必须在interest/due/budget选择后才materialize payload，stable priority不能每session每tick全量sort；descriptor/object/session使用dense slot/change mask，publish近O(fields)，disconnect/despawn回收replication-time与interpolation state。
+- `PERF-MVP-578`归M3：validator/handler不得在全局锁或caller frame上执行；RPC/channel/pending同时按entries、bytes、age与per-session配额，payload共享owner，priority queue增量维护，timeout/cancel可终结observer，session close清理quota/pending/channel state。
+- `PERF-MVP-579`归M5：fragment count/inflight sequences/assembly bytes/age/ordered gap/outbound window在分配前硬限额；ACK/resend使用sequence-window index，禁止per-sequence重扫outbound和over-budget先clone，u16 wrap必须只有一个有效generation。
+- `PERF-MVP-580`归M6：content download改为异步ticket，HTTP流式写入bounded temp/cache并增量hash；resume不得复制整prefix，成功后释放partial/body，chunk/bitmap/progress用slot批量更新，terminal/cancel状态按显式策略回收。
+- M1/M2 gate增加规模矩阵：1/100/10k connections，1/1k/100k packets/events，0/1KiB/1MiB/256MiB payload，1/2/8/64 logical cores，0/1/60s consumer stall。记录线程/task、caller blocked、registry lock wait/hold、queue entries/bytes/age/drop、client/TLS builds、payload clone bytes、RSS和shutdown wall。
+- M3..M6 gate补充1/100/10k sessions/objects/RPCs、1/1k/100k snapshots/invocations/fragments/chunks、4KiB/256MiB/1GiB download、0/30/99% loss/resume及u16 wrap；记录sort/field comparisons、handler/validator wall、ACK/resend visits、assembly/partial retained bytes和terminal cleanup。
+- 参考合同：Godot `modules/websocket/packet_buffer.h`同时限制packet count与payload bytes，`wsl_peer.cpp`限制queued messages，`scene/main/http_request.cpp`同时限制Content-Length和解压后实际body；Zircon验收不得退化为只限制帧数或只限制声明长度。

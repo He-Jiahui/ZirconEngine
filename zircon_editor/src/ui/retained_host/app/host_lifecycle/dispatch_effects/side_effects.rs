@@ -9,6 +9,11 @@ impl RetainedEditorHost {
         if !effects.workbench_notifications.is_empty() {
             self.publish_workbench_notifications(&effects.workbench_notifications);
         }
+        if effects.close_active_project {
+            if let Err(error) = self.close_project_from_workbench() {
+                self.set_status_line(error);
+            }
+        }
         if effects.sync_asset_workspace {
             self.sync_asset_workspace();
         }
@@ -41,5 +46,6 @@ impl RetainedEditorHost {
                 self.set_status_line(error);
             }
         }
+        self.sync_pending_play_decisions();
     }
 }

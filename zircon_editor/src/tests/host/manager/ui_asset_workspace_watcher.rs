@@ -86,6 +86,24 @@ fn manager_for(
 }
 
 #[test]
+fn editor_manager_reports_an_empty_observable_watch_poll_without_a_project() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_watch_poll_report");
+    let (_runtime, manager) = manager_for(&path);
+
+    let report = manager
+        .poll_ui_asset_workspace_watcher()
+        .expect("poll without a project");
+    assert!(report.changed_asset_ids.is_empty());
+    assert_eq!(report.diagnostics.pending_path_count, 0);
+    assert!(!report.diagnostics.reconcile_cursor_active);
+    assert_eq!(report.diagnostics.overflow_count, 0);
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+}
+
+#[test]
 fn editor_manager_refreshes_clean_zui_asset_session_from_external_file_change() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_zui_asset_hot_reload_clean");
@@ -425,6 +443,53 @@ fn editor_manager_marks_and_recovers_stale_imports_from_watched_changes() {
         .unwrap();
     assert!(recovered.preview_available);
     assert!(recovered.stale_import_items.is_empty());
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn editor_manager_indexes_an_import_that_is_invalid_during_initial_hydration() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_initial_stale_import");
+    let project_root = unique_temp_dir("zircon_editor_asset_initial_stale_import_project");
+    write_project(&project_root);
+    let layout_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("layouts")
+        .join("editor.zui");
+    let theme_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("theme")
+        .join("shared_theme.zui");
+    fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(theme_path.parent().unwrap()).unwrap();
+    fs::write(&layout_path, DETACH_THEME_ZUI_VIEW_ASSET).unwrap();
+    fs::write(&theme_path, "not = [valid").unwrap();
+
+    let (_runtime, manager) = manager_for(&path);
+    manager.open_project(&project_root).unwrap();
+    let instance_id = manager
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
+        .expect("initial stale import must preserve the authoring session");
+    assert!(!manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .unwrap()
+        .stale_import_items
+        .is_empty());
+
+    fs::write(&theme_path, IMPORTED_THEME_COLLISION_ZUI_STYLE_ASSET).unwrap();
+    manager
+        .refresh_ui_asset_workspace_for_changes(vec!["res://ui/theme/shared_theme.zui".to_string()])
+        .expect("repaired initial import");
+    assert!(manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .unwrap()
+        .stale_import_items
+        .is_empty());
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);

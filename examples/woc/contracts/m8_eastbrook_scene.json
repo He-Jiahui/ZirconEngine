@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "scene_id": "eastbrook_mvp",
+  "coordinate_contract": {
+    "horizontal_axes": "+z north, +x west",
+    "ground_y_mode": "flat_mvp_pending_runtime04_original_terrain_import",
+    "sources": [
+      "src/sim/data.ts:335",
+      "src/sim/content/zone1.ts:510-620",
+      "src/sim/content/zone1.ts:1104-1245",
+      "src/render/props.ts:787-987",
+      "src/render/characters/manifest.ts:357-1200"
+    ]
+  },
+  "ground": {
+    "half_extents": [140.0, 120.0],
+    "uv_tiles": [20.0, 18.0]
+  },
+  "camera": {
+    "translation": [0.0, 12.0, -24.0],
+    "rotation": [0.0, 0.9854497, 0.1699671, 0.0],
+    "fov_y_radians": 0.88,
+    "z_near": 0.1,
+    "z_far": 400.0,
+    "exposure_ev100": 9.2
+  },
+  "lighting": {
+    "ambient_color": [0.52, 0.62, 0.46],
+    "ambient_intensity": 0.55,
+    "direction": [-0.42, -1.0, 0.24],
+    "directional_color": [1.0, 0.91, 0.72],
+    "directional_intensity": 4.2,
+    "bonfire_color": [1.0, 0.42, 0.12],
+    "bonfire_intensity": 12.0,
+    "bonfire_range": 16.0
+  },
+  "actors": [
+    {
+      "id": "player_warrior",
+      "source_id": "PLAYER_START",
+      "position_semantics": "exact_spawn",
+      "asset_path": "assets/m8/models/chars/players/knight.glb",
+      "translation": [2.0, 0.0, -2.0],
+      "facing": 0.0,
+      "target_height": 2.6,
+      "animation": "Idle",
+      "skeleton_index": 0,
+      "hidden_nodes": ["Knight_HelmetVisor"],
+      "role": "player"
+    },
+    {
+      "id": "marshal_redbrook",
+      "source_id": "marshal_redbrook",
+      "position_semantics": "exact_npc",
+      "asset_path": "assets/m8/models/chars/players/knight.glb",
+      "translation": [4.0, 0.0, 6.0],
+      "facing": 3.141592653589793,
+      "target_height": 2.6,
+      "animation": "Idle",
+      "skeleton_index": 0,
+      "hidden_nodes": ["Knight_HelmetVisor"],
+      "role": "npc"
+    },
+    {
+      "id": "trader_wilkes",
+      "source_id": "trader_wilkes",
+      "position_semantics": "exact_npc",
+      "asset_path": "assets/m8/models/chars/players/rogue.glb",
+      "translation": [-7.0, 0.0, 3.0],
+      "facing": 1.5707963267948966,
+      "target_height": 2.6,
+      "animation": "Idle",
+      "skeleton_index": 0,
+      "hidden_nodes": ["Rogue_Cape"],
+      "role": "npc"
+    },
+    {
+      "id": "forest_wolf_representative",
+      "source_id": "forest_wolf",
+      "position_semantics": "exact_camp_center_representative",
+      "asset_path": "assets/m8/models/creatures/wolf_basic.glb",
+      "translation": [-15.0, 0.0, 55.0],
+      "facing": 3.141592653589793,
+      "target_height": 1.6,
+      "animation": "Idle",
+      "skeleton_index": 0,
+      "hidden_nodes": [],
+      "role": "mob"
+    },
+    {
+      "id": "wild_boar_representative",
+      "source_id": "wild_boar",
+      "position_semantics": "exact_camp_center_representative",
+      "asset_path": "assets/m8/models/creatures/wild_boar.glb",
+      "translation": [55.0, 0.0, 12.0],
+      "facing": 0.0,
+      "target_height": 1.45,
+      "animation": "Idle1",
+      "skeleton_index": 0,
+      "hidden_nodes": [],
+      "role": "mob"
+    }
+  ],
+  "props": [
+    {
+      "id": "town_house_west",
+      "asset_path": "assets/m8/models/props/house_2.glb",
+      "translation": [10.0, -0.12, 12.0],
+      "yaw": -0.4,
+      "pre_yaw": -1.5707963267948966,
+      "target_size": [7.0, 7.6, 6.0],
+      "source": "ZONE1_PROPS.buildings[0]; deterministic housePool=house2"
+    },
+    {
+      "id": "town_house_east",
+      "asset_path": "assets/m8/models/props/house_2.glb",
+      "translation": [-10.0, -0.12, 10.0],
+      "yaw": 0.5,
+      "pre_yaw": -1.5707963267948966,
+      "target_size": [6.0, 7.6, 5.0],
+      "source": "ZONE1_PROPS.buildings[1]; deterministic housePool=house2"
+    },
+    {
+      "id": "eastbrook_inn",
+      "asset_path": "assets/m8/models/props/inn.glb",
+      "translation": [12.0, -0.12, -6.0],
+      "yaw": 2.4,
+      "pre_yaw": 0.0,
+      "target_size": [6.0, 7.6, 7.0],
+      "source": "ZONE1_PROPS.buildings[2]"
+    },
+    {
+      "id": "eastbrook_well",
+      "asset_path": "assets/m8/models/props/well.glb",
+      "translation": [0.0, -0.1, 2.0],
+      "yaw_rule": { "kind": "prop_rand", "stream": 1, "multiplier": 3.141592653589793 },
+      "pre_yaw": 0.0,
+      "target_size": [2.6, 3.6, 2.9],
+      "source": "ZONE1_PROPS.wells[0]"
+    },
+    {
+      "id": "trader_market_stall",
+      "asset_path": "assets/m8/models/props/market_stand_1.glb",
+      "translation": [-8.5, -0.06, 3.0],
+      "yaw": 1.5707963267948966,
+      "yaw_rule": { "kind": "key_rand_jitter", "stream": 1, "amplitude": 0.1 },
+      "pre_yaw": -1.5707963267948966,
+      "target_size": [3.1, 2.6, 2.5],
+      "source": "ZONE1_PROPS.stalls[0]"
+    },
+    {
+      "id": "world_market_stall",
+      "asset_path": "assets/m8/models/props/market_stand_1.glb",
+      "translation": [0.0, -0.06, 11.5],
+      "yaw": 3.141592653589793,
+      "yaw_rule": { "kind": "key_rand_jitter", "stream": 1, "amplitude": 0.1 },
+      "pre_yaw": -1.5707963267948966,
+      "target_size": [3.1, 2.6, 2.5],
+      "source": "ZONE1_PROPS.stalls[2]"
+    },
+    {
+      "id": "eastbrook_bonfire",
+      "asset_path": "assets/m8/models/props/bonfire.glb",
+      "translation": [3.0, 0.0, -4.0],
+      "yaw_rule": { "kind": "prop_rand", "stream": 1, "multiplier": 6.283185307179586 },
+      "pre_yaw": 0.0,
+      "uniform_scale": 4.3,
+      "local_y_offset": -0.05,
+      "source": "ZONE1_PROPS.campfires[0]"
+    }
+  ],
+  "fence_runs": [
+    { "id": "west_fence", "from": [16.0, 16.0], "to": [22.0, 4.0] },
+    { "id": "east_fence", "from": [-16.0, 14.0], "to": [-20.0, 2.0] }
+  ]
+}

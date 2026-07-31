@@ -13,6 +13,32 @@ Editor-only plugin packages omit the `runtime` crate:
 - `zircon_plugins/<plugin_id>/plugin.toml`
 - `zircon_plugins/<plugin_id>/editor/Cargo.toml`
 
+## Declarative Package Metadata
+
+M1-migrated runtime packages keep package identity, display name, category,
+runtime module, targets, platforms, capabilities, maturity, and default
+packaging in one `zircon_plugin_sdk::declare_plugin!` declaration in
+`runtime/src/capability.rs`. The runtime descriptor must project that
+declaration through
+`runtime_declaration(...).with_module_descriptor(module_descriptor()).into_descriptor()`;
+registration and importer behavior remain explicit in `plugin.rs`.
+
+The checked-in `plugin.toml` is the generated manifest projection. Its generated
+header, package parity tests, and the plugin structure audit keep it aligned with
+the Rust declaration. Do not hand-duplicate declared package metadata or read
+`plugin.toml` through `include_str!` in production code.
+
+Native ABI packages use `zircon_plugin_sdk::native_plugin_manifest_v3!` for the
+embedded NUL-terminated manifest and ABI-facing package constants. The
+checked-in `plugin.toml` contains the same manifest text without its C-string
+terminator, and the native fixture parity test must keep the two projections
+identical.
+
+| SDK API version | Migration |
+| --- | --- |
+| `0.1.0` | Hand-authored runtime descriptor metadata could drift from package metadata. |
+| `0.2.0` | `declare_plugin!` owns the package metadata projection; runtime behavior and registration remain explicit in the plugin crate. |
+
 Each `plugin.toml` is a serialized `PluginPackageManifest`: it should declare
 the package id, semantic `version`, semantic `sdk_api_version`, category,
 supported runtime targets and export platforms, package capabilities,

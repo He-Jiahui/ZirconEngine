@@ -1,0 +1,36 @@
+// Source-owned exception table for pseudo-casts that have no ability catalog
+// entry but must still participate in school-based interruption.
+
+pub nythraxisSpiritMendingCastId(required: bool): string {
+    if (!required) {
+        throw "woc scripted interruptible channel id is required";
+    }
+    return "nythraxis_spirit_mending";
+}
+
+// Empty is the scalar equivalent of the source map's missing entry. Consumers
+// must only use a non-empty return after normal ability resolution failed.
+pub scriptedInterruptibleChannelSchool(castId: string, required: bool): string {
+    if (!required) {
+        throw "woc scripted interruptible channel lookup is required";
+    }
+    if (castId == nythraxisSpiritMendingCastId(true)) {
+        return "shadow";
+    }
+    return "";
+}
+
+pub isScriptedInterruptibleChannel(castId: string, required: bool): bool {
+    return scriptedInterruptibleChannelSchool(castId, required) != "";
+}
+
+pub contractTest(): int {
+    if (nythraxisSpiritMendingCastId(true) != "nythraxis_spirit_mending" ||
+        scriptedInterruptibleChannelSchool("nythraxis_spirit_mending", true) != "shadow" ||
+        scriptedInterruptibleChannelSchool("ordinary_scripted_cast", true) != "" ||
+        !isScriptedInterruptibleChannel("nythraxis_spirit_mending", true) ||
+        isScriptedInterruptibleChannel("ordinary_scripted_cast", true)) {
+        return -1;
+    }
+    return 1;
+}

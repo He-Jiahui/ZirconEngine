@@ -21,19 +21,27 @@ impl FeatureStatus {
         &mut self,
         plugin_id: String,
     ) {
-        push_unique(&mut self.missing_plugins, plugin_id);
+        if self.missing_plugin_membership.insert(plugin_id.clone()) {
+            self.missing_plugins.push(plugin_id);
+        }
     }
 
     pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn add_missing_capability(
         &mut self,
         capability: String,
     ) {
-        push_unique(&mut self.missing_capabilities, capability);
+        if self
+            .missing_capability_membership
+            .insert(capability.clone())
+        {
+            self.missing_capabilities.push(capability);
+        }
     }
-}
 
-fn push_unique(collection: &mut Vec<String>, value: String) {
-    if !collection.contains(&value) {
-        collection.push(value);
+    pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn resolve_missing_capability(
+        &mut self,
+        capability: &str,
+    ) -> bool {
+        self.missing_capability_membership.remove(capability)
     }
 }

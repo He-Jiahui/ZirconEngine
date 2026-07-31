@@ -263,14 +263,7 @@ fn apply_showcase_binding(
     binding_id: &str,
     input: UiComponentShowcaseDemoEventInput,
 ) -> UiComponentAdapterResult {
-    let binding = runtime
-        .project_document(COMPONENT_SHOWCASE_DOCUMENT_ID)
-        .unwrap()
-        .bindings
-        .into_iter()
-        .find(|binding| binding.binding_id == binding_id)
-        .unwrap_or_else(|| panic!("missing showcase binding `{binding_id}`"))
-        .binding;
+    let binding = showcase_binding(runtime, binding_id);
     runtime
         .apply_showcase_demo_binding(&binding, input)
         .unwrap()

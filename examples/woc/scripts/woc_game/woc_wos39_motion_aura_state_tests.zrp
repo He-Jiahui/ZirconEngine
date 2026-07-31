@@ -1,0 +1,6 @@
+{
+  "name": "woc_wos39_motion_aura_state_tests",
+  "source": "src",
+  "binary": "bin-wos39-motion-aura-state-tests",
+  "entry": "world/motion_aura_state_test_main"
+}

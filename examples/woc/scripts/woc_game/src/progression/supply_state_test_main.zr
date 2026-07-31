@@ -1,0 +1,76 @@
+var console = %import("zr.system.console");
+var supply = %import("progression/supply_state");
+
+closeEnough(value: float, expected: float): bool {
+    var difference = value - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+valueAt(observation: supply.SupplyObservation, index: int): float {
+    return <float>observation.values[index];
+}
+
+var result = 1;
+var ready = new supply.SupplyState();
+ready.copper = 1000;
+ready.bagCapacity = 16;
+ready.addInventory("baked_bread", 3);
+ready.addInventory("spring_water", 4);
+ready.addInventory("minor_healing_potion", 1);
+ready.addInventory("minor_mana_potion", 2);
+var observation = new supply.SupplyObservation();
+supply.encodeSupplyObservation(ready, observation);
+if (observation.values.length != supply.supplyObservationWidth() ||
+    !closeEnough(valueAt(observation, 0), 1.0) ||
+    !closeEnough(valueAt(observation, 1), 3.0 / 16.0) ||
+    !closeEnough(valueAt(observation, 2), 1.0) ||
+    !closeEnough(valueAt(observation, 3), 4.0 / 16.0) ||
+    !closeEnough(valueAt(observation, 4), 1.0) ||
+    !closeEnough(valueAt(observation, 5), 1.0 / 16.0) ||
+    !closeEnough(valueAt(observation, 6), 1.0) ||
+    !closeEnough(valueAt(observation, 7), 2.0 / 16.0) ||
+    !closeEnough(valueAt(observation, 8), 1.0) ||
+    !closeEnough(valueAt(observation, 9), 1.0) ||
+    !closeEnough(valueAt(observation, 10), 12.0 / 16.0) ||
+    !closeEnough(valueAt(observation, 11), 1.0) ||
+    !closeEnough(valueAt(observation, 12), 1.0) ||
+    !closeEnough(valueAt(observation, 13), 1.0) ||
+    !closeEnough(valueAt(observation, 14), 1.0)) {
+    result = -1;
+}
+
+var constrained = new supply.SupplyState();
+constrained.copper = 1000;
+constrained.bagCapacity = 4;
+constrained.addInventory("baked_bread", 20);
+constrained.addInventory("spring_water", 17);
+constrained.addInventory("minor_healing_potion", 18);
+constrained.addInventory("minor_mana_potion", 19);
+constrained.potionCooldownRemaining = 0.5;
+supply.encodeSupplyObservation(constrained, observation);
+if (result == 1 && (!closeEnough(valueAt(observation, 8), 0.0) ||
+    !closeEnough(valueAt(observation, 10), 0.0) ||
+    !closeEnough(valueAt(observation, 11), 0.0) ||
+    !closeEnough(valueAt(observation, 12), 0.0) ||
+    !closeEnough(valueAt(observation, 13), 1.0) ||
+    !closeEnough(valueAt(observation, 14), 1.0))) {
+    result = -2;
+}
+
+var poor = new supply.SupplyState();
+poor.copper = 24;
+poor.bagCapacity = 16;
+poor.addInventory("baked_bread", 1);
+supply.encodeSupplyObservation(poor, observation);
+if (result == 1 && (!closeEnough(valueAt(observation, 9), 24.0 / 1000.0) ||
+    !closeEnough(valueAt(observation, 11), 0.0) ||
+    !closeEnough(valueAt(observation, 12), 0.0) ||
+    !closeEnough(valueAt(observation, 13), 0.0) ||
+    !closeEnough(valueAt(observation, 14), 0.0))) {
+    result = -3;
+}
+
+console.printLine("m5-supply-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

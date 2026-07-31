@@ -44,14 +44,17 @@ pub use runtime_plugin::{
     RuntimePluginBridgeDisableBlocker, RuntimePluginBridgeLifecycleBlock,
     RuntimePluginBridgeLifecycleError, RuntimePluginBridgeLifecycleEvent,
     RuntimePluginBridgeLifecycleOutcome, RuntimePluginBridgeLifecycleReport,
-    RuntimePluginBridgeLifecycleState, RuntimePluginCatalog, RuntimePluginDescriptor,
-    RuntimePluginDescriptorBuilder, RuntimePluginFeature, RuntimePluginFeatureBlock,
-    RuntimePluginFeatureDependencyReport, RuntimePluginFeatureRegistrationReport,
-    RuntimePluginRegistrationReport,
+    RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
+    RuntimePluginCatalogProjectPlanMetrics, RuntimePluginCatalogProjectionMetrics,
+    RuntimePluginCatalogUpdate, RuntimePluginCatalogUpdateMetrics,
+    RuntimePluginCatalogUpdateOutcome, RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
+    RuntimePluginFeature, RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 pub use runtime_profile::{
     RuntimePluginAvailabilityCategory, RuntimePluginAvailabilityEntry,
-    RuntimePluginAvailabilityReport, RuntimeProfileDescriptor, RuntimeProfileFeaturePreset,
-    RuntimeProfilePluginSelection, RUNTIME_PROFILE_FEATURE_PRESETS,
+    RuntimePluginAvailabilityGeneration, RuntimePluginAvailabilityReport,
+    RuntimePluginAvailabilityRow, RuntimePluginAvailabilitySummary, RuntimeProfileDescriptor,
+    RuntimeProfileFeaturePreset, RuntimeProfilePluginSelection, RUNTIME_PROFILE_FEATURE_PRESETS,
 };
 pub use ui_component_descriptor::UiComponentDescriptor;

@@ -1,0 +1,115 @@
+var lockpick = %import("instances/delve_lockpick_session");
+
+// Source vector: runSeed=20061, chest=423, normal tier. The target derives
+// base=1839881514, page0=4087162011, page1=1371844168 and retry0=1987505904.
+var normal = new lockpick.LockpickSession();
+if (lockpick.engage(normal, <uint>20061, <uint>423, <uint>77, 2, 0, 100, true) != 1 ||
+    !lockpick.isActive(normal, true) || lockpick.sessionId(normal, true) != "lp_423_100" ||
+    lockpick.baseSeed(normal, true) != <uint>1839881514 ||
+    lockpick.currentPageSeed(normal, true) != <uint>4087162011 ||
+    lockpick.pageIndex(normal, true) != 0 || lockpick.column(normal, true) != 0 ||
+    lockpick.row(normal, true) != 1 || lockpick.deadlineTick(normal, true) != 220 ||
+    lockpick.triesLeft(normal, true) != 2 || lockpick.pageCount(normal, true) != 2) {
+    return -1;
+}
+
+// A stale sid and a different owner are both rejected before board mutation.
+if (lockpick.applyAction(normal, 3, 101, <uint>77, "lp_423_99", true, true) != 0 ||
+    lockpick.applyAction(normal, 3, 101, <uint>78, "", false, true) != 0 ||
+    lockpick.column(normal, true) != 0 || lockpick.row(normal, true) != 1 ||
+    lockpick.deadlineTick(normal, true) != 220) {
+    return -2;
+}
+
+// Exact target solveLockActions(page 0): ease, hardSet, ease, steady, steady,
+// drop, hardSet, set, steady, ease, steady. Clearing a non-final page swaps
+// to the next derived page and re-arms the 120-tick medium-ante deadline.
+if (lockpick.applyAction(normal, 3, 101, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 0, 102, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 3, 103, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 2, 104, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 2, 105, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 4, 106, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 0, 107, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 1, 108, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 2, 109, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 3, 110, <uint>77, "lp_423_100", true, true) != 2 ||
+    lockpick.applyAction(normal, 2, 111, <uint>77, "lp_423_100", true, true) != 4 ||
+    lockpick.pageIndex(normal, true) != 1 || lockpick.column(normal, true) != 0 ||
+    lockpick.row(normal, true) != 1 || lockpick.currentPageSeed(normal, true) != <uint>1371844168 ||
+    lockpick.deadlineTick(normal, true) != 231) {
+    return -3;
+}
+
+var retry = new lockpick.LockpickSession();
+if (lockpick.engage(retry, <uint>20061, <uint>423, <uint>77, 2, 0, 100, true) != 1 ||
+    lockpick.tick(retry, 220, true) != 3 || !lockpick.isActive(retry, true) ||
+    lockpick.triesLeft(retry, true) != 1 || lockpick.pageIndex(retry, true) != 0 ||
+    lockpick.attemptSeed(retry, true) != <uint>3896612673 ||
+    lockpick.currentPageSeed(retry, true) != <uint>1987505904 ||
+    lockpick.row(retry, true) != 2 || lockpick.deadlineTick(retry, true) != 340 ||
+    lockpick.tick(retry, 340, true) != 6 || lockpick.isActive(retry, true) ||
+    lockpick.status(retry, true) != 3) {
+    return -4;
+}
+
+// Ante three has one page. The same normal page solve ends the session in
+// source success state rather than manufacturing chest rewards here.
+var success = new lockpick.LockpickSession();
+if (lockpick.engage(success, <uint>20061, <uint>423, <uint>77, 3, 0, 100, true) != 1 ||
+    lockpick.applyAction(success, 3, 101, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 0, 102, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 3, 103, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 2, 104, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 2, 105, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 4, 106, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 0, 107, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 1, 108, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 2, 109, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 3, 110, <uint>77, "", false, true) != 2 ||
+    lockpick.applyAction(success, 2, 111, <uint>77, "", false, true) != 5 ||
+    lockpick.isActive(success, true) || lockpick.status(success, true) != 2 ||
+    lockpick.column(success, true) != 11 || lockpick.row(success, true) != 1) {
+    return -5;
+}
+
+var heroic = new lockpick.LockpickSession();
+if (lockpick.engage(heroic, <uint>20061, <uint>423, <uint>77, 1, 1, 100, true) != 1 ||
+    lockpick.pageCount(heroic, true) != 3 || lockpick.boardColumns(heroic, true) != 16 ||
+    lockpick.row(heroic, true) != 1 || lockpick.deadlineTick(heroic, true) != 160) {
+    return -6;
+}
+
+// Bountiful applies only to the reward chest: it rejects lower antes and
+// upgrades that one board to the Heroic preset.
+var cofferRejected = new lockpick.LockpickSession();
+if (lockpick.engageForDelveRun(
+    cofferRejected, <uint>20061, <uint>423, <uint>423, true, <uint>77, 2, 0, true, 100, true
+) != 0 || cofferRejected.initialized) {
+    return -7;
+}
+var coffer = new lockpick.LockpickSession();
+if (lockpick.engageForDelveRun(
+    coffer, <uint>20061, <uint>423, <uint>423, true, <uint>77, 1, 0, true, 100, true
+) != 1 || coffer.tier != 1 || lockpick.pageCount(coffer, true) != 3 ||
+    lockpick.boardColumns(coffer, true) != 16 || lockpick.deadlineTick(coffer, true) != 160) {
+    return -8;
+}
+var ordinaryChest = new lockpick.LockpickSession();
+if (lockpick.engageForDelveRun(
+    ordinaryChest, <uint>20061, <uint>424, <uint>423, true, <uint>77, 2, 0, true, 100, true
+) != 1 || ordinaryChest.tier != 0 || lockpick.pageCount(ordinaryChest, true) != 2 ||
+    lockpick.boardColumns(ordinaryChest, true) != 12 ||
+    lockpick.deadlineTick(ordinaryChest, true) != 220) {
+    return -9;
+}
+
+var aborted = new lockpick.LockpickSession();
+if (lockpick.engage(aborted, <uint>20061, <uint>423, <uint>77, 2, 0, 100, true) != 1 ||
+    lockpick.applyAction(aborted, 5, 101, <uint>77, "lp_423_100", true, true) != 7 ||
+    lockpick.isActive(aborted, true) || lockpick.status(aborted, true) != 4 ||
+    lockpick.contractTest() != 1) {
+    return -10;
+}
+
+return 0;

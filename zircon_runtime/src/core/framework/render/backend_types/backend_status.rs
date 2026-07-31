@@ -5,6 +5,25 @@ pub struct RenderingBackendInfo {
     pub supports_shared_texture_viewports: bool,
 }
 
+/// Backend-neutral render-device identity and the limits available to the renderer.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderDeviceDiagnostics {
+    pub adapter_name: String,
+    pub adapter_device_type: String,
+    pub limits: RenderDeviceLimitDiagnostics,
+}
+
+/// Curated render-device limits required to explain runtime renderer behavior.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderDeviceLimitDiagnostics {
+    pub max_bind_groups: u32,
+    pub max_texture_dimension_2d: u32,
+    pub max_texture_array_layers: u32,
+    pub max_sampled_textures_per_shader_stage: u32,
+    pub max_storage_buffers_per_shader_stage: u32,
+    pub max_storage_buffer_binding_size: u64,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct GraphicsDebuggerStatus {
     /// True when the backend exposes a graphics-debugger capture hook through wgpu.

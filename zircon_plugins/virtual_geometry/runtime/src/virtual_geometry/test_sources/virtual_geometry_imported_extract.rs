@@ -7,7 +7,7 @@ use zircon_runtime::asset::{
 };
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, RenderLayerSet,
-    RenderMeshSnapshot, RenderMeshStaticState, RenderVirtualGeometryDebugState,
+    RenderMeshSnapshot, RenderMeshStaticState, RenderVirtualGeometryDebugState, RendererCommon,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec2, Vec3};
@@ -55,7 +55,11 @@ fn virtual_geometry_mesh_based_extract_uses_imported_cooked_model_assets() {
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             static_state: RenderMeshStaticState::from_transform_static(false),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
+            common: RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
+                is_static: false,
+                ..RendererCommon::default()
+            },
         }],
         RenderVirtualGeometryDebugState {
             print_leaf_clusters: true,

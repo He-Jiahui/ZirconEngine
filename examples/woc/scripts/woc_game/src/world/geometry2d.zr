@@ -1,0 +1,162 @@
+// Source-compatible XZ polygon helpers from src/sim/geometry2d.ts. This is a
+// pure world-authoring/query leaf: no runtime state, RNG, host objects or UI.
+var container = %import("zr.container");
+
+pub class Point2D {
+    pub var x: float;
+    pub var z: float;
+
+    pub @constructor(x: float, z: float) {
+        this.x = x;
+        this.z = z;
+    }
+}
+
+pub class PolygonXAtZResult {
+    pub var hasValue: bool;
+    pub var value: float;
+
+    pub @constructor() {
+        this.hasValue = false;
+        this.value = 0.0;
+    }
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+nextIndex(index: int, count: int): int {
+    return index + 1 == count ? 0 : index + 1;
+}
+
+pub polygonSignedArea(points: container.Array<Point2D>): float {
+    var sum = 0.0;
+    var index = 0;
+    while (index < points.length) {
+        var first = <Point2D>points[index];
+        var second = <Point2D>points[nextIndex(index, points.length)];
+        sum = sum + first.x * second.z - second.x * first.z;
+        index = index + 1;
+    }
+    return sum / 2.0;
+}
+
+pub polygonContainsPoint(points: container.Array<Point2D>, x: float, z: float): bool {
+    var inside = false;
+    var count = points.length;
+    if (count == 0) { return false; }
+    var index = 0;
+    var previous = count - 1;
+    while (index < count) {
+        var currentPoint = <Point2D>points[index];
+        var previousPoint = <Point2D>points[previous];
+        var crossesHeight = (currentPoint.z > z && previousPoint.z <= z) ||
+            (previousPoint.z > z && currentPoint.z <= z);
+        if (crossesHeight && x < ((previousPoint.x - currentPoint.x) *
+            (z - currentPoint.z)) / (previousPoint.z - currentPoint.z) + currentPoint.x) {
+            inside = !inside;
+        }
+        previous = index;
+        index = index + 1;
+    }
+    return inside;
+}
+
+pub polygonIsStarShaped(
+    points: container.Array<Point2D>, poleX: float, poleZ: float
+): bool {
+    if (points.length < 3) { return false; }
+    // The source reverses clockwise input before testing left-side crosses.
+    // Multiplying by its winding sign is the same normalization without a copy.
+    var windingSign = polygonSignedArea(points) < 0.0 ? -1.0 : 1.0;
+    var index = 0;
+    while (index < points.length) {
+        var first = <Point2D>points[index];
+        var second = <Point2D>points[nextIndex(index, points.length)];
+        var edgeX = second.x - first.x;
+        var edgeZ = second.z - first.z;
+        var poleOffsetX = poleX - first.x;
+        var poleOffsetZ = poleZ - first.z;
+        var cross = (edgeX * poleOffsetZ - edgeZ * poleOffsetX) * windingSign;
+        if (cross < 0.0) { return false; }
+        index = index + 1;
+    }
+    return true;
+}
+
+segmentsIntersect(
+    firstStart: Point2D,
+    firstEnd: Point2D,
+    secondStart: Point2D,
+    secondEnd: Point2D
+): bool {
+    var firstDeltaX = firstEnd.x - firstStart.x;
+    var firstDeltaZ = firstEnd.z - firstStart.z;
+    var secondDeltaX = secondEnd.x - secondStart.x;
+    var secondDeltaZ = secondEnd.z - secondStart.z;
+    var denominator = firstDeltaX * secondDeltaZ - firstDeltaZ * secondDeltaX;
+    if (absolute(denominator) < 0.000000000001) { return false; }
+    var offsetX = secondStart.x - firstStart.x;
+    var offsetZ = secondStart.z - firstStart.z;
+    var firstT = (offsetX * secondDeltaZ - offsetZ * secondDeltaX) / denominator;
+    var secondT = (offsetX * firstDeltaZ - offsetZ * firstDeltaX) / denominator;
+    var epsilon = 0.000000001;
+    return firstT > epsilon && firstT < 1.0 - epsilon &&
+        secondT > epsilon && secondT < 1.0 - epsilon;
+}
+
+pub polygonSelfIntersects(points: container.Array<Point2D>): bool {
+    var count = points.length;
+    if (count < 4) { return false; }
+    var firstIndex = 0;
+    while (firstIndex < count) {
+        var firstStart = <Point2D>points[firstIndex];
+        var firstEnd = <Point2D>points[nextIndex(firstIndex, count)];
+        var secondIndex = firstIndex + 1;
+        while (secondIndex < count) {
+            var adjacent = secondIndex == firstIndex + 1 ||
+                (firstIndex == 0 && secondIndex == count - 1);
+            if (!adjacent) {
+                var secondStart = <Point2D>points[secondIndex];
+                var secondEnd = <Point2D>points[nextIndex(secondIndex, count)];
+                if (segmentsIntersect(firstStart, firstEnd, secondStart, secondEnd)) {
+                    return true;
+                }
+            }
+            secondIndex = secondIndex + 1;
+        }
+        firstIndex = firstIndex + 1;
+    }
+    return false;
+}
+
+// `side` uses the source's -1 west / +1 east convention. `hasValue` represents
+// the source null result without requiring a nullable ZrVM ABI value.
+pub polygonXAtZ(
+    points: container.Array<Point2D>, z: float, side: int, output: PolygonXAtZResult
+): void {
+    output.hasValue = false;
+    output.value = 0.0;
+    var index = 0;
+    while (index < points.length) {
+        var first = <Point2D>points[index];
+        var second = <Point2D>points[nextIndex(index, points.length)];
+        if (first.z != second.z &&
+            !((z < first.z && z < second.z) || (z > first.z && z > second.z))) {
+            var minimumZ = first.z < second.z ? first.z : second.z;
+            var maximumZ = first.z > second.z ? first.z : second.z;
+            if (z >= minimumZ && z <= maximumZ) {
+                var t = (z - first.z) / (second.z - first.z);
+                if (t >= 0.0 && t <= 1.0) {
+                    var x = first.x + (second.x - first.x) * t;
+                    if (!output.hasValue || (side < 0 ? x < output.value : x > output.value)) {
+                        output.hasValue = true;
+                        output.value = x;
+                    }
+                }
+            }
+        }
+        index = index + 1;
+    }
+}

@@ -5,8 +5,10 @@ use super::super::paint_theme::{
 use super::render_commands::HostPaintCommand;
 use super::visual_assets::load_existing_icon_asset_pixels_for_size;
 
+mod geometry;
 mod preview_image;
 
+use self::geometry::{frame_is_within, has_paintable_thumbnail_extent, thumbnail_surface_rect};
 use self::preview_image::push_thumbnail_preview_image_command;
 
 const VISUAL_SURFACE_INSET_RATIO: f32 = 0.12;
@@ -88,9 +90,9 @@ fn asset_visual_palette_from_host(palette: HostMaterialPalette) -> WorkbenchAsse
 
 fn metric_edge(value: f32) -> u32 {
     if !value.is_finite() || value <= 0.0 {
-        return 1;
+        return 0;
     }
-    value.round().max(1.0) as u32
+    value.round() as u32
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_asset_placeholder_visual_commands(
@@ -102,6 +104,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_as
     opacity: f32,
 ) {
     if !is_asset_thumbnail_visual(node) {
+        return;
+    }
+    if !has_paintable_thumbnail_extent(rect) || !frame_is_within(clip, rect) {
         return;
     }
 
@@ -201,51 +206,6 @@ fn thumbnail_well_border_width(
     } else {
         0.0
     }
-}
-
-fn thumbnail_surface_rect(
-    node: &TemplatePaneNodeData,
-    rect: &FrameRect,
-    metrics: WorkbenchAssetVisualMetrics,
-) -> Option<FrameRect> {
-    let shortest_edge = rect.width.min(rect.height);
-    let min_inset = if is_typed_thumbnail_visual(node) {
-        metrics.typed_surface_min_inset
-    } else {
-        metrics.visual_surface_min_inset
-    };
-    if shortest_edge <= min_inset * 2.0 {
-        return None;
-    }
-    let inset = thumbnail_surface_inset(node, shortest_edge, metrics);
-    let width = (rect.width - inset * 2.0).max(0.0);
-    let height = (rect.height - inset * 2.0).max(0.0);
-    if width <= 0.0 || height <= 0.0 {
-        return None;
-    }
-    Some(FrameRect {
-        x: rect.x + inset,
-        y: rect.y + inset,
-        width,
-        height,
-    })
-}
-
-fn thumbnail_surface_inset(
-    node: &TemplatePaneNodeData,
-    shortest_edge: f32,
-    metrics: WorkbenchAssetVisualMetrics,
-) -> f32 {
-    if is_typed_thumbnail_visual(node) {
-        return (shortest_edge * TYPED_THUMBNAIL_SURFACE_INSET_RATIO).clamp(
-            metrics.typed_surface_min_inset,
-            metrics.typed_surface_max_inset,
-        );
-    }
-    (shortest_edge * VISUAL_SURFACE_INSET_RATIO).clamp(
-        metrics.visual_surface_min_inset,
-        metrics.visual_surface_max_inset,
-    )
 }
 
 fn push_thumbnail_icon_command(
@@ -428,6 +388,44 @@ mod tests {
         assert_eq!(metrics.icon_max_edge, 38);
         assert_eq!(metrics.typed_preview_icon_min_edge, 38);
         assert_eq!(metrics.typed_preview_icon_max_edge, 53);
+    }
+
+    #[test]
+    fn asset_thumbnail_visual_skips_collapsed_or_clip_escaping_roots() {
+        let node = placeholder_node("asset-placeholder-visual");
+        let clip = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 112.0,
+            height: 64.0,
+        };
+        let mut commands = Vec::new();
+
+        push_asset_placeholder_visual_commands(
+            &mut commands,
+            &node,
+            &FrameRect {
+                width: 0.0,
+                ..placeholder_rect()
+            },
+            &clip,
+            0,
+            1.0,
+        );
+        assert!(commands.is_empty());
+
+        push_asset_placeholder_visual_commands(
+            &mut commands,
+            &node,
+            &placeholder_rect(),
+            &FrameRect {
+                width: 32.0,
+                ..clip
+            },
+            0,
+            1.0,
+        );
+        assert!(commands.is_empty());
     }
 
     #[test]

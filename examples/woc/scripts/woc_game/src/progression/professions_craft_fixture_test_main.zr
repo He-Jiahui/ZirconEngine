@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var fixture = %import("progression/professions_craft_fixture");
+
+console.printLine("m5-professions-craft-fixture-test");
+var result = fixture.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

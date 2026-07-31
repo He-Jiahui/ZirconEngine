@@ -1,10 +1,17 @@
 [CmdletBinding()]
 param(
     [string]$RepoRoot,
+    [string]$ManifestPath,
     [string]$Package,
     [string]$TargetDir,
+    [string]$Features,
+    [switch]$NoDefaultFeatures,
+    [switch]$Ephemeral,
     [switch]$SkipBuild,
     [switch]$SkipTest,
+    [switch]$LibTests,
+    [string]$TestTarget,
+    [string]$TestFilter,
     [switch]$RunExportPlatformContract,
     [string]$ExportContractPlatform,
     [switch]$RunProfileFeatureContract,
@@ -33,26 +40,43 @@ $script:ProfileFeatureContractCases = @(
         Label = "zircon_app target-server"
         Package = "zircon_app"
         Features = "target-server"
+        Bin = $null
     },
     [pscustomobject]@{
         Label = "zircon_app target-client-platform"
         Package = "zircon_app"
         Features = "target-client,platform-winit,input-gamepad,gamepad-gilrs"
+        Bin = $null
+    },
+    [pscustomobject]@{
+        Label = "zircon_app target-editor-host"
+        Package = "zircon_app"
+        Features = "target-editor-host"
+        Bin = $null
+    },
+    [pscustomobject]@{
+        Label = "zircon_app target-client shader-pbr-viewer"
+        Package = "zircon_app"
+        Features = "target-client,platform-winit,input-gamepad,gamepad-gilrs"
+        Bin = "zircon_shader_pbr_viewer"
     },
     [pscustomobject]@{
         Label = "zircon_runtime target-client"
         Package = "zircon_runtime"
         Features = "target-client"
+        Bin = $null
     },
     [pscustomobject]@{
         Label = "zircon_runtime target-editor-host"
         Package = "zircon_runtime"
         Features = "target-editor-host"
+        Bin = $null
     },
     [pscustomobject]@{
         Label = "zircon_runtime target-server"
         Package = "zircon_runtime"
         Features = "target-server"
+        Bin = $null
     }
 )
 
@@ -101,6 +125,39 @@ function Resolve-AbsoluteTargetDir {
     return [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $CliTargetDir))
 }
 
+function Resolve-WorkspaceManifest {
+    param(
+        [string]$RepoRoot,
+        [string]$RequestedManifestPath
+    )
+
+    $relativePath = if ([string]::IsNullOrWhiteSpace($RequestedManifestPath)) {
+        "Cargo.toml"
+    } else {
+        $RequestedManifestPath.Trim().Replace('\', '/')
+    }
+    if ([System.IO.Path]::IsPathRooted($relativePath)) {
+        throw "-ManifestPath must be repository-relative."
+    }
+
+    $resolvedRoot = [System.IO.Path]::GetFullPath($RepoRoot).TrimEnd('\', '/')
+    $candidate = [System.IO.Path]::GetFullPath((Join-Path $resolvedRoot $relativePath))
+    if (-not $candidate.StartsWith($resolvedRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw "-ManifestPath must remain inside the repository root."
+    }
+    if ([System.IO.Path]::GetFileName($candidate) -ine "Cargo.toml") {
+        throw "-ManifestPath must name a Cargo.toml file."
+    }
+    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+        throw "-ManifestPath does not exist: $relativePath"
+    }
+
+    return [pscustomobject]@{
+        RelativePath = $candidate.Substring($resolvedRoot.Length).TrimStart('\', '/').Replace('\', '/')
+        Directory    = Split-Path -Parent $candidate
+    }
+}
+
 function Get-RustCompatibilityIdentity {
     param([switch]$DryRunMode)
 
@@ -142,6 +199,7 @@ function Get-RustCompatibilityIdentity {
 function New-CargoCompatibilityJson {
     param(
         [string]$ResolvedRepoRoot,
+        [string]$WorkspaceManifest = "Cargo.toml",
         [switch]$DryRunMode
     )
 
@@ -162,10 +220,73 @@ function New-CargoCompatibilityJson {
         platform = "windows"
         toolchain = $rust.Toolchain
         target_architecture = $rust.TargetArchitecture
-        workspace = "Cargo.toml"
+        workspace = $WorkspaceManifest
         build_config = ($configuration | ConvertTo-Json -Compress)
     }
     return ($compatibility | ConvertTo-Json -Compress)
+}
+
+function Get-CoordinatorResponseSummary {
+    param([string]$RawResponse)
+
+    $singleLine = ($RawResponse -replace "[\r\n]+", " ").Trim()
+    if ($singleLine.Length -le 400) {
+        return $singleLine
+    }
+    return $singleLine.Substring(0, 400) + "..."
+}
+
+function ConvertFrom-StrictCoordinatorJson {
+    param(
+        [string]$Command,
+        [string[]]$RawOutput
+    )
+
+    $rawResponse = ($RawOutput -join [Environment]::NewLine).Trim()
+    if ([string]::IsNullOrWhiteSpace($rawResponse)) {
+        throw "Session coordinator command '$Command' returned empty stdout; expected exactly one JSON document."
+    }
+
+    try {
+        $document = [System.Text.Json.JsonDocument]::Parse($rawResponse)
+        try {
+            if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) {
+                throw "the JSON root must be an object"
+            }
+        }
+        finally {
+            $document.Dispose()
+        }
+        return ($rawResponse | ConvertFrom-Json)
+    }
+    catch {
+        $summary = Get-CoordinatorResponseSummary -RawResponse $rawResponse
+        throw "Session coordinator command '$Command' must return exactly one JSON document; response summary: '$summary'; parse error: $($_.Exception.Message)"
+    }
+}
+
+function Require-CoordinatorResponseField {
+    param(
+        [object]$Response,
+        [string]$Command,
+        [string]$FieldPath
+    )
+
+    $value = $Response
+    foreach ($segment in $FieldPath.Split('.')) {
+        if ($null -eq $value) {
+            throw "Session coordinator command '$Command' returned a response missing required field '$FieldPath'."
+        }
+        $property = $value.PSObject.Properties[$segment]
+        if ($null -eq $property -or $null -eq $property.Value) {
+            throw "Session coordinator command '$Command' returned a response missing required field '$FieldPath'."
+        }
+        $value = $property.Value
+    }
+    if ($value -is [string] -and [string]::IsNullOrWhiteSpace($value)) {
+        throw "Session coordinator command '$Command' returned an empty required field '$FieldPath'."
+    }
+    return $value
 }
 
 function Invoke-SessionCoordinatorJson {
@@ -184,7 +305,7 @@ function Invoke-SessionCoordinatorJson {
     if ($LASTEXITCODE -ne 0) {
         throw "Session coordinator command failed: $($raw -join [Environment]::NewLine)"
     }
-    return (($raw -join [Environment]::NewLine) | ConvertFrom-Json)
+    return ConvertFrom-StrictCoordinatorJson -Command $command -RawOutput $raw
 }
 
 function Resolve-CoordinatorCargoTarget {
@@ -192,17 +313,27 @@ function Resolve-CoordinatorCargoTarget {
         [string]$RepoRoot,
         [string]$ManualTargetDir,
         [string]$LaneKind,
+        [string]$WorkspaceManifest,
+        [switch]$EphemeralLane,
         [switch]$DryRunMode
     )
 
     $ownerId = Resolve-OwnerId -RepoRoot $RepoRoot
     $compatibilityJson = New-CargoCompatibilityJson `
         -ResolvedRepoRoot $RepoRoot `
+        -WorkspaceManifest $WorkspaceManifest `
         -DryRunMode:$DryRunMode
-    Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+    $registered = Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
         "session", "register", "--session-id", $ownerId,
         "--display-name", "validate-matrix", "--write-scope", "Cargo validation"
-    ) | Out-Null
+    )
+    $registeredSessionId = [string](Require-CoordinatorResponseField `
+        -Response $registered `
+        -Command "session register" `
+        -FieldPath "session.session_id")
+    if ($registeredSessionId -ne $ownerId) {
+        throw "Session coordinator command 'session register' returned unexpected session id '$registeredSessionId'; expected '$ownerId'."
+    }
 
     $requestedTarget = $ManualTargetDir
     $selectionMode = "managed"
@@ -212,13 +343,20 @@ function Resolve-CoordinatorCargoTarget {
     } elseif (-not [string]::IsNullOrWhiteSpace($requestedTarget)) {
         $selectionMode = "manual"
     }
+    if ($EphemeralLane -and -not [string]::IsNullOrWhiteSpace($requestedTarget)) {
+        throw "-Ephemeral cannot be combined with -TargetDir or CARGO_TARGET_DIR."
+    }
 
     $arguments = @(
         "cargo", "acquire", $LaneKind,
-        "--session-id", $ownerId,
-        "--pid", [string]$PID,
-        "--compatibility-json", $compatibilityJson
+        "--session-id", $ownerId
     )
+    if (-not $EphemeralLane) {
+        $arguments += @("--compatibility-json", $compatibilityJson)
+    }
+    if (-not $DryRunMode) {
+        $arguments += @("--pid", [string]$PID)
+    }
     if (-not [string]::IsNullOrWhiteSpace($requestedTarget)) {
         $absoluteRequestedTarget = Resolve-AbsoluteTargetDir -RepoRoot $RepoRoot -CliTargetDir $requestedTarget
         $arguments += @("--target-dir", $absoluteRequestedTarget)
@@ -226,8 +364,25 @@ function Resolve-CoordinatorCargoTarget {
     if ($DryRunMode) {
         $arguments += "--dry-run"
     }
+    if ($EphemeralLane) {
+        $arguments += "--ephemeral"
+    }
     $response = Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments $arguments
-    $reason = if ($selectionMode -eq "managed") {
+    $jobId = [string](Require-CoordinatorResponseField `
+        -Response $response `
+        -Command "cargo acquire" `
+        -FieldPath "job.job_id")
+    $targetDir = [string](Require-CoordinatorResponseField `
+        -Response $response `
+        -Command "cargo acquire" `
+        -FieldPath "job.target_dir")
+    $dryRun = [bool](Require-CoordinatorResponseField `
+        -Response $response `
+        -Command "cargo acquire" `
+        -FieldPath "job.dry_run")
+    $reason = if ($EphemeralLane) {
+        "coordinator managed ephemeral $LaneKind lane"
+    } elseif ($selectionMode -eq "managed") {
         "coordinator managed $LaneKind lane"
     } else {
         "coordinator validated $selectionMode target"
@@ -235,12 +390,12 @@ function Resolve-CoordinatorCargoTarget {
     return [pscustomobject]@{
         SelectionMode     = $selectionMode
         SlotName          = $null
-        JobId             = [string]$response.job.job_id
-        TargetDir         = [string]$response.job.target_dir
-        AbsoluteTargetDir = [string]$response.job.target_dir
+        JobId             = $jobId
+        TargetDir         = $targetDir
+        AbsoluteTargetDir = $targetDir
         Reason            = $reason
         OwnerId           = $ownerId
-        DryRun            = [bool]$response.job.dry_run
+        DryRun            = $dryRun
     }
 }
 
@@ -366,19 +521,36 @@ function Invoke-Step {
 }
 
 function Get-CargoCleanArgs {
-    param([string]$ResolvedTargetDir)
+    param(
+        [string]$ResolvedTargetDir,
+        [string]$WorkspaceManifest
+    )
 
-    return @("clean", "--target-dir", $ResolvedTargetDir)
+    $args = [System.Collections.Generic.List[string]]::new()
+    $args.Add("clean") | Out-Null
+    if ($WorkspaceManifest -ne "Cargo.toml") {
+        $args.Add("--manifest-path") | Out-Null
+        $args.Add($WorkspaceManifest) | Out-Null
+    }
+    $args.Add("--target-dir") | Out-Null
+    $args.Add($ResolvedTargetDir) | Out-Null
+    return $args.ToArray()
 }
 
 function Get-CargoArgs {
     param(
         [string]$Subcommand,
-        [string]$ResolvedTargetDir
+        [string]$ResolvedTargetDir,
+        [string]$WorkspaceManifest
     )
 
     $args = [System.Collections.Generic.List[string]]::new()
     $args.Add($Subcommand) | Out-Null
+
+    if ($WorkspaceManifest -ne "Cargo.toml") {
+        $args.Add("--manifest-path") | Out-Null
+        $args.Add($WorkspaceManifest) | Out-Null
+    }
 
     if ([string]::IsNullOrWhiteSpace($Package)) {
         $args.Add("--workspace") | Out-Null
@@ -387,12 +559,34 @@ function Get-CargoArgs {
         $args.Add($Package) | Out-Null
     }
 
+    if ($NoDefaultFeatures) {
+        $args.Add("--no-default-features") | Out-Null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($Features)) {
+        $args.Add("--features") | Out-Null
+        $args.Add($Features) | Out-Null
+    }
+
     if (-not $NoLocked) {
         $args.Add("--locked") | Out-Null
     }
 
     if ($VerboseOutput) {
         $args.Add("--verbose") | Out-Null
+    }
+
+    if ($Subcommand -eq "test") {
+        if ($LibTests) {
+            $args.Add("--lib") | Out-Null
+        } elseif (-not [string]::IsNullOrWhiteSpace($TestTarget)) {
+            $args.Add("--test") | Out-Null
+            $args.Add($TestTarget) | Out-Null
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($TestFilter)) {
+            $args.Add($TestFilter) | Out-Null
+        }
     }
 
     $args.Add("--target-dir") | Out-Null
@@ -436,6 +630,11 @@ function Get-ProfileFeatureContractArgs {
     $args.Add("check") | Out-Null
     $args.Add("-p") | Out-Null
     $args.Add([string]$Case.Package) | Out-Null
+    $binaryProperty = $Case.PSObject.Properties["Bin"]
+    if ($null -ne $binaryProperty -and -not [string]::IsNullOrWhiteSpace([string]$binaryProperty.Value)) {
+        $args.Add("--bin") | Out-Null
+        $args.Add([string]$binaryProperty.Value) | Out-Null
+    }
     $args.Add("--no-default-features") | Out-Null
     $args.Add("--features") | Out-Null
     $args.Add([string]$Case.Features) | Out-Null
@@ -554,11 +753,36 @@ function Invoke-ValidateMatrixMain {
     if (-not $RunProfileFeatureContract -and -not [string]::IsNullOrWhiteSpace($ProfileFeatureContractLabel)) {
         throw "-ProfileFeatureContractLabel requires -RunProfileFeatureContract."
     }
+    if ($LibTests -and [string]::IsNullOrWhiteSpace($Package)) {
+        throw "-LibTests requires -Package."
+    }
+    if ($LibTests -and $SkipTest) {
+        throw "-LibTests cannot be combined with -SkipTest."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($TestTarget) -and [string]::IsNullOrWhiteSpace($Package)) {
+        throw "-TestTarget requires -Package."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($TestTarget) -and $LibTests) {
+        throw "-TestTarget cannot be combined with -LibTests."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($TestTarget) -and $SkipTest) {
+        throw "-TestTarget cannot be combined with -SkipTest."
+    }
+    if (-not $LibTests -and [string]::IsNullOrWhiteSpace($TestTarget) -and -not [string]::IsNullOrWhiteSpace($TestFilter)) {
+        throw "-TestFilter requires -LibTests or -TestTarget."
+    }
 
     $resolvedRepoRoot = if ($RepoRoot) {
         [System.IO.Path]::GetFullPath((Resolve-Path $RepoRoot).Path)
     } else {
         Find-RepoRoot $PSScriptRoot
+    }
+    $resolvedWorkspace = Resolve-WorkspaceManifest `
+        -RepoRoot $resolvedRepoRoot `
+        -RequestedManifestPath $ManifestPath
+    if ($resolvedWorkspace.RelativePath -ne "Cargo.toml" -and
+        ($RunExportPlatformContract -or $RunProfileFeatureContract)) {
+        throw "-ManifestPath cannot be combined with export or profile feature contracts."
     }
 
     $laneKind = if (-not [string]::IsNullOrWhiteSpace($Package)) {
@@ -570,6 +794,8 @@ function Invoke-ValidateMatrixMain {
         -RepoRoot $resolvedRepoRoot `
         -ManualTargetDir $TargetDir `
         -LaneKind $laneKind `
+        -WorkspaceManifest $resolvedWorkspace.RelativePath `
+        -EphemeralLane:$Ephemeral `
         -DryRunMode:$DryRun
 
     $coordinatorJobFailed = $false
@@ -577,6 +803,8 @@ function Invoke-ValidateMatrixMain {
     $locationPushed = $false
     try {
     Write-Host "Repo root: $resolvedRepoRoot"
+    Write-Host "Workspace manifest: $($resolvedWorkspace.RelativePath)"
+    Write-Host "Cargo working directory: $($resolvedWorkspace.Directory)"
     Write-Host ("Scope: {0}" -f $(if ([string]::IsNullOrWhiteSpace($Package)) { "workspace" } else { "package $Package" }))
     Write-Host ("Locked mode: {0}" -f $(if ($NoLocked) { "off" } else { "on" }))
     Write-Host ("Dry run: {0}" -f $(if ($DryRun) { "on" } else { "off" }))
@@ -595,12 +823,14 @@ function Invoke-ValidateMatrixMain {
 
     Start-CoordinatorCargoTarget -RepoRoot $resolvedRepoRoot -ResolvedTarget $resolvedTarget
     $coordinatorJobStarted = -not $resolvedTarget.DryRun
-    Push-Location $resolvedRepoRoot
+    Push-Location $resolvedWorkspace.Directory
     $locationPushed = $true
         if ($null -ne $cleanupStatus -and $cleanupStatus.RequiresCleanup) {
             Write-Host ("Free space is at or below the cleanup threshold. Running cargo clean before build/test.") -ForegroundColor Yellow
             Invoke-Step "Cargo clean" {
-                Invoke-Cargo -Arguments (Get-CargoCleanArgs -ResolvedTargetDir $resolvedTarget.TargetDir)
+                Invoke-Cargo -Arguments (Get-CargoCleanArgs `
+                    -ResolvedTargetDir $resolvedTarget.TargetDir `
+                    -WorkspaceManifest $resolvedWorkspace.RelativePath)
             }
 
             if (($Results | Select-Object -Last 1).ExitCode -ne 0) {
@@ -610,13 +840,19 @@ function Invoke-ValidateMatrixMain {
 
         if (-not $SkipBuild) {
             Invoke-Step "Cargo build" {
-                Invoke-Cargo -Arguments (Get-CargoArgs -Subcommand "build" -ResolvedTargetDir $resolvedTarget.TargetDir)
+                Invoke-Cargo -Arguments (Get-CargoArgs `
+                    -Subcommand "build" `
+                    -ResolvedTargetDir $resolvedTarget.TargetDir `
+                    -WorkspaceManifest $resolvedWorkspace.RelativePath)
             }
         }
 
         if (-not $SkipTest) {
             Invoke-Step "Cargo test" {
-                Invoke-Cargo -Arguments (Get-CargoArgs -Subcommand "test" -ResolvedTargetDir $resolvedTarget.TargetDir)
+                Invoke-Cargo -Arguments (Get-CargoArgs `
+                    -Subcommand "test" `
+                    -ResolvedTargetDir $resolvedTarget.TargetDir `
+                    -WorkspaceManifest $resolvedWorkspace.RelativePath)
             }
         }
 

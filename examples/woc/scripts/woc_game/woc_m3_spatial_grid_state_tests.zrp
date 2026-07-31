@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_spatial_grid_state_tests",
+  "source": "src",
+  "binary": "bin-m3-spatial-grid-state-tests",
+  "entry": "world/spatial_grid_state_test_main"
+}

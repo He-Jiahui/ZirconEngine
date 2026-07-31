@@ -32,7 +32,7 @@ impl RuntimePluginDescriptor {
                 Self::builder(
                     row.package_id,
                     row.display_name,
-                    row.runtime_id,
+                    row.runtime_id.clone(),
                     row.runtime_crate,
                 )
                 .with_target_modes(row.target_modes.iter().copied())

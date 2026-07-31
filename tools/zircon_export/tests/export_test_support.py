@@ -29,6 +29,11 @@ TEMPLATE_ROOT = REPO_ROOT / "tools" / "zircon_export" / "export-templates"
 VALID_TEMPLATE = TEMPLATE_ROOT / "windows-x86_64-library_embed-debug"
 LINUX_TEMPLATE = TEMPLATE_ROOT / "linux-x86_64-library_embed-debug"
 MACOS_TEMPLATE = TEMPLATE_ROOT / "macos-aarch64-library_embed-debug"
+SOURCE_TEMPLATE_CONTENTS_ARTIFACT = (
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "source_template_contents_artifact_v1.json"
+)
 
 
 def _template_content_hash(path: str, sha256: str, *, bundle_path: str | None = None) -> str:
@@ -384,8 +389,24 @@ def _validate_plan_summary_for_strategies(strategies: object) -> dict[str, objec
 
 
 def _source_template_validate_report() -> dict[str, object]:
+    import json
+
+    artifact_bytes = SOURCE_TEMPLATE_CONTENTS_ARTIFACT.read_bytes()
+    artifact = json.loads(artifact_bytes.decode("utf-8"))
+    generated_files = [
+        {
+            "path": file["path"],
+            "purpose": file["purpose"],
+            "byte_length": len(file["contents"].encode("utf-8")),
+            "content_digest": hashlib.sha256(
+                file["contents"].encode("utf-8")
+            ).hexdigest(),
+        }
+        for file in artifact["generated_files"]
+    ]
     return {
         "stage": "Validate",
+        "schema_version": 2,
         "profile": "windows-release",
         "project_manifest": "zircon-project.toml",
         "stage_output": "stages/validate",
@@ -393,6 +414,13 @@ def _source_template_validate_report() -> dict[str, object]:
         "fatal": False,
         "diagnostics": [],
         "fatal_diagnostics": [],
+        "generated_contents_artifact_path": str(
+            SOURCE_TEMPLATE_CONTENTS_ARTIFACT
+        ),
+        "generated_contents_artifact_byte_length": len(artifact_bytes),
+        "generated_contents_artifact_digest": hashlib.sha256(
+            artifact_bytes
+        ).hexdigest(),
         "profile_summary": _validate_profile_summary(
             ["source_template"],
             profile="windows-release",
@@ -400,25 +428,7 @@ def _source_template_validate_report() -> dict[str, object]:
         "plan_summary": {
             **_validate_base_plan_summary(),
             "source_template_build": _source_template_plan(),
-            "generated_files": [
-                {
-                    "path": "Cargo.toml",
-                    "purpose": "generated runtime package manifest",
-                    "contents": (
-                        "[package]\n"
-                        "name = \"source-template-smoke\"\n"
-                        "version = \"0.1.0\"\n"
-                        "edition = \"2021\"\n\n"
-                        "[dependencies]\n"
-                        "zircon_app = { path = \"../../zircon_app\", default-features = false }\n"
-                    ),
-                },
-                {
-                    "path": "src/main.rs",
-                    "purpose": "generated runtime entrypoint",
-                    "contents": "fn main() {}\n",
-                },
-            ],
+            "generated_files": generated_files,
         },
     }
 
@@ -586,6 +596,7 @@ def _write_validate_report_with_asset_filter(out: Path, asset_filter: object) ->
         json_dumps(
             {
                 "stage": "Validate",
+                "schema_version": 2,
                 "profile": "windows-release",
                 "project_manifest": str(out / "zircon-project.toml"),
                 "stage_output": str(report_dir),
@@ -628,6 +639,7 @@ def _write_validate_report_with_strategies_value(
     report_dir.mkdir(parents=True, exist_ok=True)
     report: dict[str, object] = {
         "stage": "Validate",
+        "schema_version": 2,
         "profile": profile,
         "project_manifest": str(out / "zircon-project.toml"),
         "stage_output": str(report_dir),
@@ -638,6 +650,14 @@ def _write_validate_report_with_strategies_value(
         "profile_summary": _validate_profile_summary(strategies, profile=profile),
         "plan_summary": _validate_plan_summary_for_strategies(strategies),
     }
+    if export_strategy_is_selected(strategies, "source_template"):
+        source_template_report = _source_template_validate_report()
+        for field in (
+            "generated_contents_artifact_path",
+            "generated_contents_artifact_byte_length",
+            "generated_contents_artifact_digest",
+        ):
+            report[field] = source_template_report[field]
     report_dir.joinpath("report.json").write_text(
         json_dumps(report),
         encoding="utf-8",

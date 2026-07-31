@@ -144,10 +144,10 @@ mod tests {
     use std::fs;
 
     use crate::core::framework::render::{
-        GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
-        ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest, ShadingModelId,
-        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-        SHADING_MODEL_ID_STANDARD_PBR,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceId,
+        SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType, ShaderQualityTier,
+        ShaderVariantKey, ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest,
+        ShadingModelId,
     };
     use crate::core::resource::ResourceId;
     use crate::graphics::shader::{ShaderVariantCacheDisk, ShaderVariantCacheDiskKey};
@@ -251,12 +251,16 @@ mod tests {
         assert_eq!(report.written_count, 1);
         assert_eq!(report.failed_count, 0);
         assert_eq!(report.written_variants.len(), 1);
-        assert!(report.written_variants[0]
-            .canonical_string
-            .contains("|geometry=4|"));
-        assert!(report.written_variants[0]
-            .canonical_string
-            .contains("|shading=16|"));
+        assert!(
+            report.written_variants[0]
+                .canonical_string
+                .contains("|geometry=4|")
+        );
+        assert!(
+            report.written_variants[0]
+                .canonical_string
+                .contains("|shading=16|")
+        );
         assert_eq!(
             report
                 .dimension_summary
@@ -384,9 +388,11 @@ mod tests {
             1
         );
         assert_eq!(report.failures[0].variant_index, 0);
-        assert!(report.failures[0]
-            .error
-            .contains("shader variant WGSL validation failed"));
+        assert!(
+            report.failures[0]
+                .error
+                .contains("shader variant WGSL validation failed")
+        );
         assert!(matches!(
             ShaderVariantCacheDisk::new(&root).lookup(&disk_key),
             super::super::disk::ShaderVariantCacheDiskLookup::Miss
@@ -430,9 +436,11 @@ mod tests {
         assert_eq!(report.wgpu_module_validation.validated_count, 0);
         assert_eq!(report.wgpu_module_validation.failed_count, 1);
         assert_eq!(report.wgpu_module_validation.skipped_count, 0);
-        assert!(report.failures[0]
-            .error
-            .contains("WGPU shader module validation failed"));
+        assert!(
+            report.failures[0]
+                .error
+                .contains("WGPU shader module validation failed")
+        );
         assert_eq!(
             report
                 .dimension_summary
@@ -531,9 +539,11 @@ mod tests {
         assert_eq!(report.wgpu_pipeline_validation.validated_count, 0);
         assert_eq!(report.wgpu_pipeline_validation.failed_count, 1);
         assert_eq!(report.wgpu_pipeline_validation.skipped_count, 0);
-        assert!(report.failures[0]
-            .error
-            .contains("WGPU render pipeline validation failed"));
+        assert!(
+            report.failures[0]
+                .error
+                .contains("WGPU render pipeline validation failed")
+        );
         assert!(matches!(
             ShaderVariantCacheDisk::new(&root).lookup(&disk_key),
             super::super::disk::ShaderVariantCacheDiskLookup::Miss

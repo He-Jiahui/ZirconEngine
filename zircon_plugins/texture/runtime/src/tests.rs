@@ -3,15 +3,48 @@ use zircon_runtime::core::CoreRuntime;
 use super::*;
 
 #[test]
+fn declaration_owns_texture_package_metadata() {
+    let descriptor = runtime_plugin_descriptor();
+    let manifest = package_manifest();
+
+    assert_eq!(TEXTURE_PLUGIN_DECLARATION.id(), PLUGIN_ID);
+    assert_eq!(
+        runtime_capabilities(),
+        TEXTURE_PLUGIN_DECLARATION.capabilities()
+    );
+    assert_eq!(descriptor.package_id(), TEXTURE_PLUGIN_DECLARATION.id());
+    assert_eq!(descriptor.category(), TEXTURE_PLUGIN_DECLARATION.category());
+    assert_eq!(descriptor.maturity(), TEXTURE_PLUGIN_DECLARATION.maturity());
+    assert_eq!(
+        descriptor.target_modes(),
+        TEXTURE_PLUGIN_DECLARATION.target_modes()
+    );
+    assert_eq!(
+        descriptor.capabilities(),
+        TEXTURE_PLUGIN_DECLARATION
+            .capabilities()
+            .iter()
+            .map(|capability| capability.to_string())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        manifest.default_packaging.as_slice(),
+        TEXTURE_PLUGIN_DECLARATION.default_packaging()
+    );
+}
+
+#[test]
 fn texture_registration_contributes_runtime_module() {
     let report = plugin_registration();
 
     assert!(report.is_success(), "{:?}", report.diagnostics);
-    assert!(report
-        .extensions
-        .modules()
-        .iter()
-        .any(|module| module.name == TEXTURE_MODULE_NAME));
+    assert!(
+        report
+            .extensions
+            .modules()
+            .iter()
+            .any(|module| module.name == TEXTURE_MODULE_NAME)
+    );
     assert_eq!(
         report.package_manifest.modules[0].target_modes,
         vec![

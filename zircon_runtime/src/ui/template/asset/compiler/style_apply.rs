@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use toml::Value;
 
 use zircon_runtime_interface::ui::template::{
-    UiAssetError, UiSelector, UiStyleDeclarationBlock, UiTemplateNode,
+    UiAssetError, UiSelector, UiSelectorSpecificity, UiStyleDeclarationBlock, UiTemplateNode,
 };
 
 use super::super::style::{UiRuntimeSelectorMatchExt, UiSelectorMatchNode};
@@ -27,7 +27,7 @@ mod slot_contract;
 #[derive(Clone)]
 pub(super) struct ParsedStyleRule {
     selector: UiSelector,
-    specificity: usize,
+    specificity: UiSelectorSpecificity,
     order: usize,
     set: UiStyleDeclarationBlock,
     tokens: BTreeMap<String, Value>,
@@ -64,10 +64,9 @@ pub(super) fn apply_styles_to_tree(
     path.push(StylePathEntry::from_node(node, path.is_empty()));
 
     let path_snapshot: Vec<_> = path.iter().map(StylePathEntry::as_match_node).collect();
-    let mut matched: Vec<_> = rules
+    let mut matched: Vec<&ParsedStyleRule> = rules
         .iter()
         .filter(|rule| rule.selector.matches_path(&path_snapshot))
-        .cloned()
         .collect();
     matched.sort_by_key(|rule| (rule.specificity, rule.order));
     for rule in matched {
@@ -87,8 +86,8 @@ pub(super) fn apply_styles_to_tree(
 
     apply_mui_sx_to_node(node);
     if !node.style_overrides.is_empty() {
-        let inline = node.style_overrides.clone();
-        merge_value_maps(&mut node.attributes, &inline);
+        let (attributes, style_overrides) = (&mut node.attributes, &node.style_overrides);
+        merge_value_maps(attributes, style_overrides);
     }
 
     apply_mui_child_slot_props(node);

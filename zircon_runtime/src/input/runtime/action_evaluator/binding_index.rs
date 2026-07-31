@@ -5,6 +5,7 @@ use crate::input::InputActionMap;
 #[derive(Clone, Debug, Default)]
 pub(super) struct ActionBindingIndex {
     by_action: BTreeMap<String, Vec<usize>>,
+    context_enabled: BTreeMap<String, bool>,
     has_axis_bindings: bool,
 }
 
@@ -17,12 +18,19 @@ impl ActionBindingIndex {
                 .or_default()
                 .push(index);
         }
+        let mut context_enabled = BTreeMap::new();
+        for context in &action_map.contexts {
+            context_enabled
+                .entry(context.id.clone())
+                .or_insert(context.enabled);
+        }
         let has_axis_bindings = action_map
             .bindings
             .iter()
             .any(|binding| !binding.axes.is_empty());
         Self {
             by_action,
+            context_enabled,
             has_axis_bindings,
         }
     }
@@ -33,6 +41,10 @@ impl ActionBindingIndex {
 
     pub(super) fn has_axis_bindings(&self) -> bool {
         self.has_axis_bindings
+    }
+
+    pub(super) fn context_enabled(&self, context: &str) -> bool {
+        self.context_enabled.get(context).copied().unwrap_or(true)
     }
 
     #[cfg(test)]

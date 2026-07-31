@@ -24,21 +24,21 @@ default_classes = ["workbench-panel", "workbench-right-panel"]
 component = "VerticalGroup"
 control_id = "WorkbenchInspectorPanel"
 classes = ["workbench-panel", "workbench-right-panel"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = 10.0 }, width = { preferred = "$--right-drawer-width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.large" }, width = { preferred = "$editor.density.right_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "inspector_tabs" }, { node = "inspector_content" }]
 
 [nodes.inspector_tabs]
 component = "HorizontalGroup"
 control_id = "RightDrawerHeaderRoot"
 classes = ["workbench-tabs"]
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 children = [{ node = "inspector_tab_inspector" }, { node = "inspector_tab_history" }]
 
 [nodes.inspector_content]
 component = "VerticalGroup"
 control_id = "RightDrawerContentRoot"
 classes = ["workbench-right-drawer-content"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.large" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "inspector_title" }, { node = "inspector_tags" }, { node = "inspector_transform" }, { node = "inspector_mesh" }, { node = "inspector_add_component" }]
 
 [nodes.inspector_tab_inspector]
@@ -62,12 +62,12 @@ component = "WorkbenchSectionTitle"
 control_id = "WorkbenchInspectorTitle"
 classes = ["workbench-section-title"]
 props = { text = "Props" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 
 [nodes.inspector_tags]
 component = "HorizontalGroup"
 control_id = "WorkbenchInspectorTags"
-layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.large" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 children = [{ node = "inspector_tag" }, { node = "inspector_layer" }]
 
 [nodes.inspector_tag]
@@ -88,7 +88,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "VerticalGroup"
 control_id = "WorkbenchInspectorTransform"
 classes = ["workbench-property-section", "workbench-transform-section"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } }
 children = [{ node = "transform_label" }, { node = "position_row" }, { node = "rotation_row" }, { node = "scale_row" }]
 
 [nodes.transform_label]
@@ -96,36 +96,36 @@ component = "WorkbenchSectionTitle"
 control_id = "WorkbenchTransformLabel"
 classes = ["workbench-section-title", "workbench-transform-title"]
 props = { text = "Transform" }
-layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
 [nodes.position_row]
 component = "HorizontalGroup"
 control_id = "WorkbenchTransformPosition"
 classes = ["workbench-property-row", "workbench-transform-row", "workbench-transform-position-row"]
 props = { text = "Position", value = "X 128.4   Y 64.2   Z -32.7", layout_label_width = 83.0, layout_axis_width = 14.0, layout_primary_value_width = 61.0, layout_value_width = 68.0, layout_offset_x = 0.0, layout_offset_y = 12.0 }
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 children = [{ node = "position_label" }, { node = "position_axis_x" }, { node = "position_value_x" }, { node = "position_axis_y" }, { node = "position_value_y" }, { node = "position_axis_z" }, { node = "position_value_z" }]
 
 [nodes.position_label]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformPositionLabel"
 classes = ["workbench-transform-row-label"]
-props = { text = "Position", text_tone = "muted", font_size = 12.0 }
+props = { text = "Position", text_tone = "muted", font_size = "$editor.typography.body.size" }
 layout = { width = { min = 83.0, preferred = 83.0, max = 83.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.position_axis_x]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformPositionAxisX"
 classes = ["workbench-axis-label", "workbench-axis-x"]
-props = { text = "X", font_size = 11.0, label_color = "#566871" }
+props = { text = "X", font_size = "$editor.typography.caption.size", label_color = "$editor.text.disabled" }
 layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.position_value_x]
 component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformPositionX"
 classes = ["workbench-axis-value-field"]
-props = { value = "128.4", value_color = "#929ea4" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+props = { value = "128.4", value_color = "$editor.text.secondary" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformPositionXEdit", event = "Change", route = "workbench.inspector.transform.position_x.edit" },
   { id = "Inspector/TransformPositionXCommit", event = "Submit", route = "workbench.inspector.transform.position_x.commit" },
@@ -135,15 +135,15 @@ events = [
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformPositionAxisY"
 classes = ["workbench-axis-label", "workbench-axis-y"]
-props = { text = "Y", font_size = 11.0, label_color = "#566871" }
+props = { text = "Y", font_size = "$editor.typography.caption.size", label_color = "$editor.text.disabled" }
 layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.position_value_y]
 component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformPositionY"
 classes = ["workbench-axis-value-field"]
-props = { value = "64.2", value_color = "#929ea4" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+props = { value = "64.2", value_color = "$editor.text.secondary" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformPositionYEdit", event = "Change", route = "workbench.inspector.transform.position_y.edit" },
   { id = "Inspector/TransformPositionYCommit", event = "Submit", route = "workbench.inspector.transform.position_y.commit" },
@@ -153,15 +153,15 @@ events = [
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformPositionAxisZ"
 classes = ["workbench-axis-label", "workbench-axis-z"]
-props = { text = "Z", font_size = 11.0, label_color = "#566871" }
+props = { text = "Z", font_size = "$editor.typography.caption.size", label_color = "$editor.text.disabled" }
 layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.position_value_z]
 component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformPositionZ"
 classes = ["workbench-axis-value-field"]
-props = { value = "-32.7", value_color = "#929ea4" }
-layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+props = { value = "-32.7", value_color = "$editor.text.secondary" }
+layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformPositionZEdit", event = "Change", route = "workbench.inspector.transform.position_z.edit" },
   { id = "Inspector/TransformPositionZCommit", event = "Submit", route = "workbench.inspector.transform.position_z.commit" },
@@ -172,21 +172,21 @@ component = "HorizontalGroup"
 control_id = "WorkbenchTransformRotation"
 classes = ["workbench-property-row", "workbench-transform-row", "workbench-transform-rotation-row"]
 props = { text = "Rotation", value = "X 0 deg   Y 90 deg   Z 0 deg" }
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 children = [{ node = "rotation_label" }, { node = "rotation_axis_x" }, { node = "rotation_value_x" }, { node = "rotation_axis_y" }, { node = "rotation_value_y" }, { node = "rotation_axis_z" }, { node = "rotation_value_z" }]
 
 [nodes.rotation_label]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformRotationLabel"
 classes = ["workbench-transform-row-label"]
-props = { text = "Rotation", text_tone = "muted", font_size = 12.0 }
+props = { text = "Rotation", text_tone = "muted", font_size = "$editor.typography.body.size" }
 layout = { width = { min = 83.0, preferred = 83.0, max = 83.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.rotation_axis_x]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformRotationAxisX"
 classes = ["workbench-axis-label", "workbench-axis-x"]
-props = { text = "X", font_size = 11.0 }
+props = { text = "X", font_size = "$editor.typography.caption.size" }
 layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.rotation_value_x]
@@ -194,7 +194,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformRotationX"
 classes = ["workbench-axis-value-field"]
 props = { value = "0 deg" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformRotationXEdit", event = "Change", route = "workbench.inspector.transform.rotation_x.edit" },
   { id = "Inspector/TransformRotationXCommit", event = "Submit", route = "workbench.inspector.transform.rotation_x.commit" },
@@ -204,7 +204,7 @@ events = [
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformRotationAxisY"
 classes = ["workbench-axis-label", "workbench-axis-y"]
-props = { text = "Y", font_size = 11.0 }
+props = { text = "Y", font_size = "$editor.typography.caption.size" }
 layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.rotation_value_y]
@@ -212,7 +212,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformRotationY"
 classes = ["workbench-axis-value-field"]
 props = { value = "90 deg" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformRotationYEdit", event = "Change", route = "workbench.inspector.transform.rotation_y.edit" },
   { id = "Inspector/TransformRotationYCommit", event = "Submit", route = "workbench.inspector.transform.rotation_y.commit" },
@@ -222,7 +222,7 @@ events = [
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformRotationAxisZ"
 classes = ["workbench-axis-label", "workbench-axis-z"]
-props = { text = "Z", font_size = 11.0 }
+props = { text = "Z", font_size = "$editor.typography.caption.size" }
 layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.rotation_value_z]
@@ -230,7 +230,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformRotationZ"
 classes = ["workbench-axis-value-field"]
 props = { value = "0 deg" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformRotationZEdit", event = "Change", route = "workbench.inspector.transform.rotation_z.edit" },
   { id = "Inspector/TransformRotationZCommit", event = "Submit", route = "workbench.inspector.transform.rotation_z.commit" },
@@ -241,36 +241,36 @@ component = "HorizontalGroup"
 control_id = "WorkbenchTransformScale"
 classes = ["workbench-property-row", "workbench-transform-row", "workbench-transform-scale-row"]
 props = { text = "Scale", value = "X 1.00   Y 1.00   Z 1.00" }
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 children = [{ node = "scale_label" }, { node = "scale_link" }, { node = "scale_axis_x" }, { node = "scale_value_x" }, { node = "scale_axis_y" }, { node = "scale_value_y" }, { node = "scale_axis_z" }, { node = "scale_value_z" }]
 
 [nodes.scale_label]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformScaleLabel"
 classes = ["workbench-transform-row-label"]
-props = { text = "Scale", text_tone = "muted", font_size = 12.0 }
+props = { text = "Scale", text_tone = "muted", font_size = "$editor.typography.body.size" }
 layout = { width = { min = 83.0, preferred = 83.0, max = 83.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.scale_link]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformScaleLink"
 classes = ["workbench-transform-scale-link"]
-props = { icon = "link", text = "", text_tone = "muted", font_size = 11.0, layout_offset_x = -12.0, layout_icon_size = 17.0 }
+props = { icon = "link", text = "", text_tone = "muted", font_size = "$editor.typography.caption.size", layout_offset_x = -12.0, layout_icon_size = 17.0 }
 layout = { width = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.scale_axis_x]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformScaleAxisX"
 classes = ["workbench-axis-label", "workbench-axis-x"]
-props = { text = "X", font_size = 11.0, label_color = "#68767e" }
+props = { text = "X", font_size = "$editor.typography.caption.size", label_color = "$editor.text.disabled" }
 layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.scale_value_x]
 component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformScaleX"
 classes = ["workbench-axis-value-field"]
-props = { value = "1.00", value_color = "#929ea4" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+props = { value = "1.00", value_color = "$editor.text.secondary" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformScaleXEdit", event = "Change", route = "workbench.inspector.transform.scale_x.edit" },
   { id = "Inspector/TransformScaleXCommit", event = "Submit", route = "workbench.inspector.transform.scale_x.commit" },
@@ -280,15 +280,15 @@ events = [
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformScaleAxisY"
 classes = ["workbench-axis-label", "workbench-axis-y"]
-props = { text = "Y", font_size = 11.0, label_color = "#68767e" }
+props = { text = "Y", font_size = "$editor.typography.caption.size", label_color = "$editor.text.disabled" }
 layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.scale_value_y]
 component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformScaleY"
 classes = ["workbench-axis-value-field"]
-props = { value = "1.00", value_color = "#929ea4" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+props = { value = "1.00", value_color = "$editor.text.secondary" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformScaleYEdit", event = "Change", route = "workbench.inspector.transform.scale_y.edit" },
   { id = "Inspector/TransformScaleYCommit", event = "Submit", route = "workbench.inspector.transform.scale_y.commit" },
@@ -298,15 +298,15 @@ events = [
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformScaleAxisZ"
 classes = ["workbench-axis-label", "workbench-axis-z"]
-props = { text = "Z", font_size = 11.0, label_color = "#68767e" }
+props = { text = "Z", font_size = "$editor.typography.caption.size", label_color = "$editor.text.disabled" }
 layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.scale_value_z]
 component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformScaleZ"
 classes = ["workbench-axis-value-field"]
-props = { value = "1.00", value_color = "#929ea4" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+props = { value = "1.00", value_color = "$editor.text.secondary" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformScaleZEdit", event = "Change", route = "workbench.inspector.transform.scale_z.edit" },
   { id = "Inspector/TransformScaleZCommit", event = "Submit", route = "workbench.inspector.transform.scale_z.commit" },
@@ -316,7 +316,7 @@ events = [
 component = "VerticalGroup"
 control_id = "WorkbenchInspectorMesh"
 classes = ["workbench-property-section"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
 repeat = { kind = "virtual_rows", prototype = "WorkbenchComponentPropertySlot04Row", virtual_control_prefix = "WorkbenchComponentPropertyVirtualRow", authored_count = 4, node_path_namespace = "v2" }
 children = [{ node = "mesh_label" }, { node = "mesh_row" }, { node = "material_row" }, { node = "component_property_slot_03_row" }, { node = "component_property_slot_04_row" }]
 
@@ -325,7 +325,7 @@ component = "WorkbenchSectionTitle"
 control_id = "WorkbenchMeshLabel"
 classes = ["workbench-section-title", "workbench-mesh-title"]
 props = { text = "Mesh Renderer" }
-layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
 [nodes.mesh_row]
 component = "WorkbenchComponentPropertyRow"
@@ -342,7 +342,7 @@ events = [
 component = "WorkbenchComponentPropertyRow"
 control_id = "WorkbenchMaterialRow"
 classes = ["workbench-component-property-row"]
-props = { text = "Materials", value = "M_Metal", value_text = "M_Metal", label_color = "#9aa5ab", value_color = "#8f9aa0", icon_color = "#c2ccd1", background_color = "#13181b", border_color = "#20272c", layout_icon_size = 15.0 }
+props = { text = "Materials", value = "M_Metal", value_text = "M_Metal", label_color = "$editor.text.secondary", value_color = "$editor.text.secondary", icon_color = "$editor.text.primary", background_color = "$editor.surface.0", border_color = "$editor.separator.soft", layout_icon_size = 15.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
   { id = "Inspector/ComponentProperty02Edit", event = "Change", route = "workbench.inspector.component_property02.edit" },
@@ -375,6 +375,6 @@ events = [
 component = "WorkbenchButton"
 control_id = "WorkbenchAddComponent"
 classes = ["workbench-control-button"]
-props = { text = "Add Component", border_color = "#364047" }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+props = { text = "Add Component", border_color = "$editor.border" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "Inspector/AddComponent", event = "Click", route = "workbench.inspector.add_component" }]

@@ -1,12 +1,14 @@
 use super::*;
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
-    EditorAssetFolderRecord, EditorAssetReferenceRecord,
+    EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
+    EditorAssetDetailsGeneration, EditorAssetDetailsRecord, EditorAssetFolderRecord,
+    EditorAssetReferenceRecord,
 };
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::snapshot::{
     AssetItemSnapshot, AssetReferenceSnapshot, AssetTypeProjectionSnapshot, AssetWorkspaceSnapshot,
 };
+use std::sync::Arc;
 use zircon_runtime::asset::project::{AssetSourceUnit, PreviewState};
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::component::{
@@ -564,6 +566,13 @@ fn asset_drag_source_catalog() -> EditorAssetCatalogSnapshotRecord {
     }
 }
 
+fn shared_asset_drag_source_catalog() -> Arc<EditorAssetCatalogGeneration> {
+    Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
+        asset_drag_source_catalog(),
+        1,
+    ))
+}
+
 fn asset_drag_source_catalog_with_reference() -> (
     EditorAssetCatalogSnapshotRecord,
     EditorAssetCatalogRecord,
@@ -609,7 +618,8 @@ fn asset_content_pointer_down_arms_active_asset_drag_payload() {
 
     {
         let mut host = harness.host.borrow_mut();
-        host.runtime.sync_asset_catalog(asset_drag_source_catalog());
+        host.runtime
+            .sync_asset_catalog(shared_asset_drag_source_catalog());
         host.mark_layout_dirty();
         host.refresh_ui();
     }
@@ -674,7 +684,9 @@ fn asset_reference_pointer_down_arms_active_asset_drag_payload() {
 
     {
         let mut host = harness.host.borrow_mut();
-        host.runtime.sync_asset_catalog(catalog);
+        host.runtime.sync_asset_catalog(Arc::new(
+            EditorAssetCatalogGeneration::from_snapshot_record(catalog, 1),
+        ));
         host.mark_layout_dirty();
         host.refresh_ui();
     }
@@ -690,21 +702,23 @@ fn asset_reference_pointer_down_arms_active_asset_drag_payload() {
     {
         let mut host = harness.host.borrow_mut();
         host.runtime
-            .sync_asset_details(Some(EditorAssetDetailsRecord {
-                asset: source_asset,
-                direct_references: vec![EditorAssetReferenceRecord {
-                    uuid: reference_asset.uuid.clone(),
-                    locator: reference_asset.locator.clone(),
-                    display_name: reference_asset.display_name.clone(),
-                    kind: Some(reference_asset.kind),
-                    known_project_asset: true,
-                }],
-                referenced_by: Vec::new(),
-                package_id: None,
-                unit: AssetSourceUnit::Single,
-                included_files: Vec::new(),
-                subassets: Vec::new(),
-            }));
+            .sync_asset_details(Some(Arc::new(EditorAssetDetailsGeneration::from(
+                EditorAssetDetailsRecord {
+                    asset: source_asset,
+                    direct_references: vec![EditorAssetReferenceRecord {
+                        uuid: reference_asset.uuid.clone(),
+                        locator: reference_asset.locator.clone(),
+                        display_name: reference_asset.display_name.clone(),
+                        kind: Some(reference_asset.kind),
+                        known_project_asset: true,
+                    }],
+                    referenced_by: Vec::new(),
+                    package_id: None,
+                    unit: AssetSourceUnit::Single,
+                    included_files: Vec::new(),
+                    subassets: Vec::new(),
+                },
+            ))));
         host.mark_layout_dirty();
         host.refresh_ui();
     }
@@ -776,7 +790,8 @@ fn asset_browser_pointer_drop_applies_real_payload_to_showcase_asset_field() {
 
     {
         let mut host = harness.host.borrow_mut();
-        host.runtime.sync_asset_catalog(asset_drag_source_catalog());
+        host.runtime
+            .sync_asset_catalog(shared_asset_drag_source_catalog());
         host.mark_layout_dirty();
         host.refresh_ui();
     }
@@ -847,7 +862,8 @@ fn asset_content_pointer_unknown_surface_clears_active_asset_drag_payload() {
 
     {
         let mut host = harness.host.borrow_mut();
-        host.runtime.sync_asset_catalog(asset_drag_source_catalog());
+        host.runtime
+            .sync_asset_catalog(shared_asset_drag_source_catalog());
         host.mark_layout_dirty();
         host.refresh_ui();
     }

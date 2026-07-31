@@ -40,6 +40,7 @@ BASE_KEYS = (
     "fixing_child_dir",
 )
 PLAN_LINK_MODES = frozenset({"required", "child_record_only"})
+FAILURE_SCOPES = frozenset({"cross_plan", "local"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -328,6 +329,11 @@ def validate_repository(root: Path) -> list[str]:
             errors.append(
                 f"{artifact_name}: plan_link_mode must be required or child_record_only"
             )
+        failure_scope = metadata.get("failure_scope", "cross_plan")
+        if failure_scope not in FAILURE_SCOPES:
+            errors.append(
+                f"{artifact_name}: failure_scope must be cross_plan or local"
+            )
 
         slug = metadata.get("summary_slug", "")
         if slug and not SLUG.fullmatch(slug):
@@ -366,13 +372,23 @@ def validate_repository(root: Path) -> list[str]:
             errors.append(f"{artifact_name}: origin_child_dir must match the origin plan number")
         if fixing_child and derived_fixing and fixing_child.resolve() != derived_fixing.resolve():
             errors.append(f"{artifact_name}: fixing_child_dir must match the fixing plan number")
-        if (
-            derived_origin
-            and derived_fixing
+        same_plan = (
+            origin_plan is not None
+            and fixing_plan is not None
+            and origin_plan.resolve() == fixing_plan.resolve()
+        )
+        same_child = (
+            derived_origin is not None
+            and derived_fixing is not None
             and derived_origin.resolve() == derived_fixing.resolve()
-        ):
+        )
+        if failure_scope == "local" and not same_plan:
             errors.append(
-                f"{artifact_name}: origin and fixing owners must belong to different numbered child plans"
+                f"{artifact_name}: local failure_scope requires identical origin and fixing plans"
+            )
+        if same_child and failure_scope != "local":
+            errors.append(
+                f"{artifact_name}: origin and fixing owners must belong to different numbered child plans unless failure_scope is local"
             )
 
         if kind == "failure" and fixing_child and artifact.parent.resolve() != fixing_child.resolve():

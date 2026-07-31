@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_terrain_mountains_tests",
+  "source": "src",
+  "binary": "bin-m3-terrain-mountains-tests",
+  "entry": "world/terrain_mountains_test_main"
+}

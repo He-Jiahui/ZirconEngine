@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_deed_completion_state_tests",
+  "source": "src",
+  "binary": "bin-m5-deed-completion-state-tests",
+  "entry": "progression/deed_completion_state_test_main"
+}

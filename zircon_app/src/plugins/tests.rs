@@ -1,6 +1,7 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 
-use zircon_runtime::core::{sort_module_activation_order, ModuleDescriptor};
+use zircon_runtime::core::{ModuleDescriptor, sort_module_activation_order};
 use zircon_runtime::engine_module::EngineModule;
 
 use super::{
@@ -41,12 +42,130 @@ impl EngineModule for TestModule {
     }
 }
 
+#[derive(Debug)]
+struct CountingModule {
+    name: &'static str,
+    descriptor_calls: Arc<AtomicUsize>,
+}
+
+impl CountingModule {
+    fn new(name: &'static str, descriptor_calls: Arc<AtomicUsize>) -> Self {
+        Self {
+            name,
+            descriptor_calls,
+        }
+    }
+}
+
+impl EngineModule for CountingModule {
+    fn module_name(&self) -> &'static str {
+        self.name
+    }
+
+    fn module_description(&self) -> &'static str {
+        "descriptor generation counter"
+    }
+
+    fn descriptor(&self) -> ModuleDescriptor {
+        let generation = self.descriptor_calls.fetch_add(1, AtomicOrdering::SeqCst) + 1;
+        ModuleDescriptor::new(self.name, format!("descriptor generation {generation}"))
+    }
+}
+
+struct CountingPluginGroup {
+    descriptor_calls: Arc<AtomicUsize>,
+}
+
+impl PluginGroup for CountingPluginGroup {
+    fn build(self) -> Result<PluginGroupBuilder, PluginGroupError> {
+        PluginGroupBuilder::start("NestedCountingPlugins").add_module(Arc::new(
+            CountingModule::new("NestedCounting", self.descriptor_calls),
+        ))
+    }
+}
+
 fn module(name: &'static str) -> Arc<dyn EngineModule> {
     Arc::new(TestModule::new(name))
 }
 
 fn described_module(name: &'static str, description: &'static str) -> Arc<dyn EngineModule> {
     Arc::new(TestModule::described(name, description))
+}
+
+#[test]
+fn resolved_plugin_group_freezes_each_enabled_module_descriptor_once() {
+    let descriptor_calls = Arc::new(AtomicUsize::new(0));
+    let group = PluginGroupBuilder::start("CountingPlugins")
+        .add_module(Arc::new(CountingModule::new(
+            "Counting",
+            Arc::clone(&descriptor_calls),
+        )))
+        .unwrap()
+        .finish();
+
+    let first_snapshot = group.module_descriptors();
+    let second_snapshot = group.module_descriptors();
+
+    assert_eq!(descriptor_calls.load(AtomicOrdering::SeqCst), 1);
+    assert_eq!(first_snapshot[0].description, "descriptor generation 1");
+    assert_eq!(
+        second_snapshot[0].description,
+        first_snapshot[0].description
+    );
+}
+
+#[test]
+fn resolved_plugin_group_does_not_generate_disabled_module_descriptors() {
+    let descriptor_calls = Arc::new(AtomicUsize::new(0));
+    let group = PluginGroupBuilder::start("CountingPlugins")
+        .add_module(Arc::new(CountingModule::new(
+            "DisabledCounting",
+            Arc::clone(&descriptor_calls),
+        )))
+        .unwrap()
+        .disable("DisabledCounting")
+        .unwrap()
+        .finish();
+
+    assert!(group.module_descriptors().is_empty());
+    assert_eq!(descriptor_calls.load(AtomicOrdering::SeqCst), 0);
+}
+
+#[test]
+fn resolved_plugin_group_preserves_the_nested_descriptor_snapshot() {
+    let descriptor_calls = Arc::new(AtomicUsize::new(0));
+    let group = PluginGroupBuilder::start("OuterCountingPlugins")
+        .add_group(CountingPluginGroup {
+            descriptor_calls: Arc::clone(&descriptor_calls),
+        })
+        .unwrap()
+        .finish();
+
+    assert_eq!(descriptor_calls.load(AtomicOrdering::SeqCst), 1);
+    assert_eq!(
+        group.module_descriptors()[0].description,
+        "descriptor generation 1"
+    );
+}
+
+#[test]
+fn resolved_plugin_group_does_not_regenerate_a_nested_descriptor_when_disabled() {
+    let descriptor_calls = Arc::new(AtomicUsize::new(0));
+    let group = PluginGroupBuilder::start("OuterCountingPlugins")
+        .add_group(CountingPluginGroup {
+            descriptor_calls: Arc::clone(&descriptor_calls),
+        })
+        .unwrap()
+        .disable("NestedCounting")
+        .unwrap()
+        .finish();
+
+    assert!(group.module_descriptors().is_empty());
+    assert_eq!(
+        descriptor_calls.load(AtomicOrdering::SeqCst),
+        1,
+        "nested validation owns generation 1; the disabled outer generation must not regenerate"
+    );
 }
 
 #[test]
@@ -174,51 +293,78 @@ fn builtin_plugin_groups_resolve_expected_module_sets() {
             zircon_runtime::core::runtime::modules::DIAGNOSTICS_CORE_MODULE_NAME,
         ]
     );
-    assert!(default
-        .module_keys()
-        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
-    assert!(default
-        .module_keys()
-        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
-    assert!(dev
-        .module_keys()
-        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
-    assert!(dev
-        .module_keys()
-        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
-    assert!(headless
-        .module_keys()
-        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
-    assert!(headless
-        .module_keys()
-        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
-    assert!(!minimal
-        .module_keys()
-        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
-    assert!(!minimal
-        .module_keys()
-        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
-    assert!(default
-        .module_keys()
-        .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME));
-    assert!(!default
-        .module_keys()
-        .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME));
-    assert!(dev
-        .module_keys()
-        .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME));
-    assert!(headless
-        .module_keys()
-        .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME));
-    assert!(default
-        .module_keys()
-        .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
-    assert!(default
-        .module_keys()
-        .contains(&zircon_runtime::script::SCRIPT_MODULE_NAME));
-    assert!(!headless
-        .module_keys()
-        .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
+    assert!(
+        default
+            .module_keys()
+            .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME)
+    );
+    assert!(
+        default
+            .module_keys()
+            .contains(&zircon_runtime::input::INPUT_MODULE_NAME)
+    );
+    assert!(
+        dev.module_keys()
+            .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME)
+    );
+    assert!(
+        dev.module_keys()
+            .contains(&zircon_runtime::input::INPUT_MODULE_NAME)
+    );
+    assert!(
+        headless
+            .module_keys()
+            .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME)
+    );
+    assert!(
+        headless
+            .module_keys()
+            .contains(&zircon_runtime::input::INPUT_MODULE_NAME)
+    );
+    assert!(
+        !minimal
+            .module_keys()
+            .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME)
+    );
+    assert!(
+        !minimal
+            .module_keys()
+            .contains(&zircon_runtime::input::INPUT_MODULE_NAME)
+    );
+    assert!(
+        default
+            .module_keys()
+            .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME)
+    );
+    assert!(
+        !default
+            .module_keys()
+            .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME)
+    );
+    assert!(
+        dev.module_keys()
+            .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME)
+    );
+    assert!(
+        headless
+            .module_keys()
+            .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME)
+    );
+    assert!(
+        default
+            .module_keys()
+            .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME)
+    );
+    assert!(
+        default
+            .module_keys()
+            .contains(&zircon_runtime::script::SCRIPT_MODULE_NAME)
+    );
+    assert!(
+        !headless
+            .module_keys()
+            .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME)
+    );
 }
 
 #[test]

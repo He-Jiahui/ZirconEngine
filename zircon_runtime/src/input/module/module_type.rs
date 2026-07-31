@@ -1,6 +1,8 @@
 use crate::engine_module::{EngineModule, ModuleDescriptor};
 
-use super::{module_descriptor, INPUT_MODULE_NAME};
+use crate::core::framework::input::INPUT_MODULE_NAME;
+
+use super::module_descriptor;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct InputModule;

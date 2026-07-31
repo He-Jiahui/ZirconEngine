@@ -1,0 +1,134 @@
+// Pure current-head projection of src/sim/instances/difficulty.ts and
+// src/sim/content/dungeon_difficulty.ts at
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. WOS supplies live entities,
+// loot, RNG and instance ownership; this module supplies only tuning queries.
+
+var NORMAL: uint = <uint>0;
+var HEROIC: uint = <uint>1;
+var HEROIC_LEVEL: int = 22;
+var HEROIC_MIN_MOVE_SPEED: float = 8.0;
+
+var HOLLOW_CRYPT: int = 0;
+var SUNKEN_BASTION: int = 1;
+var DROWNED_TEMPLE: int = 2;
+var GRAVEWYRM_SANCTUM: int = 3;
+var NYTHRAXIS_BOSS_ARENA: int = 4;
+
+pub dungeonCode(dungeonId: string): int {
+    if (dungeonId == "hollow_crypt") { return HOLLOW_CRYPT; }
+    if (dungeonId == "sunken_bastion") { return SUNKEN_BASTION; }
+    if (dungeonId == "drowned_temple") { return DROWNED_TEMPLE; }
+    if (dungeonId == "gravewyrm_sanctum") { return GRAVEWYRM_SANCTUM; }
+    if (dungeonId == "nythraxis_boss_arena") { return NYTHRAXIS_BOSS_ARENA; }
+    return -1;
+}
+
+pub supportsHeroic(dungeonId: string): bool {
+    return dungeonCode(dungeonId) >= 0;
+}
+
+// Mirrors claimDifficultyForDungeon: a non-heroic dungeon always claims normal,
+// even when the party has selected heroic.
+pub claimDifficulty(dungeonId: string, selected: uint): uint {
+    return selected == HEROIC && supportsHeroic(dungeonId) ? HEROIC : NORMAL;
+}
+
+pub heroicLevel(dungeonId: string): int {
+    return supportsHeroic(dungeonId) ? HEROIC_LEVEL : 0;
+}
+
+pub healthMultiplier(dungeonId: string, difficulty: uint): float {
+    if (difficulty != HEROIC) { return 1.0; }
+    var code = dungeonCode(dungeonId);
+    if (code == HOLLOW_CRYPT) { return 1.9; }
+    if (code == SUNKEN_BASTION) { return 2.0; }
+    if (code == DROWNED_TEMPLE) { return 2.6; }
+    if (code == GRAVEWYRM_SANCTUM) { return 2.0; }
+    if (code == NYTHRAXIS_BOSS_ARENA) { return 1.6; }
+    return 1.0;
+}
+
+pub damageMultiplier(
+    dungeonId: string,
+    difficulty: uint,
+    summonedAdd: bool
+): float {
+    if (difficulty != HEROIC) { return 1.0; }
+    var code = dungeonCode(dungeonId);
+    if (code == HOLLOW_CRYPT) { return summonedAdd ? 2.55 : 5.1; }
+    if (code == SUNKEN_BASTION) { return summonedAdd ? 2.3 : 4.65; }
+    if (code == DROWNED_TEMPLE) { return summonedAdd ? 2.15 : 4.3; }
+    if (code == GRAVEWYRM_SANCTUM) { return 2.0; }
+    if (code == NYTHRAXIS_BOSS_ARENA) { return 2.0; }
+    return 1.0;
+}
+
+pub armorMultiplier(dungeonId: string, difficulty: uint): float {
+    if (difficulty != HEROIC) { return 1.0; }
+    var code = dungeonCode(dungeonId);
+    if (code == HOLLOW_CRYPT || code == SUNKEN_BASTION) { return 1.3; }
+    if (code == DROWNED_TEMPLE) { return 1.25; }
+    if (code == GRAVEWYRM_SANCTUM || code == NYTHRAXIS_BOSS_ARENA) { return 1.2; }
+    return 1.0;
+}
+
+pub tunedMoveSpeed(baseMoveSpeed: float, dungeonId: string, difficulty: uint): float {
+    if (difficulty != HEROIC || !supportsHeroic(dungeonId)) { return baseMoveSpeed; }
+    return baseMoveSpeed < HEROIC_MIN_MOVE_SPEED ? HEROIC_MIN_MOVE_SPEED : baseMoveSpeed;
+}
+
+// The source applies immunity to every boss-flagged mob in a supported heroic
+// instance, not only to the final boss.
+pub bossImmune(dungeonId: string, difficulty: uint, isBoss: bool): bool {
+    return difficulty == HEROIC && supportsHeroic(dungeonId) && isBoss;
+}
+
+pub finalBossId(dungeonId: string): string {
+    var code = dungeonCode(dungeonId);
+    if (code == HOLLOW_CRYPT) { return "morthen"; }
+    if (code == SUNKEN_BASTION) { return "vael_the_mistcaller"; }
+    if (code == DROWNED_TEMPLE) { return "ysolei"; }
+    if (code == GRAVEWYRM_SANCTUM) { return "korzul_the_gravewyrm"; }
+    if (code == NYTHRAXIS_BOSS_ARENA) { return "nythraxis_scourge_of_thornpeak"; }
+    return "";
+}
+
+pub marksPerParticipant(dungeonId: string): int {
+    return dungeonCode(dungeonId) == NYTHRAXIS_BOSS_ARENA ? 3 :
+        supportsHeroic(dungeonId) ? 1 : 0;
+}
+
+pub contractTest(): int {
+    if (claimDifficulty("hollow_crypt", HEROIC) != HEROIC ||
+        claimDifficulty("nythraxis_crypt", HEROIC) != NORMAL ||
+        claimDifficulty("hollow_crypt", NORMAL) != NORMAL) {
+        return -1;
+    }
+    if (heroicLevel("drowned_temple") != 22 || heroicLevel("nythraxis_crypt") != 0 ||
+        healthMultiplier("drowned_temple", HEROIC) != 2.6 ||
+        healthMultiplier("drowned_temple", NORMAL) != 1.0 ||
+        armorMultiplier("drowned_temple", HEROIC) != 1.25) {
+        return -2;
+    }
+    if (damageMultiplier("hollow_crypt", HEROIC, false) != 5.1 ||
+        damageMultiplier("hollow_crypt", HEROIC, true) != 2.55 ||
+        damageMultiplier("nythraxis_boss_arena", HEROIC, true) != 2.0 ||
+        damageMultiplier("nythraxis_crypt", HEROIC, false) != 1.0) {
+        return -3;
+    }
+    if (tunedMoveSpeed(7.0, "sunken_bastion", HEROIC) != 8.0 ||
+        tunedMoveSpeed(9.0, "sunken_bastion", HEROIC) != 9.0 ||
+        tunedMoveSpeed(7.0, "nythraxis_crypt", HEROIC) != 7.0 ||
+        !bossImmune("gravewyrm_sanctum", HEROIC, true) ||
+        bossImmune("gravewyrm_sanctum", HEROIC, false)) {
+        return -4;
+    }
+    if (finalBossId("sunken_bastion") != "vael_the_mistcaller" ||
+        finalBossId("nythraxis_crypt") != "" ||
+        marksPerParticipant("hollow_crypt") != 1 ||
+        marksPerParticipant("nythraxis_boss_arena") != 3 ||
+        marksPerParticipant("nythraxis_crypt") != 0) {
+        return -5;
+    }
+    return 1;
+}

@@ -5,8 +5,8 @@ mod frame;
 mod surface;
 mod text;
 
-use self::frame::recent_project_row_frame;
-use self::surface::draw_recent_project_row_surface;
+use self::frame::recent_project_row_frames;
+use self::surface::{draw_recent_project_row_actions, draw_recent_project_row_surface};
 use self::text::draw_recent_project_row_text;
 use super::super::super::first_non_empty;
 
@@ -21,14 +21,15 @@ pub(super) fn draw_recent_project_rows(
         let Some(recent) = pane.welcome.recent_projects.row_data(index) else {
             continue;
         };
-        let row = recent_project_row_frame(list, index);
-        if intersect(&row, clip).is_none() {
+        let frames = recent_project_row_frames(list, index);
+        if intersect(&frames.row, clip).is_none() {
             continue;
         }
-        draw_recent_project_row_surface(frame, &row, clip, recent.invalid);
+        draw_recent_project_row_surface(frame, &frames.row, clip, recent.invalid);
         draw_recent_project_row_text(
             frame,
-            &row,
+            &frames.row,
+            &frames.text,
             clip,
             recent.display_name.as_str(),
             recent.path.as_str(),
@@ -38,5 +39,6 @@ pub(super) fn draw_recent_project_rows(
             ]),
             recent.invalid,
         );
+        draw_recent_project_row_actions(frame, &frames.open, &frames.remove, clip, recent.invalid);
     }
 }

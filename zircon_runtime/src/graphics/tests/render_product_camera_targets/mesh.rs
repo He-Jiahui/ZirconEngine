@@ -5,7 +5,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 const TEST_VIEWPORT_ASPECT_RATIO: f32 = 160.0 / 120.0;
 const TEST_CAMERA_DISTANCE_TO_QUAD: f32 = 4.0;
@@ -35,7 +35,10 @@ pub(super) fn overlay_mesh(
         tint,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: render_layer_set(layer),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: render_layer_set(layer),
+            ..Default::default()
+        },
     }
 }
 
@@ -62,7 +65,10 @@ pub(super) fn sampled_mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+            ..Default::default()
+        },
     }
 }
 
@@ -87,7 +93,10 @@ pub(super) fn colored_mesh_on_layer(
         tint,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: render_layer_set(layer),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: render_layer_set(layer),
+            ..Default::default()
+        },
     }
 }
 
@@ -140,7 +149,10 @@ fn sampled_fullscreen_mesh_with_mask(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask,
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: render_layer_mask,
+            ..Default::default()
+        },
     }
 }
 

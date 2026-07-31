@@ -1,0 +1,378 @@
+// Focused M6 chat/social source-contract fixture projected from source commit
+// 7c10f280eec380e9877e66ce16333089e171fe42. It is not imported by main.zr or
+// world/state.zr: production chat routing needs the Runtime10/Plugins08 byte
+// bridge. Players 1/2/3 are Aleph/Bet/Gimel; event recipient 0 denotes the
+// reference general broadcast.
+var container = %import("zr.container");
+
+class ChatState {
+    pub var timeSeconds: int;
+    pub var positionA: float;
+    pub var positionB: float;
+    pub var positionC: float;
+    pub var tokensA: int;
+    pub var tokensB: int;
+    pub var tokensC: int;
+    pub var tokenAtA: int;
+    pub var tokenAtB: int;
+    pub var tokenAtC: int;
+    pub var worldA: bool;
+    pub var worldB: bool;
+    pub var worldC: bool;
+    pub var lfgA: bool;
+    pub var lfgB: bool;
+    pub var lfgC: bool;
+    pub var lastWhisperA: int;
+    pub var lastWhisperB: int;
+    pub var lastWhisperC: int;
+    pub var overheadEmoteSeqA: int;
+    pub var overheadEmoteSeqB: int;
+    pub var overheadEmoteSeqC: int;
+    pub var errorCountA: int;
+    pub var errorCountB: int;
+    pub var errorCountC: int;
+    pub var eventCodes: container.Array<int>;
+    pub var eventFrom: container.Array<int>;
+    pub var eventTo: container.Array<int>;
+
+    pub @constructor() {
+        this.timeSeconds = 0;
+        this.positionA = 0.0;
+        this.positionB = 3.0;
+        this.positionC = 6.0;
+        this.tokensA = 8;
+        this.tokensB = 8;
+        this.tokensC = 8;
+        this.tokenAtA = 0;
+        this.tokenAtB = 0;
+        this.tokenAtC = 0;
+        this.worldA = false;
+        this.worldB = false;
+        this.worldC = false;
+        this.lfgA = false;
+        this.lfgB = false;
+        this.lfgC = false;
+        this.lastWhisperA = 0;
+        this.lastWhisperB = 0;
+        this.lastWhisperC = 0;
+        this.overheadEmoteSeqA = 0;
+        this.overheadEmoteSeqB = 0;
+        this.overheadEmoteSeqC = 0;
+        this.errorCountA = 0;
+        this.errorCountB = 0;
+        this.errorCountC = 0;
+        this.eventCodes = new container.Array<int>();
+        this.eventFrom = new container.Array<int>();
+        this.eventTo = new container.Array<int>();
+    }
+}
+
+validPlayer(player: int): bool {
+    return player >= 1 && player <= 3;
+}
+
+recordEvent(state: ChatState, code: int, from: int, to: int): void {
+    var codes = state.eventCodes;
+    var senders = state.eventFrom;
+    var recipients = state.eventTo;
+    codes.add(code);
+    senders.add(from);
+    recipients.add(to);
+}
+
+recordError(state: ChatState, player: int, throttled: bool): void {
+    if (player == 1) { state.errorCountA = state.errorCountA + 1; }
+    if (player == 2) { state.errorCountB = state.errorCountB + 1; }
+    if (player == 3) { state.errorCountC = state.errorCountC + 1; }
+    recordEvent(state, throttled ? 13 : 14, 0, player);
+}
+
+tokensFor(state: ChatState, player: int): int {
+    if (player == 1) { return state.tokensA; }
+    if (player == 2) { return state.tokensB; }
+    if (player == 3) { return state.tokensC; }
+    return 0;
+}
+
+tokenAtFor(state: ChatState, player: int): int {
+    if (player == 1) { return state.tokenAtA; }
+    if (player == 2) { return state.tokenAtB; }
+    if (player == 3) { return state.tokenAtC; }
+    return state.timeSeconds;
+}
+
+setBucket(state: ChatState, player: int, tokens: int): void {
+    if (player == 1) { state.tokensA = tokens; state.tokenAtA = state.timeSeconds; }
+    if (player == 2) { state.tokensB = tokens; state.tokenAtB = state.timeSeconds; }
+    if (player == 3) { state.tokensC = tokens; state.tokenAtC = state.timeSeconds; }
+}
+
+consumeToken(state: ChatState, player: int): bool {
+    if (!validPlayer(player)) { return false; }
+    var elapsed = state.timeSeconds - tokenAtFor(state, player);
+    if (elapsed < 0) { elapsed = 0; }
+    var tokens = tokensFor(state, player) + elapsed * 2;
+    if (tokens > 8) { tokens = 8; }
+    if (tokens < 1) {
+        setBucket(state, player, tokens);
+        recordError(state, player, true);
+        return false;
+    }
+    setBucket(state, player, tokens - 1);
+    return true;
+}
+
+pub advanceTime(state: ChatState, seconds: int): void {
+    if (seconds > 0) { state.timeSeconds = state.timeSeconds + seconds; }
+}
+
+positionFor(state: ChatState, player: int): float {
+    if (player == 1) { return state.positionA; }
+    if (player == 2) { return state.positionB; }
+    if (player == 3) { return state.positionC; }
+    return 1000000.0;
+}
+
+pub setPosition(state: ChatState, player: int, position: float): void {
+    if (player == 1) { state.positionA = position; }
+    if (player == 2) { state.positionB = position; }
+    if (player == 3) { state.positionC = position; }
+}
+
+inRange(state: ChatState, from: int, to: int, range: float): bool {
+    var distance = positionFor(state, from) - positionFor(state, to);
+    if (distance < 0.0) { distance = -distance; }
+    return distance <= range;
+}
+
+subscribed(state: ChatState, player: int, channel: int): bool {
+    if (channel == 1 && player == 1) { return state.worldA; }
+    if (channel == 1 && player == 2) { return state.worldB; }
+    if (channel == 1 && player == 3) { return state.worldC; }
+    if (channel == 2 && player == 1) { return state.lfgA; }
+    if (channel == 2 && player == 2) { return state.lfgB; }
+    if (channel == 2 && player == 3) { return state.lfgC; }
+    return false;
+}
+
+setSubscribed(state: ChatState, player: int, channel: int, value: bool): void {
+    if (channel == 1 && player == 1) { state.worldA = value; }
+    if (channel == 1 && player == 2) { state.worldB = value; }
+    if (channel == 1 && player == 3) { state.worldC = value; }
+    if (channel == 2 && player == 1) { state.lfgA = value; }
+    if (channel == 2 && player == 2) { state.lfgB = value; }
+    if (channel == 2 && player == 3) { state.lfgC = value; }
+}
+
+pub joinChannel(state: ChatState, player: int, channel: int): bool {
+    if (!consumeToken(state, player)) { return false; }
+    if ((channel != 1 && channel != 2) || subscribed(state, player, channel)) {
+        recordError(state, player, false);
+        return false;
+    }
+    setSubscribed(state, player, channel, true);
+    recordEvent(state, 1, 0, player);
+    return true;
+}
+
+pub sendOptIn(state: ChatState, player: int, channel: int): bool {
+    if (!consumeToken(state, player)) { return false; }
+    if ((channel != 1 && channel != 2) || !subscribed(state, player, channel)) {
+        recordError(state, player, false);
+        return false;
+    }
+    var code = channel == 1 ? 2 : 9;
+    var target = 1;
+    while (target <= 3) {
+        if (subscribed(state, target, channel)) { recordEvent(state, code, player, target); }
+        target = target + 1;
+    }
+    return true;
+}
+
+sendRanged(state: ChatState, player: int, code: int, range: float): bool {
+    if (!consumeToken(state, player)) { return false; }
+    var target = 1;
+    while (target <= 3) {
+        if (inRange(state, player, target, range)) { recordEvent(state, code, player, target); }
+        target = target + 1;
+    }
+    return true;
+}
+
+pub sendSay(state: ChatState, player: int): bool {
+    return sendRanged(state, player, 3, 25.0);
+}
+
+pub sendYell(state: ChatState, player: int): bool {
+    return sendRanged(state, player, 4, 100.0);
+}
+
+pub sendParty(state: ChatState, player: int): bool {
+    if (!consumeToken(state, player)) { return false; }
+    if (player != 1 && player != 2) {
+        recordError(state, player, false);
+        return false;
+    }
+    recordEvent(state, 5, player, 1);
+    recordEvent(state, 5, player, 2);
+    return true;
+}
+
+pub sendGeneral(state: ChatState, player: int): bool {
+    if (!consumeToken(state, player)) { return false; }
+    recordEvent(state, 10, player, 0);
+    return true;
+}
+
+resolveName(name: string): int {
+    if (name == "Aleph" || name == "aleph" || name == "ALEPH") { return 1; }
+    if (name == "Bet" || name == "bet" || name == "BET") { return 2; }
+    if (name == "Gimel" || name == "gimel" || name == "GIMEL") { return 3; }
+    return 0;
+}
+
+setLastWhisper(state: ChatState, player: int, from: int): void {
+    if (player == 1) { state.lastWhisperA = from; }
+    if (player == 2) { state.lastWhisperB = from; }
+    if (player == 3) { state.lastWhisperC = from; }
+}
+
+lastWhisper(state: ChatState, player: int): int {
+    if (player == 1) { return state.lastWhisperA; }
+    if (player == 2) { return state.lastWhisperB; }
+    if (player == 3) { return state.lastWhisperC; }
+    return 0;
+}
+
+deliverWhisper(state: ChatState, from: int, target: int): void {
+    setLastWhisper(state, target, from);
+    recordEvent(state, 6, from, target);
+    recordEvent(state, 7, from, from);
+}
+
+pub whisper(state: ChatState, player: int, targetName: string): bool {
+    if (!consumeToken(state, player)) { return false; }
+    var target = resolveName(targetName);
+    if (target == 0) { recordError(state, player, false); return false; }
+    deliverWhisper(state, player, target);
+    return true;
+}
+
+pub reply(state: ChatState, player: int): bool {
+    if (!consumeToken(state, player)) { return false; }
+    var target = lastWhisper(state, player);
+    if (target == 0) { recordError(state, player, false); return false; }
+    deliverWhisper(state, player, target);
+    return true;
+}
+
+pub sendEmote(state: ChatState, player: int): bool {
+    if (!consumeToken(state, player)) { return false; }
+    var target = 1;
+    while (target <= 3) {
+        if (inRange(state, player, target, 25.0)) { recordEvent(state, 8, player, target); }
+        target = target + 1;
+    }
+    return true;
+}
+
+pub inspect(state: ChatState, player: int, targetName: string): bool {
+    if (!consumeToken(state, player)) { return false; }
+    if (resolveName(targetName) == 0) { recordError(state, player, false); return false; }
+    recordEvent(state, 11, 0, player);
+    return true;
+}
+
+pub help(state: ChatState, player: int): bool {
+    if (!consumeToken(state, player)) { return false; }
+    var line = 0;
+    while (line < 8) {
+        recordEvent(state, 12, 0, player);
+        line = line + 1;
+    }
+    return true;
+}
+
+pub playEmote(state: ChatState, player: int): bool {
+    if (!validPlayer(player)) { return false; }
+    if (player == 1) { state.overheadEmoteSeqA = state.overheadEmoteSeqA + 1; }
+    if (player == 2) { state.overheadEmoteSeqB = state.overheadEmoteSeqB + 1; }
+    if (player == 3) { state.overheadEmoteSeqC = state.overheadEmoteSeqC + 1; }
+    return true;
+}
+
+pub scenarioTest(): int {
+    var state = new ChatState();
+    if (!joinChannel(state, 1, 1) || !sendOptIn(state, 1, 1) ||
+        !sendSay(state, 1) || !sendYell(state, 1) || !sendParty(state, 1) ||
+        !whisper(state, 1, "Bet") || !sendEmote(state, 1)) {
+        return -1;
+    }
+    if (!joinChannel(state, 2, 1) || !joinChannel(state, 2, 2) ||
+        !sendOptIn(state, 2, 2) || !sendGeneral(state, 2) || !reply(state, 2) ||
+        !sendEmote(state, 2) || !inspect(state, 2, "Aleph")) {
+        return -2;
+    }
+    if (!help(state, 1) || !playEmote(state, 1)) { return -3; }
+    var spam = 0;
+    while (spam < 10) {
+        sendSay(state, 3);
+        spam = spam + 1;
+    }
+    var codes = state.eventCodes;
+    var senders = state.eventFrom;
+    var recipients = state.eventTo;
+    if (!state.worldA || !state.worldB || state.worldC || !state.lfgB ||
+        state.tokensA != 0 || state.tokensB != 1 || state.tokensC != 0 ||
+        state.lastWhisperA != 2 || state.lastWhisperB != 1 ||
+        state.overheadEmoteSeqA != 1 || state.errorCountC != 2 ||
+        codes.length != 59 || <int>codes[0] != 1 || <int>codes[1] != 2 ||
+        <int>recipients[1] != 1 || <int>codes[10] != 6 || <int>recipients[10] != 2 ||
+        <int>codes[11] != 7 || <int>recipients[11] != 1 ||
+        <int>codes[18] != 10 || <int>recipients[18] != 0 ||
+        <int>codes[24] != 11 || <int>codes[25] != 12 ||
+        <int>codes[32] != 12 || <int>senders[33] != 3 ||
+        <int>codes[57] != 13 || <int>codes[58] != 13) {
+        return -4;
+    }
+    return 1;
+}
+
+chatInvariantTest(): int {
+    var range = new ChatState();
+    setPosition(range, 3, 30.0);
+    if (!sendSay(range, 1) || range.eventCodes.length != 2 ||
+        <int>range.eventTo[0] != 1 || <int>range.eventTo[1] != 2 ||
+        !sendYell(range, 1) || range.eventCodes.length != 5 ||
+        <int>range.eventTo[4] != 3) {
+        return -1;
+    }
+
+    var names = new ChatState();
+    if (!whisper(names, 1, "bet") || names.lastWhisperB != 1 ||
+        reply(names, 3) || names.errorCountC != 1 ||
+        !joinChannel(names, 2, 1) || joinChannel(names, 2, 1) ||
+        !names.worldB || names.errorCountB != 1) {
+        return -2;
+    }
+
+    var refill = new ChatState();
+    var index = 0;
+    while (index < 8) { sendSay(refill, 1); index = index + 1; }
+    if (sendSay(refill, 1) || refill.errorCountA != 1) { return -3; }
+    advanceTime(refill, 1);
+    if (!sendSay(refill, 1) || !sendSay(refill, 1) || sendSay(refill, 1) ||
+        refill.errorCountA != 2) {
+        return -4;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = scenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = chatInvariantTest();
+    if (result != 1) { return -200 + result; }
+    return 1;
+}

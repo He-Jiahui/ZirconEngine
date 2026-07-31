@@ -1,6 +1,7 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use zircon_runtime::{
     core::framework::platform::RuntimeTargetMode, plugin::PluginModuleKind,
@@ -8,7 +9,7 @@ use zircon_runtime::{
 };
 use zircon_runtime_interface::RegistrationDiagnosticSeverity;
 
-use crate::core::editor_plugin::{EditorPluginCatalog, EditorPluginDescriptor};
+use crate::core::plugin::{EditorPluginCatalog, EditorPluginDescriptor};
 
 #[test]
 fn builtin_editor_catalog_entries_are_derived_from_plugin_manifests() {
@@ -41,10 +42,7 @@ fn editor_module_plugin_manifests_are_present_in_builtin_catalog() {
         .map(|descriptor| descriptor.package_id)
         .collect::<BTreeSet<_>>();
 
-    for manifest_path in plugin_manifest_paths(&plugins_root) {
-        let manifest_source = fs::read_to_string(&manifest_path).expect("plugin manifest source");
-        let manifest: PluginPackageManifest =
-            toml::from_str(&manifest_source).expect("plugin manifest should parse");
+    for manifest in plugin_manifests(&plugins_root).values() {
         let declares_editor_module = manifest
             .modules
             .iter()
@@ -62,7 +60,12 @@ fn editor_module_plugin_manifests_are_present_in_builtin_catalog() {
 #[test]
 fn editor_only_builtin_catalog_projects_targets_and_capabilities_from_package_manifests() {
     let plugins_root = plugins_workspace_root();
-    let catalog = EditorPluginCatalog::builtin(RuntimePluginCatalog::builtin().package_manifests());
+    let catalog = EditorPluginCatalog::builtin(
+        RuntimePluginCatalog::builtin()
+            .package_manifests()
+            .cloned()
+            .collect(),
+    );
     let catalog_manifests = catalog.package_manifests();
 
     for (package_id, category, capabilities) in [
@@ -189,19 +192,34 @@ fn plugins_workspace_root() -> PathBuf {
         .join("zircon_plugins")
 }
 
-fn plugin_manifest_paths(plugins_root: &Path) -> Vec<PathBuf> {
-    fs::read_dir(plugins_root)
-        .expect("zircon_plugins directory")
-        .filter_map(Result::ok)
-        .map(|entry| entry.path().join("plugin.toml"))
-        .filter(|path| path.exists())
-        .collect()
+fn plugin_manifests(plugins_root: &Path) -> &'static BTreeMap<String, PluginPackageManifest> {
+    static MANIFESTS: OnceLock<BTreeMap<String, PluginPackageManifest>> = OnceLock::new();
+    MANIFESTS.get_or_init(|| {
+        let mut manifests = BTreeMap::new();
+        for manifest_path in fs::read_dir(plugins_root)
+            .expect("zircon_plugins directory")
+            .filter_map(Result::ok)
+            .map(|entry| entry.path().join("plugin.toml"))
+            .filter(|path| path.exists())
+        {
+            let source = fs::read_to_string(&manifest_path).unwrap_or_else(|error| {
+                panic!("missing plugin manifest {manifest_path:?}: {error}")
+            });
+            let manifest: PluginPackageManifest = toml::from_str(&source).unwrap_or_else(|error| {
+                panic!("invalid plugin manifest {manifest_path:?}: {error}")
+            });
+            let package_id = manifest.id.clone();
+            assert!(
+                manifests.insert(package_id.clone(), manifest).is_none(),
+                "duplicate plugin manifest id {package_id}"
+            );
+        }
+        manifests
+    })
 }
 
-fn read_plugin_manifest(plugins_root: &Path, package_id: &str) -> PluginPackageManifest {
-    let manifest_path = plugins_root.join(package_id).join("plugin.toml");
-    let manifest = fs::read_to_string(&manifest_path)
-        .unwrap_or_else(|error| panic!("missing plugin manifest {manifest_path:?}: {error}"));
-    toml::from_str(&manifest)
-        .unwrap_or_else(|error| panic!("invalid plugin manifest {manifest_path:?}: {error}"))
+fn read_plugin_manifest(plugins_root: &Path, package_id: &str) -> &'static PluginPackageManifest {
+    plugin_manifests(plugins_root)
+        .get(package_id)
+        .unwrap_or_else(|| panic!("missing plugin manifest for {package_id}"))
 }

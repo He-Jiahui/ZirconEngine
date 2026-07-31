@@ -4,6 +4,8 @@ use super::plan::GlyphAtlasBitmapRenderSubmissionPlan;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasBitmapRenderSubmissionReport {
     pub(crate) source_count: usize,
+    pub(crate) resident_page_count: usize,
+    pub(crate) resident_page_byte_len: usize,
     pub(crate) allocated_glyph_count: usize,
     pub(crate) visible_glyph_count: usize,
     pub(crate) skipped_glyph_count: usize,
@@ -21,6 +23,9 @@ pub(crate) struct GlyphAtlasBitmapRenderSubmissionReport {
     pub(crate) dirty_page_count: usize,
     pub(crate) rebuilt_page_count: usize,
     pub(crate) slot_invalidation_count: usize,
+    pub(crate) slot_cache_hit_count: usize,
+    pub(crate) slot_cache_miss_count: usize,
+    pub(crate) slot_cache_insert_count: usize,
     pub(crate) upload_command_count: usize,
     pub(crate) full_page_upload_count: usize,
     pub(crate) partial_upload_count: usize,
@@ -72,6 +77,8 @@ pub(crate) fn glyph_atlas_bitmap_render_submission_report(
 ) -> GlyphAtlasBitmapRenderSubmissionReport {
     let mut report = GlyphAtlasBitmapRenderSubmissionReport {
         source_count: plan.run.glyphs.len() + plan.run.allocation_failures.len(),
+        resident_page_count: plan.run.atlas.page_count(),
+        resident_page_byte_len: plan.run.atlas.resident_page_byte_len(),
         allocated_glyph_count: plan.run.glyphs.len(),
         visible_glyph_count: plan.draw_batches.visible_glyph_count,
         skipped_glyph_count: plan.draw_batches.skipped_glyph_count,
@@ -89,6 +96,9 @@ pub(crate) fn glyph_atlas_bitmap_render_submission_report(
         dirty_page_count: plan.run.dirty_pages.len(),
         rebuilt_page_count: plan.run.rebuilt_pages.len(),
         slot_invalidation_count: plan.run.slot_invalidations.len(),
+        slot_cache_hit_count: plan.run.slot_cache_hit_count,
+        slot_cache_miss_count: plan.run.slot_cache_miss_count,
+        slot_cache_insert_count: plan.run.slot_cache_insert_count,
         upload_command_count: plan.run.upload_commands.len(),
         upload_copy_count: plan.run.upload_copies.len(),
         upload_copy_byte_len: plan

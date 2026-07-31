@@ -1,0 +1,8 @@
+var enchanting = %import("progression/enchanting_state");
+
+console.printLine("m5-enchanting-test");
+var result = enchanting.contractTest();
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "enchanting contract failed";
+}

@@ -28,8 +28,8 @@ macro_rules! native_dist_plugin_v3 {
         requested_capabilities: $requested_capabilities:expr,
         missing_host_diagnostics: $missing_host_diagnostics:expr,
         runtime: {
-            required_capabilities: [$($runtime_required_capability:expr),* $(,)?],
-            denied_capabilities: [$($runtime_denied_capability:expr),* $(,)?],
+            required_capabilities: [$($runtime_required_capability:literal),* $(,)?],
+            denied_capabilities: [$($runtime_denied_capability:literal),* $(,)?],
             negotiated_capabilities: $runtime_negotiated_capabilities:expr,
             diagnostics: $runtime_diagnostics:expr,
             is_stateless: $runtime_is_stateless:expr,
@@ -57,8 +57,8 @@ macro_rules! native_dist_plugin_v3 {
             on_host_ready: $runtime_on_host_ready:expr $(,)?
         },
         editor: {
-            required_capabilities: [$($editor_required_capability:expr),* $(,)?],
-            denied_capabilities: [$($editor_denied_capability:expr),* $(,)?],
+            required_capabilities: [$($editor_required_capability:literal),* $(,)?],
+            denied_capabilities: [$($editor_denied_capability:literal),* $(,)?],
             negotiated_capabilities: $editor_negotiated_capabilities:expr,
             diagnostics: $editor_diagnostics:expr,
             is_stateless: $editor_is_stateless:expr,
@@ -161,10 +161,10 @@ macro_rules! native_dist_plugin_v3 {
             requested_capabilities: ($requested_capabilities).as_ptr().cast(),
         });
 
-        static __ZIRCON_NATIVE_DIST_RUNTIME_BEHAVIOR_V3: $crate::native::NativePluginStatic<
-            $crate::native::NativePluginBehaviorV3,
-        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+        static __ZIRCON_NATIVE_DIST_RUNTIME_BEHAVIOR_V4: $crate::native::NativePluginStatic<
+            $crate::native::NativePluginBehaviorV4,
+        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV4 {
+            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4,
             is_stateless: if $runtime_is_stateless { 1 } else { 0 },
             schema_versions: $crate::native::NativePluginSchemaVersionsV3 {
                 state_schema_version: $runtime_state_schema_version,
@@ -199,10 +199,10 @@ macro_rules! native_dist_plugin_v3 {
             unload: $runtime_unload,
         });
 
-        static __ZIRCON_NATIVE_DIST_EDITOR_BEHAVIOR_V3: $crate::native::NativePluginStatic<
-            $crate::native::NativePluginBehaviorV3,
-        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+        static __ZIRCON_NATIVE_DIST_EDITOR_BEHAVIOR_V4: $crate::native::NativePluginStatic<
+            $crate::native::NativePluginBehaviorV4,
+        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV4 {
+            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4,
             is_stateless: if $editor_is_stateless { 1 } else { 0 },
             schema_versions: $crate::native::NativePluginSchemaVersionsV3 {
                 state_schema_version: $editor_state_schema_version,
@@ -237,35 +237,79 @@ macro_rules! native_dist_plugin_v3 {
             unload: $editor_unload,
         });
 
+        const __ZIRCON_NATIVE_DIST_RUNTIME_REQUIRED_CAPABILITIES_TEXT_V3: &str =
+            concat!($($runtime_required_capability, "\n",)* "\0");
+        const __ZIRCON_NATIVE_DIST_RUNTIME_DENIED_CAPABILITIES_TEXT_V3: &str =
+            concat!($($runtime_denied_capability, "\n",)* "\0");
+        const __ZIRCON_NATIVE_DIST_EDITOR_REQUIRED_CAPABILITIES_TEXT_V3: &str =
+            concat!($($editor_required_capability, "\n",)* "\0");
+        const __ZIRCON_NATIVE_DIST_EDITOR_DENIED_CAPABILITIES_TEXT_V3: &str =
+            concat!($($editor_denied_capability, "\n",)* "\0");
+
         static __ZIRCON_NATIVE_DIST_RUNTIME_REPORT_V3: $crate::native::NativePluginStatic<
             $crate::native::NativePluginEntryReportV3,
         > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
             diagnostics: ($runtime_diagnostics).as_ptr().cast(),
             negotiated_capabilities: ($runtime_negotiated_capabilities).as_ptr().cast(),
-            behavior: __ZIRCON_NATIVE_DIST_RUNTIME_BEHAVIOR_V3.as_ptr(),
+            required_capabilities: __ZIRCON_NATIVE_DIST_RUNTIME_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: __ZIRCON_NATIVE_DIST_RUNTIME_DENIED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            behavior: __ZIRCON_NATIVE_DIST_RUNTIME_BEHAVIOR_V4.as_ptr(),
             bridge_methods: __ZIRCON_NATIVE_DIST_RUNTIME_BRIDGE_METHOD_TABLE_V3.as_ptr(),
         });
 
         static __ZIRCON_NATIVE_DIST_EDITOR_REPORT_V3: $crate::native::NativePluginStatic<
             $crate::native::NativePluginEntryReportV3,
         > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
             diagnostics: ($editor_diagnostics).as_ptr().cast(),
             negotiated_capabilities: ($editor_negotiated_capabilities).as_ptr().cast(),
-            behavior: __ZIRCON_NATIVE_DIST_EDITOR_BEHAVIOR_V3.as_ptr(),
+            required_capabilities: __ZIRCON_NATIVE_DIST_EDITOR_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: __ZIRCON_NATIVE_DIST_EDITOR_DENIED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            behavior: __ZIRCON_NATIVE_DIST_EDITOR_BEHAVIOR_V4.as_ptr(),
             bridge_methods: __ZIRCON_NATIVE_DIST_EDITOR_BRIDGE_METHOD_TABLE_V3.as_ptr(),
         });
 
-        static __ZIRCON_NATIVE_DIST_MISSING_HOST_REPORT_V3: $crate::native::NativePluginStatic<
+        static __ZIRCON_NATIVE_DIST_RUNTIME_MISSING_HOST_REPORT_V3: $crate::native::NativePluginStatic<
             $crate::native::NativePluginEntryReportV3,
         > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
             diagnostics: ($missing_host_diagnostics).as_ptr().cast(),
             negotiated_capabilities: $crate::native::NATIVE_EMPTY_CSTR.as_ptr().cast(),
+            required_capabilities: __ZIRCON_NATIVE_DIST_RUNTIME_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: __ZIRCON_NATIVE_DIST_RUNTIME_DENIED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            behavior: ::core::ptr::null(),
+            bridge_methods: ::core::ptr::null(),
+        });
+
+        static __ZIRCON_NATIVE_DIST_EDITOR_MISSING_HOST_REPORT_V3: $crate::native::NativePluginStatic<
+            $crate::native::NativePluginEntryReportV3,
+        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
+            package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
+            diagnostics: ($missing_host_diagnostics).as_ptr().cast(),
+            negotiated_capabilities: $crate::native::NATIVE_EMPTY_CSTR.as_ptr().cast(),
+            required_capabilities: __ZIRCON_NATIVE_DIST_EDITOR_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: __ZIRCON_NATIVE_DIST_EDITOR_DENIED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
             behavior: ::core::ptr::null(),
             bridge_methods: ::core::ptr::null(),
         });
@@ -273,7 +317,7 @@ macro_rules! native_dist_plugin_v3 {
         static __ZIRCON_NATIVE_DIST_RUNTIME_ENTRY_POINT_V3: $crate::native::NativePluginEntryPointV3 =
             $crate::native::NativePluginEntryPointV3::new(
                 &__ZIRCON_NATIVE_DIST_RUNTIME_REPORT_V3,
-                &__ZIRCON_NATIVE_DIST_MISSING_HOST_REPORT_V3,
+                &__ZIRCON_NATIVE_DIST_RUNTIME_MISSING_HOST_REPORT_V3,
                 &[$($runtime_required_capability),*],
                 &[$($runtime_denied_capability),*],
                 $runtime_on_host_ready,
@@ -281,7 +325,7 @@ macro_rules! native_dist_plugin_v3 {
         static __ZIRCON_NATIVE_DIST_EDITOR_ENTRY_POINT_V3: $crate::native::NativePluginEntryPointV3 =
             $crate::native::NativePluginEntryPointV3::new(
                 &__ZIRCON_NATIVE_DIST_EDITOR_REPORT_V3,
-                &__ZIRCON_NATIVE_DIST_MISSING_HOST_REPORT_V3,
+                &__ZIRCON_NATIVE_DIST_EDITOR_MISSING_HOST_REPORT_V3,
                 &[$($editor_required_capability),*],
                 &[$($editor_denied_capability),*],
                 $editor_on_host_ready,
@@ -310,8 +354,8 @@ macro_rules! native_dist_runtime_plugin_v3 {
         requested_capabilities: $requested_capabilities:expr,
         missing_host_diagnostics: $missing_host_diagnostics:expr,
         runtime: {
-            required_capabilities: [$($runtime_required_capability:expr),* $(,)?],
-            denied_capabilities: [$($runtime_denied_capability:expr),* $(,)?],
+            required_capabilities: [$($runtime_required_capability:literal),* $(,)?],
+            denied_capabilities: [$($runtime_denied_capability:literal),* $(,)?],
             negotiated_capabilities: $runtime_negotiated_capabilities:expr,
             diagnostics: $runtime_diagnostics:expr,
             is_stateless: $runtime_is_stateless:expr,
@@ -382,10 +426,10 @@ macro_rules! native_dist_runtime_plugin_v3 {
             requested_capabilities: ($requested_capabilities).as_ptr().cast(),
         });
 
-        static __ZIRCON_NATIVE_DIST_RUNTIME_BEHAVIOR_V3: $crate::native::NativePluginStatic<
-            $crate::native::NativePluginBehaviorV3,
-        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+        static __ZIRCON_NATIVE_DIST_RUNTIME_BEHAVIOR_V4: $crate::native::NativePluginStatic<
+            $crate::native::NativePluginBehaviorV4,
+        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV4 {
+            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4,
             is_stateless: if $runtime_is_stateless { 1 } else { 0 },
             schema_versions: $crate::native::NativePluginSchemaVersionsV3 {
                 state_schema_version: $runtime_state_schema_version,
@@ -420,24 +464,41 @@ macro_rules! native_dist_runtime_plugin_v3 {
             unload: $runtime_unload,
         });
 
+        const __ZIRCON_NATIVE_DIST_RUNTIME_REQUIRED_CAPABILITIES_TEXT_V3: &str =
+            concat!($($runtime_required_capability, "\n",)* "\0");
+        const __ZIRCON_NATIVE_DIST_RUNTIME_DENIED_CAPABILITIES_TEXT_V3: &str =
+            concat!($($runtime_denied_capability, "\n",)* "\0");
+
         static __ZIRCON_NATIVE_DIST_RUNTIME_REPORT_V3: $crate::native::NativePluginStatic<
             $crate::native::NativePluginEntryReportV3,
         > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
             diagnostics: ($runtime_diagnostics).as_ptr().cast(),
             negotiated_capabilities: ($runtime_negotiated_capabilities).as_ptr().cast(),
-            behavior: __ZIRCON_NATIVE_DIST_RUNTIME_BEHAVIOR_V3.as_ptr(),
+            required_capabilities: __ZIRCON_NATIVE_DIST_RUNTIME_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: __ZIRCON_NATIVE_DIST_RUNTIME_DENIED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            behavior: __ZIRCON_NATIVE_DIST_RUNTIME_BEHAVIOR_V4.as_ptr(),
             bridge_methods: __ZIRCON_NATIVE_DIST_RUNTIME_BRIDGE_METHOD_TABLE_V3.as_ptr(),
         });
 
         static __ZIRCON_NATIVE_DIST_MISSING_HOST_REPORT_V3: $crate::native::NativePluginStatic<
             $crate::native::NativePluginEntryReportV3,
         > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
             diagnostics: ($missing_host_diagnostics).as_ptr().cast(),
             negotiated_capabilities: $crate::native::NATIVE_EMPTY_CSTR.as_ptr().cast(),
+            required_capabilities: __ZIRCON_NATIVE_DIST_RUNTIME_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: __ZIRCON_NATIVE_DIST_RUNTIME_DENIED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
             behavior: ::core::ptr::null(),
             bridge_methods: ::core::ptr::null(),
         });
@@ -470,8 +531,8 @@ macro_rules! native_dist_editor_plugin_v3 {
         requested_capabilities: $requested_capabilities:expr,
         missing_host_diagnostics: $missing_host_diagnostics:expr,
         editor: {
-            required_capabilities: [$($editor_required_capability:expr),* $(,)?],
-            denied_capabilities: [$($editor_denied_capability:expr),* $(,)?],
+            required_capabilities: [$($editor_required_capability:literal),* $(,)?],
+            denied_capabilities: [$($editor_denied_capability:literal),* $(,)?],
             negotiated_capabilities: $editor_negotiated_capabilities:expr,
             diagnostics: $editor_diagnostics:expr,
             is_stateless: $editor_is_stateless:expr,
@@ -542,10 +603,10 @@ macro_rules! native_dist_editor_plugin_v3 {
             requested_capabilities: ($requested_capabilities).as_ptr().cast(),
         });
 
-        static __ZIRCON_NATIVE_DIST_EDITOR_BEHAVIOR_V3: $crate::native::NativePluginStatic<
-            $crate::native::NativePluginBehaviorV3,
-        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+        static __ZIRCON_NATIVE_DIST_EDITOR_BEHAVIOR_V4: $crate::native::NativePluginStatic<
+            $crate::native::NativePluginBehaviorV4,
+        > = $crate::native::NativePluginStatic::new($crate::native::NativePluginBehaviorV4 {
+            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4,
             is_stateless: if $editor_is_stateless { 1 } else { 0 },
             schema_versions: $crate::native::NativePluginSchemaVersionsV3 {
                 state_schema_version: $editor_state_schema_version,
@@ -580,24 +641,41 @@ macro_rules! native_dist_editor_plugin_v3 {
             unload: $editor_unload,
         });
 
+        const __ZIRCON_NATIVE_DIST_EDITOR_REQUIRED_CAPABILITIES_TEXT_V3: &str =
+            concat!($($editor_required_capability, "\n",)* "\0");
+        const __ZIRCON_NATIVE_DIST_EDITOR_DENIED_CAPABILITIES_TEXT_V3: &str =
+            concat!($($editor_denied_capability, "\n",)* "\0");
+
         static __ZIRCON_NATIVE_DIST_EDITOR_REPORT_V3: $crate::native::NativePluginStatic<
             $crate::native::NativePluginEntryReportV3,
         > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
             diagnostics: ($editor_diagnostics).as_ptr().cast(),
             negotiated_capabilities: ($editor_negotiated_capabilities).as_ptr().cast(),
-            behavior: __ZIRCON_NATIVE_DIST_EDITOR_BEHAVIOR_V3.as_ptr(),
+            required_capabilities: __ZIRCON_NATIVE_DIST_EDITOR_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: __ZIRCON_NATIVE_DIST_EDITOR_DENIED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            behavior: __ZIRCON_NATIVE_DIST_EDITOR_BEHAVIOR_V4.as_ptr(),
             bridge_methods: __ZIRCON_NATIVE_DIST_EDITOR_BRIDGE_METHOD_TABLE_V3.as_ptr(),
         });
 
         static __ZIRCON_NATIVE_DIST_MISSING_HOST_REPORT_V3: $crate::native::NativePluginStatic<
             $crate::native::NativePluginEntryReportV3,
         > = $crate::native::NativePluginStatic::new($crate::native::NativePluginEntryReportV3 {
-            abi_version: $crate::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            layout_epoch: $crate::native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
             package_manifest_toml: ($package_manifest).as_bytes().as_ptr().cast(),
             diagnostics: ($missing_host_diagnostics).as_ptr().cast(),
             negotiated_capabilities: $crate::native::NATIVE_EMPTY_CSTR.as_ptr().cast(),
+            required_capabilities: __ZIRCON_NATIVE_DIST_EDITOR_REQUIRED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
+            denied_capabilities: __ZIRCON_NATIVE_DIST_EDITOR_DENIED_CAPABILITIES_TEXT_V3
+                .as_ptr()
+                .cast(),
             behavior: ::core::ptr::null(),
             bridge_methods: ::core::ptr::null(),
         });
@@ -631,9 +709,8 @@ mod tests {
 
     use crate::native::{
         self, NativePluginBridgeMethodCallV3, NativePluginByteSliceV2,
-        NativePluginCallbackStatusV2, NativePluginHostFunctionTableV3,
-        NativePluginOwnedByteBufferV2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+        NativePluginCallbackStatusV2, NativePluginHostFunctionTableV3, NativePluginOutputSinkV4,
+        ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
     };
 
     const PLUGIN_ID: &[u8] = b"dist_helper_fixture\0";
@@ -647,6 +724,8 @@ mod tests {
     const READY: &[u8] = b"ready\0";
     const MISSING: &[u8] = b"missing\0";
     const EMPTY: &[u8] = b"\0";
+    const EMPTY_COMMANDS_V4: &[u8] =
+        b"schema = \"zircon.native.command-manifest/4\"\ncommands = []\n\0";
     const RUNTIME_INTERFACE: &[u8] = b"dist_helper.runtime\0";
     const RUNTIME_METHOD: &[u8] = b"tick\0";
 
@@ -667,10 +746,10 @@ mod tests {
             diagnostics: READY,
             is_stateless: false,
             state_schema_version: 3,
-            command_manifest_schema: Some(native::NATIVE_COMMAND_MANIFEST_SCHEMA_V3),
+            command_manifest_schema: Some(native::NATIVE_COMMAND_MANIFEST_SCHEMA_V4),
             event_manifest_schema: Some(native::NATIVE_EVENT_MANIFEST_SCHEMA_V3),
             registration_manifest_schema: Some(native::NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3),
-            command_manifest: Some(EMPTY),
+            command_manifest: Some(EMPTY_COMMANDS_V4),
             event_manifest: Some(EMPTY),
             registration_manifest: Some(EMPTY),
             invoke_command: Some(dist_helper_invoke_command),
@@ -697,7 +776,7 @@ mod tests {
             command_manifest_schema: None,
             event_manifest_schema: None,
             registration_manifest_schema: None,
-            command_manifest: Some(EMPTY),
+            command_manifest: Some(EMPTY_COMMANDS_V4),
             event_manifest: Some(EMPTY),
             registration_manifest: None,
             invoke_command: Some(dist_helper_invoke_command),
@@ -757,9 +836,9 @@ mod tests {
     }
 
     unsafe extern "C" fn dist_helper_invoke_command(
-        _command_name: *const std::ffi::c_char,
+        _command_slot: u32,
         _payload: NativePluginByteSliceV2,
-        _output: *mut NativePluginOwnedByteBufferV2,
+        _output: NativePluginOutputSinkV4,
     ) -> NativePluginCallbackStatusV2 {
         native::callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, MISSING)
     }

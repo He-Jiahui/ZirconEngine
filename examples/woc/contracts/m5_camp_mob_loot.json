@@ -1,0 +1,2295 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m5_camp_mob_loot_codegen.mjs",
+  "source_sha256": {
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90",
+    "src/sim/data.ts": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431",
+    "src/sim/content/zone1.ts": "ba684edd445b581cf2d03e9b34c0f14d8b73da9a623df425e94262d3f6010d2a",
+    "src/sim/content/zone2.ts": "169c8bc8cd98a535ad60ac0f2159cd94e5e0685d231bf78e0328df7157a1dd6b",
+    "src/sim/content/zone3.ts": "8361952b8878ae4d0a17513ccb27ad09e48f4469eddcea93633455fc45743579",
+    "src/sim/loot/loot_roll.ts": "a471dfb35d4f26f0dc918079a20c6dd3a58552e097b851c2d77df101c893c199"
+  },
+  "totals": {
+    "mob_count": 47,
+    "loot_entry_count": 177,
+    "item_entry_count": 131,
+    "copper_entry_count": 46,
+    "quest_entry_count": 23,
+    "roll_group_entry_count": 24,
+    "component_tag_count": 29
+  },
+  "mobs": [
+    {
+      "id": "forest_wolf",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 8,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "wolf_fang",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.45,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "milepost_boots",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "wolfhide_satchel",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.02,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "hide",
+        "fang"
+      ]
+    },
+    {
+      "id": "old_greyjaw",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 60,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "greyjaw_fang",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": true,
+          "quest_id": "q_greyjaw",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "wolf_fang",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "wolfhide_satchel",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.35,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "hide",
+        "fang",
+        "claw"
+      ]
+    },
+    {
+      "id": "wild_boar",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 12,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "boar_hide",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": true,
+          "quest_id": "q_boars",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tough_jerky",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "trail_leggings",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "hide",
+        "tusk"
+      ]
+    },
+    {
+      "id": "mogger",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 180,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "linen_scrap",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "moggers_stomper_boots",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "moggers_shiv",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "mogger_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "cryptstalker_jerkin",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "mogger_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "webwood_spider",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 14,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "webwood_silk",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.55,
+          "has_quest_id": true,
+          "quest_id": "q_spiders",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "spider_leg",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.4,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "venomSac",
+        "silk"
+      ]
+    },
+    {
+      "id": "mudfin_murloc",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 18,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "mudfin_scale",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "linen_scrap",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.2,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "gills",
+        "hide"
+      ]
+    },
+    {
+      "id": "tunnel_rat",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 22,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tallow_candle",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "blessed_wax",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.45,
+          "has_quest_id": true,
+          "quest_id": "q_rite",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "linen_scrap",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "mossy_handwraps",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.15,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "vale_bandit",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 25,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "bandit_bandana",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "linen_scrap",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "gorrak",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 250,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "bandit_bandana",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "oiled_boots",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "quilted_trousers",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "gorraks_cruel_chopper",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "gorraks_cleaver",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "restless_bones",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 30,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "bone_fragments",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "ghostly_essence",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.55,
+          "has_quest_id": true,
+          "quest_id": "q_rite",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "captain_verlan",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 160,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "bone_fragments",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "oathbound_greaves",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "verlans_oathblade",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "verlan_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "hollow_vigil_staff",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "verlan_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "gravewardens_shiv",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "verlan_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "mire_prowler",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 30,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "mire_prowler_pelt",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": true,
+          "quest_id": "q_prowler_pelts",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "soggy_moccasin",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "lesser_healing_potion",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.08,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "hide",
+        "claw"
+      ]
+    },
+    {
+      "id": "deepfen_murloc",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 35,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "waterlogged_idol",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": true,
+          "quest_id": "q_idols",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "mudfin_scale",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.4,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "gills",
+        "hide"
+      ]
+    },
+    {
+      "id": "mirejaw_the_ravenous",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 260,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "mudfin_scale",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "mirejaw_biteblade",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "mirejaw_scale_vest",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "fen_reaver_glaive",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "mirejaw_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "mirejaw_oracle_staff",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "mirejaw_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "mire_widow",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 38,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "widow_venom_sac",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.65,
+          "has_quest_id": true,
+          "quest_id": "q_widows",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "spider_leg",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.4,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "venomSac",
+        "hide"
+      ]
+    },
+    {
+      "id": "mirefen_broodmother",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 300,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "marshstrider_boots",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.4,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "broodmother_silk_robe",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "spider_leg",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "drowned_dead",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 42,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "bone_fragments",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "cracked_fetish",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "sloomtooth_the_drowned",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 280,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "mudfin_scale",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tidereaver_gaff",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "sloomtooth_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "sloomtooth_tidefang",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "sloomtooth_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "drowned_tide_scepter",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "sloomtooth_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "fen_troll",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 50,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "troll_fetish",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": true,
+          "quest_id": "q_troll_fetishes",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "chipped_tusk",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.4,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "bogiron_nugget",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "elixir_of_the_bear",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.07,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "claw",
+        "tusk"
+      ]
+    },
+    {
+      "id": "grubjaw",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 200,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "grubjaw_tusk",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": true,
+          "quest_id": "q_grubjaw",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "chipped_tusk",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "gravecaller_cultist",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 55,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "linen_scrap",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tallow_candle",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "gravecaller_summoner",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 60,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "cult_cipher",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": true,
+          "quest_id": "q_summoners",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "gravecaller_mender",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 58,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "cult_cipher",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.4,
+          "has_quest_id": true,
+          "quest_id": "q_summoners",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tallow_candle",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "sister_nhalia",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 350,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tallow_candle",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "nhalias_funeral_wraps",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "nhalias_dirgeblade",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "sister_nhalia_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "deacon_voss",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 600,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tallow_candle",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "voss_sanctified_mace",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "bog_bloat",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 40,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tangled_weed",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "training_dummy",
+      "loot_entries": [],
+      "component_tags": []
+    },
+    {
+      "id": "ridge_stalker",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 60,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "ridge_stalker_pelt",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": true,
+          "quest_id": "q_stalker_pelts",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "ridge_stalker_pelt",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": true,
+          "quest_id": "q_stalker_cloaks",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "hide",
+        "claw"
+      ]
+    },
+    {
+      "id": "old_cragmaw",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 220,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "old_cragmaws_pelt",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "cragmaw_huntcord",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "cragmaw_prowlboots",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "hide",
+        "fang",
+        "claw"
+      ]
+    },
+    {
+      "id": "deeprock_kobold",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 65,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "glowing_wax",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": true,
+          "quest_id": "q_glowing_wax",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tallow_candle",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.4,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "healing_potion",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.08,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "deathlord_sabatons",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.001,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "ironvein_foreman",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 420,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "glowing_wax",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "ironvein_pickblade",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "ironvein_lantern_staff",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "gutripper_shiv",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "ironvein_foreman_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "deathlord_sabatons",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "ironvein_foreman_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "thornpeak_ogre",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 75,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "ogre_toe_ring",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.35,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "ogre_crusher",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 200,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "ogre_toe_ring",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "warlord_drogmar",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 2000,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "drogmar_warboots",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "drogmars_skullcleaver",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "brutok_skullsmasher",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 320,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "cracked_ogre_tusk",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "skullsmasher_warbelt",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "brutoks_maul",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "brutok_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "crag_warden_cudgel",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "brutok_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "skullsplitter_dirk",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "brutok_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "stormcrag_elemental",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 80,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "storm_core",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.55,
+          "has_quest_id": true,
+          "quest_id": "q_shard_cores",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "blessed_embers",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.55,
+          "has_quest_id": true,
+          "quest_id": "q_breaking_the_seal",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "inert_storm_shard",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.4,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "shardlord_kazzix",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 500,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "kazzix_heartshard",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": true,
+          "quest_id": "q_kazzix",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "inert_storm_shard",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "wyrmcult_zealot",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 90,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "wyrmcult_orders",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": true,
+          "quest_id": "q_cult_orders",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "frayed_prayer_beads",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.35,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "wyrmcult_necromancer",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 100,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "ritual_phylactery",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.55,
+          "has_quest_id": true,
+          "quest_id": "q_necromancers",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "linen_scrap",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "boneclad_revenant",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 100,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "bone_fragments",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "runed_bone_shard",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.7,
+          "has_quest_id": true,
+          "quest_id": "q_nythraxis_restless_dead",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "necromancers_legwraps",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.001,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "marrowlord_varkas",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 650,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "bone_fragments",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "marrowlord_boneboots",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "necromancers_legwraps",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "marrowlord_varkas_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "voskar_emberwing",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 700,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "emberwing_cinderscale",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "emberwing_legguards",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "voskar_emberwing_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "emberfang_warblade",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "voskar_emberwing_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "glimmermere_wader",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 70,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "pale_pearl",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.4,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "moonpale_scale",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "gills",
+        "hide"
+      ]
+    },
+    {
+      "id": "drowned_votary",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 80,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "drowned_offering",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.6,
+          "has_quest_id": true,
+          "quest_id": "q_drowned_choir",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "briny_idol",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "sethrael_palecoil",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 500,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "palecoil_heartscale",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": true,
+          "quest_id": "q_palecoil",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "moonpale_scale",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "pale_pearl",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.5,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        }
+      ],
+      "component_tags": [
+        "hide",
+        "claw",
+        "horn"
+      ]
+    },
+    {
+      "id": "wraithbinder_maldrec",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 160,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "bone_fragments",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "maldrecs_soulbinder",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "hollowbone_hauberk",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "maldrec_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "gravewoven_raiment",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "maldrec_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "cryptstalker_jerkin",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "maldrec_chase"
+        }
+      ],
+      "component_tags": []
+    },
+    {
+      "id": "grix_the_tunnelking",
+      "loot_entries": [
+        {
+          "has_item_id": false,
+          "item_id": "",
+          "has_copper": true,
+          "copper": 150,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tallow_candle",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "lesser_healing_potion",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 1,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "tunnelkings_spade",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.3,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": false,
+          "roll_group": ""
+        },
+        {
+          "has_item_id": true,
+          "item_id": "moggers_copper_cudgel",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "grix_tunnelking_chase"
+        },
+        {
+          "has_item_id": true,
+          "item_id": "hollowbone_hauberk",
+          "has_copper": false,
+          "copper": 0,
+          "chance": 0.25,
+          "has_quest_id": false,
+          "quest_id": "",
+          "has_roll_group": true,
+          "roll_group": "grix_tunnelking_chase"
+        }
+      ],
+      "component_tags": []
+    }
+  ],
+  "catalog_sha256": "6328cb6bfeefabc4f65837277653f4c46878329585cee25ca4ea5614539180f2"
+}

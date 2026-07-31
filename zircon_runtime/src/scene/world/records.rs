@@ -1,8 +1,8 @@
 use super::{SceneError, SceneResult, World};
+use crate::scene::EntityId;
 use crate::scene::components::{
     ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, NodeRecord, RenderLayerMask,
 };
-use crate::scene::EntityId;
 
 impl World {
     pub fn node_record(&self, entity: EntityId) -> Option<NodeRecord> {
@@ -73,10 +73,10 @@ impl World {
         // Validate every fallible invariant before the first world mutation so a
         // rejected import cannot leave observable state behind at the old generation.
         self.validate_node_record_mobility(&record)?;
-
         self.register_stable_entity(record.id)?;
         self.entities.push(record.id);
         self.kinds.insert(record.id, record.kind);
+        self.record_node_kind_added(record.kind);
         self.names.insert(record.id, Name(record.name));
         self.hierarchy.insert(
             record.id,
@@ -158,7 +158,9 @@ impl World {
         self.next_id = self.next_id.max(next_id);
         self.rebuild_fixed_component_presence_for_entity(record.id);
         self.mark_derived_state_dirty();
+        self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
+        self.advance_scene_binding_generations_for_new_descendant(record.id);
         Ok(())
     }
 

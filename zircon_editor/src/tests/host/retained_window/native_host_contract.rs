@@ -3,14 +3,14 @@ use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
 use crate::ui::retained_host::{
-    build_pane_template_surface_frame, callback_dispatch::BuiltinViewportToolbarTemplateBridge,
-    to_host_contract_component_showcase_pane_from_host_pane_with_runtime, FloatingWindowData,
-    FrameRect, HostChromeControlFrameData, HostChromeTabData, HostClosePromptData,
-    HostDocumentDockSurfaceData, HostMenuChromeData, HostMenuChromeItemData,
+    FloatingWindowData, FrameRect, HostChromeControlFrameData, HostChromeTabData,
+    HostClosePromptData, HostDocumentDockSurfaceData, HostMenuChromeData, HostMenuChromeItemData,
     HostMenuChromeMenuData, HostMenuStateData, HostPageOverflowMenuStateData, HostResizeLayerData,
     HostSideDockSurfaceData, HostWindowLayoutData, PaneData, PaneSurfaceHostContext, SceneNodeData,
     SceneViewportChromeData, TabData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext,
-    UiHostWindow,
+    UiHostWindow, build_pane_template_surface_frame,
+    callback_dispatch::BuiltinViewportToolbarTemplateBridge,
+    to_host_contract_component_showcase_pane_from_host_pane_with_runtime,
 };
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -388,6 +388,7 @@ fn native_host_pointer_click_routes_host_page_overflow_button_and_popup_rows() {
         .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData {
             open: true,
             hovered_page_index: -1,
+            scroll_offset: 0.0,
         });
     let row_result = ui.dispatch_native_primary_press_for_test(70.0, 73.0);
 
@@ -452,7 +453,10 @@ fn native_host_pointer_click_routes_pane_template_button_actions() {
     assert!(result.request_redraw());
     assert_eq!(
         clicks.borrow().as_slice(),
-        [("ProjectPrimaryAction".to_string(), "project.create".to_string())],
+        [(
+            "ProjectPrimaryAction".to_string(),
+            "project.create".to_string()
+        )],
         "native host clicks should use template-node dispatch metadata before pane fallback routing"
     );
 }
@@ -900,10 +904,11 @@ fn native_host_template_node_move_updates_hover_without_rebuilding_presentation(
         Some(host_frame(72.0, 104.0, 160.0, 24.0)),
         "leaving a template node should repaint the old hover node"
     );
-    assert!(ui
-        .get_pane_interaction_state()
-        .hovered_template_control_id
-        .is_empty());
+    assert!(
+        ui.get_pane_interaction_state()
+            .hovered_template_control_id
+            .is_empty()
+    );
 }
 
 #[test]
@@ -1854,7 +1859,7 @@ fn native_host_pointer_click_routes_viewport_toolbar_buttons_before_viewport_bod
     {
         let viewport_events = viewport_events.clone();
         ui.global::<PaneSurfaceHostContext>()
-            .on_viewport_pointer_event(move |kind, button, x, y, delta| {
+            .on_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
                 viewport_events
                     .borrow_mut()
                     .push((kind, button, x, y, delta));
@@ -1964,7 +1969,7 @@ fn native_host_pointer_click_routes_late_viewport_toolbar_controls() {
     {
         let viewport_events = viewport_events.clone();
         ui.global::<PaneSurfaceHostContext>()
-            .on_viewport_pointer_event(move |kind, button, x, y, delta| {
+            .on_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
                 viewport_events
                     .borrow_mut()
                     .push((kind, button, x, y, delta));
@@ -2014,7 +2019,7 @@ fn native_host_pointer_move_routes_viewport_without_native_repaint() {
     {
         let viewport_events = viewport_events.clone();
         ui.global::<PaneSurfaceHostContext>()
-            .on_viewport_pointer_event(move |kind, button, x, y, delta| {
+            .on_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
                 viewport_events
                     .borrow_mut()
                     .push((kind, button, x, y, delta));
@@ -2056,7 +2061,7 @@ fn native_host_viewport_button_and_scroll_wait_for_viewport_image_repaint() {
     {
         let viewport_events = viewport_events.clone();
         ui.global::<PaneSurfaceHostContext>()
-            .on_viewport_pointer_event(move |kind, button, x, y, delta| {
+            .on_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
                 viewport_events
                     .borrow_mut()
                     .push((kind, button, x, y, delta));
@@ -2618,7 +2623,7 @@ fn scene_pane() -> PaneData {
         title: "Scene".into(),
         show_toolbar: true,
         viewport: SceneViewportChromeData {
-            tool: "Move".into(),
+            mode: "Transform.Move".into(),
             transform_space: "Global".into(),
             display_mode: "Lit".into(),
             grid_mode: "Grid".into(),
@@ -2649,7 +2654,7 @@ fn viewport_toolbar_surface_frame_for_test() -> zircon_runtime_interface::ui::su
 
 fn viewport_toolbar_hit_control_id_for_test(projection_control_id: &str) -> String {
     match projection_control_id {
-        "SetTool" => "tool.move",
+        "ActivateSceneMode" => "mode.move",
         "SetTransformSpace" => "space.global",
         "SetProjectionMode" => "projection.perspective",
         "AlignView" => "align.neg_z",

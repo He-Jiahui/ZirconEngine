@@ -4,12 +4,12 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use crate::core::framework::render::{
-    CapturedFrame, FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
-    RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor,
-    RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
-    DEFAULT_RENDER_LAYER_MASK,
+    CapturedFrame, DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind, LightShadowSettings,
+    PreviewEnvironmentExtract, RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework,
+    RenderLayerSet, RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier,
+    ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -352,7 +352,10 @@ fn shadow_mesh(node_id: u64, transform: Transform, material: ResourceId) -> Rend
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+        common: crate::core::framework::render::RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+            ..Default::default()
+        },
     }
 }
 

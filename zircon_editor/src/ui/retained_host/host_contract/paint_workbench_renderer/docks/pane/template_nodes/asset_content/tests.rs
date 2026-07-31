@@ -1,55 +1,68 @@
-use crate::ui::layouts::common::model_rc;
+use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostPaneInteractionStateData, TemplateNodeFrameData, TemplatePaneNodeData,
 };
 use crate::ui::retained_host::host_contract::paint_template_nodes::TemplateNodePaintTransform;
-
-use super::identity::{
-    activity_content_identity, browser_content_identity, ActivityContentNodeIdentity,
-    ActivityContentNodeRole, BrowserContentNodeIdentity,
+use crate::ui::retained_host::primitives::ModelRc;
+use crate::ui::workbench::asset_content_layout::{
+    asset_content_paint_metadata, parse_activity_content_identity, parse_browser_content_identity,
+    ActivityContentNodeIdentity, ActivityContentNodeRole, AssetContentPaintNodeInput,
+    AssetContentSurface, BrowserContentNodeIdentity,
 };
+
 use super::{ActivityAssetContentProjector, BrowserAssetContentProjector};
+
+#[test]
+fn projector_consumers_use_generation_metadata_without_model_scans_or_identity_parsing() {
+    let production = include_str!("projector.rs");
+
+    assert!(!production.contains("row_data("));
+    assert!(!production.contains("for row in 0..nodes.row_count()"));
+    assert!(!production.contains("parse_activity_content_identity("));
+    assert!(!production.contains("parse_browser_content_identity("));
+    assert!(production.contains("metadata_rc::<AssetContentPaintMetadata>"));
+}
 
 #[test]
 fn activity_asset_content_identity_maps_rows_and_children_without_aliases() {
     assert_eq!(
-        activity_content_identity("AssetsActivityContentPanel"),
+        parse_activity_content_identity("AssetsActivityContentPanel"),
         Some(ActivityContentNodeIdentity::ContentPanel)
     );
     assert_eq!(
-        activity_content_identity("AssetsActivityContentFolderRow02"),
+        parse_activity_content_identity("AssetsActivityContentFolderRow02"),
         Some(ActivityContentNodeIdentity::Folder {
             index: 2,
             role: ActivityContentNodeRole::Row,
         })
     );
     assert_eq!(
-        activity_content_identity("AssetsActivityContentFolderName02"),
+        parse_activity_content_identity("AssetsActivityContentFolderName02"),
         Some(ActivityContentNodeIdentity::Folder {
             index: 2,
             role: ActivityContentNodeRole::Name,
         })
     );
     assert_eq!(
-        activity_content_identity("mount/AssetsActivityContentItemMeta11"),
+        parse_activity_content_identity("mount/AssetsActivityContentItemMeta11"),
         Some(ActivityContentNodeIdentity::Item {
             index: 11,
             role: ActivityContentNodeRole::Meta,
         })
     );
     assert_eq!(
-        activity_content_identity("AssetsActivityPreviewPanel"),
+        parse_activity_content_identity("AssetsActivityPreviewPanel"),
         None
     );
     assert_eq!(
-        activity_content_identity("AssetsActivityContentItemRow"),
+        parse_activity_content_identity("AssetsActivityContentItemRow"),
         None
     );
 }
 
 #[test]
 fn activity_asset_content_projector_scrolls_clips_and_hovers_shared_row_index() {
-    let nodes = model_rc(vec![
+    let nodes = activity_model(vec![
         node("AssetsActivityContentPanel", 10.0, 20.0, 100.0, 40.0),
         node("AssetsActivityContentFolderRow00", 12.0, 20.0, 96.0, 12.0),
         node("AssetsActivityContentItemRow00", 12.0, 60.0, 96.0, 12.0),
@@ -65,6 +78,13 @@ fn activity_asset_content_projector_scrolls_clips_and_hovers_shared_row_index() 
         ActivityAssetContentProjector::new(&nodes, &frame(5.0, 7.0, 120.0, 100.0), &interaction)
             .expect("content panel projector");
     let pane_clip = frame(0.0, 0.0, 200.0, 200.0);
+
+    assert_eq!(
+        projector
+            .row_visit_indices(nodes.row_count(), &pane_clip)
+            .expect("generation row plan"),
+        vec![0, 2, 3, 4]
+    );
 
     assert!(projector
         .transform(nodes.row_data(1).expect("folder row"), pane_clip.clone())
@@ -92,7 +112,7 @@ fn activity_asset_content_projector_scrolls_clips_and_hovers_shared_row_index() 
 
 #[test]
 fn activity_asset_content_projector_falls_back_without_panel_and_ignores_stale_hover() {
-    let no_panel = model_rc(vec![node(
+    let no_panel = activity_model(vec![node(
         "AssetsActivityContentItemRow00",
         0.0,
         0.0,
@@ -106,7 +126,7 @@ fn activity_asset_content_projector_falls_back_without_panel_and_ignores_stale_h
     )
     .is_none());
 
-    let nodes = model_rc(vec![
+    let nodes = activity_model(vec![
         node("AssetsActivityContentPanel", 0.0, 0.0, 40.0, 40.0),
         node("AssetsActivityContentItemRow00", 0.0, 0.0, 40.0, 10.0),
     ]);
@@ -128,7 +148,7 @@ fn activity_asset_content_projector_falls_back_without_panel_and_ignores_stale_h
 
 #[test]
 fn activity_asset_content_projector_keeps_empty_state_visible_with_stale_scroll() {
-    let nodes = model_rc(vec![
+    let nodes = activity_model(vec![
         node("AssetsActivityContentPanel", 0.0, 0.0, 80.0, 40.0),
         node("AssetsActivityContentEmptyText", 4.0, 4.0, 72.0, 12.0),
     ]);
@@ -156,15 +176,15 @@ fn activity_asset_content_projector_keeps_empty_state_visible_with_stale_scroll(
 #[test]
 fn browser_content_identity_and_projector_keep_header_fixed_and_clip_rows() {
     assert_eq!(
-        browser_content_identity("AssetBrowserAssetTablePanel"),
+        parse_browser_content_identity("AssetBrowserAssetTablePanel"),
         Some(BrowserContentNodeIdentity::TablePanel)
     );
     assert_eq!(
-        browser_content_identity("WorkbenchAssetBrowserAssetRow03"),
+        parse_browser_content_identity("WorkbenchAssetBrowserAssetRow03"),
         Some(BrowserContentNodeIdentity::Row { index: 2 })
     );
 
-    let nodes = model_rc(vec![
+    let nodes = browser_model(vec![
         node("AssetBrowserAssetTablePanel", 10.0, 20.0, 120.0, 80.0),
         node("WorkbenchAssetBrowserTableHeader", 10.0, 20.0, 120.0, 24.0),
         node("WorkbenchAssetBrowserAssetRow01", 10.0, 44.0, 120.0, 28.0),
@@ -180,6 +200,13 @@ fn browser_content_identity_and_projector_keep_header_fixed_and_clip_rows() {
         BrowserAssetContentProjector::new(&nodes, &frame(5.0, 7.0, 150.0, 180.0), &interaction)
             .expect("browser table projector");
     let pane_clip = frame(0.0, 0.0, 200.0, 200.0);
+
+    assert_eq!(
+        projector
+            .row_visit_indices(nodes.row_count(), &pane_clip)
+            .expect("generation row plan"),
+        vec![0, 1, 3, 4]
+    );
 
     let (header, header_clip) = projector
         .transform(nodes.row_data(1).expect("header"), pane_clip.clone())
@@ -205,7 +232,7 @@ fn browser_content_identity_and_projector_keep_header_fixed_and_clip_rows() {
 
 #[test]
 fn browser_thumbnail_projector_scrolls_card_children_and_keeps_grid_fixed() {
-    let nodes = model_rc(vec![
+    let nodes = browser_model(vec![
         node("AssetBrowserThumbGridPanel", 10.0, 20.0, 120.0, 80.0),
         node("AssetBrowserThumbCard01", 12.0, 28.0, 52.0, 48.0),
         node("AssetBrowserThumbInfoBand01", 16.0, 58.0, 44.0, 14.0),
@@ -252,16 +279,61 @@ fn browser_thumbnail_projector_scrolls_card_children_and_keeps_grid_fixed() {
     assert!(!name.hovered);
 }
 
-fn node(control_id: &str, x: f32, y: f32, width: f32, height: f32) -> TemplatePaneNodeData {
-    TemplatePaneNodeData {
-        control_id: control_id.into(),
+fn activity_model(nodes: Vec<ViewTemplateNodeData>) -> ModelRc<TemplatePaneNodeData> {
+    host_model(nodes, AssetContentSurface::Activity)
+}
+
+fn browser_model(nodes: Vec<ViewTemplateNodeData>) -> ModelRc<TemplatePaneNodeData> {
+    host_model(nodes, AssetContentSurface::Browser)
+}
+
+fn host_model(
+    nodes: Vec<ViewTemplateNodeData>,
+    surface: AssetContentSurface,
+) -> ModelRc<TemplatePaneNodeData> {
+    view_asset_content_model(nodes, surface).map_preserving_metadata(|node| TemplatePaneNodeData {
+        control_id: node.control_id.clone(),
+        value_number: node.value_number,
         frame: TemplateNodeFrameData {
+            x: node.frame.x,
+            y: node.frame.y,
+            width: node.frame.width,
+            height: node.frame.height,
+        },
+        ..TemplatePaneNodeData::default()
+    })
+}
+
+fn view_asset_content_model(
+    nodes: Vec<ViewTemplateNodeData>,
+    surface: AssetContentSurface,
+) -> ModelRc<ViewTemplateNodeData> {
+    let metadata = asset_content_paint_metadata(
+        nodes.iter().map(|node| {
+            AssetContentPaintNodeInput::new(
+                node.control_id.as_str(),
+                node.frame.x,
+                node.frame.y,
+                node.frame.width,
+                node.frame.height,
+                node.value_number,
+            )
+        }),
+        surface,
+    );
+    ModelRc::with_metadata(nodes, metadata)
+}
+
+fn node(control_id: &str, x: f32, y: f32, width: f32, height: f32) -> ViewTemplateNodeData {
+    ViewTemplateNodeData {
+        control_id: control_id.into(),
+        frame: ViewTemplateFrameData {
             x,
             y,
             width,
             height,
         },
-        ..TemplatePaneNodeData::default()
+        ..ViewTemplateNodeData::default()
     }
 }
 

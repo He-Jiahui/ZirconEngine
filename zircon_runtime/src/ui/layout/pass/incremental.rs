@@ -41,14 +41,16 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     assert_layout_pass_stage(UiLayoutPassStage::ResponsiveStyleResolution, 0);
     apply_mui_responsive_layout(tree, root_size)?;
 
-    let previous = snapshot_geometry(tree);
     let roots = incremental_layout_roots(tree)?;
     let mut visited = BTreeSet::new();
+    for root_id in &roots {
+        collect_subtree_nodes(tree, *root_id, &mut visited)?;
+    }
+    let previous = snapshot_geometry(tree, &visited);
     let mut engine_context = UiLayoutPassEngineContext::default();
 
     assert_layout_pass_stage(UiLayoutPassStage::Measurement, 1);
     for root_id in &roots {
-        collect_subtree_nodes(tree, *root_id, &mut visited)?;
         measure_node(tree, *root_id, text_measure_cache.as_deref_mut())?;
     }
 
@@ -60,16 +62,20 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
         arrange_layout_root(tree, root_id, root_size, &mut engine_context)?;
     }
 
-    let geometry_changed_node_count = tree
-        .nodes
+    let geometry_changed_node_count = visited
         .iter()
-        .filter(|(node_id, node)| {
+        .map(|node_id| {
+            let node = tree
+                .nodes
+                .get(node_id)
+                .expect("visited layout node must remain in the tree");
             previous.get(node_id).copied().unwrap_or_default()
                 != LayoutGeometry {
                     frame: node.layout_cache.frame,
                     clip_frame: node.layout_cache.clip_frame,
                 }
         })
+        .filter(|changed| *changed)
         .count();
 
     let visited_node_count = visited.len();
@@ -192,10 +198,17 @@ fn collect_subtree_nodes(
     Ok(())
 }
 
-fn snapshot_geometry(tree: &UiTree) -> BTreeMap<UiNodeId, LayoutGeometry> {
-    tree.nodes
+fn snapshot_geometry(
+    tree: &UiTree,
+    visited: &BTreeSet<UiNodeId>,
+) -> BTreeMap<UiNodeId, LayoutGeometry> {
+    visited
         .iter()
-        .map(|(node_id, node)| {
+        .map(|node_id| {
+            let node = tree
+                .nodes
+                .get(node_id)
+                .expect("visited layout node must exist in the tree");
             (
                 *node_id,
                 LayoutGeometry {

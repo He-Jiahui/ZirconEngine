@@ -1,18 +1,16 @@
-use crate::scene::viewport::{HandleElementExtract, ViewportCameraSnapshot};
-use zircon_runtime_interface::math::UVec2;
+use crate::scene::viewport::HandleElementExtract;
 
 use crate::scene::viewport::pointer::constants::{HANDLE_PICK_THRESHOLD_PX, HANDLE_PRIORITY};
 use crate::scene::viewport::pointer::precision::{PrecisionCandidate, PrecisionShape};
 use crate::scene::viewport::pointer::viewport_pointer_route::ViewportPointerRoute;
-use crate::scene::viewport::projection::{projected_point, world_units_per_pixel};
+use crate::scene::viewport::projection::ViewportProjectionContext;
 
 use super::{gizmo_axis, projected_ring_segments};
 
 pub(in crate::scene::viewport::pointer) fn handle_candidate(
     owner: u64,
     element: &HandleElementExtract,
-    camera: &ViewportCameraSnapshot,
-    viewport: UVec2,
+    projection: &ViewportProjectionContext<'_>,
 ) -> Option<PrecisionCandidate> {
     match element {
         HandleElementExtract::AxisLine {
@@ -21,8 +19,8 @@ pub(in crate::scene::viewport::pointer) fn handle_candidate(
         | HandleElementExtract::AxisScale {
             axis, start, end, ..
         } => {
-            let start_projection = projected_point(*start, camera, viewport)?;
-            let end_projection = projected_point(*end, camera, viewport)?;
+            let start_projection = projection.projected_point(*start)?;
+            let end_projection = projection.projected_point(*end)?;
             Some(PrecisionCandidate {
                 route: ViewportPointerRoute::HandleAxis {
                     owner,
@@ -45,13 +43,12 @@ pub(in crate::scene::viewport::pointer) fn handle_candidate(
             radius,
             ..
         } => {
-            let center_projection = projected_point(*center, camera, viewport)?;
-            let ring_segments =
-                projected_ring_segments(*center, *normal, *radius, camera, viewport);
+            let center_projection = projection.projected_point(*center)?;
+            let ring_segments = projected_ring_segments(*center, *normal, *radius, projection);
             if ring_segments.is_empty() {
                 return None;
             }
-            let radius_px = (*radius / world_units_per_pixel(camera, *center, viewport))
+            let radius_px = (*radius / projection.world_units_per_pixel(*center))
                 .abs()
                 .max(1.0);
             Some(PrecisionCandidate {

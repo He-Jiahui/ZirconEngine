@@ -48,8 +48,15 @@ fn menu_and_palette_use_the_same_descriptor_when_evaluation() {
     let selected_menu = registry.menu_model("Tools", &selected).unwrap();
     assert!(!empty_menu.items[0].enabled);
     assert!(selected_menu.items[0].enabled);
-    assert!(registry.command_palette_entries(&empty).is_empty());
-    assert_eq!(registry.command_palette_entries(&selected).len(), 1);
+    assert!(registry
+        .command_palette_query_window(&empty, "", 0, 16)
+        .is_empty());
+    assert_eq!(
+        registry
+            .command_palette_query_window(&selected, "", 0, 16)
+            .len(),
+        1
+    );
 }
 
 #[test]

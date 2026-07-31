@@ -21,21 +21,21 @@ default_classes = ["workbench-panel", "workbench-left-panel"]
 component = "VerticalGroup"
 control_id = "WorkbenchSceneTreePanel"
 classes = ["workbench-panel", "workbench-left-panel"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = 8.0 }, width = { preferred = "$--left-drawer-width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { preferred = "$editor.density.left_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "scene_tabs" }, { node = "scene_content" }]
 
 [nodes.scene_tabs]
 component = "HorizontalGroup"
 control_id = "LeftDrawerHeaderRoot"
 classes = ["workbench-tabs"]
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 children = [{ node = "scene_tab_scene" }, { node = "scene_tab_layers" }]
 
 [nodes.scene_content]
 component = "VerticalGroup"
 control_id = "LeftDrawerContentRoot"
 classes = ["workbench-left-drawer-content"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "scene_search_row" }, { node = "scene_tree" }]
 
 [nodes.scene_tab_scene]
@@ -57,7 +57,7 @@ events = [{ id = "PanelTab/SceneTreeLayers", event = "Click", route = "workbench
 [nodes.scene_search_row]
 component = "HorizontalGroup"
 control_id = "WorkbenchSceneSearchRow"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 children = [{ node = "scene_search_field" }, { node = "scene_filter_button" }, { node = "scene_add_button" }]
 
 [nodes.scene_search_field]

@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use super::super::super::super::*;
 use super::super::super::fixtures::TestManager;
-use crate::core::framework::error::CoreResult;
 use crate::core::runtime::ServiceObject;
+use crate::core::CoreResult;
 use crate::core::{CoreError, LifecycleState, ServiceKind, StartupMode};
 
 #[test]

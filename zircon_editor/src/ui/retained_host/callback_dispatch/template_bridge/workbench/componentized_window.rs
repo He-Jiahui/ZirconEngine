@@ -10,7 +10,8 @@ use zircon_runtime_interface::ui::{
     surface::{UiPointerButton, UiPointerEventKind, UiPointerRoute},
 };
 
-use crate::scene::viewport::SceneViewportTool;
+use crate::scene::modes::SceneModeActivation;
+use crate::scene::viewport::TransformHandleKind;
 use crate::ui::binding::{
     DockCommand, EditorUiBinding, EditorUiBindingPayload, SelectionCommand, ViewportCommand,
 };
@@ -65,6 +66,7 @@ pub(crate) struct BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(super) runtime: Arc<EditorUiHostRuntime>,
     bindings_by_id: BTreeMap<String, EditorUiBinding>,
     pub(super) template_surface: EditorWorkbenchTemplateSurface,
+    pub(super) mount_frame: UiFrame,
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
@@ -78,6 +80,18 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         runtime: Arc<EditorUiHostRuntime>,
         shell_size: UiSize,
     ) -> Result<Self, BuiltinHostWindowTemplateBridgeError> {
+        Self::new_mounted_with_runtime(
+            runtime,
+            UiFrame::new(0.0, 0.0, shell_size.width, shell_size.height),
+        )
+    }
+
+    pub(crate) fn new_mounted_with_runtime(
+        runtime: Arc<EditorUiHostRuntime>,
+        mount_frame: UiFrame,
+    ) -> Result<Self, BuiltinHostWindowTemplateBridgeError> {
+        let mount_frame = normalized_mount_frame(mount_frame);
+        let shell_size = UiSize::new(mount_frame.width, mount_frame.height);
         let projection =
             project_builtin_document_with_runtime(&runtime, WORKBENCH_WINDOW_DOCUMENT_ID)?;
         let bindings_by_id = build_bindings_by_id(&projection);
@@ -93,6 +107,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             runtime,
             bindings_by_id,
             template_surface,
+            mount_frame,
         };
         bridge.apply_responsive_toolbar_layout(shell_size)?;
         bridge
@@ -102,6 +117,25 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 
     pub(crate) fn recompute_layout(
+        &mut self,
+        shell_size: UiSize,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.mount_frame =
+            normalized_mount_frame(UiFrame::new(0.0, 0.0, shell_size.width, shell_size.height));
+        self.recompute_local_layout(shell_size)
+    }
+
+    pub(super) fn recompute_layout_at_mount(
+        &mut self,
+        mount_frame: UiFrame,
+    ) -> Result<UiSize, BuiltinHostWindowTemplateBridgeError> {
+        self.mount_frame = normalized_mount_frame(mount_frame);
+        let shell_size = UiSize::new(self.mount_frame.width, self.mount_frame.height);
+        self.recompute_local_layout(shell_size)?;
+        Ok(shell_size)
+    }
+
+    fn recompute_local_layout(
         &mut self,
         shell_size: UiSize,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
@@ -130,43 +164,52 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 
     pub(crate) fn layout_frames(&self) -> BuiltinWorkbenchWindowLayoutFrames {
+        let mounted = |control_id| self.mounted_control_frame(control_id);
         BuiltinWorkbenchWindowLayoutFrames {
-            center_band_frame: self.control_frame(EditorWorkbenchTemplateControlIds::MAIN_BAND),
-            activity_rail_frame: self
-                .control_frame(EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL),
+            mount_frame: Some(self.mount_frame),
+            center_band_frame: mounted(EditorWorkbenchTemplateControlIds::MAIN_BAND),
+            activity_rail_frame: mounted(EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL),
             left_region_frame: union_visible_frames([
-                self.control_frame(EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL),
-                self.control_frame(EditorWorkbenchTemplateControlIds::SCENE_TREE),
+                mounted(EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL),
+                mounted(EditorWorkbenchTemplateControlIds::SCENE_TREE),
             ]),
-            left_drawer_shell_frame: self.control_frame(LEFT_DRAWER_SHELL_CONTROL_ID),
-            left_drawer_header_frame: self.control_frame(LEFT_DRAWER_HEADER_CONTROL_ID),
-            left_drawer_content_frame: self.control_frame(LEFT_DRAWER_CONTENT_CONTROL_ID),
-            document_tabs_frame: self.control_frame(DOCUMENT_TABS_CONTROL_ID),
-            document_region_frame: self.control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT),
-            right_drawer_shell_frame: self.control_frame(RIGHT_DRAWER_SHELL_CONTROL_ID),
-            right_drawer_header_frame: self.control_frame(RIGHT_DRAWER_HEADER_CONTROL_ID),
-            right_drawer_content_frame: self.control_frame(RIGHT_DRAWER_CONTENT_CONTROL_ID),
-            right_region_frame: self.control_frame(EditorWorkbenchTemplateControlIds::INSPECTOR),
-            bottom_drawer_shell_frame: self.control_frame(BOTTOM_DRAWER_SHELL_CONTROL_ID),
-            bottom_drawer_header_frame: self.control_frame(BOTTOM_DRAWER_HEADER_CONTROL_ID),
-            bottom_drawer_content_frame: self.control_frame(BOTTOM_DRAWER_CONTENT_CONTROL_ID),
-            bottom_region_frame: self
-                .control_frame(EditorWorkbenchTemplateControlIds::COMPONENT_DRAWER),
-            status_bar_frame: self.control_frame(EditorWorkbenchTemplateControlIds::STATUS_BAR),
-            viewport_toolbar_frame: self
-                .control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT_TOOLBAR),
-            viewport_content_frame: self
-                .control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT_SURFACE),
-            left_resize_splitter_frame: left_resize_splitter_frame_from_drawer_shell(
-                self.control_frame(LEFT_DRAWER_SHELL_CONTROL_ID),
-            ),
-            right_resize_splitter_frame: right_resize_splitter_frame_from_drawer_shell(
-                self.control_frame(RIGHT_DRAWER_SHELL_CONTROL_ID),
-            ),
-            bottom_resize_splitter_frame: bottom_resize_splitter_frame_from_drawer_shell(
-                self.control_frame(BOTTOM_DRAWER_SHELL_CONTROL_ID),
-            ),
+            left_drawer_shell_frame: mounted(LEFT_DRAWER_SHELL_CONTROL_ID),
+            left_drawer_header_frame: mounted(LEFT_DRAWER_HEADER_CONTROL_ID),
+            left_drawer_content_frame: mounted(LEFT_DRAWER_CONTENT_CONTROL_ID),
+            document_tabs_frame: mounted(DOCUMENT_TABS_CONTROL_ID),
+            document_region_frame: mounted(EditorWorkbenchTemplateControlIds::VIEWPORT),
+            right_drawer_shell_frame: mounted(RIGHT_DRAWER_SHELL_CONTROL_ID),
+            right_drawer_header_frame: mounted(RIGHT_DRAWER_HEADER_CONTROL_ID),
+            right_drawer_content_frame: mounted(RIGHT_DRAWER_CONTENT_CONTROL_ID),
+            right_region_frame: mounted(EditorWorkbenchTemplateControlIds::INSPECTOR),
+            bottom_drawer_shell_frame: mounted(BOTTOM_DRAWER_SHELL_CONTROL_ID),
+            bottom_drawer_header_frame: mounted(BOTTOM_DRAWER_HEADER_CONTROL_ID),
+            bottom_drawer_content_frame: mounted(BOTTOM_DRAWER_CONTENT_CONTROL_ID),
+            bottom_region_frame: mounted(EditorWorkbenchTemplateControlIds::COMPONENT_DRAWER),
+            status_bar_frame: mounted(EditorWorkbenchTemplateControlIds::STATUS_BAR),
+            viewport_toolbar_frame: mounted(EditorWorkbenchTemplateControlIds::VIEWPORT_TOOLBAR),
+            viewport_content_frame: mounted(EditorWorkbenchTemplateControlIds::VIEWPORT_SURFACE),
+            left_resize_splitter_frame: left_resize_splitter_frame_from_drawer_shell(mounted(
+                LEFT_DRAWER_SHELL_CONTROL_ID,
+            )),
+            right_resize_splitter_frame: right_resize_splitter_frame_from_drawer_shell(mounted(
+                RIGHT_DRAWER_SHELL_CONTROL_ID,
+            )),
+            bottom_resize_splitter_frame: bottom_resize_splitter_frame_from_drawer_shell(mounted(
+                BOTTOM_DRAWER_SHELL_CONTROL_ID,
+            )),
         }
+    }
+
+    fn mounted_control_frame(&self, control_id: &str) -> Option<UiFrame> {
+        self.control_frame(control_id).map(|frame| {
+            UiFrame::new(
+                frame.x + self.mount_frame.x,
+                frame.y + self.mount_frame.y,
+                frame.width,
+                frame.height,
+            )
+        })
     }
 
     pub(crate) fn binding_for_control(
@@ -208,8 +251,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     pub(crate) fn route_pointer_event(
         &mut self,
-        event: zircon_runtime_interface::ui::dispatch::UiPointerEvent,
+        mut event: zircon_runtime_interface::ui::dispatch::UiPointerEvent,
     ) -> Result<UiPointerRoute, BuiltinHostWindowTemplateBridgeError> {
+        event.point.x -= self.mount_frame.x;
+        event.point.y -= self.mount_frame.y;
         let route = match event.button {
             Some(button) => self
                 .template_surface
@@ -252,8 +297,8 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         binding: &EditorUiBinding,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         match binding.payload() {
-            EditorUiBindingPayload::ViewportCommand(ViewportCommand::SetTool(tool)) => {
-                self.select_exclusive(TOOL_CONTROLS, tool_control_id(*tool))?;
+            EditorUiBindingPayload::ViewportCommand(ViewportCommand::ActivateSceneMode(mode)) => {
+                self.select_exclusive(TOOL_CONTROLS, scene_mode_control_id(mode))?;
             }
             EditorUiBindingPayload::ViewportCommand(ViewportCommand::SetGridMode(_)) => {
                 self.set_control_active("WorkbenchToolSnap", true)?;
@@ -283,17 +328,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
         Ok(())
-    }
-
-    pub(crate) fn dispatch_binding_state(
-        &mut self,
-        binding_id: &str,
-    ) -> Result<Option<EditorUiBinding>, BuiltinHostWindowTemplateBridgeError> {
-        let Some(binding) = self.binding_by_id(binding_id).cloned() else {
-            return Ok(None);
-        };
-        let control_id = binding.path().control_id.clone();
-        self.dispatch_binding_state_for_control(&control_id, binding_id)
     }
 
     pub(crate) fn dispatch_binding_state_for_control(
@@ -800,6 +834,15 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 }
 
+fn normalized_mount_frame(frame: UiFrame) -> UiFrame {
+    UiFrame::new(
+        frame.x.max(0.0),
+        frame.y.max(0.0),
+        frame.width.max(0.0),
+        frame.height.max(0.0),
+    )
+}
+
 const TOOL_CONTROLS: &[&str] = &[
     "WorkbenchToolSelect",
     "WorkbenchToolMove",
@@ -835,12 +878,12 @@ const PANEL_INSPECTOR_TAB_CONTROLS: &[&str] = &[
 ];
 const PANEL_COMPONENT_DRAWER_TAB_CONTROLS: &[&str] =
     &["WorkbenchDrawerTabComponents", "WorkbenchDrawerTabConsole"];
-fn tool_control_id(tool: SceneViewportTool) -> &'static str {
-    match tool {
-        SceneViewportTool::Move => "WorkbenchToolMove",
-        SceneViewportTool::Rotate => "WorkbenchToolRotate",
-        SceneViewportTool::Scale => "WorkbenchToolScale",
-        SceneViewportTool::Drag => "WorkbenchToolSelect",
+fn scene_mode_control_id(mode: &SceneModeActivation) -> &'static str {
+    match mode {
+        SceneModeActivation::Select | SceneModeActivation::Custom(_) => "WorkbenchToolSelect",
+        SceneModeActivation::Transform(TransformHandleKind::Move) => "WorkbenchToolMove",
+        SceneModeActivation::Transform(TransformHandleKind::Rotate) => "WorkbenchToolRotate",
+        SceneModeActivation::Transform(TransformHandleKind::Scale) => "WorkbenchToolScale",
     }
 }
 

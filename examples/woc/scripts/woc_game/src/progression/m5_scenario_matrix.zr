@@ -1,0 +1,77 @@
+// Fixed M5 scenario-to-owner routing for the eleven parity factories at
+// reference commit 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. Each entry
+// remains a focused state contract until the production byte bridge can drive
+// the authoritative world and exact WTR1 comparison.
+var xp = %import("progression/xp_state");
+var talents = %import("progression/talent_state");
+var inventory = %import("progression/inventory_vendor_state");
+var loot = %import("progression/loot_distribution_state");
+var bank = %import("progression/bank_state");
+var market = %import("progression/market_state");
+var trade = %import("progression/trade_state");
+var quests = %import("progression/quest_state");
+var talentRows = %import("progression/talent_row_selection");
+var masterwork = %import("progression/masterwork_rules");
+var comboEligibility = %import("progression/combo_eligibility");
+var crafting = %import("progression/crafting_transaction");
+var professionsCraft = %import("progression/professions_craft_fixture");
+var itemBudget = %import("progression/masterwork_item_budget");
+var instances = %import("progression/inventory_instance_ledger");
+var talentLoadoutMigration = %import("progression/talent_loadout_migration");
+
+pub scenarioCount(required: bool): int {
+    if (!required) { return 0; }
+    return 11;
+}
+
+pub scenarioName(index: int): string {
+    if (index == 0) { return "g1b_xp_prestige"; }
+    if (index == 1) { return "talents_progression"; }
+    if (index == 2) { return "inventory_vendor"; }
+    if (index == 3) { return "l1_loot_distribution"; }
+    if (index == 4) { return "party_loot"; }
+    if (index == 5) { return "bank_round_trip"; }
+    if (index == 6) { return "market_round_trip"; }
+    if (index == 7) { return "player_trade"; }
+    if (index == 8) { return "quest_collect_turnin"; }
+    if (index == 9) { return "quest_kill_credit"; }
+    if (index == 10) { return "quest_link_abandon"; }
+    return "";
+}
+
+pub runScenario(index: int): int {
+    if (index == 0) { return xp.contractTest(); }
+    if (index == 1) { return talents.contractTest(); }
+    if (index == 2) { return inventory.contractTest(); }
+    if (index == 3) { return loot.l1LootDistributionScenarioTest(); }
+    if (index == 4) { return loot.partyLootScenarioTest(); }
+    if (index == 5) { return bank.contractTest(); }
+    if (index == 6) { return market.contractTest(); }
+    if (index == 7) { return trade.contractTest(); }
+    if (index == 8) { return quests.collectTurnInScenarioTest(); }
+    if (index == 9) { return quests.killCreditScenarioTest(); }
+    if (index == 10) { return quests.linkedAbandonScenarioTest(); }
+    return -1;
+}
+
+pub contractTest(): int {
+    if (scenarioCount(true) != 11 || scenarioCount(false) != 0 ||
+        scenarioName(-1) != "" || scenarioName(11) != "" || runScenario(-1) != -1 ||
+        runScenario(11) != -1) {
+        return -1;
+    }
+    // Current-head row selection is not a historical parity factory, but it
+    // belongs to the same allocation owner and must travel this source matrix.
+    if (talentRows.contractTest() != 1 || masterwork.contractTest() != 1 ||
+        comboEligibility.contractTest() != 1 || crafting.contractTest() != 1 ||
+        professionsCraft.contractTest() != 1 || itemBudget.contractTest() != 1 ||
+        instances.contractTest() != 1 || talentLoadoutMigration.contractTest() != 1) { return -2; }
+    var index = 0;
+    while (index < scenarioCount(true)) {
+        if (scenarioName(index) == "") { return -10 - index; }
+        var result = runScenario(index);
+        if (result != 1) { return -100 - index; }
+        index = index + 1;
+    }
+    return 1;
+}

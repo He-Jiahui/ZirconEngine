@@ -160,6 +160,7 @@ pub struct RenderCapabilitySummary {
     pub supports_async_compute: bool,
     pub supports_async_copy: bool,
     pub supports_pipeline_cache: bool,
+    pub supports_gpu_timestamp: bool,
     pub supports_storage_buffers: bool,
     pub supports_fragment_writable_storage: bool,
     pub max_storage_buffers_per_shader_stage: u32,

@@ -1,9 +1,9 @@
 use crate::core::math::UVec2;
 
 use crate::graphics::scene::{
-    cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
     FINAL_COLOR_FORMAT, GBUFFER_ALBEDO_FORMAT, GBUFFER_EMISSIVE_FORMAT, GBUFFER_MATERIAL_FORMAT,
-    NORMAL_FORMAT, SCENE_COLOR_HDR_FORMAT,
+    NORMAL_FORMAT, SCENE_COLOR_HDR_FORMAT, cluster_buffer_bytes_for_size,
+    cluster_dimensions_for_size, create_depth_texture,
 };
 
 use super::super::offscreen_target::OffscreenTarget;

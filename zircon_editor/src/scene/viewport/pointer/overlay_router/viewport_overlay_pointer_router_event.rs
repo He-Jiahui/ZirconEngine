@@ -41,24 +41,22 @@ impl ViewportOverlayPointerRouter {
     }
 
     fn handle_event(&mut self, event: UiPointerEvent) -> Result<ViewportPointerDispatch, String> {
-        let point = event.point;
         let runtime_input = runtime_pointer_input_for_event(&event);
         if let Ok(mut shared) = self.shared.lock() {
             shared.last_route = None;
+            shared.last_debug_feed = None;
         }
         self.surface
             .dispatch_pointer_event(&self.dispatcher, event)
             .map_err(|error| error.to_string())?;
-        let route = self
+        let shared = self
             .shared
             .lock()
-            .map_err(|_| "viewport pointer shared resolution lock poisoned".to_string())?
-            .last_route
-            .clone();
+            .map_err(|_| "viewport pointer shared resolution lock poisoned".to_string())?;
         Ok(ViewportPointerDispatch {
-            route,
+            route: shared.last_route.clone(),
             runtime_input: Some(runtime_input),
-            picking_debug_feed: Some(self.debug_feed_at(point)?),
+            picking_debug_feed: shared.last_debug_feed.clone(),
         })
     }
 }

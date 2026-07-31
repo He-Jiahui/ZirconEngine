@@ -1,9 +1,9 @@
 use super::*;
 use crate::core::framework::render::{
-    FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract, RenderFrameExtract,
-    RenderLayerSet, RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderWorldSnapshotHandle, ShadowPcfQuality,
-    ShadowResolutionTier, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract,
+    RenderFrameExtract, RenderLayerSet, RenderOverlayExtract, RenderPointLightSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
+    RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::graphics::scene::scene_renderer::shadow::slot::{
@@ -59,6 +59,17 @@ fn shadow_with_quality(
         resolution_preference: tier,
         pcf_quality,
     }
+}
+
+#[test]
+fn render_shadow_point_face_plan_uses_fixed_stack_storage() {
+    let source = include_str!("../plan.rs")
+        .split("#[cfg(test)]")
+        .next()
+        .expect("production source precedes tests");
+
+    assert!(source.contains("[Option<ShadowSlotAllocation>;"));
+    assert!(!source.contains("collect::<Option<Vec<_>>>()"));
 }
 
 #[test]
@@ -213,18 +224,21 @@ fn render_shadow_frame_plan_assigns_point_light_contiguous_face_slots() {
             slot_count: POINT_LIGHT_SHADOW_FACE_COUNT
         })
     );
-    assert!(plan
-        .slots()
-        .iter()
-        .all(|slot| slot.flags_bits() & GPU_SHADOW_SLOT_FLAG_POINT_FACE != 0));
-    assert!(plan
-        .slots()
-        .iter()
-        .all(|slot| slot.view_proj != Mat4::IDENTITY.to_cols_array_2d()));
-    assert!(plan
-        .atlas_passes()
-        .iter()
-        .all(|slot_pass| slot_pass.view_proj != Mat4::IDENTITY));
+    assert!(
+        plan.slots()
+            .iter()
+            .all(|slot| slot.flags_bits() & GPU_SHADOW_SLOT_FLAG_POINT_FACE != 0)
+    );
+    assert!(
+        plan.slots()
+            .iter()
+            .all(|slot| slot.view_proj != Mat4::IDENTITY.to_cols_array_2d())
+    );
+    assert!(
+        plan.atlas_passes()
+            .iter()
+            .all(|slot_pass| slot_pass.view_proj != Mat4::IDENTITY)
+    );
     assert_eq!(
         plan.atlas_passes()
             .iter()

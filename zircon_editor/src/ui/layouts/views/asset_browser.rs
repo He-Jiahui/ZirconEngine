@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
-use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::view_projection::build_view_template_nodes;
 use crate::ui::retained_host::primitives::ModelRc;
+use crate::ui::workbench::asset_content_layout::{
+    asset_content_paint_metadata, AssetContentPaintNodeInput, AssetContentSurface,
+};
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetSelectionSnapshot, AssetUtilityTab, AssetViewMode,
     AssetWorkspaceSnapshot,
@@ -414,7 +416,20 @@ pub(crate) fn asset_browser_pane_nodes(
         snapshot.view_mode,
         toolbar_layout.map(|layout| layout.main_y),
     );
-    model_rc(nodes)
+    let metadata = asset_content_paint_metadata(
+        nodes.iter().map(|node| {
+            AssetContentPaintNodeInput::new(
+                node.control_id.as_str(),
+                node.frame.x,
+                node.frame.y,
+                node.frame.width,
+                node.frame.height,
+                node.value_number,
+            )
+        }),
+        AssetContentSurface::Browser,
+    );
+    ModelRc::with_metadata(nodes, metadata)
 }
 
 fn apply_asset_browser_visual_state(

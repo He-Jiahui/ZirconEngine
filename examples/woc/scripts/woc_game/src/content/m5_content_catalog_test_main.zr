@@ -1,0 +1,105 @@
+var console = %import("zr.system.console");
+var catalog = %import("generated/m5_content_catalog");
+
+contractTest(): int {
+    if (catalog.catalogSha() !=
+        "9ff52d9d80e5c269cb06850c7ad73da4ce6b18f741cb2f88f9de00fce1b730b6") {
+        return -1;
+    }
+    if (catalog.count("item") != 14 || catalog.count("quest") != 2 ||
+        catalog.count("mob") != 1 || catalog.count("npc") != 6 ||
+        catalog.count("talent_option") != 3 || catalog.count("ability") != 3 ||
+        catalog.count("spec") != 2 || catalog.indexOf("item", "missing") != -1) {
+        return -2;
+    }
+
+    var boarHide = catalog.indexOf("item", "boar_hide");
+    if (catalog.text("item", boarHide, "kind") != "quest" ||
+        catalog.text("item", boarHide, "questId") != "q_boars") {
+        return -3;
+    }
+    var bread = catalog.indexOf("item", "baked_bread");
+    if (catalog.metric("item", bread, "foodHp") != 61.0 ||
+        catalog.metric("item", bread, "buyValue") != 25.0) {
+        return -4;
+    }
+    var cryptbone = catalog.indexOf("item", "cryptbone_helm");
+    if (catalog.text("item", cryptbone, "slot") != "helmet" ||
+        catalog.metric("item", cryptbone, "statArmor") != 48.0 ||
+        catalog.metric("item", cryptbone, "statSta") != 3.0) {
+        return -5;
+    }
+    var satchel = catalog.indexOf("item", "wolfhide_satchel");
+    if (catalog.metric("item", satchel, "bagSlots") != 10.0) { return -13; }
+
+    var boars = catalog.indexOf("quest", "q_boars");
+    if (catalog.text("quest", boars, "giverNpcId") != "trader_wilkes" ||
+        catalog.text("quest", boars, "objectiveItemId") != "boar_hide" ||
+        catalog.metric("quest", boars, "objectiveCount") != 5.0 ||
+        catalog.metric("quest", boars, "copperReward") != 120.0) {
+        return -6;
+    }
+    var wolves = catalog.indexOf("quest", "q_wolves");
+    if (catalog.text("quest", wolves, "objectiveMobId") != "forest_wolf" ||
+        catalog.metric("quest", wolves, "objectiveCount") != 8.0) {
+        return -7;
+    }
+
+    var wolf = catalog.indexOf("mob", "forest_wolf");
+    if (catalog.metric("mob", wolf, "hpBase") != 40.0 ||
+        catalog.mobLootCount(wolf) != 4 ||
+        catalog.mobLootMetric(wolf, 0, "copper") != 8.0 ||
+        catalog.mobLootText(wolf, 1, "itemId") != "wolf_fang" ||
+        catalog.mobLootText(wolf, 2, "itemId") != "milepost_boots" ||
+        catalog.mobLootText(wolf, 3, "itemId") != "wolfhide_satchel") {
+        return -8;
+    }
+
+    var wilkes = catalog.indexOf("npc", "trader_wilkes");
+    var merchant = catalog.indexOf("npc", "the_merchant");
+    var banker = catalog.indexOf("npc", "bursar_fernando");
+    if (!catalog.npcSells(wilkes, "minor_healing_potion") ||
+        catalog.npcSells(wilkes, "wolf_fang") ||
+        !catalog.flag("npc", merchant, "market") ||
+        !catalog.flag("npc", banker, "banker")) {
+        return -9;
+    }
+
+    var charge = catalog.indexOf("talent_option", "war_row_double_charge");
+    var sword = catalog.indexOf("talent_option", "war_row_die_by_the_sword");
+    var victory = catalog.indexOf("talent_option", "war_row_victory_rush");
+    if (catalog.metric("talent_option", charge, "rowLevel") != 5.0 ||
+        catalog.metric("talent_option", charge, "bonusCharges") != 1.0 ||
+        catalog.text("talent_option", sword, "grantAbilityId") != "die_by_sword" ||
+        catalog.text("talent_option", victory, "grantAbilityId") != "victory_rush") {
+        return -10;
+    }
+    var mortal = catalog.indexOf("ability", "mortal_strike");
+    var overpower = catalog.indexOf("ability", "overpower");
+    var fury = catalog.indexOf("spec", "fury");
+    var bloodthirst = catalog.indexOf("ability", "bloodthirst");
+    if (catalog.abilityRankAtLevel(mortal, 9) != 0 ||
+        catalog.abilityRankAtLevel(mortal, 10) != 1 ||
+        catalog.metric("ability", mortal, "cost") != 30.0 ||
+        catalog.abilityRankAtLevel(overpower, 16) != 2 ||
+        !catalog.flag("ability", overpower, "requiresDodgeProc") ||
+        catalog.text("spec", fury, "signature") != "bloodthirst" ||
+        catalog.abilityRankAtLevel(bloodthirst, 9) != 0 ||
+        catalog.abilityRankAtLevel(bloodthirst, 10) != 1) {
+        return -11;
+    }
+
+    if (catalog.maxLevel() != 20 || catalog.prestigeXpPerRank() != 23200 ||
+        catalog.xpForLevel(1) != 400 || catalog.xpForLevel(20) != 23200 ||
+        catalog.marketCut() != 0.05 || catalog.bankExpansionCount() != 12 ||
+        catalog.bankExpansionPrice(0) != 500 ||
+        catalog.bankExpansionPrice(11) != 1200000) {
+        return -12;
+    }
+    return 1;
+}
+
+console.printLine("m5-content-catalog-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

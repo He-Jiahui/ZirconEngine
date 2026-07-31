@@ -1,0 +1,292 @@
+// Current-head corpse shared-loot authority projected from interaction.ts,
+// combat/damage.ts and mob/locomotion.ts. This state owns only tap, owner-lock
+// and current-party eligibility; inventory transfer, personal drops and rolls
+// stay with their respective transactional owners.
+var container = %import("zr.container");
+var lootFfa = %import("progression/loot_ffa_state");
+
+pub class CorpseLootRightsState {
+    // Numeric kinds match the world kernel: player=1, mob=2, pet=3.
+    pub var entityIds: container.Array<uint>;
+    pub var entityKinds: container.Array<uint>;
+    pub var entityDead: container.Array<bool>;
+    pub var entityHostile: container.Array<bool>;
+    pub var entityOwnerPresent: container.Array<bool>;
+    pub var entityOwnerIds: container.Array<uint>;
+    pub var entityPartyIds: container.Array<uint>;
+    pub var entityLeaving: container.Array<bool>;
+    pub var entityLootable: container.Array<bool>;
+    // Source null values are represented with explicit presence markers. The
+    // finite timer is inactive until rollLoot starts the source's 60 second lock.
+    pub var entityTapperPresent: container.Array<bool>;
+    pub var entityTapperIds: container.Array<uint>;
+    pub var entityLootFfaTimerActive: container.Array<bool>;
+    pub var entityLootFfaRemainingMicros: container.Array<uint>;
+
+    pub @constructor() {
+        this.entityIds = new container.Array<uint>();
+        this.entityKinds = new container.Array<uint>();
+        this.entityDead = new container.Array<bool>();
+        this.entityHostile = new container.Array<bool>();
+        this.entityOwnerPresent = new container.Array<bool>();
+        this.entityOwnerIds = new container.Array<uint>();
+        this.entityPartyIds = new container.Array<uint>();
+        this.entityLeaving = new container.Array<bool>();
+        this.entityLootable = new container.Array<bool>();
+        this.entityTapperPresent = new container.Array<bool>();
+        this.entityTapperIds = new container.Array<uint>();
+        this.entityLootFfaTimerActive = new container.Array<bool>();
+        this.entityLootFfaRemainingMicros = new container.Array<uint>();
+    }
+}
+
+playerKind(): uint { return <uint>1; }
+mobKind(): uint { return <uint>2; }
+petKind(): uint { return <uint>3; }
+lootFfaDelayMicros(): uint { return <uint>60000000; }
+
+entityIndex(state: CorpseLootRightsState, entityId: uint): int {
+    var index = 0;
+    while (index < state.entityIds.length) {
+        if (<uint>state.entityIds[index] == entityId) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+playerIndex(state: CorpseLootRightsState, playerId: uint): int {
+    var index = entityIndex(state, playerId);
+    if (index < 0 || <uint>state.entityKinds[index] != playerKind()) return -1;
+    return index;
+}
+
+appendEntity(
+    state: CorpseLootRightsState,
+    entityId: uint,
+    kind: uint,
+    hostile: bool,
+    ownerPresent: bool,
+    ownerId: uint,
+    partyId: uint,
+    leaving: bool
+): bool {
+    if (entityId == <uint>0 || entityIndex(state, entityId) >= 0) return false;
+    state.entityIds.add(entityId);
+    state.entityKinds.add(kind);
+    state.entityDead.add(false);
+    state.entityHostile.add(hostile);
+    state.entityOwnerPresent.add(ownerPresent);
+    state.entityOwnerIds.add(ownerId);
+    state.entityPartyIds.add(partyId);
+    state.entityLeaving.add(leaving);
+    state.entityLootable.add(false);
+    state.entityTapperPresent.add(false);
+    state.entityTapperIds.add(<uint>0);
+    state.entityLootFfaTimerActive.add(false);
+    state.entityLootFfaRemainingMicros.add(<uint>0);
+    return true;
+}
+
+pub addPlayer(
+    state: CorpseLootRightsState, playerId: uint, partyId: uint, leaving: bool
+): bool {
+    return appendEntity(
+        state, playerId, playerKind(), false, false, <uint>0, partyId, leaving
+    );
+}
+
+pub addPet(state: CorpseLootRightsState, petId: uint, ownerId: uint): bool {
+    if (playerIndex(state, ownerId) < 0) return false;
+    return appendEntity(state, petId, petKind(), false, true, ownerId, <uint>0, false);
+}
+
+pub addMob(state: CorpseLootRightsState, mobId: uint, hostile: bool): bool {
+    return appendEntity(state, mobId, mobKind(), hostile, false, <uint>0, <uint>0, false);
+}
+
+pub setPlayerParty(state: CorpseLootRightsState, playerId: uint, partyId: uint): bool {
+    var index = playerIndex(state, playerId);
+    if (index < 0) return false;
+    state.entityPartyIds[index] = partyId;
+    return true;
+}
+
+pub setPlayerLeaving(state: CorpseLootRightsState, playerId: uint, leaving: bool): bool {
+    var index = playerIndex(state, playerId);
+    if (index < 0) return false;
+    state.entityLeaving[index] = leaving;
+    return true;
+}
+
+pub setMobDead(state: CorpseLootRightsState, mobId: uint, dead: bool): bool {
+    var index = entityIndex(state, mobId);
+    if (index < 0 || <uint>state.entityKinds[index] != mobKind()) return false;
+    state.entityDead[index] = dead;
+    return true;
+}
+
+sourcePlayerId(state: CorpseLootRightsState, sourceIndex: int): uint {
+    if (<uint>state.entityKinds[sourceIndex] == playerKind()) {
+        return <uint>state.entityIds[sourceIndex];
+    }
+    if (!<bool>state.entityOwnerPresent[sourceIndex]) return <uint>0;
+    return <uint>state.entityOwnerIds[sourceIndex];
+}
+
+// Mirrors combat/damage.ts: only the first positive player-or-pet hit against
+// a hostile mob establishes tap ownership, and a leaving player cannot claim it.
+pub recordDamageTap(
+    state: CorpseLootRightsState, targetId: uint, sourceId: uint, amount: int
+): bool {
+    var targetIndex = entityIndex(state, targetId);
+    var sourceIndex = entityIndex(state, sourceId);
+    if (targetIndex < 0 || sourceIndex < 0 || amount <= 0 ||
+        <uint>state.entityKinds[targetIndex] != mobKind() ||
+        !<bool>state.entityHostile[targetIndex] ||
+        <bool>state.entityTapperPresent[targetIndex]) {
+        return false;
+    }
+    var playerId = sourcePlayerId(state, sourceIndex);
+    var player = playerIndex(state, playerId);
+    if (player < 0 || <bool>state.entityLeaving[player]) return false;
+    state.entityTapperPresent[targetIndex] = true;
+    state.entityTapperIds[targetIndex] = playerId;
+    return true;
+}
+
+// rollLoot creates the source loot object and starts its owner-lock in one
+// transition. A corpse with no generated items remains non-lootable.
+pub beginCorpseLoot(
+    state: CorpseLootRightsState, mobId: uint, generatedLoot: bool
+): bool {
+    var index = entityIndex(state, mobId);
+    if (index < 0 || <uint>state.entityKinds[index] != mobKind() ||
+        !<bool>state.entityDead[index] || !generatedLoot) {
+        return false;
+    }
+    state.entityLootable[index] = true;
+    state.entityLootFfaTimerActive[index] = true;
+    state.entityLootFfaRemainingMicros[index] = lootFfaDelayMicros();
+    return true;
+}
+
+// updateMob decrements the owner-lock only while the mob remains dead. Zero is
+// retained rather than wrapped, matching the source predicate timer <= 0.
+pub advance(state: CorpseLootRightsState, deltaMicros: uint): void {
+    var index = 0;
+    while (index < state.entityIds.length) {
+        if (<uint>state.entityKinds[index] == mobKind() &&
+            <bool>state.entityDead[index] &&
+            <bool>state.entityLootFfaTimerActive[index] &&
+            <uint>state.entityLootFfaRemainingMicros[index] > <uint>0) {
+            var remaining = <uint>state.entityLootFfaRemainingMicros[index];
+            state.entityLootFfaRemainingMicros[index] =
+                remaining > deltaMicros ? remaining - deltaMicros : <uint>0;
+        }
+        index = index + 1;
+    }
+}
+
+partyMembersForTapper(
+    state: CorpseLootRightsState, tapperId: uint
+): container.Array<uint> {
+    var members = new container.Array<uint>();
+    var tapper = playerIndex(state, tapperId);
+    if (tapper < 0) return members;
+    var partyId = <uint>state.entityPartyIds[tapper];
+    if (partyId == <uint>0) return members;
+    var index = 0;
+    while (index < state.entityIds.length) {
+        if (<uint>state.entityKinds[index] == playerKind() &&
+            <uint>state.entityPartyIds[index] == partyId) {
+            members.add(<uint>state.entityIds[index]);
+        }
+        index = index + 1;
+    }
+    return members;
+}
+
+// honorFfa=true is manual interaction. The passive walk-by path passes false,
+// exactly as interaction.ts does before delegating to its shared loot routine.
+pub sharedLootAllowed(
+    state: CorpseLootRightsState, mobId: uint, playerId: uint, honorFfa: bool
+): bool {
+    var mob = entityIndex(state, mobId);
+    if (mob < 0 || playerIndex(state, playerId) < 0 ||
+        <uint>state.entityKinds[mob] != mobKind() ||
+        !<bool>state.entityDead[mob] || !<bool>state.entityLootable[mob]) {
+        return false;
+    }
+    var ffaUnlocked = honorFfa &&
+        <bool>state.entityLootFfaTimerActive[mob] &&
+        <uint>state.entityLootFfaRemainingMicros[mob] == <uint>0;
+    return lootFfa.hasSharedLootRights(
+        playerId,
+        <bool>state.entityTapperPresent[mob],
+        <uint>state.entityTapperIds[mob],
+        partyMembersForTapper(state, <uint>state.entityTapperIds[mob]),
+        ffaUnlocked
+    );
+}
+
+// Respawn starts a fresh pull. The inactive finite representation corresponds
+// to the source's Infinity sentinel before a later rollLoot transition.
+pub resetForRespawn(state: CorpseLootRightsState, mobId: uint): bool {
+    var index = entityIndex(state, mobId);
+    if (index < 0 || <uint>state.entityKinds[index] != mobKind()) return false;
+    state.entityDead[index] = false;
+    state.entityLootable[index] = false;
+    state.entityTapperPresent[index] = false;
+    state.entityTapperIds[index] = <uint>0;
+    state.entityLootFfaTimerActive[index] = false;
+    state.entityLootFfaRemainingMicros[index] = <uint>0;
+    return true;
+}
+
+pub contractTest(): int {
+    var state = new CorpseLootRightsState();
+    if (!addPlayer(state, <uint>1, <uint>7, false) ||
+        !addPlayer(state, <uint>2, <uint>7, false) ||
+        !addPlayer(state, <uint>3, <uint>0, false) ||
+        !addPlayer(state, <uint>4, <uint>0, true) ||
+        !addPet(state, <uint>11, <uint>1) ||
+        !addMob(state, <uint>100, true) ||
+        !addMob(state, <uint>101, true) ||
+        !addMob(state, <uint>102, true)) return -1;
+
+    if (recordDamageTap(state, <uint>100, <uint>4, 1) ||
+        !recordDamageTap(state, <uint>100, <uint>11, 1) ||
+        recordDamageTap(state, <uint>100, <uint>3, 1) ||
+        !setMobDead(state, <uint>100, true) ||
+        !beginCorpseLoot(state, <uint>100, true)) return -2;
+
+    if (!sharedLootAllowed(state, <uint>100, <uint>1, true) ||
+        !sharedLootAllowed(state, <uint>100, <uint>2, true) ||
+        sharedLootAllowed(state, <uint>100, <uint>3, true) ||
+        sharedLootAllowed(state, <uint>100, <uint>3, false)) return -3;
+
+    advance(state, <uint>59999999);
+    if (sharedLootAllowed(state, <uint>100, <uint>3, true)) return -4;
+    advance(state, <uint>1);
+    if (!sharedLootAllowed(state, <uint>100, <uint>3, true) ||
+        sharedLootAllowed(state, <uint>100, <uint>3, false)) return -5;
+
+    // Source resolves the tapper's party at loot time, not at the kill.
+    if (!setPlayerParty(state, <uint>2, <uint>0) ||
+        sharedLootAllowed(state, <uint>100, <uint>2, false) ||
+        !setPlayerParty(state, <uint>3, <uint>7) ||
+        !sharedLootAllowed(state, <uint>100, <uint>3, false)) return -6;
+
+    if (!setMobDead(state, <uint>101, true) ||
+        !beginCorpseLoot(state, <uint>101, true) ||
+        !sharedLootAllowed(state, <uint>101, <uint>3, false)) return -7;
+    if (!resetForRespawn(state, <uint>100) ||
+        sharedLootAllowed(state, <uint>100, <uint>1, true) ||
+        <bool>state.entityLootFfaTimerActive[5] ||
+        <uint>state.entityLootFfaRemainingMicros[5] != <uint>0) return -8;
+
+    if (!setMobDead(state, <uint>102, true) ||
+        beginCorpseLoot(state, <uint>102, false) ||
+        sharedLootAllowed(state, <uint>102, <uint>1, true)) return -9;
+    return 1;
+}

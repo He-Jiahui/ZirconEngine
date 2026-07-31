@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/town_focus_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/professions/focus.ts": "6452047634f0d6769f4078f3e8828126b0092792ce3c3e31b2ecc41e37b74a98",
+    "src/sim/professions/gathering.ts": "e25b174f9b9d1b7e5e223795fbe345b20ccf6f56b34d2fdd2f2e5e04da62f67c"
+  },
+  "focus_point_budget": 10,
+  "points_per_tier_bonus": 5,
+  "max_focus_tier_bonus": 2,
+  "focus_yield_bonus_per_point": 0.1,
+  "harvest_tiers": [
+    "poor",
+    "common",
+    "uncommon",
+    "rare",
+    "epic",
+    "legendary"
+  ],
+  "respec_tiers": {
+    "time": {
+      "duration_ms_per_point": 60000,
+      "coin_per_point": 0,
+      "materials_per_point": 0
+    },
+    "timeAndPartial": {
+      "duration_ms_per_point": 15000,
+      "coin_per_point": 5,
+      "materials_per_point": 1
+    },
+    "instant": {
+      "duration_ms_per_point": 0,
+      "coin_per_point": 25,
+      "materials_per_point": 5
+    }
+  },
+  "semantics": {
+    "allocation": "string-keyed positive point entries preserve request order; zero entries are omitted on a successful set",
+    "town_gate": "the caller supplies town position and hub circle; the boundary is inclusive",
+    "invalid_request": "not-in-town, empty key, negative point, duplicate key in the typed projection, and over-budget requests preserve the prior allocation",
+    "respec": "cost is the sum of absolute per-key point changes, with the three source payment tiers"
+  }
+}

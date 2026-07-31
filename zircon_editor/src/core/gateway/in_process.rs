@@ -1,4 +1,5 @@
 use std::cell::Cell;
+use std::sync::Arc;
 
 use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::{LevelSystem, World};
@@ -35,23 +36,32 @@ impl Drop for BorrowedWorldCallbackGuard {
 
 #[derive(Clone, Debug)]
 pub struct InProcessGateway {
-    _core: CoreHandle,
+    _core: Option<CoreHandle>,
     level: LevelSystem,
-    capabilities: RuntimeCapabilities,
+    capabilities: Arc<RuntimeCapabilities>,
 }
 
 impl InProcessGateway {
     pub fn new(core: CoreHandle, level: LevelSystem) -> Self {
         Self {
-            _core: core,
+            _core: Some(core),
             level,
-            capabilities: RuntimeCapabilities::editor_default(),
+            capabilities: Arc::new(RuntimeCapabilities::editor_default()),
+        }
+    }
+
+    /// Creates the stable authoring facade for an editor-owned level.
+    pub fn for_authoring_level(level: LevelSystem) -> Self {
+        Self {
+            _core: None,
+            level,
+            capabilities: Arc::new(RuntimeCapabilities::editor_default()),
         }
     }
 }
 
 impl EditorRuntimeGateway for InProcessGateway {
-    fn capabilities(&self) -> RuntimeCapabilities {
+    fn capabilities(&self) -> Arc<RuntimeCapabilities> {
         self.capabilities.clone()
     }
 

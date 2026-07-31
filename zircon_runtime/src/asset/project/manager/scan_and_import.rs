@@ -9,10 +9,11 @@ use crate::asset::importer::stage_environment_ibl_source_with_parallel_executor;
 use crate::asset::project::{AssetMetaEntry, PreviewState};
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::{
-    stage_external_source_cubemap_texture, AssetId, AssetImportContext, AssetImportError,
-    AssetImportOutcome, AssetImporterDescriptor, AssetKind, ImportedAsset,
+    stage_environment_ibl_source, stage_external_source_cubemap_texture, AssetId,
+    AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
+    ImportedAsset,
 };
-use crate::core::runtime::tasks::TaskPools;
+use crate::core::runtime::tasks::TaskPool;
 
 use super::{
     asset_kind::asset_kind, hash_bytes::hash_bytes, load_or_create_meta::load_or_create_meta,
@@ -23,6 +24,7 @@ mod dependency_resolution;
 mod metadata;
 mod shader_import_dependencies;
 mod sources;
+mod targeted;
 
 use self::dependency_resolution::{
     dependencies_for_entry, merge_handwritten_dependencies_into_meta, resolve_imported_dependencies,
@@ -39,7 +41,7 @@ impl ProjectManager {
     pub fn scan_and_import(&mut self) -> Result<Vec<ResourceRecord>, AssetImportError> {
         self.scan_and_import_with_registry_update(
             None,
-            crate::asset::project::meta_io::AtomicWriteFault::None,
+            crate::foundation::persistence::atomic_file::AtomicWriteFault::None,
         )
     }
 
@@ -49,7 +51,7 @@ impl ProjectManager {
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
         self.scan_and_import_with_registry_update(
             Some(changes),
-            crate::asset::project::meta_io::AtomicWriteFault::None,
+            crate::foundation::persistence::atomic_file::AtomicWriteFault::None,
         )
     }
 
@@ -57,7 +59,7 @@ impl ProjectManager {
     pub(crate) fn scan_and_import_watch_changes_with_registry_fault(
         &mut self,
         changes: &[crate::asset::watch::AssetChange],
-        fault: crate::asset::project::meta_io::AtomicWriteFault,
+        fault: crate::foundation::persistence::atomic_file::AtomicWriteFault,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
         self.scan_and_import_with_registry_update(Some(changes), fault)
     }
@@ -65,9 +67,9 @@ impl ProjectManager {
     fn scan_and_import_with_registry_update(
         &mut self,
         watch_changes: Option<&[crate::asset::watch::AssetChange]>,
-        registry_fault: crate::asset::project::meta_io::AtomicWriteFault,
+        registry_fault: crate::foundation::persistence::atomic_file::AtomicWriteFault,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
-        let task_pools = TaskPools::process_default();
+        let parallel_executor = self.environment_ibl_parallel_executor.clone();
         let sources = self.collect_import_sources()?;
         let asset_roots = self.registry_scan_roots();
         let registry_root = self.paths.registry_root().to_path_buf();
@@ -152,7 +154,7 @@ impl ProjectManager {
                     &import_context,
                     restored_root_asset.as_ref(),
                     self.paths.cache_root(),
-                    task_pools.compute(),
+                    parallel_executor.as_ref(),
                 )?;
                 for record in metadata {
                     let asset_id = record.id();
@@ -174,7 +176,7 @@ impl ProjectManager {
                             &import_context,
                             outcome.root_entry().map(|entry| &entry.asset),
                             self.paths.cache_root(),
-                            task_pools.compute(),
+                            parallel_executor.as_ref(),
                         )
                     });
                     match validation {
@@ -530,22 +532,26 @@ impl ProjectManager {
     }
 }
 
-fn stage_environment_ibl_import<E>(
+fn stage_environment_ibl_import(
     context: &AssetImportContext,
     imported_asset: Option<&ImportedAsset>,
     cache_root: &std::path::Path,
-    parallel_executor: &E,
-) -> Result<(), AssetImportError>
-where
-    E: crate::core::framework::tasks::ParallelSliceExecutor,
-{
-    stage_environment_ibl_source_with_parallel_executor(context, cache_root, parallel_executor)
-        .map_err(|error| {
-            AssetImportError::Parse(format!(
-                "stage environment IBL source {}: {error}",
-                context.source_path.display()
-            ))
-        })?;
+    parallel_executor: Option<&TaskPool>,
+) -> Result<(), AssetImportError> {
+    let staging = match parallel_executor {
+        Some(parallel_executor) => stage_environment_ibl_source_with_parallel_executor(
+            context,
+            cache_root,
+            parallel_executor,
+        ),
+        None => stage_environment_ibl_source(context, cache_root),
+    };
+    staging.map_err(|error| {
+        AssetImportError::Parse(format!(
+            "stage environment IBL source {}: {error}",
+            context.source_path.display()
+        ))
+    })?;
     if let Some(ImportedAsset::Texture(texture)) = imported_asset {
         stage_external_source_cubemap_texture(texture, cache_root).map_err(|error| {
             AssetImportError::Parse(format!(

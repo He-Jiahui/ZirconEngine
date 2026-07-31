@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use zircon_runtime::asset::project::ProjectManifest;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::plugin::PluginModuleKind;
 
 use super::super::super::editor_manager::EditorManager;
@@ -7,11 +10,12 @@ use super::super::package_projection::{module_crate, project_selection_from_pack
 impl EditorManager {
     pub fn complete_project_plugin_manifest(&self, manifest: &ProjectManifest) -> ProjectManifest {
         let mut completed = manifest.clone();
-        completed.plugins = self
-            .runtime_plugin_catalog()
-            .complete_project_manifest(&manifest.plugins);
+        completed.plugins = Arc::unwrap_or_clone(
+            self.runtime_plugin_catalog()
+                .complete_project_manifest(&manifest.plugins, RuntimeTargetMode::EditorHost),
+        );
         let editor_packages = self.editor_plugin_catalog().package_manifests();
-        for package in &editor_packages {
+        for package in editor_packages {
             if completed
                 .plugins
                 .selections

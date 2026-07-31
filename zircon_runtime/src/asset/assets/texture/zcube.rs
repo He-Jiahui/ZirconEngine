@@ -2,9 +2,9 @@ use thiserror::Error;
 
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    decode_rgba16f_texels, encode_rgba16f_texels, source_cubemap_mip_count, RenderImageColorSpace,
-    RenderImageDimension, SourceCubemapMipChain, RGBA16F_TEXEL_SIZE_BYTES,
-    SOURCE_CUBEMAP_FACE_COUNT,
+    RGBA16F_TEXEL_SIZE_BYTES, RenderImageColorSpace, RenderImageDimension,
+    SOURCE_CUBEMAP_FACE_COUNT, SourceCubemapMipChain, decode_rgba16f_texels, encode_rgba16f_texels,
+    source_cubemap_mip_count,
 };
 use crate::core::math::Real;
 
@@ -269,19 +269,21 @@ pub enum ZcubeSourceCubemapError {
     UnsupportedTexelFormat(u32),
     #[error("unsupported .zcube contents bitmask {0}")]
     UnsupportedContents(u32),
-    #[error(
-        ".zcube extent is too large to validate: face_size={face_size}, mip_count={mip_count}"
-    )]
+    #[error(".zcube extent is too large to validate: face_size={face_size}, mip_count={mip_count}")]
     ExtentTooLarge { face_size: u32, mip_count: u32 },
     #[error(".zcube payload length mismatch: expected {expected} bytes, found {actual}")]
     InvalidPayloadLength { expected: usize, actual: usize },
-    #[error(".zcube texture extent mismatch: expected square face {expected_face_size}, found {actual_width}x{actual_height}")]
+    #[error(
+        ".zcube texture extent mismatch: expected square face {expected_face_size}, found {actual_width}x{actual_height}"
+    )]
     TextureExtentMismatch {
         expected_face_size: u32,
         actual_width: u32,
         actual_height: u32,
     },
-    #[error(".zcube texture metadata mismatch: expected mip_count={expected_mip_count}, array_layers={expected_array_layers}; found mip_count={actual_mip_count}, array_layers={actual_array_layers}")]
+    #[error(
+        ".zcube texture metadata mismatch: expected mip_count={expected_mip_count}, array_layers={expected_array_layers}; found mip_count={actual_mip_count}, array_layers={actual_array_layers}"
+    )]
     TextureContainerMetadataMismatch {
         expected_mip_count: u32,
         actual_mip_count: u32,

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Write as _;
 
 use serde_json::{Map, Number, Value};
@@ -80,12 +81,15 @@ impl World {
         }
         let component =
             crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor);
+        let component_type_id = descriptor.type_id.clone();
         self.component_types.register(descriptor)?;
         self.type_registry.register(RuntimeTypeRegistration {
             registration,
             component: Some(component),
             resource: None,
         })?;
+        self.component_registry
+            .dynamic_component_id(&component_type_id);
         Ok(())
     }
 
@@ -125,12 +129,46 @@ impl World {
         }
         components.insert(component_id.clone(), value);
         self.insert_dynamic_component_presence(entity, &component_id)?;
+        self.inspection_artifact_cache.mark_fields_dirty(entity);
+        self.advance_world_generation();
         Ok(true)
     }
 
     pub fn dynamic_component(&self, entity: EntityId, component_id: &str) -> Option<&Value> {
         let components = self.dynamic_components.get(&entity)?;
         components.get(component_id)
+    }
+
+    pub(crate) fn dynamic_component_rows<'a>(
+        &'a self,
+        component_type_id: &str,
+        output: &mut Vec<(EntityId, &'a Value)>,
+    ) {
+        output.clear();
+        let Some(component_id) = self
+            .component_registry
+            .registered_dynamic_component_id(component_type_id)
+        else {
+            return;
+        };
+
+        output.reserve(self.component_storage.len_for_component(component_id));
+        let dynamic_components = &self.dynamic_components;
+        let entity_registry = &self.entity_registry;
+        self.component_storage
+            .for_each_sparse_entity(component_id, |internal| {
+                let Ok(location) = entity_registry.location_for_internal(internal) else {
+                    return;
+                };
+                let Some(value) = dynamic_components
+                    .get(&location.stable_id)
+                    .and_then(|components| components.get(component_type_id))
+                else {
+                    return;
+                };
+                output.push((location.stable_id, value));
+            });
+        output.sort_unstable_by_key(|(entity, _)| *entity);
     }
 
     pub(in crate::scene) fn is_vm_dynamic_type_path(&self, type_path: &str) -> bool {
@@ -173,6 +211,8 @@ impl World {
         }
         if removed {
             self.remove_dynamic_component_presence(entity, component_id)?;
+            self.inspection_artifact_cache.mark_fields_dirty(entity);
+            self.advance_world_generation();
         }
         Ok(removed)
     }
@@ -290,6 +330,8 @@ impl World {
                 .into());
             };
             *component = candidate;
+            self.inspection_artifact_cache.mark_fields_dirty(entity);
+            self.advance_world_generation();
             return Ok(true);
         }
         let components = self.dynamic_components.entry(entity).or_default();
@@ -306,6 +348,8 @@ impl World {
         }
         object.insert(property.to_string(), json_value);
         self.insert_dynamic_component_presence(entity, component_id)?;
+        self.inspection_artifact_cache.mark_fields_dirty(entity);
+        self.advance_world_generation();
         Ok(true)
     }
 
@@ -446,15 +490,25 @@ impl World {
         &self,
         registrations: &[ReflectTypeRegistration],
     ) -> SceneResult<()> {
+        if registrations.is_empty() {
+            return Ok(());
+        }
+        let mut payloads_by_type = HashMap::with_capacity(registrations.len());
+        for components in self.dynamic_components.values() {
+            for (type_path, value) in components {
+                payloads_by_type
+                    .entry(type_path.as_str())
+                    .or_insert_with(Vec::new)
+                    .push(value);
+            }
+        }
         for registration in registrations {
             let type_path = registration.type_path.type_path.as_str();
-            for components in self.dynamic_components.values() {
-                if let Some(value) = components.get(type_path) {
-                    Self::validate_dynamic_component_value_against_registration(
-                        registration,
-                        value,
-                    )?;
-                }
+            let Some(payloads) = payloads_by_type.get(type_path) else {
+                continue;
+            };
+            for value in payloads {
+                Self::validate_dynamic_component_value_against_registration(registration, value)?;
             }
         }
         Ok(())

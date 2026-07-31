@@ -1,0 +1,66 @@
+var rules = %import("instances/delve_admission_rules");
+
+if (rules.delveIndex("collapsed_reliquary", true) != 0 ||
+    rules.delveIndex("drowned_litany", true) != 1 || rules.delveIndex("unknown", true) != -1 ||
+    rules.delveName(0, true) != "The Collapsed Reliquary" ||
+    rules.delveName(1, true) != "The Drowned Litany" ||
+    rules.minimumLevel(0, true) != 7 || rules.minimumLevel(1, true) != 12 ||
+    rules.maximumPlayers(0, true) != 2 || rules.maximumPlayers(1, true) != 2 ||
+    rules.tierIndex("normal", true) != 0 || rules.tierIndex("heroic", true) != 1 ||
+    rules.tierIndex("unknown", true) != -1 || rules.tierMinimumLevel(0, 0, true) != 0 ||
+    rules.tierMinimumLevel(0, 1, true) != 9 || rules.tierMinimumLevel(1, 1, true) != 14) {
+    return -1;
+}
+
+if (rules.admissionCode(false, false, "collapsed_reliquary", "normal", 99, 1,
+        false, false, false, false, false, false, true, true) != 0 ||
+    rules.admissionCode(true, false, "unknown", "normal", 99, 1,
+        false, false, false, false, false, false, true, true) != 0 ||
+    rules.admissionCode(true, true, "collapsed_reliquary", "normal", 99, 1,
+        true, true, true, true, true, true, true, true) != 1 ||
+    rules.admissionCode(true, false, "collapsed_reliquary", "normal", 99, 1,
+        true, true, true, true, true, true, true, true) != 2 ||
+    rules.admissionCode(true, false, "collapsed_reliquary", "normal", 99, 1,
+        false, true, true, true, true, true, true, true) != 3 ||
+    rules.admissionCode(true, false, "collapsed_reliquary", "normal", 99, 1,
+        false, false, true, true, true, true, true, true) != 4 ||
+    rules.admissionCode(true, false, "collapsed_reliquary", "normal", 99, 1,
+        false, false, false, true, true, true, true, true) != 5 ||
+    rules.admissionCode(true, false, "collapsed_reliquary", "normal", 99, 1,
+        false, false, false, false, true, true, true, true) != 6 ||
+    rules.admissionCode(true, false, "collapsed_reliquary", "normal", 99, 1,
+        false, false, false, false, false, true, true, true) != 7) {
+    return -2;
+}
+
+if (rules.admissionCode(true, false, "collapsed_reliquary", "unknown", 99, 1,
+        false, false, false, false, false, false, true, true) != 8 ||
+    rules.admissionCode(true, false, "collapsed_reliquary", "normal", 6, 1,
+        false, false, false, false, false, false, true, true) != 9 ||
+    rules.admissionCode(true, false, "collapsed_reliquary", "heroic", 8, 1,
+        false, false, false, false, false, false, true, true) != 10 ||
+    rules.admissionCode(true, false, "drowned_litany", "heroic", 13, 1,
+        false, false, false, false, false, false, true, true) != 10 ||
+    rules.admissionCode(true, false, "drowned_litany", "heroic", 14, 3,
+        false, false, false, false, false, false, true, true) != 11 ||
+    rules.admissionCode(true, false, "drowned_litany", "heroic", 14, 2,
+        false, false, false, false, false, false, false, false) != 12 ||
+    rules.admissionCode(true, false, "drowned_litany", "heroic", 14, 2,
+        false, false, false, false, false, false, true, false) != 13 ||
+    rules.admissionCode(true, false, "drowned_litany", "heroic", 14, 2,
+        false, false, false, false, false, false, false, true) != 14) {
+    return -3;
+}
+
+if (rules.errorMessage(1, 0, true) != "You cannot enter a delve right now." ||
+    rules.errorMessage(2, 0, true) != "Leave the dungeon first." ||
+    rules.errorMessage(8, 0, true) != "Unknown delve tier." ||
+    rules.errorMessage(9, 0, true) != "You must be level 7 to enter The Collapsed Reliquary." ||
+    rules.errorMessage(10, 1, true) != "You must be level 14 to enter The Drowned Litany on Heroic." ||
+    rules.errorMessage(11, 0, true) != "The Collapsed Reliquary is meant for solo or duo delves. Parties of 3 or more may not enter." ||
+    rules.errorMessage(12, 1, true) != "All instances of The Drowned Litany are busy. Try again soon." ||
+    rules.errorMessage(13, 1, true) != "" || rules.contractTest() != 1) {
+    return -4;
+}
+
+return 0;

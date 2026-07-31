@@ -1,0 +1,103 @@
+// Builtin Sowfield level-pull from src/sim/world.ts. The bounds and level are
+// generated from the pinned vale_cup_layout.ts source through terrain_content.
+
+var math = %import("zr.zircon.math");
+var terrainContent = %import("world/terrain_content");
+var terrainShape = %import("world/terrain_shape");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub flattenWeight(x: float, z: float, required: bool): float {
+    if (!required) {
+        throw "woc Sowfield flatten query is required";
+    }
+    var dx = 0.0;
+    if (x < terrainContent.sowfieldMinX(true)) {
+        dx = terrainContent.sowfieldMinX(true) - x;
+    }
+    if (x > terrainContent.sowfieldMaxX(true)) {
+        dx = x - terrainContent.sowfieldMaxX(true);
+    }
+    var dz = 0.0;
+    if (z < terrainContent.sowfieldMinZ(true)) {
+        dz = terrainContent.sowfieldMinZ(true) - z;
+    }
+    if (z > terrainContent.sowfieldMaxZ(true)) {
+        dz = z - terrainContent.sowfieldMaxZ(true);
+    }
+    if (dx == 0.0 && dz == 0.0) {
+        return 1.0;
+    }
+    var distance = math.sqrt(dx * dx + dz * dz);
+    var falloff = terrainContent.sowfieldFalloff(true);
+    if (distance >= falloff) {
+        return 0.0;
+    }
+    return 1.0 - terrainShape.smoothstep(0.0, 1.0, distance / falloff, true);
+}
+
+pub standLift(x: float, z: float, required: bool): float {
+    if (!required) {
+        throw "woc Sowfield stand query is required";
+    }
+    var standIndex = 0;
+    while (standIndex < terrainContent.sowfieldStandCount(true)) {
+        if (x >= terrainContent.sowfieldStandMinX(standIndex, true) - 0.5 &&
+            x <= terrainContent.sowfieldStandMaxX(standIndex, true) + 0.5) {
+            var front = standIndex == 0 ?
+                terrainContent.sowfieldStandMinZ(standIndex, true) :
+                terrainContent.sowfieldStandMaxZ(standIndex, true);
+            var away = standIndex == 0 ? 1.0 : -1.0;
+            var relative = (z - front) * away;
+            var tierDepth = terrainContent.sowfieldStandTierDepth(true);
+            var tierCount = terrainContent.sowfieldStandTierCount(true);
+            if (relative >= 0.0 && relative <= tierDepth * <float>tierCount) {
+                var tier = <int>math.floor(relative / tierDepth);
+                if (tier >= tierCount) {
+                    tier = tierCount - 1;
+                }
+                var previous = tier == 0 ? 0.0 :
+                    terrainContent.sowfieldStandTierHeight(tier - 1, true);
+                var current = terrainContent.sowfieldStandTierHeight(tier, true);
+                var within = relative - <float>tier * tierDepth;
+                var rampFraction = within / terrainContent.sowfieldStandRamp(true);
+                if (rampFraction > 1.0) {
+                    rampFraction = 1.0;
+                }
+                return previous + (current - previous) * rampFraction;
+            }
+        }
+        standIndex = standIndex + 1;
+    }
+    return 0.0;
+}
+
+pub contractTest(): int {
+    if (flattenWeight(-11.0, -112.0, true) != 1.0 ||
+        flattenWeight(-56.0, -141.0, true) != 1.0 ||
+        flattenWeight(-64.0, -141.0, true) != 0.0 ||
+        flattenWeight(-56.0, -149.0, true) != 0.0) {
+        return -1;
+    }
+    if (!closeEnough(flattenWeight(-60.0, -141.0, true), 0.5) ||
+        !closeEnough(flattenWeight(-56.0, -142.0, true), 0.95703125) ||
+        !closeEnough(flattenWeight(-60.0, -145.0, true), 0.20710678118654757)) {
+        return -2;
+    }
+    if (standLift(-11.0, -96.0, true) != 0.0 ||
+        !closeEnough(standLift(-11.0, -95.3, true), 0.275) ||
+        !closeEnough(standLift(-11.0, -94.6, true), 0.55) ||
+        !closeEnough(standLift(-11.0, -91.4, true), 0.55) ||
+        !closeEnough(standLift(-11.0, -90.0, true), 1.28) ||
+        !closeEnough(standLift(-11.0, -130.0, true), 0.39285714285714285) ||
+        standLift(-11.0, -138.3, true) != 0.0) {
+        return -3;
+    }
+    return 1;
+}

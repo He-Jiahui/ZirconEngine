@@ -1,6 +1,8 @@
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::Vec3;
 
+use crate::scene::selection::SelectionMutation;
+
 use super::SceneViewportController;
 
 impl SceneViewportController {
@@ -19,36 +21,38 @@ impl SceneViewportController {
             })
     }
 
-    pub(in crate::scene::viewport::controller) fn select_node(
+    pub(in crate::scene::viewport::controller) fn select_nodes(
         &mut self,
         scene: &Scene,
-        node_id: Option<u64>,
+        node_ids: impl IntoIterator<Item = u64>,
+        mutation: SelectionMutation,
     ) -> bool {
-        let unchanged = match node_id {
-            Some(node_id) => {
-                self.state.selection.active_primary() == Some(node_id)
-                    && self.state.selection.active_items().len() == 1
-            }
-            None => self.state.selection.active_items().is_empty(),
-        };
-        if unchanged {
+        let selectable = node_ids
+            .into_iter()
+            .filter(|node_id| scene.find_node(*node_id).is_some());
+        let changed = self.state.selection.apply_active(selectable, mutation);
+        if !changed {
             return false;
         }
-        match node_id {
-            Some(node_id) => self.state.selection.select_only_active(node_id),
-            None => self.state.selection.clear_active(),
-        };
-        if let Some(target) = Self::selected_world_position(scene, node_id) {
+        if let Some(target) =
+            Self::selected_world_position(scene, self.state.selection.active_primary())
+        {
             self.state.orbit_target = target;
             self.state.orbit_controller.set_target(target);
         }
-        true
+        changed
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::commands::{CommandEvalCtx, WhenClause};
+    use crate::core::editor_message::SceneModeId;
+    use crate::scene::modes::SceneModeActivation;
+    use crate::scene::selection::WorldDomain;
+    use crate::scene::viewport::TransformHandleKind;
+    use crate::ui::binding::ViewportCommand;
     use zircon_runtime_interface::math::UVec2;
 
     #[test]
@@ -64,11 +68,13 @@ mod tests {
             panic!("default scene must contain at least two entities");
         };
         let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
-        assert!(controller
-            .selection_mut()
-            .replace_active([*primary, *secondary], Some(*primary)));
+        assert!(
+            controller
+                .selection_mut()
+                .replace_active([*primary, *secondary], Some(*primary))
+        );
 
-        assert!(controller.select_node(&scene, Some(*primary)));
+        assert!(controller.select_nodes(&scene, [*primary], SelectionMutation::Replace));
 
         assert_eq!(
             controller
@@ -79,5 +85,62 @@ mod tests {
                 .collect::<Vec<_>>(),
             [*primary]
         );
+    }
+
+    #[test]
+    fn selection_rejects_invalid_overlay_owner_ids() {
+        let scene = Scene::new();
+        let valid = scene.nodes()[0].id;
+        let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+
+        assert!(controller.select_nodes(&scene, [valid, u64::MAX], SelectionMutation::Replace,));
+
+        assert_eq!(
+            controller
+                .selection()
+                .active_items()
+                .iter()
+                .copied()
+                .collect::<Vec<_>>(),
+            [valid]
+        );
+        assert!(!controller.select_nodes(&scene, [u64::MAX], SelectionMutation::Extend,));
+    }
+
+    #[test]
+    fn command_eval_projection_uses_mode_stack_and_active_domain_selection() {
+        let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+
+        let initial = controller.project_command_eval_ctx(CommandEvalCtx::interactive());
+        assert!(WhenClause::SceneModeActive(SceneModeId::new("scene.select")).eval(&initial));
+        assert!(!WhenClause::SelectionNonEmpty.eval(&initial));
+
+        assert!(controller.selection_mut().select_only_active(11));
+        let selected = controller.project_command_eval_ctx(CommandEvalCtx::interactive());
+        assert!(WhenClause::SelectionNonEmpty.eval(&selected));
+
+        controller
+            .apply_command(
+                None,
+                &ViewportCommand::ActivateSceneMode(SceneModeActivation::Transform(
+                    TransformHandleKind::Rotate,
+                )),
+            )
+            .expect("scene mode selection does not persist settings");
+        let rotated = controller.project_command_eval_ctx(CommandEvalCtx::interactive());
+        assert!(WhenClause::SceneModeActive(SceneModeId::new("scene.transform")).eval(&rotated));
+        assert!(WhenClause::SelectionNonEmpty.eval(&rotated));
+        assert_eq!(
+            controller.active_scene_mode(),
+            SceneModeActivation::Transform(TransformHandleKind::Rotate)
+        );
+
+        assert!(
+            controller
+                .selection_mut()
+                .set_active_domain(WorldDomain::Play)
+        );
+        let play = controller.project_command_eval_ctx(CommandEvalCtx::interactive());
+        assert!(!WhenClause::SelectionNonEmpty.eval(&play));
     }
 }

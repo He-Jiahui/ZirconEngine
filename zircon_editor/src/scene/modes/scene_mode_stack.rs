@@ -4,7 +4,7 @@ use crate::scene::selection::SelectionModel;
 use crate::scene::viewport::ViewportInput;
 
 use super::{
-    DuplicateSceneModeError, EditorSceneMode, InputOutcome, SceneModeCtx, ViewportOverlayBuilder,
+    EditorSceneMode, InputOutcome, SceneModeCtx, SceneModeStackError, ViewportOverlayBuilder,
 };
 
 pub struct SceneModeStack {
@@ -13,18 +13,25 @@ pub struct SceneModeStack {
 }
 
 impl SceneModeStack {
-    pub fn new(mut base: Box<dyn EditorSceneMode>, ctx: &mut SceneModeCtx<'_>) -> Self {
-        base.enter(ctx);
-        Self {
+    pub fn new(
+        mut base: Box<dyn EditorSceneMode>,
+        ctx: &mut SceneModeCtx<'_>,
+    ) -> Result<Self, SceneModeStackError> {
+        enter_mode(base.as_mut(), ctx)?;
+        Ok(Self {
             base,
             overlays: Vec::new(),
-        }
+        })
     }
 
     pub fn active_mode_id(&self) -> &SceneModeId {
         self.overlays
             .last()
             .map_or_else(|| self.base.id(), |mode| mode.id())
+    }
+
+    pub fn base_mode_id(&self) -> &SceneModeId {
+        self.base.id()
     }
 
     pub fn project_command_eval_ctx(
@@ -41,12 +48,35 @@ impl SceneModeStack {
         &mut self,
         mut mode: Box<dyn EditorSceneMode>,
         ctx: &mut SceneModeCtx<'_>,
-    ) -> Result<(), DuplicateSceneModeError> {
+    ) -> Result<(), SceneModeStackError> {
         if self.contains(mode.id()) {
-            return Err(DuplicateSceneModeError::new(mode.id().clone()));
+            return Err(SceneModeStackError::DuplicateMode {
+                mode_id: mode.id().clone(),
+            });
         }
-        mode.enter(ctx);
+        enter_mode(mode.as_mut(), ctx)?;
         self.overlays.push(mode);
+        Ok(())
+    }
+
+    pub fn replace_base(
+        &mut self,
+        mut mode: Box<dyn EditorSceneMode>,
+        ctx: &mut SceneModeCtx<'_>,
+    ) -> Result<(), SceneModeStackError> {
+        if self
+            .overlays
+            .iter()
+            .any(|overlay| overlay.id() == mode.id())
+        {
+            return Err(SceneModeStackError::DuplicateMode {
+                mode_id: mode.id().clone(),
+            });
+        }
+
+        enter_mode(mode.as_mut(), ctx)?;
+        self.base.exit(ctx);
+        self.base = mode;
         Ok(())
     }
 
@@ -63,11 +93,19 @@ impl SceneModeStack {
         ctx: &mut SceneModeCtx<'_>,
     ) -> InputOutcome {
         for mode in self.overlays.iter_mut().rev() {
+            let checkpoint = ctx.input_effect_checkpoint();
             if mode.handle_input(input, ctx) == InputOutcome::Consumed {
                 return InputOutcome::Consumed;
             }
+            ctx.truncate_input_effects(checkpoint);
         }
-        self.base.handle_input(input, ctx)
+
+        let checkpoint = ctx.input_effect_checkpoint();
+        let outcome = self.base.handle_input(input, ctx);
+        if outcome == InputOutcome::PassThrough {
+            ctx.truncate_input_effects(checkpoint);
+        }
+        outcome
     }
 
     pub fn update(&mut self, ctx: &mut SceneModeCtx<'_>) {
@@ -84,7 +122,7 @@ impl SceneModeStack {
         }
     }
 
-    pub fn shutdown(mut self, ctx: &mut SceneModeCtx<'_>) {
+    pub fn shutdown(&mut self, ctx: &mut SceneModeCtx<'_>) {
         while let Some(mut mode) = self.overlays.pop() {
             mode.exit(ctx);
         }
@@ -94,6 +132,19 @@ impl SceneModeStack {
     fn contains(&self, id: &SceneModeId) -> bool {
         self.base.id() == id || self.overlays.iter().any(|mode| mode.id() == id)
     }
+}
+
+fn enter_mode(
+    mode: &mut dyn EditorSceneMode,
+    ctx: &mut SceneModeCtx<'_>,
+) -> Result<(), SceneModeStackError> {
+    let mode_id = mode.id().clone();
+    mode.enter(ctx);
+    if let Some(message) = mode.take_boundary_failure() {
+        mode.exit(ctx);
+        return Err(SceneModeStackError::EnterFailure { mode_id, message });
+    }
+    Ok(())
 }
 
 impl std::fmt::Debug for SceneModeStack {

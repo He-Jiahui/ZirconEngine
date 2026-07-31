@@ -33,6 +33,7 @@ mod composite_components;
 mod default_controls;
 mod demo_and_builder;
 mod file_cache;
+mod performance_guards;
 mod range_controls;
 mod style_runtime;
 

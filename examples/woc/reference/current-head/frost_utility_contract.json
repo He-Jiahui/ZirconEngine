@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/frost_utility_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/frost_mage.ts": "62b99bbb5adbf1f38814545e6e38e8820b5ac95ab3acc391d9f2ab79445748a5"
+  },
+  "id": "frost_utility",
+  "constants": {
+    "BLIZZARD_ORB_CDR_PER_ENEMY": 0.5,
+    "BLIZZARD_ORB_CDR_CAP": 3,
+    "ICICLE_MAX": 5
+  },
+  "blizzard_refund": "positive_hits_only; budget_advances_before_optional_cooldown_mutation; refund_is_min(per_enemy_times_hits, cap_minus_spent)"
+}

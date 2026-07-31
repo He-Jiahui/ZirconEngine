@@ -39,6 +39,7 @@ from .stage_handoff import (
 )
 from .source_template import run_source_template
 from .validate_stage import (
+    GENERATED_CONTENTS_ARTIFACT_FILE_NAME,
     resolve_validate_optional_path,
     resolve_validate_path,
     validate_command,
@@ -182,6 +183,7 @@ def run_validate(args: argparse.Namespace) -> int:
     out_root = resolve_user_path(args.out)
     stage_dir = out_root / "stages" / "validate"
     report_path = stage_dir / REPORT_FILE_NAME
+    contents_artifact_path = stage_dir / GENERATED_CONTENTS_ARTIFACT_FILE_NAME
 
     diagnostics: list[str] = []
     repo_root = (
@@ -207,6 +209,7 @@ def run_validate(args: argparse.Namespace) -> int:
     )
     print(f"zircon_export stage=Validate profile={args.profile}")
     print(f"report={report_path}")
+    print(f"contents_artifact={contents_artifact_path}")
     if command is not None:
         print(shell_join(command))
     else:
@@ -263,6 +266,21 @@ def run_validate(args: argparse.Namespace) -> int:
             write_report_targets([("Validate report", report_path)], report)
             print(json.dumps(report, indent=2))
             return exit_code if exit_code != 0 else 2
+        if exit_code == 0 and not contents_artifact_path.is_file():
+            report = validate_preflight_failure_report(
+                args=args,
+                project_path=project_path,
+                stage_dir=stage_dir,
+                command=command,
+                diagnostics=[
+                    "Validate command exited with code 0 but did not write generated "
+                    f"contents artifact {contents_artifact_path}"
+                ],
+                exit_code=exit_code,
+            )
+            write_report_targets([("Validate report", report_path)], report)
+            print(json.dumps(report, indent=2))
+            return 2
         return exit_code
     except OSError as error:
         report = validate_preflight_failure_report(

@@ -21,8 +21,8 @@ fn undo_selection_restore_failure_recovers_context_and_keeps_cursor() {
         engine.undo(HistoryContextId::Global),
         Err(EditCommandError::InvariantViolation { .. })
     ));
-    let history = engine.history_snapshot(HistoryContextId::Global).unwrap();
-    assert_eq!(history.top, Some(0));
+    let history = engine.history_status(HistoryContextId::Global).unwrap();
+    assert_eq!(history.top.map(|transaction| transaction.raw()), Some(1));
     assert_eq!(
         engine
             .with_context::<FixtureContext, _>(|context| (context.value, context.selection))
@@ -49,7 +49,7 @@ fn redo_selection_restore_failure_recovers_context_and_keeps_cursor() {
         engine.redo(HistoryContextId::Global),
         Err(EditCommandError::InvariantViolation { .. })
     ));
-    let history = engine.history_snapshot(HistoryContextId::Global).unwrap();
+    let history = engine.history_status(HistoryContextId::Global).unwrap();
     assert_eq!(history.top, None);
     assert_eq!(
         engine
@@ -120,7 +120,7 @@ fn revert_error_before_mutation_retains_applied_state_and_faults_engine() {
     ));
     assert_eq!(finalized.load(Ordering::SeqCst), 0);
     assert!(matches!(
-        engine.history_snapshot(HistoryContextId::Global),
+        engine.history_status(HistoryContextId::Global),
         Err(EditCommandError::EngineFaulted { .. })
     ));
 }
@@ -144,7 +144,7 @@ fn revert_error_retains_commands_and_faults_engine_without_finalizing() {
     ));
     assert_eq!(finalized.load(Ordering::SeqCst), 0);
     assert!(matches!(
-        engine.history_snapshot(HistoryContextId::Global),
+        engine.history_status(HistoryContextId::Global),
         Err(EditCommandError::EngineFaulted { .. })
     ));
 }

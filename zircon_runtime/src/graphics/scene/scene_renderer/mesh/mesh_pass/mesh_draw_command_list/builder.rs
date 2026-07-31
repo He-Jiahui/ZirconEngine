@@ -1,8 +1,8 @@
 use crate::core::framework::render::{RenderPhase, ShaderQualityTier};
 
+use super::super::super::MeshDraw;
 use super::super::super::mesh_draw::MeshDrawQueuePhase;
 use super::super::super::mesh_pipeline_cache::MeshPipelineVariantResolver;
-use super::super::super::MeshDraw;
 use super::super::cached_mesh_draw_commands::{
     CachedMeshDrawCommands, CachedMeshDrawKey, CachedMeshDrawLookup, MeshDrawCommandCacheStats,
 };
@@ -82,17 +82,16 @@ where
     let mut cache_stats = MeshDrawCommandCacheStats::default();
 
     for batch in batches {
-        let mut batch_commands = MeshDrawCommandList::new();
-        depth_prepass.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        shadow.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        opaque_base.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        transparent.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        velocity.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        taa_reactive_mask.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        append_dynamic_commands(batch_commands, &mut commands, &mut cache_stats);
+        let command_start = commands.commands().len();
+        depth_prepass.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        shadow.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        opaque_base.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        transparent.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        velocity.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        taa_reactive_mask.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        record_dynamic_commands_since(&commands, command_start, &mut cache_stats);
     }
 
-    commands.sort();
     MeshPassCommandBuffers::from_command_list(commands, cache_stats)
 }
 
@@ -128,17 +127,16 @@ where
             continue;
         }
 
-        let mut batch_commands = MeshDrawCommandList::new();
-        depth_prepass.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        shadow.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        opaque_base.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        transparent.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        velocity.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        taa_reactive_mask.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
-        append_dynamic_commands(batch_commands, &mut commands, &mut cache_stats);
+        let command_start = commands.commands().len();
+        depth_prepass.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        shadow.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        opaque_base.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        transparent.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        velocity.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        taa_reactive_mask.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        record_dynamic_commands_since(&commands, command_start, &mut cache_stats);
     }
 
-    commands.sort();
     MeshPassCommandBuffers::from_command_list(commands, cache_stats)
 }
 
@@ -280,19 +278,17 @@ fn add_uncached_postprocess_phase<R>(
 ) where
     R: MeshPipelineVariantResolver + ?Sized,
 {
-    let mut rebuilt = MeshDrawCommandList::new();
-    add_batch(batch, build_context, &mut rebuilt);
-    append_dynamic_commands(rebuilt, commands, cache_stats);
+    let command_start = commands.commands().len();
+    add_batch(batch, build_context, commands);
+    record_dynamic_commands_since(commands, command_start, cache_stats);
 }
 
-fn append_dynamic_commands(
-    batch_commands: MeshDrawCommandList,
-    commands: &mut MeshDrawCommandList,
+fn record_dynamic_commands_since(
+    commands: &MeshDrawCommandList,
+    command_start: usize,
     cache_stats: &mut MeshDrawCommandCacheStats,
 ) {
-    for command in batch_commands.into_commands() {
-        cache_stats.command_rebuild_count += 1;
-        cache_stats.dynamic_command_count += 1;
-        commands.push(command);
-    }
+    let command_count = commands.commands().len().saturating_sub(command_start);
+    cache_stats.command_rebuild_count += command_count;
+    cache_stats.dynamic_command_count += command_count;
 }

@@ -15,4 +15,10 @@ pub enum SceneModeRegistryError {
         registered_mode_id: SceneModeId,
         produced_mode_id: SceneModeId,
     },
+    #[error("scene mode {mode_id:?} {operation} failed: {message}")]
+    CallbackFailure {
+        mode_id: SceneModeId,
+        operation: &'static str,
+        message: String,
+    },
 }

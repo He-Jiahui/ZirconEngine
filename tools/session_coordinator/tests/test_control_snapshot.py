@@ -24,7 +24,96 @@ from tools.session_coordinator.workflows.store import WorkflowStore
 
 
 class ControlSnapshotTests(unittest.TestCase):
-    def test_waiting_session_gets_one_same_plan_implementation_continuation(self) -> None:
+    def test_intervention_projects_one_actionable_failure_and_validation_queue(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(session_id="validation-owner")
+            sessions.set_status("validation-owner", SessionStatus.ACTIVE)
+            sessions.set_status("validation-owner", SessionStatus.WAITING_VALIDATION)
+            with database.transaction() as connection:
+                connection.executemany(
+                    """
+                    INSERT INTO failure_nodes(
+                        lifecycle_key, artifact_path, kind, status, created_at, resolved_at,
+                        summary_slug, origin_plan, fixing_plan, origin_child_dir,
+                        fixing_child_dir, priority, imported_at
+                    ) VALUES (?, ?, 'failure', 'open', ?, NULL, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        (
+                            "urgent",
+                            "docs/plans/runtime/01/failure-urgent.md",
+                            "2026-07-17T10:00:00+00:00",
+                            "urgent-render-failure",
+                            "docs/plans/editor/01-editor.md",
+                            "docs/plans/runtime/01-render.md",
+                            "docs/plans/editor/01",
+                            "docs/plans/runtime/01",
+                            0,
+                            "2026-07-17T10:00:00+00:00",
+                        ),
+                        (
+                            "later",
+                            "docs/plans/runtime/02/failure-later.md",
+                            "2026-07-17T11:00:00+00:00",
+                            "later-runtime-failure",
+                            "docs/plans/editor/02-editor.md",
+                            "docs/plans/runtime/02-runtime.md",
+                            "docs/plans/editor/02",
+                            "docs/plans/runtime/02",
+                            100,
+                            "2026-07-17T11:00:00+00:00",
+                        ),
+                    ),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO cargo_lane_reservations(
+                        reservation_id, session_id, lane_scope, compatibility_key,
+                        command_fingerprint, status, created_at, expires_at, execution_mode
+                    ) VALUES (
+                        'pending-validation', 'validation-owner', 'cpu', 'compatibility',
+                        'fingerprint', 'pending', '2026-07-17T12:00:00+00:00',
+                        '2026-07-17T13:00:00+00:00', 'warm'
+                    )
+                    """
+                )
+            snapshot = ControlSnapshotService(
+                database, WorkflowProjectionService(), lambda _connection: {"status": "ok"}
+            ).build()
+
+        self.assertEqual(
+            {
+                "openFailureCount": 2,
+                "responsiblePlanCount": 2,
+                "mode": "single_plan",
+                "maxConcurrentPlans": 1,
+                "suggestedNext": {
+                    "kind": "failure",
+                    "planPath": "docs/plans/runtime/01-render.md",
+                    "summary": "urgent-render-failure",
+                    "priority": 0,
+                    "action": "resolve_one_failure",
+                },
+                "validation": {
+                    "waitingSessionCount": 1,
+                    "pendingReservationCount": 1,
+                    "nextReservation": {
+                        "sessionId": "validation-owner",
+                        "queuePosition": 1,
+                        "executionMode": "warm",
+                    },
+                },
+            },
+            snapshot["experience"]["intervention"],
+        )
+        self.assertEqual("validation", snapshot["sessions"][0]["waitKind"])
+
+    def test_external_wait_gets_one_same_plan_implementation_continuation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
@@ -65,8 +154,10 @@ class ControlSnapshotTests(unittest.TestCase):
                 {
                     "sessionId": "waiting-owner",
                     "planPath": "docs/plans/tooling/01-workflow.md",
-                    "waitKind": "validation",
+                    "waitKind": "external",
                     "candidate": {
+                        "kind": "same_plan",
+                        "planPath": "docs/plans/tooling/01-workflow.md",
                         "milestone": "M1",
                         "title": "Write the remaining module documentation.",
                     },
@@ -75,6 +166,194 @@ class ControlSnapshotTests(unittest.TestCase):
                 }
             ],
             snapshot["experience"]["continuations"],
+        )
+        self.assertEqual(
+            0,
+            snapshot["experience"]["intervention"]["validation"]["waitingSessionCount"],
+        )
+        self.assertEqual("external", snapshot["sessions"][0]["waitKind"])
+
+    def test_waiting_sessions_pull_distinct_unowned_code_failures_when_same_plan_is_done(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            primary = repo / "docs" / "plans" / "tooling" / "01-primary.md"
+            primary.parent.mkdir(parents=True)
+            primary.write_text(
+                "# Primary\n\n"
+                "## M1 — Main work\n\n"
+                "### Implementation slices\n\n"
+                "- [x] Complete the primary edit.\n",
+                encoding="utf-8",
+            )
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            for session_id in ("waiting-first", "waiting-second"):
+                sessions.register(
+                    session_id=session_id,
+                    plan_path="docs/plans/tooling/01-primary.md",
+                )
+                sessions.set_status(session_id, SessionStatus.ACTIVE)
+                sessions.set_status(session_id, SessionStatus.WAITING_VALIDATION)
+            with database.transaction() as connection:
+                connection.executemany(
+                    """
+                    INSERT INTO failure_nodes(
+                        lifecycle_key, artifact_path, kind, status, created_at, resolved_at,
+                        summary_slug, origin_plan, fixing_plan, origin_child_dir,
+                        fixing_child_dir, priority, imported_at
+                    ) VALUES (?, ?, 'failure', 'open', ?, NULL, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        (
+                            "documentation-only",
+                            "docs/plans/tooling/03/failure-docs.md",
+                            "2026-07-17T10:00:00+00:00",
+                            "plan-output-archive-notice",
+                            "docs/plans/tooling/01-primary.md",
+                            "docs/plans/tooling/03-docs.md",
+                            "docs/plans/tooling/01",
+                            "docs/plans/tooling/03",
+                            0,
+                            "2026-07-17T10:00:00+00:00",
+                        ),
+                        (
+                            "code-work",
+                            "docs/plans/runtime/02/failure-code.md",
+                            "2026-07-17T11:00:00+00:00",
+                            "repair-runtime-command-path",
+                            "docs/plans/tooling/01-primary.md",
+                            "docs/plans/runtime/02-code.md",
+                            "docs/plans/tooling/01",
+                            "docs/plans/runtime/02",
+                            10,
+                            "2026-07-17T11:00:00+00:00",
+                        ),
+                        (
+                            "second-code-work",
+                            "docs/plans/runtime/03/failure-second-code.md",
+                            "2026-07-17T12:00:00+00:00",
+                            "repair-render-asset-binding",
+                            "docs/plans/tooling/01-primary.md",
+                            "docs/plans/runtime/03-render.md",
+                            "docs/plans/tooling/01",
+                            "docs/plans/runtime/03",
+                            20,
+                            "2026-07-17T12:00:00+00:00",
+                        ),
+                    ),
+                )
+
+            snapshot = ControlSnapshotService(
+                database,
+                WorkflowProjectionService(),
+                lambda _connection: {"status": "ok"},
+                repo_root=repo,
+            ).build()
+
+        self.assertEqual(
+            [
+                {
+                    "sessionId": "waiting-first",
+                    "planPath": "docs/plans/tooling/01-primary.md",
+                    "waitKind": "external",
+                    "candidate": {
+                        "kind": "unowned_failure",
+                        "planPath": "docs/plans/runtime/02-code.md",
+                        "milestone": "Failure P10",
+                        "title": "repair-runtime-command-path",
+                    },
+                    "scopeClaimRequired": True,
+                    "returnToPrimary": True,
+                },
+                {
+                    "sessionId": "waiting-second",
+                    "planPath": "docs/plans/tooling/01-primary.md",
+                    "waitKind": "external",
+                    "candidate": {
+                        "kind": "unowned_failure",
+                        "planPath": "docs/plans/runtime/03-render.md",
+                        "milestone": "Failure P20",
+                        "title": "repair-render-asset-binding",
+                    },
+                    "scopeClaimRequired": True,
+                    "returnToPrimary": True,
+                }
+            ],
+            snapshot["experience"]["continuations"],
+        )
+
+    def test_active_session_keeps_validation_continuation_while_reservation_is_pending(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            plan = repo / "docs" / "plans" / "tooling" / "01-primary.md"
+            plan.parent.mkdir(parents=True)
+            plan.write_text(
+                "# Primary\n\n"
+                "## M1 — Main work\n\n"
+                "### Implementation slices\n\n"
+                "- [x] Complete the primary edit.\n",
+                encoding="utf-8",
+            )
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(
+                session_id="active-owner",
+                plan_path="docs/plans/tooling/01-primary.md",
+            )
+            sessions.set_status("active-owner", SessionStatus.ACTIVE)
+            with database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO failure_nodes(
+                        lifecycle_key, artifact_path, kind, status, created_at, resolved_at,
+                        summary_slug, origin_plan, fixing_plan, origin_child_dir,
+                        fixing_child_dir, priority, imported_at
+                    ) VALUES (
+                        'code-work', 'docs/plans/runtime/02/failure-code.md', 'failure', 'open',
+                        '2026-07-17T11:00:00+00:00', NULL, 'repair-runtime-command-path',
+                        'docs/plans/tooling/01-primary.md', 'docs/plans/runtime/02-code.md',
+                        'docs/plans/tooling/01', 'docs/plans/runtime/02', 10,
+                        '2026-07-17T11:00:00+00:00'
+                    )
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO cargo_lane_reservations(
+                        reservation_id, session_id, lane_scope, compatibility_key,
+                        command_fingerprint, status, created_at, expires_at, execution_mode
+                    ) VALUES (
+                        'pending-validation', 'active-owner', 'cpu', 'compatibility',
+                        'fingerprint', 'pending', '2026-07-17T12:00:00+00:00',
+                        '2026-07-17T13:00:00+00:00', 'warm'
+                    )
+                    """
+                )
+
+            snapshot = ControlSnapshotService(
+                database,
+                WorkflowProjectionService(),
+                lambda _connection: {"status": "ok"},
+                repo_root=repo,
+            ).build()
+
+        self.assertEqual(
+            "validation", snapshot["experience"]["continuations"][0]["waitKind"]
+        )
+        self.assertEqual(
+            "active-owner", snapshot["experience"]["continuations"][0]["sessionId"]
+        )
+        self.assertEqual(
+            1,
+            snapshot["experience"]["intervention"]["validation"]["waitingSessionCount"],
         )
 
     def test_continuations_skip_testing_tasks_and_untrusted_plan_paths(self) -> None:
@@ -464,6 +743,89 @@ class ControlSnapshotTests(unittest.TestCase):
             {"capacity": 1, "active": 1, "eligiblePending": 1},
             projection["cpuBurst"],
         )
+
+    def test_validation_projection_reports_silent_managed_run_without_log_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(session_id="run-owner")
+            target_root = root / "targets"
+            target_root.mkdir()
+            jobs = CargoJobService(database, TargetPathPolicy([target_root]), repo_root=repo)
+            job = jobs.acquire("run-owner", CargoLaneKind.TEST)
+            run_root = root / "private-run"
+            run_root.mkdir()
+            stdout = run_root / "stdout.log"
+            stderr = run_root / "stderr.log"
+            stdout.write_text("", encoding="utf-8")
+            stderr.write_text("", encoding="utf-8")
+            with database.transaction() as connection:
+                connection.execute("UPDATE cargo_jobs SET status='running' WHERE job_id=?", (job.job_id,))
+                connection.execute(
+                    """
+                    INSERT INTO cargo_job_runs(
+                        run_id, job_id, session_id, command_json, environment_json, status,
+                        stdout_path, stderr_path, started_at
+                    ) VALUES ('run-silent', ?, 'run-owner', '[]', '{}', 'running', ?, ?,
+                              '2026-07-18T00:00:00+00:00')
+                    """,
+                    (job.job_id, str(stdout), str(stderr)),
+                )
+            with database.connect() as connection:
+                projection = ControlSnapshotService._validation(connection)
+
+        self.assertEqual(
+            [{
+                "jobId": job.job_id,
+                "sessionId": "run-owner",
+                "runId": "run-silent",
+                "startedAt": "2026-07-18T00:00:00+00:00",
+                "outputState": "awaiting_output",
+            }],
+            projection["runHealth"],
+        )
+        self.assertNotIn(str(run_root), json.dumps(projection))
+
+    def test_validation_projection_reports_last_observed_output_without_log_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(session_id="run-owner")
+            target_root = root / "targets"
+            target_root.mkdir()
+            jobs = CargoJobService(database, TargetPathPolicy([target_root]), repo_root=repo)
+            job = jobs.acquire("run-owner", CargoLaneKind.TEST)
+            run_root = root / "private-run"
+            run_root.mkdir()
+            stdout = run_root / "stdout.log"
+            stderr = run_root / "stderr.log"
+            stdout.write_text("progress\n", encoding="utf-8")
+            stderr.write_text("", encoding="utf-8")
+            with database.transaction() as connection:
+                connection.execute("UPDATE cargo_jobs SET status='running' WHERE job_id=?", (job.job_id,))
+                connection.execute(
+                    """
+                    INSERT INTO cargo_job_runs(
+                        run_id, job_id, session_id, command_json, environment_json, status,
+                        stdout_path, stderr_path, started_at
+                    ) VALUES ('run-active', ?, 'run-owner', '[]', '{}', 'running', ?, ?,
+                              '2026-07-18T00:00:00+00:00')
+                    """,
+                    (job.job_id, str(stdout), str(stderr)),
+                )
+            with database.connect() as connection:
+                projection = ControlSnapshotService._validation(connection)
+
+        health = projection["runHealth"]
+        self.assertEqual("output_observed", health[0]["outputState"])
+        self.assertIsInstance(health[0]["lastOutputAt"], str)
+        self.assertNotIn(str(run_root), json.dumps(projection))
 
     def test_git_projection_never_reads_internal_index_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

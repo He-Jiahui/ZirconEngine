@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m3_spirit_healer_placement_codegen.mjs",
+  "source_identity": {
+    "source_path": "src/sim/content/graveyards.ts",
+    "git_blob": "ba3fe63a926619d8111c925d57302fea2cf10216",
+    "sha256": "bed25a6ba4f8bdeb6a7e164bd8e14185845ba957e1bddefe70ccd3c35d32e03c"
+  },
+  "healer": {
+    "id": "spirit_healer",
+    "name": "The Pale Keeper",
+    "facing": 3.141592653589793,
+    "color": 16774352
+  },
+  "graveyards": [
+    {
+      "id": "gy_eastbrook",
+      "name": "Eastbrook Rest",
+      "x": -14,
+      "z": -14
+    },
+    {
+      "id": "gy_vale_chapel",
+      "name": "Vale Chapel Yard",
+      "x": 4,
+      "z": -56
+    },
+    {
+      "id": "gy_fenbridge",
+      "name": "Fenbridge Barrow",
+      "x": -18,
+      "z": 286
+    },
+    {
+      "id": "gy_thornpeak",
+      "name": "Thornpeak Cairns",
+      "x": 15,
+      "z": 645
+    },
+    {
+      "id": "gy_thornpeak_east",
+      "name": "East Ridge Graves",
+      "x": 141,
+      "z": 712
+    },
+    {
+      "id": "gy_thornpeak_south",
+      "name": "Sanctum Approach Graves",
+      "x": 138,
+      "z": 838
+    },
+    {
+      "id": "gy_thornpeak_west",
+      "name": "West Spire Graves",
+      "x": -139,
+      "z": 787
+    }
+  ],
+  "catalog_sha256": "0f18b1747d7665f02de9e5ceada09186cc901de9cfe1a4dc58a4d6bfd8dafa45"
+}

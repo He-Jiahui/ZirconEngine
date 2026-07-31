@@ -1,0 +1,8 @@
+var salvage = %import("progression/salvage_state");
+
+console.printLine("m5-salvage-state-test");
+var result = salvage.contractTest();
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "salvage state contract failed";
+}

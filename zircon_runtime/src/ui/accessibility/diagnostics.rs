@@ -12,10 +12,11 @@ use zircon_runtime_interface::ui::{
 pub(super) fn validate_snapshot(snapshot: &mut UiAccessibilityTreeSnapshot) {
     let mut diagnostics = Vec::new();
     let mut seen = BTreeSet::new();
-    let nodes: BTreeMap<UiNodeId, UiAccessibilityNode> = snapshot
+    let nodes: BTreeMap<UiNodeId, usize> = snapshot
         .nodes
         .iter()
-        .filter_map(|node| {
+        .enumerate()
+        .filter_map(|(index, node)| {
             if !seen.insert(node.node_id) {
                 diagnostics.push(diagnostic(
                     UiAccessibilityDiagnosticSeverity::Error,
@@ -25,7 +26,7 @@ pub(super) fn validate_snapshot(snapshot: &mut UiAccessibilityTreeSnapshot) {
                 ));
                 return None;
             }
-            Some((node.node_id, node.clone()))
+            Some((node.node_id, index))
         })
         .collect();
 
@@ -49,7 +50,7 @@ pub(super) fn validate_snapshot(snapshot: &mut UiAccessibilityTreeSnapshot) {
         validate_bounds(node, &mut diagnostics);
         validate_hidden_focusable(node, &mut diagnostics);
         validate_actions(node, &mut diagnostics);
-        validate_relation_cycle(node, &nodes, &mut diagnostics);
+        validate_relation_cycle(node, &snapshot.nodes, &nodes, &mut diagnostics);
     }
 
     validate_focus(snapshot, &nodes, &mut diagnostics);
@@ -60,7 +61,7 @@ fn validate_relation(
     owner: &UiAccessibilityNode,
     target: Option<UiNodeId>,
     code: UiAccessibilityDiagnosticCode,
-    nodes: &BTreeMap<UiNodeId, UiAccessibilityNode>,
+    nodes: &BTreeMap<UiNodeId, usize>,
     diagnostics: &mut Vec<UiAccessibilityDiagnostic>,
 ) {
     if target.is_some_and(|target| !nodes.contains_key(&target)) {
@@ -75,7 +76,7 @@ fn validate_relation(
 
 fn validate_description(
     node: &UiAccessibilityNode,
-    nodes: &BTreeMap<UiNodeId, UiAccessibilityNode>,
+    nodes: &BTreeMap<UiNodeId, usize>,
     diagnostics: &mut Vec<UiAccessibilityDiagnostic>,
 ) {
     let Some(description) = node.description.as_deref() else {
@@ -170,7 +171,8 @@ fn validate_actions(node: &UiAccessibilityNode, diagnostics: &mut Vec<UiAccessib
 
 fn validate_relation_cycle(
     node: &UiAccessibilityNode,
-    nodes: &BTreeMap<UiNodeId, UiAccessibilityNode>,
+    snapshot_nodes: &[UiAccessibilityNode],
+    nodes: &BTreeMap<UiNodeId, usize>,
     diagnostics: &mut Vec<UiAccessibilityDiagnostic>,
 ) {
     let Some(labelled_by) = node.labelled_by else {
@@ -178,6 +180,7 @@ fn validate_relation_cycle(
     };
     if nodes
         .get(&labelled_by)
+        .and_then(|index| snapshot_nodes.get(*index))
         .and_then(|target| target.labelled_by)
         == Some(node.node_id)
     {
@@ -192,7 +195,7 @@ fn validate_relation_cycle(
 
 fn validate_focus(
     snapshot: &mut UiAccessibilityTreeSnapshot,
-    nodes: &BTreeMap<UiNodeId, UiAccessibilityNode>,
+    nodes: &BTreeMap<UiNodeId, usize>,
     diagnostics: &mut Vec<UiAccessibilityDiagnostic>,
 ) {
     for node in snapshot.nodes.iter_mut() {
@@ -204,6 +207,7 @@ fn validate_focus(
     };
     let valid = nodes
         .get(&focused)
+        .and_then(|index| snapshot.nodes.get(*index))
         .is_some_and(|node| !node.state.hidden && !node.state.disabled);
     if valid {
         if let Some(node) = snapshot
@@ -229,6 +233,7 @@ fn validate_focus(
     let fallback = snapshot.roots.iter().copied().find(|root| {
         nodes
             .get(root)
+            .and_then(|index| snapshot.nodes.get(*index))
             .is_some_and(|node| !node.state.hidden && !node.state.disabled)
     });
     snapshot.focused = fallback;

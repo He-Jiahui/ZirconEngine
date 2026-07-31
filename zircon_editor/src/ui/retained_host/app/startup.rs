@@ -12,7 +12,11 @@ pub(crate) fn build_startup_state(
             crate::ui::workbench::view::ViewDescriptorId::new(descriptor_id),
             None,
         )?;
-        let mut state = EditorState::welcome(viewport_size, welcome);
+        let mut state = EditorState::welcome_with_context(
+            viewport_size,
+            welcome,
+            editor_manager.context().clone(),
+        );
         state.set_session_mode(EditorSessionMode::Project);
         state.set_status_line(session.status_message.clone());
         return Ok(state);
@@ -22,17 +26,22 @@ pub(crate) fn build_startup_state(
         (EditorSessionMode::Project | EditorSessionMode::Playing, Some(document)) => {
             editor_manager.apply_project_workspace(document.editor_workspace.clone())?;
             let level = editor_manager.create_runtime_level(document.world)?;
-            let mut state = EditorState::project(
+            let mut state = EditorState::project_with_context(
                 level,
                 viewport_size,
                 document.root_path.to_string_lossy().into_owned(),
+                editor_manager.context().clone(),
             );
             state.set_welcome_snapshot(welcome);
             state.set_status_line(session.status_message.clone());
             Ok(state)
         }
         (EditorSessionMode::Welcome | EditorSessionMode::Playing, _) => {
-            let mut state = EditorState::welcome(viewport_size, welcome);
+            let mut state = EditorState::welcome_with_context(
+                viewport_size,
+                welcome,
+                editor_manager.context().clone(),
+            );
             state.set_status_line(session.status_message.clone());
             Ok(state)
         }

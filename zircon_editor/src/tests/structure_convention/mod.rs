@@ -1,21 +1,14 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use std::sync::OnceLock;
 
 use serde_json::Value;
 
+static EDITOR_STRUCTURE_AUDIT: OnceLock<Value> = OnceLock::new();
+
 #[test]
 fn editor_ui_10_module_convention_audit_report_has_expected_shape() {
-    let repo_root = repo_root();
-    let audit_script = repo_root.join(
-        ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py",
-    );
-    assert!(
-        audit_script.exists(),
-        "missing editor structure audit script at {}",
-        audit_script.display()
-    );
-
-    let report = run_editor_structure_audit(&audit_script, &repo_root);
+    let report = editor_structure_audit();
     let gate = &report["module_convention_gate"];
     assert!(
         gate["m1_gate_status"] == "migration-debt-present"
@@ -34,11 +27,7 @@ fn editor_ui_10_module_convention_audit_report_has_expected_shape() {
 
 #[test]
 fn editor_ui_10_visual_style_owner_tree_is_hard_cut_over() {
-    let repo_root = repo_root();
-    let audit_script = repo_root.join(
-        ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py",
-    );
-    let report = run_editor_structure_audit(&audit_script, &repo_root);
+    let report = editor_structure_audit();
     let visual_style = &report["module_convention_gate"]["visual_style_owner_tree"];
 
     assert_eq!(
@@ -77,6 +66,21 @@ fn editor_ui_10_module_convention_mirror_docs_track_audit_entry() {
             );
         }
     }
+}
+
+fn editor_structure_audit() -> &'static Value {
+    EDITOR_STRUCTURE_AUDIT.get_or_init(|| {
+        let repo_root = repo_root();
+        let audit_script = repo_root.join(
+            ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py",
+        );
+        assert!(
+            audit_script.exists(),
+            "missing editor structure audit script at {}",
+            audit_script.display()
+        );
+        run_editor_structure_audit(&audit_script, &repo_root)
+    })
 }
 
 fn run_editor_structure_audit(audit_script: &Path, repo_root: &Path) -> Value {

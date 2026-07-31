@@ -141,10 +141,19 @@ fn world_entity_path_resolution_compares_target_segments_directly() {
         path_resolution_source.contains("if segment_index == 0 {\n                return false;")
     );
     assert!(path_resolution_source.contains("segment_index -= 1;"));
-    assert!(path_resolution_source
-        .contains("let Some(segment) = self.path_segment_for_entity(current) else"));
-    assert!(path_resolution_source.contains("if segment != target_segments[segment_index]"));
+    assert!(path_resolution_source.contains(
+        "if !self.entity_path_segment_matches(current, &target_segments[segment_index])"
+    ));
     assert!(path_resolution_source.contains("segment_index == 0"));
+    assert!(path_resolution_source.contains("fn entity_path_segment_matches("));
+    assert!(path_resolution_source.contains("decimal_entity_id_matches"));
+    let entity_matches = path_resolution_source
+        .split("fn entity_matches_path_segments(")
+        .nth(1)
+        .and_then(|text| text.split("fn entity_path_segment_capacity").next())
+        .expect("read allocation-free entity path match body");
+    assert!(!entity_matches.contains("self.path_segment_for_entity(current)"));
+    assert!(!entity_matches.contains("String"));
     assert!(path_resolution_source.contains("fn entity_has_duplicate_path_name("));
     assert!(path_resolution_source.contains("let mut candidate_index = 0;"));
     assert!(path_resolution_source.contains("while candidate_index < self.entities.len()"));
@@ -264,4 +273,26 @@ fn world_property_dynamic_json_number_projection_uses_direct_branches() {
     assert!(json_projection_source.contains("return Some(ScenePropertyValue::Scalar(value as _));"));
     assert!(!json_projection_source.contains(".map(ScenePropertyValue::Integer)"));
     assert!(!json_projection_source.contains(".or_else(||"));
+}
+
+#[test]
+fn compiled_scene_property_target_reuses_normalized_component_field_identity() {
+    let mut world = World::empty();
+    let root = world.spawn_node(NodeKind::Empty);
+    let hero = world.spawn_node(NodeKind::Mesh);
+    world.rename_node(root, "Root").unwrap();
+    world.rename_node(hero, "Hero").unwrap();
+    world.set_parent_checked(hero, Some(root)).unwrap();
+
+    let entity_path = EntityPath::parse("Root/Hero").unwrap();
+    let canonical_path = ComponentPropertyPath::parse("Transform.translation").unwrap();
+    let equivalent_path = ComponentPropertyPath::parse("transform.translation").unwrap();
+    let canonical = world
+        .compile_scene_property_target(&entity_path, &canonical_path)
+        .unwrap();
+    let equivalent = world
+        .compile_scene_property_target(&entity_path, &equivalent_path)
+        .unwrap();
+
+    assert_eq!(canonical.component_field_id(), equivalent.component_field_id());
 }

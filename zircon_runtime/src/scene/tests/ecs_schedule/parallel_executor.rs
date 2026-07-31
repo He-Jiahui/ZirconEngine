@@ -60,7 +60,7 @@ fn schedule_parallel_executor_runs_registered_batches_through_job_scheduler() {
             Ok(())
         });
     }
-    let executor = ScheduleParallelExecutor::new(JobScheduler::default());
+    let executor = ScheduleParallelExecutor::new(JobScheduler::default().with_diagnostics());
 
     let report = executor
         .run_batches_with_report(&batches, &registry)
@@ -250,7 +250,7 @@ fn executor_batches_are_chained_through_job_dependencies() {
             Ok(())
         });
     }
-    let executor = ScheduleParallelExecutor::new(JobScheduler::default());
+    let executor = ScheduleParallelExecutor::new(JobScheduler::default().with_diagnostics());
 
     let report = executor
         .run_batches_with_report(&batches, &registry)

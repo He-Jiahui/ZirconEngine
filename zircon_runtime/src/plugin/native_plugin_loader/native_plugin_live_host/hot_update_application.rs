@@ -55,7 +55,7 @@ impl NativePluginLiveHost {
         let export_root = export_root.as_ref();
         let discovery_report = self.loader.discover_from_load_manifest(export_root);
         let mut manifest_plugin_ids = discovery_report
-            .discovered
+            .discovered()
             .iter()
             .map(|candidate| candidate.plugin_id.clone())
             .collect::<Vec<_>>();
@@ -63,23 +63,26 @@ impl NativePluginLiveHost {
         let mut skipped_plugin_ids = Vec::new();
         let mut loaded_plugin_ids = Vec::new();
         let mut outcomes = Vec::new();
-        let mut diagnostics = discovery_report.diagnostics;
+        let mut diagnostics = discovery_report.diagnostics().to_vec();
 
-        for candidate in discovery_report.discovered {
+        let candidates = discovery_report.try_into_discovered().map_err(|report| {
+            format!(
+                "native runtime hot update expected a discovery-only report but found {} loaded plugin(s)",
+                report.loaded().len()
+            )
+        })?;
+
+        for candidate in candidates {
             if !native_candidate_has_module_kind(&candidate, PluginModuleKind::Runtime) {
                 skipped_plugin_ids.push(candidate.plugin_id);
                 continue;
             }
             let plugin_id = candidate.plugin_id.clone();
             runtime_plugin_ids.push(plugin_id.clone());
-            let load_report = self.loader.load_candidates_for_module_kinds(
-                NativePluginLoadReport {
-                    discovered: vec![candidate],
-                    loaded: Vec::new(),
-                    diagnostics: Vec::new(),
-                },
-                &[PluginModuleKind::Runtime],
-            );
+            let candidate_report = NativePluginLoadReport::from_discovered(vec![candidate]);
+            let load_report = self
+                .loader
+                .load_candidates_for_module_kinds(candidate_report, &[PluginModuleKind::Runtime]);
             match self.hot_reload_reported_plugin(
                 load_report,
                 export_root,
@@ -150,6 +153,6 @@ mod tests {
         let deep_clone = ["discovered: vec![candidate", ".clone()]"].concat();
 
         assert!(!source.contains(&deep_clone));
-        assert!(source.contains("discovered: vec![candidate]"));
+        assert!(source.contains("NativePluginLoadReport::from_discovered(vec![candidate])"));
     }
 }

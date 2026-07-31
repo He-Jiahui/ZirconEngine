@@ -19,7 +19,7 @@
 3. Define milestone slices that can be fully validated.
    - Keep each milestone narrow enough that you can enumerate all in-scope behaviors.
    - Write the promotion gate for each milestone before implementation starts.
-   - Include implementation slices, unit-test code to write, docs to update, required edge cases, and artifacts in the milestone definition itself.
+   - Include implementation slices, required edge cases, and a retained documentation owner only when a public/cross-module fact would otherwise lack one. Name owner modules and validation suites; do not copy source snippets, test bodies, command transcripts, screenshots, or explanatory prose into the plan.
    - Add a named testing stage for the milestone. This is where compile/build commands, unit tests, debug correction, and acceptance evidence run.
    - Add the standard status/output record section to the plan so execution can record the accepted milestone outcome after its testing stage.
 
@@ -35,7 +35,7 @@
 - Goal: the concrete capability this milestone must provide.
 - In-scope behaviors: the complete inventory of syntax, instructions, runtime paths, or APIs covered by the milestone.
 - Dependencies: the lower layers that must already be correct.
-- Implementation slices: code, unit-test code, comments, and docs to produce before the testing stage.
+- Implementation slices: code, unit-test code, and concise comments; retained documentation only for a missing durable public/cross-module fact.
 - Testing stage: focused unit tests, negative tests, boundary tests, integration checks, compile/build commands, debug/correction loop, and acceptance records needed for promotion.
 - Lightweight checks: scoped Rust syntax/type checks allowed before the testing stage, especially for small tasks.
 - Exit evidence: exact commands, suites, or artifacts that must pass during the testing stage before moving upward.
@@ -49,8 +49,8 @@ Every milestone plan must include this section. Record one accepted milestone ou
 
 每个里程碑测试通过后记录一次；实现切片不单独写入产出记录。
 
-| 里程碑 | 范围 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
+| 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
 ```
 
-Use the local calendar date for `完成日期`. In `证据`, cite the validation batch, changed ownership boundary, and any accepted residual risk. Record one accepted milestone outcome rather than per-slice progress.
+Use the local calendar date for `完成日期`. Cite only the validation batch, changed ownership boundary, and accepted residual risk; do not paste command output, test logs, or a changed-file inventory. Record one accepted milestone outcome rather than per-slice progress.

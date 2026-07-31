@@ -1,7 +1,7 @@
 # @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "plugin_sdk_examples"
 version = "0.1.0"
-sdk_api_version = "0.1.0"
+sdk_api_version = "0.2.0"
 display_name = "Plugin SDK Examples"
 description = "Editor SDK fixture package containing a window plugin and an importer plus inspector plugin."
 category = "sdk"

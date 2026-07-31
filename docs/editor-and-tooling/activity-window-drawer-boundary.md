@@ -71,7 +71,6 @@ implementation_files:
   - zircon_editor/src/ui/workbench/model/build/workbench_view_model_build.rs
   - zircon_editor/src/ui/workbench/autolayout/region/tool_region/presence.rs
   - zircon_editor/src/ui/host/builtin_layout/hybrid_layout.rs
-  - zircon_editor/src/ui/host/builtin_layout/workbench_page.rs
   - zircon_editor/src/ui/workbench/view/activity_window_template_spec.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/assets/ui/editor/host/editor_main_frame.zui

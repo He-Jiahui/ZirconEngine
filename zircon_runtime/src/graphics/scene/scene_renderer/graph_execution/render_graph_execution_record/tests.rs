@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
-    RenderColorLutReadbackReport, RenderExposureReadbackReport, RenderGraphExecutionResourceReport,
+    RenderBudgetKey, RenderColorLutReadbackReport, RenderExposureReadbackReport,
+    RenderGraphExecutionResourceReport, RenderGraphPassProfileMetrics,
     RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
 };
 use crate::core::math::UVec2;
@@ -10,7 +11,37 @@ use crate::render_graph::{
     RenderGraphResourceKind, RenderPassId,
 };
 
-use super::{RenderGraphExecutionRecord, RenderGraphLightGridReport};
+use super::{
+    RenderGraphComputeDispatchRecord, RenderGraphExecutionRecord, RenderGraphLightGridReport,
+};
+
+#[test]
+fn stage_execution_report_uses_fixed_stage_storage() {
+    let source = include_str!("../render_graph_execution_record.rs");
+
+    assert!(
+        !source.contains("BTreeSet"),
+        "per-frame stage diagnostics should not allocate a tree set"
+    );
+    assert!(
+        source.contains("[false; RenderPassStage::ALL.len()]"),
+        "stage diagnostics should use the fixed RenderPassStage domain"
+    );
+}
+
+#[test]
+fn compute_workload_audit_does_not_partition_dispatches_into_temporary_vectors() {
+    let source = include_str!("../render_graph_execution_record.rs");
+
+    assert!(
+        !source.contains(".partition("),
+        "per-pass compute workload audit should borrow the dispatch slice without temporary Vecs"
+    );
+    assert!(
+        source.contains("first_matching_dispatch_index"),
+        "the audit should retain the first matching dispatch by index"
+    );
+}
 
 #[test]
 fn execution_record_preserves_resource_binding_report() {
@@ -384,4 +415,49 @@ fn execution_record_preserves_pass_debug_markers() {
         &["zircon::RenderGraphPass::clustered-lighting".to_string()]
     );
     assert_eq!(record.executed_queue_fallback_count(), 1);
+}
+
+#[test]
+fn profile_report_preserves_per_pass_compute_metrics() {
+    let mut record = RenderGraphExecutionRecord::default();
+    let compute_dispatches = vec![
+        RenderGraphComputeDispatchRecord::new(
+            "ssao-evaluate",
+            "ao.ssao-evaluate",
+            "zircon-ssao-pipeline",
+            [8, 8, 1],
+            [40, 30, 1],
+            Vec::new(),
+        )
+        .with_uploaded_bytes(128),
+        RenderGraphComputeDispatchRecord::new(
+            "ssao-evaluate",
+            "ao.ssao-evaluate",
+            "zircon-ssao-blur-pipeline",
+            [8, 8, 1],
+            [40, 30, 1],
+            Vec::new(),
+        )
+        .with_uploaded_bytes(64),
+    ];
+    record.push_pass_profile_with_budget_key_and_compute_dispatches(
+        "ssao-evaluate",
+        "ao.ssao-evaluate",
+        RenderBudgetKey::Ssao,
+        31,
+        RenderGraphPassProfileMetrics::new(3, 0, 7),
+        &compute_dispatches,
+    );
+    for dispatch in compute_dispatches {
+        record.push_compute_dispatch(dispatch);
+    }
+
+    let profile = record.profile_report();
+
+    assert_eq!(profile.pass_profiles.len(), 1);
+    assert_eq!(profile.pass_profiles[0].draw_count, 3);
+    assert_eq!(profile.pass_profiles[0].instance_count, 0);
+    assert_eq!(profile.pass_profiles[0].state_change_count, 7);
+    assert_eq!(profile.pass_profiles[0].dispatch_count, 2);
+    assert_eq!(profile.pass_profiles[0].upload_bytes, 192);
 }

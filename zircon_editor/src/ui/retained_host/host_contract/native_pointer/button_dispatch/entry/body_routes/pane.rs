@@ -12,6 +12,7 @@ pub(super) fn dispatch_pane_body_route(
         input.state,
         input.button,
         input.button_id,
+        input.modifiers,
         input.x,
         input.y,
         input.cleared_text_input_frame.clone(),

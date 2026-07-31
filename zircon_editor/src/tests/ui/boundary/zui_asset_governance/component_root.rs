@@ -1,10 +1,7 @@
-use std::fs;
-
 use toml::Value;
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 use super::metadata::string_token_metadata_offender;
-use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
+use super::support::{collect_zui_files, editor_asset_root, load_zui_document, runtime_asset_root};
 
 fn layout_width_stretch_offender(width: Option<&Value>) -> Option<String> {
     let Some(width) = width else {
@@ -32,10 +29,7 @@ fn production_zui_component_roots_are_concrete_authoring_nodes() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for (component_name, component) in &document.components {
                 checked_components += 1;
@@ -85,10 +79,7 @@ fn production_zui_component_root_nodes_declare_layout_metadata() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for (component_name, component) in &document.components {
                 checked_components += 1;
@@ -136,10 +127,7 @@ fn production_zui_component_root_layouts_declare_width_contract() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for (component_name, component) in &document.components {
                 checked_components += 1;
@@ -192,10 +180,7 @@ fn production_zui_component_root_width_contracts_declare_stretch_modes() {
     for asset_root in &asset_roots {
         for path in collect_zui_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for (component_name, component) in &document.components {
                 checked_components += 1;

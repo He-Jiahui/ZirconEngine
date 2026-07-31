@@ -29,6 +29,7 @@ mod native_plugin_loader;
 mod package_manifest_declarations;
 mod package_manifest_options;
 mod plugin_workspace_shape;
+mod profile_availability_projection;
 mod profile_maturity;
 mod project_plugin_manifest;
 mod runtime_plugin_bridge_dependencies;

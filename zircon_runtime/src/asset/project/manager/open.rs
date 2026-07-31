@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::core::resource::ResourceRegistry;
+use crate::core::runtime::tasks::TaskPool;
 
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::{ArtifactStore, AssetImportError, AssetImporter};
@@ -28,6 +29,17 @@ impl ProjectManager {
             package_assets,
             importer: AssetImporter::default(),
             artifact_store: ArtifactStore,
+            environment_ibl_parallel_executor: None,
         })
+    }
+
+    /// Binds environment IBL staging to the task owner of the active runtime.
+    pub(crate) fn set_environment_ibl_parallel_executor(&mut self, executor: TaskPool) {
+        self.environment_ibl_parallel_executor = Some(executor);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn environment_ibl_parallel_executor_for_test(&self) -> Option<&TaskPool> {
+        self.environment_ibl_parallel_executor.as_ref()
     }
 }

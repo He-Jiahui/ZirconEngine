@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var loot = %import("progression/loot_distribution_state");
+
+console.printLine("m5-loot-distribution-state-test");
+var result = loot.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

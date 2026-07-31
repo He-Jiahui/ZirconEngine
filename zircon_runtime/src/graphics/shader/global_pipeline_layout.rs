@@ -3,9 +3,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
 
 use crate::core::framework::render::{
-    ComputeDispatchPlan, FullscreenPassPlan, ShaderNamedResourceBinding, ShaderResourceAccess,
-    ShaderResourceKind, COMPUTE_SHADER_PARAMS_BINDING, COMPUTE_SHADER_RESOURCE_GROUP,
-    FULLSCREEN_PASS_INPUT_GROUP,
+    COMPUTE_SHADER_PARAMS_BINDING, COMPUTE_SHADER_RESOURCE_GROUP, ComputeDispatchPlan,
+    FULLSCREEN_PASS_INPUT_GROUP, FullscreenPassPlan, ShaderNamedResourceBinding,
+    ShaderResourceAccess, ShaderResourceKind,
 };
 
 #[derive(Clone, Debug)]
@@ -259,8 +259,8 @@ fn project_resource_entries(
 mod tests {
     use crate::core::framework::render::ShaderResourceKind;
     use crate::graphics::shader::builtin_global_shader_contracts::{
-        hzb_build_dispatch_plan, motion_vector_tile_max_pass_plan, HZB_SCENE_DEPTH_RESOURCE,
-        HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE, MOTION_VECTOR_SOURCE_RESOURCE,
+        HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
+        MOTION_VECTOR_SOURCE_RESOURCE, hzb_build_dispatch_plan, motion_vector_tile_max_pass_plan,
     };
 
     use super::*;

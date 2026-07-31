@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var roles = %import("social/dungeon_finder_role_state");
+
+console.printLine("m6-dungeon-finder-role-state-test");
+var result = roles.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

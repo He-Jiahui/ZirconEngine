@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_auto_attack_state_tests",
+  "source": "src",
+  "binary": "bin-m4-auto-attack-state-tests",
+  "entry": "combat/auto_attack_state_test_main"
+}

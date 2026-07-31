@@ -11,8 +11,8 @@ use super::TexturePayload;
 mod settings;
 
 use self::settings::{
-    bool_setting, parse_array_layout, parse_asset_usage_list, parse_color_space, parse_dimension,
-    parse_sampler, parse_usage_list, string_setting, u32_setting, ExtentSettingKeys,
+    ExtentSettingKeys, bool_setting, parse_array_layout, parse_asset_usage_list, parse_color_space,
+    parse_dimension, parse_sampler, parse_usage_list, string_setting, u32_setting,
 };
 
 pub const RGBA8_UNORM_SRGB_FORMAT: &str = "rgba8unorm_srgb";
@@ -267,7 +267,11 @@ impl TextureAssetDescriptor {
     }
 
     pub fn to_render_image_descriptor(&self, width: u32, height: u32) -> RenderImageDescriptor {
-        let descriptor = self.clone().normalized();
+        self.clone().into_render_image_descriptor(width, height)
+    }
+
+    pub fn into_render_image_descriptor(self, width: u32, height: u32) -> RenderImageDescriptor {
+        let descriptor = self.normalized();
         RenderImageDescriptor {
             width,
             height,

@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
+use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::RenderFeatureDescriptor;
 use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
 use crate::graphics::scene::anti_alias::smaa::SMAA_EXECUTOR_ID;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_compute_executor::ibl_bake_compute_executor_registrations;
-use crate::graphics::CompiledRenderPipeline;
-use crate::graphics::RenderFeatureDescriptor;
 
 use super::builtin_postprocess_executors::{
     bloom_extract_executor, bloom_postprocess_executor, blur_postprocess_executor,
@@ -31,7 +31,7 @@ use super::builtin_scene_executors::{
     transmission_scene_copy_executor,
 };
 use super::preview_sky_executor::preview_sky_scene_color_executor;
-use super::render_pass_executor_registration::{render_pass_executor_from_fn, RenderPassExecutor};
+use super::render_pass_executor_registration::{RenderPassExecutor, render_pass_executor_from_fn};
 use super::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration};
 
 pub type RenderPassExecutorFn = fn(&mut RenderPassExecutionContext<'_>) -> Result<(), String>;

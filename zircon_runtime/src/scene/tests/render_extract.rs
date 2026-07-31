@@ -26,6 +26,7 @@ use super::support::{material_handle, model_handle};
 
 mod camera_order;
 mod direct_sections;
+#[cfg(feature = "animation")]
 mod level_source_guards;
 mod lighting_postprocess;
 mod particles;

@@ -2,6 +2,8 @@
 entity = 1
 name = "Camera"
 parent = 0
+active = true
+render_layer_mask = 1
 transform = { translation = [0.0, 2.0, 5.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }
 camera = { fov_y_radians = 1.0471976, z_near = 0.1, z_far = 200.0 }
 
@@ -9,5 +11,27 @@ camera = { fov_y_radians = 1.0471976, z_near = 0.1, z_far = 200.0 }
 entity = 2
 name = "Sun"
 parent = 0
+active = true
+render_layer_mask = 1
+mobility = "Static"
 transform = { translation = [0.0, 4.0, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }
 directional_light = { direction = [-0.4, -1.0, -0.25], color = [1.0, 1.0, 1.0], intensity = 3.0 }
+
+[[entities]]
+entity = 3
+name = "Cube"
+parent = 0
+active = true
+render_layer_mask = 1
+mobility = "Static"
+transform = { translation = [0.0, 0.0, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }
+
+[entities.mesh.model]
+kind = "project"
+guid = "00000000-0000-0000-0000-000000000002"
+path_hint = "assets/models/cube.obj"
+
+[entities.mesh.material]
+kind = "project"
+guid = "00000000-0000-0000-0000-000000000003"
+path_hint = "assets/materials/default.zmaterial"

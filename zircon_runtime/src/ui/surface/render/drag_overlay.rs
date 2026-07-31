@@ -1,43 +1,128 @@
+use std::sync::OnceLock;
+
 use toml::Value;
 use zircon_runtime_interface::ui::{
     component::UiComponentState,
+    design_tokens::{EditorDesignTokens, EditorTypographyTokens},
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
     tree::UiTemplateNodeMetadata,
 };
 
 use super::painter_state::UiRenderPainterStateSource;
 
-const PREVIEW_SURFACE: &str = "#153035";
-const PREVIEW_SURFACE_BLOCKED: &str = "#482024";
-const PREVIEW_BORDER: &str = "#35c7d0";
-const PREVIEW_BORDER_BLOCKED: &str = "#ef7066";
-const PREVIEW_TEXT: &str = "#cee0e2";
-const INDICATOR_ALLOWED: &str = "#35c7d0";
-const INDICATOR_BLOCKED: &str = "#ef7066";
-const PREVIEW_RADIUS: f32 = 6.0;
-const ICON_LEFT: f32 = 12.0;
-const ICON_SIZE: f32 = 18.0;
-const TEXT_LEFT_WITH_ICON: f32 = 38.0;
-const TEXT_RIGHT_INSET: f32 = 12.0;
-const FONT_SIZE: f32 = 12.0;
-const LINE_HEIGHT: f32 = 14.4;
-const INDICATOR_THICKNESS: f32 = 2.0;
+#[derive(Clone, Copy, Debug)]
+struct DragOverlayVisual {
+    allowed_surface: UiRgbaColor,
+    blocked_surface: UiRgbaColor,
+    allowed_accent: UiRgbaColor,
+    blocked_accent: UiRgbaColor,
+    text: UiRgbaColor,
+    corner_radius: f32,
+    border_width: f32,
+    icon_left: f32,
+    icon_size: f32,
+    text_icon_gap: f32,
+    text_right_inset: f32,
+    font_size: f32,
+    line_height: f32,
+    indicator_thickness: f32,
+    cursor_offset: f32,
+    min_frame_extent: f32,
+}
+
+impl DragOverlayVisual {
+    fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
+        let mut visual = *default_drag_overlay_visual();
+        visual.allowed_surface =
+            first_rgba_attribute(metadata, &["background_color"]).unwrap_or(visual.allowed_surface);
+        visual.blocked_surface = first_rgba_attribute(metadata, &["blocked_background_color"])
+            .unwrap_or(visual.blocked_surface);
+        visual.allowed_accent = first_rgba_attribute(metadata, &["border_color", "accent_color"])
+            .unwrap_or(visual.allowed_accent);
+        visual.blocked_accent = first_rgba_attribute(metadata, &["blocked_border_color"])
+            .unwrap_or(visual.blocked_accent);
+        visual.text = first_rgba_attribute(metadata, &["foreground_color", "text_color"])
+            .unwrap_or(visual.text);
+        visual.corner_radius = metric_attribute(metadata, "corner_radius")
+            .or_else(|| metric_attribute(metadata, "radius"))
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.corner_radius);
+        visual.border_width = metric_attribute(metadata, "border_width")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.border_width);
+        visual.icon_left = metric_attribute(metadata, "icon_left_inset")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.icon_left);
+        visual.icon_size = metric_attribute(metadata, "layout_icon_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.icon_size);
+        visual.text_right_inset = metric_attribute(metadata, "text_right_inset")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.text_right_inset);
+        visual.font_size = metric_attribute(metadata, "font_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.font_size);
+        visual.line_height = line_height(
+            metadata,
+            "line_height",
+            "line_height_ratio",
+            visual.font_size,
+            visual.line_height,
+        );
+        visual.indicator_thickness = metric_attribute(metadata, "indicator_thickness")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.indicator_thickness);
+        visual.cursor_offset = metric_attribute(metadata, "cursor_offset")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.cursor_offset);
+        visual.min_frame_extent = visual.border_width.max(f32::EPSILON);
+        visual
+    }
+}
+
+fn default_drag_overlay_visual() -> &'static DragOverlayVisual {
+    static VISUAL: OnceLock<DragOverlayVisual> = OnceLock::new();
+    VISUAL.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let colors = &tokens.palette;
+        let controls = &tokens.controls;
+        let density = &tokens.density;
+        let typography = &tokens.typography;
+        DragOverlayVisual {
+            allowed_surface: colors.accent_soft,
+            blocked_surface: colors.error_container,
+            allowed_accent: colors.accent,
+            blocked_accent: colors.error,
+            text: colors.text_primary,
+            corner_radius: controls.control_radius,
+            border_width: controls.border_width,
+            icon_left: density.gap_large,
+            icon_size: controls.dense_height - density.gap_medium - controls.border_width * 2.0,
+            text_icon_gap: density.gap_medium,
+            text_right_inset: density.gap_large,
+            font_size: typography.overlay_size,
+            line_height: typography.overlay_size
+                * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+            indicator_thickness: controls.border_width * 2.0,
+            cursor_offset: density.gap_large,
+            min_frame_extent: controls.border_width.max(f32::EPSILON),
+        }
+    })
+}
 
 pub(super) fn drag_overlay_suppresses_owner_text(
     metadata: Option<&UiTemplateNodeMetadata>,
 ) -> bool {
     metadata.is_some_and(is_drag_overlay)
 }
-
 pub(super) fn drag_overlay_suppresses_owner_image(
     metadata: Option<&UiTemplateNodeMetadata>,
 ) -> bool {
     metadata.is_some_and(is_drag_overlay)
 }
-
 pub(super) fn drag_overlay_suppresses_owner_surface(
     metadata: Option<&UiTemplateNodeMetadata>,
 ) -> bool {
@@ -60,101 +145,89 @@ pub(super) fn drag_overlay_render_commands(
     if !is_drag_overlay(metadata) || !drag_overlay_open(metadata, component_state) {
         return Vec::new();
     }
-    if frame.width <= 1.0 || frame.height <= 1.0 {
+    let visual = DragOverlayVisual::resolve(metadata);
+    if frame.width <= visual.min_frame_extent || frame.height <= visual.min_frame_extent {
         return Vec::new();
     }
-
     let drop_allowed = bool_attribute(metadata, "drop_allowed").unwrap_or(true);
     let state = DragOverlayRenderState::resolve(metadata, state_flags, component_state);
-    let preview_frame = preview_frame(metadata, frame);
+    let preview = preview_frame(metadata, frame, &visual);
+    let (surface, accent) = if drop_allowed {
+        (visual.allowed_surface, visual.allowed_accent)
+    } else {
+        (visual.blocked_surface, visual.blocked_accent)
+    };
     let mut commands = vec![quad_command(
         node_id,
-        preview_frame,
+        preview,
         clip_frame,
         z_index.saturating_add(1),
-        if drop_allowed {
-            PREVIEW_SURFACE
-        } else {
-            PREVIEW_SURFACE_BLOCKED
-        },
-        Some(if drop_allowed {
-            PREVIEW_BORDER
-        } else {
-            PREVIEW_BORDER_BLOCKED
-        }),
-        1.0,
-        PREVIEW_RADIUS,
+        surface,
+        Some(accent),
+        visual.border_width,
+        visual.corner_radius,
         state.preview_state,
         opacity,
     )];
-
     let icon = payload_icon(metadata);
     if let Some(icon) = icon {
         commands.push(image_command(
             node_id,
             UiFrame::new(
-                preview_frame.x + ICON_LEFT,
-                preview_frame.y + (preview_frame.height - ICON_SIZE).max(0.0) * 0.5,
-                ICON_SIZE,
-                ICON_SIZE,
+                preview.x + visual.icon_left,
+                preview.y + (preview.height - visual.icon_size).max(0.0) * 0.5,
+                visual.icon_size,
+                visual.icon_size,
             ),
             clip_frame,
             z_index.saturating_add(2),
             icon,
-            if drop_allowed {
-                PREVIEW_BORDER
-            } else {
-                PREVIEW_BORDER_BLOCKED
-            },
+            accent,
             state.preview_state,
             opacity,
         ));
     }
-
     if let Some(label) = preview_label(metadata) {
-        let text_left = preview_frame.x
+        let text_left = preview.x
             + if icon.is_some() {
-                TEXT_LEFT_WITH_ICON
+                visual.icon_left + visual.icon_size + visual.text_icon_gap
             } else {
-                ICON_LEFT
+                visual.icon_left
             };
-        let text_width = (preview_frame.right() - TEXT_RIGHT_INSET - text_left).max(1.0);
+        let text_width =
+            (preview.right() - visual.text_right_inset - text_left).max(visual.min_frame_extent);
         commands.push(text_command(
             node_id,
             UiFrame::new(
                 text_left,
-                preview_frame.y + (preview_frame.height - LINE_HEIGHT).max(0.0) * 0.5,
+                preview.y + (preview.height - visual.line_height).max(0.0) * 0.5,
                 text_width,
-                LINE_HEIGHT,
+                visual.line_height,
             ),
             clip_frame,
             z_index.saturating_add(3),
             label,
-            PREVIEW_TEXT,
+            visual.text,
+            visual.font_size,
+            visual.line_height,
             state.preview_state,
             opacity,
         ));
     }
-
-    if let Some(indicator_frame) = indicator_frame(metadata) {
+    if let Some(indicator) = indicator_frame(metadata, &visual) {
         commands.push(quad_command(
             node_id,
-            indicator_frame,
+            indicator,
             clip_frame,
             z_index.saturating_add(4),
-            if drop_allowed {
-                INDICATOR_ALLOWED
-            } else {
-                INDICATOR_BLOCKED
-            },
+            accent,
             None,
             0.0,
-            1.0,
+            visual.border_width,
             UiPainterResolvedState::DropHovered,
             opacity,
         ));
     }
-
     commands
 }
 
@@ -162,26 +235,22 @@ pub(super) fn drag_overlay_render_commands(
 struct DragOverlayRenderState {
     preview_state: UiPainterResolvedState,
 }
-
 impl DragOverlayRenderState {
     fn resolve(
         metadata: &UiTemplateNodeMetadata,
         state_flags: &UiStateFlags,
         component_state: Option<&UiComponentState>,
     ) -> Self {
-        let painter_state =
-            UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
-                .painter_state();
+        let state = UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
+            .painter_state();
         Self {
-            preview_state: painter_state.resolved_state_for_family(UiPainterFamily::Chrome),
+            preview_state: state.resolved_state_for_family(UiPainterFamily::Chrome),
         }
     }
 }
-
 fn is_drag_overlay(metadata: &UiTemplateNodeMetadata) -> bool {
     metadata.component == "DragOverlay"
 }
-
 fn drag_overlay_open(
     metadata: &UiTemplateNodeMetadata,
     component_state: Option<&UiComponentState>,
@@ -190,61 +259,60 @@ fn drag_overlay_open(
         || bool_attribute(metadata, "dragging").unwrap_or(false)
         || component_state.is_some_and(|state| state.flags.dragging)
 }
-
-fn preview_frame(metadata: &UiTemplateNodeMetadata, fallback: UiFrame) -> UiFrame {
-    let width = number_attribute(metadata, "preview_width")
-        .unwrap_or(fallback.width)
-        .max(1.0);
-    let height = number_attribute(metadata, "preview_height")
-        .unwrap_or(fallback.height)
-        .max(1.0);
+fn preview_frame(
+    metadata: &UiTemplateNodeMetadata,
+    fallback: UiFrame,
+    visual: &DragOverlayVisual,
+) -> UiFrame {
+    let width = metric_attribute(metadata, "preview_width")
+        .filter(|value| *value > 0.0)
+        .unwrap_or(fallback.width);
+    let height = metric_attribute(metadata, "preview_height")
+        .filter(|value| *value > 0.0)
+        .unwrap_or(fallback.height);
     match (
-        number_attribute(metadata, "cursor_x"),
-        number_attribute(metadata, "cursor_y"),
+        metric_attribute(metadata, "cursor_x"),
+        metric_attribute(metadata, "cursor_y"),
     ) {
         (Some(x), Some(y)) => UiFrame::new(
-            x + number_attribute(metadata, "offset_x").unwrap_or(12.0),
-            y + number_attribute(metadata, "offset_y").unwrap_or(12.0),
+            x + metric_attribute(metadata, "offset_x")
+                .filter(|value| *value >= 0.0)
+                .unwrap_or(visual.cursor_offset),
+            y + metric_attribute(metadata, "offset_y")
+                .filter(|value| *value >= 0.0)
+                .unwrap_or(visual.cursor_offset),
             width,
             height,
         ),
         _ => UiFrame::new(fallback.x, fallback.y, width, height),
     }
 }
-
-fn indicator_frame(metadata: &UiTemplateNodeMetadata) -> Option<UiFrame> {
+fn indicator_frame(
+    metadata: &UiTemplateNodeMetadata,
+    visual: &DragOverlayVisual,
+) -> Option<UiFrame> {
     let edge = string_attribute(metadata, "drop_indicator_edge").unwrap_or("none");
     if edge == "none" {
         return None;
     }
-    let x = number_attribute(metadata, "drop_target_x")?;
-    let y = number_attribute(metadata, "drop_target_y")?;
-    let width = number_attribute(metadata, "drop_target_width")
-        .unwrap_or(0.0)
-        .max(1.0);
-    let height = number_attribute(metadata, "drop_target_height")
-        .unwrap_or(0.0)
-        .max(1.0);
+    let x = metric_attribute(metadata, "drop_target_x")?;
+    let y = metric_attribute(metadata, "drop_target_y")?;
+    let width = metric_attribute(metadata, "drop_target_width")
+        .filter(|value| *value > 0.0)
+        .unwrap_or(visual.min_frame_extent);
+    let height = metric_attribute(metadata, "drop_target_height")
+        .filter(|value| *value > 0.0)
+        .unwrap_or(visual.min_frame_extent);
+    let t = visual.indicator_thickness;
     match edge {
-        "top" => Some(UiFrame::new(x, y, width, INDICATOR_THICKNESS)),
-        "bottom" => Some(UiFrame::new(
-            x,
-            y + (height - INDICATOR_THICKNESS).max(0.0),
-            width,
-            INDICATOR_THICKNESS,
-        )),
-        "left" => Some(UiFrame::new(x, y, INDICATOR_THICKNESS, height)),
-        "right" => Some(UiFrame::new(
-            x + (width - INDICATOR_THICKNESS).max(0.0),
-            y,
-            INDICATOR_THICKNESS,
-            height,
-        )),
+        "top" => Some(UiFrame::new(x, y, width, t)),
+        "bottom" => Some(UiFrame::new(x, y + (height - t).max(0.0), width, t)),
+        "left" => Some(UiFrame::new(x, y, t, height)),
+        "right" => Some(UiFrame::new(x + (width - t).max(0.0), y, t, height)),
         "inside" => Some(UiFrame::new(x, y, width, height)),
         _ => None,
     }
 }
-
 fn preview_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
     string_attribute(metadata, "payload_label")
         .filter(|value| !value.is_empty())
@@ -254,7 +322,6 @@ fn preview_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
         })
         .map(ToOwned::to_owned)
 }
-
 fn payload_icon(metadata: &UiTemplateNodeMetadata) -> Option<&'static str> {
     match string_attribute(metadata, "payload_kind").unwrap_or("unknown") {
         "asset" => Some("package"),
@@ -263,17 +330,96 @@ fn payload_icon(metadata: &UiTemplateNodeMetadata) -> Option<&'static str> {
         _ => None,
     }
 }
-
+fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
+    metadata.attributes.get(key).and_then(Value::as_bool)
+}
+fn metric_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
+    metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))
+        .and_then(value_as_f32)
+}
+fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
+    metadata.attributes.get(key).and_then(Value::as_str)
+}
+fn first_rgba_attribute(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> Option<UiRgbaColor> {
+    keys.iter().find_map(|key| {
+        metadata
+            .style_overrides
+            .get(*key)
+            .or_else(|| metadata.attributes.get(*key))
+            .and_then(Value::as_str)
+            .and_then(parse_css_color)
+    })
+}
+fn value_as_f32(value: &Value) -> Option<f32> {
+    let value = match value {
+        Value::Integer(value) => *value as f64,
+        Value::Float(value) if value.is_finite() => *value,
+        _ => return None,
+    } as f32;
+    value.is_finite().then_some(value)
+}
+fn line_height(
+    metadata: &UiTemplateNodeMetadata,
+    absolute_key: &str,
+    ratio_key: &str,
+    font_size: f32,
+    default: f32,
+) -> f32 {
+    metric_attribute(metadata, absolute_key)
+        .filter(|value| *value > 0.0)
+        .or_else(|| {
+            metric_attribute(metadata, ratio_key)
+                .filter(|value| *value > 0.0)
+                .map(|ratio| font_size * ratio)
+        })
+        .unwrap_or(default)
+}
+fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
+    let encoded = value.trim().strip_prefix('#')?;
+    if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
+        return None;
+    }
+    let (r, g, b, a) = match encoded.len() {
+        6 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::MAX,
+        ),
+        8 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::from_str_radix(&encoded[6..8], 16).ok()?,
+        ),
+        _ => return None,
+    };
+    Some(UiRgbaColor::from_u8(r, g, b, a))
+}
+fn css_color(color: UiRgbaColor) -> String {
+    let [r, g, b, a] = color.to_u8();
+    let mut value = if a == u8::MAX {
+        format!("{r:02x}{g:02x}{b:02x}")
+    } else {
+        format!("{r:02x}{g:02x}{b:02x}{a:02x}")
+    };
+    value.insert(0, '#');
+    value
+}
+#[allow(clippy::too_many_arguments)]
 fn quad_command(
     node_id: UiNodeId,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
-    background_color: &str,
-    border_color: Option<&str>,
+    background: UiRgbaColor,
+    border: Option<UiRgbaColor>,
     border_width: f32,
-    corner_radius: f32,
-    painter_state: UiPainterResolvedState,
+    radius: f32,
+    state: UiPainterResolvedState,
     opacity: f32,
 ) -> UiRenderCommand {
     UiRenderCommand {
@@ -283,11 +429,11 @@ fn quad_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            background_color: Some(background_color.to_string()),
-            border_color: border_color.map(ToOwned::to_owned),
+            background_color: Some(css_color(background)),
+            border_color: border.map(css_color),
             border_width,
-            corner_radius,
-            ..UiResolvedStyle::default().with_painter_state(UiPainterFamily::Chrome, painter_state)
+            corner_radius: radius,
+            ..UiResolvedStyle::default().with_painter_state(UiPainterFamily::Chrome, state)
         },
         text_layout: None,
         text: None,
@@ -295,15 +441,14 @@ fn quad_command(
         opacity,
     }
 }
-
 fn image_command(
     node_id: UiNodeId,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
     icon: &str,
-    color: &str,
-    painter_state: UiPainterResolvedState,
+    color: UiRgbaColor,
+    state: UiPainterResolvedState,
     opacity: f32,
 ) -> UiRenderCommand {
     UiRenderCommand {
@@ -313,8 +458,8 @@ fn image_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(color.to_string()),
-            ..UiResolvedStyle::default().with_painter_state(UiPainterFamily::Chrome, painter_state)
+            foreground_color: Some(css_color(color)),
+            ..UiResolvedStyle::default().with_painter_state(UiPainterFamily::Chrome, state)
         },
         text_layout: None,
         text: None,
@@ -322,15 +467,17 @@ fn image_command(
         opacity,
     }
 }
-
+#[allow(clippy::too_many_arguments)]
 fn text_command(
     node_id: UiNodeId,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
     text: String,
-    color: &str,
-    painter_state: UiPainterResolvedState,
+    color: UiRgbaColor,
+    font_size: f32,
+    line_height: f32,
+    state: UiPainterResolvedState,
     opacity: f32,
 ) -> UiRenderCommand {
     UiRenderCommand {
@@ -340,31 +487,14 @@ fn text_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(color.to_string()),
-            font_size: FONT_SIZE,
-            line_height: LINE_HEIGHT,
-            ..UiResolvedStyle::default().with_painter_state(UiPainterFamily::Chrome, painter_state)
+            foreground_color: Some(css_color(color)),
+            font_size,
+            line_height,
+            ..UiResolvedStyle::default().with_painter_state(UiPainterFamily::Chrome, state)
         },
         text_layout: None,
         text: Some(text),
         image: None,
         opacity,
     }
-}
-
-fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
-    metadata.attributes.get(key).and_then(Value::as_bool)
-}
-
-fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
-    metadata.attributes.get(key).and_then(|value| {
-        value
-            .as_float()
-            .map(|value| value as f32)
-            .or_else(|| value.as_integer().map(|value| value as f32))
-    })
-}
-
-fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
-    metadata.attributes.get(key).and_then(Value::as_str)
 }

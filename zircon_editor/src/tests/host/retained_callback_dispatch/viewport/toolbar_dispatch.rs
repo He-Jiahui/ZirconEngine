@@ -2,7 +2,7 @@ use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
-fn builtin_viewport_toolbar_set_tool_dispatches_dynamic_binding_from_template() {
+fn builtin_viewport_toolbar_activates_scene_modes_from_template() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_template_bridge_viewport_tool");
@@ -11,9 +11,9 @@ fn builtin_viewport_toolbar_set_tool_dispatches_dynamic_binding_from_template() 
     let effects = dispatch_builtin_viewport_toolbar_control(
         &harness.runtime,
         &bridge,
-        "SetTool",
+        "ActivateSceneMode",
         UiEventKind::Change,
-        vec![UiBindingValue::string("Scale")],
+        vec![UiBindingValue::string("Transform.Scale")],
     )
     .expect("viewport toolbar control should resolve through template bridge")
     .unwrap();
@@ -21,8 +21,8 @@ fn builtin_viewport_toolbar_set_tool_dispatches_dynamic_binding_from_template() 
     let journal = harness.runtime.journal();
     assert_eq!(
         journal.records().last().unwrap().event,
-        EditorEvent::Viewport(EditorViewportEvent::SetTool {
-            tool: SceneViewportTool::Scale,
+        EditorEvent::Viewport(EditorViewportEvent::ActivateSceneMode {
+            mode: SceneModeActivation::Transform(TransformHandleKind::Scale),
         })
     );
     assert!(effects.render_dirty);
@@ -126,13 +126,15 @@ fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
 }
 
 #[test]
-fn builtin_viewport_toolbar_set_tool_matches_legacy_viewport_command_dispatch() {
+fn builtin_viewport_toolbar_mode_activation_matches_typed_command_dispatch() {
     let _guard = env_lock().lock().unwrap();
 
     let legacy_harness = EventRuntimeHarness::new("zircon_retained_parity_viewport_tool_legacy");
     let legacy_effects = dispatch_viewport_command(
         &legacy_harness.runtime,
-        ViewportCommand::SetTool(SceneViewportTool::Scale),
+        ViewportCommand::ActivateSceneMode(SceneModeActivation::Transform(
+            TransformHandleKind::Scale,
+        )),
     )
     .unwrap();
     let legacy_record = legacy_harness
@@ -148,9 +150,9 @@ fn builtin_viewport_toolbar_set_tool_matches_legacy_viewport_command_dispatch() 
     let builtin_effects = dispatch_builtin_viewport_toolbar_control(
         &builtin_harness.runtime,
         &bridge,
-        "SetTool",
+        "ActivateSceneMode",
         UiEventKind::Change,
-        vec![UiBindingValue::string("Scale")],
+        vec![UiBindingValue::string("Transform.Scale")],
     )
     .expect("templated viewport tool control should resolve")
     .unwrap();

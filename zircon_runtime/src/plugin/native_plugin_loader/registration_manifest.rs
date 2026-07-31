@@ -1,8 +1,19 @@
+use std::collections::BTreeSet;
+
 use serde::Deserialize;
 
 use crate::scene::SystemStage;
 
 use super::behavior_validation::ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3;
+
+mod system_access;
+
+pub(super) use system_access::{
+    NativePluginRegistrationThreadAffinity, NativeSystemAccessAuthority,
+    NativeSystemAccessAuthorityError, NativeSystemAccessContractError,
+    NativeSystemAccessDeclaration, NativeSystemAccessDomain, NativeSystemAccessMode,
+    NativeSystemAccessPlan, NativeSystemAccessResolveError, NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY,
+};
 
 pub(super) type NativePluginRegistrationManifestResult<T> =
     std::result::Result<T, NativePluginRegistrationManifestError>;
@@ -20,6 +31,17 @@ pub(super) enum NativePluginRegistrationManifestError {
     MissingSystemField {
         system_id: String,
         field_name: &'static str,
+    },
+    InvalidSystemAccess {
+        system_id: String,
+        source: NativeSystemAccessContractError,
+    },
+    InvalidResourceField {
+        resource_id: String,
+        field_name: &'static str,
+    },
+    DuplicateResourceId {
+        resource_id: String,
     },
 }
 
@@ -47,6 +69,21 @@ impl std::fmt::Display for NativePluginRegistrationManifestError {
                 formatter,
                 "native registration manifest system `{system_id}` is missing {field_name}"
             ),
+            Self::InvalidSystemAccess { system_id, source } => write!(
+                formatter,
+                "native registration manifest system `{system_id}` has invalid access: {source}"
+            ),
+            Self::InvalidResourceField {
+                resource_id,
+                field_name,
+            } => write!(
+                formatter,
+                "native registration manifest resource `{resource_id}` has invalid {field_name}"
+            ),
+            Self::DuplicateResourceId { resource_id } => write!(
+                formatter,
+                "native registration manifest resource `{resource_id}` is declared more than once"
+            ),
         }
     }
 }
@@ -55,9 +92,12 @@ impl std::error::Error for NativePluginRegistrationManifestError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::InvalidToml(error) => Some(error),
+            Self::InvalidSystemAccess { source, .. } => Some(source),
             Self::UnsupportedSchema { .. }
             | Self::UnsupportedSystemStage { .. }
-            | Self::MissingSystemField { .. } => None,
+            | Self::MissingSystemField { .. }
+            | Self::InvalidResourceField { .. }
+            | Self::DuplicateResourceId { .. } => None,
         }
     }
 }
@@ -99,6 +139,16 @@ impl NativePluginRegistrationManifest {
             system.stage()?;
             system.bridge_interface()?;
             system.bridge_method()?;
+            system.access_plan(&self.capabilities)?;
+        }
+        let mut resource_ids = BTreeSet::new();
+        for resource in &self.resources {
+            resource.validate()?;
+            if !resource_ids.insert(resource.id.as_str()) {
+                return Err(NativePluginRegistrationManifestError::DuplicateResourceId {
+                    resource_id: resource.id.clone(),
+                });
+            }
         }
         Ok(())
     }
@@ -127,6 +177,8 @@ pub(super) struct NativePluginRegistrationSystem {
     pub after: Vec<String>,
     #[serde(default)]
     pub access: Vec<String>,
+    #[serde(default)]
+    pub thread_affinity: NativePluginRegistrationThreadAffinity,
     pub bridge_interface: Option<String>,
     pub bridge_method: Option<String>,
 }
@@ -147,6 +199,19 @@ impl NativePluginRegistrationSystem {
     pub(super) fn bridge_method(&self) -> NativePluginRegistrationManifestResult<&str> {
         required_non_empty(self.bridge_method.as_deref(), &self.id, "bridge_method")
     }
+
+    pub(super) fn access_plan(
+        &self,
+        capabilities: &[String],
+    ) -> NativePluginRegistrationManifestResult<NativeSystemAccessPlan> {
+        NativeSystemAccessPlan::from_manifest(self.thread_affinity, &self.access, capabilities)
+            .map_err(
+                |source| NativePluginRegistrationManifestError::InvalidSystemAccess {
+                    system_id: self.id.clone(),
+                    source,
+                },
+            )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
@@ -155,6 +220,26 @@ pub(super) struct NativePluginRegistrationResource {
     pub id: String,
     pub module: String,
     pub schema: String,
+}
+
+impl NativePluginRegistrationResource {
+    fn validate(&self) -> NativePluginRegistrationManifestResult<()> {
+        for (field_name, value) in [
+            ("id", self.id.as_str()),
+            ("module", self.module.as_str()),
+            ("schema", self.schema.as_str()),
+        ] {
+            if value.trim().is_empty() || value.trim() != value {
+                return Err(
+                    NativePluginRegistrationManifestError::InvalidResourceField {
+                        resource_id: self.id.clone(),
+                        field_name,
+                    },
+                );
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
@@ -251,6 +336,14 @@ bridge_method = "sample_count"
             manifest.systems[0].bridge_interface().unwrap(),
             "native.live_host.bridge.v1"
         );
+        let access = manifest.systems[0]
+            .access_plan(&manifest.capabilities)
+            .unwrap();
+        assert_eq!(
+            access.affinity(),
+            crate::scene::ecs::SceneSystemThreadAffinity::MainThreadOnly
+        );
+        assert!(access.has_conservative_world_access());
     }
 
     #[test]
@@ -297,6 +390,101 @@ bridge_interface = "native.live_host.bridge.v1"
                 system_id,
                 field_name: "bridge_method"
             } if system_id == "physics.runtime_tick"
+        ));
+    }
+
+    #[test]
+    fn native_registration_manifest_compiles_explicit_worker_access_contract() {
+        let manifest = NativePluginRegistrationManifest::from_toml(
+            r#"
+schema = "zircon.native.registration-manifest/3"
+capabilities = ["runtime.plugin.physics", "runtime.native.system.worker_safe"]
+
+[[systems]]
+id = "physics.runtime_tick"
+module = "runtime"
+stage = "Update"
+thread_affinity = "worker-safe"
+access = ["write:resource:physics.solver", "read:component:physics.Body"]
+bridge_interface = "native.live_host.bridge.v1"
+bridge_method = "sample_count"
+"#,
+        )
+        .expect("worker-safe access contract should parse");
+
+        let access = manifest.systems[0]
+            .access_plan(&manifest.capabilities)
+            .unwrap();
+        assert_eq!(
+            access.affinity(),
+            crate::scene::ecs::SceneSystemThreadAffinity::WorkerSafe
+        );
+        assert!(!access.has_conservative_world_access());
+        assert_eq!(
+            access.declarations(),
+            &[
+                NativeSystemAccessDeclaration {
+                    mode: NativeSystemAccessMode::Read,
+                    domain: NativeSystemAccessDomain::Component,
+                    stable_id: "physics.Body".to_string(),
+                },
+                NativeSystemAccessDeclaration {
+                    mode: NativeSystemAccessMode::Write,
+                    domain: NativeSystemAccessDomain::Resource,
+                    stable_id: "physics.solver".to_string(),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn native_registration_manifest_rejects_ungranted_or_ambiguous_worker_access() {
+        let missing_capability = NativePluginRegistrationManifest::from_toml(
+            r#"
+schema = "zircon.native.registration-manifest/3"
+
+[[systems]]
+id = "physics.runtime_tick"
+module = "runtime"
+stage = "Update"
+thread_affinity = "worker-safe"
+access = ["read:component:physics.Body"]
+bridge_interface = "native.live_host.bridge.v1"
+bridge_method = "sample_count"
+"#,
+        )
+        .expect_err("worker-safe declaration without capability must fail");
+        assert!(matches!(
+            missing_capability,
+            NativePluginRegistrationManifestError::InvalidSystemAccess {
+                source: NativeSystemAccessContractError::MissingWorkerSafeCapability,
+                ..
+            }
+        ));
+
+        let conflicting = NativePluginRegistrationManifest::from_toml(
+            r#"
+schema = "zircon.native.registration-manifest/3"
+
+[[systems]]
+id = "physics.runtime_tick"
+module = "runtime"
+stage = "Update"
+access = ["read:resource:physics.solver", "write:resource:physics.solver"]
+bridge_interface = "native.live_host.bridge.v1"
+bridge_method = "sample_count"
+"#,
+        )
+        .expect_err("read/write ambiguity must fail");
+        assert!(matches!(
+            conflicting,
+            NativePluginRegistrationManifestError::InvalidSystemAccess {
+                source: NativeSystemAccessContractError::ConflictingAccess {
+                    domain: NativeSystemAccessDomain::Resource,
+                    stable_id,
+                },
+                ..
+            } if stable_id == "physics.solver"
         ));
     }
 }

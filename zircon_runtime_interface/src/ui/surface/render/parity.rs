@@ -43,7 +43,7 @@ impl UiRendererParitySnapshot {
                     paint_order: element.paint_order,
                     frame: element.geometry.render_bounds,
                     clip_frame: element.clip.as_ref().map(|clip| clip.frame),
-                    clip_key: batch_key.clip.clone(),
+                    clip: batch_key.clip.clone(),
                     payload_kind: UiRendererParityPayloadKind::from_payload(&element.payload),
                     batch_key,
                     batch_index,
@@ -61,8 +61,10 @@ impl UiRendererParitySnapshot {
             .enumerate()
             .map(|(batch_index, batch)| UiRendererParityBatchRow {
                 batch_index,
-                first_paint_index: batch.range.first_element,
+                layer: batch.layer,
+                first_ordered_element: batch.range.first_element,
                 paint_count: batch.range.element_count,
+                source_indices: batch.source_indices.clone(),
                 node_ids: batch.node_ids.clone(),
                 batch_key: batch.key.clone(),
                 primitive: batch.key.primitive,
@@ -104,7 +106,7 @@ pub struct UiRendererParityPaintRow {
     pub paint_order: u64,
     pub frame: UiFrame,
     pub clip_frame: Option<UiFrame>,
-    pub clip_key: Option<String>,
+    pub clip: Option<super::UiClipState>,
     pub payload_kind: UiRendererParityPayloadKind,
     pub batch_key: UiBatchKey,
     pub batch_index: Option<usize>,
@@ -117,8 +119,10 @@ pub struct UiRendererParityPaintRow {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRendererParityBatchRow {
     pub batch_index: usize,
-    pub first_paint_index: usize,
+    pub layer: i32,
+    pub first_ordered_element: usize,
     pub paint_count: usize,
+    pub source_indices: Vec<usize>,
     pub node_ids: Vec<UiNodeId>,
     pub batch_key: UiBatchKey,
     pub primitive: UiBatchPrimitive,
@@ -155,10 +159,9 @@ pub struct UiRendererParityStats {
 }
 
 fn batch_index_for_paint_index(plan: &UiBatchPlan, paint_index: usize) -> Option<usize> {
-    plan.batches.iter().position(|batch| {
-        paint_index >= batch.range.first_element
-            && paint_index < batch.range.first_element + batch.range.element_count
-    })
+    plan.batches
+        .iter()
+        .position(|batch| batch.source_indices.contains(&paint_index))
 }
 
 fn paint_resource_key(element: &UiPaintElement) -> Option<UiRenderResourceKey> {

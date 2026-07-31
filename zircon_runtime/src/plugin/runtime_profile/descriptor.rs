@@ -87,7 +87,7 @@ impl RuntimeProfileDescriptor {
                 .default_plugins
                 .iter()
                 .map(|plugin| {
-                    ProjectPluginSelection::runtime_plugin(plugin.id, true, plugin.required)
+                    ProjectPluginSelection::runtime_plugin(plugin.id.clone(), true, plugin.required)
                         .with_target_modes([self.target_mode])
                 })
                 .collect(),

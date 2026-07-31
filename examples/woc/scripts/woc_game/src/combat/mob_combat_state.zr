@@ -1,0 +1,112 @@
+// Primitive-only projection of src/sim/mob_combat.ts. AI, pathfinding and
+// swing execution stay with their authoritative WorldState owners.
+pub class MobCombatProfile {
+    pub var meleeRange: float;
+    pub var desiredRange: float;
+    pub var chaseSpeedMult: float;
+    pub var canLeash: bool;
+    pub var swingWhilePursuing: bool;
+    pub var immediateSwingOnEnterRange: bool;
+    pub var movingRangeBonus: float;
+
+    pub @constructor() {
+        this.meleeRange = 5.0;
+        this.desiredRange = 4.0;
+        this.chaseSpeedMult = 1.0;
+        this.canLeash = true;
+        this.swingWhilePursuing = true;
+        this.immediateSwingOnEnterRange = true;
+        this.movingRangeBonus = 1.0;
+    }
+}
+
+meleeRange(): float { return 5.0; }
+thunzharrReachScale(): float { return 5.0; }
+
+applyDefaultProfile(profile: MobCombatProfile, scale: float): void {
+    var range = scaledDefaultMobMeleeRange(scale);
+    profile.meleeRange = range;
+    profile.desiredRange = range * 0.8;
+    profile.chaseSpeedMult = 1.0;
+    profile.canLeash = true;
+    profile.swingWhilePursuing = true;
+    profile.immediateSwingOnEnterRange = true;
+    profile.movingRangeBonus = 1.0;
+}
+
+pub scaledDefaultMobMeleeRange(scale: float): float {
+    var extraScale = scale - 1.0;
+    if (extraScale < 0.0) extraScale = 0.0;
+    return meleeRange() + extraScale * 3.0;
+}
+
+pub combatProfileForMob(templateId: string, scale: float, output: MobCombatProfile): void {
+    if (templateId == "nythraxis_scourge_of_thornpeak") {
+        output.meleeRange = 8.0;
+        output.desiredRange = 5.0;
+        output.chaseSpeedMult = 1.5;
+        output.canLeash = false;
+        output.swingWhilePursuing = true;
+        output.immediateSwingOnEnterRange = true;
+        output.movingRangeBonus = 0.0;
+        return;
+    }
+    if (templateId == "nythraxis_skeleton_warrior") {
+        output.meleeRange = 6.0;
+        output.desiredRange = 4.5;
+        output.chaseSpeedMult = 1.45;
+        output.canLeash = false;
+        output.swingWhilePursuing = true;
+        output.immediateSwingOnEnterRange = true;
+        output.movingRangeBonus = 0.0;
+        return;
+    }
+    if (templateId == "thunzharr_waking_peak") {
+        applyDefaultProfile(output, thunzharrReachScale());
+        return;
+    }
+    applyDefaultProfile(output, scale);
+}
+
+pub effectiveMobMeleeRange(profile: MobCombatProfile, mobMoved: bool): float {
+    return mobMoved ? profile.meleeRange + profile.movingRangeBonus : profile.meleeRange;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    var profile = new MobCombatProfile();
+    combatProfileForMob("forest_wolf", 0.25, profile);
+    if (!closeEnough(profile.meleeRange, 5.0) || !closeEnough(profile.desiredRange, 4.0) ||
+        !profile.canLeash || !profile.swingWhilePursuing ||
+        !profile.immediateSwingOnEnterRange || !closeEnough(profile.movingRangeBonus, 1.0)) {
+        return -1;
+    }
+    combatProfileForMob("forest_wolf", 2.0, profile);
+    if (!closeEnough(profile.meleeRange, 8.0) || !closeEnough(profile.desiredRange, 6.4) ||
+        !closeEnough(effectiveMobMeleeRange(profile, false), 8.0) ||
+        !closeEnough(effectiveMobMeleeRange(profile, true), 9.0)) {
+        return -2;
+    }
+    combatProfileForMob("nythraxis_scourge_of_thornpeak", 1.0, profile);
+    if (!closeEnough(profile.meleeRange, 8.0) || !closeEnough(profile.desiredRange, 5.0) ||
+        !closeEnough(profile.chaseSpeedMult, 1.5) || profile.canLeash ||
+        !closeEnough(effectiveMobMeleeRange(profile, true), 8.0)) {
+        return -3;
+    }
+    combatProfileForMob("nythraxis_skeleton_warrior", 1.0, profile);
+    if (!closeEnough(profile.meleeRange, 6.0) || !closeEnough(profile.desiredRange, 4.5) ||
+        !closeEnough(profile.chaseSpeedMult, 1.45) || profile.canLeash) {
+        return -4;
+    }
+    combatProfileForMob("thunzharr_waking_peak", 8.0, profile);
+    if (!closeEnough(profile.meleeRange, 17.0) || !closeEnough(profile.desiredRange, 13.6) ||
+        !profile.canLeash || !closeEnough(profile.chaseSpeedMult, 1.0)) {
+        return -5;
+    }
+    return 1;
+}

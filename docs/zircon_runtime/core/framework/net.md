@@ -94,6 +94,7 @@ The framework is folder-backed and `mod.rs` is only the re-export surface.
 - `reliable.rs` defines reliable datagram configuration, simulation profiles, fragment packets, ACKs, delivery reports, receive reports, and recovery state.
 - `download.rs` defines transport-facing chunk download descriptors, range-resume attempts, mirrors, and progress state. ZRPack format manifests and chunk-table entries belong to `asset::pack`.
 - `event.rs` and `diagnostics.rs` expose transport-independent runtime events and copied status counters. Lifecycle events include socket bind/close, listener start/close, connection state/accept/close, HTTP route register/unregister, WebSocket pair open, and queued WebSocket frames.
+- `error.rs` owns neutral failure categories, including `SharedStatePoisoned { resource }` for fallible provider operations whose shared state can no longer be trusted after a worker panic.
 
 ## Behavior Model
 
@@ -137,6 +138,17 @@ App, editor, export, VM, and gameplay systems should:
 2. Construct neutral descriptors or query copied diagnostics.
 3. Let the plugin implementation decide whether a transport/backend exists for the selected profile and target.
 4. Handle typed `NetError` values for unavailable protocol features, unknown handles, invalid endpoints, and backend IO failures.
+
+Fallible provider APIs must report poisoned shared state as `NetError::SharedStatePoisoned` with a
+stable provider resource identity. Infallible copied diagnostics/event-drain APIs may recover the
+last guarded value in the provider, but that recovery policy remains plugin-owned and does not leak
+mutex types into this framework contract.
+Providers must detect this typed failure before externally visible transport or backend IO. A
+failed guard acquisition must not create an unregistered socket, listener, or connection, and must
+not advance a lifecycle flag such as worker shutdown.
+Provider registry guards must not be held while invoking pluggable handlers, backends, listeners,
+or connections. Implementations should snapshot stable callback ownership while guarded and invoke
+it after release so a provider callback can reenter copied diagnostics or another manager API.
 
 ## Edge Cases
 

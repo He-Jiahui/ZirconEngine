@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_READBACK};
+use crate::graphics::debug_markers::{RENDERDOC_MARKER_READBACK, insert_marker};
 use crate::graphics::types::GraphicsError;
 
 const F32X4_BYTE_LEN: u64 = 16;

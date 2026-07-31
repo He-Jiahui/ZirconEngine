@@ -142,7 +142,6 @@ impl UiResourceResolver {
         S: AsRef<str>,
     {
         let mut requested_uris = Vec::new();
-        let mut references_removed = 0;
         let scheme_map = self.scheme_map.clone();
         for uri in uris {
             let uri = uri.as_ref().trim();
@@ -150,12 +149,16 @@ impl UiResourceResolver {
                 continue;
             }
             requested_uris.push(uri.to_string());
+        }
+        let references_removed = if requested_uris.is_empty() {
+            0
+        } else {
             let before = self.cache.len();
             self.cache.retain(|reference, _| {
-                !resource_reference_contains_uri(reference, uri, &scheme_map)
+                !resource_reference_contains_any_uri(reference, &requested_uris, &scheme_map)
             });
-            references_removed += before.saturating_sub(self.cache.len());
-        }
+            before.saturating_sub(self.cache.len())
+        };
 
         UiResourceResolverCacheInvalidationReport {
             requested_uris,
@@ -306,6 +309,15 @@ fn resource_reference_contains_uri(
         || reference.fallback.uri.as_deref().is_some_and(|fallback| {
             resource_uri_matches_invalidation_uri(fallback, uri, scheme_map)
         })
+}
+
+fn resource_reference_contains_any_uri(
+    reference: &UiResourceRef,
+    uris: &[String],
+    scheme_map: &UiResourceResolverSchemeMap,
+) -> bool {
+    uris.iter()
+        .any(|uri| resource_reference_contains_uri(reference, uri, scheme_map))
 }
 
 fn resource_uri_matches_invalidation_uri(

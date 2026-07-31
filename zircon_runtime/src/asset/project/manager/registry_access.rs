@@ -23,6 +23,17 @@ impl ProjectManager {
         &self.asset_registry
     }
 
+    pub(crate) fn source_resource_records(
+        &self,
+        locator: &crate::asset::AssetUri,
+    ) -> Vec<crate::core::resource::ResourceRecord> {
+        self.asset_registry
+            .source_entries(locator)
+            .into_iter()
+            .filter_map(|entry| self.registry.get_by_locator(entry.path()).cloned())
+            .collect()
+    }
+
     pub fn package_assets(&self) -> &PackageAssetRegistry {
         &self.package_assets
     }

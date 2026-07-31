@@ -45,7 +45,10 @@ pub struct ZrPackDeltaReader {
 
 impl ZrPackDeltaDocumentManifest {
     pub fn changed_asset(&self, path: &str) -> Option<&ZrPackAssetEntry> {
-        self.changed_assets.iter().find(|asset| asset.path == path)
+        self.changed_assets
+            .binary_search_by(|asset| asset.path.as_str().cmp(path))
+            .ok()
+            .map(|index| &self.changed_assets[index])
     }
 }
 
@@ -65,35 +68,32 @@ impl ZrPackDeltaWriter {
             .manifest()
             .assets
             .iter()
-            .map(|asset| asset.path.clone())
+            .map(|asset| asset.path.as_str())
             .collect::<BTreeSet<_>>();
 
-        let mut removed_assets = base
+        let removed_assets = base
             .manifest()
             .assets
             .iter()
-            .filter(|asset| !target_paths.contains(&asset.path))
+            .filter(|asset| !target_paths.contains(asset.path.as_str()))
             .map(|asset| asset.path.clone())
             .collect::<Vec<_>>();
-        removed_assets.sort();
 
         let mut changed_asset_entries = Vec::new();
         let mut changed_assets = Vec::new();
         let mut reused_assets = Vec::new();
         let mut chunk_source_paths = BTreeMap::new();
 
-        let mut target_assets = target.manifest().assets.clone();
-        target_assets.sort_by(|left, right| left.path.cmp(&right.path));
-        for asset in target_assets {
+        for asset in &target.manifest().assets {
             if base_hashes.contains(&asset.chunk_hash) {
-                reused_assets.push(asset.path);
+                reused_assets.push(asset.path.clone());
                 continue;
             }
             chunk_source_paths
                 .entry(asset.chunk_hash)
                 .or_insert_with(|| asset.path.clone());
             changed_assets.push(asset.path.clone());
-            changed_asset_entries.push(asset);
+            changed_asset_entries.push(asset.clone());
         }
 
         let mut bytes = vec![0; header_size()];
@@ -154,8 +154,9 @@ impl ZrPackDeltaReader {
         let chunk = self
             .manifest
             .chunks
-            .iter()
-            .find(|chunk| chunk.hash == asset.chunk_hash)
+            .binary_search_by_key(&asset.chunk_hash, |chunk| chunk.hash)
+            .ok()
+            .map(|index| &self.manifest.chunks[index])
             .ok_or_else(|| ZrPackError::MissingChunk(path.to_string()))?;
         read_delta_chunk_bytes(&self.bytes, path, asset, chunk)
     }
@@ -216,13 +217,32 @@ fn validate_delta_chunks(
     bytes: &[u8],
     manifest: &ZrPackDeltaDocumentManifest,
 ) -> Result<(), ZrPackError> {
-    for asset in &manifest.changed_assets {
-        let chunk = manifest
+    for chunk in &manifest.chunks {
+        let path = || {
+            manifest
+                .changed_assets
+                .iter()
+                .find(|asset| asset.chunk_hash == chunk.hash)
+                .map(|asset| asset.path.as_str())
+                .unwrap_or("<chunk>")
+                .to_string()
+        };
+        let target_chunk = manifest
+            .target
+            .pack
             .chunks
-            .iter()
-            .find(|chunk| chunk.hash == asset.chunk_hash)
-            .ok_or_else(|| ZrPackError::MissingChunk(asset.path.clone()))?;
-        let _ = read_delta_chunk_bytes(bytes, &asset.path, asset, chunk)?;
+            .binary_search_by_key(&chunk.hash, |target| target.hash)
+            .ok()
+            .map(|index| &manifest.target.pack.chunks[index])
+            .ok_or_else(|| ZrPackError::MissingChunk(path()))?;
+        if target_chunk.size != chunk.size {
+            return Err(ZrPackError::ChunkOutOfBounds(path()));
+        }
+        let chunk_bytes =
+            delta_chunk_range(bytes, chunk).ok_or_else(|| ZrPackError::ChunkOutOfBounds(path()))?;
+        if zrpack_content_hash(chunk_bytes) != chunk.hash {
+            return Err(ZrPackError::ChunkHashMismatch(path()));
+        }
     }
     Ok(())
 }
@@ -306,21 +326,19 @@ fn read_delta_chunk_bytes(
     if u64::from(chunk.size) != asset.size {
         return Err(ZrPackError::ChunkOutOfBounds(path.to_string()));
     }
-    let start = usize::try_from(chunk.offset)
-        .map_err(|_| ZrPackError::ChunkOutOfBounds(path.to_string()))?;
-    let size =
-        usize::try_from(chunk.size).map_err(|_| ZrPackError::ChunkOutOfBounds(path.to_string()))?;
-    let end = start
-        .checked_add(size)
+    let chunk_bytes = delta_chunk_range(bytes, chunk)
         .ok_or_else(|| ZrPackError::ChunkOutOfBounds(path.to_string()))?;
-    if start < header_size() || end > bytes.len() {
-        return Err(ZrPackError::ChunkOutOfBounds(path.to_string()));
-    }
-    let chunk_bytes = bytes[start..end].to_vec();
-    if zrpack_content_hash(&chunk_bytes) != chunk.hash {
+    if zrpack_content_hash(chunk_bytes) != chunk.hash {
         return Err(ZrPackError::ChunkHashMismatch(path.to_string()));
     }
-    Ok(chunk_bytes)
+    Ok(chunk_bytes.to_vec())
+}
+
+fn delta_chunk_range<'a>(bytes: &'a [u8], chunk: &ZrChunkEntry) -> Option<&'a [u8]> {
+    let start = usize::try_from(chunk.offset).ok()?;
+    let size = usize::try_from(chunk.size).ok()?;
+    let end = start.checked_add(size)?;
+    (start >= header_size() && end <= bytes.len()).then(|| &bytes[start..end])
 }
 
 fn write_delta_header(header: &mut [u8], manifest_offset: u64, manifest_size: u64) {

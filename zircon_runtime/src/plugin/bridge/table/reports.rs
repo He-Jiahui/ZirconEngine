@@ -79,19 +79,32 @@ impl BridgeTableDiagnosticsSummary {
     }
 
     pub(super) fn record_snapshot(&mut self, snapshot: &BridgeInterfaceSnapshot) {
+        self.record_state(
+            snapshot.status,
+            snapshot.provider_installed,
+            snapshot.diagnostics,
+        );
+    }
+
+    pub(super) fn record_state(
+        &mut self,
+        status: BridgeInterfaceStatus,
+        provider_installed: bool,
+        diagnostics: BridgeDiagnosticsSnapshot,
+    ) {
         self.total_interfaces += 1;
-        match snapshot.status {
+        match status {
             BridgeInterfaceStatus::Enabled => self.enabled_interfaces += 1,
             BridgeInterfaceStatus::Disabled => self.disabled_interfaces += 1,
             BridgeInterfaceStatus::Absent => {}
         }
-        if snapshot.provider_installed {
+        if provider_installed {
             self.installed_providers += 1;
         } else {
             self.missing_providers += 1;
         }
-        self.enabled_calls += snapshot.diagnostics.enabled_calls;
-        self.not_enabled_calls += snapshot.diagnostics.not_enabled_calls;
+        self.enabled_calls += diagnostics.enabled_calls;
+        self.not_enabled_calls += diagnostics.not_enabled_calls;
     }
 }
 

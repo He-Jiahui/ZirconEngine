@@ -1,0 +1,1 @@
+{ "name":"woc_m4_convergence_state_tests", "source":"src", "binary":"bin-m4-convergence-state-tests", "entry":"combat/convergence_state_test_main" }

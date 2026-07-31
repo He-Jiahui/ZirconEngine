@@ -1,0 +1,24 @@
+var console = %import("zr.system.console");
+var autoAttack = %import("combat/auto_attack");
+
+console.printLine("m4-auto-attack-test");
+var result: int = 1;
+if (autoAttack.metric(0, 0.03, 0.0, 0.0, 0.0) != 0.0) { result = -1; }
+if (result == 1 && autoAttack.metric(1, 20.0, 35.0, 8.0, 0.0) != 1.0) { result = -2; }
+if (result == 1 && autoAttack.metric(1, 2.0, 30.0, 8.0, 1.0) != 1.0) { result = -3; }
+if (result == 1 && autoAttack.metric(2, 0.02, 0.05, 0.05, 0.0) != 0.0) { result = -4; }
+if (result == 1 && autoAttack.metric(2, 0.08, 0.05, 0.05, 0.0) != 1.0) { result = -5; }
+if (result == 1 && autoAttack.metric(2, 0.20, 0.05, 0.05, 0.0) != 2.0) { result = -6; }
+if (result == 1 && autoAttack.metric(3, 12.0, 0.0, 0.0, 0.0) != 17.0) { result = -7; }
+if (result == 1 && autoAttack.metric(4, 100.0, 1.0, 20.0, 5.0) != 125.0) { result = -8; }
+if (result == 1 && autoAttack.metric(5, 100.0, 140.0, 2.0, 0.0) != 80.0) { result = -9; }
+if (result == 1 && autoAttack.metric(5, 100.0, 140.0, 2.0, 1.0) != 120.0) { result = -10; }
+var suppressedCrit = autoAttack.metric(6, 0.05, 3.0, 0.0, 0.0);
+if (result == 1 && (suppressedCrit < 0.043999 || suppressedCrit > 0.044001)) { result = -11; }
+if (result == 1 && autoAttack.metric(7, 100.0, 0.25, 0.0, 0.0) != 75.0) { result = -12; }
+if (result == 1 && autoAttack.metric(8, 2.8, 1.1, 0.1, 0.0) < 2.799999) { result = -13; }
+if (result == 1 && autoAttack.metric(9, 20.0, 30.0, 0.0, 0.0) != 0.0) { result = -14; }
+if (result == 1 && autoAttack.metric(12, 2.0, 5.0, 0.0, 0.0) != 1.0) { result = -15; }
+if (result == 1 && <int>autoAttack.scenarioContract(1019, 12) != 1) { result = -16; }
+console.printLine(result);
+return result == 1 ? 0 : result;

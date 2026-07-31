@@ -7,14 +7,12 @@ use crate::{
 pub(super) fn default_profile(profile_name: &str) -> Option<ExportProfile> {
     match profile_name {
         "client" => Some(ExportProfile::default()),
-        "server" => Some(
-            ExportProfile::new(
-                "server",
-                RuntimeTargetMode::ServerRuntime,
-                ExportTargetPlatform::Headless,
-            )
-            .with_runtime_profile_id(RuntimeProfileId::Server),
-        ),
+        "server" => Some(ExportProfile::new(
+            "server",
+            RuntimeTargetMode::ServerRuntime,
+            ExportTargetPlatform::Headless,
+            RuntimeProfileId::Server,
+        )),
         _ => None,
     }
 }

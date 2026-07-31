@@ -1,0 +1,222 @@
+[asset]
+kind = "style"
+id = "res://ui/shell/shell_theme.zui"
+version = 2
+display_name = "World of ClaudeCraft Shell Theme"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+woc_shell_bg = "#10121f"
+woc_shell_scrim = "#00000066"
+woc_panel_bg = "#11101ddd"
+woc_panel_bg_strong = "#0d0d16ee"
+woc_border = "#6f5a2a"
+woc_border_soft = "#3b3547"
+woc_gold = "#ffd100"
+woc_gold_dim = "#c8a94d"
+woc_text = "#f4ead3"
+woc_text_muted = "#998d6a"
+woc_input_bg = "#10101acc"
+woc_discord = "#5865f2"
+woc_discord_border = "#3c46b0"
+woc_success = "#9fdc7f"
+woc_error = "#e06c75"
+woc_shadow = "#00000073"
+
+[[stylesheets]]
+id = "woc-shell"
+
+[[stylesheets.rules]]
+selector = ".woc-shell"
+set = { self = { background = { color = "$woc_shell_bg" }, foreground = { color = "$woc_text" } } }
+
+[[stylesheets.rules]]
+selector = ".woc-stage-scrim"
+set = { self = { background = { color = "$woc_shell_scrim" } } }
+
+[[stylesheets.rules]]
+selector = ".woc-panel"
+set = { self = { background = { color = "$woc_panel_bg" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border_soft", width = 1.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-panel-strong"
+set = { self = { background = { color = "$woc_panel_bg_strong" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border_soft", width = 1.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-screen-title"
+set = { self = { foreground = { color = "$woc_gold" }, font = { size = 22.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-welcome-title"
+set = { self = { foreground = { color = "$woc_gold" }, font = { size = 27.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-section-title"
+set = { self = { foreground = { color = "$woc_gold_dim" }, font = { size = 15.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-label"
+set = { self = { foreground = { color = "$woc_text" }, font = { size = 14.0, weight = 600.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-muted"
+set = { self = { foreground = { color = "$woc_text_muted" }, font = { size = 12.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-error"
+set = { self = { foreground = { color = "$woc_error" }, font = { size = 12.0, weight = 600.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-input"
+set = { self = { background = { color = "$woc_input_bg" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border_soft", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-input:focus"
+set = { self = { border = { color = "$woc_gold", width = 2.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-class-button"
+set = { self = { background = { color = "#11101d00" }, foreground = { color = "$woc_text_muted" }, border = { color = "$woc_border_soft", width = 2.0, radius = 31.0 }, font = { size = 12.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:hover"
+set = { self = { foreground = { color = "$woc_text" }, border = { color = "$woc_gold_dim", width = 2.0, radius = 31.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:selected"
+set = { self = { foreground = { color = "$woc_gold" }, border = { color = "$woc_gold", width = 3.0, radius = 31.0 } } }
+
+[[stylesheets.rules]]
+selector = ".class-warrior"
+set = { self = { foreground = { color = "#c79c6e" } } }
+
+[[stylesheets.rules]]
+selector = ".class-paladin"
+set = { self = { foreground = { color = "#f58cba" } } }
+
+[[stylesheets.rules]]
+selector = ".class-hunter"
+set = { self = { foreground = { color = "#abd473" } } }
+
+[[stylesheets.rules]]
+selector = ".class-rogue"
+set = { self = { foreground = { color = "#fff569" } } }
+
+[[stylesheets.rules]]
+selector = ".class-priest"
+set = { self = { foreground = { color = "#fffff0" } } }
+
+[[stylesheets.rules]]
+selector = ".class-shaman"
+set = { self = { foreground = { color = "#0070de" } } }
+
+[[stylesheets.rules]]
+selector = ".class-mage"
+set = { self = { foreground = { color = "#69ccf0" } } }
+
+[[stylesheets.rules]]
+selector = ".class-warlock"
+set = { self = { foreground = { color = "#9482c9" } } }
+
+[[stylesheets.rules]]
+selector = ".class-druid"
+set = { self = { foreground = { color = "#ff7d0a" } } }
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch"
+set = { self = { background = { color = "$woc_panel_bg_strong" }, foreground = { color = "$woc_text_muted" }, border = { color = "$woc_border_soft", width = 2.0, radius = 8.0 }, font = { size = 12.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:selected"
+set = { self = { foreground = { color = "$woc_gold" }, border = { color = "$woc_gold", width = 3.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action"
+set = { self = { background = { color = "$woc_gold" }, foreground = { color = "#1a1608" }, border = { color = "$woc_border", width = 1.0, radius = 6.0 }, font = { size = 16.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:disabled"
+set = { self = { background = { color = "#242431" }, foreground = { color = "$woc_text_muted" }, border = { color = "$woc_border_soft", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action"
+set = { self = { background = { color = "$woc_panel_bg_strong" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border", width = 1.0, radius = 6.0 }, font = { size = 14.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-discord-strip"
+set = { self = { background = { color = "$woc_panel_bg" }, foreground = { color = "$woc_text" }, border = { color = "$woc_discord", width = 1.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-discord-badge"
+set = { self = { background = { color = "$woc_discord" }, border = { color = "$woc_discord_border", width = 1.0, radius = 10.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-discord-action"
+set = { self = { background = { color = "$woc_discord" }, foreground = { color = "#ffffff" }, border = { color = "$woc_discord_border", width = 1.0, radius = 5.0 }, font = { size = 13.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-ready-dot"
+set = { self = { background = { color = "$woc_success" }, border = { color = "$woc_success", width = 1.0, radius = 4.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-preview-host"
+set = { self = { background = { color = "#090a12aa" }, border = { color = "$woc_border_soft", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-roster-host"
+set = { self = { background = { color = "#090a1299" }, border = { color = "$woc_border_soft", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-roster-row:selected"
+set = { self = { background = { color = "#3a301880" }, border = { color = "$woc_gold_dim", width = 2.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-modal-card"
+set = { self = { background = { color = "$woc_panel_bg_strong" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border", width = 2.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action"
+set = { self = { background = { color = "$woc_error" }, foreground = { color = "#ffffff" }, border = { color = "#8f343b", width = 1.0, radius = 6.0 }, font = { size = 14.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action:disabled"
+set = { self = { background = { color = "#2b252d" }, foreground = { color = "$woc_text_muted" }, border = { color = "$woc_border_soft", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-mode-trigger"
+set = { self = { background = { color = "$woc_input_bg" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border", width = 1.0, radius = 6.0 }, font = { size = 16.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option"
+set = { self = { background = { color = "#11101d00" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border_soft", width = 1.0, radius = 5.0 }, font = { size = 15.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option:selected"
+set = { self = { background = { color = "#3a301880" }, foreground = { color = "$woc_gold" }, border = { color = "$woc_gold_dim", width = 2.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-play-action"
+set = { self = { background = { color = "$woc_gold" }, foreground = { color = "#1a1608" }, border = { color = "#fff2a8", width = 2.0, radius = 6.0 }, font = { size = 20.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-contract-address"
+set = { self = { background = { color = "#090a12aa" }, foreground = { color = "$woc_text" }, border = { color = "$woc_gold_dim", width = 1.0, radius = 6.0 }, font = { size = 11.0, weight = 600.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-auth-form"
+set = { self = { border = { color = "$woc_border", width = 1.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link"
+set = { self = { foreground = { color = "$woc_gold_dim" }, font = { size = 14.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-auth-provider-host"
+set = { self = { background = { color = "#090a1299" }, border = { color = "$woc_border_soft", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-auth-status"
+set = { self = { foreground = { color = "$woc_text_muted" }, font = { size = 12.0, weight = 600.0 } } }

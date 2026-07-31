@@ -9,7 +9,7 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/register/scene_hook.rs
   - zircon_runtime/src/plugin/extension_registry/access/scene_hook.rs
-  - zircon_runtime/src/animation/scene_hook.rs
+  - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
 implementation_files:
   - zircon_runtime/src/scene/runtime_hook/mod.rs

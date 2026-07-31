@@ -16,24 +16,19 @@ impl RetainedViewportController {
                 return None;
             }
         };
-        match render_framework.capture_frame(viewport) {
-            Ok(Some(frame)) => {
-                if shared.latest_generation == Some(frame.generation) {
-                    return None;
+        match render_framework.capture_frame_if_newer(viewport, shared.latest_generation) {
+            Ok(Some(frame)) => match import_frame_image(&frame) {
+                Ok((generation, image)) => {
+                    shared.latest_generation = Some(generation);
+                    shared.latest_image = Some(image.clone());
+                    shared.last_error = None;
+                    Some(image)
                 }
-                match import_frame_image(&frame) {
-                    Ok((generation, image)) => {
-                        shared.latest_generation = Some(generation);
-                        shared.latest_image = Some(image.clone());
-                        shared.last_error = None;
-                        Some(image)
-                    }
-                    Err(error) => {
-                        shared.last_error = Some(error);
-                        None
-                    }
+                Err(error) => {
+                    shared.last_error = Some(error);
+                    None
                 }
-            }
+            },
             Ok(None) => None,
             Err(error) => {
                 shared.last_error = Some(error.to_string());

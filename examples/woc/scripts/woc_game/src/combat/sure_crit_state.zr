@@ -1,0 +1,6 @@
+var container=%import("zr.container");var contract=%import("generated/sure_crit_contract");
+pub class SureCritAura{pub var kind:string;pub var charges:int;pub @constructor(kind:string,charges:int){this.kind=kind;this.charges=charges;}}
+pub hasSureCritAura(auras:container.Array<SureCritAura>):bool{var i=0;while(i<auras.length){if((<SureCritAura>auras[i]).kind==contract.kind())return true;i=i+1;}return false;}
+// Returns true when source semantics remove the aura; false for no match or a decremented charge.
+pub consumeSureCritCharge(auras:container.Array<SureCritAura>):bool{var i=0;while(i<auras.length){var a=<SureCritAura>auras[i];if(a.kind==contract.kind()){var remaining=(a.charges<0?contract.defaultCharges():a.charges)-1;if(remaining<=0){auras.removeAt(i);return true;}a.charges=remaining;return false;}i=i+1;}return false;}
+pub contractTest():int{var a=new container.Array<SureCritAura>();a.add(new SureCritAura(contract.kind(),2));a.add(new SureCritAura("other",1));if(!hasSureCritAura(a)||consumeSureCritCharge(a)||(<SureCritAura>a[0]).charges!=1)return -1;if(!consumeSureCritCharge(a)||a.length!=1||hasSureCritAura(a))return -2;a.add(new SureCritAura(contract.kind(),-1));if(!consumeSureCritCharge(a)||a.length!=1)return -3;a.add(new SureCritAura(contract.kind(),0));if(!consumeSureCritCharge(a)||a.length!=1)return -4;return 1;}

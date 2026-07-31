@@ -39,9 +39,5 @@ fn default_texture_scale() -> [f32; 2] {
 }
 
 fn finite_or(value: f32, fallback: f32) -> f32 {
-    if value.is_finite() {
-        value
-    } else {
-        fallback
-    }
+    if value.is_finite() { value } else { fallback }
 }

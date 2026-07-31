@@ -1,13 +1,14 @@
-use crate::capability::{RUNTIME_CAPABILITIES, TEXTURE_RUNTIME_CAPABILITY};
+use crate::capability::{
+    RUNTIME_CAPABILITIES, TEXTURE_PLUGIN_DECLARATION, TEXTURE_RUNTIME_CRATE_NAME,
+};
 use crate::module::module_descriptor;
+use zircon_runtime::builtin::RuntimePluginId;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimePlugin, RuntimePluginDescriptor,
+    PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
-pub const PLUGIN_ID: &str = "texture";
 pub const TEXTURE_DIST_CRATE_NAME: &str = "zircon_plugin_texture_dist";
 pub const TEXTURE_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_texture_runtime_entry_v3";
 
@@ -41,15 +42,10 @@ impl RuntimePlugin for TextureRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
+        manifest.supported_platforms = TEXTURE_PLUGIN_DECLARATION.supported_platforms().to_vec();
         manifest.modules.push(
             PluginModuleManifest::native("texture.dist", TEXTURE_DIST_CRATE_NAME)
-                .with_target_modes([
-                    RuntimeTargetMode::ClientRuntime,
-                    RuntimeTargetMode::EditorHost,
-                ])
+                .with_target_modes(TEXTURE_PLUGIN_DECLARATION.target_modes().iter().copied())
                 .with_capabilities(RUNTIME_CAPABILITIES.iter().copied()),
         );
         manifest.with_distribution(PluginDistributionManifest {
@@ -66,24 +62,14 @@ impl RuntimePlugin for TextureRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Texture",
-        RuntimePluginId::Texture,
-        "zircon_plugin_texture_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_target_modes([
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_maturity(PluginMaturity::Stable)
-    .with_capability(TEXTURE_RUNTIME_CAPABILITY)
-    .build()
+    TEXTURE_PLUGIN_DECLARATION
+        .runtime_declaration(RuntimePluginId::Texture, TEXTURE_RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(TextureRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    RUNTIME_CAPABILITIES
+    TEXTURE_PLUGIN_DECLARATION.capabilities()
 }

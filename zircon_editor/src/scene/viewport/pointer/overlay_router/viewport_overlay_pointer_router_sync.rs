@@ -1,10 +1,10 @@
-use crate::scene::viewport::{HandleOverlayExtract, SceneViewportSettings, ViewportCameraSnapshot};
-use zircon_runtime::scene::Scene;
+use std::sync::Arc;
+
+use crate::scene::viewport::{ViewportCameraSnapshot, ViewportInteractionExtract};
 use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::viewport::pointer::{
-    candidates::{renderable_candidates, scene_gizmo_candidates},
-    viewport_pointer_layout::ViewportPointerLayout,
+    candidates::renderable_candidates, viewport_pointer_layout::ViewportPointerLayout,
 };
 
 use super::ViewportOverlayPointerRouter;
@@ -16,25 +16,33 @@ impl ViewportOverlayPointerRouter {
         }
 
         self.layout = layout;
+        self.interaction_extract = None;
         self.rebuild_surface();
         true
     }
 
     pub(crate) fn sync_scene(
         &mut self,
-        scene: &Scene,
-        selected: Option<u64>,
-        settings: &SceneViewportSettings,
         camera: &ViewportCameraSnapshot,
         viewport: UVec2,
-        handles: Vec<HandleOverlayExtract>,
+        interaction_extract: Arc<ViewportInteractionExtract>,
     ) -> bool {
-        self.sync(ViewportPointerLayout {
+        if self
+            .interaction_extract
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, &interaction_extract))
+        {
+            return false;
+        }
+
+        let changed = self.sync(ViewportPointerLayout {
             viewport,
             camera: camera.clone(),
-            handles,
-            scene_gizmos: scene_gizmo_candidates(scene, selected, settings, camera),
-            renderables: renderable_candidates(scene),
-        })
+            handles: interaction_extract.handles(),
+            scene_gizmos: interaction_extract.scene_gizmos(),
+            renderables: renderable_candidates(interaction_extract.render_meshes()).into(),
+        });
+        self.interaction_extract = Some(interaction_extract);
+        changed
     }
 }

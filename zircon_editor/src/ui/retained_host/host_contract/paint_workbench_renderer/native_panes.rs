@@ -6,7 +6,8 @@ mod scrollbar;
 mod viewport;
 
 use super::super::data::{
-    FrameRect, HostPaneInteractionStateData, HostViewportImageData, PaneData,
+    FrameRect, HostPaneInteractionStateData, HostTextInputFocusData, HostViewportImageData,
+    PaneData,
 };
 use super::super::paint_frame::HostRgbaFrame;
 
@@ -39,6 +40,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(
     body: &FrameRect,
     clip: &FrameRect,
     interaction: &HostPaneInteractionStateData,
+    text_input_focus: Option<&HostTextInputFocusData>,
 ) -> bool {
-    content::draw_native_pane_content(frame, pane, body, clip, interaction)
+    content::draw_native_pane_content(frame, pane, body, clip, interaction, text_input_focus)
 }

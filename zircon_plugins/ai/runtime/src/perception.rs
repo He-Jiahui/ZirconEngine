@@ -17,4 +17,5 @@ pub use scan::{AiTickBudget, PerceptionTickReport, DEFAULT_AI_PERCEPTION_PAIR_BU
 pub use stimuli::PerceivedStimuli;
 
 pub(crate) use adapter::{hearing_event_from_animation, hearing_event_from_sound};
+pub(crate) use components::perception_receiver;
 pub(crate) use scan::tick_perception;

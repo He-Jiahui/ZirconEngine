@@ -1,0 +1,13 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub gatherXpBase(): int { return 10; }
+pub gatherXpPerLevel(): int { return 2; }
+pub craftXpBase(): int { return 20; }
+pub craftXpPerLevel(): int { return 4; }
+pub higherLevelBonusPerLevel(): float { return 0.05; }
+pub higherLevelBonusCap(): int { return 4; }
+pub zeroDiff(playerLevel: int): int {
+    if (playerLevel <= 7) return 5;
+    if (playerLevel <= 9) return 6;
+    if (playerLevel <= 15) return 7;
+    return 8;
+}

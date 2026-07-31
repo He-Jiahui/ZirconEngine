@@ -1,0 +1,5454 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/command_payload_coverage_codegen.mjs",
+  "command_catalog_sha256": "3660a0d84f3f85ab20324564b0f60773101cca421511e3f1859542e9e4b32700",
+  "source_payload_catalog_sha256": "f2bb7a62024b226926f3000bfbf341e53c9c368ed4bfc08b7a8bac25ce293dba",
+  "command_payload_schema_sha256": "38fc3bff2c2522ed3e4881b3dbe1ffe9fda38f26052b31c027ab13ade25f99e5",
+  "totals": {
+    "commands": 165,
+    "typed_contract_commands": 135,
+    "typed_contract_client_send_commands": 134,
+    "typed_contract_dispatch_only_commands": 1,
+    "source_shape_only_commands": 22,
+    "unmapped_dispatch_commands": 8
+  },
+  "entries": [
+    {
+      "id": 0,
+      "name": "castSlot",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "castAbilityBySlot",
+          "fields": [
+            {
+              "name": "slot",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "i32_value",
+        "min_byte_length": 4,
+        "max_byte_length": 4,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "i32_le",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "castAbilityBySlot",
+          "fields": [
+            "slot"
+          ]
+        }
+      }
+    },
+    {
+      "id": 1,
+      "name": "castAt",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "castAbilityAt",
+          "fields": [
+            {
+              "name": "ability",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "x",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "z",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id_f64_pair",
+        "min_byte_length": 20,
+        "max_byte_length": 276,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8+f64_le_x+f64_le_z",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "castAbilityAt",
+          "fields": [
+            "ability",
+            "x",
+            "z"
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "cast",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "castAbility",
+          "fields": [
+            {
+              "name": "ability",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        },
+        {
+          "method": "castAbilityOn",
+          "fields": [
+            {
+              "name": "ability",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "target",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id_optional_target_entity",
+        "min_byte_length": 5,
+        "max_byte_length": 269,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8+u8_presence+u64_le_target",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "castAbility",
+          "fields": [
+            "ability"
+          ],
+          "alternates": [
+            {
+              "method": "castAbilityOn",
+              "fields": [
+                "ability",
+                "target"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "cancel_aura",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "cancelAura",
+          "fields": [
+            {
+              "name": "aura",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "cancelAura",
+          "fields": [
+            "aura"
+          ]
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "target",
+      "command_kind": "client_send",
+      "facet": "IWorldTargeting",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "targetEntity",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "target_entity",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u64_le_zero_clears",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "targetEntity",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "tab",
+      "command_kind": "client_send",
+      "facet": "IWorldTargeting",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "tabTarget",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "tabTarget",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "targetNearest",
+      "command_kind": "dispatch_only",
+      "facet": null,
+      "source_status": "dispatch_only",
+      "source_shapes": [],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "dispatch_only",
+          "method": null,
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "tabFriendly",
+      "command_kind": "client_send",
+      "facet": "IWorldTargeting",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "friendlyTabTarget",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "friendlyTabTarget",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 8,
+      "name": "targetNearestFriendly",
+      "command_kind": "client_send",
+      "facet": "IWorldTargeting",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "targetNearestFriendly",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "targetNearestFriendly",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 9,
+      "name": "attack",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "startAutoAttack",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "startAutoAttack",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 10,
+      "name": "stopattack",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "stopAutoAttack",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "stopAutoAttack",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 11,
+      "name": "interact",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "interact",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "interact",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 12,
+      "name": "loot",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "lootCorpse",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "world_object_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_world_object_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "lootCorpse",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 13,
+      "name": "harvestCorpse",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "harvestCorpse",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "components",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 14,
+      "name": "lootRoll",
+      "command_kind": "client_send",
+      "facet": "IWorldLoot",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "submitLootRoll",
+          "fields": [
+            {
+              "name": "rollId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "choice",
+              "server_type": {
+                "optional": true,
+                "type": "'need' | 'greed' | 'pass'"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "loot_roll",
+        "min_byte_length": 9,
+        "max_byte_length": 9,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_roll_id+u8_need_greed_pass",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "submitLootRoll",
+          "fields": [
+            "rollId",
+            "choice"
+          ]
+        }
+      }
+    },
+    {
+      "id": 15,
+      "name": "pickup",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "pickUpObject",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "world_object_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_world_object_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "pickUpObject",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 16,
+      "name": "accept",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "acceptQuest",
+          "fields": [
+            {
+              "name": "quest",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "selection",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id_optional_utf8_id",
+        "min_byte_length": 5,
+        "max_byte_length": 521,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8+u8_presence+u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "acceptQuest",
+          "fields": [
+            "quest",
+            "selection"
+          ]
+        }
+      }
+    },
+    {
+      "id": 17,
+      "name": "turnin",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "turnInQuest",
+          "fields": [
+            {
+              "name": "quest",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "turnInQuest",
+          "fields": [
+            "quest"
+          ]
+        }
+      }
+    },
+    {
+      "id": 18,
+      "name": "abandon",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "abandonQuest",
+          "fields": [
+            {
+              "name": "quest",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "abandonQuest",
+          "fields": [
+            "quest"
+          ]
+        }
+      }
+    },
+    {
+      "id": 19,
+      "name": "qlinkaccept",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "acceptLinkedQuest",
+          "fields": [
+            {
+              "name": "quest",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "from",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "linked_quest_acceptance",
+        "min_byte_length": 12,
+        "max_byte_length": 268,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8_quest_id+f64_le_sharer_pid",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "acceptLinkedQuest",
+          "fields": [
+            "quest",
+            "from"
+          ]
+        }
+      }
+    },
+    {
+      "id": 20,
+      "name": "equip",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "equipItem",
+          "fields": [
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        },
+        {
+          "method": "equipItemToSlot",
+          "fields": [
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "slot",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "equipment_item_optional_slot",
+        "min_byte_length": 5,
+        "max_byte_length": 261,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8_item_id+u8_optional_equip_slot",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "equipItem",
+          "fields": [
+            "item"
+          ],
+          "alternates": [
+            {
+              "method": "equipItemToSlot",
+              "fields": [
+                "item",
+                "slot"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 21,
+      "name": "inv_move",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "moveInventoryItem",
+          "fields": [
+            {
+              "name": "from",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "to",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 22,
+      "name": "unequip_item",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "unequipItem",
+          "fields": [
+            {
+              "name": "slot",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "equipment_slot",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_equip_slot",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "unequipItem",
+          "fields": [
+            "slot"
+          ]
+        }
+      }
+    },
+    {
+      "id": 23,
+      "name": "use",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "useItem",
+          "fields": [
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "useItem",
+          "fields": [
+            "item"
+          ]
+        }
+      }
+    },
+    {
+      "id": 24,
+      "name": "discard",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "discardItem",
+          "fields": [
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id_optional_u32",
+        "min_byte_length": 5,
+        "max_byte_length": 265,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8+u8_presence+u32_le",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "discardItem",
+          "fields": [
+            "item",
+            "count"
+          ]
+        }
+      }
+    },
+    {
+      "id": 25,
+      "name": "buy",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "buyItem",
+          "fields": [
+            {
+              "name": "npc",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id_optional_target_entity",
+        "min_byte_length": 5,
+        "max_byte_length": 269,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8+u8_presence+u64_le_target",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "buyItem",
+          "fields": [
+            "npc",
+            "item"
+          ]
+        }
+      }
+    },
+    {
+      "id": 26,
+      "name": "sell",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "sellItem",
+          "fields": [
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id_optional_u32",
+        "min_byte_length": 5,
+        "max_byte_length": 265,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8+u8_presence+u32_le",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "sellItem",
+          "fields": [
+            "item",
+            "count"
+          ]
+        }
+      }
+    },
+    {
+      "id": 27,
+      "name": "buyback",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "buyBackItem",
+          "fields": [
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "buyBackItem",
+          "fields": [
+            "item"
+          ]
+        }
+      }
+    },
+    {
+      "id": 28,
+      "name": "sell_all_junk",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "sellAllJunk",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "sellAllJunk",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 29,
+      "name": "harvest_node",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "harvestNode",
+          "fields": [
+            {
+              "name": "node",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 30,
+      "name": "craft_item",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "craftItem",
+          "fields": [
+            {
+              "name": "recipe",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 31,
+      "name": "change_skin",
+      "command_kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "changeSkin",
+          "fields": [
+            {
+              "name": "skin",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "catalog",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "cosmetic_skin",
+        "min_byte_length": 2,
+        "max_byte_length": 2,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_catalog+u8_skin_index",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "changeSkin",
+          "fields": [
+            "skin",
+            "catalog"
+          ]
+        }
+      }
+    },
+    {
+      "id": 32,
+      "name": "unequip_mech_chroma",
+      "command_kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "unequipMechChroma",
+          "fields": [
+            {
+              "name": "chroma",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 33,
+      "name": "claim_event_skin",
+      "command_kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "claimEventSkin",
+          "fields": [
+            {
+              "name": "skin",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "event_skin",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_event_skin_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "claimEventSkin",
+          "fields": [
+            "skin"
+          ]
+        }
+      }
+    },
+    {
+      "id": 34,
+      "name": "change_weapon_skin",
+      "command_kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "changeWeaponSkin",
+          "fields": [
+            {
+              "name": "skin",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "wtype",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 35,
+      "name": "release",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "releaseSpirit",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "releaseSpirit",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 36,
+      "name": "challengeResponse",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "onMessage",
+          "fields": [
+            {
+              "name": "n",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "r",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "sig",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 37,
+      "name": "chat",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "chat",
+          "fields": [
+            {
+              "name": "text",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 38,
+      "name": "emote",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "playEmote",
+          "fields": [
+            {
+              "name": "emote",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 39,
+      "name": "pinvite",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "partyInvite",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "target_entity",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u64_le_zero_clears",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "partyInvite",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 40,
+      "name": "paccept",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "partyAccept",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "partyAccept",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 41,
+      "name": "pdecline",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "partyDecline",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "partyDecline",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 42,
+      "name": "pleave",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "partyLeave",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "partyLeave",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 43,
+      "name": "pkick",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "partyKick",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "target_entity",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u64_le_zero_clears",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "partyKick",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 44,
+      "name": "ppromote",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "partyPromote",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "target_entity",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u64_le_zero_clears",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "partyPromote",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 45,
+      "name": "praid",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "convertPartyToRaid",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "convertPartyToRaid",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 46,
+      "name": "punraid",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "convertRaidToParty",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "convertRaidToParty",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 47,
+      "name": "pmoveRaid",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "moveRaidMember",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "group",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "target_entity_raid_group",
+        "min_byte_length": 9,
+        "max_byte_length": 9,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u64_le_target+u8_raid_group_1_or_2",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "moveRaidMember",
+          "fields": [
+            "id",
+            "group"
+          ]
+        }
+      }
+    },
+    {
+      "id": 48,
+      "name": "setLootMaster",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "setPartyLootMaster",
+          "fields": [
+            {
+              "name": "enabled",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            },
+            {
+              "name": "looter",
+              "server_type": null
+            },
+            {
+              "name": "threshold",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "party_loot_master",
+        "min_byte_length": 10,
+        "max_byte_length": 10,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_enabled+f64_le_looter+u8_threshold",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "setPartyLootMaster",
+          "fields": [
+            "enabled",
+            "looter",
+            "threshold"
+          ]
+        }
+      }
+    },
+    {
+      "id": 49,
+      "name": "masterAssign",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "assignMasterLoot",
+          "fields": [
+            {
+              "name": "rollId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "pids",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "master_loot_assignment",
+        "min_byte_length": 9,
+        "max_byte_length": 89,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_roll_id+u8_count_0_to_10+f64_le_target_pid",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "assignMasterLoot",
+          "fields": [
+            "rollId",
+            "pids"
+          ]
+        }
+      }
+    },
+    {
+      "id": 50,
+      "name": "setMarker",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "setMarker",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "marker",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "party_marker",
+        "min_byte_length": 16,
+        "max_byte_length": 16,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_entity_id+f64_le_marker_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "setMarker",
+          "fields": [
+            "id",
+            "marker"
+          ]
+        }
+      }
+    },
+    {
+      "id": 51,
+      "name": "clearMarker",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "clearMarker",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "party_marker_clear",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_entity_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "clearMarker",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 52,
+      "name": "readyrespond",
+      "command_kind": "client_send",
+      "facet": "IWorldParty",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "readyCheckRespond",
+          "fields": [
+            {
+              "name": "ready",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "boolean",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_false_or_true",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "readyCheckRespond",
+          "fields": [
+            "ready"
+          ]
+        }
+      }
+    },
+    {
+      "id": 53,
+      "name": "pet_abandon",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "abandonPet",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "abandonPet",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 54,
+      "name": "pet_rename",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "renamePet",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "renamePet",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 55,
+      "name": "pet_revive",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "revivePet",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "revivePet",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 56,
+      "name": "pet_attack",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "petAttack",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "petAttack",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 57,
+      "name": "pet_water_jet",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "petWaterJet",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "petWaterJet",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 58,
+      "name": "pet_taunt",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "petTaunt",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "petTaunt",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 59,
+      "name": "pet_auto_taunt",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "setPetAutoTaunt",
+          "fields": [
+            {
+              "name": "enabled",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "boolean",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_false_or_true",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "setPetAutoTaunt",
+          "fields": [
+            "enabled"
+          ]
+        }
+      }
+    },
+    {
+      "id": 60,
+      "name": "pet_auto_water_jet",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "setPetAutoWaterJet",
+          "fields": [
+            {
+              "name": "enabled",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "boolean",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_false_or_true",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "setPetAutoWaterJet",
+          "fields": [
+            "enabled"
+          ]
+        }
+      }
+    },
+    {
+      "id": 61,
+      "name": "pet_feed",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "feedPet",
+          "fields": [
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "feedPet",
+          "fields": [
+            "item"
+          ]
+        }
+      }
+    },
+    {
+      "id": 62,
+      "name": "pet_heal",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "healPet",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "healPet",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 63,
+      "name": "pet_mode",
+      "command_kind": "client_send",
+      "facet": "IWorldPet",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "setPetMode",
+          "fields": [
+            {
+              "name": "mode",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "setPetMode",
+          "fields": [
+            "mode"
+          ]
+        }
+      }
+    },
+    {
+      "id": 64,
+      "name": "trade_req",
+      "command_kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "tradeRequest",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "trade_request",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_target_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "tradeRequest",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 65,
+      "name": "trade_accept",
+      "command_kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "tradeAccept",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "tradeAccept",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 66,
+      "name": "trade_offer",
+      "command_kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "tradeSetOffer",
+          "fields": [
+            {
+              "name": "items",
+              "server_type": null
+            },
+            {
+              "name": "copper",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 67,
+      "name": "trade_confirm",
+      "command_kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "tradeConfirm",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "tradeConfirm",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 68,
+      "name": "trade_cancel",
+      "command_kind": "client_send",
+      "facet": "IWorldTrade",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "tradeCancel",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "tradeCancel",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 69,
+      "name": "duel_req",
+      "command_kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "duelRequest",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "duel_request",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_target_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "duelRequest",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 70,
+      "name": "duel_accept",
+      "command_kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "duelAccept",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "duelAccept",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 71,
+      "name": "duel_decline",
+      "command_kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "duelDecline",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "duelDecline",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 72,
+      "name": "friend_add",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "friendAdd",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "friendAdd",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 73,
+      "name": "friend_remove",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "friendRemove",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "friendRemove",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 74,
+      "name": "block_add",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "blockAdd",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "blockAdd",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 75,
+      "name": "block_remove",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "blockRemove",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "blockRemove",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 76,
+      "name": "social_refresh",
+      "command_kind": "dispatch_only",
+      "facet": null,
+      "source_status": "dispatch_only",
+      "source_shapes": [],
+      "transport_coverage": "unmapped_dispatch",
+      "descriptor": null
+    },
+    {
+      "id": 77,
+      "name": "guild_create",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildCreate",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildCreate",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 78,
+      "name": "guild_invite",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildInvite",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildInvite",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 79,
+      "name": "guild_accept",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildAccept",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildAccept",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 80,
+      "name": "guild_decline",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildDecline",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildDecline",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 81,
+      "name": "guild_leave",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildLeave",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildLeave",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 82,
+      "name": "guild_kick",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildKick",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildKick",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 83,
+      "name": "guild_promote",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildPromote",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildPromote",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 84,
+      "name": "guild_demote",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildDemote",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildDemote",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 85,
+      "name": "guild_transfer",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildTransfer",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildTransfer",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 86,
+      "name": "guild_disband",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildDisband",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildDisband",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 87,
+      "name": "arena_queue",
+      "command_kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "arenaQueueJoin",
+          "fields": [
+            {
+              "name": "format",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "arena_queue_format",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_arena_format",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "arenaQueueJoin",
+          "fields": [
+            "format"
+          ]
+        }
+      }
+    },
+    {
+      "id": 88,
+      "name": "arena_leave",
+      "command_kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "arenaQueueLeave",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "arenaQueueLeave",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 89,
+      "name": "arena_augment",
+      "command_kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "arenaAugmentPick",
+          "fields": [
+            {
+              "name": "augment",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "arena_augment",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": 64,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "arenaAugmentPick",
+          "fields": [
+            "augment"
+          ]
+        }
+      }
+    },
+    {
+      "id": 90,
+      "name": "card_queue_join",
+      "command_kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "joinCardDuelQueue",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "joinCardDuelQueue",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 91,
+      "name": "card_queue_leave",
+      "command_kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "leaveCardDuelQueue",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "leaveCardDuelQueue",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 92,
+      "name": "play_card",
+      "command_kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "playCardInDuel",
+          "fields": [
+            {
+              "name": "value",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "slot_index",
+        "min_byte_length": 4,
+        "max_byte_length": 4,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "i32_le",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "playCardInDuel",
+          "fields": [
+            "value"
+          ]
+        }
+      }
+    },
+    {
+      "id": 93,
+      "name": "card_forfeit",
+      "command_kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "forfeitCardDuel",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "forfeitCardDuel",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 94,
+      "name": "prestige",
+      "command_kind": "client_send",
+      "facet": "IWorldProgressionXp",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "prestige",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "prestige",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 95,
+      "name": "applyTalents",
+      "command_kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "applyTalents",
+          "fields": [
+            {
+              "name": "alloc",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "talent_allocation",
+        "min_byte_length": 14,
+        "max_byte_length": 14,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u16_le_spec_code+6*u16_le_row_option_code",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "applyTalents",
+          "fields": [
+            "alloc"
+          ]
+        }
+      }
+    },
+    {
+      "id": 96,
+      "name": "respec",
+      "command_kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "respec",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "respec",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 97,
+      "name": "setSpec",
+      "command_kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "setSpec",
+          "fields": [
+            {
+              "name": "spec",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "talent_spec",
+        "min_byte_length": 2,
+        "max_byte_length": 2,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u16_le_spec_code",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "setSpec",
+          "fields": [
+            "spec"
+          ]
+        }
+      }
+    },
+    {
+      "id": 98,
+      "name": "saveLoadout",
+      "command_kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "saveLoadout",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "bar",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            },
+            {
+              "name": "alloc",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 99,
+      "name": "switchLoadout",
+      "command_kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "switchLoadout",
+          "fields": [
+            {
+              "name": "index",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "u32_index",
+        "min_byte_length": 4,
+        "max_byte_length": 4,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "switchLoadout",
+          "fields": [
+            "index"
+          ]
+        }
+      }
+    },
+    {
+      "id": 100,
+      "name": "deleteLoadout",
+      "command_kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "deleteLoadout",
+          "fields": [
+            {
+              "name": "index",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "u32_index",
+        "min_byte_length": 4,
+        "max_byte_length": 4,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "deleteLoadout",
+          "fields": [
+            "index"
+          ]
+        }
+      }
+    },
+    {
+      "id": 101,
+      "name": "market_search",
+      "command_kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "marketSearch",
+          "fields": [
+            {
+              "name": "q",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "itemType",
+              "server_type": null
+            },
+            {
+              "name": "subtype",
+              "server_type": null
+            },
+            {
+              "name": "rarity",
+              "server_type": null
+            },
+            {
+              "name": "page",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 102,
+      "name": "market_list",
+      "command_kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "marketList",
+          "fields": [
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "price",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 103,
+      "name": "market_buy",
+      "command_kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "marketBuy",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "market_listing_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_market_listing_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "marketBuy",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 104,
+      "name": "market_cancel",
+      "command_kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "marketCancel",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "market_listing_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_market_listing_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "marketCancel",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 105,
+      "name": "market_collect",
+      "command_kind": "client_send",
+      "facet": "IWorldMarket",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "marketCollect",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "marketCollect",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 106,
+      "name": "dev_level",
+      "command_kind": "dispatch_only",
+      "facet": null,
+      "source_status": "dispatch_only",
+      "source_shapes": [],
+      "transport_coverage": "unmapped_dispatch",
+      "descriptor": null
+    },
+    {
+      "id": 107,
+      "name": "dev_teleport",
+      "command_kind": "dispatch_only",
+      "facet": null,
+      "source_status": "dispatch_only",
+      "source_shapes": [],
+      "transport_coverage": "unmapped_dispatch",
+      "descriptor": null
+    },
+    {
+      "id": 108,
+      "name": "dev_give",
+      "command_kind": "dispatch_only",
+      "facet": null,
+      "source_status": "dispatch_only",
+      "source_shapes": [],
+      "transport_coverage": "unmapped_dispatch",
+      "descriptor": null
+    },
+    {
+      "id": 109,
+      "name": "dev_complete_quest",
+      "command_kind": "dispatch_only",
+      "facet": null,
+      "source_status": "dispatch_only",
+      "source_shapes": [],
+      "transport_coverage": "unmapped_dispatch",
+      "descriptor": null
+    },
+    {
+      "id": 110,
+      "name": "dev_complete_all_quests",
+      "command_kind": "dispatch_only",
+      "facet": null,
+      "source_status": "dispatch_only",
+      "source_shapes": [],
+      "transport_coverage": "unmapped_dispatch",
+      "descriptor": null
+    },
+    {
+      "id": 111,
+      "name": "enter_crypt",
+      "command_kind": "dispatch_only",
+      "facet": null,
+      "source_status": "dispatch_only",
+      "source_shapes": [],
+      "transport_coverage": "unmapped_dispatch",
+      "descriptor": null
+    },
+    {
+      "id": 112,
+      "name": "enter_dungeon",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeons",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "enterDungeon",
+          "fields": [
+            {
+              "name": "dungeon",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 113,
+      "name": "leave_crypt",
+      "command_kind": "dispatch_only",
+      "facet": null,
+      "source_status": "dispatch_only",
+      "source_shapes": [],
+      "transport_coverage": "unmapped_dispatch",
+      "descriptor": null
+    },
+    {
+      "id": 114,
+      "name": "leave_dungeon",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeons",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "leaveDungeon",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "leaveDungeon",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 115,
+      "name": "enter_delve",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "enterDelve",
+          "fields": [
+            {
+              "name": "delveId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "tierId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 116,
+      "name": "leave_delve",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "leaveDelve",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "leaveDelve",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 117,
+      "name": "delve_interact",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "delveInteract",
+          "fields": [
+            {
+              "name": "objectId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "world_object_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_world_object_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "delveInteract",
+          "fields": [
+            "objectId"
+          ]
+        }
+      }
+    },
+    {
+      "id": 118,
+      "name": "companion_upgrade",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "companionUpgrade",
+          "fields": [
+            {
+              "name": "companionId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 119,
+      "name": "delve_buy",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "delveBuyShopItem",
+          "fields": [
+            {
+              "name": "delveId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 120,
+      "name": "lockpick_engage",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "lockpickEngage",
+          "fields": [
+            {
+              "name": "objectId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "ante",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "lockpick_engage",
+        "min_byte_length": 9,
+        "max_byte_length": 9,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u64_le+u8_ante",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "lockpickEngage",
+          "fields": [
+            "objectId",
+            "ante"
+          ]
+        }
+      }
+    },
+    {
+      "id": 121,
+      "name": "lockpick_action",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "lockpickAction",
+          "fields": [
+            {
+              "name": "sid",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "action",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "lockpick_action",
+        "min_byte_length": 2,
+        "max_byte_length": 262,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u8_presence+u32_le_utf8+u8_action",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "lockpickAction",
+          "fields": [
+            "sid",
+            "action"
+          ]
+        }
+      }
+    },
+    {
+      "id": 122,
+      "name": "lockpick_abort",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "lockpickAbort",
+          "fields": [
+            {
+              "name": "sid",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "optional_utf8_id",
+        "min_byte_length": 1,
+        "max_byte_length": 261,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u8_presence+u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "lockpickAbort",
+          "fields": [
+            "sid"
+          ]
+        }
+      }
+    },
+    {
+      "id": 123,
+      "name": "collect_delve_chest_loot",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "collectDelveChestLoot",
+          "fields": [
+            {
+              "name": "objectId",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "world_object_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_world_object_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "collectDelveChestLoot",
+          "fields": [
+            "objectId"
+          ]
+        }
+      }
+    },
+    {
+      "id": 124,
+      "name": "delve_rite_choose",
+      "command_kind": "client_send",
+      "facet": "IWorldDelves",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "delveRiteChoose",
+          "fields": [
+            {
+              "name": "intensity",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "delve_rite_intensity",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_rite_intensity_easy_medium_hard",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "delveRiteChoose",
+          "fields": [
+            "intensity"
+          ]
+        }
+      }
+    },
+    {
+      "id": 125,
+      "name": "telemetry",
+      "command_kind": "client_send",
+      "facet": "IWorldTelemetry",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "reportTelemetry",
+          "fields": [
+            {
+              "name": "kind",
+              "server_type": null
+            },
+            {
+              "name": null,
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 126,
+      "name": "equip_bag",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "equipBag",
+          "fields": [
+            {
+              "name": "item",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "socket",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id_optional_u32",
+        "min_byte_length": 5,
+        "max_byte_length": 265,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8+u8_presence+u32_le",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "equipBag",
+          "fields": [
+            "item",
+            "socket"
+          ]
+        }
+      }
+    },
+    {
+      "id": 127,
+      "name": "unequip_bag",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "unequipBag",
+          "fields": [
+            {
+              "name": "socket",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "u32_index",
+        "min_byte_length": 4,
+        "max_byte_length": 4,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "unequipBag",
+          "fields": [
+            "socket"
+          ]
+        }
+      }
+    },
+    {
+      "id": 128,
+      "name": "mail_send",
+      "command_kind": "client_send",
+      "facet": "IWorldMail",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "mailSend",
+          "fields": [
+            {
+              "name": "to",
+              "server_type": null
+            },
+            {
+              "name": "subject",
+              "server_type": null
+            },
+            {
+              "name": "body",
+              "server_type": null
+            },
+            {
+              "name": "copper",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "items",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 129,
+      "name": "mail_take",
+      "command_kind": "client_send",
+      "facet": "IWorldMail",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "mailTake",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "mail_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_mail_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "mailTake",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 130,
+      "name": "mail_delete",
+      "command_kind": "client_send",
+      "facet": "IWorldMail",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "mailDelete",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "mail_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_mail_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "mailDelete",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 131,
+      "name": "mail_read",
+      "command_kind": "client_send",
+      "facet": "IWorldMail",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "mailMarkRead",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "mail_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_mail_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "mailMarkRead",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 132,
+      "name": "guild_event_create",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildEventCreate",
+          "fields": [
+            {
+              "name": "day",
+              "server_type": null
+            },
+            {
+              "name": "hour",
+              "server_type": null
+            },
+            {
+              "name": "title",
+              "server_type": null
+            },
+            {
+              "name": "note",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "guild_event_create",
+        "min_byte_length": 13,
+        "max_byte_length": 863,
+        "max_utf8_bytes": 640,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8_day+u8_presence+f64_le_hour+u32_le_utf8_title+u32_le_utf8_note",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildEventCreate",
+          "fields": [
+            "day",
+            "hour",
+            "title",
+            "note"
+          ]
+        }
+      }
+    },
+    {
+      "id": 133,
+      "name": "guild_event_remove",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "guildEventRemove",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "u32_index",
+        "min_byte_length": 4,
+        "max_byte_length": 4,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "guildEventRemove",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 134,
+      "name": "autoloot",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "autoLoot",
+          "fields": [
+            {
+              "name": "id",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "world_object_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_world_object_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "autoLoot",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": 135,
+      "name": "resurrect_corpse",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "resurrectAtCorpse",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "resurrectAtCorpse",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 136,
+      "name": "resurrect_healer",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "resurrectAtSpiritHealer",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "resurrectAtSpiritHealer",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 137,
+      "name": "bank_deposit",
+      "command_kind": "client_send",
+      "facet": "IWorldBank",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "bankDeposit",
+          "fields": [
+            {
+              "name": "slot",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            },
+            {
+              "name": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "bank_slot_optional_count",
+        "min_byte_length": 9,
+        "max_byte_length": 17,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_slot+u8_presence+f64_le_count",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "bankDeposit",
+          "fields": [
+            "slot",
+            "count"
+          ]
+        }
+      }
+    },
+    {
+      "id": 138,
+      "name": "bank_withdraw",
+      "command_kind": "client_send",
+      "facet": "IWorldBank",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "bankWithdraw",
+          "fields": [
+            {
+              "name": "slot",
+              "server_type": {
+                "optional": true,
+                "type": "number | string"
+              }
+            },
+            {
+              "name": "count",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "bank_slot_optional_count",
+        "min_byte_length": 9,
+        "max_byte_length": 17,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_slot+u8_presence+f64_le_count",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "bankWithdraw",
+          "fields": [
+            "slot",
+            "count"
+          ]
+        }
+      }
+    },
+    {
+      "id": 139,
+      "name": "bank_buy_slots",
+      "command_kind": "client_send",
+      "facet": "IWorldBank",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "bankBuySlots",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "bankBuySlots",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 140,
+      "name": "set_town_focus",
+      "command_kind": "client_send",
+      "facet": null,
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "setTownFocus",
+          "fields": [
+            {
+              "name": "allocation",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 141,
+      "name": "set_dungeon_difficulty",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeons",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "setDungeonDifficulty",
+          "fields": [
+            {
+              "name": "difficulty",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "dungeon_difficulty",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_dungeon_difficulty_normal_heroic",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "setDungeonDifficulty",
+          "fields": [
+            "difficulty"
+          ]
+        }
+      }
+    },
+    {
+      "id": 142,
+      "name": "heroic_buy",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeons",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "buyHeroicVendorItem",
+          "fields": [
+            {
+              "name": "itemId",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 143,
+      "name": "vcup_queue",
+      "command_kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "vcupQueueJoin",
+          "fields": [
+            {
+              "name": "bracket",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "nation",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "role",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "guild",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "vale_cup_queue",
+        "min_byte_length": 4,
+        "max_byte_length": 4,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_bracket+u8_nation+u8_role+u8_guild",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "vcupQueueJoin",
+          "fields": [
+            "bracket",
+            "nation",
+            "role",
+            "guild"
+          ]
+        }
+      }
+    },
+    {
+      "id": 144,
+      "name": "vcup_leave",
+      "command_kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "vcupQueueLeave",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "vcupQueueLeave",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 145,
+      "name": "vcup_role",
+      "command_kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "vcupSetRole",
+          "fields": [
+            {
+              "name": "role",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "vale_cup_role",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_sport_role",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "vcupSetRole",
+          "fields": [
+            "role"
+          ]
+        }
+      }
+    },
+    {
+      "id": 146,
+      "name": "vcup_ready",
+      "command_kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "vcupReady",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "vcupReady",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 147,
+      "name": "vcup_bet",
+      "command_kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "vcupBet",
+          "fields": [
+            {
+              "name": "side",
+              "server_type": null
+            },
+            {
+              "name": "amount",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "vale_cup_bet",
+        "min_byte_length": 9,
+        "max_byte_length": 9,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_side+f64_le_amount",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "vcupBet",
+          "fields": [
+            "side",
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": 148,
+      "name": "vcup_practice",
+      "command_kind": "client_send",
+      "facet": "IWorldValeCup",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "vcupPracticeStart",
+          "fields": [
+            {
+              "name": "bracket",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "vale_cup_bracket",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_vc_bracket",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "vcupPracticeStart",
+          "fields": [
+            "bracket"
+          ]
+        }
+      }
+    },
+    {
+      "id": 149,
+      "name": "releaseEmpowered",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "releaseEmpoweredAbility",
+          "fields": [
+            {
+              "name": "ability",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "releaseEmpoweredAbility",
+          "fields": [
+            "ability"
+          ]
+        }
+      }
+    },
+    {
+      "id": 150,
+      "name": "df_roles",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "dungeonFinderSetRoles",
+          "fields": [
+            {
+              "name": "roles",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "dungeon_finder_roles",
+        "min_byte_length": 1,
+        "max_byte_length": 4,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_count_0_to_3+u8_finder_role",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "dungeonFinderSetRoles",
+          "fields": [
+            "roles"
+          ]
+        }
+      }
+    },
+    {
+      "id": 151,
+      "name": "df_queue",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "dungeonFinderQueueJoin",
+          "fields": [
+            {
+              "name": "activities",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "dungeon_finder_activities",
+        "min_byte_length": 1,
+        "max_byte_length": 3089,
+        "max_utf8_bytes": 192,
+        "max_utf16_code_units": 64,
+        "encoding": "u8_count_0_to_16+u8_utf8_activity_id_max_64_utf16",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "dungeonFinderQueueJoin",
+          "fields": [
+            "activities"
+          ]
+        }
+      }
+    },
+    {
+      "id": 152,
+      "name": "df_queue_leave",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "dungeonFinderQueueLeave",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "dungeonFinderQueueLeave",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 153,
+      "name": "df_proposal",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "dungeonFinderRespond",
+          "fields": [
+            {
+              "name": "accept",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "boolean",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_false_or_true",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "dungeonFinderRespond",
+          "fields": [
+            "accept"
+          ]
+        }
+      }
+    },
+    {
+      "id": 154,
+      "name": "df_list_create",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "dungeonFinderListingCreate",
+          "fields": [
+            {
+              "name": "activity",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            },
+            {
+              "name": "tags",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "dungeon_finder_listing",
+        "min_byte_length": 2,
+        "max_byte_length": 202,
+        "max_utf8_bytes": 192,
+        "max_utf16_code_units": 64,
+        "encoding": "u8_utf8_activity_id_max_64_utf16+u8_count_0_to_8+u8_finder_listing_tag",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "dungeonFinderListingCreate",
+          "fields": [
+            "activity",
+            "tags"
+          ]
+        }
+      }
+    },
+    {
+      "id": 155,
+      "name": "df_list_close",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "dungeonFinderListingClose",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "dungeonFinderListingClose",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 156,
+      "name": "df_apply",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "dungeonFinderApply",
+          "fields": [
+            {
+              "name": "listing",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "dungeon_finder_listing_id",
+        "min_byte_length": 8,
+        "max_byte_length": 8,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_listing_id",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "dungeonFinderApply",
+          "fields": [
+            "listing"
+          ]
+        }
+      }
+    },
+    {
+      "id": 157,
+      "name": "df_apply_cancel",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "dungeonFinderApplyCancel",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "dungeonFinderApplyCancel",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 158,
+      "name": "df_app_respond",
+      "command_kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "dungeonFinderApplicationRespond",
+          "fields": [
+            {
+              "name": "applicant",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "accept",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "dungeon_finder_application_response",
+        "min_byte_length": 9,
+        "max_byte_length": 9,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "f64_le_applicant_id+u8_false_or_true",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "dungeonFinderApplicationRespond",
+          "fields": [
+            "applicant",
+            "accept"
+          ]
+        }
+      }
+    },
+    {
+      "id": 159,
+      "name": "deed_set_title",
+      "command_kind": "client_send",
+      "facet": "IWorldDeeds",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "setActiveTitle",
+          "fields": [
+            {
+              "name": "deedId",
+              "server_type": null
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "source_shape_only",
+      "descriptor": null
+    },
+    {
+      "id": 160,
+      "name": "ignore_add",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "ignoreAdd",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "ignoreAdd",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 161,
+      "name": "ignore_remove",
+      "command_kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "ignoreRemove",
+          "fields": [
+            {
+              "name": "name",
+              "server_type": {
+                "optional": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "utf8_id",
+        "min_byte_length": 4,
+        "max_byte_length": 260,
+        "max_utf8_bytes": 256,
+        "max_utf16_code_units": null,
+        "encoding": "u32_le_utf8",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "ignoreRemove",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    },
+    {
+      "id": 162,
+      "name": "stow_weapon",
+      "command_kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "toggleWeaponStow",
+          "fields": []
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "empty",
+        "min_byte_length": 0,
+        "max_byte_length": 0,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "empty",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "toggleWeaponStow",
+          "fields": []
+        }
+      }
+    },
+    {
+      "id": 163,
+      "name": "selectTalentRow",
+      "command_kind": "client_send",
+      "facet": "IWorldTalents",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "selectTalentRow",
+          "fields": [
+            {
+              "name": "level",
+              "server_type": {
+                "optional": true,
+                "type": "number"
+              }
+            },
+            {
+              "name": "optionId",
+              "server_type": {
+                "optional": true,
+                "type": "unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "talent_row_selection",
+        "min_byte_length": 3,
+        "max_byte_length": 3,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_row_level+u16_le_option_code",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "selectTalentRow",
+          "fields": [
+            "level",
+            "optionId"
+          ]
+        }
+      }
+    },
+    {
+      "id": 164,
+      "name": "resurrect_respond",
+      "command_kind": "client_send",
+      "facet": "IWorldCombat",
+      "source_status": "observed_client_send",
+      "source_shapes": [
+        {
+          "method": "respondToResurrection",
+          "fields": [
+            {
+              "name": "accept",
+              "server_type": {
+                "optional": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "transport_coverage": "typed_contract",
+      "descriptor": {
+        "kind": "boolean",
+        "min_byte_length": 1,
+        "max_byte_length": 1,
+        "max_utf8_bytes": null,
+        "max_utf16_code_units": null,
+        "encoding": "u8_false_or_true",
+        "source_shape": {
+          "kind": "client_send",
+          "method": "respondToResurrection",
+          "fields": [
+            "accept"
+          ]
+        }
+      }
+    }
+  ]
+}

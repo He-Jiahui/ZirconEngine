@@ -62,12 +62,16 @@ enum TextInputFilter {
 
 impl TextInputFilter {
     fn from_token(value: &str) -> Self {
-        match normalize_constraint_token(value).as_str() {
-            "digits" | "digit" | "numericdigits" => Self::Digits,
-            "number" | "numeric" | "decimal" => Self::Number,
-            "ascii" => Self::Ascii,
-            "alphanumeric" | "alnum" => Self::Alphanumeric,
-            _ => Self::Any,
+        if normalized_constraint_matches(value, &["digits", "digit", "numericdigits"]) {
+            Self::Digits
+        } else if normalized_constraint_matches(value, &["number", "numeric", "decimal"]) {
+            Self::Number
+        } else if normalized_constraint_matches(value, &["ascii"]) {
+            Self::Ascii
+        } else if normalized_constraint_matches(value, &["alphanumeric", "alnum"]) {
+            Self::Alphanumeric
+        } else {
+            Self::Any
         }
     }
 
@@ -98,9 +102,12 @@ pub(crate) fn text_input_constraints_for_node(
         max_graphemes: usize_attribute(metadata, "max_graphemes")
             .or_else(|| usize_attribute(metadata, "max_chars"))
             .or_else(|| usize_attribute(metadata, "max_length")),
-        filter: string_attribute(metadata, "input_filter")
-            .or_else(|| string_attribute(metadata, "text_filter"))
-            .map(|value| TextInputFilter::from_token(value.as_str()))
+        filter: metadata
+            .attributes
+            .get("input_filter")
+            .or_else(|| metadata.attributes.get("text_filter"))
+            .and_then(toml::Value::as_str)
+            .map(TextInputFilter::from_token)
             .unwrap_or_default(),
         multiline: bool_attribute(metadata, "multiline").unwrap_or(true),
     }
@@ -116,16 +123,6 @@ fn take_graphemes(text: &str, max_graphemes: usize) -> String {
     text.graphemes(true).take(max_graphemes).collect()
 }
 
-fn string_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<String> {
-    metadata.attributes.get(key).and_then(|value| match value {
-        toml::Value::String(value) => Some(value.clone()),
-        toml::Value::Integer(value) => Some(value.to_string()),
-        toml::Value::Float(value) => Some(value.to_string()),
-        toml::Value::Boolean(value) => Some(value.to_string()),
-        _ => None,
-    })
-}
-
 fn usize_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<usize> {
     metadata.attributes.get(key).and_then(|value| match value {
         toml::Value::Integer(value) => (*value >= 0).then_some(*value as usize),
@@ -138,12 +135,14 @@ fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> 
     metadata.attributes.get(key).and_then(toml::Value::as_bool)
 }
 
-fn normalize_constraint_token(value: &str) -> String {
-    value
-        .chars()
-        .filter(|ch| *ch != '_' && *ch != '-' && !ch.is_whitespace())
-        .flat_map(char::to_lowercase)
-        .collect()
+fn normalized_constraint_matches(value: &str, expected: &[&str]) -> bool {
+    expected.iter().any(|expected| {
+        value
+            .bytes()
+            .filter(|byte| !matches!(byte, b'_' | b'-') && !byte.is_ascii_whitespace())
+            .map(|byte| byte.to_ascii_lowercase())
+            .eq(expected.bytes())
+    })
 }
 
 fn clamp_text_boundary(text: &str, offset: usize) -> usize {

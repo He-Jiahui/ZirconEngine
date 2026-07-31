@@ -1,0 +1,4 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub satedId(required: bool): string { return required ? "sated" : ""; }
+pub satedName(required: bool): string { return required ? "Temporal Exhaustion" : ""; }
+pub satedDuration(required: bool): float { return required ? 600.0 : 0.0; }

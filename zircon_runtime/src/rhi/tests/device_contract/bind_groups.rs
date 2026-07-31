@@ -1,8 +1,8 @@
 use super::*;
 
 #[test]
-fn wgpu_rhi_roundtrips_bind_group_layouts_and_bind_groups() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_roundtrips_bind_group_layouts_and_bind_groups() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let layout_desc = BindGroupLayoutDesc::new(
         "material-layout",
         vec![
@@ -71,8 +71,8 @@ fn wgpu_rhi_roundtrips_bind_group_layouts_and_bind_groups() {
 }
 
 #[test]
-fn wgpu_rhi_rejects_invalid_bind_group_layout_descriptors() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_rejects_invalid_bind_group_layout_descriptors() {
+    let device = DeterministicRhiContractDevice::new_headless();
 
     assert_eq!(
         device
@@ -145,8 +145,8 @@ fn wgpu_rhi_rejects_invalid_bind_group_layout_descriptors() {
 }
 
 #[test]
-fn wgpu_rhi_bind_group_validation_checks_layout_resource_types_and_usage() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_bind_group_validation_checks_layout_resource_types_and_usage() {
+    let device = DeterministicRhiContractDevice::new_headless();
     let layout = device
         .create_bind_group_layout(&BindGroupLayoutDesc::new(
             "material-layout",

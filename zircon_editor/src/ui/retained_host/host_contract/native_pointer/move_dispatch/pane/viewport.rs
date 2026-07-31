@@ -16,5 +16,7 @@ pub(super) fn dispatch_viewport_pane_move(
         pointer.local_x,
         pointer.local_y,
         0.0,
+        false,
+        false,
     );
 }

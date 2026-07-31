@@ -1,6 +1,9 @@
 use gilrs::EventType;
 use winit::event_loop::ActiveEventLoop;
 
+mod drain_budget;
+
+use self::drain_budget::GamepadDrainBudget;
 use super::super::RuntimeEntryApp;
 use super::events::{gamepad_id, send_axis, send_button, send_connection, send_raw_button};
 
@@ -21,13 +24,23 @@ impl RuntimeEntryApp {
 
         let mut disconnected_gamepads = Vec::new();
         let mut should_exit = false;
+        let mut drain_budget_exhausted = false;
+        let mut drain_budget = GamepadDrainBudget::begin(std::time::Instant::now());
         let session = &self.session;
         let viewport = self.viewport;
         {
             let Some(gamepads) = self.gamepads.as_mut() else {
                 return;
             };
-            while let Some(event) = gamepads.next_event() {
+            loop {
+                if drain_budget.needs_continuation(std::time::Instant::now()) {
+                    drain_budget_exhausted = true;
+                    break;
+                }
+                let Some(event) = gamepads.next_event() else {
+                    break;
+                };
+                drain_budget.record_event();
                 gamepads.update(&event);
                 let runtime_gamepad_id = gamepad_id(event.id);
                 let result = match event.event {
@@ -88,6 +101,8 @@ impl RuntimeEntryApp {
         super::rumble::clear_finished_rumble_effects(self.gamepad_rumble_effects.as_mut());
         if should_exit {
             event_loop.exit();
+        } else if drain_budget_exhausted {
+            self.request_runtime_frame();
         }
     }
 

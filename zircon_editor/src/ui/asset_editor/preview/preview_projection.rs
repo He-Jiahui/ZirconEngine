@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinition};
@@ -58,21 +60,24 @@ pub fn build_preview_projection(
         ..UiAssetPreviewProjection::default()
     };
     let selected_node_id = selection.primary_node_id.as_deref();
+    let control_id_index = control_id_index(document);
     for command in &preview_host.surface().render_extract.list.commands {
         let Some(tree_node) = preview_host.surface().tree.node(command.node_id) else {
             continue;
         };
         let metadata = tree_node.template_metadata.as_ref();
-        let document_node_id = metadata
+        let document_node = metadata
             .and_then(|metadata| metadata.control_id.as_deref())
-            .and_then(|control_id| node_id_by_control_id(document, control_id));
+            .and_then(|control_id| control_id_index.get(control_id).copied());
+        let document_node_id = document_node.map(|node| node.node_id.as_str());
         let label = metadata
-            .and_then(|metadata| metadata.control_id.clone())
-            .or_else(|| document_node_id.clone())
+            .and_then(|metadata| metadata.control_id.as_deref())
+            .or(document_node_id)
+            .map(str::to_string)
             .unwrap_or_else(|| format!("#{}", command.node_id.0));
-        let kind =
-            preview_item_component_label(document, metadata).unwrap_or_else(|| "Node".to_string());
-        let selected = document_node_id.as_deref() == selected_node_id;
+        let kind = preview_item_component_label(document_node, metadata)
+            .unwrap_or_else(|| "Node".to_string());
+        let selected = document_node_id == selected_node_id;
         projection.items.push(format!(
             "{} [{}] {:.0},{:.0} {:.0}x{:.0}",
             label,
@@ -83,7 +88,9 @@ pub fn build_preview_projection(
             command.frame.height
         ));
         projection.canvas_nodes.push(UiAssetCanvasNodePresentation {
-            node_id: document_node_id.unwrap_or_else(|| label.clone()),
+            node_id: document_node_id
+                .map(str::to_string)
+                .unwrap_or_else(|| label.clone()),
             label,
             kind,
             x: command.frame.x,
@@ -107,6 +114,7 @@ pub fn preview_node_id_for_index(
     preview_host: &UiAssetPreviewHost,
     index: usize,
 ) -> Option<String> {
+    let control_id_index = control_id_index(document);
     preview_host
         .surface()
         .render_extract
@@ -119,23 +127,21 @@ pub fn preview_node_id_for_index(
                 .template_metadata
                 .as_ref()
                 .and_then(|metadata| metadata.control_id.as_deref())?;
-            node_id_by_control_id(document, control_id)
+            control_id_index
+                .get(control_id)
+                .map(|node| node.node_id.clone())
         })
         .nth(index)
 }
 
 fn preview_item_component_label(
-    document: &UiAssetDocument,
+    document_node: Option<&UiNodeDefinition>,
     metadata: Option<&UiTemplateNodeMetadata>,
 ) -> Option<String> {
     let rendered_component = metadata
-        .map(|metadata| metadata.component.clone())
+        .map(|metadata| metadata.component.as_str())
         .filter(|component| !component.is_empty());
-    let document_component = metadata
-        .and_then(|metadata| metadata.control_id.as_deref())
-        .and_then(|control_id| node_id_by_control_id(document, control_id))
-        .and_then(|node_id| document.node(&node_id))
-        .and_then(node_component_label);
+    let document_component = document_node.and_then(node_component_label);
 
     match (document_component, rendered_component) {
         (Some(document_component), Some(rendered_component))
@@ -143,23 +149,26 @@ fn preview_item_component_label(
         {
             Some(format!("{document_component}/{rendered_component}"))
         }
-        (Some(document_component), _) => Some(document_component),
-        (_, Some(rendered_component)) => Some(rendered_component),
+        (Some(document_component), _) => Some(document_component.to_string()),
+        (_, Some(rendered_component)) => Some(rendered_component.to_string()),
         _ => None,
     }
 }
 
-fn node_component_label(node: &UiNodeDefinition) -> Option<String> {
+fn node_component_label(node: &UiNodeDefinition) -> Option<&str> {
     node.component_ref
         .as_deref()
         .and_then(|reference| reference.split_once('#').map(|(_, component)| component))
-        .map(str::to_string)
-        .or_else(|| node.component.clone())
-        .or_else(|| node.widget_type.clone())
+        .or_else(|| node.component.as_deref())
+        .or_else(|| node.widget_type.as_deref())
 }
 
-fn node_id_by_control_id(document: &UiAssetDocument, control_id: &str) -> Option<String> {
-    document.iter_nodes().find_map(|node| {
-        (node.control_id.as_deref() == Some(control_id)).then(|| node.node_id.clone())
-    })
+fn control_id_index(document: &UiAssetDocument) -> BTreeMap<&str, &UiNodeDefinition> {
+    let mut index = BTreeMap::new();
+    for node in document.iter_nodes() {
+        if let Some(control_id) = node.control_id.as_deref() {
+            let _ = index.entry(control_id).or_insert(node);
+        }
+    }
+    index
 }

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var heal = %import("combat/heal_state");
+
+console.printLine("m4-heal-state-test");
+var result = heal.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

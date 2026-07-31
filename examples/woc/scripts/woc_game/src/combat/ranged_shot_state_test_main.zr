@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var ranged = %import("combat/ranged_shot_state");
+
+console.printLine("m4-ranged-shot-state-test");
+var result = ranged.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

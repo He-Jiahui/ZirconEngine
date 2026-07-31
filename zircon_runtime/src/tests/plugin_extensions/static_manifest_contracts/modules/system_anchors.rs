@@ -28,7 +28,8 @@ fn declared_system_anchors_are_registered() {
 
             assert!(
                 source.contains("register_runtime_system")
-                    || source.contains("register_native_system"),
+                    || source.contains("register_native_system")
+                    || source.contains(".runtime_scene_system("),
                 "plugin manifest {relative_path:?} {module_context} module `{module_name}` declares system anchors but crate `{crate_name}` does not expose a runtime system registration path"
             );
 

@@ -1,0 +1,3718 @@
+{
+  "schema_version": 17,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m8_eastbrook_encounter_codegen.mjs",
+  "extraction": {
+    "world_seed": 20061,
+    "player_class": "mage",
+    "simulator": "Sim builtin world constructor before any tick"
+  },
+  "source_identities": {
+    "representation": "git_blob_lf",
+    "files": [
+      {
+        "path": "src/sim/sim.ts",
+        "bytes": 382437,
+        "sha256": "fa0965112495b10ac2d793e672927de569666f9b3c938282eedc08b303cd6b03"
+      },
+      {
+        "path": "src/sim/entity.ts",
+        "bytes": 29924,
+        "sha256": "e5906007bc4a34cd019bcfb980520e34dc646ed7bc71a3b7f6ec69e8cdc7da11"
+      },
+      {
+        "path": "src/sim/types.ts",
+        "bytes": 204442,
+        "sha256": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
+      },
+      {
+        "path": "src/sim/rng.ts",
+        "bytes": 2799,
+        "sha256": "d516034919a56ce15f3a893cfd07345b851a2eb833704009fbfbace24c446713"
+      },
+      {
+        "path": "src/sim/data.ts",
+        "bytes": 25410,
+        "sha256": "0d459fd489d36e78a3c03e5a6685d5aea96e2e51a3a004a66944b7b8a85b2431"
+      },
+      {
+        "path": "src/sim/content/zone1.ts",
+        "bytes": 44981,
+        "sha256": "ba684edd445b581cf2d03e9b34c0f14d8b73da9a623df425e94262d3f6010d2a"
+      },
+      {
+        "path": "src/sim/content/zone2.ts",
+        "bytes": 65024,
+        "sha256": "169c8bc8cd98a535ad60ac0f2159cd94e5e0685d231bf78e0328df7157a1dd6b"
+      },
+      {
+        "path": "src/sim/content/zone3.ts",
+        "bytes": 115374,
+        "sha256": "8361952b8878ae4d0a17513ccb27ad09e48f4469eddcea93633455fc45743579"
+      },
+      {
+        "path": "src/sim/combat/damage.ts",
+        "bytes": 57590,
+        "sha256": "6b4b18cd513e10f2cbcd7b5aab65e544b27c30944a0db744b37c5dc36c2dfcb4"
+      },
+      {
+        "path": "src/sim/mob/lifecycle.ts",
+        "bytes": 9420,
+        "sha256": "dccce390ade98cb3eeec711a45826cd5c6abbb28d66c71d5b89b21c9c0c0e6b6"
+      },
+      {
+        "path": "src/sim/spirit.ts",
+        "bytes": 11961,
+        "sha256": "916669fdff47018523ef5676bd6d366e73ba1f4e2bd5d6f304f2a43a6c668649"
+      },
+      {
+        "path": "src/sim/instances/dungeons.ts",
+        "bytes": 37415,
+        "sha256": "a7ece40186657961fce740165834f985277479ee63bde898ac9089e50db54e5e"
+      },
+      {
+        "path": "src/sim/interaction.ts",
+        "bytes": 21537,
+        "sha256": "37f0ba348e82cfa7a6e12e3a76fbb26a5ae3e9952594e3f8bf62ef3ef540b9fa"
+      },
+      {
+        "path": "src/sim/loot/loot_ffa.ts",
+        "bytes": 1793,
+        "sha256": "7d54256753e8c29d198b2f06721c31be735ee2954cfbc3bd6a0e248ecbf35584"
+      },
+      {
+        "path": "src/sim/loot/loot_roll.ts",
+        "bytes": 34838,
+        "sha256": "a471dfb35d4f26f0dc918079a20c6dd3a58552e097b851c2d77df101c893c199"
+      },
+      {
+        "path": "src/sim/mob/locomotion.ts",
+        "bytes": 31343,
+        "sha256": "0deec16a09eb2a9c761b99b6b243aab6578c1f09aeae1362621a0358751c21bd"
+      },
+      {
+        "path": "src/sim/pet/pet_ai.ts",
+        "bytes": 18197,
+        "sha256": "322c1cfe6874d4701ad0854c0414b04dee8d12994c9e40be1846b2c715adf8a0"
+      },
+      {
+        "path": "src/sim/pet/pet_commands.ts",
+        "bytes": 29330,
+        "sha256": "cc3eb23dcf1f4b5416ae47259ce4feefdd3ed9284e6344967bbf800e5f4109e3"
+      }
+    ]
+  },
+  "camps": [
+    {
+      "source_camp_index": 0,
+      "mob_id": "forest_wolf",
+      "center_x": -15,
+      "center_z": 55,
+      "radius": 22,
+      "count": 7
+    },
+    {
+      "source_camp_index": 1,
+      "mob_id": "forest_wolf",
+      "center_x": 20,
+      "center_z": 70,
+      "radius": 20,
+      "count": 6
+    },
+    {
+      "source_camp_index": 3,
+      "mob_id": "wild_boar",
+      "center_x": 55,
+      "center_z": 12,
+      "radius": 22,
+      "count": 6
+    },
+    {
+      "source_camp_index": 4,
+      "mob_id": "wild_boar",
+      "center_x": 80,
+      "center_z": -15,
+      "radius": 18,
+      "count": 5
+    }
+  ],
+  "spawns": [
+    {
+      "source_entity_id": 32,
+      "source_camp_index": 0,
+      "camp_member_index": 0,
+      "mob_id": "forest_wolf",
+      "level": 1,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": -11.218006452547318,
+      "y": -0.6134338027064364,
+      "z": 64.69484230798517,
+      "max_hp": 40,
+      "move_speed": 8,
+      "facing": -2.241543395702632,
+      "wander_timer": 7.203460566699505,
+      "combat": {
+        "weapon_min": 2,
+        "weapon_max": 4,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 0,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 33,
+      "source_camp_index": 0,
+      "camp_member_index": 1,
+      "mob_id": "forest_wolf",
+      "level": 1,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 5.109826662748439,
+      "y": -1.0386157506507243,
+      "z": 46.7492363517566,
+      "max_hp": 40,
+      "move_speed": 8,
+      "facing": -1.589832444434177,
+      "wander_timer": 2.1234352253377438,
+      "combat": {
+        "weapon_min": 2,
+        "weapon_max": 4,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 0,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 34,
+      "source_camp_index": 0,
+      "camp_member_index": 2,
+      "mob_id": "forest_wolf",
+      "level": 1,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 1.1239202292826391,
+      "y": -1.041205087685056,
+      "z": 51.46219897881595,
+      "max_hp": 40,
+      "move_speed": 8,
+      "facing": 2.6440697232255905,
+      "wander_timer": 2.883795130997896,
+      "combat": {
+        "weapon_min": 2,
+        "weapon_max": 4,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 0,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 35,
+      "source_camp_index": 0,
+      "camp_member_index": 3,
+      "mob_id": "forest_wolf",
+      "level": 1,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": -1.7143178771327676,
+      "y": -1.4441654755997737,
+      "z": 67.30792490499361,
+      "max_hp": 40,
+      "move_speed": 8,
+      "facing": -1.9553686718109893,
+      "wander_timer": 7.826522510498762,
+      "combat": {
+        "weapon_min": 2,
+        "weapon_max": 4,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 0,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 36,
+      "source_camp_index": 0,
+      "camp_member_index": 4,
+      "mob_id": "forest_wolf",
+      "level": 1,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": -2.071680456909341,
+      "y": -1.4121743175291437,
+      "z": 70.8443637836154,
+      "max_hp": 40,
+      "move_speed": 8,
+      "facing": -3.1306011546526005,
+      "wander_timer": 5.29735148139298,
+      "combat": {
+        "weapon_min": 2,
+        "weapon_max": 4,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 0,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 37,
+      "source_camp_index": 0,
+      "camp_member_index": 5,
+      "mob_id": "forest_wolf",
+      "level": 1,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": -8.968843042718301,
+      "y": -0.464187460773039,
+      "z": 38.352157862395714,
+      "max_hp": 40,
+      "move_speed": 8,
+      "facing": 1.2930811446714099,
+      "wander_timer": 7.846641156822443,
+      "combat": {
+        "weapon_min": 2,
+        "weapon_max": 4,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 0,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 38,
+      "source_camp_index": 0,
+      "camp_member_index": 6,
+      "mob_id": "forest_wolf",
+      "level": 1,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": -25.759480544099194,
+      "y": -0.46406409379449337,
+      "z": 44.4426330263592,
+      "max_hp": 40,
+      "move_speed": 8,
+      "facing": 2.065501659383414,
+      "wander_timer": 2.7174353152513504,
+      "combat": {
+        "weapon_min": 2,
+        "weapon_max": 4,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 0,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 39,
+      "source_camp_index": 1,
+      "camp_member_index": 0,
+      "mob_id": "forest_wolf",
+      "level": 1,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 22.276387941591484,
+      "y": -1.7031702042913497,
+      "z": 69.90892673174993,
+      "max_hp": 40,
+      "move_speed": 8,
+      "facing": -2.4568365538811223,
+      "wander_timer": 3.9819470029324293,
+      "combat": {
+        "weapon_min": 2,
+        "weapon_max": 4,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 0,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 40,
+      "source_camp_index": 1,
+      "camp_member_index": 1,
+      "mob_id": "forest_wolf",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 13.28759992907715,
+      "y": -1.7031702042913497,
+      "z": 60.26202446985341,
+      "max_hp": 54,
+      "move_speed": 8,
+      "facing": -2.3720591711342713,
+      "wander_timer": 5.650981191545725,
+      "combat": {
+        "weapon_min": 4,
+        "weapon_max": 6,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 10,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 41,
+      "source_camp_index": 1,
+      "camp_member_index": 2,
+      "mob_id": "forest_wolf",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 22.89259053935533,
+      "y": -1.5686716394431937,
+      "z": 89.6886812252327,
+      "max_hp": 54,
+      "move_speed": 8,
+      "facing": -0.7434028280203075,
+      "wander_timer": 8.712300589308143,
+      "combat": {
+        "weapon_min": 4,
+        "weapon_max": 6,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 10,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 42,
+      "source_camp_index": 1,
+      "camp_member_index": 3,
+      "mob_id": "forest_wolf",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 15.577176166399418,
+      "y": -1.7031702042913497,
+      "z": 79.72381664512571,
+      "max_hp": 54,
+      "move_speed": 8,
+      "facing": 0.45929010764224465,
+      "wander_timer": 6.400001237168908,
+      "combat": {
+        "weapon_min": 4,
+        "weapon_max": 6,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 10,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 43,
+      "source_camp_index": 1,
+      "camp_member_index": 4,
+      "mob_id": "forest_wolf",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 32.794497616479156,
+      "y": -1.7737359204720933,
+      "z": 56.55117712215938,
+      "max_hp": 54,
+      "move_speed": 8,
+      "facing": -3.0810648247513406,
+      "wander_timer": 2.58032488822937,
+      "combat": {
+        "weapon_min": 4,
+        "weapon_max": 6,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 10,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 44,
+      "source_camp_index": 1,
+      "camp_member_index": 5,
+      "mob_id": "forest_wolf",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.9,
+        "color": 8359053,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 30.864352565898066,
+      "y": -1.7127068014015219,
+      "z": 57.021677475168374,
+      "max_hp": 54,
+      "move_speed": 8,
+      "facing": 1.4615675103705437,
+      "wander_timer": 6.3070931527763605,
+      "combat": {
+        "weapon_min": 4,
+        "weapon_max": 6,
+        "weapon_speed": 2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 10,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 46,
+      "source_camp_index": 3,
+      "camp_member_index": 0,
+      "mob_id": "wild_boar",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 61.83887433513103,
+      "y": -1.9167866182571491,
+      "z": 32.112278269344884,
+      "max_hp": 54,
+      "move_speed": 7.5,
+      "facing": 3.0177380927673374,
+      "wander_timer": 4.52396303974092,
+      "combat": {
+        "weapon_min": 5,
+        "weapon_max": 7,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 14,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 47,
+      "source_camp_index": 3,
+      "camp_member_index": 1,
+      "mob_id": "wild_boar",
+      "level": 3,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 52.620255000936325,
+      "y": -2.2880954306982733,
+      "z": -7.929392539943361,
+      "max_hp": 70,
+      "move_speed": 7.5,
+      "facing": 2.2501378214435332,
+      "wander_timer": 8.129451459273696,
+      "combat": {
+        "weapon_min": 6,
+        "weapon_max": 10,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 28,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 48,
+      "source_camp_index": 3,
+      "camp_member_index": 2,
+      "mob_id": "wild_boar",
+      "level": 3,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 61.20818919602677,
+      "y": -2.176479999079984,
+      "z": 24.752072537673726,
+      "max_hp": 70,
+      "move_speed": 7.5,
+      "facing": 0.2039275866996748,
+      "wander_timer": 4.77008268609643,
+      "combat": {
+        "weapon_min": 6,
+        "weapon_max": 10,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 28,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 49,
+      "source_camp_index": 3,
+      "camp_member_index": 3,
+      "mob_id": "wild_boar",
+      "level": 3,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 47.90654976699174,
+      "y": -2.176479999079984,
+      "z": 28.038123145753666,
+      "max_hp": 70,
+      "move_speed": 7.5,
+      "facing": -1.1897229424274165,
+      "wander_timer": 6.221191024407744,
+      "combat": {
+        "weapon_min": 6,
+        "weapon_max": 10,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 28,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 50,
+      "source_camp_index": 3,
+      "camp_member_index": 4,
+      "mob_id": "wild_boar",
+      "level": 3,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 40.4994976467547,
+      "y": -2.176479999079984,
+      "z": 8.831351532457079,
+      "max_hp": 70,
+      "move_speed": 7.5,
+      "facing": -0.568542838388439,
+      "wander_timer": 9.311609257012606,
+      "combat": {
+        "weapon_min": 6,
+        "weapon_max": 10,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 28,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 51,
+      "source_camp_index": 3,
+      "camp_member_index": 5,
+      "mob_id": "wild_boar",
+      "level": 3,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 37.51247677099238,
+      "y": -2.187032717490389,
+      "z": 4.701077366964706,
+      "max_hp": 70,
+      "move_speed": 7.5,
+      "facing": -0.5842953734933269,
+      "wander_timer": 8.498399848118424,
+      "combat": {
+        "weapon_min": 6,
+        "weapon_max": 10,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 28,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 52,
+      "source_camp_index": 4,
+      "camp_member_index": 0,
+      "mob_id": "wild_boar",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 81.47202654109336,
+      "y": -3.144752397714884,
+      "z": 2.515888840416899,
+      "max_hp": 54,
+      "move_speed": 7.5,
+      "facing": 1.85331575968614,
+      "wander_timer": 5.906146548688412,
+      "combat": {
+        "weapon_min": 5,
+        "weapon_max": 7,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 14,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 53,
+      "source_camp_index": 4,
+      "camp_member_index": 1,
+      "mob_id": "wild_boar",
+      "level": 3,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 93.54499712663807,
+      "y": -3.1887796896687752,
+      "z": -14.275458795336883,
+      "max_hp": 70,
+      "move_speed": 7.5,
+      "facing": -1.5676795052181958,
+      "wander_timer": 6.3404301926493645,
+      "combat": {
+        "weapon_min": 6,
+        "weapon_max": 10,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 28,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 54,
+      "source_camp_index": 4,
+      "camp_member_index": 2,
+      "mob_id": "wild_boar",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 63.04162537129918,
+      "y": -3.1293876955315345,
+      "z": -14.8252199775835,
+      "max_hp": 54,
+      "move_speed": 7.5,
+      "facing": 1.2515307426618154,
+      "wander_timer": 8.030765952542424,
+      "combat": {
+        "weapon_min": 5,
+        "weapon_max": 7,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 14,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 55,
+      "source_camp_index": 4,
+      "camp_member_index": 3,
+      "mob_id": "wild_boar",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 94.42611307087644,
+      "y": -3.186250575024636,
+      "z": -23.98265798223398,
+      "max_hp": 54,
+      "move_speed": 7.5,
+      "facing": 1.3771671347789827,
+      "wander_timer": 4.1536189168691635,
+      "combat": {
+        "weapon_min": 5,
+        "weapon_max": 7,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 14,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    },
+    {
+      "source_entity_id": 56,
+      "source_camp_index": 4,
+      "camp_member_index": 4,
+      "mob_id": "wild_boar",
+      "level": 2,
+      "resource_type": null,
+      "resource_kind": 0,
+      "presentation_identity": {
+        "scale": 0.85,
+        "color": 9654550,
+        "skin_catalog": 1,
+        "skin_index": 0
+      },
+      "activity_state": {
+        "ai_state": 1,
+        "sitting": false,
+        "weapon_stowed": false
+      },
+      "tap_ownership": {
+        "tapped_by_id": 0
+      },
+      "corpse_instance": {
+        "instance_id": 0
+      },
+      "harvest_claim": {
+        "claimed_by_id": 0
+      },
+      "loot_ffa": {
+        "timer_present": false,
+        "timer_seconds": 0
+      },
+      "pet_runtime": {
+        "mode": 2,
+        "taunt_timer": 0,
+        "auto_taunt": {
+          "present": false,
+          "value": false
+        },
+        "auto_water_jet": {
+          "present": false,
+          "value": false
+        },
+        "manual_taunt_pending": {
+          "present": false,
+          "value": false
+        },
+        "path_cooldown": 0
+      },
+      "boss_cadence": {
+        "pulse_timer": 0,
+        "stomp_timer": 0,
+        "big_cast_timer": 0,
+        "yelled_engage": false,
+        "stoneskin_timer": 0
+      },
+      "boss_special": {
+        "terrify_timer": 0,
+        "aoe_slow_timer": 0,
+        "loud_yell_timer": 0,
+        "loud_yell_index": 0,
+        "detonate_timer": {
+          "present": false,
+          "seconds": 0
+        },
+        "mend_timer": 0,
+        "ward_timer": 0,
+        "channel_timer": 0,
+        "channel_ramp": 0,
+        "rally_timer": 0,
+        "warcry_timer": 0,
+        "fired_summons": 0,
+        "enraged": false,
+        "healed_this_pull": false
+      },
+      "x": 93.89323273466842,
+      "y": -3.1887796896687752,
+      "z": -17.176703938394994,
+      "max_hp": 54,
+      "move_speed": 7.5,
+      "facing": -0.021703391804812622,
+      "wander_timer": 5.586060561239719,
+      "combat": {
+        "weapon_min": 5,
+        "weapon_max": 7,
+        "weapon_speed": 2.2,
+        "offhand_weapon_min": 0,
+        "offhand_weapon_max": 0,
+        "offhand_weapon_speed": 0,
+        "has_offhand_weapon": false,
+        "dual_wielding": false,
+        "attack_power": 0,
+        "ranged_power": 0,
+        "spell_power": 0,
+        "armor": 14,
+        "crit_chance": 0.05,
+        "dodge_chance": 0.05,
+        "hit_bonus": 0,
+        "crit_damage_physical_bonus": 0,
+        "melee_haste": 0,
+        "ranged_haste": 0,
+        "swing_timer": 0,
+        "offhand_swing_timer": 0,
+        "block_chance": 0,
+        "block_value": 0
+      },
+      "combat_state": {
+        "in_combat": false,
+        "combat_timer": 99,
+        "aggro_target_id": 0
+      },
+      "locomotion_recovery": {
+        "leash_anchor_present": false,
+        "leash_anchor_x": 0,
+        "leash_anchor_y": 0,
+        "leash_anchor_z": 0,
+        "evade_stall": 0,
+        "flee_timer": 0,
+        "flee_return_timer": 0,
+        "has_fled": false
+      },
+      "forced_target": {
+        "forced_target_id": 0,
+        "forced_target_timer": 0,
+        "shuffle_target_timer": 0
+      },
+      "resource_cooldown": {
+        "five_second_rule": 99,
+        "combo_points": 0,
+        "combo_until": -1,
+        "overpower_until": -1,
+        "potion_cooldown_until": -1,
+        "potion_cd_remaining": 0,
+        "saved_mana": 0
+      },
+      "cast_charge_target": {
+        "cast_aim_present": false,
+        "cast_aim_x": 0,
+        "cast_aim_y": 0,
+        "cast_aim_z": 0,
+        "queued_cast_aim_present": false,
+        "queued_cast_aim_x": 0,
+        "queued_cast_aim_y": 0,
+        "queued_cast_aim_z": 0,
+        "charge_target_id": 0,
+        "charge_time_left": 0,
+        "follow_target_id": 0
+      }
+    }
+  ],
+  "catalog_sha256": "5a0d990c8b72bf655a66f6eb510014dbb5ebe5e5273a0a6e3c608195d0874f7c"
+}

@@ -4,10 +4,8 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
         include_str!("../../../../scene/world/property_access/path_resolution.rs");
     let runtime_apply = include_str!("../../../../animation/sequence/apply.rs");
     let runtime_target = include_str!("../../../../animation/sequence/target.rs");
-    let plugin_apply =
-        include_str!("../../../../../../zircon_plugins/animation/runtime/src/sequence/apply.rs");
-    let plugin_target =
-        include_str!("../../../../../../zircon_plugins/animation/runtime/src/sequence/target.rs");
+    let plugin_runtime =
+        include_str!("../../../../../../zircon_plugins/animation/runtime/src/lib.rs");
     let property_paths_runtime_mutation =
         include_str!("../../../../scene/tests/property_paths/runtime_mutation.rs");
     let property_paths_read = include_str!("../../../../scene/tests/property_paths/read_paths.rs");
@@ -59,8 +57,6 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
     for (name, source) in [
         ("runtime animation apply", runtime_apply),
         ("runtime animation target", runtime_target),
-        ("plugin animation apply", plugin_apply),
-        ("plugin animation target", plugin_target),
         (
             "property path runtime mutation tests",
             property_paths_runtime_mutation,
@@ -76,6 +72,12 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
             "F17 consumer `{name}` should not keep the old resolve-verb entity path lookup"
         );
     }
+
+    assert!(
+        plugin_runtime.contains("pub use zircon_runtime::animation::{")
+            && plugin_runtime.contains("apply_sequence_to_world"),
+        "the animation plugin must consume the canonical runtime sequence API instead of reviving its retired sequence module"
+    );
 
     for doc_anchor in [
         "F17 entity path Option lookup verb rename",

@@ -1,9 +1,11 @@
 use std::fs;
 
 use crate::scene::{
-    RuntimeSessionArchive, RuntimeSessionArchivePathStatus, RuntimeSessionArchiveRetentionPolicy,
-    World,
+    DynamicResource, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionArchivePathStatus, RuntimeSessionArchiveRetentionPolicy, World,
 };
+use zircon_runtime_interface::reflect::{ReflectFieldValue, ReflectedValue};
+use zircon_runtime_interface::serialization::CanonicalTextWriteError;
 
 use super::{tagged_slot, temporary_archive_leftovers, unique_temp_root};
 
@@ -62,6 +64,41 @@ fn runtime_session_archive_atomic_save_replaces_existing_target_without_leftover
         temporary_archive_leftovers(path.parent().expect("session path should have parent"))
             .is_empty()
     );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn runtime_session_archive_direct_save_preserves_existing_target_on_serialization_failure() {
+    let source = World::empty();
+    let mut invalid_slot = tagged_slot(&source, "manual", "manual", 1);
+    invalid_slot.scene.resources.push(DynamicResource::new(
+        "tests.NonFiniteResource",
+        vec![ReflectFieldValue::new(
+            "value",
+            ReflectedValue::Scalar(f32::NAN),
+        )],
+    ));
+    let archive = RuntimeSessionArchive::from_slots(vec![invalid_slot])
+        .expect("archive shape should accept the serialization-failure fixture");
+    let root = unique_temp_root("runtime_session_direct_save_serialization_failure");
+    fs::create_dir_all(&root).expect("failure fixture root should be created");
+    let path = root.join("archive.zrsession.json");
+    fs::write(&path, "existing archive payload").expect("existing archive fixture should write");
+
+    let result = archive.save_to_path(&path);
+
+    assert!(matches!(
+        result,
+        Err(RuntimeSessionArchiveError::CanonicalText(
+            CanonicalTextWriteError::NonFinite { .. }
+        ))
+    ));
+    assert_eq!(
+        fs::read_to_string(&path).expect("existing archive should remain readable"),
+        "existing archive payload"
+    );
+    assert!(temporary_archive_leftovers(&root).is_empty());
 
     let _ = fs::remove_dir_all(root);
 }

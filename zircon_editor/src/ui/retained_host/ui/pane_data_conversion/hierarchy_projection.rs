@@ -23,7 +23,15 @@ pub(crate) fn to_host_contract_hierarchy_pane_from_host_pane(
     data: &PaneData,
     content_size: PaneContentSize,
 ) -> host_contract::HierarchyPaneData {
-    hierarchy_template_projection(data, content_size, None)
+    to_host_contract_hierarchy_pane_from_host_pane_with_query(data, content_size, "")
+}
+
+pub(crate) fn to_host_contract_hierarchy_pane_from_host_pane_with_query(
+    data: &PaneData,
+    content_size: PaneContentSize,
+    hierarchy_filter_query: &str,
+) -> host_contract::HierarchyPaneData {
+    hierarchy_template_projection(data, content_size, None, hierarchy_filter_query)
         .unwrap_or_else(|| to_host_contract_hierarchy_pane(&data.native_body.hierarchy))
 }
 
@@ -31,8 +39,9 @@ pub(crate) fn to_host_contract_hierarchy_pane_from_host_pane_with_runtime(
     data: &PaneData,
     content_size: PaneContentSize,
     runtime: &EditorUiHostRuntime,
+    hierarchy_filter_query: &str,
 ) -> host_contract::HierarchyPaneData {
-    hierarchy_template_projection(data, content_size, Some(runtime))
+    hierarchy_template_projection(data, content_size, Some(runtime), hierarchy_filter_query)
         .unwrap_or_else(|| to_host_contract_hierarchy_pane(&data.native_body.hierarchy))
 }
 
@@ -40,6 +49,7 @@ fn hierarchy_template_projection(
     data: &PaneData,
     content_size: PaneContentSize,
     runtime: Option<&EditorUiHostRuntime>,
+    hierarchy_filter_query: &str,
 ) -> Option<host_contract::HierarchyPaneData> {
     let presentation = data.pane_presentation.as_ref()?;
     let PanePayload::HierarchyV1(payload) = &presentation.body.payload else {
@@ -52,6 +62,7 @@ fn hierarchy_template_projection(
         &mut nodes,
         !payload.nodes.is_empty(),
         payload.nodes.iter().any(|node| node.selected),
+        hierarchy_filter_query,
     );
     Some(host_contract::HierarchyPaneData {
         nodes: model_rc(nodes),
@@ -89,7 +100,16 @@ fn apply_hierarchy_template_state(
     nodes: &mut [host_contract::TemplatePaneNodeData],
     has_nodes: bool,
     has_selection: bool,
+    hierarchy_filter_query: &str,
 ) {
+    if let Some(search) = nodes
+        .iter_mut()
+        .find(|node| node.control_id.as_str() == "HierarchySearchQuery")
+    {
+        search.value_text = hierarchy_filter_query.into();
+        search.text = hierarchy_filter_query.into();
+    }
+
     if let Some(panel) = nodes
         .iter_mut()
         .find(|node| node.control_id.as_str() == "HierarchyListPanel")
@@ -126,5 +146,23 @@ fn apply_hierarchy_template_state(
             "muted".into()
         };
         select_root.disabled = !has_nodes;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hierarchy_template_state_projects_the_transient_search_query() {
+        let mut nodes = vec![host_contract::TemplatePaneNodeData {
+            control_id: "HierarchySearchQuery".into(),
+            ..host_contract::TemplatePaneNodeData::default()
+        }];
+
+        apply_hierarchy_template_state(&mut nodes, true, false, "sun");
+
+        assert_eq!(nodes[0].value_text.as_str(), "sun");
+        assert_eq!(nodes[0].text.as_str(), "sun");
     }
 }

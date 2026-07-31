@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var targeting = %import("kernel/targeting");
+
+console.printLine("m3-targeting-scenario-test");
+var result: int = <int>targeting.scenarioContractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_terrain_gradient_tests",
+  "source": "src",
+  "binary": "bin-m3-terrain-gradient-tests",
+  "entry": "world/terrain_gradient_test_main"
+}

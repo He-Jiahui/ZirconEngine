@@ -20,8 +20,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
     let label = axis_label_text(node, axis);
     let metrics = axis_label_metrics();
     let style = axis_label_text_command_style(node, &metrics);
+    let text_rect = axis_label_text_rect(rect, &metrics);
+    if text_rect.width <= 0.0 || text_rect.height <= 0.0 {
+        return;
+    }
     commands.push(HostPaintCommand::text(
-        axis_label_text_rect(rect, &metrics),
+        text_rect,
         Some(clip.clone()),
         order,
         label.to_string(),

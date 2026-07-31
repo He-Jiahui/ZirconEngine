@@ -90,10 +90,9 @@ impl CommandQueue {
     }
 
     pub fn apply(&mut self, world: &mut World) -> DeferredCommandReport {
-        let commands = std::mem::take(&mut self.commands);
-        let applied_count = commands.len();
+        let applied_count = self.commands.len();
         world.clear_deferred_command_errors();
-        for command in commands {
+        for command in self.commands.drain(..) {
             command.apply_boxed(world);
         }
         DeferredCommandReport::new(applied_count, world.take_deferred_command_errors())

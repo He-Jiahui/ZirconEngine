@@ -2,19 +2,14 @@ use crate::core::framework::render::FroxelGridQuality;
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::post_process::params::exposure_params::default_exposure_buffer_words;
 use crate::graphics::scene::scene_renderer::temporal::taa::{
-    TemporalHistoryKey, TemporalHistoryStore, TAA_SCENE_COLOR_HISTORY_FORMAT,
+    TAA_SCENE_COLOR_HISTORY_FORMAT, TemporalHistoryKey, TemporalHistoryStore,
 };
 use crate::graphics::visibility::HzbBuilder;
 use wgpu::util::DeviceExt;
 
-use super::super::clear_texture::clear_texture;
 use super::super::texture_extent::texture_extent;
-use super::scene_frame_history_textures::SceneFrameHistoryTextures;
 use super::VolumetricHistoryTexture;
-
-const RGBA16_FLOAT_BYTES_PER_TEXEL: u32 = 8;
-const RGBA16_FLOAT_BLACK_CONFIDENCE_ZERO: [u8; RGBA16_FLOAT_BYTES_PER_TEXEL as usize] =
-    [0, 0, 0, 0, 0, 0, 0, 0];
+use super::scene_frame_history_textures::SceneFrameHistoryTextures;
 
 impl SceneFrameHistoryTextures {
     pub(crate) fn new(
@@ -50,15 +45,6 @@ impl SceneFrameHistoryTextures {
         );
         let taa_scene_color_write_view =
             taa_scene_color_write.create_view(&wgpu::TextureViewDescriptor::default());
-        clear_rgba16_float_texture(queue, &taa_scene_color_read, size);
-        clear_rgba16_float_texture(queue, &taa_scene_color_write, size);
-        let taa_scene_color = TemporalHistoryStore::new(
-            TemporalHistoryKey::new(size, TAA_SCENE_COLOR_HISTORY_FORMAT),
-            taa_scene_color_read,
-            taa_scene_color_read_view,
-            taa_scene_color_write,
-            taa_scene_color_write_view,
-        );
         let global_illumination = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-history-global-illumination"),
             size: texture_extent(size),
@@ -66,7 +52,9 @@ impl SceneFrameHistoryTextures {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: super::super::super::core::SCENE_COLOR_HDR_FORMAT,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
         let global_illumination_view =
@@ -79,7 +67,9 @@ impl SceneFrameHistoryTextures {
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
                 format: wgpu::TextureFormat::Rgba16Float,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING
+                    | wgpu::TextureUsages::COPY_DST
+                    | wgpu::TextureUsages::RENDER_ATTACHMENT,
                 view_formats: &[],
             });
         let global_illumination_temporal_metadata_view = global_illumination_temporal_metadata
@@ -91,7 +81,9 @@ impl SceneFrameHistoryTextures {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
         let ambient_occlusion_view =
@@ -103,7 +95,9 @@ impl SceneFrameHistoryTextures {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: super::super::super::core::SCENE_COLOR_HDR_FORMAT,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
         let screen_space_reflection_view =
@@ -123,10 +117,23 @@ impl SceneFrameHistoryTextures {
         let exposure_write =
             create_exposure_history_buffer(device, "zircon-history-exposure-write");
 
-        clear_rgba16_float_texture(queue, &global_illumination, size);
-        clear_rgba16_float_texture(queue, &global_illumination_temporal_metadata, size);
-        clear_texture(queue, &ambient_occlusion, size, &[255, 255, 255, 255]);
-        clear_rgba16_float_texture(queue, &screen_space_reflection, size);
+        clear_history_textures(
+            device,
+            queue,
+            &taa_scene_color_read_view,
+            &taa_scene_color_write_view,
+            &global_illumination_view,
+            &global_illumination_temporal_metadata_view,
+            &ambient_occlusion_view,
+            &screen_space_reflection_view,
+        );
+        let taa_scene_color = TemporalHistoryStore::new(
+            TemporalHistoryKey::new(size, TAA_SCENE_COLOR_HISTORY_FORMAT),
+            taa_scene_color_read,
+            taa_scene_color_read_view,
+            taa_scene_color_write,
+            taa_scene_color_write_view,
+        );
 
         Self {
             size,
@@ -182,20 +189,90 @@ fn create_scene_color_history_texture(
     })
 }
 
-fn clear_rgba16_float_texture(queue: &wgpu::Queue, texture: &wgpu::Texture, size: UVec2) {
-    let texel_count = size.x.max(1) as usize * size.y.max(1) as usize;
-    let mut data = Vec::with_capacity(texel_count * RGBA16_FLOAT_BYTES_PER_TEXEL as usize);
-    for _ in 0..texel_count {
-        data.extend_from_slice(&RGBA16_FLOAT_BLACK_CONFIDENCE_ZERO);
+#[allow(clippy::too_many_arguments)]
+fn clear_history_textures(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    taa_read_view: &wgpu::TextureView,
+    taa_write_view: &wgpu::TextureView,
+    global_illumination_view: &wgpu::TextureView,
+    global_illumination_metadata_view: &wgpu::TextureView,
+    ambient_occlusion_view: &wgpu::TextureView,
+    screen_space_reflection_view: &wgpu::TextureView,
+) {
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-history-initialize-encoder"),
+    });
+    {
+        let color_attachments = [
+            clear_attachment(taa_read_view, wgpu::Color::TRANSPARENT),
+            clear_attachment(taa_write_view, wgpu::Color::TRANSPARENT),
+            clear_attachment(global_illumination_view, wgpu::Color::TRANSPARENT),
+            clear_attachment(global_illumination_metadata_view, wgpu::Color::TRANSPARENT),
+        ];
+        let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("zircon-history-initialize-hdr-pass"),
+            color_attachments: &color_attachments,
+            depth_stencil_attachment: None,
+            occlusion_query_set: None,
+            timestamp_writes: None,
+            multiview_mask: None,
+        });
     }
-    queue.write_texture(
-        texture.as_image_copy(),
-        &data,
-        wgpu::TexelCopyBufferLayout {
-            offset: 0,
-            bytes_per_row: Some(size.x.max(1) * RGBA16_FLOAT_BYTES_PER_TEXEL),
-            rows_per_image: Some(size.y.max(1)),
+    {
+        let color_attachments = [
+            clear_attachment(screen_space_reflection_view, wgpu::Color::TRANSPARENT),
+            clear_attachment(
+                ambient_occlusion_view,
+                wgpu::Color {
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    a: 1.0,
+                },
+            ),
+        ];
+        let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("zircon-history-initialize-ssr-ao-pass"),
+            color_attachments: &color_attachments,
+            depth_stencil_attachment: None,
+            occlusion_query_set: None,
+            timestamp_writes: None,
+            multiview_mask: None,
+        });
+    }
+    queue.submit([encoder.finish()]);
+}
+
+fn clear_attachment(
+    view: &wgpu::TextureView,
+    color: wgpu::Color,
+) -> Option<wgpu::RenderPassColorAttachment<'_>> {
+    Some(wgpu::RenderPassColorAttachment {
+        view,
+        resolve_target: None,
+        depth_slice: None,
+        ops: wgpu::Operations {
+            load: wgpu::LoadOp::Clear(color),
+            store: wgpu::StoreOp::Store,
         },
-        texture_extent(size),
-    );
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn history_initialization_uses_gpu_clear_passes_without_cpu_texture_payloads() {
+        let source = include_str!("construct.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("history texture construction implementation");
+
+        assert!(!implementation.contains("Vec::with_capacity("));
+        assert!(!implementation.contains("write_texture("));
+        assert_eq!(implementation.matches("begin_render_pass(").count(), 2);
+        assert!(implementation.contains("zircon-history-initialize-hdr-pass"));
+        assert!(implementation.contains("zircon-history-initialize-ssr-ao-pass"));
+    }
 }

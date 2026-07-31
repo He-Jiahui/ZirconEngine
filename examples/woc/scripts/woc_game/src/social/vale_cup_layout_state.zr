@@ -1,0 +1,64 @@
+// Pure Vale Cup site predicates and practice-instance placement from the
+// pinned vale_cup_layout.ts source. Terrain height and collider construction
+// remain owned by the existing world terrain/collision modules.
+var contract = %import("generated/vale_cup_ball_contract");
+
+pub class ValeCupPracticeOrigin {
+    pub var x: float;
+    pub var z: float;
+
+    pub @constructor(x: float, z: float) {
+        this.x = x;
+        this.z = z;
+    }
+}
+
+pub isAtSowfield(x: float, z: float): bool {
+    return x >= contract.sowfieldFlatMinX(true) - 6.0 &&
+        x <= contract.sowfieldFlatMaxX(true) + 6.0 &&
+        z >= contract.sowfieldFlatMinZ(true) - 6.0 &&
+        z <= contract.sowfieldFlatMaxZ(true) + 6.0;
+}
+
+pub isInSowfieldShell(x: float, z: float): bool {
+    return x >= contract.sowfieldExcludeMinX(true) &&
+        x <= contract.sowfieldExcludeMaxX(true) &&
+        z >= contract.sowfieldExcludeMinZ(true) &&
+        z <= contract.sowfieldExcludeMaxZ(true);
+}
+
+pub isOnPitch(x: float, z: float): bool {
+    return x >= contract.pitchMinX(true) &&
+        x <= contract.pitchMaxX(true) &&
+        z >= contract.pitchMinZ(true) &&
+        z <= contract.pitchMaxZ(true);
+}
+
+// The target deliberately maps any numeric slot to a shifted private pitch;
+// the bounded practice-slot policy belongs to the cup match owner.
+pub vcPracticeOrigin(slot: float): ValeCupPracticeOrigin {
+    return new ValeCupPracticeOrigin(
+        contract.practiceBaseX(true),
+        slot * contract.practiceSlotDz(true)
+    );
+}
+
+pub practiceSlotCount(): int {
+    return <int>contract.practiceSlots(true);
+}
+
+pub contractTest(): int {
+    if (!isAtSowfield(-62.0, -147.0) || !isAtSowfield(40.0, -77.0) ||
+        isAtSowfield(-62.1, -112.0) || isAtSowfield(-11.0, -147.1)) return -1;
+    if (!isInSowfieldShell(-66.0, -151.0) || !isInSowfieldShell(44.0, -73.0) ||
+        isInSowfieldShell(-66.1, -112.0) || isInSowfieldShell(-11.0, -72.9)) return -2;
+    if (!isOnPitch(-48.0, -127.0) || !isOnPitch(26.0, -97.0) ||
+        isOnPitch(-48.1, -112.0) || isOnPitch(-11.0, -96.9)) return -3;
+    var first = vcPracticeOrigin(0.0);
+    var last = vcPracticeOrigin(7.0);
+    var negative = vcPracticeOrigin(-1.0);
+    if (first.x != 30000.0 || first.z != 0.0 ||
+        last.x != 30000.0 || last.z != 2800.0 ||
+        negative.z != -400.0 || practiceSlotCount() != 8) return -4;
+    return 1;
+}

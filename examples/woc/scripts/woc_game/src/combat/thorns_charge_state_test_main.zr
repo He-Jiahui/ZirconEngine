@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var thorns = %import("combat/thorns_charge_state");
+
+console.printLine("m4-thorns-charge-state-test");
+var result = thorns.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

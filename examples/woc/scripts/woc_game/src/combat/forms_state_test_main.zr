@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var forms = %import("combat/forms_state");
+
+console.printLine("m4-forms-state-test");
+var result = forms.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

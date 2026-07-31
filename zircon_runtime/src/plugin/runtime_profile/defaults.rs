@@ -8,10 +8,14 @@ use super::descriptor::RuntimeProfileDescriptor;
 
 impl RuntimeProfileDescriptor {
     pub fn for_id(id: RuntimeProfileId) -> Self {
-        Self::builtin_profiles()
-            .into_iter()
-            .find(|profile| profile.id == id)
-            .unwrap_or_else(|| panic!("missing built-in runtime profile {id:?}"))
+        match id {
+            RuntimeProfileId::Minimal => Self::minimal(),
+            RuntimeProfileId::Client2d => Self::client_2d(),
+            RuntimeProfileId::Client3d => Self::client_3d(),
+            RuntimeProfileId::Editor => Self::editor(),
+            RuntimeProfileId::Dev => Self::dev(),
+            RuntimeProfileId::Server => Self::server(),
+        }
     }
 
     pub fn builtin_profiles() -> Vec<Self> {

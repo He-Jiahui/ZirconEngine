@@ -1,4 +1,5 @@
 mod foundation_render;
+mod frame_demand;
 mod frame_diagnostics;
 mod lock_poison;
 mod runtime_errors;

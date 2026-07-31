@@ -25,9 +25,11 @@ fn desktop_export_folder_picker_uses_native_host_command() {
     #[cfg(target_os = "macos")]
     assert_eq!(commands[0].0, "osascript");
     #[cfg(all(unix, not(target_os = "macos")))]
-    assert!(commands
-        .iter()
-        .any(|(program, _)| *program == "zenity" || *program == "kdialog"));
+    assert!(
+        commands
+            .iter()
+            .any(|(program, _)| *program == "zenity" || *program == "kdialog")
+    );
     assert!(!commands[0].1.is_empty());
 }
 

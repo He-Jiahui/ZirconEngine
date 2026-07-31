@@ -12,6 +12,6 @@ pub use runtime_scene_system::{
     RuntimeSceneSystemContext,
 };
 pub use scene_system::{BoxedSceneSystem, SceneSystem};
-pub use scene_system_metadata::SceneSystemMetadata;
+pub use scene_system_metadata::{SceneSystemMetadata, SceneSystemThreadAffinity};
 
 pub(crate) use scheduled_scene_step::{ScheduledSceneStep, ScheduledSceneStepRef};

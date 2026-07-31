@@ -10,7 +10,8 @@ fixing_child_dir: docs/plans/zircon_editor/editor/04
 related_code:
   - zircon_editor/src/core/commands/when.rs
   - zircon_editor/src/ui/host/command_eval_projection.rs
-  - zircon_editor/src/core/play/bridge.rs
+  - zircon_editor/src/core/play/controller.rs
+  - zircon_editor/src/core/play/mode.rs
 tests:
   - cargo test -p zircon_editor --lib --locked command_eval
   - cargo test -p zircon_editor --lib --locked play_mode
@@ -50,4 +51,11 @@ Editor04 尚未落地三态 `PlaySessionController` 及其稳定快照/消息出
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed. 完成后由 Editor04 在本文件记录验证证据，并向 `../08-tool-orchestration-and-commands.md` 回传可关闭结论。
+Open state: `源码修复已落地，待受管Cargo与独立复审后回传fixed`。`PlaySessionController` 已成为 host-owned 三态权威，`command_eval_ctx_from_chrome` 现在显式接收 controller `PlayModeKind` 并覆盖 `PlayStateKind::Building`；生产投影不再匹配 `chrome.session_mode`。菜单、startup 与测试已硬切 `PluginBridgeActivation`，旧 backend/bridge 兼容名为0。Python契约 RED（3 fail+1 error）→GREEN 4/4；Rust迁移矩阵已落盘但当前未执行Cargo，故不改 `status: open`、不向 Editor08 宣称 fixed。
+
+## 产出记录与时间
+
+| 日期 | 事项 | 状态 | 证据与后续 |
+| --- | --- | --- | --- |
+| 2026-07-18 | PlaySessionController → CommandEval 三态投影 | 源码完成 / open待验证 | controller `Edit/Building/Playing`、build结果迁移、menu同源API与CommandEval Building投影已完成；Python静态契约4/4，旧token 0。待 managed focused/broad Cargo、独立review及 lifecycle fixed-return。 |
+| 2026-07-27 | CommandEval 测试输入硬切 | resolving_failure | 已复核 production projection、reflection 与 remote/CLI 路径均读取 `PlaySessionController::mode()`，菜单 effect 与 backend terminal 路径均会刷新 command-eval snapshot；旧 backend/bridge token 搜索为 0。测试 helper 已改为显式接收 `PlayModeKind`，不再由 `chrome.session_mode` 推断；`python tools/tests/test_editor04_play_session_controller_contract.py`（4/4）、`rustfmt --check` 与 `git diff --check` 通过。仍待受管 Cargo、独立复审与 lifecycle fixed-return。 |

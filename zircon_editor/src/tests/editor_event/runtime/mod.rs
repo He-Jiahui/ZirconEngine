@@ -33,6 +33,7 @@ mod animation_assets;
 mod extensions_registration;
 mod extensions_validation;
 mod integration;
+mod keymap_settings;
 mod listeners;
 mod registry;
 mod stack_play;

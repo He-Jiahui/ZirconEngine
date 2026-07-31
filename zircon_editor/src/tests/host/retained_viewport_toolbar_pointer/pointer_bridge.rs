@@ -1,6 +1,6 @@
 use crate::ui::retained_host::viewport_toolbar_pointer::{
-    build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
-    ViewportToolbarPointerRoute,
+    ViewportToolbarPointerBridge, ViewportToolbarPointerRoute,
+    build_viewport_toolbar_pointer_layout,
 };
 use zircon_runtime_interface::ui::layout::UiPoint;
 
@@ -12,7 +12,7 @@ fn shared_viewport_toolbar_pointer_bridge_routes_controls_from_shared_hit_test()
     let route = bridge
         .handle_click(
             "scene.main",
-            "tool.scale",
+            "mode.scale",
             120.0,
             0.0,
             40.0,
@@ -22,9 +22,9 @@ fn shared_viewport_toolbar_pointer_bridge_routes_controls_from_shared_hit_test()
         .unwrap();
     assert_eq!(
         route.route,
-        Some(ViewportToolbarPointerRoute::SetTool {
+        Some(ViewportToolbarPointerRoute::ActivateSceneMode {
             surface_key: "scene.main".to_string(),
-            tool: "Scale".to_string(),
+            mode: "Transform.Scale".to_string(),
         })
     );
 
@@ -51,9 +51,9 @@ fn shared_viewport_toolbar_pointer_bridge_routes_controls_from_shared_hit_test()
         .unwrap();
     assert_eq!(
         scale_again.route,
-        Some(ViewportToolbarPointerRoute::SetTool {
+        Some(ViewportToolbarPointerRoute::ActivateSceneMode {
             surface_key: "scene.main".to_string(),
-            tool: "Scale".to_string(),
+            mode: "Transform.Scale".to_string(),
         }),
         "syncing one clicked control must not discard the other committed toolbar controls"
     );

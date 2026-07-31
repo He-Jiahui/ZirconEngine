@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var chat = %import("social/chat_state");
+
+console.printLine("m6-chat-social-state-test");
+var result = chat.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

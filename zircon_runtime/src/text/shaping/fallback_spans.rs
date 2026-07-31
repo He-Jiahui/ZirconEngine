@@ -34,14 +34,11 @@ pub(crate) fn fallback_text_spans(
         .filter(|family| !family.is_empty());
     let mut face_resolver = database.begin_shaping_face_resolution(&query, request.language);
     let text_codepoints = text.chars().collect::<Vec<_>>();
-    if face_resolver
+    if let Some(face) = face_resolver
         .as_ref()
-        .is_some_and(|resolver| resolver.primary_covers_all(&text_codepoints))
+        .filter(|resolver| resolver.primary_covers_all(&text_codepoints))
+        .map(|resolver| resolver.primary_face())
     {
-        let face = face_resolver
-            .as_ref()
-            .expect("primary coverage requires a shaping face resolver")
-            .primary_face();
         let family = database
             .face_family_name(face)
             .map(|family| family.0)

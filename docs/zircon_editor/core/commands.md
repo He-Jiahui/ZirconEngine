@@ -111,6 +111,30 @@ the materialized menu item, and requires one `EditCommand::apply` plus an undoab
 record. This locks the real retained route to factory and transaction execution rather than merely
 testing registry lookup or an event-backed operation.
 
+### Palette catalog generation and query windows
+
+`EditorCommandRegistry` publishes one immutable `Arc<EditorCommandPaletteCatalog>` per registry
+generation. Repeated palette opens share that catalog and its normalized search documents; a
+successful descriptor/factory/asset-write-target registration advances the generation and clears
+the lazy catalog once. Failed or idempotent mutations do neither. The deleted
+`command_palette_entries` and `command_palette_value` full-materialization APIs have no compatibility
+wrapper.
+
+`command_palette_query_window(context, query, offset, limit)` is the sole palette discovery query.
+It evaluates the canonical descriptor `when` predicate, fuzzy-matches the generation-owned search
+document, and returns lightweight catalog handles for only the requested window. Non-empty queries
+use fixed 256 score buckets: the first streaming pass counts ranks and the second materializes the
+requested page in stable descriptor order inside each score. Consequently every match remains
+addressable by `offset` without retaining a full result-id vector, while query metrics report
+visited entries, text comparisons, total matches, retained handles, and owned buffers.
+
+The retained host projects 8 visible rows plus 4 overscan rows. It no longer clones the complete
+enabled catalog on open or query edit; the temporary `commands`/`filtered_commands` UI values are
+bounded to that 12-row window. `CommandPalette/QueryChanged` is declared in the `.zui`, registered in
+the authoritative template binding table, intercepted before generic menu dispatch, and coherently
+updates query/window/generation/match-count while the registry lock is released. Keyboard-driven
+window advance beyond the first page and managed input-p95 evidence remain open.
+
 `EditorOperationInvocation`, `EditorOperationControlRequest`, `EditorOperationControlResponse`, source types, and control errors remain in `core::editor_operation` because they are transport DTOs, not a second registry.
 
 `EditorOperationPath` owns its wire invariant as well as its constructor invariant. Its handwritten

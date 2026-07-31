@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 use crate::asset::{MaterialAsset, ProjectAssetManager};
 use crate::core::framework::render::{
@@ -13,17 +13,24 @@ pub(super) fn resolve_advanced_pbr_material_usage(
     extract: &mut RenderFrameExtract,
 ) {
     let mut usage = AdvancedPbrMaterialFrameUsage::default();
+    let mut features_by_material = HashMap::new();
     for mesh in &extract.geometry.meshes {
         if !material_is_visible_to_selected_camera(
             extract.view.selected_camera_layers(),
-            &mesh.render_layer_mask,
+            &mesh.common.layer_mask,
         ) {
             continue;
         }
-        let Some(material) = effective_material(asset_manager, mesh.material.id()) else {
+        let features = features_by_material
+            .entry(mesh.material.id())
+            .or_insert_with(|| {
+                effective_material(asset_manager, mesh.material.id())
+                    .map(|material| material.advanced_pbr_features())
+            });
+        let Some(features) = features.as_ref() else {
             continue;
         };
-        usage.record(&material.advanced_pbr_features());
+        usage.record(features);
     }
     extract.lighting.advanced_lighting.material_features = usage;
 }
@@ -134,5 +141,13 @@ specular_transmission = 0.75
             0.75
         );
         assert!(effective.parent.is_none());
+    }
+
+    #[test]
+    fn render_advanced_lighting_material_usage_caches_effective_features_by_material() {
+        let source = include_str!("material_feature_extract.rs");
+
+        assert!(source.contains("features_by_material"));
+        assert!(source.contains(".entry(mesh.material.id())"));
     }
 }

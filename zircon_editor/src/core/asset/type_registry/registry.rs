@@ -1,13 +1,18 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     AssetToolkitDescriptor, AssetTypeContribution, AssetTypeDefinition, AssetTypeId,
     AssetTypePresentation, AssetTypeRegistryError,
 };
 
+mod batch;
+
+pub(crate) use batch::AssetTypeRegistryBatchReport;
+
 #[derive(Clone, Debug, Default)]
 pub struct AssetTypeRegistry {
     entries: BTreeMap<AssetTypeId, MaterializedEntry>,
+    generation: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -40,6 +45,10 @@ impl AssetTypeRegistry {
         self.entries.is_empty()
     }
 
+    pub fn generation(&self) -> u64 {
+        self.generation
+    }
+
     pub fn get(&self, asset_type: &AssetTypeId) -> Option<&AssetTypeDefinition> {
         self.entries.get(asset_type).map(|entry| &entry.definition)
     }
@@ -58,13 +67,22 @@ impl AssetTypeRegistry {
         contribution: AssetTypeContribution,
     ) -> Result<(), AssetTypeRegistryError> {
         let owner = owner.into();
-        let asset_type = contribution.asset_type.clone();
-        let candidate = match self.entries.get(&asset_type) {
-            Some(existing) => merge_existing(existing.clone(), &owner, contribution)?,
-            None => materialize_new(&owner, contribution)?,
-        };
-        self.entries.insert(asset_type, candidate);
-        Ok(())
+        let report = self.apply_contributions([(owner, contribution)]);
+        match report.into_errors().pop() {
+            Some((_, error)) => Err(error),
+            None => Ok(()),
+        }
+    }
+
+    pub(crate) fn apply_contributions<I, O>(
+        &mut self,
+        contributions: I,
+    ) -> AssetTypeRegistryBatchReport
+    where
+        I: IntoIterator<Item = (O, AssetTypeContribution)>,
+        O: Into<String>,
+    {
+        batch::apply_contributions(self, contributions)
     }
 }
 
@@ -114,7 +132,9 @@ fn materialize_new(
     validate_toolkit(&asset_type, contribution.toolkit.as_ref())?;
     let has_toolkit = contribution.toolkit.is_some();
     validate_creation_templates(&asset_type, &contribution.creation_templates)?;
+    validate_new_creation_template_owners(&asset_type, owner, &contribution.creation_templates)?;
     validate_context_commands(&asset_type, &contribution.context_commands)?;
+    validate_new_context_command_owners(&asset_type, owner, &contribution.context_commands)?;
     let creation_template_owners = contribution
         .creation_templates
         .iter()
@@ -134,8 +154,8 @@ fn materialize_new(
             presentation,
             thumbnail,
             toolkit: contribution.toolkit,
-            creation_templates: sorted_creation_templates(contribution.creation_templates),
-            context_commands: sorted_context_commands(contribution.context_commands),
+            creation_templates: contribution.creation_templates,
+            context_commands: contribution.context_commands,
         },
         owners: FieldOwners {
             runtime_kind: contribution.runtime_kind.map(|_| owner.to_owned()),
@@ -147,127 +167,6 @@ fn materialize_new(
             context_commands: context_command_owners,
         },
     })
-}
-
-fn merge_existing(
-    mut entry: MaterializedEntry,
-    owner: &str,
-    contribution: AssetTypeContribution,
-) -> Result<MaterializedEntry, AssetTypeRegistryError> {
-    if let Some(value) = contribution.runtime_kind {
-        claim_field(
-            &contribution.asset_type,
-            "runtime_kind",
-            &entry.owners.runtime_kind,
-            owner,
-        )?;
-        entry.definition.runtime_kind = Some(value);
-        entry.owners.runtime_kind = Some(owner.to_owned());
-    }
-    if let Some(value) = contribution.source_write_policy {
-        claim_field(
-            &contribution.asset_type,
-            "source_write_policy",
-            &entry.owners.source_write_policy,
-            owner,
-        )?;
-        entry.definition.source_write_policy = value;
-        entry.owners.source_write_policy = Some(owner.to_owned());
-    }
-    if let Some(value) = contribution.presentation {
-        claim_field(
-            &contribution.asset_type,
-            "presentation",
-            &entry.owners.presentation,
-            owner,
-        )?;
-        validate_presentation(&contribution.asset_type, &value)?;
-        entry.definition.presentation = value;
-        entry.owners.presentation = Some(owner.to_owned());
-    }
-    if let Some(value) = contribution.thumbnail {
-        claim_field(
-            &contribution.asset_type,
-            "thumbnail",
-            &entry.owners.thumbnail,
-            owner,
-        )?;
-        entry.definition.thumbnail = value;
-        entry.owners.thumbnail = Some(owner.to_owned());
-    }
-    if let Some(value) = contribution.toolkit {
-        claim_field(
-            &contribution.asset_type,
-            "toolkit",
-            &entry.owners.toolkit,
-            owner,
-        )?;
-        validate_toolkit(&contribution.asset_type, Some(&value))?;
-        entry.definition.toolkit = Some(value);
-        entry.owners.toolkit = Some(owner.to_owned());
-    }
-    validate_creation_templates(&contribution.asset_type, &contribution.creation_templates)?;
-    for template in contribution.creation_templates {
-        let entry_id = template.id().to_owned();
-        if let Some(first_owner) = entry.owners.creation_templates.get(&entry_id) {
-            return Err(AssetTypeRegistryError::DuplicateEntryOwner {
-                asset_type: contribution.asset_type,
-                collection: "creation_templates",
-                entry_id,
-                first_owner: first_owner.clone(),
-                second_owner: owner.to_owned(),
-            });
-        }
-        entry
-            .owners
-            .creation_templates
-            .insert(entry_id, owner.to_owned());
-        entry.definition.creation_templates.push(template);
-    }
-    entry
-        .definition
-        .creation_templates
-        .sort_by(|left, right| left.id().cmp(right.id()));
-    validate_context_commands(&contribution.asset_type, &contribution.context_commands)?;
-    for command in contribution.context_commands {
-        let entry_id = command.id().to_owned();
-        if let Some(first_owner) = entry.owners.context_commands.get(&entry_id) {
-            return Err(AssetTypeRegistryError::DuplicateEntryOwner {
-                asset_type: contribution.asset_type,
-                collection: "context_commands",
-                entry_id,
-                first_owner: first_owner.clone(),
-                second_owner: owner.to_owned(),
-            });
-        }
-        entry
-            .owners
-            .context_commands
-            .insert(entry_id, owner.to_owned());
-        entry.definition.context_commands.push(command);
-    }
-    entry
-        .definition
-        .context_commands
-        .sort_by(|left, right| left.id().cmp(right.id()));
-    Ok(entry)
-}
-
-fn claim_field(
-    asset_type: &AssetTypeId,
-    field: &'static str,
-    first_owner: &Option<String>,
-    second_owner: &str,
-) -> Result<(), AssetTypeRegistryError> {
-    if let Some(first_owner) = first_owner {
-        return Err(AssetTypeRegistryError::DuplicateFieldOwner {
-            asset_type: asset_type.clone(),
-            field,
-            first_owner: first_owner.clone(),
-            second_owner: second_owner.to_owned(),
-        });
-    }
-    Ok(())
 }
 
 fn validate_presentation(
@@ -316,11 +215,24 @@ fn validate_creation_templates(
     Ok(())
 }
 
-fn sorted_creation_templates(
-    mut templates: Vec<super::AssetCreationTemplateDescriptor>,
-) -> Vec<super::AssetCreationTemplateDescriptor> {
-    templates.sort_by(|left, right| left.id().cmp(right.id()));
-    templates
+fn validate_new_creation_template_owners(
+    asset_type: &AssetTypeId,
+    owner: &str,
+    templates: &[super::AssetCreationTemplateDescriptor],
+) -> Result<(), AssetTypeRegistryError> {
+    let mut entry_ids = BTreeSet::new();
+    for template in templates {
+        if !entry_ids.insert(template.id()) {
+            return Err(AssetTypeRegistryError::DuplicateEntryOwner {
+                asset_type: asset_type.clone(),
+                collection: "creation_templates",
+                entry_id: template.id().to_owned(),
+                first_owner: owner.to_owned(),
+                second_owner: owner.to_owned(),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn validate_context_commands(
@@ -343,9 +255,22 @@ fn validate_context_commands(
     Ok(())
 }
 
-fn sorted_context_commands(
-    mut commands: Vec<super::AssetContextCommandDescriptor>,
-) -> Vec<super::AssetContextCommandDescriptor> {
-    commands.sort_by(|left, right| left.id().cmp(right.id()));
-    commands
+fn validate_new_context_command_owners(
+    asset_type: &AssetTypeId,
+    owner: &str,
+    commands: &[super::AssetContextCommandDescriptor],
+) -> Result<(), AssetTypeRegistryError> {
+    let mut entry_ids = BTreeSet::new();
+    for command in commands {
+        if !entry_ids.insert(command.id()) {
+            return Err(AssetTypeRegistryError::DuplicateEntryOwner {
+                asset_type: asset_type.clone(),
+                collection: "context_commands",
+                entry_id: command.id().to_owned(),
+                first_owner: owner.to_owned(),
+                second_owner: owner.to_owned(),
+            });
+        }
+    }
+    Ok(())
 }

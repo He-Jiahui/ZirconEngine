@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::asset::TextureUploadSupport;
 use crate::core::resource::{ResourceId, ResourceLocator};
 
 use super::super::GpuMaterialUniformResource;
@@ -9,6 +10,7 @@ pub(in crate::graphics::scene::resources) struct PreparedMaterial {
     pub(in crate::graphics::scene::resources) revision: Option<u64>,
     pub(in crate::graphics::scene::resources) texture_dependencies:
         Vec<PreparedMaterialTextureDependency>,
+    pub(in crate::graphics::scene::resources) texture_support: TextureUploadSupport,
     pub(in crate::graphics::scene::resources) runtime: MaterialRuntime,
     pub(in crate::graphics::scene::resources) uniform: Arc<GpuMaterialUniformResource>,
     pub(in crate::graphics::scene::resources) standard_uniform: Arc<GpuMaterialUniformResource>,

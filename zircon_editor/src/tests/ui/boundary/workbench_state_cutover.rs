@@ -27,14 +27,42 @@ fn editor_state_declaration_moves_under_ui_workbench_state() {
             && state_mod.contains("pub use editor_state::EditorState;"),
         "expected ui::workbench::state mod wiring to own EditorState directly"
     );
+    let authoring_world_source = core_editing_root.join("authoring_world.rs");
+    let construction_source = ui_workbench_root
+        .join("startup")
+        .join("editor_state_construction.rs");
+    let project_source = ui_workbench_root
+        .join("startup")
+        .join("editor_state_project.rs");
+
     assert!(
-        state_mod.contains("pub(crate) mod editor_world_slot;"),
-        "expected ui::workbench::state mod wiring to expose editor_world_slot directly"
+        authoring_world_source.exists(),
+        "expected core authoring-world facade under {:?}",
+        core_editing_root
     );
     assert!(
-        ui_state_root.join("editor_world_slot.rs").exists(),
-        "expected EditorWorldSlot owner file under {:?}",
-        ui_state_root
+        !ui_state_root.join("editor_world_slot.rs").exists(),
+        "expected the UI-local EditorWorldSlot owner to be deleted"
+    );
+    assert!(
+        !state_mod.contains("editor_world_slot"),
+        "expected UI workbench state wiring to stop exposing EditorWorldSlot"
+    );
+    assert!(
+        !state_source.contains("EditorWorldSlot"),
+        "expected EditorState to depend on the core authoring facade"
+    );
+    assert!(
+        !std::fs::read_to_string(&construction_source)
+            .expect("editor state construction")
+            .contains("LevelSystem"),
+        "expected workbench construction to avoid a direct LevelSystem path"
+    );
+    assert!(
+        !std::fs::read_to_string(&project_source)
+            .expect("editor state project transitions")
+            .contains("LevelSystem"),
+        "expected workbench project transitions to avoid a direct LevelSystem path"
     );
     assert!(
         !core_state_root.join("mod.rs").exists(),

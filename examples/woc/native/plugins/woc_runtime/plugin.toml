@@ -1,0 +1,24 @@
+id = "woc_runtime"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "WOC Runtime Adapter"
+category = "runtime"
+description = "Project-local transport, persistence and ZrVM batch adapter for WOC."
+supported_targets = ["client_runtime", "server_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos", "android", "ios", "wasm"]
+capabilities = ["runtime.project.woc"]
+maturity = "experimental"
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template"]
+
+[[capability_statuses]]
+capability = "runtime.project.woc"
+status = "partial"
+
+[[modules]]
+name = "woc_runtime.runtime"
+kind = "runtime"
+crate_name = "woc_runtime"
+target_modes = ["client_runtime", "server_runtime", "editor_host"]
+capabilities = ["runtime.project.woc"]

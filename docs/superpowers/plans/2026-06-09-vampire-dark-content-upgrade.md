@@ -132,7 +132,7 @@
   - Update `README.md` validation notes and `.codex/sessions` completion status.
 - Testing stage:
   - Run launch command:
-    - `cargo run -p zircon_app --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,first-party-zr-vm-real-backend" --bin zircon_runtime -- --project E:\Git\ZirconEngine\examples\vampire`
+    - `cargo run -p zircon_app --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,backend-zr-vm" --bin zircon_runtime -- --project E:\Git\ZirconEngine\examples\vampire`
   - If the binary fails before window creation, inspect the selected runtime log under `C:\Users\HeJiahui\AppData\LocalLow\ZirconEngine\ZirconEngine\logs\`.
   - If it launches but looks blank, inspect render extraction and asset readiness records before altering shaders.
 - Exit evidence:

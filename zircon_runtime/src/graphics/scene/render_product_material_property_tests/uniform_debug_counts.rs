@@ -310,12 +310,16 @@ fn render_product_streamer_exposes_material_uniform_debug_counts() {
     assert_eq!(diagnostic_issue_view.records, record_set.overview().records);
     assert_eq!(diagnostic_issue_view.len(), 1);
     assert!(!diagnostic_issue_view.is_empty());
-    assert!(streamer
-        .material_management_issue_view(RenderMaterialManagementIssueKind::ValidationError)
-        .is_empty());
-    assert!(streamer
-        .material_management_issue_view(RenderMaterialManagementIssueKind::FallbackUsage)
-        .is_empty());
+    assert!(
+        streamer
+            .material_management_issue_view(RenderMaterialManagementIssueKind::ValidationError)
+            .is_empty()
+    );
+    assert!(
+        streamer
+            .material_management_issue_view(RenderMaterialManagementIssueKind::FallbackUsage)
+            .is_empty()
+    );
     assert_eq!(
         record_set
             .status_index
@@ -377,9 +381,11 @@ fn render_product_streamer_exposes_material_uniform_debug_counts() {
     assert_eq!(diagnostic_status_view.records, overview.records);
     assert_eq!(diagnostic_status_view.len(), 1);
     assert!(!diagnostic_status_view.is_empty());
-    assert!(streamer
-        .material_management_status_view(RenderMaterialReadinessStatus::Ready)
-        .is_empty());
+    assert!(
+        streamer
+            .material_management_status_view(RenderMaterialReadinessStatus::Ready)
+            .is_empty()
+    );
     assert_eq!(
         overview.summary.status,
         RenderMaterialReadinessStatus::Diagnostic

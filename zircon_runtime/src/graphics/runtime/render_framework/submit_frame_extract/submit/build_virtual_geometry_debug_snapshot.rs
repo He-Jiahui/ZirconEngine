@@ -8,15 +8,14 @@ use std::collections::BTreeSet;
 use self::execution::{
     build_execution_snapshot, build_hardware_rasterization_records_from_execution_segments,
     build_selected_clusters_from_execution_segments,
-    build_visbuffer64_entries_from_selected_clusters,
     build_visbuffer_debug_marks_from_selected_clusters,
-    hardware_rasterization_source_for_execution, selected_cluster_source_for_execution,
-    visbuffer64_source_for_execution,
+    build_visbuffer64_entries_from_selected_clusters, hardware_rasterization_source_for_execution,
+    selected_cluster_source_for_execution, visbuffer64_source_for_execution,
 };
 use self::node_cull::build_node_and_cluster_cull_snapshot;
 use self::page::{
     build_available_page_slots, build_cull_input_snapshot, build_evictable_page_inspections,
-    build_pending_page_request_inspections, build_resident_page_inspections,
+    build_page_size_index, build_pending_page_request_inspections, build_resident_page_inspections,
 };
 use self::support::saturated_u32_len;
 use super::super::frame_submission_context::FrameSubmissionContext;
@@ -50,16 +49,21 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
         .iter()
         .copied()
         .collect::<BTreeSet<_>>();
-    let resident_page_inspections = build_resident_page_inspections(extract, &page_upload_plan);
+    let page_size_index = build_page_size_index(extract);
+    let resident_page_inspections =
+        build_resident_page_inspections(&page_upload_plan, &page_size_index);
     let available_page_slots = build_available_page_slots(extract, &page_upload_plan);
     let pending_page_request_inspections = build_pending_page_request_inspections(
-        extract,
         context,
         &page_upload_plan,
         &available_page_slots,
+        &page_size_index,
     );
-    let evictable_page_inspections =
-        build_evictable_page_inspections(extract, &page_upload_plan, &resident_page_inspections);
+    let evictable_page_inspections = build_evictable_page_inspections(
+        &page_upload_plan,
+        &resident_page_inspections,
+        &page_size_index,
+    );
     let leaf_clusters = extract
         .debug
         .print_leaf_clusters

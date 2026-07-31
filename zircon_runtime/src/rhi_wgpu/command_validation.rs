@@ -7,13 +7,13 @@ use self::render_state::{
     IndexBufferBinding, RecordedRenderState,
 };
 use super::bind_group_validation::validate_bind_group_desc;
-use super::device::WgpuRenderDeviceState;
+use super::device::DeterministicRhiContractDeviceState;
 use super::render_pass_validation::{validate_render_pass_attachments, ActiveRenderPass};
 use super::resource_validation::{ensure_buffer_usage, ensure_texture_usage};
 use super::texture_copy::texture_copy_layout;
 
 pub(super) fn validate_recorded_commands(
-    state: &WgpuRenderDeviceState,
+    state: &DeterministicRhiContractDeviceState,
     commands: &[CommandListCommand],
     queue_class: RenderQueueClass,
 ) -> Result<(), RhiError> {
@@ -399,7 +399,7 @@ pub(super) fn validate_recorded_commands(
 }
 
 pub(super) fn execute_recorded_commands(
-    state: &mut WgpuRenderDeviceState,
+    state: &mut DeterministicRhiContractDeviceState,
     commands: &[CommandListCommand],
 ) -> Result<(), RhiError> {
     for command in commands {
@@ -418,18 +418,23 @@ pub(super) fn execute_recorded_commands(
                 let source_end = source_start + *size as usize;
                 let destination_start = *destination_offset as usize;
                 let destination_end = destination_start + *size as usize;
-                let bytes = state
-                    .buffers
-                    .get(source)
-                    .ok_or(RhiError::UnknownBuffer(source.raw()))?
-                    .contents[source_start..source_end]
-                    .to_vec();
-                state
-                    .buffers
-                    .get_mut(destination)
-                    .ok_or(RhiError::UnknownBuffer(destination.raw()))?
-                    .contents[destination_start..destination_end]
-                    .copy_from_slice(&bytes);
+                if source == destination {
+                    state
+                        .buffers
+                        .get_mut(source)
+                        .ok_or(RhiError::UnknownBuffer(source.raw()))?
+                        .contents
+                        .copy_within(source_start..source_end, destination_start);
+                } else {
+                    let [source_buffer, destination_buffer] =
+                        state.buffers.get_disjoint_mut([source, destination]);
+                    let source_buffer =
+                        source_buffer.ok_or(RhiError::UnknownBuffer(source.raw()))?;
+                    let destination_buffer =
+                        destination_buffer.ok_or(RhiError::UnknownBuffer(destination.raw()))?;
+                    destination_buffer.contents[destination_start..destination_end]
+                        .copy_from_slice(&source_buffer.contents[source_start..source_end]);
+                }
             }
             CommandListCommand::CopyBufferToTexture {
                 source,
@@ -438,39 +443,32 @@ pub(super) fn execute_recorded_commands(
                 bytes_per_row,
                 region,
             } => {
-                let destination_desc = state
-                    .textures
-                    .get(destination)
-                    .ok_or(RhiError::UnknownTexture(destination.raw()))?
-                    .desc
-                    .clone();
-                let layout = texture_copy_layout(&destination_desc, *region).ok_or_else(|| {
-                    RhiError::BufferToTextureCopyOutOfRange {
-                        source_buffer: source.raw(),
-                        destination_texture: destination.raw(),
-                        source_offset: *source_offset,
-                        bytes_per_row: *bytes_per_row,
-                        mip_level: region.mip_level,
-                        origin_x: region.origin_x,
-                        origin_y: region.origin_y,
-                        origin_z: region.origin_z,
-                        width: region.width,
-                        height: region.height,
-                    }
-                })?;
+                let (buffers, textures) = (&state.buffers, &mut state.textures);
+                let source_contents = &buffers
+                    .get(source)
+                    .ok_or(RhiError::UnknownBuffer(source.raw()))?
+                    .contents;
+                let destination_texture = textures
+                    .get_mut(destination)
+                    .ok_or(RhiError::UnknownTexture(destination.raw()))?;
+                let layout =
+                    texture_copy_layout(&destination_texture.desc, *region).ok_or_else(|| {
+                        RhiError::BufferToTextureCopyOutOfRange {
+                            source_buffer: source.raw(),
+                            destination_texture: destination.raw(),
+                            source_offset: *source_offset,
+                            bytes_per_row: *bytes_per_row,
+                            mip_level: region.mip_level,
+                            origin_x: region.origin_x,
+                            origin_y: region.origin_y,
+                            origin_z: region.origin_z,
+                            width: region.width,
+                            height: region.height,
+                        }
+                    })?;
                 let row_size = layout.copy_row_bytes as usize;
                 let source_offset = *source_offset as usize;
                 let bytes_per_row = *bytes_per_row as usize;
-                let source_contents = state
-                    .buffers
-                    .get(source)
-                    .ok_or(RhiError::UnknownBuffer(source.raw()))?
-                    .contents
-                    .clone();
-                let destination_texture = state
-                    .textures
-                    .get_mut(destination)
-                    .ok_or(RhiError::UnknownTexture(destination.raw()))?;
                 for row in 0..region.height as usize {
                     let source_start = source_offset + row * bytes_per_row;
                     let source_end = source_start + row_size;
@@ -488,11 +486,10 @@ pub(super) fn execute_recorded_commands(
                 bytes_per_row,
                 region,
             } => {
-                let source_texture = state
-                    .textures
+                let (textures, buffers) = (&state.textures, &mut state.buffers);
+                let source_texture = textures
                     .get(source)
-                    .ok_or(RhiError::UnknownTexture(source.raw()))?
-                    .clone();
+                    .ok_or(RhiError::UnknownTexture(source.raw()))?;
                 let layout =
                     texture_copy_layout(&source_texture.desc, *region).ok_or_else(|| {
                         RhiError::TextureToBufferCopyOutOfRange {
@@ -511,8 +508,7 @@ pub(super) fn execute_recorded_commands(
                 let row_size = layout.copy_row_bytes as usize;
                 let destination_offset = *destination_offset as usize;
                 let bytes_per_row = *bytes_per_row as usize;
-                let destination_buffer = state
-                    .buffers
+                let destination_buffer = buffers
                     .get_mut(destination)
                     .ok_or(RhiError::UnknownBuffer(destination.raw()))?;
                 for row in 0..region.height as usize {

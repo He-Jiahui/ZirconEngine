@@ -681,3 +681,24 @@ fn screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws(
     assert_eq!(plan.post_text_draws.len(), 1);
     assert_eq!(plan.post_text_draws[0].vertices, 6..18);
 }
+
+#[test]
+fn ui_plan_projects_paint_elements_once_per_command() {
+    let source = include_str!("../render.rs");
+    let text_paint_source = include_str!("text_paint.rs");
+
+    assert!(source.contains("let paint_elements = command.to_paint_elements(0);"));
+    assert!(!source.contains("for element in command.to_paint_elements(0)"));
+    assert!(source.contains("paint_elements: &[UiPaintElement]"));
+    assert!(!text_paint_source.contains("to_paint_elements"));
+    assert!(text_paint_source.contains("paint_elements: &[UiPaintElement]"));
+}
+
+#[test]
+fn empty_ui_records_only_non_noop_attachment_ops() {
+    let source = include_str!("record.rs");
+
+    assert!(source.contains("fn record_empty_screen_space_ui_pass("));
+    assert!(source.contains("if attachment_ops == RenderGraphAttachmentOps::load_store()"));
+    assert!(source.contains("zircon-screen-space-ui-empty-pass"));
+}

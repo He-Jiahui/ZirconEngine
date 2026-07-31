@@ -441,9 +441,11 @@ fn material_readiness_report_summary_counts_status_and_prepared_summaries() {
         .material_ids,
         vec![material_id]
     );
-    assert!(record_set
-        .status_view(RenderMaterialReadinessStatus::Fallback)
-        .is_empty());
+    assert!(
+        record_set
+            .status_view(RenderMaterialReadinessStatus::Fallback)
+            .is_empty()
+    );
 
     let sorted_records = vec![
         report.management_record(ResourceId::from_stable_label("material:sort-z")),

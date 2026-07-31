@@ -9,8 +9,8 @@ use crate::graphics::pipeline::declarations::{
     CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineCompileOptions,
 };
 use crate::graphics::scene::{
-    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name, IBL_BAKE_IRRADIANCE_CUBE_PASS,
-    IBL_BAKE_IRRADIANCE_SH9_PASS,
+    IBL_BAKE_IRRADIANCE_CUBE_PASS, IBL_BAKE_IRRADIANCE_SH9_PASS,
+    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name,
 };
 use crate::render_graph::{
     CompiledRenderGraph, ExternalResource, RenderGraphAttachmentOps, RenderGraphBuilder,
@@ -18,7 +18,7 @@ use crate::render_graph::{
 };
 
 use super::super::validation::stage_pass_descriptors;
-use super::graph_resources::{pipeline_graph_resources, PipelineGraphResourcePlan};
+use super::graph_resources::{PipelineGraphResourcePlan, pipeline_graph_resources};
 use super::resource_descriptors::{buffer_desc_for, texture_desc_for};
 
 pub(super) struct AuthoredRenderGraph {
@@ -35,7 +35,7 @@ pub(super) fn author_render_graph(
 ) -> Result<AuthoredRenderGraph, String> {
     let mut graph = RenderGraphBuilder::new(pipeline_name.to_string());
     let graph_resources = pipeline_graph_resources(descriptors)?;
-    let authored_resources = author_graph_resources(&mut graph, &graph_resources, extract, options);
+    let authored_resources = author_graph_resources(&mut graph, graph_resources, extract, options);
     let pass_stages = author_graph_passes(
         &mut graph,
         stages,
@@ -60,7 +60,7 @@ struct AuthoredGraphResources {
 
 fn author_graph_resources(
     graph: &mut RenderGraphBuilder,
-    graph_resources: &BTreeMap<String, PipelineGraphResourcePlan>,
+    graph_resources: BTreeMap<String, PipelineGraphResourcePlan>,
     extract: &RenderFrameExtract,
     options: &RenderPipelineCompileOptions,
 ) -> AuthoredGraphResources {
@@ -68,7 +68,7 @@ fn author_graph_resources(
     let mut buffer_resources = BTreeMap::new();
     let mut external_resources = BTreeMap::new();
 
-    for (name, plan) in graph_resources {
+    for (name, plan) in &graph_resources {
         match plan.kind {
             RenderFeatureResourceKind::Texture => {
                 texture_resources.insert(
@@ -92,7 +92,7 @@ fn author_graph_resources(
     }
 
     AuthoredGraphResources {
-        graph_resources: graph_resources.clone(),
+        graph_resources,
         texture_resources,
         buffer_resources,
         external_resources,

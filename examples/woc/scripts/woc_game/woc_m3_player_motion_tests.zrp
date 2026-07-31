@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_player_motion_tests",
+  "source": "src",
+  "binary": "bin-m3-player-motion-tests",
+  "entry": "world/player_motion_test_main"
+}

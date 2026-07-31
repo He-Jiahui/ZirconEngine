@@ -206,3 +206,18 @@ last_refined: 2026-07-14
 当前结论：`runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation` 已锁定 `completed`；当前 Runtime 过滤门为 `ecs_schedule` 77/77、`tests::time::` 4/4、`session` 165 passed / 0 failed / 10 ignored、`schedule_parallel` 15/15，`cargo test -p zircon_app --locked` 为主测试 135 passed / 0 failed / 1 ignored、PBR viewer 15/15，Runtime 03 已完成。
 
 - 迁入记录：[`03/2026-07-09-schedule-and-frame-loop-alignment-output-records.md`](03/2026-07-09-schedule-and-frame-loop-alignment-output-records.md)
+- 2026-07-18 post-completion性能复核：framework fixed clock已把大catch-up plan从逐step空循环改为Duration整数批量计算，百万step plan保持step/delta/elapsed/frame/overstep等价。Runtime03既有schedule语义不重开；requested/executed/capped/deferred-or-dropped lag计数、client/editor/headless profile cap与stall后产品trace由Runtime07承接，见PERF-MVP-328。
+- 2026-07-22 post-completion frame-demand接口交接：Runtime10 V3已有`ZrRuntimeFrameDemandV1`，但Editor SessionGateway当前只校验后丢弃kind/delay并恒返true。Runtime03既有schedule完成状态不重开；PERF-MVP-424由Runtime10/App/Editor01贯通OnDemand/SleepUntil/Continuous与focus/visibility cadence，记录30秒idle wake/tick/CPU，禁止consumer把demand降格为bool常量。
+- 2026-07-23 App current-source补充：`runtime_entry_app/**`74/74确认DesktopApp已消费`Idle/Immediate/After`并合并Immediate wake；剩余PERF-MVP-424精确为未处理window/device event仍请求frame、每pump两次发布control flow、Game/Mobile无focus/visibility降频、Headless固定16ms以及same-size resize重复event/rebind/presenter work。既有schedule完成状态不重开；按[`03/failure-2026-07-19-app-entry-cadence-and-event-trigger-budget.md`](03/failure-2026-07-19-app-entry-cadence-and-event-trigger-budget.md)补current-source Cargo、30秒idle、1k/10k storm和duplicate resize counter。
+
+## Code Review 建议 (2026-07-31)
+
+### 与代码现状不符，需修订
+
+- 「现状与证据」§ 首条把 `SystemStage` 权威表定位为 `scene/ecs/system_stage.rs:4-45`，但该文件实际在 `zircon_runtime/src/core/framework/scene/system_stage.rs:5-15`（frontmatter 已正确列此路径，正文正文行号引用未同步）。枚举九阶段、`ORDER`（:19-29）、`FIXED_LOOP`（:30）、`rank()`（:32-44）、`is_fixed_loop()`（:46-50）与描述一致，仅路径/行号需修订。
+- 「`FixedStepPlan` 调度消费」条把 `WorldDriver::tick_level` 标为 `scene/module/world_driver.rs:11-73`，当前 `:11-73` 已是 `WorldDriver` 结构体与 hook/extension 安装方法；`tick_level` 实际在 `world_driver.rs:84-134`。该方法确实按 `SystemStage::FIXED_LOOP` 在 `FixedFirst` 处循环 `fixed_step_plan.step_count` 次（:97-110）并对非 fixed-loop 阶段单次运行（:113-124），M2 设计意图已落地，仅行号需修订。
+- 「动态帧路径唯一 `tick_time(...)` 调用点」多处标注为 `dynamic_api/session.rs:548-553`（及 `:301/:548`、切片 1.2 的 `:703 current_ui_extract`），当前 `session.rs` 已拆分为 `dynamic_api/session/` 子模块，`session.rs` 内已无 `tick_time` 命中。实测：`tick_frame` 在 `dynamic_api/session/state.rs:132`、唯一 `tick_time(self.profile.max_fixed_steps_per_frame())` 调用在 `session/state.rs:136`、C ABI 出口在 `session/ffi.rs:230`、`tick_frame_ffi` 在 `dynamic_api/exports.rs:143`。M0 链路图与 `frame_schedule.md` 引用的 `session.rs` 行号需整体重定位到 `session/{state,ffi}.rs`。
+
+### 验证缺口
+
+- 本计划 `status: completed`，但底部三条 post-completion 性能交接（PERF-MVP-328/424）以「current-source Cargo/30 秒 idle/1k-10k storm/duplicate resize counter 前不视为验收」结尾，其收口门（`app-entry-cadence-and-event-trigger-budget` failure）未映射到任一里程碑测试命令。鉴于帧循环 owner 文件已从 `session.rs` 拆分为 `session/` 子树，建议补一条针对 `session/state.rs::tick_frame` 单权威 `tick_time` 调用点的源守卫（防拆分后二次推进复活），并把上述 idle/storm 门作为 completed 后的回归锚点显式列出。

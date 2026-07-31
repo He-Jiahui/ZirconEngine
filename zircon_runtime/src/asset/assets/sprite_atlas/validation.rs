@@ -77,7 +77,10 @@ impl Display for SpriteAtlasValidationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ZeroAtlasDimensions { width, height } => {
-                write!(f, "sprite atlas dimensions must be non-zero, got {width}x{height}")
+                write!(
+                    f,
+                    "sprite atlas dimensions must be non-zero, got {width}x{height}"
+                )
             }
             Self::EmptyEntries => write!(f, "sprite atlas must contain at least one entry"),
             Self::EmptyEntryName { index } => {
@@ -174,7 +177,7 @@ pub fn validate_sprite_atlas_asset(
         });
     }
 
-    let mut names = HashSet::new();
+    let mut names = HashSet::with_capacity(asset.entries.len());
     if asset.entries.is_empty() {
         return Err(SpriteAtlasValidationError::EmptyEntries);
     }
@@ -188,10 +191,10 @@ pub fn validate_sprite_atlas_asset(
     Ok(())
 }
 
-fn validate_entry_name(
-    entry: &SpriteAtlasEntry,
+fn validate_entry_name<'a>(
+    entry: &'a SpriteAtlasEntry,
     index: usize,
-    names: &mut HashSet<String>,
+    names: &mut HashSet<&'a str>,
 ) -> Result<(), SpriteAtlasValidationError> {
     let name = entry.name.trim();
     if name.is_empty() {
@@ -203,7 +206,7 @@ fn validate_entry_name(
             name: entry.name.clone(),
         });
     }
-    if !names.insert(name.to_string()) {
+    if !names.insert(name) {
         return Err(SpriteAtlasValidationError::DuplicateEntryName {
             name: name.to_string(),
         });

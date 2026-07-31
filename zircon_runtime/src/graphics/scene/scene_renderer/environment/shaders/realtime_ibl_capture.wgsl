@@ -39,13 +39,12 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let sky = mix(params.horizon_color.rgb, params.zenith_color.rgb, sky_t);
     let ground = mix(params.ground_color.rgb, params.horizon_color.rgb, ground_t);
     var color = select(ground, sky, direction.y >= 0.0);
-    let sun_direction_length = length(params.sun_direction.xyz);
-    if (params.sun_params.x > 0.0 && sun_direction_length > 0.000001) {
-        let sun_direction = params.sun_direction.xyz / sun_direction_length;
-        let angular_radius = clamp(params.sun_params.y, 0.0001, 1.5707963);
-        let inner_cosine = cos(angular_radius * 0.72);
-        let outer_cosine = cos(angular_radius);
-        let sun_mask = smoothstep(outer_cosine, inner_cosine, dot(direction, sun_direction));
+    if (params.sun_direction.w >= 0.5 && params.sun_params.x > 0.0) {
+        let sun_mask = smoothstep(
+            params.sun_params.y,
+            params.sun_params.z,
+            dot(direction, params.sun_direction.xyz),
+        );
         color += params.sun_color.rgb * params.sun_params.x * sun_mask;
     }
     textureStore(output_cube, vec2<i32>(global_id.xy), i32(face), vec4<f32>(color, 1.0));

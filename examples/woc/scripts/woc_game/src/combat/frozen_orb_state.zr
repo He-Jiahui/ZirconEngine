@@ -1,0 +1,73 @@
+// Pure Frozen Orb movement/latch/pulse clock. WOS supplies contact truth and
+// commits damage, slow, Icicle and Fingers of Frost effects after a pulse.
+var contract = %import("generated/frozen_orb_contract");
+
+pub class FrozenOrbState {
+    pub var x: float;
+    pub var z: float;
+    pub var directionX: float;
+    pub var directionZ: float;
+    pub var remaining: float;
+    pub var interval: float;
+    pub var pulseTimer: float;
+    pub var halted: bool;
+    pub @constructor(x: float, z: float, directionX: float, directionZ: float, duration: float, interval: float) {
+        this.x = x;
+        this.z = z;
+        this.directionX = directionX;
+        this.directionZ = directionZ;
+        this.remaining = duration;
+        this.interval = interval;
+        this.pulseTimer = interval;
+        this.halted = false;
+    }
+}
+
+pub class FrozenOrbAdvance {
+    pub var transitioned: bool;
+    pub var halted: bool;
+    pub var pulse: bool;
+    pub var expired: bool;
+    pub @constructor() {
+        this.transitioned = false;
+        this.halted = false;
+        this.pulse = false;
+        this.expired = false;
+    }
+}
+
+// Mirrors the order in tickFrozenOrbs: latch transition, optional movement,
+// lifetime decrement, pulse timer and then expiration.
+pub advanceFrozenOrb(state: FrozenOrbState, hasContact: bool): FrozenOrbAdvance {
+    var result = new FrozenOrbAdvance();
+    if (hasContact != state.halted) {
+        state.halted = hasContact;
+        result.transitioned = true;
+    }
+    if (!state.halted) {
+        state.x = state.x + state.directionX * contract.speed(true) * contract.dt(true);
+        state.z = state.z + state.directionZ * contract.speed(true) * contract.dt(true);
+    }
+    state.remaining = state.remaining - contract.dt(true);
+    state.pulseTimer = state.pulseTimer - contract.dt(true);
+    if (state.pulseTimer <= 0.0) {
+        state.pulseTimer = state.pulseTimer + state.interval;
+        result.pulse = true;
+    }
+    result.halted = state.halted;
+    result.expired = state.remaining <= 0.0;
+    return result;
+}
+
+pub contractTest(): int {
+    var orb = new FrozenOrbState(0.0, 0.0, 1.0, 0.0, 0.09, 0.1);
+    var first = advanceFrozenOrb(orb, false);
+    if (first.transitioned || first.halted || first.pulse || first.expired || orb.x != 0.2) return -1;
+    var second = advanceFrozenOrb(orb, true);
+    if (!second.transitioned || !second.halted || !second.pulse || !second.expired || orb.x != 0.2 || orb.pulseTimer != 0.1) return -2;
+    var resumed = new FrozenOrbState(2.0, 3.0, 0.0, 1.0, 1.0, 1.0);
+    advanceFrozenOrb(resumed, true);
+    var afterResume = advanceFrozenOrb(resumed, false);
+    if (!afterResume.transitioned || afterResume.halted || resumed.z != 3.2) return -3;
+    return 1;
+}

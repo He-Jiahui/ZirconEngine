@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::asset::project::meta_io::AtomicWriteFault;
+use crate::foundation::persistence::atomic_file::{atomic_write_with_fault, AtomicWriteFault};
 
 use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError, AssetRegistryIndex};
 
@@ -15,6 +15,11 @@ const REGISTRY_FILE_NAME: &str = "asset-registry.json";
 struct PersistedAssetRegistry {
     format_version: u32,
     entries: Vec<AssetRegistryEntry>,
+}
+
+pub(crate) struct PreparedAssetRegistryWrite {
+    pub(crate) path: PathBuf,
+    pub(crate) bytes: Vec<u8>,
 }
 
 impl AssetRegistryIndex {
@@ -50,6 +55,15 @@ impl AssetRegistryIndex {
         registry_root: &Path,
         fault: AtomicWriteFault,
     ) -> Result<(), AssetRegistryError> {
+        let prepared = self.prepare_persistence(registry_root)?;
+        atomic_write_with_fault(&prepared.path, &prepared.bytes, fault)
+            .map_err(|source| AssetRegistryError::io(&prepared.path, source))
+    }
+
+    pub(crate) fn prepare_persistence(
+        &self,
+        registry_root: &Path,
+    ) -> Result<PreparedAssetRegistryWrite, AssetRegistryError> {
         fs::create_dir_all(registry_root)
             .map_err(|source| AssetRegistryError::io(registry_root, source))?;
         let path = registry_path(registry_root);
@@ -63,8 +77,7 @@ impl AssetRegistryIndex {
                 source,
             }
         })?;
-        crate::asset::project::meta_io::atomic_write_with_fault(&path, &bytes, fault)
-            .map_err(|source| AssetRegistryError::io(&path, source))
+        Ok(PreparedAssetRegistryWrite { path, bytes })
     }
 }
 

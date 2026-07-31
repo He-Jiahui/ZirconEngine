@@ -197,7 +197,7 @@ doc_type: module-detail
 - preview lighting / skybox
 - gizmos enabled
 
-2026-04-19 的 boundary cutover 进一步固定了导入边界：`SceneViewportSettings`、`SceneViewportExtractRequest`、`SceneViewportTool`、`TransformSpace`、`ViewOrientation`、`GridMode` 这组 editor authoring / viewport request 类型现在统一从 `zircon_framework::render` 直接导入，`zircon_scene` 根 crate 不再替它们做转发 re-export。
+当前 boundary cutover 将 editor authoring 与 runtime request 分开：`SceneViewportSettings`、scene mode、transform handle、space/orientation/grid 归 editor；runtime 只接收中性的 `SceneViewportExtractRequest`/render settings，`zircon_scene` 根 crate 不转发 editor authoring 类型。
 
 同日继续往 runtime/editor 边界再压一层之后，`SceneViewportExtractRequest` 也不再直接携带 selection。它现在只吃中性的 `ViewportRenderSettings + active_camera_override + camera + viewport_size`；`projection_mode / display_mode / preview_lighting / preview_skybox` 这四项通过 `ViewportRenderSettings` 从 editor state 投影出来，而 tool/grid/selection/gizmo 仍留在 editor authoring 状态里。
 

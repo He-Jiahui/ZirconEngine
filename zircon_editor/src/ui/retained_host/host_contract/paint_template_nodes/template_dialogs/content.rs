@@ -17,35 +17,39 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
 ) {
     let metrics = dialog_metrics();
     let title = title_text(node);
-    if let Some(title) = title {
-        commands.push(HostPaintCommand::text(
-            layout::title_rect(rect),
-            Some(clip.clone()),
-            order + 2,
-            title.to_string(),
-            style::dialog_title_color(node, kind, unavailable),
-            metrics.title_font_size,
-            metrics.title_line_height,
-            UiTextRunPaintStyle::default(),
-            opacity,
-        ));
+    if let (Some(title), Some(title_frame)) = (title, layout::title_rect(rect)) {
+        if layout::frame_is_within(clip, &title_frame) {
+            commands.push(HostPaintCommand::text(
+                title_frame,
+                Some(clip.clone()),
+                order + 2,
+                title.to_string(),
+                style::dialog_title_color(node, kind, unavailable),
+                metrics.title_font_size,
+                metrics.title_line_height,
+                UiTextRunPaintStyle::default(),
+                opacity,
+            ));
+        }
     }
 
     if let (Some(message), Some(body)) = (
         message_text(node, title),
         layout::body_rect(rect, kind, action_top),
     ) {
-        commands.push(HostPaintCommand::text(
-            body,
-            Some(clip.clone()),
-            order + 3,
-            message.to_string(),
-            style::dialog_body_color(unavailable),
-            metrics.body_font_size,
-            metrics.body_line_height,
-            UiTextRunPaintStyle::default(),
-            opacity,
-        ));
+        if layout::frame_is_within(clip, &body) {
+            commands.push(HostPaintCommand::text(
+                body,
+                Some(clip.clone()),
+                order + 3,
+                message.to_string(),
+                style::dialog_body_color(unavailable),
+                metrics.body_font_size,
+                metrics.body_line_height,
+                UiTextRunPaintStyle::default(),
+                opacity,
+            ));
+        }
     }
 }
 

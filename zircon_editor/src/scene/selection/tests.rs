@@ -1,4 +1,4 @@
-use super::{SelectionModel, WorldDomain};
+use super::{SelectionModel, SelectionMutation, WorldDomain};
 use crate::scene::viewport::SceneViewportController;
 use zircon_runtime_interface::math::UVec2;
 
@@ -53,6 +53,23 @@ fn toggle_and_extend_keep_primary_inside_the_set() {
 }
 
 #[test]
+fn active_selection_mutation_applies_replace_extend_and_toggle_semantics() {
+    let mut selection = SelectionModel::default();
+
+    assert!(selection.apply_active([10, 20], SelectionMutation::Replace));
+    assert_eq!(active_items(&selection), [10, 20]);
+    assert_eq!(selection.active_primary(), Some(20));
+
+    assert!(selection.apply_active([30, 10], SelectionMutation::Extend));
+    assert_eq!(active_items(&selection), [10, 20, 30]);
+    assert_eq!(selection.active_primary(), Some(30));
+
+    assert!(selection.apply_active([20, 40], SelectionMutation::Toggle));
+    assert_eq!(active_items(&selection), [10, 30, 40]);
+    assert_eq!(selection.active_primary(), Some(40));
+}
+
+#[test]
 fn viewport_selection_uses_the_active_world_domain_model() {
     let mut viewport = SceneViewportController::new(UVec2::new(1280, 720));
 
@@ -60,13 +77,22 @@ fn viewport_selection_uses_the_active_world_domain_model() {
     assert_eq!(viewport.selection().active_primary(), Some(11));
     assert_eq!(ordered_items(viewport.selection(), WorldDomain::Edit), [11]);
 
-    assert!(viewport
-        .selection_mut()
-        .set_active_domain(WorldDomain::Play));
+    assert!(
+        viewport
+            .selection_mut()
+            .set_active_domain(WorldDomain::Play)
+    );
     assert_eq!(viewport.selection().active_primary(), None);
     assert!(viewport.selection_mut().select_only_active(42));
     assert_eq!(ordered_items(viewport.selection(), WorldDomain::Play), [42]);
     assert_eq!(ordered_items(viewport.selection(), WorldDomain::Edit), [11]);
+}
+
+#[test]
+fn incremental_selection_mutations_do_not_clone_the_entire_set() {
+    let source = include_str!("domain_selection.rs");
+
+    assert!(!source.contains("self.items.clone()"));
 }
 
 fn ordered_items(selection: &SelectionModel, domain: WorldDomain) -> Vec<u64> {

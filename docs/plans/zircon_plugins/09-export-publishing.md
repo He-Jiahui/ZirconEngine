@@ -97,6 +97,8 @@ tools/zircon_export/export-templates/                         [新增 CI 产物�
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`../_archive/zircon_plugins/09/2026-07-09-export-publishing-output-records.md`](../_archive/zircon_plugins/09/2026-07-09-export-publishing-output-records.md)
+- 2026-07-22 PF-M1 current-source compile recovery：managed job `ebc5a0e199774eac976d85093680ce79` 暴露 projection test fixture 误用不存在的 `ExportPackagingStrategy::default()`；6 处已显式固定为 `SourceTemplate`，未扩大生产 API。scoped rustfmt/diff-check 与 source guard 通过，managed focused/scale successor 尚未执行，PF-M1 保持 `implementation_complete / managed_acceptance_pending`。
+- 2026-07-29 PF-M1 compact validate-report 切片：`fixed / managed current-source accepted`。实现已 hard-cut 到 report schema v2（`path/purpose/bytes/SHA-256`）与显式 contents artifact schema v1，并完成 stdout policy、输出句柄身份冻结、profile 所有权与 Python Validate/SourceTemplate 双工件消费收敛；不存在旧 `contents` fallback 或兼容 shim。snapshot `1226` 运行前后 29/29 零漂移；reservation `8a0cb98da01547e8b6a0e9bbef1cef75` → job `a6b68b4c89bc4bfc83b3eea8a1733131` / run `33142540200d4c1a9f7eea70aa8839eb` natural released exit0/no PIDs，build 37m08s，bin 10/10 + integration 2/2；Python consumer/CLI 87/87 与独立静态复审 `C0/I0/M0/Minor0` 同时成立。canonical fixed 已回迁 [`../performance/01/fixed-2026-07-29-export-validate-report-full-content-clone.md`](../performance/01/fixed-2026-07-29-export-validate-report-full-content-clone.md)，本计划保留 [return](09/2026-07-29-export-validate-report-full-content-clone-return.md)。旧 job `fb78c1d786194147b9ee801dd1825a7a` / run `5e89dc785f6147b7a61c4deaf6e14878` 仍只作历史诊断。PF-M1 其余 catalog generation/profile fingerprint 工作继续按原任务表推进。
 
 ## 5. 里程碑与任务分解
 
@@ -144,6 +146,15 @@ tools/zircon_export/export-templates/                         [新增 CI 产物�
 |------|------|---------|------|---------|
 | M6-T1 | 导出向导（布局 `ai-build-export-layout.png`）+ 阶段进度（CLI 进程输出流式解析）+ 报告视图 | editor_build_export_desktop | M2、[10 规范](10-editor-integration.md) | editor 契约测试；`docs/zircon_plugins/editor-build-export-desktop.md` 更新 |
 
+### MVP 性能收口（来自 performance/01）
+
+| 任务 | 内容 | 依赖/责任 | 验收 |
+|---|---|---|---|
+| PF-M1 | 以catalog generation + canonical profile/manifest fingerprint发布唯一`CompiledProjectPluginPlan`，validation/profile/provider/sanitize共用顺序保持投影；默认validate report只输出path/purpose/bytes/digest | PERF-MVP-051/055/538，Runtime06、Editor15 | 1/100/1k packages×features总访问线性；stable plan build=0；1/100 MiB contents不进入默认report RSS/stdout；diagnostic顺序和schema迁移通过 |
+| PF-M2 | 单export generation建立package→real root、ordered relative-file inventory与content fingerprint，materialize/preview/ZIP共用；unchanged不写，changed delta由Runtime11有界I/O lane执行并确定性commit | PERF-MVP-054/547，Runtime11、Editor15 | tree enumerate/manifest parse=1/generation；unchanged write/copy=0；1KiB/1MiB/1GiB payload RSS受预算；取消/失败不发布成功report，ZIP/目录产物确定 |
+| PF-M3 | browser/JNI/Swift host按统一Runtime12语义帧内合并move/viewport metrics，边沿保序；生成宿主持有live runtime session、surface和frame loop | PERF-MVP-052，Runtime12，`09/failure-*host*` | 125/500/1000 Hz每pointer每frame ABI move有上限；begin/end/cancel/key不丢；desktop/browser/mobile运行两帧、非空present、输入与退出通过 |
+| PF-M4 | 保留PERF-MVP-546..548已落地止损：borrow cached catalog/复用completed manifest、inventory早停/ZIP单scan/borrowed export index、模板无全串replace；不得在后续重构回退 | 本计划M1/M3/M4/M5 | 对应源码/行为门禁、current-source Cargo及规模counter通过 |
+
 ## 6. 验收命令
 
 ```bash
@@ -169,3 +180,5 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_editor_bui
 | 各平台打包胶水（bundle 格式/图标/启动器） | `dev/godot/platform/`（windows/linuxbsd/macos 子目录的 export 部分） | 平台 bundle 目录布局、可执行重命名与资源嵌入方式 |
 | pck/资产包格式 | `dev/godot/core/io/`（pck_packer/file_access_pack 相关） | 索引+偏移的包布局、运行期挂载——zrpack 自有格式（内容寻址）但挂载形态可借鉴 |
 | 模块化目标/构建编排 | `dev/UnrealEngine/Engine/Source/Runtime/`（模块划分形态）+ 仓内 `tools/zircon_build.py` | target×platform 维度的构建矩阵组织 |
+| 单次导出清单与增量custom artifact | `dev/godot/editor/export/editor_export_platform.cpp:1013-1056,1319-1744` | 唯一path set驱动一次export traversal；mtime fast path + MD5 fallback + saved-path cache。Zircon用typed generation/digest，不照搬文本cache |
+| 有界复制/发布吞吐 | `dev/UnrealEngine/Engine/Source/Programs/AutomationTool/AutomationUtils/CommandUtils.cs:1826-1840`、`Android/AndroidPlatform.Automation.cs:3829-3844` | 先冻结copy pair再限制并行度，并在部署时显式避免内存过载；Zircon并行度归Runtime11预算且report确定性commit |

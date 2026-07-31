@@ -3,6 +3,7 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PaneRouteNamespace {
+    Template,
     Dock,
     Draft,
     Selection,
@@ -14,6 +15,7 @@ pub enum PaneRouteNamespace {
 impl PaneRouteNamespace {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Template => "Template",
             Self::Dock => "Dock",
             Self::Draft => "Draft",
             Self::Selection => "Selection",

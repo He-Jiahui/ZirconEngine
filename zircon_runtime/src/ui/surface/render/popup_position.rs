@@ -25,29 +25,24 @@ impl PopupPlacement {
     }
 
     fn parse(raw: &str, default: Self) -> Option<Self> {
-        let normalized = raw
+        let mut parts = raw
             .trim()
-            .replace('_', "-")
-            .replace(' ', "-")
-            .to_ascii_lowercase();
-        let mut parts = normalized.split('-').filter(|part| !part.is_empty());
+            .split(['-', '_', ' '])
+            .filter(|part| !part.is_empty());
         let side = parts.next()?;
         let align = parts.next();
         let default_align = default.align();
-        match (side, align.unwrap_or(default_align.as_str())) {
-            ("top", "start") => Some(Self::TopStart),
-            ("top", "center") | ("top", "middle") => Some(Self::Top),
-            ("top", "end") => Some(Self::TopEnd),
-            ("bottom", "start") => Some(Self::BottomStart),
-            ("bottom", "center") | ("bottom", "middle") => Some(Self::Bottom),
-            ("bottom", "end") => Some(Self::BottomEnd),
-            ("left", "start") => Some(Self::LeftStart),
-            ("left", "center") | ("left", "middle") => Some(Self::Left),
-            ("left", "end") => Some(Self::LeftEnd),
-            ("right", "start") => Some(Self::RightStart),
-            ("right", "center") | ("right", "middle") => Some(Self::Right),
-            ("right", "end") => Some(Self::RightEnd),
-            _ => None,
+        let align = align.unwrap_or(default_align.as_str());
+        if side.eq_ignore_ascii_case("top") {
+            popup_vertical_placement(align, Self::TopStart, Self::Top, Self::TopEnd)
+        } else if side.eq_ignore_ascii_case("bottom") {
+            popup_vertical_placement(align, Self::BottomStart, Self::Bottom, Self::BottomEnd)
+        } else if side.eq_ignore_ascii_case("left") {
+            popup_vertical_placement(align, Self::LeftStart, Self::Left, Self::LeftEnd)
+        } else if side.eq_ignore_ascii_case("right") {
+            popup_vertical_placement(align, Self::RightStart, Self::Right, Self::RightEnd)
+        } else {
+            None
         }
     }
 
@@ -371,15 +366,15 @@ fn horizontal_origin_attribute(
     metadata: &UiTemplateNodeMetadata,
     key: &str,
 ) -> Option<HorizontalOrigin> {
-    match string_attribute(metadata, key)?
-        .trim()
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "left" | "start" => Some(HorizontalOrigin::Left),
-        "center" | "middle" => Some(HorizontalOrigin::Center),
-        "right" | "end" => Some(HorizontalOrigin::Right),
-        _ => None,
+    let value = string_attribute(metadata, key)?.trim();
+    if matches_ascii_alias(value, &["left", "start"]) {
+        Some(HorizontalOrigin::Left)
+    } else if matches_ascii_alias(value, &["center", "middle"]) {
+        Some(HorizontalOrigin::Center)
+    } else if matches_ascii_alias(value, &["right", "end"]) {
+        Some(HorizontalOrigin::Right)
+    } else {
+        None
     }
 }
 
@@ -387,16 +382,39 @@ fn vertical_origin_attribute(
     metadata: &UiTemplateNodeMetadata,
     key: &str,
 ) -> Option<VerticalOrigin> {
-    match string_attribute(metadata, key)?
-        .trim()
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "top" | "start" => Some(VerticalOrigin::Top),
-        "center" | "middle" => Some(VerticalOrigin::Center),
-        "bottom" | "end" => Some(VerticalOrigin::Bottom),
-        _ => None,
+    let value = string_attribute(metadata, key)?.trim();
+    if matches_ascii_alias(value, &["top", "start"]) {
+        Some(VerticalOrigin::Top)
+    } else if matches_ascii_alias(value, &["center", "middle"]) {
+        Some(VerticalOrigin::Center)
+    } else if matches_ascii_alias(value, &["bottom", "end"]) {
+        Some(VerticalOrigin::Bottom)
+    } else {
+        None
     }
+}
+
+fn popup_vertical_placement(
+    align: &str,
+    start: PopupPlacement,
+    center: PopupPlacement,
+    end: PopupPlacement,
+) -> Option<PopupPlacement> {
+    if align.eq_ignore_ascii_case("start") {
+        Some(start)
+    } else if matches_ascii_alias(align, &["center", "middle"]) {
+        Some(center)
+    } else if align.eq_ignore_ascii_case("end") {
+        Some(end)
+    } else {
+        None
+    }
+}
+
+fn matches_ascii_alias(value: &str, aliases: &[&str]) -> bool {
+    aliases
+        .iter()
+        .any(|alias| value.eq_ignore_ascii_case(alias))
 }
 
 fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {

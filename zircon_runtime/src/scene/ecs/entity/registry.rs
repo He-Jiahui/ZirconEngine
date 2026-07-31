@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use crate::scene::ecs::ArchetypeId;
 use crate::scene::EntityId;
+use crate::scene::ecs::ArchetypeId;
 
 use super::despawned::DespawnedEntity;
 use super::error::EntityRegistryError;
 use super::internal::InternalEntity;
 use super::location::EntityLocation;
-use super::slot::{next_generation, EntitySlot};
+use super::slot::{EntitySlot, next_generation};
 use super::stable_location::StableEntityLocation;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

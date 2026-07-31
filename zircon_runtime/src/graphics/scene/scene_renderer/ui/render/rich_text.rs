@@ -1,6 +1,6 @@
 use crate::core::math::Vec4;
 use crate::text::{
-    rich::parse_rich_text, InlineBaseline, InlineObjectRef, RichParseResult, StyledRun,
+    InlineBaseline, InlineObjectRef, RichParseResult, StyledRun, rich::parse_rich_text,
 };
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -11,7 +11,7 @@ use zircon_runtime_interface::ui::surface::{
 
 use super::super::image::ScreenSpaceUiImageBatch;
 use super::background::ScreenSpaceUiBackgroundTracker;
-use super::{parse_color, push_rect, PlannedScreenSpaceUi};
+use super::{PlannedScreenSpaceUi, parse_color, push_rect};
 
 pub(super) struct RichTextRunPresentation {
     pub font: Option<String>,
@@ -87,18 +87,11 @@ pub(super) fn inline_frame(
 }
 
 pub(super) fn inline_layout_frame(
-    command: &UiRenderCommand,
+    line: &UiResolvedTextLine,
+    inline: &InlineObjectRef,
     range: UiTextRange,
+    writing_mode: UiTextWritingMode,
 ) -> Option<UiFrame> {
-    let layout = command.text_layout.as_ref()?;
-    let line = layout.lines.iter().find(|line| {
-        line.source_range.start <= range.start && range.end <= line.source_range.end
-    })?;
-    let parsed = parse_rich_text(
-        command.text.as_deref()?,
-        command.style.rich_text_format.into(),
-    );
-    let inline = run_for_range(&parsed, range)?.inline.as_ref()?;
     let visual_start = line
         .runs
         .iter()
@@ -113,7 +106,7 @@ pub(super) fn inline_layout_frame(
         .take(grapheme_count)
         .copied()
         .sum::<f32>();
-    let run_frame = if matches!(layout.writing_mode, UiTextWritingMode::VerticalRl) {
+    let run_frame = if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
         UiFrame::new(
             line.frame.x,
             line.frame.y + main_offset,
@@ -128,7 +121,7 @@ pub(super) fn inline_layout_frame(
             line.frame.height,
         )
     };
-    Some(inline_frame(inline, run_frame, line, layout.writing_mode))
+    Some(inline_frame(inline, run_frame, line, writing_mode))
 }
 
 pub(super) fn plan_inline_run(
@@ -143,26 +136,20 @@ pub(super) fn plan_inline_run(
     let Some(inline) = rich_run.and_then(|rich_run| rich_run.inline.as_ref()) else {
         return false;
     };
-    let Some(line) = command.text_layout.as_ref().and_then(|layout| {
-        layout.lines.iter().find(|line| {
-            line.source_range.start <= run.source_range.start
-                && run.source_range.end <= line.source_range.end
-        })
+    let Some((line, writing_mode)) = command.text_layout.as_ref().and_then(|layout| {
+        layout
+            .lines
+            .iter()
+            .find(|line| {
+                line.source_range.start <= run.source_range.start
+                    && run.source_range.end <= line.source_range.end
+            })
+            .map(|line| (line, layout.writing_mode))
     }) else {
         return true;
     };
-    let inline_frame = inline_layout_frame(command, run.source_range).unwrap_or_else(|| {
-        inline_frame(
-            inline,
-            run.frame,
-            line,
-            command
-                .text_layout
-                .as_ref()
-                .map(|layout| layout.writing_mode)
-                .unwrap_or(command.style.text_writing_mode),
-        )
-    });
+    let inline_frame = inline_layout_frame(line, inline, run.source_range, writing_mode)
+        .unwrap_or_else(|| inline_frame(inline, run.frame, line, writing_mode));
     if viewport.intersection(inline_frame).is_none() {
         return true;
     }
@@ -174,11 +161,6 @@ pub(super) fn plan_inline_run(
             tint: [1.0, 1.0, 1.0, command.opacity.clamp(0.0, 1.0)],
         }),
         InlineObjectRef::Icon { glyph, font } => {
-            let writing_mode = command
-                .text_layout
-                .as_ref()
-                .map(|layout| layout.writing_mode)
-                .unwrap_or(command.style.text_writing_mode);
             let font_size = if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
                 inline_frame.width
             } else {

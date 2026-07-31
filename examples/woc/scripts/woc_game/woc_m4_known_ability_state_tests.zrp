@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_known_ability_state_tests",
+  "source": "src",
+  "binary": "bin-m4-known-ability-state-tests",
+  "entry": "combat/known_ability_state_test_main"
+}

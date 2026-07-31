@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use crate::core::diagnostics::collect_runtime_diagnostics;
 use crate::core::{
     CoreRuntime, TIME_FIXED_STEPS_DIAGNOSTIC, TIME_FPS_DIAGNOSTIC, TIME_FRAME_COUNT_DIAGNOSTIC,
     TIME_FRAME_TIME_DIAGNOSTIC,
 };
+use crate::runtime_diagnostics::collect_runtime_diagnostics;
 
 #[test]
 fn core_runtime_advances_real_virtual_and_fixed_time_together() {

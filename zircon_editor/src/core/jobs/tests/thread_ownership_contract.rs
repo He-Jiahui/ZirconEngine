@@ -101,12 +101,8 @@ fn bare_thread_guard_rejects_single_imports_and_aliases() {
         format!("::std::thread::{spawn_word}(work);"),
         format!("use ::std::thread::{spawn_word}; {spawn_word}(work);"),
         format!("use std as standard; standard::thread::{spawn_word}(work);"),
-        format!(
-            "use std::{{self as standard}}; standard::thread::{spawn_word}(work);"
-        ),
-        format!(
-            "use ::std::{{self as standard}}; standard::thread::{scope_word}(work);"
-        ),
+        format!("use std::{{self as standard}}; standard::thread::{spawn_word}(work);"),
+        format!("use ::std::{{self as standard}}; standard::thread::{scope_word}(work);"),
         format!("let quote = '\"'; std::thread::{spawn_word}(work);"),
         format!("let quote = b'\"'; std::thread::{spawn_word}(work);"),
         format!("let quote = '\\''; std::thread::{spawn_word}(work);"),
@@ -119,13 +115,9 @@ fn bare_thread_guard_rejects_single_imports_and_aliases() {
         ),
         format!("use std::thread as t; t::{builder_word}::new().{spawn_word}(work);"),
         format!("use std::{{thread as t}}; t::{spawn_word}(work);"),
-        format!(
-            "use std::thread::{{self as t}}; t::{builder_word}::new().{spawn_word}(work);"
-        ),
+        format!("use std::thread::{{self as t}}; t::{builder_word}::new().{spawn_word}(work);"),
         format!("use std::thread::{{self}}; thread::{spawn_word}(work);"),
-        format!(
-            "std::thread::{scope_word}(|task_scope| task_scope.{spawn_word}(work));"
-        ),
+        format!("std::thread::{scope_word}(|task_scope| task_scope.{spawn_word}(work));"),
         format!(
             "use std::thread as t; t::{scope_word}(|task_scope| task_scope.{spawn_word}(work));"
         ),
@@ -138,9 +130,7 @@ fn bare_thread_guard_rejects_single_imports_and_aliases() {
         format!(
             "use std::thread::{{{scope_word} as with_scope}}; with_scope(|task_scope| task_scope.{spawn_word}(work));"
         ),
-        format!(
-            "std::thread::{builder_word}::{scoped_spawn_word}(&builder, scope_ref, work);"
-        ),
+        format!("std::thread::{builder_word}::{scoped_spawn_word}(&builder, scope_ref, work);"),
         format!(
             "use std::thread::{builder_word} as ThreadBuilder; ThreadBuilder::{scoped_spawn_word}(&builder, scope_ref, work);"
         ),
@@ -156,9 +146,7 @@ fn bare_thread_guard_rejects_single_imports_and_aliases() {
         format!(
             "fn launch(task_scope: &std::thread::{scope_type_word}<'_, '_>) {{ task_scope.{spawn_word}(work); }}"
         ),
-        format!(
-            "std::thread::{scope_type_word}::{spawn_word}(task_scope, work);"
-        ),
+        format!("std::thread::{scope_type_word}::{spawn_word}(task_scope, work);"),
         format!(
             "use std::thread::{{{scope_type_word}}}; fn launch(task_scope: &{scope_type_word}<'_, '_>) {{ task_scope.{spawn_word}(work); }}"
         ),
@@ -193,9 +181,7 @@ fn bare_thread_guard_allows_unrelated_spawn_and_scope_names() {
         format!("task_scope.{spawn_word}(work);"),
         format!("database::{scope_word}(|transaction| transaction.commit());"),
         format!("use other::{scope_word}; {scope_word}(work);"),
-        format!(
-            "use std::thread::{{{scope_word} as with_scope}}; database::{scope_word}(work);"
-        ),
+        format!("use std::thread::{{{scope_word} as with_scope}}; database::{scope_word}(work);"),
         format!(
             "use std::thread::{{{scope_word} as with_scope}}; let _unused = with_scope; database::{scope_word}(work);"
         ),
@@ -218,16 +204,12 @@ fn bare_thread_guard_allows_unrelated_spawn_and_scope_names() {
             "mod thread {{ pub fn {spawn_word}(work: Work) {{ work.run(); }} }} thread::{spawn_word}(work);"
         ),
         format!("crate::thread::{scope_word}(work);"),
-        format!(
-            "use other::{{self as standard}}; standard::thread::{spawn_word}(work);"
-        ),
+        format!("use other::{{self as standard}}; standard::thread::{spawn_word}(work);"),
         format!(
             "use std::thread::{builder_word}; fn launch(executor: Executor) {{ executor.{spawn_word}(work); }}"
         ),
         format!("// std::thread::{spawn_word}(work);\nexecutor.run(work);"),
-        format!(
-            "let example = \"std::thread::{scope_word}(work)\"; executor.run(work);"
-        ),
+        format!("let example = \"std::thread::{scope_word}(work)\"; executor.run(work);"),
         format!(
             "use other::{{{scope_type_word} as ThreadScope}}; fn launch(task_scope: &ThreadScope<'_, '_>) {{ task_scope.{spawn_word}(work); }}"
         ),

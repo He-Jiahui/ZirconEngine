@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_targeting_markers_tests",
+  "source": "src",
+  "binary": "bin-m6-targeting-markers-tests",
+  "entry": "social/targeting_markers_state_test_main"
+}

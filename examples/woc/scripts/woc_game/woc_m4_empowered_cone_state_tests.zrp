@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_empowered_cone_state_tests",
+  "source": "src",
+  "binary": "bin-m4-empowered-cone-state-tests",
+  "entry": "combat/empowered_cone_state_test_main"
+}

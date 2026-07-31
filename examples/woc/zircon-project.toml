@@ -1,0 +1,82 @@
+name = "World of Claudecraft"
+format_version = 1
+default_scene = "res://scenes/bootstrap.scene.toml"
+library_version = 3
+
+[plugins]
+
+[[plugins.selections]]
+id = "rendering"
+enabled = true
+required = true
+target_modes = ["client_runtime", "editor_host"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_rendering_runtime"
+
+[[plugins.selections]]
+id = "texture"
+enabled = true
+required = true
+target_modes = ["client_runtime", "editor_host"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_texture_runtime"
+
+[[plugins.selections]]
+id = "animation"
+enabled = true
+required = true
+target_modes = ["client_runtime", "editor_host"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_animation_runtime"
+
+[[plugins.selections]]
+id = "gltf_importer"
+enabled = true
+required = true
+target_modes = ["client_runtime", "editor_host"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_gltf_importer_runtime"
+
+[[plugins.selections]]
+id = "navigation"
+enabled = true
+required = true
+target_modes = ["client_runtime", "editor_host"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_navigation_runtime"
+
+[[plugins.selections]]
+id = "net"
+enabled = true
+required = true
+target_modes = ["client_runtime", "server_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_net_runtime"
+
+[[plugins.selections]]
+id = "sound"
+enabled = true
+required = true
+target_modes = ["client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_sound_runtime"
+
+[[plugins.selections]]
+id = "zr_vm_language"
+enabled = true
+required = true
+target_modes = ["client_runtime", "server_runtime", "editor_host"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_zr_vm_language_runtime"
+
+[[plugins.selections]]
+id = "woc_runtime"
+enabled = true
+required = true
+target_modes = ["client_runtime", "server_runtime", "editor_host"]
+packaging = "source_template"
+runtime_crate = "woc_runtime"
+
+[scripts]
+package_roots = ["scripts"]
+startup_packages = ["woc_game"]

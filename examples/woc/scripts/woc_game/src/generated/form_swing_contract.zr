@@ -1,0 +1,3 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub cat():string{return "form_cat";}
+pub wandless(kind:string):bool{return kind=="form_bear"||kind=="form_cat"||kind=="form_travel";}

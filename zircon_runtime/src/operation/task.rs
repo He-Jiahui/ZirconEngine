@@ -13,7 +13,8 @@ pub(super) struct RuntimeOperationTask {
     pub(super) phase: ZrRuntimeOperationPhase,
     pub(super) handler: Arc<dyn RuntimeOperationHandler>,
     pub(super) payload: Option<serde_json::Value>,
-    pub(super) execution_started: bool,
+    pub(super) prepared: Option<serde_json::Value>,
+    pub(super) retained_bytes: usize,
     pub(super) result: Option<ZrRuntimeOperationResultV1>,
 }
 
@@ -21,7 +22,7 @@ impl RuntimeOperationTask {
     pub(super) fn progress(&self) -> ZrRuntimeOperationProgressV1 {
         let (completed_work, message) = match self.phase {
             ZrRuntimeOperationPhase::Queued => (0, "queued"),
-            ZrRuntimeOperationPhase::Running => (0, "running"),
+            ZrRuntimeOperationPhase::Running => (0, "preparing"),
             ZrRuntimeOperationPhase::Completed => (1, "completed"),
             ZrRuntimeOperationPhase::Failed => (1, "failed"),
         };

@@ -1,11 +1,11 @@
 use super::scene_renderer_advanced_plugin_resources::SceneRendererAdvancedPluginResources;
 use crate::core::framework::render::RenderPluginRendererOutputs;
+use crate::graphics::RuntimePrepareExternalBufferBinding;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::core::scene_renderer_core::{
-    merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks,
+    SceneRendererAdvancedPluginReadbacks, merge_plugin_renderer_outputs,
 };
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
-use crate::graphics::RuntimePrepareExternalBufferBinding;
 
 impl SceneRendererAdvancedPluginResources {
     pub(in crate::graphics::scene::scene_renderer::core) fn execute_runtime_prepare_passes(
@@ -63,8 +63,8 @@ mod tests {
         RuntimePrepareCollectorRegistration,
     };
     use std::sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     };
 
     #[test]

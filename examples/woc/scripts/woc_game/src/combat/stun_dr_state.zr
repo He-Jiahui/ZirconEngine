@@ -1,0 +1,31 @@
+// Current-head stun diminishing-return buckets. Opener and controlled stuns
+// deliberately do not share a chain; unknown proc stuns use randomStun.
+pub stunDrCategory(abilityId: string): string {
+    if (abilityId == "cheap_shot" || abilityId == "pounce") return "openerStun";
+    if (abilityId == "kidney_shot" || abilityId == "hammer_of_justice" ||
+        abilityId == "bash" || abilityId == "charge" || abilityId == "bear_charge" ||
+        abilityId == "faultline") return "controlledStun";
+    return "randomStun";
+}
+
+pub isStunDrCategory(category: string): bool {
+    return category == "openerStun" || category == "controlledStun" ||
+        category == "randomStun";
+}
+
+pub contractTest(): int {
+    if (stunDrCategory("cheap_shot") != "openerStun" ||
+        stunDrCategory("pounce") != "openerStun") return -1;
+    if (stunDrCategory("kidney_shot") != "controlledStun" ||
+        stunDrCategory("hammer_of_justice") != "controlledStun" ||
+        stunDrCategory("bash") != "controlledStun" ||
+        stunDrCategory("charge") != "controlledStun" ||
+        stunDrCategory("bear_charge") != "controlledStun" ||
+        stunDrCategory("faultline") != "controlledStun") return -2;
+    if (stunDrCategory("cheap_shot") == stunDrCategory("kidney_shot") ||
+        stunDrCategory("some_future_proc_stun") != "randomStun") return -3;
+    if (!isStunDrCategory("openerStun") || !isStunDrCategory("controlledStun") ||
+        !isStunDrCategory("randomStun") || isStunDrCategory("root") ||
+        isStunDrCategory("fear")) return -4;
+    return 1;
+}

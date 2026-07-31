@@ -25,6 +25,23 @@ pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_str
 pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_owned_stream(
     stream: ChromeCommandStream,
 ) -> UiSurfaceDrawList {
+    ui_surface_draw_list_from_owned_stream_with_optional_generation(stream, None)
+}
+
+pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_owned_stream_with_generation(
+    stream: ChromeCommandStream,
+    producer_generation: u64,
+) -> UiSurfaceDrawList {
+    ui_surface_draw_list_from_owned_stream_with_optional_generation(
+        stream,
+        Some(producer_generation),
+    )
+}
+
+fn ui_surface_draw_list_from_owned_stream_with_optional_generation(
+    stream: ChromeCommandStream,
+    generation: Option<u64>,
+) -> UiSurfaceDrawList {
     let surface_size = stream.surface_size();
     let damage = stream.damage().map(ui_rect);
     let commands = stream
@@ -32,7 +49,12 @@ pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_own
         .into_iter()
         .map(ui_surface_command_from_owned_chrome)
         .collect();
-    UiSurfaceDrawList::new(surface_size, damage, commands)
+    match generation {
+        Some(generation) => {
+            UiSurfaceDrawList::with_generation(surface_size, damage, commands, generation)
+        }
+        None => UiSurfaceDrawList::new(surface_size, damage, commands),
+    }
 }
 
 #[cfg(test)]

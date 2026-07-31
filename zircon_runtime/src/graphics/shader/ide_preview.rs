@@ -3,13 +3,13 @@ use std::fmt::{Display, Formatter};
 
 use crate::asset::{AssetUri, ShaderAsset};
 use crate::core::framework::render::{
-    builtin_geometry_source_descriptor, ShaderAssetKind, ShaderIdePreviewSegment,
-    ShaderIdePreviewVariant, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderAssetKind, ShaderIdePreviewSegment,
+    ShaderIdePreviewVariant, builtin_geometry_source_descriptor,
 };
 
 use super::template::{
-    assemble_material_shader_template, MaterialShaderTemplateRequest, ShaderAssemblySegmentKind,
-    ShaderTemplateAssemblyError, ShaderTemplateInclude,
+    MaterialShaderTemplateRequest, ShaderAssemblySegmentKind, ShaderTemplateAssemblyError,
+    ShaderTemplateInclude, assemble_material_shader_template,
 };
 
 const SURFACE_SHADER_ENTRY_POINT: &str = "zr_material_surface";
@@ -73,6 +73,15 @@ pub fn assemble_shader_ide_surface_preview<'a>(
     shader_includes: impl IntoIterator<Item = &'a ShaderAsset>,
     variant: &ShaderIdePreviewVariant,
 ) -> Result<ShaderIdeSurfacePreview, ShaderIdePreviewError> {
+    let shader_index = shader_include_index(shader_includes);
+    assemble_shader_ide_surface_preview_with_index(shader, &shader_index, variant)
+}
+
+pub(super) fn assemble_shader_ide_surface_preview_with_index(
+    shader: &ShaderAsset,
+    shader_index: &HashMap<String, &ShaderAsset>,
+    variant: &ShaderIdePreviewVariant,
+) -> Result<ShaderIdeSurfacePreview, ShaderIdePreviewError> {
     if shader.kind != ShaderAssetKind::Surface {
         return Err(ShaderIdePreviewError::UnsupportedKind {
             uri: shader.uri.clone(),
@@ -86,8 +95,7 @@ pub fn assemble_shader_ide_surface_preview<'a>(
     })?;
     let geometry_source = builtin_geometry_source_descriptor(GEOMETRY_SOURCE_ID_STATIC_MESH)
         .ok_or(ShaderIdePreviewError::MissingStaticGeometrySource)?;
-    let shader_index = shader_include_index(shader_includes);
-    let module_includes = shader_module_include_sources(shader, &shader_index);
+    let module_includes = shader_module_include_sources(shader, shader_index);
     let module_id = shader
         .import_path
         .as_deref()
@@ -131,7 +139,7 @@ pub fn assemble_shader_ide_surface_preview<'a>(
     })
 }
 
-fn shader_include_index<'a>(
+pub(super) fn shader_include_index<'a>(
     shader_includes: impl IntoIterator<Item = &'a ShaderAsset>,
 ) -> HashMap<String, &'a ShaderAsset> {
     shader_includes

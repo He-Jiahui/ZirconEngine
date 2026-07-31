@@ -100,10 +100,9 @@ impl LightCookieAtlasBlitPipeline {
                             },
                         ],
                     });
-                    let slot = entry.metadata.misc[2];
                     let viewport = [
-                        (slot % super::COOKIE_ATLAS_GRID_SIZE) * cell_size,
-                        (slot / super::COOKIE_ATLAS_GRID_SIZE) * cell_size,
+                        (entry.slot % super::COOKIE_ATLAS_GRID_SIZE) * cell_size,
+                        (entry.slot / super::COOKIE_ATLAS_GRID_SIZE) * cell_size,
                     ];
                     (viewport, bind_group)
                 })

@@ -49,6 +49,10 @@ impl<P: ?Sized> RuntimeProviderRegistration<P> {
     pub(crate) fn provider(&self) -> &P {
         self.provider.as_ref()
     }
+
+    pub(crate) fn provider_arc(&self) -> Arc<P> {
+        Arc::clone(&self.provider)
+    }
 }
 
 impl<P: ?Sized> fmt::Debug for RuntimeProviderRegistration<P> {
@@ -101,6 +105,10 @@ macro_rules! define_runtime_provider_registration {
 
             pub fn provider(&self) -> &dyn $provider_trait {
                 self.registration.provider()
+            }
+
+            pub(crate) fn provider_arc(&self) -> std::sync::Arc<dyn $provider_trait> {
+                self.registration.provider_arc()
             }
         }
 

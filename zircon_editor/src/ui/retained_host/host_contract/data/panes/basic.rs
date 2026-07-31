@@ -36,6 +36,11 @@ pub(crate) struct ProjectOverviewPaneData {
 }
 
 #[derive(Clone, Default)]
+pub(crate) struct TemplateV2PaneData {
+    pub nodes: ModelRc<TemplatePaneNodeData>,
+}
+
+#[derive(Clone, Default)]
 pub(crate) struct GeneratedBottomPaneData {
     pub nodes: ModelRc<TemplatePaneNodeData>,
     pub status: SharedString,

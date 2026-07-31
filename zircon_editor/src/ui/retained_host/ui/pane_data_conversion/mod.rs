@@ -52,9 +52,10 @@ pub(super) use self::native_template_node_panes::{
 };
 pub(super) use self::pane_component_projection::{
     projected_command_palette_options, projected_command_palette_structured_options,
-    projected_notification_center_options, projected_notification_center_structured_options,
-    projected_notification_center_value_text, projected_sample_grid_data,
-    projected_timeline_strip_data, projected_weight_heatmap_data,
+    projected_notification_center_metadata, projected_notification_center_metadata_from_host,
+    projected_notification_center_option_rows, projected_notification_center_value_text,
+    projected_sample_grid_data, projected_timeline_strip_data, projected_weight_heatmap_data,
+    NotificationCenterMetadata,
 };
 pub(super) use self::pane_menu_projection::structured_menu_items;
 pub(super) use self::pane_option_projection::structured_options_for_node;
@@ -64,6 +65,7 @@ pub(crate) use self::runtime_diagnostics::{
     refresh_runtime_diagnostics_debug_reflector_from_body_surface,
     to_host_contract_runtime_diagnostics_pane_from_host_pane,
 };
+pub(crate) use self::template_runtime_projection::to_host_contract_template_v2_pane_from_host_pane_with_runtime;
 use self::template_runtime_projection::{
     builtin_host_runtime, pane_template_runtime, project_pane_template_nodes,
     project_pane_template_nodes_with_runtime,

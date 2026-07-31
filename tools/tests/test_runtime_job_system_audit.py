@@ -19,10 +19,11 @@ class RuntimeJobSystemAuditTests(unittest.TestCase):
 
         audit = job_system_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_module_count"], 9)
+        self.assertEqual(audit["expected_module_count"], 10)
         self.assertEqual(audit["expected_guard_file_count"], 2)
         self.assertEqual(audit["missing_guard_files"], [])
-        self.assertEqual(audit["behavior_test_anchor_count"], 13)
+        self.assertEqual(audit["diagnostic_anchor_count"], 11)
+        self.assertEqual(audit["behavior_test_anchor_count"], 27)
         self.assertEqual(audit["missing_behavior_test_anchors"], [])
         self.assertTrue(audit["mirror_docs_guard_present"])
         self.assertEqual(

@@ -1,0 +1,68 @@
+// Generated M4 ability data is the only authority for retained absorb ranks.
+// The mutable application queue stays in world/state.zr because it shares the
+// experimental cross-module Array ABI with the WOS codec.
+var abilities = %import("generated/m4_ability_catalog");
+var effects = %import("generated/m4_ability_effects");
+
+class AbsorbProfile {
+    pub var valid: bool;
+    pub var amount: int;
+    pub var duration: float;
+
+    pub @constructor() {
+        this.valid = false;
+        this.amount = 0;
+        this.duration = 0.0;
+    }
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) { difference = -difference; }
+    return difference <= 0.000001;
+}
+
+pub resolveAbsorbProfile(abilityIndex: int, rank: int): AbsorbProfile {
+    var profile = new AbsorbProfile();
+    if (abilityIndex < 0 || abilityIndex >= abilities.count() || rank <= 0 ||
+        rank > abilities.rankCount(abilityIndex) || effects.count(abilityIndex, rank) != 1 ||
+        effects.typeAt(abilityIndex, rank, 0) != "absorb") {
+        return profile;
+    }
+    var amount = <int>effects.metric(abilityIndex, rank, 0, "amount");
+    var duration = effects.metric(abilityIndex, rank, 0, "duration");
+    if (amount <= 0 || amount > 65535 || duration <= 0.0) { return profile; }
+    profile.valid = true;
+    profile.amount = amount;
+    profile.duration = duration;
+    return profile;
+}
+
+pub absorbProfileMatches(
+    abilityIndex: int,
+    rank: int,
+    amount: int,
+    remaining: float
+): bool {
+    var profile = resolveAbsorbProfile(abilityIndex, rank);
+    return profile.valid && amount > 0 && amount <= profile.amount && remaining > 0.0 &&
+        remaining <= profile.duration;
+}
+
+pub contractTest(): int {
+    var shield = abilities.indexOf("power_word_shield");
+    var rankOne = resolveAbsorbProfile(shield, 1);
+    var rankThree = resolveAbsorbProfile(shield, 3);
+    if (!rankOne.valid || rankOne.amount != 48 || !closeEnough(rankOne.duration, 30.0)) {
+        return -1;
+    }
+    if (!rankThree.valid || rankThree.amount != 145 || !closeEnough(rankThree.duration, 30.0)) {
+        return -2;
+    }
+    if (!absorbProfileMatches(shield, 2, 1, 0.05) ||
+        absorbProfileMatches(shield, 2, 91, 0.05) ||
+        absorbProfileMatches(shield, 2, 90, 30.05)) {
+        return -3;
+    }
+    return 1;
+}

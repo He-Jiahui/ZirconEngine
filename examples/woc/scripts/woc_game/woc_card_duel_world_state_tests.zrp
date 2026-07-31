@@ -1,0 +1,6 @@
+{
+  "name": "woc_card_duel_world_state_tests",
+  "source": "src",
+  "binary": "bin-card-duel-world-state-tests",
+  "entry": "world/card_duel_world_state_test_main"
+}

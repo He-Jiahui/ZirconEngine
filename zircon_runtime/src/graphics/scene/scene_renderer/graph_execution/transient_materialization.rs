@@ -8,23 +8,17 @@ use crate::render_graph::{
 use crate::rhi::{BufferDesc, TextureDesc};
 
 use super::{
-    materialization::{create_wgpu_buffer, create_wgpu_texture},
-    render_graph_execution_resources::RenderGraphExecutionResources,
-    TransientResourcePool,
+    TransientResourcePool, render_graph_execution_resources::RenderGraphExecutionResources,
 };
 
 pub(super) fn materialize_transient_texture_slots(
     resources: &mut RenderGraphExecutionResources,
     device: &wgpu::Device,
     graph: &CompiledRenderGraph,
-    mut pool: Option<&mut TransientResourcePool>,
+    pool: &mut TransientResourcePool,
 ) -> Result<(), String> {
     let lifetimes = graph.resource_lifetimes();
     let allocation_plan = graph.transient_allocation_plan();
-    let lifetime_by_name = lifetimes
-        .iter()
-        .map(|lifetime| (lifetime.name.as_str(), lifetime))
-        .collect::<BTreeMap<_, _>>();
     let mut slot_lifetimes =
         BTreeMap::<TransientMaterializationSlotKey, Vec<&RenderGraphResourceLifetime>>::new();
 
@@ -33,7 +27,7 @@ pub(super) fn materialize_transient_texture_slots(
         .iter()
         .filter(|allocation| allocation.kind == RenderGraphResourceKind::TransientTexture)
     {
-        let Some(lifetime) = lifetime_by_name.get(allocation.resource_name.as_str()) else {
+        let Some(lifetime) = graph.resource_lifetime(allocation.resource) else {
             continue;
         };
         if !should_materialize_texture_lifetime(resources, lifetimes, lifetime)? {
@@ -42,7 +36,7 @@ pub(super) fn materialize_transient_texture_slots(
         slot_lifetimes
             .entry(TransientMaterializationSlotKey::from_allocation(allocation))
             .or_default()
-            .push(*lifetime);
+            .push(lifetime);
     }
 
     for (slot_key, lifetimes) in slot_lifetimes {
@@ -50,7 +44,7 @@ pub(super) fn materialize_transient_texture_slots(
             let backing_name = transient_texture_backing_name(slot_key);
             resources.insert_owned_texture_backing(
                 backing_name.clone(),
-                acquire_wgpu_texture(device, &desc, pool.as_deref_mut()),
+                pool.acquire_texture(device, &desc),
                 desc,
             );
             for lifetime in lifetimes {
@@ -66,7 +60,7 @@ pub(super) fn materialize_transient_texture_slots(
                 };
                 resources.insert_owned_texture(
                     lifetime.name.clone(),
-                    acquire_wgpu_texture(device, desc, pool.as_deref_mut()),
+                    pool.acquire_texture(device, desc),
                     desc.clone(),
                 );
             }
@@ -79,14 +73,9 @@ pub(super) fn materialize_transient_buffer_slots(
     resources: &mut RenderGraphExecutionResources,
     device: &wgpu::Device,
     graph: &CompiledRenderGraph,
-    mut pool: Option<&mut TransientResourcePool>,
+    pool: &mut TransientResourcePool,
 ) -> Result<(), String> {
-    let lifetimes = graph.resource_lifetimes();
     let allocation_plan = graph.transient_allocation_plan();
-    let lifetime_by_name = lifetimes
-        .iter()
-        .map(|lifetime| (lifetime.name.as_str(), lifetime))
-        .collect::<BTreeMap<_, _>>();
     let mut slot_lifetimes =
         BTreeMap::<TransientMaterializationSlotKey, Vec<&RenderGraphResourceLifetime>>::new();
 
@@ -95,7 +84,7 @@ pub(super) fn materialize_transient_buffer_slots(
         .iter()
         .filter(|allocation| allocation.kind == RenderGraphResourceKind::TransientBuffer)
     {
-        let Some(lifetime) = lifetime_by_name.get(allocation.resource_name.as_str()) else {
+        let Some(lifetime) = graph.resource_lifetime(allocation.resource) else {
             continue;
         };
         if lifetime.imported || resources.has_buffer(&lifetime.name) {
@@ -104,7 +93,7 @@ pub(super) fn materialize_transient_buffer_slots(
         slot_lifetimes
             .entry(TransientMaterializationSlotKey::from_allocation(allocation))
             .or_default()
-            .push(*lifetime);
+            .push(lifetime);
     }
 
     for (slot_key, lifetimes) in slot_lifetimes {
@@ -112,7 +101,7 @@ pub(super) fn materialize_transient_buffer_slots(
         let backing_name = transient_buffer_backing_name(slot_key);
         resources.insert_buffer_backing(
             backing_name.clone(),
-            acquire_wgpu_buffer(device, &desc, pool.as_deref_mut()),
+            pool.acquire_buffer(device, &desc),
             desc.clone(),
         );
         for lifetime in lifetimes {
@@ -255,28 +244,6 @@ fn buffer_slot_desc(
     }
 
     Ok(desc)
-}
-
-fn acquire_wgpu_texture(
-    device: &wgpu::Device,
-    desc: &TextureDesc,
-    pool: Option<&mut TransientResourcePool>,
-) -> wgpu::Texture {
-    match pool {
-        Some(pool) => pool.acquire_texture(device, desc),
-        None => create_wgpu_texture(device, desc),
-    }
-}
-
-fn acquire_wgpu_buffer(
-    device: &wgpu::Device,
-    desc: &BufferDesc,
-    pool: Option<&mut TransientResourcePool>,
-) -> wgpu::Buffer {
-    match pool {
-        Some(pool) => pool.acquire_buffer(device, desc),
-        None => create_wgpu_buffer(device, desc),
-    }
 }
 
 pub(super) fn ssr_pyramid_mip_alias_for_lifetimes(

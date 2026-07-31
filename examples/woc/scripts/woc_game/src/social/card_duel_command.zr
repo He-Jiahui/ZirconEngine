@@ -1,0 +1,29 @@
+// Current-head command boundary for src/net/online.ts and server/game.ts.
+// It validates only binary layout. The source server forwards every integer
+// play_card value to Sim, so hand ownership remains a CardDuelMatch concern.
+var container = %import("zr.container");
+var contract = %import("generated/card_duel_command_contract");
+
+pub isCardDuelCommand(id: uint): bool {
+    return contract.payloadKind(id, true) != 0;
+}
+
+// Returns 1 for a valid command envelope, -1 for an unrelated id and -2 for
+// a malformed local payload. It deliberately does not constrain card values.
+pub validatePayload(id: uint, payload: container.Array<uint>): int {
+    var kind = contract.payloadKind(id, true);
+    if (kind == 0) return -1;
+    if (kind == 1) return payload.length == 0 ? 1 : -2;
+    if (kind == 2) return payload.length == contract.playCardPayloadBytes(true) ? 1 : -2;
+    return -1;
+}
+
+pub decodePlayCardValue(payload: container.Array<uint>): int {
+    if (validatePayload(contract.playCardCommandId(true), payload) != 1) {
+        throw "card duel play_card payload is invalid";
+    }
+    var raw: uint = <uint>payload[0] + <uint>payload[1] * <uint>256 +
+        <uint>payload[2] * <uint>65536 + <uint>payload[3] * <uint>16777216;
+    if (raw <= <uint>2147483647) return <int>raw;
+    return -<int>(<uint>4294967296 - raw);
+}

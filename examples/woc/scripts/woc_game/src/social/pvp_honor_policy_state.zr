@@ -1,0 +1,88 @@
+// Current-head PvP honor payout policy from sim/pvp/honor.ts. Daily-window
+// storage, opponent identity keys, currency persistence and honor events remain
+// with the future source-shaped social transaction owner.
+var contract = %import("generated/pvp_honor_policy_contract");
+
+// Source counters are normalized to nonnegative integers before they reach
+// these lookup tables. The final table value is retained for every later award.
+pub repeatHonorMultiplier(previousAwards: int): float {
+    if (previousAwards <= 0) return 1.0;
+    if (previousAwards == 1) return 0.5;
+    if (previousAwards == 2) return 0.25;
+    return 0.0;
+}
+
+pub arenaRepeatHonorMultiplier(previousAwards: int): float {
+    return previousAwards <= 0 ? 1.0 : 0.0;
+}
+
+pub arenaDailyMultiplier(totalWins: int): float {
+    if (totalWins < contract.arenaDailyTaperStart()) return 1.0;
+    if (totalWins < contract.arenaDailyTaperFloorStart()) return 0.5;
+    return 0.25;
+}
+
+floorNonnegative(value: float): int {
+    return <int>value;
+}
+
+// Format codes are 1=1v1 and 2=2v2. Other formats are not ranked arena
+// rewards in the source and return no honor.
+pub rankedArenaWinHonor(format: int, priorOpponentAwards: int, totalWinsToday: int): int {
+    var base = 0;
+    if (format == 1) base = contract.rankedOneVOneHonor();
+    if (format == 2) base = contract.rankedTwoVTwoHonor();
+    if (base == 0) return 0;
+    return floorNonnegative(<float>base * arenaRepeatHonorMultiplier(priorOpponentAwards) *
+        arenaDailyMultiplier(totalWinsToday));
+}
+
+pub fiestaKillHonor(priorPairAwards: int): int {
+    return floorNonnegative(<float>contract.fiestaKillHonor() *
+        repeatHonorMultiplier(priorPairAwards));
+}
+
+pub fiestaCompletionHonor(priorOpponentAwards: int, won: bool): int {
+    var multiplier = repeatHonorMultiplier(priorOpponentAwards);
+    var total = floorNonnegative(<float>contract.fiestaCompletionHonor() * multiplier);
+    if (won) total = total + floorNonnegative(<float>contract.fiestaWinBonusHonor() * multiplier);
+    return total;
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) difference = -difference;
+    return difference <= 0.000001;
+}
+
+pub contractTest(): int {
+    if (!closeEnough(repeatHonorMultiplier(0), 1.0) ||
+        !closeEnough(repeatHonorMultiplier(1), 0.5) ||
+        !closeEnough(repeatHonorMultiplier(2), 0.25) ||
+        !closeEnough(repeatHonorMultiplier(3), 0.0) ||
+        !closeEnough(arenaRepeatHonorMultiplier(0), 1.0) ||
+        !closeEnough(arenaRepeatHonorMultiplier(1), 0.0)) return -1;
+    if (!closeEnough(arenaDailyMultiplier(0), 1.0) ||
+        !closeEnough(arenaDailyMultiplier(9), 1.0) ||
+        !closeEnough(arenaDailyMultiplier(10), 0.5) ||
+        !closeEnough(arenaDailyMultiplier(14), 0.5) ||
+        !closeEnough(arenaDailyMultiplier(15), 0.25)) return -2;
+    if (rankedArenaWinHonor(1, 0, 0) != 25 ||
+        rankedArenaWinHonor(1, 1, 0) != 0 ||
+        rankedArenaWinHonor(1, 0, 10) != 12 ||
+        rankedArenaWinHonor(1, 0, 15) != 6 ||
+        rankedArenaWinHonor(2, 0, 0) != 50 ||
+        rankedArenaWinHonor(2, 0, 15) != 12 ||
+        rankedArenaWinHonor(3, 0, 0) != 0) return -3;
+    if (fiestaKillHonor(0) != 20 || fiestaKillHonor(1) != 10 ||
+        fiestaKillHonor(2) != 5 || fiestaKillHonor(3) != 0) return -4;
+    if (fiestaCompletionHonor(0, true) != 60 ||
+        fiestaCompletionHonor(1, true) != 30 ||
+        fiestaCompletionHonor(2, true) != 15 ||
+        fiestaCompletionHonor(3, true) != 0 ||
+        fiestaCompletionHonor(0, false) != 20 ||
+        fiestaCompletionHonor(1, false) != 10 ||
+        fiestaCompletionHonor(2, false) != 5 ||
+        fiestaCompletionHonor(3, false) != 0) return -5;
+    return 1;
+}

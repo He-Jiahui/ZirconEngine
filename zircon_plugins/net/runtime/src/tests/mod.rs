@@ -2,6 +2,7 @@ mod diagnostics;
 mod feature_registration;
 mod http_routes;
 mod manifest;
+mod poison_recovery;
 mod rpc_descriptor;
 mod support;
 mod tcp;

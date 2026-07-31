@@ -1,5 +1,6 @@
 use crate::core::math::UVec2;
 use crate::core::resource::ResourceId;
+use std::sync::OnceLock;
 
 use crate::core::framework::animation::AnimationPoseOutput;
 use crate::core::framework::scene::{EntityId, Mobility, WorldHandle};
@@ -10,19 +11,20 @@ mod particle_extract_policy;
 pub use geometry::{GeometryExtract, GeometryPhaseInput, StaticMeshBatchExtract};
 
 use super::{
-    build_sprite_phase_queue, AdvancedLightingExtract, AntiAliasSettings, CameraRenderDescriptor,
-    CorePipelineKind, DisplayMode, EnvironmentExtract, FallbackSkyboxKind, PostProcessPassGraph,
-    PostProcessStackDescriptor, PostProcessVolumeExtract, PreviewEnvironmentExtract,
-    RenderAmbientLightSnapshot, RenderBloomSettings, RenderCameraOrderReport, RenderCameraTarget,
-    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExposureSettings,
-    RenderFramePhaseQueueSummary, RenderHybridGiExtract, RenderLayerSet, RenderMaterialAlphaMode,
-    RenderOverlayExtract, RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
+    AdvancedLightingExtract, AntiAliasSettings, CameraRenderDescriptor, CorePipelineKind,
+    DEFAULT_CAMERA_EXPOSURE_EV100, DisplayMode, EnvironmentExtract, FallbackSkyboxKind,
+    PostProcessPassGraph, PostProcessStackDescriptor, PostProcessVolumeExtract,
+    PreviewEnvironmentExtract, RenderAmbientLightSnapshot, RenderBloomSettings,
+    RenderCameraOrderReport, RenderCameraTarget, RenderColorGradingSettings,
+    RenderDirectionalLightSnapshot, RenderExposureSettings, RenderFramePhaseQueueSummary,
+    RenderHybridGiExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderOverlayExtract,
+    RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
     RenderParticleSpriteSnapshot, RenderPhaseQueue, RenderPhaseQueueSummary,
     RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderQueueValue,
     RenderRectLightSnapshot, RenderResolvedPostProcessSettings, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
     SceneViewportExtractRequest, SpriteExtract, SpritePhaseInput, ViewportCameraSnapshot,
-    VolumeEvaluationError, VolumeEvaluationRequest, VolumeEvaluator, DEFAULT_CAMERA_EXPOSURE_EV100,
+    VolumeEvaluationError, VolumeEvaluationRequest, VolumeEvaluator, build_sprite_phase_queue,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -187,25 +189,23 @@ impl RenderViewExtract {
     }
 
     pub fn effective_view_size(&self) -> UVec2 {
-        let camera = self.selected_effective_camera();
         let target_size = self
             .target_size
             .or_else(|| camera_target_size_from_descriptor(self.selected_camera_descriptor()))
             .unwrap_or_else(|| UVec2::new(1, 1));
         self.selected_camera_descriptor()
             .map(|camera| camera.effective_viewport_size(target_size))
-            .unwrap_or_else(|| camera.effective_viewport_size(target_size))
+            .unwrap_or_else(|| self.camera.effective_viewport_size(target_size))
     }
 
     pub fn effective_render_size(&self) -> UVec2 {
-        let camera = self.selected_effective_camera();
         let target_size = self
             .target_size
             .or_else(|| camera_target_size_from_descriptor(self.selected_camera_descriptor()))
             .unwrap_or_else(|| UVec2::new(1, 1));
         self.selected_camera_descriptor()
             .map(|camera| camera.effective_render_size(target_size))
-            .unwrap_or_else(|| camera.effective_render_size(target_size))
+            .unwrap_or_else(|| self.camera.effective_render_size(target_size))
     }
 }
 
@@ -468,7 +468,7 @@ impl PostProcessExtract {
         camera_position: crate::core::math::Vec3,
         camera_volume_mask: &RenderLayerSet,
     ) -> Result<RenderResolvedPostProcessSettings, VolumeEvaluationError> {
-        VolumeEvaluator::default().evaluate(VolumeEvaluationRequest {
+        builtin_volume_evaluator().evaluate(VolumeEvaluationRequest {
             camera_position,
             camera_volume_mask,
             base_bloom: self.bloom,
@@ -478,6 +478,11 @@ impl PostProcessExtract {
             volumes: &self.volumes,
         })
     }
+}
+
+fn builtin_volume_evaluator() -> &'static VolumeEvaluator {
+    static EVALUATOR: OnceLock<VolumeEvaluator> = OnceLock::new();
+    EVALUATOR.get_or_init(VolumeEvaluator::default)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -547,14 +552,23 @@ impl RenderFrameExtract {
     /// recover advanced sidebands such as sprites, particles, VG payloads, or
     /// level-owned animation poses from a `SceneViewportRenderPacket`.
     pub fn from_snapshot(world: RenderWorldSnapshotHandle, snapshot: RenderSceneSnapshot) -> Self {
-        let renderables = snapshot
-            .scene
-            .meshes
+        let RenderSceneGeometryExtract {
+            camera,
+            meshes,
+            directional_lights,
+            point_lights,
+            spot_lights,
+            ambient_lights,
+            rect_lights,
+        } = snapshot.scene;
+        let camera_core_pipeline = camera.core_pipeline_kind();
+        let camera_exposure_ev100 = camera.exposure_ev100;
+        let renderables = meshes
             .iter()
             .map(|mesh| VisibilityRenderableInput {
                 entity: mesh.node_id,
                 mobility: mesh.mobility,
-                render_layer_mask: mesh.render_layer_mask.clone(),
+                render_layer_mask: mesh.common.layer_mask.clone(),
             })
             .collect::<Vec<_>>();
         let renderable_entities = renderables
@@ -574,37 +588,33 @@ impl RenderFrameExtract {
 
         Self {
             world,
-            view: RenderViewExtract::from_camera(snapshot.scene.camera.clone()),
+            view: RenderViewExtract::from_camera(camera),
             geometry: {
-                let mut geometry = GeometryExtract::from_meshes(
-                    snapshot.scene.camera.core_pipeline_kind(),
-                    snapshot.scene.meshes.clone(),
-                );
+                let mut geometry = GeometryExtract::from_meshes(camera_core_pipeline, meshes);
                 geometry.virtual_geometry_debug = snapshot.virtual_geometry_debug;
                 geometry
             },
             animation_poses: Vec::new(),
             lighting: LightingExtract {
-                directional_lights: snapshot.scene.directional_lights.clone(),
-                point_lights: snapshot.scene.point_lights.clone(),
-                spot_lights: snapshot.scene.spot_lights.clone(),
-                ambient_lights: snapshot.scene.ambient_lights.clone(),
-                rect_lights: snapshot.scene.rect_lights.clone(),
+                directional_lights,
+                point_lights,
+                spot_lights,
+                ambient_lights,
+                rect_lights,
                 hybrid_global_illumination: None,
                 advanced_lighting: AdvancedLightingExtract::default(),
             },
-            environment: snapshot.environment.clone(),
+            environment: snapshot.environment,
             post_process: {
                 let mut post_process = PostProcessExtract::from_parts(
-                    snapshot.preview.clone(),
+                    snapshot.preview,
                     snapshot.overlays.display_mode,
                     RenderBloomSettings::default(),
                     RenderColorGradingSettings::default(),
                     false,
                     false,
                 );
-                post_process.exposure =
-                    RenderExposureSettings::manual_ev100(snapshot.scene.camera.exposure_ev100);
+                post_process.exposure = RenderExposureSettings::manual_ev100(camera_exposure_ev100);
                 post_process
             },
             debug: DebugOverlayExtract {

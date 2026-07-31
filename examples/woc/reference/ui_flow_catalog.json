@@ -1,0 +1,4686 @@
+{
+  "schema_version": 1,
+  "source_commit": "7c10f280eec380e9877e66ce16333089e171fe42",
+  "entries": [
+    {
+      "id": "entrypoint:admin.html",
+      "kind": "entrypoint",
+      "flow": "admin",
+      "path": "admin.html",
+      "source_owner": "admin.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system.html",
+      "source_owner": "docs/design/professions-system.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/_head.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/_head.html",
+      "source_owner": "docs/design/professions-system/_head.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/00-title.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/00-title.html",
+      "source_owner": "docs/design/professions-system/sections/00-title.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/01-glance.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/01-glance.html",
+      "source_owner": "docs/design/professions-system/sections/01-glance.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/01-part-design.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/01-part-design.html",
+      "source_owner": "docs/design/professions-system/sections/01-part-design.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/02-wheel.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/02-wheel.html",
+      "source_owner": "docs/design/professions-system/sections/02-wheel.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/03-ladder.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/03-ladder.html",
+      "source_owner": "docs/design/professions-system/sections/03-ladder.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/05-archetypes.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/05-archetypes.html",
+      "source_owner": "docs/design/professions-system/sections/05-archetypes.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/07-combos.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/07-combos.html",
+      "source_owner": "docs/design/professions-system/sections/07-combos.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/08-warning.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/08-warning.html",
+      "source_owner": "docs/design/professions-system/sections/08-warning.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/09-jack.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/09-jack.html",
+      "source_owner": "docs/design/professions-system/sections/09-jack.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/10-adventuring.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/10-adventuring.html",
+      "source_owner": "docs/design/professions-system/sections/10-adventuring.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/11-outputs.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/11-outputs.html",
+      "source_owner": "docs/design/professions-system/sections/11-outputs.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/12-gear.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/12-gear.html",
+      "source_owner": "docs/design/professions-system/sections/12-gear.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/13-gathering.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/13-gathering.html",
+      "source_owner": "docs/design/professions-system/sections/13-gathering.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/14-monster.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/14-monster.html",
+      "source_owner": "docs/design/professions-system/sections/14-monster.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/15-tools.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/15-tools.html",
+      "source_owner": "docs/design/professions-system/sections/15-tools.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/16-fragility.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/16-fragility.html",
+      "source_owner": "docs/design/professions-system/sections/16-fragility.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/16-part-contributors.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/16-part-contributors.html",
+      "source_owner": "docs/design/professions-system/sections/16-part-contributors.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/17-discarded.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/17-discarded.html",
+      "source_owner": "docs/design/professions-system/sections/17-discarded.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/18-future.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/18-future.html",
+      "source_owner": "docs/design/professions-system/sections/18-future.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/19-arch.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/19-arch.html",
+      "source_owner": "docs/design/professions-system/sections/19-arch.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/20-slices.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/20-slices.html",
+      "source_owner": "docs/design/professions-system/sections/20-slices.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:docs/design/professions-system/sections/21-tbd.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "docs/design/professions-system/sections/21-tbd.html",
+      "source_owner": "docs/design/professions-system/sections/21-tbd.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:editor.html",
+      "kind": "entrypoint",
+      "flow": "authoring",
+      "path": "editor.html",
+      "source_owner": "editor.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:guide.html",
+      "kind": "entrypoint",
+      "flow": "guide",
+      "path": "guide.html",
+      "source_owner": "guide.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:index.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "index.html",
+      "source_owner": "index.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:music_editor.html",
+      "kind": "entrypoint",
+      "flow": "authoring",
+      "path": "music_editor.html",
+      "source_owner": "music_editor.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:play.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "play.html",
+      "source_owner": "play.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:public/claudium/gallery.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "public/claudium/gallery.html",
+      "source_owner": "public/claudium/gallery.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:public/data-deletion.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "public/data-deletion.html",
+      "source_owner": "public/data-deletion.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:public/links.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "public/links.html",
+      "source_owner": "public/links.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:public/merch.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "public/merch.html",
+      "source_owner": "public/merch.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:public/press.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "public/press.html",
+      "source_owner": "public/press.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:public/privacy.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "public/privacy.html",
+      "source_owner": "public/privacy.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:public/server-unavailable.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "public/server-unavailable.html",
+      "source_owner": "public/server-unavailable.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:public/support.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "public/support.html",
+      "source_owner": "public/support.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:public/terms.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "public/terms.html",
+      "source_owner": "public/terms.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:scripts/asset_pipeline/viewer_template.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "scripts/asset_pipeline/viewer_template.html",
+      "source_owner": "scripts/asset_pipeline/viewer_template.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "entrypoint:scripts/sfx_studio/studio.html",
+      "kind": "entrypoint",
+      "flow": "gameplay_ui",
+      "path": "scripts/sfx_studio/studio.html",
+      "source_owner": "scripts/sfx_studio/studio.html",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "admin:src/admin/App.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/App.svelte",
+      "source_owner": "src/admin/App.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/account_flair.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/account_flair.ts",
+      "source_owner": "src/admin/account_flair.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/account_ips.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/account_ips.ts",
+      "source_owner": "src/admin/account_ips.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/account_modal.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/account_modal.ts",
+      "source_owner": "src/admin/account_modal.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/account_status.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/account_status.ts",
+      "source_owner": "src/admin/account_status.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/antibot_config.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/antibot_config.ts",
+      "source_owner": "src/admin/antibot_config.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/antibot_config_history.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/antibot_config_history.ts",
+      "source_owner": "src/admin/antibot_config_history.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/api.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/api.ts",
+      "source_owner": "src/admin/api.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/block_expiry.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/block_expiry.ts",
+      "source_owner": "src/admin/block_expiry.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/calibration_export.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/calibration_export.ts",
+      "source_owner": "src/admin/calibration_export.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/AccountFlairControls.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/AccountFlairControls.svelte",
+      "source_owner": "src/admin/components/AccountFlairControls.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/AccountIndicators.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/AccountIndicators.svelte",
+      "source_owner": "src/admin/components/AccountIndicators.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/AccountLink.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/AccountLink.svelte",
+      "source_owner": "src/admin/components/AccountLink.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/AccountModal.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/AccountModal.svelte",
+      "source_owner": "src/admin/components/AccountModal.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/AccountModerationActions.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/AccountModerationActions.svelte",
+      "source_owner": "src/admin/components/AccountModerationActions.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/AccountNote.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/AccountNote.svelte",
+      "source_owner": "src/admin/components/AccountNote.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/AdminNav.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/AdminNav.svelte",
+      "source_owner": "src/admin/components/AdminNav.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/AdminShell.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/AdminShell.svelte",
+      "source_owner": "src/admin/components/AdminShell.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/AntibotConfigHistory.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/AntibotConfigHistory.svelte",
+      "source_owner": "src/admin/components/AntibotConfigHistory.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/Badge.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/Badge.svelte",
+      "source_owner": "src/admin/components/Badge.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/BarChart.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/BarChart.svelte",
+      "source_owner": "src/admin/components/BarChart.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/CharactersTable.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/CharactersTable.svelte",
+      "source_owner": "src/admin/components/CharactersTable.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/ChatModeration.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/ChatModeration.svelte",
+      "source_owner": "src/admin/components/ChatModeration.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/ChatModerationControls.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/ChatModerationControls.svelte",
+      "source_owner": "src/admin/components/ChatModerationControls.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/CollapsiblePanel.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/CollapsiblePanel.svelte",
+      "source_owner": "src/admin/components/CollapsiblePanel.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/ConfirmDialog.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/ConfirmDialog.svelte",
+      "source_owner": "src/admin/components/ConfirmDialog.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/DailyRewardsModerationControls.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/DailyRewardsModerationControls.svelte",
+      "source_owner": "src/admin/components/DailyRewardsModerationControls.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/IpBlockDialog.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/IpBlockDialog.svelte",
+      "source_owner": "src/admin/components/IpBlockDialog.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/IpBlockSection.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/IpBlockSection.svelte",
+      "source_owner": "src/admin/components/IpBlockSection.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/IpLink.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/IpLink.svelte",
+      "source_owner": "src/admin/components/IpLink.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/LineChart.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/LineChart.svelte",
+      "source_owner": "src/admin/components/LineChart.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/LocationCell.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/LocationCell.svelte",
+      "source_owner": "src/admin/components/LocationCell.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/Login.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/Login.svelte",
+      "source_owner": "src/admin/components/Login.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/ModalDialog.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/ModalDialog.svelte",
+      "source_owner": "src/admin/components/ModalDialog.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/ModerationActionPrompt.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/ModerationActionPrompt.svelte",
+      "source_owner": "src/admin/components/ModerationActionPrompt.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/ModerationHistory.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/ModerationHistory.svelte",
+      "source_owner": "src/admin/components/ModerationHistory.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/OnlineTable.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/OnlineTable.svelte",
+      "source_owner": "src/admin/components/OnlineTable.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/PageHeader.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/PageHeader.svelte",
+      "source_owner": "src/admin/components/PageHeader.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/Pager.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/Pager.svelte",
+      "source_owner": "src/admin/components/Pager.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/Panel.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/Panel.svelte",
+      "source_owner": "src/admin/components/Panel.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/ProviderUsage.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/ProviderUsage.svelte",
+      "source_owner": "src/admin/components/ProviderUsage.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/ScreenshotOverlay.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/ScreenshotOverlay.svelte",
+      "source_owner": "src/admin/components/ScreenshotOverlay.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/StatCard.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/StatCard.svelte",
+      "source_owner": "src/admin/components/StatCard.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/components/WordList.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/components/WordList.svelte",
+      "source_owner": "src/admin/components/WordList.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/field_input.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/field_input.ts",
+      "source_owner": "src/admin/field_input.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/format.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/format.ts",
+      "source_owner": "src/admin/format.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/histogram_stats.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/histogram_stats.ts",
+      "source_owner": "src/admin/histogram_stats.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.en.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.en.ts",
+      "source_owner": "src/admin/i18n.en.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/cs_CZ.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/cs_CZ.ts",
+      "source_owner": "src/admin/i18n.locales/cs_CZ.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/da_DK.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/da_DK.ts",
+      "source_owner": "src/admin/i18n.locales/da_DK.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/de_DE.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/de_DE.ts",
+      "source_owner": "src/admin/i18n.locales/de_DE.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/en_CA.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/en_CA.ts",
+      "source_owner": "src/admin/i18n.locales/en_CA.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/es.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/es.ts",
+      "source_owner": "src/admin/i18n.locales/es.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/es_ES.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/es_ES.ts",
+      "source_owner": "src/admin/i18n.locales/es_ES.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/fr_CA.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/fr_CA.ts",
+      "source_owner": "src/admin/i18n.locales/fr_CA.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/fr_FR.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/fr_FR.ts",
+      "source_owner": "src/admin/i18n.locales/fr_FR.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/id_ID.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/id_ID.ts",
+      "source_owner": "src/admin/i18n.locales/id_ID.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/it_IT.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/it_IT.ts",
+      "source_owner": "src/admin/i18n.locales/it_IT.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/ja_JP.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/ja_JP.ts",
+      "source_owner": "src/admin/i18n.locales/ja_JP.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/ko_KR.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/ko_KR.ts",
+      "source_owner": "src/admin/i18n.locales/ko_KR.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/nl_NL.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/nl_NL.ts",
+      "source_owner": "src/admin/i18n.locales/nl_NL.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/pl_PL.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/pl_PL.ts",
+      "source_owner": "src/admin/i18n.locales/pl_PL.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/pt_BR.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/pt_BR.ts",
+      "source_owner": "src/admin/i18n.locales/pt_BR.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/ru_RU.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/ru_RU.ts",
+      "source_owner": "src/admin/i18n.locales/ru_RU.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/sv_SE.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/sv_SE.ts",
+      "source_owner": "src/admin/i18n.locales/sv_SE.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/tr_TR.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/tr_TR.ts",
+      "source_owner": "src/admin/i18n.locales/tr_TR.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/vi_VN.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/vi_VN.ts",
+      "source_owner": "src/admin/i18n.locales/vi_VN.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/zh_CN.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/zh_CN.ts",
+      "source_owner": "src/admin/i18n.locales/zh_CN.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.locales/zh_TW.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.locales/zh_TW.ts",
+      "source_owner": "src/admin/i18n.locales/zh_TW.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/cs_CZ.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/cs_CZ.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/cs_CZ.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/da_DK.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/da_DK.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/da_DK.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/de_DE.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/de_DE.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/de_DE.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/en.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/en.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/en.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/en_CA.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/en_CA.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/en_CA.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/en_XA.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/en_XA.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/en_XA.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/es.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/es.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/es.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/es_ES.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/es_ES.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/es_ES.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/fr_CA.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/fr_CA.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/fr_CA.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/fr_FR.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/fr_FR.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/fr_FR.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/id_ID.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/id_ID.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/id_ID.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/index.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/index.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/index.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/it_IT.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/it_IT.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/it_IT.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/ja_JP.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/ja_JP.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/ja_JP.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/ko_KR.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/ko_KR.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/ko_KR.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/loaders.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/loaders.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/loaders.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/nl_NL.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/nl_NL.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/nl_NL.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/pending.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/pending.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/pending.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/pl_PL.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/pl_PL.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/pl_PL.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/pt_BR.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/pt_BR.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/pt_BR.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/ru_RU.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/ru_RU.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/ru_RU.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/sv_SE.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/sv_SE.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/sv_SE.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/tr_TR.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/tr_TR.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/tr_TR.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/vi_VN.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/vi_VN.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/vi_VN.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/zh_CN.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/zh_CN.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/zh_CN.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.resolved.generated/zh_TW.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.resolved.generated/zh_TW.ts",
+      "source_owner": "src/admin/i18n.resolved.generated/zh_TW.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/i18n.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/i18n.ts",
+      "source_owner": "src/admin/i18n.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/ip_block.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/ip_block.ts",
+      "source_owner": "src/admin/ip_block.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/labels.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/labels.ts",
+      "source_owner": "src/admin/labels.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/location.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/location.ts",
+      "source_owner": "src/admin/location.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/main.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/main.ts",
+      "source_owner": "src/admin/main.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/moderation_actions.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/moderation_actions.ts",
+      "source_owner": "src/admin/moderation_actions.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/navigation.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/navigation.ts",
+      "source_owner": "src/admin/navigation.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/AccountDetail.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/AccountDetail.svelte",
+      "source_owner": "src/admin/pages/AccountDetail.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/Accounts.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/Accounts.svelte",
+      "source_owner": "src/admin/pages/Accounts.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/AntibotConfig.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/AntibotConfig.svelte",
+      "source_owner": "src/admin/pages/AntibotConfig.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/BlockedIps.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/BlockedIps.svelte",
+      "source_owner": "src/admin/pages/BlockedIps.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/BugReports.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/BugReports.svelte",
+      "source_owner": "src/admin/pages/BugReports.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/Characters.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/Characters.svelte",
+      "source_owner": "src/admin/pages/Characters.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/ChatFilter.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/ChatFilter.svelte",
+      "source_owner": "src/admin/pages/ChatFilter.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/DetectionCalibration.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/DetectionCalibration.svelte",
+      "source_owner": "src/admin/pages/DetectionCalibration.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/IpAssociations.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/IpAssociations.svelte",
+      "source_owner": "src/admin/pages/IpAssociations.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/Moderation.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/Moderation.svelte",
+      "source_owner": "src/admin/pages/Moderation.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/ModerationDetail.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/ModerationDetail.svelte",
+      "source_owner": "src/admin/pages/ModerationDetail.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/ModerationHistoryPage.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/ModerationHistoryPage.svelte",
+      "source_owner": "src/admin/pages/ModerationHistoryPage.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/Overview.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/Overview.svelte",
+      "source_owner": "src/admin/pages/Overview.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/SharedIps.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/SharedIps.svelte",
+      "source_owner": "src/admin/pages/SharedIps.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/Staff.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/Staff.svelte",
+      "source_owner": "src/admin/pages/Staff.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/SuspiciousPlayers.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/SuspiciousPlayers.svelte",
+      "source_owner": "src/admin/pages/SuspiciousPlayers.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/TickPerf.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/TickPerf.svelte",
+      "source_owner": "src/admin/pages/TickPerf.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/Usage.svelte",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/Usage.svelte",
+      "source_owner": "src/admin/pages/Usage.svelte",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/pages/pages.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/pages/pages.ts",
+      "source_owner": "src/admin/pages/pages.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/permissions.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/permissions.ts",
+      "source_owner": "src/admin/permissions.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/site_presence.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/site_presence.ts",
+      "source_owner": "src/admin/site_presence.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/state/auth.svelte.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/state/auth.svelte.ts",
+      "source_owner": "src/admin/state/auth.svelte.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/state/poll.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/state/poll.ts",
+      "source_owner": "src/admin/state/poll.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/state/session.svelte.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/state/session.svelte.ts",
+      "source_owner": "src/admin/state/session.svelte.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/suspicious_sessions_export.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/suspicious_sessions_export.ts",
+      "source_owner": "src/admin/suspicious_sessions_export.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "admin:src/admin/types.ts",
+      "kind": "source",
+      "flow": "admin",
+      "path": "src/admin/types.ts",
+      "source_owner": "src/admin/types.ts",
+      "woc_owner": "native/apps/woc_admin"
+    },
+    {
+      "id": "authoring:src/editor/3d/editor_camera.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/3d/editor_camera.ts",
+      "source_owner": "src/editor/3d/editor_camera.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/3d/viewport.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/3d/viewport.ts",
+      "source_owner": "src/editor/3d/viewport.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/app.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/app.ts",
+      "source_owner": "src/editor/app.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/asset_browser.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/asset_browser.ts",
+      "source_owner": "src/editor/asset_browser.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/asset_catalog.generated.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/asset_catalog.generated.ts",
+      "source_owner": "src/editor/asset_catalog.generated.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/asset_thumbs.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/asset_thumbs.ts",
+      "source_owner": "src/editor/asset_thumbs.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/asset_thumbs_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/asset_thumbs_core.ts",
+      "source_owner": "src/editor/asset_thumbs_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/blocker_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/blocker_core.ts",
+      "source_owner": "src/editor/blocker_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/canvas.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/canvas.ts",
+      "source_owner": "src/editor/canvas.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/custom_map.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/custom_map.ts",
+      "source_owner": "src/editor/custom_map.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/dom.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/dom.ts",
+      "source_owner": "src/editor/dom.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/edit_caps_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/edit_caps_core.ts",
+      "source_owner": "src/editor/edit_caps_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/file_io.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/file_io.ts",
+      "source_owner": "src/editor/file_io.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/inspector.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/inspector.ts",
+      "source_owner": "src/editor/inspector.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/main.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/main.ts",
+      "source_owner": "src/editor/main.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/map_drawer.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/map_drawer.ts",
+      "source_owner": "src/editor/map_drawer.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/map_io.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/map_io.ts",
+      "source_owner": "src/editor/map_io.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/model.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/model.ts",
+      "source_owner": "src/editor/model.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/net.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/net.ts",
+      "source_owner": "src/editor/net.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/persist.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/persist.ts",
+      "source_owner": "src/editor/persist.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/placement_transform_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/placement_transform_core.ts",
+      "source_owner": "src/editor/placement_transform_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/playtest.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/playtest.ts",
+      "source_owner": "src/editor/playtest.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/procgen.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/procgen.ts",
+      "source_owner": "src/editor/procgen.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/save_lifecycle_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/save_lifecycle_core.ts",
+      "source_owner": "src/editor/save_lifecycle_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/server_errors_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/server_errors_core.ts",
+      "source_owner": "src/editor/server_errors_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/server_link_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/server_link_core.ts",
+      "source_owner": "src/editor/server_link_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/span_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/span_core.ts",
+      "source_owner": "src/editor/span_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/stamp_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/stamp_core.ts",
+      "source_owner": "src/editor/stamp_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/toasts.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/toasts.ts",
+      "source_owner": "src/editor/toasts.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/toolbar.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/toolbar.ts",
+      "source_owner": "src/editor/toolbar.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/topbar.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/topbar.ts",
+      "source_owner": "src/editor/topbar.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/tutorial.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/tutorial.ts",
+      "source_owner": "src/editor/tutorial.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/tutorial_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/tutorial_core.ts",
+      "source_owner": "src/editor/tutorial_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/undo_core.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/undo_core.ts",
+      "source_owner": "src/editor/undo_core.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/user_assets.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/user_assets.ts",
+      "source_owner": "src/editor/user_assets.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "authoring:src/editor/view.ts",
+      "kind": "source",
+      "flow": "authoring",
+      "path": "src/editor/view.ts",
+      "source_owner": "src/editor/view.ts",
+      "woc_owner": "native/apps/woc_editor"
+    },
+    {
+      "id": "guide:src/guide/app.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/app.ts",
+      "source_owner": "src/guide/app.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/chrome.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/chrome.ts",
+      "source_owner": "src/guide/chrome.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/class_meta.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/class_meta.ts",
+      "source_owner": "src/guide/class_meta.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/class_view.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/class_view.ts",
+      "source_owner": "src/guide/class_view.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/content.generated.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/content.generated.ts",
+      "source_owner": "src/guide/content.generated.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/data.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/data.ts",
+      "source_owner": "src/guide/data.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/head.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/head.ts",
+      "source_owner": "src/guide/head.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/main.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/main.ts",
+      "source_owner": "src/guide/main.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/nav_aids.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/nav_aids.ts",
+      "source_owner": "src/guide/nav_aids.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/arena.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/arena.ts",
+      "source_owner": "src/guide/pages/arena.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/bestiary.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/bestiary.ts",
+      "source_owner": "src/guide/pages/bestiary.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/classes.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/classes.ts",
+      "source_owner": "src/guide/pages/classes.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/combat.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/combat.ts",
+      "source_owner": "src/guide/pages/combat.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/controls.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/controls.ts",
+      "source_owner": "src/guide/pages/controls.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/deeds.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/deeds.ts",
+      "source_owner": "src/guide/pages/deeds.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/delves.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/delves.ts",
+      "source_owner": "src/guide/pages/delves.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/dungeons.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/dungeons.ts",
+      "source_owner": "src/guide/pages/dungeons.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/economy.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/economy.ts",
+      "source_owner": "src/guide/pages/economy.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/faq.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/faq.ts",
+      "source_owner": "src/guide/pages/faq.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/gear.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/gear.ts",
+      "source_owner": "src/guide/pages/gear.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/glossary.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/glossary.ts",
+      "source_owner": "src/guide/pages/glossary.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/home.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/home.ts",
+      "source_owner": "src/guide/pages/home.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/how_to_play.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/how_to_play.ts",
+      "source_owner": "src/guide/pages/how_to_play.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/index.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/index.ts",
+      "source_owner": "src/guide/pages/index.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/models.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/models.ts",
+      "source_owner": "src/guide/pages/models.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/professions.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/professions.ts",
+      "source_owner": "src/guide/pages/professions.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/progression.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/progression.ts",
+      "source_owner": "src/guide/pages/progression.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/quests.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/quests.ts",
+      "source_owner": "src/guide/pages/quests.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/settings.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/settings.ts",
+      "source_owner": "src/guide/pages/settings.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/social.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/social.ts",
+      "source_owner": "src/guide/pages/social.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/stats.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/stats.ts",
+      "source_owner": "src/guide/pages/stats.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/talents.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/talents.ts",
+      "source_owner": "src/guide/pages/talents.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/types.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/types.ts",
+      "source_owner": "src/guide/pages/types.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/ui.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/ui.ts",
+      "source_owner": "src/guide/pages/ui.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/vale_cup.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/vale_cup.ts",
+      "source_owner": "src/guide/pages/vale_cup.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/wish_i_knew.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/wish_i_knew.ts",
+      "source_owner": "src/guide/pages/wish_i_knew.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/pages/world.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/pages/world.ts",
+      "source_owner": "src/guide/pages/world.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/router.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/router.ts",
+      "source_owner": "src/guide/router.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/routes.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/routes.ts",
+      "source_owner": "src/guide/routes.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/search.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/search.ts",
+      "source_owner": "src/guide/search.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/viewer/embed.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/viewer/embed.ts",
+      "source_owner": "src/guide/viewer/embed.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/viewer/framing.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/viewer/framing.ts",
+      "source_owner": "src/guide/viewer/framing.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/viewer/index.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/viewer/index.ts",
+      "source_owner": "src/guide/viewer/index.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/viewer/model.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/viewer/model.ts",
+      "source_owner": "src/guide/viewer/model.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/viewer/mount.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/viewer/mount.ts",
+      "source_owner": "src/guide/viewer/mount.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "guide:src/guide/viewer/scene.ts",
+      "kind": "source",
+      "flow": "guide",
+      "path": "src/guide/viewer/scene.ts",
+      "source_owner": "src/guide/viewer/scene.ts",
+      "woc_owner": "native/apps/woc_guide"
+    },
+    {
+      "id": "gameplay_ui:src/ui/ability_damage.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/ability_damage.ts",
+      "source_owner": "src/ui/ability_damage.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/ability_self_only.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/ability_self_only.ts",
+      "source_owner": "src/ui/ability_self_only.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/absorb_bar.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/absorb_bar.ts",
+      "source_owner": "src/ui/absorb_bar.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/account_portal.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/account_portal.ts",
+      "source_owner": "src/ui/account_portal.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/action_bar_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/action_bar_painter.ts",
+      "source_owner": "src/ui/action_bar_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/action_bar_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/action_bar_view.ts",
+      "source_owner": "src/ui/action_bar_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/api_error_i18n.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/api_error_i18n.ts",
+      "source_owner": "src/ui/api_error_i18n.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/app_version.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/app_version.ts",
+      "source_owner": "src/ui/app_version.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/arena_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/arena_window.ts",
+      "source_owner": "src/ui/arena_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/arena_window_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/arena_window_view.ts",
+      "source_owner": "src/ui/arena_window_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/armory_inspect.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/armory_inspect.ts",
+      "source_owner": "src/ui/armory_inspect.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/armory_labels.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/armory_labels.ts",
+      "source_owner": "src/ui/armory_labels.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/attack_on_ability.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/attack_on_ability.ts",
+      "source_owner": "src/ui/attack_on_ability.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/aura_effect.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/aura_effect.ts",
+      "source_owner": "src/ui/aura_effect.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/auras_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/auras_painter.ts",
+      "source_owner": "src/ui/auras_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/auras_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/auras_view.ts",
+      "source_owner": "src/ui/auras_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/auth_utils.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/auth_utils.ts",
+      "source_owner": "src/ui/auth_utils.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/avatar_fallback.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/avatar_fallback.ts",
+      "source_owner": "src/ui/avatar_fallback.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/bag_filter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/bag_filter.ts",
+      "source_owner": "src/ui/bag_filter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/bags_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/bags_view.ts",
+      "source_owner": "src/ui/bags_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/bags_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/bags_window.ts",
+      "source_owner": "src/ui/bags_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/bank_filter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/bank_filter.ts",
+      "source_owner": "src/ui/bank_filter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/bank_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/bank_view.ts",
+      "source_owner": "src/ui/bank_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/bank_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/bank_window.ts",
+      "source_owner": "src/ui/bank_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/bug_report.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/bug_report.ts",
+      "source_owner": "src/ui/bug_report.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/calendar_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/calendar_view.ts",
+      "source_owner": "src/ui/calendar_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/calendar_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/calendar_window.ts",
+      "source_owner": "src/ui/calendar_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/camera_prompt.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/camera_prompt.ts",
+      "source_owner": "src/ui/camera_prompt.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/camera_prompt_core.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/camera_prompt_core.ts",
+      "source_owner": "src/ui/camera_prompt_core.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/cast_bar_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/cast_bar_painter.ts",
+      "source_owner": "src/ui/cast_bar_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/char_bags_pairing_core.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/char_bags_pairing_core.ts",
+      "source_owner": "src/ui/char_bags_pairing_core.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/char_delete_button.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/char_delete_button.ts",
+      "source_owner": "src/ui/char_delete_button.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/char_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/char_view.ts",
+      "source_owner": "src/ui/char_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/char_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/char_window.ts",
+      "source_owner": "src/ui/char_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/character_appearance.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/character_appearance.ts",
+      "source_owner": "src/ui/character_appearance.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/chat_announcer.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/chat_announcer.ts",
+      "source_owner": "src/ui/chat_announcer.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/chat_channels.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/chat_channels.ts",
+      "source_owner": "src/ui/chat_channels.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/chat_command_menu.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/chat_command_menu.ts",
+      "source_owner": "src/ui/chat_command_menu.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/chat_ignore_core.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/chat_ignore_core.ts",
+      "source_owner": "src/ui/chat_ignore_core.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/chat_input_autosize.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/chat_input_autosize.ts",
+      "source_owner": "src/ui/chat_input_autosize.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/chat_line.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/chat_line.ts",
+      "source_owner": "src/ui/chat_line.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/chat_timestamp.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/chat_timestamp.ts",
+      "source_owner": "src/ui/chat_timestamp.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/chat_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/chat_window.ts",
+      "source_owner": "src/ui/chat_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/class_details_data.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/class_details_data.ts",
+      "source_owner": "src/ui/class_details_data.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/claudium_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/claudium_view.ts",
+      "source_owner": "src/ui/claudium_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/claudium_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/claudium_window.ts",
+      "source_owner": "src/ui/claudium_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/clock.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/clock.ts",
+      "source_owner": "src/ui/clock.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/combat_announcer.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/combat_announcer.ts",
+      "source_owner": "src/ui/combat_announcer.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/combat_sfx.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/combat_sfx.ts",
+      "source_owner": "src/ui/combat_sfx.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/compass.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/compass.ts",
+      "source_owner": "src/ui/compass.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/consumable_bar_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/consumable_bar_view.ts",
+      "source_owner": "src/ui/consumable_bar_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/coords.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/coords.ts",
+      "source_owner": "src/ui/coords.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/corpse_harvest_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/corpse_harvest_view.ts",
+      "source_owner": "src/ui/corpse_harvest_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/corpse_harvest_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/corpse_harvest_window.ts",
+      "source_owner": "src/ui/corpse_harvest_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/crafting_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/crafting_view.ts",
+      "source_owner": "src/ui/crafting_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/crafting_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/crafting_window.ts",
+      "source_owner": "src/ui/crafting_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/daily_rewards_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/daily_rewards_view.ts",
+      "source_owner": "src/ui/daily_rewards_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/daily_rewards_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/daily_rewards_window.ts",
+      "source_owner": "src/ui/daily_rewards_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/cs_CZ.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/cs_CZ.ts",
+      "source_owner": "src/ui/deed_i18n.locales/cs_CZ.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/da_DK.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/da_DK.ts",
+      "source_owner": "src/ui/deed_i18n.locales/da_DK.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/de_DE.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/de_DE.ts",
+      "source_owner": "src/ui/deed_i18n.locales/de_DE.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/es.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/es.ts",
+      "source_owner": "src/ui/deed_i18n.locales/es.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/fr_FR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/fr_FR.ts",
+      "source_owner": "src/ui/deed_i18n.locales/fr_FR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/id_ID.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/id_ID.ts",
+      "source_owner": "src/ui/deed_i18n.locales/id_ID.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/it_IT.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/it_IT.ts",
+      "source_owner": "src/ui/deed_i18n.locales/it_IT.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/ja_JP.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/ja_JP.ts",
+      "source_owner": "src/ui/deed_i18n.locales/ja_JP.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/ko_KR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/ko_KR.ts",
+      "source_owner": "src/ui/deed_i18n.locales/ko_KR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/nl_NL.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/nl_NL.ts",
+      "source_owner": "src/ui/deed_i18n.locales/nl_NL.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/pl_PL.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/pl_PL.ts",
+      "source_owner": "src/ui/deed_i18n.locales/pl_PL.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/pt_BR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/pt_BR.ts",
+      "source_owner": "src/ui/deed_i18n.locales/pt_BR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/ru_RU.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/ru_RU.ts",
+      "source_owner": "src/ui/deed_i18n.locales/ru_RU.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/sv_SE.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/sv_SE.ts",
+      "source_owner": "src/ui/deed_i18n.locales/sv_SE.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/tr_TR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/tr_TR.ts",
+      "source_owner": "src/ui/deed_i18n.locales/tr_TR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/vi_VN.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/vi_VN.ts",
+      "source_owner": "src/ui/deed_i18n.locales/vi_VN.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/zh_CN.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/zh_CN.ts",
+      "source_owner": "src/ui/deed_i18n.locales/zh_CN.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.locales/zh_TW.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.locales/zh_TW.ts",
+      "source_owner": "src/ui/deed_i18n.locales/zh_TW.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_i18n.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_i18n.ts",
+      "source_owner": "src/ui/deed_i18n.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_image_ids.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_image_ids.ts",
+      "source_owner": "src/ui/deed_image_ids.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deed_tracker_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deed_tracker_painter.ts",
+      "source_owner": "src/ui/deed_tracker_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deeds_leaderboard_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deeds_leaderboard_view.ts",
+      "source_owner": "src/ui/deeds_leaderboard_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deeds_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deeds_view.ts",
+      "source_owner": "src/ui/deeds_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/deeds_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/deeds_window.ts",
+      "source_owner": "src/ui/deeds_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/delve_map.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/delve_map.ts",
+      "source_owner": "src/ui/delve_map.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/delve_map_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/delve_map_painter.ts",
+      "source_owner": "src/ui/delve_map_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/desktop_update_toast.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/desktop_update_toast.ts",
+      "source_owner": "src/ui/desktop_update_toast.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/desktop_update_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/desktop_update_view.ts",
+      "source_owner": "src/ui/desktop_update_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/dev_leaderboard_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/dev_leaderboard_view.ts",
+      "source_owner": "src/ui/dev_leaderboard_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/dev_tier.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/dev_tier.ts",
+      "source_owner": "src/ui/dev_tier.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/dialog_root.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/dialog_root.ts",
+      "source_owner": "src/ui/dialog_root.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/discord_deeplink.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/discord_deeplink.ts",
+      "source_owner": "src/ui/discord_deeplink.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/discord_role_tag.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/discord_role_tag.ts",
+      "source_owner": "src/ui/discord_role_tag.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/discord_status.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/discord_status.ts",
+      "source_owner": "src/ui/discord_status.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/discord_tier.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/discord_tier.ts",
+      "source_owner": "src/ui/discord_tier.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/discord_widget.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/discord_widget.ts",
+      "source_owner": "src/ui/discord_widget.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/discord_widget_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/discord_widget_view.ts",
+      "source_owner": "src/ui/discord_widget_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/dropdown_nav.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/dropdown_nav.ts",
+      "source_owner": "src/ui/dropdown_nav.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/dropdown_position.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/dropdown_position.ts",
+      "source_owner": "src/ui/dropdown_position.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/dungeon_finder_proposal_popup.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/dungeon_finder_proposal_popup.ts",
+      "source_owner": "src/ui/dungeon_finder_proposal_popup.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/dungeon_finder_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/dungeon_finder_view.ts",
+      "source_owner": "src/ui/dungeon_finder_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/dungeon_finder_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/dungeon_finder_window.ts",
+      "source_owner": "src/ui/dungeon_finder_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/emote_icons.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/emote_icons.ts",
+      "source_owner": "src/ui/emote_icons.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/entity_i18n.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/entity_i18n.ts",
+      "source_owner": "src/ui/entity_i18n.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/equip_drop_core.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/equip_drop_core.ts",
+      "source_owner": "src/ui/equip_drop_core.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/error_toast_log.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/error_toast_log.ts",
+      "source_owner": "src/ui/error_toast_log.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/esc.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/esc.ts",
+      "source_owner": "src/ui/esc.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/fct_core.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/fct_core.ts",
+      "source_owner": "src/ui/fct_core.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/fct_event.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/fct_event.ts",
+      "source_owner": "src/ui/fct_event.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/fct_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/fct_painter.ts",
+      "source_owner": "src/ui/fct_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/focus_manager.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/focus_manager.ts",
+      "source_owner": "src/ui/focus_manager.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/focus_order.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/focus_order.ts",
+      "source_owner": "src/ui/focus_order.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/frame_pos_reset.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/frame_pos_reset.ts",
+      "source_owner": "src/ui/frame_pos_reset.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/gathering_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/gathering_view.ts",
+      "source_owner": "src/ui/gathering_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/gossip_menu.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/gossip_menu.ts",
+      "source_owner": "src/ui/gossip_menu.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/ground_aim.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/ground_aim.ts",
+      "source_owner": "src/ui/ground_aim.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/guild_leaderboard_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/guild_leaderboard_view.ts",
+      "source_owner": "src/ui/guild_leaderboard_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/heroic_vendor_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/heroic_vendor_view.ts",
+      "source_owner": "src/ui/heroic_vendor_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/heroic_vendor_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/heroic_vendor_window.ts",
+      "source_owner": "src/ui/heroic_vendor_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/holder_tier.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/holder_tier.ts",
+      "source_owner": "src/ui/holder_tier.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/hotbar.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/hotbar.ts",
+      "source_owner": "src/ui/hotbar.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/hud.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/hud.ts",
+      "source_owner": "src/ui/hud.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/abilities.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/abilities.ts",
+      "source_owner": "src/ui/i18n.catalog/abilities.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/api_error.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/api_error.ts",
+      "source_owner": "src/ui/i18n.catalog/api_error.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/armory.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/armory.ts",
+      "source_owner": "src/ui/i18n.catalog/armory.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/editor.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/editor.ts",
+      "source_owner": "src/ui/i18n.catalog/editor.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/game.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/game.ts",
+      "source_owner": "src/ui/i18n.catalog/game.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/guide.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/guide.ts",
+      "source_owner": "src/ui/i18n.catalog/guide.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/hud.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/hud.ts",
+      "source_owner": "src/ui/i18n.catalog/hud.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/hud_chrome.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/hud_chrome.ts",
+      "source_owner": "src/ui/i18n.catalog/hud_chrome.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/index.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/index.ts",
+      "source_owner": "src/ui/i18n.catalog/index.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/items.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/items.ts",
+      "source_owner": "src/ui/i18n.catalog/items.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/merge.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/merge.ts",
+      "source_owner": "src/ui/i18n.catalog/merge.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/quests.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/quests.ts",
+      "source_owner": "src/ui/i18n.catalog/quests.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/shell.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/shell.ts",
+      "source_owner": "src/ui/i18n.catalog/shell.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.catalog/translation_keys.generated.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.catalog/translation_keys.generated.ts",
+      "source_owner": "src/ui/i18n.catalog/translation_keys.generated.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/cs_CZ.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/cs_CZ.ts",
+      "source_owner": "src/ui/i18n.locales/cs_CZ.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/da_DK.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/da_DK.ts",
+      "source_owner": "src/ui/i18n.locales/da_DK.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/de_DE.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/de_DE.ts",
+      "source_owner": "src/ui/i18n.locales/de_DE.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/en_CA.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/en_CA.ts",
+      "source_owner": "src/ui/i18n.locales/en_CA.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/es.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/es.ts",
+      "source_owner": "src/ui/i18n.locales/es.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/es_ES.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/es_ES.ts",
+      "source_owner": "src/ui/i18n.locales/es_ES.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/fr_CA.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/fr_CA.ts",
+      "source_owner": "src/ui/i18n.locales/fr_CA.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/fr_FR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/fr_FR.ts",
+      "source_owner": "src/ui/i18n.locales/fr_FR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/id_ID.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/id_ID.ts",
+      "source_owner": "src/ui/i18n.locales/id_ID.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/it_IT.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/it_IT.ts",
+      "source_owner": "src/ui/i18n.locales/it_IT.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/ja_JP.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/ja_JP.ts",
+      "source_owner": "src/ui/i18n.locales/ja_JP.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/ko_KR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/ko_KR.ts",
+      "source_owner": "src/ui/i18n.locales/ko_KR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/nl_NL.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/nl_NL.ts",
+      "source_owner": "src/ui/i18n.locales/nl_NL.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/pl_PL.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/pl_PL.ts",
+      "source_owner": "src/ui/i18n.locales/pl_PL.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/pt_BR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/pt_BR.ts",
+      "source_owner": "src/ui/i18n.locales/pt_BR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/ru_RU.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/ru_RU.ts",
+      "source_owner": "src/ui/i18n.locales/ru_RU.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/sv_SE.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/sv_SE.ts",
+      "source_owner": "src/ui/i18n.locales/sv_SE.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/tr_TR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/tr_TR.ts",
+      "source_owner": "src/ui/i18n.locales/tr_TR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/vi_VN.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/vi_VN.ts",
+      "source_owner": "src/ui/i18n.locales/vi_VN.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/zh_CN.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/zh_CN.ts",
+      "source_owner": "src/ui/i18n.locales/zh_CN.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.locales/zh_TW.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.locales/zh_TW.ts",
+      "source_owner": "src/ui/i18n.locales/zh_TW.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/cs_CZ.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/cs_CZ.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/cs_CZ.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/da_DK.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/da_DK.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/da_DK.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/de_DE.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/de_DE.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/de_DE.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/en.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/en.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/en.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/en_CA.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/en_CA.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/en_CA.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/en_XA.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/en_XA.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/en_XA.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/es.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/es.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/es.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/es_ES.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/es_ES.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/es_ES.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/fr_CA.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/fr_CA.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/fr_CA.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/fr_FR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/fr_FR.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/fr_FR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/id_ID.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/id_ID.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/id_ID.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/index.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/index.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/index.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/it_IT.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/it_IT.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/it_IT.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/ja_JP.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/ja_JP.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/ja_JP.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/ko_KR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/ko_KR.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/ko_KR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/loaders.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/loaders.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/loaders.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/nl_NL.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/nl_NL.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/nl_NL.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/pending.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/pending.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/pending.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/pl_PL.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/pl_PL.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/pl_PL.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/pt_BR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/pt_BR.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/pt_BR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/ru_RU.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/ru_RU.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/ru_RU.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/sv_SE.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/sv_SE.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/sv_SE.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/tr_TR.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/tr_TR.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/tr_TR.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/vi_VN.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/vi_VN.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/vi_VN.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/zh_CN.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/zh_CN.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/zh_CN.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.resolved.generated/zh_TW.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.resolved.generated/zh_TW.ts",
+      "source_owner": "src/ui/i18n.resolved.generated/zh_TW.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/i18n.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/i18n.ts",
+      "source_owner": "src/ui/i18n.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/icon_prewarm.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/icon_prewarm.ts",
+      "source_owner": "src/ui/icon_prewarm.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/icons.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/icons.ts",
+      "source_owner": "src/ui/icons.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/item_armor_type.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/item_armor_type.ts",
+      "source_owner": "src/ui/item_armor_type.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/item_class_restriction.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/item_class_restriction.ts",
+      "source_owner": "src/ui/item_class_restriction.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/item_compare.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/item_compare.ts",
+      "source_owner": "src/ui/item_compare.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/item_drag_state.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/item_drag_state.ts",
+      "source_owner": "src/ui/item_drag_state.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/item_drop_hit_test.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/item_drop_hit_test.ts",
+      "source_owner": "src/ui/item_drop_hit_test.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/item_set_tooltip_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/item_set_tooltip_view.ts",
+      "source_owner": "src/ui/item_set_tooltip_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/leaderboard_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/leaderboard_view.ts",
+      "source_owner": "src/ui/leaderboard_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/leaderboard_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/leaderboard_window.ts",
+      "source_owner": "src/ui/leaderboard_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/live_region_politeness.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/live_region_politeness.ts",
+      "source_owner": "src/ui/live_region_politeness.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/live_region_reannounce.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/live_region_reannounce.ts",
+      "source_owner": "src/ui/live_region_reannounce.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/loading_tips.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/loading_tips.ts",
+      "source_owner": "src/ui/loading_tips.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/lockpick_panel.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/lockpick_panel.ts",
+      "source_owner": "src/ui/lockpick_panel.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/lockpick_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/lockpick_window.ts",
+      "source_owner": "src/ui/lockpick_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/log_event_route.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/log_event_route.ts",
+      "source_owner": "src/ui/log_event_route.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/loot_roll_reconcile.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/loot_roll_reconcile.ts",
+      "source_owner": "src/ui/loot_roll_reconcile.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/loot_roll_status_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/loot_roll_status_view.ts",
+      "source_owner": "src/ui/loot_roll_status_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/loot_settings_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/loot_settings_view.ts",
+      "source_owner": "src/ui/loot_settings_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/loot_settings_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/loot_settings_window.ts",
+      "source_owner": "src/ui/loot_settings_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/low_health.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/low_health.ts",
+      "source_owner": "src/ui/low_health.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/low_resource.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/low_resource.ts",
+      "source_owner": "src/ui/low_resource.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/mailbox_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/mailbox_view.ts",
+      "source_owner": "src/ui/mailbox_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/mailbox_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/mailbox_window.ts",
+      "source_owner": "src/ui/mailbox_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/map_dungeon_portals.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/map_dungeon_portals.ts",
+      "source_owner": "src/ui/map_dungeon_portals.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/map_quest_list_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/map_quest_list_view.ts",
+      "source_owner": "src/ui/map_quest_list_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/map_terrain.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/map_terrain.ts",
+      "source_owner": "src/ui/map_terrain.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/map_window_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/map_window_painter.ts",
+      "source_owner": "src/ui/map_window_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/map_window_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/map_window_view.ts",
+      "source_owner": "src/ui/map_window_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/market_filters.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/market_filters.ts",
+      "source_owner": "src/ui/market_filters.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/market_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/market_view.ts",
+      "source_owner": "src/ui/market_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/market_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/market_window.ts",
+      "source_owner": "src/ui/market_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/meters.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/meters.ts",
+      "source_owner": "src/ui/meters.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/minimap_markers.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/minimap_markers.ts",
+      "source_owner": "src/ui/minimap_markers.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/minimap_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/minimap_painter.ts",
+      "source_owner": "src/ui/minimap_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/minimap_zoom.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/minimap_zoom.ts",
+      "source_owner": "src/ui/minimap_zoom.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/mob_tooltip_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/mob_tooltip_view.ts",
+      "source_owner": "src/ui/mob_tooltip_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/mobile_action_page_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/mobile_action_page_view.ts",
+      "source_owner": "src/ui/mobile_action_page_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/mobile_action_ring_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/mobile_action_ring_painter.ts",
+      "source_owner": "src/ui/mobile_action_ring_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/mobile_hud_layout.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/mobile_hud_layout.ts",
+      "source_owner": "src/ui/mobile_hud_layout.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/movable_frame.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/movable_frame.ts",
+      "source_owner": "src/ui/movable_frame.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/native_language.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/native_language.ts",
+      "source_owner": "src/ui/native_language.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/native_update_prompt.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/native_update_prompt.ts",
+      "source_owner": "src/ui/native_update_prompt.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/options_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/options_view.ts",
+      "source_owner": "src/ui/options_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/options_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/options_window.ts",
+      "source_owner": "src/ui/options_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/painter_host.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/painter_host.ts",
+      "source_owner": "src/ui/painter_host.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/party_chip.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/party_chip.ts",
+      "source_owner": "src/ui/party_chip.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/party_collapse.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/party_collapse.ts",
+      "source_owner": "src/ui/party_collapse.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/party_frame_row.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/party_frame_row.ts",
+      "source_owner": "src/ui/party_frame_row.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/party_frames.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/party_frames.ts",
+      "source_owner": "src/ui/party_frames.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/party_frames_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/party_frames_painter.ts",
+      "source_owner": "src/ui/party_frames_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/percentile_tier.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/percentile_tier.ts",
+      "source_owner": "src/ui/percentile_tier.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/perf_graph_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/perf_graph_painter.ts",
+      "source_owner": "src/ui/perf_graph_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/perf_metrics_sampler.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/perf_metrics_sampler.ts",
+      "source_owner": "src/ui/perf_metrics_sampler.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/perf_overlay.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/perf_overlay.ts",
+      "source_owner": "src/ui/perf_overlay.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/perf_overlay_config.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/perf_overlay_config.ts",
+      "source_owner": "src/ui/perf_overlay_config.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/perf_overlay_model.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/perf_overlay_model.ts",
+      "source_owner": "src/ui/perf_overlay_model.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/perf_overlay_settings.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/perf_overlay_settings.ts",
+      "source_owner": "src/ui/perf_overlay_settings.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/pet_action_icons.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/pet_action_icons.ts",
+      "source_owner": "src/ui/pet_action_icons.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/player_card.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/player_card.ts",
+      "source_owner": "src/ui/player_card.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/player_card_share.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/player_card_share.ts",
+      "source_owner": "src/ui/player_card_share.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/player_context_menu.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/player_context_menu.ts",
+      "source_owner": "src/ui/player_context_menu.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/player_stealthed.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/player_stealthed.ts",
+      "source_owner": "src/ui/player_stealthed.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/portrait_chip.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/portrait_chip.ts",
+      "source_owner": "src/ui/portrait_chip.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/profanity.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/profanity.ts",
+      "source_owner": "src/ui/profanity.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/quest_link.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/quest_link.ts",
+      "source_owner": "src/ui/quest_link.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/quest_progress_banner.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/quest_progress_banner.ts",
+      "source_owner": "src/ui/quest_progress_banner.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/quest_tracker.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/quest_tracker.ts",
+      "source_owner": "src/ui/quest_tracker.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/questlog_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/questlog_view.ts",
+      "source_owner": "src/ui/questlog_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/questlog_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/questlog_window.ts",
+      "source_owner": "src/ui/questlog_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/raid_lockout.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/raid_lockout.ts",
+      "source_owner": "src/ui/raid_lockout.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/raid_lockout_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/raid_lockout_view.ts",
+      "source_owner": "src/ui/raid_lockout_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/reconnect_overlay.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/reconnect_overlay.ts",
+      "source_owner": "src/ui/reconnect_overlay.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/rest_indicator.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/rest_indicator.ts",
+      "source_owner": "src/ui/rest_indicator.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/rite_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/rite_window.ts",
+      "source_owner": "src/ui/rite_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/roving_index.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/roving_index.ts",
+      "source_owner": "src/ui/roving_index.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/server_i18n.newlocales.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/server_i18n.newlocales.ts",
+      "source_owner": "src/ui/server_i18n.newlocales.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/server_i18n.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/server_i18n.ts",
+      "source_owner": "src/ui/server_i18n.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/server_i18n_moderation.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/server_i18n_moderation.ts",
+      "source_owner": "src/ui/server_i18n_moderation.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/settings_controls.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/settings_controls.ts",
+      "source_owner": "src/ui/settings_controls.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/sim_i18n.newlocales.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/sim_i18n.newlocales.ts",
+      "source_owner": "src/ui/sim_i18n.newlocales.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/sim_i18n.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/sim_i18n.ts",
+      "source_owner": "src/ui/sim_i18n.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/skin_picker.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/skin_picker.ts",
+      "source_owner": "src/ui/skin_picker.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/social_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/social_view.ts",
+      "source_owner": "src/ui/social_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/social_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/social_window.ts",
+      "source_owner": "src/ui/social_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/spectate_badge.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/spectate_badge.ts",
+      "source_owner": "src/ui/spectate_badge.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/spellbook_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/spellbook_view.ts",
+      "source_owner": "src/ui/spellbook_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/spellbook_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/spellbook_window.ts",
+      "source_owner": "src/ui/spellbook_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/stat_tooltip.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/stat_tooltip.ts",
+      "source_owner": "src/ui/stat_tooltip.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/stat_tooltip_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/stat_tooltip_view.ts",
+      "source_owner": "src/ui/stat_tooltip_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/steam_link.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/steam_link.ts",
+      "source_owner": "src/ui/steam_link.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/store_promo_card.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/store_promo_card.ts",
+      "source_owner": "src/ui/store_promo_card.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/subzone.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/subzone.ts",
+      "source_owner": "src/ui/subzone.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/swing_timer.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/swing_timer.ts",
+      "source_owner": "src/ui/swing_timer.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/swing_timer_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/swing_timer_painter.ts",
+      "source_owner": "src/ui/swing_timer_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/talent_body_fit.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/talent_body_fit.ts",
+      "source_owner": "src/ui/talent_body_fit.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/talent_i18n.newlocales.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/talent_i18n.newlocales.ts",
+      "source_owner": "src/ui/talent_i18n.newlocales.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/talent_i18n.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/talent_i18n.ts",
+      "source_owner": "src/ui/talent_i18n.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/talent_icons.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/talent_icons.ts",
+      "source_owner": "src/ui/talent_icons.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/talent_tree_fit.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/talent_tree_fit.ts",
+      "source_owner": "src/ui/talent_tree_fit.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/talents_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/talents_view.ts",
+      "source_owner": "src/ui/talents_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/talents_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/talents_window.ts",
+      "source_owner": "src/ui/talents_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/target_frame_pos.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/target_frame_pos.ts",
+      "source_owner": "src/ui/target_frame_pos.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/theme.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/theme.ts",
+      "source_owner": "src/ui/theme.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/tooltip_owner.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/tooltip_owner.ts",
+      "source_owner": "src/ui/tooltip_owner.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/touch_item_drag.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/touch_item_drag.ts",
+      "source_owner": "src/ui/touch_item_drag.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/touch_peek.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/touch_peek.ts",
+      "source_owner": "src/ui/touch_peek.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/touch_tap.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/touch_tap.ts",
+      "source_owner": "src/ui/touch_tap.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/town_focus_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/town_focus_view.ts",
+      "source_owner": "src/ui/town_focus_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/town_focus_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/town_focus_window.ts",
+      "source_owner": "src/ui/town_focus_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/tutorial.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/tutorial.ts",
+      "source_owner": "src/ui/tutorial.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/tutorial_copy.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/tutorial_copy.ts",
+      "source_owner": "src/ui/tutorial_copy.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/two_factor_setup.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/two_factor_setup.ts",
+      "source_owner": "src/ui/two_factor_setup.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/ui_effects_applier.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/ui_effects_applier.ts",
+      "source_owner": "src/ui/ui_effects_applier.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/ui_icons.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/ui_icons.ts",
+      "source_owner": "src/ui/ui_icons.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/ui_scale.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/ui_scale.ts",
+      "source_owner": "src/ui/ui_scale.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/unit_frame.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/unit_frame.ts",
+      "source_owner": "src/ui/unit_frame.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/unit_frame_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/unit_frame_painter.ts",
+      "source_owner": "src/ui/unit_frame_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/unit_portrait.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/unit_portrait.ts",
+      "source_owner": "src/ui/unit_portrait.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/unit_portrait_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/unit_portrait_painter.ts",
+      "source_owner": "src/ui/unit_portrait_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_betting.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_betting.ts",
+      "source_owner": "src/ui/vale_cup_betting.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_betting_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_betting_view.ts",
+      "source_owner": "src/ui/vale_cup_betting_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_briefing.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_briefing.ts",
+      "source_owner": "src/ui/vale_cup_briefing.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_briefing_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_briefing_view.ts",
+      "source_owner": "src/ui/vale_cup_briefing_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_charge.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_charge.ts",
+      "source_owner": "src/ui/vale_cup_charge.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_charge_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_charge_view.ts",
+      "source_owner": "src/ui/vale_cup_charge_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_flag.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_flag.ts",
+      "source_owner": "src/ui/vale_cup_flag.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_hud.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_hud.ts",
+      "source_owner": "src/ui/vale_cup_hud.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_hud_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_hud_view.ts",
+      "source_owner": "src/ui/vale_cup_hud_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_indicator.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_indicator.ts",
+      "source_owner": "src/ui/vale_cup_indicator.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_indicator_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_indicator_view.ts",
+      "source_owner": "src/ui/vale_cup_indicator_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_window.ts",
+      "source_owner": "src/ui/vale_cup_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vale_cup_window_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vale_cup_window_view.ts",
+      "source_owner": "src/ui/vale_cup_window_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vendor_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vendor_view.ts",
+      "source_owner": "src/ui/vendor_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/vendor_window.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/vendor_window.ts",
+      "source_owner": "src/ui/vendor_window.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/voice_events.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/voice_events.ts",
+      "source_owner": "src/ui/voice_events.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/wallet_balance.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/wallet_balance.ts",
+      "source_owner": "src/ui/wallet_balance.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/weapon_proc_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/weapon_proc_view.ts",
+      "source_owner": "src/ui/weapon_proc_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/weapon_variants.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/weapon_variants.ts",
+      "source_owner": "src/ui/weapon_variants.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/window_drag.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/window_drag.ts",
+      "source_owner": "src/ui/window_drag.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/window_drag_core.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/window_drag_core.ts",
+      "source_owner": "src/ui/window_drag_core.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/window_focus.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/window_focus.ts",
+      "source_owner": "src/ui/window_focus.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/window_resize.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/window_resize.ts",
+      "source_owner": "src/ui/window_resize.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/window_resize_core.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/window_resize_core.ts",
+      "source_owner": "src/ui/window_resize_core.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/window_stack_state_core.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/window_stack_state_core.ts",
+      "source_owner": "src/ui/window_stack_state_core.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/woc_store_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/woc_store_view.ts",
+      "source_owner": "src/ui/woc_store_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/world_drop_target.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/world_drop_target.ts",
+      "source_owner": "src/ui/world_drop_target.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/world_entity_i18n.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/world_entity_i18n.ts",
+      "source_owner": "src/ui/world_entity_i18n.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/xp_bar.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/xp_bar.ts",
+      "source_owner": "src/ui/xp_bar.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/xp_bar_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/xp_bar_painter.ts",
+      "source_owner": "src/ui/xp_bar_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/yumi_match_painter.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/yumi_match_painter.ts",
+      "source_owner": "src/ui/yumi_match_painter.ts",
+      "woc_owner": "native/apps/woc_client"
+    },
+    {
+      "id": "gameplay_ui:src/ui/yumi_match_view.ts",
+      "kind": "source",
+      "flow": "gameplay_ui",
+      "path": "src/ui/yumi_match_view.ts",
+      "source_owner": "src/ui/yumi_match_view.ts",
+      "woc_owner": "native/apps/woc_client"
+    }
+  ]
+}

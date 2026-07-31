@@ -9,12 +9,12 @@ mod system_param;
 
 use std::{cell::Cell, marker::PhantomData};
 
+use crate::scene::EntityId;
+use crate::scene::World;
 use crate::scene::ecs::{
     ArchetypeId, ChangeDetectionScanStats, ComponentStorageLocation, QueryAccess, QueryAccessError,
     QueryDataAccess, QueryFilter, StableEntityLocation,
 };
-use crate::scene::EntityId;
-use crate::scene::World;
 
 #[derive(Clone, Debug)]
 pub struct QueryState<D, F = ()> {
@@ -86,7 +86,7 @@ where
 }
 
 pub use stats::{
-    QueryStateCacheStats, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
-    ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
-    ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
+    ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC, QueryStateCacheStats,
 };

@@ -20,7 +20,7 @@ use zircon_runtime::core::framework::render::{
     RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
     RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderStats, RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
-    ShL2Rgb, ViewportCameraSnapshot,
+    RendererCommon, ShL2Rgb, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -494,7 +494,11 @@ fn fixture_mesh(
         tint: Vec4::ONE,
         mobility,
         static_state: RenderMeshStaticState::new(mobility == Mobility::Static, 1, 1),
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        common: RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            is_static: mobility == Mobility::Static,
+            ..RendererCommon::default()
+        },
     }
 }
 

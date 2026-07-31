@@ -1,0 +1,6 @@
+var console = %import("zr.system.console");
+var ring = %import("combat/ring_of_frost_geometry");
+console.printLine("m4-ring-of-frost-geometry-test");
+var result = ring.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

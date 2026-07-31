@@ -1,41 +1,150 @@
+use std::{borrow::Cow, sync::OnceLock};
+
 use toml::Value;
 use zircon_runtime_interface::ui::{
     component::UiComponentState,
+    design_tokens::EditorDesignTokens,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
     tree::UiTemplateNodeMetadata,
 };
 
 use super::painter_state::UiRenderPainterStateSource;
 
-const SURFACE: &str = "#15191d";
-const SURFACE_RAISED: &str = "#1b2226";
-const SURFACE_INSET: &str = "#101418";
-const SURFACE_VIEWPORT: &str = "#0b1115";
-const SURFACE_STATUS: &str = "#11171b";
-const SURFACE_HOVER: &str = "#202a2f";
-const SURFACE_PRESSED: &str = "#14333b";
-const SURFACE_SELECTED: &str = "#0f3b43";
-const SURFACE_OPEN: &str = "#132e35";
-const SURFACE_LOADING: &str = "#20262a";
-const SURFACE_DISABLED: &str = "#252c31";
-const BORDER: &str = "#2b343a";
-const BORDER_MUTED: &str = "#242c31";
-const BORDER_ACTIVE: &str = "#35c7d0";
-const TEXT: &str = "#c6d2d7";
-const TEXT_MUTED: &str = "#87939a";
-const TEXT_DISABLED: &str = "#59656c";
-const ICON: &str = "#9fb0b7";
-const ACCENT: &str = "#35c7d0";
-const FONT_SIZE: f32 = 11.5;
-const LINE_HEIGHT: f32 = FONT_SIZE * 1.2;
-const TEXT_INSET_X: f32 = 10.0;
-const TEXT_INSET_Y: f32 = 7.0;
-const ICON_SIZE: f32 = 16.0;
-const ICON_GAP: f32 = 6.0;
-const SEPARATOR_THICKNESS: f32 = 1.0;
+#[derive(Clone, Debug)]
+struct ChromePalette {
+    surface: String,
+    surface_raised: String,
+    surface_inset: String,
+    surface_viewport: String,
+    surface_status: String,
+    surface_hover: String,
+    surface_pressed: String,
+    surface_selected: String,
+    surface_open: String,
+    surface_loading: String,
+    surface_disabled: String,
+    border: String,
+    border_muted: String,
+    border_active: String,
+    text: String,
+    text_muted: String,
+    text_disabled: String,
+    icon: String,
+    accent: String,
+    border_width: f32,
+    radius_small: f32,
+}
+
+#[derive(Clone, Copy)]
+struct ChromeMetrics {
+    text_inset_left: f32,
+    text_inset_right: f32,
+    text_inset_y: f32,
+    icon_size: f32,
+    icon_gap: f32,
+    separator_thickness: f32,
+    font_size: f32,
+    line_height: f32,
+}
+
+impl ChromeMetrics {
+    fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
+        let default_metrics = default_chrome_metrics();
+        let default_line_height_ratio = default_metrics.line_height / default_metrics.font_size;
+        let mut metrics = default_metrics;
+        metrics.text_inset_left = metric_attribute(metadata, "layout_padding_left")
+            .or_else(|| metric_attribute(metadata, "text_inset_left"))
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(metrics.text_inset_left);
+        metrics.text_inset_right = metric_attribute(metadata, "layout_padding_right")
+            .or_else(|| metric_attribute(metadata, "text_inset_right"))
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(metrics.text_inset_right);
+        metrics.text_inset_y = metric_attribute(metadata, "layout_padding_vertical")
+            .or_else(|| metric_attribute(metadata, "text_inset_y"))
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(metrics.text_inset_y);
+        metrics.icon_size = metric_attribute(metadata, "layout_icon_size")
+            .or_else(|| metric_attribute(metadata, "icon_size"))
+            .filter(|value| *value > 0.0)
+            .unwrap_or(metrics.icon_size);
+        metrics.icon_gap = metric_attribute(metadata, "layout_spacing")
+            .or_else(|| metric_attribute(metadata, "icon_gap"))
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(metrics.icon_gap);
+        metrics.separator_thickness = metric_attribute(metadata, "separator_thickness")
+            .or_else(|| metric_attribute(metadata, "border_width"))
+            .filter(|value| *value > 0.0)
+            .unwrap_or(metrics.separator_thickness);
+        metrics.font_size = metric_attribute(metadata, "font_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(metrics.font_size);
+        metrics.line_height = metric_attribute(metadata, "line_height")
+            .filter(|value| *value > 0.0)
+            .or_else(|| {
+                metric_attribute(metadata, "line_height_ratio")
+                    .filter(|value| *value > 0.0)
+                    .map(|ratio| metrics.font_size * ratio)
+            })
+            .unwrap_or(metrics.font_size * default_line_height_ratio);
+        metrics
+    }
+}
+
+fn default_chrome_metrics() -> ChromeMetrics {
+    static METRICS: OnceLock<ChromeMetrics> = OnceLock::new();
+    *METRICS.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let controls = &tokens.controls;
+        let density = &tokens.density;
+        let typography = &tokens.typography;
+        ChromeMetrics {
+            text_inset_left: (density.gap_large - controls.border_width * 2.0).max(0.0),
+            text_inset_right: (density.gap_large - controls.border_width * 2.0).max(0.0),
+            text_inset_y: (density.gap_medium - controls.border_width).max(0.0),
+            icon_size: (controls.dense_height - density.gap_large).max(controls.border_width),
+            icon_gap: (density.gap_medium - controls.border_width * 2.0).max(0.0),
+            separator_thickness: controls.border_width,
+            font_size: typography.body_size,
+            line_height: typography.body_size * typography.line_height,
+        }
+    })
+}
+
+fn chrome_palette() -> &'static ChromePalette {
+    static PALETTE: OnceLock<ChromePalette> = OnceLock::new();
+    PALETTE.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let colors = &tokens.palette;
+        let controls = &tokens.controls;
+        ChromePalette {
+            surface: css_color(colors.surface[1]),
+            surface_raised: css_color(colors.surface[2]),
+            surface_inset: css_color(colors.surface_recessed),
+            surface_viewport: css_color(colors.surface_recessed),
+            surface_status: css_color(colors.surface[0]),
+            surface_hover: css_color(colors.surface_hover),
+            surface_pressed: css_color(colors.surface[3]),
+            surface_selected: css_color(colors.surface_selected),
+            surface_open: css_color(colors.accent_soft),
+            surface_loading: css_color(colors.surface[2]),
+            surface_disabled: css_color(colors.surface_disabled),
+            border: css_color(colors.border),
+            border_muted: css_color(colors.separator_soft),
+            border_active: css_color(colors.accent),
+            text: css_color(colors.text_primary),
+            text_muted: css_color(colors.text_secondary),
+            text_disabled: css_color(colors.text_disabled),
+            icon: css_color(colors.text_secondary),
+            accent: css_color(colors.accent),
+            border_width: controls.border_width,
+            radius_small: controls.small_radius,
+        }
+    })
+}
 
 pub(super) fn chrome_suppresses_owner_surface(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
     metadata.is_some_and(|metadata| chrome_kind(metadata).is_some())
@@ -70,6 +179,7 @@ pub(super) fn chrome_render_commands(
     }
 
     let state = ChromeRenderState::resolve(metadata, state_flags, component_state);
+    let metrics = ChromeMetrics::resolve(metadata);
     let mut commands = vec![surface_command(
         node_id, frame, clip_frame, z_index, metadata, kind, &state, opacity,
     )];
@@ -77,7 +187,7 @@ pub(super) fn chrome_render_commands(
     if let Some(edge) = separator_edge(metadata, kind) {
         commands.push(separator_command(
             node_id,
-            separator_frame(frame, edge),
+            separator_frame(frame, edge, metrics.separator_thickness),
             clip_frame,
             z_index.saturating_add(1),
             metadata,
@@ -90,10 +200,9 @@ pub(super) fn chrome_render_commands(
     let icon = chrome_icon(metadata);
     let has_icon = icon.is_some();
     if let Some(icon) = icon {
-        let icon_size = number_attribute(metadata, "icon_size").unwrap_or(ICON_SIZE);
         commands.push(icon_command(
             node_id,
-            icon_frame(frame, label.is_some(), icon_size),
+            icon_frame(frame, label.is_some(), metrics),
             clip_frame,
             z_index.saturating_add(2),
             icon,
@@ -105,12 +214,13 @@ pub(super) fn chrome_render_commands(
     if let Some(label) = label {
         commands.push(text_command(
             node_id,
-            text_frame(frame, has_icon),
+            text_frame(frame, has_icon, metrics),
             clip_frame,
             z_index.saturating_add(2),
             label,
             text_color(metadata, &state),
             &state,
+            metrics,
             opacity,
         ));
     }
@@ -222,8 +332,8 @@ fn surface_command(
         clip_frame,
         z_index: z_index.saturating_add(1),
         style: UiResolvedStyle {
-            background_color: Some(surface_color(metadata, kind, state).to_string()),
-            border_color: border_color(metadata, state).map(str::to_string),
+            background_color: Some(surface_color(metadata, kind, state).into_owned()),
+            border_color: border_color(metadata, state).map(Cow::into_owned),
             border_width: border_width(metadata, kind),
             corner_radius: corner_radius(metadata, kind),
             ..UiResolvedStyle::default()
@@ -254,14 +364,15 @@ fn separator_command(
         style: UiResolvedStyle {
             background_color: Some(
                 color_attribute(metadata, "separator_color")
+                    .map(Cow::Borrowed)
                     .unwrap_or_else(|| {
                         if state.active() {
-                            BORDER_ACTIVE
+                            Cow::Borrowed(&chrome_palette().border_active)
                         } else {
-                            BORDER_MUTED
+                            Cow::Borrowed(&chrome_palette().border_muted)
                         }
                     })
-                    .to_string(),
+                    .into_owned(),
             ),
             ..UiResolvedStyle::default()
         }
@@ -279,8 +390,9 @@ fn text_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     text: String,
-    foreground: &str,
+    foreground: Cow<'_, str>,
     state: &ChromeRenderState,
+    metrics: ChromeMetrics,
     opacity: f32,
 ) -> UiRenderCommand {
     UiRenderCommand {
@@ -290,9 +402,9 @@ fn text_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
-            font_size: FONT_SIZE,
-            line_height: LINE_HEIGHT,
+            foreground_color: Some(foreground.into_owned()),
+            font_size: metrics.font_size,
+            line_height: metrics.line_height,
             ..UiResolvedStyle::default()
         }
         .with_painter_state(UiPainterFamily::Chrome, state.visual_state),
@@ -309,7 +421,7 @@ fn icon_command(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     icon: String,
-    foreground: &str,
+    foreground: Cow<'_, str>,
     state: &ChromeRenderState,
     opacity: f32,
 ) -> UiRenderCommand {
@@ -320,7 +432,7 @@ fn icon_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
+            foreground_color: Some(foreground.into_owned()),
             ..UiResolvedStyle::default()
         }
         .with_painter_state(UiPainterFamily::Chrome, state.visual_state),
@@ -335,77 +447,101 @@ fn surface_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     kind: ChromeKind,
     state: &ChromeRenderState,
-) -> &'a str {
+) -> Cow<'a, str> {
     if state.visual_state == UiPainterResolvedState::Disabled {
-        SURFACE_DISABLED
+        Cow::Borrowed(&chrome_palette().surface_disabled)
     } else if state.visual_state == UiPainterResolvedState::Loading {
-        SURFACE_LOADING
+        Cow::Borrowed(&chrome_palette().surface_loading)
     } else if state.visual_state == UiPainterResolvedState::Pressed {
-        color_attribute(metadata, "pressed_background_color").unwrap_or(SURFACE_PRESSED)
+        color_attribute(metadata, "pressed_background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().surface_pressed))
     } else if state.visual_state == UiPainterResolvedState::Open {
-        color_attribute(metadata, "open_background_color").unwrap_or(SURFACE_OPEN)
+        color_attribute(metadata, "open_background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().surface_open))
     } else if state.visual_state == UiPainterResolvedState::Hovered {
-        color_attribute(metadata, "hover_background_color").unwrap_or(SURFACE_HOVER)
+        color_attribute(metadata, "hover_background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().surface_hover))
     } else if state.selected_surface_active() {
-        color_attribute(metadata, "selected_background_color").unwrap_or(SURFACE_SELECTED)
+        color_attribute(metadata, "selected_background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().surface_selected))
     } else {
-        color_attribute(metadata, "background_color").unwrap_or_else(|| default_surface(kind))
+        color_attribute(metadata, "background_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| default_surface(kind))
     }
 }
 
-fn default_surface(kind: ChromeKind) -> &'static str {
-    match kind {
-        ChromeKind::Shell => SURFACE_INSET,
-        ChromeKind::ActivityRail | ChromeKind::Toolbar => SURFACE_RAISED,
-        ChromeKind::StatusBar => SURFACE_STATUS,
-        ChromeKind::Panel => SURFACE,
-        ChromeKind::Viewport => SURFACE_VIEWPORT,
-    }
+fn default_surface<'a>(kind: ChromeKind) -> Cow<'a, str> {
+    let palette = chrome_palette();
+    Cow::Borrowed(match kind {
+        ChromeKind::Shell => &palette.surface_inset,
+        ChromeKind::ActivityRail | ChromeKind::Toolbar => &palette.surface_raised,
+        ChromeKind::StatusBar => &palette.surface_status,
+        ChromeKind::Panel => &palette.surface,
+        ChromeKind::Viewport => &palette.surface_viewport,
+    })
 }
 
 fn border_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &ChromeRenderState,
-) -> Option<&'a str> {
+) -> Option<Cow<'a, str>> {
     if state.unavailable() {
-        Some(BORDER_MUTED)
+        Some(Cow::Borrowed(&chrome_palette().border_muted))
     } else if state.active() {
-        Some(color_attribute(metadata, "focus_border_color").unwrap_or(BORDER_ACTIVE))
+        Some(
+            color_attribute(metadata, "focus_border_color")
+                .map(Cow::Borrowed)
+                .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().border_active)),
+        )
     } else {
-        color_attribute(metadata, "border_color").or(Some(BORDER))
+        Some(
+            color_attribute(metadata, "border_color")
+                .map(Cow::Borrowed)
+                .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().border)),
+        )
     }
 }
 
-fn text_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &ChromeRenderState) -> &'a str {
+fn text_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &ChromeRenderState) -> Cow<'a, str> {
     if state.unavailable() {
-        TEXT_DISABLED
+        Cow::Borrowed(&chrome_palette().text_disabled)
     } else if state.active() {
         color_attribute(metadata, "active_foreground_color")
             .or_else(|| color_attribute(metadata, "foreground_color"))
-            .unwrap_or(TEXT)
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().text))
     } else {
-        color_attribute(metadata, "foreground_color").unwrap_or(TEXT_MUTED)
+        color_attribute(metadata, "foreground_color")
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().text_muted))
     }
 }
 
-fn icon_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &ChromeRenderState) -> &'a str {
+fn icon_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &ChromeRenderState) -> Cow<'a, str> {
     if state.unavailable() {
-        TEXT_DISABLED
+        Cow::Borrowed(&chrome_palette().text_disabled)
     } else if state.active() {
         color_attribute(metadata, "active_icon_color")
             .or_else(|| color_attribute(metadata, "icon_color"))
-            .unwrap_or(ACCENT)
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().accent))
     } else {
         color_attribute(metadata, "icon_color")
             .or_else(|| color_attribute(metadata, "foreground_color"))
-            .unwrap_or(ICON)
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Borrowed(&chrome_palette().icon))
     }
 }
 
 fn border_width(metadata: &UiTemplateNodeMetadata, kind: ChromeKind) -> f32 {
     number_attribute(metadata, "border_width").unwrap_or_else(|| match kind {
         ChromeKind::Viewport => 0.0,
-        _ => 1.0,
+        _ => chrome_palette().border_width,
     })
 }
 
@@ -414,7 +550,7 @@ fn corner_radius(metadata: &UiTemplateNodeMetadata, kind: ChromeKind) -> f32 {
         .or_else(|| number_attribute(metadata, "radius"))
         .unwrap_or_else(|| match kind {
             ChromeKind::Shell | ChromeKind::Toolbar | ChromeKind::StatusBar => 0.0,
-            _ => 4.0,
+            _ => chrome_palette().radius_small,
         })
 }
 
@@ -438,56 +574,64 @@ enum SeparatorEdge {
 }
 
 fn parse_separator_edge(value: &str) -> Option<SeparatorEdge> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "top" => Some(SeparatorEdge::Top),
-        "right" => Some(SeparatorEdge::Right),
-        "bottom" => Some(SeparatorEdge::Bottom),
-        "left" => Some(SeparatorEdge::Left),
-        "none" | "false" => None,
-        _ => None,
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("top") {
+        Some(SeparatorEdge::Top)
+    } else if value.eq_ignore_ascii_case("right") {
+        Some(SeparatorEdge::Right)
+    } else if value.eq_ignore_ascii_case("bottom") {
+        Some(SeparatorEdge::Bottom)
+    } else if value.eq_ignore_ascii_case("left") {
+        Some(SeparatorEdge::Left)
+    } else {
+        None
     }
 }
 
-fn separator_frame(frame: UiFrame, edge: SeparatorEdge) -> UiFrame {
+fn separator_frame(frame: UiFrame, edge: SeparatorEdge, thickness: f32) -> UiFrame {
     match edge {
-        SeparatorEdge::Top => UiFrame::new(frame.x, frame.y, frame.width, SEPARATOR_THICKNESS),
+        SeparatorEdge::Top => UiFrame::new(frame.x, frame.y, frame.width, thickness),
         SeparatorEdge::Right => UiFrame::new(
-            frame.x + (frame.width - SEPARATOR_THICKNESS).max(0.0),
+            frame.x + (frame.width - thickness).max(0.0),
             frame.y,
-            SEPARATOR_THICKNESS,
+            thickness,
             frame.height,
         ),
         SeparatorEdge::Bottom => UiFrame::new(
             frame.x,
-            frame.y + (frame.height - SEPARATOR_THICKNESS).max(0.0),
+            frame.y + (frame.height - thickness).max(0.0),
             frame.width,
-            SEPARATOR_THICKNESS,
+            thickness,
         ),
-        SeparatorEdge::Left => UiFrame::new(frame.x, frame.y, SEPARATOR_THICKNESS, frame.height),
+        SeparatorEdge::Left => UiFrame::new(frame.x, frame.y, thickness, frame.height),
     }
 }
 
-fn text_frame(frame: UiFrame, has_icon: bool) -> UiFrame {
-    let icon_offset = if has_icon { ICON_SIZE + ICON_GAP } else { 0.0 };
+fn text_frame(frame: UiFrame, has_icon: bool, metrics: ChromeMetrics) -> UiFrame {
+    let icon_offset = if has_icon {
+        metrics.icon_size + metrics.icon_gap
+    } else {
+        0.0
+    };
     UiFrame::new(
-        frame.x + TEXT_INSET_X + icon_offset,
-        frame.y + TEXT_INSET_Y,
-        (frame.width - TEXT_INSET_X * 2.0 - icon_offset).max(1.0),
-        (frame.height - TEXT_INSET_Y * 2.0).max(LINE_HEIGHT),
+        frame.x + metrics.text_inset_left + icon_offset,
+        frame.y + metrics.text_inset_y,
+        (frame.width - metrics.text_inset_left - metrics.text_inset_right - icon_offset).max(1.0),
+        (frame.height - metrics.text_inset_y * 2.0).max(metrics.line_height),
     )
 }
 
-fn icon_frame(frame: UiFrame, label_follows: bool, icon_size: f32) -> UiFrame {
+fn icon_frame(frame: UiFrame, label_follows: bool, metrics: ChromeMetrics) -> UiFrame {
     let x = if label_follows {
-        frame.x + TEXT_INSET_X
+        frame.x + metrics.text_inset_left
     } else {
-        frame.x + (frame.width - icon_size) * 0.5
+        frame.x + (frame.width - metrics.icon_size) * 0.5
     };
     UiFrame::new(
         x,
-        frame.y + (frame.height - icon_size) * 0.5,
-        icon_size,
-        icon_size,
+        frame.y + (frame.height - metrics.icon_size) * 0.5,
+        metrics.icon_size,
+        metrics.icon_size,
     )
 }
 
@@ -526,13 +670,33 @@ fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Opti
 }
 
 fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
-    metadata.attributes.get(key).and_then(value_as_f32)
+    metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))
+        .and_then(value_as_f32)
+}
+
+fn metric_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
+    number_attribute(metadata, key).filter(|value| value.is_finite())
 }
 
 fn value_as_f32(value: &Value) -> Option<f32> {
-    match value {
-        Value::Integer(value) => Some(*value as f32),
-        Value::Float(value) if value.is_finite() => Some(*value as f32),
-        _ => None,
-    }
+    let value = match value {
+        Value::Integer(value) => *value as f64,
+        Value::Float(value) if value.is_finite() => *value,
+        _ => return None,
+    } as f32;
+    value.is_finite().then_some(value)
+}
+
+fn css_color(color: UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    let mut value = if alpha == u8::MAX {
+        format!("{red:02x}{green:02x}{blue:02x}")
+    } else {
+        format!("{red:02x}{green:02x}{blue:02x}{alpha:02x}")
+    };
+    value.insert(0, '#');
+    value
 }

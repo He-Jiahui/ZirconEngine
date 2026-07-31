@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::types::{
     PassFlags, QueueLane, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
     RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDeclaration,
@@ -20,6 +22,21 @@ pub struct CompiledRenderPass {
     pub resources: Vec<RenderGraphPassResourceAccess>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum CompiledRenderGraphAccessIndexKind {
+    Read,
+    Write,
+}
+
+impl From<RenderGraphResourceAccessKind> for CompiledRenderGraphAccessIndexKind {
+    fn from(access: RenderGraphResourceAccessKind) -> Self {
+        match access {
+            RenderGraphResourceAccessKind::Read => Self::Read,
+            RenderGraphResourceAccessKind::Write => Self::Write,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CompiledRenderGraphStats {
     pub total_pass_count: usize,
@@ -40,6 +57,7 @@ pub struct CompiledRenderGraphStats {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompiledRenderGraphTransientAllocation {
+    pub resource: RenderGraphResource,
     pub resource_name: String,
     pub kind: RenderGraphResourceKind,
     pub slot: usize,
@@ -132,8 +150,21 @@ impl CompiledRenderGraphStats {
 pub struct CompiledRenderGraph {
     name: String,
     passes: Vec<CompiledRenderPass>,
+    pass_indices: HashMap<RenderPassId, usize>,
+    pass_resource_access_indices: HashMap<
+        (
+            RenderPassId,
+            RenderGraphResource,
+            CompiledRenderGraphAccessIndexKind,
+        ),
+        (usize, usize),
+    >,
     resource_declarations: Vec<RenderGraphResourceDeclaration>,
+    resource_declaration_indices: HashMap<RenderGraphResource, usize>,
+    resource_declaration_indices_by_name: HashMap<String, usize>,
     resource_lifetimes: Vec<RenderGraphResourceLifetime>,
+    resource_lifetime_indices: HashMap<RenderGraphResource, usize>,
+    transient_allocation_plan: CompiledRenderGraphTransientAllocationPlan,
 }
 
 impl CompiledRenderGraph {
@@ -143,11 +174,55 @@ impl CompiledRenderGraph {
         resource_declarations: Vec<RenderGraphResourceDeclaration>,
         resource_lifetimes: Vec<RenderGraphResourceLifetime>,
     ) -> Self {
+        let pass_indices = passes
+            .iter()
+            .enumerate()
+            .map(|(index, pass)| (pass.id, index))
+            .collect();
+        let resource_declaration_indices = resource_declarations
+            .iter()
+            .enumerate()
+            .map(|(index, declaration)| (declaration.resource, index))
+            .collect();
+        let resource_declaration_indices_by_name = resource_declarations
+            .iter()
+            .enumerate()
+            .map(|(index, declaration)| (declaration.name.clone(), index))
+            .collect::<HashMap<_, _>>();
+        let mut pass_resource_access_indices = HashMap::new();
+        for (pass_index, pass) in passes.iter().enumerate() {
+            for (access_index, access) in pass.resources.iter().enumerate() {
+                let Some(declaration_index) =
+                    resource_declaration_indices_by_name.get(access.name.as_str())
+                else {
+                    continue;
+                };
+                let declaration = &resource_declarations[*declaration_index];
+                if declaration.kind != access.kind {
+                    continue;
+                }
+                pass_resource_access_indices
+                    .entry((pass.id, declaration.resource, access.access.into()))
+                    .or_insert((pass_index, access_index));
+            }
+        }
+        let resource_lifetime_indices = resource_lifetimes
+            .iter()
+            .enumerate()
+            .map(|(index, lifetime)| (lifetime.resource, index))
+            .collect();
+        let transient_allocation_plan = build_transient_allocation_plan(&resource_lifetimes);
         Self {
             name,
             passes,
+            pass_indices,
+            pass_resource_access_indices,
             resource_declarations,
+            resource_declaration_indices,
+            resource_declaration_indices_by_name,
             resource_lifetimes,
+            resource_lifetime_indices,
+            transient_allocation_plan,
         }
     }
 
@@ -159,6 +234,26 @@ impl CompiledRenderGraph {
         &self.passes
     }
 
+    pub(crate) fn pass(&self, pass: RenderPassId) -> Option<&CompiledRenderPass> {
+        self.pass_indices
+            .get(&pass)
+            .and_then(|index| self.passes.get(*index))
+    }
+
+    pub(crate) fn pass_resource_access(
+        &self,
+        pass: RenderPassId,
+        resource: RenderGraphResource,
+        access: RenderGraphResourceAccessKind,
+    ) -> Option<&RenderGraphPassResourceAccess> {
+        let (pass_index, access_index) =
+            self.pass_resource_access_indices
+                .get(&(pass, resource, access.into()))?;
+        self.passes
+            .get(*pass_index)
+            .and_then(|pass| pass.resources.get(*access_index))
+    }
+
     pub fn resource_declarations(&self) -> &[RenderGraphResourceDeclaration] {
         &self.resource_declarations
     }
@@ -167,18 +262,18 @@ impl CompiledRenderGraph {
         &self,
         resource: RenderGraphResource,
     ) -> Option<&RenderGraphResourceDeclaration> {
-        self.resource_declarations
-            .iter()
-            .find(|declaration| declaration.resource == resource)
+        self.resource_declaration_indices
+            .get(&resource)
+            .and_then(|index| self.resource_declarations.get(*index))
     }
 
     pub fn resource_declaration_by_name(
         &self,
         name: &str,
     ) -> Option<&RenderGraphResourceDeclaration> {
-        self.resource_declarations
-            .iter()
-            .find(|declaration| declaration.name == name)
+        self.resource_declaration_indices_by_name
+            .get(name)
+            .and_then(|index| self.resource_declarations.get(*index))
     }
 
     pub fn resource_lifetimes(&self) -> &[RenderGraphResourceLifetime] {
@@ -189,82 +284,22 @@ impl CompiledRenderGraph {
         &self,
         resource: RenderGraphResource,
     ) -> Option<&RenderGraphResourceLifetime> {
-        self.resource_lifetimes
-            .iter()
-            .find(|lifetime| lifetime.resource == resource)
+        self.resource_lifetime_indices
+            .get(&resource)
+            .and_then(|index| self.resource_lifetimes.get(*index))
     }
 
     pub fn resource_lifetime_by_name(&self, name: &str) -> Option<&RenderGraphResourceLifetime> {
-        self.resource_lifetimes
-            .iter()
-            .find(|lifetime| lifetime.name == name)
+        self.resource_declaration_by_name(name)
+            .and_then(|declaration| self.resource_lifetime(declaration.resource))
     }
 
     pub fn dump(&self) -> RenderGraphDump {
         RenderGraphDump::from_graph(self)
     }
 
-    pub fn transient_allocation_plan(&self) -> CompiledRenderGraphTransientAllocationPlan {
-        let mut allocations = allocate_transient_lifetimes_by_bucket(
-            self.resource_lifetimes.iter().filter(|lifetime| {
-                lifetime.kind == RenderGraphResourceKind::TransientTexture
-                    && !lifetime.is_sparse_reserved_texture()
-            }),
-            transient_texture_bucket_key,
-        );
-        let sparse_texture_lifetimes = self
-            .resource_lifetimes
-            .iter()
-            .filter(|lifetime| {
-                lifetime.kind == RenderGraphResourceKind::TransientTexture
-                    && !lifetime.imported
-                    && lifetime.is_sparse_reserved_texture()
-            })
-            .collect::<Vec<_>>();
-        let sparse_texture_slot_count = sparse_texture_lifetimes.len();
-        let sparse_texture_virtual_bytes = sparse_texture_lifetimes
-            .iter()
-            .copied()
-            .map(resource_lifetime_size_bytes)
-            .fold(0_u64, u64::saturating_add);
-        let mut buffer_allocations = allocate_transient_lifetimes_by_bucket(
-            self.resource_lifetimes
-                .iter()
-                .filter(|lifetime| lifetime.kind == RenderGraphResourceKind::TransientBuffer),
-            transient_buffer_bucket_key,
-        );
-        allocations.append(&mut buffer_allocations);
-        allocations.sort_by(|left, right| left.resource_name.cmp(&right.resource_name));
-        let slot_reservations = slot_reservations_for(&allocations);
-        let texture_slot_count = slot_reservations
-            .iter()
-            .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientTexture)
-            .count();
-        let buffer_slot_count = slot_reservations
-            .iter()
-            .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientBuffer)
-            .count();
-        let dense_texture_bytes_reserved = slot_reservations
-            .iter()
-            .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientTexture)
-            .map(|reservation| reservation.bytes_reserved)
-            .fold(0_u64, u64::saturating_add);
-        let dense_buffer_bytes_reserved = slot_reservations
-            .iter()
-            .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientBuffer)
-            .map(|reservation| reservation.bytes_reserved)
-            .fold(0_u64, u64::saturating_add);
-
-        CompiledRenderGraphTransientAllocationPlan {
-            allocations,
-            slot_reservations,
-            texture_slot_count,
-            buffer_slot_count,
-            sparse_texture_slot_count,
-            dense_texture_bytes_reserved,
-            dense_buffer_bytes_reserved,
-            sparse_texture_virtual_bytes,
-        }
+    pub fn transient_allocation_plan(&self) -> &CompiledRenderGraphTransientAllocationPlan {
+        &self.transient_allocation_plan
     }
 
     pub fn stats(&self) -> CompiledRenderGraphStats {
@@ -333,12 +368,78 @@ impl CompiledRenderGraph {
     }
 }
 
+fn build_transient_allocation_plan(
+    resource_lifetimes: &[RenderGraphResourceLifetime],
+) -> CompiledRenderGraphTransientAllocationPlan {
+    let mut allocations = allocate_transient_lifetimes_by_bucket(
+        resource_lifetimes.iter().filter(|lifetime| {
+            lifetime.kind == RenderGraphResourceKind::TransientTexture
+                && !lifetime.usage.persistent
+                && !lifetime.is_sparse_reserved_texture()
+        }),
+        transient_texture_bucket_key,
+    );
+    let sparse_texture_lifetimes = resource_lifetimes
+        .iter()
+        .filter(|lifetime| {
+            lifetime.kind == RenderGraphResourceKind::TransientTexture
+                && !lifetime.imported
+                && !lifetime.usage.persistent
+                && lifetime.is_sparse_reserved_texture()
+        })
+        .collect::<Vec<_>>();
+    let sparse_texture_slot_count = sparse_texture_lifetimes.len();
+    let sparse_texture_virtual_bytes = sparse_texture_lifetimes
+        .iter()
+        .copied()
+        .map(resource_lifetime_size_bytes)
+        .fold(0_u64, u64::saturating_add);
+    let mut buffer_allocations = allocate_transient_lifetimes_by_bucket(
+        resource_lifetimes.iter().filter(|lifetime| {
+            lifetime.kind == RenderGraphResourceKind::TransientBuffer && !lifetime.usage.persistent
+        }),
+        transient_buffer_bucket_key,
+    );
+    allocations.append(&mut buffer_allocations);
+    allocations.sort_by(|left, right| left.resource_name.cmp(&right.resource_name));
+    let slot_reservations = slot_reservations_for(&allocations);
+    let texture_slot_count = slot_reservations
+        .iter()
+        .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientTexture)
+        .count();
+    let buffer_slot_count = slot_reservations
+        .iter()
+        .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientBuffer)
+        .count();
+    let dense_texture_bytes_reserved = slot_reservations
+        .iter()
+        .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientTexture)
+        .map(|reservation| reservation.bytes_reserved)
+        .fold(0_u64, u64::saturating_add);
+    let dense_buffer_bytes_reserved = slot_reservations
+        .iter()
+        .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientBuffer)
+        .map(|reservation| reservation.bytes_reserved)
+        .fold(0_u64, u64::saturating_add);
+
+    CompiledRenderGraphTransientAllocationPlan {
+        allocations,
+        slot_reservations,
+        texture_slot_count,
+        buffer_slot_count,
+        sparse_texture_slot_count,
+        dense_texture_bytes_reserved,
+        dense_buffer_bytes_reserved,
+        sparse_texture_virtual_bytes,
+    }
+}
+
 fn allocate_transient_lifetimes<'a>(
     lifetimes: impl Iterator<Item = &'a RenderGraphResourceLifetime>,
     bucket_key_hash: u64,
 ) -> Vec<CompiledRenderGraphTransientAllocation> {
     let mut lifetimes = lifetimes
-        .filter(|lifetime| !lifetime.imported)
+        .filter(|lifetime| !lifetime.imported && !lifetime.usage.persistent)
         .collect::<Vec<_>>();
     lifetimes.sort_by(|left, right| {
         left.first_pass
@@ -359,6 +460,7 @@ fn allocate_transient_lifetimes<'a>(
             });
         slot_last_passes[slot] = lifetime.last_pass;
         allocations.push(CompiledRenderGraphTransientAllocation {
+            resource: lifetime.resource,
             resource_name: lifetime.name.clone(),
             kind: lifetime.kind,
             slot,

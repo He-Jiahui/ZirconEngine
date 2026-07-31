@@ -12,6 +12,16 @@ use crate::core::framework::render::{
 use crate::core::resource::{ResourceId, ResourceKind};
 
 #[test]
+fn shader_management_summary_and_stage_parsing_avoid_repeated_hot_path_work() {
+    let readiness = include_str!("../../assets/shader/readiness.rs");
+    assert!(readiness.contains("for record in records"));
+    assert!(!readiness.contains("records\n                .iter()"));
+
+    let entry_point = include_str!("../../assets/shader/entry_point.rs");
+    assert!(!entry_point.contains("to_ascii_lowercase"));
+}
+
+#[test]
 fn shader_readiness_reports_runtime_source_kinds() {
     let mut emitted = base_shader("res://shaders/emitted.shader");
     emitted.source_language = ShaderSourceLanguage::Glsl;

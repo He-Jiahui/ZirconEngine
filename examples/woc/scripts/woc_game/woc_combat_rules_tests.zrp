@@ -1,0 +1,6 @@
+{
+  "name": "woc_combat_rules_tests",
+  "source": "src",
+  "binary": "bin-combat-rules-tests",
+  "entry": "combat/rules_test_main"
+}

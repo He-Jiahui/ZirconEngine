@@ -1,0 +1,6 @@
+{
+  "name": "woc_m6_discord_tier_state_tests",
+  "source": "src",
+  "binary": "bin-m6-discord-tier-state-tests",
+  "entry": "social/discord_tier_state_test_main"
+}

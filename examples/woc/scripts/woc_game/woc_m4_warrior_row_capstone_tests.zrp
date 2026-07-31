@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_warrior_row_capstone_tests",
+  "source": "src",
+  "binary": "bin-m4-warrior-row-capstone-tests",
+  "entry": "combat/warrior_row_capstone_state_test_main"
+}

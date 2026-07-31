@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::fmt;
 use std::path::Path;
 use std::rc::Rc;
@@ -154,20 +155,29 @@ impl<T> From<Vec<T>> for VecModel<T> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub(crate) struct ModelRc<T> {
     values: Rc<Vec<T>>,
+    metadata: Option<Rc<dyn Any>>,
 }
 
 impl<T> Default for ModelRc<T> {
     fn default() -> Self {
         Self {
             values: Rc::new(Vec::new()),
+            metadata: None,
         }
     }
 }
 
 impl<T: Clone> ModelRc<T> {
+    pub(crate) fn with_metadata<M: Any>(values: Vec<T>, metadata: M) -> Self {
+        Self {
+            values: Rc::new(values),
+            metadata: Some(Rc::new(metadata)),
+        }
+    }
+
     pub(crate) fn row_count(&self) -> usize {
         self.values.len()
     }
@@ -183,6 +193,45 @@ impl<T: Clone> ModelRc<T> {
     pub(crate) fn iter(&self) -> std::slice::Iter<'_, T> {
         self.values.iter()
     }
+
+    #[cfg(test)]
+    pub(crate) fn shares_values_with(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.values, &other.values)
+    }
+
+    pub(crate) fn map_preserving_metadata<U, F>(&self, map: F) -> ModelRc<U>
+    where
+        F: FnMut(&T) -> U,
+    {
+        ModelRc {
+            values: Rc::new(self.values.iter().map(map).collect()),
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    pub(crate) fn metadata<M: Any>(&self) -> Option<&M> {
+        self.metadata.as_deref()?.downcast_ref()
+    }
+
+    pub(crate) fn metadata_rc<M: Any>(&self) -> Option<Rc<M>> {
+        Rc::clone(self.metadata.as_ref()?).downcast().ok()
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for ModelRc<T> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ModelRc")
+            .field("values", &self.values)
+            .field("has_metadata", &self.metadata.is_some())
+            .finish()
+    }
+}
+
+impl<T: PartialEq> PartialEq for ModelRc<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.values == other.values
+    }
 }
 
 impl<T: Clone> From<Rc<VecModel<T>>> for ModelRc<T> {
@@ -193,6 +242,7 @@ impl<T: Clone> From<Rc<VecModel<T>>> for ModelRc<T> {
         };
         Self {
             values: Rc::new(values),
+            metadata: None,
         }
     }
 }
@@ -205,6 +255,41 @@ mod performance_tests {
     };
 
     use super::*;
+
+    #[derive(Debug, PartialEq)]
+    struct FixtureMetadata {
+        generation: u64,
+    }
+
+    #[test]
+    fn model_metadata_is_shared_by_clones_without_changing_value_equality() {
+        let model = ModelRc::with_metadata(vec![1_u32, 2_u32], FixtureMetadata { generation: 7 });
+        let cloned = model.clone();
+
+        assert_eq!(model, cloned);
+        assert_eq!(
+            cloned
+                .metadata::<FixtureMetadata>()
+                .map(|metadata| metadata.generation),
+            Some(7)
+        );
+    }
+
+    #[test]
+    fn model_mapping_preserves_the_shared_metadata_allocation() {
+        let model = ModelRc::with_metadata(vec![1_u32, 2_u32], FixtureMetadata { generation: 7 });
+        let source_metadata = model
+            .metadata_rc::<FixtureMetadata>()
+            .expect("source metadata");
+
+        let mapped = model.map_preserving_metadata(|value| value.to_string());
+        let mapped_metadata = mapped
+            .metadata_rc::<FixtureMetadata>()
+            .expect("mapped metadata");
+
+        assert_eq!(mapped.row_data(0).as_deref(), Some("1"));
+        assert!(Rc::ptr_eq(&source_metadata, &mapped_metadata));
+    }
 
     struct CloneProbe(Arc<AtomicUsize>);
 
@@ -244,6 +329,7 @@ mod performance_tests {
         let clone_count = Arc::new(AtomicUsize::new(0));
         let model = ModelRc {
             values: Rc::new(vec![CloneProbe(Arc::clone(&clone_count))]),
+            metadata: None,
         };
 
         assert!(model.get(0).is_some());

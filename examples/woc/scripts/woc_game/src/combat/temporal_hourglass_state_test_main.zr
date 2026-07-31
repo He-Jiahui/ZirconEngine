@@ -1,0 +1,6 @@
+var console = %import("zr.system.console");
+var hourglass = %import("combat/temporal_hourglass_state");
+console.printLine("m4-temporal-hourglass-state-test");
+var result = hourglass.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

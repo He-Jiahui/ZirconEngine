@@ -1,0 +1,29 @@
+// Source-pinned NPC definition vectors used by static world initialization.
+
+var catalog = %import("generated/m3_npc_initialization");
+
+if (catalog.contractTest() != 1 || catalog.npcCount(true) != 35 ||
+    catalog.npcId(0, true) != "the_merchant" ||
+    catalog.npcId(34, true) != "spirit_healer") {
+    throw "woc NPC initialization catalog identity vector failed";
+}
+
+if (catalog.npcStringField(0, "name", true) != "The Merchant" ||
+    !catalog.npcFlag(0, "market", true) || catalog.npcFlag(0, "banker", true) ||
+    catalog.questCount(0, true) != 0 || catalog.vendorItemCount(0, true) != 0) {
+    throw "woc merchant initialization vector failed";
+}
+
+if (catalog.questCount(1, true) != 5 || catalog.questId(1, 0, true) != "q_wolves" ||
+    catalog.questId(1, 4, true) != "q_mogger" || catalog.vendorItemCount(2, true) != 17 ||
+    catalog.vendorItemId(2, 0, true) != "baked_bread" ||
+    catalog.vendorItemId(2, 16, true) != "silverleaf_sickle") {
+    throw "woc quest and vendor initialization vector failed";
+}
+
+if (!catalog.npcFlag(8, "banker", true) || !catalog.npcFlag(9, "cardMaster", true) ||
+    !catalog.npcIsDynamic(31, true) || !catalog.npcIsDynamic(34, true)) {
+    throw "woc NPC service and dynamic ownership vector failed";
+}
+
+return 0;

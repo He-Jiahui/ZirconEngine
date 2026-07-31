@@ -51,7 +51,7 @@ fn selection_indicator_rect(rect: &FrameRect, indicator_width: f32) -> FrameRect
     FrameRect {
         x: rect.x,
         y: rect.y,
-        width: indicator_width.min(rect.width).max(1.0),
+        width: indicator_width.min(rect.width),
         height: rect.height,
     }
 }

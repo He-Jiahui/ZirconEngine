@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/professions_craft_parity_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/recipes.ts": "fcf3b721955c0a743c9c7eb6a337fd59123ce3b0aadc72067241145d4f8995d9",
+    "src/sim/content/items.ts": "d3c5791f88973956b651eeab71d4020d9e3697803cddc007ccae214f6738d37b",
+    "src/sim/professions/crafting.ts": "1c194e5621b24644713e905148cf12e5b074440bf912b0291a94f75e4767aab0",
+    "tests/parity/golden/professions_craft.json": "7ef02fafbbc097cd522f6bfdefceae201b35b92cf32f2f412501866a6897a0d9"
+  },
+  "scenario": {
+    "seed": 21,
+    "observed_draws": 3,
+    "observed_draw_digest": "07bdddf8"
+  },
+  "masterwork_instance": {
+    "signer": "Adventurer",
+    "stats": {
+      "int": 1,
+      "spi": 1
+    }
+  },
+  "recipes": [
+    {
+      "id": "recipe_minor_healing_potion",
+      "profession_id": "alchemy",
+      "result_item_id": "minor_healing_potion",
+      "result_count": 1,
+      "reagents": [
+        {
+          "item_id": "linen_scrap",
+          "count": 1
+        },
+        {
+          "item_id": "spider_leg",
+          "count": 1
+        }
+      ],
+      "skill_req": 0,
+      "item_level_budget": 1,
+      "level": 1,
+      "output_quality": "common",
+      "output_slot": "",
+      "output_primary_stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 0,
+        "spi": 0
+      },
+      "masterwork_capable": false,
+      "masterwork_bumped_tier": 0,
+      "masterwork_baked_stats": {}
+    },
+    {
+      "id": "recipe_eastbrook_ritual_vestments",
+      "profession_id": "tailoring",
+      "result_item_id": "eastbrook_ritual_vestments",
+      "result_count": 1,
+      "reagents": [
+        {
+          "item_id": "linen_scrap",
+          "count": 3
+        },
+        {
+          "item_id": "spider_leg",
+          "count": 1
+        }
+      ],
+      "skill_req": 0,
+      "item_level_budget": 9,
+      "level": 9,
+      "output_quality": "uncommon",
+      "output_slot": "chest",
+      "output_primary_stats": {
+        "str": 0,
+        "agi": 0,
+        "sta": 0,
+        "int": 2,
+        "spi": 1
+      },
+      "masterwork_capable": true,
+      "masterwork_bumped_tier": 2,
+      "masterwork_baked_stats": {
+        "int": 1,
+        "spi": 1
+      }
+    }
+  ],
+  "source_semantics": {
+    "result_quality": "CraftResult quality is the static output-def quality, including on a masterwork proc",
+    "masterwork": "the ritual vestments proc is an item instance with additive baked int/spi delta; it does not mutate the output quality",
+    "rng": "the full authoritative golden observes three successful-craft draws after world construction; this fixture does not claim its world-construction stream state"
+  }
+}

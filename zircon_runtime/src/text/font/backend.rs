@@ -32,6 +32,12 @@ impl BackendFaceMap {
     pub(super) fn backend_face_id(&self, face: FontFaceId) -> Option<fontdb::ID> {
         self.face_to_backend.get(&face).copied()
     }
+
+    pub(super) fn remove_face(&mut self, face: FontFaceId) -> Option<fontdb::ID> {
+        let backend = self.face_to_backend.remove(&face)?;
+        self.backend_to_face.remove(&backend);
+        Some(backend)
+    }
 }
 
 #[cfg(test)]

@@ -1,0 +1,255 @@
+[asset]
+kind = "view"
+id = "res://ui/windows/quest_log_window.zui"
+version = 2
+display_name = "World of ClaudeCraft Quest Log Window"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui", "res://ui/hud/hud_theme.zui"]
+resources = []
+
+[root]
+node = "quest_root"
+
+[nodes.quest_title]
+component = "Label"
+control_id = "QuestLogTitle"
+classes = ["woc-screen-title"]
+props = { text = "Quest Log", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.quest_summary]
+component = "Label"
+control_id = "QuestLogSummary"
+classes = ["woc-muted"]
+props = { text = "0 active / 0 completed", text_align = "right" }
+layout = { width = { min = 160.0, preferred = 220.0, max = 260.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.quest_close]
+component = "Button"
+control_id = "QuestLogClose"
+classes = ["woc-secondary-action"]
+props = { text = "Close" }
+layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocQuestLog/Close", event = "Click", route = "woc.window.quest_log.close" }]
+
+[nodes.quest_header]
+component = "HorizontalBox"
+control_id = "QuestLogHeader"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "quest_title" }, { node = "quest_summary" }, { node = "quest_close" }]
+
+[nodes.quest_desktop_list_host]
+component = "VerticalBox"
+control_id = "QuestDesktopListHost"
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 360.0, preferred = 500.0, max = 660.0, stretch = "Stretch" } }
+children = []
+
+[nodes.quest_desktop_empty]
+component = "Label"
+control_id = "QuestDesktopEmpty"
+classes = ["woc-muted"]
+props = { text = "Your quest log is empty.", visibility = "collapsed", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 60.0, preferred = 80.0, max = 100.0, stretch = "Fixed" } }
+
+[nodes.quest_desktop_list]
+component = "ScrollBox"
+control_id = "QuestDesktopList"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, padding = { left = 8.0, right = 8.0, top = 8.0, bottom = 8.0 }, width = { min = 260.0, preferred = 300.0, max = 340.0, stretch = "Fixed" }, height = { min = 440.0, preferred = 580.0, max = 720.0, stretch = "Stretch" } }
+children = [{ node = "quest_desktop_list_host" }, { node = "quest_desktop_empty" }]
+
+[nodes.quest_desktop_detail_title]
+component = "Label"
+control_id = "QuestDesktopDetailTitle"
+classes = ["woc-screen-title"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 40.0, max = 72.0, stretch = "Fixed" } }
+
+[nodes.quest_desktop_group]
+component = "Label"
+control_id = "QuestDesktopGroupHint"
+classes = ["woc-muted"]
+props = { text = "", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.quest_desktop_narrative]
+component = "Label"
+control_id = "QuestDesktopNarrative"
+classes = ["woc-label"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 104.0, max = 180.0, stretch = "Fixed" } }
+
+[nodes.quest_desktop_objectives_title]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Objectives" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.quest_desktop_objectives]
+component = "VerticalBox"
+control_id = "QuestDesktopObjectiveHost"
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 80.0, preferred = 132.0, max = 240.0, stretch = "Fixed" } }
+children = []
+
+[nodes.quest_desktop_rewards_title]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Rewards" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.quest_desktop_rewards]
+component = "HorizontalBox"
+control_id = "QuestDesktopRewardHost"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 64.0, max = 88.0, stretch = "Fixed" } }
+children = []
+
+[nodes.quest_desktop_turn_in]
+component = "Label"
+control_id = "QuestDesktopTurnIn"
+classes = ["woc-muted"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 36.0, max = 56.0, stretch = "Fixed" } }
+
+[nodes.quest_desktop_abandon]
+component = "Button"
+control_id = "QuestDesktopAbandon"
+classes = ["woc-secondary-action"]
+props = { text = "Abandon" }
+layout = { width = { min = 92.0, preferred = 108.0, max = 132.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocQuestLog/DesktopAbandon", event = "Click", route = "woc.window.quest_log.abandon" }]
+
+[nodes.quest_desktop_share]
+component = "Button"
+control_id = "QuestDesktopShare"
+classes = ["woc-primary-action"]
+props = { text = "Share" }
+layout = { width = { min = 84.0, preferred = 96.0, max = 120.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocQuestLog/DesktopShare", event = "Click", route = "woc.window.quest_log.share" }]
+
+[nodes.quest_desktop_actions]
+component = "HorizontalBox"
+control_id = "QuestDesktopActions"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "quest_desktop_abandon" }, { node = "quest_desktop_share" }]
+
+[nodes.quest_desktop_detail]
+component = "ScrollBox"
+control_id = "QuestDesktopDetail"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, padding = { left = 14.0, right = 14.0, top = 12.0, bottom = 12.0 }, width = { min = 360.0, preferred = 500.0, max = 620.0, stretch = "Stretch" }, height = { min = 440.0, preferred = 580.0, max = 720.0, stretch = "Stretch" } }
+children = [{ node = "quest_desktop_detail_title" }, { node = "quest_desktop_group" }, { node = "quest_desktop_narrative" }, { node = "quest_desktop_objectives_title" }, { node = "quest_desktop_objectives" }, { node = "quest_desktop_rewards_title" }, { node = "quest_desktop_rewards" }, { node = "quest_desktop_turn_in" }, { node = "quest_desktop_actions" }]
+
+[nodes.quest_desktop_columns]
+component = "HorizontalBox"
+control_id = "QuestDesktopColumns"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "quest_desktop_list" }, { node = "quest_desktop_detail" }]
+
+[nodes.quest_desktop]
+component = "Container"
+control_id = "QuestDesktopLayout"
+props = { visibility = { xs = "collapsed", md = "visible" } }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "quest_desktop_columns" }]
+
+[nodes.quest_compact_list_host]
+component = "VerticalBox"
+control_id = "QuestCompactListHost"
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 120.0, preferred = 180.0, max = 260.0, stretch = "Stretch" } }
+children = []
+
+[nodes.quest_compact_list]
+component = "ScrollBox"
+control_id = "QuestCompactList"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, padding = { left = 8.0, right = 8.0, top = 8.0, bottom = 8.0 }, width = { stretch = "Stretch" }, height = { min = 140.0, preferred = 200.0, max = 280.0, stretch = "Fixed" } }
+children = [{ node = "quest_compact_list_host" }]
+
+[nodes.quest_compact_detail_title]
+component = "Label"
+control_id = "QuestCompactDetailTitle"
+classes = ["woc-section-title"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 36.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.quest_compact_narrative]
+component = "Label"
+control_id = "QuestCompactNarrative"
+classes = ["woc-label"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 92.0, max = 160.0, stretch = "Fixed" } }
+
+[nodes.quest_compact_objectives]
+component = "VerticalBox"
+control_id = "QuestCompactObjectiveHost"
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 112.0, max = 220.0, stretch = "Fixed" } }
+children = []
+
+[nodes.quest_compact_rewards]
+component = "HorizontalBox"
+control_id = "QuestCompactRewardHost"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 60.0, max = 84.0, stretch = "Fixed" } }
+children = []
+
+[nodes.quest_compact_turn_in]
+component = "Label"
+control_id = "QuestCompactTurnIn"
+classes = ["woc-muted"]
+props = { text = "", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 36.0, max = 56.0, stretch = "Fixed" } }
+
+[nodes.quest_compact_abandon]
+component = "Button"
+control_id = "QuestCompactAbandon"
+classes = ["woc-secondary-action"]
+props = { text = "Abandon" }
+layout = { width = { min = 92.0, preferred = 108.0, max = 132.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocQuestLog/CompactAbandon", event = "Click", route = "woc.window.quest_log.abandon" }]
+
+[nodes.quest_compact_share]
+component = "Button"
+control_id = "QuestCompactShare"
+classes = ["woc-primary-action"]
+props = { text = "Share" }
+layout = { width = { min = 84.0, preferred = 96.0, max = 120.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocQuestLog/CompactShare", event = "Click", route = "woc.window.quest_log.share" }]
+
+[nodes.quest_compact_actions]
+component = "HorizontalBox"
+control_id = "QuestCompactActions"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+children = [{ node = "quest_compact_abandon" }, { node = "quest_compact_share" }]
+
+[nodes.quest_compact_detail]
+component = "ScrollBox"
+control_id = "QuestCompactDetail"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, padding = { left = 10.0, right = 10.0, top = 10.0, bottom = 10.0 }, width = { stretch = "Stretch" }, height = { min = 280.0, preferred = 380.0, max = 520.0, stretch = "Stretch" } }
+children = [{ node = "quest_compact_detail_title" }, { node = "quest_compact_narrative" }, { node = "quest_compact_objectives" }, { node = "quest_compact_rewards" }, { node = "quest_compact_turn_in" }, { node = "quest_compact_actions" }]
+
+[nodes.quest_compact_stack]
+component = "VerticalBox"
+control_id = "QuestCompactStack"
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "quest_compact_list" }, { node = "quest_compact_detail" }]
+
+[nodes.quest_compact]
+component = "Container"
+control_id = "QuestCompactLayout"
+props = { visibility = { xs = "visible", md = "collapsed" } }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "quest_compact_stack" }]
+
+[nodes.quest_root]
+component = "Container"
+control_id = "QuestLogWindow"
+classes = ["woc-panel"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, padding = { left = 14.0, right = 14.0, top = 12.0, bottom = 14.0 }, width = { min = 340.0, preferred = 900.0, max = 980.0, stretch = "Fixed" }, height = { min = 560.0, preferred = 700.0, max = 840.0, stretch = "Fixed" } }
+children = [{ node = "quest_header" }, { node = "quest_desktop" }, { node = "quest_compact" }]

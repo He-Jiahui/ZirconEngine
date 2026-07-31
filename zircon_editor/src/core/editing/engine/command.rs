@@ -1,24 +1,12 @@
 use std::any::Any;
 use std::error::Error;
 
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use super::HistoryContextId;
+use super::journal::{CommandJournalPayload, CommandJournalUnavailable};
+use super::{HistoryContextId, TransactionId};
+use crate::core::editing::selection::SelectionSnapshot;
 use crate::core::gateway::EditorRuntimeGatewayHandle;
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct SelectionSnapshot(serde_json::Value);
-
-impl SelectionSnapshot {
-    pub fn from_json(value: serde_json::Value) -> Self {
-        Self(value)
-    }
-
-    pub fn as_json(&self) -> &serde_json::Value {
-        &self.0
-    }
-}
 
 pub trait EditContext: Any + Send {
     fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle;
@@ -85,8 +73,8 @@ pub trait EditCommand: Any + Send {
         MergeOutcome::Reject
     }
 
-    fn serialize_journal(&self) -> Option<serde_json::Value> {
-        None
+    fn journal_payload(&self) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
+        Err(CommandJournalUnavailable::new(self.label()))
     }
 
     fn as_any(&self) -> &dyn Any;
@@ -130,6 +118,60 @@ pub enum EditCommandError {
     EngineFaulted { operation: &'static str },
     #[error("transaction identifier space is exhausted")]
     TransactionIdExhausted,
+    #[error("history generation space is exhausted for {history:?}")]
+    HistoryGenerationExhausted { history: HistoryContextId },
+    #[error("history dirty-state generation space is exhausted")]
+    HistoryDirtyGenerationExhausted,
+    #[error("selection generation space is exhausted")]
+    SelectionGenerationExhausted,
+    #[error("history detail page size {requested} exceeds the maximum {maximum}")]
+    HistoryPageSizeOutOfRange { requested: usize, maximum: usize },
+    #[error("history detail cursor belongs to another transaction engine instance")]
+    HistoryPageCursorEngineMismatch,
+    #[error(
+        "history detail cursor belongs to history {cursor_history:?}, not requested history {requested_history:?}"
+    )]
+    HistoryPageCursorHistoryMismatch {
+        cursor_history: HistoryContextId,
+        requested_history: HistoryContextId,
+    },
+    #[error(
+        "history {history:?} changed while paging: cursor generation {cursor_generation}, current generation {current_generation}"
+    )]
+    HistoryPageCursorStale {
+        history: HistoryContextId,
+        cursor_generation: u64,
+        current_generation: u64,
+    },
+    #[error("history dirty-state cursor belongs to another transaction engine instance")]
+    HistoryDirtyCursorEngineMismatch,
+    #[error(
+        "save token belongs to history {token_history:?}, not requested history {requested_history:?}"
+    )]
+    SaveTokenHistoryMismatch {
+        token_history: HistoryContextId,
+        requested_history: HistoryContextId,
+    },
+    #[error("save token belongs to another transaction engine instance")]
+    SaveTokenEngineMismatch,
+    #[error(
+        "cannot {operation} while transaction {transaction:?} is active in history {active_history:?}"
+    )]
+    SaveTokenActiveTransaction {
+        operation: &'static str,
+        active_history: HistoryContextId,
+        transaction: TransactionId,
+    },
+    #[error(
+        "history {history:?} changed during save: generation {expected_generation} at {expected_transaction:?} became generation {current_generation} at {current_transaction:?}"
+    )]
+    HistoryChangedDuringSave {
+        history: HistoryContextId,
+        expected_generation: u64,
+        current_generation: u64,
+        expected_transaction: Option<TransactionId>,
+        current_transaction: Option<TransactionId>,
+    },
     #[error("command rollback failed after an earlier command error")]
     RollbackFailed {
         command_error: Box<EditCommandError>,

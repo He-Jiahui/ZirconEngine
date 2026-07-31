@@ -1,0 +1,60 @@
+// Built-in mailbox construction projection. Mail ownership and mailbox entity
+// ids remain exclusively with the eventual post-office and WorldState owners.
+
+var catalog = %import("generated/m3_mailbox_placement");
+var safePosition = %import("world/safe_position");
+var terrainContent = %import("world/terrain_content");
+var terrainGround = %import("world/terrain_ground");
+
+pub mailboxCount(required: bool): int {
+    return catalog.mailboxCount(required);
+}
+
+pub finalCoordinate(seed: uint, index: int, axis: int, required: bool): float {
+    if (!required || (axis != 1 && axis != 2)) {
+        throw "woc mailbox final coordinate is invalid";
+    }
+    var rawX = catalog.rawCoordinate(index, 1, true);
+    var rawZ = catalog.rawCoordinate(index, 2, true);
+    return safePosition.findBuiltinSafePositionCoordinate(
+        seed, rawX, rawZ, terrainContent.waterLevel(true) + 0.6, axis, true
+    );
+}
+
+pub finalGroundY(seed: uint, index: int, required: bool): float {
+    if (!required) {
+        throw "woc mailbox final ground height is required";
+    }
+    return terrainGround.builtinGroundHeight(
+        finalCoordinate(seed, index, 1, true), finalCoordinate(seed, index, 2, true), seed, true
+    );
+}
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+pub contractTest(): int {
+    var seed = <uint>20061;
+    if (catalog.contractTest() != 1 || mailboxCount(true) != 3) {
+        return -1;
+    }
+    if (finalCoordinate(seed, 0, 1, true) != 7.0 || finalCoordinate(seed, 0, 2, true) != -8.0 ||
+        finalGroundY(seed, 0, true) != 1.5) {
+        return -2;
+    }
+    if (finalCoordinate(seed, 1, 1, true) != 6.0 || finalCoordinate(seed, 1, 2, true) != 294.0 ||
+        finalGroundY(seed, 1, true) != 1.2) {
+        return -3;
+    }
+    if (!closeEnough(finalCoordinate(seed, 2, 1, true), 3.210577197813822) ||
+        !closeEnough(finalCoordinate(seed, 2, 2, true), 654.2447865001258) ||
+        finalGroundY(seed, 2, true) != 9.0) {
+        return -4;
+    }
+    return 1;
+}

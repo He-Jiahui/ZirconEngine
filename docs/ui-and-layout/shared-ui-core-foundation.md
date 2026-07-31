@@ -755,7 +755,7 @@ Scene viewport toolbar 现在也不再属于 “host 自己按 callback id 猜�
 
 - [`zircon_editor::ui::retained_host::viewport_toolbar_pointer::ViewportToolbarPointerBridge`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/mod.rs) 会为每个 scene toolbar surface 建一棵最小 retained `UiSurface`
 - bridge surface 里显式放置 toolbar surface 节点和当前激活 control 节点，再由 shared `UiPointerDispatcher` 输出 `ViewportToolbarPointerRoute`
-- route 结果统一落成 `SetTool / SetTransformSpace / SetProjectionMode / AlignView / CycleDisplayMode / CycleGridMode / FrameSelection` 等 editor-facing route，而不是再让 host callback 名称直接充当业务协议
+- route 结果统一落成 `ActivateSceneMode / SetTransformSpace / SetProjectionMode / AlignView / CycleDisplayMode / CycleGridMode / FrameSelection` 等 editor-facing route，而不是让 host callback 名称直接充当业务协议
 - [`callback_dispatch/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs) 的 `dispatch_shared_viewport_toolbar_pointer_click(...)` 再把 shared route 对接到 `BuiltinViewportToolbarTemplateBridge`
 - Rust-owned host callback wiring 现在只保留 `viewport_toolbar_pointer_clicked(...)` 这条 pointer-fact 边界；旧的 `viewport_set_*` / `viewport_frame_selection` 直连 callback ABI 已经移除
 

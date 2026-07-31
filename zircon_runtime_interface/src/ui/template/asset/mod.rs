@@ -20,12 +20,12 @@ pub use binding::{
     UiBindingTargetKind, UiBindingTargetSchema,
 };
 pub use compiler::{
-    UiCompileCacheKey, UiCompiledAssetArtifact, UiCompiledAssetCacheRecord,
-    UiCompiledAssetDependency, UiCompiledAssetDependencyManifest, UiCompiledAssetHeader,
-    UiCompiledAssetPackageArtifactEntry, UiCompiledAssetPackageManifest,
+    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION, UiCompileCacheKey, UiCompiledAssetArtifact,
+    UiCompiledAssetCacheRecord, UiCompiledAssetDependency, UiCompiledAssetDependencyManifest,
+    UiCompiledAssetHeader, UiCompiledAssetPackageArtifactEntry, UiCompiledAssetPackageManifest,
     UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
-    UiCompiledAssetPackageValidationReport, UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+    UiCompiledAssetPackageValidationReport,
 };
 pub use component_contract::{
     UiComponentApiVersion, UiComponentBindingContract, UiComponentContractDiagnostic,
@@ -56,8 +56,10 @@ pub use resource_ref::{
     UiResourceFallbackPolicy, UiResourceKind, UiResourceRef,
 };
 pub use schema::{
+    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
     UiAssetMigrationOutcome, UiAssetMigrationReport, UiAssetMigrationStep, UiAssetSchemaDiagnostic,
     UiAssetSchemaDiagnosticSeverity, UiAssetSchemaSourceKind, UiAssetSchemaVersionPolicy,
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
 };
-pub use style::{UiSelector, UiSelectorCombinator, UiSelectorSegment, UiSelectorToken};
+pub use style::{
+    UiSelector, UiSelectorCombinator, UiSelectorSegment, UiSelectorSpecificity, UiSelectorToken,
+};

@@ -6,6 +6,7 @@ mod command_kind;
 mod debug;
 mod editable_text;
 mod extract;
+mod limits;
 mod list;
 mod paint;
 mod parity;
@@ -41,6 +42,9 @@ pub use editable_text::{
     UiTextSelection,
 };
 pub use extract::{UiRenderExtract, UiRenderExtractKind, UiRenderStats};
+pub use limits::{
+    MAX_UI_SLIDER_TICK_COUNT, bounded_ui_slider_tick_count, ui_slider_tick_count_for_track,
+};
 pub use list::UiRenderList;
 pub use paint::{
     UiClipMode, UiClipState, UiDrawEffect, UiPaintEffects, UiPaintElement, UiPaintPayload,
@@ -51,8 +55,8 @@ pub use parity::{
 };
 pub use resolved_style::UiResolvedStyle;
 pub use text_effects::{
-    UiTextDecorations, UiTextDistanceFieldEffects, UiTextGlowEffect, UiTextOutlineEffect,
-    UiTextShadowEffect, MAX_TEXT_EFFECT_EXTENT_PX,
+    MAX_TEXT_EFFECT_EXTENT_PX, UiTextDecorations, UiTextDistanceFieldEffects, UiTextGlowEffect,
+    UiTextOutlineEffect, UiTextShadowEffect,
 };
 pub use text_geometry::{UiTextLineSourceMap, UiTextVisualBoundaryBias, UiTextVisualSpan};
 pub use text_language::normalize_ui_text_language_tag;
@@ -65,8 +69,8 @@ pub use text_shape::{
     UiTextPaintDecorationKind, UiTextPaintRun, UiTextRunPaintStyle,
 };
 pub use typography::{
-    resolve_ui_text_render_mode, UiRichTextFormat, UiTextAlign, UiTextDirection, UiTextOverflow,
-    UiTextRenderMode, UiTextRunKind, UiTextWrap, UiTextWritingMode,
+    UiRichTextFormat, UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRenderMode,
+    UiTextRunKind, UiTextWrap, UiTextWritingMode, resolve_ui_text_render_mode,
 };
 pub use visual_asset_ref::UiVisualAssetRef;
 pub use visualizer::{

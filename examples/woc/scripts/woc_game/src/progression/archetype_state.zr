@@ -1,0 +1,289 @@
+// Current-head professions/archetype.ts projection. It owns identity/history
+// transitions and derives a recipe-specific ceiling for CraftingTransactionState.
+// Quest admission, persistence and the world/player lookup remain WOS work.
+var container = %import("zr.container");
+var contract = %import("generated/archetype_contract");
+var crafting = %import("progression/crafting_transaction");
+
+pub class ArchetypeState {
+    // Empty strings represent source nullable craft ids.
+    pub var activeArchetype: string;
+    pub var pairedMajor: string;
+    pub var hobbyCraft: string;
+    pub var attunedPairs: container.Array<string>;
+    pub var switchCount: float;
+    pub var amendsProgress: float;
+
+    pub @constructor() {
+        this.activeArchetype = "";
+        this.pairedMajor = "";
+        this.hobbyCraft = "";
+        this.attunedPairs = new container.Array<string>();
+        this.switchCount = 0.0;
+        this.amendsProgress = 0.0;
+    }
+}
+
+pub class ArchetypePair {
+    pub var valid: bool;
+    pub var active: string;
+    pub var paired: string;
+
+    pub @constructor() {
+        this.valid = false;
+        this.active = "";
+        this.paired = "";
+    }
+}
+
+contains(values: container.Array<string>, value: string): bool {
+    var index = 0;
+    while (index < values.length) {
+        if (<string>values[index] == value) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+pub isCraftId(craftId: string): bool {
+    return contract.craftIndex(craftId) >= 0;
+}
+
+pub isAdjacent(craftA: string, craftB: string): bool {
+    return isCraftId(craftA) && (contract.previousCraft(craftA) == craftB || contract.nextCraft(craftA) == craftB);
+}
+
+pub archetypePairId(craftA: string, craftB: string): string {
+    if (!isAdjacent(craftA, craftB)) return "";
+    return contract.nextCraft(craftA) == craftB ? craftA + "+" + craftB : craftB + "+" + craftA;
+}
+
+pub isAdjacentPairTarget(target: string): bool {
+    var index = 0;
+    while (index < contract.archetypePairCount()) {
+        if (contract.archetypePairIdAt(index) == target) return true;
+        index = index + 1;
+    }
+    return false;
+}
+
+pub craftsForPairTarget(target: string): ArchetypePair {
+    var pair = new ArchetypePair();
+    var index = 0;
+    while (index < contract.archetypePairCount()) {
+        if (contract.archetypePairIdAt(index) == target) {
+            pair.valid = true;
+            pair.active = contract.archetypePairActiveAt(index);
+            pair.paired = contract.archetypePairPairedAt(index);
+            return pair;
+        }
+        index = index + 1;
+    }
+    return pair;
+}
+
+pub defaultPairedMajor(activeArchetype: string): string {
+    if (!isCraftId(activeArchetype)) return "";
+    var partner = contract.comboPartner(activeArchetype);
+    return partner != "" && isAdjacent(activeArchetype, partner) ? partner : contract.previousCraft(activeArchetype);
+}
+
+pub hobbyCandidatesForPair(activeArchetype: string, pairedMajor: string): container.Array<string> {
+    var candidates = new container.Array<string>();
+    if (!isAdjacent(activeArchetype, pairedMajor)) return candidates;
+    candidates.add(contract.oppositeCraft(activeArchetype));
+    candidates.add(contract.oppositeCraft(pairedMajor));
+    return candidates;
+}
+
+pub defaultHobbyForPair(
+    activeArchetype: string, pairedMajor: string, skills: crafting.CraftingTransactionState
+): string {
+    var candidates = hobbyCandidatesForPair(activeArchetype, pairedMajor);
+    if (candidates.length != 2) return "";
+    var first = <string>candidates[0];
+    var second = <string>candidates[1];
+    var firstSkill = crafting.craftSkillFor(skills, first);
+    var secondSkill = crafting.craftSkillFor(skills, second);
+    if (secondSkill > firstSkill) return second;
+    if (secondSkill < firstSkill) return first;
+    return contract.craftIndex(first) <= contract.craftIndex(second) ? first : second;
+}
+
+pub requiredAmendsProgress(switchCount: float): float {
+    var prior = switchCount != switchCount ? 0.0 : switchCount;
+    if (prior < 0.0) prior = 0.0;
+    // Source Math.floor for a typed nonnegative float.
+    var whole = <int>prior;
+    return contract.amendsBase() + <float>whole * contract.amendsStep();
+}
+
+pub getArchetypeTitle(activeArchetype: string, pairedMajor: string): string {
+    return activeArchetype == "" ? "" : archetypePairId(activeArchetype, pairedMajor);
+}
+
+pub getHobbyCraft(activeArchetype: string): string {
+    return isCraftId(activeArchetype) ? contract.oppositeCraft(activeArchetype) : "";
+}
+
+// -1 is the existing crafting transaction's lossless encoding of source Infinity.
+pub archetypeCeilingTier(
+    activeArchetype: string, pairedMajor: string, craftId: string, hobbyCraft: string
+): int {
+    if (activeArchetype == "") return contract.rareCeilingTier();
+    if (craftId == activeArchetype || craftId == pairedMajor) return -1;
+    var effectiveHobby = hobbyCraft != "" ? hobbyCraft : getHobbyCraft(activeArchetype);
+    return craftId == effectiveHobby ? contract.rareCeilingTier() : contract.commonCeilingTier();
+}
+
+pub craftCeiling(
+    archetype: ArchetypeState, skills: crafting.CraftingTransactionState, craftId: string
+): int {
+    var rawSkill = crafting.craftSkillFor(skills, craftId);
+    var rawTier = <int>(rawSkill / contract.tierSkillStep());
+    var ceiling = archetypeCeilingTier(
+        archetype.activeArchetype, archetype.pairedMajor, craftId, archetype.hobbyCraft
+    );
+    return ceiling < 0 || rawTier < ceiling ? rawTier : ceiling;
+}
+
+pub applyToCraftingTransaction(
+    archetype: ArchetypeState, skills: crafting.CraftingTransactionState, recipeCraftId: string
+): void {
+    skills.activeArchetype = archetype.activeArchetype;
+    skills.pairedMajor = archetype.pairedMajor;
+    skills.archetypeCeilingTier = archetypeCeilingTier(
+        archetype.activeArchetype, archetype.pairedMajor, recipeCraftId, archetype.hobbyCraft
+    );
+}
+
+pub normalizeState(state: ArchetypeState, skills: crafting.CraftingTransactionState): void {
+    state.switchCount = state.switchCount != state.switchCount || state.switchCount < 0.0 ? 0.0 : state.switchCount;
+    state.amendsProgress = state.amendsProgress != state.amendsProgress || state.amendsProgress < 0.0 ? 0.0 : state.amendsProgress;
+    if (!isCraftId(state.activeArchetype)) {
+        state.activeArchetype = "";
+        state.pairedMajor = "";
+        state.hobbyCraft = "";
+        state.attunedPairs = new container.Array<string>();
+        return;
+    }
+    if (!isAdjacent(state.activeArchetype, state.pairedMajor)) {
+        state.pairedMajor = defaultPairedMajor(state.activeArchetype);
+    }
+    var retained = new container.Array<string>();
+    var index = 0;
+    while (index < state.attunedPairs.length) {
+        var pair = <string>state.attunedPairs[index];
+        if (isAdjacentPairTarget(pair) && !contains(retained, pair)) retained.add(pair);
+        index = index + 1;
+    }
+    var current = archetypePairId(state.activeArchetype, state.pairedMajor);
+    if (current != "" && !contains(retained, current)) retained.add(current);
+    state.attunedPairs = retained;
+    if (!contains(hobbyCandidatesForPair(state.activeArchetype, state.pairedMajor), state.hobbyCraft)) {
+        state.hobbyCraft = defaultHobbyForPair(state.activeArchetype, state.pairedMajor, skills);
+    }
+}
+
+pub acceptArchetypeQuest(
+    state: ArchetypeState, skills: crafting.CraftingTransactionState, craftId: string
+): bool {
+    if (state.activeArchetype != "" || !isCraftId(craftId)) return false;
+    state.activeArchetype = craftId;
+    state.pairedMajor = defaultPairedMajor(craftId);
+    state.hobbyCraft = defaultHobbyForPair(craftId, state.pairedMajor, skills);
+    var pair = archetypePairId(craftId, state.pairedMajor);
+    state.attunedPairs = new container.Array<string>();
+    if (pair != "") state.attunedPairs.add(pair);
+    return true;
+}
+
+pub canAttuneArchetypePair(state: ArchetypeState, target: string, mode: int): bool {
+    if ((mode != 0 && mode != 1) || !isAdjacentPairTarget(target) ||
+        archetypePairId(state.activeArchetype, state.pairedMajor) == target) return false;
+    var seen = contains(state.attunedPairs, target);
+    return mode == 0 ? !seen : seen;
+}
+
+pub attuneArchetypePair(
+    state: ArchetypeState, skills: crafting.CraftingTransactionState, target: string, mode: int
+): bool {
+    if (!canAttuneArchetypePair(state, target, mode)) return false;
+    var pair = craftsForPairTarget(target);
+    state.activeArchetype = pair.active;
+    state.pairedMajor = pair.paired;
+    state.hobbyCraft = defaultHobbyForPair(pair.active, pair.paired, skills);
+    if (!contains(state.attunedPairs, target)) state.attunedPairs.add(target);
+    if (mode == 1) state.switchCount = state.switchCount + 1.0;
+    state.amendsProgress = 0.0;
+    return true;
+}
+
+pub canSwitchHobby(state: ArchetypeState, target: string): bool {
+    return state.activeArchetype != "" && state.pairedMajor != "" && target != state.hobbyCraft &&
+        contains(hobbyCandidatesForPair(state.activeArchetype, state.pairedMajor), target);
+}
+
+pub switchHobby(state: ArchetypeState, target: string): bool {
+    if (!canSwitchHobby(state, target)) return false;
+    state.hobbyCraft = target;
+    return true;
+}
+
+pub advanceAmendsProgress(state: ArchetypeState): void {
+    if (state.activeArchetype != "") state.amendsProgress = state.amendsProgress + 1.0;
+}
+
+pub switchArchetype(
+    state: ArchetypeState, skills: crafting.CraftingTransactionState, craftId: string
+): bool {
+    if (!isCraftId(craftId) || state.activeArchetype == "" || state.activeArchetype == craftId ||
+        state.amendsProgress < requiredAmendsProgress(state.switchCount)) return false;
+    state.activeArchetype = craftId;
+    state.pairedMajor = defaultPairedMajor(craftId);
+    state.hobbyCraft = defaultHobbyForPair(craftId, state.pairedMajor, skills);
+    var pair = archetypePairId(craftId, state.pairedMajor);
+    if (pair != "" && !contains(state.attunedPairs, pair)) state.attunedPairs.add(pair);
+    state.switchCount = state.switchCount + 1.0;
+    state.amendsProgress = 0.0;
+    return true;
+}
+
+pub contractTest(): int {
+    if (contract.craftCount() != 10 || contract.craftAt(0) != "engineering" ||
+        contract.craftAt(9) != "armorcrafting" || !isAdjacent("armorcrafting", "engineering") ||
+        archetypePairId("engineering", "alchemy") != "engineering+alchemy" ||
+        archetypePairId("armorcrafting", "engineering") != "armorcrafting+engineering" ||
+        archetypePairId("engineering", "cooking") != "") return -1;
+    var skills = new crafting.CraftingTransactionState();
+    var state = new ArchetypeState();
+    if (!acceptArchetypeQuest(state, skills, "armorcrafting") || state.pairedMajor != "weaponcrafting" ||
+        state.hobbyCraft != "leatherworking" || state.attunedPairs.length != 1 ||
+        getArchetypeTitle(state.activeArchetype, state.pairedMajor) != "weaponcrafting+armorcrafting") return -2;
+    if (archetypeCeilingTier("", "", "armorcrafting", "") != 2 ||
+        archetypeCeilingTier(state.activeArchetype, state.pairedMajor, "armorcrafting", state.hobbyCraft) != -1 ||
+        archetypeCeilingTier(state.activeArchetype, state.pairedMajor, "leatherworking", state.hobbyCraft) != 2 ||
+        archetypeCeilingTier(state.activeArchetype, state.pairedMajor, "cooking", state.hobbyCraft) != 0) return -3;
+    crafting.setCraftSkill(skills, "tailoring", 10.0);
+    if (defaultHobbyForPair("weaponcrafting", "armorcrafting", skills) != "tailoring") return -4;
+    var target = "jewelcrafting+weaponcrafting";
+    if (!canAttuneArchetypePair(state, target, 0) || !attuneArchetypePair(state, skills, target, 0) ||
+        state.activeArchetype != "jewelcrafting" || state.switchCount != 0.0) return -5;
+    if (!canAttuneArchetypePair(state, "weaponcrafting+armorcrafting", 1) ||
+        !attuneArchetypePair(state, skills, "weaponcrafting+armorcrafting", 1) || state.switchCount != 1.0 ||
+        !switchHobby(state, "leatherworking") || state.hobbyCraft != "leatherworking") return -6;
+    var needed = requiredAmendsProgress(state.switchCount);
+    var index = 0;
+    while (<float>index < needed) {
+        advanceAmendsProgress(state);
+        index = index + 1;
+    }
+    if (!switchArchetype(state, skills, "alchemy") || state.pairedMajor != "engineering" ||
+        state.switchCount != 2.0 || state.amendsProgress != 0.0) return -7;
+    applyToCraftingTransaction(state, skills, "alchemy");
+    if (skills.activeArchetype != "alchemy" || skills.pairedMajor != "engineering" ||
+        skills.archetypeCeilingTier != -1) return -8;
+    applyToCraftingTransaction(state, skills, "cooking");
+    if (skills.archetypeCeilingTier != 0 || craftCeiling(state, skills, "cooking") != 0) return -9;
+    return 1;
+}

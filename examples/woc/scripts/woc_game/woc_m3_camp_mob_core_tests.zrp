@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_camp_mob_core_tests",
+  "source": "src",
+  "binary": "bin-m3-camp-mob-core-tests",
+  "entry": "content/m3_camp_mob_core_test_main"
+}

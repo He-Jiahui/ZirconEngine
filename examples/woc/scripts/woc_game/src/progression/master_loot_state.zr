@@ -1,0 +1,60 @@
+// Current-head Master Loot decisions from sim/loot_master.ts. The caller owns
+// item definitions, party settings and loot mutation; this module only returns
+// source-compatible numeric quality and looter decisions.
+var container = %import("zr.container");
+var contract = %import("generated/master_loot_contract");
+
+// Quality codes preserve QUALITY_RANK order. missingQualityCode represents an
+// absent item quality and deliberately resolves as the source's common value.
+pub qualityRank(quality: int): int {
+    if (quality >= contract.qualityPoor(true) && quality <= contract.qualityLegendary(true)) {
+        return quality;
+    }
+    return contract.qualityCommon(true);
+}
+
+pub meetsMasterThreshold(quality: int, threshold: int): bool {
+    return qualityRank(quality) >= qualityRank(threshold);
+}
+
+containsMember(members: container.Array<uint>, pid: uint): bool {
+    for (var member in members) {
+        if (member == pid) return true;
+    }
+    return false;
+}
+
+// A zero result represents the source null result. A configured looter of zero
+// means the current leader; any configured looter absent from members falls
+// back to that leader, exactly as the source helper does.
+pub effectiveMasterLooter(
+    enabled: bool,
+    configuredLooter: uint,
+    leader: uint,
+    members: container.Array<uint>
+): uint {
+    if (!enabled) return <uint>0;
+    var looter = configuredLooter == <uint>0 ? leader : configuredLooter;
+    return containsMember(members, looter) ? looter : leader;
+}
+
+pub contractTest(): int {
+    if (!meetsMasterThreshold(contract.qualityUncommon(true), contract.qualityUncommon(true)) ||
+        !meetsMasterThreshold(contract.qualityRare(true), contract.qualityUncommon(true)) ||
+        !meetsMasterThreshold(contract.qualityLegendary(true), contract.qualityEpic(true)) ||
+        meetsMasterThreshold(contract.qualityCommon(true), contract.qualityUncommon(true)) ||
+        meetsMasterThreshold(contract.qualityPoor(true), contract.qualityUncommon(true)) ||
+        meetsMasterThreshold(contract.qualityUncommon(true), contract.qualityEpic(true)) ||
+        meetsMasterThreshold(contract.missingQualityCode(true), contract.qualityUncommon(true)) ||
+        qualityRank(contract.missingQualityCode(true)) != contract.qualityCommon(true)) return -1;
+
+    var members = new container.Array<uint>();
+    members.add(<uint>7);
+    members.add(<uint>8);
+    members.add(<uint>9);
+    if (effectiveMasterLooter(false, <uint>0, <uint>7, members) != <uint>0 ||
+        effectiveMasterLooter(true, <uint>0, <uint>7, members) != <uint>7 ||
+        effectiveMasterLooter(true, <uint>9, <uint>7, members) != <uint>9 ||
+        effectiveMasterLooter(true, <uint>42, <uint>7, members) != <uint>7) return -2;
+    return 1;
+}

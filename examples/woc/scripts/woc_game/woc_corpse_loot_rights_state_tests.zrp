@@ -1,0 +1,6 @@
+{
+  "name": "woc_corpse_loot_rights_state_tests",
+  "source": "src",
+  "binary": "bin-corpse-loot-rights-state-tests",
+  "entry": "world/corpse_loot_rights_state_test_main"
+}

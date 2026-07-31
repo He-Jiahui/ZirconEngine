@@ -17,7 +17,7 @@ pub(super) fn assert_runtime_05_to_08_anchors(sources: &RecentStaticGuardSources
         "script::vm/vampire_project_session/plugin/native_plugin/app/plugins",
         "native_plugin_public_surface",
         "root_reexport_count = 0",
-        "native_namespace_reexport_count = 64",
+        "native_namespace_reexport_count = 68",
         "native loader test files 4/4",
         "native test namespace import files 3/3",
         "plugin_surface_lifecycle_boundary",

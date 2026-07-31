@@ -1,20 +1,24 @@
 //! Text measurement and layout support backed by the shared runtime text stack.
 
+mod advance_index;
 mod align;
 mod kinsoku;
 mod line_break;
 mod measure;
 mod overflow;
 mod rich;
+mod rich_advance_index;
 mod rich_vertical;
 mod tab;
 mod vertical_layout;
 
+pub(crate) use advance_index::GraphemeAdvanceIndex;
 pub(crate) use align::justify_line_advances;
 pub(crate) use line_break::{
-    line_break_chunks_with_provider, line_text_fits_with_provider,
-    should_wrap_before_chunk_with_provider, trailing_wrap_space_byte_len, trim_leading_wrap_spaces,
-    word_smart_line_break_chunks_with_provider,
+    corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
+    line_text_fits_with_provider, should_wrap_before_accumulated, soft_hyphen_break_suffix_at,
+    trailing_wrap_space_byte_len, trim_leading_wrap_spaces,
+    word_smart_line_break_chunks_with_provider, BOUNDARY_SHAPING_CONTEXT_GRAPHEMES,
 };
 pub(crate) use measure::{
     line_metrics_with_provider, measure_line_width, measure_line_width_with_provider,
@@ -22,7 +26,9 @@ pub(crate) use measure::{
     measure_text_source_range_width_with_provider, measured_grapheme_widths,
     measured_grapheme_widths_with_provider, TextLineMetrics,
 };
-pub(crate) use overflow::{ellipsize_text, EllipsisPlacement, EllipsisSegment, ELLIPSIS};
+pub(crate) use overflow::{
+    retained_grapheme_counts, trim_end_ellipsis_trailing_graphemes, EllipsisPlacement, ELLIPSIS,
+};
 pub(crate) use rich::{
     layout_rich_line_with_provider, layout_rich_text_glyph_wrapped_with_provider,
     layout_rich_text_with_provider, layout_rich_text_word_wrapped_with_provider,

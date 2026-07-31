@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_baptistry_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/drowned_litany_rooms.ts": "4e2e8ac7282cd4fc846ff8a04350b82f5424db15dc7c695d23df505c907d3846",
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff"
+  },
+  "content": {
+    "egg_sac_wave_radius": 7,
+    "egg_sac_wave_percent": 0.06,
+    "egg_sac_burst_despawn": 1.1,
+    "hatchling_body_r": 0.8,
+    "hatchling_spawn_attempts": 12,
+    "egg_sac_spots": [
+      {
+        "x": 15,
+        "z": 10
+      },
+      {
+        "x": -15,
+        "z": 6
+      },
+      {
+        "x": 0,
+        "z": 58
+      }
+    ],
+    "waves": [
+      [
+        {
+          "mob_id": "mirefen_widowling",
+          "x": -12,
+          "z": 22
+        },
+        {
+          "mob_id": "mirefen_widowling",
+          "x": 12,
+          "z": 22
+        },
+        {
+          "mob_id": "mirefen_widowling",
+          "x": -16,
+          "z": 30
+        },
+        {
+          "mob_id": "mirefen_widowling",
+          "x": 16,
+          "z": 30
+        },
+        {
+          "mob_id": "deepfen_spearjaw",
+          "x": -4,
+          "z": 26
+        },
+        {
+          "mob_id": "deepfen_spearjaw",
+          "x": 4,
+          "z": 26
+        }
+      ],
+      [
+        {
+          "mob_id": "reedbound_acolyte",
+          "x": -16,
+          "z": 56
+        },
+        {
+          "mob_id": "reedbound_acolyte",
+          "x": 16,
+          "z": 56
+        },
+        {
+          "mob_id": "drowned_cantor",
+          "x": 0,
+          "z": 58
+        },
+        {
+          "mob_id": "choir_thrall",
+          "x": -5,
+          "z": 52
+        },
+        {
+          "mob_id": "choir_thrall",
+          "x": 5,
+          "z": 52
+        },
+        {
+          "mob_id": "choir_thrall",
+          "x": 0,
+          "z": 64
+        }
+      ],
+      [
+        {
+          "mob_id": "grave_silt_bulwark",
+          "x": 0,
+          "z": 30
+        },
+        {
+          "mob_id": "mirefen_widowling",
+          "x": -10,
+          "z": 24
+        },
+        {
+          "mob_id": "mirefen_widowling",
+          "x": 10,
+          "z": 24
+        }
+      ]
+    ]
+  },
+  "catalog_sha256": "7e47e5ee102ba924fd64ea149d0aa72befc830310bf81e65480ec20dc2ef377d"
+}

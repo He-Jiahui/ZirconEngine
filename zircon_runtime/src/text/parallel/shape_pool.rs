@@ -1,11 +1,13 @@
 //! Parallel paragraph shaping batch helpers.
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::core::framework::text::TextDirection;
+use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::core::runtime::tasks::{parallel_for, TaskPool};
-use crate::text::cache::{ShapedRunCache, ShapedRunCacheKey};
-use crate::text::layout_session::shape_request_through_canonical_service;
+use crate::text::cache::{ShapedRunCache, ShapedRunCacheKey, ShapedRunCacheLookupKey};
+use crate::text::layout_session::{
+    shape_fallback_for_error, try_shape_request_through_canonical_service,
+};
 use crate::text::{BackendShapeRequest, ShapedGlyphRun, TextOrientation, VerticalMode};
 use crate::text::{TextRange, TextStyle};
 
@@ -26,8 +28,10 @@ pub(crate) struct TextParallelShapeBatchReport {
     pub(crate) cache_hit_count: usize,
     pub(crate) cache_miss_count: usize,
     pub(crate) batch_duplicate_count: usize,
+    pub(crate) pending_lookup_candidate_count: usize,
     pub(crate) shaped_count: usize,
     pub(crate) inserted_count: usize,
+    pub(crate) generation_deferred_count: usize,
     pub(crate) chunk_size: usize,
     pub(crate) worker_parallelism: usize,
 }
@@ -44,6 +48,7 @@ struct PendingShapeJob {
     request: TextShapeParagraph,
     output_indices: Vec<usize>,
     run: Option<ShapedGlyphRun>,
+    cacheable: bool,
 }
 
 impl TextShapeParagraph {
@@ -120,17 +125,23 @@ impl PendingShapeJob {
             request,
             output_indices: vec![output_index],
             run: None,
+            cacheable: true,
         }
     }
 
-    fn matches(&self, key: &ShapedRunCacheKey, text: &str) -> bool {
-        &self.key == key && self.request.text() == text
+    fn matches_lookup(&self, lookup: &ShapedRunCacheLookupKey<'_>, text: &str) -> bool {
+        self.key.matches_lookup(lookup) && self.request.text() == text
     }
 
     fn shape(&mut self) {
-        self.run = Some(shape_request_through_canonical_service(
-            self.request.request(),
-        ));
+        let request = self.request.request();
+        match try_shape_request_through_canonical_service(request) {
+            Ok(run) => self.run = Some(run),
+            Err(error) => {
+                self.cacheable = !matches!(&error, TextLayoutError::FontGenerationChanged);
+                self.run = Some(shape_fallback_for_error(request, &error));
+            }
+        }
     }
 }
 
@@ -145,24 +156,46 @@ pub(crate) fn shape_paragraphs_with_cache(
         TextParallelShapeBatchReport::for_requests(requests.len(), chunk_size, pool.parallelism());
     let mut runs = vec![None; requests.len()];
     let mut pending: Vec<PendingShapeJob> = Vec::new();
+    let mut pending_by_lookup_fingerprint: HashMap<u64, Vec<usize>> = HashMap::new();
 
     for (index, request) in requests.iter().enumerate() {
         let borrowed = request.request();
-        let key = ShapedRunCacheKey::from_request(&borrowed);
-        if let Some(job) = pending
-            .iter_mut()
-            .find(|job| job.matches(&key, request.text()))
+        let lookup = ShapedRunCacheLookupKey::from_request(&borrowed);
+        let pending_lookup_fingerprint = if pending.is_empty() {
+            None
+        } else {
+            Some(lookup.exact_fingerprint())
+        };
+        if let Some(pending_index) = pending_lookup_fingerprint
+            .and_then(|fingerprint| pending_by_lookup_fingerprint.get(&fingerprint))
+            .and_then(|candidate_indices| {
+                candidate_indices.iter().copied().find(|&pending_index| {
+                    report.pending_lookup_candidate_count =
+                        report.pending_lookup_candidate_count.saturating_add(1);
+                    pending[pending_index].matches_lookup(&lookup, request.text())
+                })
+            })
         {
-            job.output_indices.push(index);
+            pending[pending_index].output_indices.push(index);
             report.batch_duplicate_count = report.batch_duplicate_count.saturating_add(1);
             continue;
         }
 
-        if let Some(run) = cache.get(&key, request.text()) {
+        if let Some(run) = cache.get_with_lookup(&lookup, request.text()) {
             runs[index] = Some(run);
             report.cache_hit_count = report.cache_hit_count.saturating_add(1);
         } else {
+            let lookup_fingerprint = match pending_lookup_fingerprint {
+                Some(fingerprint) => fingerprint,
+                None => lookup.exact_fingerprint(),
+            };
+            let key = cache.own_lookup_key(&lookup);
+            let pending_index = pending.len();
             pending.push(PendingShapeJob::new(key, request.clone(), index));
+            pending_by_lookup_fingerprint
+                .entry(lookup_fingerprint)
+                .or_default()
+                .push(pending_index);
             report.cache_miss_count = report.cache_miss_count.saturating_add(1);
         }
     }
@@ -176,15 +209,8 @@ pub(crate) fn shape_paragraphs_with_cache(
         });
     }
 
-    for mut job in pending {
-        let Some(run) = job.run.take() else {
-            continue;
-        };
-        let run = cache.insert(job.key, job.request.text_arc(), run);
-        report.inserted_count = report.inserted_count.saturating_add(1);
-        for output_index in job.output_indices {
-            runs[output_index] = Some(Arc::clone(&run));
-        }
+    for job in pending {
+        finish_pending_shape_job(cache, &mut report, &mut runs, job);
     }
 
     let ordered_runs = runs.into_iter().flatten().collect::<Vec<_>>();
@@ -196,14 +222,39 @@ pub(crate) fn shape_paragraphs_with_cache(
     }
 }
 
+fn finish_pending_shape_job(
+    cache: &mut ShapedRunCache,
+    report: &mut TextParallelShapeBatchReport,
+    runs: &mut [Option<Arc<ShapedGlyphRun>>],
+    mut job: PendingShapeJob,
+) {
+    let Some(run) = job.run.take() else {
+        return;
+    };
+    let run = if job.cacheable {
+        report.inserted_count = report.inserted_count.saturating_add(1);
+        cache.insert(job.key, job.request.text_arc(), run)
+    } else {
+        report.generation_deferred_count = report.generation_deferred_count.saturating_add(1);
+        Arc::new(run)
+    };
+    for output_index in job.output_indices {
+        runs[output_index] = Some(Arc::clone(&run));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
 
-    use super::{shape_paragraphs_with_cache, TextShapeParagraph};
+    use super::{
+        finish_pending_shape_job, shape_paragraphs_with_cache, PendingShapeJob,
+        TextParallelShapeBatchReport, TextShapeParagraph,
+    };
     use crate::core::framework::text::TextDirection;
     use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
     use crate::text::cache::ShapedRunCache;
+    use crate::text::layout_session::shape_request_through_canonical_service;
     use crate::text::{TextRange, TextStyle};
 
     #[test]
@@ -276,12 +327,64 @@ mod tests {
         assert_eq!(batch.runs.len(), requests.len());
         assert_eq!(batch.report.cache_miss_count, 2);
         assert_eq!(batch.report.batch_duplicate_count, 2);
+        assert_eq!(batch.report.pending_lookup_candidate_count, 2);
         assert_eq!(batch.report.shaped_count, 2);
         assert_eq!(batch.report.inserted_count, 2);
         assert_eq!(cache_report.miss_count, 2);
         assert_eq!(cache_report.insert_count, 2);
         assert!(Arc::ptr_eq(&batch.runs[0], &batch.runs[2]));
         assert!(Arc::ptr_eq(&batch.runs[1], &batch.runs[3]));
+    }
+
+    #[test]
+    fn text_parallel_shape_batch_indexes_unique_pending_misses() {
+        const UNIQUE_REQUEST_COUNT: usize = 32;
+
+        let style = compact_editor_label_style();
+        let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
+        let mut cache = ShapedRunCache::with_capacity(UNIQUE_REQUEST_COUNT);
+        let mut requests = Vec::with_capacity(UNIQUE_REQUEST_COUNT);
+        for index in 0..UNIQUE_REQUEST_COUNT {
+            let text = format!("visible-row-{index}.zr");
+            requests.push(paragraph(text.as_str(), &style));
+        }
+
+        cache.begin_frame(1);
+        let batch = shape_paragraphs_with_cache(&pool, &mut cache, &requests, 4);
+
+        assert_eq!(batch.runs.len(), UNIQUE_REQUEST_COUNT);
+        assert_eq!(batch.report.cache_miss_count, UNIQUE_REQUEST_COUNT);
+        assert_eq!(batch.report.shaped_count, UNIQUE_REQUEST_COUNT);
+        assert!(
+            batch.report.pending_lookup_candidate_count <= UNIQUE_REQUEST_COUNT,
+            "unique misses must only compare same-fingerprint candidates"
+        );
+    }
+
+    #[test]
+    fn generation_deferred_shape_is_returned_without_caching() {
+        let style = compact_editor_label_style();
+        let request = paragraph("retry next frame", &style);
+        let mut cache = ShapedRunCache::with_capacity(16);
+        let borrowed = request.request();
+        let key = cache.own_lookup_key(&crate::text::cache::ShapedRunCacheLookupKey::from_request(
+            &borrowed,
+        ));
+        let mut job = PendingShapeJob::new(key, request.clone(), 0);
+        job.run = Some(shape_request_through_canonical_service(request.request()));
+        job.cacheable = false;
+        let mut report = TextParallelShapeBatchReport::for_requests(1, 1, 1);
+        let mut runs = vec![None];
+
+        finish_pending_shape_job(&mut cache, &mut report, &mut runs, job);
+
+        assert_eq!(report.inserted_count, 0);
+        assert_eq!(report.generation_deferred_count, 1);
+        assert_eq!(cache.report().insert_count, 0);
+        assert_eq!(
+            runs[0].as_deref().map(|run| run.source_text.as_str()),
+            Some("retry next frame")
+        );
     }
 
     fn paragraphs(texts: &[&str]) -> Vec<TextShapeParagraph> {

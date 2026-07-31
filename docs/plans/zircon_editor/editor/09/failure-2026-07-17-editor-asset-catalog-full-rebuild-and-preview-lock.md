@@ -9,6 +9,10 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/09
 plan_link_mode: child_record_only
 related_code:
+  - zircon_editor/src/ui/host/editor_asset_manager/generation.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/change_stream.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/broadcast.rs
@@ -18,6 +22,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/assets/refresh/events/runtime.rs
   - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
   - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs
+  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces
 reference_sources:
   - dev/godot/editor/editor_file_system.cpp
@@ -71,4 +76,10 @@ Editor asset manager 没有 immutable catalog generation、增量 source/import 
 
 ## 修复结果与回传
 
-Open state: `待 Editor09 实现 generation snapshot、增量 refresh、preview worker commit 与有界/coalesced change stream，并回传 build/read/clone/lock/queue 证据`。
+Open state: `2026-07-23 已完成当前源码阶段：catalog authority 硬切为共享 immutable generation，folder/UUID/locator/reference/details projection 每 generation 构建一次；manager、host controller 与 workspace 贯穿 Arc，preview 单行发布只复制 Arc 指针并保留其它行 identity。preview 已接统一 EditorJobSystem Thumbnail/Background lane、同资产 mutex group与64项全局唯一 tokenized admission；pending/pre-run cancel、submit failure 与 panic 均由 armed Drop guard 释放匹配 token，running cancel 在生成、meta reload、publish gate 与 state commit point 前重复检查。终止只释放槽位、不隐式重新标脏，AdmissionAvailable 只补位其它仍 dirty 的可见资源，永久 meta load 失败 generation-safe 发布 terminal Error，避免 cancel/shutdown/error 立即重提循环；decode/encode/meta reload 均不持 live state lock，publish gate 只覆盖最终短提交，digest-addressed artifact 防止旧 source 覆盖。editor asset change bus 已硬切为每订阅者最多512 key的shared-Arc mailbox，同 key 按全局publish sequence/revision合并并移至队尾，overflow收敛为最新CatalogChanged；dead owner在subscribe/publish两端清理，owner锁外fanout。retained host三流各有256项/600µs独立slice，总预算2ms，并记录pending/queue-age；startup只丢弃len cutoff之前的bootstrap事件。静态合同现为9/9，rustfmt与diff check通过；generation/preview、change-stream复审0/0/0。ProjectManifest+PackageAssetRegistry+ResourceRecord typed delta和latest-started source sync线性化已落地，但复审确认其不覆盖source mtime、完整meta投影与artifact direct references；错误unchanged早退已撤回，本项复审为0/1/0。受管Rust编译仍被Coordinator01 validation-copy failure阻塞。Failure保持open：Runtime04 尚缺preview_state字段级CAS（runtime/04/failure-2026-07-23-asset-meta-preview-state-field-cas.md）与完整catalog-input generation（runtime/04/failure-2026-07-23-project-catalog-input-generation.md）；Editor09在二者返回前不声明unchanged零工作或10k规模动态门完成。2026-07-22 core EditorAssetIndex复核补充仍有效：pending path reconcile虽已删除path clone与二次remove，但rows/runtime registry replacement的全量路径仍须并入同一generation增量authority。`。
+
+2026-07-30 retained-host startup current-source补充：project activation在`ui/host/project_access.rs`完成一次`refresh_from_runtime_project`后，`finalize_startup_host -> sync_asset_workspace`首帧前又无条件调用同一refresh；当前每次都全registry读取meta/ready artifact/direct references并重建catalog/preview，因此同project activation至少执行两次完整Editor09输入投影。三流订阅在open前建立，之后asset/resource按`len`逐条丢弃，editor mailbox以`VecDeque::clear + HashMap::clear`析构pending key。修复必须让Runtime04 commit返回唯一catalog-input generation/watermark，Editor09每generation最多构建/发布一次，retained host从watermark开始消费；不得仅删除第二次refresh或后移订阅造成旧catalog/并发事件丢失。新增验收计数：`refresh/build/meta/artifact/reference <= 1/project generation`、warm unchanged为0、startup discard为O(1)且commit后rename/remove/failure不丢。证据：`docs/plans/performance/01/2026-07-30-editor-retained-host-startup-current-review.md`；managed Cargo、1/1K/100K与F0仍pending，failure保持open。
+
+2026-07-30 retained-host asset tick补充：三流dequeue已具256项/600us slice，不再沿用“无预算drain”旧结论；但预算不覆盖消费。任何非空batch先构建完整EditorData snapshot只取selected UUID，asset batch同步full `refresh_from_runtime_project`，Catalog/Reference可再建details snapshot，preview/admission再建chrome；resource/default-scene分别触发全表resources与UI tick reopen/full scan。asset/resource queue age也不是真实enqueue age。Editor09应从同一delta generation提供selected/visible窄accessor与端到端deadline/cursor，catalog/preview/resource/default-scene apply不得逃逸预算。新增验收：窄查询full snapshot=0、same-generation full refresh≤1、oldest enqueue-to-commit age真实、default-scene UI open/scan=0。证据：`docs/plans/performance/01/2026-07-30-editor-retained-host-assets-current-review.md`；failure保持open。
+
+2026-07-31 backend-refresh adapter补充：current `selected_asset_uuid`参数没有可观察作用，Catalog/Reference match arm在参数分支前已无条件设置details refresh，但caller仍构建完整EditorData snapshot取UUID。先以源码合同锁定所有event flag组合，再删除参数与该snapshot；验收要求selected-UUID-only full snapshot=0、同batch refresh/details次数不增。证据：`docs/plans/performance/01/2026-07-31-editor-retained-tick-projection-adapters-current-review.md`；failure保持open。

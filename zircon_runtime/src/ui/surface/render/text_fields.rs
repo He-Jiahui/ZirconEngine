@@ -1,9 +1,12 @@
+use std::sync::OnceLock;
+
 use toml::Value;
 use zircon_runtime_interface::ui::{
     component::UiComponentState,
+    design_tokens::{EditorDesignTokens, EditorTypographyTokens},
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{
         UiEditableTextState, UiRenderCommand, UiRenderCommandKind, UiResolvedStyle,
         UiResolvedTextLayout,
@@ -16,22 +19,132 @@ use super::extract::resolve_text_layout_with_cache;
 use super::painter_state::UiRenderPainterStateSource;
 use crate::ui::text::{UiPreeditSpan, UiTextLayoutRequest, UiTextMeasureCache};
 
-const DEFAULT_PADDING_X: f32 = 8.0;
-const DEFAULT_PADDING_Y: f32 = 4.0;
-const DEFAULT_FONT_SIZE: f32 = 10.0;
-const DEFAULT_LINE_HEIGHT: f32 = DEFAULT_FONT_SIZE * 1.2;
-const SURFACE_IDLE: &str = "#0f1316";
-const SURFACE_HOVER: &str = "#1b1f23";
-const SURFACE_PRESSED: &str = "#252b31";
-const SURFACE_FOCUSED: &str = "#0f1316";
-const SURFACE_DISABLED: &str = "#1b1f23";
-const BORDER_IDLE: &str = "#262d33";
-const BORDER_HOVER: &str = "#323a41";
-const BORDER_FOCUS: &str = "#2aa6b8";
-const BORDER_DISABLED: &str = "#2c3237";
-const TEXT: &str = "#e8ecee";
-const TEXT_PLACEHOLDER: &str = "#a4aeb4";
-const TEXT_DISABLED: &str = "#656f76";
+#[derive(Clone, Copy, Debug)]
+struct TextFieldVisual {
+    surface_idle: UiRgbaColor,
+    surface_hover: UiRgbaColor,
+    surface_pressed: UiRgbaColor,
+    surface_focused: UiRgbaColor,
+    surface_disabled: UiRgbaColor,
+    border_idle: UiRgbaColor,
+    border_hover: UiRgbaColor,
+    border_focus: UiRgbaColor,
+    border_disabled: UiRgbaColor,
+    text: UiRgbaColor,
+    placeholder_text: UiRgbaColor,
+    text_disabled: UiRgbaColor,
+    padding_left: f32,
+    padding_right: f32,
+    padding_top: f32,
+    padding_bottom: f32,
+    border_width: f32,
+    corner_radius: f32,
+    font_size: f32,
+    line_height: f32,
+    min_frame_extent: f32,
+}
+
+impl TextFieldVisual {
+    fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
+        let mut visual = *default_text_field_visual();
+        visual.surface_idle =
+            first_rgba_attribute(metadata, &["background_color"]).unwrap_or(visual.surface_idle);
+        visual.surface_hover = first_rgba_attribute(metadata, &["hover_background_color"])
+            .unwrap_or(visual.surface_hover);
+        visual.surface_pressed = first_rgba_attribute(metadata, &["pressed_background_color"])
+            .unwrap_or(visual.surface_pressed);
+        visual.surface_focused = first_rgba_attribute(
+            metadata,
+            &[
+                "focused_background_color",
+                "focus_background_color",
+                "background_color",
+            ],
+        )
+        .unwrap_or(visual.surface_focused);
+        visual.surface_disabled = first_rgba_attribute(metadata, &["disabled_background_color"])
+            .unwrap_or(visual.surface_disabled);
+        visual.border_idle =
+            first_rgba_attribute(metadata, &["border_color"]).unwrap_or(visual.border_idle);
+        visual.border_hover =
+            first_rgba_attribute(metadata, &["hover_border_color"]).unwrap_or(visual.border_hover);
+        visual.border_focus =
+            first_rgba_attribute(metadata, &["focus_border_color"]).unwrap_or(visual.border_focus);
+        visual.border_disabled = first_rgba_attribute(metadata, &["disabled_border_color"])
+            .unwrap_or(visual.border_disabled);
+        visual.text = first_rgba_attribute(metadata, &["foreground_color", "text_color"])
+            .unwrap_or(visual.text);
+        visual.placeholder_text = first_rgba_attribute(metadata, &["placeholder_color"])
+            .unwrap_or(visual.placeholder_text);
+        visual.text_disabled = first_rgba_attribute(metadata, &["disabled_foreground_color"])
+            .unwrap_or(visual.text_disabled);
+        visual.padding_left = metric_attribute(metadata, "layout_padding_left")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.padding_left);
+        visual.padding_right = metric_attribute(metadata, "layout_padding_right")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.padding_right);
+        visual.padding_top = metric_attribute(metadata, "layout_padding_top")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.padding_top);
+        visual.padding_bottom = metric_attribute(metadata, "layout_padding_bottom")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.padding_bottom);
+        visual.border_width = metric_attribute(metadata, "border_width")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.border_width);
+        visual.corner_radius = metric_attribute(metadata, "corner_radius")
+            .or_else(|| metric_attribute(metadata, "radius"))
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.corner_radius);
+        visual.font_size = metric_attribute(metadata, "font_size")
+            .filter(|value| *value > 0.0)
+            .unwrap_or(visual.font_size);
+        visual.line_height = line_height(
+            metadata,
+            "line_height",
+            "line_height_ratio",
+            visual.font_size,
+            visual.line_height,
+        );
+        visual.min_frame_extent = visual.border_width.max(f32::EPSILON);
+        visual
+    }
+}
+
+fn default_text_field_visual() -> &'static TextFieldVisual {
+    static VISUAL: OnceLock<TextFieldVisual> = OnceLock::new();
+    VISUAL.get_or_init(|| {
+        let tokens = EditorDesignTokens::workbench_dark();
+        let colors = &tokens.palette;
+        let controls = &tokens.controls;
+        let density = &tokens.density;
+        let typography = &tokens.typography;
+        TextFieldVisual {
+            surface_idle: colors.surface_recessed,
+            surface_hover: colors.surface_hover,
+            surface_pressed: colors.surface[3],
+            surface_focused: colors.surface_recessed,
+            surface_disabled: colors.surface_disabled,
+            border_idle: colors.separator_soft,
+            border_hover: colors.border,
+            border_focus: colors.accent,
+            border_disabled: colors.border_disabled,
+            text: colors.text_primary,
+            placeholder_text: colors.text_secondary,
+            text_disabled: colors.text_disabled,
+            padding_left: density.gap_medium,
+            padding_right: density.gap_medium,
+            padding_top: density.gap_small,
+            padding_bottom: density.gap_small,
+            border_width: controls.border_width,
+            corner_radius: controls.control_radius,
+            font_size: typography.body_size,
+            line_height: typography.body_size * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+            min_frame_extent: controls.border_width.max(f32::EPSILON),
+        }
+    })
+}
 
 pub(super) fn text_field_suppresses_owner_text(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
     metadata.is_some_and(is_text_field)
@@ -54,19 +167,24 @@ pub(super) fn text_field_render_commands(
     let Some(metadata) = metadata else {
         return Vec::new();
     };
-    if !is_text_field(metadata) || frame.width <= 1.0 || frame.height <= 1.0 {
+    if !is_text_field(metadata) {
         return Vec::new();
     }
 
+    let visual = TextFieldVisual::resolve(metadata);
+    if frame.width <= visual.min_frame_extent || frame.height <= visual.min_frame_extent {
+        return Vec::new();
+    }
     let state = TextFieldRenderState::resolve(metadata, state_flags, component_state);
     let mut commands = vec![surface_command(
-        node_id, metadata, &state, frame, clip_frame, z_index, opacity,
+        node_id, &state, &visual, frame, clip_frame, z_index, opacity,
     )];
     if visible_text.is_some() || editable.is_some_and(|editable| !editable.text.is_empty()) {
         commands.push(text_command(
             node_id,
             metadata,
             &state,
+            &visual,
             frame,
             clip_frame,
             z_index.saturating_add(2),
@@ -135,8 +253,8 @@ fn is_text_field(metadata: &UiTemplateNodeMetadata) -> bool {
 
 fn surface_command(
     node_id: UiNodeId,
-    metadata: &UiTemplateNodeMetadata,
     state: &TextFieldRenderState,
+    visual: &TextFieldVisual,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -149,10 +267,10 @@ fn surface_command(
         clip_frame,
         z_index: z_index.saturating_add(1),
         style: UiResolvedStyle {
-            background_color: Some(surface_color(metadata, state).to_string()),
-            border_color: Some(border_color(metadata, state).to_string()),
-            border_width: border_width(metadata),
-            corner_radius: corner_radius(metadata),
+            background_color: Some(css_color(surface_color(state, visual))),
+            border_color: Some(css_color(border_color(state, visual))),
+            border_width: visual.border_width,
+            corner_radius: visual.corner_radius,
             ..UiResolvedStyle::default()
         }
         .with_painter_state(state.family, state.visual_state),
@@ -163,10 +281,12 @@ fn surface_command(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn text_command(
     node_id: UiNodeId,
     metadata: &UiTemplateNodeMetadata,
     state: &TextFieldRenderState,
+    visual: &TextFieldVisual,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -176,11 +296,11 @@ fn text_command(
     editable: Option<&UiEditableTextState>,
     text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiRenderCommand {
-    let text_frame = text_frame(metadata, frame);
+    let text_frame = text_frame(frame, visual);
     let text_clip = clip_frame
         .and_then(|clip| clip.intersection(text_frame))
         .unwrap_or(text_frame);
-    let mut style = text_style(metadata, state, base_style, visible_text);
+    let mut style = text_style(metadata, state, visual, base_style, visible_text);
     let mut layout = resolve_text_field_layout(
         visible_text,
         &style,
@@ -226,22 +346,19 @@ fn resolve_text_field_layout(
     resolve_text_layout_with_cache(&request.with_preedit(&preedit), text_measure_cache).layout
 }
 
-fn text_frame(metadata: &UiTemplateNodeMetadata, frame: UiFrame) -> UiFrame {
-    let left = number_attribute(metadata, "layout_padding_left").unwrap_or(DEFAULT_PADDING_X);
-    let right = number_attribute(metadata, "layout_padding_right").unwrap_or(DEFAULT_PADDING_X);
-    let top = number_attribute(metadata, "layout_padding_top").unwrap_or(DEFAULT_PADDING_Y);
-    let bottom = number_attribute(metadata, "layout_padding_bottom").unwrap_or(DEFAULT_PADDING_Y);
+fn text_frame(frame: UiFrame, visual: &TextFieldVisual) -> UiFrame {
     UiFrame::new(
-        frame.x + left,
-        frame.y + top,
-        (frame.width - left - right).max(1.0),
-        (frame.height - top - bottom).max(1.0),
+        frame.x + visual.padding_left,
+        frame.y + visual.padding_top,
+        (frame.width - visual.padding_left - visual.padding_right).max(visual.min_frame_extent),
+        (frame.height - visual.padding_top - visual.padding_bottom).max(visual.min_frame_extent),
     )
 }
 
 fn text_style(
     metadata: &UiTemplateNodeMetadata,
     state: &TextFieldRenderState,
+    visual: &TextFieldVisual,
     base_style: &UiResolvedStyle,
     visible_text: &str,
 ) -> UiResolvedStyle {
@@ -250,55 +367,50 @@ fn text_style(
     style.border_color = None;
     style.border_width = 0.0;
     style.corner_radius = 0.0;
-    style.font_size = number_attribute(metadata, "font_size").unwrap_or(DEFAULT_FONT_SIZE);
-    style.line_height = number_attribute(metadata, "line_height").unwrap_or(DEFAULT_LINE_HEIGHT);
-    style.foreground_color = Some(text_color(metadata, state, visible_text).to_string());
+    style.font_size = visual.font_size;
+    style.line_height = visual.line_height;
+    style.foreground_color = Some(css_color(text_color(metadata, state, visual, visible_text)));
     style
 }
 
-fn surface_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &TextFieldRenderState,
-) -> &'a str {
+fn surface_color(state: &TextFieldRenderState, visual: &TextFieldVisual) -> UiRgbaColor {
     if state.unavailable() {
-        SURFACE_DISABLED
+        visual.surface_disabled
     } else if state.pressed() {
-        color_attribute(metadata, "pressed_background_color").unwrap_or(SURFACE_PRESSED)
+        visual.surface_pressed
     } else if state.focused() {
-        color_attribute(metadata, "focused_background_color")
-            .or_else(|| color_attribute(metadata, "focus_background_color"))
-            .or_else(|| color_attribute(metadata, "background_color"))
-            .unwrap_or(SURFACE_FOCUSED)
+        visual.surface_focused
     } else if state.hot() {
-        color_attribute(metadata, "hover_background_color").unwrap_or(SURFACE_HOVER)
+        visual.surface_hover
     } else {
-        color_attribute(metadata, "background_color").unwrap_or(SURFACE_IDLE)
+        visual.surface_idle
     }
 }
 
-fn border_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &TextFieldRenderState) -> &'a str {
+fn border_color(state: &TextFieldRenderState, visual: &TextFieldVisual) -> UiRgbaColor {
     if state.unavailable() {
-        BORDER_DISABLED
+        visual.border_disabled
     } else if state.focused() || state.pressed() {
-        color_attribute(metadata, "focus_border_color").unwrap_or(BORDER_FOCUS)
+        visual.border_focus
     } else if state.hot() {
-        color_attribute(metadata, "hover_border_color").unwrap_or(BORDER_HOVER)
+        visual.border_hover
     } else {
-        color_attribute(metadata, "border_color").unwrap_or(BORDER_IDLE)
+        visual.border_idle
     }
 }
 
-fn text_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
+fn text_color(
+    metadata: &UiTemplateNodeMetadata,
     state: &TextFieldRenderState,
+    visual: &TextFieldVisual,
     visible_text: &str,
-) -> &'a str {
+) -> UiRgbaColor {
     if state.unavailable() {
-        TEXT_DISABLED
+        visual.text_disabled
     } else if is_placeholder_text(metadata, visible_text) {
-        color_attribute(metadata, "placeholder_color").unwrap_or(TEXT_PLACEHOLDER)
+        visual.placeholder_text
     } else {
-        color_attribute(metadata, "foreground_color").unwrap_or(TEXT)
+        visual.text
     }
 }
 
@@ -315,39 +427,85 @@ fn is_placeholder_text(metadata: &UiTemplateNodeMetadata, visible_text: &str) ->
     })
 }
 
-fn border_width(metadata: &UiTemplateNodeMetadata) -> f32 {
-    number_attribute(metadata, "border_width")
-        .unwrap_or(1.0)
-        .max(0.0)
-}
-
-fn corner_radius(metadata: &UiTemplateNodeMetadata) -> f32 {
-    number_attribute(metadata, "corner_radius")
-        .or_else(|| number_attribute(metadata, "radius"))
-        .unwrap_or(4.0)
-        .max(0.0)
-}
-
-fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
-    metadata.attributes.get(key).and_then(value_as_f32)
+fn metric_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
+    metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))
+        .and_then(value_as_f32)
 }
 
 fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
     metadata.attributes.get(key).and_then(Value::as_str)
 }
 
-fn color_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
-    metadata
-        .style_overrides
-        .get(key)
-        .or_else(|| metadata.attributes.get(key))
-        .and_then(Value::as_str)
-        .filter(|color| !color.trim().is_empty())
+fn first_rgba_attribute(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> Option<UiRgbaColor> {
+    keys.iter().find_map(|key| {
+        metadata
+            .style_overrides
+            .get(*key)
+            .or_else(|| metadata.attributes.get(*key))
+            .and_then(Value::as_str)
+            .and_then(parse_css_color)
+    })
 }
 
 fn value_as_f32(value: &Value) -> Option<f32> {
+    let value = match value {
+        Value::Integer(value) => *value as f64,
+        Value::Float(value) if value.is_finite() => *value,
+        _ => return None,
+    } as f32;
+    value.is_finite().then_some(value)
+}
+
+fn line_height(
+    metadata: &UiTemplateNodeMetadata,
+    absolute_key: &str,
+    ratio_key: &str,
+    font_size: f32,
+    default: f32,
+) -> f32 {
+    metric_attribute(metadata, absolute_key)
+        .filter(|value| *value > 0.0)
+        .or_else(|| {
+            metric_attribute(metadata, ratio_key)
+                .filter(|value| *value > 0.0)
+                .map(|ratio| font_size * ratio)
+        })
+        .unwrap_or(default)
+}
+
+fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
+    let encoded = value.trim().strip_prefix('#')?;
+    if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
+        return None;
+    }
+    let (red, green, blue, alpha) = match encoded.len() {
+        6 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::MAX,
+        ),
+        8 => (
+            u8::from_str_radix(&encoded[0..2], 16).ok()?,
+            u8::from_str_radix(&encoded[2..4], 16).ok()?,
+            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            u8::from_str_radix(&encoded[6..8], 16).ok()?,
+        ),
+        _ => return None,
+    };
+    Some(UiRgbaColor::from_u8(red, green, blue, alpha))
+}
+
+fn css_color(color: UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    let mut value = if alpha == u8::MAX {
+        format!("{red:02x}{green:02x}{blue:02x}")
+    } else {
+        format!("{red:02x}{green:02x}{blue:02x}{alpha:02x}")
+    };
+    value.insert(0, '#');
     value
-        .as_float()
-        .or_else(|| value.as_integer().map(|value| value as f64))
-        .map(|value| value as f32)
 }

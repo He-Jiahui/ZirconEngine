@@ -1,0 +1,139 @@
+// Current-head Need/Greed decisions from sim/loot/loot_roll.ts. World storage,
+// authoritative RNG consumption, inventory grants and corpse mutation remain
+// with the caller; this module owns only source-compatible choice resolution.
+var container = %import("zr.container");
+
+pub sourceCommit(required: bool): string {
+    if (!required) { throw "woc loot-roll source commit is required"; }
+    return "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a";
+}
+
+pub pendingChoice(): uint { return <uint>0; }
+pub needChoice(): uint { return <uint>1; }
+pub greedChoice(): uint { return <uint>2; }
+pub passChoice(): uint { return <uint>3; }
+
+// Native payload codes are zero-based; persisted state keeps zero for pending.
+pub wireChoiceToState(wireChoice: uint): uint {
+    if (wireChoice <= <uint>2) { return wireChoice + <uint>1; }
+    return pendingChoice();
+}
+
+pub choiceNeedsRoll(choice: uint): bool {
+    return choice == needChoice() || choice == greedChoice();
+}
+
+pub choiceIsValid(choice: uint): bool {
+    return choice <= passChoice();
+}
+
+pub allAnswered(choices: container.Array<uint>): bool {
+    if (choices.length == 0) { return false; }
+    for (var choice in choices) {
+        if (<uint>choice == pendingChoice()) { return false; }
+    }
+    return true;
+}
+
+// Source resolution first selects all Need choices, otherwise all Greed
+// choices. Zero means everyone passed (or no candidate answered).
+pub preferredChoice(choices: container.Array<uint>): uint {
+    for (var choice in choices) {
+        if (<uint>choice == needChoice()) { return needChoice(); }
+    }
+    for (var choice in choices) {
+        if (<uint>choice == greedChoice()) { return greedChoice(); }
+    }
+    return pendingChoice();
+}
+
+pub tiedWinnerCount(
+    choices: container.Array<uint>, values: container.Array<uint>
+): int {
+    if (choices.length == 0 || choices.length != values.length) { return 0; }
+    var preferred = preferredChoice(choices);
+    if (preferred == pendingChoice()) { return 0; }
+    var highest: uint = <uint>0;
+    var found = false;
+    var index = 0;
+    while (index < choices.length) {
+        if (<uint>choices[index] == preferred &&
+            (!found || <uint>values[index] > highest)) {
+            highest = <uint>values[index];
+            found = true;
+        }
+        index = index + 1;
+    }
+    var tied = 0;
+    index = 0;
+    while (found && index < choices.length) {
+        if (<uint>choices[index] == preferred && <uint>values[index] == highest) {
+            tied = tied + 1;
+        }
+        index = index + 1;
+    }
+    return tied;
+}
+
+// Returns the row in choices/values that wins. tieIndex is already bounded by
+// the caller's authoritative RNG draw; it is ignored when the winner is unique.
+pub winnerCandidateIndex(
+    choices: container.Array<uint>, values: container.Array<uint>, tieIndex: uint
+): int {
+    if (choices.length == 0 || choices.length != values.length) { return -1; }
+    var preferred = preferredChoice(choices);
+    if (preferred == pendingChoice()) { return -1; }
+    var highest: uint = <uint>0;
+    var found = false;
+    var index = 0;
+    while (index < choices.length) {
+        if (<uint>choices[index] == preferred &&
+            (!found || <uint>values[index] > highest)) {
+            highest = <uint>values[index];
+            found = true;
+        }
+        index = index + 1;
+    }
+    if (!found) { return -1; }
+    var tied = tiedWinnerCount(choices, values);
+    var selected = tied > 1 ? <int>(tieIndex % <uint>tied) : 0;
+    index = 0;
+    while (index < choices.length) {
+        if (<uint>choices[index] == preferred && <uint>values[index] == highest) {
+            if (selected == 0) { return index; }
+            selected = selected - 1;
+        }
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub contractTest(): int {
+    if (sourceCommit(true) != "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a" ||
+        wireChoiceToState(<uint>0) != needChoice() ||
+        wireChoiceToState(<uint>1) != greedChoice() ||
+        wireChoiceToState(<uint>2) != passChoice() ||
+        wireChoiceToState(<uint>3) != pendingChoice() ||
+        !choiceNeedsRoll(needChoice()) || !choiceNeedsRoll(greedChoice()) ||
+        choiceNeedsRoll(passChoice())) { return -1; }
+    var choices = new container.Array<uint>();
+    var values = new container.Array<uint>();
+    choices.add(greedChoice()); values.add(<uint>100);
+    choices.add(needChoice()); values.add(<uint>10);
+    choices.add(needChoice()); values.add(<uint>10);
+    choices.add(passChoice()); values.add(<uint>0);
+    if (!allAnswered(choices) || preferredChoice(choices) != needChoice() ||
+        tiedWinnerCount(choices, values) != 2 ||
+        winnerCandidateIndex(choices, values, <uint>0) != 1 ||
+        winnerCandidateIndex(choices, values, <uint>1) != 2) { return -2; }
+    choices[1] = passChoice();
+    choices[2] = passChoice();
+    if (preferredChoice(choices) != greedChoice() ||
+        winnerCandidateIndex(choices, values, <uint>9) != 0) { return -3; }
+    choices[0] = passChoice();
+    if (preferredChoice(choices) != pendingChoice() ||
+        winnerCandidateIndex(choices, values, <uint>0) != -1) { return -4; }
+    choices[0] = pendingChoice();
+    if (allAnswered(choices)) { return -5; }
+    return 1;
+}

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var trade = %import("progression/trade_state");
+
+console.printLine("m5-player-trade-state-test");
+var result = trade.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

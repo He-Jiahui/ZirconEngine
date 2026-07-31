@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
+use super::{PlatformDriver, PlatformManager};
+use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;
+use crate::core::framework::platform::{PreferenceStorage, PLATFORM_MODULE_NAME};
+use crate::core::manager::RegisteredManagerService;
+use crate::core::runtime::ServiceObject;
 use crate::engine_module::{
     dependency_on, factory, qualified_name, DriverDescriptor, EngineModule, InitLevel,
     ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind, StartupMode,
 };
-use crate::foundation::FOUNDATION_MODULE_NAME;
 
-use super::{PlatformDriver, PlatformManager};
-
-pub const PLATFORM_MODULE_NAME: &str = "PlatformModule";
 pub const PLATFORM_DRIVER_NAME: &str = "PlatformModule.Driver.PlatformDriver";
-pub const PLATFORM_MANAGER_NAME: &str = "PlatformModule.Manager.PlatformManager";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PlatformModule;
@@ -40,7 +40,15 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ServiceKind::Driver,
             "PlatformDriver",
         )],
-        factory(|_| Ok(Arc::new(PlatformManager::default()) as _)),
+        factory(|core| {
+            let driver = core.resolve_driver::<PlatformDriver>(PLATFORM_DRIVER_NAME)?;
+            let manager = Arc::new(PlatformManager::new(driver));
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn PreferenceStorage>::new(
+                    manager,
+                )) as ServiceObject,
+            )
+        }),
     ))
 }
 

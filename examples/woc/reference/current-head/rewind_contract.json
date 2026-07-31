@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/rewind_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/damage_history.ts": "85d1752af0e752e71672d658b40a00dc6246658c318d6a856638dd514f3ee0dc",
+    "src/sim/combat/rewind.ts": "3a76f111fd2b4ae0fefa99177e8a1dd1a4cfb5f1ea0370fbc8cd269d592f3f2f"
+  },
+  "damage_history": {
+    "window_seconds": 5,
+    "tick_rate": 20,
+    "window_ticks": 100,
+    "prune_excludes_cutoff": true,
+    "query_includes_only_after_cutoff": true
+  },
+  "healing": {
+    "fraction": 0.3,
+    "fraction_percent": 30,
+    "max_hp_fraction": 0.35,
+    "max_hp_fraction_percent": 35,
+    "rounding": "Math.round",
+    "clamps": [
+      "zero",
+      "max_hp_cap",
+      "missing_hp"
+    ]
+  }
+}

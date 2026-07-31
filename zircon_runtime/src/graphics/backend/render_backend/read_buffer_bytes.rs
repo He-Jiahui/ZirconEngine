@@ -3,7 +3,7 @@
 use std::sync::mpsc;
 
 use crate::core::framework::render::SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT;
-use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_READBACK};
+use crate::graphics::debug_markers::{RENDERDOC_MARKER_READBACK, insert_marker};
 use crate::graphics::types::GraphicsError;
 
 const F32X4_BYTE_LEN: u64 = 16;
@@ -123,7 +123,7 @@ fn validate_buffer_copy_size(byte_len: u64) -> Result<(), GraphicsError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{f32x4_array_readback_size_bytes, validate_buffer_copy_size, F32X4_BYTE_LEN};
+    use super::{F32X4_BYTE_LEN, f32x4_array_readback_size_bytes, validate_buffer_copy_size};
     use crate::core::framework::render::{
         IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
     };

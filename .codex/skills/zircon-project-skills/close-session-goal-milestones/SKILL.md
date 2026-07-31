@@ -9,6 +9,13 @@ description: Use when a ZirconEngine Session reaches an accepted milestone or al
 
 Treat each accepted milestone as a normal Git commit boundary. Preserve foreign paths and complete the Session/Goal only at the terminal boundary.
 
+## Asynchronous Integration Is Not Closeout
+
+- Use the coordinator's durable validation or integration receipt to continue a Goal, not to enter this accepted-closeout workflow. A coordinator integration SHA makes the owned snapshot `integrated_validation_pending`; it remains on `main` while full validation runs asynchronously.
+- Do not poll a pending validation ticket, repeat its submission, manually commit, or call a snapshot `accepted` merely because the request was accepted. Continue the next independent milestone, a review, static guards, or an applicable Failure repair.
+- When all planned implementation milestones are integrated or submitted, perform a second in-scope review of delivered code, owned manifests, outstanding tickets, and canonical Failure records. After that review, release the Session for coordinator wakeup rather than marking it `blocked` or holding a waiting turn.
+- Enter the Milestone or Goal closeout below only after complete validation evidence, required review, and applicable Failure resolution permit `accepted`. Pending validation delays this closeout only; it never blocks forward progress.
+
 ## Choose the closeout
 
 - Use `Milestone` after every implementation slice and the milestone testing stage have evidence, while later milestones remain.
@@ -51,12 +58,9 @@ $runId = $prepared.runId
 $validation = & .\tools\zircon-session.ps1 -Json milestone validate `
   --session-id $sessionId --run-id $runId --milestone $milestoneId `
   --template coordinator-actions | ConvertFrom-Json
-# Wait until the managed validation copy reaches a terminal result in the coordinator snapshot.
-# A direct `validation-copy materialize` response is only an accepted job: poll
-# `validation-copy status <job-id>` until it is `materialized` or `failed`.
-# Never retry by launching Cargo directly; large manifests materialize in a
-# detached archive worker specifically so heartbeat, Cargo finish and leases stay live.
-# Do not launch cargo directly while waiting.
+# A pending managed validation copy ends this active workflow: continue executable Goal work.
+# Do not poll `validation-copy status` or retry by launching Cargo directly. The coordinator
+# records the terminal evidence and wakes the relevant Session; resume accepted closeout then.
 
 # A distinct reviewer Session submits the independent review after validation is recorded.
 & .\tools\zircon-session.ps1 milestone review `
@@ -82,7 +86,7 @@ The service message has exactly four lines:
 
 The fourth line must contain the real unprefixed Conventional Commit subject. For example, a plan under `docs/plans/zircon_tooling/session_coordinator/` uses `【session_coordinator】` only on the first line, while Git records a specific subject such as `feat(session_coordinator): add controlled action audit`.
 
-Never store the webhook URL in Git. If sending fails, report the recorded notification failure; do not retry automatically and do not roll back the commit. Local `pre-commit` and `prepare-commit-msg` gates reject direct `git commit`, including `--no-verify`; the Codex Hook also rejects direct commit forms that try to override `core.hooksPath`, plus direct shared-index mutations (`git add`, `rm`, `mv`, `reset`, or `restore --staged`). Do not set a bypass environment variable or Git hook override. The coordinator performs the scoped Git mutation only after the milestone gates pass.
+An intentional Enterprise WeChat webhook URL or `WECOM_WEBHOOK_KEY` configuration may be included in the service-managed Git commit. Keep it out of coordinator persistence; coordinator error output redacts its value. If sending fails, report the recorded notification failure; do not retry automatically and do not roll back the commit. Local `pre-commit` and `prepare-commit-msg` gates reject direct `git commit`, including `--no-verify`; the Codex Hook also rejects direct commit forms that try to override `core.hooksPath`, plus direct shared-index mutations (`git add`, `rm`, `mv`, `reset`, or `restore --staged`). Do not set a bypass environment variable or Git hook override. The coordinator performs the scoped Git mutation only after the milestone gates pass.
 
 All build-producing Cargo commands must use the managed validation action or `validate-matrix.ps1`. A repo Hook rejects ordinary `cargo build`, `check`, `test`, `run`, `bench`, `clippy`, `doc`, and `clean` invocations before they create an unleased target directory. `cargo metadata`, `tree`, and `fmt` remain read-only/non-target inspections.
 
@@ -104,6 +108,6 @@ All build-producing Cargo commands must use the managed validation action or `va
 - Report foreign diagnostics without editing them.
 - In one terminal report, include commit SHA/subject, verification evidence, foreign-Session diagnostics, and the WeCom result.
 
-## Stop conditions
+## Conditions That Delay Accepted Closeout
 
-Stop for incomplete tests/review, missing managed validation result, missing lease or current-hash attribution, foreign staged paths, checker errors, a non-terminal WeCom result, or unresolved lower-layer failure. Milestone completion authorizes only its scoped commit.
+Incomplete tests/review, missing managed validation result, foreign staged paths, checker errors, a non-terminal WeCom result, or unresolved lower-layer failure delay `accepted` closeout. They do not authorize an idle or blocked Session: rebuild the Goal queue, prioritize an applicable Failure, and complete the final in-scope review when no implementation remains. Missing lease or current-hash attribution still forbids the affected commit only. Milestone completion authorizes only its scoped commit.

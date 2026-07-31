@@ -6,7 +6,7 @@ display_name = "Workbench Toast"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchToast]
 root = "root"
@@ -16,5 +16,5 @@ default_classes = ["workbench-alert", "workbench-toast", "workbench-primitive"]
 component = "Alert"
 control_id = "WorkbenchToastRoot"
 classes = ["workbench-alert", "workbench-toast"]
-props = { text = "Operation completed successfully", severity = "info", variant = "outlined", color = "info", icon = "info", show_icon = true, closeText = "Close", layout_offset_x = -15.0, layout_offset_y = 0.0, status_mark_size = 18.0, status_mark_color = "#209fa9", action_color = "#238f98" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+props = { text = "Operation completed successfully", severity = "info", variant = "outlined", color = "info", icon = "info", show_icon = true, closeText = "Close", background_color = "$editor.semantic.info.container", border_color = "$editor.semantic.info", foreground_color = "$editor.semantic.info", icon_color = "$editor.semantic.info", action_color = "$editor.semantic.info", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.small", layout_offset_x = -15.0, layout_offset_y = 0.0, status_mark_size = 18.0, status_mark_color = "$editor.semantic.info" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.default", max = 36.0, stretch = "Fixed" } }

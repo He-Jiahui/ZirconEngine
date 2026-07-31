@@ -1,0 +1,1491 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "entries": [
+    {
+      "index": 0,
+      "name": "castSlot",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 1,
+      "name": "castAt",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 2,
+      "name": "cast",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 3,
+      "name": "cancel_aura",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 4,
+      "name": "target",
+      "kind": "client_send",
+      "facet": "IWorldTargeting",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 5,
+      "name": "tab",
+      "kind": "client_send",
+      "facet": "IWorldTargeting",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 6,
+      "name": "targetNearest",
+      "kind": "dispatch_only",
+      "facet": null,
+      "ownership_class": "client",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 7,
+      "name": "tabFriendly",
+      "kind": "client_send",
+      "facet": "IWorldTargeting",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 8,
+      "name": "targetNearestFriendly",
+      "kind": "client_send",
+      "facet": "IWorldTargeting",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 9,
+      "name": "attack",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 10,
+      "name": "stopattack",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 11,
+      "name": "interact",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 12,
+      "name": "loot",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 13,
+      "name": "harvestCorpse",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 14,
+      "name": "lootRoll",
+      "kind": "client_send",
+      "facet": "IWorldLoot",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 15,
+      "name": "pickup",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 16,
+      "name": "accept",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 17,
+      "name": "turnin",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 18,
+      "name": "abandon",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 19,
+      "name": "qlinkaccept",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 20,
+      "name": "equip",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 21,
+      "name": "inv_move",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 22,
+      "name": "unequip_item",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 23,
+      "name": "use",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 24,
+      "name": "discard",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 25,
+      "name": "buy",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 26,
+      "name": "sell",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 27,
+      "name": "buyback",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 28,
+      "name": "sell_all_junk",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 29,
+      "name": "harvest_node",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 30,
+      "name": "craft_item",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 31,
+      "name": "change_skin",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "ownership_class": "presentation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 32,
+      "name": "unequip_mech_chroma",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "ownership_class": "presentation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 33,
+      "name": "claim_event_skin",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "ownership_class": "presentation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 34,
+      "name": "change_weapon_skin",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "ownership_class": "presentation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 35,
+      "name": "release",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 36,
+      "name": "challengeResponse",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 37,
+      "name": "chat",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 38,
+      "name": "emote",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 39,
+      "name": "pinvite",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 40,
+      "name": "paccept",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 41,
+      "name": "pdecline",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 42,
+      "name": "pleave",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 43,
+      "name": "pkick",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 44,
+      "name": "ppromote",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 45,
+      "name": "praid",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 46,
+      "name": "punraid",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 47,
+      "name": "pmoveRaid",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 48,
+      "name": "setLootMaster",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 49,
+      "name": "masterAssign",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 50,
+      "name": "setMarker",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 51,
+      "name": "clearMarker",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 52,
+      "name": "readyrespond",
+      "kind": "client_send",
+      "facet": "IWorldParty",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 53,
+      "name": "pet_abandon",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 54,
+      "name": "pet_rename",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 55,
+      "name": "pet_revive",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 56,
+      "name": "pet_attack",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 57,
+      "name": "pet_water_jet",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 58,
+      "name": "pet_taunt",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 59,
+      "name": "pet_auto_taunt",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 60,
+      "name": "pet_auto_water_jet",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 61,
+      "name": "pet_feed",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 62,
+      "name": "pet_heal",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 63,
+      "name": "pet_mode",
+      "kind": "client_send",
+      "facet": "IWorldPet",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 64,
+      "name": "trade_req",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 65,
+      "name": "trade_accept",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 66,
+      "name": "trade_offer",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 67,
+      "name": "trade_confirm",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 68,
+      "name": "trade_cancel",
+      "kind": "client_send",
+      "facet": "IWorldTrade",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 69,
+      "name": "duel_req",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 70,
+      "name": "duel_accept",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 71,
+      "name": "duel_decline",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 72,
+      "name": "friend_add",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 73,
+      "name": "friend_remove",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 74,
+      "name": "block_add",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 75,
+      "name": "block_remove",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 76,
+      "name": "social_refresh",
+      "kind": "dispatch_only",
+      "facet": null,
+      "ownership_class": "client",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 77,
+      "name": "guild_create",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 78,
+      "name": "guild_invite",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 79,
+      "name": "guild_accept",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 80,
+      "name": "guild_decline",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 81,
+      "name": "guild_leave",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 82,
+      "name": "guild_kick",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 83,
+      "name": "guild_promote",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 84,
+      "name": "guild_demote",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 85,
+      "name": "guild_transfer",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 86,
+      "name": "guild_disband",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 87,
+      "name": "arena_queue",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 88,
+      "name": "arena_leave",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 89,
+      "name": "arena_augment",
+      "kind": "client_send",
+      "facet": "IWorldDuelArena",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 90,
+      "name": "card_queue_join",
+      "kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 91,
+      "name": "card_queue_leave",
+      "kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 92,
+      "name": "play_card",
+      "kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 93,
+      "name": "card_forfeit",
+      "kind": "client_send",
+      "facet": "IWorldCardMinigame",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 94,
+      "name": "prestige",
+      "kind": "client_send",
+      "facet": "IWorldProgressionXp",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 95,
+      "name": "applyTalents",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 96,
+      "name": "respec",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 97,
+      "name": "setSpec",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 98,
+      "name": "saveLoadout",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 99,
+      "name": "switchLoadout",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 100,
+      "name": "deleteLoadout",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 101,
+      "name": "market_search",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 102,
+      "name": "market_list",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 103,
+      "name": "market_buy",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 104,
+      "name": "market_cancel",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 105,
+      "name": "market_collect",
+      "kind": "client_send",
+      "facet": "IWorldMarket",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 106,
+      "name": "dev_level",
+      "kind": "dispatch_only",
+      "facet": null,
+      "ownership_class": "client",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 107,
+      "name": "dev_teleport",
+      "kind": "dispatch_only",
+      "facet": null,
+      "ownership_class": "client",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 108,
+      "name": "dev_give",
+      "kind": "dispatch_only",
+      "facet": null,
+      "ownership_class": "client",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 109,
+      "name": "dev_complete_quest",
+      "kind": "dispatch_only",
+      "facet": null,
+      "ownership_class": "client",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 110,
+      "name": "dev_complete_all_quests",
+      "kind": "dispatch_only",
+      "facet": null,
+      "ownership_class": "client",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 111,
+      "name": "enter_crypt",
+      "kind": "dispatch_only",
+      "facet": null,
+      "ownership_class": "client",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 112,
+      "name": "enter_dungeon",
+      "kind": "client_send",
+      "facet": "IWorldDungeons",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 113,
+      "name": "leave_crypt",
+      "kind": "dispatch_only",
+      "facet": null,
+      "ownership_class": "client",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 114,
+      "name": "leave_dungeon",
+      "kind": "client_send",
+      "facet": "IWorldDungeons",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 115,
+      "name": "enter_delve",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 116,
+      "name": "leave_delve",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 117,
+      "name": "delve_interact",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 118,
+      "name": "companion_upgrade",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 119,
+      "name": "delve_buy",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 120,
+      "name": "lockpick_engage",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 121,
+      "name": "lockpick_action",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 122,
+      "name": "lockpick_abort",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 123,
+      "name": "collect_delve_chest_loot",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 124,
+      "name": "delve_rite_choose",
+      "kind": "client_send",
+      "facet": "IWorldDelves",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 125,
+      "name": "telemetry",
+      "kind": "client_send",
+      "facet": "IWorldTelemetry",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 126,
+      "name": "equip_bag",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 127,
+      "name": "unequip_bag",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 128,
+      "name": "mail_send",
+      "kind": "client_send",
+      "facet": "IWorldMail",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 129,
+      "name": "mail_take",
+      "kind": "client_send",
+      "facet": "IWorldMail",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 130,
+      "name": "mail_delete",
+      "kind": "client_send",
+      "facet": "IWorldMail",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 131,
+      "name": "mail_read",
+      "kind": "client_send",
+      "facet": "IWorldMail",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 132,
+      "name": "guild_event_create",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 133,
+      "name": "guild_event_remove",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 134,
+      "name": "autoloot",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 135,
+      "name": "resurrect_corpse",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 136,
+      "name": "resurrect_healer",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 137,
+      "name": "bank_deposit",
+      "kind": "client_send",
+      "facet": "IWorldBank",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 138,
+      "name": "bank_withdraw",
+      "kind": "client_send",
+      "facet": "IWorldBank",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 139,
+      "name": "bank_buy_slots",
+      "kind": "client_send",
+      "facet": "IWorldBank",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 140,
+      "name": "set_town_focus",
+      "kind": "client_send",
+      "facet": null,
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 141,
+      "name": "set_dungeon_difficulty",
+      "kind": "client_send",
+      "facet": "IWorldDungeons",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 142,
+      "name": "heroic_buy",
+      "kind": "client_send",
+      "facet": "IWorldDungeons",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 143,
+      "name": "vcup_queue",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 144,
+      "name": "vcup_leave",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 145,
+      "name": "vcup_role",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 146,
+      "name": "vcup_ready",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 147,
+      "name": "vcup_bet",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 148,
+      "name": "vcup_practice",
+      "kind": "client_send",
+      "facet": "IWorldValeCup",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 149,
+      "name": "releaseEmpowered",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 150,
+      "name": "df_roles",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 151,
+      "name": "df_queue",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 152,
+      "name": "df_queue_leave",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 153,
+      "name": "df_proposal",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 154,
+      "name": "df_list_create",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 155,
+      "name": "df_list_close",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 156,
+      "name": "df_apply",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 157,
+      "name": "df_apply_cancel",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 158,
+      "name": "df_app_respond",
+      "kind": "client_send",
+      "facet": "IWorldDungeonFinder",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 159,
+      "name": "deed_set_title",
+      "kind": "client_send",
+      "facet": "IWorldDeeds",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 160,
+      "name": "ignore_add",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 161,
+      "name": "ignore_remove",
+      "kind": "client_send",
+      "facet": "IWorldSocialGraph",
+      "ownership_class": "service",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 162,
+      "name": "stow_weapon",
+      "kind": "client_send",
+      "facet": "IWorldCosmetics",
+      "ownership_class": "presentation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 163,
+      "name": "selectTalentRow",
+      "kind": "client_send",
+      "facet": "IWorldTalents",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    },
+    {
+      "index": 164,
+      "name": "resurrect_respond",
+      "kind": "client_send",
+      "facet": "IWorldCombat",
+      "ownership_class": "simulation",
+      "source_owner": "src/world_api.ts#COMMAND_NAMES",
+      "woc_owner": "scripts/woc_game/src/protocol/commands.zr"
+    }
+  ]
+}

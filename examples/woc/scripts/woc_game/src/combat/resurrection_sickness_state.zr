@@ -1,0 +1,51 @@
+// Source-compatible resurrection.ts leaf. It owns only the level-scaled
+// duration and aura-survival predicate; aura mutation and respawn events stay
+// with the authoritative death/respawn reducer.
+
+pub resurrectionSicknessId(): string {
+    return "resurrection_sickness";
+}
+
+pub resSicknessMinLevel(): int {
+    return 10;
+}
+
+pub resSicknessMinDuration(): int {
+    return 60;
+}
+
+pub resSicknessDurationMaximum(): int {
+    return 600;
+}
+
+pub resSicknessStatMultiplier(): float {
+    return -0.75;
+}
+
+// Pinned from the current source's MAX_LEVEL export, not from the historical
+// classic-era wording in the source comment.
+pub maxLevel(): int {
+    return 20;
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+// Mirrors resSicknessDuration exactly, including its intentionally unclamped
+// extrapolation above MAX_LEVEL for direct callers.
+pub resSicknessDuration(level: float): int {
+    if (level < <float>resSicknessMinLevel()) { return 0; }
+    var span = maxLevel() - resSicknessMinLevel();
+    var progress = span > 0 ?
+        (level - <float>resSicknessMinLevel()) / <float>span : 1.0;
+    var duration = <float>resSicknessMinDuration() + progress *
+        <float>(resSicknessDurationMaximum() - resSicknessMinDuration());
+    return roundPositive(duration);
+}
+
+// The source predicate matches Resurrection Sickness by id and Cauterize's
+// lockout by kind. Callers supply both fields from their canonical aura state.
+pub auraSurvivesDeath(auraId: string, auraKind: string): bool {
+    return auraId == resurrectionSicknessId() || auraKind == "cauterize_fatigue";
+}

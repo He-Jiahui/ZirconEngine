@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::UiNodeId;
@@ -36,7 +38,13 @@ impl UiRenderCommand {
         paint_order: u64,
         metrics: UiLayoutMetrics,
     ) -> UiPaintElement {
-        self.base_paint_element(paint_order, self.paint_payload(metrics), metrics)
+        let cache_generation = self.cache_generation();
+        self.base_paint_element(
+            paint_order,
+            self.paint_payload(metrics),
+            metrics,
+            cache_generation,
+        )
     }
 
     pub fn to_paint_elements(&self, first_paint_order: u64) -> Vec<UiPaintElement> {
@@ -48,6 +56,7 @@ impl UiRenderCommand {
         first_paint_order: u64,
         metrics: UiLayoutMetrics,
     ) -> Vec<UiPaintElement> {
+        let cache_generation = self.cache_generation();
         let mut elements = Vec::new();
 
         if self.uses_image_brush() {
@@ -67,17 +76,24 @@ impl UiRenderCommand {
                     first_paint_order + elements.len() as u64,
                     payload,
                     metrics,
+                    cache_generation,
                 ));
             }
         } else {
             if let Some(payload) = self.brush_payload(metrics) {
-                elements.push(self.base_paint_element(first_paint_order, payload, metrics));
+                elements.push(self.base_paint_element(
+                    first_paint_order,
+                    payload,
+                    metrics,
+                    cache_generation,
+                ));
             }
             if let Some(payload) = self.text_payload() {
                 elements.push(self.base_paint_element(
                     first_paint_order + elements.len() as u64,
                     payload,
                     metrics,
+                    cache_generation,
                 ));
             }
         }
@@ -87,6 +103,7 @@ impl UiRenderCommand {
                 first_paint_order,
                 UiPaintPayload::Empty,
                 metrics,
+                cache_generation,
             ));
         }
         elements
@@ -97,6 +114,7 @@ impl UiRenderCommand {
         paint_order: u64,
         payload: UiPaintPayload,
         metrics: UiLayoutMetrics,
+        cache_generation: u64,
     ) -> UiPaintElement {
         UiPaintElement {
             node_id: self.node_id,
@@ -115,14 +133,13 @@ impl UiRenderCommand {
                 opacity: self.opacity.clamp(0.0, 1.0),
                 effects: Vec::new(),
             },
-            cache_generation: Some(self.cache_generation()),
+            cache_generation: Some(cache_generation),
             debug_label: Some(format!("{:?}", self.kind)),
         }
     }
 
     fn cache_generation(&self) -> u64 {
-        let bytes = serde_json::to_vec(self).unwrap_or_default();
-        stable_hash64(&bytes)
+        stable_json_generation(self)
     }
 
     fn paint_payload(&self, metrics: UiLayoutMetrics) -> UiPaintPayload {
@@ -319,6 +336,17 @@ impl UiRenderCommand {
     }
 }
 
+fn stable_json_generation<T>(value: &T) -> u64
+where
+    T: Serialize + ?Sized,
+{
+    let mut writer = StableHashWriter::default();
+    if serde_json::to_writer(&mut writer, value).is_err() {
+        return FNV_OFFSET;
+    }
+    writer.finish()
+}
+
 fn text_box_background_decorations(boxes: &[UiResolvedTextBox]) -> Vec<UiTextPaintDecoration> {
     boxes
         .iter()
@@ -355,12 +383,63 @@ fn rgba_hex(color: crate::ui::style::UiRgbaColor) -> String {
     format!("#{red:02X}{green:02X}{blue:02X}{alpha:02X}")
 }
 
-fn stable_hash64(bytes: &[u8]) -> u64 {
-    const FNV_OFFSET: u64 = 0xcbf29ce484222325;
-    const FNV_PRIME: u64 = 0x100000001b3;
-    bytes.iter().fold(FNV_OFFSET, |hash, byte| {
-        (hash ^ u64::from(*byte)).wrapping_mul(FNV_PRIME)
-    })
+const FNV_OFFSET: u64 = 0xcbf29ce484222325;
+const FNV_PRIME: u64 = 0x100000001b3;
+
+struct StableHashWriter {
+    hash: u64,
+}
+
+impl Default for StableHashWriter {
+    fn default() -> Self {
+        Self { hash: FNV_OFFSET }
+    }
+}
+
+impl StableHashWriter {
+    fn finish(self) -> u64 {
+        self.hash
+    }
+}
+
+impl Write for StableHashWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.hash = bytes.iter().fold(self.hash, |hash, byte| {
+            (hash ^ u64::from(*byte)).wrapping_mul(FNV_PRIME)
+        });
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod cache_generation_tests {
+    use serde::ser::SerializeStruct;
+
+    use super::{FNV_OFFSET, stable_json_generation};
+
+    struct PartialThenFail;
+
+    impl serde::Serialize for PartialThenFail {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            let mut state = serializer.serialize_struct("PartialThenFail", 2)?;
+            state.serialize_field("written", &1_u8)?;
+            Err(<S::Error as serde::ser::Error>::custom(
+                "expected serialization failure",
+            ))
+        }
+    }
+
+    #[test]
+    fn ui_render_command_cache_generation_discards_partial_hash_on_serialize_error() {
+        assert_eq!(stable_json_generation(&PartialThenFail), FNV_OFFSET);
+    }
 }
 
 fn text_font_resource_key(style: &UiResolvedStyle) -> UiRenderResourceKey {

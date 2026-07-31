@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var mobs = %import("generated/m3_camp_mob_core");
+
+console.printLine("m3-camp-mob-core-test");
+var result = mobs.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

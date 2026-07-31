@@ -455,7 +455,7 @@ class CompileHostSourceTemplateTests(unittest.TestCase):
                 report["diagnostics"],
             )
 
-    def test_source_template_stage_rejects_generated_manifest_directory(self) -> None:
+    def test_source_template_stage_rejects_artifact_plan_path_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             validate_payload = _source_template_validate_report()
@@ -463,7 +463,6 @@ class CompileHostSourceTemplateTests(unittest.TestCase):
             for file in generated_files:
                 if file["path"] == "Cargo.toml":
                     file["path"] = "Cargo.toml/nested.txt"
-                    file["contents"] = "nested"
             validate_report = root / "validate.json"
             validate_report.write_text(
                 json_dumps(validate_payload),
@@ -487,9 +486,8 @@ class CompileHostSourceTemplateTests(unittest.TestCase):
             self.assertFalse(project.exists())
             self.assertTrue(
                 any(
-                    "SourceTemplate manifest" in diagnostic
-                    and "Cargo.toml" in diagnostic
-                    and "is not a file" in diagnostic
+                    "generated contents artifact row 0 path/purpose does not match "
+                    "compact Validate metadata" in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
                 report["diagnostics"],

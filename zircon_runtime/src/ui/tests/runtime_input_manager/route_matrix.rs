@@ -1,6 +1,23 @@
 use super::*;
 
 #[test]
+fn pointer_dispatch_context_is_built_once_per_node_phase() {
+    let source = include_str!("../../dispatch/pointer/dispatcher.rs");
+    let body = source
+        .split("fn dispatch_phase_handlers")
+        .nth(1)
+        .expect("pointer phase dispatch body");
+    let context = body
+        .find("let context = UiPointerDispatchContext")
+        .expect("shared pointer dispatch context");
+    let handler_loop = body
+        .find("for handler in phase_handlers.chain(unqualified_handlers)")
+        .expect("pointer handler loop");
+
+    assert!(context < handler_loop);
+}
+
+#[test]
 fn input_manager_route_matrix_capture_preempts_hit_target() {
     let mut surface = route_matrix_surface();
     let mut manager = UiInputManager::default();

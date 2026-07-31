@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::core::framework::render::{
     CapturedFrame, RenderParticlePreviousSpriteSnapshot, RenderPipelineHandle,
@@ -7,8 +8,8 @@ use crate::core::framework::render::{
 };
 
 use crate::graphics::{
-    backend::ViewportSurface, runtime::ViewportFrameHistory, CompiledRenderPipeline,
-    HybridGiRuntimeState, VirtualGeometryRuntimeState,
+    CompiledRenderPipeline, HybridGiRuntimeState, VirtualGeometryRuntimeState,
+    backend::ViewportSurface, runtime::ViewportFrameHistory,
 };
 
 use super::ViewportCameraHistoryKey;
@@ -19,14 +20,15 @@ pub(in crate::graphics::runtime::render_framework) struct ViewportRecord {
     pub(super) quality_profile: Option<RenderQualityProfile>,
     pub(super) generation: u64,
     pub(super) temporal_frame_index: u64,
-    pub(super) compiled_pipeline: Option<CompiledRenderPipeline>,
+    pub(super) compiled_pipeline: Option<Arc<CompiledRenderPipeline>>,
+    pub(super) last_capture_pipeline: Option<Arc<CompiledRenderPipeline>>,
     pub(super) hybrid_gi_runtimes: HashMap<ViewportCameraHistoryKey, Box<dyn HybridGiRuntimeState>>,
     pub(super) virtual_geometry_runtimes:
         HashMap<ViewportCameraHistoryKey, Box<dyn VirtualGeometryRuntimeState>>,
     pub(super) light_grid_reports:
         HashMap<ViewportCameraHistoryKey, crate::graphics::scene::RenderGraphLightGridReport>,
     pub(super) virtual_geometry_debug_snapshots:
-        HashMap<ViewportCameraHistoryKey, RenderVirtualGeometryDebugSnapshot>,
+        HashMap<ViewportCameraHistoryKey, Arc<RenderVirtualGeometryDebugSnapshot>>,
     pub(super) last_capture: Option<CapturedFrame>,
     pub(super) camera_histories: HashMap<ViewportCameraHistoryKey, ViewportFrameHistory>,
     pub(super) motion_vector_cameras: HashMap<ViewportCameraHistoryKey, ViewportCameraSnapshot>,

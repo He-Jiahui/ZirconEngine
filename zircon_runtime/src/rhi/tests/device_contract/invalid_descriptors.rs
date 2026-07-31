@@ -1,8 +1,8 @@
 use super::*;
 
 #[test]
-fn wgpu_rhi_rejects_invalid_resource_descriptors() {
-    let device = WgpuRenderDevice::new_headless();
+fn deterministic_rhi_contract_rejects_invalid_resource_descriptors() {
+    let device = DeterministicRhiContractDevice::new_headless();
 
     assert_eq!(
         device

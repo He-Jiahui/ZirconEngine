@@ -1,0 +1,13 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub fingersKind(): string { return "fingers_of_frost"; }
+pub brainFreezeKind(): string { return "brain_freeze"; }
+pub iciclesKind(): string { return "icicles"; }
+pub wintersChillId(): string { return "winters_chill"; }
+pub fingersMaxStacks(): int { return 2; }
+pub fingersDuration(): float { return 15.0; }
+pub brainFreezeDuration(): float { return 15.0; }
+pub brainFreezeFlurryMult(): float { return 1.3; }
+pub icicleMax(): int { return 5; }
+pub icicleDuration(): float { return 30.0; }
+pub wintersChillCharges(): int { return 2; }
+pub wintersChillDuration(): float { return 5.0; }

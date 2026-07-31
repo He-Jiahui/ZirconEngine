@@ -1,0 +1,8 @@
+var console = %import("zr.system.console");
+var frames = %import("social/party_frame_projection_state");
+
+var result = frames.contractTest();
+
+console.printLine("m6-party-frame-projection-state-test");
+console.printLine(result);
+return result == 1 ? 0 : result;

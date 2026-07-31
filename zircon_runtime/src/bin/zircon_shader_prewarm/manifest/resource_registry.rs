@@ -88,16 +88,19 @@ fn resource_records_from_json_value(
     value: Value,
     path: &Path,
 ) -> ShaderPrewarmResourceRegistryResult<Vec<ResourceRecord>> {
-    let records = if value.is_array() {
-        value
-    } else if let Some(records) = value.get("resources") {
-        records.clone()
-    } else if let Some(records) = value.get("records") {
-        records.clone()
-    } else {
-        return Err(ShaderPrewarmResourceRegistryError::MissingRecordsArray {
-            path: path.to_path_buf(),
-        });
+    let records = match value {
+        Value::Array(records) => Value::Array(records),
+        Value::Object(mut object) => object
+            .remove("resources")
+            .or_else(|| object.remove("records"))
+            .ok_or_else(|| ShaderPrewarmResourceRegistryError::MissingRecordsArray {
+                path: path.to_path_buf(),
+            })?,
+        _ => {
+            return Err(ShaderPrewarmResourceRegistryError::MissingRecordsArray {
+                path: path.to_path_buf(),
+            });
+        }
     };
     serde_json::from_value::<Vec<ResourceRecord>>(records).map_err(|source| {
         ShaderPrewarmResourceRegistryError::DecodeRecords {

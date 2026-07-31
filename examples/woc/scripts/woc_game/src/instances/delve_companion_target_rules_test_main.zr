@@ -1,0 +1,42 @@
+var rules = %import("instances/delve_companion_target_rules");
+
+if (rules.meleeReach(true) != 4.5 || rules.fallbackAcquireRange(true) != 40.0 ||
+    rules.followDistance(true) != 4.0 || rules.teleportDistance(true) != 60.0 ||
+    !rules.ownerTargetEligible(true, true, true) ||
+    rules.ownerTargetEligible(false, true, true) ||
+    rules.ownerTargetEligible(true, false, true) ||
+    rules.ownerTargetEligible(true, true, false)) {
+    return -1;
+}
+
+// The fallback scan considers hostile living mobs that attack the owner, or
+// are the owner's active offensive target; a strict equal-distance tie keeps
+// the earlier entity-iteration candidate.
+if (!rules.fallbackTargetEligible(true, true, true, true, false, false, false, false, true) ||
+    !rules.fallbackTargetEligible(true, true, true, false, true, true, false, false, true) ||
+    !rules.fallbackTargetEligible(true, true, true, false, true, false, true, false, true) ||
+    !rules.fallbackTargetEligible(true, true, true, false, true, false, false, true, true) ||
+    rules.fallbackTargetEligible(true, true, true, false, true, false, false, false, true) ||
+    rules.fallbackTargetEligible(false, true, true, true, false, false, false, false, true) ||
+    rules.fallbackTargetEligible(true, false, true, true, false, false, false, false, true) ||
+    rules.fallbackTargetEligible(true, true, false, true, false, false, false, false, true) ||
+    !rules.shouldReplaceFallbackTarget(39.999, 40.0, true) ||
+    rules.shouldReplaceFallbackTarget(40.0, 40.0, true)) {
+    return -2;
+}
+
+// updateDelveCompanion decrements swingTimer twice in either combat branch.
+if (rules.combatAction(4.5001, 0.0, false, true) != 1 ||
+    rules.combatAction(4.5001, 0.0, true, true) != 0 ||
+    rules.combatAction(4.5, 0.1001, false, true) != 0 ||
+    rules.combatAction(4.5, 0.1, false, true) != 2 ||
+    rules.combatAction(0.0, 0.0, false, true) != 2 ||
+    rules.followAction(60.001, true, true) != 2 ||
+    rules.followAction(60.0, false, true) != 1 ||
+    rules.followAction(4.001, true, true) != 0 ||
+    rules.followAction(4.0, false, true) != 0 ||
+    rules.contractTest() != 1) {
+    return -3;
+}
+
+return 0;

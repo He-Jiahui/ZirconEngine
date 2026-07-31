@@ -3,8 +3,9 @@ use zircon_runtime::core::framework::{
     physics::{
         PhysicsBackendState, PhysicsBackendStatus, PhysicsContactEvent, PhysicsManager,
         PhysicsQueryInterface, PhysicsRayCastHit, PhysicsRayCastQuery, PhysicsSceneStepResult,
-        PhysicsSettings, PhysicsShapeCastHit, PhysicsShapeCastQuery, PhysicsShapeOverlapHit,
-        PhysicsShapeOverlapQuery, PhysicsTriggerEvent, PhysicsWorldStepPlan, PhysicsWorldSyncState,
+        PhysicsSettings, PhysicsSettingsStoreError, PhysicsShapeCastHit, PhysicsShapeCastQuery,
+        PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery, PhysicsTriggerEvent,
+        PhysicsWorldStepPlan, PhysicsWorldSyncState,
     },
     scene::physics::PhysicsMaterialMetadata,
 };
@@ -32,10 +33,7 @@ impl PhysicsManager for DefaultPhysicsManager {
         recover_lock(&self.settings).clone()
     }
 
-    fn store_settings(
-        &self,
-        settings: PhysicsSettings,
-    ) -> Result<(), zircon_runtime::core::CoreError> {
+    fn store_settings(&self, settings: PhysicsSettings) -> Result<(), PhysicsSettingsStoreError> {
         DefaultPhysicsManager::store_settings(self, settings)
     }
 

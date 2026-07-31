@@ -1,0 +1,190 @@
+// Current-head projection of deterministic living party/raid selection. The WOS
+// reducer owns the live entity/party snapshot and consumes the selected ids.
+var container = %import("zr.container");
+var contract = %import("generated/group_targeting_contract");
+var temporalReversal = %import("generated/temporal_reversal_offer_contract");
+
+pub class GroupTargetMember {
+    pub var id: int;
+    pub var isPlayer: bool;
+    pub var isDead: bool;
+    pub var isGhost: bool;
+    pub var x: float;
+    pub var z: float;
+
+    pub @constructor(id: int, isPlayer: bool, isDead: bool, isGhost: bool, x: float, z: float) {
+        this.id = id;
+        this.isPlayer = isPlayer;
+        this.isDead = isDead;
+        this.isGhost = isGhost;
+        this.x = x;
+        this.z = z;
+    }
+}
+
+pub class GroupTargetingState {
+    pub var members: container.Array<GroupTargetMember>;
+    pub var partyMemberIds: container.Array<int>;
+    pub var hasParty: bool;
+
+    pub @constructor() {
+        this.members = new container.Array<GroupTargetMember>();
+        this.partyMemberIds = new container.Array<int>();
+        this.hasParty = false;
+    }
+}
+
+pub findMemberIndex(state: GroupTargetingState, id: int): int {
+    var index = 0;
+    while (index < state.members.length) {
+        if ((<GroupTargetMember>state.members[index]).id == id) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub setMember(state: GroupTargetingState, id: int, isPlayer: bool, isDead: bool, isGhost: bool, x: float, z: float): void {
+    var index = findMemberIndex(state, id);
+    if (index < 0) {
+        state.members.add(new GroupTargetMember(id, isPlayer, isDead, isGhost, x, z));
+        return;
+    }
+    var member = <GroupTargetMember>state.members[index];
+    member.isPlayer = isPlayer;
+    member.isDead = isDead;
+    member.isGhost = isGhost;
+    member.x = x;
+    member.z = z;
+}
+
+pub clearParty(state: GroupTargetingState): void {
+    state.partyMemberIds.clear();
+    state.hasParty = false;
+}
+
+pub addPartyMember(state: GroupTargetingState, id: int): void {
+    state.partyMemberIds.add(id);
+    state.hasParty = true;
+}
+
+sortAscending(ids: container.Array<int>): void {
+    var outer = 0;
+    while (outer < ids.length) {
+        var inner = 0;
+        while (inner + 1 < ids.length) {
+            var left = <int>ids[inner];
+            var right = <int>ids[inner + 1];
+            if (left > right) {
+                ids[inner] = right;
+                ids[inner + 1] = left;
+            }
+            inner = inner + 1;
+        }
+        outer = outer + 1;
+    }
+}
+
+// Mirrors livingGroupRaidInRadius: the source selects party members when one
+// exists, otherwise only the caster, then filters in XZ space and sorts by id.
+pub livingGroupRaidInRadius(state: GroupTargetingState, casterId: int, radius: float): container.Array<int> {
+    var selected = new container.Array<int>();
+    var casterIndex = findMemberIndex(state, casterId);
+    if (casterIndex < 0) return selected;
+    var caster = <GroupTargetMember>state.members[casterIndex];
+    var radiusSquared = radius * radius;
+    var count = state.hasParty ? state.partyMemberIds.length : 1;
+    var index = 0;
+    while (index < count) {
+        var memberId = state.hasParty ? <int>state.partyMemberIds[index] : casterId;
+        var memberIndex = findMemberIndex(state, memberId);
+        if (memberIndex >= 0) {
+            var member = <GroupTargetMember>state.members[memberIndex];
+            if (member.isPlayer && !member.isDead) {
+                var dx = member.x - caster.x;
+                var dz = member.z - caster.z;
+                if (dx * dx + dz * dz <= radiusSquared) selected.add(member.id);
+            }
+        }
+        index = index + 1;
+    }
+    sortAscending(selected);
+    return selected;
+}
+
+// Mass resurrection deliberately preserves party roster order instead of using
+// livingGroupRaidInRadius, because the target source's resurrection offers do.
+pub deadOrGhostGroupPlayerIds(state: GroupTargetingState): container.Array<int> {
+    var selected = new container.Array<int>();
+    if (!state.hasParty) return selected;
+    var index = 0;
+    while (index < state.partyMemberIds.length) {
+        var memberIndex = findMemberIndex(state, <int>state.partyMemberIds[index]);
+        if (memberIndex >= 0) {
+            var member = <GroupTargetMember>state.members[memberIndex];
+            if (member.isPlayer && (member.isDead || member.isGhost)) selected.add(member.id);
+        }
+        index = index + 1;
+    }
+    return selected;
+}
+
+// Mirrors resolveDeadAllyTarget for Temporal Reversal after cast admission has
+// established a living caster. A mouseover override is terminal: an invalid
+// override does not fall back to the current target.
+pub temporalReversalDeadAllyTarget(
+    state: GroupTargetingState,
+    casterId: int,
+    overridePresent: bool,
+    overrideId: int,
+    currentTargetPresent: bool,
+    currentTargetId: int
+): int {
+    var candidatePresent = overridePresent || currentTargetPresent;
+    if (!candidatePresent) return -1;
+    var candidateId = overridePresent ? overrideId : currentTargetId;
+    if (candidateId == casterId || !state.hasParty) return -1;
+    var candidateIndex = findMemberIndex(state, candidateId);
+    if (candidateIndex < 0) return -1;
+    var candidate = <GroupTargetMember>state.members[candidateIndex];
+    if (!candidate.isPlayer || !candidate.isDead) return -1;
+    var partyIndex = 0;
+    while (partyIndex < state.partyMemberIds.length) {
+        if (<int>state.partyMemberIds[partyIndex] == candidateId) return candidateId;
+        partyIndex = partyIndex + 1;
+    }
+    return -1;
+}
+
+pub contractTest(): int {
+    if (!contract.casterOnlyWhenSolo(true) || !contract.requiresPlayerMeta(true) ||
+        !contract.excludesDead(true) || !contract.planarRadius(true) ||
+        !contract.ascendingEntityId(true)) return -1;
+    var state = new GroupTargetingState();
+    setMember(state, 9, true, false, false, 0.0, 0.0);
+    setMember(state, 5, true, false, false, 3.0, 4.0);
+    setMember(state, 3, true, true, false, 1.0, 0.0);
+    setMember(state, 2, false, false, false, 1.0, 0.0);
+    setMember(state, 1, true, false, false, 10.1, 0.0);
+    var solo = livingGroupRaidInRadius(state, 9, 5.0);
+    if (solo.length != 1 || <int>solo[0] != 9) return -2;
+    addPartyMember(state, 9);
+    addPartyMember(state, 3);
+    addPartyMember(state, 5);
+    addPartyMember(state, 2);
+    addPartyMember(state, 1);
+    addPartyMember(state, 404);
+    var party = livingGroupRaidInRadius(state, 9, 5.0);
+    if (party.length != 2 || <int>party[0] != 5 || <int>party[1] != 9) return -3;
+    if (!temporalReversal.overridePrecedesCurrentTarget(true) ||
+        !temporalReversal.requiresPartyMembership(true) || !temporalReversal.noSelfFallback(true)) {
+        return -4;
+    }
+    if (temporalReversalDeadAllyTarget(state, 9, true, 3, true, 5) != 3 ||
+        temporalReversalDeadAllyTarget(state, 9, false, 0, true, 3) != 3 ||
+        temporalReversalDeadAllyTarget(state, 9, true, 5, true, 3) != -1 ||
+        temporalReversalDeadAllyTarget(state, 9, false, 0, false, 0) != -1 ||
+        temporalReversalDeadAllyTarget(state, 9, true, 9, false, 0) != -1) {
+        return -5;
+    }
+    return 1;
+}

@@ -220,6 +220,10 @@ zircon_plugins/physics/runtime/src/
 | M6-T2 | 物理调试面板（`ai-physics-collision-layout.png` 布局）+ step 耗时进诊断 store | physics/editor | M6-T1 | editor 契约测试 |
 | M6-T3 | RagdollProfile 编辑器（skeleton 自动生成初始 profile） | physics/editor | M5 | `generated_profile_covers_all_mapped_bones` |
 
+### 性能审查交接（PERF-MVP-335）
+
+M1-T4现有change detection只减少命令重复下发，尚未消除`tick_scene_world`每tick从`node_records()`构造/排序全scene owned snapshot、逐node `world_transform`、shape/material/joint深复制；builtin零substep帧仍同步，manager保存`snapshot.clone()`，backend events/query又重建world并全表扫描。后续实现必须以persistent per-world backend、dirty component generation、稳定native handles和增量create/update/remove替代full snapshot协议；query走长期broad phase并写reused output，contact/trigger使用有界clear/swap event buffers。验收矩阵按1/1k/100k nodes/bodies/colliders、0/1/10/100% changed、30/60/120 Hz及1/1k/100k queries记录projection/clone bytes/alloc/locks/candidates/CPU p95；stable generation全量projection/snapshot clone=0，零step稳定帧sync=0，并保持builtin/Jolt、active readback和event order一致。详细证据见`../performance/01/2026-07-18-runtime-core-framework-physics-static-review.md`。
+
 ## 6. 验收命令
 
 ```bash

@@ -22,7 +22,7 @@ default_classes = ["workbench-floating", "workbench-command-palette"]
 component = "Panel"
 control_id = "WorkbenchCommandPalette"
 classes = ["workbench-floating", "workbench-command-palette"]
-style = { self = { background = { color = "editor.surface.1" }, foreground = { color = "editor.text.primary" }, border = { color = "editor.border", width = 1.0, radius = 8.0 } } }
+style = { self = { background = { color = "$editor.surface.1" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.large" } } }
 layout = { clip = true, container = { kind = "VerticalBox", gap = 4.0 }, width = { min = 520.0, preferred = 640.0, max = 760.0, stretch = "Fixed" }, height = { min = 120.0, preferred = 320.0, max = 520.0, stretch = "Fixed" } }
 children = [{ node = "search" }, { node = "first_result" }]
 

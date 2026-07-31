@@ -48,6 +48,7 @@ impl DesktopExportWizardSessions {
                 .session_mut(profile_name)?
                 .handle_request(ExportWizardPanelRequest::Poll)?,
         };
+        self.invalidate_projection_overlay();
         Ok(update)
     }
 

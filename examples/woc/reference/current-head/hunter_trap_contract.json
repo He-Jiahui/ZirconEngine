@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/hunter_trap_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/hunter_trap.ts": "d0cded8a1b0e1c2f8c85273dce592e69f3dafce03ad2fce894a1d1ae2e04a709"
+  },
+  "sweep_query_padding": 30,
+  "shimmer_every_ticks": 40,
+  "shimmer_radius": 1.2
+}

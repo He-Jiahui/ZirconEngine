@@ -1,0 +1,491 @@
+// Focused M6 party/raid source-contract projection from current source commit
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. It is deliberately not imported
+// by main.zr or world/state.zr until the Plugins08 mutable cross-module ABI is
+// reliable. Members stay in join order; raid groups are normalized after member
+// removal exactly like PartyMachine.
+var container = %import("zr.container");
+
+class PartyRaidState {
+    pub var timeSeconds: int;
+    pub var partyExists: bool;
+    pub var partyId: int;
+    pub var nextPartyId: int;
+    pub var leader: int;
+    pub var raid: bool;
+    pub var members: container.Array<int>;
+    pub var groups: container.Array<int>;
+    pub var inviteFrom: container.Array<int>;
+    pub var inviteExpires: container.Array<int>;
+    pub var partiesJoined: container.Array<int>;
+    pub var actionEvents: container.Array<int>;
+    pub var lastError: int;
+
+    pub @constructor() {
+        this.timeSeconds = 0;
+        this.partyExists = false;
+        this.partyId = 0;
+        this.nextPartyId = 1;
+        this.leader = 0;
+        this.raid = false;
+        this.members = new container.Array<int>();
+        this.groups = new container.Array<int>();
+        this.inviteFrom = new container.Array<int>();
+        this.inviteExpires = new container.Array<int>();
+        this.partiesJoined = new container.Array<int>();
+        this.actionEvents = new container.Array<int>();
+        var player = 0;
+        while (player < 11) {
+            this.inviteFrom.add(0);
+            this.inviteExpires.add(0);
+            this.partiesJoined.add(0);
+            player = player + 1;
+        }
+        this.lastError = 0;
+    }
+}
+
+validPlayer(player: int): bool {
+    return player >= 1 && player <= 11;
+}
+
+memberIndex(state: PartyRaidState, player: int): int {
+    var members = state.members;
+    var index = 0;
+    while (index < members.length) {
+        if (<int>members[index] == player) { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+pub partyOf(state: PartyRaidState, player: int): int {
+    if (!state.partyExists || memberIndex(state, player) < 0) { return 0; }
+    return state.partyId;
+}
+
+pub memberCount(state: PartyRaidState): int {
+    return state.members.length;
+}
+
+pub memberAt(state: PartyRaidState, index: int): int {
+    var members = state.members;
+    if (index < 0 || index >= members.length) { return 0; }
+    return <int>members[index];
+}
+
+pub groupFor(state: PartyRaidState, player: int): int {
+    var index = memberIndex(state, player);
+    if (index < 0) { return 0; }
+    var groups = state.groups;
+    return <int>groups[index];
+}
+
+groupCount(state: PartyRaidState, group: int): int {
+    var groups = state.groups;
+    var count = 0;
+    var index = 0;
+    while (index < groups.length) {
+        if (<int>groups[index] == group) { count = count + 1; }
+        index = index + 1;
+    }
+    return count;
+}
+
+capacity(state: PartyRaidState): int {
+    return state.raid ? 10 : 5;
+}
+
+recordEvent(state: PartyRaidState, code: int): void {
+    var events = state.actionEvents;
+    events.add(code);
+}
+
+normalizeRaidGroups(state: PartyRaidState): void {
+    var groups = state.groups;
+    var index = 0;
+    while (index < groups.length) {
+        groups[index] = index < 5 ? 1 : 2;
+        index = index + 1;
+    }
+}
+
+nextRaidGroup(state: PartyRaidState): int {
+    if (!state.raid) { return 1; }
+    return groupCount(state, 1) < 5 ? 1 : 2;
+}
+
+clearInvite(state: PartyRaidState, player: int): void {
+    var from = state.inviteFrom;
+    var expires = state.inviteExpires;
+    from[player - 1] = 0;
+    expires[player - 1] = 0;
+}
+
+pub advanceTime(state: PartyRaidState, seconds: int): void {
+    if (seconds > 0) { state.timeSeconds = state.timeSeconds + seconds; }
+}
+
+pub invite(state: PartyRaidState, actor: int, target: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(actor) || !validPlayer(target) || actor == target) {
+        state.lastError = -1;
+        return false;
+    }
+    var actorParty = partyOf(state, actor);
+    if (state.partyExists && actorParty == 0) {
+        state.lastError = -2;
+        return false;
+    }
+    if (actorParty != 0 && state.leader != actor) {
+        state.lastError = -3;
+        return false;
+    }
+    if (actorParty != 0 && memberCount(state) >= capacity(state)) {
+        state.lastError = -4;
+        return false;
+    }
+    if (partyOf(state, target) != 0) {
+        state.lastError = -5;
+        return false;
+    }
+    var from = state.inviteFrom;
+    var expires = state.inviteExpires;
+    var currentFrom = <int>from[target - 1];
+    var currentExpiry = <int>expires[target - 1];
+    if (currentFrom != 0 && currentExpiry >= state.timeSeconds) {
+        state.lastError = -6;
+        return false;
+    }
+    from[target - 1] = actor;
+    expires[target - 1] = state.timeSeconds + 30;
+    recordEvent(state, 1);
+    return true;
+}
+
+pub accept(state: PartyRaidState, player: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(player)) { state.lastError = -1; return false; }
+    var from = state.inviteFrom;
+    var expires = state.inviteExpires;
+    var actor = <int>from[player - 1];
+    var expiry = <int>expires[player - 1];
+    if (actor == 0 || expiry < state.timeSeconds) {
+        state.lastError = -7;
+        return false;
+    }
+    clearInvite(state, player);
+    if (partyOf(state, player) != 0) { state.lastError = -5; return false; }
+    var created = false;
+    if (!state.partyExists) {
+        created = true;
+        state.partyExists = true;
+        state.partyId = state.nextPartyId;
+        state.nextPartyId = state.nextPartyId + 1;
+        state.leader = actor;
+        state.raid = false;
+        var createdMembers = state.members;
+        var createdGroups = state.groups;
+        createdMembers.add(actor);
+        createdGroups.add(1);
+    }
+    if (partyOf(state, actor) == 0 || memberCount(state) >= capacity(state)) {
+        state.lastError = -4;
+        return false;
+    }
+    var group = nextRaidGroup(state);
+    var members = state.members;
+    var groups = state.groups;
+    members.add(player);
+    groups.add(group);
+    var joined = state.partiesJoined;
+    if (created) { joined[actor - 1] = <int>joined[actor - 1] + 1; }
+    joined[player - 1] = <int>joined[player - 1] + 1;
+    recordEvent(state, 2);
+    return true;
+}
+
+pub convertToRaid(state: PartyRaidState, actor: int): bool {
+    state.lastError = 0;
+    if (!state.partyExists || partyOf(state, actor) == 0 || memberCount(state) < 5) {
+        state.lastError = -8;
+        return false;
+    }
+    if (state.leader != actor) { state.lastError = -3; return false; }
+    if (state.raid) { state.lastError = -9; return false; }
+    state.raid = true;
+    normalizeRaidGroups(state);
+    recordEvent(state, 3);
+    return true;
+}
+
+// The source clears raidGroups while folding back to an ordinary party. The
+// compact projection retains its parallel slots, but marks them unavailable
+// through raid=false so groupFor matches the empty source Map.
+pub convertToParty(state: PartyRaidState, actor: int): bool {
+    state.lastError = 0;
+    if (!state.partyExists || partyOf(state, actor) == 0) {
+        state.lastError = -10;
+        return false;
+    }
+    if (state.leader != actor) {
+        state.lastError = -3;
+        return false;
+    }
+    if (!state.raid) {
+        state.lastError = -15;
+        return false;
+    }
+    if (memberCount(state) > 5) {
+        state.lastError = -16;
+        return false;
+    }
+    state.raid = false;
+    var groups = state.groups;
+    var index = 0;
+    while (index < groups.length) {
+        groups[index] = 0;
+        index = index + 1;
+    }
+    recordEvent(state, 8);
+    return true;
+}
+
+pub moveRaidMember(state: PartyRaidState, actor: int, target: int, group: int): bool {
+    state.lastError = 0;
+    if (!state.partyExists || !state.raid || partyOf(state, actor) == 0) {
+        state.lastError = -10;
+        return false;
+    }
+    if (state.leader != actor) { state.lastError = -3; return false; }
+    if (group != 1 && group != 2) { state.lastError = -11; return false; }
+    var index = memberIndex(state, target);
+    if (index < 0) { state.lastError = -12; return false; }
+    var groups = state.groups;
+    if (<int>groups[index] == group) { return true; }
+    if (groupCount(state, group) >= 5) { state.lastError = -13; return false; }
+    groups[index] = group;
+    recordEvent(state, 4);
+    return true;
+}
+
+pub leave(state: PartyRaidState, player: int): bool {
+    state.lastError = 0;
+    var index = memberIndex(state, player);
+    if (!state.partyExists || index < 0) { state.lastError = -14; return false; }
+    var members = state.members;
+    var groups = state.groups;
+    members.removeAt(index);
+    groups.removeAt(index);
+    recordEvent(state, 5);
+    if (memberCount(state) <= 1) {
+        while (members.length > 0) {
+            members.removeAt(members.length - 1);
+            groups.removeAt(groups.length - 1);
+        }
+        state.partyExists = false;
+        state.partyId = 0;
+        state.leader = 0;
+        state.raid = false;
+        recordEvent(state, 7);
+        return true;
+    }
+    if (state.leader == player) {
+        state.leader = memberAt(state, 0);
+        recordEvent(state, 6);
+    }
+    if (state.raid) { normalizeRaidGroups(state); }
+    return true;
+}
+
+// partyDecline only removes the recipient's pending invite in the source. A
+// missing invite is still a harmless command, while an invalid fixture player
+// remains an explicit test error.
+pub decline(state: PartyRaidState, player: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(player)) {
+        state.lastError = -1;
+        return false;
+    }
+    var hadInvite = <int>state.inviteFrom[player - 1] != 0;
+    clearInvite(state, player);
+    if (hadInvite) { recordEvent(state, 9); }
+    return true;
+}
+
+// partyKick is leader-only and never lets a leader remove themself; successful
+// removal follows the exact leave/disband/leadership path.
+pub kick(state: PartyRaidState, actor: int, target: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(actor) || !validPlayer(target)) {
+        state.lastError = -1;
+        return false;
+    }
+    if (!state.partyExists || partyOf(state, actor) == 0 || state.leader != actor) {
+        state.lastError = -3;
+        return false;
+    }
+    if (target == actor || memberIndex(state, target) < 0) {
+        return false;
+    }
+    return leave(state, target);
+}
+
+// partyPromote changes only leadership; join order and raid subgroup placement
+// remain unchanged.
+pub promote(state: PartyRaidState, actor: int, target: int): bool {
+    state.lastError = 0;
+    if (!validPlayer(actor) || !validPlayer(target)) {
+        state.lastError = -1;
+        return false;
+    }
+    if (!state.partyExists || partyOf(state, actor) == 0 || state.leader != actor) {
+        state.lastError = -3;
+        return false;
+    }
+    if (target == actor || memberIndex(state, target) < 0) {
+        return false;
+    }
+    state.leader = target;
+    recordEvent(state, 10);
+    return true;
+}
+
+pub scenarioTest(): int {
+    var state = new PartyRaidState();
+    var player = 2;
+    while (player <= 5) {
+        if (!invite(state, 1, player) || !accept(state, player)) { return -1; }
+        player = player + 1;
+    }
+    if (!state.partyExists || state.raid || state.leader != 1 || memberCount(state) != 5 ||
+        partyOf(state, 1) != 1 || partyOf(state, 5) != 1 || groupCount(state, 1) != 5) {
+        return -2;
+    }
+    if (!convertToRaid(state, 1) || !state.raid || groupCount(state, 1) != 5 ||
+        groupCount(state, 2) != 0) {
+        return -3;
+    }
+    player = 6;
+    while (player <= 7) {
+        if (!invite(state, 1, player) || !accept(state, player)) { return -4; }
+        player = player + 1;
+    }
+    if (memberCount(state) != 7 || groupFor(state, 6) != 2 || groupFor(state, 7) != 2 ||
+        !moveRaidMember(state, 1, 2, 2) || groupCount(state, 1) != 4 ||
+        groupCount(state, 2) != 3) {
+        return -5;
+    }
+    if (!leave(state, 1) || state.leader != 2 || memberCount(state) != 6 ||
+        memberAt(state, 0) != 2 || groupFor(state, 2) != 1 ||
+        groupFor(state, 6) != 1 || groupFor(state, 7) != 2) {
+        return -6;
+    }
+    player = 3;
+    while (player <= 7) {
+        if (!leave(state, player)) { return -7; }
+        player = player + 1;
+    }
+    var events = state.actionEvents;
+    if (state.partyExists || state.leader != 0 || memberCount(state) != 0 ||
+        partyOf(state, 2) != 0 || events.length != 22 ||
+        <int>events[0] != 1 || <int>events[1] != 2 || <int>events[8] != 3 ||
+        <int>events[13] != 4 || <int>events[14] != 5 || <int>events[15] != 6 ||
+        <int>events[20] != 5 || <int>events[21] != 7) {
+        return -8;
+    }
+    return 1;
+}
+
+partyInvariantTest(): int {
+    var shortParty = new PartyRaidState();
+    if (!invite(shortParty, 1, 2) || !accept(shortParty, 2) ||
+        convertToRaid(shortParty, 1) || shortParty.lastError != -8 || shortParty.raid ||
+        invite(shortParty, 2, 3) || shortParty.lastError != -3 || memberCount(shortParty) != 2) {
+        return -1;
+    }
+
+    var expired = new PartyRaidState();
+    if (!invite(expired, 1, 2)) { return -2; }
+    advanceTime(expired, 31);
+    if (accept(expired, 2) || expired.lastError != -7 || expired.partyExists ||
+        expired.actionEvents.length != 1 || <int>expired.inviteFrom[1] != 1) {
+        return -3;
+    }
+    if (!invite(expired, 1, 2) || <int>expired.inviteExpires[1] != 61) {
+        return -4;
+    }
+
+    var exactExpiry = new PartyRaidState();
+    if (!invite(exactExpiry, 1, 2)) { return -5; }
+    advanceTime(exactExpiry, 30);
+    if (!accept(exactExpiry, 2) || !exactExpiry.partyExists ||
+        memberCount(exactExpiry) != 2) {
+        return -6;
+    }
+
+    var full = new PartyRaidState();
+    var player = 2;
+    while (player <= 5) {
+        invite(full, 1, player);
+        accept(full, player);
+        player = player + 1;
+    }
+    if (invite(full, 1, 6) || full.lastError != -4 || memberCount(full) != 5 ||
+        <int>full.inviteFrom[5] != 0) {
+        return -7;
+    }
+    if (!convertToRaid(full, 1) || moveRaidMember(full, 1, 2, 3) ||
+        full.lastError != -11 || groupFor(full, 2) != 1) {
+        return -8;
+    }
+    return 1;
+}
+
+currentHeadCommandTest(): int {
+    var state = new PartyRaidState();
+    if (!invite(state, 1, 2) || !accept(state, 2) || !invite(state, 1, 3) ||
+        !accept(state, 3) || !promote(state, 1, 2) || state.leader != 2 ||
+        promote(state, 1, 3) || state.lastError != -3) {
+        return -1;
+    }
+    if (!kick(state, 2, 3) || memberCount(state) != 2 || partyOf(state, 3) != 0 ||
+        kick(state, 2, 2) || memberCount(state) != 2) {
+        return -2;
+    }
+    if (!decline(state, 3) || !invite(state, 2, 3) || !decline(state, 3) ||
+        <int>state.inviteFrom[2] != 0 || !invite(state, 2, 3) || !accept(state, 3)) {
+        return -3;
+    }
+
+    var player = 4;
+    while (player <= 5) {
+        if (!invite(state, 2, player) || !accept(state, player)) { return -4; }
+        player = player + 1;
+    }
+    if (!convertToRaid(state, 2) || !state.raid) { return -5; }
+    if (!convertToParty(state, 2) || state.raid || groupFor(state, 2) != 0 ||
+        convertToParty(state, 2) || state.lastError != -15) {
+        return -6;
+    }
+    if (!convertToRaid(state, 2)) { return -7; }
+    player = 6;
+    while (player <= 10) {
+        if (!invite(state, 2, player) || !accept(state, player)) { return -8; }
+        player = player + 1;
+    }
+    if (memberCount(state) != 10 || invite(state, 2, 11) || state.lastError != -4 ||
+        convertToParty(state, 2) || state.lastError != -16) {
+        return -9;
+    }
+    return 1;
+}
+
+pub contractTest(): int {
+    var result = scenarioTest();
+    if (result != 1) { return -100 + result; }
+    result = partyInvariantTest();
+    if (result != 1) { return -200 + result; }
+    result = currentHeadCommandTest();
+    if (result != 1) { return -300 + result; }
+    return 1;
+}

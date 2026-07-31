@@ -22,12 +22,26 @@ function Get-CiExportPlatformMatrix {
         Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 }
 
+Describe "Validate matrix Windows PowerShell compatibility" {
+    It "keeps the validator source ASCII when it has no UTF-8 byte-order mark" {
+        $sourceBytes = [System.IO.File]::ReadAllBytes($script:ValidateMatrixScript)
+        $hasUtf8ByteOrderMark = $sourceBytes.Length -ge 3 -and
+            $sourceBytes[0] -eq 0xEF -and
+            $sourceBytes[1] -eq 0xBB -and
+            $sourceBytes[2] -eq 0xBF
+
+        if (-not $hasUtf8ByteOrderMark) {
+            (@($sourceBytes | Where-Object { $_ -gt 0x7F })).Count | Should Be 0
+        }
+    }
+}
+
 function Get-CiProfileFeatureMatrix {
     $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\profile-feature-contract.yml"
     $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
     $caseMatches = [regex]::Matches(
         $workflow,
-        "(?ms)^\s*-\s+label:\s*(?<label>[^\r\n]+)\s+package:\s*(?<package>[^\r\n]+)\s+features:\s*(?<features>[^\r\n]+)"
+        "(?ms)^\s*-\s+label:\s*(?<label>[^\r\n]+)\s+package:\s*(?<package>[^\r\n]+)\s+features:\s*(?<features>[^\r\n]+)(?:\s+bin:\s*(?<bin>[^\r\n]+))?"
     )
 
     if ($caseMatches.Count -eq 0) {
@@ -39,6 +53,7 @@ function Get-CiProfileFeatureMatrix {
             Label    = $_.Groups["label"].Value.Trim()
             Package  = $_.Groups["package"].Value.Trim()
             Features = $_.Groups["features"].Value.Trim()
+            Bin      = $_.Groups["bin"].Value.Trim().Trim('"')
         }
     }
 }
@@ -443,6 +458,36 @@ Describe "Cargo compatibility identity" {
         $source | Should Match "New-CargoCompatibilityJson"
         $source | Should Not Match "--reuse-key"
     }
+
+    It "uses an explicit subworkspace manifest as the compatibility workspace" {
+        $compatibility = New-CargoCompatibilityJson `
+            -ResolvedRepoRoot $script:ValidateMatrixTestRepoRoot `
+            -WorkspaceManifest "zircon_plugins/Cargo.toml" `
+            -DryRunMode | ConvertFrom-Json
+
+        $compatibility.workspace | Should Be "zircon_plugins/Cargo.toml"
+    }
+
+    It "resolves a nested manifest and keeps root commands manifest-free" {
+        $workspace = Resolve-WorkspaceManifest `
+            -RepoRoot $script:ValidateMatrixTestRepoRoot `
+            -RequestedManifestPath "zircon_plugins/Cargo.toml"
+        $workspace.RelativePath | Should Be "zircon_plugins/Cargo.toml"
+        $workspace.Directory | Should Match "zircon_plugins$"
+
+        $nestedArgs = Get-CargoArgs `
+            -Subcommand "build" `
+            -ResolvedTargetDir "E:\cargo-targets\pester-manifest" `
+            -WorkspaceManifest $workspace.RelativePath
+        ($nestedArgs -join " ") | Should Match "--manifest-path"
+        ($nestedArgs -join " ") | Should Match "zircon_plugins/Cargo.toml"
+
+        $rootArgs = Get-CargoArgs `
+            -Subcommand "build" `
+            -ResolvedTargetDir "E:\cargo-targets\pester-root" `
+            -WorkspaceManifest "Cargo.toml"
+        ($rootArgs -join " ") | Should Not Match "--manifest-path"
+    }
 }
 
 Describe "Validate matrix CLI dry-run parsing" {
@@ -458,6 +503,22 @@ Describe "Validate matrix CLI dry-run parsing" {
         $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
         $result.Output | Should Match "No stages selected"
         $result.Output | Should Not Match "target\\manual-check"
+    }
+
+    It "dry-runs a package through an explicit subworkspace manifest" {
+        $result = Invoke-ValidateMatrixCli -Arguments @(
+            "-DryRun",
+            "-Package",
+            "zircon_plugin_ai_editor",
+            "-ManifestPath",
+            "zircon_plugins/Cargo.toml",
+            "-SkipTest"
+        )
+
+        $result.ExitCode | Should Be 0
+        $result.Output | Should Match "Workspace manifest: zircon_plugins/Cargo.toml"
+        $result.Output | Should Match "Cargo working directory: .*zircon_plugins"
+        $result.Output | Should Match "cargo build --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_editor --locked --target-dir $($script:ManagedPoolRegex)"
     }
 
     It "rejects an explicit repo-local TargetDir instead of bypassing the service" {
@@ -768,7 +829,7 @@ Describe "Export platform contract validation" {
 
     It "keeps runtime and export platform target tokens aligned with the validator matrix" {
         $runtimeTargetPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\platform\target.rs"
-        $exportTargetPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\plugin\export_profile.rs"
+        $exportTargetPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\core\framework\project\export_profile.rs"
 
         Get-RustEnumAsStrTokens -RustPath $runtimeTargetPath -EnumName "PlatformTarget" |
             Should Be $script:ExportContractPlatforms
@@ -789,22 +850,24 @@ Describe "Export platform contract validation" {
 Describe "Profile feature contract validation" {
     It "keeps the local profile feature contract list explicit" {
         $script:ProfileFeatureContractCases | ForEach-Object {
-            "{0}|{1}|{2}" -f $_.Label, $_.Package, $_.Features
+            "{0}|{1}|{2}|{3}" -f $_.Label, $_.Package, $_.Features, $_.Bin
         } | Should Be @(
-            "zircon_app target-server|zircon_app|target-server",
-            "zircon_app target-client-platform|zircon_app|target-client,platform-winit,input-gamepad,gamepad-gilrs",
-            "zircon_runtime target-client|zircon_runtime|target-client",
-            "zircon_runtime target-editor-host|zircon_runtime|target-editor-host",
-            "zircon_runtime target-server|zircon_runtime|target-server"
+            "zircon_app target-server|zircon_app|target-server|",
+            "zircon_app target-client-platform|zircon_app|target-client,platform-winit,input-gamepad,gamepad-gilrs|",
+            "zircon_app target-editor-host|zircon_app|target-editor-host|",
+            "zircon_app target-client shader-pbr-viewer|zircon_app|target-client,platform-winit,input-gamepad,gamepad-gilrs|zircon_shader_pbr_viewer",
+            "zircon_runtime target-client|zircon_runtime|target-client|",
+            "zircon_runtime target-editor-host|zircon_runtime|target-editor-host|",
+            "zircon_runtime target-server|zircon_runtime|target-server|"
         )
     }
 
     It "keeps the local profile feature list identical to the GitHub Actions matrix" {
         $ciCases = Get-CiProfileFeatureMatrix | ForEach-Object {
-            "{0}|{1}|{2}" -f $_.Label, $_.Package, $_.Features
+            "{0}|{1}|{2}|{3}" -f $_.Label, $_.Package, $_.Features, $_.Bin
         }
         $localCases = $script:ProfileFeatureContractCases | ForEach-Object {
-            "{0}|{1}|{2}" -f $_.Label, $_.Package, $_.Features
+            "{0}|{1}|{2}|{3}" -f $_.Label, $_.Package, $_.Features, $_.Bin
         }
 
         $ciCases | Should Be $localCases
@@ -826,7 +889,12 @@ Describe "Profile feature contract validation" {
             $args = Get-ProfileFeatureContractArgs -Case $localCase[0] -ResolvedTargetDir "target/manual-check"
             $command = $args -join " "
 
-            $command | Should Match ("check -p {0} --no-default-features --features {1}" -f $case.Package, [regex]::Escape($case.Features))
+            $binarySelector = if ([string]::IsNullOrWhiteSpace($case.Bin)) {
+                ""
+            } else {
+                " --bin {0}" -f [regex]::Escape($case.Bin)
+            }
+            $command | Should Match ("check -p {0}{1} --no-default-features --features {2}" -f $case.Package, $binarySelector, [regex]::Escape($case.Features))
             ($args -contains "--locked") | Should Be $true
             ($args -contains "target/manual-check") | Should Be $true
         }
@@ -845,6 +913,20 @@ Describe "Profile feature contract validation" {
         foreach ($case in Get-CiProfileFeatureMatrix) {
             $cargoTomlPath = Join-Path $script:ValidateMatrixTestRepoRoot "$($case.Package)\Cargo.toml"
             Get-CargoPackageName -CargoTomlPath $cargoTomlPath | Should Be $case.Package
+        }
+    }
+
+    It "keeps every selected workflow binary backed by its package manifest and feature gate" {
+        foreach ($case in Get-CiProfileFeatureMatrix | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Bin) }) {
+            $cargoTomlPath = Join-Path $script:ValidateMatrixTestRepoRoot "$($case.Package)\Cargo.toml"
+            $cargoToml = Get-Content -Raw -Encoding UTF8 $cargoTomlPath
+            $featureGate = $case.Features.Split(",")[0].Trim()
+            $escapedBin = [regex]::Escape($case.Bin)
+            $escapedFeatureGate = [regex]::Escape($featureGate)
+
+            $cargoToml | Should Match (
+                "(?ms)\[\[bin\]\]\s+name\s*=\s*`"$escapedBin`".*?required-features\s*=\s*\[`"$escapedFeatureGate`"\]"
+            )
         }
     }
 
@@ -868,15 +950,21 @@ Describe "Profile feature contract validation" {
 
         $result.ExitCode | Should Be 0
         foreach ($case in $script:ProfileFeatureContractCases) {
+            $binarySelector = if ($case.PSObject.Properties["Bin"] -and -not [string]::IsNullOrWhiteSpace($case.Bin)) {
+                " --bin {0}" -f [regex]::Escape($case.Bin)
+            } else {
+                ""
+            }
             $result.Output | Should Match ("Profile feature contract \({0}\)" -f [regex]::Escape($case.Label))
             $result.Output | Should Match (
-                "cargo check -p {0} --no-default-features --features {1} --locked --target-dir {2}" -f
+                "cargo check -p {0}{1} --no-default-features --features {2} --locked --target-dir {3}" -f
                 [regex]::Escape($case.Package),
+                $binarySelector,
                 [regex]::Escape($case.Features),
                 $script:ManagedPoolRegex
             )
         }
-        ([regex]::Matches($result.Output, "cargo check -p .* --no-default-features --features .* --locked --target-dir $($script:ManagedPoolRegex)")).Count |
+        ([regex]::Matches($result.Output, "cargo check -p .*?(?: --bin [^ ]+)? --no-default-features --features .* --locked --target-dir $($script:ManagedPoolRegex)")).Count |
             Should Be $script:ProfileFeatureContractCases.Count
     }
 
@@ -1017,8 +1105,9 @@ Describe "Profile feature contract validation" {
         $result.ExitCode | Should Not Be 0
         $result.Output | Should Match "Unknown profile feature contract label 'missing profile'"
         $result.Output | Should Match "Known labels: zircon_app target-server, zircon_app"
-        $result.Output | Should Match "target-client-platform, zircon_runtime target-client, zircon_runtime target-editor-host, zircon_runtime"
-        $result.Output | Should Match "target-server"
+        $result.Output | Should Match "target-client-platform, zircon_app target-editor-host"
+        $result.Output | Should Match "zircon_app target-client shader-pbr-viewer"
+        $result.Output | Should Match "zircon_runtime target-client, zircon_runtime target-editor-host, zircon_runtime target-server"
     }
 
     It "rejects a profile feature selector without the profile feature stage" {
@@ -1049,10 +1138,14 @@ Describe "Profile feature contract validation" {
 
     It "keeps CI profile feature checks on no-default-features cargo check" {
         $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\profile-feature-contract.yml"
-    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
+        $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
 
         $workflow | Should Match "profile-feature-contract:"
-        $workflow | Should Match "cargo check -p .*\{\{ matrix\.package \}\} --no-default-features --features .*\{\{ matrix\.features \}\} --locked --verbose"
+        $workflow | Should Match 'cargo_args=\(check -p "\$\{\{ matrix\.package \}\}"\)'
+        $workflow | Should Match "PROFILE_FEATURE_BIN:\s*\$\{\{ matrix\.bin \}\}"
+        $workflow | Should Match 'cargo_args\+=\(--bin "\$\{PROFILE_FEATURE_BIN\}"\)'
+        $workflow | Should Match 'cargo_args\+=\(--no-default-features --features "\$\{\{ matrix\.features \}\}" --locked --verbose\)'
+        $workflow | Should Match 'cargo "\$\{cargo_args\[@\]\}"'
     }
 
     It "keeps profile contract workflow scaffolding aligned with the main CI shape" {
@@ -1074,7 +1167,11 @@ Describe "Profile feature contract validation" {
         $workflow | Should Match "matrix:\s*\r?\n\s*include:"
         $workflow | Should Match "name:\s*Profile feature contract \(\$\{\{ matrix\.label \}\}\)"
         $workflow | Should Match "Check profile features for \$\{\{ matrix\.label \}\}"
-        $workflow | Should Match "cargo check -p \$\{\{ matrix\.package \}\} --no-default-features --features \$\{\{ matrix\.features \}\} --locked --verbose"
+        $workflow | Should Match 'cargo_args=\(check -p "\$\{\{ matrix\.package \}\}"\)'
+        $workflow | Should Match "PROFILE_FEATURE_BIN:\s*\$\{\{ matrix\.bin \}\}"
+        $workflow | Should Match 'cargo_args\+=\(--bin "\$\{PROFILE_FEATURE_BIN\}"\)'
+        $workflow | Should Match 'cargo_args\+=\(--no-default-features --features "\$\{\{ matrix\.features \}\}" --locked --verbose\)'
+        $workflow | Should Match 'cargo "\$\{cargo_args\[@\]\}"'
         $workflow | Should Not Match "(?m)run:\s*cargo (?:build|test) --workspace"
     }
 

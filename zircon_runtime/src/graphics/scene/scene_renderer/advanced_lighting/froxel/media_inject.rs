@@ -25,6 +25,7 @@ pub(crate) struct FroxelMediaInjectRequest<'a> {
 
 pub(crate) struct FroxelMediaInjectPipeline {
     bind_group_layout: wgpu::BindGroupLayout,
+    fallback_volume_buffer: wgpu::Buffer,
     pipeline: wgpu::ComputePipeline,
 }
 
@@ -34,8 +35,7 @@ impl FroxelMediaInjectPipeline {
             local_volume_count
         } else {
             0
-        }
-        .max(1);
+        };
         let bytes = std::mem::size_of::<GpuMediaInjectParams>().saturating_add(
             std::mem::size_of::<GpuFogVolume>().saturating_mul(uploaded_volume_count),
         );
@@ -95,8 +95,14 @@ impl FroxelMediaInjectPipeline {
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             cache: None,
         });
+        let fallback_volume_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-volumetric-media-inject-fallback-volume"),
+            contents: bytemuck::bytes_of(&GpuFogVolume::zeroed()),
+            usage: wgpu::BufferUsages::STORAGE,
+        });
         Self {
             bind_group_layout,
+            fallback_volume_buffer,
             pipeline,
         }
     }
@@ -114,11 +120,16 @@ impl FroxelMediaInjectPipeline {
             contents: bytemuck::bytes_of(&request.params),
             usage: wgpu::BufferUsages::UNIFORM,
         });
-        let volume_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-volumetric-media-inject-volumes"),
-            contents: bytemuck::cast_slice(&request.volumes),
-            usage: wgpu::BufferUsages::STORAGE,
+        let uploaded_volume_buffer = (!request.volumes.is_empty()).then(|| {
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("zircon-volumetric-media-inject-volumes"),
+                contents: bytemuck::cast_slice(&request.volumes),
+                usage: wgpu::BufferUsages::STORAGE,
+            })
         });
+        let volume_buffer = uploaded_volume_buffer
+            .as_ref()
+            .unwrap_or(&self.fallback_volume_buffer);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-volumetric-media-inject-bind-group"),
             layout: &self.bind_group_layout,
@@ -162,7 +173,7 @@ impl ValidatedMediaInjectRequest {
     fn new(request: FroxelMediaInjectRequest<'_>) -> Result<Self, String> {
         let grid = request.grid.sanitized();
         let settings = request.settings.sanitized();
-        let mut volumes = if request.include_local_volumes {
+        let volumes = if request.include_local_volumes {
             request
                 .local_volumes
                 .iter()
@@ -173,9 +184,6 @@ impl ValidatedMediaInjectRequest {
         };
         let volume_count = u32::try_from(volumes.len())
             .map_err(|_| "volumetric media inject local volume count exceeds u32".to_string())?;
-        if volumes.is_empty() {
-            volumes.push(GpuFogVolume::zeroed());
-        }
         Ok(Self {
             params: GpuMediaInjectParams {
                 grid_and_volume_count: [

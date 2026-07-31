@@ -1,0 +1,57 @@
+// This module is deliberately scalar-only until the Plugins 08 container ABI
+// can carry a complete decoded movement batch into the authoritative world.
+pub staleAfterTicks(required: bool): uint {
+    if (!required) {
+        throw "woc movement stale threshold is required";
+    }
+    return <uint>15;
+}
+
+pub frameIsValid(
+    actorId: uint,
+    sequence: uint,
+    hasFacing: bool,
+    facing: float,
+    marker: int
+): bool {
+    if (marker != 1) {
+        throw "woc movement frame marker is invalid";
+    }
+    if (actorId == <uint>0 || sequence == <uint>0) {
+        return false;
+    }
+    if (!hasFacing) {
+        return true;
+    }
+    // The target accepts finite facing values through +/-1000. Both infinities
+    // and NaN fail this ordered range test without importing host wall time.
+    return facing >= -1000.0 && facing <= 1000.0;
+}
+
+pub isStale(
+    acceptedTick: uint,
+    currentTick: uint,
+    required: bool
+): bool {
+    if (!required || currentTick < acceptedTick) {
+        throw "woc movement tick order is invalid";
+    }
+    return currentTick - acceptedTick > staleAfterTicks(true);
+}
+
+pub contractTest(): int {
+    if (staleAfterTicks(true) != <uint>15 ||
+        !frameIsValid(<uint>1, <uint>1, false, 0.0, 1) ||
+        !frameIsValid(<uint>7, <uint>3, true, -1000.0, 1) ||
+        !frameIsValid(<uint>7, <uint>3, true, 1000.0, 1) ||
+        frameIsValid(<uint>0, <uint>1, false, 0.0, 1) ||
+        frameIsValid(<uint>1, <uint>0, false, 0.0, 1) ||
+        frameIsValid(<uint>7, <uint>3, true, 1000.1, 1)) {
+        return -1;
+    }
+    if (isStale(<uint>20, <uint>35, true) ||
+        !isStale(<uint>20, <uint>36, true)) {
+        return -2;
+    }
+    return 1;
+}

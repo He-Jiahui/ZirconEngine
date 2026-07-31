@@ -1,12 +1,12 @@
 use super::{
-    average_channel, centered_quad_transform, fullscreen_quad_transform, ring_luma, RenderFixture,
+    RenderFixture, average_channel, centered_quad_transform, fullscreen_quad_transform, ring_luma,
 };
 use crate::core::framework::render::{
     RenderBloomSettings, RenderColorGradingSettings, RenderLayerSet, RenderMeshSnapshot,
     RenderQualityProfile,
 };
 use crate::core::math::{Vec3, Vec4};
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 #[test]
 fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
@@ -25,9 +25,10 @@ fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                default_render_layer_mask(),
-            ),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+                ..Default::default()
+            },
         }],
         Vec::new(),
         |extract| {
@@ -83,9 +84,10 @@ fn color_grading_extract_tints_scene_after_post_process() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
-                default_render_layer_mask(),
-            ),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+                ..Default::default()
+            },
         }],
         Vec::new(),
         |extract| {

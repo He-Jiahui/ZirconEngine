@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use crate::core::resource::{ResourceId, ResourceLocator, ResourceRecord};
-use crate::core::{CoreError, CoreResult};
+use crate::core::resource::{
+    ResourceId, ResourceLocator, ResourceRecord, ResourceRegistryError, ResourceResult,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct ResourceRegistry {
@@ -17,7 +18,7 @@ impl ResourceRegistry {
             }
         }
 
-        if let Some(existing) = self.by_id.get(&record.id).cloned() {
+        if let Some(existing) = self.by_id.get(&record.id) {
             self.id_by_locator.remove(&existing.primary_locator);
         }
 
@@ -28,6 +29,10 @@ impl ResourceRegistry {
 
     pub fn get(&self, id: ResourceId) -> Option<&ResourceRecord> {
         self.by_id.get(&id)
+    }
+
+    pub(crate) fn get_mut(&mut self, id: ResourceId) -> Option<&mut ResourceRecord> {
+        self.by_id.get_mut(&id)
     }
 
     pub fn get_by_locator(&self, locator: &ResourceLocator) -> Option<&ResourceRecord> {
@@ -44,14 +49,14 @@ impl ResourceRegistry {
         &mut self,
         from: &ResourceLocator,
         to: ResourceLocator,
-    ) -> CoreResult<ResourceRecord> {
+    ) -> ResourceResult<ResourceRecord> {
         let Some(id) = self.id_by_locator.get(from).copied() else {
-            return Err(CoreError::MissingResourceRecordForLocator {
+            return Err(ResourceRegistryError::MissingRecordForLocator {
                 locator: from.to_string(),
             });
         };
         let Some(record) = self.by_id.get_mut(&id) else {
-            return Err(CoreError::MissingResourceRecordForId { id: id.to_string() });
+            return Err(ResourceRegistryError::MissingRecordForId { id: id.to_string() });
         };
         record.primary_locator = to.clone();
         self.id_by_locator.remove(from);

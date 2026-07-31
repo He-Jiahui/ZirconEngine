@@ -46,10 +46,11 @@ impl AssetRegistryIndex {
     /// UE uuid reverse-reference signature.
     pub fn get_referencers_by_uuid(&self, uuid: AssetUuid) -> Vec<AssetUuid> {
         let mut referencers = self
-            .entries_by_uuid
-            .values()
-            .filter(|entry| entry.dependencies().contains(&uuid))
-            .map(AssetRegistryEntry::uuid)
+            .referencers_by_uuid
+            .get(&uuid)
+            .into_iter()
+            .flatten()
+            .copied()
             .collect::<Vec<_>>();
         referencers.sort_by_key(ToString::to_string);
         referencers
@@ -92,9 +93,9 @@ impl AssetRegistryIndex {
         &self,
         id: AssetId,
     ) -> Result<AssetReference, AssetRegistryError> {
-        self.entries_by_uuid
-            .values()
-            .find(|entry| AssetId::from_asset_uuid(entry.uuid()) == id)
+        self.uuid_by_asset_id
+            .get(&id)
+            .and_then(|uuid| self.entries_by_uuid.get(uuid))
             .map(|entry| AssetReference::new(entry.uuid(), entry.path().clone()))
             .ok_or(AssetRegistryError::AssetIdNotFound { id })
     }

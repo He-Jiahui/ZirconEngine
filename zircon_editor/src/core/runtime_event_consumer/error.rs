@@ -8,6 +8,10 @@ pub enum EditorRuntimeEventConsumerError {
     SessionAlreadyActive { play_session_id: u64 },
     #[error("runtime event consumer host has no active play session")]
     NoActiveSession,
+    #[error(
+        "runtime event consumer lifecycle mutation `{operation}` is busy while another pump or lifecycle owner is active"
+    )]
+    LifecycleMutationBusy { operation: &'static str },
     #[error("runtime gateway session {actual} does not match play session {expected}")]
     RuntimeSessionMismatch { expected: u64, actual: u64 },
     #[error("runtime does not expose plugin event subscriptions for `{consumer_id}`")]

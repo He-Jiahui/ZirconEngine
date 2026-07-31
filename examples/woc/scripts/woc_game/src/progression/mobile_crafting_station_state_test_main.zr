@@ -1,0 +1,8 @@
+var station = %import("progression/mobile_crafting_station_state");
+
+console.printLine("m5-mobile-crafting-station-state-test");
+var result = station.contractTest();
+console.printLine(result == 1 ? "PASS" : "FAIL");
+if (result != 1) {
+    throw "mobile crafting station contract failed";
+}

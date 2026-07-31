@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
-    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
-    GeometrySourceId, GeometrySourceVertexAttribute, PostProcessGraphResourceNames,
-    RenderHybridGiResolvedSettings, RenderShaderDefinitionValue, SolariRuntimeStatus,
-    GEOMETRY_SOURCE_PLUGIN_ID_START,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
+    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
+    PostProcessGraphResourceNames, RenderHybridGiResolvedSettings, RenderShaderDefinitionValue,
+    SolariRuntimeStatus,
 };
 use crate::graphics::runtime::WgpuRenderFramework;
 use crate::graphics::{
@@ -353,14 +353,16 @@ pub(super) fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
             "visibility".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Transparent3d,
-            "particle-render",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("particle.transparent")
-        .read_texture("scene-depth")
-        .write_texture("scene-color")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                "particle-render",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("particle.transparent")
+            .read_texture("scene-depth")
+            .write_texture("scene-color"),
+        ],
     )
 }
 
@@ -408,20 +410,22 @@ fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
         vec![FrameHistoryBinding::read_write(
             FrameHistorySlot::AmbientOcclusion,
         )],
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::AmbientOcclusion,
-            "ssao-evaluate",
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id("ao.ssao-evaluate")
-        .with_compute_workload(RenderGraphComputeWorkload::viewport(
-            "zircon-ssao-pipeline",
-            [8, 8, 1],
-        ))
-        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-        .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
-        .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::AmbientOcclusion,
+                "ssao-evaluate",
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id("ao.ssao-evaluate")
+            .with_compute_workload(RenderGraphComputeWorkload::viewport(
+                "zircon-ssao-pipeline",
+                [8, 8, 1],
+            ))
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+            .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION),
+        ],
     )
 }
 
@@ -434,14 +438,16 @@ fn rendering_reflection_probes_descriptor() -> RenderFeatureDescriptor {
             "post_process".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "reflection-probe-composite",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("lighting.reflection-probes")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "reflection-probe-composite",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("lighting.reflection-probes")
+            .read_texture("scene-color")
+            .write_texture("scene-color"),
+        ],
     )
 }
 
@@ -450,14 +456,16 @@ fn rendering_baked_lighting_descriptor() -> RenderFeatureDescriptor {
         "baked_lighting",
         vec!["lighting".to_string(), "post_process".to_string()],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "baked-lighting-composite",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("lighting.baked-composite")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "baked-lighting-composite",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("lighting.baked-composite")
+            .read_texture("scene-color")
+            .write_texture("scene-color"),
+        ],
     )
 }
 

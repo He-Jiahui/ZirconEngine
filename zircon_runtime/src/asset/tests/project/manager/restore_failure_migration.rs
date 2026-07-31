@@ -111,7 +111,7 @@ fn project_manager_reimports_material_when_ready_artifact_payload_is_stale() {
 
     let stale_enum_tag = 36_u32.to_le_bytes();
     let stale_payload = zstd::stream::encode_all(&stale_enum_tag[..], 1).unwrap();
-    let mut payload = b"ZRARTZ01".to_vec();
+    let mut payload = b"ZRARTM02".to_vec();
     payload.extend_from_slice(&stale_payload);
     fs::write(&artifact_path, payload).unwrap();
 
@@ -127,11 +127,9 @@ fn project_manager_reimports_material_when_ready_artifact_payload_is_stale() {
     ));
 
     let rewritten = fs::read(&artifact_path).unwrap();
-    let decompressed = zstd::stream::decode_all(&rewritten[b"ZRARTZ01".len()..]).unwrap();
-    assert_ne!(
-        decompressed.get(..stale_enum_tag.len()),
-        Some(&stale_enum_tag[..]),
-        "stale cache payload should be replaced by a freshly imported material artifact"
+    assert!(
+        rewritten.starts_with(b"ZRARTM03"),
+        "stale cache payload should be replaced by a freshly imported artifact manifest"
     );
 
     let _ = fs::remove_dir_all(root);

@@ -1,0 +1,40 @@
+// Pure selection of the profile used by an auto-shot or wand bolt.
+var contract = %import("generated/ranged_shot_contract");
+
+pub class RangedProfile {
+    pub var min: float;
+    pub var max: float;
+    pub var speed: float;
+    pub @constructor(min: float, max: float, speed: float) {
+        this.min = min;
+        this.max = max;
+        this.speed = speed;
+    }
+}
+
+pub class ClassRangedProfile {
+    pub var min: float;
+    pub var max: float;
+    pub var speed: float;
+    pub var wand: bool;
+    pub @constructor(min: float, max: float, speed: float, wand: bool) {
+        this.min = min;
+        this.max = max;
+        this.speed = speed;
+        this.wand = wand;
+    }
+}
+
+pub rangedShotProfile(ranged: ClassRangedProfile, weapon: RangedProfile): RangedProfile {
+    if (ranged.wand && contract.wandUsesClassProfile()) return new RangedProfile(ranged.min, ranged.max, ranged.speed);
+    return new RangedProfile(weapon.min, weapon.max, weapon.speed);
+}
+
+pub contractTest(): int {
+    var carried = new RangedProfile(10.0, 20.0, 2.8);
+    var wand = rangedShotProfile(new ClassRangedProfile(4.0, 8.0, 1.5, true), carried);
+    if (wand.min != 4.0 || wand.max != 8.0 || wand.speed != 1.5) return -1;
+    var hunter = rangedShotProfile(new ClassRangedProfile(1.0, 2.0, 1.0, false), carried);
+    if (hunter.min != 10.0 || hunter.max != 20.0 || hunter.speed != 2.8) return -2;
+    return 1;
+}

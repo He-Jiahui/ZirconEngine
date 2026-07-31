@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::core::framework::render::{
     RenderCameraTargetGraphImportReport, RenderColorLookupTextureLayout, RenderImageDescriptor,
 };
@@ -35,32 +37,59 @@ impl ResourceStreamer {
         self.last_post_process_lut_unsupported_shape_count = 0;
         self.last_output_target_graph_import_report =
             RenderCameraTargetGraphImportReport::not_requested(frame.output_target().kind());
+        let mut direct_mesh_readiness = HashMap::new();
+        let mut ensured_models = HashSet::new();
+        let mut ensured_materials = HashSet::new();
         for mesh in frame.meshes() {
-            let direct_mesh_ready = mesh
-                .mesh
-                .map(|mesh| self.ensure_mesh(device, mesh).is_ok())
-                .unwrap_or(false);
-            if !direct_mesh_ready {
+            let direct_mesh_ready = if let Some(mesh_handle) = mesh.mesh {
+                let mesh_id = mesh_handle.id();
+                if let Some(ready) = direct_mesh_readiness.get(&mesh_id) {
+                    *ready
+                } else {
+                    let ready = self.ensure_mesh(device, mesh_handle).is_ok();
+                    direct_mesh_readiness.insert(mesh_id, ready);
+                    ready
+                }
+            } else {
+                false
+            };
+            if !direct_mesh_ready && ensured_models.insert(mesh.model.id()) {
                 self.ensure_model(device, mesh.model)?;
             }
-            self.ensure_material(device, queue, texture_layout, mesh.material)?;
+            if ensured_materials.insert(mesh.material.id()) {
+                self.ensure_material(device, queue, texture_layout, mesh.material)?;
+            }
             self.record_material_summary(mesh.material.id());
         }
         if let Some(lightmaps) = frame.environment().baked_lighting() {
             self.ensure_texture(device, queue, texture_layout, lightmaps.atlas)?;
         }
+        let mut ensured_cookie_textures = HashSet::new();
         for cookie in &frame.extract.lighting.advanced_lighting.cookies {
-            let _ = self.ensure_texture(device, queue, texture_layout, cookie.texture);
+            if ensured_cookie_textures.insert(cookie.texture) {
+                let _ = self.ensure_texture(device, queue, texture_layout, cookie.texture);
+            }
         }
+        let mut ensured_irradiance_textures = HashSet::new();
         for volume in &frame.extract.lighting.advanced_lighting.irradiance_volumes {
-            let _ = self.ensure_irradiance_volume_texture(device, queue, volume.voxels);
+            if ensured_irradiance_textures.insert(volume.voxels) {
+                let _ = self.ensure_irradiance_volume_texture(device, queue, volume.voxels);
+            }
         }
+        let mut sprite_texture_readiness = HashMap::new();
         for sprite in frame.sprites() {
             self.last_sprite_count += 1;
-            if self
-                .ensure_sprite_texture(device, queue, texture_layout, sprite.image.id())
-                .is_ok()
-            {
+            let texture_id = sprite.image.id();
+            let ready = if let Some(ready) = sprite_texture_readiness.get(&texture_id) {
+                *ready
+            } else {
+                let ready = self
+                    .ensure_sprite_texture(device, queue, texture_layout, texture_id)
+                    .is_ok();
+                sprite_texture_readiness.insert(texture_id, ready);
+                ready
+            };
+            if ready {
                 self.last_sprite_ready_count += 1;
             } else {
                 self.last_sprite_texture_fallback_count += 1;
@@ -258,16 +287,28 @@ mod tests {
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
     use crate::graphics::types::{
-        ViewportRenderFrame, ViewportRenderOutputTarget, FRAMEWORK_OUTPUT_FORMAT_LABEL,
-        LINEAR_OUTPUT_FORMAT_LABEL,
+        FRAMEWORK_OUTPUT_FORMAT_LABEL, LINEAR_OUTPUT_FORMAT_LABEL, ViewportRenderFrame,
+        ViewportRenderOutputTarget,
     };
     use crate::scene::World;
 
     use super::{
-        effect_stack_lut_texture_id, effect_stack_lut_texture_request,
+        EffectStackLutTextureStatus, effect_stack_lut_texture_id, effect_stack_lut_texture_request,
         effect_stack_lut_texture_status, output_target_graph_import_report,
-        EffectStackLutTextureStatus,
     };
+
+    #[test]
+    fn scene_resource_prepare_deduplicates_instance_level_asset_ensures() {
+        let source = include_str!("resource_streamer_ensure_scene_resources.rs");
+
+        for declaration in [
+            ["let mut direct_mesh", "_readiness = HashMap::new()"].concat(),
+            ["let mut ensured_", "materials = HashSet::new()"].concat(),
+            ["let mut sprite_texture", "_readiness = HashMap::new()"].concat(),
+        ] {
+            assert!(source.contains(&declaration), "missing {declaration}");
+        }
+    }
 
     #[test]
     fn effect_stack_lut_texture_id_uses_enabled_lookup_handle() {

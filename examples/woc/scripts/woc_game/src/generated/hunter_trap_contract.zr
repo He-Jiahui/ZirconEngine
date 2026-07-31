@@ -1,0 +1,4 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub sweepPadding(required: bool): float { return required ? 30.0 : 0.0; }
+pub shimmerEveryTicks(required: bool): int { return required ? 40 : 0; }
+pub shimmerRadius(required: bool): float { return required ? 1.2 : 0.0; }

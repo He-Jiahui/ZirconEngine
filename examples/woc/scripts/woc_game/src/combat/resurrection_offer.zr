@@ -1,0 +1,262 @@
+// Current-head source port of src/sim/combat/resurrection_offer.ts at
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. This is authoritative Sim
+// state: a recipient owns its pending offer, and only that recipient can
+// decide it. World events and the full revive side effects remain at the
+// future WOS reducer boundary.
+var container = %import("zr.container");
+
+pub class ResurrectionOfferPlayer {
+    pub var id: uint;
+    pub var kind: string;
+    pub var name: string;
+    pub var dead: bool;
+    pub var x: float;
+    pub var z: float;
+    pub var revivedHpFraction: float;
+    pub var reviveCalls: int;
+
+    pub @constructor() {
+        this.id = <uint>0;
+        this.kind = "player";
+        this.name = "";
+        this.dead = false;
+        this.x = 0.0;
+        this.z = 0.0;
+        this.revivedHpFraction = 0.0;
+        this.reviveCalls = 0;
+    }
+}
+
+pub class ResurrectionOffer {
+    pub var targetId: uint;
+    pub var casterId: uint;
+    pub var hpFraction: float;
+    pub var fallbackX: float;
+    pub var fallbackZ: float;
+    pub var expiresAt: float;
+
+    pub @constructor() {
+        this.targetId = <uint>0;
+        this.casterId = <uint>0;
+        this.hpFraction = 0.0;
+        this.fallbackX = 0.0;
+        this.fallbackZ = 0.0;
+        this.expiresAt = 0.0;
+    }
+}
+
+pub class ResurrectionOfferState {
+    pub var time: float;
+    pub var players: container.Array<ResurrectionOfferPlayer>;
+    // Kept as an array in the source-only projection because the Zr baseline
+    // has no Map module; target id remains the unique key.
+    pub var offers: container.Array<ResurrectionOffer>;
+    pub var offerEvents: int;
+    pub var lastOfferPid: uint;
+    pub var lastOfferFromName: string;
+    pub var responseCalls: int;
+    pub var expiredOfferRemovals: int;
+
+    pub @constructor() {
+        this.time = 0.0;
+        this.players = new container.Array<ResurrectionOfferPlayer>();
+        this.offers = new container.Array<ResurrectionOffer>();
+        this.offerEvents = 0;
+        this.lastOfferPid = <uint>0;
+        this.lastOfferFromName = "";
+        this.responseCalls = 0;
+        this.expiredOfferRemovals = 0;
+    }
+
+    pub addPlayer(player: ResurrectionOfferPlayer): void {
+        if (player.id == <uint>0 || findPlayerIndex(this, player.id) >= 0) {
+            throw "resurrection offer player is invalid";
+        }
+        this.players.add(player);
+    }
+
+    pub pendingFor(pid: uint): bool {
+        return findOfferIndex(this, pid) >= 0;
+    }
+
+    pub offerExpiryFor(pid: uint): float {
+        var index = findOfferIndex(this, pid);
+        if (index < 0) return 0.0;
+        return this.offers[index].expiresAt;
+    }
+}
+
+pub resurrectionOfferSeconds(): float { return 30.0; }
+
+findPlayerIndex(state: ResurrectionOfferState, pid: uint): int {
+    var index = 0;
+    while (index < state.players.length) {
+        if (<uint>state.players[index].id == pid) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+findOfferIndex(state: ResurrectionOfferState, pid: uint): int {
+    var index = 0;
+    while (index < state.offers.length) {
+        if (<uint>state.offers[index].targetId == pid) return index;
+        index = index + 1;
+    }
+    return -1;
+}
+
+removeOfferAt(state: ResurrectionOfferState, index: int): void {
+    state.offers.removeAt(index);
+}
+
+// A new offer replaces any older offer for the same dead player, exactly as a
+// JavaScript Map set does in the source. It still emits a new offer event.
+pub offerResurrection(
+    state: ResurrectionOfferState,
+    casterId: uint,
+    targetId: uint,
+    hpFraction: float
+): bool {
+    var casterIndex = findPlayerIndex(state, casterId);
+    var targetIndex = findPlayerIndex(state, targetId);
+    if (casterIndex < 0 || targetIndex < 0) return false;
+    var target = state.players[targetIndex];
+    if (target.kind != "player" || !target.dead) return false;
+    var existing = findOfferIndex(state, targetId);
+    if (existing >= 0) removeOfferAt(state, existing);
+    var caster = state.players[casterIndex];
+    var offer = new ResurrectionOffer();
+    offer.targetId = targetId;
+    offer.casterId = casterId;
+    offer.hpFraction = hpFraction;
+    offer.fallbackX = caster.x;
+    offer.fallbackZ = caster.z;
+    offer.expiresAt = state.time + resurrectionOfferSeconds();
+    state.offers.add(offer);
+    state.offerEvents = state.offerEvents + 1;
+    state.lastOfferPid = targetId;
+    state.lastOfferFromName = caster.name;
+    return true;
+}
+
+pub respondToResurrection(state: ResurrectionOfferState, accept: bool, pid: uint): void {
+    var responderIndex = findPlayerIndex(state, pid);
+    if (responderIndex < 0) return;
+    var offerIndex = findOfferIndex(state, pid);
+    if (offerIndex < 0) return;
+    var offer = state.offers[offerIndex];
+    removeOfferAt(state, offerIndex);
+    state.responseCalls = state.responseCalls + 1;
+    var recipient = state.players[responderIndex];
+    if (!accept || state.time >= offer.expiresAt || !recipient.dead) return;
+    var x = offer.fallbackX;
+    var z = offer.fallbackZ;
+    var casterIndex = findPlayerIndex(state, offer.casterId);
+    if (casterIndex >= 0) {
+        var caster = state.players[casterIndex];
+        if (caster.kind == "player" && !caster.dead) {
+            x = caster.x;
+            z = caster.z;
+        }
+    }
+    recipient.dead = false;
+    recipient.x = x;
+    recipient.z = z;
+    recipient.revivedHpFraction = offer.hpFraction;
+    recipient.reviveCalls = recipient.reviveCalls + 1;
+}
+
+// Expiry removes silently; acceptance at the exact deadline also declines, so
+// both paths use the source's inclusive time >= expiresAt condition.
+pub updateResurrectionOffers(state: ResurrectionOfferState): void {
+    var index = state.offers.length - 1;
+    while (index >= 0) {
+        var offer = state.offers[index];
+        var targetIndex = findPlayerIndex(state, offer.targetId);
+        if (targetIndex < 0 || !state.players[targetIndex].dead || state.time >= offer.expiresAt) {
+            removeOfferAt(state, index);
+            state.expiredOfferRemovals = state.expiredOfferRemovals + 1;
+        }
+        index = index - 1;
+    }
+}
+
+pub dropResurrectionOffer(state: ResurrectionOfferState, pid: uint): void {
+    var index = findOfferIndex(state, pid);
+    if (index >= 0) removeOfferAt(state, index);
+}
+
+pub contractTest(): int {
+    var state = new ResurrectionOfferState();
+    var caster = new ResurrectionOfferPlayer();
+    caster.id = <uint>1;
+    caster.name = "Priest";
+    caster.x = 10.0;
+    caster.z = 20.0;
+    state.addPlayer(caster);
+    var target = new ResurrectionOfferPlayer();
+    target.id = <uint>2;
+    target.name = "Fallen";
+    target.dead = true;
+    state.addPlayer(target);
+    var stranger = new ResurrectionOfferPlayer();
+    stranger.id = <uint>3;
+    stranger.dead = true;
+    state.addPlayer(stranger);
+    if (!offerResurrection(state, <uint>1, <uint>2, 0.4) || !state.pendingFor(<uint>2) ||
+        state.offerEvents != 1 || state.lastOfferFromName != "Priest" ||
+        state.offerExpiryFor(<uint>2) != 30.0) {
+        return -1;
+    }
+    // A player without an offer cannot consume someone else's offer.
+    respondToResurrection(state, true, <uint>3);
+    if (!state.pendingFor(<uint>2) || state.players[2].reviveCalls != 0) return -2;
+    respondToResurrection(state, true, <uint>2);
+    if (state.pendingFor(<uint>2) || state.players[1].dead ||
+        state.players[1].reviveCalls != 1 || state.players[1].x != 10.0 ||
+        state.players[1].z != 20.0 || state.players[1].revivedHpFraction != 0.4) {
+        return -3;
+    }
+
+    // If the caster dies after the offer, acceptance uses the snapshotted
+    // casting position rather than the caster's later position.
+    state.players[1].dead = true;
+    state.players[0].x = 50.0;
+    state.players[0].z = 60.0;
+    state.time = 5.0;
+    if (!offerResurrection(state, <uint>1, <uint>2, 0.25)) return -4;
+    state.players[0].dead = true;
+    state.players[0].x = 99.0;
+    state.players[0].z = 88.0;
+    respondToResurrection(state, true, <uint>2);
+    if (state.players[1].dead || state.players[1].x != 50.0 ||
+        state.players[1].z != 60.0 || state.players[1].revivedHpFraction != 0.25) {
+        return -5;
+    }
+
+    state.players[1].dead = true;
+    state.time = 10.0;
+    if (!offerResurrection(state, <uint>1, <uint>2, 0.5)) return -6;
+    respondToResurrection(state, false, <uint>2);
+    if (state.pendingFor(<uint>2) || !state.players[1].dead || state.players[1].reviveCalls != 2) {
+        return -7;
+    }
+
+    if (!offerResurrection(state, <uint>1, <uint>2, 0.6)) return -8;
+    state.time = state.offerExpiryFor(<uint>2);
+    respondToResurrection(state, true, <uint>2);
+    if (state.pendingFor(<uint>2) || !state.players[1].dead || state.players[1].reviveCalls != 2) {
+        return -9;
+    }
+
+    state.time = 20.0;
+    if (!offerResurrection(state, <uint>1, <uint>2, 0.7)) return -10;
+    state.players[1].dead = false;
+    updateResurrectionOffers(state);
+    if (state.pendingFor(<uint>2) || state.expiredOfferRemovals != 1) return -11;
+    state.players[1].kind = "mob";
+    state.players[1].dead = true;
+    if (offerResurrection(state, <uint>1, <uint>2, 0.2)) return -12;
+    return 1;
+}

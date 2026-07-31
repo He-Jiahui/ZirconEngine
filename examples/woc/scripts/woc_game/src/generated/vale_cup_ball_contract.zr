@@ -1,0 +1,96 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub dt(required: bool): float { return required ? 0.05 : 0.0; }
+pub gravity(required: bool): float { return required ? 16.0 : 0.0; }
+pub radius(required: bool): float { return required ? 0.49 : 0.0; }
+pub max_speed(required: bool): float { return required ? 28.0 : 0.0; }
+pub ground_restitution(required: bool): float { return required ? 0.45 : 0.0; }
+pub wall_restitution(required: bool): float { return required ? 0.75 : 0.0; }
+pub roll_decel(required: bool): float { return required ? 4.0 : 0.0; }
+pub slow_decel(required: bool): float { return required ? 8.0 : 0.0; }
+pub slow_speed(required: bool): float { return required ? 2.0 : 0.0; }
+pub bounce_min_vy(required: bool): float { return required ? 1.2 : 0.0; }
+pub pocket_decel(required: bool): float { return required ? 14.0 : 0.0; }
+pub trap_min_speed(required: bool): float { return required ? 13.0 : 0.0; }
+pub trap_roll_speed(required: bool): float { return required ? 2.5 : 0.0; }
+pub trap_vy_damp(required: bool): float { return required ? 0.25 : 0.0; }
+pub dribble_speed_mult(required: bool): float { return required ? 1.15 : 0.0; }
+pub dribble_min_mover_speed(required: bool): float { return required ? 0.5 : 0.0; }
+pub goalWestX(required: bool): float { return required ? -48.0 : 0.0; }
+pub goalEastX(required: bool): float { return required ? 26.0 : 0.0; }
+pub goalZMin(required: bool): float { return required ? -118.0 : 0.0; }
+pub goalZMax(required: bool): float { return required ? -106.0 : 0.0; }
+pub goalDepth(required: bool): float { return required ? 2.5 : 0.0; }
+pub goalHeight(required: bool): float { return required ? 2.5 : 0.0; }
+pub pitchMinX(required: bool): float { return required ? -48.0 : 0.0; }
+pub pitchMaxX(required: bool): float { return required ? 26.0 : 0.0; }
+pub pitchMinZ(required: bool): float { return required ? -127.0 : 0.0; }
+pub pitchMaxZ(required: bool): float { return required ? -97.0 : 0.0; }
+pub sowfieldFlatMinX(required: bool): float { return required ? -56.0 : 0.0; }
+pub sowfieldFlatMaxX(required: bool): float { return required ? 34.0 : 0.0; }
+pub sowfieldFlatMinZ(required: bool): float { return required ? -141.0 : 0.0; }
+pub sowfieldFlatMaxZ(required: bool): float { return required ? -83.0 : 0.0; }
+pub sowfieldExcludeMinX(required: bool): float { return required ? -66.0 : 0.0; }
+pub sowfieldExcludeMaxX(required: bool): float { return required ? 44.0 : 0.0; }
+pub sowfieldExcludeMinZ(required: bool): float { return required ? -151.0 : 0.0; }
+pub sowfieldExcludeMaxZ(required: bool): float { return required ? -73.0 : 0.0; }
+pub practiceSlots(required: bool): float { return required ? 8.0 : 0.0; }
+pub practiceBaseX(required: bool): float { return required ? 30000.0 : 0.0; }
+pub practiceSlotDz(required: bool): float { return required ? 400.0 : 0.0; }
+pub groundEpsilon(required: bool): float { return required ? 0.001 : 0.0; }
+pub directionEpsilon(required: bool): float { return required ? 0.000001 : 0.0; }
+pub goalCrossingEpsilon(required: bool): float { return required ? 1e-9 : 0.0; }
+pub wallCount(required: bool): int { return required ? 6 : 0; }
+pub wallX1(index: int): float {
+    if (index == 0) return -48.0;
+    if (index == 1) return -48.0;
+    if (index == 2) return -48.0;
+    if (index == 3) return -48.0;
+    if (index == 4) return 26.0;
+    if (index == 5) return 26.0;
+    return 0.0;
+}
+pub wallZ1(index: int): float {
+    if (index == 0) return -97.0;
+    if (index == 1) return -127.0;
+    if (index == 2) return -127.0;
+    if (index == 3) return -106.0;
+    if (index == 4) return -127.0;
+    if (index == 5) return -106.0;
+    return 0.0;
+}
+pub wallX2(index: int): float {
+    if (index == 0) return 26.0;
+    if (index == 1) return 26.0;
+    if (index == 2) return -48.0;
+    if (index == 3) return -48.0;
+    if (index == 4) return 26.0;
+    if (index == 5) return 26.0;
+    return 0.0;
+}
+pub wallZ2(index: int): float {
+    if (index == 0) return -97.0;
+    if (index == 1) return -127.0;
+    if (index == 2) return -118.0;
+    if (index == 3) return -97.0;
+    if (index == 4) return -118.0;
+    if (index == 5) return -97.0;
+    return 0.0;
+}
+pub wallNx(index: int): float {
+    if (index == 0) return 0.0;
+    if (index == 1) return 0.0;
+    if (index == 2) return 1.0;
+    if (index == 3) return 1.0;
+    if (index == 4) return -1.0;
+    if (index == 5) return -1.0;
+    return 0.0;
+}
+pub wallNz(index: int): float {
+    if (index == 0) return -1.0;
+    if (index == 1) return 1.0;
+    if (index == 2) return 0.0;
+    if (index == 3) return 0.0;
+    if (index == 4) return 0.0;
+    if (index == 5) return 0.0;
+    return 0.0;
+}

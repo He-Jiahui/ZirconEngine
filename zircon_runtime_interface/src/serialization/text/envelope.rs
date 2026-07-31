@@ -1,11 +1,10 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::Serialize;
 
 use crate::serialization::PayloadHeader;
 
-#[derive(Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub(in crate::serialization) struct TextEnvelope {
+/// Current-version text envelope which borrows the payload while it is written.
+#[derive(Serialize)]
+pub(in crate::serialization) struct TextEnvelope<'a, T: ?Sized> {
     pub(in crate::serialization) header: PayloadHeader,
-    pub(in crate::serialization) payload: Value,
+    pub(in crate::serialization) payload: &'a T,
 }

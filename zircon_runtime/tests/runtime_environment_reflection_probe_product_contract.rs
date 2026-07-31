@@ -10,7 +10,7 @@ use zircon_runtime::core::framework::render::{
     IblBakeArtifactPayload, ProbeInfluenceShape, ProceduralSkyParams, ProjectionMode,
     ReflectionProbeData, RenderFrameExtract, RenderFramework, RenderLayerSet, RenderMeshSnapshot,
     RenderOverlayExtract, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Quat, Transform, UVec2, Vec3, Vec4};
@@ -174,7 +174,11 @@ fn scene_snapshot(material: ResourceId, environment: EnvironmentExtract) -> Rend
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
+                common: RendererCommon {
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
+                    is_static: false,
+                    ..RendererCommon::default()
+                },
             }],
             directional_lights: Vec::new(),
             point_lights: Vec::new(),

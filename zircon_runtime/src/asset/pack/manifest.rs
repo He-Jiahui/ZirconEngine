@@ -100,7 +100,10 @@ impl ZrPackDocumentManifest {
     }
 
     pub fn asset(&self, path: &str) -> Option<&ZrPackAssetEntry> {
-        self.assets.iter().find(|asset| asset.path == path)
+        self.assets
+            .binary_search_by(|asset| asset.path.as_str().cmp(path))
+            .ok()
+            .map(|index| &self.assets[index])
     }
 }
 
@@ -244,15 +247,16 @@ pub(crate) fn validate_zrpack_asset_entries(
     assets: &[ZrPackAssetEntry],
 ) -> Result<(), ZrPackError> {
     let mut seen_paths = BTreeSet::new();
-    let mut paths = Vec::with_capacity(assets.len());
     for asset in assets {
         validate_zrpack_asset_path(&asset.path)?;
-        if !seen_paths.insert(asset.path.clone()) {
+        if !seen_paths.insert(asset.path.as_str()) {
             return Err(ZrPackError::DuplicateAssetPath(asset.path.clone()));
         }
-        paths.push(asset.path.clone());
     }
-    if paths != sorted_asset_paths(&paths) {
+    if assets
+        .windows(2)
+        .any(|pair| pair[0].path.as_str() > pair[1].path.as_str())
+    {
         return Err(ZrPackError::UnsortedAssetPaths);
     }
     Ok(())
@@ -262,11 +266,14 @@ pub(crate) fn validate_zrpack_asset_path_list(paths: &[String]) -> Result<(), Zr
     let mut seen_paths = BTreeSet::new();
     for path in paths {
         validate_zrpack_asset_path(path)?;
-        if !seen_paths.insert(path.clone()) {
+        if !seen_paths.insert(path.as_str()) {
             return Err(ZrPackError::DuplicateAssetPath(path.clone()));
         }
     }
-    if paths != sorted_asset_paths(paths) {
+    if paths
+        .windows(2)
+        .any(|pair| pair[0].as_str() > pair[1].as_str())
+    {
         return Err(ZrPackError::UnsortedAssetPaths);
     }
     Ok(())
@@ -287,16 +294,18 @@ pub(crate) fn validate_zrpack_asset_path(path: &str) -> Result<(), ZrPackError> 
 }
 
 fn validate_zrpack_chunk_table(manifest: &ZrPackDocumentManifest) -> Result<(), ZrPackError> {
-    let chunk_hashes = manifest
+    let mut seen_chunk_hashes = BTreeSet::new();
+    for chunk in &manifest.pack.chunks {
+        if !seen_chunk_hashes.insert(&chunk.hash) {
+            return Err(ZrPackError::DuplicateChunkHash);
+        }
+    }
+    if manifest
         .pack
         .chunks
-        .iter()
-        .map(|chunk| chunk.hash)
-        .collect::<Vec<_>>();
-    if chunk_hashes.iter().collect::<BTreeSet<_>>().len() != chunk_hashes.len() {
-        return Err(ZrPackError::DuplicateChunkHash);
-    }
-    if chunk_hashes != sorted_chunk_hashes(&chunk_hashes) {
+        .windows(2)
+        .any(|pair| pair[0].hash > pair[1].hash)
+    {
         return Err(ZrPackError::UnsortedChunkHashes);
     }
 
@@ -348,16 +357,4 @@ fn is_safe_normalized_zrpack_asset_path(path: &str) -> bool {
         && path
             .split('/')
             .all(|part| !part.is_empty() && part != "." && part != "..")
-}
-
-fn sorted_asset_paths(paths: &[String]) -> Vec<String> {
-    let mut sorted = paths.to_vec();
-    sorted.sort();
-    sorted
-}
-
-fn sorted_chunk_hashes(hashes: &[[u8; 32]]) -> Vec<[u8; 32]> {
-    let mut sorted = hashes.to_vec();
-    sorted.sort();
-    sorted
 }

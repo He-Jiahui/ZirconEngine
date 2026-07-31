@@ -1,10 +1,15 @@
 use std::collections::{BTreeMap, HashMap};
+use std::fmt;
 use std::mem::size_of;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
 use crate::text::{FontFaceId, InstancedFaceId, VariationCoords};
 
 const FONT_INSTANCE_HASH_DOMAIN: &[u8] = b"zircon-font-instance-v1";
 const OPEN_TYPE_NORMALIZED_COORDINATE_SCALE: f32 = 16_384.0;
+const EFFECTIVE_INSTANCE_CACHE_CAPACITY: usize = 256;
+const EFFECTIVE_INSTANCE_CACHE_MAX_BYTES: usize = 256 * 1024;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct FontInstance {
@@ -15,6 +20,175 @@ pub(crate) struct FontInstance {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct FontInstanceRegistry {
     instances: HashMap<InstancedFaceId, FontInstance>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(super) struct EffectiveInstanceCacheKey {
+    pub(super) face: FontFaceId,
+    pub(super) instance: InstancedFaceId,
+    pub(super) font_weight: u16,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct EffectiveInstanceCacheValue {
+    pub(super) id: InstancedFaceId,
+    pub(super) variations: Arc<VariationCoords>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct EffectiveInstanceCacheReport {
+    pub(crate) hits: u64,
+    pub(crate) misses: u64,
+    pub(crate) eviction_count: u64,
+    pub(crate) entry_count: usize,
+    pub(crate) approximate_bytes: usize,
+}
+
+#[derive(Clone, Debug)]
+struct EffectiveInstanceCacheEntry {
+    value: EffectiveInstanceCacheValue,
+    last_used: u64,
+    approximate_bytes: usize,
+}
+
+#[derive(Debug, Default)]
+struct EffectiveInstanceCacheState {
+    entries: HashMap<EffectiveInstanceCacheKey, EffectiveInstanceCacheEntry>,
+    tick: u64,
+    eviction_count: u64,
+    approximate_bytes: usize,
+}
+
+#[derive(Debug, Default)]
+struct EffectiveInstanceCacheStats {
+    hits: AtomicU64,
+    misses: AtomicU64,
+}
+
+#[derive(Clone)]
+pub(super) struct EffectiveInstanceCache {
+    state: Arc<Mutex<EffectiveInstanceCacheState>>,
+    stats: Arc<EffectiveInstanceCacheStats>,
+}
+
+impl fmt::Debug for EffectiveInstanceCache {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EffectiveInstanceCache")
+            .field("report", &self.report())
+            .finish()
+    }
+}
+
+impl Default for EffectiveInstanceCache {
+    fn default() -> Self {
+        Self {
+            state: Arc::new(Mutex::new(EffectiveInstanceCacheState::default())),
+            stats: Arc::new(EffectiveInstanceCacheStats::default()),
+        }
+    }
+}
+
+impl EffectiveInstanceCache {
+    pub(super) fn get(
+        &self,
+        key: EffectiveInstanceCacheKey,
+    ) -> Option<EffectiveInstanceCacheValue> {
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.tick = state.tick.wrapping_add(1);
+        let tick = state.tick;
+        let value = state.entries.get_mut(&key).map(|entry| {
+            entry.last_used = tick;
+            entry.value.clone()
+        });
+        drop(state);
+        if value.is_some() {
+            self.stats.hits.fetch_add(1, Ordering::Relaxed);
+        } else {
+            self.stats.misses.fetch_add(1, Ordering::Relaxed);
+        }
+        value
+    }
+
+    pub(super) fn insert(
+        &self,
+        key: EffectiveInstanceCacheKey,
+        value: EffectiveInstanceCacheValue,
+    ) {
+        let approximate_bytes = effective_instance_entry_bytes(&value);
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.tick = state.tick.wrapping_add(1);
+        if let Some(existing) = state.entries.remove(&key) {
+            state.approximate_bytes = state
+                .approximate_bytes
+                .saturating_sub(existing.approximate_bytes);
+        }
+        if approximate_bytes > EFFECTIVE_INSTANCE_CACHE_MAX_BYTES {
+            return;
+        }
+        while !state.entries.is_empty()
+            && (state.entries.len() >= EFFECTIVE_INSTANCE_CACHE_CAPACITY
+                || state.approximate_bytes.saturating_add(approximate_bytes)
+                    > EFFECTIVE_INSTANCE_CACHE_MAX_BYTES)
+        {
+            let Some(oldest) = state
+                .entries
+                .iter()
+                .min_by_key(|(_, entry)| entry.last_used)
+                .map(|(key, _)| *key)
+            else {
+                break;
+            };
+            if let Some(evicted) = state.entries.remove(&oldest) {
+                state.approximate_bytes = state
+                    .approximate_bytes
+                    .saturating_sub(evicted.approximate_bytes);
+                state.eviction_count = state.eviction_count.saturating_add(1);
+            }
+        }
+        state.approximate_bytes = state.approximate_bytes.saturating_add(approximate_bytes);
+        let last_used = state.tick;
+        state.entries.insert(
+            key,
+            EffectiveInstanceCacheEntry {
+                value,
+                last_used,
+                approximate_bytes,
+            },
+        );
+    }
+
+    pub(super) fn report(&self) -> EffectiveInstanceCacheReport {
+        let state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        EffectiveInstanceCacheReport {
+            hits: self.stats.hits.load(Ordering::Relaxed),
+            misses: self.stats.misses.load(Ordering::Relaxed),
+            eviction_count: state.eviction_count,
+            entry_count: state.entries.len(),
+            approximate_bytes: state.approximate_bytes,
+        }
+    }
+}
+
+fn effective_instance_entry_bytes(value: &EffectiveInstanceCacheValue) -> usize {
+    size_of::<EffectiveInstanceCacheKey>()
+        .saturating_add(size_of::<EffectiveInstanceCacheValue>())
+        .saturating_add(
+            value
+                .variations
+                .0
+                .len()
+                .saturating_mul(size_of::<(u32, f32)>()),
+        )
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
@@ -48,6 +222,10 @@ impl FontInstanceRegistry {
         self.instances.get(&id)
     }
 
+    pub(super) fn remove_face(&mut self, face: FontFaceId) {
+        self.instances.retain(|_, instance| instance.face != face);
+    }
+
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.instances.len()
@@ -67,7 +245,7 @@ pub(super) fn font_instance_identity(
     Ok(font_instance_id(face, &variations))
 }
 
-fn canonical_variation_coords(
+pub(super) fn canonical_variation_coords(
     variations: &VariationCoords,
 ) -> Result<VariationCoords, FontInstanceError> {
     let mut coordinates = BTreeMap::new();
@@ -80,60 +258,12 @@ fn canonical_variation_coords(
     Ok(VariationCoords(coordinates.into_iter().collect()))
 }
 
-pub(super) fn variations_with_font_weight(
-    font_bytes: &[u8],
-    face_index: u32,
-    variations: &VariationCoords,
-    font_weight: u16,
-) -> VariationCoords {
-    variations_for_face(font_bytes, face_index, variations, Some(font_weight))
-}
-
-pub(super) fn variations_for_face(
-    font_bytes: &[u8],
-    face_index: u32,
-    variations: &VariationCoords,
-    font_weight: Option<u16>,
-) -> VariationCoords {
-    let Ok(face) = ttf_parser::Face::parse(font_bytes, face_index) else {
-        return variations.clone();
-    };
-    let axes = face.variation_axes().into_iter().collect::<Vec<_>>();
-    if axes.is_empty() {
-        return VariationCoords::default();
-    }
-
-    let mut weighted = variations.clone();
-    if let Some(font_weight) = font_weight {
-        if axes
-            .iter()
-            .any(|axis| axis.tag == ttf_parser::Tag::from_bytes(b"wght"))
-        {
-            weighted
-                .0
-                .push((u32::from_be_bytes(*b"wght"), f32::from(font_weight)));
-        }
-    }
-    let Ok(weighted) = canonical_variation_coords(&weighted) else {
-        return variations.clone();
-    };
-    VariationCoords(
-        weighted
-            .0
-            .into_iter()
-            .filter_map(|(tag, value)| {
-                let axis = axes
-                    .iter()
-                    .find(|axis| u32::from_be_bytes(axis.tag.to_bytes()) == tag)?;
-                let value =
-                    quantized_axis_value(value, axis.min_value, axis.def_value, axis.max_value);
-                (value != axis.def_value).then_some((tag, value))
-            })
-            .collect(),
-    )
-}
-
-fn quantized_axis_value(value: f32, min_value: f32, default_value: f32, max_value: f32) -> f32 {
+pub(super) fn quantized_axis_value(
+    value: f32,
+    min_value: f32,
+    default_value: f32,
+    max_value: f32,
+) -> f32 {
     let value = value.clamp(min_value, max_value);
     if value == default_value {
         return default_value;

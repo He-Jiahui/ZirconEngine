@@ -9,30 +9,26 @@
 
 ## Workflow
 
-1. Identify impacted docs from code files.
-   - Start from the changed code files.
-   - Find existing docs whose `related_code` or `implementation_files` headers mention those paths.
-   - If no document exists for an important module, create one under the source-path mirror in `docs/` unless an existing functional category document is the stronger owner.
+1. Decide whether documentation is necessary.
+   - Start from the changed public contract, cross-module boundary, operator workflow, or durable design decision—not from every changed file.
+   - Find an existing document only if it claims ownership of that fact.
+   - If source comments, tests, and the numbered plan already communicate the change, do not create a document. A plan status row is sufficient for completion evidence; it is not a reason to create explanatory prose.
 
-2. Decide whether to update, split, or add docs.
-   - Update an existing leaf document when behavior changed but the ownership is the same.
-   - Split a document when it has become too broad for one topic.
-   - Update the category overview when a new child document appears or the category scope changes.
+2. Keep the smallest truthful owner.
+   - Update an existing document when its public fact would otherwise become stale.
+   - Add a document only for a missing durable interface/workflow decision.
+   - Do not split, create an overview, or add a category document merely to mirror source-file churn.
 
-3. Synchronize all affected sections.
-   - Update the machine-readable header.
-   - Update behavior descriptions, design rationale, test coverage, and plan-source references.
-   - Mark tests as planned for the milestone testing stage, run, failed/fixed, or deferred. Do not imply full unit-test evidence before the testing stage ran.
+3. Synchronize only the durable fact.
+   - On a retained document, update the compact owner header and the changed contract/decision.
+   - Mention one relevant milestone or validation suite only when it helps locate the fact.
    - Remove stale statements instead of piling new notes on top of invalid documentation.
 
-4. Refuse incomplete completion.
-   - Do not call the code work complete if the docs still describe old behavior.
-   - Do not leave new code files undocumented when they introduce meaningful new behavior.
-   - Do not leave the test section stale after adding, deleting, or renaming tests.
+4. Refuse false documentation, not missing prose.
+   - Do not call code work complete while a retained document describes an old public fact.
+   - Do not require new documents for private implementation detail.
+   - Do not maintain per-file test inventories; the source test and milestone evidence remain authoritative.
 
 ## Reporting
 
-- State which code files triggered the doc update.
-- State which `docs/` files were updated or created.
-- State which plan source and test sections changed.
-- State whether any existing document had to be split or re-categorized.
+Report this decision once in the task handoff or terminal response: retained document path (if any) and the durable fact corrected. Do not create a separate documentation report.

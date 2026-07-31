@@ -1,11 +1,26 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
+use super::super::text::wire::MAX_TEXT_DOCUMENT_BYTES;
 use super::super::{
-    load_versioned, Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId,
-    VersionedSchema,
+    Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId, VersionedSchema,
+    load_versioned,
 };
 use super::FixtureDocument;
+
+#[test]
+fn text_reader_rejects_an_input_larger_than_the_wire_budget_before_parsing() {
+    let bytes = vec![b' '; MAX_TEXT_DOCUMENT_BYTES + 1];
+
+    let error = load_versioned::<FixtureDocument>(&bytes, Format::Text)
+        .expect_err("oversized text must fail before envelope or payload parsing");
+
+    assert!(matches!(
+        error,
+        LoadError::TextDocumentTooLarge { max, found }
+            if max == MAX_TEXT_DOCUMENT_BYTES && found == MAX_TEXT_DOCUMENT_BYTES + 1
+    ));
+}
 
 #[test]
 fn unwrapped_text_payload_is_recognized_as_v0_and_migrated_in_order() {
@@ -88,6 +103,42 @@ fn future_schema_version_is_rejected_before_deserializing_payload() {
 }
 
 #[test]
+fn claimed_text_envelopes_with_duplicate_reserved_header_fields_fail_closed() {
+    for bytes in [
+        br#"{
+            "$zircon": {
+                "header": {
+                    "schema_id": "zircon.tests.fixture-document",
+                    "schema_version": 2
+                },
+                "header": {
+                    "schema_id": "zircon.tests.fixture-document",
+                    "schema_version": 2
+                },
+                "payload": { "label": "duplicate header", "count": 7 }
+            }
+        }"#
+        .as_slice(),
+        br#"{
+            "$zircon": {
+                "header": {
+                    "schema_id": "zircon.tests.fixture-document",
+                    "schema_id": "zircon.tests.fixture-document",
+                    "schema_version": 2
+                },
+                "payload": { "label": "duplicate schema", "count": 7 }
+            }
+        }"#
+        .as_slice(),
+    ] {
+        let error = load_versioned::<FixtureDocument>(bytes, Format::Text)
+            .expect_err("duplicate reserved fields must not downgrade to legacy version zero");
+
+        assert!(matches!(error, LoadError::InvalidEnvelope { .. }));
+    }
+}
+
+#[test]
 fn current_envelope_loads_without_reporting_a_migration() {
     let bytes = serde_json::to_vec(&json!({
         "$zircon": {
@@ -108,6 +159,53 @@ fn current_envelope_loads_without_reporting_a_migration() {
     assert_eq!(loaded.value.label, "current");
     assert_eq!(loaded.value.count, 7);
     assert_eq!(loaded.migrated_from, None);
+}
+
+#[test]
+fn current_text_envelope_uses_the_direct_typed_decode_path() {
+    let source = include_str!("../load.rs");
+    let text_load = source
+        .split("fn load_text_versioned")
+        .nth(1)
+        .and_then(|body| body.split("fn load_binary_versioned").next())
+        .expect("text and binary load paths must remain separate");
+
+    assert!(
+        text_load.contains("serde_json::from_str::<T>(envelope.payload.get())"),
+        "current envelopes must decode the borrowed payload directly into T"
+    );
+    assert!(
+        text_load.contains("load_legacy_text_versioned"),
+        "only the legacy path may materialize a Value for migration"
+    );
+}
+
+#[test]
+fn current_envelope_validates_the_complete_migration_chain_before_typed_decode() {
+    let bytes = serde_json::to_vec(&json!({
+        "$zircon": {
+            "header": {
+                "schema_id": "zircon.tests.broken-chain",
+                "schema_version": 2
+            },
+            "payload": {
+                "value": null
+            }
+        }
+    }))
+    .unwrap();
+
+    let error = load_versioned::<BrokenChainDocument>(&bytes, Format::Text)
+        .expect_err("current payloads must not bypass migration-chain validation");
+
+    assert!(matches!(
+        error,
+        LoadError::Migration(MigrateError::MissingStep {
+            from_version: 1,
+            target_version: 2,
+            ..
+        })
+    ));
 }
 
 #[test]

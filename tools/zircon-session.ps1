@@ -3,6 +3,8 @@ param(
     [Parameter(Position = 0)]
     [string]$Command = "status",
     [string]$RepoRoot,
+    [ValidateRange(0, 65535)]
+    [int]$Port = 6518,
     [switch]$Json,
     [switch]$Automatic,
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -12,15 +14,35 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# The desktop command host terminates silent child processes before the
+# historical 300-second coordinator deadline. Keep wrapper calls short enough
+# to return durable request reconciliation instead of losing their request ID.
+if ([string]::IsNullOrWhiteSpace($env:ZIRCON_COORDINATOR_COMMAND_TIMEOUT_SECONDS)) {
+    $env:ZIRCON_COORDINATOR_COMMAND_TIMEOUT_SECONDS = '15'
+}
+
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = Split-Path -Parent $PSScriptRoot
 }
 
 $resolvedRepoRoot = (Resolve-Path -LiteralPath $RepoRoot).ProviderPath
+$moduleRoot = Split-Path -Parent $PSScriptRoot
 $python = (Get-Command python -ErrorAction Stop).Source
 
+function Invoke-CoordinatorModule {
+    param([string[]]$ModuleArguments)
+
+    Push-Location -LiteralPath $moduleRoot
+    try {
+        & $python @ModuleArguments
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Get-BaseArguments {
-    $base = @("-m", "tools.session_coordinator", "--repo-root", $resolvedRepoRoot)
+    $base = @("-m", "tools.session_coordinator", "--repo-root", $resolvedRepoRoot, "--port", "$Port")
     if ($Json) {
         $base += "--json"
     }
@@ -38,18 +60,64 @@ function Get-RepositoryKey {
     }
 }
 
+function Get-CoordinatorLogRoot {
+    $repositoryKey = Get-RepositoryKey
+    return Join-Path $env:LOCALAPPDATA "Zircon Session Coordinator\daemon-log\$repositoryKey"
+}
+
 function Test-CoordinatorHealthy {
-    & $python @((Get-BaseArguments) + @("status")) *> $null
-    if ($LASTEXITCODE -eq 0) {
-        return $true
+    $runtimePath = Join-Path $resolvedRepoRoot '.codex\state\session-coordinator\runtime.json'
+    if (Test-Path -LiteralPath $runtimePath -PathType Leaf) {
+        try {
+            $runtime = Get-Content -LiteralPath $runtimePath -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+            $listenerHost = [string]$runtime.host
+            $runtimePort = [int]$runtime.port
+            if (-not [string]::IsNullOrWhiteSpace($listenerHost) -and $runtimePort -gt 0) {
+                $health = Invoke-RestMethod -Uri "http://${listenerHost}:$runtimePort/health" -TimeoutSec 2
+                if ($health.status -eq 'ok' -and $health.repo_root -eq $resolvedRepoRoot) {
+                    return $true
+                }
+            }
+        }
+        catch {
+            # A stale or half-written descriptor is not healthy. Fall through
+            # to the fixed listener only when one exists.
+        }
     }
 
-    # During a controlled restart, the descriptor is briefly absent before the
-    # successor writes it.  The loopback health endpoint keeps launcher callers
+    # During a controlled default-port restart, the descriptor is briefly
+    # absent before the successor writes it. The fixed listener keeps callers
     # from mistaking that publication gap for permission to spawn another daemon.
+    if ($Port -eq 0) {
+        return $false
+    }
     try {
-        $health = Invoke-RestMethod -Uri 'http://127.0.0.1:6518/health' -TimeoutSec 2
+        $health = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 2
         return $health.status -eq 'ok' -and $health.repo_root -eq $resolvedRepoRoot
+    }
+    catch {
+        return $false
+    }
+}
+
+function Test-CoordinatorLaunchPending {
+    $latestPath = Join-Path (Get-CoordinatorLogRoot) 'latest.json'
+    if (-not (Test-Path -LiteralPath $latestPath -PathType Leaf)) {
+        return $false
+    }
+    try {
+        $record = Get-Content -LiteralPath $latestPath -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+        if ([string]$record.repositoryKey -ne (Get-RepositoryKey) -or [int]$record.pid -le 0) {
+            return $false
+        }
+        $process = Get-CimInstance Win32_Process -Filter "ProcessId = $([int]$record.pid)" -ErrorAction Stop
+        if ($null -eq $process) {
+            return $false
+        }
+        $commandLine = [string]$process.CommandLine
+        return $commandLine.IndexOf('tools.session_coordinator', [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+            $commandLine.IndexOf($resolvedRepoRoot, [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+            $commandLine.IndexOf('serve', [StringComparison]::OrdinalIgnoreCase) -ge 0
     }
     catch {
         return $false
@@ -66,13 +134,16 @@ function Invoke-CoordinatorStartupGate {
     $acquired = $false
     try {
         try {
-            $acquired = $mutex.WaitOne([TimeSpan]::FromSeconds(35))
+            $acquired = $mutex.WaitOne(0)
         }
         catch [Threading.AbandonedMutexException] {
             $acquired = $true
         }
         if (-not $acquired) {
-            throw 'Timed out waiting for the repository coordinator startup gate.'
+            # Another session is already publishing this repository's daemon.
+            # Return immediately; command replay and later probes use the
+            # descriptor once that launch finishes.
+            return 'starting'
         }
         & $Action
     }
@@ -93,13 +164,13 @@ function Start-CoordinatorProcess {
     param([string[]]$ServeArguments)
 
     $repositoryKey = Get-RepositoryKey
-    $logRoot = Join-Path $env:LOCALAPPDATA "Zircon Session Coordinator\daemon-log\$repositoryKey"
+    $logRoot = Get-CoordinatorLogRoot
     New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
     $stamp = "{0}-{1}" -f (Get-Date -Format 'yyyyMMdd-HHmmss-fff'), ([guid]::NewGuid().ToString('N').Substring(0, 8))
     $stdoutLog = Join-Path $logRoot "daemon-$stamp.stdout.log"
     $stderrLog = Join-Path $logRoot "daemon-$stamp.stderr.log"
     $process = Start-Process -FilePath $python -ArgumentList $ServeArguments `
-        -WorkingDirectory $resolvedRepoRoot -WindowStyle Hidden -PassThru `
+        -WorkingDirectory $moduleRoot -WindowStyle Hidden -PassThru `
         -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog
 
     $record = [ordered]@{
@@ -129,36 +200,62 @@ function Start-CoordinatorProcess {
 }
 
 function Start-Coordinator {
-    Invoke-CoordinatorStartupGate {
+    return Invoke-CoordinatorStartupGate {
         if (Test-CoordinatorHealthy) {
-            return
+            return 'ready'
+        }
+        if (Test-CoordinatorLaunchPending) {
+            return 'starting'
         }
 
-        $serveArguments = @("-m", "tools.session_coordinator", "--repo-root", $resolvedRepoRoot, "serve")
+        $serveArguments = @("-m", "tools.session_coordinator", "--repo-root", $resolvedRepoRoot, "--port", "$Port", "serve")
         if ($Automatic) {
             $serveArguments += "--automatic-start"
         }
         Start-CoordinatorProcess -ServeArguments $serveArguments | Out-Null
-
-        for ($attempt = 0; $attempt -lt 300; $attempt++) {
-            Start-Sleep -Milliseconds 100
-            if (Test-CoordinatorHealthy) {
-                return
-            }
-        }
-        throw "Zircon Session coordinator did not become healthy within 30 seconds."
+        return 'starting'
     }
 }
 
 if ($Command -eq "start") {
-    Start-Coordinator
-    & $python @((Get-BaseArguments) + @("status"))
-    exit $LASTEXITCODE
+    $startupState = Start-Coordinator
+    if ($startupState -eq 'ready') {
+        if (-not $Json) {
+            Write-Output 'Coordinator ready.'
+        }
+        Invoke-CoordinatorModule -ModuleArguments ((Get-BaseArguments) + @("status"))
+        exit $LASTEXITCODE
+    }
+    $starting = [ordered]@{
+        status = 'starting'
+        repoRoot = $resolvedRepoRoot
+        port = $Port
+        message = 'Coordinator launch accepted; queued commands will reconnect automatically.'
+    }
+    if ($Json) {
+        $starting | ConvertTo-Json -Compress
+    }
+    else {
+        Write-Output $starting.message
+    }
+    exit 0
 }
 
 if ($Command -notin @("status", "stop")) {
-    Start-Coordinator
+    $startupState = Start-Coordinator
+    if (-not $Json) {
+        if ($startupState -eq 'ready') {
+            Write-Output 'Coordinator ready.'
+        }
+        elseif ($startupState -eq 'starting') {
+            Write-Output 'Coordinator launch accepted; queued commands will reconnect automatically.'
+        }
+    }
 }
 
-& $python @((Get-BaseArguments) + @($Command) + $Arguments)
+$moduleArguments = (Get-BaseArguments) + @($Command)
+if ($null -ne $Arguments) {
+    $moduleArguments += @($Arguments | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+Invoke-CoordinatorModule -ModuleArguments $moduleArguments
 exit $LASTEXITCODE

@@ -1,0 +1,606 @@
+// Source-compatible local A* projection from src/sim/pathfind.ts. It asks the
+// generated terrain and collision reducers for every walkability decision; the
+// route is advisory state for a movement owner, not a second movement authority.
+var container = %import("zr.system.container");
+var math = %import("zr.zircon.math");
+var collisionSweep = %import("world/collision_sweep");
+var terrainContent = %import("world/terrain_content");
+var terrainGround = %import("world/terrain_ground");
+var worldCollision = %import("world/world_collision_router");
+
+pub var PLAYER_BODY_RADIUS: float = 0.5;
+pub var PLAYER_MAX_CLIMB_SLOPE: float = 1.5;
+pub var PLAYER_SWIM_DEPTH: float = 0.8;
+pub var PATH_CELL_SIZE: float = 1.0;
+pub var PATH_MARGIN: float = 8.0;
+pub var PATH_DEFAULT_MAX_SPAN: int = 64;
+pub var PATH_SMOOTH_SAMPLE_STEP: float = 0.25;
+pub var PATH_SQRT_TWO: float = 1.4142135623730951;
+pub var PATH_TWO_PI: float = 6.283185307179586;
+
+pub class PathfindPoint {
+    pub var x: float;
+    pub var z: float;
+
+    pub @constructor(x: float, z: float) {
+        this.x = x;
+        this.z = z;
+    }
+}
+
+// `blockDeepWater` represents the source's minGround callback for player and
+// Charge paths: only an authored water footprint has a floor limit. Dry low
+// terrain remains legal exactly as it does when source waterLevelAt returns
+// negative infinity outside a lake.
+pub class PathfindOptions {
+    pub var seed: uint;
+    pub var bodyRadius: float;
+    pub var maxClimbSlope: float;
+    pub var maxSpan: int;
+    pub var ignoreFences: bool;
+    pub var swim: bool;
+    pub var blockDeepWater: bool;
+    pub var deepWaterDepth: float;
+
+    pub @constructor(
+        seed: uint,
+        bodyRadius: float,
+        maxClimbSlope: float,
+        maxSpan: int,
+        ignoreFences: bool,
+        swim: bool,
+        blockDeepWater: bool,
+        deepWaterDepth: float
+    ) {
+        if (bodyRadius < 0.0 || maxClimbSlope < 0.0 || maxSpan < 1 || deepWaterDepth < 0.0) {
+            throw "woc pathfind options are invalid";
+        }
+        this.seed = seed;
+        this.bodyRadius = bodyRadius;
+        this.maxClimbSlope = maxClimbSlope;
+        this.maxSpan = maxSpan;
+        this.ignoreFences = ignoreFences;
+        this.swim = swim;
+        this.blockDeepWater = blockDeepWater;
+        this.deepWaterDepth = deepWaterDepth;
+    }
+}
+
+pub class PathfindRoute {
+    pub var points: container.Array<PathfindPoint>;
+
+    pub @constructor() {
+        this.points = new container.Array<PathfindPoint>();
+    }
+}
+
+class PathfindSearch {
+    pub var width: int;
+    pub var height: int;
+    pub var minX: float;
+    pub var minZ: float;
+    pub var startIndex: int;
+    pub var goalIndex: int;
+    pub var options: PathfindOptions;
+    // 0 is unknown, 1 is walkable, -1 is blocked. Ground height has a separate
+    // known bit so legitimate negative terrain never becomes an implicit marker.
+    pub var walk: container.Array<int>;
+    pub var groundKnown: container.Array<int>;
+    pub var groundHeights: container.Array<float>;
+    // Source uses Infinity/-1 typed-array initializers. A negative score is
+    // equivalent here because all A* path costs are nonnegative.
+    pub var gScores: container.Array<float>;
+    pub var cameFrom: container.Array<int>;
+    pub var heapScores: container.Array<float>;
+    pub var heapIndices: container.Array<int>;
+
+    pub @constructor(
+        width: int,
+        height: int,
+        minX: float,
+        minZ: float,
+        startIndex: int,
+        goalIndex: int,
+        options: PathfindOptions
+    ) {
+        this.width = width;
+        this.height = height;
+        this.minX = minX;
+        this.minZ = minZ;
+        this.startIndex = startIndex;
+        this.goalIndex = goalIndex;
+        this.options = options;
+        this.walk = new container.Array<int>();
+        this.groundKnown = new container.Array<int>();
+        this.groundHeights = new container.Array<float>();
+        this.gScores = new container.Array<float>();
+        this.cameFrom = new container.Array<int>();
+        this.heapScores = new container.Array<float>();
+        this.heapIndices = new container.Array<int>();
+        var count = width * height;
+        var index = 0;
+        while (index < count) {
+            this.walk.add(0);
+            this.groundKnown.add(0);
+            this.groundHeights.add(0.0);
+            this.gScores.add(-1.0);
+            this.cameFrom.add(-1);
+            index = index + 1;
+        }
+    }
+}
+
+minimum(first: float, second: float): float {
+    return first < second ? first : second;
+}
+
+maximum(first: float, second: float): float {
+    return first > second ? first : second;
+}
+
+minimumInt(first: int, second: int): int {
+    return first < second ? first : second;
+}
+
+maximumInt(first: int, second: int): int {
+    return first > second ? first : second;
+}
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+clearRoute(route: PathfindRoute): void {
+    while (route.points.length > 0) {
+        route.points.removeAt(route.points.length - 1);
+    }
+}
+
+fallbackRoute(toX: float, toZ: float, output: PathfindRoute): void {
+    clearRoute(output);
+    output.points.add(new PathfindPoint(toX, toZ));
+}
+
+cellXAt(search: PathfindSearch, index: int): int {
+    return index % search.width;
+}
+
+cellZAt(search: PathfindSearch, index: int): int {
+    return <int>(index / search.width);
+}
+
+cellCenterX(search: PathfindSearch, cellX: int): float {
+    return search.minX + (<float>cellX + 0.5) * PATH_CELL_SIZE;
+}
+
+cellCenterZ(search: PathfindSearch, cellZ: int): float {
+    return search.minZ + (<float>cellZ + 0.5) * PATH_CELL_SIZE;
+}
+
+clampedCellX(search: PathfindSearch, x: float): int {
+    var cell = <int>math.floor((x - search.minX) / PATH_CELL_SIZE);
+    return maximumInt(0, minimumInt(search.width - 1, cell));
+}
+
+clampedCellZ(search: PathfindSearch, z: float): int {
+    var cell = <int>math.floor((z - search.minZ) / PATH_CELL_SIZE);
+    return maximumInt(0, minimumInt(search.height - 1, cell));
+}
+
+groundAt(search: PathfindSearch, index: int): float {
+    if (<int>search.groundKnown[index] == 0) {
+        var cellX = cellXAt(search, index);
+        var cellZ = cellZAt(search, index);
+        search.groundHeights[index] = terrainGround.builtinGroundHeight(
+            cellCenterX(search, cellX),
+            cellCenterZ(search, cellZ),
+            search.options.seed,
+            true
+        );
+        search.groundKnown[index] = 1;
+    }
+    return <float>search.groundHeights[index];
+}
+
+rideHeight(x: float, z: float, ground: float, swim: bool): float {
+    if (swim && terrainContent.hasWaterAt(x, z, true)) {
+        var water = terrainContent.waterLevel(true);
+        if (ground < water) { return water; }
+    }
+    return ground;
+}
+
+belowDeepWaterLimit(options: PathfindOptions, x: float, z: float, ground: float): bool {
+    return options.blockDeepWater && terrainContent.hasWaterAt(x, z, true) &&
+        ground < terrainContent.waterLevel(true) - options.deepWaterDepth;
+}
+
+isStaticBlocked(options: PathfindOptions, x: float, z: float): bool {
+    var resolvedX = worldCollision.resolveSupportedWorldCoordinate(
+        x, z, options.bodyRadius, options.ignoreFences, 1, true
+    );
+    var resolvedZ = worldCollision.resolveSupportedWorldCoordinate(
+        x, z, options.bodyRadius, options.ignoreFences, 2, true
+    );
+    return resolvedX != x || resolvedZ != z;
+}
+
+isWalkable(search: PathfindSearch, index: int): bool {
+    if (<int>search.walk[index] == 0) {
+        var cellX = cellXAt(search, index);
+        var cellZ = cellZAt(search, index);
+        var x = cellCenterX(search, cellX);
+        var z = cellCenterZ(search, cellZ);
+        var ground = groundAt(search, index);
+        // The source always admits the current and goal cells. Existing movement
+        // owns departure and resolvePosition owns the final short slide.
+        var accepted = index == search.startIndex || index == search.goalIndex ||
+            (!belowDeepWaterLimit(search.options, x, z, ground) &&
+                !isStaticBlocked(search.options, x, z));
+        search.walk[index] = accepted ? 1 : -1;
+    }
+    return <int>search.walk[index] == 1;
+}
+
+// Same fence-first, sampled collision and uphill checks used by source
+// segmentWalkable. The raw final click may be blocked because the destination
+// resolver owns the final collision slide, so callers select allowBlockedEnd.
+segmentWalkable(
+    from: PathfindPoint,
+    to: PathfindPoint,
+    options: PathfindOptions,
+    allowBlockedEnd: bool
+): bool {
+    var deltaX = to.x - from.x;
+    var deltaZ = to.z - from.z;
+    var distance = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    if (distance < 0.000001) { return true; }
+    if (!options.ignoreFences && collisionSweep.crossesBuiltinFence(
+        from.x, from.z, to.x, to.z, options.bodyRadius, true
+    )) {
+        return false;
+    }
+    var steps = <int>math.ceil(distance / PATH_SMOOTH_SAMPLE_STEP);
+    if (steps < 1) { steps = 1; }
+    var previousX = from.x;
+    var previousZ = from.z;
+    var previousGround = terrainGround.builtinGroundHeight(
+        previousX, previousZ, options.seed, true
+    );
+    var previousRide = rideHeight(previousX, previousZ, previousGround, options.swim);
+    var step = 1;
+    while (step <= steps) {
+        var fraction = <float>step / <float>steps;
+        var x = from.x + deltaX * fraction;
+        var z = from.z + deltaZ * fraction;
+        var ground = terrainGround.builtinGroundHeight(x, z, options.seed, true);
+        var isEnd = step == steps;
+        if ((!isEnd || !allowBlockedEnd) &&
+            (belowDeepWaterLimit(options, x, z, ground) || isStaticBlocked(options, x, z))) {
+            return false;
+        }
+        var ride = rideHeight(x, z, ground, options.swim);
+        var stepX = x - previousX;
+        var stepZ = z - previousZ;
+        var stepLength = math.sqrt(stepX * stepX + stepZ * stepZ);
+        var rise = ride - previousRide;
+        if (stepLength > 0.000001 && rise > 0.0 && rise / stepLength > options.maxClimbSlope) {
+            return false;
+        }
+        previousX = x;
+        previousZ = z;
+        previousRide = ride;
+        step = step + 1;
+    }
+    return true;
+}
+
+heapPush(search: PathfindSearch, score: float, index: int): void {
+    search.heapScores.add(score);
+    search.heapIndices.add(index);
+    var child = search.heapScores.length - 1;
+    while (child > 0) {
+        var parent = <int>((child - 1) / 2);
+        if (<float>search.heapScores[parent] <= <float>search.heapScores[child]) { return; }
+        var parentScore = <float>search.heapScores[parent];
+        var parentIndex = <int>search.heapIndices[parent];
+        search.heapScores[parent] = <float>search.heapScores[child];
+        search.heapIndices[parent] = <int>search.heapIndices[child];
+        search.heapScores[child] = parentScore;
+        search.heapIndices[child] = parentIndex;
+        child = parent;
+    }
+}
+
+heapPopIndex(search: PathfindSearch): int {
+    var top = <int>search.heapIndices[0];
+    var lastIndex = search.heapIndices.length - 1;
+    var lastScore = <float>search.heapScores[lastIndex];
+    var lastNode = <int>search.heapIndices[lastIndex];
+    search.heapScores.removeAt(lastIndex);
+    search.heapIndices.removeAt(lastIndex);
+    if (lastIndex > 0) {
+        search.heapScores[0] = lastScore;
+        search.heapIndices[0] = lastNode;
+        var parent = 0;
+        while (true) {
+            var left = parent * 2 + 1;
+            var right = left + 1;
+            var smallest = parent;
+            if (left < search.heapScores.length &&
+                <float>search.heapScores[left] < <float>search.heapScores[smallest]) {
+                smallest = left;
+            }
+            if (right < search.heapScores.length &&
+                <float>search.heapScores[right] < <float>search.heapScores[smallest]) {
+                smallest = right;
+            }
+            if (smallest == parent) { return top; }
+            var parentScore = <float>search.heapScores[parent];
+            var parentNode = <int>search.heapIndices[parent];
+            search.heapScores[parent] = <float>search.heapScores[smallest];
+            search.heapIndices[parent] = <int>search.heapIndices[smallest];
+            search.heapScores[smallest] = parentScore;
+            search.heapIndices[smallest] = parentNode;
+            parent = smallest;
+        }
+    }
+    return top;
+}
+
+octileDistance(search: PathfindSearch, cellX: int, cellZ: int): float {
+    var goalX = cellXAt(search, search.goalIndex);
+    var goalZ = cellZAt(search, search.goalIndex);
+    var deltaX = absolute(<float>(cellX - goalX));
+    var deltaZ = absolute(<float>(cellZ - goalZ));
+    return maximum(deltaX, deltaZ) + (PATH_SQRT_TWO - 1.0) * minimum(deltaX, deltaZ);
+}
+
+smoothRoute(
+    raw: container.Array<PathfindPoint>,
+    options: PathfindOptions,
+    output: PathfindRoute
+): void {
+    clearRoute(output);
+    var anchor = 0;
+    while (anchor < raw.length - 1) {
+        var next = raw.length - 1;
+        while (next > anchor + 1 && !segmentWalkable(
+            <PathfindPoint>raw[anchor],
+            <PathfindPoint>raw[next],
+            options,
+            next == raw.length - 1
+        )) {
+            next = next - 1;
+        }
+        output.points.add(<PathfindPoint>raw[next]);
+        anchor = next;
+    }
+}
+
+// Mirrors findPath for the currently generated static WOC world. A caller owns
+// all resulting movement; source-equivalent direct fallback is intentionally
+// preserved for too-wide, same-cell and unreachable searches.
+pub findBuiltinPath(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    options: PathfindOptions,
+    output: PathfindRoute
+): void {
+    var minX = minimum(fromX, toX) - PATH_MARGIN;
+    var minZ = minimum(fromZ, toZ) - PATH_MARGIN;
+    var width = <int>math.ceil((maximum(fromX, toX) + PATH_MARGIN - minX) / PATH_CELL_SIZE);
+    var height = <int>math.ceil((maximum(fromZ, toZ) + PATH_MARGIN - minZ) / PATH_CELL_SIZE);
+    if (width > options.maxSpan || height > options.maxSpan) {
+        fallbackRoute(toX, toZ, output);
+        return;
+    }
+    // Build an initial search only to expose the same clamped cell transform.
+    var provisional = new PathfindSearch(width, height, minX, minZ, 0, 0, options);
+    var startX = clampedCellX(provisional, fromX);
+    var startZ = clampedCellZ(provisional, fromZ);
+    var goalX = clampedCellX(provisional, toX);
+    var goalZ = clampedCellZ(provisional, toZ);
+    var startIndex = startZ * width + startX;
+    var goalIndex = goalZ * width + goalX;
+    if (startIndex == goalIndex) {
+        fallbackRoute(toX, toZ, output);
+        return;
+    }
+    var search = new PathfindSearch(width, height, minX, minZ, startIndex, goalIndex, options);
+    <float>search.gScores[startIndex] = 0.0;
+    heapPush(search, octileDistance(search, startX, startZ), startIndex);
+    var found = false;
+    while (search.heapIndices.length > 0) {
+        var current = heapPopIndex(search);
+        if (current == goalIndex) {
+            found = true;
+            break;
+        }
+        var currentX = cellXAt(search, current);
+        var currentZ = cellZAt(search, current);
+        var currentRide = rideHeight(
+            cellCenterX(search, currentX),
+            cellCenterZ(search, currentZ),
+            groundAt(search, current),
+            options.swim
+        );
+        var deltaZ = -1;
+        while (deltaZ <= 1) {
+            var deltaX = -1;
+            while (deltaX <= 1) {
+                if (deltaX != 0 || deltaZ != 0) {
+                    var nextX = currentX + deltaX;
+                    var nextZ = currentZ + deltaZ;
+                    if (nextX >= 0 && nextX < width && nextZ >= 0 && nextZ < height) {
+                        var next = nextZ * width + nextX;
+                        if (isWalkable(search, next)) {
+                            var canUseDiagonal = deltaX == 0 || deltaZ == 0 ||
+                                (isWalkable(search, currentZ * width + nextX) &&
+                                    isWalkable(search, nextZ * width + currentX));
+                            if (canUseDiagonal) {
+                                var stepLength = (deltaX != 0 && deltaZ != 0 ?
+                                    PATH_SQRT_TWO : 1.0) * PATH_CELL_SIZE;
+                                var nextRide = rideHeight(
+                                    cellCenterX(search, nextX),
+                                    cellCenterZ(search, nextZ),
+                                    groundAt(search, next),
+                                    options.swim
+                                );
+                                var rise = nextRide - currentRide;
+                                if (!(rise > 0.0 && rise / stepLength > options.maxClimbSlope)) {
+                                    var score = <float>search.gScores[current] + stepLength;
+                                    var knownScore = <float>search.gScores[next];
+                                    if (knownScore < 0.0 || score < knownScore) {
+                                        search.gScores[next] = score;
+                                        search.cameFrom[next] = current;
+                                        heapPush(search, score + octileDistance(search, nextX, nextZ), next);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                deltaX = deltaX + 1;
+            }
+            deltaZ = deltaZ + 1;
+        }
+    }
+    if (!found) {
+        fallbackRoute(toX, toZ, output);
+        return;
+    }
+    var cells = new container.Array<int>();
+    var cursor = goalIndex;
+    while (cursor != -1) {
+        cells.add(cursor);
+        cursor = <int>search.cameFrom[cursor];
+    }
+    var left = 0;
+    var right = cells.length - 1;
+    while (left < right) {
+        var previous = <int>cells[left];
+        cells[left] = <int>cells[right];
+        cells[right] = previous;
+        left = left + 1;
+        right = right - 1;
+    }
+    var raw = new container.Array<PathfindPoint>();
+    raw.add(new PathfindPoint(fromX, fromZ));
+    var cellIndex = 1;
+    while (cellIndex < cells.length - 1) {
+        var cell = <int>cells[cellIndex];
+        raw.add(new PathfindPoint(
+            cellCenterX(search, cellXAt(search, cell)),
+            cellCenterZ(search, cellZAt(search, cell))
+        ));
+        cellIndex = cellIndex + 1;
+    }
+    raw.add(new PathfindPoint(toX, toZ));
+    smoothRoute(raw, options, output);
+}
+
+pub findBuiltinPlayerPath(
+    seed: uint,
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    maxSpan: int,
+    ignoreFences: bool,
+    swim: bool,
+    output: PathfindRoute
+): void {
+    var options = new PathfindOptions(
+        seed,
+        PLAYER_BODY_RADIUS,
+        PLAYER_MAX_CLIMB_SLOPE,
+        maxSpan,
+        ignoreFences,
+        swim,
+        !swim,
+        PLAYER_SWIM_DEPTH
+    );
+    findBuiltinPath(fromX, fromZ, toX, toZ, options, output);
+}
+
+pub isBuiltinPlayerDestinationWalkable(seed: uint, point: PathfindPoint, swim: bool): bool {
+    var options = new PathfindOptions(
+        seed,
+        PLAYER_BODY_RADIUS,
+        PLAYER_MAX_CLIMB_SLOPE,
+        PATH_DEFAULT_MAX_SPAN,
+        false,
+        swim,
+        !swim,
+        PLAYER_SWIM_DEPTH
+    );
+    var ground = terrainGround.builtinGroundHeight(point.x, point.z, seed, true);
+    return !isStaticBlocked(options, point.x, point.z) &&
+        !belowDeepWaterLimit(options, point.x, point.z, ground);
+}
+
+resolveDestinationCandidate(
+    seed: uint,
+    x: float,
+    z: float,
+    output: PathfindPoint
+): void {
+    output.x = worldCollision.resolveSupportedWorldCoordinate(
+        x, z, PLAYER_BODY_RADIUS, false, 1, true
+    );
+    output.z = worldCollision.resolveSupportedWorldCoordinate(
+        x, z, PLAYER_BODY_RADIUS, false, 2, true
+    );
+}
+
+// Mirrors resolvePlayerDestination: first resolve the clicked point against
+// collision, then scan nearest radial candidates when a walker clicked deep
+// water. Swimmers retain the water click after the same collision resolution.
+pub resolveBuiltinPlayerDestination(
+    seed: uint,
+    targetX: float,
+    targetZ: float,
+    swim: bool,
+    output: PathfindPoint
+): void {
+    resolveDestinationCandidate(seed, targetX, targetZ, output);
+    if (isBuiltinPlayerDestinationWalkable(seed, output, swim)) { return; }
+    var best = new PathfindPoint(output.x, output.z);
+    var found = false;
+    var bestDistanceSquared = 0.0;
+    var ring = 1;
+    while (ring <= 24) {
+        var radius = <float>ring * 0.75;
+        var samples = maximumInt(12, <int>math.ceil(radius * 10.0));
+        var sample = 0;
+        while (sample < samples) {
+            var angle = (<float>sample / <float>samples) * PATH_TWO_PI;
+            var candidate = new PathfindPoint(
+                targetX + math.sin(angle) * radius,
+                targetZ + math.cos(angle) * radius
+            );
+            resolveDestinationCandidate(seed, candidate.x, candidate.z, candidate);
+            if (isBuiltinPlayerDestinationWalkable(seed, candidate, swim)) {
+                var deltaX = candidate.x - targetX;
+                var deltaZ = candidate.z - targetZ;
+                var distanceSquared = deltaX * deltaX + deltaZ * deltaZ;
+                if (!found || distanceSquared < bestDistanceSquared) {
+                    best.x = candidate.x;
+                    best.z = candidate.z;
+                    bestDistanceSquared = distanceSquared;
+                    found = true;
+                }
+            }
+            sample = sample + 1;
+        }
+        if (found) {
+            output.x = best.x;
+            output.z = best.z;
+            return;
+        }
+        ring = ring + 1;
+    }
+}

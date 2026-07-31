@@ -1,0 +1,47 @@
+// Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub effectCount(): int { return 3; }
+pub effectIdAt(index: int): string {
+    if (index == 0) return "gatherers_cache";
+    if (index == 1) return "artisans_eye";
+    if (index == 2) return "quickening_charm";
+    return "";
+}
+pub effectKindAt(index: int): string {
+    if (index == 0) return "quantity";
+    if (index == 1) return "quality";
+    if (index == 2) return "respawnSpeed";
+    return "";
+}
+pub effectBonusAt(index: int): int {
+    if (index == 0) return 1;
+    if (index == 1) return 1;
+    if (index == 2) return 1;
+    return 0;
+}
+pub effectStartingDurabilityAt(index: int): int {
+    if (index == 0) return 20;
+    if (index == 1) return 20;
+    if (index == 2) return 20;
+    return 0;
+}
+pub effectCraftIdAt(index: int): string {
+    if (index == 0) return "enchanting";
+    if (index == 1) return "enchanting";
+    if (index == 2) return "enchanting";
+    return "";
+}
+pub rarityIndex(rarity: string): int {
+    if (rarity == "common") return 0;
+    if (rarity == "uncommon") return 1;
+    if (rarity == "rare") return 2;
+    if (rarity == "epic") return 3;
+    if (rarity == "legendary") return 4;
+    return -1;
+}
+pub consumptionChanceFloor(): float { return 0.1; }
+pub consumptionChanceStep(): float { return 0.4; }
+pub rechargeBaseMaterials(): int { return 4; }
+pub rechargeBaseTicks(): int { return 600; }
+pub originalCrafterDiscount(): float { return 0.5; }
+pub specializedSkillThreshold(): float { return 75.0; }
+pub rechargeDiscountPct(): float { return 0.25; }

@@ -1,0 +1,292 @@
+// Authoritative M5 XP state projected from source commit
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. Rested accrual advances only on
+// the 20 Hz simulation tick; no wall clock enters this owner.
+var catalog = %import("generated/m5_content_catalog");
+
+var MAX_VIRTUAL_LEVEL = 200;
+var POST_CAP_GROWTH = 1.1;
+var MAX_SAFE_LIFETIME_XP = 9007199254740991;
+
+class VirtualLevelProgress {
+    pub var level: int;
+    pub var into: int;
+    pub var span: int;
+
+    pub @constructor(level: int, into: int, span: int) {
+        this.level = level;
+        this.into = into;
+        this.span = span;
+    }
+}
+
+class ProgressionState {
+    pub var level: int;
+    pub var xp: int;
+    pub var lifetimeXp: int;
+    pub var prestigeRank: int;
+    pub var restedXp: float;
+    pub var xpGained: int;
+    pub var levelUps: int;
+    pub var virtualLevelUps: int;
+    pub var xpEvents: int;
+    pub var levelUpEvents: int;
+    pub var prestigeEvents: int;
+    pub var lastXpAmount: int;
+    pub var lastRestedBonus: int;
+
+    pub @constructor() {
+        this.level = 1;
+        this.xp = 0;
+        this.lifetimeXp = 0;
+        this.prestigeRank = 0;
+        this.restedXp = 0.0;
+        this.xpGained = 0;
+        this.levelUps = 0;
+        this.virtualLevelUps = 0;
+        this.xpEvents = 0;
+        this.levelUpEvents = 0;
+        this.prestigeEvents = 0;
+        this.lastXpAmount = 0;
+        this.lastRestedBonus = 0;
+    }
+}
+
+pub xpToReachLevel(requestedLevel: int): int {
+    var level = requestedLevel;
+    if (level < 1) { level = 1; }
+    if (level > MAX_VIRTUAL_LEVEL) { level = MAX_VIRTUAL_LEVEL; }
+    var current = 1;
+    var total = 0;
+    while (current < level && current < catalog.maxLevel()) {
+        total = total + catalog.xpForLevel(current);
+        current = current + 1;
+    }
+    var step = <float>catalog.prestigeXpPerRank();
+    while (current < level) {
+        total = total + roundPositive(step);
+        current = current + 1;
+        step = step * POST_CAP_GROWTH;
+    }
+    return total;
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub virtualLevel(lifetimeXp: int): int {
+    var xp = lifetimeXp > 0 ? lifetimeXp : 0;
+    var level = 1;
+    var threshold = 0;
+    while (level < catalog.maxLevel()) {
+        threshold = threshold + catalog.xpForLevel(level);
+        if (xp < threshold) { return level; }
+        level = level + 1;
+    }
+
+    var step = <float>catalog.prestigeXpPerRank();
+    while (level < MAX_VIRTUAL_LEVEL) {
+        threshold = threshold + roundPositive(step);
+        if (xp < threshold) { return level; }
+        level = level + 1;
+        step = step * POST_CAP_GROWTH;
+    }
+    return MAX_VIRTUAL_LEVEL;
+}
+
+pub virtualLevelProgress(lifetimeXp: int): VirtualLevelProgress {
+    var level = virtualLevel(lifetimeXp);
+    var floor = xpToReachLevel(level);
+    var next = xpToReachLevel(level + 1);
+    var span = next - floor;
+    if (span < 1) { span = 1; }
+    var into = lifetimeXp - floor;
+    if (into < 0) { into = 0; }
+    if (into > span) { into = span; }
+    return new VirtualLevelProgress(level, into, span);
+}
+
+pub maxPrestigeRank(lifetimeXp: int): int {
+    var earned = lifetimeXp - xpToReachLevel(catalog.maxLevel());
+    if (earned <= 0) { return 0; }
+    return <int>(<float>earned / <float>catalog.prestigeXpPerRank());
+}
+
+pub canPrestige(level: int, lifetimeXp: int, prestigeRank: int): bool {
+    return level >= catalog.maxLevel() &&
+        prestigeRank < maxPrestigeRank(lifetimeXp);
+}
+
+pub xpUntilNextPrestige(lifetimeXp: int, prestigeRank: int): int {
+    var target = xpToReachLevel(catalog.maxLevel()) +
+        (prestigeRank + 1) * catalog.prestigeXpPerRank();
+    var remaining = target - lifetimeXp;
+    return remaining > 0 ? remaining : 0;
+}
+
+pub setLevel(state: ProgressionState, requestedLevel: int): void {
+    var level = requestedLevel;
+    if (level < 1) { level = 1; }
+    if (level > catalog.maxLevel()) { level = catalog.maxLevel(); }
+    state.level = level;
+    var lifetimeFloor = xpToReachLevel(level);
+    if (state.lifetimeXp < lifetimeFloor) { state.lifetimeXp = lifetimeFloor; }
+}
+
+pub tickRested(state: ProgressionState, resting: bool, inCombat: bool): void {
+    if (state.level >= catalog.maxLevel()) { return; }
+    var levelXp = <float>catalog.xpForLevel(state.level);
+    var cap = 1.5 * levelXp;
+    if (state.restedXp >= cap) {
+        state.restedXp = cap;
+        return;
+    }
+    if (!resting || inCombat) { return; }
+    // 5% of one level per eight 60-second game hours, integrated at 50 ms.
+    var perSecond = 0.05 * levelXp / 480.0;
+    var accrued = state.restedXp + perSecond * 0.05;
+    state.restedXp = accrued < cap ? accrued : cap;
+}
+
+pub grantXp(state: ProgressionState, requestedAmount: int, fromKill: bool): int {
+    if (requestedAmount <= 0) { return 0; }
+    var amount = requestedAmount;
+    var restedBonus = 0;
+    if (fromKill && state.level < catalog.maxLevel() && state.restedXp > 0.0) {
+        restedBonus = <int>state.restedXp;
+        if (restedBonus > amount) { restedBonus = amount; }
+        state.restedXp = state.restedXp - <float>restedBonus;
+        amount = amount + restedBonus;
+    }
+
+    var atCap = state.level >= catalog.maxLevel();
+    var beforeVirtual = atCap ? virtualLevel(state.lifetimeXp) : 0;
+    var nextLifetimeXp = state.lifetimeXp + amount;
+    state.lifetimeXp = nextLifetimeXp < MAX_SAFE_LIFETIME_XP ?
+        nextLifetimeXp : MAX_SAFE_LIFETIME_XP;
+    if (atCap) {
+        var afterVirtual = virtualLevel(state.lifetimeXp);
+        if (afterVirtual > beforeVirtual) {
+            state.virtualLevelUps = state.virtualLevelUps + afterVirtual - beforeVirtual;
+        }
+    }
+    state.xpGained = state.xpGained + amount;
+    state.xpEvents = state.xpEvents + 1;
+    state.lastXpAmount = amount;
+    state.lastRestedBonus = restedBonus;
+
+    if (atCap) { return amount; }
+    state.xp = state.xp + amount;
+    while (state.level < catalog.maxLevel() &&
+           state.xp >= catalog.xpForLevel(state.level)) {
+        state.xp = state.xp - catalog.xpForLevel(state.level);
+        state.level = state.level + 1;
+        state.levelUps = state.levelUps + 1;
+        state.levelUpEvents = state.levelUpEvents + 1;
+    }
+    if (state.level >= catalog.maxLevel()) { state.xp = 0; }
+    return amount;
+}
+
+pub prestige(state: ProgressionState): bool {
+    if (!canPrestige(state.level, state.lifetimeXp, state.prestigeRank)) {
+        return false;
+    }
+    state.xp = 0;
+    state.prestigeRank = state.prestigeRank + 1;
+    state.prestigeEvents = state.prestigeEvents + 1;
+    return true;
+}
+
+pub contractTest(): int {
+    var scenario = new ProgressionState();
+    var tick = 0;
+    while (tick < 60) {
+        tickRested(scenario, true, false);
+        tick = tick + 1;
+    }
+    if (scenario.restedXp < 0.1249 || scenario.restedXp > 0.1251) { return -1; }
+
+    scenario.restedXp = 1000.0;
+    if (grantXp(scenario, 80, true) != 160 || scenario.restedXp != 920.0 ||
+        scenario.xp != 160 || scenario.lifetimeXp != 160 ||
+        scenario.lastRestedBonus != 80 || scenario.xpEvents != 1) {
+        return -2;
+    }
+    if (grantXp(scenario, catalog.xpForLevel(scenario.level) + 50, false) != 450 ||
+        scenario.level != 2 || scenario.xp != 210 || scenario.lifetimeXp != 610 ||
+        scenario.restedXp != 920.0 || scenario.levelUps != 1 ||
+        scenario.xpGained != 610) {
+        return -3;
+    }
+
+    setLevel(scenario, catalog.maxLevel());
+    if (scenario.lifetimeXp != 167200 || scenario.xp != 210 ||
+        virtualLevel(scenario.lifetimeXp) != 20) {
+        return -4;
+    }
+    if (grantXp(scenario, catalog.prestigeXpPerRank(), false) != 23200 ||
+        scenario.lifetimeXp != 190400 || scenario.xp != 210 ||
+        scenario.xpGained != 23810 || scenario.virtualLevelUps != 1 ||
+        virtualLevel(scenario.lifetimeXp) != 21) {
+        return -5;
+    }
+    if (xpToReachLevel(1) != 0 || xpToReachLevel(20) != 167200 ||
+        xpToReachLevel(21) != 190400 || xpToReachLevel(22) != 215920 ||
+        xpToReachLevel(999) != xpToReachLevel(MAX_VIRTUAL_LEVEL) ||
+        virtualLevel(190399) != 20 || virtualLevel(190400) != 21 ||
+        virtualLevel(215919) != 21 || virtualLevel(215920) != 22) {
+        return -51;
+    }
+    var baseProgress = virtualLevelProgress(-1);
+    var postCapProgress = virtualLevelProgress(203160);
+    var terminalProgress = virtualLevelProgress(xpToReachLevel(MAX_VIRTUAL_LEVEL) + 1);
+    if (baseProgress.level != 1 || baseProgress.into != 0 || baseProgress.span != 400 ||
+        postCapProgress.level != 21 || postCapProgress.into != 12760 ||
+        postCapProgress.span != 25520 || terminalProgress.level != MAX_VIRTUAL_LEVEL ||
+        terminalProgress.into != 1 || terminalProgress.span != 1) {
+        return -52;
+    }
+    if (canPrestige(19, 190400, 0) || canPrestige(20, 190399, 0) ||
+        !canPrestige(20, 190400, 0) || canPrestige(20, 190400, 1)) {
+        return -53;
+    }
+    if (!prestige(scenario) || scenario.prestigeRank != 1 || scenario.xp != 0 ||
+        scenario.prestigeEvents != 1 || prestige(scenario) ||
+        scenario.prestigeRank != 1 || scenario.prestigeEvents != 1) {
+        return -6;
+    }
+
+    var multi = new ProgressionState();
+    if (grantXp(multi, 1300, false) != 1300 || multi.level != 3 ||
+        multi.xp != 0 || multi.levelUps != 2 || multi.lifetimeXp != 1300) {
+        return -7;
+    }
+    multi.restedXp = 999999.0;
+    tickRested(multi, false, true);
+    if (multi.restedXp != 2100.0 || grantXp(multi, 0, true) != 0 ||
+        multi.xpEvents != 1) {
+        return -8;
+    }
+
+    var twoRanks = new ProgressionState();
+    setLevel(twoRanks, 999);
+    if (twoRanks.level != 20 || twoRanks.lifetimeXp != 167200 ||
+        xpUntilNextPrestige(twoRanks.lifetimeXp, 0) != 23200) {
+        return -9;
+    }
+    grantXp(twoRanks, 46400, false);
+    if (maxPrestigeRank(twoRanks.lifetimeXp) != 2 ||
+        !prestige(twoRanks) || !prestige(twoRanks) || prestige(twoRanks) ||
+        twoRanks.prestigeRank != 2 || xpUntilNextPrestige(twoRanks.lifetimeXp, 2) != 23200) {
+        return -10;
+    }
+    var ceiling = new ProgressionState();
+    setLevel(ceiling, catalog.maxLevel());
+    ceiling.lifetimeXp = MAX_SAFE_LIFETIME_XP - 1;
+    if (grantXp(ceiling, 10, false) != 10 ||
+        ceiling.lifetimeXp != MAX_SAFE_LIFETIME_XP || ceiling.xpGained != 10) {
+        return -11;
+    }
+    return 1;
+}

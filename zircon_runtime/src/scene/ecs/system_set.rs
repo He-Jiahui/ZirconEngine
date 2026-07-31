@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::ScheduleError;
 
-/// Dense identifier for a named system set such as `physics.main`.
+/// Dense identifier for a lowercase ASCII `<plugin>.<set>` name such as `physics.main`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SystemSetId(u32);
 
@@ -51,8 +51,20 @@ fn validate_system_set_name(name: &str) -> Result<(), ScheduleError> {
     if name.trim().is_empty() || name.trim() != name {
         return Err(ScheduleError::EmptySystemSetName);
     }
-    if !name.contains('.') {
+    let mut segments = name.split('.');
+    let (Some(plugin), Some(set), None) = (segments.next(), segments.next(), segments.next())
+    else {
+        return Err(ScheduleError::InvalidSystemSetName(name.to_string()));
+    };
+    if !is_lowercase_system_set_token(plugin) || !is_lowercase_system_set_token(set) {
         return Err(ScheduleError::InvalidSystemSetName(name.to_string()));
     }
     Ok(())
+}
+
+fn is_lowercase_system_set_token(segment: &str) -> bool {
+    !segment.is_empty()
+        && segment
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
 }

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m5_money_format_state_tests",
+  "source": "src",
+  "binary": "bin-m5-money-format-state-tests",
+  "entry": "progression/money_format_state_test_main"
+}

@@ -1,7 +1,4 @@
-use zircon_plugin_sdk::{
-    importer_runtime_supported_platforms, importer_runtime_supported_targets,
-    ImporterRuntimeManifestBuilder,
-};
+use zircon_plugin_sdk::ImporterRuntimeManifestBuilder;
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind};
 use zircon_runtime::core::framework::project::ExportTargetPlatform;
 use zircon_runtime::core::ModuleDescriptor;
@@ -11,8 +8,7 @@ use zircon_runtime::plugin::{
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::{
-    CODEC_IMPORTER_CAPABILITY, PLUGIN_ID, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY,
-    RUNTIME_CRATE_NAME,
+    AUDIO_ASSET_IMPORTER_DECLARATION, CODEC_IMPORTER_CAPABILITY, PLUGIN_ID, RUNTIME_CRATE_NAME,
 };
 
 pub const AUDIO_ASSET_IMPORTER_DIST_CRATE_NAME: &str = "zircon_plugin_asset_importer_audio_dist";
@@ -49,38 +45,34 @@ impl RuntimePlugin for AudioAssetImporterRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Audio Asset Importers",
-        RuntimePluginId::new(PLUGIN_ID),
-        RUNTIME_CRATE_NAME,
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_category("asset_importer")
-    .with_target_modes(supported_targets())
-    .with_capability(RUNTIME_CAPABILITY)
-    .build()
+    AUDIO_ASSET_IMPORTER_DECLARATION
+        .runtime_declaration(RuntimePluginId::new(PLUGIN_ID), RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(AudioAssetImporterRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    RUNTIME_CAPABILITIES
+    AUDIO_ASSET_IMPORTER_DECLARATION.capabilities()
 }
 
 pub fn supported_targets() -> [RuntimeTargetMode; 2] {
-    importer_runtime_supported_targets()
+    let target_modes = AUDIO_ASSET_IMPORTER_DECLARATION.target_modes();
+    [target_modes[0], target_modes[1]]
 }
 
 pub fn supported_platforms() -> [ExportTargetPlatform; 3] {
-    importer_runtime_supported_platforms()
+    let supported_platforms = AUDIO_ASSET_IMPORTER_DECLARATION.supported_platforms();
+    [
+        supported_platforms[0],
+        supported_platforms[1],
+        supported_platforms[2],
+    ]
 }
 
 pub fn module_descriptor() -> ModuleDescriptor {
-    ModuleDescriptor::new(
-        "asset_importer.audio.runtime",
-        "Audio asset importer plugin",
-    )
+    AUDIO_ASSET_IMPORTER_DECLARATION.module_descriptor()
 }
 
 pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
@@ -106,14 +98,21 @@ pub fn dist_module_manifest() -> PluginModuleManifest {
 }
 
 fn package_manifest_from_descriptor(descriptor: &RuntimePluginDescriptor) -> PluginPackageManifest {
-    importer_manifest_builder()
+    let mut manifest = importer_manifest_builder()
         .with_asset_importers(asset_importer_descriptors())
-        .build_package_manifest(descriptor)
+        .build_package_manifest(descriptor);
+    manifest.supported_platforms = AUDIO_ASSET_IMPORTER_DECLARATION
+        .supported_platforms()
+        .to_vec();
+    manifest.default_packaging = AUDIO_ASSET_IMPORTER_DECLARATION
+        .default_packaging()
+        .to_vec();
+    manifest
 }
 
 fn importer_manifest_builder() -> ImporterRuntimeManifestBuilder {
     ImporterRuntimeManifestBuilder::new(
-        "asset_importer.audio.runtime",
+        AUDIO_ASSET_IMPORTER_DECLARATION.module_name(),
         RUNTIME_CRATE_NAME,
         "asset_importer.audio.dist",
         AUDIO_ASSET_IMPORTER_DIST_CRATE_NAME,

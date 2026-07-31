@@ -5,17 +5,22 @@ use glyphon::{FontSystem, SwashCache, TextArea, TextAtlas, TextRenderer, Viewpor
 
 use crate::asset::{FontAsset, ProjectAssetManager};
 use crate::core::math::UVec2;
+use crate::core::runtime::tasks::TaskPools;
 
-use super::atlas::{GlyphAtlasBitmapRetryFrameState, GlyphAtlasSet};
+use super::atlas::{
+    GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapRetryFrameState, GlyphAtlasSet,
+};
 use super::font::{
-    mutate_shared_font_database, shared_font_database_generation, shared_font_database_snapshot,
-    FontDatabase, MissingGlyphDiagnosticsReport,
+    FontDatabase, MissingGlyphDiagnosticsReport, mutate_shared_font_database,
+    shared_font_database_generation, shared_font_database_snapshot,
 };
 use super::native_bitmap_atlas::{
-    native_bitmap_atlas_frame, native_bitmap_atlas_idle_prepare_report, NativeBitmapAtlasFrame,
-    NativeBitmapAtlasPrepareReport, NativeBitmapAtlasSourceCache, NativeBitmapAtlasTextArea,
+    NativeBitmapAtlasFrame, NativeBitmapAtlasPrepareReport, NativeBitmapAtlasSourceCache,
+    NativeBitmapAtlasTextArea, native_bitmap_atlas_frame, native_bitmap_atlas_idle_prepare_report,
 };
-use super::parallel::raster_pool::{TextRasterWorkerPool, TextRasterWorkerPoolOptions};
+use super::parallel::raster_pool::{
+    TextRasterThreadBudgetSource, TextRasterWorkerPool, TextRasterWorkerPoolOptions,
+};
 use super::sdf::{
     SdfAtlasBake, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache, SdfGlyphGenerationError,
     SdfRunCpuPreparation, SdfTextRun,
@@ -37,6 +42,22 @@ pub(crate) struct TextRenderState {
 
 impl TextRenderState {
     pub(crate) fn new(raster_worker_count: usize) -> Self {
+        Self::new_with_raster_worker_options(TextRasterWorkerPoolOptions::new(raster_worker_count))
+    }
+
+    pub(crate) fn new_with_process_raster_worker_budget() -> Self {
+        Self::new_with_raster_worker_options(Self::process_raster_worker_options())
+    }
+
+    fn process_raster_worker_options() -> TextRasterWorkerPoolOptions {
+        let worker_count = TaskPools::process_default()
+            .thread_counts()
+            .async_compute_threads;
+        TextRasterWorkerPoolOptions::new(worker_count)
+            .with_thread_budget_source(TextRasterThreadBudgetSource::TaskPoolAsyncCompute)
+    }
+
+    fn new_with_raster_worker_options(raster_worker_options: TextRasterWorkerPoolOptions) -> Self {
         let (font_generation, font_database) = shared_font_database_snapshot();
         let font_system = FontSystem::new_with_locale_and_db(
             system_text_locale(),
@@ -50,10 +71,7 @@ impl TextRenderState {
             bitmap_source_cache: NativeBitmapAtlasSourceCache::default(),
             bitmap_retry_state: GlyphAtlasBitmapRetryFrameState::new(),
             bitmap_atlas: GlyphAtlasSet::default(),
-            bitmap_raster_worker_pool: TextRasterWorkerPool::new(TextRasterWorkerPoolOptions::new(
-                raster_worker_count,
-            ))
-            .ok(),
+            bitmap_raster_worker_pool: TextRasterWorkerPool::new(raster_worker_options).ok(),
             bitmap_atlas_frame_index: 0,
             sdf_font_bake: SdfFontBakeCache::new(),
         }
@@ -156,14 +174,16 @@ impl TextRenderState {
     }
 
     pub(crate) fn invalidate_font_faces(&mut self) {
-        self.bitmap_source_cache.discard_all_for_face_invalidation();
+        self.bitmap_source_cache
+            .discard_all_for_face_invalidation_with_worker_pool(
+                self.bitmap_raster_worker_pool.as_ref(),
+            );
         self.bitmap_retry_state.discard_all_for_face_invalidation();
         self.bitmap_atlas = GlyphAtlasSet::default();
         self.sdf_font_bake.invalidate_faces();
     }
 
     pub(crate) fn prepare_idle_bitmap_atlas(&mut self) -> NativeBitmapAtlasPrepareReport {
-        self.bitmap_atlas = GlyphAtlasSet::default();
         self.bitmap_retry_state
             .replace_blocked_glyphs(std::iter::empty());
         native_bitmap_atlas_idle_prepare_report(
@@ -193,8 +213,38 @@ impl TextRenderState {
             self.bitmap_atlas_frame_index,
             text_areas,
         );
-        self.bitmap_atlas = frame.submission.run.atlas.clone();
         frame
+    }
+
+    /// Return atlas ownership only after the renderer has accepted every
+    /// texture write needed for newly allocated slots. A failed native handoff
+    /// invalidates only the affected pages, so an unwritten slot can never
+    /// become a hit while stable pages avoid a per-frame slot-cache clone.
+    pub(crate) fn finish_bitmap_atlas_frame(
+        &mut self,
+        mut frame: NativeBitmapAtlasFrame,
+        shadow_commit: GlyphAtlasBitmapPageShadowCommit,
+        accept_frame_atlas: bool,
+    ) {
+        if !accept_frame_atlas {
+            let invalidated_page_keys = frame
+                .submission
+                .run
+                .upload_copies
+                .iter()
+                .map(|copy| copy.page_key)
+                .collect::<Vec<_>>();
+            let mut atlas = frame.submission.run.atlas;
+            atlas.invalidate_bitmap_page_upload_state(invalidated_page_keys);
+            self.bitmap_atlas = atlas;
+            return;
+        }
+        frame
+            .submission
+            .run
+            .atlas
+            .commit_bitmap_page_shadow(shadow_commit);
+        self.bitmap_atlas = frame.submission.run.atlas;
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -269,6 +319,12 @@ impl TextRenderState {
 #[cfg(test)]
 mod tests {
     use super::TextRenderState;
+    use crate::core::math::UVec2;
+    use crate::core::runtime::tasks::TaskPools;
+    use crate::text::atlas::{
+        GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
+    };
+    use crate::text::parallel::raster_pool::TextRasterThreadBudgetSource;
 
     #[test]
     fn bitmap_atlas_frame_index_advances_monotonically_and_saturates() {
@@ -282,6 +338,35 @@ mod tests {
         state.bitmap_atlas_frame_index = u64::MAX;
         state.advance_bitmap_atlas_frame_index();
         assert_eq!(state.bitmap_atlas_frame_index, u64::MAX);
+    }
+
+    #[test]
+    fn process_raster_workers_follow_the_async_compute_budget() {
+        let options = TextRenderState::process_raster_worker_options();
+        let expected_workers = TaskPools::process_default()
+            .thread_counts()
+            .async_compute_threads;
+
+        assert_eq!(options.worker_count, expected_workers);
+        assert_eq!(
+            options.thread_budget_source,
+            TextRasterThreadBudgetSource::TaskPoolAsyncCompute
+        );
+    }
+
+    #[test]
+    fn idle_bitmap_prepare_keeps_persistent_atlas_pages_resident() {
+        let mut state = TextRenderState::new(0);
+        let page = GlyphAtlasPageSpec::new(
+            GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0),
+            UVec2::new(64, 64),
+        );
+        state.bitmap_atlas = GlyphAtlasSet::from_page(page);
+
+        let report = state.prepare_idle_bitmap_atlas();
+
+        assert_eq!(report.source_cache.entry_count, 0);
+        assert_eq!(state.bitmap_atlas.page_count(), 1);
     }
 
     #[test]

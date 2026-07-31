@@ -6,29 +6,46 @@ use crate::scene::LevelSystem;
 
 impl RenderExtractProducer for LevelSystem {
     fn build_render_frame_extract(&self, context: &RenderExtractContext) -> RenderFrameExtract {
-        let cached_poses = self.animation_pose_entries();
-        self.with_world_mut(|world| {
-            let mut extract = world.build_prepared_render_frame_extract(context);
-            if cached_poses.is_empty() {
-                return extract;
+        let frame_state = self.frame_state_snapshot();
+        let candidate_entities = frame_state
+            .animation_poses()
+            .keys()
+            .copied()
+            .collect::<Vec<_>>();
+        let (mut extract, skeletons) = self.with_world_mut(|world| {
+            let extract = world.build_prepared_render_frame_extract(context);
+            if frame_state.world_generation() != world.world_generation()
+                || candidate_entities.is_empty()
+            {
+                return (extract, Vec::new());
             }
 
-            let animation_poses = cached_poses
-                .into_iter()
-                .filter_map(|(entity, pose)| {
+            let skeletons = candidate_entities
+                .iter()
+                .filter_map(|entity| {
                     world
-                        .find_node(entity)
+                        .find_node(*entity)
                         .filter(|node| node.mesh.is_some())
-                        .and_then(|_| world.animation_skeleton(entity))
-                        .map(|skeleton| RenderSkeletalPoseExtract {
-                            entity,
-                            skeleton: skeleton.skeleton.id(),
-                            pose,
-                        })
+                        .and_then(|_| world.animation_skeleton(*entity))
+                        .map(|skeleton| (*entity, skeleton.skeleton.id()))
                 })
                 .collect::<Vec<_>>();
-            extract.animation_poses = animation_poses;
-            extract
-        })
+            (extract, skeletons)
+        });
+
+        extract.animation_poses = skeletons
+            .into_iter()
+            .filter_map(|(entity, skeleton)| {
+                frame_state
+                    .animation_poses()
+                    .get(&entity)
+                    .map(|pose| RenderSkeletalPoseExtract {
+                        entity,
+                        skeleton,
+                        pose: pose.clone(),
+                    })
+            })
+            .collect();
+        extract
     }
 }

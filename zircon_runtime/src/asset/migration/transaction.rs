@@ -13,11 +13,15 @@ mod journal;
 mod journal_owner;
 mod schema;
 mod stage;
+mod toml_evidence;
 use commit::{cleanup_committed_artifacts, commit_document, rollback_and_cleanup, should_fail};
-use journal::{create_intent_journal, sync_journal};
-use schema::JournalPhase;
+use journal::{
+    activate_journal, create_intent_journal, record_document_prepared, record_document_state,
+    record_phase,
+};
 pub(super) use schema::{CommitFault, JOURNAL_DIRECTORY};
-use stage::{cleanup_staging, stage_document, StagedDocument};
+use schema::{JournalPhase, JournalState};
+use stage::{cleanup_staging, stage_document};
 
 pub(super) fn apply_transaction(
     project_root: &Path,
@@ -34,6 +38,11 @@ pub(super) fn apply_transaction(
         match stage_document(document, &transaction_id, fault, index) {
             Ok(document) => {
                 staged.push(document);
+                if let Err(error) = record_document_prepared(&journal, index, &staged[index]) {
+                    cleanup_staging(&staged);
+                    let _ = remove_if_exists(&journal);
+                    return Err(error);
+                }
                 #[cfg(test)]
                 if matches!(fault, CommitFault::CrashAfterStaging(fault_index) if fault_index == index)
                 {
@@ -54,7 +63,11 @@ pub(super) fn apply_transaction(
             }
         }
     }
-    sync_journal(&journal, &staged, JournalPhase::Active)?;
+    if let Err(error) = activate_journal(&journal) {
+        cleanup_staging(&staged);
+        let _ = remove_if_exists(&journal);
+        return Err(error);
+    }
 
     for index in 0..staged.len() {
         if should_fail(fault, index) {
@@ -68,7 +81,7 @@ pub(super) fn apply_transaction(
             ));
         }
         staged[index].committing = true;
-        sync_journal(&journal, &staged, JournalPhase::Active)?;
+        record_document_state(&journal, index, JournalState::Committing)?;
         if let Err(source) = commit_document(&mut staged[index], fault, index) {
             let path = staged[index].target.clone();
             #[cfg(test)]
@@ -92,7 +105,7 @@ pub(super) fn apply_transaction(
             ));
         }
         staged[index].committing = false;
-        if let Err(error) = sync_journal(&journal, &staged, JournalPhase::Active) {
+        if let Err(error) = record_document_state(&journal, index, JournalState::Committed) {
             rollback_and_cleanup(&journal, &mut staged, index + 1, fault)?;
             return Err(error);
         }
@@ -106,7 +119,7 @@ pub(super) fn apply_transaction(
         }
     }
 
-    sync_journal(&journal, &staged, JournalPhase::AllCommitted)?;
+    record_phase(&journal, JournalPhase::AllCommitted)?;
     #[cfg(test)]
     if fault == CommitFault::CrashAfterAllCommitted {
         return Err(transaction_error(
@@ -118,7 +131,7 @@ pub(super) fn apply_transaction(
             ),
         ));
     }
-    sync_journal(&journal, &staged, JournalPhase::Cleanup)?;
+    record_phase(&journal, JournalPhase::Cleanup)?;
     #[cfg(test)]
     if fault == CommitFault::CrashAfterCleanup {
         return Err(transaction_error(
@@ -163,14 +176,6 @@ fn transaction_sibling(parent: &Path, target: &Path, role: &str, transaction_id:
         .and_then(|name| name.to_str())
         .unwrap_or("asset");
     parent.join(format!(".{name}.zr-migrate-{role}-{transaction_id}"))
-}
-
-fn digest_bytes(bytes: &[u8]) -> String {
-    blake3::hash(bytes).to_hex().to_string()
-}
-
-pub(super) fn digest_file(path: &Path) -> io::Result<String> {
-    fs::read(path).map(|bytes| digest_bytes(&bytes))
 }
 
 pub(super) fn transaction_error(

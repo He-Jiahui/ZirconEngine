@@ -2,16 +2,16 @@ use wgpu::util::DeviceExt;
 
 use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
+use crate::text::TextRenderState;
 use crate::text::sdf::{
     SdfAtlasBakeReport, SdfAtlasGlyphKey, SdfGlyphGenerationError, SdfShapedGlyphIdentity,
     SdfTextRun,
 };
-use crate::text::TextRenderState;
 
 use super::render::ScreenSpaceUiTextBatch;
 use super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 use super::sdf_atlas::{SdfAtlasAllocationFailureReason, SdfAtlasCacheReport, SdfAtlasPlan};
-use super::sdf_upload::{sdf_atlas_upload_report, SdfAtlasUploadReport};
+use super::sdf_upload::{SdfAtlasUploadReport, sdf_atlas_upload_report};
 
 mod atlas_resources;
 mod decorations;
@@ -21,7 +21,7 @@ mod vertices;
 use self::atlas_resources::DistanceFieldAtlasResources;
 use self::decorations::build_text_decoration_vertices;
 use self::material::{SdfTextMaterialDrawPlan, SdfTextMaterialResources};
-use self::vertices::{build_sdf_vertex_plan, ScreenSpaceUiSdfVertex};
+use self::vertices::{ScreenSpaceUiSdfVertex, build_sdf_vertex_plan};
 
 const SDF_TEXT_SHADER: &str = include_str!("shaders/zr_text_sdf.wgsl");
 
@@ -94,10 +94,15 @@ impl SdfTextRun for ScreenSpaceUiTextBatch {
     }
 
     fn resolved_glyph_advances(&self) -> Option<Vec<f32>> {
+        let render_scalar_count = if self.shaped_glyphs.is_empty() {
+            self.text.chars().count()
+        } else {
+            self.shaped_glyphs.len()
+        };
         resolved_layout_advances_for_sdf_glyphs(
             self.text.as_str(),
             self.glyph_advances.as_slice(),
-            self.render_scalars().len(),
+            render_scalar_count,
         )
     }
 
@@ -372,6 +377,32 @@ fn sdf_prepare_report(
     decoration_vertex_count: u32,
     draw_plan: &SdfTextMaterialDrawPlan,
 ) -> ScreenSpaceUiSdfPrepareReport {
+    let mut atlas_page_limit_failure_count = 0;
+    let mut atlas_oversized_failure_count = 0;
+    for failure in &atlas_plan.allocation_failures {
+        match failure.reason {
+            SdfAtlasAllocationFailureReason::PageLimit => {
+                atlas_page_limit_failure_count += 1;
+            }
+            SdfAtlasAllocationFailureReason::OversizedSlot => {
+                atlas_oversized_failure_count += 1;
+            }
+        }
+    }
+    let mut outline_batch_count = 0;
+    let mut shadow_batch_count = 0;
+    let mut glow_batch_count = 0;
+    for material in &draw_plan.materials {
+        if material.effect_flags & material::SDF_TEXT_EFFECT_OUTLINE != 0 {
+            outline_batch_count += 1;
+        }
+        if material.effect_flags & material::SDF_TEXT_EFFECT_SHADOW != 0 {
+            shadow_batch_count += 1;
+        }
+        if material.effect_flags & material::SDF_TEXT_EFFECT_GLOW != 0 {
+            glow_batch_count += 1;
+        }
+    }
     ScreenSpaceUiSdfPrepareReport {
         text_batch_count,
         atlas_slot_count: atlas_plan.slots.len(),
@@ -379,16 +410,8 @@ fn sdf_prepare_report(
         atlas_page_count,
         msdf_atlas_page_count,
         atlas_allocation_failure_count: atlas_plan.allocation_failures.len(),
-        atlas_page_limit_failure_count: atlas_plan
-            .allocation_failures
-            .iter()
-            .filter(|failure| failure.reason == SdfAtlasAllocationFailureReason::PageLimit)
-            .count(),
-        atlas_oversized_failure_count: atlas_plan
-            .allocation_failures
-            .iter()
-            .filter(|failure| failure.reason == SdfAtlasAllocationFailureReason::OversizedSlot)
-            .count(),
+        atlas_page_limit_failure_count,
+        atlas_oversized_failure_count,
         atlas_resized,
         bake,
         atlas_upload_byte_len: atlas_upload.byte_len,
@@ -398,21 +421,9 @@ fn sdf_prepare_report(
         decoration_vertex_count,
         material_count: draw_plan.materials.len(),
         draw_count: draw_plan.draws.len(),
-        outline_batch_count: draw_plan
-            .materials
-            .iter()
-            .filter(|material| material.effect_flags & material::SDF_TEXT_EFFECT_OUTLINE != 0)
-            .count(),
-        shadow_batch_count: draw_plan
-            .materials
-            .iter()
-            .filter(|material| material.effect_flags & material::SDF_TEXT_EFFECT_SHADOW != 0)
-            .count(),
-        glow_batch_count: draw_plan
-            .materials
-            .iter()
-            .filter(|material| material.effect_flags & material::SDF_TEXT_EFFECT_GLOW != 0)
-            .count(),
+        outline_batch_count,
+        shadow_batch_count,
+        glow_batch_count,
     }
 }
 

@@ -49,7 +49,9 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
     let previous_context = VisibilityContext::from(&previous_extract);
 
     assert_eq!(
-        previous_context.virtual_geometry_feedback.visible_cluster_ids,
+        previous_context
+            .virtual_geometry_feedback
+            .visible_cluster_ids,
         vec![40, 50],
         "expected the fully resident previous frame to refine onto both sibling lineages before testing frontier-budget collapse protection"
     );
@@ -111,8 +113,8 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
 }
 
 #[test]
-fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineages_even_when_page_matches(
-) {
+fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineages_even_when_page_matches()
+ {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -263,8 +265,8 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_when_children_exceed
 }
 
 #[test]
-fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_clusters_when_page_budget_is_tight(
-) {
+fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_clusters_when_page_budget_is_tight()
+ {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -320,8 +322,8 @@ fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_cl
 }
 
 #[test]
-fn visibility_context_uses_aggregate_screen_space_error_to_break_virtual_geometry_page_priority_ties(
-) {
+fn visibility_context_uses_aggregate_screen_space_error_to_break_virtual_geometry_page_priority_ties()
+ {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 

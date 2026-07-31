@@ -1,22 +1,50 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum JobCategory {
-    Import,
-    Compile,
-    Thumbnail,
-    Export,
-    Index,
-    Play,
-    Misc,
+macro_rules! define_job_enum {
+    (
+        $(#[$enum_meta:meta])*
+        pub enum $name:ident {
+            $(
+                $(#[$variant_meta:meta])*
+                $variant:ident
+            ),+ $(,)?
+        }
+    ) => {
+        $(#[$enum_meta])*
+        pub enum $name {
+            $(
+                $(#[$variant_meta])*
+                $variant,
+            )+
+        }
+
+        impl $name {
+            pub const ALL: [Self; [$(stringify!($variant)),+].len()] = [$(Self::$variant),+];
+        }
+    };
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum JobPriority {
-    Interactive,
-    #[default]
-    Normal,
-    Background,
+define_job_enum! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+    pub enum JobCategory {
+        Import,
+        Compile,
+        Thumbnail,
+        Export,
+        Index,
+        Play,
+        Misc,
+    }
+}
+
+define_job_enum! {
+    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+    pub enum JobPriority {
+        Interactive,
+        #[default]
+        Normal,
+        Background,
+    }
 }
 
 impl JobPriority {

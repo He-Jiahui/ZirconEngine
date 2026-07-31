@@ -1,0 +1,176 @@
+// Collision routing for the currently generated WOC static subset.  It keeps
+// the original resolver precedence for the open world, standard dungeons,
+// arena and fixed-seed Protect Yumi maze. Active-module Delves remain outside
+// this contract; their layout selection must land before fixedTick can use it.
+
+var math = %import("zr.zircon.math");
+var staticCollision = %import("world/collision_static");
+var staticSweep = %import("world/collision_sweep");
+var instanceRouting = %import("world/instance_collision_routing");
+var instanceContent = %import("world/instance_collision_content");
+
+closeEnough(value: float, expected: float): bool {
+    var delta = value - expected;
+    if (delta < 0.0) {
+        delta = -delta;
+    }
+    return delta < 0.00000001;
+}
+
+// The fixed subset includes the source Yumi band, but excludes its active-module
+// Delve band and the unrelated far-east fall-through region. Returning false
+// prevents fixedTick from treating unported geometry as open-world collision.
+pub supportsStaticWorldPosition(x: float, required: bool): bool {
+    if (!required) {
+        throw "woc world collision support query is required";
+    }
+    return x < instanceContent.delveBandXMin(true) ||
+        (x >= instanceContent.yumiBandXMin(true) && x < instanceContent.yumiBandXMax(true));
+}
+
+pub resolveSupportedWorldCoordinate(
+    x: float,
+    z: float,
+    bodyRadius: float,
+    ignoreFences: bool,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc world collision arguments are invalid";
+    }
+    if (!supportsStaticWorldPosition(x, true)) {
+        throw "woc world collision requires an unported delve or far-east layout";
+    }
+    if (instanceRouting.layoutIndexAtWorldX(x, true) >= 0) {
+        return instanceRouting.resolveWorldCoordinate(x, z, bodyRadius, axis, true);
+    }
+    return staticCollision.resolveBuiltinStaticCoordinate(
+        x,
+        z,
+        bodyRadius,
+        ignoreFences,
+        axis,
+        true
+    );
+}
+
+pub resolveSupportedWorldMovementCoordinate(
+    fromX: float,
+    fromZ: float,
+    toX: float,
+    toZ: float,
+    bodyRadius: float,
+    ignoreFences: bool,
+    axis: int,
+    required: bool
+): float {
+    if (!required || bodyRadius < 0.0 || (axis != 1 && axis != 2)) {
+        throw "woc world swept collision arguments are invalid";
+    }
+    if (!supportsStaticWorldPosition(fromX, true) || !supportsStaticWorldPosition(toX, true)) {
+        throw "woc world movement requires an unported delve or far-east layout";
+    }
+    var deltaX = toX - fromX;
+    var deltaZ = toZ - fromZ;
+    var distance = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    if (distance < 0.000001) {
+        return resolveSupportedWorldCoordinate(
+            toX,
+            toZ,
+            bodyRadius,
+            ignoreFences,
+            axis,
+            true
+        );
+    }
+    var steps = <int>math.ceil(distance / 0.2);
+    if (steps < 1) {
+        steps = 1;
+    }
+    var positionX = fromX;
+    var positionZ = fromZ;
+    var step = 1;
+    while (step <= steps) {
+        var fraction = <float>step / <float>steps;
+        var nextX = fromX + deltaX * fraction;
+        var nextZ = fromZ + deltaZ * fraction;
+        if (!ignoreFences && staticSweep.crossesBuiltinFence(
+            positionX,
+            positionZ,
+            nextX,
+            nextZ,
+            bodyRadius,
+            true
+        )) {
+            return axis == 1 ? positionX : positionZ;
+        }
+        positionX = resolveSupportedWorldCoordinate(
+            nextX,
+            nextZ,
+            bodyRadius,
+            ignoreFences,
+            1,
+            true
+        );
+        positionZ = resolveSupportedWorldCoordinate(
+            nextX,
+            nextZ,
+            bodyRadius,
+            ignoreFences,
+            2,
+            true
+        );
+        var correctionX = positionX - nextX;
+        var correctionZ = positionZ - nextZ;
+        var correctionLength = math.sqrt(correctionX * correctionX + correctionZ * correctionZ);
+        if (correctionLength > bodyRadius * 0.25) {
+            var remainingX = toX - nextX;
+            var remainingZ = toZ - nextZ;
+            if (remainingX * correctionX + remainingZ * correctionZ < 0.0) {
+                return axis == 1 ? positionX : positionZ;
+            }
+        }
+        step = step + 1;
+    }
+    return axis == 1 ? positionX : positionZ;
+}
+
+pub contractTest(): int {
+    if (!supportsStaticWorldPosition(4772.999, true) ||
+        supportsStaticWorldPosition(4773.0, true) ||
+        supportsStaticWorldPosition(7999.999, true) ||
+        !supportsStaticWorldPosition(8000.0, true) ||
+        supportsStaticWorldPosition(12000.0, true)) {
+        return -1;
+    }
+    if (!closeEnough(resolveSupportedWorldCoordinate(10.0, 12.0, 0.5, false, 1, true), 8.637035801919723) ||
+        !closeEnough(resolveSupportedWorldCoordinate(10.0, 12.0, 0.5, false, 2, true), 15.223713479010097) ||
+        resolveSupportedWorldCoordinate(877.0, -1203.0, 0.5, false, 1, true) != 878.5 ||
+        resolveSupportedWorldCoordinate(877.0, -1203.0, 0.5, false, 2, true) != -1203.0 ||
+        resolveSupportedWorldCoordinate(4200.0, -1254.0, 0.5, false, 1, true) != 4201.5 ||
+        resolveSupportedWorldCoordinate(4200.0, -1254.0, 0.5, false, 2, true) != -1254.0 ||
+        resolveSupportedWorldCoordinate(8400.0, -1294.0, 0.5, false, 1, true) != 8400.0 ||
+        resolveSupportedWorldCoordinate(8400.0, -1294.0, 0.5, false, 2, true) != -1293.375) {
+        return -2;
+    }
+    if (!closeEnough(resolveSupportedWorldMovementCoordinate(
+        13.0, 10.0, 25.0, 10.0, 0.5, false, 1, true
+    ), 18.07973688765007) || !closeEnough(resolveSupportedWorldMovementCoordinate(
+        13.0, 10.0, 25.0, 10.0, 0.5, false, 2, true
+    ), 9.939868443825036) || resolveSupportedWorldMovementCoordinate(
+        13.0, 10.0, 25.0, 10.0, 0.5, true, 1, true
+    ) != 25.0 || resolveSupportedWorldMovementCoordinate(
+        13.0, 10.0, 25.0, 10.0, 0.5, true, 2, true
+    ) != 10.0) {
+        return -3;
+    }
+    if (resolveSupportedWorldMovementCoordinate(
+        8400.0, -1256.0, 8400.0, -1266.0, 0.5, false, 1, true
+    ) != 8400.0 || resolveSupportedWorldMovementCoordinate(
+        8400.0, -1256.0, 8400.0, -1266.0, 0.5, false, 2, true
+    ) != -1265.875) {
+        return -4;
+    }
+    return 1;
+}

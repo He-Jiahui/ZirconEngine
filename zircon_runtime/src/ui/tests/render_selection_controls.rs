@@ -1,11 +1,45 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+
+#[test]
+fn selection_control_rendering_uses_central_tokens_and_validated_overrides() {
+    let source = include_str!("../surface/render/selection_controls.rs");
+    for needle in [
+        "EditorDesignTokens",
+        "EditorTypographyTokens",
+        "SelectionVisual",
+        "style_overrides",
+        "parse_css_color",
+        "value_as_f32",
+    ] {
+        assert!(
+            source.contains(needle),
+            "missing selection renderer feature: {needle}"
+        );
+    }
+    for legacy in [
+        "const MARK_INSET_X",
+        "const LABEL_FONT_SIZE",
+        "const SURFACE_SELECTED",
+    ] {
+        assert!(
+            !source.contains(legacy),
+            "legacy selection visual remains: {legacy}"
+        );
+    }
+    assert_eq!(
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+            * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,
+        16.0
+    );
+}
 
 #[test]
 fn render_extract_expands_selection_control_indicators() {
@@ -65,7 +99,7 @@ thumb_size = 12.0
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(18.0, 14.0, 16.0, 16.0)
             && command.style.background_color.as_deref() == Some("#173942")
-            && command.style.border_color.as_deref() == Some("#2aa6b8")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -92,7 +126,7 @@ thumb_size = 12.0
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(22.5, 54.5, 7.0, 7.0)
-            && command.style.background_color.as_deref() == Some("#2aa6b8")
+            && command.style.background_color.as_deref() == Some("#3cc7d6")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
@@ -105,13 +139,13 @@ thumb_size = 12.0
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(62.0, 85.0, 34.0, 18.0)
             && command.style.background_color.as_deref() == Some("#173942")
-            && command.style.border_color.as_deref() == Some("#414b54")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(4)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(82.0, 88.0, 12.0, 12.0)
-            && command.style.background_color.as_deref() == Some("#a4aeb4")
+            && command.style.background_color.as_deref() == Some("#e8ecee")
     }));
 }
 
@@ -148,7 +182,7 @@ checked = true
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(18.0, 14.0, 16.0, 16.0)
             && command.style.background_color.as_deref() == Some("#173942")
-            && command.style.border_color.as_deref() == Some("#35c7d0")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
     }));
 }
 
@@ -203,7 +237,7 @@ checked = true
             && command.style.painter_family == UiPainterFamily::Checkbox
             && command.style.painter_state == UiPainterResolvedState::Checked
             && command.style.background_color.as_deref() == Some("#173942")
-            && command.style.border_color.as_deref() == Some("#2aa6b8")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
@@ -212,7 +246,7 @@ checked = true
             && command.style.painter_family == UiPainterFamily::Toggle
             && command.style.painter_state == UiPainterResolvedState::Checked
             && command.style.background_color.as_deref() == Some("#173942")
-            && command.style.border_color.as_deref() == Some("#414b54")
+            && command.style.border_color.as_deref() == Some("#3cc7d6")
     }));
 }
 
@@ -283,7 +317,7 @@ border_color = "#323a41"
     );
     assert_eq!(
         focused_toggle.style.border_color.as_deref(),
-        Some("#35c7d0")
+        Some("#3cc7d6")
     );
 
     let hovered_toggle = control_quad(
@@ -301,7 +335,7 @@ border_color = "#323a41"
     );
     assert_eq!(
         hovered_toggle.style.border_color.as_deref(),
-        Some("#35c7d0")
+        Some("#3cc7d6")
     );
 
     let focused_checkbox = control_quad(
@@ -319,7 +353,7 @@ border_color = "#323a41"
     );
     assert_eq!(
         focused_checkbox.style.border_color.as_deref(),
-        Some("#35c7d0")
+        Some("#3cc7d6")
     );
 }
 
@@ -392,8 +426,8 @@ foreground_color = "#ffffff"
             && command.frame == UiFrame::new(18.0, 14.0, 16.0, 16.0)
             && command.style.painter_family == UiPainterFamily::Checkbox
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#252c31")
-            && command.style.border_color.as_deref() == Some("#343f47")
+            && command.style.background_color.as_deref() == Some("#22272b")
+            && command.style.border_color.as_deref() == Some("#2c3237")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -406,8 +440,8 @@ foreground_color = "#ffffff"
             && command.frame == UiFrame::new(18.0, 50.0, 16.0, 16.0)
             && command.style.painter_family == UiPainterFamily::Radio
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#252c31")
-            && command.style.border_color.as_deref() == Some("#343f47")
+            && command.style.background_color.as_deref() == Some("#22272b")
+            && command.style.border_color.as_deref() == Some("#2c3237")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
@@ -423,8 +457,8 @@ foreground_color = "#ffffff"
             && command.frame == UiFrame::new(76.0, 85.0, 34.0, 18.0)
             && command.style.painter_family == UiPainterFamily::Toggle
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#252c31")
-            && command.style.border_color.as_deref() == Some("#343f47")
+            && command.style.background_color.as_deref() == Some("#22272b")
+            && command.style.border_color.as_deref() == Some("#2c3237")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(4)
@@ -434,6 +468,102 @@ foreground_color = "#ffffff"
             && command.style.painter_state == UiPainterResolvedState::Loading
             && command.style.background_color.as_deref() == Some("#59656c")
     }));
+}
+
+#[test]
+fn render_extract_selection_controls_prioritize_valid_style_overrides_and_reject_invalid_values() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.selection_controls.overrides",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 280.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control_with_style_overrides(
+        &mut surface,
+        UiNodeId::new(2),
+        "Checkbox",
+        UiFrame::new(8.0, 8.0, 120.0, 28.0),
+        r##"
+text = "Override"
+background_color = "#10161a"
+border_color = "#243238"
+label_color = "#d6e2e5"
+"##,
+        r##"
+background_color = "#254c5a"
+border_color = "#4c9dab"
+label_color = "#eef8fa"
+font_size = 12.0
+line_height_ratio = 1.5
+"##,
+        visible_state(),
+    );
+    insert_control_with_style_overrides(
+        &mut surface,
+        UiNodeId::new(3),
+        "Checkbox",
+        UiFrame::new(148.0, 8.0, 120.0, 28.0),
+        r##"
+text = "Fallback"
+"##,
+        r##"
+background_color = "not-a-color"
+border_width = -1.0
+layout_icon_size = 0.0
+font_size = 0.0
+line_height_ratio = 0.0
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let overridden_mark = control_quad(
+        commands,
+        UiNodeId::new(2),
+        UiFrame::new(18.0, 14.0, 16.0, 16.0),
+    );
+    assert_eq!(
+        overridden_mark.style.background_color.as_deref(),
+        Some("#254c5a")
+    );
+    assert_eq!(
+        overridden_mark.style.border_color.as_deref(),
+        Some("#4c9dab")
+    );
+    let overridden_label = commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2) && command.text.is_some())
+        .expect("overridden checkbox should render a label");
+    assert_eq!(
+        overridden_label.style.foreground_color.as_deref(),
+        Some("#eef8fa")
+    );
+    assert_eq!(overridden_label.style.font_size, 12.0);
+    assert_eq!(overridden_label.style.line_height, 18.0);
+
+    let fallback_mark = control_quad(
+        commands,
+        UiNodeId::new(3),
+        UiFrame::new(158.0, 14.0, 16.0, 16.0),
+    );
+    assert_eq!(
+        fallback_mark.style.background_color.as_deref(),
+        Some("#0f1316")
+    );
+    assert_eq!(fallback_mark.style.border_color.as_deref(), Some("#414b54"));
+    assert_eq!(fallback_mark.style.border_width, 1.0);
+    let fallback_label = commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(3) && command.text.is_some())
+        .expect("fallback checkbox should render a label");
+    assert_eq!(
+        fallback_label.style.font_size,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    );
 }
 
 fn control_quad(
@@ -459,6 +589,26 @@ fn insert_control(
     attributes: &str,
     state_flags: UiStateFlags,
 ) {
+    insert_control_with_style_overrides(
+        surface,
+        node_id,
+        component,
+        frame,
+        attributes,
+        "",
+        state_flags,
+    );
+}
+
+fn insert_control_with_style_overrides(
+    surface: &mut UiSurface,
+    node_id: UiNodeId,
+    component: &str,
+    frame: UiFrame,
+    attributes: &str,
+    style_overrides: &str,
+    state_flags: UiStateFlags,
+) {
     surface
         .tree
         .insert_child(
@@ -469,6 +619,7 @@ fn insert_control(
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: component.to_string(),
                     attributes: toml::from_str(attributes).unwrap(),
+                    style_overrides: toml::from_str(style_overrides).unwrap(),
                     ..UiTemplateNodeMetadata::default()
                 }),
         )

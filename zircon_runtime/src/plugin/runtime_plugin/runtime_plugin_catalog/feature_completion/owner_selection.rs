@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
 use crate::plugin::PluginFeatureBundleManifest;
 
@@ -8,16 +10,14 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn complete_owner_
     owner_selection: &mut ProjectPluginSelection,
     feature: &PluginFeatureBundleManifest,
     provider_package_id: Option<&str>,
+    feature_indices: &mut HashMap<String, usize>,
 ) {
     let mut catalog_selection = project_selection_from_feature_manifest(feature);
     if let Some(provider_package_id) = provider_package_id {
         catalog_selection.provider_package_id = Some(provider_package_id.to_string());
     }
-    if let Some(selection) = owner_selection
-        .features
-        .iter_mut()
-        .find(|selection| selection.id == catalog_selection.id)
-    {
+    if let Some(index) = feature_indices.get(&catalog_selection.id).copied() {
+        let selection = &mut owner_selection.features[index];
         if selection.runtime_crate.is_none() {
             selection.runtime_crate = catalog_selection.runtime_crate;
         }
@@ -32,25 +32,23 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn complete_owner_
         }
         return;
     }
+    feature_indices.insert(catalog_selection.id.clone(), owner_selection.features.len());
     owner_selection.features.push(catalog_selection);
 }
 
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn complete_external_provider_selection(
     manifest: &mut ProjectPluginManifest,
     definition: &FeatureDefinition,
+    selected_package_ids: &mut HashSet<String>,
 ) {
     let Some(provider_package_id) = definition.external_provider_for_owner() else {
         return;
     };
-    if manifest
-        .selections
-        .iter()
-        .any(|selection| selection.id == provider_package_id)
-    {
+    if selected_package_ids.contains(provider_package_id) {
         return;
     }
     let feature_selection = project_selection_from_feature_manifest(&definition.manifest);
-    manifest.selections.push(ProjectPluginSelection {
+    let selection = ProjectPluginSelection {
         id: provider_package_id.to_string(),
         enabled: false,
         required: false,
@@ -59,5 +57,7 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn complete_extern
         runtime_crate: feature_selection.runtime_crate,
         editor_crate: feature_selection.editor_crate,
         features: Vec::new(),
-    });
+    };
+    selected_package_ids.insert(selection.id.clone());
+    manifest.selections.push(selection);
 }

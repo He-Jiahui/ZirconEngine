@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -11,8 +11,7 @@ use super::super::native_dynamic_package_plan::{
     NativeDynamicPackageExportPlan,
 };
 use super::super::{ExportBuildPlan, ExportMaterializeReport};
-use super::copy::{native_dynamic_package_file_entries, preview_native_dynamic_package_copy};
-use super::package_lookup::find_native_package_dir;
+use super::package_lookup::NativePackageInventory;
 use super::paths::validated_materialized_relative_path;
 
 const NATIVE_PACKAGE_REPORT_FILE: &str = "native_dynamic_package.toml";
@@ -50,13 +49,16 @@ pub(super) fn materialize_zip_archive(
     };
 
     write_generated_entries(plan, &mut writer, &mut written_entries, &mut report)?;
-    write_native_package_entries(
-        plan,
-        plugin_root,
-        &mut writer,
-        &mut written_entries,
-        &mut report,
-    )?;
+    if !plan.native_dynamic_packages.is_empty() {
+        let inventory = NativePackageInventory::build(plugin_root, &plan.native_dynamic_packages)?;
+        write_native_package_entries(
+            plan,
+            &inventory,
+            &mut writer,
+            &mut written_entries,
+            &mut report,
+        )?;
+    }
     writer.finish()?;
 
     Ok(report)
@@ -82,7 +84,10 @@ pub(super) fn preview_zip_archive(
             .push(PathBuf::from(file.path.as_str()));
     }
 
-    preview_native_package_entries(plan, plugin_root, &mut report)?;
+    if !plan.native_dynamic_packages.is_empty() {
+        let inventory = NativePackageInventory::build(plugin_root, &plan.native_dynamic_packages)?;
+        preview_native_package_entries(plan, &inventory, &mut report)?;
+    }
 
     Ok(report)
 }
@@ -113,18 +118,19 @@ fn write_generated_entries<W: Write + std::io::Seek>(
 
 fn write_native_package_entries<W: Write + std::io::Seek>(
     plan: &ExportBuildPlan,
-    plugin_root: &Path,
+    inventory: &NativePackageInventory,
     writer: &mut ZipWriter<W>,
     written_entries: &mut HashSet<String>,
     report: &mut ExportMaterializeReport,
 ) -> Result<(), std::io::Error> {
     let mut copied_package_directories = HashSet::new();
+    let package_exports = native_dynamic_package_export_index(plan);
 
     for package_id in &plan.native_dynamic_packages {
-        let Some(source) = find_native_package_dir(plugin_root, package_id)? else {
+        let Some(file_inventory) = inventory.file_inventory(package_id) else {
             report.diagnostics.push(format!(
                 "native dynamic package {package_id} was selected but no plugin.toml was found under {}",
-                plugin_root.display()
+                inventory.plugin_root().display()
             ));
             continue;
         };
@@ -137,11 +143,11 @@ fn write_native_package_entries<W: Write + std::io::Seek>(
         }
 
         let archive_directory = format!("plugins/{package_directory}");
-        let preview = preview_native_dynamic_package_copy(&source, package_id)?;
-        report.diagnostics.extend(preview.diagnostics);
+        report
+            .diagnostics
+            .extend(file_inventory.diagnostics.iter().cloned());
 
-        let entries = native_dynamic_package_file_entries(&source)?;
-        for entry in entries {
+        for entry in &file_inventory.entries {
             let archive_path = validated_materialized_relative_path(&format!(
                 "{archive_directory}/{}",
                 entry.relative_path
@@ -155,14 +161,19 @@ fn write_native_package_entries<W: Write + std::io::Seek>(
             write_zip_file_entry(writer, &archive_path, &entry.source_path)?;
         }
 
-        let package_export = native_dynamic_package_export(plan, package_id)
-            .cloned()
-            .unwrap_or_else(|| NativeDynamicPackageExportPlan::for_package_id(package_id.as_str()));
+        let fallback_export;
+        let package_export = if let Some(package_export) = package_exports.get(package_id.as_str())
+        {
+            *package_export
+        } else {
+            fallback_export = NativeDynamicPackageExportPlan::for_package_id(package_id.as_str());
+            &fallback_export
+        };
         let report_path = validated_materialized_relative_path(&format!(
             "{archive_directory}/{NATIVE_PACKAGE_REPORT_FILE}"
         ))?;
         if written_entries.insert(report_path.clone()) {
-            let report_contents = native_dynamic_package_report_template(&package_export);
+            let report_contents = native_dynamic_package_report_template(package_export);
             write_zip_entry(writer, &report_path, report_contents.as_bytes())?;
         }
         report
@@ -175,16 +186,16 @@ fn write_native_package_entries<W: Write + std::io::Seek>(
 
 fn preview_native_package_entries(
     plan: &ExportBuildPlan,
-    plugin_root: &Path,
+    inventory: &NativePackageInventory,
     report: &mut ExportMaterializeReport,
 ) -> Result<(), std::io::Error> {
     let mut copied_package_directories = HashSet::new();
 
     for package_id in &plan.native_dynamic_packages {
-        let Some(source) = find_native_package_dir(plugin_root, package_id)? else {
+        let Some(file_inventory) = inventory.file_inventory(package_id) else {
             report.diagnostics.push(format!(
                 "native dynamic package {package_id} was selected but no plugin.toml was found under {}",
-                plugin_root.display()
+                inventory.plugin_root().display()
             ));
             continue;
         };
@@ -195,8 +206,9 @@ fn preview_native_package_entries(
             ));
             continue;
         }
-        let preview = preview_native_dynamic_package_copy(&source, package_id)?;
-        report.diagnostics.extend(preview.diagnostics);
+        report
+            .diagnostics
+            .extend(file_inventory.diagnostics.iter().cloned());
         report
             .copied_packages
             .push(PathBuf::from(format!("plugins/{package_directory}")));
@@ -235,13 +247,16 @@ fn zip_file_options() -> SimpleFileOptions {
         .unix_permissions(0o644)
 }
 
-fn native_dynamic_package_export<'a>(
+fn native_dynamic_package_export_index<'a>(
     plan: &'a ExportBuildPlan,
-    package_id: &str,
-) -> Option<&'a NativeDynamicPackageExportPlan> {
-    plan.native_dynamic_package_exports
-        .iter()
-        .find(|package| package.package_id == package_id)
+) -> HashMap<&'a str, &'a NativeDynamicPackageExportPlan> {
+    let mut exports = HashMap::with_capacity(plan.native_dynamic_package_exports.len());
+    for package in &plan.native_dynamic_package_exports {
+        exports
+            .entry(package.package_id.as_str())
+            .or_insert(package);
+    }
+    exports
 }
 
 fn blocked_archive_report(
@@ -275,5 +290,22 @@ mod tests {
             !source.contains(&whole_file_read),
             "native package files should stream into ZipWriter without a full-file Vec"
         );
+    }
+
+    #[test]
+    fn archive_materialization_does_not_preview_then_rescan_each_package() {
+        let source = include_str!("archive.rs");
+        let linear_lookup = [".find(|package| package.", "package_id == package_id)"].concat();
+        let cloned_lookup = [".copied()", "\n            .cloned()"].concat();
+        let write_body = source
+            .split("fn write_native_package_entries")
+            .nth(1)
+            .and_then(|body| body.split("fn preview_native_package_entries").next())
+            .expect("write-native-package body should remain available");
+
+        assert!(!write_body.contains("preview_native_dynamic_package_copy"));
+        assert!(write_body.contains("native_dynamic_package_file_inventory"));
+        assert!(!source.contains(&linear_lookup));
+        assert!(!write_body.contains(&cloned_lookup));
     }
 }

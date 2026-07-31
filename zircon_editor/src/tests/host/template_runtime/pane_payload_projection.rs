@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::OnceLock;
 
 use zircon_runtime::core::diagnostics::{
     ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeAnimationDiagnostics,
@@ -25,7 +26,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiVisibility},
 };
 
-use crate::scene::viewport::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
@@ -46,7 +47,7 @@ use crate::ui::workbench::snapshot::{
     SceneEntry, WelcomePaneSnapshot, WorkbenchSnapshot,
 };
 use crate::ui::workbench::startup::EditorSessionMode;
-use crate::ui::workbench::view::{PaneBodySpec, ViewDescriptorId};
+use crate::ui::workbench::view::PaneBodySpec;
 use toml::Value;
 
 fn editor_runtime() -> CoreRuntime {
@@ -69,17 +70,27 @@ fn editor_runtime() -> CoreRuntime {
     runtime
 }
 
+static PANE_BODY_SPECS: OnceLock<BTreeMap<String, PaneBodySpec>> = OnceLock::new();
+
 fn pane_body_spec(descriptor_id: &str) -> PaneBodySpec {
-    let runtime = editor_runtime();
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
-        .unwrap();
-    manager
-        .descriptors()
-        .into_iter()
-        .find(|descriptor| descriptor.descriptor_id == ViewDescriptorId::new(descriptor_id))
-        .and_then(|descriptor| descriptor.pane_template.map(|template| template.body))
+    PANE_BODY_SPECS
+        .get_or_init(|| {
+            let runtime = editor_runtime();
+            let manager = runtime
+                .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+                .unwrap();
+            manager
+                .descriptors()
+                .into_iter()
+                .filter_map(|descriptor| {
+                    let body = descriptor.pane_template?.body;
+                    Some((descriptor.descriptor_id.0, body))
+                })
+                .collect()
+        })
+        .get(descriptor_id)
         .unwrap_or_else(|| panic!("missing pane body spec for `{descriptor_id}`"))
+        .clone()
 }
 
 fn chrome_fixture() -> EditorChromeSnapshot {
@@ -116,7 +127,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
-        scene_viewport_settings: SceneViewportSettings::default(),
+        scene_viewport_settings: SceneViewportChromeSettings::default(),
         mesh_import_path: String::new(),
         project_overview: ProjectOverviewSnapshot::default(),
         asset_activity: AssetWorkspaceSnapshot::default(),

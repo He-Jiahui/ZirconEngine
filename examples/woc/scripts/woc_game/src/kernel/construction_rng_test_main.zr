@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var rng = %import("kernel/rng");
+
+console.printLine("construction-rng-test");
+var result: int = <int>rng.constructionStreamTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

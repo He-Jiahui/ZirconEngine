@@ -1,0 +1,212 @@
+// Scalar projection of the Sinkhole Baptistry room lifecycle. It owns only
+// room-local counters and one-shot egg-sac bookkeeping; real entity identity,
+// spawn collision/RNG and damage dispatch remain with the future DelveRun owner.
+var content = %import("instances/delve_baptistry_content");
+
+class BaptistryState {
+    pub var activeWave: int;
+    pub var liveTrash: int;
+    pub var heroicTier: bool;
+    pub var belligerentDead: bool;
+    pub var eggsEnabled: bool;
+    pub var eggSacsAlive: int;
+    pub var eggSac0Burst: bool;
+    pub var eggSac1Burst: bool;
+    pub var eggSac2Burst: bool;
+    pub var initialWaveSpawns: int;
+    pub var laterWaveSpawns: int;
+    pub var eggSacSpawnEvents: int;
+    pub var eggSacBurstEvents: int;
+    pub var hatchlingsSpawned: int;
+
+    pub @constructor() {
+        this.activeWave = -1;
+        this.liveTrash = 0;
+        this.heroicTier = false;
+        this.belligerentDead = false;
+        this.eggsEnabled = false;
+        this.eggSacsAlive = 0;
+        this.eggSac0Burst = false;
+        this.eggSac1Burst = false;
+        this.eggSac2Burst = false;
+        this.initialWaveSpawns = 0;
+        this.laterWaveSpawns = 0;
+        this.eggSacSpawnEvents = 0;
+        this.eggSacBurstEvents = 0;
+        this.hatchlingsSpawned = 0;
+    }
+}
+
+closeEnough(actual: float, expected: float): bool {
+    var difference = actual - expected;
+    if (difference < 0.0) {
+        difference = -difference;
+    }
+    return difference <= 0.000001;
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub start(
+    state: BaptistryState,
+    heroicTier: bool,
+    belligerentDead: bool
+): bool {
+    if (state.activeWave >= 0) {
+        return false;
+    }
+    state.activeWave = 0;
+    state.liveTrash = content.waveSpawnCount(0, true);
+    state.heroicTier = heroicTier;
+    state.belligerentDead = belligerentDead;
+    state.initialWaveSpawns = state.liveTrash;
+    return true;
+}
+
+pub activeEnemyLevelBonus(state: BaptistryState): int {
+    if (state.activeWave < 0) {
+        throw "woc Baptistry is not started";
+    }
+    // The source definition has Normal bonus 0 and Heroic bonus 3.
+    return state.heroicTier ? 3 : 0;
+}
+
+pub activeWaveSpawnCount(state: BaptistryState): int {
+    if (state.activeWave < 0) {
+        throw "woc Baptistry is not started";
+    }
+    return content.waveSpawnCount(state.activeWave, true);
+}
+
+pub activeWaveMobId(state: BaptistryState, spawnIndex: int): string {
+    if (state.activeWave < 0) {
+        throw "woc Baptistry is not started";
+    }
+    return content.waveMobId(state.activeWave, spawnIndex, true);
+}
+
+pub waveSpawnHpScalePerMille(
+    state: BaptistryState,
+    waveIndex: int,
+    spawnIndex: int
+): int {
+    if (state.activeWave < 0 || waveIndex < 0 || waveIndex >= content.waveCount(true)) {
+        throw "woc Baptistry wave health query is invalid";
+    }
+    var mobId = content.waveMobId(waveIndex, spawnIndex, true);
+    if (state.belligerentDead && mobId == "grave_silt_bulwark") {
+        return 1100;
+    }
+    return 1000;
+}
+
+pub recordTrashDeaths(state: BaptistryState, deaths: int): bool {
+    if (state.activeWave < 0 || deaths < 0 || deaths > state.liveTrash) {
+        return false;
+    }
+    state.liveTrash = state.liveTrash - deaths;
+    return true;
+}
+
+pub advanceAfterTrashClear(state: BaptistryState): bool {
+    if (state.activeWave < 0 || state.liveTrash != 0) {
+        return false;
+    }
+    var nextWave = state.activeWave + 1;
+    if (nextWave < content.waveCount(true)) {
+        state.activeWave = nextWave;
+        state.liveTrash = content.waveSpawnCount(nextWave, true);
+        state.laterWaveSpawns = state.laterWaveSpawns + state.liveTrash;
+        return true;
+    }
+    if (state.eggsEnabled) {
+        return false;
+    }
+    state.eggsEnabled = true;
+    state.eggSacsAlive = content.eggSacSpotCount(true);
+    state.eggSacSpawnEvents = state.eggSacSpawnEvents + 1;
+    return true;
+}
+
+eggSacAlreadyBurst(state: BaptistryState, eggSacIndex: int): bool {
+    if (eggSacIndex == 0) {
+        return state.eggSac0Burst;
+    }
+    if (eggSacIndex == 1) {
+        return state.eggSac1Burst;
+    }
+    return state.eggSac2Burst;
+}
+
+markEggSacBurst(state: BaptistryState, eggSacIndex: int): void {
+    if (eggSacIndex == 0) {
+        state.eggSac0Burst = true;
+    } else if (eggSacIndex == 1) {
+        state.eggSac1Burst = true;
+    } else {
+        state.eggSac2Burst = true;
+    }
+}
+
+pub triggerEggSacBurst(state: BaptistryState, eggSacIndex: int): bool {
+    if (!state.eggsEnabled || eggSacIndex < 0 ||
+        eggSacIndex >= content.eggSacSpotCount(true) || eggSacAlreadyBurst(state, eggSacIndex)) {
+        return false;
+    }
+    markEggSacBurst(state, eggSacIndex);
+    state.eggSacsAlive = state.eggSacsAlive - 1;
+    state.eggSacBurstEvents = state.eggSacBurstEvents + 1;
+    // Source onEggSacBurst hatches exactly two mirefen_widowling adds.
+    state.hatchlingsSpawned = state.hatchlingsSpawned + 2;
+    return true;
+}
+
+pub eggSacBurstDamage(maxHp: int, distance: float, required: bool): int {
+    if (!required || maxHp < 0 || distance < 0.0) {
+        throw "woc Baptistry egg-sac burst input is invalid";
+    }
+    if (distance > content.constantValue(1, true)) {
+        return 0;
+    }
+    var damage = roundPositive(<float>maxHp * content.constantValue(2, true));
+    return damage < 1 ? 1 : damage;
+}
+
+pub contractTest(): int {
+    if (content.contractTest() != 1) {
+        return -1;
+    }
+    var normal = new BaptistryState();
+    if (!start(normal, false, false) || normal.activeWave != 0 || normal.liveTrash != 6 ||
+        activeEnemyLevelBonus(normal) != 0 || activeWaveMobId(normal, 4) != "deepfen_spearjaw") {
+        return -2;
+    }
+    if (!recordTrashDeaths(normal, 6) || !advanceAfterTrashClear(normal) ||
+        normal.activeWave != 1 || normal.liveTrash != 6 ||
+        !recordTrashDeaths(normal, 6) || !advanceAfterTrashClear(normal) ||
+        normal.activeWave != 2 || normal.liveTrash != 3 ||
+        !recordTrashDeaths(normal, 3) || !advanceAfterTrashClear(normal) ||
+        !normal.eggsEnabled || normal.eggSacsAlive != 3 || normal.eggSacSpawnEvents != 1 ||
+        normal.initialWaveSpawns != 6 || normal.laterWaveSpawns != 9) {
+        return -3;
+    }
+    if (!triggerEggSacBurst(normal, 1) || triggerEggSacBurst(normal, 1) ||
+        normal.eggSacsAlive != 2 || normal.eggSacBurstEvents != 1 ||
+        normal.hatchlingsSpawned != 2 || !closeEnough(content.constantValue(3, true), 1.1) ||
+        !closeEnough(content.constantValue(4, true), 0.8) || content.constantValue(5, true) != 12.0) {
+        return -4;
+    }
+    if (eggSacBurstDamage(1000, 7.0, true) != 60 ||
+        eggSacBurstDamage(1000, 7.1, true) != 0 || eggSacBurstDamage(1, 0.0, true) != 1) {
+        return -5;
+    }
+    var heroic = new BaptistryState();
+    if (!start(heroic, true, true) || activeEnemyLevelBonus(heroic) != 3 ||
+        waveSpawnHpScalePerMille(heroic, 2, 0) != 1100 ||
+        waveSpawnHpScalePerMille(heroic, 2, 1) != 1000) {
+        return -6;
+    }
+    return 1;
+}

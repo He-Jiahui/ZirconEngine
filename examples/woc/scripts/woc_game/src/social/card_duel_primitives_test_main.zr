@@ -1,0 +1,113 @@
+var console = %import("zr.system.console");
+var container = %import("zr.container");
+var hand = %import("social/card_duel_hand");
+var queue = %import("social/card_duel_queue");
+var rng = %import("kernel/rng");
+var contract = %import("generated/card_duel_contract");
+
+sameArray(left: container.Array<uint>, right: container.Array<uint>): bool {
+    if (left.length != right.length) return false;
+    var index = 0;
+    while (index < left.length) {
+        if (<uint>left[index] != <uint>right[index]) return false;
+        index = index + 1;
+    }
+    return true;
+}
+
+countValue(state: hand.CardHandState, value: uint): int {
+    var count = 0;
+    var index = 0;
+    while (index < state.deck.length) {
+        if (<uint>state.deck[index] == value) count = count + 1;
+        index = index + 1;
+    }
+    index = 0;
+    while (index < state.hand.length) {
+        if (<uint>state.hand[index] == value) count = count + 1;
+        index = index + 1;
+    }
+    index = 0;
+    while (index < state.discard.length) {
+        if (<uint>state.discard[index] == value) count = count + 1;
+        index = index + 1;
+    }
+    return count;
+}
+
+contractTest(): int {
+    if (contract.deckSize(true) != 20 || contract.cardMaxValue(true) != 10 ||
+        contract.startingHandSize(true) != 4 || contract.roundsToWin(true) != 2 ||
+        contract.roundDeadlineSeconds(true) != 90.0 || contract.deckSize(false) != 0) {
+        return -1;
+    }
+    var firstStream = new rng.Mulberry32(<uint>20061);
+    var secondStream = new rng.Mulberry32(<uint>20061);
+    var first = hand.createCardHand(firstStream);
+    var second = hand.createCardHand(secondStream);
+    if (first.deck.length != 16 || first.hand.length != 4 || first.discard.length != 0 ||
+        !sameArray(first.deck, second.deck) || !sameArray(first.hand, second.hand)) {
+        return -2;
+    }
+
+    var value: uint = <uint>1;
+    while (value <= <uint>10) {
+        if (countValue(first, value) != 2) return -3;
+        value = value + <uint>1;
+    }
+
+    var playedValue = <uint>first.hand[0];
+    if (hand.playCard(first, playedValue) != <int>playedValue ||
+        first.hand.length != 3 || first.discard.length != 1 ||
+        hand.playCard(first, <uint>11) != 0) {
+        return -4;
+    }
+    hand.drawOne(firstStream, first);
+    if (first.deck.length != 15 || first.hand.length != 4 || first.discard.length != 1 ||
+        countValue(first, playedValue) != 2) {
+        return -5;
+    }
+
+    var recycled = new hand.CardHandState();
+    recycled.discard.add(<uint>3);
+    recycled.discard.add(<uint>7);
+    hand.drawOne(firstStream, recycled);
+    if (recycled.deck.length != 1 || recycled.hand.length != 1 ||
+        recycled.discard.length != 0 ||
+        (<uint>recycled.hand[0] != <uint>3 && <uint>recycled.hand[0] != <uint>7)) {
+        return -6;
+    }
+
+    var conservation = hand.createCardHand(firstStream);
+    var round = 0;
+    while (round < 30) {
+        if (conservation.hand.length > 0) {
+            hand.playCard(conservation, <uint>conservation.hand[0]);
+        }
+        hand.drawOne(firstStream, conservation);
+        if (conservation.deck.length + conservation.hand.length + conservation.discard.length != 20) {
+            return -7;
+        }
+        round = round + 1;
+    }
+
+    var line = new queue.CardDuelQueue();
+    if (line.join(<uint>11, false) != 1 || line.join(<uint>11, false) != 0 ||
+        line.join(<uint>12, true) != -1 || line.join(<uint>12, false) != 1 ||
+        line.join(<uint>13, false) != 1 || line.size() != 3) {
+        return -8;
+    }
+    if (!line.leave(<uint>12) || line.size() != 2 || line.leave(<uint>99)) return -9;
+    var pair = line.pairFirst();
+    var emptyPair = line.pairFirst();
+    if (!pair.ready || pair.a != <uint>11 || pair.b != <uint>13 || line.size() != 0 ||
+        emptyPair.ready) {
+        return -10;
+    }
+    return 1;
+}
+
+console.printLine("card-duel-primitives-test");
+var result = contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

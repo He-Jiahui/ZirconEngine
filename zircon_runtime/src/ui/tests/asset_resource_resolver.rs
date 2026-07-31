@@ -471,3 +471,19 @@ fn dependency(reference: UiResourceRef, path: &str) -> UiResourceDependency {
         path: path.to_string(),
     }
 }
+
+#[test]
+fn ui_resource_resolver_invalidates_uri_batch_with_one_cache_retain() {
+    let source = include_str!("../template/asset/resource_ref/resolver.rs");
+    let invalidation = source
+        .split_once("pub fn invalidate_uris")
+        .expect("resource cache invalidation must remain available")
+        .1
+        .split_once("fn resolve_uncached")
+        .expect("invalidation boundary must remain available")
+        .0;
+
+    assert!(invalidation.contains("resource_reference_contains_any_uri("));
+    assert_eq!(invalidation.matches("self.cache.retain").count(), 1);
+    assert!(!invalidation.contains("resource_reference_contains_uri(reference, uri"));
+}

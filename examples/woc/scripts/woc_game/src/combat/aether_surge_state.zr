@@ -1,0 +1,151 @@
+// Chronomancy Aether Surge decisions. WOS owns the aura writes, RNG proc roll,
+// events and channel state commit; this module supplies source-equivalent plans.
+var container = %import("zr.container");
+var contract = %import("generated/aether_surge_contract");
+
+pub class SurgeAura {
+    pub var id: string;
+    pub var value: int;
+    pub @constructor(id: string, value: int) {
+        this.id = id;
+        this.value = value;
+    }
+}
+
+pub class SurgeProfile {
+    pub var charges: int;
+    pub var costMult: float;
+    pub var damageMult: float;
+    pub var castMult: float;
+    pub @constructor(charges: int, costMult: float, damageMult: float, castMult: float) {
+        this.charges = charges;
+        this.costMult = costMult;
+        this.damageMult = damageMult;
+        this.castMult = castMult;
+    }
+}
+
+pub class DartsChannelPlan {
+    pub var changed: bool;
+    pub var consumePending: bool;
+    pub var bonusPerBolt: int;
+    pub var ticksOverride: int;
+    pub @constructor(changed: bool, consumePending: bool, bonusPerBolt: int, ticksOverride: int) {
+        this.changed = changed;
+        this.consumePending = consumePending;
+        this.bonusPerBolt = bonusPerBolt;
+        this.ticksOverride = ticksOverride;
+    }
+}
+
+pub class DartsLandingPlan {
+    pub var consumePending: bool;
+    pub var bonusPerBolt: int;
+    pub var removeChargeAura: bool;
+    pub @constructor(consumePending: bool, bonusPerBolt: int, removeChargeAura: bool) {
+        this.consumePending = consumePending;
+        this.bonusPerBolt = bonusPerBolt;
+        this.removeChargeAura = removeChargeAura;
+    }
+}
+
+pub aetherSurgeStacks(auras: container.Array<SurgeAura>): int {
+    var i = 0;
+    while (i < auras.length) {
+        var aura = <SurgeAura>auras[i];
+        if (aura.id == contract.surgeId()) return aura.value;
+        i = i + 1;
+    }
+    return 0;
+}
+
+// Authoritative source writers restrict charges to integers. This computes 2^n
+// exactly for every integer n without relying on the unavailable scalar host API.
+pub twoPower(charges: int): float {
+    var value = 1.0, remaining = charges;
+    while (remaining > 0) {
+        value = value * 2.0;
+        remaining = remaining - 1;
+    }
+    while (remaining < 0) {
+        value = value * 0.5;
+        remaining = remaining + 1;
+    }
+    return value;
+}
+
+pub profile(auras: container.Array<SurgeAura>): SurgeProfile {
+    var charges = aetherSurgeStacks(auras);
+    var limitedCharges = charges;
+    if (limitedCharges > contract.maxCharges()) limitedCharges = contract.maxCharges();
+    var castMult = 1.0 - contract.castHastePerCharge() * <float>limitedCharges;
+    if (hasAura(auras, contract.freeId())) castMult = castMult * contract.procCastMult();
+    return new SurgeProfile(charges, twoPower(charges), 1.0 + contract.damagePerCharge() * <float>charges, castMult);
+}
+
+pub nextChargeValue(auras: container.Array<SurgeAura>): int {
+    var next = aetherSurgeStacks(auras) + 1;
+    return next > contract.maxCharges() ? contract.maxCharges() : next;
+}
+
+pub perfectMomentActive(auras: container.Array<SurgeAura>): bool {
+    return hasAura(auras, contract.perfectMomentId());
+}
+
+pub channelStart(abilityId: string, auras: container.Array<SurgeAura>): DartsChannelPlan {
+    if (abilityId != contract.dartsId()) return new DartsChannelPlan(false, false, 0, 0);
+    var charges = aetherSurgeStacks(auras);
+    var ticks = charges >= contract.maxCharges() ? contract.fullChargeMissiles() : 0;
+    return new DartsChannelPlan(true, true, 0, ticks);
+}
+
+pub resolveDartsBolt(consumePending: bool, storedBonusPerBolt: int, auras: container.Array<SurgeAura>, configuredTicks: int, ticks: int): DartsLandingPlan {
+    if (!consumePending) return new DartsLandingPlan(false, storedBonusPerBolt, false);
+    var charges = aetherSurgeStacks(auras);
+    var total = contract.dartsBonusPerCharge() * charges;
+    var bolts = configuredTicks != 0 ? configuredTicks : ticks;
+    var bonus = bolts > 0 ? roundPositiveRatio(total, bolts) : 0;
+    return new DartsLandingPlan(false, bonus, !perfectMomentActive(auras) && hasAura(auras, contract.surgeId()));
+}
+
+// For nonnegative integers this is exactly JavaScript Math.round(numerator / denominator).
+pub roundPositiveRatio(numerator: int, denominator: int): int {
+    if (denominator <= 0 || numerator <= 0) return 0;
+    var quotient = 0, remainder = numerator;
+    while (remainder >= denominator) {
+        remainder = remainder - denominator;
+        quotient = quotient + 1;
+    }
+    return remainder * 2 >= denominator ? quotient + 1 : quotient;
+}
+
+pub hasAura(auras: container.Array<SurgeAura>, id: string): bool {
+    var i = 0;
+    while (i < auras.length) {
+        if ((<SurgeAura>auras[i]).id == id) return true;
+        i = i + 1;
+    }
+    return false;
+}
+
+pub contractTest(): int {
+    var auras = new container.Array<SurgeAura>();
+    auras.add(new SurgeAura(contract.surgeId(), 3));
+    var normal = profile(auras);
+    if (normal.charges != 3 || normal.costMult != 8.0 || normal.damageMult != 1.9 || normal.castMult != 0.85 || nextChargeValue(auras) != 4) return -1;
+    auras.add(new SurgeAura(contract.freeId(), 0));
+    if (profile(auras).castMult != 0.425) return -2;
+    var start = channelStart(contract.dartsId(), auras);
+    if (!start.changed || !start.consumePending || start.bonusPerBolt != 0 || start.ticksOverride != 0) return -3;
+    auras = new container.Array<SurgeAura>();
+    auras.add(new SurgeAura(contract.surgeId(), 4));
+    start = channelStart(contract.dartsId(), auras);
+    if (start.ticksOverride != contract.fullChargeMissiles()) return -4;
+    var landed = resolveDartsBolt(true, 0, auras, start.ticksOverride, 3);
+    if (landed.consumePending || landed.bonusPerBolt != 7 || !landed.removeChargeAura) return -5;
+    if (resolveDartsBolt(false, landed.bonusPerBolt, auras, start.ticksOverride, 3).bonusPerBolt != 7) return -6;
+    auras.add(new SurgeAura(contract.perfectMomentId(), 0));
+    if (resolveDartsBolt(true, 0, auras, start.ticksOverride, 3).removeChargeAura) return -7;
+    if (roundPositiveRatio(1, 2) != 1 || roundPositiveRatio(1, 3) != 0 || roundPositiveRatio(36, 5) != 7) return -8;
+    return 1;
+}

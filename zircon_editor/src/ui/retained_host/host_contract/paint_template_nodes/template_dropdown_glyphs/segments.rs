@@ -37,9 +37,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     opacity: f32,
     segments: &[DropdownGlyphSegmentSpec],
 ) {
+    if !has_paintable_rect(origin) {
+        return;
+    }
     for segment in segments {
+        let rect = segment_rect(origin, *segment);
+        if !has_paintable_rect(&rect) {
+            continue;
+        }
         commands.push(HostPaintCommand::quad(
-            segment_rect(origin, *segment),
+            rect,
             Some(clip.clone()),
             order,
             Some(color),
@@ -57,9 +64,18 @@ fn segment_rect(origin: &FrameRect, segment: DropdownGlyphSegmentSpec) -> FrameR
     FrameRect {
         x: origin.x + f32::from(segment.x_units) * unit_width,
         y: origin.y + f32::from(segment.y_units) * unit_height,
-        width: (f32::from(segment.width_units) * unit_width).max(1.0),
-        height: (f32::from(segment.height_units) * unit_height).max(1.0),
+        width: f32::from(segment.width_units) * unit_width,
+        height: f32::from(segment.height_units) * unit_height,
     }
+}
+
+fn has_paintable_rect(rect: &FrameRect) -> bool {
+    rect.x.is_finite()
+        && rect.y.is_finite()
+        && rect.width.is_finite()
+        && rect.height.is_finite()
+        && rect.width > 0.0
+        && rect.height > 0.0
 }
 
 #[cfg(test)]
@@ -81,5 +97,47 @@ mod tests {
         assert_eq!(segment.y, 25.0);
         assert_eq!(segment.width, 4.0);
         assert_eq!(segment.height, 2.0);
+    }
+
+    #[test]
+    fn subpixel_segment_stays_within_the_original_glyph_slot() {
+        let origin = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 0.7,
+            height: 0.7,
+        };
+
+        let segment = segment_rect(&origin, DropdownGlyphSegmentSpec::new(3, 5, 2, 2));
+
+        assert!(segment.width > 0.0 && segment.width < 1.0);
+        assert!(segment.height > 0.0 && segment.height < 1.0);
+        assert!(segment.x >= origin.x);
+        assert!(segment.y >= origin.y);
+        assert!(segment.x + segment.width <= origin.x + origin.width);
+        assert!(segment.y + segment.height <= origin.y + origin.height);
+    }
+
+    #[test]
+    fn empty_glyph_slot_does_not_emit_segment_commands() {
+        let origin = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 0.0,
+            height: 12.0,
+        };
+        let mut commands = Vec::new();
+
+        push_segments(
+            &mut commands,
+            &origin,
+            &origin,
+            0,
+            [255, 255, 255, 255],
+            1.0,
+            &[DropdownGlyphSegmentSpec::new(3, 5, 2, 2)],
+        );
+
+        assert!(commands.is_empty());
     }
 }

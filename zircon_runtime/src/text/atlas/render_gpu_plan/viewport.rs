@@ -1,9 +1,5 @@
 use crate::core::math::UVec2;
 
-const GLYPH_ATLAS_GPU_NDC_MIN: f32 = -1.0;
-const GLYPH_ATLAS_GPU_NDC_MAX: f32 = 1.0;
-const GLYPH_ATLAS_GPU_NDC_SPAN: f32 = GLYPH_ATLAS_GPU_NDC_MAX - GLYPH_ATLAS_GPU_NDC_MIN;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum GlyphAtlasGpuPixelCoordinateConvention {
     /// Glyph quads describe pixel edges; sampling centers are handled by the rasterizer/backend.
@@ -30,19 +26,13 @@ impl GlyphAtlasGpuViewportTransform {
         }
     }
 
-    pub(crate) fn position_ndc(&self, position_px: [f32; 2]) -> [f32; 2] {
+    pub(crate) fn uniform_bytes(&self) -> [f32; 4] {
         [
-            self.pixel_to_ndc_x(position_px[0]),
-            self.pixel_to_ndc_y(position_px[1]),
+            self.viewport_width() as f32,
+            self.viewport_height() as f32,
+            0.0,
+            0.0,
         ]
-    }
-
-    fn pixel_to_ndc_x(&self, x: f32) -> f32 {
-        (x / self.viewport_width() as f32) * GLYPH_ATLAS_GPU_NDC_SPAN + GLYPH_ATLAS_GPU_NDC_MIN
-    }
-
-    fn pixel_to_ndc_y(&self, y: f32) -> f32 {
-        GLYPH_ATLAS_GPU_NDC_MAX - (y / self.viewport_height() as f32) * GLYPH_ATLAS_GPU_NDC_SPAN
     }
 
     fn viewport_width(&self) -> u32 {

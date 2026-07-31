@@ -1,12 +1,13 @@
 use std::cell::RefCell;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use winit::event_loop::EventLoop;
 
+use super::UiHostWindow;
 use super::constants::{DEFAULT_HOST_WINDOW_HEIGHT, DEFAULT_HOST_WINDOW_WIDTH};
 use super::handle::HostWindowHandle;
 use super::metadata::platform_error;
-use super::UiHostWindow;
 use crate::ui::retained_host::host_contract::globals::{HostContractGlobal, HostContractState};
 use crate::ui::retained_host::primitives::{CloseRequestResponse, PhysicalSize, PlatformError};
 
@@ -71,6 +72,24 @@ impl UiHostWindow {
 
     pub(crate) fn set_exit_after_first_presented_frame(&self, exit: bool) {
         self.state.borrow_mut().exit_after_first_presented_frame = exit;
+    }
+
+    pub(crate) fn set_first_presented_frame_capture_path(&self, path: Option<PathBuf>) {
+        self.state.borrow_mut().first_presented_frame_capture_path = path;
+    }
+
+    pub(crate) fn take_first_presented_frame_capture_error(&self) -> Option<String> {
+        self.state
+            .borrow_mut()
+            .first_presented_frame_capture_error
+            .take()
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn record_first_presented_frame_capture_error(
+        &self,
+        error: impl std::fmt::Display,
+    ) {
+        self.state.borrow_mut().first_presented_frame_capture_error = Some(error.to_string());
     }
 
     pub(in crate::ui::retained_host::host_contract) fn exit_after_first_presented_frame(

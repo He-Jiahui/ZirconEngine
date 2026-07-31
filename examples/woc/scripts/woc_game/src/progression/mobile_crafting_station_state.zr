@@ -1,0 +1,70 @@
+// Current-head professions/mobile_station.ts projection. The caller supplies
+// specialization and owns storing a successful station in player/world state.
+var contract = %import("generated/mobile_crafting_station_contract");
+
+pub class MobileCraftingStationState {
+    pub var playerId: string;
+    pub var craftId: string;
+    pub var x: float;
+    pub var z: float;
+    pub var placedAtTick: int;
+    pub var expiresAtTick: int;
+
+    pub @constructor() {
+        this.playerId = "";
+        this.craftId = "";
+        this.x = 0.0;
+        this.z = 0.0;
+        this.placedAtTick = 0;
+        this.expiresAtTick = 0;
+    }
+}
+
+pub class MobileCraftingStationPlacement {
+    // This typed result represents source `undefined` with ok=false.
+    pub var ok: bool;
+    pub var station: MobileCraftingStationState;
+
+    pub @constructor() {
+        this.ok = false;
+        this.station = new MobileCraftingStationState();
+    }
+}
+
+pub placeMobileCraftingStation(
+    playerId: string,
+    craftId: string,
+    x: float,
+    z: float,
+    isSpecialized: bool,
+    nowTick: int
+): MobileCraftingStationPlacement {
+    var result = new MobileCraftingStationPlacement();
+    if (!isSpecialized) return result;
+    result.ok = true;
+    result.station.playerId = playerId;
+    result.station.craftId = craftId;
+    result.station.x = x;
+    result.station.z = z;
+    result.station.placedAtTick = nowTick;
+    result.station.expiresAtTick = nowTick + contract.durationTicks();
+    return result;
+}
+
+pub isStationActive(station: MobileCraftingStationState, nowTick: int): bool {
+    return nowTick < station.expiresAtTick;
+}
+
+pub contractTest(): int {
+    var denied = placeMobileCraftingStation("P1", "alchemy", 3.0, -2.0, false, 40);
+    if (denied.ok) return -1;
+    var placed = placeMobileCraftingStation("P1", "alchemy", 3.0, -2.0, true, 40);
+    if (!placed.ok || placed.station.playerId != "P1" ||
+        placed.station.craftId != "alchemy" || placed.station.x != 3.0 ||
+        placed.station.z != -2.0 || placed.station.placedAtTick != 40 ||
+        placed.station.expiresAtTick != 12040) return -2;
+    if (!isStationActive(placed.station, 40) ||
+        !isStationActive(placed.station, 12039) ||
+        isStationActive(placed.station, 12040)) return -3;
+    return contract.durationTicks() == 12000 ? 1 : -4;
+}

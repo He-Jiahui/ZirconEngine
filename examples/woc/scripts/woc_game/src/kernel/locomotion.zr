@@ -1,0 +1,399 @@
+var {Array} = %import("zr.container");
+var container = %import("zr.container");
+
+pub distance2d(dx: float, dz: float): float {
+    var math = %import("zr.zircon.math");
+    return math.sqrt(dx * dx + dz * dz);
+}
+
+pub integrateAxis(current: float, delta: float, distance: float, step: float): float {
+    return current + delta / distance * step;
+}
+
+pub facing(dx: float, dz: float): float {
+    var math = %import("zr.zircon.math");
+    return math.atan2(dx, dz);
+}
+
+class LocomotionTestState {
+    pub var randomUnits: Array<float>;
+    pub var randomIndex: int;
+    pub var drawRequests: int;
+    pub var playerHp: int;
+    pub var stompStun: bool;
+    pub var fearAura: bool;
+    pub var fearFacing: float;
+    pub var pulseDamage: int;
+    pub var stompDamage: int;
+    pub var wanderX: float;
+    pub var wanderZ: float;
+    pub var evaderHp: int;
+    pub var evaderMaxHp: int;
+    pub var evaderAiState: string;
+    pub var evaderThreatCount: int;
+    pub var evaderWanderTimer: float;
+    pub var cowardX: float;
+    pub var cowardZ: float;
+    pub var cowardAiState: string;
+    pub var cowardFleeTimer: float;
+    pub var cowardHasFled: bool;
+    pub var cowardHp: int;
+    pub var cowardMaxHp: int;
+    pub var cowardMoveSpeed: float;
+
+    pub @constructor() {
+        var container = %import("zr.container");
+        this.randomUnits = new container.Array<float>();
+        this.randomIndex = 0;
+        this.drawRequests = 0;
+        this.playerHp = 1000000;
+        this.stompStun = false;
+        this.fearAura = false;
+        this.fearFacing = 0.0;
+        this.pulseDamage = 0;
+        this.stompDamage = 0;
+        this.wanderX = 0.0;
+        this.wanderZ = 0.0;
+        this.evaderHp = 1;
+        this.evaderMaxHp = 100;
+        this.evaderAiState = "evade";
+        this.evaderThreatCount = 1;
+        this.evaderWanderTimer = 0.0;
+        this.cowardX = 1.0;
+        this.cowardZ = 1.0;
+        this.cowardAiState = "attack";
+        this.cowardFleeTimer = 0.0;
+        this.cowardHasFled = false;
+        this.cowardHp = 15;
+        this.cowardMaxHp = 100;
+        this.cowardMoveSpeed = 7.5;
+    }
+}
+
+class LocomotionScenario {
+    pub var pulseDamage: int;
+    pub var pulseDigest: uint;
+    pub var stompDamage: int;
+    pub var stompDigest: uint;
+    pub var fearFacing: float;
+    pub var fearDigest: uint;
+    pub var wanderX: float;
+    pub var wanderZ: float;
+    pub var wanderDigest: uint;
+    pub var evaderWanderTimer: float;
+    pub var evaderDigest: uint;
+    pub var cowardState: string;
+    pub var cowardX: float;
+    pub var cowardZ: float;
+    pub var cowardFleeTimer: float;
+    pub var draws: uint;
+
+    pub @constructor() {
+        this.pulseDamage = 0;
+        this.pulseDigest = <uint>2166136261;
+        this.stompDamage = 0;
+        this.stompDigest = <uint>2166136261;
+        this.fearFacing = 0.0;
+        this.fearDigest = <uint>2166136261;
+        this.wanderX = 0.0;
+        this.wanderZ = 0.0;
+        this.wanderDigest = <uint>2166136261;
+        this.evaderWanderTimer = 0.0;
+        this.evaderDigest = <uint>2166136261;
+        this.cowardState = "attack";
+        this.cowardX = 1.0;
+        this.cowardZ = 1.0;
+        this.cowardFleeTimer = 0.0;
+        this.draws = <uint>0;
+    }
+}
+
+takeRandomUnit(state: LocomotionTestState): float {
+    var units = state.randomUnits;
+    var value: float;
+    if (state.randomIndex >= 0 && state.randomIndex < units.length) {
+        value = <float>units[state.randomIndex];
+        state.randomIndex = state.randomIndex + 1;
+    } else if (units.length == 0) {
+        var rng = %import("kernel/rng");
+        value = <float>rng.sharedNextU32(true) / 4294967296.0;
+    } else {
+        throw "locomotion random stream exhausted";
+    }
+    state.drawRequests = state.drawRequests + 1;
+    return value;
+}
+
+fireGroundPound(state: LocomotionTestState): void {
+    var unit = takeRandomUnit(state);
+    state.pulseDamage = <int>(14.0 + unit * 6.0 + 0.5);
+    state.playerHp = state.playerHp - state.pulseDamage;
+}
+
+fireWarStomp(state: LocomotionTestState): void {
+    var unit = takeRandomUnit(state);
+    state.stompDamage = <int>(20.0 + unit * 10.0 + 0.5);
+    state.playerHp = state.playerHp - state.stompDamage;
+    state.stompStun = true;
+}
+
+fireTerrify(state: LocomotionTestState): void {
+    var unit = takeRandomUnit(state);
+    state.fearFacing = -3.141592653589793 + unit * 6.283185307179586;
+    state.fearAura = true;
+}
+
+chooseIdleWander(state: LocomotionTestState): void {
+    var angle = takeRandomUnit(state) * 6.283185307179586;
+    var radius = 2.0 + takeRandomUnit(state) * 7.0;
+    var math = %import("zr.zircon.math");
+    state.wanderX = 300.0 + math.sin(angle) * radius;
+    state.wanderZ = 300.0 + math.cos(angle) * radius;
+}
+
+resetEvader(state: LocomotionTestState): void {
+    state.evaderAiState = "idle";
+    state.evaderHp = state.evaderMaxHp;
+    state.evaderThreatCount = 0;
+    state.evaderWanderTimer = 2.0 + takeRandomUnit(state) * 6.0;
+}
+
+panicCoward(state: LocomotionTestState): bool {
+    if (state.cowardMaxHp <= 0 ||
+        <float>state.cowardHp / <float>state.cowardMaxHp > 0.2 || state.cowardHasFled) {
+        return false;
+    }
+    state.cowardAiState = "flee";
+    state.cowardHasFled = true;
+    state.cowardFleeTimer = 5.0;
+    return true;
+}
+
+runCowardFlee(state: LocomotionTestState): void {
+    if (state.cowardAiState != "flee") {
+        return;
+    }
+    state.cowardFleeTimer = state.cowardFleeTimer - 0.05;
+    var fleeSpeed = state.cowardMoveSpeed * 1.4;
+    if (fleeSpeed > 4.55) {
+        fleeSpeed = 4.55;
+    }
+    var distance = distance2d(state.cowardX, state.cowardZ);
+    var step = fleeSpeed * 0.05;
+    if (step > distance) {
+        step = distance;
+    }
+    var angle = facing(state.cowardX, state.cowardZ);
+    var math = %import("zr.zircon.math");
+    state.cowardX = state.cowardX + math.sin(angle) * step;
+    state.cowardZ = state.cowardZ + math.cos(angle) * step;
+}
+
+discardProfileDraws(state: LocomotionTestState, count: int): void {
+    var remaining = count;
+    while (remaining > 0) {
+        takeRandomUnit(state);
+        remaining = remaining - 1;
+    }
+}
+
+runScenario(): LocomotionScenario {
+    var rng = %import("kernel/rng");
+    rng.prepareSharedAfterConstruction(<uint>7777, 306, 5, 1, true);
+    var state = new LocomotionTestState();
+    var result = new LocomotionScenario();
+
+    // The common combat profile consumes three draws before Ground Pound and
+    // Shuddering Stomp, then four before Keening Wail. The mechanic draw remains
+    // last in each stage, matching updateMobCombatProfile -> runMobAttackMechanics.
+    discardProfileDraws(state, 3);
+    fireGroundPound(state);
+    result.pulseDamage = state.pulseDamage;
+    result.pulseDigest = rng.sharedMetric(2, true);
+
+    discardProfileDraws(state, 3);
+    fireWarStomp(state);
+    result.stompDamage = state.stompDamage;
+    result.stompDigest = rng.sharedMetric(2, true);
+
+    discardProfileDraws(state, 4);
+    fireTerrify(state);
+    result.fearFacing = state.fearFacing;
+    result.fearDigest = rng.sharedMetric(2, true);
+
+    chooseIdleWander(state);
+    result.wanderX = state.wanderX;
+    result.wanderZ = state.wanderZ;
+    result.wanderDigest = rng.sharedMetric(2, true);
+
+    resetEvader(state);
+    result.evaderWanderTimer = state.evaderWanderTimer;
+    result.evaderDigest = rng.sharedMetric(2, true);
+
+    panicCoward(state);
+    runCowardFlee(state);
+    result.cowardState = state.cowardAiState;
+    result.cowardX = state.cowardX + 2.0;
+    result.cowardZ = state.cowardZ - 2.0;
+    result.cowardFleeTimer = state.cowardFleeTimer;
+    result.draws = rng.sharedMetric(1, true);
+    return result;
+}
+
+scenarioVector(required: bool): container.Array<int> {
+    if (!required) {
+        throw "mob locomotion scenario vector must be observed";
+    }
+    var scenario = runScenario();
+    var values = new container.Array<int>();
+    values.add(7777);
+    values.add(1);
+    values.add(0);
+    values.add(9);
+    values.add(415);
+    values.add(scenario.pulseDamage);
+    values.add(<int>scenario.pulseDigest);
+    values.add(scenario.stompDamage);
+    values.add(<int>scenario.stompDigest);
+    values.add(<int>(scenario.fearFacing * 1000000.0 + 0.5));
+    values.add(<int>scenario.fearDigest);
+    values.add(<int>(scenario.wanderX * 1000000.0 + 0.5));
+    values.add(<int>(scenario.wanderZ * 1000000.0 + 0.5));
+    values.add(<int>scenario.wanderDigest);
+    values.add(<int>(scenario.evaderWanderTimer * 1000000.0 + 0.5));
+    values.add(<int>scenario.evaderDigest);
+    values.add(scenario.cowardState == "flee" ? 1 : 0);
+    values.add(<int>(scenario.cowardX * 1000000.0 + 0.5));
+    values.add(<int>(scenario.cowardZ * 1000000.0));
+    values.add(<int>(scenario.cowardFleeTimer * 1000000.0 + 0.5));
+    values.add(<int>scenario.draws);
+    return values;
+}
+
+pub scenarioMetric(metric: int, required: bool): int {
+    if (!required || metric < 0 || metric > 20) {
+        throw "mob locomotion scenario metric is invalid";
+    }
+    var values = scenarioVector(true);
+    var index = 0;
+    for (var value in values) {
+        if (index == metric) {
+            return <int>value;
+        }
+        index = index + 1;
+    }
+    throw "mob locomotion scenario metric is missing";
+}
+
+pub scenarioContractTest(): int {
+    var expected = new container.Array<int>();
+    expected.add(7777);
+    expected.add(1);
+    expected.add(0);
+    expected.add(9);
+    expected.add(415);
+    expected.add(16);
+    expected.add(<int>1710233402);
+    expected.add(23);
+    expected.add(<int>676036881);
+    expected.add(2042434);
+    expected.add(<int>114211238);
+    expected.add(298918529);
+    expected.add(304701530);
+    expected.add(<int>1524287292);
+    expected.add(7771505);
+    expected.add(<int>1266539381);
+    expected.add(1);
+    expected.add(3160867);
+    expected.add(-839133);
+    expected.add(4950000);
+    expected.add(16);
+    var actual = scenarioVector(true);
+    if (actual.length != expected.length) {
+        return -100;
+    }
+    var metric = 0;
+    for (var value in actual) {
+        if (<int>value != <int>expected[metric]) {
+            return -(metric + 1);
+        }
+        metric = metric + 1;
+    }
+    return 1;
+}
+
+pub parityRulesTest(): int {
+    var state = new LocomotionTestState();
+    state.randomUnits.add(0.5);
+    state.randomUnits.add(0.25);
+    state.randomUnits.add(0.75);
+    state.randomUnits.add(0.125);
+    state.randomUnits.add(0.875);
+    state.randomUnits.add(0.4);
+
+    fireGroundPound(state);
+    if (state.pulseDamage != 17 || state.playerHp != 999983 || state.drawRequests != 1) {
+        return -1;
+    }
+    fireWarStomp(state);
+    if (state.stompDamage != 23 || !state.stompStun || state.playerHp != 999960 ||
+        state.drawRequests != 2) {
+        return -2;
+    }
+    fireTerrify(state);
+    if (!state.fearAura || state.fearFacing < 1.570795 || state.fearFacing > 1.570797 ||
+        state.drawRequests != 3) {
+        return -3;
+    }
+    chooseIdleWander(state);
+    if (state.wanderX < 305.744 || state.wanderX > 305.746 ||
+        state.wanderZ < 305.744 || state.wanderZ > 305.746 || state.drawRequests != 5) {
+        return -4;
+    }
+    resetEvader(state);
+    if (state.evaderAiState != "idle" || state.evaderHp != state.evaderMaxHp ||
+        state.evaderThreatCount != 0 || state.evaderWanderTimer < 4.399999 ||
+        state.evaderWanderTimer > 4.400001 || state.drawRequests != 6) {
+        return -5;
+    }
+    if (!panicCoward(state) || state.cowardAiState != "flee" || !state.cowardHasFled ||
+        state.cowardFleeTimer != 5.0 || state.drawRequests != 6) {
+        return -6;
+    }
+    runCowardFlee(state);
+    if (state.cowardAiState != "flee" || state.cowardFleeTimer < 4.949999 ||
+        state.cowardFleeTimer > 4.950001 || state.cowardX <= 1.0 ||
+        state.cowardZ <= 1.0 || state.drawRequests != 6) {
+        return -7;
+    }
+    return 1;
+}
+
+pub sharedRngScenarioTest(): int {
+    var rng = %import("kernel/rng");
+    rng.resetShared(<uint>7777, 1, true);
+    var state = new LocomotionTestState();
+    fireGroundPound(state);
+    fireWarStomp(state);
+    fireTerrify(state);
+    chooseIdleWander(state);
+    resetEvader(state);
+    if (!panicCoward(state)) {
+        return -1;
+    }
+    runCowardFlee(state);
+    if (state.pulseDamage != 14 || state.stompDamage != 26 ||
+        state.fearFacing < 0.048105 || state.fearFacing > 0.048108) {
+        return -2;
+    }
+    if (state.wanderX < 296.9634 || state.wanderX > 296.9636 ||
+        state.wanderZ < 303.0816 || state.wanderZ > 303.0818 ||
+        state.evaderWanderTimer < 3.6198 || state.evaderWanderTimer > 3.6201) {
+        return -3;
+    }
+    if (state.drawRequests != 6 || rng.sharedMetric(1, true) != <uint>6 ||
+        rng.sharedMetric(2, true) != <uint>1738562523) {
+        return -4;
+    }
+    return 1;
+}

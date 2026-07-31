@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use super::adapter::text_style;
 use crate::text::layout::measured_grapheme_widths;
 use zircon_runtime_interface::ui::{
@@ -138,7 +140,7 @@ fn visual_grapheme_boundary_for_x(
     let advance_width = advances.iter().sum::<f32>();
     let measured_x = relative_x.clamp(0.0, line.measured_width.max(advance_width).max(0.0));
     let mut cursor_x = 0.0_f32;
-    for (index, width) in advances.into_iter().enumerate() {
+    for (index, width) in advances.iter().copied().enumerate() {
         if index > 0 && measured_x < cursor_x {
             return (index, UiTextVisualBoundaryBias::TrailingPrevious);
         }
@@ -171,7 +173,7 @@ fn visual_grapheme_boundary_for_y(
             .max(0.0),
     );
     let mut cursor_y = 0.0_f32;
-    for (index, height) in advances.into_iter().enumerate() {
+    for (index, height) in advances.iter().copied().enumerate() {
         if index > 0 && measured_y < cursor_y {
             return (index, UiTextVisualBoundaryBias::TrailingPrevious);
         }
@@ -183,22 +185,30 @@ fn visual_grapheme_boundary_for_y(
     (grapheme_count, UiTextVisualBoundaryBias::TrailingPrevious)
 }
 
-fn resolved_grapheme_advances(
-    line: &UiResolvedTextLine,
+fn resolved_grapheme_advances<'a>(
+    line: &'a UiResolvedTextLine,
     style: &UiResolvedStyle,
     grapheme_count: usize,
-) -> Vec<f32> {
+) -> Cow<'a, [f32]> {
     if line.glyph_advances.len() == grapheme_count {
+        if line
+            .glyph_advances
+            .iter()
+            .all(|advance| advance.is_finite() && *advance >= 0.0)
+            && line.glyph_advances.iter().any(|advance| *advance > 0.0)
+        {
+            return Cow::Borrowed(&line.glyph_advances);
+        }
         let advances = line
             .glyph_advances
             .iter()
             .map(|advance| sanitized_advance(*advance))
             .collect::<Vec<_>>();
         if advances.iter().any(|advance| *advance > 0.0) {
-            return advances;
+            return Cow::Owned(advances);
         }
     }
-    measured_grapheme_widths(&line.text, &text_style(style))
+    Cow::Owned(measured_grapheme_widths(&line.text, &text_style(style)))
 }
 
 fn sanitized_advance(advance: f32) -> f32 {

@@ -21,6 +21,14 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         !camera_loop_submission_body.contains("resolve_camera_sequence(extract.view.cameras.clone())"),
         "camera_loop_submissions should borrow RenderViewExtract.cameras before cloning only the final descriptor sequence"
     );
+    assert!(
+        !camera_loop.contains("let mut cameras = extract.view.cameras.clone();"),
+        "camera-loop planning should not clone every camera when no planar capture is appended"
+    );
+    assert!(
+        camera_loop.contains("get_or_insert_with(|| extract.view.cameras.clone())"),
+        "camera-loop planning should clone the camera list only when a derived capture camera is appended"
+    );
     let submit_camera_loop_body = camera_loop
         .split("pub(super) fn submit_camera_loop(")
         .nth(1)

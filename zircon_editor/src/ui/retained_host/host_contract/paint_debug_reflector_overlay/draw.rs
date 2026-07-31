@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use super::super::data::{FrameRect, UiDebugOverlayPrimitiveData};
 use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_geometry::{intersect, is_visible_frame, translated};
@@ -13,13 +15,26 @@ pub(in crate::ui::retained_host::host_contract) fn draw_debug_reflector_overlay(
     origin: &FrameRect,
     clip: &FrameRect,
 ) -> bool {
-    if primitives.is_empty() || !is_visible_frame(origin) || !is_visible_frame(clip) {
+    draw_debug_reflector_overlay_iter(frame, primitives, origin, clip)
+}
+
+pub(in crate::ui::retained_host::host_contract) fn draw_debug_reflector_overlay_iter<I>(
+    frame: &mut HostRgbaFrame,
+    primitives: I,
+    origin: &FrameRect,
+    clip: &FrameRect,
+) -> bool
+where
+    I: IntoIterator,
+    I::Item: Borrow<UiDebugOverlayPrimitiveData>,
+{
+    if !is_visible_frame(origin) || !is_visible_frame(clip) {
         return false;
     }
 
     let mut painted = false;
     for primitive in primitives {
-        painted |= draw_overlay_primitive(frame, primitive, origin, clip);
+        painted |= draw_overlay_primitive(frame, primitive.borrow(), origin, clip);
     }
     painted
 }

@@ -2,9 +2,9 @@ use super::super::{
     BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunMode, EntryRunner,
 };
 use crate::plugins::{DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup};
+use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::core::framework::project::RuntimeProfileId;
 use zircon_runtime::core::framework::window::{WindowDescriptor, WindowResolution};
-use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginAvailabilityCategory,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport,
@@ -12,6 +12,26 @@ use zircon_runtime::plugin::{
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 const EDITOR_MODULE_NAME: &str = "EditorModule";
+
+#[test]
+fn native_bootstrap_moves_owned_registration_reports() {
+    let source = include_str!("../entry_runner/bootstrap.rs");
+    let compact = source.split_whitespace().collect::<String>();
+
+    for field in [
+        "runtime_plugin_registration_reports",
+        "runtime_plugin_feature_registration_reports",
+    ] {
+        assert!(
+            compact.contains(&format!("extend(native_report.{field});")),
+            "native bootstrap should move owned `{field}` into the merged report",
+        );
+        assert!(
+            !compact.contains(&format!("extend(native_report.{field}.clone());")),
+            "native bootstrap should not deep-clone owned `{field}`",
+        );
+    }
+}
 
 #[test]
 fn builtin_engine_entry_reports_run_mode_and_owned_modules() {
@@ -26,15 +46,19 @@ fn builtin_engine_entry_reports_run_mode_and_owned_modules() {
         DefaultPlugins.build().unwrap().finish().module_keys()
     );
     assert_eq!(entry.modules().len(), descriptors.len());
-    assert!(entry
-        .modules()
-        .iter()
-        .all(|module| !module.module_name().is_empty()));
+    assert!(
+        entry
+            .modules()
+            .iter()
+            .all(|module| !module.module_name().is_empty())
+    );
     assert!(descriptors.iter().any(|descriptor| descriptor.name
         == zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
-    assert!(descriptors
-        .iter()
-        .all(|descriptor| descriptor.name != EDITOR_MODULE_NAME));
+    assert!(
+        descriptors
+            .iter()
+            .all(|descriptor| descriptor.name != EDITOR_MODULE_NAME)
+    );
 }
 
 #[test]
@@ -48,12 +72,16 @@ fn entry_config_selects_runtime_modules_explicitly_for_client_runtime() {
     assert_eq!(entry.run_mode(), EntryRunMode::Runtime);
     assert!(descriptors.iter().any(|descriptor| descriptor.name
         == zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == zircon_runtime::ui::UI_MODULE_NAME));
-    assert!(descriptors
-        .iter()
-        .all(|descriptor| descriptor.name != EDITOR_MODULE_NAME));
+    assert!(
+        descriptors
+            .iter()
+            .any(|descriptor| descriptor.name == zircon_runtime::ui::UI_MODULE_NAME)
+    );
+    assert!(
+        descriptors
+            .iter()
+            .all(|descriptor| descriptor.name != EDITOR_MODULE_NAME)
+    );
 }
 
 #[test]
@@ -71,9 +99,11 @@ fn entry_config_can_define_headless_target_without_client_plugins() {
     );
     assert!(descriptors.iter().all(|descriptor| descriptor.name
         != zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
-    assert!(descriptors
-        .iter()
-        .all(|descriptor| descriptor.name != zircon_runtime::ui::UI_MODULE_NAME));
+    assert!(
+        descriptors
+            .iter()
+            .all(|descriptor| descriptor.name != zircon_runtime::ui::UI_MODULE_NAME)
+    );
     assert_eq!(
         entry
             .module_selection_report()
@@ -100,12 +130,16 @@ fn minimal_runtime_profile_selects_minimal_plugin_group() {
     assert!(descriptors
         .iter()
         .any(|descriptor| descriptor.name == zircon_runtime::foundation::FOUNDATION_MODULE_NAME));
-    assert!(descriptors
-        .iter()
-        .all(|descriptor| descriptor.name != zircon_runtime::platform::PLATFORM_MODULE_NAME));
-    assert!(descriptors
-        .iter()
-        .all(|descriptor| descriptor.name != zircon_runtime::input::INPUT_MODULE_NAME));
+    assert!(
+        descriptors
+            .iter()
+            .all(|descriptor| descriptor.name != zircon_runtime::platform::PLATFORM_MODULE_NAME)
+    );
+    assert!(
+        descriptors
+            .iter()
+            .all(|descriptor| descriptor.name != zircon_runtime::input::INPUT_MODULE_NAME)
+    );
     assert!(descriptors.iter().all(|descriptor| descriptor.name
         != zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
 }
@@ -130,9 +164,11 @@ fn dev_runtime_profile_selects_dev_plugin_group() {
     assert_eq!(report.runtime_profile, Some(RuntimeProfileId::Dev));
     assert_eq!(report.target_mode, RuntimeTargetMode::EditorHost);
     assert_eq!(report.plugin_group, "DevPlugins");
-    assert!(report
-        .module_keys()
-        .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME));
+    assert!(
+        report
+            .module_keys()
+            .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME)
+    );
 }
 
 #[test]
@@ -284,17 +320,21 @@ fn entry_runner_bootstrap_with_report_preserves_runtime_plugin_availability() {
     )
     .unwrap();
 
-    assert!(bootstrap
-        .module_selection_report()
-        .runtime_plugin_availability
-        .contains(
-            RuntimePluginAvailabilityCategory::Linked,
-            RuntimePluginId::VirtualGeometry
-        ));
-    assert!(!bootstrap
-        .module_selection_report()
-        .runtime_plugin_availability
-        .has_missing_required());
+    assert!(
+        bootstrap
+            .module_selection_report()
+            .runtime_plugin_availability
+            .contains(
+                RuntimePluginAvailabilityCategory::Linked,
+                RuntimePluginId::VirtualGeometry
+            )
+    );
+    assert!(
+        !bootstrap
+            .module_selection_report()
+            .runtime_plugin_availability
+            .has_missing_required()
+    );
 
     let (_core, report) = bootstrap.into_parts();
     assert!(report.module_keys().contains(&"VirtualGeometryPlugin"));
@@ -359,9 +399,11 @@ fn entry_config_keeps_editor_shell_while_runtime_plugins_are_explicit() {
     let descriptors = entry.module_descriptors();
 
     assert_eq!(entry.run_mode(), EntryRunMode::Editor);
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == EDITOR_MODULE_NAME));
+    assert!(
+        descriptors
+            .iter()
+            .any(|descriptor| descriptor.name == EDITOR_MODULE_NAME)
+    );
     assert!(descriptors.iter().any(|descriptor| descriptor.name
         == zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
 }

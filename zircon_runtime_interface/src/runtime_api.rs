@@ -1,17 +1,21 @@
 mod api_table;
 mod constants;
 mod events;
+mod frame_demand;
 mod host_requests;
 mod operation;
 mod plugin_event_mirror;
 mod requests;
+mod session;
 mod viewport;
 
 pub use api_table::*;
 pub use constants::*;
 pub use events::*;
+pub use frame_demand::*;
 pub use host_requests::*;
 pub use operation::*;
 pub use plugin_event_mirror::*;
 pub use requests::*;
+pub use session::*;
 pub use viewport::*;

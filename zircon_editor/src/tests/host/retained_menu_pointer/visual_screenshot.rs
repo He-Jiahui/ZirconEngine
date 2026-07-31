@@ -12,8 +12,8 @@ use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, ModulePluginsPaneViewData,
 };
 use crate::ui::retained_host::callback_dispatch::{
-    load_startup_builtin_template_runtime, BuiltinWorkbenchWindowLayoutFrames,
-    BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    load_startup_builtin_template_runtime, BuiltinHostWindowTemplateBridge,
+    BuiltinWorkbenchWindowLayoutFrames, BuiltinWorkbenchWindowTemplateSurfaceBridge,
 };
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::ui::retained_host::{
@@ -345,6 +345,7 @@ fn capture_host_page_overflow_menu_visual_artifact() {
         HostPageOverflowMenuStateData {
             open: false,
             hovered_page_index: -1,
+            scroll_offset: 0.0,
         },
     );
     let closed_presentation = ui.get_host_presentation();
@@ -355,6 +356,7 @@ fn capture_host_page_overflow_menu_visual_artifact() {
         HostPageOverflowMenuStateData {
             open: true,
             hovered_page_index: 2,
+            scroll_offset: 0.0,
         },
     );
     let opened_presentation = ui.get_host_presentation();
@@ -1263,7 +1265,7 @@ fn workbench_fixture_window_with_presets(
     presented_window_from_fixture(&fixture, width, height, preset_names, active_preset_name)
 }
 
-fn welcome_input_window(width: u32, height: u32) -> UiHostWindow {
+pub(super) fn welcome_input_window(width: u32, height: u32) -> UiHostWindow {
     let mut fixture = default_preview_fixture();
     let welcome_page_id = MainPageId::new(WELCOME_PAGE_ID);
     let welcome_instance_id = ViewInstanceId::new(WELCOME_INSTANCE_ID);
@@ -1704,12 +1706,19 @@ fn workbench_window_bridge_for_visual_artifact(
         load_startup_builtin_template_runtime()
             .expect("startup template runtime should load for screenshot"),
     );
+    let host_bridge =
+        BuiltinHostWindowTemplateBridge::new_with_runtime(runtime.clone(), shell_size)
+            .expect("host template bridge should instantiate for screenshot");
+    let mount_frame = host_bridge
+        .root_shell_frames()
+        .componentized_workbench_mount_frame(shell_size);
     let mut bridge =
-        BuiltinWorkbenchWindowTemplateSurfaceBridge::new_with_runtime(runtime, shell_size)
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new_mounted_with_runtime(runtime, mount_frame)
             .expect("workbench window template bridge should instantiate for screenshot");
     bridge
-        .recompute_layout_with_workbench_model(
-            shell_size,
+        .recompute_mounted_layout_with_workbench_model_at_scale(
+            mount_frame,
+            1.0,
             model,
             &WorkbenchChromeMetrics::default(),
         )
@@ -1850,7 +1859,7 @@ fn release_first_document_tab_drag(ui: &UiHostWindow) {
     );
 }
 
-fn save_window_snapshot(ui: &UiHostWindow, filename: &str) -> PathBuf {
+pub(super) fn save_window_snapshot(ui: &UiHostWindow, filename: &str) -> PathBuf {
     let snapshot = ui
         .window()
         .take_snapshot()

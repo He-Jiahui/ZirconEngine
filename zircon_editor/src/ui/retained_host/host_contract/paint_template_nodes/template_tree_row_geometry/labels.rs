@@ -13,7 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_la
     FrameRect {
         x: text_x,
         y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
-        width: (rect.x + rect.width - text_x - right_reserve).max(1.0),
+        width: (rect.x + rect.width - text_x - right_reserve).max(0.0),
         height: line_height,
     }
 }

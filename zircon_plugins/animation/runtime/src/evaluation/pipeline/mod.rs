@@ -1,5 +1,6 @@
 mod animation_evaluation_pipeline;
 mod clip_sample;
+mod direct_clip_worker;
 mod events;
 mod graph_cache;
 mod graph_evaluate;
@@ -12,6 +13,7 @@ mod nested_machine_state;
 mod parameter_apply;
 mod pose_apply;
 mod pose_blend;
+mod pose_target_binding;
 mod requests;
 mod sequences;
 mod simulated_pose_blend;
@@ -22,5 +24,8 @@ mod state_machine_step;
 mod state_machine_transition;
 mod tick;
 
-pub use animation_evaluation_pipeline::AnimationEvaluationPipeline;
+pub use animation_evaluation_pipeline::{
+    AnimationEvaluationPipeline, AnimationEvaluationProjectionStats,
+};
+pub use direct_clip_worker::{DirectClipWorkerStats, MAX_DIRECT_CLIP_WORKER_SHARDS};
 pub(crate) use tick::tick_animation_world;

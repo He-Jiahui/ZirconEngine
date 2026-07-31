@@ -1,7 +1,8 @@
 use super::{
     CapturedFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFrameworkError,
-    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
-    RenderViewportHandle, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderSubmissionConfig,
+    RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
+    RenderVirtualGeometryDebugSnapshot,
 };
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
@@ -25,6 +26,19 @@ pub trait RenderFramework: Send + Sync {
         extract: RenderFrameExtract,
         ui: Option<UiRenderExtract>,
     ) -> Result<(), RenderFrameworkError>;
+
+    fn set_submission_config(
+        &self,
+        _config: RenderSubmissionConfig,
+    ) -> Result<(), RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "render submission configuration".to_string(),
+        })
+    }
+
+    fn submission_config(&self) -> RenderSubmissionConfig {
+        RenderSubmissionConfig::default()
+    }
 
     fn bind_viewport_surface(
         &self,
@@ -93,6 +107,16 @@ pub trait RenderFramework: Send + Sync {
         &self,
         viewport: RenderViewportHandle,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError>;
+
+    fn capture_frame_if_newer(
+        &self,
+        viewport: RenderViewportHandle,
+        last_generation: Option<u64>,
+    ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
+        Ok(self
+            .capture_frame(viewport)?
+            .filter(|frame| Some(frame.generation) != last_generation))
+    }
 
     fn set_quality_profile(
         &self,

@@ -151,7 +151,7 @@ Unreal 参照用于拆分生命周期和编辑器表面：Landscape 负责 heigh
 `zircon_editor::core::editor_authoring_extension` 是通用 Authoring 描述符层，当前包含：
 
 - `AssetCreationTemplateDescriptor`
-- `ViewportToolModeDescriptor`
+- `SceneModeDescriptor`
 - `GraphEditorDescriptor`
 - `GraphNodePaletteDescriptor`
 - `GraphNodeDescriptor`
@@ -159,9 +159,9 @@ Unreal 参照用于拆分生命周期和编辑器表面：Landscape 负责 heigh
 - `TimelineEditorDescriptor`
 - `TimelineTrackDescriptor`
 
-这些 descriptor 都带有 capability gate 字段。`EditorExtensionRegistry` 为每一类 descriptor 提供独立 map 和 `register_*` 方法，并执行重复 ID、空 ID、graph palette 空节点和重复 node ID 校验。`EditorPluginCatalog::editor_extensions()` 聚合插件扩展时统一合并 view、drawer、template、operation、menu item、importer、asset editor、component drawer、tool mode、graph/timeline descriptor；workbench 侧应继续消费通用 descriptor，不为单个 Authoring 插件写特殊分支。
+这些 descriptor 都带有 capability gate 字段。`EditorExtensionRegistry` 为每一类 descriptor 提供独立 map 和 `register_*` 方法，并执行重复 ID、空 ID、graph palette 空节点和重复 node ID 校验。可执行 scene mode 必须通过 `register_scene_mode(SceneModeRegistration)` 同时提交 descriptor 与 factory；`EditorPluginCatalog::editor_extensions()` 聚合插件扩展时统一合并 view、drawer、template、operation、menu item、importer、asset editor、component drawer、scene mode、graph/timeline descriptor；workbench 侧应继续消费通用 descriptor，不为单个 Authoring 插件写特殊分支。
 
-`zircon_plugins/editor_support` 的 `EditorAuthoringContributionBatch` 是插件包使用的批量注册入口。每个 editor crate 先注册一个基础 authoring surface，再通过 batch 注册 operation、menu item、importer、asset editor、component drawer、template、tool mode、graph editor、palette 或 timeline track。batch 测试固定了 menu item、payload schema 和所有 authoring descriptor family 会在一次注册中进入同一个 registry。
+`zircon_plugins/editor_support` 的 `EditorAuthoringContributionBatch` 是插件包使用的批量注册入口。每个 editor crate 先注册一个基础 authoring surface，再通过 batch 注册 operation、menu item、importer、asset editor、component drawer、template、可执行 scene mode、graph editor、palette 或 timeline track。batch 测试固定了 menu item、payload schema 和所有 authoring descriptor family 会在一次注册中进入同一个 registry。
 
 Authoring surface 的打开操作路径只使用当前 `ViewDescriptor::open_operation_path()` 规则：`view.<view_id>.open`。例如 animation authoring view `animation.authoring` 的菜单项和 operation descriptor 都必须指向 `view.animation.authoring.open`。旧式 `View.animation.authoring.Open` 属于退役操作路径，测试和插件注册不得继续接受或断言它，也不通过兼容 alias 映射。
 
@@ -257,7 +257,7 @@ editor 能力名固定为：
 
 本轮新增覆盖：
 
-- `EditorAuthoringContributionBatch.menu_items` 批量注册测试，覆盖 menu item、operation payload schema、importer、asset editor、component drawer、asset creation template、viewport tool mode、graph editor、palette、timeline editor 和 track type。
+- `EditorAuthoringContributionBatch.menu_items` 批量注册测试，覆盖 menu item、operation payload schema、importer、asset editor、component drawer、asset creation template、可执行 scene mode、graph editor、palette、timeline editor 和 track type。
 - 六个 Authoring editor crate 的 operation/menu/payload schema 可观测测试。
 - `EditorOperationDescriptor.payload_schema_id` getter 与 TOML roundtrip 测试。
 - `EditorOperationRegistry` 对非法 payload schema ID 的拒绝测试，覆盖带空格的 schema ID 不能注册。

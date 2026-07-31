@@ -16,6 +16,7 @@ use zircon_runtime::core::framework::net::{
     NetWebSocketFrame, NetWebSocketListenerDescriptor,
 };
 
+use crate::poison_recovery::lock_recover;
 use crate::runtime_state::NetRuntimeState;
 use crate::websocket::WebSocketRuntimeBackend;
 use crate::HttpRuntimeBackend;
@@ -38,20 +39,12 @@ impl DefaultNetManager {
     }
 
     pub fn with_http_backend(self, backend: Arc<dyn HttpRuntimeBackend>) -> Self {
-        *self
-            .state
-            .http_backend
-            .lock()
-            .expect("net HTTP backend mutex poisoned") = Some(backend);
+        *lock_recover(&self.state.http_backend) = Some(backend);
         self
     }
 
     pub fn with_websocket_backend(self, backend: Arc<dyn WebSocketRuntimeBackend>) -> Self {
-        *self
-            .state
-            .websocket_backend
-            .lock()
-            .expect("net WebSocket backend mutex poisoned") = Some(backend);
+        *lock_recover(&self.state.websocket_backend) = Some(backend);
         self
     }
 
@@ -79,6 +72,73 @@ impl DefaultNetManager {
     #[cfg(test)]
     pub(crate) fn worker_is_shutdown_for_tests(&self) -> bool {
         self.state.worker.is_shutdown()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shutdown_worker_result_for_tests(
+        &self,
+    ) -> Result<crate::worker::NetWorkerShutdownReport, NetError> {
+        self.state.shutdown_worker_result_for_tests()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_worker_thread_for_test(&self) {
+        self.state.poison_worker_thread_for_test();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_events_for_test(&self) {
+        self.state.poison_events_for_test();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_udp_sockets_for_test(&self) {
+        let state = Arc::clone(&self.state);
+        let _ = std::panic::catch_unwind(move || {
+            let _guard = lock_recover(&state.udp_sockets);
+            panic!("poison net UDP sockets for typed-error coverage");
+        });
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_tcp_connections_for_test(&self) {
+        let state = Arc::clone(&self.state);
+        let _ = std::panic::catch_unwind(move || {
+            let _guard = lock_recover(&state.tcp_connections);
+            panic!("poison net TCP connections for typed-error coverage");
+        });
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_http_listeners_for_test(&self) {
+        let state = Arc::clone(&self.state);
+        let _ = std::panic::catch_unwind(move || {
+            let _guard = lock_recover(&state.http_listeners);
+            panic!("poison net HTTP listeners for post-callback coverage");
+        });
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_websocket_listeners_for_test(&self) {
+        let state = Arc::clone(&self.state);
+        let _ = std::panic::catch_unwind(move || {
+            let _guard = lock_recover(&state.websocket_listeners);
+            panic!("poison net WebSocket listeners for post-callback coverage");
+        });
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_websocket_connections_for_test(&self) {
+        let state = Arc::clone(&self.state);
+        let _ = std::panic::catch_unwind(move || {
+            let _guard = lock_recover(&state.websocket_connections);
+            panic!("poison net WebSocket connections for post-callback coverage");
+        });
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fail_next_worker_shutdown_after_submit_for_test(&self) {
+        self.state.fail_next_worker_shutdown_after_submit_for_test();
     }
 }
 

@@ -2,10 +2,23 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     path::{Path, PathBuf},
+    sync::OnceLock,
 };
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::UiV2AssetDocument;
+
+pub(super) struct MaterialPrototypeFixture {
+    pub(super) path: PathBuf,
+    pub(super) source: String,
+    pub(super) document: UiV2AssetDocument,
+}
+
+static MATERIAL_PROTOTYPE_FILES: OnceLock<Vec<PathBuf>> = OnceLock::new();
+static MATERIAL_PROTOTYPE_FIXTURES: OnceLock<BTreeMap<String, MaterialPrototypeFixture>> =
+    OnceLock::new();
+static EDITOR_MATERIAL_THEME_SOURCE: OnceLock<String> = OnceLock::new();
+static EDITOR_MATERIAL_THEME_SELECTORS: OnceLock<BTreeSet<String>> = OnceLock::new();
 
 pub(super) const MUI_X_PROTOTYPES: &[&str] = &[
     "mui_x_tree_view",
@@ -153,12 +166,6 @@ pub(super) const INTERACTIVE_PROTOTYPES: &[&str] = &[
     "mui_x_chat_composer",
 ];
 
-pub(super) fn source_contains(path: &Path, token: &str) -> bool {
-    fs::read_to_string(path)
-        .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()))
-        .contains(token)
-}
-
 pub(super) fn child_nodes<'a>(document: &'a UiV2AssetDocument, node_id: &str) -> Vec<&'a str> {
     document
         .nodes
@@ -206,30 +213,75 @@ pub(super) fn numeric_prop(value: Option<&toml::Value>) -> Option<f64> {
     })
 }
 
-pub(super) fn material_prototype_files() -> Vec<PathBuf> {
-    let dir = editor_asset("assets/ui/editor/material_components");
-    let mut files = Vec::new();
-    for domain in MATERIAL_COMPONENT_DOMAINS {
-        let domain_dir = dir.join(domain);
-        files.extend(
-            fs::read_dir(&domain_dir)
-                .unwrap_or_else(|error| {
-                    panic!("{} should be readable: {error}", domain_dir.display())
-                })
-                .map(|entry| {
-                    entry
-                        .expect("prototype dir entry should be readable")
-                        .path()
-                })
-                .filter(|path| {
-                    path.file_name()
-                        .and_then(|name| name.to_str())
-                        .is_some_and(|name| name.starts_with("material_") && name.ends_with(".zui"))
-                }),
-        );
-    }
-    files.sort();
-    files
+pub(super) fn material_prototype_files() -> &'static [PathBuf] {
+    MATERIAL_PROTOTYPE_FILES
+        .get_or_init(|| {
+            let dir = editor_asset("assets/ui/editor/material_components");
+            let mut files = Vec::new();
+            for domain in MATERIAL_COMPONENT_DOMAINS {
+                let domain_dir = dir.join(domain);
+                files.extend(
+                    fs::read_dir(&domain_dir)
+                        .unwrap_or_else(|error| {
+                            panic!("{} should be readable: {error}", domain_dir.display())
+                        })
+                        .map(|entry| {
+                            entry
+                                .expect("prototype dir entry should be readable")
+                                .path()
+                        })
+                        .filter(|path| {
+                            path.file_name()
+                                .and_then(|name| name.to_str())
+                                .is_some_and(|name| {
+                                    name.starts_with("material_") && name.ends_with(".zui")
+                                })
+                        }),
+                );
+            }
+            files.sort();
+            files
+        })
+        .as_slice()
+}
+
+pub(super) fn material_prototype_fixtures() -> &'static BTreeMap<String, MaterialPrototypeFixture> {
+    MATERIAL_PROTOTYPE_FIXTURES.get_or_init(|| {
+        material_prototype_files()
+            .iter()
+            .map(|path| {
+                let key = material_prototype_key(path).to_string();
+                let source = fs::read_to_string(path).unwrap_or_else(|error| {
+                    panic!("{} should be readable: {error}", path.display())
+                });
+                let document = UiZuiAssetLoader::load_zui_str(&source).unwrap_or_else(|error| {
+                    panic!("{} should load as .zui: {error}", path.display())
+                });
+                (
+                    key,
+                    MaterialPrototypeFixture {
+                        path: path.clone(),
+                        source,
+                        document,
+                    },
+                )
+            })
+            .collect()
+    })
+}
+
+pub(super) fn material_prototype_fixture(key: &str) -> &'static MaterialPrototypeFixture {
+    material_prototype_fixtures()
+        .get(key)
+        .unwrap_or_else(|| panic!("Material prototype `{key}` should exist"))
+}
+
+fn material_prototype_key(path: &Path) -> &str {
+    path.file_stem()
+        .and_then(|name| name.to_str())
+        .expect("prototype file stem is UTF-8")
+        .strip_prefix("material_")
+        .expect("prototype files use material_ prefix")
 }
 
 pub(super) fn material_prototype_component_names() -> BTreeSet<String> {
@@ -239,27 +291,17 @@ pub(super) fn material_prototype_component_names() -> BTreeSet<String> {
 }
 
 pub(super) fn material_prototype_components_by_key() -> BTreeMap<String, String> {
-    material_prototype_files()
+    material_prototype_fixtures()
         .iter()
-        .map(|path| {
-            let key = path
-                .file_stem()
-                .and_then(|name| name.to_str())
-                .expect("prototype file stem is UTF-8")
-                .strip_prefix("material_")
-                .expect("prototype files use material_ prefix")
-                .to_string();
-            let source = fs::read_to_string(path)
-                .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-            let document = UiZuiAssetLoader::load_zui_str(&source)
-                .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
-            let component = document
+        .map(|(key, fixture)| {
+            let component = fixture
+                .document
                 .components
                 .keys()
                 .next()
                 .expect("prototype declares one component")
                 .to_string();
-            (key, component)
+            (key.clone(), component)
         })
         .collect()
 }
@@ -286,12 +328,8 @@ pub(super) fn material_lab_event_ids() -> Vec<String> {
 
 pub(super) fn material_lab_event_specs() -> BTreeSet<(String, String)> {
     let mut specs = BTreeSet::new();
-    for path in material_prototype_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("{} should load as .zui: {error}", path.display()));
-        for node in document.nodes.values() {
+    for fixture in material_prototype_fixtures().values() {
+        for node in fixture.document.nodes.values() {
             for event in &node.events {
                 if event.id.starts_with("MaterialLab/") {
                     specs.insert((event.id.clone(), format!("{:?}", event.event)));
@@ -300,6 +338,37 @@ pub(super) fn material_lab_event_specs() -> BTreeSet<(String, String)> {
         }
     }
     specs
+}
+
+pub(super) fn editor_material_theme_source() -> &'static str {
+    EDITOR_MATERIAL_THEME_SOURCE
+        .get_or_init(|| {
+            let path = editor_asset("assets/ui/theme/editor_material.zui");
+            fs::read_to_string(&path)
+                .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()))
+        })
+        .as_str()
+}
+
+pub(super) fn editor_material_theme_selectors() -> &'static BTreeSet<String> {
+    EDITOR_MATERIAL_THEME_SELECTORS.get_or_init(|| {
+        toml::from_str::<toml::Value>(editor_material_theme_source())
+            .unwrap_or_else(|error| panic!("Editor Material theme should parse as TOML: {error}"))
+            .get("stylesheets")
+            .and_then(toml::Value::as_array)
+            .into_iter()
+            .flatten()
+            .flat_map(|stylesheet| {
+                stylesheet
+                    .get("rules")
+                    .and_then(toml::Value::as_array)
+                    .into_iter()
+                    .flatten()
+            })
+            .filter_map(|rule| rule.get("selector").and_then(toml::Value::as_str))
+            .map(ToOwned::to_owned)
+            .collect()
+    })
 }
 
 pub(super) fn mui_docs_keys() -> BTreeSet<String> {

@@ -171,6 +171,24 @@ class TrackedIgnoredFinalizeTests(unittest.TestCase):
         self.assertEqual(sorted(paths), sorted(path for path in committed if path))
         self.assertEqual([foreign_path], self._staged_names())
 
+    def test_milestone_still_rejects_a_clean_proof_only_path(self) -> None:
+        self._modify_skill()
+        clean_plan = "docs/plans/runtime/01-feature.md"
+        paths = [self.skill_path, clean_plan]
+        self.assertTrue(self.leases.acquire("session-a", paths).acquired)
+        self.baselines.attribute("session-a", paths)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.commit_milestone(
+                "session-a",
+                paths=paths,
+                message="fix(tooling): reject proof-only milestone scope",
+                failure_workflow_node_keys=("M1",),
+            )
+
+        self.assertEqual("finalize_path_unchanged", rejected.exception.code)
+        self.assertEqual([clean_plan], rejected.exception.details["paths"])
+
 
 if __name__ == "__main__":
     unittest.main()

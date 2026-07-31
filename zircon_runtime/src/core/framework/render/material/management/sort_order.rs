@@ -143,8 +143,9 @@ fn compare_material_names_for_direction(
 }
 
 fn compare_material_name_text(left: &str, right: &str) -> Ordering {
-    left.to_ascii_lowercase()
-        .cmp(&right.to_ascii_lowercase())
+    left.bytes()
+        .map(|byte| byte.to_ascii_lowercase())
+        .cmp(right.bytes().map(|byte| byte.to_ascii_lowercase()))
         .then_with(|| left.cmp(right))
 }
 

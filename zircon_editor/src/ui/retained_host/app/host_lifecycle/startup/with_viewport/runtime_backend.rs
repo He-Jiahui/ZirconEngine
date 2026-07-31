@@ -8,22 +8,17 @@ pub(super) struct StartupRuntimeBackend {
 }
 
 pub(super) fn create_startup_runtime_backend(
-    state: EditorState,
-    editor_manager: Arc<EditorManager>,
+    runtime: EditorHostEventController,
 ) -> StartupRuntimeBackend {
     let native_plugin_live_host = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_native_plugin_live_host");
         Arc::new(zircon_runtime::plugin::native::NativePluginLiveHost::default())
     };
-    let runtime = {
-        zircon_runtime::profile_scope!("editor", "retained_host", "new_editor_event_runtime");
-        EditorHostEventController::new(state, editor_manager)
-    };
     {
-        zircon_runtime::profile_scope!("editor", "retained_host", "new_set_play_mode_backend");
-        runtime.set_runtime_play_mode_backend(Arc::new(
-            NativePluginEditorRuntimePlayModeBackend::new(native_plugin_live_host.clone()),
-        ));
+        zircon_runtime::profile_scope!("editor", "retained_host", "new_plugin_bridge_activation");
+        runtime.set_plugin_bridge_activation(Arc::new(NativePluginBridgeActivation::new(
+            native_plugin_live_host.clone(),
+        )));
     }
 
     StartupRuntimeBackend {

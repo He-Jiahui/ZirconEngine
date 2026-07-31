@@ -223,16 +223,47 @@ impl UiHitPath {
         }
     }
 
+    /// Creates a hit path from the one authoritative propagation order.
+    pub fn from_root_to_leaf(query: &UiHitTestQuery, root_to_leaf: Vec<UiNodeId>) -> Self {
+        Self::from_query(query).with_root_to_leaf(root_to_leaf)
+    }
+
+    pub fn with_root_to_leaf(mut self, root_to_leaf: Vec<UiNodeId>) -> Self {
+        self.target = root_to_leaf.last().copied();
+        self.bubble_route = root_to_leaf.iter().rev().copied().collect();
+        self.root_to_leaf = root_to_leaf;
+        self
+    }
+
+    /// Accepts legacy route inputs only when they agree with the authoritative root-to-leaf path.
     pub fn with_route(
-        mut self,
+        self,
         target: Option<UiNodeId>,
         root_to_leaf: Vec<UiNodeId>,
         bubble_route: Vec<UiNodeId>,
     ) -> Self {
-        self.target = target;
-        self.root_to_leaf = root_to_leaf;
-        self.bubble_route = bubble_route;
-        self
+        let expected_target = root_to_leaf.last().copied();
+        let expected_bubble_route: Vec<_> = root_to_leaf.iter().rev().copied().collect();
+
+        assert_eq!(
+            target, expected_target,
+            "UiHitPath target must match the final root-to-leaf node"
+        );
+        assert_eq!(
+            bubble_route, expected_bubble_route,
+            "UiHitPath bubble route must be the reverse of root-to-leaf"
+        );
+
+        self.with_root_to_leaf(root_to_leaf)
+    }
+
+    pub fn has_consistent_route(&self) -> bool {
+        self.target == self.root_to_leaf.last().copied()
+            && self
+                .bubble_route
+                .iter()
+                .copied()
+                .eq(self.root_to_leaf.iter().rev().copied())
     }
 }
 

@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTree, UiTreeError},
 };
 
-use super::slot::{ordered_children_for_container, slot_for_container_child, slot_padding};
+use super::slot::{slot_for_container_child, slot_padding};
 use super::{axis::desired_axis, material::measure_material_content};
 
 const UNBOUNDED_WRAP_MEASURE_WIDTH: f32 = f32::INFINITY;
@@ -21,10 +21,20 @@ const BUTTON_VERTICAL_PADDING: f32 = 8.0;
 pub(crate) fn measure_node(
     tree: &mut UiTree,
     node_id: UiNodeId,
-    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> Result<DesiredSize, UiTreeError> {
-    let profile_started = std::env::var_os("ZR_UI_LAYOUT_PROFILE").map(|_| Instant::now());
-    let (children, layout_boundary, constraints, container, template_metadata) = {
+    let profile_layout = std::env::var_os("ZR_UI_LAYOUT_PROFILE").is_some();
+    measure_node_with_profile(tree, node_id, text_measure_cache, profile_layout)
+}
+
+fn measure_node_with_profile(
+    tree: &mut UiTree,
+    node_id: UiNodeId,
+    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+    profile_layout: bool,
+) -> Result<DesiredSize, UiTreeError> {
+    let profile_started = profile_layout.then(Instant::now);
+    let (children, layout_boundary, constraints, container) = {
         let node = tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
@@ -36,13 +46,17 @@ pub(crate) fn measure_node(
             node.layout_boundary,
             node.constraints,
             node.container,
-            node.template_metadata.clone(),
         )
     };
 
     let mut child_desired = Vec::with_capacity(children.len());
     for child_id in &children {
-        let desired = measure_node(tree, *child_id, text_measure_cache.as_deref_mut())?;
+        let desired = measure_node_with_profile(
+            tree,
+            *child_id,
+            text_measure_cache.as_deref_mut(),
+            profile_layout,
+        )?;
         if tree
             .node(*child_id)
             .is_some_and(|child| child.effective_visibility().occupies_layout())
@@ -56,7 +70,8 @@ pub(crate) fn measure_node(
         node_id,
         container,
         &child_desired,
-        template_metadata.as_ref(),
+        tree.node(node_id)
+            .and_then(|node| node.template_metadata.as_ref()),
         text_measure_cache.as_deref_mut(),
     );
     let desired = DesiredSize::new(
@@ -64,13 +79,15 @@ pub(crate) fn measure_node(
         desired_axis(layout_boundary, constraints.height, content_size.height),
     );
 
-    let node = tree
-        .node_mut(node_id)
-        .ok_or(UiTreeError::MissingNode(node_id))?;
-    node.layout_cache.desired_size = desired;
-    node.layout_cache.content_size = content_size;
-    if !node.container.is_scrollable() {
-        node.layout_cache.virtual_window = None;
+    {
+        let node = tree
+            .node_mut(node_id)
+            .ok_or(UiTreeError::MissingNode(node_id))?;
+        node.layout_cache.desired_size = desired;
+        node.layout_cache.content_size = content_size;
+        if !node.container.is_scrollable() {
+            node.layout_cache.virtual_window = None;
+        }
     }
 
     emit_slow_measure_profile(
@@ -78,7 +95,8 @@ pub(crate) fn measure_node(
         node_id,
         children.len(),
         container,
-        template_metadata.as_ref(),
+        tree.node(node_id)
+            .and_then(|node| node.template_metadata.as_ref()),
     );
 
     Ok(desired)
@@ -269,24 +287,8 @@ fn measure_linear_content_size(
     gap: f32,
     child_desired: &[(UiNodeId, DesiredSize)],
 ) -> UiSize {
-    let ordered_children = ordered_children_for_container(
-        tree,
-        parent_id,
-        &child_desired
-            .iter()
-            .map(|(child_id, _)| *child_id)
-            .collect::<Vec<_>>(),
-        container,
-    );
-    let ordered_desired: Vec<_> = ordered_children
-        .iter()
-        .filter_map(|ordered_child_id| {
-            child_desired
-                .iter()
-                .find(|(child_id, _)| child_id == ordered_child_id)
-                .copied()
-        })
-        .collect();
+    let ordered_desired =
+        ordered_child_desired_for_container(tree, parent_id, container, child_desired);
     measure_linear_content_size_with_padding(
         tree,
         parent_id,
@@ -555,24 +557,21 @@ fn ordered_child_desired_for_container(
     container: UiContainerKind,
     child_desired: &[(UiNodeId, DesiredSize)],
 ) -> Vec<(UiNodeId, DesiredSize)> {
-    let ordered_children = ordered_children_for_container(
-        tree,
-        parent_id,
-        &child_desired
-            .iter()
-            .map(|(child_id, _)| *child_id)
-            .collect::<Vec<_>>(),
-        container,
-    );
-
-    ordered_children
+    let mut ordered = child_desired
         .iter()
-        .filter_map(|ordered_child_id| {
-            child_desired
-                .iter()
-                .find(|(child_id, _)| child_id == ordered_child_id)
-                .copied()
+        .copied()
+        .enumerate()
+        .map(|(index, (child_id, desired))| {
+            let order = slot_for_container_child(tree, parent_id, child_id, container)
+                .map(|slot| slot.order)
+                .unwrap_or_default();
+            (order, index, child_id, desired)
         })
+        .collect::<Vec<_>>();
+    ordered.sort_by_key(|(order, index, _, _)| (*order, *index));
+    ordered
+        .into_iter()
+        .map(|(_, _, child_id, desired)| (child_id, desired))
         .collect()
 }
 

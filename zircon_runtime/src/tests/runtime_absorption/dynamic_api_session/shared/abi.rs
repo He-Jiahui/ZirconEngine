@@ -16,7 +16,17 @@ pub(in super::super) const EXPECTED_RUNTIME_10_FUNCTION_TABLES: &[(&str, &str, u
     ),
     (
         "zircon_runtime_interface/src/plugin_api.rs",
+        "ZrHostApiV4",
+        7,
+    ),
+    (
+        "zircon_runtime_interface/src/plugin_api.rs",
         "ZrHostEcsApiV1",
+        3,
+    ),
+    (
+        "zircon_runtime_interface/src/plugin_api.rs",
+        "ZrHostEcsApiV2",
         3,
     ),
     (

@@ -8,12 +8,24 @@ use super::super::RuntimeEntryApp;
 impl ApplicationHandler for RuntimeEntryApp {
     fn resumed(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "resumed");
-        self.create_primary_window_surface(event_loop);
+        if self.create_primary_window_surface(event_loop) {
+            self.submit_mvp_input_probe_if_requested(event_loop);
+            self.request_runtime_frame();
+        }
     }
 
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "can_create_surfaces");
-        self.create_primary_window_surface(event_loop);
+        if self.create_primary_window_surface(event_loop) {
+            self.submit_mvp_input_probe_if_requested(event_loop);
+            self.request_runtime_frame();
+        }
+    }
+
+    fn proxy_wake_up(&mut self, _event_loop: &dyn ActiveEventLoop) {
+        if !self.failure_state.is_recorded() {
+            self.request_runtime_frame();
+        }
     }
 
     fn window_event(
@@ -23,12 +35,16 @@ impl ApplicationHandler for RuntimeEntryApp {
         event: WindowEvent,
     ) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "window_event");
-        self.handle_window_event(event_loop, event);
+        if !self.failure_state.is_recorded() {
+            self.handle_window_event(event_loop, event);
+        }
     }
 
     fn about_to_wait(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "about_to_wait");
-        self.pump_frame_loop(event_loop);
+        if !self.failure_state.is_recorded() {
+            self.pump_frame_loop(event_loop);
+        }
     }
 
     fn device_event(
@@ -38,6 +54,8 @@ impl ApplicationHandler for RuntimeEntryApp {
         event: DeviceEvent,
     ) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "device_event");
-        self.handle_device_event(event_loop, event);
+        if !self.failure_state.is_recorded() {
+            self.handle_device_event(event_loop, event);
+        }
     }
 }

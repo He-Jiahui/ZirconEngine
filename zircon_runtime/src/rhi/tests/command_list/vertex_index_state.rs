@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn command_list_raster_draw_submit_validates_vertex_and_index_buffer_state() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let vertex_shader = device
         .create_shader_module(&ShaderModuleDesc::new(
             "raster-vs",
@@ -166,7 +166,7 @@ fn command_list_raster_draw_submit_validates_vertex_and_index_buffer_state() {
 
 #[test]
 fn command_list_buffer_copy_submit_validates_usage_flags() {
-    let device = WgpuRenderDevice::new_headless();
+    let device = DeterministicRhiContractDevice::new_headless();
     let invalid_source = device
         .create_buffer(&BufferDesc::new(
             "not-copy-source",

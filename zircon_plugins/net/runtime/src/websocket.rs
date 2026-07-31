@@ -46,7 +46,7 @@ pub trait WebSocketRuntimeConnection: Send + Sync + std::fmt::Debug {
 #[derive(Debug)]
 pub(crate) enum ManagedWebSocketConnection {
     Loopback(LoopbackWebSocketConnection),
-    Network(Box<dyn WebSocketRuntimeConnection>),
+    Network(Arc<dyn WebSocketRuntimeConnection>),
 }
 
 #[derive(Debug)]
@@ -54,13 +54,4 @@ pub(crate) struct LoopbackWebSocketConnection {
     pub peer: NetConnectionId,
     pub state: NetConnectionState,
     pub inbound: VecDeque<NetWebSocketFrame>,
-}
-
-impl ManagedWebSocketConnection {
-    pub(crate) fn state(&self) -> NetConnectionState {
-        match self {
-            Self::Loopback(connection) => connection.state,
-            Self::Network(connection) => connection.state(),
-        }
-    }
 }

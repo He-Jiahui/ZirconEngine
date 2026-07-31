@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use zircon_runtime::ui::surface::{layout_text, measure_text_size};
 use zircon_runtime_interface::ui::{
+    design_tokens::EditorTypographyTokens,
     layout::UiFrame,
     surface::{UiResolvedStyle, UiTextOverflow, UiTextRunPaintStyle, UiTextWrap},
 };
@@ -22,6 +23,19 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 
 #[path = "paint_text_tests/latest_crop.rs"]
 mod latest_crop;
+
+#[test]
+fn retained_text_default_metrics_project_workbench_typography_tokens() {
+    assert_eq!(
+        DEFAULT_FONT_SIZE,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    );
+    assert_eq!(
+        DEFAULT_LINE_HEIGHT,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+            * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO
+    );
+}
 
 #[test]
 fn glyph_raster_cache_reuses_bitmap_for_same_glyph_and_size() {

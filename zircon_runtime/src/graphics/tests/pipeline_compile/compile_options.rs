@@ -60,11 +60,13 @@ fn compile_options_can_disable_clustered_history_and_rendering_plugin_features()
     assert!(!pass_names.contains(&"ssao-evaluate"));
     assert!(!pass_names.contains(&"light-grid-build"));
     assert!(!pass_names.contains(&"taa-resolve"));
-    assert!(!compiled
-        .history_bindings
-        .contains(&FrameHistoryBinding::read_write(
-            FrameHistorySlot::AmbientOcclusion
-        )));
+    assert!(
+        !compiled
+            .history_bindings
+            .contains(&FrameHistoryBinding::read_write(
+                FrameHistorySlot::AmbientOcclusion
+            ))
+    );
 }
 
 #[test]
@@ -86,34 +88,42 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
             .count(),
         0
     );
-    assert!(compiled
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "ssao-evaluate"
-            && pass.queue == QueueLane::Graphics
-            && pass.declared_queue == QueueLane::AsyncCompute));
-    assert!(compiled
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "hzb-occlusion-cull"
-            && pass.queue == QueueLane::Graphics
-            && pass.declared_queue == QueueLane::AsyncCompute));
-    assert!(compiled
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "hzb-build"
-            && pass.queue == QueueLane::Graphics
-            && pass.declared_queue == QueueLane::AsyncCompute));
-    assert!(compiled
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "light-grid-build"
-            && pass.queue == QueueLane::Graphics
-            && pass.declared_queue == QueueLane::AsyncCompute));
+    assert!(
+        compiled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "ssao-evaluate"
+                && pass.queue == QueueLane::Graphics
+                && pass.declared_queue == QueueLane::AsyncCompute)
+    );
+    assert!(
+        compiled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "hzb-occlusion-cull"
+                && pass.queue == QueueLane::Graphics
+                && pass.declared_queue == QueueLane::AsyncCompute)
+    );
+    assert!(
+        compiled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "hzb-build"
+                && pass.queue == QueueLane::Graphics
+                && pass.declared_queue == QueueLane::AsyncCompute)
+    );
+    assert!(
+        compiled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "light-grid-build"
+                && pass.queue == QueueLane::Graphics
+                && pass.declared_queue == QueueLane::AsyncCompute)
+    );
     let light_zbins_output = pass_resource_access(
         &compiled,
         "light-grid-build",
@@ -157,16 +167,20 @@ fn compile_options_gate_hzb_occlusion_cull_without_removing_hzb_build() {
         .compile_with_options(&test_extract(), &options)
         .unwrap();
 
-    assert!(!compiled
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "hzb-occlusion-cull"));
-    assert!(compiled
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "hzb-build"));
+    assert!(
+        !compiled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "hzb-occlusion-cull")
+    );
+    assert!(
+        compiled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "hzb-build")
+    );
     assert_eq!(compiled.pass_stage("hzb-occlusion-cull"), None);
     assert_eq!(
         compiled.pass_stage("hzb-build"),

@@ -1,7 +1,7 @@
 use crate::asset::AssetReference;
 use crate::core::math::Real;
-use serde::ser::SerializeStruct;
 use serde::Serializer;
+use serde::ser::SerializeStruct;
 use serde::{Deserialize, Serialize};
 
 use super::defaults::{is_zero_i32, is_zero_real};

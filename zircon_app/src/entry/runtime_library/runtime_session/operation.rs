@@ -1,11 +1,11 @@
 use std::slice;
 
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeOperationHandle, ZrRuntimeOperationProgressV1,
-    ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeOperationHandle,
+    ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
 };
 
-use super::{ensure_status, RuntimeLibraryError, RuntimeSession};
+use super::{RuntimeLibraryError, RuntimeSession, ensure_status};
 
 impl RuntimeSession {
     pub(super) fn submit_operation(

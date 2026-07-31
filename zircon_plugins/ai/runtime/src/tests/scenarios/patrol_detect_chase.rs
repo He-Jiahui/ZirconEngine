@@ -5,11 +5,13 @@ use zircon_runtime::core::framework::ai::{
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NAV_MESH_AGENT_COMPONENT_TYPE,
 };
-use zircon_runtime::core::framework::scene::{ComponentTypeDescriptor, WorldHandle};
+use zircon_runtime::core::framework::scene::{
+    ComponentTypeDescriptor, WorldHandle, SCENE_MODULE_NAME,
+};
 use zircon_runtime::core::math::Transform;
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 use zircon_runtime::scene::{
-    create_default_level, module_descriptor as scene_module_descriptor, NodeKind, SCENE_MODULE_NAME,
+    create_default_level, module_descriptor as scene_module_descriptor, NodeKind,
 };
 
 use crate::behavior_tree::RuntimeBehaviorIntegrationHost;

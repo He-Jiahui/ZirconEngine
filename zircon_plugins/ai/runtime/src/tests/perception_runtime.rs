@@ -11,7 +11,7 @@ use zircon_runtime::core::framework::physics::{
     PhysicsShapeCastQuery, PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery,
     PHYSICS_QUERY_INTERFACE_ID,
 };
-use zircon_runtime::core::framework::scene::WorldHandle;
+use zircon_runtime::core::framework::scene::{WorldHandle, SCENE_MODULE_NAME};
 use zircon_runtime::core::framework::sound::SoundGameplayEmission;
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::plugin::{
@@ -20,7 +20,6 @@ use zircon_runtime::plugin::{
 use zircon_runtime::scene::ecs::{SystemOrderingConstraint, SystemRef, SystemStage};
 use zircon_runtime::scene::{
     create_default_level, module_descriptor as scene_module_descriptor, NodeKind, World,
-    SCENE_MODULE_NAME,
 };
 
 use crate::perception::{

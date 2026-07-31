@@ -58,16 +58,15 @@ impl HybridGiGpuCompletion {
 
     pub(crate) fn from_readback_outputs(outputs: RenderHybridGiReadbackOutputs) -> Option<Self> {
         let completed_probe_ids = outputs.completed_probe_ids;
-        let cache_entries: Vec<(u32, u32)> = outputs
-            .cache_entries
-            .into_iter()
-            .filter_map(|entry| -> Option<(u32, u32)> {
-                Some((
-                    u32::try_from(entry.key).ok()?,
-                    u32::try_from(entry.value).ok()?,
-                ))
-            })
-            .collect();
+        let cache_entry_records = outputs.cache_entries;
+        let mut cache_entries = Vec::with_capacity(cache_entry_records.len());
+        for entry in cache_entry_records {
+            let (Ok(key), Ok(value)) = (u32::try_from(entry.key), u32::try_from(entry.value))
+            else {
+                continue;
+            };
+            cache_entries.push((key, value));
+        }
         let probe_irradiance_rgb =
             probe_colors_from_neutral_outputs(&completed_probe_ids, outputs.probe_irradiance_rgb);
         let probe_trace_lighting_rgb =
@@ -163,10 +162,10 @@ mod tests {
 
     #[test]
     fn gpu_completion_skips_empty_neutral_hybrid_gi_readback_outputs() {
-        assert!(HybridGiGpuCompletion::from_readback_outputs(
-            RenderHybridGiReadbackOutputs::default()
-        )
-        .is_none());
+        assert!(
+            HybridGiGpuCompletion::from_readback_outputs(RenderHybridGiReadbackOutputs::default())
+                .is_none()
+        );
     }
 
     #[test]
@@ -228,5 +227,36 @@ mod tests {
                 .rgba8,
             [32, 48, 64, 255]
         );
+    }
+
+    #[test]
+    fn gpu_completion_preallocates_filtered_cache_projection() {
+        let source = include_str!("gpu_completion.rs");
+        let capacity = concat!("Vec::with_capacity(", "cache_entry_records.len())");
+
+        assert!(source.contains(capacity));
+    }
+
+    #[test]
+    fn gpu_completion_skips_cache_entries_outside_runtime_id_range() {
+        let overflow = u64::from(u32::MAX) + 1;
+        let completion =
+            HybridGiGpuCompletion::from_readback_outputs(RenderHybridGiReadbackOutputs {
+                cache_entries: vec![
+                    RenderHybridGiCacheEntryRecord { key: 17, value: 3 },
+                    RenderHybridGiCacheEntryRecord {
+                        key: overflow,
+                        value: 4,
+                    },
+                    RenderHybridGiCacheEntryRecord {
+                        key: 19,
+                        value: overflow,
+                    },
+                ],
+                ..RenderHybridGiReadbackOutputs::default()
+            })
+            .expect("valid cache entry should keep completion");
+
+        assert_eq!(completion.cache_entries(), &[(17, 3)]);
     }
 }

@@ -2,24 +2,69 @@ use std::path::Path;
 use std::slice;
 #[cfg(feature = "target-editor-host")]
 use std::sync::Arc;
+use std::time::Duration;
 
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
+    ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedByteBuffer,
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
-    ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeSessionConfigV2, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
 };
 
-use super::{LoadedRuntime, RuntimeLibraryError};
+use super::{LoadedRuntime, RuntimeLibraryError, RuntimeWakeRegistration};
 
 mod operation;
+
+pub(crate) const MAX_HOST_RUNTIME_FRAME_DELAY: Duration = Duration::from_secs(60);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum RuntimeFrameDemand {
+    Idle,
+    Immediate,
+    After(Duration),
+}
+
+impl TryFrom<ZrRuntimeFrameDemandV1> for RuntimeFrameDemand {
+    type Error = RuntimeLibraryError;
+
+    fn try_from(demand: ZrRuntimeFrameDemandV1) -> Result<Self, Self::Error> {
+        if demand.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+            return Err(RuntimeLibraryError::new(format!(
+                "runtime frame demand used unsupported ABI version {}",
+                demand.abi_version
+            )));
+        }
+        match demand.kind {
+            ZR_RUNTIME_FRAME_DEMAND_IDLE_V1 | ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1
+                if demand.delay_nanoseconds != 0 =>
+            {
+                Err(RuntimeLibraryError::new(format!(
+                    "runtime frame demand kind {} requires zero delay",
+                    demand.kind
+                )))
+            }
+            ZR_RUNTIME_FRAME_DEMAND_IDLE_V1 => Ok(Self::Idle),
+            ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1 => Ok(Self::Immediate),
+            ZR_RUNTIME_FRAME_DEMAND_AFTER_V1 => Ok(Self::After(
+                Duration::from_nanos(demand.delay_nanoseconds).min(MAX_HOST_RUNTIME_FRAME_DELAY),
+            )),
+            kind => Err(RuntimeLibraryError::new(format!(
+                "unsupported runtime frame demand kind {kind}"
+            ))),
+        }
+    }
+}
 
 pub(crate) struct RuntimeSession {
     runtime: LoadedRuntime,
     handle: ZrRuntimeSessionHandle,
+    wake_registration: Option<RuntimeWakeRegistration>,
 }
 
 impl RuntimeSession {
@@ -48,13 +93,14 @@ impl RuntimeSession {
         runtime: LoadedRuntime,
         profile: &'static [u8],
     ) -> Result<Self, RuntimeLibraryError> {
-        Self::create_with_profile_and_project(runtime, profile, None)
+        Self::create_with_profile_and_project(runtime, profile, None, None)
     }
 
-    pub(crate) fn create_with_profile_and_project(
+    pub(in crate::entry) fn create_with_profile_and_project(
         runtime: LoadedRuntime,
         profile: &'static [u8],
         project_root: Option<&Path>,
+        wake_registration: Option<RuntimeWakeRegistration>,
     ) -> Result<Self, RuntimeLibraryError> {
         let create_session = runtime.create_session();
         let mut handle = ZrRuntimeSessionHandle::invalid();
@@ -71,10 +117,14 @@ impl RuntimeSession {
         };
         let status = unsafe {
             create_session(
-                ZrRuntimeSessionConfigV1 {
-                    abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+                ZrRuntimeSessionConfigV2 {
+                    abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
                     profile: ZrByteSlice::from_static(profile),
                     project_manifest,
+                    wake_sink: wake_registration
+                        .as_ref()
+                        .map(RuntimeWakeRegistration::sink)
+                        .unwrap_or_else(zircon_runtime_interface::ZrRuntimeWakeSinkV1::disabled),
                 },
                 &mut handle,
             )
@@ -85,7 +135,11 @@ impl RuntimeSession {
                 "runtime returned an invalid session handle",
             ));
         }
-        Ok(Self { runtime, handle })
+        Ok(Self {
+            runtime,
+            handle,
+            wake_registration,
+        })
     }
 
     pub(crate) fn create_linked_with_profile_and_project(
@@ -105,7 +159,11 @@ impl RuntimeSession {
                 "linked runtime returned an invalid session handle",
             ));
         }
-        Ok(Self { runtime, handle })
+        Ok(Self {
+            runtime,
+            handle,
+            wake_registration: None,
+        })
     }
 
     pub(crate) fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), RuntimeLibraryError> {
@@ -180,12 +238,20 @@ impl RuntimeSession {
         Ok(true)
     }
 
-    pub(crate) fn tick_frame(&self) -> Result<bool, RuntimeLibraryError> {
-        let Some(tick_frame) = self.runtime.tick_frame() else {
-            return Ok(false);
-        };
-        ensure_status(unsafe { tick_frame(self.handle) }, "tick runtime frame")?;
-        Ok(true)
+    pub(crate) fn tick_frame(&self) -> Result<RuntimeFrameDemand, RuntimeLibraryError> {
+        let tick_frame = self.runtime.tick_frame();
+        let mut demand = ZrRuntimeFrameDemandV1::idle();
+        ensure_status(
+            unsafe { tick_frame(self.handle, &mut demand) },
+            "tick runtime frame",
+        )?;
+        RuntimeFrameDemand::try_from(demand)
+    }
+
+    pub(crate) fn wake_host(&self) {
+        if let Some(registration) = &self.wake_registration {
+            registration.wake();
+        }
     }
 
     pub(crate) fn drain_host_requests(
@@ -214,6 +280,53 @@ impl RuntimeSession {
             ));
         }
         Ok(batch.requests)
+    }
+
+    pub(crate) fn profile_control(
+        &self,
+        request: &ProfileControlRequest,
+    ) -> Result<Option<ProfileControlResponse>, RuntimeLibraryError> {
+        let Some(profile_control) = self.runtime.profile_control() else {
+            return Ok(None);
+        };
+        let request = serde_json::to_vec(request).map_err(|error| {
+            RuntimeLibraryError::new(format!("encode runtime profile request: {error}"))
+        })?;
+        let mut output = ZrOwnedByteBuffer::empty();
+        let status = unsafe {
+            profile_control(
+                self.handle,
+                ZrByteSlice {
+                    data: request.as_ptr(),
+                    len: request.len(),
+                },
+                &mut output,
+            )
+        };
+        if let Err(error) = ensure_status(status, "control runtime profiling") {
+            if let Some(free) = output.free {
+                let _ = unsafe { free(output) };
+            }
+            return Err(error);
+        }
+        if output.is_empty() {
+            if let Some(free) = output.free {
+                ensure_status(
+                    unsafe { free(output) },
+                    "free empty runtime profile response",
+                )?;
+            }
+            return Ok(None);
+        }
+        let response = unsafe { slice::from_raw_parts(output.data.cast_const(), output.len) };
+        let response =
+            serde_json::from_slice::<ProfileControlResponse>(response).map_err(|error| {
+                RuntimeLibraryError::new(format!("decode runtime profile response: {error}"))
+            });
+        if let Some(free) = output.free {
+            ensure_status(unsafe { free(output) }, "free runtime profile response")?;
+        }
+        response.map(Some)
     }
 
     pub(crate) fn supports_viewport_surface_present(&self) -> bool {
@@ -299,7 +412,15 @@ impl Drop for RuntimeSession {
     fn drop(&mut self) {
         let _ = self.unbind_viewport_surface(ZrRuntimeViewportHandle::new(1));
         let destroy_session = self.runtime.destroy_session();
-        let _ = unsafe { destroy_session(self.handle) };
+        let destroy_status = unsafe { destroy_session(self.handle) };
+        if destroy_status.is_ok() {
+            if let Some(wake_registration) = &mut self.wake_registration {
+                wake_registration.unregister();
+            }
+        } else if let Some(wake_registration) = self.wake_registration.take() {
+            // A failed destroy cannot prove the runtime released its copied callback.
+            std::mem::forget(wake_registration);
+        }
     }
 }
 

@@ -14,6 +14,7 @@ pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_module_capabili
     module: &PluginModuleManifest,
     validate_field: Option<fn(&str, &str, &mut Vec<String>)>,
     validate_namespace: fn(&str, &str, &mut Vec<String>),
+    is_duplicate: impl Fn(usize) -> bool,
     diagnostics: &mut Vec<String>,
 ) {
     validate_runtime_plugin_module_capability_presence(manifest_label, module, diagnostics);
@@ -22,6 +23,7 @@ pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_module_capabili
         module,
         validate_field,
         validate_namespace,
+        is_duplicate,
         diagnostics,
     );
 }

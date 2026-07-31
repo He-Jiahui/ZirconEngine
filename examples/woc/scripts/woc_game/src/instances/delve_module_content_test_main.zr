@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var content = %import("instances/delve_module_content");
+
+console.printLine("m7-delve-module-content-test");
+var result = content.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -25,7 +25,7 @@ default_classes = ["workbench-skeleton"]
 component = "VerticalGroup"
 control_id = "WorkbenchSkeleton"
 classes = ["workbench-skeleton"]
-style = { self = { background = { color = "editor.surface.0" }, foreground = { color = "editor.text.primary" }, border = { color = "editor.border", width = 0.0, radius = 0.0 } } }
+style = { self = { background = { color = "$editor.surface.0" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = 0.0, radius = 0.0 } } }
 layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "top_toolbar" }, { node = "document_tabs" }, { node = "main_band" }, { node = "status_bar" }]
 

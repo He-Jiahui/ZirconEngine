@@ -1,0 +1,215 @@
+// Source-pinned $WOC Discord status and cosmetic-swag rules from
+// sim/discord_tier.ts. This is not an account ledger: link verification,
+// idempotency, persistence, fulfillment, UI and WOS event delivery remain
+// host-owned. Inputs are finite integral account values at this Zr boundary.
+
+pub discordStatusTierCount(): int { return 8; }
+pub discordRewardGrantCount(): int { return 4; }
+pub discordSwagCount(): int { return 4; }
+
+// The source's DiscordStatusTierCore object is projected as stable scalar fields.
+pub discordStatusKey(index: int): string {
+    if (index == 1) return "initiate";
+    if (index == 2) return "squire";
+    if (index == 3) return "footman";
+    if (index == 4) return "knight";
+    if (index == 5) return "champion";
+    if (index == 6) return "warlord";
+    if (index == 7) return "legend";
+    if (index == 8) return "mythic";
+    return "";
+}
+
+pub discordStatusThreshold(index: int): int {
+    if (index == 1) return 0;
+    if (index == 2) return 100;
+    if (index == 3) return 500;
+    if (index == 4) return 2000;
+    if (index == 5) return 5000;
+    if (index == 6) return 15000;
+    if (index == 7) return 50000;
+    if (index == 8) return 150000;
+    return 0;
+}
+
+pub hasDiscordStatusIndex(index: int): bool {
+    return index >= 1 && index <= discordStatusTierCount();
+}
+
+// Negative lifetime points are clamped to zero, matching Math.max(0, points).
+pub normalizedDiscordLifetimePoints(lifetimePoints: int): int {
+    return lifetimePoints < 0 ? 0 : lifetimePoints;
+}
+
+pub discordStatusIndexForPoints(lifetimePoints: int): int {
+    var points = normalizedDiscordLifetimePoints(lifetimePoints);
+    var tier = 1;
+    var index = 1;
+    while (index <= discordStatusTierCount()) {
+        if (points >= discordStatusThreshold(index)) {
+            tier = index;
+        } else {
+            return tier;
+        }
+        index = index + 1;
+    }
+    return tier;
+}
+
+// Source pointsToNextStatus() represents its null top-rung result with this
+// explicit presence bit and a zero value from discordPointsToNextStatus().
+pub hasNextDiscordStatus(lifetimePoints: int): bool {
+    return discordStatusIndexForPoints(lifetimePoints) < discordStatusTierCount();
+}
+
+pub discordPointsToNextStatus(lifetimePoints: int): int {
+    var status = discordStatusIndexForPoints(lifetimePoints);
+    if (status >= discordStatusTierCount()) { return 0; }
+    return discordStatusThreshold(status + 1) - normalizedDiscordLifetimePoints(lifetimePoints);
+}
+
+// Server-authoritative grant definitions, exposed as stable scalar records.
+pub discordRewardReason(index: int): string {
+    if (index == 1) return "link";
+    if (index == 2) return "guild_member";
+    if (index == 3) return "booster";
+    if (index == 4) return "daily_active";
+    return "";
+}
+
+pub discordRewardPoints(index: int): int {
+    if (index == 1) return 250;
+    if (index == 2) return 250;
+    if (index == 3) return 1000;
+    if (index == 4) return 50;
+    return 0;
+}
+
+// The source SwagItem objects are projected as stable scalar catalog fields.
+pub discordSwagId(index: int): string {
+    if (index == 1) return "title_discordian";
+    if (index == 2) return "title_squire";
+    if (index == 3) return "chroma_blurple";
+    if (index == 4) return "title_champion";
+    return "";
+}
+
+pub discordSwagKey(index: int): string {
+    if (index == 1) return "titleDiscordian";
+    if (index == 2) return "titleSquire";
+    if (index == 3) return "chromaBlurple";
+    if (index == 4) return "titleChampion";
+    return "";
+}
+
+pub discordSwagKind(index: int): string {
+    if (index == 1) return "title";
+    if (index == 2) return "title";
+    if (index == 3) return "cosmetic";
+    if (index == 4) return "title";
+    return "";
+}
+
+pub discordSwagCost(index: int): int {
+    if (index == 1) return 0;
+    if (index == 2) return 200;
+    if (index == 3) return 1000;
+    if (index == 4) return 2500;
+    return 0;
+}
+
+pub discordSwagMinTier(index: int): int {
+    if (index == 1) return 1;
+    if (index == 2) return 2;
+    if (index == 3) return 3;
+    if (index == 4) return 5;
+    return 0;
+}
+
+pub discordSwagGrantId(index: int): string {
+    if (index == 1) return "discordian";
+    if (index == 2) return "squire_of_the_realm";
+    if (index == 3) return "vanguard_azure";
+    if (index == 4) return "champion_of_claudemoon";
+    return "";
+}
+
+pub discordSwagIndexById(id: string): int {
+    if (id == "title_discordian") return 1;
+    if (id == "title_squire") return 2;
+    if (id == "chroma_blurple") return 3;
+    if (id == "title_champion") return 4;
+    return 0;
+}
+
+pub hasDiscordSwagIndex(index: int): bool {
+    return index >= 1 && index <= discordSwagCount();
+}
+
+// The caller resolves claimedIds.includes(swag.id) to alreadyClaimed before
+// entering Zr. Valid catalog indexes preserve canClaimSwag()'s precedence.
+pub discordSwagClaimReason(
+    swagIndex: int,
+    spendablePoints: int,
+    statusTier: int,
+    alreadyClaimed: bool
+): string {
+    if (!hasDiscordSwagIndex(swagIndex)) { return ""; }
+    if (alreadyClaimed) return "claimed";
+    if (statusTier < discordSwagMinTier(swagIndex)) return "tier";
+    if (spendablePoints < discordSwagCost(swagIndex)) return "points";
+    return "ok";
+}
+
+pub canClaimDiscordSwag(
+    swagIndex: int,
+    spendablePoints: int,
+    statusTier: int,
+    alreadyClaimed: bool
+): bool {
+    return discordSwagClaimReason(swagIndex, spendablePoints, statusTier, alreadyClaimed) == "ok";
+}
+
+pub contractTest(): int {
+    if (discordStatusTierCount() != 8 ||
+        discordStatusIndexForPoints(-10) != 1 ||
+        discordStatusIndexForPoints(0) != 1 ||
+        discordStatusIndexForPoints(99) != 1 ||
+        discordStatusIndexForPoints(100) != 2 ||
+        discordStatusIndexForPoints(499) != 2 ||
+        discordStatusIndexForPoints(500) != 3 ||
+        discordStatusIndexForPoints(2000) != 4 ||
+        discordStatusIndexForPoints(5000) != 5 ||
+        discordStatusIndexForPoints(15000) != 6 ||
+        discordStatusIndexForPoints(50000) != 7 ||
+        discordStatusIndexForPoints(150000) != 8) { return -1; }
+    if (discordStatusKey(1) != "initiate" ||
+        discordStatusKey(8) != "mythic" ||
+        discordStatusKey(0) != "" ||
+        discordStatusThreshold(4) != 2000 ||
+        discordStatusThreshold(8) != 150000 ||
+        !hasNextDiscordStatus(149999) || hasNextDiscordStatus(150000) ||
+        discordPointsToNextStatus(-1) != 100 ||
+        discordPointsToNextStatus(100) != 400 ||
+        discordPointsToNextStatus(150000) != 0) { return -2; }
+    if (discordRewardGrantCount() != 4 ||
+        discordRewardReason(1) != "link" || discordRewardPoints(1) != 250 ||
+        discordRewardReason(3) != "booster" || discordRewardPoints(3) != 1000 ||
+        discordRewardReason(4) != "daily_active" || discordRewardPoints(4) != 50) { return -3; }
+    if (discordSwagCount() != 4 ||
+        discordSwagIndexById("title_discordian") != 1 ||
+        discordSwagIndexById("chroma_blurple") != 3 ||
+        discordSwagIndexById("missing") != 0 ||
+        discordSwagKey(4) != "titleChampion" ||
+        discordSwagKind(3) != "cosmetic" ||
+        discordSwagCost(4) != 2500 ||
+        discordSwagMinTier(4) != 5 ||
+        discordSwagGrantId(3) != "vanguard_azure") { return -4; }
+    if (discordSwagClaimReason(3, 1000, 3, true) != "claimed" ||
+        discordSwagClaimReason(3, 1000, 2, false) != "tier" ||
+        discordSwagClaimReason(3, 999, 3, false) != "points" ||
+        discordSwagClaimReason(3, 1000, 3, false) != "ok" ||
+        canClaimDiscordSwag(4, 2500, 5, false) == false ||
+        canClaimDiscordSwag(0, 9999, 8, false)) { return -5; }
+    return 1;
+}

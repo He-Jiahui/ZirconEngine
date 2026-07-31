@@ -175,7 +175,7 @@ fn u64_to_i64(value: u64) -> i64 {
 mod tests {
     use super::RenderPhaseSortKeyBreakdown;
     use crate::core::framework::render::{
-        packed_sort_key_u64, RenderPhase, RenderPhaseSortComponents, RenderQueueValue,
+        RenderPhase, RenderPhaseSortComponents, RenderQueueValue, packed_sort_key_u64,
     };
 
     #[test]

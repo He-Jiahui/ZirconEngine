@@ -10,6 +10,8 @@ impl Default for EditorStartupSessionDocument {
             open_builtin_view: None,
             recent_projects: Vec::new(),
             draft: NewProjectDraft::renderable_empty_default(),
+            creation_validation: "Checking project location…".to_string(),
+            can_open_existing: false,
             status_message: "Open an existing project or create a renderable empty project."
                 .to_string(),
         }

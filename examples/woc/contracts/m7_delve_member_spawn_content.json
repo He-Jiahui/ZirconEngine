@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m7_delve_member_spawn_content_codegen.mjs",
+  "source_sha256": {
+    "src/sim/delves/runs.ts": "374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff",
+    "src/sim/content/delves/collapsed_reliquary.ts": "f12a3538da887f8e7dd2fcf804287df7609f0c706284be51a377e70ea5e1b00d",
+    "src/sim/content/delves/drowned_litany.ts": "8f747166e6a63d36b8c20bae0d4feb43ba592376d2df0eb6139f4489aab1acb3"
+  },
+  "content": {
+    "party_max_members": 2,
+    "spawn_spread": 2.2,
+    "horizontal_slots": [
+      {
+        "slot_index": 0,
+        "offset_x": 0,
+        "offset_z": 0
+      },
+      {
+        "slot_index": 1,
+        "offset_x": 1.1000000000000003,
+        "offset_z": 1.905255888325765
+      }
+    ]
+  },
+  "catalog_sha256": "12a661ce59289675541d0350bf7c49c54e3766067b5f5f9a4efdd2c4374a5be9"
+}

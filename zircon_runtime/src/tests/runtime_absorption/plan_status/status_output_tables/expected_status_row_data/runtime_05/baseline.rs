@@ -123,7 +123,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         &[
             "native_plugin_public_surface_markdown_split_static_passed_cargo_deferred_tests_deferred",
             "native_plugin_public_surface_markdown.py",
-            "native_namespace_reexport_count = 64",
+            "native_namespace_reexport_count = 68",
             "standalone `plan_status.rs` 33/33",
         ],
     ),

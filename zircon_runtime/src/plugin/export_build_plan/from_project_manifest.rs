@@ -1,10 +1,10 @@
+#[cfg(test)]
+use std::cell::Cell;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use crate::asset::project::ProjectManifest;
-use crate::{
-    core::framework::project::ExportPackagingStrategy, plugin::RuntimePluginCatalog,
-    plugin::RuntimePluginDescriptor,
-};
+use crate::{core::framework::project::ExportPackagingStrategy, plugin::RuntimePluginCatalog};
 
 mod feature_selection;
 mod profile;
@@ -16,12 +16,13 @@ use self::feature_selection::{
 use self::profile::runtime_profile_for_export_profile;
 use self::profile_projection::{
     export_profile_selection_diagnostics, project_plugins_for_export_profile,
+    ExportProfileSelectionProjection,
 };
 use super::cargo_manifest_template::plugin_path_for_runtime_crate;
 use super::default_profile::default_profile;
 use super::export_profile_validation::{
     export_profile_duplicate_name_fatal_diagnostics, export_profile_name_fatal_diagnostics,
-    export_profile_output_name_diagnostics,
+    export_profile_output_name_diagnostics, export_profile_runtime_profile_id_fatal_diagnostics,
     export_profile_runtime_profile_target_fatal_diagnostics, export_profile_strategy_diagnostics,
     export_profile_strategy_fatal_diagnostics, sanitize_export_profile_output_name,
     sanitize_export_profile_strategies,
@@ -29,6 +30,10 @@ use super::export_profile_validation::{
 use super::generated_files::generated_files_for_profile;
 use super::library_embed_compile_plan::library_embed_compile_host_plan;
 use super::native_dynamic_package_plan::NativeDynamicPackageAccumulator;
+#[cfg(test)]
+use super::project_manifest_validation::{
+    begin_projection_build_observation, observed_projection_builds,
+};
 use super::project_manifest_validation::{
     project_duplicate_selection_diagnostics, project_editor_crate_diagnostics,
     project_feature_id_diagnostics, project_feature_provider_package_id_diagnostics,
@@ -37,6 +42,7 @@ use super::project_manifest_validation::{
     project_runtime_crate_override_is_valid, project_target_mode_diagnostics,
     sanitize_invalid_project_crate_overrides, sanitize_invalid_project_provider_package_overrides,
     sanitize_project_identity_rows, sanitize_project_target_mode_rows,
+    ProjectPluginManifestValidationProjection,
 };
 use super::source_template_build_plan::source_template_build_validation_plan;
 use super::{ExportBuildPlan, ExportBuildPlanError, ExportLinkedRuntimeCrate};
@@ -61,6 +67,8 @@ impl ExportBuildPlan {
                 profile_name,
             );
         let profile_name_fatal_diagnostics = export_profile_name_fatal_diagnostics(&profile);
+        let profile_runtime_profile_id_fatal_diagnostics =
+            export_profile_runtime_profile_id_fatal_diagnostics(&profile);
         let profile_output_name_diagnostics = export_profile_output_name_diagnostics(&profile);
         let profile_strategy_diagnostics = export_profile_strategy_diagnostics(&profile);
         let profile_strategy_fatal_diagnostics =
@@ -69,23 +77,35 @@ impl ExportBuildPlan {
         sanitize_export_profile_strategies(&mut profile);
         let platform_policy = profile.target_platform.policy();
 
-        let catalog = RuntimePluginCatalog::builtin();
-        let mut completed_plugins = catalog.complete_project_manifest(&manifest.plugins);
-        let profile_selection_diagnostics =
-            export_profile_selection_diagnostics(&profile, &completed_plugins);
-        project_plugins_for_export_profile(&profile, &mut completed_plugins);
+        let catalog = builtin_runtime_plugin_catalog();
+        let mut completed_plugins = Arc::unwrap_or_clone(
+            catalog.complete_project_manifest(&manifest.plugins, profile.target_mode),
+        );
+        let profile_projection = ExportProfileSelectionProjection::new(&profile);
+        let mut completed_manifest_projection =
+            ProjectPluginManifestValidationProjection::new(&completed_plugins, profile.target_mode);
+        let profile_selection_diagnostics = export_profile_selection_diagnostics(
+            &profile,
+            &completed_plugins,
+            &completed_manifest_projection,
+            &profile_projection,
+        );
+        project_plugins_for_export_profile(&profile_projection, &mut completed_plugins);
         // Keep diagnostics source-faithful while preventing malformed crate tokens from
         // leaking into generated SourceTemplate project metadata.
         sanitize_invalid_project_crate_overrides(&mut completed_plugins, profile.target_mode);
+        completed_manifest_projection.refresh(&completed_plugins);
+        let source_manifest_projection =
+            ProjectPluginManifestValidationProjection::new(&manifest.plugins, profile.target_mode);
         let enabled_plugins = completed_plugins
             .enabled_for_target(profile.target_mode)
             .collect::<Vec<_>>();
         let (project_plugin_id_diagnostics, project_plugin_id_fatal_diagnostics) =
-            project_plugin_package_id_diagnostics(&manifest.plugins, profile.target_mode);
+            project_plugin_package_id_diagnostics(&manifest.plugins, &source_manifest_projection);
         let (project_feature_id_diagnostics, project_feature_id_fatal_diagnostics) =
-            project_feature_id_diagnostics(&manifest.plugins, profile.target_mode);
+            project_feature_id_diagnostics(&manifest.plugins, &source_manifest_projection);
         let (project_duplicate_diagnostics, project_duplicate_fatal_diagnostics) =
-            project_duplicate_selection_diagnostics(&manifest.plugins, profile.target_mode);
+            project_duplicate_selection_diagnostics(&manifest.plugins, &source_manifest_projection);
         let (project_runtime_crate_diagnostics, project_runtime_crate_fatal_diagnostics) =
             project_runtime_crate_diagnostics(&manifest.plugins, profile.target_mode);
         let (project_editor_crate_diagnostics, project_editor_crate_fatal_diagnostics) =
@@ -122,14 +142,28 @@ impl ExportBuildPlan {
             linked_runtime_package_ids.insert(selection.id.clone());
         }
         let mut native_dynamic_package_accumulator = NativeDynamicPackageAccumulator::default();
-        let feature_report =
-            catalog.feature_dependency_report(&completed_plugins, profile.target_mode);
+        let feature_report = catalog.feature_dependency_report_for_completed_manifest(
+            &completed_plugins,
+            profile.target_mode,
+        );
+        let available_feature_ids = feature_report
+            .available_features
+            .iter()
+            .map(String::as_str)
+            .collect::<HashSet<_>>();
         let (project_provider_diagnostics, project_provider_fatal_diagnostics) =
-            project_feature_provider_package_id_diagnostics(&manifest.plugins, profile.target_mode);
+            project_feature_provider_package_id_diagnostics(
+                &manifest.plugins,
+                &source_manifest_projection,
+            );
         let mut feature_packaging_diagnostics = Vec::new();
         let mut feature_packaging_fatal_diagnostics = Vec::new();
         for feature_id in &feature_report.available_features {
-            let Some((owner, feature)) = feature_selection(&completed_plugins, feature_id) else {
+            let Some((owner, feature)) = feature_selection(
+                &completed_plugins,
+                &completed_manifest_projection,
+                feature_id,
+            ) else {
                 continue;
             };
             let provider_package_id = feature.provider_package_id_or_owner(&owner.id);
@@ -183,13 +217,10 @@ impl ExportBuildPlan {
                 );
             }
         }
-        for (owner, feature) in external_feature_selections(&completed_plugins, profile.target_mode)
+        for (owner, feature) in
+            external_feature_selections(&completed_plugins, &completed_manifest_projection)
         {
-            if feature_report
-                .available_features
-                .iter()
-                .any(|feature_id| feature_id == &feature.id)
-            {
+            if available_feature_ids.contains(feature.id.as_str()) {
                 continue;
             }
             let Some(provider_package_id) = feature.external_provider_package_id(&owner.id) else {
@@ -305,6 +336,7 @@ impl ExportBuildPlan {
         diagnostics.extend(project_provider_diagnostics);
         diagnostics.extend(profile_duplicate_name_fatal_diagnostics.iter().cloned());
         diagnostics.extend(profile_name_fatal_diagnostics.iter().cloned());
+        diagnostics.extend(profile_runtime_profile_id_fatal_diagnostics.iter().cloned());
         diagnostics.extend(profile_output_name_diagnostics);
         diagnostics.extend(profile_strategy_diagnostics);
         diagnostics.extend(profile_strategy_fatal_diagnostics.iter().cloned());
@@ -319,6 +351,7 @@ impl ExportBuildPlan {
         fatal_diagnostics.extend(project_provider_fatal_diagnostics);
         fatal_diagnostics.extend(profile_duplicate_name_fatal_diagnostics);
         fatal_diagnostics.extend(profile_name_fatal_diagnostics);
+        fatal_diagnostics.extend(profile_runtime_profile_id_fatal_diagnostics);
         fatal_diagnostics.extend(profile_strategy_fatal_diagnostics);
         fatal_diagnostics.extend(profile_selection_diagnostics.fatal_diagnostics);
         fatal_diagnostics.extend(feature_packaging_fatal_diagnostics);
@@ -331,8 +364,8 @@ impl ExportBuildPlan {
                 if blocked.unknown_feature
                     && external_feature_selection(
                         &completed_plugins,
+                        &completed_manifest_projection,
                         &blocked.feature_id,
-                        profile.target_mode,
                     )
                     .is_some()
                 {
@@ -362,14 +395,21 @@ impl ExportBuildPlan {
                 }),
         );
         let runtime_profile = runtime_profile_for_export_profile(&profile);
-        let profile_runtime_target_fatal_diagnostics =
-            export_profile_runtime_profile_target_fatal_diagnostics(&profile, &runtime_profile);
+        let profile_runtime_target_fatal_diagnostics = runtime_profile
+            .as_ref()
+            .map(|runtime_profile| {
+                export_profile_runtime_profile_target_fatal_diagnostics(&profile, runtime_profile)
+            })
+            .unwrap_or_default();
         diagnostics.extend(profile_runtime_target_fatal_diagnostics.iter().cloned());
         fatal_diagnostics.extend(profile_runtime_target_fatal_diagnostics);
         let mut project_plugin_projection = completed_plugins.clone();
         // Generated metadata is a sanitized view; dependency and package projection have already
         // used the completed manifest so invalid identity rows still produce source diagnostics.
-        sanitize_project_identity_rows(&mut project_plugin_projection, profile.target_mode);
+        sanitize_project_identity_rows(
+            &mut project_plugin_projection,
+            &completed_manifest_projection,
+        );
         sanitize_project_target_mode_rows(&mut project_plugin_projection, profile.target_mode);
         sanitize_invalid_project_provider_package_overrides(
             &mut project_plugin_projection,
@@ -386,12 +426,15 @@ impl ExportBuildPlan {
             &linked_runtime_crate_links,
             &native_dynamic_package_exports,
         );
-        let runtime_plugin_descriptors = RuntimePluginDescriptor::builtin_catalog();
-        let runtime_plugin_availability = runtime_profile.availability_report_with_providers(
-            runtime_plugin_descriptors.iter(),
-            linked_runtime_package_ids.iter(),
-            native_dynamic_packages.iter(),
-        );
+        let runtime_plugin_availability = runtime_profile
+            .map(|runtime_profile| {
+                runtime_profile.availability_report_for_catalog_with_provider_membership(
+                    catalog,
+                    &linked_runtime_package_ids,
+                    native_dynamic_packages.iter().map(String::as_str),
+                )
+            })
+            .unwrap_or_default();
 
         let mut plan = Self::new(
             profile,
@@ -412,6 +455,27 @@ impl ExportBuildPlan {
     }
 }
 
+fn builtin_runtime_plugin_catalog() -> &'static RuntimePluginCatalog {
+    #[cfg(test)]
+    BUILTIN_CATALOG_BUILD_COUNT.with(|count| count.set(count.get().saturating_add(1)));
+    RuntimePluginCatalog::builtin_shared()
+}
+
+#[cfg(test)]
+thread_local! {
+    static BUILTIN_CATALOG_BUILD_COUNT: Cell<usize> = const { Cell::new(0) };
+}
+
+#[cfg(test)]
+fn reset_builtin_catalog_build_count() {
+    BUILTIN_CATALOG_BUILD_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+fn builtin_catalog_build_count() -> usize {
+    BUILTIN_CATALOG_BUILD_COUNT.with(Cell::get)
+}
+
 fn linked_rust_strategy_enabled(profile: &crate::core::framework::project::ExportProfile) -> bool {
     profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
         || profile.uses_strategy(ExportPackagingStrategy::SourceTemplate)
@@ -421,6 +485,51 @@ fn linked_rust_strategy_enabled(profile: &crate::core::framework::project::Expor
 mod tests {
     use super::*;
     use crate::asset::AssetUri;
+    use crate::core::framework::platform::RuntimeTargetMode;
+    use crate::core::framework::project::{ExportProfile, ExportTargetPlatform, RuntimeProfileId};
+
+    #[test]
+    fn export_generation_builds_each_manifest_validation_view_once() {
+        let source = include_str!("from_project_manifest.rs");
+        let descriptor_rebuild = ["RuntimePluginDescriptor", "::builtin_catalog"].concat();
+        let catalog_call = ["builtin_runtime_plugin_catalog", "();"].concat();
+        let direct_catalog_build = ["RuntimePluginCatalog", "::builtin"].concat();
+        let shared_catalog = ["RuntimePluginCatalog", "::builtin_shared()"].concat();
+        assert!(!source.contains(&descriptor_rebuild));
+        assert_eq!(source.matches(&catalog_call).count(), 1);
+        assert_eq!(source.matches(&direct_catalog_build).count(), 1);
+        assert!(source.contains(&shared_catalog));
+        reset_builtin_catalog_build_count();
+        begin_projection_build_observation();
+        let mut manifest = ProjectManifest::new(
+            "availability-projection",
+            AssetUri::parse("res://scenes/main.scene.toml").expect("fixture asset URI"),
+            1,
+        );
+        manifest.export_profiles = vec![ExportProfile::new(
+            "client",
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Windows,
+            RuntimeProfileId::Client2d,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate)];
+
+        let _ = ExportBuildPlan::from_project_manifest(&manifest, "client")
+            .expect("export generation should succeed");
+
+        assert_eq!(builtin_catalog_build_count(), 1);
+        assert_eq!(observed_projection_builds(), 2);
+    }
+
+    #[test]
+    fn completed_plugin_manifest_is_reused_for_feature_resolution() {
+        let source = include_str!("from_project_manifest.rs");
+        let completing_api = ["feature_dependency_report", "(&completed_plugins"].concat();
+        let completed_api = ["feature_dependency_report_for_", "completed_manifest"].concat();
+
+        assert!(!source.contains(&completing_api));
+        assert!(source.contains(&completed_api));
+    }
 
     #[test]
     fn missing_profile_returns_typed_plan_error() {

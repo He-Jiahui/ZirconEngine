@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var rows = %import("progression/talent_row_selection");
+
+console.printLine("m5-talent-row-selection-test");
+var result = rows.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

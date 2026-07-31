@@ -1,0 +1,6 @@
+var console = %import("zr.system.console");
+var orb = %import("combat/frozen_orb_state");
+console.printLine("m4-frozen-orb-state-test");
+var result = orb.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

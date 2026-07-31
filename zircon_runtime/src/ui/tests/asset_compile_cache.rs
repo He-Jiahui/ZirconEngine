@@ -687,3 +687,49 @@ fn persistent_cache_temp_dir(test_name: &str) -> std::path::PathBuf {
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
+
+#[test]
+fn template_asset_hot_paths_cache_miss_does_not_repeat_full_precondition_validation() {
+    let source = include_str!("../template/asset/compiler/compile.rs");
+    let cached_compile = source
+        .split_once("pub fn compile_with_cache")
+        .expect("compile_with_cache must remain available")
+        .1;
+
+    assert!(
+        cached_compile.contains("self.compile_validated(document)?"),
+        "a cache miss must enter the already-validated compile path"
+    );
+    assert!(
+        !cached_compile.contains("self.compile(document)?"),
+        "a cache miss must not repeat the full compiler precondition scan"
+    );
+}
+
+#[test]
+fn template_asset_hot_paths_package_does_not_repeat_full_precondition_validation() {
+    let source = include_str!("../template/asset/compiler/package/validate.rs");
+
+    assert!(
+        source.contains("self.compile_validated(document)?"),
+        "package compilation must reuse its already-completed precondition validation"
+    );
+    assert!(
+        !source.contains("self.compile(document)?"),
+        "package compilation must not repeat the full compiler precondition scan"
+    );
+}
+
+#[test]
+fn template_asset_hot_paths_tree_validation_borrows_nodes_instead_of_cloning_subtrees() {
+    let source = include_str!("../template/asset/document/validation.rs");
+
+    assert!(
+        source.contains("BTreeMap<&'a str, &'a UiNodeDefinition>"),
+        "tree authority validation must retain borrowed node identities"
+    );
+    assert!(
+        !source.contains("seen.insert(node.node_id.clone(), node.clone())"),
+        "tree authority validation must not clone every visited subtree"
+    );
+}

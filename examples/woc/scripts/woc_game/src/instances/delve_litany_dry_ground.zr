@@ -1,0 +1,316 @@
+// Generated authored Drowned Litany dais and island safe-ground geometry.
+// Module indices match instances/delve_module_content.zr source order.
+
+absolute(value: float): float {
+    return value < 0.0 ? -value : value;
+}
+
+pub isLitanyModuleIndex(moduleIndex: int, required: bool): bool {
+    if (!required || moduleIndex < 0 || moduleIndex >= 11) {
+        throw "woc Litany safe-ground module index is invalid";
+    }
+    return moduleIndex >= 4 && moduleIndex <= 10;
+}
+
+pub isDryGround(moduleIndex: int, localX: float, localZ: float, required: bool): bool {
+    if (!isLitanyModuleIndex(moduleIndex, required)) {
+        return false;
+    }
+    if (moduleIndex == 4) {
+        var daisDx4 = localX - 0.0;
+        var daisDz4 = localZ - 59.0;
+        if (daisDx4 * daisDx4 + daisDz4 * daisDz4 <= 25.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 5.0 &&
+            absolute(localZ + 9.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 9.0) <= 3.0 &&
+            absolute(localZ - 5.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 11.0) <= 3.0 &&
+            absolute(localZ - 22.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 8.0) <= 3.0 &&
+            absolute(localZ - 40.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 2.0) <= 4.0 &&
+            absolute(localZ - 54.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 4.0 &&
+            absolute(localZ - 59.0) <= 3.0) {
+            return true;
+        }
+        return false;
+    }
+    if (moduleIndex == 5) {
+        var daisDx5 = localX - 0.0;
+        var daisDz5 = localZ - 82.0;
+        if (daisDx5 * daisDx5 + daisDz5 * daisDz5 <= 36.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 5.0 &&
+            absolute(localZ + 11.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX + 12.0) <= 4.0 &&
+            absolute(localZ - 8.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX + 6.0) <= 4.0 &&
+            absolute(localZ - 24.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 3.0) <= 4.0 &&
+            absolute(localZ - 40.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 9.0) <= 4.0 &&
+            absolute(localZ - 56.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 2.0) <= 4.0 &&
+            absolute(localZ - 72.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 5.0 &&
+            absolute(localZ - 82.0) <= 3.0) {
+            return true;
+        }
+        return false;
+    }
+    if (moduleIndex == 6) {
+        var daisDx6 = localX - 0.0;
+        var daisDz6 = localZ - 82.0;
+        if (daisDx6 * daisDx6 + daisDz6 * daisDz6 <= 36.0) {
+            return true;
+        }
+        if (absolute(localX + 20.0) <= 4.0 &&
+            absolute(localZ - 4.0) <= 5.0) {
+            return true;
+        }
+        if (absolute(localX + 21.0) <= 4.0 &&
+            absolute(localZ - 26.0) <= 11.0) {
+            return true;
+        }
+        if (absolute(localX + 21.0) <= 4.0 &&
+            absolute(localZ - 52.0) <= 11.0) {
+            return true;
+        }
+        if (absolute(localX + 16.0) <= 4.0 &&
+            absolute(localZ - 72.0) <= 5.0) {
+            return true;
+        }
+        if (absolute(localX - 20.0) <= 4.0 &&
+            absolute(localZ - 4.0) <= 5.0) {
+            return true;
+        }
+        if (absolute(localX - 21.0) <= 4.0 &&
+            absolute(localZ - 26.0) <= 11.0) {
+            return true;
+        }
+        if (absolute(localX - 21.0) <= 4.0 &&
+            absolute(localZ - 52.0) <= 11.0) {
+            return true;
+        }
+        if (absolute(localX - 16.0) <= 4.0 &&
+            absolute(localZ - 72.0) <= 5.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 5.0 &&
+            absolute(localZ + 13.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 6.0 &&
+            absolute(localZ - 82.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 3.0 &&
+            absolute(localZ - 20.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 3.0 &&
+            absolute(localZ - 40.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 3.0 &&
+            absolute(localZ - 60.0) <= 3.0) {
+            return true;
+        }
+        return false;
+    }
+    if (moduleIndex == 7) {
+        var daisDx7 = localX - 0.0;
+        var daisDz7 = localZ - 64.0;
+        if (daisDx7 * daisDx7 + daisDz7 * daisDz7 <= 36.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 5.0 &&
+            absolute(localZ + 9.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX - 15.0) <= 4.0 &&
+            absolute(localZ - 9.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 16.0) <= 4.0 &&
+            absolute(localZ - 34.0) <= 5.0) {
+            return true;
+        }
+        if (absolute(localX - 12.0) <= 4.0 &&
+            absolute(localZ - 56.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 6.0 &&
+            absolute(localZ - 64.0) <= 4.0) {
+            return true;
+        }
+        return false;
+    }
+    if (moduleIndex == 8) {
+        var daisDx8 = localX - 0.0;
+        var daisDz8 = localZ - 74.0;
+        if (daisDx8 * daisDx8 + daisDz8 * daisDz8 <= 36.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 4.0 &&
+            absolute(localZ + 9.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX + 7.0) <= 4.0 &&
+            absolute(localZ - 8.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX + 20.0) <= 4.0 &&
+            absolute(localZ - 28.0) <= 6.0) {
+            return true;
+        }
+        if (absolute(localX + 14.0) <= 4.0 &&
+            absolute(localZ - 54.0) <= 5.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 6.0 &&
+            absolute(localZ - 74.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 7.0) <= 3.0 &&
+            absolute(localZ - 8.0) <= 6.0) {
+            return true;
+        }
+        if (absolute(localX - 20.0) <= 4.0 &&
+            absolute(localZ - 28.0) <= 6.0) {
+            return true;
+        }
+        if (absolute(localX - 14.0) <= 4.0 &&
+            absolute(localZ - 54.0) <= 5.0) {
+            return true;
+        }
+        return false;
+    }
+    if (moduleIndex == 9) {
+        var daisDx9 = localX - 0.0;
+        var daisDz9 = localZ - 82.0;
+        if (daisDx9 * daisDx9 + daisDz9 * daisDz9 <= 16.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 4.0 &&
+            absolute(localZ + 9.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 3.0 &&
+            absolute(localZ - 9.0) <= 5.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 2.0 &&
+            absolute(localZ - 22.0) <= 2.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 3.0 &&
+            absolute(localZ - 35.0) <= 5.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 2.0 &&
+            absolute(localZ - 50.0) <= 2.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 3.0 &&
+            absolute(localZ - 61.0) <= 5.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 2.0 &&
+            absolute(localZ - 72.0) <= 2.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 4.0 &&
+            absolute(localZ - 82.0) <= 4.0) {
+            return true;
+        }
+        return false;
+    }
+    if (moduleIndex == 10) {
+        var daisDx10 = localX - 0.0;
+        var daisDz10 = localZ - 72.0;
+        if (daisDx10 * daisDx10 + daisDz10 * daisDz10 <= 144.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 5.0 &&
+            absolute(localZ + 13.0) <= 3.0) {
+            return true;
+        }
+        if (absolute(localX + 12.0) <= 5.0 &&
+            absolute(localZ - 6.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 12.0) <= 5.0 &&
+            absolute(localZ - 8.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX + 10.0) <= 4.0 &&
+            absolute(localZ - 30.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 10.0) <= 4.0 &&
+            absolute(localZ - 32.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 5.0 &&
+            absolute(localZ - 44.0) <= 4.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 9.0 &&
+            absolute(localZ - 60.0) <= 9.0) {
+            return true;
+        }
+        if (absolute(localX - 0.0) <= 11.0 &&
+            absolute(localZ - 72.0) <= 11.0) {
+            return true;
+        }
+        return false;
+    }
+    throw "woc Litany safe-ground module index is invalid";
+}
+
+pub contractTest(): int {
+    if (!isLitanyModuleIndex(4, true) || !isLitanyModuleIndex(10, true) ||
+        isLitanyModuleIndex(3, true)) {
+        return -1;
+    }
+    if (!isDryGround(4, 0.0, 59.0, true) || !isDryGround(4, 9.0, 5.0, true) ||
+        isDryGround(4, -8.0, 18.0, true)) {
+        return -2;
+    }
+    if (!isDryGround(6, -21.0, 26.0, true) || !isDryGround(7, 16.0, 34.0, true) ||
+        !isDryGround(8, 20.0, 28.0, true) || !isDryGround(9, 0.0, 82.0, true) ||
+        !isDryGround(10, 0.0, 72.0, true)) {
+        return -3;
+    }
+    if (isDryGround(0, 0.0, 0.0, true) || isDryGround(10, 12.1, 8.0, true)) {
+        return -4;
+    }
+    return 1;
+}

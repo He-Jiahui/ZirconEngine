@@ -1,5 +1,18 @@
 use super::*;
 
+fn register_null_host_export(exports: &HostExportRegistry, module_name: &str, function_name: &str) {
+    exports
+        .register_module(
+            ScriptHostModuleDescriptor::new(module_name, "0.1.0").with_function(
+                ScriptHostFunctionDescriptor::new(function_name, 0, 0, ScriptHostValueKind::Null),
+            ),
+            [HostExportFunction::new(function_name, |_| {
+                Ok(ScriptHostValue::Null)
+            })],
+        )
+        .expect("minimal host export should register");
+}
+
 #[test]
 fn host_handles_are_stable_and_valid() {
     let registry = HostRegistry::default();
@@ -121,7 +134,7 @@ fn script_call_table_pre_resolves_host_export_callbacks() {
         )
         .unwrap();
 
-    let call_table = exports.script_call_table().unwrap();
+    let call_table = exports.script_call_table();
     let site = call_table.resolve("test.host", "add").unwrap();
 
     assert_eq!(call_table.len(), 1);
@@ -142,6 +155,110 @@ fn script_call_table_pre_resolves_host_export_callbacks() {
         seen_context.lock().unwrap().as_slice(),
         &[("test.host".to_string(), "add".to_string())]
     );
+}
+
+#[test]
+fn runtime13_performance_script_call_table_snapshots_are_generation_owned() {
+    let exports = HostExportRegistry::default();
+    register_null_host_export(&exports, "test.first", "ping");
+
+    let first = exports.script_call_table();
+    let repeated = exports.script_call_table();
+    let first_site = first
+        .resolve("test.first", "ping")
+        .expect("first generation should resolve its registered call site");
+    let repeated_site = repeated
+        .resolve("test.first", "ping")
+        .expect("repeated snapshot should resolve its registered call site");
+
+    assert_eq!(first.generation(), repeated.generation());
+    assert!(std::ptr::eq(first_site, repeated_site));
+
+    register_null_host_export(&exports, "test.second", "pong");
+    let second = exports.script_call_table();
+
+    assert_eq!(second.generation(), first.generation() + 1);
+    assert_eq!(first.len(), 1);
+    assert!(first.resolve("test.second", "pong").is_none());
+    assert_eq!(second.len(), 2);
+    assert!(second.resolve("test.second", "pong").is_some());
+}
+
+#[test]
+fn runtime13_performance_script_call_table_uses_borrowed_name_index_and_direct_dispatch() {
+    let exports = HostExportRegistry::default();
+    register_null_host_export(&exports, "test.direct", "run");
+
+    assert_eq!(
+        exports
+            .call("test.direct", "run", Vec::new())
+            .expect("direct registry dispatch should use the compiled call table"),
+        ScriptHostValue::Null
+    );
+    assert!(matches!(
+        exports.call("test.missing", "run", Vec::new()),
+        Err(VmError::Operation(message))
+            if message == "host export module not registered: test.missing"
+    ));
+    assert!(matches!(
+        exports.call("test.direct", "missing", Vec::new()),
+        Err(VmError::Operation(message))
+            if message == "host export function not registered: test.direct.missing"
+    ));
+
+    let table_source = include_str!("../host/script_call_table.rs");
+    assert!(table_source
+        .contains("by_name: Arc<HashMap<Arc<str>, HashMap<Arc<str>, ScriptCallSiteId>>>"));
+    assert!(table_source.contains(".get(module_name)?"));
+    assert!(table_source.contains(".get(function_name)?"));
+    assert!(!table_source.contains("module_name.to_string(), function_name.to_string()"));
+
+    let registry_source = include_str!("../host/host_export_registry.rs");
+    assert!(registry_source.contains("struct HostExportRegistryState"));
+    assert!(registry_source.contains("call_table: ScriptCallTable"));
+    assert!(registry_source.contains("state.call_table.clone()"));
+    assert!(!registry_source.contains("let (descriptor, callback) = {"));
+}
+
+#[test]
+fn runtime13_performance_host_export_callback_dispatch_releases_registry_lock() {
+    let exports = Arc::new(HostExportRegistry::default());
+    let weak_exports = Arc::downgrade(&exports);
+    exports
+        .register_module(
+            ScriptHostModuleDescriptor::new("test.reentrant", "0.1.0").with_function(
+                ScriptHostFunctionDescriptor::new("ping", 0, 0, ScriptHostValueKind::Null),
+            ),
+            [HostExportFunction::new("ping", move |_| {
+                let exports = weak_exports
+                    .upgrade()
+                    .expect("registry should remain alive during callback dispatch");
+                assert!(exports
+                    .script_call_table()
+                    .resolve("test.reentrant", "ping")
+                    .is_some());
+                Ok(ScriptHostValue::Null)
+            })],
+        )
+        .expect("reentrant host export should register");
+
+    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+    let exports_for_call = Arc::clone(&exports);
+    let call_thread = std::thread::spawn(move || {
+        let result = exports_for_call.call("test.reentrant", "ping", Vec::new());
+        let _ = sender.send(result);
+    });
+
+    let result = receiver
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .expect("host callback re-entry must not block on the registry state lock");
+    assert_eq!(
+        result.expect("reentrant host callback should succeed"),
+        ScriptHostValue::Null
+    );
+    call_thread
+        .join()
+        .expect("reentrant host callback thread should exit cleanly");
 }
 
 #[test]

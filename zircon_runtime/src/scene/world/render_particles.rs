@@ -33,11 +33,17 @@ impl World {
         let mut bounds = Vec::new();
         let mut gpu_frame_builder = ParticleGpuFrameBuilder::default();
 
-        for entity in self.entities.iter().copied() {
-            let particle_values = PARTICLE_COMPONENT_IDS
-                .map(|component_id| self.dynamic_component(entity, component_id));
-            let hud_bar_values = WORLD_HUD_BAR_COMPONENT_IDS
-                .map(|component_id| self.dynamic_component(entity, component_id));
+        let mut dynamic_component_entities =
+            self.dynamic_components.keys().copied().collect::<Vec<_>>();
+        dynamic_component_entities.sort_unstable();
+        for entity in dynamic_component_entities {
+            let Some(components) = self.dynamic_components.get(&entity) else {
+                continue;
+            };
+            let particle_values =
+                PARTICLE_COMPONENT_IDS.map(|component_id| components.get(component_id));
+            let hud_bar_values =
+                WORLD_HUD_BAR_COMPONENT_IDS.map(|component_id| components.get(component_id));
             if particle_values.iter().all(|value| value.is_none())
                 && hud_bar_values.iter().all(|value| value.is_none())
             {
@@ -105,7 +111,6 @@ impl World {
             sprites.extend(entity_sprites);
         }
 
-        emitters.sort_unstable();
         sprites.sort_by(|left, right| {
             distance_sort_key(right.position, camera_position)
                 .total_cmp(&distance_sort_key(left.position, camera_position))
@@ -114,8 +119,6 @@ impl World {
                 .then_with(|| left.stable_sprite_key.cmp(&right.stable_sprite_key))
                 .then_with(|| right.size.total_cmp(&left.size))
         });
-        bounds.sort_by_key(|bound| bound.entity);
-
         ParticleExtract {
             emitters,
             sprites,
@@ -492,6 +495,29 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[test]
+    fn render_particle_extract_scans_dynamic_component_owners_instead_of_all_entities() {
+        let source = include_str!("render_particles.rs");
+        let collect = source
+            .split("pub(super) fn collect_render_particles")
+            .nth(1)
+            .and_then(|source| source.split("#[derive(Clone, Debug, PartialEq)]").next())
+            .expect("read render particle collection body");
+
+        assert!(
+            collect.contains("self.dynamic_components.keys().copied().collect::<Vec<_>>()")
+                && collect.contains("dynamic_component_entities.sort_unstable();")
+                && collect.contains("for entity in dynamic_component_entities")
+                && collect.contains("let Some(components) = self.dynamic_components.get(&entity)")
+                && collect.contains("components.get(component_id)")
+                && !collect.contains("for entity in self.entities.iter().copied()")
+                && !collect.contains("self.dynamic_component(entity, component_id)")
+                && !collect.contains("emitters.sort_unstable();")
+                && !collect.contains("bounds.sort_by_key"),
+            "render particle extraction must scan dynamic-component owners instead of probing every world entity"
+        );
+    }
 
     #[test]
     fn world_hud_bar_sprites_use_nonzero_stable_keys() {

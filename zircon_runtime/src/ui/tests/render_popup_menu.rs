@@ -8,6 +8,25 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+fn popup_menu_rendering_uses_set_lookup_and_moves_owned_labels() {
+    let source = include_str!("../surface/render/popup_menu.rs");
+    let rows = include_str!("../surface/render/popup_rows.rs");
+
+    assert!(
+        !source.contains(".iter().any(|value| self.matches_id(value))"),
+        "popup menu state lookup should use the BTreeSet index"
+    );
+    assert!(
+        !source.contains("item.label.clone()"),
+        "popup menu rows should move their already-owned labels into commands"
+    );
+    assert!(rows.contains("EditorDesignTokens"));
+    assert!(rows.contains("EditorTypographyTokens"));
+    assert!(!rows.contains("const POPUP_BACKGROUND"));
+    assert!(!rows.contains("const POPUP_TEXT"));
+}
+
+#[test]
 fn render_extract_expands_open_context_action_menu_items() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.popup_menu"));
     surface.tree.insert_root(
@@ -163,10 +182,10 @@ menu_items = ["Delete|checked,hovered,pressed,danger,loading", "Simulate"]
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Delete")
-            && command.frame == UiFrame::new(17.0, 13.0, 142.0, 26.0)
+            && command.frame == UiFrame::new(16.0, 18.0, 144.0, 16.0)
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(!commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -232,11 +251,11 @@ focused_index = 0
     );
     assert_eq!(
         focused_surface.style.background_color.as_deref(),
-        Some("#151b1f")
+        Some("#141618")
     );
     assert_eq!(
         focused_surface.style.border_color.as_deref(),
-        Some("#303840")
+        Some("#323a41")
     );
     assert_eq!(focused_surface.style.border_width, 1.0);
     assert!(!commands.iter().any(|command| {
@@ -244,7 +263,7 @@ focused_index = 0
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.frame == UiFrame::new(12.0, 12.0, 160.0, 30.0)
-            && command.style.background_color.as_deref() == Some("#1a2429")
+            && command.style.background_color.as_deref() == Some("#2a3036")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -252,7 +271,7 @@ focused_index = 0
             && command.text.as_deref() == Some("Rename")
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.style.painter_state == UiPainterResolvedState::Focused
-            && command.style.foreground_color.as_deref() == Some("#c5d0d5")
+            && command.style.foreground_color.as_deref() == Some("#e8ecee")
     }));
 }
 
@@ -314,7 +333,7 @@ hovered_option_id = "rename"
             && command.text.as_deref() == Some("Rename")
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.style.painter_state == UiPainterResolvedState::Focused
-            && command.style.foreground_color.as_deref() == Some("#35c7d0")
+            && command.style.foreground_color.as_deref() == Some("#3cc7d6")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -322,7 +341,7 @@ hovered_option_id = "rename"
             && command.text.as_deref() == Some("Delete")
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.style.painter_state == UiPainterResolvedState::Disabled
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -330,7 +349,7 @@ hovered_option_id = "rename"
             && command.text.as_deref() == Some("Archive")
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.foreground_color.as_deref() == Some("#59656c")
+            && command.style.foreground_color.as_deref() == Some("#656f76")
     }));
     assert!(!commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)

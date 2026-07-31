@@ -1,11 +1,16 @@
+use std::path::Path;
+use std::sync::Arc;
 use zircon_runtime::scene::components::NodeKind;
-use zircon_runtime::scene::LevelSystem;
 use zircon_runtime_interface::math::UVec2;
 
-use crate::core::editing::history::EditorHistory;
+use crate::core::context::EditorContext;
+#[cfg(test)]
+use crate::core::context::EditorContextBuilder;
+use crate::core::editing::authoring_world::{AuthoringWorldSeed, EditorAuthoringWorld};
+#[cfg(test)]
+use crate::core::jobs::test_job_scheduler;
 use crate::scene::viewport::SceneViewportController;
 use crate::ui::workbench::project::AssetWorkspaceState;
-use crate::ui::workbench::state::editor_world_slot::EditorWorldSlot;
 use crate::ui::workbench::state::EditorState;
 
 use super::{EditorSessionMode, WelcomePaneSnapshot};
@@ -13,70 +18,136 @@ use super::{EditorSessionMode, WelcomePaneSnapshot};
 const DEFAULT_PROJECT_PATH: &str = "sandbox-project";
 
 impl EditorState {
-    pub fn new(world: LevelSystem, viewport_size: UVec2) -> Self {
+    #[cfg(test)]
+    pub fn new(world: impl Into<AuthoringWorldSeed>, viewport_size: UVec2) -> Self {
+        Self::new_with_context(
+            world,
+            viewport_size,
+            EditorContextBuilder::new(test_job_scheduler()).build(),
+        )
+    }
+
+    pub fn new_with_context(
+        world: impl Into<AuthoringWorldSeed>,
+        viewport_size: UVec2,
+        context: Arc<EditorContext>,
+    ) -> Self {
         Self::new_with_world(
-            EditorWorldSlot::loaded(world),
+            EditorAuthoringWorld::loaded(context.gateway(), world)
+                .expect("editor context must accept an authoring gateway"),
             viewport_size,
             DEFAULT_PROJECT_PATH.to_string(),
             EditorSessionMode::Welcome,
             WelcomePaneSnapshot::default(),
             false,
             "Ready".to_string(),
+            context,
         )
     }
 
-    pub fn with_default_selection(world: LevelSystem, viewport_size: UVec2) -> Self {
-        let mut state = Self::new(world, viewport_size);
+    #[cfg(test)]
+    pub fn with_default_selection(
+        world: impl Into<AuthoringWorldSeed>,
+        viewport_size: UVec2,
+    ) -> Self {
+        Self::with_default_selection_with_context(
+            world,
+            viewport_size,
+            EditorContextBuilder::new(test_job_scheduler()).build(),
+        )
+    }
+
+    pub fn with_default_selection_with_context(
+        world: impl Into<AuthoringWorldSeed>,
+        viewport_size: UVec2,
+        context: Arc<EditorContext>,
+    ) -> Self {
+        let mut state = Self::new_with_context(world, viewport_size, context);
         state.select_default_node();
         state.sync_selection_state();
         state
     }
 
+    #[cfg(test)]
     pub fn project(
-        world: LevelSystem,
+        world: impl Into<AuthoringWorldSeed>,
         viewport_size: UVec2,
         project_path: impl Into<String>,
     ) -> Self {
+        Self::project_with_context(
+            world,
+            viewport_size,
+            project_path,
+            EditorContextBuilder::new(test_job_scheduler()).build(),
+        )
+    }
+
+    pub fn project_with_context(
+        world: impl Into<AuthoringWorldSeed>,
+        viewport_size: UVec2,
+        project_path: impl Into<String>,
+        context: Arc<EditorContext>,
+    ) -> Self {
         let mut state = Self::new_with_world(
-            EditorWorldSlot::loaded(world),
+            EditorAuthoringWorld::loaded(context.gateway(), world)
+                .expect("editor context must accept an authoring gateway"),
             viewport_size,
             project_path.into(),
             EditorSessionMode::Project,
             WelcomePaneSnapshot::default(),
             true,
             "Ready".to_string(),
+            context,
         );
+        state.select_default_node();
         state.sync_selection_state();
         state
     }
 
+    #[cfg(test)]
     pub fn welcome(viewport_size: UVec2, welcome: WelcomePaneSnapshot) -> Self {
+        Self::welcome_with_context(
+            viewport_size,
+            welcome,
+            EditorContextBuilder::new(test_job_scheduler()).build(),
+        )
+    }
+
+    pub fn welcome_with_context(
+        viewport_size: UVec2,
+        welcome: WelcomePaneSnapshot,
+        context: Arc<EditorContext>,
+    ) -> Self {
         let status_line = if welcome.status_message.trim().is_empty() {
             "Ready".to_string()
         } else {
             welcome.status_message.clone()
         };
         Self::new_with_world(
-            EditorWorldSlot::unloaded(),
+            EditorAuthoringWorld::unloaded(context.gateway())
+                .expect("editor context must accept a detached authoring gateway"),
             viewport_size,
             String::new(),
             EditorSessionMode::Welcome,
             welcome,
             false,
             status_line,
+            context,
         )
     }
 
     fn new_with_world(
-        world: EditorWorldSlot,
+        world: EditorAuthoringWorld,
         viewport_size: UVec2,
         project_path: String,
         session_mode: EditorSessionMode,
         welcome: WelcomePaneSnapshot,
         project_open: bool,
         status_line: String,
+        context: Arc<EditorContext>,
     ) -> Self {
-        Self {
+        let mut state = Self {
+            context,
             world,
             viewport_controller: SceneViewportController::new(viewport_size),
             name_field: String::new(),
@@ -92,9 +163,15 @@ impl EditorState {
             status_line,
             status_task_progress: None,
             bridge_diagnostics: Default::default(),
-            history: EditorHistory::default(),
+            gizmo_transaction: None,
             play_session: None,
+        };
+        if state.project_open {
+            state
+                .viewport_controller
+                .configure_project_settings(Path::new(&state.project_path));
         }
+        state
     }
 
     fn select_default_node(&mut self) {

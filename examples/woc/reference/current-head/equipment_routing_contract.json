@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/equipment_routing_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/equipment_rules.ts": "85a9f8b540f9faf4c7125bf56467e3c5e30b2c1add5b07697813522f3e873090",
+    "src/sim/items.ts": "83fd817da0f61af9406436c4f2b2edd9b4465dbac8f9923169a7e74594beb79f"
+  },
+  "values": {
+    "ring_kind": "ring",
+    "ring_one": "ring1",
+    "ring_two": "ring2",
+    "mainhand": "mainhand",
+    "offhand": "offhand",
+    "weapon_kind": "weapon",
+    "onehand": "onehand",
+    "twohand": "twohand",
+    "warrior": "warrior",
+    "rogue": "rogue",
+    "fury": "fury"
+  },
+  "semantics": {
+    "ring_resolution": "ring1 then ring2, then replace ring1",
+    "default_weapon_hand": "onehand",
+    "dual_wield": "rogue or warrior fury",
+    "twohand_offhand": "warrior fury only",
+    "eligibility_boundary": "itemEligible represents preceding canEquipItem content/proficiency admission; requiredClass arrays are not scalarized here"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/area_echo_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/combat/area_echo.ts": "d544e3f20144f4c53988a2f709fbd0e747fdcb620c00ce2c16bbe8568aedf321"
+  },
+  "constants": {
+    "AOE_ECHO_RADIUS": 8,
+    "AOE_ECHO_MULT": 0.4,
+    "AOE_ECHO_MAX_TARGETS": 4,
+    "SWEEP_MULT": 1
+  },
+  "qualification": {
+    "requires_any": [
+      "weaponStrike",
+      "directDamage"
+    ],
+    "excludes_any": [
+      "aoeDamage",
+      "aoeRoot",
+      "groundAoE"
+    ]
+  },
+  "aura_kinds": {
+    "echo": "aoe_echo",
+    "sweep": "sweeping_strikes"
+  },
+  "charge": "first_echo_aura; missing_charges_defaults_to_one; remove_when_remaining_is_nonpositive"
+}

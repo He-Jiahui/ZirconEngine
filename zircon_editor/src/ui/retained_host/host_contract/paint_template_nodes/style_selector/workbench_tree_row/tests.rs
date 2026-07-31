@@ -26,7 +26,7 @@ fn tree_row_loading_state_uses_unavailable_visuals() {
 }
 
 #[test]
-fn selected_tree_row_uses_muted_selected_fill_and_neutral_outline() {
+fn selected_tree_row_uses_tokenized_selection_fill_and_neutral_outline() {
     let mut node = TemplatePaneNodeData::default();
     node.selected = true;
     node.checked = true;
@@ -35,12 +35,51 @@ fn selected_tree_row_uses_muted_selected_fill_and_neutral_outline() {
     let style = select_workbench_tree_row_style(&node);
 
     assert_eq!(style.state, UiPainterResolvedState::Focused);
-    assert_eq!(style.background, Some(PALETTE.surface_pressed));
-    assert_ne!(style.background, Some(PALETTE.surface_selected));
+    assert_eq!(style.background, Some(PALETTE.surface_selected));
+    assert_ne!(style.background, Some(PALETTE.surface_pressed));
     assert_eq!(style.border, Some(PALETTE.border));
     assert_ne!(style.border, Some(PALETTE.accent));
     assert_ne!(style.border, Some(PALETTE.focus_ring));
     assert_eq!(style.border_width, 1.0);
+}
+
+#[test]
+fn selected_hovered_tree_row_uses_separate_accent_soft_fill() {
+    let mut node = TemplatePaneNodeData::default();
+    node.selected = true;
+    node.hovered = true;
+
+    let style = select_workbench_tree_row_style(&node);
+
+    assert_eq!(style.background, Some(PALETTE.accent_soft));
+    assert_ne!(style.background, Some(PALETTE.surface_selected));
+    assert_ne!(style.background, Some(PALETTE.surface_pressed));
+}
+
+#[test]
+fn pressed_unmarked_tree_row_keeps_pressed_surface_distinct_from_selection() {
+    let mut node = TemplatePaneNodeData::default();
+    node.pressed = true;
+
+    let style = select_workbench_tree_row_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Pressed);
+    assert_eq!(style.background, Some(PALETTE.surface_pressed));
+    assert_ne!(style.background, Some(PALETTE.surface_selected));
+}
+
+#[test]
+fn pressed_selected_tree_row_prioritizes_pressed_surface() {
+    let mut node = TemplatePaneNodeData::default();
+    node.selected = true;
+    node.pressed = true;
+
+    let style = select_workbench_tree_row_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Pressed);
+    assert_eq!(style.background, Some(PALETTE.surface_pressed));
+    assert_ne!(style.background, Some(PALETTE.surface_selected));
+    assert_ne!(style.background, Some(PALETTE.accent_soft));
 }
 
 #[test]
@@ -72,6 +111,8 @@ fn hovered_unmarked_tree_row_still_uses_hover_fill_without_focus_border() {
 #[test]
 fn tree_row_palette_projects_surface_text_and_focus_roles_from_host_palette() {
     let mut host = PALETTE;
+    host.surface_selected = [6, 7, 8, 255];
+    host.accent_soft = [9, 10, 11, 255];
     host.surface_pressed = [11, 12, 13, 255];
     host.surface_hover = [21, 22, 23, 255];
     host.focus_ring = [31, 32, 33, 255];
@@ -81,7 +122,9 @@ fn tree_row_palette_projects_surface_text_and_focus_roles_from_host_palette() {
 
     let palette = workbench_tree_row_palette_from_host(host);
 
-    assert_eq!(palette.marked_surface, [11, 12, 13, 255]);
+    assert_eq!(palette.marked_surface, [6, 7, 8, 255]);
+    assert_eq!(palette.marked_hot_surface, [9, 10, 11, 255]);
+    assert_eq!(palette.pressed_surface, [11, 12, 13, 255]);
     assert_eq!(palette.hot_surface, [21, 22, 23, 255]);
     assert_eq!(palette.focus_border, [31, 32, 33, 255]);
     assert_eq!(palette.text, [41, 42, 43, 255]);

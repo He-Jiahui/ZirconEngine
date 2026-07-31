@@ -57,8 +57,10 @@ impl UiV2SurfaceBuilder {
         let tree = build_tree_from_arena(
             &compiled.asset_id,
             tree_id.clone(),
+            document,
             &compiled.arena,
             &resolved_styles,
+            theme,
         )?;
         let mut runtime_style = if let Some(theme) = theme {
             UiV2RuntimeStyleIndex::from_document_with_theme(document, theme)?

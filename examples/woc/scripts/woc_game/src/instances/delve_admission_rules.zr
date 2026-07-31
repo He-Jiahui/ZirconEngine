@@ -1,0 +1,174 @@
+// Ordered scalar admission projection of canEnterDelve/enterDelve. The
+// authoritative DelveRun reducer owns resolver lookup, party membership, run
+// allocation, error emission, pet stashing and teleport/state mutation.
+
+requireDelve(index: int, required: bool): void {
+    if (!required || index < 0 || index > 1) {
+        throw "woc Delve admission delve is invalid";
+    }
+}
+
+requireTier(index: int, required: bool): void {
+    if (!required || index < 0 || index > 1) {
+        throw "woc Delve admission tier is invalid";
+    }
+}
+
+// 0=Collapsed Reliquary, 1=Drowned Litany.
+pub delveIndex(delveId: string, required: bool): int {
+    if (!required) { throw "woc Delve admission delve is required"; }
+    if (delveId == "collapsed_reliquary") { return 0; }
+    if (delveId == "drowned_litany") { return 1; }
+    return -1;
+}
+
+pub delveName(delve: int, required: bool): string {
+    requireDelve(delve, required);
+    return delve == 0 ? "The Collapsed Reliquary" : "The Drowned Litany";
+}
+
+pub minimumLevel(delve: int, required: bool): int {
+    requireDelve(delve, required);
+    return delve == 0 ? 7 : 12;
+}
+
+pub maximumPlayers(delve: int, required: bool): int {
+    requireDelve(delve, required);
+    return 2;
+}
+
+// 0=Normal, 1=Heroic.
+pub tierIndex(tierId: string, required: bool): int {
+    if (!required) { throw "woc Delve admission tier is required"; }
+    if (tierId == "normal") { return 0; }
+    if (tierId == "heroic") { return 1; }
+    return -1;
+}
+
+pub tierLabel(tier: int, required: bool): string {
+    requireTier(tier, required);
+    return tier == 0 ? "Normal" : "Heroic";
+}
+
+pub tierMinimumLevel(delve: int, tier: int, required: bool): int {
+    requireDelve(delve, required);
+    requireTier(tier, true);
+    if (tier == 0) { return 0; }
+    return delve == 0 ? 9 : 14;
+}
+
+// Result codes follow source order. 0 is the source's silent early return for
+// an unresolved player or unknown delve; 13 joins an existing party run and 14
+// claims a free run. Codes 1..12 produce the corresponding error message.
+pub admissionCode(
+    hasResolver: bool,
+    isDead: bool,
+    delveId: string,
+    tierId: string,
+    playerLevel: int,
+    partyMembers: int,
+    inDungeon: bool,
+    inArena: bool,
+    alreadyInDelve: bool,
+    trading: bool,
+    dueling: bool,
+    arenaMatch: bool,
+    existingPartyRun: bool,
+    freeRunAvailable: bool
+): int {
+    var delve = delveIndex(delveId, true);
+    if (!hasResolver || delve < 0) { return 0; }
+    if (playerLevel < 0 || partyMembers < 0) {
+        throw "woc Delve admission player state is invalid";
+    }
+    if (isDead) { return 1; }
+    if (inDungeon) { return 2; }
+    if (inArena) { return 3; }
+    if (alreadyInDelve) { return 4; }
+    if (trading) { return 5; }
+    if (dueling) { return 6; }
+    if (arenaMatch) { return 7; }
+    var tier = tierIndex(tierId, true);
+    if (tier < 0) { return 8; }
+    if (playerLevel < minimumLevel(delve, true)) { return 9; }
+    var tierMinimum = tierMinimumLevel(delve, tier, true);
+    if (tierMinimum > 0 && playerLevel < tierMinimum) { return 10; }
+    if (partyMembers > maximumPlayers(delve, true)) { return 11; }
+    if (existingPartyRun) { return 13; }
+    return freeRunAvailable ? 14 : 12;
+}
+
+pub errorMessage(code: int, delve: int, required: bool): string {
+    requireDelve(delve, required);
+    if (code == 0 || code == 13 || code == 14) { return ""; }
+    if (code == 1) { return "You cannot enter a delve right now."; }
+    if (code == 2) { return "Leave the dungeon first."; }
+    if (code == 3) { return "Leave the arena first."; }
+    if (code == 4) { return "You are already in a delve."; }
+    if (code == 5) { return "You cannot enter a delve while trading."; }
+    if (code == 6) { return "You cannot enter a delve during a duel."; }
+    if (code == 7) { return "You cannot enter a delve during an arena match."; }
+    if (code == 8) { return "Unknown delve tier."; }
+    if (code == 9) {
+        return "You must be level " + <string>minimumLevel(delve, true) + " to enter " +
+            delveName(delve, true) + ".";
+    }
+    if (code == 10) {
+        return "You must be level " + <string>tierMinimumLevel(delve, 1, true) + " to enter " +
+            delveName(delve, true) + " on " + tierLabel(1, true) + ".";
+    }
+    if (code == 11) {
+        return delveName(delve, true) + " is meant for solo or duo delves. Parties of " +
+            <string>(maximumPlayers(delve, true) + 1) + " or more may not enter.";
+    }
+    if (code == 12) {
+        return "All instances of " + delveName(delve, true) + " are busy. Try again soon.";
+    }
+    throw "woc Delve admission error code is invalid";
+}
+
+pub contractTest(): int {
+    if (delveIndex("collapsed_reliquary", true) != 0 ||
+        delveIndex("drowned_litany", true) != 1 || delveIndex("unknown", true) != -1 ||
+        minimumLevel(0, true) != 7 || minimumLevel(1, true) != 12 ||
+        maximumPlayers(0, true) != 2 || tierIndex("normal", true) != 0 ||
+        tierIndex("heroic", true) != 1 || tierMinimumLevel(0, 1, true) != 9 ||
+        tierMinimumLevel(1, 1, true) != 14) {
+        return -1;
+    }
+    if (admissionCode(false, false, "collapsed_reliquary", "normal", 99, 1,
+            false, false, false, false, false, false, true, true) != 0 ||
+        admissionCode(true, false, "unknown", "normal", 99, 1,
+            false, false, false, false, false, false, true, true) != 0 ||
+        admissionCode(true, true, "collapsed_reliquary", "normal", 99, 1,
+            true, true, true, true, true, true, true, true) != 1 ||
+        admissionCode(true, false, "collapsed_reliquary", "normal", 99, 1,
+            true, true, true, true, true, true, true, true) != 2 ||
+        admissionCode(true, false, "collapsed_reliquary", "unknown", 99, 1,
+            false, false, false, false, false, false, true, true) != 8) {
+        return -2;
+    }
+    if (admissionCode(true, false, "collapsed_reliquary", "normal", 6, 1,
+            false, false, false, false, false, false, true, true) != 9 ||
+        admissionCode(true, false, "collapsed_reliquary", "heroic", 8, 1,
+            false, false, false, false, false, false, true, true) != 10 ||
+        admissionCode(true, false, "drowned_litany", "heroic", 14, 3,
+            false, false, false, false, false, false, true, true) != 11 ||
+        admissionCode(true, false, "drowned_litany", "heroic", 14, 2,
+            false, false, false, false, false, false, false, false) != 12 ||
+        admissionCode(true, false, "drowned_litany", "heroic", 14, 2,
+            false, false, false, false, false, false, true, false) != 13 ||
+        admissionCode(true, false, "drowned_litany", "heroic", 14, 2,
+            false, false, false, false, false, false, false, true) != 14) {
+        return -3;
+    }
+    if (errorMessage(1, 0, true) != "You cannot enter a delve right now." ||
+        errorMessage(9, 0, true) != "You must be level 7 to enter The Collapsed Reliquary." ||
+        errorMessage(10, 1, true) != "You must be level 14 to enter The Drowned Litany on Heroic." ||
+        errorMessage(11, 0, true) != "The Collapsed Reliquary is meant for solo or duo delves. Parties of 3 or more may not enter." ||
+        errorMessage(12, 1, true) != "All instances of The Drowned Litany are busy. Try again soon." ||
+        errorMessage(13, 1, true) != "") {
+        return -4;
+    }
+    return 1;
+}

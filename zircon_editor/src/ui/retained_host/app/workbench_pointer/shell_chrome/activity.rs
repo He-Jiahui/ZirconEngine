@@ -1,4 +1,4 @@
-use super::super::super::{callback_dispatch, HostActivityRailPointerSide, RetainedEditorHost};
+use super::super::super::{HostActivityRailPointerSide, RetainedEditorHost, callback_dispatch};
 use zircon_runtime_interface::ui::layout::UiPoint;
 
 impl RetainedEditorHost {

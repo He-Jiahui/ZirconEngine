@@ -109,13 +109,13 @@ impl ProfileRecorder {
     }
 
     pub fn next_frame_index(&mut self, stream: &str) -> u64 {
-        let next = self
-            .next_frame_index_by_stream
-            .entry(stream.to_string())
-            .or_insert(0);
-        let frame_index = *next;
-        *next = next.saturating_add(1);
-        frame_index
+        if let Some(next) = self.next_frame_index_by_stream.get_mut(stream) {
+            let frame_index = *next;
+            *next = next.saturating_add(1);
+            return frame_index;
+        }
+        self.next_frame_index_by_stream.insert(stream.to_owned(), 1);
+        0
     }
 
     pub fn record_span(&mut self, span: ProfileSpanSnapshot) {

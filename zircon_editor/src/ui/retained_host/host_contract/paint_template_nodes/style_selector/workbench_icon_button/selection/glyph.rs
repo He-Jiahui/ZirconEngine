@@ -3,6 +3,7 @@ use super::super::palette::{workbench_icon_button_palette, WorkbenchIconButtonPa
 use super::super::state::{icon_button_node_uses_active_glyph, is_unavailable_icon_button_state};
 use super::declared::declared_icon_color;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
+use crate::ui::retained_host::host_contract::paint_template_nodes::template_style_color::typed_button_tone_color;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_glyph_color(
@@ -47,11 +48,13 @@ fn normal_icon_glyph_color(
     context: WorkbenchIconButtonContext,
     palette: WorkbenchIconButtonPalette,
 ) -> [u8; 4] {
-    declared_icon_color(node).unwrap_or_else(|| {
-        if context == WorkbenchIconButtonContext::Rail {
-            palette.muted
-        } else {
-            palette.normal
-        }
-    })
+    declared_icon_color(node)
+        .or_else(|| typed_button_tone_color(node))
+        .unwrap_or_else(|| {
+            if context == WorkbenchIconButtonContext::Rail {
+                palette.muted
+            } else {
+                palette.normal
+            }
+        })
 }

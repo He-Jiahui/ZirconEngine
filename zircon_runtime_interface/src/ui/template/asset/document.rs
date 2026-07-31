@@ -208,7 +208,9 @@ pub enum UiAssetError {
     ParseToml(String),
     #[error("failed to read ui asset document: {0}")]
     Io(String),
-    #[error("ui asset {asset_id} uses unsupported schema version {version}; current supported version is {current}")]
+    #[error(
+        "ui asset {asset_id} uses unsupported schema version {version}; current supported version is {current}"
+    )]
     UnsupportedSchemaVersion {
         asset_id: String,
         version: u32,

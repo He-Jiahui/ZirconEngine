@@ -217,3 +217,12 @@ stop = "Stop"
     assert!(keys.contains("menu.play"));
     assert!(keys.contains("menu.stop"));
 }
+
+#[test]
+fn localization_catalog_lookup_borrows_locale_and_table_keys() {
+    let source = include_str!("../template/asset/localization/resolve.rs");
+
+    assert!(source.contains("tables: BTreeMap<String, BTreeMap<String, UiLocalizationTableEntry>>"));
+    assert!(source.contains("self.tables.get(locale)?.get(table)"));
+    assert!(!source.contains("self.tables.get(&(locale.to_string(), table.to_string()))"));
+}

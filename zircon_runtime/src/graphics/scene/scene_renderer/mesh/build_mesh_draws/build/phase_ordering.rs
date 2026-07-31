@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    build_mesh_phase_queue, GeometryPhaseInput, MeshPhaseInput, RenderMeshSnapshot,
-    RenderPhaseMeshSource, RenderPhaseQueue, RenderQueueValue,
+    GeometryPhaseInput, MeshPhaseInput, RenderMeshSnapshot, RenderPhaseMeshSource,
+    RenderPhaseQueue, RenderQueueValue, build_mesh_phase_queue,
 };
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
@@ -30,7 +30,7 @@ fn phase_ordered_meshes_with_material_offsets<'a>(
         return frame
             .meshes()
             .iter()
-            .filter(|mesh| camera_layers.intersects(&mesh.render_layer_mask))
+            .filter(|mesh| camera_layers.intersects(&mesh.common.layer_mask))
             .map(|mesh| PhaseOrderedMeshSnapshot {
                 snapshot: mesh,
                 command_sort_input: MeshCommandSortInput::new(
@@ -57,23 +57,35 @@ fn meshes_from_phase_queue<'a>(
     material_sort_offsets: &impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
 ) -> Vec<PhaseOrderedMeshSnapshot<'a>> {
     let camera_layers = frame.extract.view.selected_camera_layers();
+    let mut phase_inputs_by_mesh_index = vec![None; frame.meshes().len()];
+    for input in &frame.extract.geometry.phase_inputs {
+        if let Some(slot) = phase_inputs_by_mesh_index.get_mut(input.mesh_index) {
+            if slot.is_none() {
+                *slot = Some(input);
+            }
+        }
+    }
     phase_queue
         .items
         .iter()
         .filter_map(|item| match item.mesh_source {
             RenderPhaseMeshSource::MeshIndex(index) => {
                 let snapshot = frame.meshes().get(index)?;
-                if !camera_layers.intersects(&snapshot.render_layer_mask) {
+                if !camera_layers.intersects(&snapshot.common.layer_mask) {
                     return None;
                 }
-                let command_sort_input =
-                    command_sort_input_for_mesh_index(frame, index, material_sort_offsets)
-                        .unwrap_or_else(|| {
-                            MeshCommandSortInput::new(
-                                snapshot.transform.translation.z,
-                                snapshot.node_id,
-                            )
-                        });
+                let phase_input = phase_inputs_by_mesh_index
+                    .get(index)
+                    .and_then(|input| *input);
+                let command_sort_input = command_sort_input_for_mesh_index(
+                    frame,
+                    index,
+                    phase_input,
+                    material_sort_offsets,
+                )
+                .unwrap_or_else(|| {
+                    MeshCommandSortInput::new(snapshot.transform.translation.z, snapshot.node_id)
+                });
                 Some(PhaseOrderedMeshSnapshot {
                     snapshot,
                     command_sort_input,
@@ -87,14 +99,10 @@ fn meshes_from_phase_queue<'a>(
 fn command_sort_input_for_mesh_index(
     frame: &ViewportRenderFrame,
     mesh_index: usize,
+    input: Option<&GeometryPhaseInput>,
     material_sort_offsets: &impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
 ) -> Option<MeshCommandSortInput> {
-    let input = frame
-        .extract
-        .geometry
-        .phase_inputs
-        .iter()
-        .find(|input| input.mesh_index == mesh_index)?;
+    let input = input?;
     let mesh = frame.meshes().get(mesh_index)?;
     let offsets = material_sort_offsets(mesh);
     Some(MeshCommandSortInput {
@@ -219,7 +227,19 @@ mod tests {
     use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
     use crate::graphics::ViewportRenderFrame;
 
-    use super::{phase_ordered_meshes_with_material_offsets, MaterialPhaseSortOffsets};
+    use super::{MaterialPhaseSortOffsets, phase_ordered_meshes_with_material_offsets};
+
+    #[test]
+    fn phase_ordering_indexes_extract_inputs_before_queue_projection() {
+        let source = include_str!("phase_ordering.rs");
+        let product = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("product source precedes tests");
+
+        assert!(product.contains("phase_inputs_by_mesh_index"));
+        assert!(!product.contains(".phase_inputs\n        .iter()\n        .find("));
+    }
 
     #[test]
     fn phase_ordered_meshes_follow_extract_phase_queue_instead_of_mesh_vector_order() {
@@ -288,9 +308,9 @@ mod tests {
     #[test]
     fn phase_ordered_meshes_filter_meshes_by_selected_camera_layers() {
         let mut hidden = test_mesh(10);
-        hidden.render_layer_mask = RenderLayerSet::layer(1);
+        hidden.common.layer_mask = RenderLayerSet::layer(1);
         let mut visible = test_mesh(20);
-        visible.render_layer_mask = RenderLayerSet::layer(2);
+        visible.common.layer_mask = RenderLayerSet::layer(2);
 
         let mut fallback_extract =
             test_extract_with_camera_layer(vec![hidden.clone(), visible.clone()], 2);
@@ -406,7 +426,10 @@ mod tests {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            common: crate::core::framework::render::RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+                ..Default::default()
+            },
         }
     }
 }

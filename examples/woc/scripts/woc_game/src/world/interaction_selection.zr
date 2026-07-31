@@ -1,0 +1,200 @@
+var container = %import("zr.container");
+
+// Candidate rows are already filtered by the source entity predicates. This
+// module owns only interaction precedence and distance comparison semantics.
+pub class CandidateSet {
+    pub var ids: container.Array<uint>;
+    pub var distanceSquared: container.Array<float>;
+    pub var corpses: container.Array<bool>;
+    pub var objects: container.Array<bool>;
+    pub var questEntities: container.Array<bool>;
+    pub var bankers: container.Array<bool>;
+    pub var spiritHealers: container.Array<bool>;
+
+    pub @constructor() {
+        this.ids = new container.Array<uint>();
+        this.distanceSquared = new container.Array<float>();
+        this.corpses = new container.Array<bool>();
+        this.objects = new container.Array<bool>();
+        this.questEntities = new container.Array<bool>();
+        this.bankers = new container.Array<bool>();
+        this.spiritHealers = new container.Array<bool>();
+    }
+
+    pub add(
+        id: uint,
+        distanceSquared: float,
+        corpse: bool,
+        object: bool,
+        questEntity: bool,
+        banker: bool,
+        spiritHealer: bool
+    ): void {
+        if (id == <uint>0 || distanceSquared < 0.0) {
+            throw "interaction selection candidate is invalid";
+        }
+        this.ids.add(id);
+        this.distanceSquared.add(distanceSquared);
+        this.corpses.add(corpse);
+        this.objects.add(object);
+        this.questEntities.add(questEntity);
+        this.bankers.add(banker);
+        this.spiritHealers.add(spiritHealer);
+    }
+}
+
+pub class Selection {
+    // 0 none, 1 corpse, 2 object, 3 banker, 4 quest, 5 spirit healer.
+    pub var route: int;
+    pub var targetId: uint;
+
+    pub @constructor(route: int, targetId: uint) {
+        this.route = route;
+        this.targetId = targetId;
+    }
+}
+
+validateCandidates(candidates: CandidateSet): void {
+    if (candidates.ids.length != candidates.distanceSquared.length ||
+        candidates.ids.length != candidates.corpses.length ||
+        candidates.ids.length != candidates.objects.length ||
+        candidates.ids.length != candidates.questEntities.length ||
+        candidates.ids.length != candidates.bankers.length ||
+        candidates.ids.length != candidates.spiritHealers.length) {
+        throw "interaction selection candidate columns have different lengths";
+    }
+}
+
+none(): Selection {
+    return new Selection(0, <uint>0);
+}
+
+directSelection(candidates: CandidateSet, index: int): Selection {
+    var id = <uint>candidates.ids[index];
+    if (<bool>candidates.corpses[index]) { return new Selection(1, id); }
+    if (<bool>candidates.objects[index]) { return new Selection(2, id); }
+    if (<bool>candidates.bankers[index]) { return new Selection(3, id); }
+    if (<bool>candidates.questEntities[index]) { return new Selection(4, id); }
+    return none();
+}
+
+nearestRoute(candidates: CandidateSet, route: int): Selection {
+    var bestIndex = -1;
+    // The source sets each nearby bucket's best distance to 5^2 and uses a
+    // strict comparison, so an entity at exactly five yards is excluded.
+    var bestDistanceSquared = 25.0;
+    var index = 0;
+    while (index < candidates.ids.length) {
+        var matches = route == 1 ? <bool>candidates.corpses[index] :
+            route == 2 ? <bool>candidates.objects[index] :
+            <bool>candidates.questEntities[index];
+        var distanceSquared = <float>candidates.distanceSquared[index];
+        if (matches && distanceSquared < bestDistanceSquared) {
+            bestIndex = index;
+            bestDistanceSquared = distanceSquared;
+        }
+        index = index + 1;
+    }
+    if (bestIndex < 0) { return none(); }
+    var id = <uint>candidates.ids[bestIndex];
+    if (route == 3 && <bool>candidates.bankers[bestIndex]) {
+        return new Selection(3, id);
+    }
+    return new Selection(route, id);
+}
+
+nearestSpiritHealer(candidates: CandidateSet): Selection {
+    var bestIndex = -1;
+    var bestDistanceSquared = 25.0;
+    var index = 0;
+    while (index < candidates.ids.length) {
+        var distanceSquared = <float>candidates.distanceSquared[index];
+        if (<bool>candidates.spiritHealers[index] && distanceSquared < bestDistanceSquared) {
+            bestIndex = index;
+            bestDistanceSquared = distanceSquared;
+        }
+        index = index + 1;
+    }
+    return bestIndex < 0 ? none() : new Selection(5, <uint>candidates.ids[bestIndex]);
+}
+
+pub select(candidates: CandidateSet, targetId: uint, actorDead: bool): Selection {
+    validateCandidates(candidates);
+    if (actorDead) {
+        // Source ghosts ignore their selected target and can only use a nearby healer.
+        return nearestSpiritHealer(candidates);
+    }
+
+    var index = 0;
+    while (index < candidates.ids.length) {
+        if (<uint>candidates.ids[index] == targetId &&
+            <float>candidates.distanceSquared[index] <= 49.0) {
+            var direct = directSelection(candidates, index);
+            if (direct.route != 0) {
+                return direct;
+            }
+        }
+        index = index + 1;
+    }
+
+    // Nearby selection keeps independent source buckets, then gives corpse,
+    // object and quest buckets fixed precedence rather than global proximity.
+    var corpse = nearestRoute(candidates, 1);
+    if (corpse.route != 0) { return corpse; }
+    var object = nearestRoute(candidates, 2);
+    if (object.route != 0) { return object; }
+    return nearestRoute(candidates, 3);
+}
+
+pub contractTest(): int {
+    var targetedCorpse = new CandidateSet();
+    targetedCorpse.add(<uint>71, 49.0, true, false, false, false, false);
+    var targetedCorpseChoice = select(targetedCorpse, <uint>71, false);
+    if (targetedCorpseChoice.route != 1 || targetedCorpseChoice.targetId != <uint>71) {
+        return -1;
+    }
+
+    var beyondTargetRange = new CandidateSet();
+    beyondTargetRange.add(<uint>72, 49.000001, true, false, false, false, false);
+    if (select(beyondTargetRange, <uint>72, false).route != 0) { return -2; }
+
+    var targetBeforeNearby = new CandidateSet();
+    targetBeforeNearby.add(<uint>80, 16.0, true, false, false, false, false);
+    targetBeforeNearby.add(<uint>81, 40.0, false, false, true, false, false);
+    var targetBeforeNearbyChoice = select(targetBeforeNearby, <uint>81, false);
+    if (targetBeforeNearbyChoice.route != 4 || targetBeforeNearbyChoice.targetId != <uint>81) {
+        return -3;
+    }
+
+    var categoryPrecedence = new CandidateSet();
+    categoryPrecedence.add(<uint>90, 16.0, true, false, false, false, false);
+    categoryPrecedence.add(<uint>91, 1.0, false, true, false, false, false);
+    categoryPrecedence.add(<uint>92, 0.25, false, false, true, false, false);
+    var categoryPrecedenceChoice = select(categoryPrecedence, <uint>0, false);
+    if (categoryPrecedenceChoice.route != 1 || categoryPrecedenceChoice.targetId != <uint>90) {
+        return -4;
+    }
+
+    var tieOrder = new CandidateSet();
+    tieOrder.add(<uint>100, 4.0, true, false, false, false, false);
+    tieOrder.add(<uint>101, 4.0, true, false, false, false, false);
+    if (select(tieOrder, <uint>0, false).targetId != <uint>100) { return -5; }
+
+    var fiveYardBoundary = new CandidateSet();
+    fiveYardBoundary.add(<uint>110, 25.0, false, true, false, false, false);
+    if (select(fiveYardBoundary, <uint>0, false).route != 0) { return -6; }
+
+    var deadPlayer = new CandidateSet();
+    deadPlayer.add(<uint>120, 1.0, true, false, false, false, false);
+    deadPlayer.add(<uint>121, 24.999, false, false, false, false, true);
+    var deadPlayerChoice = select(deadPlayer, <uint>120, true);
+    if (deadPlayerChoice.route != 5 || deadPlayerChoice.targetId != <uint>121) {
+        return -7;
+    }
+
+    var banker = new CandidateSet();
+    banker.add(<uint>130, 1.0, false, false, true, true, false);
+    var bankerChoice = select(banker, <uint>0, false);
+    if (bankerChoice.route != 3 || bankerChoice.targetId != <uint>130) { return -8; }
+    return 1;
+}

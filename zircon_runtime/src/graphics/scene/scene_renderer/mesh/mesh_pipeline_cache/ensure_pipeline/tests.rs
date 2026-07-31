@@ -118,6 +118,98 @@ fn runtime_base_mesh_pipeline_uses_staged_prewarm_without_compile_miss() {
 }
 
 #[test]
+fn runtime_environment_only_pbr_base_prewarm_populates_the_renderer_cache() {
+    let Ok(backend) = RenderBackend::new_offscreen() else {
+        return;
+    };
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let mut streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
+
+    let first_prewarm = cache
+        .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("environment-only PBR prewarm must resolve the builtin shader revision");
+    assert!(
+        first_prewarm.pipeline_ready(),
+        "environment-only PBR prewarm must create its runtime first-frame mesh pipelines"
+    );
+    assert!(
+        first_prewarm.created_pipeline(),
+        "the first prewarm must identify synchronous runtime PSO creation"
+    );
+    assert!(
+        !first_prewarm.cache_hit(),
+        "the empty renderer cache cannot report a reuse on its first prewarm"
+    );
+    assert!(
+        first_prewarm.elapsed() >= first_prewarm.shader_source_resolution()
+            && first_prewarm.elapsed() >= first_prewarm.pipeline_creation(),
+        "the total prewarm timing must include separately reported source and PSO work"
+    );
+    let mut viewer_pipeline_key = default_pipeline_key();
+    viewer_pipeline_key.shader_revision = streamer
+        .resource_revision(viewer_pipeline_key.shader_id.clone())
+        .expect("the prewarm must register the builtin PBR shader revision");
+    viewer_pipeline_key.receive_shadows = false;
+    let viewer_variant_id = cache.resolve_variant(
+        MeshPassPipelineKind::Base,
+        &viewer_pipeline_key,
+        ShaderQualityTier::default(),
+    );
+    assert_eq!(cache.mesh_variant_pipelines.len(), 1);
+    assert!(
+        cache
+            .mesh_variant_pipelines
+            .contains_key(&viewer_variant_id),
+        "prewarm must populate the viewer's no-shadow-receiver Base variant"
+    );
+    let repeated_prewarm = cache
+        .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("repeated environment-only PBR prewarm must resolve the builtin shader revision");
+    assert!(
+        repeated_prewarm.pipeline_ready(),
+        "a repeated environment-only PBR prewarm must reuse the runtime cache"
+    );
+    assert!(
+        repeated_prewarm.cache_hit(),
+        "the repeated prewarm must identify the same renderer cache entry"
+    );
+    assert!(
+        !repeated_prewarm.created_pipeline(),
+        "a cache-hit prewarm must not claim a second synchronous PSO creation"
+    );
+    assert!(
+        repeated_prewarm.elapsed() >= repeated_prewarm.shader_source_resolution()
+            && repeated_prewarm.elapsed() >= repeated_prewarm.pipeline_creation(),
+        "the cache-hit timing must retain its source and cache lookup accounting"
+    );
+    assert_eq!(cache.mesh_variant_pipelines.len(), 1);
+
+    let error = pollster::block_on(error_scope.pop());
+    assert!(
+        error.is_none(),
+        "environment-only PBR runtime Base prewarm should pass WGPU validation: {error:?}"
+    );
+}
+
+#[test]
 fn runtime_base_mesh_pipeline_keeps_builtin_fallback_on_standard_template_after_shader_stream() {
     let Ok(backend) = RenderBackend::new_offscreen() else {
         return;
@@ -495,13 +587,7 @@ fn runtime_custom_geometry_descriptor_non_base_pipelines_use_staged_prewarm_with
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
 
         assert!(
-            ensure_custom_geometry_pass_pipeline(
-                &mut cache,
-                &device,
-                &streamer,
-                kind,
-                variant_id,
-            ),
+            ensure_custom_geometry_pass_pipeline(&mut cache, &device, &streamer, kind, variant_id,),
             "{label} pipeline should be created for plugin-range geometry source id from staged cache"
         );
 

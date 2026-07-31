@@ -53,7 +53,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
@@ -203,7 +203,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs

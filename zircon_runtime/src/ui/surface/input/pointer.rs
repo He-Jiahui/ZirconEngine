@@ -98,6 +98,7 @@ pub(super) fn dispatch_pointer_input(
             event: event.envelope.event,
             delivered: true,
             drag: event.drag,
+            template_action: event.template_action,
         })
         .collect();
     result.binding_reports = routed_result.binding_reports;
@@ -162,8 +163,12 @@ fn dispatch_pointer_event_for_metadata(
     if let Some(owner) = incoming_capture {
         surface.focus.captured = Some(owner);
     }
-    let previous_pointer_captures = surface.input.pointer_captures.clone();
     let event_kind = event.kind;
+    let previous_pointer_captures = matches!(
+        event_kind,
+        UiPointerEventKind::Up | UiPointerEventKind::Cancel
+    )
+    .then(|| surface.input.pointer_captures.clone());
     let bypass_captor = matches!(
         event_kind,
         UiPointerEventKind::Move | UiPointerEventKind::Up | UiPointerEventKind::Cancel
@@ -200,7 +205,9 @@ fn dispatch_pointer_event_for_metadata(
         event_kind,
         UiPointerEventKind::Up | UiPointerEventKind::Cancel
     ) {
-        if let Some(pointer_id) = metadata.pointer_id {
+        if let (Some(pointer_id), Some(previous_pointer_captures)) =
+            (metadata.pointer_id, previous_pointer_captures)
+        {
             for (retained_pointer_id, capture) in previous_pointer_captures {
                 if retained_pointer_id != pointer_id {
                     surface

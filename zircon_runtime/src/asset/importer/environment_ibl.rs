@@ -110,9 +110,16 @@ pub fn stage_environment_ibl_source(
     context: &AssetImportContext,
     cache_root: impl AsRef<Path>,
 ) -> Result<EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingError> {
+    let mode = environment_ibl_import_mode(context)?;
+    if mode == EnvironmentIblImportMode::Disabled || !mode.applies_to(context) {
+        return Ok(EnvironmentIblSourceStagingReport::skipped());
+    }
+    let image = decode_texture_source_image_rgba32f(context)
+        .map_err(EnvironmentIblSourceStagingError::Decode)?;
     stage_environment_ibl_source_with_builder(
         context,
         cache_root,
+        image,
         |image, face_size, pmrem_face_size, pmrem_mip_count| {
             SourceCubemapMipChain::from_equirect_with_pmrem_layout(
                 face_size,
@@ -136,9 +143,38 @@ pub fn stage_environment_ibl_source_with_parallel_executor<E>(
 where
     E: ParallelSliceExecutor,
 {
+    let mode = environment_ibl_import_mode(context)?;
+    if mode == EnvironmentIblImportMode::Disabled || !mode.applies_to(context) {
+        return Ok(EnvironmentIblSourceStagingReport::skipped());
+    }
+    let image = decode_texture_source_image_rgba32f(context)
+        .map_err(EnvironmentIblSourceStagingError::Decode)?;
+    stage_environment_ibl_source_with_parallel_executor_and_decoded_image(
+        context,
+        cache_root,
+        image,
+        parallel_executor,
+    )
+}
+
+/// Stages an equirectangular environment from caller-provided linear HDR pixels.
+///
+/// This avoids a second source decode when a runtime viewer already decoded the image for
+/// exposure or layout inspection. The request key and cache validation still derive from the
+/// original import context bytes and settings.
+pub fn stage_environment_ibl_source_with_parallel_executor_and_decoded_image<E>(
+    context: &AssetImportContext,
+    cache_root: impl AsRef<Path>,
+    image: DecodedTextureImageRgba32F,
+    parallel_executor: &E,
+) -> Result<EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingError>
+where
+    E: ParallelSliceExecutor,
+{
     stage_environment_ibl_source_with_builder(
         context,
         cache_root,
+        image,
         |image, face_size, pmrem_face_size, pmrem_mip_count| {
             SourceCubemapMipChain::from_equirect_with_pmrem_layout_and_parallel_executor(
                 face_size,
@@ -155,6 +191,7 @@ where
 fn stage_environment_ibl_source_with_builder(
     context: &AssetImportContext,
     cache_root: impl AsRef<Path>,
+    image: DecodedTextureImageRgba32F,
     build_cubemap: impl FnOnce(&DecodedTextureImageRgba32F, u32, u32, u32) -> SourceCubemapMipChain,
 ) -> Result<EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingError> {
     let mode = environment_ibl_import_mode(context)?;
@@ -162,8 +199,6 @@ fn stage_environment_ibl_source_with_builder(
         return Ok(EnvironmentIblSourceStagingReport::skipped());
     }
 
-    let image = decode_texture_source_image_rgba32f(context)
-        .map_err(EnvironmentIblSourceStagingError::Decode)?;
     if image.width != image.height.saturating_mul(2) {
         if mode == EnvironmentIblImportMode::Automatic {
             return Ok(EnvironmentIblSourceStagingReport::skipped());

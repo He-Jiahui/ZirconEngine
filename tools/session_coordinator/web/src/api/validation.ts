@@ -180,7 +180,13 @@ function emptyCpuBurst() {
 function validateExperience(value: unknown, label: string): void {
   const experience = object(value, label);
   if (experience.continuations === undefined) experience.continuations = [];
-  exactKeys(experience, ["sync", "blockers", "continuations"], label);
+  exactKeys(
+    experience,
+    experience.intervention === undefined
+      ? ["sync", "blockers", "continuations"]
+      : ["sync", "blockers", "continuations", "intervention"],
+    label,
+  );
   const sync = object(experience.sync, `${label}.sync`);
   exactKeys(sync, ["runs", "quietRuns", "visibleChanges", "averageDurationMs"], `${label}.sync`);
   for (const key of ["runs", "quietRuns", "visibleChanges", "averageDurationMs"])
@@ -203,14 +209,56 @@ function validateExperience(value: unknown, label: string): void {
     exactKeys(continuation, ["sessionId", "planPath", "waitKind", "candidate", "scopeClaimRequired", "returnToPrimary"], `${label}.continuations[${index}]`);
     boundedString(continuation.sessionId, `${label}.continuations[${index}].sessionId`, 160);
     boundedString(continuation.planPath, `${label}.continuations[${index}].planPath`, 500);
-    enumeration(continuation.waitKind, ["validation", "lease"], `${label}.continuations[${index}].waitKind`);
+    enumeration(continuation.waitKind, ["validation", "lease", "external"], `${label}.continuations[${index}].waitKind`);
     const candidate = object(continuation.candidate, `${label}.continuations[${index}].candidate`);
-    exactKeys(candidate, ["milestone", "title"], `${label}.continuations[${index}].candidate`);
+    const candidateHasRouting = candidate.kind !== undefined || candidate.planPath !== undefined;
+    exactKeys(
+      candidate,
+      candidateHasRouting ? ["kind", "planPath", "milestone", "title"] : ["milestone", "title"],
+      `${label}.continuations[${index}].candidate`,
+    );
+    if (candidateHasRouting) {
+      enumeration(candidate.kind, ["same_plan", "unowned_failure"], `${label}.continuations[${index}].candidate.kind`);
+      boundedString(candidate.planPath, `${label}.continuations[${index}].candidate.planPath`, 500);
+    }
     boundedString(candidate.milestone, `${label}.continuations[${index}].candidate.milestone`, 32);
     boundedString(candidate.title, `${label}.continuations[${index}].candidate.title`, 500);
     if (typeof continuation.scopeClaimRequired !== "boolean") throw new Error(`${label}.continuations[${index}].scopeClaimRequired 必须是布尔值`);
     if (typeof continuation.returnToPrimary !== "boolean") throw new Error(`${label}.continuations[${index}].returnToPrimary 必须是布尔值`);
   });
+  if (experience.intervention !== undefined) validateIntervention(experience.intervention, `${label}.intervention`);
+}
+
+function validateIntervention(value: unknown, label: string): void {
+  const intervention = object(value, label);
+  exactKeys(intervention, ["openFailureCount", "responsiblePlanCount", "mode", "maxConcurrentPlans", "suggestedNext", "validation"], label);
+  nonnegativeInteger(intervention.openFailureCount, `${label}.openFailureCount`);
+  nonnegativeInteger(intervention.responsiblePlanCount, `${label}.responsiblePlanCount`);
+  enumeration(intervention.mode, ["single_plan"], `${label}.mode`);
+  if (intervention.maxConcurrentPlans !== 1) throw new Error(`${label}.maxConcurrentPlans 必须为 1`);
+  if (intervention.suggestedNext !== null) {
+    const next = object(intervention.suggestedNext, `${label}.suggestedNext`);
+    exactKeys(next, ["kind", "planPath", "summary", "priority", "action"], `${label}.suggestedNext`);
+    enumeration(next.kind, ["failure"], `${label}.suggestedNext.kind`);
+    boundedString(next.planPath, `${label}.suggestedNext.planPath`, 500);
+    boundedString(next.summary, `${label}.suggestedNext.summary`, 500);
+    nonnegativeInteger(next.priority, `${label}.suggestedNext.priority`);
+    enumeration(next.action, ["resolve_one_failure"], `${label}.suggestedNext.action`);
+  }
+  const validation = object(intervention.validation, `${label}.validation`);
+  exactKeys(validation, ["waitingSessionCount", "pendingReservationCount", "nextReservation"], `${label}.validation`);
+  nonnegativeInteger(validation.waitingSessionCount, `${label}.validation.waitingSessionCount`);
+  nonnegativeInteger(validation.pendingReservationCount, `${label}.validation.pendingReservationCount`);
+  if (validation.nextReservation !== null) {
+    const next = object(validation.nextReservation, `${label}.validation.nextReservation`);
+    exactKeys(next, ["sessionId", "queuePosition", "executionMode"], `${label}.validation.nextReservation`);
+    boundedString(next.sessionId, `${label}.validation.nextReservation.sessionId`, 160);
+    const queuePosition = next.queuePosition;
+    nonnegativeInteger(queuePosition, `${label}.validation.nextReservation.queuePosition`);
+    if (typeof queuePosition !== "number" || queuePosition < 1)
+      throw new Error(`${label}.validation.nextReservation.queuePosition 必须大于零`);
+    enumeration(next.executionMode, ["warm", "burst"], `${label}.validation.nextReservation.executionMode`);
+  }
 }
 
 function validateCodexSessions(value: unknown, label: string): void {

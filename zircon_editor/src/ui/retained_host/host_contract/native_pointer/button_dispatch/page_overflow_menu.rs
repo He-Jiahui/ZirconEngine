@@ -4,7 +4,8 @@ use crate::ui::retained_host::host_contract::data::{
 use crate::ui::retained_host::host_contract::frame_geometry::union_frame;
 use crate::ui::retained_host::host_contract::globals::UiHostContext;
 use crate::ui::retained_host::host_contract::host_page_overflow_menu::{
-    host_page_overflow_popup_contains, host_page_overflow_popup_frame, host_page_overflow_row_hit,
+    host_page_overflow_popup_frame, host_page_overflow_popup_frame_contains,
+    host_page_overflow_row_hit_in_popup,
 };
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
@@ -20,7 +21,7 @@ pub(super) fn dispatch_host_page_overflow_menu_primary_press(
         return None;
     }
     let popup = host_page_overflow_popup_frame(presentation)?;
-    if let Some(hit) = host_page_overflow_row_hit(presentation, x, y) {
+    if let Some(hit) = host_page_overflow_row_hit_in_popup(presentation, &popup, x, y) {
         ui.global::<UiHostContext>()
             .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData::default());
         ui.global::<UiHostContext>()
@@ -36,7 +37,7 @@ pub(super) fn dispatch_host_page_overflow_menu_primary_press(
         ));
     }
 
-    if host_page_overflow_popup_contains(presentation, x, y) {
+    if host_page_overflow_popup_frame_contains(&popup, x, y) {
         return Some(NativePointerDispatchResult::region(popup));
     }
     if contains(

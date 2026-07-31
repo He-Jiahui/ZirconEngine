@@ -1,4 +1,3 @@
-use crate::core::editing::history::EditorHistory;
 use crate::scene::selection::{SelectionModel, WorldDomain};
 use crate::ui::workbench::snapshot::EditorBridgeDiagnosticsSnapshot;
 use crate::ui::workbench::startup::EditorSessionMode;
@@ -12,7 +11,7 @@ use super::no_project_open::no_project_open;
 pub(crate) struct EditorPlaySession {
     scene: Scene,
     selection: SelectionModel,
-    history: EditorHistory,
+    gizmos_enabled: bool,
     session_mode_before_play: EditorSessionMode,
 }
 
@@ -21,7 +20,7 @@ impl EditorPlaySession {
         Self {
             scene,
             selection: state.viewport_controller.selection().clone(),
-            history: state.history.clone(),
+            gizmos_enabled: state.viewport_controller.settings().gizmos_enabled,
             session_mode_before_play: state.session_mode,
         }
     }
@@ -38,31 +37,33 @@ impl EditorState {
             return Ok(false);
         }
 
-        let Some(scene) = self.world.try_snapshot() else {
-            let message = no_project_open();
-            self.status_line = message.clone();
-            return Err(message);
-        };
+        self.with_exclusive_scene_transition("enter editor play mode", |state, _transition| {
+            let Some(scene) = state.world.try_snapshot() else {
+                let message = no_project_open();
+                state.status_line = message.clone();
+                return Err(message);
+            };
 
-        self.play_session = Some(EditorPlaySession::capture(self, scene));
-        let edit_items = self
-            .viewport_controller
-            .selection()
-            .items(WorldDomain::Edit)
-            .iter()
-            .copied()
-            .collect::<Vec<_>>();
-        let edit_primary = self
-            .viewport_controller
-            .selection()
-            .primary(WorldDomain::Edit);
-        let selection = self.viewport_controller.selection_mut();
-        selection.replace(WorldDomain::Play, edit_items, edit_primary);
-        selection.set_active_domain(WorldDomain::Play);
-        self.session_mode = EditorSessionMode::Playing;
-        self.history.clear();
-        self.status_line = "Entered play mode".to_string();
-        Ok(true)
+            state.play_session = Some(EditorPlaySession::capture(state, scene));
+            let edit_items = state
+                .viewport_controller
+                .selection()
+                .items(WorldDomain::Edit)
+                .iter()
+                .copied()
+                .collect::<Vec<_>>();
+            let edit_primary = state
+                .viewport_controller
+                .selection()
+                .primary(WorldDomain::Edit);
+            let selection = state.viewport_controller.selection_mut();
+            selection.replace(WorldDomain::Play, edit_items, edit_primary);
+            selection.set_active_domain(WorldDomain::Play);
+            state.viewport_controller.settings_mut().gizmos_enabled = false;
+            state.session_mode = EditorSessionMode::Playing;
+            state.status_line = "Entered play mode".to_string();
+            Ok(true)
+        })
     }
 
     pub fn exit_play_mode(&mut self) -> Result<bool, String> {
@@ -72,20 +73,27 @@ impl EditorState {
             return Err(message);
         }
 
-        let Some(session) = self.play_session.take() else {
+        if self.play_session.is_none() {
             self.status_line = "Not in play mode".to_string();
             return Ok(false);
-        };
+        }
 
-        self.world
-            .try_with_world_mut(|scene| *scene = session.scene)
-            .ok_or_else(no_project_open)?;
-        *self.viewport_controller.selection_mut() = session.selection;
-        self.history = session.history;
-        self.session_mode = session.session_mode_before_play;
-        self.sync_selection_state();
-        self.status_line = "Exited play mode and restored edit state".to_string();
-        Ok(true)
+        self.with_exclusive_scene_transition("exit editor play mode", |state, _transition| {
+            let session = state
+                .play_session
+                .take()
+                .ok_or_else(|| "play session disappeared during exclusive exit".to_string())?;
+            state
+                .world
+                .try_with_world_mut(|scene| *scene = session.scene)
+                .ok_or_else(no_project_open)?;
+            *state.viewport_controller.selection_mut() = session.selection;
+            state.viewport_controller.settings_mut().gizmos_enabled = session.gizmos_enabled;
+            state.session_mode = session.session_mode_before_play;
+            state.sync_selection_state();
+            state.status_line = "Exited play mode and restored edit state".to_string();
+            Ok(true)
+        })
     }
 
     pub(crate) fn sync_bridge_diagnostics_matrix(

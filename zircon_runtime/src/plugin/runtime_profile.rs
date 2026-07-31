@@ -1,9 +1,14 @@
 mod availability;
+mod availability_projection;
 mod availability_report;
 mod defaults;
 mod descriptor;
 mod feature_presets;
 
+pub use availability_projection::{
+    RuntimePluginAvailabilityGeneration, RuntimePluginAvailabilityRow,
+    RuntimePluginAvailabilitySummary,
+};
 pub use availability_report::{
     RuntimePluginAvailabilityCategory, RuntimePluginAvailabilityEntry,
     RuntimePluginAvailabilityReport,

@@ -1,5 +1,5 @@
-use crate::scene::ecs::{ChangeTickWindow, SystemParamAccess, SystemParamError};
 use crate::scene::World;
+use crate::scene::ecs::{ChangeTickWindow, SystemParamAccess, SystemParamError};
 
 pub trait SystemParam {
     type State;

@@ -89,6 +89,7 @@ fn invalid_plugin_combination_rejected_with_diagnostic() {
         "net-only",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([ExportPackagingStrategy::LibraryEmbed])
     .with_selected_plugins(["net".to_string()])];
@@ -127,8 +128,8 @@ fn validate_report_summarizes_profile_plan_and_fatal_state() {
         "net-library",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Minimal,
     )
-    .with_runtime_profile_id(crate::core::framework::project::RuntimeProfileId::Minimal)
     .with_strategies([ExportPackagingStrategy::LibraryEmbed])
     .with_selected_plugins(["net".to_string()])
     .with_feature_selection("net", ["http".to_string()])
@@ -191,6 +192,7 @@ fn feature_matrix_links_selected_plugins_only() {
         "windows-release",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_build_mode(crate::core::framework::project::ExportBuildMode::Release)
     .with_strategies([ExportPackagingStrategy::LibraryEmbed])

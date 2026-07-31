@@ -4,6 +4,7 @@ use crate::ui::retained_host::host_contract::diagnostics::{
 };
 use crate::ui::retained_host::primitives::CloseRequestResponse;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::UiHostWindow;
 
@@ -98,6 +99,69 @@ fn first_presented_frame_exit_policy_defaults_off_and_can_be_enabled() {
     host.set_exit_after_first_presented_frame(true);
 
     assert!(host.exit_after_first_presented_frame());
+}
+
+#[test]
+fn first_presented_frame_capture_writes_one_png_and_consumes_its_request() {
+    let host = UiHostWindow::new().expect("host window should construct for capture test");
+    let path = std::env::temp_dir().join(format!(
+        "zircon-editor-first-presented-frame-{}-{}.png",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_file(&path);
+
+    host.set_first_presented_frame_capture_path(Some(path.clone()));
+
+    let written = host
+        .capture_first_presented_frame()
+        .expect("first frame capture should succeed");
+    assert_eq!(written, Some(path.clone()));
+    let png = std::fs::read(&path).expect("capture should create a PNG");
+    assert!(png.starts_with(b"\x89PNG\r\n\x1a\n"));
+    assert_eq!(
+        host.capture_first_presented_frame()
+            .expect("capture request should be consumed"),
+        None
+    );
+
+    std::fs::remove_file(path).expect("capture artifact should be removable");
+}
+
+#[test]
+fn first_presented_frame_capture_reports_an_unwritable_parent_to_the_app_boundary() {
+    let host = UiHostWindow::new().expect("host window should construct for capture test");
+    let parent_file = std::env::temp_dir().join(format!(
+        "zircon-editor-first-presented-frame-parent-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_file(&parent_file);
+    std::fs::write(&parent_file, b"not a directory")
+        .expect("capture test should create a blocking parent file");
+    host.set_first_presented_frame_capture_path(Some(parent_file.join("capture.png")));
+
+    let error = host
+        .capture_first_presented_frame()
+        .expect_err("a file cannot become the capture directory");
+    assert!(
+        error
+            .to_string()
+            .contains("failed to create editor first-frame capture directory")
+    );
+    host.record_first_presented_frame_capture_error(&error);
+    assert_eq!(
+        host.take_first_presented_frame_capture_error(),
+        Some(error.to_string())
+    );
+
+    std::fs::remove_file(parent_file).expect("blocking capture parent should be removable");
 }
 
 #[test]

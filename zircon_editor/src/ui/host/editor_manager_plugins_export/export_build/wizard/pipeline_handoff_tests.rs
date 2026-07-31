@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::{
-    ExportBuildMode, ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
+    ExportBuildMode, ExportPackagingStrategy, ExportProfile, ExportTargetPlatform, RuntimeProfileId,
 };
 use zircon_runtime_interface::export::ExportStage;
 
@@ -98,6 +98,7 @@ fn desktop_windows_profile() -> ExportProfile {
         "desktop_windows",
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
+        RuntimeProfileId::Client2d,
     )
     .with_strategies([
         ExportPackagingStrategy::SourceTemplate,

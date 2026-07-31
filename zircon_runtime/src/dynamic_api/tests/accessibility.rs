@@ -22,21 +22,23 @@ fn capture_accessibility_tree_requires_output_pointer() {
 }
 
 #[test]
-fn capture_accessibility_tree_rejects_wrong_abi_before_session_lookup() {
+fn capture_accessibility_tree_rejects_wrong_abi_after_session_action_admission() {
     let api = runtime_api();
     let capture_accessibility_tree = api
         .capture_accessibility_tree
         .expect("capture_accessibility_tree");
     let mut output = ZrOwnedByteBuffer::empty();
+    let session = create_test_session(api);
 
     let status = unsafe {
         capture_accessibility_tree(
-            ZrRuntimeSessionHandle::new(99_999),
+            session,
             accessibility_tree_request(ZIRCON_RUNTIME_ABI_VERSION_V1 + 1, 1),
             &mut output,
         )
     };
 
+    destroy_test_session(api, session);
     assert_eq!(status.status_code(), ZrStatusCode::UnsupportedVersion);
     assert!(output.is_empty());
 }
@@ -48,15 +50,17 @@ fn capture_accessibility_tree_rejects_unknown_viewport() {
         .capture_accessibility_tree
         .expect("capture_accessibility_tree");
     let mut output = ZrOwnedByteBuffer::empty();
+    let session = create_test_session(api);
 
     let status = unsafe {
         capture_accessibility_tree(
-            ZrRuntimeSessionHandle::new(99_999),
+            session,
             accessibility_tree_request(ZIRCON_RUNTIME_ABI_VERSION_V1, 44),
             &mut output,
         )
     };
 
+    destroy_test_session(api, session);
     assert_eq!(status.status_code(), ZrStatusCode::NotFound);
     assert_eq!(status_message(status), "runtime viewport not found");
     assert!(output.is_empty());

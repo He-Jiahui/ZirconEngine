@@ -30,6 +30,7 @@ members = [
     "plugin_sdk",
     "ai/runtime",
     "ai/dist",
+    "ai/editor",
     "physics/runtime",
     "physics/dist",
     "physics/editor",
@@ -132,6 +133,7 @@ members = [
     "editor_build_export_desktop/dist",
     "plugin_sdk_examples/editor",
     "plugin_sdk_examples/dist",
+    "editor_contribution_fixture/native",
     "native_dynamic_fixture/native",
 ]
 resolver = "2"

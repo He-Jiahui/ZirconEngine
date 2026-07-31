@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/core/runtime/module_lifecycle_observer.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
@@ -10,7 +10,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
   - zircon_app/src/entry/engine_entry.rs
 implementation_files:
-  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/error.rs
   - zircon_runtime/src/core/runtime/module_lifecycle_observer.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs

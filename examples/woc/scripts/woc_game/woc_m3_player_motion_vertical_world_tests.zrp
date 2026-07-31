@@ -1,0 +1,6 @@
+{
+  "name": "woc_m3_player_motion_vertical_world_tests",
+  "source": "src",
+  "binary": "bin-m3-player-motion-vertical-world-tests",
+  "entry": "world/player_motion_vertical_world_test_main"
+}
